@@ -1,324 +1,288 @@
-# Policy di Chiamata In Entrata (Integrazione Twilio)
+# Politica chiamate in arrivo
 
-Le Policy di Chiamata In Entrata consentono ai chiamanti esterni di raggiungere i propri ingegneri di guardia componendo un numero di telefono dedicato. Quando qualcuno chiama, OneUptime instrada la chiamata attraverso le regole di escalation configurate finché un ingegnere non risponde.
+Una policy chiamate in entrata dà al tuo team un numero di telefono che raggiunge chi è reperibile. Quando qualcuno lo chiama, OneUptime fa squillare, una dopo l'altra, le persone delle regole di escalation della policy finché qualcuno risponde, e mette in contatto chi chiama. I numeri e le chiamate passano dal tuo account Twilio.
 
-## Come Funziona
-
-```mermaid
-flowchart TD
-    A[Il chiamante compone<br/>il Numero Chiamata In Entrata] --> B[Twilio riceve la chiamata]
-    B --> C[Twilio invia webhook<br/>a OneUptime]
-    C --> D[OneUptime riproduce<br/>messaggio di benvenuto]
-    D --> E[Carica Regole di Escalation]
-    E --> F{Regola 1:<br/>Prova Utente Di Guardia}
-    F -->|Nessuna Risposta| G{Regola 2:<br/>Prova Team di Backup}
-    F -->|Ha Risposto| H[Connette il Chiamante<br/>all'Ingegnere]
-    G -->|Nessuna Risposta| I{Regola 3:<br/>Prova il Responsabile}
-    G -->|Ha Risposto| H
-    I -->|Nessuna Risposta| J[Riproduce Messaggio<br/>Nessuna Risposta e Riaggancia]
-    I -->|Ha Risposto| H
-    H --> K[Chiamata Connessa]
-    K --> L[Chiamata Terminata]
-    L --> M[Registra Dettagli Chiamata]
+```mermaid title="Da una telefonata a chi è reperibile"
+flowchart TB
+    caller["Chi chiama compone il<br/>numero della policy"] --> twilio["Twilio riceve la chiamata"]
+    twilio --> greeting["OneUptime<br/>riproduce il saluto"]
+    greeting --> ring["Far squillare la persona<br/>della regola successiva"]
+    ring --> answered{"Risponde<br/>in tempo?"}
+    answered -->|"Sì"| connected["Chi chiama viene<br/>messo in contatto"]
+    answered -->|"No"| more{"Un'altra regola?"}
+    more -->|"Sì"| ring
+    more -->|"No"| repeat{"Ripetere la policy?"}
+    repeat -->|"Sì"| ring
+    repeat -->|"No"| missed["Messaggio di<br/>mancata risposta,<br/>poi riaggancio"]
 ```
 
-## Flusso di Instradamento Chiamata
+:::cards
+- [Configurare una policy](#configurare-una-policy): Dal tuo account Twilio a una chiamata di prova, in sette passaggi.
+- [Come viene instradata una chiamata](#come-viene-instradata-una-chiamata): Chi squilla, per quanto tempo e che cosa sente chi chiama.
+- [Chiamate perse](#chiamate-perse): Chi viene informato e come reagire in un workflow.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Chiamate che non arrivano mai o che non raggiungono mai nessuno.
+:::
 
-```mermaid
+## Prima di iniziare
+
+| Ti serve | Perché |
+| --- | --- |
+| Un account Twilio, con il suo Account SID e il suo Auth Token | I numeri e le chiamate della policy passano da lì, e Twilio li addebita a quell'account. |
+| Il piano **Growth**, su OneUptime Cloud | Un progetto ne ha bisogno per una propria configurazione Twilio. |
+| Un server OneUptime raggiungibile da Twilio, se lo ospiti tu | Twilio invia ogni chiamata a `https://<your host>/notification/incoming-call/voice`, e l'esito di ogni squillo a `https://<your host>/notification/incoming-call/dial-status/...`. |
+| **SMS** attivi nel progetto | Il numero di ogni persona viene verificato con un codice inviato via SMS. |
+| Un numero verificato per ogni persona | Una regola fa squillare solo chi ha aggiunto e verificato un numero per le chiamate in entrata nel progetto. |
+
+## Configurare una policy
+
+:::steps
+### Aggiungi il tuo account Twilio
+
+Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**. Nella scheda **Configurazione Twilio**, fai clic su **Crea: Configurazione Twilio** e compila il modulo:
+
+- **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
+- **Twilio Account SID**: dalla console di Twilio. Inizia con `AC`.
+- **Twilio Auth Token**: dalla console di Twilio.
+- **Numero di telefono principale Twilio**: un numero di quell'account, per gli SMS e le chiamate che invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e numeri per gli SMS se i numeri dell'account possono solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
+- **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, così anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivalo se l'account serve solo per le chiamate in entrata.
+
+### Crea la policy
+
+Vai in **Reperibilità** > **Policy chiamate in entrata** e fai clic su **Crea: Policy chiamate in entrata**. Dalle un **Nome**, ad esempio «Linea di supporto»; **Descrizione** ed **Etichette** sono facoltative, in **Altri campi**. La nuova policy si apre sulla sua **Panoramica**.
+
+### Scegli l'account Twilio
+
+La **Panoramica** della policy mostra una scheda **Configurazione** con tre passaggi numerati. Nel primo, fai clic su **Seleziona**, scegli l'account in **Configurazione Twilio** e fai clic su **Salva**.
+
+### Aggiungi un numero di telefono
+
+Nel secondo passaggio, fai clic su **Add Phone Number**. Scegli **Use Existing Phone Number** per usare un numero che il tuo account Twilio ha già, oppure **Reserve New Phone Number** per ottenerne uno nuovo. OneUptime fa puntare il numero verso di sé, quindi in Twilio non c'è nulla da configurare. Vedi [Numeri di telefono](#numeri-di-telefono).
+
+### Aggiungi le regole di escalation
+
+Nel terzo passaggio, fai clic su **Gestisci regole**. Aggiungi una regola per ogni pianificazione di reperibilità o persona da far squillare, nell'ordine in cui devono squillare. Vedi [Regole di escalation](#regole-di-escalation).
+
+### Verifica il numero di ogni persona
+
+Ogni persona che una regola può far squillare aggiunge e verifica il proprio numero per le chiamate in entrata. Vedi [Numeri delle persone reperibili](#numeri-delle-persone-reperibili).
+
+### Chiama il numero
+
+Quando i tre passaggi sono completati, la scheda diventa **Phone Numbers & Twilio Configuration**. Chiama il numero da un telefono qualsiasi, poi apri i **Registri chiamate** della policy per vedere chi ha squillato.
+:::
+
+## Come viene instradata una chiamata
+
+1. Twilio invia la chiamata a OneUptime, che legge il **Messaggio di benvenuto** della policy.
+2. OneUptime fa squillare la persona indicata dalla prima regola di escalation: quella persona, oppure chi è reperibile in quel momento nella pianificazione di reperibilità della regola, sostituzioni utente comprese. Il suo telefono mostra il numero della policy come chiamante.
+3. Se risponde entro la **Durata dello squillo** della regola, chi chiama viene messo in contatto, e il registro chiamate annota chi ha risposto.
+4. Altrimenti chi chiama sente «Connecting you to the next available engineer.» e squilla la persona della regola successiva.
+5. Dopo l'ultima regola decide il **Criterio di ripetizione** della policy: **Squilla di nuovo dalla prima regola** fa squillare di nuovo ogni regola, tante altre volte quante indica, e **Termina la chiamata** no. Poi chi chiama sente il **Messaggio di mancata risposta**, e la chiamata termina.
+
+```mermaid title="Le richieste dietro una chiamata"
 sequenceDiagram
-    participant Chiamante
+    participant Caller as Chi chiama
     participant Twilio
     participant OneUptime
-    participant IngegnereDiGuardia
-
-    Chiamante->>Twilio: Compone il numero chiamata in entrata
-    Twilio->>OneUptime: POST /incoming-call/voice
-    OneUptime->>Twilio: TwiML: Riproduce messaggio di benvenuto
-    Twilio->>Chiamante: "Attenda mentre la connettiamo..."
-
-    loop Regole di Escalation
-        OneUptime->>OneUptime: Ottieni prossima regola di escalation
-        OneUptime->>Twilio: TwiML: Chiama utente di guardia
-        Twilio->>IngegnereDiGuardia: Squilla il telefono
-        alt L'Ingegnere Risponde
-            IngegnereDiGuardia->>Twilio: Risponde
-            Twilio->>OneUptime: Stato chiamata: completata
-            Twilio->>Chiamante: Connette all'ingegnere
-            Note over Chiamante,IngegnereDiGuardia: Chiamata in corso
-        else Nessuna Risposta (timeout)
-            Twilio->>OneUptime: Stato chiamata: nessuna-risposta
-            OneUptime->>OneUptime: Prova la regola successiva
-        end
-    end
-
-    alt Tutte le Regole Esaurite
-        OneUptime->>Twilio: TwiML: Riproduce messaggio nessuna-risposta
-        Twilio->>Chiamante: "Nessuno è disponibile..."
-        Twilio->>Chiamante: Riaggancia
-    end
+    participant Engineer as Persona<br/>reperibile
+    Caller->>Twilio: Compone<br/>il numero<br/>della policy
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Saluto, poi far<br/>squillare la<br/>persona della<br/>prima regola
+    Twilio->>Engineer: Squilla per<br/>la durata<br/>dello squillo<br/>della regola
+    Note over Twilio,Engineer: Nessuno risponde<br/>in tempo
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Far squillare<br/>la persona<br/>della regola<br/>successiva
+    Twilio->>Engineer: Fa squillare<br/>la persona<br/>successiva
+    Engineer-->>Twilio: Risponde
+    Twilio-->>Caller: Mette in<br/>contatto<br/>chi chiama
 ```
 
-## Prerequisiti
+Una regola viene saltata, senza far squillare nessuno, quando in quel momento non c'è nessuno da chiamare per essa: la sua pianificazione non ha nessuno reperibile, la persona non ha un numero verificato per le chiamate in entrata in questo progetto, oppure non è più membro del progetto. Quando nessuna regola ha qualcuno da far squillare, chi chiama sente il **Messaggio di nessuno disponibile**. Con **Rispondi alle chiamate** disattivato, una policy risponde a ogni chiamata con «Sorry, this service is currently disabled.» e riaggancia.
 
-- Un account Twilio - Crearne uno su [https://www.twilio.com](https://www.twilio.com)
-- Il proprio Twilio Account SID e Auth Token
-- Accesso alla propria istanza self-hosted di OneUptime
+OneUptime verifica la firma di Twilio su ogni richiesta con l'Auth Token della configurazione Twilio, e rifiuta una richiesta che non riesce a verificare.
 
-## Panoramica
+> [!TIP]
+> Salva il numero della policy come contatto sul telefono, ad esempio «Linea di supporto», così riconosci una chiamata instradata quando squilla.
 
-La funzionalità Policy di Chiamata In Entrata funziona:
+## Regole di escalation
 
-1. Ricevendo le chiamate in entrata su un numero di telefono Twilio
-2. Riproducendo un messaggio di benvenuto personalizzabile
-3. Instradando la chiamata attraverso le regole di escalation (team, pianificazioni o utenti)
-4. Connettendo il chiamante al primo ingegnere di guardia disponibile
-5. Escalando alla regola successiva se nessuno risponde
+Le regole di escalation decidono chi squilla quando qualcuno chiama il numero della policy, dall'alto verso il basso dell'elenco. Apri la policy, scegli **Regole di escalation** nel suo menu laterale e fai clic su **Aggiungi regola di escalation**. Una regola è un solo passaggio breve:
 
-Poiché si ospita OneUptime autonomamente, sarà necessario configurare il proprio account Twilio. Questo fornisce il pieno controllo sui propri numeri di telefono e sulla fatturazione.
-
-## Fase 1: Creare un Account Twilio
-
-1. Accedere a [https://www.twilio.com](https://www.twilio.com) e registrarsi
-2. Completare il processo di verifica
-3. Annotare il proprio **Account SID** e **Auth Token** dalla dashboard della Console Twilio
-
-## Fase 2: Configurare la Config Chiamata/SMS in OneUptime
-
-1. Accedere al Dashboard di OneUptime
-2. Accedere a **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**
-3. Fare clic su **Crea Config Chiamata/SMS Personalizzata**
-4. Compilare i seguenti campi:
-   - **Nome**: Un nome descrittivo (ad es. "Config Twilio Produzione")
-   - **Descrizione**: Descrizione opzionale
-   - **Twilio Account SID**: Il proprio Twilio Account SID (inizia con `AC`)
-   - **Twilio Auth Token**: Il proprio Twilio Auth Token
-   - **Numero di telefono principale Twilio**: Un numero di telefono dal proprio account Twilio per le chiamate in uscita
-5. Fare clic su **Salva**
-
-## Fase 3: Creare una Policy di Chiamata In Entrata
-
-1. Accedere a **Reperibilità** > **Policy chiamate in entrata**
-2. Fare clic su **Crea Policy Chiamata In Entrata**
-3. Compilare i seguenti campi:
-   - **Nome**: Un nome descrittivo (ad es. "Hotline Supporto")
-   - **Descrizione**: Descrizione opzionale
-4. Fare clic su **Salva**
-
-## Fase 4: Collegare la Configurazione Twilio alla Policy
-
-1. Aprire la Policy di Chiamata In Entrata appena creata
-2. Nella scheda **Instradamento Numero Telefono**, trovare **Fase 2: Collega Configurazione Twilio**
-3. Fare clic su **Seleziona Config Twilio** e scegliere la configurazione creata nella Fase 2
-4. Salvare la selezione
+- **Chi chiamare**: una pianificazione di reperibilità o una sola persona. Una pianificazione fa squillare chi è reperibile in essa quando arriva la chiamata. Le persone sono i membri del tuo progetto.
+- **Durata dello squillo (in secondi)**: per quanto squilla il loro telefono prima che la chiamata passi alla regola successiva. Parte da 20 secondi, e Twilio accetta da 5 a 600.
+- **Nome** e **Descrizione** sono facoltativi, in **Altri campi**. Una regola senza nome viene elencata in base alla sua posizione: **Level 1**, **Level 2**.
 
-## Fase 5: Configurare un Numero di Telefono
-
-Esistono due opzioni per configurare un numero di telefono:
-
-### Opzione A: Usare un Numero Twilio Esistente
-
-Se si hanno già numeri di telefono nel proprio account Twilio:
-
-1. Nella scheda **Numero di telefono**, fare clic su **Usa Numero Esistente**
-2. OneUptime recupererà tutti i numeri di telefono dall'account Twilio
-3. Selezionare il numero di telefono da usare
-4. Fare clic su **Usa Questo** per assegnarlo alla policy
-
-> **Nota**: Se il numero di telefono ha già un webhook configurato, verrà aggiornato per puntare a OneUptime.
+Le regole vengono chiamate dall'alto verso il basso dell'elenco, e una nuova regola viene aggiunta in fondo. Per cambiare l'ordine, trascina una regola tenendola per la maniglia in alto a sinistra. Da tastiera, porta il focus sulla maniglia, premi Spazio, spostala con le frecce e premi di nuovo Spazio.
 
-### Opzione B: Acquistare un Nuovo Numero di Telefono
+> [!WARNING]
+> **Attenzione alla segreteria**: mantieni la **Durata dello squillo** più breve del tempo che il telefono della persona impiega a inviare una chiamata senza risposta alla segreteria. Se la segreteria risponde per prima, chi chiama viene collegato a essa e la chiamata non passa alla regola successiva. Twilio aggiunge qualche secondo suo a ogni squillo. Per questo una nuova regola parte da 20 secondi. Le regole aggiunte quando il valore predefinito era 30 secondi mantengono i loro 30: se le loro chiamate finiscono in segreteria, abbassa la **Durata dello squillo** di quelle regole.
 
-Per acquistare un nuovo numero di telefono direttamente da OneUptime:
+Ad esempio, tre regole che provano due rotazioni e poi un responsabile:
 
-1. Nella scheda **Numero di telefono**, fare clic su **Acquista Nuovo Numero**
-2. Selezionare un **Paese** dal menu a discesa
-3. Inserire opzionalmente un **Prefisso** (ad es. 02 per Milano)
-4. Inserire opzionalmente le cifre che il numero deve **Contenere**
-5. Fare clic su **Cerca** per trovare i numeri disponibili
-6. Selezionare un numero di telefono dai risultati
-7. Fare clic su **Acquista** per comprare il numero
+| Livello | Chi chiamare | Durata dello squillo |
+| --- | --- | --- |
+| Level 1 | Pianificazione di reperibilità primaria | 20 secondi |
+| Level 2 | Pianificazione di reperibilità secondaria | 20 secondi |
+| Level 3 | Responsabile tecnico (una persona) | 20 secondi |
 
-Il numero di telefono verrà acquistato dall'account Twilio e il webhook verrà **configurato automaticamente** — nessuna configurazione manuale necessaria!
+## Numeri di telefono
 
-```mermaid
-flowchart LR
-    A[Crea Policy] --> B[Collega Config Twilio]
-    B --> C{Scegli Opzione<br/>Numero Telefono}
-    C -->|Esistente| D[Seleziona dall'<br/>Account Twilio]
-    C -->|Nuovo| E[Cerca & Acquista<br/>Nuovo Numero]
-    D --> F[Webhook Auto-Configurato]
-    E --> F
-    F --> G[Aggiungi Regole Escalation]
-    G --> H[Policy Pronta!]
-```
+Una policy può avere più numeri, e ognuno fa squillare le stesse regole. Ogni numero appartiene a una sola policy. Aggiungili con **Add Phone Number** nella **Panoramica** della policy:
 
-## Fase 6: Configurare le Regole di Escalation
+:::tabs
+@tab Usare un numero che hai già
+1. Fai clic su **Add Phone Number**, poi su **Use Existing Phone Number**. OneUptime elenca i numeri dell'account Twilio della policy.
+2. Fai clic su **Seleziona** accanto al numero, poi su **Assegna numero**.
 
-Le regole di escalation determinano come vengono instradate le chiamate:
+Un numero le cui chiamate vanno già altrove lo indica con «Currently has a webhook configured». Assegnarlo invia invece le sue chiamate a OneUptime.
+@tab Prenotare un numero nuovo
+1. Fai clic su **Add Phone Number**, poi su **Reserve New Phone Number** e **Cerca numeri**.
+2. Scegli un **Paese**. Se vuoi, compila **Prefisso (facoltativo)**, ad esempio 415, o **Contiene (facoltativo)** con le cifre che il numero deve contenere. Fai clic su **Cerca**: vengono elencati fino a 10 numeri locali.
+3. Fai clic su **Prenota** accanto a un numero e conferma con **Prenota**. Twilio addebita il numero sul tuo account Twilio.
+:::
 
-1. Aprire la Policy di Chiamata In Entrata
-2. Accedere alla scheda **Regole di escalation**
-3. Fare clic su **Aggiungi Regola Escalation**
-4. Configurare la regola:
-   - **Ordine**: L'ordine di priorità (i numeri più bassi vengono provati prima)
-   - **Escala dopo (secondi)**: Quanto tempo attendere prima di eseguire l'escalation
-   - **Pianificazione di reperibilità**: Selezionare una pianificazione per instradare a chi è di guardia
-   - **Team**: Selezionare team specifici
-   - **Utenti**: Selezionare utenti specifici
-5. Aggiungere ulteriori regole di escalation secondo necessità
+OneUptime imposta il webhook vocale del numero su `https://<your host>/notification/incoming-call/voice`, costruito da `HOST` e `HTTP_PROTOCOL` su un'installazione self-hosted. Per spostare una policy su un altro account Twilio, rilascia prima i suoi numeri: l'account può cambiare solo finché la policy non ne ha.
 
-### Esempio di Regola di Escalation
+Per rilasciare un numero, fai clic su **Rilascia** accanto a esso e conferma con **Rilascia numero**.
 
-```mermaid
-flowchart TD
-    subgraph "Catena di Escalation"
-        A[Regola 1: Di Guardia Primario<br/>Attendi 30 secondi] --> B[Regola 2: Di Guardia Secondario<br/>Attendi 30 secondi]
-        B --> C[Regola 3: Lead Ingegneria<br/>Attendi 30 secondi]
-        C --> D[Messaggio Nessuna Risposta]
-    end
-```
+> [!CAUTION]
+> Rilasciare un numero lo restituisce a Twilio, anche un numero portato con **Use Existing Phone Number**, e potresti non riaverlo. Eliminare una policy, o la configurazione Twilio che usa, rilascia anche i suoi numeri.
 
-| Ordine | Escalation Dopo | Target                               |
-| ------ | --------------- | ------------------------------------ |
-| 1      | 30 secondi      | Pianificazione Di Guardia Primario   |
-| 2      | 30 secondi      | Pianificazione Di Guardia Secondario |
-| 3      | 30 secondi      | Lead Team Ingegneria                 |
+## Numeri delle persone reperibili
 
-## Fase 7: Configurare i Messaggi Vocali (Opzionale)
+Una regola fa squillare una persona sul numero che ha verificato per le chiamate in entrata in questo progetto, e salta chi non ne ha uno. Ogni persona aggiunge il proprio:
 
-Personalizzare i messaggi che i chiamanti sentono:
+:::steps
+1. Apri **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**. **Policy chiamate in entrata** è una sezione del menu laterale che parte chiusa.
+2. Nella scheda **Numeri di telefono per l'instradamento delle chiamate in entrata**, fai clic su **Aggiungi: Numero di telefono per l'instradamento delle chiamate in entrata** e inserisci il numero con il prefisso internazionale, ad esempio `+15551234567`.
+3. Inserisci il codice a 6 cifre che OneUptime invia al numero via SMS in **Codice di verifica**, e fai clic su **Verifica**. **Send a new code** ne invia un altro.
+:::
 
-1. Aprire la Policy di Chiamata In Entrata
-2. Accedere a **Impostazioni**
-3. Configurare:
-   - **Messaggio di benvenuto**: Riprodotto quando la chiamata viene risposta
-   - **Messaggio di mancata risposta**: Riprodotto quando tutte le regole di escalation falliscono
-   - **Messaggio di nessuno disponibile**: Riprodotto quando nessuno è di guardia
+Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-## Opzioni di Configurazione
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
 
-### Impostazioni Policy
+## Messaggi vocali e impostazioni della policy
 
-| Impostazione                      | Descrizione                                                | Predefinito                                                                  |
-| --------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Messaggio di Benvenuto            | Messaggio TTS riprodotto quando la chiamata viene risposta | "Attendi mentre ti mettiamo in contatto con il tecnico reperibile."          |
-| Messaggio Nessuna Risposta        | Messaggio quando tutte le regole di escalation falliscono  | "Nessuno è disponibile. Riprova più tardi."                                  |
-| Messaggio Nessuno Disponibile     | Messaggio quando nessuno è di guardia                      | "Siamo spiacenti, ma al momento non è disponibile alcun tecnico reperibile." |
-| Ripeti Policy Se Nessuno Risponde | Ricominciare dalla prima regola se tutte falliscono        | Disabilitato                                                                 |
-| Volte Ripetizione Policy          | Numero massimo di tentativi di ripetizione                 | 1                                                                            |
+Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. Ha tre schede:
 
-### Impostazioni Regola Escalation
+- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i registri chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**. Finché è disattivato, la **Panoramica** della policy lo indica, con **Riprendi a rispondere alle chiamate** per riattivarlo.
+- **Criterio di ripetizione**: cosa succede quando nessuno risponde dopo l'ultima regola. **Modifica** chiede **Se nessuno risponde dopo l'ultima regola**: **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola** e **Quante volte ancora?**.
+- **Messaggi vocali**: cosa sente chi chiama. **Modifica messaggi** li cambia.
 
-| Impostazione              | Descrizione                                                              |
-| ------------------------- | ------------------------------------------------------------------------ |
-| Ordine                    | Ordine di priorità (1 = priorità più alta)                               |
-| Escalation Dopo Secondi   | Tempo di attesa prima di provare la regola successiva (predefinito: 30s) |
-| Pianificazione Di Guardia | Instrada a chi è attualmente di guardia                                  |
-| Team                      | Instrada a tutti i membri dei team selezionati                           |
-| Utenti                    | Instrada a utenti specifici                                              |
-
-## Visualizzazione dei Log delle Chiamate
+| Impostazione | Che cosa fa | Per una nuova policy |
+| --- | --- | --- |
+| **Messaggio di benvenuto** | Letto quando qualcuno chiama, prima che venga chiamato chiunque. | "Please wait while we connect you to the on-call engineer." |
+| **Messaggio di mancata risposta** | Letto quando ogni regola ha squillato e nessuno ha risposto, prima che la chiamata termini. | "No one is available. Please try again later." |
+| **Messaggio di nessuno disponibile** | Letto quando non si può chiamare nessuno, per esempio quando nessuno è reperibile. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Rispondi alle chiamate ai numeri di questa policy** | Disattivato, ogni chiamante sente "Sorry, this service is currently disabled." e la chiamata termina. | Attivo |
+| **Se nessuno risponde dopo l'ultima regola** | **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola**. | **Termina la chiamata** |
 
-Per visualizzare la cronologia delle chiamate in entrata:
+Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino. Un messaggio lasciato vuoto viene letto con le parole di OneUptime, che la scheda mostra al suo posto.
 
-1. Accedere a **Reperibilità** > **Policy chiamate in entrata**
-2. Fare clic sulla propria policy
-3. Accedere alla scheda **Registri chiamate**
+## Registri chiamate
 
-I log mostrano:
+Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Registri** nel suo menu laterale: il **Chiamante**, il **Number Called**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **View Timeline** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
-- Numero di telefono del chiamante
-- Stato della chiamata (Completata, Nessuna Risposta, Fallita, ecc.)
-- Chi ha risposto alla chiamata
-- Durata della chiamata
-- Timestamp
+| Stato | Che cosa è successo |
+| --- | --- |
+| **Initiated**, **Escalated** | La chiamata è ancora in corso: è arrivata e un telefono sta squillando, o è passata a una regola successiva. |
+| **Completato** | Qualcuno ha risposto e chi chiamava è stato messo in contatto. |
+| **Nessuna risposta** | Sono state provate tutte le regole di escalation e nessuno ha risposto. Chi chiamava ha sentito il tuo **Messaggio di mancata risposta**. |
+| **Caller Hung Up** | Chi chiamava ha riagganciato mentre il telefono di una persona squillava. |
+| **Non riuscito** | Non è stato possibile far squillare nessuno: nessuna regola di escalation aveva una persona reperibile con un numero verificato per le chiamate in entrata (chi chiamava ha sentito il tuo **Messaggio di nessuno disponibile**), oppure **Rispondi alle chiamate** è disattivato. |
 
-## Configurazione del Numero di Telefono degli Utenti
+## Chiamate perse
 
-Affinché gli utenti possano ricevere chiamate in entrata, devono avere un numero di telefono verificato:
+Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è **Nessuna risposta**, **Caller Hung Up** o **Non riuscito**.
 
-1. Gli utenti accedono a **Impostazioni utente** > **Metodi di notifica**
-2. Aggiungono un numero di telefono sotto **Numeri Chiamata In Entrata**
-3. Verificano il numero di telefono tramite codice SMS
+### Chi viene avvisato
 
-Solo gli utenti con numeri di telefono verificati possono essere chiamati attraverso le regole di escalation.
+Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i proprietari del progetto.
 
-## Rilascio di un Numero di Telefono
+L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel registro chiamate.
 
-Se non si ha più bisogno di un numero di telefono:
+I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegliere altri canali (SMS, chiamata, push e altro) o disattivarlo in **Impostazioni utente** > **Impostazioni notifiche**, in **Reperibilità** > **Policy chiamate in entrata** > **Chiamata persa**. Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 
-1. Aprire la Policy di Chiamata In Entrata
-2. Nella scheda **Numero di telefono**, fare clic su **Rilascia numero**
-3. Confermare il rilascio
+### Reagire alle chiamate perse in un workflow
 
-> **Attenzione**: I numeri rilasciati vengono restituiti a Twilio e potrebbero non essere disponibili per il riacquisto.
+I registri delle chiamate in entrata sono disponibili come trigger dei workflow:
 
-## Risoluzione dei Problemi
+- **On Create Incoming Call Log** si attiva quando arriva una chiamata.
+- **On Update Incoming Call Log** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
 
-### Le chiamate non vengono ricevute
+Per agire solo sulle chiamate perse, ad esempio per pubblicarle in Slack o Microsoft Teams o aprire un ticket:
 
-- Verificare che la configurazione Twilio sia correttamente collegata alla policy
-- Verificare che la propria istanza OneUptime sia accessibile da Internet
-- Verificare che Twilio Account SID e Auth Token siano corretti
-- Controllare la Console Twilio per i log degli errori
+:::steps
+1. Aggiungi il trigger **On Update Incoming Call Log**. Imposta **Fields to watch** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
+2. Aggiungi un passaggio **If / Else**. Controlla lo **Status** del trigger, con il confronto **è diverso da** e `Completed`.
+3. Collega i tuoi passaggi alla porta **Yes**.
+:::
 
-### Le chiamate non si connettono agli ingegneri
+Un workflow può leggere i registri chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.
 
-- Verificare che gli utenti abbiano numeri di telefono verificati nelle impostazioni di notifica
-- Verificare che le regole di escalation siano configurate correttamente
-- Assicurarsi che le pianificazioni di guardia abbiano utenti assegnati per l'orario corrente
-- Verificare che la policy sia abilitata
+## Chi può aggiungere e rilasciare numeri di telefono
 
-### Problemi di qualità audio
+I numeri di telefono di una policy seguono gli stessi ruoli della policy stessa:
 
-- Assicurarsi che il server abbia una connessione internet stabile
-- Controllare la pagina di stato di Twilio per eventuali problemi in corso
-- Verificare che i numeri di telefono siano nel formato corretto (formato E.164: +390276543210)
+- **Cercare numeri** - cercare su Twilio un numero da prenotare, o elencare i numeri che il tuo account Twilio ha già - richiede il permesso di leggere le policy chiamate in entrata e di leggere le configurazioni di chiamate e SMS, perché legge il tuo account Twilio tramite una di esse. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** e **Settings Viewer** li hanno entrambi. In un ruolo personalizzato, sono **Read Incoming Call Policy** e **Read Call and SMS**.
+- **Prenotare un numero, usarne uno esistente e rilasciarne uno** richiedono il permesso di modificare le policy chiamate in entrata: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** e **Settings Member**, oppure **Edit Incoming Call Policy** in un ruolo personalizzato. Cambiano i numeri di una policy che puoi modificare: con un ruolo limitato ad alcune etichette, le policy che hanno quelle etichette.
 
-## Considerazioni sulla Sicurezza
+Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiunque altro, **Add Phone Number** e **Rilascia** restano nella pagina, bloccati, e il loro suggerimento dice che cosa serve. L'API rifiuta la richiesta con una frase che dice che cosa serve: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oppure "Adding or releasing a phone number needs permission to edit incoming call policies." Prenotare un numero viene addebitato sul tuo account Twilio, non sul saldo di OneUptime, quindi non richiede alcun permesso di fatturazione.
 
-- Mantenere il proprio Twilio Auth Token sicuro e non esporlo pubblicamente
-- Usare HTTPS per la propria istanza OneUptime
-- OneUptime valida le firme dei webhook per garantire che le richieste provengano da Twilio
-- Considerare di limitare i numeri di telefono che possono chiamare le proprie policy di chiamata in entrata
+## Creare policy con l'API o Terraform
 
-## Panoramica dell'Architettura
+| Risorsa | Route dell'API |
+| --- | --- |
+| Policy chiamate in entrata | `/api/incoming-call-policy` |
+| Le loro regole di escalation | `/api/incoming-call-policy-escalation-rule` |
+| I loro numeri di telefono, sola lettura | `/api/incoming-call-policy-phone-number` |
+| Registri chiamate, sola lettura | `/api/incoming-call-log` |
 
-```mermaid
-graph TB
-    subgraph "Esterno"
-        A[Chiamante]
-        B[Twilio Cloud]
-    end
+Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 secondi, come una che Terraform crea senza `escalate_after_seconds`.
 
-    subgraph "OneUptime"
-        C[API Chiamata In Entrata]
-        D[Router Chiamate]
-        E[Motore Escalation]
-        F[Database]
-    end
+### Impostazioni di una regola di escalation
 
-    subgraph "Team Di Guardia"
-        G[Ingegnere 1]
-        H[Ingegnere 2]
-        I[Responsabile]
-    end
+| Impostazione | Campo dell'API | Che cosa contiene |
+| --- | --- | --- |
+| Chi chiamare | `onCallDutyPolicyScheduleId` o `userId` | Uno dei due, mai entrambi: la pianificazione di cui squilla la persona reperibile, oppure la persona. |
+| Durata dello squillo (in secondi) | `escalateAfterSeconds` | Per quanto squilla il telefono prima che la chiamata prosegua (predefinito: 20; da 5 a 600). |
+| Nome e Descrizione | `name`, `description` | Facoltativi. Una regola senza nome viene elencata come Level 1, Level 2 e così via, in base alla sua posizione. |
+| Ordine | `order` | Dove si trova la regola nell'elenco: le regole vengono chiamate dall'alto verso il basso. Una nuova regola senza ordine va in fondo. |
 
-    A -->|1. Compone numero| B
-    B -->|2. Webhook| C
-    C -->|3. Carica policy| F
-    C -->|4. Ottieni regole| D
-    D -->|5. Elabora regole| E
-    E -->|6. Risposta TwiML| B
-    B -->|7. Chiama| G
-    B -->|8. Escalation| H
-    B -->|9. Escalation| I
-```
+## Risoluzione dei problemi
 
-## Supporto
+:::details Le chiamate non arrivano a OneUptime
+- Nella console di Twilio, apri il numero: **A call comes in** deve essere il webhook `https://<your host>/notification/incoming-call/voice`, con HTTP POST. OneUptime lo imposta quando il numero viene aggiunto, da `HOST` e `HTTP_PROTOCOL`. Se nel frattempo sono cambiati, correggi il webhook in Twilio.
+- Un OneUptime self-hosted deve essere raggiungibile da Internet via https. Il registro chiamate del numero nella console di Twilio, e il **Debugger** di Twilio, mostrano che cosa ha risposto OneUptime.
+- Una risposta `403` significa che la firma della richiesta non è risultata valida. Verifica che la configurazione Twilio contenga l'attuale **Twilio Auth Token** dell'account, e che un proxy davanti a OneUptime inoltri l'host e lo schema chiamati da Twilio (`X-Forwarded-Host` e `X-Forwarded-Proto`).
+:::
 
-Per problemi con la funzionalità Policy di Chiamata In Entrata, si prega di:
+:::details La chiamata viene presa, ma non squilla nessuno
+Il registro chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
+:::
 
-1. Controllare la Console Twilio per i log degli errori
-2. Esaminare i log del server OneUptime
-3. Contattare il supporto all'indirizzo [hello@oneuptime.com](mailto:hello@oneuptime.com)
+:::details Le chiamate finiscono in segreteria
+Se le chiamate finiscono nella segreteria di una persona, imposta la **Durata dello squillo** della regola sotto il tempo che il suo telefono impiega a passare alla segreteria. Una segreteria che risponde conta come risposta, e la chiamata si ferma lì.
+:::
+
+:::details Non è possibile prenotare un numero nuovo
+In molti paesi Twilio richiede un regulatory bundle approvato prima di vendere numeri locali, e alcuni numeri richiedono un saldo Twilio positivo. Configuralo nella console di Twilio, oppure ottieni lì il numero e aggiungilo con **Use Existing Phone Number**.
+:::
+
+:::details Non è possibile cambiare l'account Twilio della policy
+L'account può cambiare solo finché la policy non ha numeri di telefono: la pagina dice «Remove all phone numbers to change». Rilasciare i numeri li restituisce a Twilio, quindi pianifica il cambio prima.
+:::
+
+:::details Il codice per il numero di una persona non arriva
+Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Send a new code** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Registri di notifica** mostra che cosa gli è successo.
+:::
+
+## Passaggi successivi
+
+:::cards
+- [Regole di escalation](/docs/on-call/escalation-rules): Come una policy di reperibilità avvisa le persone, livello per livello.
+- [Pianificazioni di reperibilità](/docs/on-call/schedules): Costruisci le rotazioni che le tue regole fanno squillare.
+- [Workflow](/docs/workflows/index): Reagisci alle chiamate perse: pubblicale in un canale o apri un ticket.
+- [Integrazione SMS e voce di Twilio](/docs/self-hosted/twilio-integration): Configura Twilio per un'installazione self-hosted.
+:::

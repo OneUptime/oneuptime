@@ -22,7 +22,14 @@ import TimeAnnotationUtil from "../Utils/TimeAnnotation";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
+import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../TimeRangeZoom/TimeRangeZoomContext";
 
 export const BarChartPalette: Array<AvailableChartColorsKeys> = [
   "indigo",
@@ -59,10 +66,23 @@ export interface ComponentProps {
    */
   colors?: Array<ChartColorValue> | undefined;
   /*
-   * Double-click on the plot: undoes a board-wide zoom. Bar panels have no
-   * drag-to-select of their own but share the dashboard's time range.
+   * When provided, the chart supports drag-to-select: dragging across bars
+   * calls back with the [start, end) of the time they cover. Left unset,
+   * the chart zooms the enclosing page instead, when the page offers that
+   * (TimeRangeZoomScope).
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Double-click on the plot: undoes whatever drag-to-select produced, on
+   * this chart or a neighbouring one. Supply it only when a reset is
+   * actually possible.
    */
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * Keeps this chart out of drag-to-zoom altogether, including the page's:
+   * for a chart whose window is not the page's time range.
+   */
+  disableTimeRangeZoom?: boolean | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -73,6 +93,22 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
   props: BarInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+
+  /*
+   * Drag-to-zoom: the host's own handlers, or else the enclosing page's
+   * (TimeRangeZoomScope), so a drag here retimes every chart on the page.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const timeRangeZoom: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onTimeRangeReset: props.onTimeRangeReset,
+    isTimeAxis:
+      props.xAxis.options.type === XAxisType.Time ||
+      props.xAxis.options.type === XAxisType.Date,
+    disableTimeRangeZoom: props.disableTimeRangeZoom,
+    pageZoom: pageZoom,
+  });
 
   const categories: Array<string> = props.data.map((item: SeriesPoint) => {
     return item.seriesName;
@@ -161,7 +197,8 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
             ? formattedReferenceRegions
             : undefined
         }
-        onTimeRangeReset={props.onTimeRangeReset}
+        onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+        onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
       />
       {hasNoData && <NoDataMessage />}
     </div>

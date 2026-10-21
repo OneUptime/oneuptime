@@ -4,13 +4,39 @@ import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService"
 import NetworkSiteAssignmentRuleService from "../../../Server/Services/NetworkSiteAssignmentRuleService";
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkDeviceService,
+    jest.spyOn(NetworkDeviceService, "findBy"),
+  );
+});
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the device side of site auto-assignment:
@@ -651,12 +677,10 @@ describe("NetworkDeviceService.onBeforeUpdate (previous-site capture)", () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "findBy")
       .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
-    // The hook now validates that the new site is in the device's project.
-    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue({
-      id: SITE_B_ID,
-      _id: SITE_B_ID.toString(),
-      projectId: PROJECT_ID,
-    } as unknown as NetworkSite);
+    // The site default probe a move or create inherits: none.
+    jest
+      .spyOn(NetworkSiteService, "resolveDefaultProbeIdForSite")
+      .mockResolvedValue(null);
 
     const result: OnUpdate<NetworkDevice> = await (
       NetworkDeviceService as any
@@ -666,7 +690,8 @@ describe("NetworkDeviceService.onBeforeUpdate (previous-site capture)", () => {
       props: { isRoot: true },
     } as unknown as UpdateBy<NetworkDevice>);
 
-    expect(findBySpy).toHaveBeenCalledTimes(1);
+    // One snapshot read (the generic check reads what the device holds first).
+    expect(snapshotReads(findBySpy)).toBe(1);
     expect(result.carryForward.previousDevices).toHaveLength(1);
   });
 
@@ -733,11 +758,10 @@ describe("NetworkDeviceService.onBeforeUpdate (previous-site capture)", () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "findBy")
       .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
-    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue({
-      id: SITE_B_ID,
-      _id: SITE_B_ID.toString(),
-      projectId: PROJECT_ID,
-    } as unknown as NetworkSite);
+    // The site default probe a move or create inherits: none.
+    jest
+      .spyOn(NetworkSiteService, "resolveDefaultProbeIdForSite")
+      .mockResolvedValue(null);
 
     const result: OnUpdate<NetworkDevice> = await (
       NetworkDeviceService as any
@@ -747,10 +771,17 @@ describe("NetworkDeviceService.onBeforeUpdate (previous-site capture)", () => {
       props: { isRoot: true },
     } as unknown as UpdateBy<NetworkDevice>);
 
-    expect(findBySpy).toHaveBeenCalledTimes(1);
+    expect(snapshotReads(findBySpy)).toBe(1);
     expect(result.carryForward.previousDevices).toHaveLength(1);
   });
 });
+
+// The service's own snapshot reads - those that select the device's site.
+function snapshotReads(findBySpy: jest.SpyInstance): number {
+  return findBySpy.mock.calls.filter((call: Array<any>): boolean => {
+    return Boolean(call[0]?.select?.siteId);
+  }).length;
+}
 
 /*
  * The FK behind siteId only requires the NetworkSite row to exist, so without
@@ -758,27 +789,40 @@ describe("NetworkDeviceService.onBeforeUpdate (previous-site capture)", () => {
  * make the rollup chain write there under root props.
  */
 describe("NetworkDeviceService site tenancy guard", () => {
+  /*
+   * The site must be the device's project's own (ProjectReferencesService):
+   * read pinned to the project, so another project's site and one that does
+   * not exist get the same answer.
+   */
+  let directory: ProjectDirectoryStub;
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    // The devices the caller's update may write: what the suite's read answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      NetworkDeviceService,
+      jest.spyOn(NetworkDeviceService, "findBy"),
+    );
+    // SITE_A_ID is the project's site; SITE_B_ID belongs to another project.
+    directory = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkSite: [SITE_A_ID.toString()] },
+    });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-    "44444444-4444-4444-8444-444444444444",
+  const MISSING_SITE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-0000000000dd",
   );
 
-  function fakeSite(projectId: ObjectID): NetworkSite {
-    return {
-      id: SITE_B_ID,
-      _id: SITE_B_ID.toString(),
-      projectId: projectId,
-    } as unknown as NetworkSite;
+  function refusalFor(siteId: ObjectID): string {
+    return `This network device references records that are not in this project: Network Site "${siteId.toString()}". Please pick values from this project and try again.`;
   }
 
   it("onBeforeCreate rejects a site from another project", async () => {
-    jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(fakeSite(OTHER_PROJECT_ID));
-
     await expect(
       (NetworkDeviceService as any).onBeforeCreate({
         data: {
@@ -787,44 +831,48 @@ describe("NetworkDeviceService site tenancy guard", () => {
         },
         props: { tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(SITE_B_ID));
   });
 
-  it("onBeforeCreate rejects a siteId that does not resolve to a row", async () => {
-    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(null);
-
+  it("onBeforeCreate rejects a siteId that does not resolve to a row, in the same words", async () => {
     await expect(
       (NetworkDeviceService as any).onBeforeCreate({
         data: {
           projectId: PROJECT_ID,
-          siteId: SITE_B_ID,
+          siteId: MISSING_SITE_ID,
         },
         props: { tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(MISSING_SITE_ID));
   });
 
   it("onBeforeCreate accepts a same-project site", async () => {
+    // The site default probe a move or create inherits: none.
     jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(fakeSite(PROJECT_ID));
-
+      .spyOn(NetworkSiteService, "resolveDefaultProbeIdForSite")
+      .mockResolvedValue(null);
     const result: any = await (NetworkDeviceService as any).onBeforeCreate({
       data: {
         projectId: PROJECT_ID,
-        siteId: SITE_B_ID,
+        siteId: SITE_A_ID,
       },
       props: { tenantId: PROJECT_ID },
     });
 
     expect(result.carryForward).toBeNull();
+    expect(
+      directory.recordLookups.some(
+        (lookup: { model: string; projectId: string }): boolean => {
+          return (
+            lookup.model === "NetworkSite" &&
+            lookup.projectId === PROJECT_ID.toString()
+          );
+        },
+      ),
+    ).toBe(true);
   });
 
   it("onBeforeCreate rejects a foreign site given as the `site` relation", async () => {
-    jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(fakeSite(OTHER_PROJECT_ID));
-
     await expect(
       (NetworkDeviceService as any).onBeforeCreate({
         data: {
@@ -833,16 +881,13 @@ describe("NetworkDeviceService site tenancy guard", () => {
         },
         props: { tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(SITE_B_ID));
   });
 
   it("onBeforeUpdate rejects a foreign site given as the `site` relation", async () => {
     jest
       .spyOn(NetworkDeviceService, "findBy")
       .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
-    jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(fakeSite(OTHER_PROJECT_ID));
 
     await expect(
       (NetworkDeviceService as any).onBeforeUpdate({
@@ -850,16 +895,13 @@ describe("NetworkDeviceService site tenancy guard", () => {
         data: { site: { _id: SITE_B_ID.toString() } },
         props: { tenantId: PROJECT_ID },
       } as unknown as UpdateBy<NetworkDevice>),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(SITE_B_ID));
   });
 
   it("onBeforeUpdate rejects moving a device into another project's site", async () => {
     jest
       .spyOn(NetworkDeviceService, "findBy")
       .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
-    jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(fakeSite(OTHER_PROJECT_ID));
 
     await expect(
       (NetworkDeviceService as any).onBeforeUpdate({
@@ -867,13 +909,13 @@ describe("NetworkDeviceService site tenancy guard", () => {
         data: { siteId: SITE_B_ID },
         props: { tenantId: PROJECT_ID },
       } as unknown as UpdateBy<NetworkDevice>),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(SITE_B_ID));
   });
 
-  it("onBeforeUpdate scopes the previous-device read to the caller's project", async () => {
+  it("onBeforeUpdate reads the previous devices among those the caller may write, in their project", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "findBy")
-      .mockResolvedValue([]);
+      .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
 
     await (NetworkDeviceService as any).onBeforeUpdate({
       query: { _id: DEVICE_ID.toString() },
@@ -881,9 +923,14 @@ describe("NetworkDeviceService site tenancy guard", () => {
       props: { tenantId: PROJECT_ID },
     } as unknown as UpdateBy<NetworkDevice>);
 
+    // The devices the caller may write, found in their project.
+    const writable: any = readsOfRowsCallerMayWrite(NetworkDeviceService)[0]!;
+    expect(writable.query._id).toBe(DEVICE_ID.toString());
+    expect(writable.query.projectId.toString()).toBe(PROJECT_ID.toString());
+
+    // Then those, by id.
     const query: any = findBySpy.mock.calls[0]![0].query;
-    expect(query._id).toBe(DEVICE_ID.toString());
-    expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(query).toEqual({ _id: DEVICE_ID.toString() });
   });
 
   it("onUpdateSuccess recomputes nothing when the scoped update matched no rows", async () => {

@@ -59,9 +59,30 @@ describe("Network Site Type settings use parent relationships", () => {
   });
 });
 
+/*
+ * A site's details are edited in one place, its Settings page: the
+ * Overview's Network Site Details card is read-only and links there, so it
+ * has no editor of its own to hold to this flow.
+ */
+describe("Site overview", () => {
+  const source: string = readSource(
+    "Pages",
+    "NetworkSite",
+    "View",
+    "Index.tsx",
+  );
+
+  test("edits nothing, and links to the site's Settings", () => {
+    expect(source).not.toContain("formFields=");
+    expect(source).not.toContain("formSteps=");
+    expect(source).toMatch(
+      /<EditInSettingsLink.*PageMap\.NETWORK_SITE_VIEW_SETTINGS/,
+    );
+  });
+});
+
 describe.each([
   ["Sites page", ["Pages", "NetworkSite", "Sites.tsx"]],
-  ["Site overview editor", ["Pages", "NetworkSite", "View", "Index.tsx"]],
   ["Site settings editor", ["Pages", "NetworkSite", "View", "Settings.tsx"]],
 ])(
   "%s follows the type-first hierarchy flow",
@@ -104,7 +125,7 @@ describe.each([
 
     test("describes the parent picker as a suggestion, not a filter", () => {
       expect(source).toContain(
-        "Any site that is not below this one in your site type hierarchy can be the parent",
+        "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
       );
       expect(source).not.toContain(
         "Only sites whose type is the configured parent",
@@ -131,7 +152,7 @@ describe("Child Sites creation respects the known parent's type", () => {
   test("offers every child type the hierarchy does not place above this site", () => {
     expect(source).toContain("fetchChildNetworkSiteTypeOptions(modelId)");
     expect(source).toContain(
-      "Any type except the ones above this site's own type in the hierarchy",
+      "Any type except the ones above this site's type.",
     );
     expect(source).not.toContain(
       "Only types configured directly beneath this site's type are available",

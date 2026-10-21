@@ -1,4 +1,8 @@
-import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import CriteriaFilterUtil, {
+  PROFILE_CHECK_ON_LABELS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import fs from "fs";
+import path from "path";
 import {
   CheckOn,
   CriteriaFilter,
@@ -125,7 +129,10 @@ const ALL_FILTER_TYPES: Array<FilterType> = Object.values(
 /*
  * The default criteria a monitor of this type is created with, as the criteria
  * form would receive them. `getDefaultOnlineMonitorCriteriaInstance` returns
- * null for monitor types that only ship an offline criteria.
+ * null for monitor types that only ship an offline criteria, and
+ * `getDefaultWarningMonitorCriteriaInstance` for every type but SSL
+ * Certificate and Domain, whose "expires soon" warning is held to the same
+ * bar as everything else seeded.
  */
 function seededCriteriaInstances(
   monitorType: MonitorType,
@@ -138,6 +145,11 @@ function seededCriteriaInstances(
       alertSeverityId: new ObjectID("cccccccccccccccccccccccc"),
       monitorName: "Acme",
       metricOptions: { metricAliases: ["cpu"] },
+    }),
+    MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+      monitorType: monitorType,
+      alertSeverityId: new ObjectID("eeeeeeeeeeeeeeeeeeeeeeee"),
+      monitorName: "Acme",
     }),
     MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
       monitorType: monitorType,
@@ -216,6 +228,61 @@ describe("Criteria filter defaults", () => {
           );
 
         expect(designed.length).toBeGreaterThan(0);
+      },
+    );
+
+    /*
+     * The thresholds new monitors start with: the healthy status range of a
+     * Website or API monitor and the expiry warnings of SSL Certificate and
+     * Domain monitors. Pinned here so the sweeps above provably cover them,
+     * and so each arrives with its number in the value box rather than as a
+     * condition waiting for one.
+     */
+    test.each([
+      [MonitorType.Website, CheckOn.ResponseStatusCode, FilterType.LessThan],
+      [
+        MonitorType.Website,
+        CheckOn.ResponseStatusCode,
+        FilterType.GreaterThanOrEqualTo,
+      ],
+      [MonitorType.API, CheckOn.ResponseStatusCode, FilterType.LessThan],
+      [
+        MonitorType.API,
+        CheckOn.ResponseStatusCode,
+        FilterType.GreaterThanOrEqualTo,
+      ],
+      [
+        MonitorType.SSLCertificate,
+        CheckOn.ExpiresInDays,
+        FilterType.LessThanOrEqualTo,
+      ],
+      [
+        MonitorType.Domain,
+        CheckOn.DomainExpiresDaysIn,
+        FilterType.LessThanOrEqualTo,
+      ],
+    ])(
+      "%s seeds a %s / %s threshold the form can draw, value included",
+      (monitorType: MonitorType, checkOn: CheckOn, filterType: FilterType) => {
+        const seeded: Array<CriteriaFilter> = seededCriteriaInstances(
+          monitorType,
+        ).flatMap((instance: MonitorCriteriaInstance) => {
+          return instance.data!.filters.filter((filter: CriteriaFilter) => {
+            return (
+              filter.checkOn === checkOn && filter.filterType === filterType
+            );
+          });
+        });
+
+        expect(seeded.length).toBeGreaterThan(0);
+
+        for (const filter of seeded) {
+          expect(checkOnOptionsFor(monitorType)).toContain(checkOn.toString());
+          expect(filterTypeOptionsFor(checkOn)).toContain(
+            filterType.toString(),
+          );
+          expect(typeof filter.value).toBe("number");
+        }
       },
     );
 
@@ -427,9 +494,29 @@ describe("Criteria filter defaults", () => {
       expect(checkOnOptionsFor(MonitorType.Manual)).toEqual([]);
     });
 
-    test("Profiles monitors offer the profile count and nothing else", () => {
+    /*
+     * ProfileMonitorCriteria judges these two and nothing else: whether
+     * profiles arrive, and a function's share of the window.
+     */
+    test("Profiles monitors offer the profile count and a function's share", () => {
       expect(checkOnOptionsFor(MonitorType.Profiles)).toEqual([
         CheckOn.ProfileCount,
+        CheckOn.ProfileFunctionShare,
+      ]);
+    });
+
+    test("a function's share is compared above or below, Greater Than first", () => {
+      expect(
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+          CheckOn.ProfileFunctionShare,
+        ).map((option: DropdownOption): unknown => {
+          return option.value;
+        }),
+      ).toEqual([
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
       ]);
     });
 
@@ -473,6 +560,28 @@ describe("Criteria filter defaults", () => {
           MonitorType.IoTDevice,
         ),
       ).toBe(CheckOn.MetricValue);
+    });
+
+    /*
+     * The metric-only types are the metric-backed ones (MonitorTypeHelper's
+     * one list) minus IoT Device, so a type added to that list is metric-only
+     * too unless it is left out here on purpose, as IoT Device is.
+     */
+    test("the metric-only types are every metric-backed type but IoT Device", () => {
+      const metricOnly: Array<MonitorType> = (
+        Object.values(MonitorType) as Array<MonitorType>
+      ).filter((monitorType: MonitorType): boolean => {
+        return CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType);
+      });
+
+      expect([...metricOnly].sort()).toEqual(
+        MonitorTypeHelper.getMetricBackedMonitorTypes()
+          .filter((monitorType: MonitorType): boolean => {
+            return monitorType !== MonitorType.IoTDevice;
+          })
+          .sort(),
+      );
+      expect(metricOnly.length).toBe(10);
     });
 
     test.each([
@@ -737,5 +846,63 @@ describe("Criteria filter defaults", () => {
         filter!.filterType!.toString(),
       );
     });
+  });
+});
+
+/*
+ * A Profiles monitor's criteria dropdown draws each option's label (its
+ * CheckOn value) in the reader's language: the two numbers it compares are
+ * spelled out for the locale files, and every locale words them.
+ */
+describe("the Profiles criteria, in every language", () => {
+  const LOCALES_DIR: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  function readLocale(locale: string): Record<string, unknown> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
+    ) as Record<string, unknown>;
+  }
+
+  test("the labels spelled out for the locale files are the options' labels, in order", () => {
+    expect(
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
+        MonitorType.Profiles,
+      ).map((option: DropdownOption): unknown => {
+        return option.label;
+      }),
+    ).toEqual([...PROFILE_CHECK_ON_LABELS]);
+  });
+
+  test("English ships each label as a key, and every other locale has its own words", () => {
+    const locales: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json");
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(locales).toHaveLength(17);
+
+    for (const locale of locales) {
+      const words: Record<string, unknown> = readLocale(locale);
+
+      for (const label of PROFILE_CHECK_ON_LABELS) {
+        const value: unknown = words[label];
+
+        expect({
+          locale,
+          label,
+          worded:
+            typeof value === "string" &&
+            value.trim() !== "" &&
+            (locale === "en" ? value === label : value !== label),
+        }).toEqual({ locale, label, worded: true });
+      }
+    }
   });
 });

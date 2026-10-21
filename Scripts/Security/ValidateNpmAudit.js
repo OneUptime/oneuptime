@@ -168,29 +168,19 @@ function validateAuditReport({
     }
   });
 
-  const memo = new Map();
-  const visiting = new Set();
-
   function isRelevantSeverity(severity) {
     return (SEVERITY_RANK[severity] ?? Number.POSITIVE_INFINITY) >= threshold;
   }
 
-  function isAllowed(name) {
-    if (memo.has(name)) {
-      return memo.get(name);
-    }
+  const relevantNames = Object.keys(vulnerabilities).filter((name) => {
+    return isRelevantSeverity(vulnerabilities[name].severity);
+  });
 
+  // What the report says about each relevant node on its own: the relevant
+  // packages it is vulnerable through, and the advisories that name it.
+  const ownFacts = new Map();
+  relevantNames.forEach((name) => {
     const vulnerability = vulnerabilities[name];
-    if (!vulnerability || !isRelevantSeverity(vulnerability.severity)) {
-      memo.set(name, true);
-      return true;
-    }
-    if (visiting.has(name)) {
-      memo.set(name, false);
-      return false;
-    }
-
-    visiting.add(name);
     const relevantVia = (vulnerability.via || []).filter((via) => {
       if (typeof via === "string") {
         const child = vulnerabilities[via];
@@ -198,32 +188,73 @@ function validateAuditReport({
       }
       return isRelevantSeverity(via.severity || vulnerability.severity);
     });
+    ownFacts.set(name, {
+      children: relevantVia.filter((via) => typeof via === "string"),
+      advisories: relevantVia
+        .filter((via) => typeof via !== "string")
+        .map(advisoryId),
+    });
+  });
 
-    const allowed =
-      relevantVia.length > 0 &&
-      relevantVia.every((via) => {
-        if (typeof via === "string") {
-          return isAllowed(via);
+  // Every relevant node reachable through `via` from each one, itself
+  // included. npm's graph has cycles (metro -> metro-config -> metro), so
+  // this is a plain search. A recursion would have to guess at a node it was
+  // still in the middle of deciding, and remembering that guess as the
+  // answer blocks the whole cycle even when every way out of it is covered.
+  const reachable = new Map();
+  relevantNames.forEach((name) => {
+    const reached = new Set([name]);
+    const stack = [name];
+    while (stack.length > 0) {
+      ownFacts.get(stack.pop()).children.forEach((child) => {
+        if (!reached.has(child)) {
+          reached.add(child);
+          stack.push(child);
         }
-
-        const exception = exceptionByAdvisory.get(advisoryId(via));
-        if (!exception) {
-          return false;
-        }
-        exception.used = true;
-        return true;
       });
+    }
+    reachable.set(name, reached);
+  });
 
-    visiting.delete(name);
-    memo.set(name, allowed);
-    return allowed;
+  // A node can only be traced to an advisory if one is reachable from it. A
+  // node that reaches none - its via names nothing relevant, or it sits in a
+  // cycle of packages blaming each other - cannot be covered by any
+  // exception, so it, and everything that reaches it, stays blocked.
+  const reachesAdvisory = new Map();
+  relevantNames.forEach((name) => {
+    reachesAdvisory.set(
+      name,
+      [...reachable.get(name)].some((member) => {
+        return ownFacts.get(member).advisories.length > 0;
+      }),
+    );
+  });
+
+  // A node is approved only when everything it is vulnerable through is:
+  // each relevant node it reaches can be traced to an advisory, and every
+  // advisory naming that node directly has an exception.
+  function isAllowed(name) {
+    return [...reachable.get(name)].every((member) => {
+      return (
+        reachesAdvisory.get(member) &&
+        ownFacts.get(member).advisories.every((advisory) => {
+          return exceptionByAdvisory.has(advisory);
+        })
+      );
+    });
   }
 
-  const relevantNames = Object.keys(vulnerabilities).filter((name) => {
-    return isRelevantSeverity(vulnerabilities[name].severity);
-  });
   const allowed = relevantNames.filter(isAllowed);
-  const blocked = relevantNames.filter((name) => !isAllowed(name));
+  const blocked = relevantNames.filter((name) => !allowed.includes(name));
+
+  allowed.forEach((name) => {
+    reachable.get(name).forEach((member) => {
+      ownFacts.get(member).advisories.forEach((advisory) => {
+        exceptionByAdvisory.get(advisory).used = true;
+      });
+    });
+  });
+
   const unused = exceptions.filter((entry) => !entry.seen);
 
   if (npmStatus !== 0 && relevantNames.length === 0) {

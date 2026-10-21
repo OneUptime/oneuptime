@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -38,8 +39,6 @@ import {
   buildErrorPatternLogsRoute,
   buildErrorPatternTraceRoute,
   computeErrorPatternTrend,
-  describeOccurrenceCount,
-  describeTimeRange,
   getCorrelationOccurrenceTotal,
   summarizeSharedAttributes,
 } from "../../Utils/LogsInsights";
@@ -57,6 +56,7 @@ import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntit
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import EventName from "../../Utils/EventName";
+import useAiOffered from "../../Utils/UseAiOffered";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../Metrics/Utils/UseEventTimeReferenceLines";
@@ -70,6 +70,35 @@ import {
   classifyErrorPattern,
   readEventKindFromLabel,
 } from "../../Utils/ErrorPatternInsights";
+import {
+  Bar,
+  BarChart,
+  ReferenceArea,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import {
+  ErrorPatternTimelineRow,
+  buildErrorPatternTimelineRows,
+  isErrorPatternTimelineIntraday,
+} from "./ErrorPatternTimeline";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  describeLogsOccurrenceCount,
+  describeLogsTimeRange,
+} from "./LogsInsightsCopy";
 
 /*
  * The drill-down the issue asked for: pick one error out of the Top Errors
@@ -96,30 +125,30 @@ const TREND_PRESENTATION: Record<
   { label: string; className: string; icon: IconProp }
 > = {
   rising: {
-    label: "Rising",
+    label: translationKey("Rising"),
     className: "bg-red-50 text-red-700",
     icon: IconProp.ArrowUp,
   },
   falling: {
-    label: "Falling",
+    label: translationKey("Falling"),
     className: "bg-emerald-50 text-emerald-700",
     icon: IconProp.ArrowDown,
   },
   steady: {
-    label: "Steady",
+    label: translationKey("Steady"),
     className: "bg-gray-100 text-gray-600",
     icon: IconProp.Minus,
   },
   unknown: {
-    label: "Not enough data",
+    label: translationKey("Not enough data"),
     className: "bg-gray-100 text-gray-500",
     icon: IconProp.Help,
   },
 };
 
-function formatTimestamp(date: Date | null): string {
+function formatTimestamp(date: Date | null, translator: Translator): string {
   if (!date) {
-    return "unknown";
+    return translator.translateText("unknown") as string;
   }
 
   return OneUptimeDate.getDateAsLocalFormattedString(date);
@@ -132,59 +161,221 @@ const SectionHeading: FunctionComponent<{
   title: string;
   subtitle?: string | undefined;
 }): ReactElement => {
+  // The title and subtitle are English keys, or a sentence already in the reader's language.
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mb-2">
-      <h4 className="text-sm font-semibold text-gray-900">{props.title}</h4>
+      <h4 className="text-sm font-semibold text-gray-900">
+        {translator.translateText(props.title)}
+      </h4>
       {props.subtitle && (
-        <p className="text-xs text-gray-500">{props.subtitle}</p>
+        <p className="text-xs text-gray-500">
+          {translator.translateText(props.subtitle)}
+        </p>
       )}
     </div>
   );
 };
 
-/*
- * A hand-rolled bar chart rather than a charting component: the timeline is
- * a single series of counts with no axes, legend or interaction, and the
- * panel it lives in is narrow. Bars carry a title attribute so the exact
- * bucket and count are still reachable on hover.
- */
-const Timeline: FunctionComponent<{
+export const ERROR_PATTERN_TIMELINE_TEST_ID: string = "error-pattern-timeline";
+
+interface TimelineTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: ErrorPatternTimelineRow }>;
+}
+
+const TimelineTooltip: FunctionComponent<TimelineTooltipProps> = (
+  props: TimelineTooltipProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const row: ErrorPatternTimelineRow | undefined = props.payload?.[0]?.payload;
+
+  if (!props.active || !row) {
+    return <></>;
+  }
+
+  return (
+    <div className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs shadow-lg">
+      <div className="font-medium text-gray-900">
+        {formatTimestamp(OneUptimeDate.fromString(row.time), translator)}
+      </div>
+      <div className="mt-0.5 text-gray-600">
+        {translator.translatePlural(
+          { one: "{{count}} occurrence", other: "{{count}} occurrences" },
+          row.count,
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface TimelineProps {
   points: Array<ErrorPatternTimelinePoint>;
-}> = (props: { points: Array<ErrorPatternTimelinePoint> }): ReactElement => {
+  bucketSizeInMinutes: number;
+  window: InBetween<Date>;
+}
+
+/*
+ * When the error fired, one bar per bucket across the whole window (quiet
+ * buckets included, so the bars are spaced like the time they cover).
+ *
+ * Drag across it to zoom the whole Insights page into that stretch
+ * (issue #4105): the stat cards, the top errors and this panel all follow,
+ * and a double-click (or "Reset zoom" above this chart or beside the page's
+ * picker) puts the page back. Outside a page that zooms it is a plain chart.
+ */
+const Timeline: FunctionComponent<TimelineProps> = (
+  props: TimelineProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+
+  const bucketIntervalMs: number | undefined =
+    Number.isFinite(props.bucketSizeInMinutes) && props.bucketSizeInMinutes > 0
+      ? props.bucketSizeInMinutes * 60 * 1000
+      : undefined;
+
+  const rows: Array<ErrorPatternTimelineRow> = useMemo(() => {
+    return buildErrorPatternTimelineRows({
+      points: props.points,
+      window: props.window,
+      bucketIntervalMs: bucketIntervalMs,
+    });
+  }, [props.points, props.window, bucketIntervalMs]);
+
+  /*
+   * Only a drag zooms; a plain click on a bar does not. The shared selection
+   * hook zooms into one bar on a click whenever it knows the bucket width -
+   * right for an explorer's volume chart, which exists to narrow the list
+   * beneath it - but this chart sits in a drawer and retimes the whole
+   * Insights page, so a casual click on a bar (to read it) must not. The
+   * width is withheld from the hook, which makes a single bar no window at
+   * all, and added back here for a real drag: the hook hands over the starts
+   * of the first and last bars dragged across, and the zoom runs to the end
+   * of the last one.
+   */
+  const onPageTimeRangeSelect:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined = pageZoom?.onTimeRangeSelect;
+
+  const zoomToDraggedBars: (
+    firstBucketStart: Date,
+    lastBucketStart: Date,
+  ) => void = useCallback(
+    (firstBucketStart: Date, lastBucketStart: Date): void => {
+      onPageTimeRangeSelect?.(
+        firstBucketStart,
+        new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)),
+      );
+    },
+    [onPageTimeRangeSelect, bucketIntervalMs],
+  );
+
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: onPageTimeRangeSelect ? zoomToDraggedBars : undefined,
+    onZoomOut: pageZoom?.onTimeRangeReset,
+  });
+
   if (props.points.length === 0) {
+    /*
+     * A zoom into a stretch where the error did not fire lands here, with
+     * no bars to double-click; the message takes the double-click instead.
+     * select-none: that double-click would otherwise also select a word.
+     */
     return (
-      <p className="text-sm text-gray-500">
-        No bucketed occurrences to chart in this window.
+      <p
+        className="select-none text-sm text-gray-500"
+        onDoubleClick={pageZoom?.onTimeRangeReset}
+      >
+        {translator.translateText(
+          "No bucketed occurrences to chart in this window.",
+        )}
       </p>
     );
   }
 
-  const peak: number = Math.max(
-    ...props.points.map((point: ErrorPatternTimelinePoint): number => {
-      return point.count;
-    }),
-    1,
-  );
+  const isIntraday: boolean = isErrorPatternTimelineIntraday(props.window);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely outside a page that zooms, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = pageZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   return (
-    <div className="flex h-24 items-end gap-0.5">
-      {props.points.map(
-        (point: ErrorPatternTimelinePoint, index: number): ReactElement => {
-          const heightPercent: number = Math.max(
-            2,
-            Math.round((point.count / peak) * 100),
-          );
+    <div
+      className="h-28 select-none"
+      style={{ cursor: pageZoom ? "crosshair" : "default" }}
+      data-testid={ERROR_PATTERN_TIMELINE_TEST_ID}
+      onDoubleClick={selection.onDoubleClick}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={rows}
+          margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
+          barCategoryGap="10%"
+          barGap={0}
+          onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
+          onMouseMove={selection.onMouseMove}
+          onMouseUp={selection.onMouseUp}
+          {...chartRootCursorProps}
+        >
+          <XAxis
+            dataKey="time"
+            tickFormatter={(value: string): string => {
+              const date: Date = OneUptimeDate.fromString(value);
 
-          return (
-            <div
-              key={`${point.time?.toISOString() || "bucket"}-${index}`}
-              className="flex-1 rounded-sm bg-red-400"
-              style={{ height: `${heightPercent}%` }}
-              title={`${formatTimestamp(point.time)} — ${point.count}`}
+              if (isNaN(date.getTime())) {
+                return value;
+              }
+
+              return isIntraday
+                ? OneUptimeDate.getLocalTimeString(date, {
+                    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+                  })
+                : OneUptimeDate.getDateAsLocalDayMonthString(date);
+            }}
+            tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #9ca3af)" }}
+            axisLine={{ stroke: "var(--ou-chart-grid, #e5e7eb)" }}
+            tickLine={false}
+            minTickGap={40}
+            interval="preserveStartEnd"
+          />
+          <YAxis hide={true} allowDecimals={false} />
+          {/*
+           * Pinned shut for the length of a drag: it would otherwise sit
+           * over the very bars the reader is picking.
+           */}
+          <Tooltip
+            content={<TimelineTooltip />}
+            cursor={{ fill: "rgba(99,102,241,0.06)" }}
+            {...(selection.isDragging ? { active: false } : {})}
+          />
+          <Bar
+            dataKey="count"
+            fill="#f87171"
+            radius={[1.5, 1.5, 0, 0]}
+            isAnimationActive={false}
+          />
+          {selection.selectionStart && selection.selectionEnd && (
+            <ReferenceArea
+              x1={selection.selectionStart}
+              x2={selection.selectionEnd}
+              fill="rgba(99,102,241,0.12)"
+              stroke="rgba(99,102,241,0.5)"
+              strokeWidth={1}
+              radius={2}
             />
-          );
-        },
-      )}
+          )}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 };
@@ -192,6 +383,9 @@ const Timeline: FunctionComponent<{
 const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  // "Explain with AI" opens Ask AI, so it is drawn only where AI can run.
+  const isAiOffered: boolean = useAiOffered();
   const [correlation, setCorrelation] =
     useState<ErrorPatternCorrelation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -199,7 +393,22 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
   const patternText: string = props.pattern.pattern;
 
+  /*
+   * Staleness guard. The panel stays open while a zoom made on its own
+   * timeline, or the reset of one, moves the page's window, and every move
+   * asks for the correlation again. A wide window answers slower than a
+   * narrow one, so answers can land out of order: only the latest request
+   * may show its correlation or its error, or take the loader down.
+   * Otherwise the panel would describe a window the page has left.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
+    const requestSequence: number = ++requestSequenceRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return requestSequence !== requestSequenceRef.current;
+    };
+
     try {
       setIsLoading(true);
       setError("");
@@ -211,17 +420,29 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           CORRELATION_LIMIT,
         );
 
+      if (isStale()) {
+        return;
+      }
+
       setCorrelation(result);
     } catch (err) {
+      // A late failure of a superseded request must not replace newer data.
+      if (isStale()) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Error));
     } finally {
-      setIsLoading(false);
+      if (!isStale()) {
+        setIsLoading(false);
+      }
     }
     /*
      * Safe to depend on the scope object itself: the host page memoizes it
      * on the time range and the selected resources, so it is referentially
-     * stable between renders — and when it does change the host closes this
-     * panel rather than leaving it describing a window that moved.
+     * stable between renders. It changes under the open panel only through
+     * a zoom made from this panel's timeline or the reset of one; the panel
+     * then asks again for the new window. Any other scope change closes it.
      */
   }, [patternText, props.scope]);
 
@@ -487,7 +708,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${trendStyle.className}`}
             >
               <Icon icon={trendStyle.icon} className="h-3 w-3" />
-              {trendStyle.label}
+              {translator.translateText(trendStyle.label)}
               {trend.direction !== "unknown" && (
                 <span className="opacity-70">
                   {trend.changePercent > 0 ? "+" : ""}
@@ -502,14 +723,22 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           </p>
 
           <p className="mt-2 text-sm text-gray-600">
-            {describeOccurrenceCount(
-              props.pattern.count,
-              props.scope.timeRange,
+            {translator.translateTemplate(
+              "{{occurrences}}, across {{sources}}. First seen {{first}}, last seen {{last}}.",
+              {
+                occurrences: describeLogsOccurrenceCount(
+                  occurrenceTotal,
+                  props.scope.timeRange,
+                  translator,
+                ),
+                sources: translator.translatePlural(
+                  { one: "{{count}} source", other: "{{count}} sources" },
+                  props.pattern.resourceCount,
+                ),
+                first: formatTimestamp(props.pattern.firstSeenAt, translator),
+                last: formatTimestamp(props.pattern.lastSeenAt, translator),
+              },
             )}
-            , across {props.pattern.resourceCount}{" "}
-            {props.pattern.resourceCount === 1 ? "source" : "sources"}. First
-            seen {formatTimestamp(props.pattern.firstSeenAt)}, last seen{" "}
-            {formatTimestamp(props.pattern.lastSeenAt)}.
           </p>
 
           {logsRoute && (
@@ -518,7 +747,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-              <span>Open matching logs</span>
+              <span>{translator.translateText("Open matching logs")}</span>
             </AppLink>
           )}
         </div>
@@ -528,38 +757,44 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
-                Likely cause and what to check
+                {translator.translateText("Likely cause and what to check")}
               </h4>
               <p className="text-xs text-gray-500">
-                Read from this error&apos;s message and the evidence below — no
-                guesswork you cannot trace back.
+                {translator.translateText(
+                  "Read from this error's message and the evidence below — no guesswork you cannot trace back.",
+                )}
               </p>
             </div>
-            <button
-              type="button"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Open Ask AI with this error and all of its evidence as an editable prompt"
-              onClick={explainWithAi}
-            >
-              <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-              Explain with AI
-            </button>
+            {isAiOffered && (
+              <button
+                type="button"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title={translator.translateText(
+                  "Open Ask AI with this error and all of its evidence as an editable prompt",
+                )}
+                data-testid="error-pattern-explain-with-ai"
+                onClick={explainWithAi}
+              >
+                <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+                {translator.translateText("Explain with AI")}
+              </button>
+            )}
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
-                {classification.title}
+                {translator.translateText(classification.title)}
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-700">
-              {classification.summary}
+              {translator.translateText(classification.summary)}
             </p>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Usually caused by
+                  {translator.translateText("Usually caused by")}
                 </p>
                 <ul className="space-y-1">
                   {classification.likelyCauses.map(
@@ -573,7 +808,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                             aria-hidden="true"
                             className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300"
                           />
-                          <span>{cause}</span>
+                          <span>{translator.translateText(cause)}</span>
                         </li>
                       );
                     },
@@ -582,7 +817,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               </div>
               <div>
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  What to check
+                  {translator.translateText("What to check")}
                 </p>
                 <ol className="space-y-1">
                   {classification.whatToCheck.map(
@@ -595,7 +830,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                           <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
                             {index + 1}
                           </span>
-                          <span>{step}</span>
+                          <span>{translator.translateText(step)}</span>
                         </li>
                       );
                     },
@@ -646,7 +881,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {events.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No deployments, incidents or alerts were recorded in this window.
+              {translator.translateText(
+                "No deployments, incidents or alerts were recorded in this window.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -673,7 +910,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                         </span>
                       </span>
                       <span className="flex-shrink-0 text-xs text-gray-500">
-                        {formatTimestamp(new Date(event.timeMs))}
+                        {formatTimestamp(new Date(event.timeMs), translator)}
                       </span>
                     </li>
                   );
@@ -685,11 +922,40 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
         {/* When it happened */}
         <div className="py-5">
-          <SectionHeading
-            title="When it happened"
-            subtitle={`Occurrences per ${correlation.bucketSizeInMinutes} min bucket over ${describeTimeRange(props.scope.timeRange)}.`}
+          <div className="flex items-start justify-between gap-3">
+            <SectionHeading
+              title="When it happened"
+              subtitle={translator.translateTemplate(
+                "Occurrences per {{minutes}} min bucket over {{range}}.",
+                {
+                  minutes: correlation.bucketSizeInMinutes,
+                  range: describeLogsTimeRange(
+                    props.scope.timeRange,
+                    translator,
+                  ),
+                },
+              )}
+            />
+            {/*
+             * The way back sits here as well as beside the page's picker. A
+             * zoom made on this timeline keeps the panel open, and the wide
+             * panel covers the picker and its Reset zoom: without this, a
+             * reader who does not know the double-click (and anyone on a
+             * keyboard) would have to close the panel to undo the zoom. It
+             * reads the page's zoom and shows only while there is one. The
+             * row is the title's height, so the hint stays level with the
+             * title whether or not the button is there.
+             */}
+            <div className="flex h-5 shrink-0 items-center gap-2">
+              <TimeRangeZoomHint />
+              <ResetTimeRangeZoomButton />
+            </div>
+          </div>
+          <Timeline
+            points={correlation.timeline}
+            bucketSizeInMinutes={correlation.bucketSizeInMinutes}
+            window={patternWindow}
           />
-          <Timeline points={correlation.timeline} />
         </div>
 
         {/* What the occurrences have in common */}
@@ -700,7 +966,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {sharedAttributes.length === 0 ? (
             <p className="text-sm text-gray-500">
-              These logs carry no attributes in common.
+              {translator.translateText(
+                "These logs carry no attributes in common.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -726,7 +994,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                         }`}
                       >
                         {attribute.isUniversal
-                          ? "every occurrence"
+                          ? translator.translateText("every occurrence")
                           : `${attribute.coveragePercent}%`}
                       </span>
                     </li>
@@ -744,7 +1012,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
             subtitle="Services, hosts and clusters reporting this error."
           />
           {correlation.resources.length === 0 ? (
-            <p className="text-sm text-gray-500">No sources to report.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No sources to report.")}
+            </p>
           ) : (
             <ul className="space-y-1.5">
               {correlation.resources.map(
@@ -785,11 +1055,16 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
         <div className="py-5">
           <SectionHeading
             title="What else was failing at the same time"
-            subtitle={`Other errors that fired in the same ${correlation.bucketSizeInMinutes} min buckets as this one.`}
+            subtitle={translator.translateTemplate(
+              "Other errors that fired in the same {{minutes}} min buckets as this one.",
+              { minutes: correlation.bucketSizeInMinutes },
+            )}
           />
           {correlation.coOccurringPatterns.length === 0 ? (
             <p className="text-sm text-gray-500">
-              Nothing else was failing in the same buckets.
+              {translator.translateText(
+                "Nothing else was failing in the same buckets.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -827,7 +1102,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {correlation.traces.length === 0 ? (
             <p className="text-sm text-gray-500">
-              None of these logs carry a trace id.
+              {translator.translateText("None of these logs carry a trace id.")}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -872,7 +1147,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
             subtitle="The most recent raw log lines behind this error."
           />
           {correlation.samples.length === 0 ? (
-            <p className="text-sm text-gray-500">No sample lines available.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No sample lines available.")}
+            </p>
           ) : (
             <ul className="space-y-2">
               {correlation.samples.map(
@@ -886,7 +1163,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                       className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2"
                     >
                       <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        <span>{formatTimestamp(sample.time)}</span>
+                        <span>{formatTimestamp(sample.time, translator)}</span>
                         {sample.severityText && (
                           <span
                             className={`rounded-full px-1.5 py-0.5 font-medium ring-1 ring-inset ${

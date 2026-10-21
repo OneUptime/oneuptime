@@ -3,7 +3,10 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -12,6 +15,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
@@ -24,6 +28,8 @@ export interface HistogramBucket {
 
 export interface ExceptionFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   exceptionTypes?: Array<string> | undefined;
   environments?: Array<string> | undefined;
   fingerprints?: Array<string> | undefined;
@@ -178,15 +184,11 @@ export class ExceptionAggregationService {
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. 'break' returns partial aggregated results
-     * rather than throwing, which is acceptable for a density viz.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -287,14 +289,11 @@ export class ExceptionAggregationService {
 
     /*
      * Defense in depth: cap individual facet query runtime below nginx's
-     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint. A
+     * facet stopped at the limit is named in the facets endpoint's
+     * timedOutFacets.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -303,18 +302,7 @@ export class ExceptionAggregationService {
     statement: Statement,
     request: ExceptionFilters,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.exceptionTypes && request.exceptionTypes.length > 0) {
       statement.append(

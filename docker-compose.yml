@@ -22,8 +22,12 @@ services:
       service: clickhouse
 
   postgres:
+    # PostgreSQL is published on this server's loopback address only, for
+    # npm run backup, restore.sh and psql on the server: no other machine
+    # reaches it. To reach it from another machine, use an SSH tunnel, or see
+    # "Back up and restore" in the Docker Compose guide.
     ports:
-      - "5400:5432" # for access to postgres for backups. If you don't need backup, you can comment this line out to make it more secure.
+      - "127.0.0.1:5400:5432"
     extends:
       file: ./docker-compose.base.yml
       service: postgres
@@ -49,6 +53,14 @@ services:
     extends:
       file: ./docker-compose.base.yml
       service: runner
+    depends_on:
+      <<: *common-depends-on
+
+  global-runner:
+    image: oneuptime/runner:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: global-runner
     depends_on:
       <<: *common-depends-on
 

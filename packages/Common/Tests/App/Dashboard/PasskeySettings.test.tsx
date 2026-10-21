@@ -235,6 +235,42 @@ const keyboard: (keys: string) => Promise<void> = async (
   });
 };
 
+/*
+ * A table row carries one action as a button and folds the rest into a ⋯
+ * menu, which is portalled to the end of the body rather than drawn inside
+ * the row. Open it through the row's own trigger and follow that trigger's
+ * aria-controls to the menu it opened - not whichever menu happens to be on
+ * screen - so an action picked from it belongs to the row the test means.
+ * It also spares a role query over the whole page, which is slow on a page
+ * holding a full table.
+ */
+const openRowActionsMenu: (row: HTMLElement) => Promise<HTMLElement> = async (
+  row: HTMLElement,
+): Promise<HTMLElement> => {
+  const trigger: HTMLElement = within(row).getByTestId(
+    "row-actions-more-button",
+  );
+  await click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  const menu: HTMLElement | null = document.getElementById(
+    trigger.getAttribute("aria-controls") || "",
+  );
+  expect(menu).toHaveAttribute("role", "menu");
+  expect(menu).toBeVisible();
+  return menu as HTMLElement;
+};
+
+/*
+ * Only one row's menu is open at a time. Close it the way a keyboard user
+ * would before moving on to the next row, and make sure it really went.
+ */
+const closeRowActionsMenu: (menu: HTMLElement) => Promise<void> = async (
+  menu: HTMLElement,
+): Promise<void> => {
+  await keyboard("{Escape}");
+  expect(menu).not.toBeInTheDocument();
+};
+
 const enterName: () => Promise<void> = async (): Promise<void> => {
   const input: HTMLElement = await screen.findByTestId("passkey-name");
   await act(async () => {
@@ -530,12 +566,22 @@ describe("Passkey settings registration", () => {
           name: new RegExp(name),
         });
         expect(within(row).getByText(name)).toBeVisible();
+        /*
+         * Every credential, legacy or not, can still be renamed and deleted.
+         * Rename is the row's one button; Delete, being destructive, waits in
+         * that row's ⋯ menu.
+         */
         expect(
           within(row).getByRole("button", { name: "Rename", exact: true }),
         ).toBeEnabled();
         expect(
-          within(row).getByRole("button", { name: "Delete", exact: true }),
+          within(row).queryByRole("button", { name: "Delete", exact: true }),
+        ).not.toBeInTheDocument();
+        const menu: HTMLElement = await openRowActionsMenu(row);
+        expect(
+          within(menu).getByRole("menuitem", { name: "Delete", exact: true }),
         ).toBeEnabled();
+        await closeRowActionsMenu(menu);
         if (name !== "Existing credential") {
           expect(
             within(row).queryByText("Existing credential"),
@@ -1067,7 +1113,46 @@ describe("Passkey settings registration", () => {
           );
         renderPage(false);
 
-        await click(await screen.findByRole("button", { name: "Rename" }));
+        const authenticatorRow: HTMLElement = (
+          await screen.findByText("My authenticator")
+        ).closest("tr") as HTMLElement;
+        expect(authenticatorRow).toBeInTheDocument();
+        /*
+         * The row's one button is what that app most needs: finishing setup
+         * while it has never been verified, renaming once it has - a verified
+         * app has no setup left to finish. When Rename is not on the row it
+         * is still one click away in that row's ⋯ menu.
+         */
+        if (isVerified) {
+          expect(
+            within(authenticatorRow).queryByRole("button", {
+              name: "Finish setup",
+            }),
+          ).not.toBeInTheDocument();
+          await click(
+            within(authenticatorRow).getByRole("button", {
+              name: "Rename",
+              exact: true,
+            }),
+          );
+        } else {
+          expect(
+            within(authenticatorRow).getByRole("button", {
+              name: "Finish setup",
+              exact: true,
+            }),
+          ).toBeEnabled();
+          expect(
+            within(authenticatorRow).queryByRole("button", {
+              name: "Rename",
+              exact: true,
+            }),
+          ).not.toBeInTheDocument();
+          const menu: HTMLElement = await openRowActionsMenu(authenticatorRow);
+          await click(
+            within(menu).getByRole("menuitem", { name: "Rename", exact: true }),
+          );
+        }
         const renameDialog: HTMLElement = await screen.findByRole("dialog", {
           name: "Edit authenticator app",
         });

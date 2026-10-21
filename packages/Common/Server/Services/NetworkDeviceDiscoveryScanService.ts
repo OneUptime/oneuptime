@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   DiscoveredNetworkDevice,
 } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -9,7 +9,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import ProbeService from "./ProbeService";
 import Probe from "../../Models/DatabaseModels/Probe";
@@ -173,7 +172,7 @@ interface ScanUpdatePlan {
   isScheduleWritten: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -279,6 +278,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     this.validateScanTarget(createBy.data.cidr);
 
     /*
@@ -416,6 +417,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data ||
       {}) as unknown as Record<string, unknown>;
     const dataKeys: Array<string> = Object.keys(data);
@@ -470,7 +473,7 @@ export class Service extends DatabaseService<Model> {
        * Skipped entirely when the save is turning SNMP OFF, and that is not
        * merely an optimisation: this pass VALIDATES the credential list, and
        * the form posts every declared field whether or not it was visible. An
-       * operator who unticked Check SNMP would otherwise be refused their save
+       * operator who picked ICMP would otherwise be refused their save
        * over a half-finished credential set they had just told the product to
        * stop using. clearSnmpConfig nulls the list along with the flattened
        * columns, so there is nothing left to validate.
@@ -520,12 +523,9 @@ export class Service extends DatabaseService<Model> {
      * credentials" for every project on the instance. Same shape as
      * MonitorService.onBeforeUpdate.
      */
-    const scans: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const scans: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         cidr: true,
@@ -541,13 +541,7 @@ export class Service extends DatabaseService<Model> {
         snmpV3PrivProtocol: true,
         snmpV3PrivKey: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     const plans: Record<string, ScanUpdatePlan> = {};
 
@@ -792,9 +786,10 @@ export class Service extends DatabaseService<Model> {
     dataKeys: Array<string>,
   ): boolean {
     if (RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS)) {
-      const probeId: ObjectID | null = RelationIdUtil.read(
+      const probeId: ObjectID | null = RelationIdUtil.readConsistent(
         data,
         PROBE_RELATION_KEYS,
+        "Probe",
       );
 
       if (probeId?.toString() !== scan.probeId?.toString()) {

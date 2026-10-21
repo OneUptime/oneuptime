@@ -7,7 +7,32 @@ import ObjectID from "../../../Types/ObjectID";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkDeviceLinkService,
+    jest.spyOn(NetworkDeviceLinkService, "findBy"),
+  );
+});
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the declared-parent invariant on NetworkDeviceLink
@@ -135,8 +160,10 @@ function mockStoredLinks(links: Array<NetworkDeviceLink>): jest.SpyInstance {
   /*
    * Installed alongside, so a test about the PARENT invariant is never
    * incidentally failed by the tenancy check on an end it moved to set
-   * the scene. Tests about tenancy itself re-stub this.
+   * the scene. Tests about tenancy itself re-stub this. The devices a test
+   * names are its project's too (ProjectReferencesService).
    */
+  stubProjectDirectory({});
   mockProjectDevicesExist();
   return jest
     .spyOn(NetworkDeviceLinkService, "findBy")
@@ -786,11 +813,12 @@ describe("NetworkDeviceLinkService.onBeforeUpdate (declared parent)", () => {
   });
 
   /*
-   * The read runs as root so it can see the rows the caller is about to write,
-   * which means the caller's tenant has to be re-applied by hand - otherwise
-   * a project could be handed another project's links to validate against.
+   * The read runs as root so it can see the rows the caller is about to
+   * write, among the links the caller may write - found in the caller's
+   * project - so a project is never handed another project's links to
+   * validate against.
    */
-  it("scopes the validation read to the caller's project", async () => {
+  it("reads the links to validate among those the caller may write, in their project", async () => {
     const findBySpy: jest.SpyInstance = mockStoredLinks([]);
 
     await (NetworkDeviceLinkService as any).onBeforeUpdate({
@@ -799,10 +827,13 @@ describe("NetworkDeviceLinkService.onBeforeUpdate (declared parent)", () => {
       props: { tenantId: PROJECT_ID },
     } as unknown as UpdateBy<NetworkDeviceLink>);
 
-    const query: any = findBySpy.mock.calls[0]![0].query;
-    expect(query._id).toBe(LINK_ID.toString());
-    expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
-    expect(findBySpy.mock.calls[0]![0].props.isRoot).toBe(true);
+    const writable: any = readsOfRowsCallerMayWrite(
+      NetworkDeviceLinkService,
+    )[0]!;
+    expect(writable.query._id).toBe(LINK_ID.toString());
+    expect(writable.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    // None of them here: nothing more is read.
+    expect(findBySpy).not.toHaveBeenCalled();
   });
 
   // The stored parent can only be honoured if the read actually fetches it.
@@ -813,7 +844,15 @@ describe("NetworkDeviceLinkService.onBeforeUpdate (declared parent)", () => {
       makeUpdateBy({ fromDeviceId: DEVICE_C_ID }),
     );
 
-    const select: any = findBySpy.mock.calls[0]![0].select;
+    /*
+     * The service's own read - a root update without a tenant first reads
+     * what the matched links hold (ProjectReferenceCheck).
+     */
+    const select: any = (
+      findBySpy.mock.calls.find((call: Array<any>): boolean => {
+        return Boolean(call[0].select.toDeviceId);
+      }) as Array<any>
+    )[0].select;
     expect(select.fromDeviceId).toBe(true);
     expect(select.toDeviceId).toBe(true);
     expect(select.parentDeviceId).toBe(true);

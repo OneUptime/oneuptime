@@ -11,9 +11,12 @@ import { act, cleanup, render } from "@testing-library/react";
  */
 import * as React from "react";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
+import SessionReplayMaskingMode from "../../../Types/Rum/SessionReplayMaskingMode";
 import ReplayStage, {
+  REPLAY_ASSET_FAILURE_FLUSH_MS,
   REPLAY_DOCUMENT_CSP,
+  REPLAY_MASKED_DOCUMENT_CSP,
   REPLAY_STAGE_ASPECT_CSS_VAR,
   REPLAY_STAGE_FILL_BOX_CLASS,
   REPLAY_STAGE_FIT_OVERFLOW_CLASS,
@@ -30,8 +33,13 @@ import ReplayStage, {
   disableReplayTextSelection,
   enableReplayTextSelection,
   formatReplayStageAspect,
+  getReplayDocumentCsp,
   getReplayStageBoxClassName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage";
+import {
+  REPLAY_ASSET_FAILURE_MAX_LISTED,
+  ReplayAssetFailure,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayRecordedAssets";
 import {
   ReplayEngine,
   ReplayEngineDiagnostics,
@@ -972,7 +980,13 @@ describe("ReplayStage replay document", () => {
     const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
       makeReplayer();
 
-    render(<ReplayStage engine={engine} isTextSelectionEnabled={true} />);
+    render(
+      <ReplayStage
+        engine={engine}
+        isTextSelectionEnabled={true}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+      />,
+    );
 
     act((): void => {
       engine.emitReplayer({
@@ -1684,6 +1698,903 @@ describe("ReplayStage replay document", () => {
         'meta[http-equiv="Content-Security-Policy"]',
       ),
     ).toBeNull();
+  });
+});
+
+/*
+ * The replay document's policy, and the recorded assets it lets through,
+ * from github.com/OneUptime/oneuptime/issues/4119. The previous policy
+ * allowed only data: and blob: images and inline styles, and it was in
+ * force before rrweb's first rebuild - so every image of every recording
+ * played back broken, and every stylesheet the recorder could not inline
+ * was refused, taking the rules that hid a Power Pages "You're offline"
+ * banner with it.
+ *
+ * jsdom enforces no CSP and fetches nothing, so what these pin is the
+ * policy's text, which document gets which, and the stage's side of the
+ * failure reporting. That the policy really loads (and refuses) what it
+ * says is proven in a real browser by the Playwright suite
+ * (packages/E2E/SessionReplay/RecordedAssets.spec.ts).
+ */
+
+function parsePolicy(policy: string): Map<string, Array<string>> {
+  const directives: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+
+  for (const part of policy.split(";")) {
+    const tokens: Array<string> = part.trim().split(/\s+/).filter(Boolean);
+    const name: string | undefined = tokens[0];
+
+    if (!name) {
+      continue;
+    }
+
+    /* A repeated directive is ignored by the browser, silently. */
+    expect(directives.has(name)).toBe(false);
+    directives.set(name, tokens.slice(1));
+  }
+
+  return directives;
+}
+
+function readInjectedPolicy(
+  replayer: ReplayerLike & { iframe: HTMLIFrameElement },
+): string | null {
+  return (
+    replayer.iframe.contentDocument?.head
+      ?.querySelector('meta[http-equiv="Content-Security-Policy"]')
+      ?.getAttribute("content") ?? null
+  );
+}
+
+/* An element's error event, from its own window, not bubbling - as a browser fires it. */
+function failToLoad(element: Element): void {
+  const view: Window & typeof globalThis = element.ownerDocument
+    .defaultView as Window & typeof globalThis;
+
+  element.dispatchEvent(new view.Event("error"));
+}
+
+function addRecordedElement(
+  replayer: ReplayerLike & { iframe: HTMLIFrameElement },
+  tagName: string,
+  attributes: Record<string, string>,
+): Element {
+  const doc: Document = replayer.iframe.contentDocument as Document;
+  const element: Element = doc.createElement(tagName);
+
+  for (const [name, value] of Object.entries(attributes)) {
+    element.setAttribute(name, value);
+  }
+
+  (tagName === "link" ? doc.head : doc.body).appendChild(element);
+
+  return element;
+}
+
+type FailureListener = (
+  failures: ReadonlyArray<ReplayAssetFailure>,
+  isTruncated: boolean,
+) => void;
+
+describe("REPLAY_DOCUMENT_CSP", () => {
+  it("loads the recorded page's images, stylesheets and fonts, and nothing that runs, connects, embeds or submits", () => {
+    const directives: Map<string, Array<string>> = parsePolicy(
+      REPLAY_DOCUMENT_CSP,
+    );
+
+    expect(Object.fromEntries(directives)).toEqual({
+      "script-src": ["'none'"],
+      "default-src": ["'none'"],
+      "img-src": ["data:", "blob:", "http:", "https:"],
+      "style-src": ["'unsafe-inline'", "http:", "https:"],
+      "font-src": ["data:", "http:", "https:"],
+      "media-src": ["'none'"],
+      "connect-src": ["'none'"],
+      "object-src": ["'none'"],
+      "form-action": ["'none'"],
+    });
+  });
+
+  it("never grows a source that would let a document built from recorded HTML run or reach anything else", () => {
+    for (const policy of [REPLAY_DOCUMENT_CSP, REPLAY_MASKED_DOCUMENT_CSP]) {
+      const directives: Map<string, Array<string>> = parsePolicy(policy);
+      const everySource: Array<string> = Array.from(directives.values()).flat();
+
+      for (const forbidden of [
+        "*",
+        "'unsafe-eval'",
+        "'wasm-unsafe-eval'",
+        "'strict-dynamic'",
+        "'unsafe-hashes'",
+        "'self'",
+        "ws:",
+        "wss:",
+        "filesystem:",
+      ]) {
+        expect(everySource).not.toContain(forbidden);
+      }
+
+      /* Everything not listed falls back to default-src: frames, workers, manifests. */
+      for (const unlisted of [
+        "frame-src",
+        "child-src",
+        "worker-src",
+        "manifest-src",
+        "script-src-attr",
+        "script-src-elem",
+      ]) {
+        expect(directives.has(unlisted)).toBe(false);
+      }
+    }
+  });
+
+  it("differs for a masked replay only in refusing images and web fonts from the network", () => {
+    /*
+     * With images refused, a web font is the one fetch a stylesheet in the
+     * recording could make depend on what the page shows - so a masked
+     * replay loads neither. Its stylesheets still load.
+     */
+    const readable: Map<string, Array<string>> = parsePolicy(
+      REPLAY_DOCUMENT_CSP,
+    );
+    const masked: Map<string, Array<string>> = parsePolicy(
+      REPLAY_MASKED_DOCUMENT_CSP,
+    );
+
+    expect(masked.get("img-src")).toEqual(["data:", "blob:"]);
+    expect(masked.get("font-src")).toEqual(["data:"]);
+    expect(masked.get("style-src")).toEqual([
+      "'unsafe-inline'",
+      "http:",
+      "https:",
+    ]);
+
+    for (const policy of [readable, masked]) {
+      policy.delete("img-src");
+      policy.delete("font-src");
+    }
+
+    expect(Object.fromEntries(masked)).toEqual(Object.fromEntries(readable));
+  });
+
+  it("is chosen by whether the replay is masked", () => {
+    expect(getReplayDocumentCsp(false)).toBe(REPLAY_DOCUMENT_CSP);
+    expect(getReplayDocumentCsp(true)).toBe(REPLAY_MASKED_DOCUMENT_CSP);
+  });
+});
+
+describe("ReplayStage recorded assets", () => {
+  it.each([
+    [SessionReplayMaskingMode.MaskSensitiveInputsOnly],
+    [SessionReplayMaskingMode.MaskInputsOnly],
+  ])(
+    "gives a %s recording the policy that loads its images, as soon as the Replayer exists",
+    (mode: string) => {
+      const engine: FakeEngine = new FakeEngine();
+      const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+        makeReplayer();
+
+      render(<ReplayStage engine={engine} maskingMode={mode} />);
+
+      /* Created, not yet rebuilt: the policy must already be in force. */
+      act((): void => {
+        engine.emitReplayer({ type: "created", replayer: replayer });
+      });
+
+      expect(readInjectedPolicy(replayer)).toBe(REPLAY_DOCUMENT_CSP);
+    },
+  );
+
+  it.each([
+    [SessionReplayMaskingMode.MaskAllText],
+    [undefined],
+    [null],
+    [""],
+    ["SomeModeFromANewerServer"],
+  ])(
+    "gives a %p recording the masked policy - Mask all text, or a mode it cannot read",
+    (mode: string | null | undefined) => {
+      const engine: FakeEngine = new FakeEngine();
+      const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+        makeReplayer();
+
+      render(<ReplayStage engine={engine} maskingMode={mode} />);
+      act((): void => {
+        engine.emitReplayer({ type: "created", replayer: replayer });
+      });
+
+      expect(readInjectedPolicy(replayer)).toBe(REPLAY_MASKED_DOCUMENT_CSP);
+    },
+  );
+
+  it("puts the same policy back after a rebuild, whatever the mode says by then", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const doc: Document = replayer.iframe.contentDocument as Document;
+    const { rerender } = render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskAllText}
+      />,
+    );
+
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    rerender(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskInputsOnly}
+      />,
+    );
+
+    /* rrweb's rebuild replaces <head>; the document keeps its first policy. */
+    doc.head.innerHTML = "";
+    act((): void => {
+      engine.emitReplayer({
+        type: "fullsnapshot-rebuilded",
+        replayer: replayer,
+      });
+    });
+
+    expect(readInjectedPolicy(replayer)).toBe(REPLAY_MASKED_DOCUMENT_CSP);
+
+    /* A Replayer created after the change gets the new one. */
+    const next: ReplayerLike & { iframe: HTMLIFrameElement } = makeReplayer();
+
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: next });
+    });
+
+    expect(readInjectedPolicy(next)).toBe(REPLAY_DOCUMENT_CSP);
+  });
+
+  it("reports a recorded image that failed to load once, after the burst it failed in", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    const logo: Element = addRecordedElement(replayer, "img", {
+      src: "https://wbdynprod.powerappsportals.com/logo.png",
+      alt: "logo",
+    });
+
+    failToLoad(logo);
+    failToLoad(logo);
+
+    expect(onFailures).not.toHaveBeenCalled();
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+    expect(onFailures).toHaveBeenLastCalledWith(
+      [
+        {
+          kind: "image",
+          url: "https://wbdynprod.powerappsportals.com/logo.png",
+          host: "wbdynprod.powerappsportals.com",
+        },
+      ],
+      false,
+    );
+  });
+
+  it("hands a burst over once, and again only when a new address fails", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    for (const name of ["web", "close", "logo"]) {
+      failToLoad(
+        addRecordedElement(replayer, "img", {
+          src: `https://content.powerapps.com/img/${name}.png`,
+        }),
+      );
+    }
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+    expect(onFailures.mock.calls[0]?.[0]).toHaveLength(3);
+
+    /* The same three again: nothing new to say. */
+    for (const image of Array.from(
+      (replayer.iframe.contentDocument as Document).images,
+    )) {
+      failToLoad(image);
+    }
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+
+    failToLoad(
+      addRecordedElement(replayer, "link", {
+        rel: "stylesheet",
+        href: "https://content.powerapps.com/dist/pwa-style.css",
+      }),
+    );
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(2);
+    expect(
+      (onFailures.mock.calls[1]?.[0] ?? []).map(
+        (failure: ReplayAssetFailure): string => {
+          return `${failure.kind} ${failure.url}`;
+        },
+      ),
+    ).toEqual([
+      "image https://content.powerapps.com/img/web.png",
+      "image https://content.powerapps.com/img/close.png",
+      "image https://content.powerapps.com/img/logo.png",
+      "stylesheet https://content.powerapps.com/dist/pwa-style.css",
+    ]);
+  });
+
+  it("counts a Mask all text recording's stylesheets but never the images its policy refuses", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskAllText}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    failToLoad(
+      addRecordedElement(replayer, "img", {
+        src: "https://cdn.example/avatar.png",
+      }),
+    );
+    failToLoad(
+      addRecordedElement(replayer, "link", {
+        rel: "stylesheet",
+        href: "https://cdn.example/site.css",
+      }),
+    );
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+    expect(onFailures).toHaveBeenLastCalledWith(
+      [
+        {
+          kind: "stylesheet",
+          url: "https://cdn.example/site.css",
+          host: "cdn.example",
+        },
+      ],
+      false,
+    );
+  });
+
+  it("stops listing past its cap, marks the list cut short, and hands that over once", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    /* A recording built to flood the viewer with distinct failing addresses. */
+    for (
+      let index: number = 0;
+      index < REPLAY_ASSET_FAILURE_MAX_LISTED + 50;
+      index++
+    ) {
+      failToLoad(
+        addRecordedElement(replayer, "img", {
+          src: `https://h${index}.flood.example/x.png`,
+        }),
+      );
+    }
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+    expect(onFailures.mock.calls[0]?.[0]).toHaveLength(
+      REPLAY_ASSET_FAILURE_MAX_LISTED,
+    );
+    expect(onFailures.mock.calls[0]?.[1]).toBe(true);
+    /* The first ones are the ones kept. */
+    expect(onFailures.mock.calls[0]?.[0]?.[0]?.url).toBe(
+      "https://h0.flood.example/x.png",
+    );
+
+    /* Past the cap nothing new is handed over. */
+    failToLoad(
+      addRecordedElement(replayer, "img", {
+        src: "https://one-more.flood.example/x.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing about what no site owner can fix, or what the policy refuses on purpose", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    failToLoad(
+      addRecordedElement(replayer, "img", {
+        src: "data:image/png;base64,AAAA",
+      }),
+    );
+    failToLoad(
+      addRecordedElement(replayer, "video", {
+        src: "https://cdn.example/clip.mp4",
+      }),
+    );
+    failToLoad(
+      addRecordedElement(replayer, "iframe", {
+        src: "https://widgets.example/frame.html",
+      }),
+    );
+    failToLoad(
+      addRecordedElement(replayer, "link", {
+        rel: "preload",
+        href: "https://cdn.example/hero.png",
+      }),
+    );
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS * 4);
+    });
+
+    expect(onFailures).not.toHaveBeenCalled();
+  });
+
+  it("listens again after a rebuild whose document.open() dropped the listener", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const doc: Document = replayer.iframe.contentDocument as Document;
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+    const added: SpyInstance<Document["addEventListener"]> = jest.spyOn(
+      doc,
+      "addEventListener",
+    );
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    const errorListener: EventListenerOrEventListenerObject | undefined =
+      added.mock.calls.find(
+        (call: Parameters<Document["addEventListener"]>): boolean => {
+          return call[0] === "error";
+        },
+      )?.[1] as EventListenerOrEventListenerObject | undefined;
+
+    expect(errorListener).toBeDefined();
+
+    /*
+     * What Chromium's document.open() does to every listener on the
+     * document - and what jsdom's does not, so it is done by hand.
+     */
+    doc.removeEventListener(
+      "error",
+      errorListener as EventListenerOrEventListenerObject,
+      true,
+    );
+
+    const lost: Element = addRecordedElement(replayer, "img", {
+      src: "https://cdn.example/lost.png",
+    });
+
+    failToLoad(lost);
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).not.toHaveBeenCalled();
+
+    act((): void => {
+      engine.emitReplayer({
+        type: "fullsnapshot-rebuilded",
+        replayer: replayer,
+      });
+    });
+
+    failToLoad(lost);
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+    expect(onFailures.mock.calls[0]?.[0]?.[0]?.url).toBe(
+      "https://cdn.example/lost.png",
+    );
+
+    added.mockRestore();
+  });
+
+  it("keeps exactly one listener on a document, however often it is installed", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const doc: Document = replayer.iframe.contentDocument as Document;
+    /*
+     * Every add and remove of an "error" listener, in order, passed through
+     * to the real document - which in jsdom, unlike Chromium, keeps its
+     * listeners across a rebuild, so a leak would really accumulate here.
+     */
+    type ListenerCall = [
+      "add" | "remove",
+      EventListenerOrEventListenerObject | null,
+      boolean,
+    ];
+    const calls: Array<ListenerCall> = [];
+    const isCapture: (
+      options: boolean | EventListenerOptions | undefined,
+    ) => boolean = (
+      options: boolean | EventListenerOptions | undefined,
+    ): boolean => {
+      return typeof options === "boolean" ? options : Boolean(options?.capture);
+    };
+    const realAdd: Document["addEventListener"] =
+      doc.addEventListener.bind(doc);
+    const realRemove: Document["removeEventListener"] =
+      doc.removeEventListener.bind(doc);
+    const added: SpyInstance<Document["addEventListener"]> = jest
+      .spyOn(doc, "addEventListener")
+      .mockImplementation(
+        (...args: Parameters<Document["addEventListener"]>): void => {
+          if (args[0] === "error") {
+            calls.push(["add", args[1], isCapture(args[2])]);
+          }
+
+          realAdd(...args);
+        },
+      );
+    const removed: SpyInstance<Document["removeEventListener"]> = jest
+      .spyOn(doc, "removeEventListener")
+      .mockImplementation(
+        (...args: Parameters<Document["removeEventListener"]>): void => {
+          if (args[0] === "error") {
+            calls.push(["remove", args[1], isCapture(args[2])]);
+          }
+
+          realRemove(...args);
+        },
+      );
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={(): void => {
+          // not asserted here
+        }}
+      />,
+    );
+
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+      engine.emitReplayer({ type: "fullsnapshot-rebuilded", replayer });
+      engine.emitReplayer({ type: "fullsnapshot-rebuilded", replayer });
+      engine.emitReplayer({ type: "fullsnapshot-rebuilded", replayer });
+    });
+
+    /* Replayed as the DOM keeps listeners: one per (listener, capture) pair. */
+    const live: Array<EventListenerOrEventListenerObject | null> = [];
+
+    for (const [kind, listener, capture] of calls) {
+      if (!capture) {
+        continue;
+      }
+
+      const at: number = live.indexOf(listener);
+
+      if (kind === "add" && at === -1) {
+        live.push(listener);
+      } else if (kind === "remove" && at !== -1) {
+        live.splice(at, 1);
+      }
+    }
+
+    const lastAdded: ListenerCall | undefined = calls
+      .filter((call: ListenerCall): boolean => {
+        return call[0] === "add";
+      })
+      .pop();
+
+    expect(live).toHaveLength(1);
+    expect(live[0]).toBe(lastAdded?.[1]);
+
+    added.mockRestore();
+    removed.mockRestore();
+  });
+
+  it("gives an address one entry across every Replayer of the engine", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const first: ReplayerLike & { iframe: HTMLIFrameElement } = makeReplayer();
+    const second: ReplayerLike & { iframe: HTMLIFrameElement } = makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: first });
+    });
+
+    failToLoad(
+      addRecordedElement(first, "img", { src: "https://cdn.example/logo.png" }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    /* A seek: a new Replayer rebuilds the same page and fails the same image. */
+    act((): void => {
+      engine.emitReplayer({ type: "destroyed", replayer: first });
+      engine.emitReplayer({ type: "created", replayer: second });
+    });
+
+    failToLoad(
+      addRecordedElement(second, "img", {
+        src: "https://cdn.example/logo.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops listening to a destroyed Replayer's document", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+
+    render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    const image: Element = addRecordedElement(replayer, "img", {
+      src: "https://cdn.example/late.png",
+    });
+
+    act((): void => {
+      engine.emitReplayer({ type: "destroyed", replayer: replayer });
+    });
+
+    failToLoad(image);
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).not.toHaveBeenCalled();
+  });
+
+  it("drops a pending hand-over and stops listening when the stage unmounts", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+    const { unmount } = render(
+      <ReplayStage
+        engine={engine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+
+    act((): void => {
+      engine.emitReplayer({ type: "created", replayer: replayer });
+    });
+
+    const image: Element = addRecordedElement(replayer, "img", {
+      src: "https://cdn.example/pending.png",
+    });
+
+    failToLoad(image);
+    unmount();
+
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    /*
+     * A FRESH address: the one above is already known, and the per-address
+     * dedupe would swallow it whether or not the listener survived.
+     */
+    failToLoad(
+      addRecordedElement(replayer, "img", {
+        src: "https://cdn.example/after-unmount.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).not.toHaveBeenCalled();
+  });
+
+  it("starts again for a new engine: its failures are its own", () => {
+    jest.useFakeTimers();
+
+    const firstEngine: FakeEngine = new FakeEngine();
+    const secondEngine: FakeEngine = new FakeEngine();
+    const firstReplayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const secondReplayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+    const onFailures: Mock<FailureListener> = jest.fn<FailureListener>();
+    const { rerender } = render(
+      <ReplayStage
+        engine={firstEngine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+
+    act((): void => {
+      firstEngine.emitReplayer({ type: "created", replayer: firstReplayer });
+    });
+
+    failToLoad(
+      addRecordedElement(firstReplayer, "img", {
+        src: "https://cdn.example/tab-one.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    rerender(
+      <ReplayStage
+        engine={secondEngine}
+        maskingMode={SessionReplayMaskingMode.MaskSensitiveInputsOnly}
+        onAssetLoadFailures={onFailures}
+      />,
+    );
+    act((): void => {
+      secondEngine.emitReplayer({ type: "created", replayer: secondReplayer });
+    });
+
+    failToLoad(
+      addRecordedElement(secondReplayer, "img", {
+        src: "https://cdn.example/tab-one.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(2);
+    expect(onFailures.mock.calls[1]?.[0]).toEqual([
+      {
+        kind: "image",
+        url: "https://cdn.example/tab-one.png",
+        host: "cdn.example",
+      },
+    ]);
+
+    /* The old engine's documents are no longer heard. */
+    failToLoad(
+      addRecordedElement(firstReplayer, "img", {
+        src: "https://cdn.example/old-engine.png",
+      }),
+    );
+    act((): void => {
+      jest.advanceTimersByTime(REPLAY_ASSET_FAILURE_FLUSH_MS);
+    });
+
+    expect(onFailures).toHaveBeenCalledTimes(2);
   });
 });
 

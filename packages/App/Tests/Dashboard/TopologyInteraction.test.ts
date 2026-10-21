@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { NetworkTopologyEdge } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   ElementBox,
   MAX_WORLD_COORDINATE,
@@ -386,20 +387,8 @@ const worldUnderAnchor: WorldUnderAnchorFunction = (
   };
 };
 
-/* Deterministic xorshift32 in [0, 1) — no Math.random anywhere in here. */
+/* Deterministic draws in [0, 1), from a seeded generator — no Math.random anywhere in here. */
 type NextRandomFunction = () => number;
-
-const makeRandom: (seed: number) => NextRandomFunction = (
-  seed: number,
-): NextRandomFunction => {
-  let state: number = seed | 0;
-  return (): number => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return ((state >>> 0) % 1000003) / 1000003;
-  };
-};
 
 interface GeneratedRun {
   effects: Array<GestureEffect>;
@@ -423,7 +412,7 @@ const generateRun: GenerateRunFunction = (
   hitNodeId: string | null,
   context: GestureContext,
 ): GeneratedRun => {
-  const random: NextRandomFunction = makeRandom(seed);
+  const random: NextRandomFunction = seededRandom(seed);
   const effects: Array<GestureEffect> = [];
   const stateKinds: Set<string> = new Set<string>();
   let state: GestureState = initialGestureState;

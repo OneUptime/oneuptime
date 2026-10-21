@@ -1,4 +1,6 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
+import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -102,6 +104,45 @@ const INVENTORIED_TYPE_SET: Set<string> = new Set(
     return t.toLowerCase();
   }),
 );
+
+/*
+ * Every SeverityNumber in ProtoFiles/OTel/v1/logs.proto, by the enum name a
+ * protobuf or gRPC body carries (see normalizeSeverityNumber). A Map rather
+ * than an object literal so a name like "constructor" cannot resolve to an
+ * Object.prototype member.
+ */
+const SEVERITY_NUMBER_BY_OTLP_NAME: ReadonlyMap<string, number> = new Map([
+  ["SEVERITY_NUMBER_UNSPECIFIED", 0],
+  ["SEVERITY_NUMBER_TRACE", 1],
+  ["SEVERITY_NUMBER_TRACE2", 2],
+  ["SEVERITY_NUMBER_TRACE3", 3],
+  ["SEVERITY_NUMBER_TRACE4", 4],
+  ["SEVERITY_NUMBER_DEBUG", 5],
+  ["SEVERITY_NUMBER_DEBUG2", 6],
+  ["SEVERITY_NUMBER_DEBUG3", 7],
+  ["SEVERITY_NUMBER_DEBUG4", 8],
+  ["SEVERITY_NUMBER_INFO", 9],
+  ["SEVERITY_NUMBER_INFO2", 10],
+  ["SEVERITY_NUMBER_INFO3", 11],
+  ["SEVERITY_NUMBER_INFO4", 12],
+  ["SEVERITY_NUMBER_WARN", 13],
+  ["SEVERITY_NUMBER_WARN2", 14],
+  ["SEVERITY_NUMBER_WARN3", 15],
+  ["SEVERITY_NUMBER_WARN4", 16],
+  ["SEVERITY_NUMBER_ERROR", 17],
+  ["SEVERITY_NUMBER_ERROR2", 18],
+  ["SEVERITY_NUMBER_ERROR3", 19],
+  ["SEVERITY_NUMBER_ERROR4", 20],
+  ["SEVERITY_NUMBER_FATAL", 21],
+  ["SEVERITY_NUMBER_FATAL2", 22],
+  ["SEVERITY_NUMBER_FATAL3", 23],
+  ["SEVERITY_NUMBER_FATAL4", 24],
+]);
+
+const MAX_OTLP_SEVERITY_NUMBER: number = 24;
+
+// Plain decimal digits only: no sign, fraction, exponent, hex or padding.
+const NUMERIC_SEVERITY_STRING: RegExp = /^[0-9]+$/;
 
 class LogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -229,6 +270,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processLogsAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The
@@ -370,6 +412,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -406,9 +449,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             proxmoxClusterId,
             vmwareVCenterId,
             cephClusterId,
+            storageArrayId,
             dockerSwarmClusterId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -439,6 +484,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            /*
+             * Array syslog forwarded through the Storage Array Agent
+             * attaches to the array purely through the primary-entity
+             * routing below — there is no inventory hook on the logs path.
+             */
+            this.autoDiscoverStorageArray({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -546,6 +600,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               proxmoxClusterId,
               vmwareVCenterId,
               cephClusterId,
+              storageArrayId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -745,13 +800,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     timeDate = OneUptimeDate.getCurrentDate();
                   }
 
-                  let logSeverityNumber: number =
-                    (log["severityNumber"] as number) || 0;
-
-                  if (typeof logSeverityNumber === "string") {
-                    logSeverityNumber =
-                      this.convertSeverityNumber(logSeverityNumber);
-                  }
+                  const logSeverityNumber: number =
+                    this.normalizeSeverityNumber(log["severityNumber"]);
 
                   const severityText: LogSeverity =
                     this.getSeverityText(logSeverityNumber);
@@ -1534,8 +1584,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const release: string =
       (finalAttributes["resource.service.version"] as string) || "";
-    const environment: string =
-      (finalAttributes["resource.deployment.environment"] as string) || "";
+    const environment: string = readDeploymentEnvironment(finalAttributes, {
+      prefix: "resource.",
+    });
 
     const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {
@@ -1592,23 +1643,44 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     });
   }
 
-  private static convertSeverityNumber(severityNumber: string): number {
-    switch (severityNumber) {
-      case "SEVERITY_NUMBER_TRACE":
-        return 1;
-      case "SEVERITY_NUMBER_DEBUG":
-        return 5;
-      case "SEVERITY_NUMBER_INFO":
-        return 9;
-      case "SEVERITY_NUMBER_WARN":
-        return 13;
-      case "SEVERITY_NUMBER_ERROR":
-        return 17;
-      case "SEVERITY_NUMBER_FATAL":
-        return 21;
-      default:
-        return parseInt(severityNumber);
+  /*
+   * OTLP/JSON encodes a log's SeverityNumber as an integer, but protobuf
+   * bodies reach us through protobufjs `.toJSON()`, and gRPC requests through
+   * @grpc/proto-loader (enums: String), as the enum NAME. Any of the 25 can
+   * arrive — the Collector's syslog parser, for one, maps crit to
+   * SEVERITY_NUMBER_ERROR2 and notice to SEVERITY_NUMBER_INFO2 — and only the
+   * six unsuffixed names used to be mapped; the rest were parseInt()'d into
+   * NaN (GH#3978): stored as "Unspecified" with a NaN number, and waved
+   * through the exception extractor's ERROR gate.
+   *
+   * Always returns an integer in 0..24. Anything else — an unknown name, a
+   * value past FATAL4 (decoders pass an unknown enum value on as its number),
+   * a fraction, a negative — is UNSPECIFIED (0), so the stored number never
+   * disagrees with the severityText getSeverityText derives from it.
+   */
+  public static normalizeSeverityNumber(severityNumber: unknown): number {
+    let parsed: number | undefined = undefined;
+
+    if (typeof severityNumber === "number") {
+      parsed = severityNumber;
+    } else if (typeof severityNumber === "string") {
+      parsed =
+        SEVERITY_NUMBER_BY_OTLP_NAME.get(severityNumber) ??
+        (NUMERIC_SEVERITY_STRING.test(severityNumber)
+          ? Number(severityNumber)
+          : undefined);
     }
+
+    if (
+      parsed === undefined ||
+      !Number.isInteger(parsed) ||
+      parsed < 0 ||
+      parsed > MAX_OTLP_SEVERITY_NUMBER
+    ) {
+      return 0;
+    }
+
+    return parsed;
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {

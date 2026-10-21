@@ -10,6 +10,15 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -216,6 +225,7 @@ describe("a device created into a site inherits the site's default probe", () =>
   beforeEach(() => {
     jest.restoreAllMocks();
     stubProbeAttachability(undefined);
+    stubProjectDirectory({});
   });
 
   test("the probe reaches a device created two levels below the site that names it", async () => {
@@ -322,6 +332,7 @@ describe("a device moved into a site inherits that site's default probe", () => 
   beforeEach(() => {
     jest.restoreAllMocks();
     stubProbeAttachability(undefined);
+    stubProjectDirectory({});
   });
 
   test("a probe-less device picks up the ancestor site's probe on the move", async () => {

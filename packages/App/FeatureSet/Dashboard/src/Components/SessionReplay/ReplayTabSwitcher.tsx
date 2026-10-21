@@ -611,7 +611,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         {hasAnyOpenTab && renderStatusDot(status)}
         <span className="shrink-0">{tab.label}</span>
         {page !== REPLAY_TAB_UNKNOWN_PAGE && (
-          <span className="hidden max-w-[12rem] truncate sm:inline">{` · ${page}`}</span>
+          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{` · ${page}`}</span>
         )}
         <span className="shrink-0 whitespace-nowrap">{` · ${describeReplayTabDuration(
           tab,

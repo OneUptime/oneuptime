@@ -9,7 +9,8 @@ const output = path.join(
   repository,
   "output/playwright/navigation-search/fixture",
 );
-const port = 4242;
+// NAVIGATION_SEARCH_PORT lets a second checkout run the suite beside this one.
+const port = Number(process.env["NAVIGATION_SEARCH_PORT"]) || 4242;
 const config = createConfig({
   serviceName: "navigation-search-fixture",
   publicPath: "/dist/",

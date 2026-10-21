@@ -13,10 +13,12 @@ import {
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepSqlMonitorUtil } from "../../../Types/Monitor/MonitorStepSqlMonitor";
+import { MonitorStepStorageArrayMonitorUtil } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import Port from "../../../Types/Port";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import MonitorTemplateSyncUtil from "../../../Utils/Monitor/MonitorTemplateSyncUtil";
 
 function step(id: string, exclusions?: Array<string>): MonitorStep {
@@ -535,6 +537,52 @@ describe("MonitorTemplateSyncUtil", () => {
     expect(current.data!.kubernetesMonitor.resourceFilters.podName).toBe(
       "app-1",
     );
+  });
+
+  test("a kept storage array keeps its own platform and filters while metric queries follow the template", (): void => {
+    const template: MonitorStep = step("template", [
+      "storageArrayMonitor.arrayIdentifier",
+      "storageArrayMonitor.resourceFilters",
+    ]);
+    template.data!.storageArrayMonitor = {
+      ...MonitorStepStorageArrayMonitorUtil.getDefault(),
+      arrayIdentifier: "pure-fa-template",
+      storageSystem: StorageSystem.PureStorageFlashArray,
+      resourceFilters: { componentName: "CH0.BAY1" },
+    };
+    const current: MonitorStep = step("current");
+    current.data!.storageArrayMonitor = {
+      ...MonitorStepStorageArrayMonitorUtil.getDefault(),
+      arrayIdentifier: "pure-fb-prod",
+      storageSystem: StorageSystem.PureStorageFlashBlade,
+      resourceFilters: { componentName: "CH1.FB3" },
+    };
+
+    const result: MonitorStep = sync(
+      template,
+      current,
+      MonitorType.StorageArray,
+    );
+
+    expect(result.data!.storageArrayMonitor).toMatchObject({
+      arrayIdentifier: "pure-fb-prod",
+      // Without the platform the FlashBlade blade filter would be read as a FlashArray component.
+      storageSystem: StorageSystem.PureStorageFlashBlade,
+      resourceFilters: { componentName: "CH1.FB3" },
+      metricViewConfig: template.data!.storageArrayMonitor!.metricViewConfig,
+    });
+
+    // A monitor saved before it knew its platform does not inherit the template's.
+    delete current.data!.storageArrayMonitor!.storageSystem;
+    const legacy: MonitorStep = sync(
+      template,
+      current,
+      MonitorType.StorageArray,
+    );
+    expect(legacy.data!.storageArrayMonitor!.arrayIdentifier).toBe(
+      "pure-fb-prod",
+    );
+    expect(legacy.data!.storageArrayMonitor!.storageSystem).toBeUndefined();
   });
 
   test("whole telemetry configuration retains nested arrays and typed service IDs without sharing references", (): void => {

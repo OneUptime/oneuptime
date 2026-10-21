@@ -11,13 +11,18 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import {
   CALENDAR_FEED_DOCS_PATH,
+  FEED_HEALTH_LABELS,
+  FeedHealth,
   GOOGLE_CALENDAR_ADD_URL_PREFIX,
+  GOOGLE_CALENDAR_CLIENT,
   LEAD_TIME_DAYS_COPY,
   LEAD_TIME_HOURS_COPY,
   LEAD_TIME_MINUTES_COPY,
   LEAD_TIME_WEEKS_COPY,
   LeadTimeValidation,
+  MASK_CHARACTER,
   MY_SHIFTS_PATH,
+  MaskedFeedLink,
   NOTHING_FETCHED_HINT_AFTER_HOURS,
   ON_CALL_CALENDAR_API_PATH,
   PERSONAL_FEED_CURRENT_PATH,
@@ -27,26 +32,43 @@ import {
   PROJECT_FEED_ROTATE_PATH,
   REMINDER_PRESETS,
   ReminderPreset,
-  ShiftDayGroup,
+  STANDING_ASSIGNMENTS_COPY,
+  UNKNOWN_CALENDAR_CLIENT,
   UPCOMING_SHIFTS_CARD_TITLE,
   UPCOMING_SHIFTS_DAYS,
+  UPCOMING_SHIFTS_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_TITLE,
+  UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY,
   UpcomingShiftsWindow,
   addScheduleFilter,
   applyScheduleFilter,
   buildGoogleAddUrl,
   formatLeadTime,
+  getFeedClientName,
+  getFeedHealth,
   getRotatedDaysAgo,
   getScheduleFeedCurrentPath,
   getScheduleFeedPublishPath,
   getScheduleFeedRotatePath,
   getUpcomingShiftsWindow,
-  groupShiftsByDay,
   interpolate,
   isCoveringShift,
+  isFetchedByGoogleCalendar,
+  maskFeedLink,
   shouldShowNothingFetchedHint,
   translateInterpolated,
   validateCustomLeadMinutes,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
+import {
+  FEED_ATTENTION_FIRST_CLASS_NAME,
+  FEED_BODY_GRID_CLASS_NAME,
+  FEED_STATUS_COLUMN_CLASS_NAME,
+  FEED_STATUS_FULL_WIDTH_CLASS_NAME,
+  FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+  getFeedStatusColumnClassName,
+  isAttentionHealth,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
@@ -70,7 +92,20 @@ import { MaterializedShiftJson } from "../../../Types/OnCallDutyPolicy/Materiali
 const HTTPS_URL: string =
   "https://oneuptime.example.com/api/on-call-calendar/user/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/shifts.ics";
 
+const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcal:");
+
 const BASE_URLS: FeedUrls = {
+  https: HTTPS_URL,
+  webcal: WEBCAL_URL,
+  googleAdd: `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(WEBCAL_URL)}`,
+};
+
+/*
+ * What an API from before the Google Calendar fix sends: a webcals:// link
+ * (iOS will not open it) and Google's cid carrying the https:// address
+ * (Google answers "Unable to add calendar. Check the URL.").
+ */
+const LEGACY_URLS: FeedUrls = {
   https: HTTPS_URL,
   webcal: HTTPS_URL.replace("https:", "webcals:"),
   googleAdd: `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(HTTPS_URL)}`,
@@ -97,6 +132,7 @@ const makeStatus: MakeStatusFunction = (
     urls: BASE_URLS,
     hostWarning: null,
     protocolWarning: null,
+    privateHost: null,
     ...overrides,
   };
 };
@@ -164,7 +200,7 @@ describe("calendar feed API paths", () => {
 });
 
 describe("buildGoogleAddUrl", () => {
-  test("url-encodes the whole https link behind Google's cid parameter", () => {
+  test("url-encodes the feed's webcal:// address, whole, behind Google's cid parameter", () => {
     const result: string = buildGoogleAddUrl(HTTPS_URL);
 
     expect(
@@ -175,9 +211,25 @@ describe("buildGoogleAddUrl", () => {
      * break Google's parameter parsing.
      */
     expect(result).not.toContain(HTTPS_URL);
+    expect(result).not.toContain(WEBCAL_URL);
     expect(decodeURIComponent(result.split("cid=")[1] as string)).toBe(
-      HTTPS_URL,
+      WEBCAL_URL,
     );
+  });
+
+  /*
+   * Regression: cid carried the https:// address, and Google Calendar opened
+   * with "Unable to add calendar. Check the URL." - the error a customer saw
+   * on the dashboard's Google Calendar button.
+   */
+  test("never puts the https:// address in cid", () => {
+    const cid: string | null = new URL(
+      buildGoogleAddUrl(HTTPS_URL),
+    ).searchParams.get("cid");
+
+    expect(cid?.startsWith("https:")).toBe(false);
+    expect(cid?.startsWith("webcal://")).toBe(true);
+    expect(buildGoogleAddUrl(HTTPS_URL)).not.toBe(LEGACY_URLS.googleAdd);
   });
 });
 
@@ -210,12 +262,24 @@ describe("addScheduleFilter / applyScheduleFilter", () => {
     const filtered: FeedUrls = applyScheduleFilter(BASE_URLS, "sched-9");
 
     expect(filtered.https).toBe(`${HTTPS_URL}?schedule=sched-9`);
-    expect(filtered.webcal).toBe(`${BASE_URLS.webcal}?schedule=sched-9`);
+    expect(filtered.webcal).toBe(`${WEBCAL_URL}?schedule=sched-9`);
     expect(filtered.googleAdd).toBe(
       buildGoogleAddUrl(`${HTTPS_URL}?schedule=sched-9`),
     );
+    expect(new URL(filtered.googleAdd).searchParams.get("cid")).toBe(
+      `${WEBCAL_URL}?schedule=sched-9`,
+    );
     // The input is left untouched.
     expect(BASE_URLS.https).toBe(HTTPS_URL);
+  });
+
+  test("applyScheduleFilter builds every form from the narrowed https, even from a payload with broken forms", () => {
+    const filtered: FeedUrls = applyScheduleFilter(LEGACY_URLS, "sched-9");
+
+    expect(filtered.webcal).toBe(`${WEBCAL_URL}?schedule=sched-9`);
+    expect(new URL(filtered.googleAdd).searchParams.get("cid")).toBe(
+      `${WEBCAL_URL}?schedule=sched-9`,
+    );
   });
 });
 
@@ -437,7 +501,7 @@ describe("reminder presets and lead times", () => {
   });
 });
 
-describe("upcoming shifts window and grouping", () => {
+describe("upcoming shifts window and words", () => {
   test("the window is now to now + 30 days", () => {
     const now: Date = new Date("2026-08-31T12:00:00.000Z");
     const window: UpcomingShiftsWindow = getUpcomingShiftsWindow(now);
@@ -449,78 +513,44 @@ describe("upcoming shifts window and grouping", () => {
     );
   });
 
-  test("the card title states the same number of days the window uses", () => {
-    expect(UPCOMING_SHIFTS_CARD_TITLE).toContain(String(UPCOMING_SHIFTS_DAYS));
-    expect(UPCOMING_SHIFTS_CARD_TITLE).toBe("Upcoming shifts (next 30 days)");
+  /*
+   * The title names the card; the window and the zone are its
+   * description's, said once. Every sentence that states the window states
+   * the number the window uses.
+   */
+  test("the title names the card, and every sentence about the window states its days", () => {
+    expect(UPCOMING_SHIFTS_CARD_TITLE).toBe("Upcoming shifts");
+
+    for (const sentence of [
+      UPCOMING_SHIFTS_DESCRIPTION,
+      UPCOMING_SHIFTS_EMPTY_TITLE,
+      UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY,
+    ]) {
+      expect(sentence).toContain(`next ${UPCOMING_SHIFTS_DAYS} days`);
+    }
+
+    expect(UPCOMING_SHIFTS_DESCRIPTION).toBe(
+      "Your shifts over the next 30 days. Times are in {{timezone}}.",
+    );
   });
 
-  test("groups by the local start day, in start order, one entry per shift", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({
-        shiftKey: "c",
-        start: "2026-09-02T07:00:00.000Z",
-        end: "2026-09-02T15:00:00.000Z",
-      }),
-      makeShift({
-        shiftKey: "a",
-        start: "2026-09-01T07:00:00.000Z",
-        end: "2026-09-01T15:00:00.000Z",
-      }),
-      makeShift({
-        shiftKey: "b",
-        start: "2026-09-01T15:00:00.000Z",
-        end: "2026-09-01T23:00:00.000Z",
-      }),
-    ]);
+  test("the words say what a reader needs, without on-call jargon", () => {
+    expect(UPCOMING_SHIFTS_EMPTY_TITLE).toBe("No shifts in the next 30 days");
+    expect(UPCOMING_SHIFTS_EMPTY_DESCRIPTION).toBe(
+      "When a schedule puts you on call, your shifts show up here.",
+    );
+    expect(STANDING_ASSIGNMENTS_COPY).toBe(
+      "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+    );
 
-    expect(groups.length).toBe(2);
-    expect(groups[0]!.dayKey).toBe("2026-09-01");
-    expect(
-      groups[0]!.shifts.map((shift: MaterializedShiftJson): string => {
-        return shift.shiftKey;
-      }),
-    ).toEqual(["a", "b"]);
-    expect(groups[1]!.dayKey).toBe("2026-09-02");
-    expect(groups[1]!.shifts.length).toBe(1);
-    // The heading date is the first shift's start.
-    expect(groups[0]!.day.toISOString()).toBe("2026-09-01T07:00:00.000Z");
-  });
-
-  test("equal starts are ordered by shiftKey so the list is stable across renders", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({ shiftKey: "schedule-b:1" }),
-      makeShift({ shiftKey: "schedule-a:1" }),
-    ]);
-
-    expect(
-      groups[0]!.shifts.map((shift: MaterializedShiftJson): string => {
-        return shift.shiftKey;
-      }),
-    ).toEqual(["schedule-a:1", "schedule-b:1"]);
-  });
-
-  test("a shift across midnight is listed once, under the day it begins", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({
-        shiftKey: "night",
-        start: "2026-09-01T20:00:00.000Z",
-        end: "2026-09-02T08:00:00.000Z",
-      }),
-    ]);
-
-    expect(groups.length).toBe(1);
-    expect(groups[0]!.shifts.length).toBe(1);
-  });
-
-  test("an empty list groups to nothing and does not mutate its input", () => {
-    const input: Array<MaterializedShiftJson> = [
-      makeShift({ shiftKey: "z", start: "2026-09-03T07:00:00.000Z" }),
-      makeShift({ shiftKey: "y", start: "2026-09-01T07:00:00.000Z" }),
-    ];
-
-    expect(groupShiftsByDay([])).toEqual([]);
-    groupShiftsByDay(input);
-    expect(input[0]!.shiftKey).toBe("z");
+    // The old footnote's jargon is gone.
+    for (const sentence of [
+      STANDING_ASSIGNMENTS_COPY,
+      UPCOMING_SHIFTS_EMPTY_DESCRIPTION,
+    ]) {
+      expect(sentence).not.toContain("standing");
+      expect(sentence).not.toContain("assignments");
+    }
   });
 
   test("isCoveringShift is true only for an override that names somebody else as the original", () => {
@@ -565,23 +595,34 @@ describe("parseFeedUrls", () => {
     expect(parseFeedUrls({ webcal: "webcals://x" })).toBeNull();
   });
 
-  test("keeps every server-provided URL verbatim", () => {
+  test("a payload with today's forms reads back unchanged", () => {
     expect(parseFeedUrls(BASE_URLS as unknown as JSONObject)).toEqual(
       BASE_URLS,
     );
   });
 
-  test("repairs a missing webcal and googleAdd from the https link", () => {
+  /*
+   * The dashboard can be a release ahead of the API during a rolling
+   * upgrade, and an older API sends both subscribe forms broken. They are
+   * rebuilt from the https address rather than trusted.
+   */
+  test("rebuilds webcal and googleAdd from the https link, whatever the payload says", () => {
+    expect(parseFeedUrls(LEGACY_URLS as unknown as JSONObject)).toEqual(
+      BASE_URLS,
+    );
+  });
+
+  test("derives a missing webcal and googleAdd from the https link, as webcal://", () => {
     const parsed: FeedUrls | null = parseFeedUrls({ https: HTTPS_URL });
 
     expect(parsed).not.toBeNull();
     /*
-     * webcalS, not webcal: an https feed subscribed over plain webcal:// would
-     * make Apple Calendar fetch the token in the clear from an https-only host
-     * (the server builds webcals:// for https - spec 2.2).
+     * webcal://, never webcals://: iOS refuses to open webcals:// ("the
+     * address is invalid"), and Apple Calendar and Google both fetch a
+     * webcal:// address over https when the server serves https.
      */
-    expect(parsed!.webcal).toBe(HTTPS_URL.replace("https:", "webcals:"));
-    expect(parsed!.webcal.startsWith("webcals://")).toBe(true);
+    expect(parsed!.webcal).toBe(WEBCAL_URL);
+    expect(parsed!.webcal.startsWith("webcals://")).toBe(false);
     expect(parsed!.googleAdd).toBe(buildGoogleAddUrl(HTTPS_URL));
   });
 
@@ -685,6 +726,7 @@ describe("parseFeedStatus", () => {
       urls: BASE_URLS as unknown as JSONObject,
       hostWarning: "Set HOST",
       protocolWarning: "Plain http",
+      privateHost: "oneuptime.internal",
     });
 
     expect(status).toEqual({
@@ -703,7 +745,13 @@ describe("parseFeedStatus", () => {
       urls: BASE_URLS,
       hostWarning: "Set HOST",
       protocolWarning: "Plain http",
+      privateHost: "oneuptime.internal",
     });
+  });
+
+  test("an API from before privateHost existed reads as no private host", () => {
+    expect(parseFeedStatus({ exists: true }).privateHost).toBeNull();
+    expect(parseFeedStatus({ privateHost: "" }).privateHost).toBeNull();
   });
 
   test("booleans must be real booleans - a truthy string does not enable a feed", () => {
@@ -851,5 +899,231 @@ describe("translateInterpolated", () => {
         name: "Checkout",
       }),
     ).toBe("Only on policy Checkout");
+  });
+});
+
+/*
+ * Where a link stands, as the status panel's pill names it. The questions are
+ * asked in the order they matter: can the link still be shown, is it on, has
+ * an app read it, and - if not - is it early days or has it been two.
+ */
+describe("getFeedHealth", () => {
+  const rotatedAt: string = "2026-08-01T10:00:00.000Z";
+  const early: Date = new Date("2026-08-01T12:00:00.000Z");
+  const late: Date = new Date("2026-08-10T10:00:00.000Z");
+
+  test("a link an app has read is Active, however long ago it was made", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({
+          rotatedAt,
+          lastFetchedAt: "2026-08-09T10:00:00.000Z",
+          fetchCount: 12,
+        }),
+        late,
+      ),
+    ).toBe(FeedHealth.Active);
+  });
+
+  test("either sign of a fetch counts: a count without a time, or a time without a count", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt, fetchCount: 1 }), late)).toBe(
+      FeedHealth.Active,
+    );
+    expect(
+      getFeedHealth(
+        makeStatus({ rotatedAt, lastFetchedAt: "2026-08-02T00:00:00.000Z" }),
+        late,
+      ),
+    ).toBe(FeedHealth.Active);
+  });
+
+  test("never read, it waits for its first sync in its first two days, then is Not fetched yet", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt }), early)).toBe(
+      FeedHealth.WaitingForFirstSync,
+    );
+    expect(getFeedHealth(makeStatus({ rotatedAt }), late)).toBe(
+      FeedHealth.NotFetched,
+    );
+  });
+
+  test("a link with no rotation time to count from keeps waiting rather than accusing", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt: null }), late)).toBe(
+      FeedHealth.WaitingForFirstSync,
+    );
+  });
+
+  test("off beats every fetch: subscribers see an empty calendar", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({ isEnabled: false, fetchCount: 99, rotatedAt }),
+        late,
+      ),
+    ).toBe(FeedHealth.Disabled);
+  });
+
+  test("unreadable beats off: the link cannot even be shown", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({ needsRegeneration: true, isEnabled: false }),
+        late,
+      ),
+    ).toBe(FeedHealth.NeedsRegeneration);
+  });
+
+  test("every state has a label - the mobile app's words where the two say the same thing", () => {
+    expect(FEED_HEALTH_LABELS).toEqual({
+      [FeedHealth.Active]: "Active",
+      [FeedHealth.WaitingForFirstSync]: "Waiting for first sync",
+      [FeedHealth.NotFetched]: "Not fetched yet",
+      [FeedHealth.Disabled]: "Disabled",
+      [FeedHealth.NeedsRegeneration]: "Needs regeneration",
+    });
+  });
+});
+
+describe("getFeedClientName / isFetchedByGoogleCalendar", () => {
+  test("names the app the server classified", () => {
+    for (const client of [
+      "Google Calendar",
+      "Microsoft Outlook",
+      "Apple Calendar",
+      "Thunderbird",
+      "Android app",
+      "Browser",
+      "Command line",
+    ]) {
+      expect(getFeedClientName(client)).toBe(client);
+    }
+  });
+
+  test("an app it could not classify, or none, is no app at all", () => {
+    expect(UNKNOWN_CALENDAR_CLIENT).toBe("Other");
+    expect(getFeedClientName("Other")).toBeNull();
+    expect(getFeedClientName(" Other ")).toBeNull();
+    expect(getFeedClientName("")).toBeNull();
+    expect(getFeedClientName(null)).toBeNull();
+    expect(getFeedClientName(undefined)).toBeNull();
+  });
+
+  test("Google's refresh note is for a link Google Calendar read last, and only that", () => {
+    expect(GOOGLE_CALENDAR_CLIENT).toBe("Google Calendar");
+    expect(
+      isFetchedByGoogleCalendar(
+        makeStatus({ lastFetchedClient: "Google Calendar" }),
+      ),
+    ).toBe(true);
+
+    for (const client of [
+      "Apple Calendar",
+      "Microsoft Outlook",
+      "Other",
+      null,
+    ]) {
+      expect(
+        isFetchedByGoogleCalendar(makeStatus({ lastFetchedClient: client })),
+      ).toBe(false);
+    }
+  });
+});
+
+/*
+ * The link as the page shows it while it is hidden. The token is the
+ * credential; nothing of it but the four characters the status already names
+ * may ever be in the mask.
+ */
+describe("maskFeedLink", () => {
+  const TOKEN: string = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
+
+  test("the host, then dots, then the four characters - no scheme, no path, no token", () => {
+    const masked: MaskedFeedLink = maskFeedLink(HTTPS_URL, "DEFG");
+
+    expect(masked).toEqual({
+      address: "oneuptime.example.com/",
+      secret: MASK_CHARACTER.repeat(10) + "DEFG",
+    });
+    expect(masked.address + masked.secret).not.toContain(TOKEN);
+    expect(masked.address + masked.secret).not.toContain("on-call-calendar");
+  });
+
+  test("a port is part of the host, and a schedule filter is not shown", () => {
+    expect(
+      maskFeedLink(
+        "http://oneuptime.lan:8080/api/on-call-calendar/user/x/shifts.ics?schedule=abc",
+        "k3Qx",
+      ).address,
+    ).toBe("oneuptime.lan:8080/");
+  });
+
+  test("without a hint the secret is dots alone; a link that cannot be parsed keeps only the dots", () => {
+    expect(maskFeedLink(HTTPS_URL, null).secret).toBe(
+      MASK_CHARACTER.repeat(10),
+    );
+    expect(maskFeedLink(HTTPS_URL, "  ").secret).toBe(
+      MASK_CHARACTER.repeat(10),
+    );
+    expect(maskFeedLink("not a url", "k3Qx")).toEqual({
+      address: "",
+      secret: MASK_CHARACTER.repeat(10) + "k3Qx",
+    });
+  });
+
+  test("the dots are bullets, one character each", () => {
+    expect(MASK_CHARACTER.codePointAt(0)).toBe(0x2022);
+    expect(MASK_CHARACTER).toHaveLength(1);
+  });
+});
+
+describe("the layout of a calendar link card's body", () => {
+  test("subscribing and the status share the row from xl up, three fifths and two", () => {
+    expect(FEED_BODY_GRID_CLASS_NAME).toBe(
+      "grid grid-cols-1 gap-6 xl:grid-cols-5",
+    );
+    expect(FEED_SUBSCRIBE_COLUMN_CLASS_NAME).toContain("xl:col-span-3");
+    expect(FEED_STATUS_COLUMN_CLASS_NAME).toContain("xl:col-span-2");
+    expect(FEED_STATUS_FULL_WIDTH_CLASS_NAME).toContain("xl:col-span-5");
+
+    // Columns may shrink below their content's width rather than overflow.
+    for (const column of [
+      FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+      FEED_STATUS_COLUMN_CLASS_NAME,
+      FEED_STATUS_FULL_WIDTH_CLASS_NAME,
+    ]) {
+      expect(column).toContain("min-w-0");
+    }
+  });
+
+  test("a state that needs attention comes first while the columns stack", () => {
+    expect(isAttentionHealth(FeedHealth.Disabled)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.NeedsRegeneration)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.NotFetched)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.Active)).toBe(false);
+    expect(isAttentionHealth(FeedHealth.WaitingForFirstSync)).toBe(false);
+
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: true,
+        health: FeedHealth.Disabled,
+      }),
+    ).toBe(
+      FEED_STATUS_COLUMN_CLASS_NAME + " " + FEED_ATTENTION_FIRST_CLASS_NAME,
+    );
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: true,
+        health: FeedHealth.Active,
+      }),
+    ).toBe(FEED_STATUS_COLUMN_CLASS_NAME);
+    expect(FEED_ATTENTION_FIRST_CLASS_NAME).toBe("max-xl:order-first");
+  });
+
+  test("a link that cannot be shown gives the status the whole row", () => {
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: false,
+        health: FeedHealth.NeedsRegeneration,
+      }),
+    ).toBe(
+      FEED_STATUS_FULL_WIDTH_CLASS_NAME + " " + FEED_ATTENTION_FIRST_CLASS_NAME,
+    );
   });
 });

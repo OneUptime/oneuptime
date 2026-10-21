@@ -14,12 +14,18 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getRumDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
+import RumDocumentationCard from "../../../Components/Rum/RumDocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const RumApplicationDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [rumApplication, setRumApplication] = useState<RumApplication | null>(
@@ -37,6 +43,7 @@ const RumApplicationDocumentation: FunctionComponent<
         select: {
           name: true,
           appIdentifier: true,
+          clientType: true,
         },
       });
       setRumApplication(item);
@@ -64,17 +71,21 @@ const RumApplicationDocumentation: FunctionComponent<
     return <ErrorMessage message="RUM application not found." />;
   }
 
-  const label: string =
+  const label: string | TranslatableTerm =
     (rumApplication.appIdentifier as string) ||
     (rumApplication.name as string) ||
-    "this application";
+    translatableTerm("this application");
 
   return (
     <Fragment>
-      <ResourceDocumentationCard
+      <RumDocumentationCard
         title="Instrument your app for RUM"
-        description={`Send browser / mobile telemetry so ${label} reports real-user monitoring to OneUptime.`}
-        buildMarkdown={getRumDocMarkdown}
+        description={translator.translateTemplate(
+          "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+          { application: label },
+        )}
+        appName={rumApplication.appIdentifier as string}
+        clientType={rumApplication.clientType as string}
       />
     </Fragment>
   );

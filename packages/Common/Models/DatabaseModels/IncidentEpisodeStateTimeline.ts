@@ -5,6 +5,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -24,6 +25,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incidentEpisode")
+@OwnedThrough("incidentEpisodeId", IncidentEpisode)
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -468,8 +470,16 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     update: [],
   })
   @Index()
+  /*
+   * Computed, as on every other state timeline: the create hook marks an
+   * episode's first state as notified already (owners hear about the
+   * episode itself), and a value a hook writes is held to the caller's
+   * create permission unless the column is computed - nobody may create
+   * this one, so a member's first state would be refused.
+   */
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

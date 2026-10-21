@@ -18,6 +18,7 @@ import IncidentStateRole from "../../../Types/Incident/IncidentStateRole";
 import { JSONObject } from "../../../Types/JSON";
 import MeasurementStatus from "../../../Types/Measurement/MeasurementStatus";
 import ObjectID from "../../../Types/ObjectID";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   afterEach,
@@ -27,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -78,6 +80,10 @@ const TIME_TO_CLOSE_ID: ObjectID = new ObjectID(
 );
 const TIME_TO_DETECT_ID: ObjectID = new ObjectID(
   "cccccccc-0005-4000-8000-000000000005",
+);
+
+const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID: ObjectID = new ObjectID(
+  "cccccccc-0006-4000-8000-000000000006",
 );
 
 const METRIC_NAME_PREFIX: string = "oneuptime.incident.measurement.";
@@ -196,6 +202,60 @@ function defaultTimeline(): Array<IncidentStateTimeline> {
       isResolvedState: true,
     }),
   ];
+}
+
+/*
+ * The project's incident states, as the state service reads them. Closed
+ * comes after Resolved without the flag, and counts as resolved
+ * (Common/Utils/ResolvedState): entering it is no second resolve.
+ */
+function projectStates(): Array<IncidentState> {
+  const rows: Array<{
+    id: ObjectID;
+    name: string;
+    order: number;
+    flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
+  }> = [
+    {
+      id: IDENTIFIED_STATE_ID,
+      name: "Identified",
+      order: 1,
+      flag: "isCreatedState",
+    },
+    {
+      id: ACKNOWLEDGED_STATE_ID,
+      name: "Acknowledged",
+      order: 2,
+      flag: "isAcknowledgedState",
+    },
+    { id: MITIGATED_STATE_ID, name: "Mitigated", order: 3 },
+    {
+      id: RESOLVED_STATE_ID,
+      name: "Resolved",
+      order: 4,
+      flag: "isResolvedState",
+    },
+    { id: CLOSED_STATE_ID, name: "Closed", order: 5 },
+  ];
+
+  return rows.map(
+    (row: {
+      id: ObjectID;
+      name: string;
+      order: number;
+      flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
+    }): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state._id = row.id.toString();
+      state.id = row.id;
+      state.name = row.name;
+      state.order = row.order;
+      state.isCreatedState = row.flag === "isCreatedState";
+      state.isAcknowledgedState = row.flag === "isAcknowledgedState";
+      state.isResolvedState = row.flag === "isResolvedState";
+      return state;
+    },
+  );
 }
 
 function buildMeasurement(input: {
@@ -403,6 +463,8 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
     updateCalls = [];
     replaceCalls = [];
 
+    mockProjectStates({ incidentStates: projectStates() });
+
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(
@@ -455,6 +517,123 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * Time to acknowledge counts from the declaration: an incident paged hours
+   * after it was declared - one held until the morning - reads as hours.
+   * "Time to acknowledge after paging" counts from First Paged At, when an
+   * on-call policy or a direct page first notified somebody, to the same
+   * acknowledged moment.
+   */
+  describe("the first page (First Paged At)", () => {
+    function timeToAcknowledgeAfterPaging(): IncidentMeasurement {
+      return buildMeasurement({
+        id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+        key: "time-to-acknowledge-after-paging",
+        name: "Time to acknowledge after paging",
+        startAnchorType: IncidentMeasurementAnchorType.FirstPagedAt,
+        endAnchorType: IncidentMeasurementAnchorType.StateRoleEntered,
+        endStateRole: IncidentStateRole.Acknowledged,
+      });
+    }
+
+    function mockIncident(firstPagedAt: Date | undefined): void {
+      const incident: Incident = buildIncident();
+
+      if (firstPagedAt) {
+        incident.firstPagedAt = firstPagedAt;
+      }
+
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(incident as never);
+    }
+
+    test("counts from the first page to the acknowledgement, where time to acknowledge counts from the declaration", async () => {
+      mockIncident(at(2));
+      mockDefinitions([timeToAcknowledge(), timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(createdRowFor(TIME_TO_ACKNOWLEDGE_ID).valueInSeconds).toBe(5 * 60);
+
+      const afterPaging: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      expect(afterPaging.status).toBe(MeasurementStatus.Recorded);
+      expect(afterPaging.startedAt).toEqual(at(2));
+      expect(afterPaging.endedAt).toEqual(at(5));
+      expect(afterPaging.valueInSeconds).toBe(3 * 60);
+      expect(afterPaging.endIncidentStateTimelineId?.toString()).toBe(
+        ACKNOWLEDGED_TIMELINE_ID.toString(),
+      );
+    });
+
+    test("is charted with the incident's severity, so it can be read per severity", async () => {
+      mockIncident(at(2));
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(emittedMetricNames()).toEqual([
+        "oneuptime.incident.measurement.time-to-acknowledge-after-paging",
+      ]);
+
+      const attributes: JSONObject = emittedMetrics()[0]!
+        .attributes as JSONObject;
+
+      expect(attributes["incidentSeverityName"]).toBe("Critical");
+      expect(attributes["incidentSeverityId"]).toBe(SEVERITY_ID.toString());
+    });
+
+    test("an incident nobody was paged about has no value and no chart point", async () => {
+      mockIncident(undefined);
+      mockDefinitions([timeToAcknowledge(), timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const afterPaging: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      /*
+       * Still to come rather than never coming - a page held until the
+       * morning goes out later - so Pending, as an unreached state is.
+       */
+      expect(afterPaging.status).toBe(MeasurementStatus.Pending);
+      expect(afterPaging.statusMessage).toBe(
+        "First Paged At has not been recorded yet",
+      );
+      expect(afterPaging.valueInSeconds).toBeNull();
+      expect(afterPaging.startedAt).toBeNull();
+      expect(afterPaging.endedAt).toEqual(at(5));
+      expect(emittedMetricNames()).toEqual([
+        "oneuptime.incident.measurement.time-to-acknowledge",
+      ]);
+    });
+
+    test("reads First Paged At with the incident it works out", async () => {
+      const findOneById: SpyInstance<typeof IncidentService.findOneById> = jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(buildIncident() as never);
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(findOneById.mock.calls[0]![0].select).toMatchObject({
+        firstPagedAt: true,
+      });
+    });
+  });
+
   test("computes one value row per definition, each with its own duration", async () => {
     await IncidentMeasurementValueService.recomputeForIncident({
       incidentId: INCIDENT_ID,
@@ -474,6 +653,122 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
 
     expect(resolve.status).toBe(MeasurementStatus.Recorded);
     expect(resolve.valueInSeconds).toBe(30 * 60);
+  });
+
+  /*
+   * "The incident is acknowledged" is each move into a state that counts as
+   * acknowledged (Common/Utils/AcknowledgedState) - the acknowledged state,
+   * one placed after it (Mitigated), or a resolved one - from one that does
+   * not. Reading the acknowledged flag alone left an incident moved straight
+   * into Mitigated never acknowledged.
+   */
+  describe("the acknowledged moment, by the one acknowledged rule", () => {
+    const mitigatedTimelineId: ObjectID = new ObjectID(
+      "0193c0de-5a7e-4fab-8bcd-3000000000c9",
+    );
+
+    function entry(
+      id: ObjectID,
+      stateId: ObjectID,
+      name: string,
+      order: number,
+      minutes: number,
+      flags: {
+        isCreatedState?: boolean;
+        isAcknowledgedState?: boolean;
+        isResolvedState?: boolean;
+      } = {},
+    ): IncidentStateTimeline {
+      return buildTimelineEntry({
+        id: id,
+        stateId: stateId,
+        stateName: name,
+        order: order,
+        startsAt: at(minutes),
+        ...flags,
+      });
+    }
+
+    test("an incident moved straight into a state placed after Acknowledged was acknowledged then", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(mitigatedTimelineId, MITIGATED_STATE_ID, "Mitigated", 3, 7),
+        entry(RESOLVED_TIMELINE_ID, RESOLVED_STATE_ID, "Resolved", 4, 30, {
+          isResolvedState: true,
+        }),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.status).toBe(MeasurementStatus.Recorded);
+      expect(acknowledge.valueInSeconds).toBe(7 * 60);
+      expect(acknowledge.endIncidentStateTimelineId?.toString()).toBe(
+        mitigatedTimelineId.toString(),
+      );
+    });
+
+    test("an incident resolved straight from the start was acknowledged by that resolve", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(RESOLVED_TIMELINE_ID, RESOLVED_STATE_ID, "Resolved", 4, 20, {
+          isResolvedState: true,
+        }),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.status).toBe(MeasurementStatus.Recorded);
+      expect(acknowledge.valueInSeconds).toBe(20 * 60);
+    });
+
+    test("moving on from Acknowledged into a state after it is no second acknowledgement", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(
+          ACKNOWLEDGED_TIMELINE_ID,
+          ACKNOWLEDGED_STATE_ID,
+          "Acknowledged",
+          2,
+          5,
+          { isAcknowledgedState: true },
+        ),
+        entry(mitigatedTimelineId, MITIGATED_STATE_ID, "Mitigated", 3, 12),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.valueInSeconds).toBe(5 * 60);
+      expect(acknowledge.endIncidentStateTimelineId?.toString()).toBe(
+        ACKNOWLEDGED_TIMELINE_ID.toString(),
+      );
+    });
   });
 
   test("stamps each row with the timeline entries it was derived from, so a number can be traced back", async () => {

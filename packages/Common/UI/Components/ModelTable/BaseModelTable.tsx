@@ -1,9 +1,17 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
+import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -18,47 +26,87 @@ import TableViewUrlState, {
 import buildQueryFromFilterData, {
   sanitizeFilterData,
 } from "./FilterDataToQuery";
-import PermissionUtil from "../../Utils/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
-import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "../ActionButton/ActionButtonSchema";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import CopyTextButton from "../CopyTextButton/CopyTextButton";
-import MoreMenu from "../MoreMenu/MoreMenu";
-import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
 } from "../Card/Card";
 import { getRefreshButton } from "../Card/CardButtons/Refresh";
 import Field from "../Detail/Field";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
-import { ModelField } from "../Forms/ModelForm";
+import {
+  ModelField,
+  ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
+} from "../Forms/ModelForm";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
 import List from "../List/List";
 import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
+import RecordIdModal from "../ObjectID/RecordIdModal";
+import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
+import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
 import Modal, { ModalWidth } from "../Modal/Modal";
+import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
+import {
+  getDeleteConsequence,
+  joinSentences,
+} from "../DeleteConfirmation/DeleteConsequences";
+import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
+import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
-import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
+import {
+  RowClickEventLike,
+  isNewTabClick,
+  isRowOpeningClick,
+} from "../Table/RowClick";
+import TableEmptyState from "../Table/TableEmptyState";
+import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+  TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
+  TABLE_HEADER_TOOLBAR_CLASS_NAME,
+  TableHeaderButtonSplit,
+  TableHeaderSearchSlot,
+  TableHeaderToolbar,
+  renderTableHeaderMainButton,
+  renderTableHeaderMoreMenu,
+  splitTableHeaderButtons,
+  useTableHeaderSearchShortcut,
+} from "../Table/TableHeaderControls";
+import EmptyStateOptions from "./EmptyStateOptions";
+import {
+  ModelTableEmptyState,
+  buildModelTableEmptyState,
+  buildNoAccessState,
+} from "./ModelTableEmptyState";
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
@@ -101,9 +149,11 @@ import BaseModel, {
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
+import { getDropTargetValue, moveListItem } from "../../../Utils/ListOrder";
+import Alert, { AlertType } from "../Alerts/Alert";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -120,10 +170,6 @@ import {
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../Types/Permission";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -139,10 +185,25 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 
+/*
+ * How many rows a drag-ordered table shows at once unless told otherwise.
+ * Rows can only be dragged within the page on screen, so it should hold the
+ * whole list - these are settings lists of a handful of rows to a few dozen.
+ */
+export const MANUALLY_ORDERED_ITEMS_ON_PAGE: number = 50;
+
+export const REORDER_OFF_WHILE_FILTERED: string =
+  "Drag to reorder is off while a filter or search is on.";
+
+export const REORDER_SAVING: string = "Saving the new order...";
+
+export const REORDER_SAVED: string = "The new order is saved.";
+
+export const REORDER_FAILED: string = "The new order could not be saved.";
+
 export enum ShowAs {
   Table,
   List,
-  OrderedStatesList,
 }
 
 /*
@@ -159,6 +220,35 @@ export enum ShowAs {
  * statement timeout while capping a maxed-out selection at ten round trips.
  */
 export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
+
+/*
+ * The row of a table's header controls - its search, saved views, main
+ * button and ⋯ - and how it is laid out. They live in
+ * Table/TableHeaderControls, which every table's header is drawn with (a
+ * table a page builds on Common's Table too); these are their names here.
+ */
+export const MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME: string =
+  TABLE_HEADER_TOOLBAR_CLASS_NAME;
+
+// The search folded to its "Search... /" pill.
+export const MODEL_TABLE_PHONE_SEARCH_CLASS_NAME: string =
+  TABLE_HEADER_SEARCH_CLASS_NAME;
+
+// The search opened.
+export const MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME: string =
+  TABLE_HEADER_OPEN_SEARCH_CLASS_NAME;
+
+// The buttons beside an opened search, folded away to no width.
+export const MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME: string =
+  TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME;
+
+/*
+ * The frame of a table drawn without a card of its own (no cardProps),
+ * padded as a card is - 20px on a phone, 24px from md up - since the
+ * table's rows and footer reach through that padding to its edges.
+ */
+export const MODEL_TABLE_FRAME_CLASS_NAME: string =
+  "overflow-clip rounded-xl border border-gray-200 bg-white px-5 pb-6 shadow-sm md:px-6";
 
 export interface SaveFilterProps {
   tableId: string;
@@ -186,11 +276,15 @@ export interface BaseTableCallbacks<
   showCreateEditModal: (data: {
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
-    onBeforeCreate?:
-      | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-      | undefined;
+    onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+    onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
     onSuccess?: ((item: TBaseModel) => void) | undefined;
     onClose?: (() => void) | undefined;
+    /*
+     * The rows the table shows, handed to a Create form: a colour it picks
+     * for the new record is one none of them uses yet.
+     */
+    existingItems?: Array<TBaseModel> | undefined;
   }) => ReactElement;
 }
 
@@ -199,13 +293,20 @@ export enum ModalTableBulkDefaultActions {
 }
 
 export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
+  /*
+   * The table's own bulk actions. On a table whose rows are deleted from it
+   * (`isDeleteable`), the default Delete joins them on its own; listing
+   * ModalTableBulkDefaultActions.Delete only places it. On a table that is
+   * not, there is no Delete to place.
+   */
   buttons: Array<BulkActionButtonSchema<T> | ModalTableBulkDefaultActions>;
   matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
   /**
-   * Appended to the bulk Delete confirmation, for a surface where deleting the
-   * selected rows also removes records the user did not select, or where a
-   * reversible alternative exists. The default sentence only says the deletion
-   * cannot be undone - it cannot know what else goes with it.
+   * Said after the bulk Delete's question in place of the table's
+   * deleteConfirmationWarning, for a bulk Delete that needs other words than
+   * the row's Delete - removing several links at once, say, or the rule a
+   * row's own dialog spells out case by case. What the model's records take
+   * with them (DeleteConsequences) is said before it either way.
    */
   deleteConfirmationWarning?: string | undefined;
   /**
@@ -265,14 +366,40 @@ export interface BaseTableProps<
   listDetailOptions?: undefined | ListDetailProps;
   selectMoreFields?: Select<TBaseModel>;
   initialItemsOnPage?: number;
+  /*
+   * Whether this list's rows are deleted from it: Delete in each row's ⋯
+   * menu and, on a table that offers bulk actions (or to a viewer who may
+   * delete), Delete in Bulk Actions - the two always together. Off for a
+   * list whose records are deleted somewhere else: another resource's page
+   * listing its members, a list across projects, history, or a record whose
+   * delete has its own flow.
+   */
   isDeleteable: boolean;
+  /*
+   * A sentence of this list's own, said after the Delete question in the
+   * row's dialog and in the bulk Delete's - a gentler way to the same end
+   * ("archive it instead"), say. What the model's records take with them
+   * (DeleteConsequences) is said before it without being asked for.
+   */
+  deleteConfirmationWarning?: string | undefined;
   isEditable?: boolean | undefined;
   isCreateable: boolean;
   onCreateClick?: (() => void) | undefined;
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
+  /*
+   * The page's own words for an empty table. A sentence is split into the
+   * empty state's title (its first sentence) and description (the rest);
+   * an element replaces the whole empty state. See emptyState.
+   */
   noItemsMessage?: undefined | string | ReactElement;
+  /*
+   * The table's own title, description or icon for its empty state, or
+   * that an empty list is good news here (isAllClear). See
+   * EmptyStateOptions: most tables need none of it.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   showRefreshButton?: undefined | boolean;
   isViewable?: undefined | boolean;
   showViewIdButton?: undefined | boolean;
@@ -283,17 +410,41 @@ export interface BaseTableProps<
   groupBy?: GroupBy<TBaseModel> | undefined;
   onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
   createInitialValues?: FormValues<TBaseModel> | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  /*
+   * Runs on the Edit form just before it saves, with the model, the misc
+   * data the request carries (what it adds there is sent) and every value
+   * the form holds - ModelForm's onBeforeUpdate. A custom field's option
+   * renames ride along this way (#4564).
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   // Runs after both create and edit; modalType identifies which form was saved.
   onCreateSuccess?:
     | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
     | undefined;
   createVerb?: string;
+  /*
+   * The create dialog's own title and button, for a table whose noun would
+   * misname what the button that opened the dialog adds: a custom role's
+   * Permissions card adds a role or a single permission ("Add a Role to
+   * Incident Responder", "Add Role"), not a "New Permission". English to
+   * look up, or words already in the reader's language. Left out, the
+   * dialog says "<verb> New <singular name>" as before.
+   */
+  createFormTitle?: string | undefined;
+  createFormSubmitButtonText?: string | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;
+  /*
+   * What one row is called wherever the table names it - its checkbox and
+   * its ⋯ for a screen reader, the rows a bulk action lists before and after
+   * it runs, the per-row Delete question - for a model with no name column
+   * of its own. A monitor's status event has none: without this, a bulk
+   * Delete listed the one it skipped by its id. Return "" to fall back to the
+   * row's name column, as a table without the prop does.
+   */
+  getItemName?: ((item: TBaseModel) => string) | undefined;
   actionButtons?: Array<ActionButtonSchema<TBaseModel>> | undefined;
   deleteButtonText?: string | undefined;
   onCreateEditModalClose?: (() => void) | undefined;
@@ -305,6 +456,16 @@ export interface BaseTableProps<
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  /*
+   * Rows that can never be deleted - a project's built-in states, say - and
+   * why: the reason, or undefined for a row that can be deleted. Such a row
+   * keeps Delete in its menu, locked, with the reason as its tooltip, and a
+   * bulk Delete that includes it skips it and lists it, with the reason,
+   * among the rows it could not delete.
+   */
+  getDeleteDisabledReason?:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined;
   /*
    * Supplies the per-row Delete confirmation's wording for the row that was
    * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
@@ -319,13 +480,6 @@ export interface BaseTableProps<
   dragDropIdField?: keyof TBaseModel | undefined;
   dragDropIndexField?: keyof TBaseModel | undefined;
   createEditModalWidth?: ModalWidth | undefined;
-  orderedStatesListProps?: {
-    titleField: keyof TBaseModel;
-    descriptionField?: keyof TBaseModel | undefined;
-    orderField: keyof TBaseModel;
-    shouldAddItemInTheEnd?: boolean;
-    shouldAddItemInTheBeginning?: boolean;
-  };
   onViewComplete?: ((item: TBaseModel) => void) | undefined;
   createEditFromRef?:
     | undefined
@@ -474,72 +628,6 @@ export enum ModalType {
   Edit,
 }
 
-/*
- * The fields a row is worth naming itself by, in the order a human would pick
- * one. `title` is not decoration here: incidents, alerts and scheduled
- * maintenance key on `title` rather than `name`, and those are exactly the
- * tables where deleting the row next to the one you meant hurts most.
- *
- * Only the fields the table already selected are present on the row, so this
- * reads whatever is there and gives up quietly rather than guessing.
- */
-const ITEM_LABEL_FIELDS: Array<string> = [
-  "name",
-  "title",
-  "slug",
-  "email",
-  "username",
-  "domain",
-];
-
-type ReadLabelFieldFunction = (value: unknown) => string;
-
-/*
- * Some of these fields arrive as objects with a meaningful toString - Name,
- * Email, ObjectID all define one. Anything that does not is skipped rather
- * than rendered as "[object Object]".
- */
-const readLabelField: ReadLabelFieldFunction = (value: unknown): string => {
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  const text: string = String(value);
-
-  return text === "[object Object]" ? "" : text.trim();
-};
-
-type GetItemLabelFunction = (item: unknown) => string;
-
-/*
- * Every per-row Delete in the product opened the same dialog: "Are you sure
- * you want to delete this monitor?" - a sentence equally true of the row that
- * was clicked and of the twenty either side of it. That is precisely the
- * moment a user wants to be told which one, and the one moment the dialog
- * would not say.
- */
-const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
-  if (!item || typeof item !== "object") {
-    return "";
-  }
-
-  const record: Record<string, unknown> = item as Record<string, unknown>;
-
-  for (const field of ITEM_LABEL_FIELDS) {
-    const label: string = readLabelField(record[field]);
-
-    if (label) {
-      return label;
-    }
-  }
-
-  return "";
-};
-
 type GetDeleteLabelFunction = (
   singularName: string | undefined,
   modelSingularName: string | null | undefined,
@@ -559,15 +647,112 @@ const getDeleteLabel: GetDeleteLabelFunction = (
   return singularName?.trim() || modelSingularName?.trim() || "Item";
 };
 
+/*
+ * The create button for each verb a table uses, as a whole phrase a locale
+ * can reorder ("{{itemName}} erstellen"). A verb not listed here goes through
+ * the verb-and-noun template, which only reorders.
+ */
+const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add {{itemName}}"),
+  Connect: translationKey("Connect {{itemName}}"),
+  Create: translationKey("Create {{itemName}}"),
+  Declare: translationKey("Declare {{itemName}}"),
+  Invite: translationKey("Invite {{itemName}}"),
+  Link: translationKey("Link {{itemName}}"),
+};
+
+/*
+ * "<verb> <noun>" on a create button - the table header's, and the create
+ * dialog's submit button. Translating the two words separately reads the
+ * verb out of context - "Link" comes back as the noun in many languages, and
+ * word order differs - so the whole phrase is looked up first ("Link Alert"),
+ * then the verb's template with the locale's word for the noun in it. In
+ * English all of them read the same.
+ */
+export const translateCreateAction: (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+) => string = (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+): string => {
+  const verb: string = data.verb || "Create";
+  const noun: string = data.itemName.trim();
+
+  // A table that keeps its button down to the verb ("Invite").
+  if (!noun) {
+    return translator.translateText(verb) || verb;
+  }
+
+  return translateNamedAction(translator, {
+    template: CREATE_BUTTON_TEMPLATES[verb] || "{{action}} {{itemName}}",
+    itemName: noun,
+    values: { action: translatableTerm(verb) },
+  });
+};
+
+export const BULK_DELETE_TITLE: PluralTemplate = {
+  one: "Delete {{count}} {{itemName}}",
+  other: "Delete {{count}} {{itemsName}}",
+};
+
+export const BULK_DELETE_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to delete {{count}} {{itemName}}? This action cannot be undone.",
+  other:
+    "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.",
+};
+
+/*
+ * What a bulk Delete's result says about each row: deleted, or not - and
+ * then, under it, which ones and why.
+ */
+export const BULK_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} deleted",
+  other: "{{count}} {{itemsName}} deleted",
+};
+
+export const BULK_NOT_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not deleted",
+  other: "{{count}} {{itemsName}} not deleted",
+};
+
+// A table that names its own verb ("Unlink") for the bulk action.
+export const BULK_ACTION_TITLE: PluralTemplate = {
+  one: "{{action}} {{count}} {{itemName}}",
+  other: "{{action}} {{count}} {{itemsName}}",
+};
+
+export const BULK_ACTION_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to {{action}} {{count}} {{itemName}}?",
+  other: "Are you sure you want to {{action}} {{count}} {{itemsName}}?",
+};
+
+export const SEARCH_MATCH_COUNT: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
+
+export const SEARCH_RESULT_COUNT: PluralTemplate = {
+  one: "{{count}} result",
+  other: "{{count}} results",
+};
+
+export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
+  one: "{{count}} result on this page",
+  other: "{{count}} results on this page",
+};
+
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -575,27 +760,68 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const model: TBaseModel = new props.modelType();
 
+  type GetItemLabelFunction = (item: unknown) => string;
+
   /*
-   * The header's create button, "<verb> <noun>". Translating the two words
-   * separately reads the verb out of context - "Link" comes back as the noun
-   * in many languages, and word order differs - so the whole phrase is looked
-   * up first ("Link Alert") and the word-by-word join is only the fallback
-   * for a phrase with no entry of its own. In English both are the same.
+   * Every per-row Delete in the product opened the same dialog: "Are you sure
+   * you want to delete this monitor?" - a sentence equally true of the row that
+   * was clicked and of the twenty either side of it. That is precisely the
+   * moment a user wants to be told which one, and the one moment the dialog
+   * would not say.
+   *
+   * The row is named by the model's own name column first (a template's
+   * templateName, not the title of the incident it creates), then by whatever
+   * name-like field the table selected. Only what is on the row is read: this
+   * never guesses at a name it was not given.
    */
-  const getCreateButtonTitle: () => string = (): string => {
-    const verb: string = props.createVerb || "Create";
-    const noun: string = props.singularName || model.singularName || "";
+  const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
+    const givenName: string =
+      item && props.getItemName
+        ? props.getItemName(item as TBaseModel).trim()
+        : "";
 
-    if (noun) {
-      const phrase: string = `${verb} ${noun}`;
-      const translatedPhrase: string = tx(phrase);
+    return givenName || getRecordDisplayName(item, { model: model });
+  };
 
-      if (translatedPhrase && translatedPhrase !== phrase) {
-        return translatedPhrase;
+  /*
+   * What a Delete dialog says after its question, in the reader's language:
+   * what this model's records take with them (DeleteConsequences - the same
+   * sentence the record's own Delete page says), then the list's own
+   * sentence. A table that names its own verb ("Unlink") removes
+   * relationships, not the records they point at, so it says only its own.
+   */
+  type GetDeleteWarningFunction = (listWarning: string | undefined) => string;
+
+  const getDeleteWarning: GetDeleteWarningFunction = (
+    listWarning: string | undefined,
+  ): string => {
+    const sentences: Array<string> = [];
+
+    if (!props.bulkActions?.deleteVerb?.trim()) {
+      const consequence: string = getDeleteConsequence(
+        model.tableName,
+        translator,
+      );
+
+      if (consequence) {
+        sentences.push(consequence);
       }
     }
 
-    return `${tx(verb)} ${tx(noun)}`;
+    if (listWarning?.trim()) {
+      sentences.push(tx(listWarning.trim()));
+    }
+
+    // Run together as the reader's script writes sentences.
+    return joinSentences(sentences);
+  };
+
+  // The header's create button, "<verb> <noun>".
+  const getCreateButtonTitle: () => string = (): string => {
+    return translateCreateAction(translator, {
+      verb: props.createVerb,
+      itemName: props.singularName || model.singularName || "",
+    });
   };
 
   /*
@@ -683,12 +909,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.query || {},
   );
 
-  const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  /*
+   * The ID Show ID is showing, as text - null while its dialog is closed. A
+   * row's `_id` is a string on a database model but an ObjectID on an
+   * analytics row (a span, an LLM call), so it is read with getRecordIdText
+   * and never cast: the cast handed React an object (issue #4615).
+   */
   const [viewId, setViewId] = useState<string | null>(null);
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
   );
+  /*
+   * Whether serializeToTableColumns has run yet. It runs in an effect, after
+   * the first paint, so until then tableColumns is empty because nothing has
+   * been built, not because every column was denied.
+   */
+  const [hasBuiltColumns, setHasBuiltColumns] = useState<boolean>(false);
 
   /*
    * ---------------------------------------------------------------------
@@ -711,9 +948,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     });
 
   const isColumnCustomizationEnabled: boolean = Boolean(
-    !props.disableColumnCustomization &&
-      props.userPreferencesKey &&
-      showAs !== ShowAs.OrderedStatesList,
+    !props.disableColumnCustomization && props.userPreferencesKey,
   );
 
   type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
@@ -890,6 +1125,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   }, [props.modelType]);
 
+  /*
+   * A list people put in order by dragging its rows (enableDragAndDrop with
+   * the column that holds the order). Such a list is always shown in that
+   * order - sorting it by another column would make "drag it above that
+   * one" meaningless - and its order is never typed in: the server puts a
+   * new row at the end and keeps the numbers (@ListOrderColumn).
+   */
+  const isManuallyOrdered: boolean = Boolean(
+    props.enableDragAndDrop && props.dragDropIndexField,
+  );
+
+  /*
+   * Which end of the numbers is the top: the model says so when it is a
+   * @ListOrderColumn list (site assignment rules count down), else the
+   * table's own sort order.
+   */
+  const getManualSortOrder: () => SortOrder = (): SortOrder => {
+    const listOrder: ListOrderSettings | null =
+      model instanceof BaseModel ? model.getListOrder() : null;
+
+    if (listOrder && listOrder.column === props.dragDropIndexField) {
+      return listOrder.sortOrder;
+    }
+
+    return props.sortOrder || SortOrder.Ascending;
+  };
+
   const getItemsOnPage: () => number = (): number => {
     if (props.userPreferencesKey) {
       const itemsOnPage: number | null =
@@ -902,7 +1164,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    return props.initialItemsOnPage || 10;
+    return (
+      props.initialItemsOnPage ||
+      (isManuallyOrdered ? MANUALLY_ORDERED_ITEMS_ON_PAGE : 10)
+    );
   };
 
   /*
@@ -960,9 +1225,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return TableFilterUrlState.claimKey(urlStateKey);
   }, [urlStateKey]);
 
-  const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
-    useState<number | null>(null);
-
   const [onBeforeFetchData, setOnBeforeFetchData] = useState<
     TBaseModel | undefined
   >(undefined);
@@ -988,6 +1250,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
+
+  // A dropped row's new place is being saved.
+  const [isReordering, setIsReordering] = useState<boolean>(false);
+  // Why the last drop could not be saved - the rows went back.
+  const [reorderError, setReorderError] = useState<string>("");
+  // For screen readers: the last drop was saved.
+  const [isReorderSaved, setIsReorderSaved] = useState<boolean>(false);
 
   /*
    * Auto-detect label support from the existing filters array. We look for
@@ -1114,35 +1383,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * "/" focuses the search input — same affordance as GitHub / Linear.
    * Skip while the user is typing in another input/textarea or has a modal open.
    */
-  useEffect(() => {
-    if (!props.searchableFields || props.searchableFields.length === 0) {
-      return undefined;
-    }
-    const handleKey: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) {
-        return;
-      }
-      const target: HTMLElement | null = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      e.preventDefault();
+  useTableHeaderSearchShortcut(
+    Boolean(props.searchableFields && props.searchableFields.length > 0),
+    (): void => {
       setIsSearchExpanded(true);
       // Wait one frame so the input mounts/becomes visible before focusing.
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();
       });
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [props.searchableFields]);
+    },
+  );
 
   /*
    * Keep the search expanded whenever there is an active search term — so
@@ -1400,6 +1650,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         contentClassName: column.contentClassName,
         alignItem: column.alignItem,
         hideOnMobile: column.hideOnMobile, // Propagate hideOnMobile property
+        // A row the column leaves off this item's card (showInListIf).
+        showIf: column.showInListIf,
         getElement: column.getElement
           ? (item: TBaseModel): ReactElement => {
               return column.getElement!(item, onBeforeFetchData);
@@ -1459,11 +1711,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     selectFields = props.callbacks.addSlugToSelect(selectFields);
-
-    const userPermissions: Array<Permission> = getUserPermissions();
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns();
 
     /*
      * The viewer's layout is applied to the *input* of this loop, never to
@@ -1551,21 +1798,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       : [];
 
     for (const moreField of selectMoreFields) {
-      let hasPermissionToSelectField: boolean = true;
-      let fieldPermissions: Array<Permission> = [];
-      fieldPermissions = accessControl[moreField as string]?.read || [];
-
-      if (
-        accessControl[moreField]?.read &&
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          fieldPermissions,
-        )
-      ) {
-        hasPermissionToSelectField = false;
-      }
-
-      if (hasPermissionToSelectField) {
+      if (hasPermissionToReadField(moreField as keyof TBaseModel)) {
         (selectFields as Dictionary<boolean>)[moreField] = true;
       } else {
         Logger.warn(
@@ -1584,8 +1817,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showActionsColumn: boolean = Boolean(
       (props.isDeleteable && getActionGate(ModelAction.Delete).show) ||
         (props.isEditable && getActionGate(ModelAction.Update).show) ||
-        (props.isViewable &&
-          PermissionGate.check(model, ModelAction.Read).isAllowed) ||
+        isViewActionShown ||
         (props.actionButtons && props.actionButtons.length > 0) ||
         props.showViewIdButton,
     );
@@ -1601,6 +1833,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setHeaderButtons();
 
     setColumns(columns);
+    setHasBuiltColumns(true);
   };
 
   const getFilterDropdownItems: PromiseVoidFunction =
@@ -2150,9 +2383,54 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.onQueryChange?.(buildEffectiveQuery());
   }, [effectiveQueryKey]);
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+  type FetchItemsFunction = (options?: {
+    /*
+     * Refresh the rows without the loading state - after a drop, whose rows
+     * are already on screen in their new order. Dimming them and blocking
+     * clicks would make a finished move look like it was still going on.
+     */
+    quiet?: boolean | undefined;
+    /*
+     * When the page asked for has no rows left but earlier pages do - a bulk
+     * Delete that took every row of the last page - go to the last page that
+     * has rows, instead of an empty page under a "Showing 21-20 of 20".
+     */
+    stayInRange?: boolean | undefined;
+  }) => Promise<void>;
+
+  const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
+    if (isManuallyOrdered) {
+      /*
+       * Always in the list's own order, ties broken the way the server
+       * breaks them (Common/Utils/ListOrder), so the row a drop lands on is
+       * the row the server moves it next to.
+       */
+      return {
+        [props.dragDropIndexField as string]: getManualSortOrder(),
+        createdAt: SortOrder.Ascending,
+      } as Sort<TBaseModel>;
+    }
+
+    return (
+      sortBy
+        ? {
+            [sortBy as any]: sortOrder,
+          }
+        : {}
+    ) as Sort<TBaseModel>;
+  };
+
+  const fetchItems: FetchItemsFunction = async (options?: {
+    quiet?: boolean | undefined;
+    stayInRange?: boolean | undefined;
+  }): Promise<void> => {
+    const isQuiet: boolean = Boolean(options?.quiet);
+
     setError("");
-    setIsLoading(true);
+
+    if (!isQuiet) {
+      setIsLoading(true);
+    }
 
     if (props.onFetchInit) {
       props.onFetchInit(currentPageNumber, itemsOnPage);
@@ -2178,13 +2456,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ...getSelect(),
           ...getRelationSelect(),
         },
-        sort: sortBy
-          ? {
-              [sortBy as any]: sortOrder,
-            }
-          : {},
+        sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
       });
+
+      if (
+        options?.stayInRange &&
+        listResult.data.length === 0 &&
+        listResult.count > 0 &&
+        currentPageNumber > 1
+      ) {
+        /*
+         * The page number's own effect fetches the last page with rows; the
+         * empty one is never drawn.
+         */
+        setCurrentPageNumber(
+          Math.max(
+            1,
+            Math.min(
+              currentPageNumber - 1,
+              Math.ceil(listResult.count / itemsOnPage),
+            ),
+          ),
+        );
+
+        if (!isQuiet) {
+          setIsLoading(false);
+        }
+
+        return;
+      }
 
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
@@ -2201,7 +2502,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setError(API.getFriendlyMessage(err));
     }
 
-    setIsLoading(false);
+    if (!isQuiet) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -2304,6 +2607,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     for (const moreField of selectMoreFields) {
+      /*
+       * Only what the viewer may read, by the rule every select follows
+       * (hasPermissionToReadField): the server refuses the whole list for
+       * one column the caller may not read, so a field asked for here that
+       * this viewer cannot read - a secret only owners and admins read
+       * back - is left out rather than blanking the table.
+       * serializeToTableColumns makes the same check for the cells. Until
+       * the permission snapshot has landed, nothing tells a field the viewer
+       * may not read from one they may (the check fails closed then), so
+       * every field is asked for, as it always was, and the server decides.
+       */
+      if (
+        model.hasColumn(moreField as string) &&
+        PermissionGate.hasPermissionSnapshot({ held: heldPermissions }) &&
+        !hasPermissionToReadField(moreField)
+      ) {
+        continue;
+      }
+
       if (
         model.hasColumn(moreField as string) &&
         model.isEntityColumn(moreField as string)
@@ -2433,7 +2755,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
             openInNewTab: true,
@@ -2463,7 +2785,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.videoLink!, {
             openInNewTab: true,
@@ -2481,16 +2803,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showFilterButton: boolean = props.filters.length > 0;
 
     /*
-     * because ordered list add button is inside the table and not on the card
-     * header. Without create permission the button is shown locked rather than
+     * Without create permission the button is shown locked rather than
      * removed, so the user can see the action exists and read why it is not
      * available to them.
      */
-    if (
-      props.isCreateable &&
-      createGate.show &&
-      showAs !== ShowAs.OrderedStatesList
-    ) {
+    if (props.isCreateable && createGate.show) {
       headerbuttons.push({
         title: getCreateButtonTitle(),
         buttonStyle: ButtonStyleType.NORMAL,
@@ -2593,6 +2910,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return true;
     }
 
+    // A drag-ordered list is always shown in its own order.
+    if (isManuallyOrdered) {
+      return true;
+    }
+
     return model.isEntityColumn(columnName as string);
   };
 
@@ -2658,79 +2980,32 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   type HasPermissionToReadFieldFunction = (field: keyof TBaseModel) => boolean;
 
+  /*
+   * What the user holds, read once per draw: every field below is weighed
+   * against it.
+   */
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
+  /*
+   * Whether a field may be selected, by the one rule for that
+   * (PermissionGate.canReadColumn): the columns every select may name, and
+   * any other by the rule the server's column check follows - one of its
+   * read permissions held, Public by everyone, no team block on any of
+   * them. A master admin reads every field: secondary fields use this check
+   * when building the request, so they need the same master-admin access as
+   * the visible columns that render them.
+   */
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     field: keyof TBaseModel,
   ): boolean => {
-    /*
-     * Secondary fields use this check when building the request, so they need
-     * the same master-admin access as the visible columns that render them.
-     */
-    if (User.isMasterAdmin()) {
+    if (!field) {
       return true;
     }
 
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns();
-
-    const userPermissions: Array<Permission> = getUserPermissions();
-
-    const key: keyof TBaseModel = field;
-    // check permissions.
-    let hasPermission: boolean = false;
-
-    if (!key) {
-      hasPermission = true;
-    }
-
-    if (key) {
-      hasPermission = true;
-      let fieldPermissions: Array<Permission> = [];
-      fieldPermissions = accessControl[key as string]?.read || [];
-
-      if (
-        accessControl[key]?.read &&
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          fieldPermissions,
-        )
-      ) {
-        hasPermission = false;
-      }
-    }
-
-    return hasPermission;
+    return PermissionGate.canReadColumn(model, field as string, {
+      held: heldPermissions,
+    });
   };
-
-  type GetUserPermissionsFunction = () => Array<Permission>;
-
-  const getUserPermissions: GetUserPermissionsFunction =
-    (): Array<Permission> => {
-      /*
-       * A copy - Public is appended below, and pushing into the array the util
-       * handed back mutates the snapshot every other permission check on the
-       * page reads from.
-       */
-      let userPermissions: Array<Permission> = [
-        ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
-      ];
-      if (
-        PermissionUtil.getProjectPermissions() &&
-        PermissionUtil.getProjectPermissions()?.permissions &&
-        PermissionUtil.getProjectPermissions()!.permissions.length > 0
-      ) {
-        userPermissions = userPermissions.concat(
-          PermissionUtil.getProjectPermissions()!.permissions.map(
-            (i: UserPermission) => {
-              return i.permission;
-            },
-          ),
-        );
-      }
-
-      userPermissions.push(Permission.Public);
-
-      return userPermissions;
-    };
 
   useEffect(() => {
     serializeToTableColumns();
@@ -2824,24 +3099,151 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
   }, [showColumnCustomizationModal, attributeColumnKey]);
 
-  const setActionSchema: VoidFunction = () => {
-    const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  /*
+   * Whether a row can be opened: the table offers View and the reader may
+   * read the record. The same test decides whether View is a row action.
+   */
+  const isViewActionShown: boolean = Boolean(
+    props.isViewable && PermissionGate.check(model, ModelAction.Read).isAllowed,
+  );
 
+  type GetViewTargetFunction = (item: TBaseModel) => Promise<{
+    route: Route | URL;
+    baseModel: TBaseModel;
+  }>;
+
+  /*
+   * Where a row's record is: the page's own route for it (onViewPage), or
+   * the view route with the record's id. One place for View and for a click
+   * on the row, so the two always open the same page.
+   */
+  const getViewTarget: GetViewTargetFunction = async (
+    item: TBaseModel,
+  ): Promise<{ route: Route | URL; baseModel: TBaseModel }> => {
+    let baseModel: TBaseModel = item;
+    if (!(item instanceof BaseModel) && !(item instanceof AnalyticsBaseModel)) {
+      baseModel = props.callbacks.getModelFromJSON(item as JSONObject);
+    }
+
+    if (props.onBeforeView) {
+      await props.onBeforeView(baseModel);
+    }
+
+    if (props.onViewPage) {
+      return { route: await props.onViewPage(baseModel), baseModel };
+    }
+
+    if (!props.viewPageRoute) {
+      throw new BadDataException("props.viewPageRoute not found");
+    }
+
+    const id: string = baseModel.id?.toString() || "";
+
+    return {
+      route: new Route(props.viewPageRoute.toString()).addRoute("/" + id),
+      baseModel,
+    };
+  };
+
+  /*
+   * A row of a table whose rows open their records opens on a click
+   * anywhere on it - not on a link, a button or a box inside it
+   * (Table/RowClick) - as a list in Linear, GitHub or Stripe does. Its View
+   * button stays: it says what the row does, and is the way in from the
+   * keyboard. Cmd, Ctrl or Shift held, or the middle button, opens the
+   * record in a new tab.
+   */
+  const isRowClickable: boolean =
+    isViewActionShown && Boolean(props.onViewPage || props.viewPageRoute);
+
+  type OnRowClickFunction = (
+    item: TBaseModel,
+    event: React.MouseEvent<HTMLElement>,
+  ) => void;
+
+  const onRowClick: OnRowClickFunction = (
+    item: TBaseModel,
+    event: React.MouseEvent<HTMLElement>,
+  ): void => {
+    const clickEvent: RowClickEventLike = event;
+
+    if (!isRowOpeningClick(clickEvent)) {
+      return;
+    }
+
+    const openInNewTab: boolean = isNewTabClick(clickEvent);
+
+    getViewTarget(item)
+      .then(
+        ({
+          route,
+          baseModel,
+        }: {
+          route: Route | URL;
+          baseModel: TBaseModel;
+        }): void => {
+          if (!openInNewTab) {
+            props.onViewComplete?.(baseModel);
+          }
+
+          Navigation.navigate(route, { openInNewTab: openInNewTab });
+        },
+      )
+      .catch((err: Error) => {
+        setErrorModalText(API.getFriendlyMessage(err));
+      });
+  };
+
+  type GetRowPropsFunction = (
+    item: TBaseModel,
+  ) => React.HTMLAttributes<HTMLElement>;
+
+  const getRowProps: GetRowPropsFunction | undefined = isRowClickable
+    ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
+        const rowProps: React.HTMLAttributes<HTMLElement> & {
+          "data-row-opens-record": string;
+        } = {
+          "data-row-opens-record": "true",
+          onClick: (event: React.MouseEvent<HTMLElement>): void => {
+            onRowClick(item, event);
+          },
+          onAuxClick: (event: React.MouseEvent<HTMLElement>): void => {
+            onRowClick(item, event);
+          },
+        };
+
+        return rowProps;
+      }
+    : undefined;
+
+  const setActionSchema: VoidFunction = () => {
     const actionsSchema: Array<ActionButtonSchema<TBaseModel>> = [];
 
     if (props.showViewIdButton) {
       actionsSchema.push({
         title: tx("Show ID"),
+        /*
+         * An ID card: the icon "Show ID" wears in every menu, the status
+         * page's resource lists too. Not the info circle it once had there -
+         * beside "View Status Message" and "View Error", whose circle holds
+         * a "!", the two could not be told apart.
+         */
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
+        // A utility every row carries - it belongs in the ⋯ menu, not on the row.
+        placement: ActionButtonPlacement.MoreMenu,
+        // Never offered on a row with no ID to show.
+        isVisible: (item: TBaseModel): boolean => {
+          return hasRecordId(item["_id"]);
+        },
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,
           onError: ErrorFunction,
         ) => {
           try {
-            setViewId(item["_id"] as string);
-            setShowViewIdModal(true);
+            setViewId(getRecordIdText(item["_id"]));
             onCompleteAction();
           } catch (err) {
             onError(err as Error);
@@ -2857,138 +3259,123 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    if (permissions) {
-      if (
-        props.isViewable &&
-        (model.hasReadPermissions(permissions) || User.isMasterAdmin())
-      ) {
-        actionsSchema.push({
-          title: props.viewButtonText
-            ? tx(props.viewButtonText)
-            : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
-          buttonStyleType: ButtonStyleType.NORMAL,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              let baseModel: TBaseModel = item;
-              if (
-                !(item instanceof BaseModel) &&
-                !(item instanceof AnalyticsBaseModel)
-              ) {
-                baseModel = props.callbacks.getModelFromJSON(
-                  item as JSONObject,
-                );
-              }
+    if (isViewActionShown) {
+      actionsSchema.push({
+        title: props.viewButtonText
+          ? tx(props.viewButtonText)
+          : translateNamedAction(translator, {
+              template: "View {{itemName}}",
+              itemName: props.singularName || model.singularName || "",
+            }),
+        /*
+         * Drawn when View is in the ⋯ menu - on a table that marks one of
+         * its own actions Primary. On the row it is a label (RowActions).
+         */
+        icon: IconProp.Eye,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * Opening the record is what a row is for, so View is the row's one
+         * button and Edit, Delete and the rest go in the ⋯ menu beside it.
+         * Custom actions are listed ahead of View, so a table that wants one
+         * of its own on the row can still mark it Primary.
+         */
+        placement: ActionButtonPlacement.Primary,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            const {
+              route,
+              baseModel,
+            }: { route: Route | URL; baseModel: TBaseModel } =
+              await getViewTarget(item);
 
-              if (props.onBeforeView) {
-                item = await props.onBeforeView(baseModel);
-              }
+            onCompleteAction();
 
-              if (props.onViewPage) {
-                const route: Route | URL = await props.onViewPage(baseModel);
-
-                onCompleteAction();
-
-                if (props.onViewComplete) {
-                  props.onViewComplete(baseModel);
-                }
-
-                return Navigation.navigate(route);
-              }
-
-              if (!props.viewPageRoute) {
-                throw new BadDataException("props.viewPageRoute not found");
-              }
-
-              onCompleteAction();
-              if (props.onViewComplete) {
-                props.onViewComplete(baseModel);
-              }
-
-              const id: string = baseModel.id?.toString() || "";
-
-              return Navigation.navigate(
-                new Route(props.viewPageRoute.toString()).addRoute("/" + id),
-              );
-            } catch (err) {
-              onError(err as Error);
+            if (props.onViewComplete) {
+              props.onViewComplete(baseModel);
             }
-          },
-        });
-      }
 
-      const updateGate: ActionGate = getActionGate(ModelAction.Update);
+            return Navigation.navigate(route);
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
+    }
 
-      if (props.isEditable && updateGate.show) {
-        actionsSchema.push({
-          title: tx(props.editButtonText || "Edit"),
-          buttonStyleType: ButtonStyleType.OUTLINE,
-          disabled: updateGate.disabled,
-          tooltip: updateGate.tooltip,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              if (props.onBeforeEdit) {
-                item = await props.onBeforeEdit(item);
-              }
+    const updateGate: ActionGate = getActionGate(ModelAction.Update);
 
-              setModalType(ModalType.Edit);
-              setShowModal(true);
-              setCurrentEditableItem(item);
-
-              onCompleteAction();
-            } catch (err) {
-              onError(err as Error);
+    if (props.isEditable && updateGate.show) {
+      actionsSchema.push({
+        title: tx(props.editButtonText || "Edit"),
+        icon: IconProp.Edit,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: updateGate.disabled,
+        tooltip: updateGate.tooltip,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            if (props.onBeforeEdit) {
+              item = await props.onBeforeEdit(item);
             }
-          },
-        });
-      }
 
-      const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
+            setModalType(ModalType.Edit);
+            setShowModal(true);
+            setCurrentEditableItem(item);
 
-      /* The row action wears the same icon as the bulk one it stands for. */
-      const rowDeleteIcon: IconProp =
-        (props.bulkActions?.deleteVerb?.trim() &&
-          props.bulkActions?.deleteIcon) ||
-        IconProp.Trash;
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
+    }
 
-      if (props.isDeleteable && deleteGate.show) {
-        actionsSchema.push({
-          title: tx(props.deleteButtonText || "Delete"),
-          icon: rowDeleteIcon,
-          buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-          disabled: deleteGate.disabled,
-          tooltip: deleteGate.tooltip,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              if (props.onBeforeDelete) {
-                item = await props.onBeforeDelete(item);
-              }
+    const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
 
-              setDeleteConfirmation(
-                props.getDeleteConfirmation
-                  ? await props.getDeleteConfirmation(item)
-                  : null,
-              );
-              setShowDeleteConfirmModal(true);
-              setCurrentDeleteableItem(item);
-              onCompleteAction();
-            } catch (err) {
-              onError(err as Error);
+    /* The row action wears the same icon as the bulk one it stands for. */
+    const rowDeleteIcon: IconProp =
+      (props.bulkActions?.deleteVerb?.trim() &&
+        props.bulkActions?.deleteIcon) ||
+      IconProp.Trash;
+
+    if (props.isDeleteable && deleteGate.show) {
+      actionsSchema.push({
+        title: tx(props.deleteButtonText || "Delete"),
+        icon: rowDeleteIcon,
+        buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+        disabled: deleteGate.disabled,
+        tooltip: deleteGate.tooltip,
+        getDisabledReason: props.getDeleteDisabledReason,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            if (props.onBeforeDelete) {
+              item = await props.onBeforeDelete(item);
             }
-          },
-        });
-      }
+
+            setDeleteConfirmation(
+              props.getDeleteConfirmation
+                ? await props.getDeleteConfirmation(item)
+                : null,
+            );
+            setShowDeleteConfirmModal(true);
+            setCurrentDeleteableItem(item);
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
     }
 
     setActionButtonSchema(actionsSchema);
@@ -3066,14 +3453,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       const deleteVerb: string | undefined =
         props.bulkActions?.deleteVerb?.trim() || undefined;
 
-      type GetItemLabelFunction = (items: Array<TBaseModel>) => string;
+      // The table's names for one and for several, translated with the sentence.
+      type GetNounValuesFunction = (
+        inSentence: boolean,
+      ) => Record<string, ReturnType<typeof translatableTerm>>;
 
-      const getItemLabel: GetItemLabelFunction = (
-        items: Array<TBaseModel>,
-      ): string => {
-        return items.length === 1
-          ? props.singularName || model.singularName || "item"
-          : props.pluralName || model.pluralName || "items";
+      const getNounValues: GetNounValuesFunction = (
+        inSentence: boolean,
+      ): Record<string, ReturnType<typeof translatableTerm>> => {
+        return {
+          itemName: translatableTerm(
+            props.singularName || model.singularName || "item",
+            { inSentence: inSentence },
+          ),
+          itemsName: translatableTerm(
+            props.pluralName || model.pluralName || "items",
+            { inSentence: inSentence },
+          ),
+        };
       };
 
       return {
@@ -3081,22 +3478,90 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const itemLabel: string = getItemLabel(items);
-
-          const warning: string = props.bulkActions?.deleteConfirmationWarning
-            ? ` ${props.bulkActions.deleteConfirmationWarning}`
-            : "";
-
           if (deleteVerb) {
-            return `Are you sure you want to ${deleteVerb.toLowerCase()} ${items.length} ${itemLabel.toLowerCase()}?${warning}`;
+            return translator.translatePlural(
+              BULK_ACTION_QUESTION,
+              items.length,
+              {
+                action: translatableTerm(deleteVerb, { inSentence: true }),
+                ...getNounValues(true),
+              },
+            );
           }
 
-          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
+          /*
+           * The nouns as a sentence has them - "delete 2 status pages?" -
+           * where the dialog's title keeps a title's capitals ("Delete 2
+           * Status Pages"); the way the Unlink question above already reads.
+           */
+          return translator.translatePlural(
+            BULK_DELETE_QUESTION,
+            items.length,
+            getNounValues(true),
+          );
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          return `${deleteVerb || "Delete"} ${items.length} ${getItemLabel(items)}`;
+          if (deleteVerb) {
+            return translator.translatePlural(BULK_ACTION_TITLE, items.length, {
+              action: translatableTerm(deleteVerb),
+              ...getNounValues(false),
+            });
+          }
+
+          return translator.translatePlural(
+            BULK_DELETE_TITLE,
+            items.length,
+            getNounValues(false),
+          );
+        },
+        /*
+         * "Are you sure you want to delete 12 monitors?" says how many, not
+         * which. The rows were picked by hand, often across pages and after a
+         * filter, and this is the last moment to notice one that should not be
+         * there - so the first few are named under the count.
+         *
+         * Then, in a paragraph of its own, what goes with them (and the
+         * list's own sentence): after the names it is about them, where in
+         * the middle of the question it was one more sentence to read past.
+         */
+        confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+          const warning: string = getDeleteWarning(
+            props.bulkActions?.deleteConfirmationWarning ??
+              props.deleteConfirmationWarning,
+          );
+
+          return (
+            <div className="space-y-3">
+              <DeleteItemNames
+                names={items.map((item: TBaseModel) => {
+                  return getItemLabel(item);
+                })}
+                totalCount={items.length}
+              />
+              {warning ? (
+                <p
+                  data-testid="bulk-delete-consequence"
+                  className="text-sm leading-6 text-gray-600"
+                >
+                  {warning}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
+          );
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
+        /*
+         * "2 Status Pages deleted, 1 Status Page not deleted". A table that
+         * names its own verb keeps the general words.
+         */
+        resultLabels: deleteVerb
+          ? undefined
+          : {
+              succeeded: BULK_DELETED_COUNT,
+              failed: BULK_NOT_DELETED_COUNT,
+            },
         onClick: async ({
           items,
           onProgressInfo,
@@ -3115,7 +3580,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             // remove items from inProgressItems
             inProgressItems.splice(inProgressItems.indexOf(item), 1);
 
+            /*
+             * A row the table says can never be deleted is not sent to the
+             * server at all: it is listed with the reason, like a row the
+             * server refused.
+             */
+            const deleteDisabledReason: string | undefined =
+              props.getDeleteDisabledReason
+                ? props.getDeleteDisabledReason(item)
+                : undefined;
+
             try {
+              if (deleteDisabledReason) {
+                throw new BadDataException(deleteDisabledReason);
+              }
+
               await props.callbacks.deleteItem(item);
               successItems.push(item);
             } catch (err) {
@@ -3174,49 +3653,301 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * Lifted out of the onFilterChanged callback below, which is where this test
    * used to live inline. Two definitions of "a filter is applied" in one
-   * component is exactly the kind of thing that drifts apart.
+   * component is exactly the kind of thing that drifts apart - so it is the
+   * plain Table's own test (hasFilterValues). It used to be truthiness, which
+   * missed a yes/no filter set to "No" (false): the list was filtered, but
+   * the table called itself unfiltered, offered "No X yet" and a Create
+   * button under it, and let rows be dragged while some were hidden.
    */
   const hasFilterApplied: HasFilterAppliedFunction = (
     dataToCheck: FilterData<TBaseModel>,
   ): boolean => {
-    for (const key in dataToCheck) {
-      if (dataToCheck[key]) {
-        return true;
-      }
-    }
-
-    return false;
+    return hasFilterValues(
+      dataToCheck as unknown as { [key: string]: unknown } | undefined,
+    );
   };
 
-  type GetNoItemsMessageFunction = () => string | ReactElement;
+  type GetMirroredCreateButtonFunction = () => CardButtonSchema | undefined;
 
   /*
-   * An empty table has two quite different causes and used to have one
-   * sentence for both. A monitors table with nothing in it said "No monitor"
-   * - ungrammatical, and worse, it said the same thing after a search that
-   * matched nothing, so a typo in the search box looked exactly like an empty
-   * project. A caller's own noItemsMessage is deliberately overridden while a
-   * search or filter is active: those are usually "create your first X"
-   * panels, and offering one to someone whose search just missed is wrong.
+   * The way forward from an empty table: the "Create X" button the card's
+   * header already shows - same handler, same permission gate, same label -
+   * repeated in the empty state, where a new user is looking. It is drawn
+   * the way the header's is, as a plain button: a filled indigo one in the
+   * middle of an otherwise quiet card shouted, and made two buttons that do
+   * the same thing look like different actions.
+   *
+   * A header button counts as "create" when it carries the Add icon and is
+   * drawn NORMAL or PRIMARY - an OUTLINE Add is an import or a template
+   * picker, not the way to make the first one.
    */
-  const getNoItemsMessage: GetNoItemsMessageFunction = ():
-    | string
-    | ReactElement => {
-    const plural: string = (
-      props.pluralName ||
-      model.pluralName ||
-      "items"
-    ).toLocaleLowerCase();
-
-    if (isSearchActive() || hasFilterApplied(filterData)) {
-      return `${tx("No")} ${plural} ${tx("match your search or filters.")}`;
+  const getMirroredCreateButton: GetMirroredCreateButtonFunction = ():
+    | CardButtonSchema
+    | undefined => {
+    if (!props.cardProps) {
+      return undefined;
     }
 
-    return props.noItemsMessage || `${tx("No")} ${plural} ${tx("yet.")}`;
+    return cardButtons.find(
+      (button: CardButtonSchema | ReactElement): boolean => {
+        if (React.isValidElement(button)) {
+          return false;
+        }
+
+        const schema: CardButtonSchema = button as CardButtonSchema;
+
+        return (
+          schema.icon === IconProp.Add &&
+          (schema.buttonStyle === ButtonStyleType.NORMAL ||
+            schema.buttonStyle === ButtonStyleType.PRIMARY)
+        );
+      },
+    ) as CardButtonSchema | undefined;
+  };
+
+  type GetEmptyStateFunction = () => ModelTableEmptyState;
+
+  /*
+   * What the table shows when a load comes back with no rows. An empty table
+   * has quite different causes and used to have one grey sentence for all of
+   * them: a typo in the search box looked exactly like an empty project, and
+   * neither said what the list was for. buildModelTableEmptyState decides
+   * between "nothing here yet", "nothing matches" and "all clear", and what
+   * each offers.
+   */
+  const getEmptyState: GetEmptyStateFunction = (): ModelTableEmptyState => {
+    const isSearchOn: boolean = isSearchActive();
+    const isFilterOn: boolean = hasFilterApplied(filterData);
+    const createCheck: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
+
+    return buildModelTableEmptyState({
+      pluralLabel: props.pluralName || model.pluralName || "items",
+      options: props.emptyState,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      hasCustomElement: React.isValidElement(props.noItemsMessage),
+      cardDescription: props.cardProps?.description,
+      modelIcon: (model as { icon?: IconProp | null }).icon,
+      isSearchActive: isSearchOn,
+      isFilterActive: isFilterOn,
+      onClearSearchAndFilters: (): void => {
+        clearSearchAndFilters({ isFilterOn: isFilterOn });
+      },
+      createButton: getMirroredCreateButton(),
+      isCreateDeniedByPermission:
+        !createCheck.isAllowed && Boolean(createCheck.disabledReason),
+      help: props.helpContent
+        ? {
+            title: props.helpContent.title,
+            onClick: (): void => {
+              setShowHelpModal(true);
+            },
+          }
+        : undefined,
+      onDocumentationClick: props.documentationLink
+        ? (): void => {
+            Navigation.navigate(props.documentationLink!, {
+              openInNewTab: true,
+            });
+          }
+        : undefined,
+      translate: tx,
+      translator: translator,
+    });
+  };
+
+  type ClearSearchAndFiltersFunction = (data: { isFilterOn: boolean }) => void;
+
+  /*
+   * The empty state's way out of a search or filter that hides every row:
+   * the search box and its label chips are emptied at once (not after the
+   * search debounce), and the filters go the way the filter form clears them.
+   */
+  const clearSearchAndFilters: ClearSearchAndFiltersFunction = (data: {
+    isFilterOn: boolean;
+  }): void => {
+    setSearchText("");
+    setDebouncedSearchText("");
+    setSelectedLabels([]);
+    setIsSearchExpanded(false);
+
+    if (data.isFilterOn) {
+      onFilterChanged({});
+      setTableView(null);
+      props.onFilterApplied?.(false);
+    }
+  };
+
+  const emptyState: ModelTableEmptyState = getEmptyState();
+
+  /*
+   * Drag-and-drop reordering, for both the table and the list layout.
+   *
+   * A drop moves the row on screen at once and saves it in the background:
+   * the row is given the number of the row it was dropped on, and the server
+   * gives it that place and moves the rows in the way one place along
+   * (@ListOrderColumn). The list is then refreshed quietly to pick up their
+   * new numbers. If the save fails, the rows go back where they were and say
+   * why.
+   *
+   * While a filter or search narrows the list, dragging is off - the rows in
+   * between are not on screen, so "drop it above this one" would mean
+   * something the person cannot see. The grips stay, greyed out, and a line
+   * above the list says why.
+   */
+  const isReorderBlockedByFilter: boolean =
+    isManuallyOrdered && (isSearchActive() || hasFilterApplied(filterData));
+
+  /*
+   * Someone who may not edit the rows may not put them in another order
+   * either: the server would refuse the drop, and the rows would jump back.
+   * The grips stay where they are, greyed out, and say why - as the row's
+   * Edit button does.
+   */
+  const reorderGate: ActionGate = getActionGate(ModelAction.Update);
+
+  const isReorderDeniedByPermission: boolean =
+    isManuallyOrdered && (!reorderGate.show || reorderGate.disabled);
+
+  const isDragDisabled: boolean =
+    isReorderDeniedByPermission || isReorderBlockedByFilter || isReordering;
+
+  const dragDisabledReason: string | undefined = isReorderDeniedByPermission
+    ? reorderGate.tooltip
+    : isReorderBlockedByFilter
+      ? REORDER_OFF_WHILE_FILTERED
+      : isReordering
+        ? REORDER_SAVING
+        : undefined;
+
+  type OnRowDroppedFunction = (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ) => Promise<void>;
+
+  const onRowDropped: OnRowDroppedFunction = async (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ): Promise<void> => {
+    const orderField: keyof TBaseModel | undefined = props.dragDropIndexField;
+
+    if (!orderField || isDragDisabled || destinationIndex === sourceIndex) {
+      return;
+    }
+
+    const rowsBeforeDrop: Array<TBaseModel> = data;
+
+    let value: number | null = getDropTargetValue<TBaseModel>({
+      items: rowsBeforeDrop,
+      sourceIndex: sourceIndex,
+      destinationIndex: destinationIndex,
+      getValue: (item: TBaseModel): unknown => {
+        return (item as unknown as Dictionary<unknown>)[orderField as string];
+      },
+    });
+
+    if (value === null) {
+      /*
+       * The row it landed on has no number yet - a list saved before the
+       * server kept them. Its place on screen is the best there is.
+       */
+      const position: number =
+        (currentPageNumber - 1) * itemsOnPage + destinationIndex + 1;
+
+      value =
+        getManualSortOrder() === SortOrder.Descending
+          ? Math.max(totalItemsCount - position + 1, 1)
+          : position;
+    }
+
+    setReorderError("");
+    setIsReorderSaved(false);
+    setData(moveListItem(rowsBeforeDrop, sourceIndex, destinationIndex));
+    setIsReordering(true);
+
+    try {
+      await props.callbacks.updateById({
+        id: new ObjectID(id),
+        data: {
+          [orderField]: value,
+        },
+      });
+    } catch (err) {
+      setData(rowsBeforeDrop);
+      setReorderError(API.getFriendlyMessage(err));
+      setIsReordering(false);
+      return;
+    }
+
+    setIsReordering(false);
+    setIsReorderSaved(true);
+
+    await fetchItems({ quiet: true });
+  };
+
+  type GetReorderMessagesFunction = () => ReactElement | null;
+
+  const getReorderMessages: GetReorderMessagesFunction =
+    (): ReactElement | null => {
+      if (!isManuallyOrdered) {
+        return null;
+      }
+
+      return (
+        <>
+          <span className="sr-only" role="status" aria-live="polite">
+            {isReordering
+              ? tx(REORDER_SAVING)
+              : isReorderSaved
+                ? tx(REORDER_SAVED)
+                : ""}
+          </span>
+          {reorderError ? (
+            <Alert
+              type={AlertType.DANGER}
+              strongTitle={REORDER_FAILED}
+              title={reorderError}
+              onClose={() => {
+                setReorderError("");
+              }}
+              className="mb-4"
+              dataTestId="reorder-error"
+            />
+          ) : null}
+          {isReorderBlockedByFilter && data.length > 1 ? (
+            <div
+              className="mb-3 flex items-center gap-1.5 text-xs text-gray-500"
+              data-testid="reorder-off-while-filtered"
+            >
+              <Icon icon={IconProp.GripVertical} className="h-4 w-4" />
+              <span>{tx(REORDER_OFF_WHILE_FILTERED)}</span>
+            </div>
+          ) : null}
+        </>
+      );
+    };
+
+  // A reorderable list with its messages - saving, failed, paused - above it.
+  const withReorderMessages: (element: ReactElement) => ReactElement = (
+    element: ReactElement,
+  ): ReactElement => {
+    return (
+      <>
+        {getReorderMessages()}
+        {element}
+      </>
+    );
   };
 
   const getTable: GetReactElementFunction = (): ReactElement => {
-    return (
+    return withReorderMessages(
       <Table
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3228,14 +3959,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }
         }}
         filterData={filterData}
-        className={
-          props.cardProps
-            ? ""
-            : "rounded-lg border-2 border-gray-200 p-6 pt-0 pb-5"
-        }
-        tableContainerClassName={
-          props.cardProps ? "" : "overflow-hidden rounded"
-        }
+        /*
+         * A table outside a card is framed as a card is - one hairline,
+         * rounded, white - with the padding the table's rows and footer
+         * reach out to (-mx-5 md:-mx-6, -mb-6). It was a 2px border whose
+         * footer ran 4px past its bottom edge. overflow-clip rounds the
+         * header band's corners without making a scroll box, so the header
+         * row can still stick to the page.
+         */
+        className={props.cardProps ? "" : MODEL_TABLE_FRAME_CLASS_NAME}
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();
         }}
@@ -3251,8 +3983,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * a layout change nobody asked for. The gate above still decides
            * whether the action, once present, is locked and what it says.
            */
-          const userCanDelete: boolean = model.hasDeletePermissions(
-            PermissionUtil.getAllPermissions(),
+          const userCanDelete: boolean = PermissionGate.snapshotAllows(
+            model,
+            ModelAction.Delete,
           );
 
           const sourceButtons: Array<
@@ -3260,18 +3993,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           > = [...(props.bulkActions?.buttons ?? [])];
 
           /*
-           * Auto-include the default Delete bulk action whenever the user has
-           * model-level delete permission, so every table that exposes row
-           * selection also exposes a way to delete the selected rows. This is
-           * intentionally decoupled from `isDeleteable` — that flag governs the
-           * per-row Delete button in the Actions column, not bulk operations.
-           * The confirmation modal is wired up via the schema's confirmMessage
-           * / confirmTitle below. Skip if the table author already added it.
+           * Delete is in Bulk Actions exactly where it is in each row's ⋯
+           * menu: on a table whose rows are deleted from it (`isDeleteable`).
+           * It is added there on its own - a page that lists
+           * ModalTableBulkDefaultActions.Delete only places it - for anyone
+           * the model lets delete, so a table that exposes row selection also
+           * exposes a way to delete the selected rows. The confirmation is
+           * wired up via the schema's confirmMessage / confirmTitle below.
            *
-           * Only auto-inject it when the table already offers bulk actions.
-           * Table derives the row checkboxes from this array being non-empty,
-           * so injecting a locked Delete into an otherwise empty array would
-           * grow a selection column onto tables that have never had one.
+           * It used to be added to every table whose viewer may delete the
+           * model, whatever `isDeleteable` said. So a list that kept Delete
+           * off its rows on purpose still deleted from Bulk Actions: a
+           * monitor group's monitors (whose row action is Unassign), lists
+           * across every project (whose deletes went to the wrong one), a
+           * notification method whose own Delete first says which rules use
+           * it - and history and logs grew a selection column for owners.
+           * Now one switch decides both, and a list without Delete has none.
+           *
+           * Only auto-inject it when the table already offers bulk actions,
+           * or for a viewer who may delete: Table derives the row checkboxes
+           * from this array being non-empty, so injecting a locked Delete
+           * into an otherwise empty array would grow a selection column that
+           * does nothing.
            *
            * A page's own button counts as the delete action when it carries
            * the title the default one would have: "Delete", or the table's
@@ -3318,14 +4061,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * every other action worked (issue #3559).
            */
           const canAutoInjectDelete: boolean =
-            userCanDelete || (bulkDeleteGate.show && sourceButtons.length > 0);
+            props.isDeleteable &&
+            (userCanDelete ||
+              (bulkDeleteGate.show && sourceButtons.length > 0));
 
           if (canAutoInjectDelete && !alreadyHasDeleteAction) {
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);
           }
 
-          return {
-            buttons: sourceButtons
+          const buttons: Array<BulkActionButtonSchema<TBaseModel>> =
+            sourceButtons
               .map(
                 (
                   action:
@@ -3343,9 +4088,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                    * A table author who asked for the default Delete but whose
                    * viewer cannot delete used to leave the raw enum string in
                    * the array, which then reached BulkUpdateForm as if it were
-                   * a button schema. Resolve it here, in every branch.
+                   * a button schema. Resolve it here, in every branch. A table
+                   * whose rows are not deleted from it has no Delete to place.
                    */
-                  if (!bulkDeleteGate.show) {
+                  if (!props.isDeleteable || !bulkDeleteGate.show) {
                     return null;
                   }
 
@@ -3372,12 +4118,26 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 ): boolean => {
                   return action !== null;
                 },
-              ) as Array<BulkActionButtonSchema<TBaseModel>>,
+              ) as Array<BulkActionButtonSchema<TBaseModel>>;
+
+          return {
+            buttons,
+            /*
+             * A list whose rows are not deleted from it, and that has no bulk
+             * actions of its own, used to get its row selection - and Export
+             * CSV with it - from the Delete added for whoever may delete the
+             * model. Delete is gone from such a list; the selection and
+             * Export CSV stay for the people who had them (a monitor's logs
+             * and the LLM calls word their export for it: getExportValue).
+             */
+            isCsvExportOnly:
+              !props.isDeleteable && userCanDelete && buttons.length === 0,
           };
         })()}
         onBulkActionEnd={async () => {
           clearBulkSelectionState();
-          await fetchItems();
+          // A bulk Delete can empty the page it was started on.
+          await fetchItems({ stayInRange: true });
         }}
         onBulkActionStart={() => {}}
         bulkSelectedItems={bulkSelectedItems}
@@ -3432,7 +4192,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         bulkSelectionTotalCount={bulkSelectionTotalCount}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
-          const label: string = props.singularName || item.singularName || "";
+          /*
+           * The kind of row in the reader's language, like the rest of the
+           * bulk dialog around it ("Monitor-Statusereignis: ..." in German).
+           */
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
           // Same deriver the delete confirmation uses, so the two cannot drift.
           const name: string = getItemLabel(item);
           if (name) {
@@ -3469,28 +4235,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         enableDragAndDrop={props.enableDragAndDrop}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
         data={data}
         id={props.id}
         columns={tableColumns}
         itemsOnPage={itemsOnPage}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
-        }}
+        onDragDrop={onRowDropped}
         disablePagination={props.disablePagination || false}
         onNavigateToPage={async (
           pageNumber: number,
@@ -3505,86 +4258,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
-        actionButtons={actionButtonSchema}
-      />
-    );
-  };
-
-  const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
-    if (!props.orderedStatesListProps) {
-      throw new BadDataException(
-        "props.orderedStatesListProps required when showAs === ShowAs.OrderedStatesList",
-      );
-    }
-
-    let getTitleElement:
-      | ((
-          item: TBaseModel,
-          onBeforeFetchData?: TBaseModel | undefined,
-        ) => ReactElement)
-      | undefined = undefined;
-
-    let getDescriptionElement:
-      | ((item: TBaseModel) => ReactElement)
-      | undefined = undefined;
-
-    for (const column of props.columns) {
-      const key: string | undefined = Object.keys(
-        column.field as SelectEntityField<TBaseModel>,
-      )[0];
-
-      if (key === props.orderedStatesListProps.titleField) {
-        getTitleElement = column.getElement;
-      }
-
-      if (key === props.orderedStatesListProps.descriptionField) {
-        getDescriptionElement = column.getElement;
-      }
-    }
-
-    return (
-      <OrderedStatesList<TBaseModel>
-        error={error}
-        isLoading={isLoading}
-        data={data}
-        id={props.id}
-        titleField={props.orderedStatesListProps?.titleField}
-        descriptionField={props.orderedStatesListProps?.descriptionField}
-        orderField={props.orderedStatesListProps?.orderField}
-        shouldAddItemInTheBeginning={
-          props.orderedStatesListProps.shouldAddItemInTheBeginning
-        }
-        shouldAddItemInTheEnd={
-          props.orderedStatesListProps.shouldAddItemInTheEnd
-        }
-        noItemsMessage={getNoItemsMessage()}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
-        onCreateNewItem={
-          props.isCreateable && getActionGate(ModelAction.Create).show
-            ? (order: number) => {
-                setOrderedStatesListNewItemOrder(order);
-                setModalType(ModalType.Create);
-                setShowModal(true);
-              }
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
             : undefined
         }
-        createDisabledReason={getActionGate(ModelAction.Create).tooltip}
-        singularLabel={props.singularName || model.singularName || "Item"}
+        emptyStateProps={emptyState.emptyStateProps}
+        onRefreshClick={async () => {
+          await fetchItems();
+        }}
         actionButtons={actionButtonSchema}
-        getTitleElement={getTitleElement}
-        getDescriptionElement={getDescriptionElement}
-      />
+        getRowProps={getRowProps}
+      />,
     );
   };
 
   const getList: GetReactElementFunction = (): ReactElement => {
-    return (
+    return withReorderMessages(
       <List
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3610,21 +4300,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         currentPageNumber={currentPageNumber}
         listDetailOptions={props.listDetailOptions}
         enableDragAndDrop={props.enableDragAndDrop}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
+        onDragDrop={onRowDropped}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
+        itemToString={(item: TBaseModel): string => {
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
+          const name: string = getItemLabel(item);
+          return name && label ? `${label}: ${name}` : name || label;
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -3648,12 +4332,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
+            : undefined
+        }
+        emptyStateProps={emptyState.emptyStateProps}
         onRefreshClick={async () => {
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
-      />
+      />,
     );
   };
 
@@ -3706,7 +4395,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               marginLeft: "5px",
             }}
           >
-            <Pill text={`${planName} Plan`} color={Yellow} />
+            <Pill
+              text={translator.translateTemplate("{{planName}} Plan", {
+                planName: planName,
+              })}
+              color={Yellow}
+            />
           </span>
         )}
       </span>
@@ -3790,18 +4484,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return <></>;
     }
 
-    const pluralLabel: string = (
-      props.pluralName ||
-      model.pluralName ||
-      "items"
-    ).toLowerCase();
+    const pluralTerm: ReturnType<typeof translatableTerm> = translatableTerm(
+      props.pluralName || model.pluralName || "items",
+      { inSentence: true },
+    );
 
     const hasLabelSupport: boolean = Boolean(labelFilterConfig);
 
     const defaultPlaceholder: string = hasLabelSupport
-      ? `Search ${pluralLabel}… (try @ for labels)`
-      : `Search ${pluralLabel} by name, description…`;
-    const placeholder: string = props.searchPlaceholder || defaultPlaceholder;
+      ? translator.translateTemplate(
+          "Search {{itemsName}}… (try @ for labels)",
+          {
+            itemsName: pluralTerm,
+          },
+        )
+      : translator.translateTemplate(
+          "Search {{itemsName}} by name, description…",
+          { itemsName: pluralTerm },
+        );
+    const placeholder: string = props.searchPlaceholder
+      ? tx(props.searchPlaceholder)
+      : defaultPlaceholder;
 
     /*
      * Effective search = input minus the trailing @<prefix> mention. The pill
@@ -3880,8 +4583,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <div className="relative flex w-full items-center">
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
+          {/*
+           * As tall as the header's buttons: 42px on a phone, 38px from md
+           * up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
+           * over it takes its height.
+           */}
           <div
-            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 transition-all duration-200 ${borderClass}`}
+            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} transition-all duration-200 ${borderClass}`}
             onClick={() => {
               searchInputRef.current?.focus();
             }}
@@ -3904,7 +4612,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     <span
                       key={label.id}
                       className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
-                      title={`Label: ${label.name}`}
+                      title={translator.translateTemplate("Label: {{name}}", {
+                        name: label.name,
+                      })}
                     >
                       <span
                         className="h-2 w-2 flex-none rounded-full"
@@ -3924,8 +4634,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         onClick={() => {
                           removeLabel(label.id);
                         }}
-                        title="Remove label"
-                        aria-label={`Remove ${label.name}`}
+                        title={tx("Remove label")}
+                        aria-label={translator.translateTemplate(
+                          "Remove {{name}}",
+                          { name: label.name },
+                        )}
                         className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
                       >
                         <Icon icon={IconProp.Close} className="h-3 w-3" />
@@ -4015,7 +4728,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   }
                 }}
                 placeholder={
-                  selectedLabels.length === 0 ? placeholder : "Refine search…"
+                  selectedLabels.length === 0
+                    ? placeholder
+                    : tx("Refine search…")
                 }
                 spellCheck={false}
                 autoComplete="off"
@@ -4024,7 +4739,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               />
             </div>
             {isSearching && (
-              <div className="flex-none text-gray-400" title="Searching…">
+              <div className="flex-none text-gray-400" title={tx("Searching…")}>
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-4 w-4 animate-spin"
@@ -4034,20 +4749,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             {showMatchPill && totalItemsCount >= 0 && hasMore === undefined && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
+                )}
               >
-                {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                )}
               </span>
             )}
             {showMatchPill && hasMore !== undefined && data.length > 0 && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${data.length}${hasMore ? "+" : ""} ${
-                  data.length === 1 ? "result" : "results"
-                } on this page`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT_ON_PAGE,
+                  data.length,
+                  {
+                    count: `${translator.formatNumber(data.length)}${
+                      hasMore ? "+" : ""
+                    }`,
+                  },
+                )}
               >
-                {data.length}
-                {hasMore ? "+" : ""} {data.length === 1 ? "match" : "matches"}
+                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
+                  count: `${translator.formatNumber(data.length)}${
+                    hasMore ? "+" : ""
+                  }`,
+                })}
               </span>
             )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
@@ -4059,16 +4789,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onClick={() => {
                   collapseSearch();
                 }}
-                title="Clear search (Esc Esc)"
-                aria-label="Clear search"
-                className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                title={tx("Clear search (Esc Esc)")}
+                aria-label={tx("Clear search")}
+                className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
               </button>
             ) : (
               <kbd
-                className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
-                title="Press / to focus search"
+                className={TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME}
+                title={tx("Press / to focus search")}
               >
                 /
               </kbd>
@@ -4086,23 +4816,38 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  {isLabelsLoading ? "Loading labels…" : "Filter by label"}
+                  {tx(isLabelsLoading ? "Loading labels…" : "Filter by label")}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  <kbd className="font-mono">↑</kbd>
-                  <kbd className="ml-0.5 font-mono">↓</kbd>
-                  <span className="ml-1">to navigate</span>
+                  <TranslatedSentence
+                    template="{{arrowKeys}} to navigate"
+                    slots={{
+                      arrowKeys: (
+                        <>
+                          <kbd className="font-mono">↑</kbd>
+                          <kbd className="ml-0.5 font-mono">↓</kbd>
+                        </>
+                      ),
+                    }}
+                  />
                   <span className="mx-1.5">·</span>
-                  <kbd className="font-mono">↵</kbd>
-                  <span className="ml-1">to select</span>
+                  <TranslatedSentence
+                    template="{{enterKey}} to select"
+                    slots={{
+                      enterKey: <kbd className="font-mono">↵</kbd>,
+                    }}
+                  />
                 </span>
               </div>
               <div className="max-h-64 overflow-y-auto py-1">
                 {!isLabelsLoading && dropdownLabels.length === 0 && (
                   <div className="px-3 py-3 text-sm text-gray-500">
                     {availableLabels.length === 0
-                      ? "No labels available for this resource."
-                      : `No labels matching "${mention.prefix}"`}
+                      ? tx("No labels available for this resource.")
+                      : translator.translateTemplate(
+                          'No labels matching "{{prefix}}"',
+                          { prefix: mention.prefix },
+                        )}
                   </div>
                 )}
                 {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
@@ -4159,168 +4904,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * Refresh / Filter / Create remain accessible while searching.
    */
   /*
-   * The "primary" button is the one with NORMAL style and the Add icon — the
-   * Create button that BaseModelTable injects automatically. We surface it
-   * alongside the search bar and hide everything else behind a kebab menu.
-   * If the page has no such button we fall back to the first NORMAL- or
-   * PRIMARY-styled one. PRIMARY is treated as a main candidate because it
-   * explicitly marks a primary action (e.g. "Run Runbook") — hiding it in
-   * the overflow menu defeats the purpose of the style.
+   * The main button beside the search and the ⋯ that holds the rest: the
+   * same split every table's header makes (Table/TableHeaderControls).
    */
-  type FindMainButtonResult = {
-    main: CardButtonSchema | null;
-    rest: Array<CardButtonSchema | ReactElement>;
-  };
-
-  const splitButtonsForHeader: (
-    buttons: Array<CardButtonSchema | ReactElement>,
-  ) => FindMainButtonResult = (
-    buttons: Array<CardButtonSchema | ReactElement>,
-  ): FindMainButtonResult => {
-    let mainIndex: number = -1;
-    for (let i: number = 0; i < buttons.length; i++) {
-      const b: CardButtonSchema | ReactElement = buttons[i]!;
-      if (React.isValidElement(b)) {
-        continue;
-      }
-      const c: CardButtonSchema = b as CardButtonSchema;
-      if (c.buttonStyle === ButtonStyleType.NORMAL && c.icon === IconProp.Add) {
-        mainIndex = i;
-        break;
-      }
-    }
-    if (mainIndex < 0) {
-      for (let i: number = 0; i < buttons.length; i++) {
-        const b: CardButtonSchema | ReactElement = buttons[i]!;
-        if (React.isValidElement(b)) {
-          continue;
-        }
-        const style: ButtonStyleType | undefined = (b as CardButtonSchema)
-          .buttonStyle;
-        if (
-          style === ButtonStyleType.NORMAL ||
-          style === ButtonStyleType.PRIMARY
-        ) {
-          mainIndex = i;
-          break;
-        }
-      }
-    }
-    if (mainIndex < 0) {
-      return { main: null, rest: buttons };
-    }
-    const main: CardButtonSchema = buttons[mainIndex] as CardButtonSchema;
-    const rest: Array<CardButtonSchema | ReactElement> = [
-      ...buttons.slice(0, mainIndex),
-      ...buttons.slice(mainIndex + 1),
-    ];
-    return { main, rest };
-  };
-
-  const renderMainButton: (b: CardButtonSchema) => ReactElement = (
-    b: CardButtonSchema,
-  ): ReactElement => {
-    return (
-      <Button
-        key="model-table-main-action"
-        title={b.title}
-        buttonStyle={b.buttonStyle}
-        buttonSize={b.buttonSize}
-        className={b.className}
-        onClick={() => {
-          if (b.disabled) {
-            return;
-          }
-
-          b.onClick?.();
-        }}
-        disabled={b.disabled}
-        tooltip={b.tooltip}
-        icon={b.icon}
-        shortcutKey={b.shortcutKey}
-        dataTestId="card-button"
-        isLoading={b.isLoading}
-      />
-    );
-  };
-
-  /*
-   * Icon-only card buttons (Refresh, Filter, …) have empty titles, so derive
-   * a label from the icon for the More menu.
-   */
-  // Fallback labels for icon-only buttons (Refresh, Filter, ...) in the More menu.
-  const labelForIconButton: (icon: IconProp | undefined) => string = (
-    icon: IconProp | undefined,
-  ): string => {
-    switch (icon) {
-      case IconProp.Refresh:
-        return "Refresh";
-      case IconProp.Filter:
-        return "Filter";
-      case IconProp.Add:
-        return "Add";
-      case IconProp.Help:
-        return "Help";
-      case IconProp.Book:
-        return "Documentation";
-      case IconProp.Play:
-        return "Watch Demo";
-      case IconProp.Search:
-        return "Search";
-      case IconProp.TableCells:
-        return "Columns";
-      default:
-        return "Action";
-    }
-  };
-
-  const renderMoreMenu: (
-    items: Array<CardButtonSchema | ReactElement>,
-  ) => ReactElement | null = (
-    items: Array<CardButtonSchema | ReactElement>,
-  ): ReactElement | null => {
-    if (items.length === 0) {
-      return null;
-    }
-    const children: Array<ReactElement> = items.map(
-      (item: CardButtonSchema | ReactElement, idx: number) => {
-        if (React.isValidElement(item)) {
-          return (
-            <div key={`more-${idx}`} className="px-2 py-1">
-              {item}
-            </div>
-          );
-        }
-        const b: CardButtonSchema = item as CardButtonSchema;
-        const label: string = b.title || labelForIconButton(b.icon);
-        return (
-          <MoreMenuItem
-            key={`more-${idx}`}
-            text={label}
-            icon={b.icon}
-            onClick={() => {
-              if (!b.disabled) {
-                b.onClick?.();
-              }
-            }}
-            isDisabled={b.disabled}
-            tooltip={b.tooltip}
-          />
-        );
-      },
-    );
-
-    return (
-      <MoreMenu
-        key="model-table-more-menu"
-        menuIcon={IconProp.EllipsisHorizontal}
-        text=""
-      >
-        {children}
-      </MoreMenu>
-    );
-  };
-
   /*
    * Builds the right-hand side of the card header. All slots — search
    * trigger/bar, saved views, main button, more menu — stay mounted at all
@@ -4354,16 +4940,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (!hasSearch) {
       // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
-      const { main, rest }: FindMainButtonResult =
-        splitButtonsForHeader(cardButtons);
+      const { main, rest }: TableHeaderButtonSplit =
+        splitTableHeaderButtons(cardButtons);
       const composed: Array<ReactElement> = [];
       if (savedViewsElement) {
         composed.push(savedViewsElement);
       }
       if (main) {
-        composed.push(renderMainButton(main));
+        composed.push(renderTableHeaderMainButton(main));
       }
-      const moreMenu: ReactElement | null = renderMoreMenu(rest);
+      const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
       if (moreMenu) {
         composed.push(moreMenu);
       }
@@ -4374,88 +4960,41 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const isExpanded: boolean =
       isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
 
-    const { main, rest }: FindMainButtonResult =
-      splitButtonsForHeader(cardButtons);
-    const moreMenu: ReactElement | null = renderMoreMenu(rest);
+    const { main, rest }: TableHeaderButtonSplit =
+      splitTableHeaderButtons(cardButtons);
+    const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
 
+    /*
+     * One row while it fits; in a narrow card (a phone, or beside a product's
+     * side menu) the buttons wrap under the search, at the right edge,
+     * instead of the row running off the card's left edge.
+     *
+     * On a phone the row takes the card's width, and the search the whole
+     * of its line (MODEL_TABLE_PHONE_SEARCH_CLASS_NAME). It was a 176px
+     * pill hung at the right edge, on a line of its own over the buttons.
+     */
     const wrapped: ReactElement = (
-      <div key="model-table-header-actions" className="flex items-center gap-3">
-        {/*
-         * Search slot — a compact pill showing "Search …    /" by default,
-         * grown into the full search bar when expanded. Always advertising
-         * itself (rather than starting as a tiny icon) reads as a more
-         * polished search affordance, in line with Stripe / Linear / GitHub.
-         */}
-        <div
-          className={`relative shrink-0 transition-[width] duration-300 ease-out ${
-            isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
-          }`}
-        >
-          {/* Trigger (collapsed state) */}
-          <button
-            type="button"
-            onClick={() => {
+      <TableHeaderToolbar
+        key="model-table-header-actions"
+        isSearchOpen={isExpanded}
+        search={
+          <TableHeaderSearchSlot
+            isOpen={isExpanded}
+            onOpen={() => {
               setIsSearchExpanded(true);
               requestAnimationFrame(() => {
                 searchInputRef.current?.focus();
               });
             }}
-            title="Search (/)"
-            aria-label="Open search"
-            tabIndex={isExpanded ? -1 : 0}
-            className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
-              isExpanded
-                ? "pointer-events-none border-gray-200 opacity-0"
-                : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            <Icon
-              icon={IconProp.Search}
-              className="h-4 w-4 flex-none text-gray-400"
-            />
-            <span className="flex-1 truncate text-left text-gray-400">
-              Search…
-            </span>
-            <kbd className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
-              /
-            </kbd>
-          </button>
-
-          {/* Expanded search bar */}
-          <div
-            className={`transition-opacity duration-200 ease-out ${
-              isExpanded
-                ? "opacity-100 delay-150"
-                : "pointer-events-none opacity-0"
-            }`}
           >
             {getSearchControl()}
-          </div>
-        </div>
-
-        {/*
-         * Buttons that collapse when the bar expands. We avoid
-         * `overflow-hidden` here — the MoreMenu dropdown is an absolutely
-         * positioned child of one of these buttons and would otherwise get
-         * clipped by an `overflow-hidden` ancestor, leaving the user with
-         * an apparent "no menu appears" bug when they click ⋯. The wrapper
-         * is hidden via opacity + pointer-events instead, and its width
-         * collapses by setting both `max-width` and `gap` to 0 so the
-         * search slot to the left can grow into the freed space.
-         */}
-        <div
-          className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
-            isExpanded
-              ? "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none"
-              : "max-w-[600px] gap-3 opacity-100"
-          }`}
-          aria-hidden={isExpanded}
-        >
-          {savedViewsElement}
-          {main && renderMainButton(main)}
-          {moreMenu}
-        </div>
-      </div>
+          </TableHeaderSearchSlot>
+        }
+      >
+        {savedViewsElement}
+        {main && renderTableHeaderMainButton(main)}
+        {moreMenu}
+      </TableHeaderToolbar>
     );
 
     return [wrapped];
@@ -4670,12 +5209,37 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
 
+    /*
+     * While the empty state is on screen and says what the list is for in
+     * the card's own words, the card leaves its description out of the
+     * header - the same sentence twice, a few lines apart, read as a bug.
+     */
+    const isEmptyStateShown: boolean =
+      !getTableLoadingState() &&
+      !error &&
+      data.length === 0 &&
+      tableColumns.length > 0;
+
+    const cardDescription: CardComponentProps["description"] =
+      isEmptyStateShown && emptyState.usesCardDescription
+        ? undefined
+        : props.cardProps?.description;
+
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
         <div>
           {props.cardProps && (
             <Card
+              /*
+               * A table's header holds a row of controls - search, saved
+               * views, the main button, the ⋯ - so the title shares its line
+               * with them and the description runs under both, across the
+               * card, rather than being squeezed into a column beside them
+               * (Card's "toolbar" header).
+               */
+              headerLayout="toolbar"
               {...props.cardProps}
+              description={cardDescription}
               buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
@@ -4688,15 +5252,26 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               {/*
                * A viewer's layout can never empty this out — applyColumnPreference
-               * refuses to return nothing — so zero columns still means exactly
-               * what it always did: every column was denied by permission.
+               * refuses to return nothing — so zero columns, once they have been
+               * built, still means exactly what it always did: every column was
+               * denied by permission. Before they are built, every table drew
+               * this for a frame, and for longer on a page slow to run its
+               * effects, telling viewers who could read every column, master
+               * admins included, that they had no access.
                */}
-              {tableColumns.length === 0 && allColumns.length > 0 ? (
-                <ErrorMessage
-                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionGate.getPermissionTitles(
-                    model.getReadPermissions(),
-                  ).join(", ")}`}
-                />
+              {hasBuiltColumns &&
+              tableColumns.length === 0 &&
+              allColumns.length > 0 ? (
+                <div data-testid={`${props.id}-no-access`}>
+                  <TableEmptyState
+                    {...buildNoAccessState({
+                      permissionTitles: PermissionGate.getPermissionTitles(
+                        model.getReadPermissions(),
+                      ),
+                      translate: tx,
+                    })}
+                  />
+                </div>
               ) : (
                 <></>
               )}
@@ -4734,21 +5309,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     }
 
-    return (
-      <div>
-        {props.cardProps && (
-          <Card
-            {...props.cardProps}
-            buttons={headerButtons}
-            title={getCardTitle(props.cardProps.title || "")}
-          >
-            {getOrderedStatesList()}
-          </Card>
-        )}
-
-        {!props.cardProps && getOrderedStatesList()}
-      </div>
-    );
+    return <></>;
   };
 
   return (
@@ -4764,24 +5325,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onBeforeCreate: async (
             item: TBaseModel,
             miscDataProps: JSONObject,
+            formValues: JSONObject,
           ) => {
-            if (
-              showAs === ShowAs.OrderedStatesList &&
-              props.orderedStatesListProps?.orderField &&
-              orderedStatesListNewItemOrder
-            ) {
-              item.setColumnValue(
-                props.orderedStatesListProps.orderField as string,
-                orderedStatesListNewItemOrder,
-              );
-            }
-
             if (props.onBeforeCreate) {
-              item = await props.onBeforeCreate(item, miscDataProps);
+              item = await props.onBeforeCreate(
+                item,
+                miscDataProps,
+                formValues,
+              );
             }
 
             return item;
           },
+          onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
             setCurrentPageNumber(1);
@@ -4807,8 +5363,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            */
           modelIdToEdit:
             modalType === ModalType.Edit && currentEditableItem
-              ? new ObjectID(currentEditableItem["_id"] as string)
+              ? new ObjectID(getRecordIdText(currentEditableItem["_id"]))
               : undefined,
+          existingItems: modalType === ModalType.Create ? data : undefined,
         })
       ) : (
         <></>
@@ -4818,21 +5375,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={
             deleteConfirmation?.title ||
-            `Delete ${getDeleteLabel(props.singularName, model.singularName)}`
+            translateNamedAction(translator, {
+              template: "Delete {{itemName}}",
+              itemName: getDeleteLabel(props.singularName, model.singularName),
+            })
           }
           description={
-            deleteConfirmation?.description ||
-            ((): string => {
-              const label: string = getDeleteLabel(
-                props.singularName,
-                model.singularName,
-              ).toLowerCase();
-              const name: string = getItemLabel(currentDeleteableItem);
-
-              return `Are you sure you want to delete ${
-                name ? `"${name}"` : `this ${label}`
-              }? This action cannot be undone.`;
-            })()
+            deleteConfirmation?.description || (
+              <DeleteConfirmationMessage
+                kind="question"
+                name={getItemLabel(currentDeleteableItem)}
+                typeLabel={getDeleteLabel(
+                  props.singularName,
+                  model.singularName,
+                )}
+                /*
+                 * What goes with it, as the bulk Delete and the record's own
+                 * Delete page say it.
+                 */
+                warning={getDeleteWarning(props.deleteConfirmationWarning)}
+              />
+            )
           }
           onClose={() => {
             setShowDeleteConfirmModal(false);
@@ -4860,54 +5423,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         />
       )}
 
-      {showViewIdModal && (
-        <ConfirmModal
-          title={`${props.singularName || model.singularName || ""} ID`}
-          description={
-            <div>
-              <span>
-                ID of this {props.singularName || model.singularName || ""}:
-              </span>
-              {/*
-               * Handing over the id is the entire point of this dialog, and it
-               * used to be inline prose the user had to select by hand - an
-               * awkward drag over a 36-character UUID, and easy to clip a
-               * character. It gets its own row and a copy button now.
-               */}
-              <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                <code className="flex-1 break-all font-mono text-xs text-gray-800">
-                  {viewId}
-                </code>
-                <CopyTextButton
-                  textToBeCopied={viewId || ""}
-                  size="sm"
-                  title="Copy ID to clipboard"
-                />
-              </div>
-              <br />
-
-              <span>
-                You can use this ID to interact with{" "}
-                {props.singularName || model.singularName || ""} via the
-                OneUptime API. Click the button below to go to API Reference.
-              </span>
-            </div>
-          }
+      {viewId !== null && (
+        /*
+         * The shared Show ID dialog: the ID on a row of its own with a copy
+         * button, and "Go to API Docs" only where the API Reference has a
+         * page for this model.
+         */
+        <RecordIdModal
+          recordId={viewId}
+          itemName={props.singularName || model.singularName || ""}
+          apiReferencePagePath={getApiReferencePagePath(model, {
+            isBillingEnabled: BILLING_ENABLED,
+          })}
           onClose={() => {
-            setShowViewIdModal(false);
+            setViewId(null);
           }}
-          submitButtonText={"Go to API Docs"}
-          onSubmit={() => {
-            setShowViewIdModal(false);
-            Navigation.navigate(
-              URL.fromString(API_DOCS_URL.toString()).addRoute(
-                "/" + model.getAPIDocumentationPath(),
-              ),
-              { openInNewTab: true },
-            );
-          }}
-          submitButtonType={ButtonStyleType.NORMAL}
-          closeButtonType={ButtonStyleType.OUTLINE}
         />
       )}
 
@@ -4919,10 +5449,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setShowHelpModal(false);
           }}
           modalWidth={ModalWidth.Large}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowHelpModal(false);
-          }}
+          closeButtonText="Close"
         >
           <div className="p-2">
             <MarkdownViewer text={props.helpContent.markdown} />

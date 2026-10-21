@@ -34,6 +34,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 
@@ -123,6 +124,15 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
 
 jest.mock("Common/Server/Services/TeamService", () => {
   return { __esModule: true, default: {} };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -217,7 +227,8 @@ async function send(
   const response: globalThis.Response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: { "Content-Type": "application/scim+json" },
-    body: JSON.stringify(body),
+    // A GET carries no body.
+    ...(method === "GET" ? {} : { body: JSON.stringify(body) }),
   });
   return {
     status: response.status,
@@ -309,6 +320,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  fakeProjectSCIMUserService.reset();
   statusPageConfig = new StatusPageSCIM(SCIM_ID);
   statusPageConfig.autoDeprovisionUsers = true;
   projectConfig = new ProjectSCIM(SCIM_ID);
@@ -812,7 +824,19 @@ describe("Project SCIM user PATCH", () => {
     expectProjectAccountRetained();
   });
 
-  test.each(emailCases)(
+  /*
+   * The account signs in with its userName when that is an address
+   * (getAccountEmail): a new userName is a new sign-in address, for an
+   * account this project manages.
+   */
+  test.each(
+    emailCases.filter((emailCase: UpdateCase): boolean => {
+      return (
+        emailCase.label === "userName path" ||
+        emailCase.label === "full-resource PUT email replacement"
+      );
+    }),
+  )(
     "persists and returns the new email of an account this project manages for $label",
     async ({ method, body }: UpdateCase) => {
       const updatedUser: User = new User(USER_ID);
@@ -832,4 +856,100 @@ describe("Project SCIM user PATCH", () => {
       expectProjectAccountRetained();
     },
   );
+
+  /*
+   * A new email beside an unchanged userName that is an address is kept on
+   * the SCIM user and answered with, and the account keeps signing in with
+   * its userName: an identity provider maps the two from different
+   * attributes (Microsoft Entra ID: the user principal name and mail).
+   */
+  test.each(
+    emailCases.filter((emailCase: UpdateCase): boolean => {
+      return (
+        emailCase.label !== "userName path" &&
+        emailCase.label !== "full-resource PUT email replacement"
+      );
+    }),
+  )(
+    "keeps the new email on the SCIM user, and the account its sign-in address, for $label",
+    async ({ method, body }: UpdateCase) => {
+      const result: HttpResult = await send(method, userPath("project"), body);
+
+      expect(result.status).toBe(200);
+      expect(result.body["userName"]).toBe(ORIGINAL_EMAIL);
+      expect(result.body["emails"]).toEqual([
+        expect.objectContaining({ value: UPDATED_EMAIL, type: "work" }),
+      ]);
+      expect(projectUserService.updateOneById).not.toHaveBeenCalled();
+      expectProjectAccountRetained();
+
+      // Read back, as an identity provider does.
+      const readBack: HttpResult = await send("GET", userPath("project"), {});
+
+      expect(readBack.body["emails"]).toEqual(result.body["emails"]);
+    },
+  );
+
+  test.each(deactivationCases)(
+    "is still there, inactive, after $label - as an identity provider reads it back",
+    async ({ method, body }: UpdateCase) => {
+      const result: HttpResult = await send(method, userPath("project"), body);
+
+      expect(result.status).toBe(200);
+      expect(result.body["active"]).toBe(false);
+
+      /*
+       * The account is in none of the project's teams any more: the
+       * connection's record is what still finds it.
+       */
+      teamMemberService.findOneBy.mockResolvedValue(null);
+
+      const readBack: HttpResult = await send("GET", userPath("project"), {});
+
+      expect(readBack.status).toBe(200);
+      expect(readBack.body["id"]).toBe(USER_ID.toString());
+      expect(readBack.body["active"]).toBe(false);
+    },
+  );
+
+  test("a reactivation answers active true and adds the user back to the configured teams", async () => {
+    await send(
+      "PATCH",
+      userPath("project"),
+      patch({ op: "Replace", path: "active", value: false }),
+    );
+
+    const result: HttpResult = await send(
+      "PATCH",
+      userPath("project"),
+      patch({ op: "Replace", path: "active", value: "True" }),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body["active"]).toBe(true);
+    expect(createProjectSCIMLog).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalContext: expect.objectContaining({
+          activeStatus: true,
+          teamOperationPerformed: "added_to_teams",
+        }),
+      }),
+    );
+  });
+
+  test("a user the connection does not have is answered 404 in the SCIM error format", async () => {
+    teamMemberService.findOneBy.mockResolvedValue(null);
+
+    const result: HttpResult = await send(
+      "PATCH",
+      userPath("project"),
+      patch({ op: "Replace", path: "active", value: false }),
+    );
+
+    expect(result.status).toBe(404);
+    expect(result.body["schemas"]).toEqual([
+      "urn:ietf:params:scim:api:messages:2.0:Error",
+    ]);
+    expect(teamMemberService.deleteBy).not.toHaveBeenCalled();
+  });
 });

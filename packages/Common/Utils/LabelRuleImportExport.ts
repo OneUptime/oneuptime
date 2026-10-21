@@ -15,6 +15,7 @@ import IncidentLabelRule from "../Models/DatabaseModels/IncidentLabelRule";
 import IncomingCallPolicyLabelRule from "../Models/DatabaseModels/IncomingCallPolicyLabelRule";
 import IoTFleetLabelRule from "../Models/DatabaseModels/IoTFleetLabelRule";
 import KubernetesClusterLabelRule from "../Models/DatabaseModels/KubernetesClusterLabelRule";
+import MessageQueueLabelRule from "../Models/DatabaseModels/MessageQueueLabelRule";
 import MonitorLabelRule from "../Models/DatabaseModels/MonitorLabelRule";
 import NetworkDeviceLabelRule from "../Models/DatabaseModels/NetworkDeviceLabelRule";
 import OnCallDutyPolicyLabelRule from "../Models/DatabaseModels/OnCallDutyPolicyLabelRule";
@@ -28,6 +29,7 @@ import ServerlessFunctionLabelRule from "../Models/DatabaseModels/ServerlessFunc
 import ServiceLabelRule from "../Models/DatabaseModels/ServiceLabelRule";
 import ServiceLevelObjectiveLabelRule from "../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import StatusPageLabelRule from "../Models/DatabaseModels/StatusPageLabelRule";
+import StorageArrayLabelRule from "../Models/DatabaseModels/StorageArrayLabelRule";
 import WorkflowLabelRule from "../Models/DatabaseModels/WorkflowLabelRule";
 import Select from "../Types/BaseDatabase/Select";
 import { ColumnAccessControl } from "../Types/BaseDatabase/AccessControl";
@@ -45,6 +47,12 @@ import {
   getRuleCriteriaValidationError,
   isValidRuleCriteria,
 } from "./Rules/RuleCriteriaMatcher";
+import {
+  doesNewRuleAddSomething,
+  getRuleActionColumns,
+  getRuleAddsNothingMessage,
+  RuleActionColumns,
+} from "./Rules/RuleAction";
 import RulePatternMatchUtil from "./Rules/RulePatternMatchUtil";
 
 export const LABEL_RULE_EXPORT_FILE_TYPE: string = "oneuptime-label-rules";
@@ -66,6 +74,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   IncomingCallPolicyLabelRule,
   IoTFleetLabelRule,
   KubernetesClusterLabelRule,
+  MessageQueueLabelRule,
   MonitorLabelRule,
   NetworkDeviceLabelRule,
   OnCallDutyPolicyLabelRule,
@@ -79,6 +88,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   ServiceLabelRule,
   ServiceLevelObjectiveLabelRule,
   StatusPageLabelRule,
+  StorageArrayLabelRule,
   WorkflowLabelRule,
 ];
 
@@ -271,6 +281,9 @@ export default class LabelRuleImportExport {
     const destination: BaseModel = new data.modelType();
     const sourceColumns: Array<string> = this.getColumns(sourceType);
     const destinationColumns: Array<string> = this.getColumns(data.modelType);
+    // What a rule of the destination adds: its labels, and what it inherits.
+    const destinationAction: RuleActionColumns | null =
+      getRuleActionColumns(destination);
     const mappings: Set<string> = new Set();
     const errors: Array<string> = [];
     const items: ParsedLabelRuleImport["items"] = [];
@@ -389,6 +402,19 @@ export default class LabelRuleImportExport {
               delete json[column];
             }
           }
+        }
+        /*
+         * A new rule must add something, as the server insists on every
+         * create (LabelAndOwnerRuleBaseService): said here for every such
+         * rule of the file, before any rule is created.
+         */
+        if (
+          destinationAction &&
+          !doesNewRuleAddSomething(json, destinationAction)
+        ) {
+          throw new BadDataException(
+            getRuleAddsNothingMessage(destinationAction),
+          );
         }
         items.push({ json, portableJson });
       } catch (error) {
@@ -780,6 +806,13 @@ export default class LabelRuleImportExport {
         ? RulePatternMatchUtil.isSupportedPattern(value)
         : RulePatternMatchUtil.isValidRegex(value);
       if (!valid) {
+        const cannotRun: string | null =
+          RulePatternMatchUtil.getCannotRunMessage(title, value);
+
+        if (cannotRun) {
+          throw new BadDataException(cannotRun);
+        }
+
         throw new BadDataException(
           `${title} is not a valid ${acceptsWildcards ? "regular expression or wildcard pattern" : "regular expression"}.`,
         );

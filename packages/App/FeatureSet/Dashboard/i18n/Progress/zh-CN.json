@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "keys": 32062,
+    "untranslated": 16109
+  },
+  "sameAsEnglish": [
+    "AI / LLM",
+    "Gemini for Google Workspace",
+    "Goroutines",
+    "PR #{{number}}",
+    "Runner",
+    "SNMP trap",
+    "VMware vCenter",
+    "Webhook URL",
+    "kubectl set image deployment/web * -n web",
+    "syslog",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
+    "{{itemName}} ID"
+  ]
+}

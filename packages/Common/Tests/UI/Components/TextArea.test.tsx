@@ -116,6 +116,25 @@ describe("TextArea", () => {
     expect(getByTestId(errorTestId)).toBeInTheDocument();
   });
 
+  // A fixed error id described every text area in error by the first one's message.
+  test("describes each text area by its own error message", () => {
+    const { getByTestId, getAllByRole } = render(
+      <>
+        <TextArea error="Details is required." dataTestId="details" />
+        <TextArea error="Steps is required." dataTestId="steps" />
+      </>,
+    );
+    const details: HTMLElement = getByTestId("details");
+    const steps: HTMLElement = getByTestId("steps");
+
+    expect(details).toHaveAccessibleDescription("Details is required.");
+    expect(steps).toHaveAccessibleDescription("Steps is required.");
+    expect(details.getAttribute("aria-describedby")).not.toBe(
+      steps.getAttribute("aria-describedby"),
+    );
+    expect(getAllByRole("alert")).toHaveLength(2);
+  });
+
   test("displays error icon", () => {
     const { container } = render(<TextArea error="error" initialValue="" />);
     // The error icon renders an inline <svg> (no role="icon"; WCAG 4.1.2).

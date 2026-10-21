@@ -1,6 +1,10 @@
 import { Host, HttpProtocol } from "../../EnvironmentConfig";
 import { AppApiRoute } from "../../../ServiceRoute";
 import Protocol from "../../../Types/API/Protocol";
+import CalendarSubscriptionLinks, {
+  CalendarSubscriptionLinkSet,
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX,
+} from "../../../Types/Calendar/CalendarSubscriptionLinks";
 import { OnCallCalendarFeedKind } from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
 
 /*
@@ -15,12 +19,16 @@ import { OnCallCalendarFeedKind } from "../../../Types/OnCallDutyPolicy/OnCallCa
  *
  *   https     the plain URL. Google Calendar ("From URL"), Outlook on the web
  *             and Thunderbird take this as-is.
- *   webcal    the same URL under the webcal:// scheme (webcals:// when the
- *             instance serves https). Apple Calendar on macOS and iOS opens it
- *             straight into a "Subscribe" sheet; Windows without Outlook has no
- *             handler for it, which the docs explain.
- *   googleAdd Google Calendar's add-by-URL deep link, the https URL encoded
- *             into its `cid` parameter.
+ *   webcal    the same URL under the webcal:// scheme - always webcal://,
+ *             never webcals://, which iOS refuses to open. Apple Calendar on
+ *             macOS and iOS opens it straight into a "Subscribe" sheet and
+ *             Outlook for Windows into its own; both fetch it over https when
+ *             the server serves https. Windows without Outlook has no handler
+ *             for it, which the docs explain.
+ *   googleAdd Google Calendar's add-by-URL deep link, with the webcal:// form
+ *             of the URL encoded into its `cid` parameter. Given the https://
+ *             form there, Google answers "Unable to add calendar. Check the
+ *             URL." (CalendarSubscriptionLinks explains both rules.)
  *
  * The path segments are a public contract shared with the Nginx access-log
  * exemption (`^/api/on-call-calendar/(user|schedule|project)/`) and the
@@ -34,7 +42,7 @@ export const SCHEDULE_FEED_FILE_NAME: string = "schedule.ics";
 export const PROJECT_FEED_FILE_NAME: string = "project.ics";
 
 export const GOOGLE_CALENDAR_ADD_BY_URL: string =
-  "https://calendar.google.com/calendar/r?cid=";
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX;
 
 export const HOST_WARNING: string =
   "HOST is not set to a public address, so calendar apps outside this machine cannot reach this link. Set HOST to the address your team uses to open OneUptime.";
@@ -54,6 +62,40 @@ const LOCAL_HOST_NAMES: Array<string> = [
   "::1",
   "[::1]",
 ];
+
+/*
+ * Name suffixes that only resolve inside a private network: the special-use
+ * names of RFC 6761 / RFC 2606 (.test, .example, .invalid, .localhost),
+ * mDNS's .local, RFC 8375's .home.arpa, the .internal that ICANN reserved for
+ * private use in 2024, and the suffixes intranets have long used without
+ * them (.lan, .home, .corp, .intranet, .private, .localdomain).
+ */
+const PRIVATE_NAME_SUFFIXES: Array<string> = [
+  ".local",
+  ".localdomain",
+  ".localhost",
+  ".internal",
+  ".intranet",
+  ".lan",
+  ".home",
+  ".home.arpa",
+  ".corp",
+  ".private",
+  ".test",
+  ".example",
+  ".invalid",
+];
+
+const IPV4_LITERAL_PATTERN: RegExp =
+  /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+
+/*
+ * fc00::/7 (unique local) and fe80::/10 (link local). The first group has to
+ * be written with all four digits to fall in either range: "fc::1" is
+ * 00fc::1, a public address.
+ */
+const PRIVATE_IPV6_PREFIX_PATTERN: RegExp =
+  /^(f[cd][0-9a-f]{2}|fe[89ab][0-9a-f]):/;
 
 export interface FeedUrls {
   https: string;
@@ -144,18 +186,15 @@ export default class OnCallCalendarFeedUrls {
       options.token,
     );
 
-    const https: string = `${protocol}${host}${path}`;
+    const links: CalendarSubscriptionLinkSet = CalendarSubscriptionLinks.build(
+      `${protocol}${host}${path}`,
+    );
 
-    const webcalScheme: string =
-      protocol === Protocol.HTTPS ? "webcals://" : "webcal://";
-
-    const webcal: string = `${webcalScheme}${host}${path}`;
-
-    const googleAdd: string = `${GOOGLE_CALENDAR_ADD_BY_URL}${encodeURIComponent(
-      https,
-    )}`;
-
-    return { https, webcal, googleAdd };
+    return {
+      https: links.https,
+      webcal: links.webcal,
+      googleAdd: links.googleAdd,
+    };
   }
 
   /*
@@ -175,6 +214,83 @@ export default class OnCallCalendarFeedUrls {
 
     if (LOCAL_HOST_NAMES.includes(withoutPort.toLowerCase())) {
       return HOST_WARNING;
+    }
+
+    return null;
+  }
+
+  /*
+   * The configured host, without its port, when it is a PRIVATE address:
+   * one that only machines on the same network can reach. Null for a public
+   * address, and for the empty and loopback values getHostWarning already
+   * warns about.
+   *
+   * Calendar apps that fetch a subscription from their own servers - Google
+   * Calendar, Outlook on the web - can never reach a link on such a host,
+   * however it is pasted; apps on a computer inside the network (Apple
+   * Calendar, Outlook for Windows, Thunderbird) can. The settings page names
+   * the host and says so next to the link, so nobody waits a day for a
+   * Google Calendar that cannot fill.
+   *
+   * Private means: an RFC 1918, shared (100.64/10) or link-local IPv4
+   * address; a unique-local or link-local IPv6 address; a name with no dot
+   * (a container or service name such as "ingress" or "oneuptime"); or a
+   * name under one of PRIVATE_NAME_SUFFIXES.
+   */
+  public static getPrivateHost(host?: string | undefined): string | null {
+    const value: string = OnCallCalendarFeedUrls.normalizeHost(
+      host === undefined ? Host : host,
+    );
+
+    if (!value || OnCallCalendarFeedUrls.getHostWarning(value)) {
+      return null;
+    }
+
+    const withoutPort: string = OnCallCalendarFeedUrls.stripPort(value);
+    const name: string = withoutPort.toLowerCase();
+
+    if (name.startsWith("[")) {
+      const address: string = name.slice(
+        1,
+        name.endsWith("]") ? -1 : undefined,
+      );
+
+      return PRIVATE_IPV6_PREFIX_PATTERN.test(address) ? withoutPort : null;
+    }
+
+    // An IPv6 address written without brackets (no port can follow it).
+    if (name.includes(":")) {
+      return PRIVATE_IPV6_PREFIX_PATTERN.test(name) ? withoutPort : null;
+    }
+
+    const ipv4: RegExpMatchArray | null = name.match(IPV4_LITERAL_PATTERN);
+
+    if (ipv4) {
+      const first: number = Number(ipv4[1]);
+      const second: number = Number(ipv4[2]);
+
+      const isPrivate: boolean =
+        first === 10 ||
+        (first === 172 && second >= 16 && second <= 31) ||
+        (first === 192 && second === 168) ||
+        (first === 100 && second >= 64 && second <= 127) ||
+        (first === 169 && second === 254) ||
+        first === 127 ||
+        first === 0;
+
+      return isPrivate ? withoutPort : null;
+    }
+
+    const bareName: string = name.endsWith(".") ? name.slice(0, -1) : name;
+
+    if (!bareName.includes(".")) {
+      return withoutPort;
+    }
+
+    for (const suffix of PRIVATE_NAME_SUFFIXES) {
+      if (bareName.endsWith(suffix)) {
+        return withoutPort;
+      }
     }
 
     return null;

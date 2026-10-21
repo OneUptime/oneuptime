@@ -14,6 +14,8 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import ArrayUtil from "../../../../Utils/Array";
 
 /*
  * Permissions auto-granted to every logged-in tenant user. Holding only these
@@ -37,6 +39,30 @@ const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
 ];
 
 export default class TenantPermission {
+  /*
+   * How many of the caller's projects a request across projects works out
+   * at the same time: each project's check may look up the records the
+   * caller owns there (OwnedScopePermission), and the projects do not wait
+   * on one another, but they are read a few at a time rather than all at
+   * once on the shared database pool.
+   */
+  public static readonly PROJECT_CONCURRENCY: number = 4;
+
+  /*
+   * Why an update or a delete that names no project - or asks across
+   * projects - is refused (addTenantScopeToQuery), and what to do instead.
+   */
+  public static getWriteAcrossProjectsMessage(model: BaseModel): string {
+    const records: string = (model.pluralName || "records").toLowerCase();
+
+    return `Changes to ${records} are made in one project at a time. Please pass the project ID in the 'tenantid' header.`;
+  }
+
+  /*
+   * `updateData` is what an update writes, handed on to each project's own
+   * permission check in a multi-tenant request: below a table's update plan
+   * only an update that switches records off passes (BillingPermission).
+   */
   @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -44,6 +70,7 @@ export default class TenantPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -121,6 +148,24 @@ export default class TenantPermission {
       (!props.tenantId || props.isMultiTenantRequest)
     ) {
       /*
+       * A CHANGE IS MADE IN ONE PROJECT AT A TIME. A read across projects is
+       * answered below with a query per project, each checked with its own
+       * project's permissions. An update or a delete would have to read its
+       * rows by such a query before it writes them, and no read takes one
+       * (findBy turns a list into one object), so a write that names no
+       * project - or asks across projects - is refused here, before anything
+       * is read, in words that say what to do.
+       */
+      if (
+        type === DatabaseRequestType.Update ||
+        type === DatabaseRequestType.Delete
+      ) {
+        throw new BadDataException(
+          TenantPermission.getWriteAcrossProjectsMessage(model),
+        );
+      }
+
+      /*
        * for each of these projectIds,
        * check if they have valid permissions for these projects
        * and if they do, include them in the query.
@@ -159,33 +204,59 @@ export default class TenantPermission {
       let lastException: Error | null = null;
       const queryForEachProject: Query<TBaseModel> = { ...query };
 
-      for (const projectId of projectIDs) {
-        if (!props.userId) {
+      /*
+       * Each project is checked on its own plan - never on the plan of the
+       * project the request named - read when a plan decides the operation
+       * (CallerPlan), and with its own permission rows: its grants and
+       * blocks narrow its own rows, exactly as a request in that one project
+       * is narrowed (BasePermission.addRecordScopeToQuery). A few projects
+       * are worked out at a time (PROJECT_CONCURRENCY), however many the
+       * caller belongs to. A project whose plan cannot be read, or whose
+       * grants refuse the operation, is left out, as one the caller may not
+       * reach is.
+       */
+      const queryByProject: Array<Query<TBaseModel> | Error> = props.userId
+        ? await ArrayUtil.mapWithConcurrency(
+            projectIDs,
+            TenantPermission.PROJECT_CONCURRENCY,
+            async (projectId: ObjectID): Promise<Query<TBaseModel> | Error> => {
+              try {
+                const projectProps: DatabaseCommonInteractionProps =
+                  await CallerPlan.withPlanFor({
+                    props: CallerPlan.inProjectWithoutPlan(props, projectId),
+                    modelType: modelType,
+                    type: type,
+                    data: updateData,
+                  });
+
+                const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
+                  await BasePermission.checkPermissions(
+                    modelType,
+                    { ...queryForEachProject },
+                    select,
+                    projectProps,
+                    type,
+                    updateData,
+                  );
+
+                return { ...checkBasePermissions.query };
+              } catch (error) {
+                return error instanceof Error
+                  ? error
+                  : new Error(String(error));
+              }
+            },
+          )
+        : [];
+
+      for (const projectQuery of queryByProject) {
+        if (projectQuery instanceof Error) {
+          // do nothing here. Ignore.
+          lastException = projectQuery;
           continue;
         }
 
-        try {
-          const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
-            await BasePermission.checkPermissions(
-              modelType,
-              { ...queryForEachProject },
-              select,
-              {
-                ...props,
-                isMultiTenantRequest: false,
-                tenantId: projectId,
-                userTenantAccessPermission: props.userTenantAccessPermission,
-              },
-              type,
-            );
-
-          queries.push({
-            ...checkBasePermissions.query,
-          });
-        } catch (e) {
-          // do nothing here. Ignore.
-          lastException = e as Error;
-        }
+        queries.push(projectQuery);
       }
 
       if (queries.length === 0) {
@@ -216,6 +287,51 @@ export default class TenantPermission {
         );
       }
     }
+
+    return query;
+  }
+
+  /*
+   * A write keeps to the rows its caller may read. A caller who reads a
+   * table only through the automatic CurrentUser permission reads their own
+   * rows, so an update or a delete keeps to their own rows too, whatever
+   * wider permission lets them write (a role that may repair other
+   * members' notification rules, but not read them). Root and master admin
+   * callers are left alone, as is a caller with a read grant of their own.
+   */
+  public static addCurrentUserReadScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Query<TBaseModel> {
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !TenantPermission.isAccessGrantedOnlyByCurrentUser(
+        modelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+    ) {
+      return query;
+    }
+
+    const model: BaseModel = new modelType();
+
+    if (!model.getUserColumn()) {
+      throw new NotAuthorizedException(
+        `Current user scope is not configured for ${model.singularName}.`,
+      );
+    }
+
+    if (!props.userId) {
+      throw new NotAuthorizedException(
+        `A user session is required to ${type} ${model.singularName}.`,
+      );
+    }
+
+    TenantPermission.addCurrentUserScopeToQuery(model, query, props.userId);
 
     return query;
   }

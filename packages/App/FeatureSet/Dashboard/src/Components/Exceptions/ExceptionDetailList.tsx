@@ -1,9 +1,12 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ExceptionDetailListItem {
+  // An English key, looked up here.
   label: string;
   value: ReactNode;
-  // Muted secondary line under the value.
+  // Muted secondary line under the value, already in the reader's language.
   hint?: string | undefined;
   // Spans both columns (long values such as a fingerprint).
   isWide?: boolean | undefined;
@@ -13,6 +16,7 @@ export interface ExceptionDetailListItem {
 export interface ComponentProps {
   items: Array<ExceptionDetailListItem>;
   columns?: 1 | 2 | undefined;
+  // The list's name for assistive technology: an English key.
   label?: string | undefined;
 }
 
@@ -24,11 +28,12 @@ export interface ComponentProps {
 const ExceptionDetailList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const columns: 1 | 2 = props.columns || 2;
 
   return (
     <dl
-      aria-label={props.label}
+      aria-label={translator.translateText(props.label)}
       className={`grid grid-cols-1 gap-x-8 gap-y-4 ${
         columns === 2 ? "md:grid-cols-2" : ""
       }`}
@@ -41,7 +46,7 @@ const ExceptionDetailList: FunctionComponent<ComponentProps> = (
             className={`min-w-0 ${item.isWide && columns === 2 ? "md:col-span-2" : ""}`}
           >
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              {item.label}
+              {translator.translateText(item.label)}
             </dt>
             <dd className="mt-1 min-w-0 break-words text-sm text-gray-900">
               {item.value}

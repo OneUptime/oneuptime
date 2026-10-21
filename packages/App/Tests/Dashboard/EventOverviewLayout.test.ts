@@ -100,7 +100,13 @@ function indexOfOrFail(source: string, needle: string): number {
   return index;
 }
 
-// Every `title: "..."` between two markers, in order.
+/*
+ * Every title between two markers, in order. A title is either a string
+ * literal, returned without its quotes, or a reference to a shared copy
+ * constant (e.g. IncidentStatusPageScopeCopy.overviewFieldTitle), returned as
+ * written. Lower-case values such as the `title: true` of a select block are
+ * not titles.
+ */
 function titlesBetween(
   source: string,
   startMarker: string,
@@ -108,13 +114,18 @@ function titlesBetween(
 ): Array<string> {
   const start: number = indexOfOrFail(source, startMarker);
   const end: number = source.indexOf(endMarker, start);
-  const section: string = source.slice(start, end < 0 ? undefined : end);
 
-  return Array.from(section.matchAll(/ title: "([^"]*)"/g)).map(
-    (match: RegExpMatchArray) => {
-      return match[1]!;
-    },
-  );
+  if (end < 0) {
+    throw new Error(`Not found after ${startMarker}: ${endMarker}`);
+  }
+
+  const section: string = source.slice(start, end);
+
+  return Array.from(
+    section.matchAll(/ title: (?:"([^"]*)"|([A-Z]\w*\.\w+))/g),
+  ).map((match: RegExpMatchArray) => {
+    return (match[1] ?? match[2])!;
+  });
 }
 
 interface EventPage {
@@ -155,6 +166,8 @@ const INCIDENT_PAGE: EventPage = {
     "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
+    // The status pages the incident is limited to, beside who was notified.
+    "IncidentStatusPageScopeCopy.overviewFieldTitle",
     "Labels",
     "Incident Number",
     "Incident ID",
@@ -412,8 +425,12 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
   });
 
   test("details fields: when and who first, number and id last", () => {
+    /*
+     * The card's field list ends where its own modelId follows it; a field
+     * may pass `{ modelId: modelId }` to a route of its own before that.
+     */
     expect(
-      titlesBetween(page.view, page.detailsId, "modelId: modelId"),
+      titlesBetween(page.view, page.detailsId, "], modelId: modelId,"),
     ).toEqual(page.expectedDetailTitles);
   });
 
@@ -476,7 +493,7 @@ describe("incident-only layout", () => {
   test("resending subscriber notifications refreshes only the details card", () => {
     const resendBody: string = arrowBodyAfter(
       INCIDENT_PAGE.view,
-      "const handleResendNotification: () => Promise<void> =",
+      "const handleResendNotification: ( options: ResendNotificationOptions, ) => Promise<void> = async (",
     );
 
     expect(resendBody).toContain("setDetailsRefresher(");
@@ -488,7 +505,7 @@ describe("incident-only layout", () => {
   test("a failed resend is reported under the status it failed to change, not as a refresh failure", () => {
     const resendBody: string = arrowBodyAfter(
       INCIDENT_PAGE.view,
-      "const handleResendNotification: () => Promise<void> =",
+      "const handleResendNotification: ( options: ResendNotificationOptions, ) => Promise<void> = async (",
     );
 
     expect(resendBody).toContain("setResendNotificationErrorState(null);");
@@ -496,8 +513,9 @@ describe("incident-only layout", () => {
       "setResendNotificationErrorState({ subjectId: modelIdString, value: BaseAPI.getFriendlyMessage(err), });",
     );
     expect(resendBody).not.toContain("setRefreshError");
+    // One translated sentence, filled with the resend's own error.
     expect(INCIDENT_PAGE.view).toContain(
-      '"Could not resend notifications: " + resendNotificationError',
+      'translator.translateTemplate( "Could not resend notifications: {{error}}", { error: resendNotificationError }, )',
     );
 
     // A refresh does not retry the resend, so it never clears the error.
@@ -675,10 +693,14 @@ describe("header duration label", () => {
   test.each(PAGES)(
     "the %s header says how long a resolved event lasted",
     (_name: string, page: EventPage) => {
-      expect(page.changeState).toContain('durationPrefix = "Lasted";');
+      expect(page.changeState).toContain(
+        'durationPrefix = translationKey("Lasted");',
+      );
       expect(page.changeState).not.toContain("Resolved in");
+      expect(page.changeState).not.toContain('"{{stateName}} in"');
+      // The stat bar's label: "<resolved state's name> in", translated whole.
       expect(page.view).toContain(
-        'label={`${resolvedState?.name || "Resolved"} in`}',
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: resolvedState?.name || translatableTerm("Resolved"), })}',
       );
     },
   );

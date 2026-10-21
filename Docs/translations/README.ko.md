@@ -135,8 +135,11 @@ AI 에이전트가 인시던트에 연결된 수정 사항을 담은 풀 리퀘�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — 노드, VM, 컨테이너, 스토리지, HA 상태, 백업 커버리지 및 복제 상태. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀 및 vSAN. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — 클러스터 상태, 용량 예측, OSD/풀/PG/모니터 가시성. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **스토리지 어레이** — Pure Storage FlashArray 및 FlashBlade의 용량, 지연 시간, 볼륨, 호스트, 복제, 하드웨어 상태, 파일 시스템, 버킷. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **데이터베이스** — PostgreSQL, MySQL, Redis, MongoDB 등. 애플리케이션 트레이스, Kubernetes, Docker에서 자동 감지하며, 설정만으로 구성된 Collector 에이전트로 엔진 메트릭, 쿼리 샘플, 로그를 수집. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **적합 대상** | 셀프 호스터 및 소규모 팀 | 프리미엄 지원이 필요한 규제 산업 팀 |
 | **비용** | 무료 및 오픈소스 | [영업팀 문의](mailto:sales@oneuptime.com) |
 | **라이선스** | Apache 2.0 | Apache 2.0, 그리고 `ee/` 디렉터리에는 [OneUptime Enterprise License](/ee/LICENSE) |
-| **기능** | 위의 기본 제공 기능 전부 — 모니터링, 상태 페이지, 인시던트, 온콜, 로그, 트레이스, 메트릭, 오류 추적, 워크플로, AI | 커뮤니티의 모든 기능 + SAML 및 OIDC 싱글 사인온, SCIM 프로비저닝, 감사 로그, 팀 컴플라이언스, 인스턴스 상태 대시보드, 그리고 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
+| **기능** | 위의 기본 제공 기능 전부 — 모니터링, 상태 페이지, 인시던트, 온콜, 로그, 트레이스, 메트릭, 오류 추적, 워크플로, AI — 그리고 SAML 및 OIDC 싱글 사인온 | 커뮤니티의 모든 기능 + SCIM 프로비저닝, 감사 로그, 팀 컴플라이언스, 인스턴스 상태 대시보드, 그리고 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
 
 엔터프라이즈 기능은 [`ee/`](/ee) 디렉터리에 있으며 엔터프라이즈 이미지에만 포함됩니다. 전체 비교는 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)을 참고하세요.
 

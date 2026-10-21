@@ -42,6 +42,16 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * hard-deleted once lastSeenAt falls behind "now - 15min" for clusters
  * that remain connected.
  *
+ * One exception to that prune: a Node that reports itself over the
+ * Proxmox VE native OpenTelemetry push (isNativePush). Those pushes
+ * never say which nodes the cluster has, so a node that goes quiet
+ * cannot be told apart from one that was removed: its row is kept for
+ * the retention window (PVE_SILENT_NODE_RETENTION_HOURS, 7 days by
+ * default) while the nodes still alive report it as Offline
+ * (ProxmoxResourceService.markNodesNotReporting — isUp only, never
+ * lastSeenAt), however long a OneUptime outage interrupts them, until it
+ * reports again or is removed with removeOfflineNode ("Remove Node").
+ *
  * Writes go through ProxmoxResourceService under isRoot; users never
  * create/update/delete rows directly.
  *
@@ -73,7 +83,7 @@ const READ_PERMISSIONS: Array<Permission> = [
   pluralName: "Proxmox Resources",
   icon: IconProp.Cube,
   tableDescription:
-    "Snapshot of a Proxmox VE object (node, guest or storage) as last reported by the Proxmox agent. Populated by the telemetry ingest pipeline; not user-editable.",
+    "Snapshot of a Proxmox VE object (node, guest or storage) as last reported by the Proxmox agent or by Proxmox VE's native OpenTelemetry push, where a node that stops reporting is marked offline by the nodes still reporting. Populated by the telemetry ingest pipeline; not user-editable.",
 })
 @Index(["projectId", "proxmoxClusterId", "kind", "externalId"], {
   unique: true,
@@ -617,6 +627,44 @@ export default class ProxmoxResource extends BaseModel {
     type: ColumnType.Date,
   })
   public metricsUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Native Push",
+    description:
+      "True when this row comes from Proxmox VE's built-in OpenTelemetry push, where each node reports only itself; false (or null) for the Proxmox Agent, which asks the cluster about every node. A native-push node that stops reporting is kept, and reported as Offline by the nodes still alive, for the retention window.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isNativePush?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Not Reporting Marked At",
+    description:
+      "Proxmox VE native push: when the nodes still alive last reported this node as having stopped reporting (refreshed at most once a minute while they keep reporting it). Cleared by the node's own next report. Null for every other row.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public notReportingMarkedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -5,6 +5,8 @@ import UptimeDaySummary, { StatusDuration } from "./UptimeDaySummary";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -33,6 +35,7 @@ export interface ComponentProps {
 const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dateStr: string = DayUptimeGraphUtil.formatDayLabel({
     date: props.date,
     timezone: props.timezone,
@@ -293,8 +296,13 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 fontWeight: 500,
               }}
             >
-              +{props.incidents.length - 3} more incident
-              {props.incidents.length - 3 !== 1 ? "s" : ""}
+              {translator.translatePlural(
+                {
+                  one: "+{{count}} more incident",
+                  other: "+{{count}} more incidents",
+                },
+                props.incidents.length - 3,
+              )}
             </div>
           )}
         </div>

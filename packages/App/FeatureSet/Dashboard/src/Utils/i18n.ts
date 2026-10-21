@@ -10,6 +10,10 @@ import {
 } from "Common/Types/Dashboard/DashboardLanguage";
 
 import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
+import {
+  getProductNamePostProcess,
+  productNamePostProcessor,
+} from "Common/UI/Utils/ProductNameTranslation";
 
 /*
  * English is the ONLY locale bundled statically: it is the fallback language,
@@ -17,6 +21,15 @@ import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
  * other locale is code-split into its own chunk and fetched on demand by the
  * lazy backend below — keeping ~11MB of unused translations out of the entry
  * bundle.
+ *
+ * What this import bundles is not the whole file: the build drops the keys
+ * that map to themselves ("Save": "Save"), since every lookup passes the
+ * English as its default, and the plural "_one" forms, which translatePlural
+ * is handed by the code; it keeps the nested keys
+ * (Common/UI/esbuild-locales.js). The lazy chunks likewise ship without the
+ * strings English reads the same, which is why English must stay both the
+ * fallback and in this bundle - and carry the "_one" forms their language
+ * reads, since this bundle does not.
  */
 import en from "../Locales/en.json";
 
@@ -117,10 +130,13 @@ export const i18nReady: Promise<void> = i18n
   .use(LanguageDetector)
   .use(lazyLocaleBackend)
   .use(initReactI18next)
+  .use(productNamePostProcessor)
   .init({
     resources: {
       en: { translation: en },
     },
+    // The installation's own name in every sentence, when it has one.
+    postProcess: getProductNamePostProcess(),
     partialBundledLanguages: true,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_DASHBOARD_LANGUAGE_CODES,

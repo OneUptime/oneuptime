@@ -201,7 +201,12 @@ const TRAILING_GAP_TOLERANCE_MILLISECONDS: number = 5 * 1000;
 
 const ENVELOPE_USER_ID: string = "00000000-0000-4000-8000-000000000000";
 
-const EMAIL_LIKE_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/*
+ * Whether a name reads as an email address, so a feed does not expose one as a
+ * calendar title. Each run is length-bounded to the sizes RFC 5321 allows and
+ * anchored, so a name of any length is read once from end to end.
+ */
+const EMAIL_LIKE_REGEX: RegExp = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
 
 export default class OnCallCalendarFeedUtil {
   public static readonly PRODUCT_ID: string =
@@ -510,14 +515,23 @@ export default class OnCallCalendarFeedUtil {
           )}`
         : "global override";
 
+      const from: string = OnCallCalendarFeedUtil.formatInZone(
+        shift.override.overrideStartsAt,
+        scheduleZone,
+      );
+      const until: string = OnCallCalendarFeedUtil.formatInZone(
+        shift.override.overrideEndsAt,
+        scheduleZone,
+      );
+
+      /*
+       * A skip names nobody: the rotation picked who has the turn, and the
+       * reader should know that is why it is them.
+       */
       lines.push(
-        `Override: ${originalUserName} → ${userName} from ${OnCallCalendarFeedUtil.formatInZone(
-          shift.override.overrideStartsAt,
-          scheduleZone,
-        )} to ${OnCallCalendarFeedUtil.formatInZone(
-          shift.override.overrideEndsAt,
-          scheduleZone,
-        )} (${scope})`,
+        shift.override.isSkip
+          ? `Skipped: ${originalUserName} is away from ${from} to ${until}, so the next person in the rotation has this turn (${scope})`
+          : `Override: ${originalUserName} → ${userName} from ${from} to ${until} (${scope})`,
       );
     }
 

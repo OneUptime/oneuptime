@@ -1,15 +1,26 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
+
+/*
+ * The Workflow Details card's Edit asks for the name and the description,
+ * and folds the Enabled switch and the labels under Advanced: a workflow is
+ * usually turned on and off from its builder, which says what turning it on
+ * does. Three rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<Workflow> =
+  getAdvancedFormSection<Workflow>();
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
@@ -20,29 +31,17 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Workflow > Workflow Details"
         cardProps={{
           title: "Workflow Details",
-          description: "Here are more details for this workflow.",
         }}
         isEditable={true}
-        formSteps={[
-          {
-            title: "Workflow Info",
-            id: "workflow-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
-            stepId: "workflow-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Status Page Name",
+            placeholder: "Workflow Name",
             validation: {
               minLength: 2,
             },
@@ -51,7 +50,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            stepId: "workflow-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
@@ -62,26 +60,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               isEnabled: true,
             },
             title: "Enabled",
-            stepId: "workflow-info",
             fieldType: FormFieldSchemaType.Toggle,
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels ",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Workflow>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

@@ -1,3 +1,5 @@
+import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
+
 export class StringUtils {
   public static toPascalCase(str: string): string {
     return str
@@ -15,18 +17,97 @@ export class StringUtils {
     return pascalCase.charAt(0).toLowerCase() + pascalCase.slice(1);
   }
 
+  /*
+   * Words whose capitals sit inside the word. Split on case like any other
+   * identifier they come out in pieces - "IoT Fleet" as io_t_fleet,
+   * "vCenter" as v_center - which is not a name anyone would type.
+   */
+  private static readonly MIXED_CASE_WORDS: Array<string> = [
+    "IoT",
+    "vCenter",
+    "VMware",
+    "OAuth",
+    "GitHub",
+    "GitLab",
+    "JavaScript",
+    "TypeScript",
+    "WhatsApp",
+    "OneUptime",
+    "OpenTelemetry",
+    "PagerDuty",
+    "OpsGenie",
+    "ClickHouse",
+    "PostgreSQL",
+    "MySQL",
+    "MongoDB",
+    "macOS",
+    "iOS",
+  ];
+
+  /*
+   * snake_case for a Terraform name: resource and data source type names.
+   * Mixed-case words (IoT, vCenter, GitHub...) stay whole.
+   */
   public static toSnakeCase(str: string): string {
+    let words: string = str;
+
+    for (const word of StringUtils.MIXED_CASE_WORDS) {
+      words = words.replace(
+        new RegExp(`(^|[^A-Za-z])${word}(?=$|[^a-z])`, "g"),
+        (_match: string, before: string) => {
+          return `${before}${word.charAt(0).toUpperCase()}${word
+            .slice(1)
+            .toLowerCase()}`;
+        },
+      );
+    }
+
+    return StringUtils.toLegacySnakeCase(words);
+  }
+
+  /*
+   * The snake_case the provider has always used, splitting on every change
+   * of case. Attribute names keep it - renaming one would break every
+   * configuration that sets it - and a resource renamed by toSnakeCase keeps
+   * its old name as a deprecated alias.
+   */
+  public static toLegacySnakeCase(str: string): string {
+    // Remove apostrophes and backticks.
+    const withoutQuotes: string = str.replace(/['`]/g, "");
+
     return (
-      str
-        .replace(/['`]/g, "") // Remove apostrophes and backticks
-        // Handle consecutive uppercase letters (like "API" -> "api" instead of "a_p_i")
-        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // APIKey -> API_Key
+      /*
+       * Handle consecutive uppercase letters (like "API" -> "api" instead of
+       * "a_p_i"): APIKey -> API_Key.
+       */
+      splitCapitalRunsBeforeWords(withoutQuotes, "_")
         .replace(/([a-z\d])([A-Z])/g, "$1_$2") // camelCase -> camel_Case
         .toLowerCase()
         .replace(/^_/, "")
         .replace(/[-\s]+/g, "_")
         .replace(/_+/g, "_") // Replace multiple underscores with single underscore
     );
+  }
+
+  /*
+   * Names Terraform reserves for meta-arguments: an attribute called one of
+   * these is exposed with a _value suffix instead.
+   */
+  private static readonly RESERVED_ATTRIBUTE_NAMES: Array<string> = [
+    "count",
+    "for_each",
+    "provider",
+    "lifecycle",
+    "depends_on",
+    "connection",
+    "provisioner",
+  ];
+
+  // The attribute name as Terraform sees it (a reserved name gets _value).
+  public static toTerraformAttributeName(name: string): string {
+    return StringUtils.RESERVED_ATTRIBUTE_NAMES.includes(name)
+      ? `${name}_value`
+      : name;
   }
 
   public static toKebabCase(str: string): string {

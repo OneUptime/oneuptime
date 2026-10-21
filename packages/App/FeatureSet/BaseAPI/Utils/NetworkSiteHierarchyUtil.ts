@@ -119,6 +119,13 @@ export const MIN_UPTIME_WINDOW_DAYS: number = 1;
  */
 export const MAX_SEARCH_TEXT_LENGTH: number = 200;
 
+/*
+ * Most words one search will match on. Each word is its own ILIKE over the
+ * project's sites, and 200 characters of "a b c d ..." would otherwise be a
+ * hundred of them. Nobody recalls a site by more than a handful of words.
+ */
+export const MAX_SEARCH_WORDS: number = 8;
+
 // A row the search endpoint has to print the path to.
 export interface SearchPathRow {
   id: string;
@@ -220,6 +227,59 @@ export default class NetworkSiteHierarchyUtil {
       return "";
     }
     return value.trim().slice(0, MAX_SEARCH_TEXT_LENGTH);
+  }
+
+  /*
+   * The words a search has to find in a site's name, every one of them, in
+   * any order.
+   *
+   * This is the same rule the dashboard's search box applies to the level in
+   * view (SiteSearchUtil.siteMatchesSearch), so "michigan 104822" narrows
+   * the cards AND finds "Unit 104822 - Michigan Ave" four levels down. With
+   * the whole string as one substring, the page would show the match on the
+   * level while the hierarchy-wide list said nothing matched.
+   *
+   * Lower-cased and de-duplicated. Past MAX_SEARCH_WORDS the longest words
+   * are kept, since they are the ones that narrow the match most — dropping
+   * a word only ever widens the result, never hides a site that matched.
+   */
+  public static splitSearchWords(searchText: string): Array<string> {
+    const words: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+    for (const word of (searchText || "").toLowerCase().split(/\s+/)) {
+      if (!word || seen.has(word)) {
+        continue;
+      }
+      seen.add(word);
+      words.push(word);
+    }
+
+    if (words.length <= MAX_SEARCH_WORDS) {
+      return words;
+    }
+
+    const kept: Set<string> = new Set<string>(
+      words
+        .map((word: string, index: number) => {
+          return { word: word, index: index };
+        })
+        .sort(
+          (
+            a: { word: string; index: number },
+            b: { word: string; index: number },
+          ): number => {
+            return b.word.length - a.word.length || a.index - b.index;
+          },
+        )
+        .slice(0, MAX_SEARCH_WORDS)
+        .map((entry: { word: string; index: number }): string => {
+          return entry.word;
+        }),
+    );
+
+    return words.filter((word: string): boolean => {
+      return kept.has(word);
+    });
   }
 
   /*

@@ -25,11 +25,12 @@ import {
 import {
   EnterpriseLicenseMode,
   LicensedFeature,
-} from "../SSO/License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../SSO/License/UseEnterpriseLicenseMode";
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 import {
   ResourceLink,
   ResourceMeta,
+  getActorCredentialLabel,
   getActorInitials,
   getAuditLogsQuery,
   getResourceLink,
@@ -94,6 +95,13 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
     icon: IconProp.Trash,
     className: "border-red-200 bg-red-50 text-red-700",
     iconColor: "text-red-600",
+  },
+  // A copy of something sensitive left OneUptime: a packet capture's file.
+  Download: {
+    label: "Download",
+    icon: IconProp.Download,
+    className: "border-violet-200 bg-violet-50 text-violet-700",
+    iconColor: "text-violet-600",
   },
 };
 
@@ -167,6 +175,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     userType: true,
     apiKeyName: true,
     apiKeyId: true,
+    mcpClientName: true,
+    mcpOAuthGrantId: true,
+    workflowName: true,
+    workflowId: true,
     changes: true,
   };
 
@@ -508,6 +520,37 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
+              /*
+               * A step of one of the project's workflows: no person, so the
+               * workflow itself is the actor, named as it was at the time.
+               */
+              if (userType === "Workflow") {
+                const workflowName: string = item.workflowName || "Workflow";
+                return (
+                  <div
+                    className="flex items-center gap-2.5 min-w-0"
+                    data-testid="audit-log-workflow-actor"
+                  >
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                      <Icon
+                        icon={IconProp.Workflow}
+                        size={SizeProp.Small}
+                        thick={ThickProp.Thick}
+                        className="h-4 w-4"
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {workflowName}
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        Workflow
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
               if (isSystem) {
                 return (
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -536,6 +579,15 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const initials: string = getActorInitials(
                 item.userName || item.userEmail,
               );
+              /*
+               * A person's change that came through something other than the
+               * dashboard: an MCP client they connected, or the master key.
+               */
+              const credentialLabel: string | null = getActorCredentialLabel({
+                userType: item.userType,
+                apiKeyName: item.apiKeyName,
+                mcpClientName: item.mcpClientName,
+              });
               return (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
@@ -553,6 +605,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-[11px] text-gray-500">
                         {userType || "User"}
                       </span>
+                    )}
+                    {credentialLabel ? (
+                      <span
+                        className="text-[11px] text-violet-700 truncate"
+                        data-testid="audit-actor-credential"
+                      >
+                        {credentialLabel}
+                      </span>
+                    ) : (
+                      <Fragment />
                     )}
                   </div>
                 </div>

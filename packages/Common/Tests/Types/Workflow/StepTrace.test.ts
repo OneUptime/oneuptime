@@ -7,6 +7,7 @@ import {
   WorkflowStepTraceEntry,
   appendTraceStep,
   emptyTrace,
+  getStepPortTitle,
   parseTrace,
   truncateTraceValue,
   truncateTraceValues,
@@ -231,5 +232,132 @@ describe("parseTrace", () => {
 
   test("an empty trace is not flagged truncated", () => {
     expect(parseTrace(null).truncated).toBeFalsy();
+  });
+
+  test("reads back everything a step now records", () => {
+    const entry: WorkflowStepTraceEntry = makeEntry({
+      componentId: "if-else-1",
+      executedPort: "no",
+      executedPortTitle: "No",
+      executedPortDescription: "Runs when it does not hold.",
+      nextSteps: [{ componentId: "log-1", title: "Log" }],
+      argumentNames: [{ id: "input-1", name: "Input 1" }],
+      returnValueNames: [],
+      argumentTemplates: { "input-1": "{{local.variables.env}}" },
+      warnings: [
+        {
+          message: "did not resolve",
+          argumentId: "input-1",
+          unresolvedReferences: ["{{local.variables.env}}"],
+        },
+      ],
+    });
+
+    const roundTripped: WorkflowStepTrace = parseTrace(
+      JSON.parse(JSON.stringify(appendTraceStep(emptyTrace(), entry))),
+    );
+
+    expect(roundTripped.steps[0]).toEqual(entry);
+  });
+
+  test("carries back that the run tested one step", () => {
+    expect(
+      parseTrace({ steps: [], singleStepComponentId: "if-else-1" })
+        .singleStepComponentId,
+    ).toBe("if-else-1");
+  });
+
+  test("carries back why the run stopped", () => {
+    expect(
+      parseTrace({ steps: [], runErrorMessage: "timed out" }).runErrorMessage,
+    ).toBe("timed out");
+  });
+
+  test("carries back when a sleeping run carries on", () => {
+    expect(
+      parseTrace({ steps: [], resumesAt: "2026-10-01T10:45:00.000Z" })
+        .resumesAt,
+    ).toBe("2026-10-01T10:45:00.000Z");
+  });
+
+  test("ignores run details that are not text", () => {
+    const trace: WorkflowStepTrace = parseTrace({
+      steps: [],
+      singleStepComponentId: 42,
+      runErrorMessage: { not: "text" },
+      resumesAt: 1700000000000,
+    });
+
+    expect(trace.singleStepComponentId).toBeUndefined();
+    expect(trace.runErrorMessage).toBeUndefined();
+    expect(trace.resumesAt).toBeUndefined();
+  });
+
+  test("ignores a resume time that is not a time", () => {
+    expect(
+      parseTrace({ steps: [], resumesAt: "tomorrow-ish" }).resumesAt,
+    ).toBeUndefined();
+  });
+
+  test("an older trace has neither", () => {
+    const trace: WorkflowStepTrace = parseTrace({
+      steps: [makeEntry()],
+    } as never);
+
+    expect(trace.singleStepComponentId).toBeUndefined();
+    expect(trace.runErrorMessage).toBeUndefined();
+  });
+
+  /*
+   * An entry that is not an object cannot be drawn as a step, and reading it
+   * as one is what would throw in the viewer.
+   */
+  test("drops entries that are not steps", () => {
+    const trace: WorkflowStepTrace = parseTrace({
+      steps: [null, makeEntry({ componentId: "kept" }), "junk", 7, []],
+    } as never);
+
+    expect(trace.steps).toHaveLength(1);
+    expect(trace.steps[0]?.componentId).toBe("kept");
+  });
+});
+
+describe("getStepPortTitle", () => {
+  test("is the port's title when the trace kept it", () => {
+    expect(
+      getStepPortTitle({
+        executedPort: "success",
+        executedPortTitle: "Execute",
+      }),
+    ).toBe("Execute");
+  });
+
+  /*
+   * Every built-in port's title is its id with a capital, so an older trace
+   * still names the port the way the canvas did.
+   */
+  test("reads the id as a title in a trace that predates titles", () => {
+    expect(getStepPortTitle({ executedPort: "no" })).toBe("No");
+    expect(getStepPortTitle({ executedPort: "yes" })).toBe("Yes");
+    expect(getStepPortTitle({ executedPort: "error" })).toBe("Error");
+    expect(getStepPortTitle({ executedPort: "out" })).toBe("Out");
+    expect(getStepPortTitle({ executedPort: "request-failed" })).toBe(
+      "Request failed",
+    );
+  });
+
+  test("ignores an empty title", () => {
+    expect(
+      getStepPortTitle({ executedPort: "no", executedPortTitle: "" }),
+    ).toBe("No");
+  });
+
+  test("is null when the step took no port", () => {
+    expect(getStepPortTitle({ executedPort: null })).toBeNull();
+    expect(getStepPortTitle({ executedPort: "" })).toBeNull();
+    expect(getStepPortTitle({ executedPort: "  " })).toBeNull();
+    expect(
+      getStepPortTitle({ executedPort: undefined as unknown as null }),
+    ).toBeNull();
   });
 });

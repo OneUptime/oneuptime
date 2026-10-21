@@ -53,7 +53,11 @@ interface EpisodePage {
   changeStatePath: string;
   feedPath: string;
   memberModel: string;
+  // The episode's own key, as the feed and timelines take it.
   episodeIdField: string;
+  // What says which members the episode holds, and its model.
+  membership: string;
+  membershipModel: string;
   memberSortField: string;
   countLabel: string;
   countField: string;
@@ -76,6 +80,8 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedPath: "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
     memberModel: "Incident",
     episodeIdField: "incidentEpisodeId",
+    membership: "INCIDENT_EPISODE_MEMBERSHIP",
+    membershipModel: "IncidentEpisodeMember",
     memberSortField: "declaredAt",
     countLabel: "Incidents",
     countField: "incidentCount",
@@ -83,7 +89,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedElement: "<IncidentEpisodeFeedElement",
     // The incident episode feed also takes the public note notify default.
     feedElementRest:
-      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } />",
+      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)} />",
     viewAllPage: "PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS",
     memberViewPage: "PageMap.INCIDENT_VIEW",
     memberSelect: "INCIDENT_EPISODE_MEMBER_SELECT",
@@ -98,6 +104,8 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedPath: "Components/AlertEpisode/AlertEpisodeFeed.tsx",
     memberModel: "Alert",
     episodeIdField: "alertEpisodeId",
+    membership: "ALERT_EPISODE_MEMBERSHIP",
+    membershipModel: "AlertEpisodeMember",
     memberSortField: "createdAt",
     countLabel: "Alerts",
     countField: "alertCount",
@@ -201,8 +209,12 @@ describe("episode overview layout", () => {
       expect(countOccurrences(source, '<EventStatTile variant="segment"')).toBe(
         4,
       );
-      expect(source).toContain("label={`${timing.acknowledgedStateName} in`}");
-      expect(source).toContain("label={`${timing.resolvedStateName} in`}");
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName, })}',
+      );
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.resolvedStateName, })}',
+      );
       expect(source).toContain('label="Duration"');
       expect(source).toContain(`label="${page.countLabel}"`);
       expect(source).toContain(
@@ -227,7 +239,7 @@ describe("episode overview layout", () => {
       );
       const members: number = indexOfOrFail(
         source,
-        `<EpisodeMembersCard<${page.memberModel}>`,
+        `<EpisodeMembersCard<${page.memberModel}, ${page.membershipModel}>`,
       );
       const telemetry: number = indexOfOrFail(
         source,
@@ -254,7 +266,7 @@ describe("episode overview layout", () => {
       const source: string = readSquashed(page.pagePath);
 
       expect(source).toContain(`modelType={${page.memberModel}}`);
-      expect(source).toContain(`episodeIdField="${page.episodeIdField}"`);
+      expect(source).toContain(`membership={${page.membership}}`);
       expect(source).toContain(`sortField="${page.memberSortField}"`);
       expect(source).toContain(`select={${page.memberSelect}}`);
       expect(source).toContain(`toRow={${page.memberRow}}`);
@@ -262,6 +274,36 @@ describe("episode overview layout", () => {
       expect(source).toContain(`RouteMap[${page.viewAllPage}] as Route`);
       expect(source).toContain(`RouteMap[${page.memberViewPage}] as Route`);
       expect(source).toContain("refreshToken={contentRefreshToken}");
+    },
+  );
+
+  test.each(EPISODE_PAGES)(
+    "$name reads its members by the episode's membership, never by their episode column",
+    (page: EpisodePage) => {
+      const source: string = readSquashed(page.pagePath);
+
+      /*
+       * A member's own incidentEpisodeId / alertEpisodeId names only the
+       * latest episode it is in, so a list by it misses every member that
+       * joined a later episode too. Neither the card nor the telemetry
+       * snapshot's first member may read it.
+       */
+      expect(source).not.toContain(
+        `modelType: ${page.memberModel}, query: { ${page.episodeIdField}`,
+      );
+      expect(source).not.toContain(`episodeIdField="${page.episodeIdField}"`);
+      expect(source).toContain(
+        `fetchEpisodeMembers<${page.memberModel}, ${page.membershipModel}>({ episodeId: modelId, membership: ${page.membership}, modelType: ${page.memberModel},`,
+      );
+
+      const card: string = readSquashed(
+        "Components/EpisodeView/EpisodeMembersCard.tsx",
+      );
+
+      expect(card).toContain(
+        "await fetchEpisodeMembers< TMember, TMembership >({ episodeId: props.episodeId, membership: props.membership,",
+      );
+      expect(card).not.toContain("ModelAPI");
     },
   );
 
@@ -312,8 +354,11 @@ describe("episode overview layout", () => {
       // The title is the header's job now; the edit form still has it.
       expect(detailFields).not.toContain('title: "Episode Title", fieldType');
       expect(source).toContain(
-        'title: "Episode Title", stepId: "episode-details"',
+        'field: { title: true, }, title: "Episode Title", fieldType: FormFieldSchemaType.Text,',
       );
+      // One page: the labels fold under Advanced rather than walk a step.
+      expect(source).toContain("getLabelsFormField<");
+      expect(source).not.toContain('id: "labels"');
       // No more hand-rolled SVG chip for the number.
       expect(source).not.toContain("<svg");
     },
@@ -390,7 +435,9 @@ describe("episode header", () => {
       expect(source).toContain(
         'episode?.episodeNumberWithPrefix || (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)',
       );
-      expect(source).toContain('title={episode?.title || "Untitled episode"}');
+      expect(source).toContain(
+        'title={episode?.title || translator.translateText("Untitled episode")}',
+      );
       expect(source).toContain("isPrivate={episode?.isPrivate === true}");
       expect(source).toContain(
         "durationStartsAt={timing.durationStartsAt} durationEndsAt={timing.durationEndsAt}",
@@ -401,15 +448,17 @@ describe("episode header", () => {
        * contradict itself.
        */
       expect(source).toContain(
-        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? "Lasted" : "Ongoing for" : undefined }',
+        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? translationKey("Lasted") : translationKey("Ongoing for") : undefined }',
       );
       expect(source).not.toContain("${timing.resolvedStateName} in");
       expect(source).toContain(page.startedAt);
-      expect(source).toContain("facts={getEpisodeHeaderFacts({");
+      expect(source).toContain("facts={getEpisodeHeaderFacts( {");
       expect(source).toContain(
         `memberNoun: "${page.memberModel.toLowerCase()}"`,
       );
-      expect(source).toContain('moreMenuTitle="Move episode to"');
+      expect(source).toContain(
+        'moreMenuTitle={translationKey("Move episode to")}',
+      );
     },
   );
 });
@@ -422,15 +471,32 @@ describe("episode feeds", () => {
 
       expect(source).toContain("refreshToken?: number | undefined;");
       expect(source).toContain("refreshToken: props.refreshToken,");
-      expect(source).toContain("<MoreMenu");
-      expect(source).toContain("<span>Actions</span>");
+      // The shared Actions menu, named in the reader's language.
+      expect(source).toContain("<FeedActionsMenu");
+      expect(source).not.toContain("<span>Actions</span>");
       expect(source).toContain('text="Execute On-Call Policy"');
-      expect(source).toContain('text="Add Private Note"');
-      // The flat card buttons are gone; only the icon-only refresh remains.
+      /*
+       * "Add Private Note" (and, on incident episodes, "Add Public Note")
+       * come from useFeedNoteActions, which opens the episode's Notes page
+       * composer in a dialog.
+       */
+      expect(source).toContain("...noteActions.menuItems,");
+      expect(source).toContain("{noteActions.dialog}");
+      /*
+       * The flat card buttons are gone, and so is the icon-only Refresh:
+       * Refresh, the sort order and the filter are in the feed's ⋯ menu.
+       */
       expect(source).not.toContain('title: "Execute On-Call Policy"');
       expect(source).not.toContain('title: "Add Private Note"');
-      expect(source).toContain('title: "Refresh"');
-      // Icons come from the exhaustive per-event-type table.
+      expect(source).not.toContain('title: "Refresh"');
+      expect(source).toContain("<FeedCard");
+      expect(source).toContain("onRefresh={feed.refresh}");
+      /*
+       * The shared feed body: a skeleton while it loads, an error with Try
+       * again, the timeline after.
+       */
+      expect(source).toContain("<FeedContent feed={feed}");
+      // Kinds (icon, colour, folding) come from the exhaustive per-event-type table.
       expect(source).not.toContain("let icon: IconProp = IconProp.Circle;");
     },
   );
@@ -438,42 +504,30 @@ describe("episode feeds", () => {
   test("the incident episode feed can add a public note", () => {
     const source: string = readSquashed(EPISODE_PAGES[0]!.feedPath);
 
-    expect(source).toContain('text="Add Public Note"');
-    expect(source).toContain("modelType={IncidentEpisodePublicNote}");
-    expect(source).toContain(
-      "model.incidentEpisodeId = props.incidentEpisodeId!;",
-    );
-
     /*
-     * "Notify Status Page Subscribers" starts from the episode's own setting
-     * instead of always ticked, and is seeded as a form value because the
-     * form drops a false default. IncidentEpisodeNoteNotifyDefaultWiring
-     * covers the rest.
+     * "Notify status page subscribers" starts from the episode's own setting
+     * instead of always ticked: the dialog's kind is built from it.
+     * IncidentEpisodeNoteNotifyDefaultWiring covers the rest.
      */
-    const publicNoteModal: string = source.slice(
-      indexOfOrFail(source, "{showPublicNoteModal && ("),
+    expect(source).toContain(
+      "publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, isPrivate: props.isPrivate, }),",
     );
-    const publicNoteForm: string = publicNoteModal.slice(
-      0,
-      indexOfOrFail(publicNoteModal, "formType: FormType.Create,"),
+    expect(source).toContain(
+      "privateNoteKind: getIncidentEpisodePrivateNoteKind({ incidentEpisodeId: props.incidentEpisodeId, }),",
     );
-
-    expect(publicNoteForm).toContain(
-      "{ field: { shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, }, fieldType: FormFieldSchemaType.Checkbox,",
+    expect(source).not.toContain(
+      "<ModelFormModal modalWidth={ModalWidth.Large}",
     );
-    expect(publicNoteForm).toContain(
-      "initialValues={{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault, }}",
-    );
-    expect(publicNoteForm).toContain(
-      "defaultValue: notifySubscribersByDefault,",
-    );
-    expect(publicNoteForm).not.toContain("defaultValue: true");
   });
 
   test("alert episodes have no public notes, so their feed offers none", () => {
     const source: string = readSquashed(EPISODE_PAGES[1]!.feedPath);
 
     expect(source).not.toContain("Add Public Note");
+    expect(source).not.toContain("publicNoteKind");
+    expect(source).toContain(
+      "privateNoteKind: getAlertEpisodePrivateNoteKind({ alertEpisodeId: props.alertEpisodeId, }),",
+    );
   });
 });
 

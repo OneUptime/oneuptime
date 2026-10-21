@@ -46,11 +46,28 @@ export const MAX_OUTPUT_TOKENS_PER_RUN: number = 100_000;
 // Per-call output cap — a single call can never exhaust the run budget.
 export const MAX_TOKENS_PER_COMPLETION_CALL: number = 16_384;
 
+/*
+ * Max production telemetry tool calls one code-fix run may make (the code
+ * agent's queries of its repository's traces, logs, metrics, exceptions,
+ * incidents and deploys, executed by the server: CodeAgentTelemetry). Each
+ * one also counts against the run's MAX_COMPLETION_CALLS_PER_RUN, so a run
+ * that queries production has fewer LLM calls left, never more calls in
+ * all.
+ */
+export const MAX_TELEMETRY_TOOL_CALLS_PER_RUN: number = 12;
+
 export interface AgentCompletionLoopBudget {
+  /*
+   * The run's calls so far: its LLM completions and its production
+   * telemetry tool calls, which share MAX_COMPLETION_CALLS_PER_RUN.
+   */
   completionCallsUsed: number;
   maxCompletionCalls: number;
   outputTokensUsed: number;
   maxOutputTokens: number;
+  // Of completionCallsUsed, the production telemetry tool calls.
+  toolCallsUsed: number;
+  maxToolCalls: number;
 }
 
 export interface LoopBudgetDecision {
@@ -85,11 +102,18 @@ export default class CodeFixAgentCompletion {
   public static evaluateLoopBudget(data: {
     completionCalls: number;
     outputTokens: number;
+    // The run's production telemetry tool calls, counted against the same calls.
+    toolCalls?: number | undefined;
   }): LoopBudgetDecision {
-    if (data.completionCalls >= MAX_COMPLETION_CALLS_PER_RUN) {
+    const toolCalls: number = data.toolCalls || 0;
+
+    if (data.completionCalls + toolCalls >= MAX_COMPLETION_CALLS_PER_RUN) {
       return {
         allowed: false,
-        reason: `This fix run has reached its LLM call budget (${data.completionCalls} of ${MAX_COMPLETION_CALLS_PER_RUN} completion calls). The run must finish with the work done so far.`,
+        reason:
+          toolCalls > 0
+            ? `This fix run has reached its call budget (${data.completionCalls} completion calls and ${toolCalls} production telemetry queries, of ${MAX_COMPLETION_CALLS_PER_RUN} calls). The run must finish with the work done so far.`
+            : `This fix run has reached its LLM call budget (${data.completionCalls} of ${MAX_COMPLETION_CALLS_PER_RUN} completion calls). The run must finish with the work done so far.`,
       };
     }
 
@@ -132,6 +156,7 @@ export default class CodeFixAgentCompletion {
         aiAgentId: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        toolCallCount: true,
       },
       props: {
         isRoot: true,
@@ -167,9 +192,13 @@ export default class CodeFixAgentCompletion {
     const usage: { completionCalls: number; outputTokens: number } =
       await LlmLogService.getRunCompletionUsage({ aiRunId: request.aiRunId });
 
+    // The production telemetry tool calls the server ran for the run.
+    const telemetryToolCalls: number = run.toolCallCount || 0;
+
     const budgetDecision: LoopBudgetDecision = this.evaluateLoopBudget({
       completionCalls: usage.completionCalls,
       outputTokens: usage.outputTokens,
+      toolCalls: telemetryToolCalls,
     });
 
     if (!budgetDecision.allowed) {
@@ -220,6 +249,13 @@ export default class CodeFixAgentCompletion {
        * LlmLog's project-wide readability — never store previews.
        */
       storeContentPreviews: false,
+      /*
+       * The agent reads source files and writes them back whole: a data:
+       * URL in a stylesheet or a fixture is code, and a short note in its
+       * place would be written into the pull request. The one call that
+       * keeps embedded data.
+       */
+      keepEmbeddedData: true,
     });
 
     /*
@@ -282,11 +318,13 @@ export default class CodeFixAgentCompletion {
       toolCalls: toolCalls,
       stopReason: toolCalls.length > 0 ? "tool_use" : "stop",
       budget: {
-        completionCallsUsed: usage.completionCalls + 1,
+        completionCallsUsed: usage.completionCalls + 1 + telemetryToolCalls,
         maxCompletionCalls: MAX_COMPLETION_CALLS_PER_RUN,
         outputTokensUsed:
           usage.outputTokens + (response.llmLog.completionTokens || 0),
         maxOutputTokens: MAX_OUTPUT_TOKENS_PER_RUN,
+        toolCallsUsed: telemetryToolCalls,
+        maxToolCalls: MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
       },
     };
   }

@@ -16,9 +16,14 @@ import RequestFailedDetails, {
 } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkFailure,
+  ProbeNetworkOperation,
+} from "Common/Utils/ProbeNetworkFailureUtil";
 import logger from "Common/Server/Utils/Logger";
 import net from "net";
 import Register from "../../../Services/Register";
+import ProbeDnsLookup from "../ProbeDnsLookup";
 
 export interface PortMonitorResponse {
   isOnline: boolean;
@@ -124,9 +129,89 @@ const getErrorCode: (error: unknown) => string | undefined = (
   return error instanceof Error ? (error as ErrorWithCode).code : undefined;
 };
 
-const getRequestFailedDetails: (error: unknown) => RequestFailedDetails = (
-  error: unknown,
-): RequestFailedDetails => {
+/*
+ * The connect failed on the probe itself, not at the destination, or null.
+ *
+ * EADDRNOTAVAIL and EAFNOSUPPORT come back before a packet leaves the probe:
+ * a probe with no usable IPv6 gets one for every IPv6 destination, while the
+ * host it is checking may be answering perfectly well. ENETUNREACH from a TCP
+ * connect is only LIKELY the probe's, because a router's "no route" arriving
+ * while the SYN is outstanding reports the same errno. For an IPv6
+ * destination the shared wording says "most likely" and a probe without IPv6
+ * is by far the usual cause. For IPv4 there is no hedged wording, so it stays
+ * an ordinary TCP failure instead of claiming this probe has no route.
+ */
+const getProbeNetworkFailure: (data: {
+  error: unknown;
+  host: string;
+}) => ProbeNetworkFailure | null = (data: {
+  error: unknown;
+  host: string;
+}): ProbeNetworkFailure | null => {
+  const failure: ProbeNetworkFailure | null =
+    ProbeNetworkFailureUtil.classifyError({
+      error: data.error,
+      operation: ProbeNetworkOperation.TcpConnect,
+    });
+
+  if (!failure) {
+    return null;
+  }
+
+  if (
+    !failure.isCertain &&
+    !ProbeNetworkFailureUtil.isIPv6Failure({
+      host: data.host,
+      failure: failure,
+    })
+  ) {
+    return null;
+  }
+
+  return failure;
+};
+
+/*
+ * The "Error Details" line for a probe-side failure. The failure cause above
+ * it already quotes the OS error, so this only says what it means for the
+ * port: it was never reached, and that is not a result about the destination.
+ */
+const describeProbeNetworkFailure: (data: {
+  host: string;
+  failure: ProbeNetworkFailure;
+}) => string = (data: {
+  host: string;
+  failure: ProbeNetworkFailure;
+}): string => {
+  if (!ProbeNetworkFailureUtil.isIPv6Failure(data)) {
+    return "The probe could not open the TCP connection from its own side, so the destination port was never contacted. The failure is on the probe, not on the destination.";
+  }
+
+  /*
+   * EADDRNOTAVAIL from a TCP connect is also what a probe that has run out
+   * of local ports gets, IPv6 or not, so it is not stated as missing IPv6.
+   */
+  if (data.failure.isCertain && data.failure.isCauseAmbiguous) {
+    return "The probe could not open the IPv6 connection from its own side, so the TCP connection was never attempted and the destination port was never contacted. The failure is on the probe, not on the destination.";
+  }
+
+  if (data.failure.isCertain) {
+    return "The probe cannot send IPv6 traffic, so the TCP connection was never attempted and the destination port was never contacted. The failure is on the probe, not on the destination.";
+  }
+
+  return "There was no IPv6 route for the TCP connection. Most likely the probe has no IPv6 route rather than the destination being down.";
+};
+
+const getRequestFailedDetails: (data: {
+  error: unknown;
+  host: string;
+  probeNetworkFailure: ProbeNetworkFailure | null;
+}) => RequestFailedDetails = (data: {
+  error: unknown;
+  host: string;
+  probeNetworkFailure: ProbeNetworkFailure | null;
+}): RequestFailedDetails => {
+  const error: unknown = data.error;
   const representativeError: unknown = getRepresentativeError(error);
   const errorCode: string | undefined = getErrorCode(representativeError);
   const rawErrorMessage: string = describeError(error);
@@ -159,6 +244,22 @@ const getRequestFailedDetails: (error: unknown) => RequestFailedDetails = (
       errorCode: errorCode || "TIMEOUT",
       errorDescription:
         "The DNS and TCP connection attempt did not finish before the deadline.",
+      rawErrorMessage,
+    };
+  }
+
+  /*
+   * Still the TCP connection phase, since connect() is what failed, but the
+   * description must not read as the port refusing or being unreachable.
+   */
+  if (data.probeNetworkFailure) {
+    return {
+      failedPhase: RequestFailedPhase.TCPConnection,
+      errorCode,
+      errorDescription: describeProbeNetworkFailure({
+        host: data.host,
+        failure: data.probeNetworkFailure,
+      }),
       rawErrorMessage,
     };
   }
@@ -437,8 +538,16 @@ export default class PortMonitor {
              * Let Node resolve the hostname and retain its automatic family
              * selection/fallback. Pre-resolving and connecting to one address
              * would lose that behavior.
+             *
+             * The lookup only drops dns.ADDRCONFIG, so an IPv6-only name on
+             * a probe without IPv6 fails at connect() as the probe's problem
+             * instead of as a DNS error: see ProbeDnsLookup.
              */
-            socket.connect(portNumber, hostAddress);
+            socket.connect({
+              port: portNumber,
+              host: hostAddress,
+              lookup: ProbeDnsLookup.lookupWithoutAddrConfig,
+            });
           } catch (error: unknown) {
             rejectOnce(normalizeError(error));
           }
@@ -480,7 +589,19 @@ export default class PortMonitor {
     } catch (error: unknown) {
       const failedAtNs: bigint = process.hrtime.bigint();
       const err: Error = normalizeError(error);
-      const failureCause: string = describeError(err);
+      const probeNetworkFailure: ProbeNetworkFailure | null =
+        getProbeNetworkFailure({ error: err, host: hostAddress });
+      /*
+       * A probe-side failure gets the shared wording, which still quotes the
+       * OS error. Without it a probe with no IPv6 reported the customer's
+       * port as failing with a bare "connect EADDRNOTAVAIL".
+       */
+      const failureCause: string = probeNetworkFailure
+        ? ProbeNetworkFailureUtil.describe({
+            host: hostAddress,
+            failure: probeNetworkFailure,
+          })
+        : describeError(err);
 
       logger.debug(
         `Pinging host ${pingOptions.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `,
@@ -523,7 +644,11 @@ export default class PortMonitor {
       }
 
       const requestFailedDetails: RequestFailedDetails =
-        getRequestFailedDetails(err);
+        getRequestFailedDetails({
+          error: err,
+          host: hostAddress,
+          probeNetworkFailure: probeNetworkFailure,
+        });
       const isTimeout: boolean =
         (err instanceof UnableToReachServer &&
           err.message === "Ping timeout") ||

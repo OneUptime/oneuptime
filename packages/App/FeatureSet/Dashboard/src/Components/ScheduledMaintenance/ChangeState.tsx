@@ -1,13 +1,14 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -26,12 +27,24 @@ import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/Sched
 import PublicNoteSubscriberNotificationDefault, {
   ScheduledMaintenanceStateChangeSubscriberNotificationSetting,
 } from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -47,13 +60,19 @@ import {
   getScheduledMaintenanceStateKind,
   getScheduledMaintenanceTiming,
   getScheduledMaintenanceTimingRefreshDelayInMs,
-  getTimelineDateForState,
+  getStartedAndCompletedAt,
   isScheduledMaintenanceTimingLive,
+  placeScheduledMaintenanceStates,
   shouldRecheckScheduledMaintenanceState,
 } from "../../Utils/ScheduledMaintenanceTiming";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
+  /*
+   * Header actions that are not state changes - Open in Slack / Teams -
+   * shown beside the state actions.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onActionComplete: () => void;
   eventNumber?: string | undefined;
   title?: string | undefined;
@@ -179,6 +198,7 @@ const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
@@ -198,17 +218,6 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     selectedScheduledMaintenanceState,
     setSelectedScheduledMaintenanceState,
   ] = useState<ScheduledMaintenanceState | undefined>(undefined);
-
-  /*
-   * Worked out for the state the form moves the event to. openModalForState
-   * sets that state and opens the form in the same handler, so the form's
-   * first render already sees it.
-   */
-  const notifySubscribersByDefault: boolean =
-    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
-      props.subscriberNotificationSettings,
-      selectedScheduledMaintenanceState,
-    );
 
   const [
     scheduledMaintenanceStateTimelines,
@@ -292,6 +301,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           isEndedState: true,
           name: true,
           color: true,
+          // The state's place: what tells where a state of the project's own is.
+          order: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -376,6 +387,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       (state: ScheduledMaintenanceState): ScheduledMaintenanceStateFlags => {
         return {
           id: state.id?.toString() || "",
+          order: state.order,
           isScheduledState: state.isScheduledState,
           isOngoingState: state.isOngoingState,
           isEndedState: state.isEndedState,
@@ -398,18 +410,28 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       })
     : undefined;
 
+  /*
+   * The project's ongoing state: the one Mark as Ongoing moves the event
+   * into (ScheduledMaintenanceStartUtil.getOngoingState).
+   */
   const ongoingState: ScheduledMaintenanceState | undefined =
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isOngoingState);
-    });
+    ScheduledMaintenanceStartUtil.getOngoingState({
+      states: scheduledMaintenanceStates,
+    }) || undefined;
 
+  /*
+   * Where Mark as Ended moves the event: the project's ended state, or its
+   * completed state in a project without one (ScheduledMaintenanceStartUtil
+   * .getEndedState / getCompletedState).
+   */
   const endState: ScheduledMaintenanceState | undefined =
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isEndedState);
+    ScheduledMaintenanceStartUtil.getEndedState({
+      states: scheduledMaintenanceStates,
     }) ||
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isResolvedState);
-    });
+    ScheduledMaintenanceStartUtil.getCompletedState({
+      states: scheduledMaintenanceStates,
+    }) ||
+    undefined;
 
   const stateKind: ScheduledMaintenanceStateKind =
     getScheduledMaintenanceStateKind({
@@ -417,22 +439,47 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       currentStateId: currentScheduledMaintenanceState?.id?.toString(),
     });
 
+  /*
+   * When the event really started and was completed: its first start (into
+   * Ongoing, or straight into a state of the project's own between Ongoing
+   * and Ended) and its last end (into Ended or Completed, or a state of its
+   * own after Ended).
+   */
+  const startedAndCompletedAt: {
+    startedAt: Date | undefined;
+    completedAt: Date | undefined;
+  } = getStartedAndCompletedAt({
+    states: stateFlags,
+    timelines: timelineEntries,
+  });
+
   const timing: ScheduledMaintenanceTiming = getScheduledMaintenanceTiming({
     stateKind: stateKind,
     startsAt: props.eventStartsAt,
     endsAt: props.eventEndsAt,
-    startedAt: getTimelineDateForState({
-      timelines: timelineEntries,
-      stateId: ongoingState?.id?.toString(),
-      pick: "first",
-    }),
-    completedAt: getTimelineDateForState({
-      timelines: timelineEntries,
-      stateId: endState?.id?.toString(),
-      pick: "last",
-    }),
+    startedAt: startedAndCompletedAt.startedAt,
+    completedAt: startedAndCompletedAt.completedAt,
     now: now,
   });
+
+  /*
+   * Worked out for the state the form moves the event to, from the state it
+   * is in: a move that starts the event or ends it - into Ongoing or Ended,
+   * or into a state of the project's own that does the same - follows the
+   * event's "Event Ongoing" / "Event Ended" setting. openModalForState sets
+   * the target and opens the form in the same handler, so the form's first
+   * render already sees it.
+   */
+  const notifySubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+      props.subscriberNotificationSettings,
+      selectedScheduledMaintenanceState,
+      {
+        // Placed as the header places them (its kind and its timing).
+        states: placeScheduledMaintenanceStates(stateFlags),
+        currentState: currentScheduledMaintenanceState,
+      },
+    );
 
   const isTimingLive: boolean =
     !isLoading && !error && isScheduledMaintenanceTimingLive(timing);
@@ -529,13 +576,33 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * "Mark as <state>" names the project's own state, so it is one sentence
+   * with the name in it - looked up whole, never glued from pieces - in the
+   * buttons and in the dialog they open alike.
+   */
+  type GetMarkAsTextFunction = (stateName: string) => string;
+
+  const getMarkAsText: GetMarkAsTextFunction = (stateName: string): string => {
+    return translator.translateTemplate("Mark as {{state}}", {
+      state: translatableTerm(stateName),
+    });
+  };
+
+  const markAsOngoingText: string = getMarkAsText(
+    ongoingState?.name || "Ongoing",
+  );
+  const markAsCompleteText: string = getMarkAsText(
+    endState?.name || "Complete",
+  );
+
   const actions: Array<EventStateAction> = [];
 
   if (stateKind === ScheduledMaintenanceStateKind.Scheduled) {
     if (ongoingState) {
       actions.push({
         stateId: ongoingState.id?.toString() || "",
-        label: "Mark as " + (ongoingState.name || "Ongoing"),
+        label: markAsOngoingText,
         icon: IconProp.Clock,
         buttonStyle: ButtonStyleType.PRIMARY,
         id: "sm-mark-ongoing-btn",
@@ -545,7 +612,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     if (endState) {
       actions.push({
         stateId: endState.id?.toString() || "",
-        label: "Mark as " + (endState.name || "Complete"),
+        label: markAsCompleteText,
         icon: IconProp.CheckCircle,
         buttonStyle: ButtonStyleType.OUTLINE,
         id: "sm-mark-complete-btn",
@@ -554,7 +621,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   } else if (stateKind === ScheduledMaintenanceStateKind.Ongoing && endState) {
     actions.push({
       stateId: endState.id?.toString() || "",
-      label: "Mark as " + (endState.name || "Complete"),
+      label: markAsCompleteText,
       icon: IconProp.CheckCircle,
       buttonStyle: ButtonStyleType.PRIMARY,
       id: "sm-mark-complete-btn",
@@ -586,6 +653,14 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
+  /*
+   * The dialog's title and button name the chosen state, in the reader's
+   * language (they were glued from English pieces before).
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedScheduledMaintenanceState?.name || "",
+  );
+
   return (
     <div className="mb-5">
       <EventStatusPanel
@@ -595,9 +670,11 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
               id: state.id?.toString() || "",
               name: state.name || "",
               color: state.color || Black,
+              order: state.order,
             };
           },
         )}
+        stateList={StateListType.ScheduledMaintenanceState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}
@@ -607,28 +684,30 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        secondaryActions={props.secondaryActions}
         facts={props.facts}
         headerNotice={overdueNotice}
       />
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={ScheduledMaintenanceStateTimeline}
           name={"create-scheduledMaintenance-state-timeline"}
-          title={
-            "Mark Scheduled Maintenance as " +
-            selectedScheduledMaintenanceState?.name
-          }
-          description={
-            "This updates the event timeline. You can add an optional public note for status page subscribers."
-          }
+          title={translator.translateTemplate(
+            "Mark Scheduled Maintenance as {{state}}",
+            { state: selectedStateName },
+          )}
+          /*
+           * One sentence; the optional public note is the folded "Add a
+           * public note" line under the notify checkbox.
+           */
+          description={translationKey("This updates the event timeline.")}
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText={
-            "Mark as " + (selectedScheduledMaintenanceState?.name || "")
-          }
+          submitButtonText={translator.translateTemplate("Mark as {{state}}", {
+            state: selectedStateName,
+          })}
           /*
            * Starts from the target state: on for an event created with
            * subscribers notified; for a quiet one, on only when it moves to
@@ -706,80 +785,29 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             name: "create-scheduled-maintenance-state-timeline",
             modelType: ScheduledMaintenanceStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
-            fields: [
+            /*
+             * "Notify Status Page Subscribers", starting where the state the
+             * event moves to puts it, then the public note folded under "Add
+             * a public note" (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<ScheduledMaintenanceStateTimeline>(
               {
-                field: {
-                  publicNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<ScheduledMaintenanceNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<ScheduledMaintenanceStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate:
-                    | ScheduledMaintenanceNoteTemplate
-                    | undefined = scheduledMaintenanceNoteTemplates.find(
-                    (template: ScheduledMaintenanceNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    },
-                  );
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      publicNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: scheduledMaintenanceNoteTemplates.map(
-                  (template: ScheduledMaintenanceNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return scheduledMaintenanceNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "publicNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  publicNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
+                noteType: BulkStateChangeNoteType.Public,
+                noteDescription: translationKey(
                   "Post a public note about this state change to the status page.",
-                title: "Public Note",
-                required: false,
-                overrideFieldKey: "publicNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotified: true,
+                ),
+                noteTemplates: scheduledMaintenanceNoteTemplates.map(
+                  toBulkStateChangeNoteTemplate,
+                ),
+                notifySubscribers: {
+                  byDefault: notifySubscribersByDefault,
+                  quietDescription:
+                    PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                 },
-                fieldType: FormFieldSchemaType.Checkbox,
-                description: notifySubscribersByDefault
-                  ? "Notify subscribers of this state change."
-                  : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
-                title: "Notify Status Page Subscribers",
-                required: false,
-                defaultValue: notifySubscribersByDefault,
+                // Offered only to someone who may post a public note.
+                noteModel: new ScheduledMaintenancePublicNote(),
               },
-            ],
+            ),
             formType: FormType.Create,
           }}
         />

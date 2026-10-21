@@ -1,11 +1,16 @@
 import RunnerAuthorization from "../Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../Types/Request";
-import RunbookSecretsUtil from "../Utils/Secrets";
+import RunbookJobVariables, {
+  PreparedJobVariables,
+} from "../Utils/JobVariables";
 import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import KubernetesClusterAiAccessService, {
   KubernetesAgentRegistrationRefusedException,
   RegisterKubernetesAgentRunnerResult,
@@ -34,7 +39,21 @@ import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import {
+  RUNNER_FEATURE_KUBECTL_SCRIPT,
+  readRunnerFeatures,
+} from "Common/Types/Runbook/RunnerFeatures";
+import { readLegacyKubernetesStepOfJob } from "Common/Types/Runbook/RunbookLegacySteps";
+import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import {
+  RunbookVariableReference,
+  RunbookVariableScope,
+} from "Common/Types/Runbook/RunbookVariableReference";
+import { RunbookVariableAccess } from "Common/Server/Utils/Runbook/RunbookVariableResolver";
+import {
+  GLOBAL_RUNNER_STEP_TYPES,
+  canGlobalRunnersRunStepType,
+} from "Common/Types/Runner/GlobalRunnerWork";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -43,12 +62,42 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
+// What a claimed job's run hands its step besides the script.
+export interface RunInputsForJob {
+  inputs: JSONObject;
+  trigger: string | null;
+}
+
 export default class RunnerIngressAPI {
   public router!: ExpressRouter;
 
+  /*
+   * Why a kubectl step that takes a script was not run on a Runner that
+   * did not say it can run one (RunnerFeatures): a Runner older than
+   * kubectl scripts would fail it with a confusing error of its own. A step
+   * moved from a Kubernetes action that still keeps it is handed to such a
+   * Runner as that action instead (claimLegacyKubernetesStep).
+   */
+  public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
+    "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
+
+  /*
+   * Why a step that runs with a runbook credential was not handed to the
+   * Runner that took it: the credential is gone, is another project's, is
+   * not assigned to that Runner, or - for the Kubernetes action a moved
+   * kubectl step kept - is not a Kubernetes credential
+   * (RunbookCredentialsUtil.resolveForJob).
+   */
+  public static readonly CREDENTIAL_NOT_AVAILABLE: string =
+    "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.";
+
+  // Why a job naming a credential is failed for a global Runner.
+  public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
+    "This step needs a credential, and global Runners are never handed one: they run JavaScript steps for every project, in a sandbox. It was not run. Pick one of your own Runners for the step, assigned to the credential.";
+
   // Why a job naming a credential is failed for a kubernetes-agent Runner.
   public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
-    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Project Settings → Runners, assign the credential to it and target that Runner instead.";
+    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Runbooks → Runners, assign the credential to it and target that Runner instead.";
 
   public constructor() {
     this.router = Express.getRouter();
@@ -91,10 +140,14 @@ export default class RunnerIngressAPI {
     );
 
     /*
-     * The in-cluster Runner the kubernetes-agent chart installs has no
+     * The in-cluster Runner older kubernetes-agent charts install has no
      * dashboard-issued id and key. It presents the project's telemetry
      * ingestion key (the same one the agent ships telemetry with) and the
-     * cluster's name, and is handed a Runner identity bound to that cluster.
+     * cluster's name, and is handed a Runner identity bound to that cluster
+     * — unless the cluster's Kubernetes AI agent is online, which replaces
+     * it: then it is refused with superseded_by_ai_agent (a 403 carrying
+     * retryAfterSeconds and Retry-After, since it clears on its own when
+     * the agent stops, e.g. after a helm rollback).
      */
     this.router.post(
       `/register-kubernetes-agent`,
@@ -182,9 +235,10 @@ export default class RunnerIngressAPI {
     } catch (err) {
       /*
        * A refusal says WHICH refusal it is, so the Runner can tell a wait
-       * that clears on its own (previous_instance_online, with when to try
-       * again) from one that needs an operator — the generic error body is
-       * `{ message }` only.
+       * that clears on its own (previous_instance_online, or
+       * superseded_by_ai_agent while the cluster's Kubernetes AI agent is
+       * online — each with when to try again) from one that needs an
+       * operator. The generic error body is `{ message }` only.
        */
       if (err instanceof KubernetesAgentRegistrationRefusedException) {
         RunnerIngressAPI.sendRegistrationRefusal(req, res, err);
@@ -280,24 +334,82 @@ export default class RunnerIngressAPI {
         ...(hostInfoValue ? { hostInfo: hostInfoValue } : {}),
       });
 
-      /*
-       * Hand the Runner back the capabilities this project granted it. The
-       * dashboard is the control plane: toggling a capability off here stops
-       * the Runner starting that loop on its next boot, and the claim path
-       * rejects it in the meantime — so an operator never has to touch the
-       * container to revoke one.
-       */
-      return Response.sendJsonObjectResponse(req, res, {
-        status: "ok",
-        capabilities: {
-          canRunRunbooks: agent.canRunRunbooks !== false,
-          canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
-          canRunAiCommands: agent.canRunAiCommands === true,
-        },
-      });
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        RunnerIngressAPI.getHeartbeatAnswer(agent, {
+          isPickedByACodeRepository:
+            await RunnerIngressAPI.isPickedByACodeRepository(agent),
+        }),
+      );
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * Whether a code repository of the Runner's project picks it (its Runner
+   * setting in Code): what the code-fix capability its heartbeat is told
+   * says. Not asked for a global Runner, nor for an in-cluster Runner the
+   * Kubernetes agent chart installed, which never take code work.
+   */
+  public static async isPickedByACodeRepository(
+    agent: Runner,
+  ): Promise<boolean> {
+    if (
+      agent.isGlobalRunner ||
+      RunnerServiceClass.isKubernetesAgentRunnerRow(agent)
+    ) {
+      return false;
+    }
+
+    return await CodeRepositoryRunnerChoice.isRunnerPickedByARepository(agent);
+  }
+
+  /*
+   * What a heartbeat answers: the capabilities the Runner may use. The
+   * dashboard is the control plane: toggling a capability off stops the
+   * Runner starting that loop, and the claim path rejects it in the
+   * meantime - so an operator never has to touch the container to revoke
+   * one.
+   *
+   * AI code fixes are not a switch: the Runner takes code work while a code
+   * repository of its project picks it (isPickedByACodeRepository), so a
+   * repository that picks it starts its code-fix loop within a heartbeat,
+   * and one that picks another stops it.
+   *
+   * A global Runner is told it is one, and that it runs runbook steps only
+   * (a master admin may pause even those with "Runs Runbooks"): it then
+   * asks only for what global Runners run, and refuses anything else it is
+   * handed. The server serves it no other work whatever it asks for.
+   */
+  public static getHeartbeatAnswer(
+    agent: Runner,
+    data?: { isPickedByACodeRepository?: boolean | undefined } | undefined,
+  ): JSONObject {
+    if (agent.isGlobalRunner) {
+      return {
+        status: "ok",
+        isGlobalRunner: true,
+        globalStepTypes: [...GLOBAL_RUNNER_STEP_TYPES],
+        capabilities: {
+          canRunRunbooks: agent.canRunRunbooks !== false,
+          canRunCodeFixTasks: false,
+          canRunAiCommands: false,
+        },
+      };
+    }
+
+    return {
+      status: "ok",
+      capabilities: {
+        canRunRunbooks: agent.canRunRunbooks !== false,
+        canRunCodeFixTasks:
+          data?.isPickedByACodeRepository === true &&
+          !RunnerServiceClass.isKubernetesAgentRunnerRow(agent),
+        canRunAiCommands: agent.canRunAiCommands === true,
+      },
+    };
   }
 
   public async claimNextJob(
@@ -307,7 +419,29 @@ export default class RunnerIngressAPI {
   ): Promise<void> {
     try {
       const agent: Runner | undefined = req.runner;
-      if (!agent || !agent.id || !agent.projectId) {
+      if (!agent || !agent.id) {
+        throw new BadDataException("Agent not found on request");
+      }
+
+      /*
+       * A global Runner belongs to no project and takes the steps that wait
+       * for any global Runner, from every project that uses them - and
+       * nothing else (RunnerIngressAPI.claimGlobalJob).
+       */
+      if (agent.isGlobalRunner) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          await RunnerIngressAPI.claimGlobalJob({
+            agent,
+            requestedStepTypes: RunnerIngressAPI.parseRequestedStepTypes(
+              ((req.body as JSONObject) || {})["stepTypes"],
+            ),
+          }),
+        );
+      }
+
+      if (!agent.projectId) {
         throw new BadDataException("Agent not found on request");
       }
 
@@ -403,15 +537,18 @@ export default class RunnerIngressAPI {
       }
 
       /*
-       * Substitute {{runbookSecrets.NAME}} placeholders in the script with
-       * the agent's assigned secret values. Secrets are loaded per claim so
-       * a freshly-rotated value reaches the next run without redeploying
-       * the agent, and the stored script row never holds plaintext values.
+       * Fill in the runbook variables the step names - in its script, and
+       * for an SSH or kubectl step in its host, user, key, password or
+       * kubeconfig (RunbookJobVariables). Read per claim so a value changed
+       * a moment ago reaches the next run, and the stored job row never
+       * holds a value. A secret reaches only a Runner it lists; a step that
+       * names one it may not have is failed with the reason, not run with a
+       * placeholder in its script.
        *
        * NEVER for AI-composed commands: a human authored every runbook
-       * script, but an AI-composed command is model output shaped by
-       * attacker-influenceable telemetry. Substituting there would turn
-       * `{{runbookSecrets.X}}` into an exfiltration macro that reads
+       * step, but an AI-composed command is model output shaped by
+       * attacker-influenceable telemetry. Filling in there would turn
+       * `{{global.variables.X}}` into an exfiltration macro that reads
        * harmless on the approval card and expands to the plaintext secret
        * at claim time. AI commands reach credentials only through the
        * credentialId path below, which never exposes the material to the
@@ -422,27 +559,93 @@ export default class RunnerIngressAPI {
        * handed a secret (and it is served kubectl only, which has no script).
        */
       let scriptToSend: string = job.script ?? "";
+      let payloadToSend: JSONObject | undefined =
+        (job.payload as JSONObject | undefined) || undefined;
+      let credential: JSONObject | null = null;
+      let secretValues: Array<string> = [];
+
       if (
-        scriptToSend &&
         !isAgentRunnerRow &&
-        !AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+        !AI_COMMAND_JOB_ORIGINS.includes(
+          job.origin || RunnerJobOrigin.Runbook,
+        ) &&
+        RunbookJobVariables.usesVariables(job)
       ) {
-        const secrets: Array<RunbookSecret> =
-          await RunbookSecretsUtil.loadForAgent(agent.id);
-        scriptToSend = RunbookSecretsUtil.populateInScript({
-          script: scriptToSend,
-          secrets,
-        });
+        if (
+          job.stepType === RunbookStepType.Kubernetes &&
+          !readRunnerFeatures(body["features"]).includes(
+            RUNNER_FEATURE_KUBECTL_SCRIPT,
+          )
+        ) {
+          /*
+           * A Runner older than kubectl scripts. A step the data migration
+           * moved from a Kubernetes action still carries that action and
+           * its credential while its script and kubeconfig are the ones it
+           * was moved with (RunbookLegacySteps): the Runner is handed the
+           * step that way, as such a step always was, and nothing of the
+           * script's (claimLegacyKubernetesStep). A step written as a
+           * script, or changed since it was moved, has no action to fall
+           * back on: it is failed, saying to update the Runner.
+           */
+          const legacyStep: JSONObject | null = readLegacyKubernetesStepOfJob(
+            job.payload,
+          );
+
+          if (legacyStep) {
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              await RunnerIngressAPI.claimLegacyKubernetesStep({
+                job,
+                agentId: agent.id,
+                projectId: agent.projectId,
+                legacyStep,
+              }),
+            );
+          }
+
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage: RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
+        const prepared: PreparedJobVariables =
+          await RunnerIngressAPI.prepareJobVariables({
+            job,
+            projectId: agent.projectId,
+            access: { kind: "project-runner", runnerId: agent.id },
+          });
+
+        if (prepared.isRefused) {
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage: prepared.refusal,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
+        scriptToSend = prepared.script;
+        payloadToSend = prepared.payload || payloadToSend;
+        credential = prepared.credential || null;
+        secretValues = prepared.secretValues;
       }
 
       /*
-       * Steps that act on other systems carry structured instructions plus a
-       * credential reference. The credential is resolved HERE, scoped to this
-       * Runner and this project, so its secret material exists on the wire
-       * only in the response to the Runner that was targeted — never on the
-       * job row, and never readable through the CRUD API.
+       * Steps written before runbook variables, and OneUptime AI's SSH and
+       * kubectl commands, carry a credential reference. The credential is
+       * resolved HERE, scoped to this Runner and this project, so its secret
+       * material exists on the wire only in the response to the Runner that
+       * was targeted — never on the job row, and never readable through the
+       * CRUD API.
        */
-      let credential: JSONObject | null = null;
       const payload: JSONObject = (job.payload as JSONObject) || {};
       const credentialId: unknown = payload["credentialId"];
 
@@ -521,13 +724,19 @@ export default class RunnerIngressAPI {
             jobId: job.id!,
             agentId: agent.id,
             success: false,
-            errorMessage:
-              "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.",
+            errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
           });
 
           return Response.sendJsonObjectResponse(req, res, { job: null });
         }
       }
+
+      const runInputs: RunInputsForJob | null =
+        await RunnerIngressAPI.getRunInputsForJob({
+          job,
+          projectId: agent.projectId,
+          isAgentRunnerRow,
+        });
 
       return Response.sendJsonObjectResponse(req, res, {
         job: {
@@ -541,13 +750,312 @@ export default class RunnerIngressAPI {
           script: scriptToSend,
           timeoutInMs: job.timeoutInMs,
           leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
-          ...(job.payload ? { payload: job.payload } : {}),
+          ...(payloadToSend ? { payload: payloadToSend } : {}),
           ...(credential ? { credential } : {}),
+          ...(secretValues.length > 0 ? { secretValues } : {}),
+          ...(runInputs
+            ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
+            : {}),
         },
       });
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * The runbook a job's step belongs to, read from its run - only when the
+   * step names one of the runbook's own variables ({{local.variables.X}}),
+   * so a claim that names none reads nothing more. Null when the job has no
+   * run, or its run is not the project's.
+   */
+  public static async getRunbookIdForJob(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    references: Array<RunbookVariableReference>;
+  }): Promise<ObjectID | null> {
+    const namesLocal: boolean = data.references.some(
+      (reference: RunbookVariableReference): boolean => {
+        return reference.scope === RunbookVariableScope.Local;
+      },
+    );
+
+    if (!namesLocal || !data.job.runbookExecutionId) {
+      return null;
+    }
+
+    const execution: RunbookExecution | null =
+      await RunbookExecutionService.findOneById({
+        id: data.job.runbookExecutionId,
+        select: { projectId: true, runbookId: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !execution ||
+      !execution.runbookId ||
+      execution.projectId?.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return execution.runbookId;
+  }
+
+  // A runbook step's variables, filled in for whoever took it.
+  public static async prepareJobVariables(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    access: RunbookVariableAccess;
+  }): Promise<PreparedJobVariables> {
+    const runbookId: ObjectID | null =
+      await RunnerIngressAPI.getRunbookIdForJob({
+        job: data.job,
+        projectId: data.projectId,
+        references: RunbookJobVariables.getReferences(data.job),
+      });
+
+    return RunbookJobVariables.prepare({
+      job: data.job,
+      projectId: data.projectId,
+      runbookId,
+      access: data.access,
+    });
+  }
+
+  /*
+   * A kubectl step moved from a Kubernetes action, taken by a project's
+   * Runner older than kubectl scripts: handed over as the step it was
+   * written as, exactly as the server handed such a step over before
+   * kubectl scripts - its action (`legacyStep`, the payload such a step was
+   * dispatched with) and the Kubernetes credential it names, resolved for
+   * this Runner (RunbookCredentialsUtil: only one of the project's, assigned
+   * to this Runner). Nothing more: no script, no variable is read for it -
+   * not its kubeconfig - no secret values and no run inputs. A credential
+   * this Runner may not have fails the step with the reason, as before.
+   */
+  public static async claimLegacyKubernetesStep(data: {
+    job: RunnerJob;
+    agentId: ObjectID;
+    projectId: ObjectID;
+    legacyStep: JSONObject;
+  }): Promise<JSONObject> {
+    const credential: JSONObject | null =
+      await RunbookCredentialsUtil.resolveForJob({
+        credentialId: String(data.legacyStep["credentialId"] || ""),
+        agentId: data.agentId,
+        projectId: data.projectId,
+        credentialType: RunbookCredentialType.Kubernetes,
+      });
+
+    if (!credential) {
+      await RunnerJobService.submitResult({
+        jobId: data.job.id!,
+        agentId: data.agentId,
+        success: false,
+        errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
+      });
+
+      return { job: null };
+    }
+
+    return {
+      job: {
+        jobId: data.job.id?.toString(),
+        ...(data.job.runbookExecutionId
+          ? { runbookExecutionId: data.job.runbookExecutionId.toString() }
+          : {}),
+        origin: data.job.origin || RunnerJobOrigin.Runbook,
+        stepId: data.job.stepId,
+        stepType: data.job.stepType,
+        script: "",
+        timeoutInMs: data.job.timeoutInMs,
+        leaseExpiresAt: data.job.leaseExpiresAt?.toISOString(),
+        payload: data.legacyStep,
+        credential,
+      },
+    };
+  }
+
+  /*
+   * A claim by a global Runner: the next step that waits for any global
+   * Runner (RunnerJobService.claimNextGlobalJob - only a runbook's own step,
+   * only a type global Runners run, never of a project that turned them
+   * off), handed over the way a project's own Runner is handed its step,
+   * with everything read from the step's OWN project:
+   *
+   *   - its script, with the variables it names filled in: the plain ones,
+   *     and the secrets of that project its people let global Runners use
+   *     (RunbookJobVariables, with the global-runner access);
+   *   - the inputs and trigger of the run it belongs to, from that project;
+   *   - never a credential: a step that names one is failed, not handed
+   *     over (global Runners run no SSH or Kubernetes step, and the job
+   *     could only carry one if something wrote it around the enqueue).
+   *
+   * A global Runner whose "Runs Runbooks" is off takes nothing.
+   */
+  public static async claimGlobalJob(data: {
+    agent: Runner;
+    requestedStepTypes: Array<RunbookStepType> | undefined;
+  }): Promise<JSONObject> {
+    const agent: Runner = data.agent;
+
+    if (!agent.id || agent.canRunRunbooks === false) {
+      return { job: null };
+    }
+
+    const allowedStepTypes: Array<RunbookStepType> = (
+      data.requestedStepTypes || [...GLOBAL_RUNNER_STEP_TYPES]
+    ).filter((stepType: RunbookStepType): boolean => {
+      return canGlobalRunnersRunStepType(stepType);
+    });
+
+    if (allowedStepTypes.length === 0) {
+      return { job: null };
+    }
+
+    const job: RunnerJob | null = await RunnerJobService.claimNextGlobalJob({
+      agentId: agent.id,
+      allowedStepTypes,
+    });
+
+    if (!job || !job.projectId) {
+      return { job: null };
+    }
+
+    const payload: JSONObject = (job.payload as JSONObject) || {};
+
+    if (payload["credentialId"]) {
+      await RunnerJobService.submitResult({
+        jobId: job.id!,
+        agentId: agent.id,
+        success: false,
+        errorMessage: RunnerIngressAPI.GLOBAL_RUNNER_CREDENTIAL_REFUSAL,
+      });
+
+      return { job: null };
+    }
+
+    let scriptToSend: string = job.script ?? "";
+    let secretValues: Array<string> = [];
+
+    if (scriptToSend) {
+      /*
+       * A variable the step names that global Runners may not have - a
+       * secret not switched on for them, or one that does not exist - fails
+       * the step, saying which and how to fix it, rather than running it
+       * with the placeholder where the value should be.
+       */
+      const prepared: PreparedJobVariables =
+        await RunnerIngressAPI.prepareJobVariables({
+          job,
+          projectId: job.projectId,
+          access: { kind: "global-runner" },
+        });
+
+      if (prepared.isRefused) {
+        await RunnerJobService.submitResult({
+          jobId: job.id!,
+          agentId: agent.id,
+          success: false,
+          errorMessage: prepared.refusal,
+        });
+
+        return { job: null };
+      }
+
+      scriptToSend = prepared.script;
+      secretValues = prepared.secretValues;
+    }
+
+    const runInputs: RunInputsForJob | null =
+      await RunnerIngressAPI.getRunInputsForJob({
+        job,
+        projectId: job.projectId,
+        isAgentRunnerRow: false,
+      });
+
+    return {
+      job: {
+        jobId: job.id?.toString(),
+        ...(job.runbookExecutionId
+          ? { runbookExecutionId: job.runbookExecutionId.toString() }
+          : {}),
+        origin: job.origin || RunnerJobOrigin.Runbook,
+        stepId: job.stepId,
+        stepType: job.stepType,
+        script: scriptToSend,
+        timeoutInMs: job.timeoutInMs,
+        leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
+        runsOnGlobalRunner: true,
+        ...(secretValues.length > 0 ? { secretValues } : {}),
+        ...(runInputs
+          ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
+          : {}),
+      },
+    };
+  }
+
+  /*
+   * The values the job's run was started with - the JSON body of the webhook
+   * call that started it - and what started it, for the steps that take data
+   * from outside: a Bash or kubectl step's environment and a JavaScript
+   * step's args (Types/Runbook/RunbookInputs). Sent BESIDE the script, never
+   * into it: the script the Runner gets is the one the runbook's author
+   * wrote, so a value a caller sends cannot become a command.
+   *
+   * Only for a runbook's own Bash, JavaScript and kubectl steps (a kubectl
+   * step that takes a script runs it with bash on the Runner, as a Bash step
+   * does), read from the run the job belongs to in the Runner's own project.
+   * Never for an SSH step, whose script runs on another machine; never for
+   * an AI-composed command, nor for a kubernetes-agent Runner, which runs
+   * kubectl only. Null when there is nothing to send.
+   */
+  public static async getRunInputsForJob(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    isAgentRunnerRow: boolean;
+  }): Promise<RunInputsForJob | null> {
+    const origin: RunnerJobOrigin = data.job.origin || RunnerJobOrigin.Runbook;
+
+    const takesInputs: boolean =
+      data.job.stepType === RunbookStepType.Bash ||
+      data.job.stepType === RunbookStepType.JavaScript ||
+      (data.job.stepType === RunbookStepType.Kubernetes &&
+        RunbookJobVariables.usesVariables(data.job));
+
+    if (
+      data.isAgentRunnerRow ||
+      origin !== RunnerJobOrigin.Runbook ||
+      !data.job.runbookExecutionId ||
+      !takesInputs
+    ) {
+      return null;
+    }
+
+    const execution: RunbookExecution | null =
+      await RunbookExecutionService.findOneById({
+        id: data.job.runbookExecutionId,
+        select: { projectId: true, inputs: true, triggerType: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !execution ||
+      execution.projectId?.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return {
+      inputs:
+        execution.inputs &&
+        typeof execution.inputs === "object" &&
+        !Array.isArray(execution.inputs)
+          ? execution.inputs
+          : {},
+      trigger: execution.triggerType || null,
+    };
   }
 
   public async heartbeatJob(
@@ -603,9 +1111,23 @@ export default class RunnerIngressAPI {
       const outputRaw: unknown = body["output"];
       const exitCodeRaw: unknown = body["exitCode"];
       const errorMessageRaw: unknown = body["errorMessage"];
+      const jobId: ObjectID = new ObjectID(jobIdRaw);
+
+      /*
+       * The secrets the step was handed, hidden in what it printed before it
+       * is stored (RunnerJobService.submitResult): this Runner hid them
+       * already when it is new enough to, and an older one did not know to.
+       */
+      const secretValues: Array<string> =
+        typeof outputRaw === "string" || typeof errorMessageRaw === "string"
+          ? await RunnerJobService.getSecretValuesGivenToJob({
+              jobId,
+              agentId: agent.id,
+            })
+          : [];
 
       const accepted: boolean = await RunnerJobService.submitResult({
-        jobId: new ObjectID(jobIdRaw),
+        jobId,
         agentId: agent.id,
         success,
         ...(typeof outputRaw === "string" ? { output: outputRaw } : {}),
@@ -613,6 +1135,7 @@ export default class RunnerIngressAPI {
         ...(typeof errorMessageRaw === "string"
           ? { errorMessage: errorMessageRaw }
           : {}),
+        ...(secretValues.length > 0 ? { secretValues } : {}),
       });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -676,7 +1199,7 @@ export default class RunnerIngressAPI {
     jobClusterIdentifier: string;
   }): string | null {
     if (!data.posture?.inCluster) {
-      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI page.";
+      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI agent page (AI → Agent), or clear the Runner there to use the cluster's Kubernetes AI agent.";
     }
 
     if (!data.jobClusterIdentifier) {
@@ -691,7 +1214,7 @@ export default class RunnerIngressAPI {
 
       return `This kubectl command is for cluster "${data.jobClusterIdentifier}" but this Runner is the in-cluster Runner of ${
         reportedCluster ? `cluster "${reportedCluster}"` : "an unnamed cluster"
-      }, so it was not run. Install the in-cluster Runner on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI page.`;
+      }, so it was not run. Install the Kubernetes AI agent on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI agent page (AI → Agent).`;
     }
 
     return null;

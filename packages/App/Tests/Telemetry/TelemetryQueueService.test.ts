@@ -6,9 +6,11 @@ import { JSONObject } from "Common/Types/JSON";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue from "Common/Server/Infrastructure/Queue";
 import TelemetryBodyStore from "../../FeatureSet/Telemetry/Utils/TelemetryBodyStore";
+import IncomingRequestLatestPayloadStore from "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore";
 import TelemetryQueueService, {
   TelemetryType,
   TelemetryIngestJobData,
+  IncomingRequestIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import { OtelPayloadFormat } from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
 
@@ -54,7 +56,55 @@ jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
   };
 });
 
+/*
+ * The latest-payload store talks to Redis; the contract under test is that
+ * a coalesced request is stored, before its job is added, under the id the
+ * job carries.
+ */
+jest.mock(
+  "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        store: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+  },
+);
+
+/*
+ * INCOMING_REQUEST_INGEST_COALESCE_ENABLED is read from the environment when
+ * the module loads; a getter lets each test choose. On, as in production,
+ * unless a test turns it off.
+ */
+let mockCoalesceEnabled: boolean = true;
+
+jest.mock("../../FeatureSet/Telemetry/Config", () => {
+  const config: Record<string, unknown> = {
+    ...jest.requireActual("../../FeatureSet/Telemetry/Config"),
+  };
+
+  /*
+   * Defined, not spread: a spread getter would be read right here, while
+   * this hoisted factory runs ahead of the variable it returns.
+   */
+  Object.defineProperty(config, "__esModule", { value: true });
+  Object.defineProperty(config, "INCOMING_REQUEST_INGEST_COALESCE_ENABLED", {
+    enumerable: true,
+    get: (): boolean => {
+      return mockCoalesceEnabled;
+    },
+  });
+
+  return config;
+});
+
 type MockedFn = jest.Mock;
+
+const getStoreLatestMock: () => MockedFn = (): MockedFn => {
+  return IncomingRequestLatestPayloadStore.store as unknown as MockedFn;
+};
 
 const getAddJobMock: () => MockedFn = (): MockedFn => {
   return Queue.addJob as unknown as MockedFn;
@@ -361,6 +411,255 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
     )["id"] as string;
     expect(firstDedupId).toBe(`incoming-request-${secretKey}`);
     expect(secondDedupId).toBe(firstDedupId);
+  });
+
+  /*
+   * The worker records the heartbeat at this time, not at the time the queue
+   * gets around to the job - under a backlog those are minutes apart, and the
+   * heartbeat cron judges "received in the last N minutes" from it.
+   */
+  test("carries the endpoint's arrival time as the job's ingestion timestamp", async () => {
+    const receivedAt: Date = new Date("2026-10-05T12:19:00.000Z");
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-05T12:19:00.250Z"));
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey: ObjectID.generate().toString(),
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "POST",
+      receivedAt: receivedAt,
+    });
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+
+    expect(
+      new Date(
+        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
+      ).getTime(),
+    ).toBe(receivedAt.getTime());
+  });
+
+  test("without an arrival time the job is stamped with the enqueue time", async () => {
+    const enqueuedAt: Date = new Date("2026-10-05T12:19:00.250Z");
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(enqueuedAt);
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey: ObjectID.generate().toString(),
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "POST",
+    });
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+
+    expect(
+      new Date(
+        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
+      ).getTime(),
+    ).toBe(enqueuedAt.getTime());
+  });
+
+  /*
+   * BullMQ keeps the newest payload only for a request that arrives while the
+   * monitor's job is ACTIVE; one that arrives while the job is still WAITING
+   * is discarded in favour of the older waiting job. So each request is also
+   * stored as its monitor's newest, and the job - whichever request created
+   * it - evaluates that when it runs.
+   */
+  describe("with coalescing on", () => {
+    test("stores the request as its monitor's newest before the job is added", async () => {
+      const secretKey: string = ObjectID.generate().toString();
+      const receivedAt: Date = new Date("2026-10-05T12:27:30.000Z");
+
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey,
+        requestHeaders: { "content-type": "application/json" },
+        requestBody: { status: "resolved" },
+        requestMethod: "POST",
+        receivedViaProbeId: "probe-1",
+        receivedAt: receivedAt,
+      });
+
+      expect(getStoreLatestMock()).toHaveBeenCalledTimes(1);
+      expect(getAddJobMock()).toHaveBeenCalledTimes(1);
+
+      /*
+       * Stored first: a worker can pick the job up as soon as it is added,
+       * and the request it will evaluate has to be there by then.
+       */
+      expect(getStoreLatestMock().mock.invocationCallOrder[0]).toBeLessThan(
+        getAddJobMock().mock.invocationCallOrder[0]!,
+      );
+
+      const storeInput: {
+        secretKey: string;
+        payloadId: string;
+        payload: IncomingRequestIngestJobData;
+      } = getStoreLatestMock().mock.calls[0]![0];
+
+      expect(storeInput.secretKey).toBe(secretKey);
+      expect(ObjectID.isValidUUID(storeInput.payloadId)).toBe(true);
+      expect(storeInput.payload).toEqual({
+        secretKey,
+        requestHeaders: { "content-type": "application/json" },
+        requestBody: { status: "resolved" },
+        requestMethod: "POST",
+        ingestionTimestamp: receivedAt,
+        receivedViaProbeId: "probe-1",
+        coalescedPayloadId: storeInput.payloadId,
+      });
+    });
+
+    test("marks the job with the stored request's id", async () => {
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey: ObjectID.generate().toString(),
+        requestHeaders: {},
+        requestBody: {},
+        requestMethod: "POST",
+      });
+
+      const payloadId: string = (
+        getStoreLatestMock().mock.calls[0]![0] as { payloadId: string }
+      ).payloadId;
+
+      expect(
+        getEnqueuedJobData().incomingRequestIngest?.coalescedPayloadId,
+      ).toBe(payloadId);
+    });
+
+    /*
+     * A worker that predates the store (API and worker pods roll separately)
+     * evaluates the job's own copy, as it always has.
+     */
+    test("still carries the whole request on the job", async () => {
+      const secretKey: string = ObjectID.generate().toString();
+
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey,
+        requestHeaders: { "x-test": "1" },
+        requestBody: "plain text",
+        requestMethod: "GET",
+      });
+
+      const jobRequest: IncomingRequestIngestJobData =
+        getEnqueuedJobData().incomingRequestIngest!;
+
+      expect(jobRequest.secretKey).toBe(secretKey);
+      expect(jobRequest.requestHeaders).toEqual({ "x-test": "1" });
+      expect(jobRequest.requestBody).toBe("plain text");
+      expect(jobRequest.requestMethod).toBe("GET");
+      expect(jobRequest).toEqual(
+        (
+          getStoreLatestMock().mock.calls[0]![0] as {
+            payload: IncomingRequestIngestJobData;
+          }
+        ).payload,
+      );
+    });
+
+    test("gives every request its own id, while the monitor keeps one coalescing group", async () => {
+      const secretKey: string = ObjectID.generate().toString();
+
+      for (let i: number = 0; i < 3; i++) {
+        await TelemetryQueueService.addIncomingRequestIngestJob({
+          secretKey,
+          requestHeaders: {},
+          requestBody: { sequence: i },
+          requestMethod: "POST",
+        });
+      }
+
+      const payloadIds: Array<string> = getStoreLatestMock().mock.calls.map(
+        (call: Array<unknown>) => {
+          return (call[0] as { payloadId: string }).payloadId;
+        },
+      );
+
+      expect(new Set(payloadIds).size).toBe(3);
+
+      for (let i: number = 0; i < 3; i++) {
+        expect(
+          (getStoreLatestMock().mock.calls[i]![0] as { secretKey: string })
+            .secretKey,
+        ).toBe(secretKey);
+        expect(
+          getEnqueuedJobData(i).incomingRequestIngest?.coalescedPayloadId,
+        ).toBe(payloadIds[i]);
+        expect(getEnqueuedJobOptions(i)["deduplication"]).toEqual({
+          id: `incoming-request-${secretKey}`,
+          keepLastIfActive: true,
+        });
+      }
+    });
+
+    /*
+     * A job whose request is not stored would evaluate whatever older
+     * request the store holds, or nothing. Better to fail the enqueue, as a
+     * failed queue add already does.
+     */
+    test("does not queue a request it could not store", async () => {
+      getStoreLatestMock().mockRejectedValueOnce(
+        new Error(
+          "Redis not connected; cannot reach the incoming request store",
+        ),
+      );
+
+      await expect(
+        TelemetryQueueService.addIncomingRequestIngestJob({
+          secretKey: ObjectID.generate().toString(),
+          requestHeaders: {},
+          requestBody: {},
+          requestMethod: "POST",
+        }),
+      ).rejects.toThrow("Redis not connected");
+
+      expect(getAddJobMock()).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false: every request is its own
+   * job carrying its own request, as before coalescing existed.
+   */
+  describe("with coalescing off", () => {
+    beforeEach(() => {
+      mockCoalesceEnabled = false;
+    });
+
+    afterEach(() => {
+      mockCoalesceEnabled = true;
+    });
+
+    test("queues each request as its own job, unmarked and not stored", async () => {
+      const secretKey: string = ObjectID.generate().toString();
+
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey,
+        requestHeaders: { "x-test": "1" },
+        requestBody: { status: "firing" },
+        requestMethod: "POST",
+      });
+
+      expect(getStoreLatestMock()).not.toHaveBeenCalled();
+      expect(getAddJobMock()).toHaveBeenCalledTimes(1);
+
+      const jobRequest: IncomingRequestIngestJobData =
+        getEnqueuedJobData().incomingRequestIngest!;
+
+      expect(jobRequest.coalescedPayloadId).toBeUndefined();
+      expect(
+        Object.prototype.hasOwnProperty.call(jobRequest, "coalescedPayloadId"),
+      ).toBe(false);
+      expect(jobRequest.requestBody).toEqual({ status: "firing" });
+
+      const options: JSONObject = getEnqueuedJobOptions();
+      expect(options["skipExistenceCheck"]).toBe(true);
+      expect(options["deduplication"]).toBeUndefined();
+    });
   });
 });
 

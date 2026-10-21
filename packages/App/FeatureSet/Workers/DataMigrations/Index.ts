@@ -75,6 +75,8 @@ import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import DropTtlOnlyDropPartsFromMixedRetentionTables from "./DropTtlOnlyDropPartsFromMixedRetentionTables";
+import RoundTtlToDayOnMixedRetentionTables from "./RoundTtlToDayOnMixedRetentionTables";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -112,10 +114,38 @@ import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMoni
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
+import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
+import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
+import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
+import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
+import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
+import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
+import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
+import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
+import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
+import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
+import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
+import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
+import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
+import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
+import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
+import NormalizeListOrder from "./NormalizeListOrder";
+import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
+import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
+import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
+import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
+import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
+import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
+import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
+import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
+import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
+import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -499,6 +529,292 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the same refresh for them.
    */
   new ScheduleRemindersMissedByReminderRuleLookup(),
+  /*
+   * The Kubernetes dashboard template's "Cluster CPU (cores in use)" tile
+   * summed the k8s.node.cpu.usage gauge over every node, scrape and bucket,
+   * so it read hundreds of cores on a small cluster once the agent chart
+   * started emitting that metric. The template now ships the busiest node's
+   * peak (Max). Rewrites the tile on dashboards already created from the
+   * template, matching its exact title, metric and Sum only; a tile the user
+   * renamed or re-aggregated is left alone. Compare-and-set per dashboard, so
+   * a concurrent save wins. Idempotent.
+   */
+  new RepairKubernetesDashboardClusterCpuTile(),
+  /*
+   * Issue #4035: gives every status page subscriber that existed before the
+   * upgrade the token its unsubscribe link carries, and marks the ones a
+   * teammate added (they have a creator) as added by the team. Walks the
+   * table in primary key order, a batch at a time, outside the schema
+   * migrations' transactions, so the table stays usable while it runs;
+   * senders give a subscriber it has not reached yet a token of its own.
+   * Idempotent: it only fills what is still empty.
+   */
+  new BackfillStatusPageSubscriberUnsubscribeColumns(),
+  /*
+   * Issue #4035: gives a template key to every incident custom field without
+   * one. The schema migration that added the key gave one to every field
+   * that existed then, but a pod still on the previous version can create a
+   * field while the new version rolls out, and only a create assigns a key.
+   * Idempotent: it only fills an empty key.
+   */
+  new BackfillIncidentCustomFieldVariableKeys(),
+  /*
+   * Accepting a project invitation is per project, not per team: a member of
+   * a project added to another of its teams no longer gets an invitation for
+   * it. Accepts the invitations left over from before for people who are
+   * already in that project, and refreshes their cached permissions.
+   * Invitations of people who have not joined are left pending. Idempotent.
+   */
+  new AcceptPendingTeamInvitationsOfProjectMembers(),
+  /*
+   * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
+   * AddTtlOnlyDropPartsToTelemetryV3 and the models used to set: a metric
+   * partition mixes telemetry retention with monitor retention, and a log
+   * partition mixes it with the per-severity override, so neither expires
+   * as a whole and TTL evicts nothing. Its only ordering requirement is to
+   * come after that migration (boot schema-sync creates the *Local tables it
+   * alters before any data migration runs), so it sits here rather than in
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * Cluster-aware, so it actually reaches an existing install.
+   */
+  new DropTtlOnlyDropPartsFromMixedRetentionTables(),
+  /*
+   * Rounds the TTL of those same three tables up to the midnight after each
+   * row's retentionDate, so a day's rows of one retention expire together -
+   * one merge, or a part drop - instead of the partition being rewritten
+   * every merge_with_ttl_timeout while they expire. Boot schema-sync never
+   * changes an existing table's TTL, so existing installs get it only here.
+   * MODIFY TTL without materializing it: nothing is rewritten when it runs.
+   * Cluster-aware; after the migration above only so the two read in order.
+   */
+  new RoundTtlToDayOnMixedRetentionTables(),
+  /*
+   * Seeds the missed call notification setting (email on) for existing
+   * members, so Notification Settings shows it the way it behaves. No
+   * ordering requirement, so it sits before the last slot that
+   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new AddIncomingCallMissedNotificationSettingsForUsers(),
+  /*
+   * Numbers the drag-ordered lists (custom fields, rules, pipelines, status
+   * page links...) that have rows without a number or rows sharing one, 1..n
+   * in the order each is shown in today, so a drop on them lands where it
+   * was dropped. Lists with unique numbers are left alone. Postgres-only,
+   * idempotent, and never halts the chain: a table it cannot renumber is
+   * logged and skipped.
+   */
+  new NormalizeListOrder(),
+  /*
+   * A measurement's chart points are now written in its unit; this has the
+   * backfill worker write again the points of every measurement saved in
+   * minutes, hours or days, which were written in seconds. Postgres-only
+   * (the worker writes the points), never halts the chain. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new RewriteMeasurementPointsInTheirUnit(),
+  /*
+   * A file is public exactly while a record shows it to everyone, or while
+   * it is a probe's or an AI agent's icon: images published records show
+   * become public, and public files nothing published shows become private
+   * (PublishedImages). Postgres-only, idempotent. No ordering requirement,
+   * so it sits before the last slot.
+   */
+  new SetFileVisibilityFromPublishedRecords(),
+  /*
+   * Workspace summaries have a time zone, and their schedule is read on its
+   * clock: each one made before then gets its creator's (UTC when it has no
+   * creator with one), so a summary set for 09:00 keeps going out at 09:00
+   * after the clocks change. Writes only the time zone, no next send.
+   * Postgres-only, idempotent. No ordering requirement beyond the schema
+   * migration that adds the column, so it sits before the last slot.
+   */
+  new SetWorkspaceSummaryTimezones(),
+  /*
+   * Metric data points are read with Read Telemetry Service Metrics now,
+   * where their table, routes and AI tools named Read Telemetry Service
+   * Traces. Keeps the metric reads of every team and API key holding Read
+   * Traces where they were: a Read Metrics with the same scope and labels,
+   * added or set (copied, never renamed; blocks and writes are not
+   * copied). Postgres-only and idempotent; every grantee whose reads
+   * change, and every write it cannot make, is logged. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new AddTelemetryServiceMetricsPermissions(),
+  /*
+   * A private incident or episode is never shown on a status page, so the
+   * images of one stored private with Visible on Status Page still on, made
+   * public as if it were shown, become private again - unless a published
+   * record still shows them, or they are icons (PublishedImages).
+   * Postgres-only, idempotent. No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new HideImagesOfPrivateIncidents(),
+  /*
+   * A public note shows its images only while the incident, episode or
+   * scheduled maintenance event it belongs to is shown on status pages, so
+   * the images of public notes of records no status page shows - and the
+   * images a private record kept public through its own notes - become
+   * private again, unless a published record still shows them, or they are
+   * icons (PublishedImages). Postgres-only, idempotent, never makes a file
+   * public. After HideImagesOfPrivateIncidents; no other ordering
+   * requirement, so it sits before the last slot.
+   */
+  new HideImagesOfHiddenRecordNotes(),
+  /*
+   * Workflow steps act as a Project Admin of their project, not as
+   * OneUptime itself (WorkflowPrincipal): adds the two audit-log columns
+   * that name the workflow whose step made a change (AuditLogV2.workflowId,
+   * workflowName). Metadata-only and idempotent; rows written before it read
+   * as "not made by a workflow". No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new AddAuditLogWorkflowColumns(),
+  /*
+   * A person's own notification settings for a project (rules, methods,
+   * settings, email rollup preference and pending rollup mail, routed call
+   * number) go when they leave it now; this removes the ones people who
+   * already left still have, only for pairs with no accepted membership,
+   * re-checked per pair. Postgres-only, idempotent, never touches a member.
+   * No ordering requirement, so it sits before the last slot.
+   */
+  new RemoveNotificationSettingsOfFormerMembers(),
+  /*
+   * On OneUptime Cloud, API keys stop working below Growth and SCIM only
+   * removes people below Scale. Owners of projects that were already below
+   * those plans when that shipped got no word: this emails them once, in the
+   * plan change's words (PlanDowngradeOwnerNotice). Billing off: nothing is
+   * read or sent. Safe to run twice, at once or later: the project row's
+   * planCutoffNoticeSentAt is claimed by one conditional UPDATE. After the
+   * schema migration that adds that column; no other ordering requirement,
+   * so it sits before the last slot.
+   */
+  new NotifyOwnersOfStoppedApiKeysAndScim(),
+  /*
+   * An announcement shows its images from the time it is shown on
+   * (PublishedImages), so the images an announcement scheduled for later
+   * made public when it was created become private until it is shown -
+   * unless a published record shows them now, or they are icons. The first
+   * request for one once the announcement is shown makes it public again.
+   * Postgres-only, idempotent, never makes a file public. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new HideImagesOfScheduledAnnouncements(),
+  /*
+   * The MCP clients a person connected to a project and their consent to its
+   * single sign-on go when they leave it now; this removes the ones people
+   * who already left still have, only for pairs with no accepted membership,
+   * re-checked per pair. Postgres-only, idempotent, never touches a member.
+   * No ordering requirement, so it sits before the last slot.
+   */
+  new RemoveProjectAccessOfFormerMembers(),
+  /*
+   * Fills in the ids the steps of API-written monitors and templates never got
+   * (steps, criteria, incident and alert templates), so their probe results
+   * show on the monitor page and their incidents can auto-resolve. Only adds
+   * what is missing, and has no ordering requirement, so it sits before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new AddMissingIdsToMonitorSteps(),
+  /*
+   * Encrypts the Twilio auth tokens that were stored as plaintext before the
+   * column became a secret. No ordering requirement, so it sits before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new EncryptProjectCallSMSConfigTwilioAuthToken(),
+  /*
+   * Builds idx_attribute_values - the bloom filter over every attribute
+   * value of LogItemV3 and SpanItemV3 - for the rows an install already
+   * has, so a log or trace search for one attribute value skips the
+   * granules that cannot hold it over the whole retention (#4706). Boot
+   * schema-sync adds the index definition first; this queues a background
+   * MATERIALIZE INDEX that reads each row's attributes once. Cluster-aware
+   * and idempotent; no ordering requirement, so it sits before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MaterializeAttributeValuesIndex(),
+  /*
+   * A Slack or Microsoft Teams account is connected to a member only by the
+   * member signing in to the chat as it; this removes the links people wrote
+   * through the API instead (they name a creator, which no sign-in does),
+   * with the notification methods made from them. Postgres-only, idempotent,
+   * never touches a link a sign-in wrote. No ordering requirement, so it
+   * sits before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RemoveChatAccountLinksNotMadeBySignIn(),
+  /*
+   * A person's own notification settings for a project are added only by
+   * a member of it now; this removes the ones people who are not members
+   * of a project hold there, as leaving removes them (the walk
+   * RemoveNotificationSettingsOfFormerMembers ran). Postgres-only,
+   * idempotent, never touches a member's rows. No ordering requirement,
+   * so it sits before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new RemoveNotificationSettingsOfNonMembers(),
+  /*
+   * The metric catalog's unit for the Docker / Podman container percents
+   * (container.memory.percent, docker_stats' container.cpu.utilization,
+   * podman_stats' container.cpu.percent): "%" where the rows said "1", the
+   * unit those receivers declare for a 0-100 value, which every chart read
+   * 100 times too high. The Kubernetes agent's container.cpu.utilization
+   * (cores, "1") is left alone. Postgres-only, idempotent; no ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RecordContainerPercentMetricUnits(),
+  /*
+   * Huntress became a workflow trigger: each Huntress connection becomes
+   * the workflow that does what it did - same id, same address Huntress
+   * posts to (/api/huntress/webhook/<id>), same signing secret, on - and
+   * the incidents it opened keep their report's number, so the workflow
+   * finds them when Huntress comments on or closes a report. Owners of a
+   * project whose plan runs no workflows are told by email. The legacy
+   * tables stay. After AddWorkflowWebhookSigningSecret1803400000000;
+   * idempotent; no other ordering requirement, so it sits before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MoveHuntressConnectionsToWorkflows(),
+  /*
+   * When somebody was first paged about each incident, alert and episode
+   * paged before the upgrade - what "Time to acknowledge after paging"
+   * counts from - from the steps of its on-call runs, then every measurement
+   * that starts or ends at it worked out again. After AddFirstPagedAt
+   * 1804900000000; Postgres-only and idempotent; no other ordering
+   * requirement. It sits above MoveRunbookSecretsAndCredentialsToVariables,
+   * which keeps its place right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillFirstPagedAt(),
+  /*
+   * A runbook step's approval moved to the step it guards ("Require approval
+   * before running this step"): every stored runbook's approval after step
+   * N becomes an approval before step N+1, and one after the last step a
+   * Manual step at the end, so each runs exactly as it did. Runs already
+   * started keep their own copy of the steps. Postgres-only and idempotent;
+   * no ordering requirement, so it sits above
+   * MoveRunbookSecretsAndCredentialsToVariables, which keeps its place right
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MoveRunbookApprovalsBeforeTheirSteps(),
+  /*
+   * Runbook variables took the place of runbook secrets and of the
+   * credentials runbook steps used: every secret becomes a secret global
+   * variable of the same name, every credential a step names the secret
+   * variables its key, password or kubeconfig went into, and every SSH and
+   * Kubernetes step is rewritten to a script that uses them, doing what it
+   * did. The legacy secrets table and the credentials stay. After
+   * AddRunbookVariable1804265000000; idempotent; no other ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new MoveRunbookSecretsAndCredentialsToVariables(),
+  /*
+   * OAuth sign-in for the MCP server: adds the two audit-log columns that
+   * say a change was made through a connected MCP client, and which one
+   * (AuditLogV2.mcpOAuthGrantId, mcpClientName). Metadata-only and
+   * idempotent; rows written before it read as "not through an MCP client".
+   */
+  new AddAuditLogMcpClientColumns(),
 ];
 
 export default DataMigrations;

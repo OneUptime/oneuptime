@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import User from "../../../Models/DatabaseModels/User";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import Dictionary from "../../../Types/Dictionary";
@@ -364,7 +365,7 @@ export default class ProbeMonitorsNotification {
     });
 
     const smsMessage: SMSMessage = {
-      message: `This is a message from OneUptime. ${summary} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      message: buildNotificationSms(summary),
     };
 
     const callRequestMessage: CallRequestMessage = {

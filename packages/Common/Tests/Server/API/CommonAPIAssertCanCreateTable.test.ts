@@ -8,7 +8,11 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * The CRUD create has two table-level halves and both are applied: an Allow
  * grant from the model's create list, and no unlabelled team BLOCK row on
  * any permission in that list (a block overrides every Allow). Master
- * admins bypass both. It is the create twin of assertCanReadTable, and the
+ * admins bypass both. A credential issued for reading only (an MCP client
+ * connected read-only) is refused before either half, master admin or not,
+ * as the CRUD create refuses it.
+ *
+ * It is the create twin of assertCanReadTable, and the
  * Slack / Microsoft Teams "Send Test" routes are its first callers: without
  * the block half, a member whose team is blocked from creating workspace
  * notification rules was refused by POST /workspace-notification-rule but
@@ -41,6 +45,7 @@ import TablePermission from "../../../Server/Types/Database/Permissions/TablePer
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -535,6 +540,69 @@ describe("CommonAPI.assertCanCreateTable", () => {
         CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
       );
     }
+  });
+
+  test("refuses a credential issued for reading only, whatever its member may do, before either half", () => {
+    const blockCheck: jest.SpyInstance = jest.spyOn(
+      TablePermission,
+      "checkTableLevelBlockPermissions",
+    );
+
+    for (const permissions of [
+      [Permission.ProjectOwner],
+      [Permission.ProjectMember],
+      [Permission.CreateWorkspaceNotificationRule],
+      [Permission.Viewer],
+    ]) {
+      const thrown: unknown = refusal(() => {
+        CommonAPI.assertCanCreateTable({
+          modelType: WorkspaceNotificationRule,
+          props: {
+            ...buildProps({ permissions: permissions }),
+            isReadOnlyCredential: true,
+          },
+          errorMessage: CUSTOM_MESSAGE,
+        });
+      });
+
+      expect(thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((thrown as Exception).message).toBe(
+        DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+      );
+    }
+
+    expect(blockCheck).not.toHaveBeenCalled();
+  });
+
+  test("a read-only credential is refused for a master admin too: no permission makes it write", () => {
+    const thrown: unknown = refusal(() => {
+      CommonAPI.assertCanCreateTable({
+        modelType: WorkspaceNotificationRule,
+        props: {
+          ...buildProps({ permissions: [] }),
+          isMasterAdmin: true,
+          userType: UserType.MasterAdmin,
+          isReadOnlyCredential: true,
+        },
+      });
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Exception).message).toBe(
+      DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+    );
+  });
+
+  test("a credential that may make changes is decided by the two halves as before", () => {
+    expect(() => {
+      CommonAPI.assertCanCreateTable({
+        modelType: WorkspaceNotificationRule,
+        props: {
+          ...buildProps({ permissions: [Permission.ProjectMember] }),
+          isReadOnlyCredential: false,
+        },
+      });
+    }).not.toThrow();
   });
 
   test("master admin bypasses both halves", () => {

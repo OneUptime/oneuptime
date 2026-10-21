@@ -13,6 +13,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the AlertOwner:SendStateChangeEmail cron's per-row
@@ -102,6 +103,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
     },
@@ -178,6 +180,7 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotificat
 
 interface AlertServiceMock {
   findOneById: jest.Mock;
+  findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
 }
@@ -279,8 +282,10 @@ function makeAlert(data: {
   alert.alertNumber = 42;
   alert.alertNumberWithPrefix = "AL-42";
 
-  const monitor: Monitor = new Monitor();
+  // With its id and project, or the affected-resource read leaves it out.
+  const monitor: Monitor = new Monitor(new ObjectID("monitor-1"));
   monitor.name = "web-server-1";
+  monitor.projectId = PROJECT_ID;
   alert.monitor = monitor;
 
   if (data.severityName) {
@@ -303,6 +308,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
   return user;
 }
 
+/*
+ * The job reads the alert's affected resources back through
+ * AlertService.findAllBy, right after its own findOneById for the row; answer
+ * those reads with the alert that findOneById just returned.
+ */
+function answerRelationReadsWithFetchedAlert(): void {
+  alertService.findAllBy.mockImplementation(async () => {
+    const results: Array<{ value: unknown }> =
+      alertService.findOneById.mock.results;
+    const alert: unknown =
+      results.length > 0 ? await results[results.length - 1]!.value : null;
+
+    return alert ? [alert] : [];
+  });
+}
+
 function stubAlerts(alerts: Array<Alert>): void {
   const alertsById: Record<string, Alert> = {};
 
@@ -313,6 +334,8 @@ function stubAlerts(alerts: Array<Alert>): void {
   alertService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(alertsById[args.id.toString()] || null);
   });
+
+  answerRelationReadsWithFetchedAlert();
 }
 
 interface FindOneByIdArgs {
@@ -448,8 +471,11 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(fetch.id.toString()).toBe(ALERT_1_ID.toString());
     expect(fetch.props).toEqual({ isRoot: true });
 
-    // The single select now carries the severity relation...
-    expect(fetch.select["alertSeverity"]).toEqual({ name: true });
+    /*
+     * The single select now carries the severity relation - its name and the
+     * colour the email paints it in...
+     */
+    expect(fetch.select["alertSeverity"]).toEqual({ name: true, color: true });
 
     // ...alongside every field the old first query selected.
     expect(fetch.select).toMatchObject({
@@ -457,10 +483,15 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
       title: true,
       projectId: true,
       description: true,
-      monitor: { name: true },
       alertNumber: true,
       alertNumberWithPrefix: true,
     });
+
+    /*
+     * The monitor is no longer joined here: the affected resources, monitor
+     * included, are read one relation at a time by LinkedAffectedResources.
+     */
+    expect(fetch.select["monitor"]).toBeUndefined();
 
     // The row still completes end to end off the merged fetch.
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
@@ -578,8 +609,11 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
         projectName: "Prod Project",
         currentState: "Acknowledged",
         currentStateColor: Blue500.toString(),
+        // The readable shade of each state colour, for its name.
+        currentStateTextColor: EmailColorUtil.getColorPair(Blue500)!.textColor,
         previousState: "Identified",
         previousStateColor: Red500.toString(),
+        previousStateTextColor: EmailColorUtil.getColorPair(Red500)!.textColor,
         previousStateDurationText: `Was Identified for ${expectedDuration}`,
         alertDescription: convertedHtmlOf("**CPU** load is high"),
         resourcesAffected: "web-server-1",
@@ -626,7 +660,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
         "[Acknowledged Alert AL-42] - CPU is high",
       );
       expect(call.smsMessage.message).toBe(
-        "This is a message from OneUptime. Alert AL-42 (CPU is high) - state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.",
+        "OneUptime: Alert AL-42 (CPU is high) - state changed from Identified to Acknowledged. Turn off in User Settings > Notification Settings.",
       );
       expect(call.callRequestMessage.data[0]!.sayMessage).toBe(
         "This is a message from OneUptime. Alert AL-42 (CPU is high) state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.",
@@ -647,14 +681,24 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
 
-    // The feed item is unchanged, one entry per notified owner.
+    // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
     expect(feedService.createAlertFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert AL-42](${ALERT_LINK}).**: Owners have been notified about the state change of the alert because the alert state changed to **Acknowledged**.`,
-        moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        feedInfoInMarkdown:
+          "Owners were notified that this alert is now **Acknowledged**.",
+        // Who was notified: a list, one per line.
+        moreInformationInMarkdown: `- @${USER_1_ID.toString()}\n- @${USER_2_ID.toString()}\n- @${USER_3_ID.toString()}\n`,
+        /*
+         * The feed only: the alert's Slack and Microsoft Teams channels were
+         * told of the state change itself, and used to get this right under
+         * it as well.
+         */
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       }),
     );
   });

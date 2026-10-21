@@ -7,6 +7,7 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import useAiOffered from "../../../Utils/UseAiOffered";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -20,6 +21,13 @@ const ExceptionViewSideMenu: FunctionComponent<ComponentProps> = (
       modelId: props.modelId,
     });
   };
+
+  /*
+   * AI Assistance is an AI action: with the project's AI switched off there
+   * is nothing on it anyone can start, so it is not in the menu
+   * (Common/Utils/Suggestions/AiSuggestion).
+   */
+  const isAiOffered: boolean = useAiOffered();
 
   return (
     <SideMenu>
@@ -58,15 +66,19 @@ const ExceptionViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Resolve">
-        <SideMenuItem
-          link={{
-            title: "AI Assistance",
-            to: getRoute(PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE),
-          }}
-          icon={IconProp.Bolt}
-        />
-      </SideMenuSection>
+      {isAiOffered ? (
+        <SideMenuSection title="Resolve">
+          <SideMenuItem
+            link={{
+              title: "AI Assistance",
+              to: getRoute(PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE),
+            }}
+            icon={IconProp.Bolt}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Manage">
         <SideMenuItem

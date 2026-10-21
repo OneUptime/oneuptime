@@ -1,11 +1,20 @@
-import CodeFixReadiness from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
+import CodeFixReadiness, {
+  CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+  GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+  NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+  describeRepositoryRunnerStatus,
+  getRepositoryRunnerBlocker,
+  getRepositoryRunnerOfflineDetail,
+} from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
+import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
-import AIAgentService from "../../../../Server/Services/AIAgentService";
-import RunnerService from "../../../../Server/Services/RunnerService";
+import { CodeTaskBlockerType } from "../../../../Types/AI/CodeTask";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
-import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../../Types/ObjectID";
@@ -13,7 +22,7 @@ import {
   AIFixReadiness,
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
-import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * The gates the AI Tasks page renders. The invariant worth protecting: a
@@ -37,20 +46,7 @@ function fakeProvider(params: {
   } as unknown as LlmProvider;
 }
 
-// No daily-budget limit configured: the common case, and never a blocker.
-function mockBudgetNotExhausted(): void {
-  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-    exhausted: false,
-    limitInTokens: null,
-    usedTokensToday: 0,
-  });
-}
-
 describe("CodeFixReadiness.getLlmProviderCheck", () => {
-  beforeEach(() => {
-    mockBudgetNotExhausted();
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -182,6 +178,104 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
 
     expect(check.ok).toBe(false);
     expect(check.detail).toContain("AI Credits");
+    /*
+     * Read by everyone on the AI Tasks page: it names who can add credits
+     * rather than telling the reader to recharge.
+     */
+    expect(check.detail).toBe(CODE_FIX_AI_CREDITS_USED_UP_DETAIL);
+    expect(check.detail).toContain(
+      "A project owner or someone with Manage Billing can add AI credits",
+    );
+    expect(check.detail).not.toMatch(/\brecharge\b/i);
+  });
+
+  /*
+   * The first fix completion on used-up credits recharges them first when
+   * Auto Recharge is on, as every billed AI call does - so the AI Tasks page
+   * says ready, as the AI agent pages and the investigation gate do
+   * (AIService.getAiBalanceBlocker).
+   */
+  test("an empty balance with Auto Recharge on and set up is ready: the first completion refills it", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 20,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+    jest.spyOn(GlobalCache, "getString").mockResolvedValue(null);
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(true);
+  });
+
+  test("an empty balance whose Auto Recharge last failed is NOT ready: it will not refill before the run", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 20,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockResolvedValue("2026-10-07T08:00:00.000Z");
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(false);
+    expect(check.detail).toBe(CODE_FIX_AI_CREDITS_USED_UP_DETAIL);
+  });
+
+  test("an empty balance with Auto Recharge on but nothing to add is NOT ready", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 0,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(false);
   });
 });
 
@@ -191,57 +285,23 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
  * ignored it would report ready and then die at the run's first completion
  * call — the exact fail-late hole the balance gate exists to close.
  */
+/*
+ * Readiness only covers subjectless fix tasks, and subjectless AI work has no
+ * daily token limit, so the token budget never gates it.
+ */
 describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("a zeroed daily limit (the kill switch) is NOT ready, even with a healthy project-owned provider", async () => {
+  test("the daily token budget is not consulted", async () => {
     jest
       .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
       .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-      exhausted: true,
-      limitInTokens: 0,
-      usedTokensToday: 0,
-    });
-
-    const check: AIFixReadinessCheck =
-      await CodeFixReadiness.getLlmProviderCheck({
-        projectId,
-        billingEnabled: false,
-      });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("paused");
-  });
-
-  test("an exhausted daily budget is NOT ready and reports the usage", async () => {
-    jest
-      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
-      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-      exhausted: true,
-      limitInTokens: 1000,
-      usedTokensToday: 1000,
-    });
-
-    const check: AIFixReadinessCheck =
-      await CodeFixReadiness.getLlmProviderCheck({
-        projectId,
-        billingEnabled: false,
-      });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("exhausted");
-    expect(check.detail).toContain("1,000");
-  });
-
-  test("an unset daily limit never blocks", async () => {
-    jest
-      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
-      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    mockBudgetNotExhausted();
+    const getBudget: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "getAutonomousDailyBudgetStatus",
+    );
 
     const check: AIFixReadinessCheck =
       await CodeFixReadiness.getLlmProviderCheck({
@@ -250,84 +310,223 @@ describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget
       });
 
     expect(check.ok).toBe(true);
+    expect(getBudget).not.toHaveBeenCalled();
   });
 });
 
+/*
+ * Whether a Runner is online to do the work: for a known repository, the one
+ * its Runner setting in Code picks (or a global Runner for one that picks
+ * none - CodeRepositoryRunnerChoice, which has its own suite); before a
+ * repository is known, anything online for the project's repositories.
+ */
 describe("CodeFixReadiness.getAgentCheck", () => {
-  beforeEach(() => {
-    // Default: no Runner. Individual tests opt into one.
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue(null);
-  });
+  const RUNNER_ID: string = "0a1b2c3d-1111-4222-8333-944455556666";
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("no agent for the project: not ready", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue(null);
+  test("project-wide: nothing online for the project's repositories is not ready, and says what decides it", async () => {
+    const anyOnline: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(false);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
     });
 
+    expect(anyOnline).toHaveBeenCalledWith(projectId);
     expect(check.id).toBe("agentAvailable");
     expect(check.ok).toBe(false);
-    expect(check.detail).toContain("No agent is available");
+    expect(check.title).toBe("Runner online");
+    expect(check.detail).toBe(NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL);
   });
 
-  test("an agent that exists but is not alive: not ready, and names it", async () => {
+  test("project-wide: something online is ready", async () => {
     jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest
-      .spyOn(AIAgentService, "getAIAgentForProject")
-      .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
-
-    const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
-      projectId,
-    });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("fix-worker");
-  });
-
-  test("a live agent is ready and is named", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(true);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
     });
 
     expect(check.ok).toBe(true);
-    expect(check.title).toContain("fix-worker");
+    expect(check.detail).toBe("Connected and polling for tasks.");
   });
 
-  /*
-   * A customer-installed Runner with the code-fix capability is the agent for
-   * most projects — readiness that only looked at the AIAgent table told them
-   * to go install an agent they were already running.
-   */
-  test("an online code-fix Runner satisfies the check and is named", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue({ name: "prod-runner" } as unknown as never);
+  test("a repository's own Runner online: ready, and named", async () => {
+    const status: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: true,
+        runnerName: "prod-runner",
+      });
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
+      repository: { projectId, runnerId: RUNNER_ID },
+    });
+
+    expect(status).toHaveBeenCalledWith({ projectId, runnerId: RUNNER_ID });
+    expect(check.ok).toBe(true);
+    expect(check.title).toBe("Runner online: prod-runner");
+  });
+
+  test("a repository on a global Runner that is online: ready, as the Global Runner", async () => {
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: true,
+      });
+
+    const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
+      projectId,
+      repository: { projectId },
     });
 
     expect(check.ok).toBe(true);
-    expect(check.title).toContain("prod-runner");
+    expect(check.title).toBe("Global Runner online");
+  });
+
+  test.each([
+    [
+      "its own Runner is offline",
+      {
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: false,
+        runnerName: "prod-runner",
+      },
+      getRepositoryRunnerOfflineDetail("prod-runner"),
+    ],
+    [
+      "no global Runner is online",
+      {
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      },
+      NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+    ],
+    [
+      "its project turned global Runners off",
+      {
+        decision: { kind: CodeRepositoryRunnerChoiceKind.NoRunner },
+        isOnline: false,
+      },
+      GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    ],
+  ])(
+    "a repository whose %s: not ready, saying why",
+    async (_why: string, status: unknown, detail: string) => {
+      jest
+        .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+        .mockResolvedValue(status as never);
+
+      const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
+        projectId,
+        repository: { projectId },
+      });
+
+      expect(check.ok).toBe(false);
+      expect(check.title).toBe("Runner online");
+      expect(check.detail).toBe(detail);
+    },
+  );
+});
+
+describe("why nothing can do a repository's work, in words and as Code's blocker", () => {
+  test("a Runner the repository picks that is offline is named, with what to do", () => {
+    expect(getRepositoryRunnerOfflineDetail("prod-runner")).toBe(
+      'The Runner "prod-runner" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
+    );
+    // A pick the project no longer has is still said, without a name.
+    expect(getRepositoryRunnerOfflineDetail(undefined)).toBe(
+      "The Runner this repository picks is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.",
+    );
+  });
+
+  test("each says where the Runner is picked: the repository's settings in Code", () => {
+    for (const detail of [
+      NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+      GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+      getRepositoryRunnerOfflineDetail("x"),
+    ]) {
+      expect(detail).toContain("repository's settings in Code");
+      // Never the switch Runners no longer have.
+      expect(detail).not.toContain("Code Fixes");
+    }
+  });
+
+  test("online is no reason at all, and no blocker", () => {
+    const online: Parameters<typeof describeRepositoryRunnerStatus>[0] = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    };
+
+    expect(describeRepositoryRunnerStatus(online)).toBeNull();
+    expect(getRepositoryRunnerBlocker(online)).toBeNull();
+  });
+
+  test("a Runner whose name is not known is not named", () => {
+    const blocker: ReturnType<typeof getRepositoryRunnerBlocker> =
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: "0a1b2c3d-1111-4222-8333-944455556666",
+        },
+        isOnline: false,
+      });
+
+    expect(blocker).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getRepositoryRunnerOfflineDetail(undefined),
+    });
+    expect(Object.keys(blocker || {})).not.toContain("runnerName");
+  });
+
+  test("each kind of decision is its own blocker", () => {
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: "0a1b2c3d-1111-4222-8333-944455556666",
+        },
+        isOnline: false,
+        runnerName: "prod-runner",
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getRepositoryRunnerOfflineDetail("prod-runner"),
+      // Named, so Code's notice says which Runner to check.
+      runnerName: "prod-runner",
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.NoAgent,
+      message: NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.NoRunner },
+        isOnline: false,
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersOff,
+      message: GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    });
   });
 });
 
@@ -378,7 +577,6 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
   };
 
   function mockAll(params: MockAllParams): void {
-    mockBudgetNotExhausted();
     jest
       .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
       .mockResolvedValue(params.hasRepo);
@@ -388,16 +586,8 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
         params.hasProvider ? fakeProvider({ name: "provider" }) : null,
       );
     jest
-      .spyOn(AIAgentService, "getAIAgentForProject")
-      .mockResolvedValue({ name: "agent" } as unknown as AIAgent);
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(
-        params.agentAlive ? ({ name: "agent" } as unknown as AIAgent) : null,
-      );
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue(null);
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(params.agentAlive);
   }
 
   test("all three gates satisfied: ready", async () => {

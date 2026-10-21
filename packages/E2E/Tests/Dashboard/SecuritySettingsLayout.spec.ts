@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../Config";
+import { getRowMenuAction } from "../Helpers/RowActions";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import {
   APIResponse,
@@ -186,12 +187,17 @@ test.describe("Security settings card layout", () => {
                 .getByRole("row")
                 .filter({ hasText: name });
               await expect(row).toBeVisible();
+              // Rename is the row's one button; Delete is in its ⋯ menu.
               await expect(
                 row.getByRole("button", { name: "Rename", exact: true }),
               ).toBeEnabled();
-              await expect(
-                row.getByRole("button", { name: "Delete", exact: true }),
-              ).toBeEnabled();
+              const deleteAction: Locator = await getRowMenuAction({
+                row,
+                name: "Delete",
+              });
+              await expect(deleteAction).toBeEnabled();
+              await page.keyboard.press("Escape");
+              await expect(deleteAction).toHaveCount(0);
             }
             await expect(
               credentialCard.getByText("Existing credential", { exact: true }),
@@ -316,8 +322,8 @@ test.describe("Security settings card layout", () => {
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText(
         enabled
-          ? "finish setup at your next sign-in"
-          : "Your authenticator apps and security keys will stay saved",
+          ? "you set it up at your next sign-in"
+          : "Your authenticator apps and security keys stay saved",
       );
       await expect(page.getByText(adminOnlyText)).toHaveCount(0);
       await dialog.getByRole("button", { name: action, exact: true }).click();

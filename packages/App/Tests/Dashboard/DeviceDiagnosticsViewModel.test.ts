@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
-import NetworkPathTrace from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
+import NetworkPathTrace, {
+  TraceRouteHop,
+} from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { NetworkDeviceDiagnosticPingResult } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
@@ -325,7 +327,111 @@ describe("describeTraceRoute", () => {
       timestamp: trace.timestamp,
     });
 
-    expect(summary.headline).toBe("Did not reach the destination");
+    // Nothing was traced, so nothing is claimed about the route.
+    expect(summary.headline).toBe("No path was recorded");
+    expect(summary.note).toBeUndefined();
+    expect(summary.hops).toEqual([]);
+  });
+
+  /*
+   * A probe with no usable IPv6 cannot even open traceroute's socket: it
+   * records zero hops and the reason. The drawer used to headline that as
+   * "Did not reach the destination", which reads as the device's network
+   * failing when not one probe packet was sent.
+   */
+  test("traceroute that never ran records no path and says why in the note", () => {
+    const summary: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: {
+        destinationAddress: "2001:518:2800:9::2",
+        destinationHostName: undefined,
+        isComplete: false,
+        totalHops: 0,
+        failedHop: undefined,
+        failureMessage:
+          "Traceroute could not run: this probe cannot send IPv6 traffic (connect: Cannot assign requested address).",
+        hops: [],
+      },
+    });
+
+    expect(summary.headline).toBe("No path was recorded");
+    expect(summary.headline).not.toMatch(/reach/i);
+    expect(summary.note).toBe(
+      "Traceroute could not run: this probe cannot send IPv6 traffic (connect: Cannot assign requested address).",
+    );
+    expect(summary.hops).toEqual([]);
+  });
+
+  test("an older probe's raw execFile message still gets no route verdict", () => {
+    const failureMessage: string =
+      "Command failed: traceroute -6 -m 20 -w 3 2001:518:2800:9::2\n\nconnect: Cannot assign requested address\n";
+
+    const summary: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: {
+        ...trace.traceRoute!,
+        destinationAddress: "2001:518:2800:9::2",
+        isComplete: false,
+        totalHops: 0,
+        failureMessage,
+        hops: [],
+      },
+    });
+
+    expect(summary.headline).toBe("No path was recorded");
+    expect(summary.note).toBe(failureMessage);
+  });
+
+  test("a traceroute that hit its deadline before any hop printed records no path", () => {
+    const summary: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: {
+        ...trace.traceRoute!,
+        isComplete: false,
+        totalHops: 0,
+        failureMessage: "Traceroute timed out",
+        hops: [],
+      },
+    });
+
+    expect(summary.headline).toBe("No path was recorded");
+    expect(summary.note).toBe("Traceroute timed out");
+  });
+
+  test("no hops wins over a completion or failed hop the payload claims", () => {
+    const completeWithoutHops: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: { ...trace.traceRoute!, isComplete: true, hops: [] },
+    });
+    const brokenWithoutHops: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: {
+        ...trace.traceRoute!,
+        isComplete: false,
+        failedHop: 2,
+        hops: [],
+      },
+    });
+
+    /*
+     * Otherwise: "Reached the destination in 0 hops", and a hop number
+     * with no table to find it in.
+     */
+    expect(completeWithoutHops.headline).toBe("No path was recorded");
+    expect(brokenWithoutHops.headline).toBe("No path was recorded");
+  });
+
+  test("a stored trace with no hops array records no path instead of throwing", () => {
+    const summary: TraceRouteSummary = describeTraceRoute({
+      timestamp: trace.timestamp,
+      traceRoute: {
+        ...trace.traceRoute!,
+        isComplete: false,
+        hops: undefined as unknown as Array<TraceRouteHop>,
+      },
+    });
+
+    expect(summary.headline).toBe("No path was recorded");
     expect(summary.hops).toEqual([]);
   });
 

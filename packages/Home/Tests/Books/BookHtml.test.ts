@@ -10,6 +10,7 @@ import {
   sanitizeBookHtml,
 } from "../../Utils/Books/BookHtml";
 import { defaultBookItems, EpubItem } from "./Helpers/EpubFixture";
+import { seededRandom } from "../../../Common/Tests/Helpers/SeededRandom";
 
 /*
  * sanitizeBookHtml is the security boundary of the in-page reader: the book's
@@ -1121,20 +1122,6 @@ describe("sanitizeBookHtml: the book's own documents", () => {
  * the assertion prints the input that produced it.
  */
 describe("sanitizeBookHtml: fuzzing", () => {
-  const createRandom: (seed: number) => () => number = (
-    seed: number,
-  ): (() => number) => {
-    let state: number = seed >>> 0;
-
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let value: number = state;
-      value = Math.imul(value ^ (value >>> 15), value | 1);
-      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-  };
-
   const TAGS: Array<string> = [
     "script",
     "SCRIPT",
@@ -1315,7 +1302,7 @@ describe("sanitizeBookHtml: fuzzing", () => {
   };
 
   test("never produces unsafe or unbalanced output for 600 random documents", () => {
-    const random: () => number = createRandom(0x0b00c5);
+    const random: () => number = seededRandom(0x0b00c5);
     const failures: Array<{ input: string; violations: Array<string> }> = [];
 
     for (let iteration: number = 0; iteration < 600; iteration++) {
@@ -1334,8 +1321,8 @@ describe("sanitizeBookHtml: fuzzing", () => {
   });
 
   test("is deterministic", () => {
-    const first: () => number = createRandom(42);
-    const second: () => number = createRandom(42);
+    const first: () => number = seededRandom(42);
+    const second: () => number = seededRandom(42);
 
     for (let iteration: number = 0; iteration < 25; iteration++) {
       const input: string = tagSoup(first);
@@ -1346,7 +1333,7 @@ describe("sanitizeBookHtml: fuzzing", () => {
   });
 
   test("sanitizing its own output changes nothing but the namespacing it already applied", () => {
-    const random: () => number = createRandom(7);
+    const random: () => number = seededRandom(7);
 
     for (let iteration: number = 0; iteration < 150; iteration++) {
       const once: string = sanitize(tagSoup(random));

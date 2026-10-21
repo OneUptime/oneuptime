@@ -1,3 +1,5 @@
+import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 
@@ -23,10 +25,55 @@ export const getAIInvestigationVerdict: (
   return null;
 };
 
+/*
+ * Where the automatic investigation stands, as the card's conversation
+ * needs to know it:
+ *  - "checking": the card is still asking whether a run exists;
+ *  - "underway": a run is queued, investigating or writing its report;
+ *  - "reported": a root-cause report is on screen;
+ *  - "none": there is no report to read and none is coming (nothing ran, the
+ *    run stopped, or it finished without one).
+ */
+export type AIInvestigationStage =
+  | "checking"
+  | "underway"
+  | "reported"
+  | "none";
+
 export const isActiveAIInvestigationStatus: (
   status: AIRunStatus | null | undefined,
 ) => boolean = (status: AIRunStatus | null | undefined): boolean => {
   return status === AIRunStatus.Queued || status === AIRunStatus.Running;
+};
+
+export const getAIInvestigationStage: (data: {
+  isChecking: boolean;
+  runStatus: AIRunStatus | null | undefined;
+  hasReport: boolean;
+  isReportPending: boolean;
+}) => AIInvestigationStage = (data: {
+  isChecking: boolean;
+  runStatus: AIRunStatus | null | undefined;
+  hasReport: boolean;
+  isReportPending: boolean;
+}): AIInvestigationStage => {
+  if (data.isChecking) {
+    return "checking";
+  }
+
+  if (isActiveAIInvestigationStatus(data.runStatus)) {
+    return "underway";
+  }
+
+  if (data.runStatus === AIRunStatus.Completed) {
+    if (data.hasReport) {
+      return "reported";
+    }
+
+    return data.isReportPending ? "underway" : "none";
+  }
+
+  return "none";
 };
 
 /*
@@ -84,4 +131,22 @@ export const scrollToAIInvestigationPanel: () => void = (): void => {
     block: "start",
   });
   investigationPanel.focus({ preventScroll: true });
+};
+
+/*
+ * Whether the run is an incident's follow-up check (issue #4787): its
+ * activity starts with why it checks again - an alert that opened on the
+ * incident's linked infrastructure after the first analysis
+ * (ProgressLog resultSummary.followUpCheck). The card heads such a run
+ * "OneUptime AI is checking again" while it works.
+ */
+export const isFollowUpCheckRun: (events: Array<AIRunEvent>) => boolean = (
+  events: Array<AIRunEvent>,
+): boolean => {
+  return events.some((event: AIRunEvent): boolean => {
+    return (
+      event.eventType === AIRunEventType.ProgressLog &&
+      Boolean(event.resultSummary?.followUpCheck)
+    );
+  });
 };

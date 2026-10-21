@@ -15,7 +15,14 @@ import NetworkDeviceHydrationUtil, {
   ResolvedSnmpCredentialsForBatch,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  EffectiveTableResolution,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import ProbeCapability, {
+  ProbeCapabilityUtil,
+} from "Common/Types/Probe/ProbeCapability";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -58,13 +65,15 @@ const DEVICE_POLL_FETCH_LIMIT: number = NumberUtil.parseNumberWithDefault({
  * request) when it can ping a device and report the result without an SNMP
  * walk. A probe that does not advertise it predates ping-first polling.
  */
-const NETWORK_DEVICE_PING_CAPABILITY: string = "networkDevicePing";
+const NETWORK_DEVICE_PING_CAPABILITY: string =
+  ProbeCapability.NetworkDevicePing;
 
 /*
  * Hands the requesting probe the polling-enabled devices assigned to it
  * that are due for a poll. Every device is handed out as
  * `{ networkDeviceId, projectId, hostname, pollMode, collectEndpoints,
- * snmpMonitor? }`:
+ * collectTransceivers?, snmpMonitor? }` (collectTransceivers only in snmp
+ * mode):
  *
  *   pollMode "snmp" - usable SNMP credentials resolved for the device
  *                     (NetworkDeviceHydrationUtil.resolveSnmpCredentials:
@@ -136,6 +145,7 @@ router.post(
           walkInterfaces: true,
           collectEndpoints: true,
           snmpOids: true,
+          snmpTables: true,
           oidTemplateId: true,
         },
         limit: DEVICE_POLL_FETCH_LIMIT,
@@ -221,6 +231,7 @@ router.post(
                 projectId: true,
                 name: true,
                 oids: true,
+                tables: true,
               },
               limit: templateIdsInBatch.length,
               skip: 0,
@@ -329,6 +340,7 @@ router.post(
          * the template and say so loudly.
          */
         let templateOids: Array<SnmpOid> = [];
+        let templateTables: Array<SnmpTableDefinition> = [];
 
         if (linkedTemplate) {
           if (
@@ -336,6 +348,7 @@ router.post(
             device.projectId?.toString()
           ) {
             templateOids = linkedTemplate.oids || [];
+            templateTables = linkedTemplate.tables || [];
           } else {
             logger.error(
               `Network device ${device.id?.toString()} references OID Collection Template ${linkedTemplate.id?.toString()} from a different project. Ignoring the template for this poll.`,
@@ -389,18 +402,44 @@ router.post(
           oids = [{ oid: "1.3.6.1.2.1.1.1.0", name: "sysDescr" }];
         }
 
+        /*
+         * Tables resolve the same way OIDs do: the template's, then the
+         * device's own, merged by key fresh on every poll. Only the column
+         * OIDs and row limits travel to the probe.
+         */
+        const effectiveTables: EffectiveTableResolution =
+          SnmpTableListUtil.resolveEffectiveTables({
+            templateTables: templateTables,
+            deviceTables: device.snmpTables,
+          });
+
+        if (effectiveTables.truncatedCount > 0) {
+          logger.warn(
+            `Network device ${device.id?.toString()}: ${effectiveTables.truncatedCount} SNMP table(s) beyond the per-device limit were not walked.`,
+          );
+        }
+
         devicePollConfigs.push({
           networkDeviceId: device.id.toString(),
           projectId: device.projectId?.toString(),
           hostname: device.hostname,
           pollMode: pollMode,
           collectEndpoints: device.collectEndpoints === true,
+          /*
+           * Transceiver (SFP/SFP+/QSFP) health rides the interface walk:
+           * optics are matched to the ports it finds. A device answers one
+           * request per transceiver MIB it lacks, and the probe reads the
+           * static part of the ones it has (thresholds, identity) once an
+           * hour, so this is on wherever interfaces are walked.
+           */
+          collectTransceivers: monitorInterfaces,
           snmpMonitor: NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
             hostname: device.hostname,
             // Where to connect is the device's; what to connect with is resolved.
             credentials: resolved.carrier,
             oids: oids,
             monitorInterfaces: monitorInterfaces,
+            tables: SnmpTableListUtil.toWalkRequests(effectiveTables.tables),
           }) as unknown as JSONObject,
         });
       }
@@ -455,6 +494,10 @@ router.post(
  * probe sends `{ networkDeviceId, snmpResponse, monitoredAt }`. A body is
  * rejected only when it carries NEITHER a walk nor a boolean `isOnline`;
  * the processor derives whatever else is missing.
+ *
+ * Every probe body also carries the probe's `probeCapabilities` (its
+ * default request body), forwarded so the processor can tell a walk that
+ * was handed no SNMP tables from one by a probe that cannot walk them.
  */
 router.post(
   "/probe/network-device/response/ingest",
@@ -521,6 +564,9 @@ router.post(
           pollMode: typeof pollMode === "string" ? pollMode : undefined,
           pingResponse: pingResponse || undefined,
           snmpResponse: snmpResponse || undefined,
+          probeCapabilities: ProbeCapabilityUtil.parse(
+            req.body["probeCapabilities"],
+          ),
           monitoredAt: (req.body["monitoredAt"] as string) || undefined,
         },
       });

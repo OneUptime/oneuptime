@@ -8,13 +8,28 @@ import Express, {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import AutoRechargeStateRequest from "../Utils/Billing/AutoRechargeStateRequest";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import { PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE } from "../../Utils/Project/ProjectBalance";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Who may add SMS and call balance, charging the project's card. Asked the
+ * way every permission check is (CallerPermission): a team's block row is
+ * no grant, and a block with no labels on either takes it away.
+ */
+export const NOTIFICATION_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ManageProjectBilling,
+];
 
 router.post(
   "/notification/recharge",
@@ -85,17 +100,12 @@ router.post(
         );
       }
 
-      const permissions: Array<Permission> = (
-        req as OneUptimeRequest
-      ).userTenantAccessPermission![projectId.toString()]!.permissions.map(
-        (permission: UserPermission) => {
-          return permission.permission;
-        },
-      );
-
       if (
-        permissions.includes(Permission.ProjectOwner) ||
-        permissions.includes(Permission.ManageProjectBilling)
+        CallerPermission.holdsAnyOf(
+          req as OneUptimeRequest,
+          NOTIFICATION_RECHARGE_PERMISSIONS,
+          { projectId: projectId },
+        )
       ) {
         await NotificationService.rechargeBalance(projectId, amount);
       } else {
@@ -112,6 +122,34 @@ router.post(
     }
 
     return Response.sendEmptySuccessResponse(req, res);
+  },
+);
+
+/*
+ * What Auto Recharge of the project's SMS and call balance would do now:
+ * Off, Ready, or Failed (its last automatic charge did not go through, and
+ * it waits before trying the card again). Project Settings > Notification
+ * Settings shows Failed at the top, so nobody has to wait for the owners'
+ * email. Any member of the project may ask
+ * (Utils/Billing/AutoRechargeStateRequest).
+ */
+router.get(
+  PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE[ProjectBalanceType.SmsOrCall],
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const state: AutoRechargeState = await AutoRechargeStateRequest.getState({
+        req: req as OneUptimeRequest,
+        balance: ProjectBalanceType.SmsOrCall,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        state: state,
+      });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

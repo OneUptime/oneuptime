@@ -7,16 +7,13 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-  NextFunction,
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
-import Response from "Common/Server/Utils/Response";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
-import StatusCode from "Common/Types/API/StatusCode";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -36,23 +33,64 @@ import {
   generateBulkResponse,
   SCIMBulkOperationResponse,
   generateSCIMErrorResponse,
+  isScimEmailChanging,
   SCIMErrorType,
+  SCIMException,
+  sendScimError,
+  sendScimResponse,
 } from "../Utils/SCIMUtils";
+import {
+  getScimFilterText,
+  isScimAttribute,
+  parseScimFilter,
+  ScimEqualityFilter,
+} from "../Utils/SCIMFilter";
+import {
+  getScimMissingPlan,
+  getScimUserUpdateBelowPlan,
+  ScimBelowPlanRefusal,
+  ScimUpdateBelowPlan,
+  sendScimBelowPlanRefusal,
+} from "../Utils/SCIMBelowPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The userName a list of a status page's private users is filtered by - the
+ * one attribute a private user is looked up by - or null when the filter
+ * compares it with no text. Any other filter is refused as invalid (RFC
+ * 7644, section 3.4.2.2), never read as "every user".
+ */
+const getStatusPageUserNameFilter: (filter: unknown) => string | null = (
+  filter: unknown,
+): string | null => {
+  const equalities: Array<ScimEqualityFilter> =
+    typeof filter === "string" ? parseScimFilter(filter) : [];
+
+  if (
+    equalities.length !== 1 ||
+    !isScimAttribute(equalities[0]!.attribute, "userName")
+  ) {
+    throw new SCIMException({
+      statusCode: 400,
+      scimType: SCIMErrorType.InvalidFilter,
+      message:
+        'A status page\'s private users are filtered by userName only, as in userName eq "someone@example.com".',
+    });
+  }
+
+  return getScimFilterText(equalities[0]!.value);
+};
 
 // SCIM Service Provider Configuration - GET /status-page-scim/v2/ServiceProviderConfig
 router.get(
   "/status-page-scim/v2/:statusPageScimId/ServiceProviderConfig",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM ServiceProviderConfig - scimId: ${req.params["statusPageScimId"]!}`,
@@ -65,10 +103,10 @@ router.get(
         "status-page",
       );
 
-      return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
+      return sendScimResponse(req, res, serviceProviderConfig);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -78,11 +116,7 @@ router.get(
   "/status-page-scim/v2/:statusPageScimId/Schemas",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Schemas - scimId: ${req.params["statusPageScimId"]!}`,
@@ -99,10 +133,10 @@ router.get(
         "Status Page SCIM Schemas response prepared successfully",
         getLogAttributesFromRequest(req as any),
       );
-      return Response.sendJsonObjectResponse(req, res, schemasResponse);
+      return sendScimResponse(req, res, schemasResponse);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -112,11 +146,7 @@ router.get(
   "/status-page-scim/v2/:statusPageScimId/ResourceTypes",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM ResourceTypes - scimId: ${req.params["statusPageScimId"]!}`,
@@ -133,10 +163,10 @@ router.get(
         "Status Page SCIM ResourceTypes response prepared successfully",
         getLogAttributesFromRequest(req as any),
       );
-      return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
+      return sendScimResponse(req, res, resourceTypesResponse);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -146,11 +176,7 @@ router.post(
   "/status-page-scim/v2/:statusPageScimId/Bulk",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM BulkOperation request");
 
@@ -203,7 +229,7 @@ router.post(
           steps: executionSteps,
         });
 
-        return Response.sendJsonObjectResponse(
+        return sendScimResponse(
           req,
           res,
           generateSCIMErrorResponse(
@@ -211,7 +237,7 @@ router.post(
             validation.error!,
             SCIMErrorType.InvalidValue,
           ),
-          { statusCode: new StatusCode(400) },
+          400,
         );
       }
       executionSteps.push("Bulk request validation passed");
@@ -639,7 +665,7 @@ router.post(
         },
       });
 
-      return Response.sendJsonObjectResponse(req, res, bulkResponse);
+      return sendScimResponse(req, res, bulkResponse);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -667,7 +693,7 @@ router.post(
       });
 
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -677,11 +703,7 @@ router.get(
   "/status-page-scim/v2/:statusPageScimId/Users",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM ListUsers request");
 
@@ -719,15 +741,18 @@ router.get(
         statusPageId: statusPageId,
       };
 
-      // Handle SCIM filter for userName
+      /*
+       * Handle SCIM filter for userName. Any other filter is refused as
+       * invalid (parseScimFilter, getStatusPageUserNameFilter), never read
+       * as "every user".
+       */
       let filterEmail: string | undefined;
       if (filter) {
         executionSteps.push("Processing SCIM filter");
-        const emailMatch: RegExpMatchArray | null = filter.match(
-          /userName eq "([^"]+)"/i,
-        );
-        if (emailMatch) {
-          const email: string = emailMatch[1]!;
+        const filterUserName: string | null =
+          getStatusPageUserNameFilter(filter);
+        if (filterUserName !== null) {
+          const email: string = filterUserName;
           filterEmail = email;
           logger.debug(
             `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter provided`,
@@ -780,11 +805,21 @@ router.get(
                   userFound: false,
                 },
               });
-              return Response.sendJsonObjectResponse(req, res, emptyResponse);
+              return sendScimResponse(req, res, emptyResponse);
             }
           }
         } else {
-          executionSteps.push("Filter present but not a userName filter");
+          // userName eq null: no user has no userName.
+          executionSteps.push(
+            "userName filter compares with no text: no user matches",
+          );
+          return sendScimResponse(req, res, {
+            schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            totalResults: 0,
+            startIndex: startIndex,
+            itemsPerPage: 0,
+            Resources: [],
+          });
         }
       } else {
         executionSteps.push("No filter provided, listing all users");
@@ -871,7 +906,7 @@ router.get(
         },
       });
 
-      return Response.sendJsonObjectResponse(req, res, responseBody);
+      return sendScimResponse(req, res, responseBody);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -897,7 +932,7 @@ router.get(
       });
 
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -907,11 +942,7 @@ router.get(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM GetUser request");
 
@@ -1003,7 +1034,7 @@ router.get(
         },
       });
 
-      return Response.sendJsonObjectResponse(req, res, user);
+      return sendScimResponse(req, res, user);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -1029,7 +1060,7 @@ router.get(
       if (!isNotFound) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       }
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -1039,11 +1070,7 @@ router.post(
   "/status-page-scim/v2/:statusPageScimId/Users",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM CreateUser request");
 
@@ -1192,9 +1219,7 @@ router.post(
         },
       });
 
-      return Response.sendJsonObjectResponse(req, res, createdUser, {
-        statusCode: new StatusCode(201),
-      });
+      return sendScimResponse(req, res, createdUser, 201);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -1216,7 +1241,7 @@ router.post(
       });
 
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );
@@ -1224,11 +1249,9 @@ router.post(
 const handleStatusPageUserUpdate: (
   req: ExpressRequest,
   res: ExpressResponse,
-  next: NextFunction,
 ) => Promise<void> = async (
   req: ExpressRequest,
   res: ExpressResponse,
-  next: NextFunction,
 ): Promise<void> => {
   const executionSteps: string[] = [];
   executionSteps.push(`Received SCIM UpdateUser request (${req.method})`);
@@ -1305,6 +1328,89 @@ const handleStatusPageUserUpdate: (
       getLogAttributesFromRequest(req as any),
     );
 
+    /*
+     * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
+     * through - it removes the private user from the status page - and
+     * changes nothing else: the email is left as it is. Changing only their
+     * email is refused. Active true reactivates no one here: a private user
+     * is on the status page or not at all, and a deactivated one is gone.
+     * Nor is active false a deactivation when the connection does not
+     * remove the people it deactivates (auto-deprovisioning off): a new
+     * email with it is a change on its own. The email is compared as it
+     * would be stored (isScimEmailChanging), so the same address in another
+     * case is no change. Checked before anything is written, so a refused
+     * update changes nothing at all.
+     */
+    const statusPageScimConfig: StatusPageSCIM = bearerData[
+      "scimConfig"
+    ] as StatusPageSCIM;
+    const missingPlan: PlanType | null = getScimMissingPlan(req);
+    const isEmailChanging: boolean =
+      Boolean(email) &&
+      isScimEmailChanging({
+        currentEmail: statusPageUser.email?.toString(),
+        newEmail: email,
+      });
+    let emailLeftAsItIs: boolean = false;
+
+    if (missingPlan) {
+      const belowPlan: ScimUpdateBelowPlan = getScimUserUpdateBelowPlan({
+        reactivates: false,
+        deactivates:
+          active === false &&
+          Boolean(statusPageScimConfig.autoDeprovisionUsers),
+        isEmailChanging: isEmailChanging,
+        isNameChanging: false,
+      });
+
+      if (belowPlan === ScimUpdateBelowPlan.Refused) {
+        logger.debug(
+          `Status Page SCIM Update user - refused below the ${missingPlan} plan: the update would only change their email`,
+          getLogAttributesFromRequest(req as any),
+        );
+        executionSteps.push(
+          `Refused below the ${missingPlan} plan: the update would only change the user's email`,
+        );
+
+        const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+          res: res,
+          missingPlan: missingPlan,
+        });
+
+        void createStatusPageSCIMLog({
+          projectId: bearerData["projectId"] as ObjectID,
+          statusPageId: statusPageId,
+          statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+          operationType: "UpdateUser",
+          status: SCIMLogStatus.Error,
+          statusMessage: refusal.message,
+          httpMethod: req.method,
+          requestPath: req.path,
+          httpStatusCode: refusal.statusCode,
+          affectedUserEmail: previousEmail,
+          requestBody: scimUser,
+          responseBody: refusal.body,
+          steps: executionSteps,
+          userInfo: {
+            userId: userId,
+            email: previousEmail || null,
+          },
+          additionalContext: {
+            refusedBelowPlan: missingPlan,
+          },
+        });
+
+        return;
+      }
+
+      if (belowPlan === ScimUpdateBelowPlan.Removal && isEmailChanging) {
+        emailLeftAsItIs = true;
+        executionSteps.push(
+          `Below the ${missingPlan} plan the deactivation goes through, and the user's email is left as it is`,
+        );
+      }
+    }
+
     // Handle user deactivation by deleting from status page
     if (active === false) {
       executionSteps.push("User marked as inactive (active=false)");
@@ -1357,7 +1463,7 @@ const handleStatusPageUserUpdate: (
         });
 
         // Return empty response for deleted user
-        return Response.sendJsonObjectResponse(req, res, {});
+        return sendScimResponse(req, res, {});
       }
       executionSteps.push(
         "Auto-deprovisioning is disabled, user will not be deleted",
@@ -1370,7 +1476,9 @@ const handleStatusPageUserUpdate: (
     } = {};
 
     let emailUpdated: boolean = false;
-    if (email && email !== statusPageUser.email?.toString()) {
+    if (emailLeftAsItIs) {
+      executionSteps.push("Email left as it is below the plan");
+    } else if (isEmailChanging) {
       if (!Email.isValid(email)) {
         throw new BadRequestException("Email is not in valid format");
       }
@@ -1451,7 +1559,7 @@ const handleStatusPageUserUpdate: (
           },
         });
 
-        return Response.sendJsonObjectResponse(req, res, user);
+        return sendScimResponse(req, res, user);
       }
     }
 
@@ -1493,7 +1601,7 @@ const handleStatusPageUserUpdate: (
       },
     });
 
-    return Response.sendJsonObjectResponse(req, res, user);
+    return sendScimResponse(req, res, user);
   } catch (err) {
     executionSteps.push(`Error occurred: ${(err as Error).message}`);
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -1520,7 +1628,7 @@ const handleStatusPageUserUpdate: (
     if (!isNotFound) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
     }
-    return next(err);
+    return sendScimError(req, res, err);
   }
 };
 
@@ -1545,11 +1653,7 @@ router.delete(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
   LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM DeleteUser request");
 
@@ -1684,7 +1788,7 @@ router.delete(
       if (!isNotFound) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       }
-      return next(err);
+      return sendScimError(req, res, err);
     }
   },
 );

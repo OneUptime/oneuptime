@@ -5,10 +5,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -19,7 +17,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
@@ -41,10 +38,32 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelOffPanel from "../../../Components/StatusPage/SubscriberChannelOffPanel";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
+import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import SubscriberStatusPill from "../../../Components/StatusPage/SubscriberStatusPill";
+import {
+  SUBSCRIBER_ADD_CHOICE,
+  SubscriberAddChoice,
+  SubscriberFormCopy,
+  getSubscriberAddChoiceColumns,
+} from "../../../Components/StatusPage/SubscriberFormChoices";
+import { getColumnChoiceRadioButtons } from "../../../Utils/Form/ColumnChoice";
+import {
+  getEmailSubscriberAddChoiceFields,
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -58,7 +77,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   const [isEmailSubscribersEnabled, setIsEmailSubscribersEnabled] =
     React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  /*
+   * Loading from the first render: the list, and the channel's switch
+   * above it, are drawn once the status page has said whether the channel
+   * is on - not first as off, for a frame, on a page where it is on.
+   */
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -182,8 +206,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   interface BulkAddFormData {
     emails: string;
-    isSubscriptionConfirmed: boolean;
-    sendYouHaveSubscribedMessage: boolean;
+    // "When you add them": written into the two columns for each address.
+    subscriberAddChoice: SubscriberAddChoice;
     isSubscribedToAllResources?: boolean;
     statusPageResources?: Array<string>;
     isSubscribedToAllEventTypes?: boolean;
@@ -218,6 +242,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     });
 
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
+    const addChoiceColumns: {
+      isSubscriptionConfirmed: boolean;
+      sendYouHaveSubscribedMessage: boolean;
+    } = getSubscriberAddChoiceColumns(data.subscriberAddChoice);
     let succeeded: number = 0;
     const failed: Array<{ email: string; error: string }> = [];
 
@@ -229,9 +257,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         subscriber.subscriberEmail = new Email(emailStr);
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
-        subscriber.isSubscriptionConfirmed = data.isSubscriptionConfirmed;
+        subscriber.isSubscriptionConfirmed =
+          addChoiceColumns.isSubscriptionConfirmed;
         subscriber.sendYouHaveSubscribedMessage =
-          data.sendYouHaveSubscribedMessage;
+          addChoiceColumns.sendYouHaveSubscribedMessage;
 
         if (allowSubscribersToChooseResources) {
           subscriber.isSubscribedToAllResources =
@@ -293,6 +322,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       return; // don't do anything if loading
     }
 
+    /*
+     * The address, then one question each way: on Add, "When you add them"
+     * (subscribe them now, and tell them or not, or ask them to confirm
+     * first); on Edit, their Status (SubscriberFormChoices.ts). The internal
+     * note is folded under More fields.
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -300,47 +338,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         stepId: "subscriber-info",
         title: "Email",
-        description: "Status page updates will be sent to this email.",
+        /*
+         * Every notification can be unsubscribed from without signing in, so
+         * one reader of a shared address can take it off this page for
+         * everyone who reads it.
+         */
+        description: SubscriberUnsubscribeCopy.sharedAddressAdvice,
         fieldType: FormFieldSchemaType.Email,
         required: true,
         placeholder: "subscriber@company.com",
         disableSpellCheck: true,
       },
-      {
-        field: {
-          isSubscriptionConfirmed: true,
-        },
-        title: "Do not send confirmation link",
-        stepId: "subscriber-info",
-        description:
-          "If this option is checked, then no confirmation link will be sent to the subscriber.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        defaultValue: true,
-      },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription Email",
-        stepId: "subscriber-info",
-        description:
-          "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenEditing: true,
-      },
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        stepId: "subscriber-info",
-        description: "Unsubscribe this email from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getEmailSubscriberAddChoiceFields(),
+      ...getSubscriberStatusFields({ isEmail: true }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -349,7 +359,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           isSubscribedToAllResources: true,
         },
         title: "Subscribe to All Resources",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description: "Send notifications for all resources.",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
@@ -362,7 +372,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Select Resources to Subscribe",
         description: "Please select the resources you want to subscribe to.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.CategoryCheckbox,
         required: false,
         categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -380,7 +390,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Subscribe to All Event Types",
         description:
           "Select this option if you want to subscribe to all event types.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         defaultValue: true,
@@ -392,7 +402,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Select Event Types to Subscribe",
         description: "Please select the event types you want to subscribe to.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
         dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
@@ -402,18 +412,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    // add internal note field
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -426,13 +425,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
       {!error && !isLoading ? (
         <>
-          {!isEmailSubscribersEnabled && (
-            <Alert
-              type={AlertType.DANGER}
-              title="Email subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
-            />
-          )}
+          {/*
+           * The channel's own switch while it is off, where a red
+           * "not enabled" banner used to send people to another page.
+           */}
+          <SubscriberChannelOffPanel
+            statusPageId={modelId}
+            method={StatusPageSubscriberNotificationMethod.Email}
+            isEnabled={isEmailSubscribersEnabled}
+          />
           <SubscriberNotificationWarnings statusPageId={modelId} />
+          <TeamAddedSubscribersUnsubscribedNotice
+            statusPageId={modelId}
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            channelQuery={{ subscriberEmail: new NotNull() }}
+            contactSelect={{ subscriberEmail: true }}
+          />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-subscriber"
@@ -449,6 +457,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             selectMoreFields={{
               subscriberPhone: true,
               isSubscriptionConfirmed: true,
+              /*
+               * The Status reads when the link to confirm was sent, so it
+               * is read whether or not the viewer shows Subscribed At.
+               */
+              createdAt: true,
             }}
             query={{
               statusPageId: modelId,
@@ -467,31 +480,42 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "Email Subscribers",
               description:
-                "Here are the list of subscribers who have subscribed to the status page.",
+                "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",
                   buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
-                } as CardButtonSchema,
+                },
               ],
             }}
-            noItemsMessage={"No subscribers found."}
-            formSteps={[
-              {
-                title: "Subscriber Info",
-                id: "subscriber-info",
-              },
-              {
-                title: "Internal Info",
-                id: "internal-info",
-              },
-            ]}
+            /*
+             * Who gets the updates, then - when this page lets subscribers
+             * choose - what they hear about, as the bulk add form asks it.
+             * Without that choice the form is one page.
+             */
+            formSteps={
+              allowSubscribersToChooseResources ||
+              allowSubscribersToChooseEventTypes
+                ? [
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
+                    { title: "Subscriber Info", id: "subscriber-info" },
+                    { title: "Notifications", id: "notifications" },
+                  ]
+                : undefined
+            }
             formFields={formFields}
             showRefreshButton={true}
             filters={[
@@ -523,6 +547,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Subscribed At",
                 type: FieldType.Date,
               },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
+                type: FieldType.Date,
+              },
             ]}
             viewPageRoute={Navigation.getCurrentRoute()}
             columns={[
@@ -540,21 +571,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Status",
                 type: FieldType.Text,
                 getElement: (item: StatusPageSubscriber): ReactElement => {
-                  if (item["isUnsubscribed"]) {
-                    return <Pill color={Red} text={"Unsubscribed"} />;
-                  }
-
-                  if (!item["isSubscriptionConfirmed"]) {
-                    return (
-                      <Pill
-                        color={Yellow}
-                        text={"Awaiting Confirmation"}
-                        tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription"
-                      />
-                    );
-                  }
-
-                  return <Pill color={Green} text={"Subscribed"} />;
+                  // Awaiting the link we emailed them, while it works.
+                  return (
+                    <SubscriberStatusPill
+                      subscriber={item}
+                      awaitingConfirmationDescription={
+                        SubscriberFormCopy.awaitingConfirmationDescription
+                      }
+                    />
+                  );
                 },
               },
               {
@@ -562,6 +587,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   createdAt: true,
                 },
                 title: "Subscribed At",
+                type: FieldType.DateTime,
+                hideOnMobile: true,
+              },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
                 type: FieldType.DateTime,
                 hideOnMobile: true,
               },
@@ -579,39 +612,68 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               onSubmit={handleBulkAddSubmit}
               formProps={{
                 name: "Bulk Add Subscribers",
+                /*
+                 * Who to add, then what they hear about - only where the
+                 * page lets subscribers choose; otherwise it is one page.
+                 */
+                steps:
+                  allowSubscribersToChooseResources ||
+                  allowSubscribersToChooseEventTypes
+                    ? [
+                        { title: "Subscriber Info", id: "subscriber-info" },
+                        { title: "Notifications", id: "notifications" },
+                      ]
+                    : undefined,
                 fields: [
                   {
                     field: { emails: true },
+                    stepId: "subscriber-info",
                     title: "Emails",
-                    description:
-                      "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                    /*
+                     * How to paste them, then the shared-address advice:
+                     * every notification can be unsubscribed from without
+                     * signing in, so one reader of a mailing list added here
+                     * can take everyone on it off this page. Two sentences,
+                     * each looked up whole.
+                     */
+                    description: (
+                      <>
+                        {translator.translateText(
+                          "One email per line. Invalid and duplicate ones are skipped.",
+                        )}{" "}
+                        {translator.translateText(
+                          SubscriberUnsubscribeCopy.sharedAddressAdvice,
+                        )}
+                      </>
+                    ),
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder:
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
                   },
                   {
-                    field: { isSubscriptionConfirmed: true },
-                    title: "Do not send confirmation link",
-                    description:
-                      "If this option is checked, then no confirmation link will be sent to the subscribers.",
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
-                    defaultValue: true,
-                  },
-                  {
-                    field: { sendYouHaveSubscribedMessage: true },
-                    title: "Send Subscription Email",
-                    description:
-                      "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.",
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
+                    /*
+                     * The Add form's question, asked once for every
+                     * address: the answer is written into the two columns
+                     * of each subscriber (handleBulkAddSubmit).
+                     */
+                    field: { subscriberAddChoice: true },
+                    stepId: "subscriber-info",
+                    title: SUBSCRIBER_ADD_CHOICE.title,
+                    fieldType: FormFieldSchemaType.RadioButton,
+                    radioButtonOptions: getColumnChoiceRadioButtons(
+                      SUBSCRIBER_ADD_CHOICE,
+                    ),
+                    required: true,
+                    defaultValue: SubscriberAddChoice.SubscribeNow,
+                    dataTestId: "subscriber-add-choice-bulk",
                   },
                   ...(allowSubscribersToChooseResources
                     ? [
                         {
                           field: { isSubscribedToAllResources: true },
                           title: "Subscribe to All Resources",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all resources to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -621,6 +683,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageResources: true },
                           title: "Select Resources to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the resources these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.CategoryCheckbox,
@@ -638,6 +701,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { isSubscribedToAllEventTypes: true },
                           title: "Subscribe to All Event Types",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all event types to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -647,6 +711,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageEventTypes: true },
                           title: "Select Event Types to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the event types these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -676,8 +741,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -697,11 +763,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -713,11 +782,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}
@@ -729,11 +800,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Yellow}
                             />
                             <div className="ml-2 text-sm font-medium text-yellow-800">
-                              {bulkProgress.skippedInvalid.length} invalid{" "}
-                              {bulkProgress.skippedInvalid.length === 1
-                                ? "email"
-                                : "emails"}{" "}
-                              skipped
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} invalid email skipped",
+                                  other: "{{count}} invalid emails skipped",
+                                },
+                                bulkProgress.skippedInvalid.length,
+                              )}
                             </div>
                           </div>
                         )}

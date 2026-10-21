@@ -17,8 +17,11 @@ import type { SpyInstance } from "jest-mock";
  *
  * What was asked for, and what every describe block below pins down:
  *
- *   1. The list shows Name, Type and Description. The Secret, Token and
- *      Created At columns are gone.
+ *   1. The list shows Name and Description. The Type, Secret, Token and
+ *      Created At columns are gone. Type went last: the maintainer asked for
+ *      it to go from both lists, global and per-workflow, to keep the UI
+ *      simple to understand. The type is on the variable's own page
+ *      (WorkflowVariableView.test.tsx pins it there).
  *   2. A row has one action, View, which opens the variable's own page. Show
  *      ID, Update Content, Edit Details and Delete are no longer row actions.
  *   3. Create makes a static variable and never asks which kind. An OAuth 2.0
@@ -140,6 +143,12 @@ type FormFieldEntry = {
   doNotShowWhenCreating?: boolean | undefined;
   cardSelectOptions?: Array<unknown> | undefined;
   dropdownOptions?: Array<unknown> | undefined;
+};
+
+type FormStepEntry = {
+  id: string;
+  title: string;
+  showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
 };
 
 type ColumnEntry = {
@@ -293,14 +302,32 @@ const EXPIRES_AT_ISO: string = "2030-01-01T10:00:00.000Z";
 const OAUTH_MENU_TITLE: string = "Create OAuth 2.0 Variable";
 
 // The columns, and their fields, the list no longer shows.
-const REMOVED_COLUMN_TITLES: Array<string> = ["Secret", "Token", "Created At"];
+const REMOVED_COLUMN_TITLES: Array<string> = [
+  "Type",
+  "Secret",
+  "Token",
+  "Created At",
+];
 const REMOVED_COLUMN_FIELDS: Array<string> = [
+  "variableType",
+  "oauthGrantType",
   "isSecret",
   "oauthAccessTokenExpiresAt",
   "oauthLastRefreshedAt",
   "oauthLastRefreshError",
   "oauthLastRefreshErrorAt",
   "createdAt",
+];
+
+// The fields that say what kind of variable a row is.
+const TYPE_FIELDS: Array<string> = ["variableType", "oauthGrantType"];
+
+// Everything the Type column used to put in a row.
+const TYPE_TEXT: Array<string> = [
+  "Static",
+  "OAuth 2.0",
+  "Client Credentials",
+  "Refresh Token",
 ];
 
 // The row actions the list used to offer, and no longer does.
@@ -585,8 +612,6 @@ const CREATE_ONLY_ROLES: Array<RoleCase> = [
     ],
   },
   { label: "Project Member", permissions: [Permission.ProjectMember] },
-  { label: "Workflow Admin", permissions: [Permission.WorkflowAdmin] },
-  { label: "Workflow Member", permissions: [Permission.WorkflowMember] },
   /*
    * A workflow variable is not an operational resource, so the Edit All
    * wildcard does not widen its update list - here or on the server.
@@ -604,6 +629,8 @@ const CREATE_ONLY_ROLES: Array<RoleCase> = [
 const CREATE_AND_UPDATE_ROLES: Array<RoleCase> = [
   { label: "Project Admin", permissions: [Permission.ProjectAdmin] },
   { label: "Project Owner", permissions: [Permission.ProjectOwner] },
+  // Workflow Admin builds workflows, and manages the variables they use.
+  { label: "Workflow Admin", permissions: [Permission.WorkflowAdmin] },
   {
     label: "Create and Edit Workflow Variables",
     permissions: [
@@ -670,24 +697,24 @@ describe("the pages", () => {
 
 describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
   describe("columns", () => {
-    test("are exactly Name, Type and Description", () => {
+    test("are exactly Name and Description", () => {
       renderPage(pageCase.page);
 
       expect(
         (table().columns || []).map((entry: ColumnEntry) => {
           return entry.title;
         }),
-      ).toEqual(["Name", "Type", "Description"]);
+      ).toEqual(["Name", "Description"]);
 
       expect(
         (table().columns || []).map((entry: ColumnEntry) => {
           return fieldName(entry);
         }),
-      ).toEqual(["name", "variableType", "description"]);
+      ).toEqual(["name", "description"]);
     });
 
     // Ask 1, stated as a test.
-    test("no longer include Secret, Token or Created At", () => {
+    test("no longer include Type, Secret, Token or Created At", () => {
       renderPage(pageCase.page);
 
       for (const entry of table().columns || []) {
@@ -696,61 +723,62 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       }
     });
 
-    test("a static variable's Type reads Static", () => {
+    // The maintainer's ask for this page, stated as a test.
+    test("have no Type column", () => {
       renderPage(pageCase.page);
 
-      render(column("Type").getElement!(staticVariable()));
+      expect(() => {
+        return column("Type");
+      }).toThrow("The table has no Type column");
 
-      expect(screen.getByText("Static")).toBeInTheDocument();
-      expect(screen.queryByText("OAuth 2.0")).not.toBeInTheDocument();
+      for (const entry of table().columns || []) {
+        expect((entry.title || "").toLowerCase()).not.toContain("type");
+
+        for (const field of Object.keys(entry.field || {})) {
+          expect(TYPE_FIELDS).not.toContain(field);
+        }
+      }
     });
 
-    // Rows saved before OAuth 2.0 variables existed have no type at all.
-    test("a variable with no type reads Static", () => {
+    /*
+     * Name and Description are plain text, drawn from the row's own fields.
+     * A column that drew its own cell could put the type back inside
+     * another column - a badge beside the name, say - so any that does is
+     * drawn here for every kind of variable and must not show it.
+     */
+    test("show no variable's type in any cell, whatever the variable", () => {
       renderPage(pageCase.page);
 
-      const variable: WorkflowVariable = new WorkflowVariable();
-      variable._id = VARIABLE_ID.toString();
-      variable.name = "LEGACY";
+      // Saved before OAuth 2.0 variables existed: no type at all.
+      const legacyVariable: WorkflowVariable = new WorkflowVariable();
+      legacyVariable._id = VARIABLE_ID.toString();
+      legacyVariable.name = "LEGACY";
 
-      render(column("Type").getElement!(variable));
+      const variables: Array<WorkflowVariable> = [
+        staticVariable(),
+        legacyVariable,
+        oauthVariable(),
+        oauthVariable({ oauthGrantType: OAuth2GrantType.RefreshToken }),
+        oauthVariable({ oauthGrantType: undefined }),
+      ];
 
-      expect(screen.getByText("Static")).toBeInTheDocument();
-    });
+      for (const entry of table().columns || []) {
+        if (!entry.getElement) {
+          continue;
+        }
 
-    test("an OAuth 2.0 variable's Type reads OAuth 2.0, with its grant type underneath", () => {
-      renderPage(pageCase.page);
+        for (const variable of variables) {
+          const cell: ReturnType<typeof render> = render(
+            entry.getElement(variable),
+          );
 
-      render(column("Type").getElement!(oauthVariable()));
+          for (const text of TYPE_TEXT) {
+            expect(cell.container.textContent || "").not.toContain(text);
+          }
 
-      expect(screen.getByText("OAuth 2.0")).toBeInTheDocument();
-      expect(screen.getByText("Client Credentials")).toBeInTheDocument();
-      expect(screen.queryByText("Static")).not.toBeInTheDocument();
-    });
-
-    test("names the Refresh Token grant too", () => {
-      renderPage(pageCase.page);
-
-      render(
-        column("Type").getElement!(
-          oauthVariable({ oauthGrantType: OAuth2GrantType.RefreshToken }),
-        ),
-      );
-
-      expect(screen.getByText("OAuth 2.0")).toBeInTheDocument();
-      expect(screen.getByText("Refresh Token")).toBeInTheDocument();
-    });
-
-    test("an OAuth 2.0 variable with no grant type reads OAuth 2.0 alone", () => {
-      renderPage(pageCase.page);
-
-      const cell: ReturnType<typeof render> = render(
-        column("Type").getElement!(
-          oauthVariable({ oauthGrantType: undefined }),
-        ),
-      );
-
-      expect(cell.container.textContent).toBe("OAuth 2.0");
+          cell.unmount();
+        }
+      }
     });
 
     test("filters and searches only on what the list shows", () => {
@@ -864,14 +892,78 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       renderPage(pageCase.page);
 
       expect(formFieldNames()).not.toContain("variableType");
-      expect(table().formSteps || []).toEqual([]);
 
       for (const entry of table().formFields || []) {
         expect(entry.fieldType).not.toBe("CardSelect");
         expect(entry.cardSelectOptions).toBeUndefined();
         // Nothing on the form hides or shows by a type the form never sets.
         expect(entry.showIf).toBeUndefined();
-        expect(entry.stepId).toBeUndefined();
+      }
+
+      // No step is about the type, and no step comes and goes with one.
+      for (const step of (table().formSteps || []) as Array<FormStepEntry>) {
+        expect(step.title.toLowerCase()).not.toContain("type");
+        expect(step.showIf).toBeUndefined();
+      }
+    });
+
+    /*
+     * The maintainer's ask: the form was one long scrolling page. It now
+     * walks two steps - what the variable is called, then what it holds.
+     */
+    test("walks two steps: Variable, then Value", () => {
+      renderPage(pageCase.page);
+
+      expect(
+        ((table().formSteps || []) as Array<FormStepEntry>).map(
+          (step: FormStepEntry): { id: string; title: string } => {
+            return { id: step.id, title: step.title };
+          },
+        ),
+      ).toEqual([
+        { id: "variable", title: "Variable" },
+        { id: "value", title: "Value" },
+      ]);
+    });
+
+    test("asks for the name and description first, then the content and the secret switch", () => {
+      renderPage(pageCase.page);
+
+      expect(
+        (table().formFields || []).map(
+          (entry: FormFieldEntry): [string, string | undefined] => {
+            return [Object.keys(entry.field || {})[0] || "", entry.stepId];
+          },
+        ),
+      ).toEqual([
+        ["name", "variable"],
+        ["description", "variable"],
+        ["content", "value"],
+        ["isSecret", "value"],
+      ]);
+    });
+
+    // A field on no declared step would never be shown, so never filled in.
+    test("puts every field on a step it declares, and leaves no step empty", () => {
+      renderPage(pageCase.page);
+
+      const stepIds: Array<string> = (
+        (table().formSteps || []) as Array<FormStepEntry>
+      ).map((step: FormStepEntry): string => {
+        return step.id;
+      });
+      const fieldStepIds: Array<string | undefined> = (
+        table().formFields || []
+      ).map((entry: FormFieldEntry): string | undefined => {
+        return entry.stepId;
+      });
+
+      for (const stepId of fieldStepIds) {
+        expect(stepIds).toContain(stepId);
+      }
+
+      for (const stepId of stepIds) {
+        expect(fieldStepIds).toContain(stepId);
       }
     });
 
@@ -902,7 +994,7 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       expect(secret.fieldType).toBe("Boolean");
       expect(secret.required).toBe(false);
       expect(secret.description).toContain("[REDACTED]");
-      expect(secret.description).toContain("cannot be turned off again");
+      expect(secret.description).toContain("cannot be turned off once saved");
       expect(secret.description).not.toMatch(/encrypt/i);
     });
 
@@ -1003,14 +1095,26 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       expect(table().query?.["projectId"]).toBe(PROJECT_ID);
     });
 
-    // The Type column needs the type and grant type; nothing else rides along.
-    test("selects the type and the grant type, and nothing more", () => {
+    /*
+     * The list reads only the columns it shows. The type and the grant type
+     * were selected for the Type column alone, so they went with it.
+     */
+    test("selects nothing beyond its columns: not the type, not the grant type", () => {
       renderPage(pageCase.page);
 
-      expect(table().selectMoreFields).toEqual({
-        variableType: true,
-        oauthGrantType: true,
-      });
+      expect(Object.keys(table().selectMoreFields || {})).toEqual([]);
+
+      for (const name of TYPE_FIELDS) {
+        for (const entry of table().columns || []) {
+          expect(fieldName(entry)).not.toBe(name);
+        }
+
+        for (const filter of table().filters || []) {
+          expect(fieldName(filter)).not.toBe(name);
+        }
+
+        expect(table().searchableFields || []).not.toContain(name);
+      }
     });
 
     test("never selects content, a credential or a token", () => {
@@ -1134,6 +1238,25 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
         "You do not have permission to create this Workflow Variable",
       );
       expect(button.tooltip).toContain("Create Workflow Variables");
+    });
+
+    /*
+     * A Workflow Member runs workflows and does not build them, so creates
+     * no variables either - the server refuses them, and the menu says so.
+     */
+    test("is locked for a Workflow Member, naming the permissions that would let them", () => {
+      permissionsForTest = [Permission.WorkflowMember];
+
+      renderPage(pageCase.page);
+
+      const button: CardButtonEntry = oauthMenuButton();
+
+      expect(button.disabled).toBe(true);
+      expect(button.tooltip).toContain(
+        "You do not have permission to create this Workflow Variable",
+      );
+      expect(button.tooltip).toContain("Workflow Admin");
+      expect(button.tooltip).not.toContain("Workflow Member");
     });
 
     test("does nothing when pressed while locked", () => {

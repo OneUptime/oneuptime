@@ -6,6 +6,8 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NetworkDeviceMonitoringMethod, {
   LEGACY_SNMP_MONITORING_METHOD,
@@ -64,6 +66,7 @@ jest.mock("Common/Server/Services/NetworkDeviceService", () => {
     __esModule: true,
     default: {
       findBy: jest.fn(),
+      countBy: jest.fn(),
       getFleetSummary: jest.fn(),
       getHealthGroups: jest.fn(),
       getVendorBreakdown: jest.fn(),
@@ -100,10 +103,12 @@ const commonAPI: { getDatabaseCommonInteractionProps: jest.Mock } =
   CommonAPI as unknown as { getDatabaseCommonInteractionProps: jest.Mock };
 const deviceService: {
   findBy: jest.Mock;
+  countBy: jest.Mock;
   getHealthGroups: jest.Mock;
   getVendorBreakdown: jest.Mock;
 } = NetworkDeviceService as unknown as {
   findBy: jest.Mock;
+  countBy: jest.Mock;
   getHealthGroups: jest.Mock;
   getVendorBreakdown: jest.Mock;
 };
@@ -304,6 +309,7 @@ describe("POST /network-device/overview — the SNMP-failing attention bucket", 
     siteService.findBy.mockResolvedValue([] as never);
     deviceService.getHealthGroups.mockResolvedValue([] as never);
     deviceService.getVendorBreakdown.mockResolvedValue([] as never);
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
     endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
     respondTo({});
   });
@@ -519,5 +525,220 @@ describe("POST /network-device/overview — the SNMP-failing attention bucket", 
     // A Raw operator rather than a literal, because it has to admit NULL too.
     expect(query["isSnmpReachable"]).toBeDefined();
     expect(query["isSnmpReachable"]).not.toBe(false);
+  });
+});
+
+/*
+ * The Overview's headline counts the devices that are not reporting their
+ * details ("6 devices are not reporting their details"), and the attention
+ * list above shows at most eight of them - so the fleet carries the whole
+ * count, read with the SAME query as the list's SNMP-failing read, counted
+ * rather than paged.
+ */
+describe("POST /network-device/overview — the fleet's SNMP-failing count", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    commonAPI.getDatabaseCommonInteractionProps.mockResolvedValue({
+      tenantId: projectId,
+    } as never);
+    monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
+    siteService.getStatusCounts.mockResolvedValue([] as never);
+    siteService.findBy.mockResolvedValue([] as never);
+    deviceService.getHealthGroups.mockResolvedValue([] as never);
+    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    respondTo({});
+  });
+
+  function fleet(): JSONObject {
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    const body: JSONObject = responseUtil.sendJsonObjectResponse.mock
+      .calls[0]![2] as JSONObject;
+    return body["fleet"] as JSONObject;
+  }
+
+  function snmpFailingCountCall(): JSONObject {
+    const calls: Array<Array<unknown>> = deviceService.countBy.mock.calls;
+
+    expect(calls).toHaveLength(1);
+
+    return calls[0]![0] as JSONObject;
+  }
+
+  test("the fleet reports how many devices answer ping while their walk fails", async () => {
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(6) as never);
+
+    const next: NextFunction = await callOverview();
+
+    expect(next).not.toHaveBeenCalled();
+    expect(fleet()["snmpFailing"]).toBe(6);
+  });
+
+  test("it is a plain number, not the PositiveNumber the service hands back", async () => {
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(3) as never);
+
+    await callOverview();
+
+    expect(typeof fleet()["snmpFailing"]).toBe("number");
+  });
+
+  test("none failing reads as zero, not as an absent key", async () => {
+    await callOverview();
+
+    expect(fleet()).toHaveProperty("snmpFailing", 0);
+  });
+
+  test("it counts the list's own SNMP-failing rows: reachable, walk failing, not archived, this project", async () => {
+    await callOverview();
+
+    const query: JSONObject = snmpFailingCountCall()["query"] as JSONObject;
+
+    expect(query["projectId"]).toEqual(projectId);
+    expect(query["isArchived"]).toBe(false);
+    expect(query["isReachable"]).toBe(true);
+    expect(query["isSnmpReachable"]).toBe(false);
+
+    // The same filter the attention list pages through.
+    const listQuery: JSONObject = findByCallFor("snmpFailing")[
+      "query"
+    ] as JSONObject;
+
+    expect(query).toEqual(listQuery);
+  });
+
+  test("it counts with the caller's own permissions", async () => {
+    await callOverview();
+
+    expect(snmpFailingCountCall()["props"]).toEqual({ tenantId: projectId });
+  });
+
+  test("the count is the whole fleet's, not capped at the list's eight rows", async () => {
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(250) as never);
+    respondTo({
+      snmpFailing: [
+        makeDevice({
+          name: "branch-sw1",
+          isReachable: true,
+          isSnmpReachable: false,
+        }),
+      ],
+    });
+
+    await callOverview();
+
+    expect(fleet()["snmpFailing"]).toBe(250);
+    expect(namesOnList()).toEqual(["branch-sw1"]);
+  });
+
+  test("a failing count fails the request rather than reporting zero", async () => {
+    deviceService.countBy.mockRejectedValue(new Error("db down") as never);
+
+    const next: NextFunction = await callOverview();
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * "Sites needing attention" names each site's type. It read the deprecated
+ * inline `siteType` column, which a site made since site types became rows of
+ * their own (the `networkSiteType` relation) has empty - so every new site's
+ * type showed as a dash here while its Settings said "Data Center".
+ */
+describe("POST /network-device/overview — the type of a site needing attention", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    commonAPI.getDatabaseCommonInteractionProps.mockResolvedValue({
+      tenantId: projectId,
+    } as never);
+    monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
+    siteService.getStatusCounts.mockResolvedValue([] as never);
+    deviceService.getHealthGroups.mockResolvedValue([] as never);
+    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    respondTo({});
+  });
+
+  function site(data: {
+    name: string;
+    typeName?: string | undefined;
+    legacyType?: string | undefined;
+  }): NetworkSite {
+    const row: NetworkSite = new NetworkSite(ObjectID.generate());
+    row.name = data.name;
+    row.currentMonitorStatusId = OFFLINE_STATUS.id!;
+
+    if (data.typeName !== undefined) {
+      const type: NetworkSiteType = new NetworkSiteType(ObjectID.generate());
+      type.name = data.typeName;
+      row.networkSiteType = type;
+    }
+
+    if (data.legacyType !== undefined) {
+      row.siteType = data.legacyType as never;
+    }
+
+    return row;
+  }
+
+  function attentionSites(): JSONArray {
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    const body: JSONObject = responseUtil.sendJsonObjectResponse.mock
+      .calls[0]![2] as JSONObject;
+    return body["attentionSites"] as JSONArray;
+  }
+
+  test("a site's type is its site type's name", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "London office", typeName: "Data Center" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Data Center");
+  });
+
+  test("the type's name is read with the sites, beside the old column", async () => {
+    siteService.findBy.mockResolvedValue([] as never);
+
+    await callOverview();
+
+    const select: JSONObject = (
+      siteService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+
+    expect(select["networkSiteType"]).toEqual({ name: true });
+    expect(select["siteType"]).toBe(true);
+  });
+
+  test("a site the backfill has not reached yet keeps its old type", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "Springfield", legacyType: "Store" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Store");
+  });
+
+  test("the type's name wins over the old column", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "Springfield", typeName: "Branch", legacyType: "Store" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Branch");
+  });
+
+  test("a site with neither reads Other, never a blank", async () => {
+    siteService.findBy.mockResolvedValue([site({ name: "Untyped" })] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Other");
   });
 });

@@ -70,13 +70,19 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
     expect(lastBody()["isCriticalAlertEnabled"]).toBe(false);
   });
 
-  test("sends false rather than undefined when the caller omits it", async () => {
+  /*
+   * The app leaves it out only when it could not ask the OS. A device the
+   * phone already has then keeps what it holds - "false" here would turn
+   * critical pages ordinary over one failed read - and the server creates a
+   * new one with it off, as before.
+   */
+  test("says nothing about critical alerts when the caller does not know", async () => {
     await registerPushDevice({
       deviceToken: "ExponentPushToken[abc]",
       projectId: "project-1",
     });
 
-    expect(lastBody()["isCriticalAlertEnabled"]).toBe(false);
+    expect("isCriticalAlertEnabled" in lastBody()).toBe(false);
   });
 
   test("still sends everything registration needed before this feature", async () => {
@@ -94,6 +100,50 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
     expect(body["deviceName"]).toBeDefined();
   });
 
+  /*
+   * A phone set up from a backup of the old one gets a new token while the
+   * app keeps its data: it says which token it had before, and the server
+   * moves the device registered with it, rules and all, to the new token.
+   */
+  test("says which token it had before, when it has one to say", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[new]",
+      projectId: "project-1",
+      previousDeviceToken: "ExponentPushToken[old]",
+    });
+
+    expect(lastBody()["deviceToken"]).toBe("ExponentPushToken[new]");
+    expect(lastBody()["previousDeviceToken"]).toBe("ExponentPushToken[old]");
+  });
+
+  test("with no token before, the request is what it always was: no previousDeviceToken at all", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[abc]",
+      projectId: "project-1",
+      isCriticalAlertEnabled: true,
+    });
+
+    expect(Object.keys(lastBody()).sort()).toEqual(
+      [
+        "deviceName",
+        "deviceToken",
+        "deviceType",
+        "isCriticalAlertEnabled",
+        "projectId",
+      ].sort(),
+    );
+  });
+
+  test("an empty token before is no token", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[abc]",
+      projectId: "project-1",
+      previousDeviceToken: "",
+    });
+
+    expect("previousDeviceToken" in lastBody()).toBe(false);
+  });
+
   test('an "already registered" response is still treated as success', async () => {
     postSpy().mockRejectedValue({
       response: {
@@ -108,7 +158,76 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
         projectId: "project-1",
         isCriticalAlertEnabled: true,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({});
+  });
+});
+
+/*
+ * A server that restates a phone's choices on registration says what the
+ * device holds afterwards; the app then needs to send nothing more. An older
+ * server says nothing, and the app tells it outright.
+ */
+describe("registerPushDevice says what the server holds", () => {
+  beforeEach(() => {
+    postSpy().mockClear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([[true], [false]])(
+    "the server says its device holds %s",
+    async (isCriticalAlertEnabled: boolean) => {
+      postSpy().mockResolvedValue({
+        data: {
+          success: true,
+          alreadyRegistered: true,
+          isCriticalAlertEnabled: isCriticalAlertEnabled,
+        },
+      } as never);
+
+      expect(
+        await registerPushDevice({
+          deviceToken: "ExponentPushToken[abc]",
+          projectId: "project-1",
+          isCriticalAlertEnabled: isCriticalAlertEnabled,
+        }),
+      ).toEqual({ isCriticalAlertEnabled: isCriticalAlertEnabled });
+    },
+  );
+
+  test.each([
+    ["a server from before it said", { success: true }],
+    ["a value that is not a boolean", { isCriticalAlertEnabled: "true" }],
+    ["no body", undefined],
+  ])("%s: nothing said", async (_name: string, data: unknown) => {
+    postSpy().mockResolvedValue({ data: data } as never);
+
+    expect(
+      await registerPushDevice({
+        deviceToken: "ExponentPushToken[abc]",
+        projectId: "project-1",
+        isCriticalAlertEnabled: true,
+      }),
+    ).toEqual({});
+  });
+
+  test('an older server\'s "already registered" refusal says nothing either: the same answer', async () => {
+    postSpy().mockRejectedValue({
+      response: {
+        status: 400,
+        data: { message: "This device is already registered" },
+      },
+    } as never);
+
+    expect(
+      await registerPushDevice({
+        deviceToken: "ExponentPushToken[abc]",
+        projectId: "project-1",
+        isCriticalAlertEnabled: true,
+      }),
+    ).toEqual({});
   });
 });
 

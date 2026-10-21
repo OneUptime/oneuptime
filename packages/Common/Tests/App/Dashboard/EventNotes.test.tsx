@@ -21,6 +21,11 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../Helpers/NestedControls";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * The notes feed every incident, alert, scheduled maintenance and episode
@@ -95,6 +100,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The selected project, as the dashboard keeps it: not loaded (read as AI
+ * on) unless a test switches AI off.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -107,8 +118,8 @@ jest.mock("../../../UI/Utils/Project", () => {
           "10000000-0000-4000-8000-000000000001",
         );
       },
-      getCurrentProject: (): null => {
-        return null;
+      getCurrentProject: (): { enableAi?: boolean } | null => {
+        return mockCurrentProject;
       },
     },
   };
@@ -334,6 +345,8 @@ import FileModel from "../../../Models/DatabaseModels/File";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
@@ -347,6 +360,9 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "../../../Types/StatusPage/SubscriberUpdateNotification";
+import PrivateRecordPublicNotes, {
+  PrivateRecordKind,
+} from "../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
@@ -455,6 +471,7 @@ function seedPrivateNotes(): void {
       incidentId: INCIDENT_ID,
       note: "Rotated the cert on lb-eu-west-1b.",
       createdAt: ago(9 * MINUTE),
+      postedAt: ago(9 * MINUTE),
       createdByUser: SAM,
     },
     {
@@ -462,6 +479,7 @@ function seedPrivateNotes(): void {
       incidentId: INCIDENT_ID,
       note: "Paged the edge on-call.",
       createdAt: ago(3 * DAY),
+      postedAt: ago(3 * DAY),
       createdByUser: MAYA,
     },
   );
@@ -814,17 +832,222 @@ describe("event notes: reading the feed", () => {
     });
   });
 
-  test("a private feed sorts by when notes were written and asks for no public columns", async () => {
+  test("a private feed sorts by when notes were posted, and asks for no subscriber columns", async () => {
     seedPrivateNotes();
     await renderPrivate();
 
     const request: ListRequest = noteRequests()[0]!;
     expect(request.modelType).toBe(IncidentInternalNote);
-    expect(request.sort).toEqual({ createdAt: SortOrder.Descending });
-    expect(request.select["postedAt"]).toBeUndefined();
+    // A chat message saved as a note is filed when it was written there.
+    expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
+    expect(request.select["postedAt"]).toBe(true);
+    expect(request.select["savedFromChatMessage"]).toBe(true);
     expect(
       request.select["subscriberNotificationStatusOnNoteCreated"],
     ).toBeUndefined();
+  });
+
+  test("a Slack message saved as a note is its author's, filed when they wrote it, and says who saved it", async () => {
+    seedPrivateNotes();
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(13),
+      incidentId: INCIDENT_ID,
+      note: "Not sure what's happening here, is this triggered by **something**?",
+      // Saved by Sam a minute ago; Aidil wrote it two hours ago.
+      createdAt: ago(MINUTE),
+      postedAt: ago(2 * HOUR),
+      createdByUser: SAM,
+      postedFromSlackMessageId: "C0INC8:1791454620.000200",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Aidil Rahman",
+        postedAt: ago(2 * HOUR).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const saved: HTMLElement = card("Not sure what's happening here");
+
+    expect(within(saved).getByTestId("note-author")).toHaveTextContent(
+      "Aidil Rahman",
+    );
+    expect(within(saved).getByTestId("note-source")).toHaveTextContent(
+      "via Slack",
+    );
+    expect(within(saved).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Sam Rivera",
+    );
+    expect(within(saved).getByTestId("note-time")).toHaveTextContent(
+      "2 hours ago",
+    );
+    // The message's words, as its Markdown.
+    expect(within(saved).getByTestId("note-body")).toHaveTextContent(
+      "is this triggered by",
+    );
+    // Between the note written 9 minutes ago and the one 3 days ago.
+    expect(
+      cards().map((element: HTMLElement): string => {
+        return element.getAttribute("data-note-id") || "";
+      }),
+    ).toEqual([noteId(11), noteId(13), noteId(12)]);
+  });
+
+  test("a Microsoft Teams message's author with a OneUptime account is named by it; their own note says nobody else added it", async () => {
+    tableOf(IncidentInternalNote).push(
+      {
+        _id: noteId(14),
+        incidentId: INCIDENT_ID,
+        note: "Rolled back.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(5 * MINUTE),
+        createdByUser: MAYA,
+        postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000200",
+        savedFromChatMessage: {
+          workspaceType: "MicrosoftTeams",
+          authorName: "Sam Rivera",
+          authorUserId: SAM._id,
+        },
+      },
+      {
+        _id: noteId(15),
+        incidentId: INCIDENT_ID,
+        note: "Failover done.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(30 * MINUTE),
+        createdByUser: MAYA,
+        postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000300",
+        savedFromChatMessage: {
+          workspaceType: "MicrosoftTeams",
+          authorName: "Maya Chen",
+          authorUserId: MAYA._id,
+        },
+      },
+    );
+    await renderPrivate();
+
+    const bySam: HTMLElement = card("Rolled back.");
+    expect(within(bySam).getByTestId("note-author")).toHaveTextContent(
+      "Sam Rivera",
+    );
+    expect(within(bySam).getByTestId("note-source")).toHaveTextContent(
+      "via Microsoft Teams",
+    );
+    expect(within(bySam).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Maya Chen",
+    );
+
+    const byMaya: HTMLElement = card("Failover done.");
+    expect(within(byMaya).queryByTestId("note-saved-by")).toBeNull();
+  });
+
+  test("a message whose author the chat did not name is 'Someone', drawn as a person, not as initials", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(17),
+      incidentId: INCIDENT_ID,
+      note: "Paged the database team.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(20 * MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000500",
+      savedFromChatMessage: {
+        workspaceType: "MicrosoftTeams",
+        postedAt: ago(20 * MINUTE).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const nameless: HTMLElement = card("Paged the database team.");
+    expect(within(nameless).getByTestId("note-author")).toHaveTextContent(
+      "Someone",
+    );
+    // A plain person: "SO" would read as somebody's initials.
+    expect(
+      within(nameless).getByTestId("note-avatar-nameless"),
+    ).toBeInTheDocument();
+    expect(within(nameless).queryByText("SO")).toBeNull();
+    expect(within(nameless).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Maya Chen",
+    );
+  });
+
+  test("a named author who is not connected keeps their initials", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(18),
+      incidentId: INCIDENT_ID,
+      note: "Named.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(25 * MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "C0INC8:1791454620.000900",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Aidil Rahman",
+      },
+    });
+    await renderPrivate();
+
+    const named: HTMLElement = card("Named.");
+    expect(within(named).getByText("AR")).toBeInTheDocument();
+    expect(within(named).queryByTestId("note-avatar-nameless")).toBeNull();
+  });
+
+  test("a long name from a chat, and who saved it, are shown whole: they wrap, never cut", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(19),
+      incidentId: INCIDENT_ID,
+      note: "Is this triggered by something?",
+      createdAt: ago(MINUTE),
+      postedAt: ago(15 * MINUTE),
+      createdByUser: person(
+        3,
+        "Bartholomew Featherstonehaugh-Montgomery (Platform, EMEA)",
+      ),
+      postedFromSlackMessageId: "C0INC8:1791454620.000950",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Priya Raghunathan-Venkataraman (Site Reliability, APAC)",
+        postedAt: ago(15 * MINUTE).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const long: HTMLElement = card("Is this triggered by something?");
+    const author: HTMLElement = within(long).getByTestId("note-author");
+    const savedBy: HTMLElement = within(long).getByTestId("note-saved-by");
+
+    expect(author).toHaveTextContent(
+      "Priya Raghunathan-Venkataraman (Site Reliability, APAC)",
+    );
+    expect(savedBy).toHaveTextContent(
+      "Note added by Bartholomew Featherstonehaugh-Montgomery (Platform, EMEA)",
+    );
+
+    for (const element of [author, savedBy]) {
+      expect(element.className).not.toContain("truncate");
+      expect(element.className).toContain("break-words");
+    }
+  });
+
+  test("a note saved from Microsoft Teams before its author was recorded says Microsoft Teams, not Slack", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(16),
+      incidentId: INCIDENT_ID,
+      note: "An older Teams note.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000400",
+    });
+    await renderPrivate();
+
+    const older: HTMLElement = card("An older Teams note.");
+    expect(within(older).getByTestId("note-author")).toHaveTextContent(
+      "Maya Chen",
+    );
+    expect(within(older).getByTestId("note-source")).toHaveTextContent(
+      "via Microsoft Teams",
+    );
+    expect(within(older).queryByTestId("note-saved-by")).toBeNull();
   });
 
   test("shows a skeleton until the notes arrive", async () => {
@@ -1041,7 +1264,7 @@ describe("event notes: paging, sorting and searching", () => {
       expect(cards()[0]).toHaveTextContent("Paged the edge on-call.");
     });
     expect(noteRequests()[1]!.sort).toEqual({
-      createdAt: SortOrder.Ascending,
+      postedAt: SortOrder.Ascending,
     });
     expect(screen.getByTestId("notes-sort")).toHaveTextContent("Oldest first");
   });
@@ -1140,6 +1363,59 @@ describe("event notes: paging, sorting and searching", () => {
 });
 
 describe("event notes: the composer", () => {
+  /*
+   * "Add Private Note" on a private incident's public notes leads to its
+   * private notes with ?compose=1: the page opens with the composer open,
+   * so the button does what it says in one click.
+   */
+  describe("a page opened to write a note (?compose=1)", () => {
+    beforeEach(() => {
+      window.history.pushState({}, "", "/notes?compose=1");
+    });
+
+    afterEach(() => {
+      window.history.pushState({}, "", "/");
+    });
+
+    test("starts with its composer open, the cursor in the note", async () => {
+      await renderPrivate();
+
+      expect(screen.queryByTestId("note-composer-prompt")).toBeNull();
+      expect(screen.getByTestId("note-composer")).toBeVisible();
+      await waitFor(() => {
+        expect(editor()).toHaveFocus();
+      });
+    });
+
+    test("a public notes page opens its composer the same way", async () => {
+      await renderPublic();
+
+      expect(screen.getByTestId("note-composer")).toBeVisible();
+    });
+
+    test("a private incident's public notes still take none", async () => {
+      await renderPublic({ isPrivateEvent: true });
+
+      expect(screen.queryByTestId("note-composer")).toBeNull();
+      expect(
+        screen.getByTestId("note-composer-private-event"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("starts folded to its prompt when nobody asked to write", async () => {
+    window.history.pushState({}, "", "/notes?compose=0");
+
+    try {
+      await renderPrivate();
+
+      expect(screen.getByTestId("note-composer-prompt")).toBeInTheDocument();
+      expect(screen.queryByTestId("note-composer")).toBeNull();
+    } finally {
+      window.history.pushState({}, "", "/");
+    }
+  });
+
   test("opens from the prompt and says who will read the note", async () => {
     await renderPublic();
 
@@ -1251,6 +1527,153 @@ describe("event notes: the composer", () => {
     expect(
       createdPayload()["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
     ).toBe(true);
+  });
+
+  /*
+   * Who the note will reach ("Will notify: Site 03 (up to 41 email)"), for
+   * the incident pages that pass one (SubscriberAudienceSummary): under the
+   * notify box, and only while it is ticked - an unticked note reaches nobody.
+   */
+  test("shows who the note will reach while notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: (
+          <div data-testid="stub-audience">Will notify: Site 03</div>
+        ),
+      },
+    });
+    await openComposer();
+
+    expect(
+      within(screen.getByTestId("note-notify-audience")).getByTestId(
+        "stub-audience",
+      ),
+    ).toHaveTextContent("Will notify: Site 03");
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  test("a quiet incident shows the audience only once notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: false,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: <div data-testid="stub-audience">Will notify</div>,
+      },
+    });
+    await openComposer();
+
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  /*
+   * 'Preview' for the incident pages that pass one: rendered from the note
+   * as it is being written, beside the notify box's label on its line, and
+   * only while it is ticked.
+   */
+  test("the preview sits beside the notify box's label, and who it reaches under them", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: <div data-testid="stub-audience">Will notify</div>,
+        renderPreview: (): ReactElement => {
+          return (
+            <button type="button" data-testid="stub-preview">
+              Preview
+            </button>
+          );
+        },
+      },
+    });
+    await openComposer();
+
+    const line: HTMLElement = screen.getByTestId("note-notify-line");
+    const label: HTMLElement = within(line).getByText(
+      "Notify status page subscribers",
+    );
+
+    expect(label.tagName).toBe("LABEL");
+    expect(
+      within(screen.getByTestId("note-notify-preview")).getByTestId(
+        "stub-preview",
+      ),
+    ).toBeInTheDocument();
+    expect(line).toContainElement(screen.getByTestId("note-notify-preview"));
+    // Beside the label, never inside it: pressing it must not tick the box.
+    expect(label).not.toContainElement(screen.getByTestId("stub-preview"));
+
+    const description: HTMLElement = screen.getByTestId(
+      "note-notify-description",
+    );
+    const audience: HTMLElement = screen.getByTestId("note-notify-audience");
+
+    expect(line).not.toContainElement(description);
+    expect(line).not.toContainElement(audience);
+    expect(
+      line.compareDocumentPosition(description) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      description.compareDocumentPosition(audience) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("offers a preview of the notification, from the note being written, while notifying is ticked", async () => {
+    const drafts: Array<{ note: string; postedAt: Date | null }> = [];
+
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        renderPreview: (draft: {
+          note: string;
+          postedAt: Date | null;
+        }): ReactElement => {
+          drafts.push(draft);
+          return <div data-testid="stub-preview">{draft.note}</div>;
+        },
+      },
+    });
+    await openComposer();
+
+    type(editor(), "Rolling back the release.");
+
+    expect(
+      within(screen.getByTestId("note-notify-preview")).getByTestId(
+        "stub-preview",
+      ),
+    ).toHaveTextContent("Rolling back the release.");
+    expect(drafts[drafts.length - 1]).toEqual({
+      note: "Rolling back the release.",
+      postedAt: null,
+    });
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-preview")).toBeNull();
+  });
+
+  test("without an audience to show, the notify box stands alone", async () => {
+    await renderPublic();
+    await openComposer();
+
+    expect(screen.getByTestId("note-notify-checkbox")).toBeChecked();
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
   });
 
   test("unticking on a notifying incident explains the note still goes on the status page", async () => {
@@ -1470,12 +1893,12 @@ describe("event notes: permissions", () => {
     });
     expect(
       within(card("Monitoring.")).getByRole("menuitem", { name: "Edit note" }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
     expect(
       within(card("Monitoring.")).getByRole("menuitem", {
         name: "Delete note",
       }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
     expect(
       within(card("Monitoring.")).getByRole("menuitem", {
         name: "Copy note ID",
@@ -1609,6 +2032,35 @@ describe("event notes: templates", () => {
     expect(await screen.findAllByText("Identified")).not.toHaveLength(0);
   });
 
+  /*
+   * The menu used to call itself a listbox of options, each option holding
+   * the template's button: a screen reader read one control holding another
+   * and lost the button inside it, and the listbox promised arrow keys it
+   * never answered. It is a plain list of buttons, reached with Tab.
+   */
+  test("lists templates as plain buttons, none inside another control", async () => {
+    seedTemplates(3);
+    await renderPublic();
+
+    const trigger: HTMLElement = screen.getByTestId(
+      "note-template-menu-button",
+    );
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const menu: HTMLElement = screen.getByTestId("note-template-menu");
+    await within(menu).findAllByText("Investigating");
+
+    expect(within(menu).queryByRole("listbox")).toBeNull();
+    expect(within(menu).queryByRole("option")).toBeNull();
+    expect(within(menu).getAllByRole("listitem")).toHaveLength(3);
+    for (const item of within(menu).getAllByRole("listitem")) {
+      expect(within(item).getAllByRole("button")).toHaveLength(1);
+    }
+    expect(describeNestedControls(findNestedControls(menu))).toEqual([]);
+  });
+
   test("a long list of templates can be filtered", async () => {
     seedTemplates(8);
     await renderPublic();
@@ -1620,7 +2072,7 @@ describe("event notes: templates", () => {
     fireEvent.change(filter, { target: { value: "template 7" } });
 
     const menu: HTMLElement = screen.getByTestId("note-template-menu");
-    expect(within(menu).getAllByRole("option")).toHaveLength(1);
+    expect(within(menu).getAllByRole("listitem")).toHaveLength(1);
     expect(within(menu).getAllByText("Template 7")).not.toHaveLength(0);
 
     fireEvent.change(filter, { target: { value: "zzz" } });
@@ -1633,6 +2085,140 @@ describe("event notes: templates", () => {
     await renderPublic({ templates: undefined });
 
     expect(screen.queryByTestId("note-template-menu-button")).toBeNull();
+  });
+});
+
+describe("event notes: template placeholders", () => {
+  const PLACEHOLDER_TEMPLATE: string =
+    "**Incident**: {{incident.title}}\n**Impact**: {{incident.customFields.impact}}\n**Owner**: {{incident.owner}}";
+
+  function seedPlaceholderTemplate(): void {
+    tableOf(IncidentNoteTemplate).push({
+      _id: "71000000-0000-4000-8000-000000000099",
+      templateName: "Status update",
+      note: PLACEHOLDER_TEMPLATE,
+    });
+  }
+
+  async function pickTemplate(): Promise<void> {
+    fireEvent.click(screen.getByTestId("note-template-menu-button"));
+    fireEvent.click(
+      (await screen.findAllByText("Status update"))[0]!.closest("button")!,
+    );
+  }
+
+  function variablesLoader(): MockFunction {
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockResolvedValue({
+      "incident.title": "Payments are failing",
+      "incident.customFields.impact": "High",
+    } as never);
+    return loader;
+  }
+
+  test("a picked template's placeholders are filled with the event's values; unknown ones stay", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
+  test("the values are asked for each time a template is picked, not once per page", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    // Nothing is read until a template is picked.
+    expect(loader).not.toHaveBeenCalled();
+
+    await pickTemplate();
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+
+    loader.mockResolvedValue({
+      "incident.title": "Payments are recovering",
+    } as never);
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are recovering");
+    });
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  test("when the values cannot be read, the template still goes in, as written", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockRejectedValue(new Error("No access to the incident.") as never);
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("only the template is filled: braces already typed are left alone", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+    await openComposer();
+    type(editor(), "We saw {{incident.title}} in the logs.");
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "We saw {{incident.title}} in the logs.\n\n**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+  });
+
+  test("the private notes feed fills them too", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPrivate({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+  });
+
+  test("a feed given no values puts the template in as written", async () => {
+    seedPlaceholderTemplate();
+    await renderPublic();
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("an AI draft is not a template: nothing is read for it", async () => {
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    fireEvent.click(screen.getByTestId("note-ai-button"));
+    fireEvent.click(screen.getByText("Use AI draft"));
+
+    expect(await screen.findByTestId("note-composer")).toBeInTheDocument();
+    expect(editor()).toHaveValue("Drafted by AI.");
+    expect(loader).not.toHaveBeenCalled();
   });
 });
 
@@ -1663,6 +2249,35 @@ describe("event notes: drafting with AI", () => {
     await renderPrivate();
 
     expect(screen.queryByTestId("note-ai-button")).toBeNull();
+  });
+
+  test("a project with AI switched off offers no AI button, whatever the feed supports", async () => {
+    mockCurrentProject = { enableAi: false };
+
+    try {
+      await renderPublic();
+
+      // The page is drawn as usual, only without the AI action.
+      expect(screen.getByTestId("notes-header")).toBeInTheDocument();
+      expect(screen.queryByTestId("note-ai-button")).toBeNull();
+      expect(screen.queryByText("Draft with AI")).toBeNull();
+    } finally {
+      mockCurrentProject = null;
+    }
+  });
+
+  test("a project with AI on, read from the selected project, offers it", async () => {
+    mockCurrentProject = { enableAi: true };
+
+    try {
+      await renderPublic();
+
+      expect(screen.getByTestId("note-ai-button")).toHaveTextContent(
+        "Draft with AI",
+      );
+    } finally {
+      mockCurrentProject = null;
+    }
   });
 });
 
@@ -2076,5 +2691,855 @@ describe("event notes: the page header", () => {
     expect(
       within(header).getByText(/about this alert\. They are never shown/),
     ).toBeVisible();
+  });
+});
+
+/*
+ * Sending a note's 'posted' notification again. The incident's public notes
+ * pass a `resend` setting: a note whose notification went out offers Resend,
+ * a failed one Retry, and both ask first, naming who the note would reach
+ * now. The episode and scheduled maintenance notes pass none and keep Retry
+ * only, straight from the details dialog. A note posted without notifying
+ * subscribers offers neither: it would sit in Pending forever.
+ */
+/*
+ * A PRIVATE INCIDENT OR EPISODE TAKES NO PUBLIC NOTES.
+ *
+ * A public note is shown on the status pages its event is shown on and can
+ * be sent to their subscribers; a private incident or episode is on no
+ * status page and is told to no subscriber
+ * (Common/Types/StatusPage/PrivateRecordPublicNotes). Its Public Notes page
+ * used to offer the composer - "Post an update to your status page" - and
+ * the note reached nobody it was written for. Now the page says why there
+ * are no new public notes where the composer was, with the way to the
+ * private notes, and keeps the public notes the event already had: read,
+ * edited and deleted as before, but with nothing offered that tells
+ * subscribers.
+ */
+describe("event notes: a private incident or episode", () => {
+  const INCIDENT_REFUSAL: string =
+    "This incident is private, so public notes cannot be added to it. Use a private note.";
+  const INCIDENT_DESCRIPTION: string =
+    "Customer-facing updates about this incident. While it is private, no status page shows them.";
+  const EPISODE_REFUSAL: string =
+    "This episode is private, so public notes cannot be added to it. Use a private note.";
+  const EPISODE_DESCRIPTION: string =
+    "Customer-facing updates about this episode. While it is private, no status page shows them.";
+
+  test("says why, where the composer was, in the server's own words", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const message: HTMLElement = screen.getByTestId(
+      "note-composer-private-event",
+    );
+
+    expect(message).toHaveTextContent(INCIDENT_REFUSAL);
+    expect(INCIDENT_REFUSAL).toBe(
+      PrivateRecordPublicNotes.getRefusalMessage(PrivateRecordKind.Incident),
+    );
+    // No composer, folded or open, and no way to open one.
+    expect(screen.queryByTestId("note-composer-prompt")).toBeNull();
+    expect(screen.queryByTestId("note-composer")).toBeNull();
+    expect(screen.queryByTestId("note-composer-locked")).toBeNull();
+    expect(screen.queryByTestId("note-ai-button")).toBeNull();
+  });
+
+  test("offers the private notes instead, one click away, their composer open", async () => {
+    await renderPublic({ isPrivateEvent: true });
+
+    const link: HTMLElement = within(
+      screen.getByTestId("note-composer-private-event"),
+    ).getByRole("link", { name: "Add Private Note" });
+
+    // The private notes page, opened to write one (?compose=1).
+    expect(link).toHaveAttribute("href", `${SIBLING_ROUTE}?compose=1`);
+  });
+
+  test("the header says what its notes are, and that no status page shows them while it is private", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const description: HTMLElement = screen.getByTestId("notes-description");
+
+    expect(description).toHaveTextContent(INCIDENT_DESCRIPTION);
+    expect(description.textContent).not.toContain("appear on your status page");
+    // Said once on the page, by the lock, not again by the header.
+    expect(description.textContent).not.toContain("This incident is private");
+    // Still the Public notes page, with the switch to the private ones.
+    expect(screen.getByRole("heading", { name: /Public notes/ })).toBeVisible();
+    expect(screen.getByTestId("notes-visibility-switch")).toBeInTheDocument();
+  });
+
+  test("an episode says so in its own words", async () => {
+    await renderPublic({
+      isPrivateEvent: true,
+      eventNoun: "episode",
+    });
+
+    expect(screen.getByTestId("note-composer-private-event")).toHaveTextContent(
+      EPISODE_REFUSAL,
+    );
+    expect(screen.getByTestId("notes-description")).toHaveTextContent(
+      EPISODE_DESCRIPTION,
+    );
+    expect(EPISODE_REFUSAL).toBe(
+      PrivateRecordPublicNotes.getRefusalMessage(
+        PrivateRecordKind.IncidentEpisode,
+      ),
+    );
+  });
+
+  test("keeps the public notes it already had, read as always", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    // The same request as any public feed: this incident's public notes.
+    const request: ListRequest = noteRequests()[0]!;
+    expect(request.modelType).toBe(IncidentPublicNote);
+    expect(String(request.query["incidentId"])).toBe(INCIDENT_ID.toString());
+
+    expect(cards()).toHaveLength(3);
+    expect(card("Monitoring.")).toBeVisible();
+    expect(card("Identified.")).toBeVisible();
+    expect(screen.getByTestId("notes-feed")).toBeInTheDocument();
+  });
+
+  test("with no public notes, draws no empty feed and no 'Post the first update'", async () => {
+    await renderPublic({ isPrivateEvent: true });
+
+    expect(noteRequests()).toHaveLength(1);
+    expect(screen.queryByTestId("notes-feed")).toBeNull();
+    expect(screen.queryByTestId("notes-empty")).toBeNull();
+    expect(screen.queryByTestId("notes-empty-cta")).toBeNull();
+    expect(screen.queryByText("Post the first update")).toBeNull();
+    expect(screen.getByTestId("note-composer-private-event")).toBeVisible();
+  });
+
+  test("never posts a public note", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    // Nothing on the page opens a composer to post with.
+    fireEvent.click(screen.getByTestId("note-composer-private-event"));
+
+    expect(screen.queryByTestId("note-composer")).toBeNull();
+    expect(screen.queryByTestId("note-submit")).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("its notes are edited without asking to notify subscribers, whom it never reaches", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+
+    expect(within(composer).queryByTestId("note-notify-checkbox")).toBeNull();
+    expect(
+      within(composer).queryByText("Notify subscribers about this update"),
+    ).toBeNull();
+
+    type(
+      within(composer).getByLabelText("Note text") as HTMLTextAreaElement,
+      "Monitoring. Fixed for good.",
+    );
+    await act(async () => {
+      fireEvent.click(within(composer).getByTestId("note-submit"));
+    });
+
+    expect(updateMock).toHaveBeenCalledTimes(1);
+    const request: { miscDataProps: Record<string, unknown> } = updateMock.mock
+      .calls[0]![0] as { miscDataProps: Record<string, unknown> };
+    // No update notification is asked for.
+    expect(request.miscDataProps).toEqual({});
+  });
+
+  test("a note being edited says no status page shows it, not 'Visible on your status page'", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+    const audience: HTMLElement = within(composer).getByTestId("note-audience");
+
+    // Still a public note - it shows again once the incident is public.
+    expect(audience).toHaveTextContent(
+      "Public·Not shown while this incident is private",
+    );
+    expect(audience.textContent).not.toContain("status page");
+  });
+
+  test("an episode's note being edited names the episode", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true, eventNoun: "episode" });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+
+    expect(within(composer).getByTestId("note-audience")).toHaveTextContent(
+      "Public·Not shown while this episode is private",
+    );
+  });
+
+  test("its notes can still be deleted, and deleting one does not claim to take it off a status page", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Delete note" }),
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Delete this public note?",
+    });
+    expect(
+      within(dialog).getByText(
+        "The note will be permanently deleted. This cannot be undone.",
+      ),
+    ).toBeVisible();
+    expect(dialog.textContent).not.toContain("status page");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByText("Delete note"));
+    });
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    const request: { modelType: unknown; id: ObjectID } = deleteMock.mock
+      .calls[0]![0] as { modelType: unknown; id: ObjectID };
+    expect(request.modelType).toBe(IncidentPublicNote);
+    expect(request.id.toString()).toBe(noteId(1));
+  });
+
+  test("a failed notification is not offered again: nothing it sends would reach anyone", async () => {
+    seedPublicNotes();
+    await renderPublic({
+      isPrivateEvent: true,
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        resend: {},
+      },
+    });
+
+    fireEvent.click(
+      within(card("Identified.")).getByTestId("note-notification-status"),
+    );
+    const details: HTMLElement = screen.getByRole("dialog", {
+      name: "Subscriber notification",
+    });
+
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.retryNoteNotificationButton,
+      ),
+    ).toBeNull();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+  });
+
+  test("an incident that is not private keeps its composer and its status page wording", async () => {
+    await renderPublic({ isPrivateEvent: false });
+
+    expect(screen.getByTestId("note-composer-prompt")).toBeInTheDocument();
+    expect(screen.queryByTestId("note-composer-private-event")).toBeNull();
+    expect(screen.getByTestId("notes-description")).toHaveTextContent(
+      "They appear on your status page",
+    );
+    expect(screen.getByTestId("notes-empty-cta")).toHaveTextContent(
+      "Post the first update",
+    );
+  });
+
+  test("an incident that is not private keeps 'Visible on your status page' while a note is edited, and 'removed from your status page' on delete", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: false });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+
+    expect(within(composer).getByTestId("note-audience")).toHaveTextContent(
+      "Public·Visible on your status page",
+    );
+
+    fireEvent.click(within(composer).getByText("Cancel"));
+    await openActions(card("Identified."));
+    fireEvent.click(
+      within(card("Identified.")).getByRole("menuitem", {
+        name: "Delete note",
+      }),
+    );
+
+    expect(
+      within(
+        screen.getByRole("dialog", { name: "Delete this public note?" }),
+      ).getByText(/removed from your status page/),
+    ).toBeVisible();
+  });
+
+  test("a private event's private notes are written as always", async () => {
+    await renderPrivate({ isPrivateEvent: true });
+
+    // The flag is a public note kind's: a private feed ignores it.
+    expect(screen.getByTestId("note-composer-prompt")).toBeInTheDocument();
+    expect(screen.queryByTestId("note-composer-private-event")).toBeNull();
+  });
+});
+
+describe("event notes: sending a note's notification again", () => {
+  const RESEND_AUDIENCE: ReactElement = (
+    <div data-testid="resend-audience">
+      Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)
+    </div>
+  );
+
+  function withResend(): Partial<EventNotesProps<IncidentPublicNote>> {
+    return {
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        resend: { audience: RESEND_AUDIENCE },
+      },
+    };
+  }
+
+  function openPostedStatus(text: string): HTMLElement {
+    fireEvent.click(within(card(text)).getByTestId("note-notification-status"));
+
+    return screen.getByRole("dialog", { name: "Subscriber notification" });
+  }
+
+  function seedQuietNote(): void {
+    tableOf(IncidentPublicNote).push({
+      _id: noteId(40),
+      incidentId: INCIDENT_ID,
+      note: "Posted quietly.",
+      createdAt: ago(2 * MINUTE),
+      postedAt: ago(2 * MINUTE),
+      createdByUser: MAYA,
+      shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Notifications skipped as subscribers are not to be notified for this incident note.",
+    });
+  }
+
+  test("a note whose notification went out offers Resend, which asks first and names who it reaches", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Monitoring.");
+
+    fireEvent.click(
+      within(details).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+
+    // Nothing is sent from the details: the confirmation asks first.
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.resendConfirmTitle,
+    });
+
+    expect(
+      within(confirm).getByTestId("note-notification-resend-description"),
+    ).toHaveTextContent(SubscriberNotificationResendCopy.noteResendDescription);
+    expect(within(confirm).getByTestId("resend-audience")).toHaveTextContent(
+      "Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(
+          SubscriberNotificationResendCopy.resendButton,
+        ),
+      );
+    });
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateByIdMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: IncidentPublicNote,
+        data: {
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage: null,
+        },
+      }),
+    );
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(noteId(1));
+
+    await waitFor(() => {
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status"),
+      ).toHaveTextContent("Notifying subscribers soon");
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("a failed note offers Retry, which says a note goes to every page again", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Identified.");
+
+    expect(within(details).getByText("The SMTP relay refused.")).toBeVisible();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(details).getByText(
+        SubscriberNotificationResendCopy.retryNoteNotificationButton,
+      ),
+    );
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.retryConfirmTitle,
+    });
+
+    expect(
+      within(confirm).getByTestId("note-notification-resend-description"),
+    ).toHaveTextContent(SubscriberNotificationResendCopy.noteRetryDescription);
+    expect(within(confirm).getByTestId("resend-audience")).toBeVisible();
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(SubscriberNotificationResendCopy.retryButton),
+      );
+    });
+
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(noteId(2));
+  });
+
+  test("Cancel sends nothing", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    fireEvent.click(
+      within(openPostedStatus("Monitoring.")).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole("dialog", {
+          name: SubscriberNotificationResendCopy.resendConfirmTitle,
+        }),
+      ).getByText(SubscriberNotificationResendCopy.cancelButton),
+    );
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("a refused resend keeps the confirmation open with the server's reason", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+    updateByIdMock.mockRejectedValueOnce(
+      new Error(
+        "This notification is being sent right now. Wait until it has finished, then send it again.",
+      ),
+    );
+
+    fireEvent.click(
+      within(openPostedStatus("Monitoring.")).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.resendConfirmTitle,
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(
+          SubscriberNotificationResendCopy.resendButton,
+        ),
+      );
+    });
+
+    expect(within(confirm).getByRole("alert")).toHaveTextContent(
+      "This notification is being sent right now.",
+    );
+  });
+
+  test("a note posted without notifying subscribers offers neither", async () => {
+    seedQuietNote();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Posted quietly.");
+
+    expect(
+      within(details).getByText(/not to be notified for this incident note/),
+    ).toBeVisible();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.retryNoteNotificationButton,
+      ),
+    ).toBeNull();
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.InProgress,
+  ])(
+    "a note whose notification is %s offers neither",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      tableOf(IncidentPublicNote).push({
+        _id: noteId(41),
+        incidentId: INCIDENT_ID,
+        note: "On its way.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(MINUTE),
+        createdByUser: MAYA,
+        subscriberNotificationStatusOnNoteCreated: status,
+      });
+      await renderPublic(withResend());
+
+      // No detail and nothing to offer: a plain pill, not a button.
+      expect(
+        within(card("On its way.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+    },
+  );
+
+  test("an update notification that went out is not offered again", async () => {
+    tableOf(IncidentPublicNote).push({
+      _id: noteId(42),
+      incidentId: INCIDENT_ID,
+      note: "Edited and announced.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(MINUTE),
+      createdByUser: MAYA,
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        "Update notifications sent successfully to all subscribers.",
+    });
+    await renderPublic(withResend());
+
+    fireEvent.click(
+      within(card("Edited and announced.")).getByTestId(
+        "note-update-notification-status",
+      ),
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Update notification",
+    });
+
+    expect(
+      within(dialog).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+  });
+
+  describe("without the resend setting (the episode and scheduled maintenance notes)", () => {
+    test("a note whose notification went out offers nothing", async () => {
+      seedPublicNotes();
+      await renderPublic();
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+    });
+
+    test("a failed one retries straight from the details, with no confirmation", async () => {
+      seedPublicNotes();
+      await renderPublic();
+
+      const details: HTMLElement = openPostedStatus("Identified.");
+
+      await act(async () => {
+        fireEvent.click(
+          within(details).getByText(
+            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+          ),
+        );
+      });
+
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole("dialog", {
+          name: SubscriberNotificationResendCopy.retryConfirmTitle,
+        }),
+      ).toBeNull();
+    });
+
+    test("a scheduled maintenance note keeps Retry only, for its own roles", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.ScheduledMaintenanceMember];
+
+      const EVENT_ID: ObjectID = new ObjectID(
+        "30000000-0000-4000-8000-000000000001",
+      );
+
+      tableOf(ScheduledMaintenancePublicNote).push(
+        {
+          _id: noteId(50),
+          scheduledMaintenanceId: EVENT_ID,
+          note: "Maintenance started.",
+          createdAt: ago(10 * MINUTE),
+          postedAt: ago(10 * MINUTE),
+          createdByUser: MAYA,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Success,
+        },
+        {
+          _id: noteId(51),
+          scheduledMaintenanceId: EVENT_ID,
+          note: "Maintenance extended.",
+          createdAt: ago(5 * MINUTE),
+          postedAt: ago(5 * MINUTE),
+          createdByUser: MAYA,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Failed,
+          subscriberNotificationStatusMessage: "Relay refused.",
+        },
+      );
+
+      render(
+        <EventNotes<ScheduledMaintenancePublicNote>
+          modelType={ScheduledMaintenancePublicNote}
+          visibility="public"
+          eventNoun="scheduled maintenance event"
+          parentIdField="scheduledMaintenanceId"
+          parentId={EVENT_ID}
+          currentProject={buildProject()}
+          subscriberNotifications={{
+            isNotifyingByDefault: true,
+            quietDescription: QUIET_DESCRIPTION,
+          }}
+        />,
+      );
+      await waitFor(() => {
+        expect(screen.queryByTestId("notes-loading")).toBeNull();
+      });
+
+      expect(
+        within(card("Maintenance started.")).getByTestId(
+          "note-notification-status",
+        ).tagName,
+      ).toBe("SPAN");
+
+      const details: HTMLElement = openPostedStatus("Maintenance extended.");
+
+      await act(async () => {
+        fireEvent.click(
+          within(details).getByText(
+            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+          ),
+        );
+      });
+
+      expect(updateByIdMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: ScheduledMaintenancePublicNote,
+          data: {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessage: null,
+          },
+        }),
+      );
+    });
+  });
+
+  describe("who is offered it", () => {
+    test("a project member is offered Resend", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.ProjectMember];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(openPostedStatus("Monitoring.")).getByText(
+          SubscriberNotificationResendCopy.resendNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("a viewer is offered neither Resend nor Retry", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.Viewer];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+      expect(
+        within(openPostedStatus("Identified.")).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+    });
+
+    /*
+     * Telling subscribers about an edit tells them what the note says now,
+     * and an editor can change the text first: it takes the permission to
+     * post a notifying note, like sending the posted notification again.
+     */
+    test("an editor who could not post a note is offered neither the posted notification nor an edit's", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+      expect(
+        within(openPostedStatus("Identified.")).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+
+      fireEvent.click(within(screen.getByRole("dialog")).getByText("Close"));
+
+      fireEvent.click(
+        within(card("Investigating reports")).getByTestId(
+          "note-update-notification-status",
+        ),
+      );
+
+      expect(
+        within(
+          screen.getByRole("dialog", { name: "Update notification" }),
+        ).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+    });
+
+    test("that editor may still edit a note, without the checkbox to notify subscribers", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      const noteCard: HTMLElement = card("Monitoring.");
+      await openActions(noteCard);
+      fireEvent.click(
+        within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+      );
+      const composer: HTMLElement =
+        await within(noteCard).findByTestId("note-edit-composer");
+
+      expect(within(composer).queryByTestId("note-notify-checkbox")).toBeNull();
+      expect(
+        within(composer).queryByText("Notify subscribers about this update"),
+      ).toBeNull();
+
+      type(
+        within(composer).getByLabelText("Note text") as HTMLTextAreaElement,
+        "Monitoring. A fix is live everywhere.",
+      );
+      await act(async () => {
+        fireEvent.click(within(composer).getByTestId("note-submit"));
+      });
+
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(
+        (updateMock.mock.calls[0]![0] as { miscDataProps?: JSONObject })
+          .miscDataProps,
+      ).toEqual({});
+    });
+
+    test("a role that may post and edit notes may retry an edit's notification", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.CreateIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      fireEvent.click(
+        within(card("Investigating reports")).getByTestId(
+          "note-update-notification-status",
+        ),
+      );
+
+      expect(
+        within(
+          screen.getByRole("dialog", { name: "Update notification" }),
+        ).getByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("a role that may post and edit notes is offered it", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.CreateIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(openPostedStatus("Monitoring.")).getByText(
+          SubscriberNotificationResendCopy.resendNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -24,6 +24,14 @@ import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
+import {
+  NetworkDeviceTransceiver,
+  SnmpTransceiverResult,
+  TransceiverHealth,
+  TransceiverMibSource,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import TransceiverHealthUtil from "../../../../Utils/NetworkDevice/TransceiverHealthUtil";
+import logger from "../../../../Server/Utils/Logger";
 
 /*
  * NetworkDeviceWalkUtil is the server half of device-owned polling: the
@@ -1049,5 +1057,329 @@ describe("NetworkDeviceWalkUtil.findMonitorsWatchingDevices", () => {
 
     expect(monitors).toHaveLength(1);
     expect(monitors[0]!.id!.toString()).toBe(straggler.id!.toString());
+  });
+});
+
+/*
+ * Transceivers ride the same pipeline: the probe's readings are folded into
+ * what the device had stored (TransceiverHealthUtil.mergeSnapshot) before
+ * inventory stores them and the monitors judge them, so a pulled optic is
+ * told apart from one still in place and its received power has a history.
+ */
+function opticReading(
+  interfaceIndex: number,
+  rxPowerDbm: number,
+): SnmpTransceiverResult {
+  return {
+    interfaceIndex: interfaceIndex,
+    vendor: "FS",
+    partNumber: "SFP-10GLR-31",
+    serialNumber: `S${interfaceIndex}`,
+    measurements: {
+      rxPower: {
+        readings: [{ value: rxPowerDbm }],
+        thresholds: {
+          lowAlarm: -18.4,
+          lowWarning: -14.4,
+          highWarning: 0.5,
+          highAlarm: 2.5,
+        },
+      },
+    },
+    source: TransceiverMibSource.CiscoEntitySensor,
+  };
+}
+
+function storedOptic(
+  overrides: Partial<NetworkDeviceTransceiver> = {},
+): NetworkDeviceTransceiver {
+  return {
+    interfaceIndex: 1,
+    interfaceName: "GigabitEthernet0/1",
+    isPresent: true,
+    serialNumber: "S1",
+    measurements: {},
+    health: TransceiverHealth.NotJudged,
+    firstSeenAt: "2026-07-01T00:00:00.000Z",
+    lastSeenAt: "2026-07-16T11:55:00.000Z",
+    ...overrides,
+  };
+}
+
+function deviceStoring(
+  snapshot: Array<NetworkDeviceTransceiver> | undefined,
+): NetworkDevice {
+  const device: NetworkDevice = buildDevice();
+  if (snapshot) {
+    device.transceiverSnapshot = snapshot;
+  }
+  return device;
+}
+
+describe("NetworkDeviceWalkUtil.applyTransceivers", () => {
+  test("this poll's optics are merged, put on the response and returned for storing", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverResults: [opticReading(1, -4.2)],
+      transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+    });
+
+    const merged: Array<NetworkDeviceTransceiver> | undefined =
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring(undefined),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      });
+
+    expect(merged).toHaveLength(1);
+    expect(merged![0]).toMatchObject({
+      interfaceIndex: 1,
+      interfaceName: "GigabitEthernet0/1",
+      isPresent: true,
+      health: TransceiverHealth.Healthy,
+      firstSeenAt: NOW.toISOString(),
+    });
+    expect(snmpResponse.transceivers).toEqual(merged);
+    // Copies: pruning the response for a muted port never edits what is stored.
+    expect(snmpResponse.transceivers![0]).not.toBe(merged![0]);
+  });
+
+  test("an optic gone since the stored snapshot is not detected on the response too", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverResults: [],
+      transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+    });
+
+    const merged: Array<NetworkDeviceTransceiver> | undefined =
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([storedOptic()]),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      });
+
+    expect(merged![0]!.isPresent).toBe(false);
+    expect(merged![0]!.missingPolls).toBe(1);
+    expect(snmpResponse.transceivers![0]!.health).toBe(
+      TransceiverHealth.NotDetected,
+    );
+  });
+
+  test("a read that failed judges the stored optics and stores nothing new", () => {
+    const stored: NetworkDeviceTransceiver = storedOptic({
+      isPresent: false,
+      health: TransceiverHealth.NotDetected,
+      missingPolls: 4,
+      missingSince: "2026-07-16T11:40:00.000Z",
+    });
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverWalkFailure: "Transceiver walk timed out",
+    });
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([stored]),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+
+    // The open "not detected" alert stays open rather than flapping.
+    expect(snmpResponse.transceivers).toEqual([stored]);
+  });
+
+  test("an agent that answered nothing at all where it used to report optics is a failed read", () => {
+    const stored: NetworkDeviceTransceiver = storedOptic();
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverResults: [],
+    });
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([stored]),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+    expect(snmpResponse.transceivers).toEqual([stored]);
+  });
+
+  test("a device with no optics at all is judged as having none", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverResults: [],
+      transceiverSource: TransceiverMibSource.EntitySensor,
+    });
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring(undefined),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+    expect(snmpResponse.transceivers).toEqual([]);
+  });
+
+  test("a poll that did not read optics (an older probe) leaves the criteria unevaluated", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse();
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([storedOptic()]),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+    expect(snmpResponse.transceivers).toBeUndefined();
+  });
+
+  test("a failed walk or no walk judges nothing", () => {
+    const failed: SnmpMonitorResponse = buildSnmpResponse({
+      isOnline: false,
+      transceiverResults: [opticReading(1, -4)],
+    });
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([storedOptic()]),
+        snmpResponse: failed,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+    expect(failed.transceivers).toBeUndefined();
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring([storedOptic()]),
+        snmpResponse: undefined,
+        now: NOW,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("only the server judges optics: whatever a probe sent as judged is dropped", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceivers: [storedOptic({ health: TransceiverHealth.Alarm })],
+    });
+
+    NetworkDeviceWalkUtil.applyTransceivers({
+      device: deviceStoring(undefined),
+      snmpResponse: snmpResponse,
+      now: NOW,
+    });
+
+    expect(snmpResponse.transceivers).toBeUndefined();
+  });
+
+  test("a damaged stored snapshot is read as nothing stored", () => {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      transceiverResults: [opticReading(1, -4)],
+      transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+    });
+
+    expect(
+      NetworkDeviceWalkUtil.applyTransceivers({
+        device: deviceStoring({
+          not: "an array",
+        } as unknown as Array<NetworkDeviceTransceiver>),
+        snmpResponse: snmpResponse,
+        now: NOW,
+      }),
+    ).toHaveLength(1);
+  });
+});
+
+describe("NetworkDeviceWalkUtil.processWalkResult — transceivers", () => {
+  test("the device lookup reads the stored transceiver snapshot", async () => {
+    mockPipeline();
+
+    await runWalk(buildSnmpResponse());
+
+    expect(deviceFindSpy.mock.calls[0][0].select.transceiverSnapshot).toBe(
+      true,
+    );
+  });
+
+  test("the merged snapshot is stored through inventory and judged by every watching monitor", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+
+    await runWalk(
+      buildSnmpResponse({
+        transceiverResults: [opticReading(1, -19.2)],
+        transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+      }),
+    );
+
+    const stored: Array<NetworkDeviceTransceiver> =
+      inventorySpy.mock.calls[0][0].transceiverSnapshot;
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.health).toBe(TransceiverHealth.Alarm);
+    expect(synthesized().snmpResponse!.transceivers).toEqual(stored);
+  });
+
+  test("the raw readings are charted, then not carried into every monitor's log", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+    let chartedReadings: unknown = undefined;
+    metricsSpy.mockImplementation(async (args: JSONObject): Promise<void> => {
+      chartedReadings = (args["snmpResponse"] as unknown as SnmpMonitorResponse)
+        .transceiverResults;
+    });
+
+    await runWalk(
+      buildSnmpResponse({
+        transceiverResults: [opticReading(1, -4)],
+        transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+      }),
+    );
+
+    expect(chartedReadings).toEqual([opticReading(1, -4)]);
+    expect(synthesized().snmpResponse!.transceiverResults).toBeUndefined();
+    expect(synthesized().snmpResponse!.transceivers).toHaveLength(1);
+    expect(synthesized().snmpResponse!.transceiverSource).toBe(
+      TransceiverMibSource.CiscoEntitySensor,
+    );
+  });
+
+  test("a poll that did not read optics leaves the stored snapshot alone", async () => {
+    mockPipeline({ device: deviceStoring([storedOptic()]) });
+
+    await runWalk(buildSnmpResponse());
+
+    expect(inventorySpy.mock.calls[0][0].transceiverSnapshot).toBeUndefined();
+  });
+
+  test("a failure judging optics is logged and never breaks the poll", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+    jest
+      .spyOn(TransceiverHealthUtil, "mergeSnapshot")
+      .mockImplementation(() => {
+        throw new Error("bad snapshot");
+      });
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+
+    await expect(
+      runWalk(
+        buildSnmpResponse({
+          transceiverResults: [opticReading(1, -4)],
+          transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+        }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(errorSpy).toHaveBeenCalled();
+    expect(inventorySpy).toHaveBeenCalledTimes(1);
+    expect(inventorySpy.mock.calls[0][0].transceiverSnapshot).toBeUndefined();
+    expect(metricsSpy).toHaveBeenCalledTimes(1);
+    expect(monitorResourceSpy).toHaveBeenCalledTimes(1);
+    expect(synthesized().snmpResponse!.transceivers).toBeUndefined();
   });
 });

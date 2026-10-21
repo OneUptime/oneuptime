@@ -1,6 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { LogVolumeSummary, TopErrorPatternRow } from "./LogsInsights";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The deterministic "explain this spike" engine: correlates the evidence
@@ -91,15 +95,31 @@ export function computeErrorHalves(
   return halves;
 }
 
-function formatMinutesBefore(eventMs: number, windowEndMs: number): string {
+// One whole sentence per case, so no time phrase is glued into it.
+function describeChangeBeforeWindowEnd(
+  changeLabel: string,
+  eventMs: number,
+  windowEndMs: number,
+): string {
   const minutes: number = Math.max(
     0,
     Math.round((windowEndMs - eventMs) / 60000),
   );
   if (minutes === 0) {
-    return "moments before the end of this window";
+    return translateTemplate(
+      "{{change}} landed moments before the end of this window — deployments and config changes are the most common cause of behavior shifts.",
+      { change: changeLabel },
+    );
   }
-  return `${minutes} minute${minutes === 1 ? "" : "s"} before the end of this window`;
+  return translatePlural(
+    {
+      one: "{{change}} landed {{count}} minute before the end of this window — deployments and config changes are the most common cause of behavior shifts.",
+      other:
+        "{{change}} landed {{count}} minutes before the end of this window — deployments and config changes are the most common cause of behavior shifts.",
+    },
+    minutes,
+    { change: changeLabel },
+  );
 }
 
 /**
@@ -120,7 +140,11 @@ export function buildInvestigationFindings(
   for (const marker of changeMarkers) {
     findings.push({
       severity: "critical",
-      text: `${marker.label} landed ${formatMinutesBefore(marker.timeMs, evidence.windowEndMs)} — deployments and config changes are the most common cause of behavior shifts.`,
+      text: describeChangeBeforeWindowEnd(
+        marker.label,
+        marker.timeMs,
+        evidence.windowEndMs,
+      ),
     });
   }
 
@@ -133,13 +157,22 @@ export function buildInvestigationFindings(
     halves.secondHalf >= MIN_ERRORS_FOR_TREND &&
     halves.secondHalf >= halves.firstHalf * TREND_RATIO_THRESHOLD
   ) {
-    const ratioLabel: string =
-      halves.firstHalf === 0
-        ? "from zero"
-        : `${(halves.secondHalf / halves.firstHalf).toFixed(1)}×`;
     findings.push({
       severity: "warning",
-      text: `Error-severity log volume rose ${ratioLabel} in the second half of the window (${halves.firstHalf} → ${halves.secondHalf}).`,
+      text:
+        halves.firstHalf === 0
+          ? translateTemplate(
+              "Error-severity log volume rose from zero in the second half of the window ({{first}} → {{second}}).",
+              { first: halves.firstHalf, second: halves.secondHalf },
+            )
+          : translateTemplate(
+              "Error-severity log volume rose {{ratio}} in the second half of the window ({{first}} → {{second}}).",
+              {
+                ratio: `${(halves.secondHalf / halves.firstHalf).toFixed(1)}×`,
+                first: halves.firstHalf,
+                second: halves.secondHalf,
+              },
+            ),
     });
   }
 
@@ -156,7 +189,10 @@ export function buildInvestigationFindings(
     );
     findings.push({
       severity: "warning",
-      text: `One error pattern accounts for ~${share}% of the window's errors: "${topPattern.sampleBody || topPattern.pattern}".`,
+      text: translateTemplate(
+        'One error pattern accounts for ~{{share}}% of the window\'s errors: "{{pattern}}".',
+        { share: share, pattern: topPattern.sampleBody || topPattern.pattern },
+      ),
     });
   }
 
@@ -166,7 +202,14 @@ export function buildInvestigationFindings(
   ) {
     findings.push({
       severity: "warning",
-      text: `${evidence.logVolume.errorRatePercent.toFixed(1)}% of the window's log lines are error severity (${evidence.logVolume.errorCount.toLocaleString()} of ${evidence.logVolume.total.toLocaleString()}).`,
+      text: translateTemplate(
+        "{{percent}}% of the window's log lines are error severity ({{errors}} of {{total}}).",
+        {
+          percent: evidence.logVolume.errorRatePercent.toFixed(1),
+          errors: evidence.logVolume.errorCount.toLocaleString(),
+          total: evidence.logVolume.total.toLocaleString(),
+        },
+      ),
     });
   }
 
@@ -176,14 +219,19 @@ export function buildInvestigationFindings(
     }
     findings.push({
       severity: "info",
-      text: `${marker.label} was declared inside this window — it may share this root cause.`,
+      text: translateTemplate(
+        "{{marker}} was declared inside this window — it may share this root cause.",
+        { marker: marker.label },
+      ),
     });
   }
 
   if (findings.length === 0) {
     findings.push({
       severity: "info",
-      text: "No change events, error-pattern shifts, or concurrent incidents stand out in this window — try widening the window, or check the traces and exceptions tabs below.",
+      text: translateTemplate(
+        "No change events, error-pattern shifts, or concurrent incidents stand out in this window — try widening the window, or check the traces and exceptions tabs below.",
+      ),
     });
   }
 

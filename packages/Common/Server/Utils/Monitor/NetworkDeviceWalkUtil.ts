@@ -1,7 +1,12 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "../../../Utils/Monitor/MonitorPauseState";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceOidTemplateService from "../../Services/NetworkDeviceOidTemplateService";
+import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import MonitorResourceUtil from "./MonitorResource";
@@ -15,7 +20,20 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import {
+  PROBE_DID_NOT_WALK_TABLES_CAUSE,
+  SnmpTableDefinition,
+  SnmpTableFailureReason,
+  SnmpTableSnapshot,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import TransceiverHealthUtil from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import ProbeCapability, {
+  ProbeCapabilityUtil,
+} from "../../../Types/Probe/ProbeCapability";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -89,6 +107,11 @@ export default class NetworkDeviceWalkUtil {
      * ping-only poll, and never synthesized from the ping.
      */
     snmpResponse?: SnmpMonitorResponse | undefined;
+    /*
+     * What the reporting probe declared it can do (ProbeCapability). An
+     * older probe declares nothing.
+     */
+    probeCapabilities?: Array<string> | undefined;
     monitoredAt: Date;
   }): Promise<void> {
     /*
@@ -108,6 +131,12 @@ export default class NetworkDeviceWalkUtil {
         name: true,
         siteId: true,
         lastWalkLog: true,
+        // For joining walked SNMP tables back to their definitions.
+        snmpTables: true,
+        oidTemplateId: true,
+        snmpTableSnapshot: true,
+        // To tell a pulled optic from one still in place, and for its trend.
+        transceiverSnapshot: true,
       },
       props: {
         isRoot: true,
@@ -236,6 +265,51 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * SNMP tables arrive as raw values per row index and column OID. Join
+     * them back to their definitions BEFORE anything reads the response, so
+     * the inventory, the metrics and every criteria below see named columns
+     * and labelled rows. Never fatal: a table that cannot be read this cycle
+     * keeps its stored rows.
+     */
+    let snmpTableSnapshot: Array<SnmpTableSnapshot> | undefined = undefined;
+
+    try {
+      snmpTableSnapshot = await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device,
+        snmpResponse: data.snmpResponse,
+        probeCapabilities: data.probeCapabilities,
+        monitoredAt: data.monitoredAt,
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to read SNMP tables for device ${device.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+
+    /*
+     * Transceivers: this poll's optics folded into what the device had
+     * stored, and judged - before inventory, metrics and criteria read the
+     * response. Never fatal: a poll that cannot judge its optics leaves the
+     * stored ones alone.
+     */
+    let transceiverSnapshot: Array<NetworkDeviceTransceiver> | undefined =
+      undefined;
+
+    try {
+      transceiverSnapshot = NetworkDeviceWalkUtil.applyTransceivers({
+        device: device,
+        snmpResponse: data.snmpResponse,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to read transceivers for device ${device.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+
+    /*
      * Inventory sync also prunes data.snmpResponse.interfaces down to
      * monitored ports, so the metrics and criteria below only see ports the
      * user cares about.
@@ -246,6 +320,8 @@ export default class NetworkDeviceWalkUtil {
       snmpResponse: data.snmpResponse,
       isOnline: isOnline,
       pollMode: pollMode,
+      snmpTableSnapshot: snmpTableSnapshot,
+      transceiverSnapshot: transceiverSnapshot,
     });
 
     try {
@@ -269,6 +345,16 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * The probe's raw transceiver readings have done their job - folded
+     * into the snapshot and charted. The monitors judge the merged
+     * `transceivers`, so the raw copy is not carried into the log of every
+     * monitor watching the device.
+     */
+    if (data.snmpResponse) {
+      delete data.snmpResponse.transceiverResults;
+    }
+
+    /*
      * Why the poll failed, for the incident/alert narrative. The walk's own
      * cause is passed through whenever a walk ran (it is the more specific
      * of the two, and the "SNMP walk failing" alert reads it); the ping's
@@ -289,11 +375,7 @@ export default class NetworkDeviceWalkUtil {
       });
 
     for (const monitor of monitors) {
-      if (
-        monitor.disableActiveMonitoring ||
-        monitor.disableActiveMonitoringBecauseOfManualIncident ||
-        monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-      ) {
+      if (MonitorPauseState.isPaused(monitor)) {
         continue;
       }
 
@@ -348,6 +430,261 @@ export default class NetworkDeviceWalkUtil {
     logger.debug(
       `Device poll for ${device.id.toString()} (${pollMode}) processed: evaluated ${monitors.length} watching monitor(s).`,
     );
+  }
+
+  /*
+   * Materializes this walk's SNMP tables onto `snmpResponse.tables` and
+   * returns the snapshot the device should store - or undefined when the
+   * stored snapshot must not be touched.
+   *
+   * `snmpResponse.tables` holds only what THIS walk produced (a table that
+   * failed carries its failure cause and no rows), because criteria must
+   * judge the current walk, never a remembered one. The stored snapshot is
+   * merged instead: a table that failed keeps its last good rows so the
+   * device's Tables view does not blank on a timeout.
+   *
+   * Undefined (leave the column alone) covers: no walk, a walk that was
+   * handed no tables, and a lookup failure. An empty array clears it, which
+   * is what happens once every table is removed from the device and its
+   * template.
+   *
+   * A walk that answered without `tableResults` from a probe that does not
+   * declare ProbeCapability.SnmpTables is a probe that predates SNMP tables:
+   * it reads the device's OIDs and interfaces and ignores the tables it is
+   * handed, on every poll, for as long as it runs. Leaving the snapshot
+   * alone then would show "waiting for the first walk" forever, so every
+   * defined table is stored as not walked, with the reason - keeping any
+   * rows an earlier walk stored - and the device's Wi-Fi and SNMP Tables
+   * views say to update the probe. Criteria still judge only what this walk
+   * read: nothing, as before.
+   */
+  public static async applyTableDefinitions(data: {
+    device: NetworkDevice;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    probeCapabilities?: Array<string> | undefined;
+    monitoredAt: Date;
+  }): Promise<Array<SnmpTableSnapshot> | undefined> {
+    const snmpResponse: SnmpMonitorResponse | undefined = data.snmpResponse;
+
+    if (!snmpResponse || snmpResponse.isOnline === false) {
+      return undefined;
+    }
+
+    const storedSnapshot: Array<SnmpTableSnapshot> =
+      data.device.snmpTableSnapshot || [];
+
+    /*
+     * A probe that walks tables answers every config that lists them with
+     * tableResults, so one that declares it and sent none was handed none
+     * (or the tables were added after it claimed this poll; its next poll
+     * walks them).
+     */
+    const probeWalksTables: boolean = ProbeCapabilityUtil.has(
+      data.probeCapabilities,
+      ProbeCapability.SnmpTables,
+    );
+
+    /*
+     * The common case - a device with no tables at all - costs no query:
+     * nothing was walked and nothing is stored, so there is nothing to join
+     * and nothing to clear. Only a probe that may have ignored the tables it
+     * was handed needs a look, and only at a device that can have tables.
+     * For a device linked to an OID Collection Template that is one template
+     * read per poll, until its probe is updated to one that declares
+     * ProbeCapability.SnmpTables.
+     */
+    if (
+      !snmpResponse.tableResults &&
+      storedSnapshot.length === 0 &&
+      (probeWalksTables || !NetworkDeviceWalkUtil.canHaveTables(data.device))
+    ) {
+      return undefined;
+    }
+
+    const definitions: Array<SnmpTableDefinition> =
+      await NetworkDeviceWalkUtil.resolveTableDefinitions(data.device);
+
+    if (definitions.length === 0) {
+      // Every table was removed: drop the rows nothing collects any more.
+      return storedSnapshot.length > 0 ? [] : undefined;
+    }
+
+    const definedKeys: Array<string> = definitions.map(
+      (table: SnmpTableDefinition) => {
+        return table.key;
+      },
+    );
+
+    if (!snmpResponse.tableResults) {
+      if (probeWalksTables) {
+        return undefined;
+      }
+
+      logger.debug(
+        `Device ${data.device.id?.toString()}: the probe answered without walking its ${definitions.length} SNMP table(s); it predates SNMP tables.`,
+      );
+
+      return SnmpTableListUtil.capSnapshotsForStorage(
+        SnmpTableListUtil.mergeWithPrevious({
+          current: SnmpTableListUtil.notWalked({
+            tables: definitions,
+            failureCause: PROBE_DID_NOT_WALK_TABLES_CAUSE,
+            failureReason: SnmpTableFailureReason.ProbeDidNotWalkTables,
+          }),
+          previous: storedSnapshot,
+          definedKeys: definedKeys,
+        }),
+      );
+    }
+
+    const current: Array<SnmpTableSnapshot> = SnmpTableListUtil.materialize({
+      tables: definitions,
+      results: snmpResponse.tableResults,
+      collectedAt: data.monitoredAt,
+    });
+
+    snmpResponse.tables = current;
+
+    return SnmpTableListUtil.capSnapshotsForStorage(
+      SnmpTableListUtil.mergeWithPrevious({
+        current: current,
+        previous: storedSnapshot,
+        definedKeys: definedKeys,
+      }),
+    );
+  }
+
+  /*
+   * Folds this walk's transceivers into the device's stored ones
+   * (TransceiverHealthUtil.mergeSnapshot), puts what the criteria judge on
+   * `snmpResponse.transceivers`, and returns the snapshot the device should
+   * store - or undefined when the stored one must not be touched.
+   *
+   * What the criteria judge:
+   *
+   *   - the merged state, when this poll read the optics;
+   *   - the STORED state, when it tried and could not (a timeout, a table
+   *     too long, an agent that answered nothing at all where it used to
+   *     report optics) - so an open "not detected" or "past its alarm
+   *     threshold" alert does not resolve on a poll that could not look,
+   *     and reopen on the next one;
+   *   - nothing, when this poll did not try (an older probe, interface
+   *     walking off): the transceiver criteria are then not evaluated.
+   */
+  public static applyTransceivers(data: {
+    device: NetworkDevice;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    now: Date;
+  }): Array<NetworkDeviceTransceiver> | undefined {
+    const snmpResponse: SnmpMonitorResponse | undefined = data.snmpResponse;
+
+    if (!snmpResponse) {
+      return undefined;
+    }
+
+    // Only the server judges optics: anything a probe put here is dropped.
+    delete snmpResponse.transceivers;
+
+    if (snmpResponse.isOnline === false) {
+      return undefined;
+    }
+
+    const stored: Array<NetworkDeviceTransceiver> = Array.isArray(
+      data.device.transceiverSnapshot,
+    )
+      ? data.device.transceiverSnapshot
+      : [];
+
+    const merged: Array<NetworkDeviceTransceiver> | undefined =
+      TransceiverHealthUtil.mergeSnapshot({
+        previous: stored,
+        results: snmpResponse.transceiverResults,
+        source: snmpResponse.transceiverSource,
+        interfaces: (snmpResponse.interfaces || []).map(
+          (walked: SnmpInterface) => {
+            return {
+              interfaceIndex: walked.interfaceIndex,
+              name: walked.name,
+              alias: walked.alias,
+              isAdministrativelyUp: walked.isAdministrativelyUp,
+            };
+          },
+        ),
+        now: data.now,
+      });
+
+    const triedAndCouldNotRead: boolean =
+      Boolean(snmpResponse.transceiverWalkFailure) ||
+      (snmpResponse.transceiverResults !== undefined && merged === undefined);
+
+    let judged: Array<NetworkDeviceTransceiver> | undefined = merged;
+
+    if (!judged && triedAndCouldNotRead) {
+      judged = stored;
+    }
+
+    if (!judged && snmpResponse.transceiverResults !== undefined) {
+      judged = [];
+    }
+
+    if (judged) {
+      snmpResponse.transceivers = judged.map(
+        (transceiver: NetworkDeviceTransceiver) => {
+          return { ...transceiver };
+        },
+      );
+    }
+
+    return merged;
+  }
+
+  /*
+   * Whether a device has, or may have, SNMP tables to walk: tables of its
+   * own, or an OID Collection Template that may hold some. Read off the row
+   * alone, without the template.
+   */
+  public static canHaveTables(device: NetworkDevice): boolean {
+    return (
+      (device.snmpTables || []).length > 0 || Boolean(device.oidTemplateId)
+    );
+  }
+
+  /*
+   * The device's effective tables, resolved the same way the poll hand-out
+   * resolved them (template first, device-specific merged over it by key).
+   * Resolved again here rather than echoed back by the probe: the probe
+   * only ever sees column OIDs, and names and value labels have no reason
+   * to cross the wire twice per poll.
+   */
+  public static async resolveTableDefinitions(
+    device: NetworkDevice,
+  ): Promise<Array<SnmpTableDefinition>> {
+    let templateTables: Array<SnmpTableDefinition> = [];
+
+    if (device.oidTemplateId && device.projectId) {
+      const template: NetworkDeviceOidTemplate | null =
+        await NetworkDeviceOidTemplateService.findOneBy({
+          query: {
+            _id: device.oidTemplateId,
+            // Never read another project's template, whatever the FK says.
+            projectId: device.projectId,
+          },
+          select: {
+            _id: true,
+            tables: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      templateTables = template?.tables || [];
+    }
+
+    return SnmpTableListUtil.resolveEffectiveTables({
+      templateTables: templateTables,
+      deviceTables: device.snmpTables,
+    }).tables;
   }
 
   /*
@@ -477,9 +814,7 @@ export default class NetworkDeviceWalkUtil {
           _id: true,
           projectId: true,
           monitorSteps: true,
-          disableActiveMonitoring: true,
-          disableActiveMonitoringBecauseOfManualIncident: true,
-          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+          ...MONITOR_PAUSE_FLAGS_SELECT,
         },
         sort: {
           _id: SortOrder.Ascending,

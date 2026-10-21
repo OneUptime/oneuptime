@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface HoneycombTileDetail {
   label: string;
@@ -179,6 +181,7 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
 }: {
   state: TooltipState;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -233,9 +236,11 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
       </div>
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-gray-400">Status</span>
+          <span className="text-gray-400">
+            {translator.translateText("Status")}
+          </span>
           <span className="font-medium text-gray-700 truncate">
-            {state.tile.status}
+            {translator.translateText(state.tile.status)}
           </span>
         </div>
         {details.map((d: HoneycombTileDetail, i: number) => {
@@ -244,7 +249,9 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
               key={i}
               className="flex items-center justify-between gap-2 text-xs"
             >
-              <span className="text-gray-400">{d.label}</span>
+              <span className="text-gray-400">
+                {translator.translateText(d.label)}
+              </span>
               <span className="font-medium text-gray-700 truncate">
                 {d.value}
               </span>
@@ -253,7 +260,7 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
         })}
         {state.tile.route && (
           <div className="text-[10px] text-gray-400 pt-1.5 border-t border-gray-100 mt-1.5">
-            Click to open
+            {translator.translateText("Click to open")}
           </div>
         )}
       </div>

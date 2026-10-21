@@ -1,6 +1,5 @@
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -30,6 +29,7 @@ import IncidentTemplateOwnerUserService from "../../Services/IncidentTemplateOwn
 import IncomingCallPolicyOwnerUserService from "../../Services/IncomingCallPolicyOwnerUserService";
 import IoTFleetOwnerUserService from "../../Services/IoTFleetOwnerUserService";
 import KubernetesClusterOwnerUserService from "../../Services/KubernetesClusterOwnerUserService";
+import MessageQueueOwnerUserService from "../../Services/MessageQueueOwnerUserService";
 import MonitorGroupOwnerUserService from "../../Services/MonitorGroupOwnerUserService";
 import MonitorOwnerUserService from "../../Services/MonitorOwnerUserService";
 import NetworkDeviceOwnerUserService from "../../Services/NetworkDeviceOwnerUserService";
@@ -49,11 +49,15 @@ import ServerlessFunctionOwnerUserService from "../../Services/ServerlessFunctio
 import ServiceLevelObjectiveOwnerUserService from "../../Services/ServiceLevelObjectiveOwnerUserService";
 import ServiceOwnerUserService from "../../Services/ServiceOwnerUserService";
 import StatusPageOwnerUserService from "../../Services/StatusPageOwnerUserService";
+import StorageArrayOwnerUserService from "../../Services/StorageArrayOwnerUserService";
 import VMwareVCenterOwnerUserService from "../../Services/VMwareVCenterOwnerUserService";
 import WorkflowOwnerUserService from "../../Services/WorkflowOwnerUserService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "../../../Utils/ScheduledMaintenanceStart";
 
 /*
  * What cleanupForUserLeavingProject removed, for logging and for the tests.
@@ -162,6 +166,7 @@ export default class ProjectLeaveResourceCleanup {
       ),
       ownerUserTable(IoTFleetOwnerUserService, "iotFleetId"),
       ownerUserTable(KubernetesClusterOwnerUserService, "kubernetesClusterId"),
+      ownerUserTable(MessageQueueOwnerUserService, "messageQueueId"),
       ownerUserTable(MonitorGroupOwnerUserService, "monitorGroupId"),
       ownerUserTable(MonitorOwnerUserService, "monitorId"),
       ownerUserTable(NetworkDeviceOwnerUserService, "networkDeviceId"),
@@ -190,6 +195,7 @@ export default class ProjectLeaveResourceCleanup {
       ),
       ownerUserTable(ServiceOwnerUserService, "serviceId"),
       ownerUserTable(StatusPageOwnerUserService, "statusPageId"),
+      ownerUserTable(StorageArrayOwnerUserService, "storageArrayId"),
       ownerUserTable(VMwareVCenterOwnerUserService, "vmwareVCenterId"),
       ownerUserTable(WorkflowOwnerUserService, "workflowId"),
     ];
@@ -400,46 +406,36 @@ export default class ProjectLeaveResourceCleanup {
   }
 
   /*
-   * Scheduled, ongoing: open. Everything from the first ended or completed
-   * state on: over — the same order-based reading the incident and alert
-   * helpers use for "everything after resolved is resolved".
+   * Open until it is over: waiting to start or in progress. Over is the one
+   * rule (ScheduledMaintenanceStartUtil.getPhase): Ended, Completed, or a
+   * state of the project's own placed after Ended - the same place-based
+   * reading the incident and alert helpers use for "everything after
+   * resolved is resolved".
    */
   private static async getOpenScheduledMaintenanceStateIds(
     projectId: ObjectID,
   ): Promise<Array<ObjectID>> {
     const states: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          isEndedState: true,
-          isResolvedState: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: projectId,
         props: {
           isRoot: true,
         },
       });
 
-    const openStateIds: Array<ObjectID> = [];
-
-    for (const state of states) {
-      if (state.isEndedState || state.isResolvedState) {
-        break;
-      }
-
-      if (state.id) {
-        openStateIds.push(state.id);
-      }
-    }
-
-    return openStateIds;
+    return states
+      .filter((state: ScheduledMaintenanceState): boolean => {
+        return (
+          Boolean(state.id) &&
+          ScheduledMaintenanceStartUtil.getPhase({
+            states: states,
+            state: state,
+          }) !== ScheduledMaintenancePhaseOfState.Over
+        );
+      })
+      .map((state: ScheduledMaintenanceState): ObjectID => {
+        return state.id!;
+      });
   }
 
   private static async deleteRowsOnOpenResources(data: {

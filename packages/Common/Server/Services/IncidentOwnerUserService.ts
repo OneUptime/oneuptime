@@ -3,7 +3,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -19,8 +19,10 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -51,6 +53,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -67,19 +72,14 @@ export class Service extends DatabaseService<Model> {
       deleteBy.props,
     );
 
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         incidentId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -132,8 +132,10 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -176,13 +178,13 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-            {
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
-            },
-          )}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+            })}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,
@@ -213,6 +215,9 @@ export class Service extends DatabaseService<Model> {
           },
         ),
         userIds: [userId!],
+        notificationFor: {
+          incidentId: incidentId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

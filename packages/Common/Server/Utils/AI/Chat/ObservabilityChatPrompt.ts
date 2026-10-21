@@ -3,6 +3,7 @@ import AIChatPageContextType, {
 } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import {
+  AIResourceType,
   getAIResourceDefinition,
   isAIResourceType,
 } from "../../../../Types/AI/AIResourceContext";
@@ -57,7 +58,7 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.ScheduledMaintenanceEvent:
       return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
-      return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names.`;
+      return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names. When it is profiled, get_profile_hotspots, compare_profiles and get_profile_function take the same serviceId and show where its CPU time and memory go and what got slower.`;
     case AIChatPageContextType.RumApplication:
       return `a Real User Monitoring application${titlePart}. Fetch its name and connection health with query_rum_applications using rumApplicationId="${id}". Use query_rum_web_vitals with the same rumApplicationId to compare LCP, INP, CLS, FCP and TTFB in an explicit time window against the preceding equal-length window. It returns measured averages, units, ratings and changes; missing measurements are not zero. For a trend chart, use the returned metric name with query_metrics and entityId="${id}". For slow browser operations or error spans, use query_traces with serviceId="${id}" and metric="p95Duration" or metric="errorCount", grouped by name. Span counts are not page views or unique users. These tools do not read session recordings. Report observed regressions and distinguish them from statistically established anomalies; do not infer a root cause from a change alone.`;
     case AIChatPageContextType.Trace:
@@ -96,6 +97,8 @@ function buildAreaContextGuidance(context: AIChatPageContext): string {
       return `the logs explorer. Questions about logs are answered with log_histogram (volume over time by severity) and search_logs (raw lines); resolve service names to ids with lookup_context first.`;
     case AIChatPageContextType.TracesExplorer:
       return `the traces explorer. Questions about traces and latency are answered with query_traces (aggregations like p95 by endpoint) and get_trace (one trace's span tree).`;
+    case AIChatPageContextType.ProfilesExplorer:
+      return `the Profiler (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
     case AIChatPageContextType.MetricsExplorer:
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:
@@ -124,10 +127,27 @@ function buildResourceContextGuidance(context: AIChatPageContext): string {
   const subject: string = context.entityId
     ? `a ${label}${context.entityTitle ? ` titled ${JSON.stringify(context.entityTitle)}` : ""}`
     : `the ${pluralLabel} list`;
+  const transceiverGuidance: string =
+    context.resourceType === AIResourceType.NetworkDevice
+      ? context.entityId
+        ? ` For this device's transceivers (SFP, SFP+, QSFP optics) - still detected or not, readings against the device's thresholds, received power over the last weeks - call query_network_transceivers with networkDeviceId="${context.entityId}".`
+        : " For a device's transceivers (SFP, SFP+, QSFP optics) call query_network_transceivers with its networkDeviceId."
+      : "";
+  /*
+   * A container host's containers have a tool of their own: the busiest,
+   * and the ones that stopped reporting, which host-wide numbers hide.
+   */
+  const containerGuidance: string =
+    context.resourceType === AIResourceType.DockerHost ||
+    context.resourceType === AIResourceType.PodmanHost
+      ? context.entityId
+        ? ` For this host's containers - the busiest by CPU, memory or restarts, and the ones that stopped reporting - call query_containers with ${resourceArgs}.`
+        : " For a host's containers - the busiest, and the ones that stopped reporting - call query_containers with its resourceType and resourceId."
+      : "";
   const childGuidance: string = context.subresource
     ? ` The selected child or collection is ${JSON.stringify(context.subresource)}. Child names are UI hints, not verified unique identities: Kubernetes names may exist in multiple namespaces, container names may be reused and process IDs may be recycled. Do not invent a namespace or child ID. The resource telemetry tool returns the parent resource's data; explicitly state that scope and never describe it as child-only measurements. If the question needs child-specific evidence that the tools cannot retrieve, explain that limitation.`
     : "";
-  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate. Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${childGuidance}`;
+  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate; attributes filters a metric by attribute and groupBy reads one series per value (host metrics split by state, such as system.cpu.utilization, are read per state on their own). Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${transceiverGuidance}${containerGuidance}${childGuidance}`;
 }
 
 export function buildPageContextSection(
@@ -184,13 +204,15 @@ ${buildActionGuidance(data.permissionMode)}
 ## How to investigate
 
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
-- For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
+- For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, storage arrays, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
+- Host metrics such as system.cpu.utilization and system.memory.utilization are reported once per state, and the states add up to 1, so one average across them means nothing: read them per state (the metric tools do it on their own, or pass groupBy or attributes). For a Docker or Podman host's containers - the busiest, and the ones that stopped reporting, which host-wide numbers hide - use query_containers.
+- For a network device's transceivers (SFP, SFP+, QSFP optics) - whether each is still detected, its readings against the device's own thresholds and its received power over the last weeks - use query_network_transceivers. Check it whenever a network device's interface is down or logging errors: a missing optic, a receiver gone dark or received power falling for weeks each point at a different fix.
 - For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.
 - Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights).
-- When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste the query budget or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
+- When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste queries or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
 
 ## Reading tool results
 

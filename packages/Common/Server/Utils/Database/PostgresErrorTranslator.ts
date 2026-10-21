@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "../../../Utils/CapitalRuns";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 
@@ -7,6 +8,13 @@ import Exception from "../../../Types/Exception/Exception";
  */
 const FOREIGN_KEY_VIOLATION: string = "23503";
 const UNIQUE_VIOLATION: string = "23505";
+const INVALID_TEXT_REPRESENTATION: string = "22P02";
+
+// How Postgres begins the 22P02 it raises for a value it cannot read as a uuid.
+const INVALID_UUID_MESSAGE_START: string = "invalid input syntax for type uuid";
+
+// The example every message about an ID gives (ObjectID, UUIDColumnFilter).
+const EXAMPLE_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
 
 /*
  * TypeORM reports driver failures as QueryFailedError, which does not extend
@@ -22,6 +30,7 @@ const UNIQUE_VIOLATION: string = "23505";
 
 interface PostgresDriverError {
   code?: string | undefined;
+  message?: string | undefined;
   table?: string | undefined;
   detail?: string | undefined;
 }
@@ -54,6 +63,10 @@ export default class PostgresErrorTranslator {
 
     if (driverError.code === UNIQUE_VIOLATION) {
       return this.translateUniqueViolation(error, driverError);
+    }
+
+    if (driverError.code === INVALID_TEXT_REPRESENTATION) {
+      return this.translateInvalidUuid(error, driverError);
     }
 
     return error;
@@ -202,6 +215,33 @@ export default class PostgresErrorTranslator {
     );
   }
 
+  /*
+   * A value Postgres could not read as a uuid, compared with or written to a
+   * uuid column:
+   *   invalid input syntax for type uuid: "[object Object]"
+   *
+   * A filter and a write are refused before they get here, naming the column
+   * (UUIDColumnFilter); this answers what reaches Postgres some other way - a
+   * custom route, a statement written by hand - with a 400 instead of a
+   * 500. The value is not repeated: it is whatever was bound, and need not be
+   * the caller's. Any other 22P02 (an integer, a json) is left as it is.
+   */
+  private static translateInvalidUuid(
+    error: unknown,
+    driverError: PostgresDriverError,
+  ): unknown {
+    if (!(driverError.message || "").startsWith(INVALID_UUID_MESSAGE_START)) {
+      return error;
+    }
+
+    return this.tag(
+      new BadDataException(
+        `An ID in this request is not valid. An ID is a UUID, such as "${EXAMPLE_UUID}". Please check the IDs in the request and try again.`,
+      ),
+      driverError,
+    );
+  }
+
   /* Records the SQLSTATE on the translated exception. See the interface above. */
   private static tag(
     exception: BadDataException,
@@ -282,10 +322,10 @@ export default class PostgresErrorTranslator {
    * user without maintaining a lookup table of display names.
    */
   private static humanizeTableName(tableName: string): string {
-    return tableName
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-      .trim();
+    return splitCapitalRunsBeforeWords(
+      tableName.replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
+      " ",
+    ).trim();
   }
 
   /*

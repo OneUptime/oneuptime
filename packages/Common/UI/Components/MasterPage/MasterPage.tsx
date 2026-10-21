@@ -2,6 +2,8 @@ import PageError from "../Error/PageError";
 import PageLoader from "../Loader/PageLoader";
 import OfflineIndicator from "../Offline/OfflineIndicator";
 import TopSection from "../TopSection/TopSection";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -26,6 +28,7 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOnline, setIsOnline] = React.useState(true);
   const topSectionRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
@@ -133,7 +136,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
               href="#main-content"
               className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
             >
-              Skip to main content
+              {translator.translateText("Skip to main content")}
             </a>
           )}
           {hasTopSection && (

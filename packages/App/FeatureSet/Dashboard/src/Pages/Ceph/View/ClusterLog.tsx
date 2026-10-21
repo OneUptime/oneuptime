@@ -24,6 +24,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -34,6 +35,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Ceph cluster log page (WI-16) — the Kubernetes View/Events.tsx analog.
@@ -109,12 +113,14 @@ const parseCephLogLine: (body: string, fallbackTime: string) => CephLogRow = (
 const CephClusterClusterLog: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [rows, setRows] = useState<Array<CephLogRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -292,10 +298,21 @@ const CephClusterClusterLog: FunctionComponent<
     return data;
   }, [rows, filterData, sortBy, sortOrder]);
 
+  /*
+   * A refresh can shrink the data set (lines age out of the 24-hour
+   * window), so clamp instead of trusting currentPage — otherwise the
+   * user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
   const paginatedData: Array<CephLogRow> = useMemo(() => {
-    const start: number = (currentPage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, currentPage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -365,11 +382,15 @@ const CephClusterClusterLog: FunctionComponent<
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -378,7 +399,6 @@ const CephClusterClusterLog: FunctionComponent<
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         setShowFilterModal(true);
       },
@@ -395,23 +415,29 @@ const CephClusterClusterLog: FunctionComponent<
           </div>
           <div>
             <p className="text-sm font-medium text-blue-800">
-              Cluster Log Shipping Is Optional
+              {translator.translateText("Cluster Log Shipping Is Optional")}
             </p>
             <p className="mt-1 text-sm text-blue-600">
-              No ceph.log lines arrived in the last 24 hours. To populate this
-              page, uncomment the{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                filelog
-              </code>{" "}
-              receiver and the logs pipeline in the Ceph agent&apos;s{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                otel-collector-config.yaml
-              </code>{" "}
-              (the agent host must be able to read{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                /var/log/ceph/ceph.log
-              </code>
-              ).
+              <TranslatedSentence
+                template="No ceph.log lines arrived in the last 24 hours. To populate this page, uncomment the {{receiver}} receiver and the logs pipeline in the Ceph agent's {{configFile}} (the agent host must be able to read {{logFile}})."
+                slots={{
+                  receiver: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      filelog
+                    </code>
+                  ),
+                  configFile: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      otel-collector-config.yaml
+                    </code>
+                  ),
+                  logFile: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      /var/log/ceph/ceph.log
+                    </code>
+                  ),
+                }}
+              />
             </p>
           </div>
         </div>
@@ -419,7 +445,8 @@ const CephClusterClusterLog: FunctionComponent<
       <Card
         title="Cluster Log"
         description="ceph.log lines from the last 24 hours, parsed into level / daemon / message."
-        buttons={cardButtons}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons(cardButtons)}
       >
         <Table<CephLogRow>
           id="ceph-cluster-log-table"
@@ -429,11 +456,14 @@ const CephClusterClusterLog: FunctionComponent<
           pluralLabel="Log Lines"
           isLoading={false}
           error=""
-          currentPageNumber={currentPage}
+          currentPageNumber={effectivePage}
           totalItemsCount={processedData.length}
-          itemsOnPage={paginatedData.length}
-          onNavigateToPage={(page: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(page: number, itemsOnPage: number) => {
             setCurrentPage(page);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortBy={sortBy as keyof CephLogRow | null}
           sortOrder={sortOrder}

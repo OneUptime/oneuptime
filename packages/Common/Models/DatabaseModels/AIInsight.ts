@@ -1,4 +1,5 @@
 import Project from "./Project";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -8,6 +9,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -40,6 +42,14 @@ import AIInsightEvidence from "../../Types/AI/AIInsightEvidence";
   update: PlanType.Growth,
   delete: PlanType.Free,
 })
+/*
+ * An insight is about the service it names, when it names one: a caller
+ * whose grants reach only the services they own reads the insights about
+ * those, and the insights about no service - the project's own. Grants and
+ * blocks limited to labels follow the service's labels the same way
+ * (ReadPermission.addLabelRulesToQuery).
+ */
+@OwnedThrough("telemetryServiceId", Service, { includeUnattributed: true })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/ai-insight"))
 @Entity({

@@ -360,6 +360,19 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
+/*
+ * The account's own count of wrong codes lets every code through to its
+ * check here: this suite is about what a code is checked against, not how
+ * many are. That count is TwoFactorWrongCodesSignIn.test.ts.
+ */
+jest.mock("Common/Server/Utils/TwoFactorWrongCodes", () => {
+  return (
+    jest.requireActual("./TwoFactorWrongCodesStandIn") as {
+      letEveryCodeBeChecked: () => Record<string, unknown>;
+    }
+  ).letEveryCodeBeChecked();
+});
+
 // Importing the router registers every handler on the mock router above.
 import "../../../FeatureSet/Identity/API/Authentication";
 

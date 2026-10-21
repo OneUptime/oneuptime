@@ -54,7 +54,7 @@ export enum RunnerConnectionStatus {
   pluralName: "Runners",
   icon: IconProp.Terminal,
   tableDescription:
-    "A self-hosted OneUptime Runner: it executes runbook steps in your own infrastructure and, when the capability is enabled, works in your code repository to open AI fix pull requests. Runbook steps pick the Runner that should execute them.",
+    "A self-hosted OneUptime Runner: it executes runbook steps in your own infrastructure, and AI works on it in the code repositories that pick it. Runbook steps and code repositories each pick the Runner that runs them.",
 })
 @TableAccessControl({
   create: [
@@ -62,7 +62,6 @@ export enum RunnerConnectionStatus {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.CreateRunner,
   ],
   read: [
@@ -95,7 +94,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -137,7 +135,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -152,17 +149,23 @@ export default class Runner extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Empty for a global Runner (isGlobalRunner): one the OneUptime server
+   * runs for every project, which no project owns. Every Runner a project
+   * creates gets its project here from the tenant it is created in, and
+   * RunnerService refuses a Runner that is neither (GlobalRunnerRow).
+   */
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
@@ -173,7 +176,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -216,7 +218,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -285,7 +286,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     /*
@@ -330,7 +330,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -403,7 +402,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -438,6 +436,11 @@ export default class Runner extends BaseModel {
    * container decides what it polls for, and these columns tell the
    * dashboard what to expect (and let an operator revoke a capability
    * centrally without touching the host).
+   *
+   * AI code fixes are not a switch here: a code repository picks the Runner
+   * AI works in it on (CodeRepository.runnerId), and a Runner takes code
+   * work exactly while a repository of its project picks it
+   * (Types/Runner/CodeRepositoryRunner).
    */
   @ColumnAccessControl({
     create: [
@@ -445,7 +448,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -481,63 +483,21 @@ export default class Runner extends BaseModel {
   })
   public canRunRunbooks?: boolean = undefined;
 
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.CreateRunner,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.RunbookViewer,
-      Permission.ReadRunner,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookAdmin,
-      Permission.EditRunner,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Boolean,
-    title: "Runs AI Code Fixes",
-    description:
-      "Whether this Runner works in your code repository to open AI fix pull requests. Off by default; it requires a connected code repository. It cannot be turned on for an in-cluster Runner the Kubernetes agent chart registered, which runs kubectl only.",
-    defaultValue: false,
-    isDefaultValueColumn: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public canRunCodeFixTasks?: boolean = undefined;
-
   /*
-   * Opt-in consent for AI-composed remediation commands: with this off, the
-   * server never serves this Runner an AiRemediation-origin job, no matter
-   * what the project or rule configuration says. The operator who runs the
-   * host decides whether an AI may execute commands on it.
+   * Consent for OneUptime AI's commands: with this off, the server never
+   * serves this Runner an AiRemediation-origin job. It is no longer a switch
+   * anyone turns: picking the Runner for OneUptime AI's commands is the
+   * consent, and OneUptime turns this on when that happens
+   * (Server/Utils/Runner/RunnerAiCommandsPick) - an auto remediation rule
+   * picks it as its Runner, or a Kubernetes cluster's AI settings bind it.
+   * The in-cluster Runner the Kubernetes agent chart registers has it on for
+   * its own cluster, and a global Runner never has it. Which Runners a
+   * rule's commands target is read from the rule (its Runner), never from
+   * this column, so a Runner it is on for runs commands only for what picked
+   * it.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.CreateRunner,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -548,19 +508,14 @@ export default class Runner extends BaseModel {
       Permission.RunbookViewer,
       Permission.ReadRunner,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookAdmin,
-      Permission.EditRunner,
-    ],
+    update: [],
   })
   @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
     title: "Runs AI Remediation Commands",
     description:
-      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Off by default; the in-cluster Runner installed by the Kubernetes agent chart turns it on.",
+      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner or a Kubernetes cluster's AI settings bind it, and on for the in-cluster Runner the Kubernetes agent chart installs.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -570,6 +525,52 @@ export default class Runner extends BaseModel {
     default: false,
   })
   public canRunAiCommands?: boolean = undefined;
+
+  /*
+   * A global Runner: one the OneUptime server runs for every project, with
+   * no project of its own (projectId is empty). A master admin creates it
+   * under Admin Dashboard -> Settings -> Global Runners and starts the
+   * Runner image with its id and key, as any Runner is started; on
+   * OneUptime Cloud, OneUptime runs them.
+   *
+   * It runs only what can be kept apart project by project on a shared
+   * host (GlobalRunnerWork): a JavaScript step, in a sandbox of its own
+   * that reaches the internet and nothing else. A step that picked no
+   * Runner runs on one (GlobalRunnerChoice), unless its project turned
+   * global Runners off. Never written by anyone but OneUptime and a master
+   * admin, so no project can turn its own Runner into one.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Global Runner",
+    description:
+      "Whether OneUptime runs this Runner for every project. Global Runners run JavaScript steps in a sandbox that can reach the internet but not your network. Only a master admin creates them.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isGlobalRunner?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -604,7 +605,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -647,7 +647,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -727,7 +726,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -745,7 +743,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.EditRunner,
     ],
   })

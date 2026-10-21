@@ -1,73 +1,166 @@
-# MCP Server
+# MCP-server
 
-OneUptime Model Context Protocol (MCP) Serveren giver LLM'er direkte adgang til din OneUptime-instans, hvilket muliggør AI-drevet overvågning, incident management og observabilitetsoperationer.
+OneUptimes MCP-server lader en AI-assistent arbejde direkte med dit OneUptime-projekt. Forbind Claude, Cursor, VS Code med GitHub Copilot eller en anden klient til Model Context Protocol (MCP), og bed den om at se på en hændelse, forespørge logs og spor, kvittere for en advarsel eller oprette en monitor: den kalder OneUptimes værktøjer med dine tilladelser eller med en API-nøgles.
 
-## Hvad er OneUptime MCP Serveren?
+:::cards
+- [Forbind en klient](#forbind-en-klient): Giv din klient serverens adresse, og log ind.
+- [Log ind med OneUptime](#log-ind-med-oneuptime): Hvad en forbundet klient må, og hvordan du afbryder den.
+- [Få din API-nøgle](#få-din-api-nøgle): Til en agent, der kører uden opsyn.
+- [Fejlfinding](#fejlfinding): Problemer med login, tilladelser og forbindelse.
+:::
 
-OneUptime MCP Serveren er en bro mellem Large Language Models (LLM'er) og din OneUptime-instans. Den implementerer Model Context Protocol (MCP), som giver AI-assistenter som Claude mulighed for at interagere direkte med din overvågningsinfrastruktur.
+## Sådan virker det
 
-## Sådan fungerer det
+MCP-serveren er en del af hver OneUptime-instans, på `/mcp` på samme adresse som dashboardet, og taler streamable HTTP-transporten. Der er intet at installere.
 
-MCP-serveren hostes sammen med din OneUptime-instans og er tilgængelig via Streamable HTTP-transporten. Der kræves ingen lokal installation.
+- **OneUptime Cloud**: `https://oneuptime.com/mcp`
+- **Selvhostet**: `https://your-oneuptime-domain.com/mcp`
 
-**Skybrugere**: `https://oneuptime.com/mcp`
-**Selvhostede brugere**: `https://your-oneuptime-domain.com/mcp`
+```mermaid title="Sådan når en klient dit projekt"
+flowchart TB
+    C["Din MCP-klient:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP til /mcp"| M["OneUptimes<br/>MCP-server"]
+    M --> W{"Hvordan<br/>identificerer<br/>klienten sig?"}
+    W -->|"den loggede ind"| P["Som dig, i det<br/>projekt,<br/>du valgte"]
+    W -->|"en API-nøgle"| K["Som nøglen, i<br/>nøglens projekt"]
+    W -->|"ingen af<br/>delene"| U["Kun værktøjer til<br/>offentlige<br/>statussider"]
+    P --> A["OneUptimes API,<br/>med præcis de<br/>tilladelser"]
+    K --> A
+```
 
-## Nøglefunktioner
+Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning står for sig selv, så den virker bag load balancere og med flere replikaer.
 
-- **~155 værktøjer**: Fulde CRUD-værktøjer til 22 ressourcetyper (incidents, advarsler, monitorer, statussider, vagtplaner og mere), skrivebeskyttede telemetriværktøjer samt workflow- og hjælpeværktøjer
-- **Realtidsoperationer**: Opret, læs, opdater og slet ressourcer i realtid
-- **Typesikker grænseflade**: Fuldt typet med omfattende inputvalidering
-- **Sikker autentificering**: API-nøgleautentificering pr. anmodning med korrekt fejlhåndtering
-- **Sikkerhedsannoteringer**: Skrivebeskyttede værktøjer bærer `readOnlyHint`, og sletteværktøjer bærer `destructiveHint`, så MCP-klienter automatisk kan godkende sikre kald og spørge før destruktive
-- **Nem integration**: Fungerer med Claude Desktop og andre MCP-kompatible klienter
-- **Tilstandsløs by design**: Ingen sessions-ID'er — hver anmodning er selvstændig, så serveren fungerer bag load balancers og deployments med flere replikaer
+## Hvad værktøjerne dækker
 
-## Hvad du kan gøre
+- **Monitorer**: opret og konfigurer monitorer, tjek deres status og se deres historik.
+- **Hændelseshåndtering**: opret, kvitter for og løs hændelser, tilføj interne eller offentlige noter, og følg dem til løsning.
+- **Advarsler**: kvitter for og løs advarsler, tilføj noter, og administrer advarslers tilstande og alvorlighedsgrader.
+- **Teams og vagt**: administrer teams og vagtpolitikker.
+- **Statussider**: administrer statussider, og slå meddelelser op.
+- **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
+- **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Med OneUptime MCP Serveren kan AI-assistenter hjælpe dig med:
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 27 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
-- **Monitoradministration**: Opret og konfigurer monitorer, kontroller deres status og gennemgå statushistorik
-- **Incident-respons**: Opret, kvitter for og løs incidents, tilføj interne eller offentlige noter og spor løsning
-- **Teamoperationer**: Administrer teams og vagtpolitikker
-- **Statussider**: Administrer statussider og opret meddelelser
-- **Advarsler**: Kvitter for og løs advarsler, tilføj advarselsnoter og administrer advarselstilstande og alvorlighedsgrader
-- **Planlagt vedligeholdelse**: Opret og administrer planlagte vedligeholdelsesbegivenheder
-- **Telemetri**: Forespørg på logs, metrikker, traces, exceptions og monitorlogs (skrivebeskyttet)
+## Før du begynder
 
-## Krav
+- En OneUptime-instans: OneUptime Cloud eller selvhostet.
+- En MCP-klient, såsom Claude Code, Claude, VS Code med GitHub Copilot eller Cursor.
+- En OneUptime-konto at logge ind med eller en OneUptime API-nøgle til en agent, der kører uden opsyn. Værktøjerne til offentlige statussider kræver ingen af delene.
+- På OneUptime Cloud Growth-planen eller højere: at forbinde en MCP-klient er tilgængeligt på de samme planer som API-nøgler.
 
-- OneUptime-instans (sky eller selvhostet)
-- MCP-kompatibel klient (Claude Desktop, VS Code med GitHub Copilot osv.)
-- Gyldig OneUptime API-nøgle (kræves kun til autentificerede operationer – offentlige værktøjer fungerer uden den)
+## Forbind en klient
 
-## Hentning af din API-nøgle
+Giv klienten serverens adresse og intet andet. Første gang den har brug for dine data, åbner den OneUptime i din browser, så du kan logge ind (se [Log ind med OneUptime](#log-ind-med-oneuptime)). På en selvhostet instans bruger du `https://your-oneuptime-domain.com/mcp` i stedet for `https://oneuptime.com/mcp`.
 
-1. Log ind på din OneUptime-instans
-2. Naviger til **Projektindstillinger** → **API-nøgler**
-3. Klik på **Opret API-nøgle**
-4. Angiv et navn (f.eks. "MCP Server")
-5. Vælg de relevante tilladelser til dit brugsscenarie
-6. Kopiér den genererede API-nøgle
+:::tabs
+@tab Claude Code
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+Kør derefter `/mcp` i Claude Code, og vælg **oneuptime** for at logge ind.
+@tab Claude
+Åbn **Customize → Connectors** i Claude, vælg **Add custom connector**, og indtast `https://oneuptime.com/mcp`. Claude beder dig logge ind på OneUptime, første gang den har brug for dine data.
+@tab VS Code
+Føj dette til din MCP-konfiguration (se [VS Code med GitHub Copilot](#vs-code-med-github-copilot) for, hvor den ligger). VS Code åbner OneUptime, så du kan logge ind, når du starter serveren:
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+:::
 
-API-nøgler er projektafgrænsede: MCP-serveren udleder dit projekt fra nøglen, så oprettelsesværktøjer aldrig har brug for et `projectId`-argument.
+Enhver anden klient, der understøtter MCP-autorisation, fungerer på samme måde: giv den adressen, så finder den selv resten. Se [Log ind (OAuth 2.1)](#log-ind-oauth-21) for protokollen.
 
-> **Advarsel — giv aldrig en AI-agent en masternøgle.** En OneUptime-*master*-API-nøgle accepteres også på denne header og giver administratoradgang til hele instansen. Brug altid en projekt-API-nøgle med de mindst mulige rettigheder, agenten har brug for (en skrivebeskyttet nøgle er nok til alle `get_`-/`list_`-/`count_`-værktøjer).
+Dashboardet har også disse trin, med din instans' adresse udfyldt: **Projektindstillinger → AI → MCP-server**. Og fra enhver ressource (en monitor, en hændelse, en statusside og så videre) folder du **Udvikler** ud i dens sidemenu og vælger **AI-assistenter**: den side foreslår også prompts, der nævner ressourcen og dens id, så assistenten finder den med det samme. For en ressource, som MCP-serveren endnu ikke har værktøjer til, såsom et workflow, viser siden, hvordan en assistent, der kan køre kommandoer, i stedet kan arbejde med den gennem REST API'et.
 
-## Konfiguration
+## Log ind med OneUptime
 
-### Claude Desktop-konfiguration
+Den enkleste måde at forbinde på er at give din MCP-klient serverens adresse og intet andet. Første gang klienten har brug for dine data, åbner den en OneUptime-side i din browser:
 
-Find din Claude Desktop-konfigurationsfil:
+:::steps
+1. Log ind på OneUptime, hvis du ikke allerede er logget ind.
+2. Vælg det projekt, klienten skal arbejde i.
+3. Vælg **Læse- og skriveadgang** eller **Kun læseadgang**.
+4. Klik på **Godkend**.
+:::
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-**Linux**: `~/.config/Claude/claude_desktop_config.json`
+Klienten handler derefter som dig i det projekt. Der er ingen API-nøgle at oprette, kopiere eller rotere, og intet hemmeligt gemmes i en konfigurationsfil.
 
-### For OneUptime Cloud
+Hvad en forbundet klient kan:
 
-Tilføj følgende konfiguration:
+- **Den har dine tilladelser og aldrig flere.** Det, dine teams tillader dig i projektet, er det, klienten kan. Hvis din rolle ændres, eller du forlader projektet, gælder det fra klientens næste anmodning. At forlade projektet afbryder også klienten: dens autorisation slettes, og du forbinder den igen, hvis du vender tilbage til projektet.
+- **Kun læsning betyder kun læsning.** En klient, der er godkendt til kun læsning, kan bruge værktøjerne `get_`, `list_` og `count_`. Værktøjer, der opretter, opdaterer, sletter, kvitterer eller løser, afvises af MCP-serveren og af OneUptime API'et bag den. Du kan aldrig give en klient mere adgang, end den bad om.
+- **Den gælder ét projekt.** For at bruge et andet projekt forbinder du klienten igen og vælger det projekt.
+- **Den virker kun gennem MCP-serveren.** Klientens adgangstoken accepteres af MCP-endpointet og ingen andre steder. Det kan ikke bruges til at kalde OneUptimes REST API direkte.
+- **Instansadministratorer får ingen særbehandling.** En klient, som en master-admin har forbundet, har det, personens teams giver i projektet, ikke adgang til hele instansen.
 
+### Administrer forbundne klienter
+
+Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
+
+Klik på **Disconnect** for at logge en klient ud. Den holder op med at virke med det samme.
+
+En klient forbliver forbundet, så længe den bruges. En klient, der ikke er brugt i 30 dage, skal logge ind igen.
+
+### Styr, hvem der kan forbinde klienter
+
+Alle projektmedlemmer kan som standard forbinde en MCP-klient. For at forhindre et teams medlemmer i det åbner du teamets side **Tilladelser**, åbner **Yderligere indstillinger** nederst og tilføjer tilladelsen **Authorize MCP Client** under **Bloker tilladelser**. Klienter, som de medlemmer allerede har forbundet, holder op med at virke med det samme.
+
+Hvis projektet kræver single sign-on, så log ind på projektet med SSO i din browser, før du godkender en klient. Klientens forbindelse varer lige så længe som det SSO-login; når det udløber, eller den SSO-udbyder, du loggede ind med, slås fra eller slettes, forbinder du klienten igen.
+
+På OneUptime Cloud er det at forbinde en MCP-klient tilgængeligt på de samme planer som API-nøgler (Growth og højere).
+
+I Enterprise Edition registreres hver ændring, en forbundet klient laver, i revisionsloggen under den person, der forbandt den, med klientens navn. Ændringer lavet med en API-nøgle viser nøglens navn.
+
+## Få din API-nøgle
+
+Brug en API-nøgle til en agent, der kører uden opsyn, såsom et planlagt job eller en CI-pipeline, hvor ingen er til stede for at logge ind.
+
+:::steps
+### Opret nøglen
+
+Gå til **Projektindstillinger → Avanceret → API-nøgler**, og klik på **Opret API-nøgle**. Giv den et navn, såsom "MCP Server".
+
+### Vælg, hvad den må
+
+Under **Adgang** vælger du **Viewer** til en agent, der kun læser, eller **Project Admin** til en, der også opretter, opdaterer og sletter (se [Tilladelser for API-nøgler](#tilladelser-for-api-nøgler)).
+
+### Kopier nøglen
+
+Klik på **Opret API-nøgle**: nøglens side åbnes. Kopier nøglen derfra.
+:::
+
+API-nøgler hører til ét projekt: MCP-serveren tager projektet fra nøglen, så oprettelsesværktøjer aldrig har brug for et `projectId`-argument.
+
+> [!WARNING]
+> Giv aldrig en AI-agent en masternøgle. En OneUptime master-API-nøgle accepteres også i denne header og giver administratoradgang til hele instansen. Brug altid en projekt-API-nøgle med det mindste, agenten har brug for: en skrivebeskyttet nøgle er nok til alle værktøjerne `get_`, `list_` og `count_`.
+
+## Forbind med en API-nøgle
+
+Send nøglen i headeren `x-api-key`. En anmodning, der har en API-nøgle med, bliver aldrig bedt om at logge ind. På en selvhostet instans bruger du dit eget domæne i stedet for `oneuptime.com`.
+
+:::tabs
+@tab Claude Code
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-api-key: your-api-key-here"
+```
+@tab Claude Desktop
+Føj dette til `claude_desktop_config.json`, i `~/Library/Application Support/Claude/` på macOS, `%APPDATA%\Claude\` på Windows eller `~/.config/Claude/` på Linux:
 ```json
 {
   "mcpServers": {
@@ -81,17 +174,35 @@ Tilføj følgende konfiguration:
   }
 }
 ```
-
-### For selvhostet OneUptime
-
-Erstat `oneuptime.com` med dit OneUptime-domæne:
-
+@tab VS Code
+Inputvariablen med `"password": true` spørger efter nøglen, når serveren starter, i stedet for at gemme den i klartekst:
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "${input:oneuptime-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "oneuptime-api-key",
+      "description": "OneUptime API Key",
+      "password": true
+    }
+  ]
+}
+```
+@tab Cursor
 ```json
 {
   "mcpServers": {
     "oneuptime": {
-      "transport": "streamable-http",
-      "url": "https://your-oneuptime-domain.com/mcp",
+      "url": "https://oneuptime.com/mcp",
       "headers": {
         "x-api-key": "your-api-key-here"
       }
@@ -99,10 +210,50 @@ Erstat `oneuptime.com` med dit OneUptime-domæne:
   }
 }
 ```
+:::
 
-### Offentlig adgang (ingen API-nøgle)
+## VS Code med GitHub Copilot
 
-For kun at bruge offentlige værktøjer (statussideinformation, hjælp) kan du oprette forbindelse uden en API-nøgle:
+VS Code 1.99 og nyere understøtter MCP-servere direkte i GitHub Copilot Chat.
+
+:::steps
+### Tjek, hvad du har brug for
+
+VS Code 1.99 eller nyere med GitHub Copilot-udvidelsen installeret og logget ind og GitHub Copilot Chat slået til.
+
+### Åbn MCP-konfigurationen
+
+Tryk på `Ctrl+Shift+P` (`Cmd+Shift+P` på macOS), skriv "MCP: Open User Configuration", og tryk på Enter. Det åbner eller opretter filen `mcp.json`. Til kun ét workspace opretter du i stedet `.vscode/mcp.json` i det.
+
+### Tilføj OneUptime
+
+Indsæt VS Code-konfigurationen ovenfor: den uden nøgle til login eller den med en API-nøgle.
+
+### Start serveren
+
+Tryk på `Ctrl+Shift+P` (`Cmd+Shift+P` på macOS), skriv "MCP: List Servers", og vælg **oneuptime** for at starte den. VS Code beder dig første gang om at stole på serveren og derefter om at logge ind eller indtaste din API-nøgle.
+
+### Spørg Copilot
+
+Åbn GitHub Copilot Chat i agenttilstand, og spørg for eksempel "Hvilke monitorer har jeg i OneUptime?", "Vis mig de seneste hændelser" eller "Opret en ny monitor for https://example.com".
+:::
+
+## Godkendelse
+
+MCP-serveren fungerer på tre måder.
+
+### Offentlige værktøjer (ingen godkendelse påkrævet)
+
+Uden en API-nøgle eller et login kan en klient bruge de offentlige værktøjer:
+
+- **`oneuptime_help`**: hjælp og vejledning om OneUptimes MCP-værktøjer
+- **`oneuptime_list_resources`**: ressourcerne, og hvad du kan gøre med hver
+- **`get_public_status_page_overview`**: oversigten over en offentlig statusside
+- **`get_public_status_page_incidents`**: hændelserne på en offentlig statusside
+- **`get_public_status_page_scheduled_maintenance`**: dens planlagte vedligeholdelseshændelser
+- **`get_public_status_page_announcements`**: dens meddelelser
+
+Værktøjerne til offentlige statussider tager en statussides id (et UUID) eller dens domænenavn. For kun at bruge dem forbinder du med adressen og uden legitimationsoplysninger:
 
 ```json
 {
@@ -115,151 +266,79 @@ For kun at bruge offentlige værktøjer (statussideinformation, hjælp) kan du o
 }
 ```
 
-Denne konfiguration giver adgang til offentlige statussideværktøjer og hjælperessourcer uden autentificering.
+En statussides ejere kan slå MCP-adgang fra for den side: åbn **MCP** i afsnittet **AI** i statussidens sidemenu, og slå **Aktivér MCP-server** fra. Kontakten gemmer, så snart den slås om. MCP-adgang er slået til som standard. Mens den er slået fra, returnerer de fire værktøjer `get_public_status_page_*` en fejl for den statusside; statussidens websted, dens RSS-feed og dens offentlige JSON-API påvirkes ikke, og de statussideværktøjer, der kræver login (`get_status_page`, `list_status_pages` og så videre), virker fortsat for sidens eget projekt.
 
-### VS Code med GitHub Copilot
+### Log ind (OAuth 2.1)
 
-VS Code understøtter MCP-servere nativt med GitHub Copilot (version 1.99+). Dette giver Copilot mulighed for at få adgang til OneUptime-data direkte.
+Alle andre værktøjer skal vide, hvem der kalder. En klient, der ikke sender legitimationsoplysninger og kalder et af dem, får `401 Unauthorized` med en `WWW-Authenticate`-header, der peger på serverens metadata for den beskyttede ressource. Det er signalet, en MCP-klient reagerer på for at logge dig ind; `initialize`, `tools/list` og de offentlige værktøjer beder aldrig om det.
 
-#### Trin 1: Krav
+Serveren implementerer [MCP-autorisationsspecifikationen](https://modelcontextprotocol.io/specification/latest/basic/authorization):
 
-- VS Code version 1.99 eller nyere
-- GitHub Copilot-udvidelse installeret og aktiveret
-- GitHub Copilot Chat aktiveret
+- **Flow**: OAuth 2.1 authorization code med PKCE (kun `S256`). Adgangstokens sendes som `Authorization: Bearer`.
+- **Opdagelse**: metadata for beskyttet ressource (RFC 9728) og metadata for autorisationsserver (RFC 8414). Udsteder og ressource er begge `https://<host>/mcp`.
+- **Klientidentitet**: et Client ID Metadata Document (klient-id'et er en `https`-URL, som serveren henter) eller Dynamic Client Registration (RFC 7591). Ingen klient skal registreres af en administrator.
+- **Omfang**: `mcp:read` for værktøjerne `get_`, `list_` og `count_`; `mcp:write` tilføjer alle værktøjer, der ændrer noget, og omfatter `mcp:read`. Et skrivebeskyttet token, der kalder et skriveværktøj, får `403` med `error="insufficient_scope"`.
+- **Tokens' levetid**: et adgangstoken varer én time. Et refresh-token varer 30 dage og udskiftes, hver gang det bruges; at bruge et refresh-token, der allerede er udskiftet, afslutter forbindelsen.
+- **Ressourceindikatorer** (RFC 8707): et token udstedes til `https://<host>/mcp` og accepteres ingen andre steder.
+- **Tilbagekaldelse** (RFC 7009): tilbagekaldelse af et af de to tokens afslutter forbindelsen.
 
-#### Trin 2: Åbn MCP-konfiguration
+### API-nøgle
 
-1. Tryk på `Ctrl+Shift+P` (Windows/Linux) eller `Cmd+Shift+P` (macOS)
-2. Skriv "MCP: Open User Configuration" og tryk Enter
-3. Dette åbner eller opretter konfigurationsfilen `mcp.json`
+En agent, der kører uden opsyn, sender en OneUptime API-nøgle i en af disse headere:
 
-Alternativt kan du oprette `.vscode/mcp.json` i dit arbejdsområde til projektspecifik konfiguration.
+- `x-api-key`: din OneUptime API-nøgle
+- `Authorization`: et bearer-token med din API-nøgle (f.eks. `Bearer your-api-key-here`)
 
-#### For OneUptime Cloud
+Skemaet `Bearer` skelner ikke mellem store og små bogstaver. En anmodning, der har en API-nøgle med, bliver aldrig bedt om at logge ind.
 
-```json
-{
-  "servers": {
-    "oneuptime": {
-      "type": "http",
-      "url": "https://oneuptime.com/mcp",
-      "headers": {
-        "x-api-key": "${input:oneuptime-api-key}"
-      }
-    }
-  },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "oneuptime-api-key",
-      "description": "OneUptime API Key",
-      "password": true
-    }
-  ]
-}
-```
-
-#### For selvhostet OneUptime
-
-```json
-{
-  "servers": {
-    "oneuptime": {
-      "type": "http",
-      "url": "https://your-oneuptime-domain.com/mcp",
-      "headers": {
-        "x-api-key": "${input:oneuptime-api-key}"
-      }
-    }
-  },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "oneuptime-api-key",
-      "description": "OneUptime API Key",
-      "password": true
-    }
-  ]
-}
-```
-
-#### Trin 3: Start MCP Serveren
-
-1. Tryk på `Ctrl+Shift+P` / `Cmd+Shift+P`
-2. Skriv "MCP: List Servers" for at se tilgængelige servere
-3. Klik på "oneuptime" for at starte serveren
-4. Når du bliver bedt om det, skal du indtaste din OneUptime API-nøgle
-
-#### Trin 4: Brug med Copilot Chat
-
-Åbn GitHub Copilot Chat og brug Agent-tilstand (`@workspace` eller spørg direkte):
-
-```
-"What monitors do I have in OneUptime?"
-"Show me recent incidents"
-"Create a new monitor for https://example.com"
-```
-
-#### Sikkerhedsbemærkning
-
-Konfigurationen ovenfor bruger inputvariabler med `"password": true` for sikkert at bede om din API-nøgle frem for at gemme den som klartekst. VS Code beder dig bekræfte tillid, når du starter MCP-serveren for første gang.
+På OneUptime Cloud virker API-nøgler kun, mens projektet er på **Growth** eller højere. Under det svarer alle værktøjer, der kræver nøglen, `402` med en besked, der nævner planen, og agenten får besked om ikke at prøve igen. Intet slettes: nøglen virker igen, som den er, når projektet er tilbage på Growth, uden at noget skal forbindes igen. En klient, der er forbundet ved login, handler som en person og virker fortsat ([API-nøgler og SCIM under deres plan](/docs/api-reference/api-reference#api-nøgler-og-scim-under-deres-abonnement)).
 
 ## Tilgængelige endpoints
 
-| Endpoint      | Metode | Beskrivelse                                                                                                                    |
-| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `/mcp`        | POST   | JSON-RPC-anmodninger til værktøjskald og andre operationer                                                                            |
-| `/mcp`        | GET    | Uden en SSE-`Accept`-header: venlig JSON-discovery-payload. Med en: `405` — den tilstandsløse server tilbyder ingen selvstændig SSE-strøm (kompatible klienter fortsætter uden den) |
-| `/mcp`        | DELETE | No-op (serveren er tilstandsløs, så der er ingen session at afslutte)                                                             |
-| `/mcp/health` | GET    | Sundhedstjek-endpoint                                                                                                            |
-| `/mcp/tools`  | GET    | REST API til liste over tilgængelige værktøjer                                                                                                 |
+| Endpoint | Metode | Beskrivelse |
+| --- | --- | --- |
+| `/mcp` | POST | JSON-RPC-anmodninger til værktøjskald og andre handlinger |
+| `/mcp` | GET | Uden en SSE-`Accept`-header: en kort JSON-beskrivelse af serveren. Med en: `405`, fordi den tilstandsløse server ikke tilbyder en selvstændig SSE-strøm (klienter, der følger specifikationen, fortsætter uden den) |
+| `/mcp` | DELETE | Gør intet: serveren er tilstandsløs, så der er ingen session at afslutte |
+| `/mcp/health` | GET | Sundhedstjek |
+| `/mcp/tools` | GET | Listen over værktøjer, som almindeligt REST |
 
-## Autentificering
+MCP-klienter, der logger ind, bruger også OAuth-endpointsene nedenfor. En klient finder dem selv; de er listet for folk, der skriver en klient eller sætter en proxy op.
 
-MCP-serveren understøtter to driftstilstande:
+| Endpoint | Metode | Beskrivelse |
+| --- | --- | --- |
+| `/mcp/.well-known/oauth-protected-resource` | GET | Metadata for beskyttet ressource (RFC 9728). Også på `/.well-known/oauth-protected-resource/mcp` |
+| `/.well-known/oauth-authorization-server/mcp` | GET | Metadata for autorisationsserver (RFC 8414). Også på `/mcp/.well-known/oauth-authorization-server` |
+| `/mcp/oauth/authorize` | GET | Autorisations-endpoint: hvor klienten sender din browser hen for at logge ind |
+| `/mcp/oauth/token` | POST | Token-endpoint: veksler en autorisationskode eller et refresh-token |
+| `/mcp/oauth/register` | POST | Dynamisk klientregistrering (RFC 7591) |
+| `/mcp/oauth/revoke` | POST | Tilbagekaldelse af tokens (RFC 7009) |
 
-### Offentlige værktøjer (ingen autentificering påkrævet)
+For at tjekke, at serveren kører, og liste dens værktøjer:
 
-Du kan oprette forbindelse til MCP-serveren uden en API-nøgle for at få adgang til offentlige værktøjer:
+```bash
+curl https://oneuptime.com/mcp/health
+curl https://oneuptime.com/mcp/tools
+```
 
-- **`oneuptime_help`**: Få hjælp og vejledning om OneUptime MCP-kapaciteter
-- **`oneuptime_list_resources`**: Liste over tilgængelige ressourcer og deres operationer
-- **`get_public_status_page_overview`**: Hent oversigt over en offentlig statusside
-- **`get_public_status_page_incidents`**: Hent incidents fra en offentlig statusside
-- **`get_public_status_page_scheduled_maintenance`**: Hent planlagte vedligeholdelsesbegivenheder
-- **`get_public_status_page_announcements`**: Hent meddelelser fra en offentlig statusside
+## Værktøjer til hændelseshåndtering
 
-Offentlige statussideværktøjer accepterer enten et statusside-ID (UUID) eller statussidedomenets navn.
+Ud over værktøjerne for hver slags post har serveren værktøjer lavet til at håndtere hændelser og advarsler:
 
-### Autentificerede værktøjer (API-nøgle påkrævet)
-
-For alle andre operationer (administration af monitorer, incidents, teams osv.) kræves autentificering via en af følgende headers:
-
-- `x-api-key`: Din OneUptime API-nøgle
-- `Authorization`: Bearer-token med din API-nøgle (f.eks. `Bearer your-api-key-here`)
-
-`Bearer`-skemaet skelner ikke mellem store og små bogstaver. Værktøjsfejl returneres som in-band-værktøjsresultater (`isError: true`) med en `statusCode`, detaljer og et forslag — ikke som MCP-protokolfejl — så agenter kan læse fejlen og selv rette op.
-
-## Workflow-værktøjer
-
-Ud over CRUD-værktøjerne pr. ressource leverer serveren specialbyggede workflow-værktøjer til incident- og advarselsrespons:
-
-- **`acknowledge_incident`** / **`resolve_incident`**: Flyt et incident til projektets Acknowledged- eller Resolved-tilstand — svarende til at trykke på knappen i dashboardet
-- **`acknowledge_alert`** / **`resolve_alert`**: Det samme for advarsler
-- **`add_incident_note`**: Tilføj en note til et incident med `visibility: "internal"` (kun teamet, standarden) eller `visibility: "public"` (publiceres på statussiden). Markdown understøttes
-- **`add_alert_note`**: Tilføj en intern note til en advarsel
+- **`acknowledge_incident`** / **`resolve_incident`**: flyt en hændelse til projektets tilstand Acknowledged eller Resolved, ligesom dashboardets knap gør
+- **`acknowledge_alert`** / **`resolve_alert`**: det samme for advarsler
+- **`add_incident_note`**: tilføj en note til en hændelse med `visibility: "internal"` (kun teamet, standarden) eller `visibility: "public"` (slået op på statussiden). Markdown understøttes
+- **`add_alert_note`**: tilføj en intern note til en advarsel
 
 Et typisk forløb: `list_incidents` → `acknowledge_incident` → undersøg med `list_logs` → `add_incident_note` (offentlig) → `resolve_incident`.
 
-## Hvem er jeg
+Værktøjet **`oneuptime_whoami`** returnerer det projekt, dine legitimationsoplysninger hører til (dets id og navn). For en klient, der loggede ind, siger det også, hvem den er logget ind som, og om den må lave ændringer. Det er et godt første kald, så en agent kan orientere sig, og da oprettelsesværktøjer tager `projectId` fra legitimationsoplysningerne, behøver agenten aldrig at angive et projekt-id.
 
-Værktøjet **`oneuptime_whoami`** returnerer det projekt, din API-nøgle tilhører (ID og navn). Det er et nyttigt første kald, så en agent kan orientere sig — og da oprettelsesværktøjer udleder `projectId` fra API-nøglen, behøver agenten aldrig at angive et projekt-ID.
+## Forespørgsel på telemetri
 
-## Forespørgsler på telemetri
+Logs, metrikker, spor (spans), undtagelser, monitorlogs og de andre slags telemetri findes som skrivebeskyttede værktøjer `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og deres `count_`-modstykker). Telemetri kommer ind gennem OpenTelemetry, så der er ingen oprettelsesværktøjer.
 
-Logs, metrikker, traces (spans), exceptions og monitorlogs eksponeres som skrivebeskyttede `list_`- og `count_`-værktøjer (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og deres `count_`-modstykker). Telemetri indtages via OpenTelemetry, så der findes ingen oprettelsesværktøjer.
-
-Forespørg altid på telemetri med et tidsintervalfilter. Forespørgselsfelter accepterer enten en direkte værdi eller et operatorobjekt:
+Forespørg altid telemetri med et tidsinterval. Et forespørgselsfelt tager en værdi eller et operatorobjekt:
 
 ```json
 {
@@ -271,13 +350,13 @@ Forespørg altid på telemetri med et tidsintervalfilter. Forespørgselsfelter a
 }
 ```
 
-Understøttede operatorer: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`. Sorteringsværdier er `"ASC"` eller `"DESC"`.
+Operatorerne er `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` og `Includes`. Sorteringsværdier er `"ASC"` eller `"DESC"`.
 
 ## Feltvalg og paginering
 
-`get_`- og `list_`-værktøjer accepterer et valgfrit `select`-array med feltnavne. Som standard returneres alle læsbare felter undtagen de tunge (JSON-, meget-lang-tekst- og HTML-kolonner), som skal anmodes om eksplicit i `select`.
+Værktøjerne `get_` og `list_` tager et valgfrit `select`-array med feltnavne. Som standard kommer alle læsbare felter tilbage undtagen de tunge (JSON, meget lang tekst og HTML-kolonner), som skal bedes om i `select`.
 
-Listeværktøjer paginerer med `limit` (standard 10, maks. 100) og `skip`, og hvert listesvar rapporterer præcis, hvad det returnerede:
+Listeværktøjer bladrer med `limit` (10 som standard, højst 100) og `skip`, og hvert listesvar siger præcis, hvad det returnerede:
 
 ```json
 {
@@ -290,146 +369,128 @@ Listeværktøjer paginerer med `limit` (standard 10, maks. 100) og `skip`, og hv
 }
 ```
 
-## Bekræftelse
-
-Bekræft, at MCP-serveren kører:
-
-```bash
-# For OneUptime Cloud
-curl https://oneuptime.com/mcp/health
-
-# For Self-Hosted
-curl https://your-oneuptime-domain.com/mcp/health
-```
-
-Liste over tilgængelige værktøjer:
-
-```bash
-# For OneUptime Cloud
-curl https://oneuptime.com/mcp/tools
-
-# For Self-Hosted
-curl https://your-oneuptime-domain.com/mcp/tools
-```
-
 ## Eksempler på brug
 
-### Grundlæggende informationsforespørgsler
+### Hverdagsspørgsmål
 
-```
+```text
 "What's the current status of all my monitors?"
 "Show me incidents from the last 24 hours"
-```
-
-### Monitoradministration
-
-```
-"Create a new website monitor for https://example.com that checks every 5 minutes"
-"Set up an API monitor for https://api.example.com/health with a 30-second timeout"
-"Change the monitoring interval for my website monitor to every 2 minutes"
-"Disable the monitor for staging.example.com while we're doing maintenance"
-```
-
-### Incident management
-
-```
-"Create a high-priority incident for the database outage affecting user authentication"
-"Add a note to incident #123 saying 'Database connection restored, monitoring for stability'"
-"Mark incident #456 as resolved"
-"Assign the current payment gateway incident to the infrastructure team"
-```
-
-### Team og vagtplan
-
-```
 "List the teams in this project"
 "Show me our on-call policies"
 ```
 
-### Statussideadministration
+### Monitorer og hændelser
 
+```text
+"Create a new website monitor for https://example.com that checks every 5 minutes"
+"Set up an API monitor for https://api.example.com/health with a 30-second timeout"
+"Disable the monitor for staging.example.com while we're doing maintenance"
+"Create a high-priority incident for the database outage affecting user authentication"
+"Add a note to incident #123 saying 'Database connection restored, monitoring for stability'"
+"Mark incident #456 as resolved"
 ```
+
+### Statussider
+
+```text
 "Update our status page to show 'Investigating Payment Issues' for the payment service"
 "Create a status page announcement about scheduled maintenance this weekend"
 ```
 
-### Offentlige statussideforespørgsler (ingen API-nøgle påkrævet)
+### Forespørgsler på offentlige statussider (ingen API-nøgle påkrævet)
 
-Disse forespørgsler fungerer uden autentificering ved kun at bruge de offentlige statussideværktøjer:
+Disse virker uden legitimationsoplysninger, alene med værktøjerne til offentlige statussider:
 
-```
+```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
 "Are there any scheduled maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
-### Avancerede operationer
+### Flere trin på én gang
 
-```
+```text
 "Create a scheduled maintenance window for Saturday 2-4 AM, disable all monitors for api.example.com during that time, and update the status page"
 "Show me all monitors that have been down in the last hour, create incidents for any that don't already have one"
 ```
 
-## API-nøgletilladelser
+## Tilladelser for API-nøgler
 
-### Skrivebeskyttet adgang
+| Hvad agenten gør | Vælg under **Adgang** |
+| --- | --- |
+| Læser kun | **Viewer**, eller tilføj læsetilladelser på nøglens side |
+| Opretter, opdaterer og sletter også | **Project Admin**, eller tilføj rollen Project Admin på nøglens side |
 
-Til kun at se data skal du tilføje læsetilladelser til din API-nøgle.
+Giv hver nøgle det mindste, den har brug for, roter nøgler jævnligt, hav en separat nøgle til hvert miljø, og hold øje med, hvad hver nøgle gør i OneUptime.
 
-### Fuld adgang
+## Konfiguration ved selvhosting
 
-Til fuld adgang til at oprette, opdatere og slette ressourcer skal du sørge for, at din API-nøgle har Project Admin-tilladelser.
+Login virker direkte på en selvhostet instans. To indstillinger ændrer det:
 
-### Bedste praksis
+| Miljøvariabel | Helm-værdi | Hvad den gør |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | Sæt til `true` for at slå login fra. OAuth-endpointsene leveres ikke længere, og MCP-serveren accepterer kun API-nøgler. Intet slettes; forbundne klienter virker igen, når det slås til igen. |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | Sæt til `true` på en instans, der ikke kan nå internettet. En klient kan identificere sig med en URL, som OneUptime henter; med denne indstilling registrerer klienter sig i stedet direkte hos din instans, hvilket ikke kræver nogen udgående anmodning. |
 
-- Brug specifikke tilladelser: Giv kun de minimum nødvendige tilladelser
-- Roter API-nøgler: Roter regelmæssigt dine API-nøgler
-- Overvåg brugen: Hold styr på API-nøglebrug i OneUptime
-- Separate nøgler: Brug forskellige API-nøgler til forskellige miljøer
+Hvis du kører din egen reverse proxy foran OneUptime, så send `/.well-known/oauth-protected-resource` og `/.well-known/oauth-authorization-server` (og alt under dem) videre til OneUptime sammen med `/mcp`. Den medfølgende ingress gør det allerede.
+
+Serveren bygger hver OAuth-URL ud fra indstillingerne `HOST` og `HTTP_PROTOCOL`, så de skal passe til den adresse, folk bruger til at nå din instans.
 
 ## Fejlfinding
 
+### Problemer med login
+
+- **Klienten beder mig aldrig om at logge ind**: klienten understøtter måske ikke MCP-autorisation, eller den er konfigureret med en API-nøgle-header, som har forrang. Fjern headeren for i stedet at logge ind.
+- **Mit projekt er gråt på autorisationssiden**: siden siger hvorfor ved siden af projektnavnet: projektets plan omfatter ikke forbindelse af MCP-klienter, projektet kræver SSO, og denne browser har ikke logget ind på det med SSO, eller dit team er blokeret fra at forbinde klienter.
+- **Et værktøj afvises som "read-only"**: klienten blev godkendt til kun læsning. Forbind den igen, og vælg **Læse- og skriveadgang**.
+- **Klienten holdt op med at virke**: den blev afbrudt, blev ikke brugt i 30 dage, du blev fjernet fra projektet, eller projektets SSO-login udløb, eller dets udbyder blev slået fra. Forbind den igen.
+- **Selvhostet - klienten siger, at den ikke kan finde autorisationsserveren**: tjek, at `HOST` og `HTTP_PROTOCOL` passer til din offentlige adresse, og at din proxy sender stierne `/.well-known/oauth-*` videre.
+
 ### Tilladelsesfejl
 
-Sørg for, at din API-nøgle har de nødvendige tilladelser:
-
-- Læseadgang til at liste ressourcer
-- Skriveadgang til at oprette/opdatere ressourcer
-- Sletteadgang, hvis du vil fjerne ressourcer
+API-nøglen, eller for en klient, der loggede ind, din egen konto, skal have de rette tilladelser: læseadgang for at liste poster, skriveadgang for at oprette og opdatere dem og sletteadgang for at fjerne dem.
 
 ### Forbindelsesproblemer
 
-1. Bekræft, at din OneUptime URL er korrekt
-2. Kontroller, at din API-nøgle er gyldig
-3. Sørg for, at din OneUptime-instans er tilgængelig
-4. Test health-endpointet
+Tjek, at OneUptime-adressen er korrekt og kan nås, at API-nøglen er gyldig, og at sundhedsendpointet svarer (se [Tilgængelige endpoints](#tilgængelige-endpoints)).
 
 ### Ugyldig API-nøgle
 
-- Bekræft API-nøglen i dine OneUptime-indstillinger
-- Kontroller for ekstra mellemrum eller tegn
-- Sørg for, at nøglen ikke er udløbet
+- Tjek API-nøglen i dine OneUptime-indstillinger, uden ekstra mellemrum eller tegn
+- Tjek, at nøglen ikke er udløbet
+- På OneUptime Cloud betyder en `402`, der siger, at API-nøgler kræver Growth-planen, at projektet ligger under den: opgrader projektet under **Projektindstillinger → Fakturering og fakturaer → Fakturering**, så virker den samme nøgle igen
 
 ### Sessionsfejl
 
-Hvis du modtager sessionsrelaterede fejl:
-
-- MCP-serveren er tilstandsløs — den udsteder og sporer ikke sessions-ID'er, så hver anmodning fungerer mod enhver serverreplika
-- Klienter, der sender en `mcp-session-id`-header fra en tidligere serverversion, kan blot udelade den; den ignoreres
-- Opdater ældre MCP-klientkonfigurationer, der forventer, at serveren returnerer et sessions-ID
+MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er, så hver anmodning virker mod enhver replika. En klient, der sender en `mcp-session-id`-header fra en ældre serverversion, kan udelade den; den ignoreres. Opdater en ældre klientkonfiguration, der forventer, at serveren returnerer et sessions-id.
 
 ## Tilgængelige ressourcer
 
-MCP-serveren tilbyder værktøjer til følgende ressourcer:
+| Område | Poster med værktøjer til at oprette, hente, liste, opdatere, slette og tælle |
+| --- | --- |
+| Overvågning | Monitor, Monitor Status, Monitor Status Event |
+| Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| Advarsler | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
+| Statussider | Status Page, Status Page Announcement |
+| Planlagt vedligeholdelse | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Teams og vagt | Team, On-Call Policy |
+| Etiketter | Label |
+| Sikkerhed | Security Case, Security Case Note, Security Detection, Security Playbook |
 
-**Overvågning**: Monitor, Monitor Status, Monitor Status Event
-**Incidents**: Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note
-**Advarsler**: Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note
-**Statussider**: Status Page, Status Page Announcement
-**Planlagt vedligeholdelse**: Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
-**Teams og vagtplan**: Team, On-Call Policy
-**Labels**: Label
-**Telemetri (skrivebeskyttet)**: Log, Metric, Span, Exception Instance, Monitor Log
+| Område | Telemetri med kun værktøjer til at liste og tælle |
+| --- | --- |
+| Observabilitet | Log, Metric, Span, Exception Instance, Monitor Log |
+| Sikkerhed | Security Event, Threat Intel Indicator |
+| Ændringer og omkostninger | Change Event, Kubernetes Cost Allocation |
 
-Hver databaseressource understøtter Opret, Hent, Liste, Opdater, Slet og Tæl via snake_case-værktøjer — for eksempel `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`. Telemetriressourcer eksponerer kun `list_`- og `count_`-værktøjer (for eksempel `list_logs`, `count_spans`).
+Værktøjerne er navngivet i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri.
+
+## Næste trin
+
+:::cards
+- [Spørg AI](/docs/ai/ask-ai): Spørg i stedet om dit projekt inde i OneUptime.
+- [OneUptimes API-reference](/docs/api-reference/api-reference): REST API'et bag hvert værktøj.
+- [Tilladelser](/docs/permissions/index): Hvad en rolle, et team eller en API-nøgle må.
+:::

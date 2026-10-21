@@ -491,8 +491,9 @@ describe("health, quorum and backups say exactly what they check", () => {
       service.indexOf("public async markDisconnectedClusters"),
     );
 
+    // 15 minutes of time OneUptime was receiving (issue #2825).
     expect(markDisconnected).toContain(
-      "OneUptimeDate.getCurrentDate(),\n      -15,",
+      "ReceivingCoverage.getSilenceCutoff({\n      silenceInMinutes: 15,\n    });",
     );
     expect(markDisconnected).toContain('otelCollectorStatus: "disconnected"');
     expect(cron).toContain("schedule: EVERY_FIVE_MINUTE");

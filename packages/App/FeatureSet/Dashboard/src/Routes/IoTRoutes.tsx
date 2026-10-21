@@ -30,6 +30,9 @@ import IoTFleetDelete from "../Pages/IoT/View/Delete";
 import IoTFleetDocumentation from "../Pages/IoT/View/Documentation";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const IoTRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -106,6 +109,13 @@ const IoTRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IoTFleet,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.IOT_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -295,6 +305,12 @@ const IoTRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IoTFleet,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

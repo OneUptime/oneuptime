@@ -83,6 +83,7 @@ import RuleCriteria, {
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -867,6 +868,8 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(true);
+  // ... and their teams the project's (OwnerRuleAssignment.test.ts covers others').
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

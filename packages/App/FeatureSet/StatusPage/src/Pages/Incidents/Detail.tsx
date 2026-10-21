@@ -33,8 +33,13 @@ import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -58,6 +63,12 @@ type GetIncidentEventItemFunctionProps = {
   incident: Incident;
   incidentPublicNotes: Array<IncidentPublicNote>;
   incidentStateTimelines: Array<IncidentStateTimeline>;
+  /*
+   * The project's incident states: a timeline row in the project's resolved
+   * state, or in one placed after it, shows the resolved check
+   * (Common/Utils/ResolvedState).
+   */
+  incidentStates: Array<IncidentState>;
   statusPageResources: Array<StatusPageResource>;
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
@@ -75,6 +86,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     incident,
     incidentPublicNotes,
     incidentStateTimelines,
+    incidentStates,
     statusPageResources,
     monitorsInGroup,
     isPreviewPage,
@@ -191,12 +203,29 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
           incidentStateTimeline?.startsAt ||
           (incidentStateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
+        /*
+         * Resolved, then acknowledged - the acknowledged state or one placed
+         * after it, short of resolved - by the two rules
+         * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState).
+         */
         icon: incidentStateTimeline.incidentState.isCreatedState
           ? IconProp.Alert
-          : incidentStateTimeline.incidentState.isAcknowledgedState
-            ? IconProp.TransparentCube
-            : incidentStateTimeline.incidentState.isResolvedState
-              ? IconProp.CheckCircle
+          : ResolvedStateUtil.isResolved({
+                list: StateListType.IncidentState,
+                states: incidentStates,
+                stateId:
+                  incidentStateTimeline.incidentStateId ||
+                  incidentStateTimeline.incidentState.id,
+              })
+            ? IconProp.CheckCircle
+            : AcknowledgedStateUtil.isAcknowledged({
+                  list: StateListType.IncidentState,
+                  states: incidentStates,
+                  stateId:
+                    incidentStateTimeline.incidentStateId ||
+                    incidentStateTimeline.incidentState.id,
+                })
+              ? IconProp.TransparentCube
               : IconProp.ArrowCircleRight,
         iconColor: incidentStateTimeline.incidentState.color || Gray500,
       });
@@ -216,10 +245,14 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     }
   }
 
+  /*
+   * The postmortem is on the status page while Publish on Status Page is on
+   * and its note says something: the same rule the server notifies
+   * subscribers by (IncidentPostmortemPublication).
+   */
   if (
-    incident.showPostmortemOnStatusPage &&
     incident.postmortemNote &&
-    incident.postmortemNote.trim() !== ""
+    IncidentPostmortemPublication.isPublished(incident)
   ) {
     const postmortemDate: Date =
       incident.postmortemPostedAt ||
@@ -377,6 +410,12 @@ type GetEpisodeEventItemFunctionProps = {
   episode: IncidentEpisode;
   episodePublicNotes: Array<IncidentEpisodePublicNote>;
   episodeStateTimelines: Array<IncidentEpisodeStateTimeline>;
+  /*
+   * The project's incident states: a timeline row in the project's resolved
+   * state, or in one placed after it, shows the resolved check
+   * (Common/Utils/ResolvedState).
+   */
+  incidentStates: Array<IncidentState>;
   statusPageResources: Array<StatusPageResource>;
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
@@ -395,6 +434,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     episode,
     episodePublicNotes,
     episodeStateTimelines,
+    incidentStates,
     statusPageResources,
     monitorsInGroup,
     isPreviewPage,
@@ -557,12 +597,29 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           episodeStateTimeline?.startsAt ||
           (episodeStateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
+        /*
+         * Resolved, then acknowledged - the acknowledged state or one placed
+         * after it, short of resolved - by the two rules
+         * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState).
+         */
         icon: episodeStateTimeline.incidentState.isCreatedState
           ? IconProp.Alert
-          : episodeStateTimeline.incidentState.isAcknowledgedState
-            ? IconProp.TransparentCube
-            : episodeStateTimeline.incidentState.isResolvedState
-              ? IconProp.CheckCircle
+          : ResolvedStateUtil.isResolved({
+                list: StateListType.IncidentState,
+                states: incidentStates,
+                stateId:
+                  episodeStateTimeline.incidentStateId ||
+                  episodeStateTimeline.incidentState.id,
+              })
+            ? IconProp.CheckCircle
+            : AcknowledgedStateUtil.isAcknowledged({
+                  list: StateListType.IncidentState,
+                  states: incidentStates,
+                  stateId:
+                    episodeStateTimeline.incidentStateId ||
+                    episodeStateTimeline.incidentState.id,
+                })
+              ? IconProp.TransparentCube
               : IconProp.ArrowCircleRight,
         iconColor: episodeStateTimeline.incidentState.color || Gray500,
       });
@@ -670,6 +727,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
     Array<IncidentEpisodeStateTimeline>
   >([]);
 
+  const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+    [],
+  );
+
   const [parsedData, setParsedData] = useState<EventItemComponentProps | null>(
     null,
   );
@@ -756,6 +817,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 ) as Dictionary<Array<ObjectID>>;
 
               setMonitorsInGroup(monitorsInGroup);
+              setIncidentStates(
+                BaseModel.fromJSONArray(
+                  (data["incidentStates"] as JSONArray) || [],
+                  IncidentState,
+                ),
+              );
               setIncidentPublicNotes(incidentPublicNotes);
               setIncident(incident);
               setStatusPageResources(statusPageResources);
@@ -830,6 +897,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
                   ) as Dictionary<Array<ObjectID>>;
 
                 setMonitorsInGroup(monitorsInGroup);
+                setIncidentStates(
+                  BaseModel.fromJSONArray(
+                    (data["incidentStates"] as JSONArray) || [],
+                    IncidentState,
+                  ),
+                );
                 setEpisodePublicNotes(episodePublicNotes);
                 setEpisode(episode);
                 setStatusPageResources(statusPageResources);
@@ -874,6 +947,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           episode,
           episodePublicNotes,
           episodeStateTimelines,
+          incidentStates,
           statusPageResources,
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -887,6 +961,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           incident,
           incidentPublicNotes,
           incidentStateTimelines,
+          incidentStates,
           statusPageResources,
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -894,7 +969,14 @@ const Detail: FunctionComponent<PageComponentProps> = (
         }),
       );
     }
-  }, [isLoading, incident, episode, isEpisode, i18nInstance.resolvedLanguage]);
+  }, [
+    isLoading,
+    incident,
+    episode,
+    isEpisode,
+    incidentStates,
+    i18nInstance.resolvedLanguage,
+  ]);
 
   const pageTitle: string = isEpisode
     ? t("episodes.report")

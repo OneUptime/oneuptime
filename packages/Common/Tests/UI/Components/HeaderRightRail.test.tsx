@@ -67,11 +67,18 @@ describe("Header right-hand rail", () => {
   });
 
   test("an entry can still opt itself out of small screens", () => {
+    /*
+     * Written the way the dashboard's own call site writes it:
+     * `max-lg:hidden`, not `hidden`. A foreign `.hidden { display: none
+     * !important }` rule (Bootstrap 3, HTML5 Boilerplate, a browser
+     * extension) beats `lg:flex`, so the bare-`hidden` form of this opt-out
+     * also takes the entry off every desktop.
+     */
     render(
       <Header
         rightComponents={
           <>
-            <div className="hidden items-center lg:flex">
+            <div className="max-lg:hidden items-center lg:flex">
               <button type="button">Ask AI</button>
             </div>
             <button type="button">Profile</button>
@@ -87,9 +94,42 @@ describe("Header right-hand rail", () => {
 
     expect(isVisibleAtWidth(askAi, PHONE_WIDTH_IN_PX)).toBe(false);
     expect(isVisibleAtWidth(askAi, LAPTOP_WIDTH_IN_PX)).toBe(true);
+    expect(
+      isVisibleAtWidth(askAi, LAPTOP_WIDTH_IN_PX, {
+        withForeignHiddenRule: true,
+      }),
+    ).toBe(true);
 
     // ... without dragging its neighbours off the screen with it.
     expect(isVisibleAtWidth(profile, PHONE_WIDTH_IN_PX)).toBe(true);
+  });
+
+  test("the bare-hidden form of that opt-out is lost on a desktop to a foreign .hidden rule", () => {
+    render(
+      <Header
+        rightComponents={
+          <div className="hidden items-center lg:flex">
+            <button type="button">Ask AI</button>
+          </div>
+        }
+      />,
+    );
+
+    const askAi: HTMLElement = screen.getByRole("button", { name: "Ask AI" });
+
+    /*
+     * Identical to the max-lg form on a clean page, which is why the
+     * difference never showed up in review ...
+     */
+    expect(isVisibleAtWidth(askAi, PHONE_WIDTH_IN_PX)).toBe(false);
+    expect(isVisibleAtWidth(askAi, LAPTOP_WIDTH_IN_PX)).toBe(true);
+
+    // ... and gone at every width on the customer's page.
+    expect(
+      isVisibleAtWidth(askAi, LAPTOP_WIDTH_IN_PX, {
+        withForeignHiddenRule: true,
+      }),
+    ).toBe(false);
   });
 
   test("left and center components still render alongside the rail", () => {

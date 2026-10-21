@@ -26,6 +26,8 @@ import {
   ExtractedInventoryRecord,
   extractInventoryResource,
 } from "../../../Types/Kubernetes/KubernetesInventoryExtractor";
+import { KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { AiAgentOverviewState } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import { JSONObject } from "../../../Types/JSON";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 
@@ -111,6 +113,7 @@ describe("the Kubernetes cluster description records read well", () => {
     expect(Object.keys(CLUSTER).sort()).toEqual(
       [
         "agentStatus",
+        "aiAgent",
         "availability",
         "availabilityChart",
         "clusterHealth",
@@ -228,6 +231,7 @@ const TITLED: Array<[string, string]> = [
   ["Pods", CLUSTER.pods],
   ["Namespaces", CLUSTER.namespaces],
   ["Agent Status", CLUSTER.agentStatus],
+  ["AI agent", CLUSTER.aiAgent],
   ["Memory Pressure", CLUSTER.memoryPressure],
   ["Disk Pressure", CLUSTER.diskPressure],
   ["PID Pressure", CLUSTER.pidPressure],
@@ -563,6 +567,52 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
     for (const phase of ["Running", "Succeeded", "Pending", "Failed"]) {
       expect(CLUSTER.podHealth).toContain(phase);
     }
+  });
+});
+
+/*
+ * The Overview's "AI agent" card (KubernetesAiAgentOverviewCard) sits beside
+ * Agent Status and opens AI → Agent. Its badge is getAiAgentOverviewState's
+ * word, and Offline is the server's isOnline failing: the agent signed off
+ * (or was reset), or its last heartbeat is older than the alive window.
+ */
+describe("accuracy: the AI agent card", () => {
+  /*
+   * Keyed by the card's own union, so the type-check fails when a state is
+   * added or renamed and this list has not caught up.
+   */
+  const STATE_NAMES: Record<AiAgentOverviewState["text"], true> = {
+    Connected: true,
+    Offline: true,
+    "Not installed": true,
+  };
+  const STATES: Array<string> = Object.keys(STATE_NAMES);
+
+  test.each(STATES)("the AI agent text names the %s state", (state: string) => {
+    expect(CLUSTER.aiAgent).toContain(state);
+  });
+
+  test("offline names the sign-off and the alive window", () => {
+    expect(CLUSTER.aiAgent).toContain(
+      `signed off or not checked in for over ${KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`,
+    );
+  });
+
+  test("it is told apart from the telemetry agent beside it", () => {
+    expect(CLUSTER.aiAgent).toContain(
+      "not the telemetry agent in Agent Status",
+    );
+    expect(CLUSTER.aiAgent).toContain("Opens AI → Agent");
+  });
+
+  /*
+   * The agent is read-only only until the chart grants it write access
+   * (aiAgent.remediation.enabled) for fixes, so the text must not promise
+   * read-only kubectl.
+   */
+  test("it does not promise read-only kubectl", () => {
+    expect(CLUSTER.aiAgent).toContain("runs kubectl for OneUptime AI");
+    expect(CLUSTER.aiAgent).not.toContain("read-only kubectl");
   });
 });
 

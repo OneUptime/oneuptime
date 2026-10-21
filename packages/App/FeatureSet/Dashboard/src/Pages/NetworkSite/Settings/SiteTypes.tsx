@@ -9,6 +9,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const networkSiteTypeDocumentation: string = `
 ### How Site Types Work
@@ -44,6 +46,7 @@ Because types are renameable, nothing in OneUptime keys off the *name* "Unit" �
 const NetworkSiteTypesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkSiteType>
@@ -103,7 +106,11 @@ const NetworkSiteTypesPage: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSiteType): ReactElement => {
               if (!item.parentNetworkSiteType?.name) {
-                return <span className="text-gray-400">Top level</span>;
+                return (
+                  <span className="text-gray-400">
+                    {translator.translateText("Top level")}
+                  </span>
+                );
               }
 
               return <span>{item.parentNetworkSiteType.name}</span>;
@@ -150,7 +157,7 @@ const NetworkSiteTypesPage: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Parent Relationship",
             sectionDescription:
-              "Choose the type directly above this one. A type cannot be nested beneath itself, one of its descendants, or a unit-level type. This shapes which parent sites are suggested first when you place a site; it does not restrict placement to that one type.",
+              "The type directly above this one, such as Region above Store.",
             description:
               "Leave empty to make this a top-level type. Options show their full hierarchy path.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -164,11 +171,11 @@ const NetworkSiteTypesPage: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Leaf Level",
             sectionDescription:
-              "Normally exactly one of your site types is the unit level — the bottom of the hierarchy, where sites hold devices instead of more sites.",
+              "Usually one type is the unit level: the bottom, where sites hold devices.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Sites of this type are the leaf level. The network map opens their device topology instead of a child-site map, and the health rollup on parent sites counts them as units. Because types can be renamed, this flag — not the name — is what OneUptime checks.",
+              "Sites of this type hold devices, not more sites. The map opens on their devices.",
           },
         ]}
         showRefreshButton={true}

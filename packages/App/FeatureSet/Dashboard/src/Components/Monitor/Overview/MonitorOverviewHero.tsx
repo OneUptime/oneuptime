@@ -4,6 +4,7 @@ import RelativeTime from "../../EpisodeView/RelativeTime";
 import { ResourceOwnerEntry } from "../../ResourceOwners/OwnerEntry";
 import OwnersCell from "../../ResourceOwners/OwnersCell";
 import SloOverviewActionLink from "../../Slo/SloOverviewActionLink";
+import MonitorOverviewActions, { LoadedAtTime } from "./MonitorOverviewActions";
 import { getMonitorOverviewRoute } from "./MonitorOverviewLinks";
 import {
   TONE_BADGE,
@@ -19,14 +20,13 @@ import MonitorType, {
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import StatusBadge from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
+  isMonitorOverviewActionCallToAction,
+  MonitorOverviewCallToAction,
   MonitorOverviewFact,
   MonitorOverviewPresentation,
   MonitorOverviewPulse,
@@ -36,6 +36,17 @@ import {
 import { MonitorOverviewTarget } from "Common/Utils/Monitor/MonitorOverviewTargetUtil";
 import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TURN_MONITORING_ON_BUTTON_TEST_ID,
+  TURN_MONITORING_ON_ERROR_TEST_ID,
+} from "../MonitoringSwitchCopy";
+import useTurnMonitoringOn, { TurnMonitoringOn } from "../useTurnMonitoringOn";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -46,6 +57,18 @@ export interface ComponentProps {
   refreshError: string;
   lastLoadedAt: Date | null;
   onRefresh: () => void;
+  /*
+   * Told after the hero's "Turn monitoring on" turned the monitor back on,
+   * so the page reads it again.
+   */
+  onMonitoringTurnedOn?: (() => void) | undefined;
+  /*
+   * The status the monitor is in now: the More actions (⋯) menu's Change
+   * status leaves it out.
+   */
+  currentStatusId?: string | undefined;
+  // Told after that menu recorded a new status, so the page reads it again.
+  onStatusChanged?: (() => void) | undefined;
 }
 
 /*
@@ -85,36 +108,27 @@ export const getMonitorOverviewIcon: (
 };
 
 /*
- * When what is on screen loaded, as a clock time in the reader's zone. The
- * date is added once it is no longer today, so a page left open overnight
- * cannot point at the wrong 14:05.
- */
-export const getLoadedAtText: (loadedAt: Date) => string = (
-  loadedAt: Date,
-): string => {
-  const isToday: boolean =
-    OneUptimeDate.getDateAsLocalDayMonthString(loadedAt) ===
-    OneUptimeDate.getDateAsLocalDayMonthString(OneUptimeDate.getCurrentDate());
-
-  if (!isToday) {
-    return OneUptimeDate.getDateAsLocalShortDateTimeString(loadedAt);
-  }
-
-  return OneUptimeDate.getLocalTimeString(loadedAt, {
-    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-  });
-};
-
-/*
  * The top of the monitor overview: what state the monitor is in, in words,
  * how fresh that is, and the handful of facts behind it. Everything it says
  * comes from MonitorOverviewPresentationUtil, so the per-type and per-state
  * rules are tested once in Common and this only lays them out.
+ *
+ * Its actions keep to the top right at every width (MonitorOverviewActions:
+ * when the page last loaded, Refresh, and the More actions menu), on the
+ * badges' line: a grid, so on a phone they stay in that corner instead of
+ * falling under the text, and from lg the pulse sits under them.
  */
 const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const presentation: MonitorOverviewPresentation = props.presentation;
+
+  // Only pressed on a monitor someone turned off (its call to action).
+  const turnMonitoringOn: TurnMonitoringOn = useTurnMonitoringOn({
+    monitorId: props.monitorId,
+    onTurnedOn: props.onMonitoringTurnedOn,
+  });
 
   const typeProps: MonitorTypeProps | undefined = useMemo(() => {
     return MonitorTypeHelper.getAllMonitorTypeProps().find(
@@ -126,6 +140,78 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
   const typeTitle: string = typeProps?.title || props.monitorType;
   const typeIcon: IconProp = typeProps?.icon || IconProp.Activity;
+
+  type GetCallToActionFunction = (
+    callToAction: MonitorOverviewCallToAction,
+  ) => ReactElement;
+
+  /*
+   * A link to the page that fixes the state, or - for a monitor someone
+   * turned off - a button that turns monitoring back on in place. The
+   * button is left out only while there is nothing honest to say about it
+   * (the permission snapshot has not arrived); someone who may not turn
+   * monitoring on sees it locked, with why.
+   */
+  const getCallToAction: GetCallToActionFunction = (
+    callToAction: MonitorOverviewCallToAction,
+  ): ReactElement => {
+    if (!isMonitorOverviewActionCallToAction(callToAction)) {
+      return (
+        <div data-testid="monitor-overview-call-to-action" className="mt-4">
+          <SloOverviewActionLink
+            variant="secondary"
+            title={callToAction.text}
+            to={getMonitorOverviewRoute({
+              key: callToAction.linkKey,
+              monitorId: props.monitorId,
+            })}
+          />
+        </div>
+      );
+    }
+
+    if (
+      !turnMonitoringOn.gate.isAllowed &&
+      !turnMonitoringOn.gate.disabledReason
+    ) {
+      return <></>;
+    }
+
+    /*
+     * Button carries a left margin meant for a dialog's footer (md:ml-3),
+     * which set "Turn monitoring on" 12px in from the text above it. It is
+     * cleared on the button, or on the span a locked button's tooltip
+     * wraps it in, as the card headers clear it on their actions.
+     */
+    return (
+      <div
+        data-testid="monitor-overview-call-to-action"
+        className="mt-4 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+      >
+        <Button
+          title={callToAction.text}
+          icon={IconProp.Play}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId={TURN_MONITORING_ON_BUTTON_TEST_ID}
+          isLoading={turnMonitoringOn.isSaving}
+          disabled={!turnMonitoringOn.gate.isAllowed}
+          tooltip={turnMonitoringOn.gate.disabledReason}
+          onClick={turnMonitoringOn.turnOn}
+        />
+        {turnMonitoringOn.error ? (
+          <p
+            role="alert"
+            data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
+            className="mt-2 text-sm text-red-700"
+          >
+            {turnMonitoringOn.error}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
 
   type GetBadgeRowFunction = () => ReactElement;
 
@@ -199,9 +285,15 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           <></>
         )}
         {extraStepCount > 0 ? (
-          <span>{`(+${extraStepCount} more step${
-            extraStepCount === 1 ? "" : "s"
-          })`}</span>
+          <span>
+            {translator.translatePlural(
+              {
+                one: "(+{{count}} more step)",
+                other: "(+{{count}} more steps)",
+              },
+              extraStepCount,
+            )}
+          </span>
         ) : (
           <></>
         )}
@@ -224,27 +316,45 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
        * the time is unknown instead.
        */
       lastLine = (
-        <p className="text-xs text-gray-400">{`${pulse.label}: unavailable`}</p>
+        <p className="text-xs text-gray-400">
+          {translator.translateTemplate("{{label}}: unavailable", {
+            label: translatableTerm(pulse.label),
+          })}
+        </p>
       );
     } else if (pulse.label !== null && pulse.at) {
       lastLine = (
         <p className="text-xs text-gray-600">
-          {pulse.label} <RelativeTime date={pulse.at} />
+          <TranslatedSentence
+            template="{{label}} {{time}}"
+            values={{ label: translatableTerm(pulse.label) }}
+            slots={{ time: <RelativeTime date={pulse.at} /> }}
+          />
         </p>
       );
     }
 
+    // Under the text until lg, then under the actions at the right.
     return (
-      <div data-testid="monitor-overview-pulse" className="min-w-0 text-right">
+      <div
+        data-testid="monitor-overview-pulse"
+        className="min-w-0 text-left lg:text-right"
+      >
         {lastLine}
         {pulse.cadenceText ? (
           <p
             data-testid="monitor-overview-cadence"
             className="mt-1 text-xs text-gray-500"
           >
-            {pulse.cadenceText}
-            {pulse.nextAt ? " · next " : ""}
-            {pulse.nextAt ? <RelativeTime date={pulse.nextAt} /> : <></>}
+            {pulse.nextAt ? (
+              <TranslatedSentence
+                template="{{cadence}} · next {{time}}"
+                values={{ cadence: pulse.cadenceText }}
+                slots={{ time: <RelativeTime date={pulse.nextAt} /> }}
+              />
+            ) : (
+              pulse.cadenceText
+            )}
           </p>
         ) : (
           <></>
@@ -254,7 +364,9 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-overdue"
             className="mt-1 text-xs font-medium text-amber-700"
           >
-            {`Overdue by ${formatDurationCompact(pulse.overdueSeconds)}`}
+            {translator.translateTemplate("Overdue by {{duration}}", {
+              duration: formatDurationCompact(pulse.overdueSeconds),
+            })}
           </p>
         ) : (
           <></>
@@ -276,7 +388,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     if (!owners) {
       return (
         <span className="text-base font-semibold text-gray-400">
-          Unavailable
+          {translator.translateText("Unavailable")}
         </span>
       );
     }
@@ -284,7 +396,9 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     if (owners.length === 0) {
       return (
         <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
-          <span className="text-gray-500">No owners</span>
+          <span className="text-gray-500">
+            {translator.translateText("No owners")}
+          </span>
           <Link
             to={getMonitorOverviewRoute({
               key: "owners",
@@ -292,7 +406,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             })}
             className="font-medium text-indigo-600 hover:underline"
           >
-            Add owners
+            {translator.translateText("Add owners")}
           </Link>
         </span>
       );
@@ -312,7 +426,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             className="text-xs font-normal text-gray-500"
             title={props.owners.refreshError}
           >
-            List may be incomplete
+            {translator.translateText("List may be incomplete")}
           </span>
         </span>
       );
@@ -397,44 +511,69 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      aria-label="Monitor status"
+      aria-label={translator.translateText("Monitor status")}
       data-testid="monitor-overview-hero"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
       <div className="p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
+        <div className="flex items-start gap-4">
+          <div
+            data-testid="monitor-overview-icon"
+            className={`max-sm:hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${
+              TONE_TILE_CLASS[presentation.tone]
+            }`}
+          >
+            <Icon
+              icon={getMonitorOverviewIcon(presentation)}
+              className="h-6 w-6"
+            />
+          </div>
+          {/*
+           * Two columns: the badges, then the state in words, on the left;
+           * the actions on the badges' line at the right, and from lg the
+           * pulse under them. Below lg the pulse follows the text. Every
+           * cell is placed by the grid, so the markup can keep the order a
+           * screen reader and the Tab key should take: the state, its call
+           * to action, then the actions and the pulse.
+           */}
+          <div
+            data-testid="monitor-overview-layout"
+            className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-4 lg:gap-x-8"
+          >
             <div
-              data-testid="monitor-overview-icon"
-              className={`hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${
-                TONE_TILE_CLASS[presentation.tone]
-              }`}
+              data-testid="monitor-overview-badges-cell"
+              className="col-start-1 row-start-1 min-w-0 self-center"
             >
-              <Icon
-                icon={getMonitorOverviewIcon(presentation)}
-                className="h-6 w-6"
-              />
-            </div>
-            <div className="min-w-0">
               {getBadgeRow()}
+            </div>
+            <div
+              data-testid="monitor-overview-state-cell"
+              className="col-span-2 col-start-1 row-start-2 min-w-0 lg:col-span-1"
+            >
               <h2
                 data-testid="monitor-overview-headline"
                 className="mt-2 text-xl font-semibold tracking-tight text-gray-900"
               >
-                {presentation.headline.text}
                 {presentation.headline.since ? (
-                  <>
-                    {" for "}
-                    <span
-                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        presentation.headline.since,
-                      )}
-                    >
-                      <LiveDuration startDate={presentation.headline.since} />
-                    </span>
-                  </>
+                  <TranslatedSentence
+                    template="{{headline}} for {{duration}}"
+                    values={{ headline: presentation.headline.text }}
+                    slots={{
+                      duration: (
+                        <span
+                          title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            presentation.headline.since,
+                          )}
+                        >
+                          <LiveDuration
+                            startDate={presentation.headline.since}
+                          />
+                        </span>
+                      ),
+                    }}
+                  />
                 ) : (
-                  <></>
+                  presentation.headline.text
                 )}
               </h2>
               {presentation.explanation ? (
@@ -459,33 +598,33 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
               )}
               {getTarget()}
               {presentation.callToAction ? (
-                <div className="mt-4">
-                  <SloOverviewActionLink
-                    variant="secondary"
-                    title={presentation.callToAction.text}
-                    to={getMonitorOverviewRoute({
-                      key: presentation.callToAction.linkKey,
-                      monitorId: props.monitorId,
-                    })}
-                  />
-                </div>
+                getCallToAction(presentation.callToAction)
               ) : (
                 <></>
               )}
             </div>
-          </div>
-
-          <div className="flex flex-shrink-0 items-center justify-between gap-4 lg:flex-col lg:items-end lg:gap-3">
-            <Button
-              title="Refresh"
-              icon={IconProp.Refresh}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              isLoading={props.isRefreshing}
-              onClick={props.onRefresh}
-              dataTestId="monitor-overview-refresh"
-            />
-            {getPulse()}
+            <div
+              data-testid="monitor-overview-actions-cell"
+              className="col-start-2 row-start-1 self-start"
+            >
+              <MonitorOverviewActions
+                key={props.monitorId.toString()}
+                monitorId={props.monitorId}
+                isRefreshing={props.isRefreshing}
+                refreshError={props.refreshError}
+                lastLoadedAt={props.lastLoadedAt}
+                onRefresh={props.onRefresh}
+                moreActions={presentation.moreActions}
+                currentStatusId={props.currentStatusId}
+                onStatusChanged={props.onStatusChanged}
+              />
+            </div>
+            <div
+              data-testid="monitor-overview-pulse-cell"
+              className="col-span-2 col-start-1 row-start-3 mt-3 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-2 lg:mt-4"
+            >
+              {getPulse()}
+            </div>
           </div>
         </div>
 
@@ -501,25 +640,20 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-refresh-error"
             className="mt-4 text-sm text-red-700"
           >
-            {"Couldn't refresh. Showing what loaded "}
             {props.lastLoadedAt ? (
-              <>
-                {"at "}
-                <time
-                  dateTime={OneUptimeDate.fromString(
-                    props.lastLoadedAt,
-                  ).toISOString()}
-                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    props.lastLoadedAt,
-                  )}
-                >
-                  {getLoadedAtText(props.lastLoadedAt)}
-                </time>
-              </>
+              <TranslatedSentence
+                template="Couldn't refresh. Showing what loaded at {{time}}. {{error}}"
+                values={{ error: props.refreshError }}
+                slots={{
+                  time: <LoadedAtTime loadedAt={props.lastLoadedAt} />,
+                }}
+              />
             ) : (
-              <>earlier</>
+              translator.translateTemplate(
+                "Couldn't refresh. Showing what loaded earlier. {{error}}",
+                { error: props.refreshError },
+              )
             )}
-            {`. ${props.refreshError}`}
           </p>
         ) : (
           <></>
@@ -527,7 +661,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       </div>
 
       <dl
-        aria-label="Monitor at a glance"
+        aria-label={translator.translateText("Monitor at a glance")}
         data-testid="monitor-overview-facts"
         className={`grid gap-5 rounded-b-xl border-t border-gray-100 bg-gray-50 px-5 py-4 sm:px-6 ${getFactGridClass(
           presentation.facts.length,

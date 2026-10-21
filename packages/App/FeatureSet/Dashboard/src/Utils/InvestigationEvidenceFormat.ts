@@ -1,4 +1,8 @@
 import { AIChatCitationTargetType } from "Common/Types/AI/AIChatTypes";
+import {
+  getAIResourceDefinition,
+  isAIResourceType,
+} from "Common/Types/AI/AIResourceContext";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,6 +10,18 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+} from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import {
+  CALL_MCP_TOOL_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+} from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -245,6 +261,36 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Metrics",
     },
   ],
+  /*
+   * One infrastructure resource's own telemetry: the resources there are,
+   * a host's or cluster's metrics, logs and traces, and a Docker or Podman
+   * host's containers. An investigation reads the infrastructure its
+   * incident is linked to through these.
+   */
+  [
+    "query_telemetry_resources",
+    {
+      description: "Listed infrastructure resources",
+      icon: IconProp.Server,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    "query_resource_telemetry",
+    {
+      description: "Read a resource's telemetry",
+      icon: IconProp.ChartBar,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    "query_containers",
+    {
+      description: "Checked a host's containers",
+      icon: IconProp.SquareStack3D,
+      category: "Infrastructure",
+    },
+  ],
   [
     "query_traces",
     {
@@ -261,10 +307,43 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Traces",
     },
   ],
+  // Continuous profiling: where the time goes, and what got slower.
+  [
+    "get_profile_hotspots",
+    {
+      description: "Read where a service spends its time",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
+  [
+    "compare_profiles",
+    {
+      description: "Compared profiles before and after",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
+  [
+    "get_profile_function",
+    {
+      description: "Read a function's profile",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
   [
     "recent_changes",
     {
       description: "Checked recent changes",
+      icon: IconProp.Bolt,
+      category: "Changes",
+    },
+  ],
+  [
+    "get_change_details",
+    {
+      description: "Read what a change shipped",
       icon: IconProp.Bolt,
       category: "Changes",
     },
@@ -310,6 +389,27 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   /*
+   * The project's external MCP servers (Settings → AI → External MCP
+   * Servers): an investigation lists their tools and calls the ones that
+   * only read. call_mcp_tool's arguments name the server and the tool.
+   */
+  [
+    LIST_MCP_TOOLS_TOOL_NAME,
+    {
+      description: "Listed the tools of your MCP servers",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
+    },
+  ],
+  [
+    CALL_MCP_TOOL_TOOL_NAME,
+    {
+      description: "Used a tool of an MCP server",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
+    },
+  ],
+  /*
    * The tools that reach a Kubernetes cluster rather than the project's
    * telemetry. Components/AI/ClusterToolFormat words their outcomes (a
    * kubectl call has no rows) and reads these descriptions from here.
@@ -328,6 +428,27 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       description: "Listed the clusters OneUptime AI can inspect",
       icon: IconProp.Cube,
       category: "Kubernetes",
+    },
+  ],
+  /*
+   * The tools that reach any other infrastructure resource (a Docker or
+   * Podman host, a Swarm, Proxmox, VMware or Ceph cluster, a database
+   * server, a host) through its AI agent. Worded like the cluster tools.
+   */
+  [
+    RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    {
+      description: "Ran a read-only infrastructure command",
+      icon: IconProp.Terminal,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+    {
+      description: "Listed the infrastructure OneUptime AI can inspect",
+      icon: IconProp.Server,
+      category: "Infrastructure",
     },
   ],
   [
@@ -516,7 +637,9 @@ export function describeEvidenceTool(
 
   return {
     description:
-      words.length > 0 ? `Ran ${words.join(" ")}` : "Ran a telemetry query",
+      words.length > 0
+        ? translateTemplate("Ran {{query}}", { query: words.join(" ") })
+        : translateTemplate("Ran a telemetry query"),
     icon: IconProp.Database,
     category: "Other",
   };
@@ -531,6 +654,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.RumApplicationView]: "RUM application",
   [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
   [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
+  [AIChatCitationTargetType.ServiceView]: "Service",
+  [AIChatCitationTargetType.Profiles]: "Profiler",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",
@@ -916,6 +1041,7 @@ const ID_LABELS: Map<string, string> = new Map<string, string>([
   ["workflowId", "Workflow"],
   ["teamId", "Team"],
   ["repositoryId", "Repository"],
+  ["resourceId", "Resource"],
 ]);
 
 const SEARCH_KEYS: Set<string> = new Set<string>([
@@ -966,7 +1092,40 @@ const LABELS: Map<string, string> = new Map<string, string>([
   ["upcomingDays", "Upcoming"],
   ["createdWithinHours", "Time window"],
   ["lastSeenWithinHours", "Time window"],
+  ["resourceType", "Resource type"],
+  ["signal", "Telemetry"],
+  // Wrapped so the i18n extractor finds it: no other screen says it.
+  ["sortBy", translationKey("Ranked by")],
+  ["attributes", "Attributes"],
 ]);
+
+/*
+ * Values that are a code to people: a container ranking, a resource
+ * telemetry read's mode. Unknown values are shown as written.
+ */
+const VALUE_LABELS: Map<string, Map<string, string>> = new Map<
+  string,
+  Map<string, string>
+>([
+  [
+    "sortBy",
+    new Map<string, string>([
+      ["cpu", "CPU"],
+      ["memory", "Memory"],
+      ["restarts", "Restarts"],
+    ]),
+  ],
+  [
+    "mode",
+    new Map<string, string>([
+      ["trend", "Trend"],
+      ["summary", "Summary"],
+    ]),
+  ],
+]);
+
+// The most attribute filters a row lists before "and N more".
+const MAX_LISTED_ATTRIBUTES: number = 5;
 
 // Values that name a state or category read better capitalised.
 const CAPITALIZED_VALUE_KEYS: Set<string> = new Set<string>([
@@ -975,6 +1134,7 @@ const CAPITALIZED_VALUE_KEYS: Set<string> = new Set<string>([
   "sloStatus",
   "telemetryType",
   "type",
+  "signal",
 ]);
 
 const SHORTENED_ID_VISIBLE_LENGTH: number = 8;
@@ -1160,6 +1320,15 @@ function formatArgument(
     return durationRow;
   }
 
+  const resourceRow: FormattedEvidenceArgument | null = formatResourceArgument(
+    key,
+    value,
+  );
+
+  if (resourceRow) {
+    return resourceRow;
+  }
+
   const text: string | null = formatGenericValue(value);
 
   if (text === null) {
@@ -1174,6 +1343,74 @@ function formatArgument(
         ? capitalize(text)
         : text,
   };
+}
+
+/*
+ * The arguments of the infrastructure tools that read as codes: a resource
+ * type ("DockerHost" is a "Docker Host"), a ranking or a mode, and an
+ * attribute filter, which is an object ("state = idle, host.name = web-1").
+ * Null for any other argument.
+ */
+function formatResourceArgument(
+  key: string,
+  value: unknown,
+): FormattedEvidenceArgument | null {
+  if (key === "resourceType" && isAIResourceType(value)) {
+    return {
+      key,
+      label: LABELS.get(key) ?? toTitleCaseLabel(key),
+      value: getAIResourceDefinition(value).label,
+    };
+  }
+
+  const valueLabels: Map<string, string> | undefined = VALUE_LABELS.get(key);
+
+  if (valueLabels && typeof value === "string") {
+    const label: string | undefined = valueLabels.get(
+      value.trim().toLowerCase(),
+    );
+
+    if (label) {
+      return {
+        key,
+        label: LABELS.get(key) ?? toTitleCaseLabel(key),
+        value: label,
+      };
+    }
+  }
+
+  if (
+    key === "attributes" &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const pairs: Array<string> = Object.entries(value as JSONObject)
+      .map(([name, attributeValue]: [string, unknown]): string | null => {
+        const text: string | null = formatScalar(attributeValue);
+
+        return name.trim() && text !== null ? `${name.trim()} = ${text}` : null;
+      })
+      .filter((pair: string | null): pair is string => {
+        return pair !== null;
+      });
+
+    if (pairs.length === 0) {
+      return null;
+    }
+
+    const listed: Array<string> = pairs.slice(0, MAX_LISTED_ATTRIBUTES);
+    const more: number = pairs.length - listed.length;
+
+    return {
+      key,
+      label: LABELS.get(key) ?? toTitleCaseLabel(key),
+      value:
+        more > 0 ? `${listed.join(", ")} and ${more} more` : listed.join(", "),
+    };
+  }
+
+  return null;
 }
 
 function formatWindowArgument(

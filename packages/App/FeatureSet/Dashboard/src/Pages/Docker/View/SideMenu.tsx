@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -133,6 +136,44 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Docker AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -259,6 +300,12 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: DockerHost,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

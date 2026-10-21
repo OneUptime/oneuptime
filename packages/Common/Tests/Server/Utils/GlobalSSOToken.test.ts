@@ -1,5 +1,5 @@
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
@@ -7,6 +7,7 @@ import CookieName from "../../../Types/CookieName";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -22,9 +23,10 @@ jest.mock("../../../Server/Utils/Logger");
  * project binding, which is exactly what lets one token satisfy SSO
  * enforcement for every project the user belongs to.
  *
- * These tests run REAL JWT signing and verification (no mocks). The JWT secret
- * falls back to EncryptionSecret = "secret" when ENCRYPTION_SECRET is unset
- * (see Common/Server/EnvironmentConfig.ts), so no env setup is required.
+ * These tests run REAL JWT signing and verification (no mocks). The key is
+ * TokenSigningKey - ENCRYPTION_SECRET when it is set, and otherwise a random
+ * key of this process's own, never a value the repository ships - so no env
+ * setup is required.
  *
  * The happy path of UserMiddleware.doesSsoTokenForProjectExist accepting a
  * global token from the `global-sso-token` cookie and from the
@@ -113,6 +115,9 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
     expect(payload["isGeneralLogin"]).toBe(false);
     expect(payload["ssoProviderId"]).toBe(ssoProviderId.toString());
     expect(payload["ssoProviderType"]).toBe(SsoProviderType.GlobalSSO);
+    // It says it is an SSO sign-in, and names no session: it is none.
+    expect(payload["purpose"]).toBe(JsonWebTokenPurpose.SsoSignIn);
+    expect(payload["sessionId"]).toBeUndefined();
   });
 
   test("carries NO projectId binding - that is what makes it global", () => {
@@ -135,7 +140,10 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
     expect(payload["projectId"] || undefined).toBeUndefined();
 
     // And the decoded view the middleware actually consumes has no project.
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token,
+      JsonWebTokenPurpose.SsoSignIn,
+    );
     expect(decoded.projectId).toBeUndefined();
 
     // Contrast: a per-project token DOES bind a project.
@@ -146,9 +154,12 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
       ssoProviderId: ObjectID.generate(),
       ssoProviderType: SsoProviderType.ProjectSSO,
     });
-    expect(JSONWebToken.decode(projectToken).projectId?.toString()).toBe(
-      projectId.toString(),
-    );
+    expect(
+      JSONWebToken.decode(
+        projectToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      ).projectId?.toString(),
+    ).toBe(projectId.toString());
   });
 
   test("both Global provider types round-trip through the token", () => {
@@ -169,7 +180,10 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
         ssoProviderType: providerType,
       });
 
-      const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        token,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
 
       expect(decoded.ssoProviderType).toBe(providerType);
       expect(decoded.ssoProviderId?.toString()).toBe(ssoProviderId.toString());
@@ -259,6 +273,7 @@ describe("CookieUtil.setGlobalSSOCookie", () => {
     // The value written is a real, verifiable global token for this user.
     const decoded: JSONWebTokenData = JSONWebToken.decode(
       callArgs[1] as string,
+      JsonWebTokenPurpose.SsoSignIn,
     );
     expect(decoded.userId.toString()).toBe(userId.toString());
     expect(decoded.ssoProviderId?.toString()).toBe(ssoProviderId.toString());
@@ -304,6 +319,7 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global token expiry", () 
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
       expiresInSeconds: -60,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   };
 
@@ -417,7 +433,7 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global token tampering", 
         ssoProviderId: ssoProviderId.toString(),
         ssoProviderType: SsoProviderType.GlobalSSO,
       },
-      `${EncryptionSecret.toString()}-not-the-real-secret`,
+      `${TokenSigningKey.get()}-not-the-real-secret`,
       { expiresIn: THIRTY_DAYS_IN_SECONDS },
     );
 
@@ -532,10 +548,13 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global slot type confusio
         ssoProviderId: ssoProviderId.toString(),
       },
       expiresInSeconds: THIRTY_DAYS_IN_SECONDS,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
 
     // The token itself verifies fine - it is the missing type that disqualifies it.
-    expect(JSONWebToken.decode(token).ssoProviderType).toBeUndefined();
+    expect(
+      JSONWebToken.decode(token, JsonWebTokenPurpose.SsoSignIn).ssoProviderType,
+    ).toBeUndefined();
 
     for (const req of [buildCookieRequest(token), buildHeaderRequest(token)]) {
       expect(UserMiddleware.getGlobalSsoTokenData(req)).toBeNull();

@@ -23,16 +23,17 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Same shape as the Slack method component: adding Microsoft Teams is
  * pointing at the Teams account the user has already connected via OAuth
- * (User Settings > Microsoft Teams Integration). The server resolves the
- * Microsoft Entra user id from that link and refuses the add when the link
- * does not exist. The test button matters more here than anywhere else - a
- * Teams direct message additionally needs the OneUptime app installed for
- * the user, and the test surfaces that error before a real page depends on
- * it.
+ * (User Settings > Workspace > Microsoft Teams, which the empty table names
+ * as the side menu draws it). The server resolves the Microsoft Entra user id
+ * from that link and refuses the add when the link does not exist. The test
+ * button matters more here than anywhere else - a Teams direct message
+ * additionally needs the OneUptime app installed for the user, and the test
+ * surfaces that error before a real page depends on it.
  */
 const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -99,7 +100,9 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         setTestResult(
           (data["statusMessage"] as string) ||
-            "Test message sent. Check your Microsoft Teams chats.",
+            translateTemplate(
+              "Test message sent. Check your Microsoft Teams chats.",
+            ),
         );
       }
     } catch (err) {
@@ -165,7 +168,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
           ],
         }}
         noItemsMessage={
-          "No Microsoft Teams account added. Connect your Microsoft Teams account under User Settings > Microsoft Teams Integration, then click 'Add Microsoft Teams Account'."
+          "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'."
         }
         showRefreshButton={true}
         filters={[]}
@@ -194,7 +197,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Microsoft Teams`}
           description={addError}
-          submitButtonText={"Open Microsoft Teams Integration Settings"}
+          submitButtonText={"Open Microsoft Teams Settings"}
           closeButtonText={"Close"}
           onClose={() => {
             setAddError("");

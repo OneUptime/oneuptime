@@ -1,86 +1,179 @@
-# Terraform Provider
+# Panoramica di Terraform
 
-The OneUptime Terraform provider manages OneUptime resources — monitors, status pages, teams, labels, on-call policies, incidents, probes, and more — as declarative infrastructure-as-code. It works against both OneUptime Cloud and self-hosted OneUptime installations.
+Il provider Terraform di OneUptime gestisce il tuo progetto OneUptime come codice. Descrivi monitor, pagine di stato, politiche di reperibilità, team, etichette e gli altri record del progetto in file `.tf`, vedi cosa cambierà con `terraform plan` e applica la modifica con `terraform apply`. Funziona con OneUptime Cloud e con un'istanza OneUptime self-hosted, e con OpenTofu come con Terraform.
 
-The provider is published on the Terraform Registry: [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime).
+:::cards
+- [Come funziona il provider](#come-funziona-il-provider): La tua configurazione, il piano e le richieste all'API che ci sono dietro.
+- [Installare il provider](#installare-il-provider): Il blocco del provider e la versione da scegliere.
+- [Lasciala scrivere alla dashboard](#lasciala-scrivere-alla-dashboard): Configurazione e blocchi di import per quello che hai già.
+- [Cosa puoi gestire](#cosa-puoi-gestire): Risorse, sorgenti dati e come si scrivono i loro attributi.
+:::
 
-## Minimal configuration
+## Come funziona il provider
 
-```hcl
+Il provider è un plugin che Terraform scarica da un registry. Con `terraform apply` trasforma ogni modifica del piano in una richiesta all'API REST di OneUptime, fatta con una chiave API del tuo progetto. Terraform conserva nel suo stato ciò che ha creato, così il piano successivo mostra solo ciò che è cambiato da allora.
+
+```mermaid title="Dalla configurazione al progetto"
+flowchart TB
+    C["La tua configurazione:<br/>i file .tf"] --> T["terraform plan<br/>terraform apply"]
+    T --> P["Il provider OneUptime"]
+    K["Una chiave API<br/>del tuo progetto"] --> P
+    P -->|"Richieste all'API REST"| O["Il tuo progetto OneUptime"]
+    T --> S["Lo stato di Terraform"]
+```
+
+Una chiave API appartiene a un progetto e decide cosa Terraform può leggere e modificare al suo interno, quindi una configurazione gestisce un progetto. Per gestirne diversi, dai al provider un [alias](/docs/terraform/complete-guide#gestire-più-progetti) per ciascuno.
+
+## Prima di iniziare
+
+- **Terraform 1.5 o successivo, oppure OpenTofu 1.6 o successivo.** I blocchi `import` che la dashboard scrive richiedono queste versioni.
+- **Una chiave API del tuo progetto.** L'[Avvio rapido](/docs/terraform/quick-start#creare-una-chiave-api-del-progetto) mostra come crearne una in **Impostazioni del progetto → Avanzato → Chiavi API**.
+- **Su OneUptime Cloud, il piano Growth o superiore.** Le chiavi API di un progetto funzionano solo con quello.
+
+## Installare il provider
+
+Aggiungi il provider a un file `.tf`. `terraform init` lo scarica dal Terraform Registry, e `tofu init` dall'OpenTofu Registry:
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 
 provider "oneuptime" {
-  # oneuptime_url defaults to https://oneuptime.com.
-  # Self-hosted users: set this to your own instance URL.
-  api_key = var.oneuptime_api_key
+  # The API key comes from the ONEUPTIME_API_KEY environment variable.
+  # On a self-hosted OneUptime, add your OneUptime's address:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-The API key must be a **project API key** created in **Project Settings > API Keys** in the OneUptime dashboard. See the [Quick Start](/docs/terraform/quick-start) for the full walkthrough.
+Tieni la chiave fuori dai tuoi file: esportala prima di eseguire Terraform, oppure passala in una variabile marcata `sensitive`. La [Guida completa](/docs/terraform/complete-guide#configurare-il-provider) elenca tutti i modi per dare al provider la sua chiave e il suo indirizzo.
 
-## Documentation
+### Scegliere una versione
 
-| Page | What it covers |
-|------|----------------|
-| [Quick Start](/docs/terraform/quick-start) | Create an API key and apply your first resources in about 10 minutes |
-| [Complete Guide](/docs/terraform/complete-guide) | Authentication, project structure, dependencies, data sources, state |
-| [Monitor Steps](/docs/terraform/monitor-steps) | Deep dive into the `monitor_steps` JSON structure and criteria filters |
-| [Examples](/docs/terraform/examples) | Copy-pasteable configurations for every major resource type |
-| [Importing Resources](/docs/terraform/importing-resources) | Bring existing OneUptime resources under Terraform management |
-| [Troubleshooting](/docs/terraform/troubleshooting) | Symptom-to-fix reference for the most common errors |
-| [Self-Hosted Setup](/docs/terraform/self-hosted) | Instance URLs, version selection, air-gapped mirroring, TLS |
-| [Registry Usage](/docs/terraform/registry) | How provider versions are published and how to choose one |
+Le versioni del provider seguono quelle di OneUptime: il provider {{TERRAFORM_PROVIDER_MAJOR}}.x è generato da OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.x. Il vincolo qui sopra, `{{TERRAFORM_PROVIDER_VERSION}}`, prende la release {{TERRAFORM_PROVIDER_MAJOR}}.x più recente, che è quella giusta per OneUptime Cloud. Su un'istanza OneUptime self-hosted, usa il provider più recente che non sia più nuovo della tua istanza: la [Configurazione self-hosted](/docs/terraform/self-hosted) mostra come fissarlo.
 
-## What the provider manages
+## Lasciala scrivere alla dashboard
 
-Resources follow the naming pattern `oneuptime_<snake_case_resource>`. The most commonly used resources:
+Non devi scrivere a mano una risorsa che hai già. Ogni risorsa della dashboard OneUptime (un monitor, una pagina di stato, un workflow, una politica di reperibilità e le altre) ha una sezione **Sviluppatori** nel menu laterale, chiusa finché non la apri. La sua pagina **Terraform** scrive la configurazione al posto tuo, compilata con il tuo progetto.
 
-| Resource | Purpose |
-|----------|---------|
-| `oneuptime_monitor` | Website, API, ping, port, IP, SSL certificate, server, incoming request, and manual monitors |
-| `oneuptime_monitor_status` | Monitor status definitions (Operational, Degraded, Offline, ...) |
-| `oneuptime_monitor_group` | Group monitors for aggregate status |
-| `oneuptime_status_page` | Public and private status pages |
-| `oneuptime_status_page_domain` | Custom domains for status pages |
-| `oneuptime_domain` | Project-level verified domains |
-| `oneuptime_label` | Labels for organizing and filtering resources |
-| `oneuptime_team` | Teams |
-| `oneuptime_team_member` | Team membership |
-| `oneuptime_on_call_policy` | On-call duty policies |
-| `oneuptime_escalation_rule` | Escalation rules attached to on-call policies |
-| `oneuptime_incident` / `oneuptime_incident_severity` / `oneuptime_incident_state` | Incidents and their taxonomy |
-| `oneuptime_alert` / `oneuptime_alert_severity` / `oneuptime_alert_state` | Alerts and their taxonomy |
-| `oneuptime_scheduled_maintenance_event` | Scheduled maintenance windows |
-| `oneuptime_probe` | Custom monitoring probes |
+:::steps
+### Aprire la risorsa
 
-Every resource also has a matching **data source** with the same name (for example `data "oneuptime_label"`), which looks up an existing resource by `id` or by `name`.
+Apri il monitor, la pagina di stato o l'altra risorsa che vuoi far gestire a Terraform.
 
-The full, generated per-resource schema reference lives on the [Terraform Registry documentation tab](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs).
+### Aprire la sua pagina Terraform
 
-## How the provider models complex configuration
+Nel menu laterale, apri **Sviluppatori** e poi **Terraform**.
 
-OneUptime resource schemas map the OneUptime API directly:
+### Copiare la configurazione
 
-- **Scalar attributes** are plain Terraform strings, numbers, and booleans (`name`, `description`, `monitor_type`, `is_public_status_page`, ...).
-- **Entity references** are ID strings (`incident_severity_id`, `monitor_id`). Arrays of references, such as `labels`, are unordered sets of ID strings — reordering them produces no diff.
-- **Complex nested configuration** — most notably a monitor's `monitor_steps` — is passed as a JSON string, normally written with `jsonencode()`. There are no nested HCL blocks. See [Monitor Steps](/docs/terraform/monitor-steps).
-- **Date/time attributes** are RFC3339 strings (for example `2026-08-01T02:00:00Z`). The provider treats semantically equal timestamps as equal, so server-side normalization does not cause drift.
+La pagina scrive la configurazione della risorsa dalle sue impostazioni attuali, con un blocco `import`. Un commento dopo ogni ID nomina il record a cui punta (`incident_severity_id = "..." # Critical Incident`).
 
-## Versioning
+### Pianificare e applicare
 
-Provider versions track OneUptime platform versions.
+Esegui `terraform plan`: il piano mostra la risorsa che viene importata e niente da modificare. Applicalo, e da quel momento Terraform gestisce la risorsa.
+:::
 
-- **OneUptime Cloud**: use `version = "~> 11.0"`.
-- **Self-hosted**: use the newest published provider version that is **less than or equal to** your OneUptime platform version. Do not pin an exact patch version — not every platform patch release is published to the registry. See [Self-Hosted Setup](/docs/terraform/self-hosted).
+Sotto la configurazione, **Per andare oltre** propone ciò che spesso si aggiunge accanto alla risorsa, riferendosi a essa con il suo indirizzo: un team proprietario per un incidente, un gruppo di monitor per una pagina di stato, una regola di escalation per una politica di reperibilità.
 
-## Support
+Le pagine di elenco (per esempio **Incidenti** o **Monitor**) hanno la stessa sezione. Lì la pagina **Terraform** scrive una nuova risorsa con i campi che la maggior parte delle persone compila, usando i record del tuo progetto: un incidente con una delle tue gravità, un monitor con i criteri che un nuovo monitor riceve nella dashboard, collegato ai tuoi stati. Offre **Configurazioni comuni** già pronte (una pagina di stato con un gruppo e un monitor, una politica di reperibilità che avvisa un team, una rotazione di reperibilità settimanale) e un blocco `import` per ogni risorsa che hai già (le prime 100), pronto per `terraform plan -generate-config-out`. Entrambe le pagine danno anche il blocco del provider per la tua istanza OneUptime: la `oneuptime_url` giusta e un vincolo di versione adatto alla tua istanza.
 
-- Bugs and feature requests: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues)
-- The provider source is generated from the OneUptime OpenAPI specification in the [main OneUptime repository](https://github.com/OneUptime/oneuptime); the published provider repository is read-only.
+I segreti non vengono mai mostrati su queste pagine. Quando la configurazione ne ha bisogno (per esempio l'intestazione `Authorization` di un monitor), lo legge da una variabile Terraform marcata `sensitive`. I segreti che non le servono restano fuori, e Terraform li lascia come sono in OneUptime.
+
+La stessa sezione ha una pagina **API**, con comandi `curl` per la risorsa, e una pagina **Assistenti IA**, che collega Claude, GitHub Copilot o Cursor al [server MCP](/docs/ai/mcp-server).
+
+## Cosa puoi gestire
+
+Il provider ha una risorsa per ogni tipo di record che puoi creare tramite l'API di OneUptime, chiamata `oneuptime_<name>`. Queste sono quelle con cui inizia la maggior parte delle configurazioni:
+
+| Risorsa | Che cos'è |
+| --- | --- |
+| `oneuptime_monitor` | Un monitor: sito web, API, ping, porta, certificato SSL, server, richiesta in arrivo, manuale e ogni altro tipo |
+| `oneuptime_monitor_status` | Uno stato del monitor, come Operational, Degraded o Offline |
+| `oneuptime_monitor_group` | Un gruppo di monitor, mostrato con un solo stato |
+| `oneuptime_status_page` | Una pagina di stato pubblica o privata |
+| `oneuptime_status_page_domain` | Un dominio personalizzato di una pagina di stato |
+| `oneuptime_domain` | Un dominio del tuo progetto, verificato per le pagine di stato |
+| `oneuptime_label` | Un'etichetta, per ordinare e filtrare i record |
+| `oneuptime_team`, `oneuptime_team_member` | Un team, e chi ne fa parte |
+| `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | Una politica di reperibilità, e le regole che avvisa in ordine |
+| `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | Gli incidenti, le loro gravità e i loro stati |
+| `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | Gli avvisi, le loro gravità e i loro stati |
+| `oneuptime_scheduled_maintenance_event` | Una finestra di manutenzione programmata |
+| `oneuptime_probe` | Una sonda tua, che controlla dalla tua rete |
+
+Il [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) elenca ogni risorsa con ciascuno dei suoi attributi.
+
+### Leggere ciò che esiste già
+
+Ogni risorsa ha una sorgente dati con lo stesso nome, come `data "oneuptime_label"`. Una sorgente dati legge un record che questa configurazione non gestisce, per esempio uno creato nella dashboard. Cercalo con il suo `id`, oppure con i suoi altri argomenti semplici: ognuno che imposti deve corrispondere, ed esattamente un record può corrispondere a tutti.
+
+```hcl
+data "oneuptime_monitor_status" "offline" {
+  name = "Offline"
+}
+
+# Any plain argument works. Set several, and all of them must match.
+data "oneuptime_monitor_status" "offline_state" {
+  is_offline_state = true
+}
+```
+
+Nessuna corrispondenza, o più di una, è un errore e non una risposta vuota o arbitraria. La [Guida completa](/docs/terraform/complete-guide#leggere-ciò-che-esiste-già) riporta le regole.
+
+### Risorse rinominate
+
+I nomi delle risorse tengono interi parole come IoT e vCenter: `oneuptime_iot_fleet` e `oneuptime_vcenter`, dove i provider più vecchi avevano `oneuptime_io_t_fleet` e `oneuptime_v_center` (e lo stesso per le loro regole delle etichette, i proprietari e i feed). I vecchi nomi funzionano ancora come alias deprecati, e un piano che ne usa uno lo segnala. Per cambiare, rinomina la risorsa nella tua configurazione e aggiungi un blocco `moved`: Terraform mantiene la risorsa esistente invece di sostituirla:
+
+```hcl
+# Was: resource "oneuptime_io_t_fleet" "factory"
+resource "oneuptime_iot_fleet" "factory" {
+  name = "Factory floor"
+}
+
+moved {
+  from = oneuptime_io_t_fleet.factory
+  to   = oneuptime_iot_fleet.factory
+}
+```
+
+Spostare una risorsa su un altro tipo richiede Terraform 1.8 o successivo. Con un motore più vecchio, tieni per ora il vecchio nome: continua a funzionare.
+
+## Come si scrivono gli attributi
+
+Gli attributi seguono l'API di OneUptime, in snake_case:
+
+| Tipo di valore | Come si scrive | Esempio |
+| --- | --- | --- |
+| Testo, numeri, vero o falso | Così come sono | `is_public_status_page = false` |
+| Un riferimento a un altro record | Il suo ID, di solito l'`id` di un'altra risorsa | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
+| Un elenco di riferimenti | Un insieme di ID, il cui ordine non cambia nulla | `labels = [oneuptime_label.critical.id]` |
+| Un colore, un dominio e altri valori incapsulati | Il loro valore semplice | `color = "#FF5733"` |
+| Una data e un'ora | Testo nel formato RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
+| I controlli di un monitor | Attributi annidati tipizzati: vedi [Passaggi del monitor](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |
+| Altre impostazioni strutturate | JSON, scritto con `jsonencode()` | `log_monitor = jsonencode({ ... })` |
+
+Due tipi di valori appartengono al server, e li lasci fuori:
+
+- **Gli ID dentro una risorsa.** I passaggi e i criteri di un monitor, e i loro modelli di incidente e di avviso, hanno ID che il server assegna e conserva a ogni apply, così gli incidenti continuano a puntare ai criteri che li hanno generati.
+- **Ciò che il server tiene aggiornato.** Lo stato attuale di un monitor, o quando ha ricevuto l'ultimo heartbeat, può cambiare tra `terraform plan` e la fine di `terraform apply`. Il provider mantiene il valore pianificato per tutto ciò che non hai impostato, e il refresh successivo legge quello del server, così questo non fa mai fallire un apply né compare come modifica.
+
+## Ottenere aiuto
+
+- Bug e richieste di funzionalità: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+- Il provider è generato dalla specifica OpenAPI di OneUptime nel [repository principale di OneUptime](https://github.com/OneUptime/oneuptime). Il repository pubblicato del provider è in sola lettura, quindi segnala i problemi nel repository principale.
+
+## Prossimi passi
+
+:::cards
+- [Avvio rapido](/docs/terraform/quick-start): Creare una chiave API e applicare le prime risorse in dieci minuti.
+- [Guida completa](/docs/terraform/complete-guide): Autenticazione, struttura del progetto, sorgenti dati, stato e aggiornamenti.
+- [Passaggi del monitor](/docs/terraform/monitor-steps): Decidere cosa controlla un monitor e cosa significa ogni risultato.
+- [Esempi](/docs/terraform/examples): Configurazioni pronte all'uso per le risorse più comuni.
+- [Importare risorse](/docs/terraform/importing-resources): Portare sotto Terraform ciò che hai creato nella dashboard.
+:::

@@ -24,6 +24,9 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -52,9 +55,11 @@ export interface SiteHeroTileTitleProps {
 export const SiteHeroTileTitle: FunctionComponent<SiteHeroTileTitleProps> = (
   props: SiteHeroTileTitleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
-      <span>{props.title}</span>
+      <span>{translator.translateText(props.title)}</span>
       <InfoTooltip label={props.title} text={props.description} />
     </div>
   );
@@ -77,6 +82,8 @@ const DAILY_UPTIME_WINDOW_DAYS: number = 1;
 const SiteStatusHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   interface HeroData {
     site: NetworkSite | null;
     devicesTotal: number;
@@ -123,6 +130,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
               color: true,
             },
             lastRollupAt: true,
+            // The type's name: the relation, and the old column as its fallback.
+            networkSiteType: {
+              name: true,
+            },
             siteType: true,
           },
         }),
@@ -329,7 +340,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
                 size={PillSize.Normal}
               />
             ) : (
-              <span className="text-sm text-gray-400">No data yet</span>
+              <span className="text-sm text-gray-400">
+                {translator.translateText("No data yet")}
+              </span>
             )}
             {/*
              * The chip above still reads whatever the rollup says, planned
@@ -341,9 +354,11 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             {data.isUnderMaintenance && (
               <span
                 className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
-                title="A scheduled maintenance window covers this site right now. Its downtime is excluded from the uptime percentages."
+                title={translator.translateText(
+                  "A scheduled maintenance window covers this site right now. Its downtime is excluded from the uptime percentages.",
+                )}
               >
-                In maintenance
+                {translator.translateText("In maintenance")}
               </span>
             )}
           </div>
@@ -352,14 +367,18 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
               className="mt-1.5 text-xs text-gray-500"
               title={OneUptimeDate.getDateAsLocalFormattedString(lastRollupAt)}
             >
-              Rolled up {OneUptimeDate.fromNow(lastRollupAt)}
+              {translator.translateTemplate("Rolled up {{time}}", {
+                time: OneUptimeDate.fromNow(lastRollupAt),
+              })}
             </div>
           )}
         </div>
 
         <div>
           <SiteHeroTileTitle
-            title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}
+            title={translator.translateTemplate("Uptime ({{hours}}h)", {
+              hours: DAILY_UPTIME_WINDOW_DAYS * 24,
+            })}
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.uptime24h}
           />
           <div
@@ -368,19 +387,23 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           >
             {formatUptimePercent(data.dailyUptimePercent)}
           </div>
-          <div className="mt-1.5 text-xs text-gray-500">Last 24 hours</div>
+          <div className="mt-1.5 text-xs text-gray-500">
+            {translator.translateText("Last 24 hours")}
+          </div>
         </div>
 
         <div>
           <SiteHeroTileTitle
-            title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}
+            title={translator.translateTemplate("Uptime ({{days}}d)", {
+              days: UPTIME_WINDOW_DAYS,
+            })}
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.uptime30d}
           />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {formatUptimePercent(data.uptimePercent)}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
-            Maintenance excluded
+            {translator.translateText("Maintenance excluded")}
           </div>
         </div>
 
@@ -395,7 +418,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           {data.devicesTotal > 0 && (
             <div className="mt-1.5 text-xs">
               <span className="font-medium text-emerald-600">
-                {data.devicesUp} up
+                {translator.translateTemplate("{{count}} up", {
+                  count: translator.formatNumber(data.devicesUp),
+                })}
               </span>
               <span className="text-gray-400"> · </span>
               <span
@@ -405,7 +430,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
                     : "text-gray-500"
                 }
               >
-                {data.devicesDown} down
+                {translator.translateTemplate("{{count}} down", {
+                  count: translator.formatNumber(data.devicesDown),
+                })}
               </span>
             </div>
           )}
@@ -434,7 +461,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         <div>
           <SiteHeroTileTitle title="Site Type" />
           <div className="mt-1.5 text-sm text-gray-900">
-            {data.site?.siteType?.toString() || (
+            {data.site ? (
+              getNetworkSiteTypeName(data.site)
+            ) : (
               <span className="text-gray-400">—</span>
             )}
           </div>

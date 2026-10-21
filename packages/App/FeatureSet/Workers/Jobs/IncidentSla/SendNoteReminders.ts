@@ -10,7 +10,9 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import OneUptimeDate from "Common/Types/Date";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 /**
  * This job sends automatic internal and public note reminders for incidents
  * based on the SLA rule configuration.
@@ -150,6 +152,7 @@ async function processPublicNoteReminders(): Promise<void> {
             _id: true,
             title: true,
             incidentNumber: true,
+            isPrivate: true,
           },
           props: {
             isRoot: true,
@@ -157,6 +160,23 @@ async function processPublicNoteReminders(): Promise<void> {
         });
 
         if (!incident) {
+          continue;
+        }
+
+        /*
+         * A private incident takes no public notes
+         * (PrivateRecordPublicNotes): its customer update is not posted,
+         * and the server would refuse it. Nothing is recorded as sent, so
+         * an incident made public again gets its update on the next run.
+         */
+        if (!PrivateRecordPublicNotes.takesPublicNotes(incident)) {
+          logger.debug(
+            `Skipped the public note reminder for incident ${sla.incidentId} (SLA ${sla.id}): the incident is private.`,
+            {
+              projectId: sla.projectId?.toString(),
+              incidentId: sla.incidentId?.toString(),
+            },
+          );
           continue;
         }
 
@@ -255,7 +275,20 @@ function processTemplate(
   // Replace template variables
   let result: string = template;
 
-  result = result.replace(/\{\{incidentTitle\}\}/g, incident.title || "");
+  /*
+   * The note is Markdown, posted without anyone reading it first - a public
+   * one to the status page too - and the title is plain text, which anyone
+   * holding an incident form's link may have typed. Escaped as MarkdownEscape
+   * says a title must be (as the note composer's own {{incidentTitle}} is),
+   * so it cannot become an image, raw HTML or a link that hides where it
+   * goes; and put in by a function, so a "$&" in it is not read as a
+   * replacement pattern.
+   */
+  const incidentTitle: string = FeedMarkdown.templateText(incident.title || "");
+
+  result = result.replace(/\{\{incidentTitle\}\}/g, (): string => {
+    return incidentTitle;
+  });
   result = result.replace(
     /\{\{incidentNumber\}\}/g,
     incident.incidentNumberWithPrefix ||

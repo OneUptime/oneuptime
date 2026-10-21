@@ -325,9 +325,14 @@ function projectPath(page: PageMap): string {
 
 const layoutCases: Array<LayoutCase> = [
   {
+    /*
+     * From one of Home's lists to another: the overview draws every list
+     * itself and has no side menu to keep.
+     */
     family: "home",
     parentRoute: "/dashboard/:projectId/home",
-    initialPath: `/dashboard/${project._id}/home`,
+    initialLeaf: "active-incidents",
+    initialPath: `/dashboard/${project._id}/home/active-incidents`,
     targetLeaf: "active-alerts",
     targetPath: `/dashboard/${project._id}/home/active-alerts`,
     renderLayout: (): ReactElement => {

@@ -68,8 +68,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 /*
  * The real Icon draws an SVG that says nothing about which icon it is. This
- * one names the icon, so the checklist's icons and the trigger's glyph can be
- * read back off the page. Everything else the module exports (SizeProp,
+ * one names the icon, so the checklist's icons and the ⋯ button's glyph can
+ * be read back off the page. Everything else the module exports (SizeProp,
  * ThickProp, IconType) stays real - components across the feed read those at
  * render time.
  */
@@ -88,10 +88,16 @@ jest.mock("../../../UI/Components/Icon/Icon", () => {
 });
 
 import ResourceFeed, {
-  GetResourceFeedIconFunction,
+  GetResourceFeedKindFunction,
   getIconForEventType,
+  getKindForEventType,
   resolveResourceFeedIcon,
+  resolveResourceFeedKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceFeed/ResourceFeed";
+import {
+  FeedTone,
+  SHARED_FEED_ENTRY_KINDS,
+} from "../../../UI/Components/Feed/FeedEntryKind";
 import KubernetesClusterFeed, {
   KubernetesClusterFeedEventType,
 } from "../../../Models/DatabaseModels/KubernetesClusterFeed";
@@ -100,13 +106,10 @@ import ObjectID from "../../../Types/ObjectID";
 import { Green500 } from "../../../Types/BrandColors";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import {
-  DEFAULT_FEED_OPTIONS,
   FEED_OPTIONS_TEXT,
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
-  FeedOptions,
-  getFeedOptionsSummary,
 } from "../../../UI/Components/Feed/FeedOptions";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
@@ -120,6 +123,12 @@ import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptio
  */
 
 const CLUSTER_ID: ObjectID = ObjectID.generate();
+
+// What the feed's More button says in its default order, newest first.
+const MORE: string = "Show older events";
+
+// One page more than fits: the page, and two older entries behind More.
+const PAGE_AND_TWO: number = FEED_PAGE_SIZE + 2;
 
 const ALL_EVENT_TYPES: Array<string> = Object.values(
   KubernetesClusterFeedEventType,
@@ -197,65 +206,121 @@ const waitForFeed: WaitForFeed = async (
 ): Promise<void> => {
   await waitFor(() => {
     expect(mockGetListCalls).toHaveLength(requestCount);
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("feed-skeleton")).not.toBeInTheDocument();
   });
 };
 
-type GetFilterAndSortButton = () => HTMLElement;
+type GetMoreButton = () => HTMLElement;
 
 /*
- * Found the way a screen reader finds it: by its label. What the feed is
- * showing is the button's description, not part of its name, so the name
- * stays "Filter & Sort" whatever is chosen - and the count badge, which is
- * aria-hidden, never joins it either.
+ * The ⋯ More button of the feed's header - the card-header button a table
+ * has - found the way a screen reader finds it, by its name.
  */
-const getFilterAndSortButton: GetFilterAndSortButton = (): HTMLElement => {
-  return screen.getByRole("button", { name: "Filter & Sort" });
+const getMoreButton: GetMoreButton = (): HTMLElement => {
+  return within(screen.getByTestId("feed-more-menu")).getByRole("button", {
+    name: "More options",
+  });
 };
 
-type OpenFilterAndSort = () => HTMLElement;
+type PickFromMoreMenu = (name: string, role?: string) => void;
 
-// Presses Filter & Sort and returns the panel it opens.
-const openFilterAndSort: OpenFilterAndSort = (): HTMLElement => {
-  fireEvent.click(getFilterAndSortButton());
-
-  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel });
+// Opens the ⋯ menu and picks one of its items.
+const pickFromMoreMenu: PickFromMoreMenu = (
+  name: string,
+  role: string = "menuitem",
+): void => {
+  fireEvent.click(getMoreButton());
+  fireEvent.click(within(screen.getByRole("menu")).getByRole(role, { name }));
 };
 
-type CloseFilterAndSort = () => void;
+type ChooseSortOrder = (label: "Newest first" | "Oldest first") => void;
 
-// A press anywhere outside the panel - on the way to another page, say.
-const closeFilterAndSort: CloseFilterAndSort = (): void => {
-  fireEvent.mouseDown(document.body);
+const chooseSortOrder: ChooseSortOrder = (
+  label: "Newest first" | "Oldest first",
+): void => {
+  pickFromMoreMenu(label, "menuitemradio");
+};
+
+type GetCheckedSortOrder = () => string;
+
+// The order the ⋯ menu ticks, as a screen reader hears it; the menu is closed again after.
+const getCheckedSortOrder: GetCheckedSortOrder = (): string => {
+  fireEvent.click(getMoreButton());
+
+  const checked: Array<string> = within(screen.getByRole("menu"))
+    .getAllByRole("menuitemradio")
+    .filter((radio: HTMLElement): boolean => {
+      return radio.getAttribute("aria-checked") === "true";
+    })
+    .map((radio: HTMLElement): string => {
+      return (radio.textContent || "").trim();
+    });
+
+  fireEvent.click(getMoreButton());
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(checked).toHaveLength(1);
+
+  return checked[0]!;
+};
+
+type OpenFilterDialog = () => HTMLElement;
+
+// The ⋯ menu's "Filter by event type", and the dialog it opens.
+const openFilterDialog: OpenFilterDialog = (): HTMLElement => {
+  pickFromMoreMenu(FEED_OPTIONS_TEXT.filter);
+
+  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter });
+};
+
+type CancelFilterDialog = () => void;
+
+const cancelFilterDialog: CancelFilterDialog = (): void => {
+  fireEvent.click(
+    within(
+      screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter }),
+    ).getByRole("button", { name: "Cancel" }),
+  );
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 };
 
-type GetExpectedSummary = (options: FeedOptions) => string;
+type ApplyEventTypes = (eventTypes: Array<string>) => void;
 
-/*
- * The sentence the trigger is described by, for this feed's event types.
- * Built by the same function the button uses, so the wording can change
- * without this suite noticing - what is pinned is that the description
- * follows the feed's live order and filter, counted over this feed's own
- * event types.
- */
-const getExpectedSummary: GetExpectedSummary = (
-  options: FeedOptions,
-): string => {
-  return getFeedOptionsSummary({
-    options: options,
-    eventTypeCount: ALL_EVENT_TYPES.length,
-  });
+// Ticks these in the filter dialog and applies them together.
+const applyEventTypes: ApplyEventTypes = (eventTypes: Array<string>): void => {
+  const dialog: HTMLElement = openFilterDialog();
+
+  for (const eventType of eventTypes) {
+    fireEvent.click(
+      within(dialog).getByTestId(`feed-options-event-type-${eventType}`),
+    );
+  }
+
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Apply Filters" }),
+  );
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 };
 
-type GetTriggerIcon = () => string | null;
+type GetFilterBoxTitle = () => string | null;
 
-// The glyph in front of the trigger's label: a funnel, or the sort arrows.
-const getTriggerIcon: GetTriggerIcon = (): string | null => {
+/*
+ * The title of the box over a filtered feed, counted over this feed's own
+ * event types, or null while it shows them all and has no box.
+ */
+const getFilterBoxTitle: GetFilterBoxTitle = (): string | null => {
+  const box: HTMLElement | null = screen.queryByTestId("feed-filter-summary");
+
+  return box
+    ? within(box).getByText(/^Showing \d+ of \d+ event types$/).textContent
+    : null;
+};
+
+type GetMoreButtonIcon = () => string | null;
+
+const getMoreButtonIcon: GetMoreButtonIcon = (): string | null => {
   return (
-    getFilterAndSortButton()
-      .querySelector("[data-icon]")
-      ?.getAttribute("data-icon") || null
+    getMoreButton().querySelector("[data-icon]")?.getAttribute("data-icon") ||
+    null
   );
 };
 
@@ -317,7 +382,7 @@ describe("ResourceFeed", () => {
     expect(request.select.feedInfoInMarkdown).toBe(true);
     expect(request.select.postedAt).toBe(true);
     expect(request.skip).toBe(0);
-    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.limit).toBe(FEED_PAGE_SIZE);
     expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
   });
 
@@ -362,7 +427,7 @@ describe("ResourceFeed", () => {
 
   test("shows the newest page first and reveals older activity through More", async () => {
     const items: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
@@ -385,17 +450,17 @@ describe("ResourceFeed", () => {
     renderFeed();
 
     await waitFor(() => {
-      expect(screen.getByText("activity-12")).toBeInTheDocument();
+      expect(screen.getByText(`activity-${PAGE_AND_TWO}`)).toBeInTheDocument();
     });
 
     const visibleActivity: Array<HTMLElement> =
       screen.getAllByText(/activity-\d+/);
-    expect(visibleActivity).toHaveLength(10);
-    expect(visibleActivity[0]).toHaveTextContent("activity-12");
-    expect(visibleActivity[9]).toHaveTextContent("activity-3");
+    expect(visibleActivity).toHaveLength(FEED_PAGE_SIZE);
+    expect(visibleActivity[0]).toHaveTextContent(`activity-${PAGE_AND_TWO}`);
+    expect(visibleActivity[FEED_PAGE_SIZE - 1]).toHaveTextContent("activity-3");
     expect(screen.queryByText("activity-2")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
 
     await waitFor(() => {
       expect(screen.getByText("activity-2")).toBeInTheDocument();
@@ -408,18 +473,19 @@ describe("ResourceFeed", () => {
      */
     expect(mockGetListCalls).toHaveLength(2);
     expect(mockGetListCalls[1]?.["skip"]).toBe(0);
-    expect(mockGetListCalls[1]?.["limit"]).toBe(DEFAULT_LIMIT * 2);
-    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+    expect(mockGetListCalls[1]?.["limit"]).toBe(FEED_PAGE_SIZE * 2);
+    expect(screen.queryByRole("button", { name: MORE })).toBeNull();
   });
 
-  test("expands ten at a time and preserves the expanded window on refresh", async () => {
+  test("expands a page at a time and preserves the expanded window on refresh", async () => {
+    const total: number = FEED_PAGE_SIZE * 2 + 5;
     const newestFirst: Array<KubernetesClusterFeed> = Array.from(
-      { length: 25 },
+      { length: total },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
-          `entry-${25 - index}`,
-          new Date(Date.UTC(2024, 0, 25 - index)),
+          `entry-${total - index}`,
+          new Date(Date.UTC(2024, 0, 1) + (total - index) * 60 * 60 * 1000),
         );
       },
     );
@@ -433,44 +499,44 @@ describe("ResourceFeed", () => {
 
     renderFeed();
     await waitFor(() => {
-      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(DEFAULT_LIMIT);
+      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(FEED_PAGE_SIZE);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(DEFAULT_LIMIT * 2);
+      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(FEED_PAGE_SIZE * 2);
     });
-    expect(mockGetListCalls[1]?.["limit"]).toBe(DEFAULT_LIMIT * 2);
+    expect(mockGetListCalls[1]?.["limit"]).toBe(FEED_PAGE_SIZE * 2);
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(25);
+      expect(screen.getAllByText(/entry-\d+/)).toHaveLength(total);
     });
-    expect(mockGetListCalls[2]?.["limit"]).toBe(DEFAULT_LIMIT * 3);
-    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+    expect(mockGetListCalls[2]?.["limit"]).toBe(FEED_PAGE_SIZE * 3);
+    expect(screen.queryByRole("button", { name: MORE })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    pickFromMoreMenu("Refresh");
     await waitFor(() => {
       expect(mockGetListCalls).toHaveLength(4);
     });
-    expect(mockGetListCalls[3]?.["limit"]).toBe(DEFAULT_LIMIT * 3);
+    expect(mockGetListCalls[3]?.["limit"]).toBe(FEED_PAGE_SIZE * 3);
   });
 
   test("replaces the newest window when activity arrives between More clicks", async () => {
     const initialItems: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
-          `live-entry-${12 - index}`,
-          new Date(Date.UTC(2024, 0, 12 - index)),
+          `live-entry-${PAGE_AND_TWO - index}`,
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
     const newItem: KubernetesClusterFeed = feedItem(
       KubernetesClusterFeedEventType.KubernetesClusterUpdated,
-      "live-entry-13",
-      new Date(Date.UTC(2024, 0, 13)),
+      `live-entry-${PAGE_AND_TWO + 1}`,
+      new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO + 1) * 3600000),
     );
     let requestNumber: number = 0;
 
@@ -487,12 +553,12 @@ describe("ResourceFeed", () => {
 
     renderFeed();
     await waitFor(() => {
-      expect(screen.getAllByText(/live-entry-/)).toHaveLength(DEFAULT_LIMIT);
+      expect(screen.getAllByText(/live-entry-/)).toHaveLength(FEED_PAGE_SIZE);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/live-entry-/)).toHaveLength(13);
+      expect(screen.getAllByText(/live-entry-/)).toHaveLength(PAGE_AND_TWO + 1);
     });
 
     const labels: Array<string> = screen
@@ -500,19 +566,19 @@ describe("ResourceFeed", () => {
       .map((element: HTMLElement): string => {
         return element.textContent || "";
       });
-    expect(labels[0]).toBe("live-entry-13");
-    expect(new Set(labels).size).toBe(13);
+    expect(labels[0]).toBe(`live-entry-${PAGE_AND_TWO + 1}`);
+    expect(new Set(labels).size).toBe(PAGE_AND_TWO + 1);
   });
 
   test("resets the expanded window when navigating to another resource", async () => {
     const nextClusterId: ObjectID = ObjectID.generate();
     const items: Array<KubernetesClusterFeed> = Array.from(
-      { length: 15 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
           `resource-entry-${index}`,
-          new Date(Date.UTC(2024, 0, 15 - index)),
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
@@ -527,12 +593,12 @@ describe("ResourceFeed", () => {
     const view: ReturnType<typeof render> = renderFeed();
     await waitFor(() => {
       expect(screen.getAllByText(/resource-entry-/)).toHaveLength(
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
     });
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/resource-entry-/)).toHaveLength(15);
+      expect(screen.getAllByText(/resource-entry-/)).toHaveLength(PAGE_AND_TWO);
     });
 
     view.rerender(getFeedElement(nextClusterId));
@@ -543,7 +609,7 @@ describe("ResourceFeed", () => {
     });
 
     const navigationRequest: GetListRequest = mockGetListCalls[2]!;
-    expect(navigationRequest["limit"]).toBe(DEFAULT_LIMIT);
+    expect(navigationRequest["limit"]).toBe(FEED_PAGE_SIZE);
     expect(
       (navigationRequest["query"] as Record<string, unknown>)[
         "kubernetesClusterId"
@@ -554,12 +620,12 @@ describe("ResourceFeed", () => {
   test("ignores an in-flight More response after navigating to another resource", async () => {
     const nextClusterId: ObjectID = ObjectID.generate();
     const oldItems: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
-          `old-resource-${12 - index}`,
-          new Date(Date.UTC(2024, 0, 12 - index)),
+          `old-resource-${PAGE_AND_TWO - index}`,
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
@@ -581,22 +647,22 @@ describe("ResourceFeed", () => {
         return nextResourceRequest.promise;
       }
 
-      if ((request["limit"] as number) > DEFAULT_LIMIT) {
+      if ((request["limit"] as number) > FEED_PAGE_SIZE) {
         return loadMoreRequest.promise;
       }
 
       return Promise.resolve({
-        data: oldItems.slice(0, DEFAULT_LIMIT),
+        data: oldItems.slice(0, FEED_PAGE_SIZE),
         count: oldItems.length,
       });
     };
 
     const view: ReturnType<typeof render> = renderFeed();
     await waitFor(() => {
-      expect(screen.getAllByText(/old-resource-/)).toHaveLength(DEFAULT_LIMIT);
+      expect(screen.getAllByText(/old-resource-/)).toHaveLength(FEED_PAGE_SIZE);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
       expect(mockGetListCalls).toHaveLength(2);
     });
@@ -625,19 +691,19 @@ describe("ResourceFeed", () => {
 
   test("keeps the current entries and allows a retry when More fails", async () => {
     const items: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
           `retry-entry-${index}`,
-          new Date(Date.UTC(2024, 0, 12 - index)),
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
     let shouldFailMore: boolean = true;
 
     mockGetListResponse = (request: GetListRequest): Promise<unknown> => {
-      if ((request["limit"] as number) > DEFAULT_LIMIT && shouldFailMore) {
+      if ((request["limit"] as number) > FEED_PAGE_SIZE && shouldFailMore) {
         return Promise.reject(new Error("older activity unavailable"));
       }
 
@@ -649,20 +715,20 @@ describe("ResourceFeed", () => {
 
     renderFeed();
     await waitFor(() => {
-      expect(screen.getAllByText(/retry-entry-/)).toHaveLength(DEFAULT_LIMIT);
+      expect(screen.getAllByText(/retry-entry-/)).toHaveLength(FEED_PAGE_SIZE);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
       expect(screen.getByText(/older activity unavailable/)).toBeVisible();
     });
-    expect(screen.getAllByText(/retry-entry-/)).toHaveLength(DEFAULT_LIMIT);
-    expect(screen.getByRole("button", { name: "More" })).toBeEnabled();
+    expect(screen.getAllByText(/retry-entry-/)).toHaveLength(FEED_PAGE_SIZE);
+    expect(screen.getByRole("button", { name: MORE })).toBeEnabled();
 
     shouldFailMore = false;
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/retry-entry-/)).toHaveLength(12);
+      expect(screen.getAllByText(/retry-entry-/)).toHaveLength(PAGE_AND_TWO);
     });
     expect(screen.queryByText(/older activity unavailable/)).toBeNull();
   });
@@ -670,12 +736,12 @@ describe("ResourceFeed", () => {
   test("does not carry a failed More error to another resource", async () => {
     const nextClusterId: ObjectID = ObjectID.generate();
     const items: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
           `stale-error-entry-${index}`,
-          new Date(Date.UTC(2024, 0, 12 - index)),
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
@@ -691,12 +757,12 @@ describe("ResourceFeed", () => {
         return Promise.resolve({ data: [], count: 0 });
       }
 
-      if ((request["limit"] as number) > DEFAULT_LIMIT) {
+      if ((request["limit"] as number) > FEED_PAGE_SIZE) {
         return Promise.reject(new Error("old resource More failed"));
       }
 
       return Promise.resolve({
-        data: items.slice(0, DEFAULT_LIMIT),
+        data: items.slice(0, FEED_PAGE_SIZE),
         count: items.length,
       });
     };
@@ -704,11 +770,11 @@ describe("ResourceFeed", () => {
     const view: ReturnType<typeof render> = renderFeed();
     await waitFor(() => {
       expect(screen.getAllByText(/stale-error-entry-/)).toHaveLength(
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     expect(await screen.findByText("old resource More failed")).toBeVisible();
 
     view.rerender(getFeedElement(nextClusterId));
@@ -761,6 +827,7 @@ describe("getIconForEventType", () => {
       "DockerHost",
       "DockerSwarmCluster",
       "CephCluster",
+      "StorageArray",
       "PodmanHost",
       "ProxmoxCluster",
       "VMwareVCenter",
@@ -769,22 +836,41 @@ describe("getIconForEventType", () => {
       "Service",
     ]) {
       expect(getIconForEventType(`${model}Created`)).toBe(IconProp.Add);
-      expect(getIconForEventType(`${model}Updated`)).toBe(IconProp.Edit);
+      expect(getIconForEventType(`${model}Updated`)).toBe(
+        IconProp.PencilSquare,
+      );
       expect(getIconForEventType(`${model}Archived`)).toBe(IconProp.Archive);
-      expect(getIconForEventType(`${model}Restored`)).toBe(IconProp.Refresh);
+      expect(getIconForEventType(`${model}Restored`)).toBe(IconProp.Unarchive);
     }
   });
 
   test("distinguishes owners being added from owners being removed", () => {
-    expect(getIconForEventType("OwnerUserAdded")).toBe(IconProp.User);
-    expect(getIconForEventType("OwnerTeamAdded")).toBe(IconProp.Team);
-    expect(getIconForEventType("OwnerUserRemoved")).toBe(IconProp.Close);
-    expect(getIconForEventType("OwnerTeamRemoved")).toBe(IconProp.Close);
+    expect(getIconForEventType("OwnerUserAdded")).toBe(IconProp.UserPlus);
+    expect(getIconForEventType("OwnerTeamAdded")).toBe(IconProp.UserGroup);
+    expect(getIconForEventType("OwnerUserRemoved")).toBe(IconProp.UserMinus);
+    expect(getIconForEventType("OwnerTeamRemoved")).toBe(IconProp.UserMinus);
   });
 
-  test("marks rule-driven events apart from hand-made ones", () => {
-    expect(getIconForEventType("OwnerRuleExecuted")).toBe(IconProp.Team);
-    expect(getIconForEventType("LabelRuleExecuted")).toBe(IconProp.Label);
+  test("marks rule-driven events apart from hand-made ones, and folds a burst of them", () => {
+    expect(getIconForEventType("OwnerRuleExecuted")).toBe(IconProp.UserGroup);
+    expect(getIconForEventType("LabelRuleExecuted")).toBe(IconProp.Tag);
+    expect(getKindForEventType("OwnerRuleExecuted").burst).toBeDefined();
+    expect(getKindForEventType("LabelRuleExecuted").burst).toBeDefined();
+    expect(getKindForEventType("OwnerUserAdded").burst).toBeUndefined();
+  });
+
+  test("every resource feed's owners and rules look the same as every other feed's", () => {
+    expect(getKindForEventType("OwnerUserAdded")).toBe(
+      SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+    );
+    expect(getKindForEventType("OwnerTeamRemoved")).toBe(
+      SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+    );
+    expect(getKindForEventType("LabelRuleExecuted")).toBe(
+      SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+    );
+    expect(getKindForEventType("HostRestored").tone).toBe(FeedTone.Success);
+    expect(getKindForEventType("HostCreated").tone).toBe(FeedTone.Info);
   });
 
   test("falls back rather than throwing on an event it has never seen", () => {
@@ -797,16 +883,14 @@ describe("getIconForEventType", () => {
 
 /*
  * A feed whose events the suffix rules cannot express - the SLO feed's
- * StatusChanged, BurnRateAlertRaised, MonitorsDetached - passes getIcon. The
+ * StatusChanged, BurnRateAlertRaised, MonitorsDetached - passes getKind. The
  * contract: the feed's own answer wins, "no answer" falls back to the shared
  * rules, and a feed that passes nothing renders exactly as before.
  */
 describe("resolveResourceFeedIcon", () => {
-  const getOwnIcon: GetResourceFeedIconFunction = (
-    eventType: string,
-  ): IconProp | undefined => {
+  const getOwnKind: GetResourceFeedKindFunction = (eventType: string) => {
     return eventType === "StatusChanged"
-      ? IconProp.ArrowCircleRight
+      ? SHARED_FEED_ENTRY_KINDS.StateChanged
       : undefined;
   };
 
@@ -814,30 +898,36 @@ describe("resolveResourceFeedIcon", () => {
     expect(
       resolveResourceFeedIcon({
         eventType: "StatusChanged",
-        getIcon: getOwnIcon,
+        getKind: getOwnKind,
       }),
     ).toBe(IconProp.ArrowCircleRight);
+    expect(
+      resolveResourceFeedKind({
+        eventType: "StatusChanged",
+        getKind: getOwnKind,
+      }),
+    ).toBe(SHARED_FEED_ENTRY_KINDS.StateChanged);
   });
 
   test("falls back to the shared rules when the feed has no answer", () => {
     expect(
       resolveResourceFeedIcon({
         eventType: "ServiceLevelObjectiveCreated",
-        getIcon: getOwnIcon,
+        getKind: getOwnKind,
       }),
     ).toBe(IconProp.Add);
     expect(
       resolveResourceFeedIcon({
         eventType: "OwnerTeamRemoved",
-        getIcon: getOwnIcon,
+        getKind: getOwnKind,
       }),
-    ).toBe(IconProp.Close);
+    ).toBe(IconProp.UserMinus);
     expect(
-      resolveResourceFeedIcon({ eventType: "Unknown", getIcon: getOwnIcon }),
+      resolveResourceFeedIcon({ eventType: "Unknown", getKind: getOwnKind }),
     ).toBe(IconProp.Circle);
   });
 
-  test("without getIcon it is exactly the shared rules", () => {
+  test("without getKind it is exactly the shared rules", () => {
     for (const eventType of [
       "KubernetesClusterCreated",
       "ServiceArchived",
@@ -854,12 +944,10 @@ describe("resolveResourceFeedIcon", () => {
 });
 
 describe("ResourceFeed - a feed's own icons", () => {
-  test("asks getIcon about every item it renders, by that item's event type", async () => {
+  test("asks getKind about every item it renders, by that item's event type", async () => {
     const askedEventTypes: Array<string> = [];
 
-    const getIcon: GetResourceFeedIconFunction = (
-      eventType: string,
-    ): IconProp | undefined => {
+    const getKind: GetResourceFeedKindFunction = (eventType: string) => {
       askedEventTypes.push(eventType);
       return undefined;
     };
@@ -887,7 +975,7 @@ describe("ResourceFeed - a feed's own icons", () => {
         title="Kubernetes Cluster Feed"
         description="Everything that has happened to this Kubernetes cluster."
         noItemsMessage={NO_ITEMS_MESSAGE}
-        getIcon={getIcon}
+        getKind={getKind}
       />,
     );
 
@@ -904,13 +992,13 @@ describe("ResourceFeed - a feed's own icons", () => {
     );
   });
 
-  test("gives the Filter & Sort checklist the same icons, one entry per event type", async () => {
+  test("gives the event type filter's checklist the same icons, one entry per event type", async () => {
     const askedEventTypes: Array<string> = [];
 
     /*
      * One event type gets an icon of the feed's own that the shared rules
      * would never pick for it, so its row can only show it if the checklist
-     * really goes through getIcon.
+     * really goes through getKind.
      */
     const ownIconEventType: string =
       KubernetesClusterFeedEventType.OwnerUserAdded;
@@ -918,11 +1006,11 @@ describe("ResourceFeed - a feed's own icons", () => {
 
     expect(getIconForEventType(ownIconEventType)).not.toBe(ownIcon);
 
-    const getIcon: GetResourceFeedIconFunction = (
-      eventType: string,
-    ): IconProp | undefined => {
+    const getKind: GetResourceFeedKindFunction = (eventType: string) => {
       askedEventTypes.push(eventType);
-      return eventType === ownIconEventType ? ownIcon : undefined;
+      return eventType === ownIconEventType
+        ? { icon: ownIcon, tone: FeedTone.Warning }
+        : undefined;
     };
 
     render(
@@ -935,7 +1023,7 @@ describe("ResourceFeed - a feed's own icons", () => {
         title="Kubernetes Cluster Feed"
         description="Everything that has happened to this Kubernetes cluster."
         noItemsMessage={NO_ITEMS_MESSAGE}
-        getIcon={getIcon}
+        getKind={getKind}
       />,
     );
 
@@ -948,7 +1036,7 @@ describe("ResourceFeed - a feed's own icons", () => {
       expect(askedEventTypes).toContain(eventType);
     }
 
-    const panel: HTMLElement = openFilterAndSort();
+    const panel: HTMLElement = openFilterDialog();
 
     /*
      * Exactly one box per event type of this feed's own enum: none missing,
@@ -993,12 +1081,13 @@ describe("ResourceFeed - a feed's own icons", () => {
 });
 
 /*
- * Filter & Sort is applied by the API, not to the rows already loaded, and
- * the event type filter is keyed by the same string column as the icon - so
- * a typo there would filter on a column that does not exist.
+ * The ⋯ menu's sort order and event type filter are applied by the API, not
+ * to the rows already loaded, and the event type filter is keyed by the same
+ * string column as the icon - so a typo there would filter on a column that
+ * does not exist.
  */
-describe("ResourceFeed - Filter & Sort", () => {
-  test("puts Filter & Sort first in the header, and an untouched feed sends exactly the query it always sent", async () => {
+describe("ResourceFeed - sort, filter and Refresh in the ⋯ menu", () => {
+  test("keeps sort, filter and Refresh behind one ⋯ More button, and an untouched feed sends exactly the query it always sent", async () => {
     renderFeed();
 
     await waitFor(() => {
@@ -1009,31 +1098,44 @@ describe("ResourceFeed - Filter & Sort", () => {
       Object.keys(mockGetListCalls[0]!["query"] as Record<string, unknown>),
     ).toEqual(["kubernetesClusterId"]);
 
-    const optionsButton: HTMLElement = getFilterAndSortButton();
-    const refreshButton: HTMLElement = screen.getByRole("button", {
-      name: "Refresh",
-    });
+    const card: HTMLElement = screen.getByTestId("card");
+    const more: HTMLElement = getMoreButton();
+
+    // The ⋯ is the header's only control: a resource feed has no Actions.
+    expect(Array.from(card.querySelectorAll('[aria-haspopup="menu"]'))).toEqual(
+      [more],
+    );
+    expect(within(card).queryByRole("button", { name: "Refresh" })).toBeNull();
+    expect(
+      within(card).queryByRole("button", { name: /Filter|Sort/ }),
+    ).toBeNull();
+    expect(more.textContent).toBe("");
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+
+    fireEvent.click(more);
 
     expect(
-      optionsButton.compareDocumentPosition(refreshButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      Array.from(
+        screen
+          .getByRole("menu")
+          .querySelectorAll('[role="menuitemradio"], [role="menuitem"]'),
+      ).map((item: Element): string => {
+        return (item.textContent || "").trim();
+      }),
+    ).toEqual([
+      "Newest first",
+      "Oldest first",
+      "Filter by event type",
+      "Refresh",
+    ]);
 
-    /*
-     * The state behind the button is read out as its description - and shown
-     * as its tooltip - so the reader need not open it to know what the feed
-     * is showing.
-     */
-    const summary: string = getExpectedSummary(DEFAULT_FEED_OPTIONS);
+    fireEvent.click(more);
 
-    expect(summary.length).toBeGreaterThan(0);
-    expect(optionsButton).toHaveAccessibleDescription(summary);
-    expect(optionsButton).toHaveAttribute("title", summary);
-
-    // An untouched feed: the funnel, no count, and nothing remembered.
-    expect(getTriggerIcon()).toBe(IconProp.Filter);
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
+    // An untouched feed: newest first, no filter box, and nothing remembered.
+    expect(getCheckedSortOrder()).toBe("Newest first");
+    expect(getFilterBoxTitle()).toBeNull();
     expect(getStoredSortOrderKeys()).toEqual([]);
+    expect(mockGetListCalls).toHaveLength(1);
   });
 
   test("filters on the feed's own event type column and says so when nothing matches", async () => {
@@ -1043,13 +1145,7 @@ describe("ResourceFeed - Filter & Sort", () => {
       expect(screen.getByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
     });
 
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(
-        `feed-options-event-type-${KubernetesClusterFeedEventType.OwnerUserAdded}`,
-      ),
-    );
+    applyEventTypes([KubernetesClusterFeedEventType.OwnerUserAdded]);
 
     await waitFor(() => {
       expect(mockGetListCalls).toHaveLength(2);
@@ -1068,7 +1164,7 @@ describe("ResourceFeed - Filter & Sort", () => {
       KubernetesClusterFeedEventType.OwnerUserAdded,
     ]);
     expect(request["skip"]).toBe(0);
-    expect(request["limit"]).toBe(DEFAULT_LIMIT);
+    expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
     /*
      * An empty filtered feed must not claim the cluster has no history at
@@ -1080,32 +1176,30 @@ describe("ResourceFeed - Filter & Sort", () => {
     expect(screen.queryByText(NO_ITEMS_MESSAGE)).not.toBeInTheDocument();
 
     /*
-     * The trigger keeps its name with a count on it, and its description now
-     * says the feed is narrowed - to one of this feed's event types.
+     * The box over the feed says it is narrowed - to one of this feed's own
+     * event types - and names that type.
      */
-    const optionsButton: HTMLElement = getFilterAndSortButton();
-
-    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
-    expect(optionsButton).toHaveAccessibleDescription(
-      getExpectedSummary({
-        sortOrder: SortOrder.Descending,
-        eventTypes: [KubernetesClusterFeedEventType.OwnerUserAdded],
-      }),
+    expect(getFilterBoxTitle()).toBe(
+      `Showing 1 of ${ALL_EVENT_TYPES.length} event types`,
     );
-    expect(optionsButton).not.toHaveAccessibleDescription(
-      getExpectedSummary(DEFAULT_FEED_OPTIONS),
-    );
+    expect(
+      screen.getByTestId(
+        `feed-filter-chip-${KubernetesClusterFeedEventType.OwnerUserAdded}`,
+      ),
+    ).toHaveTextContent("User Added as Owner");
+    // ...while the ⋯ itself does not change.
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
   });
 
   test("Oldest first re-reads the first window in ascending order, draws it exactly as the API returned it, and remembers it under this feed's key only", async () => {
-    // sort-entry-0 is the newest event, sort-entry-11 the oldest.
+    // sort-entry-0 is the newest event, the last one the oldest.
     const newestFirst: Array<KubernetesClusterFeed> = Array.from(
-      { length: 12 },
+      { length: PAGE_AND_TWO },
       (_value: unknown, index: number): KubernetesClusterFeed => {
         return feedItem(
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
           `sort-entry-${index}`,
-          new Date(Date.UTC(2024, 0, 12 - index)),
+          new Date(Date.UTC(2024, 0, 1) + (PAGE_AND_TWO - index) * 3600000),
         );
       },
     );
@@ -1155,22 +1249,18 @@ describe("ResourceFeed - Filter & Sort", () => {
 
     renderFeed();
     await waitFor(() => {
-      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(DEFAULT_LIMIT);
+      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(FEED_PAGE_SIZE);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(12);
+      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(PAGE_AND_TWO);
     });
 
     // Nothing is remembered until the reader changes something.
     expect(getStoredSortOrderKeys()).toEqual([]);
 
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
-    );
+    chooseSortOrder("Oldest first");
 
     await waitForFeed(3);
 
@@ -1181,23 +1271,18 @@ describe("ResourceFeed - Filter & Sort", () => {
       postedAt: SortOrder.Ascending,
     });
     expect(request["skip"]).toBe(0);
-    expect(request["limit"]).toBe(DEFAULT_LIMIT);
+    expect(request["limit"]).toBe(FEED_PAGE_SIZE);
     expect(Object.keys(getQuery(request))).toEqual([RESOURCE_ID_COLUMN]);
 
     await waitFor(() => {
       expect(getDrawnEntries()).toEqual(
-        getMarkdown(oldestFirst.slice(0, DEFAULT_LIMIT)),
+        getMarkdown(oldestFirst.slice(0, FEED_PAGE_SIZE)),
       );
     });
 
-    /*
-     * The trigger says so without being opened: the sort glyph instead of the
-     * funnel, and a description that leads with the new order.
-     */
-    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    // The ⋯ menu ticks the new order; a reversed feed is not a filtered one.
+    expect(getCheckedSortOrder()).toBe("Oldest first");
+    expect(getFilterBoxTitle()).toBeNull();
 
     /*
      * Remembered under this feed's own key, and only there: another
@@ -1242,14 +1327,14 @@ describe("ResourceFeed - Filter & Sort", () => {
       expect(String(query[RESOURCE_ID_COLUMN])).toBe(resourceId.toString());
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Ascending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
     };
 
     type ExpectNothingTicked = () => void;
 
-    // Reopens the panel on the feed as it is now, and closes it again.
+    // Reopens the filter dialog on the feed as it is now, and cancels it.
     const expectNothingTicked: ExpectNothingTicked = (): void => {
-      const reopenedPanel: HTMLElement = openFilterAndSort();
+      const reopenedPanel: HTMLElement = openFilterDialog();
       const checkboxes: Array<HTMLElement> =
         within(reopenedPanel).getAllByRole("checkbox");
 
@@ -1259,31 +1344,19 @@ describe("ResourceFeed - Filter & Sort", () => {
         expect(checkbox).not.toBeChecked();
       }
 
-      expect(
-        within(reopenedPanel).getByTestId(
-          `feed-options-sort-${SortOrder.Ascending}`,
-        ),
-      ).toHaveAttribute("aria-checked", "true");
+      cancelFilterDialog();
 
-      closeFilterAndSort();
+      expect(getCheckedSortOrder()).toBe("Oldest first");
     };
 
     const view: ReturnType<typeof render> = renderFeed(clusterA);
     await waitForFeed(1);
 
     // On cluster A: oldest first, then only owners being added.
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
-    );
+    chooseSortOrder("Oldest first");
     await waitForFeed(2);
 
-    fireEvent.click(
-      within(
-        screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel }),
-      ).getByTestId(`feed-options-event-type-${tickedEventType}`),
-    );
+    applyEventTypes([tickedEventType]);
     await waitForFeed(3);
 
     const filteredRequest: GetListRequest = mockGetListCalls[2]!;
@@ -1293,9 +1366,9 @@ describe("ResourceFeed - Filter & Sort", () => {
     expect(eventTypeFilter).toBeInstanceOf(Includes);
     expect((eventTypeFilter as Includes).values).toEqual([tickedEventType]);
     expect(filteredRequest["sort"]).toEqual({ postedAt: SortOrder.Ascending });
-    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
-
-    closeFilterAndSort();
+    expect(getFilterBoxTitle()).toBe(
+      `Showing 1 of ${ALL_EVENT_TYPES.length} event types`,
+    );
 
     // To cluster B.
     view.rerender(getFeedElement(clusterB));
@@ -1316,11 +1389,8 @@ describe("ResourceFeed - Filter & Sort", () => {
       screen.queryByText(FILTERED_FEED_NO_ITEMS_MESSAGE),
     ).not.toBeInTheDocument();
 
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
-    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    expect(getFilterBoxTitle()).toBeNull();
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
     expectNothingTicked();
 
     // Nothing asked B for the old filter afterwards either.
@@ -1348,10 +1418,7 @@ describe("ResourceFeed - Filter & Sort", () => {
     expectUnfilteredOldestFirst(requestsAfterReturn[0]!, clusterA);
 
     expect(await screen.findByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    expect(getFilterBoxTitle()).toBeNull();
     expectNothingTicked();
   });
 });

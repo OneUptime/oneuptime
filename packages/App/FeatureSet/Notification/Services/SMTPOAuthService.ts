@@ -5,7 +5,10 @@ import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import OAuth2TokenClient, {
+  OAuth2TokenHttpResponse,
+} from "Common/Server/Utils/Workflow/OAuth2TokenClient";
+import Dictionary from "Common/Types/Dictionary";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import { createHmac } from "crypto";
 
@@ -181,12 +184,13 @@ export default class SMTPOAuthService {
   }
 
   /**
-   * Fetch with timeout wrapper to prevent hanging requests.
+   * POST a form-encoded token request to the token URL and return whatever
+   * it answered, any status. Times out rather than hanging.
    */
-  private static async fetchWithTimeout(
-    url: string,
-    options: RequestInit,
-  ): Promise<Response> {
+  private static async requestToken(
+    tokenUrl: URL,
+    form: Dictionary<string>,
+  ): Promise<OAuth2TokenHttpResponse> {
     /*
      * tokenUrl comes straight off ProjectSmtpConfig, which any project member
      * can write, and this request carries the OAuth client_id/client_secret in
@@ -198,30 +202,46 @@ export default class SMTPOAuthService {
      * A self-hosted install may legitimately run its identity provider inside
      * its own network, so this is the egress guard rather than the flat
      * private-range ban.
+     *
+     * The workflow OAuth token transport does exactly this, so it is reused
+     * rather than repeated. It validates the URL through the egress guard as
+     * "OAuth token URL" and pins the addresses it validated into the socket:
+     * node fetch would resolve the name again, and a DNS answer that changed
+     * after the check would choose where the secret went. It also never
+     * follows a redirect, which would let a validated host 3xx the credentials
+     * on to one that was never checked; a 3xx comes back as the response.
+     *
+     * Its timeout only bounds how long the socket may sit idle, so the abort
+     * below is what bounds the whole exchange.
      */
-    await DataSourceEgressGuard.assertUrlAllowed(url, {
-      targetLabel: "OAuth token URL",
-    });
-
     const controller: AbortController = new AbortController();
     const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
       controller.abort();
     }, this.FETCH_TIMEOUT_MS);
 
     try {
-      const response: Response = await fetch(url, {
-        ...options,
-        /*
-         * node's fetch follows redirects by default, which would let a
-         * validated host 3xx the credentials on to one that was never
-         * checked. "manual" surfaces the 3xx as a response instead.
-         */
-        redirect: "manual",
+      return await OAuth2TokenClient.sendThroughEgressGuard({
+        url: tokenUrl.toString(),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: form,
+        timeoutInMs: this.FETCH_TIMEOUT_MS,
         signal: controller.signal,
       });
-      return response;
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      // The egress guard's refusal, which says why.
+      if (error instanceof BadDataException) {
+        throw error;
+      }
+
+      const code: unknown = (error as { code?: unknown } | null)?.code;
+
+      if (
+        controller.signal.aborted ||
+        code === "ECONNABORTED" ||
+        code === "ETIMEDOUT"
+      ) {
         /*
          * The tenant's own Token URL did not answer in time. Authoritative
          * because this runs from the mail worker, where the class-level
@@ -237,6 +257,10 @@ export default class SMTPOAuthService {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  private static isSuccessStatus(response: OAuth2TokenHttpResponse): boolean {
+    return response.statusCode >= 200 && response.statusCode < 300;
   }
 
   /**
@@ -273,33 +297,23 @@ export default class SMTPOAuthService {
       );
 
       // Exchange JWT for access token
-      const params: URLSearchParams = new URLSearchParams();
-      params.append(
-        "grant_type",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      );
-      params.append("assertion", signedJwt);
-
-      const response: Response = await this.fetchWithTimeout(
-        config.tokenUrl.toString(),
+      const response: OAuth2TokenHttpResponse = await this.requestToken(
+        config.tokenUrl,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: params.toString(),
+          grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+          assertion: signedJwt,
         },
       );
 
-      if (!response.ok) {
-        const errorText: string = await response.text();
+      if (!this.isSuccessStatus(response)) {
+        const errorText: string = response.bodyText;
         /*
          * The tenant's OAuth provider rejected the tenant's credentials. Every
          * branch below is a configuration answer for them to act on, so none of
          * them is a OneUptime defect.
          */
         logger.error(
-          `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
+          `Failed to fetch OAuth token: ${response.statusCode} - ${errorText}`,
           EXTERNAL_FAULT,
         );
 
@@ -324,12 +338,13 @@ export default class SMTPOAuthService {
         }
 
         throw new BadDataException(
-          `Failed to authenticate with OAuth provider: ${response.status}. Error: ${errorText}`,
+          `Failed to authenticate with OAuth provider: ${response.statusCode}. Error: ${errorText}`,
         ).asUserError();
       }
 
-      const tokenData: OAuthTokenResponse =
-        (await response.json()) as OAuthTokenResponse;
+      const tokenData: OAuthTokenResponse = JSON.parse(
+        response.bodyText,
+      ) as OAuthTokenResponse;
 
       if (!tokenData.access_token) {
         throw new BadDataException(
@@ -376,44 +391,38 @@ export default class SMTPOAuthService {
   private static async fetchClientCredentialsToken(
     config: SMTPOAuthConfig,
   ): Promise<string> {
-    const params: URLSearchParams = new URLSearchParams();
-    params.append("client_id", config.clientId);
-    params.append("client_secret", config.clientSecret);
-    params.append("scope", config.scope);
-    params.append("grant_type", "client_credentials");
-
     try {
       logger.debug(
         `Fetching OAuth token from ${config.tokenUrl.toString()} using Client Credentials`,
       );
 
-      const response: Response = await this.fetchWithTimeout(
-        config.tokenUrl.toString(),
+      const response: OAuth2TokenHttpResponse = await this.requestToken(
+        config.tokenUrl,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: params.toString(),
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          scope: config.scope,
+          grant_type: "client_credentials",
         },
       );
 
-      if (!response.ok) {
-        const errorText: string = await response.text();
+      if (!this.isSuccessStatus(response)) {
+        const errorText: string = response.bodyText;
         // The tenant's OAuth provider rejected the tenant's credentials.
         logger.error(
-          `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
+          `Failed to fetch OAuth token: ${response.statusCode} - ${errorText}`,
           EXTERNAL_FAULT,
         );
         throw new BadDataException(
-          `Failed to authenticate with OAuth provider: ${response.status}. ` +
+          `Failed to authenticate with OAuth provider: ${response.statusCode}. ` +
             `Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). ` +
             `Error: ${errorText}`,
         ).asUserError();
       }
 
-      const tokenData: OAuthTokenResponse =
-        (await response.json()) as OAuthTokenResponse;
+      const tokenData: OAuthTokenResponse = JSON.parse(
+        response.bodyText,
+      ) as OAuthTokenResponse;
 
       if (!tokenData.access_token) {
         throw new BadDataException(

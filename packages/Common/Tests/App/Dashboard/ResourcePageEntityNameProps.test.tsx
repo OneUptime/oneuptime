@@ -9,6 +9,7 @@ import {
 } from "@jest/globals";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -277,8 +278,16 @@ const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 type RenderPageFunction = (Page: PageComponent) => void;
 
+/*
+ * Under a router, as every page is in the app: a page may link to another
+ * (the network device's Logs page links to its Events page).
+ */
 const renderPage: RenderPageFunction = (Page: PageComponent): void => {
-  render(<Page {...PAGE_PROPS} />);
+  render(
+    <MemoryRouter>
+      <Page {...PAGE_PROPS} />
+    </MemoryRouter>,
+  );
 };
 
 type LastPropsFunction = (viewerMock: MockFunction) => ViewerProps;

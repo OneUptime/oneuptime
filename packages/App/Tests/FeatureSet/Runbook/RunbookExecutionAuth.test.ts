@@ -1,6 +1,8 @@
 import RunbookAPI from "../../../FeatureSet/Runbook/API/Runbook";
 import RunRunbook from "../../../FeatureSet/Runbook/Services/RunRunbook";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import IncidentService from "Common/Server/Services/IncidentService";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
@@ -8,9 +10,13 @@ import {
   RUNBOOK_ADVANCE_PERMISSIONS,
   RUNBOOK_EXECUTE_PERMISSIONS,
 } from "Common/Server/Utils/Runbook/RunbookExecutePermission";
+import { UnreadableReferenceException } from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
@@ -322,6 +328,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
   let executionFindSpy: jest.SpyInstance;
   let executionCreateSpy: jest.SpyInstance;
   let executionUpdateSpy: jest.SpyInstance;
+  let executionCompareAndSetSpy: jest.SpyInstance;
   let cancelJobsSpy: jest.SpyInstance;
 
   beforeAll(() => {
@@ -363,6 +370,10 @@ describe("Runbook execution routes require an authorized member of the runbook's
     executionUpdateSpy = jest
       .spyOn(RunbookExecutionService, "updateOneById")
       .mockResolvedValue(undefined as never);
+    // How complete and skip write: a compare-and-set on the paused state.
+    executionCompareAndSetSpy = jest
+      .spyOn(RunbookExecutionService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true);
     cancelJobsSpy = jest
       .spyOn(RunnerJobService, "cancelJobsForExecution")
       .mockResolvedValue(undefined as never);
@@ -405,16 +416,24 @@ describe("Runbook execution routes require an authorized member of the runbook's
     } as unknown as Runbook);
   }
 
+  /*
+   * By default, paused the way the execution loop leaves a run: step-1 (the
+   * Manual step) waiting for a person, the steps after it still Pending, and
+   * the execution parked in WaitingForManualStep.
+   */
   function mockExecutionInProject(data: {
     projectId: ObjectID;
     status?: RunbookExecutionStatus | undefined;
     stepStatus?: RunbookStepExecutionStatus | undefined;
   }): void {
     const stepExecutions: Array<RunbookStepExecutionState> = makeSteps().map(
-      (step: RunbookStep): RunbookStepExecutionState => {
+      (step: RunbookStep, index: number): RunbookStepExecutionState => {
         return {
           step,
-          status: data.stepStatus || RunbookStepExecutionStatus.WaitingForUser,
+          status:
+            index === 0
+              ? data.stepStatus || RunbookStepExecutionStatus.WaitingForUser
+              : RunbookStepExecutionStatus.Pending,
         };
       },
     );
@@ -422,8 +441,9 @@ describe("Runbook execution routes require an authorized member of the runbook's
     executionFindSpy.mockResolvedValue({
       _id: executionId.toString(),
       projectId: data.projectId,
-      status: data.status || RunbookExecutionStatus.Running,
+      status: data.status || RunbookExecutionStatus.WaitingForManualStep,
       stepExecutions,
+      version: 3,
     } as unknown as RunbookExecution);
   }
 
@@ -463,6 +483,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
     expect(startExecutionMock).not.toHaveBeenCalled();
     expect(executionCreateSpy).not.toHaveBeenCalled();
     expect(executionUpdateSpy).not.toHaveBeenCalled();
+    expect(executionCompareAndSetSpy).not.toHaveBeenCalled();
     expect(cancelJobsSpy).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   }
@@ -894,7 +915,9 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
         expect(result.thrownToNext).toBeUndefined();
         expect(executionFindSpy).toHaveBeenCalled();
-        expect(executionUpdateSpy).toHaveBeenCalled();
+        expect(
+          uri === CANCEL_ROUTE ? executionUpdateSpy : executionCompareAndSetSpy,
+        ).toHaveBeenCalled();
       },
     );
 
@@ -1017,6 +1040,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
         expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
         expect(executionUpdateSpy).not.toHaveBeenCalled();
+        expect(executionCompareAndSetSpy).not.toHaveBeenCalled();
         expect(startExecutionMock).not.toHaveBeenCalled();
       },
     );
@@ -1056,11 +1080,77 @@ describe("Runbook execution routes require an authorized member of the runbook's
       );
     });
 
+    test("a person's run takes the runbook's steps with every approval before the step it held back", async () => {
+      memberProps([Permission.ProjectMember]);
+      runbookFindSpy.mockResolvedValue({
+        _id: runbookId.toString(),
+        projectId: callerProjectId,
+        name: "Restart web tier",
+        isEnabled: true,
+        // As a client that still sends the old flag saved it.
+        steps: [
+          { ...makeSteps()[1]!, id: "drain", order: 1, requireApproval: true },
+          { ...makeSteps()[1]!, id: "restart", order: 2 },
+        ],
+      } as unknown as Runbook);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: {},
+      });
+
+      expect(result.nextCallCount).toBe(0);
+
+      const createdSteps: Array<RunbookStepExecutionState> = (
+        executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+      ).data.stepExecutions as unknown as Array<RunbookStepExecutionState>;
+
+      expect(
+        createdSteps.map((state: RunbookStepExecutionState) => {
+          return [
+            state.step.id,
+            state.step.requireApprovalBeforeRunning === true,
+            state.status,
+          ];
+        }),
+      ).toEqual([
+        ["drain", false, RunbookStepExecutionStatus.Pending],
+        ["restart", true, RunbookStepExecutionStatus.Pending],
+      ]);
+      expect(JSON.stringify(createdSteps)).not.toContain('"requireApproval"');
+    });
+
+    test("a person's run is recorded as Manual, whatever the body claims, and carries no inputs", async () => {
+      memberProps([Permission.ProjectMember]);
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: {
+          triggerType: RunbookTriggerType.Webhook,
+          triggerDetails: { callerIp: "203.0.113.7" },
+          inputs: { host: "$(rm -rf /)" },
+        },
+      });
+
+      expect(result.nextCallCount).toBe(0);
+
+      const createdData: RunbookExecution = (
+        executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+      ).data;
+
+      expect(createdData.triggerType).toBe(RunbookTriggerType.Manual);
+      expect(createdData.triggerDetails).toBeUndefined();
+      expect(createdData.inputs).toBeUndefined();
+    });
+
     test("completing a manual step records the completer from the session", async () => {
       memberProps([Permission.ProjectMember]);
       mockExecutionInProject({
         projectId: callerProjectId,
-        status: RunbookExecutionStatus.Running,
+        status: RunbookExecutionStatus.WaitingForManualStep,
         stepStatus: RunbookStepExecutionStatus.WaitingForUser,
       });
 
@@ -1071,10 +1161,11 @@ describe("Runbook execution routes require an authorized member of the runbook's
       });
 
       expect(result.nextCallCount).toBe(0);
-      expect(executionUpdateSpy).toHaveBeenCalledTimes(1);
+      expect(executionCompareAndSetSpy).toHaveBeenCalledTimes(1);
+      expect(executionUpdateSpy).not.toHaveBeenCalled();
 
       const updatedSteps: Array<RunbookStepExecutionState> = (
-        executionUpdateSpy.mock.calls[0]![0] as {
+        executionCompareAndSetSpy.mock.calls[0]![0] as {
           data: { stepExecutions: Array<RunbookStepExecutionState> };
         }
       ).data.stepExecutions;
@@ -1113,6 +1204,392 @@ describe("Runbook execution routes require an authorized member of the runbook's
       ).data;
 
       expect(updateData.status).toBe(RunbookExecutionStatus.Cancelled);
+    });
+  });
+
+  /*
+   * A Runbook Member runs the runbooks ITS grant reaches - its labels and
+   * owned scope - read with that grant alone
+   * (Common/Server/Utils/Runbook/RunbookRunAccess). Before, the runbook was
+   * read as OneUptime only, and a Runbook Member limited to some labels ran
+   * every runbook in the project. The fake read below finds the runbook as
+   * OneUptime always, and with the caller's rows only when one of the run
+   * roles is there with no labels.
+   */
+  describe("which runbooks a run role reaches", () => {
+    const LABEL_ID: ObjectID = ObjectID.generate();
+
+    function memberWithRows(rows: Array<UserPermission>): void {
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: rows,
+          },
+        },
+      });
+    }
+
+    function runbookReadReachesUnlabelledRoles(): void {
+      runbookFindSpy.mockImplementation((async (data: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Runbook | null> => {
+        const runbook: Runbook = {
+          _id: runbookId.toString(),
+          projectId: callerProjectId,
+          name: "Restart web tier",
+          isEnabled: true,
+          steps: makeSteps(),
+        } as unknown as Runbook;
+
+        if (data.props.isRoot) {
+          return runbook;
+        }
+
+        const rows: Array<UserPermission> =
+          data.props.userTenantAccessPermission?.[callerProjectId.toString()]
+            ?.permissions || [];
+
+        return rows.some((candidate: UserPermission): boolean => {
+          return (
+            !candidate.isBlockPermission &&
+            candidate.labelIds.length === 0 &&
+            [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.RunbookAdmin,
+              Permission.RunbookMember,
+            ].includes(candidate.permission)
+          );
+        })
+          ? runbook
+          : null;
+      }) as unknown as typeof RunbookService.findOneById);
+    }
+
+    // A run of the runbook, paused on its first (Manual) step.
+    function executionOfTheRunbook(status?: RunbookExecutionStatus): void {
+      executionFindSpy.mockImplementation(
+        (async (): Promise<RunbookExecution> => {
+          const stepExecutions: Array<RunbookStepExecutionState> =
+            makeSteps().map(
+              (step: RunbookStep, index: number): RunbookStepExecutionState => {
+                return {
+                  step,
+                  status:
+                    index === 0
+                      ? RunbookStepExecutionStatus.WaitingForUser
+                      : RunbookStepExecutionStatus.Pending,
+                };
+              },
+            );
+
+          return {
+            _id: executionId.toString(),
+            projectId: callerProjectId,
+            runbookId: runbookId,
+            status: status || RunbookExecutionStatus.WaitingForManualStep,
+            stepExecutions,
+            version: 3,
+          } as unknown as RunbookExecution;
+        }) as unknown as typeof RunbookExecutionService.findOneById,
+      );
+    }
+
+    function role(
+      permission: Permission,
+      labels: Array<ObjectID> = [],
+    ): UserPermission {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: labels,
+        isBlockPermission: false,
+      };
+    }
+
+    test("a Runbook Member whose grant reaches the runbook starts it", async () => {
+      memberWithRows([role(Permission.RunbookMember)]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a Runbook Member limited to a label the runbook does not carry is refused, however widely a Viewer grant shows it - and nothing runs", async () => {
+      memberWithRows([
+        role(Permission.RunbookMember, [LABEL_ID]),
+        role(Permission.Viewer),
+        role(Permission.RunbookViewer),
+      ]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        "You do not have permission to start runbook executions in this project.",
+      );
+      expectNothingExecutedOrMutated();
+    });
+
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "the same Runbook Member may not move a run of that runbook along via %s",
+      async (uri: string) => {
+        memberWithRows([
+          role(Permission.RunbookMember, [LABEL_ID]),
+          role(Permission.Viewer),
+        ]);
+        runbookReadReachesUnlabelledRoles();
+        executionOfTheRunbook(
+          uri === CANCEL_ROUTE ? RunbookExecutionStatus.Running : undefined,
+        );
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: uri === CANCEL_ROUTE ? cancelParams() : stepParams(),
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          "You do not have permission to change runbook executions in this project.",
+        );
+        expectNothingExecutedOrMutated();
+      },
+    );
+
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "a Runbook Member whose grant reaches the runbook moves its run along via %s",
+      async (uri: string) => {
+        memberWithRows([role(Permission.RunbookMember)]);
+        runbookReadReachesUnlabelledRoles();
+        executionOfTheRunbook(
+          uri === CANCEL_ROUTE ? RunbookExecutionStatus.Running : undefined,
+        );
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: uri === CANCEL_ROUTE ? cancelParams() : stepParams(),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+      },
+    );
+
+    test("Edit Runbook Execution still moves any run of the project along: it is about runs", async () => {
+      memberWithRows([role(Permission.EditRunbookExecution)]);
+      runbookReadReachesUnlabelledRoles();
+      executionOfTheRunbook();
+
+      const result: RouteCallResult = await callRoute({
+        uri: COMPLETE_ROUTE,
+        params: stepParams(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+    });
+
+    test("a Runbook Viewer runs nothing", async () => {
+      memberWithRows([role(Permission.RunbookViewer)]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expectNothingExecutedOrMutated();
+    });
+  });
+
+  /*
+   * The run is written as OneUptime once its caller is known, so the record
+   * it is linked to is held to the caller's read here: an incident whose
+   * labels, owners or people keep it from them is answered like one that
+   * does not exist, and nothing runs.
+   */
+  describe("the incident a run is linked to", () => {
+    const PRODUCTION: ObjectID = ObjectID.generate();
+    let incidentId: ObjectID;
+    let readableIncidents: Array<string>;
+    let incidentReads: Array<Array<string>>;
+    // Every other table the caller's own read was asked about.
+    let otherReads: Array<string>;
+
+    function runnerReadingIncidents(labels: Array<ObjectID>): void {
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.RunbookMember,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+              {
+                _type: "UserPermission",
+                permission: Permission.ReadProjectIncident,
+                labelIds: labels,
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    function linkedRun(): Promise<RouteCallResult> {
+      return callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: { incidentId: incidentId.toString() },
+      });
+    }
+
+    beforeEach(() => {
+      incidentId = ObjectID.generate();
+      readableIncidents = [];
+      incidentReads = [];
+      otherReads = [];
+
+      mockRunbookInProject(callerProjectId);
+
+      // The incident is the project's.
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        projectId: callerProjectId,
+      } as unknown as Incident);
+
+      /*
+       * The incidents the caller's own read finds - and no runbook: a run's
+       * runbook is the one the permission to run it reached.
+       */
+      jest
+        .spyOn(DatabaseService as never, "findReadableParentIds")
+        .mockImplementation((async (lookup: {
+          parentModelType: { new (): BaseModel };
+          ids: Array<string>;
+        }): Promise<Array<string>> => {
+          const table: string = new lookup.parentModelType().tableName || "";
+
+          if (table !== "Incident") {
+            otherReads.push(table);
+            return table === "Runbook" ? [] : lookup.ids;
+          }
+
+          incidentReads.push(lookup.ids);
+
+          return lookup.ids.filter((id: string): boolean => {
+            return readableIncidents.includes(id.toLowerCase());
+          });
+        }) as never);
+    });
+
+    test("a runner whose read of incidents reaches the incident links the run to it", async () => {
+      runnerReadingIncidents([PRODUCTION]);
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+        ).data.incidentId?.toString(),
+      ).toBe(incidentId.toString());
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a runner whose read of incidents leaves it out is answered as if it did not exist, and nothing runs", async () => {
+      runnerReadingIncidents([PRODUCTION]);
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeInstanceOf(UnreadableReferenceException);
+      expect((result.thrownToNext as Error).message).toBe(
+        `This runbook execution references records that are not in this project: Incident "${incidentId.toString()}". Please pick values from this project and try again.`,
+      );
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expectNothingExecutedOrMutated();
+    });
+
+    test("a runner who reads every incident is still asked as themselves: an incident private to others is not theirs to link", async () => {
+      runnerReadingIncidents([]);
+
+      // Private to its own people: the runner's read does not find it.
+      const refused: RouteCallResult = await linkedRun();
+
+      expect(refused.thrownToNext).toBeInstanceOf(UnreadableReferenceException);
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expectNothingExecutedOrMutated();
+
+      // One their read finds is linked.
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const linked: RouteCallResult = await linkedRun();
+
+      expect(linked.thrownToNext).toBeUndefined();
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("only the link is asked about: the runbook is the one the permission to run it reached, whatever their read of runbooks", async () => {
+      // A runner whose read of runbooks is limited to some labels.
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.RunbookMember,
+                labelIds: [PRODUCTION],
+                isBlockPermission: false,
+              },
+              {
+                _type: "UserPermission",
+                permission: Permission.ReadProjectIncident,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      });
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expect(otherReads).not.toContain("Runbook");
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
     });
   });
 });

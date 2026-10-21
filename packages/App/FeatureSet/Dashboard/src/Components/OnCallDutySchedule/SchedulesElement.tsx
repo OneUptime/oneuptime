@@ -1,6 +1,8 @@
 import OnCallDutyScheduleElement from "./ScheduleElement";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   schedules: Array<OnCallDutySchedule>;
@@ -9,8 +11,10 @@ export interface ComponentProps {
 const OnCallDutySchedulesElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.schedules || props.schedules.length === 0) {
-    return <p>No on call schedules.</p>;
+    return <p>{translator.translateText("No on call schedules.")}</p>;
   }
 
   return (

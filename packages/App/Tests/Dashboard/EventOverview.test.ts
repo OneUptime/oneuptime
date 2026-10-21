@@ -1,15 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
+  ACKNOWLEDGED_AFTER_PAGING_TEMPLATE,
   EventResponseTimes,
   VisibleItems,
+  getAcknowledgedAfterPagingParts,
+  getAcknowledgedAfterPagingText,
   getEarliestTimelineDate,
   getEventCreatorName,
   getEventResponseTimes,
   getFirstTimelineDateForState,
+  getFirstTimelineDateForStates,
   getTimeToStateText,
   splitVisibleItems,
 } from "../../FeatureSet/Dashboard/src/Utils/EventOverview";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The incident and alert overview pages both read their stat bar from these
@@ -29,6 +37,13 @@ const minutesAfterStart: (minutes: number) => Date = (
 const CREATED: string = "state-created";
 const ACKNOWLEDGED: string = "state-acknowledged";
 const RESOLVED: string = "state-resolved";
+/*
+ * A state of the project's own placed between Acknowledged and Resolved: it
+ * counts as acknowledged.
+ */
+const INVESTIGATING: string = "state-investigating";
+// A state of the project's own placed after Resolved: it counts as resolved.
+const CLOSED: string = "state-closed";
 
 const entry: (stateId: string, minutes: number) => EventStateTimelineDate = (
   stateId: string,
@@ -75,6 +90,32 @@ describe("getFirstTimelineDateForState", () => {
   });
 });
 
+describe("getFirstTimelineDateForStates", () => {
+  test("returns the earliest entry for any of the states", () => {
+    expect(
+      getFirstTimelineDateForStates(
+        [
+          entry(CREATED, 0),
+          entry(INVESTIGATING, 8),
+          entry(ACKNOWLEDGED, 3),
+          entry(ACKNOWLEDGED, 30),
+        ],
+        [INVESTIGATING, ACKNOWLEDGED],
+      ),
+    ).toEqual(minutesAfterStart(3));
+  });
+
+  test("is undefined without states or a matching entry", () => {
+    const timelines: Array<EventStateTimelineDate> = [entry(CREATED, 0)];
+
+    expect(getFirstTimelineDateForStates(timelines, undefined)).toBeUndefined();
+    expect(getFirstTimelineDateForStates(timelines, [])).toBeUndefined();
+    expect(
+      getFirstTimelineDateForStates(timelines, [ACKNOWLEDGED, RESOLVED]),
+    ).toBeUndefined();
+  });
+});
+
 describe("getEarliestTimelineDate", () => {
   test("returns the earliest dated entry of any state", () => {
     expect(
@@ -101,8 +142,8 @@ describe("getEventResponseTimes", () => {
         entry(RESOLVED, 50),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times).toEqual({
@@ -124,8 +165,8 @@ describe("getEventResponseTimes", () => {
         entry(RESOLVED, 90),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(5));
@@ -140,8 +181,8 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(CREATED, 0), entry(RESOLVED, 15)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(15));
@@ -158,8 +199,8 @@ describe("getEventResponseTimes", () => {
         entry(ACKNOWLEDGED, 45),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(10));
@@ -170,20 +211,47 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(ACKNOWLEDGED, 10), entry(RESOLVED, 10)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(10));
     expect(times.isAcknowledgedByResolution).toBe(false);
   });
 
+  test("an event moved straight into a state after Resolved was resolved then", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [entry(CREATED, 0), entry(ACKNOWLEDGED, 5), entry(CLOSED, 25)],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED, CLOSED],
+    });
+
+    expect(times.resolvedAt).toEqual(minutesAfterStart(25));
+  });
+
+  test("moving on from Resolved to a state after it keeps the first resolve", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(ACKNOWLEDGED, 5),
+        entry(RESOLVED, 20),
+        entry(CLOSED, 40),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED, CLOSED],
+    });
+
+    expect(times.resolvedAt).toEqual(minutesAfterStart(20));
+  });
+
   test("leaves both unset while the event is still open", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(CREATED, 0)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toBeUndefined();
@@ -194,8 +262,8 @@ describe("getEventResponseTimes", () => {
   test("falls back to the earliest timeline entry when there is no explicit start", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(ACKNOWLEDGED, 5), entry(CREATED, 2)],
-      acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.startedAt).toEqual(minutesAfterStart(2));
@@ -208,6 +276,62 @@ describe("getEventResponseTimes", () => {
     });
 
     expect(times.startedAt).toEqual(START);
+  });
+
+  /*
+   * A state of the project's own placed between Acknowledged and Resolved
+   * ("Investigating") counts as acknowledged
+   * (AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds lists it with
+   * the acknowledged state): an event moved straight into it was answered
+   * then. Reading the acknowledged state alone left it "Not yet
+   * acknowledged" until it was resolved.
+   */
+  test("an event moved straight into a state after Acknowledged was acknowledged then", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(INVESTIGATING, 7),
+        entry(RESOLVED, 30),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED, INVESTIGATING],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(7));
+    expect(times.resolvedAt).toEqual(minutesAfterStart(30));
+    expect(times.isAcknowledgedByResolution).toBe(false);
+  });
+
+  test("moving on from Acknowledged to a state after it keeps the first acknowledgement", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(ACKNOWLEDGED, 4),
+        entry(INVESTIGATING, 9),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED, INVESTIGATING],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(4));
+    expect(times.resolvedAt).toBeUndefined();
+  });
+
+  test("the first of any acknowledged state counts, whatever order the list arrives in", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(ACKNOWLEDGED, 20),
+        entry(INVESTIGATING, 6),
+        entry(CREATED, 0),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [INVESTIGATING, ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(6));
   });
 
   test("a project without acknowledged or resolved states reports neither", () => {
@@ -371,5 +495,188 @@ describe("splitVisibleItems", () => {
     splitVisibleItems(items, 1);
 
     expect(items).toEqual([1, 2, 3]);
+  });
+});
+
+/*
+ * "Acknowledged in" counts from when the record started, so an alert raised
+ * at night and paged in the morning reads as hours. The tile keeps that
+ * number and adds how long the people paged took: "4 minutes after paging".
+ */
+describe("the time to acknowledge after paging", () => {
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  // A German Dashboard that words the sentence and the "less than" phrase.
+  const GERMAN: Translator = createTranslator((text: string) => {
+    return (
+      {
+        [ACKNOWLEDGED_AFTER_PAGING_TEMPLATE]:
+          "{{duration}} nach der Alarmierung",
+        "less than a minute": "weniger als eine Minute",
+      } as Record<string, string>
+    )[text];
+  }, "de");
+
+  // Raised at night (+0), paged in the morning (+600), acknowledged at +604.
+  const pagedInTheMorning: EventResponseTimes = getEventResponseTimes({
+    timelines: [entry(CREATED, 0), entry(ACKNOWLEDGED, 604)],
+    startedAt: START,
+    acknowledgedStateIds: [ACKNOWLEDGED],
+    resolvedStateIds: [RESOLVED],
+  });
+
+  test("keeps the time from the start, and adds the time from the first page", () => {
+    expect(
+      getTimeToStateText({
+        startedAt: pagedInTheMorning.startedAt,
+        reachedAt: pagedInTheMorning.acknowledgedAt,
+        fallbackStateName: "acknowledged",
+      }),
+    ).toBe("10 hours, 4 minutes");
+
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: pagedInTheMorning.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBe("4 minutes after paging");
+  });
+
+  test("says nothing for a record nobody was paged about", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: undefined,
+          acknowledgedAt: pagedInTheMorning.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+    expect(
+      getAcknowledgedAfterPagingParts({
+        acknowledgedAt: minutesAfterStart(4),
+      }),
+    ).toBeNull();
+  });
+
+  test("says nothing until somebody acknowledges", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        { firstPagedAt: minutesAfterStart(600), acknowledgedAt: undefined },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("says nothing for a record acknowledged before anybody was paged", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(30),
+          acknowledgedAt: minutesAfterStart(10),
+        },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("counts a resolve that came first as the acknowledgement, by the same rule as the tile", () => {
+    const resolvedFirst: EventResponseTimes = getEventResponseTimes({
+      timelines: [entry(CREATED, 0), entry(RESOLVED, 75)],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(resolvedFirst.isAcknowledgedByResolution).toBe(true);
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(15),
+          acknowledgedAt: resolvedFirst.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBe("1 hour after paging");
+  });
+
+  test("says less than a minute for an answer within the minute, and an answer at the page itself", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(60),
+          acknowledgedAt: new Date(minutesAfterStart(60).getTime() + 40_000),
+        },
+        ENGLISH,
+      ),
+    ).toBe("less than a minute after paging");
+    expect(
+      getAcknowledgedAfterPagingParts({
+        firstPagedAt: minutesAfterStart(60),
+        acknowledgedAt: minutesAfterStart(60),
+      }),
+    ).toEqual([]);
+  });
+
+  test("stays one short line: at most the two largest units, never rounded up", () => {
+    // Paged at +0, acknowledged a day, two hours and 13 minutes later.
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(0),
+          acknowledgedAt: minutesAfterStart(24 * 60 + 2 * 60 + 13),
+        },
+        ENGLISH,
+      ),
+    ).toBe("1 day, 2 hours after paging");
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(0),
+          acknowledgedAt: minutesAfterStart(2 * 60 + 59),
+        },
+        ENGLISH,
+      ),
+    ).toBe("2 hours, 59 minutes after paging");
+  });
+
+  test("reads in the reader's language when the Dashboard words the sentence", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(604),
+        },
+        GERMAN,
+      ),
+    ).toBe("4 Minuten nach der Alarmierung");
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(600),
+        },
+        GERMAN,
+      ),
+    ).toBe("weniger als eine Minute nach der Alarmierung");
+  });
+
+  test("is wholly English when the reader's language does not word the sentence", () => {
+    const untranslated: Translator = createTranslator(() => {
+      return undefined;
+    }, "de");
+
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(604),
+        },
+        untranslated,
+      ),
+    ).toBe("4 minutes after paging");
   });
 });

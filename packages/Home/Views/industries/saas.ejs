@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime for SaaS | Scale with Complete Visibility</title>
-    <meta name="description"
-        content="Complete observability for SaaS companies. Monitor multi-tenant applications, track customer experience, and maintain 99.99% uptime for your SaaS platform.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -36,7 +36,7 @@
 
           <!-- Main Headline -->
           <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-            Your customers expect <br class="hidden sm:block" />
+            Your customers expect <br class="max-sm:hidden sm:block" />
             <span class="text-gray-700">99.99% uptime. So should you.</span>
           </h1>
 
@@ -199,7 +199,7 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-blue-600 tracking-wide uppercase mb-4">SaaS Grade</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Built for the demands<br class="hidden sm:block" />
+            Built for the demands<br class="max-sm:hidden sm:block" />
             <span class="text-gray-500">of modern SaaS.</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600">

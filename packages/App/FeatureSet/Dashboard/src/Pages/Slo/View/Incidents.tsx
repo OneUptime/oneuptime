@@ -43,7 +43,7 @@ const SloIncidents: FunctionComponent<
       <IncidentsTable
         query={query}
         title="Incidents"
-        description="Incidents declared by this SLO's burn rate rules. They are ordinary incidents, so they carry severity, on-call escalation, notes and the usual state timeline, and each one lists this SLO under its affected resources — but they are never published to status pages."
+        description="Incidents declared by this SLO's burn rate rules. They are never published to status pages."
         noItemsMessage="This SLO has not declared any incidents. Turn on Declare Incident for a burn rate rule to open one when the error budget starts burning too fast."
         /*
          * An incident belongs here only because a rule linked it to this

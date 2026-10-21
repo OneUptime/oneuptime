@@ -55,7 +55,15 @@ export default function OverrideCard({
   const toName: string = toIsMe
     ? "you"
     : displayNameForUser(override.routeAlertsToUser);
-  const sentence: string = `${fromName} pages go to ${toName}`;
+  /*
+   * An override that names nobody to cover skips the person away: each of
+   * their turns in a schedule goes to the next person in the rotation, so
+   * "pages go to Nobody" would say the opposite of what happens.
+   */
+  const isSkip: boolean = !override.routeAlertsToUser;
+  const sentence: string = isSkip
+    ? `${fromName} turns go to the next person in the rotation`
+    : `${fromName} pages go to ${toName}`;
   const window: string | null = formatShiftWindow(
     override.startsAt,
     override.endsAt,

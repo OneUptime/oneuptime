@@ -1,16 +1,14 @@
-import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentReminderRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
-import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -18,43 +16,14 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // Auto-assign order on creation
-    if (!createBy.data.order) {
-      const highestOrderRule: Model | null = await this.findOneBy({
-        query: {
-          projectId: createBy.data.projectId!,
-        },
-        select: {
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      createBy.data.order = (highestOrderRule?.order || 0) + 1;
-    }
-
-    return {
-      createBy,
-      carryForward: null,
-    };
   }
 
   @CaptureSpan()
@@ -130,27 +99,12 @@ export class Service extends DatabaseService<Model> {
     );
 
     try {
-      const unresolvedStates: Array<IncidentState> =
-        await IncidentStateService.findBy({
-          query: {
-            projectId: projectId,
-            isResolvedState: false,
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const unresolvedStateIds: Array<ObjectID> = unresolvedStates
-        .map((state: IncidentState) => {
-          return state.id!;
-        })
-        .filter(Boolean);
+      /*
+       * The states a subject is still open in, by the one rule
+       * (Common/Utils/ResolvedState): above the project's resolved state.
+       */
+      const unresolvedStateIds: Array<ObjectID> =
+        await IncidentStateService.getUnresolvedIncidentStateIds(projectId);
 
       if (unresolvedStateIds.length === 0) {
         return;
@@ -249,6 +203,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async findMatchingRule(data: {
     projectId: ObjectID;
     incidentSeverityId?: ObjectID | undefined;

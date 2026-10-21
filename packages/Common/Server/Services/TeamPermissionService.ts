@@ -5,7 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import AccessTokenService from "./AccessTokenService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import TeamMemberService from "./TeamMemberService";
 import TeamService from "./TeamService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -19,12 +19,16 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
 import Permission, { UserPermission } from "../../Types/Permission";
+import {
+  getPermissionTitleForSentence,
+  getRoleCopyChangeRefusedMessage,
+} from "../../Types/Team/CustomRole";
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/TeamPermission";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -93,6 +97,80 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * ProjectOwner held for the whole project, with nothing blocking it: the
+   * one grant that lets its holder hand on any permission
+   * (assertCanGrantPermission).
+   */
+  private holdsUnblockedProjectOwner(
+    callerPermissions: Array<UserPermission>,
+    callerBlocks: Array<UserPermission>,
+  ): boolean {
+    return (
+      callerPermissions.some((permission: UserPermission) => {
+        return (
+          permission.permission === Permission.ProjectOwner &&
+          this.permissionCoversGrant(permission, PermissionScope.All, [])
+        );
+      }) &&
+      !callerBlocks.some((permission: UserPermission) => {
+        return permission.permission === Permission.ProjectOwner;
+      })
+    );
+  }
+
+  /*
+   * A team's copy of a custom role's permission (CustomRoleSync) is the
+   * role's: it is changed and removed through the role - or by taking the
+   * role from the team - never on its own, or the team would no longer
+   * hold what the role gives. Only OneUptime's own writes touch one.
+   */
+  private assertNoRoleCopies(
+    rows: Array<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const copy: Model | undefined = rows.find((row: Model): boolean => {
+      return Boolean(row.teamCustomRoleId || row.customRoleId);
+    });
+
+    if (copy) {
+      throw new BadDataException(
+        getRoleCopyChangeRefusedMessage({
+          roleName: copy.customRole?.name,
+          permission: copy.permission!,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Whether the caller may hand on any permission at all, so no grant of
+   * theirs needs weighing row by row: root, a master admin, or someone who
+   * holds ProjectOwner for the whole project with nothing blocking it.
+   */
+  public canGrantEveryPermission(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    return this.holdsUnblockedProjectOwner(
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    );
+  }
+
   /**
    * A permission editor may only delegate authority they already hold. This
    * is deliberately stricter than the table-level "may edit team
@@ -128,17 +206,7 @@ export class Service extends DatabaseService<Model> {
      * it. Every non-owner therefore falls through to the exact permission and
      * scope comparison below, including ProjectAdmin.
      */
-    if (
-      callerPermissions.some((permission: UserPermission) => {
-        return (
-          permission.permission === Permission.ProjectOwner &&
-          this.permissionCoversGrant(permission, PermissionScope.All, [])
-        );
-      }) &&
-      !callerBlocks.some((permission: UserPermission) => {
-        return permission.permission === Permission.ProjectOwner;
-      })
-    ) {
+    if (this.holdsUnblockedProjectOwner(callerPermissions, callerBlocks)) {
       return;
     }
 
@@ -187,8 +255,9 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (!canDelegate || isBlocked) {
+      // The permission by its title ("Incident Member"), not its code name.
       throw new NotAuthorizedException(
-        `You cannot grant ${data.permission} because your own access does not include that permission at an equal or broader scope.`,
+        `You cannot grant ${getPermissionTitleForSentence(data.permission)} because your own access does not include that permission at an equal or broader scope.`,
       );
     }
   }
@@ -210,12 +279,40 @@ export class Service extends DatabaseService<Model> {
 
     this.assertProjectMatchesTenant(data.projectId, data.props);
 
-    const permissions: Array<Model> = await this.findBy({
+    // A project owner may hand on every row: nothing to read.
+    if (this.canGrantEveryPermission(data.props)) {
+      return;
+    }
+
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: [data.teamId],
+      projectId: data.projectId,
+    });
+
+    for (const permission of permissions) {
+      this.assertCanGrantTeamRow(permission, data.props);
+    }
+  }
+
+  /*
+   * Every allow and block row of these teams in `projectId`: what adding
+   * someone to them hands on. Read the same way for an invitation and for a
+   * provider's teams, so both are weighed against the same rows.
+   */
+  private async findRowsHandedOnWithTeams(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    return await this.findBy({
       query: {
-        teamId: data.teamId,
+        teamId:
+          data.teamIds.length === 1
+            ? data.teamIds[0]!
+            : QueryHelper.any(data.teamIds),
         projectId: data.projectId,
       },
       select: {
+        teamId: true,
         permission: true,
         labels: {
           _id: true,
@@ -228,21 +325,85 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  // One team row against the ceiling, as assertCanGrantPermission weighs it.
+  private assertCanGrantTeamRow(
+    row: Model,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    this.assertCanGrantPermission({
+      permission: row.permission!,
+      labelIds: this.getLabelIds(row.labels),
+      scope: row.scope,
+      props: props,
+    });
+  }
+
+  /**
+   * Which of these teams the caller could not add someone to: the same
+   * ceiling as assertCanGrantTeamPermissions, over the same rows, answered
+   * for several teams at once and without stopping at the first refusal, so
+   * a save that hands several teams on (the teams of an SSO provider, see
+   * Utils/SsoProviderTeamGrant) can name every team it refuses.
+   *
+   * Only rows of `projectId` are read, so the caller resolves the teams to
+   * that project first. Nothing is refused to root or a master admin.
+   */
+  @CaptureSpan()
+  public async findTeamsCallerCannotGrant(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<ObjectID>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return [];
+    }
+
+    this.assertProjectMatchesTenant(data.projectId, data.props);
+
+    if (data.teamIds.length === 0 || this.canGrantEveryPermission(data.props)) {
+      return [];
+    }
+
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: data.teamIds,
+      projectId: data.projectId,
+    });
+
+    const refusedTeamIds: Set<string> = new Set<string>();
 
     for (const permission of permissions) {
-      this.assertCanGrantPermission({
-        permission: permission.permission!,
-        labelIds: this.getLabelIds(permission.labels),
-        scope: permission.scope,
-        props: data.props,
-      });
+      const teamId: string | undefined = permission.teamId
+        ?.toString()
+        .toLowerCase();
+
+      if (!teamId || refusedTeamIds.has(teamId)) {
+        continue;
+      }
+
+      try {
+        this.assertCanGrantTeamRow(permission, data.props);
+      } catch (err) {
+        if (!(err instanceof NotAuthorizedException)) {
+          throw err;
+        }
+
+        refusedTeamIds.add(teamId);
+      }
     }
+
+    return data.teamIds.filter((teamId: ObjectID): boolean => {
+      return refusedTeamIds.has(teamId.toString().toLowerCase());
+    });
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.teamId) {
       throw new BadDataException("Team Id is required to create permission");
     }
@@ -295,12 +456,18 @@ export class Service extends DatabaseService<Model> {
 
     const isBlockPermission: boolean = createBy.data.isBlockPermission || false;
 
+    /*
+     * Only the team's own rows count: a copy of a custom role's permission
+     * is the role's (CustomRoleSync), and the team may hold the same
+     * permission of its own beside it - kept when the role is taken away.
+     */
     const existingPermission: Model | null = await this.findOneBy({
       query: {
         teamId: createBy.data.teamId,
         projectId: createBy.data.projectId,
         permission: createBy.data.permission,
         isBlockPermission: isBlockPermission,
+        teamCustomRoleId: QueryHelper.isNull(),
       },
       select: {
         _id: true,
@@ -326,6 +493,7 @@ export class Service extends DatabaseService<Model> {
           projectId: createBy.data.projectId,
           permission: createBy.data.permission,
           isBlockPermission: !isBlockPermission,
+          teamCustomRoleId: QueryHelper.isNull(),
         },
         select: {
           _id: true,
@@ -362,7 +530,7 @@ export class Service extends DatabaseService<Model> {
 
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
-        teamId: createBy.data.teamId!,
+        teamId: createdItem.teamId!,
         projectId: createBy.data.projectId!,
       },
       select: {
@@ -376,9 +544,13 @@ export class Service extends DatabaseService<Model> {
     });
 
     for (const member of teamMembers) {
-      /// Refresh tokens.
+      /*
+       * Refresh tokens. Only the project's refresh below tells their
+       * open live updates.
+       */
       await AccessTokenService.refreshUserGlobalAccessPermission(
         member.userId!,
+        { forgetLiveUpdateReaders: false },
       );
       await AccessTokenService.refreshUserTenantAccessPermission(
         member.userId!,
@@ -393,28 +565,21 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
       Model,
       updateBy.query,
       updateBy.data,
       updateBy.props,
     );
-    const selectedPermissions: Array<Model> = await this.findAllBy({
-      query: updateBy.query,
-      select: { _id: true },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: { isRoot: true },
-    });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map(
-      (row: Model) => {
-        return row.id!;
-      },
-    );
-    // Read complete labels independently of any relation filters in the query.
-    const teamPermissions: Array<Model> = await this.findAllBy({
-      query: { _id: QueryHelper.any(selectedIds) },
-      select: {
+    /*
+     * The permissions the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem) - their labels and team read whole,
+     * whatever relation filters the query sets.
+     */
+    const teamPermissions: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         teamId: true,
         projectId: true,
@@ -427,11 +592,14 @@ export class Service extends DatabaseService<Model> {
         team: {
           isPermissionsEditable: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        teamCustomRoleId: true,
+        customRoleId: true,
+        customRole: {
+          name: true,
+        },
+      });
+
+    this.assertNoRoleCopies(teamPermissions, updateBy.props);
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, updateBy.props);
@@ -497,6 +665,7 @@ export class Service extends DatabaseService<Model> {
             projectId: alreadySavedPermission.projectId!,
             permission: alreadySavedPermission.permission!,
             isBlockPermission: !isBlockPermission,
+            teamCustomRoleId: QueryHelper.isNull(),
           },
           select: {
             _id: true,
@@ -526,8 +695,6 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    updateBy.query = { ...updateBy.query, _id: QueryHelper.any(selectedIds) };
-    updateBy.skip = 0;
     return { updateBy, carryForward: teamPermissions };
   }
 
@@ -562,9 +729,13 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException("Invalid Project ID");
         }
 
-        /// Refresh tokens.
+        /*
+         * Refresh tokens. Only the project's refresh below tells their
+         * open live updates.
+         */
         await AccessTokenService.refreshUserGlobalAccessPermission(
           member.userId,
+          { forgetLiveUpdateReaders: false },
         );
         await AccessTokenService.refreshUserTenantAccessPermission(
           member.userId,
@@ -580,27 +751,13 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    // Scope the root lookup using the same delete authorization as the write.
-    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
-      Model,
-      deleteBy.query,
-      deleteBy.props,
-    );
-    const selectedPermissions: Array<Model> = await this.findAllBy({
-      query: deleteBy.query,
-      select: { _id: true },
-      skip: deleteBy.skip,
-      limit: deleteBy.limit,
-      props: { isRoot: true },
-    });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map(
-      (row: Model) => {
-        return row.id!;
-      },
-    );
-    const teamPermissions: Array<Model> = await this.findAllBy({
-      query: { _id: QueryHelper.any(selectedIds) },
-      select: {
+    /*
+     * The permissions the delete removes - the ones the caller may delete, in
+     * the delete's own window - with all their labels, and the delete held
+     * to them: the write removes only rows whose authority was checked.
+     */
+    const teamPermissions: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         teamId: true,
         projectId: true,
@@ -611,11 +768,14 @@ export class Service extends DatabaseService<Model> {
         team: {
           isPermissionsEditable: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        teamCustomRoleId: true,
+        customRoleId: true,
+        customRole: {
+          name: true,
+        },
+      });
+
+    this.assertNoRoleCopies(teamPermissions, deleteBy.props);
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, deleteBy.props);
@@ -634,13 +794,6 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
-
-    // Keep the write restricted to the page whose authority was checked.
-    deleteBy.query = {
-      ...deleteBy.query,
-      _id: QueryHelper.any(selectedIds),
-    };
-    deleteBy.skip = 0;
 
     let teamMembers: Array<TeamMember> = [];
 
@@ -683,9 +836,13 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException("Invalid Project ID");
       }
 
-      /// Refresh tokens.
+      /*
+       * Refresh tokens. Only the project's refresh below tells their
+       * open live updates.
+       */
       await AccessTokenService.refreshUserGlobalAccessPermission(
         teamMember.userId,
+        { forgetLiveUpdateReaders: false },
       );
       await AccessTokenService.refreshUserTenantAccessPermission(
         teamMember.userId,

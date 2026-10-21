@@ -634,6 +634,35 @@ describe("JSONFunctions Class", () => {
         { b: 2 },
       ]);
     });
+
+    /*
+     * JSON.parse keeps "__proto__" as an ordinary key. Copied by assignment
+     * it would set the result's prototype instead: its values would be read
+     * by name - a column of a request body - while every check that lists
+     * the result's own keys missed them.
+     */
+    test("Drops a __proto__ key instead of letting it set the prototype, at any depth", () => {
+      const input: JSONObject = JSON.parse(
+        '{"isEnabled": false, "__proto__": {"teams": ["a"], "name": "x"}, "nested": {"__proto__": {"admin": true}, "kept": 1}}',
+      ) as JSONObject;
+
+      const deserialized: JSONObject = JSONFunctions.deserialize(input);
+
+      expect(Object.getPrototypeOf(deserialized)).toBe(Object.prototype);
+      expect(Object.keys(deserialized)).toEqual(["isEnabled", "nested"]);
+      expect(deserialized["teams"]).toBeUndefined();
+      expect(deserialized["name"]).toBeUndefined();
+
+      const nested: JSONObject = deserialized["nested"] as JSONObject;
+
+      expect(Object.getPrototypeOf(nested)).toBe(Object.prototype);
+      expect(nested).toEqual({ kept: 1 });
+      expect(nested["admin"]).toBeUndefined();
+
+      // Nothing leaked onto every object either.
+      expect(({} as JSONObject)["teams"]).toBeUndefined();
+      expect(({} as JSONObject)["admin"]).toBeUndefined();
+    });
   });
 
   describe("serializeValue and deserializeValue Methods", () => {

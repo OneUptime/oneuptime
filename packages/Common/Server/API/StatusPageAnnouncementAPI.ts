@@ -6,6 +6,7 @@ import StatusPageAnnouncementService, {
   Service as StatusPageAnnouncementServiceType,
 } from "../Services/StatusPageAnnouncementService";
 import Response from "../Utils/Response";
+import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
@@ -67,6 +68,7 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
           _id: announcementId,
         },
         select: {
+          projectId: true,
           attachments: {
             _id: true,
             file: true,
@@ -77,18 +79,15 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
         props,
       });
 
-    const attachment: File | undefined = announcement?.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in its own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: announcement?.attachments,
+        fileId: fileId,
+        projectId: announcement?.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 

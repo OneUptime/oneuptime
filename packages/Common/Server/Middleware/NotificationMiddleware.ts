@@ -14,15 +14,24 @@ import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class NotificationMiddleware {
+  /*
+   * Answers a key the person pressed during a call: with what the call
+   * itself said that key would answer (its signed token), or - when what
+   * happened decides the answer, as for passing a page on - with
+   * `sayMessage`.
+   */
   @CaptureSpan()
   public static async sendResponse(
     req: ExpressRequest,
     res: ExpressResponse,
     onCallInputRequest: OnCallInputRequest,
+    sayMessage?: string | undefined,
   ): Promise<void> {
     const response: VoiceResponse = new VoiceResponse();
 
-    if (onCallInputRequest[req.body["Digits"]]) {
+    if (sayMessage) {
+      response.say(sayMessage);
+    } else if (onCallInputRequest[req.body["Digits"]]) {
       response.say(onCallInputRequest[req.body["Digits"]]!.sayMessage);
     } else {
       response.say(onCallInputRequest["default"]!.sayMessage);

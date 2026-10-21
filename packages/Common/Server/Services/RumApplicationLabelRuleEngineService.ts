@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationLabelRule from "../../Models/DatabaseModels/RumApplicationLabelRule";
@@ -16,6 +17,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class RumApplicationLabelRuleEngineServiceClass
   implements RuleRunEngine<RumApplication, RumApplicationLabelRule>
@@ -107,6 +110,7 @@ class RumApplicationLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     rumApplication: RumApplication;
     rules: Array<RumApplicationLabelRule>;
@@ -165,11 +169,23 @@ class RumApplicationLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: rumApplication.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of RUM application label rules",
+      logAttributes: {
+        projectId: rumApplication.projectId.toString(),
+        rumApplicationId: rumApplication.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -260,8 +276,7 @@ class RumApplicationLabelRuleEngineServiceClass
 
   private testRegex(pattern: string, value: string): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in RUM application label rule: ${pattern}`);
       return false;

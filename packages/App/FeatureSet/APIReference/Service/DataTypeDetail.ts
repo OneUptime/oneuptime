@@ -2,6 +2,10 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import {
+  DASHBOARD_COMPONENT_EXAMPLE,
+  DASHBOARD_VIEW_CONFIG_EXAMPLE,
+} from "../Utils/DashboardDataTypeExamples";
 import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
@@ -342,7 +346,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   "monitor-step": {
     title: "MonitorStep",
     description:
-      "A single monitor step that defines what to check and how to evaluate the result. The properties you need depend on the MonitorType. For Website/API monitors, set monitorDestination and requestType. For Port monitors, also set monitorDestinationPort. For Synthetic/CustomJavaScriptCode monitors, set customCode. For Log/Trace/Metric/SNMP monitors, set the corresponding sub-config (logMonitor, traceMonitor, metricMonitor, snmpMonitor). Every step must include a MonitorCriteria object containing the evaluation rules. See MonitorCriteria, CriteriaFilter, and CheckOn for details on how criteria are evaluated.",
+      "A single monitor step that defines what to check and how to evaluate the result. The properties you need depend on the MonitorType. For Website/API monitors, set monitorDestination and requestType. For Port monitors, also set monitorDestinationPort; NTP monitors take it too, and use 123 without it. For Synthetic/CustomJavaScriptCode monitors, set customCode. For Log/Trace/Metric/SNMP monitors, set the corresponding sub-config (logMonitor, traceMonitor, metricMonitor, snmpMonitor). Every step must include a MonitorCriteria object containing the evaluation rules. See MonitorCriteria, CriteriaFilter, and CheckOn for details on how criteria are evaluated.",
     isEnum: false,
     typeHierarchy: [
       { name: "MonitorSteps", path: "monitor-steps" },
@@ -393,14 +397,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "URL | IP | Hostname",
         required: false,
         description:
-          "The target to monitor. Required for Website, API, Ping, IP, Port, and SSL Certificate monitor types. Use a URL object for Website/API monitors, an IP object for IP/Ping monitors, or a Hostname object for Port/SSL monitors.",
+          "The target to monitor. Required for Website, API, Ping, IP, Port, SSL Certificate, and NTP monitor types. Use a URL object for Website/API monitors, an IP object for IP/Ping monitors, or a Hostname object for Port/SSL monitors. An NTP monitor takes a Hostname or an IP object for the time server.",
       },
       {
         name: "monitorDestinationPort",
         type: "Port",
         required: false,
         description:
-          "The port number to check. Required only for Port monitor type. A number between 1 and 65535.",
+          "The port number to check. Required for the Port monitor type. Optional for the NTP monitor type, where it is the UDP port the time server answers on, 123 when unset. A number between 1 and 65535.",
       },
       {
         name: "monitorCriteria",
@@ -1849,70 +1853,78 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       2,
     ),
   },
+  // Examples: Utils/DashboardDataTypeExamples (issue #4571).
   "dashboard-component": {
     title: "DashboardComponent",
     description:
-      "A configuration object for a dashboard component including its type, layout, and settings.",
+      "One widget on a dashboard: what kind of widget it is, where it sits on the grid, and its settings. The dashboard grid is 12 units wide.",
     isEnum: false,
     properties: [
       {
         name: "componentId",
         type: "ObjectID",
         required: true,
-        description: "Unique identifier for this dashboard component.",
+        description:
+          "Unique identifier for this widget on the dashboard. A UUID string.",
       },
       {
         name: "componentType",
         type: "string",
         required: true,
-        description: "The type of component (e.g., Chart, Value, Table).",
+        description:
+          "The kind of widget: Chart, Value, Text, Clock, Table, Gauge, LogStream, IncidentList, MonitorList and the rest of the widget catalog. A type OneUptime does not know is kept, and the dashboard shows it as a widget that could not be shown.",
       },
       {
         name: "widthInDashboardUnits",
         type: "number",
         required: true,
-        description: "Width of the component in dashboard grid units.",
+        description: "Width of the widget in dashboard grid units (1-12).",
       },
       {
         name: "heightInDashboardUnits",
         type: "number",
         required: true,
-        description: "Height of the component in dashboard grid units.",
+        description: "Height of the widget in dashboard grid units.",
       },
       {
         name: "topInDashboardUnits",
         type: "number",
         required: true,
-        description: "Top position of the component in dashboard grid units.",
+        description: "Row the widget starts on, counted from 0.",
       },
       {
         name: "leftInDashboardUnits",
         type: "number",
         required: true,
-        description: "Left position of the component in dashboard grid units.",
+        description: "Column the widget starts in, counted from 0.",
+      },
+      {
+        name: "minWidthInDashboardUnits",
+        type: "number",
+        required: false,
+        description: "Narrowest the widget can be resized to.",
+      },
+      {
+        name: "minHeightInDashboardUnits",
+        type: "number",
+        required: false,
+        description: "Shortest the widget can be resized to.",
+      },
+      {
+        name: "arguments",
+        type: "JSON object",
+        required: false,
+        description:
+          "The widget's settings, which depend on its componentType (a Text widget's text, a Chart's queries). Easiest to get right by building the widget in the dashboard editor and reading the dashboard back.",
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      {
-        _type: "DashboardComponent",
-        value: {
-          componentId: "550e8400-e29b-41d4-a716-446655440000",
-          componentType: "Chart",
-          widthInDashboardUnits: 6,
-          heightInDashboardUnits: 4,
-          topInDashboardUnits: 0,
-          leftInDashboardUnits: 0,
-        },
-      },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify(DASHBOARD_COMPONENT_EXAMPLE, null, 2),
   },
   "dashboard-view-config": {
     title: "DashboardViewConfig",
     description:
-      "A configuration object for a dashboard view including its components and layout.",
+      "A dashboard's widgets and layout. Send it as a JSON object with its widgets in `components`, as in the example - not wrapped in a `value`.",
     isEnum: false,
     properties: [
       {
@@ -1920,29 +1932,39 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "Array<DashboardComponent>",
         required: true,
         description:
-          "An array of DashboardComponent objects that define the layout and content of the dashboard.",
+          "The widgets on the dashboard. An empty list is an empty dashboard.",
+      },
+      {
+        name: "heightInDashboardUnits",
+        type: "number",
+        required: false,
+        description:
+          "Height of the dashboard in grid units. It grows to fit its widgets.",
+      },
+      {
+        name: "timeRange",
+        type: "string",
+        required: false,
+        description:
+          "The time range the dashboard opens on: Past 5 Mins, Past 15 Mins, Past 30 Mins, Past 1 Hour, Past 2 Hours, Past 3 Hours, Past 1 Day, Past 2 Days, Past 1 Week, Past 2 Weeks, Past 1 Month or Past 3 Months. Left out, it opens on Past 1 Hour. Each viewer can still pick their own, which their browser remembers; any other value is refused.",
+      },
+      {
+        name: "refreshInterval",
+        type: "string",
+        required: false,
+        description:
+          "How often the dashboard refreshes itself when it opens: off, 5s, 10s, 30s, 1m, 5m or 15m. Left out, it is off. Each viewer can still pick their own, which their browser remembers; any other value is refused.",
+      },
+      {
+        name: "variables",
+        type: "Array<JSON object>",
+        required: false,
+        description:
+          "The dashboard's variables, the filters shown in its toolbar.",
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      {
-        _type: "DashboardViewConfig",
-        value: {
-          components: [
-            {
-              componentId: "550e8400-e29b-41d4-a716-446655440000",
-              componentType: "Chart",
-              widthInDashboardUnits: 6,
-              heightInDashboardUnits: 4,
-              topInDashboardUnits: 0,
-              leftInDashboardUnits: 0,
-            },
-          ],
-        },
-      },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify(DASHBOARD_VIEW_CONFIG_EXAMPLE, null, 2),
   },
   "criteria-filter": {
     title: "CriteriaFilter",
@@ -2014,7 +2036,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "object",
         required: false,
         description:
-          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'.",
+          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check; give it a window longer than the monitoring interval, since a window no longer than the interval holds a single check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online', 'NTP Is Online', 'NTP Is Synchronized') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'. So do the checks nothing records as a series, which are judged from a record of whether the filter matched on each check: 'Response Body', 'Response Header', 'Response Header Value', 'JavaScript Expression' and 'Is Request Timeout' on Website and API monitors, and 'Is Request Timeout' on Ping, IP and Port monitors. With 'All Values' such a filter matches only once it has matched on every check of the window, which keeps a restarting application's placeholder page from firing it; with 'Any Value', once it matched on any check of the window.",
       },
       {
         name: "serverMonitorOptions",
@@ -2036,6 +2058,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "Additional options for SNMP monitor filters. Contains 'oid' (string) - the SNMP OID to check when using 'SNMP OID Value' or 'SNMP OID Exists' checkOn values.",
+      },
+      {
+        name: "customCodeMonitorOptions",
+        type: "object",
+        required: false,
+        description:
+          "Additional options for Custom Code and Synthetic monitor filters. Contains 'resultValuePath' (string) - with the 'Result Value' checkOn, the field of the returned data to compare instead of the whole value, using dots for nested fields and [n] for array items (e.g., 'status', 'data.items[0].value'). Omit it to compare the whole value.",
       },
     ],
     values: [],
@@ -2138,6 +2167,18 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
             timeValueInMinutes: 5,
             evaluateOverTimeType: "All Values",
             onNoDataPolicy: "Ignore",
+          },
+        },
+        "// Example 14: Wait before a missing text fires":
+          "Used for Website, API monitors. Only matches once the page has been missing the text on every check for 15 minutes, so an application that answers with a placeholder while it restarts does not fire it",
+        filter14: {
+          checkOn: "Response Body",
+          filterType: "Not Contains",
+          value: "App Title",
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 15,
+            evaluateOverTimeType: "All Values",
           },
         },
       },
@@ -2621,6 +2662,36 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "Whether any DNS records were returned for the query. Use with 'True' or 'False'. Applies to: DNS monitors.",
       },
       {
+        value: "NTP Is Online",
+        description:
+          "Whether the time server answered the probe's NTP request. A kiss-o'-death counts as an answer. Use with 'True' or 'False'. Applies to: NTP monitors.",
+      },
+      {
+        value: "NTP Is Synchronized",
+        description:
+          "Whether the server that answered serves synchronized time: stratum 1 to 15, leap indicator not 3, and real timestamps. Not checked when the server did not answer. Use with 'True' or 'False'. Applies to: NTP monitors.",
+      },
+      {
+        value: "NTP Stratum",
+        description:
+          "The stratum the server reported. A kiss-o'-death (stratum 0) counts as 16, not synchronized. Use with numeric FilterTypes. Applies to: NTP monitors.",
+      },
+      {
+        value: "NTP Clock Offset (in ms)",
+        description:
+          "How far the server's clock is from the probe's, in milliseconds, in either direction. Use with numeric FilterTypes. Applies to: NTP monitors.",
+      },
+      {
+        value: "NTP Response Time (in ms)",
+        description:
+          "The time from the NTP request to the reply in milliseconds, without the DNS lookup. Use with numeric FilterTypes. Applies to: NTP monitors.",
+      },
+      {
+        value: "NTP Root Dispersion (in ms)",
+        description:
+          "The server's own estimate of its maximum error, in milliseconds. Use with numeric FilterTypes. Applies to: NTP monitors.",
+      },
+      {
         value: "JavaScript Expression",
         description:
           "A JavaScript expression to evaluate against the monitor result. Use with 'Evaluates To True'. Applies to: Custom JavaScript Code monitors.",
@@ -2922,6 +2993,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         description:
           "The time window in seconds. Only logs from the last X seconds are evaluated. For example, 300 means the last 5 minutes of logs.",
       },
+      {
+        name: "groupByAttributes",
+        type: "Array<string>",
+        required: false,
+        description:
+          "Log attribute keys to group the matching logs by, e.g. ['con_name']. When set, the logs are counted per distinct combination of these attributes' values, the criteria is evaluated for each group, and each group that meets it raises and resolves its own alert or incident. Logs that do not carry an attribute are counted under an empty value. At most 10 keys; the 100 groups with the most logs are evaluated. Omit it or use an empty array to count all matching logs together.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(
@@ -2931,6 +3009,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         severityTexts: ["Error", "Fatal"],
         telemetryServiceIds: ["550e8400-e29b-41d4-a716-446655440000"],
         lastXSecondsOfLogs: 300,
+        groupByAttributes: [],
       },
       null,
       2,

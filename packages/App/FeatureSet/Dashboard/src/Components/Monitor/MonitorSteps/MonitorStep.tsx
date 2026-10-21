@@ -2,7 +2,9 @@ import MonitorCriteriaElement from "./MonitorCriteria";
 import MonitorStepMetricPreview from "./MonitorStepMetricPreview";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -22,6 +24,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -42,6 +46,8 @@ import MonitorStepViewModel, {
   MonitorStepViewValue,
   MonitorStepViewValueType,
 } from "../../../Utils/MonitorStepViewModel";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -71,6 +77,44 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
   // Both are resolved to a model by this component and rendered as elements.
   [MonitorStepViewValueType.TelemetryServices]: FieldType.Element,
   [MonitorStepViewValueType.NetworkDevice]: FieldType.Text,
+  // Resolved to the probes' names by this component.
+  [MonitorStepViewValueType.Probes]: FieldType.ArrayOfText,
+};
+
+// A probe the step names that no probe list holds any more.
+const DELETED_PROBE_NAME: string = translationKey("Deleted probe");
+
+/*
+ * What the Monitor Details section holds. Only the probe-check types are run
+ * by probes; every other type is judged from what reaches OneUptime (its
+ * telemetry, an agent, a device's polls, the probes' own connection), where
+ * "how the probes check this resource" would be wrong.
+ */
+const PROBE_RUN_DETAILS_DESCRIPTION: string = translationKey(
+  "How the probes check this resource: what they connect to and the settings they use.",
+);
+const DETAILS_DESCRIPTION: string = translationKey(
+  "What this monitor watches, and the settings it uses.",
+);
+
+const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> = (
+  rows: Array<MonitorStepViewRow>,
+): Array<string> => {
+  const ids: Array<string> = [];
+
+  for (const row of rows) {
+    if (row.valueType !== MonitorStepViewValueType.Probes) {
+      continue;
+    }
+
+    for (const id of (row.value as Array<string> | undefined) || []) {
+      if (id && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+  }
+
+  return ids;
 };
 
 const getTelemetryServiceIds: (
@@ -114,6 +158,8 @@ const getNetworkDeviceId: (
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   /*
    * The single source of truth for what this page shows. Every monitor type
    * goes through it, so a type can no longer fall through to a blank
@@ -126,13 +172,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const telemetryServiceIds: Array<string> = getTelemetryServiceIds(rows);
   const networkDeviceId: string | undefined = getNetworkDeviceId(rows);
+  const watchedProbeIds: Array<string> = getWatchedProbeIds(rows);
+  const watchedProbeIdsKey: string = watchedProbeIds.join(",");
 
   /*
    * Most monitor types reference nothing outside the step, so they must not
    * pay for a fetch — or flash a loader — on the way in.
    */
   const hasReferencesToResolve: boolean =
-    telemetryServiceIds.length > 0 || Boolean(networkDeviceId);
+    telemetryServiceIds.length > 0 ||
+    Boolean(networkDeviceId) ||
+    watchedProbeIds.length > 0;
 
   /*
    * The effect keys off this joined string rather than the array itself:
@@ -147,6 +197,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [networkDeviceName, setNetworkDeviceName] = useState<
     string | undefined
   >(undefined);
+  // Probe id (lower case) to name, for the probes a Probe Status step watches.
+  const [probeNamesById, setProbeNamesById] = useState<Map<string, string>>(
+    new Map<string, string>(),
+  );
 
   const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
     if (telemetryServiceIds.length === 0) {
@@ -202,6 +256,31 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setNetworkDeviceName(networkDevice?.name || undefined);
   };
 
+  /*
+   * The global probes and the project's own, the same list the picker
+   * offers, so a probe reads here as it does there.
+   */
+  const fetchWatchedProbes: PromiseVoidFunction = async (): Promise<void> => {
+    if (watchedProbeIds.length === 0) {
+      setProbeNamesById(new Map<string, string>());
+      return;
+    }
+
+    const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+    const names: Map<string, string> = new Map<string, string>();
+
+    for (const probe of probes) {
+      if (probe._id) {
+        names.set(
+          probe._id.toString().toLowerCase(),
+          probe.name?.toString() || "Probe",
+        );
+      }
+    }
+
+    setProbeNamesById(names);
+  };
+
   const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError(undefined);
@@ -209,6 +288,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     try {
       await fetchServices();
       await fetchNetworkDevice();
+      await fetchWatchedProbes();
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
@@ -220,12 +300,18 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     if (!hasReferencesToResolve) {
       setServices([]);
       setNetworkDeviceName(undefined);
+      setProbeNamesById(new Map<string, string>());
       setIsLoading(false);
       return;
     }
 
     loadComponent();
-  }, [props.monitorType, telemetryServiceIdsKey, networkDeviceId]);
+  }, [
+    props.monitorType,
+    telemetryServiceIdsKey,
+    networkDeviceId,
+    watchedProbeIdsKey,
+  ]);
 
   if (isLoading) {
     return <ComponentLoader />;
@@ -264,15 +350,42 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       continue;
     }
 
+    if (row.valueType === MonitorStepViewValueType.Probes) {
+      item[row.key] = ((row.value as Array<string> | undefined) || []).map(
+        (probeId: string): string => {
+          return (
+            probeNamesById.get(probeId.toLowerCase()) ||
+            translator.translateText(DELETED_PROBE_NAME) ||
+            DELETED_PROBE_NAME
+          );
+        },
+      );
+
+      fields.push({
+        key: row.key,
+        title: row.title,
+        description: row.description,
+        fieldType: fieldTypeByValueType[row.valueType],
+        placeholder: row.placeholder,
+      });
+
+      continue;
+    }
+
     /*
      * A device that has since been deleted resolves to no name; showing the
      * stored id then beats showing nothing, because it is what the criteria
      * are still pointed at.
      */
-    item[row.key] =
+    item[row.key] = MonitorStepViewModel.translateRowValue(
+      row,
       row.valueType === MonitorStepViewValueType.NetworkDevice
         ? networkDeviceName || row.value
-        : row.value;
+        : row.value,
+      (text: string): string | undefined => {
+        return translator.translateText(text);
+      },
+    );
 
     fields.push({
       key: row.key,
@@ -294,7 +407,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title={"Monitor Details"}
             description={
-              "Here are the details of the request we will send to monitor your resource status."
+              MonitorTypeHelper.isProbableMonitor(props.monitorType)
+                ? PROBE_RUN_DETAILS_DESCRIPTION
+                : DETAILS_DESCRIPTION
             }
             required={true}
             isHeading={true}
@@ -342,6 +457,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           monitorCriteria={
             props.monitorStep?.data?.monitorCriteria as MonitorCriteria
           }
+          monitorType={props.monitorType}
         />
       </div>
     </div>

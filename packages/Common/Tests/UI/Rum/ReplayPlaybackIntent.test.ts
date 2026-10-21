@@ -8,6 +8,7 @@ import {
   computeFeedAheadMs,
   computePrefetchPagesAhead,
   getIdleSkipTargetMs,
+  shouldAutoSkipBand,
   shouldRewindBeforePlay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 
@@ -148,5 +149,31 @@ describe("getIdleSkipTargetMs", () => {
       40000 - IDLE_SKIP_PREROLL_MS,
     );
     expect(getIdleSkipTargetMs({ startMs: 10000, endMs: 10500 })).toBe(10000);
+  });
+});
+
+describe("shouldAutoSkipBand", () => {
+  it("leaves idle and background-tab footage to the viewer's toggle", () => {
+    /*
+     * Recorded footage of a page nobody was using: faithful by default
+     * (DEFAULT_SKIP_INACTIVE), skipped only when the viewer asks.
+     */
+    for (const kind of ["idle", "background-tab"]) {
+      expect(shouldAutoSkipBand({ kind: kind }, false)).toBe(false);
+      expect(shouldAutoSkipBand({ kind: kind }, true)).toBe(true);
+    }
+  });
+
+  it("always skips a stretch the recorder paused through, toggle or no toggle", () => {
+    /*
+     * Nothing was recorded there but the last frame before the pause:
+     * playing it out would hold a still picture for as long as the user
+     * was away, which is not faithfulness to anything.
+     */
+    expect(shouldAutoSkipBand({ kind: "paused" }, false)).toBe(true);
+    expect(shouldAutoSkipBand({ kind: "paused" }, true)).toBe(true);
+    expect(shouldAutoSkipBand({ kind: "paused" }, DEFAULT_SKIP_INACTIVE)).toBe(
+      true,
+    );
   });
 });

@@ -13,6 +13,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
   CloudFleetCounts,
   CloudFleetSummaryTile,
@@ -86,6 +87,12 @@ const FALLBACK_TILE_STYLE: TileStyle = {
 };
 
 /*
+ * The strip summarises the environments list; the Cloud Resources discovered
+ * from cloud monitoring share the table, and are counted on their own list.
+ */
+const ENVIRONMENT: CloudResourceKind = CloudResourceKind.Environment;
+
+/*
  * Six count requests, issued together. Providers are enumerated from the
  * shared CloudProvider enum so a new provider shows up here without a
  * dashboard change; the total stays bounded because that enum is short.
@@ -100,11 +107,15 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
     await Promise.all([
       ModelAPI.count({
         modelType: CloudResource,
-        query: { isArchived: false },
+        query: { isArchived: false, cloudResourceKind: ENVIRONMENT },
       }),
       ModelAPI.count({
         modelType: CloudResource,
-        query: { isArchived: false, otelCollectorStatus: "connected" },
+        query: {
+          isArchived: false,
+          cloudResourceKind: ENVIRONMENT,
+          otelCollectorStatus: "connected",
+        },
       }),
       ModelAPI.count({
         modelType: CloudResourceInstance,
@@ -113,7 +124,11 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
       ...providers.map((provider: CloudProvider): Promise<number> => {
         return ModelAPI.count({
           modelType: CloudResource,
-          query: { isArchived: false, cloudProvider: provider },
+          query: {
+            isArchived: false,
+            cloudResourceKind: ENVIRONMENT,
+            cloudProvider: provider,
+          },
         });
       }),
     ]);

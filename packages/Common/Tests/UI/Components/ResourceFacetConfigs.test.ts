@@ -26,7 +26,7 @@ describe("buildResourceFacetConfigs", () => {
         return config.key;
       }),
     ).toEqual([...RESOURCE_FACET_CATALOG_KEYS]);
-    expect(configs).toHaveLength(13);
+    expect(configs).toHaveLength(14);
   });
 
   test("covers every resource type, not only the original four", () => {
@@ -45,6 +45,7 @@ describe("buildResourceFacetConfigs", () => {
       "proxmoxClusterId",
       "vmwareVCenterId",
       "cephClusterId",
+      "storageArrayId",
       "serverlessFunctionId",
       "cloudResourceId",
       "rumApplicationId",

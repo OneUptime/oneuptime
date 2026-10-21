@@ -148,7 +148,7 @@ describe("the live SLO list leaves archived SLOs out", () => {
     const onFetchSuccess: string = between(
       SLOS_CODE,
       "onFetchSuccess={(data: Array<ServiceLevelObjective>) => {",
-      "isDeleteable={false}",
+      "isDeleteable={true}",
     );
 
     expect(onFetchSuccess).toContain(
@@ -206,16 +206,21 @@ describe("the live SLO list leaves archived SLOs out", () => {
     expect(source).toContain("### SLO Settings");
     expect(source).toContain("### Archiving");
     expect(source).toContain("**Archived** page");
+    // The side menu keeps Archived in its collapsed Advanced section.
+    expect(source).toContain(
+      "Find them on the **Archived** page, under **Advanced** in the side menu,",
+    );
     expect(source).toContain("| **Disabled** |");
   });
 });
 
 describe("the Archived SLOs page", () => {
-  test("lists only archived SLOs, and cannot create, edit or delete one in place", () => {
+  test("lists only archived SLOs, cannot create or edit one in place, and deletes from each row's menu", () => {
     expect(ARCHIVED_CODE).toContain(squash("query={{ isArchived: true, }}"));
     expect(ARCHIVED_CODE).toContain("isCreateable={false}");
     expect(ARCHIVED_CODE).toContain("isEditable={false}");
-    expect(ARCHIVED_CODE).toContain("isDeleteable={false}");
+    // Delete in each row's ⋯ menu and in Bulk Actions.
+    expect(ARCHIVED_CODE).toContain("isDeleteable={true}");
     expect(ARCHIVED_CODE).toContain("isViewable={true}");
   });
 
@@ -291,15 +296,31 @@ describe("the Archived SLOs page", () => {
 });
 
 describe("surfaces that count or offer SLOs leave archived ones out", () => {
-  test("the Home page's 'SLOs at risk' tile does not count archived SLOs", () => {
-    const sloCount: string = between(
-      readCode("Components", "Home", "OverviewStats.tsx"),
+  test("the Home page's 'SLOs at risk' number and list leave archived SLOs out", () => {
+    /*
+     * Home's batch (HomeOverviewData) reads the burning SLOs as one list:
+     * its rows are the attention list, its total the strip's number.
+     */
+    const sloList: string = between(
+      readCode("Components", "Home", "HomeOverviewData.ts"),
+      "ModelAPI.getList<ServiceLevelObjective>({",
+      "}),",
+    );
+
+    expect(sloList).toContain("isEnabled: true,");
+    expect(sloList).toContain("isArchived: false,");
+  });
+
+  test("the Home page's SLO total, which tells 'no SLOs yet', leaves archived SLOs out", () => {
+    const sloTotal: string = between(
+      readCode("Components", "Home", "HomeOverviewData.ts"),
       "ModelAPI.count<ServiceLevelObjective>({",
       "}),",
     );
 
-    expect(sloCount).toContain("isEnabled: true,");
-    expect(sloCount).toContain("isArchived: false,");
+    expect(sloTotal).toContain("isArchived: false,");
+    // Disabled SLOs are still set up: someone paused them.
+    expect(sloTotal).not.toContain("isEnabled");
   });
 
   test("a monitor's delete warning names only the live SLOs it would change", () => {

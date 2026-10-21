@@ -990,7 +990,7 @@ const ReplayScreenshotActions: FunctionComponent<
               onClick={copyImage}
             >
               {renderButtonIcon("copy", IconProp.Photo)}
-              <span className="sr-only sm:not-sr-only">Copy image</span>
+              <span className="max-sm:sr-only sm:not-sr-only">Copy image</span>
             </button>
             <span
               aria-hidden="true"
@@ -1009,7 +1009,7 @@ const ReplayScreenshotActions: FunctionComponent<
               onClick={downloadImage}
             >
               {renderButtonIcon("download", IconProp.Download)}
-              <span className="sr-only sm:not-sr-only">Download</span>
+              <span className="max-sm:sr-only sm:not-sr-only">Download</span>
             </button>
           </div>
         </div>

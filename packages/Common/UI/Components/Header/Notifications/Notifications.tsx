@@ -2,6 +2,8 @@ import Icon from "../../Icon/Icon";
 import Link from "../../Link/Link";
 import Route from "../../../../Types/API/Route";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -11,6 +13,8 @@ export interface ComponentProps {
 const Notifications: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       tabIndex={-1}
@@ -28,12 +32,11 @@ const Notifications: FunctionComponent<ComponentProps> = (
       <div className="p-3">
         <div className="align-items-center row">
           <div className="col">
-            <h6 className="m-0"> Notifications </h6>
+            <h6 className="m-0">{translator.translateText("Notifications")}</h6>
           </div>
           <div className="col-auto">
             <a className="small" href="/dashboard">
-              {" "}
-              Mark all as read
+              {translator.translateText("Mark all as read")}
             </a>
           </div>
         </div>
@@ -87,7 +90,7 @@ const Notifications: FunctionComponent<ComponentProps> = (
           className="btn btn-sm btn-link font-size-14 btn-block text-center flex"
           to={new Route("/notifications")}
         >
-          <span>View all</span>
+          <span>{translator.translateText("View all")}</span>
           <Icon icon={IconProp.ChevronRight} />
         </Link>
       </div>

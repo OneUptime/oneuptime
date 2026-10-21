@@ -13,6 +13,7 @@ import {
   RunWatchDecision,
   WatchedRun,
   decideRunWatch,
+  RUN_STARTING_MESSAGE,
   isFailedRunStatus,
 } from "./RunStatusWatcher";
 import {
@@ -25,6 +26,19 @@ import React, { useEffect, useRef, useState } from "react";
 export interface WatchedRunDetail extends WatchedRun {
   logs: string;
   stepTrace: WorkflowStepTrace;
+  /*
+   * When it was queued, started and finished, where the fetch asked for them.
+   * Only a downloaded run reads these: they name its file and head its log.
+   */
+  scheduledAt?: Date | null | undefined;
+  startedAt?: Date | null | undefined;
+  completedAt?: Date | null | undefined;
+  /*
+   * A person started it while the workflow was off, and who started it by
+   * hand: the run log modal says so at the top (WorkflowTestRun).
+   */
+  isTestRun?: boolean | null | undefined;
+  startedBy?: string | null | undefined;
 }
 
 export type FetchLatestRunFunction = () => Promise<WatchedRunDetail | null>;
@@ -40,6 +54,12 @@ export interface UseRunWatchResult {
   logs: string;
   /** The run's steps so far. */
   stepTrace: WorkflowStepTrace;
+  /**
+   * The run being followed, as the last poll saw it: its id, status and
+   * times as well as its log and steps. Null until the watch has found it,
+   * and again when a new watch starts.
+   */
+  run: WatchedRunDetail | null;
   /**
    * Note which run is newest *before* triggering a new one. Await this before
    * the request that starts the run: a worker can pick the job up and create
@@ -68,6 +88,7 @@ const useRunWatch: UseRunWatchFunction = (
   const [isWatching, setIsWatching] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
   const [stepTrace, setStepTrace] = useState<WorkflowStepTrace>(emptyTrace());
+  const [watchedRun, setWatchedRun] = useState<WatchedRunDetail | null>(null);
 
   /*
    * The page rebuilds its fetch function on every render. Reading it through a
@@ -146,6 +167,7 @@ const useRunWatch: UseRunWatchFunction = (
     if (run) {
       setLogs(run.logs);
       setStepTrace(run.stepTrace);
+      setWatchedRun(run);
     }
 
     const decision: RunWatchDecision = decideRunWatch({
@@ -190,9 +212,10 @@ const useRunWatch: UseRunWatchFunction = (
     watchGeneration.current = watchGeneration.current + 1;
 
     setHasFailed(false);
-    setMessage("Starting run…");
+    setMessage(RUN_STARTING_MESSAGE);
     setLogs("");
     setStepTrace(emptyTrace());
+    setWatchedRun(null);
     setIsWatching(true);
 
     void pollRun(0, watchGeneration.current);
@@ -204,6 +227,7 @@ const useRunWatch: UseRunWatchFunction = (
     isWatching: isWatching,
     logs: logs,
     stepTrace: stepTrace,
+    run: watchedRun,
     captureRunBeforeTrigger: captureRunBeforeTrigger,
     startWatchingRun: startWatchingRun,
   };

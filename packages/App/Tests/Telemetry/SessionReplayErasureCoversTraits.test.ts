@@ -189,7 +189,26 @@ function traitsHeaderRow(): JSONObject {
     entityKeys: [],
   };
 
-  return header as unknown as JSONObject;
+  /*
+   * As buildProvisionalHeaderStatement returns it: the identity and the
+   * tags come back under the latest* aliases of the "newest version that
+   * has them" read.
+   */
+  const {
+    identifiedUserKey,
+    identifiedUserLabel,
+    identifiedUserTraits,
+    tags,
+    ...rest
+  }: ProvisionalSessionHeader = header;
+
+  return {
+    ...rest,
+    latestIdentifiedUserKey: identifiedUserKey,
+    latestIdentifiedUserLabel: identifiedUserLabel,
+    latestIdentifiedUserTraits: identifiedUserTraits,
+    latestTags: tags,
+  } as unknown as JSONObject;
 }
 
 function chunkTabRow(): JSONObject {

@@ -1,25 +1,31 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
 import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Dictionary from "Common/Types/Dictionary";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
   ModalTableBulkDefaultActions,
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkIncidentLinkActions from "./BulkIncidentLinkActions";
+import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
+import { ALERT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -27,8 +33,8 @@ import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorElement from "../Monitor/Monitor";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import { getAffectedResourcesExportValue } from "../AffectedResources/AffectedResourceNames";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
@@ -51,7 +57,9 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
-import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
+import AffectedResourcesCell, {
+  ComponentProps as AffectedResourcesCellProps,
+} from "../AffectedResources/AffectedResourcesCell";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -61,6 +69,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -79,23 +88,84 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
-  createInitialValues?: FormValues<Alert> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   disableCreate?: boolean | undefined;
+  /*
+   * The record whose Alerts tab this is - a monitor, a host, a cluster:
+   * Create Alert opens the create page with it already picked
+   * (Components/CreateFromRecord). The table draws no create form of its
+   * own, so this replaces the create values it used to take and never used.
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
 }
+
+/*
+ * The Affected Resources column's own id, under which a viewer's show/hide
+ * and column order are kept (ModelTable/ColumnPreference).
+ *
+ * The list had a Monitor column beside this one, naming the same monitor on
+ * every row. That column is gone: Affected Resources names the monitor,
+ * first. Left to its derived id ("hosts", its first field), the column would
+ * stay off for anyone who had switched it off while the Monitor column named
+ * the monitor - and their list would name no monitor at all. A new id comes
+ * back on once for them; the stale "monitor" and "hosts" entries are dropped
+ * when a layout is read (sanitizeColumnPreference).
+ */
+export const ALERTS_AFFECTED_RESOURCES_COLUMN_ID: string = "affected-resources";
+
+type GetAlertAffectedResourcesFunction = (
+  alert: Alert,
+) => AffectedResourcesCellProps;
+
+/*
+ * What an alert's Affected Resources names, for its cell and its CSV alike:
+ * the monitor the alert is about first, as on the overview's Affected
+ * Resources card, then everything else linked to it.
+ */
+export const getAlertAffectedResources: GetAlertAffectedResourcesFunction = (
+  alert: Alert,
+): AffectedResourcesCellProps => {
+  return {
+    monitors: alert.monitor ? [alert.monitor] : [],
+    hosts: alert.hosts || [],
+    kubernetesClusters: alert.kubernetesClusters || [],
+    dockerHosts: alert.dockerHosts || [],
+    podmanHosts: alert.podmanHosts || [],
+    proxmoxClusters: alert.proxmoxClusters || [],
+    vmwareVCenters: alert.vmwareVCenters || [],
+    cephClusters: alert.cephClusters || [],
+    storageArrays: alert.storageArrays || [],
+    dockerSwarmClusters: alert.dockerSwarmClusters || [],
+    iotFleets: alert.iotFleets || [],
+    databaseServers: alert.databaseServers || [],
+    services: alert.services || [],
+    serviceLevelObjectives: alert.serviceLevelObjectives || [],
+  };
+};
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
-  const [initialValuesForAlert, setInitialValuesForAlert] =
-    useState<JSONObject>({});
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
     useState<boolean>(false);
@@ -103,9 +173,31 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<Alert> | null>(null);
   const [visibleAlerts, setVisibleAlerts] = useState<Array<Alert>>([]);
 
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isAlertResolved: (alert: Alert) => boolean = (
+    alert: Alert,
+  ): boolean => {
+    const stateId: string | undefined =
+      alert.currentAlertState?._id?.toString();
+
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
+
   const resolvedAlertIds: Array<string> = visibleAlerts
     .filter((alert: Alert) => {
-      return Boolean(alert.currentAlertState?.isResolvedState);
+      return isAlertResolved(alert);
     })
     .map((alert: Alert) => {
       return alert.id?.toString() || "";
@@ -120,7 +212,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   } = useEventTimelineEndDates<AlertStateTimeline>({
     eventIds: resolvedAlertIds,
     eventIdField: "alertId",
+    stateIdField: "alertStateId",
     timelineModelType: AlertStateTimeline,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const { noteTemplates } = useNoteTemplates<AlertNoteTemplate>({
@@ -141,6 +235,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     bulkActions: incidentLinkBulkActions,
     modals: incidentLinkBulkActionModals,
   } = useBulkIncidentLinkActions();
+
+  // Add to Existing Episode / Add to New Episode.
+  const { bulkActions: episodeBulkActions, modals: episodeBulkActionModals } =
+    useBulkAddToEpisodeActions<Alert>(ALERT_EPISODE_MEMBER_KIND);
 
   const alertExtraFacets: Array<ResourceFacet> = [
     {
@@ -354,7 +452,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       parentModelType: Alert,
       // Alert's monitor relation is M2O — query against the FK column.
       monitorQueryField: "monitorId",
-      // Monitor has its own dedicated facet above; keep it out of this one.
+      /*
+       * The Affected Resources column lists the monitor, but filtering by it
+       * stays with the Monitor facet above. That one queries monitorId
+       * directly; routing it through here would list every monitor in two
+       * chips and filter via an ID lookup capped at LIMIT_PER_PROJECT
+       * alerts, which a noisy monitor can pass.
+       */
       excludeMonitor: true,
       // Burn rate alerts are linked to the SLO that raised them.
       includeServiceLevelObjective: true,
@@ -382,6 +486,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -559,6 +664,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.Alert,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -572,9 +683,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           title: "Create Alert",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ALERT_CREATE] as Route,
-              ),
+              RouteUtil.getPageRoute(PageMap.ALERT_CREATE, {
+                query: createQuery,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -600,17 +711,15 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             ...labelBulkActions,
             ...ownerBulkActions,
             ...incidentLinkBulkActions,
+            ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
-        onCreateEditModalClose={(): void => {
-          setInitialValuesForAlert({});
-        }}
         modelType={Alert}
         id="alerts-table"
-        isDeleteable={false}
-        showCreateForm={Object.keys(initialValuesForAlert).length > 0}
+        isDeleteable={true}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
@@ -621,11 +730,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={false}
         isViewable={true}
-        createInitialValues={
-          Object.keys(initialValuesForAlert).length > 0
-            ? initialValuesForAlert
-            : props.createInitialValues
-        }
         cardProps={{
           title: props.title || "Alerts",
           buttons: cardbuttons,
@@ -633,7 +737,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             props.description ||
             "Alerts flag problems for your team to look into before users are affected. Unlike incidents, they never appear on status pages.",
         }}
-        noItemsMessage={props.noItemsMessage || "No alerts found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
@@ -709,6 +813,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          storageArrays: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           dockerSwarmClusters: {
             name: true,
             _id: true,
@@ -777,11 +886,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   {numberContent}
                   {item.isPrivate === true && (
                     <span
-                      title="Private alert — visible only to its owners, project admins, and project owners"
+                      title={translator.translateText(
+                        "Private alert — visible only to its owners, project admins, and project owners",
+                      )}
                       className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
                     >
                       <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                      Private
+                      {translator.translateText("Private")}
                     </span>
                   )}
                 </span>
@@ -801,9 +912,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentAlertState: {
+                _id: true,
                 name: true,
                 color: true,
-                isResolvedState: true,
               },
             },
             title: "State",
@@ -849,23 +960,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitor",
-            type: FieldType.Entity,
-            getElement: (item: Alert): ReactElement => {
-              if (!item.monitor) {
-                return <></>;
-              }
-              return <MonitorElement monitor={item.monitor} showIcon={true} />;
-            },
-          },
-          {
+            id: ALERTS_AFFECTED_RESOURCES_COLUMN_ID,
             field: {
               hosts: {
                 name: true,
@@ -902,6 +997,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -928,26 +1028,35 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              /*
+               * The monitor the alert is about, listed first, as on the
+               * overview's Affected Resources card. The list has no Monitor
+               * column: this is where a row names its monitor. A secondary
+               * key, so hosts stays the column's primary field; the table's
+               * relation select asks for it on every read
+               * (getRelationSelectFromColumns).
+               */
+              monitor: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
             title: "Affected Resources",
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {
               return (
-                <AffectedResourcesCell
-                  hosts={item.hosts || []}
-                  kubernetesClusters={item.kubernetesClusters || []}
-                  dockerHosts={item.dockerHosts || []}
-                  podmanHosts={item.podmanHosts || []}
-                  proxmoxClusters={item.proxmoxClusters || []}
-                  vmwareVCenters={item.vmwareVCenters || []}
-                  cephClusters={item.cephClusters || []}
-                  dockerSwarmClusters={item.dockerSwarmClusters || []}
-                  iotFleets={item.iotFleets || []}
-                  databaseServers={item.databaseServers || []}
-                  services={item.services || []}
-                  serviceLevelObjectives={item.serviceLevelObjectives || []}
-                />
+                <AffectedResourcesCell {...getAlertAffectedResources(item)} />
+              );
+            },
+            /*
+             * The cell's names in the cell's order. Read field by field, the
+             * file would put the monitor last, after every other resource.
+             */
+            getExportValue: (item: Alert): string => {
+              return getAffectedResourcesExportValue(
+                getAlertAffectedResources(item),
               );
             },
           },
@@ -969,9 +1078,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             disableCsvExport: true,
             getElement: (item: Alert): ReactElement => {
               const alertId: string = item.id?.toString() || "";
-              const isResolved: boolean = Boolean(
-                item.currentAlertState?.isResolvedState,
-              );
+              const isResolved: boolean = isAlertResolved(item);
               const resolvedAt: Date | undefined = alertId
                 ? resolvedAtByAlertId[alertId]
                 : undefined;
@@ -987,6 +1094,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 <LiveDuration
                   startDate={item.createdAt}
                   endDate={isResolved ? resolvedAt : undefined}
+                  isCompact={true}
                 />
               );
             },
@@ -1039,22 +1147,23 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       {labelBulkActionModals}
       {ownerBulkActionModals}
       {incidentLinkBulkActionModals}
+      {episodeBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BulkChangeStateModal
           title="Change Alert State"
           description="Select the state to change alerts to. Alerts already at or past the selected state will be skipped."
           stateFieldKey="alertStateId"
-          stateOptions={alertStates.map((state: AlertState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: alertStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Private}
           noteTitle="Private Note"
           noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected."
           noteTemplates={noteTemplates}
+          noteModel={new AlertInternalNote()}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);

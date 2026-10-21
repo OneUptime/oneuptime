@@ -6,12 +6,15 @@ import {
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
+  RETIRED_ENTERPRISE_FEATURE_VALUES,
 } from "Common/Server/Enterprise/EnterpriseFeature";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import slugify, {
+  slugifyMarkdownHeading,
+} from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -36,12 +39,19 @@ import path from "path";
  * grace period (30 days after a license expires) are different lengths, and
  * every page states each with the constant the license classifier uses.
  *
- * And what a lapse does: after the trial or the grace period SSO, OIDC, SCIM
- * and audit logging stop (the owner's decision; they used to keep running),
- * "Require SSO" stops being enforced so nobody is locked out, and everything
- * resumes with a license. The page, the upgrade notes in every language and
- * the Helm chart say so. LicenseLapseClaims.test.ts rejects the old promise
- * wherever it could reappear.
+ * And what a lapse does: after the trial or the grace period SCIM and audit
+ * logging stop (the owner's decision; they used to keep running), enterprise
+ * configuration becomes read-only, and everything resumes with a license. The
+ * page, the upgrade notes in every language and the Helm chart say so.
+ * LicenseLapseClaims.test.ts rejects the old promise wherever it could
+ * reappear.
+ *
+ * Single sign-on is not part of that. SAML and OIDC sign-in, global SSO and
+ * "Require SSO for login" are in the Community Edition. The feature matrix,
+ * the identity pages in every language, the upgrade notes (the edition
+ * section, the 13 -> 14 notes and the 10 -> 11 notes) and the Helm chart say
+ * so, and none of them may still say single sign-on is Enterprise-only, tie it
+ * to the license, or date such a claim to 14.0.10 and earlier.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -58,6 +68,9 @@ const DOCS_LOCALES_DIR: string = path.join(
 const PAGE_TITLE: string = "Enterprise Edition";
 const PAGE_RELATIVE_PATH: string = "self-hosted/enterprise";
 const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;
+
+// The English anchor of the page's section on a lapsed or missing license.
+const LAPSE_ANCHOR: string = "when-a-license-expires-or-is-missing";
 
 const UPSELL_SOURCE_FILES: Array<string> = [
   "App/FeatureSet/Dashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade.tsx",
@@ -80,6 +93,9 @@ const EDITION_SECTION_HEADING: string =
  */
 const VERSION_SECTION_HEADING_PATTERN: RegExp = /^## \D*(\d+)\D{1,24}(\d+)\b/;
 
+// The v10 -> v11 section's heading, in any language.
+const V10_TO_V11_HEADING: RegExp = /^## \D*10\D{1,24}11\b/;
+
 const DOCS_LINK_PATTERN: RegExp = /\]\((\/docs\/[^)\s]+)\)/g;
 
 const DOCS_PREFIX_PATTERN: RegExp = /^\/docs\//;
@@ -97,12 +113,72 @@ const FENCE_PATTERN: RegExp = /^\s*```/;
  * compile rather than shipping an incomplete comparison.
  */
 const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
-  [EnterpriseFeature.SSO]: "SAML SSO and OpenID Connect",
   [EnterpriseFeature.SCIM]: "SCIM provisioning",
   [EnterpriseFeature.TeamCompliance]: "Team compliance settings",
   [EnterpriseFeature.AuditLogs]: "Audit logs",
   [EnterpriseFeature.InstanceHealth]: "Admin **Health** dashboards",
+  [EnterpriseFeature.TelemetryRetention]: "Retention overrides",
 };
+
+/*
+ * The matrix rows for single sign-on, which is in both editions (the retired
+ * "sso" license claim names nothing), with what OneUptime Cloud offers: SSO
+ * and OIDC on the Scale plan, and global SSO nowhere, because OneUptime
+ * operates that instance.
+ */
+// Any name the docs give single sign-on.
+const SINGLE_SIGN_ON_WORDS: RegExp = /SSO|single sign-on|SAML|OpenID|OIDC/i;
+
+/*
+ * The same names as whole words, for running prose in any language, where
+ * "sso" also sits inside words such as "processors".
+ */
+const SINGLE_SIGN_ON_NAMES: RegExp =
+  /\bSSO\b|\bSAML\b|\bOIDC\b|\bOpenID\b|single sign-on/i;
+
+// The names of single sign-on that every translation keeps as they are.
+const UNTRANSLATED_SINGLE_SIGN_ON_NAMES: RegExp = /SSO|OIDC/;
+
+// A markdown heading below "##", a numbered or bulleted bold item, or a quote.
+const HEADING_ITEM_OR_QUOTE_PATTERN: RegExp =
+  /^(?:#{3,6} |\d+\. \*\*|- \*\*|> )/;
+
+const SSO_MATRIX_ROWS: Array<{ phrase: string; cloud: string }> = [
+  {
+    phrase:
+      "[SAML SSO and OpenID Connect](/docs/identity/sso) for project sign-in",
+    cloud: "Scale plan and above",
+  },
+  {
+    phrase: "SAML SSO and OpenID Connect for private status page sign-in",
+    cloud: "Scale plan and above",
+  },
+  {
+    phrase: "[Global (instance-wide) SSO and OIDC](/docs/identity/global-sso)",
+    cloud: "Not applicable",
+  },
+];
+
+/*
+ * Wording that ties single sign-on to the license or to the Enterprise
+ * Edition, for the texts that describe the editions as they are now (the
+ * Enterprise Edition page, the edition section of the upgrade notes, the Helm
+ * chart). LicenseLapseClaims.test.ts scans every other text for the same
+ * claims.
+ */
+const SSO_LICENSE_WORDING: Array<RegExp> = [
+  /\b(?:SSO|OIDC|single sign-on)(?:,? (?:and |or )?(?:SSO|OIDC|SCIM|audit logging))*(?: sign-in| enforcement)? (?:stops?|stop|(?:is|are) refused|(?:is|are) off)\b/i,
+  /Require SSO(?: for login)?"?\*{0,2} (?:is|are) (?:no longer|not) enforced/i,
+  /\b(?:SSO|single sign-on)\b[^.]{0,40}\b(?:is|are) (?:part of|a|an) (?:the )?\**(?:OneUptime )?Enterprise Edition/i,
+];
+
+function ssoLicenseWordingIn(text: string): Array<string> {
+  return SSO_LICENSE_WORDING.filter((pattern: RegExp) => {
+    return pattern.test(text);
+  }).map((pattern: RegExp) => {
+    return pattern.source;
+  });
+}
 
 function readContent(lang: string, relativePath: string): string {
   return fs.readFileSync(
@@ -115,8 +191,84 @@ function readPage(): string {
   return readContent("en", PAGE_RELATIVE_PATH);
 }
 
-function headingSlugs(markdown: string): Set<string> {
-  const slugs: Set<string> = new Set<string>();
+/*
+ * The upgrade guide's edition section in a language: the second section of
+ * the page, under the heading in the place of the English "Community and
+ * Enterprise Edition images", up to the next section.
+ */
+function editionHeading(lang: string): string {
+  const heading: string | undefined = readContent(
+    lang,
+    "installation/upgrading",
+  )
+    .split("\n")
+    .filter((line: string) => {
+      return line.startsWith("## ");
+    })[1];
+
+  if (!heading) {
+    throw new Error(`The ${lang} upgrade guide has no second section`);
+  }
+
+  return heading;
+}
+
+function editionSection(lang: string): string {
+  return sectionBetween(
+    readContent(lang, "installation/upgrading"),
+    editionHeading(lang),
+    "\n## ",
+  );
+}
+
+// The anchor the edition section's heading has in a language.
+function editionAnchor(lang: string): string {
+  return slugifyMarkdownHeading(editionHeading(lang).slice("## ".length));
+}
+
+// The edition section's opening paragraph, on one line.
+function editionOpening(lang: string): string {
+  return normalized(editionSection(lang).trim().split("\n\n")[0] || "");
+}
+
+// The edition section's licensing subsection is its second.
+const LICENSING_SUBSECTION: number = 1;
+
+// A subsection of the edition section, by its place.
+function editionSubsection(lang: string, index: number): string {
+  const lines: Array<string> = editionSection(lang).split("\n");
+  const starts: Array<number> = lines
+    .map((line: string, at: number): number => {
+      return line.startsWith("### ") ? at : -1;
+    })
+    .filter((at: number): boolean => {
+      return at >= 0;
+    });
+
+  return lines.slice(starts[index], starts[index + 1]).join("\n");
+}
+
+// The top-level list items of some Markdown, each with its wrapped lines.
+function listItemsOf(markdown: string): Array<string> {
+  const items: Array<string> = [];
+
+  for (const line of markdown.split("\n")) {
+    if (line.startsWith("- ")) {
+      items.push(line);
+      continue;
+    }
+
+    if (items.length > 0 && line.startsWith("  ")) {
+      items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`;
+    }
+  }
+
+  return items;
+}
+
+// The text of a page's headings, in order, outside fenced code.
+function headingTexts(markdown: string): Array<string> {
+  const texts: Array<string> = [];
   let inFence: boolean = false;
 
   for (const line of markdown.split("\n")) {
@@ -132,11 +284,57 @@ function headingSlugs(markdown: string): Set<string> {
     const match: RegExpMatchArray | null = line.match(HEADING_PATTERN);
 
     if (match) {
-      slugs.add(slugify(match[1]!));
+      texts.push(match[1]!);
     }
   }
 
-  return slugs;
+  return texts;
+}
+
+function headingSlugs(markdown: string): Set<string> {
+  return new Set<string>(
+    headingTexts(markdown).map((text: string): string => {
+      return slugify(text);
+    }),
+  );
+}
+
+/*
+ * The anchor an English heading of this page has for a reader of a
+ * language. A translation keeps the English page's headings in their order
+ * (PermissionsAndSelfHostedDocsTranslations.test.ts holds it to that), so it
+ * is the anchor of the heading in the English one's place, the one
+ * LocalizeAnchors points that language's links at. Where the page is not
+ * translated, the reader is served the English page, and its anchor.
+ */
+function anchorInLanguage(lang: string, englishAnchor: string): string {
+  const at: number = headingTexts(readPage()).findIndex(
+    (text: string): boolean => {
+      return slugify(text) === englishAnchor;
+    },
+  );
+
+  if (at < 0) {
+    throw new Error(`The ${PAGE_TITLE} page has no #${englishAnchor}`);
+  }
+
+  if (
+    !fs.existsSync(path.join(CONTENT_DIR, lang, `${PAGE_RELATIVE_PATH}.md`))
+  ) {
+    return englishAnchor;
+  }
+
+  const heading: string | undefined = headingTexts(
+    readContent(lang, PAGE_RELATIVE_PATH),
+  )[at];
+
+  if (!heading) {
+    throw new Error(
+      `The ${lang} ${PAGE_TITLE} page has no heading in the place of #${englishAnchor}`,
+    );
+  }
+
+  return slugify(heading);
 }
 
 function docsLinks(markdown: string): Array<string> {
@@ -151,9 +349,14 @@ function docsLinks(markdown: string): Array<string> {
 /*
  * A /docs/<category>/<page>[#anchor] link resolves when the English page
  * exists (the docs server falls back to English for every language) and,
- * with an anchor, when a heading on that page slugifies to it.
+ * with an anchor, when a heading on the page the reader is served
+ * slugifies to it: the page in the reader's language when it has one (a
+ * translated heading has a translated anchor), else the English page.
  */
-function unresolvedDocsLinks(markdown: string): Array<string> {
+function unresolvedDocsLinks(
+  markdown: string,
+  language: string = "en",
+): Array<string> {
   const unresolved: Array<string> = [];
 
   for (const link of docsLinks(markdown)) {
@@ -168,7 +371,19 @@ function unresolvedDocsLinks(markdown: string): Array<string> {
       continue;
     }
 
-    if (anchor && !headingSlugs(fs.readFileSync(file, "utf8")).has(anchor)) {
+    const translated: string = path.join(
+      CONTENT_DIR,
+      language,
+      `${relativePath}.md`,
+    );
+    const served: string = fs.existsSync(translated) ? translated : file;
+
+    if (
+      anchor &&
+      !headingSlugs(fs.readFileSync(served, "utf8")).has(
+        decodeURIComponent(anchor),
+      )
+    ) {
       unresolved.push(link);
     }
   }
@@ -410,6 +625,13 @@ function readHelmChartFile(relativePath: string): string {
 const HELM_RELEASED_ENTRY_TITLE_PATTERN: RegExp =
   /^- \*\*\d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)\*\*/;
 
+// An entry that has not shipped yet: "- **Unreleased (after 14.0.10)** — ...".
+const HELM_UNRELEASED_ENTRY_TITLE_PATTERN: RegExp =
+  /^- \*\*Unreleased \(after \d+\.\d+\.\d+\)\*\*/;
+
+// The entry for the Community / Enterprise split, which shipped in 14.0.0.
+const HELM_SPLIT_ENTRY_TITLE: string = "- **14.0.0 (2026-09-21)**";
+
 // The chart's upgrade-notes entries, newest first, one string per "- **" item.
 function helmUpgradeNoteEntries(): Array<string> {
   const section: string = sectionBetween(
@@ -524,12 +746,18 @@ function licensePeriodLengthProblems(text: string): Array<string> {
  * What is wrong with a description of the Enterprise Edition's licensing: it
  * must say production use needs a subscription, that the first 14 days are
  * an evaluation trial, that the same happens 30 days after a license expires,
- * and that SSO, OIDC, SCIM and audit logging stop after it until a license is
- * activated. It must not describe the license only as a switch for
- * configuration, promise that those keep running, call the unlicensed first
- * 14 days a grace period (the grace period is the 30 days after a license
- * expires), or state either period with another length.
+ * that SCIM and audit logging stop after it until a license is activated, and
+ * that single sign-on does not depend on the license. It must not describe
+ * the license only as a switch for configuration, promise that SCIM and audit
+ * logging keep running, say that single sign-on stops or is not enforced,
+ * call the unlicensed first 14 days a grace period (the grace period is the
+ * 30 days after a license expires), or state either period with another
+ * length.
  */
+// The sentence each Helm text needs about single sign-on.
+const SSO_INDEPENDENT_OF_LICENSE: RegExp =
+  /single sign-on[^.;]*does not depend on the license/i;
+
 function helmLicensingWordingProblems(text: string): Array<string> {
   const flat: string = normalized(text);
   const problems: Array<string> = [];
@@ -539,7 +767,7 @@ function helmLicensingWordingProblems(text: string): Array<string> {
     `${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial`,
     `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires`,
     "for evaluation",
-    "SSO, OIDC, SCIM and audit logging stop",
+    "SCIM and audit logging stop",
     "until a license is activated",
     "core monitoring is never affected",
   ]) {
@@ -548,12 +776,19 @@ function helmLicensingWordingProblems(text: string): Array<string> {
     }
   }
 
+  if (!SSO_INDEPENDENT_OF_LICENSE.test(flat)) {
+    problems.push("missing: single sign-on does not depend on the license");
+  }
+
   for (const forbidden of [
     /\bgrace period\b/i,
     /configuring them needs a valid license/i,
     /need a valid license to configure them/i,
     /keeps? (?:running|working)/i,
     /never stop/i,
+    ...SSO_LICENSE_WORDING,
+    // The enterprise feature list that still named single sign-on.
+    /enterprise features \((?:SSO|SAML|OIDC)/i,
   ]) {
     if (forbidden.test(flat)) {
       problems.push(`retired wording: ${forbidden.source}`);
@@ -676,6 +911,72 @@ describe("Enterprise Edition docs page", () => {
     }
   });
 
+  it("has no licensable feature for single sign-on, and never reuses its retired claim", () => {
+    expect(RETIRED_ENTERPRISE_FEATURE_VALUES).toContain("sso");
+
+    for (const feature of ALL_ENTERPRISE_FEATURES) {
+      expect(RETIRED_ENTERPRISE_FEATURE_VALUES).not.toContain(feature);
+      expect(MATRIX_ROW_FOR_FEATURE[feature]).not.toMatch(SINGLE_SIGN_ON_WORDS);
+    }
+  });
+
+  it("puts single sign-on in both editions, and on the Scale plan on OneUptime Cloud", () => {
+    const lines: Array<string> = readPage().split("\n");
+
+    for (const ssoRow of SSO_MATRIX_ROWS) {
+      const row: string | undefined = lines.find((line: string) => {
+        return line.startsWith(`| ${ssoRow.phrase} |`);
+      });
+
+      expect({ phrase: ssoRow.phrase, row: row }).toEqual({
+        phrase: ssoRow.phrase,
+        row: `| ${ssoRow.phrase} | Yes | Yes | ${ssoRow.cloud} |`,
+      });
+    }
+
+    // No matrix row may still put anything about sign-on in Enterprise only.
+    const enterpriseOnlySignOnRows: Array<string> = lines.filter(
+      (line: string) => {
+        return (
+          line.startsWith("|") &&
+          SINGLE_SIGN_ON_WORDS.test(line) &&
+          line.includes("| No | Yes |")
+        );
+      },
+    );
+
+    expect(enterpriseOnlySignOnRows).toEqual([]);
+    expect(normalized(readPage())).toContain(
+      'Single sign-on includes "Require SSO for login" for projects, private status pages and the whole instance, in both editions.',
+    );
+  });
+
+  it("says in its introduction that single sign-on is in the Community Edition", () => {
+    const introduction: string = normalized(
+      readPage().split("\n## ")[0]!.replace(/^> ?/gm, ""),
+    );
+
+    expect(introduction).toContain(
+      "platform, including SAML and OpenID Connect single sign-on, open source under the Apache License 2.0",
+    );
+    expect(introduction).toContain(
+      "Those modules add SCIM provisioning, governance and instance-administration features.",
+    );
+    expect(introduction).toContain(
+      '**Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" are part of the Community Edition, and no license state switches them off.',
+    );
+    expect(introduction).not.toContain("identity, governance");
+  });
+
+  it("no longer ties single sign-on to the license or the Enterprise Edition anywhere, not even for older releases", () => {
+    const page: string = normalized(readPage().replace(/^> ?/gm, ""));
+
+    expect(ssoLicenseWordingIn(page)).toEqual([]);
+    // The sentence that dated single sign-on in the Enterprise Edition to 14.0.0 to 14.0.10.
+    expect(page).not.toContain("14.0.10");
+    expect(page).not.toContain("were Enterprise Edition features");
+  });
+
   it("keeps ClickHouse capacity and pruning in the Community Edition", () => {
     const row: string | undefined = readPage()
       .split("\n")
@@ -774,24 +1075,28 @@ describe("Enterprise Edition docs page", () => {
 
     for (const expected of [
       // What stops, said up front and item by item.
-      "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated",
-      "**SSO and OIDC sign-in stop**",
-      "the mobile apps",
-      '**"Require SSO for login" is not enforced**',
-      '"Forgot password"',
+      "After that, **SCIM, audit logging and retention overrides stop** until a license is activated",
       "**SCIM provisioning stops.**",
       "SCIM team locks are lifted",
       "**Audit logging stops recording.**",
+      "**Retention overrides stop applying.** New telemetry is kept for the project's default retention.",
+      "Telemetry already stored keeps the retention it was written with.",
       "Enterprise configuration becomes **read-only**",
-      // What never stops.
-      "Losing a license never locks anyone out",
+      // The one change a lapsed install still accepts.
+      "One change always works, so you can respond to an incident: replacing a SCIM bearer token.",
+      "send `bearerToken` on its own (at least 32 characters)",
+      // What never stops: single sign-on is not an enterprise feature.
+      'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.',
+      "**Single sign-on.**",
+      "the mobile apps",
+      "single sign-on configuration stays editable",
       "**Core monitoring is never affected**",
       "**Master admins can always sign in with their password.**",
-      "**Nothing is deleted.**",
+      "**Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.",
       // It all comes back, and an unreadable license state switches nothing off.
       "**Everything resumes as soon as a license is activated**, without a restart",
       "While it cannot read the license state",
-      "SSO enforcement, SCIM and audit logging stay on",
+      "SCIM, audit logging and retention overrides stay on",
     ]) {
       expect({
         expected: expected,
@@ -803,17 +1108,43 @@ describe("Enterprise Edition docs page", () => {
     expect(section).not.toContain("**SSO, OIDC and SCIM keep working**");
     expect(section).not.toContain("**Audit logging continues.**");
     expect(section).not.toContain("never weakens");
+
+    // What single sign-on used to do when the license lapsed (14.0.10 and earlier).
+    for (const retired of [
+      "**SSO and OIDC sign-in stop**",
+      '**"Require SSO for login" is not enforced**',
+      "Losing a license never locks anyone out",
+      "SSO enforcement, SCIM and audit logging stay on",
+      "disabling an SSO or OIDC provider",
+      "`isEnabled: false`",
+      "**Disable** on an enabled provider",
+      '"Require SSO" settings',
+    ]) {
+      expect({ retired: retired, present: section.includes(retired) }).toEqual({
+        retired: retired,
+        present: false,
+      });
+    }
+
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
   });
 
-  it("warns an install that enforces SSO before its license lapses", () => {
+  it("warns an install whose identity provider deprovisions through SCIM before its license lapses", () => {
     // The warning is a blockquote: drop its "> " markers before joining lines.
     const page: string = normalized(readPage().replace(/^> ?/gm, ""));
 
     expect(page).toContain(
-      "**On an install that enforces SSO, activate a license before the trial or grace period ends.**",
+      "**If your identity provider deprovisions users through SCIM, activate a license before the trial or grace period ends.**",
     );
-    expect(page).toContain("SCIM no longer deprovisions the people you remove");
-    expect(page).toContain("remove those users first");
+    expect(page).toContain(
+      "SCIM no longer deprovisions the people you remove at your identity provider",
+    );
+    expect(page).toContain(
+      'unless "Require SSO for login" applies to them, anyone who can still reach such an account\'s email inbox can set a password and sign in',
+    );
+    expect(page).toContain("remove those users in OneUptime yourself");
+    expect(page).not.toContain("On an install that enforces SSO");
+    expect(page).not.toContain("Once SSO enforcement stops");
   });
 
   it("tells a new install to activate before the trial ends, and what stops if it does not", () => {
@@ -822,22 +1153,58 @@ describe("Enterprise Edition docs page", () => {
     );
 
     expect(licensing).toContain(
-      "Activate a license before the trial ends: after it, SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only",
+      "Activate a license before the trial ends: after it, SCIM, audit logging and retention overrides stop and enterprise configuration becomes read-only",
     );
     expect(licensing).toContain("(#when-a-license-expires-or-is-missing)");
+    expect(ssoLicenseWordingIn(licensing)).toEqual([]);
   });
 
-  it("explains a downgrade, including the SSO enforcement it relaxes", () => {
+  it("says the Community image refuses IS_ENTERPRISE_EDITION=true to protect SCIM and audit logging", () => {
+    const page: string = normalized(readPage());
+
+    expect(page).toContain(
+      "an upgrade that lands on the Community image can never silently stop SCIM provisioning (deprovisioning included) and audit logging",
+    );
+    expect(page).not.toContain('silently stop enforcing "Require SSO"');
+  });
+
+  it("explains a downgrade: SCIM and audit logging stop, single sign-on does not change", () => {
     const page: string = readPage();
+    const section: string = normalized(
+      sectionBetween(
+        page,
+        "## Switching from Enterprise to Community",
+        "\n## ",
+      ),
+    );
 
     expect(page).toContain("## Switching from Enterprise to Community");
-    expect(page).toContain('**"Require SSO for login" is not enforced**');
     expect(page).toContain("Switching back to the Enterprise");
-    // Switching back restores SSO only on a licensed (or trial / grace) install.
-    expect(normalized(page)).toContain(
+    // Switching back restores SCIM only on a licensed (or trial / grace) install.
+    expect(section).toContain(
       "as long as the install has a valid license or is still in its trial or grace period",
     );
-    expect(page).toContain("review who has access");
+    expect(section).toContain(
+      'Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same on both images.',
+    );
+    expect(section).toContain("**SCIM stops.**");
+    expect(section).toContain("That includes SCIM deprovisioning.");
+    expect(section).toContain("**SCIM team locks are lifted**");
+    expect(section).toContain("**Audit logging stops.**");
+    expect(section).toContain("**Retention overrides stop applying.**");
+    expect(section).toContain(
+      "The overrides stay in the database and apply again when you switch back.",
+    );
+    expect(section).toContain("review who has access");
+
+    // The downgrade used to switch single sign-on off (14.0.10 and earlier).
+    expect(section).not.toContain(
+      '**"Require SSO for login" is not enforced**',
+    );
+    expect(section).not.toContain("**SSO, OIDC and SCIM stop.**");
+    expect(section).not.toContain("disable an SSO or OIDC provider");
+    expect(section).not.toContain("SSO enforcement relaxed");
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
   });
 
   it("says the trial is for evaluation and production needs a subscription", () => {
@@ -901,8 +1268,20 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
           return line.startsWith("## ");
         });
 
-      // General guidance, then this section, then the version sections.
-      expect(sectionHeadings[1]).toBe(EDITION_SECTION_HEADING);
+      /*
+       * General guidance, then this section, then the version sections. A
+       * translation words the heading its own way: there it is the section
+       * in the English one's place, the one the page's own links to the
+       * edition section land on.
+       */
+      if (lang === "en") {
+        expect(sectionHeadings[1]).toBe(EDITION_SECTION_HEADING);
+      } else {
+        expect(sectionHeadings[1]).not.toBe(EDITION_SECTION_HEADING);
+        expect(page).toContain(`(#${editionAnchor(lang)})`);
+      }
+
+      expect(sectionHeadings[1]).not.toMatch(VERSION_SECTION_HEADING_PATTERN);
       expect(sectionHeadings[2]).toMatch(VERSION_SECTION_HEADING_PATTERN);
 
       /*
@@ -916,15 +1295,13 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       expect(Number(newestHop![2])).toBe(Number(newestHop![1]) + 1);
       expect(
         sectionHeadings.filter((heading: string) => {
-          return heading === EDITION_SECTION_HEADING;
+          return heading === sectionHeadings[1];
         }),
       ).toHaveLength(1);
 
-      if (lang !== "en") {
-        expect(page).toContain(
-          "TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the Community/Enterprise image split).",
-        );
-      }
+      // Translated in full: no section left in English behind a marker.
+      expect(page).not.toContain("TODO(i18n)");
+      expect(page).not.toContain("<!--");
     },
   );
 
@@ -934,11 +1311,15 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       const page: string = readContent(lang, "installation/upgrading");
 
       expect(page).not.toContain(OLD_V11_CLAIM);
-      // The corrected v11 paragraph points at the new section.
-      expect(page).toContain("(#community-and-enterprise-edition-images)");
-      expect(
-        headingSlugs(page).has("community-and-enterprise-edition-images"),
-      ).toBe(true);
+      // The corrected v11 paragraph points at the edition section.
+      expect(page).toContain(`(#${editionAnchor(lang)})`);
+      expect(headingSlugs(page).has(editionAnchor(lang))).toBe(true);
+
+      if (lang === "en") {
+        expect(editionAnchor(lang)).toBe(
+          "community-and-enterprise-edition-images",
+        );
+      }
     },
   );
 
@@ -951,15 +1332,24 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
     expect(page).toContain("`APP_TAG=enterprise-release`");
   });
 
-  it("warns Community users with SSO configured before they upgrade", () => {
+  it("warns Community users with SCIM configured before they upgrade, and tells them single sign-on stays", () => {
     const page: string = readContent("en", "installation/upgrading");
-
-    expect(page).toContain(
-      "**Community image with SSO, OIDC or SCIM already configured:**",
+    const section: string = normalized(
+      sectionBetween(page, EDITION_SECTION_HEADING, "\n## "),
     );
-    expect(page).toContain(
+
+    expect(section).toContain(
+      "**Community image with SCIM already configured:** SCIM provisioning stops with this upgrade, including deprovisioning.",
+    );
+    expect(section).toContain(
+      "Single sign-on is not affected: the Community image serves it too.",
+    );
+    expect(section).toContain("**Community Edition without SCIM:** nothing.");
+    expect(section).toContain(
       "(/docs/self-hosted/enterprise#switching-from-enterprise-to-community)",
     );
+    expect(section).not.toContain("with SSO, OIDC or SCIM already configured");
+    expect(section).not.toContain("without SSO, OIDC or SCIM");
   });
 
   it("only links to docs pages and headings that exist", () => {
@@ -971,38 +1361,371 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "%s says what stops when an unlicensed install's trial ends",
     (lang: string) => {
-      const section: string = normalized(
-        sectionBetween(
-          readContent(lang, "installation/upgrading"),
-          EDITION_SECTION_HEADING,
-          "\n## ",
-        ),
-      );
+      const section: string = normalized(editionSection(lang));
 
-      for (const expected of [
-        "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
-        'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
-        "Everything resumes, without a restart, as soon as you activate a license.",
-        `If the license expires, everything keeps working for a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
-        `gets a ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial from the first start of this release`,
-        "On the Enterprise Edition they refuse requests while the license is lapsed",
-      ]) {
-        expect({
-          lang: lang,
-          expected: expected,
-          present: section.includes(expected),
-        }).toEqual({
-          lang: lang,
-          expected: expected,
-          present: true,
-        });
+      if (lang === "en") {
+        for (const expected of [
+          "**If you use SCIM or audit logging, activate a license before the trial ends.**",
+          "After the trial, SCIM provisioning stops and audit logging stops recording.",
+          "Single sign-on is not affected.",
+          "Everything resumes, without a restart, as soon as you activate a license.",
+          `If the license expires, everything keeps working for a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
+          `gets a ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial from the first start of this release`,
+          "The SCIM endpoints keep their exact paths on the Enterprise Edition",
+          "On the Enterprise Edition they refuse requests while the license is lapsed",
+          "keep their exact paths and are served by both editions in every license state",
+        ]) {
+          expect({
+            lang: lang,
+            expected: expected,
+            present: section.includes(expected),
+          }).toEqual({
+            lang: lang,
+            expected: expected,
+            present: true,
+          });
+        }
       }
 
+      /*
+       * Every language says it with what a translation keeps as it is: the
+       * licensing list states the grace period for an install with a license
+       * key and the trial for one without, with the lengths the license
+       * classifier uses, and links the full state table; the SCIM endpoints
+       * answer `404` on the Community Edition.
+       */
+      const licensing: Array<string> = listItemsOf(
+        editionSubsection(lang, LICENSING_SUBSECTION),
+      );
+
+      expect({ lang: lang, items: licensing.length }).toEqual({
+        lang: lang,
+        items: 3,
+      });
+      expect({
+        lang: lang,
+        withKey: statedDayCounts(licensing[0]!),
+        withoutLicense: statedDayCounts(licensing[1]!),
+      }).toEqual({
+        lang: lang,
+        withKey: expect.arrayContaining([
+          ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+        ]),
+        withoutLicense: expect.arrayContaining([
+          ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        ]),
+      });
+      expect(licensing[1]).toContain(
+        `(${PAGE_URL}#${anchorInLanguage(lang, LAPSE_ANCHOR)})`,
+      );
+      expect(section).toContain("`404`");
       expect(section).not.toContain(
         "keep running with the configuration you have",
       );
     },
   );
+
+  /*
+   * The edition section describes the editions as they are now. Everything it
+   * says about single sign-on must hold in every edition and license state,
+   * and it does not date single sign-on in the Enterprise Edition to 14.0.10
+   * and earlier either.
+   */
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s puts single sign-on in the Community Edition and ties it to no license",
+    (lang: string) => {
+      const section: string = normalized(
+        editionSection(lang).replace(/^> ?/gm, ""),
+      );
+
+      if (lang === "en") {
+        for (const expected of [
+          'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO for login".',
+          "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
+          "instead of silently stopping SCIM provisioning and audit logging.",
+          "Single sign-on is not affected: the Community image serves it too.",
+        ]) {
+          expect({
+            lang: lang,
+            expected: expected,
+            present: section.includes(expected),
+          }).toEqual({ lang: lang, expected: expected, present: true });
+        }
+      }
+
+      /*
+       * Every language opens the section with what each image holds: the
+       * Community Edition with "Require SSO for login", the setting's name
+       * every translation keeps, and the Enterprise Edition with the `ee/`
+       * directory the Community image does not contain.
+       */
+      const opening: string = editionOpening(lang);
+
+      expect({
+        lang: lang,
+        namesRequireSso: opening.includes("Require SSO for login"),
+        namesBothEditions:
+          opening.includes("**Community Edition**") &&
+          opening.includes("**Enterprise Edition**"),
+        eeDirectory: opening.split("`ee/`").length - 1,
+      }).toEqual({
+        lang: lang,
+        namesRequireSso: true,
+        namesBothEditions: true,
+        eeDirectory: 2,
+      });
+
+      expect({
+        lang: lang,
+        ssoLicenseWording: ssoLicenseWordingIn(section),
+      }).toEqual({ lang: lang, ssoLicenseWording: [] });
+      // The note that single sign-on needed the Enterprise Edition until 14.0.10.
+      expect(section).not.toContain("14.0.10");
+      expect(section).not.toContain("SAML SSO, OIDC, SCIM");
+      expect(section).not.toContain(
+        'silently no longer enforcing "Require SSO"',
+      );
+    },
+  );
+
+  /*
+   * The 13 -> 14 notes describe the upgrade as it is today: single sign-on is
+   * in the Community image and does not depend on the license, and SCIM, team
+   * compliance, audit logs, the Health dashboards and the Query Console are
+   * what the Community image leaves out. They open with the edition split, not
+   * with a note dating single sign-on in the Enterprise Edition to 14.0.10 and
+   * earlier. The checks that run in every language rely only on what every
+   * translation keeps as it is: version numbers, the setting's name, feature
+   * names and code spans.
+   */
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s puts single sign-on in the Community image in the 13 → 14 notes",
+    (lang: string) => {
+      const lines: Array<string> = readContent(
+        lang,
+        "installation/upgrading",
+      ).split("\n");
+      const headingIndex: number = lines.findIndex((line: string) => {
+        return (
+          line.startsWith("## ") && VERSION_SECTION_HEADING_PATTERN.test(line)
+        );
+      });
+      const hop: RegExpMatchArray | null = lines[headingIndex]!.match(
+        VERSION_SECTION_HEADING_PATTERN,
+      );
+
+      expect([Number(hop![1]), Number(hop![2])]).toEqual([13, 14]);
+
+      const sectionLines: Array<string> = [];
+
+      for (const line of lines.slice(headingIndex + 1)) {
+        if (line.startsWith("## ")) {
+          break;
+        }
+
+        sectionLines.push(line);
+      }
+
+      // The heading, a blank line, then the edition split: no note above it.
+      expect(sectionLines[0]).toBe("");
+      expect({ lang: lang, note: sectionLines[1]!.startsWith(">") }).toEqual({
+        lang: lang,
+        note: false,
+      });
+      expect({
+        lang: lang,
+        dated: sectionLines.join("\n").includes("14.0.10"),
+      }).toEqual({ lang: lang, dated: false });
+
+      // The opening paragraph names "Require SSO for login" among what the Community image includes.
+      const opening: Array<string> = [];
+
+      for (const line of sectionLines.slice(1)) {
+        if (line.trim() === "") {
+          break;
+        }
+
+        opening.push(line);
+      }
+
+      expect({
+        lang: lang,
+        namesRequireSso: opening.join(" ").includes("Require SSO for login"),
+      }).toEqual({ lang: lang, namesRequireSso: true });
+
+      /*
+       * The editions table gives single sign-on and SCIM a row each: only the
+       * SCIM endpoints answer 404 on the Community Edition.
+       */
+      const rows: Array<string> = sectionLines.filter((line: string) => {
+        return line.startsWith("|");
+      });
+      const ssoRows: Array<string> = rows.filter((row: string) => {
+        return UNTRANSLATED_SINGLE_SIGN_ON_NAMES.test(row);
+      });
+      const scimRows: Array<string> = rows.filter((row: string) => {
+        return row.includes("SCIM");
+      });
+
+      expect({ lang: lang, ssoRows: ssoRows.length }).toEqual({
+        lang: lang,
+        ssoRows: 1,
+      });
+      expect({ lang: lang, ssoRow404: ssoRows[0]!.includes("`404`") }).toEqual({
+        lang: lang,
+        ssoRow404: false,
+      });
+      expect({ lang: lang, scimRows: scimRows.length }).toEqual({
+        lang: lang,
+        scimRows: 1,
+      });
+      expect({
+        lang: lang,
+        scimRow404: scimRows[0]!.includes("`404`"),
+        scimRowNamesSso: UNTRANSLATED_SINGLE_SIGN_ON_NAMES.test(scimRows[0]!),
+      }).toEqual({ lang: lang, scimRow404: true, scimRowNamesSso: false });
+    },
+  );
+
+  it("says in English, step by step, that single sign-on stays on the Community image when upgrading to 14", () => {
+    const section: string = normalized(
+      sectionBetween(
+        readContent("en", "installation/upgrading"),
+        "## Upgrading from OneUptime 13 → 14",
+        "\n## ",
+      ).replace(/^> ?/gm, ""),
+    );
+
+    for (const expected of [
+      'The **Community Edition** (Apache-2.0, the `release` and `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require SSO for login".',
+      "so SCIM provisioning, team compliance settings, audit logs, the Admin **Health** dashboards and the Admin **Query Console** are not in that image at all.",
+      "Single sign-on does not depend on that license.",
+      'Single sign-on works the same on both: your SSO and OIDC configuration and your "Require SSO for login" settings carry over as they are.',
+      "the Community Edition is what you already have, and it includes SAML SSO and OpenID Connect.",
+      "rather than coming up as the Community Edition with SCIM provisioning and audit logging silently stopped.",
+      "**If this install will run the Community Edition while your identity provider deprovisions users through SCIM, review who has access before you upgrade.**",
+      "| SSO and OIDC endpoints | the same paths in both editions | the same paths in both editions, whatever the license state |",
+      "| SCIM endpoints | the same paths in both editions | the same paths on Enterprise; `404` on Community |",
+      "until a license is activated: your identity provider's SCIM requests are refused and audit logging stops recording.",
+      'SSO and OIDC sign-in, "Require SSO for login" and password sign-in for every user, master admins included, work the same in every license state.',
+      "Activating a license restores SCIM provisioning and audit logging with the configuration you already have, without a restart.",
+      "Read point 5 above first if your identity provider deprovisions users through SCIM.",
+      "If that install has SCIM configured on `community-edition`, set `image.type: enterprise-edition` in the same upgrade.",
+      "The SCIM endpoints tell the two cases apart",
+      "Activation is what keeps SCIM provisioning and audit logging running",
+    ]) {
+      expect({
+        expected: expected,
+        present: section.includes(expected),
+      }).toEqual({ expected: expected, present: true });
+    }
+
+    // What the notes said while single sign-on was an Enterprise feature.
+    for (const retired of [
+      "Releases after 14.0.10",
+      "SAML SSO, OpenID Connect, SCIM provisioning",
+      "with your SSO configuration no longer enforced",
+      "SSO and OIDC sign-in are refused",
+      "disable an SSO or OIDC provider",
+      "Activating a license restores SSO sign-in",
+      "if this install enforces SSO",
+      "has SSO, OIDC or SCIM configured",
+      "The SSO, OIDC and SCIM endpoints",
+      "Activation is what keeps single sign-on enforced",
+    ]) {
+      expect({ retired: retired, present: section.includes(retired) }).toEqual({
+        retired: retired,
+        present: false,
+      });
+    }
+
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
+  });
+
+  /*
+   * The 10 -> 11 notes name what moved to the Enterprise Edition in v11 and
+   * still needs it: SCIM provisioning and team compliance settings. No
+   * heading, list item or note in them names single sign-on as moving, and
+   * the "Releases after 14.0.10" note is gone.
+   */
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s no longer lists single sign-on among what moved to the Enterprise Edition in v11",
+    (lang: string) => {
+      const page: string = readContent(lang, "installation/upgrading");
+      const headings: Array<string> = page
+        .split("\n")
+        .filter((line: string) => {
+          return V10_TO_V11_HEADING.test(line);
+        });
+
+      expect({ lang: lang, headings: headings.length }).toEqual({
+        lang: lang,
+        headings: 1,
+      });
+
+      const section: string = sectionBetween(page, headings[0]!, "\n## ");
+      const headingsAndItems: Array<string> = section
+        .split("\n")
+        .filter((line: string) => {
+          return HEADING_ITEM_OR_QUOTE_PATTERN.test(line);
+        });
+
+      expect({
+        lang: lang,
+        namingSingleSignOn: headingsAndItems.filter((line: string) => {
+          return SINGLE_SIGN_ON_NAMES.test(line);
+        }),
+      }).toEqual({ lang: lang, namingSingleSignOn: [] });
+      expect({ lang: lang, dated: section.includes("14.0.10") }).toEqual({
+        lang: lang,
+        dated: false,
+      });
+      expect(section).toContain(`(#${editionAnchor(lang)})`);
+      expect(section).not.toContain(
+        "The Community image no longer contains any SSO,",
+      );
+      expect(section).not.toContain("so you can restore SSO/OIDC/SCIM");
+    },
+  );
+
+  it("says in English that SCIM and team compliance moved to the Enterprise Edition in v11, and single sign-on is in the Community Edition", () => {
+    const page: string = normalized(
+      readContent("en", "installation/upgrading"),
+    );
+    const section: string = normalized(
+      sectionBetween(
+        readContent("en", "installation/upgrading"),
+        "### SCIM and team compliance settings now require the Enterprise Edition",
+        "\n### ",
+      ),
+    );
+
+    expect(page).toContain(
+      "1. **SCIM provisioning and team compliance settings moved to the Enterprise Edition** — if you use them on a self-hosted Community build, read this first.",
+    );
+
+    for (const expected of [
+      "In v11, the following access-management features moved to the **OneUptime Enterprise Edition**",
+      "- **SCIM user provisioning** — project and status page - **Team compliance settings**",
+      "SAML SSO, OpenID Connect (OIDC) and global (instance-wide) SSO, for both project login and status-page login, are part of the Community Edition — see [Community and Enterprise Edition images](#community-and-enterprise-edition-images).",
+      "if you configured SCIM or team compliance settings on a Community Edition build, the settings pages show an upgrade prompt",
+      "- **Self-hosted:** requires the **Enterprise Edition** build.",
+      "**If you rely on SCIM and self-host**",
+    ]) {
+      expect({
+        expected: expected,
+        present: section.includes(expected),
+      }).toEqual({ expected: expected, present: true });
+    }
+
+    expect(page).not.toContain(
+      "Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition",
+    );
+    expect(page).not.toContain(
+      "Identity features (SSO, OIDC, SCIM) moved to the Enterprise Edition",
+    );
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
+  });
 });
 
 describe("Identity docs carry an edition note in every language", () => {
@@ -1015,74 +1738,94 @@ describe("Identity docs carry an edition note in every language", () => {
         "identity/global-sso",
       ]) {
         const content: string = readContent(lang, page);
+        const intro: string = content.split("\n## ")[0]!;
 
+        // The note sits in the introduction, above the first section.
         expect({
           page: page,
-          linked: content.includes(`](${PAGE_URL})`),
+          linked: intro.includes(`](${PAGE_URL})`),
         }).toEqual({ page: page, linked: true });
-        expect(unresolvedDocsLinks(content)).toEqual([]);
+        expect(unresolvedDocsLinks(content, lang)).toEqual([]);
       }
 
+      // SSO and SCIM are on the Scale plan on OneUptime Cloud.
       for (const page of ["identity/sso", "identity/scim"]) {
         const intro: string = readContent(lang, page).split("\n## ")[0]!;
 
-        // The note sits in the introduction, above the first section.
-        expect(intro).toContain(PAGE_URL);
-        expect(intro).toContain("**Scale**");
-      }
-
-      /*
-       * And it says what a lapsed license does to the feature: after the
-       * 14-day trial, or 30 days after a license expires, SSO sign-in stops
-       * and "Require SSO" is not enforced, and SCIM requests are refused,
-       * until a license is activated. The setting keeps its English name in
-       * every language, and each language states the trial first and the
-       * grace period second, with the lengths the classifier uses.
-       */
-      for (const page of [
-        "identity/sso",
-        "identity/scim",
-        "identity/global-sso",
-      ]) {
-        const intro: string = readContent(lang, page).split("\n## ")[0]!;
-        const scimTwice: RegExp = /SCIM[\s\S]*SCIM/;
-
-        // The lapse sentence follows the link to the Enterprise Edition page.
-        const afterLink: string = intro
-          .split(`](${PAGE_URL})`)
-          .slice(1)
-          .join(" ");
-
-        expect({
+        expect({ page: page, scale: intro.includes("**Scale**") }).toEqual({
           page: page,
-          periods: statedDayCounts(afterLink),
-        }).toEqual({
-          page: page,
-          periods: [
-            ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
-            ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
-          ],
-        });
-
-        expect({
-          page: page,
-          namesRequireSso:
-            page === "identity/scim" || intro.includes("Require SSO"),
-          namesScim: page !== "identity/scim" || scimTwice.test(intro),
-        }).toEqual({
-          page: page,
-          namesRequireSso: true,
-          namesScim: true,
+          scale: true,
         });
       }
     },
   );
 
-  it("says in English exactly what stops on each identity page", () => {
+  /*
+   * SCIM stops with the license: after the 14-day trial, or 30 days after a
+   * license expires, SCIM requests are refused until a license is activated.
+   * Each language states the trial first and the grace period second, with
+   * the lengths the classifier uses, after the link to the Enterprise Edition
+   * page.
+   */
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s SCIM page says SCIM stops after the trial or the grace period",
+    (lang: string) => {
+      const intro: string = readContent(lang, "identity/scim").split(
+        "\n## ",
+      )[0]!;
+      const afterLink: string = intro
+        .split(`](${PAGE_URL})`)
+        .slice(1)
+        .join(" ");
+
+      expect(statedDayCounts(afterLink)).toEqual([
+        ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      ]);
+      expect(intro).toMatch(/SCIM[\s\S]*SCIM/);
+    },
+  );
+
+  /*
+   * Single sign-on does not stop: SSO (with "Require SSO for login") and
+   * global SSO are in every edition and need no license. So each language's
+   * note names the Community Edition, keeps the setting's English name, and
+   * states no trial or grace length (Persian digits included), because there
+   * is no deadline to state.
+   */
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s SSO and global SSO pages put single sign-on in every edition, with no license deadline",
+    (lang: string) => {
+      for (const page of ["identity/sso", "identity/global-sso"]) {
+        const intro: string = readContent(lang, page).split("\n## ")[0]!;
+        // The note is the introduction's paragraph that links the edition page.
+        const note: string =
+          intro.split("\n").find((line: string) => {
+            return line.includes(`](${PAGE_URL})`);
+          }) || "";
+
+        expect({
+          page: page,
+          periods: statedDayCounts(note),
+          namesCommunityEdition: note.includes("Community Edition"),
+          namesRequireSso: note.includes("Require SSO"),
+          namesCloud: note.includes("OneUptime Cloud"),
+        }).toEqual({
+          page: page,
+          periods: [],
+          namesCommunityEdition: true,
+          namesRequireSso: true,
+          namesCloud: true,
+        });
+      }
+    },
+  );
+
+  it("says in English exactly what each identity page's edition note means", () => {
     for (const [page, sentence] of [
       [
         "identity/sso",
-        'Without a valid license (after the 14-day trial, or 30 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.',
+        '> **Edition:** SSO, including "Require SSO for login", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed. On OneUptime Cloud it is available on the **Scale** plan and above.',
       ],
       [
         "identity/scim",
@@ -1090,7 +1833,7 @@ describe("Identity docs carry an edition note in every language", () => {
       ],
       [
         "identity/global-sso",
-        'Without a valid license (after the 14-day trial, or 30 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
+        'Global SSO, including the instance-wide "Require SSO for Login" toggle, is part of every OneUptime edition: every self-hosted instance has it, the Community Edition included, and it needs no license. It is instance administration, so it does not apply to OneUptime Cloud.',
       ],
     ] as Array<[string, string]>) {
       expect({
@@ -1099,18 +1842,95 @@ describe("Identity docs carry an edition note in every language", () => {
       }).toEqual({ page: page, present: true });
     }
   });
+
+  it("no longer says in English that single sign-on needs the Enterprise Edition or a license", () => {
+    for (const page of ["identity/sso", "identity/global-sso"]) {
+      const intro: string = normalized(
+        readContent("en", page).split("\n## ")[0]!.replace(/^> ?/gm, ""),
+      );
+
+      for (const retired of [
+        "Without a valid license",
+        "Enterprise Edition image and a license",
+        "is only available on instances running the Enterprise Edition build",
+        "what happens to SSO requirements on the Community Edition",
+      ]) {
+        expect({
+          page: page,
+          retired: retired,
+          present: intro.includes(retired),
+        }).toEqual({
+          page: page,
+          retired: retired,
+          present: false,
+        });
+      }
+
+      expect({ page: page, wording: ssoLicenseWordingIn(intro) }).toEqual({
+        page: page,
+        wording: [],
+      });
+    }
+  });
+});
+
+/*
+ * The status pages overview says who gets SSO, OIDC and SCIM on a private
+ * status page. It used to say they were "gated behind a plan feature, so they
+ * may not be available on every installation", which is not true of single
+ * sign-on on a self-hosted installation.
+ */
+describe("The status pages overview says who gets status page SSO, OIDC and SCIM", () => {
+  const paragraphOf: (lang: string) => string = (lang: string): string => {
+    const paragraphs: Array<string> = readContent(lang, "status-pages/index")
+      .split("\n")
+      .filter((line: string) => {
+        return (
+          line.includes("**SCIM**") &&
+          line.includes("OIDC") &&
+          !line.startsWith("|")
+        );
+      });
+
+    expect({ lang: lang, paragraphs: paragraphs.length }).toEqual({
+      lang: lang,
+      paragraphs: 1,
+    });
+
+    return paragraphs[0] || "";
+  };
+
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s names the Scale plan and links to the Enterprise Edition page",
+    (lang: string) => {
+      const paragraph: string = paragraphOf(lang);
+
+      expect(paragraph).toContain(`](${PAGE_URL})`);
+      expect(paragraph).toContain("Scale");
+      expect(unresolvedDocsLinks(paragraph)).toEqual([]);
+    },
+  );
+
+  it("says in English that SSO and OIDC are in every self-hosted edition", () => {
+    const paragraph: string = paragraphOf("en");
+
+    expect(paragraph).toContain(
+      "On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).",
+    );
+    expect(paragraph).not.toContain(
+      "may not be available on every installation",
+    );
+  });
 });
 
 /*
  * The SLO audit-logs page tells a self-hosted reader that audit logs need the
  * Enterprise Edition. It must also say that recording stops once the license
- * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Only
- * English and Persian have this page.
+ * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Every
+ * docs language has this page, so every one says it.
  */
 describe("The SLO audit logs page says recording stops with the license", () => {
   const SLO_AUDIT_LOGS_PAGE: string = "slo/feed-and-audit-logs";
-  const LAPSE_ANCHOR: string =
-    "/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing";
 
   // The paragraph that says audit logs need the **Enterprise** plan or edition.
   const turningOnSection: (lang: string) => string = (lang: string): string => {
@@ -1125,18 +1945,20 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     return paragraph || "";
   };
 
-  it.each(["en", "fa"])(
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
     "%s: the Enterprise note links to what happens when a license lapses",
     (lang: string) => {
       const paragraph: string = turningOnSection(lang);
 
-      expect(paragraph).toContain(`](${LAPSE_ANCHOR})`);
+      expect(paragraph).toContain(
+        `](${PAGE_URL}#${anchorInLanguage(lang, LAPSE_ANCHOR)})`,
+      );
       // The trial, then the grace period after an expiry (Persian digits too).
       expect(statedDayCounts(paragraph)).toEqual([
         ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
         ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
       ]);
-      expect(unresolvedDocsLinks(paragraph)).toEqual([]);
+      expect(unresolvedDocsLinks(paragraph, lang)).toEqual([]);
     },
   );
 
@@ -1146,18 +1968,18 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     );
   });
 
-  it("no other language has the page, so no translation is missing the note", () => {
-    const languagesWithPage: Array<string> =
+  it("every language has the page, so the note above reads every translation", () => {
+    const languagesWithoutPage: Array<string> =
       SUPPORTED_DOCS_LANGUAGE_CODES.filter((lang: string) => {
         try {
           readContent(lang, SLO_AUDIT_LOGS_PAGE);
-          return true;
-        } catch {
           return false;
+        } catch {
+          return true;
         }
       });
 
-    expect(languagesWithPage.sort()).toEqual(["en", "fa"]);
+    expect(languagesWithoutPage).toEqual([]);
   });
 });
 
@@ -1245,15 +2067,39 @@ describe("The upgrade notes say what the Community image leaves out", () => {
       const page: string = readContent(lang, "installation/upgrading");
 
       expect(page).not.toContain("no enterprise code at all");
-      expect(page).toContain(
-        "the Community image does not contain the `ee/` directory.",
-      );
+
+      if (lang === "en") {
+        expect(page).toContain(
+          "the Community image does not contain the `ee/` directory.",
+        );
+      }
+
+      // Every language names the directory itself, where the modules are.
+      expect(editionOpening(lang).split("`ee/`").length - 1).toBe(2);
     },
   );
 });
 
+/*
+ * The released entry for the split, found by its title: newer entries sit
+ * above it. Throws, naming the title, when the notes no longer have it.
+ */
+function helmSplitEntry(): string {
+  const entry: string | undefined = helmUpgradeNoteEntries().find(
+    (candidate: string) => {
+      return candidate.startsWith(HELM_SPLIT_ENTRY_TITLE);
+    },
+  );
+
+  if (!entry) {
+    throw new Error(`Helm upgrade note not found: ${HELM_SPLIT_ENTRY_TITLE}`);
+  }
+
+  return entry;
+}
+
 describe("Helm chart upgrade notes for the Community / Enterprise split", () => {
-  it("has the release entry for the split as the newest entry", () => {
+  it("keeps the released entry for the split, once", () => {
     const entries: Array<string> = helmUpgradeNoteEntries();
 
     // The older entries are still there, so the split parsed the list.
@@ -1266,10 +2112,10 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
 
     /*
      * The split shipped in 14.0.0, so the entry that was "Unreleased" while it
-     * sat on master now carries a released title, "- **<semver> (<date>)**".
+     * sat on master carries a released title, "- **<semver> (<date>)**".
      */
-    expect(entries[0]).toMatch(HELM_RELEASED_ENTRY_TITLE_PATTERN);
-    expect(entries[0]).toContain("`image.type: enterprise-edition`");
+    expect(HELM_SPLIT_ENTRY_TITLE).toMatch(HELM_RELEASED_ENTRY_TITLE_PATTERN);
+    expect(helmSplitEntry()).toContain("`image.type: enterprise-edition`");
     expect(
       entries.filter((entry: string) => {
         return entry.includes("The app ships as two editions");
@@ -1277,13 +2123,20 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
     ).toHaveLength(1);
   });
 
-  it("covers every case an operator can be in", () => {
-    const entry: string = normalized(helmUpgradeNoteEntries()[0]!);
+  /*
+   * What an operator upgrading to 14 needs to know, single sign-on included:
+   * it is in the Community images, and only SCIM and audit logging stop with
+   * the license.
+   */
+  it("covers every case an operator could be in when upgrading to 14.0.0", () => {
+    const entry: string = normalized(helmSplitEntry());
 
     for (const expected of [
-      // Community Edition installs with no SSO, OIDC or SCIM: nothing to do.
-      "**Community Edition with no SSO, OIDC or SCIM configured:** nothing to do.",
-      "do not contain the repository's `ee/` directory",
+      // What each image contains: single sign-on is in the Community images.
+      'are Apache-2.0, include SAML and OIDC single sign-on, global SSO and "Require SSO for login", and do not contain the repository\'s `ee/` directory.',
+      "add the enterprise modules from `ee/`: SCIM, team compliance, audit logs and the Admin Dashboard Health dashboards",
+      // Community Edition installs with no SCIM: nothing to do.
+      "**Community Edition with no SCIM configured:** nothing to do.",
       // Enterprise Edition installs: the enterprise- images now contain ee/.
       "The chart already pulls the `enterprise-` images, which now contain `ee/`.",
       // Unlicensed Enterprise Edition installs: the trial, then read-only.
@@ -1293,26 +2146,27 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
       `A license that expires later gets a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period before the same happens.`,
       "enterprise configuration becomes read-only and the Health dashboards are locked",
       // What stops after the trial, and the warning to act before it ends.
-      "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
-      "SSO, OIDC, SCIM and audit logging stop",
-      '"Require SSO for login" is no longer enforced (users sign in with their password)',
+      "**If you use SCIM or audit logging, activate a license before the trial ends.**",
+      "SCIM and audit logging stop",
       "Everything resumes, without a restart, when a license is activated",
-      // Community Edition installs with SSO, OIDC or SCIM configured.
-      "**Community Edition with SSO, OIDC or SCIM configured:** set `image.type: enterprise-edition` before you upgrade to keep them.",
-      '"Require SSO for login" is no longer enforced and SCIM provisioning stops',
+      // Community Edition installs with SCIM configured.
+      "**Community Edition with SCIM configured:** set `image.type: enterprise-edition` before you upgrade to keep it.",
+      "Single sign-on is not affected: the Community images serve it too.",
       // IS_ENTERPRISE_EDITION.
       "`IS_ENTERPRISE_EDITION` is deprecated and informational only.",
     ]) {
-      expect(entry).toContain(expected);
+      expect({ expected: expected, present: entry.includes(expected) }).toEqual(
+        { expected: expected, present: true },
+      );
     }
 
     expect(entry).not.toMatch(/keep running|never stop/);
+    expect(ssoLicenseWordingIn(entry)).toEqual([]);
+    expect(licensePeriodLengthProblems(entry)).toEqual([]);
   });
 
-  it("links to the Enterprise Edition page and the upgrading guide, and every link resolves", () => {
-    const links: string = absoluteDocsLinksAsRelative(
-      helmUpgradeNoteEntries()[0]!,
-    );
+  it("links the split entry to the Enterprise Edition page and the upgrading guide, and every link resolves", () => {
+    const links: string = absoluteDocsLinksAsRelative(helmSplitEntry());
 
     expect(links).toContain("(/docs/self-hosted/enterprise)");
     expect(links).toContain(
@@ -1332,6 +2186,56 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
         ),
       ),
     ).toEqual(["/docs/installation/upgrading#no-such-heading"]);
+  });
+});
+
+describe("Helm chart upgrade notes put single sign-on in the Community images", () => {
+  /*
+   * Single sign-on is described where the split is, in the 14.0.0 entry. No
+   * entry still says it is Enterprise-only or stops with the license, and no
+   * entry dates that to 14.0.10 and earlier or announces single sign-on
+   * "again" in the Community Edition.
+   */
+  it("has no entry that ties single sign-on to the Enterprise Edition, in any release", () => {
+    const entries: Array<string> = helmUpgradeNoteEntries();
+
+    expect(
+      entries.map((entry: string) => {
+        return {
+          title: entry.split("\n")[0],
+          ssoLicenseWording: ssoLicenseWordingIn(normalized(entry)),
+          dated: entry.includes("14.0.10"),
+        };
+      }),
+    ).toEqual(
+      entries.map((entry: string) => {
+        return {
+          title: entry.split("\n")[0],
+          ssoLicenseWording: [],
+          dated: false,
+        };
+      }),
+    );
+    expect(
+      entries.filter((entry: string) => {
+        return normalized(entry).includes(
+          "Single sign-on is part of the Community Edition again.",
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  it("titles every entry as a release or as unreleased", () => {
+    for (const entry of helmUpgradeNoteEntries()) {
+      const title: string = entry.split("\n")[0]!;
+
+      expect({
+        title: title,
+        titled:
+          HELM_RELEASED_ENTRY_TITLE_PATTERN.test(title) ||
+          HELM_UNRELEASED_ENTRY_TITLE_PATTERN.test(title),
+      }).toEqual({ title: title, titled: true });
+    }
   });
 });
 
@@ -1395,11 +2299,34 @@ describe("Helm chart licensing wording", () => {
 
     expect(problems).toEqual([
       "missing: 30 days after a license expires",
-      "missing: SSO, OIDC, SCIM and audit logging stop",
+      "missing: SCIM and audit logging stop",
       "missing: until a license is activated",
+      "missing: single sign-on does not depend on the license",
       "retired wording: keeps? (?:running|working)",
       "retired wording: never stop",
       "wrong grace length: 14 days after a license expires",
     ]);
+  });
+
+  /*
+   * What the chart's README said from 14.0.0 to 14.0.10, when single sign-on
+   * stopped with the license. It says the lengths, the subscription and the
+   * evaluation trial right, so only the single sign-on checks can reject it.
+   */
+  it("rejects the wording that said single sign-on stops with the license", () => {
+    const problems: Array<string> = helmLicensingWordingProblems(
+      'Production use of the Enterprise Edition requires a subscription under the OneUptime Enterprise License. An install with no license runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), until a license is activated, SSO, OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require SSO" is no longer enforced (users sign in with their password), your identity provider\'s SCIM requests are refused, and audit logging stops recording. Everything resumes as soon as a license is activated, and core monitoring is never affected.',
+    );
+
+    expect(problems).toEqual([
+      "missing: single sign-on does not depend on the license",
+      `retired wording: ${SSO_LICENSE_WORDING[0]!.source}`,
+      `retired wording: ${SSO_LICENSE_WORDING[1]!.source}`,
+    ]);
+    expect(
+      helmLicensingWordingProblems(
+        "Everything in the Community Edition plus the enterprise features (SSO/SAML, OIDC, SCIM, audit logs), licensed under the OneUptime Enterprise License.",
+      ),
+    ).toContain("retired wording: enterprise features \\((?:SSO|SAML|OIDC)");
   });
 });

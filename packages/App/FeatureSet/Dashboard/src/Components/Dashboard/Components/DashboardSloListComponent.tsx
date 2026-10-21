@@ -1,3 +1,4 @@
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -19,6 +20,9 @@ import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
+import { DashboardWidgetSortDirection } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
@@ -36,7 +40,6 @@ import {
   getSloListStatusFilterQuery,
   SLO_LIST_ATTRIBUTE_TO_COLUMN,
   SLO_LIST_DEFAULT_MAX_ROWS,
-  SLO_LIST_SORT,
   SloBurnRateTone,
   SloListRowDisplay,
   SloStatusSummaryEntry,
@@ -45,6 +48,11 @@ import {
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloListComponent;
@@ -72,11 +80,16 @@ export const SLO_LIST_WIDGET_SELECT: Select<ServiceLevelObjective> = {
 };
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "SLO", widthPct: "31%" },
-  { label: "Status", widthPct: "17%" },
-  { label: "SLI", widthPct: "15%", alignRight: true },
-  { label: "Error Budget", widthPct: "25%" },
-  { label: "Burn Rate", widthPct: "12%", alignRight: true },
+  { label: "SLO", widthPct: "31%", sortKey: "name" },
+  { label: "Status", widthPct: "17%", sortKey: "status" },
+  { label: "SLI", widthPct: "15%", alignRight: true, sortKey: "sli" },
+  { label: "Error Budget", widthPct: "25%", sortKey: "errorBudget" },
+  {
+    label: "Burn Rate",
+    widthPct: "12%",
+    alignRight: true,
+    sortKey: "burnRate",
+  },
 ];
 
 /*
@@ -138,10 +151,15 @@ const isNarrowedByVariable: IsNarrowedByVariableFunction = (
 const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [slos, setSlos] = useState<Array<ServiceLevelObjective>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const requestVersion: React.MutableRefObject<number> = useRef<number>(0);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.SloList,
+  );
 
   const maxRows: number =
     props.component.arguments.maxRows || SLO_LIST_DEFAULT_MAX_ROWS;
@@ -181,8 +199,9 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
            *
            * Disabled SLOs are not evaluated either, but they are still live
            * objectives, so they stay listed — marked Disabled and ordered
-           * after the enabled ones (SLO_LIST_SORT) — unless a status filter
-           * is set, which matches enabled SLOs only.
+           * after the enabled ones by every sort but the name
+           * (Common/Utils/Dashboard/DashboardWidgetSorts) — unless a status
+           * filter is set, which matches enabled SLOs only.
            */
           isArchived: false,
           ...getSloListStatusFilterQuery(sloStatuses),
@@ -217,13 +236,17 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               {
                 componentId: props.componentId,
                 variables: props.variables,
+                viewerSort: widgetSort.viewerPick,
               },
             ),
             query: query as Query<ServiceLevelObjective>,
             limit: maxRows,
             skip: 0,
-            select: SLO_LIST_WIDGET_SELECT,
-            sort: { ...SLO_LIST_SORT } as Sort<ServiceLevelObjective>,
+            select: widgetSort.withSortSelect(
+              SLO_LIST_WIDGET_SELECT as JSONObject,
+            ) as typeof SLO_LIST_WIDGET_SELECT,
+            // The viewer's pick, else the widget's own sort, else least budget first.
+            sort: widgetSort.modelSort as Sort<ServiceLevelObjective>,
           });
 
         if (version !== requestVersion.current) {
@@ -248,6 +271,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       labelVariableId,
       props.componentId,
       props.variables,
+      widgetSort.sortKey,
     ]);
 
   useEffect(() => {
@@ -262,14 +286,23 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const summary: Array<SloStatusSummaryEntry> = summarizeSloStatuses(slos);
 
   /*
-   * The list is ordered enabled-first, then least-budget-first, so when it is
-   * capped the rows left out are disabled ones first and then the healthiest —
-   * worth saying, because the counts in the strip then describe the rows
-   * shown, not the whole project. "Most urgent", not "least budget": a
-   * disabled SLO cut off below the cap can hold less (frozen) budget than a
-   * live one shown above it.
+   * Worst first - by status, or least error budget first, the list's own
+   * order - the list is ordered enabled-first, then least-budget-first, so
+   * when it is capped the rows left out are disabled ones first and then the
+   * healthiest — worth saying, because the counts in the strip then
+   * describe the rows shown, not the whole project. "Most urgent", not
+   * "least budget": a disabled SLO cut off below the cap can hold less
+   * (frozen) budget than a live one shown above it. Sorted any other way,
+   * the rows shown are only the first ones in that order.
    */
   const isCapped: boolean = slos.length > 0 && slos.length >= maxRows;
+  const isMostUrgentFirst: boolean =
+    (widgetSort.state.sort?.column === "status" &&
+      widgetSort.state.sort.direction ===
+        DashboardWidgetSortDirection.Descending) ||
+    (widgetSort.state.sort?.column === "errorBudget" &&
+      widgetSort.state.sort.direction ===
+        DashboardWidgetSortDirection.Ascending);
 
   const summaryElement: ReactElement | undefined =
     slos.length > 0 ? (
@@ -288,13 +321,27 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 style={{ backgroundColor: entry.color.toString() }}
               ></span>
               <span className="font-semibold text-gray-700">{entry.count}</span>
-              <span>{entry.label}</span>
+              <span>{translator.translateText(entry.label)}</span>
             </span>
           );
         })}
         {isCapped ? (
           <span className="text-gray-400">
-            Showing the {maxRows} most urgent
+            {isMostUrgentFirst
+              ? translator.translatePlural(
+                  {
+                    one: "Showing the {{count}} most urgent",
+                    other: "Showing the {{count}} most urgent",
+                  },
+                  maxRows,
+                )
+              : translator.translatePlural(
+                  {
+                    one: "Showing the first {{count}}",
+                    other: "Showing the first {{count}}",
+                  },
+                  maxRows,
+                )}
           </span>
         ) : (
           <></>
@@ -305,7 +352,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const honeycombTiles: Array<HoneycombTile> = slos.map(
     (slo: ServiceLevelObjective): HoneycombTile => {
       const sloId: string = slo._id?.toString() || "";
-      const name: string = slo.name || "Unnamed SLO";
+      const name: string =
+        slo.name || (translator.translateText("Unnamed SLO") as string);
       const display: SloListRowDisplay = getSloListRowDisplay(slo);
 
       return {
@@ -328,7 +376,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const rows: Array<ReactElement> = slos.map(
     (slo: ServiceLevelObjective): ReactElement => {
       const sloId: string = slo._id?.toString() || "";
-      const name: string = slo.name || "Unnamed SLO";
+      const name: string =
+        slo.name || (translator.translateText("Unnamed SLO") as string);
       const display: SloListRowDisplay = getSloListRowDisplay(slo);
       const route: Route | undefined = getSloRoute(sloId);
       const statusColor: string = display.statusColor.toString();
@@ -357,7 +406,13 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: statusColor }}
               ></span>
-              <span style={{ color: statusColor }}>{display.statusText}</span>
+              {/*
+               * The status's colour, and on the dark theme the nearest
+               * lighter shade of it that reads on the dark card.
+               */}
+              <span {...getStatusTextProps(statusColor)}>
+                {display.statusText}
+              </span>
             </span>
           </td>
           <td className="px-3 py-2 text-right">
@@ -377,7 +432,10 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               <div
                 className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden"
                 role="progressbar"
-                aria-label={`Error budget remaining for ${name}`}
+                aria-label={translator.translateTemplate(
+                  "Error budget remaining for {{name}}",
+                  { name: name },
+                )}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={
@@ -449,6 +507,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
       summary={summaryElement}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

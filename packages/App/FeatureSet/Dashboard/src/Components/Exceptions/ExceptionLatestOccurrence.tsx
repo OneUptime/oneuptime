@@ -13,6 +13,8 @@ import AppLink from "../AppLink/AppLink";
 import ExceptionDetailList, {
   ExceptionDetailListItem,
 } from "./ExceptionDetailList";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   instance: ExceptionInstance | undefined;
@@ -22,9 +24,17 @@ export interface ComponentProps {
   description?: string | undefined;
 }
 
-const NOT_RECORDED: ReactElement = (
-  <span className="text-gray-400">Not recorded</span>
-);
+const NotRecorded: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <span className="text-gray-400">
+      {translator.translateText("Not recorded")}
+    </span>
+  );
+};
+
+const NOT_RECORDED: ReactElement = <NotRecorded />;
 
 function toDate(value: unknown): Date | undefined {
   if (!value) {
@@ -45,6 +55,7 @@ function toDate(value: unknown): Date | undefined {
 const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const occurredAt: Date | undefined = toDate(props.instance?.time);
   const traceId: string = props.instance?.traceId?.toString().trim() || "";
   const sessionId: string = props.instance?.sessionId?.toString().trim() || "";
@@ -66,8 +77,9 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={IconProp.Clock} className="h-5 w-5 text-gray-400" />
           <p className="text-sm text-gray-600">
-            No individual occurrence is stored for this exception yet. New
-            occurrences appear here as telemetry arrives.
+            {translator.translateText(
+              "No individual occurrence is stored for this exception yet. New occurrences appear here as telemetry arrives.",
+            )}
           </p>
         </div>
       );
@@ -96,12 +108,12 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
           ) : props.instance.escaped ? (
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-red-500" />
-              Unhandled
+              {translator.translateText("Unhandled")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
-              Handled
+              {translator.translateText("Handled")}
             </span>
           ),
         testId: "exception-latest-occurrence-handling",
@@ -150,7 +162,9 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
             />
           </AppLink>
         ) : (
-          <span className="text-gray-400">No trace was attached</span>
+          <span className="text-gray-400">
+            {translator.translateText("No trace was attached")}
+          </span>
         ),
         testId: "exception-latest-occurrence-trace",
       },
@@ -179,7 +193,7 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
                   >
                     <Icon icon={link.icon} className="h-4 w-4" />
-                    <span>{link.title}</span>
+                    <span>{translator.translateText(link.title)}</span>
                   </AppLink>
                 );
               },
@@ -196,7 +210,9 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
       description={
         props.description ||
         (occurredAt
-          ? `Captured ${formatRelativeTime(occurredAt)}.`
+          ? translator.translateTemplate("Captured {{time}}.", {
+              time: formatRelativeTime(occurredAt) || "",
+            })
           : "The most recent time this exception was recorded.")
       }
     >

@@ -16,10 +16,14 @@ import NetworkSiteView from "../Pages/NetworkSite/View/Index";
 import NetworkSiteViewDevices from "../Pages/NetworkSite/View/Devices";
 import NetworkSiteViewChildSites from "../Pages/NetworkSite/View/ChildSites";
 import NetworkSiteViewEndpoints from "../Pages/NetworkSite/View/Endpoints";
+import NetworkSiteViewTraffic from "../Pages/NetworkSite/View/Traffic";
 import NetworkSiteViewStatusTimeline from "../Pages/NetworkSite/View/StatusTimeline";
 import NetworkSiteViewScheduledMaintenance from "../Pages/NetworkSite/View/ScheduledMaintenance";
 import NetworkSiteViewSettings from "../Pages/NetworkSite/View/Settings";
 import NetworkSiteViewDelete from "../Pages/NetworkSite/View/Delete";
+import NetworkSiteModel from "Common/Models/DatabaseModels/NetworkSite";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -133,6 +137,16 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_SITE_VIEW_TRAFFIC)}
+          element={
+            <NetworkSiteViewTraffic
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_SITE_VIEW_TRAFFIC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE,
           )}
@@ -181,6 +195,12 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkSiteModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

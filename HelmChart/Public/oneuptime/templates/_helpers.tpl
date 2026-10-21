@@ -12,6 +12,61 @@ Usage:
 {{- end -}}
 
 {{/*
+The name the bundled Altinity operator chart gives its resources (its own
+"altinity-clickhouse-operator.fullname"), worked out from its values: the
+operator reads its credentials Secret by that name (its config.yaml's
+clickhouse.access.secret.name), and this chart renders that Secret.
+*/}}
+{{- define "oneuptime.altinityOperator.fullname" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- if $values.fullnameOverride -}}
+{{- $values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default "altinity-clickhouse-operator" $values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The namespace the bundled Altinity operator runs in, as its chart decides it.
+*/}}
+{{- define "oneuptime.altinityOperator.namespace" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $values.namespaceOverride | default .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+The password of the operator's own ClickHouse user as values or the cluster
+already hold it: the one set in values, else the one its Secret stores, else
+nothing - and the Secret's template then makes a random one.
+*/}}
+{{- define "oneuptime.altinityOperator.password" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $secret := $values.secret | default dict -}}
+{{- if $secret.password -}}
+{{- $secret.password -}}
+{{- else -}}
+{{- $stored := ((lookup "v1" "Secret" (include "oneuptime.altinityOperator.namespace" .) (include "oneuptime.altinityOperator.fullname" .)).data) | default dict -}}
+{{- if (index $stored "password") -}}
+{{- index $stored "password" | b64dec -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The password the bundled Altinity operator's chart ships to every
+installation. A value of the installation's own replaces it (secrets.yaml);
+NOTES.txt says so to an installation that still runs with it.
+*/}}
+{{- define "oneuptime.altinityOperator.shippedPassword" -}}
+clickhouse_operator_password
+{{- end -}}
+
+{{/*
 The effective settings for the cache/queue tier, which runs Valkey.
 
 These lived under `redis:` and `externalRedis:` until 13.0.0. Both old keys are
@@ -91,8 +146,123 @@ limit so the two never drift apart. Unsuffixed input is treated as bytes.
   {{- $values := .Values -}}
   {{- $service := .ServiceName -}}
   {{- $imageName := default $service .ImageName -}}
-  {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- $default := printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- include "oneuptime.imageReference" (dict "Values" $values "Key" $imageName "Default" $default) -}}
 {{- end -}}
+
+{{/*
+The image one component runs, by its key - app, nginx, probe, runner, home,
+test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl
+- or `Default`, the reference the chart builds from its own values, when
+nothing replaces it:
+
+  global.azure.images.<key>   {registry, image, tag | digest}. A Microsoft
+                              Marketplace Kubernetes application lists every
+                              image there; Microsoft copies them to its own
+                              registry and rewrites these values at install.
+  image.overrides.<key>       a full reference, as the Google Cloud Marketplace
+                              deployer passes its images.
+
+Usage:
+  image: {{`{{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "postgres" "Default" "postgres:15") }}`}}
+*/}}
+{{- define "oneuptime.imageReference" -}}
+  {{- $azureImages := (((.Values.global).azure).images) | default dict -}}
+  {{- $azure := get $azureImages .Key -}}
+  {{- $overrides := ((.Values.image).overrides) | default dict -}}
+  {{- $override := get $overrides .Key -}}
+  {{- if and $azure (kindIs "map" $azure) $azure.image -}}
+    {{- $name := ternary (printf "%s/%s" $azure.registry $azure.image) $azure.image (not (empty $azure.registry)) -}}
+    {{- if $azure.digest -}}
+      {{- printf "%s@%s" $name $azure.digest -}}
+    {{- else -}}
+      {{- printf "%s:%s" $name (toString $azure.tag) -}}
+    {{- end -}}
+  {{- else if and (kindIs "map" $override) $override.repository -}}
+    {{- /* {registry, repository, tag | digest}: the form AWS Marketplace checks and rewrites */ -}}
+    {{- $name := ternary (printf "%s/%s" $override.registry $override.repository) $override.repository (not (empty $override.registry)) -}}
+    {{- if $override.digest -}}
+      {{- printf "%s@%s" $name $override.digest -}}
+    {{- else if $override.tag -}}
+      {{- printf "%s:%s" $name (toString $override.tag) -}}
+    {{- else -}}
+      {{- $name -}}
+    {{- end -}}
+  {{- else if and $override (kindIs "string" $override) -}}
+    {{- $override -}}
+  {{- else -}}
+    {{- .Default -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+The service account the OneUptime app and worker pods run as: `name`, or
+"<release>-oneuptime" for one the chart creates. Empty runs them as the
+namespace's default service account.
+*/}}
+{{- define "oneuptime.serviceAccountName" -}}
+  {{- $serviceAccount := .Values.serviceAccount | default dict -}}
+  {{- if $serviceAccount.name -}}
+    {{- $serviceAccount.name -}}
+  {{- else if $serviceAccount.create -}}
+    {{- printf "%s-oneuptime" .Release.Name -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Billing this Enterprise installation through the cloud marketplace it was
+bought on (enterpriseMarketplace). Every process that runs the App image
+(app, worker, telemetry writer) is told WHICH marketplace, because the
+license each of them enforces is the marketplace's (ee/Server/License/
+MarketplaceLicense.ts). Only the app and the worker, which run the usage job,
+are given what reporting needs (Reporter=true): Microsoft's extension
+identity, plan and resource, and Google's reporting secret - so a wrong
+secret name can only ever stop those two.
+*/}}
+{{- define "oneuptime.env.enterpriseMarketplace" }}
+{{- $marketplace := .Values.enterpriseMarketplace | default dict }}
+{{- if $marketplace.provider }}
+- name: ENTERPRISE_MARKETPLACE
+  value: {{ $marketplace.provider | quote }}
+{{- if .Reporter }}
+{{- if eq $marketplace.provider "aws" }}
+{{- if (($marketplace.aws).region) }}
+- name: ENTERPRISE_MARKETPLACE_AWS_REGION
+  value: {{ $marketplace.aws.region | quote }}
+{{- end }}
+{{- else if eq $marketplace.provider "azure" }}
+{{- $azure := ((.Values.global).azure) | default dict }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+  value: {{ default "" (($azure.extension).resourceId) | quote }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_PLAN_ID
+  value: {{ default "" (($azure.marketplace).planId) | quote }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_CLIENT_ID
+  value: {{ default "" (($azure.identity).clientId) | quote }}
+{{- else if eq $marketplace.provider "google-cloud" }}
+{{- $google := $marketplace.googleCloud | default dict }}
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_SERVICE_NAME
+  value: {{ default "" $google.serviceName | quote }}
+{{- if $google.reportingSecret }}
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: consumer-id
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: entitlement-id
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: reporting-key
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 
 {{/*
 Resolve the REAL Postgres backend (built-in StatefulSet, CloudNativePG, or
@@ -202,6 +372,10 @@ here would override the image's own marker.
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
+{{- if $.Values.openTelemetryExporter.captureAiMessageContent }}
+- name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+  value: "true"
+{{- end }}
 {{- if $.Values.browserOpenTelemetryExporter.endpoint }}
 - name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.browserOpenTelemetryExporter.endpoint }}
@@ -218,6 +392,51 @@ here would override the image's own marker.
       key: {{ $.Values.slackApp.existingSecret.clientIdKey }}
   {{- else }}
   value: {{ $.Values.slackApp.clientId | quote }}
+  {{- end }}
+{{- /*
+The public client ids of the apps behind the one-click Connect of a video
+call provider. The Dashboard offers it for a provider whose id is set
+(FRONTEND_ENV_ALLOW_LIST); their secrets are in oneuptime.env.runtime.
+*/}}
+- name: ZOOM_APP_CLIENT_ID
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.clientId | quote }}
+  {{- end }}
+- name: GOOGLE_MEET_APP_CLIENT_ID
+  {{- if $.Values.googleMeetApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleMeetApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleMeetApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.googleMeetApp.clientId | quote }}
+  {{- end }}
+- name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID
+  {{- if $.Values.microsoftTeamsMeetingsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientId | quote }}
+  {{- end }}
+{{- /*
+Sign in with Microsoft: the public client id. The sign-in page offers the
+button when it is set; the secret is in oneuptime.env.runtime.
+*/}}
+- name: MICROSOFT_SIGN_IN_CLIENT_ID
+  {{- if ($.Values.microsoftSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftSignInApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.microsoftSignInApp).clientId | quote }}
   {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
@@ -278,6 +497,11 @@ here would override the image's own marker.
   value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}
 - name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
   value: {{ default "" (($.Values.webhooks).privateNetworkAllowlist) | quote }}
+# Egress policy for everything that is not a webhook (data sources, LLM
+# providers, SMTP, OIDC, runbook HTTP steps). Off by default, so private ranges
+# stay reachable on a self-hosted install. See values.yaml.
+- name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+  value: {{ ternary "true" "false" (default false (($.Values.outboundConnections).blockPrivateNetwork)) | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT
@@ -307,6 +531,46 @@ here would override the image's own marker.
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- include "oneuptime.env.globalLlmProvider" $ }}
+{{- include "oneuptime.env.globalRunner" $ }}
+{{- end }}
+
+{{/*
+The bundled global Runner's key, for the server's pods (see
+templates/global-runner.yaml): the App keeps the global Runner's row from it on
+every boot (App/FeatureSet/Workers/StartupMigrations/SeedBundledGlobalRunner),
+the migrate Job included, which runs the same startup migrations. Emitted only
+while globalRunner.enabled: without it - or with globalRunner.replicaCount 0 -
+the next boot removes the row, so no project lists a global Runner nobody runs.
+*/}}
+{{- define "oneuptime.env.globalRunner" }}
+{{- if (($.Values.globalRunner).enabled) }}
+- name: GLOBAL_RUNNER_KEY
+  {{- include "oneuptime.globalRunnerKeyValue" $ | nindent 2 }}
+- name: GLOBAL_RUNNER_REPLICAS
+  value: {{ $.Values.globalRunner.replicaCount | squote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Where the bundled global Runner's key comes from, as an env var's value: the
+literal globalRunner.key, a Secret the user manages
+(globalRunner.existingSecret), or the release Secret's global-runner-key,
+which templates/secrets.yaml generates once and keeps.
+*/}}
+{{- define "oneuptime.globalRunnerKeyValue" }}
+{{- if $.Values.globalRunner.key }}
+value: {{ $.Values.globalRunner.key | quote }}
+{{- else if (($.Values.globalRunner.existingSecret).name) }}
+valueFrom:
+  secretKeyRef:
+    name: {{ ($.Values.globalRunner.existingSecret).name }}
+    key: {{ ($.Values.globalRunner.existingSecret).passwordKey }}
+{{- else }}
+valueFrom:
+  secretKeyRef:
+    name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+    key: global-runner-key
+{{- end }}
 {{- end }}
 
 {{/*
@@ -372,6 +636,30 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- end }}
 {{- end }}
 
+{{/*
+ONEUPTIME_RUNNER_KEY, the shared Runner's key: the Runner registers as the
+installation's shared Runner with it, and the app lets it register with it,
+so the runner and app Deployments read it from the same place - runner.key,
+runner.existingSecret, or the key this chart generates into
+`<release>-secrets` (templates/secrets.yaml, while runner.enabled).
+*/}}
+{{- define "oneuptime.env.runnerKey" }}
+- name: ONEUPTIME_RUNNER_KEY
+  {{- if $.Values.runner.key }}
+  value: {{ $.Values.runner.key | quote }}
+  {{- else if (($.Values.runner.existingSecret).name) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ ($.Values.runner.existingSecret).name }}
+      key: {{ ($.Values.runner.existingSecret).passwordKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+      key: runner-key
+  {{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.registerProbeKey" }}
 - name: REGISTER_PROBE_KEY
   {{- if $.Values.registerProbeKey }}
@@ -391,16 +679,65 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- end }}
 {{- end }}
 
+{{/*
+The Secret the operator keeps the VAPID private key (web push) in,
+vapid.existingSecret.name, or nothing when the key comes from vapid.privateKey
+or is not set. Every pod given VAPID_PRIVATE_KEY (oneuptime.env.runtime) then
+reads it from that Secret, and the chart writes the key nowhere: not as a plain
+value, not into a Secret of its own.
+
+Setting both is refused rather than resolved, as the Kubernetes agent chart
+refuses oneuptime.apiKey next to oneuptime.existingSecretName: a Secret of your
+own is there to keep the key out of the release's values, and a key left in
+privateKey would stay in every revision Helm stores. The name is trimmed, as
+kubectl would have created the Secret, and read through parentheses, so values
+from before vapid.existingSecret (helm upgrade --reuse-values) still render.
+*/}}
+{{- define "oneuptime.vapid.existingSecretName" -}}
+{{- $vapid := .Values.vapid | default dict -}}
+{{- $existing := trim (toString (default "" ($vapid.existingSecret).name)) -}}
+{{- if and $existing (trim (toString (default "" $vapid.privateKey))) -}}
+{{- fail (printf "vapid.privateKey and vapid.existingSecret.name are both set. Set one of them: to read the VAPID private key from the Secret %s, clear privateKey (--set vapid.privateKey=\"\")." $existing) -}}
+{{- end -}}
+{{- $existing -}}
+{{- end }}
+
+{{/*
+The key of that Secret that holds the private key: vapid.existingSecret.privateKeyKey,
+or privateKey - the name `npx web-push generate-vapid-keys --json` gives it - when
+that is empty.
+*/}}
+{{- define "oneuptime.vapid.privateKeyKey" -}}
+{{- $vapid := .Values.vapid | default dict -}}
+{{- trim (toString (default "" ($vapid.existingSecret).privateKeyKey)) | default "privateKey" -}}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
+{{- $vapidPrivateKeySecret := include "oneuptime.vapid.existingSecretName" $ }}
 
 - name: VAPID_PRIVATE_KEY
+  {{- if $vapidPrivateKeySecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $vapidPrivateKeySecret | quote }}
+      key: {{ include "oneuptime.vapid.privateKeyKey" $ | quote }}
+  {{- else }}
   value: {{ $.Values.vapid.privateKey }}
+  {{- end }}
 
 - name: EXPO_ACCESS_TOKEN
   value: {{ default "" $.Values.expo.accessToken | quote }}
 
 - name: PUSH_NOTIFICATION_RELAY_URL
   value: {{ default "https://oneuptime.com/api/notification/push-relay/send" $.Values.pushNotification.relayUrl | quote }}
+
+{{- /*
+Unset renders empty, which the app reads as "only where billing is on". An
+explicit false must stay false, so this cannot be `default`: false is empty
+to `default`, and would render as unset - a relay again where billing is on.
+*/}}
+- name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+  value: {{ if kindIs "bool" ($.Values.pushNotification).relayServerEnabled }}{{ ternary "true" "false" ($.Values.pushNotification).relayServerEnabled | quote }}{{ else }}""{{ end }}
 
 - name: SLACK_APP_CLIENT_SECRET
   {{- if $.Values.slackApp.existingSecret }}
@@ -432,6 +769,72 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
   {{- end }}
 
+- name: ZOOM_APP_CLIENT_SECRET
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.clientSecret | quote }}
+  {{- end }}
+
+- name: ZOOM_APP_WEBHOOK_SECRET_TOKEN
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.webhookSecretTokenKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.webhookSecretToken | quote }}
+  {{- end }}
+
+- name: GOOGLE_MEET_APP_CLIENT_SECRET
+  {{- if $.Values.googleMeetApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleMeetApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleMeetApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.googleMeetApp.clientSecret | quote }}
+  {{- end }}
+
+- name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET
+  {{- if $.Values.microsoftTeamsMeetingsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientSecret | quote }}
+  {{- end }}
+
+{{- /*
+Cloud > Connect: the AWS identity that signs in to customers' read-only IAM
+roles. The app reads it for a test and for the role setup the form shows, and
+the worker for every read, so it is part of the runtime env. Unset, both are
+empty and AWS accounts connect with an access key instead.
+*/}}
+- name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+  {{- if (($.Values.cloudConnect).aws).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudConnect.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudConnect.aws.existingSecret.accessKeyIdKey | quote }}
+  {{- else }}
+  value: {{ default "" (($.Values.cloudConnect).aws).accessKeyId | quote }}
+  {{- end }}
+
+- name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+  {{- if (($.Values.cloudConnect).aws).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudConnect.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudConnect.aws.existingSecret.secretAccessKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" (($.Values.cloudConnect).aws).secretAccessKey | quote }}
+  {{- end }}
+
 - name: GITHUB_APP_CLIENT_SECRET
   value: {{ $.Values.gitHubApp.clientSecret }}
 
@@ -440,6 +843,89 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 
 - name: GITHUB_APP_WEBHOOK_SECRET
   value: {{ $.Values.gitHubApp.webhookSecret }}
+
+- name: MICROSOFT_SIGN_IN_CLIENT_SECRET
+  {{- if ($.Values.microsoftSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftSignInApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.microsoftSignInApp).clientSecret | quote }}
+  {{- end }}
+
+{{- /*
+Cloud marketplaces (AWS, Microsoft, Google Cloud and Vercel Marketplace). Read
+only where billing is enabled; each marketplace is offered only when all of its
+values are set. Secrets can come from an existing Kubernetes secret.
+*/}}
+- name: AWS_MARKETPLACE_ACCESS_KEY_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).accessKeyId) | quote }}
+- name: AWS_MARKETPLACE_SECRET_ACCESS_KEY
+  {{- if ((($.Values.cloudMarketplace).aws).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.aws.existingSecret.secretAccessKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).secretAccessKey) | quote }}
+  {{- end }}
+- name: AWS_MARKETPLACE_PRODUCT_CODE
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).productCode) | quote }}
+- name: AWS_MARKETPLACE_EVENTS_SECRET
+  {{- if ((($.Values.cloudMarketplace).aws).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.aws.existingSecret.eventsSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).eventsSecret) | quote }}
+  {{- end }}
+- name: AZURE_MARKETPLACE_TENANT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).tenantId) | quote }}
+- name: AZURE_MARKETPLACE_CLIENT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).clientId) | quote }}
+- name: AZURE_MARKETPLACE_CLIENT_SECRET
+  {{- if ((($.Values.cloudMarketplace).azure).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.azure.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.azure.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).clientSecret) | quote }}
+  {{- end }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).providerId) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
+  {{- if ((($.Values.cloudMarketplace).googleCloud).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.googleCloud.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.googleCloud.existingSecret.serviceAccountKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).serviceAccountKey) | quote }}
+  {{- end }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).serviceName) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).usageMetric) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubServiceAccountEmail) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).signupAudience) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubAudience) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientId) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_SECRET
+  {{- if ((($.Values.cloudMarketplace).vercel).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.vercel.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.vercel.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientSecret) | quote }}
+  {{- end }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}
@@ -781,6 +1267,18 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 # excluded here and runs migrations itself.)
 - name: RUN_DATABASE_MIGRATIONS_ON_BOOT
   value: "false"
+# Nor do they start on a schema older than their code: each waits at boot for
+# the migrate Job to apply the schema migrations it needs
+# (migrate.runtimeWaitTimeoutSeconds). Except on an install with migrate.hook:
+# that post-install hook runs only after these pods exist (after they are ready,
+# under `helm install --wait` and Argo CD), so they must not wait for it.
+{{- if and $.Values.migrate.hook $.Release.IsInstall }}
+- name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+  value: "0"
+{{- else if not (kindIs "invalid" $.Values.migrate.runtimeWaitTimeoutSeconds) }}
+- name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+  value: {{ mul (int $.Values.migrate.runtimeWaitTimeoutSeconds) 1000 | quote }}
+{{- end }}
 {{- end }}
 
 
@@ -870,6 +1368,17 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 
 - name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
   value: {{ default 3000 $.Values.onCallCalendarFeed.rateLimit.perIpPerWindow | squote }}
+
+{{/*
+  OAuth sign-in for the MCP server: the kill switch, and the switch for
+  instances that cannot fetch a client's metadata document. Read through
+  `dig` so a values file written before these keys existed still renders.
+*/}}
+- name: DISABLE_MCP_OAUTH
+  value: {{ dig "disabled" false ($.Values.mcpOAuth | default dict) | squote }}
+
+- name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+  value: {{ dig "disableClientIdMetadataDocuments" false ($.Values.mcpOAuth | default dict) | squote }}
 
 {{/*
   Source map ingestion and resolution limits. `default` is safe on all of
@@ -1043,6 +1552,67 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 {{- end }}
 
 
+{{/*
+Pod topology spread constraints for a stateless OneUptime service.
+
+The first of these that is set wins:
+  1. the service's own list (.Constraints);
+  2. the chart-wide `topologySpreadConstraints`, unless the service passes
+     "SkipChartWide" (pgbouncer, whose nodeSelector, affinity and tolerations
+     never inherit the chart-wide ones either);
+  3. when `deployment.spreadReplicasAcrossNodes` is on, one soft rule that
+     spreads the service's replicas across nodes.
+Renders nothing when none applies.
+
+A constraint without a labelSelector is scoped to the service's own pods
+(app: <release>-<service>). On Kubernetes 1.27 and later it is also counted per
+rollout revision (matchLabelKeys: [pod-template-hash]) unless it lists
+matchLabelKeys of its own. Counting per revision matters because an upgrade
+rolls these pods: counted together with the old pods, the second new pod can
+join the first on the node that already pulled the new image while the old
+pods leave the other node, and the rollout ends with every replica on one
+node. Before 1.27 the key is left out, because clusters older than 1.25 do not
+know it and Helm's schema validation rejects the manifest.
+
+The soft rule has no zone constraint on purpose. A pod that declares
+topologySpreadConstraints replaces the scheduler's built-in defaults, and the
+scheduler then leaves out of the scoring every node that lacks one of the
+constraints' topology keys. On clusters whose nodes carry no zone label (bare
+metal, kind, k3s) a zone constraint would switch the spreading off entirely.
+Multi-zone installs add one through `topologySpreadConstraints`.
+
+Each constraint is deep-copied before the labelSelector is filled in, so one
+service's selector never leaks into the chart-wide list the next service reads.
+
+Usage (nindent-ed to the pod spec's indentation):
+  {{`{{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "app" "Constraints" $.Values.app.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}`}}
+*/}}
+{{- define "oneuptime.topologySpreadConstraints" -}}
+{{- $constraints := .Constraints -}}
+{{- if and (not $constraints) (not .SkipChartWide) -}}
+{{- $constraints = .Values.topologySpreadConstraints -}}
+{{- end -}}
+{{- if and (not $constraints) .Values.deployment.spreadReplicasAcrossNodes -}}
+{{- $constraints = list (dict "maxSkew" 1 "topologyKey" "kubernetes.io/hostname" "whenUnsatisfiable" "ScheduleAnyway") -}}
+{{- end -}}
+{{- if $constraints -}}
+{{- $rendered := list -}}
+{{- range $constraints -}}
+{{- $constraint := deepCopy . -}}
+{{- if not (hasKey $constraint "labelSelector") -}}
+{{- $_ := set $constraint "labelSelector" (dict "matchLabels" (dict "app" (printf "%s-%s" $.Release.Name $.ServiceName))) -}}
+{{- if and (not (hasKey $constraint "matchLabelKeys")) (semverCompare ">=1.27-0" $.Capabilities.KubeVersion.Version) -}}
+{{- $_ := set $constraint "matchLabelKeys" (list "pod-template-hash") -}}
+{{- end -}}
+{{- end -}}
+{{- $rendered = append $rendered $constraint -}}
+{{- end -}}
+topologySpreadConstraints:
+{{ toYaml $rendered | indent 2 }}
+{{- end -}}
+{{- end }}
+
+
 {{- define "oneuptime.deployment" }}
 apiVersion: apps/v1
 kind: Deployment
@@ -1093,9 +1663,10 @@ spec:
       hostAliases:
         {{- toYaml $.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" $.ServiceName "Constraints" $.TopologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}

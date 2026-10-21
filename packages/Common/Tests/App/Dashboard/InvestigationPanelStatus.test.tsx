@@ -264,7 +264,7 @@ describe("InvestigationPanel status reporting", () => {
     await waitFor(() => {
       expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
     });
-    expect(screen.getByText("Investigation complete")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(jest.getTimerCount()).toBe(0);
 
     advance();
@@ -339,9 +339,7 @@ describe("InvestigationPanel status reporting", () => {
         onStatusChange={onStatusChange}
       />,
     );
-    expect(
-      await screen.findByText("Preparing investigation report…"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Preparing report…")).toBeInTheDocument();
     expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
 
     const toggle: HTMLElement = screen.getByRole("button", {
@@ -356,9 +354,7 @@ describe("InvestigationPanel status reporting", () => {
     expect(jest.getTimerCount()).toBe(1);
 
     advance();
-    expect(
-      await screen.findByText("Investigation complete"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Completed")).toBeInTheDocument();
     expect(postMock).toHaveBeenCalledTimes(2);
 
     // Same button, still open, renamed for what it now holds.
@@ -392,9 +388,7 @@ describe("InvestigationPanel status reporting", () => {
     render(
       <InvestigationPanel subjectType="incident" subjectId={SUBJECT_ID} />,
     );
-    expect(
-      await screen.findByText("Investigation complete"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Completed")).toBeInTheDocument();
     expect(jest.getTimerCount()).toBe(0);
     advance();
     expect(postMock).toHaveBeenCalledTimes(1);
@@ -422,9 +416,7 @@ describe("InvestigationPanel status reporting", () => {
     expect(await screen.findByText("Investigating…")).toBeInTheDocument();
 
     advance();
-    expect(
-      await screen.findByText("Investigation complete"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Completed")).toBeInTheDocument();
 
     expect(onReportSummaryChange).toHaveBeenCalled();
     for (const call of onReportSummaryChange.mock.calls) {
@@ -516,9 +508,7 @@ describe("InvestigationPanel status reporting", () => {
         onStatusChange={onStatusChange}
       />,
     );
-    expect(
-      await screen.findByText("Investigation complete"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Completed")).toBeInTheDocument();
 
     rerender(
       <InvestigationPanel
@@ -602,9 +592,7 @@ describe("InvestigationPanel status reporting", () => {
         onStatusChange={onStatusChange}
       />,
     );
-    expect(
-      await screen.findByText("Investigation complete"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Completed")).toBeInTheDocument();
     await waitFor(() => {
       expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
     });
@@ -613,7 +601,7 @@ describe("InvestigationPanel status reporting", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(screen.getByText("Investigation complete")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(screen.queryByText("Investigating…")).not.toBeInTheDocument();
     expect(onStatusChange).not.toHaveBeenCalledWith(AIRunStatus.Running);
     expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
@@ -659,7 +647,7 @@ describe("InvestigationPanel status reporting", () => {
       expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
     });
 
-    expect(screen.getByText("Investigation complete")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(jest.getTimerCount()).toBe(0);
   });
 });

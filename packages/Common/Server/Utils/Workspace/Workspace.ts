@@ -7,6 +7,7 @@ import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -21,6 +22,8 @@ import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthToken
 import UserService from "../../Services/UserService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
+import PromptText from "../../../Utils/AI/PromptText";
+import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
 
 export interface WorkspaceChannelMessage {
   messageId: string;
@@ -45,10 +48,11 @@ export default class WorkspaceUtil {
       [];
 
     for (const workspaceType of workspaceTypes) {
-      let userStringToAppend: string = "";
+      // Markdown: the author's name is placed as text (getUserStringForWorkspace).
+      let authorMarkdown: string = "";
 
       if (data.userId) {
-        userStringToAppend = await this.getUserStringForWorkspace({
+        authorMarkdown = await this.getUserStringForWorkspace({
           userId: data.userId,
           projectId: data.projectId,
           workspaceType: workspaceType,
@@ -60,7 +64,7 @@ export default class WorkspaceUtil {
         messageBlocks: [
           {
             _type: "WorkspacePayloadMarkdown",
-            text: userStringToAppend + data.markdown,
+            text: authorMarkdown + data.markdown,
           } as WorkspacePayloadMarkdown,
         ],
       });
@@ -113,17 +117,23 @@ export default class WorkspaceUtil {
       logger.warn(err, { projectId: data.projectId?.toString() });
     }
 
+    /*
+     * A Slack or Teams display name is the user's own to set, and it heads a
+     * Markdown message: placed as text (mdText), so it reads as typed and
+     * cannot become a link, an image or a mention of somebody else.
+     */
     if (workspaceUsername) {
-      return `@${workspaceUsername} `;
+      return mdText`@${workspaceUsername} `.toString();
     }
 
     try {
-      const userString: string = await UserService.getUserMarkdownString({
-        userId: data.userId,
-        projectId: data.projectId,
-      });
+      const userMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: data.userId,
+          projectId: data.projectId,
+        });
 
-      return userString ? `${userString} ` : "";
+      return userMarkdown.isEmpty() ? "" : mdText`${userMarkdown} `.toString();
     } catch (err) {
       logger.warn("Could not resolve the OneUptime name of the user.", {
         projectId: data.projectId?.toString(),
@@ -233,6 +243,24 @@ export default class WorkspaceUtil {
     logger.debug(JSON.stringify(data, null, 2), workspaceLogAttributes);
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
+
+    /*
+     * A project a master admin blocked posts nothing as its bot
+     * (BlockedProjectNotifications): answered as a project with no
+     * workspace connected is, one empty answer per payload.
+     */
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        workspaceLogAttributes,
+      );
+
+      return data.messagePayloadsByWorkspace.map(
+        (payload: WorkspaceMessagePayload): WorkspaceSendMessageResponse => {
+          return { workspaceType: payload.workspaceType, threads: [] };
+        },
+      );
+    }
 
     for (const messagePayloadByWorkspace of data.messagePayloadsByWorkspace) {
       const projectAuthToken: WorkspaceProjectAuthToken | null =
@@ -366,6 +394,16 @@ export default class WorkspaceUtil {
     );
     logger.debug(data, postLogAttributes);
 
+    // A project a master admin blocked posts nothing (BlockedProjectNotifications).
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        postLogAttributes,
+      );
+
+      return { workspaceType: data.workspaceType, threads: [] };
+    }
+
     const result: WorkspaceSendMessageResponse =
       await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
         userId: data.workspaceUserId,
@@ -456,6 +494,12 @@ export default class WorkspaceUtil {
     }
   }
 
+  /*
+   * A channel's messages as an AI draft reads them (the postmortem and the
+   * notes). Each message goes in through PromptText: embedded data left
+   * out, and held to a draft field's length, so one pasted log cannot push
+   * every message after it out of the context.
+   */
   @CaptureSpan()
   public static formatMessagesAsContext(
     messages: Array<WorkspaceChannelMessage>,
@@ -487,7 +531,7 @@ export default class WorkspaceUtil {
         line += `User ${msg.userId}: `;
       }
 
-      line += msg.text;
+      line += PromptText.draftField(msg.text);
       line += "\n";
 
       // Check if adding this line would exceed max length

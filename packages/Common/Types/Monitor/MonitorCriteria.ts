@@ -22,6 +22,20 @@ export default class MonitorCriteria extends DatabaseProperty {
     };
   }
 
+  /*
+   * The criteria a new monitor of this type starts with, in the order they
+   * are evaluated: offline, then the "expires soon" warning for the types
+   * that have one, then online. Only the first criteria that matches is
+   * acted on, so the order is part of the rule - a certificate that is
+   * valid but about to expire matches the online criteria as well, and has
+   * to meet the warning first.
+   *
+   * warningAlertSeverityId is the alert severity the warning starts on. The
+   * dashboard passes the project's second alert severity ("Low" on a new
+   * project), the one MonitorRecommendationSeverityMapper calls Warning;
+   * without it the warning uses defaultAlertSeverityId like every other
+   * default alert.
+   */
   public static getDefaultMonitorCriteria(arg: {
     monitorType: MonitorType;
     monitorName: string;
@@ -29,6 +43,7 @@ export default class MonitorCriteria extends DatabaseProperty {
     offlineMonitorStatusId: ObjectID;
     defaultIncidentSeverityId: ObjectID;
     defaultAlertSeverityId: ObjectID;
+    warningAlertSeverityId?: ObjectID | undefined;
   }): MonitorCriteria {
     const monitorCriteria: MonitorCriteria = new MonitorCriteria();
     const offlineCriteria: MonitorCriteriaInstance =
@@ -37,6 +52,14 @@ export default class MonitorCriteria extends DatabaseProperty {
         monitorStatusId: arg.offlineMonitorStatusId,
         incidentSeverityId: arg.defaultIncidentSeverityId,
         alertSeverityId: arg.defaultAlertSeverityId,
+        monitorName: arg.monitorName,
+      });
+
+    const warningCriteria: MonitorCriteriaInstance | null =
+      MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+        monitorType: arg.monitorType,
+        alertSeverityId:
+          arg.warningAlertSeverityId || arg.defaultAlertSeverityId,
         monitorName: arg.monitorName,
       });
 
@@ -53,6 +76,10 @@ export default class MonitorCriteria extends DatabaseProperty {
 
     if (offlineCriteria) {
       monitorCriteria.data.monitorCriteriaInstanceArray.push(offlineCriteria);
+    }
+
+    if (warningCriteria) {
+      monitorCriteria.data.monitorCriteriaInstanceArray.push(warningCriteria);
     }
 
     if (onlineCriteria) {

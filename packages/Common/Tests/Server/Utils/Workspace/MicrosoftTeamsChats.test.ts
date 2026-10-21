@@ -73,6 +73,7 @@ import {
   WorkspaceThread,
 } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import {
+  MessageFactory,
   TeamsInfo,
   type ConversationReference,
   type TeamsChannelAccount,
@@ -194,6 +195,16 @@ afterEach(() => {
 beforeEach(() => {
   (TeamsInfo.getPagedMembers as jest.Mock).mockReset();
   (TeamsInfo.getMembers as jest.Mock).mockReset();
+
+  /*
+   * Chat capture reads the tenant's stored chat and, for group chats, asks
+   * Graph for the chat's name, which needs a project of the tenant. No
+   * project and no stored chat here keeps these tests off the database and
+   * Graph; MicrosoftTeamsGroupChatNames.test.ts covers that path.
+   */
+  jest
+    .spyOn(MicrosoftTeamsUtil as any, "getTenantChatContext")
+    .mockResolvedValue({ projectId: null, storedChat: undefined } as never);
 });
 
 describe("MicrosoftTeamsUtil.getChatDisplayName", () => {
@@ -1334,6 +1345,42 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChat", () => {
     });
   });
 
+  test("the card's activity carries the summary its notification shows; a card sent without one has none", async () => {
+    const chat: MicrosoftTeamsChat = buildChat({
+      id: "19:groupchat@thread.v2",
+      name: "Alice, Bob",
+    });
+    mockProjectAuthWithChats({ chats: { [chat.id]: chat } });
+    installFakeBotAdapter();
+
+    const attachment: jest.Mock = MessageFactory.attachment as jest.Mock;
+    attachment.mockClear();
+
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+      chatId: chat.id,
+      projectId: ObjectID.generate(),
+      adaptiveCard: ADAPTIVE_CARD,
+      summary: "PolicyX is paging for Incident INC-8",
+    });
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+      chatId: chat.id,
+      projectId: ObjectID.generate(),
+      adaptiveCard: ADAPTIVE_CARD,
+    });
+
+    const activities: Array<JSONObject> = attachment.mock.results.map(
+      (result: jest.MockResult<unknown>): JSONObject => {
+        return result.value as JSONObject;
+      },
+    );
+
+    expect(activities).toHaveLength(2);
+    expect(activities[0]!["summary"]).toBe(
+      "PolicyX is paging for Incident INC-8",
+    );
+    expect(activities[1]!).not.toHaveProperty("summary");
+  });
+
   test("personal chat sends with isGroup false and conversationType personal", async () => {
     const chat: MicrosoftTeamsChat = buildChat({
       id: "a:1personal",
@@ -1611,6 +1658,32 @@ describe("MicrosoftTeamsUtil.sendMessage - chat routing", () => {
     );
     expect(response.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
     expect(response.errors).toEqual([]);
+  });
+
+  test("the payload's text is each chat card's summary: what its notification shows", async () => {
+    mockChatsForProject(TWO_CHATS);
+    const sendCardSpy: jest.SpyInstance = mockSendCard();
+    const chatPayload: WorkspaceMessagePayload = buildChatPayload({
+      chatIds: ["chat-1", "chat-2"],
+    });
+    chatPayload.text = "PolicyX is paging for Incident INC-8";
+
+    await MicrosoftTeamsUtil.sendMessage({
+      workspaceMessagePayload: chatPayload,
+      authToken: "auth-token",
+      userId: "user-1",
+      projectId: ObjectID.generate(),
+    });
+
+    expect(sendCardSpy).toHaveBeenCalledTimes(2);
+
+    for (const call of sendCardSpy.mock.calls) {
+      expect(call[0]).toEqual(
+        expect.objectContaining({
+          summary: "PolicyX is paging for Incident INC-8",
+        }),
+      );
+    }
   });
 
   test("threads are collected per chat from sendAdaptiveCardToChat results", async () => {
@@ -1902,6 +1975,8 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           name: "Chat",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/amer/",
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -1935,6 +2010,9 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           name: "Chat",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/teams/",
+          // A complete record, so only the serviceUrl makes it stale.
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -1954,6 +2032,9 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
       name: "Chat",
       chatType: "groupChat",
       serviceUrl: "https://smba.trafficmanager.net/amer/",
+      // A complete record, so only the missing row makes it stale.
+      memberNames: ["Alice", "Bob"],
+      memberCount: 2,
     };
     mockAuthRows([{ "19:x@thread.v2": chat }, {}]);
 
@@ -1985,6 +2066,8 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           name: "Chat",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/teams/",
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -2072,6 +2155,8 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - chat backfill", () => {
           name: "Alice, Bob",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/emea/",
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     } as any;
@@ -2108,6 +2193,9 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - chat backfill", () => {
           name: "Alice, Bob",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/OLD/",
+          // A complete record, so only the serviceUrl makes it stale.
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     } as any;

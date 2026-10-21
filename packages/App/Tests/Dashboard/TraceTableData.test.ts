@@ -6,11 +6,17 @@ import {
   ResourceFacetDefinition,
 } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
+  DashboardWidgetSortChoice,
+  DashboardWidgetSortDirection,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
+import {
   TraceTableArguments,
   buildTraceTableRequest,
   dimensionLabel,
   displayGroupValue,
+  isTraceTableGroupSortable,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceTableData";
+import { formatTraceSeriesLabel } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 
 /*
  * Validates the data path a trace-table widget walks: stored arguments ->
@@ -242,5 +248,119 @@ describe("TraceTableData.displayGroupValue", () => {
     expect(displayGroupValue("url.host", "api.example.com")).toBe(
       "api.example.com",
     );
+  });
+});
+
+/*
+ * Unset is OpenTelemetry's default for a span that finished without an
+ * error, so a table split by status says so, like the chart widget's legend
+ * and the Traces explorer (#4118).
+ */
+describe("TraceTableData.displayGroupValue for a status split", () => {
+  test("REGRESSION: Unset reads as no error, not a bare Unset (#4118)", () => {
+    expect(displayGroupValue("statusCode", "0")).toBe("Unset (no error)");
+  });
+
+  test("Ok and Error keep their names", () => {
+    expect(displayGroupValue("statusCode", "1")).toBe("Ok");
+    expect(displayGroupValue("statusCode", "2")).toBe("Error");
+  });
+
+  test("an unknown code is shown verbatim and an empty one as (empty)", () => {
+    expect(displayGroupValue("statusCode", "9")).toBe("9");
+    expect(displayGroupValue("statusCode", "")).toBe("(empty)");
+  });
+
+  test("only the statusCode dimension gets status names", () => {
+    expect(displayGroupValue("kind", "0")).toBe("Unspecified");
+    expect(displayGroupValue("kind", "1")).toBe("Internal");
+    expect(displayGroupValue("url.host", "0")).toBe("0");
+  });
+
+  test("the table names each status the way the chart widget's legend does", () => {
+    for (const code of ["0", "1", "2"]) {
+      expect(displayGroupValue("statusCode", code)).toBe(
+        formatTraceSeriesLabel(code, "statusCode"),
+      );
+    }
+  });
+});
+
+/*
+ * The table's order (issue #5082): the server ranks the groups by the
+ * column a viewer or an editor picked, before its top limit, so the request
+ * carries it as `tableSort` - except the group column of a resource
+ * dimension, whose ids the server names only after ranking.
+ */
+describe("TraceTableData: the table's order", () => {
+  const ASC: DashboardWidgetSortDirection =
+    DashboardWidgetSortDirection.Ascending;
+  const DESC: DashboardWidgetSortDirection =
+    DashboardWidgetSortDirection.Descending;
+
+  const requestWithSort: (
+    sort: DashboardWidgetSortChoice | null,
+    groupByAttribute?: string,
+  ) => JSONObject = (
+    sort: DashboardWidgetSortChoice | null,
+    groupByAttribute: string = "name",
+  ): JSONObject => {
+    return buildTraceTableRequest({
+      arguments: { groupByAttribute, topLimit: 10 },
+      startTime: START,
+      endTime: END_1H,
+      sort,
+    });
+  };
+
+  test("without an order the request leaves it to the server: the busiest groups first", () => {
+    expect(requestWithSort(null)["tableSort"]).toBeUndefined();
+    expect(buildRequest()["tableSort"]).toBeUndefined();
+  });
+
+  test("a metric column goes as the column and its direction", () => {
+    expect(
+      requestWithSort({ column: "errorCount", direction: DESC })["tableSort"],
+    ).toEqual({ column: "errorCount", direction: "desc" });
+    expect(
+      requestWithSort({ column: "p99", direction: ASC })["tableSort"],
+    ).toEqual({ column: "p99", direction: "asc" });
+  });
+
+  test("the group column sorts by an attribute or a span field", () => {
+    expect(
+      requestWithSort({ column: "group", direction: ASC }, "url.host")[
+        "tableSort"
+      ],
+    ).toEqual({ column: "group", direction: "asc" });
+    expect(
+      requestWithSort({ column: "group", direction: DESC }, "name")[
+        "tableSort"
+      ],
+    ).toEqual({ column: "group", direction: "desc" });
+  });
+
+  test("a resource dimension's group column is never sent", () => {
+    for (const facet of RESOURCE_FACET_CATALOG) {
+      expect(isTraceTableGroupSortable(facet.facetKey)).toBe(false);
+      expect(
+        requestWithSort({ column: "group", direction: ASC }, facet.facetKey)[
+          "tableSort"
+        ],
+      ).toBeUndefined();
+      // Its metric columns still sort.
+      expect(
+        requestWithSort({ column: "count", direction: ASC }, facet.facetKey)[
+          "tableSort"
+        ],
+      ).toEqual({ column: "count", direction: "asc" });
+    }
+  });
+
+  test("a table with no dimension has no group column to sort", () => {
+    expect(isTraceTableGroupSortable(undefined)).toBe(false);
+    expect(isTraceTableGroupSortable("   ")).toBe(false);
+    expect(isTraceTableGroupSortable("name")).toBe(true);
+    expect(isTraceTableGroupSortable(" url.host ")).toBe(true);
   });
 });

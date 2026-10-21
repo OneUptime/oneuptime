@@ -36,6 +36,50 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertService,
+    jest.spyOn(AlertService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    ScheduledMaintenanceService,
+    jest.spyOn(ScheduledMaintenanceService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorService,
+    jest.spyOn(MonitorService, "findBy"),
+  );
+  // An episode update that writes a state reads the rows it moves.
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentEpisodeService,
+    jest.spyOn(IncidentEpisodeService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertEpisodeService,
+    jest.spyOn(AlertEpisodeService, "findBy"),
+  );
+});
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The undeletable project came from writes, not from deletes: a record was
@@ -123,7 +167,7 @@ function spyOnValidator(rejects?: boolean): void {
 
       if (rejects && hasId) {
         throw new BadDataException(
-          "This record references records that belong to a different project.",
+          "This record references records that are not in this project.",
         );
       }
     }) as never);
@@ -143,6 +187,7 @@ describe("cross-project reference guard on write", () => {
   beforeEach(() => {
     captured = [];
     validatorCalls = [];
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -209,7 +254,7 @@ describe("cross-project reference guard on write", () => {
           data: { title: "test", incidentSeverityId: SEVERITY_ID } as Incident,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
@@ -264,6 +309,12 @@ describe("cross-project reference guard on write", () => {
        * it and the guard silently passed.
        */
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched incident holds, so its side effects follow a real change
+       * only. Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { incidentSeverity: SEVERITY_ID.toString() },
@@ -283,6 +334,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update catches the relation-object shape", async () => {
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched incident holds, so its side effects follow a real change
+       * only. Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { incidentSeverity: { _id: SEVERITY_ID.toString() } },
@@ -296,6 +353,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update looks nothing up when no reference column is written", async () => {
       spyOnValidator();
+      /*
+       * Writing a title also has onBeforeUpdate read the title each matched
+       * incident holds, so its feed line follows a real change only.
+       * Unrelated to the guard - stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { title: "renamed" },
@@ -339,7 +402,7 @@ describe("cross-project reference guard on write", () => {
           query: {},
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -397,13 +460,19 @@ describe("cross-project reference guard on write", () => {
           data: { title: "test", alertSeverityId: SEVERITY_ID } as Alert,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
 
     test("update checks state, severity and monitor status", async () => {
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched alert holds, so its side effects follow a real change only.
+       * Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(AlertService, "findBy").mockResolvedValue([] as never);
 
       await callHook(AlertService, "onBeforeUpdate", {
         data: {
@@ -489,13 +558,20 @@ describe("cross-project reference guard on write", () => {
           } as ScheduledMaintenance,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
 
     test("update checks the state and the monitor status", async () => {
       spyOnValidator();
+      /*
+       * The events the update matches, read for the status they hold
+       * (it can be changed until an event starts): none here.
+       */
+      jest
+        .spyOn(ScheduledMaintenanceService, "findBy")
+        .mockResolvedValue([] as never);
 
       await callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
         data: {
@@ -589,7 +665,7 @@ describe("cross-project reference guard on write", () => {
           } as IncidentTemplate,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -630,7 +706,7 @@ describe("cross-project reference guard on write", () => {
           } as ScheduledMaintenanceTemplate,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -672,6 +748,13 @@ describe("cross-project reference guard on write", () => {
 
     test("incident episode update checks state and severity", async () => {
       spyOnValidator();
+      /*
+       * No episode is in the update's window, so the state move rule
+       * (StateMoveCheck) has no move to hold it to.
+       */
+      jest
+        .spyOn(IncidentEpisodeService, "findBy")
+        .mockResolvedValue([] as never);
 
       await callHook(IncidentEpisodeService, "onBeforeUpdate", {
         data: {
@@ -700,6 +783,8 @@ describe("cross-project reference guard on write", () => {
 
     test("alert episode update checks state and severity", async () => {
       spyOnValidator();
+      // As above: no episode to move, so no move to hold to the rule.
+      jest.spyOn(AlertEpisodeService, "findBy").mockResolvedValue([] as never);
 
       await callHook(AlertEpisodeService, "onBeforeUpdate", {
         data: {
@@ -792,11 +877,43 @@ describe("cross-project reference guard on write", () => {
           query: {},
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
+    });
+
+    test("OneUptime's update of the status and a linked resource reads the projects it checks them in once", async () => {
+      spyOnValidator();
+      const findProjects: SpyInstance<
+        typeof MonitorService.findProjectsToCheckUpdateIn
+      > = jest
+        .spyOn(MonitorService, "findProjectsToCheckUpdateIn")
+        .mockResolvedValue([PROJECT_ID]);
+
+      await callHook(MonitorService, "onBeforeUpdate", {
+        data: {
+          currentMonitorStatusId: MONITOR_STATUS_ID,
+          hosts: [new ObjectID("4c7cbc1a-3a4e-4d0e-9a51-1f1d0f2c3b4d")],
+        },
+        query: {},
+        props: { isRoot: true },
+      });
+
+      // Read once, and both checks made in the project it answered.
+      expect(findProjects).toHaveBeenCalledTimes(1);
+      expect(
+        validatorCalls.map((call: ValidatorCall): string => {
+          return String(call.projectId);
+        }),
+      ).toEqual([PROJECT_ID.toString(), PROJECT_ID.toString()]);
     });
 
     test("update looks nothing up when neither monitorSteps nor the status is written", async () => {
       spyOnValidator();
+      /*
+       * Writing a description also has onBeforeUpdate read the description
+       * each matched monitor holds, so its feed line follows a real change
+       * only. Unrelated to the guard - stub it out.
+       */
+      jest.spyOn(MonitorService, "findBy").mockResolvedValue([] as never);
 
       await callHook(MonitorService, "onBeforeUpdate", {
         data: { description: "renamed" },

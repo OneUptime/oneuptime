@@ -23,6 +23,11 @@ import { ModelSchemaColumn } from "../ModelSchema";
 import { columnTypeLabel, controlForColumn } from "./ColumnControl";
 import { operatorLabelFor, operatorsForControl } from "./ColumnOperators";
 import {
+  isColumnDescriptionInformative,
+  isColumnKeyInformative,
+  summarizeDescription,
+} from "./ColumnPickerOptions";
+import {
   ColumnValueMode,
   ModelColumnControl,
   ModelColumnRow,
@@ -31,13 +36,14 @@ import {
 import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   row: ModelColumnRow;
   column: ModelSchemaColumn | undefined;
   /** Every column the model describes, for this row's own picker. */
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
   /** Focused on mount, so a condition added from the picker is ready to type into. */
   autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
@@ -47,6 +53,7 @@ export interface ComponentProps {
 const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const control: ModelColumnControl = controlForColumn(props.column);
   const operatorOption: DictionaryFilterOperatorOption = getOperatorOption(
     props.row.operator,
@@ -59,15 +66,30 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
    * second line and repeated as a chip under the picker once it is chosen.
    * Putting both in the label - "Created At · createdAt" - is what a select
    * ellipsizes first, and the name is exactly the half that gets cut.
+   *
+   * The second line is kept to one line's worth: the shared dropdown prints an
+   * option's description in full, and the model's longest ones made a single
+   * option four lines tall. The column name only leads it where it says
+   * something the title does not.
    */
   const columnOptions: Array<DropdownOption> = props.columns.map(
     (column: ModelSchemaColumn) => {
       return {
         value: column.id,
         label: column.title,
-        description: `${column.id} · ${
-          column.description || columnTypeLabel(column)
-        }`,
+        description: [
+          isColumnKeyInformative(column) ? column.id : "",
+          (isColumnDescriptionInformative(column)
+            ? summarizeDescription(
+                translator.translateText(column.description),
+                70,
+              )
+            : "") || columnTypeLabel(column),
+        ]
+          .filter((part: string) => {
+            return part !== "";
+          })
+          .join(" · "),
       };
     },
   );
@@ -90,8 +112,11 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
       value: props.row.columnId,
       label: props.column?.title || props.row.columnId,
       description: isUnknownColumn
-        ? "Not a column on this model"
-        : `${props.row.columnId} · can't be picked from the list`,
+        ? translator.translateText("Not a column on this model") || ""
+        : translator.translateTemplate(
+            "{{column}} · can't be picked from the list",
+            { column: props.row.columnId },
+          ),
     });
   }
 
@@ -156,7 +181,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         )}
         {isUnknownColumn ? (
           <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
-            Not a column on this model
+            {translator.translateText("Not a column on this model")}
           </span>
         ) : (
           props.column && (
@@ -209,7 +234,6 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           values={props.row.values}
           operatorOption={operatorOption}
           placeholder={props.column?.example || props.column?.placeholder}
-          suggestions={props.suggestions}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
           onChange={(change: Partial<ModelColumnRow>) => {
@@ -219,11 +243,15 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
 
         {props.row.valueMode === ColumnValueMode.Raw && (
           <p className="mt-1 text-[11px] text-amber-600">
-            Kept exactly as it was saved.
+            {translator.translateText("Kept exactly as it was saved.")}
           </p>
         )}
 
-        {issue && <p className="mt-1 text-[11px] text-red-500">{issue}</p>}
+        {issue && (
+          <p className="mt-1 text-[11px] text-red-500">
+            {translator.translateText(issue)}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center pt-1">

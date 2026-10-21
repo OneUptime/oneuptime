@@ -1,10 +1,17 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import {
+  FEED_BODY_GRID_CLASS_NAME,
+  FEED_PANEL_BUTTON_CLASS_NAME,
+  FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+  getFeedStatusColumnClassName,
+} from "./CalendarFeedLayout";
 import CalendarFeedPlanGate, {
   isCalendarFeedAccessibleOnCurrentPlan,
 } from "./CalendarFeedPlanGate";
 import { FeedStatus } from "./CalendarFeedTypes";
 import {
   DISABLED_FEED_COPY,
+  FeedHealth,
   PERSONAL_FEED_CURRENT_PATH,
   PERSONAL_FEED_EMPTY_DESCRIPTION,
   PERSONAL_FEED_EMPTY_POINT_COVERING,
@@ -12,14 +19,17 @@ import {
   PERSONAL_FEED_EMPTY_POINT_SHIFTS,
   PERSONAL_FEED_EMPTY_TITLE,
   PERSONAL_FEED_ROTATE_PATH,
+  PERSONAL_NEEDS_REGENERATION_COPY,
   PERSONAL_PREVIOUS_LINK_COPY,
   PLANNING_NOT_AUDIT_COPY,
   REGENERATE_WARNING_COPY,
-  translateInterpolated,
+  getFeedHealth,
 } from "./CalendarFeedUtil";
+import FeedCardFooter from "./FeedCardFooter";
 import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
 import FeedEmptyState, { FeedEmptyStatePoint } from "./FeedEmptyState";
-import FeedStatusLine from "./FeedStatusLine";
+import { FeedManageAction, getFeedManageMenuButtons } from "./FeedManageMenu";
+import FeedStatusPanel from "./FeedStatusPanel";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -35,9 +45,9 @@ import {
 } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -46,6 +56,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -59,9 +71,12 @@ import React, {
  *
  * Two variants share the same status read:
  *
- *   full     - the User Settings page. Generate / regenerate / disable / delete
- *              plus the settings, the bookkeeping line and the pointer to the
- *              Time Log.
+ *   full     - the User Settings page. One card in the order a reader needs
+ *              it: subscribing (an option per calendar app, or the link to
+ *              copy) beside whether it works (FeedStatusPanel), the rare
+ *              actions - Regenerate, Disable, Delete - folded into the
+ *              header's ⋯ (FeedManageMenu), and the pointer to the Time Log
+ *              as a quiet footer. Then the settings card.
  *   schedule - the "Only my shifts on this schedule" half of the schedule
  *              page's subscribe card. The same link with `?schedule=` added,
  *              and a pointer to the full page for everything else.
@@ -83,10 +98,16 @@ export interface ComponentProps {
   now?: Date | undefined;
 }
 
+interface LoadOptions {
+  // Keep what the card shows while it reads: a re-read after an action.
+  keepContent?: boolean | undefined;
+}
+
 const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -103,8 +124,20 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     ? "personal-calendar-feed"
     : "schedule-personal-calendar-feed";
 
-  const load: () => Promise<void> = async (): Promise<void> => {
-    setIsLoading(true);
+  /*
+   * Reads the link's status. The first read, and Try again after a failed
+   * one, put the loader in the card's place: there is nothing to show yet.
+   * A re-read after something the reader did - Disable or Enable link,
+   * Delete link, saving the settings - keeps the card as it is until the
+   * answer arrives, so the card does not collapse to a spinner and back
+   * under the reader's pointer (the page jumped by the card's height).
+   */
+  const load: (options?: LoadOptions) => Promise<void> = async (
+    options?: LoadOptions,
+  ): Promise<void> => {
+    if (!options?.keepContent) {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -131,6 +164,19 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       // load routes every failure into the error state.
     });
   }, []);
+
+  const reload: () => void = (): void => {
+    load().catch(() => {
+      // load routes every failure into the error state.
+    });
+  };
+
+  // A re-read after an action: the card keeps what it shows meanwhile.
+  const refresh: () => void = (): void => {
+    load({ keepContent: true }).catch(() => {
+      // load routes every failure into the error state.
+    });
+  };
 
   const rotate: () => Promise<void> = async (): Promise<void> => {
     setIsBusy(true);
@@ -170,7 +216,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           isEnabled: isEnabled,
         },
       });
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -192,7 +238,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         id: new ObjectID(status.feedId),
       });
       setShowDeleteConfirm(false);
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -222,6 +268,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
 
   const planGate: ReactElement = <CalendarFeedPlanGate idPrefix={idPrefix} />;
 
+  /*
+   * A Button keeps a left margin for a dialog's footer from md up; here it
+   * starts the panel's text column, so it lines up with the text above it.
+   */
   const generateControl: ReactElement = isOnPlan ? (
     <Button
       title={
@@ -231,6 +281,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       buttonStyle={ButtonStyleType.PRIMARY}
       isLoading={isBusy}
       dataTestId={`${idPrefix}-generate`}
+      className={FEED_PANEL_BUTTON_CLASS_NAME}
       onClick={() => {
         rotate().catch(() => {
           // rotate routes every failure into the error state.
@@ -263,6 +314,47 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  /*
+   * A failed action is said above the card's body, in red - unless the
+   * dialog that started it is still open and says it there.
+   */
+  const actionError: ReactElement | null =
+    error && !showRegenerateConfirm && !showDeleteConfirm ? (
+      <Alert
+        type={AlertType.DANGER}
+        title={error}
+        dataTestId={`${idPrefix}-error`}
+      />
+    ) : null;
+
+  /*
+   * The status read itself failed: the server's reason, and a way to try
+   * again without reloading the page.
+   */
+  const loadError: ReactElement = (
+    <Alert
+      type={AlertType.DANGER}
+      strongTitle="Could not load your calendar link."
+      title={error}
+      textOnRight="Try again"
+      dataTestId={`${idPrefix}-load-error`}
+      onClick={reload}
+    />
+  );
+
+  const truncatedWarning: ReactElement | null =
+    status && status.lastRenderTruncated ? (
+      <Alert
+        type={AlertType.WARNING}
+        title={
+          translateString(
+            "The last calendar was shortened because it would have exceeded the event limit. Reduce the days ahead in the settings to see every shift.",
+          ) || ""
+        }
+        dataTestId={`${idPrefix}-truncated-warning`}
+      />
+    ) : null;
+
   /* ---------- schedule variant ---------- */
 
   if (!isFull) {
@@ -279,31 +371,41 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           {translateString("This server does not offer calendar feeds yet.")}
         </div>
       );
-    } else if (error) {
-      body = <ErrorMessage message={error} />;
-    } else if (status && hasLink && status.isEnabled && status.urls) {
+    } else if (!status) {
+      body = loadError;
+    } else if (hasLink && status.isEnabled && status.urls) {
       body = (
-        <CalendarFeedLinks
-          urls={status.urls}
-          scheduleId={props.scheduleId}
-          hostWarning={status.hostWarning}
-          protocolWarning={status.protocolWarning}
-          lastRenderTruncated={status.lastRenderTruncated}
-          showRefreshAlert={false}
-          idPrefix={idPrefix}
-        />
+        <div className="space-y-4">
+          {actionError}
+          <FeedDeploymentWarnings
+            hostWarning={status.hostWarning}
+            protocolWarning={status.protocolWarning}
+            privateHost={status.privateHost}
+            idPrefix={idPrefix}
+          />
+          {truncatedWarning}
+          <CalendarFeedLinks
+            urls={status.urls}
+            scheduleId={props.scheduleId}
+            tokenHint={status.tokenHint}
+            idPrefix={idPrefix}
+            isAlone={true}
+          />
+        </div>
       );
-    } else if (status && status.exists && !status.isEnabled) {
+    } else if (status.exists && !status.isEnabled) {
       body = (
         <Alert
           type={AlertType.WARNING}
+          dataTestId={`${idPrefix}-disabled`}
           title={translateString(DISABLED_FEED_COPY) || DISABLED_FEED_COPY}
         />
       );
-    } else if (status && status.needsRegeneration) {
+    } else if (status.needsRegeneration) {
       body = (
         <Alert
           type={AlertType.WARNING}
+          dataTestId={`${idPrefix}-needs-regeneration`}
           title={
             translateString(
               "Your calendar link needs to be regenerated before it can be shown here.",
@@ -318,22 +420,25 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
        * "what's in it" belong where the reader went looking for the feature.
        */
       body = (
-        <FeedEmptyState
-          idPrefix={idPrefix}
-          title={PERSONAL_FEED_EMPTY_TITLE}
-          description={PERSONAL_FEED_EMPTY_DESCRIPTION}
-          control={generateControl}
-        />
+        <div className="space-y-4">
+          {actionError}
+          <FeedEmptyState
+            idPrefix={idPrefix}
+            title={PERSONAL_FEED_EMPTY_TITLE}
+            description={PERSONAL_FEED_EMPTY_DESCRIPTION}
+            control={generateControl}
+          />
+        </div>
       );
     }
 
     return (
-      <div className="space-y-3" data-testid={idPrefix}>
+      <div className="space-y-4" data-testid={idPrefix}>
         <div>
           <div className="text-base font-semibold text-gray-900">
             {translateString("Only my shifts on this schedule")}
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="mt-0.5 text-sm text-gray-500">
             {translateString(
               "Your personal link, narrowed to this schedule. It stays private to you.",
             )}
@@ -341,7 +446,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         </div>
         {body}
         <div className="text-sm">
-          <Link to={settingsRoute} className="text-indigo-600 hover:underline">
+          <Link
+            to={settingsRoute}
+            className="font-medium text-indigo-600 hover:underline"
+          >
             {translateString("Manage your calendar link and reminders")}
           </Link>
         </div>
@@ -351,24 +459,27 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
 
   /* ---------- full variant ---------- */
 
-  const buttons: Array<CardButtonSchema> = [];
+  const manageActions: Array<FeedManageAction> = [];
 
   if (status && status.exists) {
-    buttons.push({
-      title: "Regenerate link",
+    manageActions.push({
+      key: "regenerate",
+      text: "Regenerate link",
       icon: IconProp.Refresh,
-      buttonStyle: ButtonStyleType.OUTLINE,
-      disabled: isBusy,
+      isDisabled: isBusy,
+      dataTestId: `${idPrefix}-regenerate`,
       onClick: () => {
+        setError("");
         setShowRegenerateConfirm(true);
       },
     });
 
-    buttons.push({
-      title: status.isEnabled ? "Disable" : "Enable",
+    manageActions.push({
+      key: "toggle",
+      text: status.isEnabled ? "Disable link" : "Enable link",
       icon: status.isEnabled ? IconProp.BellSlash : IconProp.Bell,
-      buttonStyle: ButtonStyleType.OUTLINE,
-      disabled: isBusy,
+      isDisabled: isBusy,
+      dataTestId: `${idPrefix}-toggle`,
       onClick: () => {
         setEnabled(!status.isEnabled).catch(() => {
           // setEnabled routes every failure into the error state.
@@ -376,12 +487,15 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       },
     });
 
-    buttons.push({
-      title: "Delete",
+    manageActions.push({
+      key: "delete",
+      text: "Delete link",
       icon: IconProp.Trash,
-      buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-      disabled: isBusy,
+      isDestructive: true,
+      isDisabled: isBusy,
+      dataTestId: `${idPrefix}-delete`,
       onClick: () => {
+        setError("");
         setShowDeleteConfirm(true);
       },
     });
@@ -404,13 +518,11 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!status) {
-    body = (
-      <ErrorMessage message={error || "Could not load your calendar link."} />
-    );
+    body = loadError;
   } else if (!status.exists) {
     body = (
       <div className="space-y-4" data-testid={`${idPrefix}-empty`}>
-        {error && <ErrorMessage message={error} />}
+        {actionError}
         {/*
          * Above the panel, not inside it. The server sends these even with no
          * feed, and they say the link will be unreachable or unencrypted -
@@ -419,6 +531,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          privateHost={status.privateHost}
           idPrefix={idPrefix}
         />
         <FeedEmptyState
@@ -431,70 +544,96 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       </div>
     );
   } else {
+    const health: FeedHealth = getFeedHealth(
+      status,
+      props.now || OneUptimeDate.getCurrentDate(),
+    );
+
+    /*
+     * Whatever the reader must know before anything else - a failed action,
+     * the plan, a deployment that makes the link unreachable, a shortened
+     * calendar - goes above both columns, at the card's full width.
+     */
+    const hasNotices: boolean = Boolean(
+      actionError ||
+        !isOnPlan ||
+        status.hostWarning ||
+        status.protocolWarning ||
+        status.privateHost ||
+        truncatedWarning,
+    );
+
+    /*
+     * The footer is outside the spaced stack on purpose: Tailwind's space-y
+     * also sets every later child's bottom margin, which would cancel the
+     * footer's own and leave it short of the card's bottom edge.
+     */
     body = (
-      <div className="space-y-4" data-testid={`${idPrefix}-active`}>
-        {error && <ErrorMessage message={error} />}
+      <div data-testid={`${idPrefix}-active`}>
+        <div className="space-y-6">
+          {hasNotices && (
+            <div className="space-y-4" data-testid={`${idPrefix}-notices`}>
+              {actionError}
+              {planGate}
+              <FeedDeploymentWarnings
+                hostWarning={status.hostWarning}
+                protocolWarning={status.protocolWarning}
+                privateHost={status.privateHost}
+                idPrefix={idPrefix}
+              />
+              {truncatedWarning}
+            </div>
+          )}
 
-        {planGate}
-
-        {status.needsRegeneration && (
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId={`${idPrefix}-needs-regeneration`}
-            title={
-              translateString(
-                "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until you regenerate it.",
-              ) || ""
-            }
-          />
-        )}
-
-        {!status.isEnabled && (
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId={`${idPrefix}-disabled`}
-            title={translateString(DISABLED_FEED_COPY) || DISABLED_FEED_COPY}
-          />
-        )}
-
-        {hasLink && status.urls && (
-          <CalendarFeedLinks
-            urls={status.urls}
-            hostWarning={status.hostWarning}
-            protocolWarning={status.protocolWarning}
-            lastRenderTruncated={status.lastRenderTruncated}
-            idPrefix={idPrefix}
-          />
-        )}
-
-        <FeedStatusLine status={status} now={props.now} idPrefix={idPrefix} />
-
-        {status.previousTokenExpiresAt && (
-          <div
-            className="text-sm text-gray-500"
-            data-testid={`${idPrefix}-previous-link`}
-          >
-            {translateInterpolated(
-              translateString,
-              PERSONAL_PREVIOUS_LINK_COPY,
-              {
-                date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  OneUptimeDate.fromString(status.previousTokenExpiresAt),
-                ),
-              },
+          <div className={FEED_BODY_GRID_CLASS_NAME}>
+            {hasLink && status.urls && (
+              <div className={FEED_SUBSCRIBE_COLUMN_CLASS_NAME}>
+                <CalendarFeedLinks
+                  urls={status.urls}
+                  tokenHint={status.tokenHint}
+                  idPrefix={idPrefix}
+                />
+              </div>
             )}
+            <div
+              className={getFeedStatusColumnClassName({
+                hasLink: hasLink,
+                health: health,
+              })}
+            >
+              <FeedStatusPanel
+                status={status}
+                now={props.now}
+                idPrefix={idPrefix}
+                previousLinkCopy={PERSONAL_PREVIOUS_LINK_COPY}
+                needsRegenerationCopy={PERSONAL_NEEDS_REGENERATION_COPY}
+                isBusy={isBusy}
+                onEnable={() => {
+                  setEnabled(true).catch(() => {
+                    // setEnabled routes every failure into the error state.
+                  });
+                }}
+                onRegenerate={() => {
+                  setError("");
+                  setShowRegenerateConfirm(true);
+                }}
+              />
+            </div>
           </div>
-        )}
+        </div>
 
-        <div
-          className="text-sm text-gray-500"
-          data-testid={`${idPrefix}-time-log`}
+        <FeedCardFooter
+          icon={IconProp.Clock}
+          dataTestId={`${idPrefix}-time-log`}
         >
           {translateString(PLANNING_NOT_AUDIT_COPY)}{" "}
-          <Link to={timeLogRoute} className="text-indigo-600 hover:underline">
+          <Link
+            to={timeLogRoute}
+            className="font-medium text-indigo-600 hover:underline"
+          >
             {translateString("Open the On-Call Time Log")}
           </Link>
-        </div>
+        </FeedCardFooter>
       </div>
     );
   }
@@ -504,7 +643,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       <Card
         title="Subscribe to your on-call shifts"
         description="Add your shifts on this project's schedules to Google Calendar, Outlook, Apple Calendar or any app that can subscribe to a calendar link."
-        buttons={buttons}
+        buttons={getFeedManageMenuButtons({
+          actions: manageActions,
+          idPrefix: idPrefix,
+        })}
       >
         {body}
       </Card>
@@ -521,9 +663,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           editButtonText="Edit settings"
           refresher={settingsRefresher}
           onSaveSuccess={() => {
-            load().catch(() => {
-              // load routes every failure into the error state.
-            });
+            refresh();
           }}
           formFields={[
             {
@@ -541,7 +681,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 pastDays: true,
               },
               title: "Days of past shifts",
-              description: `How many days back the calendar reaches (0 to ${MAX_PAST_DAYS}).`,
+              description: translator.translateTemplate(
+                "How many days back the calendar reaches (0 to {{max}}).",
+                { max: MAX_PAST_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -554,7 +697,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 futureDays: true,
               },
               title: "Days ahead",
-              description: `How far ahead the calendar reaches (${MIN_FUTURE_DAYS} to ${MAX_FUTURE_DAYS}).`,
+              description: translator.translateTemplate(
+                "How far ahead the calendar reaches ({{min}} to {{max}}).",
+                { min: MIN_FUTURE_DAYS, max: MAX_FUTURE_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -568,6 +714,13 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
             id: "calendar-feed-settings",
             modelId: new ObjectID(status.feedId),
             showDetailsInNumberOfColumns: 3,
+            /*
+             * Compact: each setting takes its whole third of the card. The
+             * default style sizes a field to a third of its own grid cell,
+             * which squeezed "Include shifts I cover for others" into five
+             * lines of a column 100px wide.
+             */
+            style: DetailStyle.Compact,
             fields: [
               {
                 field: {
@@ -605,6 +758,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           error={error || undefined}
           onClose={() => {
             setShowRegenerateConfirm(false);
+            setError("");
           }}
           onSubmit={() => {
             rotate().catch(() => {
@@ -614,6 +768,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         />
       )}
 
+      {/*
+       * The button says what it does, as the menu item that opened the
+       * dialog does - and as Regenerate's says "Regenerate link".
+       */}
       {showDeleteConfirm && (
         <ConfirmModal
           title="Delete calendar link?"
@@ -622,12 +780,13 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
               "Every app subscribed to this link stops updating. You can generate a new link at any time.",
             ) || ""
           }
-          submitButtonText="Delete"
+          submitButtonText="Delete link"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isBusy}
           error={error || undefined}
           onClose={() => {
             setShowDeleteConfirm(false);
+            setError("");
           }}
           onSubmit={() => {
             deleteFeed().catch(() => {

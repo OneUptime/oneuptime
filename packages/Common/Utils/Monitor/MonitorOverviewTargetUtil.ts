@@ -2,6 +2,8 @@ import { JSONObject } from "../../Types/JSON";
 import { MonitorStepType } from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import HostAddressUtil from "../HostAddressUtil";
 
 /*
  * The one-line "what does this monitor watch" under the hero headline:
@@ -204,6 +206,31 @@ export default class MonitorOverviewTargetUtil {
         const port: string = toText(step?.monitorDestinationPort);
 
         return { value: port ? `${host}:${port}` : host, isMono: true };
+      }
+
+      /*
+       * "time.example.com", with the port only when it is not NTP's own 123:
+       * the port is optional on the form, and ":123" on every NTP monitor
+       * would only be noise.
+       */
+      case MonitorType.NTP: {
+        const host: string = MonitorOverviewTargetUtil.redactHost(
+          toText(step?.monitorDestination),
+        );
+
+        if (!host) {
+          return null;
+        }
+
+        const port: string = toText(step?.monitorDestinationPort);
+
+        return {
+          value:
+            port && port !== String(DEFAULT_NTP_PORT)
+              ? HostAddressUtil.formatHostAndPort({ host: host, port: port })
+              : host,
+          isMono: true,
+        };
       }
 
       case MonitorType.DNS: {

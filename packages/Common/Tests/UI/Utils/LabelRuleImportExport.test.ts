@@ -364,30 +364,61 @@ describe("label rule import and export API orchestration", () => {
     },
   );
 
+  /*
+   * The rule adds Production (every new rule must add something), which the
+   * project has once: only the name inside its criteria is wrong.
+   */
   test("rejects missing relation names used only inside configured criteria", async () => {
-    mockPaged([]);
-    await expect(
-      preview([
-        {
-          ...base,
-          labelsToAdd: [],
-          criteria: configuredCriteria("Missing"),
-        },
-      ]),
-    ).rejects.toThrow('Monitor Labels "Missing" was not found');
+    mockPaged([makeRelation("Production", 1)]);
+    const error: unknown = await preview([
+      {
+        ...base,
+        criteria: configuredCriteria("Missing"),
+      },
+    ]).catch((caught: unknown) => {
+      return caught;
+    });
+
+    expect((error as Error).message).toContain(
+      'Monitor Labels "Missing" was not found',
+    );
+    expect((error as Error).message).not.toContain("Labels to Add");
   });
 
   test("rejects ambiguous relation names used only inside configured criteria", async () => {
-    mockPaged([makeRelation("Production", 1), makeRelation("Production", 2)]);
+    mockPaged([
+      makeRelation("Production", 1),
+      makeRelation("Production", 2),
+      makeRelation("Network", 3),
+    ]);
+    const error: unknown = await preview([
+      {
+        ...base,
+        labelsToAdd: ["Network"],
+        criteria: configuredCriteria("Production"),
+      },
+    ]).catch((caught: unknown) => {
+      return caught;
+    });
+
+    expect((error as Error).message).toContain(
+      'Monitor Labels "Production" matches multiple resources',
+    );
+    expect((error as Error).message).not.toContain("Labels to Add");
+  });
+
+  /*
+   * A new rule must add something, as the server insists on every create:
+   * the file is refused before anything is looked up or created.
+   */
+  test("refuses a rule that adds nothing before looking anything up", async () => {
     await expect(
-      preview([
-        {
-          ...base,
-          labelsToAdd: [],
-          criteria: configuredCriteria("Production"),
-        },
-      ]),
-    ).rejects.toThrow('Monitor Labels "Production" matches multiple resources');
+      preview([base, { ...base, name: "Adds nothing", labelsToAdd: [] }]),
+    ).rejects.toThrow(
+      "Rule 2: This label rule adds nothing. Choose at least one label in Labels to Add.",
+    );
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   test("resolves prerequisite labels, output labels, monitors, and remapped alert severities in the destination", async () => {
@@ -427,11 +458,14 @@ describe("label rule import and export API orchestration", () => {
     });
   });
 
+  // A rule that only inherits names no label, and looks nothing up.
   test("does not issue relation requests for unconfigured criteria", async () => {
-    const result: LabelRuleImportPreview = await preview([
-      { ...base, labelsToAdd: [] },
-    ]);
+    const result: LabelRuleImportPreview = await preview(
+      [{ name: "Inherits", isEnabled: true, inheritLabelsFromMonitors: true }],
+      IncidentLabelRule,
+    );
     expect(result.items[0]!.labels).toEqual([]);
+    expect(result.items[0]!.json["inheritLabelsFromMonitors"]).toBe(true);
     expect(getListMock).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
   });
@@ -594,7 +628,6 @@ describe("label rule import and export API orchestration", () => {
     const prepared: LabelRuleImportPreview = await preview([
       {
         ...base,
-        labelsToAdd: [],
         criteria: configuredCriteria("Production", FilterCondition.All),
       },
     ]);

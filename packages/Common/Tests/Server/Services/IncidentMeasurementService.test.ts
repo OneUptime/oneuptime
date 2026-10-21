@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -48,6 +57,7 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<IncidentMeasurement>,
   ): Promise<OnUpdate<IncidentMeasurement>>;
+  onUpdatePermitted(updateBy: UpdateBy<IncidentMeasurement>): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<IncidentMeasurement>,
   ): Promise<OnDelete<IncidentMeasurement>>;
@@ -55,6 +65,21 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   IncidentMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(
+  updateBy: UpdateBy<IncidentMeasurement>,
+): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -153,6 +178,7 @@ describe("IncidentMeasurementService", () => {
     jest
       .spyOn(IncidentStateService, "findBy")
       .mockResolvedValue([] as Array<IncidentState> as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -168,10 +194,25 @@ describe("IncidentMeasurementService", () => {
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "Time To Detect" })),
       ).rejects.toThrow(BadDataException);
+    });
 
-      await expect(
-        hooks.onBeforeCreate(buildCreateBy({ key: "" })),
-      ).rejects.toThrow(BadDataException);
+    /*
+     * An empty key is no longer refused: it is a key left out, made from the
+     * name. The rest of that behaviour, for all three kinds of measurement,
+     * is in MeasurementKeyGeneration.test.ts.
+     */
+    test("makes the key from the name when the create sends an empty one", async () => {
+      const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({
+        key: "",
+        name: "Time to Detect",
+      });
+
+      await hooks.onBeforeCreate(createBy);
+
+      expect(createBy.data.key).toBe("time-to-detect");
+      expect(createBy.data.metricName).toBe(
+        "oneuptime.incident.measurement.time-to-detect",
+      );
     });
 
     test("accepts a lowercase hyphenated key", async () => {
@@ -194,27 +235,32 @@ describe("IncidentMeasurementService", () => {
       );
     });
 
-    test("puts a new definition after the project's last one, so the settings list has a stable order", async () => {
-      const highest: IncidentMeasurement = new IncidentMeasurement();
-      highest.order = 7;
-
-      jest
-        .spyOn(IncidentMeasurementService, "findOneBy")
-        .mockResolvedValue(highest as never);
+    /*
+     * Where a new definition goes is the list's business, not this hook's:
+     * the model is a drag-ordered list (@ListOrderColumn), and
+     * DatabaseService puts a row created without an order at the end of its
+     * project's list (see DatabaseServiceListOrder.test.ts).
+     */
+    test("leaves the order of a new definition to the list, which puts it at the end", async () => {
+      const findOneBy: jest.SpyInstance = jest.spyOn(
+        IncidentMeasurementService,
+        "findOneBy",
+      ) as unknown as jest.SpyInstance;
 
       const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({});
 
       await hooks.onBeforeCreate(createBy);
 
-      expect(createBy.data.order).toBe(8);
+      expect(createBy.data.order).toBeUndefined();
+      expect(findOneBy).not.toHaveBeenCalled();
     });
 
-    test("gives the first definition in a project order 1", async () => {
-      const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({});
-
-      await hooks.onBeforeCreate(createBy);
-
-      expect(createBy.data.order).toBe(1);
+    test("is a list ordered within its project, lowest number first", () => {
+      expect(new IncidentMeasurement().getListOrder()).toEqual({
+        column: "order",
+        scopeColumns: ["projectId"],
+        sortOrder: "ASC",
+      });
     });
 
     test("requests a backfill, or the definition would be blank on every incident that already happened", async () => {
@@ -273,7 +319,7 @@ describe("IncidentMeasurementService", () => {
         skip: 0,
       } as unknown as UpdateBy<IncidentMeasurement>;
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = updateBy.data as unknown as Record<
         string,
@@ -296,7 +342,7 @@ describe("IncidentMeasurementService", () => {
         skip: 0,
       } as unknown as UpdateBy<IncidentMeasurement>;
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = updateBy.data as unknown as Record<
         string,

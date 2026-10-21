@@ -17,9 +17,11 @@ import MonitorStepCephMonitor, {
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
+  CriteriaFilter,
   FilterType,
   NoDataPolicy,
 } from "../../../Types/Monitor/CriteriaFilter";
+import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCriteria";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../Types/ObjectID";
@@ -881,16 +883,62 @@ function getReferencableAliases(monitor: MonitorStepCephMonitor): Set<string> {
 }
 
 /*
+ * Ceph metrics that are strictly 0/1 flags: one series per daemon, 1 while
+ * the OSD is up / the OSD is in / the mon is in quorum, 0 otherwise.
+ *
+ * A boolean signal is conventionally thresholded at ONE ("up < 1" fires,
+ * "up >= 1" recovers). The shared 10% recovery dead band widens that to
+ * `>= 1.1`, which such a metric can never reach: the healthy criteria never
+ * matches and an OSD or mon that comes back never produces an Online
+ * transition. Templates over these metrics pass `isBinaryMetric` to
+ * suppress the band, so their fire and recover thresholds are the SAME
+ * number — correct here, and only here.
+ */
+const BINARY_FLAG_METRICS: Set<string> = new Set<string>([
+  "ceph_osd_up",
+  "ceph_osd_in",
+  "ceph_mon_quorum_status",
+]);
+
+// Query aliases in this monitor that read a 0/1 flag metric directly.
+function getBinaryFlagAliases(monitor: MonitorStepCephMonitor): Set<string> {
+  const aliases: Set<string> = new Set<string>();
+  for (const queryConfig of monitor.metricViewConfig
+    .queryConfigs as Array<any>) {
+    if (
+      BINARY_FLAG_METRICS.has(queryConfig.metricQueryData.filterData.metricName)
+    ) {
+      aliases.add(queryConfig.metricAliasData.metricVariable);
+    }
+  }
+  return aliases;
+}
+
+/*
  * Delegates to the shared assertion so all eight recommendation suites
  * agree on what a correct fire/recover pair looks like. This function used
  * to require `fire.value === recover.value` — see the comment in
  * RecommendationCriteriaAssertions for why that was the bug rather than
- * the invariant.
+ * the invariant. A 0/1 flag is the one exception — see BINARY_FLAG_METRICS.
  */
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
+  isBinaryFlag: boolean = false,
 ): boolean {
+  if (isBinaryFlag) {
+    /*
+     * A 0/1 flag has no dead band to check, so the pair must be exact
+     * complements on the identical threshold: anything wider is
+     * unreachable (wedges the monitor offline) and anything narrower
+     * overlaps (flaps).
+     */
+    return (
+      getComplementFilterType(fire.filterType) === recover.filterType &&
+      recover.value === fire.value
+    );
+  }
+
   return hasRecoveryDeadBand(fire, recover);
 }
 
@@ -1169,6 +1217,9 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
         getCriteriaInstances(step);
       const onlineFilters: Array<any> = (instances[instances.length - 1]!.data
         ?.filters || []) as Array<any>;
+      const binaryFlagAliases: Set<string> = getBinaryFlagAliases(
+        getCephMonitor(step),
+      );
 
       for (const offline of instances.slice(0, -1)) {
         for (const fireFilter of (offline.data?.filters || []) as Array<any>) {
@@ -1189,6 +1240,9 @@ describe("CephAlertTemplates - enumerated invariants (every template)", () => {
                 filterType: recoverFilter.filterType,
                 value: recoverFilter.value as number,
               },
+              binaryFlagAliases.has(
+                fireFilter.metricMonitorOptions.metricAlias,
+              ),
             ),
           ).toBe(true);
         }
@@ -1400,13 +1454,24 @@ describe("CephAlertTemplates - spec table expectations", () => {
          * threshold is derived from it, so the table does not have to
          * restate every dead-banded number — and so a change to the dead
          * band shows up as a behaviour change in one place rather than as
-         * a diff across nine spec tables.
+         * a diff across nine spec tables. A 0/1 flag gets no band — see
+         * BINARY_FLAG_METRICS.
          */
+        const isBinaryFlag: boolean = tc.queries.some(
+          (query: CephQueryExpectation) => {
+            return (
+              query.alias === expectedFilter.alias &&
+              BINARY_FLAG_METRICS.has(query.metricName)
+            );
+          },
+        );
         expect(onlineFilters[j].value).toBe(
-          getRecoveryThreshold({
-            filterType: getComplementFilterType(expectedFilter.filterType)!,
-            value: expectedFilter.value,
-          }) ?? expectedFilter.value,
+          isBinaryFlag
+            ? expectedFilter.value
+            : getRecoveryThreshold({
+                filterType: getComplementFilterType(expectedFilter.filterType)!,
+                value: expectedFilter.value,
+              }) ?? expectedFilter.value,
         );
         if (tc.recover.treatNoDataAsZero) {
           expect(onlineFilters[j].metricMonitorOptions.onNoDataPolicy).toBe(
@@ -1597,4 +1662,188 @@ describe("CephAlertTemplates - mon-disk severity split regression", () => {
    * resource type here. The test above pins the Ceph-specific instance of the
    * defect by name.
    */
+});
+
+describe("CephAlertTemplates - 0/1 flag recovery (regression)", () => {
+  /*
+   * THE DEFECT: ceph-osd-down, ceph-osd-out and ceph-mon-quorum-degraded
+   * recovered at `>= 1.1` over ceph_osd_up / ceph_osd_in /
+   * ceph_mon_quorum_status — the shared 10% dead band applied to a metric
+   * that only ever emits 0 or 1. The healthy criteria could never match, so
+   * MonitorResource took its "no criteria met" branch on every evaluation
+   * and the monitor stayed Offline after the OSD or mon recovered. Dropping
+   * `isBinaryMetric` from any of the three turns this suite red.
+   */
+
+  function findFilterByAlias(
+    instance: MonitorCriteriaInstance,
+    alias: string,
+  ): CriteriaFilter | undefined {
+    return ((instance.data?.filters || []) as Array<CriteriaFilter>).find(
+      (filter: CriteriaFilter) => {
+        return filter.metricMonitorOptions?.metricAlias === alias;
+      },
+    );
+  }
+
+  /*
+   * Run a filter through the real evaluator against a five-minute window in
+   * which the flag held one value throughout — the only shape a healthy (or
+   * a hard-down) OSD or mon produces under the Min-per-daemon aggregation.
+   */
+  function matchesSustainedWindow(
+    filter: CriteriaFilter,
+    flagValue: number,
+  ): boolean {
+    return (
+      CompareCriteria.compareCriteriaNumbers({
+        value: [flagValue, flagValue, flagValue, flagValue, flagValue],
+        threshold: filter.value as number,
+        criteriaFilter: filter,
+      }) !== null
+    );
+  }
+
+  const FLAG_TEMPLATES: Array<CephAlertTemplate> = ALL_TEMPLATES.filter(
+    (template: CephAlertTemplate) => {
+      return (
+        getBinaryFlagAliases(
+          getCephMonitor(template.getMonitorStep(buildArgs())),
+        ).size > 0
+      );
+    },
+  );
+
+  test("every 0/1 flag metric is a real catalog metric", () => {
+    // A renamed metric must not silently empty the sweep below.
+    for (const metricName of BINARY_FLAG_METRICS) {
+      expect(getCephMetricByMetricName(metricName)).toBeDefined();
+    }
+  });
+
+  test("the flag sweep is not vacuous", () => {
+    expect(
+      FLAG_TEMPLATES.map((template: CephAlertTemplate) => {
+        return template.id;
+      }).sort(),
+    ).toEqual(["ceph-mon-quorum-degraded", "ceph-osd-down", "ceph-osd-out"]);
+  });
+
+  test.each([
+    ["ceph-osd-down", "osd_up"],
+    ["ceph-osd-out", "osd_in"],
+    ["ceph-mon-quorum-degraded", "mon_quorum"],
+  ])(
+    "%s recovers at exactly 1, never at the unreachable 1.1 dead band",
+    (id: string, alias: string) => {
+      const step: MonitorStep =
+        getCephAlertTemplateById(id)!.getMonitorStep(buildArgs());
+      const instances: Array<MonitorCriteriaInstance> =
+        getCriteriaInstances(step);
+      const recoverFilter: CriteriaFilter | undefined = findFilterByAlias(
+        instances[instances.length - 1]!,
+        alias,
+      );
+
+      expect(recoverFilter).toBeDefined();
+      expect(recoverFilter!.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+      expect(recoverFilter!.value).toBe(1);
+      expect(recoverFilter!.value).not.toBe(1.1);
+      // And the firing side still fires on the only other value it can see.
+      const fireFilter: CriteriaFilter | undefined = findFilterByAlias(
+        instances[0]!,
+        alias,
+      );
+      expect(fireFilter!.filterType).toBe(FilterType.LessThan);
+      expect(fireFilter!.value).toBe(1);
+    },
+  );
+
+  test.each(
+    FLAG_TEMPLATES.map((template: CephAlertTemplate) => {
+      return [template.id, template];
+    }),
+  )(
+    "%s recovers on a value its 0/1 flag can actually emit",
+    (_id: unknown, template: unknown) => {
+      /*
+       * Enumerated over every template that reads a flag metric, so a new
+       * one cannot ship the same defect. Polarity-agnostic: whichever of
+       * {0, 1} fires is the bad value, and the flag holding the OTHER value
+       * for the whole window must satisfy the recovery criteria.
+       */
+      const step: MonitorStep = (template as CephAlertTemplate).getMonitorStep(
+        buildArgs(),
+      );
+      const instances: Array<MonitorCriteriaInstance> =
+        getCriteriaInstances(step);
+      const onlineInstance: MonitorCriteriaInstance =
+        instances[instances.length - 1]!;
+
+      let checkedPairs: number = 0;
+      for (const alias of getBinaryFlagAliases(getCephMonitor(step))) {
+        const recoverFilter: CriteriaFilter | undefined = findFilterByAlias(
+          onlineInstance,
+          alias,
+        );
+        expect(recoverFilter).toBeDefined();
+
+        for (const offlineInstance of instances.slice(0, -1)) {
+          const fireFilter: CriteriaFilter | undefined = findFilterByAlias(
+            offlineInstance,
+            alias,
+          );
+          if (!fireFilter) {
+            continue;
+          }
+
+          const firingValues: Array<number> = [0, 1].filter(
+            (flagValue: number) => {
+              return matchesSustainedWindow(fireFilter, flagValue);
+            },
+          );
+          // A flag criteria that fires on both values, or neither, is broken.
+          expect(firingValues).toHaveLength(1);
+          const badValue: number = firingValues[0]!;
+          const goodValue: number = 1 - badValue;
+
+          expect(matchesSustainedWindow(recoverFilter!, goodValue)).toBe(true);
+          expect(matchesSustainedWindow(recoverFilter!, badValue)).toBe(false);
+          checkedPairs++;
+        }
+      }
+
+      expect(checkedPairs).toBeGreaterThan(0);
+    },
+  );
+
+  test("a `< 1` firing threshold is only used on a known 0/1 flag", () => {
+    /*
+     * `< 1` is the boolean idiom. A template that uses it over a metric not
+     * listed in BINARY_FLAG_METRICS is either over a new flag — add it there
+     * so the sweep above covers it — or does not mean what it says.
+     */
+    for (const template of ALL_TEMPLATES) {
+      const step: MonitorStep = template.getMonitorStep(buildArgs());
+      const binaryFlagAliases: Set<string> = getBinaryFlagAliases(
+        getCephMonitor(step),
+      );
+      const instances: Array<MonitorCriteriaInstance> =
+        getCriteriaInstances(step);
+
+      for (const offlineInstance of instances.slice(0, -1)) {
+        for (const filter of (offlineInstance.data?.filters ||
+          []) as Array<CriteriaFilter>) {
+          if (filter.filterType === FilterType.LessThan && filter.value === 1) {
+            expect({
+              template: template.id,
+              isBinaryFlag: binaryFlagAliases.has(
+                filter.metricMonitorOptions!.metricAlias!,
+              ),
+            }).toEqual({ template: template.id, isBinaryFlag: true });
+          }
+        }
+      }
+    }
+  });
 });

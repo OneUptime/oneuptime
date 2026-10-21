@@ -8,10 +8,47 @@ import { CheckOn, EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
 import MonitorType from "./MonitorType";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import SessionReplayBudgetMetricType from "../Rum/SessionReplayBudgetMetricType";
 
-export type RumAlertTemplateCategory = "Core Web Vitals" | "Errors";
+export type RumAlertTemplateCategory =
+  | "Core Web Vitals"
+  | "Errors"
+  | "Session Replay";
 
 export type RumAlertTemplateSeverity = "Critical" | "Warning";
+
+/*
+ * What has to be true of ONE application before a template is offered to it,
+ * for the templates whose metric only exists for some applications. See
+ * getRumAlertTemplates:
+ *
+ *   SessionReplayRecording      session replay is on for the application and
+ *                               it has recorded at least one replay
+ *   SessionReplayMonthlyBudget  the above, and it has a monthly budget
+ */
+export type RumAlertTemplateRequirement =
+  | "SessionReplayRecording"
+  | "SessionReplayMonthlyBudget";
+
+/*
+ * What is known about one RUM application, for the templates that carry a
+ * `requirement`. Every field is optional, and `null` and `undefined` both
+ * mean "not known" - which withholds rather than offers, because a monitor
+ * over a series nobody posts never fires and never says why.
+ */
+export interface RumAlertTemplateContext {
+  // The application's own switch, `isSessionReplayEnabled`.
+  sessionReplayEnabled?: boolean | null | undefined;
+  /*
+   * Whether a replay chunk was ever accepted for the application (its
+   * `sessionReplayLastChunkReceivedAt` is set). The switch alone says
+   * nothing: it defaults to on, so it is on for every RUM application,
+   * including the ones that have never loaded the recorder.
+   */
+  sessionReplayHasRecorded?: boolean | null | undefined;
+  // `sessionReplayMonthlyBudgetInGB`. Only a finite number above 0 is a budget.
+  sessionReplayMonthlyBudgetInGB?: number | null | undefined;
+}
 
 export interface RumAlertTemplateArgs {
   rumApplicationId: string;
@@ -29,6 +66,11 @@ export interface RumAlertTemplate {
   category: RumAlertTemplateCategory;
   severity: RumAlertTemplateSeverity;
   monitorType: MonitorType;
+  /*
+   * Absent on the templates whose signal exists for every RUM application,
+   * which are offered to all of them.
+   */
+  requirement?: RumAlertTemplateRequirement | undefined;
   getMonitorStep: (args: RumAlertTemplateArgs) => MonitorStep;
 }
 
@@ -44,9 +86,23 @@ interface CriteriaArgs {
   incidentDescription: string;
   metricAlias?: string | undefined;
   thresholdUnit?: string | undefined;
+  /*
+   * How a metric criteria reduces its window to the value it compares.
+   * Average unless set, which is what the web vitals have always been
+   * evaluated with. Applied to BOTH criteria: a recovery that reduced the
+   * window differently from its breach could find a window that meets both,
+   * or neither. Only takes effect together with `metricAlias` - without one,
+   * no `metricMonitorOptions` are written at all.
+   */
+  metricAggregationType?: EvaluateOverTimeType | undefined;
+  // The Healthy criteria's description, when the generic sentence does not fit.
+  healthyDescription?: string | undefined;
 }
 
 function buildCriteria(data: CriteriaArgs): MonitorCriteria {
+  const metricAggregationType: EvaluateOverTimeType =
+    data.metricAggregationType || EvaluateOverTimeType.Average;
+
   const unhealthy: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
   unhealthy.data = {
@@ -60,7 +116,7 @@ function buildCriteria(data: CriteriaArgs): MonitorCriteria {
         value: data.threshold,
         metricMonitorOptions: data.metricAlias
           ? {
-              metricAggregationType: EvaluateOverTimeType.Average,
+              metricAggregationType: metricAggregationType,
               metricAlias: data.metricAlias,
               thresholdUnit: data.thresholdUnit,
             }
@@ -107,7 +163,7 @@ function buildCriteria(data: CriteriaArgs): MonitorCriteria {
         value: data.threshold,
         metricMonitorOptions: data.metricAlias
           ? {
-              metricAggregationType: EvaluateOverTimeType.Average,
+              metricAggregationType: metricAggregationType,
               metricAlias: data.metricAlias,
               thresholdUnit: data.thresholdUnit,
             }
@@ -120,7 +176,9 @@ function buildCriteria(data: CriteriaArgs): MonitorCriteria {
     createIncidents: false,
     createAlerts: false,
     name: "Healthy",
-    description: `The RUM signal for ${data.args.monitorName} is within its recommended threshold.`,
+    description:
+      data.healthyDescription ||
+      `The RUM signal for ${data.args.monitorName} is within its recommended threshold.`,
   };
 
   const criteria: MonitorCriteria = new MonitorCriteria();
@@ -406,14 +464,303 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
   },
 };
 
+/*
+ * Session replay storage budget.
+ *
+ * Replay uploads are refused once the project's daily limit
+ * (SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY) or the application's Monthly
+ * budget is spent, and before these templates that was visible only on the
+ * Replay Health page: recorders are told to stop, quietly, and recordings
+ * simply stop appearing. A worker sweep posts both budgets every five minutes
+ * as the `oneuptime.rum.session.replay.budget.*` metrics
+ * (SessionReplayBudgetMetricType), keyed to the RUM application, so these are
+ * ordinary Metrics monitors scoped to one application, like the web vitals.
+ * Every choice below follows from how that sweep writes:
+ *
+ *   - PERCENT, never bytes. Both budgets are GiB (a Monthly budget of 10 "GB"
+ *     is 10 x 1024^3 bytes, and the daily default is 1 GiB), while every byte
+ *     threshold, unit and chart in the metric stack is decimal: a "1 GB"
+ *     threshold fires at 93% of a 1 GiB limit. The sweep computes the percent
+ *     against the exact byte limit the gate enforces, rounded DOWN, so 100 or
+ *     more means exactly what the gate means by spent.
+ *
+ *   - Max, then MaximumValue, over Past15Minutes. A point lands every five
+ *     minutes, so fifteen minutes holds two or three of them and one late
+ *     sweep cannot empty the window - an empty window meets no criteria,
+ *     which resolves an open alert, so a shorter one would flap. Budget use
+ *     only climbs within its day or month, so the highest point in the window
+ *     is the latest: Average would lag a crossing by most of a window, and
+ *     All Values (what a filter falls back to without a metricAlias) would
+ *     wait for every point to cross. Recovery reduces the same way, so it
+ *     holds until the last point at or over the threshold has left the
+ *     window, 10-15 minutes after the value falls. Max at the query is the
+ *     aggregation SessionReplayBudgetMetricTypeUtil.getAggregationType names
+ *     for these series (and the docs and the catalog descriptions tell anyone
+ *     charting them to use): the one that stays right wherever the project's
+ *     value appears once per application, which Sum would multiply.
+ *
+ *   - The daily limit belongs to the PROJECT. The sweep posts the project's
+ *     value under every application that records, identical on each, so the
+ *     daily pair is offered on each of them and any one monitor covers them
+ *     all. The cards say so: one created per application pages the same
+ *     exhaustion once per application.
+ *
+ *   - Gating (`requirement`). The sweep only posts for applications that have
+ *     session replay on and have recorded at least once, and the monthly
+ *     series only while the application has a Monthly budget. A monitor over
+ *     a series nobody posts never fires, so each pair is offered only once its
+ *     series can exist - see getRumAlertTemplates.
+ */
+interface SessionReplayBudgetTemplateData {
+  id: string;
+  name: string;
+  description: string;
+  severity: RumAlertTemplateSeverity;
+  requirement: RumAlertTemplateRequirement;
+  metricName: SessionReplayBudgetMetricType;
+  metricAlias: string;
+  // Percent of the budget used, the unit the series is posted in.
+  threshold: number;
+  // Completes the breach criteria's name: "<name> - 80% or more used".
+  thresholdLabel: string;
+  breachDescription: string;
+  // What goes between "[RUM] " and " - <application>" in the titles.
+  incidentHeadline: string;
+  getIncidentDescription: (monitorName: string) => string;
+}
+
+// The unit the percent series are posted in, and so the one to read them in.
+const SESSION_REPLAY_BUDGET_PERCENT_UNIT: string = "%";
+
+function buildSessionReplayBudgetTemplate(
+  data: SessionReplayBudgetTemplateData,
+): RumAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    category: "Session Replay",
+    severity: data.severity,
+    monitorType: MonitorType.Metrics,
+    requirement: data.requirement,
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor({
+        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+        rollingTime: RollingTime.Past15Minutes,
+        metricViewConfig: {
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: data.metricAlias,
+                title: data.name,
+                description: data.description,
+                legend: data.name,
+                legendUnit: SESSION_REPLAY_BUDGET_PERCENT_UNIT,
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: data.metricName,
+                  attributes: {},
+                  aggegationType: MetricsAggregationType.Max,
+                  aggregateBy: {},
+                },
+              },
+            },
+          ],
+          formulaConfigs: [],
+        },
+      });
+
+      step.setMonitorCriteria(
+        buildCriteria({
+          args: args,
+          checkOn: CheckOn.MetricValue,
+          unhealthyFilterType: FilterType.GreaterThanOrEqualTo,
+          healthyFilterType: FilterType.LessThan,
+          threshold: data.threshold,
+          /*
+           * Load-bearing: without the alias no metricMonitorOptions are
+           * written, and the window silently falls back to All Values.
+           */
+          metricAlias: data.metricAlias,
+          thresholdUnit: SESSION_REPLAY_BUDGET_PERCENT_UNIT,
+          metricAggregationType: EvaluateOverTimeType.MaximumValue,
+          unhealthyName: `${data.name} - ${data.thresholdLabel}`,
+          unhealthyDescription: data.breachDescription,
+          incidentTitle: `[RUM] ${data.incidentHeadline} - ${args.monitorName}`,
+          incidentDescription: data.getIncidentDescription(args.monitorName),
+          healthyDescription: `Session replay budget use for ${args.monitorName} is below the alert threshold.`,
+        }),
+      );
+
+      return step;
+    },
+  };
+}
+
+/*
+ * The incident descriptions only name levers that take effect BEFORE a byte
+ * is charged - the allowed origins and the sample percentage are checked
+ * ahead of the charge, and "On error or frustration" keeps ordinary sessions
+ * from uploading at all - because a setting that acts on what was already
+ * uploaded (retention, deleting recordings) gives none of the budget back.
+ * The daily limit itself cannot be raised from the dashboard, only by the
+ * deployment.
+ */
+const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
+  buildSessionReplayBudgetTemplate({
+    id: "rum-session-replay-daily-budget-nearly-spent",
+    name: "Session Replay Daily Budget Nearly Spent",
+    description:
+      "Alert when the project's session replay uploads today reach 80% of its daily limit, before recorders are told to stop. The limit is shared by every application in the project and resets at 00:00 UTC, so one of these monitors covers them all.",
+    severity: "Warning",
+    requirement: "SessionReplayRecording",
+    metricName: SessionReplayBudgetMetricType.ProjectDailyUsedPercent,
+    metricAlias: "rum_replay_daily_budget_used",
+    threshold: 80,
+    thresholdLabel: "80% or more used",
+    breachDescription:
+      "Triggers when the project's session replay uploads today reach 80% of its daily limit at any point in the last 15 minutes.",
+    incidentHeadline: "Project's daily session replay budget nearly spent",
+    getIncidentDescription: (): string => {
+      return "This project has used 80% of today's session replay upload limit, which all of its RUM applications share. At 100% every recorder in the project is told to stop until 00:00 UTC. To make the rest of the day last, open the Replay Policy page of the busiest applications and lower the Sample percentage, upload only On error or frustration, or narrow the Allowed origins so staging traffic stops spending it. Self-hosted: the limit is SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY.";
+    },
+  }),
+  buildSessionReplayBudgetTemplate({
+    id: "rum-session-replay-daily-budget-spent",
+    name: "Session Replay Daily Budget Spent",
+    description:
+      "Alert when the project's daily session replay limit is spent: every recorder in the project has been told to stop until 00:00 UTC. The limit is shared by every application in the project, so one of these monitors covers them all.",
+    severity: "Critical",
+    requirement: "SessionReplayRecording",
+    metricName: SessionReplayBudgetMetricType.ProjectDailyUsedPercent,
+    metricAlias: "rum_replay_daily_budget_used",
+    threshold: 100,
+    thresholdLabel: "100% used",
+    breachDescription:
+      "Triggers when the project's session replay uploads today reach 100% of its daily limit at any point in the last 15 minutes.",
+    incidentHeadline: "Session replay paused: project's daily budget spent",
+    getIncidentDescription: (): string => {
+      return "This project has spent today's session replay upload limit, which all of its RUM applications share: every recorder in the project has been told to stop, and nothing more is recorded until 00:00 UTC. This resolves on its own at about 00:10-00:15 UTC, once the last reading over the limit has left the monitor's 15-minute window. To make tomorrow's limit last, lower the Sample percentage, upload only On error or frustration, or narrow the Allowed origins on the busiest applications' Replay Policy page. Self-hosted: the limit is SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY.";
+    },
+  }),
+  buildSessionReplayBudgetTemplate({
+    id: "rum-session-replay-monthly-budget-nearly-spent",
+    name: "Session Replay Monthly Budget Nearly Spent",
+    description:
+      "Alert when this application's session replay uploads this month reach 80% of its monthly budget, before its recorders are told to stop for the rest of the month (UTC).",
+    severity: "Warning",
+    requirement: "SessionReplayMonthlyBudget",
+    metricName: SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent,
+    metricAlias: "rum_replay_monthly_budget_used",
+    threshold: 80,
+    thresholdLabel: "80% or more used",
+    breachDescription:
+      "Triggers when this application's session replay uploads this month reach 80% of its monthly budget at any point in the last 15 minutes.",
+    incidentHeadline: "Monthly session replay budget nearly spent",
+    getIncidentDescription: (monitorName: string): string => {
+      return `${monitorName} has used 80% of its monthly session replay budget. At 100% its recorders are told to stop until the 1st of next month (UTC). Raise the Monthly budget on its Replay Policy page, lower the Sample percentage, or upload only On error or frustration.`;
+    },
+  }),
+  buildSessionReplayBudgetTemplate({
+    id: "rum-session-replay-monthly-budget-spent",
+    name: "Session Replay Monthly Budget Spent",
+    description:
+      "Alert when this application's monthly session replay budget is spent: its recorders have been told to stop until the 1st of next month (UTC) or until the budget is raised.",
+    severity: "Critical",
+    requirement: "SessionReplayMonthlyBudget",
+    metricName: SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent,
+    metricAlias: "rum_replay_monthly_budget_used",
+    threshold: 100,
+    thresholdLabel: "100% used",
+    breachDescription:
+      "Triggers when this application's session replay uploads this month reach 100% of its monthly budget at any point in the last 15 minutes.",
+    incidentHeadline: "Session replay paused: monthly budget spent",
+    getIncidentDescription: (monitorName: string): string => {
+      return `${monitorName} has spent its monthly session replay budget: its recorders have been told to stop, and nothing more is recorded until the 1st of next month (UTC) or until the budget is raised on its Replay Policy page. This resolves on its own.`;
+    },
+  }),
+];
+
 const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   ...webVitalTemplates,
   failedUserOperationsTemplate,
   unhandledExceptionsTemplate,
+  ...sessionReplayBudgetTemplates,
 ];
 
+/*
+ * Every template this module ships, whatever the application - the set that
+ * resolving an id and the catalog-wide invariants have to run over. What to
+ * offer ONE application is getRumAlertTemplates.
+ */
 export function getAllRumAlertTemplates(): Array<RumAlertTemplate> {
   return [...ALL_RUM_ALERT_TEMPLATES];
+}
+
+/*
+ * Whether one application meets a template's requirement. Only an explicit
+ * `true` (and a real budget) counts: unknown is never read as yes.
+ */
+function isRequirementMet(data: {
+  requirement: RumAlertTemplateRequirement | undefined;
+  context: RumAlertTemplateContext | undefined;
+}): boolean {
+  if (!data.requirement) {
+    return true;
+  }
+
+  const isRecording: boolean =
+    data.context?.sessionReplayEnabled === true &&
+    data.context?.sessionReplayHasRecorded === true;
+
+  const budgetInGB: number | null | undefined =
+    data.context?.sessionReplayMonthlyBudgetInGB;
+
+  switch (data.requirement) {
+    case "SessionReplayRecording":
+      return isRecording;
+    case "SessionReplayMonthlyBudget":
+      return (
+        isRecording &&
+        typeof budgetInGB === "number" &&
+        Number.isFinite(budgetInGB) &&
+        budgetInGB > 0
+      );
+    default:
+      return false;
+  }
+}
+
+/*
+ * The templates to offer ONE application, given what is known about it.
+ *
+ * Every template without a requirement, always. The session replay budget
+ * pairs only once their series can exist (see the storage budget comment
+ * above): the daily pair once the application has session replay on and has
+ * recorded, the monthly pair once it also has a Monthly budget. No context,
+ * or a field that is null or undefined, withholds them - so what an unknown
+ * application is offered is exactly the set every application was offered
+ * before they existed.
+ */
+export function getRumAlertTemplates(
+  context?: RumAlertTemplateContext | undefined,
+): Array<RumAlertTemplate> {
+  return ALL_RUM_ALERT_TEMPLATES.filter((template: RumAlertTemplate) => {
+    return isRequirementMet({
+      requirement: template.requirement,
+      context: context,
+    });
+  });
 }
 
 export function getRumAlertTemplateById(

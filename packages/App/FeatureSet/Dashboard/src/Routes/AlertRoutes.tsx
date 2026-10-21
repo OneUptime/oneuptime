@@ -12,6 +12,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Alerts from "../Pages/Alerts/Alerts";
 
 import AlertCreate from "../Pages/Alerts/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 import AlertView from "../Pages/Alerts/View/Index";
 
 import AlertViewNotificationLogs from "../Pages/Alerts/View/NotificationLogs";
@@ -21,6 +22,7 @@ import AlertViewAILogs from "../Pages/Alerts/View/AILogs";
 import AlertsWorkspaceConnectionSlack from "../Pages/Alerts/WorkspaceConnectionSlack";
 
 import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
 
@@ -61,7 +63,6 @@ import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules"
 
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
-import AlertSettingsAutoRemediationRules from "../Pages/Alerts/Settings/AlertAutoRemediationRules";
 
 import AlertSettingsReminderRules from "../Pages/Alerts/Settings/AlertReminderRules";
 
@@ -71,8 +72,17 @@ import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurements";
 
-import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
+import AlertSettingsEpisodeMembership from "../Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
+
+import AlertSettingsNumbering from "../Pages/Alerts/Settings/AlertNumbering";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import {
+  MORE_SETTINGS_PATH,
+  NUMBER_PREFIX_PATH,
+} from "../Components/NumberPrefix/NumberPrefixSettings";
 import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
+import AlertAIInsights from "../Pages/Alerts/AI/Insights";
+import AlertAILogs from "../Pages/Alerts/AI/Logs";
 
 // Episode Pages
 import Episodes from "../Pages/Alerts/Episodes";
@@ -104,25 +114,97 @@ import EpisodeViewDelete from "../Pages/Alerts/EpisodeView/Delete";
 
 import EpisodeViewAuditLogs from "../Pages/Alerts/EpisodeView/AuditLogs";
 
-import AlertEpisodeDocs from "../Pages/Alerts/EpisodeDocs";
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
 import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
 import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import {
+  MOVED_AI_SECTION_PATHS,
+  MOVED_EPISODE_DOCS_PATH,
+} from "./MovedPagePaths";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   let hideSideMenu: boolean = false;
 
+  /*
+   * A create page fills the width, as Declare Incident and Create Episode
+   * do under Incidents: the menu would only squeeze the form.
+   */
   if (Navigation.isOnThisPage(RouteMap[PageMap.ALERT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
+  if (
+    Navigation.isOnThisPage(RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route)
+  ) {
     hideSideMenu = true;
   }
 
   return (
     <Routes>
+      {/*
+       * Numbering was More Settings, then Number Prefix. Their old URLs
+       * forward to it - outside the layout, so the side menu never flashes
+       * on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.ALERTS_SETTINGS_NUMBERING}
+          />
+        }
+      />
+      <PageRoute
+        path={NUMBER_PREFIX_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.ALERTS_SETTINGS_NUMBERING}
+          />
+        }
+      />
+
+      {/*
+       * The AI settings and the Auto Remediation Rules moved into the AI
+       * section (…/ai/settings and …/ai/auto-remediation-rules), and then
+       * the rules into the AI settings page's More settings. Their old URLs,
+       * in bookmarks, emails and older docs, forward there - outside the
+       * layout, so the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiSettings}
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+
+      {/*
+       * Episodes > Documentation was a manual drawn in the product; the docs
+       * are the one place for it now, linked from the episode list (View
+       * Documentation). Its old URL forwards to that list - outside the
+       * layout, so the side menu never flashes on the way, and ahead of
+       * episodes/:id, which would take "documentation" for an episode id.
+       */}
+      <PageRoute
+        path={MOVED_EPISODE_DOCS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.ALERT_EPISODES} />}
+      />
+
       <PageRoute
         path="/"
         element={<Layout {...props} hideSideMenu={hideSideMenu} />}
@@ -177,12 +259,26 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTIONS] || ""}
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_CREATE] || ""}
           element={
-            <AlertCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <AlertCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 
@@ -321,23 +417,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={
-            AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES] ||
-            ""
-          }
-          element={
-            <AlertSettingsAutoRemediationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES] || ""}
           element={
             <AlertSettingsReminderRules
@@ -445,11 +524,45 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] || ""
+          }
           element={
-            <AlertSettingsMore
+            <AlertSettingsEpisodeMembership
               {...props}
-              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING] || ""}
+          element={
+            <AlertSettingsNumbering
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_AI_INSIGHTS] || ""}
+          element={
+            <AlertAIInsights
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_AI_LOGS] || ""}
+          element={
+            <AlertAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_AI_LOGS] as Route}
             />
           }
         />
@@ -495,15 +608,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        <PageRoute
-          path={AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS] || ""}
-          element={
-            <AlertEpisodeDocs
-              {...props}
-              pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
-            />
-          }
-        />
+        {getDeveloperDocsRoutes({
+          modelType: Alert,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.ALERTS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -671,6 +781,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Alert,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       {/* Episode View Routes */}
@@ -792,6 +908,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: AlertEpisode,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

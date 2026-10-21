@@ -2,6 +2,8 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Networ
 import { TraceRouteHop } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   hops: Array<TraceRouteHop>;
@@ -17,6 +19,8 @@ export interface ComponentProps {
 const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (props.hops.length === 0) {
     return <></>;
   }
@@ -26,8 +30,12 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
       <table className="min-w-full text-sm text-gray-700">
         <thead>
           <tr className="text-left text-xs text-gray-500">
-            <th className="pr-4 pb-2 font-medium">Hop</th>
-            <th className="pr-4 pb-2 font-medium">Host</th>
+            <th className="pr-4 pb-2 font-medium">
+              {translator.translateText("Hop")}
+            </th>
+            <th className="pr-4 pb-2 font-medium">
+              {translator.translateText("Host")}
+            </th>
             <th className="pb-2 font-medium">
               {/*
                * Only the first of the probe's replies per hop is kept, and
@@ -35,7 +43,7 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                * says so before a high hop reads as the fault.
                */}
               <span className="inline-flex items-center gap-1">
-                RTT
+                {translator.translateText("RTT")}
                 <InfoTooltip
                   label="RTT"
                   text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.tracerouteRtt}
@@ -61,7 +69,9 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                 </td>
                 <td className="py-1">
                   {hop.roundTripTimeInMS !== undefined
-                    ? `${hop.roundTripTimeInMS} ms`
+                    ? translator.translateTemplate("{{latency}} ms", {
+                        latency: hop.roundTripTimeInMS,
+                      })
                     : "-"}
                 </td>
               </tr>

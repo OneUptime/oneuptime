@@ -1,4 +1,4 @@
-{{- if .Values.profiling.enabled }}
+{{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -28,8 +28,10 @@ data:
         # Correlate samples with OBI's trace context via the shared
         # bpffs map, so flame graphs are linkable from spans. Has no
         # effect when the eBPF auto-instrumentation DaemonSet isn't
-        # running.
-        obi_process_ctx: {{ .Values.profiling.obiProcessContext }}
+        # running. A values file without the key (an upgrade with
+        # --reuse-values) gets the default, true, as the eBPF DaemonSet
+        # assumes when it asks OBI to fill that map.
+        obi_process_ctx: {{ ternary false true (eq (toString .Values.profiling.obiProcessContext) "false") }}
         # Don't fail collector startup if the eBPF program can't load
         # (e.g. wrong kernel) — log and keep the rest of the pipeline
         # alive so the user can see the warning instead of a crashloop.
@@ -58,10 +60,10 @@ data:
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
     exporters:
-      # Direct to OneUptime — bypassing the in-cluster collector
-      # because that collector is on v0.96.0 which predates the OTLP
-      # profiles signal. The profiler image is v0.152.0 and knows how
-      # to serialize profiles natively.
+      # Direct to OneUptime — bypassing the in-cluster collector, which
+      # has no profiles pipeline (and on 0.96.0, which a --reuse-values
+      # upgrade keeps, predates the OTLP profiles signal). The profiler
+      # image is v0.152.0 and knows how to serialize profiles natively.
       #
       # Override profiles_endpoint explicitly: the OTLP profiles signal
       # is still in development upstream, so otlphttp builds URLs

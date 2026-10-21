@@ -3,6 +3,7 @@ import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSk
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import MonitorActivityCard from "../../../Components/Monitor/Overview/MonitorActivityCard";
 import MonitorConnectionCard from "../../../Components/Monitor/Overview/MonitorConnectionCard";
+import MonitorLinkedResourcesCard from "../../../Components/Monitor/Overview/MonitorLinkedResourcesCard";
 import MonitorManualGuideCard from "../../../Components/Monitor/Overview/MonitorManualGuideCard";
 import MonitorOpenWorkCard from "../../../Components/Monitor/Overview/MonitorOpenWorkCard";
 import MonitorOverviewDetailsCard from "../../../Components/Monitor/Overview/MonitorOverviewDetailsCard";
@@ -44,6 +45,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import OneUptimeDate from "Common/Types/Date";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -289,6 +291,17 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onRefresh={() => {
             data.refresh();
           }}
+          /*
+           * The hero's "Turn monitoring on" is an edit of the monitor: the
+           * hero and the feed show it as the details card's saves do.
+           */
+          onMonitoringTurnedOn={onDetailsSaved}
+          /*
+           * So is a status picked from its More actions menu: the hero, the
+           * status changes, uptime and the feed all show the new status.
+           */
+          currentStatusId={presentationInput.currentStatus?.id}
+          onStatusChanged={onDetailsSaved}
         />
       </div>
 
@@ -357,6 +370,17 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               probeMonitorResponses={probeData?.attached.probeResponses}
               evaluationSummariesByProbeId={evaluation?.byProbeId}
               evaluationSummary={evaluation?.latest?.summary}
+              /*
+               * A Probe Status monitor's summary is the probes its newest
+               * evaluation found, from the same log row as the verdict.
+               */
+              probeStatusMonitorResponse={
+                monitorType === MonitorType.ProbeStatus
+                  ? ProbeStatusMonitorUtil.parseResponse(
+                      evaluation?.latestLogBody,
+                    ) || undefined
+                  : undefined
+              }
               incomingMonitorRequest={monitor.incomingMonitorRequest}
               incomingRequestMonitorHeartbeatCheckedAt={
                 monitor.incomingRequestMonitorHeartbeatCheckedAt
@@ -454,6 +478,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refresher={data.manualRefreshCount % 2 === 1}
             onSaveSuccess={onDetailsSaved}
           />
+
+          <MonitorLinkedResourcesCard monitorId={modelId} />
 
           <OverviewCustomFields
             modelId={modelId}

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,
@@ -21,10 +22,6 @@ function readChangeStateSource(component: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\/\/.*$/gm, " ")
     .replace(/\s+/g, " ");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function actionBlocksForId(source: string, id: string): Array<string> {
@@ -125,10 +122,18 @@ describe("event detail action configuration", () => {
       expect(source).not.toContain("-ml-3");
 
       // Acknowledge and resolve get their own modal wording and submit label.
-      expect(source).toContain('modalTitle = "Acknowledge Episode"');
-      expect(source).toContain('modalSubmitButtonText = "Acknowledge"');
-      expect(source).toContain('modalTitle = "Resolve Episode"');
-      expect(source).toContain('modalSubmitButtonText = "Resolve"');
+      expect(source).toContain(
+        'modalTitle = translationKey("Acknowledge Episode")',
+      );
+      expect(source).toContain(
+        'modalSubmitButtonText = translationKey("Acknowledge")',
+      );
+      expect(source).toContain(
+        'modalTitle = translationKey("Resolve Episode")',
+      );
+      expect(source).toContain(
+        'modalSubmitButtonText = translationKey("Resolve")',
+      );
       expect(source).toContain("submitButtonText={modalSubmitButtonText}");
       expect(source).not.toContain('submitButtonText="Save"');
     },

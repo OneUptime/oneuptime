@@ -26,6 +26,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
+import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -48,11 +49,31 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ReadProject,
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectUser,
+    /*
+     * The billing roles read the project's billing record - the columns
+     * Common/Utils/Project/ProjectBilling lists - and no other column, each
+     * column's own read list deciding.
+     */
+    Permission.BillingAdmin,
+    Permission.BillingMember,
+    Permission.BillingViewer,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
+  /*
+   * Billing Member and Billing Admin are here for the billing contact
+   * details (businessDetails, businessDetailsCountry, financeAccountingEmail,
+   * sendInvoicesByEmail), and Billing Admin for the four notification
+   * channel switches as well (enableSmsNotifications,
+   * enableCallNotifications, enableWhatsAppNotifications,
+   * enableTelegramNotifications), and nothing else: every other column's own
+   * update list leaves them out, and the server checks both lists on every
+   * update.
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.BillingAdmin,
+    Permission.BillingMember,
     Permission.ManageProjectBilling,
     Permission.EditProject,
   ],
@@ -143,6 +164,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -165,6 +189,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -187,6 +214,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -209,6 +239,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -230,6 +263,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -251,6 +287,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -273,8 +312,16 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+    ],
   })
   @TableColumn({
     type: TableColumnType.LongText,
@@ -302,8 +349,16 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -330,8 +385,16 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+    ],
   })
   @TableColumn({
     type: TableColumnType.LongText,
@@ -358,6 +421,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -380,6 +446,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -403,6 +472,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -632,7 +704,10 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadWorkflow,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -676,7 +751,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public requireSsoForLogin?: boolean = undefined;
 
@@ -900,7 +975,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Incident Number Prefix",
     description:
-      "Custom prefix for incident numbers (e.g., 'INC-'). If empty, '#' is used.",
+      "Custom prefix for incident numbers (e.g., 'INC-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber incidents that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -930,7 +1005,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Alert Number Prefix",
     description:
-      "Custom prefix for alert numbers (e.g., 'ALT-'). If empty, '#' is used.",
+      "Custom prefix for alert numbers (e.g., 'ALT-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber alerts that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -960,7 +1035,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Scheduled Maintenance Number Prefix",
     description:
-      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used.",
+      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber scheduled maintenance events that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -990,7 +1065,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Incident Episode Number Prefix",
     description:
-      "Custom prefix for incident episode numbers (e.g., 'IE-'). If empty, '#' is used.",
+      "Custom prefix for incident episode numbers (e.g., 'IE-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber incident episodes that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1020,7 +1095,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Alert Episode Number Prefix",
     description:
-      "Custom prefix for alert episode numbers (e.g., 'AE-'). If empty, '#' is used.",
+      "Custom prefix for alert episode numbers (e.g., 'AE-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber alert episodes that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1028,6 +1103,211 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public alertEpisodeNumberPrefix?: string = undefined;
+
+  /*
+   * Where incident numbers start (Utils/Project/NextNumber): the next incident
+   * gets the higher of this and the one after the highest number given out
+   * (incidentCounter), so it moves the numbers on only while no incident has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Incident Numbers Start At",
+    description:
+      "Where incident numbers start: the next incident gets this number if no incident has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every incident number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing incidents keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public incidentNumbersStartAt?: number = undefined;
+
+  /*
+   * Where incident episode numbers start (Utils/Project/NextNumber): the next incident episode
+   * gets the higher of this and the one after the highest number given out
+   * (incidentEpisodeCounter), so it moves the numbers on only while no incident episode has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Incident Episode Numbers Start At",
+    description:
+      "Where incident episode numbers start: the next incident episode gets this number if no incident episode has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every incident episode number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing incident episodes keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public incidentEpisodeNumbersStartAt?: number = undefined;
+
+  /*
+   * Where alert numbers start (Utils/Project/NextNumber): the next alert
+   * gets the higher of this and the one after the highest number given out
+   * (alertCounter), so it moves the numbers on only while no alert has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Alert Numbers Start At",
+    description:
+      "Where alert numbers start: the next alert gets this number if no alert has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every alert number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing alerts keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public alertNumbersStartAt?: number = undefined;
+
+  /*
+   * Where alert episode numbers start (Utils/Project/NextNumber): the next alert episode
+   * gets the higher of this and the one after the highest number given out
+   * (alertEpisodeCounter), so it moves the numbers on only while no alert episode has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Alert Episode Numbers Start At",
+    description:
+      "Where alert episode numbers start: the next alert episode gets this number if no alert episode has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every alert episode number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing alert episodes keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public alertEpisodeNumbersStartAt?: number = undefined;
+
+  /*
+   * Where scheduled maintenance event numbers start (Utils/Project/NextNumber): the next scheduled maintenance event
+   * gets the higher of this and the one after the highest number given out
+   * (scheduledMaintenanceCounter), so it moves the numbers on only while no scheduled maintenance event has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Scheduled Maintenance Numbers Start At",
+    description:
+      "Where scheduled maintenance event numbers start: the next scheduled maintenance event gets this number if no scheduled maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every scheduled maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing scheduled maintenance events keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public scheduledMaintenanceNumbersStartAt?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public securityCaseCounter?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1038,6 +1318,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -1067,6 +1350,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1096,6 +1382,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1117,6 +1406,14 @@ export default class Project extends TenantModel {
   })
   public autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number = undefined;
 
+  /*
+   * The four notification channel switches - SMS, WhatsApp, Telegram and
+   * phone calls - are turned on and off by a project owner, a Billing Admin
+   * or someone with Manage Billing: every message they send costs money, so
+   * switching them is billing. Not a project admin, whose role leaves billing
+   * out. Common/Utils/Project/NotificationChannels words who can, and a test
+   * holds its list to these four update lists.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -1127,8 +1424,15 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1156,8 +1460,15 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1185,8 +1496,15 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1214,8 +1532,15 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1258,6 +1583,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1321,6 +1649,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1420,6 +1751,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -1449,6 +1783,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1478,6 +1815,9 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1499,69 +1839,12 @@ export default class Project extends TenantModel {
   })
   public autoRechargeAiWhenCurrentBalanceFallsInUSD?: number = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enable AI",
-    description: "Enable AI services for this project.",
-    defaultValue: true,
-    example: true,
-  })
-  @Column({
-    nullable: false,
-    default: true,
-    type: ColumnType.Boolean,
-  })
-  public enableAi?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enable Auto Remediation",
-    description:
-      "Kill switch for auto-remediation: when disabled, no auto-remediation rule fires in this project.",
-    defaultValue: true,
-    example: true,
-  })
-  @Column({
-    nullable: false,
-    default: true,
-    type: ColumnType.Boolean,
-  })
-  public enableAutoRemediation?: boolean = undefined;
-
   /*
-   * Explicit opt-in (=== true semantics, unlike the kill switches above):
-   * AI-composed remediation COMMANDS never run in a project that has not
-   * turned this on, even when auto-remediation itself is enabled.
+   * The project's one AI switch. It used to have two companions, "Enable
+   * auto-remediation" and "Enable AI command execution"; both were folded
+   * into it, so auto-remediation and AI commands on Runners are on exactly
+   * when this is. Read with `=== false`: the column is NOT NULL DEFAULT
+   * true, so undefined means "not selected", never "off".
    */
   @ColumnAccessControl({
     create: [],
@@ -1573,6 +1856,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1580,21 +1866,180 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable AI Command Execution",
+    title: "Enable AI",
     description:
-      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else). Off by default.",
-    defaultValue: false,
-    example: false,
+      "Master switch for AI in this project. When disabled, every AI feature stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners.",
+    defaultValue: true,
+    example: true,
   })
   @Column({
     nullable: false,
-    default: false,
+    default: true,
     type: ColumnType.Boolean,
   })
-  public enableAiCommandExecution?: boolean = undefined;
+  public enableAi?: boolean = undefined;
+
+  /*
+   * The project's own daily limits on OneUptime AI, a ceiling above the
+   * incident and alert limits: see Types/AI/ProjectAiDailyLimits. Both are
+   * unset (no limit) until someone sets one, and only the people who may
+   * turn AI on or off may set them - a project owner, or someone with
+   * Manage Billing - since they decide what AI may cost the project. A
+   * project is never created with one: new projects have no limits, like
+   * every other AI limit.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Token Limit",
+    description:
+      "The most tokens OneUptime AI may use in this project each UTC day, across every AI feature: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, workflows, runbooks and Slack or Microsoft Teams questions. Once it is reached, new AI work is refused until midnight UTC. The incident and alert daily limits still apply under it. Unset means no limit; a limit is a whole number of at least 1 (to turn AI off, use Enable AI).",
+    example: 200000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailyTokenLimit?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Spend Limit (USD)",
+    description:
+      "OneUptime Cloud: the most AI credits, in whole US dollars, OneUptime AI may spend in this project each UTC day. Only calls billed to the project's AI credits count, so it never stops AI that runs on the project's own LLM provider. Once it is reached, billed AI work is refused until midnight UTC. Ignored where AI is not billed (self-hosted). Unset means no limit; a limit is at least 1 (to turn AI off, use Enable AI).",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailySpendLimitInUSD?: number = undefined;
+
+  /*
+   * When each of the two limits above last stopped OneUptime AI: the first
+   * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
+   * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that
+   * writes one, once a day, is what decides the project's owners are emailed
+   * (Server/Utils/AI/ProjectAiDailyLimitOwnerNotice), and the investigation
+   * catch-up reads them to find the projects whose skipped incidents and
+   * alerts may be waiting for the reset. Internal, like the owner notice
+   * flags below: no one reads or writes them through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Token Limit Reached At",
+    description:
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailyTokenLimitReachedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Spend Limit Reached At",
+    description:
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailySpendLimitReachedAt?: Date = undefined;
+
+  /*
+   * When the project's owners were last emailed that its plan stops its API
+   * keys or limits its SCIM connections (Server/Utils/Billing/
+   * PlanDowngradeOwnerNotice): written when a plan change tells them, and
+   * claimed - one conditional UPDATE, only while it is still empty - by the
+   * one-time notice to projects that were already below those plans when
+   * the cut-off shipped (data migration NotifyOwnersOfStoppedApiKeysAndScim),
+   * so no project's owners hear it twice, however often or however many
+   * workers run it. Internal, like the owner notice flags above: no one
+   * reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Plan Cut-off Notice Sent At",
+    description:
+      "Internal: when the project's owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public planCutoffNoticeSentAt?: Date = undefined;
+
+  /*
+   * The per-feature AI switches below (this one down to
+   * autoArchiveNonActionableExceptions) are ON for projects created from
+   * now on, and their column default stays OFF on purpose. ProjectService's
+   * onBeforeCreate turns each one on when the create request leaves it
+   * unset (every project created in the dashboard), which is why a creator
+   * may set them (create ACL): a create that says false keeps false. The
+   * column default and defaultValue stay false so existing projects are not
+   * switched on (that would start spending their AI budget), and so the
+   * generated Terraform provider's static default does not flip existing
+   * Terraform-managed projects on their next apply.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1612,7 +2057,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Investigation",
     description:
-      "When enabled, OneUptime's AI SRE automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new incident and posts a cited root cause analysis to the incident timeline; any auto-remediation for the incident waits until that investigation settles. On for new projects created in OneUptime; projects that existed before keep their setting. Drafting a postmortem when an incident resolves is a separate setting (Enable Automatic Postmortem Draft). Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1623,8 +2068,9 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticIncidentInvestigation?: boolean = undefined;
 
+  // On for new projects; see enableAutomaticIncidentInvestigation above.
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1642,7 +2088,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Investigation",
     description:
-      "When enabled, OneUptime's AI SRE automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1652,6 +2098,120 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAutomaticAlertInvestigation?: boolean = undefined;
+
+  /*
+   * Fixing new incidents and alerts automatically (auto-remediation): the
+   * master switches, one per kind of signal, as investigation has. OFF for
+   * every project, new ones included, and on purpose not among the switches
+   * a new project starts with on (ProjectService NEW_PROJECT_AI_DEFAULT_COLUMNS):
+   * investigating only reads, while a fix changes production systems, so
+   * nothing is fixed until someone turns this on. With it on, OneUptime AI
+   * fixes each new signal on the Kubernetes clusters and infrastructure it
+   * is linked to (as each one's AI agent page allows), and Auto Remediation
+   * Rules - when there are any - narrow which signals are fixed and how.
+   *
+   * Each also holds its signal's two pull-request switches (the code fix and
+   * the missing-telemetry pull request, below): a pull request is one of the
+   * ways OneUptime AI fixes, so they open pull requests only while this is
+   * on, and the settings page draws them under it and turns them on and off
+   * with it (Types/AI/AutomaticFixSwitches).
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Incident Remediation",
+    description:
+      "When enabled, OneUptime fixes new incidents automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and Auto Remediation Rules - when there are any - choose which incidents are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the incident settles first. Requires AI to be enabled. It also holds the incident pull-request switches, enableAutomaticIncidentCodeFixes and enableIncidentInstrumentationFixTasks: they open pull requests only while this is on. The dashboard turns them on and off with it; through the API, set them in the same request.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticIncidentRemediation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Alert Remediation",
+    description:
+      "When enabled, OneUptime fixes new alerts automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and Auto Remediation Rules - when there are any - choose which alerts are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the alert settles first. Requires AI to be enabled. It also holds the alert pull-request switches, enableAutomaticAlertCodeFixes and enableAlertInstrumentationFixTasks: they open pull requests only while this is on. The dashboard turns them on and off with it; through the API, set them in the same request.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticAlertRemediation?: boolean = undefined;
+
+  /*
+   * Drafting a postmortem when an incident resolves used to ride on
+   * enableAutomaticIncidentInvestigation. It is its own switch now, on for
+   * new projects like the rest. The migration that added it copied each
+   * existing project's investigation flag into it, so nothing changed for
+   * projects that already had the behaviour.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Postmortem Draft",
+    description:
+      "When enabled, OneUptime's AI SRE drafts a postmortem from the incident's timeline and telemetry when an incident is resolved, for a human to review and edit. It never overwrites a postmortem that already exists. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticPostmortemDraft?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1672,13 +2232,19 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
     description:
-      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
-    defaultValue: false,
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
+    defaultValue: true,
     example: true,
   })
+  /*
+   * On by default (1797300000000-TurnOnLinkedAlertSwitchesByDefault): a new
+   * project's alerts follow their incident. The migration only changes the
+   * column default, so projects that existed before keep what they had - an
+   * untouched switch and a deliberate "off" look the same in the table.
+   */
   @Column({
     nullable: false,
-    default: false,
+    default: true,
     type: ColumnType.Boolean,
   })
   public acknowledgeLinkedAlertsWhenIncidentAcknowledged?: boolean = undefined;
@@ -1702,7 +2268,48 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Resolve Linked Alerts When Incident Is Resolved",
     description:
-      "When enabled, resolving an incident also resolves every alert linked to it, except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
+      "When enabled, resolving an incident also resolves every alert linked to it, except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
+    defaultValue: true,
+    example: true,
+  })
+  // On by default, like the acknowledge switch above.
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public resolveLinkedAlertsWhenIncidentResolved?: boolean = undefined;
+
+  /*
+   * Whether an incident can be in only one incident episode (Incidents ->
+   * Settings -> Episode Membership). Off by default: an incident can be in
+   * several, as it always could. On, every way an incident joins an episode refuses one
+   * that is in another episode already - an episode's Add Incidents, the
+   * lists' Add to Existing / New Episode, the API, workflows, Terraform and
+   * the grouping rules (Common/Types/Episode/EpisodeSingleMembership). It
+   * removes nobody from an episode: an incident that was in several before
+   * stays in them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Limit Incidents to One Episode",
+    description:
+      "When enabled, an incident can be in only one incident episode: adding an incident that is already in an episode to another one is refused, by hand, through the API, workflows and grouping rules alike. Remove it from its episode first to move it. Incidents that are already in several episodes stay in them. Off by default.",
     defaultValue: false,
     example: true,
   })
@@ -1711,10 +2318,44 @@ export default class Project extends TenantModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public resolveLinkedAlertsWhenIncidentResolved?: boolean = undefined;
+  public limitIncidentsToOneEpisode?: boolean = undefined;
 
+  /*
+   * The same for alerts and alert episodes (Alerts -> Settings -> Episode
+   * Membership).
+   */
   @ColumnAccessControl({
     create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Limit Alerts to One Episode",
+    description:
+      "When enabled, an alert can be in only one alert episode: adding an alert that is already in an episode to another one is refused, by hand, through the API, workflows and grouping rules alike. Remove it from its episode first to move it. Alerts that are already in several episodes stay in them. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public limitAlertsToOneEpisode?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1732,7 +2373,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Incident Instrumentation Fix Tasks",
     description:
-      "When enabled, an incident AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an incident AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically. Part of fixing: it acts only while enableAutomaticIncidentRemediation (Fix new incidents automatically) is on, and the dashboard turns it on and off with that switch. Off for new projects.",
     defaultValue: false,
     example: true,
   })
@@ -1744,7 +2385,7 @@ export default class Project extends TenantModel {
   public enableIncidentInstrumentationFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1762,7 +2403,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Alert Instrumentation Fix Tasks",
     description:
-      "When enabled, an alert AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an alert AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically. Part of fixing: it acts only while enableAutomaticAlertRemediation (Fix new alerts automatically) is on, and the dashboard turns it on and off with that switch. Off for new projects.",
     defaultValue: false,
     example: true,
   })
@@ -1774,7 +2415,7 @@ export default class Project extends TenantModel {
   public enableAlertInstrumentationFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1792,7 +2433,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Code Fixes",
     description:
-      "When enabled, an incident AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an incident AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. Part of fixing: it acts only while enableAutomaticIncidentRemediation (Fix new incidents automatically) is on, and the dashboard turns it on and off with that switch. Off for new projects.",
     defaultValue: false,
     example: true,
   })
@@ -1804,7 +2445,7 @@ export default class Project extends TenantModel {
   public enableAutomaticIncidentCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1822,7 +2463,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Code Fixes",
     description:
-      "When enabled, an alert AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an alert AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. Part of fixing: it acts only while enableAutomaticAlertRemediation (Fix new alerts automatically) is on, and the dashboard turns it on and off with that switch. Off for new projects.",
     defaultValue: false,
     example: true,
   })
@@ -1834,7 +2475,7 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1852,7 +2493,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable AI Insights",
     description:
-      "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
+      "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1864,7 +2505,7 @@ export default class Project extends TenantModel {
   public enableAiInsights?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1882,7 +2523,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Insight Fix Tasks",
     description:
-      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors any open-PR cap set on the repository. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1894,7 +2535,7 @@ export default class Project extends TenantModel {
   public enableInsightFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1912,7 +2553,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Auto Archive Non-Actionable Exceptions",
     description:
-      "When enabled, exception groups the AI triage classifies as expected denials (auth failures, plan/paywall rejections, scanner probes tripping intentional validation) are automatically archived so they stop surfacing in the unresolved list and never queue AI fix tasks. Groups classified as user errors or infrastructure conditions are NOT auto-archived — only clear expected denials are. Archiving is reversible from the Archived tab.",
+      "When enabled, exception groups the AI triage classifies as expected denials (auth failures, plan/paywall rejections, scanner probes tripping intentional validation) are automatically archived so they stop surfacing in the unresolved list and never queue AI fix tasks. Groups classified as user errors or infrastructure conditions are NOT auto-archived — only clear expected denials are. Archiving is reversible from the Archived tab. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1942,7 +2583,7 @@ export default class Project extends TenantModel {
     modelType: AlertSeverity,
     title: "Alert Investigation Minimum Severity",
     description:
-      "Only alerts at or above this severity are investigated automatically by AI. When unset, the top two severity tiers (by order) are investigated by default.",
+      "Only alerts at or above this severity are investigated automatically by AI. Unset means every alert is investigated, whatever its severity.",
   })
   @ManyToOne(
     () => {
@@ -2004,7 +2645,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Autonomous AI Token Limit",
     description:
-      "Fallback maximum tokens per UTC day for autonomous AI work that is not associated with an incident or alert. When the limit is reached, new autonomous work is skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+      "Legacy setting, no longer enforced: autonomous AI work that is not associated with an incident or alert has no daily token limit. Use the Daily Incident AI Token Limit and Daily Alert AI Token Limit instead.",
     example: 500000,
   })
   @Column({
@@ -2085,7 +2726,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily AI Fix Task Limit",
     description:
-      "Fallback maximum AI fix tasks (agent runs that open pull requests) that may be created per UTC day for work not associated with an incident or alert, across every fix recipe and trigger. Unset means the default of 25 per day; 0 pauses these AI fix tasks entirely.",
+      "Legacy setting, no longer enforced: AI fix tasks that are not associated with an incident or alert have no daily limit. Use the Daily Incident AI Fix Task Limit and Daily Alert AI Fix Task Limit instead.",
     example: 25,
   })
   @Column({
@@ -2112,7 +2753,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Incident AI Fix Task Limit",
     description:
-      "Maximum AI fix tasks derived from incidents that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses incident AI fix tasks entirely.",
+      "Maximum AI fix tasks derived from incidents that may be created per UTC day for this project. Unset means no limit; 0 pauses incident AI fix tasks entirely.",
     example: 25,
   })
   @Column({
@@ -2139,7 +2780,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Alert AI Fix Task Limit",
     description:
-      "Maximum AI fix tasks derived from alerts that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses alert AI fix tasks entirely.",
+      "Maximum AI fix tasks derived from alerts that may be created per UTC day for this project. Unset means no limit; 0 pauses alert AI fix tasks entirely.",
     example: 25,
   })
   @Column({
@@ -2166,7 +2807,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Alert Re-investigation Cooldown (Minutes)",
     description:
-      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset or 0 means no cooldown, so every alert is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
@@ -2194,7 +2835,7 @@ export default class Project extends TenantModel {
     modelType: IncidentSeverity,
     title: "Incident Investigation Minimum Severity",
     description:
-      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated — unlike alerts, which default to the top two tiers, because an incident already cleared a human-authored threshold to exist.",
+      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated, whatever its severity.",
   })
   @ManyToOne(
     () => {
@@ -2255,7 +2896,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Incident Re-investigation Cooldown (Minutes)",
     description:
-      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset or 0 means no cooldown, so every incident is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
@@ -2282,7 +2923,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Investigations",
     description:
-      "Fallback maximum number of non-incident and non-alert AI investigations that may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause autonomous work with its opt-in toggle or a daily token limit of 0 instead.",
+      "Legacy setting, no longer enforced: AI investigations that are not associated with an incident or alert have no concurrency limit. Use the Max Concurrent Incident Investigations and Max Concurrent Alert Investigations instead.",
     example: 3,
   })
   @Column({
@@ -2309,7 +2950,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Incident Investigations",
     description:
-      "How many incident AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause incident investigations with the opt-in toggle or a daily token limit of 0 instead.",
+      "How many incident AI investigations may run at the same time for this project. Unset means no limit — every incident investigation starts right away. Minimum 1 — pause incident investigations with the Enable Automatic Incident Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -2336,7 +2977,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Alert Investigations",
     description:
-      "How many alert AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause alert investigations with the opt-in toggle or a daily token limit of 0 instead.",
+      "How many alert AI investigations may run at the same time for this project. Unset means no limit — every alert investigation starts right away. Minimum 1 — pause alert investigations with the Enable Automatic Alert Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -2355,6 +2996,63 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Investigation Time Limit (Minutes)",
+    description:
+      "Stop an incident AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiInvestigationTimeLimitInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Alert Investigation Time Limit (Minutes)",
+    description:
+      "Stop an alert AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiInvestigationTimeLimitInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -2384,8 +3082,16 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+    ],
   })
   @TableColumn({
     required: true,
@@ -2477,6 +3183,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -2817,9 +3526,34 @@ export default class Project extends TenantModel {
   })
   public createdOwnerCompanyName?: string = undefined;
 
+  /*
+   * Where the plan was bought is read with the plan (paymentProviderPlanId):
+   * the Billing page shows the reseller beside it, and asking for a column
+   * one may not read refuses the whole page.
+   *
+   * Where it was bought is OneUptime's to say, never the project's: the
+   * reseller, its plan and the license are written from the reseller's promo
+   * code by ProjectService once the creator has passed every check of the
+   * create (onCreatePermitted), and changed by OneUptime alone afterwards
+   * (the reseller's own tier changes, ResellerPlanAPI). Their create and
+   * update lists are empty, which is "OneUptime and master admins only": a
+   * create or an update that names them from a project member, or from the
+   * person creating the project, is refused.
+   */
   @ColumnAccessControl({
-    create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
     update: [],
   })
   @TableColumn({
@@ -2845,7 +3579,7 @@ export default class Project extends TenantModel {
   public reseller?: Reseller = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2854,6 +3588,9 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -2875,12 +3612,23 @@ export default class Project extends TenantModel {
   public resellerId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "ResellerPlanId",
+    manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
     hideColumnInDocumentation: true,
@@ -2903,8 +3651,19 @@ export default class Project extends TenantModel {
   public resellerPlan?: ResellerPlan = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
     update: [],
   })
   @Index()
@@ -2925,7 +3684,7 @@ export default class Project extends TenantModel {
   public resellerPlanId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [],
     update: [],
   })
@@ -2943,6 +3702,49 @@ export default class Project extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public resellerLicenseId?: string = undefined;
+
+  /*
+   * The cloud marketplace that bills this project - AWS Marketplace,
+   * Microsoft Marketplace (Azure) or Google Cloud Marketplace - or empty for a
+   * project billed by a card on file. Written only by OneUptime, when the
+   * buyer links a marketplace purchase to the project (MarketplaceSubscription
+   * Service): from then on the project has no card subscriptions, its
+   * subscription status follows the purchase, and its plan and usage are
+   * reported to the marketplace. Read with the plan, by whoever reads the
+   * plan, so the Billing page can say where the bill comes from.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Billing Marketplace",
+    description:
+      "The cloud marketplace that bills this project (AWS, Azure or GoogleCloud). Empty when the project is billed by a card on file.",
+    canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
+    example: "AWS",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public billingMarketplace?: CloudMarketplace = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -3051,6 +3853,50 @@ export default class Project extends TenantModel {
     default: false,
   })
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
+
+  /*
+   * Use global Runners (Runbooks -> Runners): one switch for the whole
+   * project, on by default, like global probes. While it is on, a step that
+   * picked no Runner of its own runs on one of the Runners OneUptime runs
+   * for every project, if they can run it (GlobalRunnerChoice). Turned off,
+   * nothing of the project ever runs on a global Runner - not a step that
+   * picked none, which then fails saying so, and not a job already waiting
+   * for one (RunnerJobService.claimNextGlobalJob reads it on every claim) -
+   * for a project that keeps every step on its own hosts.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: true,
+    title: "Use Global Runners",
+    description:
+      "When enabled, runbook steps that do not pick a Runner of their own run on OneUptime's global Runners, in a sandbox that can reach the internet but not your network. Turn it off to keep every step on the Runners you install. On by default.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: true,
+  })
+  public useGlobalRunners?: boolean = undefined;
 
   /*
    * GitHub App Installation ID for this project.
@@ -3164,6 +4010,11 @@ export default class Project extends TenantModel {
     type: ColumnType.JSON,
     nullable: true,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
   @ColumnAccessControl({
@@ -3226,7 +4077,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public enableAuditLogs?: boolean = undefined;
 
@@ -3311,7 +4162,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public auditLogsRetentionInDays?: number = undefined;
 
@@ -3350,7 +4201,52 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public storeSystemEventsInAuditLogs?: boolean = undefined;
+
+  /*
+   * Record and transcribe incident calls (Project Settings > Workspace >
+   * Video Calls): one switch for the whole project. While it is on, the
+   * Zoom and Google Meet meetings OneUptime starts for incidents are
+   * recorded and transcribed from the start, and OneUptime gets each one's
+   * transcript once the call is over (CallTranscriptAutoFetch).
+   *
+   * Off by default, and nothing turns it on by itself: it records people,
+   * which an organisation decides once, knowingly. Alert calls are never
+   * recorded - nothing reads their transcripts.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Record and Transcribe Incident Calls",
+    description:
+      "When enabled, OneUptime asks Zoom, Google Meet and Microsoft Teams to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public recordAndTranscribeIncidentCalls?: boolean = undefined;
 }

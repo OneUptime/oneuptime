@@ -7,11 +7,16 @@ export default class RollingTimeUtil {
     return RollingTime.Past1Minute;
   }
 
+  /*
+   * The window a rolling time covers, ending now - or at `endDate` when a
+   * caller needs it to end earlier (a telemetry check while OneUptime's
+   * ingest queue is behind, issue #2825).
+   */
   public static convertToStartAndEndDate(
     rollingTime: RollingTime,
+    endDate: Date = OneUptimeDate.getCurrentDate(),
   ): InBetween<Date> {
-    const endDate: Date = OneUptimeDate.getCurrentDate();
-    let startDate: Date = OneUptimeDate.getCurrentDate();
+    let startDate: Date = endDate;
 
     if (rollingTime === RollingTime.Past1Minute) {
       startDate = OneUptimeDate.addRemoveMinutes(endDate, -1);
@@ -94,5 +99,16 @@ export default class RollingTimeUtil {
     }
 
     return new InBetween(startDate, endDate);
+  }
+
+  // How long a rolling time's window is, in milliseconds.
+  public static getWindowInMs(rollingTime: RollingTime): number {
+    const endDate: Date = new Date(0);
+    const window: InBetween<Date> = this.convertToStartAndEndDate(
+      rollingTime,
+      endDate,
+    );
+
+    return endDate.getTime() - (window.startValue as Date).getTime();
   }
 }

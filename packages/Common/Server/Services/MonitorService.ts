@@ -1,16 +1,15 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import DatabaseConfig from "../DatabaseConfig";
-import {
-  AllowedActiveMonitorCountInFreePlan,
-  InboundEmailDomain,
-  IsBillingEnabled,
-} from "../EnvironmentConfig";
+import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import ActiveMonitorLimit from "../Utils/Billing/ActiveMonitorLimit";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
@@ -37,7 +36,6 @@ import TeamMemberService from "./TeamMemberService";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
@@ -47,8 +45,14 @@ import MonitorType, {
 } from "../../Types/Monitor/MonitorType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
+import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
+
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+  MONITOR_FIELDS,
+} from "../Utils/EventFieldChange";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -79,16 +83,22 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import { UnreadableParentException } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
+  ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
-import LabelService from "./LabelService";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
@@ -98,19 +108,45 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
   ProbeMonitorsRecipient,
 } from "../Utils/Monitor/ProbeMonitorsNotification";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
   "monitorTemplate",
+];
+
+/*
+ * The two names of a monitor's current status, ID column first. A write may
+ * name it under either, and the two must agree (RelationIdUtil
+ * .readConsistent), so the status the service acts on is the status stored.
+ */
+const CURRENT_MONITOR_STATUS_KEYS: Array<string> = [
+  "currentMonitorStatusId",
+  "currentMonitorStatus",
+];
+
+// The network device an auto-provisioned monitor comes from, by both names.
+const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
+  "autoProvisionedNetworkDeviceId",
+  "autoProvisionedNetworkDevice",
 ];
 
 /*
@@ -136,9 +172,38 @@ export interface MonitorProbeFlagChanges {
   isAllProbesDisconnectedFromThisMonitor?: boolean | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+/*
+ * What onBeforeUpdate hands to onUpdateSuccess: the name, the description
+ * and the labels each monitor the update matches held before the write,
+ * of those the update writes, keyed by monitor id
+ * (recordStoredValuesBeforeUpdate).
+ */
+type MonitorUpdateCarryForward = {
+  valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
+};
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The monitor template, the monitors this one depends on, the statuses
+   * that hold back its alerts and the affected-resource lists are checked by
+   * this service's own hooks below, with their own words. Everything else a
+   * monitor names - its labels, its alert policy - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["monitorTemplate"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "dependsOnMonitors",
+      "suppressAlertsWhenParentMonitorStatuses",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   private async validateMonitorTemplateReference(data: {
@@ -153,9 +218,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Pinned to the monitor's project, so another project's template reads
+     * exactly like one that does not exist - for a root caller too, whose
+     * read is not tenant-scoped.
+     */
     const monitorTemplate: MonitorTemplate | null =
-      await MonitorTemplateService.findOneById({
-        id: data.monitorTemplateId,
+      await MonitorTemplateService.findOneBy({
+        query: {
+          _id: data.monitorTemplateId,
+          projectId: data.projectId,
+        },
         select: {
           _id: true,
           projectId: true,
@@ -172,15 +245,6 @@ export class Service extends DatabaseService<Model> {
 
     if (!monitorTemplate) {
       throw new BadDataException("Monitor template not found.");
-    }
-
-    if (
-      !monitorTemplate.projectId ||
-      monitorTemplate.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "Monitor template must belong to the same project as the monitor.",
-      );
     }
 
     if (!data.monitorType || monitorTemplate.monitorType !== data.monitorType) {
@@ -228,6 +292,24 @@ export class Service extends DatabaseService<Model> {
              * address — a DIFFERENT host from the one being monitored, named
              * in an alert somebody is about to act on.
              */
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
+          }
+        }
+
+        /*
+         * For NTP monitors, the server, with its port only when it is not
+         * NTP's own 123 - the field is optional and usually left empty.
+         */
+        if (
+          monitorType === MonitorType.NTP &&
+          firstStep?.data?.monitorDestinationPort
+        ) {
+          const port: string = firstStep.data.monitorDestinationPort.toString();
+
+          if (monitorDestination && port && port !== String(DEFAULT_NTP_PORT)) {
             monitorDestination = HostAddressUtil.formatHostAndPort({
               host: monitorDestination,
               port: port,
@@ -467,16 +549,15 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const monitorsPendingDeletion: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    /*
+     * The monitors the delete removes, and the delete held to them: only
+     * their status page resources go and only their channels are archived.
+     */
+    const monitorsPendingDeletion: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      props: deleteBy.props,
-    });
+      });
 
     for (const monitor of monitorsPendingDeletion) {
       if (!monitor.id) {
@@ -634,36 +715,88 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-      try {
-        await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-          onDelete.deleteBy.props.tenantId,
-        );
-      } catch (error) {
-        logger.error(
-          `Error while reporting active monitor quantity to billing provider for project ${onDelete.deleteBy.props.tenantId?.toString()}: ${error}`,
-        );
+    /*
+     * Every project the deleted monitors were in is counted again: its bill
+     * and Project.currentActiveMonitorsCount (ActiveMonitorLimit
+     * .refreshCount). Taken from the monitors the delete removed
+     * (onBeforeDelete) rather than from the request's project, which a
+     * delete made as OneUptime - a master admin's, a job's - does not
+     * name, and which left the count behind until the next day's report.
+     */
+    if (IsBillingEnabled) {
+      for (const projectId of this.getProjectIdsOfDeletedMonitors(onDelete)) {
+        try {
+          await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+            projectId,
+          );
+        } catch (error) {
+          logger.error(
+            `Error while reporting active monitor quantity to billing provider for project ${projectId.toString()}: ${error}`,
+          );
+        }
       }
     }
 
     return onDelete;
   }
 
+  /*
+   * The projects of the monitors a delete removed, each once: those
+   * onBeforeDelete read, or the request's own project when it read none.
+   */
+  private getProjectIdsOfDeletedMonitors(
+    onDelete: OnDelete<Model>,
+  ): Array<ObjectID> {
+    const monitors: Array<Model> | undefined = (
+      onDelete.carryForward as { monitors?: Array<Model> } | undefined
+    )?.monitors;
+
+    const projectIds: Map<string, ObjectID> = new Map();
+
+    for (const monitor of monitors || []) {
+      const projectId: ObjectID | undefined = monitor.projectId as
+        | ObjectID
+        | undefined;
+
+      if (projectId) {
+        projectIds.set(projectId.toString(), projectId);
+      }
+    }
+
+    if (projectIds.size === 0 && onDelete.deleteBy.props.tenantId) {
+      projectIds.set(
+        onDelete.deleteBy.props.tenantId.toString(),
+        onDelete.deleteBy.props.tenantId,
+      );
+    }
+
+    return Array.from(projectIds.values());
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * currentMonitorStatusId is writable by any project member and its FK is
      * ON DELETE NO ACTION, so an id from another project here leaves that
      * project undeletable — the same shape monitorSteps had. The
      * 1785240000000 migration repaired the rows that existed then; this stops
      * new ones. It stays NO ACTION on purpose: deleting a status monitors are
-     * currently in should be blocked, not cascaded.
+     * currently in should be blocked, not cascaded. By both of its names:
+     * every name that holds an id is checked, and two that disagree are
+     * refused.
      */
-    const currentMonitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
-      resolveReferenceId(updateBy.data.currentMonitorStatus);
+    const currentMonitorStatusReferences: Array<ProjectScopedReference> =
+      getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentMonitorStatusId",
+        relation: "currentMonitorStatus",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      });
 
     const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
 
@@ -700,25 +833,16 @@ export class Service extends DatabaseService<Model> {
        * refuses a monitor that was stored broken before the guard existed. See
        * MonitorStepsProjectValidator.
        */
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: {
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           projectId: true,
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      );
 
       const writtenMonitorTemplateId: ObjectID | null =
         RelationIdUtil.readConsistent(
@@ -726,6 +850,17 @@ export class Service extends DatabaseService<Model> {
           MONITOR_TEMPLATE_RELATION_KEYS,
           "Monitor Template",
         );
+
+      if (isMonitorStepsWritten && updateBy.data.monitorSteps) {
+        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+          await this.assignWrittenMonitorStepIds({
+            monitorSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject,
+            matchedMonitors: monitors,
+            tenantId: updateBy.props.tenantId,
+          });
+      }
 
       for (const monitor of monitors) {
         if (isMonitorStepsWritten) {
@@ -735,11 +870,11 @@ export class Service extends DatabaseService<Model> {
                 monitorSteps: updateBy.data.monitorSteps as
                   | MonitorSteps
                   | JSONObject,
-                /*
-                 * Root/API updates do not always carry a tenantId, so fall back
-                 * to the project of the monitor being updated.
-                 */
-                projectId: updateBy.props.tenantId || monitor.projectId,
+                // The project the monitor being updated is checked in.
+                projectId: Service.getProjectToCheckRowIn(
+                  updateBy.props,
+                  monitor.projectId,
+                ),
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
               },
             );
@@ -774,7 +909,10 @@ export class Service extends DatabaseService<Model> {
           if (writtenMonitorTemplateId) {
             await this.validateMonitorTemplateReference({
               monitorTemplateId: writtenMonitorTemplateId,
-              projectId: updateBy.props.tenantId || monitor.projectId,
+              projectId: Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ),
               monitorType: monitor.monitorType,
               props: updateBy.props,
             });
@@ -783,27 +921,40 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (currentMonitorStatusId) {
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+    /*
+     * The projects the update's references are checked in
+     * (findProjectsToCheckUpdateIn), read once for every check below that
+     * needs them.
+     */
+    let projectsToCheckIn: Array<ObjectID> | null = null;
+    const getProjectsToCheckIn: () => Promise<
+      Array<ObjectID>
+    > = async (): Promise<Array<ObjectID>> => {
+      if (!projectsToCheckIn) {
+        projectsToCheckIn = await this.findProjectsToCheckUpdateIn(updateBy);
+      }
+
+      return projectsToCheckIn;
+    };
+
+    if (currentMonitorStatusReferences.length > 0) {
+      const projectIds: Array<ObjectID> = await getProjectsToCheckIn();
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
           {
             projectId: projectId,
             subject: "monitor",
-            references: [
-              {
-                modelName: "Monitor Status",
-                id: currentMonitorStatusId,
-                service: MonitorStatusService,
-              },
-            ],
+            references: currentMonitorStatusReferences,
           },
         );
       }
     }
+
+    await this.validateLinkedResourcesBelongToProject({
+      payload: updateBy.data,
+      getProjectIds: getProjectsToCheckIn,
+    });
 
     if (
       updateBy.data.dependsOnMonitors !== undefined ||
@@ -818,25 +969,21 @@ export class Service extends DatabaseService<Model> {
        * all targets — not once per monitor (a bulk update could match
        * thousands).
        */
-      const monitorsToValidate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const monitorsToValidate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        });
 
       await this.validateDependencyConfiguration({
         targets: monitorsToValidate.map((monitor: Model) => {
           return {
             monitorId: monitor.id || null,
-            projectId: updateBy.props.tenantId || monitor.projectId || null,
+            projectId:
+              Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ) || null,
           };
         }),
         proposedParents: updateBy.data.dependsOnMonitors,
@@ -845,22 +992,22 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * Unarchiving puts a monitor back into service the way enabling it does,
+     * so it passes the same pay-as-you-go gate. Archiving is never gated: it
+     * only ever stops work.
+     */
     if (
       IsBillingEnabled &&
       ((updateBy.data.monitorType &&
         updateBy.data.monitorType !== MonitorType.Manual) ||
-        updateBy.data.disableActiveMonitoring === false)
+        updateBy.data.disableActiveMonitoring === false ||
+        updateBy.data.isArchived === false)
     ) {
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: { projectId: true, monitorType: true },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { projectId: true, monitorType: true },
+      );
       const checkedProjects: Set<string> = new Set<string>();
 
       for (const monitor of monitors) {
@@ -883,9 +1030,130 @@ export class Service extends DatabaseService<Model> {
           checkedProjects.add(monitor.projectId.toString());
         }
       }
+
+      await this.assertRoomForMonitorsMadeActive({
+        monitors: monitors,
+        monitorType: updateBy.data.monitorType as MonitorType | undefined,
+      });
     }
 
-    return { updateBy, carryForward: null };
+    // What onUpdateSuccess compares the update with, read before the write.
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> | null =
+      await this.recordStoredValuesBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: valuesBeforeUpdate
+        ? ({
+            valuesBeforeUpdate: valuesBeforeUpdate,
+          } as MonitorUpdateCarryForward)
+        : null,
+    };
+  }
+
+  /*
+   * A Manual monitor given another type becomes an active monitor, so the
+   * plan's limit is asked for as many as the update makes active in each
+   * project (ActiveMonitorLimit). Only OneUptime's own writes may change a
+   * monitor's type. Turning a monitor on, or taking it out of the archive,
+   * makes none active: it was counted all along, as it is on the bill.
+   */
+  private async assertRoomForMonitorsMadeActive(data: {
+    monitors: Array<Model>;
+    monitorType: MonitorType | undefined;
+  }): Promise<void> {
+    if (
+      !data.monitorType ||
+      !MonitorTypeHelper.isBilledAsActiveMonitor(data.monitorType)
+    ) {
+      return;
+    }
+
+    const madeActiveByProject: Map<
+      string,
+      { projectId: ObjectID; count: number }
+    > = new Map();
+
+    for (const monitor of data.monitors) {
+      if (
+        !monitor.projectId ||
+        !monitor.monitorType ||
+        !MonitorTypeHelper.isManualMonitor(monitor.monitorType)
+      ) {
+        continue;
+      }
+
+      const key: string = monitor.projectId.toString();
+      const entry: { projectId: ObjectID; count: number } =
+        madeActiveByProject.get(key) || {
+          projectId: monitor.projectId,
+          count: 0,
+        };
+
+      entry.count += 1;
+      madeActiveByProject.set(key, entry);
+    }
+
+    for (const entry of madeActiveByProject.values()) {
+      await ActiveMonitorLimit.assertRoomFor({
+        projectId: entry.projectId,
+        adding: entry.count,
+      });
+    }
+  }
+
+  /*
+   * What onUpdateSuccess compares an update with: the name, the description
+   * and the labels of each monitor it matches, as they are stored, read
+   * here, before the write - one read, of the ones the update writes and no
+   * others, and only when it writes any. The monitor's "updated" feed item,
+   * posted to the project's Slack and Microsoft Teams channels as well,
+   * records each one that really changed (EventFieldChange): its Details
+   * card sends all three with every save, and an API client, Terraform or a
+   * workflow may write the whole monitor back, so their being there is no
+   * news.
+   *
+   * Read as root - the answer only decides what the feed says - from the
+   * monitors the update writes (findRowsAndHoldUpdateToThem): for a
+   * teammate, the ones they may write, with the update held to them. Keyed
+   * by monitor id; null, with nothing read, when the update writes none of
+   * the three.
+   */
+  private async recordStoredValuesBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<EventValuesBeforeUpdate> | null> {
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+      MONITOR_FIELDS,
+    );
+
+    if (!EventFieldChange.isAnySet(fieldsWritten)) {
+      return null;
+    }
+
+    const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+      },
+    );
+
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> = {};
+
+    for (const monitor of monitors) {
+      if (!monitor.id) {
+        continue;
+      }
+
+      valuesBeforeUpdate[monitor.id.toString()] =
+        EventFieldChange.getValuesBeforeUpdate({
+          record: monitor,
+          fields: fieldsWritten,
+        });
+    }
+
+    return valuesBeforeUpdate;
   }
 
   /*
@@ -1191,33 +1459,23 @@ export class Service extends DatabaseService<Model> {
     data["incomingEmailCustomLocalPart"] = localPart;
 
     /*
-     * Two rows are enough to know the write targets more than one monitor,
-     * which is itself the error: one address cannot route to two monitors.
+     * The monitor the update writes. More than one is itself the error - one
+     * address cannot route to two monitors - and the update is refused
+     * before it writes any of them; two monitors read are enough to tell.
      */
-    const targets: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const written: { row: Model | null; writesMore: boolean } =
+      await this.findOneRowAndHoldUpdateToIt(updateBy, {
         _id: true,
         monitorType: true,
-      },
-      limit: 2,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
-    if (targets.length > 1) {
+    if (written.writesMore) {
       throw new BadDataException(
         "A custom email address can only be set on one monitor at a time.",
       );
     }
 
-    const target: Model | undefined = targets[0];
+    const target: Model | null = written.row;
 
     // Nothing matched: the update writes nothing, so there is nothing to guard.
     if (!target) {
@@ -1262,31 +1520,44 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const monitors: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+  /*
+   * The resources a monitor watches (hosts, clusters, databases, services
+   * and the rest of an incident's affected-resource lists) must belong to
+   * the monitor's project. Each one is copied onto every incident and alert
+   * the monitor opens, where it puts the record on that resource's pages and
+   * hands OneUptime AI a cluster or host to investigate and fix - so another
+   * project's id here would let this project reach that project's
+   * infrastructure. An empty list only removes links and needs no check.
+   */
+  private async validateLinkedResourcesBelongToProject(data: {
+    payload: unknown;
+    getProjectIds: () => Promise<Array<ObjectID>>;
+  }): Promise<void> {
+    const relations: Array<ProjectScopedRelation> =
+      getAffectedResourceRelations(this.getModel()).filter(
+        (relation: ProjectScopedRelation): boolean => {
+          return (
+            resolveReferenceIds(
+              (data.payload as Dictionary<unknown>)?.[relation.column],
+            ).length > 0
+          );
+        },
+      );
 
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const monitor of monitors) {
-      if (monitor.projectId) {
-        projectIds[monitor.projectId.toString()] = monitor.projectId;
-      }
+    if (relations.length === 0) {
+      return;
     }
 
-    return Object.values(projectIds);
+    for (const projectId of await data.getProjectIds()) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "monitor",
+        references: ProjectScopedReferenceValidator.getRelationReferences({
+          payload: data.payload,
+          relations: relations,
+        }),
+      });
+    }
   }
 
   @CaptureSpan()
@@ -1294,14 +1565,22 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
-    if (
-      onUpdate.updateBy.data.currentMonitorStatusId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The status the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedMonitorStatusId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      );
+
+    if (updatedMonitorStatusId && onUpdate.updateBy.props.tenantId) {
       await this.changeMonitorStatus(
         onUpdate.updateBy.props.tenantId as ObjectID,
         updatedItemIds as Array<ObjectID>,
-        onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,
+        updatedMonitorStatusId,
         true, // notifyOwners = true
         "This status was changed when the monitor was updated.",
         undefined,
@@ -1318,6 +1597,7 @@ export class Service extends DatabaseService<Model> {
           select: {
             projectId: true,
             name: true,
+            monitorType: true,
           },
           props: {
             isRoot: true,
@@ -1325,10 +1605,12 @@ export class Service extends DatabaseService<Model> {
         });
 
         const projectId: ObjectID = monitor!.projectId!;
+        // The monitor's name, inside its link's own text.
         const monitorName: string = monitor!.name!;
 
         let shouldAddMonitorFeed: boolean = false;
-        let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`.toString();
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
@@ -1378,71 +1660,60 @@ export class Service extends DatabaseService<Model> {
             monitorId: monitorId,
             validMonitorStepIds: validMonitorStepIds,
           });
+
+          /*
+           * Probes picked or dropped on a Probe Status monitor: judge it on
+           * them now, in the background so the save returns at once.
+           */
+          if (monitor?.monitorType === MonitorType.ProbeStatus) {
+            ProbeStatusMonitorEvaluator.evaluateMonitorById(monitorId).catch(
+              (error: Error) => {
+                logger.error(
+                  "Probe Status evaluation after an update failed in MonitorService.onUpdateSuccess",
+                  {
+                    projectId: projectId?.toString(),
+                    monitorId: monitorId?.toString(),
+                  } as LogAttributes,
+                );
+                logger.error(error);
+              },
+            );
+          }
         }
 
-        if (onUpdate.updateBy.data.name) {
-          // add monitor feed.
+        /*
+         * A line for each of the name, the description and the labels the
+         * update really changed, against what the monitor held before the
+         * write (recordStoredValuesBeforeUpdate): writing back what it holds
+         * - every save of its Details card sends all three - adds none. One
+         * the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as
+              | MonitorUpdateCarryForward
+              | null
+              | undefined
+          )?.valuesBeforeUpdate?.[monitorId.toString()],
+          kind: MONITOR_FIELDS,
+        });
 
-          feedInfoInMarkdown += `\n\n**Name**: 
-    ${onUpdate.updateBy.data.name || "No name provided."}
-    `;
-          shouldAddMonitorFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add monitor feed.
-
-          feedInfoInMarkdown += `\n\n**Monitor Description**: 
-              ${onUpdate.updateBy.data.description || "No description provided."}
-              `;
-          shouldAddMonitorFeed = true;
-        }
-
-        if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
-          )
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
+            written: onUpdate.updateBy.data as unknown as Record<
+              string,
+              unknown
+            >,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Monitor",
+            kind: MONITOR_FIELDS,
           });
 
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-    
-    ${labels
-      .map((label: Label) => {
-        return `- ${label.name}`;
-      })
-      .join("\n")}
-    `;
-
-            shouldAddMonitorFeed = true;
-          }
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
+          shouldAddMonitorFeed = true;
         }
 
         if (shouldAddMonitorFeed) {
@@ -1529,8 +1800,16 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  /*
+   * The monitors that are checked: none of the four pause flags set (see
+   * MonitorPauseState, which is the same rule for a monitor already read).
+   * An archived monitor is out of service whatever its other flags say, so
+   * every worker, probe and ingest path that finds monitors through this
+   * query leaves it alone.
+   */
   public getEnabledMonitorQuery(): Query<Model> {
     return {
+      isArchived: false,
       disableActiveMonitoring: false, // do not fetch if disabled is true.
       disableActiveMonitoringBecauseOfManualIncident: false,
       disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
@@ -1541,6 +1820,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: MonitorOwnerUserService,
+      ownerTeamService: MonitorOwnerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
     }
@@ -1616,27 +1908,20 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
+      /*
+       * The plan's limit on active monitors - the Free plan's, or the
+       * project's own when it bought its plan from a reseller - asked
+       * before anything else is prepared. The INSERT asks again, under the
+       * limit's lock, so two creates at the limit cannot both pass
+       * (getCreateLimit). See ActiveMonitorLimit.
+       */
       if (
-        currentPlan.plan === PlanType.Free &&
-        createBy.data.monitorType !== MonitorType.Manual
+        MonitorTypeHelper.isBilledAsActiveMonitor(createBy.data.monitorType)
       ) {
-        const monitorCount: PositiveNumber = await this.countBy({
-          query: {
-            projectId: createBy.props.tenantId,
-            monitorType: QueryHelper.any(
-              MonitorTypeHelper.getActiveMonitorTypes(),
-            ),
-          },
-          props: {
-            isRoot: true,
-          },
+        await ActiveMonitorLimit.assertRoomFor({
+          projectId: createBy.props.tenantId,
+          currentPlan: currentPlan,
         });
-
-        if (monitorCount.toNumber() >= AllowedActiveMonitorCountInFreePlan) {
-          throw new BadDataException(
-            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`,
-          );
-        }
       }
     }
 
@@ -1652,7 +1937,14 @@ export class Service extends DatabaseService<Model> {
       createBy.data.incomingEmailSecretKey = ObjectID.generate();
     }
 
-    if (createBy.data.autoProvisionedNetworkDeviceId) {
+    const autoProvisionedNetworkDeviceId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        createBy.data as unknown as Record<string, unknown>,
+        AUTO_PROVISIONED_NETWORK_DEVICE_KEYS,
+        "Auto-Provisioned Network Device",
+      );
+
+    if (autoProvisionedNetworkDeviceId) {
       if (!monitorTemplateId) {
         throw new BadDataException(
           "An auto-provisioned Network Device monitor must be linked to a monitor template.",
@@ -1667,13 +1959,22 @@ export class Service extends DatabaseService<Model> {
 
       NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
         monitorSteps: createBy.data.monitorSteps,
-        networkDeviceId: createBy.data.autoProvisionedNetworkDeviceId,
+        networkDeviceId: autoProvisionedNetworkDeviceId,
       });
     }
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
+    });
+
+    await this.validateLinkedResourcesBelongToProject({
+      payload: createBy.data,
+      getProjectIds: async (): Promise<Array<ObjectID>> => {
+        const projectId: ObjectID | undefined =
+          createBy.props.tenantId || createBy.data.projectId;
+        return projectId ? [projectId] : [];
+      },
     });
 
     await this.validateDependencyConfiguration({
@@ -1733,9 +2034,106 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    createBy.data.currentMonitorStatusId = monitorStatus.id;
+    /*
+     * Whatever status the write named under either name: stamp leaves no
+     * other name of it to be stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      CURRENT_MONITOR_STATUS_KEYS,
+      monitorStatus.id,
+    );
+
+    /*
+     * The ids inside monitorSteps are the server's to give (an API client such
+     * as the Terraform provider sends none), and steps with no default status
+     * fall back to this one, as the dashboard preselects it.
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = MonitorStepsIdentityUtil.assignIds({
+        monitorSteps: MonitorSteps.fromJSON(
+          createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        ),
+        defaultMonitorStatusId: monitorStatus.id,
+      });
+    }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The plan's limit on active monitors, decided together with the INSERT
+   * in one transaction holding the limit's lock in the project, so two
+   * creates at the limit cannot both pass - whichever path made them. None
+   * for a Manual monitor, or in a project whose plan sets no limit. See
+   * ActiveMonitorLimit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    return await ActiveMonitorLimit.getCreateLimit({
+      projectId: createBy.data.projectId || createBy.props.tenantId,
+      monitorType: createBy.data.monitorType,
+    });
+  }
+
+  /*
+   * The written monitorSteps with their ids filled in, keeping the stored ids
+   * wherever the caller sent none - so a `terraform apply` that resends the
+   * steps keeps the criteria ids its open incidents point at (see
+   * MonitorStepsIdentityUtil). Only a write to a single monitor has stored
+   * steps to keep ids from; a bulk write gives every matched monitor the same
+   * steps, so it only fills in what is missing.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    matchedMonitors: Array<Model>;
+    tenantId?: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+    const storedMonitorSteps: MonitorSteps | undefined =
+      data.matchedMonitors.length === 1
+        ? data.matchedMonitors[0]!.monitorSteps
+        : undefined;
+
+    let defaultMonitorStatusId: ObjectID | null = null;
+
+    if (
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !storedMonitorSteps?.data?.defaultMonitorStatusId
+    ) {
+      const projectIds: Set<string> = new Set<string>(
+        data.matchedMonitors
+          .map((monitor: Model) => {
+            return monitor.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+      /*
+       * The default status of the monitors' own project. Monitors of more
+       * than one project - a write of OneUptime's or a master admin's -
+       * share none, so none is filled in.
+       */
+      const projectId: string | undefined =
+        projectIds.size === 1
+          ? Array.from(projectIds)[0]
+          : projectIds.size === 0
+            ? data.tenantId?.toString()
+            : undefined;
+
+      if (projectId) {
+        defaultMonitorStatusId =
+          await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
+            new ObjectID(projectId),
+          );
+      }
+    }
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()
@@ -1790,27 +2188,27 @@ export class Service extends DatabaseService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
+    let feedInfoInMarkdown: string = mdText`#### 🌎 Monitor Created: 
           
 **${createdItem.name?.trim() || "No name provided."}**:
 
-${createdItem.description?.trim() || "No description provided."}
+${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description provided.")}
     
-`;
+`.toString();
 
     if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += `➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
+      feedInfoInMarkdown += mdText`➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
     }
 
     if (monitor?.monitorType) {
-      feedInfoInMarkdown += `⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
+      feedInfoInMarkdown += mdText`⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
     }
 
     if (monitor?.labels && monitor.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of monitor.labels) {
-        feedInfoInMarkdown += `- ${label.name}\n`;
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;
@@ -1869,6 +2267,14 @@ ${createdItem.description?.trim() || "No description provided."}
       })
       .then(async () => {
         try {
+          /*
+           * The monitor's first status row is part of creating it, as an
+           * incident's first state is: OneUptime writes it, for the person
+           * who created the monitor (still its creator). Written as them, it
+           * would be held to their read of the monitor, which a creator
+           * whose read reaches only what they own gets once the create
+           * returns (DatabaseService.autoOwnerOnCreate).
+           */
           return await this.changeMonitorStatus(
             createdItem.projectId!,
             [createdItem.id!],
@@ -1876,7 +2282,10 @@ ${createdItem.description?.trim() || "No description provided."}
             false, // notifyOwners = false
             "This status was created when the monitor was created.",
             undefined,
-            onCreate.createBy.props,
+            {
+              isRoot: true,
+              userId: onCreate.createBy.props.userId,
+            },
           );
         } catch (error) {
           logger.error(
@@ -1928,6 +2337,7 @@ ${createdItem.description?.trim() || "No description provided."}
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2040,6 +2450,33 @@ ${createdItem.description?.trim() || "No description provided."}
           return Promise.resolve();
         }
       })
+      .then(async () => {
+        /*
+         * A Probe Status monitor is judged as soon as it exists, after its
+         * first status row above, so the page it opens on already says
+         * whether its probes are connected rather than waiting for the
+         * next minute's sweep.
+         */
+        if (createdItem.monitorType !== MonitorType.ProbeStatus) {
+          return Promise.resolve();
+        }
+
+        try {
+          await ProbeStatusMonitorEvaluator.evaluateMonitorById(
+            createdItem.id!,
+          );
+        } catch (error) {
+          logger.error(
+            "First Probe Status evaluation failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
+        return Promise.resolve();
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in MonitorService sequential operations: ${error}`,
@@ -2062,27 +2499,19 @@ ${createdItem.description?.trim() || "No description provided."}
     createdByUserId: ObjectID | undefined | null;
   }): Promise<void> {
     // send message to workspaces - slack, teams, etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const workspaceResult: WorkspaceChannelsCreated | null =
       await MonitorWorkspaceMessages.createChannelsAndInviteUsersToChannels({
         projectId: data.projectId,
         monitorId: data.monitorId,
         monitorName: data.monitorName,
       });
 
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update monitor with these channels.
-      await this.updateOneById({
-        id: data.monitorId,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * The new channels are on the monitor already: the rule service stores
+     * them before it invites anybody, so whoever joins the monitor while
+     * they are set up is invited too (WorkspaceNotificationRuleService
+     * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+     */
 
     const monitorCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await MonitorWorkspaceMessages.getMonitorCreateMessageBlocks({
@@ -2101,6 +2530,12 @@ ${createdItem.description?.trim() || "No description provided."}
         appendMessageBlocks: monitorCreateMessageBlocks,
         sendWorkspaceNotification: true,
       },
+    });
+
+    // Under "Monitor Created": who could not be added to the new channels.
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: data.projectId,
+      membersNotAdded: workspaceResult?.membersNotAdded,
     });
   }
 
@@ -2211,6 +2646,12 @@ ${createdItem.description?.trim() || "No description provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the monitor are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2223,6 +2664,7 @@ ${createdItem.description?.trim() || "No description provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
@@ -2772,7 +3214,9 @@ ${createdItem.description?.trim() || "No description provided."}
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `Probes for monitor ${monitor.name} is ${enabledStatus}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -2903,7 +3347,9 @@ ${createdItem.description?.trim() || "No description provided."}
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} are ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `Probes for monitor ${monitor.name} are ${status}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -3448,8 +3894,8 @@ ${createdItem.description?.trim() || "No description provided."}
   }
 
   /*
-   * Creates one status timeline row, absorbing the two error classes that are
-   * recoverable per monitor so one monitor cannot abort a caller's loop over
+   * Creates one status timeline row, absorbing the error classes that are
+   * decided per monitor so one monitor cannot abort a caller's loop over
    * many (incident resolve, scheduled maintenance end, incident create with
    * changeMonitorStatusTo):
    *
@@ -3468,7 +3914,15 @@ ${createdItem.description?.trim() || "No description provided."}
    *     the next probe result recreates the transition, and failing the caller
    *     outright would strand its remaining monitors instead.
    *
-   * Every other error still propagates.
+   *   - a monitor the caller may not read: a person's change - an incident
+   *     they declare or edit - writes as them, and a monitor outside what
+   *     their read of monitors reaches takes no row from them
+   *     (CreatePermission.checkParentPermission refuses it with
+   *     UnreadableParentException). That monitor keeps its status; the
+   *     others are still changed.
+   *
+   * Every other error still propagates - a caller who may write no status
+   * row at all is refused, as before.
    */
   private async createStatusTimelineWithRetry(data: {
     statusTimeline: MonitorStatusTimeline;
@@ -3518,6 +3972,15 @@ ${createdItem.description?.trim() || "No description provided."}
         if (isLockError) {
           logger.error(
             `changeMonitorStatus: could not acquire the status timeline lock for monitor ${data.monitorId.toString()} after ${maxAttempts} attempt(s); skipping this status change. The monitor keeps its current status.`,
+            logAttributes,
+          );
+          return;
+        }
+
+        // A monitor the caller may not read. See the comment above.
+        if (err instanceof UnreadableParentException) {
+          logger.warn(
+            `changeMonitorStatus: monitor ${data.monitorId.toString()} keeps its status: the caller of this change may not read it.`,
             logAttributes,
           );
           return;

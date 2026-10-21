@@ -29,6 +29,17 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Regression coverage for the team-creator escalation chain:
@@ -103,6 +114,7 @@ function propsWith(
   return {
     userId: USER_ID,
     tenantId: tenantId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       _type: "UserGlobalAccessPermission",
       projectIds: [tenantId],
@@ -131,6 +143,18 @@ function makePermission(data?: {
   }
   permission.scope = data?.scope || PermissionScope.All;
   return permission;
+}
+
+/*
+ * The rows a teammate may update, as the hook reads them before it checks
+ * them (findRowsAndHoldUpdateToThem), answered as the suite's findBy stub
+ * answers the hook's own read. Returns that stub.
+ */
+function answerRowsLikeFindBy<
+  TFindBy extends { getMockImplementation(): unknown },
+>(findBy: TFindBy): TFindBy {
+  stubRowsCallerMayWriteLikeFindBy(TeamPermissionService, findBy);
+  return findBy;
 }
 
 function makeTeamPermissionCreate(
@@ -302,6 +326,7 @@ describe("TeamPermissionService grant ceiling", () => {
   beforeEach(() => {
     jest.spyOn(TeamService, "findOneBy").mockResolvedValue(editableTeam());
     jest.spyOn(TeamPermissionService, "findOneBy").mockResolvedValue(null);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -521,10 +546,12 @@ describe("TeamPermissionService grant ceiling", () => {
       permission: Permission.ProjectAdmin,
     });
     existing.team = editableTeam();
-    jest.spyOn(TeamPermissionService, "findBy").mockResolvedValue([existing]);
+    answerRowsLikeFindBy(
+      jest.spyOn(TeamPermissionService, "findBy").mockResolvedValue([existing]),
+    );
 
     const updateBy: UpdateBy<TeamPermission> = {
-      query: { _id: ObjectID.generate() },
+      query: { _id: existing.id!.toString() },
       data: { permission: Permission.ProjectOwner },
       props: propsWith([grant(Permission.ProjectAdmin)]),
       skip: 0,
@@ -543,10 +570,14 @@ describe("TeamPermissionService grant ceiling", () => {
         permission: Permission.ProjectAdmin,
       });
       existing.team = editableTeam();
-      jest.spyOn(TeamPermissionService, "findBy").mockResolvedValue([existing]);
+      answerRowsLikeFindBy(
+        jest
+          .spyOn(TeamPermissionService, "findBy")
+          .mockResolvedValue([existing]),
+      );
 
       const updateBy: UpdateBy<TeamPermission> = {
-        query: { _id: ObjectID.generate() },
+        query: { _id: existing.id!.toString() },
         data: { permission: delegatedPermission },
         props: propsWith([grant(Permission.ProjectAdmin)]),
         skip: 0,
@@ -786,7 +817,10 @@ describe("project-scoped permission resolution and access refresh", () => {
         },
       }),
     );
-    expect(refreshGlobal).toHaveBeenCalledWith(USER_ID);
+    // Only the project's refresh tells their open live updates.
+    expect(refreshGlobal).toHaveBeenCalledWith(USER_ID, {
+      forgetLiveUpdateReaders: false,
+    });
     expect(refreshTenant).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
   });
 

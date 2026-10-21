@@ -8,7 +8,6 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
-import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -30,14 +29,13 @@ import {
   ManyToOne,
 } from "typeorm";
 
-@TableEditionAccessControl({
-  requiresEnterprise: true,
-})
 @TableBillingAccessControl({
   create: PlanType.Scale,
   read: PlanType.Scale,
   update: PlanType.Scale,
   delete: PlanType.Scale,
+  // Signs people in after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -48,6 +46,7 @@ import {
   ],
   read: [
     Permission.ProjectOwner,
+    Permission.ProjectAdmin,
     Permission.ProjectUser,
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectMember,
@@ -710,4 +709,31 @@ export default class ProjectOIDC extends BaseModel {
     default: false,
   })
   public isTested?: boolean = undefined;
+
+  /*
+   * When this provider was last turned off. Turning a provider off ends the
+   * sign-ins it gave: a project SSO sign-in made before this time no longer
+   * counts, even once the provider is turned on again, so the person signs
+   * in again (Server/Utils/ProjectSsoProviderStanding). OneUptime writes it
+   * when the provider is turned off (Server/Utils/ProjectSsoProviderChanges);
+   * no one reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Sign-ins Ended At",
+    description:
+      "Internal: when this provider was last turned off. Sign-ins it gave before then no longer count.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public signInsEndedAt?: Date = undefined;
 }

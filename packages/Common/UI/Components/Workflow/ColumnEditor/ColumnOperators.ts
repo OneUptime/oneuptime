@@ -18,6 +18,7 @@ import {
   getOperatorOption,
 } from "../../Dictionary/DictionaryFilterOperator";
 import { ModelColumnControl } from "./ColumnRow";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 
 const TEXT_OPERATORS: Array<DictionaryFilterOperator> = [
   DictionaryFilterOperator.EqualTo,
@@ -79,30 +80,32 @@ const BOOLEAN_OPERATORS: Array<DictionaryFilterOperator> = [
  */
 const DATE_OPERATOR_LABELS: Partial<Record<DictionaryFilterOperator, string>> =
   {
-    [DictionaryFilterOperator.EqualTo]: "is",
-    [DictionaryFilterOperator.NotEqual]: "is not",
-    [DictionaryFilterOperator.GreaterThan]: "is after",
-    [DictionaryFilterOperator.GreaterThanOrEqual]: "is on or after",
-    [DictionaryFilterOperator.LessThan]: "is before",
-    [DictionaryFilterOperator.LessThanOrEqual]: "is on or before",
-    [DictionaryFilterOperator.IsEmpty]: "is not set",
-    [DictionaryFilterOperator.IsNotEmpty]: "is set",
+    [DictionaryFilterOperator.EqualTo]: translationKey("is"),
+    [DictionaryFilterOperator.NotEqual]: translationKey("is not"),
+    [DictionaryFilterOperator.GreaterThan]: translationKey("is after"),
+    [DictionaryFilterOperator.GreaterThanOrEqual]:
+      translationKey("is on or after"),
+    [DictionaryFilterOperator.LessThan]: translationKey("is before"),
+    [DictionaryFilterOperator.LessThanOrEqual]:
+      translationKey("is on or before"),
+    [DictionaryFilterOperator.IsEmpty]: translationKey("is not set"),
+    [DictionaryFilterOperator.IsNotEmpty]: translationKey("is set"),
   };
 
 const BOOLEAN_OPERATOR_LABELS: Partial<
   Record<DictionaryFilterOperator, string>
 > = {
-  [DictionaryFilterOperator.EqualTo]: "is",
-  [DictionaryFilterOperator.NotEqual]: "is not",
-  [DictionaryFilterOperator.IsEmpty]: "is not set",
-  [DictionaryFilterOperator.IsNotEmpty]: "is set",
+  [DictionaryFilterOperator.EqualTo]: translationKey("is"),
+  [DictionaryFilterOperator.NotEqual]: translationKey("is not"),
+  [DictionaryFilterOperator.IsEmpty]: translationKey("is not set"),
+  [DictionaryFilterOperator.IsNotEmpty]: translationKey("is set"),
 };
 
 const DEFAULT_OPERATOR_LABELS: Partial<
   Record<DictionaryFilterOperator, string>
 > = {
-  [DictionaryFilterOperator.IsEmpty]: "is not set",
-  [DictionaryFilterOperator.IsNotEmpty]: "is set",
+  [DictionaryFilterOperator.IsEmpty]: translationKey("is not set"),
+  [DictionaryFilterOperator.IsNotEmpty]: translationKey("is set"),
 };
 
 export type OperatorsForControlFunction = (

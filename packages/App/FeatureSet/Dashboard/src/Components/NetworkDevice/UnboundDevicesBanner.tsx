@@ -8,6 +8,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -50,6 +56,7 @@ export interface ComponentProps {
 const UnboundDevicesBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [unboundCount, setUnboundCount] = useState<number>(0);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
@@ -98,28 +105,35 @@ const UnboundDevicesBanner: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const isSingular: boolean = unboundCount === 1;
-
   return (
     <Alert
       dataTestId="network-device-unbound-devices-banner"
       type={AlertType.WARNING}
       title={
         <span>
-          {`${unboundCount} ${isSingular ? "device has" : "devices have"} no monitor bound and ${
-            isSingular ? "is" : "are"
-          } never polled. Switch ${isSingular ? "it" : "them"} to probe polling to have ${
-            isSingular ? "its" : "their"
-          } probe ping ${isSingular ? "it" : "them"}: `}
-          <button
-            type="button"
-            data-testid="network-device-unbound-devices-banner-show"
-            className="font-medium underline hover:no-underline"
-            onClick={props.onShowUnboundDevices}
-          >
-            show pending devices
-          </button>
-          {`, select the ones tagged "No monitor", and use ${SWITCH_TO_PROBE_POLLING_ACTION_TITLE}.`}
+          <TranslatedSentence
+            template={{
+              one: '{{count}} device has no monitor bound and is never polled. Switch it to probe polling to have its probe ping it: {{showDevices}}, select the ones tagged "No monitor", and use {{action}}.',
+              other:
+                '{{count}} devices have no monitor bound and are never polled. Switch them to probe polling to have their probe ping them: {{showDevices}}, select the ones tagged "No monitor", and use {{action}}.',
+            }}
+            count={unboundCount}
+            values={{
+              action: translatableTerm(SWITCH_TO_PROBE_POLLING_ACTION_TITLE),
+            }}
+            slots={{
+              showDevices: (
+                <button
+                  type="button"
+                  data-testid="network-device-unbound-devices-banner-show"
+                  className="font-medium underline hover:no-underline"
+                  onClick={props.onShowUnboundDevices}
+                >
+                  {translator.translateText("show pending devices")}
+                </button>
+              ),
+            }}
+          />
         </span>
       }
       onClose={(): void => {

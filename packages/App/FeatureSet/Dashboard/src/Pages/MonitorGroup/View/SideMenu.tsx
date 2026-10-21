@@ -7,6 +7,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -15,9 +18,15 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Laid out like a monitor's own menu: what the group is (its Overview and
+   * the monitors in it) first, then its Activity, then Advanced, folded,
+   * with its Owners. The monitors in a group are what a group is, and they
+   * used to sit under "More", below Owners.
+   */
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Basic",
+      title: "Overview",
       items: [
         {
           link: {
@@ -31,21 +40,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.Team,
-        },
-      ],
-    },
-    {
-      title: "More",
-      items: [
-        {
-          link: {
             title: "Monitors",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route,
@@ -54,6 +48,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.AltGlobe,
         },
+      ],
+    },
+    {
+      title: "Activity",
+      items: [
         {
           link: {
             title: "Incidents",
@@ -81,6 +80,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Team,
+        },
+        {
+          link: {
             title: "Audit Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS] as Route,
@@ -103,6 +112,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: MonitorGroup,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
+  });
 
   return <SideMenu sections={sections} />;
 };

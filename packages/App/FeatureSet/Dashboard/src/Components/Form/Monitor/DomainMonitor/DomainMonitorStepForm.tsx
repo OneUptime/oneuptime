@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  DOMAIN_MONITOR_MORE_FIELDS,
+  getMonitorOptionsMoreFieldsItems,
+} from "../MonitorMoreFields";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
 import { parseMonitorStepRetriesInput } from "Common/Types/Monitor/MonitorStepRetries";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
@@ -9,7 +15,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
   monitorStepDomainMonitor: MonitorStepDomainMonitor;
@@ -19,9 +24,6 @@ export interface ComponentProps {
 const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedOptions, setShowAdvancedOptions] =
-    useState<boolean>(false);
-
   const lookupMethodOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(DomainLookupMethod);
 
@@ -48,7 +50,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Lookup Method"
-          description="How registration data is read. Auto uses RDAP when the TLD publishes one and falls back to WHOIS. Some TLDs (such as .digital) have no working WHOIS server, and some (such as .io) have no RDAP service."
+          description="How registration data is read. Auto uses RDAP where the TLD has it and falls back to WHOIS."
           required={true}
         />
         <Dropdown
@@ -65,22 +67,20 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {!showAdvancedOptions && (
-        <div className="mt-1 -ml-3">
-          <Button
-            title="Advanced: Timeout and Retries"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            onClick={() => {
-              setShowAdvancedOptions(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showAdvancedOptions && (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
-
+      {/*
+       * More fields, folded like every form's: options most monitors
+       * leave at their defaults. Its header names them and shows the
+       * ones changed.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        items={getMonitorOptionsMoreFieldsItems(
+          props.monitorStepDomainMonitor,
+          DOMAIN_MONITOR_MORE_FIELDS,
+        )}
+        dataTestId="domain-monitor-more-fields"
+      >
+        <div className="space-y-4">
           <div>
             <FieldLabelElement
               title="Timeout (ms)"
@@ -124,7 +124,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      )}
+      </FoldedSection>
     </div>
   );
 };

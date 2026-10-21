@@ -9,6 +9,9 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -74,12 +77,29 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.AltGlobe}
         />
-        {/*
-         * Rules belong beside the resources they write, not filed under
-         * Advanced. Somebody populating a group from a label is standing on
-         * the Resources screen, and a rule is the only thing that keeps that
-         * group populated as monitors are added.
-         */}
+      </SideMenuSection>
+
+      {/*
+       * What the page shows (Basic, Resources) is what this menu is opened
+       * for, so those two start open. Every section after them folds down to
+       * its title until opened, and opens by itself on its own pages:
+       *
+       *  - Rules: the monitor rules that fill the page. A rule is written
+       *    once and then runs by itself, putting every monitor that matches
+       *    into its group as monitors are created or relabelled, and the Add
+       *    Monitors dialog writes one when a group is filled from a label
+       *    (#3418). So it is set up rather than visited, and has a section of
+       *    its own, as an SLO's rules do, right below the resources it
+       *    writes: not three sections down under Advanced, where the person
+       *    who filed #3418 never found it.
+       *  - Subscribers sign themselves up and are managed now and then.
+       *  - Notification logs, branding, security and AI are set up once or
+       *    checked when something needs checking.
+       *
+       * Subscribers says so itself; the others fold by their titles (see
+       * SideMenuSectionState.ts).
+       */}
+      <SideMenuSection title="Rules">
         <SideMenuItem
           link={{
             title: "Monitor Rules",
@@ -92,7 +112,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Subscribers">
+      <SideMenuSection title="Subscribers" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Email Subscribers",
@@ -125,7 +145,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "MS Teams Subscribers",
+            title: "Microsoft Teams Subscribers",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
@@ -172,27 +192,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * Three entries, as on a dashboard's menu: the one Branding page (the
+       * logo, title, favicon, links, footer, colors and languages, which
+       * were five screens), the page's own domain, and the custom code that
+       * goes past what the Branding page offers.
+       */}
       <SideMenuSection title="Branding">
         <SideMenuItem
           link={{
-            title: "Essential Branding",
+            title: "Branding",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.Image}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "HTML, CSS & JavaScript",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Code}
         />
 
         <SideMenuItem
@@ -208,52 +223,36 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Header",
+            title: "HTML, CSS & JavaScript",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route,
+              RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.ArrowCircleUp}
+          icon={IconProp.Code}
         />
+      </SideMenuSection>
 
+      {/*
+       * Access first: who can see the page is one choice there (anyone with
+       * the link, only people who sign in, anyone with the password). The
+       * entries after it set up the sign-in that the second choice uses. It
+       * is the old "Authentication Settings" page, at the same address.
+       */}
+      <SideMenuSection title="Security">
         <SideMenuItem
           link={{
-            title: "Footer",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.ArrowCircleDown}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Overview Page",
+            title: "Access",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
+                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
               ] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.CheckCircle}
+          icon={IconProp.Eye}
         />
 
-        <SideMenuItem
-          link={{
-            title: "Languages",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Language}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Security">
         <SideMenuItem
           link={{
             title: "Private Users",
@@ -297,19 +296,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Refresh}
         />
-
-        <SideMenuItem
-          link={{
-            title: "Authentication Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Settings}
-        />
       </SideMenuSection>
 
       <SideMenuSection title="AI">
@@ -324,6 +310,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Terminal}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: StatusPage,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

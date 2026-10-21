@@ -6,6 +6,7 @@ import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNot
 import IncidentService from "../../Services/IncidentService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
+import SavedChatMessageNote from "../Notes/SavedChatMessageNote";
 import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
 import WorkspaceUtil, { WorkspaceChannelMessage } from "../Workspace/Workspace";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
@@ -15,8 +16,12 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
+import PromptText from "../../../Utils/AI/PromptText";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import CallSummaryContext, {
+  IncidentCallForPrompt,
+} from "./CallSummary/CallSummaryContext";
 
 export interface IncidentContextData {
   incident: Incident;
@@ -24,6 +29,11 @@ export interface IncidentContextData {
   internalNotes: Array<IncidentInternalNote>;
   publicNotes: Array<IncidentPublicNote>;
   workspaceMessages: Array<WorkspaceChannelMessage>;
+  /*
+   * The incident's calls that have a transcript, with what OneUptime AI
+   * read in each (CallSummaryContext). Read only when asked for.
+   */
+  calls?: Array<IncidentCallForPrompt> | undefined;
 }
 
 export interface AIGenerationContext {
@@ -38,6 +48,8 @@ export default class IncidentAIContextBuilder {
     incidentId: ObjectID;
     includeWorkspaceMessages?: boolean;
     workspaceMessageLimit?: number;
+    // The incident's call transcripts and what was read in them: for a postmortem.
+    includeCalls?: boolean | undefined;
   }): Promise<IncidentContextData> {
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
@@ -60,8 +72,11 @@ export default class IncidentAIContextBuilder {
           color: true,
         },
         monitors: {
+          _id: true,
           name: true,
         },
+        // For the affected network device's transceivers (NetworkTransceiverContext).
+        seriesLabels: true,
         serviceLevelObjectives: {
           name: true,
         },
@@ -121,13 +136,16 @@ export default class IncidentAIContextBuilder {
           _id: true,
           note: true,
           createdAt: true,
+          postedAt: true,
+          savedFromChatMessage: true,
           createdByUser: {
             name: true,
             email: true,
           },
         },
+        // In the order they belong in: a saved chat message when it was written.
         sort: {
-          createdAt: SortOrder.Ascending,
+          postedAt: SortOrder.Ascending,
         },
         limit: 100,
         skip: 0,
@@ -201,13 +219,21 @@ export default class IncidentAIContextBuilder {
       }
     }
 
-    return {
+    const contextData: IncidentContextData = {
       incident,
       stateTimeline,
       internalNotes,
       publicNotes,
       workspaceMessages,
     };
+
+    if (data.includeCalls) {
+      contextData.calls = await CallSummaryContext.readForIncident(
+        data.incidentId,
+      );
+    }
+
+    return contextData;
   }
 
   @CaptureSpan()
@@ -228,7 +254,7 @@ export default class IncidentAIContextBuilder {
     // Basic incident information
     contextText += "# Incident Information\n\n";
     contextText += `**Title:** ${incident.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${incident.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(incident.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${incident.incidentSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${incident.currentIncidentState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n\n`;
@@ -275,12 +301,12 @@ export default class IncidentAIContextBuilder {
 
     // Root cause if available
     if (incident.rootCause) {
-      contextText += `**Root Cause:** ${incident.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(incident.rootCause)}\n\n`;
     }
 
     // Remediation notes if available
     if (incident.remediationNotes) {
-      contextText += `**Remediation Notes:** ${incident.remediationNotes}\n\n`;
+      contextText += `**Remediation Notes:** ${PromptText.draftField(incident.remediationNotes)}\n\n`;
     }
 
     // State timeline
@@ -299,7 +325,7 @@ export default class IncidentAIContextBuilder {
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -309,16 +335,21 @@ export default class IncidentAIContextBuilder {
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -337,7 +368,7 @@ export default class IncidentAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -352,6 +383,9 @@ export default class IncidentAIContextBuilder {
       contextText += "\n\n";
     }
 
+    // What was said on the incident's calls, when it has transcripts.
+    contextText += CallSummaryContext.formatForPrompt(contextData.calls || []);
+
     // System prompt for postmortem generation
     let systemPrompt: string;
 
@@ -365,6 +399,7 @@ CRITICAL INSTRUCTIONS:
 - Do NOT add any new sections, headers, or content that is not part of the template
 - Do NOT add introductions, conclusions, or any text outside the template structure
 - If a section in the template has no relevant data, write "No data available" or leave the placeholder text
+- A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis: say so, and never present it as the confirmed cause
 - Be blameless - focus on systemic improvements rather than individual blame
 - Write in a professional, clear, and concise manner
 
@@ -391,6 +426,7 @@ Write in a professional, clear, and concise manner. Use markdown formatting for 
 Grounding rules (important):
 - Use ONLY facts that appear in the provided incident data. Do NOT invent root causes, timelines, metrics, customer impact, or actions the data does not support.
 - If a section needs information the data does not contain, write "Not available in the incident record" instead of guessing.
+- A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis: say so, and never present it as the confirmed cause.
 - Never fabricate numbers or state confidence levels.`;
     }
 
@@ -437,7 +473,7 @@ Grounding rules (important):
     // Basic incident information
     contextText += "# Incident Information\n\n";
     contextText += `**Title:** ${incident.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${incident.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(incident.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${incident.incidentSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${incident.currentIncidentState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n\n`;
@@ -484,7 +520,7 @@ Grounding rules (important):
 
     // Root cause if available
     if (incident.rootCause) {
-      contextText += `**Root Cause:** ${incident.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(incident.rootCause)}\n\n`;
     }
 
     // State timeline
@@ -503,7 +539,7 @@ Grounding rules (important):
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -513,16 +549,21 @@ Grounding rules (important):
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -541,7 +582,7 @@ Grounding rules (important):
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 

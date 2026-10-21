@@ -23,6 +23,8 @@ import { getAllDatabaseMetrics } from "../../../Types/Monitor/DatabaseMetricCata
 import DatabaseMonitorResponse from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import PortMonitorTimings from "../../../Types/Monitor/PortMonitor/PortMonitorTimings";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
@@ -32,9 +34,16 @@ import {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CRITERIA_FILTER_KEY_ATTRIBUTE,
+  CRITERIA_FILTER_MATCH_METRIC_NAME,
+  CRITERIA_FILTER_MATCHED_VALUE,
+  CRITERIA_FILTER_NOT_MATCHED_VALUE,
+} from "../../../Types/Monitor/CriteriaFilterMatchHistory";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -289,6 +298,60 @@ export default class MonitorMetricUtil {
       metricRow["attributes"] = attributes;
       metricRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(attributes);
     }
+  }
+
+  /**
+   * Write one check's results for the filters that keep a match history
+   * (CriteriaFilterMatchHistory): 1 when a filter matched this check, 0 when
+   * it did not, one row per filter.
+   *
+   * Written like every other monitor metric - same row shape, same
+   * retention - so the rows expire with the monitor's other metrics instead
+   * of costing their partition a rewrite of its own (RetentionTtl). Unlike
+   * them they are not indexed as a metric type: they are the evaluator's
+   * record, not a chart anyone picks.
+   */
+  @CaptureSpan()
+  public static async saveCriteriaFilterMatches(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    probeId?: ObjectID | undefined;
+    matches: Array<{ filterKey: string; matched: boolean }>;
+  }): Promise<void> {
+    if (data.matches.length === 0) {
+      return;
+    }
+
+    const metricRows: Array<JSONObject> = [];
+
+    for (const match of data.matches) {
+      const extraAttributes: JSONObject = {
+        [CRITERIA_FILTER_KEY_ATTRIBUTE]: match.filterKey,
+      };
+
+      if (data.probeId) {
+        extraAttributes["probeId"] = data.probeId.toString();
+      }
+
+      metricRows.push(
+        await this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
+          value: match.matched
+            ? CRITERIA_FILTER_MATCHED_VALUE
+            : CRITERIA_FILTER_NOT_MATCHED_VALUE,
+          attributes: this.buildMonitorMetricAttributes({
+            monitorId: data.monitorId,
+            projectId: data.projectId,
+            extraAttributes: extraAttributes,
+          }),
+          metricPointType: MetricPointType.Gauge,
+        }),
+      );
+    }
+
+    await MetricService.insertJsonRows(metricRows);
   }
 
   @CaptureSpan()
@@ -1251,6 +1314,73 @@ export default class MonitorMetricUtil {
       }
     }
 
+    const ntpResponse: NtpMonitorResponse | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).ntpResponse;
+
+    /*
+     * Only an answer has a clock, a stratum and a synchronized state, so a
+     * check that got no reply writes none of them: a gap in the chart,
+     * and "no data" for an over-time criteria, rather than a zero offset
+     * that would read as a perfect clock.
+     */
+    if (ntpResponse && ntpResponse.isOnline) {
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      const ntpMetrics: Array<{
+        metricName: MonitorMetricType;
+        value: number | undefined;
+        description: string;
+        unit: string;
+      }> = [
+        {
+          metricName: MonitorMetricType.NtpClockOffset,
+          value: NtpMonitorUtil.getAbsoluteClockOffsetInMs(ntpResponse),
+          description: CheckOn.NtpClockOffset + " of this time server",
+          unit: "ms",
+        },
+        {
+          metricName: MonitorMetricType.NtpStratum,
+          value: NtpMonitorUtil.getEffectiveStratum(ntpResponse.stratum),
+          description: CheckOn.NtpStratum + " of this time server",
+          unit: "",
+        },
+        {
+          metricName: MonitorMetricType.NtpIsSynchronized,
+          value: ntpResponse.isSynchronized ? 1 : 0,
+          description:
+            CheckOn.NtpIsSynchronized + " status of this time server",
+          unit: "",
+        },
+        {
+          metricName: MonitorMetricType.NtpRootDispersion,
+          value: ntpResponse.rootDispersionInMs,
+          description: CheckOn.NtpRootDispersion + " of this time server",
+          unit: "ms",
+        },
+      ];
+
+      for (const ntpMetric of ntpMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: ntpMetric.metricName,
+          value: ntpMetric.value,
+          description: ntpMetric.description,
+          unit: ntpMetric.unit,
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
+    }
+
     if ((data.dataToProcess as ProbeMonitorResponse).pingResponse) {
       const pingResponse: PingMonitorResponse = (
         data.dataToProcess as ProbeMonitorResponse
@@ -1359,6 +1489,52 @@ export default class MonitorMetricUtil {
 
       metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
         metricType;
+    }
+
+    /*
+     * A Probe Status monitor's two counts, once per evaluation (every
+     * minute): the "online probes" series issue #2733 asked for, kept by
+     * the monitor that watches the probes, so a project pays for the
+     * series only by creating one. It charts on the monitor's Metrics page
+     * and can feed a dashboard or a Metrics monitor like any other series.
+     */
+    const probeStatusResponse: ProbeStatusMonitorResponse =
+      data.dataToProcess as ProbeStatusMonitorResponse;
+
+    if (
+      Array.isArray(probeStatusResponse.probes) &&
+      typeof probeStatusResponse.connectedProbeCount === "number" &&
+      typeof probeStatusResponse.disconnectedProbeCount === "number"
+    ) {
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: undefined,
+        metricName: MonitorMetricType.ConnectedProbes,
+        value: probeStatusResponse.connectedProbeCount,
+        description:
+          "How many of the probes this monitor watches are connected",
+        unit: "probes",
+        metricPointType: MetricPointType.Gauge,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
+
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: undefined,
+        metricName: MonitorMetricType.DisconnectedProbes,
+        value: probeStatusResponse.disconnectedProbeCount,
+        description:
+          "How many of the probes this monitor watches are disconnected",
+        unit: "probes",
+        metricPointType: MetricPointType.Gauge,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
     }
 
     // Process custom metrics from Custom Code and Synthetic Monitor responses

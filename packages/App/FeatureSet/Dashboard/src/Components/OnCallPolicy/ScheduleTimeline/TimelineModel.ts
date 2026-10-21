@@ -1,4 +1,4 @@
-import { getTimelineColorForUserId } from "./TimelineColors";
+import { getColorForUserId } from "../OnCallScheduleLayer/LayerUserColors";
 import {
   ScheduleTimelineResponse,
   ScheduleTimelineScheduleJson,
@@ -23,6 +23,11 @@ export interface TimelineOverride {
   end: Date;
   // Scoped to one on-call policy rather than global.
   isPolicyScoped: boolean;
+  /*
+   * Nobody was named to cover: the original user is away and skipped, and
+   * the rotation gave the shift to the next person who is not away.
+   */
+  isSkip: boolean;
 }
 
 export interface TimelineShift extends TimeInterval {
@@ -150,6 +155,7 @@ export default class TimelineModel {
                         isPolicyScoped: Boolean(
                           shift.override.onCallDutyPolicyId,
                         ),
+                        isSkip: shift.override.isSkip === true,
                       }
                     : null,
                 };
@@ -474,7 +480,7 @@ export default class TimelineModel {
         people.push({
           userId,
           userName: entry.userName,
-          color: getTimelineColorForUserId(userId),
+          color: getColorForUserId(userId),
           onCallMilliseconds: ScheduleTimelineLayout.sumWithin(
             entry.intervals,
             window,

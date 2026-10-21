@@ -19,6 +19,7 @@ import {
   SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
@@ -791,7 +792,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
     const message: string = buildScanStatusMessage(makeIcmpOnlyResult(), 0);
 
     expect(message).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
   });
 
@@ -863,7 +864,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
     );
 
     expect(message).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
     expect(message).not.toContain("Authentication failure");
     expect(message).not.toContain("ICMP-silent");
@@ -882,7 +883,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
      * one that leaked the count in some other spelling.
      */
     expect(buildScanStatusMessage(makeIcmpOnlyResult(), 7)).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
   });
 
@@ -954,16 +955,18 @@ describe("buildScanStatusMessage — an ICMP-only sweep that found nothing", () 
   });
 
   /*
-   * The way out, in the wizard's own words. "Check SNMP" is the label on the
-   * toggle, so the advice can be followed without a translation step.
+   * The way out, in the Start Scan form's own words: a scan's method is ICMP
+   * or SNMP, picked from two cards, and an Edit dialog changes it - so the
+   * advice names the other choice and can be followed without a translation
+   * step.
    */
-  test("points at the Check SNMP toggle as the way to find them", () => {
+  test("points at the SNMP choice as the way to find them", () => {
     expect(
       buildScanStatusMessage(
         makeIcmpOnlyResult({ respondedToPingCount: 0 }),
         0,
       ),
-    ).toContain("turn Check SNMP on if you expect managed devices here");
+    ).toContain("switch the scan to SNMP if you expect managed devices");
   });
 
   test("stays away from a sweep that did find hosts", () => {
@@ -1042,7 +1045,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep that stopped early", () 
     );
 
     expect(message).toContain(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 3 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3 answered ping.",
     );
   });
 
@@ -1175,12 +1178,12 @@ describe("buildScanStatusMessage — the ICMP-only message and the column it lan
     );
     // Whole, not clipped through the middle of the count.
     expect(message).toContain(
-      "Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping.",
+      "Swept 32768 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 0 answered ping.",
     );
 
     // And what is lost is the last clause of the advice, which is the least of it.
     expect(message).not.toContain(
-      "turn Check SNMP on if you expect managed devices here",
+      "switch the scan to SNMP if you expect managed devices",
     );
   });
 });
@@ -1224,7 +1227,7 @@ describe("buildScanStatusMessage — the SNMP branch is unchanged by all of this
 
     expect(message).toContain("Nothing answered SNMP on port 161");
     expect(message).not.toContain("Nothing answered ICMP ping.");
-    expect(message).not.toContain("Check SNMP is off for this scan");
+    expect(message).not.toContain("Scan method is ICMP, so no SNMP");
   });
 
   /*
@@ -1382,7 +1385,7 @@ const UNAVAILABLE_REVERSE_DNS_NOTE: string =
  * the ceiling; the compact form never carries advice.
  */
 const NETBIOS_CAP_NOTE: string =
-  "NetBIOS lookups are capped at 2,000 hosts per scan, so 1,500 unnamed hosts were not asked " +
+  "NetBIOS lookups are capped at 2,000 hosts per scan, so 1,500 hosts were not asked " +
   "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).";
 
 const NETBIOS_CAP_COMPACT_NOTE: string =
@@ -1403,10 +1406,10 @@ const ICMP_STOPPED_EARLY_CAVEAT: string =
 const ICMP_NOTHING_ANSWERED_ADVICE: string =
   "Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it. " +
   "Hosts that drop ping - Windows hosts do by default, and management VLANs often do - cannot be found by an ICMP-only scan; " +
-  "turn Check SNMP on if you expect managed devices here.";
+  "switch the scan to SNMP if you expect managed devices.";
 
 function icmpOnlyHeadline(scannedHostCount: number, answered: number): string {
-  return `Swept ${scannedHostCount} hosts with ICMP ping only (Check SNMP is off for this scan): ${answered} answered ping.`;
+  return `Swept ${scannedHostCount} hosts with ICMP ping only (Scan method is ICMP, so no SNMP): ${answered} answered ping.`;
 }
 
 function snmpHeadline(
@@ -1446,7 +1449,7 @@ function makeNetbiosOutcome(
 ): NetbiosNamingOutcome {
   return {
     resolvedCount: 40,
-    unnamedAddressCount: 1500,
+    candidateAddressCount: 1500,
     namedAddressCount: 40,
     eligibleAddressCount: 1500,
     queriedAddressCount: 1500,
@@ -1570,21 +1573,11 @@ const LONG_SNMP_ERROR: string = (
 ).substring(0, 120);
 
 /*
- * A deterministic pseudo-random source: the classic 32-bit linear congruential
- * generator (Numerical Recipes constants). Math.random would make the grid
- * below a different test on every run, and a failure it found once could not
- * be reproduced; a seeded LCG explores the same wide space every time. The
- * multiply stays exact in a double: 1664525 * (2^32 - 1) is under 2^53.
+ * The grids below draw from the suites' seeded generator
+ * (Common/Tests/Helpers/SeededRandom). Math.random would make them a
+ * different test on every run, and a failure found once could not be
+ * reproduced; a seeded generator explores the same wide space every time.
  */
-function makeSeededRandom(seed: number): () => number {
-  let state: number = seed % 4294967296;
-
-  return (): number => {
-    state = (1664525 * state + 1013904223) % 4294967296;
-    return state / 4294967296;
-  };
-}
-
 function pickOne<T>(random: () => number, choices: Array<T>): T {
   return choices[Math.floor(random() * choices.length)]!;
 }
@@ -1792,7 +1785,7 @@ function netbiosOutcomeGrid(): Array<GridEntry<NetbiosNamingOutcome>> {
     const named: number = Math.min(40, unnamed - 1);
     const shared: Partial<NetbiosNamingOutcome> = {
       resolvedCount: named,
-      unnamedAddressCount: unnamed,
+      candidateAddressCount: unnamed,
       namedAddressCount: named,
       eligibleAddressCount: unnamed,
       queriedAddressCount: target,
@@ -2848,7 +2841,7 @@ describe("buildHostNamingNote — NetBIOS says nothing when it has nothing to co
   test("no outcome, or no unnamed host, gives an empty note whatever the flags say", () => {
     const flagsWithNothingToName: NetbiosNamingOutcome = makeNetbiosOutcome({
       resolvedCount: 0,
-      unnamedAddressCount: 0,
+      candidateAddressCount: 0,
       namedAddressCount: 0,
       isHostCapReached: true,
       isTimeBudgetExhausted: true,
@@ -2901,7 +2894,7 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           queriedAddressCount: 2000,
           isHostCapReached: true,
@@ -2910,11 +2903,11 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
     ).toBe(NETBIOS_CAP_NOTE);
   });
 
-  test("one host over the cap reads '1 unnamed host was not asked', advice and all", () => {
+  test("one host over the cap reads '1 host was not asked', advice and all", () => {
     const note: string = noteFor(
       undefined,
       makeNetbiosOutcome({
-        unnamedAddressCount: 2001,
+        candidateAddressCount: 2001,
         eligibleAddressCount: 2001,
         queriedAddressCount: 2000,
         isHostCapReached: true,
@@ -2922,7 +2915,7 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
     );
 
     expect(note).toBe(
-      "NetBIOS lookups are capped at 2,000 hosts per scan, so 1 unnamed host was not asked " +
+      "NetBIOS lookups are capped at 2,000 hosts per scan, so 1 host was not asked " +
         `(raise ${NETBIOS_MAX_HOSTS_ENV_VAR} on the probe to ask more).`,
     );
   });
@@ -2934,13 +2927,13 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
    */
   test("without the counts, says the cap was reached in general terms", () => {
     const generic: string =
-      "NetBIOS lookups reached their per-scan host cap, so some unnamed hosts were not asked.";
+      "NetBIOS lookups reached their per-scan host cap, so some hosts were not asked.";
 
     expect(
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: undefined,
           isHostCapReached: true,
         }),
@@ -2950,7 +2943,7 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           maxHosts: undefined,
           isHostCapReached: true,
@@ -2969,7 +2962,7 @@ describe("buildHostNamingNote — NetBIOS reached its host cap", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: undefined,
           isHostCapReached: true,
         }),
@@ -2991,7 +2984,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
     return noteFor(
       undefined,
       makeNetbiosOutcome({
-        unnamedAddressCount: maxHosts + 1500,
+        candidateAddressCount: maxHosts + 1500,
         eligibleAddressCount: maxHosts + 1500,
         queriedAddressCount: maxHosts,
         maxHosts: maxHosts,
@@ -3011,7 +3004,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
 
       expect(note).toBe(
         `NetBIOS lookups are capped at ${maxHosts.toLocaleString("en-US")} hosts per scan, ` +
-          `so 1,500 unnamed hosts were not asked (raise ${NETBIOS_MAX_HOSTS_ENV_VAR} on the probe to ask more).`,
+          `so 1,500 hosts were not asked (raise ${NETBIOS_MAX_HOSTS_ENV_VAR} on the probe to ask more).`,
       );
     }
   });
@@ -3030,7 +3023,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
 
       expect(note).toBe(
         `NetBIOS lookups are capped at ${maxHosts.toLocaleString("en-US")} hosts per scan, ` +
-          "so 1,500 unnamed hosts were not asked.",
+          "so 1,500 hosts were not asked.",
       );
       expect(note).not.toContain(NETBIOS_MAX_HOSTS_ENV_VAR);
       expect(note).not.toContain("raise");
@@ -3052,7 +3045,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
       const compact: string = compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: maxHosts + 1500,
+          candidateAddressCount: maxHosts + 1500,
           eligibleAddressCount: maxHosts + 1500,
           queriedAddressCount: maxHosts,
           maxHosts: maxHosts,
@@ -3078,7 +3071,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: NETBIOS_MAX_HOSTS_CEILING,
+          candidateAddressCount: NETBIOS_MAX_HOSTS_CEILING,
           eligibleAddressCount: NETBIOS_MAX_HOSTS_CEILING,
           queriedAddressCount: NETBIOS_MAX_HOSTS_CEILING - 1,
           maxHosts: NETBIOS_MAX_HOSTS_CEILING - 1,
@@ -3086,7 +3079,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
         }),
       ),
     ).toBe(
-      "NetBIOS lookups are capped at 3,999 hosts per scan, so 1 unnamed host was not asked " +
+      "NetBIOS lookups are capped at 3,999 hosts per scan, so 1 host was not asked " +
         `(raise ${NETBIOS_MAX_HOSTS_ENV_VAR} on the probe to ask more).`,
     );
 
@@ -3095,7 +3088,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: NETBIOS_MAX_HOSTS_CEILING + 1,
+          candidateAddressCount: NETBIOS_MAX_HOSTS_CEILING + 1,
           eligibleAddressCount: NETBIOS_MAX_HOSTS_CEILING + 1,
           queriedAddressCount: NETBIOS_MAX_HOSTS_CEILING,
           maxHosts: NETBIOS_MAX_HOSTS_CEILING,
@@ -3103,7 +3096,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
         }),
       ),
     ).toBe(
-      "NetBIOS lookups are capped at 4,000 hosts per scan, so 1 unnamed host was not asked.",
+      "NetBIOS lookups are capped at 4,000 hosts per scan, so 1 host was not asked.",
     );
   });
 
@@ -3116,7 +3109,7 @@ describe("buildHostNamingNote — the raise-the-cap advice stops at the ceiling"
     const result: SubnetScanResult = makeResult({
       respondedToPingCount: 12,
       netbiosOutcome: makeNetbiosOutcome({
-        unnamedAddressCount: 3500,
+        candidateAddressCount: 3500,
         eligibleAddressCount: 3500,
         queriedAddressCount: 2000,
         isHostCapReached: true,
@@ -3307,7 +3300,7 @@ describe("buildHostNamingNote — NetBIOS without a usable socket", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           isHostCapReached: true,
           error: "boom",
@@ -3329,7 +3322,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           queriedAddressCount: 1200,
           isHostCapReached: true,
@@ -3347,7 +3340,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 300,
+          candidateAddressCount: 300,
           eligibleAddressCount: 150,
           queriedAddressCount: 100,
           isTimeBudgetExhausted: true,
@@ -3365,7 +3358,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 300,
+          candidateAddressCount: 300,
           eligibleAddressCount: 150,
           queriedAddressCount: 149,
           isTimeBudgetExhausted: true,
@@ -3382,7 +3375,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
       noteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 300,
+          candidateAddressCount: 300,
           eligibleAddressCount: 150,
           queriedAddressCount: 100,
           maxHosts: undefined,
@@ -3404,7 +3397,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
     const note: string = noteFor(
       undefined,
       makeNetbiosOutcome({
-        unnamedAddressCount: 300,
+        candidateAddressCount: 300,
         eligibleAddressCount: undefined,
         queriedAddressCount: undefined,
         isTimeBudgetExhausted: true,
@@ -3423,7 +3416,7 @@ describe("buildHostNamingNote — NetBIOS ran out of time", () => {
    */
   test("the never-queried clause appears only when some hosts really were not queried", () => {
     const base: Partial<NetbiosNamingOutcome> = {
-      unnamedAddressCount: 3500,
+      candidateAddressCount: 3500,
       eligibleAddressCount: 3500,
       isTimeBudgetExhausted: true,
     };
@@ -3454,7 +3447,7 @@ describe("buildHostNamingNote — both passes cut short", () => {
       isTimeBudgetExhausted: true,
     });
     const netbios: NetbiosNamingOutcome = makeNetbiosOutcome({
-      unnamedAddressCount: 3500,
+      candidateAddressCount: 3500,
       eligibleAddressCount: 3500,
       queriedAddressCount: 2000,
       isHostCapReached: true,
@@ -3487,7 +3480,7 @@ describe("buildHostNamingNote — both passes cut short", () => {
       const result: SubnetScanResult = makeResult({
         reverseDnsOutcome: reverseDns.outcome,
         netbiosOutcome: makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           isHostCapReached: true,
         }),
@@ -3700,7 +3693,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           queriedAddressCount: 2000,
           isHostCapReached: true,
@@ -3711,7 +3704,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 2001,
+          candidateAddressCount: 2001,
           eligibleAddressCount: 2001,
           queriedAddressCount: 2000,
           isHostCapReached: true,
@@ -3725,7 +3718,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: undefined,
           isHostCapReached: true,
         }),
@@ -3735,7 +3728,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           maxHosts: undefined,
           isHostCapReached: true,
@@ -3759,7 +3752,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           isHostCapReached: true,
           error: "boom",
@@ -3797,7 +3790,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           queriedAddressCount: 1200,
           isHostCapReached: true,
@@ -3812,7 +3805,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 300,
+          candidateAddressCount: 300,
           eligibleAddressCount: 150,
           queriedAddressCount: 149,
           isTimeBudgetExhausted: true,
@@ -3827,7 +3820,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           queriedAddressCount: 2000,
           isTimeBudgetExhausted: true,
@@ -3838,7 +3831,7 @@ describe("buildHostNamingNote — the compact NetBIOS sentences", () => {
       compactNoteFor(
         undefined,
         makeNetbiosOutcome({
-          unnamedAddressCount: 300,
+          candidateAddressCount: 300,
           eligibleAddressCount: undefined,
           queriedAddressCount: undefined,
           isTimeBudgetExhausted: true,
@@ -3905,7 +3898,7 @@ describe("buildHostNamingNote — the compact form against the full form", () =>
    */
   const NO_FIGURE_NETBIOS_OUTCOME: NetbiosNamingOutcome = {
     resolvedCount: 0,
-    unnamedAddressCount: 1500,
+    candidateAddressCount: 1500,
     namedAddressCount: 0,
     isHostCapReached: false,
     isTimeBudgetExhausted: true,
@@ -3969,7 +3962,7 @@ describe("buildHostNamingNote — the compact form against the full form", () =>
    * asserted the same joins thousands of times over.
    */
   test("over a seeded sample of pairs, compact is no longer than full, and the two are silent together", () => {
-    const random: () => number = makeSeededRandom(3677);
+    const random: () => number = seededRandom(3677);
     const reverseDnsGrid: Array<GridEntry<ReverseDnsNamingOutcome>> =
       reverseDnsOutcomeGrid();
     const netbiosGrid: Array<GridEntry<NetbiosNamingOutcome>> =
@@ -4152,7 +4145,7 @@ describe("buildScanStatusMessage — carries the host-naming note", () => {
         0,
       ),
     ).toBe(
-      `Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping. ${note}`,
+      `Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping. ${note}`,
     );
   });
 
@@ -4162,7 +4155,7 @@ describe("buildScanStatusMessage — carries the host-naming note", () => {
       isIcmpSweepIncomplete: true,
       netbiosOutcome: makeNetbiosOutcome({
         resolvedCount: 0,
-        unnamedAddressCount: 3,
+        candidateAddressCount: 3,
         namedAddressCount: 0,
         eligibleAddressCount: 3,
         queriedAddressCount: 0,
@@ -4312,7 +4305,7 @@ describe("buildScanStatusMessage — no note leaves the message exactly as it wa
         }),
         netbiosOutcome: makeNetbiosOutcome({
           resolvedCount: 0,
-          unnamedAddressCount: 0,
+          candidateAddressCount: 0,
           namedAddressCount: 0,
           isHostCapReached: true,
           isTimeBudgetExhausted: true,
@@ -4693,7 +4686,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
           error: LONG_RESOLVER_ERROR,
         }),
         netbiosOutcome: makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           isHostCapReached: true,
           error: LONG_SOCKET_REASON,
@@ -4783,7 +4776,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
         error: LONG_RESOLVER_ERROR,
       }),
       netbiosOutcome: makeNetbiosOutcome({
-        unnamedAddressCount: 3500,
+        candidateAddressCount: 3500,
         eligibleAddressCount: 3500,
         isHostCapReached: true,
       }),
@@ -4876,7 +4869,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
       }),
       netbiosOutcome: makeNetbiosOutcome({
         resolvedCount: 0,
-        unnamedAddressCount: 18800,
+        candidateAddressCount: 18800,
         namedAddressCount: 0,
         eligibleAddressCount: 18800,
         queriedAddressCount: 0,
@@ -5264,7 +5257,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
    * an ellipsis, or a lone ellipsis, or nothing.
    */
   test("over a seeded grid of bodies and outcomes, every message obeys the ladder", () => {
-    const random: () => number = makeSeededRandom(3677);
+    const random: () => number = seededRandom(3677);
     const reverseDnsGrid: Array<GridEntry<ReverseDnsNamingOutcome>> =
       reverseDnsOutcomeGrid();
     const netbiosGrid: Array<GridEntry<NetbiosNamingOutcome>> =
@@ -5682,7 +5675,7 @@ describe("buildScanStatusMessage — the reviewer's scenarios", () => {
         isTimeBudgetExhausted: true,
       }),
       netbiosOutcome: makeNetbiosOutcome({
-        unnamedAddressCount: 18800,
+        candidateAddressCount: 18800,
         eligibleAddressCount: 18800,
         queriedAddressCount: 2000,
         isHostCapReached: true,
@@ -5727,7 +5720,7 @@ describe("buildScanStatusMessage — the reviewer's scenarios", () => {
       }),
       netbiosOutcome: makeNetbiosOutcome({
         resolvedCount: 0,
-        unnamedAddressCount: 4096,
+        candidateAddressCount: 4096,
         namedAddressCount: 0,
         eligibleAddressCount: 4096,
         queriedAddressCount: 0,
@@ -5802,7 +5795,7 @@ describe("buildScanStatusMessage — the reviewer's scenarios", () => {
       ...outcomes,
       netbiosOutcome: makeNetbiosOutcome({
         resolvedCount: 0,
-        unnamedAddressCount: 1500,
+        candidateAddressCount: 1500,
         namedAddressCount: 0,
         eligibleAddressCount: 1500,
         queriedAddressCount: 0,
@@ -5960,7 +5953,7 @@ describe("buildScanStatusMessage — nonsense and secrets beside the note", () =
           error: LONG_RESOLVER_ERROR,
         }),
         netbiosOutcome: makeNetbiosOutcome({
-          unnamedAddressCount: 3500,
+          candidateAddressCount: 3500,
           eligibleAddressCount: 3500,
           isHostCapReached: true,
           failureReason: LONG_SOCKET_REASON,
@@ -6206,7 +6199,7 @@ describe("buildHostNamingNote — reverse DNS lookups that failed (#3916)", () =
     const note: string = noteFor(
       makeCustomerReverseDnsOutcome(),
       makeNetbiosOutcome({
-        unnamedAddressCount: 3500,
+        candidateAddressCount: 3500,
         eligibleAddressCount: 3500,
         queriedAddressCount: 2000,
         isHostCapReached: true,
@@ -6313,7 +6306,7 @@ describe("buildHostNamingNote — NetBIOS skipped on a global probe (#3916)", ()
         makeResult({
           isNetbiosLookupSkippedOnGlobalProbe: true,
           netbiosOutcome: makeNetbiosOutcome({
-            unnamedAddressCount: 3500,
+            candidateAddressCount: 3500,
             eligibleAddressCount: 3500,
             queriedAddressCount: 2000,
             isHostCapReached: true,
@@ -6477,7 +6470,7 @@ describe("buildScanStatusMessage — the #3916 sentences on the message", () => 
     });
     const capped: Partial<NetbiosNamingOutcome> = {
       resolvedCount: 3,
-      unnamedAddressCount: 5950,
+      candidateAddressCount: 5950,
       namedAddressCount: 3,
       eligibleAddressCount: 5950,
       isHostCapReached: true,

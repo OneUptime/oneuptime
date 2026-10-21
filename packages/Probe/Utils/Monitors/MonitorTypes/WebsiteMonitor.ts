@@ -315,9 +315,14 @@ export default class WebsiteMonitor {
       }
 
       const responseReceivedAt: Date = new Date();
-      const failureCauseForAttempt: string = API.getFriendlyErrorMessage(
-        err as Error,
-      );
+      /*
+       * A request that failed on the probe itself (no usable IPv6, say) is
+       * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the site
+       * being down, and it goes on to be the incident's root cause.
+       */
+      const failureCauseForAttempt: string =
+        API.getProbeNetworkFailureDescription(err) ||
+        API.getFriendlyErrorMessage(err as Error);
       const statusCodeForAttempt: number | undefined = axios.isAxiosError(err)
         ? err.response?.status
         : undefined;
@@ -392,7 +397,7 @@ export default class WebsiteMonitor {
           responseBody: responsebody,
           isTimeout: false,
           responseHeaders: (err.response?.headers as Headers) || {},
-          failureCause: API.getFriendlyErrorMessage(err),
+          failureCause: failureCauseForAttempt,
           requestFailedDetails: requestFailedDetails,
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,
@@ -409,7 +414,7 @@ export default class WebsiteMonitor {
           responseBody: responsebody,
           responseHeaders: ((err as any)?.response?.headers as Headers) || {},
           isTimeout: false,
-          failureCause: API.getFriendlyErrorMessage(err as Error),
+          failureCause: failureCauseForAttempt,
           requestFailedDetails: requestFailedDetails,
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,

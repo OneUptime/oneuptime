@@ -3,6 +3,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import {
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
   WorkspacePayloadDivider,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import MonitorService from "../../../../Services/MonitorService";
@@ -33,12 +34,7 @@ export default class SlackMonitorMessages {
 
     /*
      * now add buttons.
-     * View data.
-     * Execute On Call
-     * Acknowledge Monitor
-     * Resolve data.
-     * Change Monitor State.
-     * Add Note.
+     * View Monitor.
      */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
@@ -56,6 +52,19 @@ export default class SlackMonitorMessages {
     };
 
     buttons.push(viewMonitorButton);
+
+    /*
+     * The buttons go on the message as a block of their own, as on every
+     * other record's message. They were built and never added, so a new
+     * monitor's message - in Slack, and in Microsoft Teams, whose card is
+     * drawn from these blocks - showed a divider and nothing to press.
+     */
+    const workspacePayloadButtons: WorkspacePayloadButtons = {
+      buttons: buttons,
+      _type: "WorkspacePayloadButtons",
+    };
+
+    blockSlack.push(workspacePayloadButtons);
 
     return blockSlack;
   }

@@ -63,6 +63,95 @@ describe("NetworkRecorder", (): void => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * #4208: while the recorder is paused because nobody is at the page, a
+   * background poll is the page's business. It goes through untouched, and
+   * nothing about it is recorded, reported (so a 5xx triggers nothing and a
+   * slow one fires no budget) or counted against the per-session cap.
+   */
+  describe("while suspended", (): void => {
+    let suspended: boolean = false;
+
+    const makeSuspendable: () => NetworkRecorder = (): NetworkRecorder => {
+      requests = [];
+      customEvents = [];
+      activity = [];
+
+      return new NetworkRecorder({
+        emitCustomEvent: (tag: string, payload: unknown): void => {
+          customEvents.push({ tag: tag, payload: payload });
+        },
+        onRequestComplete: (
+          _atUnixMs: number,
+          request: RecordedRequest,
+          traceId: string | null,
+        ): void => {
+          requests.push({ request: request, traceId: traceId });
+        },
+        onActivity: (atUnixMs: number): void => {
+          activity.push(atUnixMs);
+        },
+        scrubUrl: (url: string): string => {
+          return UrlScrubber.scrub(url);
+        },
+        isSelfRequest: (url: string): boolean => {
+          return url.indexOf("https://oneuptime.com") === 0;
+        },
+        isSuspended: (): boolean => {
+          return suspended;
+        },
+      });
+    };
+
+    beforeEach((): void => {
+      suspended = false;
+      recorder.stop(window);
+      recorder = makeSuspendable();
+    });
+
+    it("passes requests through and records, reports and counts none of them", async (): Promise<void> => {
+      const original: jest.Mock = jest.fn().mockResolvedValue(okResponse(503));
+
+      (window as unknown as Record<string, unknown>)["fetch"] = original;
+      recorder.start(window);
+
+      suspended = true;
+
+      for (let i: number = 0; i < 25; i++) {
+        const result: Response = await window.fetch(
+          `https://api.example.com/poll/${i}`,
+        );
+
+        expect(result.status).toBe(503);
+      }
+
+      expect(original).toHaveBeenCalledTimes(25);
+      expect(requests).toHaveLength(0);
+      expect(customEvents).toHaveLength(0);
+      expect(activity).toHaveLength(0);
+      expect(recorder.getRecordedCount()).toBe(0);
+    });
+
+    it("records again once it is not", async (): Promise<void> => {
+      (window as unknown as Record<string, unknown>)["fetch"] = jest
+        .fn()
+        .mockResolvedValue(okResponse(200));
+      recorder.start(window);
+
+      suspended = true;
+      await window.fetch("https://api.example.com/background");
+
+      suspended = false;
+      await window.fetch("https://api.example.com/after-return");
+
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.request.url).toBe(
+        "https://api.example.com/after-return",
+      );
+      expect(recorder.getRecordedCount()).toBe(1);
+    });
+  });
+
   describe("fetch", (): void => {
     it("records method, scrubbed url, status and size", async (): Promise<void> => {
       const original: jest.Mock = jest.fn().mockResolvedValue(okResponse(200));

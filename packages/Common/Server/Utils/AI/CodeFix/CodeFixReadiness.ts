@@ -1,12 +1,11 @@
-import AIAgentService from "../../../Services/AIAgentService";
-import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
+import AIBillingService from "../../../Services/AIBillingService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import ProjectService from "../../../Services/ProjectService";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
-import CodeFixAgentAvailability, {
-  OnlineCodeFixAgent,
-} from "./CodeFixAgentAvailability";
-import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
+import CodeRepositoryRunnerChoice, {
+  CodeRepositoryRunnerFactsRow,
+  CodeRepositoryRunnerStatus,
+} from "./CodeRepositoryRunnerChoice";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../../Types/ObjectID";
@@ -15,14 +14,109 @@ import {
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
 import { IsBillingEnabled } from "../../../EnvironmentConfig";
+import AutoRechargeState from "../../../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import {
+  getProjectBalanceWhoCanAddSentence,
+  ProjectBalanceType,
+} from "../../../../Utils/Project/ProjectBalance";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
+import {
+  CodeTaskBlocker,
+  CodeTaskBlockerType,
+} from "../../../../Types/AI/CodeTask";
 
 /*
- * The gates every CodeFix run passes through, in one place. Two surfaces ask
- * the question — the per-exception panel and the project-wide AI Tasks page —
- * and they differ only in how strict their repository gate is (see
- * AIFixReadinessCheckId). Sharing the LLM and agent checks is what keeps the
- * two from drifting into telling the user different stories.
+ * Why nothing can do a repository's AI work now, by what its Runner setting
+ * in Code picks (CodeRepositoryRunnerChoice.getStatusForRepository): the
+ * words the exception page's checklist, Code's gate and the queue sweeper
+ * say it in.
+ */
+export const NO_GLOBAL_RUNNER_ONLINE_DETAIL: string =
+  "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.";
+
+export const GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL: string =
+  "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.";
+
+export const NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL: string =
+  "No Runner is online to work in this project's repositories. Each repository works on the Runner it picks in its settings in Code, or on a global Runner when it picks none.";
+
+export function getRepositoryRunnerOfflineDetail(
+  runnerName?: string | undefined,
+): string {
+  const runner: string = runnerName
+    ? `The Runner "${runnerName}"`
+    : "The Runner";
+
+  return `${runner} this repository picks is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.`;
+}
+
+// Why nothing can do the repository's work now, or null while something can.
+export function describeRepositoryRunnerStatus(
+  status: CodeRepositoryRunnerStatus,
+): string | null {
+  if (status.isOnline) {
+    return null;
+  }
+
+  switch (status.decision.kind) {
+    case CodeRepositoryRunnerChoiceKind.Custom:
+      return getRepositoryRunnerOfflineDetail(status.runnerName);
+    case CodeRepositoryRunnerChoiceKind.Global:
+      return NO_GLOBAL_RUNNER_ONLINE_DETAIL;
+    case CodeRepositoryRunnerChoiceKind.NoRunner:
+      return GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL;
+    default: {
+      const unhandled: never = status.decision;
+      return String(unhandled);
+    }
+  }
+}
+
+// What Code's gate says when nothing can do the repository's work now.
+export function getRepositoryRunnerBlocker(
+  status: CodeRepositoryRunnerStatus,
+): CodeTaskBlocker | null {
+  const message: string | null = describeRepositoryRunnerStatus(status);
+
+  if (!message) {
+    return null;
+  }
+
+  const type: CodeTaskBlockerType =
+    status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom
+      ? CodeTaskBlockerType.RunnerNotOnline
+      : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
+        ? CodeTaskBlockerType.GlobalRunnersOff
+        : CodeTaskBlockerType.NoAgent;
+
+  /*
+   * The Runner the repository picks is named, so Code's notice says which
+   * one to check: the person reading it may pick Runners for the project's
+   * repositories, and sees the name in the repository's settings anyway.
+   */
+  if (type === CodeTaskBlockerType.RunnerNotOnline && status.runnerName) {
+    return { type, message, runnerName: status.runnerName };
+  }
+
+  return { type, message };
+}
+
+/*
+ * Why AI fix tasks cannot run on the OneUptime-hosted provider once the
+ * project's AI credits are used up: who can add credits, and where - most
+ * people asking AI in Code cannot - and that a provider of the project's
+ * own needs none.
+ */
+export const CODE_FIX_AI_CREDITS_USED_UP_DETAIL: string = `AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)} A provider of the project's own (Project Settings > AI > LLM Providers) needs no AI credits.`;
+
+/*
+ * The gates every CodeFix run passes through, in one place. Several surfaces
+ * ask the question — the per-exception panel, the project-wide readiness
+ * route and Code's request box (CodeTaskGate) — and they differ only in how
+ * strict their repository gate is (see AIFixReadinessCheckId). Sharing the
+ * LLM and agent checks is what keeps them from drifting into telling the
+ * user different stories.
  */
 export default class CodeFixReadiness {
   /*
@@ -78,50 +172,37 @@ export default class CodeFixReadiness {
     if (isMetered) {
       const project: Project | null = await ProjectService.findOneById({
         id: params.projectId,
-        select: { aiCurrentBalanceInUSDCents: true },
+        select: {
+          aiCurrentBalanceInUSDCents: true,
+          enableAutoRechargeAiBalance: true,
+          autoAiRechargeByBalanceInUSD: true,
+          autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        },
         props: { isRoot: true },
       });
 
-      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
+      /*
+       * Used up, and Auto Recharge will not refill them before the first
+       * completion: it is off, or its last charge failed. With it on and set
+       * up, the first completion recharges the credits and runs, as every
+       * billed AI call does (AIService.getAiBalanceBlocker says the same).
+       */
+      const isUsedUp: boolean =
+        !project ||
+        ((project.aiCurrentBalanceInUSDCents || 0) <= 0 &&
+          (await AIBillingService.getAutoRechargeState({
+            projectId: params.projectId,
+            project,
+          })) !== AutoRechargeState.Ready);
+
+      if (isUsedUp) {
         return {
           id: "llmProvider",
           ok: false,
           title: "LLM provider",
-          detail:
-            "AI fix tasks would use the OneUptime-hosted LLM provider, which is billed against your AI balance — and the project's balance is empty. Recharge it in Project Settings > AI Credits, or add your own LLM provider in Project Settings > AI > LLM Providers.",
+          detail: CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
         };
       }
-    }
-
-    /*
-     * The project must also be ALLOWED to spend, not just able to pay.
-     * executeWithLogging enforces two gates back to back: the balance check
-     * above, and the daily autonomous token budget — and AI_CODE_FIX_FEATURE
-     * is one of AUTONOMOUS_AI_FEATURES, so every fix completion goes through
-     * it. Unlike the balance, this one has no billing condition: it fires on
-     * self-hosted too, where a project-owned provider makes the balance gate
-     * moot and this becomes the ONLY thing that can kill a run.
-     *
-     * These readiness surfaces create subjectless exception/general tasks, so
-     * they use the "Other AI Workload" token lane. Incident/alert fix paths
-     * enforce their own lane when they are triggered and on every completion.
-     * A limit of 0 is a documented kill-switch for this lane, so without this
-     * a paused project would read "ready" forever while every subjectless run
-     * died at its first completion call.
-     */
-    const budget: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(params.projectId);
-
-    if (budget.exhausted) {
-      return {
-        id: "llmProvider",
-        ok: false,
-        title: "LLM provider",
-        detail:
-          budget.limitInTokens !== null && budget.limitInTokens <= 0
-            ? "Other autonomous AI work is paused for this project: the daily background AI token limit is set to 0. Raise or unset it under Project Settings > AI > AI Guardrails to let subjectless fix tasks run."
-            : `The daily background AI token budget is exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Subjectless fix tasks resume tomorrow (UTC) — raise or unset the limit under Project Settings > AI > AI Guardrails.`,
-      };
     }
 
     let detail: string = "";
@@ -166,44 +247,63 @@ export default class CodeFixReadiness {
     };
   }
 
-  // An agent must be alive to pick the task up, or runs sit Queued forever.
+  /*
+   * A Runner must be alive to pick the task up, or runs sit Queued forever.
+   * For a known repository, the one its Runner setting in Code picks (or a
+   * global Runner, for one that picks none); before a repository is known,
+   * anything online for the project's repositories.
+   */
   @CaptureSpan()
   public static async getAgentCheck(params: {
     projectId: ObjectID;
+    repository?: CodeRepositoryRunnerFactsRow | undefined;
   }): Promise<AIFixReadinessCheck> {
-    const onlineAgent: OnlineCodeFixAgent | null =
-      await CodeFixAgentAvailability.getOnlineAgentForProject(params.projectId);
+    if (!params.repository) {
+      const isOnline: boolean =
+        await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+          params.projectId,
+        );
 
-    if (onlineAgent) {
       return {
         id: "agentAvailable",
-        ok: true,
-        title: `AI agent online: ${onlineAgent.name}`,
-        detail: "Connected and polling for tasks.",
+        ok: isOnline,
+        title: "Runner online",
+        detail: isOnline
+          ? "Connected and polling for tasks."
+          : NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
       };
     }
 
-    /*
-     * Nothing is online. Name a registered-but-silent agent when there is
-     * one, so the operator is told to check that container rather than to
-     * install another.
-     */
-    const anyAgent: AIAgent | null = await AIAgentService.getAIAgentForProject(
-      params.projectId,
-    );
+    const status: CodeRepositoryRunnerStatus =
+      await CodeRepositoryRunnerChoice.getStatusForRepository({
+        projectId: params.projectId,
+        runnerId: params.repository.runnerId,
+      });
+
+    const offline: string | null = describeRepositoryRunnerStatus(status);
+
+    if (offline) {
+      return {
+        id: "agentAvailable",
+        ok: false,
+        title: "Runner online",
+        detail: offline,
+      };
+    }
 
     return {
       id: "agentAvailable",
-      ok: false,
-      title: "AI agent online",
-      detail: anyAgent
-        ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-        : "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Settings > Runners). Cloud: the shared fleet appears here automatically once enabled.",
+      ok: true,
+      title:
+        status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom
+          ? `Runner online: ${status.runnerName || "Runner"}`
+          : "Global Runner online",
+      detail: "Connected and polling for tasks.",
     };
   }
 
   /*
-   * Project-wide readiness for the AI Tasks page. Same LLM and agent gates
+   * Project-wide readiness (POST /ai-readiness/code-fix). Same LLM and agent gates
    * the per-exception check uses, with the any-repository gate in place of
    * per-exception stack-trace resolution.
    */

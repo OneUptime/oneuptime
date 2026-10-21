@@ -1,4 +1,7 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -12,34 +15,41 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PodmanDocumentationCard from "../../Components/Podman/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [hostCount, setHostCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<PodmanHost>({
+    modelType: PodmanHost,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<PodmanHost>({ modelType: PodmanHost });
@@ -79,6 +89,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -91,41 +102,44 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: podmanExtraFacets,
   });
 
-  const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: PodmanHost,
-        query: {},
-      });
-      setHostCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchHostCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
+
+  /*
+   * The create form asks for the one thing a Podman host cannot be created
+   * without: the host.name its agent reports. The display name follows it -
+   * a host added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<PodmanHost> =
+    getAdvancedFormSection<PodmanHost>();
 
   return (
     <Fragment>
       <ModelTable<PodmanHost>
         modelType={PodmanHost}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="podman-hosts-table"
         userPreferencesKey="podman-hosts-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -133,12 +147,11 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: PodmanHost): Promise<PodmanHost> => {
-          setHostCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
@@ -160,26 +173,23 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         showViewIdButton={true}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-podman-host-1",
-          },
-          {
+          getIdentityFormField<PodmanHost>({
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Host Name (host.name)",
             placeholder: "podman-host-prod-1",
             description:
-              "This should match the host.name attribute reported by the Podman Agent.",
-          },
+              "Exactly as the OneUptime Podman Agent reports it. Telemetry is matched to this host by its host name.",
+          }),
+          getDisplayNameFormField<PodmanHost>({
+            getDefaultName:
+              getNameFromIdentityField<PodmanHost>("hostIdentifier"),
+            placeholder: "Production Podman host",
+            description:
+              "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -188,23 +198,11 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production Podman host running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<PodmanHost>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {
@@ -234,7 +232,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {
@@ -258,7 +256,9 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -315,10 +315,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {hostCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <PodmanDocumentationCard
           title="Getting Started with Podman Monitoring"
-          description="No Podman hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

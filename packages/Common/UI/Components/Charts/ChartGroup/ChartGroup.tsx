@@ -9,9 +9,18 @@ import AreaChartElement, {
   ComponentProps as AreaChartProps,
 } from "../Area/AreaChart";
 import ExemplarPoint from "../Types/ExemplarPoint";
+import XAxisType from "../Types/XAxis/XAxisType";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../TimeRangeZoom/TimeRangeZoomContext";
 import Icon, { SizeProp } from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Modal, { ModalWidth } from "../../Modal/Modal";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export enum ChartType {
@@ -79,6 +88,7 @@ export interface ComponentProps {
 const ChartGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Stable per-mount fallback: a plain const regenerated the id on every
    * render, which forced recharts to tear down and re-subscribe its sync
@@ -90,6 +100,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const syncId: string = props.syncId || fallbackSyncId;
   const [metricInfoModalChart, setMetricInfoModalChart] =
     useState<ChartMetricInfo | null>(null);
+  // The page's zoom, which every chart below takes unless it has its own.
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
 
   type GetChartContentFunction = (chart: Chart, index: number) => ReactElement;
 
@@ -147,27 +160,45 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const getDragToZoomHint: GetDragToZoomHintFunction = (
     chart: Chart,
   ): ReactElement => {
-    const supportsTimeRangeSelect: boolean =
-      (chart.type === ChartType.LINE || chart.type === ChartType.AREA) &&
-      Boolean(
-        (chart.props as LineChartProps | AreaChartProps).onTimeRangeSelect,
-      );
+    if (
+      chart.type !== ChartType.LINE &&
+      chart.type !== ChartType.AREA &&
+      chart.type !== ChartType.BAR
+    ) {
+      return <></>;
+    }
 
-    if (!supportsTimeRangeSelect) {
+    /*
+     * Resolved exactly the way the chart itself resolves them, so the hint
+     * never promises a gesture the chart does not have: the chart's own
+     * handlers, else the page's zoom.
+     */
+    const chartProps: LineChartProps | AreaChartProps | BarChartProps =
+      chart.props;
+    const xAxisType: XAxisType | undefined = chartProps.xAxis?.options?.type;
+    const zoom: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+      onTimeRangeSelect: chartProps.onTimeRangeSelect,
+      onTimeRangeReset: chartProps.onTimeRangeReset,
+      isTimeAxis: xAxisType === XAxisType.Time || xAxisType === XAxisType.Date,
+      disableTimeRangeZoom: chartProps.disableTimeRangeZoom,
+      pageZoom: pageZoom,
+    });
+
+    if (!zoom.onTimeRangeSelect) {
       return <></>;
     }
 
     /*
      * The way back out is only worth naming while there is something to
-     * reset — the host supplies onTimeRangeReset exactly then.
+     * reset — a reset handler is supplied exactly then.
      */
-    const canReset: boolean = Boolean(
-      (chart.props as LineChartProps | AreaChartProps).onTimeRangeReset,
-    );
+    const canReset: boolean = Boolean(zoom.onTimeRangeReset);
 
     return (
       <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400">
-        {canReset ? "Drag to zoom · double-click to reset" : "Drag to zoom"}
+        {translator.translateText(
+          canReset ? "Drag to zoom · double-click to reset" : "Drag to zoom",
+        )}
       </span>
     );
   };
@@ -183,7 +214,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-150"
-        title="View metric details"
+        title={translator.translateText("View metric details")}
         onClick={() => {
           setMetricInfoModalChart(chart.metricInfo || null);
         }}
@@ -210,7 +241,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-150"
-        title="Open in Metric Explorer"
+        title={translator.translateText("Open in Metric Explorer")}
         onClick={() => {
           chart.onOpenInExplorer?.();
         }}
@@ -250,10 +281,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         onClose={() => {
           setMetricInfoModalChart(null);
         }}
-        onSubmit={() => {
-          setMetricInfoModalChart(null);
-        }}
-        submitButtonText="Close"
+        closeButtonText="Close"
         modalWidth={ModalWidth.Normal}
       >
         <div className="space-y-4">
@@ -262,7 +290,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               <tbody>
                 <tr className="border-b border-gray-200">
                   <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
-                    Metric Name
+                    {translator.translateText("Metric Name")}
                   </td>
                   <td className="py-2.5 text-gray-900 font-mono text-xs">
                     {metricInfoModalChart.metricName}
@@ -270,7 +298,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 </tr>
                 <tr className="border-b border-gray-200">
                   <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
-                    Aggregation
+                    {translator.translateText("Aggregation")}
                   </td>
                   <td className="py-2.5 text-gray-900">
                     {metricInfoModalChart.aggregationType}
@@ -279,7 +307,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {displayUnit && (
                   <tr className="border-b border-gray-200">
                     <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
-                      Unit
+                      {translator.translateText("Unit")}
                     </td>
                     <td className="py-2.5 text-gray-900">{displayUnit}</td>
                   </tr>
@@ -287,7 +315,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {metricInfoModalChart.groupByAttribute && (
                   <tr className="border-b border-gray-200">
                     <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
-                      Grouped By
+                      {translator.translateText("Grouped By")}
                     </td>
                     <td className="py-2.5 text-gray-900 font-mono text-xs">
                       {metricInfoModalChart.groupByAttribute}
@@ -297,7 +325,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {attributeKeys.length > 0 && (
                   <tr>
                     <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap align-top">
-                      Attributes
+                      {translator.translateText("Attributes")}
                     </td>
                     <td className="py-2.5">
                       <div className="space-y-1.5">
@@ -351,7 +379,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
-                      <p className="mt-1 text-xs text-gray-500 hidden md:block">
+                      <p className="mt-1 text-xs text-gray-500 max-md:hidden md:block">
                         {chart.description}
                       </p>
                     )}
@@ -395,7 +423,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               key={index}
               className={`flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
             >
-              {/* Header strip — title, meta icons, hover-revealed zoom hint */}
+              {/* Header strip — title, meta icons, the always-visible zoom hint */}
               <div className="border-b border-gray-100 px-4 py-2.5">
                 <div className="flex items-center">
                   <h2
@@ -413,7 +441,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {chart.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-0.5 w-full truncate text-xs text-gray-500 hidden md:block"
+                    className="mt-0.5 w-full truncate text-xs text-gray-500 max-md:hidden md:block"
                     title={chart.description}
                   >
                     {chart.description}

@@ -5,15 +5,17 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/IncidentEpisodeMember";
-import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
-import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import Label from "../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import GroupingRuleEpisodeOwners, {
+  LegacyAssigneeInProject,
+} from "../Utils/Rules/GroupingRuleEpisodeOwners";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -33,7 +35,18 @@ import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
+import {
+  clearPlaceholders,
+  clearPlaceholdersExcept,
+  replaceAllLiterally,
+} from "../Utils/Rules/GroupingRuleEpisodeTemplate";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -42,9 +55,35 @@ export interface GroupingResult {
   wasReopened?: boolean;
 }
 
+/*
+ * What an episode's {{incidentTitle}} and {{incidentDescription}} read when
+ * the incident that opens it is private (see getEpisodeTemplateValues).
+ */
+const PRIVATE_INCIDENT_TEMPLATE_VALUE: string = "Private incident";
+
+// A private incident's title, where the new episode's feed shows its key.
+const PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART: string =
+  "title:(private incident)";
+
+/*
+ * The {{variables}} of an episode's title and description templates
+ * (Common/Utils/Episode/EpisodeTemplateVariables), read from the incident
+ * that opens the episode.
+ */
+interface EpisodeTemplateValues {
+  incidentTitle: string | undefined;
+  incidentDescription: string | undefined;
+  monitorName: string | undefined;
+  incidentSeverity: string | undefined;
+}
+
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processIncident(incident: Incident): Promise<GroupingResult> {
+  @RuleEvaluation()
+  public async processIncident(
+    incident: Incident,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing incident ${incident.id} for grouping`, {
       projectId: incident.projectId?.toString(),
     } as LogAttributes);
@@ -174,6 +213,7 @@ class IncidentGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupIncidentWithRule(
             incident,
             rule,
+            options,
           );
           return result;
         }
@@ -385,8 +425,12 @@ class IncidentGroupingEngineServiceClass {
             monitorMatches = false;
           } else {
             try {
-              const regex: RegExp = new RegExp(rule.monitorNamePattern, "i");
-              if (!regex.test(monitor.name)) {
+              if (
+                !RulePatternMatchUtil.testRegex(
+                  rule.monitorNamePattern,
+                  monitor.name,
+                )
+              ) {
                 monitorMatches = false;
               }
             } catch {
@@ -405,11 +449,12 @@ class IncidentGroupingEngineServiceClass {
             monitorMatches = false;
           } else {
             try {
-              const regex: RegExp = new RegExp(
-                rule.monitorDescriptionPattern,
-                "i",
-              );
-              if (!regex.test(monitor.description)) {
+              if (
+                !RulePatternMatchUtil.testRegex(
+                  rule.monitorDescriptionPattern,
+                  monitor.description,
+                )
+              ) {
                 monitorMatches = false;
               }
             } catch {
@@ -439,8 +484,12 @@ class IncidentGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.incidentTitlePattern, "i");
-        if (!regex.test(incident.title)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentTitlePattern,
+            incident.title,
+          )
+        ) {
           return false;
         }
       } catch {
@@ -458,8 +507,12 @@ class IncidentGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.incidentDescriptionPattern, "i");
-        if (!regex.test(incident.description)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentDescriptionPattern,
+            incident.description,
+          )
+        ) {
           return false;
         }
       } catch {
@@ -483,11 +536,30 @@ class IncidentGroupingEngineServiceClass {
   private async groupIncidentWithRule(
     incident: Incident,
     rule: IncidentGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(incident, rule);
 
-    // Create mutex key to prevent race conditions when creating episodes
+    /*
+     * The keys an episode of the incident's group can be stored with: as
+     * built, or with the title hashed when a private incident opened it
+     * (getGroupingKeysToMatch). The incident finds the episode by either.
+     */
+    const groupingKeysToMatch: Array<string> = this.getGroupingKeysToMatch(
+      incident,
+      rule,
+      groupingKey,
+    );
+
+    /*
+     * Create mutex key to prevent race conditions when creating episodes.
+     * It is the key as built, whether the incident is private or not: the
+     * same for every incident of the group, so a private and a public one
+     * arriving together never both open an episode - and the one pods still
+     * on the previous version lock on during a rolling deploy. It names a
+     * lock and is never stored.
+     */
     const mutexKey: string = `${incident.projectId?.toString()}-${rule.id?.toString()}-${groupingKey}`;
 
     let mutex: SemaphoreMutex | null = null;
@@ -512,6 +584,29 @@ class IncidentGroupingEngineServiceClass {
         { projectId: incident.projectId?.toString() } as LogAttributes,
       );
 
+      /*
+       * Put in an episode since it was created - by a workflow, or by
+       * someone - in a project that allows an incident in only one
+       * (EpisodeSingleMembership): no rule may put it in another. Read
+       * before an episode is found, reopened or opened, so none is reopened
+       * or opened - and nobody paged - for an incident that could not join
+       * it.
+       */
+      const holdingEpisodeId: ObjectID | null =
+        await IncidentEpisodeMemberService.findHoldingEpisodeId({
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        });
+
+      if (holdingEpisodeId) {
+        logger.debug(
+          `Incident ${incident.id} is in episode ${holdingEpisodeId} already, and its project allows an incident in only one episode: not grouped`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
+        );
+
+        return { grouped: true, episodeId: holdingEpisodeId };
+      }
+
       // Calculate time window cutoff (only if time window is enabled)
       let timeWindowCutoff: Date | null = null;
       if (rule.enableTimeWindow) {
@@ -524,7 +619,7 @@ class IncidentGroupingEngineServiceClass {
         await this.findMatchingActiveEpisode(
           incident.projectId!,
           rule.id!,
-          groupingKey,
+          groupingKeysToMatch,
           timeWindowCutoff,
         );
 
@@ -553,6 +648,15 @@ class IncidentGroupingEngineServiceClass {
         };
       }
 
+      /*
+       * No open episode to join, and the incident may not open or reopen one
+       * (GroupingOptions): a new episode would page its own on-call policies
+       * for an incident that pages nobody. It stays on its own.
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
+      }
+
       // Check if we can reopen a recently resolved episode (only if enabled)
       if (rule.enableReopenWindow) {
         const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
@@ -563,7 +667,7 @@ class IncidentGroupingEngineServiceClass {
             await this.findRecentlyResolvedEpisode(
               incident.projectId!,
               rule.id!,
-              groupingKey,
+              groupingKeysToMatch,
               reopenCutoff,
             );
 
@@ -670,11 +774,7 @@ class IncidentGroupingEngineServiceClass {
 
     // Group by incident title - only if explicitly enabled
     if (rule.groupByIncidentTitle && incident.title) {
-      // Normalize title for grouping (remove numbers, etc.)
-      const normalizedTitle: string = incident.title
-        .toLowerCase()
-        .replace(/\d+/g, "X");
-      parts.push(`title:${normalizedTitle}`);
+      parts.push(EpisodeGroupingKey.getTitlePart(incident.title));
     }
 
     // Group by incident labels (exact set match) - only if explicitly enabled
@@ -775,11 +875,12 @@ class IncidentGroupingEngineServiceClass {
   private async findMatchingActiveEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
   ): Promise<IncidentEpisode | null> {
     /*
-     * Find active episode with matching rule and grouping key
+     * Find active episode with matching rule and any of the grouping keys
+     * the group's episodes are stored with (getGroupingKeysToMatch)
      * Active episodes have resolvedAt = null (not yet resolved)
      * If time window is enabled, also filter by lastIncidentAddedAt
      * If time window is disabled (timeWindowCutoff is null), find any matching active episode
@@ -787,7 +888,7 @@ class IncidentGroupingEngineServiceClass {
     interface EpisodeQueryType {
       projectId: ObjectID;
       incidentGroupingRuleId: ObjectID;
-      groupingKey: string;
+      groupingKey: ReturnType<typeof QueryHelper.any>;
       resolvedAt: null;
       lastIncidentAddedAt?: ReturnType<typeof QueryHelper.greaterThanEqualTo>;
     }
@@ -795,7 +896,7 @@ class IncidentGroupingEngineServiceClass {
     const query: EpisodeQueryType = {
       projectId: projectId,
       incidentGroupingRuleId: ruleId,
-      groupingKey: groupingKey,
+      groupingKey: QueryHelper.any(groupingKeys),
       resolvedAt: null, // Only find active (non-resolved) episodes
     };
 
@@ -827,16 +928,20 @@ class IncidentGroupingEngineServiceClass {
   private async findRecentlyResolvedEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     reopenCutoff: Date,
   ): Promise<IncidentEpisode | null> {
-    // Find recently resolved episode with matching rule and grouping key
+    /*
+     * Find recently resolved episode with matching rule and any of the
+     * grouping keys the group's episodes are stored with
+     * (getGroupingKeysToMatch)
+     */
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneBy({
         query: {
           projectId: projectId,
           incidentGroupingRuleId: ruleId,
-          groupingKey: groupingKey,
+          groupingKey: QueryHelper.any(groupingKeys),
           resolvedAt: QueryHelper.greaterThanEqualTo(reopenCutoff),
         },
         sort: {
@@ -860,16 +965,20 @@ class IncidentGroupingEngineServiceClass {
     rule: IncidentGroupingRule,
     groupingKey: string,
   ): Promise<IncidentEpisode | null> {
+    const templateValues: EpisodeTemplateValues =
+      this.getEpisodeTemplateValues(incident);
+
     // Generate episode title from template (with initial incidentCount of 1)
     const title: string = this.generateEpisodeTitle(
       incident,
-      rule.episodeTitleTemplate,
+      rule,
+      templateValues,
       1, // Initial incident count
     );
 
     // Generate episode description from template (with initial incidentCount of 1)
     const description: string | undefined = this.generateEpisodeDescription(
-      incident,
+      templateValues,
       rule.episodeDescriptionTemplate,
       1, // Initial incident count
     );
@@ -886,18 +995,22 @@ class IncidentGroupingEngineServiceClass {
      */
     if (rule.episodeTitleTemplate) {
       newEpisode.titleTemplate = this.preprocessTemplate(
-        incident,
+        templateValues,
         rule.episodeTitleTemplate,
       );
     }
     if (rule.episodeDescriptionTemplate) {
       newEpisode.descriptionTemplate = this.preprocessTemplate(
-        incident,
+        templateValues,
         rule.episodeDescriptionTemplate,
       );
     }
     newEpisode.incidentGroupingRuleId = rule.id!;
-    newEpisode.groupingKey = groupingKey;
+    newEpisode.groupingKey = this.getGroupingKeyToStore(
+      incident,
+      rule,
+      groupingKey,
+    );
     newEpisode.isManuallyCreated = false;
     newEpisode.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
 
@@ -906,23 +1019,64 @@ class IncidentGroupingEngineServiceClass {
       newEpisode.incidentSeverityId = incident.incidentSeverityId;
     }
 
-    // Set default ownership from rule
-    if (rule.defaultAssignToUserId) {
-      newEpisode.assignedToUserId = rule.defaultAssignToUserId;
+    /*
+     * The rule's default assignee, from before the rule asked for episode
+     * owners. Still copied for API readers of the episode - while it names
+     * the project's own team and a member - but no page, notification or
+     * worker reads it: owners are what make people responsible for the
+     * episode (below).
+     */
+    if (rule.defaultAssignToUserId || rule.defaultAssignToTeamId) {
+      const assignee: LegacyAssigneeInProject =
+        await GroupingRuleEpisodeOwners.getLegacyAssigneeInProject({
+          projectId: incident.projectId!,
+          userId: rule.defaultAssignToUserId,
+          teamId: rule.defaultAssignToTeamId,
+          ruleName: rule.name || rule.id?.toString(),
+        });
+
+      if (assignee.userId) {
+        newEpisode.assignedToUserId = assignee.userId;
+      }
+
+      if (assignee.teamId) {
+        newEpisode.assignedToTeamId = assignee.teamId;
+      }
     }
 
-    if (rule.defaultAssignToTeamId) {
-      newEpisode.assignedToTeamId = rule.defaultAssignToTeamId;
+    /*
+     * The rule's on-call policies and episode labels, copied onto the episode
+     * as root - only the project's own (see RuleRecordScope).
+     */
+    const ruleLogAttributes: LogAttributes = {
+      projectId: incident.projectId?.toString(),
+    };
+    const ruleDescription: string = `grouping rule ${rule.name || rule.id?.toString() || ""}`;
+
+    const onCallDutyPolicies: Array<OnCallDutyPolicy> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.onCallDutyPolicies,
+        modelType: OnCallDutyPolicy,
+        description: `on-call policies of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (onCallDutyPolicies.length > 0) {
+      newEpisode.onCallDutyPolicies = onCallDutyPolicies;
     }
 
-    // Copy on-call policies from rule
-    if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
-      newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
-    }
+    const episodeLabels: Array<Label> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.episodeLabels,
+        modelType: Label,
+        description: `episode labels of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
 
-    // Copy episode labels from rule
-    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
-      newEpisode.labels = rule.episodeLabels;
+    if (episodeLabels.length > 0) {
+      newEpisode.labels = episodeLabels;
     }
 
     try {
@@ -934,67 +1088,29 @@ class IncidentGroupingEngineServiceClass {
           },
         });
 
-      // Add episode owner users from rule
-      if (
-        rule.episodeOwnerUsers &&
-        rule.episodeOwnerUsers.length > 0 &&
-        createdEpisode.id
-      ) {
-        for (const user of rule.episodeOwnerUsers) {
-          if (!user.id) {
-            continue;
-          }
-          try {
-            const ownerUser: IncidentEpisodeOwnerUser =
-              new IncidentEpisodeOwnerUser();
-            ownerUser.projectId = incident.projectId!;
-            ownerUser.incidentEpisodeId = createdEpisode.id;
-            ownerUser.userId = user.id;
-            await OwnerRuleAssignment.createOwner({
-              ownerService: IncidentEpisodeOwnerUserService,
-              owner: ownerUser,
-              props: {
-                isRoot: true,
-              },
-            });
-          } catch (ownerError) {
-            logger.error(
-              `Error adding owner user ${user.id} to episode: ${ownerError}`,
-              { projectId: incident.projectId?.toString() } as LogAttributes,
-            );
-          }
-        }
-      }
-
-      // Add episode owner teams from rule
-      if (
-        rule.episodeOwnerTeams &&
-        rule.episodeOwnerTeams.length > 0 &&
-        createdEpisode.id
-      ) {
-        for (const team of rule.episodeOwnerTeams) {
-          if (!team.id) {
-            continue;
-          }
-          try {
-            const ownerTeam: IncidentEpisodeOwnerTeam =
-              new IncidentEpisodeOwnerTeam();
-            ownerTeam.projectId = incident.projectId!;
-            ownerTeam.incidentEpisodeId = createdEpisode.id;
-            ownerTeam.teamId = team.id;
-            await OwnerRuleAssignment.createOwner({
-              ownerService: IncidentEpisodeOwnerTeamService,
-              owner: ownerTeam,
-              props: {
-                isRoot: true,
-              },
-            });
-          } catch (ownerError) {
-            logger.error(
-              `Error adding owner team ${team.id} to episode: ${ownerError}`,
-              { projectId: incident.projectId?.toString() } as LogAttributes,
-            );
-          }
+      /*
+       * The rule's Episode Owners become owners of the episode - only the
+       * project's own teams and members, as when owners are added by hand
+       * (see GroupingRuleEpisodeOwners). Each one added is notified like any
+       * owner.
+       */
+      if (createdEpisode.id) {
+        try {
+          await GroupingRuleEpisodeOwners.addOwnersToEpisode({
+            projectId: incident.projectId!,
+            episodeId: createdEpisode.id,
+            episodeIdColumn: "incidentEpisodeId",
+            ownerUserService: IncidentEpisodeOwnerUserService,
+            ownerTeamService: IncidentEpisodeOwnerTeamService,
+            users: rule.episodeOwnerUsers,
+            teams: rule.episodeOwnerTeams,
+            ruleName: rule.name || rule.id?.toString(),
+          });
+        } catch (ownerError) {
+          logger.error(
+            `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
+          );
         }
       }
 
@@ -1064,13 +1180,22 @@ class IncidentGroupingEngineServiceClass {
           groupByParts.length > 0
             ? `Grouping by: ${groupByParts.join(", ")}`
             : "Grouping all matching incidents together";
-
-        let moreInfo: string = `**Rule:** ${rule.name || "Unnamed Rule"}\n\n`;
-        moreInfo += `**Grouping Key:** \`${groupingKey}\`\n\n`;
-        moreInfo += `**${groupByDescription}**`;
+        /*
+         * The rule's name is plain text, and so is the grouping key: it can
+         * hold the title the rule groups by. Both are placed as text
+         * (mdText). The key is not put in a code span: a "`" in the title
+         * would end the span early, a backslash cannot escape one there, and
+         * chat tools pass a code span's text on as it is. A sentence leaves
+         * a bare web address in it whole, so the link renderers make of an
+         * address in a title still opens it.
+         */
+        let moreInfo: string =
+          mdText`**Rule:** ${rule.name || "Unnamed Rule"}\n\n`.toString();
+        moreInfo += mdText`**Grouping Key:** ${this.getGroupingKeyToShow(incident, rule, groupingKey)}\n\n`;
+        moreInfo += mdText`**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
-          moreInfo += `\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
+          moreInfo += mdText`\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
         }
 
         try {
@@ -1080,7 +1205,8 @@ class IncidentGroupingEngineServiceClass {
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.EpisodeCreated,
             displayColor: Green500,
-            feedInfoInMarkdown: `**Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
+            feedInfoInMarkdown:
+              mdText`**Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`.toString(),
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {
@@ -1100,19 +1226,147 @@ class IncidentGroupingEngineServiceClass {
     }
   }
 
+  /*
+   * What the episode's title and description templates are filled with, from
+   * the incident that opens it.
+   *
+   * A private incident is seen only by its owners and the project's owners
+   * and admins (IncidentPrivacyFilter), and the episode it opens is not
+   * private: whoever can see the episode reads its title and description - in
+   * the dashboard, in its Slack / Microsoft Teams channels and in every
+   * notification about it. So a private incident's title and description
+   * never go into the episode: both read "Private incident", in the title and
+   * description written now and in the templates stored to write them again
+   * as incidents join - as IncidentAlertService and
+   * IncidentEpisodeMemberService leave a private incident's title out of
+   * entries others read. Its monitor's name and its severity are the
+   * project's, not the incident's, and are used as for any incident.
+   *
+   * The episode is not made private instead: it gathers every incident the
+   * rule matches, and the first one to arrive should not decide who sees the
+   * rest - nor would it keep the title from the rule's owners and on-call,
+   * who need not be able to see the incident.
+   */
+  private getEpisodeTemplateValues(incident: Incident): EpisodeTemplateValues {
+    const isPrivate: boolean = incident.isPrivate === true;
+
+    return {
+      incidentTitle: isPrivate
+        ? PRIVATE_INCIDENT_TEMPLATE_VALUE
+        : incident.title,
+      incidentDescription: isPrivate
+        ? PRIVATE_INCIDENT_TEMPLATE_VALUE
+        : incident.description,
+      monitorName: incident.monitors?.[0]?.name,
+      incidentSeverity: incident.incidentSeverity?.name,
+    };
+  }
+
+  /*
+   * The grouping key as the new episode's feed shows it. A rule that groups
+   * by title puts the incident's title in the key
+   * (EpisodeGroupingKey.getTitlePart); a private incident's is shown as
+   * private, as everywhere else in the episode (getEpisodeTemplateValues),
+   * and stored hashed (getGroupingKeyToStore).
+   */
+  private getGroupingKeyToShow(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (
+      incident.isPrivate !== true ||
+      !rule.groupByIncidentTitle ||
+      !incident.title
+    ) {
+      return groupingKey;
+    }
+
+    return groupingKey
+      .split(EpisodeGroupingKey.getTitlePart(incident.title))
+      .join(PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART);
+  }
+
+  /*
+   * The grouping key the new episode is stored with. It is read with the
+   * episode - through the API, by everyone who can see it - so a private
+   * incident's title is in it only hashed (EpisodeGroupingKey), as it is not
+   * the episode's to show (getEpisodeTemplateValues); the incidents that
+   * come later find the episode by that form too (getGroupingKeysToMatch).
+   * Any other incident's key is stored as built, as before.
+   */
+  private getGroupingKeyToStore(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (incident.isPrivate !== true) {
+      return groupingKey;
+    }
+
+    return this.getGroupingKeyWithTitleHashed(incident, rule, groupingKey);
+  }
+
+  /*
+   * Every key an episode of the incident's group can be stored with
+   * (getGroupingKeyToStore): as built - opened by an incident that is not
+   * private, or by any incident before titles were hashed - and with the
+   * title hashed - opened by a private one. The incident is matched against
+   * both, so it joins its group's episode whether it is private or not and
+   * whoever opened it.
+   */
+  private getGroupingKeysToMatch(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): Array<string> {
+    const keyWithTitleHashed: string = this.getGroupingKeyWithTitleHashed(
+      incident,
+      rule,
+      groupingKey,
+    );
+
+    if (keyWithTitleHashed === groupingKey) {
+      return [groupingKey];
+    }
+
+    return [groupingKey, keyWithTitleHashed];
+  }
+
+  // The key as built, with the incident's title in it hashed.
+  private getGroupingKeyWithTitleHashed(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (!rule.groupByIncidentTitle || !incident.title || !incident.projectId) {
+      return groupingKey;
+    }
+
+    return EpisodeGroupingKey.hashTitle({
+      groupingKey: groupingKey,
+      projectId: incident.projectId,
+      title: incident.title,
+    });
+  }
+
   private generateEpisodeTitle(
     incident: Incident,
-    template: string | undefined,
+    rule: IncidentGroupingRule,
+    values: EpisodeTemplateValues,
     incidentCount: number = 1,
   ): string {
-    if (!template) {
+    if (!rule.episodeTitleTemplate) {
       // Default title based on incident
-      if (
-        incident.monitors &&
-        incident.monitors.length > 0 &&
-        incident.monitors[0]?.name
-      ) {
-        return incident.monitors[0].name;
+      if (values.monitorName) {
+        return values.monitorName;
+      }
+      /*
+       * A private incident's title is not the episode's to show
+       * (getEpisodeTemplateValues): the episode is named after its rule.
+       */
+      if (incident.isPrivate === true) {
+        return rule.name || "Untitled Episode";
       }
       if (incident.title) {
         return incident.title.substring(0, 50);
@@ -1121,13 +1375,16 @@ class IncidentGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(incident, template, incidentCount) ||
-      "Untitled Episode"
+      this.replaceTemplatePlaceholders(
+        values,
+        rule.episodeTitleTemplate,
+        incidentCount,
+      ) || "Untitled Episode"
     );
   }
 
   private generateEpisodeDescription(
-    incident: Incident,
+    values: EpisodeTemplateValues,
     template: string | undefined,
     incidentCount: number = 1,
   ): string | undefined {
@@ -1136,53 +1393,23 @@ class IncidentGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(incident, template, incidentCount) ||
+      this.replaceTemplatePlaceholders(values, template, incidentCount) ||
       undefined
     );
   }
 
   private replaceTemplatePlaceholders(
-    incident: Incident,
+    values: EpisodeTemplateValues,
     template: string,
     incidentCount: number = 1,
   ): string {
-    let result: string = template;
-
     /*
-     * Static variables (from first incident)
-     * {{incidentTitle}}
+     * The template as the episode stores it, with the count filled in - just
+     * as IncidentEpisodeService.updateIncidentCount writes the title and
+     * description again as incidents join or leave. So they only ever change
+     * by their count.
      */
-    if (incident.title) {
-      result = result.replace(/\{\{incidentTitle\}\}/g, incident.title);
-    }
-
-    // {{incidentDescription}}
-    if (incident.description) {
-      result = result.replace(
-        /\{\{incidentDescription\}\}/g,
-        incident.description,
-      );
-    }
-
-    // {{monitorName}} - use first monitor's name
-    if (
-      incident.monitors &&
-      incident.monitors.length > 0 &&
-      incident.monitors[0]?.name
-    ) {
-      result = result.replace(
-        /\{\{monitorName\}\}/g,
-        incident.monitors[0].name,
-      );
-    }
-
-    // {{incidentSeverity}}
-    if (incident.incidentSeverity?.name) {
-      result = result.replace(
-        /\{\{incidentSeverity\}\}/g,
-        incident.incidentSeverity.name,
-      );
-    }
+    let result: string = this.preprocessTemplate(values, template);
 
     /*
      * Dynamic variables (updated when incidents are added/removed)
@@ -1191,60 +1418,68 @@ class IncidentGroupingEngineServiceClass {
     result = result.replace(/\{\{incidentCount\}\}/g, incidentCount.toString());
 
     // Clean up any remaining unknown placeholders
-    result = result.replace(/\{\{[^}]+\}\}/g, "");
+    result = clearPlaceholders(result);
 
     return result;
   }
 
   /*
-   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * Preprocess template: replace static variables, clear unknown ones and keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
-  private preprocessTemplate(incident: Incident, template: string): string {
+  private preprocessTemplate(
+    values: EpisodeTemplateValues,
+    template: string,
+  ): string {
     let result: string = template;
 
     /*
      * Replace static variables (from first incident)
      * {{incidentTitle}}
      */
-    if (incident.title) {
-      result = result.replace(/\{\{incidentTitle\}\}/g, incident.title);
+    if (values.incidentTitle) {
+      result = replaceAllLiterally(
+        result,
+        /\{\{incidentTitle\}\}/g,
+        values.incidentTitle,
+      );
     }
 
     // {{incidentDescription}}
-    if (incident.description) {
-      result = result.replace(
+    if (values.incidentDescription) {
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentDescription\}\}/g,
-        incident.description,
+        values.incidentDescription,
       );
     }
 
     // {{monitorName}} - use first monitor's name
-    if (
-      incident.monitors &&
-      incident.monitors.length > 0 &&
-      incident.monitors[0]?.name
-    ) {
-      result = result.replace(
+    if (values.monitorName) {
+      result = replaceAllLiterally(
+        result,
         /\{\{monitorName\}\}/g,
-        incident.monitors[0].name,
+        values.monitorName,
       );
     }
 
     // {{incidentSeverity}}
-    if (incident.incidentSeverity?.name) {
-      result = result.replace(
+    if (values.incidentSeverity) {
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentSeverity\}\}/g,
-        incident.incidentSeverity.name,
+        values.incidentSeverity,
       );
     }
 
     /*
      * Keep dynamic variables as placeholders (e.g., {{incidentCount}})
-     * They will be replaced when title/description is re-rendered
+     * They will be replaced when title/description is re-rendered - and
+     * nothing else is: a variable this incident has no value for (no
+     * monitor, say), or one no incident has, is cleared now, as the title
+     * and description written from this template clear it.
      */
-
-    return result;
+    return clearPlaceholdersExcept(result, "{{incidentCount}}");
   }
 
   @CaptureSpan()
@@ -1285,6 +1520,19 @@ class IncidentGroupingEngineServiceClass {
         );
         return;
       }
+
+      /*
+       * Put in another episode a moment ago, in a project that allows an
+       * incident in only one (EpisodeSingleMembership): it stays there.
+       */
+      if (error instanceof RecordInAnotherEpisodeException) {
+        logger.debug(
+          `Incident ${incident.id} is in another episode, and its project allows an incident in only one episode: not added to episode ${episodeId}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
+        );
+        return;
+      }
+
       throw error;
     }
   }

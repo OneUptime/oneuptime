@@ -66,6 +66,7 @@ import AffectedResourcesPicker, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -221,6 +222,7 @@ const ALL_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -426,6 +428,7 @@ describe("toItems", () => {
       proxmoxClusters: [],
       vmwareVCenters: [],
       cephClusters: [],
+      storageArrays: [],
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: [],
@@ -541,6 +544,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       ProxmoxCluster: ProxmoxCluster,
       VMwareVCenter: VMwareVCenter,
       CephCluster: CephCluster,
+      StorageArray: StorageArray,
       DockerSwarmCluster: DockerSwarmCluster,
       IoTFleet: IoTFleet,
       DatabaseServer: DatabaseServer,
@@ -566,6 +570,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       proxmoxClusters: idFor("ProxmoxCluster"),
       vmwareVCenters: idFor("VMwareVCenter"),
       cephClusters: idFor("CephCluster"),
+      storageArrays: idFor("StorageArray"),
       dockerSwarmClusters: idFor("DockerSwarmCluster"),
       iotFleets: idFor("IoTFleet"),
       databaseServers: idFor("DatabaseServer"),
@@ -1141,5 +1146,60 @@ describe("AffectedResourcesPicker as a wizard summary", () => {
     for (const rawId of [HOST_ID, CLUSTER_ID, PODMAN_ID, SERVICE_ID]) {
       expect(screen.queryByText(rawId, { exact: false })).toBeNull();
     }
+  });
+});
+
+/*
+ * Declare Incident asks with two pickers on one step - the monitors, and
+ * everything else - so each search input is named by its own field's label
+ * (CustomElementProps.ariaLabelledby), and a screen reader tells them apart.
+ */
+describe("AffectedResourcesPicker's search input name", () => {
+  test("is the label it is handed", () => {
+    render(
+      <div>
+        <label id="monitors-label">Monitors</label>
+        <AffectedResourcesPicker
+          resourceTypes={["Monitor"]}
+          ariaLabelledby="monitors-label"
+          onChange={noop}
+        />
+      </div>,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Monitors" })).toHaveAttribute(
+      "aria-labelledby",
+      "monitors-label",
+    );
+  });
+
+  test("two pickers, two labels: each input is found by its own", () => {
+    render(
+      <div>
+        <label id="monitors-label">Monitors</label>
+        <AffectedResourcesPicker
+          resourceTypes={["Monitor"]}
+          ariaLabelledby="monitors-label"
+          onChange={noop}
+        />
+        <label id="others-label">Other Affected Resources</label>
+        <AffectedResourcesPicker
+          resourceTypes={["Host", "Service"]}
+          ariaLabelledby="others-label"
+          onChange={noop}
+        />
+      </div>,
+    );
+
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+    expect(screen.getByRole("combobox", { name: "Monitors" })).not.toBe(
+      screen.getByRole("combobox", { name: "Other Affected Resources" }),
+    );
+  });
+
+  test("without one, the input is left as it was: no label it does not have", () => {
+    renderPicker({ resourceTypes: ["Monitor"] });
+
+    expect(screen.getByRole("combobox")).not.toHaveAttribute("aria-labelledby");
   });
 });

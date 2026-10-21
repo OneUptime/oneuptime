@@ -5,6 +5,10 @@ import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import IpCanonicalUtil from "Common/Utils/IpCanonicalUtil";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkFailure,
+  ProbeNetworkOperation,
+} from "Common/Utils/ProbeNetworkFailureUtil";
 import logger from "Common/Server/Utils/Logger";
 import NetworkPathTrace, {
   DNSLookupResult,
@@ -353,13 +357,66 @@ export default class NetworkPathMonitor {
         `Traceroute to ${destination} completed with ${result.totalHops} hops`,
       );
     } catch (err) {
-      result.failureMessage = (err as Error).message;
+      result.failureMessage = this.getTracerouteFailureMessage(
+        err,
+        destination,
+      );
       logger.debug(
         `Traceroute to ${destination} failed: ${result.failureMessage}`,
       );
     }
 
     return result;
+  }
+
+  /*
+   * What to show when traceroute itself did not run to completion.
+   *
+   * execFile's message is "Command failed: <argv>\n<stderr>", so a probe
+   * with no IPv6 used to put "Command failed: traceroute -6 -m 20 -w 3
+   * 2001:518:2800:9::2 connect: Cannot assign requested address" under
+   * "Network Path at Time of Failure" — which reads as the ROUTE to the
+   * customer's host failing, when not one probe packet was sent. The OS's
+   * own words are in err.stderr, so that is read first: a probe-side cause
+   * is said to be one, and anything else is shown without the argv.
+   *
+   * Only stderr is classified. Our own errors ("Traceroute timed out",
+   * "Invalid destination: ...") have none, and the second quotes the
+   * destination, which must never be mistaken for the OS's verdict.
+   */
+  private static getTracerouteFailureMessage(
+    err: unknown,
+    destination: string,
+  ): string {
+    const execError: { message?: unknown; stderr?: unknown } =
+      err && typeof err === "object"
+        ? (err as { message?: unknown; stderr?: unknown })
+        : {};
+    const message: string =
+      typeof execError.message === "string" ? execError.message : String(err);
+    const stderr: string =
+      typeof execError.stderr === "string" ? execError.stderr.trim() : "";
+
+    if (!stderr) {
+      return message;
+    }
+
+    const probeFailure: ProbeNetworkFailure | null =
+      ProbeNetworkFailureUtil.classifyOutput({
+        output: stderr,
+        operation: ProbeNetworkOperation.PingOrTraceroute,
+      });
+
+    if (probeFailure) {
+      return `Traceroute could not run: ${ProbeNetworkFailureUtil.describeClause(
+        {
+          host: destination,
+          failure: probeFailure,
+        },
+      )}.`;
+    }
+
+    return stderr;
   }
 
   /**

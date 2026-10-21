@@ -8,6 +8,12 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  isVisibleAtWidth,
+} from "../../ResponsiveVisibility";
 import ReplayTabSwitcher, {
   ReplayTabSwitcherProps,
   buildReplayTabPillTitle,
@@ -318,9 +324,21 @@ describe("ReplayTabSwitcher strip", () => {
       screen.getAllByTestId("replay-tab-pill")[0] as HTMLElement,
     ).getByText("· /checkout");
 
-    expect(page.className).toContain("hidden");
     expect(page.className).toContain("sm:inline");
     expect(page.className).toContain("truncate");
+    expect(isVisibleAtWidth(page, PHONE_WIDTH_IN_PX)).toBe(false);
+    expect(isVisibleAtWidth(page, TABLET_WIDTH_IN_PX)).toBe(true);
+    /*
+     * `max-sm:hidden`, not the bare `hidden`: a foreign
+     * `.hidden { display: none !important }` rule would beat `sm:inline` and
+     * strip the page from every pill at every width.
+     */
+    expect(page).not.toHaveClass("hidden");
+    expect(
+      isVisibleAtWidth(page, LAPTOP_WIDTH_IN_PX, {
+        withForeignHiddenRule: true,
+      }),
+    ).toBe(true);
   });
 
   it("leaves the page off a pill whose url the recorder never reported", () => {

@@ -4,6 +4,10 @@ import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import logger from "Common/Server/Utils/Logger";
+import RunnerService from "Common/Server/Services/RunnerService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import Project from "Common/Models/DatabaseModels/Project";
 import {
   KubernetesAction,
   KubernetesStepConfig,
@@ -31,13 +35,19 @@ import {
  * payload — what has to be in it, what must never be in it, and which
  * misconfigurations have to be caught before a job row is ever created.
  *
+ * These are the steps written before runbook variables: an SSH step with a
+ * credential and a command, a Kubernetes step with a credential and one
+ * workload action. They still run as they always did. A step that names no
+ * credential is one of the steps that take a script (ScriptStepExecutors).
+ *
  * Step configs are untyped JSON at rest, so the fixtures here are raw objects
  * rather than typed literals: a field can be genuinely absent, which is the
  * shape the validation actually has to survive.
  */
 type RawConfig = Record<string, unknown>;
 
-const AGENT_ID: string = new ObjectID("runner-1").toString();
+// The Runner the steps here picked: a Runner ID, as the step editor stores it.
+const AGENT_ID: string = "a9e10000-0000-4000-8000-0000000000a1";
 
 function makeCtx(): StepExecutionContext {
   return {
@@ -45,6 +55,38 @@ function makeCtx(): StepExecutionContext {
     runbookExecutionId: new ObjectID("exec1"),
   };
 }
+
+/*
+ * Where a step runs is decided by GlobalRunnerChoice, which reads, as
+ * OneUptime, the Runner the step picked, the project's "Use global Runners"
+ * switch and whether the server has a global Runner. Here the Runner a step
+ * picked is always one of its project's own, the project uses global
+ * Runners, and the server has none - so a step that picked no Runner is
+ * refused as it always was. StepExecutorsGlobalRunner covers the rest.
+ */
+function stubRunnerChoiceFacts(): void {
+  jest
+    .spyOn(RunnerService, "findOneById")
+    .mockImplementation(async (args: { id: ObjectID }): Promise<Runner> => {
+      const runner: Runner = new Runner();
+      runner._id = args.id.toString();
+      runner.projectId = makeCtx().projectId;
+      runner.isGlobalRunner = false;
+      return runner;
+    });
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation(async (): Promise<Project> => {
+      const project: Project = new Project();
+      project.useGlobalRunners = true;
+      return project;
+    });
+  jest
+    .spyOn(RunnerService, "hasGlobalRunnerForRunbooks")
+    .mockResolvedValue(false);
+}
+
+beforeEach(stubRunnerChoiceFacts);
 
 function omit(config: RawConfig, ...keys: Array<string>): RawConfig {
   const copy: RawConfig = { ...config };
@@ -184,7 +226,7 @@ describe("runSshStep", () => {
       ["the field is absent", omit(sshConfig(), "credentialId")],
       ["the field is an empty string", sshConfig({ credentialId: "" })],
     ])(
-      "a step without a credential fails and never dispatches — %s",
+      "a step without a credential is a script step, and fails for the machine it does not name, never dispatching — %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -195,9 +237,10 @@ describe("runSshStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("missing a credential");
-        // The message has to say where to go; "invalid config" helps nobody.
-        expect(result.errorMessage).toContain("Credentials");
+        // The message has to say what to fill in; "invalid config" helps nobody.
+        expect(result.errorMessage).toBe(
+          "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         // Not even a lookup: the step cannot possibly run.
         expect(findSpy).not.toHaveBeenCalled();
@@ -243,14 +286,17 @@ describe("runSshStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("missing a Runner");
+        // An SSH step never runs on a global Runner: it needs one of the project's own.
+        expect(result.errorMessage).toBe(
+          "This SSH step has no Runner. SSH steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(findSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
       },
     );
 
-    test("a step missing everything reports the credential first, deterministically", async () => {
+    test("a step missing everything reports the machine first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runSshStep(
@@ -258,7 +304,9 @@ describe("runSshStep", () => {
         makeCtx(),
       );
 
-      expect(result.errorMessage).toContain("missing a credential");
+      expect(result.errorMessage).toBe(
+        "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+      );
       expect(enqueueSpy).not.toHaveBeenCalled();
     });
   });
@@ -382,6 +430,7 @@ describe("runSshStep", () => {
       expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(300_000);
 
       jest.restoreAllMocks();
+      stubRunnerChoiceFacts();
       jest.spyOn(logger, "error").mockImplementation((): void => {
         return undefined;
       });
@@ -462,7 +511,7 @@ describe("runKubernetesStep", () => {
       ["the field is absent", omit(k8sConfig(), "credentialId")],
       ["the field is an empty string", k8sConfig({ credentialId: "" })],
     ])(
-      "a step without a credential fails and never dispatches — %s",
+      "a step without a credential is a kubectl script step, and fails for the script it does not have, never dispatching — %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -473,8 +522,9 @@ describe("runKubernetesStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("missing a credential");
-        expect(result.errorMessage).toContain("Credentials");
+        expect(result.errorMessage).toBe(
+          "This kubectl step has no script to run.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(findSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
@@ -523,13 +573,16 @@ describe("runKubernetesStep", () => {
         );
 
         expect(result.success).toBe(false);
-        expect(result.errorMessage).toContain("missing a Runner");
+        // A Kubernetes step never runs on a global Runner: it needs one of the project's own.
+        expect(result.errorMessage).toBe(
+          "This Kubernetes step has no Runner. Kubernetes steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
       },
     );
 
-    test("a step missing everything reports the credential first, deterministically", async () => {
+    test("a step missing everything reports the script first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runKubernetesStep(
@@ -545,7 +598,9 @@ describe("runKubernetesStep", () => {
         makeCtx(),
       );
 
-      expect(result.errorMessage).toContain("missing a credential");
+      expect(result.errorMessage).toBe(
+        "This kubectl step has no script to run.",
+      );
       expect(enqueueSpy).not.toHaveBeenCalled();
     });
   });

@@ -17,11 +17,14 @@ import PodmanResourceService from "../../../Server/Services/PodmanResourceServic
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
+import StorageArrayResourceService from "../../../Server/Services/StorageArrayResourceService";
 import VMwareResourceService from "../../../Server/Services/VMwareResourceService";
 import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
   PublicDashboardResourceListPolicyResult,
 } from "../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -49,6 +52,16 @@ import {
   it,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  makeIncidentStates,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -292,6 +305,19 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     kind: "Pool",
   },
   {
+    resourceType: "storage-array-resource",
+    componentType: DashboardComponentType.StorageArrayVolumeList,
+    service: StorageArrayResourceService,
+    kind: "Volume",
+  },
+  {
+    resourceType: "storage-array-resource",
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    service: StorageArrayResourceService,
+    // Three kinds, pinned with Includes (asserted on its own below).
+    kind: null,
+  },
+  {
     resourceType: "docker-swarm-resource",
     componentType: DashboardComponentType.DockerSwarmNodeList,
     service: DockerSwarmResourceService,
@@ -338,6 +364,7 @@ const ALL_SERVICES: Array<ListService> = [
   ProxmoxResourceService,
   VMwareResourceService,
   CephResourceService,
+  StorageArrayResourceService,
   DockerSwarmResourceService,
   SpanService,
   LogService,
@@ -473,6 +500,8 @@ describe("DashboardAPI public resource-list", () => {
     setDashboardWidgets([]);
 
     jest.spyOn(DashboardService, "findOneById").mockResolvedValue(dashboard);
+    // Unresolved and Resolved are read off the project's states.
+    mockProjectStates();
 
     for (const service of ALL_SERVICES) {
       jest
@@ -534,7 +563,7 @@ describe("DashboardAPI public resource-list", () => {
       }
     });
 
-    it("does not return sibling-only Proxmox, VMware or Swarm fields", async () => {
+    it("does not return sibling-only Proxmox, VMware, Swarm or Storage Array fields", async () => {
       const cases: Array<{
         resourceType: string;
         componentType: DashboardComponentType;
@@ -583,6 +612,20 @@ describe("DashboardAPI public resource-list", () => {
           service: DockerSwarmResourceService,
           included: "latestCpuPercent",
           excluded: "desiredReplicas",
+        },
+        {
+          resourceType: "storage-array-resource",
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          service: StorageArrayResourceService,
+          included: "readLatencyUsec",
+          excluded: "status",
+        },
+        {
+          resourceType: "storage-array-resource",
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          service: StorageArrayResourceService,
+          included: "status",
+          excluded: "readLatencyUsec",
         },
       ];
 
@@ -875,9 +918,11 @@ describe("DashboardAPI public resource-list", () => {
       const findByArgs: JSONObject = getFindByArgs(IncidentService);
       const query: JSONObject = findByArgs["query"] as JSONObject;
 
-      expect(query["currentIncidentState"]).toEqual({
-        isResolvedState: false,
-      });
+      // Unresolved: the project's states above its resolved state.
+      expect(query["currentIncidentState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+        openStateIds(INCIDENT_STATE_IDS),
+      );
       expect(query["incidentSeverityId"]).toBeInstanceOf(Includes);
       expect((query["incidentSeverityId"] as Includes).values).toEqual([
         severityId.toString(),
@@ -887,6 +932,84 @@ describe("DashboardAPI public resource-list", () => {
       });
       expect(findByArgs["limit"]).toBe(9);
       expect(findByArgs["skip"]).toBe(0);
+    });
+
+    /*
+     * An Acknowledged list is the project's acknowledged state and every
+     * state placed after it short of resolved
+     * (Common/Utils/AcknowledgedState) - a query on the acknowledged flag
+     * left out an incident in "Investigating", placed between Acknowledged
+     * and Resolved.
+     */
+    it("keeps an Acknowledged incident list to the acknowledged state and the states after it, short of resolved", async () => {
+      const investigatingId: ObjectID = new ObjectID(
+        "7c0a3f10-0000-4000-8000-0000000000a9",
+      );
+      const states: Array<IncidentState> = makeIncidentStates();
+      const investigating: IncidentState = new IncidentState();
+      investigating._id = investigatingId.toString();
+      investigating.name = "Investigating";
+      investigating.order = 2.5;
+      investigating.isCreatedState = false;
+      investigating.isAcknowledgedState = false;
+      investigating.isResolvedState = false;
+      mockProjectStates({ incidentStates: [...states, investigating] });
+
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { stateFilter: "acknowledged" },
+      });
+      setDashboardWidgets([incident.widget]);
+
+      await callRoute({
+        resourceType: "incident",
+        body: {
+          componentId: incident.componentId.toString(),
+          query: { currentIncidentState: { isAcknowledgedState: false } },
+        },
+      });
+
+      const query: JSONObject = getFindByArgs(IncidentService)[
+        "query"
+      ] as JSONObject;
+
+      expect(query["currentIncidentState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentIncidentStateId"]).sort()).toEqual(
+        [
+          INCIDENT_STATE_IDS.acknowledged.toString(),
+          investigatingId.toString(),
+        ].sort(),
+      );
+      expect(query["projectId"]).toBe(projectId);
+    });
+
+    it("keeps an Acknowledged alert list within the states the list names", async () => {
+      const alert: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.AlertList,
+        argumentsObject: {
+          stateFilter: "acknowledged",
+          stateIds: [
+            ALERT_STATE_IDS.created.toString(),
+            ALERT_STATE_IDS.acknowledged.toString(),
+            ALERT_STATE_IDS.resolved.toString(),
+          ],
+        },
+      });
+      setDashboardWidgets([alert.widget]);
+
+      await callRoute({
+        resourceType: "alert",
+        body: { componentId: alert.componentId.toString() },
+      });
+
+      const query: JSONObject = getFindByArgs(AlertService)[
+        "query"
+      ] as JSONObject;
+
+      expect(query["currentAlertState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentAlertStateId"])).toEqual([
+        ALERT_STATE_IDS.acknowledged.toString(),
+      ]);
     });
 
     it("takes kind from the selected widget policy, not from the caller", async () => {
@@ -907,6 +1030,46 @@ describe("DashboardAPI public resource-list", () => {
         "query"
       ] as JSONObject;
       expect(query["kind"]).toBe("Pod");
+    });
+
+    it("pins a storage array hardware widget to its three kinds, whatever the caller asks", async () => {
+      const hardware: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.StorageArrayHardwareList,
+      });
+      setDashboardWidgets([hardware.widget]);
+
+      await callRoute({
+        resourceType: "storage-array-resource",
+        body: {
+          componentId: hardware.componentId.toString(),
+          query: { kind: "Volume", status: "ok" },
+        },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      const query: JSONObject = getFindByArgs(StorageArrayResourceService)[
+        "query"
+      ] as JSONObject;
+      expect(query["kind"]).toEqual(
+        new Includes(["Hardware", "Drive", "Controller"]),
+      );
+      expect(query["status"]).toBeUndefined();
+      expect(query["projectId"]).toBe(projectId);
+    });
+
+    it("never serves storage array inventory from a dashboard without a storage array widget", async () => {
+      const monitor: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.MonitorList,
+      });
+      setDashboardWidgets([monitor.widget]);
+
+      await callRoute({
+        resourceType: "storage-array-resource",
+        body: { componentId: monitor.componentId.toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingListed();
     });
 
     describe("published monitor label variable selections", () => {
@@ -955,11 +1118,15 @@ describe("DashboardAPI public resource-list", () => {
         });
         expect(findBy["limit"]).toBe(6);
         expect(findBy["sort"]).toEqual({ name: SortOrder.Ascending });
+        /*
+         * The status's place in the project's list is read too: a viewer
+         * may sort the list worst first by it (issue #5082).
+         */
         expect(findBy["select"]).toEqual({
           _id: true,
           name: true,
           monitorType: true,
-          currentMonitorStatus: { name: true, color: true },
+          currentMonitorStatus: { name: true, color: true, priority: true },
         });
       });
 
@@ -1119,6 +1286,7 @@ describe("DashboardAPI public resource-list", () => {
         select: {},
         sort: {},
         limit: 1,
+        sortChoice: null,
       };
       jest
         .spyOn(PublicDashboardResourceListPolicy, "build")
@@ -1145,6 +1313,7 @@ describe("DashboardAPI public resource-list", () => {
         select: { time: true },
         sort: { time: SortOrder.Descending },
         limit: 7,
+        sortChoice: null,
       };
       jest
         .spyOn(PublicDashboardResourceListPolicy, "build")
@@ -1244,6 +1413,194 @@ describe("DashboardAPI public resource-list", () => {
       });
 
       expect(getThrownError()).toBeInstanceOf(NotFoundException);
+      expectNothingListed();
+    });
+  });
+
+  /*
+   * Issue #4571. A config is stored as it was sent, and the API reference
+   * documented it inside `{"_type": "DashboardViewConfig", "value": {...}}`.
+   * The public page now draws such a dashboard's widgets
+   * (StoredDashboardViewConfig), so the route that serves a widget's rows
+   * has to find the widget there too - and find it by the id the page draws
+   * it under, which is derived when the widget was stored without one or
+   * with one an earlier widget already has.
+   */
+  describe("a dashboard stored in another shape (issue #4571)", () => {
+    // The id the visitor's page asks with: what /view-config serves, read.
+    const pageIdsFor: (stored: unknown) => Array<string> = (
+      stored: unknown,
+    ): Array<string> => {
+      return StoredDashboardViewConfig.read(
+        PublicDashboardViewConfig.sanitize(stored as DashboardViewConfig),
+      ).components.map((component: { componentId: ObjectID }) => {
+        return component.componentId.toString();
+      });
+    };
+
+    const listedLimit: () => unknown = (): unknown => {
+      return getFindByArgs(IncidentService)["limit"];
+    };
+
+    it.each([
+      [
+        "the DashboardViewConfig envelope",
+        (components: Array<JSONObject>): unknown => {
+          return {
+            _type: "DashboardViewConfig",
+            value: { components },
+          };
+        },
+      ],
+      [
+        "JSON text",
+        (components: Array<JSONObject>): unknown => {
+          return JSON.stringify({ components });
+        },
+      ],
+      [
+        "a widget in the DashboardComponent envelope",
+        (components: Array<JSONObject>): unknown => {
+          return {
+            components: components.map((component: JSONObject) => {
+              return { _type: "DashboardComponent", value: component };
+            }),
+          };
+        },
+      ],
+    ])(
+      "serves the widget of a config stored as %s",
+      async (
+        _name: string,
+        storeAs: (components: Array<JSONObject>) => unknown,
+      ) => {
+        const incident: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.IncidentList,
+          argumentsObject: { maxRows: 7 },
+          storedIdShape: "string",
+        });
+        dashboard.dashboardViewConfig = storeAs([
+          incident.widget,
+        ]) as DashboardViewConfig;
+
+        await callRoute({
+          resourceType: "incident",
+          body: { componentId: incident.componentId.toString() },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(listedLimit()).toBe(7);
+        expect(
+          (getFindByArgs(IncidentService)["query"] as JSONObject)["projectId"],
+        ).toBe(projectId);
+      },
+    );
+
+    it("serves a widget stored without an id by the id the page draws it under", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 5 },
+      });
+      delete incident.widget["componentId"];
+      setDashboardWidgets([incident.widget]);
+
+      const [pageId] = pageIdsFor(dashboard.dashboardViewConfig);
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: pageId },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(listedLimit()).toBe(5);
+    });
+
+    it("serves a widget stored with spaces around its id by the trimmed id the page asks with", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 6 },
+      });
+      incident.widget["componentId"] = `  ${incident.componentId.toString()}  `;
+      setDashboardWidgets([incident.widget]);
+
+      const [pageId] = pageIdsFor(dashboard.dashboardViewConfig);
+      expect(pageId).toBe(incident.componentId.toString());
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: pageId },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(listedLimit()).toBe(6);
+    });
+
+    it("still refuses an id no widget is drawn under", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+      });
+      delete incident.widget["componentId"];
+      setDashboardWidgets([incident.widget]);
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: ObjectID.generate().toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingListed();
+    });
+
+    it("answers two widgets that were stored with the same id each from its own settings", async () => {
+      const sharedId: ObjectID = ObjectID.generate();
+      const first: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 7 },
+        componentId: sharedId,
+      });
+      const second: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 11 },
+        componentId: sharedId,
+      });
+      setDashboardWidgets([first.widget, second.widget]);
+
+      const [firstPageId, secondPageId] = pageIdsFor(
+        dashboard.dashboardViewConfig,
+      );
+      expect(firstPageId).toBe(sharedId.toString());
+      expect(secondPageId).not.toBe(sharedId.toString());
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: firstPageId },
+      });
+      expect(listedLimit()).toBe(7);
+
+      jest.clearAllMocks();
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: secondPageId },
+      });
+      expect(listedLimit()).toBe(11);
+    });
+
+    it("never serves a Data Source widget hidden in the envelope", async () => {
+      const dataSourceTable: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.DataSourceTable,
+      });
+      dashboard.dashboardViewConfig = {
+        _type: "DashboardViewConfig",
+        value: { components: [dataSourceTable.widget] },
+      } as unknown as DashboardViewConfig;
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: dataSourceTable.componentId.toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
       expectNothingListed();
     });
   });

@@ -1,6 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
 import DeviceStatusHero from "../../../Components/NetworkDevice/DeviceStatusHero";
-import { HOSTNAME_FIELD_DESCRIPTION } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInterfacesPreview";
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
 import DeviceMonitorLookupUtil, {
@@ -10,18 +9,25 @@ import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitors
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
-import { getMacAddressFormField } from "../MacAddressFormField";
+import {
+  DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
+  DEVICE_NAME_SOURCE_FIELD_TITLE,
+  getDeviceNameSourceLabel,
+} from "../../../Components/NetworkDevice/DeviceNameSourceDisplay";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import { isDifferentText } from "../../../Components/NetworkDevice/DeviceDetailText";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Label from "Common/Models/DatabaseModels/Label";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -32,16 +38,24 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Device Overview — the "is it OK, and what is it?" page. Health hero on
  * top, then identity and inventory, an interfaces digest, and the monitors
  * watching the device. Deep data lives on its own sub-pages (Interfaces,
  * Metrics, Traffic, Monitors), and SNMP credentials live in Settings.
+ *
+ * The device's details are read here and edited in one place: the Device
+ * Settings card on its Settings page, which the "Edit in Settings" link
+ * opens. Its name, description, address and site used to be edited here
+ * too, in a wizard of their own.
  */
 const NetworkDeviceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
@@ -84,82 +98,40 @@ const NetworkDeviceView: FunctionComponent<
 
   return (
     <Fragment>
-      <DeviceVendorTemplateBanner modelId={modelId} />
+      {/*
+       * The device's health first: it is what the page is opened for. The
+       * offer of its vendor's health checks, while it would add any, comes
+       * after it rather than above it on every visit.
+       */}
       <DeviceStatusHero modelId={modelId} />
+      <DeviceVendorTemplateBanner modelId={modelId} />
       <CardModelDetail<NetworkDevice>
         name="Network Device Details"
         cardProps={{
           title: "Device Details",
           description:
-            "Name, address, and organization for this device. SNMP credentials are managed in Settings.",
+            "What this device is called, where it is, and the address its probe reaches it at.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "core-switch-01",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Core switch in the US East datacenter",
-          },
-          {
-            field: {
-              hostname: true,
-            },
-            title: "Hostname",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "10.0.0.1 or switch-01.example.com",
-            description: HOSTNAME_FIELD_DESCRIPTION,
-          },
-          getMacAddressFormField(),
-          {
-            field: {
-              site: true,
-            },
-            title: "Site",
-            description:
-              "The network site this device belongs to. Site health rolls up from its devices.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Site (optional)",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description: "Organize and filter devices with labels.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           modelType: NetworkDevice,
           id: "network-device-details",
           modelId: modelId,
+          /*
+           * The name discovery gave the device: the Name Source row below is
+           * shown only while the device is still called exactly that.
+           */
+          selectMoreFields: {
+            discoveredName: true,
+          },
           fields: [
             {
               field: {
@@ -167,6 +139,34 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "Name",
               fieldType: FieldType.Text,
+            },
+            /*
+             * Where the name came from, while a discovery scan's name is
+             * still the device's name (OneUptime issue #4518). A later scan
+             * that finds a better name renames such a device, and a device
+             * that can rename itself has to say so before it does. Hidden for
+             * a device a person named, one made by hand, and one imported
+             * before #4518 - which is most of them.
+             */
+            {
+              field: {
+                discoveredNameSource: true,
+              },
+              title: DEVICE_NAME_SOURCE_FIELD_TITLE,
+              description: DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
+              fieldType: FieldType.Element,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(getDeviceNameSourceLabel(item));
+              },
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <span>
+                    {translator.translateText(
+                      getDeviceNameSourceLabel(item) || "",
+                    )}
+                  </span>
+                );
+              },
             },
             {
               field: {
@@ -224,7 +224,9 @@ const NetworkDeviceView: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">No site assigned</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
                   );
                 }
                 return <span>{item.site.name}</span>;
@@ -236,8 +238,12 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "System Name (sysName)",
               fieldType: FieldType.Text,
+              /*
+               * Only when it says something the Name does not: a device
+               * named after its SNMP name showed the same word twice.
+               */
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.sysName);
+                return isDifferentText(item.sysName, item.name);
               },
             },
             {
@@ -246,8 +252,13 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "System Description (sysDescr)",
               fieldType: FieldType.Text,
+              /*
+               * Only when it differs from the Description: a discovery import
+               * fills the description from it, so the two used to stand one
+               * under the other, word for word.
+               */
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.sysDescr);
+                return isDifferentText(item.sysDescr, item.description);
               },
             },
             {

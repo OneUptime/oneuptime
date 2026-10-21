@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceLink";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -11,8 +11,6 @@ import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
-import Query from "../Types/Database/Query";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 // Both spellings of each end, for the same reason RelationIdUtil exists.
 const FROM_DEVICE_KEYS: Array<string> = ["fromDeviceId", "fromDevice"];
@@ -110,30 +108,9 @@ const assertNoSqlExpression: (
   }
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
-  }
-
-  /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so reading the raw client query as root would hand the hook rows from
-   * other projects. Re-apply the caller's tenant here. (Same helper as
-   * NetworkDeviceService and NetworkSiteService — private per service,
-   * which is the shape the codebase already settled on.)
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 
   /*
@@ -150,6 +127,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -161,13 +140,19 @@ export class Service extends DatabaseService<Model> {
       ...PARENT_DEVICE_KEYS,
     ]);
 
-    const fromDeviceId: ObjectID | null = RelationIdUtil.read(
+    /*
+     * Each end, and the parent below, under either of its names: the two
+     * must agree, so the devices checked are the devices linked.
+     */
+    const fromDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       FROM_DEVICE_KEYS,
+      "From Device",
     );
-    const toDeviceId: ObjectID | null = RelationIdUtil.read(
+    const toDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       TO_DEVICE_KEYS,
+      "To Device",
     );
 
     if (!fromDeviceId || !toDeviceId) {
@@ -200,7 +185,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     assertParentIsAnEnd(
-      RelationIdUtil.read(data, PARENT_DEVICE_KEYS),
+      RelationIdUtil.readConsistent(data, PARENT_DEVICE_KEYS, "Parent Device"),
       fromDeviceId,
       toDeviceId,
     );
@@ -238,6 +223,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data ||
       {}) as unknown as Record<string, unknown>;
 
@@ -253,18 +240,18 @@ export class Service extends DatabaseService<Model> {
 
     assertNoSqlExpression(data, hierarchyKeys);
 
-    const writtenFromDeviceId: ObjectID | null = RelationIdUtil.read(
+    const writtenFromDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       FROM_DEVICE_KEYS,
+      "From Device",
     );
-    const writtenToDeviceId: ObjectID | null = RelationIdUtil.read(
+    const writtenToDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       TO_DEVICE_KEYS,
+      "To Device",
     );
-    const writtenParentDeviceId: ObjectID | null = RelationIdUtil.read(
-      data,
-      PARENT_DEVICE_KEYS,
-    );
+    const writtenParentDeviceId: ObjectID | null =
+      RelationIdUtil.readConsistent(data, PARENT_DEVICE_KEYS, "Parent Device");
 
     /*
      * Writing the parent key with an empty value is how a hierarchy is
@@ -277,21 +264,16 @@ export class Service extends DatabaseService<Model> {
     const isParentWritten: boolean =
       writtenKeys(data, PARENT_DEVICE_KEYS).length > 0;
 
-    const existingLinks: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const existingLinks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         fromDeviceId: true,
         toDeviceId: true,
         parentDeviceId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     /*
      * An end that MOVED has to be re-checked for tenancy, exactly as

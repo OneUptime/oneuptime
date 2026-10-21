@@ -49,5 +49,44 @@ if [ -z "$MONITOR_ID" ]; then
     exit 1
 fi
 
+# The state an alert was created in, as the API reads it back.
+current_state_of() {
+    curl -s -X POST "${ONEUPTIME_URL}/api/alert/$1/get-item" \
+        -H "Content-Type: application/json" \
+        -H "Apikey: $TF_VAR_api_key" \
+        -H "projectid: $TF_VAR_project_id" \
+        -d '{"select": {"_id": true, "currentAlertStateId": true}}' |
+        jq -r '.currentAlertStateId | if type == "object" then .value else . end // empty'
+}
+
+INITIAL_STATE_ID=$(terraform output -raw initial_state_alert_id 2>/dev/null || echo "")
+INITIAL_STATE_OUTPUT=$(terraform output -raw initial_state_alert_current_state 2>/dev/null || echo "")
+
+if [ -z "$INITIAL_STATE_ID" ]; then
+    echo "ERROR: Alert with an initial state not created"
+    exit 1
+fi
+
+# Created with current_alert_state_id: it starts in that state.
+INITIAL_STATE_API=$(current_state_of "$INITIAL_STATE_ID")
+if [ "$INITIAL_STATE_API" != "$STATE_ID" ]; then
+    echo "ERROR: Alert created with current_alert_state_id = $STATE_ID is in state '$INITIAL_STATE_API'"
+    exit 1
+fi
+echo "Alert created in the state it named: $INITIAL_STATE_API"
+
+if [ "$INITIAL_STATE_OUTPUT" != "$STATE_ID" ]; then
+    echo "ERROR: Terraform holds current_alert_state_id '$INITIAL_STATE_OUTPUT', expected '$STATE_ID'"
+    exit 1
+fi
+
+# Created without one: it starts in the project's created state, not that one.
+BASIC_STATE_API=$(current_state_of "$BASIC_ID")
+if [ -z "$BASIC_STATE_API" ] || [ "$BASIC_STATE_API" = "$STATE_ID" ]; then
+    echo "ERROR: Alert created without a state is in state '$BASIC_STATE_API'"
+    exit 1
+fi
+echo "Alert created without a state is in the project's created state: $BASIC_STATE_API"
+
 echo ""
 echo "=== Alert CRUD Test PASSED ==="

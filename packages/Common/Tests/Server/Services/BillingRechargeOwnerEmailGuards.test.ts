@@ -3,6 +3,9 @@ import BillingService from "../../../Server/Services/BillingService";
 import NotificationService from "../../../Server/Services/NotificationService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import logger from "../../../Server/Utils/Logger";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -149,6 +152,8 @@ let generateInvoiceSpy: jest.SpyInstance;
 let smsSlackSpy: jest.SpyInstance;
 let aiSlackSpy: jest.SpyInstance;
 let claimWindowSpy: jest.SpyInstance;
+let atomicAddSpy: jest.SpyInstance;
+let smsCreditSpy: jest.SpyInstance;
 
 /* The `data` object of the nth ProjectService.updateOneById call. */
 type GetUpdateDataFunction = (index: number) => Record<string, unknown>;
@@ -217,6 +222,29 @@ beforeEach(() => {
   claimWindowSpy = jest
     .spyOn(GlobalCache, "setStringIfNotExists")
     .mockResolvedValue(true);
+
+  /*
+   * AI credits are added in one statement (the balance is not read and
+   * written back), under the recharge lock, and a success ends Auto
+   * Recharge's wait after a failure. None of that is under test here.
+   */
+  atomicAddSpy = jest
+    .spyOn(ProjectService, "atomicAddToColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined);
+
+  /*
+   * The SMS and call balance is added the same way: one statement that
+   * answers the balance it left (100 cents, plus the 20 USD).
+   */
+  smsCreditSpy = jest
+    .spyOn(ProjectService, "creditSmsOrCallBalanceInUSDCents")
+    .mockResolvedValue(2100);
+  jest
+    .spyOn(Semaphore, "lock")
+    .mockResolvedValue({} as unknown as SemaphoreMutex);
+  jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
+  jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined);
 
   // The catch blocks log the underlying failure; silenced, not asserted on.
   jest.spyOn(logger, "error").mockImplementation((): void => {});
@@ -291,29 +319,27 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     );
   });
 
-  test("a successful recharge still resets all three owner-email flags", async () => {
+  test("a successful recharge adds the balance, and re-arms all three owner-email flags, in one statement", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: true }),
     );
 
     await NotificationService.rechargeBalance(PROJECT_ID, 20);
 
-    expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
-
-    const data: Record<string, unknown> = getUpdateData(0);
-
-    expect(data["smsOrCallCurrentBalanceInUSDCents"]).toBe(2100);
-
     /*
-     * These resets are correct and deliberately untouched: with the balance
-     * topped up, the three conditions that armed those mails are gone, so the
-     * next genuine failure must be allowed to mail once.
+     * The balance and the flags in one statement
+     * (ProjectService.creditSmsOrCallBalanceInUSDCents, which resets the
+     * three flags: with the balance topped up, the conditions that armed
+     * those mails are gone, so the next genuine failure must be allowed to
+     * mail once). It used to write back the balance read before the
+     * charge, plus the amount, with a separate update.
      */
-    expect(data["failedCallAndSMSBalanceChargeNotificationSentToOwners"]).toBe(
-      false,
-    );
-    expect(data["lowCallAndSMSBalanceNotificationSentToOwners"]).toBe(false);
-    expect(data["notEnabledSmsOrCallNotificationSentToOwners"]).toBe(false);
+    expect(smsCreditSpy).toHaveBeenCalledTimes(1);
+    expect(smsCreditSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 2000,
+    });
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
   });
 
   test("a successful recharge still fires the Slack balance-refill notification", async () => {
@@ -523,9 +549,12 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
 
 describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
   test("a successful AUTO recharge mails project owners zero times", async () => {
-    findOneByIdSpy.mockResolvedValue(
-      makeAiProject({ failedFlagAlreadySet: false }),
-    );
+    const credited: Project = makeAiProject({ failedFlagAlreadySet: false });
+    credited.aiCurrentBalanceInUSDCents = 2100;
+
+    findOneByIdSpy
+      .mockResolvedValueOnce(makeAiProject({ failedFlagAlreadySet: false }))
+      .mockResolvedValueOnce(credited);
 
     const balance: number = await AIBillingService.rechargeBalance(
       PROJECT_ID,
@@ -533,6 +562,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
       { sendOwnerConfirmationEmail: false },
     );
 
+    // The balance as it is once the credits were added.
     expect(balance).toBe(2100);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
@@ -571,14 +601,22 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
 
     await AIBillingService.rechargeBalance(PROJECT_ID, 20);
 
-    expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
-
-    const data: Record<string, unknown> = getUpdateData(0);
-
-    expect(data["aiCurrentBalanceInUSDCents"]).toBe(2100);
-    expect(data["failedAiBalanceChargeNotificationSentToOwners"]).toBe(false);
-    expect(data["lowAiBalanceNotificationSentToOwners"]).toBe(false);
-    expect(data["notEnabledAiNotificationSentToOwners"]).toBe(false);
+    /*
+     * The credits and the flags in one statement: the amount is added to
+     * whatever the balance is now, so the cost of AI calls billed while the
+     * card was charged is not written over.
+     */
+    expect(atomicAddSpy).toHaveBeenCalledTimes(1);
+    expect(atomicAddSpy.mock.calls[0]![0]).toEqual({
+      id: PROJECT_ID,
+      add: { aiCurrentBalanceInUSDCents: 2000 },
+      set: {
+        failedAiBalanceChargeNotificationSentToOwners: false,
+        lowAiBalanceNotificationSentToOwners: false,
+        notEnabledAiNotificationSentToOwners: false,
+      },
+    });
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
 
     expect(aiSlackSpy).toHaveBeenCalledTimes(1);
   });
@@ -752,6 +790,10 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
     "TelegramService.ts",
   ];
 
+  // An update that sets the low-balance flag itself, after reading it.
+  const LOW_BALANCE_FLAG_WRITE: RegExp =
+    /data:\s*\{\s*lowCallAndSMSBalanceNotificationSentToOwners:\s*true/;
+
   test.each(FILE_NAMES)(
     "%s guards every owner email behind a project flag",
     (fileName: string) => {
@@ -765,10 +807,18 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
         "await ProjectService.sendEmailToProjectOwners(",
       );
 
+      /*
+       * The low-balance email is claimed in one statement
+       * (MessagingBalance.shouldTellOwnersBalanceIsLow ->
+       * ProjectService.claimSmsOrCallLowBalanceNotice), so the messages of a
+       * storm that find the balance used up together email the owners once;
+       * it used to be read with the project and written back afterwards,
+       * which every one of them won.
+       */
       const guards: number =
         countOccurrences(
           source,
-          "if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {",
+          "await MessagingBalance.shouldTellOwnersBalanceIsLow({",
         ) +
         countOccurrences(
           source,
@@ -778,6 +828,12 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
       // Every file here has at least one, so a path typo cannot pass as 0 === 0.
       expect(sends).toBeGreaterThan(0);
       expect(guards).toBe(sends);
+
+      // The low-balance flag is never decided by the read alone again.
+      expect(source).not.toContain(
+        "if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {",
+      );
+      expect(source).not.toMatch(LOW_BALANCE_FLAG_WRITE);
     },
   );
 });

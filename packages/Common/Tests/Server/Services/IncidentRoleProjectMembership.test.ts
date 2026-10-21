@@ -17,6 +17,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Incident roles could be given to someone who is not a member of the
@@ -26,11 +35,18 @@ import {
  * so end up commanding an incident they cannot even open.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("project-1");
-const INCIDENT_ID: ObjectID = new ObjectID("incident-1");
-const EPISODE_ID: ObjectID = new ObjectID("episode-1");
-const ROLE_ID: ObjectID = new ObjectID("role-commander");
-const USER_ID: ObjectID = new ObjectID("user-1");
+// Real uuids: the services check every reference, and a malformed id is never the project's.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "3a1f0c52-0000-4000-8000-000000000001",
+);
+const INCIDENT_ID: ObjectID = new ObjectID(
+  "3a1f0c52-0000-4000-8000-0000000000a1",
+);
+const EPISODE_ID: ObjectID = new ObjectID(
+  "3a1f0c52-0000-4000-8000-0000000000e1",
+);
+const ROLE_ID: ObjectID = new ObjectID("3a1f0c52-0000-4000-8000-0000000000c1");
+const USER_ID: ObjectID = new ObjectID("3a1f0c52-0000-4000-8000-0000000000b1");
 
 function incidentMember(): IncidentMember {
   const member: IncidentMember = new IncidentMember();
@@ -58,6 +74,7 @@ describe("incident roles are for project members only", () => {
     jest.spyOn(logger, "debug").mockImplementation((): void => {
       return undefined;
     });
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

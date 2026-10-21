@@ -135,8 +135,11 @@ OneUptime پایش، هشداردهی، پاسخ به حادثه و مشاهده
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **آرایه‌های ذخیره‌سازی** — Pure Storage FlashArray و FlashBlade: ظرفیت، تأخیر، ولوم‌ها، میزبان‌ها، تکثیر، سلامت سخت‌افزار، سیستم‌فایل‌ها و باکت‌ها. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **پایگاه‌های داده** — PostgreSQL، MySQL، Redis، MongoDB و موارد دیگر، شناسایی خودکار از ردیابی‌های برنامه، Kubernetes و Docker، همراه با متریک‌های موتور، نمونه‌های پرس‌وجو و لاگ‌ها از یک عامل collector مبتنی بر پیکربندی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **مناسب برای** | خودمیزبان‌ها و تیم‌های کوچک | تیم‌های تحت مقررات که به پشتیبانی ویژه نیاز دارند |
 | **هزینه** | رایگان و متن‌باز | [تماس با فروش](mailto:sales@oneuptime.com) |
 | **مجوز** | Apache 2.0 | Apache 2.0، به‌علاوه [OneUptime Enterprise License](/ee/LICENSE) برای پوشه `ee/` |
-| **قابلیت‌ها** | همه موارد بخش بالا — پایش، صفحه‌های وضعیت، حوادث، آنکال، لاگ‌ها، ردیابی‌ها، سنجه‌ها، ردیابی خطا، گردش‌کارها و هوش مصنوعی | همه قابلیت‌های نسخه انجمنی + ورود یکپارچه SAML و OIDC، تأمین کاربر SCIM، گزارش‌های ممیزی، انطباق تیم و داشبوردهای سلامت نمونه، همراه با پشتیبانی اولویت‌دار، قابلیت‌های سفارشی و اقامت داده |
+| **قابلیت‌ها** | همه موارد بخش بالا — پایش، صفحه‌های وضعیت، حوادث، آنکال، لاگ‌ها، ردیابی‌ها، سنجه‌ها، ردیابی خطا، گردش‌کارها و هوش مصنوعی — به‌علاوه ورود یکپارچه SAML و OIDC | همه قابلیت‌های نسخه انجمنی + تأمین کاربر SCIM، گزارش‌های ممیزی، انطباق تیم و داشبوردهای سلامت نمونه، همراه با پشتیبانی اولویت‌دار، قابلیت‌های سفارشی و اقامت داده |
 
 قابلیت‌های سازمانی در پوشه [`ee/`](/ee) قرار دارند و فقط در ایمیج سازمانی عرضه می‌شوند. برای مقایسه کامل، [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) را ببینید.
 

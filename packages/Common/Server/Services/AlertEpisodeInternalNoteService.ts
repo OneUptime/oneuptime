@@ -1,10 +1,11 @@
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertEpisodeInternalNote";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
@@ -17,8 +18,18 @@ import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpiso
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import CreateBy from "../Types/Database/CreateBy";
+import OneUptimeDate from "../../Types/Date";
+import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageNote, {
+  SavedChatMessageNoteKind,
+} from "../Utils/Notes/SavedChatMessageNote";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -49,6 +60,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertEpisodeRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -67,41 +80,78 @@ export class Service extends DatabaseService<Model> {
     return { deleteBy, carryForward: null };
   }
 
+  /*
+   * A note posted from Slack or Microsoft Teams - a button's form, or a
+   * message saved with a note emoji - made with the props of the member who
+   * posted it (WorkspaceActionAuthorization.getProjectMemberProps), as the
+   * dashboard makes the note they post there: it needs their permission to
+   * create the note and their read of the alert episode, it is held to the
+   * project's plan, and it is theirs - DatabaseService stamps them as its
+   * creator.
+   *
+   * A message saved as a note keeps who wrote it, in which chat and when
+   * (savedFromChatMessage, SavedChatMessageNote), and is filed at the time it was posted (postedAt).
+   */
   @CaptureSpan()
   public async addNote(data: {
-    userId: ObjectID;
     alertEpisodeId: ObjectID;
     projectId: ObjectID;
     note: string;
-    attachmentFileIds?: Array<ObjectID>;
-    postedFromSlackMessageId?: string;
+    postedFromSlackMessageId?: string | undefined;
+    savedFromChatMessage?: SavedChatMessage | undefined;
+    postedAt?: Date | undefined;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const internalNote: Model = new Model();
-    internalNote.createdByUserId = data.userId;
     internalNote.alertEpisodeId = data.alertEpisodeId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
+
+    if (data.postedAt) {
+      internalNote.postedAt = data.postedAt;
+    }
 
     if (data.postedFromSlackMessageId) {
       internalNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
-      internalNote.attachments = data.attachmentFileIds.map(
-        (fileId: ObjectID) => {
-          const file: File = new File();
-          file.id = fileId;
-          return file;
-        },
-      );
-    }
-
-    return this.create({
-      data: internalNote,
-      props: {
-        isRoot: true,
+    return await SavedChatMessageNote.create({
+      createBy: {
+        data: internalNote,
+        props: data.props,
+      },
+      savedFromChatMessage: data.savedFromChatMessage,
+      create: (createBy: CreateBy<Model>): Promise<Model> => {
+        return this.create(createBy);
       },
     });
+  }
+
+  /*
+   * A note is filed in the timeline at postedAt: when it is written, unless
+   * the create says otherwise (a message saved as a note: when it was
+   * posted).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    if (!createBy.data.postedAt) {
+      createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    return { createBy: createBy, carryForward: null };
+  }
+
+  // Where a message saved as a note came from: no caller may write it.
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+    SavedChatMessageNote.writeHandedOver(onCreate.createBy);
   }
 
   @CaptureSpan()
@@ -144,10 +194,29 @@ export class Service extends DatabaseService<Model> {
     const episodeNumberDisplay: string =
       episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number;
 
-    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+    /*
+     * An episode's private note has no download route, so its files are
+     * listed by name: a link would only lead to "not found".
+     */
+    const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
       createdItem.id!,
-      "/alert-episode-internal-note/attachment",
+      null,
     );
+
+    const episodeLink: string = (
+      await AlertEpisodeService.getEpisodeLinkInDashboard(
+        createdItem.projectId!,
+        alertEpisodeId,
+      )
+    ).toString();
+
+    /*
+     * A message saved as a note: its entry names who wrote it and who saved
+     * it, is filed when the message was posted, and is not posted back into
+     * the channel the message is in.
+     */
+    const saved: SavedChatMessage | null =
+      SavedChatMessageNote.read(createdItem);
 
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
       alertEpisodeId: createdItem.alertEpisodeId!,
@@ -155,13 +224,35 @@ export class Service extends DatabaseService<Model> {
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.PrivateNote,
       displayColor: Blue500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **private note** for this [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, alertEpisodeId)).toString()}):
+      ...(saved
+        ? { postedAt: createdItem.postedAt, savedFromChatMessage: saved }
+        : {}),
+      feedInfoInMarkdown: saved
+        ? SavedChatMessageNote.getFeedMarkdown({
+            saved: saved,
+            noteKind: SavedChatMessageNoteKind.Private,
+            record: mdText`[Episode ${episodeNumberDisplay}](${episodeLink})`,
+            savedByName: await SavedChatMessageNote.getSavedByName({
+              saved: saved,
+              userId: userId,
+            }),
+            note: SavedChatMessageNote.getNoteMarkdown({
+              note: createdItem.note,
+              attachments: attachmentsMarkdown,
+            }),
+          }).toString()
+        : mdText`📄 posted **private note** for this [Episode ${episodeNumberDisplay}](${episodeLink}):
 
-${(createdItem.note || "") + attachmentsMarkdown}
-          `,
+${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+          `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId || undefined,
+        // A saved message's entry names its people itself.
+        notifyUserId: saved ? undefined : userId || undefined,
+        exceptChannel: SavedChatMessageNote.getSourceChannel({
+          saved: saved,
+          messageKey: createdItem.postedFromSlackMessageId,
+        }),
       },
     });
 
@@ -203,10 +294,9 @@ ${(createdItem.note || "") + attachmentsMarkdown}
       for (const updatedItem of updatedItems) {
         const episode: AlertEpisode = updatedItem.alertEpisode!;
 
-        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/alert-episode-internal-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          // No download route: the files are listed by name (see above).
+          await this.getAttachmentsMarkdown(updatedItem.id!, null);
 
         await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
           alertEpisodeId: updatedItem.alertEpisodeId!,
@@ -214,10 +304,11 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           alertEpisodeFeedEventType: AlertEpisodeFeedEventType.PrivateNote,
           displayColor: Blue500,
           userId: userId || undefined,
-          feedInfoInMarkdown: `📄 updated **Private Note** for this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})
+          feedInfoInMarkdown:
+            mdText`📄 updated **Private Note** for this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})
 
-${(updatedItem.note || "") + attachmentsMarkdown}
-          `,
+${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
+          `.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,
@@ -230,15 +321,16 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
 
   private async getAttachmentsMarkdown(
     modelId: ObjectID,
-    attachmentApiPath: string,
-  ): Promise<string> {
+    attachmentApiPath: string | null,
+  ): Promise<MarkdownText> {
     if (!modelId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const noteWithAttachments: Model | null = await this.findOneById({
       id: modelId,
       select: {
+        projectId: true,
         attachments: {
           _id: true,
         },
@@ -249,7 +341,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     });
 
     if (!noteWithAttachments || !noteWithAttachments.attachments) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
@@ -269,11 +361,12 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       });
 
     if (!attachmentIds.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
       modelId,
+      projectId: noteWithAttachments.projectId,
       attachmentIds,
       attachmentApiPath,
     });

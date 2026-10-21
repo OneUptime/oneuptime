@@ -5,8 +5,12 @@ import {
 } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
+import { formatEvidenceLabel } from "../../../Utils/InvestigationEvidenceFormat";
 import ChartWidget from "./ChartWidget";
 import DataTableWidget from "./DataTableWidget";
 import EntityListWidget from "./EntityListWidget";
@@ -57,6 +61,8 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
 }: {
   widget: AIChatWidget;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   // The resource card is self-contained (its own styled surface).
   if (widget.type === AIChatWidgetType.ResourceCard) {
     return renderBody(widget);
@@ -76,9 +82,18 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             <div className="truncate text-xs font-semibold text-gray-900">
               {widget.title}
             </div>
+            {/*
+              A tool dates its widget with the window it read, as ISO
+              instants ("2026-09-14T17:49:05.000Z – ..."): they are drawn
+              as the evidence list draws them, in the reader's own time
+              ("Sep 14, 5:49 PM – 6:04 PM"). The whole text is the title.
+            */}
             {widget.description && (
-              <div className="truncate text-[10px] text-gray-400">
-                {widget.description}
+              <div
+                className="truncate text-[10px] text-gray-400"
+                title={widget.description}
+              >
+                {formatEvidenceLabel(widget.description)}
               </div>
             )}
           </div>
@@ -91,7 +106,7 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             }}
             className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
-            Open
+            {translator.translateText("Open")}
             <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
           </button>
         )}
@@ -112,12 +127,20 @@ const WidgetRenderer: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * Every widget here is a snapshot of what a tool returned, so none of
+   * them follows the time range of the page the chat happens to sit over
+   * (or of the incident an evidence row belongs to). Withdraw whatever zoom
+   * that page offers; a chart widget offers its own, over its own points.
+   */
   return (
-    <div className="space-y-2.5">
-      {props.widgets.map((widget: AIChatWidget) => {
-        return <WidgetCard key={widget.id} widget={widget} />;
-      })}
-    </div>
+    <TimeRangeZoomProvider zoom={null}>
+      <div className="space-y-2.5">
+        {props.widgets.map((widget: AIChatWidget) => {
+          return <WidgetCard key={widget.id} widget={widget} />;
+        })}
+      </div>
+    </TimeRangeZoomProvider>
   );
 };
 

@@ -24,7 +24,9 @@ import WorkspaceMessagePayload, {
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Every note posted to an incident / alert channel starts with its author
  * ("@Jane posted private note ..."). Resolving that name used to be allowed to
@@ -112,7 +114,9 @@ beforeEach((): void => {
 
   userMarkdownSpy = jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("**Jane Doe** (jane@example.com)");
+    .mockResolvedValue(
+      FeedMarkdown.asMarkdown("**Jane Doe** (jane@example.com)"),
+    );
 });
 
 afterEach((): void => {
@@ -285,6 +289,79 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
     expect(textFor(blocks, WorkspaceType.Slack)).toBe("@jane posted a note");
   });
 
+  /*
+   * A chat display name is the user's own to set, and it heads a Markdown
+   * message: it is escaped there, so it reads as typed and cannot become a
+   * link, an image, HTML or a mention of somebody else.
+   */
+  test("a linked Teams display name heads the message as plain text", async () => {
+    mockUserAuths({
+      [WorkspaceType.MicrosoftTeams]: userAuth({
+        workspaceUserId: "aad-1",
+        miscData: {
+          displayName:
+            "[Jane](https://evil.example) ![](https://tracker.example/p.png) <!channel>",
+        },
+      }),
+    });
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      `@\\[Jane\\](https://evil.example) !\\[\\](https://tracker.example/p.png) \\<${WORD_JOINER}!channel> posted a note`,
+    );
+  });
+
+  test("a linked Slack name heads the message as plain text, and Slack reads no mention in it", async () => {
+    mockUserAuths({
+      [WorkspaceType.Slack]: userAuth({ workspaceUserId: "U123" }),
+    });
+    jest
+      .spyOn(SlackUtil, "getUsernameFromUserId")
+      .mockResolvedValue("jane <!here> <@U0999ABC>");
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    const text: string = textFor(blocks, WorkspaceType.Slack);
+
+    expect(text).toBe(
+      `@jane \\<${WORD_JOINER}!here> \\<${WORD_JOINER}@U0999ABC> posted a note`,
+    );
+    expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
+      /<[!@#]/,
+    );
+  });
+
+  test("an ordinary chat name reads exactly as typed", async () => {
+    mockUserAuths({
+      [WorkspaceType.MicrosoftTeams]: userAuth({
+        workspaceUserId: "aad-1",
+        miscData: { displayName: "Jane O'Neil (SRE) - EU #2" },
+      }),
+    });
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      "@Jane O'Neil (SRE) - EU #2 posted a note",
+    );
+  });
+
   test('REGRESSION: an unresolvable Slack name is never written as "@null"', async () => {
     mockUserAuths({
       [WorkspaceType.Slack]: userAuth({ workspaceUserId: "U123" }),
@@ -379,7 +456,7 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
   });
 
   test("an empty OneUptime name adds no stray space", async () => {
-    userMarkdownSpy.mockResolvedValue("");
+    userMarkdownSpy.mockResolvedValue(FeedMarkdown.asMarkdown(""));
 
     const blocks: Array<MessageBlocksByWorkspaceType> =
       await WorkspaceUtil.getMessageBlocksByMarkdown({

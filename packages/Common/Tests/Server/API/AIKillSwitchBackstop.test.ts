@@ -374,7 +374,7 @@ describe("the shape of the backstop's project read", () => {
     });
 
     await expect(execute(INTERACTIVE_FEATURE)).rejects.toThrow(
-      /Insufficient AI balance/,
+      /This project's AI credits are used up\./,
     );
     expect(getCompletion).not.toHaveBeenCalled();
     expect(createLlmLog).toHaveBeenCalledTimes(1);
@@ -506,6 +506,26 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   },
   { file: "Common/Server/Utils/AI/SRE/ConfidenceSignal.ts", delivery: "skip" },
   { file: "Common/Server/Utils/AI/SRE/InvestigationTldr.ts", delivery: "skip" },
+  /*
+   * Picking which of a postmortem rule's templates an automatic draft
+   * follows: the draft is gated on the switch before it starts
+   * (IncidentPostmortemRunner.isEnabledForProject), and a refusal here takes
+   * the rule's first template rather than failing the draft.
+   */
+  {
+    file: "Common/Server/Utils/AI/SRE/PostmortemTemplatePick.ts",
+    delivery: "skip",
+  },
+  /*
+   * Reading an incident call's transcript runs in the background: start()
+   * checks the switch first and stores "Skipped" with the sentence that
+   * says where to turn it on, and a refusal while it reads is stored on the
+   * call as the reason it failed, for the people on the incident to read.
+   */
+  {
+    file: "Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts",
+    delivery: "post",
+  },
   { file: "Common/Server/API/IncidentAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/IncidentEpisodeAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/AlertAPI.ts", delivery: "throw" },

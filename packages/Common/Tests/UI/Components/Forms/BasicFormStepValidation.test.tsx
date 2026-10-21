@@ -117,12 +117,15 @@ function renderWizard(): RenderWizardResult {
 }
 
 /*
- * The button's LABEL is "Next" until the last step, but its test id is always
- * the submitButtonText it was given — see BasicForm's Button props. Reading it
- * by test id therefore works on every step.
+ * The one button the step offers: a plain Next (test id form-next-button) on
+ * every step but the last, and the form's action (test id = the
+ * submitButtonText it was given) on the last step only.
  */
 function stepButton(): HTMLElement {
-  return screen.getByTestId(SUBMIT_BUTTON_TEXT);
+  return (
+    screen.queryByTestId("form-next-button") ||
+    screen.getByTestId(SUBMIT_BUTTON_TEXT)
+  );
 }
 
 function errorMessages(): Array<string> {

@@ -43,6 +43,23 @@ export interface MicrosoftTeamsChat {
    * shipped.
    */
   memberAadObjectIds?: Array<string> | undefined;
+  /*
+   * The chat's name in Teams (Graph's "topic"), as last read. `name` is built
+   * from it; it is kept separately so a lookup that fails later can keep the
+   * chat's real name instead of falling back to member names. Absent when the
+   * chat has no name, or its name has never been readable.
+   */
+  topic?: string | undefined;
+  /*
+   * The first few human members' display names — only what a chat named
+   * after its members shows — and how many members have a name. Kept so the
+   * name can be rebuilt when a group chat's Teams name is removed, without a
+   * roster call. miscData is readable by every project Viewer, so the full
+   * roster is deliberately not stored. Absent on records captured before this
+   * shipped (a group chat without memberCount is re-captured once).
+   */
+  memberNames?: Array<string> | undefined;
+  memberCount?: number | undefined;
 }
 
 /*

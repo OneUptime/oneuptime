@@ -30,6 +30,13 @@ import PermissionGate, {
 import ProbeUtil from "../../Utils/Probe";
 import { provisionPingMonitorForDevice } from "./PingMonitorProvisioning";
 import PingMonitorSeedIds from "./PingMonitorSeedIds";
+import {
+  ActiveMonitorLimitAlert,
+  readActiveMonitorLimitIfReached,
+} from "../Monitor/ActiveMonitorLimitNotice";
+import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The fleet-wide half of "a monitor-backed device with nothing bound reads
@@ -74,13 +81,16 @@ type CreatePingMonitorsFormData = {
  * the totals stop adding up. "Skipped" in the failed list is the one report
  * that names the device, says nothing happened, and says why.
  */
-export const SKIPPED_SNMP_DEVICE_MESSAGE: string =
-  "Skipped: this device is probe-polled, so it does not use a bound monitor.";
+export const SKIPPED_SNMP_DEVICE_MESSAGE: string = translationKey(
+  "Skipped: this device is probe-polled, so it does not use a bound monitor.",
+);
 
-export const SKIPPED_ALREADY_BOUND_MESSAGE: string =
-  "Skipped: a monitor is already bound to this device.";
+export const SKIPPED_ALREADY_BOUND_MESSAGE: string = translationKey(
+  "Skipped: a monitor is already bound to this device.",
+);
 
 function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<NetworkDevice> | null>(null);
@@ -95,6 +105,15 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
    * id comment in createPingMonitors.
    */
   const [startupError, setStartupError] = useState<string | null>(null);
+
+  /*
+   * The plan's limit on active monitors, when the project has no room for
+   * any: the other project-level reason the action does not start, said
+   * with the limit's own notice (which limit, how many, what to do, and the
+   * plan a click away).
+   */
+  const [limitReached, setLimitReached] =
+    useState<ActiveMonitorLimitStatus | null>(null);
 
   /*
    * Which open of the modal a probe response belongs to. The modal is
@@ -180,7 +199,9 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
 
     if (!device) {
       throw new BadDataException(
-        "This device could not be read. It may have been deleted since the list was loaded.",
+        translationKey(
+          "This device could not be read. It may have been deleted since the list was loaded.",
+        ),
       );
     }
 
@@ -245,6 +266,22 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
      * scrolled past. onBulkActionStart is deliberately not called before
      * this resolves, so the table's progress modal never opens on nothing.
      */
+    /*
+     * A project with no room under its plan's limit on active monitors can
+     * get no Ping monitor at all - a reason about the project, so it is said
+     * once, in its own modal, and the action never starts. With some room
+     * left the action runs, and the creates past it are refused one by one,
+     * in the server's words (ActiveMonitorLimit).
+     */
+    const limitStatus: ActiveMonitorLimitStatus | null =
+      await readActiveMonitorLimitIfReached();
+
+    if (limitStatus) {
+      setLimitReached(limitStatus);
+      setBulkActionProps(null);
+      return;
+    }
+
     let seedIds: MonitorCriteriaSeedIds;
 
     try {
@@ -275,15 +312,19 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 
@@ -408,9 +449,14 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
     setBulkActionProps(null);
   };
 
+  // English keys: the form looks the description up.
   const probeFieldDescription: string = didProbeLoadFail
-    ? "Optional. The project's probes could not be loaded just now, so the monitors will use the project's default probes. A probe has to be able to reach the device's network — a global probe on the public internet cannot ping a private address — so if these devices are on an internal network, create the monitors from a device's page once a probe deployed there can be picked, or change the probes on each monitor afterwards."
-    : "Optional. Leave it empty to use the project's default probes. A probe has to be able to reach the device's network: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.";
+    ? translationKey(
+        "Your probes could not be loaded, so the monitors use the default probes. You can change them on each monitor.",
+      )
+    : translationKey(
+        "Leave it empty to use the default probes. Devices on a private network need a probe on that network.",
+      );
 
   const modals: ReactElement = (
     <>
@@ -424,7 +470,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
            * the device reading Up straight after this is the monitor's
            * starting status, not a verdict.
            */
-          description="Creates a Ping monitor on each selected bound-monitor device's hostname and binds it to the device, so the monitor's status becomes the device's status. Devices that already have a monitor bound are skipped, and so are probe-polled devices — their probe pings them already. Each monitor counts towards the plan's monitor limit. Incidents are off on these monitors by default, so they move the device's status without paging anyone; turn them on per monitor if you want that."
+          description="Creates a Ping monitor for each selected device with none bound, skipping probe-polled devices. Incidents are off; each counts towards your plan."
           isLoading={isLoadingProbes}
           onClose={closeModal}
           submitButtonText="Create Ping Monitors"
@@ -473,13 +519,25 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
       {startupError && (
         <Modal
           title="Ping Monitors Could Not Be Created"
-          description="Nothing was created or changed. This is a project setting rather than a problem with any of the selected devices, so it is reported once instead of against every device."
+          description="Nothing was created or changed."
           onClose={(): void => {
             setStartupError(null);
           }}
           closeButtonText="Close"
         >
           <ErrorMessage message={startupError} />
+        </Modal>
+      )}
+      {limitReached && (
+        <Modal
+          title="Ping Monitors Could Not Be Created"
+          description="Nothing was created or changed."
+          onClose={(): void => {
+            setLimitReached(null);
+          }}
+          closeButtonText="Close"
+        >
+          <ActiveMonitorLimitAlert status={limitReached} />
         </Modal>
       )}
     </>

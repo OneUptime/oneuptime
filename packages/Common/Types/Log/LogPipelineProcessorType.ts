@@ -1,5 +1,6 @@
 enum LogPipelineProcessorType {
   GrokParser = "GrokParser",
+  KeyValueParser = "KeyValueParser",
   AttributeRemapper = "AttributeRemapper",
   SeverityRemapper = "SeverityRemapper",
   CategoryProcessor = "CategoryProcessor",
@@ -9,6 +10,25 @@ export interface GrokParserConfig {
   source: string; // field to parse, e.g. "body"
   pattern: string; // grok pattern
   targetPrefix?: string; // prefix for extracted attributes
+}
+
+/*
+ * Splits a line of key=value pairs (Sophos XGS, Fortinet, logfmt) into
+ * attributes, whatever order the fields arrive in. Parsing rules live in
+ * Common/Utils/Log/KeyValueParser.ts.
+ */
+export interface KeyValueParserConfig {
+  source: string; // field to parse, e.g. "body"
+  targetPrefix?: string; // prefix for extracted attributes, e.g. "sophos"
+  pairDelimiter?: string; // separates pairs (default: any whitespace)
+  keyValueDelimiter?: string; // separates a key from its value (default "=")
+  /*
+   * Overwrite an attribute that already exists under the same key
+   * (default false). Off by default because the keys come from the log
+   * line itself - whoever can send a line could otherwise replace the
+   * attributes ingest set, such as the device or service it came from.
+   */
+  overrideOnConflict?: boolean;
 }
 
 export interface AttributeRemapperConfig {
@@ -37,6 +57,7 @@ export interface CategoryProcessorConfig {
 
 export type LogPipelineProcessorConfig =
   | GrokParserConfig
+  | KeyValueParserConfig
   | AttributeRemapperConfig
   | SeverityRemapperConfig
   | CategoryProcessorConfig;

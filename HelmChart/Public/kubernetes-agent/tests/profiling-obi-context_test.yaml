@@ -1,0 +1,40 @@
+# The profiler links CPU samples to spans by reading OBI's trace context
+# (obi_process_ctx), and since OBI v0.14 the eBPF DaemonSet has to ask OBI to
+# keep that context filled (OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT). Both sides
+# must agree. A values file that predates profiling.obiProcessContext — an
+# upgrade with --reuse-values — has no such key; it used to render
+# `obi_process_ctx:` with nothing after it, which the profiler reads as off,
+# while the DaemonSet treats the missing key as its default, true.
+suite: the profiler and OBI agree on trace-context correlation
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-profiling.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+  profiling.enabled: true
+tests:
+  - it: reads OBI's trace context by default
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "\\n\\s*obi_process_ctx: true\\n"
+
+  - it: reads it when a values file has no obiProcessContext, as the DaemonSet assumes
+    set:
+      profiling.obiProcessContext: null
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "\\n\\s*obi_process_ctx: true\\n"
+
+  - it: does not when asked not to
+    set:
+      profiling.obiProcessContext: false
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "\\n\\s*obi_process_ctx: false\\n"

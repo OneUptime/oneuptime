@@ -1,5 +1,7 @@
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { toStoredBoolean } from "Common/Types/Database/BooleanColumnValue";
 import { isOAuth2WorkflowVariable } from "Common/Types/Workflow/WorkflowVariableOAuth";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 
 /**
  * Redaction of workflow-variable secrets out of anything that gets persisted
@@ -49,10 +51,11 @@ type GetSecretWorkflowVariableValuesFunction = (
  * The secret contents of the supplied variables, ready to hand to
  * `redactSecretsFromString`.
  *
- * `isSecret` is declared as a string on the model but arrives as a real
- * boolean from the database, so both are accepted. A variable whose `isSecret`
- * was not selected reads as undefined and is treated as not secret — every
- * caller must therefore select the column.
+ * `isSecret` is read as the database stores it (toStoredBoolean), the same
+ * way WorkflowVariableService reads it, so a literal such as "true" that
+ * reached a variable some other way counts as secret too. A variable whose
+ * `isSecret` was not selected reads as undefined and is treated as not
+ * secret — every caller must therefore select the column.
  *
  * An OAuth 2.0 variable is secret whatever its flag says: its value is a
  * bearer token, and it is the access token (not `content`, which it leaves
@@ -74,9 +77,7 @@ export const getSecretWorkflowVariableValues: GetSecretWorkflowVariableValuesFun
         continue;
       }
 
-      const isSecret: unknown = variable.isSecret;
-
-      if (isSecret === true || isSecret === "true") {
+      if (toStoredBoolean(variable.isSecret) === true) {
         values.push(variable.content);
       }
     }
@@ -98,7 +99,7 @@ export const redactSecretsFromString: RedactSecretsFromStringFunction = (
   }
 
   const escapedSecrets: Array<string> = secrets.map((secret: string) => {
-    return secret.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return escapeRegExp(secret);
   });
 
   /*

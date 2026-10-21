@@ -26,6 +26,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ProxmoxClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<ProxmoxCluster, ProxmoxClusterOwnerRule>
@@ -125,6 +129,7 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     proxmoxCluster: ProxmoxCluster;
     rules: Array<ProxmoxClusterOwnerRule>;
@@ -301,15 +306,17 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
       proxmoxClusterFeedEventType:
         ProxmoxClusterFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
-        proxmoxCluster.projectId,
-        proxmoxCluster.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: ProxmoxClusterOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
+          proxmoxCluster.projectId,
+          proxmoxCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: ProxmoxClusterOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -396,8 +403,7 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
     rule: ProxmoxClusterOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in Proxmox cluster owner rule ${rule.id}: ${pattern}`,

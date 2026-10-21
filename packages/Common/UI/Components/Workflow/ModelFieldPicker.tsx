@@ -1,3 +1,60 @@
+/*
+ * A record step's field list, as chips: Fields to pass on (the On Create and
+ * On Update triggers' and the Find steps' "select") and Fields to watch (the
+ * On Update trigger's "listen-on").
+ *
+ * Both were "Select Fields" and "Listen on": two identical lists of 70-odd
+ * checkboxes stacked in one dialog, each with a counter, a search box and
+ * Select all, under names nobody uses - the maintainer's "very confusing".
+ * Now each shows only what it holds, as chips, says in a line what empty
+ * means, and adds fields from one searchable list grouped the way people
+ * think of a record (AddFieldsPanel). Watching offers only what an update
+ * can change, so a related record is watched by its ID column, the one an
+ * update changes (Types/Workflow/WatchedFields).
+ *
+ * The stored value is the same JSON as before - {"title": true} - and a
+ * value the list cannot show (a field set to something other than true, a
+ * whole related record) is kept as JSON, with the reasons, so a workflow
+ * keeps running unchanged. Anyone can edit it as JSON from here too.
+ */
+
+import CodeEditor from "../CodeEditor/CodeEditor";
+import Icon from "../Icon/Icon";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import AddFieldsPanel from "./FieldPicker/AddFieldsPanel";
+import {
+  ChosenFields,
+  FieldGroup,
+  FieldOption,
+  FieldPickerMode,
+  findFieldOption,
+  getFieldGroups,
+  getFieldOptions,
+  getStoredPaths,
+  readChosenFields,
+  readStoredValue,
+  writeChosenFields,
+} from "./FieldPicker/FieldPickerOptions";
+import { ModelSchemaState, useModelSchema } from "./ModelSchema";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CodeType from "../../../Types/Code/CodeType";
+import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  SELECT_FIELDS_NAME,
+  WATCHED_FIELDS_NAME,
+} from "../../../Types/Workflow/Components/BaseModel";
+import {
+  getDisplayColumn,
+  getWorkflowModel,
+} from "../../../Types/Workflow/Documentation/ModelExamples";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useAfterPress, { AfterPressFunction } from "../../Utils/UseAfterPress";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -6,1227 +63,590 @@ import React, {
   useRef,
   useState,
 } from "react";
-import API from "../../Utils/API/API";
-import { WORKFLOW_URL } from "../../Config";
-import URL from "../../../Types/API/URL";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
-import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import { JSONObject } from "../../../Types/JSON";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import CodeEditor from "../CodeEditor/CodeEditor";
-import CodeType from "../../../Types/Code/CodeType";
-import Icon from "../Icon/Icon";
-import IconProp from "../../../Types/Icon/IconProp";
 
-/*
- * A column descriptor mirrors the shape returned by the workflow
- * /model-schema/:tableName endpoint. Kept loose (the `type` field is just a
- * string for the wire format) so this UI doesn't have to import server-side
- * enums.
- */
-export interface PickerColumn {
-  id: string;
-  title: string;
-  description?: string;
-  type: string;
-  isRelation: boolean;
-  relatedTableName?: string | undefined;
-  relatedColumns?: Array<PickerColumn> | undefined;
-}
+export { FieldPickerMode };
 
-interface SchemaResponse {
-  tableName: string;
-  columns: Array<PickerColumn>;
-}
+export const ModelFieldPickerCopy: {
+  readonly addField: string;
+  readonly chosenFields: string;
+  readonly remove: string;
+  readonly emptyWatch: string;
+  readonly emptyWatchWithCreate: string;
+  readonly emptyPassOn: string;
+  readonly pickAtLeastOne: string;
+  readonly unknownField: string;
+  readonly loading: string;
+  readonly couldNotLoad: string;
+  readonly editAsJson: string;
+  readonly backToList: string;
+  readonly jsonHint: string;
+  readonly keptAsJson: string;
+  readonly keptAsJsonHelp: string;
+  readonly startOver: string;
+} = {
+  addField: translationKey("Add field"),
+  chosenFields: translationKey("Chosen fields"),
+  remove: translationKey("Remove {{field}}"),
+  emptyWatch: translationKey(
+    "Every change to the {{record}} runs this workflow.",
+  ),
+  // On Create or Update, which a create always runs.
+  emptyWatchWithCreate: translationKey(
+    "Every new {{record}}, and every change to one, runs this workflow.",
+  ),
+  emptyPassOn: translationKey("Pick the fields the next steps need."),
+  pickAtLeastOne: translationKey("Pick at least one field."),
+  unknownField: translationKey(
+    "There is no field called “{{key}}”, so the run leaves it out.",
+  ),
+  loading: translationKey("Loading the fields…"),
+  couldNotLoad: translationKey(
+    "Could not load the fields, so they are shown as JSON: {{error}}",
+  ),
+  editAsJson: translationKey("Edit as JSON"),
+  backToList: translationKey("Back to the list"),
+  jsonHint: translationKey(
+    'Keys are the field names, such as "title". The ID is "_id".',
+  ),
+  keptAsJson: translationKey("Kept as JSON"),
+  keptAsJsonHelp: translationKey(
+    "Your workflow keeps running unchanged. Edit the JSON below, or click {{reset}} to pick the fields from the list.",
+  ),
+  startOver: translationKey("Start over"),
+};
 
 export interface ComponentProps {
   tableName: string;
+  // Fields to pass on (the default) or Fields to watch.
+  mode?: FieldPickerMode | undefined;
+  /*
+   * Fields to watch on a trigger a create always runs - On Create or
+   * Update: the list watches updates only, and says so while it is empty.
+   */
+  createAlwaysRuns?: boolean | undefined;
   initialValue?: string | JSONObject | null | undefined;
   onChange: (value: string) => void;
+  onBlur?: (() => void) | undefined;
   error?: string | undefined;
   placeholder?: string | undefined;
   tabIndex?: number | undefined;
+  // The id of the setting's label, which names the chips and the list.
+  ariaLabelledby?: string | undefined;
 }
-
-type ViewMode = "picker" | "json";
-
-interface CompatibilityResult {
-  compatible: boolean;
-  reasons: Array<string>;
-  parsed?: JSONObject | null;
-}
-
-/*
- * normalizeInitialValue turns the raw stored value (which may be a JSON
- * string, an already-parsed object, null, or empty) into a `{ text, parsed }`
- * pair. `parsed` is null when the text doesn't parse as a JSON object.
- */
-const normalizeInitialValue: (
-  value: string | JSONObject | null | undefined,
-) => { text: string; parsed: JSONObject | null } = (
-  value: string | JSONObject | null | undefined,
-): { text: string; parsed: JSONObject | null } => {
-  if (value === null || value === undefined || value === "") {
-    return { text: "", parsed: null };
-  }
-
-  if (typeof value === "string") {
-    try {
-      const parsed: unknown = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return { text: value, parsed: parsed as JSONObject };
-      }
-      return { text: value, parsed: null };
-    } catch {
-      return { text: value, parsed: null };
-    }
-  }
-
-  // Already an object.
-  if (typeof value === "object" && !Array.isArray(value)) {
-    return {
-      text: JSON.stringify(value, null, 2),
-      parsed: value as JSONObject,
-    };
-  }
-
-  return { text: String(value), parsed: null };
-};
-
-/*
- * Decide whether an existing select value can be represented by the picker.
- * Returns a list of human-readable reasons when not — we surface those in a
- * banner so the user understands why we're keeping their JSON as-is.
- */
-const classifyCompatibility: (
-  text: string,
-  parsed: JSONObject | null,
-  columns: Array<PickerColumn>,
-) => CompatibilityResult = (
-  text: string,
-  parsed: JSONObject | null,
-  columns: Array<PickerColumn>,
-): CompatibilityResult => {
-  // Empty value: picker can represent it (as nothing selected).
-  if (text.trim() === "" || parsed === null) {
-    if (text.trim() === "") {
-      return { compatible: true, reasons: [], parsed: {} };
-    }
-    return {
-      compatible: false,
-      reasons: ["The current value isn't valid JSON."],
-      parsed: null,
-    };
-  }
-
-  const reasons: Array<string> = [];
-  const columnsById: { [key: string]: PickerColumn } = {};
-  for (const c of columns) {
-    columnsById[c.id] = c;
-  }
-
-  for (const key of Object.keys(parsed)) {
-    const column: PickerColumn | undefined = columnsById[key];
-
-    if (!column) {
-      reasons.push(`"${key}" isn't a readable field on this model.`);
-      continue;
-    }
-
-    const value: unknown = parsed[key];
-
-    if (column.isRelation) {
-      if (value === true) {
-        /*
-         * The picker requires at least one sub-field for a relation. Hidden in
-         * the picker UI on purpose.
-         */
-        reasons.push(
-          `"${key}" selects the whole relation. The picker requires you to pick specific sub-fields.`,
-        );
-        continue;
-      }
-
-      if (value === null || typeof value !== "object" || Array.isArray(value)) {
-        reasons.push(`"${key}" has an unexpected value.`);
-        continue;
-      }
-
-      const subColumnsById: { [k: string]: PickerColumn } = {};
-      for (const sub of column.relatedColumns || []) {
-        subColumnsById[sub.id] = sub;
-      }
-
-      for (const subKey of Object.keys(value as JSONObject)) {
-        const subValue: unknown = (value as JSONObject)[subKey];
-        const subColumn: PickerColumn | undefined = subColumnsById[subKey];
-
-        if (!subColumn) {
-          reasons.push(
-            `"${key}.${subKey}" isn't a readable field on the related model.`,
-          );
-          continue;
-        }
-
-        if (subColumn.isRelation) {
-          reasons.push(
-            `"${key}.${subKey}" is nested more than one level deep.`,
-          );
-          continue;
-        }
-
-        if (typeof subValue !== "boolean") {
-          if (typeof subValue === "object" && subValue !== null) {
-            reasons.push(
-              `"${key}.${subKey}" is nested more than one level deep.`,
-            );
-          } else {
-            reasons.push(`"${key}.${subKey}" has an unexpected value.`);
-          }
-        }
-      }
-      continue;
-    }
-
-    // Scalar column.
-    if (typeof value !== "boolean") {
-      reasons.push(`"${key}" has an unexpected value.`);
-    }
-  }
-
-  return {
-    compatible: reasons.length === 0,
-    reasons,
-    parsed,
-  };
-};
-
-/*
- * Convert the picker's checkbox state into the JSON object that goes back
- * into the workflow argument. Empty selections collapse to an empty string
- * (rather than "{}") so existing "required" validation continues to work.
- */
-const buildSelectJson: (
-  scalarChecks: Set<string>,
-  relationChecks: { [relation: string]: Set<string> },
-) => string = (
-  scalarChecks: Set<string>,
-  relationChecks: { [relation: string]: Set<string> },
-): string => {
-  const out: JSONObject = {};
-
-  for (const id of scalarChecks) {
-    out[id] = true;
-  }
-
-  for (const relation of Object.keys(relationChecks)) {
-    const set: Set<string> | undefined = relationChecks[relation];
-    if (!set || set.size === 0) {
-      continue;
-    }
-    const subObj: JSONObject = {};
-    for (const subId of set) {
-      subObj[subId] = true;
-    }
-    out[relation] = subObj;
-  }
-
-  if (Object.keys(out).length === 0) {
-    return "";
-  }
-
-  return JSON.stringify(out);
-};
-
-/*
- * A minimal checkbox that supports an `indeterminate` visual. Used for the
- * relation header where partial selection of sub-fields needs its own state.
- */
-interface PickerCheckboxProps {
-  checked: boolean;
-  indeterminate?: boolean | undefined;
-  onChange: () => void;
-  ariaLabel?: string | undefined;
-  size?: "sm" | "md" | undefined;
-}
-
-const PickerCheckbox: FunctionComponent<PickerCheckboxProps> = (
-  props: PickerCheckboxProps,
-): ReactElement => {
-  const ref: React.MutableRefObject<HTMLInputElement | null> =
-    useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.indeterminate = Boolean(props.indeterminate);
-    }
-  }, [props.indeterminate]);
-
-  const sizeClass: string = props.size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
-
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={props.checked}
-      onChange={props.onChange}
-      onClick={(e: React.MouseEvent<HTMLInputElement>) => {
-        // Prevent toggling parent label/row when the click originates here.
-        e.stopPropagation();
-      }}
-      aria-label={props.ariaLabel}
-      className={`${sizeClass} rounded border-gray-300 text-indigo-600 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer`}
-    />
-  );
-};
 
 const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [columns, setColumns] = useState<Array<PickerColumn> | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const translator: Translator = useTranslator();
+  const mode: FieldPickerMode = props.mode || FieldPickerMode.PassOn;
+  const testId: string =
+    mode === FieldPickerMode.Watch ? "fields-to-watch" : "fields-to-pass-on";
+  const label: string =
+    mode === FieldPickerMode.Watch ? WATCHED_FIELDS_NAME : SELECT_FIELDS_NAME;
 
-  const initial: { text: string; parsed: JSONObject | null } = useMemo(() => {
-    return normalizeInitialValue(props.initialValue);
-  }, []);
-
-  const [jsonText, setJsonText] = useState<string>(initial.text);
-  const [viewMode, setViewMode] = useState<ViewMode>("picker");
-  const [incompatibilityReasons, setIncompatibilityReasons] = useState<
-    Array<string>
-  >([]);
-  const [isLockedToJson, setIsLockedToJson] = useState<boolean>(false);
-
-  // Checkbox state for picker mode.
-  const [scalarChecks, setScalarChecks] = useState<Set<string>>(new Set());
-  const [relationChecks, setRelationChecks] = useState<{
-    [relation: string]: Set<string>;
-  }>({});
-  const [expandedRelations, setExpandedRelations] = useState<Set<string>>(
-    new Set(),
-  );
-  const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Avoid re-emitting onChange for the initial value (preserves byte-for-byte).
-  const hasInitializedFromColumns: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-
-  useEffect(() => {
-    let cancelled: boolean = false;
-
-    const loadSchema: () => Promise<void> = async (): Promise<void> => {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const url: URL = URL.fromString(WORKFLOW_URL.toString()).addRoute(
-          `/model-schema/${encodeURIComponent(props.tableName)}`,
-        );
-        const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.get<JSONObject>({ url });
-
-        if (cancelled) {
-          return;
-        }
-
-        if (result instanceof HTTPErrorResponse) {
-          throw result;
-        }
-
-        const data: SchemaResponse = result.data as unknown as SchemaResponse;
-        setColumns(data.columns || []);
-      } catch (err) {
-        if (cancelled) {
-          return;
-        }
-        setLoadError(API.getFriendlyMessage(err));
-        setColumns([]);
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadSchema();
-
-    return () => {
-      cancelled = true;
-    };
+  const model: BaseModel | null = useMemo(() => {
+    return getWorkflowModel(props.tableName);
   }, [props.tableName]);
 
+  const recordName: string = model?.singularName || props.tableName;
+  const displayColumnId: string | undefined = model
+    ? getDisplayColumn(model).id
+    : undefined;
+
+  const schema: ModelSchemaState = useModelSchema(props.tableName, "read");
+
+  // What was stored, read once: the list keeps it from then on.
+  const [initialValue] = useState<unknown>(props.initialValue);
+
+  const storedPaths: Array<string> = useMemo(() => {
+    return getStoredPaths(initialValue);
+  }, [initialValue]);
+
   /*
-   * Apply a classification result to picker state: either seed the checkboxes
-   * (compatible) or lock the editor to JSON mode with reasons (incompatible).
+   * The fields as the reader's language names them: a chip, a row of the
+   * list, what a search finds and the order the list is in are all one name.
+   * A related record's field is named from two of them - "Aktueller
+   * Vorfallsstatus › Name" - which no dictionary holds as one.
    */
-  const applyClassification: (
-    result: CompatibilityResult,
-    cols: Array<PickerColumn>,
-  ) => void = (
-    result: CompatibilityResult,
-    cols: Array<PickerColumn>,
-  ): void => {
-    if (!result.compatible) {
-      setIncompatibilityReasons(result.reasons);
-      setIsLockedToJson(true);
-      setViewMode("json");
+  const options: Array<FieldOption> = useMemo(() => {
+    return getFieldOptions({
+      columns: schema.columns || [],
+      mode: mode,
+      displayColumnId: displayColumnId,
+      storedPaths: storedPaths,
+      translate: (text: string): string => {
+        return translator.translateText(text) || text;
+      },
+    });
+  }, [schema.columns, mode, displayColumnId, storedPaths, translator.language]);
+
+  const groups: Array<FieldGroup> = useMemo(() => {
+    return getFieldGroups({
+      options: options,
+      displayColumnId: displayColumnId,
+    });
+  }, [options, displayColumnId]);
+
+  const [paths, setPaths] = useState<Array<string> | null>(null);
+  const [unknownPaths, setUnknownPaths] = useState<Array<string>>([]);
+  const [jsonText, setJsonText] = useState<string>(() => {
+    return readStoredValue(initialValue).text;
+  });
+  const [isJson, setIsJson] = useState<boolean>(false);
+  const [problems, setProblems] = useState<Array<string>>([]);
+  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+
+  const addButtonRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+  const chipsRef: React.MutableRefObject<HTMLUListElement | null> =
+    useRef<HTMLUListElement | null>(null);
+
+  /*
+   * The form is told the list was left once the press that left it is over
+   * (Utils/UseAfterPress). Telling it is what makes an empty list that must
+   * hold a field say so, and where those words take two lines - a phone, a
+   * language with longer words - they push what is under the list down
+   * between the press and the release, and that press did nothing.
+   */
+  const afterPress: AfterPressFunction = useAfterPress();
+
+  // The latest onBlur, for what is called a moment after it was asked for.
+  const onBlurRef: React.MutableRefObject<(() => void) | undefined> = useRef(
+    props.onBlur,
+  );
+  onBlurRef.current = props.onBlur;
+  /*
+   * Where the focus goes once a chip is gone: the place the chip had. Kept
+   * as state, set with the removal itself, so the move belongs to the render
+   * that takes the chip away. As a ref read by an effect it could be read
+   * too soon - by an effect still waiting from the render before - which
+   * put the focus on the very chip being removed, and so on nothing.
+   */
+  const [focusAfterRemove, setFocusAfterRemove] = useState<{
+    index: number;
+  } | null>(null);
+
+  type ShowChosenFunction = (chosen: ChosenFields) => void;
+
+  const showChosen: ShowChosenFunction = (chosen: ChosenFields): void => {
+    if (chosen.problems.length > 0) {
+      setProblems(chosen.problems);
+      setIsJson(true);
+      setPaths([]);
+      setUnknownPaths([]);
       return;
     }
 
-    const parsed: JSONObject = (result.parsed as JSONObject) || {};
-    const nextScalars: Set<string> = new Set();
-    const nextRelations: { [relation: string]: Set<string> } = {};
-    const nextExpanded: Set<string> = new Set();
-
-    const columnsById: { [k: string]: PickerColumn } = {};
-    for (const c of cols) {
-      columnsById[c.id] = c;
-    }
-
-    for (const key of Object.keys(parsed)) {
-      const column: PickerColumn | undefined = columnsById[key];
-      if (!column) {
-        continue;
-      }
-      if (column.isRelation) {
-        const sub: JSONObject = (parsed[key] as JSONObject) || {};
-        const set: Set<string> = new Set();
-        for (const subKey of Object.keys(sub)) {
-          if (sub[subKey] === true) {
-            set.add(subKey);
-          }
-        }
-        if (set.size > 0) {
-          nextRelations[key] = set;
-          nextExpanded.add(key);
-        }
-      } else if (parsed[key] === true) {
-        nextScalars.add(key);
-      }
-    }
-
-    setScalarChecks(nextScalars);
-    setRelationChecks(nextRelations);
-    setExpandedRelations(nextExpanded);
-    setIncompatibilityReasons([]);
-    setIsLockedToJson(false);
-    setViewMode("picker");
+    setProblems([]);
+    setIsJson(false);
+    setPaths(chosen.paths);
+    setUnknownPaths(chosen.unknownPaths);
   };
 
-  // Once we have columns, classify the initial value and seed picker state.
+  // Once the fields are known, what was stored is read as the fields it names.
   useEffect(() => {
-    if (columns === null) {
+    if (schema.isLoading || paths !== null) {
       return;
     }
-    if (hasInitializedFromColumns.current) {
-      return;
-    }
-    hasInitializedFromColumns.current = true;
 
-    const result: CompatibilityResult = classifyCompatibility(
-      initial.text,
-      initial.parsed,
-      columns,
+    if (schema.error) {
+      setIsJson(true);
+      setPaths([]);
+      return;
+    }
+
+    showChosen(
+      readChosenFields({
+        value: initialValue,
+        options: options,
+        mode: mode,
+      }),
+    );
+  }, [schema.isLoading, schema.error, options]);
+
+  // After a chip goes, the focus moves to the chip that takes its place.
+  useEffect(() => {
+    if (!focusAfterRemove) {
+      return;
+    }
+
+    const buttons: Array<HTMLButtonElement> = Array.from(
+      chipsRef.current?.querySelectorAll<HTMLButtonElement>(
+        `[data-testid="${testId}-remove"]`,
+      ) || [],
     );
 
-    applyClassification(result, columns);
-  }, [columns, initial.text, initial.parsed]);
+    const target: HTMLButtonElement | undefined =
+      buttons[Math.min(focusAfterRemove.index, buttons.length - 1)];
 
-  // When the picker emits, push JSON upward.
-  const emitFromPicker: (
-    scalars: Set<string>,
-    relations: { [k: string]: Set<string> },
-  ) => void = (
-    scalars: Set<string>,
-    relations: { [k: string]: Set<string> },
-  ): void => {
-    const next: string = buildSelectJson(scalars, relations);
-    setJsonText(next);
-    props.onChange(next);
+    (target || addButtonRef.current)?.focus();
+  }, [focusAfterRemove]);
+
+  type EmitFunction = (next: Array<string>) => void;
+
+  const emit: EmitFunction = (next: Array<string>): void => {
+    const value: string = writeChosenFields({ paths: next, mode: mode });
+
+    setPaths(next);
+    setJsonText(value);
+    props.onChange(value);
   };
 
-  const toggleScalar: (id: string) => void = (id: string): void => {
-    const next: Set<string> = new Set(scalarChecks);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setScalarChecks(next);
-    emitFromPicker(next, relationChecks);
-  };
+  type ToggleFunction = (option: FieldOption) => void;
 
-  const toggleRelationField: (relation: string, sub: string) => void = (
-    relation: string,
-    sub: string,
-  ): void => {
-    const existing: Set<string> = new Set(relationChecks[relation] || []);
-    if (existing.has(sub)) {
-      existing.delete(sub);
-    } else {
-      existing.add(sub);
-    }
-    const next: { [k: string]: Set<string> } = { ...relationChecks };
-    if (existing.size === 0) {
-      delete next[relation];
-    } else {
-      next[relation] = existing;
-    }
-    setRelationChecks(next);
-    emitFromPicker(scalarChecks, next);
-  };
+  const toggle: ToggleFunction = (option: FieldOption): void => {
+    const current: Array<string> = paths || [];
 
-  const toggleExpand: (relation: string) => void = (relation: string): void => {
-    const next: Set<string> = new Set(expandedRelations);
-    if (next.has(relation)) {
-      next.delete(relation);
-    } else {
-      next.add(relation);
-    }
-    setExpandedRelations(next);
-  };
-
-  /*
-   * Select-all / clear helpers operate on whatever's currently visible so
-   * the actions feel scoped to what the user can see.
-   */
-  const setScalarSelection: (ids: Array<string>) => void = (
-    ids: Array<string>,
-  ): void => {
-    const next: Set<string> = new Set(ids);
-    setScalarChecks(next);
-    emitFromPicker(next, relationChecks);
-  };
-
-  const setRelationSelection: (relation: string, ids: Array<string>) => void = (
-    relation: string,
-    ids: Array<string>,
-  ): void => {
-    const next: { [k: string]: Set<string> } = { ...relationChecks };
-    if (ids.length === 0) {
-      delete next[relation];
-    } else {
-      next[relation] = new Set(ids);
-    }
-    setRelationChecks(next);
-    emitFromPicker(scalarChecks, next);
-  };
-
-  const expandRelation: (relation: string) => void = (
-    relation: string,
-  ): void => {
-    if (expandedRelations.has(relation)) {
-      return;
-    }
-    const next: Set<string> = new Set(expandedRelations);
-    next.add(relation);
-    setExpandedRelations(next);
-  };
-
-  const onSearchChange: (value: string) => void = (value: string): void => {
-    setSearchQuery(value);
-  };
-
-  /*
-   * Friendly type-pill label. Returns null for plain text-like columns so the
-   * common case stays uncluttered.
-   */
-  const getTypeLabel: (type: string) => string | null = (
-    type: string,
-  ): string | null => {
-    const map: { [k: string]: string } = {
-      Date: "Date",
-      Boolean: "Yes / No",
-      Number: "Number",
-      "Big Number": "Number",
-      "Small Number": "Number",
-      "Positive Number": "Number",
-      "Small Positive Number": "Number",
-      "Big Positive Number": "Number",
-      "Object ID": "ID",
-      Slug: "Slug",
-      URL: "URL",
-      Email: "Email",
-      Phone: "Phone",
-      IP: "IP",
-      Port: "Port",
-      Color: "Color",
-      JSON: "JSON",
-      Markdown: "Markdown",
-      HTML: "HTML",
-      "Entity Array": "List",
-    };
-    return map[type] || null;
-  };
-
-  const matchesQuery: (column: PickerColumn, query: string) => boolean = (
-    column: PickerColumn,
-    query: string,
-  ): boolean => {
-    if (!query) {
-      return true;
-    }
-    return (
-      column.title.toLowerCase().includes(query) ||
-      column.id.toLowerCase().includes(query) ||
-      (column.description || "").toLowerCase().includes(query)
+    emit(
+      current.includes(option.path)
+        ? current.filter((path: string): boolean => {
+            return path !== option.path;
+          })
+        : [...current, option.path],
     );
   };
 
-  const onJsonChange: (next: string) => void = (next: string): void => {
-    setJsonText(next);
-    props.onChange(next);
+  type RemoveFunction = (path: string) => void;
+
+  const remove: RemoveFunction = (path: string): void => {
+    const current: Array<string> = paths || [];
+
+    const next: Array<string> = current.filter((candidate: string): boolean => {
+      return candidate !== path;
+    });
+
+    setFocusAfterRemove({ index: current.indexOf(path) });
+    setUnknownPaths((unknown: Array<string>) => {
+      return unknown.filter((candidate: string): boolean => {
+        return candidate !== path;
+      });
+    });
+    emit(next);
+
+    /*
+     * The last field taken off: the form is told the list was left as it
+     * is, so a list that must hold a field says so here and now. The dialog
+     * already says that something needs fixing, and without this it did not
+     * say what until the focus went elsewhere.
+     */
+    if (next.length === 0) {
+      props.onBlur?.();
+    }
   };
 
-  const resetToPicker: () => void = (): void => {
-    setIncompatibilityReasons([]);
-    setIsLockedToJson(false);
-    setScalarChecks(new Set());
-    setRelationChecks({});
-    setExpandedRelations(new Set());
-    setJsonText("");
-    props.onChange("");
-    setViewMode("picker");
+  type BackToListFunction = () => void;
+
+  const backToList: BackToListFunction = (): void => {
+    showChosen(
+      readChosenFields({ value: jsonText, options: options, mode: mode }),
+    );
   };
 
-  if (isLoading) {
+  type StartOverFunction = () => void;
+
+  const startOver: StartOverFunction = (): void => {
+    setProblems([]);
+    setIsJson(false);
+    setUnknownPaths([]);
+    emit([]);
+  };
+
+  type ChipTitleFunction = (path: string) => string;
+
+  const chipTitle: ChipTitleFunction = (path: string): string => {
+    const option: FieldOption | undefined = findFieldOption(options, path);
+
+    return option ? option.title || path : path;
+  };
+
+  if (schema.isLoading || (paths === null && !isJson)) {
     return (
-      <div className="py-10">
-        <ComponentLoader />
+      <p
+        className="py-2 text-sm text-gray-500"
+        role="status"
+        data-testid={`${testId}-loading`}
+      >
+        {translator.translateText(ModelFieldPickerCopy.loading)}
+      </p>
+    );
+  }
+
+  if (isJson) {
+    return (
+      <div className="space-y-2" data-testid={testId} data-view="json">
+        {schema.error ? (
+          <p
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+            data-testid={`${testId}-load-error`}
+          >
+            {translator.translateTemplate(ModelFieldPickerCopy.couldNotLoad, {
+              error: schema.error,
+            })}
+          </p>
+        ) : null}
+
+        {problems.length > 0 ? (
+          <div
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800"
+            data-testid={`${testId}-kept-as-json`}
+          >
+            <p className="font-semibold text-amber-900">
+              {translator.translateText(ModelFieldPickerCopy.keptAsJson)}
+            </p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              {problems.map((problem: string, index: number) => {
+                return <li key={index}>{problem}</li>;
+              })}
+            </ul>
+            <p className="mt-1">
+              <TranslatedSentence
+                template={ModelFieldPickerCopy.keptAsJsonHelp}
+                slots={{
+                  reset: (
+                    <button
+                      type="button"
+                      data-testid={`${testId}-start-over`}
+                      className="font-semibold text-amber-900 underline hover:text-amber-700"
+                      onClick={startOver}
+                    >
+                      {translator.translateText(ModelFieldPickerCopy.startOver)}
+                    </button>
+                  ),
+                }}
+              />
+            </p>
+          </div>
+        ) : null}
+
+        <CodeEditor
+          type={CodeType.JSON}
+          value={jsonText}
+          onChange={(next: string) => {
+            setJsonText(next);
+            props.onChange(next);
+          }}
+          placeholder={props.placeholder || 'Example: {"title": true}'}
+          error={props.error}
+          tabIndex={props.tabIndex}
+          ariaLabelledby={props.ariaLabelledby}
+        />
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-gray-500">
+            {translator.translateText(ModelFieldPickerCopy.jsonHint)}
+          </p>
+          {!schema.error && problems.length === 0 ? (
+            <button
+              type="button"
+              data-testid={`${testId}-back-to-list`}
+              className="-mr-1 inline-flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+              onClick={backToList}
+            >
+              <Icon icon={IconProp.ListBullet} className="h-3.5 w-3.5" />
+              {translator.translateText(ModelFieldPickerCopy.backToList)}
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }
 
-  const scalarColumns: Array<PickerColumn> = (columns || []).filter(
-    (c: PickerColumn) => {
-      return !c.isRelation;
-    },
-  );
-  const relationColumns: Array<PickerColumn> = (columns || []).filter(
-    (c: PickerColumn) => {
-      return c.isRelation;
-    },
-  );
-
-  const totalSelected: number =
-    scalarChecks.size +
-    Object.values(relationChecks).reduce((acc: number, s: Set<string>) => {
-      return acc + s.size;
-    }, 0);
-
-  const totalAvailable: number =
-    scalarColumns.length +
-    relationColumns.reduce((acc: number, r: PickerColumn) => {
-      return acc + (r.relatedColumns?.length || 0);
-    }, 0);
-
-  const onUsePickerClicked: () => void = (): void => {
-    if (!columns) {
-      return;
-    }
-    // Re-classify the current JSON text — the user may have edited it.
-    const norm: { text: string; parsed: JSONObject | null } =
-      normalizeInitialValue(jsonText);
-    const result: CompatibilityResult = classifyCompatibility(
-      norm.text,
-      norm.parsed,
-      columns,
-    );
-    applyClassification(result, columns);
-  };
-
-  /*
-   * Apply search filter. For relations, the relation passes if its own title
-   * matches OR any sub-field matches; in the latter case we auto-expand it so
-   * the matching child is visible.
-   */
-  const query: string = searchQuery.trim().toLowerCase();
-  const visibleScalars: Array<PickerColumn> = scalarColumns.filter(
-    (c: PickerColumn) => {
-      return matchesQuery(c, query);
-    },
-  );
-
-  const visibleRelations: Array<{
-    column: PickerColumn;
-    visibleSubs: Array<PickerColumn>;
-    matchedByChild: boolean;
-  }> = relationColumns
-    .map((column: PickerColumn) => {
-      const subMatches: Array<PickerColumn> = (
-        column.relatedColumns || []
-      ).filter((sub: PickerColumn) => {
-        return matchesQuery(sub, query);
-      });
-      const matchesSelf: boolean = matchesQuery(column, query);
-      if (query && !matchesSelf && subMatches.length === 0) {
-        return null;
-      }
-      return {
-        column,
-        visibleSubs:
-          query && !matchesSelf ? subMatches : column.relatedColumns || [],
-        matchedByChild:
-          query.length > 0 && !matchesSelf && subMatches.length > 0,
-      };
-    })
-    .filter(
-      (
-        x: {
-          column: PickerColumn;
-          visibleSubs: Array<PickerColumn>;
-          matchedByChild: boolean;
-        } | null,
-      ): x is {
-        column: PickerColumn;
-        visibleSubs: Array<PickerColumn>;
-        matchedByChild: boolean;
-      } => {
-        return x !== null;
-      },
-    );
-
-  const hasNoVisibleResults: boolean =
-    visibleScalars.length === 0 && visibleRelations.length === 0;
-
-  const selectAllScalars: () => void = (): void => {
-    const ids: Array<string> = visibleScalars.map((c: PickerColumn) => {
-      return c.id;
-    });
-    // Merge with existing so out-of-view (filtered) selections aren't lost.
-    const merged: Set<string> = new Set(scalarChecks);
-    for (const id of ids) {
-      merged.add(id);
-    }
-    setScalarSelection(Array.from(merged));
-  };
-
-  const clearAllScalars: () => void = (): void => {
-    // Only clear what's visible — preserves selections hidden by search.
-    const next: Set<string> = new Set(scalarChecks);
-    for (const c of visibleScalars) {
-      next.delete(c.id);
-    }
-    setScalarSelection(Array.from(next));
-  };
-
-  /*
-   * Renders one selectable field row. Used for both top-level scalars and
-   * relation sub-fields (which pass a denser variant via `dense`).
-   */
-  const renderFieldRow: (args: {
-    column: PickerColumn;
-    checked: boolean;
-    onToggle: () => void;
-    dense?: boolean;
-  }) => ReactElement = (args: {
-    column: PickerColumn;
-    checked: boolean;
-    onToggle: () => void;
-    dense?: boolean;
-  }): ReactElement => {
-    const { column, checked, onToggle, dense } = args;
-    const typeLabel: string | null = getTypeLabel(column.type);
-    return (
-      <label
-        className={`group relative flex items-center gap-3 ${
-          dense ? "py-1.5" : "py-2"
-        } px-3 cursor-pointer select-none transition-colors ${
-          checked ? "bg-indigo-50/40" : "hover:bg-gray-50/80"
-        }`}
-      >
-        {checked && (
-          <span
-            className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-indigo-500"
-            aria-hidden="true"
-          />
-        )}
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onToggle}
-          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
-        />
-        <span className="flex-1 min-w-0">
-          <span className="flex items-baseline gap-2">
-            <span
-              className={`truncate text-sm ${
-                checked
-                  ? "font-medium text-gray-900"
-                  : "font-medium text-gray-800"
-              }`}
-            >
-              {column.title}
-            </span>
-            {typeLabel && (
-              <span className="ml-auto flex-shrink-0 text-[11px] uppercase tracking-wider text-gray-400 group-hover:text-gray-500">
-                {typeLabel}
-              </span>
-            )}
-          </span>
-          {column.description && (
-            <span
-              className="block text-xs text-gray-500 truncate mt-0.5"
-              title={column.description}
-            >
-              {column.description}
-            </span>
-          )}
-        </span>
-      </label>
-    );
-  };
-
-  /*
-   * Top-level toolbar above everything: search on the left (when in picker
-   * mode), then count, then the view-mode toggle. Kept as a single tight row
-   * so it doesn't visually compete with the field list below.
-   */
-  const renderToolbar: () => ReactElement = (): ReactElement => {
-    const showSearch: boolean =
-      viewMode === "picker" && !isLockedToJson && totalAvailable > 0;
-
-    let toggleLabel: string;
-    let toggleIcon: IconProp;
-    let toggleHandler: () => void;
-    if (isLockedToJson) {
-      toggleLabel = "Reset to picker";
-      toggleIcon = IconProp.Refresh;
-      toggleHandler = resetToPicker;
-    } else if (viewMode === "picker") {
-      toggleLabel = "JSON";
-      toggleIcon = IconProp.Code;
-      toggleHandler = (): void => {
-        setViewMode("json");
-      };
-    } else {
-      toggleLabel = "Picker";
-      toggleIcon = IconProp.ListBullet;
-      toggleHandler = onUsePickerClicked;
-    }
-
-    return (
-      <div className="flex items-center gap-2">
-        {showSearch && (
-          <div className="relative flex-1">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Icon
-                icon={IconProp.MagnifyingGlass}
-                className="h-4 w-4 text-gray-400"
-              />
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                return onSearchChange(e.target.value);
-              }}
-              placeholder={`Search ${totalAvailable} fields`}
-              className="block w-full rounded-md border border-gray-200 bg-white pl-9 pr-8 py-1.5 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  return setSearchQuery("");
-                }}
-                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
-              >
-                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        )}
-        {!showSearch && <div className="flex-1" />}
-        {!isLockedToJson && totalAvailable > 0 && viewMode === "picker" && (
-          <span className="text-xs text-gray-500 whitespace-nowrap font-mono">
-            <span
-              className={`${
-                totalSelected > 0
-                  ? "font-semibold text-indigo-600"
-                  : "text-gray-700"
-              }`}
-            >
-              {totalSelected}
-            </span>
-            <span className="text-gray-300 mx-1">/</span>
-            <span>{totalAvailable}</span>
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={toggleHandler}
-          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        >
-          <Icon icon={toggleIcon} className="h-3.5 w-3.5 text-gray-500" />
-          {toggleLabel}
-        </button>
-      </div>
-    );
-  };
-
-  const renderSectionHeader: (args: {
-    label: string;
-    actions?: ReactElement | null;
-  }) => ReactElement = (args: {
-    label: string;
-    actions?: ReactElement | null;
-  }): ReactElement => {
-    return (
-      <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-          {args.label}
-        </span>
-        {args.actions ? (
-          <div className="flex items-center gap-1 text-[11px]">
-            {args.actions}
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
-  const renderSectionActions: (args: {
-    onSelectAll: () => void;
-    onClear: () => void;
-  }) => ReactElement = (args: {
-    onSelectAll: () => void;
-    onClear: () => void;
-  }): ReactElement => {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={args.onSelectAll}
-          className="font-medium text-indigo-600 hover:text-indigo-700"
-        >
-          Select all
-        </button>
-        <span className="text-gray-300">·</span>
-        <button
-          type="button"
-          onClick={args.onClear}
-          className="font-medium text-gray-500 hover:text-gray-700"
-        >
-          Clear
-        </button>
-      </>
-    );
-  };
+  const chosen: Array<string> = paths || [];
 
   return (
-    <div className="space-y-2">
-      {renderToolbar()}
+    <div
+      className="space-y-1"
+      data-testid={testId}
+      data-view="list"
+      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+        /*
+         * Escape with the list open closes the list, wherever the focus is
+         * - in its search box, on Done, on Add field after a second press on
+         * it - and never the settings dialog around it. From Done it used to
+         * reach the dialog, which closed and took every unsaved setting
+         * with it.
+         */
+        if (event.key !== "Escape" || !isPanelOpen) {
+          return;
+        }
 
-      {loadError && (
-        <div className="flex items-start gap-2.5 rounded-md border border-red-200 bg-red-50/60 px-3 py-2 text-xs text-red-800">
-          <Icon
-            icon={IconProp.AltGlobe}
-            className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0"
-          />
-          <div>
-            <p className="font-semibold">Could not load fields</p>
-            <p className="text-red-700">{loadError}</p>
-          </div>
-        </div>
-      )}
+        event.preventDefault();
+        event.stopPropagation();
+        setIsPanelOpen(false);
+        addButtonRef.current?.focus();
+      }}
+      onBlur={(event: React.FocusEvent<HTMLDivElement>) => {
+        const next: EventTarget | null = event.relatedTarget;
 
-      {isLockedToJson && (
-        <div className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
-          <div className="flex items-start gap-2.5">
-            <Icon
-              icon={IconProp.Info}
-              className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0"
-            />
-            <div className="text-xs text-amber-900 space-y-1">
-              <p className="font-semibold">Keeping your selection as JSON</p>
-              <ul className="text-amber-800 space-y-0.5 list-disc pl-4">
-                {incompatibilityReasons.map((reason: string, i: number) => {
-                  return <li key={i}>{reason}</li>;
-                })}
-              </ul>
-              <p className="pt-0.5 text-amber-700/80">
-                Your workflow keeps running unchanged. Edit the JSON below, or
-                click <strong>Reset to picker</strong> to start fresh.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+        if (next instanceof Node && event.currentTarget.contains(next)) {
+          return;
+        }
 
-      {(viewMode === "json" || loadError) && (
-        <div className="rounded-md border border-gray-200 overflow-hidden">
-          <CodeEditor
-            type={CodeType.JSON}
-            value={jsonText}
-            onChange={onJsonChange}
-            placeholder={
-              props.placeholder || 'Example: {"columnName": true, ...}'
-            }
-            error={props.error}
-            tabIndex={props.tabIndex}
-          />
-        </div>
-      )}
+        afterPress(() => {
+          onBlurRef.current?.();
+        });
+      }}
+    >
+      <div
+        className={`rounded-md border bg-white px-2 py-2 shadow-sm ${
+          props.error ? "border-red-300" : "border-gray-300"
+        }`}
+      >
+        <ul
+          ref={chipsRef}
+          aria-labelledby={props.ariaLabelledby}
+          aria-label={
+            props.ariaLabelledby
+              ? undefined
+              : translator.translateText(ModelFieldPickerCopy.chosenFields)
+          }
+          className="flex flex-wrap items-center gap-1.5"
+          data-testid={`${testId}-chips`}
+        >
+          {chosen.map((path: string) => {
+            const isUnknown: boolean = unknownPaths.includes(path);
+            const title: string = chipTitle(path);
 
-      {viewMode === "picker" && !loadError && (
-        <div className="rounded-md border border-gray-200 bg-white">
-          {totalAvailable === 0 && (
-            <div className="px-6 py-12 text-center">
-              <Icon
-                icon={IconProp.Database}
-                className="h-6 w-6 mx-auto text-gray-300 mb-2"
-              />
-              <p className="text-sm text-gray-500">
-                No readable fields are available for this model.
-              </p>
-            </div>
-          )}
-
-          {totalAvailable > 0 && hasNoVisibleResults && (
-            <div className="px-6 py-10 text-center">
-              <Icon
-                icon={IconProp.MagnifyingGlass}
-                className="h-5 w-5 mx-auto text-gray-300 mb-2"
-              />
-              <p className="text-sm text-gray-600">
-                No fields match{" "}
-                <span className="font-medium text-gray-900">
-                  &ldquo;{searchQuery}&rdquo;
-                </span>
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  return setSearchQuery("");
-                }}
-                className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+            return (
+              <li
+                key={path}
+                data-testid={`${testId}-chip`}
+                data-path={path}
+                data-unknown={isUnknown ? "true" : "false"}
+                title={
+                  isUnknown
+                    ? translator.translateTemplate(
+                        ModelFieldPickerCopy.unknownField,
+                        { key: path },
+                      )
+                    : title
+                }
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-md border pl-2 text-sm ${
+                  isUnknown
+                    ? "border-amber-200 bg-amber-50 font-mono text-amber-800"
+                    : "border-gray-200 bg-gray-50 text-gray-800"
+                }`}
               >
-                Clear search
-              </button>
-            </div>
-          )}
+                {isUnknown ? (
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                  />
+                ) : null}
+                <span className="truncate">{title}</span>
+                <button
+                  type="button"
+                  data-testid={`${testId}-remove`}
+                  aria-label={translator.translateTemplate(
+                    ModelFieldPickerCopy.remove,
+                    { field: title },
+                  )}
+                  // 24px square: no smaller a target than a finger needs.
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  onClick={() => {
+                    remove(path);
+                  }}
+                >
+                  <Icon icon={IconProp.Close} className="h-3 w-3" />
+                </button>
+              </li>
+            );
+          })}
+          {chosen.length === 0 ? (
+            <li
+              className="px-1 text-sm text-gray-500"
+              data-testid={`${testId}-empty`}
+            >
+              {mode === FieldPickerMode.Watch
+                ? translator.translateTemplate(
+                    props.createAlwaysRuns
+                      ? ModelFieldPickerCopy.emptyWatchWithCreate
+                      : ModelFieldPickerCopy.emptyWatch,
+                    {
+                      record: translatableTerm(recordName, {
+                        inSentence: true,
+                      }),
+                    },
+                  )
+                : translator.translateText(ModelFieldPickerCopy.emptyPassOn)}
+            </li>
+          ) : null}
+          <li>
+            <button
+              ref={addButtonRef}
+              type="button"
+              data-testid={`${testId}-add`}
+              aria-haspopup="listbox"
+              aria-expanded={isPanelOpen}
+              tabIndex={props.tabIndex}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onClick={() => {
+                setIsPanelOpen(!isPanelOpen);
+              }}
+            >
+              <Icon icon={IconProp.Add} className="h-4 w-4" />
+              {translator.translateText(ModelFieldPickerCopy.addField)}
+            </button>
+          </li>
+        </ul>
+      </div>
 
-          {visibleScalars.length > 0 && (
-            <>
-              {renderSectionHeader({
-                label: "Fields",
-                actions: renderSectionActions({
-                  onSelectAll: selectAllScalars,
-                  onClear: clearAllScalars,
-                }),
-              })}
-              <div className="divide-y divide-gray-100">
-                {visibleScalars.map((column: PickerColumn) => {
-                  return (
-                    <React.Fragment key={column.id}>
-                      {renderFieldRow({
-                        column,
-                        checked: scalarChecks.has(column.id),
-                        onToggle: () => {
-                          toggleScalar(column.id);
-                        },
-                      })}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </>
-          )}
+      {isPanelOpen ? (
+        <AddFieldsPanel
+          options={options}
+          groups={groups}
+          chosen={chosen}
+          onToggle={toggle}
+          label={label}
+          dataTestId={testId}
+          toggleRef={addButtonRef}
+          onClose={(closeOptions: { returnFocus: boolean }) => {
+            setIsPanelOpen(false);
 
-          {visibleScalars.length > 0 && visibleRelations.length > 0 && (
-            <div className="border-t border-gray-100 mt-2" />
-          )}
+            if (closeOptions.returnFocus) {
+              addButtonRef.current?.focus();
+            }
+          }}
+        />
+      ) : null}
 
-          {visibleRelations.length > 0 && (
-            <>
-              {renderSectionHeader({
-                label: "Related records",
-                actions: (
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-gray-300">
-                    1 level
-                  </span>
-                ),
-              })}
-              <div className="divide-y divide-gray-100">
-                {visibleRelations.map(
-                  (entry: {
-                    column: PickerColumn;
-                    visibleSubs: Array<PickerColumn>;
-                    matchedByChild: boolean;
-                  }) => {
-                    const column: PickerColumn = entry.column;
-                    const visibleSubs: Array<PickerColumn> = entry.visibleSubs;
-                    const totalSubs: number = (column.relatedColumns || [])
-                      .length;
-                    const selectedSubs: Set<string> =
-                      relationChecks[column.id] || new Set();
-                    const isExpanded: boolean =
-                      expandedRelations.has(column.id) || entry.matchedByChild;
-                    const allChecked: boolean =
-                      totalSubs > 0 && selectedSubs.size === totalSubs;
-                    const someChecked: boolean =
-                      selectedSubs.size > 0 && !allChecked;
-
-                    const toggleAllSubs: () => void = (): void => {
-                      if (allChecked) {
-                        setRelationSelection(column.id, []);
-                      } else {
-                        const ids: Array<string> = (
-                          column.relatedColumns || []
-                        ).map((s: PickerColumn) => {
-                          return s.id;
-                        });
-                        setRelationSelection(column.id, ids);
-                        expandRelation(column.id);
-                      }
-                    };
-
-                    const selectAllSubs: () => void = (): void => {
-                      const ids: Array<string> = visibleSubs.map(
-                        (s: PickerColumn) => {
-                          return s.id;
-                        },
-                      );
-                      const merged: Set<string> = new Set(selectedSubs);
-                      for (const id of ids) {
-                        merged.add(id);
-                      }
-                      setRelationSelection(column.id, Array.from(merged));
-                    };
-
-                    const clearSubs: () => void = (): void => {
-                      const next: Set<string> = new Set(selectedSubs);
-                      for (const s of visibleSubs) {
-                        next.delete(s.id);
-                      }
-                      setRelationSelection(column.id, Array.from(next));
-                    };
-
-                    return (
-                      <div
-                        key={column.id}
-                        className={`${isExpanded ? "bg-gray-50/40" : ""}`}
-                      >
-                        {/* Header row */}
-                        <div
-                          className={`relative flex items-center gap-3 px-3 py-2 transition-colors ${
-                            isExpanded ? "" : "hover:bg-gray-50/80"
-                          }`}
-                        >
-                          {(allChecked || someChecked) && (
-                            <span
-                              className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-indigo-500"
-                              aria-hidden="true"
-                            />
-                          )}
-                          <PickerCheckbox
-                            checked={allChecked}
-                            indeterminate={someChecked}
-                            onChange={toggleAllSubs}
-                            ariaLabel={`Select all from ${column.title}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              return toggleExpand(column.id);
-                            }}
-                            className="flex-1 flex items-center justify-between gap-2 text-left min-w-0"
-                          >
-                            <span className="min-w-0 flex items-baseline gap-2">
-                              <span
-                                className={`truncate text-sm font-medium ${
-                                  allChecked || someChecked
-                                    ? "text-gray-900"
-                                    : "text-gray-800"
-                                }`}
-                              >
-                                {column.title}
-                              </span>
-                              {column.relatedTableName && (
-                                <span className="text-[11px] text-gray-400">
-                                  {column.relatedTableName}
-                                </span>
-                              )}
-                            </span>
-                            <span className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-[11px] text-gray-500 font-mono whitespace-nowrap">
-                                <span
-                                  className={
-                                    selectedSubs.size > 0
-                                      ? "font-semibold text-indigo-600"
-                                      : "text-gray-400"
-                                  }
-                                >
-                                  {selectedSubs.size}
-                                </span>
-                                <span className="text-gray-300 mx-1">/</span>
-                                <span>{totalSubs}</span>
-                              </span>
-                              <Icon
-                                icon={
-                                  isExpanded
-                                    ? IconProp.ChevronDown
-                                    : IconProp.ChevronRight
-                                }
-                                className="h-3.5 w-3.5 text-gray-400"
-                              />
-                            </span>
-                          </button>
-                        </div>
-                        {/* Sub-fields */}
-                        {isExpanded && (
-                          <div className="pl-7 pr-0 pb-1 border-l-2 border-indigo-100 ml-5 mb-1">
-                            <div className="flex items-center justify-between px-3 py-1.5">
-                              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
-                                Sub-fields
-                              </span>
-                              <div className="flex items-center gap-1 text-[11px]">
-                                {renderSectionActions({
-                                  onSelectAll: selectAllSubs,
-                                  onClear: clearSubs,
-                                })}
-                              </div>
-                            </div>
-                            <div className="divide-y divide-gray-100">
-                              {visibleSubs.map((sub: PickerColumn) => {
-                                return (
-                                  <React.Fragment key={sub.id}>
-                                    {renderFieldRow({
-                                      column: sub,
-                                      checked: selectedSubs.has(sub.id),
-                                      onToggle: () => {
-                                        toggleRelationField(column.id, sub.id);
-                                      },
-                                      dense: true,
-                                    })}
-                                  </React.Fragment>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Bottom spacer */}
-          {(visibleScalars.length > 0 || visibleRelations.length > 0) && (
-            <div className="py-1" />
-          )}
+      {/*
+       * One line under the list: what is wrong with it, where the eye is
+       * after the red border, and the way out to JSON at the far end. The
+       * message used to come after Edit as JSON, a line further from the
+       * list it is about.
+       */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {props.error ? (
+            <p
+              className="pt-1 text-sm text-red-600"
+              data-testid="error-message"
+              role="alert"
+            >
+              {/*
+               * A list with nothing in it can only be missing a field, and
+               * says so in its own words: "Fields to pass on is required."
+               * was the form's, for any box left blank.
+               */}
+              {chosen.length === 0
+                ? translator.translateText(ModelFieldPickerCopy.pickAtLeastOne)
+                : props.error}
+            </p>
+          ) : null}
         </div>
-      )}
-
-      {props.error && (
-        <p className="text-xs text-red-600 mt-0.5" data-testid="error-message">
-          {props.error}
-        </p>
-      )}
+        <button
+          type="button"
+          data-testid={`${testId}-edit-json`}
+          className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
+          onClick={() => {
+            setIsPanelOpen(false);
+            setIsJson(true);
+          }}
+        >
+          {translator.translateText(ModelFieldPickerCopy.editAsJson)}
+        </button>
+      </div>
     </div>
   );
 };

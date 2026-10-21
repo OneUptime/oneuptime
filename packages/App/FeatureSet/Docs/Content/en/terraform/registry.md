@@ -1,60 +1,108 @@
 # Registry Usage
 
-The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
+The OneUptime provider is published to the [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) and the [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest). `terraform init` and `tofu init` download it from there: there is nothing to install by hand. This page covers what is published, how versions are numbered, and how to move to a newer one.
 
-## What's on the registry
+:::cards
+- [What is published](#what-is-published): The provider for each platform, its reference, and its versions.
+- [How versions are numbered](#how-versions-are-numbered): A provider's version is the OneUptime release that published it.
+- [The lock file](#the-lock-file): The version and checksums every machine installs.
+- [Move to a newer version](#move-to-a-newer-version): Read what changed, download it, and plan.
+:::
 
-- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
-- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
-- **The version history**, one entry per published release.
+## What is published
 
-Declare the provider like any registry provider:
+Every OneUptime release generates the provider from OneUptime's own API. When the provider changed, the release publishes it, under the release's version, once it has passed its end-to-end tests under Terraform and under OpenTofu:
 
-```hcl
+```mermaid title="From a OneUptime release to your terraform init"
+flowchart TB
+    R["A OneUptime release"] --> G["The provider is generated<br/>from OneUptime's API"]
+    G --> C{"Did the provider<br/>change?"}
+    C -->|"yes"| P["Tested under Terraform<br/>and OpenTofu, then<br/>published with the<br/>release's version"]
+    C -->|"no"| N["No provider version<br/>for this release"]
+    P --> I["terraform init<br/>and tofu init<br/>download it"]
+```
+
+| What | Where |
+| --- | --- |
+| The provider, for Linux, macOS, Windows, FreeBSD, OpenBSD and Solaris | Downloaded by `terraform init` and `tofu init`, with checksums that OneUptime signs |
+| The reference of every resource and data source, with each of its attributes | The registry's documentation, grouped by product: monitors, status pages, incidents, on-call and the others |
+| A guide to using the provider with OpenTofu | The registry's guides |
+| Every version, newest first | The registry's version list |
+
+The reference lists what each attribute is. These docs show how to use them together: start from the [Terraform Overview](/docs/terraform/index).
+
+## How versions are numbered
+
+A provider's version is the version of the OneUptime release that published it: provider {{TERRAFORM_PROVIDER_MAJOR}}.0.20 came with OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.20. A release whose provider did not change publishes none, so the versions have gaps, and a constraint that names one exact version can name a version that does not exist. Write a range instead:
+
+| You use | Constraint | Terraform installs |
+| --- | --- | --- |
+| OneUptime Cloud | `{{TERRAFORM_PROVIDER_VERSION}}` | The newest {{TERRAFORM_PROVIDER_MAJOR}}.x provider |
+| A self-hosted OneUptime | A range that ends at your OneUptime's version, such as `>= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40` | The newest provider that is not newer than your OneUptime |
+
+On a self-hosted OneUptime, a provider newer than your OneUptime may send settings your OneUptime does not have yet: [Self-Hosted Setup](/docs/terraform/self-hosted#pick-the-provider-version) shows how to write its range.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 ```
 
-`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
+The source address names no registry: Terraform reads it from the Terraform Registry, and OpenTofu from the OpenTofu Registry, which publish the same versions.
 
-## How versioning works
+## The lock file
 
-Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
+`terraform init` records the version it picked, and the checksums of its downloads, in `.terraform.lock.hcl`. Commit that file: every machine and every CI run then installs exactly that version, until you choose another one. The checksums cover every platform the registry publishes, so one lock file serves Linux, macOS and Windows machines alike.
 
-1. **Cloud users** always run the latest platform, so the newest provider is always correct:
-
-```hcl
-version = "~> 11.0"
+```hcl title=".terraform.lock.hcl"
+provider "registry.terraform.io/oneuptime/oneuptime" {
+  version     = "{{TERRAFORM_PROVIDER_MAJOR}}.0.20"
+  constraints = "{{TERRAFORM_PROVIDER_VERSION}}"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
 ```
 
-2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
+The lock file names the registry. OpenTofu writes `registry.opentofu.org/oneuptime/oneuptime` where Terraform writes `registry.terraform.io/oneuptime/oneuptime`, so switching engines changes the lock file: `init` replaces the entry, and asks you to commit the change.
 
-**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## Move to a newer version
 
-## Checking versions and release notes
+:::steps
+### Read what changed
 
-- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
-- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
-- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+[OneUptime's releases](https://github.com/OneUptime/oneuptime/releases) say what each release changed, the provider included. [The provider's releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases) link to the changes since the one before.
 
-To move to a newer version within your constraint:
+### Download it
 
 ```bash
 terraform init -upgrade
 ```
 
-This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
+`init -upgrade` takes the newest version your constraint allows, prints it, and updates `.terraform.lock.hcl`. The constraint `{{TERRAFORM_PROVIDER_VERSION}}` takes every {{TERRAFORM_PROVIDER_MAJOR}}.x release; a new major version needs a new constraint.
+
+### Plan before you apply
+
+Run `terraform plan`, and apply only when it is empty or shows the changes you expect. Commit the updated lock file.
+:::
+
+On a self-hosted OneUptime, upgrade OneUptime first, then raise the end of the provider's range.
 
 ## Where the code lives
 
-The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+The provider is generated from the OneUptime API in the [main OneUptime repository](https://github.com/OneUptime/oneuptime), and each version is built from the release that published it. Its own repository, [OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime), holds what the generator wrote, so changes are made in the main repository: report problems, documentation ones included, at [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
 
-## Air-gapped environments
+## Next steps
 
-If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).
+:::cards
+- [Self-Hosted Setup](/docs/terraform/self-hosted): The version range for your own OneUptime, and a mirror for offline machines.
+- [OpenTofu](/docs/terraform/opentofu): The same provider and configuration, with `tofu`.
+- [Complete Guide](/docs/terraform/complete-guide): Authentication, project layout, data sources, state and upgrades.
+- [Troubleshooting](/docs/terraform/troubleshooting): Common errors and how to fix them.
+:::

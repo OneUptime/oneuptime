@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   hosts?: number | undefined;
@@ -126,13 +129,13 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.VMWARE_VCENTER_VIEW_INSIGHTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
+          icon={IconProp.ChartBar}
         />
         <RecommendationsSideMenuItem
           link={{
@@ -154,6 +157,44 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * VMware AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -307,6 +348,12 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: VMwareVCenter,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

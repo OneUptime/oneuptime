@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -42,9 +44,11 @@ const chipText: (value: string) => string = (value: string): string => {
 const renderOpenAffordance: (
   filter: ActiveFilter,
   colorClassName: string,
+  translator: Translator,
 ) => ReactElement | null = (
   filter: ActiveFilter,
   colorClassName: string,
+  translator: Translator,
 ): ReactElement | null => {
   if (!filter.openRoute) {
     return null;
@@ -54,7 +58,9 @@ const renderOpenAffordance: (
     <Link
       to={filter.openRoute}
       className={`ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded transition-colors ${colorClassName}`}
-      title={`Open ${filter.displayKey.toLowerCase()} view`}
+      title={translator.translateTemplate("Open {{name}} view", {
+        name: translatableTerm(filter.displayKey, { inSentence: true }),
+      })}
     >
       <Icon icon={IconProp.ExternalLink} className="h-2.5 w-2.5" />
     </Link>
@@ -64,6 +70,7 @@ const renderOpenAffordance: (
 const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
   props: ActiveFilterChipsProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (props.filters.length === 0) {
     return null;
   }
@@ -95,6 +102,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             trailing={renderOpenAffordance(
               filter,
               "text-gray-400 hover:bg-gray-200 hover:text-indigo-600",
+              translator,
             )}
           />
         );
@@ -107,12 +115,13 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
           >
             <span className="font-medium text-indigo-500">
-              {filter.displayKey}:
+              {translator.translateText(filter.displayKey)}:
             </span>
             <span>{chipText(filter.displayValue)}</span>
             {renderOpenAffordance(
               filter,
               "text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600",
+              translator,
             )}
             <button
               type="button"
@@ -126,7 +135,10 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                  */
                 props.onRemove(filter.facetKey, chipText(filter.value));
               }}
-              title={`Remove ${filter.displayKey}: ${chipText(filter.displayValue)}`}
+              title={translator.translateTemplate("Remove {{key}}: {{value}}", {
+                key: translatableTerm(filter.displayKey),
+                value: chipText(filter.displayValue),
+              })}
             >
               <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
             </button>
@@ -139,7 +151,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           onClick={props.onClearAll}
         >
-          Clear all
+          {translator.translateText("Clear all")}
         </button>
       )}
     </div>

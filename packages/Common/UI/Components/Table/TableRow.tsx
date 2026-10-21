@@ -1,5 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import RowActions from "../ActionButton/RowActions";
+import { ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ColorInput from "../ColorViewer/ColorViewer";
 import Icon, { ThickProp } from "../Icon/Icon";
@@ -9,15 +10,42 @@ import Column from "./Types/Column";
 import {
   getTableCellClassName,
   getTableCellContentClassName,
+  isFillingNameColumn,
 } from "./CellClassName";
+import {
+  TABLE_ACTIONS_CONTENT_CLASS_NAME,
+  TABLE_CLICKABLE_ROW_CLASS_NAME,
+  TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_MOBILE_FIELD_CLASS_NAME,
+  TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
+  TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
+  TABLE_MOBILE_ROW_CLASS_NAME,
+  TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
+  TABLE_ROW_CLASS_NAME,
+  TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_SELECT_CELL_CLASS_NAME,
+  TABLE_SELECTED_ROW_CLASS_NAME,
+  TABLE_STICKY_END_BODY_CELL_CLASS_NAME,
+  TABLE_STUCK_END_CELL_CLASS_NAME,
+  getTableCellPaddingClassName,
+} from "./TableLayout";
+import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
+import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useState, useEffect } from "react";
-import { Draggable, DraggableProvided } from "react-beautiful-dnd";
+import {
+  Draggable,
+  DraggableProvided,
+  DraggableStateSnapshot,
+} from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
+import InfoTooltip from "../Tooltip/InfoTooltip";
+import DragHandle from "./DragHandle";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -28,6 +56,22 @@ export interface ComponentProps<T extends GenericObject> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
+  /*
+   * Where this row is in the list on screen - what react-beautiful-dnd needs
+   * as the Draggable's index (0, 1, 2... with no gaps). It used to be handed
+   * the row's stored order number instead, which broke the moment those
+   * numbers started at 1, skipped one or repeated.
+   */
+  dragIndex?: number | undefined;
+  // Reordering is off for now (a filter is on, or a move is being saved).
+  isDragDisabled?: boolean | undefined;
+  // Why, in the caller's words - shown on the grip.
+  dragDisabledReason?: string | undefined;
+  /*
+   * The header's cell widths, taken as a drag starts: the lifted row keeps
+   * them so it still lines up with its columns (see Table).
+   */
+  dragColumnWidths?: Array<number> | null | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -52,6 +96,20 @@ export interface ComponentProps<T extends GenericObject> {
   itemSelectLabel?: string | undefined;
   /** Hover text for a row whose box is locked. Says why, in the caller's words. */
   itemNotSelectableReason?: string | undefined;
+  /** What this row is ("Monitor: Checkout API"), for its ⋯ menu's name. */
+  itemLabel?: string | undefined;
+
+  /*
+   * The last row of the page draws no rule under itself: the footer's own
+   * rule is right under it.
+   */
+  isLastRow?: boolean | undefined;
+  /*
+   * The rows scroll sideways (the columns are wider than the card): the
+   * Actions cell, which sticks at the right edge, is ruled off from the
+   * cells passing under it.
+   */
+  isOverflowing?: boolean | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -74,15 +132,14 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     }, obj);
   };
 
-  const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
-    props.actionButtons?.map(() => {
-      return false;
-    }) || [],
-  );
-
   const [tooltipModalText, setTooltipModalText] = useState<string>("");
 
-  const [error, setError] = useState<string>("");
+  /*
+   * On a phone a row is a card that labels each value with its column's
+   * title, which TableHeader - hidden there - would otherwise have
+   * translated.
+   */
+  const { translateString } = useTranslateValue();
 
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -124,6 +181,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   const isItemSelectable: boolean = props.isItemSelectable !== false;
 
   /*
+   * A row that opens its record on a click (its page hands it an onClick)
+   * takes the pointer's hand, as a link does.
+   */
+  const isClickable: boolean = Boolean(props.rowProps?.onClick);
+
+  /*
    * The bulk-select box, identical on the mobile card and the desktop row. It is
    * one function rather than two copies because the two used to drift: the
    * mobile copy still has no `disabled` handling of its own, and a locked row
@@ -155,11 +218,123 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
-  type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
+  type GetRowFunction = (
+    provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
+  ) => ReactElement;
+
+  const getDragHandle: (provided?: DraggableProvided) => ReactElement = (
+    provided?: DraggableProvided,
+  ): ReactElement => {
+    return (
+      <DragHandle
+        dragHandleProps={provided?.dragHandleProps}
+        itemLabel={props.itemLabel}
+        isDisabled={props.isDragDisabled}
+        disabledReason={props.dragDisabledReason}
+      />
+    );
+  };
+
+  /*
+   * A cell's value, read off the row the way its column says. Undefined for
+   * a column with nothing to draw (no key); an empty value is the quiet dash
+   * (TableEmptyValue), or the column's own words when it has some.
+   */
+  const getColumnContent: (column: Column<T>) => React.ReactNode = (
+    column: Column<T>,
+  ): React.ReactNode => {
+    if (!column.key) {
+      return null;
+    }
+
+    if (column.getElement) {
+      const element: ReactElement = column.getElement(props.item);
+
+      return isDashPlaceholder(element) ? <TableEmptyValue /> : element;
+    }
+
+    const value: unknown = props.item[column.key];
+
+    /*
+     * A missing value: the column's own words in the grey an absent value
+     * is drawn in, or a dash.
+     */
+    const getNoValue: () => ReactElement = (): ReactElement => {
+      if (column.noValueMessage) {
+        return (
+          <span className="text-gray-500">
+            {translateString(column.noValueMessage) ?? column.noValueMessage}
+          </span>
+        );
+      }
+
+      return <TableEmptyValue />;
+    };
+
+    switch (column.type) {
+      case FieldType.Date:
+      case FieldType.DateTime:
+        return value
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              value as string,
+              column.type === FieldType.Date,
+            )
+          : getNoValue();
+      case FieldType.USDCents:
+        return value
+          ? ((value as number) || 0) / 100 + " USD"
+          : column.noValueMessage || "0 USD";
+      case FieldType.Percent:
+        return value ? value + "%" : column.noValueMessage || "0%";
+      case FieldType.Color:
+        return value ? <ColorInput value={value as Color} /> : getNoValue();
+      case FieldType.LongText:
+        return value ? <LongTextViewer text={value as string} /> : getNoValue();
+      case FieldType.Boolean:
+        /*
+         * Yes is a tick; No is the quiet dash - a column of crosses down
+         * every row that is off read louder than the few that are on. A
+         * screen reader hears the word either way.
+         */
+        return value ? (
+          <span
+            className="inline-flex h-6 items-center text-gray-700"
+            data-testid="table-boolean-yes"
+          >
+            <Icon
+              icon={IconProp.Check}
+              className="h-5 w-5"
+              thick={ThickProp.Thick}
+            />
+            <span className="sr-only">{translateString("Yes") ?? "Yes"}</span>
+          </span>
+        ) : (
+          <TableEmptyValue screenReaderText="No" />
+        );
+      default: {
+        const text: string | undefined = getNestedValue(
+          props.item,
+          String(column.key),
+        )?.toString();
+
+        return text || getNoValue();
+      }
+    }
+  };
 
   const getRow: GetRowFunction = (
     provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
   ): ReactElement => {
+    /*
+     * The row being dragged floats above the others, so it reads as picked
+     * up rather than as a row that lost its place.
+     */
+    const draggingClassName: string = snapshot?.isDragging
+      ? "shadow-lg ring-1 ring-gray-200"
+      : "";
+
     // Mobile view: render as a card
     if (props.isMobile) {
       return (
@@ -168,29 +343,42 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             {...props.rowProps}
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className={`p-4 bg-white border-b border-gray-200 ${props.rowProps?.className || ""}`}
+            className={[
+              props.isItemSelected
+                ? TABLE_MOBILE_SELECTED_ROW_CLASS_NAME
+                : TABLE_MOBILE_ROW_CLASS_NAME,
+              isClickable
+                ? `${TABLE_CLICKABLE_ROW_CLASS_NAME} active:bg-gray-100`
+                : "",
+              draggingClassName,
+              props.rowProps?.className || "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
-            {props.enableDragAndDrop ? (
+            {/*
+             * The card's controls - its grip and its select box - share one
+             * line above its fields rather than stacking a line each.
+             */}
+            {props.enableDragAndDrop || props.isBulkActionsEnabled ? (
+              /*
+               * -ml-1 lines the grip's dots up with the fields' words, its
+               * hit area being wider than they are; a select box alone
+               * lines up as it is.
+               */
               <div
-                className="mb-3 flex justify-center"
-                {...provided?.dragHandleProps}
+                className={`mb-3 flex items-center gap-2${
+                  props.enableDragAndDrop ? " -ml-1" : ""
+                }`}
               >
-                <Icon
-                  icon={IconProp.ArrowUpDown}
-                  className="h-4 w-4 text-gray-400"
-                />
+                {props.enableDragAndDrop ? getDragHandle(provided) : <></>}
+                {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
               </div>
             ) : (
               <></>
             )}
 
-            {props.isBulkActionsEnabled ? (
-              <div className="mb-3">{getBulkSelectCheckbox()}</div>
-            ) : (
-              <></>
-            )}
-
-            <div className="space-y-3">
+            <dl className="space-y-2.5">
               {renderedColumns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
                   const customAction: ReactElement | null = column.getElement
@@ -198,151 +386,44 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     : null;
 
                   return (
-                    <div key={i} className="flex flex-wrap gap-2">
+                    <div
+                      key={i}
+                      className="flex flex-wrap items-center gap-2 pt-1"
+                    >
                       {customAction}
-                      {error && (
-                        <ConfirmModal
-                          title={`Error`}
-                          description={error}
-                          submitButtonText={"Close"}
-                          onSubmit={() => {
-                            return setError("");
-                          }}
-                        />
-                      )}
-                      {props.actionButtons?.map(
-                        (
-                          button: ActionButtonSchema<T>,
-                          actionIndex: number,
-                        ) => {
-                          if (
-                            button.isVisible &&
-                            !button.isVisible(props.item)
-                          ) {
-                            return <div key={actionIndex}></div>;
-                          }
-
-                          if (button.hideOnMobile) {
-                            return <div key={actionIndex}></div>;
-                          }
-
-                          return (
-                            <Button
-                              key={actionIndex}
-                              buttonSize={ButtonSize.Small}
-                              title={button.title}
-                              icon={button.icon}
-                              buttonStyle={button.buttonStyleType}
-                              isLoading={isButtonLoading[actionIndex]}
-                              disabled={button.disabled}
-                              tooltip={button.tooltip}
-                              onClick={() => {
-                                if (button.disabled) {
-                                  return;
-                                }
-
-                                if (button.onClick) {
-                                  isButtonLoading[actionIndex] = true;
-                                  setIsButtonLoading(isButtonLoading);
-
-                                  button.onClick(
-                                    props.item,
-                                    () => {
-                                      isButtonLoading[actionIndex] = false;
-                                      setIsButtonLoading(isButtonLoading);
-                                    },
-                                    (err: Error) => {
-                                      isButtonLoading[actionIndex] = false;
-                                      setIsButtonLoading(isButtonLoading);
-                                      setError((err as Error).message);
-                                    },
-                                  );
-                                }
-                              }}
-                            />
-                          );
-                        },
-                      )}
+                      <RowActions<T>
+                        item={props.item}
+                        actionButtons={props.actionButtons}
+                        isMobile={true}
+                        className="justify-start"
+                        itemLabel={props.itemLabel}
+                      />
                     </div>
                   );
                 }
 
-                const value: any =
-                  column.key && !column.getElement ? (
-                    column.type === FieldType.Date ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          true,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.DateTime ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          false,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.USDCents ? (
-                      props.item[column.key] ? (
-                        ((props.item[column.key] as number) || 0) / 100 + " USD"
-                      ) : (
-                        column.noValueMessage || "0 USD"
-                      )
-                    ) : column.type === FieldType.Percent ? (
-                      props.item[column.key] ? (
-                        props.item[column.key] + "%"
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.Color ? (
-                      props.item[column.key] ? (
-                        <ColorInput value={props.item[column.key] as Color} />
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.LongText ? (
-                      props.item[column.key] ? (
-                        <LongTextViewer
-                          text={props.item[column.key] as string}
-                        />
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.Boolean ? (
-                      props.item[column.key] ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      ) : (
-                        <Icon
-                          icon={IconProp.False}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      )
-                    ) : (
-                      getNestedValue(
-                        props.item,
-                        String(column.key),
-                      )?.toString() ||
-                      column.noValueMessage ||
-                      ""
-                    )
-                  ) : column.key && column.getElement ? (
-                    column.getElement(props.item)
-                  ) : null;
+                /*
+                 * A plain yes/no field says nothing when it is no, as the
+                 * table's quiet dash does. A column that draws its own
+                 * element says what it says either way - a rule's Status
+                 * is "Disabled" as surely as "Enabled", and a card that
+                 * left it out drew a disabled rule like an enabled one.
+                 */
+                const value: React.ReactNode =
+                  column.key &&
+                  column.type === FieldType.Boolean &&
+                  !column.getElement
+                    ? props.item[column.key]
+                      ? getColumnContent(column)
+                      : null
+                    : getColumnContent(column);
 
-                // Skip empty values for mobile view
+                // A card leaves out the fields that have nothing to say.
                 if (
                   !value ||
-                  (typeof value === "string" && value.trim() === "")
+                  (typeof value === "string" && value.trim() === "") ||
+                  (React.isValidElement(value) &&
+                    value.type === TableEmptyValue)
                 ) {
                   return null;
                 }
@@ -350,21 +431,47 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 return (
                   <div
                     key={i}
-                    className="flex flex-col space-y-1"
+                    className={TABLE_MOBILE_FIELD_CLASS_NAME}
                     onClick={() => {
                       if (column.tooltipText) {
                         setTooltipModalText(column.tooltipText(props.item));
                       }
                     }}
                   >
-                    <div className="text-sm font-medium text-gray-500">
-                      {column.title}
-                    </div>
-                    <div className="text-sm text-gray-900">{value}</div>
+                    <dt className={TABLE_MOBILE_FIELD_NAME_CLASS_NAME}>
+                      {/*
+                       * A card has no header row, so the (i) a column's
+                       * header carries on a wide screen sits beside the
+                       * field's name here - or what the column's numbers
+                       * mean could not be asked on a phone at all.
+                       */}
+                      {column.headerTooltip?.trim() ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span>
+                            {translateString(column.title) ?? column.title}
+                          </span>
+                          <InfoTooltip
+                            label={column.title}
+                            text={column.headerTooltip}
+                          />
+                        </span>
+                      ) : (
+                        translateString(column.title) ?? column.title
+                      )}
+                    </dt>
+                    <dd
+                      className={
+                        i === 0
+                          ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
+                          : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME
+                      }
+                    >
+                      {value}
+                    </dd>
                   </div>
                 );
               })}
-            </div>
+            </dl>
           </div>
           {tooltipModalText && (
             <ConfirmModal
@@ -381,35 +488,96 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       );
     }
 
+    /*
+     * While lifted, the row is laid out on its own: as a fixed-layout table
+     * whose cells keep the widths of the header cells above them.
+     */
+    const lockedWidths: Array<number> | null =
+      snapshot?.isDragging && props.dragColumnWidths
+        ? props.dragColumnWidths
+        : null;
+
+    let cellIndex: number = 0;
+
+    const getLockedCellStyle: () => React.CSSProperties | undefined = ():
+      | React.CSSProperties
+      | undefined => {
+      const width: number | undefined = lockedWidths
+        ? lockedWidths[cellIndex]
+        : undefined;
+
+      cellIndex++;
+
+      return width
+        ? { width: width, minWidth: width, maxWidth: width }
+        : undefined;
+    };
+
+    const rowStyle: React.CSSProperties | undefined = lockedWidths
+      ? {
+          ...(provided?.draggableProps.style || {}),
+          display: "table",
+          tableLayout: "fixed",
+        }
+      : provided?.draggableProps.style;
+
+    // The cells the row draws before its columns: a grip, then a select box.
+    const leadingCellCount: number =
+      (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
+
+    const ruleClassName: string = props.isLastRow
+      ? ""
+      : ` ${TABLE_ROW_RULE_CLASS_NAME}`;
+
     // Desktop view: render as table row
     return (
       <>
         <tr
           {...props.rowProps}
           {...provided?.draggableProps}
+          style={rowStyle}
           ref={provided?.innerRef}
+          data-selected={props.isItemSelected ? "true" : undefined}
+          className={[
+            props.isItemSelected
+              ? TABLE_SELECTED_ROW_CLASS_NAME
+              : TABLE_ROW_CLASS_NAME,
+            isClickable ? TABLE_CLICKABLE_ROW_CLASS_NAME : "",
+            snapshot?.isDragging ? draggingClassName : "",
+            props.rowProps?.className || "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           {props.enableDragAndDrop && (
             <td
-              className="ml-5 py-4 w-10 align-top"
-              {...provided?.dragHandleProps}
+              className={`${TABLE_DRAG_HANDLE_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                { isFirst: true, isLast: false },
+              )}${ruleClassName}`}
+              style={getLockedCellStyle()}
             >
-              <Icon
-                icon={IconProp.ArrowUpDown}
-                className="ml-6 h-5 w-5 text-gray-500 hover:text-indigo-800 m-auto cursor-ns-resize"
-              />
+              {/*
+               * In a flex box, not on a line of text: set on the cell's
+               * line, the 28px grip took the line's spacing under it too,
+               * and every row of a drag-ordered list stood 3px taller.
+               */}
+              <div className="flex">{getDragHandle(provided)}</div>
             </td>
           )}
           {props.isBulkActionsEnabled && (
             <td
-              className="w-10 py-3.5  align-top"
-              {...provided?.dragHandleProps}
+              className={`${TABLE_SELECT_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                { isFirst: !props.enableDragAndDrop, isLast: false },
+              )}${ruleClassName}`}
+              style={getLockedCellStyle()}
             >
-              <div className="ml-5">{getBulkSelectCheckbox()}</div>
+              {getBulkSelectCheckbox()}
             </td>
           )}
           {props.columns &&
             renderedColumns.map((column: Column<T>, i: number) => {
+              const isActions: boolean = column.type === FieldType.Actions;
+
               /*
                * Shared with the loading skeleton, so the two can no longer
                * drift, and the one place that decides whether this cell's
@@ -418,181 +586,99 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               const className: string = getTableCellClassName<T>({
                 column: column,
                 isLastRenderedColumn: i === renderedColumns.length - 1,
+                isFirstRenderedCell: leadingCellCount === 0 && i === 0,
+                isLastRow: props.isLastRow,
+                isPrimaryColumn: i === 0,
               });
 
-              let columnContent: React.ReactNode = null;
-
-              if (column.key && !column.getElement) {
-                columnContent =
-                  column.type === FieldType.Date ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        props.item[column.key] as string,
-                        true,
-                      )
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.DateTime ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        props.item[column.key] as string,
-                        false,
-                      )
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.USDCents ? (
-                    props.item[column.key] ? (
-                      ((props.item[column.key] as number) || 0) / 100 + " USD"
-                    ) : (
-                      column.noValueMessage || "0 USD"
-                    )
-                  ) : column.type === FieldType.Percent ? (
-                    props.item[column.key] ? (
-                      props.item[column.key] + "%"
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.Color ? (
-                    props.item[column.key] ? (
-                      <ColorInput value={props.item[column.key] as Color} />
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.LongText ? (
-                    props.item[column.key] ? (
-                      <LongTextViewer text={props.item[column.key] as string} />
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.Boolean ? (
-                    props.item[column.key] ? (
-                      <Icon
-                        icon={IconProp.Check}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    ) : (
-                      <Icon
-                        icon={IconProp.False}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    )
-                  ) : (
-                    getNestedValue(
-                      props.item,
-                      String(column.key),
-                    )?.toString() ||
-                    column.noValueMessage ||
-                    ""
-                  );
-              } else if (column.key && column.getElement) {
-                columnContent = column.getElement(props.item);
-              }
+              /*
+               * The Actions cell sticks at the table's right edge, and when
+               * the rows scroll sideways is ruled off from the cells passing
+               * under it.
+               */
+              const stickyClassName: string = isActions
+                ? ` ${TABLE_STICKY_END_BODY_CELL_CLASS_NAME}${
+                    props.isOverflowing
+                      ? ` ${TABLE_STUCK_END_CELL_CLASS_NAME}`
+                      : ""
+                  }`
+                : "";
 
               /*
-               * The column's own classes, plus the width cap a wrapping
-               * column gets - which has to sit on this div rather than on the
-               * <td>, because max-width is ignored on a table-cell box.
+               * An Actions column with a key and an element of its own draws
+               * that element before the row's buttons.
+               */
+              const columnContent: React.ReactNode = isActions
+                ? column.key && column.getElement
+                  ? column.getElement(props.item)
+                  : null
+                : getColumnContent(column);
+
+              /*
+               * The column's own classes, plus the width cap - which has to
+               * sit on this div rather than on the <td>, because max-width
+               * is ignored on a table-cell box.
                */
               const contentWrapperClassName: string =
-                getTableCellContentClassName<T>(column);
-
-              const actionsContainerClassName: string = contentWrapperClassName
-                ? `flex justify-end ${contentWrapperClassName}`
-                : "flex justify-end";
+                getTableCellContentClassName<T>(column, {
+                  isPrimaryColumn: i === 0,
+                });
 
               return (
                 <td
                   key={i}
-                  className={className}
-                  style={{
-                    textAlign:
-                      column.type === FieldType.Actions ? "right" : "left",
-                  }}
+                  className={`${className}${stickyClassName}`}
+                  style={getLockedCellStyle()}
                   onClick={() => {
                     if (column.tooltipText) {
                       setTooltipModalText(column.tooltipText(props.item));
                     }
                   }}
+                  data-row-click-ignore={
+                    column.tooltipText ? "true" : undefined
+                  }
                 >
-                  {column.type !== FieldType.Actions &&
+                  {!isActions &&
                     columnContent !== null &&
                     columnContent !== undefined && (
-                      <div className={contentWrapperClassName}>
+                      <div
+                        className={contentWrapperClassName}
+                        /*
+                         * The row's name, which may use the room of a table
+                         * that fits (useTableScrollState's
+                         * TABLE_NAME_ATTRIBUTE).
+                         */
+                        data-table-name={
+                          isFillingNameColumn<T>(column, i === 0)
+                            ? "true"
+                            : undefined
+                        }
+                        onMouseEnter={
+                          column.wrapContent
+                            ? undefined
+                            : showFullValueWhenCutShort
+                        }
+                      >
                         {columnContent}
                       </div>
                     )}
-                  {column.type === FieldType.Actions && (
-                    <div className={actionsContainerClassName}>
+                  {isActions && (
+                    <div
+                      className={[
+                        "flex items-center justify-end gap-2",
+                        TABLE_ACTIONS_CONTENT_CLASS_NAME,
+                        contentWrapperClassName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
                       {columnContent}
-                      {error && (
-                        <div className="text-align-left">
-                          <ConfirmModal
-                            title={`Error`}
-                            description={error}
-                            submitButtonText={"Close"}
-                            onSubmit={() => {
-                              return setError("");
-                            }}
-                          />
-                        </div>
-                      )}
-                      {props.actionButtons?.map(
-                        (button: ActionButtonSchema<T>, i: number) => {
-                          if (
-                            button.isVisible &&
-                            !button.isVisible(props.item)
-                          ) {
-                            return <div key={i}></div>;
-                          }
-
-                          // Hide button on mobile if hideOnMobile is true
-                          if (button.hideOnMobile && isMobileView) {
-                            return <div key={i}></div>;
-                          }
-
-                          return (
-                            <div key={i}>
-                              <Button
-                                buttonSize={ButtonSize.Small}
-                                title={button.title}
-                                icon={button.icon}
-                                buttonStyle={button.buttonStyleType}
-                                isLoading={isButtonLoading[i]}
-                                disabled={button.disabled}
-                                tooltip={button.tooltip}
-                                onClick={() => {
-                                  if (button.disabled) {
-                                    return;
-                                  }
-
-                                  if (button.onClick) {
-                                    isButtonLoading[i] = true;
-                                    setIsButtonLoading(isButtonLoading);
-
-                                    button.onClick(
-                                      props.item,
-                                      () => {
-                                        // on action complete
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                      },
-                                      (err: Error) => {
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                        setError((err as Error).message);
-                                      },
-                                    );
-                                  }
-                                }}
-                              />
-                            </div>
-                          );
-                        },
-                      )}
+                      <RowActions<T>
+                        item={props.item}
+                        actionButtons={props.actionButtons}
+                        isMobile={isMobileView}
+                        itemLabel={props.itemLabel}
+                      />
                     </div>
                   )}
                 </td>
@@ -614,19 +700,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
-  if (
-    props.enableDragAndDrop &&
-    props.dragDropIdField &&
-    props.dragDropIndexField
-  ) {
+  if (props.enableDragAndDrop && props.dragDropIdField) {
     return (
       <Draggable
-        draggableId={(props.item[props.dragDropIdField] as string) || ""}
-        index={(props.item[props.dragDropIndexField] as number) || 0}
-        key={(props.item[props.dragDropIndexField] as number) || 0}
+        draggableId={props.item[props.dragDropIdField]?.toString() || ""}
+        index={props.dragIndex || 0}
+        isDragDisabled={Boolean(props.isDragDisabled)}
       >
-        {(provided: DraggableProvided) => {
-          return getRow(provided);
+        {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
+          return getRow(provided, snapshot);
         }}
       </Draggable>
     );

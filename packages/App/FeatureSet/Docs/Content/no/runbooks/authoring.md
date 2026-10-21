@@ -1,99 +1,252 @@
 # Skrive et runbook
 
-Opprett et runbook under **Runbooks → Opprett runbook**, åpne det og gå til fanen **Trinn**.
+Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne siden viser hvordan du oppretter et runbook, hvordan du setter opp hver av de sju trinntypene, og hvordan feil og godkjenninger endrer forløpet til en kjøring.
 
-## Anatomien til et trinn
+:::cards
+- [Opprett et runbook](#opprett-et-runbook): Fra et tomt runbook til lagrede trinn.
+- [Trinntyper](#trinntyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl og AI.
+- [Feilhåndtering og godkjenninger](#feilhåndtering-og-godkjenninger): Hva som skjer når et trinn feiler eller venter på godkjenning.
+- [Et gjennomgått eksempel](#et-gjennomgått-eksempel): En database-failover i fem trinn.
+:::
 
-Hvert trinn har:
+## Før du begynner
 
-| Felt                            | Hensikt                                                                                                     |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Tittel**                      | Kort betegnelse i sjekkliste-UI-en. Påkrevd.                                                                |
-| **Beskrivelse**                 | Valgfri kontekst til responderen. Markdown-tekst.                                                           |
-| **Fortsett ved feil**           | Hvis på, stopper et feilet trinn ikke kjøringen — neste trinn kjører likevel.                               |
-| **Krev godkjenning**            | Hvis på, pauser runbook'et etter dette trinnet og venter på at en bruker godkjenner før neste trinn kjøres. |
-| **Typespesifikk konfigurasjon** | Skript, URL, agent osv. — se nedenfor.                                                                      |
+- **En rolle som skriver runbooks.** Project Owner, Project Admin og Runbook Admin oppretter runbooks og lagrer trinnene deres. Med detaljerte tillatelser trenger du **Create Runbook** og **Edit Runbook**. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
+- **En Runner, for Bash-, SSH- og kubectl-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et JavaScript-trinn kjører på en [global Runner](/docs/runbooks/agents#globale-runnere) med mindre du velger en av dine egne.
+- **En hemmelig variabel, for SSH- og kubectl-trinn.** Nøkkelen, passordet eller kubeconfigen et trinn logger på med, er en hemmelig [runbook-variabel](/docs/runbooks/variables). Project Owner og Project Admin oppretter variabler, og Runbook Admin velger dem i trinnene den skriver. Et kubectl-trinn kan i stedet bruke Runnerens egen tilgang.
+- **En LLM-leverandør, for AI-trinn.** Se [LLM-leverandører](/docs/ai/llm-provider).
 
-Trinn kjører **i rekkefølge**. Omorganiser med pilene opp/ned i trinn-editoren.
+## Opprett et runbook
+
+:::steps
+### Åpne Runbooks
+
+Åpne **Produkter → Runbooks**. Runbooks ligger i gruppen **Dashbord og automatisering**.
+
+### Opprett runbooket
+
+Klikk **Opprett Runbook**, skriv inn et **Navn** og eventuelt en **Beskrivelse** av hva runbooket er til. Under **Flere felt** ligger bryteren **Aktivert**, som er slått på som standard, og **Etiketter**. Det nye runbooket åpnes på siden **Trinn**.
+
+### Legg til trinn
+
+Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel** og det typen trenger; resten, som **Beskrivelse** og tidsavbrudd, er brettet sammen under **Flere felt**. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
+
+### Sett trinnene i rekkefølge
+
+Trinn kjører **i rekkefølge**. Du endrer rekkefølgen ved å dra et trinn i håndtaket til venstre i overskriften; med tastaturet setter du fokus på håndtaket, trykker mellomrom, flytter trinnet med piltastene og trykker mellomrom igjen.
+
+### Lagre trinnene
+
+Klikk **Save Steps**. Inntil du gjør det, viser redigeringsverktøyet **Ulagrede endringer**. Når de er lagret, ser du **Lagret**, og runbooket er klart til å [kjøres](/docs/runbooks/running).
+:::
+
+## Hvordan et trinn er bygd opp
+
+Hvert trinn har disse feltene. Et automatisert trinn viser **Tittel** og innstillingene for typen, og bretter resten sammen under **Flere felt**, som viser hva av det som er satt:
+
+| Felt | Formål |
+| --- | --- |
+| **Tittel** | En kort etikett som vises i trinnlisten og ved hver kjøring. |
+| **Beskrivelse** | Valgfri kontekst for den som håndterer hendelsen, i Markdown, under **Flere felt**. På et Manual-trinn er det **Instruksjoner** personen leser og følger, vist under tittelen. |
+| **Fortsett ved feil** | Bare automatiserte trinn. Når den er slått på, stopper ikke et trinn som feiler kjøringen: neste trinn kjører likevel. |
+| **Krev godkjenning** | Bare automatiserte trinn. Når den er slått på, stopper kjøringen før dette trinnet til noen godkjenner det, og først da kjøres det. Bryteren heter **Krev godkjenning før dette trinnet kjøres**, og trinnets overskrift viser **Krever godkjenning**. |
+| Typespesifikke innstillinger | Skriptet, URL-en, Runneren, en hemmelig variabel eller prompten. Se [Trinntyper](#trinntyper). |
 
 ## Trinntyper
 
-### Manuell
+| Type | Kjører på | Krever |
+| --- | --- | --- |
+| [Manual](#manual) | En person | Ingenting |
+| [JavaScript](#javascript) | En Runner | En Runner |
+| [HTTP request](#http-request) | OneUptime Worker | Ingenting |
+| [Bash](#bash) | En Runner | En Runner |
+| [SSH](#ssh) | En Runner | En Runner og en hemmelig variabel å logge på med |
+| [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen tilgang |
+| [AI](#ai) | OneUptime Worker | En LLM-leverandør |
 
-En boks responderen huker av. Kjøringen pauses ved et manuelt trinn og blir værende i `WaitingForManualStep` til noen markerer det som fullført (eller hopper over).
+I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten og passordfrasen for nøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene.
 
-Bruk det for noe bare et menneske kan verifisere: "Trafikken er flyttet til sekundær region ifølge load balancer-dashbordet — bekreftet."
+### Manual
+
+Et sjekklistepunkt for en person: trinnets **Instruksjoner** sier hva som skal gjøres eller sjekkes. Kjøringen tar pause når den når et Manual-trinn, og blir værende i `WaitingForManualStep` (**Venter på deg**) til noen klikker **Marker som ferdig** eller **Hopp over**. En kjøring som venter på en person, utløper aldri. Et Manual-trinn har ingen godkjenningsbryter: det stopper allerede kjøringen for en person.
+
+Bruk det til det bare et menneske kan kontrollere eller gjøre: "Bekreft i lastbalansererens dashbord at trafikken er flyttet til den sekundære regionen."
 
 ### JavaScript
 
-En JavaScript-snutt som kjøres i en `isolated-vm`-sandkasse. Sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — ikke på OneUptime-Worker'en.
+Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-agent](/docs/runbooks/agents), ikke på OneUptime Worker: på en av dine egne, eller på en [global Runner](/docs/runbooks/agents#globale-runnere) når trinnet ikke velger noen.
 
-Konfigurer på et JavaScript-trinn:
+| Felt | Hva det gjør | Standard |
+| --- | --- | --- |
+| **Runner** | Runneren som kjører trinnet: **Global Runner** eller en av dine egne. Bare Runneren du velger, kan ta jobben; enhver global Runner kan ta et trinn på **Global Runner**. | **Global Runner**, når det finnes en |
+| **Script** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. En global Runner lar den kjøre i høyst 5 minutter. | 30 sekunder |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
-- **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
-- **Skript** — JavaScript-koden som skal kjøres.
-- **Execution timeout** — hvor lenge agenten lar snutten kjøre før isolaten rives ned. Standard er 30 sekunder.
-- **Claim timeout** — hvor lenge Worker'en venter på at agenten plukker opp jobben. Standard er 2 minutter.
-
-```js
+```javascript
 const start = Date.now();
-// ... din logikk ...
+// ... your logic ...
+console.log("replica lag checked");
 return { durationMs: Date.now() - start };
 ```
 
-Returverdien lagres på trinn-kjøringen. `console.log`-output fanges som loglinjer. Standard execution timeout: 30 sekunder. Standard claim timeout (hvor lenge Worker'en venter på at agenten plukker opp jobben): 2 minutter. Begge kan redigeres på trinnet — se **Execution timeout** og **Claim timeout** under skriptet.
+Sandkassen har 128 MB minne og ingen tilgang til filsystemet eller prosesser. Den kan sende HTTP-forespørsler med `axios`, men bare til offentlige adresser: en forespørsel til et privat nettverk, til Runnerens egen vert eller til et metadataendepunkt i skyen avvises. Bruk et [Bash](#bash)-trinn med `curl` for å nå en tjeneste i nettverket ditt.
 
-### HTTP-forespørsel
+### HTTP request
 
-Et utgående HTTP-kall. Konfigurer metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfrie JSON-headere, valgfri body og en **Request timeout** (standard 30 sekunder). Status, headere og body på svaret lagres (totalt opp til 50 KB).
+Et utgående HTTP-kall, gjort av OneUptime Worker. Ingen Runner trengs.
 
-Nyttig for: åpne en PagerDuty-hendelse, poste på Slack, kalle din egen admin-API osv. HTTP-trinn kjører direkte på OneUptime-Worker'en; ingen agent påkrevd.
+| Felt | Hva det gjør | Standard |
+| --- | --- | --- |
+| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
+| **URL** | Endepunktet som skal kalles. | Tom |
+| **Headers (JSON)** | Under **Flere felt**. Et JSON-objekt, for eksempel `{ "Authorization": "Bearer ..." }`. Headere som ikke er gyldig JSON, får trinnet til å feile. | Ingen |
+| **Body** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON når den kan leses som JSON, ellers som tekst. | Ingen |
+| **Request timeout** | Hvor lenge det ventes på svar fra endepunktet før trinnet feiler. | 30 sekunder |
+
+Trinnet lykkes ved et `2xx`- eller `3xx`-svar og feiler ved alt annet, med `HTTP <status>` som feil. Omdirigeringer følges ikke. Svarets status, headere og body registreres, opptil 50 KB.
+
+> [!NOTE]
+> Workeren kaller aldri loopback- eller link-local-adresser, for eksempel et metadataendepunkt i skyen. På OneUptime Cloud kaller den bare offentlige adresser. En selvhostet OneUptime når også private nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`. Bruk et [Bash](#bash)-trinn med `curl` for å kalle en tjeneste i nettverket ditt fra OneUptime Cloud.
+
+Nyttig til: å åpne en PagerDuty-hendelse, poste til en Slack-webhook, kalle API-et til skyleverandøren din eller ditt eget offentlige API.
 
 ### Bash
 
-Et bash-skript (`bash -c <skript>`) som kjøres på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kjøres aldri på OneUptime-Worker'en.
+Et bash-skript som kjøres med `bash -c <script>` på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kjører aldri på OneUptime Worker.
 
-Konfigurer på et Bash-trinn:
+| Felt | Hva det gjør | Standard |
+| --- | --- | --- |
+| **Runner** | Runneren som kjører trinnet. Bare den Runneren kan ta jobben. | — |
+| **Bash-skript** | Skriptet. Output (stdout og stderr) registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. | — |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den dreper det med `SIGKILL`. Øk den for trinn som med god grunn tar minutter. | 30 sekunder |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
-- **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
-- **Skript** — bash'en som skal kjøres. Output (stdout + stderr) fanges opp til 50 KB; prosessen drepes ved timeout.
-- **Execution timeout** — hvor lenge agenten lar skriptet kjøre før den dreper det med `SIGKILL`. Standard er 30 sekunder; øk den for trinn som faktisk trenger flere minutter.
-- **Claim timeout** — hvor lenge Worker'en venter på at agenten plukker opp jobben. Standard er 2 minutter.
+Skriptet kjører i Runnerens container med verktøyene imaget leveres med, som `curl`, `wget` og `ssh`-klienten, og med nettverkstilgangen til verten det kjører på. For eksempel for å sjekke en tjeneste som bare nettverket ditt kan nå:
 
-Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Innstillinger → Agents** før du baserer deg på et Bash-trinn.
+```bash
+set -euo pipefail
+HTTP_CODE=$(curl -s -o /tmp/resp.txt -w "%{http_code}" "http://payments.internal:8080/health")
+echo "HTTP $HTTP_CODE"
+cat /tmp/resp.txt
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Health check failed"
+  exit 1
+fi
+```
+
+Hvis den valgte Runneren er frakoblet når kjøringen når dette trinnet, venter trinnet opptil **claim timeout** (2 minutter som standard) og feiler deretter på grunn av tidsavbrudd. Legg til en agent under **Runbooks → Runbook-agenter** før du regner med et Bash-trinn.
+
+> [!TIP]
+> Hold passord og tokener utenfor skriptet. Lagre dem som hemmelige [runbook-variabler](/docs/runbooks/variables), og skriv `{{global.variables.NAME}}` der verdien skal stå: Runneren mottar skriptet med verdien satt inn, og trinnets utdata viser `[REDACTED]` i stedet.
+
+### SSH
+
+Logg på en maskin over SSH og kjør et bash-skript der. Runneren åpner forbindelsen, så maskinen må bare kunne nås fra Runneren, og nøkkelen eller passordet trinnet logger på med, er en hemmelig [runbook-variabel](/docs/runbooks/variables) som aldri skrives i trinnet.
+
+| Felt | Hva det gjør |
+| --- | --- |
+| **Runner** | Runneren som åpner forbindelsen. Den må kunne nå maskinen over nettverket. |
+| **SSH til** | Brukeren og maskinen, slik du ville skrevet dem etter `ssh`: `deploy@10.0.4.21`. |
+| **Logg på med** | Den hemmelige variabelen som holder den private nøkkelen eller passordet; verdien viser hvilken det er. Bare hemmelige variabler tilbys, og trinnet sier fra når Runneren ikke får bruke den valgte. |
+| **Bash-skript** | Kjører med `bash` på maskinen som brukeren trinnet logger på som. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Port** | Under **Flere felt**. 22 når den står tom. |
+| **Passordfrase for nøkkelen** | Under **Flere felt**. Den hemmelige variabelen som holder passordfrasen til en nøkkel som har en. |
+| **Tidsavbrudd for kjøring** | Dekker tilkobling, pålogging og kjøring av skriptet samlet, slik at et skript som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
+
+For eksempel for å starte en tjeneste på nytt og vise at den kom opp igjen:
+
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Kjør kubectl-kommandoer mot en klynge. Skriptet kjører med bash på Runneren, som har med `kubectl`, med `KUBECONFIG` pekende på klyngen: enhver kubectl-kommando virker, og det samme gjør all bash rundt.
+
+| Felt | Hva det gjør |
+| --- | --- |
+| **Runner** | Runneren som kjører kubectl. Den må kunne nå klyngens API-server. |
+| **Kubeconfig** | Den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang**: Runnerens egen kubeconfig, eller tjenestekontoen når den kjører i klyngen. Runneren skriver en kubeconfig til en fil bare den kan lese, og fjerner den når skriptet avsluttes. |
+| **Script** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den stopper det med `SIGKILL`. Standard 30 sekunder. |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
+
+For eksempel for å starte en deployment på nytt og vente til de nye podene er klare:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Eksempler – klikk for å sette inn**, under hvert skript, setter inn vanlige skript som disse. Gi kubeconfigens bruker bare det skriptene dine gjør: en Role i namespacene de jobber i, med verbene de bruker. Hvis API-serveren avviser en kommando, står kubectls egen melding i trinnets utdata, så en tillatelsesfeil forteller deg hvilken role binding du må utvide.
 
 ### AI
 
-Be AI om å analysere, oppsummere eller avgjøre noe midt i kjøringen. Prompten sendes til prosjektets LLM-leverandør (**Innstillinger → AI → LLM-leverandører**), og modellens svar blir trinnets output på kjøringstidslinjen. AI-trinn kjører på OneUptime-Worker'en; ingen agent påkrevd.
+Be AI om å analysere, oppsummere eller bestemme noe midt i kjøringen. Svaret blir trinnets output på kjøringen. AI-trinn kjører på OneUptime Worker; ingen Runner trengs.
 
-Konfigurer på et AI-trinn:
+| Felt | Hva det gjør |
+| --- | --- |
+| **Prompt** | Hva AI-en skal gjøre. For eksempel: "Gå gjennom outputen fra de forrige trinnene, og si om det er trygt å fortsette med utbedringen." |
+| **LLM provider** | Valgfritt. **Project default** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
+| **Include previous step context** | Når den er slått på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger. Den får opptil 4 000 tegn av hvert trinns output. |
+| **Include trigger context** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller den planlagte vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
 
-- **Prompt** — hva AI-en skal gjøre. For eksempel: "Gjennomgå outputen fra de foregående trinnene og angi om det er trygt å fortsette med utbedring."
-- **Inkluder kontekst fra tidligere trinn** — hvis på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger.
-- **Inkluder trigger-kontekst** — hvis på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller det planlagte vedlikeholdet (beskrivelse, alvorlighetsgrad, gjeldende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbook'et manuelt.
+For å holde et menneske i løkken slår du på **Krev godkjenning** på trinnet etter et AI-trinn: AI-en analyserer, en person leser svaret, og det utbedrende trinnet kjører først når personen godkjenner det.
 
-Kombiner et AI-trinn med **Krev godkjenning** for å ha et menneske i loopen: AI-en analyserer, en responder leser svaret og godkjenner, og først da kjører neste (utbedrings-)trinn.
+**Hva AI-en aldri ser.** Svaret fra et AI-trinn lagres som trinnoutput på kjøringen, og kjøringer kan leses av alle med lesetilgang til runbooks, et bredere publikum enn hendelsens. Derfor utelater utløserkonteksten **private interne notater** og **kanalmeldinger fra Slack og Microsoft Teams**. Outputen fra tidligere trinn skannes etter hemmeligheter (tokens, nøkler, påloggingsinformasjon), som maskeres før den sendes til modellen. Innebygde bilder og lange kodede data, for eksempel et skjermbilde limt inn i beskrivelsen av en hendelse, utelates også, med et kort notat i stedet.
 
-**Hva AI-en aldri ser.** Svaret fra et AI-trinn lagres som trinn-output på kjøringen, og kjøringer kan leses av alle med lesetilgang til runbooks — et bredere publikum enn hendelsens ACL. Derfor utelater trigger-konteksten bevisst **private interne notater** og **Slack/Teams-kanalmeldinger**: de forblir inne i hendelsen, der de eksisterende postmortem- og notatgeneratorene beholder sin avledede tekst. Output fra tidligere trinn skannes for hemmeligheter (tokens, nøkler, påloggingsinformasjon) og maskeres før det sendes til modellen.
+AI-trinn måles og faktureres som enhver annen AI-funksjon. Trinnet feiler med en melding som sier hvorfor, når det ikke har noen prompt, når AI-funksjoner er slått av for prosjektet, når ingen LLM-leverandør er tilgjengelig, eller når den festede leverandøren ikke lenger er tilgjengelig for prosjektet. Slå på **Fortsett ved feil** hvis resten av runbooket fortsatt skal kjøre.
 
-AI-trinn måles og faktureres som enhver annen AI-funksjon. Hvis ingen LLM-leverandør er konfigurert for prosjektet, feiler trinnet med en tydelig feilmelding (slå på **Fortsett ved feil** hvis resten av runbook'et likevel skal kjøre).
+## Feilhåndtering og godkjenninger
+
+```mermaid title="Hva som skjer ved et automatisert trinn"
+flowchart TB
+    reach["Kjøringen når et<br/>automatisert trinn"] --> approval{"Krev godkjenning slått på?"}
+    approval -->|"ja"| wait["Kjøringen venter på at<br/>en person godkjenner"]
+    wait -->|"godkjent"| run["Trinnet kjører"]
+    approval -->|"nei"| run
+    wait -->|"hoppet over"| next["Neste trinn"]
+    run --> ok{"Lyktes det?"}
+    ok -->|"ja"| next
+    ok -->|"nei"| cont{"Fortsett ved<br/>feil slått på?"}
+    cont -->|"ja"| next
+    cont -->|"nei"| failed["Kjøringen stopper<br/>som mislykket"]
+```
+
+Som standard stopper et trinn som feiler kjøringen og markerer den som `Failed`, med trinnets feil som årsak. Med **Fortsett ved feil** slått på registreres feilen, og neste trinn kjører, noe som passer for runbooks av typen "prøv disse tre tingene, og varsle så".
+
+**Krev godkjenning** gjelder før et trinn kjører, uansett hva som skjedde før det: kjøringen venter til noen klikker **Godkjenn og kjør**, og trinnet kjører, eller **Hopp over**, og det kjører aldri. Slå det på for trinnet som endrer noe - omstarten, failoveren, nedskaleringen - slik at en person først ser på hva trinnene før det fant. Godkjenningen hører til trinnet, så flytter du trinnet, flytter den med.
+
+:::note
+Gjennom API-et og Terraform er bryteren et trinns felt `requireApprovalBeforeRunning`. Et trinns felt `requireApproval`, som runbooks skrev før godkjenninger flyttet til trinnet de vokter, virker fortsatt og betyr det det betydde: en godkjenning etter det trinnet. OneUptime leser det som en godkjenning før neste trinn eller, etter det siste trinnet, som et Manual-trinn til slutt med tittelen **Approve the result**.
+:::
 
 ## Lagre og redigere
 
-Trykk **Lagre trinn** for å lagre. Pågående kjøringer av eldre versjoner av runbook'et er upåvirket — de fortsetter med sitt snapshot.
+Endringer i trinnene trer i kraft når du klikker **Save Steps**. Hver kjøring arbeider ut fra øyeblikksbildet som ble tatt da den startet, så pågående kjøringer beholder trinnene de startet med, og redigering skriver aldri om historikken for tidligere kjøringer.
 
-## Flere trinn og feilhåndtering
+## Et gjennomgått eksempel
 
-Som standard stopper et feilet trinn kjøringen og markerer den `Failed`. Slår du på **Fortsett ved feil** på et trinn, registreres feilen, men neste trinn kjører likevel. Nyttig for mønstre som "prøv disse tre tingene, gi så beskjed".
+Et runbook for "DB primary unreachable":
 
-## Et gjennomarbeidet eksempel
+| # | Type | Hva det gjør |
+| --- | --- | --- |
+| 1 | JavaScript | Hent den nåværende primære verten fra konfigurasjonstjenesten din, og logg den. |
+| 2 | Manual | "Bekreft at replikeringsforsinkelsen på den sekundære er under 5 sekunder." |
+| 3 | HTTP request | `POST` til API-et til failover-orkestratoren din. |
+| 4 | Manual | "Kontroller at skrivinger nå går til den nye primære." |
+| 5 | HTTP request | `POST` en avblåsningsmelding til en Slack-webhook. |
 
-Et enkelt runbook for "Primær DB ikke nåbar":
+Den som håndterer hendelsen, ser trinn 1 kjøre, krysser av trinn 2, ser trinn 3 kjøre, krysser av trinn 4, og kjøringen avsluttes med trinn 5. Outputen fra hvert trinn registreres til postmortem.
 
-1. **JavaScript** — hent nåværende primærvert fra konfig-tjenesten og logg den.
-2. **Manuelt** — "Replikasjonsetterslep på sekundær under 5 sekunder — bekreftet."
-3. **HTTP-forespørsel** — POST til API-en på failover-orkestratoren din.
-4. **Manuelt** — "Skrivinger går til den nye primaryen — bekreftet."
-5. **HTTP-forespørsel** — POST til Slack med "alt klart"-melding.
+## Neste steg
 
-Responderen ser et automatisert trinn kjøre, huker av et manuelt, ser neste automatiserte, og så videre. Hvert trinns output lagres til postmortem.
+:::cards
+- [Kjøre et runbook](/docs/runbooks/running): Start en kjøring, og fullfør, godkjenn eller hopp over trinnene.
+- [Runbook-regler](/docs/runbooks/rules): Start dette runbooket automatisk ved hendelser som treffer.
+- [Runbook-agenter](/docs/runbooks/agents): Installer Runneren som skripttrinnene dine trenger.
+- [Runbook-variabler](/docs/runbooks/variables): Hold verter, nøkler, passord og kubeconfiger utenfor trinnene dine.
+:::

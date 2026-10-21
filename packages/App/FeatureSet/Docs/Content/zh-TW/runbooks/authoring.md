@@ -1,99 +1,252 @@
 # 撰寫 Runbook
 
-在 **運行手冊 → Create Runbook** 下建立一個 runbook，然後開啟它並前往 **步驟** 分頁。
+您在 Runbook 的 **步驟** 頁面上把它撰寫成一份有序的步驟清單。本頁說明如何建立 Runbook、如何設定七種步驟類型中的每一種，以及失敗和核准如何改變一次執行的流程。
 
-## 步驟的結構
+:::cards
+- [建立 Runbook](#建立-runbook): 從空白 Runbook 到已儲存的步驟。
+- [步驟類型](#步驟類型): Manual、JavaScript、HTTP request、Bash、SSH、kubectl 和 AI。
+- [失敗處理與核准](#失敗處理與核准): 步驟失敗或等待核准時會發生什麼事。
+- [完整範例](#完整範例): 以五個步驟完成資料庫容錯移轉。
+:::
 
-每個步驟都包含：
+## 開始之前
 
-| 欄位                     | 用途                                                                   |
-| ------------------------ | ---------------------------------------------------------------------- |
-| **標題**                 | 顯示在檢查清單 UI 中的簡短標籤。必填。                                 |
-| **描述**                 | 提供給回應者的選用情境說明。支援 Markdown 的文字。                     |
-| **失敗時繼續**           | 若開啟，失敗的步驟不會停止整個執行 — 下一個步驟仍會執行。              |
-| **Require approval**     | 若開啟，runbook 會在此步驟後暫停，並等待使用者核准後才執行下一個步驟。 |
-| **Type-specific config** | Script、URL、agent 等 — 詳見下文。                                     |
+- **能撰寫 Runbook 的角色。** Project Owner、Project Admin 和 Runbook Admin 可以建立 Runbook 並儲存其步驟。使用細部權限時，您需要 **Create Runbook** 和 **Edit Runbook** 。請參閱 [權限](/docs/runbooks/configuration#權限)。
+- **用於 Bash、SSH 和 kubectl 步驟的 Runner。** 這些步驟在您自己基礎架構中的 [Runner](/docs/runbooks/agents) 上執行，絕不在 OneUptime Worker 上執行。請先安裝一個。除非您選擇自己的某個 Runner，否則 JavaScript 步驟會在 [全域 Runner](/docs/runbooks/agents#全域-runner) 上執行。
+- **用於 SSH 和 kubectl 步驟的機密變數。** 步驟登入所用的金鑰、密碼或 kubeconfig 是一個機密 [Runbook 變數](/docs/runbooks/variables)。變數由 Project Owner 和 Project Admin 建立，Runbook Admin 在自己撰寫的步驟中選擇它們。kubectl 步驟也可以改用 Runner 自身的存取權限。
+- **用於 AI 步驟的 LLM 提供者。** 請參閱 [LLM 提供者](/docs/ai/llm-provider)。
 
-步驟會**依序**執行。使用 Steps 編輯器上的上/下箭頭來重新排序。
+## 建立 Runbook
+
+:::steps
+### 開啟運行手冊
+
+開啟 **產品 → 運行手冊** 。Runbook 位於 **儀表板與自動化** 群組中。
+
+### 新建 Runbook
+
+點選 **建立操作手冊** ，輸入 **名稱** ，並可選擇輸入說明 Runbook 用途的 **描述** 。 **更多欄位** 下有預設開啟的 **已啟用** 開關和 **標籤** 。新的 Runbook 會在其 **步驟** 頁面開啟。
+
+### 新增步驟
+
+在 **Start your runbook** 下選擇第一個步驟的類型；在最後一個步驟下方， **Add another step** 提供同樣的七種類型。每個步驟開啟時會帶有 **標題** 和該類型所需的設定；其餘內容，例如 **描述** 和逾時，都摺疊在 **更多欄位** 下。Runbook 有了一個步驟後，卡片頂端的 **新增步驟** 會新增一個 Manual 步驟。
+
+### 調整步驟順序
+
+步驟會 **依序** 執行。要調整順序，請拖曳步驟標題左側的把手；使用鍵盤時，將焦點移到把手上，按空白鍵，用方向鍵移動步驟，再按一次空白鍵。
+
+### 儲存步驟
+
+點選 **Save Steps** 。儲存之前，編輯器會顯示 **未儲存的變更** 。儲存後您會看到 **已儲存** ，Runbook 即可 [執行](/docs/runbooks/running)。
+:::
+
+## 步驟的組成
+
+每個步驟都有以下欄位。自動步驟會顯示 **標題** 和該類型的設定，其餘內容摺疊在 **更多欄位** 下，並註明其中哪些已設定：
+
+| 欄位 | 用途 |
+| --- | --- |
+| **標題** | 顯示在步驟清單和每次執行中的簡短名稱。 |
+| **描述** | 給應變人員的選用內容，使用 Markdown，位於 **更多欄位** 下。在 Manual 步驟中，這就是人員閱讀並照做的 **說明** ，顯示在標題下方。 |
+| **失敗時繼續** | 僅限自動步驟。開啟後，步驟失敗不會停止執行：下一個步驟照常執行。 |
+| **需要核准** | 僅限自動步驟。開啟後，執行會在此步驟之前停下，直到有人核准，然後才執行此步驟。此開關名為 **在執行此步驟前需要核准** ，步驟標題列顯示 **需要核准** 。 |
+| 類型相關設定 | 指令碼、URL、Runner、機密變數或提示詞。請參閱 [步驟類型](#步驟類型)。 |
 
 ## 步驟類型
 
+| 類型 | 執行位置 | 需要 |
+| --- | --- | --- |
+| [Manual](#manual) | 人員 | 無 |
+| [JavaScript](#javascript) | Runner | 一個 Runner |
+| [HTTP request](#http-request) | OneUptime Worker | 無 |
+| [Bash](#bash) | Runner | 一個 Runner |
+| [SSH](#ssh) | Runner | 一個 Runner 和一個用於登入的機密變數 |
+| [kubectl](#kubectl) | Runner | 一個 Runner，以及一個 kubeconfig 變數或 Runner 自身的存取權限 |
+| [AI](#ai) | OneUptime Worker | 一個 LLM 提供者 |
+
+在下面的每個自動步驟中，步驟的 **更多欄位** 先放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠和金鑰複雜密碼、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。
+
 ### Manual
 
-回應者勾選的核取方塊。當 runbook 執行到 Manual 步驟時會暫停，並停留在 `WaitingForManualStep` 狀態，直到有人將其標記為完成（或跳過）。
+供人員處理的檢查清單項目：它的 **說明** 寫明要做或要檢查什麼。執行到達 Manual 步驟時會暫停，並停留在 `WaitingForManualStep`（ **等待您處理** ），直到有人點選 **標記完成** 或 **略過** 。等待人員處理的執行永遠不會逾時。Manual 步驟沒有核准開關：它本身就會為人員停下執行。
 
-將此用於只有人才能驗證的事項：「已確認流量已在負載平衡器儀表板中切換至次要區域。」
+用於只有人才能檢查或完成的事情：「在負載平衡器的儀表板中確認流量已切換到備援區域。」
 
 ### JavaScript
 
-在沙箱化的 `isolated-vm` 中執行的一段 JavaScript。該沙箱位於你自己基礎設施中的 [Runbook Agent](/docs/runbooks/agents) 上 — 而非 OneUptime Worker 上。
+一段在 `isolated-vm` 沙箱中執行的 JavaScript，執行於 [Runbook 代理程式](/docs/runbooks/agents) 上，而不是 OneUptime Worker 上：在您的某個 Runner 上，或在步驟未選擇 Runner 時，在 [全域 Runner](/docs/runbooks/agents#全域-runner) 上。
 
-在 JavaScript 步驟上設定以下內容：
+| 欄位 | 作用 | 預設值 |
+| --- | --- | --- |
+| **Runner** | 執行此步驟的 Runner： **全域 Runner** ，或您自己的某個 Runner。只有您選擇的 Runner 可以認領該工作；任何全域 Runner 都可以認領選擇 **全域 Runner** 的步驟。 | **全域 Runner** （如果有） |
+| **Script** | 要執行的 JavaScript。用 `return` 傳回一個值即可記錄它；`console.log` 的每一行也會被記錄。擲回的錯誤會使步驟失敗。 | — |
+| **執行逾時** | Runner 在拆除沙箱之前允許程式碼執行的時間。 全域 Runner 最多讓它執行 5 分鐘。 | 30 秒 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
 
-- **Runbook Agent** — 從下拉選單中挑選應執行此步驟的 agent。只有選定的 agent 才能認領該工作。
-- **Script** — 要執行的 JavaScript。
-- **Execution timeout** — agent 在拆除 isolate 之前，會讓這段 JavaScript 執行多久。預設為 30 秒。
-- **Claim timeout** — Worker 等待 agent 認領工作的時間。預設為 2 分鐘。
-
-```js
+```javascript
 const start = Date.now();
 // ... your logic ...
+console.log("replica lag checked");
 return { durationMs: Date.now() - start };
 ```
 
-回傳值會擷取在該步驟的執行紀錄上。`console.log` 的輸出會擷取為日誌行。預設執行逾時：30 秒。預設認領逾時（Worker 等待 agent 認領工作的時間）：2 分鐘。兩者都可以在該步驟上編輯 — 請參閱腳本下方的 **Execution timeout** 與 **Claim timeout**。
+沙箱有 128 MB 記憶體，無法存取檔案系統或處理程序。它可以用 `axios` 發出 HTTP 請求，但只能發往公開位址：發往私人網路、Runner 本身主機或雲端中繼資料端點的請求會被拒絕。若要存取您網路中的服務，請使用搭配 `curl` 的 [Bash](#bash) 步驟。
 
 ### HTTP request
 
-發出對外的 HTTP 呼叫。設定方法（GET/POST/PUT/PATCH/DELETE/HEAD）、URL、選用的 JSON 標頭、選用的內文，以及 **Request timeout**（預設 30 秒）。回應的狀態、標頭與內文都會被擷取（總計上限 50KB）。
+由 OneUptime Worker 發出的對外 HTTP 呼叫。不需要 Runner。
 
-適用於：觸發 PagerDuty 事件、貼文到 Slack、呼叫你自己的管理 API 等。HTTP 步驟直接在 OneUptime Worker 上執行；不需要 agent。
+| 欄位 | 作用 | 預設值 |
+| --- | --- | --- |
+| **Method** | `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 或 `HEAD`。 | `GET` |
+| **URL** | 要呼叫的端點。 | 空白 |
+| **Headers (JSON)** | 位於 **更多欄位** 下。一個 JSON 物件，例如 `{ "Authorization": "Bearer ..." }`。不是有效 JSON 的標頭會使步驟失敗。 | 無 |
+| **Body** | 方法為 `POST`、`PUT`、`PATCH` 或 `DELETE` 時顯示。能剖析為 JSON 時以 JSON 傳送，否則以文字傳送。 | 無 |
+| **Request timeout** | 在步驟失敗前等待端點回應的時間。 | 30 秒 |
+
+步驟在收到 `2xx` 或 `3xx` 回應時成功，收到其他回應時失敗，錯誤為 `HTTP <status>`。不會追蹤重新導向。回應的狀態、標頭和本文會被記錄，最多 50 KB。
+
+> [!NOTE]
+> Worker 絕不會呼叫回送或鏈路本機位址，例如雲端中繼資料端點。在 OneUptime Cloud 上，它只會呼叫公開位址。自行託管的 OneUptime 也能連到私人網路，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`。若要從 OneUptime Cloud 呼叫您網路中的服務，請使用搭配 `curl` 的 [Bash](#bash) 步驟。
+
+適用於：開啟 PagerDuty 事件、張貼到 Slack Webhook、呼叫雲端供應商的 API 或您自己的公開 API。
 
 ### Bash
 
-在你自己基礎設施中的 [Runbook Agent](/docs/runbooks/agents) 上執行的 bash 腳本（`bash -c <script>`）。Bash 永遠不會在 OneUptime Worker 上執行。
+一個 bash 指令碼，在您自己基礎架構中的 [Runbook 代理程式](/docs/runbooks/agents) 上以 `bash -c <script>` 執行。Bash 絕不在 OneUptime Worker 上執行。
 
-在 Bash 步驟上設定以下內容：
+| 欄位 | 作用 | 預設值 |
+| --- | --- | --- |
+| **Runner** | 執行此步驟的 Runner。只有這個 Runner 可以認領該工作。 | — |
+| **Bash 指令碼** | 指令碼。輸出（stdout 和 stderr）最多記錄 50 KB，非零的結束代碼會使步驟失敗。 | — |
+| **執行逾時** | Runner 在以 `SIGKILL` 終止指令碼之前允許它執行的時間。若步驟確實需要幾分鐘，請調高此值。 | 30 秒 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
 
-- **Runbook Agent** — 從下拉選單中挑選應執行此步驟的 agent。只有選定的 agent 才能認領該工作。
-- **Script** — 要執行的 bash。輸出（stdout + stderr）最多擷取 50 KB；程序會在逾時時被終止。
-- **Execution timeout** — agent 在以 `SIGKILL` 終止腳本之前，會讓它執行多久。預設為 30 秒；對於確實需要數分鐘的步驟，請將它調高。
-- **Claim timeout** — Worker 等待 agent 認領工作的時間。預設為 2 分鐘。
+指令碼在 Runner 的容器中執行，可使用映像檔內附的工具，例如 `curl`、`wget` 和 `ssh` 用戶端，並擁有其所在主機的網路存取權。例如，檢查只有您的網路才能連到的服務：
 
-若 runbook 執行到此步驟時選定的 agent 處於離線狀態，該步驟最多會等待至**認領逾時**（預設 2 分鐘），然後以 `TimedOut` 失敗。在依賴 Bash 步驟之前，請先在 **設定 → Runbook 代理程式** 下新增一個 agent。
+```bash
+set -euo pipefail
+HTTP_CODE=$(curl -s -o /tmp/resp.txt -w "%{http_code}" "http://payments.internal:8080/health")
+echo "HTTP $HTTP_CODE"
+cat /tmp/resp.txt
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Health check failed"
+  exit 1
+fi
+```
+
+如果執行到達此步驟時所選的 Runner 離線，步驟會等待至 **claim timeout** （預設 2 分鐘），然後因逾時而失敗。在依賴 Bash 步驟之前，請在 **運行手冊 → Runbook 代理程式** 下新增一個代理程式。
+
+> [!TIP]
+> 不要把密碼和權杖寫進指令碼。把它們存為機密 [Runbook 變數](/docs/runbooks/variables)，並在值應出現的位置寫 `{{global.variables.NAME}}`：Runner 收到的指令碼已填入值，而步驟輸出中該位置顯示為 `[REDACTED]`。
+
+### SSH
+
+透過 SSH 登入一台機器並在那裡執行 bash 指令碼。連線由 Runner 開啟，因此機器只需能從 Runner 連到；步驟登入所用的金鑰或密碼是一個機密 [Runbook 變數](/docs/runbooks/variables)，從不寫在步驟中。
+
+| 欄位 | 作用 |
+| --- | --- |
+| **Runner** | 開啟連線的 Runner。它必須能透過網路連到該機器。 |
+| **SSH 目標** | 使用者和機器，寫法與在 `ssh` 之後相同：`deploy@10.0.4.21`。 |
+| **登入方式** | 保存私密金鑰或密碼的機密變數；值本身表明是哪一種。只提供機密變數；當步驟的 Runner 不能使用所選變數時，步驟會提示。 |
+| **Bash 指令碼** | 以登入的使用者身分在機器上用 `bash` 執行。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
+| **連接埠** | 位於 **更多欄位** 下。留空時為 22。 |
+| **金鑰複雜密碼** | 位於 **更多欄位** 下。保存金鑰複雜密碼的機密變數，用於有複雜密碼的金鑰。 |
+| **執行逾時** | 連線、登入和執行指令碼合在一起計算，因此卡住的指令碼無法讓步驟一直開著。預設 30 秒。 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
+
+例如，重新啟動一個服務並顯示它已恢復：
+
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+對叢集執行 kubectl 指令。指令碼在內建 `kubectl` 的 Runner 上用 bash 執行，`KUBECONFIG` 指向該叢集：任何 kubectl 指令都可以執行，周圍的任何 bash 也可以。
+
+| 欄位 | 作用 |
+| --- | --- |
+| **Runner** | 執行 kubectl 的 Runner。它必須能連到叢集的 API 伺服器。 |
+| **Kubeconfig** | 保存叢集 kubeconfig 的機密變數，或 **Runner 自身的存取權限** ：使用 Runner 自己的 kubeconfig，或在叢集內執行時使用其服務帳戶。Runner 會把 kubeconfig 寫入只有它能讀取的檔案，並在指令碼結束時刪除。 |
+| **Script** | kubectl 指令。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
+| **執行逾時** | Runner 在用 `SIGKILL` 停止指令碼之前允許它執行的時長。預設 30 秒。 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
+
+例如，重新啟動一個 Deployment 並等待它的新 Pod 就緒：
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+每個指令碼下方的 **範例 — 點擊插入** 可以填入此類常用指令碼。只給 kubeconfig 的使用者授予指令碼所做的事：在指令碼操作的 namespace 中授予一個 Role，只包含它們使用的動詞。如果 API 伺服器拒絕某個指令，kubectl 自己的訊息會出現在步驟輸出中，因此權限錯誤會告訴您該擴大哪個 RoleBinding。
 
 ### AI
 
-在執行過程中請 AI 分析、彙整或做出判斷。提示（prompt）會傳送到你專案的 LLM 供應商（**設定 → 人工智慧 → LLM 提供商**），模型的回應會成為執行時間軸上該步驟的輸出。AI 步驟在 OneUptime Worker 上執行；不需要 agent。
+在執行過程中請 AI 分析、摘要或做出決定。回答會成為該步驟在執行中的輸出。AI 步驟在 OneUptime Worker 上執行，不需要 Runner。
 
-在 AI 步驟上設定：
+| 欄位 | 作用 |
+| --- | --- |
+| **Prompt** | 希望 AI 做什麼。例如：「檢視前面步驟的輸出，判斷繼續進行修復是否安全。」 |
+| **LLM provider** | 選用。 **Project default** 使用專案的預設提供者。當步驟需要特定模型時（例如處理不能離開您網路之資料的自行託管模型），請固定一個提供者。請參閱 [LLM 提供者](/docs/ai/llm-provider)。 |
+| **Include previous step context** | 開啟後，AI 會看到此步驟之前執行過的所有步驟：標題、類型、狀態、輸出和錯誤訊息。每個步驟的輸出最多提供 4,000 個字元。 |
+| **Include trigger context** | 開啟後，AI 會看到啟動這次執行的內容：關聯的事件、警示或排定維護事件（描述、嚴重性、目前狀態、受影響的監測器、根本原因、狀態時間軸和公開備註），或手動執行 Runbook 的人。 |
 
-- **Prompt** — AI 應執行的工作。例如：「檢視先前步驟的輸出，並說明是否可以安全地繼續進行修復。」
-- **Include previous step context** — 若開啟，AI 可以看到在此之前執行的所有步驟的完整資訊：標題、類型、狀態、輸出與錯誤訊息。
-- **Include trigger context** — 若開啟，AI 可以看到啟動這次執行的來源：所連結的事件、警示或排程維護事件（其描述、嚴重性、目前狀態、受影響的監控器、根本原因、狀態時間軸與公開註記），或是誰手動執行了這個 runbook。
+若要讓人始終參與其中，請在 AI 步驟之後的那個步驟上開啟 **需要核准** ：AI 進行分析，人員閱讀回答，修復步驟只有在人員核准後才會執行。
 
-將 AI 步驟與 **Require approval** 搭配，讓人參與決策：AI 進行分析，回應者閱讀其答覆並核准，之後下一個（修復）步驟才會執行。
+**AI 永遠看不到的內容。** AI 步驟的回答會作為步驟輸出儲存在執行中，而任何有 Runbook 讀取權限的人都能讀取執行，這比能看到事件的對象更廣。因此，觸發內容不包含 **私人內部備註** 和 **Slack 與 Microsoft Teams 的頻道訊息** 。前面步驟的輸出會被掃描是否含有機密資訊（權杖、金鑰、憑證），這些內容在傳送給模型之前會被遮蔽。內嵌圖片和很長的編碼資料（例如貼到事件描述中的螢幕擷取畫面）也會被省略，並以一段簡短說明取代。
 
-**AI 永遠看不到的內容。** AI 步驟的答覆會作為步驟輸出儲存在執行紀錄上，而任何具有 runbook 讀取權限的人都能讀取執行紀錄——這比事件的 ACL 涵蓋更廣的對象。因此觸發情境刻意排除**私人內部註記**與 **Slack/Teams 頻道訊息**：它們會留在事件內部，由既有的事後檢討與註記產生器在那裡保存其衍生文字。先前步驟的輸出在傳送給模型之前，會先掃描機密資訊（權杖、金鑰、憑證）並加以遮蔽。
+AI 步驟與其他 AI 功能一樣計量和計費。當步驟沒有提示詞、專案關閉了 AI 功能、沒有可用的 LLM 提供者，或固定的提供者對專案已不再可用時，步驟會失敗，並顯示說明原因的訊息。如果仍希望執行 Runbook 的其餘部分，請開啟 **失敗時繼續** 。
 
-AI 步驟與其他任何 AI 功能一樣會被計量並計費。若專案未設定 LLM 供應商，該步驟會以明確的錯誤失敗（若 runbook 的其餘部分仍應繼續執行，請設定 **失敗時繼續**）。
+## 失敗處理與核准
+
+```mermaid title="自動步驟處會發生什麼事"
+flowchart TB
+    reach["執行到達自動步驟"] --> approval{"開啟了需要核准嗎？"}
+    approval -->|"是"| wait["執行等待人員核准"]
+    wait -->|"已核准"| run["執行該步驟"]
+    approval -->|"否"| run
+    wait -->|"已略過"| next["下一個步驟"]
+    run --> ok{"成功了嗎？"}
+    ok -->|"是"| next
+    ok -->|"否"| cont{"開啟了失敗時繼續嗎？"}
+    cont -->|"是"| next
+    cont -->|"否"| failed["執行以失敗結束"]
+```
+
+預設情況下，步驟失敗會停止執行，並將執行標記為 `Failed`，以該步驟的錯誤作為原因。開啟 **失敗時繼續** 後，失敗會被記錄，下一個步驟照常執行，適合「先試這三件事，然後通知」這類 Runbook。
+
+**需要核准** 在步驟執行之前生效，無論之前發生了什麼：執行會一直等待，直到有人點選 **核准並執行** ，該步驟隨即執行，或點選 **略過** ，該步驟永遠不會執行。請為會改變某些東西的步驟開啟它（重新啟動、容錯移轉、縮減規模），讓人員先查看前面步驟的發現。核准屬於步驟本身，所以移動步驟時核准也會隨之移動。
+
+:::note
+透過 API 和 Terraform，此開關是步驟的 `requireApprovalBeforeRunning`。在核准移到所保護的步驟之前，Runbook 寫入的是步驟的 `requireApproval`，它仍然有效，含義不變：在該步驟之後核准。OneUptime 會把它讀作下一個步驟之前的核准；如果它在最後一個步驟之後，則讀作末尾的 Manual 步驟 **Approve the result** 。
+:::
 
 ## 儲存與編輯
 
-點擊 **Save Steps** 以保存。runbook 較舊版本正在進行中的執行不受影響 — 它們會繼續使用各自的快照。
+對步驟的變更在點選 **Save Steps** 時生效。每次執行都以啟動時建立的快照運作，因此進行中的執行會保留啟動時的步驟，編輯也永遠不會改寫過去執行的歷史。
 
-## 多個步驟與失敗處理
+## 完整範例
 
-預設情況下，失敗的步驟會中止整個執行，並將該執行標記為 `Failed`。若你在某個步驟上設定 **失敗時繼續**，失敗仍會被記錄，但下一個步驟會繼續執行。這對於「先嘗試這三件事，然後通知」的模式很有用。
+一個用於「DB primary unreachable」的 Runbook：
 
-## 一個實作範例
+| # | 類型 | 作用 |
+| --- | --- | --- |
+| 1 | JavaScript | 從您的組態服務取得目前的主要主機並記錄下來。 |
+| 2 | Manual | 「確認次要資料庫的複寫延遲低於 5 秒。」 |
+| 3 | HTTP request | 對您的容錯移轉協調器 API 發出 `POST`。 |
+| 4 | Manual | 「確認寫入現在已轉到新的主要資料庫。」 |
+| 5 | HTTP request | 對 Slack Webhook `POST` 一則解除訊息。 |
 
-針對「DB primary unreachable」的簡單 runbook：
+應變人員看著步驟 1 執行，勾選步驟 2，看著步驟 3 執行，勾選步驟 4，執行以步驟 5 結束。每個步驟的輸出都會被記錄下來，供事後檢討使用。
 
-1. **JavaScript** — 從你的設定服務取得目前的 primary 主機並記錄下來。
-2. **Manual** — 「確認次要端的複寫延遲低於 5 秒。」
-3. **HTTP request** — POST 到你的故障轉移協調器 API。
-4. **Manual** — 「驗證寫入現在已導向新的 primary。」
-5. **HTTP request** — POST 到 Slack 並附上「all clear」訊息。
+## 後續步驟
 
-回應者觀看一個自動化步驟執行、勾選一個手動步驟、再觀看下一個自動化步驟執行，依此類推。每個步驟的輸出都會被擷取以供事後檢討使用。
+:::cards
+- [執行 Runbook](/docs/runbooks/running): 啟動一次執行，並完成、核准或略過其步驟。
+- [Runbook 規則](/docs/runbooks/rules): 在相符的事件上自動啟動此 Runbook。
+- [Runbook 代理程式](/docs/runbooks/agents): 安裝您的指令碼步驟所需的 Runner。
+- [Runbook 變數](/docs/runbooks/variables): 讓主機、金鑰、密碼和 kubeconfig 不出現在步驟中。
+:::

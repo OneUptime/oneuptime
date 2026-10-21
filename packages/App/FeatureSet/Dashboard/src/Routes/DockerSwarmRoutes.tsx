@@ -28,6 +28,9 @@ import DockerSwarmClusterVolumes from "../Pages/DockerSwarm/View/Volumes";
 import DockerSwarmClusterInsights from "../Pages/DockerSwarm/View/Insights";
 import DockerSwarmClusterMetrics from "../Pages/DockerSwarm/View/Metrics";
 import DockerSwarmClusterRecommendations from "../Pages/DockerSwarm/View/Recommendations";
+import DockerSwarmClusterAiInsights from "../Pages/DockerSwarm/View/AI/Insights";
+import DockerSwarmClusterAiLogs from "../Pages/DockerSwarm/View/AI/Logs";
+import DockerSwarmClusterAiAgent from "../Pages/DockerSwarm/View/AI/Agent";
 import DockerSwarmClusterLogs from "../Pages/DockerSwarm/View/Logs";
 import DockerSwarmClusterIncidents from "../Pages/DockerSwarm/View/Incidents";
 import DockerSwarmClusterAlerts from "../Pages/DockerSwarm/View/Alerts";
@@ -40,6 +43,9 @@ import DockerSwarmClusterDelete from "../Pages/DockerSwarm/View/Delete";
 import DockerSwarmClusterDocumentation from "../Pages/DockerSwarm/View/Documentation";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -134,6 +140,13 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerSwarmCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DOCKER_SWARM_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -350,6 +363,52 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <DockerSwarmClusterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <DockerSwarmClusterAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <DockerSwarmClusterAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS,
@@ -517,6 +576,12 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerSwarmCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

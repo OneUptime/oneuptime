@@ -1,0 +1,273 @@
+# 安全案例与剧本(SOAR)
+
+Security Events 会把检测规则、威胁情报和已连接的安全产品发现的问题转化为案例：每件值得调查的事对应一个案例，关于同一用户、主机或地址的所有检测都会归入其中。分析师在队列中处理案例，剧本则自动或一键对案例做出响应。
+
+:::cards
+- [案例从何而来](#案例从何而来): 检测规则、威胁情报、已连接的产品和人员。
+- [处理案例](#处理案例): 分配案例、调查相关实体，并在给出结论后关闭。
+- [剧本](#剧本): 在案例上运行的步骤，关键步骤需要审批。
+- [概览](#概览): 当下需要有人处理的事项，以及案例的处理速度。
+:::
+
+## 工作原理
+
+```mermaid title="从检测到已关闭的案例"
+flowchart TB
+    subgraph sources["检测"]
+        direction LR
+        rules["检测<br/>规则"] ~~~ intel["威胁<br/>情报"] ~~~ products["已连接的<br/>产品"]
+    end
+    sources --> group{"是否已有关于同一<br/>实体的未关闭案例？"}
+    group -->|"是"| join["该检测<br/>并入此案例"]
+    group -->|"否"| open["打开一个新案例"]
+    join --> playbooks["运行剧本"]
+    open --> playbooks
+    playbooks --> work["分析师<br/>处理案例"]
+    work --> close["给出结论后关闭"]
+```
+
+打开 **产品 → Security Events → 安全案例 → 未结案例** 查看队列。**分配给我**、**无人认领**、**已关闭案例** 和 **全部案例** 是旁边各自独立的页面，分别列出其名称所指的案例。
+
+## 开始之前
+
+案例和剧本遵循三个 Security 角色的权限。Project Owner 和 Project Admin 可以执行所有操作。
+
+| 角色 | 能做什么 |
+| --- | --- |
+| Security Admin | 一切操作，包括删除案例和设置剧本 |
+| Security Member | 打开、分配、修改和关闭案例，撰写备注，运行剧本，以及批准或拒绝剧本的步骤 |
+| Security Viewer | 读取案例、检测、备注、剧本及其运行记录 |
+
+其中每一项权限也都可以单独授予，从创建案例到批准剧本的步骤都是如此；请参阅 [权限参考](/docs/permissions/reference)。
+
+## 案例从何而来
+
+| 来源 | 何时打开案例 | 停用方式 |
+| --- | --- | --- |
+| 检测规则 | 规则匹配时 | 规则的 **匹配时** 步骤中的 **Open a Case on Match** |
+| 威胁情报 | 某个事件提到已知指标时 | 情报源的 **匹配时** 步骤中的 **Open a Case on Match** |
+| 已连接的产品 | 导入的产品自身警报达到或高于连接的阈值时 | 在连接的 **Polling** 步骤中，把 **Open Cases From** 设为 **从未** |
+| 人员 | 有人从 **安全案例** 中打开案例，或在事件面板中使用 **Open Case** 时 | 无 |
+
+所有来源默认都是打开的。除非你选择其他级别，否则连接会为 **High and above** 的警报打开案例；低于该级别的警报仍会作为事件导入。
+
+### 检测如何分组
+
+每个检测都关于某个实体：即其规则分组所依据的值，例如暴力破解规则中的 IP 地址，或威胁情报匹配所提到的指标。没有实体的检测会单独存在，不与其他检测合并。
+
+- 如果已有关于该实体的未关闭案例，检测就会并入其中。案例的实体和 ATT&CK 映射随之扩充，其优先级会提升到该检测的优先级，但绝不会降低。
+- 如果没有这样的案例，就会打开一个新案例，以该检测命名，优先级与该检测相同。
+- 再次触发的检测会在它所在的行上累加计数，而不是新增一行。
+
+案例的优先级由检测的严重程度决定：
+
+| 严重程度 | 优先级 |
+| --- | --- |
+| Critical 或 Fatal | Critical |
+| High | High |
+| Medium、Unknown 或 Other | Medium |
+| Low | Low |
+| Informational | Informational |
+
+## 处理案例
+
+案例会依次经历四种状态。它可以跳过某个状态，例如直接从 New 关闭的误报，也可以被重新打开。
+
+| 状态 | 含义 |
+| --- | --- |
+| New | 还没有人查看过 |
+| Investigating | 有人正在查明发生了什么 |
+| Contained | 威胁已无法再造成危害，但仍有清理工作要做 |
+| Closed | 已处理完毕，并对其性质给出了结论 |
+
+案例页面上有处理它所需的一切：
+
+- 顶部：**Assign to Me**、**Run Playbook**、**声明事件** 和 **Close Case** 按钮，状态步骤，以及它们旁边菜单中的优先级。
+- **Detections**：触发后打开或并入该案例的检测、触发次数，以及最新的匹配事件。
+- **实体**：案例涉及的用户、主机和地址，以及它们最近 7 天在你所有安全事件中的活动。每个实体都可以在 **关联分析** 中打开。
+- **MITRE ATT&CK**：案例的检测所映射的战术和技术，每一项都链接到 attack.mitre.org 上的对应页面。
+- **剧本运行记录**：每个剧本在该案例上逐步做了什么，以及等待审批的步骤。
+- **备注** 和 **时间线**：团队写下的内容，以及发生过的一切和操作人。
+
+要同时处理多个案例，请在队列中选中它们，然后使用 **Assign to Me**、**Change Status** 或 **Change Priority**。
+
+### 关闭案例
+
+**Close Case** 会要求填写结论和一条可选的结案备注：
+
+| 结论 | 含义 |
+| --- | --- |
+| True Positive | 确实发生了恶意或未经授权的活动 |
+| Benign Positive | 活动真实存在但符合预期，例如渗透测试或管理任务 |
+| False Positive | 检测有误：规则或数据误读了正常活动 |
+| Undetermined | 没有足够的信息来判断 |
+
+概览页面会统计这些结论。如果某条规则的案例总是以 False Positive 关闭，这条规则就需要调优了。
+
+### 声明事件
+
+**声明事件** 会以你选择的严重程度为该案例打开一个 OneUptime 事件（incident），并在两者之间建立双向链接：事件的描述中会写明该案例，案例的页眉会链接到该事件。之后由值班、状态页面和事后分析接手。此操作需要一个既能处理案例、又能创建事件的角色。
+
+## 剧本
+
+剧本是在案例上运行的一系列步骤。请在 **产品 → Security Events → Playbooks** 下从模板或空白创建剧本，然后在它的页面上添加步骤。
+
+### 剧本何时运行
+
+| 触发方式 | 运行时机 |
+| --- | --- |
+| Case Opened | 案例打开时运行一次 |
+| Detection Added | 每当有新的检测并入未关闭的案例时 |
+| Manual | 仅当有人从案例中运行它时 |
+
+任何已启用的剧本也可以通过案例上的 **Run Playbook** 手动运行。自动运行的剧本可以用以下设置缩小范围：
+
+- **For Cases At Least**：只针对该优先级或更高优先级的案例。
+- **Only For Detections From**：只在案例背后的检测来自该来源时运行。
+- **Only For These Detection Rules**：只在该检测来自这些规则之一时运行。
+
+已停用的剧本既不会自动运行，也不能手动运行。
+
+### 步骤
+
+| 类别 | 步骤 | 作用 |
+| --- | --- | --- |
+| 案例 | Assign the case | 把案例分配给某个人、某个团队或两者 |
+| 案例 | Set the priority | 提高或降低案例的优先级 |
+| 案例 | Set the status | 把案例移到 Investigating、Contained 或 Closed，并附上你选择的结论 |
+| 案例 | Add a note | 在案例上写一条备注，例如给分析师的检查清单 |
+| 案例 | Add labels | 为案例添加标签 |
+| 调查 | Check entities against threat intel | 在你的威胁情报中查找每个实体，匹配时可以提高优先级 |
+| 调查 | Look up entity activity | 统计每个实体在最近一段时间内的安全事件，并记录到案例上 |
+| 通知 | Email people | 通过电子邮件向用户和团队发送案例摘要及其链接 |
+| 通知 | Post to Slack | 把案例摘要发布到某个 Slack 频道 |
+| 通知 | Post to Microsoft Teams | 把案例摘要发布到某个 Microsoft Teams 频道 |
+| 升级 | Page on-call | 运行一个值班策略 |
+| 升级 | Declare an incident | 打开一个与案例关联的 OneUptime 事件 |
+| 遏制 | Suspend the user in Okta | 在 Okta 中暂停案例涉及的用户 |
+| 遏制 | End the user's Okta sessions | 让案例涉及的用户退出 Okta 登录，并吊销其令牌 |
+| 遏制 | Contain the host in CrowdStrike | 通过 CrowdStrike Falcon 对案例涉及的主机进行网络遏制 |
+| 遏制 | Isolate the device in Microsoft Defender | 通过 Microsoft Defender for Endpoint 隔离案例涉及的主机 |
+| 遏制 | Unsuspend the user in Okta | 在 Okta 中取消暂停案例涉及的用户 |
+| 遏制 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 对案例涉及的主机施加的网络遏制 |
+| 遏制 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中将案例涉及的主机解除隔离 |
+| 自动化 | Send a webhook | 把案例以 JSON 格式 POST 到某个 URL |
+| 自动化 | Run a workflow | 以案例作为输入，启动一个 OneUptime 工作流 |
+
+一个剧本最多有 25 个步骤。它们按顺序运行，每个步骤在前一个完成后才开始。每个步骤还可以设置：
+
+- **Needs Approval**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。
+- **Only If Threat Intel Matched**：除非本次运行中之前的 **Check entities against threat intel** 步骤发现了已知指标，否则跳过该步骤。
+- **Carry On If It Fails**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。
+
+### 遏制
+
+遏制类步骤通过与该产品的 [安全事件连接](/docs/telemetry/security-events#连接安全产品) 执行操作，这个连接需要的不只是读取权限：
+
+| 步骤 | 连接 | 所需权限 |
+| --- | --- | --- |
+| Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一个有权管理用户的 API 令牌 |
+| Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一个具有 Hosts 写入范围的 API 客户端 |
+| Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一个具有 Machine.Isolate 权限的应用 |
+
+遏制类步骤只作用于案例涉及的用户或主机，绝不会作用于案例提到的所有用户或主机：
+
+- 案例中某个检测分组所依据的值，例如“不可能的旅行”规则分组所依据的账户，或已连接产品的警报中提到的主机。
+- 案例中被你的威胁情报列为指标的用户或主机。
+
+按地址分组的案例，例如针对你的 VPN 的暴力破解，并不涉及以上任何一种：它的遏制类步骤会被跳过，它尝试过的账户和它攻击的网关都不会被触及。一个步骤最多作用于 10 个用户或主机。它会按名称在产品中查找每一个，并在运行上说明对每一个做了什么：已完成、早已完成、未找到、被拒绝或受保护。
+
+#### 受保护的实体
+
+菜单中 **Playbooks** 下的 **Protected Entities** 列出任何剧本都不会遏制的用户和主机，例如紧急访问账户、域控制器和 VPN 网关。值的匹配不区分大小写，`*` 代表任意字符序列：`svc-*` 会保护所有服务账户。步骤会把受保护的用户或主机报告为受保护，并且不会触及它。这个列表由 Security Admin 维护。
+
+#### 审批
+
+切断某人访问的四个步骤会等待审批。只有 Security Admin 可以为其中某个步骤关闭 **Needs Approval**，OneUptime 会记录是谁关闭的。审批时会在 **Act On** 下列出该步骤将要作用的用户或主机，每一个都已勾选：取消勾选该步骤不应触及的那些。受保护的用户或主机不会列为可选项。发起运行的人不能批准它的步骤：要由其他人批准，不过发起人仍然可以拒绝该步骤。
+
+#### 撤销
+
+撤销类步骤和它们所撤销的步骤一样，作用于案例涉及的用户或主机。运行停止后，被遏制的用户或主机在其步骤上还会有一个专属按钮：**Unsuspend**、**Lift Containment** 或 **释放**。已结束的 Okta 会话无法撤销。每次撤销都会记录在案例的时间线上和项目的审计日志中。
+
+### 消息
+
+备注、电子邮件、Slack 帖子和 Teams 帖子都可以使用案例的值：
+
+| 占位符 | 替换为 |
+| --- | --- |
+| `{{case.number}}` | 案例编号，例如 CASE-42 |
+| `{{case.title}}` | 案例标题 |
+| `{{case.priority}}` | Critical、High、Medium、Low 或 Informational |
+| `{{case.status}}` | New、Investigating、Contained 或 Closed |
+| `{{case.assignee}}` | 案例分配给了谁 |
+| `{{case.url}}` | 指向 OneUptime 中该案例的链接 |
+| `{{case.entities}}` | 案例涉及的用户、主机和地址 |
+| `{{case.detections}}` | 案例包含的检测数量 |
+
+没有自定义消息的电子邮件或帖子会发送案例摘要。
+
+### 运行与审批
+
+每次运行都会逐步列在其案例上，以及 **产品 → Security Events → Playbooks → 剧本运行记录** 下：
+
+| 运行状态 | 含义 |
+| --- | --- |
+| Queued | 等待工作进程 |
+| Running | 正在运行其步骤 |
+| Waiting for Approval | 停在一个需要审批的步骤之前 |
+| Succeeded | 每个步骤都已运行或被跳过 |
+| Failed | 某个步骤失败，运行已停止 |
+| Cancelled | 有人取消了它，或拒绝了某个步骤 |
+
+等待审批的步骤会在运行上显示 **Approve** 和 **Reject**，并可附上一条可选的评论。批准后，运行从该步骤继续；拒绝则会结束运行。审批决定、决定人及其评论都会记录在该步骤上、案例的时间线上以及项目的审计日志中。菜单中 **Playbooks** 下的 **等待审批** 列出等待决定的运行并显示其数量；**剧本运行记录** 列出所有运行。
+
+如果某次运行失去了工作进程的响应（例如在重启之后），它会被重新接手：排队中的运行会在 2 分钟后重新排队，30 分钟没有任何动静的运行会被判定为失败。
+
+## 概览
+
+**产品 → Security Events → 概览** 是打开该产品时进入的页面：
+
+- 分配给你的未关闭案例、尚无人接手的未关闭案例，以及等待审批的剧本步骤；每个数字都会打开列出它们的页面。
+- **平均确认时间**、**平均遏制时间** 和 **平均关闭时间**，基于最近 30 天内打开的案例：分别是从案例打开到有人接手（分配给某个人，或将其移出 New 状态）、到 Contained、到 Closed 所用的时间。仍在等待中的案例不计入平均值。
+- 30 天内每天打开的案例数（按优先级划分），以及 14 天内每天产生的检测数（按来源划分）。
+- 按优先级和状态划分的未关闭案例、最近 30 天的结论、案例背后的 ATT&CK 战术、触发最多的检测，以及被最多检测结果提及的实体。
+
+在这些内容上方，一个横条显示安全的设置情况：来源、检测、案例和剧本，各自带有数字。还没有完成设置的项目会在那里看到 **开启推荐设置** 和 **发送测试攻击**；请参阅 [安全入门](/docs/telemetry/security-getting-started)。没有任何需要处理的内容时，页面显示 **一切正常**，有可以展示的数据时才会显示图表。
+
+## 查找威胁
+
+- **实体** 按最近一天、一周或一个月内被检测结果提及的次数，对用户、主机、地址和哈希进行排名，并可在 30 天的事件中查找任意值。
+- **Rule Library** 提供现成的检测规则，覆盖身份、端点、云、网络、Web 和 Kubernetes 威胁。每条规则都是针对所有已连接来源规范化后的字段编写的 Sigma 规则。**添加规则** 会把它创建为你自己的检测规则，处于启用状态，并且打开的是案例而不是警报；之后可以像其他规则一样在 **Detection Rules** 下修改它。标记为 **推荐** 的规则会在 OneUptime 已有的数据中发现威胁，一个按钮即可添加您还没有的那些规则。
+- **ATT&CK Coverage** 绘制 MITRE ATT&CK 矩阵，点亮已启用规则所覆盖的技术，并以轮廓标出规则库中的规则能够覆盖的技术。
+
+## 自动化
+
+- **工作流**：案例或备注在创建、更新或删除时可以启动工作流。**Run a workflow** 步骤会启动一个以 Webhook 为触发器的工作流。
+- **API**：与 OneUptime 的其他部分一样，案例、备注、检测、剧本、运行和受保护的实体也都有 REST API，位于 `/security-case`、`/security-case-note`、`/security-detection`、`/security-playbook`、`/security-playbook-run` 和 `/security-protected-entity` 下。请参阅 [API 参考](/docs/api-reference/api-reference)。
+- AI 代理：MCP 服务器提供了用于案例、备注、检测和剧本的工具。请参阅 [MCP 服务器](/docs/ai/mcp-server)。
+
+## 故障排除
+
+:::details 规则匹配了，但没有打开案例
+检查规则 **匹配时** 步骤中的 **Open a Case on Match**。如果检测涉及的实体已有未关闭的案例，该检测会并入那个案例，而不会另开一个：请在那个未关闭案例的 **Detections** 下查找它。
+:::
+
+:::details 剧本没有运行
+检查剧本是否已启用、它的 **触发器** 设置是否合适（Case Opened 只在案例打开时运行一次），以及案例是否满足它的 **For Cases At Least**、**Only For Detections From** 和 **Only For These Detection Rules** 设置。手动打开的案例没有检测，因此限定了来源或规则的剧本不会在它上面运行。
+:::
+
+:::details 遏制类步骤失败
+在案例上打开这次运行：该步骤会针对每个用户或主机说明产品是拒绝了操作、没有找到它，还是无法连接。请检查连接的凭据是否有权做出该更改，并使用连接所在行中的 **测试连接**。
+:::
+
+:::details 遏制类步骤被跳过
+案例不涉及任何用户或主机，例如只涉及一个地址，或者它涉及的每个用户或主机都受保护。在案例上打开这次运行：该步骤会说明是哪一种情况。
+:::
+
+## 后续步骤
+
+:::cards
+- [安全事件](/docs/telemetry/security-events): 发送事件、编写检测规则并连接安全产品。
+- [威胁情报](/docs/telemetry/threat-intelligence): 将你的事件与 STIX/TAXII 源进行比对。
+- [权限参考](/docs/permissions/reference): Security 角色以及每个角色能做什么。
+:::

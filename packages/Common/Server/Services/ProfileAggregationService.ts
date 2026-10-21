@@ -1,14 +1,40 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ProfileSampleDatabaseService from "./ProfileSampleService";
 import ProfileDatabaseService from "./ProfileService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Includes from "../../Types/BaseDatabase/Includes";
+import Query from "../../Types/BaseDatabase/Query";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import OneUptimeDate from "../../Types/Date";
+import Profile from "../../Models/AnalyticsModels/Profile";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import {
+  ParsedProfileFrame,
+  getProfileFunctionKey,
+  isOwnProfileFrame,
+  parseProfileFrame,
+} from "../../Utils/Profiles/ProfileFrames";
+import {
+  ProfileFunctionChange,
+  compareProfileWindows,
+  isComparisonFooted,
+  limitProfileComparison,
+} from "../../Utils/Profiles/ProfileComparison";
+import {
+  ProfileCategory,
+  ProfileCategoryAvailability,
+  ProfileTypeActivity,
+  getAvailableProfileCategories,
+  getQueryProfileTypes,
+} from "../../Utils/Profiles/ProfileTypes";
 
 // --- Interfaces ---
 
@@ -27,7 +53,9 @@ export interface FlamegraphRequest {
   profileId?: string;
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   /**
    * Single profile type to filter on. Kept for backwards compat. When
    * `profileTypes` is also supplied, `profileTypes` wins.
@@ -64,11 +92,32 @@ export interface FlamegraphResult {
 export interface FunctionListItem {
   functionName: string;
   fileName: string;
+  /*
+   * The line of the heaviest stack the function was seen in - where a link
+   * to its source should land. 0 when the profiler recorded no line.
+   */
+  lineNumber: number;
   selfValue: number;
   totalValue: number;
   sampleCount: number;
   frameType: string;
+  /*
+   * For a function of the application's own code: the time a change to it
+   * can win back - its own code, and the library, runtime and system code
+   * it calls down to the next function of the application's own. Each
+   * stack counts toward the own function nearest its leaf. 0 for code that
+   * is not the application's own.
+   */
+  ownValue: number;
 }
+
+/*
+ * How many of the application's own functions with the most own-code time
+ * a function list always holds, whatever it is sorted by: a parser whose
+ * time all goes to JSON.parse has no self time, and would otherwise fall
+ * off a list ranked by self time.
+ */
+export const FUNCTION_LIST_OWN_CODE_LEADERS: number = 10;
 
 export interface FunctionListRequest {
   projectId: ObjectID;
@@ -85,7 +134,9 @@ export interface FunctionListRequest {
    */
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -93,7 +144,7 @@ export interface FunctionListRequest {
   /** See FlamegraphRequest.spanIds. */
   spanIds?: Array<string>;
   limit?: number;
-  sortBy?: "selfValue" | "totalValue" | "sampleCount";
+  sortBy?: "selfValue" | "totalValue" | "sampleCount" | "ownValue";
 }
 
 export interface FunctionListResult {
@@ -104,6 +155,11 @@ export interface FunctionListResult {
    * accurate "% of total" figures even when the list is truncated.
    */
   windowTotal: number;
+  /*
+   * How many sample rows matched the filters (pre-limit): how much the
+   * shares stand on.
+   */
+  windowSampleCount: number;
   /**
    * True when the unique-stack LIMIT was hit, i.e. the smallest stacks in
    * the window were dropped and per-function values undercount.
@@ -126,13 +182,32 @@ export interface ServiceActivityRequest {
    * agents actually emit (e.g. ["cpu", "samples"]).
    */
   profileTypes?: Array<string>;
+  // The services the caller may read (TelemetryReadScope).
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface ServiceActivityItem {
   primaryEntityId: string;
+  /*
+   * What kind of resource primaryEntityId names (Service, Host, ...): the
+   * Profiler names it with that type's own lookup.
+   */
+  primaryEntityType: string;
   sampleCount: number;
   profileCount: number;
   totalValue: number;
+}
+
+export interface ProfileTypeActivityRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  // The services the caller may read and picked (TelemetryReadScope).
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface DiffFlamegraphRequest {
@@ -141,7 +216,9 @@ export interface DiffFlamegraphRequest {
   baselineEndTime: Date;
   comparisonStartTime: Date;
   comparisonEndTime: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
 }
@@ -171,6 +248,39 @@ export interface DiffFlamegraphResult {
   truncated: boolean;
 }
 
+export interface FunctionComparisonRequest {
+  projectId: ObjectID;
+  beforeStartTime: Date;
+  beforeEndTime: Date;
+  afterStartTime: Date;
+  afterEndTime: Date;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
+  profileType?: string;
+  profileTypes?: Array<string>;
+  // How many changed functions to return (default 50, at most 200).
+  limit?: number;
+}
+
+export interface FunctionComparisonWindow {
+  windowTotal: number;
+  windowSampleCount: number;
+  truncated: boolean;
+}
+
+export interface FunctionComparisonResult {
+  // The functions lined up across both windows, biggest change first.
+  changes: Array<ProfileFunctionChange>;
+  before: FunctionComparisonWindow;
+  after: FunctionComparisonWindow;
+  /*
+   * Whether both windows hold enough samples for their shares to be
+   * compared (ProfileComparison.isComparisonFooted).
+   */
+  isFooted: boolean;
+}
+
 export interface FunctionFocusRequest {
   projectId: ObjectID;
   functionName: string;
@@ -183,7 +293,9 @@ export interface FunctionFocusRequest {
   profileId?: string;
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -195,6 +307,11 @@ export interface FunctionFocusRequest {
 export interface FunctionFocusResult {
   functionName: string;
   fileName: string;
+  /*
+   * The line of the heaviest stack through the function; 0 when the
+   * profiler recorded none.
+   */
+  lineNumber: number;
   /**
    * Sum of `value` over every matching stack, counted once per stack
    * even when the function recurses. Equals callers.totalValue and
@@ -209,6 +326,8 @@ export interface FunctionFocusResult {
    * the UI can show "% of window" figures for the focused function.
    */
   windowTotal: number;
+  // How many sample rows matched the non-function filters.
+  windowSampleCount: number;
   /**
    * Root = the focused function; children = DIRECT callers, grandchildren
    * = callers-of-callers. Node weights are the value flowing through that
@@ -227,6 +346,10 @@ export interface TracePresenceRequest {
   projectId: ObjectID;
   traceId: string;
   spanIds?: Array<string>;
+  // The services the caller may read (TelemetryReadScope).
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface TracePresenceResult {
@@ -247,7 +370,9 @@ export interface BreakdownRequest {
    * Profile attribute key and groups by that attribute's value.
    */
   breakdownBy: string;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   limit?: number;
@@ -274,10 +399,35 @@ export interface BreakdownResult {
   totalSampleCount: number;
 }
 
-interface ParsedFrame {
-  functionName: string;
-  fileName: string;
-  lineNumber: number;
+/*
+ * How much of a window's time ran through code whose frame matches some
+ * text: the Profiles monitor's "Function share" check.
+ */
+export interface StackShareRequest {
+  projectId: ObjectID;
+  /*
+   * The text a frame must contain (function name or file, any case). A
+   * stack counts once however many of its frames match.
+   */
+  frameText: string;
+  /*
+   * The profiles to read, as the monitor counts them (its services,
+   * entities, attributes, profile types and window): samples are kept
+   * when they belong to a profile this query matches.
+   */
+  profileQuery: Query<Profile>;
+  startTime: Date;
+  endTime: Date;
+}
+
+export interface StackShareResult {
+  // Sum of the matching stacks' values.
+  matchedValue: number;
+  // Sum of every sample value in the window.
+  windowTotal: number;
+  windowSampleCount: number;
+  // 0-100: matchedValue as a share of windowTotal (0 for an empty window).
+  sharePercent: number;
 }
 
 // --- Service ---
@@ -286,8 +436,22 @@ export class ProfileAggregationService {
   private static readonly TABLE_NAME: string = AnalyticsTableName.ProfileSample;
   private static readonly PROFILE_TABLE_NAME: string =
     AnalyticsTableName.Profile;
+  private static readonly SPAN_TABLE_NAME: string = AnalyticsTableName.Span;
   private static readonly DEFAULT_FUNCTION_LIST_LIMIT: number = 50;
   private static readonly DEFAULT_BREAKDOWN_LIMIT: number = 10;
+  private static readonly DEFAULT_COMPARISON_LIMIT: number = 50;
+  private static readonly MAX_COMPARISON_LIMIT: number = 200;
+  /*
+   * How many functions of each window a comparison reads: enough that the
+   * long tail beyond them holds no change worth naming.
+   */
+  private static readonly COMPARISON_FUNCTION_FETCH: number = 500;
+  /*
+   * A profile covers a short collection window (10 to 60 seconds for every
+   * profiler OneUptime knows); a sample of a profile that started in a
+   * window is read up to this much later.
+   */
+  private static readonly SAMPLE_TIME_SLACK_IN_MINUTES: number = 10;
   /**
    * Cap on unique groups fetched by a breakdown query. Groups are ordered
    * by summed sampleCount, so hitting the cap drops the quietest groups
@@ -315,7 +479,10 @@ export class ProfileAggregationService {
    *
    * Samples are pre-aggregated in ClickHouse by stack identity, then
    * stacks sharing common prefixes are merged into a tree of
-   * ProfileFlamegraphNode objects.
+   * ProfileFlamegraphNode objects. Frames merge on function and file: a
+   * function sampled at two lines of the same caller is one frame, as a
+   * person reads a flame graph - its line is the one of the heaviest
+   * stack through it (rows arrive heaviest first).
    */
   @CaptureSpan()
   public static async getFlamegraph(
@@ -334,7 +501,19 @@ export class ProfileAggregationService {
     const truncated: boolean =
       rows.length >= ProfileAggregationService.MAX_STACK_FETCH;
 
-    // Build the tree from the pre-aggregated stacks
+    return {
+      flamegraph: ProfileAggregationService.buildFlamegraphTree(rows),
+      truncated,
+    };
+  }
+
+  /*
+   * The tree of grouped stack rows (stacktrace, frameTypes, totalValue),
+   * heaviest row first. Pure: the flame graph read and its tests share it.
+   */
+  public static buildFlamegraphTree(
+    rows: Array<JSONObject>,
+  ): ProfileFlamegraphNode {
     const root: ProfileFlamegraphNode = {
       functionName: "(root)",
       fileName: "",
@@ -376,11 +555,12 @@ export class ProfileAggregationService {
       currentNode.totalValue += value;
 
       for (let i: number = stacktrace.length - 1; i >= 0; i--) {
-        const frame: ParsedFrame = ProfileAggregationService.parseFrame(
-          stacktrace[i]!,
-        );
+        const frame: ParsedProfileFrame = parseProfileFrame(stacktrace[i]!);
         const frameType: string = frameTypes[i] || "";
-        const frameKey: string = `${frame.functionName}@${frame.fileName}:${frame.lineNumber}`;
+        const frameKey: string = getProfileFunctionKey(
+          frame.functionName,
+          frame.fileName,
+        );
 
         let index: Map<string, ProfileFlamegraphNode> | undefined =
           childIndex.get(currentNode);
@@ -417,7 +597,7 @@ export class ProfileAggregationService {
       }
     }
 
-    return { flamegraph: root, truncated };
+    return root;
   }
 
   /**
@@ -436,6 +616,9 @@ export class ProfileAggregationService {
       ...(request.profileId !== undefined && { profileId: request.profileId }),
       ...(request.serviceIds !== undefined && {
         serviceIds: request.serviceIds,
+      }),
+      ...(request.excludedServiceIds !== undefined && {
+        excludedServiceIds: request.excludedServiceIds,
       }),
       ...(request.profileType !== undefined && {
         profileType: request.profileType,
@@ -478,19 +661,84 @@ export class ProfileAggregationService {
     const windowTotal: number = Number(
       windowTotalRows[0]?.["windowTotal"] || 0,
     );
+    const windowSampleCount: number = Number(
+      windowTotalRows[0]?.["windowSampleCount"] || 0,
+    );
 
-    // Aggregate per-function stats from the pre-aggregated stacks
-    const functionMap: Map<
-      string,
-      {
-        functionName: string;
-        fileName: string;
-        selfValue: number;
-        totalValue: number;
-        sampleCount: number;
-        frameType: string;
+    const items: Array<FunctionListItem> =
+      ProfileAggregationService.buildFunctionList(rows);
+
+    // Sort
+    const sortBy: string = request.sortBy || "selfValue";
+
+    items.sort((a: FunctionListItem, b: FunctionListItem) => {
+      if (sortBy === "totalValue") {
+        return b.totalValue - a.totalValue;
       }
-    > = new Map();
+
+      if (sortBy === "sampleCount") {
+        return b.sampleCount - a.sampleCount;
+      }
+
+      if (sortBy === "ownValue") {
+        return b.ownValue - a.ownValue || b.selfValue - a.selfValue;
+      }
+
+      return b.selfValue - a.selfValue;
+    });
+
+    const limit: number =
+      request.limit ?? ProfileAggregationService.DEFAULT_FUNCTION_LIST_LIMIT;
+
+    return {
+      functions: ProfileAggregationService.withOwnCodeLeaders(items, limit),
+      windowTotal,
+      windowSampleCount,
+      truncated,
+    };
+  }
+
+  /*
+   * The first `limit` functions of a sorted list, and after them the
+   * application's own functions with the most own-code time that the limit
+   * left out (FUNCTION_LIST_OWN_CODE_LEADERS), heaviest first. Pure.
+   */
+  public static withOwnCodeLeaders(
+    sorted: Array<FunctionListItem>,
+    limit: number,
+  ): Array<FunctionListItem> {
+    const shown: Array<FunctionListItem> = sorted.slice(0, Math.max(0, limit));
+    const shownSet: Set<FunctionListItem> = new Set(shown);
+
+    const leaders: Array<FunctionListItem> = sorted
+      .filter((item: FunctionListItem): boolean => {
+        return item.ownValue > 0;
+      })
+      .sort((a: FunctionListItem, b: FunctionListItem): number => {
+        return b.ownValue - a.ownValue;
+      })
+      .slice(0, FUNCTION_LIST_OWN_CODE_LEADERS);
+
+    for (const leader of leaders) {
+      if (!shownSet.has(leader)) {
+        shown.push(leader);
+        shownSet.add(leader);
+      }
+    }
+
+    return shown;
+  }
+
+  /*
+   * Per-function figures from grouped stack rows, heaviest row first. A
+   * function is its name and its file: sampled at two lines it is one
+   * function, and its line is the one of the heaviest stack it was seen in.
+   * Pure: the function list read and its tests share it.
+   */
+  public static buildFunctionList(
+    rows: Array<JSONObject>,
+  ): Array<FunctionListItem> {
+    const functionMap: Map<string, FunctionListItem> = new Map();
 
     for (const row of rows) {
       const stacktrace: Array<string> =
@@ -509,13 +757,16 @@ export class ProfileAggregationService {
       }
 
       const seenInThisSample: Set<string> = new Set();
+      // The stack's own-code time goes to the own function nearest its leaf.
+      let isOwnCodeCounted: boolean = false;
 
       for (let i: number = 0; i < stacktrace.length; i++) {
-        const frame: ParsedFrame = ProfileAggregationService.parseFrame(
-          stacktrace[i]!,
-        );
+        const frame: ParsedProfileFrame = parseProfileFrame(stacktrace[i]!);
         const frameType: string = frameTypes[i] || "";
-        const key: string = `${frame.functionName}@${frame.fileName}:${frame.lineNumber}`;
+        const key: string = getProfileFunctionKey(
+          frame.functionName,
+          frame.fileName,
+        );
         // Stacks are stored leaf-first, so index 0 is the leaf frame.
         const isLeaf: boolean = i === 0;
 
@@ -525,12 +776,22 @@ export class ProfileAggregationService {
           entry = {
             functionName: frame.functionName,
             fileName: frame.fileName,
+            lineNumber: frame.lineNumber,
             selfValue: 0,
             totalValue: 0,
             sampleCount: 0,
             frameType: frameType,
+            ownValue: 0,
           };
           functionMap.set(key, entry);
+        }
+
+        if (
+          !isOwnCodeCounted &&
+          isOwnProfileFrame(frame.fileName, frame.functionName, frameType)
+        ) {
+          entry.ownValue += value;
+          isOwnCodeCounted = true;
         }
 
         // totalValue: count the value once per unique function per stack
@@ -547,29 +808,104 @@ export class ProfileAggregationService {
       }
     }
 
-    // Sort
-    const sortBy: string = request.sortBy || "selfValue";
-    const items: Array<FunctionListItem> = Array.from(functionMap.values());
+    return Array.from(functionMap.values());
+  }
 
-    items.sort((a: FunctionListItem, b: FunctionListItem) => {
-      if (sortBy === "totalValue") {
-        return b.totalValue - a.totalValue;
-      }
+  /*
+   * The same scope read in two windows, its functions lined up by name and
+   * file and ranked by how much their share of the time changed
+   * (Common/Utils/Profiles/ProfileComparison). Both reads run at once.
+   */
+  @CaptureSpan()
+  public static async getFunctionComparison(
+    request: FunctionComparisonRequest,
+  ): Promise<FunctionComparisonResult> {
+    const shared: Pick<
+      FunctionListRequest,
+      | "projectId"
+      | "serviceIds"
+      | "excludedServiceIds"
+      | "profileType"
+      | "profileTypes"
+    > = {
+      projectId: request.projectId,
+      ...(request.serviceIds !== undefined && {
+        serviceIds: request.serviceIds,
+      }),
+      ...(request.excludedServiceIds !== undefined && {
+        excludedServiceIds: request.excludedServiceIds,
+      }),
+      ...(request.profileType !== undefined && {
+        profileType: request.profileType,
+      }),
+      ...(request.profileTypes !== undefined && {
+        profileTypes: request.profileTypes,
+      }),
+    };
 
-      if (sortBy === "sampleCount") {
-        return b.sampleCount - a.sampleCount;
-      }
+    const [before, after]: [FunctionListResult, FunctionListResult] =
+      await Promise.all([
+        ProfileAggregationService.getFunctionList({
+          ...shared,
+          startTime: request.beforeStartTime,
+          endTime: request.beforeEndTime,
+          limit: ProfileAggregationService.COMPARISON_FUNCTION_FETCH,
+          sortBy: "selfValue",
+        }),
+        ProfileAggregationService.getFunctionList({
+          ...shared,
+          startTime: request.afterStartTime,
+          endTime: request.afterEndTime,
+          limit: ProfileAggregationService.COMPARISON_FUNCTION_FETCH,
+          sortBy: "selfValue",
+        }),
+      ]);
 
-      return b.selfValue - a.selfValue;
-    });
+    const beforeWindow: {
+      functions: Array<FunctionListItem>;
+      windowTotal: number;
+      windowSampleCount: number;
+    } = {
+      functions: before.functions,
+      windowTotal: before.windowTotal,
+      windowSampleCount: before.windowSampleCount,
+    };
+    const afterWindow: {
+      functions: Array<FunctionListItem>;
+      windowTotal: number;
+      windowSampleCount: number;
+    } = {
+      functions: after.functions,
+      windowTotal: after.windowTotal,
+      windowSampleCount: after.windowSampleCount,
+    };
 
-    const limit: number =
-      request.limit ?? ProfileAggregationService.DEFAULT_FUNCTION_LIST_LIMIT;
+    const limit: number = Math.min(
+      ProfileAggregationService.MAX_COMPARISON_LIMIT,
+      Math.max(
+        1,
+        Math.floor(
+          request.limit ?? ProfileAggregationService.DEFAULT_COMPARISON_LIMIT,
+        ),
+      ),
+    );
 
     return {
-      functions: items.slice(0, limit),
-      windowTotal,
-      truncated,
+      changes: limitProfileComparison(
+        compareProfileWindows(beforeWindow, afterWindow),
+        limit,
+      ),
+      before: {
+        windowTotal: before.windowTotal,
+        windowSampleCount: before.windowSampleCount,
+        truncated: before.truncated,
+      },
+      after: {
+        windowTotal: after.windowTotal,
+        windowSampleCount: after.windowSampleCount,
+        truncated: after.truncated,
+      },
+      isFooted: isComparisonFooted(beforeWindow, afterWindow),
     };
   }
 
@@ -595,6 +931,9 @@ export class ProfileAggregationService {
       ...(request.endTime !== undefined && { endTime: request.endTime }),
       ...(request.serviceIds !== undefined && {
         serviceIds: request.serviceIds,
+      }),
+      ...(request.excludedServiceIds !== undefined && {
+        excludedServiceIds: request.excludedServiceIds,
       }),
       ...(request.profileType !== undefined && {
         profileType: request.profileType,
@@ -642,6 +981,9 @@ export class ProfileAggregationService {
     const windowTotal: number = Number(
       windowTotalRows[0]?.["windowTotal"] || 0,
     );
+    const windowSampleCount: number = Number(
+      windowTotalRows[0]?.["windowSampleCount"] || 0,
+    );
 
     /*
      * Both trees are rooted at the focused function. lineNumber is 0
@@ -678,6 +1020,8 @@ export class ProfileAggregationService {
     let totalValue: number = 0;
     let selfValue: number = 0;
     let sampleCount: number = 0;
+    // The line of the heaviest stack through the function (rows arrive heaviest first).
+    let lineNumber: number = 0;
 
     for (const row of rows) {
       const stacktrace: Array<string> =
@@ -699,16 +1043,16 @@ export class ProfileAggregationService {
        * counted exactly once.
        */
       let occurrenceIndex: number = -1;
+      let occurrenceLine: number = 0;
 
       for (let i: number = stacktrace.length - 1; i >= 0; i--) {
-        const frame: ParsedFrame = ProfileAggregationService.parseFrame(
-          stacktrace[i]!,
-        );
+        const frame: ParsedProfileFrame = parseProfileFrame(stacktrace[i]!);
         if (
           frame.functionName === request.functionName &&
           frame.fileName === request.fileName
         ) {
           occurrenceIndex = i;
+          occurrenceLine = frame.lineNumber;
           break;
         }
       }
@@ -722,6 +1066,10 @@ export class ProfileAggregationService {
         continue;
       }
 
+      if (!lineNumber && occurrenceLine > 0) {
+        lineNumber = occurrenceLine;
+      }
+
       totalValue += value;
       sampleCount += groupSampleCount;
 
@@ -732,9 +1080,7 @@ export class ProfileAggregationService {
        * occurrence while the leaf may still be the same function
        * (standard sandwich-view semantics: self = "was on CPU").
        */
-      const leafFrame: ParsedFrame = ProfileAggregationService.parseFrame(
-        stacktrace[0]!,
-      );
+      const leafFrame: ParsedProfileFrame = parseProfileFrame(stacktrace[0]!);
       if (
         leafFrame.functionName === request.functionName &&
         leafFrame.fileName === request.fileName
@@ -794,10 +1140,12 @@ export class ProfileAggregationService {
     return {
       functionName: request.functionName,
       fileName: request.fileName,
+      lineNumber,
       totalValue,
       selfValue,
       sampleCount,
       windowTotal,
+      windowSampleCount,
       callers,
       callees,
       truncated,
@@ -827,11 +1175,14 @@ export class ProfileAggregationService {
     let currentNode: ProfileFlamegraphNode = data.root;
 
     for (const frameIndex of data.frameIndices) {
-      const frame: ParsedFrame = ProfileAggregationService.parseFrame(
+      const frame: ParsedProfileFrame = parseProfileFrame(
         data.stacktrace[frameIndex]!,
       );
       const frameType: string = data.frameTypes[frameIndex] || "";
-      const frameKey: string = `${frame.functionName}@${frame.fileName}`;
+      const frameKey: string = getProfileFunctionKey(
+        frame.functionName,
+        frame.fileName,
+      );
 
       let index: Map<string, ProfileFlamegraphNode> | undefined =
         data.childIndex.get(currentNode);
@@ -888,6 +1239,9 @@ export class ProfileAggregationService {
         ...(request.serviceIds !== undefined && {
           serviceIds: request.serviceIds,
         }),
+        ...(request.excludedServiceIds !== undefined && {
+          excludedServiceIds: request.excludedServiceIds,
+        }),
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
         }),
@@ -901,6 +1255,9 @@ export class ProfileAggregationService {
         endTime: request.comparisonEndTime,
         ...(request.serviceIds !== undefined && {
           serviceIds: request.serviceIds,
+        }),
+        ...(request.excludedServiceIds !== undefined && {
+          excludedServiceIds: request.excludedServiceIds,
         }),
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
@@ -938,7 +1295,7 @@ export class ProfileAggregationService {
       functionName:
         baseline?.functionName || comparison?.functionName || "(root)",
       fileName: baseline?.fileName || comparison?.fileName || "",
-      lineNumber: baseline?.lineNumber || comparison?.lineNumber || 0,
+      lineNumber: comparison?.lineNumber || baseline?.lineNumber || 0,
       baselineValue,
       comparisonValue,
       delta,
@@ -950,21 +1307,29 @@ export class ProfileAggregationService {
       frameType: baseline?.frameType || comparison?.frameType || "",
     };
 
-    // Merge children by matching on functionName + fileName + lineNumber
+    /*
+     * Merge children by function and file. Line numbers move with the very
+     * change a comparison looks at (a deploy), so matching on them would
+     * split one function into a "removed" and an "added" frame.
+     */
     const baselineChildren: Map<string, ProfileFlamegraphNode> = new Map();
     const comparisonChildren: Map<string, ProfileFlamegraphNode> = new Map();
 
     if (baseline) {
       for (const child of baseline.children) {
-        const key: string = `${child.functionName}@${child.fileName}:${child.lineNumber}`;
-        baselineChildren.set(key, child);
+        baselineChildren.set(
+          getProfileFunctionKey(child.functionName, child.fileName),
+          child,
+        );
       }
     }
 
     if (comparison) {
       for (const child of comparison.children) {
-        const key: string = `${child.functionName}@${child.fileName}:${child.lineNumber}`;
-        comparisonChildren.set(key, child);
+        comparisonChildren.set(
+          getProfileFunctionKey(child.functionName, child.fileName),
+          child,
+        );
       }
     }
 
@@ -1020,14 +1385,34 @@ export class ProfileAggregationService {
     }>();
 
     const rows: Array<JSONObject> = response.data || [];
-    const out: Array<ServiceActivityItem> = [];
+    const byEntity: Map<string, ServiceActivityItem> = new Map();
     for (const row of rows) {
       const primaryEntityId: string = String(row["primaryEntityId"] || "");
       if (!primaryEntityId) {
         continue;
       }
-      out.push({
+
+      const primaryEntityType: string = String(row["primaryEntityType"] || "");
+      const existing: ServiceActivityItem | undefined =
+        byEntity.get(primaryEntityId);
+
+      /*
+       * One resource reads as one row even if its profiles were stamped
+       * with two discriminators over time (a re-typed resource): the counts
+       * add up, and the type of the busier rows wins.
+       */
+      if (existing) {
+        existing.sampleCount += Number(row["totalSampleCount"] || 0);
+        existing.profileCount += Number(row["profileCount"] || 0);
+        if (!existing.primaryEntityType && primaryEntityType) {
+          existing.primaryEntityType = primaryEntityType;
+        }
+        continue;
+      }
+
+      byEntity.set(primaryEntityId, {
         primaryEntityId,
+        primaryEntityType,
         sampleCount: Number(row["totalSampleCount"] || 0),
         profileCount: Number(row["profileCount"] || 0),
         /*
@@ -1038,7 +1423,156 @@ export class ProfileAggregationService {
         totalValue: 0,
       });
     }
-    return out;
+
+    return Array.from(byEntity.values()).sort(
+      (a: ServiceActivityItem, b: ServiceActivityItem): number => {
+        return b.sampleCount - a.sampleCount;
+      },
+    );
+  }
+
+  /*
+   * Which raw profile types a scope has data for in a window, with their
+   * unit and volume: what the Profiler offers to analyze (CPU time,
+   * memory, ...) and how each is read (ProfileTypes.
+   * getAvailableProfileCategories). Reads the small Profile table.
+   */
+  @CaptureSpan()
+  public static async getProfileTypeActivity(
+    request: ProfileTypeActivityRequest,
+  ): Promise<Array<ProfileTypeActivity>> {
+    const statement: Statement = SQL`
+      SELECT
+        profileType,
+        any(unit) AS unit,
+        toFloat64(sum(sampleCount)) AS totalSampleCount,
+        uniqExact(profileId) AS profileCount
+      FROM ${ProfileAggregationService.PROFILE_TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND startTime >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND startTime <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    statement.append(" AND retentionDate >= now()");
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
+
+    statement.append(
+      SQL` GROUP BY profileType
+           ORDER BY totalSampleCount DESC
+           LIMIT 100`,
+    );
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    const dbResult: Results =
+      await ProfileDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const activity: Array<ProfileTypeActivity> = [];
+    const rows: Array<JSONObject> = response.data || [];
+
+    for (const row of rows) {
+      const profileType: string = String(row["profileType"] || "");
+
+      if (!profileType) {
+        continue;
+      }
+
+      activity.push({
+        profileType,
+        unit: String(row["unit"] || ""),
+        sampleCount: Number(row["totalSampleCount"] || 0),
+        profileCount: Number(row["profileCount"] || 0),
+      });
+    }
+
+    return activity;
+  }
+
+  /*
+   * The raw types to read a kind of profile as (CPU time, memory, ...) in a
+   * scope: the ones with data there, in one unit. Falls back to every raw
+   * name of the kind when the scope has none - the read then simply finds
+   * nothing - and to the selection itself when it names one raw type.
+   */
+  @CaptureSpan()
+  public static async resolveQueryProfileTypes(data: {
+    request: ProfileTypeActivityRequest;
+    selection: string;
+  }): Promise<Array<string> | undefined> {
+    const selection: string = (data.selection || "").trim();
+
+    if (!selection) {
+      return undefined;
+    }
+
+    const isCategory: boolean = (
+      Object.values(ProfileCategory) as Array<string>
+    ).includes(selection.toLowerCase());
+
+    if (!isCategory) {
+      return [selection];
+    }
+
+    const activity: Array<ProfileTypeActivity> =
+      await ProfileAggregationService.getProfileTypeActivity(data.request);
+
+    const available: ProfileCategoryAvailability | undefined =
+      getAvailableProfileCategories(activity).find(
+        (entry: ProfileCategoryAvailability): boolean => {
+          return entry.category === selection.toLowerCase();
+        },
+      );
+
+    return available
+      ? available.queryTypes
+      : getQueryProfileTypes(selection.toLowerCase());
+  }
+
+  /*
+   * The share of a window's time that ran through code matching some text:
+   * the stacks with a frame containing it (any case, function or file),
+   * each counted once, against every stack of the window. The profiles read
+   * are the ones `profileQuery` matches - the Profiles monitor's own
+   * filters - so the share and the profile count of one monitor describe
+   * the same profiles.
+   */
+  @CaptureSpan()
+  public static async getStackShare(
+    request: StackShareRequest,
+  ): Promise<StackShareResult> {
+    const statement: Statement =
+      ProfileAggregationService.buildStackShareQuery(request);
+
+    const dbResult: Results =
+      await ProfileSampleDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const row: JSONObject | undefined = (response.data || [])[0];
+    const matchedValue: number = Number(row?.["matchedValue"] || 0);
+    const windowTotal: number = Number(row?.["windowTotal"] || 0);
+    const windowSampleCount: number = Number(row?.["windowSampleCount"] || 0);
+
+    return {
+      matchedValue,
+      windowTotal,
+      windowSampleCount,
+      sharePercent: windowTotal > 0 ? (matchedValue / windowTotal) * 100 : 0,
+    };
   }
 
   /**
@@ -1165,15 +1699,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top stacks) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1247,15 +1777,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top stacks) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1263,12 +1789,13 @@ export class ProfileAggregationService {
   /**
    * Total of `value` across every sample row matching the filters — no
    * GROUP BY and no LIMIT, so it stays correct even when the grouped
-   * stack query truncates.
+   * stack query truncates — and how many rows that is.
    */
   private static buildWindowTotalQuery(request: FlamegraphRequest): Statement {
     const statement: Statement = SQL`
       SELECT
-        toFloat64(sum(value)) AS windowTotal
+        toFloat64(sum(value)) AS windowTotal,
+        count() AS windowSampleCount
       FROM ${ProfileAggregationService.TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -1278,12 +1805,62 @@ export class ProfileAggregationService {
 
     ProfileAggregationService.appendSampleFilters(statement, request);
 
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    return statement;
+  }
+
+  /*
+   * One pass over the window's samples: the value of the stacks with a
+   * frame containing the text, and the value of all of them. The samples
+   * read are those of the profiles the monitor's query matches (a GLOBAL IN
+   * subquery on the Profile table: the two tables are Distributed and
+   * shard on different keys), and only those taken around the window, so
+   * the read stays on the window's partitions.
+   */
+  private static buildStackShareQuery(request: StackShareRequest): Statement {
+    const statement: Statement = SQL`
+      SELECT
+        toFloat64(sumIf(value, arrayExists(x -> positionCaseInsensitiveUTF8(x, ${{
+          type: TableColumnType.Text,
+          value: request.frameText,
+        }}) > 0, stacktrace))) AS matchedValue,
+        toFloat64(sum(value)) AS windowTotal,
+        count() AS windowSampleCount
+      FROM ${ProfileAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: OneUptimeDate.addRemoveMinutes(
+            request.startTime,
+            -ProfileAggregationService.SAMPLE_TIME_SLACK_IN_MINUTES,
+          ),
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: OneUptimeDate.addRemoveMinutes(
+            request.endTime,
+            ProfileAggregationService.SAMPLE_TIME_SLACK_IN_MINUTES,
+          ),
+        }}
+        AND retentionDate >= now()
+        AND profileId GLOBAL IN (SELECT profileId FROM ${ProfileAggregationService.PROFILE_TABLE_NAME} WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
+        }} AND retentionDate >= now() `;
+
     statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
+      ProfileDatabaseService.statementGenerator.toWhereStatement(
+        request.profileQuery,
+      ),
     );
+
+    statement.append(SQL`)`);
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1312,6 +1889,8 @@ export class ProfileAggregationService {
           value: new Includes(request.spanIds),
         }})`,
       );
+    } else {
+      ProfileAggregationService.appendTraceSpansFilter(statement, request);
     }
 
     /*
@@ -1320,12 +1899,9 @@ export class ProfileAggregationService {
      */
     statement.append(" AND retentionDate >= now()");
 
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1342,6 +1918,7 @@ export class ProfileAggregationService {
     const statement: Statement = SQL`
       SELECT
         toString(primaryEntityId) AS primaryEntityId,
+        toString(primaryEntityType) AS primaryEntityType,
         toFloat64(sum(sampleCount)) AS totalSampleCount,
         uniqExact(profileId) AS profileCount
       FROM ${ProfileAggregationService.PROFILE_TABLE_NAME}
@@ -1361,42 +1938,20 @@ export class ProfileAggregationService {
 
     statement.append(" AND retentionDate >= now()");
 
-    /*
-     * profileTypes (array) wins over profileType (single) so the UI
-     * can OR together every raw type string in a category.
-     */
-    if (request.profileTypes && request.profileTypes.length > 0) {
-      statement.append(
-        SQL` AND profileType IN (${{
-          type: TableColumnType.Text,
-          value: new Includes(request.profileTypes),
-        }})`,
-      );
-    } else if (request.profileType) {
-      statement.append(
-        SQL` AND profileType = ${{
-          type: TableColumnType.Text,
-          value: request.profileType,
-        }}`,
-      );
-    }
+    ProfileAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
-      SQL` GROUP BY primaryEntityId
+      SQL` GROUP BY primaryEntityId, primaryEntityType
            ORDER BY totalSampleCount DESC
            LIMIT 10000`,
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * partial service activity rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1475,15 +2030,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top groups) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1540,6 +2091,11 @@ export class ProfileAggregationService {
           value: new Includes(request.spanIds),
         }})`,
       );
+    } else if (request.traceId) {
+      ProfileAggregationService.appendTraceSpansFilter(statement, {
+        projectId: request.projectId,
+        traceId: request.traceId,
+      });
     }
 
     /*
@@ -1551,25 +2107,44 @@ export class ProfileAggregationService {
     ProfileAggregationService.appendCommonFilters(statement, request);
   }
 
+  /**
+   * A trace-wide read (a traceId without spanIds) counts a sample only
+   * when the sample names one of the trace's own spans, as a span-scoped
+   * read already does. A sample's link is whatever span context the
+   * profiler found for its thread, and OBI v0.14.0 can publish context for
+   * threads of processes it does not instrument: such a caller of an
+   * instrumented service keeps the context of its last call, under a span
+   * of its own that was never exported, so all its later CPU would land in
+   * this trace. Samples linked to spans dropped before storage (database
+   * server spans, for instance) are left out as well.
+   *
+   * GLOBAL IN, not plain IN: both tables are Distributed and shard on
+   * different keys (spans by traceId, samples by profileId), so a plain IN
+   * is rejected on multi-shard clusters (Code 288).
+   */
+  private static appendTraceSpansFilter(
+    statement: Statement,
+    request: Pick<TracePresenceRequest, "projectId" | "traceId">,
+  ): void {
+    statement.append(
+      SQL` AND spanId GLOBAL IN (SELECT spanId FROM ${ProfileAggregationService.SPAN_TABLE_NAME} WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND traceId = ${{
+        type: TableColumnType.Text,
+        value: request.traceId,
+      }})`,
+    );
+  }
+
   private static appendCommonFilters(
     statement: Statement,
     request: Pick<
       FlamegraphRequest,
-      "serviceIds" | "profileType" | "profileTypes"
+      "serviceIds" | "excludedServiceIds" | "profileType" | "profileTypes"
     >,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     /*
      * profileTypes (array) wins over profileType (single) so the UI can
@@ -1590,46 +2165,6 @@ export class ProfileAggregationService {
         }}`,
       );
     }
-  }
-
-  /**
-   * Parse a frame string in the format "functionName@fileName:lineNumber".
-   * Falls back gracefully if the format is unexpected.
-   */
-  private static parseFrame(frame: string): ParsedFrame {
-    // Expected format: "functionName@fileName:lineNumber"
-    const atIndex: number = frame.indexOf("@");
-
-    if (atIndex === -1) {
-      return {
-        functionName: frame,
-        fileName: "",
-        lineNumber: 0,
-      };
-    }
-
-    const functionName: string = frame.substring(0, atIndex);
-    const rest: string = frame.substring(atIndex + 1);
-
-    const lastColonIndex: number = rest.lastIndexOf(":");
-
-    if (lastColonIndex === -1) {
-      return {
-        functionName,
-        fileName: rest,
-        lineNumber: 0,
-      };
-    }
-
-    const fileName: string = rest.substring(0, lastColonIndex);
-    const lineNumberStr: string = rest.substring(lastColonIndex + 1);
-    const lineNumber: number = parseInt(lineNumberStr, 10) || 0;
-
-    return {
-      functionName,
-      fileName,
-      lineNumber,
-    };
   }
 }
 

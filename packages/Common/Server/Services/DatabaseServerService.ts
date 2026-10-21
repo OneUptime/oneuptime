@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
@@ -22,10 +22,17 @@ import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import DatabaseConfig from "../DatabaseConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
   truncateLongText,
@@ -35,6 +42,7 @@ import InProcessMemo from "../Utils/InProcessMemo";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -51,8 +59,10 @@ import {
   ManualDatabaseEndpoint,
   buildDatabaseServerDisplayName,
   buildDatabaseServerIdentifier,
+  EPHEMERAL_PORT_RANGE_START,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
+  isClientSocketDatabaseEndpoint,
   isKubernetesServiceDnsHost,
   parseDatabaseEndpointString,
   parseManualDatabaseEndpoint,
@@ -72,6 +82,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { mergeDatabaseServerMemberKeys } from "../../Utils/Telemetry/DatabaseServerEntityKeys";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Two heartbeats, two namespaces: a collector reporting engine metrics is a
@@ -111,6 +125,14 @@ const DEFAULT_AUTO_ARCHIVE_DAYS: number = 7;
 const MIN_AUTO_ARCHIVE_DAYS: number = 1;
 // Rows archived per sweep; the rest wait for the next five-minute run.
 const AUTO_ARCHIVE_BATCH_SIZE: number = 500;
+
+/*
+ * The client-socket sweep (deleteClientSocketDatabaseServers): rows deleted
+ * per run, and how far it pages through candidates looking for them.
+ */
+const CLIENT_SOCKET_DELETE_BATCH_SIZE: number = 500;
+const CLIENT_SOCKET_SWEEP_PAGE_SIZE: number = 500;
+const CLIENT_SOCKET_SWEEP_MAX_PAGES: number = 20;
 
 /*
  * A person's Restore holds the sweep off this long (or the archive window,
@@ -335,6 +357,15 @@ export interface FindOrCreateDatabaseServerByEndpointData {
    * its Created feed item says whether the Database Agent found it.
    */
   collector?: DatabaseServerCollectorReport | undefined;
+  /*
+   * False when the caller only looks the row up and saw no traffic or
+   * telemetry: a resource AI agent registering names its database's
+   * endpoint without being evidence the database is in use. The owner is
+   * then returned as it is: its endpoint's lastMatchedAt does not move, its
+   * engine is not weighed, and a row discovery archived stays archived.
+   * Defaults to true.
+   */
+  isSighting?: boolean | undefined;
 }
 
 export interface DatabaseServerCollectorReport {
@@ -358,10 +389,11 @@ interface DatabaseServerCreationContext {
 // The Created feed item of a row no person added (describeCreationOrigin).
 interface DatabaseServerCreationOrigin {
   emoji: string;
-  // Follows the database's link: "was created automatically: detected from ...".
+  // Follows the database's link: "was created automatically: detected from ...". Text.
   summary: string;
   // The "**Created by**" line.
-  createdBy: string;
+  createdBy: MarkdownText;
+  // Text.
   explanation: string;
 }
 
@@ -434,7 +466,7 @@ interface AutoCreateCount {
  *     - a container image may still refine it to a fork, and undo a fork
  *     only client spans named (decideDatabaseSystem).
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   /*
    * In-process front for the fleet-wide auto-restore gate: a collector
    * heartbeat arrives per batch, and asking Redis per batch whether it is time
@@ -464,6 +496,11 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
   /*
    * A person adding a database from the dashboard or the API. Root creates -
    * every discovery path - pass through untouched: they compute identity and
@@ -488,6 +525,21 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * A create is held to the same AI access rules as an update, judged
+     * against the never-configured defaults a new database starts from: an
+     * unusable mode or allowlist is refused for every caller, root included,
+     * and the server-only aiAccess* columns for every caller but root (a
+     * master admin included, whom the create column ACLs never check). It
+     * looks nothing up, so it may run before the permission check.
+     */
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.DatabaseServer,
+      createBy,
+    });
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }
@@ -631,6 +683,62 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  /*
+   * Deleting a database server settles its in-flight AI remediation rounds and
+   * removes its resource AI agent — read before the delete, done after it for
+   * the database servers actually deleted (ResourceAiDeleteCleanup, shared by
+   * every resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.DatabaseServer,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.DatabaseServer,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this database — the rules every resource AI
+   * agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.DatabaseServer,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -682,6 +790,34 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the database
+     * marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        databaseServerId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await DatabaseServerFeedService.createDatabaseServerFeedItem({
+          databaseServerId: item.resourceId,
+          projectId: item.projectId,
+          databaseServerFeedEventType:
+            DatabaseServerFeedEventType.DatabaseServerUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -736,6 +872,10 @@ export class Service extends DatabaseService<Model> {
 
       if (ownerRow && this.isRetiredFor(ownerRow, data.discoverySource)) {
         return null;
+      }
+
+      if (data.isSighting === false) {
+        return ownerRow;
       }
 
       await DatabaseServerEndpointService.markEndpointMatched(owner);
@@ -1075,9 +1215,17 @@ export class Service extends DatabaseService<Model> {
    */
   @CaptureSpan()
   public async markDisconnectedDatabaseServers(): Promise<number> {
-    const threshold: Date = this.getCollectorSilenceCutoff(
-      OneUptimeDate.getCurrentDate(),
-    );
+    /*
+     * The same silence as getCollectorSilenceCutoff, measured in time
+     * OneUptime was receiving: a stretch when OneUptime itself was down,
+     * starting up or catching up is not the collector's silence (issue
+     * #2825). With no such stretch the two are the same instant.
+     */
+    const threshold: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes:
+        this.getCollectorStaleThresholdMinutes() +
+        COLLECTOR_HEARTBEAT_LAG_MINUTES,
+    });
 
     const rows: Array<{ count: number | string }> =
       await this.getRepository().manager.query(
@@ -1220,6 +1368,135 @@ export class Service extends DatabaseService<Model> {
     }
 
     return rows.length;
+  }
+
+  /**
+   * Delete the databases application traces created for the CLIENT end of
+   * a connection (isClientSocketDatabaseEndpoint): eBPF instrumentation
+   * swapped the connection's two ends, and before the create policy refused
+   * such endpoints, every connection became a database named after its
+   * ephemeral port. They were never databases. They fill the list, use up
+   * the project's auto-create budget, and stay "seen" for as long as their
+   * connection lives.
+   *
+   * Deleted, not archived. An archived row keeps its endpoints, so the next
+   * swapped span to name one would restore it. A deleted row frees them, and
+   * the create policy no longer makes anything of them.
+   *
+   * Only rows that nothing but that mistake explains are deleted. Each one
+   * was created by application traces (never a workload's row) and still
+   * has the name discovery gave it, with no description. A person never
+   * archived or restored it, and nobody invested in it
+   * (UNTOUCHED_DATABASE_SERVER_PREDICATE). Every endpoint it has, its own
+   * address and port included, is a client socket of its engine
+   * (isClientSocketDatabaseServerRow). A real database on an ephemeral port
+   * that someone looked after stays. Pages through candidates by id, so the
+   * rows SQL cannot rule out (a renamed one, Db2 on its default 50000) never
+   * hide the rest. Bounded per run. Returns how many rows were deleted.
+   */
+  @CaptureSpan()
+  public async deleteClientSocketDatabaseServers(): Promise<number> {
+    let deleted: number = 0;
+    let afterId: string | null = null;
+
+    for (let page: number = 0; page < CLIENT_SOCKET_SWEEP_MAX_PAGES; page++) {
+      const candidates: unknown = await this.getRepository().manager.query(
+        `SELECT ds."_id" AS "_id", ds."projectId" AS "projectId", ds."name" AS "name",
+            ds."dbSystem" AS "dbSystem", ds."serverAddress" AS "serverAddress",
+            ds."serverPort" AS "serverPort",
+            ARRAY(
+              SELECT e."endpoint"::text FROM "DatabaseServerEndpoint" e
+              WHERE e."databaseServerId" = ds."_id"
+                AND e."projectId" = ds."projectId"
+                AND e."deletedAt" IS NULL
+            ) AS "endpoints"
+          FROM "DatabaseServer" ds
+          WHERE ds."deletedAt" IS NULL
+            AND ds."discoverySource" = $1
+            AND ds."workloadIdentifier" IS NULL
+            AND ds."serverPort" >= $2
+            AND ds."manuallyRestoredAt" IS NULL
+            AND (ds."isArchived" = false OR ds."autoArchivedAt" IS NOT NULL)
+            AND COALESCE(BTRIM(ds."description"), '') = ''
+            AND ($4::uuid IS NULL OR ds."_id" > $4::uuid)
+            AND ${UNTOUCHED_DATABASE_SERVER_PREDICATE}
+          ORDER BY ds."_id" ASC
+          LIMIT $3`,
+        [
+          DatabaseServerDiscoverySource.ClientSpans,
+          EPHEMERAL_PORT_RANGE_START,
+          CLIENT_SOCKET_SWEEP_PAGE_SIZE,
+          afterId,
+        ],
+      );
+
+      const rows: Array<ClientSocketDatabaseServerRow> = Array.isArray(
+        candidates,
+      )
+        ? (candidates as Array<ClientSocketDatabaseServerRow>)
+        : [];
+
+      for (const row of rows) {
+        if (deleted >= CLIENT_SOCKET_DELETE_BATCH_SIZE) {
+          return deleted;
+        }
+
+        if (!row || !row._id || !row.projectId) {
+          continue;
+        }
+
+        if (!isClientSocketDatabaseServerRow(row)) {
+          continue;
+        }
+
+        const projectId: ObjectID = new ObjectID(row.projectId.toString());
+
+        let count: number = 0;
+
+        try {
+          // With hooks: the delete also removes the row's resource AI agent.
+          count = await this.deleteBy({
+            query: {
+              _id: row._id.toString(),
+              projectId: projectId,
+            },
+            limit: 1,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+        } catch (error) {
+          // One row that cannot be deleted never holds up the rest.
+          logger.warn(
+            `DatabaseServerService: could not delete database ${row._id.toString()}, which application traces created for the client end of a connection: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            { projectId: projectId.toString() } as LogAttributes,
+          );
+          continue;
+        }
+
+        if (count > 0) {
+          deleted++;
+
+          logger.info(
+            `DatabaseServerService: deleted database ${row._id.toString()} (${String(
+              row.name || "",
+            )}): application traces created it for the client end of a connection, not for a database server.`,
+            { projectId: projectId.toString() } as LogAttributes,
+          );
+        }
+      }
+
+      if (rows.length < CLIENT_SOCKET_SWEEP_PAGE_SIZE) {
+        break;
+      }
+
+      afterId = String(rows[rows.length - 1]!._id);
+    }
+
+    return deleted;
   }
 
   /*
@@ -1524,7 +1801,7 @@ export class Service extends DatabaseService<Model> {
   public async getDatabaseServerMarkdownLink(
     projectId: ObjectID,
     databaseServerId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getDatabaseServerName({
       databaseServerId: databaseServerId,
     });
@@ -1533,7 +1810,7 @@ export class Service extends DatabaseService<Model> {
       databaseServerId,
     );
 
-    return `[Database ${name}](${link.toString()})`;
+    return mdText`[Database ${name}](${link.toString()})`;
   }
 
   /**
@@ -1990,14 +2267,15 @@ export class Service extends DatabaseService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerUpdated,
         displayColor: Gray500,
-        feedInfoInMarkdown: `🔎 ${await this.getDatabaseServerMarkdownLink(
-          row.projectId,
-          row.id,
-        )} is now identified as **${getDatabaseSystemDisplayName(
-          row.dbSystem,
-        )}** (it was shown as ${getDatabaseSystemDisplayName(
-          data.previousSystem,
-        )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`,
+        feedInfoInMarkdown:
+          mdText`🔎 ${await this.getDatabaseServerMarkdownLink(
+            row.projectId,
+            row.id,
+          )} is now identified as **${getDatabaseSystemDisplayName(
+            row.dbSystem,
+          )}** (it was shown as ${getDatabaseSystemDisplayName(
+            data.previousSystem,
+          )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`.toString(),
         moreInformationInMarkdown: `Client libraries of wire-compatible databases report the engine they speak to, so a database first seen in application traces can be named after the wrong engine. A stronger source - a container image, a collector receiver or the Database Agent - corrects it. A fork (MariaDB, Valkey, ScyllaDB ...) refines the engine it forks when a source at least as strong names it, or its container image does; application traces alone never override an image or a collector. An engine a person chose is never changed.`,
       });
     } catch (error) {
@@ -3397,10 +3675,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const resourceMarkdownLink: string =
+    const resourceMarkdownLink: MarkdownText =
       await this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
 
-    const discoveredFrom: string = `**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
+    const discoveredFrom: MarkdownText = mdText`**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
       createdItem.discoverySource,
     )}`;
 
@@ -3425,7 +3703,8 @@ export class Service extends DatabaseService<Model> {
 
       markdown = {
         feedInfoInMarkdown: created.feedInfoInMarkdown,
-        moreInformationInMarkdown: `${created.moreInformationInMarkdown}\n\n${discoveredFrom}`,
+        moreInformationInMarkdown:
+          mdText`${FeedMarkdown.asMarkdown(created.moreInformationInMarkdown)}\n\n${discoveredFrom}`.toString(),
       };
     } else {
       /*
@@ -3436,24 +3715,30 @@ export class Service extends DatabaseService<Model> {
       const origin: DatabaseServerCreationOrigin =
         await this.describeCreationOrigin(createdItem, context);
 
-      const details: Array<string> = [];
+      const details: Array<MarkdownText> = [];
       if (createdItem.databaseIdentifier) {
         details.push(
-          `**Database identifier**: \`${createdItem.databaseIdentifier}\``,
+          mdText`**Database identifier**: \`${createdItem.databaseIdentifier}\``,
         );
       }
       if (createdItem.description) {
-        details.push(`**Description**: ${createdItem.description}`);
+        details.push(
+          mdText`**Description**: ${FeedMarkdown.asMarkdown(createdItem.description)}`,
+        );
       }
 
       markdown = {
-        feedInfoInMarkdown: `${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`,
-        moreInformationInMarkdown: [
-          origin.createdBy,
-          `**How it was created**: ${origin.explanation}`,
-          discoveredFrom,
-          ...details,
-        ].join("\n\n"),
+        feedInfoInMarkdown:
+          mdText`${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          [
+            origin.createdBy,
+            mdText`**How it was created**: ${origin.explanation}`,
+            discoveredFrom,
+            ...details,
+          ],
+          "\n\n",
+        ).toString(),
       };
     }
 
@@ -3479,8 +3764,7 @@ export class Service extends DatabaseService<Model> {
     row: Model,
     context: DatabaseServerCreationContext | undefined,
   ): Promise<DatabaseServerCreationOrigin> {
-    const automatic: string =
-      "**Created by**: No user. OneUptime created this database on its own.";
+    const automatic: MarkdownText = mdText`**Created by**: No user. OneUptime created this database on its own.`;
     const endpoint: string = describeCreationEndpoint(row, context);
 
     switch (row.discoverySource) {
@@ -3563,8 +3847,7 @@ export class Service extends DatabaseService<Model> {
         return {
           emoji: "🚀",
           summary: "was added manually",
-          createdBy:
-            "**Created by**: An API key or integration, not a signed-in user.",
+          createdBy: mdText`**Created by**: An API key or integration, not a signed-in user.`,
           explanation:
             "Added from the OneUptime dashboard or through the OneUptime API.",
         };
@@ -3676,7 +3959,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
 
       if (isArchiveChange) {
@@ -3688,8 +3971,8 @@ export class Service extends DatabaseService<Model> {
             : DatabaseServerFeedEventType.DatabaseServerRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }
@@ -3824,10 +4107,11 @@ export class Service extends DatabaseService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerRestored,
         displayColor: Blue500,
-        feedInfoInMarkdown: `♻️ ${await this.getDatabaseServerMarkdownLink(
-          row.projectId,
-          row.id,
-        )} was restored from the archive automatically - it was seen again after being archived for inactivity.`,
+        feedInfoInMarkdown:
+          mdText`♻️ ${await this.getDatabaseServerMarkdownLink(
+            row.projectId,
+            row.id,
+          )} was restored from the archive automatically - it was seen again after being archived for inactivity.`.toString(),
       });
 
       return true;
@@ -3935,15 +4219,17 @@ export class Service extends DatabaseService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerArchived,
         displayColor: Yellow500,
-        feedInfoInMarkdown: `🗄️ ${await this.getDatabaseServerMarkdownLink(
-          data.projectId,
-          data.databaseServerId,
-        )} was automatically archived - not seen for ${data.days} ${
-          data.days === 1 ? "day" : "days"
-        }.`,
-        moreInformationInMarkdown: `No collector, application trace or container inventory has reported this database for ${data.days} ${
-          data.days === 1 ? "day" : "days"
-        } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. ${restoredBy}`,
+        feedInfoInMarkdown:
+          mdText`🗄️ ${await this.getDatabaseServerMarkdownLink(
+            data.projectId,
+            data.databaseServerId,
+          )} was automatically archived - not seen for ${data.days} ${
+            data.days === 1 ? "day" : "days"
+          }.`.toString(),
+        moreInformationInMarkdown:
+          mdText`No collector, application trace or container inventory has reported this database for ${data.days} ${
+            data.days === 1 ? "day" : "days"
+          } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. ${restoredBy}`.toString(),
       });
     } catch (error) {
       logger.warn(
@@ -4460,6 +4746,86 @@ function findGeneratedNameForm(
   }
 
   return null;
+}
+
+/*
+ * A candidate row of the client-socket sweep, as its SQL reads it:
+ * `endpoints` holds every live endpoint the row owns, formatted.
+ */
+export interface ClientSocketDatabaseServerRow {
+  _id?: unknown;
+  projectId?: unknown;
+  name?: unknown;
+  dbSystem?: unknown;
+  serverAddress?: unknown;
+  serverPort?: unknown;
+  endpoints?: unknown;
+}
+
+/**
+ * True when a trace-created row describes nothing but the client end of a
+ * connection: it still has the name discovery generated for it (nobody
+ * renamed it), and its own address and port, and every endpoint it owns,
+ * are client sockets of its engine (isClientSocketDatabaseEndpoint). An
+ * endpoint that does not parse, or a row with no address at all, is never
+ * one. The sweep's SQL has already checked everything else
+ * (deleteClientSocketDatabaseServers).
+ */
+export function isClientSocketDatabaseServerRow(
+  row: ClientSocketDatabaseServerRow | null | undefined,
+): boolean {
+  if (!row) {
+    return false;
+  }
+
+  const dbSystem: string =
+    typeof row.dbSystem === "string" ? row.dbSystem.trim() : "";
+  const serverAddress: string =
+    typeof row.serverAddress === "string" ? row.serverAddress.trim() : "";
+  const serverPort: number = Number(row.serverPort);
+
+  if (!dbSystem || !serverAddress || !Number.isInteger(serverPort)) {
+    return false;
+  }
+
+  if (
+    !hasDiscoveryGeneratedName({
+      name: typeof row.name === "string" ? row.name : undefined,
+      dbSystem: dbSystem,
+      serverAddress: serverAddress,
+      serverPort: serverPort,
+    })
+  ) {
+    return false;
+  }
+
+  const endpoints: Array<DatabaseEndpoint> = [
+    { host: serverAddress, port: serverPort },
+  ];
+
+  const stored: Array<unknown> = Array.isArray(row.endpoints)
+    ? row.endpoints
+    : [];
+
+  for (const value of stored) {
+    const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
+      value,
+      { system: dbSystem },
+    );
+
+    if (!endpoint) {
+      return false;
+    }
+
+    endpoints.push(endpoint);
+  }
+
+  return endpoints.every((endpoint: DatabaseEndpoint): boolean => {
+    return isClientSocketDatabaseEndpoint({
+      system: dbSystem,
+      endpoint: endpoint,
+    });
+  });
 }
 
 /*

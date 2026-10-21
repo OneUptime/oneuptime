@@ -362,33 +362,42 @@ describe("the Network Devices create form asks about the device, not about monit
   });
 
   /*
-   * The steps that are left are all about the device. Pinned as a set,
-   * because "SNMP" losing its step is how an optional step becomes an
-   * invisible one (its fields would then render on every step, or on none —
-   * see NetworkFormStepsInvariants.test.ts).
+   * No steps left at all: Add Device is one page that asks about the device
+   * - its address, a name, its site, its probe - with SNMP and the rarely
+   * needed fields folded on the same page.
    */
-  test("walks the operator through device details, probe and site, and SNMP", async () => {
+  test("is one page: no steps to walk through", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
-    expect(stepIdsOf(props)).toEqual([
-      "device-details",
-      "probe-and-site",
-      "snmp",
-    ]);
+    expect(stepIdsOf(props)).toEqual([]);
   });
 
   /*
-   * What IS required is the identity of the device and the probe that
-   * reaches it. A form that dropped the method question by dropping
-   * questions wholesale would pass the tests above and let a nameless,
-   * addressless, unpolled device through to the server's own validation.
+   * What IS required is the device's address and the probe that reaches it.
+   * The name is optional now - left empty, the device is named after its
+   * hostname (the form's onBeforeCreate and NetworkDeviceService agree) - so
+   * no device is ever saved nameless, and the one question only the person
+   * adding it can answer is the only one they must.
    */
-  test("still requires the device's name, hostname and probe", async () => {
+  test("requires the device's hostname and probe, and names it after the hostname when the name is left empty", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
-    expect(isRequired(fieldFor(props, "name"), DEVICE)).toBe(true);
     expect(isRequired(fieldFor(props, "hostname"), DEVICE)).toBe(true);
     expect(isRequired(fieldFor(props, "probe"), DEVICE)).toBe(true);
+    expect(isRequired(fieldFor(props, "name"), DEVICE)).toBe(false);
+    expect(fieldFor(props, "name").placeholder).toBe("Same as the hostname");
+  });
+
+  test("asks for the hostname first, then the name, the site and the probe", async () => {
+    const props: CapturedTableProps = await renderDevicesPage();
+
+    expect(
+      (props.formFields || [])
+        .slice(0, 4)
+        .map((field: CapturedFormField): string => {
+          return Object.keys(field.field || {})[0] || "";
+        }),
+    ).toEqual(["hostname", "name", "site", "probe"]);
   });
 
   /*
@@ -420,7 +429,8 @@ describe("the Network Devices create form asks about the device, not about monit
 
     expect(isRequired(site, DEVICE)).toBe(false);
     expect(site.customValidation).toBeUndefined();
-    expect(site.placeholder?.toLowerCase()).toContain("optional");
+    // BasicForm labels it "Site (Optional)"; the empty box reads "No site".
+    expect(site.placeholder).toBe("No site");
   });
 });
 

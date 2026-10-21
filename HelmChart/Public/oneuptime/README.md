@@ -58,8 +58,8 @@ The docs are split into focused guides:
 
 | Edition            | Best for                                             | Included                                                                                             | Requirements  |
 |--------------------|-------------------------------------------------------|------------------------------------------------------------------------------------------------------|---------------|
-| Community Edition  | Getting started, small self-hosted deployments        | The OneUptime platform, Apache-2.0 licensed.                                                         | None          |
-| Enterprise Edition | Regulated industries, teams with strict compliance    | Everything in the Community Edition plus the enterprise features (SSO/SAML, OIDC, SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License; custom features and roadmap input; a dedicated engineer with 1-hour priority phone support; custom data residency and retention; private cloud or SaaS with annual invoicing. | Valid license |
+| Community Edition  | Getting started, small self-hosted deployments        | The OneUptime platform, including SAML and OIDC single sign-on, Apache-2.0 licensed.                 | None          |
+| Enterprise Edition | Regulated industries, teams with strict compliance    | Everything in the Community Edition plus the enterprise features (SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License; custom features and roadmap input; a dedicated engineer with 1-hour priority phone support; custom data residency and retention; private cloud or SaaS with annual invoicing. | Valid license |
 
 Select the edition with `image.type` (`community-edition` or
 `enterprise-edition`) — see the [Configuration reference](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#images).
@@ -68,13 +68,13 @@ Select the edition with `image.type` (`community-edition` or
 subscription under the OneUptime Enterprise License. An install with no
 license, or one holding a license whose expiry was never recorded, runs as a
 14-day trial, which is for evaluation. After the trial (or 30 days after a
-license expires), until a license is activated, SSO, OIDC, SCIM
-and audit logging stop: SSO sign-in is refused and "Require SSO" is no longer
-enforced (users sign in with their password), your identity provider's SCIM
-requests are refused, and audit logging stops recording. Enterprise
-configuration becomes read-only and the enterprise admin dashboards are locked
-too. Everything resumes, without a restart, as soon as a license is activated,
-and core monitoring is never affected.
+license expires), until a license is activated, SCIM and audit logging stop:
+your identity provider's SCIM requests are refused and audit logging stops
+recording. Enterprise configuration becomes read-only and the enterprise admin
+dashboards are locked too. Single sign-on (SAML, OIDC and "Require SSO for
+login") is part of both editions and does not depend on the license.
+Everything resumes, without a restart, as soon as a license is activated, and
+core monitoring is never affected.
 
 ## Uninstalling
 

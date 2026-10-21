@@ -9,6 +9,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -36,6 +37,10 @@ export enum InvoiceStatus {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ReadInvoices,
+    Permission.ManageProjectBilling,
+    Permission.BillingAdmin,
+    Permission.BillingMember,
+    Permission.BillingViewer,
   ],
   delete: [],
   update: [],
@@ -58,6 +63,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -89,6 +98,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -114,6 +127,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -146,6 +163,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -169,6 +190,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -202,6 +227,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -225,6 +254,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -236,6 +269,8 @@ export default class BillingInvoice extends BaseModel {
     type: ColumnType.Decimal,
     nullable: false,
     unique: false,
+    // Postgres hands a decimal back as text; read it as the number it is.
+    transformer: getDecimalDatabaseTransformer(),
   })
   public amount?: number = undefined;
 
@@ -245,6 +280,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -266,6 +305,9 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
     ],
     update: [],
   })
@@ -287,6 +329,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -308,6 +354,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -329,6 +379,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -350,6 +404,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -371,6 +429,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })
@@ -390,6 +452,10 @@ export default class BillingInvoice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadInvoices,
+      Permission.ManageProjectBilling,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
     ],
     update: [],
   })

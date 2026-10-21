@@ -1,10 +1,16 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IoTFleetLabelRuleEngineService from "./IoTFleetLabelRuleEngineService";
 import IoTFleetOwnerRuleEngineService from "./IoTFleetOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/IoTFleet";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
+import UpdateBy from "../Types/Database/UpdateBy";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -20,9 +26,30 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "iot-fleet-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * An IoT fleet is matched to its telemetry by its name (iot.fleet.name),
+ * so a rename is held to the rules a new IoT fleet is: no spaces around
+ * it, never blank, and never another IoT fleet's name
+ * (DiscoveredResourceUpdate).
+ */
+const IOT_FLEET_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "IoT fleet",
+});
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: IOT_FLEET_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()
@@ -310,15 +337,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedFleets: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,

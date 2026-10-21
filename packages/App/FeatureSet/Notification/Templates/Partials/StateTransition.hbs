@@ -1,7 +1,24 @@
 <!-- State Transition Block - Inline version for DetailBox -->
+{{!--
+  Each state is a dot in its own colour (`previousStateColor`,
+  `currentStateColor`) and its name in `previousStateTextColor` /
+  `currentStateTextColor`: the nearest shade of that colour that reads on
+  the detail card. All four are the #rrggbb that
+  Common/Utils/Email/EmailColorUtil writes (getTemplateVariables), never a
+  colour as a project typed it. Without a colour the state has no dot and
+  its name keeps the neutral text colour; without a text colour the name
+  takes the colour itself, as it did before text colours existed.
+
+  Like every row of a detail card, it draws its divider above itself, and
+  only when another row of the card came before it (detailCardDivider,
+  Utils/EmailDetailCard.ts), and it shows only when it has something to
+  show: without a current state there is no change to show, and the row
+  is left out rather than drawn as a label over empty space.
+--}}
+{{#if currentState}}
 <div
   class="st-DetailCard-field"
-  style="padding: 16px 0; border-bottom: 1px solid #e2e8f0;"
+  style="padding: 16px 0;{{#detailCardDivider}} border-top: 1px solid #e2e8f0;{{/detailCardDivider}}"
 >
   <p
     class="st-DetailCard-label"
@@ -19,13 +36,16 @@
           <!-- Previous State Badge -->
           <td class="st-Transition-cell" align="center" valign="middle" style="padding: 0;">
             <span
-              style="display: inline-block;  padding: 6px 0; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{previousStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
+              style="display: inline-block; padding: 6px 0; font-size: 13px; font-weight: 600; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
             >
+              {{#if previousStateColor}}<span
+                class="st-ColorDot"
+                aria-hidden="true"
+                style="width: 8px; height: 8px; border: 1px solid {{#if previousStateTextColor}}{{previousStateTextColor}}{{else}}{{previousStateColor}}{{/if}}; border-radius: 9999px; background-color: {{previousStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"
+              ></span>{{/if}}
               <span
-                style="width: 10px; height: 10px; border-radius: 4px; background-color: {{previousStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"
-              ></span>
-              <span
-                style="display: inline-block; line-height: 16px; vertical-align: middle;"
+                class="st-ColorText"
+                style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if previousStateTextColor}} color: {{previousStateTextColor}};{{else if previousStateColor}} color: {{previousStateColor}};{{/if}}"
               >{{previousState}}</span>
             </span>
           </td>
@@ -39,13 +59,16 @@
         <!-- Current State Badge -->
         <td class="st-Transition-cell" align="center" valign="middle" style="padding: 0;">
           <span
-            style="display: inline-block;  padding: 6px 0; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{currentStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
+            style="display: inline-block; padding: 6px 0; font-size: 13px; font-weight: 600; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
           >
+            {{#if currentStateColor}}<span
+              class="st-ColorDot"
+              aria-hidden="true"
+              style="width: 8px; height: 8px; border: 1px solid {{#if currentStateTextColor}}{{currentStateTextColor}}{{else}}{{currentStateColor}}{{/if}}; border-radius: 9999px; background-color: {{currentStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"
+            ></span>{{/if}}
             <span
-              style="width: 10px; height: 10px; border-radius: 4px; background-color: {{currentStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"
-            ></span>
-            <span
-              style="display: inline-block; line-height: 16px; vertical-align: middle;"
+              class="st-ColorText"
+              style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if currentStateTextColor}} color: {{currentStateTextColor}};{{else if currentStateColor}} color: {{currentStateColor}};{{/if}}"
             >{{currentState}}</span>
           </span>
         </td>
@@ -53,4 +76,5 @@
     </tbody>
   </table>
 </div>
+{{/if}}
 <!-- /State Transition Block -->

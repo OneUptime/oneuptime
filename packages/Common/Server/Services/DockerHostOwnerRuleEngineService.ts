@@ -26,6 +26,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DockerHostOwnerRuleEngineServiceClass
   implements RuleRunEngine<DockerHost, DockerHostOwnerRule>
@@ -120,6 +124,7 @@ class DockerHostOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     dockerHost: DockerHost;
     rules: Array<DockerHostOwnerRule>;
@@ -293,15 +298,17 @@ class DockerHostOwnerRuleEngineServiceClass
       projectId: dockerHost.projectId,
       dockerHostFeedEventType: DockerHostFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await DockerHostService.getDockerHostMarkdownLink(
-        dockerHost.projectId,
-        dockerHost.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: DockerHostOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await DockerHostService.getDockerHostMarkdownLink(
+          dockerHost.projectId,
+          dockerHost.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: DockerHostOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -379,8 +386,7 @@ class DockerHostOwnerRuleEngineServiceClass
     rule: DockerHostOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in Docker host owner rule ${rule.id}: ${pattern}`,

@@ -8,6 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -48,6 +51,14 @@ import {
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+} from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
+import { getStableValueKey } from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -66,6 +77,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
@@ -95,6 +111,7 @@ import {
   buildSpanQueryScope,
 } from "../../Utils/SpanQueryScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -141,6 +158,10 @@ import {
   TelemetryEntityNameMap,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
+import useResultTotal, {
+  ResultTotalListAnswer,
+} from "Common/UI/Utils/Telemetry/UseResultTotal";
 import {
   buildFacetDisplayNames,
   buildLockedAttributeChip,
@@ -156,6 +177,13 @@ import {
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import {
+  SPAN_STATUS_PRESENTATIONS,
+  SpanStatusPresentation,
+  getSpanStatusColorMap,
+  getSpanStatusDisplayLabelMap,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -204,10 +232,11 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   return Math.max(1, Math.ceil(raw / 60000));
 }
 
-const SPAN_STATUS_COLOR: Record<number, string> = {
-  [SpanStatus.Unset]: "#9ca3af",
-  [SpanStatus.Ok]: "#10b981",
-  [SpanStatus.Error]: "#ef4444",
+// The server's histogram bucket key for each status (TraceAggregationService).
+const HISTOGRAM_SERIES_KEY: Record<SpanStatus, string> = {
+  [SpanStatus.Ok]: "ok",
+  [SpanStatus.Unset]: "unset",
+  [SpanStatus.Error]: "error",
 };
 
 const SPAN_KIND_LABEL: Record<string, string> = {
@@ -243,7 +272,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "status:ok|error|unset",
-    description: "Filter by span status",
+    description: "Filter by span status (unset = no error status set)",
     example: "status:error",
   },
   {
@@ -577,6 +606,13 @@ interface Props {
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
   /*
+   * The Traces page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their emptyMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
+  /*
    * Only the spans one exception group's occurrences were raised in — the
    * exception detail page's span list. Applied to the list, the histogram and
    * the facets alike, and shown as a locked "Exception" chip labelled with
@@ -588,13 +624,31 @@ interface Props {
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   /*
+   * The host's scope, by value (issue #4709). Pages hand it over as new
+   * objects on every render - an ObjectID read from the URL in the render,
+   * `attributeFilters={{...}}`, the stored query an incident page re-reads
+   * on every background refresh - and the span list, the chart and the
+   * facets are all built from it, so each such render read them all again.
+   * The memos below that build those reads are keyed on these values, not
+   * on the objects.
+   */
+  const spanQueryKey: string = getStableValueKey(props.spanQuery);
+  const hostScopeKey: string = getStableValueKey({
+    primaryEntityId: props.primaryEntityId?.toString() || null,
+    attributeFilters: props.attributeFilters || null,
+    entityKeysFilter: props.entityKeysFilter || null,
+    entityScope: props.entityScope || null,
+    exceptionScope: props.exceptionScope || null,
+  });
+
+  /*
    * The host's stored span query, read once into every vocabulary the viewer
    * speaks. See Utils/SpanQueryScope — the single reading is what keeps the
    * list, the histogram and the facet counts describing the same rows.
    */
   const spanScope: SpanQueryScope = useMemo(() => {
     return buildSpanQueryScope(props.spanQuery);
-  }, [props.spanQuery]);
+  }, [spanQueryKey]);
 
   /*
    * The window the monitor evaluated over, as a picker value. Always CUSTOM
@@ -685,11 +739,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }, [initialUrlState]);
 
   const [spans, setSpans] = useState<Array<Span>>([]);
+  /*
+   * The list endpoint's `count` — a lower bound, not a total: it skips
+   * COUNT(*) and answers `skip + rows + 1` when more rows follow. The total
+   * is `resultTotal` below; this only seeds the footer while that is out.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  /*
+   * The newest page the list committed and the query it was fetched with,
+   * which is what lets the result total trust it (see useResultTotal).
+   */
+  const [listAnswer, setListAnswer] = useState<ResultTotalListAnswer<
+    Query<Span>
+  > | null>(null);
+  // Bumped by Refresh, so the total is counted again with the list.
+  const [resultTotalRefreshKey, setResultTotalRefreshKey] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the span list did not load (issue #4707): a search that took too
+   * long says so, where the rows go, with the filters left to narrow it.
+   */
+  const [listError, setListError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
@@ -752,6 +827,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     setPage(1);
   }, [props.timeRangeOverride, pinnedTimeRange]);
 
+  /*
+   * A new pinned window is the host describing a different moment - the
+   * investigation drawer zooming its window (issue #4105), an incident page
+   * re-reading its snapshot - so follow it, the way the logs viewer does.
+   * Only a pin that differs by value from the one it replaces counts: a host
+   * rebuilding an equal query neither refetches nor undoes a zoom the reader
+   * made inside this view.
+   */
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
+  useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    if (
+      !pinnedTimeRange ||
+      TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin)
+    ) {
+      return;
+    }
+
+    setTimeRange(pinnedTimeRange);
+    setPage(1);
+  }, [pinnedTimeRange]);
+
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
   );
@@ -809,8 +911,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     number | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  // Why the chart did not load; it says so in its own card.
+  const [histogramError, setHistogramError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Facets the server could not count in time, and why the facets did not
+   * load at all: the sidebar says so instead of "No values" or zeros.
+   */
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   /*
    * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * When the user types into a facet's search box, this updates and triggers
@@ -835,13 +949,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [],
   );
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   // Service lookup map
   const serviceById: Record<string, Service> = useMemo(() => {
@@ -1228,11 +1337,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     return query;
   }, [
-    props.primaryEntityId,
-    props.attributeFilters,
-    props.entityKeysFilter,
-    props.entityScope,
-    props.exceptionScope,
+    // The host's props by value, not by identity (see hostScopeKey).
+    hostScopeKey,
     spanScope,
     timeRange,
     activeFilters,
@@ -1253,6 +1359,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       statusCode: true,
       statusMessage: true,
       kind: true,
+      // Lets a row and its panel name an Unset span with exceptions plainly.
+      hasException: true,
     } as Select<Span>;
   }, []);
 
@@ -1425,7 +1533,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           (response.data["attributes"] || []) as Array<string>,
         );
       } catch {
-        // non-critical
+        // Non-critical: the bar still takes a typed key.
+        setAttributesFailed(true);
       } finally {
         setAttributesLoading(false);
       }
@@ -1433,57 +1542,43 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     void loadAttributes();
   }, []);
 
-  // Load attribute values when user types @attribute: in search bar
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's spans have, once per key and
+   * time range, from the spans in the range on screen (issue #4708).
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: telemetryAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return TRACE_KNOWN_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `traces|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "traces",
+          attributeKey: attributeKey,
+          timeRange: timeRange,
+        });
+      },
+    });
 
-    if (
-      !attrKey ||
-      TRACE_KNOWN_FIELD_KEYS.has(attrKey) ||
-      attrKey === lastValueSuggestionKeyRef.current
-    ) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async () => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/traces/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
-      } catch {
-        // non-critical
-      } finally {
-        setAttributeValuesLoading(false);
-      }
-    };
-    void loadValues();
-  }, [searchValue]);
+  /*
+   * The newest span-list and histogram requests. A zoom, a reset, a new
+   * pinned window or a new filter starts a request while an older one is
+   * still out, and the older (usually wider, slower) answer used to land
+   * last and paint the window the reader had just left under a picker that
+   * named the new one. Only the newest request commits and clears the
+   * loaders.
+   */
+  const spansRequestSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  const spansInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const histogramRequestSeqRef: React.MutableRefObject<number> =
+    useRef<number>(0);
 
   // Fetch spans list
   const fetchSpans: (options?: {
@@ -1494,16 +1589,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (viewMode === "analytics") {
         return;
       }
+      const requestSeq: number = ++spansRequestSeqRef.current;
+      const isSuperseded: () => boolean = (): boolean => {
+        return requestSeq !== spansRequestSeqRef.current;
+      };
+      spansInFlightRef.current = true;
       if (!options.skipLoadingState) {
         setIsLoading(true);
+        setListError(undefined);
       }
       setError("");
+      const skip: number = (page - 1) * pageSize;
       try {
         const result: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
           modelType: Span,
           query: baseQuery,
           limit: pageSize,
-          skip: (page - 1) * pageSize,
+          skip: skip,
           select: listSelect,
           sort: { startTime: SortOrder.Descending } as Record<
             string,
@@ -1511,18 +1613,67 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           >,
           requestOptions: {},
         });
+        if (isSuperseded()) {
+          return;
+        }
         setSpans(result.data);
         setTotalCount(result.count);
+        setListError(undefined);
+        setListAnswer({
+          query: baseQuery,
+          page: {
+            rowCount: result.data.length,
+            skip: skip,
+            hasMore: result.hasMore,
+          },
+        });
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        /*
+         * A live poll that fails leaves what is on screen (the rows, or why
+         * there are none) for the next poll to refresh, as the chart does. A
+         * search that fails says why where its rows would be, and the rows
+         * of the search before it are cleared, so they cannot pass for this
+         * one's while it is tried again.
+         */
+        if (isSuperseded() || options.skipLoadingState) {
+          return;
+        }
+        setSpans([]);
+        setListError(TelemetryLoadErrorUtil.fromError(err));
       } finally {
-        if (!options.skipLoadingState) {
+        /*
+         * The newest request clears the loader whatever started it: the one
+         * it replaced may have been the one that put the loader up.
+         */
+        if (!isSuperseded()) {
+          spansInFlightRef.current = false;
           setIsLoading(false);
         }
       }
     },
     [baseQuery, page, pageSize, listSelect, viewMode],
   );
+
+  /*
+   * How many spans the list's query matches (issue #4202). Counted with the
+   * list's own query, so it is the number of rows the list pages through —
+   * not the chart's, whose window edges round to the minute — and exactly:
+   * a count that cannot finish in time says so rather than printing part of
+   * one. A page with nothing after it already proves the total, so a narrow
+   * search costs no count at all.
+   */
+  const resultTotal: ResultTotal = useResultTotal<Query<Span>>({
+    query: baseQuery,
+    listAnswer: listAnswer,
+    countRows: (query: Query<Span>): Promise<number> => {
+      return AnalyticsModelAPI.count<Span>(Span, query, undefined, {
+        exact: true,
+      });
+    },
+    // Analytics mode hides the list, and so the total.
+    isEnabled: viewMode !== "analytics",
+    refreshKey: resultTotalRefreshKey,
+  });
 
   // Build the aggregation request payload — shared by histogram and facets
   const aggregationRequest: JSONObject = useMemo(() => {
@@ -1806,10 +1957,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     timeRange,
     activeFilters,
     submittedSearch,
-    props.primaryEntityId,
-    props.attributeFilters,
-    props.entityKeysFilter,
-    props.exceptionScope,
+    // The host's props by value, not by identity (see hostScopeKey).
+    hostScopeKey,
     spanScope,
     rootOnly,
   ]);
@@ -1820,6 +1969,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (viewMode === "analytics") {
       return;
     }
+
+    const requestSeq: number = ++histogramRequestSeqRef.current;
 
     setHistogramLoading(true);
     setFacetLoading(true);
@@ -1904,6 +2055,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       postApi("/telemetry/traces/facets", facetsPayload),
     ]);
 
+    // A newer window or filter asked again meanwhile: its answer wins.
+    if (requestSeq !== histogramRequestSeqRef.current) {
+      return;
+    }
+
     if (histogramResult.status === "fulfilled") {
       if (isLatencyChart) {
         // Analytics timeseries rows → single-series histogram buckets.
@@ -1925,9 +2081,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
       // Both endpoints bucket by the size this request asked for.
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
+      setHistogramError(undefined);
     } else {
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramError(
+        TelemetryLoadErrorUtil.fromError(histogramResult.reason),
+      );
     }
 
     if (facetsResult.status === "fulfilled") {
@@ -1979,8 +2139,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         { value: "true", count: hasExceptionBucket?.count ?? 0 },
       ];
       setFacetData(mappedFacets);
+
+      // The server names isRootSpan; the sidebar shows it as Span Type.
+      const stopped: Array<string> = Array.isArray(
+        facetsResult.value.data["timedOutFacets"],
+      )
+        ? (facetsResult.value.data["timedOutFacets"] as Array<string>)
+        : [];
+      setTimedOutFacets(
+        stopped.map((facetKey: string): string => {
+          return facetKey === "isRootSpan" ? SPAN_TYPE_FACET_KEY : facetKey;
+        }),
+      );
+      setFacetError(undefined);
     } else {
       setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(TelemetryLoadErrorUtil.fromError(facetsResult.reason));
     }
 
     setHistogramLoading(false);
@@ -2003,6 +2178,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     if (isLive) {
       livePollRef.current = setInterval(() => {
+        /*
+         * A poll never replaces a request still out: it asks for the same
+         * list, and replacing it would drop its answer - on a list slower
+         * than the interval, every answer.
+         */
+        if (spansInFlightRef.current) {
+          return;
+        }
         void fetchSpans({ skipLoadingState: true });
       }, LIVE_POLL_INTERVAL_MS);
     }
@@ -2072,16 +2255,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    const statusLabelMap: Record<string, string> = {
-      [SpanStatus.Ok]: "Ok",
-      [SpanStatus.Error]: "Error",
-      [SpanStatus.Unset]: "Unset",
-    };
-    const statusColorMap: Record<string, string> = {
-      [SpanStatus.Ok]: SPAN_STATUS_COLOR[SpanStatus.Ok]!,
-      [SpanStatus.Error]: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      [SpanStatus.Unset]: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
-    };
+    const statusLabelMap: Record<string, string> =
+      getSpanStatusDisplayLabelMap();
+    const statusColorMap: Record<string, string> = getSpanStatusColorMap();
 
     return [
       // Never folded away while empty — only the resource type facets below are.
@@ -2136,7 +2312,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         key: "hasException",
         title: "Has Exception",
         valueDisplayMap: { true: "Has exception" },
-        valueColorMap: { true: SPAN_STATUS_COLOR[SpanStatus.Error]! },
+        valueColorMap: {
+          true: getSpanStatusPresentation(SpanStatus.Error).color,
+        },
         priority: 6.7,
       },
       {
@@ -2183,19 +2361,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         })?.label || chartMetric;
       return [{ key: "latency", label, color: "#6366f1" }];
     }
-    return [
-      { key: "ok", label: "Ok", color: SPAN_STATUS_COLOR[SpanStatus.Ok]! },
-      {
-        key: "unset",
-        label: "Unset",
-        color: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
+    return SPAN_STATUS_PRESENTATIONS.map(
+      (presentation: SpanStatusPresentation): HistogramSeriesOption => {
+        return {
+          key: HISTOGRAM_SERIES_KEY[presentation.status],
+          label: presentation.displayLabel,
+          color: presentation.color,
+          description: presentation.description,
+        };
       },
-      {
-        key: "error",
-        label: "Error",
-        color: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      },
-    ];
+    );
   }, [chartMetric]);
 
   // Service id → name map for the analytics view's dimension display.
@@ -2613,12 +2788,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         maxDuration: TraceAggregationType.MaxDurationSeconds,
       };
 
-      const escapeRegex: (value: string) => string = (
-        value: string,
-      ): string => {
-        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      };
-
       // Span-name filters → one regex the rule engine can evaluate.
       let spanNameRegex: string | undefined = undefined;
       const exactNames: Array<string> =
@@ -2626,11 +2795,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       const nameSearches: Array<string> =
         (aggregationRequest["spanNameSearches"] as Array<string>) || [];
       if (exactNames.length > 0) {
-        spanNameRegex = `^(${exactNames.map(escapeRegex).join("|")})$`;
+        spanNameRegex = `^(${exactNames.map(escapeRegExp).join("|")})$`;
       } else if (nameSearches.length > 0) {
-        spanNameRegex = escapeRegex(nameSearches[0]!);
+        spanNameRegex = escapeRegExp(nameSearches[0]!);
       } else if (aggregationRequest["nameSearchText"]) {
-        spanNameRegex = escapeRegex(
+        spanNameRegex = escapeRegExp(
           aggregationRequest["nameSearchText"] as string,
         );
       }
@@ -3003,16 +3172,56 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const scopeHint: string = spanScope.notCarried.join(", ");
 
+  /*
+   * The Traces page's first steps (Telemetry/TelemetryFirstSteps): what an
+   * empty list that no filter or search narrows shows in place of "try
+   * adjusting filters".
+   */
+  const offersFirstSteps: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty: true,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  /*
+   * Whether the first steps show: the list's read came back with no span.
+   * Before its first read (`listAnswer` still null) nothing is loading and
+   * there are no spans, which is not an empty list.
+   */
+  const showsFirstSteps: boolean =
+    offersFirstSteps &&
+    listAnswer !== null &&
+    !isLoading &&
+    !listError &&
+    !error &&
+    spans.length === 0;
+
+  /*
+   * While they show, the chart above has nothing to draw either. It kept
+   * its card for the Count / Response time picker, so a first visit read
+   * "No data for this metric in the selected range" over the first steps
+   * that say the same thing with a way forward. It steps aside while it
+   * has no bar, as the Logs page's empty chart does; a chart with bars
+   * stays, whatever the list says (the chart's window edges round to the
+   * minute, the list's do not).
+   */
+  const chartStepsAside: boolean =
+    showsFirstSteps && histogramBuckets.length === 0;
+
   const viewer: ReactElement = (
     <TelemetryViewer<Span>
       items={spans}
       isLoading={isLoading}
-      error={error || undefined}
+      error={listError || error || undefined}
       onRefresh={() => {
         void fetchSpans();
         void fetchHistogramAndFacets();
         setAnalyticsRefreshTick((tick: number) => {
           return tick + 1;
+        });
+        setResultTotalRefreshKey((key: number) => {
+          return key + 1;
         });
       }}
       toolbarLeadingActions={
@@ -3125,7 +3334,25 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         </>
       }
       emptyMessage={props.emptyMessage || "No traces found"}
-      itemLabel="traces"
+      emptyContent={
+        offersFirstSteps ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Traces}
+            timeRange={timeRange}
+            onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+              setTimeRange(value);
+              setPage(1);
+              props.onTimeRangeChange?.(value);
+            }}
+          />
+        ) : undefined
+      }
+      /*
+       * Each row is a span, so a count of them is a count of spans — called
+       * "traces" it read as roughly ten times the traffic it was. Limited to
+       * root spans, each row is one trace's entry point, and they are traces.
+       */
+      itemLabel={rootOnly ? "traces" : "spans"}
       renderRow={(span: Span): ReactElement => {
         /*
          * A loaded Service renders exactly as before; any other entity (a RUM
@@ -3202,9 +3429,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "duration",
       ]}
       searchAttributeSuggestions={telemetryAttributes}
-      searchValueSuggestions={attributeValueSuggestions}
+      searchValueSuggestions={attributeValues.valueSuggestions}
       searchAttributesLoading={attributesLoading}
-      searchValuesLoading={attributeValuesLoading}
+      searchValuesLoading={attributeValues.isLoading}
+      searchValuesError={attributeValues.error}
+      onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Turn a typed `key:value` into a chip via the same path as a facet
@@ -3256,6 +3486,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetData={facetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
+      timedOutFacets={timedOutFacets}
+      facetError={facetError}
+      onRetryFacets={() => {
+        void fetchHistogramAndFacets();
+      }}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
@@ -3278,14 +3513,27 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
-      // Histogram
-      showHistogram={true}
+      // Histogram: none while the first steps say there is nothing yet.
+      showHistogram={!chartStepsAside}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
+      /*
+       * The bars count the rows the list holds, and are named like them: a
+       * bar's "Total" under "Traces over time" read as traces while it
+       * counted every span.
+       */
       histogramTitle={
-        chartMetric === "count" ? "Traces over time" : "Response time"
+        chartMetric === "count"
+          ? rootOnly
+            ? "Traces over time"
+            : "Spans over time"
+          : "Response time"
       }
       histogramLoading={histogramLoading}
+      histogramError={histogramError}
+      onRetryHistogram={() => {
+        void fetchHistogramAndFacets();
+      }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       histogramValueFormatter={
@@ -3324,6 +3572,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       page={page}
       pageSize={pageSize}
       totalCount={totalCount}
+      hasMore={listAnswer?.page.hasMore}
+      resultTotal={resultTotal}
       onPageChange={setPage}
       onPageSizeChange={(size: number) => {
         setPageSize(size);

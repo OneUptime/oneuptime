@@ -6,6 +6,31 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveService,
+    jest.spyOn(ServiceLevelObjectiveService, "findBy"),
+  );
+});
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the manual-add guard on ServiceLevelObjectiveService.
@@ -229,7 +254,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - monitors managed by moni
     expect(enabledRulesSpy).not.toHaveBeenCalled();
   });
 
-  it("pins the caller's tenant onto the raw query before reading, and reads as root", async () => {
+  it("reads, as root, among the SLOs the caller may write in their project", async () => {
     await callHook(
       "onBeforeUpdate",
       makeUpdateBy(stubs([MANUAL_MONITOR_ID, RULE_MONITOR_ID])),
@@ -251,16 +276,21 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - monitors managed by moni
       props: unknown;
     };
 
-    expect(guardRead.query).toEqual({
+    // The SLOs the caller may write, found in their project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveService)[0]!.query,
+    ).toEqual({
       _id: SLO_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(guardRead.query).toEqual({ _id: SLO_ID.toString() });
     expect(guardRead.select).toEqual({
       _id: true,
       monitors: { _id: true },
       autoAddedMonitors: { _id: true },
     });
-    expect(guardRead.props).toEqual({ isRoot: true });
+    expect(guardRead.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("understands every shape a monitor list arrives in", async () => {

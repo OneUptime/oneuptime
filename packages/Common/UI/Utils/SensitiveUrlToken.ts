@@ -19,12 +19,19 @@
 const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
 
 /*
- * Route segments whose NEXT path segment is a single-use bearer token. Matched
- * against the second-to-last segment, so this covers
- * /accounts/reset-password/<token>, /reset-password/<token> and
- * /status-page/<id>/reset-password/<token> alike.
+ * Route segments whose NEXT path segment is a bearer token. Matched against
+ * the second-to-last segment, so this covers /accounts/reset-password/<token>,
+ * /reset-password/<token> and /status-page/<id>/reset-password/<token> alike.
+ * "unsubscribe" is a status page subscriber's unsubscribe link and
+ * "update-subscription" its manage link; the last segment of both is
+ * <subscriberId>-<token> (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
  */
-const TOKEN_ROUTES: Array<string> = ["reset-password", "verify-email"];
+const TOKEN_ROUTES: Array<string> = [
+  "reset-password",
+  "verify-email",
+  "unsubscribe",
+  "update-subscription",
+];
 
 interface HandoffWindow extends Window {
   __ONEUPTIME_SENSITIVE_URL_TOKEN__?: string | undefined;
@@ -88,13 +95,36 @@ export default class SensitiveUrlToken {
   }
 
   /*
+   * Whether a path is a token-bearing route, in either of its forms: with its
+   * token (".../unsubscribe/<token>") or the token-free form the bootstrap
+   * leaves in the address bar (".../unsubscribe"). The page on such a route
+   * works with a credential, so a status page shows none of its custom code
+   * there (StatusPage/src/Utils/StatusPageCustomizations).
+   */
+  public static isTokenRoute(pathname: string): boolean {
+    const segments: Array<string> = SensitiveUrlToken.segmentsOf(pathname);
+
+    return segments.slice(-2).some((segment: string): boolean => {
+      return TOKEN_ROUTES.includes(segment);
+    });
+  }
+
+  /*
    * Drop the stashed token once the flow that needed it has completed.
    *
    * Only call this on success. A failed reset (an expired token, a password the
    * server rejected) has to leave the stash intact, or the retry — and any
    * reload of the now token-free URL — has nothing to submit.
+   *
+   * A status page also drops it before its own custom code runs anywhere in
+   * the tab (StatusPage/src/Utils/StatusPageCustomizations): no custom code
+   * ever runs beside a credential.
    */
   public static clear(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     try {
       window.sessionStorage.removeItem(STORAGE_KEY);
     } catch {

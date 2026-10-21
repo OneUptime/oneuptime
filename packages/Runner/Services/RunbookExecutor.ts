@@ -1,11 +1,15 @@
-import { spawn } from "child_process";
-import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
+import { JOB_HEARTBEAT_INTERVAL_MS } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
 import KubectlExecutor from "./KubectlExecutor";
+import KubectlScriptExecutor from "./KubectlScriptExecutor";
+import { runBash, truncateOutput } from "../Utils/RunBash";
+import { redactSecretValues } from "Common/Types/Runbook/SecretOutputRedaction";
+import { KUBECONFIG_CREDENTIAL_TYPE } from "Common/Types/Runbook/RunnerFeatures";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
+import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import CommandPolicy from "Common/Utils/AiRemediation/CommandPolicy";
@@ -15,6 +19,10 @@ import RunnerJobOrigin, {
   AI_COMMAND_JOB_ORIGINS,
 } from "Common/Types/Runbook/RunnerJobOrigin";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  getRunbookInputArgs,
+  getRunbookInputVariables,
+} from "Common/Types/Runbook/RunbookInputs";
 
 interface ExecResult {
   success: boolean;
@@ -23,86 +31,112 @@ interface ExecResult {
   errorMessage?: string | undefined;
 }
 
-function truncate(s: string): string {
-  if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
-    return s;
+const truncate: (s: string) => string = truncateOutput;
+
+/*
+ * The environment a Bash step runs with: the Runner's own, plus the run's
+ * inputs as ONEUPTIME_INPUT_<NAME>, ONEUPTIME_INPUTS and ONEUPTIME_TRIGGER
+ * when the server sent them. Every name it adds starts with ONEUPTIME_, so
+ * a value a caller sent can neither run as a command nor replace PATH,
+ * LD_PRELOAD or anything else the shell or this Runner reads. Without
+ * inputs - an older server, or a step type that takes none - the step gets
+ * the Runner's environment as it always did.
+ */
+export function getBashEnvironment(
+  job: Pick<ClaimedJob, "inputs" | "trigger">,
+  base: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv | undefined {
+  if (job.inputs === undefined) {
+    return undefined;
   }
-  return (
-    Buffer.from(s, "utf8").slice(0, MAX_OUTPUT_BYTES).toString("utf8") +
-    "\n... [output truncated]"
-  );
+
+  return {
+    ...base,
+    ...getRunbookInputVariables({ inputs: job.inputs, trigger: job.trigger }),
+  };
 }
 
 function runBashLocally(data: {
   script: string;
   timeoutInMs: number;
+  environment?: NodeJS.ProcessEnv | undefined;
 }): Promise<ExecResult> {
-  return new Promise<ExecResult>((resolve: (v: ExecResult) => void) => {
-    let stdout: string = "";
-    let stderr: string = "";
-    let stdoutBytes: number = 0;
-    let stderrBytes: number = 0;
-    let settled: boolean = false;
+  return runBash(data);
+}
 
-    const child: ReturnType<typeof spawn> = spawn("bash", ["-c", data.script], {
-      timeout: data.timeoutInMs,
-      killSignal: "SIGKILL",
-    });
+/*
+ * A step's result with every secret runbook variable it was given
+ * (job.secretValues) replaced by [REDACTED], in its output and its error,
+ * before anything leaves this host (Types/Runbook/SecretOutputRedaction).
+ * The server does the same again before it stores the result.
+ */
+export function redactJobResult(
+  result: ExecResult,
+  job: Pick<ClaimedJob, "secretValues">,
+): ExecResult {
+  const secretValues: Array<string> = Array.isArray(job.secretValues)
+    ? job.secretValues.filter((value: unknown): value is string => {
+        return typeof value === "string";
+      })
+    : [];
 
-    child.stdout?.on("data", (chunk: Buffer) => {
-      if (stdoutBytes < MAX_OUTPUT_BYTES) {
-        stdoutBytes += chunk.length;
-        stdout += chunk.toString("utf8");
-      }
-    });
+  if (secretValues.length === 0) {
+    return result;
+  }
 
-    child.stderr?.on("data", (chunk: Buffer) => {
-      if (stderrBytes < MAX_OUTPUT_BYTES) {
-        stderrBytes += chunk.length;
-        stderr += chunk.toString("utf8");
-      }
-    });
+  return {
+    ...result,
+    output: redactSecretValues(result.output, secretValues),
+    ...(typeof result.errorMessage === "string"
+      ? {
+          errorMessage: redactSecretValues(result.errorMessage, secretValues),
+        }
+      : {}),
+  };
+}
 
-    child.on("error", (err: Error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve({ success: false, output: "", errorMessage: err.message });
-    });
+// A step's kubeconfig, as the server sent it; "" for the Runner's own access.
+export function getKubeconfigFromCredential(credential: unknown): string {
+  if (!credential || typeof credential !== "object") {
+    return "";
+  }
 
-    child.on("close", (code: number | null, signal: string | null) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      const combined: string = [
-        stdout && `[stdout]\n${stdout}`,
-        stderr && `[stderr]\n${stderr}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+  const values: Record<string, unknown> = credential as Record<string, unknown>;
 
-      if (signal === "SIGKILL") {
-        resolve({
-          success: false,
-          output: truncate(combined),
-          errorMessage: `Killed (timeout ${data.timeoutInMs}ms)`,
-        });
-        return;
-      }
-      if (code === 0) {
-        resolve({ success: true, output: truncate(combined), exitCode: 0 });
-        return;
-      }
-      resolve({
-        success: false,
-        output: truncate(combined),
-        exitCode: code ?? undefined,
-        errorMessage: `Exit code ${code ?? "?"}`,
-      });
-    });
-  });
+  if (values["credentialType"] !== KUBECONFIG_CREDENTIAL_TYPE) {
+    return "";
+  }
+
+  return typeof values["kubeconfig"] === "string" ? values["kubeconfig"] : "";
+}
+
+/*
+ * The egress policy of a JavaScript step's sandbox. On any Runner the
+ * strict one applies, because nothing here asks for more: public addresses
+ * only. A global Runner - one OneUptime runs for every project - says so
+ * explicitly and authoritatively (privateNetworkAccessIsAllowed: false, so
+ * nothing in this host's environment can widen it), and keeps DNS answers
+ * out of a refusal's words, as a shared probe does: one project's script
+ * must not learn what the network the global Runner sits in looks like.
+ */
+export function getJavaScriptSandboxPolicy(): {
+  allowPrivateNetworkRequests?: boolean;
+  privateNetworkAccessIsAllowed?: boolean;
+  privateNetworkHint?: string;
+  includeResolutionDetailInError?: boolean;
+} {
+  if (!GlobalRunnerMode.isActive()) {
+    return {};
+  }
+
+  return {
+    allowPrivateNetworkRequests: false,
+    privateNetworkAccessIsAllowed: false,
+    // Appended to the refusal's own sentence, so it starts with a space.
+    privateNetworkHint:
+      " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+    includeResolutionDetailInError: false,
+  };
 }
 
 /*
@@ -110,19 +144,29 @@ function runBashLocally(data: {
  * but now on the agent's machine rather than on the OneUptime Worker. The
  * isolate has no fs or process access and is killed at the timeout.
  *
- * It is NOT a network sandbox: the host deliberately bridges an HTTP client
- * into the isolate, so a script can reach anything the agent's machine can
- * reach. Run agents where you would run any other operator-authored automation
- * — the trust boundary is the Runbook author, not the isolate.
+ * The host bridges axios into the isolate, through VMRunner's SSRF guard.
+ * Nothing here passes allowPrivateNetworkRequests, so the guard's strict
+ * policy applies: a script reaches public addresses only, and private,
+ * loopback and link-local ones (this host, the networks it sits in, a cloud
+ * metadata endpoint) are refused. A step that has to reach those runs as Bash,
+ * with this host's own network access. Run agents where you would run any
+ * other operator-authored automation - the trust boundary is the Runbook
+ * author, not the isolate.
  */
 async function runJavaScriptLocally(data: {
   script: string;
   timeoutInMs: number;
+  // The run's inputs and trigger, as `args` (a copy inside the isolate).
+  args?: JSONObject | undefined;
 }): Promise<ExecResult> {
   try {
     const result: ReturnResult = await VMUtil.runCodeInSandbox({
       code: data.script,
-      options: { args: {}, timeout: data.timeoutInMs },
+      options: {
+        args: data.args || {},
+        timeout: data.timeoutInMs,
+        ...getJavaScriptSandboxPolicy(),
+      },
     });
 
     const lines: string[] = [...(result.logMessages || [])];
@@ -188,6 +232,18 @@ function prepareStep(job: ClaimedJob): PreparedStep {
   }
 
   /*
+   * A global Runner runs a runbook's own JavaScript steps and nothing else,
+   * whatever the server sent (GlobalRunnerMode): checked before any
+   * executor is consulted, so a shell, an SSH hop or a credential never
+   * reaches a host that serves every project.
+   */
+  const globalRefusal: string | null = GlobalRunnerMode.getJobRefusal(job);
+
+  if (globalRefusal) {
+    return refuseStep(globalRefusal);
+  }
+
+  /*
    * Defense in depth for AI-composed command jobs. The server already gates
    * these on the dashboard capability and validates the command at enqueue,
    * but this binary runs on the customer's host — so the host's own refusal
@@ -227,6 +283,21 @@ function prepareStep(job: ClaimedJob): PreparedStep {
     ) {
       return refuseStep(
         `AI-composed jobs may not use step type ${String(job.stepType)}.`,
+      );
+    }
+
+    /*
+     * An AI-composed SSH command is a command, never a script: the policy
+     * below reads the command, so a job that carried a script beside it
+     * would run something the policy never read.
+     */
+    if (
+      job.stepType === RunbookStepType.SSH &&
+      typeof job.payload?.["script"] === "string" &&
+      (job.payload["script"] as string).trim()
+    ) {
+      return refuseStep(
+        "AI-composed SSH jobs carry a command, never a script.",
       );
     }
 
@@ -278,6 +349,14 @@ function prepareStep(job: ClaimedJob): PreparedStep {
         return runJavaScriptLocally({
           script: job.script,
           timeoutInMs: job.timeoutInMs,
+          ...(job.inputs !== undefined
+            ? {
+                args: getRunbookInputArgs({
+                  inputs: job.inputs,
+                  trigger: job.trigger,
+                }),
+              }
+            : {}),
         });
       },
     };
@@ -290,17 +369,56 @@ function prepareStep(job: ClaimedJob): PreparedStep {
         return runBashLocally({
           script: job.script,
           timeoutInMs: job.timeoutInMs,
+          environment: getBashEnvironment(job),
         });
       },
     };
   }
 
   /*
-   * SSH and Kubernetes steps act on OTHER systems, so they arrive as
-   * structured instructions plus the credential the server resolved for this
-   * Runner — never as a script. A missing credential means the server
-   * declined to hand one over, which is a refusal, not something to retry
-   * against the target.
+   * A kubectl step that takes a script: bash on this host, with KUBECONFIG
+   * pointing at the kubeconfig the server sent - or the Runner's own access
+   * when it sent none - and the run's inputs in its environment, as a Bash
+   * step gets them.
+   */
+  if (
+    job.stepType === RunbookStepType.Kubernetes &&
+    typeof job.payload?.["script"] === "string" &&
+    (job.payload["script"] as string).trim()
+  ) {
+    const script: string = job.payload["script"] as string;
+    const kubeconfig: string = getKubeconfigFromCredential(job.credential);
+
+    /*
+     * A credential that is not a kubeconfig is refused rather than ignored:
+     * ignoring it would run the script with this Runner's own access - a
+     * cluster the step never named.
+     */
+    if (job.credential && !kubeconfig.trim()) {
+      return refuseStep(
+        "This kubectl step was handed a credential that is not a kubeconfig, so it was not run.",
+      );
+    }
+
+    return {
+      isRefused: false,
+      run: (): Promise<ExecResult> => {
+        return KubectlScriptExecutor.execute({
+          script,
+          kubeconfig,
+          timeoutInMs: job.timeoutInMs,
+          environment: getBashEnvironment(job),
+        });
+      },
+    };
+  }
+
+  /*
+   * SSH steps, and Kubernetes steps written before kubectl scripts, act on
+   * OTHER systems, so they arrive as structured instructions plus the
+   * credential the server resolved for this Runner. A missing credential
+   * means the server declined to hand one over, which is a refusal, not
+   * something to retry against the target.
    */
   if (
     job.stepType === RunbookStepType.SSH ||
@@ -669,7 +787,10 @@ export default class Executor {
         `Executing ${job.stepType} job ${job.jobId} (step ${job.stepId})`,
       );
 
-      const result: ExecResult = await runStep({ job, lease });
+      const result: ExecResult = redactJobResult(
+        await runStep({ job, lease }),
+        job,
+      );
 
       await deliverResult({ job, result, lease });
     } catch (err) {

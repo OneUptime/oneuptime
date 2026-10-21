@@ -1,7 +1,7 @@
 import ResourceFeed, {
   ComponentProps as ResourceFeedProps,
 } from "../ResourceFeed/ResourceFeed";
-import { getSloFeedEventIcon } from "./SloFeedIcon";
+import { getSloFeedEventKind } from "./SloFeedIcon";
 import ServiceLevelObjectiveFeed, {
   ServiceLevelObjectiveFeedEventType,
 } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
@@ -30,7 +30,7 @@ export type GetSloResourceFeedPropsFunction = (
  * The SLO's ResourceFeed wiring in one place. The Feed page renders
  * ResourceFeed itself, like every other resource's feed page, and this
  * component embeds the same feed elsewhere (the overview) under its own
- * title - both spread these props, so the column names, the event icons, and
+ * title - both spread these props, so the column names, the event kinds, and
  * anything added to the feed later, cannot drift between the two.
  */
 export const getSloResourceFeedProps: GetSloResourceFeedPropsFunction = (
@@ -45,7 +45,7 @@ export const getSloResourceFeedProps: GetSloResourceFeedPropsFunction = (
     title: props.title || DEFAULT_TITLE,
     description: props.description || DEFAULT_DESCRIPTION,
     noItemsMessage: NO_ITEMS_MESSAGE,
-    getIcon: getSloFeedEventIcon,
+    getKind: getSloFeedEventKind,
   };
 };
 

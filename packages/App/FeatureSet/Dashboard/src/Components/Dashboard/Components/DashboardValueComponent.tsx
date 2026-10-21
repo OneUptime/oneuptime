@@ -27,6 +27,9 @@ import {
   getNumericValues,
   getResultsErrorMessage,
 } from "./ValueWidgetData";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -200,6 +203,13 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       ).length > 0,
   );
 
+  /*
+   * A drag across the sparkline retimes the whole board, like a drag on
+   * any chart panel beside it; a double-click puts it back.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
   return (
     <ValueWidgetView
       widthInPx={props.dashboardComponentWidthInPx}
@@ -224,6 +234,8 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       warningThreshold={props.component.arguments.warningThreshold}
       criticalThreshold={props.component.arguments.criticalThreshold}
       trendDirection={props.component.arguments.trendDirection}
+      onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+      onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
     />
   );
 };
@@ -234,6 +246,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

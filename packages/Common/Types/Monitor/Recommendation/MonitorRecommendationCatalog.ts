@@ -51,12 +51,19 @@ import {
 import {
   RumAlertTemplate,
   getAllRumAlertTemplates,
+  getRumAlertTemplates,
 } from "../RumAlertTemplates";
 import {
   ServiceAlertTemplate,
   getAllServiceAlertTemplates,
   getServiceAlertTemplates,
 } from "../ServiceAlertTemplates";
+import {
+  StorageArrayAlertTemplate,
+  getAllStorageArrayAlertTemplates,
+  getStorageArrayAlertTemplatesForSystem,
+} from "../StorageArrayAlertTemplates";
+import { StorageSystemUtil } from "../../StorageArray/StorageSystem";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -86,6 +93,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
+    | "arrayIdentifier"
     | "rumApplicationId"
     | "serviceId"
     | "databaseServerId";
@@ -96,8 +104,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
    * Most resource types ignore the argument entirely — every Kubernetes
    * cluster is offered the same eighteen recommendations, and a
    * zero-argument function satisfies this type, so those are declared
-   * exactly as they were. Services and databases are the exceptions: see
-   * `MonitorRecommendationContext`.
+   * exactly as they were. Services, databases and RUM applications are the
+   * exceptions: see `MonitorRecommendationContext`.
    *
    * Passing no context means "nothing is known about this resource", and the
    * only honest answer to that is the context-free subset. It does NOT mean
@@ -134,6 +142,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
 interface StructuralAlertTemplate {
   id: string;
   name: string;
+  // The one-line summary, on the catalogs that write one.
+  summary?: string | undefined;
   description: string;
   category: string;
   severity: MonitorRecommendationSeverity;
@@ -157,6 +167,7 @@ function normalize(data: {
     monitorType: data.monitorType,
     templateId: data.template.id,
     name: data.template.name,
+    summary: data.template.summary,
     description: data.template.description,
     category: data.template.category,
     severity: data.template.severity,
@@ -336,6 +347,65 @@ function getCephRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * The storage array adapter — two functions for the same reason as
+ * Service's. `getStorageArrayRecommendations` answers "what should THIS
+ * array be offered", which depends on its platform (a FlashBlade exports no
+ * purefa_* series); `getAllStorageArrayRecommendations` answers "what can an
+ * array ever be offered".
+ */
+function normalizeStorageArrayTemplate(
+  template: StorageArrayAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    monitorType: MonitorType.StorageArray,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        arrayIdentifier: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+/*
+ * No known platform -> nothing, like a database without an engine. Every
+ * template reads one platform's metrics (purefa_* or purefb_*), so offering
+ * both sets to an array whose platform is not known yet would put two cards
+ * of the same name ("Critical Array Alert") on one array, one of which could
+ * never fire — and an array of a platform OneUptime ships no templates for
+ * would be offered Pure Storage's. The array reports its platform with its
+ * first batch (the agent stamps `storage.system`; ingest also reads it off
+ * the metric names), so the wait is one scrape.
+ */
+function getStorageArrayRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  if (!StorageSystemUtil.isKnownSystem(context?.storageSystem)) {
+    return [];
+  }
+
+  return getStorageArrayAlertTemplatesForSystem(context?.storageSystem).map(
+    (template: StorageArrayAlertTemplate) => {
+      return normalizeStorageArrayTemplate(template);
+    },
+  );
+}
+
+function getAllStorageArrayRecommendations(): Array<MonitorRecommendation> {
+  return getAllStorageArrayAlertTemplates().map(
+    (template: StorageArrayAlertTemplate) => {
+      return normalizeStorageArrayTemplate(template);
+    },
+  );
+}
+
 function getIoTRecommendations(): Array<MonitorRecommendation> {
   return getAllIoTAlertTemplates().map((template: IoTAlertTemplate) => {
     return normalize({
@@ -356,28 +426,58 @@ function getIoTRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
-function getRumRecommendations(): Array<MonitorRecommendation> {
+/*
+ * The RUM adapter — two functions for the same reason as Service's.
+ *
+ * `getRumRecommendations` answers "what should THIS application be offered":
+ * everything except the session replay budget alerts, which wait until the
+ * application records replays (and, for the monthly pair, has a monthly
+ * budget), because only then does the sweep write the series they watch.
+ * `getAllRumRecommendations` answers "what can an application ever be
+ * offered" — without it, a dismissed or created budget alert could not be
+ * resolved back from its id.
+ */
+function normalizeRumTemplate(
+  template: RumAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.RumApplication,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        rumApplicationId: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getRumRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getRumAlertTemplates({
+    sessionReplayEnabled: context?.sessionReplayEnabled,
+    sessionReplayHasRecorded: context?.sessionReplayHasRecorded,
+    sessionReplayMonthlyBudgetInGB: context?.sessionReplayMonthlyBudgetInGB,
+  }).map((template: RumAlertTemplate) => {
+    return normalizeRumTemplate(template);
+  });
+}
+
+function getAllRumRecommendations(): Array<MonitorRecommendation> {
   return getAllRumAlertTemplates().map((template: RumAlertTemplate) => {
-    return normalize({
-      resourceType: MonitorRecommendationResourceType.RumApplication,
-      monitorType: template.monitorType,
-      template: template,
-      getMonitorStep: (args: MonitorRecommendationArgs) => {
-        return template.getMonitorStep({
-          rumApplicationId: args.resourceIdentifier,
-          onlineMonitorStatusId: args.onlineMonitorStatusId,
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-          defaultAlertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-        });
-      },
-    });
+    return normalizeRumTemplate(template);
   });
 }
 
 /*
- * The Service adapter, and the only one that is two functions rather than one.
+ * The Service adapter, the first that is two functions rather than one (the
+ * RUM adapter above and the database adapter below follow its pattern).
  *
  * `getServiceRecommendations` answers "what should THIS service be offered",
  * which depends on its runtime. `getAllServiceRecommendations` answers "what
@@ -555,6 +655,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       getRecommendations: getCephRecommendations,
     },
     {
+      resourceType: MonitorRecommendationResourceType.StorageArray,
+      monitorTypes: [MonitorType.StorageArray],
+      resourceLabel: "Storage Array",
+      identifierFieldName: "arrayIdentifier",
+      icon: IconProp.StorageArray,
+      getRecommendations: getStorageArrayRecommendations,
+      getAllPossibleRecommendations: getAllStorageArrayRecommendations,
+    },
+    {
       resourceType: MonitorRecommendationResourceType.IoTDevice,
       monitorTypes: [MonitorType.IoTDevice],
       resourceLabel: "IoT Fleet",
@@ -573,6 +682,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "rumApplicationId",
       icon: IconProp.Globe,
       getRecommendations: getRumRecommendations,
+      getAllPossibleRecommendations: getAllRumRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Service,
@@ -657,9 +767,10 @@ export default class MonitorRecommendationCatalog {
    *
    * This, not `getRecommendations(resourceType)`, is what a per-type
    * invariant has to run over: with no context a database is offered nothing
-   * at all (there is no engine-agnostic database template) and a service only
-   * its language-agnostic subset, so a check written against the context-free
-   * set would silently skip every engine- and runtime-specific template.
+   * at all (there is no engine-agnostic database template), a service only
+   * its language-agnostic subset and a RUM application none of its session
+   * replay budget alerts, so a check written against the context-free set
+   * would silently skip every engine-, runtime- and replay-specific template.
    */
   public static getAllPossibleRecommendations(
     resourceType: MonitorRecommendationResourceType,

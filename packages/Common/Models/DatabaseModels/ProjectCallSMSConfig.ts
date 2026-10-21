@@ -19,6 +19,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
+import { PHONE_NUMBER_LIST_EXAMPLE } from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TableBillingAccessControl({
@@ -428,6 +429,26 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   public twilioAccountSID?: string = undefined;
 
+  /*
+   * The Twilio auth token is a password-equivalent credential: it alone,
+   * with the account SID, sends calls and SMS on the customer's Twilio
+   * account and reaches its resources. So it is read only by the roles that
+   * own a project's call and SMS settings — its owners and admins and
+   * whoever is explicitly granted Read Call and SMS — never by the broad
+   * read-only roles (a plain member, a viewer, the settings roles) that may
+   * see the rest of the config. This matches the SMTP config's password,
+   * which the same roles read, and the role model, which says call and SMS
+   * settings take Project Admin.
+   *
+   * It is also encrypted at rest (encrypted: true), like every other stored
+   * provider credential — the LLM provider's API key, runbook and OIDC
+   * secrets. Nothing a request filters or sorts by this column touches the
+   * token: the database holds ciphertext, so a WHERE or ORDER BY runs
+   * against ciphertext and tells a caller who may not read the column
+   * nothing about the token inside it. The account SID stays readable by
+   * the config's wider audience — it identifies the account but cannot
+   * authenticate without this token, exactly as the SMTP username does.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -437,11 +458,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
     ],
     update: [
@@ -451,15 +467,20 @@ export default class ProjectCallSMSConfig extends BaseModel {
     ],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
+    encrypted: true,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
     example: "your-twilio-auth-token",
   })
-  /* NOT unique, for the same reason as twilioAccountSID above. */
+  /*
+   * NOT unique, for the same reason as twilioAccountSID above — and a unique
+   * constraint would be meaningless now the value is stored encrypted: the
+   * same token encrypts to different ciphertext each time it is written.
+   */
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: false,
   })
@@ -538,6 +559,59 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
+  /*
+   * The numbers SMS go out from. A Twilio number can make calls and send
+   * SMS, or only one of the two, and in some countries no one number does
+   * both - in Singapore, national numbers are voice-only and SMS need a
+   * mobile number. So a config can list numbers for SMS: once it does,
+   * every SMS goes out from one of them - the one in the recipient's
+   * country, or else the first - and never from a number kept for calls,
+   * which keep going out from the primary and secondary numbers
+   * (Types/CallAndSMS/TwilioPhoneNumbers). Empty - as on every config made
+   * before it - SMS go out from the same numbers as calls.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectCallSMSConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectCallSMSConfig,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio SMS Phone Numbers",
+    /*
+     * As GlobalConfig's says it: no country named, and the example list the
+     * forms and the error that refuses a list show - no one country's
+     * numbers.
+     */
+    description:
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+    example: PHONE_NUMBER_LIST_EXAMPLE,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -566,7 +640,12 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Project Default",
     description:
-      "When set, all SMS and Calls sent to project team members (on-call notifications, alerts, verification codes, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. This does not affect status pages — they use the config explicitly assigned to each status page.",
+      "When set, all SMS and Calls sent to project team members (on-call notifications, alerts, verification codes, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. A project's first Twilio config becomes the project default when this is not set on create; an explicit false is kept. This does not affect status pages — they use the config explicitly assigned to each status page.",
+    /*
+     * False for every config but a project's first: ProjectCallSMSConfigService
+     * makes the first one the default when the create leaves this out, and
+     * the dashboard's create form starts the switch on for it.
+     */
     defaultValue: false,
   })
   @Column({

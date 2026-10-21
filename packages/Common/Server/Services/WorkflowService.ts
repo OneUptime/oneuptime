@@ -1,10 +1,14 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
+import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
@@ -16,14 +20,185 @@ import {
   NodeDataProp,
   NodeType,
 } from "../../Types/Workflow/Component";
+import ComponentID from "../../Types/Workflow/ComponentID";
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
 import UUID from "../../Utils/UUID";
 
-export class Service extends DatabaseService<Model> {
+// What onBeforeUpdate hands onUpdateSuccess.
+interface WorkflowUpdateCarryForward {
+  signingSecretSaved: boolean;
+}
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  public static readonly SIGNING_SECRET_PROBLEM: string =
+    "The signing secret is not one Huntress issues. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret and copy all of it. It starts with whsec_.";
+
+  public static readonly EMPTY_SIGNING_SECRET_PROBLEM: string =
+    "Paste the endpoint's signing secret from Huntress to save it.";
+
+  public static readonly SIGNING_SECRET_SAVED_PROBLEM: string =
+    "Webhook Signing Secret Saved follows the signing secret. Save a signing secret instead.";
+
+  /*
+   * A pasted webhook signing secret, trimmed, or null for none at all. A
+   * secret is one a Standard Webhooks sender such as Huntress issues:
+   * "whsec_" and base64 (StandardWebhookSignature.isValidSecret).
+   */
+  public static readWebhookSigningSecret(value: unknown): string | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      throw new BadDataException(Service.SIGNING_SECRET_PROBLEM);
+    }
+
+    const secret: string = value.trim();
+
+    if (!secret) {
+      return null;
+    }
+
+    if (!StandardWebhookSignature.isValidSecret(secret)) {
+      throw new BadDataException(Service.SIGNING_SECRET_PROBLEM);
+    }
+
+    return secret;
+  }
+
+  /*
+   * The webhook signing secret is checked when it is written, so what is
+   * stored is a secret a request can be verified with. Whether one is saved
+   * (isWebhookSigningSecretSet) is the server's to say, never the
+   * request's: what a request sends for it is dropped here, and the server
+   * writes it from the secret once every check has passed
+   * (onCreatePermitted). The secret is write-only, and the dashboard reads
+   * the flag instead.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    const data: Model = createBy.data;
+    const secret: string | null = Service.readWebhookSigningSecret(
+      data.webhookSigningSecret,
+    );
+
+    if (secret) {
+      data.webhookSigningSecret = secret;
+    } else {
+      delete data.webhookSigningSecret;
+    }
+
+    // Only the secret decides this, never the request.
+    delete data.isWebhookSigningSecretSet;
+
+    return { createBy: createBy, carryForward: null };
+  }
+
+  /*
+   * Whether the workflow is created with a signing secret, written as it
+   * is created. Nobody may write the flag (its create list is empty), so it
+   * is written here, after the caller's column checks, rather than in
+   * onBeforeCreate, where it would be held against them and refuse every
+   * create. onBeforeCreate left the secret on the record only if one is
+   * saved.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const data: Model = onCreate.createBy.data;
+
+    data.isWebhookSigningSecretSet = Boolean(data.webhookSigningSecret);
+  }
+
+  /*
+   * On an update, an empty secret keeps the saved one - a form never has
+   * the saved one to send back - and a new one is marked saved in the same
+   * write (onUpdatePermitted) and clears the refusal the old one (or none)
+   * left, once it is written (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    const sentSecret: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "webhookSigningSecret",
+    );
+    const sentSecretSaved: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "isWebhookSigningSecretSet",
+    );
+
+    // Only the secret decides this, never the request.
+    delete data["isWebhookSigningSecretSet"];
+
+    let signingSecretSaved: boolean = false;
+
+    if (sentSecret) {
+      const secret: string | null = Service.readWebhookSigningSecret(
+        data["webhookSigningSecret"],
+      );
+
+      if (secret) {
+        data["webhookSigningSecret"] = secret;
+        signingSecretSaved = true;
+      } else {
+        delete data["webhookSigningSecret"];
+      }
+    }
+
+    // Left with nothing to write: say what was meant, not "no values".
+    if ((sentSecret || sentSecretSaved) && Object.keys(data).length === 0) {
+      throw new BadDataException(
+        sentSecret
+          ? Service.EMPTY_SIGNING_SECRET_PROBLEM
+          : Service.SIGNING_SECRET_SAVED_PROBLEM,
+      );
+    }
+
+    const carryForward: WorkflowUpdateCarryForward = {
+      signingSecretSaved: signingSecretSaved,
+    };
+
+    return { updateBy: updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A new signing secret is marked saved in the write that saves it, so
+   * the flag never says otherwise for a moment. As for a create, the flag is
+   * written once the caller's column checks have passed: nobody may write
+   * it. onBeforeUpdate left the secret in the write only if one is saved.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    if (data["webhookSigningSecret"]) {
+      data["isWebhookSigningSecretSet"] = true;
+    }
   }
 
   @CaptureSpan()
@@ -117,33 +292,79 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     /// save trigger and trigger args.
 
     const updatedGraph: JSONObject | undefined = (onUpdate.updateBy.data as any)
       ?.graph as JSONObject | undefined;
 
-    if (updatedGraph) {
-      await this.saveTriggerFromGraph({
-        workflowId: new ObjectID(onUpdate.updateBy.query._id! as any),
-        graph: updatedGraph,
-      });
+    const carryForward: WorkflowUpdateCarryForward | null =
+      (onUpdate.carryForward as WorkflowUpdateCarryForward | null) || null;
+
+    // Every workflow the update wrote.
+    for (const workflowId of updatedItemIds) {
+      /*
+       * A new signing secret: the refusal the old one (or none) left is
+       * about a secret that is gone, so the trigger waits for its sender
+       * again rather than show an error this save just fixed. The trigger
+       * writes these columns, so they are cleared as the server does.
+       */
+      if (carryForward?.signingSecretSaved) {
+        await this.updateColumnsByIdWithoutHooks({
+          id: workflowId,
+          data: {
+            lastWebhookError: null,
+            lastWebhookErrorAt: null,
+          } as any,
+          skipUpdateDateColumn: true,
+        });
+      }
+
+      if (updatedGraph) {
+        await this.saveTriggerFromGraph({
+          workflowId: workflowId,
+          graph: updatedGraph,
+        });
+      }
+
+      logger.debug("Updating workflow on the workflow service", {
+        workflowId: workflowId.toString(),
+      } as LogAttributes);
+
+      await this.notifyWorkflowService(workflowId);
+
+      logger.debug("Updated workflow on the workflow service", {
+        workflowId: workflowId.toString(),
+      } as LogAttributes);
     }
 
-    logger.debug("Updating workflow on the workflow service", {
-      workflowId: onUpdate.updateBy.query._id?.toString(),
-    } as LogAttributes);
-
-    await this.notifyWorkflowService(
-      new ObjectID(onUpdate.updateBy.query._id! as any),
-    );
-
-    logger.debug("Updated workflow on the workflow service", {
-      workflowId: onUpdate.updateBy.query._id?.toString(),
-    } as LogAttributes);
-
     return onUpdate;
+  }
+
+  /*
+   * The row is already gone when this runs, so a failed delete never reaches
+   * it. The workflow service reads the database, finds no workflow and takes
+   * its schedule off the queue. Best effort: the runner's startup sweep
+   * removes whatever a failed call leaves behind.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    for (const workflowId of itemIdsBeforeDelete) {
+      try {
+        await this.notifyWorkflowService(workflowId);
+      } catch (error) {
+        logger.error(
+          `Error notifying workflow service of deleted workflow: ${error}`,
+          { workflowId: workflowId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    return onDelete;
   }
 
   /*
@@ -191,6 +412,36 @@ export class Service extends DatabaseService<Model> {
         ignoreHooks: true,
       },
     });
+
+    if (trigger?.metadataId === ComponentID.IncomingEmail) {
+      await this.ensureIncomingEmailSecretKey(data.workflowId);
+    }
+  }
+
+  /*
+   * Gives a workflow the key its Incoming Email trigger's address is built
+   * from (workflow-{key}@{inbound domain}), unless it already has one. Called
+   * whenever a graph with that trigger is saved - from the builder, the API,
+   * an import or a duplicate - so a workflow that uses the trigger always has
+   * an address, however it got the trigger.
+   *
+   * A compare-and-set on "no key yet": two saves racing each other cannot
+   * leave the workflow with a key other than the one the first of them wrote,
+   * and a key the workflow already has - including one just reset - is never
+   * replaced. Returns whether a key was written.
+   */
+  public async ensureIncomingEmailSecretKey(
+    workflowId: ObjectID,
+  ): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: workflowId,
+      data: {
+        incomingEmailSecretKey: ObjectID.generate(),
+      } as any,
+      expectedData: {
+        incomingEmailSecretKey: null,
+      } as any,
+    });
   }
 
   private async notifyWorkflowService(workflowId: ObjectID): Promise<void> {
@@ -203,6 +454,9 @@ export class Service extends DatabaseService<Model> {
       data: {},
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        sameServerRedirectsOnly: true,
       },
     });
   }

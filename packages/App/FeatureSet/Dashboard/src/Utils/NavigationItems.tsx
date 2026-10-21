@@ -9,6 +9,13 @@ import { useTranslation } from "react-i18next";
 export interface DashboardNavigationItems {
   navItems: NavItem[];
   moreMenuItems: MoreMenuItem[];
+  /*
+   * The categories the products menu opens on: Essentials, open every time
+   * it opens. Every other category starts folded to one row until it is
+   * opened, so the menu opens on the core products rather than on every
+   * product at once.
+   */
+  moreMenuCategoriesOpenByDefault: Array<string>;
   rightElement: NavItem;
 }
 
@@ -26,6 +33,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
   const aiCategory: string = t("navbar.categories.ai", "AI");
+  const codeCategory: string = t("navbar.categories.code", "Code");
   const resourcesCategory: string = t("navbar.categories.resources");
   const infrastructureCategory: string = t(
     "navbar.categories.infrastructure",
@@ -70,6 +78,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       description: t("navbar.items.monitorsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
+      // Monitor Groups share the Monitors side menu, so they are Monitors too.
+      additionalActiveRoutes: [RouteMap[PageMap.MONITOR_GROUPS_ROOT] as Route],
       icon: IconProp.AltGlobe,
       iconColor: "blue",
       category: essentialsCategory,
@@ -262,7 +272,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
       ),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM] as Route),
-      activeRoute: RouteMap[PageMap.LLM],
+      // Every AI / LLM tab, not only the one the product opens on.
+      activeRoute: new Route(`/dashboard/${RouteParams.ProjectID}/llm`),
       icon: IconProp.Sparkles,
       iconColor: "violet",
       category: observabilityCategory,
@@ -271,17 +282,23 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       title: t("navbar.items.securityEventsTitle", "Security Events"),
       keywords: [
         "siem",
+        "soar",
         "security information and event management",
+        "security operations",
         "threats",
         "detections",
+        "security cases",
+        "response automation",
+        "mitre att&ck",
         "vulnerabilities",
       ],
       description: t(
         "navbar.items.securityEventsDescription",
-        "SIEM signals correlated with your observability data.",
+        "Detect threats in your security events, work them as cases, and respond with playbooks.",
       ),
+      // The overview opens the product; every Security Events page keeps it lit.
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SECURITY_EVENTS] as Route,
+        RouteMap[PageMap.SECURITY_EVENTS_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
       icon: IconProp.ShieldExclamation,
@@ -320,26 +337,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: aiCategory,
     },
     {
-      title: t("navbar.items.aiAgentsTitle", "Tasks"),
-      keywords: [
-        "ai agents",
-        "agent tasks",
-        "automated fixes",
-        "fix pull requests",
-      ],
-      description: t(
-        "navbar.items.aiAgentsDescription",
-        "Automated AI tasks — fix pull requests and their status.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
-      icon: IconProp.CPUChip,
-      iconColor: "violet",
-      category: aiCategory,
-    },
-    {
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
       keywords: [
         "sentinel",
@@ -360,20 +357,42 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "violet",
       category: aiCategory,
     },
+    /*
+     * Code — your repositories, and AI you ask to work in them. One item:
+     * it opens on the repositories, each repository's page holds its tasks
+     * and the box to ask AI, and a task's page is its conversation. Every
+     * page of it lives under /code, so the item stays lit on all of them.
+     * (It replaced Tasks and Code Repositories; the old words stay as
+     * keywords, so people who learned them still find it.)
+     */
     {
-      title: t("navbar.items.codeRepositoriesTitle"),
-      keywords: ["git", "github", "source code", "repos", "pull requests"],
+      title: t("navbar.items.codeTitle", "Code"),
+      keywords: [
+        "tasks",
+        "ai tasks",
+        "ai agents",
+        "agent tasks",
+        "ask ai",
+        "coding agent",
+        "automated fixes",
+        "fix pull requests",
+        "pull requests",
+        "code repositories",
+        "repositories",
+        "repos",
+        "git",
+        "github",
+        "source code",
+      ],
       description: t(
-        "navbar.items.codeRepositoriesDescription",
-        "Connect GitHub so AI can open fix PRs.",
+        "navbar.items.codeDescription",
+        "Ask AI to change your code and open pull requests. Connect GitHub here.",
       ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
+      activeRoute: RouteMap[PageMap.CODE],
       icon: IconProp.Code,
       iconColor: "violet",
-      category: aiCategory,
+      category: codeCategory,
     },
     // Resources — the catalogs that span every kind of infrastructure
     {
@@ -383,15 +402,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.inventoryDescription",
         "Everything OneUptime knows about your estate, in one list.",
       ),
-      // Lands on the Overview; the item list and detail pages keep it lit.
+      /*
+       * Lands on the Overview; every page under /inventory (the item list,
+       * an item, Archived, Documentation, Settings) keeps it lit.
+       */
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.INVENTORY] as Route,
       ),
-      activeRoute: RouteMap[PageMap.INVENTORY],
-      additionalActiveRoutes: [
-        RouteMap[PageMap.INVENTORY_ITEMS] as Route,
-        RouteMap[PageMap.INVENTORY_VIEW] as Route,
-      ],
+      activeRoute: RouteMap[PageMap.INVENTORY_ROOT],
       icon: IconProp.Cube,
       iconColor: "indigo",
       category: resourcesCategory,
@@ -444,6 +462,50 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       ),
       activeRoute: RouteMap[PageMap.DATABASE_SERVERS],
       icon: IconProp.Database,
+      iconColor: "indigo",
+      category: resourcesCategory,
+    },
+    /*
+     * Queues span every broker and platform (Kafka, RabbitMQ, SQS, Pub/Sub,
+     * Service Bus, ...), so they sit with the cross-platform catalogs, next
+     * to Databases. Keep the copy and keywords clear of the short aliases of
+     * Real User Monitoring and Kubernetes ("instrumented" hides one): each
+     * alias must still narrow the catalog to exactly one product.
+     */
+    {
+      title: t("navbar.items.queuesTitle", "Queues"),
+      keywords: [
+        "queue",
+        "message queue",
+        "messaging",
+        "broker",
+        "kafka",
+        "rabbitmq",
+        "activemq",
+        "jms",
+        "sqs",
+        "sns",
+        "pub/sub",
+        "pubsub",
+        "service bus",
+        "event hubs",
+        "pulsar",
+        "rocketmq",
+        "nats",
+        "bullmq",
+        "topics",
+        "consumer lag",
+        "dead letter",
+      ],
+      description: t(
+        "navbar.items.queuesDescription",
+        "Message queues and topics from your traces and brokers.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MESSAGE_QUEUES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.MESSAGE_QUEUES],
+      icon: IconProp.QueueList,
       iconColor: "indigo",
       category: resourcesCategory,
     },
@@ -556,6 +618,16 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "gcp",
         "google cloud",
         "cloud resources",
+        "iaas",
+        "paas",
+        "cloudwatch",
+        "azure monitor",
+        "cloud monitoring",
+        "ec2",
+        "rds",
+        "s3",
+        "virtual machines",
+        "load balancers",
       ],
       description: t("navbar.items.cloudDescription"),
       route: RouteUtil.populateRouteParams(
@@ -625,6 +697,30 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      title: t("navbar.items.storageArraysTitle", "Storage Arrays"),
+      keywords: [
+        "storage",
+        "san",
+        "nas",
+        "pure storage",
+        "everpure",
+        "flasharray",
+        "flashblade",
+        "volumes",
+      ],
+      description: t(
+        "navbar.items.storageArraysDescription",
+        "Monitor storage arrays such as Pure Storage FlashArray and FlashBlade.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STORAGE_ARRAYS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.STORAGE_ARRAYS],
+      icon: IconProp.StorageArray,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
       title: t("navbar.items.networkTitle", "Network"),
       keywords: [
         "snmp",
@@ -690,11 +786,51 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.runbooksTitle"),
-      keywords: ["playbooks", "procedures", "remediation", "response guides"],
+      /*
+       * "runners": Runners are set up inside Runbooks, and someone who only
+       * uses one for AI code fixes has no other reason to look here.
+       */
+      keywords: [
+        "playbooks",
+        "procedures",
+        "remediation",
+        "response guides",
+        "runners",
+      ],
       description: t("navbar.items.runbooksDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.RUNBOOKS] as Route),
       activeRoute: RouteMap[PageMap.RUNBOOKS],
       icon: IconProp.BookOpen,
+      iconColor: "teal",
+      category: analyticsAutomationCategory,
+    },
+    /*
+     * Forms sit with the automation products: a form turns what someone
+     * outside the team fills in into an incident or a maintenance event,
+     * the way a workflow turns an event into actions.
+     */
+    {
+      title: t("navbar.items.formsTitle", "Forms"),
+      keywords: [
+        "form",
+        "form builder",
+        "public form",
+        "intake form",
+        "request form",
+        "report form",
+        "incident form",
+        "maintenance request",
+        "change request",
+        "questionnaire",
+        "submissions",
+      ],
+      description: t(
+        "navbar.items.formsDescription",
+        "Forms anyone can fill in that create incidents or scheduled maintenance events.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.FORMS] as Route),
+      activeRoute: RouteMap[PageMap.FORMS],
+      icon: IconProp.ClipboardDocumentList,
       iconColor: "teal",
       category: analyticsAutomationCategory,
     },
@@ -738,6 +874,19 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
   ];
 
+  /*
+   * The products menu always opens with Essentials expanded, the products a
+   * problem flows through (see the top of the list): the maintainer asked
+   * to "always have Essentials expanded by default", in the same list as
+   * the other categories. Folding them lasts until the menu closes. The
+   * rest - observability, AI, code, resources, every infrastructure
+   * platform, dashboards and automation, settings - are each folded to one
+   * row that names what is inside, one click or a search away. The category
+   * of the page the user is on opens by itself, and what someone opens or
+   * folds among those is remembered on their browser.
+   */
+  const moreMenuCategoriesOpenByDefault: Array<string> = [essentialsCategory];
+
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
@@ -746,10 +895,19 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_SETTINGS] as Route,
     ),
-    activeRoute: RouteMap[PageMap.USER_SETTINGS],
+    /*
+     * Opens on Notification Methods, and stays lit on every page of User
+     * Settings, not only that first one.
+     */
+    activeRoute: RouteMap[PageMap.USER_SETTINGS_ROOT],
   };
 
-  return { navItems, moreMenuItems, rightElement };
+  return {
+    navItems,
+    moreMenuItems,
+    moreMenuCategoriesOpenByDefault,
+    rightElement,
+  };
 }
 
 export default useDashboardNavigationItems;

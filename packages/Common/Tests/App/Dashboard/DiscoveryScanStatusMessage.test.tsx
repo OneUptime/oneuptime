@@ -544,9 +544,18 @@ describe("the toggle is accessible", () => {
     renderMessage(LONG_MESSAGE);
 
     const hidden: HTMLElement | null = toggle().querySelector(".sr-only");
+    const visible: HTMLElement | null = toggle().querySelector(
+      '[aria-hidden="true"]',
+    );
 
     expect(hidden).not.toBeNull();
-    expect(hidden?.textContent).toBe(` for ${SCAN_LABEL}`);
+    /*
+     * A screen reader hears one whole sentence with the scan named in it, so
+     * a translation can put the name where its language does; the short
+     * visible words are hidden from it, so nothing is read twice.
+     */
+    expect(hidden?.textContent).toBe(`Show details for ${SCAN_LABEL}`);
+    expect(visible?.textContent).toBe("Show details");
     expect(toggle().textContent?.replace(hidden?.textContent || "", "")).toBe(
       "Show details",
     );

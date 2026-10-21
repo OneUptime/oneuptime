@@ -8,6 +8,8 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import SnmpInterfacesView from "./SnmpInterfacesView";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -17,6 +19,7 @@ export interface ComponentProps {
 const SnmpMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const snmpResponse: SnmpMonitorResponse | undefined =
     props.probeMonitorResponse?.snmpResponse;
 
@@ -83,22 +86,24 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
       {/* OID Responses Section */}
       {snmpResponse?.oidResponses && snmpResponse.oidResponses.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-700">OID Responses</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            {translator.translateText("OID Responses")}
+          </h3>
           <div className="border rounded-md overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    OID
+                    {translator.translateText("OID")}
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {translator.translateText("Name")}
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Value
+                    {translator.translateText("Value")}
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                    {translator.translateText("Type")}
                   </th>
                 </tr>
               </thead>

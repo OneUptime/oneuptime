@@ -1,5 +1,7 @@
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
@@ -24,7 +26,7 @@ export const MAC_ADDRESS_FIELD_TITLE: string = "MAC Address";
  * would have filled in anyway.
  */
 export const MAC_ADDRESS_FIELD_DESCRIPTION: string =
-  "Optional. Lets the topology map find the switch port this device is plugged into from the forwarding tables of the switches it monitors — the link LLDP and CDP cannot report for a device that speaks neither, such as a register, a handset or anything monitored by ping alone. Leave it empty if the device's hostname is an IP address and a router (or any walked device with an ARP table) at its site collects endpoints: the MAC is then learned from that table and filled in here, and corrected if the address later moves to another MAC. A MAC you type is never overwritten.";
+  "Lets the map find the switch port this device is plugged into. Usually learned from a router's ARP table.";
 
 export const MAC_ADDRESS_FIELD_PLACEHOLDER: string = "aa:bb:cc:dd:ee:ff";
 
@@ -68,6 +70,13 @@ export interface MacAddressFormFieldOptions {
    * the hostname's step.
    */
   stepId?: string | undefined;
+
+  /*
+   * The folded section the field sits in, on a form that folds it - the Add
+   * Device form keeps it under More fields: most devices never need it, and
+   * a router's ARP table fills it in for the rest.
+   */
+  collapsibleSection?: FormFieldCollapsibleSection<NetworkDevice> | undefined;
 }
 
 export function getMacAddressFormField(
@@ -85,9 +94,15 @@ export function getMacAddressFormField(
     customValidation: validateMacAddress,
   };
 
-  if (!options?.stepId) {
-    return field;
+  const placed: Field<NetworkDevice> = { ...field };
+
+  if (options?.stepId) {
+    placed.stepId = options.stepId;
   }
 
-  return { ...field, stepId: options.stepId };
+  if (options?.collapsibleSection) {
+    placed.collapsibleSection = options.collapsibleSection;
+  }
+
+  return placed;
 }

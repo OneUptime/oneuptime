@@ -78,6 +78,11 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.KubernetesCluster, 30 * 24],
   [EntityType.ProxmoxCluster, 30 * 24],
   [EntityType.CephCluster, 30 * 24],
+  /*
+   * A storage array is a long-lived root identity like a Ceph cluster; its
+   * volumes, hosts and other objects are inventory rows, not entities.
+   */
+  [EntityType.StorageArray, 30 * 24],
   [EntityType.VMwareVCenter, 30 * 24],
   /*
    * Discovered from `docker.swarm.cluster.name` on agent telemetry, so it is

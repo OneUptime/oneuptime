@@ -16,8 +16,15 @@ import {
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import {
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelListModal from "Common/UI/Components/ModelListModal/ModelListModal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -67,6 +74,7 @@ const mapMetricChartTypeToDashboardChartType: MapChartTypeFunction = (
 const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [addedToDashboard, setAddedToDashboard] = useState<Dashboard | null>(
@@ -111,7 +119,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
         dashboard.id || (dashboard._id ? new ObjectID(dashboard._id) : null);
 
       if (!dashboardId) {
-        throw new Error("The selected dashboard does not have a valid ID.");
+        throw new Error(
+          translateTemplate("The selected dashboard does not have a valid ID."),
+        );
       }
 
       const fullDashboard: Dashboard | null = await ModelAPI.getItem<Dashboard>(
@@ -126,14 +136,20 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       );
 
       if (!fullDashboard) {
-        throw new Error("This dashboard could not be loaded.");
+        throw new Error(
+          translateTemplate("This dashboard could not be loaded."),
+        );
       }
 
+      /*
+       * Read the way the dashboard itself reads it. A config stored in
+       * another shape (the API reference's envelope, JSON text) used to fail
+       * the `components` check here and be replaced by an empty one: the
+       * new chart went in, and every widget already on the dashboard was
+       * written away.
+       */
       const dashboardViewConfig: DashboardViewConfig =
-        fullDashboard.dashboardViewConfig &&
-        fullDashboard.dashboardViewConfig.components
-          ? fullDashboard.dashboardViewConfig
-          : DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+        StoredDashboardViewConfig.read(fullDashboard.dashboardViewConfig);
 
       const plainQueryConfigs: Array<MetricQueryConfigData> =
         buildQueryConfigsFromSerializedQueries(serializedQueries);
@@ -235,9 +251,16 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title="Chart Added"
-        description={`The chart was added to the ${
-          addedToDashboard.name || "selected"
-        } dashboard.`}
+        description={
+          addedToDashboard.name
+            ? translator.translateTemplate(
+                "The chart was added to the {{dashboard}} dashboard.",
+                { dashboard: addedToDashboard.name },
+              )
+            : translator.translateTemplate(
+                "The chart was added to the selected dashboard.",
+              )
+        }
         submitButtonText="Open Dashboard"
         closeButtonText="Close"
         onClose={props.onClose}
@@ -258,7 +281,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   return (
     <ModelListModal<Dashboard>
       modalTitle="Add to Dashboard"
-      modalDescription="Select the dashboard this chart should be added to."
+      modalDescription={translationKey(
+        "Select the dashboard this chart should be added to.",
+      )}
       modelType={Dashboard}
       titleField="name"
       descriptionField="description"

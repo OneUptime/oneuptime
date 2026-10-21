@@ -6,14 +6,29 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * A project's Support page: whether OneUptime customer support can open
+ * the project, as one switch that saves the moment it is flipped (the
+ * shared ModelSwitchCard, through AdminModelAPI). It is the same column,
+ * Project.letCustomerSupportAccessProject, as the switch the customer has
+ * in their own Project Settings.
+ *
+ * The customer owns the switch. Staff turn it on here only when the
+ * customer has asked support to look at their project, so turning it on
+ * asks first, with that consent warning - which used to be a warning banner
+ * above the card on every visit. Turning it off saves at once.
+ */
+
+export const PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID: string =
+  "admin-project-support-access-switch";
 
 const ProjectSupport: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -21,11 +36,11 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
   const modelIdString: string = Navigation.getLastParamAsString(1);
 
   /*
-   * ModelDetail refetches whenever the modelId it is handed changes by
-   * identity, and editing the toggle re-renders this page. A fresh ObjectID
-   * per render would therefore refetch on every render, forever - so the id
-   * is memoized on the route param it came from. Same reasoning as the
-   * subscription page next door.
+   * The switch card reads its record again whenever the id it is handed
+   * changes, and ModelPage refetches on the id's identity. A fresh ObjectID
+   * per render would refetch on every render, so the id is memoized on the
+   * route param it came from. Same reasoning as the subscription page next
+   * door.
    */
   const modelId: ObjectID = useMemo(() => {
     return new ObjectID(modelIdString);
@@ -91,57 +106,30 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<SideMenuComponent modelId={modelId} />}
     >
-      <div>
-        {/*
-         * The customer owns this switch - it is the same toggle they have in
-         * Project Settings. Staff flip it here only when the customer has
-         * asked for support to look at their project and cannot reach the
-         * setting themselves, which is why the card says so out loud.
-         */}
-        <Alert
-          type={AlertType.WARNING}
-          title={t("pages.projectSupport.consentWarning")}
-          className="mb-5"
-        />
+      <ModelSwitchCard<Project>
+        modelType={Project}
+        modelId={modelId}
+        column="letCustomerSupportAccessProject"
+        modelAPI={AdminModelAPI}
+        cardTitle={t("pages.projectSupport.cardTitle")}
+        cardDescription={t("pages.projectSupport.cardDescription")}
+        title={t("pages.projectSupport.fieldLabel")}
+        note={t("pages.projectSupport.fieldDescription")}
+        getConfirmation={(
+          isTurningOn: boolean,
+        ): ModelSwitchConfirmation | undefined => {
+          if (!isTurningOn) {
+            return undefined;
+          }
 
-        <CardModelDetail<Project>
-          name="Customer Support Access"
-          modelAPI={AdminModelAPI}
-          cardProps={{
-            title: t("pages.projectSupport.cardTitle"),
-            description: t("pages.projectSupport.cardDescription"),
-          }}
-          isEditable={true}
-          editButtonText={t("pages.projectSupport.editButton")}
-          formFields={[
-            {
-              field: {
-                letCustomerSupportAccessProject: true,
-              },
-              title: t("pages.projectSupport.fieldLabel"),
-              description: t("pages.projectSupport.fieldDescription"),
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: Project,
-            id: "model-detail-project-support",
-            fields: [
-              {
-                field: {
-                  letCustomerSupportAccessProject: true,
-                },
-                title: t("pages.projectSupport.fieldLabel"),
-                description: t("pages.projectSupport.fieldDescription"),
-                fieldType: FieldType.Boolean,
-                placeholder: "No",
-              },
-            ],
-            modelId: modelId,
-          }}
-        />
-      </div>
+          return {
+            title: t("pages.projectSupport.allowConfirmTitle"),
+            description: t("pages.projectSupport.consentWarning"),
+            submitButtonText: t("pages.projectSupport.allowConfirmButton"),
+          };
+        }}
+        dataTestId={PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID}
+      />
     </ModelPage>
   );
 };

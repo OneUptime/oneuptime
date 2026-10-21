@@ -2,6 +2,7 @@ import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -125,6 +126,14 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
+/*
+ * The alerts an investigation rule makes OneUptime AI wait on: a handful at
+ * any moment, so the index holds only them, and the rule-wait job's "wait
+ * ended" read (aiInvestigationWaitUntil <= now) implies its predicate.
+ */
+@Index(["aiInvestigationWaitUntil"], {
+  where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -333,6 +342,39 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public impactStartedAt?: Date = undefined;
+
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * this alert (FirstPagedAt). Written once, by OneUptime, and never moved:
+   * no caller may write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "First Paged At",
+    description:
+      "When an on-call policy or a direct page first notified someone about this alert. Empty until someone is paged. Set by OneUptime.",
+    example: "2024-01-15T09:32:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstPagedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -1230,6 +1272,60 @@ export default class Alert extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description: "List of storage arrays affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
     modelType: DatabaseServer,
     title: "Databases",
     description: "List of databases affected by this alert.",
@@ -1854,6 +1950,25 @@ export default class Alert extends BaseModel {
   @Column({ type: ColumnType.JSON, nullable: true })
   public aiInvestigationDecision?: InvestigationNotStartedReason = undefined;
 
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this alert (issue #5074): when the wait ends. The alert is
+   * investigated then if it is still open, and the column is cleared
+   * whatever happens. Null for every other alert. The rule-wait job finds
+   * the ones whose wait has ended through the partial index above
+   * (Server/Utils/AI/SRE/InvestigationRuleWait).
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Investigation Waits Until",
+    description:
+      "Internal: while an investigation rule makes OneUptime AI wait before it investigates this record, when the wait ends.",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public aiInvestigationWaitUntil?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -2328,15 +2443,20 @@ export default class Alert extends BaseModel {
   public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
     undefined;
 
+  /*
+   * The episode this alert is in: the latest one it is still a member of, or
+   * none. Membership is the AlertEpisodeMember rows, and this only mirrors
+   * them - AlertEpisodeMemberService points it at an episode the alert joins
+   * and, when the alert leaves one, at the latest episode it is still in.
+   * Written any other way it names an episode the alert is not a member of:
+   * the episode's overview lists the alert while its members do not, and an
+   * alert created with it set is never grouped, so no member row is ever
+   * made for it. So nobody may write it, under either name: an alert joins
+   * or leaves an episode through the episode's members. AlertService refuses
+   * the writes that skip column permissions too (EpisodeMembershipReference).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertAdmin,
-      Permission.AlertMember,
-      Permission.CreateAlert,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2347,21 +2467,15 @@ export default class Alert extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlert,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertAdmin,
-      Permission.AlertMember,
-      Permission.EditAlert,
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "alertEpisodeId",
     type: TableColumnType.Entity,
     modelType: AlertEpisode,
     title: "Alert Episode",
-    description: "The episode this alert belongs to (if grouped)",
+    description:
+      "The latest episode this alert is a member of, if any. Read-only: set by OneUptime when the alert is added to or removed from an episode's members (Alert Episode Member).",
   })
   @ManyToOne(
     () => {
@@ -2377,15 +2491,9 @@ export default class Alert extends BaseModel {
   @JoinColumn({ name: "alertEpisodeId" })
   public alertEpisode?: AlertEpisode = undefined;
 
+  // Read-only, like the relation above: see there.
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertAdmin,
-      Permission.AlertMember,
-      Permission.CreateAlert,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2396,21 +2504,15 @@ export default class Alert extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlert,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertAdmin,
-      Permission.AlertMember,
-      Permission.EditAlert,
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "Alert Episode ID",
-    description: "The ID of the episode this alert belongs to (if grouped)",
+    description:
+      "The ID of the latest episode this alert is a member of, if any. Read-only: set by OneUptime when the alert is added to or removed from an episode's members (Alert Episode Member).",
   })
   @Column({
     type: ColumnType.ObjectID,

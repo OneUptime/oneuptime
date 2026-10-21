@@ -16,12 +16,15 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import LabelService from "../../Services/LabelService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import TeamMemberService from "../../Services/TeamMemberService";
@@ -44,6 +47,7 @@ import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySna
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
+import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -52,6 +56,11 @@ export default class MonitorIncident {
   @CaptureSpan()
   public static async checkOpenIncidentsAndCloseIfResolved(input: {
     monitorId: ObjectID;
+    /*
+     * The monitor's project: its incident states say which of the monitor's
+     * incidents are still open (Common/Utils/ResolvedState).
+     */
+    projectId: ObjectID;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
@@ -90,14 +99,28 @@ export default class MonitorIncident {
      * no-criteria-met code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Every criteria on the monitor, keyed by id. Used to name the
+     * criteria a recovered series no longer satisfies when its incident
+     * is resolved per series; without it the resolution text falls back
+     * to "the criteria that raised it".
+     */
+    criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Incident>> {
-    // check active incidents and if there are open incidents, do not create another incident.
+    /*
+     * check active incidents and if there are open incidents, do not create
+     * another incident. Open: in a state above the project's resolved state
+     * - an incident in a state placed after Resolved is over, and a new one
+     * is declared.
+     */
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitorId],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.projectId,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -138,16 +161,36 @@ export default class MonitorIncident {
       if (shouldClose) {
         resolvedIncidentIds.add(openIncident.id!.toString());
 
+        /*
+         * A series resolved per series closes on a tick where other series
+         * may still breach, and input.rootCause describes those. Record why
+         * THIS series resolved instead. Whole-monitor resolves keep the
+         * caller's root cause.
+         */
+        const isPerSeriesResolution: boolean =
+          input.breachingSeriesFingerprints !== undefined &&
+          Boolean(openIncident.seriesFingerprint);
+
+        const rootCause: string = isPerSeriesResolution
+          ? PerSeriesResolutionRootCause.build({
+              seriesLabels: openIncident.seriesLabels,
+              createdCriteriaId:
+                openIncident.createdCriteriaId?.toString() || undefined,
+              criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openIncident.seriesFingerprint || undefined,
+            })
+          : input.rootCause;
+
         // then resolve incident.
         await this.resolveOpenIncident({
           openIncident: openIncident,
-          rootCause: input.rootCause,
+          rootCause: rootCause,
           dataToProcess: input.dataToProcess,
         });
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
-          title: `Incident resolved: ${openIncident.id?.toString()}`,
+          title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
           message:
             "Incident auto-resolved because autoresolve is enabled for this criteria.",
           relatedIncidentId: openIncident.id?.toString(),
@@ -185,31 +228,52 @@ export default class MonitorIncident {
    * absence: a webhook describes only the keys in its payload, so a
    * missing key is not a recovery signal. The caller passes exactly the
    * fingerprints the payload explicitly classified as resolved (see
-   * IncomingRequestIncidentGrouping.collectResolvedFingerprints).
+   * IncomingRequestIncidentGrouping.collectRecoveries).
+   *
+   * `wholeMonitor`, when given, resolves in the same pass the open
+   * incidents with no fingerprint of those grouped criteria: the incident a
+   * grouped criteria opens for the whole monitor, for a request that names
+   * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
+   * once a request it matches reports its items without a value recovered.
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
     rootCause: string;
+    // What the evaluation summary says of each incident resolved here.
+    resolvedMessage?: string | undefined;
+    wholeMonitor?:
+      | {
+          criteriaIds: Array<string>;
+          rootCause: string;
+        }
+      | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<void> {
-    if (!input.fingerprints || input.fingerprints.length === 0) {
+    const fingerprintSet: Set<string> = new Set<string>(
+      input.fingerprints || [],
+    );
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>(
+      input.wholeMonitor?.criteriaIds || [],
+    );
+
+    if (fingerprintSet.size === 0 && wholeMonitorCriteriaIds.size === 0) {
       return;
     }
-
-    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
 
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitor.id!],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -232,43 +296,47 @@ export default class MonitorIncident {
       const fingerprint: string | undefined =
         openIncident.seriesFingerprint || undefined;
 
-      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+      const isRecoveredValue: boolean = Boolean(
+        fingerprint && fingerprintSet.has(fingerprint),
+      );
+      const isRecoveredWholeMonitor: boolean =
+        !fingerprint &&
+        wholeMonitorCriteriaIds.has(
+          openIncident.createdCriteriaId?.toString() || "",
+        );
+
+      if (!isRecoveredValue && !isRecoveredWholeMonitor) {
         continue;
       }
-
-      const createdCriteriaId: string | undefined =
-        openIncident.createdCriteriaId?.toString();
-      const createdIncidentTemplateId: string | undefined =
-        openIncident.createdIncidentTemplateId?.toString();
 
       // Only auto-resolve when the creating criteria opted into it.
-      if (!createdCriteriaId || !createdIncidentTemplateId) {
-        continue;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          createdCriteriaId
-        ];
-
       if (
-        !autoResolveTemplates ||
-        !autoResolveTemplates.includes(createdIncidentTemplateId)
+        !this.isAutoResolveConfiguredForIncident({
+          openIncident: openIncident,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        })
       ) {
         continue;
       }
 
       await this.resolveOpenIncident({
         openIncident: openIncident,
-        rootCause: input.rootCause,
+        rootCause:
+          isRecoveredValue || !input.wholeMonitor
+            ? input.rootCause
+            : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
       });
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
-        title: `Incident resolved: ${openIncident.id?.toString()}`,
+        title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
         message:
-          "Incident auto-resolved because the incoming payload reported this key as resolved.",
+          isRecoveredValue || !input.wholeMonitor
+            ? input.resolvedMessage ||
+              "Incident auto-resolved because the incoming payload reported this key as resolved."
+            : "Incident auto-resolved because a request with no value to group by reported recovered.",
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,
         relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
@@ -382,6 +450,7 @@ export default class MonitorIncident {
         ? input.openIncidents
         : await this.checkOpenIncidentsAndCloseIfResolved({
             monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary:
               input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             rootCause: input.rootCause,
@@ -462,15 +531,34 @@ export default class MonitorIncident {
       });
 
     /*
+     * What someone linked the monitor to by hand (Monitor > Overview >
+     * Linked Resources). Read only once an incident is really being created,
+     * and at most once per evaluation: a monitor that stays down keeps
+     * evaluating with its incident already open.
+     */
+    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
+    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
+      (): Promise<SeriesResolvedResourceIds> => {
+        if (!linkedResources) {
+          linkedResources =
+            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
+              monitor: input.monitor,
+            });
+        }
+        return linkedResources;
+      };
+
+    /*
      * Series-less path: one incident per criteriaIncident template as
      * before. Series-aware path: one incident per (series × template).
      */
     /*
      * `undefined` matchesPerSeries → legacy single-incident path. A
      * defined (even empty) array → per-series mode: iterate exactly the
-     * matches. An empty array therefore creates nothing — used by grouped
-     * incoming-request criteria on a payload with no firing key so they
-     * don't fall back to a single whole-monitor incident.
+     * matches. An empty array therefore creates nothing — used by a grouped
+     * incoming-request criteria on a request whose values all recovered, or
+     * that the background check re-read (IncomingRequestIncidentGrouping).
+     * One with nothing to group by acts for the whole monitor instead.
      */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries !== undefined
@@ -538,14 +626,20 @@ export default class MonitorIncident {
            * monitor. Normalise both sides to `undefined` on missing so a created
            * incident (whose template id was left NULL) still matches itself next
            * cycle instead of being recreated as a duplicate.
+           *
+           * An incident with no template id stands for every template of its
+           * criteria: it was raised before the server gave templates ids, and
+           * once its template has one it must still be found, or a second
+           * incident would open beside it while the first is still open.
            */
           const alreadyOpenIncident: Incident | undefined = openIncidents.find(
             (incident: Incident) => {
               return (
                 (incident.createdCriteriaId || undefined) ===
                   (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (incident.createdIncidentTemplateId || undefined) ===
-                  (criteriaIncident.id?.toString() || undefined) &&
+                (!incident.createdIncidentTemplateId ||
+                  incident.createdIncidentTemplateId ===
+                    (criteriaIncident.id?.toString() || undefined)) &&
                 (incident.seriesFingerprint || undefined) === seriesFingerprint
               );
             },
@@ -605,6 +699,13 @@ export default class MonitorIncident {
               seriesLabels,
             });
 
+          // A title is one bounded line; see buildTitleStorageMap.
+          const titleStorageMap: JSONObject =
+            MonitorTemplateUtil.buildTitleStorageMap({
+              monitorType: input.monitor.monitorType!,
+              storageMap,
+            });
+
           /*
            * Render the criteria's template, then make it say WHICH
            * series it is about. Mirrors MonitorAlert exactly - the two
@@ -616,12 +717,17 @@ export default class MonitorIncident {
           incident.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaIncident.title,
-              storageMap,
+              storageMap: titleStorageMap,
             }),
             seriesLabels,
           });
+          /*
+           * The description and remediation notes are Markdown: what the
+           * monitored system sent goes into them as text
+           * (processMarkdownTemplateString).
+           */
           incident.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processTemplateString({
+            description: MonitorTemplateUtil.processMarkdownTemplateString({
               value: criteriaIncident.description,
               storageMap,
             }),
@@ -718,16 +824,25 @@ export default class MonitorIncident {
           incident.monitors = [input.monitor];
           incident.projectId = input.monitor.projectId!;
           incident.rootCause = seriesRootCause;
-          incident.createdStateLog = JSON.parse(
-            JSON.stringify(input.dataToProcess, null, 2),
-          );
+          /*
+           * The jsonb columns below get storable copies: one NUL in the
+           * check's payload (a binary response body, a webhook field) would
+           * otherwise make Postgres refuse the insert, and the incident
+           * would never open. Inputs stay as they are - they are still
+           * being read for this and the next incident.
+           */
+          incident.createdStateLog = toStorableJson(
+            input.dataToProcess,
+          ) as unknown as JSONObject;
 
           /*
            * Same capture on every incident this evaluation opens - they all
-           * came from the one check.
+           * came from the one check. Made storable after serialize(), which
+           * is what keeps its Dates as Dates when the page reads it back.
            */
-          const serializedMonitorSummary: JSONObject | null =
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+          const serializedMonitorSummary: JSONObject | null = toStorableJson(
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+          );
 
           if (serializedMonitorSummary) {
             incident.monitorSummary = serializedMonitorSummary;
@@ -753,7 +868,7 @@ export default class MonitorIncident {
             incident.seriesFingerprint = seriesFingerprint;
           }
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-            incident.seriesLabels = seriesLabels;
+            incident.seriesLabels = toStorableJson(seriesLabels);
 
             await SeriesResourceLinker.linkSeriesResourcesToModel({
               model: incident,
@@ -773,6 +888,12 @@ export default class MonitorIncident {
           SeriesResourceLinker.attachResolvedResources({
             model: incident,
             resolved: resourceContext,
+          });
+
+          // And what the monitor was linked to by hand, merged the same way.
+          SeriesResourceLinker.attachResolvedResources({
+            model: incident,
+            resolved: await getLinkedResources(),
           });
 
           /*
@@ -842,7 +963,7 @@ export default class MonitorIncident {
 
           if (criteriaIncident.remediationNotes) {
             incident.remediationNotes =
-              MonitorTemplateUtil.processTemplateString({
+              MonitorTemplateUtil.processMarkdownTemplateString({
                 value: criteriaIncident.remediationNotes,
                 storageMap,
               });
@@ -1104,9 +1225,10 @@ export default class MonitorIncident {
     }
 
     if (input.dataToProcess) {
-      incidentStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      // Storable copy, for the same reason as createdStateLog above.
+      incidentStateTimeline.stateChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
     }
 
     try {
@@ -1348,30 +1470,19 @@ export default class MonitorIncident {
       return false;
     }
 
-    // If antoher criteria is active then, check if the incident id is present in the map.
-
-    if (!input.openIncident.createdCriteriaId?.toString()) {
-      return false;
-    }
-
-    if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-      return false;
-    }
-
-    if (
-      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
-      ]
-    ) {
-      if (
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId?.toString()
-        ]?.includes(input.openIncident.createdIncidentTemplateId?.toString())
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    /*
+     * Another criteria (or none) is active: close the incident when the
+     * criteria that raised it opted into auto-resolve. An incident raised
+     * from a template that had no id - every criteria an API client such as
+     * the Terraform provider wrote, before the server gave templates ids -
+     * carries no createdIncidentTemplateId and is matched on its criteria,
+     * as the per-series path already does. Requiring the template id here is
+     * what left those incidents open after the monitor recovered.
+     */
+    return MonitorIncident.isAutoResolveConfiguredForIncident({
+      openIncident: input.openIncident,
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+    });
   }
 }

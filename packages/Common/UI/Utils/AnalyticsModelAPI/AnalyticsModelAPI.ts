@@ -1,6 +1,7 @@
 import { FormType } from "../../Components/Forms/ModelForm";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
+import DatabaseModelAPI from "../ModelAPI/ModelAPI";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import BaseListResult from "../../../Types/BaseDatabase/ListResult";
 import RequestOptions from "../API/RequestOptions";
@@ -26,6 +27,15 @@ import Query from "../../../Types/BaseDatabase/Query";
 
 export type ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> =
   BaseListResult<TAnalyticsBaseModel>;
+
+export interface AnalyticsCountOptions {
+  /*
+   * Count exactly the rows getList returns for the same query, or fail: no
+   * shortcut that rounds the window, and no count cut short by the server's
+   * time limit (which answers 408 instead). For a total shown beside a list.
+   */
+  exact?: boolean | undefined;
+}
 
 export default class ModelAPI {
   /**
@@ -349,6 +359,7 @@ export default class ModelAPI {
     modelType: { new (): TAnalyticsBaseModel },
     query: Query<TAnalyticsBaseModel>,
     requestOptions?: RequestOptions | undefined,
+    countOptions?: AnalyticsCountOptions | undefined,
   ): Promise<number> {
     const model: TAnalyticsBaseModel = new modelType();
     const apiPath: Route | undefined = model.crudApiPath;
@@ -380,6 +391,8 @@ export default class ModelAPI {
         url: apiUrl,
         data: {
           query: JSONFunctions.serialize(query as JSONObject),
+          // Sent only when asked for, so every other count is unchanged.
+          ...(countOptions?.exact ? { exact: true } : {}),
         },
         headers,
       });
@@ -445,12 +458,30 @@ export default class ModelAPI {
       throw new BadDataException("This model does not support get operations.");
     }
 
-    return this.post<TAnalyticsBaseModel>(
-      modelType,
-      apiUrl,
-      select,
-      requestOptions,
-    );
+    try {
+      return await this.post<TAnalyticsBaseModel>(
+        modelType,
+        apiUrl,
+        select,
+        requestOptions,
+      );
+    } catch (error) {
+      /*
+       * The API's get-item route answers 404 for a row that does not exist
+       * or that the caller may not read: no row, which callers of getItem
+       * handle as null - the rule the database models' ModelAPI.getItem
+       * follows, a route of the caller's own (overrideRequestUrl) raising its
+       * failures.
+       */
+      if (
+        !requestOptions?.overrideRequestUrl &&
+        DatabaseModelAPI.isNotFound(error)
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   public static async post<TAnalyticsBaseModel extends AnalyticsBaseModel>(

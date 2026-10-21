@@ -2,9 +2,7 @@ import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
-import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../Services/AIRunService";
-import AIRunEventService from "../Services/AIRunEventService";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
@@ -17,18 +15,18 @@ import Express, {
 import Response from "../Utils/Response";
 import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
-  CodeFixAgentSource,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
+import CodeFixPullRequestRecord, {
+  OpenedPullRequestFields,
+  RecordedPullRequest,
+} from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
-import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
-import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
-import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
@@ -37,10 +35,9 @@ import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
   ImplicatedSpan,
   InvestigationCodeFixTaskSnapshot,
-  PerformanceCodeLocation,
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
-import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import SpanTreeAnalyzer from "../../Utils/Traces/SpanTreeAnalyzer";
 import {
   sanitizeExceptionMessage,
   sanitizeStackTrace,
@@ -65,9 +62,15 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import URL from "../../Types/API/URL";
-import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import QueryHelper from "../Types/Database/QueryHelper";
+import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
+import CodeRepositoryRunnerChoice from "../Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import {
+  getFirstMonitorName,
+  getPerformanceStackTrace,
+} from "../Utils/AI/CodeFix/CodeFixRunRepository";
+import { CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL } from "../../Types/Runner/CodeRepositoryRunner";
 
 export default class AIAgentDataAPI {
   public router!: ExpressRouter;
@@ -82,19 +85,19 @@ export default class AIAgentDataAPI {
   }
 
   /*
-   * The task recipe a repository-token request belongs to, when that recipe is
-   * exempt from the per-repository open-PR cap — otherwise null.
+   * The run a repository-token request names, when it is a code-fix run of
+   * the repository's project the agent may act on - otherwise null.
    *
-   * Derived from the run, never from the request. `taskId` names a task; it
-   * does not assert anything about it, and a task in another project answers
-   * null exactly as a missing one does. An absent taskId also answers null, so
-   * an older worker that does not send one keeps the cap in full.
+   * `taskId` names a task; it does not assert anything about it, and a task
+   * in another project answers null exactly as a missing one does. An absent
+   * taskId also answers null, so an older worker that does not send one keeps
+   * the cap in full.
    */
-  private static async getCapExemptTaskType(data: {
+  private static async findTokenRun(data: {
     aiAgent: CodeFixAgentIdentity;
     taskId: string | undefined;
     projectId: ObjectID | undefined;
-  }): Promise<CodeFixTaskType | null> {
+  }): Promise<AIRun | null> {
     if (!data.taskId || !data.projectId) {
       return null;
     }
@@ -109,26 +112,111 @@ export default class AIAgentDataAPI {
 
     const run: AIRun | null = await AIRunService.findOneById({
       id: taskId,
-      select: { _id: true, projectId: true, codeFixTaskType: true },
+      select: {
+        _id: true,
+        projectId: true,
+        runType: true,
+        codeFixTaskType: true,
+        codeRepositoryId: true,
+        codeTaskId: true,
+      },
       props: { isRoot: true },
     });
 
     if (
       !run ||
       !run.projectId ||
+      run.runType !== AIRunType.CodeFix ||
       run.projectId.toString() !== data.projectId.toString() ||
       CodeFixAgentAuth.deniesAccessToProject(data.aiAgent, run.projectId)
     ) {
       return null;
     }
 
+    return run;
+  }
+
+  /*
+   * Whether the run is exempt from the per-repository open-PR cap. Derived
+   * from the run, never from the request.
+   *
+   * Exempt: work that cannot ADD to the review queue - a GitHub revision
+   * (pushes to a pull request already open and counted), a review (writes
+   * nothing), and a request from Code whose task already has an open pull
+   * request in this repository, which the turn pushes to (see
+   * CodeTaskThread.getWorkingPullRequest).
+   */
+  private static async isCapExempt(data: {
+    run: AIRun | null;
+    codeRepositoryId: ObjectID;
+  }): Promise<boolean> {
+    if (!data.run || !data.run.projectId) {
+      return false;
+    }
+
     const taskType: CodeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
-      run.codeFixTaskType,
+      data.run.codeFixTaskType,
     );
 
-    return CodeFixTaskTypeHelper.opensNewPullRequest(taskType)
-      ? null
-      : taskType;
+    if (!CodeFixTaskTypeHelper.opensNewPullRequest(taskType)) {
+      return true;
+    }
+
+    if (
+      !CodeFixTaskTypeHelper.isCodeRequest(taskType) ||
+      data.run.codeRepositoryId?.toString() !== data.codeRepositoryId.toString()
+    ) {
+      return false;
+    }
+
+    const task: AIRun | null = await CodeTaskThread.findTask({
+      projectId: data.run.projectId,
+      taskId: data.run.codeTaskId || data.run.id!,
+      select: { _id: true, codeRepositoryId: true, codeTaskId: true },
+    });
+
+    if (!task) {
+      return false;
+    }
+
+    return Boolean(
+      await CodeTaskThread.findWorkingPullRequest({
+        projectId: data.run.projectId,
+        task: task,
+      }),
+    );
+  }
+
+  /*
+   * A run that is handed a token for a repository works in it: a recipe
+   * that finds its repository as it goes (an exception fix, a fix from an
+   * investigation) is linked to it here, so it appears on that repository's
+   * page in Code even if it never opens a pull request. Only a run with no
+   * repository yet is linked.
+   */
+  private static async linkRunToRepository(data: {
+    run: AIRun | null;
+    codeRepositoryId: ObjectID;
+  }): Promise<void> {
+    if (!data.run || data.run.codeRepositoryId || !data.run.id) {
+      return;
+    }
+
+    try {
+      await AIRunService.updateOneBy({
+        query: {
+          _id: data.run.id.toString(),
+          codeRepositoryId: QueryHelper.isNull(),
+        },
+        data: { codeRepositoryId: data.codeRepositoryId } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      // A display link: never fail the token over it.
+      logger.error(
+        `Could not link run ${data.run.id.toString()} to repository ${data.codeRepositoryId.toString()}: ${error}`,
+      );
+    }
   }
 
   private initRoutes(): void {
@@ -157,16 +245,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
-          if (!aiAgent || !aiAgent.id) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+          if (!aiAgent) {
+            return;
           }
 
           if (!data["taskId"]) {
@@ -254,16 +342,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           // Get exception ID
@@ -389,16 +477,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           if (!data["exceptionId"]) {
@@ -565,16 +653,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           if (!data["taskId"]) {
@@ -802,19 +890,12 @@ export default class AIAgentDataAPI {
              * shaped so extractCandidatePathsFromStackTrace parses it.
              * Without code attributes this degrades to the name-match /
              * only-repository fallbacks, exactly like the subject recipes.
+             * The run was queued on the repository the same facts resolved
+             * to then (CodeFixRunRepository), read with the same helper.
              */
-            const codeLocations: Array<PerformanceCodeLocation> =
-              taskContext.codeLocations || [];
-            const syntheticStackTrace: string | null =
-              codeLocations.length > 0
-                ? codeLocations
-                    .map((location: PerformanceCodeLocation): string => {
-                      return `    at ${
-                        location.functionName ? `${location.functionName} ` : ""
-                      }(${location.filePath}:${location.lineNumber ?? 1})`;
-                    })
-                    .join("\n")
-                : null;
+            const syntheticStackTrace: string | null = getPerformanceStackTrace(
+              taskContext.codeLocations,
+            );
 
             const serviceName: string | null = taskContext.serviceName || null;
 
@@ -959,12 +1040,7 @@ export default class AIAgentDataAPI {
             }
 
             subjectTitle = incident.title || "Untitled incident";
-            serviceName =
-              (incident.monitors || [])
-                .map((monitor: { name?: string | undefined }) => {
-                  return monitor.name || "";
-                })
-                .filter(Boolean)[0] || null;
+            serviceName = getFirstMonitorName(incident.monitors);
 
             if (taskType !== CodeFixTaskType.FixFromIncident) {
               analysisMarkdown = await PostedRootCause.getForIncident(
@@ -1122,16 +1198,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           // Get code repository ID
@@ -1159,6 +1235,7 @@ export default class AIAgentDataAPI {
                 repositoryName: true,
                 gitHubAppInstallationId: true,
                 maxOpenFixPullRequests: true,
+                runnerId: true,
               },
               props: {
                 isRoot: true,
@@ -1181,6 +1258,26 @@ export default class AIAgentDataAPI {
               req,
               res,
               new BadDataException("Code repository not found"),
+            );
+          }
+
+          /*
+           * Only the worker the repository picks works in it (its Runner
+           * setting in Code, Types/Runner/CodeRepositoryRunner): the Runner
+           * it picked, or - for one that picks none - a global Runner while
+           * its project uses them. The token is the only way into the
+           * repository, so this holds whatever handed the worker its run.
+           */
+          if (
+            !(await CodeRepositoryRunnerChoice.mayWorkInRepository({
+              worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+              repository: codeRepository,
+            }))
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL),
             );
           }
 
@@ -1252,19 +1349,54 @@ export default class AIAgentDataAPI {
            *
            * The exemption is derived from the RUN, never from the request: a
            * caller cannot ask to skip the cap, it can only name a task, and
-           * the task must be in the agent's own project.
+           * the task must be in the agent's own project. A request from Code
+           * whose task already has an open pull request here pushes to it,
+           * so it is exempt too (isCapExempt).
            */
-          const capExemptTaskType: CodeFixTaskType | null =
-            await AIAgentDataAPI.getCapExemptTaskType({
-              aiAgent,
-              taskId: data["taskId"] as string | undefined,
-              projectId: codeRepository.projectId,
-            });
+          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
+            aiAgent,
+            taskId: data["taskId"] as string | undefined,
+            projectId: codeRepository.projectId,
+          });
 
-          const openPrCap: OpenPullRequestCapDecision = capExemptTaskType
+          /*
+           * A request from Code was asked in one repository, and works in
+           * that one only: its run names it, so a token for any other is
+           * refused, whichever repository of the project the worker names.
+           */
+          if (
+            tokenRun &&
+            CodeFixTaskTypeHelper.isCodeRequest(tokenRun.codeFixTaskType) &&
+            tokenRun.codeRepositoryId?.toString() !==
+              codeRepositoryId.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task was asked in another repository, and works only there.",
+              ),
+            );
+          }
+
+          /*
+           * Linked before the cap answers, so a run the cap stops still
+           * shows on its repository's page, with the cap's reason.
+           */
+          await AIAgentDataAPI.linkRunToRepository({
+            run: tokenRun,
+            codeRepositoryId: codeRepositoryId,
+          });
+
+          const isCapExempt: boolean = await AIAgentDataAPI.isCapExempt({
+            run: tokenRun,
+            codeRepositoryId: codeRepositoryId,
+          });
+
+          const openPrCap: OpenPullRequestCapDecision = isCapExempt
             ? {
                 allowed: true,
-                limit: 0,
+                limit: null,
                 paused: false,
                 openCount: 0,
               }
@@ -1322,7 +1454,12 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Record a pull request created by the AI Agent
+    /*
+     * Record a pull request the worker has opened. Idempotent: a worker
+     * retries a record whose answer it did not get, and a pull request the run
+     * already recorded answers with its existing row (see
+     * CodeFixPullRequestRecord).
+     */
     this.router.post(
       "/ai-agent-data/record-pull-request",
       async (
@@ -1333,16 +1470,16 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate agent credentials (AIAgent fleet or a Runner)
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           // Validate required fields
@@ -1354,71 +1491,19 @@ export default class AIAgentDataAPI {
             );
           }
 
-          if (!data["codeRepositoryId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("codeRepositoryId is required"),
-            );
-          }
+          let fields: OpenedPullRequestFields;
 
-          if (!data["pullRequestUrl"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("pullRequestUrl is required"),
-            );
-          }
+          try {
+            fields = CodeFixPullRequestRecord.readFields(data);
+          } catch (error) {
+            if (error instanceof BadDataException) {
+              return Response.sendErrorResponse(req, res, error);
+            }
 
-          if (!data["title"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("title is required"),
-            );
+            throw error;
           }
 
           const taskId: ObjectID = new ObjectID(data["taskId"] as string);
-          const codeRepositoryId: ObjectID = new ObjectID(
-            data["codeRepositoryId"] as string,
-          );
-          const pullRequestUrl: string = data["pullRequestUrl"] as string;
-          const pullRequestNumber: number | undefined = data[
-            "pullRequestNumber"
-          ] as number | undefined;
-          const pullRequestId: number | undefined = data["pullRequestId"] as
-            | number
-            | undefined;
-          const title: string = data["title"] as string;
-          const description: string | undefined = data["description"] as
-            | string
-            | undefined;
-          const headRefName: string | undefined = data["headRefName"] as
-            | string
-            | undefined;
-          const baseRefName: string | undefined = data["baseRefName"] as
-            | string
-            | undefined;
-
-          /*
-           * Runner-side build/test verification outcome (pre-PR, distinct
-           * from the ciStatus the sync worker fills post-PR). Unknown
-           * values are dropped rather than stored — the column is a typed
-           * enum and the Runner may be older or newer than this server.
-           */
-          const rawVerificationStatus: string | undefined = data[
-            "runnerVerificationStatus"
-          ] as string | undefined;
-          const runnerVerificationStatus: FixVerificationStatus | undefined =
-            rawVerificationStatus &&
-            Object.values(FixVerificationStatus).includes(
-              rawVerificationStatus as FixVerificationStatus,
-            )
-              ? (rawVerificationStatus as FixVerificationStatus)
-              : undefined;
-          const runnerVerificationSummary: string | undefined = data[
-            "runnerVerificationSummary"
-          ] as string | undefined;
 
           /*
            * `taskId` carries the AIRun id of the code-fix run — get the run
@@ -1437,6 +1522,7 @@ export default class AIAgentDataAPI {
 
           if (
             !run ||
+            !run.projectId ||
             CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
           ) {
             return Response.sendErrorResponse(
@@ -1446,32 +1532,15 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get code repository for organization and repo name
-          const codeRepository: CodeRepository | null =
-            await CodeRepositoryService.findOneById({
-              id: codeRepositoryId,
-              select: {
-                _id: true,
-                projectId: true,
-                organizationName: true,
-                repositoryName: true,
-              },
-              props: {
-                isRoot: true,
-              },
+          const recordedPullRequest: RecordedPullRequest | null =
+            await CodeFixPullRequestRecord.record({
+              aiRunId: taskId,
+              projectId: run.projectId,
+              aiAgent: aiAgent,
+              fields: fields,
             });
 
-          /*
-           * The recorded repository must exist AND belong to the run's
-           * project. The pull-request row is what the open-PR cap counts, so
-           * a foreign repository id would let one project's records skew
-           * another's guardrail — and a nonexistent one would fail on the
-           * codeRepositoryId foreign key as an opaque 500.
-           */
-          if (
-            !codeRepository ||
-            codeRepository.projectId?.toString() !== run.projectId?.toString()
-          ) {
+          if (!recordedPullRequest) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1479,107 +1548,16 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Create the pull request record
-          const pullRequest: AIAgentTaskPullRequest =
-            new AIAgentTaskPullRequest();
-
-          if (run.projectId) {
-            pullRequest.projectId = run.projectId;
-          }
-
-          pullRequest.aiRunId = taskId;
-
-          /*
-           * aiAgentId is a real foreign key into the AIAgent table, so it can
-           * only carry an AIAgent identity. A Runner leaves it null — the
-           * same "no AIAgent behind it" case chat-authored pull requests
-           * already use, and every consumer tolerates.
-           */
-          if (aiAgent.source === CodeFixAgentSource.AIAgent) {
-            pullRequest.aiAgentId = aiAgent.id!;
-          }
-          pullRequest.codeRepositoryId = codeRepositoryId;
-          pullRequest.pullRequestUrl = URL.fromString(pullRequestUrl);
-
-          if (pullRequestNumber !== undefined) {
-            pullRequest.pullRequestNumber = pullRequestNumber;
-          }
-
-          if (pullRequestId !== undefined) {
-            pullRequest.pullRequestId = pullRequestId;
-          }
-
-          // The column is ShortText — DatabaseService rejects over 100 chars.
-          pullRequest.title = title.substring(0, 100);
-
-          if (description) {
-            /*
-             * The column is LongText, which DatabaseService validates at 500
-             * characters — truncate, never reject the whole recording.
-             */
-            pullRequest.description = description.substring(0, 500);
-          }
-
-          pullRequest.pullRequestState = PullRequestState.Open;
-
-          if (headRefName) {
-            pullRequest.headRefName = headRefName;
-          }
-
-          if (baseRefName) {
-            pullRequest.baseRefName = baseRefName;
-          }
-
-          if (codeRepository?.organizationName) {
-            pullRequest.repoOrganizationName = codeRepository.organizationName;
-          }
-
-          if (codeRepository?.repositoryName) {
-            pullRequest.repoName = codeRepository.repositoryName;
-          }
-
-          if (runnerVerificationStatus) {
-            pullRequest.runnerVerificationStatus = runnerVerificationStatus;
-          }
-
-          if (runnerVerificationSummary) {
-            // The column is varchar(500) — truncate, never reject.
-            pullRequest.runnerVerificationSummary =
-              runnerVerificationSummary.substring(0, 500);
-          }
-
-          const createdPullRequest: AIAgentTaskPullRequest =
-            await AIAgentTaskPullRequestService.create({
-              data: pullRequest,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          /*
-           * The pull request is the run's headline action — record it on
-           * the run's glass-box trail so the activity feed shows it.
-           */
-          if (run.projectId) {
-            await AIRunEventService.appendEventToRun({
-              projectId: run.projectId,
-              aiRunId: taskId,
-              eventType: AIRunEventType.ActionExecuted,
-              toolName: "open_pull_request",
-              resultSummary: {
-                message: `Opened pull request: ${title} — ${pullRequestUrl}`,
-              },
-            });
-          }
-
           logger.debug(
-            `Recorded pull request ${pullRequestUrl} for run ${taskId.toString()}`,
+            recordedPullRequest.created
+              ? `Recorded pull request ${fields.pullRequestUrl} for run ${taskId.toString()}`
+              : `Pull request ${fields.pullRequestUrl} was already recorded for run ${taskId.toString()}`,
             getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
-            pullRequestId: createdPullRequest._id?.toString(),
+            pullRequestId: recordedPullRequest.pullRequest._id?.toString(),
           });
         } catch (err) {
           next(err);

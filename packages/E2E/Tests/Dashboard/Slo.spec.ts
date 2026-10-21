@@ -2,6 +2,7 @@ import { BASE_URL } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -11,13 +12,13 @@ import { JSONish, listItems } from "./Helpers/MonitorAlerting";
 
 /*
  * SLOs (Service Level Objectives) end-to-end coverage for the dashboard
- * product area: products menu -> list -> four-step create wizard -> overview
+ * product area: products menu -> list -> one-page create form -> overview
  * -> attach a monitor -> burn rate rules, alerts and metrics -> edit the
  * details card -> save a Settings card -> monitor rules lock hand edits ->
  * archive and unarchive -> delete.
  *
  * One project and one monitor are created up front (serial mode + shared
- * page). The create wizard no longer asks for monitors, so the monitor is
+ * page). The create form does not ask for monitors, so the monitor is
  * attached afterwards on the SLO's own Monitors page — the flow a real user
  * follows. Each step is its own test so a failure points at exactly one
  * interaction instead of failing an opaque mega-test; serial mode means the
@@ -69,14 +70,6 @@ const sloStatusRegex: RegExp =
 // The empty state SloHistoryCharts renders when no SloHistory rows exist in range.
 const noChartHistoryText: string = "No history in this range";
 
-// The create wizard's steps, in order (SLO_FORM_STEPS).
-const SLO_CREATE_STEPS: Array<string> = [
-  "Basic Info",
-  "Objective",
-  "Period",
-  "Labels",
-];
-
 // The SLO view side menu (Pages/Slo/View/SideMenu.tsx), in order.
 const SLO_VIEW_TABS: Array<string> = [
   "Overview",
@@ -91,6 +84,77 @@ const SLO_VIEW_TABS: Array<string> = [
   "Settings",
   "Audit Logs",
   "Delete SLO",
+];
+
+/*
+ * A side-menu section's toggle, by its heading's text (the heading is drawn
+ * in capitals by CSS). Rarely used sections start folded away in every menu:
+ * Advanced on the SLO list (it holds Archived), and Configuration, Rules and
+ * Management on an SLO's own page. Their rows are hidden, so getByRole does
+ * not find them until the section is opened.
+ */
+type SectionLocatorFunction = (page: Page, title: string) => Locator;
+
+const sideMenuSectionToggle: SectionLocatorFunction = (
+  page: Page,
+  title: string,
+): Locator => {
+  return page
+    .getByRole("navigation", { name: "Main navigation" })
+    .locator(`xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`);
+};
+
+type MenuLocatorFunction = (page: Page) => Locator;
+
+const sideMenuAdvancedToggle: MenuLocatorFunction = (page: Page): Locator => {
+  return sideMenuSectionToggle(page, "Advanced");
+};
+
+/*
+ * The SLO list card's own Create button. The list is empty on a new project,
+ * and again once this spec archives or deletes its only SLO, and an empty
+ * list offers the same button again under its "No SLOs yet" message.
+ */
+type CreateSloButtonFunction = (page: Page) => Locator;
+
+const createSloButton: CreateSloButtonFunction = (page: Page): Locator => {
+  return getCardButton(page, "Create Service Level Objective");
+};
+
+type OpenSideMenuSectionFunction = (page: Page, title: string) => Promise<void>;
+
+const openSideMenuSection: OpenSideMenuSectionFunction = async (
+  page: Page,
+  title: string,
+): Promise<void> => {
+  const toggle: Locator = sideMenuSectionToggle(page, title);
+
+  await expect(toggle).toBeVisible({ timeout: 30000 });
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+};
+
+type OpenSideMenuAdvancedFunction = (page: Page) => Promise<void>;
+
+const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
+  page: Page,
+): Promise<void> => {
+  await openSideMenuSection(page, "Advanced");
+};
+
+/*
+ * The SLO view menu's sections that start folded on its overview: its
+ * monitors (Configuration), its Monitor Rules and Burn Rate Rules (Rules), and
+ * its owners, settings and the rest (Management).
+ */
+const SLO_VIEW_FOLDED_SECTIONS: Array<string> = [
+  "Configuration",
+  "Rules",
+  "Management",
 ];
 
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
@@ -243,9 +307,7 @@ test.describe("SLOs", () => {
     });
 
     // The list page renders its ModelTable card and the create action.
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
     await expect(
       page.getByText("Reliability targets measured from monitor uptime", {
         exact: false,
@@ -254,22 +316,30 @@ test.describe("SLOs", () => {
 
     /*
      * Archived SLOs are filtered out of the list, so the side menu's Archived
-     * entry is the only way back to one short of its URL.
+     * entry is the only way back to one short of its URL. It waits in the
+     * Advanced section, folded away until that is opened.
      */
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation" })
-        .getByRole("link", { name: "Archived", exact: true }),
-    ).toBeVisible({ timeout: 30000 });
+    const archivedLink: Locator = page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Archived", exact: true });
+    const advancedToggle: Locator = sideMenuAdvancedToggle(page);
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "false", {
+      timeout: 30000,
+    });
+    await expect(archivedLink).toBeHidden();
+
+    await advancedToggle.click();
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
-  test("should create an SLO through the four-step wizard and land on its overview", async () => {
+  test("should create an SLO from one short form and land on its overview", async () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: "Create Service Level Objective",
-    });
+    const createButton: Locator = createSloButton(page);
 
     await gotoProjectPage({
       page,
@@ -293,80 +363,91 @@ test.describe("SLOs", () => {
     const submitButton: Locator = page.getByTestId(
       "modal-footer-submit-button",
     );
-    const currentStep: Locator = form.locator('[aria-current="step"]');
 
     /*
-     * Exactly four steps, in this order. There is no Monitors step any more:
-     * monitors are attached on the SLO's Monitors page or by a monitor rule,
-     * and how downtime is counted lives on Settings with server defaults.
+     * One page of three rows: the name, the target and the folded More
+     * fields section. There is no step list and no Next - the target was the only
+     * thing without a default, and it comes prefilled - so the one button
+     * creates. No Monitors field either: monitors are attached on the SLO's
+     * Monitors page or by a monitor rule.
      */
-    await expect
-      .poll(
-        async (): Promise<Array<string>> => {
-          return readStepRail(form);
-        },
-        { timeout: 30000 },
-      )
-      .toEqual(SLO_CREATE_STEPS);
-
-    // Step 1 - Basic Info: name and description only.
-    await expect(currentStep).toContainText("Basic Info");
-    await expect(form.getByLabel("Name")).toBeVisible();
-    await expect(form.getByLabel("Target (%)")).toHaveCount(0);
+    await expect(form.getByLabel("Name", { exact: true })).toBeVisible();
+    await expect(form.locator('nav[aria-label="Progress"]')).toHaveCount(0);
+    await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await expect(submitButton).toContainText("Create Service Level Objective");
+    // The suggested target, there to see and change.
+    await expect(form.getByLabel("Target (%)")).toHaveValue("99.9");
     await expect(
       form.getByRole("combobox", { name: /^Monitors\b/ }),
     ).toHaveCount(0);
 
-    await form.getByLabel("Name").fill(ctx.sloName);
-    await form.getByLabel("Description").fill(ctx.sloDescription);
-    await expect(submitButton).toContainText("Next");
-    await submitButton.click();
+    /*
+     * More fields is folded, names what it holds, and says what its
+     * defaults do instead of hiding them: the window the target is measured
+     * over, and when it warns.
+     */
+    const advancedHeader: Locator = form.getByRole("button", {
+      name: "More fields",
+      exact: true,
+    });
+    const labelsInput: Locator = form.getByRole("combobox", {
+      name: "Labels (Optional)",
+      exact: true,
+    });
+    /*
+     * An optional field's label ends in "(Optional)", so the description is
+     * named in full, as the labels are: "Description" alone, exact, matches
+     * nothing.
+     */
+    const descriptionInput: Locator = form.getByRole("textbox", {
+      name: "Description (Optional)",
+      exact: true,
+    });
+    const atRiskInput: Locator = form.getByLabel("At-Risk Threshold (%)");
+    await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
+    await expect(form.getByTestId("collapsible-section-summary")).toHaveText(
+      "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.",
+    );
+    // What is inside, by name, on the folded header.
+    await expect(form.getByTestId("folded-section-contents")).toContainText(
+      "Description",
+    );
+    await expect(labelsInput).toBeHidden();
+    await expect(descriptionInput).toBeHidden();
+    await expect(atRiskInput).toBeHidden();
+
+    await form.getByLabel("Name", { exact: true }).fill(ctx.sloName);
 
     /*
-     * Step 2 - Objective: the target and the at-risk threshold that only
-     * means something next to it. The window moved to its own step, so its
-     * absence here catches a field assigned to the wrong step.
+     * Opened, it holds the description, the at-risk threshold, the window
+     * and the labels, at the column defaults. Timezone only belongs to a
+     * calendar-month window, so a rolling window hides it.
      */
-    await expect(currentStep).toContainText("Objective");
-    await expect(form.getByLabel("Target (%)")).toBeVisible();
-    await expect(form.getByLabel("Window (Days)")).toHaveCount(0);
-    // Seeded from SLO_CREATE_INITIAL_VALUES, the column's own default.
-    await expect(form.getByLabel("At-Risk Threshold (%)")).toHaveValue("20");
-    await form.getByLabel("Target (%)").fill("99.9");
-    await submitButton.click();
-
-    /*
-     * Step 3 - Period: window type and its conditional fields. Timezone only
-     * belongs to a calendar-month window, so a rolling window hides it.
-     */
-    await expect(currentStep).toContainText("Period");
+    await advancedHeader.click();
+    await expect(advancedHeader).toHaveAttribute("aria-expanded", "true");
+    await expect(labelsInput).toBeVisible();
+    await expect(atRiskInput).toHaveValue("20");
+    // Window Type is two plain choices, Rolling picked.
     await expect(
-      form.getByRole("combobox", { name: /^Window Type\b/ }),
-    ).toBeVisible();
+      form
+        .getByTestId("slo-window-type")
+        .getByRole("radio", { name: "Rolling", exact: true }),
+    ).toBeChecked();
     await expect(
       form.getByRole("combobox", { name: /^Timezone\b/ }),
     ).toHaveCount(0);
 
     /*
-     * Window (Days) is a free number field (the column accepts 1-366), and
-     * it is prefilled with the default of 30 — set it explicitly anyway so
-     * the assertions below are not asserting a default that could quietly
-     * change.
+     * Window (Days) is a free number field (the column accepts 1-366),
+     * prefilled with the default of 30. The overview's window chip below
+     * checks what was saved.
      */
-    const windowDaysInput: Locator = form.getByLabel("Window (Days)");
-    await expect(windowDaysInput).toHaveValue("30");
-    await windowDaysInput.fill("30");
-    await submitButton.click();
-
-    // Step 4 - Labels is the optional final step, so its button performs the create.
-    await expect(currentStep).toContainText("Labels");
-    await expect(
-      form.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
-    ).toBeVisible();
+    await expect(form.getByLabel("Window (Days)")).toHaveValue("30");
+    await descriptionInput.fill(ctx.sloDescription);
 
     /*
-     * The questions the wizard deliberately stopped asking. None of them may
-     * come back on any step: each has a server default and a Settings card.
+     * The questions the form deliberately does not ask. None of them may
+     * come back: each has a server default and a Settings card.
      */
     await expect(modal.getByText("Multi Monitor Mode")).toHaveCount(0);
     await expect(modal.getByText("Downtime Monitor Statuses")).toHaveCount(0);
@@ -374,7 +455,6 @@ test.describe("SLOs", () => {
       0,
     );
 
-    await expect(submitButton).toContainText("Create Service Level Objective");
     await submitButton.click();
     await modal.waitFor({ state: "hidden", timeout: 90000 });
 
@@ -452,9 +532,7 @@ test.describe("SLOs", () => {
       page,
       projectId: ctx.projectId,
       url: projectUrl({ projectId: ctx.projectId, path: "/slos" }),
-      ready: page.getByRole("button", {
-        name: "Create Service Level Objective",
-      }),
+      ready: createSloButton(page),
     });
 
     /*
@@ -511,6 +589,49 @@ test.describe("SLOs", () => {
     const sideMenu: Locator = page.getByRole("navigation", {
       name: "Main navigation",
     });
+
+    /*
+     * Configuration, Rules and Management are folded down to their titles on
+     * the overview, like every rarely used section: their pages are hidden
+     * until the section is opened.
+     */
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await expect(sideMenuSectionToggle(page, section)).toHaveAttribute(
+        "aria-expanded",
+        "false",
+        { timeout: 30000 },
+      );
+    }
+    const burnRateRulesRow: Locator = sideMenu.locator(
+      "a[href$='/burn-rate-rules']",
+    );
+    await expect(burnRateRulesRow).toHaveCount(1);
+    await expect(burnRateRulesRow).toBeHidden();
+    const monitorRulesRow: Locator = sideMenu.locator(
+      "a[href$='/monitor-rules']",
+    );
+    await expect(monitorRulesRow).toHaveCount(1);
+    await expect(monitorRulesRow).toBeHidden();
+
+    /*
+     * Both rules pages sit in the Rules section: the element its toggle
+     * shows and hides holds them.
+     */
+    const rulesBodyId: string | null = await sideMenuSectionToggle(
+      page,
+      "Rules",
+    ).getAttribute("aria-controls");
+    expect(rulesBodyId).toBeTruthy();
+    const rulesBody: Locator = page.locator(`[id="${rulesBodyId}"]`);
+    await expect(rulesBody.locator("a[href$='/monitor-rules']")).toHaveCount(1);
+    await expect(rulesBody.locator("a[href$='/burn-rate-rules']")).toHaveCount(
+      1,
+    );
+
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await openSideMenuSection(page, section);
+    }
+
     for (const tabName of SLO_VIEW_TABS) {
       await expect(sideMenu.getByRole("link", { name: tabName })).toBeVisible({
         timeout: 30000,
@@ -531,10 +652,11 @@ test.describe("SLOs", () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const addMonitorsButton: Locator = page.getByRole("button", {
-      name: "Add Monitors",
-      exact: true,
-    });
+    /*
+     * The Monitors card's own button: with nothing attached the list is
+     * empty, and offers the same button again under its message.
+     */
+    const addMonitorsButton: Locator = getCardButton(page, "Add Monitors");
 
     await gotoProjectPage({
       page,
@@ -547,9 +669,14 @@ test.describe("SLOs", () => {
      * Nothing attached and no monitor rule yet: the empty state says how to
      * attach monitors, and the "managed by rules" notice is absent.
      */
+    /*
+     * The page's two sentences are the empty state's title and its
+     * description, two lines apart.
+     */
     await expect(
-      page.getByText("No monitors attached. Add monitors by hand").first(),
+      page.getByText("No monitors attached", { exact: true }).first(),
     ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText("Add monitors by hand").first()).toBeVisible();
     await expect(page.getByTestId("slo-monitors-managed-by-rules")).toHaveCount(
       0,
     );
@@ -643,9 +770,16 @@ test.describe("SLOs", () => {
       page.getByRole("list", { name: "Monitors measured by this SLO" }),
     ).toHaveCount(0);
 
+    /*
+     * The monitors and settings live in the side menu instead, under
+     * Configuration and Management, which start folded on the overview.
+     */
     const sideMenu: Locator = page.getByRole("navigation", {
       name: "Main navigation",
     });
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await openSideMenuSection(page, section);
+    }
     for (const tabName of ["Monitors", "Settings"]) {
       await expect(sideMenu.getByRole("link", { name: tabName })).toBeVisible();
     }
@@ -715,11 +849,15 @@ test.describe("SLOs", () => {
      * project's whole alert list — which is exactly what a broken query would
      * show.
      */
+    /*
+     * The card's title, exactly: the empty state's own heading ("This SLO
+     * has not raised any alerts") has the word in it too.
+     */
     await gotoProjectPage({
       page,
       projectId: ctx.projectId,
       url: sloUrl("/alerts"),
-      ready: page.getByRole("heading", { name: "Alerts" }),
+      ready: page.getByRole("heading", { name: "Alerts", exact: true }),
     });
 
     await expect(
@@ -835,12 +973,18 @@ test.describe("SLOs", () => {
 
     /*
      * The details card is trimmed to what describes the SLO: name,
-     * description and labels. What it measures is edited on Settings, so the
-     * objective and period fields must not be offered here.
+     * description and labels (folded under More fields, as on the
+     * create form). What it measures is edited on Settings, so the objective and
+     * period fields must not be offered here.
      */
-    await expect(
-      modal.getByRole("combobox", { name: /^Labels\b/ }),
-    ).toBeVisible();
+    const labelsInput: Locator = modal.getByRole("combobox", {
+      name: /^Labels\b/,
+    });
+    await expect(labelsInput).toBeHidden();
+    await modal
+      .getByRole("button", { name: "More fields", exact: true })
+      .click();
+    await expect(labelsInput).toBeVisible();
     await expect(modal.getByLabel("Target (%)")).toHaveCount(0);
     await expect(modal.getByLabel("Window (Days)")).toHaveCount(0);
 
@@ -879,8 +1023,8 @@ test.describe("SLOs", () => {
 
     /*
      * Settings owns how the SLO measures, including the downtime rules the
-     * create wizard no longer asks about. A new SLO carries the server
-     * default for them.
+     * create form does not ask about. A new SLO carries the server default
+     * for them.
      */
     for (const cardTitle of [
       "Objective",
@@ -943,9 +1087,14 @@ test.describe("SLOs", () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const createRuleButton: Locator = page.getByRole("button", {
-      name: "Create SLO Monitor Rule",
-    });
+    /*
+     * The Monitor Rules card's own Create button: the SLO has no rule yet,
+     * and an empty list offers the same button again under its message.
+     */
+    const createRuleButton: Locator = getCardButton(
+      page,
+      "Create SLO Monitor Rule",
+    );
 
     await gotoProjectPage({
       page,
@@ -982,16 +1131,19 @@ test.describe("SLOs", () => {
       )
       .toEqual(["Basic Info", "Match Criteria"]);
 
-    // Step 1 - Basic Info. A rule is enabled by default.
+    /*
+     * Step 1 - Basic Info. A rule starts enabled, so the create form does not
+     * ask: the Enabled switch is on the rule's edit form only. The row below
+     * says Enabled once it is saved.
+     */
     await expect(currentStep).toContainText("Basic Info");
     await form
       .getByPlaceholder("Every production API monitor")
       .fill(ctx.monitorRuleName);
-    await expect(form.getByRole("switch")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    await submitButton.click();
+    await expect(form.getByRole("switch")).toHaveCount(0);
+    // Create SLO Monitor Rule is on the last step only: a plain Next here.
+    await expect(submitButton).toHaveCount(0);
+    await page.getByTestId("modal-footer-next-button").click();
 
     /*
      * Step 2 - Match Criteria. The rule model's legacy label / name /
@@ -1017,19 +1169,18 @@ test.describe("SLOs", () => {
       .click({ timeout: 30000 });
 
     /*
-     * The option is labelled "Monitor Name", but it still stores into the
-     * monitorNamePattern column, so it defaults to "Matches pattern" (regex
-     * or * wildcard).
+     * A new text condition starts on "Contains" - patterns are one operator
+     * away - and stores into the monitorNamePattern column all the same.
      */
     const conditionRow: Locator = form.getByTestId("rule-criteria-row-0");
-    await expect(conditionRow).toContainText("Matches pattern", {
+    await expect(conditionRow).toContainText("Contains", {
       timeout: 30000,
     });
 
     /*
-     * The monitor's run-unique name is a valid literal regex, so the rule
-     * matches exactly the monitor already attached by hand. That monitor is
-     * never adopted by the rule: it stays Manual.
+     * The monitor's name is unique to this run, so containing it matches
+     * exactly the monitor already attached by hand. That monitor is never
+     * adopted by the rule: it stays Manual.
      */
     await form
       .getByRole("textbox", { name: "Value for condition 1" })
@@ -1051,10 +1202,7 @@ test.describe("SLOs", () => {
      * the same write; the disabled button only keeps the page from offering
      * it.
      */
-    const addMonitorsButton: Locator = page.getByRole("button", {
-      name: "Add Monitors",
-      exact: true,
-    });
+    const addMonitorsButton: Locator = getCardButton(page, "Add Monitors");
 
     await gotoProjectPage({
       page,
@@ -1114,9 +1262,7 @@ test.describe("SLOs", () => {
     await page.waitForURL(new RegExp(`/dashboard/${ctx.projectId}/slos/?$`), {
       timeout: 60000,
     });
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
 
     /*
      * Wait for the table's empty state before asserting the row is gone, so a
@@ -1135,7 +1281,11 @@ test.describe("SLOs", () => {
       "the server stamps archivedAt on archive",
     ).toBeTruthy();
 
-    // The Archived page, reached through the list's side menu, lists it.
+    /*
+     * The Archived page, reached through the list's side menu, lists it. Its
+     * entry waits in the menu's Advanced section, folded away until opened.
+     */
+    await openSideMenuAdvanced(page);
     await page
       .getByRole("navigation", { name: "Main navigation" })
       .getByRole("link", { name: "Archived", exact: true })
@@ -1197,9 +1347,7 @@ test.describe("SLOs", () => {
       page,
       projectId: ctx.projectId,
       url: projectUrl({ projectId: ctx.projectId, path: "/slos" }),
-      ready: page.getByRole("button", {
-        name: "Create Service Level Objective",
-      }),
+      ready: createSloButton(page),
     });
     await expect(
       page.getByRole("row").filter({ hasText: ctx.sloName }),
@@ -1232,9 +1380,7 @@ test.describe("SLOs", () => {
     await page.waitForURL(new RegExp(`/dashboard/${ctx.projectId}/slos/?$`), {
       timeout: 60000,
     });
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
 
     /*
      * Wait for the table to render its empty state before asserting the row is

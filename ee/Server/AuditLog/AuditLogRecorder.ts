@@ -15,6 +15,7 @@ import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import ColumnValueChange from "Common/Server/Utils/Database/ColumnValueChange";
 import RelationValueUtil from "Common/Server/Utils/Database/RelationValueUtil";
 import logger from "Common/Server/Utils/Logger";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
@@ -311,6 +312,65 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     }
   }
 
+  /*
+   * A download of a record's file. Nothing changed, so there is no diff: the
+   * entry's fields are the columns the route read to say what was
+   * downloaded (a capture's interface, filter, probe, packets and size), and
+   * its actor is whoever downloaded it - eligible exactly as a change of the
+   * same record would be.
+   */
+  public async recordDownload<TModel extends BaseModel>(data: {
+    model: TModel;
+    downloadedItem: TModel;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    try {
+      const projectId: ObjectID | undefined = this.resolveProjectId(
+        data.model,
+        data.downloadedItem,
+        data.props,
+      );
+
+      if (!projectId) {
+        return;
+      }
+
+      const settings: CachedProjectSettings | null =
+        await this.getProjectSettings(projectId);
+
+      if (!this.isEligible(settings, data.props)) {
+        return;
+      }
+
+      const changes: JSONArray = this.buildSnapshotChanges({
+        model: data.model,
+        item: data.downloadedItem,
+        valueKey: "newValue",
+      });
+
+      await this.addRelationNames({
+        model: data.model,
+        changes,
+        projectId,
+      });
+
+      await this.insert({
+        projectId,
+        model: data.model,
+        item: data.downloadedItem,
+        resourceId: data.itemId,
+        action: AuditLogAction.Download,
+        changes,
+        props: data.props,
+        retentionInDays: settings!.retentionInDays,
+      });
+    } catch (err) {
+      logger.warn("AuditLog: failed to record download event");
+      logger.warn(err);
+    }
+  }
+
   private async insert<TModel extends BaseModel>(params: {
     projectId: ObjectID;
     model: TModel;
@@ -370,6 +430,41 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     }
     if (actor.userType) {
       auditLog.userType = actor.userType;
+    }
+
+    /*
+     * WHICH credential made the change. The columns have been on the model
+     * from the start, and the audit table has always shown `apiKeyName` -
+     * but nothing put a key's identity on the request, so every key's changes
+     * read alike ("API Key"), and a project with several keys could not tell
+     * whose change it was looking at. The middleware now carries the id and
+     * name through (ProjectMiddleware), and so does the MCP server for a
+     * client that signed in with OAuth (McpDelegationAuthorization): that
+     * entry names the member as its actor, and the client it came through.
+     */
+    if (params.props.apiKeyId) {
+      auditLog.apiKeyId = params.props.apiKeyId;
+    }
+    if (params.props.apiKeyName) {
+      auditLog.apiKeyName = params.props.apiKeyName;
+    }
+    if (params.props.mcpOAuthGrantId) {
+      auditLog.mcpOAuthGrantId = params.props.mcpOAuthGrantId;
+    }
+    if (params.props.mcpClientName) {
+      auditLog.mcpClientName = params.props.mcpClientName;
+    }
+
+    /*
+     * WHICH workflow made the change. A workflow step acts as no person
+     * (WorkflowPrincipal): the entry's actor is "Workflow", and these name
+     * which one it was.
+     */
+    if (params.props.workflowId) {
+      auditLog.workflowId = params.props.workflowId;
+    }
+    if (params.props.workflowName) {
+      auditLog.workflowName = params.props.workflowName;
     }
 
     auditLog.changes = params.changes;
@@ -728,45 +823,32 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return changes;
   }
 
+  /*
+   * Whether a field holds after the write what it held before, by the one
+   * rule DatabaseService decides whether a write changed a row at all
+   * (ColumnValueChange), so an entry names only the fields that really
+   * changed: a switch written back as it stood - false over false, or the
+   * text "false" over false - a time written as the same instant in another
+   * format, a number written as its text, JSON with its keys in another
+   * order, and a relation naming the same rows (whatever else the
+   * before-row's join or the payload carried with them) are all the same
+   * value. A field the write sends as undefined writes nothing.
+   */
   private areValuesEqual<TModel extends BaseModel>(data: {
     model: TModel;
     field: string;
     oldValue: unknown;
     newValue: unknown;
   }): boolean {
-    const a: unknown = data.oldValue;
-    const b: unknown = data.newValue;
+    // A field that is not a column has none: compared as of no known type.
+    const metadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.field);
 
-    if (a === b) {
-      return true;
-    }
-    if (a === null || a === undefined) {
-      return b === null || b === undefined;
-    }
-    if (b === null || b === undefined) {
-      return false;
-    }
-
-    /*
-     * A relation is the set of rows it references. Its JSON also carries
-     * whatever else happened to be loaded - the before-row's names, the
-     * payload's bare ids, the order the join returned - so an unchanged
-     * relation would otherwise read as changed.
-     */
-    if (this.getRelationMetadata(data.model, data.field)) {
-      const sameRelationIds: boolean | null =
-        RelationValueUtil.haveSameRelationIds(a, b);
-
-      if (sameRelationIds !== null) {
-        return sameRelationIds;
-      }
-    }
-
-    try {
-      return JSON.stringify(a) === JSON.stringify(b);
-    } catch {
-      return false;
-    }
+    return !ColumnValueChange.isChanged({
+      columnType: metadata?.type,
+      storedValue: data.oldValue,
+      writtenValue: data.newValue,
+    });
   }
 
   // The column's metadata when it is a relation (Entity / EntityArray), else null.

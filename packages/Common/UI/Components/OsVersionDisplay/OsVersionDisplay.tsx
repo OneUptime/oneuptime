@@ -1,6 +1,8 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   text: string;
@@ -115,6 +117,7 @@ export const getOsVersionPrimary: (raw: string) => string = (
 const OsVersionDisplay: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!props.text || props.text.trim() === "" || props.text === "-") {
@@ -152,7 +155,11 @@ const OsVersionDisplay: FunctionComponent<ComponentProps> = (
           >
             <Icon icon={IconProp.Info} className="h-3 w-3 text-indigo-500" />
             <span>
-              {kernelSummary ? `Kernel · ${kernelSummary}` : "Kernel details"}
+              {kernelSummary
+                ? translator.translateTemplate("Kernel · {{kernel}}", {
+                    kernel: kernelSummary,
+                  })
+                : translator.translateText("Kernel details")}
             </span>
             <svg
               className={`w-3 h-3 transition-transform duration-200 ${

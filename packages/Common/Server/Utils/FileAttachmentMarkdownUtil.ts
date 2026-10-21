@@ -5,23 +5,37 @@ import ObjectID from "../../Types/ObjectID";
 import FileService from "../Services/FileService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export interface FileAttachmentMarkdownInput {
   modelId: ObjectID;
+  /*
+   * The project the note is in. The download route reads it from the
+   * address (`${crudPath}/attachment/:projectId/:noteId/:fileId`) to check
+   * the reader's access, so a link without it was a 404.
+   */
+  projectId: ObjectID | undefined;
   attachmentIds: Array<ObjectID>;
-  attachmentApiPath: string;
+  /*
+   * The note model's download route ("/incident-internal-note/attachment"),
+   * or null for a note that has none: its files are listed by name.
+   */
+  attachmentApiPath: string | null;
 }
 
 export default class FileAttachmentMarkdownUtil {
   public static async buildAttachmentMarkdown(
     input: FileAttachmentMarkdownInput,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     if (
       !input.modelId ||
       !input.attachmentIds ||
       input.attachmentIds.length === 0
     ) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const uniqueIds: Array<string> = Array.from(
@@ -37,7 +51,7 @@ export default class FileAttachmentMarkdownUtil {
     );
 
     if (uniqueIds.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const files: Array<File> = await FileService.findBy({
@@ -56,7 +70,7 @@ export default class FileAttachmentMarkdownUtil {
     });
 
     if (!files.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const fileById: Map<string, File> = new Map(
@@ -69,7 +83,7 @@ export default class FileAttachmentMarkdownUtil {
         }),
     );
 
-    const attachmentLines: Array<string> = [];
+    const attachmentItems: Array<MarkdownText> = [];
 
     for (const id of input.attachmentIds) {
       const key: string = id.toString();
@@ -79,20 +93,39 @@ export default class FileAttachmentMarkdownUtil {
         continue;
       }
 
+      /*
+       * The file's name is whatever the uploader called it, placed inside
+       * the link's own text of a feed item that is posted to Slack and Teams
+       * too, as text (FeedMarkdown.link): a "]" cannot end the text early
+       * and point the link somewhere else, "![...](...)" is no image and
+       * "<!channel>" mentions nobody.
+       */
       const fileName: string = file.name || "Attachment";
 
+      // No route to download it from: its name, as text.
+      if (!input.attachmentApiPath || !input.projectId) {
+        attachmentItems.push(mdText`${fileName}`);
+        continue;
+      }
+
+      /*
+       * The route the note's API serves the file at - the one the Notes
+       * page's attachment chips use - opened by the viewer in a tab of its
+       * own.
+       */
       const route: Route = Route.fromString(AppApiRoute.toString())
         .addRoute(input.attachmentApiPath)
+        .addRoute(`/${input.projectId.toString()}`)
         .addRoute(`/${input.modelId.toString()}`)
         .addRoute(`/${key}`);
 
-      attachmentLines.push(`- [${fileName}](${route.toString()})`);
+      attachmentItems.push(FeedMarkdown.link(fileName, route.toString()));
     }
 
-    if (!attachmentLines.length) {
-      return "";
+    if (!attachmentItems.length) {
+      return FeedMarkdown.empty();
     }
 
-    return `\n\n**Attachments:**\n${attachmentLines.join("\n")}\n`;
+    return mdText`\n\n**Attachments:**\n${FeedMarkdown.bulletList(attachmentItems)}\n`;
   }
 }

@@ -1,5 +1,7 @@
 import React, { ReactElement, lazy, Suspense } from "react";
 import {
+  Navigate,
+  Params,
   Route,
   Routes,
   useLocation,
@@ -44,6 +46,36 @@ const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });
+const FormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Form");
+});
+const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/McpAuthorize");
+  },
+);
+const MarketplacePurchasePage: React.LazyExoticComponent<() => JSX.Element> =
+  lazy(() => {
+    return import("./Pages/MarketplacePurchase");
+  });
+
+/*
+ * Incident forms became forms (the Forms product), and kept their link keys,
+ * so a link shared before - /accounts/incident-form/<key> - is sent on to
+ * the same form's page. Replaced, not pushed: Back leaves the form rather
+ * than bouncing through the old address.
+ */
+export function LegacyIncidentFormRedirect(): ReactElement {
+  const params: Readonly<Params<string>> = useParams();
+  const shareKey: string = params["shareKey"] || "";
+
+  return (
+    <Navigate
+      replace={true}
+      to={`/accounts/form/${encodeURIComponent(shareKey)}`}
+    />
+  );
+}
 
 function App(): ReactElement {
   Navigation.setNavigateHook(useNavigate());
@@ -88,6 +120,38 @@ function App(): ReactElement {
             <Route
               path="/accounts/verify-email/:token"
               element={<VerifyEmail />}
+            />
+            {/*
+             * A public form, for anybody holding its link - signed in or not,
+             * and nothing on the page redirects either. One form only: the
+             * share key is a link identifier, not a single-use secret, so the
+             * SensitiveUrlToken bootstrap leaves it in the path (it is not
+             * one of its TOKEN_ROUTES) and there is no token-free form to
+             * land on.
+             */}
+            <Route path="/accounts/form/:shareKey" element={<FormPage />} />
+            <Route
+              path="/accounts/incident-form/:shareKey"
+              element={<LegacyIncidentFormRedirect />}
+            />
+            {/*
+             * The consent screen an MCP client sends its user to when it
+             * signs in with OAuth. It needs a session; a visitor without one
+             * is sent to sign in and brought back (see the page).
+             */}
+            <Route
+              path="/accounts/mcp-authorize"
+              element={<McpAuthorizePage />}
+            />
+            {/*
+             * Where a buyer from AWS, Microsoft or Google Cloud Marketplace
+             * chooses the project their purchase pays for. It needs a
+             * session; a visitor without one is sent to sign in and brought
+             * back (see the page).
+             */}
+            <Route
+              path="/accounts/marketplace"
+              element={<MarketplacePurchasePage />}
             />
             {/* 👇️ only match this when no other routes match */}
             <Route path="*" element={<NotFound />} />

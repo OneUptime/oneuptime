@@ -18,7 +18,6 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -48,8 +47,9 @@ import { useTranslation } from "react-i18next";
  *  - Team memberships: one row per (project, team). Removing a row removes them
  *    from that one team and leaves the rest alone.
  *
- * Adding is a single flow - pick a project, then a team of that project -
- * because a TeamMember cannot exist without both.
+ * Adding is one page - the project, then one of its teams under it - because
+ * a TeamMember cannot exist without both. The team starts on the project's
+ * members team as soon as the project is picked (ProjectScopedTeamsPicker).
  */
 const UserProjects: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -483,22 +483,11 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               modelType: TeamMember,
               modelAPI: AdminModelAPI,
               id: "add-user-to-project-form",
-              steps: [
-                {
-                  id: "project",
-                  title: t("pages.userProjects.stepProject"),
-                },
-                {
-                  id: "team",
-                  title: t("pages.userProjects.stepTeam"),
-                },
-              ] as Array<FormStep<TeamMember>>,
               fields: [
                 {
                   field: {
                     project: true,
                   },
-                  stepId: "project",
                   title: t("pages.userProjects.fieldProject"),
                   description: t("pages.userProjects.fieldProjectDescription"),
                   fieldType: FormFieldSchemaType.Dropdown,
@@ -514,14 +503,15 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   field: {
                     team: true,
                   },
-                  stepId: "team",
                   title: t("pages.userProjects.fieldTeam"),
                   description: t("pages.userProjects.fieldTeamDescription"),
                   /*
                    * A custom element rather than `fetchDropdownOptions`: the
-                   * teams to offer depend on the project chosen in the previous
-                   * step, and fetchDropdownOptions only re-runs when the form's
-                   * fields change, so it would fetch before a project exists.
+                   * teams to offer depend on the project picked above it, and
+                   * fetchDropdownOptions only re-runs when the form's fields
+                   * change, so it would fetch before a project exists. The
+                   * picker loads them as the project is picked, starting on
+                   * the project's members team.
                    */
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: true,
@@ -555,7 +545,6 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   field: {
                     hasAcceptedInvitation: true,
                   },
-                  stepId: "team",
                   title: t("pages.userProjects.fieldAutoAccept"),
                   description: t(
                     "pages.userProjects.fieldAutoAcceptDescription",

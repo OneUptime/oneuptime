@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
@@ -23,7 +24,7 @@ import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -38,6 +39,8 @@ import OtelIngestBaseService, {
 import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
+import MessagingEntityKeyResolver from "./MessagingEntityKeys";
+import CloudMonitoredResourceCollector from "./CloudMonitoredResources";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -85,6 +88,21 @@ import VMwareResourceService, {
 } from "Common/Server/Services/VMwareResourceService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import StorageArrayResourceService, {
+  ParsedStorageArrayResource,
+} from "Common/Server/Services/StorageArrayResourceService";
+import {
+  STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
+  StorageArrayResourceBufferEntry,
+  StorageArraySnapshotBufferEntry,
+  StorageArraySnapshotDerivedExtras,
+  bufferStorageArraySnapshotMetric,
+  deriveStorageArraySnapshotExtras,
+  getVolumeConnectionCounts,
+  getStorageArrayResourceRows,
+  resolveStorageArraySystem,
+} from "Common/Server/Utils/Telemetry/StorageArraySnapshotScan";
 import IoTDeviceService, {
   ParsedIoTDevice,
   IoTDeviceLatestMetric,
@@ -110,7 +128,25 @@ import {
   computeProxmoxGuestBackedUp,
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
+  proxmoxClusterCountsFromInventory,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  appendProxmoxSiblingReportsInPlace,
+  isProxmoxNativePushResource,
+  isProxmoxSiblingReportScope,
+  normalizeProxmoxNativePushInPlace,
+  readProxmoxNativeNodeStatus,
+} from "Common/Server/Utils/Telemetry/ProxmoxNativePush";
+import {
+  PROXMOX_NODE_SILENCE_MS,
+  ProxmoxRosterNode,
+  ProxmoxSilentNodeDecision,
+  ProxmoxSilentNodeReport,
+  isProxmoxSilentNodeDetectionEnabled,
+  recordProxmoxNodePushAndFindSilentNodes,
+} from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import crypto from "crypto";
 import {
   VMWARE_SNAPSHOT_METRIC_NAMES,
   VMwareResourceBufferEntry,
@@ -134,6 +170,10 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import SessionReplayBudgetMetricTypeUtil, {
+  SESSION_REPLAY_METRIC_NAME_PREFIX,
+} from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
 
 type MetricTimestamp = {
   nano: string;
@@ -238,8 +278,9 @@ const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
  *
  *   cpuPercent      — already a percentage, whatever the unit string says
  *                     (the awsecscontainermetrics receiver's *.cpu.utilized).
- *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats
- *                     style container.cpu.utilization; see cpuValueToPercent).
+ *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats'
+ *                     container.cpu.utilization is a percent, read as "%"
+ *                     whatever unit it declared; see cpuValueToPercent).
  *   memoryMegabytes — megabytes (awsecscontainermetrics *.memory.utilized).
  *   memoryBytes     — bytes.
  */
@@ -513,6 +554,29 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * When a metrics batch reached OneUptime, in unix nanoseconds: the ingest
+   * endpoint's stamp (TelemetryRequest.receivedAt), or now for a batch that
+   * carries none. Never later than now - the endpoint's clock may run a
+   * little ahead of the worker's.
+   */
+  public static getBatchArrivalUnixNano(
+    receivedAt: Date | string | undefined,
+    nowUnixNano: number = OneUptimeDate.getCurrentDateAsUnixNano(),
+  ): number {
+    if (!receivedAt) {
+      return nowUnixNano;
+    }
+
+    const receivedAtMs: number = new Date(receivedAt).getTime();
+
+    if (!Number.isFinite(receivedAtMs) || receivedAtMs <= 0) {
+      return nowUnixNano;
+    }
+
+    return Math.min(receivedAtMs * 1_000_000, nowUnixNano);
+  }
+
+  /*
    * Walk an entire metrics batch once and apply Host metadata + cached
    * stats per unique host.name in a single UPDATE per host. The per-
    * resource enrichment in the main for-loop only sees one scraper's
@@ -540,6 +604,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       totalMemoryBytes: number | null;
       processCount: number | null;
       containerRuntime: string | null;
+      /*
+       * The oneuptime.agent.version the host's collector stamps (the host
+       * guide's config does). Written with the rest of the batch's host
+       * facts, so a new or upgraded collector's version shows on the host
+       * with its first batch instead of waiting for the next fenced
+       * maintenance pass.
+       */
+      agentVersion: string | null;
       hasInfraSignal: boolean;
       labelNames: Set<string>;
     }
@@ -607,6 +679,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: null,
           processCount: null,
           containerRuntime: null,
+          agentVersion: null,
           hasInfraSignal: false,
           labelNames: new Set<string>(),
         };
@@ -651,6 +724,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
           ras,
           "container.runtime",
+        );
+      }
+      if (!entry.agentVersion) {
+        entry.agentVersion = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "oneuptime.agent.version",
         );
       }
 
@@ -712,6 +791,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
+          agentVersion: entry.agentVersion ?? undefined,
         });
 
         if (entry.labelNames.size > 0) {
@@ -736,6 +816,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The
@@ -775,6 +856,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
+      /*
+       * Proxmox VE's built-in OpenTelemetry push speaks its own dialect
+       * (proxmox_* names, no `id` label, `proxmox.cluster` instead of
+       * `proxmox.cluster.name`). Translate it to the pve_* shape the
+       * Proxmox pages, catalog and alert templates read — before cluster
+       * discovery, routing and the snapshot scan see the batch.
+       */
+      normalizeProxmoxNativePushInPlace(resourceMetrics);
+
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
@@ -791,6 +881,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
         new DatabaseCallEntityKeyResolver(projectId);
+
+      /*
+       * Broker-metric and messaging-client datapoints (and any datapoint
+       * carrying `messaging.system`) get their queue's key on their own
+       * row. Memoized for this request only — see MessagingEntityKeys.
+       */
+      const messagingEntityKeys: MessagingEntityKeyResolver =
+        new MessagingEntityKeyResolver(projectId);
+
+      /*
+       * The cloud resources the rows of a cloud-monitoring receiver name
+       * (Azure Monitor, CloudWatch, Cloud Monitoring) - one per datapoint,
+       * collected for discovery once the rows are written. Memoized for
+       * this request only - see CloudMonitoredResources.
+       */
+      const cloudMonitoredResources: CloudMonitoredResourceCollector =
+        new CloudMonitoredResourceCollector();
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -891,6 +998,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         ProxmoxClusterSnapshotBufferEntry
       > = new Map();
+      /*
+       * Per cluster: the native-push nodes this batch's live nodes
+       * reported as not reporting, for the inventory flush.
+       */
+      const proxmoxSilentNodeReports: Map<string, ProxmoxSilentNodeReport> =
+        new Map();
       const vmwareResourceMetricsBuffer: Map<
         string,
         Map<string, VMwareResourceBufferEntry>
@@ -907,6 +1020,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         CephClusterSnapshotBufferEntry
       > = new Map();
+      const storageArrayResourceMetricsBuffer: Map<
+        string,
+        Map<string, StorageArrayResourceBufferEntry>
+      > = new Map();
+      const storageArraySnapshotBuffer: Map<
+        string,
+        StorageArraySnapshotBufferEntry
+      > = new Map();
+      /*
+       * The platform each storage array's agent declared in
+       * `storage.system`, normalized, by array id. Only a fallback for what
+       * the metric names imply — see flushStorageArraySnapshotBuffers.
+       */
+      const storageArrayDeclaredSystems: Map<string, string> = new Map();
       const iotResourceMetricsBuffer: Map<
         string,
         Map<string, IoTDeviceBufferEntry>
@@ -974,6 +1101,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
+
+          /*
+           * A PVE native push describes one node's node, guest or storage
+           * status per request, so the Proxmox cluster counts are
+           * recounted from the stored inventory rather than this block.
+           */
+          const proxmoxNativePush: boolean = isProxmoxNativePushResource(
+            resourceAttributes_raw,
+          );
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -995,7 +1132,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter, Ceph cluster and database server from
+           * cluster, VMware vCenter, Ceph cluster, storage array and
+           * database server from
            * resource attributes. The lookups are independent — they read
            * different attributes and don't share state — so issue them
            * concurrently to collapse per-resource latency.
@@ -1009,10 +1147,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             proxmoxClusterId,
             vmwareVCenterId,
             cephClusterId,
+            storageArrayId,
             dockerSwarmClusterId,
             iotFleetId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1047,6 +1187,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverStorageArray({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
             this.autoDiscoverDockerSwarmCluster({
               projectId,
               attributes: resourceAttributes_raw,
@@ -1061,6 +1205,35 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               receiverSystemHint: databaseReceiverSystemHint,
             }),
           ]);
+
+          if (storageArrayId) {
+            const declaredStorageSystem: string | null =
+              this.getDeclaredStorageSystemFromAttributes(
+                resourceAttributes_raw,
+              );
+            if (declaredStorageSystem) {
+              storageArrayDeclaredSystems.set(
+                storageArrayId.toString(),
+                declaredStorageSystem,
+              );
+            }
+          }
+
+          /*
+           * A native-push node's own status push also reports the
+           * siblings that have stopped reporting (pve_up = 0), so Node
+           * Offline and Quorum at Risk see dead nodes as they do on the
+           * agent path. Appended before the rows are built, so the
+           * reports ride the same routing, retention and pipeline rules.
+           */
+          if (proxmoxNativePush && proxmoxClusterId) {
+            await this.appendProxmoxSilentNodeReports({
+              projectId,
+              proxmoxClusterId,
+              resourceMetric: resourceMetric as JSONObject,
+              reports: proxmoxSilentNodeReports,
+            });
+          }
 
           /*
            * The same pure gate autoDiscoverDatabaseServer ran: it names the
@@ -1156,6 +1329,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               proxmoxClusterId,
               vmwareVCenterId,
               cephClusterId,
+              storageArrayId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -1286,22 +1460,33 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
              * time keeps the heartbeat on the same timeline as the
              * metrics it vouches for.
              *
-             * Clamped on both sides by the ingest clock: a batch
-             * cannot have been scraped after it arrived (future-skewed
-             * host clocks, batches with no datapoints), and backdating
-             * is floored at HEARTBEAT_MAX_BACKDATE_MS — normal queue
-             * lag is seconds, so anything older means a behind-skewed
-             * host clock or a backlog replay, and an unbounded
-             * backdate would paint a permanent false "down" tail on
-             * the charts (the trailing buckets would never receive a
-             * heartbeat). A floored stamp lands in the newest
-             * evaluable Minute bucket, proving it up; the single
-             * bucket between it and the chart's unevaluable trailing
-             * shadow is rescued by the Minute-grid bridge — see the
-             * invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             * Clamped on both sides by when the batch ARRIVED - the
+             * ingest endpoint's stamp on the queued job, not the
+             * worker's clock: a batch cannot have been scraped after it
+             * arrived (future-skewed host clocks, batches with no
+             * datapoints), and backdating is floored at
+             * HEARTBEAT_MAX_BACKDATE_MS - anything older means a
+             * behind-skewed host clock or a collector resending what it
+             * queued, and an unbounded backdate would paint a permanent
+             * false "down" tail on the charts (the trailing buckets
+             * would never receive a heartbeat). A floored stamp lands in
+             * the newest evaluable Minute bucket, proving it up; the
+             * single bucket between it and the chart's unevaluable
+             * trailing shadow is rescued by the Minute-grid bridge — see
+             * the invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             *
+             * Arrival, not processing, because the queue can run minutes
+             * behind (after a restart it drains everything that waited):
+             * clamped to the worker's clock, a drained backlog's
+             * heartbeats all piled into its last two minutes and left the
+             * minutes before them empty - a permanent false "down" for
+             * every host, caused by OneUptime's own backlog (issue
+             * #2825).
              */
-            const nowUnixNano: number =
-              OneUptimeDate.getCurrentDateAsUnixNano();
+            const arrivalUnixNano: number =
+              OtelMetricsIngestService.getBatchArrivalUnixNano(
+                (req as TelemetryRequest).receivedAt,
+              );
             const maxBackdateNano: number =
               HEARTBEAT_MAX_BACKDATE_MS * 1_000_000;
             const maxDatapointTimeUnixNano: number | null =
@@ -1309,10 +1494,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             const heartbeatTimeNano: string = Math.trunc(
               maxDatapointTimeUnixNano !== null
                 ? Math.max(
-                    Math.min(maxDatapointTimeUnixNano, nowUnixNano),
-                    nowUnixNano - maxBackdateNano,
+                    Math.min(maxDatapointTimeUnixNano, arrivalUnixNano),
+                    arrivalUnixNano - maxBackdateNano,
                   )
-                : nowUnixNano,
+                : arrivalUnixNano,
             ).toString();
             const heartbeatRow: JSONObject = this.buildMetricRow({
               datapoint: {
@@ -1370,6 +1555,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 scopeMetric["scope"] as JSONObject | undefined,
               );
 
+              /*
+               * The instrumentation scope's name: for a collector receiver,
+               * its Go module path. It tells the container stats receivers'
+               * percents, which they declare "1", from the metrics of the
+               * same name other producers send (see metricUnit below).
+               */
+              const scopeName: string | undefined = this.readScopeName(
+                scopeMetric["scope"],
+              );
+
               let metricCounter: number = 0;
               for (const metric of metrics) {
                 try {
@@ -1380,10 +1575,49 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   const metricName: string = (metric["name"] || "")
                     .toString()
                     .toLowerCase();
+
+                  /*
+                   * Names under the session replay prefix belong to
+                   * OneUptime's budget sweep: its series open incidents
+                   * through the RUM alert templates and are left out of
+                   * telemetry billing by name. A browser batch is keyed to
+                   * its RUM application exactly like the sweep's rows, so a
+                   * point any page sent under one of these names could fire
+                   * the customer's budget alerts, and would be stored
+                   * unbilled. Refused before the catalog too, so a sent
+                   * unit or description cannot overwrite the registered
+                   * one. Nothing wider than this prefix is reserved.
+                   */
+                  if (
+                    SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                    );
+                    continue;
+                  }
+
                   const metricDescription: string = metric[
                     "description"
                   ] as string;
-                  const metricUnit: string = metric["unit"] as string;
+                  /*
+                   * The unit the values are in. The same as declared, except
+                   * for the docker_stats and podman_stats receivers'
+                   * percents (container.cpu.utilization,
+                   * container.memory.percent, ...): they send 0-100 but
+                   * declare "1", a 0-1 fraction, which every chart, monitor
+                   * and container row read as 100 times too much. Recorded as
+                   * "%" in the metric catalog and read as "%" by the
+                   * container snapshots below.
+                   */
+                  const metricUnit: string =
+                    ContainerStatsPercentUnit.getStoredUnit({
+                      scopeName: scopeName,
+                      metricName: metricName,
+                      declaredUnit: metric["unit"] as string | undefined,
+                    }) as string;
 
                   metricCatalog.addMetric({
                     name: metricName,
@@ -1436,10 +1670,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as JSONArray | undefined;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
-                    const aggregationTemporality: OtelAggregationTemporality =
-                      metricTypeWrapper?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality;
+                    const aggregationTemporality:
+                      | OtelAggregationTemporality
+                      | undefined = this.normalizeAggregationTemporality(
+                      metricTypeWrapper?.["aggregationTemporality"],
+                    );
 
                     const isMonotonic: boolean | undefined =
                       metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
@@ -1597,9 +1832,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                          * attributes — the buffer functions read the
                          * raw datapoint attribute array directly.
                          */
+                        /*
+                         * Reports about silent siblings never reach the
+                         * inventory fold: they must not refresh the
+                         * silent node's lastSeenAt (the flush marks it
+                         * Offline instead).
+                         */
                         if (
                           proxmoxClusterId &&
-                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName) &&
+                          !isProxmoxSiblingReportScope(scopeMetric)
                         ) {
                           bufferProxmoxSnapshotMetric({
                             clusterIdStr: proxmoxClusterId.toString(),
@@ -1607,6 +1849,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: proxmoxResourceMetricsBuffer,
                             clusterBuffer: proxmoxClusterSnapshotBuffer,
+                            countsFromInventory: proxmoxNativePush,
                           });
                         }
 
@@ -1620,6 +1863,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: cephResourceMetricsBuffer,
                             clusterBuffer: cephClusterSnapshotBuffer,
+                          });
+                        }
+
+                        /*
+                         * Storage array identity lives in datapoint
+                         * labels too (`name`, `host`, `component_name`
+                         * on the purefa_* / purefb_* series), so the
+                         * same raw-datapoint buffering applies.
+                         */
+                        if (
+                          storageArrayId &&
+                          STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferStorageArraySnapshotMetric({
+                            arrayIdStr: storageArrayId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: storageArrayResourceMetricsBuffer,
+                            arrayBuffer: storageArraySnapshotBuffer,
                           });
                         }
 
@@ -1692,6 +1954,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         /*
+                         * The name was checked on arrival (above), but a
+                         * customer RenameMetric rule sets the row's name
+                         * after that, verbatim - not lowercased - so a
+                         * rename into the reserved prefix is dropped here,
+                         * like any other dropped row. Only a rule can
+                         * change the name, so an unchanged one costs a
+                         * single comparison per datapoint.
+                         */
+                        const finalMetricName: JSONValue | undefined =
+                          transformed["name"];
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                          );
+                          continue;
+                        }
+
+                        /*
                          * IoT device identity lives in datapoint labels
                          * (device.id) and resource/datapoint attributes —
                          * the buffer function reads the raw datapoint
@@ -1746,6 +2032,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           metricRow,
                           databaseCaller,
                         );
+
+                        /*
+                         * A broker or messaging-client datapoint belongs to
+                         * its queue — same rules, keyed off the FINAL name
+                         * and attributes (a rule's rename or redaction
+                         * decides), resource keys read `resource.`-prefixed
+                         * as stored.
+                         */
+                        messagingEntityKeys.appendToMetricRow(metricRow);
+
+                        /*
+                         * A cloud-monitoring datapoint is about one cloud
+                         * resource, named on the datapoint - read off the
+                         * FINAL row, like the queue key above.
+                         */
+                        cloudMonitoredResources.observeMetricRow(metricRow);
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
@@ -1848,6 +2150,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: proxmoxResourceMetricsBuffer,
         clusterBuffer: proxmoxClusterSnapshotBuffer,
+        silentNodeReports: proxmoxSilentNodeReports,
       });
 
       await this.flushVMwareSnapshotBuffers({
@@ -1862,11 +2165,38 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         clusterBuffer: cephClusterSnapshotBuffer,
       });
 
+      await this.flushStorageArraySnapshotBuffers({
+        projectId,
+        resourceBuffer: storageArrayResourceMetricsBuffer,
+        arrayBuffer: storageArraySnapshotBuffer,
+        declaredSystems: storageArrayDeclaredSystems,
+      });
+
       await this.flushIoTSnapshotBuffers({
         projectId,
         resourceBuffer: iotResourceMetricsBuffer,
         fleetBuffer: iotFleetSnapshotBuffer,
       });
+
+      /*
+       * Cloud resources the rows named - after the rows are durably written,
+       * and best-effort like the snapshot buffers above: discovery must
+       * never fail a batch whose telemetry already landed.
+       */
+      try {
+        await this.autoDiscoverCloudMonitoredResources({
+          projectId,
+          resources: cloudMonitoredResources.getResources(),
+        });
+      } catch (cloudResourceError) {
+        logger.error(
+          `Cloud resource discovery failed (best-effort): ${
+            cloudResourceError instanceof Error
+              ? cloudResourceError.message
+              : String(cloudResourceError)
+          }`,
+        );
+      }
 
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
@@ -1942,10 +2272,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Docker-stats CPU → percent. The docker_stats receiver emits
-   * `container.cpu.utilization` as a [0, 1] ratio (unit "1") or a raw
-   * percent (unit "%"); scale accordingly. Kubernetes CPU uses
-   * `cpuCoresToPercent` below, which divides cores by node allocatable.
+   * An OTLP scope's name, or undefined when the scope (or its name) is
+   * missing or not a string.
+   */
+  private static readScopeName(scope: unknown): string | undefined {
+    if (!scope || typeof scope !== "object" || Array.isArray(scope)) {
+      return undefined;
+    }
+    const name: unknown = (scope as JSONObject)["name"];
+    return typeof name === "string" ? name : undefined;
+  }
+
+  /*
+   * Container CPU → percent of one core, for the container rows.
+   *
+   * The docker_stats receiver's container.cpu.utilization is a percent of
+   * one core (100% is one full core) declared "1", and its unit has
+   * already been read as "%" by the time it gets here (the metric loop,
+   * ContainerStatsPercentUnit): it is taken as it is. Multiplying it by 100,
+   * as this did for every "1", put a container using 7% of a core in its
+   * row as 700%. A "1" that is still "1" here came from another producer of
+   * the name, and means a 0-1 fraction of a core: times 100. Kubernetes CPU
+   * uses `cpuCoresToPercent` below, which divides cores by node allocatable.
    */
   private static cpuValueToPercent(
     rawValue: number,
@@ -3248,6 +3596,190 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * Record a Proxmox VE native-push node-status push and, when this node
+   * may report, append pve_up = 0 reports for the siblings that have
+   * stopped reporting (see ProxmoxNativeNodeLiveness). Collects what was
+   * reported per cluster for the inventory flush. Never throws: on any
+   * failure the push is ingested exactly as it came.
+   */
+  private static async appendProxmoxSilentNodeReports(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    resourceMetric: JSONObject;
+    reports: Map<string, ProxmoxSilentNodeReport>;
+  }): Promise<void> {
+    if (!isProxmoxSilentNodeDetectionEnabled()) {
+      return;
+    }
+    try {
+      const status: {
+        nodeName: string;
+        timeUnixNanos: Array<JSONValue>;
+      } | null = readProxmoxNativeNodeStatus(data.resourceMetric);
+      if (!status) {
+        return;
+      }
+
+      /*
+       * The earliest of the node's own points: the silence check compares
+       * sibling rows against it, so the earliest is the cautious choice.
+       */
+      let reporterTimeMs: number | null = null;
+      for (const timeUnixNano of status.timeUnixNanos) {
+        if (
+          typeof timeUnixNano !== "string" &&
+          typeof timeUnixNano !== "number"
+        ) {
+          continue;
+        }
+        const ms: number = OneUptimeDate.fromUnixNano(timeUnixNano).getTime();
+        if (
+          Number.isFinite(ms) &&
+          (reporterTimeMs === null || ms < reporterTimeMs)
+        ) {
+          reporterTimeMs = ms;
+        }
+      }
+      if (reporterTimeMs === null) {
+        reporterTimeMs = OneUptimeDate.getCurrentDate().getTime();
+      }
+
+      const decision: ProxmoxSilentNodeDecision | null =
+        await recordProxmoxNodePushAndFindSilentNodes({
+          projectId: data.projectId,
+          proxmoxClusterId: data.proxmoxClusterId,
+          selfNode: status.nodeName,
+          reporterTimeMs,
+          loadRoster: (roster: {
+            projectId: ObjectID;
+            proxmoxClusterId: ObjectID;
+          }): Promise<Array<ProxmoxRosterNode>> => {
+            return ProxmoxResourceService.getNodeRoster(roster);
+          },
+        });
+      if (!decision) {
+        return;
+      }
+
+      appendProxmoxSiblingReportsInPlace(data.resourceMetric, {
+        silentNodes: decision.silentNodes,
+        reporterCount: decision.reporterCount,
+        timeUnixNanos: status.timeUnixNanos,
+      });
+
+      const clusterIdStr: string = data.proxmoxClusterId.toString();
+      const silentBefore: Date = new Date(
+        reporterTimeMs - PROXMOX_NODE_SILENCE_MS,
+      );
+      const existing: ProxmoxSilentNodeReport | undefined =
+        data.reports.get(clusterIdStr);
+      if (existing) {
+        decision.silentNodes.forEach((nodeName: string) => {
+          existing.nodeNames.add(nodeName);
+        });
+        if (silentBefore < existing.silentBefore) {
+          existing.silentBefore = silentBefore;
+        }
+      } else {
+        data.reports.set(clusterIdStr, {
+          nodeNames: new Set(decision.silentNodes),
+          silentBefore,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Proxmox silent-node report failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * Turn reported nodes Offline in the inventory. Every live node reports
+   * on every push (~every 10 s), so the write is fenced to once per
+   * 30 s per cluster and set of nodes; the UPDATE itself is a no-op for
+   * rows already marked. Never throws.
+   */
+  private static async markProxmoxSilentNodesOffline(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    report: ProxmoxSilentNodeReport;
+  }): Promise<void> {
+    try {
+      const nodeNames: Array<string> = Array.from(data.report.nodeNames).sort();
+      const fingerprint: string = crypto
+        .createHash("sha1")
+        .update(nodeNames.join("\n"))
+        .digest("hex");
+      const acquired: boolean = await GlobalCache.setStringIfNotExists(
+        "proxmox-silent-node-mark",
+        `${data.proxmoxClusterId.toString()}:${fingerprint}`,
+        "1",
+        { expiresInSeconds: 30 },
+      );
+      if (!acquired) {
+        return;
+      }
+      await ProxmoxResourceService.markNodesNotReporting({
+        projectId: data.projectId,
+        proxmoxClusterId: data.proxmoxClusterId,
+        nodeNames,
+        silentBefore: data.report.silentBefore,
+        markedAt: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (err) {
+      logger.warn(
+        `Proxmox silent-node inventory write failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * A cluster reporting over the Proxmox VE native push: take all of its
+   * Node rows into the native-push keep, so a node that was already down
+   * under the agent (or before the flag existed) stays on the roster and
+   * gets reported (ProxmoxResourceService.adoptNodesAsNativePush). The
+   * UPDATE only touches rows not yet flagged, and is fenced to once per
+   * 10 minutes per cluster; without Redis it simply runs, and when it
+   * fails the fence is released so the next push retries. Never throws.
+   */
+  private static async adoptProxmoxNodesAsNativePush(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    seenUpTo: Date;
+  }): Promise<void> {
+    const fenceNamespace: string = "proxmox-native-adopt";
+    const fenceKey: string = data.proxmoxClusterId.toString();
+    let fenced: boolean = false;
+    try {
+      let acquired: boolean = true;
+      try {
+        acquired = await GlobalCache.setStringIfNotExists(
+          fenceNamespace,
+          fenceKey,
+          "1",
+          { expiresInSeconds: 600 },
+        );
+        fenced = acquired;
+      } catch {
+        acquired = true;
+      }
+      if (!acquired) {
+        return;
+      }
+      await ProxmoxResourceService.adoptNodesAsNativePush(data);
+    } catch (err) {
+      if (fenced) {
+        await GlobalCache.deleteKey(fenceNamespace, fenceKey).catch(() => {
+          // The fence expires on its own.
+        });
+      }
+      logger.warn(
+        `Proxmox native-push node adoption failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
    * Drain the Proxmox buffers: inventory upsert + latest-metric
    * mirror, then the ProxmoxCluster snapshot columns. The count
    * columns are computed from the SAME buffer the inventory rows were
@@ -3260,10 +3792,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
     clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+    silentNodeReports?: Map<string, ProxmoxSilentNodeReport> | undefined;
   }): Promise<void> {
     const clusterIdStrs: Set<string> = new Set<string>([
       ...data.resourceBuffer.keys(),
       ...data.clusterBuffer.keys(),
+      ...(data.silentNodeReports?.keys() || []),
     ]);
 
     for (const clusterIdStr of clusterIdStrs) {
@@ -3299,7 +3833,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             projectId: data.projectId,
             proxmoxClusterId: new ObjectID(clusterIdStr),
             resources,
+            // A native push is exactly the batch that counts from inventory.
+            isNativePush: Boolean(snap?.countsFromInventory),
           });
+
+          if (snap?.countsFromInventory) {
+            await this.adoptProxmoxNodesAsNativePush({
+              projectId: data.projectId,
+              proxmoxClusterId: new ObjectID(clusterIdStr),
+              seenUpTo: entries.reduce(
+                (newest: Date, e: ProxmoxResourceBufferEntry) => {
+                  return e.observedAt > newest ? e.observedAt : newest;
+                },
+                entries[0]!.observedAt,
+              ),
+            });
+          }
 
           const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
             (e: ProxmoxResourceBufferEntry) => {
@@ -3333,6 +3882,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         }
       }
 
+      /*
+       * Nodes the live siblings reported as not reporting turn Offline —
+       * before the recount below, so onlineNodeCount drops in this flush.
+       */
+      const silentNodeReport: ProxmoxSilentNodeReport | undefined =
+        data.silentNodeReports?.get(clusterIdStr);
+      if (silentNodeReport) {
+        await this.markProxmoxSilentNodesOffline({
+          projectId: data.projectId,
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          report: silentNodeReport,
+        });
+      }
+
       try {
         /*
          * Counts are only written when the batch carried the matching
@@ -3341,6 +3904,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
          */
         const extras: ProxmoxClusterSnapshotExtras =
           deriveProxmoxClusterSnapshotExtras(entries, snap);
+
+        /*
+         * A partial-by-design batch (PVE native push) is recounted from
+         * the inventory it just wrote to, which spans every node's pushes.
+         */
+        if (snap?.countsFromInventory && entries.length > 0) {
+          Object.assign(
+            extras,
+            proxmoxClusterCountsFromInventory(
+              await ProxmoxResourceService.getInventorySummary({
+                projectId: data.projectId,
+                proxmoxClusterId: new ObjectID(clusterIdStr),
+              }),
+            ),
+          );
+        }
 
         if (Object.keys(extras).length > 0) {
           await ProxmoxClusterService.updateLastSeen(
@@ -3555,6 +4134,145 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * Drain the storage array buffers: inventory upsert, then the StorageArray
+   * snapshot columns — computed from the SAME buffer the inventory rows were
+   * upserted from (single-source rule). Failures are logged and swallowed:
+   * snapshots are best-effort and must never affect ClickHouse ingest.
+   *
+   * declaredSystems holds each array's declared `storage.system`; an array
+   * that sent no Pure series at all is visited for it too, so an array of a
+   * platform OneUptime has no catalog for is still labelled
+   * (resolveStorageArraySystem decides when the declaration counts).
+   */
+  private static async flushStorageArraySnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
+    arrayBuffer: Map<string, StorageArraySnapshotBufferEntry>;
+    declaredSystems: Map<string, string>;
+  }): Promise<void> {
+    const arrayIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.arrayBuffer.keys(),
+      ...data.declaredSystems.keys(),
+    ]);
+
+    for (const arrayIdStr of arrayIdStrs) {
+      const byKey: Map<string, StorageArrayResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(arrayIdStr);
+      const snap: StorageArraySnapshotBufferEntry | undefined =
+        data.arrayBuffer.get(arrayIdStr);
+      const entries: Array<StorageArrayResourceBufferEntry> =
+        getStorageArrayResourceRows(
+          byKey ? Array.from(byKey.values()) : [],
+          snap,
+        );
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedStorageArrayResource> = entries.map(
+            (e: StorageArrayResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                status: e.status,
+                statusDetail: e.statusDetail,
+                componentType: e.componentType,
+                model: e.model,
+                firmwareVersion: e.firmwareVersion,
+                groupName: e.groupName,
+                capacityBytes: e.capacityBytes,
+                usedBytes: e.usedBytes,
+                dataReductionRatio: e.dataReductionRatio,
+                readLatencyUsec: e.readLatencyUsec,
+                writeLatencyUsec: e.writeLatencyUsec,
+                readIops: e.readIops,
+                writeIops: e.writeIops,
+                readBytesPerSec: e.readBytesPerSec,
+                writeBytesPerSec: e.writeBytesPerSec,
+                temperatureCelsius: e.temperatureCelsius,
+                replicationLagMs: e.replicationLagMs,
+                connectionCount: e.connectionCount,
+                details: e.details,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await StorageArrayResourceService.bulkUpsert({
+            projectId: data.projectId,
+            storageArrayId: new ObjectID(arrayIdStr),
+            resources,
+          });
+        } catch (err) {
+          logger.warn(
+            `Storage array snapshot writeback (inventory) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      /*
+       * A volume detached from its last host drops out of
+       * purefa_host_connections_info, so the upsert above never writes its
+       * count again. A batch that knows every connection zeroes the rest —
+       * after the upsert, outside it: an array whose last host was deleted
+       * has no row to upsert and still has counts to clear.
+       */
+      const volumeConnectionCounts: Record<string, number> | null =
+        getVolumeConnectionCounts(entries, snap);
+      if (volumeConnectionCounts) {
+        try {
+          /*
+           * The named volumes' counts get their own UPDATE too: the
+           * connection-only rows above ride the upsert's lastSeenAt guard,
+           * which drops them when the volumes scrape was flushed first.
+           */
+          await StorageArrayResourceService.setVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectionCounts: volumeConnectionCounts,
+          });
+          await StorageArrayResourceService.resetVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectedVolumeNames: Object.keys(volumeConnectionCounts),
+          });
+        } catch (err) {
+          logger.warn(
+            `Storage array snapshot writeback (volume connections) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * series — never zero a count on a partial batch
+         * (deriveStorageArraySnapshotExtras owns that contract).
+         */
+        const extras: StorageArraySnapshotDerivedExtras =
+          deriveStorageArraySnapshotExtras(entries, snap);
+
+        const storageSystem: string | undefined = resolveStorageArraySystem({
+          derived: extras.storageSystem,
+          declared: data.declaredSystems.get(arrayIdStr),
+        });
+        if (storageSystem) {
+          extras.storageSystem = storageSystem;
+        }
+
+        if (Object.keys(extras).length > 0) {
+          await StorageArrayService.updateLastSeen(
+            new ObjectID(arrayIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Storage array snapshot writeback (array) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
    * Drain the IoT buffers: device inventory upsert + latest-metric
    * mirror, then the IoTFleet snapshot columns. The count columns are
    * computed from the SAME buffer the inventory rows were upserted from
@@ -3735,7 +4453,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     metricPointType: MetricPointType;
-    aggregationTemporality?: OtelAggregationTemporality;
+    aggregationTemporality?: OtelAggregationTemporality | undefined;
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
@@ -3763,8 +4481,45 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const valueFromDouble: number | null = this.toNumberOrNull(
       data.datapoint["asDouble"],
     );
-    const count: number | null = this.toNumberOrNull(data.datapoint["count"]);
-    const sum: number | null = this.toNumberOrNull(data.datapoint["sum"]);
+    /*
+     * A plain (non-`optional`) proto3 scalar has no presence: the Collector,
+     * like every canonical encoder, leaves a 0 off the wire in protobuf and
+     * in OTLP/JSON alike, so the decoded key is simply absent - and the
+     * proto3 JSON mapping reads a `null` field as that same default. For
+     * such a field, absent or null IS 0. A value that is present but not a
+     * finite number (NaN, +/-Inf, a non-numeric string) is unknown: null.
+     */
+    const readProto3Number: (raw: unknown) => number | null = (
+      raw: unknown,
+    ): number | null => {
+      return raw === undefined || raw === null ? 0 : this.toNumberOrNull(raw);
+    };
+
+    /*
+     * `count` is a plain `fixed64` on Histogram, ExponentialHistogram and
+     * Summary points, and a Summary's `sum` a plain `double`. Read with
+     * toNumberOrNull, an idle point (nothing observed: an empty delta
+     * histogram interval, a Prometheus summary with no observations yet)
+     * was stored with count null, and a Summary with sum null - and so
+     * value null, since its row value is its sum. MetricService only treats
+     * a row with a count and a sum as a distribution row, so a Summary whose
+     * observations were all 0 (count written, sum elided) lost them from
+     * Count and Avg (GH#3978). Histogram / ExponentialHistogram `sum`, `min`
+     * and `max` are `optional` (explicit presence): absent there means "not
+     * recorded", and null is right. Gauge and Sum points carry no count or
+     * sum at all.
+     */
+    const hasPlainCount: boolean =
+      data.metricPointType === MetricPointType.Histogram ||
+      data.metricPointType === MetricPointType.ExponentialHistogram ||
+      data.metricPointType === MetricPointType.Summary;
+    const count: number | null = hasPlainCount
+      ? readProto3Number(data.datapoint["count"])
+      : this.toNumberOrNull(data.datapoint["count"]);
+    const sum: number | null =
+      data.metricPointType === MetricPointType.Summary
+        ? readProto3Number(data.datapoint["sum"])
+        : this.toNumberOrNull(data.datapoint["sum"]);
     const min: number | null = this.toNumberOrNull(data.datapoint["min"]);
     const max: number | null = this.toNumberOrNull(data.datapoint["max"]);
 
@@ -3840,9 +4595,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Summary-specific fields. The proto carries
      * `quantile_values: repeated { quantile: double, value: double }`.
      * We split into two parallel Float64 arrays keyed by index, matching the
-     * bucketCounts/explicitBounds convention used by histograms. Any entries
-     * that fail to parse (NaN, +/-Inf, missing) are dropped together so the
-     * two arrays stay length-aligned.
+     * bucketCounts/explicitBounds convention used by histograms.
+     *
+     * Both are plain proto3 doubles, so they go through readProto3Number: an
+     * absent (or JSON null) field IS 0. Skipping such an entry dropped
+     * quantile 0, and any quantile whose value was 0, from every exporter
+     * that elides zeros (found by the GH#3978 wire-format tests). A field
+     * that is present but not a finite number, or an entry that is not an
+     * object, still drops the whole entry so the two arrays stay
+     * length-aligned.
      */
     const quantileEntriesRaw: JSONArray = Array.isArray(
       data.datapoint["quantileValues"],
@@ -3852,9 +4613,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const summaryQuantiles: Array<number> = [];
     const summaryValues: Array<number> = [];
     for (const entryUnknown of quantileEntriesRaw) {
-      const entry: JSONObject = (entryUnknown as JSONObject) || {};
-      const q: number | null = this.toNumberOrNull(entry["quantile"]);
-      const v: number | null = this.toNumberOrNull(entry["value"]);
+      if (!entryUnknown || typeof entryUnknown !== "object") {
+        continue;
+      }
+      const entry: JSONObject = entryUnknown as JSONObject;
+      const q: number | null = readProto3Number(entry["quantile"]);
+      const v: number | null = readProto3Number(entry["value"]);
       if (q === null || v === null) {
         continue;
       }
@@ -4125,6 +4889,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /*
+   * Protobuf bodies (and gRPC) reach us through protobufjs with enums as
+   * their string names, but OTLP/JSON encodes enums as integers per the
+   * spec (1 = DELTA, 2 = CUMULATIVE) — which is what the collector's
+   * `otlphttp` exporter sends with `encoding: json`. Accept both so JSON
+   * metrics don't lose their temporality.
+   */
+  public static normalizeAggregationTemporality(
+    temporality: unknown,
+  ): OtelAggregationTemporality | undefined {
+    switch (temporality) {
+      case OtelAggregationTemporality.Delta:
+      case 1:
+      case "1":
+        return OtelAggregationTemporality.Delta;
+      case OtelAggregationTemporality.Cumulative:
+      case 2:
+      case "2":
+        return OtelAggregationTemporality.Cumulative;
+      default:
+        return undefined;
+    }
   }
 
   private static mapAggregationTemporality(

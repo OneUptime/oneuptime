@@ -6,6 +6,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -20,6 +21,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+@CanAccessIfCanReadOn("workflow")
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -28,7 +30,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.CreateWorkflowOwnerTeam,
   ],
   read: [
@@ -46,7 +47,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.DeleteWorkflowOwnerTeam,
   ],
   update: [
@@ -54,7 +54,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.EditWorkflowOwnerTeam,
   ],
 })
@@ -87,7 +86,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -129,7 +127,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -165,7 +162,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -208,7 +204,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -244,7 +239,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -286,7 +280,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -322,7 +315,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -365,7 +357,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [

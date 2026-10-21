@@ -36,6 +36,12 @@ import {
   shortenFramePath,
 } from "../../Utils/StackTracePresentation";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   stackTrace: string;
@@ -60,6 +66,7 @@ type StackTraceTab = "frames" | "raw";
 // --- Badges ---
 
 interface FrameBadgeProps {
+  // English keys, looked up here; a package name is shown as it is.
   label: string;
   className: string;
   title?: string | undefined;
@@ -69,13 +76,14 @@ interface FrameBadgeProps {
 const FrameBadge: FunctionComponent<FrameBadgeProps> = (
   props: FrameBadgeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <span
-      title={props.title}
+      title={translator.translateText(props.title)}
       data-testid={props.testId}
       className={`inline-flex max-w-[12rem] items-center truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${props.className}`}
     >
-      {props.label}
+      {translator.translateText(props.label)}
     </span>
   );
 };
@@ -91,6 +99,7 @@ const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
   snippet,
   fileName,
 }: SourceSnippetProps): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       className="overflow-hidden rounded-lg bg-gray-900 ring-1 ring-gray-800"
@@ -99,10 +108,10 @@ const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
       <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-1.5">
         <Icon icon={IconProp.Code} className="h-3.5 w-3.5 text-gray-500" />
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-400">
-          {fileName || "Original source"}
+          {fileName || translator.translateText("Original source")}
         </span>
         <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
-          Original source
+          {translator.translateText("Original source")}
         </span>
       </div>
       <div className="overflow-x-auto">
@@ -162,6 +171,7 @@ interface FrameDetailRow {
 const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
   frame,
 }: FrameDetailPanelProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const location: FrameDisplayLocation = getFrameDisplayLocation(frame);
   const packageName: string | null = frame.inApp
     ? null
@@ -176,7 +186,9 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
     },
     {
       label: "Location",
-      value: formatFrameLocation(location, { shorten: false }) || "Unknown",
+      value:
+        formatFrameLocation(location, { shorten: false }) ||
+        (translator.translateText("Unknown") as string),
       isMono: true,
       copyable: Boolean(location.fileName),
     },
@@ -208,10 +220,12 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
   rows.push({
     label: "Origin",
     value: frame.inApp
-      ? "Your application code"
+      ? (translator.translateText("Your application code") as string)
       : packageName
-        ? `Library code (${packageName})`
-        : "Library or runtime code",
+        ? translator.translateTemplate("Library code ({{package}})", {
+            package: packageName,
+          })
+        : (translator.translateText("Library or runtime code") as string),
     isMono: false,
     copyable: false,
   });
@@ -229,7 +243,7 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
               className="flex flex-col gap-0.5 px-4 py-2 sm:flex-row sm:items-center sm:gap-4"
             >
               <dt className="text-xs font-medium text-gray-500 sm:w-20 sm:flex-shrink-0">
-                {row.label}
+                {translator.translateText(row.label)}
               </dt>
               <dd className="flex min-w-0 flex-1 items-center gap-2">
                 <span
@@ -244,7 +258,9 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
                     textToBeCopied={row.value}
                     iconOnly={true}
                     size="xs"
-                    title={`Copy ${row.label.toLowerCase()}`}
+                    title={translator.translateTemplate("Copy {{field}}", {
+                      field: translatableTerm(row.label, { inSentence: true }),
+                    })}
                   />
                 )}
               </dd>
@@ -281,6 +297,7 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
   isTopAppFrame,
   onToggle,
 }: FrameRowProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const displayLocation: FrameDisplayLocation = getFrameDisplayLocation(frame);
   const location: string = formatFrameLocation(displayLocation, {
     shorten: true,
@@ -376,7 +393,10 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
                 frame.inApp
                   ? "Your application code"
                   : packageName
-                    ? `Library code from ${packageName}`
+                    ? translator.translateTemplate(
+                        "Library code from {{package}}",
+                        { package: packageName },
+                      )
                     : "Library or runtime code"
               }
               className={
@@ -406,6 +426,7 @@ interface CollapsedLibGroupRowProps {
 const CollapsedLibGroupRow: FunctionComponent<CollapsedLibGroupRowProps> = (
   props: CollapsedLibGroupRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <li
       className="border-l-2 border-l-transparent bg-gray-50/40"
@@ -420,20 +441,33 @@ const CollapsedLibGroupRow: FunctionComponent<CollapsedLibGroupRowProps> = (
           <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-gray-500">
-          {props.frameCount} library frame{props.frameCount === 1 ? "" : "s"}{" "}
-          hidden
-          {props.commonPackage && (
-            <>
-              {" "}
-              in{" "}
-              <span className="font-mono text-gray-600">
-                {props.commonPackage}
-              </span>
-            </>
+          {props.commonPackage ? (
+            <TranslatedSentence
+              template={{
+                one: "{{count}} library frame hidden in {{package}}",
+                other: "{{count}} library frames hidden in {{package}}",
+              }}
+              count={props.frameCount}
+              slots={{
+                package: (
+                  <span className="font-mono text-gray-600">
+                    {props.commonPackage}
+                  </span>
+                ),
+              }}
+            />
+          ) : (
+            translator.translatePlural(
+              {
+                one: "{{count}} library frame hidden",
+                other: "{{count}} library frames hidden",
+              },
+              props.frameCount,
+            )
           )}
         </span>
         <span className="flex-shrink-0 text-xs font-medium text-indigo-600 group-hover:text-indigo-500">
-          Show
+          {translator.translateText("Show")}
         </span>
       </button>
     </li>
@@ -515,6 +549,7 @@ const RawStackTrace: FunctionComponent<RawStackTraceProps> = ({
 // --- Toolbar button ---
 
 interface ToolbarButtonProps {
+  // An English key, looked up here.
   label: string;
   icon: IconProp;
   onClick: () => void;
@@ -525,6 +560,7 @@ interface ToolbarButtonProps {
 const ToolbarButton: FunctionComponent<ToolbarButtonProps> = (
   props: ToolbarButtonProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <button
       type="button"
@@ -538,7 +574,7 @@ const ToolbarButton: FunctionComponent<ToolbarButtonProps> = (
       }`}
     >
       <Icon icon={props.icon} className="h-3.5 w-3.5" />
-      {props.label}
+      {translator.translateText(props.label)}
     </button>
   );
 };
@@ -548,6 +584,7 @@ const ToolbarButton: FunctionComponent<ToolbarButtonProps> = (
 const StackFrameViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * undefined = the user has not opened or closed a frame yet, so the crash
    * point is open by default. Several frames can be open at once, which is
@@ -644,15 +681,32 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
   const activeTab: StackTraceTab = hasFrames ? tab : "raw";
   const lineCount: number = props.stackTrace.split("\n").length;
 
+  // Separate facts, each a phrase of its own, joined with " · ".
   const descriptionParts: Array<string> = hasFrames
     ? [
-        `${frames.length} frame${frames.length === 1 ? "" : "s"}`,
-        `${appFrameCount} in your code`,
+        translator.translatePlural(
+          { one: "{{count}} frame", other: "{{count}} frames" },
+          frames.length,
+        ),
+        translator.translatePlural(
+          { one: "{{count}} in your code", other: "{{count}} in your code" },
+          appFrameCount,
+        ),
       ]
-    : [`${lineCount} line${lineCount === 1 ? "" : "s"}`];
+    : [
+        translator.translatePlural(
+          { one: "{{count}} line", other: "{{count}} lines" },
+          lineCount,
+        ),
+      ];
 
   if (resolvedFrameCount > 0) {
-    descriptionParts.push(`${resolvedFrameCount} source mapped`);
+    descriptionParts.push(
+      translator.translatePlural(
+        { one: "{{count}} source mapped", other: "{{count}} source mapped" },
+        resolvedFrameCount,
+      ),
+    );
   }
 
   const crashFrame: ResolvedStackFrame | undefined =
@@ -679,7 +733,12 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
       description={
         hasFrames
           ? descriptionParts.join(" · ")
-          : `${descriptionParts.join(" · ")} · Structured frames were not recorded for the latest occurrence.`
+          : [
+              ...descriptionParts,
+              translator.translateText(
+                "Structured frames were not recorded for the latest occurrence.",
+              ),
+            ].join(" · ")
       }
       rightElement={
         <CopyTextButton
@@ -797,9 +856,14 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
             />
             <span>
-              {props.skippedSourceMapCount} source map
-              {props.skippedSourceMapCount === 1 ? " was" : "s were"} too large
-              to load, so some frames still show minified locations.
+              {translator.translatePlural(
+                {
+                  one: "{{count}} source map was too large to load, so some frames still show minified locations.",
+                  other:
+                    "{{count}} source maps were too large to load, so some frames still show minified locations.",
+                },
+                props.skippedSourceMapCount || 0,
+              )}
             </span>
           </div>
         )}
@@ -827,35 +891,52 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
                   {crashLocation && (
                     <p className="mt-1 min-w-0 break-all text-red-800">
                       <span className="font-medium">
-                        Most likely crash point:{" "}
+                        {translator.translateText("Most likely crash point:")}{" "}
                       </span>
-                      <span className="font-mono font-semibold">
-                        {crashLocation.functionName || "<anonymous>"}
-                      </span>
-                      {crashLocation.fileName && (
-                        <>
-                          <span className="text-red-600"> in </span>
-                          <span className="font-mono">
-                            {shortenFramePath(crashLocation.fileName)}
-                            {crashLocation.lineNumber > 0
-                              ? `:${crashLocation.lineNumber}`
-                              : ""}
-                          </span>
-                        </>
+                      {crashLocation.fileName ? (
+                        <TranslatedSentence
+                          template="{{function}} in {{file}}"
+                          slots={{
+                            function: (
+                              <span className="font-mono font-semibold">
+                                {crashLocation.functionName || "<anonymous>"}
+                              </span>
+                            ),
+                            file: (
+                              <span className="font-mono">
+                                {shortenFramePath(crashLocation.fileName)}
+                                {crashLocation.lineNumber > 0
+                                  ? `:${crashLocation.lineNumber}`
+                                  : ""}
+                              </span>
+                            ),
+                          }}
+                          renderText={(text: string): ReactElement => {
+                            return <span className="text-red-600">{text}</span>;
+                          }}
+                        />
+                      ) : (
+                        <span className="font-mono font-semibold">
+                          {crashLocation.functionName || "<anonymous>"}
+                        </span>
                       )}
                     </p>
                   )}
                   {!crashLocation && (
                     <p className="mt-1 text-red-800">
-                      No frame was identified as your own code; every frame
-                      below is library or runtime code.
+                      {translator.translateText(
+                        "No frame was identified as your own code; every frame below is library or runtime code.",
+                      )}
                     </p>
                   )}
                 </div>
               </div>
             )}
 
-            <ol className="divide-y divide-gray-100" aria-label="Stack frames">
+            <ol
+              className="divide-y divide-gray-100"
+              aria-label={translator.translateText("Stack frames")}
+            >
               {displayItems.map(
                 (
                   item: StackTraceDisplayItem,

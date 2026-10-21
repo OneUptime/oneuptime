@@ -1,14 +1,18 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
-import { NetworkDeviceOidCatalogueEntry } from "./CriteriaFilter";
+import {
+  NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
+} from "./CriteriaFilter";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
-import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { getCriteriaFilterCountText } from "../../../Utils/Form/Monitor/CriteriaFilterCount";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
@@ -17,7 +21,13 @@ import Button, {
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import {
   DragDropContext,
   Draggable,
@@ -26,6 +36,9 @@ import {
   DroppableProvided,
   DropResult,
 } from "react-beautiful-dnd";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 
 export interface ComponentProps {
   value: MonitorCriteria | undefined;
@@ -35,7 +48,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
@@ -52,6 +64,13 @@ export interface ComponentProps {
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  /*
+   * The device's effective SNMP tables, for the table pickers and for the
+   * per-table health criteria "Add Recommended Alerts" appends.
+   */
+  networkDeviceTableCatalogue?:
+    | Array<NetworkDeviceTableCatalogueEntry>
+    | undefined;
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   /*
    * The project's offline (worst, non-operational) monitor status.
@@ -60,6 +79,16 @@ export interface ComponentProps {
    * instead of "change status to <nothing>".
    */
   offlineMonitorStatusId?: ObjectID | undefined;
+  /*
+   * Start each criteria folded to its one-line header (name, what it checks,
+   * what it does), not open across a screen of filters and actions. Create
+   * Monitor turns this on: a new monitor's criteria are defaults that suit
+   * most monitors, and the step should open on what to check. A criteria
+   * added with Add Criteria still opens (it is about to be filled in), and
+   * so does one that cannot be saved as it stands (it needs attention).
+   * Pressing a header always wins.
+   */
+  foldDefaultCriteria?: boolean | undefined;
 }
 
 interface CriteriaCollapsedState {
@@ -69,21 +98,63 @@ interface CriteriaCollapsedState {
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
 
   const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
 
-  // Track collapsed state for each criteria instance
+  /*
+   * The criteria the user opened or closed, by id. A criteria not in here
+   * shows its default (isCriteriaCollapsed).
+   */
   const [collapsedState, setCollapsedState] = useState<CriteriaCollapsedState>(
     {},
   );
 
-  const toggleCriteriaCollapsed: (id: string) => void = (id: string): void => {
+  // The criteria Add Criteria made here: they open, to be filled in.
+  const addedCriteriaIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+
+  const isCriteriaCollapsed: (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ) => boolean = (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ): boolean => {
+    const toggled: boolean | undefined = collapsedState[criteriaId];
+
+    if (toggled !== undefined) {
+      return toggled;
+    }
+
+    if (!props.foldDefaultCriteria) {
+      return false;
+    }
+
+    if (addedCriteriaIds.current.has(criteriaId)) {
+      return false;
+    }
+
+    // A criteria that would not save stays open, where its problem is.
+    return !MonitorCriteriaInstance.getValidationError(
+      instance,
+      props.monitorType,
+    );
+  };
+
+  const toggleCriteriaCollapsed: (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ) => void = (instance: MonitorCriteriaInstance, criteriaId: string): void => {
+    const isCollapsed: boolean = isCriteriaCollapsed(instance, criteriaId);
+
     setCollapsedState((prev: CriteriaCollapsedState) => {
       return {
         ...prev,
-        [id]: !prev[id],
+        [criteriaId]: !isCollapsed,
       };
     });
   };
@@ -93,24 +164,57 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   ): string => {
     const parts: Array<string> = [];
 
-    // Filter count
-    const filterCount: number = instance.data?.filters?.length || 0;
-    const filterCondition: FilterCondition =
-      instance.data?.filterCondition || FilterCondition.All;
+    // How many filters - and, once there are two, how they combine.
     parts.push(
-      `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? ` (${filterCondition === FilterCondition.All ? "ALL" : "ANY"})` : ""}`,
+      getCriteriaFilterCountText({
+        translator: translator,
+        filters: instance.data?.filters,
+        filterCondition: instance.data?.filterCondition,
+      }),
     );
 
     // Actions
     const actions: Array<string> = [];
+
+    /*
+     * An Incoming Email criteria that opens an incident (and alert) for
+     * every email says so here too, so a folded criteria reads apart from
+     * one that opens one at a time.
+     */
+    const isOpenForEveryEmail: boolean =
+      MonitorCriteriaInstance.isOpenForEveryEmail({
+        monitorType: props.monitorType,
+        criteriaInstance: instance,
+      });
+
     if (instance.data?.monitorStatusId) {
-      actions.push("status change");
+      actions.push(translator.translateText("status change") as string);
     }
-    if (instance.data?.createAlerts) {
-      actions.push("alerts");
-    }
-    if (instance.data?.createIncidents) {
-      actions.push("incidents");
+    if (
+      isOpenForEveryEmail &&
+      instance.data?.createAlerts &&
+      instance.data?.createIncidents
+    ) {
+      actions.push(
+        translator.translateText(
+          "alerts and incidents for every email",
+        ) as string,
+      );
+    } else {
+      if (instance.data?.createAlerts) {
+        actions.push(
+          translator.translateText(
+            isOpenForEveryEmail ? "alerts for every email" : "alerts",
+          ) as string,
+        );
+      }
+      if (instance.data?.createIncidents) {
+        actions.push(
+          translator.translateText(
+            isOpenForEveryEmail ? "incidents for every email" : "incidents",
+          ) as string,
+        );
+      }
     }
 
     if (actions.length > 0) {
@@ -176,10 +280,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                   (i: MonitorCriteriaInstance, index: number) => {
                     const criteriaId: string =
                       i.data?.id || `criteria-${index}`;
-                    const isCollapsed: boolean =
-                      collapsedState[criteriaId] || false;
+                    const isCollapsed: boolean = isCriteriaCollapsed(
+                      i,
+                      criteriaId,
+                    );
                     const criteriaName: string =
-                      i.data?.name || "Unnamed Criteria";
+                      i.data?.name ||
+                      (translator.translateText("Unnamed Criteria") as string);
                     const isCriteriaDisabled: boolean =
                       i.data?.isEnabled === false;
 
@@ -196,92 +303,121 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                               {...draggableProvided.draggableProps}
                               className={`mb-4 border rounded-lg overflow-hidden border-l-4 bg-white ${getCriteriaHeaderColor(i)}`}
                             >
-                              {/* Collapsible Header */}
+                              {/*
+                               * Collapsible Header: the drag handle, and the
+                               * button that opens and closes the criteria,
+                               * side by side. The header used to be one
+                               * role="button" holding the handle, which a
+                               * screen reader reads as one control: the
+                               * handle was lost inside it. The button still
+                               * answers a press anywhere on the header (its
+                               * ::after covers the header); the handle sits
+                               * above that.
+                               */}
                               <div
-                                className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                onClick={() => {
-                                  toggleCriteriaCollapsed(criteriaId);
-                                }}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    toggleCriteriaCollapsed(criteriaId);
-                                  }
-                                }}
-                                aria-expanded={!isCollapsed}
+                                data-testid="monitor-criteria-header"
+                                className="relative flex items-center px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                               >
-                                <div className="flex items-center flex-1 min-w-0">
-                                  <div
-                                    {...draggableProvided.dragHandleProps}
-                                    onClick={(e: React.MouseEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    onKeyDown={(e: React.KeyboardEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    className="mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
-                                    aria-label="Drag to reorder criteria"
-                                    title="Drag to reorder"
-                                  >
-                                    <Icon
-                                      icon={IconProp.GripVertical}
-                                      className="w-4 h-4"
-                                    />
-                                  </div>
+                                <div
+                                  {...draggableProvided.dragHandleProps}
+                                  className="relative z-10 mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
+                                  aria-label={translator.translateText(
+                                    "Drag to reorder criteria",
+                                  )}
+                                  title={translator.translateText(
+                                    "Drag to reorder",
+                                  )}
+                                >
                                   <Icon
-                                    icon={
-                                      isCollapsed
-                                        ? IconProp.ChevronRight
-                                        : IconProp.ChevronDown
-                                    }
-                                    className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                    icon={IconProp.GripVertical}
+                                    className="w-4 h-4"
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center flex-wrap gap-2">
-                                      <span
-                                        className={`text-sm font-semibold ${
-                                          isCriteriaDisabled
-                                            ? "text-gray-500"
-                                            : "text-gray-900"
-                                        }`}
-                                      >
-                                        {criteriaName}
-                                      </span>
-                                      {isCriteriaDisabled && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                                          Disabled
+                                </div>
+                                <button
+                                  type="button"
+                                  aria-expanded={!isCollapsed}
+                                  onClick={() => {
+                                    toggleCriteriaCollapsed(i, criteriaId);
+                                  }}
+                                  className="flex min-w-0 flex-1 items-center justify-between text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+                                >
+                                  <div className="flex items-center flex-1 min-w-0">
+                                    <Icon
+                                      icon={
+                                        isCollapsed
+                                          ? IconProp.ChevronRight
+                                          : IconProp.ChevronDown
+                                      }
+                                      className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center flex-wrap gap-2">
+                                        <span
+                                          className={`text-sm font-semibold ${
+                                            isCriteriaDisabled
+                                              ? "text-gray-500"
+                                              : "text-gray-900"
+                                          }`}
+                                        >
+                                          {criteriaName}
                                         </span>
-                                      )}
-                                      {isCollapsed && (
-                                        <span className="text-xs text-gray-500 truncate">
-                                          {getCriteriaSummary(i)}
-                                        </span>
+                                        {isCriteriaDisabled && (
+                                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+                                            {translator.translateText(
+                                              "Disabled",
+                                            )}
+                                          </span>
+                                        )}
+                                        {isCollapsed && (
+                                          <span className="text-xs text-gray-500 truncate">
+                                            {getCriteriaSummary(i)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {!isCollapsed && i.data?.description && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {i.data.description}
+                                        </p>
                                       )}
                                     </div>
-                                    {!isCollapsed && i.data?.description && (
-                                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                        {i.data.description}
-                                      </p>
-                                    )}
                                   </div>
-                                </div>
-                                <div className="flex items-center ml-2">
-                                  <span className="text-xs text-gray-400 mr-2">
-                                    {index + 1} of{" "}
-                                    {
-                                      monitorCriteria.data
-                                        ?.monitorCriteriaInstanceArray.length
-                                    }
-                                  </span>
-                                </div>
+                                  <div className="flex items-center ml-2">
+                                    <span className="text-xs text-gray-400 mr-2">
+                                      {translator.translateTemplate(
+                                        "{{position}} of {{total}}",
+                                        {
+                                          position: index + 1,
+                                          total:
+                                            monitorCriteria.data
+                                              ?.monitorCriteriaInstanceArray
+                                              .length || 0,
+                                        },
+                                      )}
+                                    </span>
+                                  </div>
+                                </button>
                               </div>
 
-                              {/* Collapsible Content */}
+                              {/*
+                               * Collapsible Content. Folded, it is hidden
+                               * from the keyboard and from screen readers
+                               * too (invisible), not only clipped to no
+                               * height: Tab used to walk through every field
+                               * of a folded criteria without showing one.
+                               * And it holds its absolutely placed pieces
+                               * (screen reader text, a picker's live region)
+                               * inside the clip (relative): left to the page
+                               * they stretched it by the folded criteria's
+                               * whole height, a screen of blank space under
+                               * the form.
+                               */}
                               <div
+                                data-testid="monitor-criteria-body"
+                                aria-hidden={isCollapsed}
                                 className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                                  isCollapsed ? "max-h-0" : "max-h-[5000px]"
+                                  isCollapsed
+                                    ? "relative max-h-0 invisible"
+                                    : "max-h-[5000px]"
                                 }`}
                               >
                                 <div className="px-4 pb-4 bg-white">
@@ -293,6 +429,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     }
                                     networkDeviceInterfaceNames={
                                       props.networkDeviceInterfaceNames
+                                    }
+                                    networkDeviceTableCatalogue={
+                                      props.networkDeviceTableCatalogue
                                     }
                                     isNetworkDeviceCatalogueLoaded={
                                       props.isNetworkDeviceCatalogueLoaded
@@ -311,9 +450,6 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     }
                                     labelDropdownOptions={
                                       props.labelDropdownOptions
-                                    }
-                                    teamDropdownOptions={
-                                      props.teamDropdownOptions
                                     }
                                     userDropdownOptions={
                                       props.userDropdownOptions
@@ -437,6 +573,19 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
               newMonitorCriteria.data.filters = [
                 CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
               ];
+
+              /*
+               * Named after that filter, so the criteria is ready to save
+               * without anyone inventing a name. The name follows the
+               * filters as they are edited, until the user types their own.
+               */
+              newMonitorCriteria.setName(
+                CriteriaNameUtil.getNameForCriteria(newMonitorCriteria),
+              );
+            }
+
+            if (newMonitorCriteria.data?.id) {
+              addedCriteriaIds.current.add(newMonitorCriteria.data.id);
             }
 
             newMonitorCriterias.push(newMonitorCriteria);
@@ -460,6 +609,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
                 ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
                   downMonitorStatusId: props.offlineMonitorStatusId,
+                  tables: (props.networkDeviceTableCatalogue || []).map(
+                    (
+                      entry: NetworkDeviceTableCatalogueEntry,
+                    ): SnmpTableDefinition => {
+                      return entry.definition;
+                    },
+                  ),
                 }),
               ];
               props.onChange?.(
@@ -478,8 +634,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
       </div>
       {showCantDeleteModal ? (
         <ConfirmModal
-          description={`We need at least one criteria for this monitor. We cant delete one remaining criteria.`}
-          title={`Cannot delete last remaining criteria.`}
+          description="A monitor needs at least one criteria. Change this one, or add another before you delete it."
+          title="This is the only criteria"
           onSubmit={() => {
             setShowCantDeleteModal(false);
           }}

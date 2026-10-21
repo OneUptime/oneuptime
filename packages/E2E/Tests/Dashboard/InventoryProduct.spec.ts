@@ -1,6 +1,8 @@
 import { Page, expect, test, Locator } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * The Inventory product, end to end.
@@ -35,6 +37,8 @@ test.describe.skip("Inventory Product", () => {
      * a block comment. A user could not reach the product at all.
      */
     await page.getByRole("button", { name: "Products" }).click();
+    // Inventory is under Resources, which the menu opens folded.
+    await openProductsMenuSection(page, "Resources");
 
     const inventoryNavOption: Locator = page
       .getByRole("option")
@@ -75,7 +79,7 @@ test.describe.skip("Inventory Product", () => {
     const itemName: string =
       "E2E Vendor API " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
 
     /*
      * Only the manual types are offered — everything else is discovered, and
@@ -109,7 +113,15 @@ test.describe.skip("Inventory Product", () => {
      * Each tab is its own route, so each has to resolve on its own — this is
      * what a tabbed detail page would not have exercised.
      */
-    const subpages: Array<{ link: string; expectText: string }> = [
+    /*
+     * `section` names a side-menu section that starts folded away (Advanced,
+     * as in every menu): it is opened before its page is clicked.
+     */
+    const subpages: Array<{
+      link: string;
+      expectText: string;
+      section?: string;
+    }> = [
       { link: "Connections", expectText: "Connections" },
       { link: "Logs", expectText: "Logs" },
       { link: "Traces", expectText: "Traces" },
@@ -118,10 +130,26 @@ test.describe.skip("Inventory Product", () => {
       { link: "Exceptions", expectText: "Exceptions" },
       { link: "Custom Fields", expectText: "Custom Fields" },
       { link: "Incidents", expectText: "No incidents for this item" },
-      { link: "Audit Logs", expectText: "Item Audit Logs" },
+      {
+        link: "Audit Logs",
+        expectText: "Item Audit Logs",
+        section: "Advanced",
+      },
     ];
 
     for (const subpage of subpages) {
+      if (subpage.section) {
+        const sectionToggle: Locator = page
+          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator(
+            `xpath=.//h6[normalize-space(.)='${subpage.section}']/ancestor::button[1]`,
+          );
+
+        await expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
+        await sectionToggle.click();
+        await expect(sectionToggle).toHaveAttribute("aria-expanded", "true");
+      }
+
       await page.getByRole("link", { name: subpage.link }).first().click();
       await expect(page.getByText(subpage.expectText).first()).toBeVisible({
         timeout: 30000,
@@ -145,7 +173,7 @@ test.describe.skip("Inventory Product", () => {
 
     const itemName: string = "E2E Appliance " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
     await page.getByText("Appliance").first().click();
     await page.getByPlaceholder("Stripe Payments API").fill(itemName);
     await page.getByRole("button", { name: "Save" }).click();
@@ -187,7 +215,7 @@ test.describe.skip("Inventory Product", () => {
     const itemName: string =
       "E2E Archive Me " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
     await page.getByText("External Database").first().click();
     await page.getByPlaceholder("Stripe Payments API").fill(itemName);
     await page.getByRole("button", { name: "Save" }).click();
@@ -205,14 +233,21 @@ test.describe.skip("Inventory Product", () => {
     await page.goto(itemsUrl);
     await expect(page.getByText(itemName)).toHaveCount(0, { timeout: 30000 });
 
-    // ...and present in the archived one, which says it is not decommissioned.
+    /*
+     * ...and present in the archived one, whose card description says it is
+     * not decommissioned (there is no banner above the list any more).
+     */
     await page.goto(
       `${page.url().split("/dashboard")[0]}/dashboard/${projectId}/inventory/archived`,
     );
     await expect(page.getByText(itemName).first()).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("These are hidden, not gone")).toBeVisible({
+    await expect(
+      page.getByText(
+        "nothing is stopped or deleted: they keep their identity and keep collecting telemetry",
+      ),
+    ).toBeVisible({
       timeout: 30000,
     });
   });

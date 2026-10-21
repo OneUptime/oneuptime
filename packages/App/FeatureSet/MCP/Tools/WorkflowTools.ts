@@ -8,10 +8,22 @@
 
 import { McpToolInfo, JSONSchema } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
+import {
+  readOnlyToolAnnotations,
+  writeToolAnnotations,
+} from "./ToolAnnotations";
 import ModelType from "../Types/ModelType";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
+import McpCredentialUtil, {
+  McpCredential,
+  McpCredentialInput,
+  McpCredentialType,
+} from "../Types/McpCredential";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 type StateFlag = "isAcknowledgedState" | "isResolvedState";
 
@@ -28,7 +40,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "acknowledge_incident",
     title: "Acknowledge Incident",
     description:
-      "Acknowledge an incident: marks it as being worked on by moving it to the project's 'Acknowledged' state. Equivalent to pressing 'Acknowledge' in the OneUptime dashboard.",
+      "Acknowledge an incident: marks it as being worked on by moving it to the project's 'Acknowledged' state. Equivalent to pressing 'Acknowledge' in the OneUptime dashboard. An incident that is already acknowledged - in the Acknowledged state, a state placed after it, or resolved - is left as it is.",
     inputSchema: {
       type: "object",
       properties: {
@@ -66,7 +78,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "acknowledge_alert",
     title: "Acknowledge Alert",
     description:
-      "Acknowledge an alert: marks it as being worked on by moving it to the project's 'Acknowledged' state.",
+      "Acknowledge an alert: marks it as being worked on by moving it to the project's 'Acknowledged' state. An alert that is already acknowledged - in the Acknowledged state, a state placed after it, or resolved - is left as it is.",
     inputSchema: {
       type: "object",
       properties: {
@@ -155,7 +167,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "oneuptime_whoami",
     title: "Who Am I",
     description:
-      "Get the project your API key belongs to (ID and name). Call this first to understand your context. Note: create tools infer projectId from the API key automatically, so you never need to pass it.",
+      "Get the project your credentials belong to (ID and name), and - when signed in with OAuth - who you are signed in as and whether you may make changes. Call this first to understand your context. Note: create tools infer projectId from your credentials automatically, so you never need to pass it.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -177,8 +189,8 @@ export function generateWorkflowTools(): McpToolInfo[] {
         description: definition.description,
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
-          ? { readOnlyHint: true }
-          : { readOnlyHint: false, destructiveHint: false },
+          ? readOnlyToolAnnotations()
+          : writeToolAnnotations(),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read
@@ -194,12 +206,24 @@ export function generateWorkflowTools(): McpToolInfo[] {
 }
 
 /**
- * Check if a tool is a workflow tool (requires an API key)
+ * Check if a tool is a workflow tool (requires an API key or a sign-in)
  */
 export function isWorkflowTool(toolName: string): boolean {
   return WORKFLOW_TOOL_DEFINITIONS.some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName;
+    },
+  );
+}
+
+/**
+ * Whether a workflow tool only reads. The rest change something, which a
+ * client that signed in read-only may not do.
+ */
+export function isReadOnlyWorkflowTool(toolName: string): boolean {
+  return WORKFLOW_TOOL_DEFINITIONS.some(
+    (definition: WorkflowToolDefinition) => {
+      return definition.name === toolName && definition.readOnly;
     },
   );
 }
@@ -211,7 +235,8 @@ export function isWorkflowTool(toolName: string): boolean {
 export async function handleWorkflowTool(
   toolName: string,
   args: Record<string, unknown>,
-  apiKey: string,
+  // An API key (a bare string) or an OAuth credential. See Types/McpCredential.
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   switch (toolName) {
     case "acknowledge_incident":
@@ -219,35 +244,35 @@ export async function handleWorkflowTool(
         kind: "incident",
         id: requireUuid(args, "incidentId"),
         flag: "isAcknowledgedState",
-        apiKey,
+        credential,
       });
     case "resolve_incident":
       return changeState({
         kind: "incident",
         id: requireUuid(args, "incidentId"),
         flag: "isResolvedState",
-        apiKey,
+        credential,
       });
     case "acknowledge_alert":
       return changeState({
         kind: "alert",
         id: requireUuid(args, "alertId"),
         flag: "isAcknowledgedState",
-        apiKey,
+        credential,
       });
     case "resolve_alert":
       return changeState({
         kind: "alert",
         id: requireUuid(args, "alertId"),
         flag: "isResolvedState",
-        apiKey,
+        credential,
       });
     case "add_incident_note":
-      return addIncidentNote(args, apiKey);
+      return addIncidentNote(args, credential);
     case "add_alert_note":
-      return addAlertNote(args, apiKey);
+      return addAlertNote(args, credential);
     case "oneuptime_whoami":
-      return whoami(apiKey);
+      return whoami(credential);
     default:
       throw new Error(`Unknown workflow tool: ${toolName}`);
   }
@@ -275,45 +300,125 @@ function requireString(args: Record<string, unknown>, key: string): string {
 }
 
 /**
+ * The rows of a list response.
+ *
+ * The API client hands a list back as the rows themselves: HTTPResponse
+ * unwraps the `{ data, count, skip, limit }` envelope a get-list endpoint
+ * answers with, so `makeAuthenticatedApiCall` returns the array. Reading
+ * `.data` off that array finds nothing - which made every list these tools
+ * read look empty ("no project visible", "could not find the Acknowledged
+ * state") whatever the caller was allowed to see. The envelope is still
+ * accepted, for a caller that passes one through untouched.
+ */
+function listRows(response: unknown): JSONArray {
+  if (Array.isArray(response)) {
+    return response as JSONArray;
+  }
+
+  const wrapped: unknown = (response as JSONObject | null | undefined)?.[
+    "data"
+  ];
+
+  return Array.isArray(wrapped) ? (wrapped as JSONArray) : [];
+}
+
+/**
  * Look up the project's state row (e.g. Acknowledged / Resolved) for
  * incidents or alerts.
  */
 async function findStateId(data: {
   kind: "incident" | "alert";
   flag: StateFlag;
-  apiKey: string;
-}): Promise<{ stateId: string; stateName: string }> {
+  credential: McpCredentialInput;
+}): Promise<{
+  stateId: string;
+  stateName: string;
+  stateOrder: number | undefined;
+}> {
   const statePath: string =
     data.kind === "incident" ? "/incident-state" : "/alert-state";
 
+  /*
+   * The project's acknowledged or resolved state: the first from the top
+   * that carries the flag - the one the dashboard's Acknowledge and Resolve
+   * move a record into (Common/Utils/ResolvedState).
+   */
   const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
     method: "POST",
     path: `/api${statePath}/get-list`,
     body: {
       query: { [data.flag]: true },
-      select: { _id: true, name: true },
+      select: { _id: true, name: true, order: true },
+      sort: { order: SortOrder.Ascending },
       skip: 0,
       limit: 1,
     } as JSONObject,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
 
-  const rows: JSONArray =
-    ((response as JSONObject)?.["data"] as JSONArray) || [];
+  const rows: JSONArray = listRows(response);
   const firstRow: JSONObject | undefined = rows[0] as JSONObject | undefined;
 
   if (!firstRow || !firstRow["_id"]) {
     const friendlyFlag: string =
       data.flag === "isAcknowledgedState" ? "Acknowledged" : "Resolved";
     throw new Error(
-      `Could not find the project's '${friendlyFlag}' ${data.kind} state. The API key may lack permission to read ${data.kind} states.`,
+      `Could not find the project's '${friendlyFlag}' ${data.kind} state. ${describeCaller(data.credential)} may lack permission to read ${data.kind} states.`,
     );
   }
 
   return {
     stateId: firstRow["_id"] as string,
     stateName: (firstRow["name"] as string) || "",
+    stateOrder:
+      typeof firstRow["order"] === "number"
+        ? (firstRow["order"] as number)
+        : undefined,
   };
+}
+
+/**
+ * The state an incident or alert is in now - its id, name, place and flags -
+ * or null when the record could not be read (the write that follows then
+ * gets the API's own answer).
+ */
+async function findCurrentState(data: {
+  kind: "incident" | "alert";
+  id: string;
+  credential: McpCredentialInput;
+}): Promise<JSONObject | null> {
+  const stateRelation: string =
+    data.kind === "incident" ? "currentIncidentState" : "currentAlertState";
+
+  const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
+    method: "POST",
+    path: `/api/${data.kind}/get-list`,
+    body: {
+      query: { _id: data.id },
+      select: {
+        _id: true,
+        [stateRelation]: {
+          _id: true,
+          name: true,
+          order: true,
+          isAcknowledgedState: true,
+          isResolvedState: true,
+        },
+      },
+      skip: 0,
+      limit: 1,
+    } as JSONObject,
+    credential: data.credential,
+  });
+
+  const record: JSONObject | undefined = listRows(response)[0] as
+    | JSONObject
+    | undefined;
+  const state: unknown = record?.[stateRelation];
+
+  return state && typeof state === "object" && !Array.isArray(state)
+    ? (state as JSONObject)
+    : null;
 }
 
 /**
@@ -324,13 +429,53 @@ async function changeState(data: {
   kind: "incident" | "alert";
   id: string;
   flag: StateFlag;
-  apiKey: string;
+  credential: McpCredentialInput;
 }): Promise<JSONObject> {
-  const { stateId, stateName } = await findStateId({
+  const { stateId, stateName, stateOrder } = await findStateId({
     kind: data.kind,
     flag: data.flag,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
+
+  /*
+   * Acknowledge is for a record not acknowledged yet - by the one rule
+   * (Common/Utils/AcknowledgedState): one in the Acknowledged state, a state
+   * placed after it ("Investigating") or a resolved one already is, and
+   * moving it to Acknowledged would move it back up its list. Such a record
+   * is left as it is, as the dashboard, Slack and Microsoft Teams leave it.
+   */
+  if (data.flag === "isAcknowledgedState") {
+    const currentState: JSONObject | null = await findCurrentState({
+      kind: data.kind,
+      id: data.id,
+      credential: data.credential,
+    });
+
+    if (
+      currentState &&
+      AcknowledgedStateUtil.isStateAcknowledged({
+        list:
+          data.kind === "incident"
+            ? StateListType.IncidentState
+            : StateListType.AlertState,
+        states: [
+          {
+            _id: stateId,
+            order: stateOrder,
+            isAcknowledgedState: true,
+          },
+        ],
+        state: currentState,
+      })
+    ) {
+      const currentName: string =
+        (currentState["name"] as string) || "its current state";
+
+      throw new Error(
+        `${data.kind === "incident" ? "Incident" : "Alert"} ${data.id} is already acknowledged: it is in '${currentName}', which is '${stateName}' or a state after it. It was left as it is.`,
+      );
+    }
+  }
 
   const timelinePath: string =
     data.kind === "incident"
@@ -349,7 +494,7 @@ async function changeState(data: {
         [stateField]: stateId,
       },
     } as JSONObject,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
 
   return {
@@ -369,7 +514,7 @@ function toolNameForState(kind: "incident" | "alert", flag: StateFlag): string {
 
 async function addIncidentNote(
   args: Record<string, unknown>,
-  apiKey: string,
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   const incidentId: string = requireUuid(args, "incidentId");
   const note: string = requireString(args, "note");
@@ -390,7 +535,7 @@ async function addIncidentNote(
         note,
       },
     } as JSONObject,
-    apiKey,
+    credential,
   });
 
   return {
@@ -408,7 +553,7 @@ async function addIncidentNote(
 
 async function addAlertNote(
   args: Record<string, unknown>,
-  apiKey: string,
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   const alertId: string = requireUuid(args, "alertId");
   const note: string = requireString(args, "note");
@@ -422,7 +567,7 @@ async function addAlertNote(
         note,
       },
     } as JSONObject,
-    apiKey,
+    credential,
   });
 
   return {
@@ -435,10 +580,22 @@ async function addAlertNote(
 }
 
 /**
- * Return the project the API key is scoped to. Project is tenant-scoped by
- * _id, so a project-scoped key sees exactly its own project.
+ * How to refer to the caller in a message an agent will read: by the kind of
+ * credential it holds, so the advice that follows ("ask an admin to grant the
+ * key…", "your account lacks…") points at the right thing to fix.
  */
-async function whoami(apiKey: string): Promise<JSONObject> {
+function describeCaller(input: McpCredentialInput): string {
+  return McpCredentialUtil.isOAuth(input) ? "Your account" : "The API key";
+}
+
+/**
+ * Return the project the credential is scoped to. Project is tenant-scoped by
+ * _id, so a project-scoped key - or a sign-in, which is for one project -
+ * sees exactly its own project.
+ */
+async function whoami(input: McpCredentialInput): Promise<JSONObject> {
+  const credential: McpCredential = McpCredentialUtil.from(input);
+
   const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
     method: "POST",
     path: "/api/project/get-list",
@@ -448,11 +605,10 @@ async function whoami(apiKey: string): Promise<JSONObject> {
       skip: 0,
       limit: 10,
     } as JSONObject,
-    apiKey,
+    credential: input,
   });
 
-  const rows: JSONArray =
-    ((response as JSONObject)?.["data"] as JSONArray) || [];
+  const rows: JSONArray = listRows(response);
   const projects: JSONArray = rows.map((row: unknown): JSONObject => {
     const projectRow: JSONObject = row as JSONObject;
     return {
@@ -460,6 +616,30 @@ async function whoami(apiKey: string): Promise<JSONObject> {
       projectName: projectRow["name"] || null,
     };
   });
+
+  if (credential.type === McpCredentialType.OAuth) {
+    const canWrite: boolean = McpCredentialUtil.canWrite(credential);
+
+    return {
+      success: true,
+      operation: "oneuptime_whoami",
+      projects,
+      authentication: "oauth",
+      signedInAs: {
+        email: credential.principal.user.email.toString(),
+        name: credential.principal.user.name,
+      },
+      client: credential.principal.grant.name || null,
+      access: canWrite ? "read-and-write" : "read-only",
+      message:
+        (projects.length > 0
+          ? "You are signed in with OAuth and act as this OneUptime user in the project above, with that user's permissions. projectId is inferred automatically on create operations."
+          : "You are signed in with OAuth, but this user cannot read the project - their teams may not grant read permission on Project.") +
+        (canWrite
+          ? ""
+          : " This connection is read-only: tools that create, update, delete, acknowledge or resolve will be refused until the user authorizes read and write access."),
+    } as JSONObject;
+  }
 
   return {
     success: true,

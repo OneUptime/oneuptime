@@ -35,6 +35,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * SLO Overview — the "are we within budget?" page.
@@ -56,6 +58,7 @@ import React, {
  * three times a minute.
  */
 const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const data: UseSloOverviewDataResult = useSloOverviewData({
@@ -270,7 +273,11 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       (item.labels as Array<Label> | undefined) || [];
 
                     if (labels.length === 0) {
-                      return <span className="text-gray-400">No labels</span>;
+                      return (
+                        <span className="text-gray-400">
+                          {translator.translateText("No labels")}
+                        </span>
+                      );
                     }
 
                     return <LabelsElement labels={labels} />;

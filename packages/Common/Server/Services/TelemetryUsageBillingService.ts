@@ -32,6 +32,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
+import StorageArrayService from "./StorageArrayService";
 import DatabaseServerService from "./DatabaseServerService";
 import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
@@ -42,8 +43,10 @@ import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -95,6 +98,27 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
       primaryEntityType as ServiceType,
     );
   };
+
+/*
+ * Metric names whose rows are never billed as ingested volume. The session
+ * replay budget sweep posts its oneuptime.rum.session.replay.budget.*
+ * readings every five minutes: OneUptime's own operational data about the
+ * customer's replay budget, like the SLO rows above, and billing them would
+ * charge a project for having recorded a replay.
+ *
+ * Left out by NAME, not by type: the rows keep primaryEntityType =
+ * RealUserMonitor, keyed to the application, so monitors scoped to that
+ * application see them - and the application's real web-vitals rows share
+ * that id and type, so an entity-type exclusion would stop billing those
+ * too. That is only safe because nothing but the budget sweep can write a
+ * name under the session replay prefix (isReservedMetricName in
+ * Common/Utils/SessionReplay/SessionReplayBudgetMetricType): OTLP ingest drops them,
+ * and a metric or trace recording rule cannot be saved with one as its
+ * output. So no customer telemetry can be stored under one of these names to
+ * be kept for free.
+ */
+export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
+  SessionReplayBudgetMetricTypeUtil.getAll();
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -329,12 +353,18 @@ export class Service extends DatabaseService<Model> {
           averageRowSizeInBytes,
         );
       } else if (data.productType === ProductType.Metrics) {
+        /*
+         * The session replay budget rows share their RUM application's
+         * (primaryEntityId, primaryEntityType) with its web vitals, so they
+         * can only be told apart - and left out - inside the scan.
+         */
         addUsage(
           await MetricService.groupTelemetryUsageByService({
             projectId: data.projectId,
             timestampColumnName: "time",
             startDate: startOfDay,
             endDate: endOfDay,
+            excludeNames: [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES],
           }),
           averageRowSizeInBytes,
         );
@@ -488,7 +518,7 @@ export class Service extends DatabaseService<Model> {
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
    * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster,
-   * DatabaseServer). Used to scale billed
+   * StorageArray, DatabaseServer). Used to scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.
@@ -626,6 +656,24 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           cephCluster.id.toString(),
           cephCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const storageArrays: Array<StorageArray> = await StorageArrayService.findBy(
+      {
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      },
+    );
+    for (const storageArray of storageArrays) {
+      if (storageArray.id && storageArray.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          storageArray.id.toString(),
+          storageArray.retainTelemetryDataForDays,
         );
       }
     }

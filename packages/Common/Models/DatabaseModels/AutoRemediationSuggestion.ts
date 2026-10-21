@@ -24,6 +24,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import { JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -250,6 +251,65 @@ export default class AutoRemediationSuggestion extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public kubernetesClusterId?: ObjectID = undefined;
+
+  /*
+   * Resource-level remediation: a suggestion produced by the AI remediation
+   * mode of an infrastructure resource other than a Kubernetes cluster (a
+   * Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, a
+   * vCenter, a database server or a host), through its resource AI agent.
+   * Like a cluster-level suggestion it has no rule; the resource's mode and
+   * allowlist play the rule's part. Two columns, not a relation: resourceId
+   * points into the table resourceType names, so it can have no foreign key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Resource Type",
+    description:
+      "The kind of resource whose AI remediation mode produced this suggestion (DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer or Host; resource-level remediation, no rule).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resourceType?: AiResourceType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Resource ID",
+    description:
+      "ID of the resource whose AI remediation mode produced this suggestion, in the table its resource type names.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public resourceId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -498,7 +558,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Suggestion Type",
     description:
-      "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan.",
+      "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan; McpToolCalls suggestions carry the tool calls OneUptime AI makes, or proposes, through the project's external MCP servers.",
     defaultValue: AutoRemediationSuggestionType.Runbook,
   })
   @Column({
@@ -536,6 +596,35 @@ export default class AutoRemediationSuggestion extends BaseModel {
     nullable: true,
   })
   public commandPlan?: JSONObject = undefined;
+
+  /*
+   * The fix OneUptime AI made, or proposes, through the project's external
+   * MCP servers (ExternalMcpToolCallPlan shape) for McpToolCalls
+   * suggestions: each tool call with its server, its arguments and, once
+   * made, what the server answered. Approval makes exactly the calls
+   * recorded here. Never holds a credential: a server is named by its id.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "MCP Tool Call Plan",
+    description:
+      "For McpToolCalls suggestions: the tool calls OneUptime AI made, or proposes, through the project's external MCP servers, with what each server answered once called.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public mcpToolCallPlan?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

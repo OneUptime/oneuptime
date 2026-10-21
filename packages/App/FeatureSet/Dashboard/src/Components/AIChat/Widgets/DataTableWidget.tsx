@@ -1,6 +1,8 @@
 import { AIChatWidget, AIChatWidgetColumn } from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -33,13 +35,16 @@ function renderCell(value: unknown, column: AIChatWidgetColumn): string {
 const DataTableWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const columns: Array<AIChatWidgetColumn> = props.widget.data.columns || [];
   const allRows: Array<JSONObject> = props.widget.data.rows || [];
   const rows: Array<JSONObject> = allRows.slice(0, MAX_ROWS);
 
   if (columns.length === 0 || rows.length === 0) {
     return (
-      <div className="py-3 text-center text-xs text-gray-400">No rows.</div>
+      <div className="py-3 text-center text-xs text-gray-400">
+        {translator.translateText("No rows.")}
+      </div>
     );
   }
 
@@ -91,7 +96,14 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
       </table>
       {allRows.length > rows.length && (
         <div className="px-2.5 py-1.5 text-[11px] text-gray-400">
-          Showing {rows.length} of {allRows.length} rows.
+          {translator.translatePlural(
+            {
+              one: "Showing {{shown}} of {{count}} row.",
+              other: "Showing {{shown}} of {{count}} rows.",
+            },
+            allRows.length,
+            { shown: translator.formatNumber(rows.length) },
+          )}
         </div>
       )}
     </div>

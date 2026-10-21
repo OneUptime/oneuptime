@@ -10,7 +10,7 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Scheduled Maintenance Title:" text=scheduledMaintenanceTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{#if isPrivateNote}}
 {{> DetailBoxField title="Private Note: " text=note  }}
 {{else}}

@@ -67,7 +67,6 @@ jest.mock("../../../Server/Services/MonitorService", () => {
       create: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
-      countBy: jest.fn(),
       deleteBy: jest.fn(),
       updateBy: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
@@ -149,6 +148,7 @@ import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPoli
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
@@ -164,8 +164,8 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkAlertPolicyScope from "../../../Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -204,8 +204,13 @@ const monitorFindByMock: jest.Mock =
   MonitorService.findBy as unknown as jest.Mock;
 const monitorFindOneByMock: jest.Mock =
   MonitorService.findOneBy as unknown as jest.Mock;
-const monitorCountByMock: jest.Mock =
-  MonitorService.countBy as unknown as jest.Mock;
+/*
+ * The project's active monitors, as the plan's limit counts them
+ * (ActiveMonitorLimit) - the one count every monitor create is held to.
+ */
+const countActiveMonitorsMock: SpyInstance<
+  typeof ActiveMonitorLimit.countActiveMonitors
+> = jest.spyOn(ActiveMonitorLimit, "countActiveMonitors");
 const monitorDeleteByMock: jest.Mock =
   MonitorService.deleteBy as unknown as jest.Mock;
 const monitorUpdateByMock: jest.Mock =
@@ -526,7 +531,7 @@ function installFakeTables(): void {
     plan: PlanType.Growth,
     isSubscriptionUnpaid: false,
   });
-  monitorCountByMock.mockResolvedValue(new PositiveNumber(0));
+  countActiveMonitorsMock.mockResolvedValue(0);
 }
 
 function monitorTemplate(id: ObjectID, name: string): MonitorTemplate {
@@ -1268,7 +1273,7 @@ describe("the plan check", () => {
       plan: PlanType.Free,
       isSubscriptionUnpaid: false,
     });
-    monitorCountByMock.mockResolvedValue(new PositiveNumber(10));
+    countActiveMonitorsMock.mockResolvedValue(10);
 
     const context: PolicyRunContext =
       await NetworkAlertPolicyEngineService.reconcileDevice({
@@ -1277,7 +1282,62 @@ describe("the plan check", () => {
       });
 
     expect(monitorCreateMock).not.toHaveBeenCalled();
-    expect(context.planException).toContain("free plan");
+    expect(context.isStopped).toBe(true);
+    expect(context.planException).toBe(
+      "This project has reached the Free plan's limit of 10 active monitors, so no more can be added. Upgrade the plan in Project Settings > Billing and Invoices > Billing to add more. Manual monitors do not count towards the limit; monitors that are turned off or archived do. Alert policies provision the rest of their monitors on the next sync once there is room.",
+    );
+  });
+
+  /*
+   * A plan bought from a reseller caps active monitors at its own number
+   * (Project.activeMonitorsLimit, read with the plan). A project already
+   * past it - 2,881 on a plan of 500 - gets one message and no creates,
+   * and the monitors it has are left alone.
+   */
+  it("stops the run when the project's own plan limit is reached or passed", async () => {
+    deviceTable = [device()];
+    policyTable = [policy()];
+    currentPlanMock.mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+      activeMonitorsLimit: 500,
+    });
+    countActiveMonitorsMock.mockResolvedValue(2881);
+
+    const context: PolicyRunContext =
+      await NetworkAlertPolicyEngineService.reconcileDevice({
+        projectId: PROJECT_ID,
+        deviceId: DEVICE_ID,
+      });
+
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(monitorDeleteByMock).not.toHaveBeenCalled();
+    expect(context.isStopped).toBe(true);
+    expect(context.planException).toContain(
+      "This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500.",
+    );
+    expect(context.planException).toContain("change the plan");
+  });
+
+  it("provisions on a plan of its own while it has room", async () => {
+    deviceTable = [device()];
+    policyTable = [policy()];
+    currentPlanMock.mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+      activeMonitorsLimit: 500,
+    });
+    countActiveMonitorsMock.mockResolvedValue(499);
+
+    const context: PolicyRunContext =
+      await NetworkAlertPolicyEngineService.reconcileDevice({
+        projectId: PROJECT_ID,
+        deviceId: DEVICE_ID,
+      });
+
+    expect(context.isStopped).toBe(false);
+    expect(context.planException ?? null).toBeNull();
+    expect(monitorCreateMock).toHaveBeenCalledTimes(1);
   });
 
   /*
@@ -1317,9 +1377,7 @@ describe("the plan check", () => {
       plan: PlanType.Free,
       isSubscriptionUnpaid: false,
     });
-    monitorCountByMock
-      .mockResolvedValueOnce(new PositiveNumber(9))
-      .mockResolvedValue(new PositiveNumber(10));
+    countActiveMonitorsMock.mockResolvedValueOnce(9).mockResolvedValue(10);
     monitorCreateMock.mockRejectedValueOnce(
       new BadDataException("monitor limit reached"),
     );
@@ -1334,7 +1392,7 @@ describe("the plan check", () => {
     });
 
     expect(context.isStopped).toBe(true);
-    expect(context.planException).toContain("free plan");
+    expect(context.planException).toContain("Free plan's limit of 10");
     // The second device was never attempted.
     expect(monitorCreateMock).toHaveBeenCalledTimes(1);
   });

@@ -55,10 +55,14 @@ enum IconProp {
   Graph = "Graph",
   Variable = "Variable",
   ListBullet = "ListBullet",
+  Indent = "Indent",
+  Outdent = "Outdent",
   Image = "Image",
   Grid = "Grid",
   More = "More",
   Condition = "Condition",
+  // One path splitting into several: a workflow's Switch / Case step.
+  Switch = "Switch",
   Activity = "Activity",
   Alert = "Alert",
   Call = "Call",
@@ -151,6 +155,12 @@ enum IconProp {
   ChartPie = "ChartPie",
   Heartbeat = "Heartbeat",
   Waterfall = "Waterfall",
+  /*
+   * Things laid out over time, one after another: a status timeline's
+   * Timeline view, and every page that draws one (status and state
+   * timelines, the on-call Schedule Timeline).
+   */
+  Timeline = "Timeline",
   ArrowDown = "ArrowDown",
   ArrowUp = "ArrowUp",
   ArrowLeft = "ArrowLeft",
@@ -331,6 +341,7 @@ enum IconProp {
   VMware = "VMware",
   IoT = "IoT",
   Ceph = "Ceph",
+  StorageArray = "StorageArray",
   Gauge = "Gauge",
 }
 

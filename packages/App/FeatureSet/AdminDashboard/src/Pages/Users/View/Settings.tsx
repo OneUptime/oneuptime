@@ -3,19 +3,80 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import Navigation from "Common/UI/Utils/Navigation";
+import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import SideMenuComponent from "./SideMenu";
 import User from "Common/Models/DatabaseModels/User";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "Common/UI/Components/Types/FieldType";
+
+/*
+ * A user's Settings: whether they are a master admin, as one switch that
+ * saves the moment it is flipped (the shared ModelSwitchCard, through
+ * AdminModelAPI). It used to be a card whose Update Access dialog held the
+ * one switch.
+ *
+ * It asks both ways, because both ways change who can run this server:
+ *   - making someone a master admin gives them full access to the entire
+ *     platform - every project, every user and this Admin Dashboard, where
+ *     they can make others master admins too;
+ *   - removing it takes this Admin Dashboard away from them. On your own
+ *     account that locks you out of this page as you confirm, and only
+ *     another master admin can give the access back, so that dialog says
+ *     so and its button is red.
+ */
+
+export const MASTER_ADMIN_SWITCH_TEST_ID: string = "admin-master-admin-switch";
+
+// The page's locale lookup: a key of pages.userView in, its text out.
+type Translate = (key: string) => string;
+
+export const getMasterAdminConfirmation: (data: {
+  isTurningOn: boolean;
+  isOwnAccount: boolean;
+  t: Translate;
+}) => ModelSwitchConfirmation = (data: {
+  isTurningOn: boolean;
+  isOwnAccount: boolean;
+  t: Translate;
+}): ModelSwitchConfirmation => {
+  const t: Translate = data.t;
+
+  if (data.isTurningOn) {
+    return {
+      title: t("pages.userView.masterAdminGrantConfirmTitle"),
+      description: t("pages.userView.masterAdminGrantConfirmDescription"),
+      submitButtonText: t("pages.userView.masterAdminGrantConfirmButton"),
+    };
+  }
+
+  if (data.isOwnAccount) {
+    return {
+      title: t("pages.userView.masterAdminRevokeOwnConfirmTitle"),
+      description: t("pages.userView.masterAdminRevokeOwnConfirmDescription"),
+      submitButtonText: t("pages.userView.masterAdminRevokeOwnConfirmButton"),
+      submitButtonType: ButtonStyleType.DANGER,
+    };
+  }
+
+  return {
+    title: t("pages.userView.masterAdminRevokeConfirmTitle"),
+    description: t("pages.userView.masterAdminRevokeConfirmDescription"),
+    submitButtonText: t("pages.userView.masterAdminRevokeConfirmButton"),
+  };
+};
 
 const UserSettings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  // Whether this page is the signed-in master admin's own account.
+  const isOwnAccount: boolean =
+    UserUtil.getUserId().toString() === modelId.toString();
 
   return (
     <ModelPage<User>
@@ -54,42 +115,29 @@ const UserSettings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<SideMenuComponent modelId={modelId} />}
     >
-      <CardModelDetail<User>
-        name="user-master-admin-settings"
+      <ModelSwitchCard<User>
+        modelType={User}
+        modelId={modelId}
+        column="isMasterAdmin"
         modelAPI={AdminModelAPI}
-        cardProps={{
-          title: t("pages.userView.masterAdminCardTitle"),
-          description: t("pages.userView.masterAdminCardDescription"),
+        cardTitle={t("pages.userView.masterAdminCardTitle")}
+        cardDescription={t("pages.userView.masterAdminCardDescription")}
+        title={t("pages.userView.masterAdminSwitchTitle")}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? t("pages.userView.masterAdminSwitchOnDescription")
+            : t("pages.userView.masterAdminSwitchOffDescription");
         }}
-        isEditable={true}
-        editButtonText={t("pages.userView.masterAdminEditButton")}
-        formFields={[
-          {
-            field: {
-              isMasterAdmin: true,
+        getConfirmation={(isTurningOn: boolean): ModelSwitchConfirmation => {
+          return getMasterAdminConfirmation({
+            isTurningOn: isTurningOn,
+            isOwnAccount: isOwnAccount,
+            t: (key: string): string => {
+              return t(key);
             },
-            title: "Master Admin",
-            description:
-              "Enable to give this user full access to the entire platform.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: true,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: User,
-          id: "user-master-admin-settings-detail",
-          fields: [
-            {
-              field: {
-                isMasterAdmin: true,
-              },
-              title: "Master Admin",
-              fieldType: FieldType.Boolean,
-              placeholder: t("common.no"),
-            },
-          ],
-          modelId: modelId,
+          });
         }}
+        dataTestId={MASTER_ADMIN_SWITCH_TEST_ID}
       />
     </ModelPage>
   );

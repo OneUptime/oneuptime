@@ -1,15 +1,14 @@
-import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
+import EmailColorUtil from "../../Utils/Email/EmailColorUtil";
 import CallService from "./CallService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
+import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -28,6 +27,7 @@ import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
+import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleAdminService, {
   RuleColumnCarrier,
@@ -42,16 +42,12 @@ import OnCallReadinessService, {
 } from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
-import { AppApiRoute } from "../../ServiceRoute";
-import Hostname from "../../Types/API/Hostname";
-import Protocol from "../../Types/API/Protocol";
-import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CallRequest from "../../Types/Call/CallRequest";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Sort from "../Types/Database/Sort";
 import Dictionary from "../../Types/Dictionary";
@@ -61,7 +57,21 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import {
+  isCriticalPushNotification,
+  isPushNotificationLevel,
+  PUSH_NOTIFICATION_LEVELS,
+} from "../../Types/NotificationRule/PushNotificationLevel";
+import {
+  getRepeatEveryMinutes,
+  isRepeatEveryMinutes,
+  MAX_NOTIFICATION_REPEATS,
+  NO_NOTIFICATION_REPEAT,
+  REPEAT_EVERY_MINUTES_OPTIONS,
+} from "../../Types/NotificationRule/NotificationRepeat";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
@@ -94,6 +104,11 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
+import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
+import {
+  CANT_TAKE_IT_PASS_IT_ON,
+  getOnCallPageCallPassOnPrompt,
+} from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -119,9 +134,22 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
+import { ONEUPTIME_PRODUCT_NAME } from "../../Types/Branding/ProductBranding";
+import {
+  buildOnCallPageSms,
+  OnCallPageSmsKind,
+} from "../../Utils/Sms/OnCallPageSms";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import EpisodeMemberEmailList, {
+  ALERT_NUMBER_BADGE,
+  EpisodeMemberEmailListItem,
+  INCIDENT_NUMBER_BADGE,
+} from "../Utils/Mail/EpisodeMemberEmailList";
 
 export interface NotificationMethodDescriptor {
   userEmailId?: ObjectID;
@@ -158,6 +186,13 @@ export interface ExecuteNotificationRuleOptions {
   userBelongsToTeamId?: ObjectID | undefined;
   onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
   onCallScheduleId?: ObjectID | undefined;
+  /*
+   * Which repeat of the rule this is (NotificationRepeat), 1 for the first
+   * push sent again; absent for the rule's first push. A repeat is claimed on
+   * the on-call log under a key of its own, so it is sent once whatever the
+   * first push's claim says.
+   */
+  repeatNumber?: number | undefined;
 }
 
 export interface ExecuteFallbackNotificationOptions
@@ -207,6 +242,14 @@ export enum FallbackNotificationOutcome {
    * the responder is unreachable, so none of them justifies a terminal status.
    */
   DeliveryFailed = "DeliveryFailed",
+
+  /*
+   * The person paged is not a member of the project - they left, or never
+   * accepted their invitation - so nothing is sent on the project's behalf
+   * to them, and none of their methods is looked at. Final, and not a
+   * configuration problem anybody has to fix: there is nobody to reach.
+   */
+  NotAProjectMember = "NotAProjectMember",
 }
 
 export interface FallbackNotificationResult {
@@ -582,7 +625,17 @@ const responderSourceProse: ResponderSourceProseFunction = (
 const DELETION_IMPACT_PAGE_SIZE: number = LIMIT_PER_PROJECT;
 const MAX_DELETION_IMPACT_PAGES: number = 50;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * Why the person a page reached cannot be added to the channels of the
+ * record it was for (runWorkspaceRulesForOnCallNotification): the page named
+ * no record, or more than one.
+ */
+export const ON_CALL_INVITE_RECORD_MISSING_MESSAGE: string =
+  "An incident, an alert or an episode is required.";
+export const ON_CALL_INVITE_RECORDS_MIXED_MESSAGE: string =
+  "A page is for one record: an incident, an alert or an episode.";
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -603,6 +656,7 @@ export class Service extends DatabaseService<Model> {
       await UserOnCallLogService.claimNotificationRuleExecution({
         userOnCallLogId: options.userNotificationLogId,
         userNotificationRuleId: userNotificationRuleId,
+        repeatNumber: options.repeatNumber,
       });
 
     if (!claimedRuleExecution) {
@@ -616,6 +670,14 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         userId: true,
+        /*
+         * Whether this rule's push may ring through silent mode, the rule's
+         * half of the decision the device's isCriticalAlertEnabled below is
+         * the other half of. Unselected it would read as the default,
+         * Critical, so a rule set to Standard would keep ringing through - the
+         * responder told it not to, and it is selected here so it obeys.
+         */
+        pushNotificationLevel: true,
         /*
          * Every method relation also selects its OWN userId, which none of the
          * channel blocks below read. It is here for the ownership check that
@@ -681,6 +743,13 @@ export class Service extends DatabaseService<Model> {
            * that cannot happen.
            */
           isCriticalAlertEnabled: true,
+          /*
+           * The alarm and volume the handset chose. Unselected they read as
+           * the defaults, so the page would play the system sound at full
+           * volume instead of the one its owner picked.
+           */
+          criticalAlertSound: true,
+          criticalAlertVolume: true,
         },
       },
       props: {
@@ -718,7 +787,35 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    if (options.repeatNumber && options.repeatNumber > 0) {
+      this.keepOnlyPushMethod(notificationRuleItem);
+    }
+
     await this.deliverNotificationForRule(notificationRuleItem, options);
+  }
+
+  /*
+   * A repeat sends the rule's push again - and only its push. Repeating is
+   * offered on push rules, and the write guards refuse it on a rule without a
+   * push device, but a rule written through the API can carry an email, a
+   * text or a call beside its phone. Those went out once, with the first
+   * push: a repeat never calls a phone line or sends another message, whatever
+   * else the rule names. The rule was read for this delivery alone, so it is
+   * changed in place.
+   */
+  private keepOnlyPushMethod(notificationRuleItem: Model): void {
+    const rule: Record<string, unknown> =
+      notificationRuleItem as unknown as Record<string, unknown>;
+
+    for (const idColumn of UserNotificationRuleAdminService.getNotificationMethodIdColumns()) {
+      if (idColumn === "userPushId") {
+        continue;
+      }
+
+      rule[idColumn] = undefined;
+      // The relation beside it: the id column's name without "Id".
+      rule[idColumn.replace(/Id$/, "")] = undefined;
+    }
   }
 
   /*
@@ -975,23 +1072,20 @@ export class Service extends DatabaseService<Model> {
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           rootCause: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           /*
-           * AcknowledgeIncident.hbs asks for a Resources Affected row and
-           * the generator had nothing to build it from, so the row was
-           * silently dropped — the same `{{#if}}` swallow that hid the
-           * alert's Root Cause.
+           * No relations here: AcknowledgeIncident.hbs's Resources Affected
+           * row is built from every resource the incident is linked to,
+           * which generateEmailTemplateForIncidentCreated reads itself.
            */
-          monitors: {
-            _id: true,
-            name: true,
-          },
         },
       });
     }
@@ -1016,9 +1110,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
           alertNumber: true,
           alertNumberWithPrefix: true,
@@ -1031,11 +1127,13 @@ export class Service extends DatabaseService<Model> {
            * select it.
            */
           rootCause: true,
-          // Same story for the template's Resources Affected row.
-          monitor: {
-            _id: true,
-            name: true,
-          },
+          /*
+           * The series a grouped monitor raised this alert for (the pod or
+           * container), which the Resources Affected row names in place of
+           * the monitor - as the alert owner emails do. The linked resources
+           * themselves are read by generateEmailTemplateForAlertCreated.
+           */
+          seriesLabels: true,
         },
       });
     }
@@ -1060,9 +1158,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
           episodeNumber: true,
           episodeNumberWithPrefix: true,
@@ -1093,9 +1193,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           episodeNumber: true,
           episodeNumberWithPrefix: true,
@@ -2570,12 +2672,16 @@ export class Service extends DatabaseService<Model> {
        * This is the on-call paging path - the notification that exists to wake
        * somebody at 3am - so it is the only push in the product allowed to
        * override the ringer switch, and then only for a device whose owner
-       * turned the option on. Owner subscriptions and note-posted notifications
-       * go out through UserNotificationSettingService and never set this.
+       * turned the option on, from a rule its owner left at Critical (a rule
+       * set to Standard pages that severity quietly). Owner subscriptions and
+       * note-posted notifications go out through UserNotificationSettingService
+       * and never set this.
        */
-      const isCriticalAlert: boolean = Boolean(
-        notificationRuleItem.userPush.isCriticalAlertEnabled,
-      );
+      const isCriticalAlert: boolean = isCriticalPushNotification({
+        pushNotificationLevel: notificationRuleItem.pushNotificationLevel,
+        isDeviceCriticalAlertEnabled:
+          notificationRuleItem.userPush.isCriticalAlertEnabled,
+      });
       // send push notification for alert
       if (
         options.userNotificationEventType ===
@@ -2585,7 +2691,9 @@ export class Service extends DatabaseService<Model> {
         // create a log.
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2599,7 +2707,8 @@ export class Service extends DatabaseService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createAlertCreatedNotification({
             alertTitle: alert.title!,
-            projectName: alert.project?.name || "OneUptime",
+            projectName:
+              alert.project?.name || ProductBrandingText.getProductName(),
             alertViewLink: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,
@@ -2617,6 +2726,10 @@ export class Service extends DatabaseService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2668,7 +2781,9 @@ export class Service extends DatabaseService<Model> {
         // create a log.
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2682,7 +2797,8 @@ export class Service extends DatabaseService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createIncidentCreatedNotification({
             incidentTitle: incident.title!,
-            projectName: incident.project?.name || "OneUptime",
+            projectName:
+              incident.project?.name || ProductBrandingText.getProductName(),
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,
@@ -2700,6 +2816,10 @@ export class Service extends DatabaseService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2750,7 +2870,9 @@ export class Service extends DatabaseService<Model> {
       ) {
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2764,7 +2886,9 @@ export class Service extends DatabaseService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createAlertEpisodeCreatedNotification({
             alertEpisodeTitle: alertEpisode.title!,
-            projectName: alertEpisode.project?.name || "OneUptime",
+            projectName:
+              alertEpisode.project?.name ||
+              ProductBrandingText.getProductName(),
             alertEpisodeViewLink: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(
                 alertEpisode.projectId!,
@@ -2782,6 +2906,10 @@ export class Service extends DatabaseService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         PushNotificationService.sendPushNotification(
           {
@@ -2831,7 +2959,9 @@ export class Service extends DatabaseService<Model> {
       ) {
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2845,7 +2975,9 @@ export class Service extends DatabaseService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createIncidentEpisodeCreatedNotification({
             incidentEpisodeTitle: incidentEpisode.title!,
-            projectName: incidentEpisode.project?.name || "OneUptime",
+            projectName:
+              incidentEpisode.project?.name ||
+              ProductBrandingText.getProductName(),
             incidentEpisodeViewLink: (
               await IncidentEpisodeService.getEpisodeLinkInDashboard(
                 incidentEpisode.projectId!,
@@ -2863,6 +2995,10 @@ export class Service extends DatabaseService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         PushNotificationService.sendPushNotification(
           {
@@ -2908,9 +3044,17 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userPush?.deviceToken &&
       !notificationRuleItem.userPush?.isVerified
     ) {
-      // create a log.
+      /*
+       * A push device stops being verified when its push service or Expo
+       * says it is gone (UserPushService.markWebPushSubscriptionAsGone,
+       * markExpoPushTokenAsGone). "Device is not verified" told on-call
+       * nothing they could act on; this says what to do.
+       */
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Push notification not sent because device is not verified.`;
+      logTimelineItem.statusMessage =
+        PushNotificationService.getNotSentToUnverifiedDeviceMessage(
+          notificationRuleItem.userPush.deviceType,
+        );
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -3106,6 +3250,16 @@ export class Service extends DatabaseService<Model> {
     );
 
     /*
+     * The page's notification: its headline and what it is about, read off
+     * the message - "🚨 New incident assigned to you: INC-8 — Checkout is
+     * down" - so a locked phone says why it buzzed.
+     */
+    const notificationText: string | undefined =
+      WorkspaceNotificationText.fromBlocks(messageBlocks, {
+        isFirstParagraphAHeadline: true,
+      });
+
+    /*
      * Fire-and-forget like every other channel: the sender flips the timeline
      * row to Sent / Error itself, and the .catch is the safety net for a
      * rejection raised before it gets that far.
@@ -3115,6 +3269,7 @@ export class Service extends DatabaseService<Model> {
       workspaceType: data.workspaceType,
       workspaceUserId: data.workspaceUserId,
       messageBlocks: messageBlocks,
+      notificationText: notificationText,
       messageSummary: messageSummary,
       userId: data.notificationRuleItem.userId!,
       userOnCallLogTimelineId: updatedLog.id!,
@@ -3263,6 +3418,26 @@ export class Service extends DatabaseService<Model> {
        */
       return {
         outcome: FallbackNotificationOutcome.DeliveryFailed,
+        notified: false,
+        channelsUsed: [],
+      };
+    }
+
+    /*
+     * Nothing is delivered on a project's behalf to somebody who is not a
+     * member of it (ProjectMembership), however the fallback was reached: a
+     * method a person who has left still holds is never used. Read from the
+     * database; a failed read throws, and the caller records the fallback as
+     * failed rather than sending.
+     */
+    if (
+      !(await ProjectMembership.isMember({
+        projectId: options.projectId,
+        userId: options.userId,
+      }))
+    ) {
+      return {
+        outcome: FallbackNotificationOutcome.NotAProjectMember,
         notified: false,
         channelsUsed: [],
       };
@@ -3654,10 +3829,6 @@ export class Service extends DatabaseService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const alertIdentifier: string =
       alert.alertNumber !== undefined
         ? `Alert number ${alert.alertNumber}, ${alert.title || "Alert"}`
@@ -3676,7 +3847,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: alertIdentifier,
         },
         {
-          introMessage: "To acknowledge this alert press 1",
+          introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3688,14 +3859,9 @@ export class Service extends DatabaseService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3710,10 +3876,6 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
         ? `Incident number ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title || "Incident"}`
@@ -3732,7 +3894,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: incidentIdentifier,
         },
         {
-          introMessage: "To acknowledge this incident press 1",
+          introMessage: `To acknowledge this incident, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3744,14 +3906,9 @@ export class Service extends DatabaseService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3766,10 +3923,6 @@ export class Service extends DatabaseService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
       ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
       : alertEpisode.episodeNumber !== undefined
@@ -3789,7 +3942,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: episodeIdentifier,
         },
         {
-          introMessage: "To acknowledge this alert episode press 1",
+          introMessage: `To acknowledge this alert episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3801,14 +3954,9 @@ export class Service extends DatabaseService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3823,10 +3971,6 @@ export class Service extends DatabaseService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
       ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
       : incidentEpisode.episodeNumber !== undefined
@@ -3846,7 +3990,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: episodeIdentifier,
         },
         {
-          introMessage: "To acknowledge this incident episode press 1",
+          introMessage: `To acknowledge this incident episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3859,14 +4003,9 @@ export class Service extends DatabaseService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3881,31 +4020,22 @@ export class Service extends DatabaseService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
-    );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
-
-    const alertIdentifier: string =
-      alert.alertNumber !== undefined
-        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title || "Alert"})`
-        : alert.title || "Alert";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.Alert,
+        severityName: alert.alertSeverity?.name,
+        number: this.getRecordNumberText(
+          alert.alertNumberWithPrefix,
+          alert.alertNumber,
+        ),
+        projectName: alert.project?.name,
+        title: alert.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -3914,31 +4044,22 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
-    );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
-
-    const incidentIdentifier: string =
-      incident.incidentNumber !== undefined
-        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title || "Incident"})`
-        : incident.title || "Incident";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.Incident,
+        severityName: incident.incidentSeverity?.name,
+        number: this.getRecordNumberText(
+          incident.incidentNumberWithPrefix,
+          incident.incidentNumber,
+        ),
+        projectName: incident.project?.name,
+        title: incident.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -3947,32 +4068,22 @@ export class Service extends DatabaseService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
-    );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
-
-    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
-      ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
-      : alertEpisode.episodeNumber !== undefined
-        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
-        : alertEpisode.title || "Alert Episode";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.AlertEpisode,
+        severityName: alertEpisode.alertSeverity?.name,
+        number: this.getRecordNumberText(
+          alertEpisode.episodeNumberWithPrefix,
+          alertEpisode.episodeNumber,
+        ),
+        projectName: alertEpisode.project?.name,
+        title: alertEpisode.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -3981,51 +4092,106 @@ export class Service extends DatabaseService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
-      userOnCallLogTimelineId,
-    );
-
-    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
-      ? `${incidentEpisode.episodeNumberWithPrefix} (${incidentEpisode.title || "Incident Episode"})`
-      : incidentEpisode.episodeNumber !== undefined
-        ? `#${incidentEpisode.episodeNumber} (${incidentEpisode.title || "Incident Episode"})`
-        : incidentEpisode.title || "Incident Episode";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new incident episode has been created: ${episodeIdentifier}. To acknowledge this incident episode, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.IncidentEpisode,
+        severityName: incidentEpisode.incidentSeverity?.name,
+        number: this.getRecordNumberText(
+          incidentEpisode.episodeNumberWithPrefix,
+          incidentEpisode.episodeNumber,
+        ),
+        projectName: incidentEpisode.project?.name,
+        title: incidentEpisode.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
+  /*
+   * A page's text message: who sends it, the severity and what happened,
+   * its number, the project, the title and the one link - fitted to one
+   * 160-character part wherever it can be (Utils/Sms/OnCallPageSms says
+   * how, and what gives way first).
+   *
+   * It is written with OneUptime as the sender, as every SMS is: the
+   * Notification service puts the installation's own name in place of
+   * OneUptime when it goes by one (ProductBrandingText.brandText), once, on
+   * the whole text. The text is fitted as it will be sent, after that
+   * renaming, so a longer name never pushes it into a second part.
+   */
+  private buildOnCallPageSmsText(data: {
+    kind: OnCallPageSmsKind;
+    severityName: string | undefined;
+    number: string | undefined;
+    projectName: string | undefined;
+    title: string | undefined;
+    link: URL;
+  }): string {
+    return buildOnCallPageSms({
+      kind: data.kind,
+      productName: ONEUPTIME_PRODUCT_NAME,
+      severityName: data.severityName,
+      number: data.number,
+      projectName: data.projectName,
+      title: data.title,
+      link: data.link.toString(),
+      sentAs: (text: string): string => {
+        return ProductBrandingText.brandText(text);
+      },
+    }).text;
+  }
+
+  // INC-42 with the project's prefix, #42 without one, none without a number.
+  private getRecordNumberText(
+    numberWithPrefix: string | null | undefined,
+    number: number | null | undefined,
+  ): string | undefined {
+    if (numberWithPrefix) {
+      return numberWithPrefix;
+    }
+
+    return number !== undefined && number !== null ? `#${number}` : undefined;
+  }
+
+  /*
+   * The short link of a page's acknowledge page. It carries the page's
+   * token (OnCallPageLinks), so the page offers "Can't take it? Pass it on"
+   * beside Acknowledge: a text, a WhatsApp message and a Telegram or chat
+   * message lead there.
+   */
   private async buildOnCallAcknowledgeShortUrl(
     userOnCallLogTimelineId: ObjectID,
   ): Promise<URL> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
+      await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId),
+    );
+    return await ShortLinkService.getShortenedUrl(shortUrl);
+  }
+
+  // The short link of a page's "Can't take it? Pass it on" page.
+  private async buildOnCallPassOnShortUrl(
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<URL> {
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId),
     );
     return await ShortLinkService.getShortenedUrl(shortUrl);
   }
 
   /*
-   * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. Only <, >, and &
-   * need escaping inside those tags' text content.
+   * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. <, > and &
+   * need escaping in those tags' text content; a value also goes inside an
+   * <a href="..."> attribute, so " is escaped as well (Telegram reads &quot;).
    */
   private escapeTelegramHtml(value: string): string {
     return value
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   @CaptureSpan()
@@ -4034,6 +4200,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4064,6 +4234,8 @@ export class Service extends DatabaseService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4075,6 +4247,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4106,6 +4282,8 @@ export class Service extends DatabaseService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4117,6 +4295,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4149,6 +4331,8 @@ export class Service extends DatabaseService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4160,6 +4344,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4192,6 +4380,8 @@ export class Service extends DatabaseService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4215,11 +4405,19 @@ export class Service extends DatabaseService<Model> {
     dashboardUrl: URL | null;
     dashboardLinkText: string;
     ackUrl: URL;
+    // "Can't take it? Pass it on" (OnCallPagePassOn).
+    passOnUrl: URL;
   }): Array<WorkspaceMessageBlock> {
     const lines: Array<string> = [
-      `🚨 **${data.headline}**`,
+      mdText`🚨 **${data.headline}**`.toString(),
       "",
-      `📋 **${data.identifier}**`,
+      /*
+       * The identifier ends with a title - plain text, which anyone holding
+       * an incident form's link may have typed - escaped as MarkdownEscape
+       * says a title must be, so it cannot become an image or a link that
+       * hides where it goes.
+       */
+      mdText`📋 **${data.identifier}**`.toString(),
       "",
       "👤 You're getting this because you're on call.",
     ];
@@ -4227,11 +4425,16 @@ export class Service extends DatabaseService<Model> {
     if (data.dashboardUrl) {
       lines.push(
         "",
-        `🔎 [${data.dashboardLinkText}](${data.dashboardUrl.toString()})`,
+        mdText`🔎 [${data.dashboardLinkText}](${data.dashboardUrl.toString()})`.toString(),
       );
     }
 
-    lines.push("", `✅ [Acknowledge](${data.ackUrl.toString()})`);
+    lines.push(
+      "",
+      mdText`✅ [Acknowledge](${data.ackUrl.toString()})`.toString(),
+      "",
+      mdText`⏭️ [${CANT_TAKE_IT_PASS_IT_ON}](${data.passOnUrl.toString()})`.toString(),
+    );
 
     const markdownBlock: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
@@ -4247,6 +4450,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4270,6 +4477,7 @@ export class Service extends DatabaseService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4279,6 +4487,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4302,6 +4514,7 @@ export class Service extends DatabaseService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4311,6 +4524,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4335,6 +4552,7 @@ export class Service extends DatabaseService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert episode in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4344,6 +4562,10 @@ export class Service extends DatabaseService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4368,6 +4590,7 @@ export class Service extends DatabaseService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident episode in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4377,24 +4600,13 @@ export class Service extends DatabaseService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const alertLinkOnDashboard: string =
       alert.projectId && alert.id
@@ -4433,24 +4645,13 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const incidentLinkOnDashboard: string =
       incident.projectId && incident.id
@@ -4491,24 +4692,13 @@ export class Service extends DatabaseService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const episodeLinkOnDashboard: string =
       alertEpisode.projectId && alertEpisode.id
@@ -4596,9 +4786,6 @@ export class Service extends DatabaseService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const alertNumber: string =
       alert.alertNumberWithPrefix ||
       (alert.alertNumber ? `#${alert.alertNumber}` : "");
@@ -4608,12 +4795,35 @@ export class Service extends DatabaseService<Model> {
       alertNumber: alertNumber,
       projectName: alert.project!.name!,
       currentState: alert.currentAlertState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alert.currentAlertState?.color,
+      ),
       alertDescription: await Markdown.convertToHTML(
         alert.description! || "",
         MarkdownContentType.Email,
       ),
       alertSeverity: alert.alertSeverity!.name!,
-      resourcesAffected: alert.monitor?.name || "No resources identified",
+      ...EmailColorUtil.getTemplateVariables(
+        "alertSeverity",
+        alert.alertSeverity?.color,
+      ),
+      /*
+       * Every resource the alert's Affected Resources card lists. An SLO
+       * burn-rate alert has no monitor, and this used to read "No resources
+       * identified" beside a card naming its SLO.
+       */
+      resourcesAffected: LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+        fallback: "No resources identified",
+      }),
       rootCause: await Markdown.convertToHTML(
         alert.rootCause || "No root cause identified for this alert",
         MarkdownContentType.Email,
@@ -4621,12 +4831,18 @@ export class Service extends DatabaseService<Model> {
       alertViewLink: (
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
-      acknowledgeAlertLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeAlertLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -4647,9 +4863,6 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const incidentNumber: string =
       incident.incidentNumberWithPrefix ||
       (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
@@ -4659,20 +4872,28 @@ export class Service extends DatabaseService<Model> {
       incidentNumber: incidentNumber,
       projectName: incident.project!.name!,
       currentState: incident.currentIncidentState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incident.currentIncidentState?.color,
+      ),
       incidentDescription: await Markdown.convertToHTML(
         incident.description! || "",
         MarkdownContentType.Email,
       ),
       incidentSeverity: incident.incidentSeverity!.name!,
-      resourcesAffected:
-        (incident.monitors || [])
-          .map((monitor: Monitor): string => {
-            return monitor.name || "";
-          })
-          .filter((name: string): boolean => {
-            return name.length > 0;
-          })
-          .join(", ") || "No resources identified",
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        incident.incidentSeverity?.color,
+      ),
+      // Every resource the incident's Affected Resources card lists.
+      resourcesAffected: LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        }),
+        fallback: "No resources identified",
+      }),
       rootCause: await Markdown.convertToHTML(
         incident.rootCause || "No root cause identified for this incident",
         MarkdownContentType.Email,
@@ -4683,12 +4904,18 @@ export class Service extends DatabaseService<Model> {
           incident.id!,
         )
       ).toString(),
-      acknowledgeIncidentLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeIncidentLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -4709,9 +4936,6 @@ export class Service extends DatabaseService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     // Fetch alerts that are members of this episode
     const episodeMembers: Array<AlertEpisodeMember> =
       await AlertEpisodeMemberService.findBy({
@@ -4762,69 +4986,43 @@ export class Service extends DatabaseService<Model> {
           })
         : [];
 
-    // Get unique monitors (resources affected)
-    const monitorNames: Set<string> = new Set();
+    // Every resource any alert in the episode is linked to, each named once.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForAlerts({
+        service: AlertService,
+        projectId: alertEpisode.projectId!,
+        alertIds: alertIds,
+      }),
+      fallback: "No resources identified",
+    });
+
+    /*
+     * The episode's alerts, one row each, with dividers only between rows
+     * (EpisodeMemberEmailList). Empty when the episode has none, and the
+     * template leaves the section out.
+     */
+    const alertItems: Array<EpisodeMemberEmailListItem> = [];
+
     for (const alert of alerts) {
-      if (alert.monitor?.name) {
-        monitorNames.add(alert.monitor.name);
-      }
-    }
-
-    const resourcesAffected: string =
-      monitorNames.size > 0
-        ? Array.from(monitorNames).join(", ")
-        : "No resources identified";
-
-    // Build alerts list HTML with proper email styling
-    let alertsListHtml: string = "";
-    if (alerts.length > 0) {
-      const alertRows: string[] = [];
-      for (const alert of alerts) {
-        const alertTitle: string = Markdown.escapeHtml(
-          alert.title || "Untitled Alert",
-        );
-        const alertNumber: string =
+      alertItems.push({
+        number:
           alert.alertNumberWithPrefix ||
-          (alert.alertNumber ? `#${alert.alertNumber}` : "");
-        const alertLink: string = (
+          (alert.alertNumber ? `#${alert.alertNumber}` : ""),
+        title: alert.title || "Untitled Alert",
+        link: (
           await AlertService.getAlertLinkInDashboard(
             alertEpisode.projectId!,
             alert.id!,
           )
-        ).toString();
-        const monitorName: string = Markdown.escapeHtml(
-          alert.monitor?.name || "",
-        );
-
-        alertRows.push(`
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
-                  <tr>
-                    <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #f1f5f9; color: #111111; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
-                      <a href="${alertLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
-                    </td>
-                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${alertLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          `);
-      }
-      if (alertRows.length > 0) {
-        alertsListHtml = `
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <tbody>
-              ${alertRows.join("")}
-            </tbody>
-          </table>
-        `;
-      }
+        ).toString(),
+        monitorName: alert.monitor?.name || "",
+      });
     }
+
+    const alertsListHtml: string = EpisodeMemberEmailList.toHtml(
+      alertItems,
+      ALERT_NUMBER_BADGE,
+    );
 
     const episodeNumber: string =
       alertEpisode.episodeNumberWithPrefix ||
@@ -4835,11 +5033,19 @@ export class Service extends DatabaseService<Model> {
       episodeNumber: episodeNumber,
       projectName: alertEpisode.project!.name!,
       currentState: alertEpisode.currentAlertState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alertEpisode.currentAlertState?.color,
+      ),
       alertEpisodeDescription: await Markdown.convertToHTML(
         alertEpisode.description! || "",
         MarkdownContentType.Email,
       ),
       alertEpisodeSeverity: alertEpisode.alertSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "alertEpisodeSeverity",
+        alertEpisode.alertSeverity?.color,
+      ),
       resourcesAffected: resourcesAffected,
       rootCause: await Markdown.convertToHTML(
         alertEpisode.rootCause ||
@@ -4854,12 +5060,18 @@ export class Service extends DatabaseService<Model> {
           alertEpisode.id!,
         )
       ).toString(),
-      acknowledgeAlertEpisodeLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeAlertEpisodeLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -4880,9 +5092,6 @@ export class Service extends DatabaseService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     // Fetch incidents that are members of this episode
     const episodeMembers: Array<IncidentEpisodeMember> =
       await IncidentEpisodeMemberService.findBy({
@@ -4933,82 +5142,50 @@ export class Service extends DatabaseService<Model> {
           })
         : [];
 
+    // Every resource any incident in the episode is linked to, each named once.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForIncidents({
+        service: IncidentService,
+        projectId: incidentEpisode.projectId!,
+        incidentIds: incidentIds,
+      }),
+      fallback: "No resources identified",
+    });
+
     /*
-     * Unique monitors across every incident in the episode. An incident carries
-     * a list of monitors (unlike an alert, which has exactly one), so this
-     * flattens rather than reading a single relation.
+     * The episode's incidents, one row each, with dividers only between
+     * rows (EpisodeMemberEmailList). Empty when the episode has none, and
+     * the template leaves the section out.
      */
-    const monitorNames: Set<string> = new Set();
+    const incidentItems: Array<EpisodeMemberEmailListItem> = [];
+
     for (const incident of incidents) {
-      for (const monitor of incident.monitors || []) {
-        if (monitor.name) {
-          monitorNames.add(monitor.name);
-        }
-      }
-    }
-
-    const resourcesAffected: string =
-      monitorNames.size > 0
-        ? Array.from(monitorNames).join(", ")
-        : "No resources identified";
-
-    // Build incidents list HTML with proper email styling
-    let incidentsListHtml: string = "";
-    if (incidents.length > 0) {
-      const incidentRows: string[] = [];
-      for (const incident of incidents) {
-        const incidentTitle: string = Markdown.escapeHtml(
-          incident.title || "Untitled Incident",
-        );
-        const incidentNumber: string =
+      incidentItems.push({
+        number:
           incident.incidentNumberWithPrefix ||
-          (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
-        const incidentLink: string = (
+          (incident.incidentNumber ? `#${incident.incidentNumber}` : ""),
+        title: incident.title || "Untitled Incident",
+        link: (
           await IncidentService.getIncidentLinkInDashboard(
             incidentEpisode.projectId!,
             incident.id!,
           )
-        ).toString();
-        const monitorName: string = Markdown.escapeHtml(
-          (incident.monitors || [])
-            .map((monitor: Monitor): string => {
-              return monitor.name || "";
-            })
-            .filter((name: string): boolean => {
-              return name.length > 0;
-            })
-            .join(", ") || "",
-        );
-
-        incidentRows.push(`
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
-                  <tr>
-                    <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
-                      <a href="${incidentLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
-                    </td>
-                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${incidentLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          `);
-      }
-      if (incidentRows.length > 0) {
-        incidentsListHtml = `
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <tbody>
-              ${incidentRows.join("")}
-            </tbody>
-          </table>
-        `;
-      }
+        ).toString(),
+        monitorName: (incident.monitors || [])
+          .map((monitor: Monitor): string => {
+            return monitor.name || "";
+          })
+          .filter((name: string): boolean => {
+            return name.length > 0;
+          })
+          .join(", "),
+      });
     }
+
+    const incidentsListHtml: string = EpisodeMemberEmailList.toHtml(
+      incidentItems,
+      INCIDENT_NUMBER_BADGE,
+    );
 
     const episodeNumber: string =
       incidentEpisode.episodeNumberWithPrefix ||
@@ -5021,11 +5198,19 @@ export class Service extends DatabaseService<Model> {
       episodeNumber: episodeNumber,
       projectName: incidentEpisode.project!.name!,
       currentState: incidentEpisode.currentIncidentState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incidentEpisode.currentIncidentState?.color,
+      ),
       incidentEpisodeDescription: await Markdown.convertToHTML(
         incidentEpisode.description! || "",
         MarkdownContentType.Email,
       ),
       incidentEpisodeSeverity: incidentEpisode.incidentSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentEpisodeSeverity",
+        incidentEpisode.incidentSeverity?.color,
+      ),
       resourcesAffected: resourcesAffected,
       rootCause: await Markdown.convertToHTML(
         incidentEpisode.rootCause ||
@@ -5040,12 +5225,18 @@ export class Service extends DatabaseService<Model> {
           incidentEpisode.id!,
         )
       ).toString(),
-      acknowledgeIncidentEpisodeLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeIncidentEpisodeLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -5146,12 +5337,26 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // Alert workspace here. Invite users to channels for example. If they are not invited.
+    /*
+     * The person paged joins the channels of the record paged for whose
+     * rules add on-call responders: an incident's, an alert's, or an
+     * episode's. A page with no record (a direct page from chat) has none.
+     */
+    if (
+      !options.triggeredByIncidentId &&
+      !options.triggeredByAlertId &&
+      !options.triggeredByIncidentEpisodeId &&
+      !options.triggeredByAlertEpisodeId
+    ) {
+      return;
+    }
 
     this.runWorkspaceRulesForOnCallNotification({
       projectId: options.projectId,
       alertId: options.triggeredByAlertId,
       incidentId: options.triggeredByIncidentId,
+      incidentEpisodeId: options.triggeredByIncidentEpisodeId,
+      alertEpisodeId: options.triggeredByAlertEpisodeId,
       userId: userId,
     }).catch((error: Error) => {
       logger.error(error, {
@@ -5161,72 +5366,135 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * The person an on-call policy pages joins the channels of the record it
+   * pages for - an incident, an alert, or an incident or alert episode -
+   * whose rules add on-call responders ("On-call responders, as they are
+   * paged"). Each page adds the person paged, the first escalation rule's
+   * and the later ones', repeats included; somebody in the channel already
+   * is not invited again.
+   */
   @CaptureSpan()
   public async runWorkspaceRulesForOnCallNotification(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
+    incidentEpisodeId?: ObjectID | undefined;
+    alertEpisodeId?: ObjectID | undefined;
     userId: ObjectID;
   }): Promise<void> {
-    // if alert and incidient are both present, then throw an error.
-    if (data.incidentId && data.alertId) {
-      throw new BadDataException("Either incidentId or alertId is required.");
-    }
-
-    // if none are present, then throw an error.
-
-    if (!data.incidentId && !data.alertId) {
-      throw new BadDataException("Either incidentId or alertId is required.");
-    }
-
-    // get notification rule where inviteOwners is true.
-    const notificationRules: Array<WorkspaceNotificationRule> =
-      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
-        {
-          projectId: data.projectId!,
-          notificationFor: {
-            incidentId: data.incidentId,
-            alertId: data.alertId,
-          },
-          notificationRuleEventType: data.incidentId
-            ? NotificationRuleEventType.Incident
-            : NotificationRuleEventType.Alert,
-        },
-      );
-
-    let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = [];
+    const records: Array<{
+      notificationFor: {
+        incidentId?: ObjectID;
+        alertId?: ObjectID;
+        incidentEpisodeId?: ObjectID;
+        alertEpisodeId?: ObjectID;
+      };
+      eventType: NotificationRuleEventType;
+      getChannels: () => Promise<Array<NotificationRuleWorkspaceChannel>>;
+    }> = [];
 
     if (data.incidentId) {
-      workspaceChannels = await IncidentService.getWorkspaceChannelForIncident({
-        incidentId: data.incidentId!,
+      const incidentId: ObjectID = data.incidentId;
+      records.push({
+        notificationFor: { incidentId: incidentId },
+        eventType: NotificationRuleEventType.Incident,
+        getChannels: () => {
+          return IncidentService.getWorkspaceChannelForIncident({
+            incidentId: incidentId,
+          });
+        },
       });
     }
 
     if (data.alertId) {
-      workspaceChannels = await AlertService.getWorkspaceChannelForAlert({
-        alertId: data.alertId!,
+      const alertId: ObjectID = data.alertId;
+      records.push({
+        notificationFor: { alertId: alertId },
+        eventType: NotificationRuleEventType.Alert,
+        getChannels: () => {
+          return AlertService.getWorkspaceChannelForAlert({
+            alertId: alertId,
+          });
+        },
       });
     }
 
-    WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
-      {
-        notificationRules: notificationRules,
-        projectId: data.projectId!,
-        workspaceChannels: workspaceChannels,
-        userIds: [data.userId],
-      },
-    ).catch((error: Error) => {
-      logger.error(error, {
-        projectId: data.projectId?.toString(),
-        userId: data.userId?.toString(),
-      } as LogAttributes);
-    });
+    if (data.incidentEpisodeId) {
+      const episodeId: ObjectID = data.incidentEpisodeId;
+      records.push({
+        notificationFor: { incidentEpisodeId: episodeId },
+        eventType: NotificationRuleEventType.IncidentEpisode,
+        getChannels: () => {
+          return IncidentEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: episodeId,
+          });
+        },
+      });
+    }
+
+    if (data.alertEpisodeId) {
+      const episodeId: ObjectID = data.alertEpisodeId;
+      records.push({
+        notificationFor: { alertEpisodeId: episodeId },
+        eventType: NotificationRuleEventType.AlertEpisode,
+        getChannels: () => {
+          return AlertEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: episodeId,
+          });
+        },
+      });
+    }
+
+    // A page is for one record.
+    if (records.length !== 1) {
+      throw new BadDataException(
+        records.length === 0
+          ? ON_CALL_INVITE_RECORD_MISSING_MESSAGE
+          : ON_CALL_INVITE_RECORDS_MIXED_MESSAGE,
+      );
+    }
+
+    for (const record of records) {
+      /*
+       * The rules that created one of the record's channels and add
+       * on-call responders. This used to read the rules that invite owners:
+       * a rule that invited on-call users but not owners never added the
+       * person it paged, and a rule that invited owners but not on-call
+       * users added everybody paged.
+       */
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        await WorkspaceNotificationRuleService.getNotificationRulesWhereOnCallIsTrue(
+          {
+            projectId: data.projectId!,
+            notificationFor: record.notificationFor,
+            notificationRuleEventType: record.eventType,
+          },
+        );
+
+      WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+        {
+          notificationRules: notificationRules,
+          projectId: data.projectId!,
+          workspaceChannels: await record.getChannels(),
+          userIds: [data.userId],
+          notificationFor: record.notificationFor,
+        },
+      ).catch((error: Error) => {
+        logger.error(error, {
+          projectId: data.projectId?.toString(),
+          userId: data.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const carrier: RuleColumnCarrier =
       createBy.data as unknown as RuleColumnCarrier;
 
@@ -5281,10 +5549,119 @@ export class Service extends DatabaseService<Model> {
       hasNotificationMethod: hasNotificationMethod,
     });
 
+    this.assertRepeatIsForPushRule({
+      repeatEveryMinutes: carrier["repeatEveryMinutes"],
+      hasPushMethod: Boolean(carrier["userPushId"] || carrier["userPush"]),
+    });
+
     return {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * A push notification level the delivery path knows, or none at all - left
+   * out, the column's default (Critical) is stored.
+   *
+   * Anything else is refused rather than stored. The delivery path treats
+   * every value but Standard as Critical, so a typo such as "standard" would
+   * otherwise be saved without complaint and keep ringing a phone through Do
+   * Not Disturb for a severity its owner had just asked to be quiet. Null is
+   * refused for the same reason and because the column is NOT NULL: the
+   * database would refuse it anyway, in words nobody can act on.
+   */
+  private assertPushNotificationLevelIsKnown(value: unknown): void {
+    if (value === undefined || isPushNotificationLevel(value)) {
+      return;
+    }
+
+    throw new BadDataException(
+      `Push notification level must be one of: ${PUSH_NOTIFICATION_LEVELS.join(", ")}.`,
+    );
+  }
+
+  /*
+   * What the on-call log's timeline says as a push goes out: which repeat it
+   * is, when it is one, so a page sent again reads as such and not as the
+   * same push logged twice.
+   */
+  private getPushSendingStatusMessage(
+    repeatNumber: number | undefined,
+  ): string {
+    if (repeatNumber && repeatNumber > 0) {
+      return `Sending push notification to device again (repeat ${repeatNumber} of ${MAX_NOTIFICATION_REPEATS}, until acknowledged).`;
+    }
+
+    return `Sending push notification to device.`;
+  }
+
+  /*
+   * A repeat interval the On-Call Rules page offers, or none at all. Anything
+   * else is refused rather than stored: the worker would read an unknown
+   * interval as "do not repeat", and a responder who asked for a phone that
+   * keeps ringing would get one push.
+   */
+  private assertRepeatEveryMinutesIsKnown(value: unknown): void {
+    if (value === undefined || isRepeatEveryMinutes(value)) {
+      return;
+    }
+
+    throw new BadDataException(
+      `Repeat every minutes must be one of: ${[
+        NO_NOTIFICATION_REPEAT,
+        ...REPEAT_EVERY_MINUTES_OPTIONS,
+      ].join(", ")}.`,
+    );
+  }
+
+  /*
+   * Repeating is for push notification rules. A call or a text sent again
+   * every minute costs the project money and a phone number its reputation,
+   * and the option is only offered on a push rule.
+   */
+  private assertRepeatIsForPushRule(data: {
+    repeatEveryMinutes: unknown;
+    hasPushMethod: boolean;
+  }): void {
+    if (
+      getRepeatEveryMinutes(data.repeatEveryMinutes) !==
+        NO_NOTIFICATION_REPEAT &&
+      !data.hasPushMethod
+    ) {
+      throw new BadDataException(
+        "Only push notification rules can repeat until acknowledged.",
+      );
+    }
+  }
+
+  /*
+   * The level and the repeat interval are value checks, so they are refused
+   * before the database is asked anything: the base hooks run this before
+   * their project check, and this service's onBeforeCreate / onBeforeUpdate
+   * call the base hooks first.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    this.assertPushNotificationLevelIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
+    );
+  }
+
+  // As checkCreateBeforeReferences: before the project check.
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    this.assertPushNotificationLevelIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
+    );
   }
 
   /**
@@ -5347,22 +5724,24 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * `createBy.data.userId` alone is enough HERE, and only because
-     * onBeforeCreate has already folded the `user` relation into it. Read on
-     * its own — before that reduction existed — this line was a bypass: a
-     * payload spelling the owner as `user: { _id: <somebody else> }` left the
-     * scalar empty, fell through to props.userId, and every check below was
-     * answered about the actor while the row was written for the victim. If
-     * that fold is ever moved or removed, this line becomes wrong again.
+     * The owner under either of its names. onBeforeCreate has already folded
+     * the `user` relation into `userId`, but this reads both all the same, so
+     * the checks below never depend on that order: a payload spelling the
+     * owner as `user: { _id }` alone is answered about that user, never about
+     * the actor.
      *
      * The fallback to props.userId is a different thing and stays: an omitted
      * ownership column means "for myself". CreatePermission stamps props.userId
      * onto it, but it does so AFTER this hook has run, so the value is not on
-     * the model yet and reading data.userId alone would treat every ordinary
+     * the model yet and reading the owner alone would treat every ordinary
      * self-service create as an unowned row.
      */
     const ruleOwnerUserId: ObjectID | undefined =
-      createBy.data.userId || createBy.props.userId;
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["userId", "user"],
+        "User",
+      ) || createBy.props.userId;
 
     if (!ruleOwnerUserId) {
       throw new BadDataException(
@@ -5445,87 +5824,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Narrow a caller-supplied query to the rows that caller is actually entitled
-   * to write, for use by the write hooks.
-   *
-   * WHY THIS EXISTS AT ALL. DatabaseService runs the hooks BEFORE the permission
-   * layer: _updateBy calls onBeforeUpdate and only then
-   * ModelPermission.checkUpdateQueryPermissions; _deleteBy calls onBeforeDelete
-   * and only then checkDeleteQueryPermission. So a hook that reads
-   * `updateBy.query` is reading the RAW request — no tenant predicate, no
-   * ownership predicate — and the hooks below read it with `isRoot` props on
-   * top, because the question they ask is a question about the database's state
-   * rather than about the caller's visibility. Left there, a caller could point
-   * the guard at rows in another project entirely: the guard would validate
-   * against them, the audit trail would name their owners, and the write itself
-   * would touch a completely different set.
-   *
-   * WHY NOT JUST CALL ModelPermission. That is the obvious fix and it is the
-   * wrong one. checkUpdateQueryPermissions does two jobs — it narrows the query
-   * AND it authorises the request — and running it here would run the second
-   * job twice, moving every table- and column-level rejection into the hook and
-   * duplicating the team lookups behind the tenant scope on every write. The
-   * hook does not need to authorise anything; _updateBy authorises it a few
-   * lines later and is the authority. What the hook needs is only that the row
-   * set it reasons about is no wider than the row set the write can reach.
-   *
-   * WHAT IS REPRODUCED, AND WHY THAT IS THE WHOLE OF IT. For this model the
-   * narrowing is exactly two predicates: the tenant column
-   * (TenantPermission.addTenantScopeToQuery for a member,
-   * PermissionUtil.addTenantScopeToQueryAsRoot on the delete path for root) and,
-   * when Permission.CurrentUser is the ONLY thing letting the caller through,
-   * the ownership column. Nothing else applies: UserNotificationRule declares no
-   * access-control column, is not an operational resource and has no
-   * @OwnedThrough, so addAccessControlIdsToQuery and addOwnedScopeToQuery are
-   * both no-ops on it. IF ANY OF THAT CHANGES ON THE MODEL, THIS MUST CHANGE
-   * WITH IT — a narrowing the permission layer applies and this does not is a
-   * guard validating rows the write never touches.
-   *
-   * Root and master-admin queries are returned untouched. They are entitled to
-   * every row, and narrowing them would make the guard read FEWER rows than the
-   * write reaches, which is the one direction it must never be wrong in.
-   */
-  private narrowQueryToCallerEntitlement(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-    requestType: DatabaseRequestType,
-  ): Query<Model> {
-    if (props.isRoot || props.isMasterAdmin) {
-      return query;
-    }
-
-    const scopedQuery: Query<Model> = { ...query };
-
-    const tenantColumn: string | null = this.getModel().getTenantColumn();
-
-    if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
-      (scopedQuery as Dictionary<unknown>)[tenantColumn] = props.tenantId;
-    }
-
-    const userColumn: string | null = this.getModel().getUserColumn();
-
-    if (
-      userColumn &&
-      props.userId &&
-      TenantPermission.isAccessGrantedOnlyByCurrentUser(
-        this.modelType,
-        props,
-        requestType,
-      )
-    ) {
-      /*
-       * Set rather than merged. A CurrentUser-only caller whose query names
-       * somebody else is rejected outright by addCurrentUserScopeToQuery a
-       * moment from now, so the only thing that matters here is that the guard
-       * never reads rows that rejection would have protected.
-       */
-      (scopedQuery as Dictionary<unknown>)[userColumn] = props.userId;
-    }
-
-    return scopedQuery;
-  }
-
-  /**
    * The update-path half of R3, plus the read that R6 needs.
    *
    * The rule's owner is re-read FROM THE DATABASE here and never taken from
@@ -5542,11 +5840,12 @@ export class Service extends DatabaseService<Model> {
    * different lists, and it is the write one that decides what this hook has to
    * answer for.
    *
-   * The QUERY, on the other hand, is narrowed first. Root props remove the
-   * caller's visibility from the answer; they must not also remove the caller's
-   * ENTITLEMENT from it, and this hook runs before ModelPermission has applied
-   * either. See narrowQueryToCallerEntitlement for why the narrowing is
-   * reproduced here rather than delegated.
+   * The ROWS, on the other hand, are the ones the write reaches. Root props
+   * remove the caller's visibility from the answer; they must not also remove
+   * the caller's ENTITLEMENT from it. findRowsAndHoldUpdateToThem reads the
+   * rows the update writes - for a member, the rules their update permission
+   * reaches - and holds the update to them, so every row written is a row
+   * checked here.
    *
    * The rows are carried forward so onUpdateSuccess can audit against the
    * owner as it stood BEFORE the write, without a second read and without
@@ -5556,6 +5855,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const patch: RuleColumnCarrier =
       updateBy.data as unknown as RuleColumnCarrier;
 
@@ -5582,9 +5883,22 @@ export class Service extends DatabaseService<Model> {
         patch,
       );
 
+    /*
+     * A patch that turns repeating on, or moves a rule off its push device,
+     * can leave a repeating rule that pages something other than a phone -
+     * visible only once the patch is laid over the row.
+     */
+    const touchesRepeat: boolean =
+      getRepeatEveryMinutes(patch["repeatEveryMinutes"]) !==
+        NO_NOTIFICATION_REPEAT ||
+      UserNotificationRuleAdminService.mentionsAnyNotificationMethodColumn(
+        patch,
+      );
+
     const needsAffectedRules: boolean =
       (references.length > 0 && !isInternalWrite) ||
       touchesRuleCoherence ||
+      touchesRepeat ||
       Boolean(updateBy.props.userId);
 
     if (!needsAffectedRules) {
@@ -5594,18 +5908,16 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    const affectedRules: Array<Model> = await this.findBy({
-      query: this.narrowQueryToCallerEntitlement(
-        updateBy.query,
-        updateBy.props,
-        DatabaseRequestType.Update,
-      ),
-      select: {
+    const affectedRules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         userId: true,
         projectId: true,
         ruleType: true,
         notifyAfterMinutes: true,
+        pushNotificationLevel: true,
+        repeatEveryMinutes: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,
@@ -5619,13 +5931,7 @@ export class Service extends DatabaseService<Model> {
         userPushId: true,
         userWebhookId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     if (references.length > 0 && !isInternalWrite) {
       /*
@@ -5693,6 +5999,31 @@ export class Service extends DatabaseService<Model> {
         this.assertRuleIsCoherent({
           isOptOut: isOptOutAfterPatch,
           hasNotificationMethod: methodIdsAfterPatch.length > 0,
+        });
+      }
+    }
+
+    if (touchesRepeat) {
+      for (const affectedRule of affectedRules) {
+        /*
+         * The push device the row pages once the patch is laid over it, read
+         * with the ORM's precedence as getNotificationMethodIdsAfterPatch
+         * reads every method: the relation slot when the patch has it, then
+         * the id column, then the row as it stands.
+         */
+        const userPushAfterPatch: unknown =
+          patch["userPush"] !== undefined
+            ? patch["userPush"]
+            : patch["userPushId"] !== undefined
+              ? patch["userPushId"]
+              : affectedRule.userPushId;
+
+        this.assertRepeatIsForPushRule({
+          repeatEveryMinutes:
+            patch["repeatEveryMinutes"] !== undefined
+              ? patch["repeatEveryMinutes"]
+              : affectedRule.repeatEveryMinutes,
+          hasPushMethod: Boolean(resolveReferenceId(userPushAfterPatch)),
         });
       }
     }
@@ -5824,13 +6155,10 @@ export class Service extends DatabaseService<Model> {
    * reason: _deleteBy hands the success hook only the ids it deleted, and by
    * then the rows are gone.
    *
-   * The query is narrowed first. onBeforeDelete runs BEFORE
-   * ModelPermission.checkDeleteQueryPermission, exactly as onBeforeUpdate runs
-   * before its update counterpart, so the raw query carries neither the tenant
-   * predicate nor the ownership predicate — see narrowQueryToCallerEntitlement.
-   * Without it, a member could point this read at another project's rules and
-   * have their owners written into the audit trail and mailed a warning about a
-   * deletion that never touched them.
+   * The rows read are exactly the rows the delete removes, and the delete is
+   * held to them (findRowsAndHoldDeleteToThem): the rules of the caller's own
+   * project they may delete, in the delete's own window. So the audit trail
+   * and the warning name only owners whose rules this delete removed.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -5849,18 +6177,16 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    const deletedRules: Array<Model> = await this.findBy({
-      query: this.narrowQueryToCallerEntitlement(
-        deleteBy.query,
-        deleteBy.props,
-        DatabaseRequestType.Delete,
-      ),
-      select: {
+    const deletedRules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         userId: true,
         projectId: true,
         ruleType: true,
         notifyAfterMinutes: true,
+        pushNotificationLevel: true,
+        repeatEveryMinutes: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,
@@ -5874,13 +6200,7 @@ export class Service extends DatabaseService<Model> {
         userPushId: true,
         userWebhookId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -5922,10 +6242,10 @@ export class Service extends DatabaseService<Model> {
       action: AuditLogAction.Delete,
       actorUserId: actorUserId,
       /*
-       * Only rows the delete actually removed. The hook read every row the
-       * narrowed query matched; _deleteBy then applied the caller's own
-       * skip/limit on top, so the two sets are not always the same and a
-       * warning about a rule that still exists is a false alarm.
+       * Only rows the delete actually removed. The hook held the delete to the
+       * rows it read, but the delete asks the caller's permission once more and
+       * may find fewer of them - a rule removed in between - and a warning
+       * about a rule that still exists is a false alarm.
        */
       rules: deletedRules.filter((rule: Model): boolean => {
         return Boolean(rule.id && deletedIds.has(rule.id.toString()));
@@ -7245,7 +7565,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       warnings.push(
-        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call > Readiness to confirm this user can still be paged.`,
+        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call Duty > Readiness to confirm this user can still be paged.`,
       );
     }
 

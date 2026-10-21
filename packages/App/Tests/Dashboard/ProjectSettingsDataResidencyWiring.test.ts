@@ -34,11 +34,11 @@ const projectSettingsSource: string = stripComments(
   ),
 );
 
-/* The Project Details card: everything before the customer support card. */
+/* The Project Details card: everything before the customer support switch. */
 const projectDetailsCard: string =
   projectSettingsSource
     .split('name="Project Details"')[1]
-    ?.split('name="Enable Customer Support Access"')[0] || "";
+    ?.split("<CustomerSupportAccessCard")[0] || "";
 
 const formFields: string =
   projectDetailsCard.split("formFields={[")[1]?.split("modelDetailProps")[0] ||

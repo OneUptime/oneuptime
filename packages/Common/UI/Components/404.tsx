@@ -4,6 +4,8 @@ import Button, { ButtonStyleType } from "./Button/Button";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import Email from "../../Types/Email";
+import { Translator } from "../Utils/TranslateTemplate";
+import useTranslator from "../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,6 +16,8 @@ export interface ComponentProps {
 const NotFound: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mx-auto max-w-full sm:px-6 lg:px-8 rounded-lg">
       <div className="min-h-full py-16 px-6 sm:py-24 md:grid md:place-items-center lg:px-8">
@@ -25,10 +29,12 @@ const NotFound: FunctionComponent<ComponentProps> = (
             <div className="sm:ml-6">
               <div className="sm:border-l sm:border-gray-200 sm:pl-6">
                 <h1 className="text-4xl  tracking-tight text-gray-900 sm:text-5xl">
-                  Page not found
+                  {translator.translateText("Page not found")}
                 </h1>
                 <p className="mt-1 text-base text-gray-500">
-                  Please check the URL in the address bar and try again.
+                  {translator.translateText(
+                    "Please check the URL in the address bar and try again.",
+                  )}
                 </p>
               </div>
               <div className="mt-10 flex space-x-3 sm:border-l sm:border-transparent sm:pl-6">

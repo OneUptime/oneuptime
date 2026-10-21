@@ -85,7 +85,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Support bundle"
-      description="A diagnostic snapshot of this instance — version, configuration, component health, migrations, queue/database diagnostics, full failed-job detail and recent application & datastore logs — that you can send to the OneUptime team when you need help. Credentials are scrubbed, but it may contain customer data, so review it before sharing."
+      description="A snapshot of this instance's version, configuration, health and recent logs to send to the OneUptime team. Credentials are removed; check it for customer data before you share it."
     >
       <div>
         {error ? (
@@ -96,7 +96,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
 
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 md:p-5">
           <div className="flex items-start gap-4">
-            <div className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
+            <div className="max-sm:hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
               <Icon icon={IconProp.Archive} size={SizeProp.Regular} />
             </div>
             <div className="min-w-0 flex-1">

@@ -33,6 +33,13 @@ Test" workflow provides both:
   one against a vulnerable npm installed from the registry, one inside
   `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
   on the jest step too.
+- **docker, and the datastore images.** `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`
+  turns on `ComposeDatabaseRuntime.test.js`, which starts PostgreSQL from
+  `docker-compose.yml` for real (on a free port, in a project of its own that
+  it removes with its volume), and `ComposeDatastorePasswordRuntime.test.js`,
+  which does the same with its ClickHouse and Valkey (they publish no port).
+  The workflow sets it on the jest step, and the first suite checks that it
+  does.
 
 or from the repo root:
 
@@ -102,6 +109,88 @@ refer to — the coherence that was previously missing, when `backup.sh` wrote
 
 Both scripts are also checked with `bash -n`, and with `shellcheck` when it is
 on PATH (skipped, not failed, when it is not).
+
+### `ComposeDataStorePorts.test.js`
+
+Every port a compose file in the repository publishes for a datastore
+(PostgreSQL, ClickHouse, Valkey or Redis, and any other database image, found
+by service name, by the service it extends or by image) is published on
+`127.0.0.1`. Docker publishes a port that names no address on every interface,
+IPv4 and IPv6, and past a host firewall such as `ufw`; a datastore port is for
+tools on the server itself. The production stack publishes nothing beyond the
+server but its ingress, no datastore runs on the host's network, and
+`restore.sh` reaches the loopback-published port (its `host.docker.internal`
+is `127.0.0.1`). With docker's compose plugin on PATH (no daemon needed), the
+same is checked on what `docker compose config` renders.
+
+### `ComposeDatabaseRuntime.test.js`
+
+The same, for real (`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`): PostgreSQL started
+from `docker-compose.yml` answers on `127.0.0.1` and on no other address of the
+machine, IPv6 included (Docker's own `docker port` says the same), and the
+client containers `backup.sh` and `restore.sh` run reach it. `npm start`'s
+first step (`Scripts/Install/GenerateDatabasePassword.js`) asks this Docker
+whether the bundled database exists, gives a placeholder `DATABASE_PASSWORD` a
+random value while it does not, and PostgreSQL is created with that value;
+once the database exists, `config.env` is left alone. The Docker Compose
+guide's "Change the database password" block is run as written, pasted whole:
+while PostgreSQL is not running it changes nothing, and while it runs it
+changes the password in PostgreSQL and in `config.env`. Its
+`docker-compose.override.yml` example is applied.
+
+### `ComposeDatastorePasswordRuntime.test.js`
+
+The ClickHouse and Valkey `docker-compose.yml` runs, for real
+(`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`), through what an upgraded install goes
+through: both started with the `config.example.env` placeholders and a row
+written to ClickHouse, then `Scripts/Install/ReplacePlaceholderSecrets.js` run
+on that `config.env`, then both started again as `npm start` goes on to do.
+They are recreated, sign in with the new random passwords and refuse the
+placeholders, ClickHouse still holds the row, neither publishes a port, and a
+further start changes nothing.
+
+### `GenerateDatabasePassword.test.js`
+
+Every branch of `Scripts/Install/GenerateDatabasePassword.js` with Docker
+stubbed: what counts as a shipped value, which line of `config.env` changes and
+which never do, what it decides for a new install, an existing database, an
+external database or a check that cannot tell, and that it never stops
+`npm start`. npm itself runs the root `start` script in a throwaway copy, with a
+recording `docker` on PATH: the step runs before `docker compose up` with
+`ignore-scripts` on or off, which a `prestart` hook would not.
+
+### `CheckIngressPorts.test.js`
+
+`Scripts/Install/CheckIngressPorts.js`, a step of `npm start` before
+`docker compose up`. With `TRUSTED_PROXY_HOPS` counting a proxy (2 or more),
+OneUptime reads each visitor's address from what that proxy writes, which
+holds only while the proxy is the one way in. An install whose ingress was
+moved off ports 80 and 443 for a proxy on the same server but is still
+published on every address (`ONEUPTIME_HTTP_PORT=8080`, as the Docker Compose
+guide had it before) is warned, with the `127.0.0.1:` values that publish it on
+the loopback address. The guide's own blocks, read from the page, a port
+written with an address, ports 80 and 443 and a hop count of 1 say nothing,
+and the step never stops `npm start`; npm itself runs the start script in a
+throwaway copy to show the warning comes before Compose starts.
+
+### `ComposeVisitorAddresses.test.js`
+
+The compose files keep OneUptime's network exactly as installs created it
+(a driver and nothing else), so an upgrade never recreates it; IPv6 for it is
+the operator's `docker-compose.override.yml`, which `npm start` and
+`npm run update` read because they name no compose file. With docker's
+compose plugin on PATH, the Docker Compose guide's override is merged with
+copies of the shipped files the way `npm start` reads them: IPv6 on for the
+one network every service off the host network joins, no service changed.
+The guide's `127.0.0.1:` port form publishes the ingress on the loopback
+address only.
+
+### `ReadmeQuickStart.test.js`
+
+The README's Docker Compose quick start, in English and the 16 translations,
+gives every placeholder secret its own random value before `npm start`, with
+the loop of the Docker Compose guide's "Generate random secrets" step; the
+block is run on `config.example.env` and leaves no placeholder.
 
 ### `ContainerAgentLogSeverity.test.js`
 
@@ -204,10 +293,18 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
-image over the four agent configs, over the Database Agent's per-receiver
-configs (as shipped, and again with every optional metric their comments list
-switched on), and over both collector ConfigMaps rendered out of the
-`kubernetes-agent` chart.
+image over the Docker, Podman, Docker Swarm and VMware agent configs, over the
+Storage Array Agent's three configs (as shipped, and again with their
+commented-out syslog receivers and `logs` pipeline uncommented — and it checks
+that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
+Agent's per-receiver configs (as shipped, and again with every optional metric
+their comments list switched on), and over both collector ConfigMaps rendered
+out of the `kubernetes-agent` chart. It validates those two once more on
+`0.96.0`, the collector the chart pinned before, rendered for that tag:
+`helm upgrade --reuse-values` keeps a release's old `image.tag`, so the chart's
+configs have to start there too (0.96.0's `k8sobjects` receiver asks an API
+server for its resources while it is built, so the Deployment config goes
+without it on that run).
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -232,7 +329,7 @@ config:
 - the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
   so a fork reports itself), `server.address`,
   `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
-  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+"true"` and `oneuptime.agent.version` (equal to the compose image pin), and
   deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
   `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
   Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
@@ -275,6 +372,185 @@ config under their own name; and that the diagnostic reads
 only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.
+
+### `StorageArrayAgentConfigs.test.js`
+
+The Storage Array Agent (`agents/StorageArrayAgent`) is config-only: a stock
+collector image plus one config per way of reading an array — a FlashArray's
+native OpenMetrics endpoint (`otel-collector-config.yaml`), Pure's FlashArray
+exporter for an older Purity//FA, and Pure's FlashBlade exporter. OneUptime
+registers and inventories an array from what these configs stamp and how they
+scrape, so their shape is pinned, per config:
+
+- the scrape jobs, their endpoints and intervals (FlashArray: array 60s;
+  volumes, hosts, pods 2m; directories 30m — FlashBlade: array 60s; file
+  systems and object store 5m), each `scrape_timeout` within its interval, and
+  every job's `scrape_endpoint` label, which ingest
+  (`StorageArraySnapshotScan`) reads to know a batch is a complete list;
+- how each reaches the array: `https` with `namespace=purefa` and the
+  unquoted TLS switch for the native endpoint, the exporter service with
+  `endpoint=<array>` for the others, the read-only API token as a Bearer token
+  in all of them;
+- only the volumes and hosts jobs drop the latency breakdown dimensions;
+- the `resource` processor upserts `storage.array.name`, `storage.system`
+  and `oneuptime.agent.version` (equal to the compose image pin) and deletes
+  `service.name` / `service.instance.id`; the `batch` processor has no
+  `send_batch_max_size`; one metrics pipeline into one `otlphttp` exporter;
+  the syslog option ships commented out on the port the compose file
+  publishes when it is uncommented;
+- `docker-compose.yml` mounts the config `STORAGE_ARRAY_COLLECTOR_CONFIG`
+  names, defaults the two optional settings, and starts each exporter pinned,
+  unpublished, credential-free and read-only under its own profile;
+- `install.sh` gives each config the platform and profile that match it,
+  downloads every file, writes exactly the variables the configs read (the
+  user's quoted), reuses them on a re-run, recreates the container so a re-run
+  starts the config it just downloaded (`--force-recreate`), and installs
+  where the systemd unit and `troubleshoot.sh` look; `troubleshoot.sh` probes
+  the array the way each config scrapes it and hands the API token to curl on
+  stdin.
+
+### `StorageArrayAgentScripts.test.js`
+
+Runs the Storage Array Agent's `install.sh` and `troubleshoot.sh` for real in
+a scratch directory, with `docker` and `curl` replaced by recording stubs. It
+pins what the installer writes for each array type (config, compose profile
+and platform agree; the address loses its scheme; the `.env` is mode 600 and
+quoted for Compose; a re-run reads it back without asking; a sha256 of every
+file it installed is recorded in `.agent-files.sha256`, so an upgrade keeps
+only a file you edited as `<file>.bak.<timestamp>` — not the configs a version
+bump changed — and, with no record, keeps every file that differs; every
+profile's exporter is stopped before `docker compose up -d --force-recreate`,
+so a re-run starts the collector on the config it just downloaded), and what
+the doctor concludes from each answer the array probe can get: a native
+FlashArray, a refused token (the array's `401` or the exporter's `failed to
+login`), a FlashArray without the native endpoint (`404`), an untrusted
+certificate, an exporter whose profile is off, a FlashBlade, a misconfigured
+endpoint or array name — and that the array's API token never appears on a
+command line.
+
+### `ProxmoxCephAgentInstallers.test.js`
+
+Runs the Proxmox and Ceph agents' `install.sh` for real in a scratch
+directory, with `docker`, `curl` and `ceph` replaced by recording stubs.
+Running either script again is the upgrade (the dialog beside an outdated
+agent version offers it), so the suite pins that a re-run keeps the answers:
+every variable `docker-compose.yml` reads is read back from `.env` exactly as
+Docker Compose reads it — including an unquoted `.env` from the previous
+script and values added by hand (`PVE_VERIFY_SSL`,
+`ONEUPTIME_AI_INVESTIGATION`), which that script dropped — an exported
+variable still overrides it, and nothing is asked again (the AI agent's
+questions and the offer to create the Ceph client run on a fresh install
+only). It also pins that values are written quoted for Compose and the
+`.env` is mode 600; that a file the reader edited is kept as
+`<file>.bak.<timestamp>` (a sha256 record in `.agent-files.sha256` tells an
+edit from an upgrade, and with no record every differing file is kept); that
+the images are pulled (a failed pull is not fatal), Compose is started from
+`.env` alone and `--force-recreate` starts the collector on the config the run
+just downloaded; and that the scripts' `.env` helpers are the VMware and
+Database installers' own. Where `docker compose` runs, the written `.env` is
+read back through the real `docker compose config`: a cluster name with ` #`,
+a token secret with `$` and quotes and the exporter's profile reach the
+containers as typed. CI must run that check; elsewhere it is skipped with the
+reason logged.
+
+### `VMwareAgentWithoutDocker.test.js`
+
+The VMware agent also installs without Docker: the `otelcol-contrib` release
+the agent pins, run by systemd with
+`agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service`. The suite
+lifts the install, settings, start, upgrade and uninstall commands out of the
+docs page's systemd tabs (`telemetry/vmware.md`) and runs them for real, with
+the install's `/opt` and `/etc/systemd/system` moved under a scratch root and
+`sudo`, `sudoedit`, `systemctl`, `curl` and `uname` replaced by recording
+stubs. It
+pins that the release the agent pins is downloaded for the machine's
+architecture (`x86_64` → `amd64`, `aarch64` → `arm64`) and that a release it
+cannot download stops the install before anything is installed; that every
+file lands where the unit runs it from with a mode the service's throwaway
+user (`DynamicUser=`) can read, even under a root umask of 077; that `.env`
+is `0600` before the password goes in, and a re-run keeps it; that the
+service is enabled and restarted; that the upgrade replaces the binary, the
+config and the unit, keeps `.env` and restarts; and that the uninstall
+removes exactly what the install added. It also holds the unit to the files
+the docs install, to the defaults `docker-compose.yml` gives, to its sandbox,
+and to `systemd-analyze verify` (skipped without systemd, except in CI); and
+pins that `troubleshoot.sh`, pointed at such an install, says it runs without
+Docker and never calls docker.
+
+### `vmware-agent-native-install.sh`
+
+Not part of `npm test`: it needs docker, python3 and network access. It runs
+the same docs commands end to end, as written, by a sudo user inside a
+systemd container (`--privileged`, cgroup v2), against a vCenter simulator
+(govmomi's `vcsim`, pinned by version and sha256) and a stand-in OneUptime
+that records what reaches `/otlp/v1/*`. The pinned collector release is
+downloaded from GitHub and runs under the shipped unit; the agent's own files
+come from this checkout. It checks that systemd verifies the unit and runs the
+collector as a dynamic user with no capabilities; that an AD-style
+`DOMAIN\user` and a password with `$`, `#`, spaces, quotes and a backslash
+reach vCenter as typed (vcsim refuses any other login); that metrics arrive
+with the ingestion key, the vCenter name and the agent version and without
+`service.name`; that another collector holding `localhost:8888` does not stop
+it (its own counters are on `127.0.0.1:8890`); that ESXi syslog, uncommented
+as the docs say, arrives as logs with nothing to publish; and that the upgrade
+and the uninstall do what the docs say. `--image` picks the distribution
+(apt or dnf). The "Ops Config Test" workflow runs it on every PR twice: on
+Ubuntu 24.04 (systemd 255) and on Rocky Linux 8 (systemd 239, as RHEL 8 ships
+it), the oldest systemd the docs support. That second run is what showed that
+systemd 239 drops a backslash inside single quotes — `'DOMAIN\user'` logged in
+as `DOMAINuser` — which is why the docs double-quote the user and password.
+The pinned vcsim archive is kept in `VCSIM_CACHE_DIR` (default
+`~/.cache/oneuptime/vcsim`) and fetched with
+`Scripts/GHA/fetch_pinned_artifact.sh`, so a copy that still matches the pin
+is used without the network and a download rides out GitHub's release CDN
+bursts; the workflow keeps that directory in the Actions cache, keyed on the
+pin (`--print-vcsim-pin`), and fills it in a step of its own
+(`--fetch-vcsim`).
+
+```sh
+cd Tests/Ops && npm run vmware-agent-native-install
+```
+
+### `ContainerAgentAiInstallers.test.js`
+
+Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a
+scratch directory, with `docker`, `podman` and `curl` replaced by recording
+stubs (no daemon or network needed; the Swarm installer runs under `sh`, and
+`INSTALL_DIR` points it at the scratch directory). It pins what they hand the
+OneUptime AI agent: `ONEUPTIME_AI_ALLOW_WRITES` reaches it as exactly `true`
+or `false`, read the way the agent reads it, so the script never says
+"read-only" over an agent that applies fixes; the Swarm installer writes
+`ONEUPTIME_AI_PROTECTED_TARGETS` into `.env` next to the write switch and the
+write targets (so a later `docker compose up -d` cannot drop the protection),
+keeps both target lists on a re-run unless the variable is passed, and makes
+the `.env` (it holds the ingestion key) mode 600; and on a node that is not a
+swarm manager it leaves the AI agent out and stops (never `rm -f`s) one it
+installed there before.
+
+### `AgentTroubleshootTokenCheck.test.js`
+
+Runs the ingestion-key check of the Ceph, Proxmox, VMware, Storage Array and
+Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
+each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
+with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
+collector). The matrix pins the verdicts:
+
+- a browser key that `/otlp/v1/validate` accepts is still refused;
+- on a server without that route, `/otlp/v1/metrics` answering 401/422 is a
+  refused key, not "reachable";
+- the `/fluentd/v1/logs` fallback reads 401/422 and "Missing ingestion token"
+  as a refusal, still reads an old server's 400 "Invalid service token" as one,
+  and calls a probe with no HTTP answer inconclusive, never "Token ACCEPTED".
+
+The Docker Swarm check has no `/fluentd` fallback, so there an old server that
+does not refuse the key stays inconclusive.
+
+With the collector down there is no container environment to read, and the
+Ceph, Proxmox, VMware and Storage Array checks fall back to the `.env` their
+`install.sh` writes quoted for Docker Compose: the suite pins that they read
+it as Compose does, so the probe asks the URL and sends the key without the
+quotes.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 
@@ -360,6 +636,47 @@ daemon, and any case the daemon cannot demonstrate (for example `1.25` on a
 daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
+
+### `ContainerAgentCpuUtilization.test.js`
+
+The Docker, Podman and Docker Swarm agents' `container.cpu.utilization` and
+`container.memory.percent`. The `docker_stats` receiver computes its own CPU
+percent from one stats sample: since collector 0.150.0 its Docker client asks
+for a one-shot sample, which carries no previous reading (and Podman's
+Docker-compatible API never sends one), so it divides all the CPU a container
+used since it started by all the CPU the host used since it booted - a flat
+line near zero that never follows the load. So the agents turn it off and build
+`container.cpu.utilization` from `container.cpu.usage.total`: a copy,
+`cumulative_to_delta` (CPU time since the previous scrape), `delta_to_rate` (per
+second) and a scale to percent of one core with the unit `%`. The same last
+processor gives `container.memory.percent` - a 0-100 figure the receiver labels
+`1`, the unit of a 0-1 fraction - the unit `%`, and a description that says
+what it is a percent of (the container's memory limit, or the host's memory
+when the container has none).
+
+The suite holds the three configs to that: the receiver's own figure off and
+the counter it is built from on, the four processors exactly as written and
+identical in all three agents, run in order right after `memory_limiter` in the
+metrics pipeline only, under the names collector 0.161.0 gives them (not the
+deprecated `cumulativetodelta` / `deltatorate` aliases), and the arithmetic:
+10^9 ns of CPU per second is 100%, and a quarter of a core, one and a half
+cores, idle, a restart and a burst read 25, 150, 0, nothing and 30%.
+
+### `container-agent-cpu-utilization-behaviour.sh`
+
+What those processors DO, in the collector the agents are built FROM. For each
+agent it lifts them out of the config as shipped and posts six 30-second scrapes
+of two containers to them, in order (25%, 150%, 0%, a restart that sends
+nothing, 10%; and 1% throughout - the customer's container), then runs the
+agent's whole metrics pipeline against the machine's Docker daemon, with a
+container held to half a core by its CPU quota: `container.cpu.utilization`
+reads 50% (within 15 points), equals the rate of `container.cpu.usage.total`,
+and `container.memory.percent` is usage over limit, in `%`; in both parts each
+percent carries the description the agents set. The Podman agent's
+receiver is pointed at the Docker socket, so that run checks its pipeline, not
+Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
+`agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
+configs and payloads and checks what comes out.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
@@ -448,6 +765,65 @@ template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
 
+### `KubernetesAiAgentRelease.test.js`
+
+The kubernetes-agent chart installs the Kubernetes AI agent
+(`oneuptime/kubernetes-ai-agent`) by default, at the moving `release` tag, and
+the agent needs the same release's server. So release.yml builds and merges it
+with version tags only, moves its `release` tags in `push-release-tags` (with
+the App's, after the three e2e jobs), and `helm-chart-deploy` waits for that
+before it publishes the charts. The e2e jobs need `helm-chart-check` (lint and
+render only, the same commands) instead of the deploy, because
+`push-release-tags` needs them and the old edge would be a cycle.
+`generate-sboms` names the agent's merge, and `finalize-github-release` waits
+for the charts.
+
+The suite pins all of that, that the chart's default image, the server's
+`KUBERNETES_AI_AGENT_IMAGE_REPOSITORY` and the image release.yml builds are
+the same, that build.yml builds the image on every pull request (and that each
+of its image jobs warms the base images of exactly the Dockerfiles it builds,
+after rendering them and before building them), and that test-release.yaml
+builds both architectures on every push to master with the `test` tags. Every
+job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
+held to the same warm-up rule, with the Dockerfiles it builds read from the
+compose file, what its services `depends_on` included. A build is read from a
+`docker compose -f` of that file that can build (`up`, `create`, `build`,
+`run`), and from `npm run dev`, read as the root package.json's `dev` script
+with its `--services`, which is how the Terraform Provider E2E bring-up builds
+`app` and `ingress`, both FROM public.ecr.aws images. test-release.yaml's E2E
+jobs used to build their e2e container the first way; they now run the e2e
+image the workflow pushes, and the suite pins that they build nothing from the
+file and wait for that image's merge. The other npm scripts that build
+from it (`build`, `force-build`) are not read, and no workflow runs them. It
+also checks every workflow's `needs` for a job that does not exist and for
+cycles: GitHub refuses to run such a workflow, and nothing on a pull request
+runs release.yml.
+
+### `ResourceAiAgentRelease.test.js`
+
+The resource AI agent (`oneuptime/resource-ai-agent`, built from
+`agents/ResourceAIAgent`) is one image for every Docker, Podman, Swarm,
+Proxmox, VMware, Ceph, database and host agent, whose compose files run it at
+the moving `release` tag next to the collector. Like the Kubernetes AI agent it
+needs the same release's server (`/resource-ai-agent-ingest`, and the command
+policy it carries a copy of), so it is released the same way: release.yml
+builds and merges it with version tags only, `push-release-tags` moves its
+`release` tags with the App's after the three e2e jobs, and `generate-sboms`
+names its merge.
+
+The suite pins that, that `generate_sboms.sh` scans it (and that every image
+release.yml builds is scanned or skipped on purpose), that the server's
+`RESOURCE_AI_AGENT_IMAGE_REPOSITORY` (and the agent's copy of it) names the
+image release.yml builds, that its package is at `VERSION`, that build.yml
+builds it on every pull request after warming its base image, that
+test-release.yaml builds both architectures with the `test` tags, that
+`test.resource-ai-agent.yaml` runs the agent's own tests and Common-copy check
+with the Node major the image runs, and that every file in the repository that
+names the image with a tag (compose files, install scripts, READMEs, docs)
+names one that is published: `release`, `test`, their `enterprise-` forms, a
+version, or a placeholder. There is no `latest`. The workflow helpers it uses
+are in `Utils/ReleaseWorkflow.js`.
+
 ### `UpdateNpmCli.test.js`
 
 npm bundles its whole dependency tree, so the `tar`, `undici`,
@@ -483,6 +859,13 @@ What keeps the images free of the rest of what scanners reported, for every
   that could need it (`apk del .gyp`, or `apt-get purge --auto-remove`);
 - tini is started from the path the image's package manager installs it to;
 - the Runner still installs the command-line tools the full image provided;
+- the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
+  binary, copied in from a stage that checked it against a pinned sha256 (the
+  download tool never ships), and runs the compiled agent as `node`;
+- the resource AI agent is one stage that installs only the CA store, tini
+  and, from Alpine's own packages, the programs its executors run (docker-cli,
+  govc, ceph19-common, util-linux-misc), and runs the compiled agent as `node`
+  by default;
 - E2E installs itself with `--ignore-scripts` (its `preinstall` would install
   a second, unpinned set of browsers and WebKit's libraries), only while no
   dependency has an install script, and installs exactly the engines its
@@ -501,11 +884,466 @@ Dockerfile for production and development and runs
 `docker buildx build --check` over the production render for the default,
 `community` and `enterprise` targets and over the development render. That
 resolves each target's stage graph with BuildKit itself, which the jest suite
-cannot. It runs on every PR from the "Ops Config Test" workflow.
+cannot. It runs on every PR from the "Ops Config Test" workflow. Each check goes
+through `Scripts/GHA/buildx_check.sh`: when public.ecr.aws refuses the base
+images with its anonymous-quota 429, it checks again with them taken from
+Docker Hub (the same images under the same digests).
 
 ```sh
 cd Tests/Ops && npm run lint-app-dockerfile
 ```
+
+### `CancelClosedPrRuns.test.js`
+
+`.github/workflows/cancel-closed-pr-runs.yml` stops a pull request's CI when
+the pull request is closed or merged. It does not call the API. Every workflow
+that runs on `pull_request` has the concurrency group
+`<workflow name>-<PR number>`, and the canceller has one matrix job per
+workflow that joins that group with `cancel-in-progress`. Groups are shared
+across the repository, so GitHub cancels the run as soon as the job is queued,
+without waiting for a runner. Nothing notices when a group stops matching: the
+job then succeeds and cancels nothing. So the suite pins both sides:
+
+- the canceller runs on `pull_request_target` `closed` only, with
+  `permissions: {}`, uses no action (so checks out nothing), and puts no
+  `${{ }}` in a script;
+- its job has no `needs` and no `if`, has `fail-fast: false`, and joins
+  `${{ matrix.workflow }}-${{ github.event.pull_request.number }}` with
+  `cancel-in-progress: true`;
+- its matrix is exactly the names of the workflows that run on `pull_request`,
+  and those names are unique;
+- for a `pull_request` event, each of those workflows' groups evaluates to the
+  canceller's group for it, a push to master lands in a different group (a
+  merge's own push runs are never cancelled), and none of them runs on
+  `closed`.
+
+A new or renamed pull request workflow fails it until the matrix lists it.
+Groups are evaluated by a small reader that understands context paths and `||`
+and throws on anything else.
+
+### `ReleaseE2ePipeline.test.js`
+
+How the release workflows run the e2e suite. test-release.yaml runs on every
+push to master, and a run that has started now finishes (the next push waits
+as the one pending run), so the suite pins what that makes load-bearing: one
+concurrency group without `cancel-in-progress`; a timeout on every job; every
+checkout at the triggering commit, never `ref: ${{ github.ref }}` (a branch
+checkout fetches the branch tip as of when the job starts, so a run outliving a
+newer push would build the newer commit); `CI_PIPELINE_ID` on every job in any
+workflow that runs prerun, so `Scripts/Install/configure.sh` never `git pull`s;
+and a job waiting for `generate-build-number` only if it reads the number.
+
+The SaaS and self-hosted e2e jobs of both workflows run as shards
+(`E2E_SHARD`, `packages/E2E/Sharding`): shards 1..N for an N that
+packages/E2E's `npm run test-sharding` verifies (its `WORKFLOW_SHARD_TOTALS`),
+`fail-fast: false`, `E2E_SHARD` handed to the step that runs the suite, and an
+artifact name per shard. Each of test-release.yaml's e2e jobs must wait for
+the builds of exactly the images its stack runs, and for no merge, read from
+the compose files its start step boots (each file's services merged over the
+last, those behind a profile left out) plus the e2e overlay: a job that
+started before one of its images was pushed would not fail, it would test the
+previous push's image.
+
+Nothing writes the GitHub release once release.yml has published it: every
+job with a step that creates, fills or edits the release
+(`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
+create|upload|edit`) must be one `finalize-github-release` waits for, and the
+publish job's own attach steps (the SBOMs, the infrastructure agent and the
+apps, built ahead of the release) must all come before the step that
+publishes. The app jobs once did not, and 14.0.46 shipped without its Android
+APK: the APK finished after the publish, and GitHub refused the upload. The
+app builds are waited for but not required, so the suite reads the publish
+job's `if` the way Actions does (an `if` with no status function is
+`success() && if`). The release publishes after an app build fails, and not
+when a job it requires did not succeed, when the run was cancelled, or off
+`release`.
+
+release.yml calls terraform-provider-e2e.yml as the release's gate, and a
+called workflow reads the caller's `github.workflow` and `github.ref`, so its
+concurrency group used to be one group for every release run: a newer release
+run, or a re-run of an older one, cancelled the suite of the release in flight.
+release.yml now passes its run id as the `release_run_id` input, which the
+group reads first. The suite checks that the call passes only inputs the
+workflow declares (GitHub refuses to start a run that passes any other), and
+works the group out, with `Utils/WorkflowExpression.js`, for two release runs
+(different groups), two pushes to master and two pushes to one pull request
+(one group each, so the newest still supersedes).
+
+terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
+it lists as Partner for tests that run nightly as a GitHub Action. The suite
+checks that it is scheduled once a day, every day, and that a nightly run's
+group, read from `github.event.schedule` (which GitHub sets on scheduled runs
+only), is not the one master's pushes share, so a merge that lands during the
+nightly run neither cancels it nor is cancelled by it.
+
+The same workflow runs the provider's acceptance tests, written with
+terraform-plugin-testing, which HashiCorp also asks partner providers to pass.
+Go skips them unless `TF_ACC` is set, so the suite pins the step that runs
+them: `TF_ACC=1`, `TF_ACC_TERRAFORM_PATH` at the Terraform the job installed
+(so nothing is downloaded), `test-env.sh` sourced for the OneUptime and the
+project key, and a place after the test account step and both end-to-end
+runs.
+
+### `ReleaseCriticalPath.test.js`
+
+What a release run waits for, and what it no longer does. The organization
+runs 20 jobs at a time and a release run's jobs queue behind every other
+workflow's, so most of a release's hours were queue: 4h42m for 14.0.65, under
+two of them work. release.yml now starts each job when it has what it needs
+and has fewer jobs between the e2e suite and the publish, under the release
+owner's rule: build earlier, never publish earlier.
+
+The suite pins, for every job that publishes (the tags, the draft, the charts,
+the publish, the Terraform provider, the npm packages, the store jobs, and
+the four agent images that move their own `release` tags), everything it
+waited for before, directly or through other jobs, as a floor it may never go
+under; and that the tags, the draft, the charts and the publish wait for all
+three e2e jobs. Then what moved earlier: the builds of images with version
+tags only, and the e2e jobs, no longer wait for `generate-build-number` (a job
+may wait for it only if it reads the number or publishes); the e2e jobs no
+longer wait for `publish-npm-packages`, which `push-release-tags` needs
+instead, and nothing they run installs a package it publishes (the e2e
+package's manifest and lockfile, and the Dockerfiles of every image the e2e
+stacks boot, name none); `push-release-tags` is one job, not a matrix of ten,
+and its step is run with a fake `docker` on PATH, in the `bash -e` Actions
+gives a step that names no shell: both tags of every image, from this
+version's tags, one image's failure not stopping the others but failing the
+job by name, and a refused call retried; and the SBOMs, the infrastructure
+agent and the two apps are built while the images are tested, only for
+`release` (as the draft, which they used to need), kept as artifacts (one
+each, replaced on a re-run, an empty one failing; the infrastructure agent's
+job keeps its Homebrew cask and winget manifests in a second one, which the
+publish job does not download) and attached by
+`finalize-github-release` before it publishes: the apps only when their build
+succeeded, under the asset names the release has always had, and the SBOM job
+waiting for the merge of exactly the images `generate_sboms.sh` scans.
+
+### `CompileWorkflow.test.js`
+
+`.github/workflows/compile.yml` compiles the core packages in four jobs rather
+than one each, and is only as strong as a job per package was if each package
+sees what it saw alone. The suite pins that: every package under `packages/`
+and `packages/App/FeatureSet/` with a `compile` script is compiled, once, after
+its own install (and Common's, but for the recorders) in the same job; no job
+installs both App and a FeatureSet (resolution from a FeatureSet walks up into
+`packages/App/node_modules`); the recorders' job installs neither Common nor
+App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
+to `../Common/build/dist/*`); and every step after a job's first install runs
+unless the run was cancelled, so one run reports each package that fails.
+
+### `TestReleaseE2eImages.test.js`
+
+test-release.yaml's e2e jobs run each image's `-amd64` tag, which the amd64
+leg of the image's build job pushes, so they need the builds of their stack's
+images and no merge: a merge is a few seconds of work behind a runner queue of
+its own, and the merges used to stand between the last build and the e2e jobs
+(34 to 49 minutes on run 38996994440, 14.0.66's e2e evidence). The suite runs
+`Scripts/GHA/build_docker_images.sh` with each build job's own flags for the
+amd64 leg, with a fake `docker` on PATH that records every call, and holds the
+tag each e2e job boots - the same in every step that names it, the pin step's
+included, which it runs - to the tags that leg pushes, for every image of the
+job's stack and in the job's edition. No step of an e2e job, and no job env,
+may name a tag a merge pushes (`<version>-test`, `enterprise-<version>-test`,
+`test`, `enterprise-test`), in a run line, an env entry or an action's input:
+the job does not wait for the merges, so until they run those tags still name
+the previous push's images. It also pins that the merges still run
+for every image built, that `test-helm-chart` (which installs the multi-arch
+`test` tags) still waits for them, and that nothing in the workflow lets a
+failed job end the run green (no `continue-on-error`, no `always()`).
+
+### `TerraformProviderGeneratorTypeCheck.test.js`
+
+`Scripts/TerraformProvider`'s `npm run compile` type-checks the Terraform
+provider generator, `Scripts/OpenAPI/GenerateSpec.ts` and the Common sources
+they import, with Common's own compiler options (the generator's
+`tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
+and it failed with about 10,700 errors before anyone looked. The suite pins
+that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
+on every pull request and every push to master, after installing Common,
+`Scripts` and the generator in the same job (what its imports resolve from),
+before the provider is generated, with nothing that lets it fail quietly, and
+with the generator's unit tests still running when it fails.
+
+### `CodeQlWorkflow.test.js`
+
+`.github/workflows/codeql.yml` is CodeQL's advanced setup, to replace the
+default setup configured in the repository settings. The suite pins that it
+scans pull requests, nightly and on demand but never a push, analyses the same
+languages with the same build modes and default query suite under the same
+categories (so the alerts carry over), and runs nothing until the
+`CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
+advanced setup's results while default setup is on.
+
+Those languages are actions, go, javascript-typescript and python, each
+uploaded under default setup's category for it (`/language:python` for
+python). When the repository gains a language, default setup starts scanning
+it by itself and this setup does not, so the suite reads git's index for the
+files CodeQL reads as code, by the extensions its documentation lists: default
+setup keeps a language only when its analysis succeeds, and an analysis needs
+such files. Each language with code must be in the matrix or in the suite's
+`LEFT_OUT_LANGUAGES` with the reason: C/C++, C#, Java/Kotlin and Swift, none of
+which default setup scanned on 12 October 2026. Each language in the matrix
+must have code outside `paths-ignore`, because an analysis that finds none
+fails, and a left-out language whose code is gone comes off the list.
+
+It also pins the configuration the setup reads,
+`.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
+packs or threat models would change what default setup analysed), naming only
+`packages/Common/Server/Static/Vendor`, the third-party browser assets vendored
+for offline installs. So that list cannot grow to hide OneUptime's own code,
+every directory on it must be a plain path with a README that says it holds
+vendored third-party files, names the configuration, and lists every file in
+it with its source under `## Contents` - a file added there without its row
+fails, as does a row whose file is gone. The suite also checks that the
+product code guard (`packages/Common/Tests/Helpers/CodeScanning.ts`) reads the
+same list rather than keeping its own.
+
+### `JestIgnorePatterns.test.js`
+
+Jest matches `testPathIgnorePatterns`, `modulePathIgnorePatterns`,
+`transformIgnorePatterns`, `coveragePathIgnorePatterns` and
+`watchPathIgnorePatterns` against absolute paths, so an entry written as a
+bare name also matches the directories the checkout lives under: with
+`"dist"`, a worktree at `.claude/worktrees/distracted-dhawan-5e965a` made
+Common's jest find no tests at all, even one named on the command line. The
+suite reads every jest config in the repository (`jest.config.*` and
+`package.json` `"jest"` blocks) and checks that moving the checkout under
+directories whose names merely contain an ignored word changes nothing a
+config ignores, that such a directory inside a package is not ignored either,
+and that each package's build output, its `node_modules` and App's recorder
+suites still are. Write entries as whole path segments: `"/dist/"` for a name
+at any depth, `"<rootDir>/build/"` for one directory of the package.
+
+### `OssScannerImage.test.js`
+
+`.oss-scanner/` is OneUptime's enrolment in Anthropic's OSS Scanner, which
+builds `.oss-scanner/Dockerfile` from master and studies the image with no
+network (`.oss-scanner/README.md`). Nothing else runs those files, so the
+suite holds them to the repository:
+
+- every directory with a tracked `package.json` or `go.mod` is installed
+  (`npm ci` from its committed lockfile, after every project it links with
+  `file:`) and built (its `compile`, or the App's `build-frontends:prod`
+  bundles it), or sits on a `# not built: <dir> - <reason>` line; a listed
+  directory that is gone fails too;
+- every `FROM` is pinned by digest, on the Probe image's Node base (the Node
+  major of every `Dockerfile.tpl` and the root `engines`), the ClickHouse
+  image `docker-compose.base.yml` runs, its Postgres major, and the Go version
+  of the Infrastructure Agent's `go.mod` on the same Debian release;
+- the files are committed and not ignored (the repo-wide `**/Dockerfile`
+  rule once swallowed a hand-written Dockerfile), and the rendered service
+  Dockerfiles still are;
+- `Dockerfile.dockerignore` keeps every tracked file, and the Dockerfile stops
+  on the paths the root `.dockerignore` leaves out (read with a matcher of
+  Docker's own rules);
+- `config.env` carries CI's test settings from `packages/Common/test-setup.sh`,
+  only settings something reads, and no placeholder secret; the datastores
+  listen where it, the dev stack and `start-services.sh` say; ClickHouse runs
+  the drop-ins compose mounts; the Probe's browsers and native helpers are
+  where the Probe image puts and the Probe loads them; every `/usr/src` path
+  the server code hard-codes is linked;
+- the threat model has the scanner template's sections, names every compose
+  service, boundary and entry point, and every path, link and test file it
+  cites exists; `project.yaml` passes the rules of the scanner's
+  `tools/validate.py`;
+- the scripts parse, pass `shellcheck` when it is installed, and
+  `run-in-parallel.sh` and `start-services.sh` are run for real in a scratch
+  copy.
+
+The "Ops Config Test" workflow also runs `docker buildx build --check` over
+the Dockerfile, through `Scripts/GHA/buildx_check.sh` (the same fallback to
+Docker Hub when public.ecr.aws refuses the base images). It does not build the
+image: that is about 10 GB, more than a standard runner has to spare, and the
+scanner emails security@oneuptime.com when its build fails. `.oss-scanner/README.md` says how to build it locally
+with the scanner's own tools.
+
+### `MarketplaceRelease.test.js`
+
+`.github/workflows/marketplace-release.yml` ships OneUptime releases to the
+AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
+self-hosted OneUptime Enterprise. What makes it safe is invisible at runtime,
+so the suite pins it:
+
+- it runs once a week, only when `MARKETPLACE_RELEASES` is `enabled`, or by
+  hand, where `dry_run` defaults to true;
+- it finds the release it ships: the version asked for, or else the newest
+  `#.#.#` tag, and that tag's commit (even of an annotated tag). The suite runs
+  that step against a repository of its own, and checks it writes nothing but
+  those two outputs, whatever is typed in;
+- each push job asks its marketplace whether it has the release before it
+  pushes anything, and every later step, and the publishing job after it, runs
+  only when the marketplace does not have it;
+- it holds no secret; `permissions: {}` at the top, `contents: read` for every
+  job, and `id-token: write` only for the jobs that sign in to a cloud;
+- every job that publishes (adds an AWS version, changes or publishes the
+  Microsoft offer) runs in the `marketplace-publish` environment, so it waits
+  for a maintainer; the jobs that only push run in `marketplace-push`; no other
+  job runs in an environment. The one-time setup
+  (`HelmChart/Marketplace/automation/ci_setup.py`) trusts those two
+  environments and nothing else;
+- no `${{ }}` in a script: values reach scripts through `env`;
+- every edition is built from the chart as it was released, through
+  `.github/actions/marketplace-edition` (which pins crane by its sha256), after
+  the marketplace chart suite passed; runs are never cancelled halfway;
+- every script it runs exists.
+
+### `McpRegistryRelease.test.js`
+
+Each release lists OneUptime Cloud's MCP server in the official MCP Registry
+as `com.oneuptime/mcp`: release.yml's `publish-mcp-registry` job runs
+`Scripts/MCP/PublishToMcpRegistry.sh` on
+`packages/App/FeatureSet/MCP/server.json`. The suite runs the script with a
+fake `curl` (the registry's answers) and a fake `mcp-publisher` on PATH:
+
+- it publishes a copy of server.json at the release's version, validated,
+  after signing in as `oneuptime.com`, the domain whose namespace the entry is
+  named in, and leaves the repository's placeholder version alone;
+- it skips a version the registry already has, signing in to nothing, as
+  `Scripts/NPM/PublishAllPackages.sh` does on npm;
+- only a clean 404 is "not published": any other answer, or none, is asked
+  again, and when it persists the job fails having published nothing;
+- with no key, or no version, it fails before signing in, and it stops at the
+  first step the registry refuses.
+
+And it reads the job: it runs after `finalize-github-release`, so only once
+the release is published and the three e2e jobs have passed; it reads the key
+from the `mcp-registry-publish` environment, which no other job names or
+mentions the key in; its permissions are `contents: read`, with no `${{ }}`
+in its scripts; and it installs the `mcp-publisher` it pins, checking the
+archive's sha256 before unpacking it.
+
+### `InfrastructureAgentPackageManagers.test.js`
+
+Each release puts the infrastructure agent in apt and yum
+(packages.oneuptime.com), Homebrew (`OneUptime/homebrew-tap`) and winget
+(`microsoft/winget-pkgs`): GoReleaser writes the packages, the cask and the
+winget manifests in `infrastructure-agent-build`, and release.yml's three
+`publish-infrastructure-agent-*` jobs publish them with
+`Scripts/PackageManagers/` (see its README). The suite reads:
+
+- the GoReleaser config: packages versioned as the release, not as
+  GoReleaser's snapshot (`14.0.71~SNAPSHOT-<commit>` is what apt used to see),
+  under the file names the repository build reads; the cask and the
+  manifests downloading this release's assets, and published by GoReleaser
+  nowhere;
+- the jobs: each runs after `finalize-github-release` (so after the three e2e
+  jobs) and only for `release`, in the `package-managers` environment that no
+  other job names, with `contents: read`, a timeout and no `${{ }}` in its
+  scripts; its first step checks its secrets, every later step runs only when
+  they are set, and that step is run here to show a missing secret skips the
+  job with a notice rather than failing the release; it hands its script
+  exactly the version, files and secrets the script reads, from where the
+  artifacts put them; no other job reads its deploy key or token; the
+  manifests are an artifact of their own that the release does not attach;
+- the scripts: they parse, pass shellcheck where it is installed (CI has
+  it), trust only github.com's own host key, and the site is pushed as one
+  commit with `--force-with-lease`.
+
+And it runs two of them. `PublishHomebrewCask.sh`, against a local git
+repository: the first cask to an empty tap, nothing for a version the tap
+has or an older one, a newer version replacing it, and a cask for another
+version or a missing key refused before the tap is touched.
+`PublishWingetManifests.sh`, against a fake `gh`: the branch made at
+winget-pkgs' newest commit in the fork, the three manifests committed as
+written, the pull request from the fork (a new package's first, a new
+version's after); nothing opened for a version winget-pkgs has or one with a
+pull request open; a branch a stopped run left moved, not made again;
+`WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
+API that keeps failing, each stopping it having written nothing.
+
+The fake's answers about pull requests go through the script's own `--jq`,
+a stand-in for Microsoft's CLA bot ignores an agreement posted before it
+asks, as the real one did on #456419, and a `sleep` that does not wait keeps
+the waits instant. So the suite also holds the script to: the CLA agreement
+posted only once the pull request has the `Needs-CLA` label, on one a run
+opens or a re-run finds with it; nothing posted when the label does not come
+within `WINGET_CLA_WAIT_SECONDS`; success said when the label goes, and a
+warning, not a failure, when it stays past `WINGET_CLA_CLEAR_WAIT_SECONDS`;
+a label read GitHub fails read again at the next poll; the windows and the
+poll interval as set, or 900, 300 and 20 seconds, and refused before anything
+is asked when they are not whole seconds; an agreement GitHub refuses tried
+four times, then stopping the job with what to comment; the account's open
+pull requests for older versions closed with a comment naming the new one,
+on a run or a re-run, and newer versions', other accounts', other packages'
+and closed ones left alone; one it cannot list, close or comment on a
+warning, after asking once more, not a failure; and the winget job's timeout
+outlasting the waits.
+
+### `InfrastructureAgentMsi.test.js`
+
+The infrastructure agent's MSI
+(`agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs`, built
+by `build-msi.sh` with wixl) is what Intune, Configuration Manager and Group
+Policy deploy, and they upgrade by installing the newer MSI over the older
+one. It had a fixed ProductCode, so Windows refused every newer version with
+error 1638. The suite holds the installer to what upgrading relies on: the
+UpgradeCode, component Guid and directory installed agents have; a new
+ProductCode each build; a per-machine install; a major upgrade that also
+replaces a build of the same version and refuses a downgrade; the agent's
+service (the one `main.go` registers) stopped by every install and uninstall,
+started after an install or upgrade and deleted by an uninstall that is not an
+upgrade's, from deferred actions that run as the local system and whose
+failures are ignored; every custom action placed by sequence number, since
+wixl does not place one After or Before a standard action; `build-msi.sh`
+building both MSIs from that one file (amd64 as an x64 package, arm64 as x86:
+wixl builds no ARM64 package); and the "Infrastructure Agent MSI Test"
+workflow running on every change to the agent, on Windows x64 and Windows on
+Arm, where `windows/test-msi-upgrade.ps1` installs, upgrades over the running
+agent, downgrades and uninstalls two versions for real.
+
+### `package-repository-e2e.sh`
+
+Not part of `npm test`; needs docker and the distributions' package mirrors.
+The "Ops Config Test" workflow runs it on every PR. It publishes two releases
+of a stand-in agent package, built by nfpm as GoReleaser builds the real one,
+with the real `PublishPackageRepository.sh` and `BuildPackageRepository.sh`
+on Ubuntu 24.04 (the release runner's), into a local stand-in for
+`OneUptime/packages`, and serves what was pushed over HTTP. Then it runs the
+apt and dnf commands of the Server / VM Monitor docs page as written, with
+only `https://packages.oneuptime.com` swapped, under a root umask of 077:
+
+- apt on Ubuntu verifies `InRelease` against `gpg.key`, fetches the indexes
+  by hash, installs the newest version, downgrades and upgrades, and refuses
+  the repository when `gpg.key` is another key;
+- dnf on Rocky Linux 8 (RHEL 8's rpm) checks the metadata's and each
+  package's signature, installs, downgrades and upgrades;
+- the publish reads the key with its newlines written as `\n`, as the secret
+  holds it; creates the site in an empty repository; pushes nothing for a
+  version the site has; and replaces the site's one commit with another, with
+  no parent, for the next release.
+
+Run it with `bash Tests/Ops/package-repository-e2e.sh`; `--apt-image`,
+`--dnf-image`, `--builder-image` and `--server-image` swap the images (for
+example for `mirror.gcr.io/library/...` when public.ecr.aws refuses).
+
+### `ChatGPTPluginPackage.test.js`
+
+`npm run build-chatgpt-plugin` (`Scripts/MCP/BuildChatGPTPlugin.sh`) builds
+the ZIP OneUptime uploads to the ChatGPT plugin directory from
+`packages/App/FeatureSet/MCP/ChatGPTPlugin`. The suite runs the script and
+reads the ZIP back: every file of the package but its README, at the root of
+the archive, byte for byte; a rebuild replaces an earlier ZIP instead of adding
+to it; and a relative output path lands where the command was typed, through
+npm (`INIT_CWD`) as well as bash. It needs `zip` and `unzip`: without them the
+ZIP checks are skipped with the reason logged, except in CI, where they fail.
+What the package says is held by
+`packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
+
+### `agent-ebpf-e2e/`
+
+Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway
+KinD (or k3s) cluster, where OBI and the eBPF profiler load real eBPF
+programs, drives an instrumented Node.js app and checks what reaches a stand-in
+for OneUptime. It needs docker, kind, kubectl, helm and python3, and runs in
+its own workflow, "Kubernetes Agent eBPF E2E", when the chart changes. Its
+analyzer's unit tests need only python3 and run in "Ops Config Test" on every
+PR:
+
+```sh
+python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
+```
+
+See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
 
 ## Utils
 
@@ -519,6 +1357,25 @@ whitespace trimming). It throws on anything else. It also finds every
 `Utils/DockerfileContext.js` parses `COPY`/`ADD` (shell and JSON forms) and
 `RUN --mount`, and reports every way a stage can take `ee/` from the build
 context or from a stage that holds it.
+
+`Utils/ReleaseWorkflow.js` reads the image-release workflows: a job's needs
+(directly and transitively), the command lines of its steps (backslash
+continuations joined), the flags of its `build_docker_images.sh` and
+`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, the
+images whose release tags `push-release-tags` moves (`releaseTagImages`) and
+whether a job retags an image (`retagsImage`), and a bash array out of a
+script. `KubernetesAiAgentRelease.test.js` keeps its own
+copies of these helpers as written; new image release tests use this module.
+
+`Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
+one run, for the suites that work out a concurrency group: context paths and
+`||` only (a missing path reads as null, as on GitHub). It throws on anything
+else rather than misread it.
+
+`Utils/ContainerAgentCpuBehaviour.js` is the node half of
+`container-agent-cpu-utilization-behaviour.sh`: it writes the collector configs
+and OTLP payloads that script runs, reads what the file exporter wrote (a line
+still being written is left for the next read) and checks it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

@@ -1,101 +1,186 @@
-# Grafana Integration
+# Grafana
 
-Turn [Grafana](https://grafana.com) alerts into OneUptime incidents. Grafana evaluates the alert rules on your dashboards; OneUptime records, escalates, and tracks them.
+Send [Grafana](https://grafana.com) alerts to OneUptime, so each firing alert becomes an incident that pages your on-call team, and is resolved when the alert recovers. Grafana sends its alerts through a webhook contact point, so there is nothing to install on either side.
 
-This integration is **inbound**: a Grafana **Webhook contact point** posts to OneUptime. There are two ways to receive it.
+:::cards
+- [Choose how OneUptime receives alerts](#choose-how-oneuptime-receives-alerts): An Incoming Request monitor, or a workflow of your own.
+- [Receive alerts with a monitor](#receive-alerts-with-a-monitor): One incident per alert, resolved on recovery.
+- [Configure Grafana](#configure-grafana): A webhook contact point, and the policy that uses it.
+- [Troubleshooting](#troubleshooting): When alerts do not arrive, or incidents stay open.
+:::
 
-| Approach                                                                             | Use it when                                                                                                                |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| **[Incoming Request monitor](/docs/monitor/incoming-request-monitor)** (recommended) | You want alerts to become incidents with on-call escalation, one incident per alert, and automatic resolution on recovery. |
-| **[Workflow](/docs/workflows/index) with a Webhook trigger**                         | You need routing logic OneUptime doesn't do natively — calling other systems, reshaping payloads, conditional branching.   |
+## How it works
 
-```text
-Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="From a Grafana alert to an incident"
+flowchart TB
+    rule["Grafana alert rule<br/>fires"] --> policy["A notification<br/>policy groups<br/>the alerts"]
+    policy --> post["The contact point<br/>posts them to<br/>OneUptime"]
+    post --> status{"Each alert's<br/>status"}
+    status -->|"firing"| open["Incident opened,<br/>on-call paged"]
+    status -->|"resolved"| resolve["Incident resolved"]
 ```
 
-Grafana's webhook payload follows the Alertmanager shape — `status`, an `alerts` array, `commonLabels`, and `commonAnnotations`, plus convenient top-level `title` and `message` fields.
+Grafana's notification policies group the alerts that fire, and a webhook contact point posts each group as one JSON notification. It has the same shape as a [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) notification: a `status`, an `alerts` list in which each alert has its own `status` and `fingerprint`, and the `commonLabels` and `commonAnnotations` its alerts share. Grafana adds a `title` and a `message` written for people.
 
-## Prerequisites
+## Before you begin
 
-- Grafana 9+ with [unified alerting](https://grafana.com/docs/grafana/latest/alerting/) enabled (the default on modern Grafana).
-- Grafana must be able to reach your OneUptime instance over HTTPS.
-- A OneUptime project where you can create monitors (or workflows).
+- Grafana 9 or later, with Grafana Alerting, the default since Grafana 9. It must be able to reach your OneUptime over HTTPS.
+- In OneUptime, the right to create monitors, or workflows if you take that way.
 
-## Option 1 — Incoming Request monitor
+## Choose how OneUptime receives alerts
 
-1. Go to **Monitors → Create Monitor** and choose **Incoming Request**. Open it and click **Documentation** in the left menu to copy the URL.
-2. Open the monitor's **Criteria** and set **Filter Type** to `JavaScript Expression` and **Value** to `"{{requestBody.status}}" === "firing"`.
-3. Declare an incident on match, choose the **On-Call Policies** to page, and turn on **Auto Resolve Incident** under **Advanced Options**.
-4. Under **Settings**, turn on **Group incidents and alerts by a payload field** and set:
+Set up OneUptime first: it gives you the URL Grafana sends to.
 
-   | Field                              | Value                               |
-   | ---------------------------------- | ----------------------------------- |
-   | Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-   | Field that signals recovery        | `requestBody.alerts[*].status`      |
-   | Value that means recovered         | `resolved`                          |
+| Way | Use it when |
+| --- | --- |
+| An Incoming Request monitor (recommended) | You want every alert to be an incident that pages on-call, and is resolved when the alert recovers. There is nothing to build. |
+| A workflow with a Webhook trigger | You need logic of your own: filter alerts, reshape them, or call other systems first. A workflow opens one incident per notification, not per alert, and does not resolve it on recovery. |
 
-5. Title the incident `{{requestBody.commonLabels.alertname}}` and describe it with `{{requestBody.message}}` or `{{requestBody.commonAnnotations.summary}}`. (`{{fingerprint}}` holds the grouping key itself, but it is a hash — not something to show a responder.)
-6. Point the Grafana contact point at the monitor's URL (see the contact point steps below).
+Both get the same JSON from the same contact point, so you can start with one and switch later by changing one URL in Grafana.
 
-Each **distinct** grouping value becomes its own incident, and each clears when Grafana reports it resolved. Grafana's per-alert `fingerprint` is unique to an alert's label set, which is why it is the grouping path above. The [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) page walks through the same setup in more detail — the payload shape is the same, so every step there applies here.
+## Receive alerts with a monitor
 
-> **Warning:** Do not group by a label that is constant across a notification. Grafana's default notification policy groups by `grafana_folder` and `alertname`, so every alert in one webhook shares an alertname — grouping by `requestBody.alerts[*].labels.alertname` would collapse the whole payload into a single incident. The grouping paths must also start with the literal `requestBody.`, and only the first `[*]` in a path is a wildcard. All of these fail silently.
+An [Incoming Request monitor](/docs/monitor/incoming-request-monitor) gives you a URL, and its criteria decide what each notification does.
 
-## Option 2 — Workflow
+:::steps
+### Create the monitor
 
-Use this when you need logic beyond "alert becomes incident".
+Go to **Monitors** and click **Create Monitor**. Pick **Incoming Request** under **Monitor Type**, name it `Grafana`, and click **Next**.
 
-### Step 1 — Build the OneUptime workflow
+### Declare an incident for each firing alert
 
-1. Open **Workflows → Create Workflow**, name it `Grafana → Incidents`, and open the **Builder**.
-2. Add a **Webhook** trigger and **copy its URL**. Rename the block to `Grafana`.
-3. Add a **Conditions** block connected to the trigger:
-   - **Left**: `{{Grafana.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. From **Yes**, add a **Create Incident** block:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: choose one (or branch on `{{Grafana.Request Body.commonLabels.severity}}`).
-5. **Save** (leave disabled until tested).
+On the **Criteria** step, open the first criteria, the one that marks the monitor offline. Set its filter to **Request Body**, **Contains**, `"status":"firing"`. This criteria already declares an incident when its filter matches. Fill the incident in:
 
-## Configure the Grafana contact point
+- **Incident Title**: `{{requestBody.commonLabels.alertname}}`.
+- **Incident Description**, under **Description**: `{{requestBody.message}}`, the text Grafana writes for the notification.
+- **Severity**: the incident severity these alerts should have.
+- **On-Call Policies**, under **On-Call**: the policies to page.
+- **Auto Resolve Incident**, under **More fields**: leave it on, as it starts. Without it, recoveries are ignored and incidents stay open.
 
-1. In Grafana, go to **Alerting → Contact points → Add contact point**.
-2. **Name**: `OneUptime`. **Integration**: **Webhook**.
-3. **URL**: paste the monitor URL from Option 1, or the workflow's webhook URL from Option 2. **HTTP Method**: `POST`.
-4. Save the contact point.
-5. Go to **Alerting → Notification policies** and route the alerts you want (or the default policy) to the **OneUptime** contact point.
+### Open one incident per alert
+
+In the same criteria, open **Settings** and turn on **Group incidents and alerts by a payload field**. Fill it in as below, so each alert gets its own incident, and its recovery resolves it:
+
+| Field | Value |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
+
+### Bring the monitor back online
+
+Open the second criteria, the one that marks the monitor online, and set its filter to **Request Body**, **Contains**, `"status":"resolved"`.
+
+### Copy the URL
+
+Click **Create Monitor**. The monitor's **Overview** page shows its **Heartbeat URL**. Copy it for Grafana:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+A self-hosted install has its own host in place of `oneuptime.com`.
+:::
+
+Each alert of a notification opens its own incident, up to **Max incidents per request** of them (`100` unless you change it), and each alert's own `status` decides when its incident is resolved. Grafana's `fingerprint` identifies an alert by its labels, so it is the value to group by. See [Receiving alerts from another system](/docs/monitor/incoming-request-monitor#receiving-alerts-from-another-system) for what each setting does.
+
+> [!WARNING]
+> Do not group by a label every alert of a notification shares. Grafana's default notification policy groups alerts by `grafana_folder` and `alertname`, so every alert of one notification has the same `alertname`: grouping by `requestBody.alerts[*].labels.alertname` folds the whole notification into one incident.
+
+`{{requestBody.commonLabels.alertname}}` and `{{requestBody.message}}` describe the whole notification, which is one alert rule under the default policy. The grouping key is a variable too, `{{fingerprint}}`, but it is a hash that tells a responder nothing. See [Incident & Alert Templating](/docs/monitor/incident-alert-templating) for every variable you can use.
+
+## Configure Grafana
+
+:::steps
+### Add a webhook contact point
+
+In Grafana, go to **Alerting → Contact points** and click **+ Add contact point**. In Grafana 11 and later, **Alerting** is under **Alerts & IRM**, and **Contact points** is a tab of **Notification configuration**.
+
+Name the contact point `OneUptime`, choose **Webhook** under **Integration**, and paste the URL you copied into **URL**. Leave **HTTP Method** on `POST`, and click **Save contact point**.
+
+### Send alerts to it
+
+Go to **Alerting → Notification policies**. Set the contact point of the default policy to `OneUptime`, or add a child policy that matches the alerts OneUptime should get, with `OneUptime` as its contact point.
+:::
+
+Grafana sends `Content-Type: application/json`, which the monitor needs to read the fields of a notification. The contact point's **Max Alerts** setting caps the alerts of one notification: keep it at `0`, no limit, or at most the monitor's **Max incidents per request**.
 
 ## Test it
 
-1. Enable the workflow, if you built one.
-2. In the contact point screen, use **Test** to send a sample notification, or let a real alert rule fire.
-3. Check your **Incidents** list — and the workflow's **Logs** tab if you used Option 2.
+1. In Grafana, open the `OneUptime` contact point and click **Test**. Grafana sends a firing test alert, and an incident opens in OneUptime. A test alert never recovers, so resolve that incident by hand.
+2. Let a real alert rule fire, for example by lowering its threshold for a moment, and watch its incident open, then resolve when you put the threshold back.
 
-## Resolving on recovery
+## Receive alerts with a workflow
 
-When the alert clears, Grafana sends another notification with `status: resolved`.
+Use a [workflow](/docs/workflows/index) when you need steps of your own between Grafana and the incident.
 
-With **Option 1**, the recovery field and value configured above close the matching incident automatically — provided **Auto Resolve Incident** is on.
+:::steps
+### Create the workflow
 
-With **Option 2**, add a second **Conditions** branch (`status == resolved`), find the matching incident, and move it to your resolved state with **Update Incident**.
+Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Name it `Grafana alerts` and click **Create Workflow**.
 
-## Notes
+### Add the Webhook trigger
 
-- **Legacy alerting (Grafana 8 and earlier)** sends a different payload (`ruleName`, `state`, `evalMatches`). If you're on legacy alerting, reference `{{Grafana.Request Body.ruleName}}` and `{{Grafana.Request Body.state}}` instead, and branch on `state == alerting`.
-- You can also skip Grafana's alerting entirely and have OneUptime monitor the same metrics directly — see the [Metrics Monitor](/docs/monitor/metrics-monitor).
+Click the dashed **Choose what starts this workflow** block and pick **Webhook**. Click the trigger, then **Copy URL**, and use that URL in the contact point in Grafana.
+
+### Check that the notification fires
+
+Click **Add Component**, add an **If / Else** block, and connect the trigger's **Out** dot to it. Set **Value to check** to `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** to **is equal to**, and **Compare with** to `firing`.
+
+### Declare the incident
+
+Add a **Create One Incident** block, and connect the **Yes** side of the **If / Else** block to it. In **Incident Template**, pick a template that sets the severity and the on-call policies to page (see [Incident templates](/docs/incidents/settings#incident-templates)). In **JSON Object**, set what comes from Grafana:
+
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.message}}"
+}
+```
+
+Without a template, **JSON Object** also needs `incidentSeverityId`, the ID of one of the project's incident severities.
+
+### Turn the workflow on
+
+Switch **Enabled** on at the top of the **Builder**. A workflow that is off answers Grafana with `400`.
+:::
+
+A run handles one notification, so it declares one incident however many alerts the notification holds. A notification that is `resolved` takes the **No** side of the **If / Else** block, where nothing is connected, so the run ends there. For one incident per alert, resolved on recovery, use the monitor.
 
 ## Troubleshooting
 
-- **Nothing arrives** — confirm Grafana can reach the URL (check Grafana's server logs) and, for Option 2, that the workflow is **Enabled**. OneUptime answers every incoming request with an empty `200` before validating it, so a `200` in Grafana's logs does not confirm the payload was accepted.
-- **Incidents open but never close** — check the recovery field and value on the criteria, and that **Auto Resolve Incident** is on under the incident's **Advanced Options**. The comparison is case-sensitive.
-- **Only one incident for a payload full of alerts** — you grouped by a label that does not vary inside a notification. Group by `requestBody.alerts[*].fingerprint` instead.
-- **Incident text shows raw `{{...}}` placeholders** — the path did not resolve, and unresolved placeholders are left in place rather than blanked. Reference fields that exist for your alerting version; inspect the trigger output in the **Logs** tab if you used Option 2.
+:::details Nothing arrives in OneUptime
+- Click **Test** on the contact point: Grafana shows an error when it cannot reach the URL. Grafana's server log has the details.
+- The monitor answers `200` at once, before it checks anything, even for a wrong secret key. Check the monitor's timeline to see whether notifications land.
+- A workflow that is off answers `400`. Switch **Enabled** on at the top of its **Builder**.
+:::
 
-## Where to read next
+:::details Incidents open but are never resolved
+- The criteria's incident needs **Auto Resolve Incident**, under **More fields**.
+- **Field that signals recovery** must be `requestBody.alerts[*].status`, and **Value that means recovered** exactly `resolved`. The comparison is case-sensitive.
+- The grouping paths must start with `requestBody.`, and only the first `[*]` of a path reads a list. A path that breaks either rule matches nothing, without an error.
+:::
 
-- [Incoming Request Monitor](/docs/monitor/incoming-request-monitor) — the monitor type, its criteria, and incident grouping in full.
-- [Integrations Overview](/docs/integrations/index) — the inbound pattern.
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) — closely related payload.
-- [Metrics Monitor](/docs/monitor/metrics-monitor) — monitor metrics in OneUptime directly.
+:::details One incident for a notification full of alerts
+You grouped by a label that is the same for every alert of a notification, such as `alertname` under the default policy. Group by `requestBody.alerts[*].fingerprint` instead.
+:::
+
+:::details The incident shows a reference instead of a value
+A reference to a field the notification does not have is left as written, braces and all. Check the field's name against what Grafana sent: for a workflow, open the run in **Logs → Runs** and compare with what the trigger received.
+:::
+
+The [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#troubleshooting) guide covers more cases, and they apply to Grafana's notifications too.
+
+## Security
+
+- **Treat the URL like a password.** Anyone who has it can open incidents. If it leaks, reset it: **Reset Incoming Request Secret Key** on the monitor's **Settings** page, or **Reset URL** in the workflow's **Webhook** trigger. Then update the contact point's **URL** in Grafana.
+- **Self-hosted?** Let Grafana reach your OneUptime over HTTPS through your firewall.
+
+## Next steps
+
+:::cards
+- [Incoming Request Monitor](/docs/monitor/incoming-request-monitor): Every setting of the monitor that receives your alerts.
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): The same setup, with a dead man's switch for your alerting.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on the same metrics in OneUptime itself.
+- [Integrations Overview](/docs/integrations/index): The other tools you can connect.
+:::

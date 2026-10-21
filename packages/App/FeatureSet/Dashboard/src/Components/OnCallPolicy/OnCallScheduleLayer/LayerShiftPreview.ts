@@ -2,19 +2,20 @@ import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
-import UserOverrideUtil, {
-  UserOverrideRecord,
-} from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
+import { UserOverrideRecord } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
 
 /*
  * Client-side glue that turns the stored layer models into the concrete
- * CalendarEvents the summaries read, using the SAME LayerUtil the calendar
- * preview and the server use. Keeping this in one place means the textual
- * rotation summary can never drift from the calendar it sits next to.
+ * CalendarEvents the summaries read, using the SAME resolution the calendar
+ * preview and the server use (ScheduleResolution: the rotation, the people
+ * who are away skipped in it, then named covers). Keeping this in one place
+ * means the textual rotation summary can never drift from the calendar it
+ * sits next to.
  */
 
 export interface LayerPreviewResult {
@@ -93,7 +94,7 @@ export interface LayerPreviewParams {
    */
   overrides?: Array<UserOverrideRecord> | undefined;
   /*
-   * The policy whose scoped overrides apply. Without it, applyOverridesToEvents
+   * The policy whose scoped overrides apply. Without it, the resolution
    * honours global overrides only, so passing `overrides` alone is not enough.
    */
   currentOnCallDutyPolicyId?: string | undefined;
@@ -172,19 +173,18 @@ export const getLayerPreviewEvents: (
     timezone: params.timezone,
   };
 
-  let events: Array<CalendarEvent> = new LayerUtil().getEvents({
-    ...layerProps,
+  /*
+   * The layer on its own: somebody away with nobody named to cover is skipped
+   * within THIS layer's turn order, and when everybody in it is away it shows
+   * nobody - the layers below it are not this card's to show.
+   */
+  const events: Array<CalendarEvent> = ScheduleResolution.resolve({
+    layers: [layerProps],
     calendarStartDate: windowStart,
     calendarEndDate: windowEnd,
-  });
-
-  if (params.overrides && params.overrides.length > 0) {
-    events = UserOverrideUtil.applyOverridesToEvents({
-      events: events,
-      overrides: params.overrides,
-      currentOnCallDutyPolicyId: params.currentOnCallDutyPolicyId,
-    });
-  }
+    overrides: params.overrides,
+    currentOnCallDutyPolicyId: params.currentOnCallDutyPolicyId,
+  }).events;
 
   return { events, now, windowStart, windowEnd };
 };

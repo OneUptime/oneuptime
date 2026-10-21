@@ -25,6 +25,11 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
+import { getResolvedState, isResolvedStateId } from "../utils/resolvedState";
+import {
+  getAcknowledgedState,
+  isAcknowledgedById,
+} from "../utils/acknowledgedState";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
@@ -49,6 +54,7 @@ import NotesSection from "../components/NotesSection";
 import MarkdownContent from "../components/MarkdownContent";
 import RootCauseCard from "../components/RootCauseCard";
 import { useHaptics } from "../hooks/useHaptics";
+import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertEpisodeDetail">;
 
@@ -92,6 +98,18 @@ export default function AlertEpisodeDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  // "Pass it on", for the person an on-call policy is paging about it.
+  const passOn: PassOnControls = usePassOnAction({
+    projectId,
+    recordType: "alert-episode",
+    recordId: episodeId,
+    recordLabel: "alert episode",
+    // Passing it on is news on the feed and the state timeline.
+    onPassedOn: () => {
+      return Promise.allSettled([refetchFeed(), refetchTimeline()]);
+    },
+  });
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.allSettled([
       refetchEpisode(),
@@ -99,6 +117,7 @@ export default function AlertEpisodeDetailScreen({
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
+      passOn.refetch(),
     ]);
   });
 
@@ -266,22 +285,23 @@ export default function AlertEpisodeDetailScreen({
     ? rgbToHex(episode.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState: AlertState | undefined = states?.find(
-    (s: AlertState) => {
-      return s.isAcknowledgedState;
-    },
-  );
-  const resolveState: AlertState | undefined = states?.find((s: AlertState) => {
-    return s.isResolvedState;
-  });
+  // Where Acknowledge and Resolve move it: the project's own two states.
+  const acknowledgeState: AlertState | undefined = getAcknowledgedState(states);
+  const resolveState: AlertState | undefined = getResolvedState(states);
 
   const currentStateId: string | undefined = episode.currentAlertState?._id;
-  const isResolved: boolean = Boolean(
-    resolveState && resolveState._id === currentStateId,
-  );
-  const isAcknowledged: boolean = Boolean(
-    acknowledgeState && acknowledgeState._id === currentStateId,
-  );
+  /*
+   * Resolved: in the project's resolved state or in a state placed after
+   * it ("Closed"), so there is nothing left to acknowledge or resolve
+   * (utils/resolvedState).
+   */
+  const isResolved: boolean = isResolvedStateId(states, currentStateId);
+  /*
+   * Acknowledged: in the project's acknowledged state or in a state placed
+   * after it ("Investigating"), so Acknowledge - a move back up the list -
+   * is not offered (utils/acknowledgedState).
+   */
+  const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
   const rootCauseTextRaw: string = toPlainText(episode.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;
@@ -312,6 +332,10 @@ export default function AlertEpisodeDetailScreen({
         return handleStateChange(resolveState._id, resolveState.name);
       },
     });
+  }
+  // Somebody being paged about it who cannot take it hands it on.
+  if (!isResolved && !isAcknowledged && passOn.action) {
+    actions.push(passOn.action);
   }
 
   const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
@@ -369,7 +393,7 @@ export default function AlertEpisodeDetailScreen({
         {actions.length > 0 ? (
           <ResponseActions
             actions={actions}
-            busy={changingState}
+            busy={changingState || passOn.passingOn}
             style={{ marginBottom: 0 }}
           />
         ) : null}

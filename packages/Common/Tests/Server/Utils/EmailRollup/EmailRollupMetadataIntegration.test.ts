@@ -12,6 +12,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import EmailColorUtil from "../../../../Utils/Email/EmailColorUtil";
 import {
   FakeItemRow,
   RollupHarness,
@@ -118,6 +119,8 @@ describe("grouped email severity and state from enqueue through delivery", () =>
             viewLink: item.viewLink,
             severity: item.severity,
             currentState: item.currentState,
+            severityColor: item.severityColor,
+            currentStateColor: item.currentStateColor,
             sentAt: item.sentAt,
             createdAt: queuedAt,
           });
@@ -135,11 +138,19 @@ describe("grouped email severity and state from enqueue through delivery", () =>
     subject: string;
     severity: string;
     state: string;
+    severityColor?: string | undefined;
+    stateColor?: string | undefined;
   }): Promise<void> {
     const vars: Dictionary<string | JSONObject> = {
       [data.family.severityVar]: data.severity,
       currentState: data.state,
       [data.family.linkVar]: "https://oneuptime.com/dashboard/resource/1",
+      // Spread in exactly the way every producer adds them.
+      ...EmailColorUtil.getTemplateVariables(
+        data.family.severityVar,
+        data.severityColor,
+      ),
+      ...EmailColorUtil.getTemplateVariables("currentState", data.stateColor),
     };
 
     await EmailRollupWriter.sendOrRollup({
@@ -154,7 +165,88 @@ describe("grouped email severity and state from enqueue through delivery", () =>
     // Later changes to producer data must not alter the persisted snapshot.
     vars[data.family.severityVar] = "Changed after enqueue";
     vars["currentState"] = "Changed after enqueue";
+    vars[`${data.family.severityVar}Color`] = "#000000";
+    vars["currentStateColor"] = "#000000";
   }
+
+  test.each(FAMILIES)(
+    "delivers the latest $name severity and state colours after folding queued updates",
+    async (family: NotificationFamily) => {
+      await enqueue({
+        family: family,
+        subject: "Acknowledged notification",
+        severity: "Critical",
+        state: "Acknowledged",
+        severityColor: "#dc2626",
+        stateColor: "#f97316",
+      });
+      queuedAt = OneUptimeDate.addRemoveMinutes(NOW, -10);
+      await enqueue({
+        family: family,
+        subject: "Resolved notification",
+        severity: "Low",
+        state: "Resolved",
+        severityColor: "#facc15",
+        stateColor: "#22c55e",
+      });
+
+      // The snapshot, not the producer's later edits.
+      expect(
+        harness.items.map((item: FakeItemRow): Array<string | null> => {
+          return [
+            item.severityColor?.toString() ?? null,
+            item.currentStateColor?.toString() ?? null,
+          ];
+        }),
+      ).toEqual([
+        ["#dc2626", "#f97316"],
+        ["#facc15", "#22c55e"],
+      ]);
+
+      await EmailRollupFlushRunner.runSweep({ now: NOW });
+
+      expect(harness.sent).toHaveLength(1);
+      const rows: Array<JSONObject> = harness.sent[0]!.vars[
+        "rows"
+      ] as unknown as Array<JSONObject>;
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        severity: "Low",
+        severityColor: "#facc15",
+        severityTextColor: EmailColorUtil.getColorPair("#facc15")!.textColor,
+        hasSeverityColor: "true",
+        currentState: "Resolved",
+        currentStateColor: "#22c55e",
+        currentStateTextColor:
+          EmailColorUtil.getColorPair("#22c55e")!.textColor,
+        hasCurrentStateColor: "true",
+      });
+    },
+  );
+
+  test("a queued notification without colours still delivers its plain chips", async () => {
+    await enqueue({
+      family: FAMILIES[1]!,
+      subject: "Colourless notification",
+      severity: "Critical",
+      state: "Investigating",
+    });
+
+    await EmailRollupFlushRunner.runSweep({ now: NOW });
+
+    const rows: Array<JSONObject> = harness.sent[0]!.vars[
+      "rows"
+    ] as unknown as Array<JSONObject>;
+    expect(rows[0]).toMatchObject({
+      severity: "Critical",
+      hasSeverityColor: "false",
+      severityColor: "",
+      currentState: "Investigating",
+      hasCurrentStateColor: "false",
+      currentStateColor: "",
+    });
+    expect(harness.errors).toEqual([]);
+  });
 
   test.each(FAMILIES)(
     "delivers the latest $name severity and state after folding queued updates",

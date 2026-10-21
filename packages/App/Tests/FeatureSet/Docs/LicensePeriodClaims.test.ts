@@ -2,6 +2,11 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  listItems,
+  sectionAtEnglishPlace,
+  statedNumbers,
+} from "./UpgradingDocsNotes";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -24,7 +29,8 @@ import path from "path";
  * and no text may still describe a 14-day grace period.
  *
  * The scan reads English: the translated identity pages are pinned
- * separately, number by number, in EnterpriseEditionDocs.test.ts.
+ * separately, number by number, in EnterpriseEditionDocs.test.ts, and the
+ * translated upgrade notes here, number by number.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -194,7 +200,7 @@ describe("the license period scan", () => {
 
   it.each([
     "If the license expires, everything keeps working for a 14-day grace period.",
-    "After the trial (or 14 days after a license expires), SSO stops until a license is activated.",
+    "After the trial (or 14 days after a license expires), SCIM stops until a license is activated.",
     "Your self-hosted OneUptime instances keep every enterprise feature for 14 days after the expiry date above (the grace period).",
     "Audit logging stops once the 14-day trial or grace period is over without a valid license.",
     "Valid, in the 14-day grace period after it expired, or inside the 14-day trial of an Enterprise install.",
@@ -208,7 +214,7 @@ describe("the license period scan", () => {
   it.each([
     "Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period).",
     "If the license expires, everything keeps working for a 30-day grace period, and after that the same happens as for an install with no license.",
-    "After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop until a license is activated.",
+    "After the trial (or 30 days after a license expires), SCIM and audit logging stop until a license is activated.",
     "Your self-hosted OneUptime instances keep every enterprise feature for 30 days after the expiry date above (the grace period).",
     "An install with no license runs as a 14-day trial, which is for evaluation.",
     "The license is refused while it is lapsed (after the trial or grace period).",
@@ -224,7 +230,7 @@ describe("the license period scan", () => {
         "values.yaml",
         [
           "  ##   license runs as a 14-day trial, which is for evaluation. After the trial",
-          "  ##   (or 14 days after a license expires), until a license is activated, SSO,",
+          "  ##   (or 14 days after a license expires), until a license is activated, SCIM",
         ].join("\n"),
       ).length,
     ).toBeGreaterThan(0);
@@ -300,30 +306,46 @@ describe("the key pages state both lengths, from the constants", () => {
 
     expect(pages.length).toBe(17);
 
+    // The English words.
+    const english: string = sentencesOf(
+      readFile(path.join(DOCS_CONTENT_DIR, "en/installation/upgrading.md")),
+    ).join(" ");
+
+    expect(english).toContain(
+      `everything keeps working for a ${GRACE}-day grace period`,
+    );
+    expect(english).toContain(`gets a ${TRIAL}-day trial`);
+
+    /*
+     * Every language, in the licensing list of its edition section (the
+     * English list's place): an install with a license key gets the grace
+     * period, one with no license the trial, with the lengths the license
+     * classifier uses, whatever words and digits the language writes them in.
+     */
     for (const file of pages) {
-      const page: string = sentencesOf(readFile(file)).join(" ");
+      const language: string = path
+        .relative(DOCS_CONTENT_DIR, file)
+        .split(path.sep)[0]!;
+      const items: Array<string> = listItems(
+        sectionAtEnglishPlace(language, "Licensing after the upgrade"),
+      );
 
       expect({
         file: path.relative(DOCS_CONTENT_DIR, file),
-        grace: page.includes(
-          `everything keeps working for a ${GRACE}-day grace period`,
-        ),
-        trial: page.includes(`gets a ${TRIAL}-day trial`),
+        grace: statedNumbers(items[0] || "").includes(GRACE),
+        trial: statedNumbers(items[1] || "").includes(TRIAL),
+        trialIsNotGrace: statedNumbers(items[1] || "").includes(GRACE),
       }).toEqual({
         file: path.relative(DOCS_CONTENT_DIR, file),
         grace: true,
         trial: true,
+        trialIsNotGrace: false,
       });
     }
   });
 
-  it("the English identity and SLO audit log pages", () => {
-    for (const page of [
-      "identity/sso",
-      "identity/scim",
-      "identity/global-sso",
-      "slo/feed-and-audit-logs",
-    ]) {
+  it("the English SCIM and SLO audit log pages", () => {
+    for (const page of ["identity/scim", "slo/feed-and-audit-logs"]) {
       expect({
         page,
         states: read(
@@ -332,6 +354,31 @@ describe("the key pages state both lengths, from the constants", () => {
           `(after the ${TRIAL}-day trial, or ${GRACE} days after a license expires)`,
         ),
       }).toEqual({ page, states: true });
+    }
+  });
+
+  /*
+   * Single sign-on is in every edition and needs no license, so its pages
+   * have no trial or grace period to state: a length on them would tell the
+   * reader that single sign-on stops when it runs out.
+   */
+  it("the English SSO and global SSO pages state neither length", () => {
+    for (const page of ["identity/sso", "identity/global-sso"]) {
+      const text: string = read(
+        `packages/App/FeatureSet/Docs/Content/en/${page}.md`,
+      );
+
+      // match() on these global patterns starts from the beginning every time.
+      expect({
+        page,
+        trial: text.match(TRIAL_LENGTH),
+        grace: GRACE_LENGTHS.map((pattern: RegExp) => {
+          return text.match(pattern);
+        }).filter((found: RegExpMatchArray | null) => {
+          return found !== null;
+        }),
+        withoutALicense: text.includes("Without a valid license"),
+      }).toEqual({ page, trial: null, grace: [], withoutALicense: false });
     }
   });
 

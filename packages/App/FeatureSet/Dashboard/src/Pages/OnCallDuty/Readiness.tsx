@@ -7,6 +7,7 @@ import {
   ReadinessStatusValue,
   ReadinessSummaryWire,
   ReadinessTeamWire,
+  READINESS_METHOD_TYPE_PUSH,
   READINESS_STATUS_NOT_REACHABLE,
   READINESS_STATUS_PARTIALLY_READY,
   READINESS_STATUS_READY,
@@ -38,6 +39,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -60,6 +62,13 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * On-Call > Readiness.
@@ -338,15 +347,30 @@ const describeSetupReminderReport: (report: SetupReminderReport) => string = (
   const parts: Array<string> = [];
 
   if (report.sentCount > 0) {
-    parts.push(`${report.sentCount} sent`);
+    parts.push(
+      translatePlural(
+        { one: "{{count}} sent", other: "{{count}} sent" },
+        report.sentCount,
+      ),
+    );
   }
 
   if (report.skippedCount > 0) {
-    parts.push(`${report.skippedCount} skipped`);
+    parts.push(
+      translatePlural(
+        { one: "{{count}} skipped", other: "{{count}} skipped" },
+        report.skippedCount,
+      ),
+    );
   }
 
   if (report.failedCount > 0) {
-    parts.push(`${report.failedCount} failed`);
+    parts.push(
+      translatePlural(
+        { one: "{{count}} failed", other: "{{count}} failed" },
+        report.failedCount,
+      ),
+    );
   }
 
   if (parts.length === 0) {
@@ -354,7 +378,7 @@ const describeSetupReminderReport: (report: SetupReminderReport) => string = (
      * A 200 with nothing in it. Unreachable today, but stating it plainly beats
      * an empty banner that reads as success.
      */
-    return "No reminders were sent.";
+    return translateTemplate("No reminders were sent.");
   }
 
   return `${parts.join(", ")}.`;
@@ -387,9 +411,9 @@ const CHANNEL_ICONS: Dictionary<IconProp> = {
 };
 
 const STATUS_FILTER_LABELS: Record<ReadinessStatusValue, string> = {
-  Ready: "Ready",
-  PartiallyReady: "Needs setup",
-  NotReachable: "Unreachable",
+  Ready: translationKey("Ready"),
+  PartiallyReady: translationKey("Needs setup"),
+  NotReachable: translationKey("Unreachable"),
 };
 
 // Non-ready first. Nobody opens this page to admire the responders who are fine.
@@ -430,11 +454,12 @@ export interface StatusChipProps {
 const StatusChip: FunctionComponent<StatusChipProps> = (
   props: StatusChipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.status === READINESS_STATUS_NOT_REACHABLE) {
     return (
       <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
         <Icon icon={IconProp.Alert} className="h-3 w-3 text-red-500" />
-        {props.label}
+        {translator.translateText(props.label)}
       </span>
     );
   }
@@ -443,7 +468,7 @@ const StatusChip: FunctionComponent<StatusChipProps> = (
     return (
       <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
         <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
-        {props.label}
+        {translator.translateText(props.label)}
       </span>
     );
   }
@@ -451,7 +476,7 @@ const StatusChip: FunctionComponent<StatusChipProps> = (
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
       <Icon icon={IconProp.CheckCircle} className="h-3 w-3 text-emerald-500" />
-      {props.label}
+      {translator.translateText(props.label)}
     </span>
   );
 };
@@ -471,6 +496,7 @@ export interface ChannelMeterProps {
 const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
   props: ChannelMeterProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const methodsByChannel: Dictionary<ReadinessMethodWire> = {};
 
   for (const method of props.methods) {
@@ -492,7 +518,10 @@ const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
   const tooltipContent: ReactElement = (
     <div className="min-w-40 text-xs">
       <div className="mb-1 font-semibold text-gray-900">
-        {verifiedCount} of {CHANNEL_ORDER.length} channels verified
+        {translator.translateTemplate(
+          "{{verified}} of {{total}} channels verified",
+          { verified: verifiedCount, total: CHANNEL_ORDER.length },
+        )}
       </div>
       <ul className="space-y-0.5">
         {CHANNEL_ORDER.map((channel: string): ReactElement => {
@@ -509,14 +538,31 @@ const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
                   icon={CHANNEL_ICONS[channel] || IconProp.Bell}
                   className="h-3 w-3 text-gray-400"
                 />
-                {channel}
+                {translator.translateText(channel)}
               </span>
               <span className="text-gray-500">
                 {method
-                  ? `${method.maskedIdentifier}${
-                      method.isVerified ? "" : " (unverified)"
-                    }`
-                  : "Not set up"}
+                  ? method.isVerified
+                    ? method.maskedIdentifier
+                    : channel === READINESS_METHOD_TYPE_PUSH
+                      ? /*
+                         * A push device is verified when it is registered:
+                         * one that is not stopped receiving notifications,
+                         * and is registered again rather than verified.
+                         */
+                        translator.translateTemplate(
+                          "{{identifier}} (not receiving notifications)",
+                          {
+                            identifier: method.maskedIdentifier,
+                          },
+                        )
+                      : translator.translateTemplate(
+                          "{{identifier}} (unverified)",
+                          {
+                            identifier: method.maskedIdentifier,
+                          },
+                        )
+                  : translator.translateText("Not set up")}
               </span>
             </li>
           );
@@ -529,7 +575,10 @@ const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
     <Tooltip richContent={tooltipContent}>
       <span
         className="inline-flex items-center gap-0.5"
-        aria-label={`${verifiedCount} of ${CHANNEL_ORDER.length} notification channels verified`}
+        aria-label={translator.translateTemplate(
+          "{{verified}} of {{total}} notification channels verified",
+          { verified: verifiedCount, total: CHANNEL_ORDER.length },
+        )}
       >
         {CHANNEL_ORDER.map((channel: string): ReactElement => {
           const method: ReadinessMethodWire | undefined =
@@ -587,6 +636,7 @@ interface SetupReminderReportBannerProps {
 const SetupReminderReportBanner: FunctionComponent<
   SetupReminderReportBannerProps
 > = (props: SetupReminderReportBannerProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const namesByUserId: Dictionary<string> = {};
 
   for (const row of props.rows) {
@@ -615,7 +665,9 @@ const SetupReminderReportBanner: FunctionComponent<
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <span className="font-medium">Setup reminders:&nbsp;</span>
+          <span className="font-medium">
+            {translator.translateText("Setup reminders:")}&nbsp;
+          </span>
           {describeSetupReminderReport(props.report)}
         </div>
         <button
@@ -623,7 +675,7 @@ const SetupReminderReportBanner: FunctionComponent<
           className="whitespace-nowrap text-xs underline opacity-80 hover:opacity-100"
           onClick={props.onDismiss}
         >
-          Dismiss
+          {translator.translateText("Dismiss")}
         </button>
       </div>
 
@@ -633,7 +685,8 @@ const SetupReminderReportBanner: FunctionComponent<
             return (
               <li key={`reminder-outcome-${result.userId}`}>
                 <span className="font-medium">
-                  {namesByUserId[result.userId] || "This responder"}
+                  {namesByUserId[result.userId] ||
+                    translator.translateText("This responder")}
                 </span>
                 {result.message ? ` - ${result.message}` : ""}
               </li>
@@ -729,8 +782,9 @@ const isRemindable: (row: ResponderRow) => boolean = (
   return row.status !== READINESS_STATUS_READY;
 };
 
-const NOT_REMINDABLE_REASON: string =
-  "Already ready - there is nothing to remind them about";
+const NOT_REMINDABLE_REASON: string = translationKey(
+  "Already ready - there is nothing to remind them about",
+);
 
 /*
  * Reads one filter value out of the FilterData the modal produced, as a list of
@@ -862,6 +916,7 @@ const buildTextPredicate: (value: unknown) => TextPredicate | null = (
 const OnCallReadinessPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [summary, setSummary] = useState<ReadinessSummaryWire | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -1318,6 +1373,11 @@ const OnCallReadinessPage: FunctionComponent<
     ],
   };
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const refreshButton: CardButtonSchema = getRefreshButton();
   refreshButton.title = "Refresh";
   refreshButton.onClick = () => {
@@ -1333,19 +1393,14 @@ const OnCallReadinessPage: FunctionComponent<
   };
 
   /*
-   * The funnel. Table renders the filter MODAL and the chip banner but no button
+   * Filter. Table renders the filter MODAL and the chip banner but no button
    * to open either with (FilterViewer draws nothing at all until a filter is
    * applied), so every page that offers filtering puts the trigger in its own
-   * card header - which is also why it is the same funnel in the same corner
-   * everywhere in the product.
-   *
-   * `title` on an ICON button is not drawn; it becomes the accessible name. An
-   * icon with no name is a control a screen reader announces as "button".
+   * card header - in the ⋯, as Filter, which is where every table keeps it.
    */
   const filterButton: CardButtonSchema = {
     title: "Filter",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
     icon: IconProp.Filter,
     onClick: () => {
       setIsFilterModalVisible(true);
@@ -1484,8 +1539,11 @@ const OnCallReadinessPage: FunctionComponent<
         return (
           <span className="whitespace-nowrap text-sm text-gray-600">
             {row.coverageCellCount > 0
-              ? `${row.coveredCount} of ${row.coverageCellCount}`
-              : "Not reported"}
+              ? translator.translateTemplate("{{covered}} of {{total}}", {
+                  covered: row.coveredCount,
+                  total: row.coverageCellCount,
+                })
+              : translator.translateText("Not reported")}
           </span>
         );
       },
@@ -1608,7 +1666,9 @@ const OnCallReadinessPage: FunctionComponent<
   } else if (allRows.length === 0) {
     content = (
       <div className="py-10 text-center text-sm text-gray-500">
-        No responders are attached to any on-call policy in this project yet.
+        {translator.translateText(
+          "No responders are attached to any on-call policy in this project yet.",
+        )}
       </div>
     );
   } else {
@@ -1616,8 +1676,9 @@ const OnCallReadinessPage: FunctionComponent<
       <div>
         {selectedRows.length === 0 && (
           <div className="mb-4 text-xs text-gray-500">
-            Tick the responders you want to remind. Responders who are already
-            ready cannot be selected - there is nothing to remind them about.
+            {translator.translateText(
+              "Tick the responders you want to remind. Responders who are already ready cannot be selected - there is nothing to remind them about.",
+            )}
           </div>
         )}
 
@@ -1639,20 +1700,24 @@ const OnCallReadinessPage: FunctionComponent<
         {reminderFailure &&
           (reminderFailure.isNothingSentCertain ? (
             <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              <span className="font-medium">No reminders were sent.&nbsp;</span>
+              <span className="font-medium">
+                {translator.translateText("No reminders were sent.")}&nbsp;
+              </span>
               {reminderFailure.message}
             </div>
           ) : (
             <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <span className="font-medium">
-                We could not confirm which reminders were sent.&nbsp;
+                {translator.translateText(
+                  "We could not confirm which reminders were sent.",
+                )}
+                &nbsp;
               </span>
               {reminderFailure.message}
               <p className="mt-1.5">
-                Some of them may already have gone out. Check with the
-                responders before sending again - a reminder sent in the last 24
-                hours is skipped rather than repeated, so a retry will not mail
-                anybody twice.
+                {translator.translateText(
+                  "Some of them may already have gone out. Check with the responders before sending again - a reminder sent in the last 24 hours is skipped rather than repeated, so a retry will not mail anybody twice.",
+                )}
               </p>
             </div>
           ))}
@@ -1724,7 +1789,7 @@ const OnCallReadinessPage: FunctionComponent<
           }}
           isItemSelectable={isRemindable}
           itemNotSelectableReason={(): string => {
-            return NOT_REMINDABLE_REASON;
+            return translator.translateTemplate(NOT_REMINDABLE_REASON);
           }}
           onBulkSelectedItemAdded={(row: ResponderRow) => {
             setSelectedUserIds((current: Array<string>): Array<string> => {
@@ -1789,7 +1854,8 @@ const OnCallReadinessPage: FunctionComponent<
       <Card
         title="On-call readiness"
         description="Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive."
-        buttons={[refreshButton, filterButton]}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton, filterButton])}
       >
         <div>
           {/*
@@ -1873,13 +1939,12 @@ const OnCallReadinessPage: FunctionComponent<
        */}
       {coverageRow && (
         <Modal
-          title={`Coverage for ${coverageRow.responder}`}
+          title={translator.translateTemplate("Coverage for {{responder}}", {
+            responder: coverageRow.responder,
+          })}
           description="Which severities this responder has a notification rule for, and how a page would reach them."
           modalWidth={ModalWidth.Large}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setCoverageRow(null);
-          }}
+          closeButtonText="Close"
           onClose={() => {
             setCoverageRow(null);
           }}
@@ -1887,12 +1952,14 @@ const OnCallReadinessPage: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-1">
               <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Notification methods
+                {translator.translateText("Notification methods")}
               </div>
               {coverageRow.readiness.methods.length === 0 ? (
                 <p className="mt-2 text-sm text-gray-500">
-                  No notification methods at all. Only {coverageRow.responder}{" "}
-                  can add these, so the fix here is a reminder, not an edit.
+                  {translator.translateTemplate(
+                    "No notification methods at all. Only {{responder}} can add these, so the fix here is a reminder, not an edit.",
+                    { responder: coverageRow.responder },
+                  )}
                 </p>
               ) : (
                 <ul className="mt-2 space-y-1.5">
@@ -1917,11 +1984,23 @@ const OnCallReadinessPage: FunctionComponent<
                           </span>
                           {method.isVerified ? (
                             <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                              Verified
+                              {translator.translateText("Verified")}
+                            </span>
+                          ) : method.methodType ===
+                            READINESS_METHOD_TYPE_PUSH ? (
+                            /*
+                             * Registered, and then its push service or Expo
+                             * said it was gone: the words the person's own
+                             * device list uses for it.
+                             */
+                            <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                              {translator.translateText(
+                                "Not receiving notifications",
+                              )}
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                              Unverified
+                              {translator.translateText("Unverified")}
                             </span>
                           )}
                         </li>
@@ -1934,7 +2013,7 @@ const OnCallReadinessPage: FunctionComponent<
               {coverageRow.readiness.reasons.length > 0 && (
                 <div className="mt-5">
                   <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                    Why this status
+                    {translator.translateText("Why this status")}
                   </div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
                     {coverageRow.readiness.reasons.map(
@@ -1949,7 +2028,7 @@ const OnCallReadinessPage: FunctionComponent<
 
             <div className="lg:col-span-2">
               <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Coverage
+                {translator.translateText("Coverage")}
               </div>
               <CoverageMatrix model={coverageRow.model} />
             </div>

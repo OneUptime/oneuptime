@@ -31,19 +31,29 @@ import {
 } from "typeorm";
 
 /*
- * How a runbook reaches infrastructure that is not the Runner's own host.
+ * What OneUptime AI's own commands reach through a Runner: an SSH host, or a
+ * Kubernetes cluster's API server. The dashboard calls them AI Access.
  *
- * A Bash step can only act where the Runner already has ambient credentials,
- * which is why "restart the pod" used to mean provisioning a kubeconfig onto
- * the Runner host by hand. A credential is that access made into a managed
- * object: encrypted at rest, write-only over the API, assigned to specific
- * Runners, and referenced by id from an SSH or Kubernetes step.
+ * An SSH credential assigned to a Runner that runs OneUptime AI's commands is
+ * a host OneUptime AI may run an SSH command on (RemediationCommandTools),
+ * and a Kubernetes credential bound to a cluster is how OneUptime AI's
+ * kubectl reaches it through a Runner outside it
+ * (KubernetesCluster.aiAccessCredential). A credential is that access made
+ * into a managed object: encrypted at rest, write-only over the API, and
+ * assigned to specific Runners.
  *
- * The secret fields carry `read: []` — the same write-only contract as
- * RunbookSecret. They are decrypted in exactly one place, the claim path,
- * where they are handed to the one Runner the step targets. A non-empty read
- * ACL on an encrypted column serves decrypted plaintext over the CRUD API,
- * which is precisely what this must never do.
+ * Runbook steps used credentials too, before runbook variables. An SSH or
+ * kubectl step now takes its key, password or kubeconfig from a secret
+ * RunbookVariable, and the data migration that brought variables in copied
+ * every credential a step named into variables and rewrote the step
+ * (Server/Utils/Runbook/RunbookVariablesMove). A step written through the
+ * API with a credentialId still runs with it.
+ *
+ * The secret fields carry `read: []` — the same write-only contract as a
+ * secret RunbookVariable. They are decrypted in exactly one place, the claim
+ * path, where they are handed to the one Runner the job targets. A non-empty
+ * read ACL on an encrypted column serves decrypted plaintext over the CRUD
+ * API, which is precisely what this must never do.
  *
  * Workflows are deliberately NOT enabled: a workflow that could read a
  * credential would be a way around the write-only contract.
@@ -85,7 +95,7 @@ import {
   pluralName: "Runbook Credentials",
   icon: IconProp.Key,
   tableDescription:
-    "Access to a system a runbook needs to act on — an SSH host, or a Kubernetes cluster. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a step.",
+    "What OneUptime AI's commands reach through your Runners: an SSH host, or a Kubernetes cluster's API server. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a command.",
 })
 @Entity({
   name: "RunbookCredential",
@@ -547,7 +557,7 @@ export default class RunbookCredential extends BaseModel {
     modelType: Runner,
     title: "Runners",
     description:
-      "The Runners allowed to use this credential. A step referencing it must target one of them.",
+      "The Runners allowed to use this credential. A command that uses it must run on one of them.",
   })
   @ManyToMany(
     () => {
@@ -569,11 +579,7 @@ export default class RunbookCredential extends BaseModel {
   public runners?: Array<Runner> = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateRunbookCredential,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

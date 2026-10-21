@@ -29,6 +29,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # looks, because operator and receiver schemas move between releases.
 COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.161.0"
 
+# The same image at the tag the Kubernetes agent chart pinned before this one
+# (its image.tag), which `helm upgrade --reuse-values` keeps: see the
+# Kubernetes agent section below. Not a pin of its own, so it is written from
+# COLLECTOR_IMAGE (ContainerImageHardening.test.js holds every pin to one
+# version).
+REUSE_VALUES_COLLECTOR_IMAGE="${COLLECTOR_IMAGE%:*}:0.96.0"
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
@@ -103,6 +110,27 @@ ENV_ARGS=(
   -e "VCENTER_PASSWORD=validate-only"
   -e "VCENTER_INSECURE_SKIP_VERIFY=true"
   -e "VCENTER_COLLECTION_INTERVAL=2m"
+  # The Proxmox and Ceph agents (prometheus receivers scraping an exporter
+  # and the mgr prometheus module). A scrape target has to parse as
+  # host:port, and the Ceph targets are one YAML list, so give them the
+  # shapes their compose files and install scripts write.
+  -e "PROXMOX_CLUSTER_NAME=validate-only"
+  -e "PVE_HOST=pve.example.com"
+  -e "PVE_EXPORTER_URL=pve-exporter:9221"
+  -e "CEPH_CLUSTER_NAME=validate-only"
+  -e "CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283]"
+  # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
+  # native endpoint, or Pure's exporter sidecars). The prometheus receiver
+  # parses the scrape target and the TLS flag (an unquoted boolean), and the
+  # resource processor refuses to start on an empty array name — so give them
+  # the shapes install.sh writes.
+  -e "STORAGE_ARRAY_NAME=validate-only"
+  -e "STORAGE_SYSTEM=purestorage.flasharray"
+  -e "PURE_FA_ENDPOINT=flasharray.example.com"
+  -e "PURE_FA_API_TOKEN=validate-only"
+  -e "PURE_FB_ENDPOINT=flashblade.example.com"
+  -e "PURE_FB_API_TOKEN=validate-only"
+  -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
   # The Database Agent (one config per engine under agents/DatabaseAgent/
   # configs). The postgresql receiver splits the endpoint as host:port and
   # refuses an empty username or password, the TLS flags and the two event
@@ -134,6 +162,9 @@ ENV_ARGS=(
 
 failures=0
 
+# The collector `validate` runs; one section below sets another for a while.
+VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
+
 validate() {
   local label="$1"
   local config="$2"
@@ -148,7 +179,7 @@ validate() {
     "$@" \
     "${STUB_MOUNTS[@]}" \
     -v "$(dirname "${config}")":/validate:ro \
-    "${COLLECTOR_IMAGE}" \
+    "${VALIDATE_IMAGE}" \
     validate --config "/validate/$(basename "${config}")"; then
     echo "    ok"
   else
@@ -157,12 +188,40 @@ validate() {
   fi
 }
 
-for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
+for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent CephAgent; do
   # Copied into the work dir so every config is mounted from one place and the
   # bind mount cannot pick up anything else from the agent directory.
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
 done
+
+# The Storage Array Agent ships one config per way of reading an array:
+# docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
+# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
+# Every one of them is validated.
+STORAGE_ARRAY_AGENT_CONFIGS=(
+  otel-collector-config.yaml
+  otel-collector-config.flasharray-exporter.yaml
+  otel-collector-config.flashblade.yaml
+)
+
+for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+  cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+  validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+done
+
+# STORAGE_ARRAY_NAME is stamped as storage.array.name by the resource
+# processor, which refuses to start on an empty value — so an agent whose
+# .env lost it fails loudly at startup instead of shipping data no array
+# can claim.
+if docker run --rm "${ENV_ARGS[@]}" -e "STORAGE_ARRAY_NAME=" "${STUB_MOUNTS[@]}" \
+  -v "${WORK_DIR}":/validate:ro "${COLLECTOR_IMAGE}" \
+  validate --config /validate/StorageArrayAgent-otel-collector-config.yaml >/dev/null 2>&1; then
+  echo "    FAILED: StorageArrayAgent started with an empty STORAGE_ARRAY_NAME"
+  failures=$((failures + 1))
+else
+  echo "==> StorageArrayAgent refuses an empty STORAGE_ARRAY_NAME: ok"
+fi
 
 # The Database Agent ships one config per receiver; install.sh downloads the
 # chosen one as otel-collector-config.yaml. Every one of them is validated.
@@ -226,7 +285,16 @@ for (const doc of docs) {
   }
 
   for (const [key, value] of Object.entries(doc.data)) {
-    if (!key.endsWith(".yaml") || !String(value).includes("service:")) {
+    // A collector config has a service with pipelines. The OBI config of the
+    // eBPF DaemonSet (obi-config.yaml) is YAML too, and with log correlation
+    // on it carries `- service:` selectors. It is not a collector config, and
+    // `otelcol validate` would reject it. (No apostrophes in this script: it
+    // is inside a single-quoted shell string.)
+    if (
+      !key.endsWith(".yaml") ||
+      !String(value).includes("service:") ||
+      !String(value).includes("pipelines:")
+    ) {
       continue;
     }
 
@@ -249,6 +317,95 @@ if (found === 0) {
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
+
+# The span filter ebpf.dropUnlinkedClientCalls adds to the traces pipeline is
+# opt-in, so the render above does not have it. Validate the collector
+# Deployment config with it on as well: its OTTL is then checked against this
+# collector too, not only the one the chart ships
+# (agent-trace-filter-behaviour.sh runs it there).
+echo "==> rendering kubernetes-agent chart with ebpf.dropUnlinkedClientCalls=true"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set ebpf.dropUnlinkedClientCalls=true \
+  >"${WORK_DIR}/kubernetes-agent-client-calls.rendered.yaml"
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [rendered, out] = process.argv.slice(1);
+const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => {
+  return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-deployment";
+});
+const config = configMap.data["otel-collector-config.yaml"];
+if (!yaml.load(config).service.pipelines.traces.processors.includes("filter/ebpf-unlinked-client")) {
+  throw new Error(`${rendered}: filter/ebpf-unlinked-client is not in the traces pipeline`);
+}
+fs.writeFileSync(out, config);
+' "${WORK_DIR}/kubernetes-agent-client-calls.rendered.yaml" \
+  "${WORK_DIR}/k8s-deployment-client-calls.yaml"
+validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
+  "${WORK_DIR}/k8s-deployment-client-calls.yaml"
+
+# The collector a `helm upgrade --reuse-values` keeps. That upgrade renders the
+# new chart with the previous release's values, image.tag included, so a
+# release from before 0.161.0 runs this chart's configs on 0.96.0 (NOTES.txt
+# warns about it, templates/_stale-defaults.tpl). A key 0.96.0 does not know
+# would stop its agent, so both configs are validated there too, rendered for
+# that tag (the chart writes the few newer keys only for a collector that has
+# them: kubernetes-agent.collectorAtLeast). 0.96.0's k8sobjects receiver asks
+# the API server for its resources while `validate` builds it, which nothing
+# here can answer, so the Deployment config goes without that receiver (and
+# the events pipeline it alone feeds); the chart writes it the same for every
+# collector.
+echo "==> rendering kubernetes-agent chart for ${REUSE_VALUES_COLLECTOR_IMAGE}"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set logs.enabled=true \
+  --set logs.mode=daemonset \
+  --set image.tag="${REUSE_VALUES_COLLECTOR_IMAGE##*:}" \
+  >"${WORK_DIR}/kubernetes-agent-reuse-values.rendered.yaml"
+node -e '
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+
+const [rendered, outDir] = process.argv.slice(1);
+const docs = yaml.loadAll(fs.readFileSync(rendered, "utf8"));
+for (const role of ["deployment", "daemonset"]) {
+  const configMap = docs.find((doc) => {
+    return doc && doc.kind === "ConfigMap" && doc.metadata.name === `validate-kubernetes-agent-${role}`;
+  });
+  if (!configMap) {
+    throw new Error(`${rendered}: no ${role} collector ConfigMap`);
+  }
+  const config = yaml.load(configMap.data["otel-collector-config.yaml"]);
+  if (role === "deployment") {
+    if (!config.receivers.k8sobjects) {
+      throw new Error(`${rendered}: the Deployment config has no k8sobjects receiver to set aside`);
+    }
+    delete config.receivers.k8sobjects;
+    for (const [name, pipeline] of Object.entries(config.service.pipelines)) {
+      pipeline.receivers = pipeline.receivers.filter((receiver) => {
+        return receiver !== "k8sobjects";
+      });
+      if (pipeline.receivers.length === 0) {
+        delete config.service.pipelines[name];
+      }
+    }
+  }
+  fs.writeFileSync(path.join(outDir, `k8s-reuse-values-${role}.yaml`), yaml.dump(config));
+}
+' "${WORK_DIR}/kubernetes-agent-reuse-values.rendered.yaml" "${WORK_DIR}"
+VALIDATE_IMAGE="${REUSE_VALUES_COLLECTOR_IMAGE}"
+validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}" \
+  "${WORK_DIR}/k8s-reuse-values-daemonset.yaml"
+validate "kubernetes-agent / collector Deployment on ${REUSE_VALUES_COLLECTOR_IMAGE}, without k8sobjects" \
+  "${WORK_DIR}/k8s-reuse-values-deployment.yaml"
+VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
 
 # The VMware config lists the receiver's optional metrics in a comment and
 # tells users to enable any of them "the same way", and OneUptime's VMware
@@ -279,6 +436,53 @@ console.log(listed.join(" "));
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 validate "VMwareAgent, every optional metric its config lists enabled" \
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
+
+# Each Storage Array Agent config ships the syslog option commented out — a
+# `syslog/tcp` / `syslog/udp` receiver pair and a `logs` pipeline — and tells
+# users to uncomment it. Do exactly that (drop the `# ` each of those lines
+# carries) and validate every config once more, so the option a user turns
+# on is a config that starts. The YAML is checked to really carry both
+# receivers and the pipeline, so an uncomment that matched nothing fails
+# here instead of validating the config as shipped a second time.
+for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+  node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out] = process.argv.slice(1);
+const lines = [];
+let prefix = null;
+for (const line of fs.readFileSync(source, "utf8").split("\n")) {
+  const header = line.match(/^( *)# (syslog\/(?:tcp|udp)|logs):$/);
+  if (header) {
+    prefix = header[1];
+    lines.push(prefix + line.slice(prefix.length + 2));
+    continue;
+  }
+  if (prefix !== null && line.startsWith(prefix + "#   ")) {
+    lines.push(prefix + line.slice(prefix.length + 2));
+    continue;
+  }
+  prefix = null;
+  lines.push(line);
+}
+const text = lines.join("\n");
+const config = yaml.load(text);
+const logs = config.service.pipelines.logs;
+if (
+  !config.receivers["syslog/tcp"] ||
+  !config.receivers["syslog/udp"] ||
+  !logs ||
+  logs.receivers.join(",") !== "syslog/tcp,syslog/udp"
+) {
+  throw new Error(`${source}: uncommenting found no syslog receivers / logs pipeline`);
+}
+fs.writeFileSync(out, text);
+' "${REPO_ROOT}/agents/StorageArrayAgent/${config}" \
+    "${WORK_DIR}/StorageArrayAgent-syslog-${config}"
+  validate "StorageArrayAgent / ${config}, with the syslog receivers uncommented" \
+    "${WORK_DIR}/StorageArrayAgent-syslog-${config}"
+done
 
 # Each Database Agent config lists its receiver's other optional metrics in a
 # comment and tells users to enable any of them "the same way". A metric the
@@ -322,4 +526,4 @@ if [ "${failures}" -ne 0 ]; then
 fi
 
 echo
-echo "all collector configs validated against ${COLLECTOR_IMAGE}"
+echo "all collector configs validated against ${COLLECTOR_IMAGE}, and the Kubernetes agent's against ${REUSE_VALUES_COLLECTOR_IMAGE} too"

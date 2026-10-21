@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -23,6 +24,7 @@ import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
 import ServiceLevelObjective from "./ServiceLevelObjective";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -129,6 +131,14 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentIncidentStateId"]) // Active-incident counters on dashboard
+/*
+ * The incidents an investigation rule makes OneUptime AI wait on: a handful
+ * at any moment, so the index holds only them, and the rule-wait job's
+ * "wait ended" read (aiInvestigationWaitUntil <= now) implies its predicate.
+ */
+@Index(["aiInvestigationWaitUntil"], {
+  where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Incident extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -383,6 +393,39 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public impactStartedAt?: Date = undefined;
+
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * this incident (FirstPagedAt). Written once, by OneUptime, and never
+   * moved: no caller may write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "First Paged At",
+    description:
+      "When an on-call policy or a direct page first notified someone about this incident. Empty until someone is paged. Set by OneUptime.",
+    example: "2024-01-15T09:32:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstPagedAt?: Date = undefined;
 
   @Index()
   @ColumnAccessControl({
@@ -1219,6 +1262,60 @@ export default class Incident extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description: "List of storage arrays affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
     modelType: DatabaseServer,
     title: "Databases",
     description: "List of databases affected by this incident.",
@@ -1798,7 +1895,7 @@ export default class Incident extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.",
@@ -1947,6 +2044,37 @@ export default class Incident extends BaseModel {
   })
   public subscriberNotificationStatusMessage?: string = undefined;
 
+  /*
+   * When a subscriber job last claimed the 'incident created' notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Incident Created",
+    description:
+      "When a subscriber notification job last started sending the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnIncidentCreated?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2036,6 +2164,38 @@ export default class Incident extends BaseModel {
   public subscriberNotificationStatusMessageOnPostmortemPublished?: string =
     undefined;
 
+  /*
+   * When a subscriber job last claimed the postmortem notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Postmortem Published",
+    description:
+      "When a subscriber notification job last started sending the notification about this incident's postmortem.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnPostmortemPublished?: Date =
+    undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2104,7 +2264,8 @@ export default class Incident extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    description:
+      "The incident's custom field values, keyed by each incident custom field's name. When a user or an API key creates or updates an incident, each value it sets or changes must fit its field - a number for a Number field, true or false for a Boolean, one of the options for a Dropdown, and so on - or the request is refused. Values left as they were, keys that are not the name of a field and empty values are not checked. Required on Create is not enforced here: it applies to the dashboard's Declare Incident form only.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -2122,6 +2283,25 @@ export default class Incident extends BaseModel {
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public aiInvestigationDecision?: InvestigationNotStartedReason = undefined;
+
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this incident (issue #5074): when the wait ends. The
+   * incident is investigated then if it is still open, and the column is
+   * cleared whatever happens. Null for every other incident. The rule-wait
+   * job finds the ones whose wait has ended through the partial index above
+   * (Server/Utils/AI/SRE/InvestigationRuleWait).
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Investigation Waits Until",
+    description:
+      "Internal: while an investigation rule makes OneUptime AI wait before it investigates this record, when the wait ends.",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public aiInvestigationWaitUntil?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2679,6 +2859,83 @@ export default class Incident extends BaseModel {
   })
   public isCreatedAutomatically?: boolean = undefined;
 
+  /*
+   * Whether the incident holds its monitors, recorded by OneUptime: true
+   * from when it is declared open, or from when an edit while it is open
+   * puts its monitors in its monitor status; false for one declared already
+   * resolved, which never held them, and from when a resolve gives them
+   * back. Resolving gives back only what it holds - so an incident declared
+   * resolved, reopened and resolved again gives back nothing it never had.
+   * Null for incidents from before it was recorded: their resolve gives the
+   * monitors back, as it always did, and records false.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Boolean,
+    title: "Holds Monitors",
+    description:
+      "Whether this incident is holding its monitors - keeping them in its monitor status, or their monitoring paused - so that resolving it gives them back: their monitoring resumes and their status returns to operational. True from when the incident is declared open, or from when an edit while it is open puts its monitors in its monitor status. False for an incident declared already resolved, which never held them, and once a resolve has given them back. Empty for incidents from before it was recorded, which give their monitors back when they are resolved. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public holdsMonitors?: boolean = undefined;
+
+  /*
+   * When the automatic postmortem draft started waiting for what the
+   * incident's calls said, recorded by OneUptime: set when the incident
+   * resolves while a call's transcript is still on its way
+   * (isPostmortemWaitingForCalls), cleared once the draft is written or no
+   * longer due. Null the rest of the time.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  // The Workers job finds the drafts that wait by it.
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Date,
+    title: "Postmortem Draft Waiting Since",
+    description:
+      "When the automatic postmortem draft started waiting for the transcript of the incident's call, so that the draft reads what was said on it: set when the incident resolves while a call's transcript is still on its way, and cleared once the draft is written. Empty the rest of the time. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public postmortemDraftWaitingSince?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2882,6 +3139,207 @@ export default class Incident extends BaseModel {
   })
   public isVisibleOnStatusPage?: boolean = undefined;
 
+  /*
+   * The status pages this incident is limited to. An incident reaches a
+   * status page through its monitors: every page that lists one of them shows
+   * it and notifies its subscribers. So a monitor shared by ten site pages
+   * used to tell all ten sites about an outage that affects two. Picking
+   * pages here narrows that: a scoped incident shows on, and notifies, only
+   * the selected pages among those its monitors already reach (the two sets
+   * intersect - a scope never puts an incident on a page that does not list
+   * its monitors). Empty means unscoped: every page its monitors reach, as
+   * before. Status pages that only show scoped incidents
+   * (StatusPage.onlyShowScopedIncidents) never show an unscoped one.
+   *
+   * Shaped like ScheduledMaintenance.statusPages, with the access control of
+   * the monitors list above. Whether an incident is scoped is kept separately
+   * in isScopedToStatusPages, so the status page queries can filter on it.
+   *
+   * Like the monitors list, the pages are part of the incident: anyone who
+   * can read it sees their names (StatusPage.name is readable on a relation
+   * query), whether or not they can read those status pages. Picking a page
+   * needs read access to it (StatusPageReadAccess).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPage,
+    title: "Status Pages",
+    description:
+      "Limit this incident to these status pages. When set, the incident is shown on, and notifies the subscribers of, only these pages among the status pages that list its monitors. Leave empty to reach every status page that lists its monitors.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPage;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStatusPage",
+    inverseJoinColumn: {
+      name: "statusPageId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public statusPages?: Array<StatusPage> = undefined;
+
+  /*
+   * Whether this incident is limited to the status pages in statusPages. The
+   * status page queries split on it (unscoped incidents by monitor, scoped
+   * ones by monitor AND page), which keeps the scope in SQL rather than in a
+   * post-filter that a LIMIT could silently cut.
+   *
+   * IncidentService derives it from writes to statusPages and ignores any
+   * value a client sends. It is deliberately never recomputed when join rows
+   * disappear: deleting the only status page an incident is scoped to
+   * cascades its join row away, and the incident stays scoped - to nothing -
+   * so it is hidden everywhere rather than widened to every page its monitors
+   * reach.
+   *
+   * Computed, so a client cannot set it on create. Its update access control
+   * matches statusPages all the same: the service writes it into the caller's
+   * own update, and the column check that runs after the hook exempts computed
+   * columns only on create.
+   *
+   * Not indexed. It is false on nearly every row, so an index cannot help the
+   * unscoped half of those queries, and the scoped half reaches its incidents
+   * through the IncidentStatusPage join table's statusPageId index. Building
+   * one would also have held the lock of the migration's ALTER TABLE on
+   * Incident - reads included - for as long as it took on a large table.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Scoped To Status Pages",
+    description:
+      "Whether this incident is limited to the status pages in Status Pages. Derived from Status Pages; any value sent for it is ignored.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isScopedToStatusPages?: boolean = undefined;
+
+  /*
+   * The ids of the status pages whose subscribers were sent this incident's
+   * 'created' notification. A status page added to the scope later can then
+   * be told exactly once, without telling the pages that already heard.
+   *
+   * The Incident:SendNotificationToSubscribers job writes it as root, once per
+   * send, with the status it settles on. It is computed and never taken from
+   * a client; its update access control matches
+   * subscriberNotificationStatusOnIncidentCreated so IncidentService can write
+   * it inside the caller's own update: it empties it when the update resends
+   * the notification to every page (the status set back to Pending), and when
+   * pages are added to an incident whose notification was skipped, it lists
+   * the pages the incident was limited to before, which were deliberately not
+   * told, so only the added ones are (see IncidentScopeAddedPagesNotification).
+   *
+   * Null means no send has settled since the column was added: an incident
+   * whose notification went out before then has no record, and pages added to
+   * it are not sent the notification again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.JSON,
+    title: "Status Pages Notified On Creation",
+    description:
+      "IDs of the status pages whose subscribers were sent the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public statusPagesNotifiedOnCreation?: Array<string> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -3026,15 +3484,21 @@ export default class Incident extends BaseModel {
   })
   public reminderNotificationSentCount?: number = undefined;
 
+  /*
+   * The episode this incident is in: the latest one it is still a member of,
+   * or none. Membership is the IncidentEpisodeMember rows, and this only
+   * mirrors them - IncidentEpisodeMemberService points it at an episode the
+   * incident joins and, when the incident leaves one, at the latest episode
+   * it is still in. Written any other way it names an episode the incident
+   * is not a member of: the episode's overview lists the incident while its
+   * members do not, and an incident created with it set is never grouped,
+   * so no member row is ever made for it. So nobody may write it, under
+   * either name: an incident joins or leaves an episode through the
+   * episode's members. IncidentService refuses the writes that skip column
+   * permissions too (EpisodeMembershipReference).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3045,21 +3509,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "incidentEpisodeId",
     type: TableColumnType.Entity,
     modelType: IncidentEpisode,
     title: "Incident Episode",
-    description: "Relation to Incident Episode this incident belongs to",
+    description:
+      "The latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @ManyToOne(
     () => {
@@ -3075,15 +3533,9 @@ export default class Incident extends BaseModel {
   @JoinColumn({ name: "incidentEpisodeId" })
   public incidentEpisode?: IncidentEpisode = undefined;
 
+  // Read-only, like the relation above: see there.
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3094,21 +3546,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "Incident Episode ID",
-    description: "ID of the Incident Episode this incident belongs to",
+    description:
+      "ID of the latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @Column({
     type: ColumnType.ObjectID,

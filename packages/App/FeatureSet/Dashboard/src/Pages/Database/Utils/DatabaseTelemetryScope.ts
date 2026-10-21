@@ -1,6 +1,7 @@
 import {
   LockedEntityKeyDisplay,
   LockedEntityKeyDisplayMap,
+  LockedEntityKeyGroup,
 } from "../../../Utils/LockedEntityKeyChips";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import {
@@ -72,6 +73,27 @@ export interface DatabaseServerScopeSource {
 export const DATABASE_SERVER_CHIP_KEY: string = "Database";
 export const DATABASE_ENDPOINT_CHIP_KEY: string = "Database Endpoint";
 export const DATABASE_MEMBER_CHIP_KEY: string = "Database Instance";
+
+/*
+ * Every key of one database shares ONE locked chip — "Database: orders-db" —
+ * whose tooltip lists what it matches under these headings. A chip per key
+ * put 26 look-alike pills above a CloudNativePG cluster's logs (its id, four
+ * Services times three ports, with and without the cluster suffix, and its
+ * pod), which read as 26 separate filters when the page applies one: this
+ * database.
+ */
+export const DATABASE_SCOPE_GROUP_ID_PREFIX: string = "database:";
+export const DATABASE_SCOPE_SUMMARY: string =
+  "Shows telemetry from this database. A row is included when it matches any of these:";
+export const DATABASE_ID_MATCH_LABEL: string = "Database ID";
+export const DATABASE_ID_MATCH_DESCRIPTION: string =
+  "Sent with this database's ID (oneuptime.database.server.id), for example by the Database Agent.";
+export const DATABASE_ENDPOINT_MATCH_LABEL: string = "Endpoints";
+export const DATABASE_ENDPOINT_MATCH_DESCRIPTION: string =
+  "Addressed to one of these host:port addresses: your applications' queries and the engine's own metrics. An @suffix limits the address to that Kubernetes cluster.";
+export const DATABASE_MEMBER_MATCH_LABEL: string = "Instances";
+export const DATABASE_MEMBER_MATCH_DESCRIPTION: string =
+  "Reported by a pod or container this database runs as.";
 
 function projectIdText(
   projectId: DatabaseServerScopeSource["projectId"],
@@ -242,10 +264,13 @@ export function getDatabaseServerEntityKeysQueryValue(
  * "Database: <database name>", an endpoint key "Database Endpoint:
  * db.prod:5432", a member key "Database Instance: <database name>
  * (3f9a1b2c)". The keys are hashes nobody can read, so the chip carries what
- * the key stands for. No search syntax is attached: the endpoint key is
- * stamped on span attributes and resource attributes alike, so no single
- * attribute search reproduces it, and the row key's attribute
- * (`oneuptime.database.server.id`) is not a resource attribute.
+ * the key stands for. Every key also joins the database's group, so the
+ * viewers draw ONE "Database: <database name>" chip for all of them, whose
+ * tooltip lists the id, the endpoints and the instances it matches. No
+ * search syntax is attached: the endpoint key is stamped on span attributes
+ * and resource attributes alike, so no single attribute search reproduces
+ * it, and the row key's attribute (`oneuptime.database.server.id`) is not a
+ * resource attribute.
  */
 export function buildDatabaseServerEntityKeyDisplays(
   source:
@@ -265,10 +290,28 @@ export function buildDatabaseServerEntityKeyDisplays(
     getDatabaseSystemDisplayName(source.dbSystem);
 
   const databaseServerId: string = databaseServerIdText(source.id);
+
+  /*
+   * One group per database: the id when there is one, the project
+   * otherwise (a source without an id is still one database).
+   */
+  const group: LockedEntityKeyGroup = {
+    id: `${DATABASE_SCOPE_GROUP_ID_PREFIX}${databaseServerId || projectId}`,
+    displayKey: DATABASE_SERVER_CHIP_KEY,
+    displayValue: name,
+    summary: DATABASE_SCOPE_SUMMARY,
+  };
+
   if (databaseServerId) {
     displays[keyForDatabaseServerRow(projectId, databaseServerId)] = {
       displayKey: DATABASE_SERVER_CHIP_KEY,
       displayValue: name,
+      group: {
+        ...group,
+        memberLabel: DATABASE_ID_MATCH_LABEL,
+        memberDescription: DATABASE_ID_MATCH_DESCRIPTION,
+        memberValue: databaseServerId,
+      },
     };
   }
 
@@ -291,6 +334,11 @@ export function buildDatabaseServerEntityKeyDisplays(
       const display: LockedEntityKeyDisplay = {
         displayKey: DATABASE_ENDPOINT_CHIP_KEY,
         displayValue: formatDatabaseEndpoint(endpoint),
+        group: {
+          ...group,
+          memberLabel: DATABASE_ENDPOINT_MATCH_LABEL,
+          memberDescription: DATABASE_ENDPOINT_MATCH_DESCRIPTION,
+        },
       };
       displays[key] = display;
     }
@@ -301,6 +349,11 @@ export function buildDatabaseServerEntityKeyDisplays(
       displays[key] = {
         displayKey: DATABASE_MEMBER_CHIP_KEY,
         displayValue: `${name} (${key.substring(0, 8)})`,
+        group: {
+          ...group,
+          memberLabel: DATABASE_MEMBER_MATCH_LABEL,
+          memberDescription: DATABASE_MEMBER_MATCH_DESCRIPTION,
+        },
       };
     }
   }

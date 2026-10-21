@@ -17,11 +17,40 @@ export function getKubernetesBreadcrumbs(
       "Kubernetes",
       "View Cluster",
     ]),
+    /*
+     * The AI section. ":id/ai" itself only redirects to the AI agent page;
+     * its crumb stays so an old link still shows a trail while it does.
+     */
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI, [
       "Project",
       "Kubernetes",
       "View Cluster",
       "AI",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS,
+      ["Project", "Kubernetes", "View Cluster", "AI", "Insights"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "AI",
+      "AI agent",
+    ]),
+    // The cluster's resource-usage charts (formerly "Insights" in the menu).
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Resource Usage",
     ]),
 
     // Namespaces
@@ -207,6 +236,10 @@ export function getKubernetesBreadcrumbs(
       "View Cluster",
       "Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Kubernetes", "View Cluster", "Scheduled Maintenance"],
+    ),
 
     // Advanced
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_DELETE, [

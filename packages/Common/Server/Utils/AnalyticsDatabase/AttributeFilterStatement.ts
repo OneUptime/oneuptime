@@ -27,6 +27,13 @@ import { SQL, Statement, escapeIlikePattern } from "./Statement";
  * makes the same choice for its user-typed operators (see the comment above
  * its map branch).
  *
+ * No index can see through that lambda, so every predicate that needs one
+ * exact value to be present - equals, is any of - is preceded by
+ * `has(mapValues(attributes), v)` (attributeValuesPresent below). It can
+ * only be true where the lambda can, so the result is unchanged, and it is
+ * what lets idx_attribute_values (AttributeValueIndex) skip granules and
+ * keeps the lambda off the rows that hold no such value (#4706).
+ *
  * The map column is `attributes` on every model routed through here.
  */
 
@@ -58,6 +65,53 @@ type HasNonEmptyValueFunction = () => Statement;
 export type AppendAttributeOperatorFilterFunction = (
   options: AppendAttributeOperatorFilterOptions,
 ) => void;
+
+export type AttributeValuesPresentFunction = (
+  values: Array<string>,
+) => Statement;
+
+/**
+ * `has(mapValues(attributes), v)` - "some attribute of this row has the
+ * value v" - or `hasAny(mapValues(attributes), [v, ...])` for a list.
+ *
+ * A NECESSARY condition of every positive exact-value match below: if a key
+ * matching case-insensitively holds v, then v is one of the row's values.
+ * So it never changes a result. What it changes is the cost:
+ *
+ *  - idx_attribute_values (a bloom filter over `mapValues(attributes)`, see
+ *    AttributeValueIndex) can skip every granule that holds no such value,
+ *    which it cannot do through the arrayExists lambda;
+ *  - in the granules that are read, ClickHouse evaluates `AND` left to
+ *    right and only for the rows still in, so the lambda - which lowercases
+ *    every key of the row - runs only on the rows that do hold the value.
+ *
+ * Values are bound as strings, always: `hasAny` has no common type for a
+ * String array and an Int32 one (NO_COMMON_TYPE), where the lambda's
+ * `v IN (500, 503)` converts quietly.
+ *
+ * Exported so a test can name the exact fragment it expects.
+ */
+export const attributeValuesPresent: AttributeValuesPresentFunction = (
+  values: Array<string>,
+): Statement => {
+  if (values.length === 0) {
+    throw new BadDataException(
+      "An attribute value filter needs at least one value",
+    );
+  }
+
+  if (values.length === 1) {
+    return SQL`has(mapValues(attributes), ${{
+      type: TableColumnType.Text,
+      value: values[0]!,
+    }})`;
+  }
+
+  return SQL`hasAny(mapValues(attributes), ${{
+    type: TableColumnType.ArrayText,
+    value: values,
+  }})`;
+};
 
 /**
  * Compile one serialized attribute operator into a predicate and append it.
@@ -230,14 +284,17 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
         }
 
         statement.append(
-          SQL` AND `.append(
-            matches(
-              SQL`v = ${{
-                type: TableColumnType.Text,
-                value: textValue(),
-              }}`,
+          SQL` AND `
+            .append(attributeValuesPresent([textValue()]))
+            .append(SQL` AND `)
+            .append(
+              matches(
+                SQL`v = ${{
+                  type: TableColumnType.Text,
+                  value: textValue(),
+                }}`,
+              ),
             ),
-          ),
         );
         return;
 
@@ -398,11 +455,25 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
           }})`,
         );
 
+        if (operatorType === ObjectType.IncludesNone) {
+          /*
+           * "is none of" passes rows that hold none of the values, so no
+           * value has to be present: nothing to skip on.
+           */
+          statement.append(SQL` AND NOT `.append(membership));
+          return;
+        }
+
+        /*
+         * A blank in the list is still a value here: inside the lambda
+         * `v IN ('', ...)` matches a key that is present and empty, never a
+         * missing one, so '' has to be among the row's values too.
+         */
         statement.append(
-          (operatorType === ObjectType.Includes
-            ? SQL` AND `
-            : SQL` AND NOT `
-          ).append(membership),
+          SQL` AND `
+            .append(attributeValuesPresent(values))
+            .append(SQL` AND `)
+            .append(membership),
         );
         return;
       }
@@ -418,5 +489,77 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
         );
     }
   };
+
+export type ToAttributeOperatorFunction = (
+  value: unknown,
+) => Record<string, unknown>;
+
+/**
+ * The operator one attribute filter value means. A value arrives in one of
+ * four shapes, and each is read exactly as the logs / traces list reads it:
+ *
+ *   - an array             "is any of"  (Includes; empty means "All")
+ *   - a serialized operator  itself      (`{_type, value}`)
+ *   - a blank string       "is empty"   (a missing key reads as '')
+ *   - any other scalar     "equals"
+ */
+export const toAttributeOperator: ToAttributeOperatorFunction = (
+  value: unknown,
+): Record<string, unknown> => {
+  if (Array.isArray(value)) {
+    return { _type: ObjectType.Includes, value: value };
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return value as Record<string, unknown>;
+  }
+
+  if (value === "") {
+    return { _type: ObjectType.IsNull };
+  }
+
+  return { _type: ObjectType.EqualTo, value: value };
+};
+
+export interface AppendAttributeFiltersOptions {
+  /** The statement being built. Each predicate is appended, prefixed with `AND`. */
+  statement: Statement;
+  /** The request's `attributes` map: attribute key to filter value. */
+  attributes: Record<string, unknown> | undefined;
+  /**
+   * Checks each key before it reaches SQL and throws (a BadDataException)
+   * to refuse it - each service keeps its own key rules.
+   */
+  validateKey: (attributeKey: string) => void;
+}
+
+export type AppendAttributeFiltersFunction = (
+  options: AppendAttributeFiltersOptions,
+) => void;
+
+/**
+ * Compile a request's whole attribute filter map, one AND-ed predicate per
+ * key. The log, trace and metric aggregation services (histogram, facets,
+ * analytics, export, error patterns) all read their `attributes` through
+ * this, so a filter compiles to the same predicate - with the same value
+ * pre-filter - in every chart, whichever signal it is on.
+ */
+export const appendAttributeFilters: AppendAttributeFiltersFunction = (
+  options: AppendAttributeFiltersOptions,
+): void => {
+  if (!options.attributes) {
+    return;
+  }
+
+  for (const [attributeKey, value] of Object.entries(options.attributes)) {
+    options.validateKey(attributeKey);
+
+    appendAttributeOperatorFilter({
+      statement: options.statement,
+      attributeKey: attributeKey,
+      operator: toAttributeOperator(value),
+    });
+  }
+};
 
 export default appendAttributeOperatorFilter;

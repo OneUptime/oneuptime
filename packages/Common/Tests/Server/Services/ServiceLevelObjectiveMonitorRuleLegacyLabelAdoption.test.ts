@@ -24,6 +24,23 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+});
 /*
  * Contract under test - creating an SLO's first monitor rule while the SLO
  * still runs on the deprecated "Auto-Add Monitors With Labels" list.
@@ -151,7 +168,7 @@ function installSpies(): HookSpies {
     .mockResolvedValue(undefined);
   jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
   jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
 
   return {
@@ -280,8 +297,11 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate - adopting the 
     );
 
     expect(
-      (spies.adoption.mock.calls[0]![0] as AdoptionCall)
-        .serviceLevelObjectiveIds,
+      (
+        spies.adoption.mock.calls[0]![0] as AdoptionCall
+      ).serviceLevelObjectiveIds.map((id: ObjectID | string): string => {
+        return id.toString();
+      }),
     ).toEqual([SLO_ID.toString()]);
   });
 
@@ -379,6 +399,12 @@ describe("ServiceLevelObjectiveMonitorRuleService - rule edits and deletes never
   });
 
   it("a delete syncs without adopting: 'no rule, monitors still attached' right after it is what a deliberate delete looks like", async () => {
+    // The caller may delete the rule.
+    stubRowsCallerMayDeleteLikeFindBy(
+      ServiceLevelObjectiveMonitorRuleService,
+      jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+    );
+
     const onDelete: OnDelete<Model> = (await callHook("onBeforeDelete", {
       query: { _id: RULE_ID.toString() },
       props: { tenantId: PROJECT_ID, userId: USER_ID },
@@ -556,7 +582,7 @@ describe("creating the first monitor rule of an SLO still on the deprecated labe
       .mockResolvedValue(undefined);
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(SLO_LINK);
+      .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
     jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
   });
 

@@ -2,6 +2,8 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { registerEmailBrandHelpers } from "./Fixtures/EmailBrandHelpers";
+import { decodeHtmlEntities, htmlAsText } from "Common/Tests/Helpers/HtmlText";
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,
@@ -50,7 +52,9 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "acknowledgeAlertLink",
   "acknowledgeIncidentEpisodeLink",
   "acknowledgeAlertEpisodeLink",
+  "passOnLink",
   "twoFactorAuthUrl",
+  "forgotPasswordUrl",
   "capacityPageLink",
   "healthPageLink",
 ];
@@ -71,34 +75,6 @@ interface ExpectedAnchor {
   text: string;
 }
 
-/*
- * Decode once, like an HTML attribute/text node. Numeric character references
- * are important: Handlebars escapes '=' and quotes as well as ampersands.
- * Strip actual tags before decoding, so literal angle brackets stay text.
- */
-function decodeHtml(value: string): string {
-  const named: Record<string, string> = {
-    amp: "&",
-    quot: '"',
-    apos: "'",
-    lt: "<",
-    gt: ">",
-    nbsp: " ",
-  };
-  return value.replace(
-    /&(#x[0-9a-f]+|#\d+|amp|quot|apos|lt|gt|nbsp);/gi,
-    (entity: string, code: string): string => {
-      if (code.startsWith("#")) {
-        const hex: boolean = code[1]?.toLowerCase() === "x";
-        return String.fromCodePoint(
-          parseInt(code.slice(hex ? 2 : 1), hex ? 16 : 10),
-        );
-      }
-      return named[code.toLowerCase()] ?? entity;
-    },
-  );
-}
-
 function anchors(html: string): Array<Anchor> {
   return Array.from(html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)).map(
     (match: RegExpMatchArray): Anchor => {
@@ -106,13 +82,13 @@ function anchors(html: string): Array<Anchor> {
       for (const attribute of match[1]!.matchAll(
         /\b([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
       )) {
-        attributes[attribute[1]!.toLowerCase()] = decodeHtml(
+        attributes[attribute[1]!.toLowerCase()] = decodeHtmlEntities(
           attribute[2] ?? attribute[3] ?? "",
         );
       }
       return {
         href: attributes["href"] ?? "",
-        text: decodeHtml(match[2]!.replace(/<[^>]*>/g, "")).trim(),
+        text: htmlAsText(match[2]!).trim(),
         classes: (attributes["class"] ?? "").split(/\s+/),
       };
     },
@@ -222,6 +198,7 @@ beforeAll(() => {
       return left !== right ? options.fn(this) : options.inverse(this);
     },
   );
+  registerEmailBrandHelpers(handlebars);
 });
 
 /*
@@ -234,7 +211,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
   [
     "AIAgentConnectionStatusChange",
     "viewAIAgentsLink",
-    "View AI Agents",
+    "Open Code",
     "viewAIAgentsLink",
   ],
   [
@@ -242,30 +219,6 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "viewAIAgentLink",
     "View on Dashboard",
     "viewAIAgentLink",
-  ],
-  [
-    "AcknowledgeAlert",
-    "acknowledgeAlertLink",
-    "Acknowledge Alert",
-    "acknowledgeAlertLink",
-  ],
-  [
-    "AcknowledgeAlertEpisode",
-    "acknowledgeAlertEpisodeLink",
-    "Acknowledge Alert Episode",
-    "acknowledgeAlertEpisodeLink",
-  ],
-  [
-    "AcknowledgeIncident",
-    "acknowledgeIncidentLink",
-    "Acknowledge Incident",
-    "acknowledgeIncidentLink",
-  ],
-  [
-    "AcknowledgeIncidentEpisode",
-    "acknowledgeIncidentEpisodeLink",
-    "Acknowledge Incident Episode",
-    "acknowledgeIncidentEpisodeLink",
   ],
   [
     "AlertEpisodeOwnerAdded",
@@ -562,6 +515,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "Manage two factor authentication",
     null,
   ],
+  ["TwoFactorWrongCodes", "forgotPasswordUrl", "Reset your password", null],
   [
     "UserAddedToOnCallPolicy",
     "onCallPolicyViewLink",
@@ -623,6 +577,62 @@ describe("the primary and copyable actions have independent destinations", () =>
     },
   );
 });
+
+/*
+ * The four page-out emails: Acknowledge, with its link to copy, and - for
+ * somebody who cannot take the page - "Pass it on" under it, a second,
+ * quieter button (OnCallPagePassOn). An email sent without a pass-on link
+ * has Acknowledge alone.
+ */
+const PAGE_OUT_CONTRACTS: Array<[string, DestinationKey, string]> = [
+  ["AcknowledgeAlert", "acknowledgeAlertLink", "Acknowledge Alert"],
+  [
+    "AcknowledgeAlertEpisode",
+    "acknowledgeAlertEpisodeLink",
+    "Acknowledge Alert Episode",
+  ],
+  ["AcknowledgeIncident", "acknowledgeIncidentLink", "Acknowledge Incident"],
+  [
+    "AcknowledgeIncidentEpisode",
+    "acknowledgeIncidentEpisodeLink",
+    "Acknowledge Incident Episode",
+  ],
+];
+
+describe.each(PAGE_OUT_CONTRACTS)(
+  "%s",
+  (template: string, key: DestinationKey, label: string) => {
+    test("acknowledges first, then offers passing the page on", () => {
+      expectNavigation(
+        render(template),
+        [action(key, label), action("passOnLink", "Pass it on")],
+        [copyable(key)],
+      );
+    });
+
+    test("passing on is the quieter, secondary button", () => {
+      const passOn: Anchor | undefined = anchors(render(template)).find(
+        (anchor: Anchor): boolean => {
+          return anchor.text === "Pass it on";
+        },
+      );
+
+      expect(passOn).toBeDefined();
+      expect(render(template)).toContain("#f1f5f9");
+    });
+
+    test.each([undefined, "", null])(
+      "keeps Acknowledge alone when the pass-on link is %s",
+      (passOnLink: unknown) => {
+        expectNavigation(
+          render(template, { passOnLink }),
+          [action(key, label)],
+          [copyable(key)],
+        );
+      },
+    );
+  },
+);
 
 /*
  * The note/state-only notices offer a copyable link rather than a button.

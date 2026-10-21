@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | Our Open Source Friends</title>
-    <meta name="description"
-        content="Discover amazing open-source projects and companies that are building the future of software. From observability to AI, these are the tools we love and recommend.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -34,7 +34,7 @@
 
           <!-- Main headline -->
           <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-            Our Open Source <br class="hidden sm:block" />Friends
+            Our Open Source <br class="max-sm:hidden sm:block" />Friends
           </h1>
 
           <!-- Subheadline -->
@@ -66,7 +66,7 @@
           <span class="font-medium text-gray-900"><%= ossFriends.length %></span> projects across
           <span class="font-medium text-gray-900"><%= categories.length %></span> categories
         </div>
-        <nav class="hidden sm:flex items-center gap-1">
+        <nav class="max-sm:hidden sm:flex items-center gap-1">
           <% for(var c=0; c<categories.length; c++) { %>
             <% var cat = categories[c]; %>
             <% var catId = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-'); %>

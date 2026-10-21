@@ -4,27 +4,50 @@ import { EncryptionSecret } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import EditionEnforcement from "../Utils/EditionEnforcement";
 import logger from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import QueryHelper from "../Types/Database/QueryHelper";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageService from "./StatusPageService";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
+import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "../Utils/StatusPage/StatusPageEmailLogo";
+import PublicMessageRateLimit, {
+  PublicMessageSendPermit,
+  TeamMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
+import Exception from "../../Types/Exception/Exception";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 
-export class Service extends DatabaseService<Model> {
+// The status page's two names, ID column first: a write may use either.
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+
+/*
+ * What a private user's create carries from its hooks to the next: the
+ * count of the invitation it emails (onCreatePermitted), given back when the
+ * create ends before the email is sent (onCreateError).
+ */
+interface PrivateUserCreateCarryForward {
+  invitationPermit: PublicMessageSendPermit | null;
+  // Set as onCreateSuccess starts: from then on the email may have gone out.
+  isSending: boolean;
+}
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -33,12 +56,25 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The status page under either of its names, kept in the ID column for
+     * the check below and for onCreateSuccess, which mails the invitation
+     * from the page the saved row names.
+     */
+    const statusPageId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
     // check if this user is already invited.
-    if (createBy.data.statusPageId && createBy.data.email) {
+    if (statusPageId && createBy.data.email) {
       const statusPageUser: Model | null = await this.findOneBy({
         query: {
           email: createBy.data.email,
-          statusPageId: createBy.data.statusPageId,
+          statusPageId: statusPageId,
         },
         props: {
           isRoot: true,
@@ -55,10 +91,94 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    const carryForward: PrivateUserCreateCarryForward = {
+      invitationPermit: null,
+      isSending: false,
+    };
+
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: carryForward,
     };
+  }
+
+  /*
+   * A private user the team adds - on the dashboard, with an API key, by a
+   * workflow or by SCIM - is emailed an invitation to the status page, from
+   * this installation's mail server unless the page has its own. Each
+   * invited address is counted (PublicMessageRateLimit.assertTeamMaySend,
+   * with the invitations to projects), so one address is sent a bounded
+   * number of invitations an hour, whichever project sends them: past its
+   * limit the create is refused with 429, before anything is written. The team is never counted, so adding many readers
+   * at once goes on. Only an invitation that is sent counts: a user who
+   * signs in with SSO, or one of a page that takes only SSO, is sent none
+   * (onCreateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const carryForward: PrivateUserCreateCarryForward | null =
+      onCreate.carryForward as PrivateUserCreateCarryForward | null;
+    const user: Model = onCreate.createBy.data;
+
+    // The page under either of its names (onBeforeCreate wrote the ID column).
+    const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
+      user as unknown as Record<string, unknown>,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    if (!carryForward || user.isSsoUser || !user.email || !statusPageId) {
+      return;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: statusPageId,
+      select: {
+        _id: true,
+        requireSsoForLogin: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (!statusPage || statusPage.requireSsoForLogin) {
+      return;
+    }
+
+    carryForward.invitationPermit =
+      await PublicMessageRateLimit.assertTeamMaySend({
+        kind: TeamMessageKind.Invitation,
+        contacts: [PublicMessageRateLimit.forEmail(user.email)],
+      });
+  }
+
+  /*
+   * A create that failed before onCreateSuccess began sent no invitation:
+   * the address gets its count back.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    const carryForward: PrivateUserCreateCarryForward | null | undefined =
+      onCreate?.carryForward as
+        | PrivateUserCreateCarryForward
+        | null
+        | undefined;
+
+    if (carryForward?.invitationPermit && !carryForward.isSending) {
+      await carryForward.invitationPermit.giveBack();
+    }
+
+    return await super.onCreateError(error, onCreate, failedStatement);
   }
 
   /**
@@ -87,21 +207,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.data.email) {
       const newEmail: string = (updateBy.data.email as Email)
         .toString()
         .toLowerCase();
 
-      const existingUsers: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const existingUsers: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           email: true,
-        },
-        props: updateBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+        });
 
       for (const user of existingUsers) {
         if (!user.id) {
@@ -109,8 +226,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         /*
-         * A row whose `email` did not come back is treated as changed -- that
-         * only happens when the caller could not read the column, and on a
+         * A row with no `email` stored is treated as changed: on a
          * credential the safe assumption is the one that expires the token.
          */
         const currentEmail: string | undefined = user.email
@@ -143,9 +259,17 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // From here on the invitation may have gone out (onCreateError).
+    const carryForward: PrivateUserCreateCarryForward | null =
+      onCreate.carryForward as PrivateUserCreateCarryForward | null;
+
+    if (carryForward) {
+      carryForward.isSending = true;
+    }
+
     if (createdItem.isSsoUser) {
       return createdItem;
     }
@@ -160,7 +284,7 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         name: true,
         pageTitle: true,
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         projectId: true,
         requireSsoForLogin: true,
         smtpConfig: {
@@ -190,10 +314,8 @@ export class Service extends DatabaseService<Model> {
     /*
      * SCIM and admin-created users must follow the page's login policy too.
      * Do not create a password-reset credential when only SSO can be used.
-     * On the Community Edition there is no SSO login for status pages, so a
-     * leftover requirement is not enforced and the user gets a password link.
      */
-    if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+    if (statusPage.requireSsoForLogin) {
       return createdItem;
     }
 
@@ -237,8 +359,6 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     MailService.sendMail(
       {
@@ -249,13 +369,11 @@ export class Service extends DatabaseService<Model> {
         vars: {
           statusPageName: statusPageName!,
           statusPageUrl: statusPageURL,
-          logoUrl:
-            statusPage.logoFileId && statusPageIdString
-              ? new URL(httpProtocol, host)
-                  .addRoute(StatusPageApiRoute)
-                  .addRoute(`/logo/${statusPageIdString}`)
-                  .toString()
-              : "",
+          logoUrl: StatusPageEmailLogo.getLogoUrl({
+            statusPage: statusPage,
+            host: host,
+            httpProtocol: httpProtocol,
+          }),
           homeURL: statusPageURL,
           tokenVerifyUrl: URL.fromString(statusPageURL)
             .addRoute("/reset-password/" + token)
@@ -274,6 +392,40 @@ export class Service extends DatabaseService<Model> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * Whether an email address is a private user of this status page now: who
+   * may be its subscriber when Only Private Users Can Subscribe is on
+   * (Types/StatusPage/SubscriberRestrictions). Compared trimmed and
+   * lower-cased; private users the page no longer has - removed by SCIM or
+   * by hand - are not.
+   */
+  @CaptureSpan()
+  public async isPrivateUserEmail(data: {
+    statusPageId: ObjectID;
+    email: string;
+  }): Promise<boolean> {
+    const email: string = data.email.trim().toLowerCase();
+
+    if (!email) {
+      return false;
+    }
+
+    const privateUser: Model | null = await this.findOneBy({
+      query: {
+        statusPageId: data.statusPageId,
+        email: QueryHelper.findWithSameText(email),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(privateUser);
   }
 }
 export default new Service();

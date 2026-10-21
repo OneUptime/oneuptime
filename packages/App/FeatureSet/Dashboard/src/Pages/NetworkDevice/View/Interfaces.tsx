@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
+import TransceiverHealthCard from "../../../Components/NetworkDevice/TransceiverHealthCard";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,16 +27,20 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Full interface inventory for one device: counts up top, then every port
- * with live rates, utilization, and errors. Monitoring can be muted per
- * interface or in bulk — muted ports are still discovered, just not
- * polled for metrics or alerted on.
+ * Full interface inventory for one device: counts up top, the optics in its
+ * ports (only on a device that reports them), then every port with live
+ * rates, utilization, and errors. Monitoring can be muted per interface or
+ * in bulk — muted ports are still discovered, just not polled for metrics or
+ * alerted on.
  */
 const NetworkDeviceInterfaces: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   interface InterfaceCounts {
@@ -165,7 +170,9 @@ const NetworkDeviceInterfaces: FunctionComponent<
       return (
         <div className="flex items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm font-medium text-gray-500">Disabled</span>
+          <span className="text-sm font-medium text-gray-500">
+            {translator.translateText("Disabled")}
+          </span>
         </div>
       );
     }
@@ -174,7 +181,9 @@ const NetworkDeviceInterfaces: FunctionComponent<
       return (
         <div className="flex items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-sm font-medium text-emerald-700">Up</span>
+          <span className="text-sm font-medium text-emerald-700">
+            {translator.translateText("Up")}
+          </span>
         </div>
       );
     }
@@ -182,7 +191,9 @@ const NetworkDeviceInterfaces: FunctionComponent<
     return (
       <div className="flex items-center gap-2">
         <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-        <span className="text-sm font-medium text-red-700">Down</span>
+        <span className="text-sm font-medium text-red-700">
+          {translator.translateText("Down")}
+        </span>
       </div>
     );
   };
@@ -233,6 +244,11 @@ const NetworkDeviceInterfaces: FunctionComponent<
           />
         </div>
       )}
+      {/*
+       * SFP, SFP+ and QSFP health, port by port. Draws nothing on a device
+       * that reports no transceivers.
+       */}
+      <TransceiverHealthCard networkDeviceId={modelId} />
       <ModelTable<NetworkInterface>
         modelType={NetworkInterface}
         id="network-interfaces-table"

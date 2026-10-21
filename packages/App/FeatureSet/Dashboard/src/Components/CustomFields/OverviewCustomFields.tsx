@@ -3,6 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -35,6 +40,7 @@ export interface ComponentProps {
 const OverviewCustomFields: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   /*
@@ -49,7 +55,12 @@ const OverviewCustomFields: FunctionComponent<ComponentProps> = (
   return (
     <CustomFieldsDetail
       title="Custom Fields"
-      description={`Custom fields for this ${props.resourceName.toLowerCase()}.`}
+      description={translator.translateTemplate(
+        "Custom fields for this {{itemName}}.",
+        {
+          itemName: translatableTerm(props.resourceName, { inSentence: true }),
+        },
+      )}
       modelType={props.modelType}
       customFieldType={props.customFieldType}
       name={`${props.resourceName} Custom Fields`}

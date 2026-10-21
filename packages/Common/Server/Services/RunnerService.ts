@@ -1,7 +1,12 @@
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { BUNDLED_GLOBAL_RUNNER_ID } from "../../Types/Runner/BundledGlobalRunner";
+import Exception from "../../Types/Exception/Exception";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -16,6 +21,16 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
 import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
+import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
+import { isShippedSecretValue } from "../EnvironmentConfig";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
+import AiCommandCredentialReach, {
+  CredentialReachHold,
+} from "../Utils/AutoRemediation/AiCommandCredentialReach";
 import {
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   KubernetesRunnerPosture,
@@ -28,6 +43,49 @@ import {
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import crypto from "crypto";
+import Select from "../Types/Database/Select";
+import PositiveNumber from "../../Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+
+/*
+ * What a global Runner row is, in the words every refusal about one uses.
+ * A global Runner is one the OneUptime server runs for every project: no
+ * project owns it (projectId is empty), only OneUptime or a master admin
+ * creates it (Admin Dashboard -> Settings -> Global Runners), and it runs
+ * runbook steps only - never AI remediation commands, which act in a
+ * project's own systems, nor code work: a code repository picks one of its
+ * own project's Runners, or none (Types/Runner/CodeRepositoryRunner).
+ */
+export const GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE: string =
+  "A global Runner belongs to no project: OneUptime runs it for every project. Create it under Admin Dashboard → Settings → Global Runners, or create a Runner of this project's own under Runbooks → Runners.";
+
+export const RUNNER_WITHOUT_PROJECT_MESSAGE: string =
+  "A Runner belongs to a project, or is a global Runner that OneUptime runs for every project. Create one under Runbooks → Runners in your project.";
+
+export const GLOBAL_RUNNER_CHANGED_MESSAGE: string =
+  "Whether a Runner is global, and which project a Runner belongs to, is set when it is created and never changed. Create a new Runner instead.";
+
+/*
+ * The bundled global Runner - the one every install runs (Helm
+ * globalRunner, Docker Compose global-runner) - is kept by the server from
+ * GLOBAL_RUNNER_KEY on every boot, so deleting it would only bring it back.
+ * It is turned off where it runs.
+ */
+export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
+  "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
+
+export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
+  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an auto remediation rule or a Kubernetes cluster's AI settings pick.";
+
+// The global Runner columns anyone signed in may read (RunnerAPI's listing).
+export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
+  _id: true,
+  name: true,
+  description: true,
+  lastAlive: true,
+  canRunRunbooks: true,
+  isGlobalRunner: true,
+};
 
 /*
  * Runner.name is a ShortText column, so the agent Runner row's name is
@@ -97,7 +155,7 @@ export interface KubernetesAgentRunnerMarkers {
   hostInfo?: unknown;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -184,6 +242,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * The kubernetes-agent/ name prefix is the server-owned marker of a
      * Runner the ingestion key can mint. Only registration (root) may
@@ -198,9 +258,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(Service.getReservedAgentNameRefusal());
     }
 
+    Service.holdToGlobalRunnerShape(createBy.data, createBy.props.tenantId);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
+
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "a Runner");
 
     if (!createBy.data.agentVersion) {
       createBy.data.agentVersion = new Version("1.0.0");
@@ -222,25 +287,71 @@ export class Service extends DatabaseService<Model> {
    *   rename any row INTO the prefix (it would be adopted by the next
    *   registration and counted against the agent quotas) — compared
    *   case-insensitively, like the database compares the marker;
-   * - turn on "Runs Runbooks" or "Runs AI Code Fixes" on an agent row. It
-   *   runs kubectl only, and either capability is a holding that refuses
-   *   every registration that cannot present the row's current key — which
-   *   is every pod restart, since the pod keeps its key in memory only.
+   * - turn on "Runs Runbooks" on an agent row. It runs kubectl only, and
+   *   the capability is a holding that refuses every registration that
+   *   cannot present the row's current key — which is every pod restart,
+   *   since the pod keeps its key in memory only. (Nor may a code
+   *   repository pick an agent row: CodeRepositoryService refuses that.)
+   *
+   * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
+   * credentials takes the read of runbook credentials (see
+   * assertNoCredentialsForAiCommands). For someone who may not read runbook
+   * credentials:
+   *
+   *   - a save that posts the switch on while it is on already - every save
+   *     of the Runner form, which posts every field back - leaves it out of
+   *     the write (postsAiCommandsAsStored). The switch is not written, so a
+   *     form opened before someone turned it off cannot turn it back on, and
+   *     nothing it writes can put a credential within anyone's reach: it
+   *     takes no lock, and is saved whether or not Valkey can be reached;
+   *   - a save that turns it on - or gives no column but the switch a value,
+   *     on already, which dropping it would leave with nothing to write - holds
+   *     the project's lock that every checked write putting an SSH
+   *     credential within reach of OneUptime AI's commands holds
+   *     (AiCommandCredentialReach), from before whether the Runner's switch
+   *     is on and which SSH credentials it holds are read until the update
+   *     is written: an SSH credential assigned to it at the same moment is
+   *     either seen by this check, or sees the switch on in its own.
    *
    * Root writes (registration, heartbeats, sign-off) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
    * unchanged name and a capability posted as false always pass: editing an
-   * agent row's description or labels must still save.
+   * agent row's description or labels must still save. The Runners checked
+   * are the ones the update writes - the ones its caller may write - read
+   * once for the name, capability and switch checks, and again under the
+   * lock for a switch turned on, and the update is held to them
+   * (findRowsAndHoldUpdateToThem).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    /*
+     * A key it writes is never a value this repository ships, whoever
+     * writes it, root included (ComponentKeyWrite).
+     */
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "a Runner");
+
+    /*
+     * Whether a Runner is global, and the project it belongs to, are set
+     * when it is created and never written again - root and master admins
+     * included: a project's own Runner turned global would be handed every
+     * project's steps, and a global one moved into a project would keep
+     * the key every project's steps were handed to.
+     */
+    Service.assertNotMovedInOrOutOfGlobal(updateBy.data);
+
     if (updateBy.props.isRoot) {
       return { updateBy, carryForward: null };
     }
 
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    // Whether the update writes "Runs AI Remediation Commands" on.
+    const writesAiCommandsOn: boolean = data["canRunAiCommands"] === true;
+
     const newName: unknown = data["name"];
     const isNameWritten: boolean = newName !== undefined && newName !== null;
     const turnsOnCapabilities: Array<string> = [];
@@ -249,33 +360,42 @@ export class Service extends DatabaseService<Model> {
       turnsOnCapabilities.push('"Runs Runbooks"');
     }
 
-    if (data["canRunCodeFixTasks"] === true) {
-      turnsOnCapabilities.push('"Runs AI Code Fixes"');
-    }
-
-    if (!isNameWritten && turnsOnCapabilities.length === 0) {
+    if (
+      !isNameWritten &&
+      turnsOnCapabilities.length === 0 &&
+      !writesAiCommandsOn
+    ) {
       return { updateBy, carryForward: null };
     }
 
     /*
-     * onBeforeUpdate runs before the framework scopes the query to the
-     * caller's project, so scope the read here: a caller is never judged
-     * against, or told about, another project's Runner.
+     * The Runners the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem): for a teammate, the ones they may
+     * write, so a caller is never judged against, or told about, another
+     * project's Runner, nor one they may not write.
      */
-    const runners: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
+    const runners: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        name: true,
+        hostInfo: true,
+        canRunAiCommands: true,
+        isGlobalRunner: true,
       },
-      select: { _id: true, name: true, hostInfo: true },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     for (const runner of runners) {
+      /*
+       * A global Runner runs runbook steps only (a master admin may pause
+       * them with "Runs Runbooks"): AI commands act in one project's own
+       * systems.
+       */
+      if (runner.isGlobalRunner && data["canRunAiCommands"] === true) {
+        throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
+      }
+
       /*
        * Any change to the stored text is a rename, surrounding whitespace
        * included: registration finds its row by the exact (lowercased) name,
@@ -287,7 +407,7 @@ export class Service extends DatabaseService<Model> {
 
       if (renames && Service.isKubernetesAgentName(runner.name)) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or delete the Runner, let the agent register a fresh one (on its next retry, within a minute) and then select the new Runner on the cluster's AI page as its Runner. ${getDeletedAgentRunnerRebindNote()}`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
         );
       }
 
@@ -302,16 +422,409 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(
           `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed: it runs kubectl for its cluster only, so ${turnsOnCapabilities.join(
             " and ",
-          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Project Settings → Runners for runbooks or code fixes instead.`,
+          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Runbooks → Runners for runbooks instead.`,
         );
       }
     }
 
-    return { updateBy, carryForward: null };
+    const written: Array<Model> = runners.filter((runner: Model): boolean => {
+      return Boolean(runner._id);
+    });
+
+    if (!writesAiCommandsOn || written.length === 0) {
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * One who may read runbook credentials may turn the switch on whatever
+     * the Runners hold: nothing the update reads decides, so it takes no
+     * lock (see AiCommandCredentialReach).
+     */
+    if (RunbookCredentialReaders.mayRead(updateBy.props)) {
+      return { updateBy, carryForward: null };
+    }
+
+    // The switch posted as it is stored: left out of the write, with no lock.
+    if (Service.postsAiCommandsAsStored(data, written)) {
+      delete data["canRunAiCommands"];
+
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * Anyone else's update that writes the switch on holds the projects'
+     * lock until it is written: it is the lock's to decide which Runners
+     * the update turns it on for. Whether each one's switch is on is read
+     * again under the lock - as it is now, not as it was before the lock
+     * was taken: another update may have turned it off since, and an SSH
+     * credential been assigned to the Runner while it was off.
+     */
+    const hold: CredentialReachHold = await AiCommandCredentialReach.take(
+      written.map((runner: Model): ObjectID | undefined => {
+        return runner.projectId || updateBy.props.tenantId;
+      }),
+    );
+
+    try {
+      const current: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
+          _id: true,
+          projectId: true,
+          name: true,
+          canRunAiCommands: true,
+        },
+      );
+
+      /*
+       * The Runners the update turns "Runs AI Remediation Commands" on for.
+       * A Runner already taking OneUptime AI's commands keeps what it has:
+       * the Runner form posts every field back.
+       */
+      const turnedOn: Array<Model> = current.filter(
+        (runner: Model): boolean => {
+          return Boolean(runner._id) && runner.canRunAiCommands !== true;
+        },
+      );
+
+      if (turnedOn.length > 0) {
+        await this.assertNoCredentialsForAiCommands(turnedOn, updateBy.props);
+      }
+    } catch (error) {
+      await AiCommandCredentialReach.giveBack(hold);
+      throw error;
+    }
+
+    return AiCommandCredentialReach.heldUpdate(updateBy, hold);
+  }
+
+  /*
+   * Whether an update by someone who may not read runbook credentials that
+   * posts "Runs AI Remediation Commands" on can leave it out: every Runner
+   * it writes (`runners`, as the update's hook read them) has it on already,
+   * and the update writes something else besides - a column it gives a
+   * value, not one left undefined, so the write is never left empty; the
+   * Runner form posts every field. Left out, the switch keeps whatever it
+   * holds when the update lands: a form opened before someone turned it off
+   * does not turn it back on, and nothing the update writes needs a lock.
+   */
+  public static postsAiCommandsAsStored(
+    data: JSONObject,
+    runners: Array<Model>,
+  ): boolean {
+    return (
+      data["canRunAiCommands"] === true &&
+      runners.length > 0 &&
+      runners.every((runner: Model): boolean => {
+        return runner.canRunAiCommands === true;
+      }) &&
+      Object.keys(data).some((column: string): boolean => {
+        return column !== "canRunAiCommands" && data[column] !== undefined;
+      })
+    );
+  }
+
+  /*
+   * The bundled global Runner is never deleted through the API, a master
+   * admin's included (BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE): the server's own
+   * startup sync (root) is the only one that removes it. The rows the delete
+   * removes are read as every delete hook reads them, and the delete is held
+   * to them (findRowsAndHoldDeleteToThem), so it removes no row this did not
+   * see.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
+          _id: true,
+        },
+      );
+
+      if (Service.includesBundledGlobalRunner(rows)) {
+        throw new BadDataException(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);
+      }
+    }
+
+    return await super.onBeforeDelete(deleteBy);
+  }
+
+  // Whether these rows include the bundled global Runner.
+  public static includesBundledGlobalRunner(rows: Array<Model>): boolean {
+    return rows.some((row: Model): boolean => {
+      return (
+        (row._id?.toString() || "").toLowerCase() ===
+        BUNDLED_GLOBAL_RUNNER_ID.toLowerCase()
+      );
+    });
+  }
+
+  // Right before the write: the lock its check was made under is still the update's.
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    await AiCommandCredentialReach.keepForUpdate(updateBy);
+  }
+
+  // The update is written: its lock is given back.
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
+
+    return await super.onUpdateSuccess(onUpdate, updatedItemIds);
+  }
+
+  /*
+   * The update was refused or failed after its check: its lock is given
+   * back, unless the database may still write it.
+   */
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    await AiCommandCredentialReach.giveBackAfterFailedUpdate(
+      error,
+      onUpdate,
+      failedStatement,
+    );
+
+    return await super.onUpdateError(error, onUpdate, failedStatement);
+  }
+
+  /*
+   * Refuses a write, by a caller who may not read runbook credentials, that
+   * lets OneUptime AI's commands run on one of `turnedOn` - the Runners it
+   * turns canRunAiCommands on for: a master admin's update of the column, or
+   * an auto remediation rule or a Kubernetes cluster that picks the Runner
+   * (RunnerAiCommandsPick) - holding an SSH credential. OneUptime AI picks
+   * among a Runner's SSH credentials for the SSH commands it runs there,
+   * unattended for a rule that runs its commands without asking, so letting
+   * it take them is held to whoever may read the credentials, as approving
+   * such a plan and saving such a rule are (RunbookCredentialReaders). Only
+   * the Runners it turns on are asked about: a Runner already on keeps what
+   * it has. Read under the project's lock (AiCommandCredentialReach), so a
+   * credential assigned to one of them at the same moment is read here or
+   * refused there.
+   */
+  public async assertNoCredentialsForAiCommands(
+    turnedOn: Array<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (turnedOn.length === 0) {
+      return;
+    }
+
+    const credentials: Array<RunbookCredential> =
+      await ProjectScopedReferenceValidator.getLookupService(
+        RunbookCredential,
+      ).findBy({
+        query: {
+          runners: QueryHelper.inRelationArray(
+            turnedOn.map((runner: Model): ObjectID => {
+              return new ObjectID(runner._id!.toString());
+            }),
+          ),
+          credentialType: RunbookCredentialType.SSH,
+        },
+        select: {
+          _id: true,
+          runners: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const holdingCredentials: Set<string> = new Set<string>();
+
+    for (const credential of credentials) {
+      for (const runner of credential.runners || []) {
+        if (runner._id) {
+          holdingCredentials.add(runner._id.toString().toLowerCase());
+        }
+      }
+    }
+
+    const holding: Model | undefined = turnedOn.find(
+      (runner: Model): boolean => {
+        return holdingCredentials.has(runner._id!.toString().toLowerCase());
+      },
+    );
+
+    if (holding) {
+      throw new NotAuthorizedException(
+        `Runner "${holding.name || holding._id!.toString()}" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so letting it run OneUptime AI's commands takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`,
+      );
+    }
+  }
+
+  /*
+   * Of the Runners `runnerIds` names in `projectId`, the ones that run
+   * OneUptime AI's commands ("Runs AI Remediation Commands" on) - read as
+   * OneUptime, for the check an SSH credential's assignment to them makes
+   * (RunbookCredentialService), under the project's lock
+   * (AiCommandCredentialReach).
+   */
+  @CaptureSpan()
+  public async findRunnersRunningAiCommands(data: {
+    runnerIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    if (data.runnerIds.length === 0) {
+      return [];
+    }
+
+    return await this.findBy({
+      query: {
+        _id: QueryHelper.any(data.runnerIds),
+        projectId: data.projectId,
+        canRunAiCommands: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+      },
+      limit: data.runnerIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * A Runner is a project's own (projectId set) or global (isGlobalRunner,
+   * no project) - never both, never neither. A global one runs runbook
+   * steps only: one created to run OneUptime AI's commands is refused, and
+   * otherwise canRunAiCommands is left to its default, off. It is not
+   * written here: the column takes no one's create permission any more (a
+   * Runner is picked for those commands, RunnerAiCommandsPick), and a value
+   * a create hook writes is asked of the caller as if they had sent it
+   * (HookWritesCallersMayMake). Whoever creates it: a project's create
+   * always carries its project (the tenant), and only OneUptime or a master
+   * admin may write isGlobalRunner at all (the column takes no one's create
+   * permission).
+   */
+  public static holdToGlobalRunnerShape(
+    data: Model,
+    // The project the create is made in, which the create stamps on the row.
+    tenantId?: ObjectID | undefined,
+  ): void {
+    if (data.isGlobalRunner === true) {
+      if (data.projectId || data.project || tenantId) {
+        throw new BadDataException(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
+      }
+
+      if (data.canRunAiCommands === true) {
+        throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
+      }
+
+      if (data.canRunRunbooks === undefined || data.canRunRunbooks === null) {
+        data.canRunRunbooks = true;
+      }
+
+      return;
+    }
+
+    if (!data.projectId && !data.project && !tenantId) {
+      throw new BadDataException(RUNNER_WITHOUT_PROJECT_MESSAGE);
+    }
+  }
+
+  /*
+   * Refuses an update that writes isGlobalRunner or the project a Runner
+   * belongs to (see onBeforeUpdate). A column it leaves out, or writes as
+   * undefined, is not written.
+   */
+  public static assertNotMovedInOrOutOfGlobal(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of ["isGlobalRunner", "projectId", "project"]) {
+      if (written[column] !== undefined) {
+        throw new BadDataException(GLOBAL_RUNNER_CHANGED_MESSAGE);
+      }
+    }
+  }
+
+  /*
+   * Whether the server has a global Runner that takes runbook steps - one
+   * of the three facts the "global by default" rule reads (RunnerChoice).
+   * Whether it is online right now is left to the claim timeout: a global
+   * Runner that is restarting picks the step up when it is back.
+   */
+  @CaptureSpan()
+  public async hasGlobalRunnerForRunbooks(): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        isGlobalRunner: true,
+        canRunRunbooks: true,
+      },
+      props: { isRoot: true },
+    });
+
+    return count.toNumber() > 0;
+  }
+
+  /*
+   * The global Runners, as anyone signed in may see them: the columns of
+   * GLOBAL_RUNNER_PUBLIC_SELECT only - never a key, a host or a version.
+   * Read as OneUptime: no project owns them, so no project's read reaches
+   * them.
+   */
+  @CaptureSpan()
+  public async findGlobalRunners(): Promise<Array<Model>> {
+    return await this.findBy({
+      query: { isGlobalRunner: true },
+      select: GLOBAL_RUNNER_PUBLIC_SELECT,
+      sort: { name: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
   }
 
   private static getReservedAgentNameRefusal(): string {
     return `Runner names starting with "${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/" are reserved for the in-cluster Runners the Kubernetes agent chart registers (with --set aiAccess.enabled=true). Choose another name.`;
+  }
+
+  /*
+   * Whether a Runner with this id exists. Asked only for a key that did not
+   * match it, so that a wrong key is counted only for a Runner there is
+   * (WrongComponentKeyLimit): an id no Runner has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasRunnerWithId(runnerId: ObjectID): Promise<boolean> {
+    const runner: Model | null = await this.findOneBy({
+      query: {
+        _id: runnerId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(runner);
   }
 
   @CaptureSpan()
@@ -320,6 +833,19 @@ export class Service extends DatabaseService<Model> {
     agentKey: string;
   }): Promise<Model | null> {
     if (!data.agentId || !data.agentKey) {
+      return null;
+    }
+
+    /*
+     * A key this repository ships never authenticates a Runner: one that is
+     * blank, "secret" or a config.example.env placeholder
+     * (EnvironmentConfig.isShippedSecretValue) is refused before the table is
+     * read, whether or not a row holds it. This is the lookup the runbook
+     * protocol authenticates every request with (RunnerAuthorization), so
+     * the rule holds on every route at once. A real Runner's key is a long
+     * random value the server made, which this never refuses.
+     */
+    if (isShippedSecretValue(data.agentKey)) {
       return null;
     }
 
@@ -333,13 +859,14 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         name: true,
         canRunRunbooks: true,
-        canRunCodeFixTasks: true,
         canRunAiCommands: true,
         /*
          * The claim path reads the Kubernetes posture (in-cluster or not) to
          * decide whether a credential-less kubectl job may be served.
          */
         hostInfo: true,
+        // A global Runner is served the global jobs, and nothing else.
+        isGlobalRunner: true,
       },
       props: { isRoot: true },
     });
@@ -461,8 +988,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Refuses to assign credential material (a RunbookCredential or a
-   * RunbookSecret) to a kubernetes-agent Runner. Such a Runner row is minted
+   * Refuses to assign credential material (a RunbookCredential or a secret
+   * RunbookVariable) to a kubernetes-agent Runner. Such a Runner row is minted
    * and re-keyed with the project's telemetry ingestion key — a credential
    * every collector and CI job holds — so whatever is assigned to it is
    * reachable by anyone holding that key. It runs kubectl with its own
@@ -483,61 +1010,9 @@ export class Service extends DatabaseService<Model> {
 
     if (agentRunner) {
       throw new BadDataException(
-        `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Project Settings → Runners instead.`,
+        `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Runbooks → Runners instead.`,
       );
     }
-  }
-
-  /*
-   * A Runner in this project that is allowed to take code-fix work and has
-   * heartbeated recently. Liveness is judged on lastAlive alone: unlike
-   * AIAgent, nothing ever flips a Runner's connectionStatus back to
-   * Disconnected, so a row that once connected would look Connected forever.
-   */
-  @CaptureSpan()
-  public async getOnlineCodeFixRunnerForProject(
-    projectId: ObjectID,
-  ): Promise<Model | null> {
-    /*
-     * The recency window is a QUERY predicate, not a post-filter on a sorted
-     * row: `ORDER BY "lastAlive" DESC` in Postgres puts NULLs FIRST, so a
-     * Runner row that was created but never started would be picked ahead of
-     * one that is heartbeating right now, and the project would read as
-     * having no agent.
-     *
-     * A kubernetes-agent Runner never takes code-fix work (its binary never
-     * starts that loop), so it must not make the project read as having a
-     * code-fix Runner and have runs queued that nothing will ever claim —
-     * even one whose "Runs AI Code Fixes" was turned on before the update
-     * hook refused that. Left out in the query and again on the rows.
-     */
-    const runners: Array<Model> = await this.findBy({
-      query: {
-        projectId: projectId,
-        canRunCodeFixTasks: true,
-        lastAlive: QueryHelper.greaterThan(
-          OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
-        ),
-        name: QueryHelper.notWildcard(
-          `${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/*`,
-        ),
-      },
-      select: {
-        _id: true,
-        name: true,
-        lastAlive: true,
-        hostInfo: true,
-      },
-      limit: 10,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    return (
-      runners.find((runner: Model) => {
-        return !Service.isKubernetesAgentRunnerRow(runner);
-      }) || null
-    );
   }
 
   @CaptureSpan()

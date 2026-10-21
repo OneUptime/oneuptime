@@ -11,7 +11,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
@@ -31,6 +31,8 @@ import FilterChipDropdown, {
 } from "./FilterChipDropdown";
 import FilterChipDateRange from "./FilterChipDateRange";
 import FilterChipValueInput from "./FilterChipValueInput";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { CUSTOM_FIELD_FACET_KEY_PREFIX } from "../CustomFields/CustomFieldFacets";
 import { ResourceFacet } from "./ResourceFacet";
 import { FacetColumnQuery, buildFacetColumnQuery } from "./FacetColumnQuery";
@@ -39,6 +41,7 @@ import {
   isTypedValueFacetKind,
 } from "./FilterChipDropdownTypes";
 import { ResourceOwnerEntry } from "./OwnerEntry";
+import FacetFilterBar from "./FacetFilterBar";
 import {
   FacetConflictMap,
   FacetSelectionState,
@@ -196,6 +199,13 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   /** Clear every chip — what the bar's own "Clear all" button does. */
   clearAllFacets: () => void;
   /**
+   * Pass to ModelTable's `emptyState`. The chips filter the rows outside
+   * the table's own search and filters, so without it a chip that matched
+   * nothing left the table saying "No monitors yet" and offering to create
+   * one; with it the table says nothing matches and offers to clear them.
+   */
+  emptyState: EmptyStateOptions;
+  /**
    * Serializable snapshot of all facet selections (owner, labels, extras).
    * Pass to ModelTable's `currentFacetState` so saved views capture it.
    */
@@ -233,6 +243,7 @@ const useResourceOwners: <TResource extends BaseModel>(
 ) => UseResourceOwnersResult<TResource> = <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
 ): UseResourceOwnersResult<TResource> => {
+  const translator: Translator = useTranslator();
   const { ownerUserModelType, ownerTeamModelType, resourceIdField } = options;
   const showOwnerFacet: boolean = options.showOwnerFacet !== false;
   const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
@@ -1470,22 +1481,12 @@ const useResourceOwners: <TResource extends BaseModel>(
         return isFacetActive(f, facetSelections[f.key], facetOperators[f.key]);
       }).length;
 
+    // The row every list's chips sit in (FacetFilterBar).
     return (
-      <div className="-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-semibold text-gray-500">
-          <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-          Filter
-          {activeCount > 0 && (
-            <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
-              {activeCount}
-            </span>
-          )}
-        </span>
-        <span
-          aria-hidden="true"
-          className="hidden h-5 w-px bg-gray-200 sm:inline-block"
-        />
-
+      <FacetFilterBar
+        activeCount={activeCount}
+        onClearAll={hasActiveFilters ? clearAllFacets : undefined}
+      >
         {showOwnerFacet && (
           <FilterChipDropdown
             label="Owner"
@@ -1650,17 +1651,7 @@ const useResourceOwners: <TResource extends BaseModel>(
             />
           );
         })}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearAllFacets}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none"
-          >
-            <Icon icon={IconProp.Close} className="h-3 w-3" />
-            Clear all
-          </button>
-        )}
-      </div>
+      </FacetFilterBar>
     );
   }, [
     loadOwners,
@@ -1680,6 +1671,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     facetOperators,
     clearAllFacets,
     applyFacetChange,
+    translator.language,
   ]);
 
   const facetSaveState: JSONObject = useMemo((): JSONObject => {
@@ -1883,6 +1875,13 @@ const useResourceOwners: <TResource extends BaseModel>(
     return fromGetter ? ownersByResourceId[fromGetter] : undefined;
   };
 
+  const emptyState: EmptyStateOptions = useMemo((): EmptyStateOptions => {
+    return {
+      isFiltered: hasActiveFilters,
+      onClearFilters: clearAllFacets,
+    };
+  }, [hasActiveFilters, clearAllFacets]);
+
   return {
     ownersByResourceId,
     getOwnersForResource,
@@ -1895,6 +1894,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     facetOperators,
     setFacetSelection,
     clearAllFacets,
+    emptyState,
     facetSaveState,
     restoreFacetState,
   };

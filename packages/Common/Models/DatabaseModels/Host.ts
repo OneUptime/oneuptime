@@ -1,4 +1,8 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import DockerHost from "./DockerHost";
+import HostCollectorConfig from "./HostCollectorConfig";
+import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
 import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Project from "./Project";
@@ -19,9 +23,11 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import { HostCollectorConfigStatus } from "../../Types/HostCollector/HostCollector";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -1336,6 +1342,11 @@ export default class Host extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -1376,6 +1387,11 @@ export default class Host extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
@@ -1587,4 +1603,712 @@ export default class Host extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public cloudAccountId?: string = undefined;
+
+  /*
+   * OneUptime AI access to this host through its Host AI agent (a resource AI
+   * agent, ResourceAiAgent). The settings are plain columns written through
+   * ordinary CRUD, so they exist before any agent registers. The columns
+   * keep the host's own update ACL: anyone who may edit the host may make
+   * AI do LESS; making it do MORE is refused by the service unless the
+   * caller may author a FullAuto auto-remediation rule. The aiAccess*
+   * columns are written only by the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (systemctl status, journalctl, df, free, uptime, ps, ss) on this host, through its Host AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the host can turn it on or off.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
+    description:
+      "Disabled: AI never proposes or runs a change on this host. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the host's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the host can lower the mode; raising it needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "Optional JSON array of command patterns that Automatic mode may run on this host without approval even though they are riskier changes. Each pattern is one command line for this host's agent (systemctl, journalctl and the other host programs it may run) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this host is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the host can remove patterns or clear the list.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this host through its Host AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this host, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this host's AI access was first configured — by anyone writing an
+   * AI access setting. Only the server writes it, and nothing ever clears
+   * it. A registering Host AI agent reads it to tell "never configured" (it may
+   * apply its first-connection defaults) from "an operator chose settings,
+   * perhaps before installing the agent" (every setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this host was first configured by anyone saving an AI access setting. Set by the server; never cleared, so a Host AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * The collector OneUptime manages on this host (the one-command install:
+   * otelcol-contrib run by the OpAMP supervisor, which phones home to
+   * HostCollectorAgentService). All of it is written by the server from
+   * what the supervisor reports, except the config picked for the host on
+   * its page. A host whose collector was installed by hand has none of it.
+   */
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collector Instance ID",
+    description:
+      "The OpAMP instance ID of the collector OneUptime manages on this host. Empty when the host's collector was installed by hand. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorInstanceUid?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Collector Last Contact",
+    description:
+      "When the collector OneUptime manages on this host last reported to OneUptime. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public collectorLastContactAt?: Date = undefined;
+
+  /*
+   * When the collector OneUptime manages on this host was installed, or
+   * installed again: when it first reported with the instance it runs now.
+   * The Add Host guide waits for a host whose collector registered after
+   * the guide opened.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Collector Installed At",
+    description:
+      "When the collector OneUptime manages on this host was installed, or installed again: when it first reported to OneUptime. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public collectorRegisteredAt?: Date = undefined;
+
+  /*
+   * The Collector Config this host should run: the first one that applies
+   * to it, or the one picked for it on its page (isCollectorConfigPinned).
+   * Empty: OneUptime's default for its system. Kept up to date by the
+   * server whenever the host reports; a person sets it only to pick one.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "collectorConfigId",
+    type: TableColumnType.Entity,
+    modelType: HostCollectorConfig,
+    title: "Collector Config",
+    description:
+      "The Collector Config OneUptime sends to this host. Empty when the host runs OneUptime's default for its system.",
+  })
+  @ManyToOne(
+    () => {
+      return HostCollectorConfig;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "collectorConfigId" })
+  public collectorConfig?: HostCollectorConfig = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Collector Config ID",
+    description:
+      "ID of the Collector Config OneUptime sends to this host. Empty when the host runs OneUptime's default for its system.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public collectorConfigId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Collector Config Picked for This Host",
+    description:
+      "Whether the Collector Config was picked for this host on its page. When it is not, the host runs the first config in the list that applies to it.",
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isCollectorConfigPinned?: boolean = undefined;
+
+  // The version the host reports it runs. Empty for OneUptime's default.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "collectorConfigVersionId",
+    type: TableColumnType.Entity,
+    modelType: HostCollectorConfigVersion,
+    title: "Running Collector Config Version",
+    description:
+      "The version of a Collector Config this host reports it runs. Empty while it runs OneUptime's default. Set by the server.",
+  })
+  @ManyToOne(
+    () => {
+      return HostCollectorConfigVersion;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "collectorConfigVersionId" })
+  public collectorConfigVersion?: HostCollectorConfigVersion = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Running Collector Config Version ID",
+    description:
+      "ID of the Collector Config version this host reports it runs. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public collectorConfigVersionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Running Collector Config Hash",
+    description:
+      "The SHA-256 of the config this host reports it runs. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorConfigHash?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collector Config Status",
+    description:
+      "Where this host stands with the config OneUptime sends it: waiting, applying, applied or failed. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorConfigStatus?: HostCollectorConfigStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Collector Config Error",
+    description:
+      "Why the last config OneUptime sent this host did not start there, as the host reported it. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public collectorConfigError?: string = undefined;
+
+  /*
+   * The config that failed on this host, which OneUptime does not send it
+   * again: the host went back to the last config that worked there, and
+   * sending the failed one again would only fail again. Cleared when the
+   * config changes, and by Try again on the host's page.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Failed Collector Config Hash",
+    description:
+      "The SHA-256 of a config that did not start on this host, which OneUptime does not send it again until the config changes. Clear it to try that config again.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorFailedConfigHash?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Collector Healthy",
+    description:
+      "Whether the collector OneUptime manages on this host last reported itself healthy. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isCollectorHealthy?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Collector Health Error",
+    description:
+      "The error the collector OneUptime manages on this host last reported, while it is not healthy. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public collectorHealthError?: string = undefined;
+
+  /*
+   * What the installer found on the host, which decides what OneUptime's
+   * default config reads there: "journald" (the journal) and "systemd"
+   * (systemd units over the system D-Bus), comma-separated. Empty when the
+   * installer found neither; null when the host's supervisor did not say.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collector Host Features",
+    description:
+      "What the OneUptime installer found on this host for its default config to read: journald, systemd. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorHostFeatures?: string = undefined;
 }

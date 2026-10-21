@@ -1,82 +1,264 @@
-# Zabbix-integratie
+# Zabbix
 
-[Zabbix](https://www.zabbix.com) bewaakt je servers en netwerk; OneUptime verzorgt je incidentrespons, oncall en statuspagina's. Verbind de twee en elk Zabbix-probleem wordt automatisch een OneUptime-incident — zodat de juiste mensen worden gepaged en je statuspagina actueel blijft.
+Stuur [Zabbix](https://www.zabbix.com)-problemen naar OneUptime, zodat elk probleem een incident wordt dat je team met dienst oproept en wordt opgelost wanneer Zabbix herstelt. Kant-en-klare workflowsjablonen houden beide kanten gelijk: wat mensen in Zabbix doen, wordt op het incident genoteerd, en het incident bevestigen of oplossen bevestigt of sluit het probleem in Zabbix. Zabbix stuurt elk probleem via een webhook-mediatype, dus aan geen van beide kanten hoef je iets te installeren.
 
-Deze integratie is **inbound**: Zabbix stuurt problemen naar OneUptime. Ze maakt gebruik van een Zabbix **webhook media type** aan de ene kant en een OneUptime **[Workflow](/docs/workflows/index)** aan de andere kant. Geen plugins, geen extra services.
-
-```text
-Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workflow (Webhook trigger)  ──►  Create Incident
-```
+:::cards
+- [Kiezen hoe OneUptime problemen ontvangt](#kiezen-hoe-oneuptime-problemen-ontvangt): Workflowsjablonen of een Incoming Request-monitor.
+- [Beginnen met de sjablonen](#beginnen-met-de-sjablonen): Zes sjablonen, wat ze doen en wat ze vragen.
+- [Zabbix configureren](#zabbix-configureren): Een mediatype, een gebruiker en een actie.
+- [Problemen oplossen](#problemen-oplossen): Wanneer problemen niet aankomen of incidenten open blijven.
+:::
 
 ## Hoe het werkt
 
-1. Een Zabbix-trigger gaat naar **PROBLEM**.
-2. Een Zabbix **action** vertelt het **OneUptime** media type om het event te sturen.
-3. Het script van het media type POST een kleine JSON-payload naar een OneUptime-workflow-URL.
-4. De workflow leest de payload en maakt een incident aan (en lost het optioneel op wanneer Zabbix herstelt).
+```mermaid title="Van een Zabbix-probleem naar een incident, en terug"
+flowchart TB
+    problem["Zabbix-trigger:<br/>PROBLEM of OK"] --> action["Een actie stuurt het<br/>naar gebruiker<br/>OneUptime"]
+    action --> media["Mediatype stuurt<br/>JSON naar OneUptime"]
+    media --> event{"event"}
+    event -->|"problem"| open["Incident gemeld,<br/>dienst opgeroepen"]
+    event -->|"recovery"| resolve["Incident opgelost"]
+    event -->|"update"| note["Privénotitie,<br/>incident misschien<br/>bevestigd"]
+    open -.->|"bevestigd<br/>of opgelost"| api["Zabbix-API:<br/>bevestigen of sluiten"]
+```
 
-## Vereisten
+Zabbix stuurt een probleem naar een gebruiker, via de media van die gebruiker. Hier is het medium een webhook-mediatype met de naam **OneUptime**: het script ervan stuurt een klein JSON-document naar OneUptime voor elk probleem, voor het herstel ervan en voor elke update die iemand er in Zabbix aan doet, met de event-ID, de naam, de host en de ernst van het probleem. Aan de event-ID vindt OneUptime het incident dat een probleem heeft geopend.
 
-- Een Zabbix-server die jij beheert (deze handleiding is geschreven voor **Zabbix 6.0 LTS / 7.0 LTS**; het webhook media type werkt hetzelfde op 5.0+).
-- Je Zabbix-server moet je OneUptime-instantie via HTTPS kunnen bereiken.
-- Een OneUptime-project waar je workflows kunt aanmaken.
+## Voordat je begint
 
-## Deel 1 — Bouw de OneUptime-workflow
+- Een Zabbix-server die je beheert. Deze handleiding is geschreven voor Zabbix 6.0 LTS en 7.0 LTS. Webhook-mediatypen werken vanaf Zabbix 5.0 op dezelfde manier. De sjablonen die de API van Zabbix aanroepen, hebben Zabbix 6.4 of later nodig, of [één wijziging op Zabbix 6.0](#op-zabbix-60).
+- Een Zabbix-server die je OneUptime via HTTPS kan bereiken en, voor de sjablonen die Zabbix aanroepen, een OneUptime die Zabbix kan bereiken.
+- In OneUptime het recht om workflows te maken, of monitoren als je die weg kiest. In OneUptime Cloud hebben workflows het abonnement **Growth** of hoger nodig.
 
-Doe dit eerst, want je hebt de webhook-URL nodig die het genereert.
+## Kiezen hoe OneUptime problemen ontvangt
 
-1. Open **Workflows → Workflow maken**. Geef het de naam `Zabbix → Incidents` en open het tabblad **Bouwer**.
-2. Sleep een **Webhook**-trigger op het canvas. Klik erop en **kopieer de unieke URL** die verschijnt. Bewaar deze goed — iedereen die hem heeft kan de workflow starten. Hernoem het blok naar `Zabbix` zodat variabelen er netjes uitzien.
-3. Sleep een **Voorwaarden**-blok op het canvas en verbind de uitvoer van de trigger ermee. Configureer:
-   - **Left value**: `{{Zabbix.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right value**: `1` _(Zabbix stuurt `1` voor een probleem, `0` voor herstel)_
-4. Sleep een **Incident maken**-blok en verbind het met de **Ja**-uitvoer van het Voorwaarden-blok. Vul in:
-   - **Titel**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Beschrijving**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Ernst**: kies de gewenste OneUptime-incidentseverity (je kunt dit later verfijnen met meer Conditions-takken die Zabbix-severities mappen).
-5. Sla op. Laat **Ingeschakeld** voorlopig _uit_ — je zet het aan na een test.
+Stel eerst OneUptime in: dat geeft je de URL waar Zabbix naartoe stuurt.
 
-> **Tip:** Door de Zabbix `event_id` in de beschrijving (of een incidentlabel) te zetten, kun je dit incident later terugvinden als je het automatisch wilt oplossen bij herstel. Zie [Automatisch oplossen](#automatisch-oplossen-optioneel).
+| Manier | Gebruik het wanneer |
+| --- | --- |
+| De workflowsjablonen (aanbevolen) | Je wilt elk probleem als een incident of een waarschuwing met de Zabbix-ernst, met de dienst opgeroepen voor High en Disaster, opgelost bij herstel, met wat mensen in Zabbix doen erop genoteerd, en Zabbix bevestigd of gesloten vanuit OneUptime. |
+| Een Incoming Request-monitor | Je wilt incidenten zonder workflow, op elk abonnement, en een monitor waarvan de status Zabbix volgt. Er gaat niets terug naar Zabbix. |
 
-## Deel 2 — Configureer Zabbix
+Beide krijgen dezelfde JSON van hetzelfde mediatype, dus je kunt met de ene beginnen en later overstappen door één URL in Zabbix te wijzigen.
 
-### Stap 1: Maak het OneUptime-media-type aan
+## Beginnen met de sjablonen
 
-1. Ga in Zabbix naar **Alerts → Media types** (op oudere versies: **Administration → Media types**).
-2. Klik op **Create media type** en stel **Type** in op **Webhook**.
-3. **Name**: `OneUptime`.
-4. Voeg deze **Parameters** toe (klik op _Add_ voor elk). Ze mappen Zabbix-[macro's](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) naar een overzichtelijke payload:
+Het dialoogvenster **Een workflow maken** heeft zes Zabbix-sjablonen, onder **Zabbix** in de lijst met categorieën: drie voor incidenten, daarna dezelfde drie voor waarschuwingen.
 
-   | Name             | Value              |
-   | ---------------- | ------------------ |
-   | `url`            | `{ALERT.SENDTO}`   |
-   | `event_id`       | `{EVENT.ID}`       |
-   | `event_name`     | `{EVENT.NAME}`     |
-   | `event_value`    | `{EVENT.VALUE}`    |
+| Sjabloon | Wat het doet | Wat het vraagt |
+| --- | --- | --- |
+| **Incidenten** | | |
+| Declare an incident for each Zabbix problem | De workflow waar Zabbix elk event naartoe stuurt. Hij meldt een incident voor elk probleem, roept de dienst op voor High en Disaster, noteert updates die in Zabbix zijn gedaan en lost het incident op bij herstel. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the incident | Wanneer het incident wordt bevestigd, bevestigt het zijn probleem. Wanneer het wordt opgelost, sluit het het probleem, of bevestigt het waar Zabbix niet toestaat het met de hand te sluiten. | Zabbix URL, Zabbix API Token |
+| Copy incident private notes to the Zabbix problem | Voegt elke privénotitie op het incident als bericht aan zijn probleem toe. | Zabbix URL, Zabbix API Token |
+| **Waarschuwingen** | | |
+| Create an alert for each Zabbix problem | Hetzelfde als voor incidenten, met een waarschuwing voor elk probleem. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | Hetzelfde als voor incidenten, op basis van de status van de waarschuwing. | Zabbix URL, Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | Voegt elke privénotitie op de waarschuwing als bericht aan zijn probleem toe. | Zabbix URL, Zabbix API Token |
+
+Begin met **Declare an incident for each Zabbix problem**, of met **Create an alert for each Zabbix problem** voor waarschuwingen: het incident of de waarschuwing die het opent, bewaart de event-ID van het probleem in zijn aangepaste veld `zabbixEventId`, en de andere twee sjablonen vinden het probleem daarmee.
+
+### Wat de sjablonen vragen
+
+- **Zabbix URL**: het adres waarop je Zabbix opent, zoals `https://zabbix.example.com`, of `https://example.com/zabbix` als Zabbix onder een pad draait. Links naar een probleem gaan daarheen, en de sjablonen die Zabbix aanroepen, sturen hun verzoeken naar zijn `api_jsonrpc.php`. Het veld weigert het adres van een pagina in Zabbix.
+- **Zabbix API Token**: een API-token van de Zabbix-gebruiker als wie de workflow handelt. [Het API-token maken](#het-api-token-maken) laat zien hoe. Het wordt opgeslagen als geheime variabele en alleen in de header `Authorization` verstuurd.
+
+### Problemen ontvangen met het sjabloon
+
+:::steps
+1. Ga naar **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een sjabloon** de categorie **Zabbix**, klik op **Declare an incident for each Zabbix problem** en daarna op **Dit sjabloon gebruiken**.
+2. Vul **Zabbix URL** in en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld.
+3. Klik op de stap **Page an On-Call Policy**, kies het **Bereikbaarheidsbeleid** dat moet worden opgeroepen, en sla de stap op.
+4. Klik op de trigger **Webhook**, daarna op **URL kopiëren**, en bewaar de URL voor Zabbix.
+5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een workflow die uit staat, antwoordt Zabbix met `400`.
+:::
+
+Daarna [configureer je Zabbix](#zabbix-configureren) zodat het zijn problemen naar die URL stuurt.
+
+### Wat de workflow doet
+
+Na de trigger **Webhook** neemt een blok **Switch / Case** een pad voor elke `event` die het mediatype stuurt:
+
+| Event | Wat de workflow doet |
+| --- | --- |
+| `problem` | Meldt een incident met de titel `Zabbix: <problem> on <host>`, met de ernst waar de Zabbix-ernst op uitkomt, buiten je statuspagina's gehouden. De beschrijving linkt naar het probleem in Zabbix en noemt de host, de ernst, wanneer het begon, de operationele gegevens en de tags. Voor een probleem met High of Disaster roept hij het bereikbaarheidsbeleid op dat je hebt gekozen. Een probleem dat Zabbix opnieuw stuurt, met dezelfde event-ID, opent geen tweede incident. |
+| `recovery` | Lost het incident van het probleem op, tenzij het al is opgelost. Waarom staat op de tijdlijn ervan. |
+| `update` | Voegt wat in Zabbix is gedaan als privénotitie aan het incident toe: wie het deed, wat diegene deed en wat diegene schreef. Als de update het probleem bevestigde, bevestigt hij ook het incident, waardoor de dienst niet verder escaleert. |
+
+Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid, en de laatste stap van de uitvoering zegt waarom. Elke uitvoering eindigt in een stap **Log** die zegt wat er gebeurde: `✅` hij deed zijn werk, `ℹ️` hij sloeg het event bewust over, `❌` een stap mislukte en het uitvoeringslogboek zegt waarom.
+
+### Ernstniveaus
+
+In een nieuw project wijst het sjabloon de zes ernstniveaus van Zabbix toe aan deze incident- en waarschuwingsernstniveaus:
+
+| Zabbix-ernst | Incident | Waarschuwing | Dienst |
+| --- | --- | --- | --- |
+| Disaster | Critical Incident | High | Opgeroepen |
+| High | Critical Incident | High | Opgeroepen |
+| Average | Major Incident | Low | Niet opgeroepen |
+| Warning | Major Incident | Low | Niet opgeroepen |
+| Information | Minor Incident | Low | Niet opgeroepen |
+| Not classified | Minor Incident | Low | Niet opgeroepen |
+
+Met eigen ernstniveaus gaan Disaster en High naar je ernstigste, Average en Warning naar het middelste, en Information en Not classified naar je minst ernstige. Zabbix nummert zijn ernstniveaus van 0 (Not classified) tot 5 (Disaster), en het sjabloon leest het nummer, dus een ernstniveau in Zabbix hernoemen verandert niets.
+
+- Om een ernstniveau op naam aan een van de jouwe toe te wijzen, bewerk je `SEVERITY_BY_NAME` in de stap `read-event-1`, zoals `{ 2: 'Minor Incident' }` voor Warning.
+- Om ook voor Average-problemen op te roepen, zet je **Compare with** van de stap `if-page-1` **If / Else** op `3`.
+
+### Bevestigingen en notities terugsturen naar Zabbix
+
+:::steps
+1. [Maak het API-token](#het-api-token-maken).
+2. Maak een workflow van **Acknowledge or close the Zabbix problem with the incident**. Vul **Zabbix URL** en **Zabbix API Token** in, klik op **Workflow maken** en zet **Ingeschakeld** aan.
+3. Wil je de notities ook in Zabbix, doe dan hetzelfde met **Copy incident private notes to the Zabbix problem**.
+:::
+
+Het statussjabloon vraagt Zabbix eerst naar het probleem, dus een probleem dat Zabbix al heeft bevestigd of opgelost, blijft zoals het is. Om een probleem te sluiten, heeft de trigger ervan **Allow manual close** in Zabbix nodig. Zonder die instelling wordt het probleem in plaats daarvan bevestigd, met een bericht dat het incident is opgelost, en sluit Zabbix het wanneer het herstelt. Incidenten die geen Zabbix-probleem heeft geopend, en incidenten gemarkeerd als **Privé-incident**, worden nooit naar Zabbix gestuurd.
+
+### Het API-token maken
+
+:::steps
+1. Gebruik de gebruiker `OneUptime` die [problemen ontvangt](#een-gebruiker-maken-die-de-problemen-ontvangt). Zabbix stuurt een gebruiker zijn eigen updates niet, dus met het token van deze gebruiker komen de bevestigingen en berichten van OneUptime nooit als updates terug bij OneUptime.
+2. Controleer de rol van de gebruiker in **Users → User roles**. Die heeft **Access to API** ingeschakeld nodig, en **Acknowledge problems**, **Add problem comments** en **Close problems** toegestaan. De **User role** staat ze toe, tenzij iemand hem heeft gewijzigd.
+3. Controleer de groep van de gebruiker in **Users → User groups**. De machtiging **Read** op de hostgroepen is genoeg om problemen te bevestigen en berichten toe te voegen. Om problemen te sluiten, is **Read-write** nodig.
+4. Ga naar **Users → API tokens** en klik op **Create API token**. Kies de gebruiker `OneUptime`, vink **Set expiration date and time** uit of noteer de datum, en klik op **Add**.
+5. Kopieer het **Auth token**: Zabbix toont het maar één keer. Plak het in **Zabbix API Token**.
+:::
+
+### Op Zabbix 6.0
+
+Zabbix 6.0 leest het API-token uit de body van het verzoek, niet uit de header `Authorization`. Voeg in elke API-stap van de sjablonen die Zabbix aanroepen `"auth": "{{local.variables.zabbixApiToken}}",` toe aan **Request Body**, na `"jsonrpc": "2.0",`, en verwijder de header. Zabbix 7.2 en later weigeren `auth`, dus verwijder het weer wanneer je upgradet.
+
+## Problemen ontvangen met een monitor
+
+Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en de criteria ervan bepalen wat elk verzoek doet.
+
+:::steps
+### De monitor maken
+
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Zabbix` en klik op **Volgende**.
+
+### Een incident melden voor elk probleem
+
+Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor als offline markeert. Stel het filter in op **Verzoeklichaam**, **Bevat**, `"status":"1"`. Dit criterium meldt al een incident wanneer het filter overeenkomt. Vul het incident in:
+
+- **Incidenttitel**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
+- **Ernst**: de incidenternst die Zabbix-problemen moeten krijgen.
+- **Bereikbaarheidsbeleid**, onder **Bereikbaarheid**: het beleid dat moet worden opgeroepen.
+- **Incident automatisch oplossen**, onder **Meer velden**: laat het aan staan, zoals het begint. Zonder deze instelling worden herstelmeldingen genegeerd en blijven incidenten open.
+
+### Eén incident per probleem openen
+
+Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elk probleem een eigen incident krijgt en het herstel ervan het oplost:
+
+| Veld | Waarde |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.event_id` |
+| **Field that signals recovery** | `requestBody.status` |
+| **Value that means recovered** | `0` |
+
+### De monitor weer online brengen
+
+Open het tweede criterium, het criterium dat de monitor als online markeert, en stel het filter in op **Verzoeklichaam**, **Bevat**, `"status":"0"`.
+
+### De URL kopiëren
+
+Klik op **Monitor maken**. De pagina **Overzicht** van de monitor toont de **Heartbeat URL** ervan. Kopieer die voor Zabbix:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+Een zelfgehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
+:::
+
+De monitor leest de JSON van het verzoek zoals die geschreven is: `"status":"1"`, zonder spaties. Zie [Alerts ontvangen van een ander systeem](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet. Een update die in Zabbix is gedaan, wordt ook met `"status":"1"` verstuurd, wat de monitor opnieuw als het probleem leest, zonder een tweede incident te openen.
+
+## Zabbix configureren
+
+Zabbix heeft drie dingen nodig: een mediatype dat naar OneUptime stuurt, een gebruiker om het naartoe te sturen en een actie die problemen naar die gebruiker stuurt.
+
+:::steps
+### Het mediatype OneUptime maken
+
+1. Ga naar **Alerts → Media types**, of **Administration → Media types** in Zabbix 6.0, en klik op **Create media type**.
+2. Stel **Name** in op `OneUptime` en **Type** op **Webhook**.
+3. Voeg deze **Parameters** toe. Elke parameter zet een Zabbix-[macro](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) in het verzoek:
+
+   | Naam | Waarde |
+   | --- | --- |
+   | `url` | `{ALERT.SENDTO}` |
+   | `event_id` | `{EVENT.ID}` |
+   | `event_name` | `{EVENT.NAME}` |
+   | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host`           | `{HOST.NAME}`      |
-   | `event_date`     | `{EVENT.DATE}`     |
-   | `event_time`     | `{EVENT.TIME}`     |
+   | `event_nseverity` | `{EVENT.NSEVERITY}` |
+   | `host` | `{HOST.NAME}` |
+   | `event_date` | `{EVENT.DATE}` |
+   | `event_time` | `{EVENT.TIME}` |
+   | `event_opdata` | `{EVENT.OPDATA}` |
+   | `event_tags` | `{EVENT.TAGSJSON}` |
+   | `trigger_id` | `{TRIGGER.ID}` |
+   | `event_update_status` | `{EVENT.UPDATE.STATUS}` |
+   | `event_update_action` | `{EVENT.UPDATE.ACTION}` |
+   | `event_update_message` | `{EVENT.UPDATE.MESSAGE}` |
+   | `event_update_user` | `{USER.FULLNAME}` |
 
-5. Plak dit in het veld **Script**:
+4. Plak dit in **Script**:
 
    ```javascript
    var params = JSON.parse(value);
-   var request = new HttpRequest();
-   request.addHeader("Content-Type: application/json");
 
+   // Zabbix leaves a macro it has no value for as it is written, such as
+   // {EVENT.UPDATE.MESSAGE} on a problem: it is sent as nothing.
+   function given(text) {
+     var written = String(text === undefined || text === null ? "" : text);
+     return /^\{[A-Z0-9_.]+\}$/.test(written) || written === "*UNKNOWN*"
+       ? ""
+       : written;
+   }
+
+   var isUpdate = given(params.event_update_status) === "1";
    var payload = {
      source: "zabbix",
+     // "problem", "recovery" or "update".
+     event: isUpdate
+       ? "update"
+       : params.event_value === "0"
+         ? "recovery"
+         : "problem",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
-     // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
+     // 0 Not classified, 1 Information, 2 Warning, 3 Average, 4 High, 5 Disaster.
+     severity_number: params.event_nseverity,
+     // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
+     opdata: given(params.event_opdata),
+     tags: [],
+     trigger_id: params.trigger_id,
    };
+
+   try {
+     var tags = JSON.parse(given(params.event_tags) || "[]");
+     payload.tags = Array.isArray(tags) ? tags : [];
+   } catch (error) {
+     payload.tags = [];
+   }
+
+   if (isUpdate) {
+     payload.update = {
+       action: given(params.event_update_action),
+       message: given(params.event_update_message),
+       user: given(params.event_update_user),
+     };
+   }
+
+   var request = new HttpRequest();
+   request.addHeader("Content-Type: application/json");
 
    var response = request.post(params.url, JSON.stringify(payload));
 
@@ -89,84 +271,90 @@ Doe dit eerst, want je hebt de webhook-URL nodig die het genereert.
    return "OK";
    ```
 
-6. Klik op het tabblad **Message templates** en voeg een sjabloon toe voor **Problem** en **Problem recovery** (de body mag leeg zijn — de payload wordt in het script samengesteld). Dit is vereist zodat Zabbix het media type voor die eventtypes gebruikt.
-7. Klik op **Add** om het media type op te slaan.
+5. Voeg op het tabblad **Message templates** een sjabloon toe voor **Problem**, een voor **Problem recovery** en een voor **Problem update**. Laat de tekst ervan leeg: het script bouwt het verzoek. Zabbix gebruikt een mediatype alleen voor de soorten gebeurtenissen waarvoor het een sjabloon heeft.
+6. Klik op **Add**.
 
-### Stap 2: Maak een gebruiker aan om de webhook te dragen
+### Een gebruiker maken die de problemen ontvangt
 
-Zabbix stuurt notificaties _naar een gebruiker_. Maak een aparte aan zodat de integratie makkelijk te vinden en uit te schakelen is.
+1. Ga naar **Users → Users**, of **Administration → Users** in Zabbix 6.0, en klik op **Create user**. Noem hem `OneUptime` en geef hem een gebruikersgroep en een rol die meldingen mag ontvangen, zoals **User role**.
+2. Klik op het tabblad **Media** op **Add**. Stel **Type** in op `OneUptime` en **Send to** op de URL die je uit OneUptime hebt gekopieerd. Laat **When active** en de ernstniveaus zoals ze zijn, of vink de ernstniveaus uit die OneUptime niet hoort te krijgen.
+3. Klik op **Add** en daarna nog eens op **Add** om de gebruiker op te slaan.
 
-1. Ga naar **Users → Users → Create user**. Geef hem de naam `OneUptime Webhook`, geef hem een rol die notificaties kan ontvangen (bijv. **User role**), en voeg hem toe aan een gebruikersgroep.
-2. Klik op het tabblad **Media** op **Add**:
-   - **Type**: `OneUptime`
-   - **Send to**: plak de **workflow-webhook-URL** die je in Deel 1 hebt gekopieerd.
-   - **When active** / severities: laat de standaardwaarden staan (of beperk tot de severities die je wilt).
-3. Klik op **Add** en **Update**.
+### Problemen met een actie naar OneUptime sturen
 
-### Stap 3: Stuur problemen naar OneUptime met een action
+1. Ga naar **Alerts → Actions → Trigger actions**, of **Configuration → Actions** in Zabbix 6.0, en klik op **Create action**. Noem hem `Notify OneUptime`.
+2. Beperk hem onder **Conditions** als je wilt, bijvoorbeeld met **Trigger severity is greater than or equals Warning**. Zonder voorwaarden wordt elk probleem verstuurd.
+3. Voeg op het tabblad **Operations** een bewerking toe die naar de gebruiker `OneUptime` stuurt via het mediatype `OneUptime`.
+4. Voeg dezelfde bewerking toe onder **Recovery operations**, zodat ook herstelmeldingen worden verstuurd, en onder **Update operations**, zodat bevestigingen en opmerkingen uit Zabbix worden verstuurd.
+5. Klik op **Add** en controleer of de actie is ingeschakeld.
+:::
 
-1. Ga naar **Alerts → Actions → Trigger actions → Create action**.
-2. **Name**: `Notify OneUptime`.
-3. **Conditions** (optioneel): beperk de scope — bijvoorbeeld _Trigger severity >= Warning_. Laat leeg om alles te sturen.
-4. Voeg op het tabblad **Operations** een operatie toe die naar **User: OneUptime Webhook** stuurt via het **OneUptime** media type.
-5. Om incidenten later bij herstel op te lossen, vul je ook de **Recovery operations** in met dezelfde gebruiker/media.
-6. Klik op **Add** om op te slaan en zorg dat de action **Enabled** is.
+Om sommige problemen naar het incidentsjabloon en andere naar het waarschuwingssjabloon te sturen, geef je de gebruiker `OneUptime` twee media van het type `OneUptime`: elk stuurt naar de URL van één workflow, met de ernstniveaus die het moet krijgen.
 
-## Deel 3 — Test het
+## Het testen
 
-1. Zet in de OneUptime-workflow **Ingeschakeld** aan.
-2. Trigger in Zabbix een testprobleem — verlaag bijvoorbeeld tijdelijk een triggerdrempel, of gebruik een testitem dat naar een probleemstatus omslaat.
-3. Open het tabblad **Logboeken** van je workflow. Je ziet een run met de Zabbix-payload, het Voorwaarden-blok dat het **Ja**-pad neemt, en het incident dat wordt aangemaakt.
-4. Controleer **Incidenten** in OneUptime — je Zabbix-probleem is nu een incident.
+1. Open in Zabbix **Alerts → Media types** en klik op **Test** naast `OneUptime`. Vul de URL in die je hebt gekopieerd, en voorbeeldwaarden zoals `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` en `event_value` `1`. Klik op **Test**: Zabbix toont het antwoord van het script, `OK`, of de fout die het gaf.
+2. Open in OneUptime **Logboeken → Uitvoeringen** van de workflow en bekijk de uitvoering, of open de monitor en controleer of er een incident is geopend.
+3. Test opnieuw met `event_value` `0` en dezelfde `event_id`. Het incident wordt opgelost.
 
-Als er niets binnenkomt, zie [Probleemoplossing](#probleemoplossing).
+Laat daarna een echte trigger afgaan, bijvoorbeeld door een drempel even te verlagen, en kijk hoe het probleem binnenkomt. Om een update te proberen, bevestig je het probleem in Zabbix met een bericht: het incident krijgt een privénotitie en wordt bevestigd.
 
-## Automatisch oplossen (optioneel)
+## Zabbix-ernstniveaus toewijzen
 
-De bovenstaande basisworkflow _opent_ incidenten. Om ze ook te _sluiten_ wanneer Zabbix herstelt:
+Zabbix stuurt de ernst als tekst: `Not classified`, `Information`, `Warning`, `Average`, `High` of `Disaster`.
 
-1. Zorg dat je Zabbix-action **Recovery operations** heeft geconfigureerd (Stap 3 hierboven) zodat herstelgebeurtenissen ook worden verstuurd. Bij herstel komt `status` binnen als `0`.
-2. Voeg in de workflow een tweede **Voorwaarden**-tak toe: links `{{Zabbix.Request Body.status}}`, operator `==`, rechts `0`.
-3. Voeg vanuit de **Ja**-uitvoer een **Find Incident**-blok toe dat het eerder aangemaakte open incident opzoekt — match op de Zabbix `event_id` die je in de beschrijving of een label hebt opgeslagen.
-4. Verbind dat met een **Update Incident**-blok en zet het incident op je _opgeloste_ status.
+- **Met de sjablonen** worden ernstniveaus voor je toegewezen: zie [Ernstniveaus](#ernstniveaus).
+- **Met de monitor** klik je op **Criteria toevoegen** voor elke groep ernstniveaus en sleep je het nieuwe criterium boven het eerste: criteria worden van boven af gecontroleerd, en het eerste dat overeenkomt beslist. Geef elk twee filters, `"status":"1"` en een ernst zoals `"severity":"Disaster"`, met **Overeenkomstvoorwaarde** op **Alle**. Geef elk een incident met een eigen **Ernst** en **Incident automatisch oplossen**, en dezelfde groeperingsinstellingen.
 
-Omdat oplossing afhangt van hoe je incidentstatussen in je project modelleert, houd je het **aanmaken**-pad als betrouwbare kern en voeg je het oplossen-pad toe zodra je hebt bevestigd dat events correct doorstromen. Zie [Componenten → OneUptime-datacomponenten](/docs/workflows/components#oneuptime-data-components).
+## Problemen oplossen
 
-## Zabbix-severities mappen (optioneel)
+:::details Er komt niets aan in OneUptime
+- Open in Zabbix **Reports → Action log** en controleer of de actie het probleem heeft verstuurd, en wat er terugkwam.
+- Stuur vanaf de Zabbix-server zelf een verzoek: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"source":"zabbix","event":"problem","event_id":"1","name":"Test","host":"test","severity_number":"4","status":"1"}'`.
+- De monitor antwoordt meteen `200`, voordat hij iets controleert, zelfs bij een verkeerde geheime sleutel. Bekijk de tijdlijn van de monitor om te zien of verzoeken binnenkomen.
+- Een workflow die uit staat, antwoordt `400`. Zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
+:::
 
-Zabbix-severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) komen binnen als `{{Zabbix.Request Body.severity}}`. Om ze te mappen naar OneUptime-incidentseverities voeg je **Voorwaarden**-takken toe vóór **Incident maken** — routeer bijvoorbeeld `Disaster` en `High` naar een "Kritiek"-incident en al het andere naar "Groot". Bouw één **Incident maken**-blok per tak.
+:::details Zabbix meldt een scriptfout
+Open het mediatype en gebruik **Test**: Zabbix toont het resultaat van het script of de fout die het gaf. Elk antwoord van OneUptime anders dan `2xx` geeft het script door als fout met de status erbij, dus controleer eerst de URL.
+:::
 
-## Probleemoplossing
+:::details Incidenten openen, maar worden nooit opgelost
+- De actie heeft **Recovery operations** nodig, anders stuurt Zabbix het herstel nooit.
+- Open met het sjabloon **Logboeken → Uitvoeringen** van de workflow en de uitvoering van het herstel: de laatste stap ervan zegt waarom. Een herstel van een probleem dat geen incident opende, verandert niets.
+- Met de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**. **Field that signals recovery** moet `requestBody.status` zijn, en **Value that means recovered** precies `0`.
+:::
 
-**De workflow draait nooit.**
+:::details Het Zabbix-probleem wordt niet bevestigd of gesloten
+Open de uitvoering van het statussjabloon in **Logboeken → Uitvoeringen**: de laatste stap ervan zegt wat Zabbix antwoordde.
 
-- Bevestig dat de schakelaar **Ingeschakeld** van de workflow aanstaat.
-- Bevestig vanaf de Zabbix-server dat hij de URL kan bereiken: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Je zou een snelle bevestiging moeten krijgen.
-- Controleer **Reports → Action log** in Zabbix op afleverfouten.
+- `Not authorized`: het API-token is onjuist, verlopen of uitgeschakeld, of Zabbix is ouder dan 6.4 (zie [Op Zabbix 6.0](#op-zabbix-60)).
+- `Cannot close problem: trigger does not allow manual closing`: zet **Allow manual close** aan op de trigger. Het sjabloon bevestigt zulke problemen al in plaats van ze te sluiten.
+- `No permissions to referred object or it does not exist!`: de gebruiker ziet het probleem, maar heeft de machtiging **Read-write** nodig om het te sluiten.
+- `Zabbix has no problem with event ID`: de gebruiker ziet de host van het probleem niet. Geef zijn gebruikersgroep de machtiging **Read** op de hostgroep.
+:::
 
-**Zabbix meldt een scriptfout.**
+:::details Het incident toont een verwijzing in plaats van een waarde
+Een verwijzing naar een veld dat het verzoek niet heeft, blijft staan zoals ze geschreven is, accolades en al, in plaats van te worden leeggemaakt. Controleer of Zabbix `Content-Type: application/json` stuurt en of de veldnamen die je gebruikt (`name`, `host`, `severity`, `status`, `event_id`) overeenkomen met de payload van het script. Open voor een workflow de uitvoering in **Logboeken → Uitvoeringen** en vergelijk met wat de trigger ontving. Zie [Valkuilen](/docs/workflows/variables#valkuilen).
+:::
 
-- Open het media type en gebruik **Test** om een voorbeeldpayload te sturen. Zabbix toont de uitvoer van het script of de gegooid fout.
-- Een niet-2xx-respons van OneUptime wordt zichtbaar gemaakt door de `throw` in het script — controleer of de workflow-URL precies klopt.
+:::details Elk probleem komt twee keer aan
+Waarschijnlijk heeft de actie twee bewerkingen die naar dezelfde gebruiker sturen, zoals een eerste stap en een escalatiestap. Het sjabloon opent één incident per event-ID, wat er ook binnenkomt, maar elke levering is een uitvoering. Controleer de **Operations** van de actie.
+:::
 
-**Het incident is aangemaakt maar velden zijn leeg.**
+## Beveiliging
 
-- Open het tabblad **Logboeken** van de workflow en bekijk de triggeruitvoer. Bevestig dat de veldnamen onder **Verzoeklichaam** overeenkomen met wat je verwijst (`name`, `host`, `severity`, `status`, `event_id`).
-- Een ontbrekend veld levert een lege string op in plaats van een fout — zie [Variabelen → Valkuilen](/docs/workflows/variables#gotchas).
+- **Behandel de URL als een wachtwoord.** Iedereen die hem heeft, kan incidenten openen. Lekt hij uit, stel hem dan opnieuw in: **URL opnieuw instellen** in de trigger **Webhook** van de workflow, of **Geheime sleutel voor inkomende aanvraag opnieuw instellen** op de pagina **Instellingen** van de monitor. Werk daarna **Send to** bij in het medium van de Zabbix-gebruiker.
+- **Links gaan naar jouw Zabbix.** Het sjabloon linkt een probleem op de site die zijn **Zabbix URL** noemt, wat een verzoek ook zegt, en schrijft wat Zabbix stuurde als tekst.
+- **Beperk het API-token tot wat de workflow doet.** Het is een geheime variabele, afgeschermd in uitvoeringslogboeken en alleen in de header `Authorization` verstuurd. Geef de gebruiker ervan een rol met niets meer dan de acties hierboven, en verwijder het token in **Users → API tokens** als het uitlekt.
+- **Stuur alleen wat een incident nodig heeft.** Gebruik de voorwaarden van de actie, of de ernstniveaus van het medium van de gebruiker, om problemen met een lage ernst in Zabbix te houden.
+- **Zelfgehost?** Laat je Zabbix-server je OneUptime via HTTPS door je firewall bereiken. Om een Zabbix op een privénetwerk aan te roepen, heeft de workflow [uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang) nodig.
 
-**Alles vuurt twee keer.**
+## Volgende stappen
 
-- Je hebt waarschijnlijk zowel een probleemoperatie als een escalatiestap die naar hetzelfde media stuurt. Controleer de **Operations**-stappen van de action.
-
-## Beveiligingsnotities
-
-- Behandel de workflow-webhook-URL als een wachtwoord. Als hij uitlekt, verwijder dan de trigger en maak een nieuwe aan om de URL te roteren.
-- Beperk de condities van de Zabbix-action zodat je alleen de severities doorstuurt die een incident rechtvaardigen.
-- Als je OneUptime self-hosted achter een firewall draait, sta dan het egress-IP van je Zabbix-server toe om hem via HTTPS te bereiken.
-
-## Waar verder lezen
-
-- [Integraties – Overzicht](/docs/integrations/index) — de inbound/outbound-patronen.
-- [Webhook trigger](/docs/workflows/triggers#webhook) — hoe de ontvangende URL werkt.
-- [Componenten](/docs/workflows/components) — Conditions, Create Incident en meer.
-- [Variabelen](/docs/workflows/variables) — de Zabbix-payload lezen in latere blokken.
+:::cards
+- [Workflowsjablonen](/docs/workflows/authoring): Maak een workflow van een sjabloon en wijzig hem in de Bouwer.
+- [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor): Elke instelling van de monitor die Zabbix-problemen ontvangt.
+- [Escalatieregels](/docs/on-call/escalation-rules): Bepaal wie een bereikbaarheidsbeleid oproept, en wanneer.
+- [Overzicht van integraties](/docs/integrations/index): De andere tools die je kunt koppelen.
+:::

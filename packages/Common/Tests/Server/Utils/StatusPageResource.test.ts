@@ -135,6 +135,104 @@ describe("StatusPageResourceUtil", () => {
     });
   });
 
+  /*
+   * The HTML list goes into the raw-HTML slot of the default subscriber
+   * emails, and into custom email templates as HTML, so every name in it is
+   * escaped. Project members name resources and groups; a name holding a
+   * link or a script must read as those characters, not become markup.
+   */
+  describe("getResourcesGroupedByGroupName escapes names", () => {
+    const LINK: string = '<a href="https://evil.example/login">Checkout</a>';
+    const LINK_ESCAPED: string =
+      "&lt;a href=&quot;https://evil.example/login&quot;&gt;Checkout&lt;/a&gt;";
+    const SCRIPT: string = "<script>alert('x')</script>";
+    const SCRIPT_ESCAPED: string =
+      "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;";
+
+    it("escapes an ungrouped display name", () => {
+      const result: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([
+          createResource(LINK),
+          createResource("Payments & Billing"),
+        ]);
+
+      expect(result).toBe(`${LINK_ESCAPED}, Payments &amp; Billing`);
+      expect(result).not.toContain("<a");
+    });
+
+    it("escapes a group name and the names in it", () => {
+      const result: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([
+          createResourceWithGroup(SCRIPT, `EU "West"`),
+          createResourceWithGroup("API", `EU "West"`),
+          createResourceWithGroup("Web", SCRIPT),
+        ]);
+
+      expect(result).toBe(
+        `EU &quot;West&quot;: ${SCRIPT_ESCAPED}, API<br/>${SCRIPT_ESCAPED}: Web`,
+      );
+      expect(result).not.toContain("<script");
+    });
+
+    it("escapes an ungrouped name listed after the groups", () => {
+      const result: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([
+          createResourceWithGroup("API", "EU"),
+          createResource(`O'Brien's <b>service</b>`),
+        ]);
+
+      expect(result).toBe(
+        "EU: API<br/>O&#39;Brien&#39;s &lt;b&gt;service&lt;/b&gt;",
+      );
+    });
+
+    it("keeps its own <br/> between groups as markup", () => {
+      const result: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([
+          createResourceWithGroup("A", "G1"),
+          createResourceWithGroup("B", "G2"),
+        ]);
+
+      expect(result).toBe("G1: A<br/>G2: B");
+    });
+
+    it("merges two groups only when their names are the same as written", () => {
+      const result: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([
+          createResourceWithGroup("A", "R&D"),
+          createResourceWithGroup("B", "R&amp;D"),
+          createResourceWithGroup("C", "R&D"),
+        ]);
+
+      expect(result).toBe("R&amp;D: A, C<br/>R&amp;amp;D: B");
+    });
+
+    it("escapes the default value too", () => {
+      expect(
+        StatusPageResourceUtil.getResourcesGroupedByGroupName([], "<none>"),
+      ).toBe("&lt;none&gt;");
+    });
+
+    it("leaves the plain-text list as written, for channels that do not render HTML", () => {
+      const resources: Array<StatusPageResource> = [
+        createResourceWithGroup(SCRIPT, `EU "West"`),
+        createResource(LINK),
+      ];
+
+      expect(
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+          resources,
+        ),
+      ).toBe(`EU "West": ${SCRIPT}; ${LINK}`);
+      expect(
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+          [],
+          "<none>",
+        ),
+      ).toBe("<none>");
+    });
+  });
+
   describe("getResourcesGroupedByGroupNameAsPlainText", () => {
     it("should separate groups with semicolons instead of <br/>", () => {
       const resources: Array<StatusPageResource> = [

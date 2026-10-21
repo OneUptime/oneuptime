@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import AlertEpisode from "./AlertEpisode";
 import File from "./File";
 import Project from "./Project";
@@ -5,6 +6,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -30,6 +32,7 @@ import {
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("alertEpisode")
+@OwnedThrough("alertEpisodeId", AlertEpisode)
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -524,4 +527,79 @@ export default class AlertEpisodeInternalNote extends BaseModel {
     nullable: true,
   })
   public postedFromSlackMessageId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlertEpisodeInternalNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertEpisodeInternalNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlertEpisodeInternalNote,
+    ],
+  })
+  @TableColumn({
+    title: "Note Posted At",
+    description:
+      "Date and time the note belongs to in the timeline: when it was written, or - for a note saved from a Slack or Microsoft Teams message - when that message was posted.",
+    type: TableColumnType.Date,
+    example: "2026-10-08T10:07:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertEpisodeInternalNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "When this note was saved from a Slack or Microsoft Teams message - pinned, or given a note emoji - the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). Written by OneUptime; the note's creator is whoever saved it.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      authorUserId: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

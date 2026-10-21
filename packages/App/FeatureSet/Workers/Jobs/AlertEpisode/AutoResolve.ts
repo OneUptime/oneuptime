@@ -14,6 +14,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 RunCron(
   "AlertEpisode:AutoResolve",
@@ -150,15 +152,21 @@ const fetchResolvedStates: FetchResolvedStatesFunction = async (
     return resolvedStateByProjectId;
   }
 
-  const resolvedStates: Array<AlertState> = await AlertStateService.findBy({
+  /*
+   * Every state of those projects, and of each its resolved state: the
+   * first from the top flagged resolved (Common/Utils/ResolvedState). A
+   * member at or below it - in the resolved state, or one placed after it -
+   * is resolved.
+   */
+  const states: Array<AlertState> = await AlertStateService.findBy({
     query: {
       projectId: QueryHelper.any([...distinctProjectIds.values()]),
-      isResolvedState: true,
     },
     select: {
       _id: true,
       order: true,
       projectId: true,
+      isResolvedState: true,
     },
     props: {
       isRoot: true,
@@ -167,10 +175,31 @@ const fetchResolvedStates: FetchResolvedStatesFunction = async (
     skip: 0,
   });
 
-  for (const state of resolvedStates) {
+  const statesByProjectId: Map<string, Array<AlertState>> = new Map();
+
+  for (const state of states) {
     const projectKey: string | undefined = state.projectId?.toString();
-    if (projectKey && !resolvedStateByProjectId.has(projectKey)) {
-      resolvedStateByProjectId.set(projectKey, state);
+
+    if (!projectKey) {
+      continue;
+    }
+
+    const projectStates: Array<AlertState> =
+      statesByProjectId.get(projectKey) || [];
+    projectStates.push(state);
+    statesByProjectId.set(projectKey, projectStates);
+  }
+
+  for (const [projectKey, projectStates] of statesByProjectId) {
+    const resolvedState: AlertState | null = ResolvedStateUtil.getResolvedState(
+      {
+        list: StateListType.AlertState,
+        states: projectStates,
+      },
+    );
+
+    if (resolvedState) {
+      resolvedStateByProjectId.set(projectKey, resolvedState);
     }
   }
 

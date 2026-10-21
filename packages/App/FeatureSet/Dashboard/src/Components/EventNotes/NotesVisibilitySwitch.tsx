@@ -35,7 +35,7 @@ const NotesVisibilitySwitch: FunctionComponent<ComponentProps> = (
 
   return (
     <nav
-      aria-label={translateString("Note type") || "Note type"}
+      aria-label={translateString("Note type")}
       className="inline-flex shrink-0 items-center rounded-lg bg-gray-100 p-0.5"
       data-testid="notes-visibility-switch"
     >

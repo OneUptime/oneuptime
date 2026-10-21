@@ -19,6 +19,10 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
+import {
+  TOGGLE_TRACK_OFF_CLASS,
+  TOGGLE_TRACK_ON_CLASS,
+} from "../../../UI/Components/Toggle/Toggle";
 
 /*
  * User Settings > Email Preferences: the two controls that change how MUCH
@@ -130,13 +134,13 @@ describe("user settings > email preferences", () => {
 
   function rollupSwitch(): HTMLElement {
     return screen.getByRole("switch", {
-      name: /^Roll up notification emails:/,
+      name: "Roll up notification emails",
     });
   }
 
   async function waitForPageReady(): Promise<HTMLElement> {
     return screen.findByRole("switch", {
-      name: /^Roll up notification emails:/,
+      name: "Roll up notification emails",
     });
   }
 
@@ -390,15 +394,47 @@ describe("user settings > email preferences", () => {
       ).toBeVisible();
     });
 
-    test("the accessible name says the state and what pressing it does", async () => {
+    /*
+     * Named for what it turns on and off, the same in either state; whether
+     * it is on is aria-checked, which a screen reader reads after the name.
+     */
+    test("the accessible name says what it controls, and aria-checked whether it is on", async () => {
+      rollupRows = [rollupRow(true)];
       renderPage();
       await waitForPageReady();
 
-      expect(
-        screen.getByRole("switch", {
-          name: "Roll up notification emails: On. Click to disable.",
-        }),
-      ).toBeInTheDocument();
+      expect(rollupSwitch()).toHaveAccessibleName(
+        "Roll up notification emails",
+      );
+      expect(rollupSwitch()).toHaveAttribute("aria-checked", "true");
+
+      fireEvent.click(rollupSwitch());
+
+      await waitFor(() => {
+        expect(rollupSwitch()).toHaveAttribute("aria-checked", "false");
+      });
+      expect(rollupSwitch()).toHaveAccessibleName(
+        "Roll up notification emails",
+      );
+    });
+
+    test("it is the product's switch: grey when off, the brand indigo when on", async () => {
+      rollupRows = [rollupRow(false)];
+      renderPage();
+      await waitForPageReady();
+
+      expect(rollupSwitch()).toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+      expect(rollupSwitch()).not.toHaveClass(TOGGLE_TRACK_ON_CLASS);
+      // Not the green one-off it used to be, nor the outlined design.
+      expect(rollupSwitch()).not.toHaveClass("bg-emerald-500");
+      expect(rollupSwitch()).not.toHaveClass("border-gray-500");
+
+      fireEvent.click(rollupSwitch());
+
+      await waitFor(() => {
+        expect(rollupSwitch()).toHaveClass(TOGGLE_TRACK_ON_CLASS);
+      });
+      expect(rollupSwitch()).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
     });
   });
 
@@ -504,6 +540,12 @@ describe("user settings > email preferences", () => {
       fireEvent.click(rollupSwitch());
 
       expect(updateById).toHaveBeenCalledTimes(1);
+      /*
+       * Refused, not removed: it says it cannot be pressed and keeps the
+       * focus of the person who just pressed it.
+       */
+      expect(rollupSwitch()).toHaveAttribute("aria-disabled", "true");
+      expect(rollupSwitch()).not.toBeDisabled();
 
       await act(async () => {
         finishWrite();

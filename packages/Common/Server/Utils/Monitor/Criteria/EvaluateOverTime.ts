@@ -16,9 +16,11 @@ import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CronTab from "../../CronTab";
 import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
+import WindowCoverage from "./WindowCoverage";
 
 /**
  * Outcome of trying to turn an "evaluate over time" filter into a value the
@@ -74,19 +76,6 @@ export interface OverTimeCriteriaValue {
 }
 
 export default class EvaluateOverTime {
-  /**
-   * Multiple of the monitor's polling interval that either end of the window
-   * is allowed to sit away from the nearest sample before the window counts
-   * as "not covered yet".
-   *
-   * One whole interval is the theoretical minimum (a window that starts
-   * mid-cycle legitimately has its first sample up to one interval in). The
-   * extra half absorbs scheduling jitter - and the lag between a sample
-   * being written and being readable - so a monitor does not flip between
-   * "covered" and "not covered" on adjacent checks.
-   */
-  private static readonly WINDOW_COVERAGE_TOLERANCE_FACTOR: number = 1.5;
-
   /**
    * Resolve an "evaluate over time" criteria filter into the value its
    * comparator should use, applying the filter's no-data policy.
@@ -265,28 +254,13 @@ export default class EvaluateOverTime {
     let metricItems: Array<Metric> = [];
 
     try {
-      const query: Query<Metric> = {
+      metricItems = await this.readWindowRows({
         projectId: data.projectId,
-        time: new InBetween(windowStart, now),
-        primaryEntityId: data.monitorId,
-        name: metricName,
-      };
-
-      if (data.miscData) {
-        query.attributes = data.miscData;
-      }
-
-      metricItems = await MetricService.findBy({
-        query: query,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          value: true,
-          time: true,
-        },
+        monitorId: data.monitorId,
+        metricName: metricName,
+        windowStart: windowStart,
+        windowEnd: now,
+        attributes: data.miscData,
       });
     } catch (err) {
       logger.error(
@@ -402,6 +376,60 @@ export default class EvaluateOverTime {
   }
 
   /**
+   * The rows one monitor series holds over a window: what an over-time
+   * filter reads. The series filters above read their window through it,
+   * and so do the filters judged from their match history
+   * (CriteriaFilterMatchHistory), so the two cannot drift apart in how they
+   * read one.
+   *
+   * `selectAttributes` also reads each row's attributes, for a caller that
+   * splits one read between the probes that wrote it. `newestFirst` orders
+   * the rows by time, newest first, so a read cut at the row limit leaves
+   * out the oldest rows rather than any.
+   */
+  public static async readWindowRows(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    windowStart: Date;
+    windowEnd: Date;
+    attributes?: JSONObject | undefined;
+    selectAttributes?: boolean | undefined;
+    newestFirst?: boolean | undefined;
+  }): Promise<Array<Metric>> {
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: new InBetween(data.windowStart, data.windowEnd),
+      primaryEntityId: data.monitorId,
+      name: data.metricName,
+    };
+
+    if (data.attributes) {
+      query.attributes = data.attributes;
+    }
+
+    return await MetricService.findBy({
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      select: data.selectAttributes
+        ? {
+            value: true,
+            time: true,
+            attributes: true,
+          }
+        : {
+            value: true,
+            time: true,
+          },
+      ...(data.newestFirst ? { sort: { time: SortOrder.Descending } } : {}),
+    });
+  }
+
+  /**
    * Whether the samples actually reach back to the start of the window.
    *
    * A monitor that has only been running for a minute has one sample in a
@@ -412,7 +440,11 @@ export default class EvaluateOverTime {
    * The check is expressed in time rather than in sample count so it is
    * immune to a probe skipping a beat, to several probes writing into the
    * same series, and to a sample landing a fraction of a second outside the
-   * window.
+   * window. The rule itself is WindowCoverage's, which metric monitors share.
+   *
+   * Only the two edges count here, not a hole between two checks: a probe
+   * monitor is judged when a check arrives, so the first check after a probe
+   * outage would otherwise call an incident that is still true resolved.
    */
   private static isWindowCovered(data: {
     windowStart: Date;
@@ -458,23 +490,18 @@ export default class EvaluateOverTime {
       return false;
     }
 
-    const oldestSampleMs: number = sortedTimes[0]!;
-    const newestSampleMs: number = sortedTimes[sortedTimes.length - 1]!;
-
-    const allowedGapMs: number =
-      intervalInSeconds * 1000 * this.WINDOW_COVERAGE_TOLERANCE_FACTOR;
-
-    const leadingGapMs: number = oldestSampleMs - data.windowStart.getTime();
-
     /*
      * The trailing edge matters as much as the leading one: samples that
      * stop part way through the window say nothing about the minutes since,
      * so "all values over the last N minutes" must not be satisfied by
      * stale data either.
      */
-    const trailingGapMs: number = data.windowEnd.getTime() - newestSampleMs;
-
-    return leadingGapMs <= allowedGapMs && trailingGapMs <= allowedGapMs;
+    return WindowCoverage.judge({
+      windowStartMs: data.windowStart.getTime(),
+      windowEndMs: data.windowEnd.getTime(),
+      readingTimesMs: sortedTimes,
+      intervalMs: intervalInSeconds * 1000,
+    }).isCovered;
   }
 
   /**
@@ -484,8 +511,12 @@ export default class EvaluateOverTime {
    * infer it from the data: the widest gap actually observed between
    * consecutive samples is the longest wait the window has demonstrated, so
    * it is the safest estimate of the cadence.
+   *
+   * Public so a filter judged from its match history
+   * (CriteriaFilterMatchHistory) measures its checks against the same
+   * cadence.
    */
-  private static getSamplingIntervalInSeconds(data: {
+  public static getSamplingIntervalInSeconds(data: {
     monitoringInterval?: string | undefined;
     sortedSampleTimes: Array<number>;
   }): number | null {

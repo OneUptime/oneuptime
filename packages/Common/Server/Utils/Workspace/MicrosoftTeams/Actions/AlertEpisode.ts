@@ -1,11 +1,4 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsAction,
-  MicrosoftTeamsRequest,
-} from "./Auth";
 import { MicrosoftTeamsAlertEpisodeActionType } from "./ActionTypes";
-import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
 import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
@@ -13,18 +6,31 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventRecord,
+  WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import AlertEpisodeStateTimeline from "../../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertEpisodeInternalNote from "../../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import AlertEpisodeInternalNoteService from "../../../../Services/AlertEpisodeInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import AlertStateService from "../../../../Services/AlertStateService";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import AlertState from "../../../../../Models/DatabaseModels/AlertState";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsAlertEpisodeActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No alert states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isAlertEpisodeAction(data: { actionType: string }): boolean {
     return (
@@ -55,217 +61,6 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   }
 
   @CaptureSpan()
-  public static async handleAlertEpisodeAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { teamsRequest, action } = data;
-
-    logger.debug("Handling Microsoft Teams alert episode action:", {
-      projectId: teamsRequest.projectId.toString(),
-      actionType: action.actionType,
-    });
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsAlertEpisodeActionType.AckAlertEpisode:
-          await this.acknowledgeAlertEpisode({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsAlertEpisodeActionType.ResolveAlertEpisode:
-          await this.resolveAlertEpisode({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsAlertEpisodeActionType.ViewAlertEpisode:
-          // This is handled by opening the URL directly
-          break;
-
-        default:
-          logger.debug("Unhandled alert episode action: " + action.actionType, {
-            projectId: teamsRequest.projectId.toString(),
-            actionType: action.actionType,
-          });
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams alert episode action:", {
-        projectId: teamsRequest.projectId.toString(),
-        actionType: action.actionType,
-      });
-      logger.error(error);
-    }
-
-    Response.sendTextResponse(data.req, data.res, "");
-  }
-
-  @CaptureSpan()
-  private static async acknowledgeAlertEpisode(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const episodeId: string = data.action.actionValue || "";
-
-    if (!episodeId) {
-      logger.error("No episode ID provided for acknowledge action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Acknowledging alert episode: " + episodeId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      alertEpisodeId: episodeId,
-    });
-
-    try {
-      const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
-        query: {
-          _id: episodeId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentAlertState: {
-            _id: true,
-            name: true,
-            isAcknowledgedState: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!episode) {
-        logger.error("Alert episode not found: " + episodeId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertEpisodeId: episodeId,
-        });
-        return;
-      }
-
-      if (episode.currentAlertState?.isAcknowledgedState) {
-        logger.debug("Alert episode is already acknowledged", {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertEpisodeId: episodeId,
-        });
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await AlertEpisodeService.acknowledgeEpisode(
-        new ObjectID(episodeId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Alert episode acknowledged successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertEpisodeId: episodeId,
-      });
-    } catch (error) {
-      logger.error("Error acknowledging alert episode:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertEpisodeId: episodeId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
-  private static async resolveAlertEpisode(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const episodeId: string = data.action.actionValue || "";
-
-    if (!episodeId) {
-      logger.error("No episode ID provided for resolve action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Resolving alert episode: " + episodeId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      alertEpisodeId: episodeId,
-    });
-
-    try {
-      const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
-        query: {
-          _id: episodeId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentAlertState: {
-            _id: true,
-            name: true,
-            isResolvedState: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!episode) {
-        logger.error("Alert episode not found: " + episodeId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertEpisodeId: episodeId,
-        });
-        return;
-      }
-
-      if (episode.currentAlertState?.isResolvedState) {
-        logger.debug("Alert episode is already resolved", {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertEpisodeId: episodeId,
-        });
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await AlertEpisodeService.resolveEpisode(
-        new ObjectID(episodeId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Alert episode resolved successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertEpisodeId: episodeId,
-      });
-    } catch (error) {
-      logger.error("Error resolving alert episode:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertEpisodeId: episodeId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
   public static async handleBotAlertEpisodeAction(data: {
     actionType: string;
     actionValue: string;
@@ -280,7 +75,6 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       actionValue,
       value,
       projectId,
-      oneUptimeUserId,
       databaseProps,
       turnContext,
     } = data;
@@ -295,14 +89,34 @@ export default class MicrosoftTeamsAlertEpisodeActions {
 
       const episodeId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertEpisodeStateTimeline,
+          action: "acknowledge this alert episode",
+          event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
+        });
+
+      // Somebody got there first: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(episode)).isAcknowledged) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: episode,
+          press: WorkspaceLatePress.Acknowledge,
+        });
+        return;
+      }
+
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions). A refusal is theirs to read:
+       * handleBotInvokeActivity tells them.
+       */
+      await WorkspaceMemberActions.acknowledge({
+        event: episode,
         props: databaseProps,
-        modelType: AlertEpisodeStateTimeline,
-        action: "acknowledge this alert episode",
-        resources: [{ service: AlertEpisodeService, id: episodeId }],
       });
 
-      await AlertEpisodeService.acknowledgeEpisode(episodeId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert episode acknowledged.");
       return;
     }
@@ -319,14 +133,30 @@ export default class MicrosoftTeamsAlertEpisodeActions {
 
       const episodeId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertEpisodeStateTimeline,
+          action: "resolve this alert episode",
+          event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
+        });
+
+      // Resolved already: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(episode)).isResolved) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: episode,
+          press: WorkspaceLatePress.Resolve,
+        });
+        return;
+      }
+
+      // Resolved by the member, as the dashboard resolves it for them.
+      await WorkspaceMemberActions.resolve({
+        event: episode,
         props: databaseProps,
-        modelType: AlertEpisodeStateTimeline,
-        action: "resolve this alert episode",
-        resources: [{ service: AlertEpisodeService, id: episodeId }],
       });
 
-      await AlertEpisodeService.resolveEpisode(episodeId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert episode resolved.");
       return;
     }
@@ -357,9 +187,8 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           createdAt: true,
           alertCount: true,
         },
-        props: {
-          isRoot: true,
-        },
+        // Read as the member: an episode they may not read is not shown.
+        props: databaseProps,
       });
 
       if (!episode) {
@@ -367,7 +196,9 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
-      const message: string = `**Alert Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${episode.description || "No description"}\n**State:** ${episode.currentAlertState?.name || "Unknown"}\n**Severity:** ${episode.alertSeverity?.name || "Unknown"}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
+      // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
+      const message: string =
+        mdText`**Alert Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(episode.description || "No description")}\n**State:** ${episode.currentAlertState?.name || "Unknown"}\n**Severity:** ${episode.alertSeverity?.name || "Unknown"}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
@@ -421,19 +252,27 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           resources: [{ service: AlertEpisodeService, id: episodeId }],
         });
 
+        // Posted by the member, as the dashboard posts it for them.
         await AlertEpisodeInternalNoteService.addNote({
           alertEpisodeId: episodeId,
           note: note.toString(),
           projectId: projectId,
-          userId: oneUptimeUserId,
+          props: databaseProps,
         });
 
-        await turnContext.sendActivity("✅ Note added successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "✅ Note added successfully.",
+        );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -452,15 +291,29 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the policies the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this alert episode",
+        resources: [
+          { service: AlertEpisodeService, id: new ObjectID(actionValue) },
+        ],
+      });
+
       // Send the input card
       const card: JSONObject | null =
         await this.buildExecuteAlertEpisodeOnCallPolicyCard(
           actionValue,
           projectId,
+          databaseProps,
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
         );
         return;
       }
@@ -494,30 +347,38 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         const episodeId: ObjectID = new ObjectID(actionValue);
         const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await WorkspaceActionAuthorization.assertCanCreate({
+        const episode: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: OnCallDutyPolicyExecutionLog,
+            action: "execute an on-call policy for this alert episode",
+            event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
+            resources: [{ service: OnCallDutyPolicyService, id: policyId }],
+          });
+
+        /*
+         * Executed by the member, as the dashboard's Execute On-Call Policy
+         * executes it for them: an execution log triggered by the episode.
+         */
+        await WorkspaceMemberActions.executeOnCallPolicy({
+          event: episode,
+          onCallDutyPolicyId: policyId,
           props: databaseProps,
-          modelType: OnCallDutyPolicyExecutionLog,
-          action: "execute an on-call policy for this alert episode",
-          resources: [
-            { service: AlertEpisodeService, id: episodeId },
-            { service: OnCallDutyPolicyService, id: policyId },
-          ],
         });
 
-        await OnCallDutyPolicyService.executePolicy(policyId, {
-          triggeredByAlertEpisodeId: episodeId,
-          userNotificationEventType:
-            UserNotificationEventType.AlertEpisodeCreated,
-        });
-
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ On-call policy executed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -538,11 +399,46 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = await this.buildChangeAlertEpisodeStateCard(
+      /*
+       * Asked as the submit asks it, before the card is shown, of the
+       * record as the submit reads it, with the state it is in. The card
+       * then offers the alert states the member may read that it may
+       * move into next (Common/Utils/StateMove), so it never offers a move
+       * its timeline would refuse.
+       */
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertEpisodeStateTimeline,
+          action: "change the state of this alert episode",
+          event: {
+            type: WorkspaceEventType.AlertEpisode,
+            id: new ObjectID(actionValue),
+          },
+        });
+
+      const stateOptions: WorkspaceEventStateOptions =
+        await WorkspaceMemberActions.findStateOptions({
+          event: episode,
+          props: databaseProps,
+        });
+
+      if (stateOptions.options.length === 0) {
+        await turnContext.sendActivity(
+          stateOptions.hasNoLaterState
+            ? WorkspaceMemberActions.getNoLaterStateMessage(
+                WorkspaceEventType.AlertEpisode,
+              )
+            : MicrosoftTeamsAlertEpisodeActions.NO_STATES_MESSAGE,
+        );
+        return;
+      }
+
+      const card: JSONObject = this.buildChangeAlertEpisodeStateCard(
         actionValue,
-        projectId,
+        stateOptions.options,
       );
+
       await turnContext.sendActivity({
         attachments: [
           {
@@ -572,32 +468,37 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         // Update the state
         const episodeId: ObjectID = new ObjectID(actionValue);
 
-        await WorkspaceActionAuthorization.assertCanCreate({
+        const episode: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: AlertEpisodeStateTimeline,
+            action: "change the state of this alert episode",
+            event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
+          });
+
+        /*
+         * The state change the dashboard makes: a row in the episode's
+         * state timeline, created by the member (WorkspaceMemberActions).
+         */
+        await WorkspaceMemberActions.changeState({
+          event: episode,
+          stateId: new ObjectID(alertStateId.toString()),
           props: databaseProps,
-          modelType: AlertEpisodeStateTimeline,
-          action: "change the state of this alert episode",
-          resources: [{ service: AlertEpisodeService, id: episodeId }],
         });
 
-        await AlertEpisodeService.changeEpisodeState({
-          projectId: projectId,
-          episodeId: episodeId,
-          alertStateId: new ObjectID(alertStateId.toString()),
-          notifyOwners: true,
-          rootCause: "State changed via Microsoft Teams.",
-          props: {
-            isRoot: true,
-          },
-        });
-
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ Alert episode state changed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -607,11 +508,12 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       return;
     }
 
-    // Default fallback for unimplemented actions
+    /*
+     * Default fallback for unimplemented actions
+     * The action's name is placed as text: it comes from the card.
+     */
     await turnContext.sendActivity(
-      "Sorry, but the action " +
-        actionType +
-        " you requested is not implemented yet.",
+      mdText`Sorry, but the action ${actionType} you requested is not implemented yet.`.toString(),
     );
   }
 
@@ -651,21 +553,23 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   private static async buildExecuteAlertEpisodeOnCallPolicyCard(
     episodeId: string,
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<JSONObject | null> {
+    // The policies the member may read, with their own permissions.
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,
           _id: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: 50,
-        skip: 0,
       });
 
     const choices: Array<{ title: string; value: string }> = onCallPolicies
@@ -716,28 +620,23 @@ export default class MicrosoftTeamsAlertEpisodeActions {
     };
   }
 
-  private static async buildChangeAlertEpisodeStateCard(
+  /*
+   * The card offering the alert states the episode may move into next, as
+   * the member may read them (WorkspaceMemberActions.findStateOptions), in
+   * the project's order.
+   */
+  private static buildChangeAlertEpisodeStateCard(
     episodeId: string,
-    projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const alertStates: Array<AlertState> =
-      await AlertStateService.getAllAlertStates({
-        projectId: projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const choices: Array<{ title: string; value: string }> = alertStates
-      .map((state: AlertState) => {
+    alertStates: Array<WorkspaceEventStateOption>,
+  ): JSONObject {
+    const choices: Array<{ title: string; value: string }> = alertStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
+          title: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",

@@ -6,6 +6,8 @@ import { ObjectType } from "../../../../Types/JSON";
 import DashboardAlertListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardCephOsdListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardCephPoolListComponent";
+import DashboardStorageArrayHardwareListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardStorageArrayHardwareListComponent";
+import DashboardStorageArrayVolumeListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardStorageArrayVolumeListComponent";
 import DashboardChartComponentUtil from "../../../../Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardClockComponentUtil from "../../../../Utils/Dashboard/Components/DashboardClockComponent";
 import DashboardDataSourceChartComponentUtil from "../../../../Utils/Dashboard/Components/DashboardDataSourceChartComponent";
@@ -158,6 +160,10 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
     DashboardDockerSwarmServiceListComponentUtil,
   [DashboardComponentType.CephOsdList]: DashboardCephOsdListComponentUtil,
   [DashboardComponentType.CephPoolList]: DashboardCephPoolListComponentUtil,
+  [DashboardComponentType.StorageArrayVolumeList]:
+    DashboardStorageArrayVolumeListComponentUtil,
+  [DashboardComponentType.StorageArrayHardwareList]:
+    DashboardStorageArrayHardwareListComponentUtil,
   [DashboardComponentType.NetworkMap]: DashboardNetworkMapComponentUtil,
   [DashboardComponentType.Html]: DashboardHtmlComponentUtil,
 };

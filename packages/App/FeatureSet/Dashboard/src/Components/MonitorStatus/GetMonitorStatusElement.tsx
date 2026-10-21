@@ -13,6 +13,8 @@ import React, {
 import MonitorStatusElement from "./MonitorStatusElement";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -22,6 +24,7 @@ export interface ComponentProps {
 const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [monitorStatus, setMonitorStatus] = useState<MonitorStatus | null>(
     null,
   );
@@ -80,7 +83,7 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
   }
 
   if (!monitorStatus) {
-    return <p>Monitor status not found</p>;
+    return <p>{translator.translateText("Monitor status not found")}</p>;
   }
 
   return (

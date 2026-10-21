@@ -33,6 +33,13 @@ export interface IoTAlertTemplateArgs {
 export interface IoTAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: IoTAlertTemplateCategory;
   severity: IoTAlertTemplateSeverity;
@@ -286,6 +293,7 @@ export function buildIoTRatioMonitorConfig(args: {
 const deviceOfflineTemplate: IoTAlertTemplate = {
   id: "iot-device-offline",
   name: "Device Offline",
+  summary: "A device reports that it is down.",
   description:
     "Alert when any IoT device reports as down (iot_device_up = 0). One incident per device, grouped by device.id.",
   category: "Availability",
@@ -388,6 +396,7 @@ const deviceOfflineTemplate: IoTAlertTemplate = {
 const lowBatteryTemplate: IoTAlertTemplate = {
   id: "iot-low-battery",
   name: "Low Battery",
+  summary: "A device's battery drops below 20%.",
   description:
     "Alert when any IoT device's battery level drops below 20% (iot_battery_percent < 20). One incident per device, grouped by device.id.",
   category: "Power",
@@ -437,6 +446,7 @@ const lowBatteryTemplate: IoTAlertTemplate = {
 const weakSignalTemplate: IoTAlertTemplate = {
   id: "iot-weak-signal",
   name: "Weak Signal",
+  summary: "A device's signal drops below -100 dBm.",
   description:
     "Alert when any IoT device's signal strength drops below -100 dBm (iot_signal_strength_dbm < -100). One incident per device, grouped by device.id.",
   category: "Connectivity",
@@ -486,6 +496,7 @@ const weakSignalTemplate: IoTAlertTemplate = {
 const highTemperatureTemplate: IoTAlertTemplate = {
   id: "iot-high-temperature",
   name: "High Temperature",
+  summary: "A device is hotter than 70°C.",
   description:
     "Alert when any IoT device's temperature exceeds 70°C (iot_temperature_celsius > 70). One incident per device, grouped by device.id.",
   category: "Environment",
@@ -541,6 +552,7 @@ const highTemperatureTemplate: IoTAlertTemplate = {
 const highCpuTemplate: IoTAlertTemplate = {
   id: "iot-high-cpu",
   name: "High CPU Usage",
+  summary: "A device's CPU usage is above 90%.",
   description:
     "Alert when any IoT device's CPU usage exceeds 90% (iot_cpu_usage_ratio > 0.9). One incident per device, grouped by device.id.",
   category: "System",

@@ -1,158 +1,322 @@
-# Agenti Runbook
+# Agenti di runbook
 
-Un **Agente Runbook** è un piccolo processo self-hosted che esegue i passi Bash _e_ JavaScript dei tuoi runbook **dentro la tua infrastruttura**. Il Worker OneUptime non esegue mai i tuoi script — li mette in coda, e l'Agente Runbook scelto dall'autore del passo li reclama, li esegue e restituisce il risultato.
+Un **agente di runbook**, chiamato **Runner** nella dashboard, è un piccolo processo self-hosted che esegue i passaggi JavaScript, Bash, SSH e kubectl dei tuoi runbook **nella tua infrastruttura**. Il Worker di OneUptime non esegue mai i tuoi script: li mette in coda, e il Runner scelto da chi ha scritto il passaggio prende in carico ciascuno, lo esegue e restituisce il risultato. Questa pagina è per chi installa e gestisce i Runner. Un passaggio JavaScript che non sceglie alcun Runner viene invece eseguito su un [Runner globale](#runner-globali), uno di quelli che OneUptime esegue per ogni progetto.
 
-JavaScript continua a girare in un sandbox `isolated-vm`; la differenza è che il sandbox vive sull'host del tuo agente invece che sul nostro.
-
-Questa pagina spiega come installare un agente, puntare i passi Bash e JavaScript verso di esso e gestirlo giorno per giorno.
-
-## Perché esistono gli agenti
-
-Le versioni precedenti di OneUptime eseguivano i passi Bash e JavaScript sul Worker. JavaScript era in sandbox (tramite `isolated-vm`), Bash no. Entrambi avevano problemi per qualunque installazione che andasse oltre un self-hosting mono-tenant:
-
-- **Confine di fiducia.** Chiunque potesse scrivere un runbook poteva eseguire codice sul Worker, con accesso alle variabili d'ambiente e al filesystem del Worker. Il sandbox JavaScript bloccava le cose ovvie ma non poteva impedire a un utente determinato di sondare cosa fosse raggiungibile dalla nostra rete.
-- **Raggio d'azione.** La maggior parte dei passi utili vuole operare sull'infrastruttura _del cliente_ ("riavvia questo servizio", "kubectl sul nostro cluster", "cerca un record nel nostro DB interno") — non su quella di OneUptime.
-
-Gli Agenti Runbook capovolgono la situazione. I passi Bash e JavaScript non girano da noi. Girano su un host che controlli tu, e tu decidi cosa quell'host può fare.
+:::cards
+- [Installare un Runner](#installare-un-runner): Dalla dashboard a un container connesso, in cinque passaggi.
+- [Indirizzare un passaggio a un Runner](#indirizzare-un-passaggio-a-un-runner): Collegare un passaggio al Runner che deve eseguirlo.
+- [Runner globali](#runner-globali): I Runner che OneUptime esegue per ogni progetto, e cosa eseguono.
+- [Timeout](#timeout): I timeout di presa in carico e di esecuzione, e come interagiscono.
+- [Variabili d'ambiente](#variabili-dambiente): Cosa legge il container all'avvio.
+:::
 
 ## Come funziona
 
-1. Crei un Agente Runbook in OneUptime. OneUptime genera un ID e una chiave segreta.
-2. Esegui il container dell'agente su un host della tua infrastruttura con quell'ID/chiave più l'URL del tuo OneUptime.
-3. L'agente fa polling su OneUptime ogni pochi secondi chiedendo "c'è lavoro per me?".
-4. Quando scrivi un passo Bash o JavaScript, scegli l'agente da un dropdown — il passo è legato a quello specifico agente.
-5. Quando il passo viene eseguito, il Worker inserisce una riga di job con `targetAgentId` impostato su quell'agente. Solo quell'agente può reclamarlo.
-6. L'agente esegue lo script localmente — `bash -c <script>` per Bash, un sandbox `isolated-vm` per JavaScript — cattura il risultato e lo restituisce. Il Worker riprende il runbook con il risultato.
+```mermaid title="Cosa passa sulla rete tra un Runner e OneUptime"
+flowchart TB
+    subgraph cloud["OneUptime"]
+        direction LR
+        worker["Il Worker mette in coda il passaggio"]
+        ingest["API dei Runner"]
+    end
+    subgraph yours["La tua infrastruttura"]
+        direction LR
+        runner["Container del Runner"]
+        targets["Host, cluster, servizi interni"]
+    end
+    worker --> ingest
+    runner -->|"HTTPS in uscita, ID e chiave del Runner"| ingest
+    ingest -->|"Lavoro preso in carico, con i suoi segreti o la sua credenziale"| runner
+    runner -->|"Script, SSH o API di Kubernetes"| targets
+```
 
-L'agente ha bisogno solo di **HTTPS in uscita** verso la tua istanza OneUptime. Non accetta alcuna connessione in entrata.
+1. Crei un Runner in OneUptime. OneUptime genera per lui un ID e una chiave segreta.
+2. Esegui il container del Runner su un host della tua infrastruttura, con quell'ID, quella chiave e l'URL del tuo OneUptime.
+3. Il Runner chiede lavoro a OneUptime ogni 5 secondi e segnala di essere attivo ogni 60 secondi.
+4. Quando scrivi un passaggio JavaScript, Bash, SSH o kubectl, scegli il Runner da un menu a tendina. Il passaggio è legato a quel Runner. Un passaggio JavaScript può tenere **Runner globale**, che il menu a discesa sceglie per lui.
+5. Quando il passaggio viene eseguito, il Worker mette in coda un lavoro con `targetAgentId` impostato su quel Runner. Solo quel Runner può prenderlo in carico.
+6. Il Runner esegue il job in locale — `bash -c <script>` per Bash e kubectl, una sandbox `isolated-vm` per JavaScript, una connessione SSH che esegue lo script con bash sulla macchina —, acquisisce il risultato, vi nasconde i segreti del passaggio e lo rimanda indietro. Il Worker riprende il runbook con il risultato.
 
-## Installare un agente
+Il Runner ha bisogno solo di **HTTPS in uscita** verso la tua istanza di OneUptime. Non accetta connessioni in entrata.
+
+Un Runner conserva solo il suo ID e la sua chiave. Tutto il resto lo riceve con il job che prende in carico: uno script con inserite le [variabili di runbook](/docs/runbooks/variables) che nomina, e la chiave o la password di un passaggio SSH o il kubeconfig di un passaggio kubectl. Riceve un segreto solo se quel segreto glielo consente. Per questo chiunque abbia la chiave di un Runner può agire come quel Runner: tratta la chiave come i segreti che può usare.
+
+## Perché gli script vengono eseguiti su un Runner
+
+Eseguire gli script sul Worker di OneUptime presentava due problemi:
+
+- **Confine di fiducia.** Chiunque potesse scrivere un runbook poteva eseguire codice sul Worker, con accesso a tutto ciò che il Worker poteva raggiungere.
+- **Portata.** La maggior parte dei passaggi utili agisce sulla _tua_ infrastruttura («riavvia questo servizio», «cerca un record nel nostro database interno»), non su quella di OneUptime.
+
+Con i Runner, quei passaggi vengono eseguiti su un host che controlli tu, e sei tu a decidere cosa può fare quell'host. I passaggi di richiesta HTTP e IA restano sul Worker, perché non hanno bisogno di nulla della tua rete.
+
+## Runner globali
+
+I Runner globali sono i Runner che OneUptime esegue per ogni progetto. Un passaggio JavaScript che non sceglie un Runner proprio viene eseguito su uno di questi, così puoi scriverlo prima di installare qualsiasi cosa. **Runbook → Agenti di runbook** li elenca sotto **Runner globali**, sopra i tuoi Runner, e il menu a discesa **Runner** di un passaggio JavaScript propone per primo **Runner globale**.
+
+| | Runner globale | Il tuo Runner |
+| --- | --- | --- |
+| Passaggi che esegue | JavaScript | JavaScript, Bash, SSH e kubectl |
+| Cosa può raggiungere un passaggio | Indirizzi pubblici di internet | Ciò che raggiunge il suo host |
+| Durata massima di un passaggio | 5 minuti | 1 ora |
+| Variabili segrete | Quelle che lasci usare ai Runner globali | Quelle che lo elencano |
+| Credenziali | Nessuna | Quelle che gli assegni |
+
+Un Runner globale esegue i passaggi di molti progetti, quindi ogni passaggio è tenuto separato da tutti gli altri:
+
+- Ogni passaggio viene eseguito in una propria sandbox `isolated-vm`, creata per quel passaggio e scartata dopo: niente file, niente processi, niente variabili d'ambiente e niente che resti da un passaggio al successivo.
+- Le sue richieste HTTP raggiungono solo indirizzi pubblici di internet, mai un indirizzo privato, di loopback o link-local né un endpoint di metadati cloud, quindi un Runner globale non raggiunge mai la tua rete.
+- Riceve una variabile segreta solo quando il suo interruttore **I Runner globali possono usarlo** è attivo, e solo per un passaggio del progetto della variabile. Non riceve mai una credenziale.
+- Un progetto esegue al massimo tre passaggi alla volta sui Runner globali, così nessun progetto li tiene per sé.
+
+Scegli uno dei tuoi Runner per un passaggio che deve raggiungere la tua rete, o per tenere il passaggio su host che controlli. Per tenere ogni passaggio sui tuoi Runner, disattiva **Usa i Runner globali** in fondo a **Runbook → Agenti di runbook**. Un passaggio JavaScript che non sceglie alcun Runner allora fallisce, dicendolo, finché non sceglie uno dei tuoi; un passaggio che sceglie uno dei tuoi Runner lo mantiene in ogni caso. Un repository di codice che non sceglie alcun Runner nelle sue impostazioni in Codice lavora anch'esso su un Runner globale, e ha bisogno di uno dei tuoi finché l'interruttore è disattivato; vedi [Codice](/docs/ai/ai-agent#scegli-il-runner-del-repository).
+
+### Da dove vengono i Runner globali
+
+Su OneUptime Cloud li esegue OneUptime. Un'installazione self-hosted ne esegue uno proprio per impostazione predefinita, come esegue le proprie sonde globali: il servizio `global-runner` in Docker Compose e il deployment `globalRunner` nel chart Helm. Ha una propria chiave, `GLOBAL_RUNNER_KEY`, e nient'altro del server.
+
+Un amministratore principale può aggiungerne altri, per eseguire passaggi da altri host: nella Dashboard di amministrazione apri **Impostazioni**, poi **Runner globali**, creane uno ed esegui il comando che dà il suo **Mostra ID e chiave** su un host che raggiunge internet.
+
+Per disattivare quello incluso, imposta `GLOBAL_RUNNER_REPLICAS=0` nel `config.env` di Docker Compose, oppure `globalRunner.enabled` a `false` nel chart Helm. Senza alcun Runner globale, **Runbook → Agenti di runbook** elenca solo i tuoi Runner, e ogni passaggio JavaScript ne sceglie uno.
+
+## Prima di iniziare
+
+- **Un host con Docker** nella tua infrastruttura, che raggiunga l'URL del tuo OneUptime in HTTPS e i sistemi su cui agiscono i tuoi passaggi.
+- **Un ruolo che crea Runner.** Project Owner, Project Admin, Project Member e Runbook Admin possono crearne uno. Solo un Project Owner, un Project Admin o un Runbook Admin possono vedere la chiave di un Runner, contenuta nel comando di installazione.
+
+## Installare un Runner
 
 ### 1. Crea il record dell'agente
 
-Vai su **Runbook → Impostazioni → Agenti** e crea un nuovo agente. Compila:
+Vai in **Runbook → Agenti di runbook** e crea un nuovo agente. Fai clic su **Crea: Runner** e compila i suoi campi, tutti in un'unica pagina:
 
-| Campo           | Note                                                                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nome**        | Un nome amichevole — di solito `dove-gira-e-cosa-può-fare`, es. `prod-eu-west-1`. È ciò che appare nel dropdown quando scrivi un passo. |
-| **Descrizione** | Opzionale. Una frase su cosa questo host riesce a raggiungere. Il te del futuro ti ringrazierà.                                         |
+| Campo | Dove | Note |
+| --- | --- | --- |
+| **Nome** | Nella pagina | Un nome chiaro, di solito dove gira e cosa può raggiungere, come `prod-eu-west-1`. È ciò che scegli quando scrivi un passaggio. |
+| **Descrizione** | Nella pagina | Facoltativa. Una frase su cosa può raggiungere questo host. |
+| **Esegue i runbook** | In **Altri campi** | Attivo per impostazione predefinita. Consente a questo Runner di prendere passaggi di runbook. |
+| **Etichette** | In **Altri campi** | Facoltative. |
+
+Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; non serve riavviarlo. L'IA non è una funzionalità. Un repository di codice sceglie, nelle sue impostazioni in Codice, il Runner su cui l'IA ci lavora, e la pagina del Runner elenca i repository che lo scelgono. Una regola di rimedio automatico sceglie il Runner su cui OneUptime AI esegue i suoi comandi, e le impostazioni IA di un cluster Kubernetes il Runner su cui gira il suo kubectl: è scegliere lì un Runner a permettere ai comandi di OneUptime AI di eseguirsi su di esso. Sceglierne uno che ha credenziali SSH richiede l'autorizzazione a leggere le credenziali dei runbook; vedi [Runner che eseguono i comandi di OneUptime AI](/docs/runbooks/credentials#runner-che-eseguono-i-comandi-di-oneuptime-ai).
 
 ### 2. Copia il comando di installazione
 
-Dopo aver creato l'agente, clicca **Mostra istruzioni di configurazione** sulla sua riga. Vedrai un comando `docker run` precompilato con ID e chiave di questo agente. **Salva la chiave ora** — puoi rigenerarla in seguito, ma non potrai più vedere lo stesso valore della chiave dopo aver chiuso il modale.
+Nella riga del Runner, fai clic su **Mostra istruzioni di configurazione**. La finestra **Configurazione dell'agente Runbook** mostra un comando `docker run` già compilato con l'ID e la chiave di questo Runner. Lo stesso comando si trova nella pagina del Runner, in **Istruzioni di configurazione**.
+
+Solo un Project Owner, un Project Admin o un Runbook Admin possono leggere la chiave. Gli altri vedono «Non hai l'autorizzazione per visualizzare la chiave di questo agente Runbook» al posto del comando.
 
 ### 3. Eseguilo su un host della tua infrastruttura
 
-Esegui il comando Docker su qualunque host del tuo ambiente che possa:
+Esegui il comando su un host del tuo ambiente che possa:
 
-- raggiungere la tua istanza OneUptime via HTTPS, e
-- fare le cose che vuoi che i tuoi passi Bash/JavaScript facciano (es. SSH ad altri host, `kubectl`, parlare con un database).
+- raggiungere la tua istanza di OneUptime in HTTPS, e
+- fare ciò che serve ai tuoi passaggi, ad esempio raggiungere altri host via SSH, chiamare il server API di un cluster o parlare con un database.
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
-  -e ONEUPTIME_RUNNER_ID=<agent-id> \
-  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
+  -e ONEUPTIME_RUNNER_ID=<runner-id> \
+  -e ONEUPTIME_RUNNER_KEY=<runner-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
   -d oneuptime/runner:release
 ```
 
 ### 4. Verifica che l'agente sia connesso
 
-Torna su **Runbook → Impostazioni → Agenti**. Entro circa 60 secondi la riga dell'agente dovrebbe passare a `Connected` con un timestamp **Last seen** fresco. Se rimane `Disconnected`:
+Torna in **Runbook → Agenti di runbook**. Entro un minuto dall'avvio del container, lo **Stato** del Runner dovrebbe indicare **Connesso**, con un **Visto l'ultima volta** recente. Nella pagina del Runner, la scheda **Stato dell'agente Runbook** mostra la sua **Versione dell'agente Runbook** e il suo **Host**. Se resta **Mai connesso** o **Disconnesso**, vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 
-- Controlla i log del container (`docker logs oneuptime-runner`) per errori di autenticazione o di rete.
-- Verifica che l'host raggiunga il tuo URL OneUptime con `curl`.
-- Verifica che ID e chiave siano stati copiati senza spazi bianchi.
+### 5. Mantieni l'agente aggiornato
 
-## Puntare un passo su un agente
+Quando un agente esegue una versione più vecchia del tuo OneUptime, accanto alla sua **Versione dell'agente Runbook** compare un segnale di avviso nella sua pagina. Selezionalo per vedere come aggiornarlo: scarica la nuova immagine e rimuovi il container, poi esegui di nuovo il comando di installazione del passaggio 2. Un agente installato dal chart dell'agente Kubernetes si aggiorna invece con il chart.
 
-Nel tuo runbook aggiungi un passo Bash o JavaScript. Il form ha un dropdown **Agente Runbook** che elenca ogni agente nel progetto corrente (con un indicatore di connesso/disconnesso):
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
 
-- Scegli l'agente che deve eseguire questo passo.
-- Scrivi il tuo script nell'editor sotto.
+## Indirizzare un passaggio a un Runner
 
-Quando il runbook girerà e arriverà al passo, il Worker mette in coda un job indirizzato all'ID di quell'agente. Solo quell'agente può reclamarlo. Bash è eseguito tramite `bash -c`; JavaScript gira dentro un sandbox `isolated-vm` sull'agente (niente filesystem, niente rete, niente `Function`/`eval`).
+:::steps
+### Aggiungi un passaggio che viene eseguito su un Runner
 
-Ti serve più di un agente? Creali e poi punta i singoli passi su quello più adatto. Se vuoi ridondanza puoi scrivere due runbook (uno per agente) o dividere i passi fra agenti.
+Nei **Passaggi** del tuo runbook, aggiungi un passaggio JavaScript, Bash, SSH o kubectl.
+
+### Scegli il Runner
+
+Il menu **Runner** del passaggio elenca ogni Runner del progetto, con il suo stato di connessione. Se il progetto non ne ha ancora, il passaggio lo dice e ti indica **Runbooks › Runners**. Il menu a discesa di un passaggio JavaScript propone anche **Runner globale**, per primo, e lo sceglie finché non scegli uno dei tuoi.
+
+### Salva i passaggi
+
+Fai clic su **Save Steps**. Quando un'esecuzione raggiunge il passaggio, il Worker mette in coda un lavoro per l'ID di quel Runner, e solo quel Runner può prenderlo in carico. Un passaggio su **Runner globale** attende il Runner globale che si libera.
+:::
+
+Bash viene eseguito con `bash -c`. JavaScript viene eseguito in una sandbox `isolated-vm` sul Runner, senza accesso al file system o ai processi; può chiamare API HTTP pubbliche con `axios`, ma non indirizzi di una rete privata. Un passaggio SSH o kubectl accede con una [variabile di runbook](/docs/runbooks/variables) segreta, che deve elencare il Runner del passaggio in **I tuoi Runner che possono usarlo**.
+
+Ti serve più di un Runner? Creali, poi indirizza ogni passaggio a quello adatto. Per la ridondanza, esegui un secondo Runner e dividi i passaggi tra i due, oppure tieni un runbook di riserva i cui passaggi puntano all'altro Runner.
 
 ## Note operative
 
 ### Timeout
 
-A ogni passo Bash o JavaScript si applicano due timeout:
+A ogni passaggio eseguito su un Runner si applicano due timeout:
 
-| Timeout               | Default    | Cosa controlla                                                                                                                                                                                                       |
-| --------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claim timeout**     | 2 minuti   | Quanto tempo il Worker aspetta che l'agente selezionato reclami il job. Se non lo prende in tempo, il passo fallisce con `TimedOut` e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
-| **Execution timeout** | 30 secondi | Quanto tempo l'agente lascia girare lo script prima di terminarlo. (Bash riceve `SIGKILL`; l'isolate di JavaScript viene smontato.)                                                                                  |
+| Timeout | Predefinito | Cosa controlla |
+| --- | --- | --- |
+| **Timeout di presa in carico** | 2 minuti | Quanto il Worker attende che il Runner scelto prenda in carico il lavoro. Se il Runner non lo prende in tempo, il passaggio fallisce per timeout e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
+| **Timeout di esecuzione** | 30 secondi | Quanto il Runner lascia girare il passaggio prima di fermarlo. Bash riceve `SIGKILL`; la sandbox di JavaScript viene distrutta. |
 
-Entrambi sono configurabili per passo. Apri **Runbook &rsaquo; il tuo runbook &rsaquo; Passaggi**, espandi un passo Bash o JavaScript e imposta **Execution timeout** e **Claim timeout** (in secondi) sotto lo script. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati entro i limiti quando il passo viene eseguito.
+Entrambi sono configurabili per passaggio. Apri **Runbook › il tuo runbook › Passaggi**, espandi il passaggio e imposta **Timeout di esecuzione** e **Timeout di presa in carico** (in secondi) in **Altri campi**. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati nei limiti quando il passaggio viene eseguito.
 
-La finestra di attesa complessiva del Worker è `claim timeout + execution timeout + qualche secondo`. Scegli numeri che si adattino al passo.
+La finestra di attesa complessiva del Worker è `claim timeout + execution timeout + a few seconds`. Scegli valori adatti al passaggio.
 
-Due cose da tenere a mente quando abbassi il claim timeout:
+Due cose da tenere presenti quando riduci il claim timeout:
 
-- L'agente chiede lavoro a ogni ciclo di polling (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 secondi di default). Un claim timeout più breve di un ciclo di polling può scadere prima che un agente perfettamente sano abbia anche solo visto il job, e il passo fallisce con lo stesso messaggio "nessun agente ha reclamato il job" che otterresti da un agente offline.
-- Un agente esegue di default un job alla volta (`ONEUPTIME_RUNNER_CONCURRENCY`). Mentre un passo lungo lo occupa, gli altri passi puntati sullo stesso agente stanno aspettando lo scadere dei propri claim timeout. Se alzi un execution timeout a qualche minuto, alza di conseguenza anche il claim timeout dei passi che condividono quell'agente — oppure assegna loro un agente diverso.
+- Il Runner chiede lavoro a ogni ciclo di polling (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 secondi per impostazione predefinita). Un claim timeout più breve di un ciclo può scadere prima che un Runner perfettamente sano abbia anche solo visto il lavoro, e il passaggio fallisce allora con lo stesso messaggio di un Runner offline.
+- Un Runner esegue un lavoro alla volta per impostazione predefinita (`ONEUPTIME_RUNNER_CONCURRENCY`). Mentre un passaggio lungo lo occupa, gli altri passaggi diretti allo stesso Runner esauriscono i propri claim timeout. Se porti un execution timeout a qualche minuto, aumenta di conseguenza il claim timeout dei passaggi che condividono quel Runner, oppure assegna loro un altro Runner.
 
 ### Lease e heartbeat
 
-Quando un agente reclama un job, riceve un lease breve (30 secondi di default). Mentre lo script gira, l'agente rinnova il lease ogni 10 secondi. Se l'agente muore o perde la rete a metà script, il lease scade e il Worker marca il job come `TimedOut` invece di attendere all'infinito.
+```mermaid title="Un lavoro tra OneUptime e il suo Runner"
+sequenceDiagram
+    participant O as OneUptime
+    participant R as Runner
+    O->>O: Mettere in coda un lavoro per questo Runner
+    R->>O: Prendere in carico il lavoro successivo
+    O-->>R: Il lavoro, con un lease di 30 secondi
+    loop Ogni 10 secondi durante l'esecuzione
+        R->>O: Rinnovare il lease
+    end
+    R->>O: Inviare il risultato
+    O->>O: Registrare l'output e proseguire l'esecuzione
+```
 
-I processi figli di Bash **non** vengono cancellati automaticamente quando il lease scade (anche un isolate JavaScript viene lasciato finire, se mai finisce) — ma il Worker smette di aspettarli, e l'agente non potrà inviare un risultato una volta che un'altra rivendicazione ha preso il posto. Progetta gli script per essere sicuri da rieseguire se ti serve l'exactly-once.
+Quando un Runner prende in carico un lavoro, riceve un lease breve (30 secondi per impostazione predefinita). Mentre il passaggio è in esecuzione, il Runner rinnova il lease ogni 10 secondi. Se il Runner muore o perde la rete a metà di uno script, il lease scade e il Worker segna il lavoro come `TimedOut` invece di attendere per sempre.
+
+I processi figli di Bash **non** vengono annullati automaticamente alla scadenza del lease (anche una sandbox JavaScript viene lasciata finire, se mai finisce), ma il Worker smette di aspettarli e il Runner non può più inviare un risultato una volta che un'altra presa in carico è subentrata. Progetta script che si possano rieseguire senza rischi se per te conta l'esecuzione unica.
+
+### Se il Worker di OneUptime si riavvia a metà di un passaggio
+
+Un'esecuzione di runbook gira su un solo Worker dall'inizio alla fine, quindi un deploy o un crash possono interromperla mentre un passaggio è in corso. Cosa succede dopo dipende dal fatto che l'esecuzione venga ripresa:
+
+- **Viene ripresa.** Il Worker che la riprende trova il lavoro che il tuo passaggio ha già creato e **vi si ricollega**. Attende quel lavoro invece di inviare al tuo Runner una seconda copia dello script. Se il Runner aveva già finito, viene usato il risultato registrato così com'è. Un passaggio viene inviato a un Runner al massimo una volta per esecuzione.
+- **Non viene ripresa.** Se l'esecuzione non viene mai ripresa, una scansione la segna come `Failed` quando supera la finestra di presa in carico e di esecuzione configurata per il suo passaggio attuale, con un messaggio che indica quel passaggio. Un'esecuzione non resta mai bloccata in `Running`.
+
+L'unica cosa che questo non può dirti è fin dove è arrivato uno script prima che il Worker sparisse. Un passaggio che era in corso viene segnalato come non riuscito con una nota che potrebbe essere stato eseguito in parte: controlla il sistema di destinazione prima di eseguire di nuovo il runbook.
 
 ### Nessun agente online
 
-Se l'agente selezionato è offline al momento dell'esecuzione del passo, il job resta `Pending` finché il claim timeout non scade, poi fallisce con un messaggio chiaro "nessun agente ha reclamato il job". La pagina degli agenti è il posto dove confermare la copertura prima di lanciare un runbook sul serio.
+Se il Runner scelto è offline quando il passaggio viene eseguito, il lavoro attende come `Pending` finché non scade il claim timeout, e poi il passaggio fallisce con "No runbook agent picked up this step before the wait window expired." La pagina **Agenti di runbook** è il posto dove verificare la copertura prima di eseguire un runbook in una situazione reale. Un passaggio su un Runner globale fallisce invece con "No global Runner picked up this step before the wait window expired."
 
-### Cap sull'output
+### Limite di output
 
-La somma di stdout + stderr è limitata a **50&nbsp;KB** per passo. Output più grande viene troncato con un marcatore. Se ti serve il log intero, scrivilo su S3 o sul tuo log store dentro lo script e fai `echo` dell'URL.
+stdout e stderr insieme sono limitati a **50 KB** per passaggio. L'output più lungo viene troncato con un marcatore. Se ti serve un log completo, scrivilo dallo script nel tuo sistema di log o in uno storage di oggetti e stampa l'URL con `echo`.
 
 ### Annullamento
 
-Annullare un'esecuzione di runbook (dalla vista esecuzione o dall'API) marca immediatamente come `Cancelled` tutti i suoi job Bash e JavaScript in `Pending`/`Claimed`/`Running`. Un agente che è già a metà script porterà a termine il suo lavoro, ma il suo risultato non sarà accettato dal server.
+Annullare un'esecuzione di runbook, dalla pagina dell'esecuzione o dall'API, segna subito tutti i suoi lavori `Pending`, `Claimed` e `Running` come `Cancelled`. Un Runner già a metà di uno script porta a termine il suo lavoro, ma il server non ne accetta il risultato, e nessun passaggio successivo del runbook viene inviato.
 
 ### Concorrenza
 
-Ogni agente esegue di default un job alla volta. Per permetterne di più, imposta `ONEUPTIME_RUNNER_CONCURRENCY` sul container dell'agente — ma ricorda che l'agente condivide l'host con qualunque altra cosa ci viva.
+Ogni Runner esegue un lavoro alla volta per impostazione predefinita. Per consentirne di più, imposta `ONEUPTIME_RUNNER_CONCURRENCY` sul container, ma ricorda che il Runner condivide l'host con tutto ciò che vi gira già.
 
 ## Variabili d'ambiente
 
-L'agente legge queste all'avvio:
+Il Runner legge queste variabili all'avvio:
 
-| Variabile                                 | Obbligatoria | Default | Note                                                                          |
-| ----------------------------------------- | ------------ | ------- | ----------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`                           | sì           | —       | URL base della tua istanza OneUptime, es. `https://oneuptime.yourdomain.com`. |
-| `ONEUPTIME_RUNNER_ID`                        | sì           | —       | L'UUID mostrato nel modale di setup dell'agente.                              |
-| `ONEUPTIME_RUNNER_KEY`                       | sì           | —       | Il segreto mostrato nel modale di setup dell'agente.                          |
-| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | no           | `5000`  | Ogni quanto l'agente fa polling per nuovi job.                                |
-| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | no           | `60000` | Ogni quanto l'agente segnala di essere vivo.                                  |
-| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no           | `10000` | Ogni quanto l'agente rinnova il lease di un job in corso.                     |
-| `ONEUPTIME_RUNNER_CONCURRENCY`               | no           | `1`     | Numero massimo di job simultanei su questo agente.                            |
+| Variabile | Obbligatoria | Predefinito | Note |
+| --- | --- | --- | --- |
+| `ONEUPTIME_URL` | sì | — | URL di base della tua istanza di OneUptime, ad esempio `https://oneuptime.yourdomain.com`. |
+| `ONEUPTIME_RUNNER_ID` | sì | — | L'ID del Runner, dal suo comando di installazione. |
+| `ONEUPTIME_RUNNER_KEY` | sì | — | La chiave segreta del Runner, dal suo comando di installazione. |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` | no | `5000` | Ogni quanto il Runner chiede nuovi lavori. Un valore sotto `1000` torna al predefinito. |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` | no | `60000` | Ogni quanto il Runner segnala di essere attivo. Un valore sotto `5000` torna al predefinito. |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | Ogni quanto il Runner rinnova il lease di un lavoro in corso. Un valore sotto `1000` torna al predefinito. |
+| `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Numero massimo di lavori contemporanei su questo Runner. |
+| `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Impostalo su `false` perché questo Runner smetta di prendere passaggi di runbook, qualunque cosa dica la dashboard. Può solo disattivare la funzionalità. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Impostalo su `false` perché questo Runner smetta di prendere correzioni di codice con IA, anche per un repository di codice che lo sceglie. |
+| `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Impostalo su `false` perché questo Runner smetta di eseguire comandi di rimedio con IA, qualunque cosa dica la dashboard. |
 
-## Rotazione della chiave di un agente
+## Ruotare la chiave di un agente
 
-Se una chiave trapela, apri l'agente in OneUptime e rigenera la sua chiave. La vecchia smette di funzionare subito. Aggiorna il container dell'agente con la nuova chiave e riavvialo.
+Se una chiave viene esposta, reimpostala. La vecchia chiave smette subito di funzionare.
 
-## Permessi
+:::steps
+### Reimposta la chiave
 
-La gestione degli agenti vive sotto il gruppo di permessi Runbook esistente:
+Apri il Runner da **Runbook → Agenti di runbook**, fai clic su **Reimposta la chiave dell'agente Runbook** e conferma. Il Runner smette di connettersi finché non ha la nuova chiave.
+
+### Esegui il container con la nuova chiave
+
+Copia il nuovo comando dalle **Istruzioni di configurazione** del Runner, rimuovi il vecchio container ed esegui il nuovo comando sullo stesso host:
+
+```bash
+docker rm -f oneuptime-runner
+```
+
+### Verifica che si riconnetta
+
+In **Runbook → Agenti di runbook**, lo **Stato** del Runner torna a **Connesso** entro un minuto.
+:::
+
+## Autorizzazioni
+
+La gestione degli agenti si trova nel gruppo di autorizzazioni Runbooks esistente:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestire i record degli agenti.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — assegnabili a un team per concedere controllo totale, uso quotidiano o accesso in sola lettura. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — `RunbookAdmin` costruisce i runbook, le loro regole e i Runner su cui girano, e li esegue. `RunbookMember` apre i runbook e le loro esecuzioni e li esegue — avvia un'esecuzione, ne completa o salta i passaggi e la annulla — ma non crea, modifica né elimina alcun runbook o Runner. `RunbookViewer` legge i runbook e le loro esecuzioni e non esegue nulla. `RunbookAdmin` raccoglie tutte le autorizzazioni granulari qui sopra.
+- I Runner globali non appartengono ad alcun progetto: solo un amministratore principale ne aggiunge, modifica o rimuove uno, nella Dashboard di amministrazione. Chiunque possa leggere i Runner di un progetto li vede, e disattivare **Usa i Runner globali** richiede il permesso di modificare il progetto.
 
-I permessi per _scatenare_ un runbook (e quindi far partire il dispatch dei passi Bash e JavaScript) restano `CreateRunbookExecution` / `EditRunbookExecution`.
+Avviare un runbook (e quindi inviarne i passaggi ai Runner) richiede un ruolo che esegue i runbook — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` o `RunbookMember` — oppure `CreateRunbookExecution`; completare, saltare o annullare un'esecuzione accetta anche `EditRunbookExecution`. Un ruolo esegue solo i runbook raggiunti dal suo ambito.
 
-## API rivolta all'agente
+La chiave di un Runner è leggibile solo da Project Owner, Project Admin e Runbook Admin.
 
-Per i curiosi — l'agente usa questi endpoint, montati sotto `/runner-ingest`. Sono autenticati tramite ID + chiave dell'agente nel body JSON (o header `x-agent-id` / `x-agent-key`).
+## API lato agente
 
-| Endpoint                     | Scopo                                                                                                                                               |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /heartbeat`            | Liveness; aggiorna `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`.                                                                     |
-| `POST /claim-next-job`       | Reclamare in modo atomico il job `Pending` più vecchio destinato all'ID di questo agente. Restituisce `{ job: null }` quando non c'è nulla da fare. |
-| `POST /job/:jobId/heartbeat` | Rinfrescare il lease del job. Restituisce 404 una volta che il lease è scaduto o il job è terminale.                                                |
-| `POST /job/:jobId/result`    | Inviare l'esito finale. Ignorato se il lease è già passato.                                                                                         |
+Per i curiosi: il Runner usa questi endpoint, montati in `/runner-ingest`. Il percorso precedente alla fusione, `/runbook-agent-ingest`, viene ancora servito per gli agenti non ancora ridistribuiti, quindi aggiornare il server non li rompe. Vengono autenticati con l'ID e la chiave del Runner nel corpo JSON (`agentId` e `agentKey`), oppure negli header `x-agent-id` e `x-agent-key`.
 
-Non dovresti aver bisogno di chiamarli a mano — l'agente fornito lo fa. Sono documentati qui nel caso tu debba costruire un tuo agente perché il nostro non si adatta a un tuo vincolo.
+| Endpoint | Scopo |
+| --- | --- |
+| `POST /heartbeat` | Segnale di vita. Aggiorna l'ultimo contatto, la versione e le informazioni sull'host del Runner, e restituisce le funzionalità che il progetto gli ha concesso. |
+| `POST /claim-next-job` | Prendere in carico in modo atomico il lavoro `Pending` più vecchio destinato all'ID di questo Runner. Restituisce `{ job: null }` quando non c'è nulla da fare. Un Runner globale prende invece in carico il passaggio più vecchio che attende un qualsiasi Runner globale. |
+| `POST /job/:jobId/heartbeat` | Rinnovare il lease del lavoro. Restituisce 404 quando il lease è scaduto o il lavoro è terminato. |
+| `POST /job/:jobId/result` | Inviare il risultato finale. Viene ignorato se il lease è già passato ad altri. |
+| `POST /disconnect` | Disconnettersi in uno spegnimento pulito. |
+
+Non dovresti doverli chiamare a mano: lo fa il Runner fornito. Sono documentati qui perché tu possa costruire il tuo agente se hai un vincolo a cui il nostro non si adatta.
+
+## Risoluzione dei problemi
+
+:::details Il Runner resta Mai connesso o Disconnesso
+- Controlla i log del container con `docker logs oneuptime-runner` per errori di autenticazione o di rete.
+- Verifica che l'host raggiunga l'URL del tuo OneUptime, ad esempio con `curl`.
+- Verifica che ID e chiave siano stati copiati senza spazi, e che `ONEUPTIME_URL` sia l'indirizzo con cui apri OneUptime.
+
+**Mai connesso** significa che il Runner non si è mai fatto vivo. **Disconnesso** significa che lo ha fatto, ma non negli ultimi 5 minuti.
+:::
+
+:::details I passaggi falliscono con "No runbook agent picked up this step before the wait window expired."
+Il Runner del passaggio non ha preso in carico il lavoro entro il suo claim timeout. Verifica che il Runner sia **Connesso**, che **Esegue i runbook** sia attivo e che non sia occupato da un passaggio lungo: esegue un lavoro alla volta, a meno che tu non aumenti `ONEUPTIME_RUNNER_CONCURRENCY`. Un claim timeout più breve dell'intervallo di polling fallisce allo stesso modo.
+:::
+
+:::details I passaggi falliscono con "The runbook agent stopped responding while this step was running."
+Il Runner ha preso in carico il lavoro, poi ha smesso di rinnovare il lease: si è bloccato, si è riavviato o ha perso la rete. Verifica che sia online, poi controlla il sistema di destinazione prima di eseguire di nuovo il runbook.
+:::
+
+:::details Il Runner registra "No capability is enabled"
+Tutte le funzionalità sono disattivate per questo Runner. Attiva **Esegue i runbook** nella pagina del Runner in OneUptime. Applica la modifica al successivo heartbeat.
+:::
+
+:::details Un passaggio fallisce perché il suo Runner non può usare una variabile segreta
+Il passaggio nomina una variabile segreta che non consente l'uso al suo Runner, quindi il Runner non l'ha ricevuta e il passaggio non è stato eseguito. L'errore indica il segreto e cosa cambiare. In **Runbook → Impostazioni → Variabili globali**, o in **Impostazioni → Variabili** del runbook, aggiungi il Runner in **I tuoi Runner che possono usarlo**, oppure attiva **I Runner globali possono usarlo** per un passaggio su un Runner globale. Oppure scegli un Runner che il segreto consente.
+:::
+
+:::details Un passaggio kubectl fallisce perché il suo Runner è troppo vecchio
+Il passaggio è fallito con "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un Runner più vecchio degli script kubectl non può eseguirne uno. Un passaggio Kubernetes portato in uno script kubectl con l'aggiornamento viene ancora eseguito su di esso come l'azione con cui è stato scritto, finché il suo script o il suo kubeconfig non cambiano. Aggiorna il Runner, come mostra [Mantenere aggiornato l'agente](#5-mantieni-lagente-aggiornato), poi esegui di nuovo il runbook.
+:::
+
+## Prossimi passi
+
+:::cards
+- [Scrivere un runbook](/docs/runbooks/authoring): Scrivere i passaggi che vengono eseguiti sul tuo Runner.
+- [Variabili dei runbook](/docs/runbooks/variables): I valori e i segreti che usano i tuoi passaggi, e i Runner che li ricevono.
+- [Configurazione e sicurezza dei runbook](/docs/runbooks/configuration): Limiti, autorizzazioni e protezione.
+:::

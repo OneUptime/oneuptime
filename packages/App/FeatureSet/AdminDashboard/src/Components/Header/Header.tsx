@@ -42,10 +42,10 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
              * (never at module load); the Community stub has none.
              */}
             <EditionLabel
-              className="mr-3 hidden md:inline-flex"
+              className="mr-3 max-md:hidden md:inline-flex"
               licenseManager={getAdminDashboardPlugins().LicenseManager}
             />
-            <div className="hidden items-center lg:flex">
+            <div className="max-lg:hidden items-center lg:flex">
               <Button
                 title={t("header.exitAdmin")}
                 buttonStyle={ButtonStyleType.NORMAL}

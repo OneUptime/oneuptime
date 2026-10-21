@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime Enterprise | Enterprise-Grade Observability Platform</title>
-    <meta name="description"
-        content="Enterprise-grade monitoring, incident management, and observability platform. SOC 2 Type II attested, HIPAA compliant, with a 99.95% uptime target on Enterprise plans and dedicated support.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -158,7 +158,7 @@
 
             <!-- Main Headline -->
             <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-              Observability Built for <br class="hidden sm:block" />
+              Observability Built for <br class="max-sm:hidden sm:block" />
               <span class="text-gray-500">Enterprise Scale</span>
             </h1>
 
@@ -254,7 +254,7 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Enterprise Exclusive</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Everything You Need,<br class="hidden sm:block" />
+            Everything You Need,<br class="max-sm:hidden sm:block" />
             <span class="text-gray-500">Nothing You Don't</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
@@ -277,7 +277,7 @@
                 <span class="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">No Limits</span>
               </div>
               <h3 class="text-xl font-semibold text-gray-900 mb-3">Unlimited Everything</h3>
-              <p class="text-gray-600 mb-6">No caps on monitors, team members, alerts, or API calls. Active monitors are a flat $1/month each &mdash; scale with simple usage-based pricing and no surprise overages.</p>
+              <p class="text-gray-600 mb-6">No caps on monitors, team members, alerts, or API calls. Plans are priced per user, and active monitors are a flat $1/month each &mdash; simple, published pricing with no surprise overages.</p>
               <div class="grid grid-cols-2 gap-3">
                 <div class="flex items-center gap-2 text-sm text-gray-600">
                   <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -285,7 +285,7 @@
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-600">
                   <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                  Unlimited team members
+                  No cap on team members
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-600">
                   <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -394,7 +394,7 @@
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">Custom Data Residency</h3>
-              <p class="text-sm text-gray-500">US, EU, or on-premise deployment options.</p>
+              <p class="text-sm text-gray-500">US, EU, or on-premise deployment options, <a href="/enterprise/air-gapped" class="whitespace-nowrap underline underline-offset-2 hover:text-gray-700">air-gapped</a> included.</p>
             </div>
           </div>
 
@@ -449,7 +449,7 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Complete Platform</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            One Platform,<br class="hidden sm:block" />
+            One Platform,<br class="max-sm:hidden sm:block" />
             <span class="text-gray-500">Complete Visibility</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
@@ -555,7 +555,7 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Industries</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Built for Enterprises<br class="hidden sm:block" />
+            Built for Enterprises<br class="max-sm:hidden sm:block" />
             <span class="text-gray-500">Like Yours</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">

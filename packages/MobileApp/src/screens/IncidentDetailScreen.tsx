@@ -23,6 +23,11 @@ import { createIncidentNote } from "../api/incidentNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
+import { getResolvedState, isResolvedStateId } from "../utils/resolvedState";
+import {
+  getAcknowledgedState,
+  isAcknowledgedById,
+} from "../utils/acknowledgedState";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
@@ -46,6 +51,7 @@ import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
 import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
+import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
 import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
@@ -90,6 +96,18 @@ export default function IncidentDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  // "Pass it on", for the person an on-call policy is paging about it.
+  const passOn: PassOnControls = usePassOnAction({
+    projectId,
+    recordType: "incident",
+    recordId: incidentId,
+    recordLabel: "incident",
+    // Passing it on is news on the feed and the state timeline.
+    onPassedOn: () => {
+      return Promise.allSettled([refetchFeed(), refetchTimeline()]);
+    },
+  });
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.allSettled([
       refetchIncident(),
@@ -97,6 +115,7 @@ export default function IncidentDetailScreen({
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
+      passOn.refetch(),
     ]);
   });
 
@@ -252,24 +271,24 @@ export default function IncidentDetailScreen({
     ? rgbToHex(incident.currentIncidentState.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState: IncidentState | undefined = states?.find(
-    (s: IncidentState) => {
-      return s.isAcknowledgedState;
-    },
-  );
-  const resolveState: IncidentState | undefined = states?.find(
-    (s: IncidentState) => {
-      return s.isResolvedState;
-    },
-  );
+  // Where Acknowledge and Resolve move it: the project's own two states.
+  const acknowledgeState: IncidentState | undefined =
+    getAcknowledgedState(states);
+  const resolveState: IncidentState | undefined = getResolvedState(states);
 
   const currentStateId: string | undefined = incident.currentIncidentState?._id;
-  const isResolved: boolean = Boolean(
-    resolveState && resolveState._id === currentStateId,
-  );
-  const isAcknowledged: boolean = Boolean(
-    acknowledgeState && acknowledgeState._id === currentStateId,
-  );
+  /*
+   * Resolved: in the project's resolved state or in a state placed after
+   * it ("Closed"), so there is nothing left to acknowledge or resolve
+   * (utils/resolvedState).
+   */
+  const isResolved: boolean = isResolvedStateId(states, currentStateId);
+  /*
+   * Acknowledged: in the project's acknowledged state or in a state placed
+   * after it ("Investigating"), so Acknowledge - a move back up the list -
+   * is not offered (utils/acknowledgedState).
+   */
+  const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
   const rootCauseTextRaw: string = toPlainText(incident.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;
@@ -297,6 +316,10 @@ export default function IncidentDetailScreen({
         return handleStateChange(resolveState._id, resolveState.name);
       },
     });
+  }
+  // Somebody being paged about it who cannot take it hands it on.
+  if (!isResolved && !isAcknowledged && passOn.action) {
+    actions.push(passOn.action);
   }
 
   const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
@@ -360,7 +383,7 @@ export default function IncidentDetailScreen({
         {actions.length > 0 ? (
           <ResponseActions
             actions={actions}
-            busy={changingState}
+            busy={changingState || passOn.passingOn}
             style={{ marginBottom: 0 }}
           />
         ) : null}

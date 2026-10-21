@@ -56,6 +56,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
       <Link
         id={props.id}
         className={classNames}
+        isCurrentPage={isActive}
         to={props.route ? props.route : null}
         onMouseOver={props.onMouseOver}
         onClick={props.onClick}

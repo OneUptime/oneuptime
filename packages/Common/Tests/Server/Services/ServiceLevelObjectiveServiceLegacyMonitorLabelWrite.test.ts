@@ -17,6 +17,20 @@ import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMo
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - a write of the deprecated
@@ -184,6 +198,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - a write of the deprecat
 
   beforeEach(() => {
     spies = installSpies();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -540,6 +555,12 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the label list before th
           ] as unknown as Array<Label>,
         } as unknown as Model,
       ]);
+    // The SLOs the caller's update may write: what the read above answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveService,
+      sloFindBySpy,
+    );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -559,7 +580,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the label list before th
     } as unknown as UpdateBy<Model>;
   }
 
-  it("carries each SLO's list forward, lower-cased and sorted, read as root through the caller's query pinned to the caller's project", async () => {
+  it("carries each SLO's list forward, lower-cased and sorted, read as root among the SLOs the caller may write, in their project", async () => {
     const onUpdate: OnUpdate<Model> = (await callHook(
       "onBeforeUpdate",
       makeUpdateBy({ monitorLabels: labelStubs([LABEL_PRODUCTION_ID]) }),
@@ -579,15 +600,20 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the label list before th
       props: Record<string, unknown>;
     };
 
-    expect(findByArgs.query).toEqual({
+    // The SLOs the caller may write, found in their project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveService)[0]!.query,
+    ).toEqual({
       _id: SLO_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(findByArgs.query).toEqual({ _id: SLO_ID.toString() });
     expect(findByArgs.select).toEqual({
       _id: true,
       monitorLabels: { _id: true },
     });
-    expect(findByArgs.props).toEqual({ isRoot: true });
+    expect(findByArgs.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("costs no read for an update that does not write the list", async () => {
@@ -644,6 +670,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - a create carrying the d
         "writeSloCreatedFeed" as never,
       )
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -843,7 +870,12 @@ describe("an out-of-date dashboard tab saving labels on an SLO with no monitor r
       .mockResolvedValue(undefined);
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue("[SLO Checkout](https://oneuptime.test/slos/1)");
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown(
+          "[SLO Checkout](https://oneuptime.test/slos/1)",
+        ),
+      );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

@@ -286,16 +286,20 @@ describe("the Devices page wires its table to the facet bar", () => {
   });
 
   /*
-   * "No network device" under a filter that matched nothing reads as an empty
-   * project. The gate is what makes the copy honest in both states.
+   * "No network devices yet" under a filter that matched nothing reads as an
+   * empty project. The chips are the bar's own state, so the table hears
+   * about them through the hook's emptyState: it then says nothing matches
+   * and offers to clear them, in both states honestly.
    */
   test("an empty filtered table explains itself", () => {
-    expect(destructured).toContain("hasActiveFilters,");
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        'noItemsMessage={ hasActiveFilters ? "No network device matches the filters above." : undefined }',
-      ),
-    );
+    expect(destructured).toContain("emptyState: facetEmptyState,");
+    /*
+     * Merged into the page's own empty state (its "Discover Devices"
+     * action), the chips' state last so a filter that hides every row wins.
+     */
+    expect(DEVICES_PAGE).toContain("emptyState={devicesEmptyState}");
+    expect(DEVICES_PAGE).toContain(squash("...facetEmptyState, };"));
+    expect(DEVICES_PAGE).not.toContain("No network device matches");
   });
 });
 
@@ -470,12 +474,9 @@ describe("the Sites page wires its table to the facet bar", () => {
   });
 
   test("an empty filtered table explains itself", () => {
-    expect(destructured).toContain("hasActiveFilters,");
-    expect(SITES_PAGE).toContain(
-      squash(
-        'noItemsMessage={ hasActiveFilters ? "No network site matches the filters above." : undefined }',
-      ),
-    );
+    expect(destructured).toContain("emptyState: facetEmptyState,");
+    expect(SITES_PAGE).toContain("emptyState={facetEmptyState}");
+    expect(SITES_PAGE).not.toContain("No network site matches");
   });
 
   /*
@@ -955,12 +956,26 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
   /*
    * The bar's own "Clear all" is the same function the total tile reaches
    * through applyFacetTileSelection, so the two cannot drift into clearing
-   * different things.
+   * different things. The bar is the shared FacetFilterBar (the Session
+   * Replay list draws its chips in it too): the hook hands it the function
+   * while a chip holds a value, and the bar's button calls what it is
+   * handed.
    */
   test("the bar's Clear all button calls that same function", () => {
     expect(HOOK).toContain(
+      squash("onClearAll={hasActiveFilters ? clearAllFacets : undefined}"),
+    );
+
+    const bar: string = readSource(
+      DASHBOARD_SRC,
+      "Components",
+      "ResourceOwners",
+      "FacetFilterBar.tsx",
+    );
+
+    expect(bar).toContain(
       squash(
-        '{hasActiveFilters && ( <button type="button" onClick={clearAllFacets}',
+        '{props.onClearAll && ( <button type="button" onClick={props.onClearAll}',
       ),
     );
   });

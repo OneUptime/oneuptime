@@ -1,27 +1,46 @@
-# Examples
+# 例
 
-Copy-pasteable configurations for the most common OneUptime resources. Every example is adapted from the provider's end-to-end test suite, so the attributes shown here are real and the blocks apply cleanly.
+多くのプロジェクトが最初に作るリソースの、すぐに使える構成です。どのブロックも、下のプロバイダー設定の上にそのまま適用できます。ほとんどはプロバイダーのエンドツーエンドテストから取ったもので、変更のたびに本物の OneUptime に適用されています。
 
-All examples assume this provider setup:
+:::cards
+- [モニター](#モニター): ウェブサイト、API、ping、ポート、SSL 証明書、heartbeat、手動のモニター。
+- [ステータスページ](#ステータスページ): グループとモニターのあるステータスページと、カスタムドメイン。
+- [チームとオンコール](#チームとオンコール): チームと、それを呼び出すオンコールポリシー。
+- [インシデントとメンテナンス](#インシデントとメンテナンス): 重大度、状態、宣言したインシデント、メンテナンスの時間帯。
+:::
 
-```hcl
+```mermaid title="例どうしのつながり"
+flowchart TB
+    S["モニターステータス"] --> M["モニター"]
+    M --> SP["ステータスページ<br/>とそのドメイン"]
+    M -->|"条件が開く"| I["重大度付きの<br/>インシデント"]
+    I -->|"呼び出す"| OC["オンコール<br/>ポリシー"]
+    OC -->|"エスカレーション先"| T["チーム"]
+```
+
+## プロバイダーの設定
+
+どの例も、API キーを環境変数 `ONEUPTIME_API_KEY` に入れた次の設定を前提にしています。
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 
 provider "oneuptime" {
-  # api_key from ONEUPTIME_API_KEY; oneuptime_url only needed when self-hosted.
+  # On a self-hosted OneUptime, add your OneUptime's address:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## Labels
+## ラベル
 
-Labels are the cheapest building block — create them first and attach them to almost anything via `labels = [...]` (an unordered set of label IDs).
+ラベルはレコードを並べ替えたり絞り込んだりします。ほとんどのリソースは、`labels` にラベル ID のセットを受け付けます。
 
 ```hcl
 resource "oneuptime_label" "production" {
@@ -31,218 +50,435 @@ resource "oneuptime_label" "production" {
 }
 ```
 
-## Monitors
+## モニター
 
-### HTTP monitor with explicit checks
-
-A `Website` monitor with full control over what is checked and when it is considered up or down. The `monitor_steps` JSON is explained line by line in [Monitor Steps](/docs/terraform/monitor-steps).
+下のモニターは、どのプロジェクトにも最初からあるステータスのうち 3 つを、データソースで読み取ってステータスに使います。
 
 ```hcl
-resource "oneuptime_monitor_status" "operational" {
-  name                 = "Operational"
-  description          = "Monitor is operational"
-  color                = "#2ecc71"
-  priority             = 1
-  is_operational_state = true
+data "oneuptime_monitor_status" "operational" {
+  name = "Operational"
 }
 
-resource "oneuptime_monitor_status" "offline" {
-  name                 = "Offline"
-  description          = "Monitor is offline"
-  color                = "#e74c3c"
-  priority             = 3
-  is_operational_state = false
+data "oneuptime_monitor_status" "degraded" {
+  name = "Degraded"
 }
 
-resource "oneuptime_monitor" "website" {
-  name         = "Website"
-  description  = "Homepage availability and status code check"
-  monitor_type = "Website"
-
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-website-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-online"
-                      name                = "Online"
-                      description         = "Website responds with 200"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        },
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Response Status Code"
-                            filterType = "Equal To"
-                            value      = "200"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-offline"
-                      name                = "Offline"
-                      description         = "Website is unreachable"
-                      filterCondition     = "Any"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.offline.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "False"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    }
-  })
+data "oneuptime_monitor_status" "offline" {
+  name = "Offline"
 }
 ```
 
-*(Adapted from E2E test `35-monitor-with-steps`.)*
+各モニターの `monitor_steps` は、何をチェックし、各結果をどう判定するかを表します。すべての属性は [モニターステップ](/docs/terraform/monitor-steps) で説明しています。
 
-### Ping monitor
+### ウェブサイトモニター
 
-Ping monitors take a `Hostname` (or `IP`) destination instead of a URL:
+サイトが応答しなければ offline、200 で応答すれば online です。エンドツーエンドテスト `35-monitor-with-steps` が、これらのチェックを持つモニターを適用します。
 
 ```hcl
-resource "oneuptime_monitor" "ping" {
-  name         = "Gateway Ping"
-  description  = "ICMP reachability of the gateway host"
+resource "oneuptime_monitor" "website" {
+  name                = "Website"
+  description         = "Homepage availability and status code"
+  monitor_type        = "Website"
+  monitoring_interval = "*/5 * * * *"
+  labels              = [oneuptime_label.production.id]
+
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The website does not respond"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
+      {
+        name                  = "Online"
+        description           = "The website responds with 200"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Equal To"
+            value       = "200"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### API モニター
+
+ヘッダーと JSON ボディ付きの `POST` で、応答が遅いときは degraded になります。エンドツーエンドテスト `35-monitor-with-steps` が、これに似た API モニターを適用します。
+
+```hcl
+resource "oneuptime_monitor" "orders_api" {
+  name         = "Orders API"
+  description  = "Health check of the orders API"
+  monitor_type = "API"
+
+  monitor_steps = [{
+    monitor_destination      = "https://api.example.com/v1/health"
+    monitor_destination_type = "URL"
+    request_type             = "POST"
+    request_headers = {
+      "Content-Type" = "application/json"
+      "Accept"       = "application/json"
+    }
+    request_body = jsonencode({ check = "health" })
+
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The API does not answer, or answers with an error"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Greater Than Or Equal To"
+            value       = "500"
+          }
+        ]
+      },
+      {
+        name                  = "Slow"
+        description           = "The API takes more than two seconds"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.degraded.id
+
+        filters = [
+          {
+            check_on    = "Response Time (in ms)"
+            filter_type = "Greater Than"
+            value       = "2000"
+          }
+        ]
+      },
+      {
+        name                  = "Online"
+        description           = "The API answers in time"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### Ping モニター
+
+Ping モニターは、URL の代わりにホスト名か IP アドレスを受け付けます。
+
+```hcl
+resource "oneuptime_monitor" "gateway" {
+  name         = "Gateway"
+  description  = "The gateway answers ping"
   monitor_type = "Ping"
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ping-1"
-            monitorDestination = {
-              _type = "Hostname"
-              value = "gateway.example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-ping-online"
-                      name                = "Reachable"
-                      description         = "Host responds to ping"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "gateway.example.com"
+    monitor_destination_type = "Hostname"
+
+    criteria = [
+      {
+        name                  = "Unreachable"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Reachable"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
-*(Adapted from E2E test `35-monitor-with-steps`.)*
+### ポートモニター
 
-### Manual monitor
-
-Manual monitors have no active checks — status is set by hand or by automation. They need no `monitor_steps` at all:
+ポートモニターは、チェックする `port` を数値で追加します。
 
 ```hcl
-resource "oneuptime_monitor" "third_party" {
-  name                = "Payment Provider (manual)"
-  description         = "Tracked manually during vendor incidents"
-  monitor_type        = "Manual"
-  monitoring_interval = "*/5 * * * *"
+resource "oneuptime_monitor" "database_port" {
+  name         = "Database port"
+  description  = "PostgreSQL accepts connections"
+  monitor_type = "Port"
+
+  monitor_steps = [{
+    monitor_destination      = "db.example.com"
+    monitor_destination_type = "Hostname"
+    port                     = 5432
+
+    criteria = [
+      {
+        name                  = "Closed"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
+      {
+        name                  = "Open"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
-*(Adapted from E2E test `26-monitor-steps-basic`.)*
+### SSL 証明書モニター
 
-Other valid `monitor_type` values used the same way: `"API"`, `"Port"`, `"IP"`, `"SSL Certificate"`, `"Incoming Request"`, `"Server"`. Server and Incoming Request monitors expose computed secret keys (`server_monitor_secret_key`, `incoming_request_secret_key`) for their agents.
+ダッシュボードで新しく作る SSL 証明書モニターと同じく、証明書が有効でなければ offline、有効期限まで 14 日以内なら degraded です。
 
-## Status page with a custom domain
+```hcl
+resource "oneuptime_monitor" "certificate" {
+  name         = "example.com certificate"
+  description  = "The TLS certificate of example.com"
+  monitor_type = "SSL Certificate"
 
-Three resources cooperate: a verified project `domain`, the `status_page` itself, and a `status_page_domain` linking them. `full_domain` and `cname_verification_token` are computed by the server — do not set them.
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+
+    criteria = [
+      {
+        name                  = "Not valid"
+        description           = "Expired, self-signed, untrusted or not reachable"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Not A Valid Certificate"
+            filter_type = "True"
+          }
+        ]
+      },
+      {
+        name                  = "Expires soon"
+        description           = "Valid, and expires in 14 days or less"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.degraded.id
+
+        filters = [
+          {
+            check_on    = "Is Valid Certificate"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Expires In Days"
+            filter_type = "Less Than Or Equal To"
+            value       = "14"
+          }
+        ]
+      },
+      {
+        name                  = "Valid"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Valid Certificate"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### 手動モニター
+
+手動モニターは何もチェックしません。ステータスは自分で設定します。`monitor_steps` は必要ありません。
+
+```hcl
+resource "oneuptime_monitor" "payment_provider" {
+  name         = "Payment provider"
+  description  = "Set by hand during the provider's incidents"
+  monitor_type = "Manual"
+}
+```
+
+### Heartbeat モニター
+
+受信リクエストモニターは、リクエストを送る代わりに受け取るのを待ちます。ここでは、毎晩報告してくるバックアップジョブです。25 時間リクエストが来なければ offline になります。
+
+```hcl
+resource "oneuptime_monitor" "nightly_backup" {
+  name         = "Nightly backup"
+  description  = "The backup job sends a heartbeat when it finishes"
+  monitor_type = "Incoming Request"
+
+  monitor_steps = [{
+    criteria = [
+      {
+        name                  = "No heartbeat"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Incoming Request"
+            filter_type = "Not Recieved In Minutes"
+            value       = "1500"
+          }
+        ]
+      },
+      {
+        name                  = "Heartbeat received"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Incoming Request"
+            filter_type = "Recieved In Minutes"
+            value       = "1500"
+          }
+        ]
+      }
+    ]
+  }]
+}
+
+output "nightly_backup_heartbeat_key" {
+  value     = oneuptime_monitor.nightly_backup.incoming_request_secret_key
+  sensitive = true
+}
+```
+
+ジョブは、`terraform output -raw nightly_backup_heartbeat_key` が出力するキーを使って、`https://oneuptime.com/heartbeat/YOUR_SECRET_KEY` にリクエストを送ります。[受信リクエスト モニター](/docs/monitor/incoming-request-monitor) を参照してください。サーバーモニターのエージェントも、同じように `server_monitor_secret_key` で認証します。
+
+### モニターグループ
+
+モニターグループは、一連のモニターをひとつのステータスで表示します。
+
+```hcl
+resource "oneuptime_monitor_group" "storefront" {
+  name        = "Storefront"
+  description = "Everything the shop needs"
+}
+
+resource "oneuptime_monitor_group_resource" "website" {
+  monitor_group_id = oneuptime_monitor_group.storefront.id
+  monitor_id       = oneuptime_monitor.website.id
+}
+
+resource "oneuptime_monitor_group_resource" "orders_api" {
+  monitor_group_id = oneuptime_monitor_group.storefront.id
+  monitor_id       = oneuptime_monitor.orders_api.id
+}
+```
+
+## ステータスページ
+
+### グループとモニターのあるステータスページ
+
+ステータスページはリソースを表示し、それをグループに分けることができます。エンドツーエンドテスト `42-status-page-resources` がこの構成を適用します。
+
+```hcl
+resource "oneuptime_status_page" "public" {
+  name                  = "Public Status"
+  description           = "Customer-facing status page"
+  page_title            = "System Status"
+  page_description      = "Check our system status and incident history"
+  is_public_status_page = true
+}
+
+resource "oneuptime_status_page_group" "services" {
+  status_page_id = oneuptime_status_page.public.id
+  name           = "Services"
+}
+
+resource "oneuptime_status_page_resource" "website" {
+  status_page_id       = oneuptime_status_page.public.id
+  status_page_group_id = oneuptime_status_page_group.services.id
+  monitor_id           = oneuptime_monitor.website.id
+  display_name         = "Website"
+}
+```
+
+### カスタムドメイン
+
+3 つのリソースが連携します。プロジェクトのドメイン、ステータスページ、そして両者を結ぶステータスページのドメインです。`full_domain` と CNAME 検証トークンはサーバーが入れるので、設定しないでください。エンドツーエンドテスト `12-status-page-domain` と `25-status-page-with-domain` がこの構成を適用します。
 
 ```hcl
 resource "oneuptime_domain" "company" {
   domain = "example.com"
-}
-
-resource "oneuptime_status_page" "public" {
-  name                     = "Public Status"
-  description              = "Customer-facing status page"
-  page_title               = "System Status"
-  page_description         = "Check our system status and incident history"
-  is_public_status_page    = true
-  enable_email_subscribers = true
-  enable_sms_subscribers   = false
 }
 
 resource "oneuptime_status_page_domain" "status" {
@@ -251,15 +487,17 @@ resource "oneuptime_status_page_domain" "status" {
   subdomain      = "status"
 }
 
-output "status_domain" {
-  # Computed by the server: subdomain + domain, e.g. status.example.com
+output "status_page_address" {
+  # The subdomain and the domain, such as status.example.com.
   value = oneuptime_status_page_domain.status.full_domain
 }
 ```
 
-*(Adapted from E2E tests `25-status-page-with-domain` and `12-status-page-domain`. New domains must pass DNS verification before the status page domain goes live.)*
+新しいドメインは、ステータスページがそのドメインで応答する前に DNS 検証を通る必要があります。
 
-## Teams and members
+## チームとオンコール
+
+### チームとそのメンバー
 
 ```hcl
 resource "oneuptime_team" "sre" {
@@ -267,106 +505,136 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
+variable "alice_user_id" {
+  description = "Alice's user ID, the last part of the address of her page under Users"
+  type        = string
+}
+
 resource "oneuptime_team_member" "alice" {
   team_id = oneuptime_team.sre.id
-  user_id = "5f8a1b2c3d4e5f6a7b8c9d0e" # user's id — visible in the dashboard URL on their profile
+  user_id = var.alice_user_id
 }
 ```
 
-*(Team adapted from E2E test `33-team-crud`. The referenced user must already be part of the project; membership is confirmed once the user accepts the invitation.)*
+すでにプロジェクトにいる人は、すぐにチームに加わります。それ以外の人は招待され、承諾した時点でチームに加わります。エンドツーエンドテスト `33-team-crud` がこのチームを適用します。
 
-## On-call policy with escalation
+### チームを呼び出すオンコールポリシー
 
-An on-call policy plus an escalation rule that escalates after 5 minutes without acknowledgement:
+ポリシーの最初のルールがチームを呼び出し、誰も応答しなければ、ポリシーは最大 2 回まで最初からやり直します。
 
 ```hcl
 resource "oneuptime_on_call_policy" "primary" {
-  name                                 = "Primary On-Call"
-  description                          = "First line for production incidents"
-  repeat_policy_if_no_one_acknowledges = true
+  name                                             = "Primary on-call"
+  description                                      = "First line for production incidents"
+  repeat_policy_if_no_one_acknowledges             = true
+  repeat_policy_if_no_one_acknowledges_no_of_times = 2
 }
 
 resource "oneuptime_escalation_rule" "first_line" {
-  on_call_duty_policy_id     = oneuptime_on_call_policy.primary.id
-  name                       = "First line"
-  description                = "Page the on-call engineer immediately"
-  order                      = 1
-  escalate_after_in_minutes  = 5
+  on_call_duty_policy_id    = oneuptime_on_call_policy.primary.id
+  name                      = "Page the SRE team"
+  description               = "Moves on after 5 minutes without an acknowledgement"
+  order                     = 1
+  escalate_after_in_minutes = 5
+}
+
+resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+  on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
+  on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
+  team_id                                = oneuptime_team.sre.id
 }
 ```
 
-*(Policy adapted from E2E test `31-on-call-duty-policy-crud`.)*
+モニターの条件は、開くインシデントの `on_call_policy_ids` を通してポリシーを呼び出します。[インシデントとアラート](/docs/terraform/monitor-steps#インシデントとアラート) を参照してください。
 
-## Scheduled maintenance
+## インシデントとメンテナンス
 
-```hcl
-resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
-  title                     = "Database maintenance"
-  description               = "Planned PostgreSQL upgrade — writes paused briefly"
-  starts_at                 = "2026-08-01T02:00:00Z"
-  ends_at                   = "2026-08-01T04:00:00Z"
-  is_visible_on_status_page = true
-}
-```
+### 重大度と状態
 
-*(Adapted from E2E test `30-scheduled-maintenance-crud`. Timestamps are RFC3339; equal instants in different notations do not cause drift.)*
-
-## Incident severities and states
-
-Customize your incident taxonomy — severities rank impact, states model the lifecycle. `order` controls display position.
+重大度はインシデントの影響の大きさを表し、状態はインシデントがたどる段階です。`order` は、それぞれが並ぶ位置です。
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
   name        = "SEV-1"
   description = "Full outage, all hands"
-  color       = "#e74c3c"
+  color       = "#E74C3C"
   order       = 1
 }
 
 resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
-  color       = "#f39c12"
+  color       = "#F39C12"
   order       = 3
 }
 ```
 
-*(Adapted from E2E tests `03-incident-severity` and `04-incident-state`. `oneuptime_alert_severity` and `oneuptime_alert_state` work identically for alerts.)*
+`oneuptime_alert_severity` と `oneuptime_alert_state` は、アラートについて同じように動作します。エンドツーエンドテスト `03-incident-severity` と `04-incident-state` がこれらを適用します。
 
-### Declaring an incident from Terraform
+### インシデントを宣言する
 
-Incidents are normally created by monitors, but they are ordinary resources too — useful for game days:
+インシデントを開くのはふつうモニターですが、インシデントもリソースなので、ゲームデーに向いています。本物のインシデントなので、訓練はステータスページに出さないでください。
 
 ```hcl
 resource "oneuptime_incident" "drill" {
-  title                     = "DR drill"
-  description               = "Disaster recovery exercise"
+  title                     = "Disaster recovery drill"
+  description               = "A game day: we fail over the database"
   incident_severity_id      = oneuptime_incident_severity.sev1.id
-  current_incident_state_id = oneuptime_incident_state.mitigated.id
+  is_visible_on_status_page = false
+
+  should_status_page_subscribers_be_notified_on_incident_created = false
 }
 ```
 
-*(Adapted from E2E test `28-incident-crud`.)*
+エンドツーエンドテスト `28-incident-crud` がインシデントを適用します。
 
-## Probes
+### 予定メンテナンス
 
-Custom probes run monitoring checks from your own infrastructure:
+固定の時刻を持ち、ステータスページに表示されるメンテナンスの時間帯です。
 
 ```hcl
+resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
+  title                       = "Database maintenance"
+  description                 = "Planned PostgreSQL upgrade: writes pause briefly"
+  starts_at                   = "2030-06-01T02:00:00Z"
+  ends_at                     = "2030-06-01T04:00:00Z"
+  is_visible_on_status_page   = true
+  monitors                    = [oneuptime_monitor.website.id]
+  change_monitor_status_to_id = data.oneuptime_monitor_status.degraded.id
+}
+```
+
+時刻は RFC 3339 で書き、同じ時点を別の書き方にしても変更にはなりません。エンドツーエンドテスト `30-scheduled-maintenance-crud` がメンテナンスイベントを適用します。
+
+イベントの間、そのモニターをあるステータスにしておくには、`monitors` でモニターを結び付け、`change_monitor_status_to_id` にモニターステータスのひとつを設定します。モニターはイベントの開始時にそのステータスになり、終了時に稼働中に戻ります。イベントが始まるまでは、Terraform は `change_monitor_status_to_id` をその場で変更します。イベントが始まった後はモニターがすでにそのステータスにあり、それを変える apply は「Change Monitor Status to can no longer be changed: this event has already started.」で失敗します。
+
+## プローブ
+
+独自のプローブは、自分のネットワークからチェックを実行します。そのキーはプローブがサインインに使うシークレットなので、変数で渡します。
+
+```hcl
+variable "probe_key" {
+  description = "The key the probe signs in with"
+  type        = string
+  sensitive   = true
+}
+
 resource "oneuptime_probe" "eu_west" {
-  key           = "probe-eu-west-1"
-  name          = "EU West Probe"
-  description   = "Probe running in eu-west-1"
+  key           = var.probe_key
+  name          = "EU West"
+  description   = "Probe in our eu-west-1 network"
   probe_version = "1.0.0"
 
   should_auto_enable_probe_on_new_monitors = true
 }
 ```
 
-*(Adapted from E2E test `23-probe-crud`.)*
+`PROBE_ID` にプローブの `id` を、`PROBE_KEY` にキーを設定してプローブを実行します。[カスタム プローブ](/docs/probe/custom-probe) を参照してください。エンドツーエンドテスト `23-probe-crud` がプローブを適用します。
 
-## More
+## 次のステップ
 
-- [Monitor Steps](/docs/terraform/monitor-steps) — the full `monitor_steps` schema, criteria filters, and common mistakes
-- [Importing Resources](/docs/terraform/importing-resources) — adopt dashboard-created resources into these patterns
-- Per-resource attribute reference: [Terraform Registry docs](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs)
+:::cards
+- [モニターステップ](/docs/terraform/monitor-steps): モニターのチェックと条件のすべての属性。
+- [リソースのインポート](/docs/terraform/importing-resources): ダッシュボードで作ったものを Terraform の管理下に置きます。
+- [完全ガイド](/docs/terraform/complete-guide): データソース、state、CI/CD、アップグレード。
+:::

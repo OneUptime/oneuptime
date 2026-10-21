@@ -1,4 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import Model from "../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -27,6 +29,7 @@ import {
   formatDatabaseEndpoint,
   parseManualDatabaseEndpoint,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Who added an endpoint:
@@ -87,15 +90,33 @@ const ENDPOINT_EXAMPLE: string =
  * a person typing "Orders-DB.example.com" must land on the same key ingest
  * computes for `server.address=orders-db.example.com`.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
   /*
+   * The database a person adds an alias to is checked by this service's own
+   * create hook, pinned to the project and to what they may edit, with one
+   * answer for a database of another project, one that does not exist and
+   * one they may not edit. A root create (discovery, claimEndpoint) and every
+   * update get the generic check.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    if (write && (write.kind === "update" || write.props.isRoot)) {
+      return [];
+    }
+
+    return ["databaseServer"];
+  }
+
+  /*
    * A person adding an alias. Root writes (the discovery paths, through
-   * claimEndpoint) pass through untouched: they already hold a canonical
-   * endpoint and handle ownership themselves.
+   * claimEndpoint) pass through once the generic check has found their
+   * database to be the project's: they already hold a canonical endpoint
+   * and handle ownership themselves.
    *
    * Adding an endpoint is an EDIT of the database it is added to: it decides
    * which traffic that database's pages show and - one owner per endpoint -
@@ -110,6 +131,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }
@@ -223,7 +246,11 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    data.databaseServerId = databaseServerId;
+    RelationIdUtil.stamp(
+      data as unknown as Record<string, unknown>,
+      ["databaseServerId", "databaseServer"],
+      databaseServerId,
+    );
     data.endpoint = formatted;
     /*
      * Forced, whatever the caller sent: a person only ever adds a removable
@@ -240,13 +267,14 @@ export class Service extends DatabaseService<Model> {
    * A person removing endpoints. Removing one is an EDIT of the database it
    * belongs to, exactly like adding one (onBeforeCreate): it decides which
    * traffic that database's pages show, and frees the endpoint for another
-   * database to claim. DatabaseService scopes a delete to the project only -
-   * the endpoint has no labels of its own, and the parent's label and Owned
-   * scopes never reach a delete - so the caller must be allowed to edit
-   * every database the delete would touch, checked here: the delete
-   * permission FIRST (so a caller without it learns nothing), then the
-   * parents, and only then the primary guard, whose refusal names the
-   * endpoint.
+   * database to claim. DatabaseService's record rule reaches an endpoint
+   * through its database (CanAccessIfCanReadOn, OwnedThrough), so a label-
+   * or Owned-scoped caller never deletes another database's endpoint - but
+   * that rule asks about DELETING endpoints, not editing the database, so
+   * the caller must also be allowed to edit every database the delete would
+   * touch, checked here: the delete permission FIRST (so a caller without
+   * it learns nothing), then the parents, and only then the primary guard,
+   * whose refusal names the endpoint.
    *
    * The primary endpoint is what the database was created from; discovery
    * would claim it straight back, and a manually added database would lose
@@ -260,29 +288,20 @@ export class Service extends DatabaseService<Model> {
       return { deleteBy: deleteBy, carryForward: null };
     }
 
-    // The project the caller was checked in, whatever project the query named.
-    const query: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const matched: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    /*
+     * The endpoints the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them.
+     */
+    const matched: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         databaseServerId: true,
         endpoint: true,
         isPrimary: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const checked: Set<string> = new Set<string>();
 
@@ -290,7 +309,7 @@ export class Service extends DatabaseService<Model> {
       const databaseServerId: string | undefined =
         endpoint.databaseServerId?.toString();
       const projectId: ObjectID | undefined =
-        deleteBy.props.tenantId || endpoint.projectId || undefined;
+        endpoint.projectId || deleteBy.props.tenantId || undefined;
 
       if (!databaseServerId || !projectId || checked.has(databaseServerId)) {
         continue;
@@ -423,7 +442,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const link: string =
+      const link: MarkdownText =
         await DatabaseServerService.getDatabaseServerMarkdownLink(
           data.projectId,
           databaseServerId,
@@ -437,11 +456,11 @@ export class Service extends DatabaseService<Model> {
           DatabaseServerFeedEventType.DatabaseServerUpdated,
         displayColor: added ? Gray500 : Red500,
         feedInfoInMarkdown: added
-          ? `🔗 Added the endpoint \`${endpoint}\` to ${link}.`
-          : `🔗 Removed the endpoint \`${endpoint}\` from ${link}.`,
+          ? mdText`🔗 Added the endpoint \`${endpoint}\` to ${link}.`.toString()
+          : mdText`🔗 Removed the endpoint \`${endpoint}\` from ${link}.`.toString(),
         moreInformationInMarkdown: added
-          ? `**Endpoint**: \`${endpoint}\`\n\nCalls applications make to this endpoint now count as this database's traffic, and no other database can claim it.`
-          : `**Endpoint**: \`${endpoint}\`\n\nCalls to this endpoint no longer count as this database's traffic, and another database may claim it.`,
+          ? mdText`**Endpoint**: \`${endpoint}\`\n\nCalls applications make to this endpoint now count as this database's traffic, and no other database can claim it.`.toString()
+          : mdText`**Endpoint**: \`${endpoint}\`\n\nCalls to this endpoint no longer count as this database's traffic, and another database may claim it.`.toString(),
         userId: data.userId,
       });
     } catch (error) {

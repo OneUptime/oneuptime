@@ -30,6 +30,7 @@ import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 import IncidentWorkspaceConnectionSlack from "../Pages/Incidents/WorkspaceConnectionSlack";
 
 import IncidentWorkspaceConnectionMicrosoftTeams from "../Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import IncidentViewStateTimeline from "../Pages/Incidents/View/StateTimeline";
 
@@ -52,6 +53,7 @@ import IncidentViewPostmortem from "../Pages/Incidents/View/Postmortem";
 import IncidentViewDescription from "../Pages/Incidents/View/Description";
 
 import IncidentCreate from "../Pages/Incidents/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 // Settings Pages
 import IncidentSettingsState from "../Pages/Incidents/Settings/IncidentState";
@@ -78,7 +80,6 @@ import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnC
 
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
-import IncidentSettingsAutoRemediationRules from "../Pages/Incidents/Settings/IncidentAutoRemediationRules";
 
 import IncidentSettingsPrivacyRules from "../Pages/Incidents/Settings/IncidentPrivacyRules";
 
@@ -92,8 +93,19 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
-import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
+import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+
+import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
+
+import IncidentSettingsNumbering from "../Pages/Incidents/Settings/IncidentNumbering";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import {
+  MORE_SETTINGS_PATH,
+  NUMBER_PREFIX_PATH,
+} from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
+import IncidentAIInsights from "../Pages/Incidents/AI/Insights";
+import IncidentAILogs from "../Pages/Incidents/AI/Logs";
 
 // Incident Episode Pages
 import IncidentEpisodes from "../Pages/Incidents/Episodes";
@@ -130,13 +142,24 @@ import IncidentEpisodeViewMembers from "../Pages/Incidents/EpisodeView/Members";
 
 import IncidentEpisodeCreate from "../Pages/Incidents/EpisodeCreate";
 
-import IncidentEpisodeDocs from "../Pages/Incidents/EpisodeDocs";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
+import IncidentModel from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import {
+  MOVED_AI_SECTION_PATHS,
+  MOVED_EPISODE_DOCS_PATH,
+  MOVED_HUNTRESS_PATHS,
+  MOVED_INCIDENT_FORM_PATHS,
+} from "./MovedPagePaths";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -155,6 +178,89 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Incident forms became Forms, a product of its own, and kept their
+       * ids. Their old URLs forward there (see MovedFormPageRedirect) -
+       * outside the Incidents layout, so its menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.forms}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORMS} />}
+      />
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.formView}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORM_VIEW} />}
+      />
+
+      {/*
+       * Numbering was More Settings, then Number Prefix. Their old URLs
+       * forward to it - outside the layout, so the side menu never flashes
+       * on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_NUMBERING}
+          />
+        }
+      />
+      <PageRoute
+        path={NUMBER_PREFIX_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_NUMBERING}
+          />
+        }
+      />
+
+      {/*
+       * The AI settings and the Auto Remediation Rules moved into the AI
+       * section (…/ai/settings and …/ai/auto-remediation-rules), and then
+       * the rules into the AI settings page's More settings. Their old URLs,
+       * in bookmarks, emails and older docs, forward there - outside the
+       * layout, so the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiSettings}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+
+      {/*
+       * Huntress connections became workflows with a Huntress trigger, each
+       * keeping its connection's id: the old list forwards to Workflows,
+       * and a connection's page to its workflow - outside the layout, so
+       * the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_HUNTRESS_PATHS.connections}
+        element={<MovedPageRedirect pageMap={PageMap.WORKFLOWS} />}
+      />
+      <PageRoute
+        path={MOVED_HUNTRESS_PATHS.connectionView}
+        element={<MovedPageRedirect pageMap={PageMap.WORKFLOW_VIEW} />}
+      />
+
+      {/*
+       * Episodes > Documentation was a manual drawn in the product; the docs
+       * are the one place for it now, linked from the episode list (View
+       * Documentation). Its old URL forwards to that list - outside the
+       * layout, so the side menu never flashes on the way, and ahead of
+       * episodes/:id, which would take "documentation" for an episode id.
+       */}
+      <PageRoute
+        path={MOVED_EPISODE_DOCS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENT_EPISODES} />}
+      />
+
       <PageRoute
         path="/"
         element={<Layout {...props} hideSideMenu={hideSideMenu} />}
@@ -213,12 +319,28 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTIONS] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
-            <IncidentCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <IncidentCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 
@@ -441,24 +563,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            IncidentsRoutePath[
-              PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-            ] || ""
-          }
-          element={
-            <IncidentSettingsAutoRemediationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
             IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] || ""
           }
           element={
@@ -601,11 +705,62 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] || ""
+          }
           element={
-            <IncidentSettingsMore
+            <IncidentSettingsLinkedAlerts
               {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] ||
+            ""
+          }
+          element={
+            <IncidentSettingsEpisodeMembership
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING] || ""}
+          element={
+            <IncidentSettingsNumbering
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_AI_INSIGHTS] || ""}
+          element={
+            <IncidentAIInsights
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS] || ""}
+          element={
+            <IncidentAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_AI_LOGS] as Route}
             />
           }
         />
@@ -653,15 +808,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
-          element={
-            <IncidentEpisodeDocs
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
-            />
-          }
-        />
+        {getDeveloperDocsRoutes({
+          modelType: IncidentModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.INCIDENTS_ROOT,
+        })}
       </PageRoute>
 
       {/* Incident Episode View Layout */}
@@ -860,6 +1012,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IncidentEpisode,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -1082,6 +1240,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IncidentModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

@@ -12,6 +12,8 @@ import MonitorStatusTimelineService, {
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ServerException from "../../../Types/Exception/ServerException";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
+import { JSONObject } from "../../../Types/JSON";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -169,9 +171,13 @@ export default class MonitorStatusTimelineUtil {
       monitorStatusTimeline.monitorId = input.monitor.id!;
       monitorStatusTimeline.monitorStatusId = monitorStatusId;
       monitorStatusTimeline.projectId = input.monitor.projectId!;
-      monitorStatusTimeline.statusChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      /*
+       * Storable copy: a NUL in the payload (a binary response body, say)
+       * would make Postgres refuse the jsonb and fail the status change.
+       */
+      monitorStatusTimeline.statusChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
       monitorStatusTimeline.rootCause = input.rootCause;
 
       try {

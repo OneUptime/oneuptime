@@ -83,15 +83,29 @@ describe("parseAbsoluteUrl", () => {
 });
 
 describe("toWebcalUrl / toGoogleAddUrl", () => {
-  test("https becomes webcals, http becomes webcal", () => {
-    expect(toWebcalUrl("https://h/x.ics")).toBe("webcals://h/x.ics");
+  /*
+   * webcal://, never webcals://: iOS does not open webcals:// at all ("the
+   * address is invalid"), so "Open in Calendar" did nothing on an https
+   * server. Calendar fetches a webcal:// address over https.
+   */
+  test("https and http both become webcal://, never webcals://", () => {
+    expect(toWebcalUrl("https://h/x.ics")).toBe("webcal://h/x.ics");
     expect(toWebcalUrl("http://h/x.ics")).toBe("webcal://h/x.ics");
+    expect(toWebcalUrl("webcals://h/x.ics")).toBe("webcal://h/x.ics");
+    expect(toWebcalUrl("HTTPS://H/x.ics?schedule=1")).toBe(
+      "webcal://H/x.ics?schedule=1",
+    );
   });
 
-  test("the Google link carries the https URL, encoded", () => {
+  /*
+   * Google's add-by-URL page takes the webcal:// address in cid; with the
+   * https:// address it answers "Unable to add calendar. Check the URL."
+   */
+  test("the Google link carries the webcal:// URL, encoded whole", () => {
     expect(toGoogleAddUrl("https://h/x.ics?a=1")).toBe(
-      "https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fh%2Fx.ics%3Fa%3D1",
+      "https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fh%2Fx.ics%3Fa%3D1",
     );
+    expect(toGoogleAddUrl("https://h/x.ics")).not.toContain("cid=https");
   });
 });
 
@@ -110,7 +124,8 @@ describe("buildFeedLinks", () => {
 
     expect(links).not.toBeNull();
     expect(links!.https).toBe(SERVER_HTTPS);
-    expect(links!.webcal).toBe(SERVER_HTTPS.replace("https://", "webcals://"));
+    expect(links!.webcal).toBe(SERVER_HTTPS.replace("https://", "webcal://"));
+    expect(links!.googleAdd).toBe(toGoogleAddUrl(SERVER_HTTPS));
     expect(links!.differsFromServer).toBe(false);
     expect(links!.serverHost).toBe("oneuptime.example.com");
   });
@@ -138,11 +153,11 @@ describe("buildFeedLinks", () => {
       "https://oncall.internal:8443/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
     );
     expect(links!.webcal).toBe(
-      "webcals://oncall.internal:8443/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+      "webcal://oncall.internal:8443/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
     );
     expect(links!.googleAdd).toBe(
       `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
-        links!.https,
+        links!.webcal,
       )}`,
     );
     expect(links!.serverHttps).toBe(SERVER_HTTPS);
@@ -221,7 +236,7 @@ describe("buildFeedLinks", () => {
       "https://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
     );
     expect(links!.webcal).toBe(
-      "webcals://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+      "webcal://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
     );
   });
 

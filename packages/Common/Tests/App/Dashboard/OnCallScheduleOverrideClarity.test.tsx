@@ -128,6 +128,10 @@ import ObjectID from "../../../Types/ObjectID";
 import RestrictionTimes, {
   RestrictionType,
 } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
+import Color, { RGB } from "../../../Types/Color";
+import { rgbToHex } from "../../../UI/Components/ColorPicker/ColorValue";
+import { parseColor } from "../../../Utils/ColorContrast";
+import { DISTINCT_COLORS } from "../../../Utils/DistinctColor";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const SCHEDULE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -513,9 +517,20 @@ describe("The overrides card states the substitution in full", () => {
     const row: HTMLElement = within(card).getByTestId("active-override-row");
 
     expect(row.textContent).toContain(USER_A_NAME);
-    expect(row.textContent).toContain("Overridden");
+    expect(row.textContent).toContain("Away");
     expect(row.textContent).toContain(USER_B_NAME);
-    expect(row.textContent).toContain("Alerts go here");
+    expect(row.textContent).toContain("Covering");
+
+    /*
+     * In that order: the person away first, then the person covering - the
+     * words the Add User Override form asks with ("Who is away?", "Who
+     * covers?").
+     */
+    const text: string = row.textContent || "";
+
+    expect(text.indexOf(USER_A_NAME)).toBeLessThan(text.indexOf("Away"));
+    expect(text.indexOf("Away")).toBeLessThan(text.indexOf(USER_B_NAME));
+    expect(text.indexOf(USER_B_NAME)).toBeLessThan(text.indexOf("Covering"));
   });
 
   test("marks an override that is running right now", async () => {
@@ -568,22 +583,26 @@ describe("The overrides card states the substitution in full", () => {
   });
 
   test("shows the override's own window, not the shift's", async () => {
+    const override: OverrideFixture = activeOverride({
+      onCallDutyPolicyId: null,
+    });
     setupApi({
-      overrides: [activeOverride({ onCallDutyPolicyId: null })],
+      overrides: [override],
       attachedPolicyIds: [POLICY_ID],
     });
     renderPreview();
 
     const card: HTMLElement = await findOverridesCard();
-    const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
      * The fixture window is now-1h to now+1h, while the layer's shift is a full
      * day. Asserting on the year alone would pass for either; the hour is what
-     * distinguishes them.
+     * distinguishes them. The start is the fixture's own: reading the clock
+     * again once the card is up can land in the next minute, and expect a
+     * minute later than the one the card shows.
      */
     const startHour: string = OneUptimeDate.getDateAsFormattedStringInTimezone({
-      date: OneUptimeDate.addRemoveHours(now, -1),
+      date: override.startsAt,
       timezone: "UTC",
       showWeekday: true,
     });
@@ -673,5 +692,126 @@ describe("The legend and the on-call card carry the same story", () => {
 
     expect(screen.queryByTestId("on-call-now-override")).toBeNull();
     expect(screen.queryByTestId("legend-covering-label")).toBeNull();
+  });
+});
+
+/*
+ * The final schedule draws each person in one colour everywhere on it - their
+ * calendar blocks, the stripe on a block they are away from, their legend dot
+ * and their avatar on the "on call right now" card - and that colour is one
+ * of the shared palette (no black, no grey), the one every other on-call card
+ * gives them (LayerUserColors).
+ */
+describe("The final schedule draws each person in their palette colour", () => {
+  const PALETTE: Array<string> = DISTINCT_COLORS.map((color: Color): string => {
+    return color.toString();
+  });
+
+  // A colour as the DOM reports it ("rgb(13, 148, 136)") as lowercase hex.
+  const toHex: (cssColor: string) => string = (cssColor: string): string => {
+    const rgb: RGB | null = parseColor(cssColor);
+
+    if (!rgb) {
+      throw new Error(`Not a colour: "${cssColor}"`);
+    }
+
+    return rgbToHex(rgb);
+  };
+
+  beforeEach(() => {
+    getListMock.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the two people of the override are two different palette colours", () => {
+    expect(PALETTE).toContain(getColorForUserId(USER_A_ID));
+    expect(PALETTE).toContain(getColorForUserId(USER_B_ID));
+    expect(getColorForUserId(USER_A_ID)).not.toBe(getColorForUserId(USER_B_ID));
+  });
+
+  test("every block is its person's palette colour, and a covered block's stripe the colour of the person away", async () => {
+    setupApi({
+      overrides: [activeOverride({ onCallDutyPolicyId: null })],
+      attachedPolicyIds: [POLICY_ID],
+    });
+    renderPreview();
+
+    await findOverrideEvent();
+
+    const events: Array<HTMLElement> = screen.getAllByTestId("calendar-event");
+
+    expect(events.length).toBeGreaterThan(1);
+
+    for (const event of events) {
+      const color: string = event.getAttribute("data-event-color") || "";
+      const isOverride: boolean =
+        event.getAttribute("data-event-class") === OVERRIDE_EVENT_CLASS_NAME;
+
+      expect(PALETTE).toContain(color);
+      // Alice's own shifts in her colour; the covered one in Bob's.
+      expect(color).toBe(getColorForUserId(isOverride ? USER_B_ID : USER_A_ID));
+
+      if (isOverride) {
+        expect(event.getAttribute("data-event-accent")).toBe(
+          getColorForUserId(USER_A_ID),
+        );
+      }
+    }
+  });
+
+  test("each legend dot is that person's colour, the same as on their blocks", async () => {
+    setupApi({
+      overrides: [activeOverride({ onCallDutyPolicyId: null })],
+      attachedPolicyIds: [POLICY_ID],
+    });
+    renderPreview();
+
+    await screen.findByTestId("legend-covering-label", undefined, {
+      timeout: TIMEOUT_MS,
+    });
+
+    for (const userId of [USER_A_ID, USER_B_ID]) {
+      // Each legend entry carries the person's email as its title.
+      const entry: HTMLElement | null = document.querySelector(
+        `[title="${userId}@example.com"]`,
+      );
+
+      expect(entry).not.toBeNull();
+
+      const dot: HTMLElement = entry!.querySelector(
+        "span[style]",
+      ) as HTMLElement;
+
+      expect(toHex(dot.style.backgroundColor)).toBe(getColorForUserId(userId));
+    }
+  });
+
+  test("the 'on call right now' avatar is the substitute's colour, with white initials", async () => {
+    setupApi({
+      overrides: [activeOverride({ onCallDutyPolicyId: null })],
+      attachedPolicyIds: [POLICY_ID],
+    });
+    renderPreview();
+
+    await screen.findByTestId("on-call-now-override", undefined, {
+      timeout: TIMEOUT_MS,
+    });
+
+    // "Bob Covering" -> "BC", the substitute on call now.
+    const avatars: Array<HTMLElement> = screen.getAllByText("BC", {
+      exact: true,
+    });
+
+    expect(avatars.length).toBeGreaterThan(0);
+
+    for (const avatar of avatars) {
+      expect(toHex(avatar.style.backgroundColor)).toBe(
+        getColorForUserId(USER_B_ID),
+      );
+      expect(toHex(avatar.style.color)).toBe("#ffffff");
+    }
   });
 });

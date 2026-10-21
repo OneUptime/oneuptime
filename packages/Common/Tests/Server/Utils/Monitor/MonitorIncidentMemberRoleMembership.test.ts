@@ -33,6 +33,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * A monitor criteria can assign incident roles ("make Alice the commander of
@@ -115,6 +116,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
     databaseServerIds: [],
+    storageArrayIds: [],
   };
 }
 
@@ -123,6 +125,11 @@ describe("MonitorIncident - incident roles from the criteria", () => {
   let createdMembers: Array<IncidentMember> = [];
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdMembers = [];
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {
@@ -137,6 +144,11 @@ describe("MonitorIncident - incident roles from the criteria", () => {
     jest
       .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockResolvedValue(emptyResourceContext());
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });

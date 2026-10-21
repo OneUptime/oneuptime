@@ -6,6 +6,7 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import NetworkSnmpCredentialProfileService from "../../Services/NetworkSnmpCredentialProfileService";
 import MonitorStepSnmpMonitor from "../../../Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableWalkRequest } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -21,6 +22,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import IP from "../../../Types/IP/IP";
 import IpCanonicalUtil from "../../../Utils/IpCanonicalUtil";
+import NetworkDeviceOtherAddressesUtil from "../../../Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import {
   SnmpCredentialCarrier,
   hasUsableCredentials,
@@ -535,6 +537,8 @@ export default class NetworkDeviceHydrationUtil {
     credentials: SnmpConnectionCredentials;
     oids: Array<SnmpOid>;
     monitorInterfaces: boolean;
+    // The device's effective SNMP tables, already reduced to walk requests.
+    tables?: Array<SnmpTableWalkRequest> | undefined;
   }): MonitorStepSnmpMonitor {
     return {
       snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
@@ -547,6 +551,7 @@ export default class NetworkDeviceHydrationUtil {
       oids: data.oids,
       timeout: 5000,
       monitorInterfaces: data.monitorInterfaces,
+      ...(data.tables && data.tables.length > 0 ? { tables: data.tables } : {}),
     };
   }
 
@@ -784,13 +789,17 @@ export default class NetworkDeviceHydrationUtil {
     }
 
     /*
-     * Fallback for the two spellings the exact match cannot see:
+     * Fallback for what the exact match cannot see:
      * (a) IPv6-literal hostnames written differently than the datagram's
      *     normalized source (2001:DB8::1 vs 2001:db8::1) — compared
-     *     canonically, and
-     * (b) DNS-named devices — resolved through a shared cache and their
+     *     canonically,
+     * (b) a device that sends from another of its addresses (a loopback,
+     *     the interface facing the probe) listed in its Other Addresses,
+     *     and
+     * (c) DNS-named devices — resolved through a shared cache and their
      *     addresses compared canonically.
-     * Only runs when the exact match found nothing.
+     * Only runs when the exact match found nothing, in that order: what
+     * someone typed wins over what DNS says.
      */
     const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {
@@ -799,6 +808,7 @@ export default class NetworkDeviceHydrationUtil {
       select: {
         ...select,
         hostname: true,
+        otherAddresses: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -812,10 +822,22 @@ export default class NetworkDeviceHydrationUtil {
     );
 
     const literalMatches: Array<NetworkDevice> = [];
+    const otherAddressMatches: Array<NetworkDevice> = [];
     const dnsCandidates: Array<NetworkDevice> = [];
 
     for (const device of candidates) {
       const hostname: string = device.hostname?.trim() || "";
+
+      if (
+        device.otherAddresses &&
+        NetworkDeviceOtherAddressesUtil.includes(
+          device.otherAddresses,
+          canonicalSource,
+        )
+      ) {
+        otherAddressMatches.push(device);
+        continue;
+      }
 
       if (!hostname) {
         continue;
@@ -833,6 +855,10 @@ export default class NetworkDeviceHydrationUtil {
 
     if (literalMatches.length > 0) {
       return literalMatches;
+    }
+
+    if (otherAddressMatches.length > 0) {
+      return otherAddressMatches;
     }
 
     /*

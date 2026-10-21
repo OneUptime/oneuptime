@@ -173,9 +173,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          title: "Security Event Connections",
+          title: "Your security tools",
           description:
-            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+            "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
           buttons: [
             {
               title: "Add connection",
@@ -223,6 +223,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Test connection",
+            icon: IconProp.Signal,
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
@@ -238,6 +239,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Run now",
+            icon: IconProp.Play,
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
@@ -254,6 +256,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Diagnostics",
+            icon: IconProp.WrenchScrewdriver,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: (
               item: SecurityEventConnection,

@@ -1,0 +1,66 @@
+/*
+ * The pages of the docs' AI Observability group, and the Security pages,
+ * by the paths their suites name them with.
+ *
+ * Docs overhaul task 24a rewrote the first five (AiObservabilityDocsFacts,
+ * AiObservabilityDocsTranslations); task 24b the other three and the
+ * Security pages (AiToolingDocsFacts, SecurityDocsFacts,
+ * AiToolingAndSecurityDocsTranslations). A suite imports them from here,
+ * never from another suite: importing a .test.ts file runs its tests.
+ */
+
+export interface DocsPageEntry {
+  page: string;
+  // The page's nav link, as the docs' English locale keys it.
+  navTitle: string;
+}
+
+export const LLM: string = "telemetry/ai-llm-observability";
+export const ASSISTANTS: string = "telemetry/ai-coding-assistants";
+export const CLAUDE_CODE: string = "telemetry/claude-code";
+export const CURSOR: string = "telemetry/cursor";
+export const CODEX: string = "telemetry/openai-codex";
+export const GEMINI_COPILOT: string = "telemetry/gemini-cli-and-copilot";
+export const AI_GATEWAYS: string = "telemetry/ai-gateways";
+export const CIRCUIT_BREAKER: string = "telemetry/ai-agent-circuit-breaker";
+export const PROVIDER_ACCOUNTS: string = "telemetry/ai-provider-accounts";
+export const COMPANY_TOOLS: string = "telemetry/ai-company-tools";
+export const SECURITY_EVENTS: string = "telemetry/security-events";
+export const THREAT_INTELLIGENCE: string = "telemetry/threat-intelligence";
+export const SECURITY_CASES: string = "telemetry/security-cases";
+export const SECURITY_GETTING_STARTED: string =
+  "telemetry/security-getting-started";
+
+// The AI observability pages of task 24a.
+export const AI_OBSERVABILITY_PAGES: ReadonlyArray<DocsPageEntry> = [
+  { page: LLM, navTitle: "AI / LLM Observability" },
+  { page: ASSISTANTS, navTitle: "AI Coding Assistants" },
+  { page: CLAUDE_CODE, navTitle: "Claude Code" },
+  { page: CURSOR, navTitle: "Cursor" },
+  { page: CODEX, navTitle: "OpenAI Codex" },
+];
+
+/*
+ * The AI tooling pages of task 24b, the rest of the AI Observability group,
+ * and the two pages that connect AI with no code: provider accounts (usage
+ * and cost) and company AI tools (people's chats). AiConnectionDocsFacts
+ * holds those two to the connections' catalog and the code that reads them.
+ */
+export const AI_TOOLING_PAGES: ReadonlyArray<DocsPageEntry> = [
+  { page: GEMINI_COPILOT, navTitle: "Gemini CLI & GitHub Copilot" },
+  { page: AI_GATEWAYS, navTitle: "AI Gateways (LiteLLM, Portkey)" },
+  { page: CIRCUIT_BREAKER, navTitle: "AI Agent Circuit Breakers" },
+  { page: PROVIDER_ACCOUNTS, navTitle: "AI Provider Accounts" },
+  { page: COMPANY_TOOLS, navTitle: "Company AI Tools" },
+];
+
+/*
+ * The Security group's pages, also task 24b, and the getting-started page
+ * the Security overhaul put first in the group.
+ */
+export const SECURITY_PAGES: ReadonlyArray<DocsPageEntry> = [
+  { page: SECURITY_GETTING_STARTED, navTitle: "Get Started with Security" },
+  { page: SECURITY_EVENTS, navTitle: "Security Events (SIEM)" },
+  { page: THREAT_INTELLIGENCE, navTitle: "Threat Intelligence (STIX/TAXII)" },
+  { page: SECURITY_CASES, navTitle: "Security Cases and Playbooks (SOAR)" },
+];

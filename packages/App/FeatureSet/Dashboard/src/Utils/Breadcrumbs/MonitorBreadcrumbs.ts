@@ -9,7 +9,7 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_INOPERATIONAL, [
       "Project",
       "Monitors",
-      "Inoperational",
+      "Not Operational",
     ]),
     //slack connection
     ...BuildBreadcrumbLinksByTitles(
@@ -21,10 +21,21 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Monitors", "Microsoft Teams"],
     ),
+    // which chat workspaces are connected, and how to connect one
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "Monitors",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_DISABLED, [
       "Project",
       "Monitors",
       "Disabled",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_ARCHIVED, [
+      "Project",
+      "Monitors",
+      "Archived",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_CREATE, [
       "Project",
@@ -60,12 +71,6 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "View Monitor",
       "Metrics",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_INTERVAL, [
-      "Project",
-      "Monitors",
-      "View Monitor",
-      "Interval",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_STATUS_TIMELINE, [
       "Project",
       "Monitors",
@@ -88,7 +93,7 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Monitors",
       "View Monitor",
-      "Probes",
+      "Probes & Interval",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_LOGS, [
       "Project",

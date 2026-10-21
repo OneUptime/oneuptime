@@ -32,6 +32,15 @@ import {
  * TypeError. By the time a tool actually executes, every module is loaded.
  */
 let cachedReadPermissions: Array<Permission> | null = null;
+
+/*
+ * An archived monitor is not monitored, so the status it shows is the one it
+ * had when it was archived. The list leaves archived monitors out (as the
+ * Monitors page does), so "what is down right now?" never names one; read by
+ * id, it is still returned, flagged, with this said alongside.
+ */
+export const ARCHIVED_MONITOR_NOTE: string =
+  "This monitor is archived: it is not being monitored, so its status is the one it had when it was archived. Unarchive it to monitor it again.";
 const resolveReadPermissions: () => Array<Permission> =
   (): Array<Permission> => {
     if (!cachedReadPermissions) {
@@ -43,7 +52,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryMonitorsTool: ObservabilityTool = {
   name: "query_monitors",
   description:
-    "List monitors in this project with their current status (name and color). To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive). Returned monitors are ordered problems-first (worst status first, then name); the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, its owners (teams and users) and its recent status timeline (when it went up or down).",
+    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive). Returned monitors are ordered problems-first (worst status first, then name); the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, its owners (teams and users) and its recent status timeline (when it went up or down).",
   inputSchema: {
     type: "object",
     properties: {
@@ -96,6 +105,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
           _id: true,
           name: true,
           monitorType: true,
+          isArchived: true,
           currentMonitorStatus: {
             name: true,
             color: true,
@@ -203,6 +213,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
           statusColor: monitor.currentMonitorStatus?.color?.toString(),
           ownerTeams: ownerTeamNames || undefined,
           ownerUsers: ownerUserNames || undefined,
+          archived: monitor.isArchived === true ? true : undefined,
         });
       }
 
@@ -227,6 +238,9 @@ export const QueryMonitorsTool: ObservabilityTool = {
           value: monitor.currentMonitorStatus.name,
         });
       }
+      if (monitor?.isArchived === true) {
+        cardFields.push({ label: "Archived", value: "Yes - not monitored" });
+      }
       if (ownerTeamNames) {
         cardFields.push({ label: "Owner teams", value: ownerTeamNames });
       }
@@ -235,7 +249,10 @@ export const QueryMonitorsTool: ObservabilityTool = {
       }
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          monitor?.isArchived === true
+            ? `${ARCHIVED_MONITOR_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `Monitor ${monitor?.name || monitorId.toString()} + status timeline`,
         citationTarget: {
@@ -281,7 +298,8 @@ export const QueryMonitorsTool: ObservabilityTool = {
     const problemsOnly: boolean =
       ToolArgs.getBoolean(args, "problemsOnly") === true;
 
-    const query: Query<Monitor> = {};
+    // Archived monitors are not monitored: their status is stale.
+    const query: Query<Monitor> = { isArchived: false };
 
     if (nameSearch) {
       query.name = QueryHelper.search(nameSearch);

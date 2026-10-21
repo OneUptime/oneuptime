@@ -19,6 +19,7 @@ import DataSourceType from "../../../../Types/DataSource/DataSourceType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
 
 /*
  * Hermetic tests for the SSRF-hardened HTTP client. axios is mocked at the
@@ -159,6 +160,9 @@ function runLookup(
     },
   );
 }
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 beforeEach(() => {
   axiosMock.mockReset();

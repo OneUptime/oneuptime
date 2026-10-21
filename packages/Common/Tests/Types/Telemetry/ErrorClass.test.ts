@@ -30,6 +30,7 @@ import ServerException from "../../../Types/Exception/ServerException";
 import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import TimeoutException from "../../../Types/Exception/TimeoutException";
+import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import UnableToReachServer from "../../../Types/Exception/UnableToReachServer";
 import WebsiteRequestException from "../../../Types/Exception/WebsiteRequestException";
@@ -146,6 +147,18 @@ const CLASS_TABLE: Array<{
     name: "TimeoutException",
     make: (): Exception => {
       return new TimeoutException("timed out");
+    },
+    expected: ErrorClass.Infrastructure,
+  },
+  /*
+   * A read the database stopped at its time limit (issue #4707): a capacity
+   * limit, not a code fault — the span of a slow log search used to record
+   * a SyntaxError as one.
+   */
+  {
+    name: "QueryTimeoutException",
+    make: (): Exception => {
+      return new QueryTimeoutException("took longer than 45 seconds");
     },
     expected: ErrorClass.Infrastructure,
   },

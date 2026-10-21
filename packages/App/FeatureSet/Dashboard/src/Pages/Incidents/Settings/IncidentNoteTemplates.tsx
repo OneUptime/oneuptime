@@ -5,18 +5,26 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import useIncidentNoteTemplateVariables, {
+  IncidentNoteTemplateVariables,
+} from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  // What the note can use, the project's custom fields included.
+  const noteTemplateVariables: IncidentNoteTemplateVariables =
+    useIncidentNoteTemplateVariables();
+
   return (
     <Fragment>
       <ModelTable<IncidentNoteTemplate>
         modelType={IncidentNoteTemplate}
         id="incident-templates-table"
         name="Settings > Incident Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         userPreferencesKey="incident-templates-table"
         saveFilterProps={{
           tableId: "incident-note-templates-table",
@@ -27,23 +35,17 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Public or Private Note Templates for Incidents",
           description:
-            "Here is a list of all the public and private note templates for incidents.",
+            "Ready-made text for incident updates. Pick one when writing a public or private note on an incident or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -51,7 +53,6 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -64,7 +65,6 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -75,9 +75,16 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             field: {
               note: true,
             },
-            title: "Public or Private note template.",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "note-details",
+            /*
+             * The {{variables}} it can use, filled in from the incident:
+             * collapsed under the editor, behind its Insert variable button,
+             * and under the cursor when "{{" is typed.
+             */
+            templateVariables: noteTemplateVariables.groups,
+            templateVariablesDescription: noteTemplateVariables.description,
             required: true,
             validation: {
               minLength: 2,

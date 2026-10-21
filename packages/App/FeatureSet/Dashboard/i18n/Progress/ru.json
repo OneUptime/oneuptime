@@ -1,0 +1,17 @@
+{
+  "baseline": {
+    "keys": 32062,
+    "untranslated": 16545
+  },
+  "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "CloudWatch Metric Streams",
+    "ICMP (ping)",
+    "Null",
+    "PR #{{number}}",
+    "Runner",
+    "VMware vCenter",
+    "kubectl set image deployment/web * -n web",
+    "syslog"
+  ]
+}

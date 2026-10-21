@@ -335,6 +335,7 @@ describe("describeUnappliedScopeFilters", () => {
       proxmoxClusterId: "Proxmox cluster",
       vmwareVCenterId: "vCenter",
       cephClusterId: "Ceph cluster",
+      storageArrayId: "storage array",
       serverlessFunctionId: "serverless function",
       cloudResourceId: "cloud resource",
       rumApplicationId: "RUM application",

@@ -18,18 +18,18 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  * Consent, and the attribution capture that sits behind it.
  *
- * The cookie banner wrote `cookiesAccepted` to localStorage and nothing
- * anywhere read it. Google Tag Manager, PostHog and the attribution capture
- * all ran identically whether the visitor pressed Accept, pressed Reject, or
- * never saw the banner — "Reject all" rejected nothing, and there was no
- * Google Consent Mode signal at all.
+ * Twice the cookie banner recorded an answer that nothing acted on: first
+ * because nothing read `cookiesAccepted`, later because the gate had been
+ * taken out on purpose. Either way "Reject all" rejected nothing, for a site
+ * that draws about a third of its search traffic from the EEA, the UK and
+ * Switzerland.
  *
- * Consent was then made real, and has since been deliberately unwound: the
- * banner still records an answer, but nothing branches on it. Consent Mode
- * defaults to granted, every touch is stored on sight, and PostHog loads
- * unconditionally. That is a product decision, not a regression, and the tests
- * below pin it so it cannot be reverted by accident in either direction —
- * a change that re-gates measurement will fail here and have to say so.
+ * Now every measuring script asks one rule, window.oneUptimeConsent
+ * .isAllowed(): an answer on the banner wins; with none, Global Privacy
+ * Control is a refusal; with neither, measurement waits for "Accept all"
+ * where the law asks for consent first and runs until "Reject all"
+ * elsewhere. The tests below pin that for Consent Mode, the attribution
+ * capture and PostHog, so loosening it again has to be a decision.
  *
  * These assertions read the rendered template and run the inline scripts,
  * because that is the only place they exist — there is no module to import.
@@ -115,14 +115,53 @@ class FakeStorage {
     }
     this.store.delete(key);
   }
+
+  // A refusal walks the keys to clear PostHog's.
+  public get length(): number {
+    if (this.throwOnAccess) {
+      throw new Error("storage disabled");
+    }
+    return this.store.size;
+  }
+
+  public key(index: number): string | null {
+    if (this.throwOnAccess) {
+      throw new Error("storage disabled");
+    }
+    return Array.from(this.store.keys())[index] ?? null;
+  }
 }
+
+/*
+ * Where the visitor is, as far as the page can tell: the browser's time zone.
+ * Measurement runs until refused in the first and waits for "Accept all" in
+ * the second.
+ */
+const OPT_OUT_ZONE: string = "America/New_York";
+const CONSENT_FIRST_ZONE: string = "Europe/Berlin";
+
+type FakeIntlFunction = (timeZone: string) => unknown;
+
+const fakeIntl: FakeIntlFunction = (timeZone: string): unknown => {
+  return {
+    DateTimeFormat: (): unknown => {
+      return {
+        resolvedOptions: (): { timeZone: string } => {
+          return { timeZone };
+        },
+      };
+    },
+  };
+};
 
 interface ConsentApi {
   state: () => string;
   isGranted: () => boolean;
+  isAllowed: () => boolean;
   grant: () => void;
   deny: () => void;
-  onChange: (listener: (granted: boolean) => void) => void;
+  whenAllowed: (callback: () => void) => void;
+  onChange: (listener: (allowed: boolean) => void) => void;
 }
 
 interface AttributionSnapshot {
@@ -174,6 +213,12 @@ interface HarnessOptions {
   storedConsent?: string | undefined;
   storedAttribution?: Record<string, string> | undefined;
   storageThrows?: boolean | undefined;
+  /*
+   * The browser's time zone. OPT_OUT_ZONE unless a test says otherwise - the
+   * cases about waiting for consent name CONSENT_FIRST_ZONE.
+   */
+  timeZone?: string | undefined;
+  globalPrivacyControl?: boolean | undefined;
 }
 
 type LoadHarnessFunction = (html: string, options?: HarnessOptions) => Harness;
@@ -242,6 +287,10 @@ const loadHarness: LoadHarnessFunction = (
       href: url,
       search: parsedUrl.search,
       pathname: parsedUrl.pathname,
+      hostname: parsedUrl.hostname,
+    },
+    navigator: {
+      globalPrivacyControl: Boolean(options.globalPrivacyControl),
     },
   };
 
@@ -279,6 +328,7 @@ const loadHarness: LoadHarnessFunction = (
     "dataLayer",
     "posthog",
     "URLSearchParams",
+    "Intl",
     `${gtagSource}\n${consentSource}\n${reportingSource}\n${attributionSource}\nreturn {
        consent: window.oneUptimeConsent,
        getAttribution: window.oneUptimeGetAttribution,
@@ -290,7 +340,14 @@ const loadHarness: LoadHarnessFunction = (
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
     calMetadata: CalMetadataFunction;
-  } = build(fakeWindow, fakeDocument, dataLayer, posthog, URLSearchParams) as {
+  } = build(
+    fakeWindow,
+    fakeDocument,
+    dataLayer,
+    posthog,
+    URLSearchParams,
+    fakeIntl(options.timeZone ?? OPT_OUT_ZONE),
+  ) as {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
     calMetadata: CalMetadataFunction;
@@ -366,31 +423,88 @@ describe("attribution capture and consent", () => {
   });
 
   describe("Google Consent Mode v2", () => {
-    test("defaults every signal to granted, without asking", () => {
-      const harness: Harness = loadHarness(html);
-      const [defaults] = consentSignals(harness);
+    const GRANTED: Record<string, string> = {
+      ad_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted",
+      analytics_storage: "granted",
+      functionality_storage: "granted",
+      personalization_storage: "granted",
+    };
 
-      expect(defaults).toMatchObject({
-        ad_storage: "granted",
-        ad_user_data: "granted",
-        ad_personalization: "granted",
-        analytics_storage: "granted",
-        functionality_storage: "granted",
-        personalization_storage: "granted",
+    const DENIED: Record<string, string> = {
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      analytics_storage: "denied",
+      functionality_storage: "denied",
+      personalization_storage: "denied",
+    };
+
+    test("defaults to granted where measurement runs until refused", () => {
+      const harness: Harness = loadHarness(html, { timeZone: OPT_OUT_ZONE });
+
+      expect(consentSignals(harness)).toEqual([
+        expect.objectContaining(GRANTED),
+      ]);
+    });
+
+    /*
+     * The default is a statement to Google about whether consent was
+     * collected. Where the law asks for it first, nobody has given it yet.
+     */
+    test("defaults to denied where consent comes first", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: CONSENT_FIRST_ZONE,
       });
+
+      expect(consentSignals(harness)).toEqual([
+        expect.objectContaining(DENIED),
+      ]);
+    });
+
+    test("defaults to granted where consent comes first and was given before", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: CONSENT_FIRST_ZONE,
+        storedConsent: "true",
+      });
+
+      expect(consentSignals(harness)[0]).toMatchObject(GRANTED);
+    });
+
+    test("defaults to denied after a refusal on an earlier visit, anywhere", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: OPT_OUT_ZONE,
+        storedConsent: "false",
+      });
+
+      expect(consentSignals(harness)[0]).toMatchObject(DENIED);
+    });
+
+    test("defaults to denied for a browser sending Global Privacy Control", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: OPT_OUT_ZONE,
+        globalPrivacyControl: true,
+      });
+
+      expect(consentSignals(harness)[0]).toMatchObject(DENIED);
     });
 
     /*
      * security_storage covers things like fraud prevention rather than
-     * advertising, and is granted under Consent Mode's own guidance.
+     * advertising, and is granted under Consent Mode's own guidance - even
+     * when everything else is denied.
      */
-    test("grants security storage in the defaults", () => {
-      const harness: Harness = loadHarness(html);
+    test.each([OPT_OUT_ZONE, CONSENT_FIRST_ZONE])(
+      "grants security storage in the defaults (%s)",
+      (timeZone: string) => {
+        const harness: Harness = loadHarness(html, { timeZone });
 
-      expect(consentSignals(harness)[0]).toMatchObject({
-        security_storage: "granted",
-      });
-    });
+        expect(consentSignals(harness)[0]).toMatchObject({
+          security_storage: "granted",
+        });
+      },
+    );
 
     /*
      * Without wait_for_update the container decides how to behave before a
@@ -405,41 +519,42 @@ describe("attribution capture and consent", () => {
       });
     });
 
-    /*
-     * One signal per page, and answering the banner does not add another.
-     *
-     * The denial is the one that matters: pushing ad_storage=denied on a
-     * refusal would re-gate the Google tag and make the banner functional
-     * again, which is precisely what this design no longer does. A regression
-     * here would be invisible in the product and visible only as a quiet drop
-     * in reported conversions.
-     */
-    test("says nothing further when the visitor accepts", () => {
-      const harness: Harness = loadHarness(html);
+    test("sends the acceptance as an update", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: CONSENT_FIRST_ZONE,
+      });
 
       harness.consent.grant();
 
-      expect(consentSignals(harness)).toHaveLength(1);
+      const signals: Array<Record<string, string>> = consentSignals(harness);
+
+      expect(signals).toHaveLength(2);
+      expect(signals[1]).toMatchObject(GRANTED);
+      // An update is not a default: there is nothing left to wait for.
+      expect(signals[1]).not.toHaveProperty("wait_for_update");
     });
 
-    test("says nothing further when the visitor refuses", () => {
-      const harness: Harness = loadHarness(html);
+    /*
+     * The one that was missing. Without a denial on the dataLayer, a tag
+     * already on the page went on as if nothing had been said.
+     */
+    test("sends the refusal as an update", () => {
+      const harness: Harness = loadHarness(html, { timeZone: OPT_OUT_ZONE });
 
       harness.consent.deny();
 
-      expect(consentSignals(harness)).toHaveLength(1);
-      expect(consentSignals(harness)[0]).toMatchObject({
-        ad_storage: "granted",
-      });
+      const signals: Array<Record<string, string>> = consentSignals(harness);
+
+      expect(signals).toHaveLength(2);
+      expect(signals[1]).toMatchObject(DENIED);
+      expect(signals[1]).toMatchObject({ security_storage: "granted" });
     });
 
     test("does not re-signal for a decision made on an earlier visit", () => {
       const harness: Harness = loadHarness(html, { storedConsent: "false" });
 
+      // The default already carries it.
       expect(consentSignals(harness)).toHaveLength(1);
-      expect(consentSignals(harness)[0]).toMatchObject({
-        ad_storage: "granted",
-      });
     });
   });
 
@@ -482,18 +597,69 @@ describe("attribution capture and consent", () => {
       expect(harness.dataLayer).toHaveLength(0);
     });
 
-    test("captures attribution with no tag and no consent", () => {
-      const harness: Harness = loadHarness(selfHostedHtml, { url: AD_URL });
+    test("captures attribution under the same rule, with nothing to signal to", () => {
+      const allowed: Harness = loadHarness(selfHostedHtml, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
-      expect(harness.storage.store.get("utmSource")).toBe("google");
-      expect(harness.consent.state()).toBe("unset");
-      expect(harness.dataLayer).toHaveLength(0);
+      expect(allowed.storage.store.get("utmSource")).toBe("google");
+      expect(allowed.dataLayer).toHaveLength(0);
+
+      const waiting: Harness = loadHarness(selfHostedHtml, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(waiting.storage.store.has("utmSource")).toBe(false);
+
+      waiting.consent.grant();
+
+      expect(waiting.storage.store.get("utmSource")).toBe("google");
+      expect(waiting.dataLayer).toHaveLength(0);
     });
   });
 
   describe("consent state", () => {
     test("is unset until the visitor answers", () => {
       expect(loadHarness(html).consent.state()).toBe("unset");
+    });
+
+    test("allows measurement without an answer where it runs until refused", () => {
+      expect(
+        loadHarness(html, { timeZone: OPT_OUT_ZONE }).consent.isAllowed(),
+      ).toBe(true);
+    });
+
+    test("holds measurement back without an answer where consent comes first", () => {
+      expect(
+        loadHarness(html, { timeZone: CONSENT_FIRST_ZONE }).consent.isAllowed(),
+      ).toBe(false);
+    });
+
+    test.each([
+      [OPT_OUT_ZONE, "false", false],
+      [CONSENT_FIRST_ZONE, "true", true],
+    ])(
+      "lets a stored answer decide wherever the visitor is (%s, %s)",
+      (timeZone: string, storedConsent: string, allowed: boolean) => {
+        expect(
+          loadHarness(html, { timeZone, storedConsent }).consent.isAllowed(),
+        ).toBe(allowed);
+      },
+    );
+
+    test("treats Global Privacy Control as a refusal until the visitor accepts", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: OPT_OUT_ZONE,
+        globalPrivacyControl: true,
+      });
+
+      expect(harness.consent.isAllowed()).toBe(false);
+
+      harness.consent.grant();
+
+      expect(harness.consent.isAllowed()).toBe(true);
     });
 
     test.each([
@@ -554,14 +720,54 @@ describe("attribution capture and consent", () => {
   });
 
   describe("storing attribution", () => {
-    test("stores the touch before the visitor has answered the banner", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
+    test("stores the touch on arrival where measurement runs until refused", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
       expect(harness.consent.state()).toBe("unset");
       expect(harness.storage.store.get("utmSource")).toBe("google");
       expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
         gclid: "abc123",
       });
+    });
+
+    test("stores nothing before the visitor accepts where consent comes first", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(harness.storage.store.size).toBe(0);
+    });
+
+    test("stores this page's touch the moment the visitor accepts", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      harness.consent.grant();
+
+      expect(harness.storage.store.get("utmSource")).toBe("google");
+      expect(harness.storage.store.get("utmUrl")).toBe(AD_URL);
+      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
+        gclid: "abc123",
+      });
+      expect(
+        JSON.parse(harness.storage.store.get("firstTouch")!),
+      ).toMatchObject({ utmSource: "google", clickIds: { gclid: "abc123" } });
+    });
+
+    test("stores nothing for a browser sending Global Privacy Control", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+        globalPrivacyControl: true,
+      });
+
+      expect(harness.storage.store.size).toBe(0);
     });
 
     test("stores the touch immediately when consent was already given", () => {
@@ -577,12 +783,11 @@ describe("attribution capture and consent", () => {
       });
     });
 
-    /*
-     * The first touch is written on sight too, so the whole record exists
-     * before the banner has been answered.
-     */
-    test("records the first touch without waiting for an answer", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
+    test("records the first touch on arrival where measurement runs until refused", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
       expect(
         JSON.parse(harness.storage.store.get("firstTouch")!),
@@ -593,39 +798,76 @@ describe("attribution capture and consent", () => {
       });
     });
 
-    test("keeps this page's touch when the visitor refuses", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
+    test("clears this page's touch when the visitor refuses", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
       harness.consent.deny();
 
-      expect(harness.storage.store.get("utmSource")).toBe("google");
-      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
-        gclid: "abc123",
-      });
+      // Only the answer itself is left.
+      expect(Array.from(harness.storage.store.keys())).toEqual([
+        "cookiesAccepted",
+      ]);
     });
 
     /*
-     * Refusing does not undo. This is the sharpest edge of the decision to
-     * ungate — an explicit "Reject all" leaves an earlier visit's click id
-     * exactly where it was — so it is asserted rather than left to be
-     * discovered.
+     * Refusing undoes. An explicit "Reject all" takes back an earlier visit's
+     * click id and first touch too - not only what this page wrote.
      */
-    test("keeps what an earlier visit stored when the visitor refuses", () => {
-      const stored: Record<string, string> = {
-        utmSource: "google",
-        utmCampaign: "old-campaign",
-        utmUrl: "https://oneuptime.com/?gclid=old",
-        clickIds: JSON.stringify({ gclid: "old" }),
-        firstTouch: JSON.stringify({ utmSource: "google" }),
-      };
+    const EARLIER_VISIT: Record<string, string> = {
+      utmSource: "google",
+      utmCampaign: "old-campaign",
+      utmUrl: "https://oneuptime.com/?gclid=old",
+      clickIds: JSON.stringify({ gclid: "old" }),
+      firstTouch: JSON.stringify({ utmSource: "google" }),
+    };
+
+    test("clears what an earlier visit stored when the visitor refuses", () => {
       const harness: Harness = loadHarness(html, {
         storedConsent: "true",
-        storedAttribution: stored,
+        storedAttribution: EARLIER_VISIT,
       });
 
       harness.consent.deny();
 
-      for (const [key, value] of Object.entries(stored)) {
+      for (const key of Object.keys(EARLIER_VISIT)) {
+        expect([key, harness.storage.store.has(key)]).toEqual([key, false]);
+      }
+    });
+
+    test("clears what an earlier visit stored once a refusal is on record", () => {
+      const harness: Harness = loadHarness(html, {
+        storedConsent: "false",
+        storedAttribution: EARLIER_VISIT,
+      });
+
+      for (const key of Object.keys(EARLIER_VISIT)) {
+        expect([key, harness.storage.store.has(key)]).toEqual([key, false]);
+      }
+    });
+
+    /*
+     * Stored before measurement was gated, by a visitor who has never been
+     * asked. Holding it until they answer would be keeping it without consent.
+     */
+    test("clears what was stored before consent was asked, where it comes first", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: CONSENT_FIRST_ZONE,
+        storedAttribution: EARLIER_VISIT,
+      });
+
+      expect(harness.storage.store.size).toBe(0);
+    });
+
+    test("keeps what is stored while measurement is allowed", () => {
+      const harness: Harness = loadHarness(html, {
+        timeZone: OPT_OUT_ZONE,
+        storedAttribution: EARLIER_VISIT,
+      });
+
+      for (const [key, value] of Object.entries(EARLIER_VISIT)) {
         expect(harness.storage.store.get(key)).toBe(value);
       }
     });
@@ -725,10 +967,14 @@ describe("attribution capture and consent", () => {
 
     /*
      * A signup on the very page the visitor landed on carries the campaign
-     * that brought them, banner unanswered.
+     * that brought them, banner unanswered - where measurement runs until
+     * refused.
      */
-    test("reads this page's touch before the banner is answered", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
+    test("reads this page's touch before the banner is answered, where that is allowed", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
       expect(harness.consent.state()).toBe("unset");
       expect(harness.getAttribution()).toMatchObject({
@@ -775,6 +1021,39 @@ describe("attribution capture and consent", () => {
         clickIds: {},
         firstTouch: null,
       });
+    });
+
+    const NOTHING: AttributionSnapshot = {
+      utm: {},
+      clickIds: {},
+      firstTouch: null,
+    };
+
+    test("reads nothing back while measurement waits for consent", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(harness.getAttribution()).toEqual(NOTHING);
+
+      harness.consent.grant();
+
+      expect(harness.getAttribution()).toMatchObject({
+        utm: { utmSource: "google", utmCampaign: "enterprise-q3" },
+        clickIds: { gclid: "abc123" },
+      });
+    });
+
+    test("reads nothing back after a refusal, not even this page's touch", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
+
+      harness.consent.deny();
+
+      expect(harness.getAttribution()).toEqual(NOTHING);
     });
 
     test("returns empty structures when nothing is known", () => {
@@ -894,6 +1173,37 @@ describe("attribution capture and consent", () => {
       });
     });
 
+    test("waits for consent where consent comes first", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      harness.fireDomContentLoaded();
+
+      expect(harness.posthogCalls).toEqual([]);
+
+      harness.consent.grant();
+
+      expect(
+        harness.posthogCalls.map((call: [string, Record<string, unknown>]) => {
+          return call[0];
+        }),
+      ).toEqual(["home/utm_event"]);
+    });
+
+    test("is never emitted after a refusal", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "false",
+      });
+
+      harness.fireDomContentLoaded();
+      harness.consent.deny();
+
+      expect(harness.posthogCalls).toEqual([]);
+    });
+
     test("is not emitted for a visit carrying no attribution", () => {
       const harness: Harness = loadHarness(html, {
         url: "https://oneuptime.com/pricing",
@@ -910,19 +1220,230 @@ describe("attribution capture and consent", () => {
     });
   });
 
+  /*
+   * The marketing site's own PostHog loader (head-basic.ejs), run against a
+   * stand-in browser: idle callbacks are held until the test lets them run,
+   * and the library's <script> is recorded rather than fetched.
+   */
   describe("PostHog loading", () => {
+    const POSTHOG_LIBRARY: string = "https://eu.posthog.com/static/array.js";
+
+    interface PostHogHarness {
+      consent: ConsentApi;
+      // The stub's queue: what the library is told once it arrives.
+      queue: Array<unknown>;
+      idleCallbacks: Array<() => void>;
+      loadedScripts: () => Array<string>;
+      runIdle: () => void;
+    }
+
+    type LoadPostHogFunction = (options?: HarnessOptions) => PostHogHarness;
+
+    const loadPostHog: LoadPostHogFunction = (
+      options: HarnessOptions = {},
+    ): PostHogHarness => {
+      const consentSource: string = extractScript(
+        html,
+        "window.oneUptimeConsent = (function ()",
+      );
+      const posthogSource: string = extractScript(
+        html,
+        "function initPostHog()",
+      );
+
+      const storage: FakeStorage = new FakeStorage();
+
+      if (options.storedConsent !== undefined) {
+        storage.store.set("cookiesAccepted", options.storedConsent);
+      }
+
+      const idleCallbacks: Array<() => void> = [];
+      const inserted: Array<Record<string, unknown>> = [];
+      const firstScript: Record<string, unknown> = {
+        parentNode: {
+          insertBefore: (element: Record<string, unknown>): void => {
+            inserted.push(element);
+          },
+        },
+      };
+
+      /*
+       * The page's `posthog` is window.posthog; the loader augments the
+       * object in place, so one array serves as both.
+       */
+      const queue: Array<unknown> = [];
+
+      const fakeWindow: Record<string, unknown> = {
+        localStorage: storage,
+        location: {
+          href: "https://oneuptime.com/",
+          search: "",
+          pathname: "/",
+          hostname: "oneuptime.com",
+        },
+        navigator: {
+          globalPrivacyControl: Boolean(options.globalPrivacyControl),
+        },
+        posthog: queue,
+        requestIdleCallback: (callback: () => void): void => {
+          idleCallbacks.push(callback);
+        },
+      };
+
+      const fakeDocument: Record<string, unknown> = {
+        cookie: "",
+        createElement: (): Record<string, unknown> => {
+          return {};
+        },
+        getElementsByTagName: (): Array<unknown> => {
+          return [firstScript];
+        },
+      };
+
+      // eslint-disable-next-line no-new-func
+      const build: (...args: Array<unknown>) => unknown = new Function(
+        "window",
+        "document",
+        "posthog",
+        "requestIdleCallback",
+        "Intl",
+        `${consentSource}\n${posthogSource}\nreturn window.oneUptimeConsent;`,
+      ) as (...args: Array<unknown>) => unknown;
+
+      const consent: ConsentApi = build(
+        fakeWindow,
+        fakeDocument,
+        queue,
+        fakeWindow["requestIdleCallback"],
+        fakeIntl(options.timeZone ?? OPT_OUT_ZONE),
+      ) as ConsentApi;
+
+      return {
+        consent,
+        queue,
+        idleCallbacks,
+        loadedScripts: (): Array<string> => {
+          return inserted.map((element: Record<string, unknown>) => {
+            return element["src"] as string;
+          });
+        },
+        runIdle: (): void => {
+          for (const callback of idleCallbacks.splice(0)) {
+            callback();
+          }
+        },
+      };
+    };
+
+    test("loads when the browser is idle, where measurement runs until refused", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      // Deferred for LCP: nothing yet.
+      expect(harness.loadedScripts()).toEqual([]);
+
+      harness.runIdle();
+
+      expect(harness.loadedScripts()).toEqual([POSTHOG_LIBRARY]);
+    });
+
+    test("does not load before the visitor accepts, where consent comes first", () => {
+      const harness: PostHogHarness = loadPostHog({
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      harness.runIdle();
+
+      expect(harness.idleCallbacks).toEqual([]);
+      expect(harness.loadedScripts()).toEqual([]);
+    });
+
+    test("loads once the visitor accepts", () => {
+      const harness: PostHogHarness = loadPostHog({
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      harness.consent.grant();
+      harness.runIdle();
+
+      expect(harness.loadedScripts()).toEqual([POSTHOG_LIBRARY]);
+    });
+
+    test.each([
+      ["a refusal on an earlier visit", { storedConsent: "false" }],
+      ["Global Privacy Control", { globalPrivacyControl: true }],
+    ])("does not load after %s", (_label: string, options: HarnessOptions) => {
+      const harness: PostHogHarness = loadPostHog({
+        timeZone: OPT_OUT_ZONE,
+        ...options,
+      });
+
+      harness.runIdle();
+
+      expect(harness.loadedScripts()).toEqual([]);
+    });
+
     /*
-     * Deferred to idle for LCP, but not deferred pending an answer. The
-     * absence of the gate is the assertion: a reinstated
-     * `oneUptimeConsent.isGranted()` around initWhenIdle would stop PostHog
-     * loading for the majority of visitors who never touch the banner, and
-     * nothing else in the suite would notice.
+     * The loader is scheduled at page load and runs when the browser is idle;
+     * a visitor can press "Reject all" in between.
      */
-    test("is deferred to idle, not to consent", () => {
-      expect(html).toContain("initWhenIdle();");
-      expect(html).toContain("requestIdleCallback(initPostHog)");
-      expect(html).not.toContain("oneUptimeConsent.isGranted()");
-      expect(html).not.toContain("oneUptimeConsent.onChange(");
+    test("does not load if the visitor refuses before the browser is idle", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      harness.consent.deny();
+      harness.runIdle();
+
+      expect(harness.loadedScripts()).toEqual([]);
+    });
+
+    test("loads once, however it was asked to", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      harness.consent.grant();
+      harness.runIdle();
+
+      expect(harness.loadedScripts()).toEqual([POSTHOG_LIBRARY]);
+    });
+
+    /*
+     * PostHog remembers an opt-out by itself, so a visitor who refused once
+     * and accepted later would otherwise stay opted out. Lifted silently: no
+     * $opt_in event for a visitor who did nothing.
+     */
+    test("lifts an earlier opt-out silently when it loads", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      harness.runIdle();
+
+      expect(harness.queue).toContainEqual([
+        "opt_in_capturing",
+        { captureEventName: false },
+      ]);
+    });
+
+    test("stops on the page where the visitor refuses", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      harness.runIdle();
+      harness.consent.deny();
+
+      expect(harness.queue[harness.queue.length - 1]).toEqual([
+        "opt_out_capturing",
+      ]);
+    });
+
+    test("starts again when the visitor accepts after refusing", () => {
+      const harness: PostHogHarness = loadPostHog({ timeZone: OPT_OUT_ZONE });
+
+      harness.runIdle();
+      harness.consent.deny();
+      harness.consent.grant();
+
+      expect(harness.queue[harness.queue.length - 1]).toEqual([
+        "opt_in_capturing",
+        { captureEventName: false },
+      ]);
+      // And it is not loaded a second time.
+      expect(harness.loadedScripts()).toEqual([POSTHOG_LIBRARY]);
     });
   });
 
@@ -1239,12 +1760,43 @@ describe("attribution capture and consent", () => {
       expect(withoutTimestamp(blocked)).toEqual(withoutTimestamp(working));
     });
 
-    test("carries the campaign even before the banner is answered", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
+    test("carries the campaign before the banner is answered, where that is allowed", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
 
       expect(harness.calMetadata()).toMatchObject({
         "metadata[utm_campaign]": "enterprise-q3",
         "metadata[gclid]": "abc123",
+      });
+    });
+
+    /*
+     * The booking still goes through and still says what kind it is; it just
+     * carries no campaign. The CRM receives it unattributed.
+     */
+    test("carries only the booking kind while measurement waits for consent", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(harness.calMetadata("enterprise_demo")).toEqual({
+        "metadata[ou_booking_kind]": "enterprise_demo",
+      });
+    });
+
+    test("carries only the booking kind after a refusal", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        timeZone: OPT_OUT_ZONE,
+      });
+
+      harness.consent.deny();
+
+      expect(harness.calMetadata("support_call")).toEqual({
+        "metadata[ou_booking_kind]": "support_call",
       });
     });
 

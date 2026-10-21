@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,16 +12,17 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ScheduledMaintenanceReminderRuleService from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -29,6 +31,7 @@ import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendUnresolvedReminderNotification",
@@ -63,9 +66,7 @@ RunCron(
           },
           currentScheduledMaintenanceState: {
             name: true,
-          },
-          monitors: {
-            name: true,
+            color: true,
           },
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
@@ -233,12 +234,15 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         ),
       );
 
-    const resourcesAffected: string =
-      scheduledMaintenance
-        .monitors!.map((monitor: Monitor) => {
-          return monitor.name!;
-        })
-        .join(", ") || "";
+    // Every resource the event's Affected Resources card lists.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForScheduledMaintenance({
+        service: ScheduledMaintenanceService,
+        projectId: projectId,
+        scheduledMaintenanceId: scheduledMaintenanceId,
+      }),
+      fallback: "",
+    });
 
     const scheduledMaintenanceNumberStr: string =
       scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
@@ -265,6 +269,10 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         scheduledMaintenanceNumber: scheduledMaintenanceNumberStr,
         projectName: scheduledMaintenance.project!.name!,
         currentState: currentStateName,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          scheduledMaintenance.currentScheduledMaintenanceState?.color,
+        ),
         openDuration: openDuration,
         openedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
           date: openedAt,
@@ -296,7 +304,9 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Reminder: Scheduled maintenance ${scheduledMaintenanceIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `Reminder: Scheduled maintenance ${scheduledMaintenanceIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -346,7 +356,7 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         eventType,
       });
 
-      moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+      moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
         {
           userId: user.id!,
           projectId: projectId,
@@ -364,7 +374,8 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🔔 **Reminder sent to owners of [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${scheduledMaintenanceViewLink})**: This scheduled maintenance is still **${currentStateName}** and has been open for **${openDuration}**.`,
+      feedInfoInMarkdown:
+        mdText`🔔 **Reminder sent to owners of [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${scheduledMaintenanceViewLink})**: This scheduled maintenance is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
       moreInformationInMarkdown:
         moreScheduledMaintenanceFeedInformationInMarkdown,
       workspaceNotification: {

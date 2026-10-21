@@ -9,10 +9,16 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostDisplayName,
   getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
-import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
+import {
+  createTranslator,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import fs from "fs";
 import path from "path";
@@ -43,7 +49,8 @@ import path from "path";
  * The App suite runs in a plain Node environment, so the dialog cannot be
  * mounted and read. Restating the row's rule in a local helper and testing
  * THAT would be circular — it would pass with the row deleted. So instead the
- * row's own name/second-line expressions are LIFTED OUT OF Discovery.tsx by
+ * row's own name/second-line expressions are LIFTED OUT OF the host list
+ * (DiscoveredHostTable.tsx) by
  * `rowNameSource()` and COMPILED, then run against the real shared builders.
  * Every test below that says "the row" is running the page's own code:
  *
@@ -64,19 +71,22 @@ import path from "path";
  *
  * A scan can now ask for its hosts to be named by the first label of their
  * hostname. Every naming function takes the scan's naming choice as a
- * REQUIRED argument, so the row, the import, the collision retry and the Ping
- * monitor name each have to be handed one — and this file checks that the
- * row is handed the SAME scan the import builds from, that the row shows the
- * short name the device will be created with, and that the full name the
- * short one was cut from is still readable on the row's second line.
+ * REQUIRED argument, so the row, the import and its collision retry each
+ * have to be handed one — and this file checks that the row is drawn from
+ * the SAME scan, read with the same naming choice, that the server's import
+ * builds from, that the row shows the short name the device will be created
+ * with, and that the full name the short one was cut from is still readable
+ * on the row's second line.
  *
- * NETBIOS NAMES (issue #3677)
+ * NETBIOS NAMES (issues #3677, #4518)
  *
- * A scan can also ask the probe for the NetBIOS name of a host that has no
- * SNMP name and no PTR record. That name is SELF-REPORTED by the scanned
- * host, so a row named by it carries a plain "NetBIOS name" hint beside the
- * address. The hint's gate is lifted and run with the rest of the row, so the
- * tests below say which rows carry it by executing the page's own expression.
+ * A scan can also ask the probe for the NetBIOS name of every host SNMP did
+ * not name. That name is the Windows computer name the host reports for
+ * itself, and since #4518 it names the row AHEAD of the PTR record (the
+ * device's own name first), so a row named by it carries a plain "NetBIOS
+ * name" hint beside the address, with the PTR name after it. The hint's gate
+ * is lifted and run with the rest of the row, so the tests below say which
+ * rows carry it by executing the page's own expression.
  */
 
 /*
@@ -87,6 +97,12 @@ import path from "path";
 const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
 const SHORT_NAMES: DiscoveredHostNaming = { useShortDeviceNames: true };
 
+/*
+ * The import dialog's host list (Network > Discovery > Review Results),
+ * where every row is drawn. The name the row shows is the name the server's
+ * import creates the device with: DiscoveryImportRunner builds it from the
+ * same scan, read with the same naming choice (see the final describe).
+ */
 const DISCOVERY_PAGE: string = path.join(
   __dirname,
   "..",
@@ -94,9 +110,10 @@ const DISCOVERY_PAGE: string = path.join(
   "FeatureSet",
   "Dashboard",
   "src",
-  "Pages",
+  "Components",
   "NetworkDevice",
-  "Discovery.tsx",
+  "DiscoveryImport",
+  "DiscoveredHostTable.tsx",
 );
 
 /*
@@ -113,6 +130,22 @@ function readSource(): string {
   }
 
   return cachedSource;
+}
+
+/*
+ * The Dashboard's English locale (src/Locales/en.json): every key
+ * `npm run i18n:extract` found, each mapped to itself. The row's own words —
+ * the NetBIOS hint, the checkbox label — are looked up in the reader's
+ * language (#4280), and a sentence that is not in here is one no locale can
+ * ever translate.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "..", "Locales", "en.json"),
+      "utf8",
+    ),
+  );
 }
 
 /*
@@ -137,6 +170,86 @@ function stripComments(source: string): string {
 function readCode(): string {
   return stripComments(readSource()).replace(/\s+/g, " ");
 }
+
+/*
+ * The other files the WYSIWYG contract runs through, now that the import is
+ * the server's (issue #4812): the runner that creates the devices, the
+ * auto-import engine whose scan select it reads with, and the dialog's
+ * fresh read of the scan.
+ */
+const COMMON_ROOT: string = path.join(__dirname, "..", "..", "..", "Common");
+const RUNNER_MODULE: string = path.join(
+  COMMON_ROOT,
+  "Server",
+  "Utils",
+  "NetworkDiscovery",
+  "DiscoveryImportRunner.ts",
+);
+const AUTO_IMPORT_ENGINE: string = path.join(
+  COMMON_ROOT,
+  "Server",
+  "Services",
+  "NetworkDeviceAutoImportRuleEngineService.ts",
+);
+const REVIEW_MODULE: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportReview.ts",
+);
+const DIALOG_MODULE: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportDialog.tsx",
+);
+
+const cachedFiles: Map<string, string> = new Map<string, string>();
+
+function readFile(file: string): string {
+  if (!cachedFiles.has(file)) {
+    cachedFiles.set(file, fs.readFileSync(file, "utf8"));
+  }
+
+  return cachedFiles.get(file)!;
+}
+
+const WHITESPACE: RegExp = /\s+/g;
+const TRAILING_COMMA: RegExp = /,$/;
+
+function readFileCode(file: string): string {
+  return stripComments(readFile(file)).replace(WHITESPACE, " ");
+}
+
+function readRunnerCode(): string {
+  return readFileCode(RUNNER_MODULE);
+}
+
+// The PTR name, re-normalised where the row computes it.
+const PTR_NAME_NORMALISED: RegExp =
+  /normalizeReverseDnsName\(\s*entry\.dnsHostname\s*,?\s*\)/;
+
+// The runner's collision retry: the fallback name, from the host and the scan, created.
+const RUNNER_COLLISION_RETRY: RegExp =
+  /attempted\s*=\s*build\(\s*buildFallbackDeviceName\(\s*host\s*,\s*state\.scan\s*,?\s*\)\s*,?\s*\);\s*try\s*\{\s*created\s*=\s*await\s+NetworkDeviceService\.create\(/;
+
+// The device the runner builds, from the host and the scan it read.
+const RUNNER_BUILDS_FROM_SCAN: RegExp =
+  /buildNetworkDeviceFromDiscoveredHost\(\{[^}]*?host:\s*host\s*,\s*scan:\s*state\.scan\s*,?\s*\}\)/;
+
+// Every call that names a device.
+const NAMING_CALL: RegExp =
+  /\b(?:buildDeviceName|buildFallbackDeviceName)\(([^)]*)\)/g;
+
+const RUNNER_SCAN_SELECT_HAS_BUILDER_COLUMNS: RegExp =
+  /DISCOVERY_IMPORT_SCAN_SELECT[\s\S]*?=\s*\{[^}]*\.\.\.AUTO_IMPORT_SCAN_BUILDER_SELECT/;
+
+const BUILDER_SELECT_HAS_NAMING_CHOICE: RegExp =
+  /export const AUTO_IMPORT_SCAN_BUILDER_SELECT[\s\S]*?=\s*\{[^}]*\buseShortDeviceNames:\s*true\b/;
+
+const REVIEW_SELECT_HAS_NAMING_CHOICE: RegExp =
+  /export const DISCOVERY_REVIEW_SCAN_SELECT[\s\S]*?=\s*\{[^}]*\buseShortDeviceNames:\s*true\b/;
+
+const DIALOG_READS_WITH_REVIEW_SELECT: RegExp =
+  /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*DISCOVERY_REVIEW_SCAN_SELECT\b/;
 
 /*
  * THE ROW'S OWN NAMING CODE, READ OUT OF THE PAGE.
@@ -178,6 +291,8 @@ interface RowNameSource {
    * is the gate the row actually paints with.
    */
   netbiosHintIdentifier: string;
+  /* The English sentence the hint's hover `title` is looked up by. */
+  netbiosHintTitle: string;
   /* The statements themselves, comments stripped and whitespace squashed. */
   statements: string;
 }
@@ -204,11 +319,13 @@ const SECONDARY_NAME_SPAN: RegExp =
  * The one thing on that line that is not a name: the "NetBIOS name" hint
  * (issue #3677), gated on a boolean the row computes, separated by the same
  * middle dot, and carrying a hover `title` that says why the name is worth
- * flagging. Literal text rather than an interpolated value, so a scanned host
- * cannot choose what it says.
+ * flagging. Both are fixed English text looked up in the reader's language
+ * (#4280) — string literals handed to translateText, never an interpolated
+ * value — so a scanned host cannot choose what the hint says, in any
+ * language.
  */
 const NETBIOS_HINT_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title="[^"]*"\s*>\s*\{" · "\}\s*NetBIOS name\s*<\/span>\s*\)\s*\}/;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*\{" · "\}\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
 
@@ -235,7 +352,7 @@ function rowNameSource(): RowNameSource {
 
   if (!match) {
     throw new Error(
-      "Discovery.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
+      "DiscoveredHostTable.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
         " a const before the discovered-host row's `return (`. The Review" +
         " dialog's name line is what issues #3529 and #3678 changed; if it" +
         " moved, move these tests with it rather than deleting them.",
@@ -296,6 +413,7 @@ function rowNameSource(): RowNameSource {
     namingIdentifier: match[3]!,
     secondaryIdentifiers: secondaryIdentifiers,
     netbiosHintIdentifier: netbiosHintIdentifier,
+    netbiosHintTitle: netbiosHint[2]!,
     statements: statements,
   };
 
@@ -339,7 +457,8 @@ type RowNamingFunction = (
   buildName: typeof buildDeviceName,
   getFullName: typeof getDiscoveredHostFullName,
   normalizeName: typeof normalizeReverseDnsName,
-  normalizeNetbios: typeof normalizeNetbiosName,
+  getNameSource: typeof getDiscoveredHostNameSource,
+  nameSources: typeof DeviceNameSource,
   naming: DiscoveredHostNaming,
 ) => [string, Array<string | undefined>, unknown];
 
@@ -350,7 +469,7 @@ let cachedRowNaming: RowNamingFunction | null = null;
  * by running the row's own statements, with the real shared builders injected.
  *
  * The parameter names are the page's own call names, so an alias-rename in
- * Discovery.tsx fails the extraction loudly instead of quietly.
+ * DiscoveredHostTable.tsx fails the extraction loudly instead of quietly.
  */
 function rowNamingFor(
   host: DiscoveredNetworkDevice,
@@ -364,7 +483,8 @@ function rowNamingFor(
       "buildDeviceName",
       "getDiscoveredHostFullName",
       "normalizeReverseDnsName",
-      "normalizeNetbiosName",
+      "getDiscoveredHostNameSource",
+      "DeviceNameSource",
       source.namingIdentifier,
       `${stripTypeAnnotations(source.statements)} return [${
         source.displayNameIdentifier
@@ -383,7 +503,8 @@ function rowNamingFor(
     buildDeviceName,
     getDiscoveredHostFullName,
     normalizeReverseDnsName,
-    normalizeNetbiosName,
+    getDiscoveredHostNameSource,
+    DeviceNameSource,
     naming,
   );
 
@@ -426,30 +547,54 @@ function extraNamesFor(
 
 /*
  * The checkbox's accessible name, lifted and run the same way. A screen-reader
- * user never sees the row; this template is the entire row, for them.
+ * user never sees the row; this sentence is the entire row, for them.
+ *
+ * Since #4280 it is one whole sentence looked up in the reader's language —
+ * `translator.translateTemplate("Import {{name}} ({{address}})", { ... })` —
+ * so the expression is run with the real translation helpers injected: an
+ * English translator for the sentences the tests below expect, and a
+ * translating one where the test is about what a locale does with the
+ * values.
  */
-const ARIA_LABEL_TEMPLATE: RegExp = /ariaLabel=\{(`Import [^`]*`)\}/;
+const ARIA_LABEL_CALL: RegExp =
+  /ariaLabel=\{(translator\.translateTemplate\(\s*"(Import [^"]*)"\s*,\s*\{[^{}]*\}\s*,?\s*\))\}/;
 
 type RowAriaLabel = (
   entry: DiscoveredNetworkDevice,
   displayName: string,
+  translator: Translator,
+  translatableTermFunction: typeof translatableTerm,
 ) => string;
 
 let cachedAriaLabel: RowAriaLabel | null = null;
 
-function ariaLabelTemplate(): string {
-  const match: RegExpMatchArray | null = readCode().match(ARIA_LABEL_TEMPLATE);
+interface AriaLabelCall {
+  // The whole `translator.translateTemplate(...)` expression.
+  expression: string;
+  // The English sentence it looks up.
+  template: string;
+}
+
+function ariaLabelCall(): AriaLabelCall {
+  const match: RegExpMatchArray | null = readCode().match(ARIA_LABEL_CALL);
 
   if (!match) {
     throw new Error(
-      "The discovered-host checkbox no longer carries an `ariaLabel={`Import" +
-        " ...`}`. A disabled checkbox in a list that does not say what it is" +
-        " reads as broken rather than as deliberate.",
+      "The discovered-host checkbox no longer carries an" +
+        ' `ariaLabel={translator.translateTemplate("Import ...", { ... })}`.' +
+        " A disabled checkbox in a list that does not say what it is reads" +
+        " as broken rather than as deliberate.",
     );
   }
 
-  return match[1]!;
+  return { expression: match[1]!, template: match[2]! };
 }
+
+/*
+ * What a reader whose Dashboard is in English hears: no stored wording
+ * differs from the English, so the English sentence is filled in.
+ */
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 /*
  * Fed the name line the ROW computes for this scan, not a name recomputed
@@ -459,16 +604,24 @@ function ariaLabelTemplate(): string {
 function ariaLabelFor(
   host: DiscoveredNetworkDevice,
   naming: DiscoveredHostNaming,
+  translator: Translator = ENGLISH,
 ): string {
   if (cachedAriaLabel === null) {
     cachedAriaLabel = new Function(
       "entry",
       rowNameSource().displayNameIdentifier,
-      `return ${ariaLabelTemplate()};`,
+      "translator",
+      "translatableTerm",
+      `return ${ariaLabelCall().expression};`,
     ) as unknown as RowAriaLabel;
   }
 
-  return cachedAriaLabel(host, rowNamesFor(host, naming).displayName);
+  return cachedAriaLabel(
+    host,
+    rowNamesFor(host, naming).displayName,
+    translator,
+    translatableTerm,
+  );
 }
 
 /*
@@ -801,7 +954,7 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
 
 describe("the row's second line surfaces a PTR name the first line does not", () => {
   /*
-   * Every test here runs Discovery.tsx's own second-line expression — see
+   * Every test here runs the host list's own second-line expression — see
    * `rowNameSource` above. Inverting the row's gate, dropping the
    * normalisation, or deleting the computation each fails at least one of
    * them, which is the whole reason the block is lifted rather than restated.
@@ -957,6 +1110,61 @@ describe("the checkbox tells a screen reader what the row says", () => {
     expect(ariaLabelFor({ ipAddress: "" }, FULL_NAMES)).toBe(
       "Import  (no address)",
     );
+  });
+
+  test("in another language the label still carries the row's own name and address", () => {
+    /*
+     * The label has been one translated sentence since #4280, so what has to
+     * survive translation is what it says about THIS row. The locale moves
+     * the values where its grammar wants them; the name line goes in exactly
+     * as the row shows it — a host is called what it is called, so a sysName
+     * that happens to spell one of the dialog's own words ("Already added")
+     * is never looked up and translated — while the no-address fallback is
+     * the dialog's own word, and is.
+     */
+    const words: Record<string, string> = {
+      "Import {{name}} ({{address}})": "{{name}} ({{address}}) importieren",
+      "no address": "keine Adresse",
+      "Already added": "Bereits hinzugefügt",
+    };
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      ariaLabelFor(
+        {
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core-gw.corp.example.com",
+          snmpReachable: false,
+        },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("core-gw.corp.example.com (10.18.166.51) importieren");
+
+    expect(
+      ariaLabelFor(
+        { ipAddress: "", sysName: "core-switch-01" },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("core-switch-01 (keine Adresse) importieren");
+
+    expect(
+      ariaLabelFor(
+        {
+          ipAddress: "10.0.0.9",
+          sysName: "Already added",
+          snmpReachable: true,
+        },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("Already added (10.0.0.9) importieren");
   });
 });
 
@@ -1459,18 +1667,17 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
     /*
      * Fed RAW, the way a result from an older or modified probe would reach
      * the column: NetBIOS pads to fifteen bytes and upper-cases on the wire.
-     * The row names it by the normalised form and still flags it, because the
-     * gate compares the normalised answer with the name line — comparing the
-     * raw value would miss "ACCOUNTS-PC01  " !== "accounts-pc01" and silently
-     * drop the hint.
+     * The row names it by the trimmed name, in the case the host reported it
+     * (issue #4518), and still flags it: the gate asks the naming rule which
+     * source named the row, so the padding cannot make it miss.
      */
     expect(
       rowNamingFor(
-        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01   " },
+        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01  \u0000" },
         FULL_NAMES,
       ),
     ).toEqual({
-      displayName: "accounts-pc01",
+      displayName: "ACCOUNTS-PC01",
       extraNames: [],
       showsNetbiosHint: true,
     });
@@ -1482,11 +1689,11 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
     );
   });
 
-  test("a PTR-named host carries no hint, even when it also holds a NetBIOS answer", () => {
+  test("a host with a PTR name and a NetBIOS answer is named by the NetBIOS name, with the hint and the PTR name beside the address (issue #4518)", () => {
     /*
-     * The probe only asks hosts DNS did not name, but the column is jsonb and
-     * a row can hold both. DNS wins the name line, and the hint would then be
-     * a lie about where the name came from.
+     * The probe asks hosts DNS named too since #4518, and the host's own
+     * Windows name wins the name line. The PTR name is not lost: it is printed
+     * beside the address, after the hint that says where the name came from.
      */
     expect(
       rowNamingFor(
@@ -1498,32 +1705,68 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
         FULL_NAMES,
       ),
     ).toEqual({
-      displayName: "core-gw.corp.example.com",
+      displayName: "accounts-pc01",
+      extraNames: ["core-gw.corp.example.com"],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("a NetBIOS name cut to fifteen characters loses to the PTR name it was cut from, and carries no hint", () => {
+    /*
+     * Windows truncates a long computer name for NetBIOS. The row names the
+     * host by the PTR name the stump was cut from, and the hint would be a lie
+     * about where that name came from.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.33",
+          dnsHostname: "wb-0660-kitchen-display-01.wbhq.com",
+          netbiosName: "WB-0660-KITCHEN",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "wb-0660-kitchen-display-01.wbhq.com",
       extraNames: [],
       showsNetbiosHint: false,
     });
   });
 
-  test("a PTR name shortened to the very same label is still not called a NetBIOS name", () => {
+  test("a NetBIOS answer that reads like the PTR name's first label still names the row as a NetBIOS name (issue #4518)", () => {
     /*
-     * The case that separates "named by NetBIOS" from "happens to read like
-     * the NetBIOS answer": a Windows host whose PTR record is its computer name
-     * under the domain. With short names on, the name line is "ws-0042" either
-     * way — but it came from DNS, and only the PTR guard in the gate says so.
+     * A Windows host whose PTR record is its computer name under the domain.
+     * The host's own name wins (#4518), so the name line is the NetBIOS
+     * answer and carries the hint, and the PTR name is printed beside the
+     * address — with short names on or off.
      */
     expect(
       rowNamingFor(
         {
           ipAddress: "10.18.167.42",
           dnsHostname: "ws-0042.corp.example.com",
-          netbiosName: "ws-0042",
+          netbiosName: "WS-0042",
         },
         SHORT_NAMES,
       ),
     ).toEqual({
-      displayName: "ws-0042",
+      displayName: "WS-0042",
       extraNames: ["ws-0042.corp.example.com"],
-      showsNetbiosHint: false,
+      showsNetbiosHint: true,
+    });
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.42",
+          dnsHostname: "ws-0042.corp.example.com",
+          netbiosName: "WS-0042",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "WS-0042",
+      extraNames: ["ws-0042.corp.example.com"],
+      showsNetbiosHint: true,
     });
   });
 
@@ -1606,7 +1849,168 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
   );
 });
 
-describe("Discovery.tsx wires the row to the shared recipe", () => {
+describe("the Review dialog names hosts by their own hostname first (issue #4518)", () => {
+  /*
+   * The report, a scan of Windows kitchen displays:
+   *
+   *     10.16.42.52    No name found
+   *     WB0024KDS03    wb-0024-kds03.wbhq.com
+   *     wb-0024-kds04  wb-0024-kds04.wbhq.com
+   *     wb-0024-kds05  wb-0024-kds05.wbhq.com
+   *
+   * WB0024KDS03 answered SNMP, so its sysName — its Windows computer name —
+   * named it. kds04 and kds05 did not, and their reverse zone spells them
+   * differently from the names their owners use; the probe never asked them
+   * for their NetBIOS name, because DNS had named them. Since #4518 it does,
+   * and the host's own name wins, so all three displays read as the
+   * reporter's estate knows them, with the DNS name beside the address.
+   */
+  const REPORTED_ROWS: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.16.42.52", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: true,
+      sysName: "WB0024KDS03",
+      dnsHostname: "wb-0024-kds03.wbhq.com",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds05.wbhq.com.",
+      netbiosName: "WB0024KDS05    ",
+    },
+  ];
+
+  const EXPECTED_ROWS: Array<RowNaming> = [
+    { displayName: "10.16.42.52", extraNames: [], showsNetbiosHint: false },
+    {
+      displayName: "WB0024KDS03",
+      extraNames: ["wb-0024-kds03.wbhq.com"],
+      showsNetbiosHint: false,
+    },
+    {
+      displayName: "WB0024KDS04",
+      extraNames: ["wb-0024-kds04.wbhq.com"],
+      showsNetbiosHint: true,
+    },
+    {
+      displayName: "WB0024KDS05",
+      extraNames: ["wb-0024-kds05.wbhq.com"],
+      showsNetbiosHint: true,
+    },
+  ];
+
+  test.each([
+    ["short names on, as the reporter's scan has them", SHORT_NAMES],
+    ["short names off", FULL_NAMES],
+  ])(
+    "every display is named by its hostname, the DNS name beside the address (%s)",
+    (_label: string, naming: DiscoveredHostNaming) => {
+      expect(
+        normalizeDiscoveredHosts(REPORTED_ROWS).map(
+          (host: DiscoveredNetworkDevice): RowNaming => {
+            return rowNamingFor(host, naming);
+          },
+        ),
+      ).toEqual(EXPECTED_ROWS);
+    },
+  );
+
+  test("the checkbox announces each display by its hostname", () => {
+    expect(
+      normalizeDiscoveredHosts(REPORTED_ROWS).map(
+        (host: DiscoveredNetworkDevice): string => {
+          return ariaLabelFor(host, SHORT_NAMES);
+        },
+      ),
+    ).toEqual([
+      "Import 10.16.42.52 (10.16.42.52)",
+      "Import WB0024KDS03 (10.16.42.53)",
+      "Import WB0024KDS04 (10.16.42.54)",
+      "Import WB0024KDS05 (10.16.42.55)",
+    ]);
+  });
+
+  test("the import creates the names the rows show, keeps the address and the DNS name, and records where each name came from", () => {
+    const devices: Array<NetworkDevice> = normalizeDiscoveredHosts(
+      REPORTED_ROWS,
+    ).map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return buildNetworkDeviceFromDiscoveredHost({
+        projectId: new ObjectID("00000000-0000-0000-0000-000000000001"),
+        host: host,
+        scan: SHORT_NAMES,
+      });
+    });
+
+    expect(
+      devices.map((device: NetworkDevice) => {
+        return {
+          name: device.name,
+          hostname: device.hostname,
+          dnsName: device.dnsName,
+          discoveredName: device.discoveredName,
+          discoveredNameSource: device.discoveredNameSource,
+        };
+      }),
+    ).toEqual([
+      {
+        name: "10.16.42.52",
+        hostname: "10.16.42.52",
+        dnsName: undefined,
+        discoveredName: "10.16.42.52",
+        discoveredNameSource: DeviceNameSource.Address,
+      },
+      {
+        name: "WB0024KDS03",
+        hostname: "10.16.42.53",
+        dnsName: "wb-0024-kds03.wbhq.com",
+        discoveredName: "WB0024KDS03",
+        discoveredNameSource: DeviceNameSource.SystemName,
+      },
+      {
+        name: "WB0024KDS04",
+        hostname: "10.16.42.54",
+        dnsName: "wb-0024-kds04.wbhq.com",
+        discoveredName: "WB0024KDS04",
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      },
+      {
+        name: "WB0024KDS05",
+        hostname: "10.16.42.55",
+        dnsName: "wb-0024-kds05.wbhq.com",
+        discoveredName: "WB0024KDS05",
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      },
+    ]);
+  });
+
+  test("a later scan that adds an SNMP agent is a better source than the NetBIOS name, and an address is the worst", () => {
+    /*
+     * What the rename of a discovered name keys on, read off the same rows:
+     * the source each row is named from. The order is the rule's.
+     */
+    expect(
+      normalizeDiscoveredHosts(REPORTED_ROWS).map(
+        (host: DiscoveredNetworkDevice): DeviceNameSource | undefined => {
+          return getDiscoveredHostNameSource(host);
+        },
+      ),
+    ).toEqual([
+      DeviceNameSource.Address,
+      DeviceNameSource.SystemName,
+      DeviceNameSource.NetbiosName,
+      DeviceNameSource.NetbiosName,
+    ]);
+  });
+});
+
+describe("the host list wires the row to the shared recipe", () => {
   /*
    * What execution above cannot see: that the computed values are actually
    * RENDERED, and that the old inline rule is gone. Matched against the
@@ -1623,28 +2027,27 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      * stopped working (an unterminated block comment, a changed regex), the
      * whole describe would go green against the prose alone.
      *
-     * "dhcp-pool.corp.example.com" sits inside the comment that separates the
-     * create's `catch` from the fallback assignment, which is the one comment
-     * the retry assertion at the bottom of this file depends on being removed.
+     * "attacker-chosen bytes" sits inside the comment over the re-normalised
+     * PTR name, one statement of the very block the tests above execute.
      *
      * This couples two assertions to two comment WORDINGS: reword either
-     * comment in Discovery.tsx and this test fails for a reason unrelated to
+     * comment in the host list and this test fails for a reason unrelated to
      * behaviour. That is deliberate — it fails loudly, in the direction that
      * cannot let a broken stripper through silently.
      */
     const code: string = readCode();
 
-    expect(readSource()).toContain("WYSIWYG");
-    expect(code).not.toContain("WYSIWYG");
-    expect(readSource()).toContain("dhcp-pool.corp.example.com");
-    expect(code).not.toContain("dhcp-pool.corp.example.com");
+    expect(readSource()).toContain("character for character");
+    expect(code).not.toContain("character for character");
+    expect(readSource()).toContain("attacker-chosen bytes");
+    expect(code).not.toContain("attacker-chosen bytes");
   });
 
   test("the stripper also removes line comments, and spares URLs", () => {
     /*
      * The test above only proves the BLOCK-comment branch, because nothing
      * banned or matched by this file currently lives in a `//` comment on
-     * Discovery.tsx. The day one does, the stripper's second regex becomes
+     * the host list. The day one does, the stripper's second regex becomes
      * load-bearing with nothing having ever checked it — so it is checked
      * here, on a synthetic input, along with the `[^:]` guard that is the only
      * reason it does not eat the rest of a line containing "https://".
@@ -1661,14 +2064,15 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     expect(stripped).toContain('"https://oneuptime.com/docs"');
   });
 
-  test("the page imports the shared name builders", () => {
+  test("the list and the import use the shared name builders", () => {
     const code: string = readCode();
 
     expect(code).toMatch(
       /import\s*\{[^}]*\bbuildDeviceName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
-    expect(code).toMatch(
-      /import\s*\{[^}]*\bbuildFallbackDeviceName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
+    // The collision retry is the import's, on the server.
+    expect(readRunnerCode()).toMatch(
+      /import\s*\{[^}]*\bbuildFallbackDeviceName\b[^}]*\}\s*from\s*"\.\.\/\.\.\/\.\.\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
     expect(code).toMatch(
       /import\s*\{[^}]*\bnormalizeReverseDnsName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/ReverseDnsNameUtil"/,
@@ -1733,7 +2137,9 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     const fullNameIdentifier: string = fullNameDeclaration![1]!;
 
     expect(fullNameIdentifier).not.toBe(rowNameSource().displayNameIdentifier);
-    expect(ariaLabelTemplate()).not.toContain(`\${${fullNameIdentifier}}`);
+    expect(ariaLabelCall().expression).not.toMatch(
+      new RegExp(`\\b${fullNameIdentifier}\\b`),
+    );
     expect(readCode()).not.toMatch(
       new RegExp(`title=\\{${fullNameIdentifier}\\}`),
     );
@@ -1757,9 +2163,13 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      */
     const identifier: string = rowNameSource().displayNameIdentifier;
 
+    /*
+     * The class is a string, or a template literal that opens with
+     * `truncate` (a row already added is drawn dimmer).
+     */
     expect(readCode()).toMatch(
       new RegExp(
-        `<div\\s+className="truncate[^"]*"\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
+        `<div\\s+className=(?:"truncate[^"]*"|\\{\`truncate[^\`]*\`\\})\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
       ),
     );
   });
@@ -1768,13 +2178,38 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     /*
      * One variable, used twice. A sighted operator and a screen-reader user
      * must be told the same thing about the same row — and the label tests
-     * above are running this very template, so if it interpolated something
-     * other than the name line they would report a different string.
+     * above are running this very expression, so if it filled the sentence
+     * with something other than the name line they would report a different
+     * string. The name goes in as a plain value, never as a term to look up;
+     * only the no-address fallback is the dialog's own word.
      */
-    expect(ariaLabelTemplate()).toContain(
-      `\${${rowNameSource().displayNameIdentifier}}`,
+    const expression: string = ariaLabelCall().expression;
+
+    expect(expression).toMatch(
+      new RegExp(
+        `[{,]\\s*name:\\s*${rowNameSource().displayNameIdentifier}\\s*,`,
+      ),
     );
-    expect(ariaLabelTemplate()).toContain('${entry.ipAddress || "no address"}');
+    expect(expression).toContain(
+      'address: entry.ipAddress || translatableTerm("no address")',
+    );
+  });
+
+  test("the hint and the checkbox label are sentences recorded for translation", () => {
+    /*
+     * Looked up by their English text (#4280), so each has to be a key the
+     * extractor recorded, or the reader's language never gets a say. The
+     * hover title still says why a NetBIOS name is worth flagging.
+     */
+    const english: Record<string, string> = readEnglishLocale();
+    const title: string = rowNameSource().netbiosHintTitle;
+
+    expect(title).toContain("NetBIOS");
+    expect(ariaLabelCall().template).toBe("Import {{name}} ({{address}})");
+
+    for (const key of ["NetBIOS name", title, ariaLabelCall().template]) {
+      expect([key, english[key]]).toEqual([key, key]);
+    }
   });
 
   test("the row still renders the address, on its own truncating line", () => {
@@ -1807,9 +2242,7 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     const source: RowNameSource = rowNameSource();
 
     // Normalised at the point of render, not trusted from the jsonb column.
-    expect(source.statements).toContain(
-      "normalizeReverseDnsName(entry.dnsHostname)",
-    );
+    expect(source.statements).toMatch(PTR_NAME_NORMALISED);
 
     expect(source.secondaryIdentifiers).toHaveLength(2);
 
@@ -1841,125 +2274,108 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     ).toBe("");
   });
 
-  test("the NetBIOS hint is gated on a boolean computed from the naming order", () => {
+  test("the NetBIOS hint is gated on a boolean the shared naming rule decides (issue #4518)", () => {
     /*
      * The executed tests in the NetBIOS describe say WHICH rows carry the hint;
      * this pins what they cannot see on their own. The gate is declared a
      * boolean (so `{gate && (...)}` can never paint a stray string or a 0), it
-     * re-normalises the stored NetBIOS answer at the point of render rather
-     * than trusting the jsonb, and it is rendered exactly once.
+     * asks the shared naming rule which source named the row — the same rule
+     * the name line and the import use, which re-normalises the stored answer
+     * rather than trusting the jsonb — and it is rendered exactly once.
      */
     const source: RowNameSource = rowNameSource();
 
     expect(source.statements).toMatch(
       new RegExp(
-        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=`,
+        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=\\s*getDiscoveredHostNameSource\\(entry\\)\\s*===\\s*DeviceNameSource\\.NetbiosName\\s*;`,
       ),
     );
-    expect(source.statements).toContain(
-      "normalizeNetbiosName(entry.netbiosName)",
+    expect(readCode()).toMatch(
+      /import\s*\{[^}]*\bgetDiscoveredHostNameSource\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
     expect(readCode()).toMatch(
-      /import\s*\{[^}]*\bnormalizeNetbiosName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/NetbiosNameUtil"/,
+      /import\s*\{[^}]*\bDeviceNameSource\b[^}]*\}\s*from\s*"Common\/Types\/NetworkDevice\/DeviceNameSource"/,
     );
-    expect(readCode().split("NetBIOS name </span>").length - 1).toBe(1);
+    // No second, local spelling of the rule: the page never reads the column raw.
+    expect(readCode()).not.toContain("normalizeNetbiosName");
+    const hintText: RegExp =
+      /\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>/g;
+    expect(Array.from(readCode().matchAll(hintText))).toHaveLength(1);
     /*
      * And never a badge. The badges on the right of the row describe the HOST
      * ("No SNMP", "Already added"); the hint describes where its NAME came
-     * from, so it belongs on the address line and nowhere else.
+     * from, so it belongs on the address line and nowhere else — whether its
+     * words are written out or looked up.
      */
-    expect(readCode()).not.toMatch(/rounded-full[^>]*>\s*NetBIOS/);
+    expect(readCode()).not.toMatch(
+      /rounded-full[^>]*>\s*(?:\{translator\.translateText\(\s*)?"?NetBIOS/,
+    );
   });
 
+  /*
+   * THE IMPORT NAMES BY THE SAME SCAN. Since the import moved to the server
+   * (issue #4812), the device a ticked row becomes is built by
+   * DiscoveryImportRunner, not in this file - so what has to hold is that
+   * the runner builds every device, and every collision retry, from the
+   * scan, read with the same naming choice the row is drawn with. The
+   * runner's own suite executes it (DiscoveryImportRunner.test.ts); this
+   * pins the shape the WYSIWYG contract (issue #3678) rests on.
+   */
   test("a failed create is retried once under the address-qualified name", () => {
     /*
-     * The wildcard-PTR collision, pinned in the source because the App suite
-     * cannot run importSelectedDevices. What has to hold is the SHAPE: the
-     * fallback name is assigned inside the create's catch and a second create
-     * follows it. `buildFallbackDeviceName` appearing anywhere on the page
-     * would not prove any of that — an import that computed the name and
-     * never retried would satisfy a bare identifier match.
+     * The wildcard-PTR collision: the fallback name is built from the host
+     * and the scan, and created; a bare identifier match would be satisfied
+     * by an import that computed the name and never retried.
      */
-    expect(readCode()).toMatch(
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*\w+\s*,?\s*\);\s*try\s*\{\s*await\s+ModelAPI\.create/,
-    );
+    expect(readRunnerCode()).toMatch(RUNNER_COLLISION_RETRY);
   });
 
-  test("the row, the import, the retry and the Ping monitor all name by the scan under review", () => {
-    /*
-     * Issue #3678's WYSIWYG contract, pinned where the App suite can see it.
-     * The naming argument is required, so the compiler already insists each
-     * call passes SOMETHING — but `{}` compiles too, and would show
-     * "wb-0660-kds01" on the row while the retry created
-     * "wb-0660-kds01.wbhq.com (10.18.167.31)". So every naming argument on the
-     * page has to be the very identifier the row passes, and that identifier
-     * has to be the component's review state — the scan the fresh read put
-     * there — rather than a local literal.
-     */
-    const code: string = readCode();
-    const naming: string = rowNameSource().namingIdentifier;
+  test("the row and the import name by the scan, read with its naming choice", () => {
+    const runner: string = readRunnerCode();
 
-    expect(code).toMatch(
-      new RegExp(`const\\s*\\[\\s*${naming}\\s*,\\s*set\\w+\\s*\\]\\s*=`),
+    // The row is named by the scan it is handed: the dialog's fresh read.
+    expect(readCode()).toMatch(
+      new RegExp(
+        `const\\s+${rowNameSource().namingIdentifier}\\s*:\\s*NetworkDeviceDiscoveryScan\\s*=\\s*props\\.scan\\s*;`,
+      ),
     );
 
-    // The device the import builds.
-    const build: RegExpMatchArray | null = code.match(
-      /buildNetworkDeviceFromDiscoveredHost\(\{\s*projectId:[^}]*?host:\s*entry\s*,\s*scan:\s*(\w+)\s*,?\s*\}\)/,
-    );
-
-    expect(build?.[1]).toBe(naming);
-
-    // The collision retry.
-    const retry: RegExpMatchArray | null = code.match(
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\);/,
-    );
-
-    expect(retry?.[1]).toBe(naming);
-
-    // The Ping monitor's name.
-    const monitor: RegExpMatchArray | null = code.match(
-      /const\s+monitorSubjectName\s*(?::[^=]*)?=\s*device\.name\s*&&\s*device\.name\s*!==\s*entry\.ipAddress\s*\?\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\)/,
-    );
-
-    expect(monitor?.[1]).toBe(naming);
+    // The device the import builds, with the same scan.
+    expect(runner).toMatch(RUNNER_BUILDS_FROM_SCAN);
 
     /*
-     * And no naming call anywhere on the page passes anything else — including
-     * one added later that none of the patterns above know about.
+     * And no naming call in the runner passes anything else — including one
+     * added later that the patterns above do not know about.
      */
     const namingCalls: Array<string> = Array.from(
-      code.matchAll(
-        /\b(?:buildDeviceName|buildFallbackDeviceName)\(([^)]*)\)/g,
-      ),
+      runner.matchAll(NAMING_CALL),
       (call: RegExpMatchArray): string => {
-        return call[1]!.replace(/\s+/g, "").replace(/,$/, "");
+        return call[1]!.replace(WHITESPACE, "").replace(TRAILING_COMMA, "");
       },
     );
 
-    expect(namingCalls.length).toBeGreaterThanOrEqual(3);
+    expect(namingCalls.length).toBeGreaterThanOrEqual(2);
 
     for (const args of namingCalls) {
-      expect(args).toBe(`entry,${naming}`);
+      expect(["host,state.scan", "host,data.scan"]).toContain(args);
     }
+
+    // The scan the runner reads carries the naming choice.
+    expect(runner).toMatch(RUNNER_SCAN_SELECT_HAS_BUILDER_COLUMNS);
+    expect(readFile(AUTO_IMPORT_ENGINE)).toMatch(
+      BUILDER_SELECT_HAS_NAMING_CHOICE,
+    );
   });
 
   test("the scan the dialog reviews is fetched with its naming choice", () => {
     /*
-     * A column the fresh read does not select arrives as undefined, which the
-     * builder reads as "full names" — so a scan set to short names would
-     * silently preview and import full ones. The rendered test in
-     * Common/Tests/App/Dashboard/DiscoveryReviewInventoryRefresh pins the
-     * exact select; this is the source-level half, next to the naming tests
-     * that depend on it.
+     * A column the fresh read does not select arrives as undefined, which
+     * the builder reads as "full names" — so a scan set to short names would
+     * silently preview full ones while the import created short ones.
      */
-    const code: string = readCode();
-
-    expect(code).toMatch(
-      /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}/,
-    );
-    expect(code).toMatch(
-      /selectMoreFields=\{\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}\}/,
+    expect(readFile(REVIEW_MODULE)).toMatch(REVIEW_SELECT_HAS_NAMING_CHOICE);
+    expect(readFileCode(DIALOG_MODULE)).toMatch(
+      DIALOG_READS_WITH_REVIEW_SELECT,
     );
   });
 });

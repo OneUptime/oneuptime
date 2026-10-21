@@ -314,6 +314,189 @@ describe("Chunker", (): void => {
   });
 
   /*
+   * #4207. The idle rollover learns the user left only once the idle window
+   * has passed, and its seal was dated THEN - so every abandoned session
+   * ended half an hour after its last frame, and the list advertised a
+   * recording the player could not show. A seal can now say when the
+   * recording really ended.
+   */
+  describe("a seal dated where the recording ended", (): void => {
+    const withClockAt: (unixMs: number, run: () => void) => void = (
+      unixMs: number,
+      run: () => void,
+    ): void => {
+      const clock: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(unixMs);
+
+      try {
+        run();
+      } finally {
+        clock.mockRestore();
+      }
+    };
+
+    it("dates an empty final chunk at the end it is given, not at now", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 2_000 }));
+      chunker.close(false);
+
+      withClockAt(SESSION_START + 31 * 60 * 1000, (): void => {
+        chunker.close(true, SESSION_START + 45_000);
+      });
+
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.eventCount).toBe(0);
+      expect(seal.payload).toBe("[]");
+      expect(seal.chunkStartOffsetMs).toBe(45_000);
+      expect(seal.chunkEndOffsetMs).toBe(45_000);
+    });
+
+    it("never dates it before the footage ahead of it", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 90_000 }));
+      chunker.close(false);
+
+      withClockAt(SESSION_START + 31 * 60 * 1000, (): void => {
+        chunker.close(true, SESSION_START + 10_000);
+      });
+
+      expect(chunks[1]?.chunkStartOffsetMs).toBe(90_000);
+      expect(chunks[1]?.chunkEndOffsetMs).toBe(90_000);
+    });
+
+    it("never dates it after now, whatever end it is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      withClockAt(SESSION_START + 5_000, (): void => {
+        chunker.close(true, SESSION_START + 60 * 60 * 1000);
+      });
+
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(5_000);
+    });
+
+    it("never dates it before the session started", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      withClockAt(SESSION_START + 5_000, (): void => {
+        chunker.close(true, SESSION_START - 60_000);
+      });
+
+      expect(chunks[0]?.chunkStartOffsetMs).toBe(0);
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(0);
+    });
+
+    it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+      "falls back to now for an end of %p",
+      (endedAtUnixMs: number): void => {
+        const chunker: Chunker = makeChunker();
+
+        withClockAt(SESSION_START + 7_000, (): void => {
+          chunker.close(true, endedAtUnixMs);
+        });
+
+        expect(chunks[0]?.chunkEndOffsetMs).toBe(7_000);
+      },
+    );
+
+    it("still dates it at now when no end is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      withClockAt(SESSION_START + 7_000, (): void => {
+        chunker.close(true);
+      });
+
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(7_000);
+    });
+
+    /*
+     * #4208: the pagehide path closes through closeSplit, and a tab closed
+     * while the recorder was paused for idle has nothing open - its seal
+     * has to be dated at the footage, as close() dates the idle rollover's,
+     * or twenty minutes nobody recorded are counted as recording.
+     */
+    it("dates an empty final split at the end it is given, too", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 300_000 }));
+      chunker.close(false);
+
+      withClockAt(SESSION_START + 25 * 60 * 1000, (): void => {
+        chunker.closeSplit(true, 70, 70, 10, SESSION_START + 2_000);
+      });
+
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.eventCount).toBe(0);
+      expect(seal.payload).toBe("[]");
+
+      /* Never before the footage ahead of it: the marker that ended it. */
+      expect(seal.chunkStartOffsetMs).toBe(300_000);
+      expect(seal.chunkEndOffsetMs).toBe(300_000);
+    });
+
+    it("still dates an empty final split at now when no end is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      withClockAt(SESSION_START + 9_000, (): void => {
+        chunker.closeSplit(true, 70, 70);
+      });
+
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(9_000);
+    });
+
+    it("leaves a split with events dated by its events, whatever end it is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 3_000 }));
+      chunker.add(event({ timestampMs: SESSION_START + 8_000 }));
+
+      withClockAt(SESSION_START + 31 * 60 * 1000, (): void => {
+        chunker.closeSplit(true, 1_000, 1_000, 0, SESSION_START + 1_000);
+      });
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunks[0]?.chunkStartOffsetMs).toBe(3_000);
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(8_000);
+    });
+
+    /*
+     * Events date themselves. Whatever was still open when the session
+     * ended IS its last footage, and its own times say where that ended.
+     */
+    it("leaves a final chunk with events dated by its events", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 3_000 }));
+      chunker.add(event({ timestampMs: SESSION_START + 8_000 }));
+
+      withClockAt(SESSION_START + 31 * 60 * 1000, (): void => {
+        chunker.close(true, SESSION_START + 1_000);
+      });
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunks[0]?.eventCount).toBe(2);
+      expect(chunks[0]?.chunkStartOffsetMs).toBe(3_000);
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(8_000);
+    });
+
+    it("emits nothing for a non-final close, end or no end", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.close(false, SESSION_START + 1_000);
+
+      expect(chunks).toHaveLength(0);
+    });
+  });
+
+  /*
    * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
    *
    * An oversized indivisible snapshot used to be CUT into raw slices of the

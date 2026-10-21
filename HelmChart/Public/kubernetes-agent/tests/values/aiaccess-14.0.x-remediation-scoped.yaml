@@ -1,0 +1,35 @@
+# A 14.0.x release that granted the Runner write access in two namespaces,
+# with node operations off, behind an egress proxy, and pinned the Runner
+# image with its own pull policy and resources, upgraded with --reuse-values:
+#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
+#   --set "aiAccess.remediation.namespaces={web,api}"
+#   --set aiAccess.remediation.nodeOperations=false
+#   --set aiAccess.extraEnv[0].name=HTTPS_PROXY ...
+#   --set aiAccess.image.tag=14.0.8 --set aiAccess.image.pullPolicy=IfNotPresent
+# The write scope and the proxy carry over; the image, pull policy and
+# resources are the Runner's and must not.
+aiAgent: null
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: true
+    namespaces:
+      - web
+      - api
+    nodeOperations: false
+  image:
+    repository: oneuptime/runner
+    tag: "14.0.8"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  extraEnv:
+    - name: HTTPS_PROXY
+      value: http://egress.internal:3128
+    - name: NO_PROXY
+      value: kubernetes.default.svc,10.0.0.0/8

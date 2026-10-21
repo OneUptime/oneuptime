@@ -1,88 +1,163 @@
-# Intégration PagerDuty
+# PagerDuty
 
-Déclenchez un incident [PagerDuty](https://www.pagerduty.com) chaque fois qu'un incident OneUptime est créé, et résolvez-le lorsque OneUptime résout. Utile lorsque PagerDuty gère vos escalades et plannings d'astreinte et que vous souhaitez que le monitoring OneUptime l'alimente.
+Envoyez les incidents OneUptime à [PagerDuty](https://www.pagerduty.com). Un workflow déclenche un incident PagerDuty quand un incident OneUptime est déclaré, et un second le résout quand l'incident OneUptime est résolu. Utilisez-le quand PagerDuty prévient votre équipe et que OneUptime surveille vos systèmes.
 
-Cette intégration est **sortante** : OneUptime appelle l'[Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) de PagerDuty. Elle utilise un **[Workflow](/docs/workflows/index)** OneUptime avec un déclencheur **Incident → On Create** et un **composant API**.
+:::cards
+- [Enregistrer la clé de routage](#enregistrer-la-clé-de-routage): Gardez la clé de PagerDuty hors de vos workflows.
+- [Déclencher des incidents PagerDuty](#déclencher-un-incident-pagerduty-pour-chaque-incident): Un workflow, deux blocs.
+- [Les résoudre](#résoudre-lincident-pagerduty): Un second workflow qui suit l'état de l'incident.
+- [Dépannage](#dépannage): Quand PagerDuty refuse un événement.
+:::
 
-> OneUptime dispose de sa propre fonctionnalité d'astreinte et d'escalade intégrée — voir [On Call](/docs/on-call/incoming-call-policy). N'utilisez cette intégration que si vous souhaitez spécifiquement que les événements arrivent également dans PagerDuty.
+> [!TIP]
+> OneUptime prévient aussi les gens, avec des politiques d'astreinte, des plannings et des règles d'escalade. Pour faire quitter PagerDuty à votre équipe, voir [Quitter PagerDuty](/docs/moving-to-oneuptime/pagerduty) : une importation fait venir vos utilisateurs, vos plannings et vos politiques d'escalade.
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  ──►  PagerDuty incident
+## Fonctionnement
+
+```mermaid title="Deux workflows, un incident PagerDuty"
+flowchart TB
+    declared["Incident déclaré"] --> create["Workflow 1 :<br/>On Create Incident"]
+    create -->|"trigger"| pd["Incident PagerDuty"]
+    resolved["Incident résolu"] --> update["Workflow 2 :<br/>On Update Incident"]
+    update -->|"resolve"| pd
 ```
 
-## Prérequis
+Les deux workflows appellent l'[Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) de PagerDuty avec le même `dedup_key`, formé à partir de l'ID de l'incident OneUptime. Cette clé permet à PagerDuty de savoir que l'événement de résolution ferme l'incident ouvert par l'événement de déclenchement.
 
-- Un service PagerDuty avec une intégration **Events API v2**. Dans PagerDuty : **Service → Integrations → Add integration → Events API v2**. Copiez la **clé d'intégration** (aussi appelée _routing key_).
-- Un projet OneUptime où vous pouvez créer des workflows.
+## Avant de commencer
 
-## Étape 1 — Stocker la routing key
+- Un service PagerDuty avec une intégration Events API v2. Dans PagerDuty, ouvrez le service, puis **Integrations**, cliquez sur **Add an integration** et choisissez **Events API V2**. Copiez son **Integration Key** : l'Events API l'appelle la clé de routage.
+- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
 
-1. Allez dans **Flux de travail → Variables globales → Créer**.
-2. Nommez-la `PAGERDUTY_ROUTING_KEY`, collez la clé d'intégration, et activez **Is Secret**.
+## Enregistrer la clé de routage
 
-## Étape 2 — Créer le workflow « trigger »
+:::steps
+1. Allez dans **Flux de travail → Variables globales** et cliquez sur **Créer : Variable de flux de travail**.
+2. Nommez-la `PAGERDUTY_ROUTING_KEY` et cliquez sur **Suivant**.
+3. Collez la clé d'intégration dans **Contenu**, activez **Secret** et cliquez sur **Créer : Variable de flux de travail**.
+:::
 
-1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → PagerDuty`, et ouvrez le **Constructeur**.
-2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
-3. Ajoutez un bloc **API** connecté au déclencheur :
+Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécution, la clé n'apparaît donc jamais dans une exécution.
 
-   - **Method** : `POST`
-   - **URL** : `https://events.pagerduty.com/v2/enqueue`
-   - **Headers** : `Content-Type: application/json`
-   - **Body** :
+## Déclencher un incident PagerDuty pour chaque incident
 
-     ```json
-     {
-       "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-       "event_action": "trigger",
-       "dedup_key": "oneuptime-{{Incident._id}}",
-       "payload": {
-         "summary": "{{Incident.title}}",
-         "source": "OneUptime",
-         "severity": "critical",
-         "custom_details": {
-           "description": "{{Incident.description}}"
-         }
-       }
-     }
-     ```
+:::steps
+### Créer le workflow
 
-   Le **`dedup_key`** lie cet incident PagerDuty à l'incident OneUptime pour pouvoir le résoudre plus tard. Utiliser l'id de l'incident OneUptime le rend unique et prévisible.
+Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to PagerDuty` et cliquez sur **Créer un flux de travail**.
 
-4. **Enregistrez**, activez, et créez un incident de test. Une réponse `202` dans les journaux du workflow signifie que PagerDuty a accepté l'événement.
+### Ajouter le déclencheur
 
-## Étape 3 — Résoudre lors de la résolution OneUptime (recommandé)
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
-1. Dans le **même** workflow, ajouter un second déclencheur **Incident** ? Non — un workflow n'a qu'un seul déclencheur. Créez plutôt un **second** workflow nommé `Resolve PagerDuty` avec un déclencheur **Incident → On Update**.
-2. Ajoutez un bloc **Conditions** pour vérifier que l'incident est maintenant résolu (branchez sur l'état de l'incident / `{{Incident.currentIncidentState.name}}` égal à votre nom d'état résolu).
-3. Depuis **Yes**, ajoutez un bloc **API** vers PagerDuty avec le **même `dedup_key`** et `event_action` défini sur `resolve` :
+### Envoyer l'événement de déclenchement
 
-   ```json
-   {
-     "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-     "event_action": "resolve",
-     "dedup_key": "oneuptime-{{Incident._id}}"
-   }
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://events.pagerduty.com/v2/enqueue` et son **Request Body** sur :
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "trigger",
+  "dedup_key": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "payload": {
+    "summary": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    "source": "OneUptime",
+    "severity": "critical",
+    "custom_details": {
+      "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+    }
+  }
+}
+```
+
+### Tester, puis activer
+
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202` avec `"status": "success"`, et PagerDuty ouvre un incident. Activez ensuite **Activé** en haut du **Constructeur**.
+:::
+
+Le bloc envoie du JSON, il n'a donc pas besoin d'en-tête `Content-Type`. Le `severity` de PagerDuty est l'un de `critical`, `error`, `warning` et `info` : pour envoyer celui de chaque incident, voir [Faire correspondre les gravités](#faire-correspondre-les-gravités).
+
+## Résoudre l'incident PagerDuty
+
+Un workflow a un seul déclencheur, la résolution demande donc un second workflow, démarré quand l'état d'un incident change.
+
+:::steps
+### Ajouter le déclencheur On Update Incident
+
+Créez un workflow nommé `Resolve PagerDuty incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Vérifier que l'incident est résolu
+
+Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Value to check** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparison** sur **is true**.
+
+### Envoyer l'événement de résolution
+
+Ajoutez un bloc **API Post (JSON)** après le côté **Yes**, avec la même **URL** et ce **Request Body** :
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "resolve",
+  "dedup_key": "oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}"
+}
+```
+
+### L'activer
+
+Activez **Activé**, puis résolvez un incident de test dans OneUptime. PagerDuty résout son incident.
+:::
+
+Vérifier `isResolvedState` plutôt que le nom d'un état continue de fonctionner quand vous renommez vos états. Voir [États et sévérités des incidents](/docs/incidents/states-and-severities).
+
+## Faire correspondre les gravités
+
+Pour envoyer la gravité de chaque incident, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**, et lisez sa réponse dans le corps.
+
+1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
+2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **JavaScript Code** sur :
+
+   ```javascript
+   // Your incident severities, by name, to PagerDuty's.
+   const SEVERITY = {
+     "Critical Incident": "critical",
+     "Major Incident": "error",
+     "Minor Incident": "warning",
+   };
+
+   return { severity: SEVERITY[args.severity] || "info" };
    ```
 
-PagerDuty fait correspondre le `dedup_key` et ferme l'incident original.
+3. Dans le corps de la requête, réglez `"severity"` sur `"{{local.components.javascript-1.returnValues.returnValue.severity}}"`.
 
-## Association des gravités (optionnel)
-
-Le champ `severity` de PagerDuty accepte `critical`, `error`, `warning` ou `info`. Pour faire correspondre les gravités OneUptime, ajoutez des branches **Conditions** sur `{{Incident.incidentSeverity.name}}` avant le bloc API et envoyez un corps différent depuis chaque branche.
-
-## Entrant (optionnel)
-
-Pour aller dans l'autre sens — ouvrir un incident OneUptime depuis un événement PagerDuty — ajoutez un workflow avec un déclencheur **Webhook** et pointez un [webhook V3](https://developer.pagerduty.com/docs/webhooks/v3-overview/) PagerDuty (ou une orchestration d'événements) vers son URL, puis utilisez **Create Incident**. Voir le [schéma entrant](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+Les noms ci-dessus sont les trois gravités avec lesquelles un nouveau projet commence. Utilisez les vôtres si vous les avez renommées.
 
 ## Dépannage
 
-- **`400` avec `"invalid routing key"`** — l'intégration doit être **Events API v2**, pas l'ancienne Events API v1 ni un autre type d'intégration. Recopiez la clé.
-- **La résolution ne ferme rien** — le `dedup_key` de l'appel de résolution doit correspondre exactement à celui de l'appel de déclenchement.
-- **Rien dans les journaux** — confirmez que le workflow est **Activé** et que le déclencheur est sur **On Create**.
+:::details PagerDuty répond 400
+Le corps de la réponse dit ce que PagerDuty a refusé, et l'étape **API Post (JSON)** de l'exécution l'affiche. Le plus souvent, la clé de routage n'est pas une clé d'intégration Events API v2 : copiez-la de nouveau depuis les **Integrations** du service. Un événement sans `summary`, `source` ou `severity` est aussi refusé.
+:::
 
-## Pour aller plus loin
+:::details L'événement de résolution ne ferme rien
+Les deux événements doivent porter exactement le même `dedup_key`. Vérifiez que les deux corps le forment avec `oneuptime-` suivi du `_id` de l'incident, et que le workflow de résolution est activé.
+:::
 
-- [Vue d'ensemble des intégrations](/docs/integrations/index) — les schémas et l'aide-mémoire d'authentification.
-- [On Call](/docs/on-call/incoming-call-policy) — l'escalade intégrée de OneUptime.
-- [Opsgenie](/docs/integrations/opsgenie) — la même idée pour Opsgenie.
+:::details Le workflow ne s'exécute jamais
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **No** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
+:::
+
+:::details PagerDuty affiche une référence au lieu d'une valeur
+Une référence qui ne se résout pas est envoyée telle qu'elle est écrite, accolades comprises. Vérifiez l'identifiant du bloc, le nom du champ et le nom de la variable, sensible à la casse. Dans l'onglet **Étapes** de l'exécution, un paramètre contenant une telle référence est marqué **Non résolu**.
+:::
+
+## Étapes suivantes
+
+:::cards
+- [Quitter PagerDuty](/docs/moving-to-oneuptime/pagerduty): Faites venir votre équipe, vos plannings et vos politiques d'escalade.
+- [Règles d'escalade](/docs/on-call/escalation-rules): Prévenez les gens depuis OneUptime lui-même.
+- [Opsgenie](/docs/integrations/opsgenie): Les deux mêmes workflows pour Opsgenie.
+- [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
+:::

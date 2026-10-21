@@ -859,6 +859,37 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - conversation reference"
     });
   });
 
+  /*
+   * A card's summary is what Teams shows of it in a notification and the
+   * activity feed: without one, only that a card was sent.
+   */
+  test("the card's activity carries the summary its notification shows; a card sent without one has none", async () => {
+    mockProjectAuth();
+    installFakeBotAdapter();
+
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChannel({
+      authToken: "auth-token",
+      teamId: TEAM_ID,
+      workspaceChannel: buildChannel(),
+      adaptiveCard: ADAPTIVE_CARD,
+      projectId: ObjectID.generate(),
+      summary: "PolicyX paged nobody at escalation rule 3 of 3 (third)",
+    });
+    await sendCardToChannel();
+
+    const activities: Array<JSONObject> = (
+      MessageFactory.attachment as jest.Mock
+    ).mock.results.map((result: jest.MockResult<unknown>): JSONObject => {
+      return result.value as JSONObject;
+    });
+
+    expect(activities).toHaveLength(2);
+    expect(activities[0]!["summary"]).toBe(
+      "PolicyX paged nobody at escalation rule 3 of 3 (third)",
+    );
+    expect(activities[1]!).not.toHaveProperty("summary");
+  });
+
   test("serviceUrl comes from the installed team record when it was captured", async () => {
     mockProjectAuth({
       installedTeams: {
@@ -1319,6 +1350,43 @@ describe("MicrosoftTeamsUtil.sendMessage - unresolvable channel destinations are
         },
       );
   }
+
+  test("a channel to skip is not posted to, whether named by its name or its id", async () => {
+    // A note saved from a message in "general" is not posted back into it.
+    const general: WorkspaceChannel = buildChannel({ name: "general" });
+    const ops: WorkspaceChannel = buildChannel({
+      id: "19:ops@thread.tacv2",
+      name: "ops",
+    });
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelByName")
+      .mockImplementation(
+        async (args: {
+          channelName: string;
+        }): Promise<WorkspaceChannel | null> => {
+          return args.channelName === "general" ? general : ops;
+        },
+      );
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelFromChannelId")
+      .mockResolvedValue(general);
+    const sendSpy: jest.SpyInstance = mockSendCardToChannel();
+
+    const response: WorkspaceSendMessageResponse = await callSendMessage({
+      ...buildChannelPayload({
+        channelNames: ["general", "ops"],
+        channelIds: [CHANNEL_ID],
+      }),
+      exceptChannelIds: [CHANNEL_ID],
+    });
+
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    expect(sendSpy.mock.calls[0]![0].workspaceChannel.id).toBe(
+      "19:ops@thread.tacv2",
+    );
+    expect(response.threads).toHaveLength(1);
+    expect(response.errors).toEqual([]);
+  });
 
   test("a channelName that does not resolve is reported as an error, not a silent success", async () => {
     jest

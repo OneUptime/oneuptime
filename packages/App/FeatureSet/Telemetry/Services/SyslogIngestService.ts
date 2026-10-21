@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -39,6 +40,25 @@ import {
   ParsedSyslogStructuredData,
   parseSyslogMessage,
 } from "../Utils/SyslogParser";
+import NetworkEventAttribute from "Common/Types/NetworkEvent/NetworkEventAttribute";
+import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
+import {
+  getNetworkEventName,
+  markNetworkEvent,
+} from "Common/Utils/NetworkEvent/NetworkEventLog";
+import SyslogEventNormalizer, {
+  NormalizedSyslogMessage,
+} from "Common/Utils/Syslog/SyslogEventNormalizer";
+import { SyslogParserId } from "Common/Utils/Syslog/SyslogVendorParser";
+import {
+  SYSLOG_FACILITY_LABELS,
+  SYSLOG_SEVERITY_LABELS,
+  SYSLOG_TO_OTEL_SEVERITY,
+  isSyslogSeverity,
+} from "Common/Utils/Syslog/SyslogSeverity";
+import SyslogDeviceMatcher, {
+  SyslogDeviceAttribution,
+} from "Common/Server/Utils/Syslog/SyslogDeviceMatcher";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
@@ -58,59 +78,21 @@ class SyslogStorageFlushError extends Error {
 }
 
 export default class SyslogIngestService extends OtelIngestBaseService {
-  private static readonly SYSLOG_FACILITY_LABELS: Array<string> = [
-    "kernel",
-    "user",
-    "mail",
-    "system",
-    "security",
-    "syslogd",
-    "line_printer",
-    "network_news",
-    "uucp",
-    "clock",
-    "security2",
-    "ftp",
-    "ntp",
-    "log_audit",
-    "log_alert",
-    "clock2",
-    "local0",
-    "local1",
-    "local2",
-    "local3",
-    "local4",
-    "local5",
-    "local6",
-    "local7",
-  ];
+  // One copy of what a priority means, for every way syslog arrives.
+  private static readonly SYSLOG_FACILITY_LABELS: ReadonlyArray<string> =
+    SYSLOG_FACILITY_LABELS;
 
-  private static readonly SYSLOG_SEVERITY_LABELS: Array<string> = [
-    "emergency",
-    "alert",
-    "critical",
-    "error",
-    "warning",
-    "notice",
-    "informational",
-    "debug",
-  ];
+  private static readonly SYSLOG_SEVERITY_LABELS: ReadonlyArray<string> =
+    SYSLOG_SEVERITY_LABELS;
 
   private static readonly DEFAULT_SERVICE_NAME: string = "Syslog";
 
-  private static readonly SYSLOG_TO_OTEL_SEVERITY: Dictionary<{
-    number: number;
-    text: LogSeverity;
-  }> = {
-    "0": { number: 23, text: LogSeverity.Fatal },
-    "1": { number: 23, text: LogSeverity.Fatal },
-    "2": { number: 19, text: LogSeverity.Error },
-    "3": { number: 19, text: LogSeverity.Error },
-    "4": { number: 13, text: LogSeverity.Warning },
-    "5": { number: 9, text: LogSeverity.Information },
-    "6": { number: 9, text: LogSeverity.Information },
-    "7": { number: 5, text: LogSeverity.Debug },
-  };
+  private static readonly SYSLOG_TO_OTEL_SEVERITY: Readonly<
+    Dictionary<{
+      number: number;
+      text: LogSeverity;
+    }>
+  > = SYSLOG_TO_OTEL_SEVERITY;
 
   @CaptureSpan()
   public static async ingestSyslog(
@@ -153,6 +135,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processSyslogAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The
@@ -235,19 +218,57 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           const serviceMetadata: TelemetryServiceMetadata =
             serviceCache[serviceName]!;
 
+          /*
+           * What the message itself says: whose format it is, its fields,
+           * and whether it is something that happened on the network - and
+           * the network device it names, if the project has it.
+           */
+          const read: {
+            normalized: NormalizedSyslogMessage;
+            device: SyslogDeviceAttribution | null;
+          } = await this.readVendorMessage(projectId, parsed);
+
           const severityInfo: { number: number; text: LogSeverity } =
-            this.mapSeverity(parsed.severity);
+            this.mapSeverity(
+              // A line without a priority may still say how serious it is.
+              parsed.severity === undefined &&
+                isSyslogSeverity(read.normalized.severity)
+                ? read.normalized.severity
+                : parsed.severity,
+            );
 
           const timestamp: Date =
             parsed.timestamp || OneUptimeDate.getCurrentDate();
           const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
-          const attributes: Dictionary<AttributeType | Array<AttributeType>> =
-            this.buildAttributes({
+          const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
+            // What the line says first: it never replaces what ingest knows.
+            ...read.normalized.attributes,
+            ...this.buildDeviceAttributes(read.device),
+            ...this.buildAttributes({
               parsed,
               primaryEntityId: serviceMetadata.primaryEntityId,
               serviceName,
+            }),
+          };
+
+          /*
+           * Which device an event is about, in words: its name here, else
+           * the name it gives itself. Only on what already is a network
+           * event: a server's sshd line carries an event's name without
+           * being one (see readVendorMessage), and must stay that way.
+           */
+          const eventDevice: string =
+            read.device?.device.name ||
+            read.normalized.identity.hostname ||
+            read.normalized.headerHostname ||
+            "";
+
+          if (getNetworkEventName(attributes as JSONObject) !== null) {
+            markNetworkEvent(attributes as JSONObject, {
+              device: eventDevice,
             });
+          }
 
           const retentionDays: number = resolveTelemetryRetentionInDays({
             pillar: "logs",
@@ -304,6 +325,22 @@ export default class SyslogIngestService extends OtelIngestBaseService {
 
           if (loadedPipelines.length > 0) {
             logRow = LogPipelineService.processLog(logRow, loadedPipelines);
+          }
+
+          /*
+           * An event a pipeline named, on the log of a network device, is a
+           * network event like a built-in one. Other syslog - a server's -
+           * keeps whatever its pipelines file under the same key.
+           */
+          if (
+            read.device &&
+            markNetworkEvent(logRow["attributes"] as JSONObject | undefined, {
+              device: eventDevice,
+            })
+          ) {
+            logRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(
+              logRow["attributes"] as JSONObject,
+            );
           }
 
           dbLogs.push(logRow);
@@ -368,6 +405,83 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
+  }
+
+  /*
+   * A message's vendor fields and event, and the network device of the
+   * project it names. A relay posts for many devices from one address, so
+   * here the device is found by what the message says: a MAC address, a
+   * serial number, an address, or a host name exactly one device has. A
+   * format with no mark of its own is read again once its device, and so
+   * who made it, is known.
+   *
+   * This endpoint is also where servers send their syslog, and a server
+   * writes the same sshd and kernel lines an access point does. Such a
+   * line is a network event only on the log of a network device: from any
+   * other host it keeps its fields and the event's name, without the
+   * domain that would list a server's failed logins among what happened
+   * on the network. A line in a network vendor's own format can only have
+   * come from network equipment, and is an event wherever it came from.
+   *
+   * Nothing here may fail a message: a lookup that errors leaves it
+   * without a device.
+   */
+  private static async readVendorMessage(
+    projectId: ObjectID,
+    parsed: ParsedSyslogMessage,
+  ): Promise<{
+    normalized: NormalizedSyslogMessage;
+    device: SyslogDeviceAttribution | null;
+  }> {
+    let normalized: NormalizedSyslogMessage =
+      SyslogEventNormalizer.normalizeParsed(parsed);
+    let device: SyslogDeviceAttribution | null = null;
+
+    try {
+      device = await SyslogDeviceMatcher.findDeviceInProject(projectId, {
+        identity: normalized.identity,
+        headerHostname: normalized.headerHostname,
+      });
+    } catch (matchError) {
+      logger.error("Syslog ingest: error matching a message to a device:");
+      logger.error(matchError);
+    }
+
+    if (device && !normalized.parserId && device.device.vendorText) {
+      normalized = SyslogEventNormalizer.normalizeParsed(parsed, {
+        deviceVendor: device.device.vendorText,
+      });
+    }
+
+    if (!device && normalized.parserId === SyslogParserId.Linux) {
+      const attributes: Record<string, string> = { ...normalized.attributes };
+
+      delete attributes[NetworkEventAttribute.Domain];
+
+      normalized = { ...normalized, attributes: attributes };
+    }
+
+    return { normalized: normalized, device: device };
+  }
+
+  // The attributes that put a log on its network device's pages.
+  private static buildDeviceAttributes(
+    device: SyslogDeviceAttribution | null,
+  ): Dictionary<AttributeType> {
+    if (!device) {
+      return {};
+    }
+
+    const attributes: Dictionary<AttributeType> = {
+      "networkDevice.id": device.device.id.toString(),
+      [SyslogAttribute.MatchedBy]: device.matchedBy,
+    };
+
+    if (device.device.name) {
+      attributes["networkDevice.name"] = device.device.name;
+    }
+
+    return attributes;
   }
 
   private static resolveServiceName(

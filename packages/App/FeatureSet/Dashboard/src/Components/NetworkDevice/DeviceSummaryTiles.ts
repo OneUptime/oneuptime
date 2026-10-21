@@ -1,7 +1,6 @@
 import {
-  DEVICE_INTERFACES_FACET_KEY,
+  DEVICES_WITH_INTERFACES_DOWN_SELECTION,
   DEVICE_STATUS_FACET_KEY,
-  DeviceInterfacesFacetValue,
   DeviceStatusFacetValue,
 } from "./DeviceFacets";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
@@ -103,10 +102,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     allClearClassName: "text-gray-900",
     caption: "Across all devices in this project.",
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.totalInterfacesDown,
-    selection: {
-      facetKey: DEVICE_INTERFACES_FACET_KEY,
-      values: [DeviceInterfacesFacetValue.SomeDown],
-      operator: "is",
-    },
+    // The same selection the Network Overview's Interfaces Down tile links to.
+    selection: DEVICES_WITH_INTERFACES_DOWN_SELECTION,
   },
 ];

@@ -1,9 +1,21 @@
-import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  CriteriaFilterUtil,
+} from "../../../Types/Monitor/CriteriaFilter";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import {
+  SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { BasicDiskMetrics } from "../../../Types/Infrastructure/BasicMetrics";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
@@ -54,6 +66,20 @@ export interface FanOutEntity {
    * what it says for each disk.
    */
   narrowFilter: (filter: CriteriaFilter) => CriteriaFilter;
+  /**
+   * The observation this entity is judged on, when it is not the
+   * monitor's own payload. A disk or an interface is narrowed through its
+   * filters and leaves this unset; a grouped Logs monitor's group is a
+   * slice of the data instead - its own log count - so it carries the
+   * response narrowed to that group (see LogGroupCriteriaFanOut).
+   */
+  dataToProcess?: DataToProcess | undefined;
+}
+
+// The name and alias a port is addressed by.
+interface InterfaceRef {
+  name?: string | undefined;
+  alias?: string | undefined;
 }
 
 export default class PerEntityCriteriaFanOut {
@@ -76,6 +102,7 @@ export default class PerEntityCriteriaFanOut {
     entities: Array<FanOutEntity>;
     evaluateNarrowedCriteria: (
       narrowedCriteriaInstance: MonitorCriteriaInstance,
+      entity: FanOutEntity,
     ) => Promise<string | null>;
     monitorId: string | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
@@ -103,8 +130,10 @@ export default class PerEntityCriteriaFanOut {
           entity,
         });
 
-      const rootCause: string | null =
-        await input.evaluateNarrowedCriteria(narrowed);
+      const rootCause: string | null = await input.evaluateNarrowedCriteria(
+        narrowed,
+        entity,
+      );
 
       if (!rootCause) {
         continue;
@@ -248,10 +277,31 @@ export default class PerEntityCriteriaFanOut {
       return [];
     }
 
-    const snmpResponse: SnmpMonitorResponse =
-      input.dataToProcess as unknown as SnmpMonitorResponse;
+    const snmpResponse: SnmpMonitorResponse | undefined =
+      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess);
 
-    const interfaces: Array<SnmpInterface> = snmpResponse?.interfaces || [];
+    /*
+     * A criteria whose "*" filters are all transceiver ones fans out over
+     * the ports that have (or had) an optic rather than over every port:
+     * the per-criteria cap would otherwise spend itself on the copper ports
+     * of a big switch and never reach its uplinks. Any interface CheckOn in
+     * the mix keeps the full interface list, which covers those ports too.
+     */
+    const interfaces: Array<InterfaceRef> =
+      PerEntityCriteriaFanOut.isOnlyTransceiverFanOut(input.criteriaInstance)
+        ? (snmpResponse?.transceivers || []).map(
+            (transceiver: NetworkDeviceTransceiver): InterfaceRef => {
+              return {
+                name: transceiver.interfaceName,
+                alias: transceiver.interfaceAlias,
+              };
+            },
+          )
+        : (snmpResponse?.interfaces || []).map(
+            (walked: SnmpInterface): InterfaceRef => {
+              return { name: walked.name, alias: walked.alias };
+            },
+          );
 
     const seenInterfaceNames: Set<string> = new Set<string>();
     const entities: Array<FanOutEntity> = [];
@@ -320,10 +370,275 @@ export default class PerEntityCriteriaFanOut {
   private static isInterfaceScopedCheckOn(
     checkOn: CheckOn | undefined,
   ): boolean {
+    return CriteriaFilterUtil.isInterfaceScopedCheckOn(checkOn);
+  }
+
+  /*
+   * True when every "*" interface-scoped filter of the criteria is a
+   * transceiver one.
+   */
+  public static isOnlyTransceiverFanOut(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): boolean {
+    const wildcardCheckOns: Array<CheckOn> = (
+      criteriaInstance.data?.filters || []
+    )
+      .filter((filter: CriteriaFilter) => {
+        return (
+          PerEntityCriteriaFanOut.isInterfaceScopedCheckOn(filter.checkOn) &&
+          PerEntityCriteriaFanOut.isWildcard(
+            filter.snmpMonitorOptions?.interfaceName,
+          )
+        );
+      })
+      .map((filter: CriteriaFilter) => {
+        return filter.checkOn;
+      });
+
     return (
-      checkOn === CheckOn.SnmpInterfaceIsDown ||
-      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
-      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+      wildcardCheckOns.length > 0 &&
+      wildcardCheckOns.every((checkOn: CheckOn) => {
+        return CriteriaFilterUtil.isTransceiverCheckOn(checkOn);
+      })
+    );
+  }
+
+  /**
+   * The walk a Network Device monitor is judged on.
+   *
+   * The poll pipeline hands the evaluator a ProbeMonitorResponse whose walk
+   * sits under `snmpResponse` - interfaces and tables included. Reading the
+   * interfaces off the top level of that object (as this file once did)
+   * found nothing, so a "*" interface criteria never fanned out on a real
+   * poll and quietly fell back to one combined alert. A bare walk is still
+   * accepted for callers that pass one directly.
+   */
+  private static getSnmpResponse(
+    dataToProcess: DataToProcess,
+  ): SnmpMonitorResponse | undefined {
+    const probeResponse: ProbeMonitorResponse =
+      dataToProcess as ProbeMonitorResponse;
+
+    if (probeResponse?.snmpResponse) {
+      return probeResponse.snmpResponse;
+    }
+
+    const bareWalk: SnmpMonitorResponse =
+      dataToProcess as unknown as SnmpMonitorResponse;
+
+    if (bareWalk?.interfaces || bareWalk?.tables) {
+      return bareWalk;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * The table rows a Network Device monitor's criteria should fan out
+   * over: every row of each table a "*" table filter names, so a second
+   * tunnel going down raises its own alert instead of being folded into
+   * the first one's.
+   *
+   * Like interfaces, an EMPTY row scope keeps its historical meaning - every
+   * row, one combined alert - and only "*" opts into one alert per row.
+   */
+  public static getSnmpTableRowEntities(input: {
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<FanOutEntity> {
+    const wildcardTableKeys: Array<string> =
+      PerEntityCriteriaFanOut.getWildcardTableKeys(input.criteriaInstance);
+
+    if (wildcardTableKeys.length === 0) {
+      return [];
+    }
+
+    const tables: Array<SnmpTableSnapshot> =
+      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess)?.tables ||
+      [];
+
+    const entities: Array<FanOutEntity> = [];
+
+    for (const tableKey of wildcardTableKeys) {
+      const snapshot: SnmpTableSnapshot | undefined =
+        SnmpTableListUtil.findSnapshot(tables, tableKey);
+
+      // A table this walk did not produce has no rows to fan out over.
+      if (!snapshot || snapshot.failureCause) {
+        continue;
+      }
+
+      for (const row of snapshot.rows) {
+        const rowScope: string = SnmpTableListUtil.getRowScope(snapshot, row);
+
+        entities.push({
+          labels: PerEntityCriteriaFanOut.getTableRowLabels(snapshot, row),
+          narrowFilter: (filter: CriteriaFilter): CriteriaFilter => {
+            if (
+              !PerEntityCriteriaFanOut.isTableScopedCheckOn(filter.checkOn) ||
+              !PerEntityCriteriaFanOut.isWildcard(
+                filter.snmpMonitorOptions?.tableRow,
+              ) ||
+              SnmpTableListUtil.normalizeKey(
+                filter.snmpMonitorOptions?.tableKey,
+              ) !== snapshot.key
+            ) {
+              return filter;
+            }
+
+            return {
+              ...filter,
+              snmpMonitorOptions: {
+                ...filter.snmpMonitorOptions,
+                tableRow: rowScope,
+              },
+            };
+          },
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  public static isSnmpTableFanOutConfigured(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): boolean {
+    return (
+      PerEntityCriteriaFanOut.getWildcardTableKeys(criteriaInstance).length > 0
+    );
+  }
+
+  /**
+   * Whether this criteria fans out per disk, port or table row on its own
+   * monitor type - the "*" opt-in.
+   */
+  public static isFanOutConfigured(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (input.monitorType === MonitorType.Server) {
+      return PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(
+        input.criteriaInstance,
+      );
+    }
+
+    if (input.monitorType === MonitorType.NetworkDevice) {
+      return (
+        PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+          input.criteriaInstance,
+        ) ||
+        PerEntityCriteriaFanOut.isSnmpTableFanOutConfigured(
+          input.criteriaInstance,
+        )
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * Whether this criteria judges the whole monitor, on a Server or Network
+   * Device monitor where some criteria fans out with "*".
+   *
+   * The "*" opt-in belongs to the criteria that names it. Every other
+   * criteria of the monitor - Device unreachable, Is Online, CPU above 90% -
+   * names no disk, port or row, so it has no entity to fan out over: it
+   * judges the device as a whole, exactly as on a monitor where no criteria
+   * names "*". Reading the opt-in for the whole monitor judged those
+   * criteria "not met" for having no entity, so a device that went down
+   * matched nothing - and the recommended network device alert pack has
+   * "*" transceiver criteria, so every monitor built from it did that.
+   */
+  public static judgesWholeMonitor(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (
+      input.monitorType !== MonitorType.Server &&
+      input.monitorType !== MonitorType.NetworkDevice
+    ) {
+      return false;
+    }
+
+    return !PerEntityCriteriaFanOut.isFanOutConfigured(input);
+  }
+
+  /**
+   * The match of a criteria that judges the whole monitor, on a monitor
+   * that raises one alert per entity: the whole monitor as one entity of
+   * its own (MetricSeriesFingerprint.WholeMonitorFingerprint, no labels).
+   * It opens, dedupes and resolves like any entity's match - one open
+   * incident and alert for the monitor at a time, resolved once the
+   * criteria no longer matches - next to the per-disk or per-port ones.
+   */
+  public static wholeMonitorMatch(input: {
+    criteriaId: string;
+    rootCause: string;
+  }): PerSeriesCriteriaMatch {
+    return {
+      criteriaMetId: input.criteriaId,
+      fingerprint: MetricSeriesFingerprint.WholeMonitorFingerprint,
+      labels: {},
+      rootCause: input.rootCause,
+      metricContext: undefined,
+    };
+  }
+
+  /*
+   * What identifies one row on the alert it raises: the table and the row's
+   * name, plus the index when the name alone is not unique.
+   */
+  private static getTableRowLabels(
+    snapshot: SnmpTableSnapshot,
+    row: SnmpTableSnapshotRow,
+  ): JSONObject {
+    const labels: JSONObject = {
+      snmpTable: snapshot.name,
+      snmpTableRow: row.label,
+    };
+
+    if (row.label !== row.index) {
+      labels["snmpTableRowIndex"] = row.index;
+    }
+
+    return labels;
+  }
+
+  private static getWildcardTableKeys(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): Array<string> {
+    const keys: Array<string> = [];
+
+    for (const filter of criteriaInstance.data?.filters || []) {
+      if (
+        !PerEntityCriteriaFanOut.isTableScopedCheckOn(filter.checkOn) ||
+        !PerEntityCriteriaFanOut.isWildcard(filter.snmpMonitorOptions?.tableRow)
+      ) {
+        continue;
+      }
+
+      const key: string = SnmpTableListUtil.normalizeKey(
+        filter.snmpMonitorOptions?.tableKey,
+      );
+
+      if (key && !keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
+  }
+
+  /*
+   * Row count is deliberately not here: it is a property of the whole table,
+   * and narrowing it to one row would turn "fewer than 4 tunnels" into four
+   * separate "1 row" checks.
+   */
+  private static isTableScopedCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.SnmpTableValue ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
     );
   }
 }

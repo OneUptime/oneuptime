@@ -524,7 +524,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
           Permission.TelemetryViewer,
-          Permission.ReadTelemetryServiceTraces,
+          Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
@@ -532,7 +532,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.ProjectMember,
           Permission.TelemetryAdmin,
           Permission.TelemetryMember,
-          Permission.CreateTelemetryServiceTraces,
+          Permission.CreateTelemetryException,
         ],
         update: [],
       },

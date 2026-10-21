@@ -1,7 +1,32 @@
 import { OutputFormat } from "../Types/CLITypes";
 import { JSONValue, JSONObject, JSONArray } from "Common/Types/JSON";
+import { Command, Option } from "commander";
 import Table from "cli-table3";
 import chalk from "chalk";
+
+/*
+ * The -o/--output option. Declared globally on the root program, and again
+ * on each command that prints data so it shows up in that command's --help.
+ */
+export function createOutputOption(): Option {
+  return new Option(
+    "-o, --output <format>",
+    "Output format; defaults to table on a terminal, json when piped",
+  ).choices(Object.values(OutputFormat));
+}
+
+/*
+ * The output format a command should print in. Without
+ * enablePositionalOptions, Commander lets the root program consume its
+ * global -o wherever it appears on the command line, so the -o a command
+ * declares for its own --help never receives a value in the real CLI.
+ * optsWithGlobals() merges the command's options with its ancestors', so
+ * this reads the global value there and the command's own value in
+ * programs built without the global option.
+ */
+export function resolveOutputFormat(cmd: Command): OutputFormat {
+  return detectOutputFormat(cmd.optsWithGlobals<{ output?: string }>().output);
+}
 
 function isColorDisabled(): boolean {
   return (
@@ -35,8 +60,13 @@ function formatJson(data: JSONValue): string {
 }
 
 function formatTable(data: JSONValue, wide: boolean): string {
-  if (!data) {
+  if (data === null || data === undefined || data === "") {
     return "No data returned.";
+  }
+
+  // Scalars such as a count have no columns to lay out.
+  if (typeof data !== "object") {
+    return String(data);
   }
 
   // Handle single object

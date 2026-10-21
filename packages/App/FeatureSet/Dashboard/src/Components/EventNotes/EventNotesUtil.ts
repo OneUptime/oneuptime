@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FileModel from "Common/Models/DatabaseModels/File";
+import Route from "Common/Types/API/Route";
 import User from "Common/Models/DatabaseModels/User";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -8,8 +9,29 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "Common/Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "Common/Types/Workspace/SavedChatMessage";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import SubscriberNotificationResend, {
+  SubscriberNotificationResendAction,
+} from "Common/Types/StatusPage/SubscriberNotificationResend";
+import {
+  fillNoteTemplate,
+  NoteTemplateVariables,
+} from "Common/Utils/Incident/IncidentNoteTemplateVariables";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Everything the notes feed decides without React: which date a note is
@@ -34,7 +56,13 @@ export interface NoteRecord {
   postedAt?: Date | undefined;
   createdByUser?: User | undefined;
   attachments?: Array<FileModel> | undefined;
+  // The message's key ("<channel>:<message>"), Slack's or Microsoft Teams'.
   postedFromSlackMessageId?: string | undefined;
+  /*
+   * A note saved from a chat message: who wrote the message, in which chat,
+   * posted when (SavedChatMessage). The note's creator saved it.
+   */
+  savedFromChatMessage?: JSONObject | undefined;
   subscriberNotificationStatusOnNoteCreated?:
     | StatusPageSubscriberNotificationStatus
     | undefined;
@@ -49,6 +77,26 @@ export type NoteSortOrder = "newest" | "oldest";
 
 // How many notes a page of the feed asks for.
 export const NOTES_PAGE_SIZE: number = 25;
+
+/*
+ * A notes page opened with ?compose=1 opens with its composer open, the
+ * cursor in the note: where a button that says "Add Private Note" leads
+ * (a private incident's public notes, EventNoteComposer), so the note is
+ * written in one click, not two.
+ */
+export const NOTE_COMPOSER_OPEN_QUERY_PARAM: string = "compose";
+
+export function getRouteWithComposerOpen(route: Route): Route {
+  return new Route(route.toString()).addQueryParams({
+    [NOTE_COMPOSER_OPEN_QUERY_PARAM]: "1",
+  });
+}
+
+export function isComposerOpenRequested(search: string): boolean {
+  return (
+    new URLSearchParams(search).get(NOTE_COMPOSER_OPEN_QUERY_PARAM) === "1"
+  );
+}
 
 // How long a search waits for typing to stop before it asks the server.
 export const NOTES_SEARCH_DEBOUNCE_MS: number = 350;
@@ -78,20 +126,26 @@ const toDate: ToDateFunction = (
 };
 
 /*
- * The moment a note belongs to. A public note is filed under the time it was
- * posted - what the status page shows, and what someone backdating an update
- * chose - and falls back to when it was written. A private note has only the
- * latter.
+ * The moment a note belongs to: the time it was posted - what the status
+ * page shows for a public note, and what someone backdating an update
+ * chose; for a message saved from Slack or Microsoft Teams, when the
+ * message was written there - falling back to when the note was written.
+ * Every note is sorted by the same time (getNoteSortField).
  */
 export function getNoteTimestamp(
   note: NoteRecord,
-  visibility: NoteVisibility,
+  _visibility: NoteVisibility,
 ): Date | null {
-  if (visibility === "public") {
-    return toDate(note.postedAt) || toDate(note.createdAt);
-  }
+  return toDate(note.postedAt) || toDate(note.createdAt);
+}
 
-  return toDate(note.createdAt);
+/*
+ * The column a feed of notes is sorted by: postedAt, where the note model
+ * has it - every public note, and private notes since a message saved from
+ * a chat is filed when it was written - else createdAt.
+ */
+export function getNoteSortField(model: BaseModel): string {
+  return model.hasColumn("postedAt") ? "postedAt" : "createdAt";
 }
 
 export interface NoteDayGroup<T> {
@@ -172,6 +226,9 @@ const readableValue: ReadableValueFunction = (
 
 export const AUTOMATION_AUTHOR_NAME: string = "OneUptime";
 
+// Who wrote a message the chat did not name.
+export const UNNAMED_CHAT_AUTHOR: string = translationKey("Someone");
+
 /*
  * Who wrote a note. A note with no author was posted by OneUptime itself -
  * a workflow, the AI agent or an automatic status update.
@@ -200,7 +257,7 @@ export function getAuthorName(user: User | JSONObject | null | undefined): {
     return { name: email, isAutomation: false };
   }
 
-  return { name: "Unknown user", isAutomation: false };
+  return { name: translationKey("Unknown user"), isAutomation: false };
 }
 
 export function getInitials(name: string): string {
@@ -275,16 +332,24 @@ export function isNoteBlank(text: string | undefined | null): boolean {
 /*
  * Picking a template never throws away what someone already typed: an empty
  * draft takes the template, anything else gets it appended after a blank line.
+ *
+ * With `variables`, the template's {{placeholders}} are filled in first
+ * ({{incident.title}}, {{incident.customFields.impact}}...; see
+ * IncidentNoteTemplateVariables). Only the template's: what was already typed
+ * is left exactly as it is. A placeholder with no value stays as written.
  */
 export function applyTemplateToDraft(
   draft: string | undefined | null,
   templateNote: string,
+  variables?: NoteTemplateVariables | null | undefined,
 ): string {
+  const note: string = fillNoteTemplate(templateNote, variables);
+
   if (isNoteBlank(draft)) {
-    return templateNote;
+    return note;
   }
 
-  return `${(draft || "").trimEnd()}\n\n${templateNote}`;
+  return `${(draft || "").trimEnd()}\n\n${note}`;
 }
 
 export function buildNotesQuery(data: {
@@ -322,20 +387,43 @@ export interface NoteNotificationSummary {
   label: string;
   tone: NoteNotificationTone;
   icon: IconProp;
-  isRetryable: boolean;
+  /*
+   * What the details dialog offers to send it again: Retry after a failure,
+   * Resend after a success where resending is offered, or nothing.
+   */
+  resendAction: SubscriberNotificationResendAction | null;
   detail: string | null;
+}
+
+export interface PostedNotificationSummaryOptions {
+  /*
+   * Offer Resend for a note whose notification went out, as the incident's
+   * public notes do. Left off, only a failed notification can be sent again
+   * (Retry) - what the episode and scheduled maintenance notes keep.
+   */
+  isResendAfterSuccessOffered?: boolean | undefined;
 }
 
 /*
  * What happened to the notification subscribers get when a public note is
  * posted. An unset status is what a note from before notifications existed,
- * or one posted with "notify" unticked, carries: nobody was told.
+ * or one posted with "notify" unticked, carries: nobody was told. Which
+ * notifications can be sent again, and how, is SubscriberNotificationResend's
+ * call: never a skipped one, which would sit in Pending forever.
  */
 export function getPostedNotificationSummary(
   status: StatusPageSubscriberNotificationStatus | null | undefined,
   message: string | null | undefined,
+  options?: PostedNotificationSummaryOptions | undefined,
 ): NoteNotificationSummary {
   const detail: string | null = message?.trim() ? message.trim() : null;
+  const resendAction: SubscriberNotificationResendAction | null =
+    SubscriberNotificationResend.getAction({
+      status: status,
+      isResendAfterSuccessOffered: Boolean(
+        options?.isResendAfterSuccessOffered,
+      ),
+    });
 
   switch (status) {
     case StatusPageSubscriberNotificationStatus.Success:
@@ -343,7 +431,7 @@ export function getPostedNotificationSummary(
         label: "Subscribers notified",
         tone: NoteNotificationTone.Success,
         icon: IconProp.CheckCircle,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Pending:
@@ -351,7 +439,7 @@ export function getPostedNotificationSummary(
         label: "Notifying subscribers soon",
         tone: NoteNotificationTone.Pending,
         icon: IconProp.Clock,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.InProgress:
@@ -359,7 +447,7 @@ export function getPostedNotificationSummary(
         label: "Notifying subscribers",
         tone: NoteNotificationTone.Progress,
         icon: IconProp.ArrowPath,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Failed:
@@ -367,7 +455,7 @@ export function getPostedNotificationSummary(
         label: "Notification failed",
         tone: NoteNotificationTone.Danger,
         icon: IconProp.Error,
-        isRetryable: true,
+        resendAction,
         detail,
       };
     default:
@@ -375,7 +463,7 @@ export function getPostedNotificationSummary(
         label: "Subscribers not notified",
         tone: NoteNotificationTone.Neutral,
         icon: IconProp.BellSlash,
-        isRetryable: false,
+        resendAction,
         detail,
       };
   }
@@ -383,13 +471,21 @@ export function getPostedNotificationSummary(
 
 /*
  * The notification about an edit, which only exists once somebody asked for
- * one. Null means there is nothing to show.
+ * one. Null means there is nothing to show. Only a failed one can be sent
+ * again (Retry): an update that went out is not offered again - editing the
+ * note with "Notify subscribers about this update" ticked sends the latest
+ * text, and resending the note sends it as the note.
  */
 export function getUpdateNotificationSummary(
   status: StatusPageSubscriberNotificationStatus | null | undefined,
   message: string | null | undefined,
 ): NoteNotificationSummary | null {
   const detail: string | null = message?.trim() ? message.trim() : null;
+  const resendAction: SubscriberNotificationResendAction | null =
+    SubscriberNotificationResend.getAction({
+      status: status,
+      isResendAfterSuccessOffered: false,
+    });
 
   switch (status) {
     case StatusPageSubscriberNotificationStatus.Success:
@@ -397,7 +493,7 @@ export function getUpdateNotificationSummary(
         label: "Update sent",
         tone: NoteNotificationTone.Success,
         icon: IconProp.CheckCircle,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Pending:
@@ -405,7 +501,7 @@ export function getUpdateNotificationSummary(
         label: "Update queued",
         tone: NoteNotificationTone.Pending,
         icon: IconProp.Clock,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.InProgress:
@@ -413,7 +509,7 @@ export function getUpdateNotificationSummary(
         label: "Sending update",
         tone: NoteNotificationTone.Progress,
         icon: IconProp.ArrowPath,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Failed:
@@ -421,7 +517,7 @@ export function getUpdateNotificationSummary(
         label: "Update failed",
         tone: NoteNotificationTone.Danger,
         icon: IconProp.Error,
-        isRetryable: true,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Skipped:
@@ -429,7 +525,7 @@ export function getUpdateNotificationSummary(
         label: "Update not sent",
         tone: NoteNotificationTone.Neutral,
         icon: IconProp.BellSlash,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     default:
@@ -470,84 +566,151 @@ export interface NotesCopy {
   submitLabel: string;
   deleteTitle: string;
   deleteDescription: string;
-  noteNoun: string;
+  // The composer's name for screen readers, writing and editing a note.
+  newNoteLabel: string;
+  editNoteLabel: string;
 }
+
+/*
+ * The events a notes feed belongs to, as its sentences name them ("Internal
+ * notes for your team about this incident."). Listed so the extraction finds
+ * each one; getNotesCopy translates the noun it is given as a term.
+ */
+export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
+  translationKey("incident"),
+  translationKey("alert"),
+  translationKey("episode"),
+  translationKey("scheduled maintenance event"),
+];
 
 /*
  * The words a feed uses. The two kinds of note look alike on screen, so the
  * copy carries most of the difference: who will read this, and where.
+ *
+ * The fixed strings are English keys the feed looks up where it shows them.
+ * The two sentences that name the event are filled in here, in the reader's
+ * language: pass the component's translator.
  */
 export function getNotesCopy(
   visibility: NoteVisibility,
   eventNoun: string,
+  translator: Translator = getGlobalTranslator(),
 ): NotesCopy {
+  const event: TranslatableTerm = translatableTerm(eventNoun, {
+    inSentence: true,
+  });
+
   if (visibility === "public") {
     return {
-      title: "Public notes",
-      description: `Customer-facing updates about this ${eventNoun}. They appear on your status page, and subscribers can be notified when you post one.`,
-      composerPlaceholder:
+      title: translationKey("Public notes"),
+      description: translator.translateTemplate(
+        "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.",
+        { event },
+      ),
+      composerPlaceholder: translationKey(
         "Tell your customers what is happening, what you are doing about it, and when they will hear from you next.",
-      composerPrompt: "Post an update to your status page…",
-      emptyTitle: "No public updates yet",
-      emptyDescription: `Keep your customers in the loop. Public notes are shown on the status page for this ${eventNoun}.`,
-      audienceLabel: "Public",
-      audienceHint: "Visible on your status page",
-      submitLabel: "Post update",
-      deleteTitle: "Delete this public note?",
-      deleteDescription:
+      ),
+      composerPrompt: translationKey("Post an update to your status page…"),
+      emptyTitle: translationKey("No public updates yet"),
+      emptyDescription: translator.translateTemplate(
+        "Keep your customers in the loop. Public notes are shown on the status page for this {{event}}.",
+        { event },
+      ),
+      audienceLabel: translationKey("Public"),
+      audienceHint: translationKey("Visible on your status page"),
+      submitLabel: translationKey("Post update"),
+      deleteTitle: translationKey("Delete this public note?"),
+      deleteDescription: translationKey(
         "It will be removed from your status page. Subscribers who were already notified keep the message they received. This cannot be undone.",
-      noteNoun: "public note",
+      ),
+      newNoteLabel: translationKey("New public note"),
+      editNoteLabel: translationKey("Edit public note"),
     };
   }
 
   return {
-    title: "Private notes",
-    description: `Internal notes for your team about this ${eventNoun}. They are never shown on a status page or sent to subscribers.`,
-    composerPlaceholder:
+    title: translationKey("Private notes"),
+    description: translator.translateTemplate(
+      "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
+      { event },
+    ),
+    composerPlaceholder: translationKey(
       "Share findings, decisions and next steps with your team.",
-    composerPrompt: "Write a note for your team…",
-    emptyTitle: "No private notes yet",
-    emptyDescription: `Capture what your team learns while working on this ${eventNoun}. Only people in your project can see private notes.`,
-    audienceLabel: "Private",
-    audienceHint: "Only your team can see this",
-    submitLabel: "Add note",
-    deleteTitle: "Delete this private note?",
-    deleteDescription:
+    ),
+    composerPrompt: translationKey("Write a note for your team…"),
+    emptyTitle: translationKey("No private notes yet"),
+    emptyDescription: translator.translateTemplate(
+      "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
+      { event },
+    ),
+    audienceLabel: translationKey("Private"),
+    audienceHint: translationKey("Only your team can see this"),
+    submitLabel: translationKey("Add note"),
+    deleteTitle: translationKey("Delete this private note?"),
+    deleteDescription: translationKey(
       "The note will be permanently deleted. This cannot be undone.",
-    noteNoun: "private note",
+    ),
+    newNoteLabel: translationKey("New private note"),
+    editNoteLabel: translationKey("Edit private note"),
   };
 }
 
 /*
- * Whether the viewer may read one column. Mirrors the notes table this feed
- * replaced: a column with no read rule is readable, and one with a rule needs
- * a matching permission. Asking for a column the viewer cannot read fails the
- * whole list request, so the feed only selects what passes this.
+ * Whether the viewer holds one of a column's permissions for an operation,
+ * by the server's column rule (HeldPermissionsUtil.holdsColumnPermission):
+ * one of the permissions held - Public by everyone - no team block on any of
+ * them, the table's operational-resource wildcard for a column that admits
+ * everyone its table does, and a column that names no permission closed.
+ */
+function holdsColumnPermission(data: {
+  model: BaseModel;
+  column: string;
+  operation: "create" | "read" | "update";
+  held: HeldPermissions;
+}): boolean {
+  const accessControl: Dictionary<ColumnAccessControl> =
+    data.model.getColumnAccessControlForAllColumns();
+
+  let tablePermissions: Array<Permission> = data.model.getUpdatePermissions();
+
+  if (data.operation === "create") {
+    tablePermissions = data.model.getCreatePermissions();
+  } else if (data.operation === "read") {
+    tablePermissions = data.model.getReadPermissions();
+  }
+
+  return HeldPermissionsUtil.holdsColumnPermission(data.held, {
+    isOperationalResource: data.model.isOperationalResource,
+    operation: data.operation,
+    tablePermissions: tablePermissions || [],
+    columnPermissions: accessControl[data.column]?.[data.operation] || [],
+  });
+}
+
+/*
+ * Whether the viewer may read one column, by the rule every select follows
+ * (HeldPermissionsUtil.canSelectColumn, which PermissionGate.canReadColumn
+ * asks too). Asking for a column the viewer cannot read fails the whole list
+ * request, so the feed only selects what passes this.
  */
 export function canReadNoteColumn(data: {
   model: BaseModel;
   column: string;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const readPermissions: Array<Permission> | undefined =
-    accessControl[data.column]?.read;
-
-  if (!readPermissions) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    readPermissions,
-  );
+  return HeldPermissionsUtil.canSelectColumn(data.held, {
+    column: data.column,
+    isOperationalResource: data.model.isOperationalResource,
+    tablePermissions: data.model.getReadPermissions() || [],
+    readPermissions:
+      data.model.getColumnAccessControlForAllColumns()[data.column]?.read,
+  });
 }
 
 /*
@@ -565,14 +728,17 @@ export function buildNotesSelect(data: {
   model: BaseModel;
   visibility: NoteVisibility;
   isAttachmentsEnabled: boolean;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): JSONObject {
   const candidates: JSONObject = {
     _id: true,
     note: true,
     createdAt: true,
+    postedAt: true,
     postedFromSlackMessageId: true,
+    savedFromChatMessage: true,
     createdByUser: {
       _id: true,
       name: true,
@@ -589,7 +755,6 @@ export function buildNotesSelect(data: {
   }
 
   if (data.visibility === "public") {
-    candidates["postedAt"] = true;
     candidates["subscriberNotificationStatusOnNoteCreated"] = true;
     candidates["subscriberNotificationStatusMessage"] = true;
     candidates["subscriberNotificationStatusOnNoteUpdated"] = true;
@@ -598,7 +763,7 @@ export function buildNotesSelect(data: {
 
   const select: JSONObject = {};
   const isPermissionSnapshotLoaded: boolean =
-    data.isMasterAdmin || data.userPermissions.length > 0;
+    data.isMasterAdmin || HeldPermissionsUtil.isLoaded(data.held);
 
   for (const column of Object.keys(candidates)) {
     const isKnownColumn: boolean =
@@ -614,7 +779,7 @@ export function buildNotesSelect(data: {
       canReadNoteColumn({
         model: data.model,
         column,
-        userPermissions: data.userPermissions,
+        held: data.held,
         isMasterAdmin: data.isMasterAdmin,
       })
     ) {
@@ -630,35 +795,29 @@ export type ColumnAction = "create" | "update";
 /*
  * Whether the viewer may write one column of a note, the same way the model
  * forms decide which fields to show: a master admin always may, anyone else
- * needs one of the permissions the column declares for the action. The
- * create form used to drop a column the viewer could not write; the composer
- * does the same by not offering the control at all.
+ * needs one of the permissions the column declares for the action, with no
+ * team block on any of them. The create form used to drop a column the
+ * viewer could not write; the composer does the same by not offering the
+ * control at all.
  */
 export function canWriteNoteColumn(data: {
   model: BaseModel;
   column: string;
   action: ColumnAction;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const columnPermissions: Array<Permission> =
-    accessControl[data.column]?.[data.action] || [];
-
-  if (columnPermissions.length === 0) {
-    return false;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    columnPermissions,
-  );
+  return holdsColumnPermission({
+    model: data.model,
+    column: data.column,
+    operation: data.action,
+    held: data.held,
+  });
 }
 
 /*
@@ -728,10 +887,114 @@ export function getNoteFullTimeLabel(date: Date): string {
 }
 
 // "Posted from Slack" and the like, for notes that did not start here.
-export function getNoteSourceLabel(note: NoteRecord): string | null {
-  if (note.postedFromSlackMessageId) {
-    return "via Slack";
+export const VIA_SLACK: string = translationKey("via Slack");
+export const VIA_MICROSOFT_TEAMS: string = translationKey(
+  "via Microsoft Teams",
+);
+// Who saved a note from somebody else's chat message.
+export const NOTE_ADDED_BY: string = translationKey("Note added by {{name}}");
+
+export interface NoteSource {
+  workspaceType: WorkspaceType;
+  // "via Slack", "via Microsoft Teams": English, looked up where it is drawn.
+  label: string;
+}
+
+/*
+ * The chat a note was saved from: the one its savedFromChatMessage names,
+ * else - a note saved before that was recorded - the one its message key
+ * reads as (a Microsoft Teams channel's id starts "19:"). Null for a note
+ * written in OneUptime.
+ */
+export function getNoteSource(note: NoteRecord): NoteSource | null {
+  const workspaceType: WorkspaceType | null =
+    getSavedChatMessage(note)?.workspaceType ||
+    SavedChatMessageUtil.getWorkspaceTypeOfMessageKey(
+      note.postedFromSlackMessageId,
+    );
+
+  if (!workspaceType) {
+    return null;
   }
 
-  return null;
+  return {
+    workspaceType: workspaceType,
+    label:
+      workspaceType === WorkspaceType.MicrosoftTeams
+        ? VIA_MICROSOFT_TEAMS
+        : VIA_SLACK,
+  };
+}
+
+// "via Slack" and the like, for notes that did not start here.
+export function getNoteSourceLabel(note: NoteRecord): string | null {
+  return getNoteSource(note)?.label || null;
+}
+
+// The chat message a note was saved from, as stored on it; null for none.
+export function getSavedChatMessage(note: NoteRecord): SavedChatMessage | null {
+  return SavedChatMessageUtil.read(note.savedFromChatMessage);
+}
+
+export interface NoteAuthor {
+  name: string;
+  // Whether `name` stands in for one nobody gave ("Someone"): English, to look up.
+  isNameStandIn?: boolean | undefined;
+  // Their OneUptime user, for their picture; null for none.
+  userId: ObjectID | null;
+  isAutomation: boolean;
+  /*
+   * Who saved somebody else's chat message as the note: the note's creator,
+   * by name. Undefined when the note is its creator's own words.
+   */
+  savedByName?: string | undefined;
+}
+
+/*
+ * Who a note is by. A note saved from a chat message is the message's
+ * author's words: their OneUptime name and picture when their chat account
+ * is connected to the project, else the name the chat shows - and whoever
+ * saved it is named apart. Any other note is its creator's.
+ */
+export function getNoteAuthor(note: NoteRecord): NoteAuthor {
+  const creator: { name: string; isAutomation: boolean } = getAuthorName(
+    note.createdByUser,
+  );
+  const creatorId: ObjectID | null = getUserId(note.createdByUser);
+  const saved: SavedChatMessage | null = getSavedChatMessage(note);
+
+  if (!saved) {
+    return {
+      name: creator.name,
+      userId: creatorId,
+      isAutomation: creator.isAutomation,
+    };
+  }
+
+  let authorId: ObjectID | null = null;
+
+  try {
+    authorId = saved.authorUserId ? new ObjectID(saved.authorUserId) : null;
+  } catch {
+    authorId = null;
+  }
+
+  const isSavedByAuthor: boolean = Boolean(
+    authorId &&
+      creatorId &&
+      authorId.toString().toLowerCase() === creatorId.toString().toLowerCase(),
+  );
+
+  const author: NoteAuthor = {
+    name: saved.authorName || UNNAMED_CHAT_AUTHOR,
+    isNameStandIn: !saved.authorName,
+    userId: authorId,
+    isAutomation: false,
+  };
+
+  if (!isSavedByAuthor && !creator.isAutomation) {
+    author.savedByName = creator.name;
+  }
+
+  return author;
 }

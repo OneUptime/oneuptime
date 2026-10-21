@@ -71,15 +71,32 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
     expect(METRICS_VIEWER).not.toContain("scopedServiceNameMap");
   });
 
+  test("the host's scope props are read by value, once, at the top", () => {
+    /*
+     * Issue #4709: pages hand these over as new arrays and objects on every
+     * render, and the list, the name match and every sparkline are keyed on
+     * them. Read through useStableValue, an equal re-render reads nothing.
+     */
+    for (const alias of [
+      "const serviceIds: Array<ObjectID> | undefined = useStableValue( props.serviceIds, );",
+      "const serviceIdsToDisplay: Array<ObjectID> | undefined = useStableValue( props.serviceIdsToDisplay, );",
+      "const attributeFilters: Record<string, string> | undefined = useStableValue( props.attributeFilters, );",
+      "const entityKeysFilter: Array<string> | undefined = useStableValue( props.entityKeysFilter, );",
+      "const entityScope: EntityScopeFilter | undefined = useStableValue( props.entityScope, );",
+    ]) {
+      expect(METRICS_VIEWER).toContain(alias);
+    }
+  });
+
   test("collects the scope ids with the page's scope type as hints, plus every chip", () => {
     expect(METRICS_VIEWER).toContain(
       'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
     );
     expect(METRICS_VIEWER).toContain(
-      "collectMetricsEntityLookup({ scopeIds: props.serviceIds, scopeEntityType: props.scopeEntityType, filters: activeFilters, })",
+      "collectMetricsEntityLookup({ scopeIds: serviceIds, scopeEntityType: props.scopeEntityType, filters: activeFilters, })",
     );
     expect(METRICS_VIEWER).toContain(
-      "[props.serviceIds, props.scopeEntityType, activeFilters]",
+      "[serviceIds, props.scopeEntityType, activeFilters]",
     );
   });
 
@@ -111,12 +128,12 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
     const call: string = METRICS_VIEWER.slice(callStart, callEnd);
 
     for (const argument of [
-      "scopeIds: props.serviceIds,",
+      "scopeIds: serviceIds,",
       "scopeEntityType: props.scopeEntityType,",
-      "attributeFilters: props.attributeFilters,",
+      "attributeFilters: attributeFilters,",
       "attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,",
       "attributeFilterDisplayValues: props.attributeFilterDisplayValues,",
-      "entityKeysFilter: props.entityKeysFilter,",
+      "entityKeysFilter: entityKeysFilter,",
       "entityKeyDisplays: props.entityKeyDisplays,",
       "activeFilters,",
       "facetConfigs,",
@@ -132,7 +149,7 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
     expect(call).not.toContain("entityScope");
     // The prop still narrows the metric list itself.
     expect(METRICS_VIEWER).toContain(
-      "const entityScope: EntityScopeFilter | undefined = props.entityScope;",
+      "const entityScope: EntityScopeFilter | undefined = useStableValue( props.entityScope, );",
     );
     expect(METRICS_VIEWER).toContain(
       '(analyticsQuery as Record<string, unknown>)["entityScope"] = entityScope;',
@@ -149,12 +166,12 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
     );
 
     for (const dependency of [
-      "props.serviceIds,",
+      "serviceIds,",
       "props.scopeEntityType,",
-      "props.attributeFilters,",
+      "attributeFilters,",
       "props.attributeFilterDisplayKeys,",
       "props.attributeFilterDisplayValues,",
-      "props.entityKeysFilter,",
+      "entityKeysFilter,",
       "props.entityKeyDisplays,",
       "activeFilters,",
       "facetConfigs,",
@@ -162,7 +179,7 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
     ]) {
       expect(dependencies).toContain(dependency);
     }
-    expect(dependencies).not.toContain("props.entityScope");
+    expect(dependencies).not.toContain("entityScope");
   });
 
   test("the scope chip no longer hard-codes a Service key or a raw id value", () => {

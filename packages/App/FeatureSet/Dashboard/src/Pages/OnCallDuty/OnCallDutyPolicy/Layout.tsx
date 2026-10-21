@@ -6,6 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import ArchivedResourceBanner from "../../../Components/Archive/ArchivedResourceBanner";
+import { ON_CALL_POLICY_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -24,6 +26,11 @@ const OnCallDutyPolicyViewLayout: FunctionComponent<
       breadcrumbLinks={getOnCallDutyBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >
+      <ArchivedResourceBanner<OnCallDutyPolicy>
+        modelType={OnCallDutyPolicy}
+        modelId={modelId}
+        copy={ON_CALL_POLICY_ARCHIVE_COPY}
+      />
       <Outlet />
     </ModelPage>
   );

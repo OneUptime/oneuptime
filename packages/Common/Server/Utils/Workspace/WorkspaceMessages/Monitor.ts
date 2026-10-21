@@ -1,14 +1,15 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
-import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackMonitorMessages from "../Slack/Messages/Monitor";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class MonitorWorkspaceMessages {
   @CaptureSpan()
@@ -16,9 +17,7 @@ export default class MonitorWorkspaceMessages {
     projectId: ObjectID;
     monitorId: ObjectID;
     monitorName: string;
-  }): Promise<{
-    channelsCreated: NotificationRuleWorkspaceChannel[];
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       // we will notify the workspace about the monitor creation with the bot tokken which is in WorkspaceProjectAuth Table.
       return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
@@ -28,7 +27,10 @@ export default class MonitorWorkspaceMessages {
             monitorId: data.monitorId,
           },
           notificationRuleEventType: NotificationRuleEventType.Monitor,
-          channelNameSiffix: data.monitorName.toString().toLowerCase(),
+          channelNameParts: WorkspaceChannelName.forNamedRecord({
+            eventType: NotificationRuleEventType.Monitor,
+            name: data.monitorName.toString(),
+          }),
         },
       );
     } catch (err) {

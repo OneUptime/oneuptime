@@ -1,9 +1,14 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  DNSSEC_MONITOR_MORE_FIELDS,
+  getMonitorOptionsMoreFieldsItems,
+} from "../MonitorMoreFields";
 import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import { parseMonitorStepRetriesInput } from "Common/Types/Monitor/MonitorStepRetries";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 
 export interface ComponentProps {
@@ -14,9 +19,6 @@ export interface ComponentProps {
 const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedOptions, setShowAdvancedOptions] =
-    useState<boolean>(false);
-
   return (
     <div className="space-y-5">
       <div>
@@ -64,12 +66,9 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
 
       <div>
-        <FieldLabelElement
-          title="Check Nameserver Consistency"
-          description="Query each authoritative nameserver directly and verify they return the same SOA serial. Requires outbound DNS to arbitrary IPs; disable if your network blocks this."
-          required={false}
-        />
         <Toggle
+          title="Check Nameserver Consistency"
+          description="Ask each authoritative nameserver directly and check they return the same SOA serial. Needs outbound DNS to any IP."
           value={props.monitorStepDnssecMonitor.checkNameserverConsistency}
           onChange={(value: boolean) => {
             props.onChange({
@@ -80,22 +79,20 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {!showAdvancedOptions && (
-        <div className="mt-1 -ml-3">
-          <Button
-            title="Advanced: Expiry Warning, Timeout, Retries"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            onClick={() => {
-              setShowAdvancedOptions(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showAdvancedOptions && (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
-
+      {/*
+       * More fields, folded like every form's: options most monitors
+       * leave at their defaults. Its header names them and shows the
+       * ones changed.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        items={getMonitorOptionsMoreFieldsItems(
+          props.monitorStepDnssecMonitor,
+          DNSSEC_MONITOR_MORE_FIELDS,
+        )}
+        dataTestId="dnssec-monitor-more-fields"
+      >
+        <div className="space-y-4">
           <div>
             <FieldLabelElement
               title="Signature Expiry Warning (days)"
@@ -161,7 +158,7 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      )}
+      </FoldedSection>
     </div>
   );
 };

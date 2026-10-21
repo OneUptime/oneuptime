@@ -7,6 +7,8 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -29,6 +31,7 @@ export interface ComponentProps {
 const SloImpactWarning: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [slos, setSlos] = useState<Array<ServiceLevelObjective>>([]);
 
   useAsyncEffect(async () => {
@@ -68,17 +71,24 @@ const SloImpactWarning: FunctionComponent<ComponentProps> = (
 
   const sloNames: string = slos
     .map((slo: ServiceLevelObjective) => {
-      return slo.name || "Untitled SLO";
+      return slo.name || translator.translateTemplate("Untitled SLO");
     })
     .join(", ");
 
   return (
     <Alert
       type={AlertType.WARNING}
-      strongTitle={`This monitor is measured by ${slos.length} SLO${
-        slos.length === 1 ? "" : "s"
-      }`}
-      title={`Deleting it removes it from: ${sloNames}. Any SLO left with no monitors stops being evaluated and shows as Misconfigured.`}
+      strongTitle={translator.translatePlural(
+        {
+          one: "This monitor is measured by {{count}} SLO",
+          other: "This monitor is measured by {{count}} SLOs",
+        },
+        slos.length,
+      )}
+      title={translator.translateTemplate(
+        "Deleting it removes it from: {{slos}}. Any SLO left with no monitors stops being evaluated and shows as Misconfigured.",
+        { slos: sloNames },
+      )}
     />
   );
 };

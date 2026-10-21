@@ -11,6 +11,8 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
@@ -21,6 +23,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertPrivacyRuleEngineServiceClass
   implements RuleRunEngine<Alert, AlertPrivacyRule>
@@ -134,6 +138,7 @@ class AlertPrivacyRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     alert: Alert;
     rules: Array<AlertPrivacyRule>;
@@ -145,14 +150,27 @@ class AlertPrivacyRuleEngineServiceClass
     }
 
     const matchedRules: Array<AlertPrivacyRule> = [];
+    const uncheckedRules: Array<AlertPrivacyRule> = [];
+
     for (const rule of rules) {
+      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
       const matches: boolean = await this.doesAlertMatchRule(alert, rule);
+
       if (matches) {
         matchedRules.push(rule);
+      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
+        /*
+         * Its patterns could not all be answered: together with the other
+         * rules' they needed more work than one evaluation may take
+         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
+         * so it counts as one that did: a record is never shown to the whole
+         * project because a pattern was not read to the end.
+         */
+        uncheckedRules.push(rule);
       }
     }
 
-    if (matchedRules.length === 0) {
+    if (matchedRules.length === 0 && uncheckedRules.length === 0) {
       return RuleApplicationResultUtil.noMatch();
     }
 
@@ -177,7 +195,11 @@ class AlertPrivacyRuleEngineServiceClass
       projectId: alert.projectId.toString(),
     } as LogAttributes);
 
-    await this.createRuleExecutedFeedItem({ alert, matchedRules });
+    await this.createRuleExecutedFeedItem({
+      alert,
+      matchedRules,
+      uncheckedRules,
+    });
 
     return RuleApplicationResultUtil.updated(1);
   }
@@ -186,14 +208,25 @@ class AlertPrivacyRuleEngineServiceClass
   private async createRuleExecutedFeedItem(data: {
     alert: Alert;
     matchedRules: Array<AlertPrivacyRule>;
+    uncheckedRules: Array<AlertPrivacyRule>;
   }): Promise<void> {
-    const { alert, matchedRules } = data;
-    if (!alert.id || !alert.projectId || matchedRules.length === 0) {
+    const { alert, matchedRules, uncheckedRules } = data;
+    if (
+      !alert.id ||
+      !alert.projectId ||
+      (matchedRules.length === 0 && uncheckedRules.length === 0)
+    ) {
       return;
     }
 
     try {
-      const ruleNames: Array<string> = matchedRules
+      /*
+       * The rules that matched; or, when none did, the ones that could not
+       * be checked in full and so counted as matching.
+       */
+      const ruleNames: Array<string> = (
+        matchedRules.length > 0 ? matchedRules : uncheckedRules
+      )
         .map((r: AlertPrivacyRule) => {
           return r.name?.toString() || "Unnamed Rule";
         })
@@ -201,25 +234,27 @@ class AlertPrivacyRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
+      const headline: MarkdownText =
+        matchedRules.length > 0
+          ? RuleFeedMarkdown.executedLine({
+              emoji: "🔒",
+              ruleKind: "Alert Privacy Rule",
+              ruleNames: ruleNames,
+            })
+          : RuleFeedMarkdown.notCheckedInFullLine({
+              emoji: "🔒",
+              ruleKind: "Alert Privacy Rule",
+              ruleNames: ruleNames,
+            });
 
-      const feedInfoInMarkdown: string = `🔒 **Alert Privacy Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAlert has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nAlert has been marked **private** — visible only to its owners, project admins, and project owners.`;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id,
         projectId: alert.projectId,
         alertFeedEventType: AlertFeedEventType.PrivacyRuleExecuted,
         displayColor: Red500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -401,8 +436,7 @@ class AlertPrivacyRuleEngineServiceClass
     rule: AlertPrivacyRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in alert privacy rule ${rule.id}: ${pattern}`);
       return false;

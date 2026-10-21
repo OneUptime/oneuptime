@@ -1,4 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
+import Monitor from "../DatabaseModels/Monitor";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -8,6 +10,13 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 
+/*
+ * A monitor's log is read through its monitor: a caller whose grants are
+ * limited to labels or to owned monitors reads the logs of the monitors
+ * those reach, and a block with labels takes away the logs of the monitors
+ * carrying them (ModelPermission.getReadScope).
+ */
+@OwnedThrough("monitorId", Monitor, { onlyParentModels: true })
 export default class MonitorLog extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

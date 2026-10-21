@@ -26,6 +26,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class KubernetesClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<KubernetesCluster, KubernetesClusterOwnerRule>
@@ -125,6 +129,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     kubernetesCluster: KubernetesCluster;
     rules: Array<KubernetesClusterOwnerRule>;
@@ -305,15 +310,19 @@ class KubernetesClusterOwnerRuleEngineServiceClass
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-        kubernetesCluster.projectId,
-        kubernetesCluster.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: KubernetesClusterOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+          kubernetesCluster.projectId,
+          kubernetesCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map(
+          (rule: KubernetesClusterOwnerRule): string => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          },
+        ),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -403,8 +412,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
     rule: KubernetesClusterOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in Kubernetes cluster owner rule ${rule.id}: ${pattern}`,

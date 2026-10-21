@@ -312,16 +312,21 @@ describe("Editing a discovery scan after it was created", () => {
 
     expect(editFieldKeys()).toEqual(wizardKeys);
 
+    /*
+     * The three questions a scan is defined by, then More fields (the name,
+     * the naming switches and the schedule), then the credentials - which
+     * sit on a step of their own.
+     */
     expect(editFieldKeys()).toEqual([
-      "name",
       "cidr",
       "probe",
       "isSnmpEnabled",
+      "name",
       "isNetbiosLookupEnabled",
       "useShortDeviceNames",
-      "snmpConfigs",
       "isRecurring",
       "rescanIntervalInMinutes",
+      "snmpConfigs",
     ]);
   });
 
@@ -514,9 +519,6 @@ describe("Editing a discovery scan after it was created", () => {
 
     expect(editFields()).toHaveLength(wizardFields.length);
 
-    let headed: number = 0;
-    const titledStepIds: Set<string> = new Set<string>();
-
     editFields().forEach((field: CapturedFormField, index: number) => {
       const wizardField: CapturedFormField = wizardFields[
         index
@@ -539,35 +541,39 @@ describe("Editing a discovery scan after it was created", () => {
         hasShowIf: Boolean(wizardField.showIf),
       });
 
-      let expectedSectionTitle: string | undefined = wizardField.sectionTitle;
-
       /*
-       * The edit layout adds each wizard step's title to the first field in
-       * that step. Field-level subsection titles are part of the shared field
-       * definition, though, and must survive unchanged in both layouts. The
-       * scan-method toggle's "What to check" heading is one such subsection.
+       * Field-level subsection titles are part of the shared field
+       * definition and read the same in both forms. The scan-method toggle's
+       * "What to check" heading is one such subsection.
        */
-      if (wizardField.stepId && !titledStepIds.has(wizardField.stepId)) {
-        expectedSectionTitle = formSteps.find(
-          (step: { id: string; title: string }): boolean => {
-            return step.id === wizardField.stepId;
-          },
-        )?.title;
-
-        expect(expectedSectionTitle).toBeDefined();
-        titledStepIds.add(wizardField.stepId);
-        headed++;
-      }
-
-      expect(field.sectionTitle).toBe(expectedSectionTitle);
+      expect(field.sectionTitle).toBe(wizardField.sectionTitle);
     });
 
-    expect(headed).toBe(formSteps.length);
+    // Every field is on one of the steps both forms walk.
+    for (const field of editFields()) {
+      expect(
+        formSteps.some((step: { id: string; title: string }): boolean => {
+          return step.id === field.stepId;
+        }),
+      ).toBe(true);
+    }
+
+    /*
+     * The headings live inside the More fields fold now - Device names over
+     * the naming switches, Schedule over the repeat switch - and read the
+     * same in both forms. The method toggle has none: on a step of three
+     * questions its own words are enough.
+     */
     expect(
       wizardFields.find((field: CapturedFormField): boolean => {
         return fieldKeyOf(field) === "isSnmpEnabled";
       })?.sectionTitle,
-    ).toBe("What to check");
+    ).toBeUndefined();
+    expect(
+      wizardFields.find((field: CapturedFormField): boolean => {
+        return fieldKeyOf(field) === "isNetbiosLookupEnabled";
+      })?.sectionTitle,
+    ).toBe("Device names");
 
     // And the validators are really wired, not merely identical undefineds.
     expect(
@@ -602,17 +608,30 @@ describe("Editing a discovery scan after it was created", () => {
   });
 
   /*
-   * Not a wizard. A stepped form has no Back button — the only way backwards
-   * is the step rail, which BasicForm hides below the `lg` breakpoint — and
-   * three "Next" clicks to reach the toggle you came to flip is the wrong
-   * shape for a repair. The wizard's step titles survive as section headings
-   * so the grouping is not lost with the steps.
+   * The edit dialog walks the create wizard's own steps - Scan Target and
+   * SNMP Credentials - from the one list both forms are handed, so a
+   * setting can never sit on a step one of them lacks. The schedule folds
+   * under More fields on Scan Target, in both: flipping it is one fold away,
+   * not a step away.
    */
-  test("lays the settings out on one page, under the wizard's own headings", async () => {
+  test("walks the create wizard's own steps", async () => {
     await openEditDialog();
 
-    expect(capturedModalProps?.formProps?.steps).toBeUndefined();
+    expect(capturedModalProps?.formProps?.steps).toBeDefined();
+    expect(capturedModalProps?.formProps?.steps).toBe(
+      capturedTableProps?.formSteps,
+    );
+    expect(
+      (capturedModalProps?.formProps?.steps || []).map(
+        (step: { id: string; title: string }): string => {
+          return step.title;
+        },
+      ),
+    ).toEqual(["Scan Target", "SNMP Credentials"]);
+    expect(capturedModalProps?.formProps?.formType).toBe(FormType.Update);
 
+    const wizardFields: Array<CapturedFormField> =
+      capturedTableProps?.formFields || [];
     const headings: Array<string> = editFields()
       .map((field: CapturedFormField): string | undefined => {
         return field.sectionTitle;
@@ -621,123 +640,54 @@ describe("Editing a discovery scan after it was created", () => {
         return Boolean(title);
       }) as Array<string>;
 
-    /*
-     * NOT simply the step titles in order any more, which is what this
-     * assertion used to be. The scan-method toggle carries a subsection
-     * heading of its own ("What to check") in the middle of the Scan Target
-     * group, so the edit dialog's headings are the step titles INTERLEAVED
-     * with the field-level ones — and an assertion that only knew about steps
-     * would have to be relaxed to accommodate that, which would stop it
-     * noticing a step heading going missing.
-     *
-     * Rebuilt from the wizard's own fields instead: first field of a step
-     * contributes that step's title (the edit layout overwrites its
-     * sectionTitle with it), every other field contributes whatever
-     * sectionTitle it declares. That keeps the assertion exact while staying
-     * true for both kinds of heading.
-     */
-    const wizardFields: Array<CapturedFormField> =
-      capturedTableProps?.formFields || [];
-    const formSteps: Array<{ id: string; title: string }> =
-      capturedTableProps?.formSteps || [];
-    const titledStepIds: Set<string> = new Set<string>();
-    const expectedHeadings: Array<string> = [];
-
-    wizardFields.forEach((field: CapturedFormField): void => {
-      if (field.stepId && !titledStepIds.has(field.stepId)) {
-        const stepTitle: string | undefined = formSteps.find(
-          (step: { id: string; title: string }): boolean => {
-            return step.id === field.stepId;
-          },
-        )?.title;
-
-        expect(stepTitle).toBeDefined();
-        expectedHeadings.push(stepTitle as string);
-        titledStepIds.add(field.stepId);
-        return;
-      }
-
-      if (field.sectionTitle) {
-        expectedHeadings.push(field.sectionTitle);
-      }
-    });
-
-    expect(headings).toEqual(expectedHeadings);
-    expect(headings).toContain("What to check");
-
-    /*
-     * A heading is carried by the FIRST field of its group, so which field
-     * carries it is not decoration — it is where the group begins. The SNMP
-     * group used to begin at `snmpVersion`, the first of nine flat fields;
-     * it now begins at `snmpConfigs`, which is the only field on that step.
-     * Pinned because the heading silently moves to whatever field happens to
-     * come first, and a group that begins in the wrong place puts the
-     * credentials under the schedule's heading with no other symptom.
-     */
-    expect(editFieldNamed("snmpConfigs").sectionTitle).toBe("SNMP Credentials");
-
-    /*
-     * And the toggle keeps its own heading rather than being promoted to a
-     * group start. It sits in the MIDDLE of the Scan Target step, so if the
-     * edit layout ever headed every field instead of the first of each step,
-     * "What to check" would be replaced by a second "Scan Target" and the two
-     * questions the step asks would read as one.
-     */
-    expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBe("What to check");
-
-    /*
-     * The same holds for the naming toggle (issue #3678): it opens its own
-     * "Device names" group inside the Scan Target step, so it must keep that
-     * heading rather than being folded under "What to check" or promoted to a
-     * second "Scan Target".
-     */
-    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(
-      "Device names",
+    // The steps name the groups; no step title is repeated as a heading.
+    expect(headings).toEqual(
+      wizardFields
+        .map((field: CapturedFormField): string | undefined => {
+          return field.sectionTitle;
+        })
+        .filter((title: string | undefined): boolean => {
+          return Boolean(title);
+        }),
     );
-    expect(headings).toContain("Device names");
+    expect(headings).not.toContain("Scan Target");
+    expect(headings).not.toContain("SNMP Credentials");
+    // The schedule's heading is inside the fold, not a step's title.
+    expect(headings).toEqual(["Device names", "Schedule"]);
+
+    // The credentials are on their own step; the schedule folds on the first.
+    expect(editFieldNamed("snmpConfigs").stepId).toBe("snmp");
+    expect(editFieldNamed("isRecurring").stepId).toBe("scan-target");
+    expect(editFieldNamed("cidr").stepId).toBe("scan-target");
+
+    // The method has no heading: the step asks three plain questions.
+    expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBeUndefined();
 
     /*
-     * The NetBIOS lookup (issue #3677) is the opposite case: it carries NO
-     * heading, so it reads as the second question under "What to check" — it
-     * is something the probe sends — rather than opening a group, or being
-     * swallowed by "Device names", which sends nothing.
+     * The NetBIOS lookup (issue #3677) opens the Device names heading inside
+     * More fields - a NetBIOS name is one of the names a host can be given -
+     * and the naming switch (issue #3678) follows under it.
      */
     expect(editFieldNamed("isNetbiosLookupEnabled").sectionTitle).toBe(
-      undefined,
+      "Device names",
     );
-    expect(editFieldKeys().indexOf("isNetbiosLookupEnabled")).toBe(
-      editFieldKeys().indexOf("isSnmpEnabled") + 1,
-    );
-  });
-
-  /*
-   * The naming choice is not a sweep setting: flipping it keeps the last run's
-   * hosts, and the Review dialog simply names them differently the next time it
-   * opens. The warning about what re-runs the scan has to say so, or an
-   * operator who only wants short names reads "re-runs the scan" and hesitates
-   * to save a change that costs nothing.
-   */
-  test("says that switching short device names leaves the results alone", async () => {
-    await openEditDialog();
-
-    const { container } = render(
-      <MemoryRouter>{capturedModalProps?.footer}</MemoryRouter>,
-    );
-
-    expect(container.textContent || "").toContain(
-      "whether devices get short names, leaves the results alone",
+    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(undefined);
+    expect(editFieldKeys().indexOf("useShortDeviceNames")).toBe(
+      editFieldKeys().indexOf("isNetbiosLookupEnabled") + 1,
     );
   });
 
   /*
-   * The NetBIOS lookup (issue #3677) is not a sweep column either, so saving it
-   * keeps the results — but, unlike short names, it changes what the PROBE
-   * asks, so the stored hosts gain no NetBIOS names until the scan runs again.
-   * Both halves are said: without the first the operator hesitates to save a
-   * change that costs nothing, and without the second they turn it on, reopen
-   * Review Results to the same bare addresses, and conclude it does not work.
+   * The warning names exactly the sweep settings - the target, the probe, the
+   * scan method and the credentials (SWEEP_COLUMNS in
+   * NetworkDeviceDiscoveryScanService, the method among them since #3445) -
+   * so everything it does not name reads as free to change: the name, the
+   * schedule, short names and the NetBIOS lookup keep the results. It used to
+   * list those exceptions one by one in five more sentences; the Network
+   * Device guide still does, and says the NetBIOS lookup applies from the
+   * next run.
    */
-  test("says that switching NetBIOS lookup keeps the results and applies from the next run", async () => {
+  test("names exactly the settings that run the scan again, the scan method among them", async () => {
     await openEditDialog();
 
     const { container } = render(
@@ -746,14 +696,15 @@ describe("Editing a discovery scan after it was created", () => {
     const warning: string = container.textContent || "";
 
     expect(warning).toContain(
-      "Turning NetBIOS name lookup on or off leaves them alone too",
+      "Changing the target, probe, scan method or credentials runs the scan again",
     );
-    expect(warning).toContain("applies from the next time the scan runs");
-    // ...and it is not listed among the changes that re-run the scan.
-    expect(warning).toContain(
-      "Changing the target, probe or credentials re-runs the scan",
-    );
-    expect(warning).not.toMatch(/NetBIOS[^.]*re-runs the scan/);
+
+    for (const free of ["NetBIOS", "short", "schedule", "name or"]) {
+      expect({ free, isNamed: warning.includes(free) }).toEqual({
+        free,
+        isNamed: false,
+      });
+    }
   });
 
   /*
@@ -775,10 +726,22 @@ describe("Editing a discovery scan after it was created", () => {
     const { container } = render(<MemoryRouter>{footerElement}</MemoryRouter>);
     const warning: string = container.textContent || "";
 
-    expect(warning).toContain("re-runs the scan");
-    expect(warning).toContain("cleared");
-    // ...and that a rename or a schedule change costs nothing.
-    expect(warning).toContain("name or the schedule");
+    expect(warning).toContain("runs the scan again");
+    expect(warning).toContain("The hosts its last run found are cleared");
+    // ...and what it never touches.
+    expect(warning).toContain("Devices you already imported stay as they are");
+  });
+
+  /*
+   * The dialog's own line says which scan it is: its range, which is also
+   * what the warning below is about.
+   */
+  test("says which range the scan sweeps, in one line", async () => {
+    await openEditDialog();
+
+    expect(capturedModalProps?.description).toBe(
+      "This scan sweeps 192.168.1.0/24.",
+    );
   });
 
   /*

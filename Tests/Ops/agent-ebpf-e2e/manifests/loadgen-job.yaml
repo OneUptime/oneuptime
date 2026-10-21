@@ -1,0 +1,49 @@
+# Rendered by run.sh (DURATION / CONCURRENCY / PAUSE_MS placeholders). Runs on
+# the `client` node, away from the apps, in a namespace the test's values file
+# excludes from OBI discovery: nothing injects a traceparent into its requests
+# (context propagation, on by default, only writes one into the traffic of
+# processes OBI traces), so it cannot become the parent of the app's server
+# spans, and each app request is the root of its own trace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: loadgen
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: loadgen
+  namespace: loadgen
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: loadgen
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        e2e.oneuptime.com/client: "true"
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: loadgen
+          image: node:26-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/src/loadgen.js"]
+          env:
+            - name: DURATION
+              value: "@DURATION@"
+            - name: CONCURRENCY
+              value: "@CONCURRENCY@"
+            - name: PAUSE_MS
+              value: "@PAUSE_MS@"
+            - name: TARGET
+              value: "app.shop.svc.cluster.local:3000"
+          volumeMounts:
+            - name: src
+              mountPath: /src
+      volumes:
+        - name: src
+          configMap:
+            name: e2e-src

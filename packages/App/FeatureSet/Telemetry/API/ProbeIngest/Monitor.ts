@@ -2,15 +2,12 @@ import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -28,7 +25,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
@@ -56,227 +52,6 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
 
   return monitorFetchQuery;
 };
-
-router.get(
-  "/monitor/pending-list/by-probe/:probeId",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      if (!req.params["probeId"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Probe not found"),
-        );
-      }
-
-      //get list of monitors to be monitored
-      const monitorProbes: Array<MonitorProbe> =
-        await MonitorProbeService.findBy({
-          query: {
-            ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
-            nextPingAt: QueryHelper.lessThanEqualToOrNull(
-              OneUptimeDate.addRemoveMinutes(
-                OneUptimeDate.getCurrentDate(),
-                -3,
-              ),
-            ),
-          },
-          sort: {
-            nextPingAt: SortOrder.Ascending,
-          },
-          select: {
-            nextPingAt: true,
-            probeId: true,
-            monitorId: true,
-            monitor: {
-              monitorSteps: true,
-              monitorType: true,
-              monitoringInterval: true,
-              projectId: true,
-            },
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const monitors: Array<Monitor> = monitorProbes
-        .map((monitorProbe: MonitorProbe) => {
-          return monitorProbe.monitor!;
-        })
-        .filter((monitor: Monitor) => {
-          return Boolean(monitor._id);
-        });
-
-      // return the list of monitors to be monitored
-
-      return Response.sendEntityArrayResponse(
-        req,
-        res,
-        monitors,
-        new PositiveNumber(monitors.length),
-        Monitor,
-      );
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-router.get(
-  "/monitor/pending-count/incoming-request",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      // get count of incoming request monitors which are not checked for heartbeat in last 2 minutes
-      const incomingMonitorPendingCount: PositiveNumber =
-        await MonitorService.countBy({
-          query: {
-            ...MonitorService.getEnabledMonitorQuery(),
-            monitorType: MonitorType.IncomingRequest,
-            project: {
-              ...ProjectService.getActiveProjectStatusQuery(),
-            },
-            incomingRequestMonitorHeartbeatCheckedAt:
-              QueryHelper.lessThanEqualToOrNull(
-                OneUptimeDate.addRemoveMinutes(
-                  OneUptimeDate.getCurrentDate(),
-                  -2,
-                ),
-              ),
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const firstMonitorToBeFetched: Monitor | null =
-        await MonitorService.findOneBy({
-          query: {
-            ...MonitorService.getEnabledMonitorQuery(),
-            monitorType: MonitorType.IncomingRequest,
-            project: {
-              ...ProjectService.getActiveProjectStatusQuery(),
-            },
-            incomingRequestMonitorHeartbeatCheckedAt:
-              QueryHelper.lessThanEqualToOrNull(
-                OneUptimeDate.addRemoveMinutes(
-                  OneUptimeDate.getCurrentDate(),
-                  -2,
-                ),
-              ),
-          },
-          select: {
-            incomingRequestMonitorHeartbeatCheckedAt: true,
-            monitorSteps: true,
-            monitorType: true,
-            monitoringInterval: true,
-          },
-          sort: {
-            incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      return Response.sendJsonObjectResponse(req, res, {
-        incomingMonitorPendingCount: incomingMonitorPendingCount.toNumber(),
-        firstMonitorToBeFetched: firstMonitorToBeFetched,
-        incomingRequestMonitorHeartbeatCheckedAt:
-          firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt,
-        friendlyIncomingRequestMonitorHeartbeatCheckedAt:
-          firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt
-            ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
-                date: firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt,
-              })
-            : "",
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// This API returns the count of the monitor waiting to be monitored.
-router.get(
-  "/monitor/pending-count/by-probe/:probeId",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      if (!req.params["probeId"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Probe not found"),
-        );
-      }
-
-      //get list of monitors to be monitored
-      const monitorProbesCount: PositiveNumber =
-        await MonitorProbeService.countBy({
-          query: getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
-          props: {
-            isRoot: true,
-          },
-        });
-
-      //get list of monitors to be monitored
-      const firstMonitorToBeFetched: MonitorProbe | null =
-        await MonitorProbeService.findOneBy({
-          query: {
-            ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
-            nextPingAt: QueryHelper.lessThanEqualToOrNull(
-              OneUptimeDate.addRemoveMinutes(
-                OneUptimeDate.getCurrentDate(),
-                -3,
-              ),
-            ),
-          },
-          select: {
-            nextPingAt: true,
-            monitorId: true,
-          },
-          sort: {
-            nextPingAt: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      return Response.sendJsonObjectResponse(req, res, {
-        firstMonitorToBeFetched: firstMonitorToBeFetched
-          ? BaseModel.toJSONObject(firstMonitorToBeFetched, MonitorProbe)
-          : null,
-        count: monitorProbesCount.toNumber(),
-        nextPingAt: firstMonitorToBeFetched?.nextPingAt,
-        friendlyNextPingAt: firstMonitorToBeFetched?.nextPingAt
-          ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
-              date: firstMonitorToBeFetched?.nextPingAt,
-            })
-          : "",
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
 
 /*
  * This API returns the count of monitors pending to be probed for the authenticated probe.

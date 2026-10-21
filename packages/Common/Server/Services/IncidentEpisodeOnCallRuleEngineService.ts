@@ -10,13 +10,26 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import OnCallRulePagingHoldUtil, {
+  ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+  OnCallRulePagingHold,
+  OnCallRulePagingHolds,
+} from "../Utils/OnCall/OnCallRulePagingHold";
 
 class IncidentEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -24,52 +37,53 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
    * matched rules' on-call policies into the episode's onCallDutyPolicies
    * array (deduped). The episode service's existing on-call fan-out then runs
    * the merged list, so each policy executes at most once per episode.
+   *
+   * Hands back the holds of the policies it added that may not page yet: a
+   * rule that pages only during working hours, matched outside them, holds
+   * its policies until they begin (OnCallRulePagingHold). The fan-out passes
+   * each to executePolicy. A policy with no hold pages right away.
    */
   @CaptureSpan()
-  public async applyRulesToEpisode(episode: IncidentEpisode): Promise<void> {
+  @RuleEvaluation()
+  public async applyRulesToEpisode(
+    episode: IncidentEpisode,
+  ): Promise<Map<string, OnCallRulePagingHold>> {
+    const noHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
     if (!episode.id || !episode.projectId) {
-      return;
+      return noHolds;
     }
 
     try {
       const rules: Array<IncidentEpisodeOnCallRule> =
-        await IncidentEpisodeOnCallRuleService.findBy({
-          query: {
-            projectId: episode.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            incidentSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
-          },
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "IncidentEpisodeOnCallRule",
-        projectId: episode.projectId,
-        rulesRead: rules.length,
-      });
+        await this.findEnabledRules(episode.projectId);
 
       if (rules.length === 0) {
-        return;
+        return noHolds;
       }
 
       const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
       const matchedRules: Array<IncidentEpisodeOnCallRule> = [];
+      // When each matched rule lets its policies page: right away wins.
+      const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
 
       for (const rule of rules) {
         if (!this.doesEpisodeMatchRule(episode, rule)) {
           continue;
         }
+
+        pagingHolds.addRule(
+          rule,
+          (rule.onCallDutyPolicies || []).map(
+            (policy: OnCallDutyPolicy): string => {
+              return policy.id?.toString() || "";
+            },
+          ),
+        );
+
         let ruleAddedAny: boolean = false;
         for (const policy of rule.onCallDutyPolicies || []) {
           const policyId: string | undefined = policy.id?.toString();
@@ -83,8 +97,20 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
         }
       }
 
+      // Only the project's own policies are ever paged (see OnCallRulePolicyScope).
+      await OnCallRulePolicyScope.keepPoliciesInProject({
+        projectId: episode.projectId,
+        matchedPolicies: matchedPolicies,
+        matchedRules: matchedRules,
+        ruleKind: "Incident episode on-call",
+        logAttributes: {
+          projectId: episode.projectId.toString(),
+          incidentEpisodeId: episode.id.toString(),
+        } as LogAttributes,
+      });
+
       if (matchedPolicies.size === 0) {
-        return;
+        return noHolds;
       }
 
       const existingIds: Set<string> = new Set(
@@ -139,12 +165,104 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
           addedPolicyIds: toAddIds,
         });
       }
+
+      // A policy the episode had already pages as it always has: right away.
+      return pagingHolds.getHolds(toAddIds);
     } catch (error) {
       logger.error(`Error applying incident episode on-call rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         incidentEpisodeId: episode.id?.toString(),
       } as LogAttributes);
+
+      return noHolds;
     }
+  }
+
+  /*
+   * The policies the incident episode's matching rules page now, each with the
+   * names of the rules that do: a rule that pages right away, or a
+   * working-hours rule inside its hours (OnCallRulePagingHoldUtil.getHold).
+   * Reads only: it adds no policy to the incident episode. For one that changed
+   * while some of its runs wait for working hours (WaitingRunsOnRecordChange).
+   */
+  @CaptureSpan()
+  @RuleEvaluation()
+  public async getPoliciesPagingNow(
+    episode: IncidentEpisode,
+    now: Date,
+  ): Promise<Map<string, Array<string>>> {
+    const pagingNow: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    if (!episode.id || !episode.projectId) {
+      return pagingNow;
+    }
+
+    for (const rule of await this.findEnabledRules(episode.projectId)) {
+      if (
+        !rule.onCallDutyPolicies ||
+        rule.onCallDutyPolicies.length === 0 ||
+        OnCallRulePagingHoldUtil.getHold(rule, now) !== null
+      ) {
+        continue;
+      }
+
+      if (!this.doesEpisodeMatchRule(episode, rule)) {
+        continue;
+      }
+
+      for (const policy of rule.onCallDutyPolicies) {
+        const policyId: string | undefined = policy.id?.toString();
+
+        if (!policyId) {
+          continue;
+        }
+
+        pagingNow.set(policyId, [
+          ...(pagingNow.get(policyId) || []),
+          rule.name?.toString() || "",
+        ]);
+      }
+    }
+
+    return pagingNow;
+  }
+
+  // The project's enabled rules of this kind, with what matching them needs.
+  private async findEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentEpisodeOnCallRule>> {
+    const rules: Array<IncidentEpisodeOnCallRule> =
+      await IncidentEpisodeOnCallRuleService.findBy({
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: {
+          _id: true,
+          name: true,
+          criteria: true,
+          incidentSeverities: { _id: true },
+          episodeLabels: { _id: true },
+          episodeTitlePattern: true,
+          episodeDescriptionPattern: true,
+          onCallDutyPolicies: { _id: true },
+          ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+        },
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentEpisodeOnCallRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
   }
 
   @CaptureSpan()
@@ -197,29 +315,17 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
-
-      const policiesPart: string =
-        policyNames.length > 0
-          ? policyNames
-              .map((n: string) => {
-                return `\n- ${n}`;
-              })
-              .join("")
-          : "\n- (no named policies)";
-
-      const feedInfoInMarkdown: string = `📞 **Incident Episode On-Call Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAttached the following on-call ${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "📞",
+          ruleKind: "Incident Episode On-Call Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAttached the following on-call ${
         policyNames.length === 1 ? "policy" : "policies"
-      } to the episode:${policiesPart}`;
+      } to the episode:\n${FeedMarkdown.bulletList(policyNames, {
+        whenEmpty: "(no named policies)",
+      })}`;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id,
@@ -227,7 +333,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OnCallRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -327,8 +433,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
     rule: IncidentEpisodeOnCallRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in incident episode on-call rule ${rule.id}: ${pattern}`,

@@ -6,9 +6,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import CSVFileUpload, {
   CSVColumn,
@@ -34,6 +32,18 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelOffPanel from "../../../Components/StatusPage/SubscriberChannelOffPanel";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
+import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
+import {
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+  getSubscriberWelcomeField,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -44,10 +54,13 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
   PageComponentProps
 > = (props: PageComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -63,7 +76,12 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
     isMicrosoftTeamsSubscribersEnabled,
     setIsMicrosoftTeamsSubscribersEnabled,
   ] = React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  /*
+   * Loading from the first render: the list, and the channel's switch
+   * above it, are drawn once the status page has said whether the channel
+   * is on - not first as off, for a frame, on a page where it is on.
+   */
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -233,6 +251,13 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
       return; // don't do anything if loading
     }
 
+    /*
+     * The channel's own fields, its Status on Edit, and under More fields
+     * the welcome message and the internal note (SubscriberFormFields.tsx).
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -258,30 +283,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
         placeholder: "https://xxxxx.office.com/webhook/...",
         disableSpellCheck: true,
       },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription Notification",
-        stepId: "subscriber-info",
-        description:
-          "Send a notification to the Teams channel confirming the subscription.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenEditing: true,
-      },
-
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        stepId: "subscriber-info",
-        description: "Unsubscribe this Teams channel from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getSubscriberStatusFields({ isEmail: false }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -290,7 +292,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
           isSubscribedToAllResources: true,
         },
         title: "Subscribe to All Resources",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description: "Send notifications for all resources.",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
@@ -303,7 +305,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
         },
         title: "Select Resources to Subscribe",
         description: "Please select the resources you want to subscribe to.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.CategoryCheckbox,
         required: false,
         categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -319,7 +321,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
           isSubscribedToAllEventTypes: true,
         },
         title: "Subscribe to All Event Types",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description:
           "Select this option if you want to subscribe to all event types.",
         fieldType: FormFieldSchemaType.Checkbox,
@@ -332,7 +334,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
           statusPageEventTypes: true,
         },
         title: "Select Event Types to Subscribe",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description: "Please select the event types you want to subscribe to.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
@@ -343,18 +345,8 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
       });
     }
 
-    // add internal note field
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberWelcomeField(moreFields));
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -367,13 +359,22 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
 
       {!error && !isLoading ? (
         <>
-          {!isMicrosoftTeamsSubscribersEnabled && (
-            <Alert
-              type={AlertType.DANGER}
-              title="Microsoft Teams subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
-            />
-          )}
+          {/*
+           * The channel's own switch while it is off, where a red
+           * "not enabled" banner used to send people to another page.
+           */}
+          <SubscriberChannelOffPanel
+            statusPageId={modelId}
+            method={StatusPageSubscriberNotificationMethod.MicrosoftTeams}
+            isEnabled={isMicrosoftTeamsSubscribersEnabled}
+          />
           <SubscriberNotificationWarnings statusPageId={modelId} />
+          <TeamAddedSubscribersUnsubscribedNotice
+            statusPageId={modelId}
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            channelQuery={{ microsoftTeamsWorkspaceName: new NotNull() }}
+            contactSelect={{ microsoftTeamsWorkspaceName: true }}
+          />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-microsoft-teams-subscriber"
@@ -407,31 +408,41 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "Microsoft Teams Subscribers",
               description:
-                "Here are the list of Microsoft Teams channels that have subscribed to the status page.",
+                "Microsoft Teams channels that get this status page's updates. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",
                   buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
-                } as CardButtonSchema,
+                },
               ],
             }}
-            noItemsMessage={"No Microsoft Teams subscribers found."}
-            formSteps={[
-              {
-                title: "Subscriber Info",
-                id: "subscriber-info",
-              },
-              {
-                title: "Internal Info",
-                id: "internal-info",
-              },
-            ]}
+            /*
+             * Who gets the updates, then - when this page lets subscribers
+             * choose - what they hear about, as the bulk add form asks it.
+             */
+            formSteps={
+              allowSubscribersToChooseResources ||
+              allowSubscribersToChooseEventTypes
+                ? [
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
+                    { title: "Subscriber Info", id: "subscriber-info" },
+                    { title: "Notifications", id: "notifications" },
+                  ]
+                : undefined
+            }
             formFields={formFields}
             showRefreshButton={true}
             viewPageRoute={Navigation.getCurrentRoute()}
@@ -462,6 +473,13 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   createdAt: true,
                 },
                 title: "Subscribed At",
+                type: FieldType.DateTime,
+              },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
                 type: FieldType.DateTime,
               },
             ]}
@@ -505,6 +523,14 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                 type: FieldType.DateTime,
                 hideOnMobile: true,
               },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
+                type: FieldType.DateTime,
+                hideOnMobile: true,
+              },
             ]}
           />
 
@@ -532,22 +558,15 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   }}
                   templateFileName="microsoft-teams-subscribers-template.csv"
                 />
-                <div className="flex items-center space-x-3 pt-2">
+                <div className="pt-2">
                   <Toggle
+                    title={SubscriberFormCopy.welcomeTitle}
+                    description={SubscriberFormCopy.welcomeDescription}
                     value={sendNotification}
                     onChange={(value: boolean) => {
                       setSendNotification(value);
                     }}
                   />
-                  <div>
-                    <div className="text-sm font-medium text-gray-700">
-                      Send Subscription Notification
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Send a notification to the Teams channels confirming the
-                      subscription.
-                    </div>
-                  </div>
                 </div>
               </div>
             </Modal>
@@ -565,8 +584,9 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -586,11 +606,14 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -602,11 +625,13 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}

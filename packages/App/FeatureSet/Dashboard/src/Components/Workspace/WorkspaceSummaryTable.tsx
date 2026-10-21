@@ -13,6 +13,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
 } from "react";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -21,9 +22,16 @@ import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/Workspace
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceNotificationSummaryItem from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition, {
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
+import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "./NotificationRuleForm/NotificationRuleCopy";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -51,6 +59,13 @@ import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../TestSend/TestSendLock";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -77,6 +92,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     Array<IncidentState>
   >([]);
 
+  // Locked, saying why, for someone who may not send a test (TestSendLock).
+  const testSummaryLock: TestSendLock = getTestSendLock(
+    TestSendTargets.Summary,
+  );
+
   // Test modal state
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
@@ -88,6 +108,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   >(undefined);
   const [showTestSuccessModal, setShowTestSuccessModal] =
     React.useState<boolean>(false);
+
+  // The time zones the Timezone field offers: worked out once, not per render.
+  const timezoneOptions: Array<DropdownOption> =
+    useMemo((): Array<DropdownOption> => {
+      return TimezoneUtil.getTimezoneDropdownOptions();
+    }, []);
 
   // Map summary type to notification rule event type for filters
   type GetEventTypeFunction = () => NotificationRuleEventType;
@@ -138,20 +164,24 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const alertStatesResult: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true },
+        select: { name: true, _id: true, color: true, order: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
+        sort: {
+          order: SortOrder.Ascending,
+        },
       });
       setAlertStates(alertStatesResult.data);
 
       const alertSevResult: ListResult<AlertSeverity> = await ModelAPI.getList({
         modelType: AlertSeverity,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true },
+        select: { name: true, _id: true, color: true, order: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
+        sort: {
+          order: SortOrder.Ascending,
+        },
       });
       setAlertSeverities(alertSevResult.data);
 
@@ -159,10 +189,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentSeverity,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true },
+          select: { name: true, _id: true, color: true, order: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          sort: { name: SortOrder.Ascending },
+          sort: {
+            order: SortOrder.Ascending,
+          },
         },
       );
       setIncidentSeverities(incSevResult.data);
@@ -171,10 +203,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentState,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true },
+          select: { name: true, _id: true, color: true, order: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          sort: { name: SortOrder.Ascending },
+          sort: {
+            order: SortOrder.Ascending,
+          },
         },
       );
       setIncidentStates(incStatesResult.data);
@@ -253,6 +287,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Send Test Now",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
+            disabled: testSummaryLock.isLocked,
+            tooltip: testSummaryLock.tooltip,
             onClick: async (
               item: WorkspaceNotificationSummary,
               onCompleteAction: VoidFunction,
@@ -283,32 +319,46 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         }}
         showAs={ShowAs.List}
         noItemsMessage={`No ${typeLabel.toLowerCase()} summary rules configured yet. Create one to start receiving periodic reports.`}
+        /*
+         * A new summary goes out every week, as its other defaults - the
+         * last 7 days, a "Weekly ... Summary" - already assumed, so it can
+         * be saved as it opens. It matches all of its filters; All or Any
+         * is asked only once there are two of them.
+         */
+        createInitialValues={{
+          recurringInterval:
+            WorkspaceSummaryScheduleUtil.getDefaultRecurringInterval(),
+          filterCondition: FilterCondition.All,
+          filters: [],
+        }}
         onBeforeCreate={(values: WorkspaceNotificationSummary) => {
           values.summaryType = props.summaryType;
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
 
-          // Set nextSendAt based on sendFirstReportAt or recurringInterval
-          if (values.sendFirstReportAt) {
-            const firstReportDate: Date = new Date(
-              values.sendFirstReportAt as unknown as string,
-            );
-            if (
-              firstReportDate.getTime() >
-              OneUptimeDate.getCurrentDate().getTime()
-            ) {
-              values.nextSendAt = firstReportDate;
-            } else {
-              values.nextSendAt = values.sendFirstReportAt;
-            }
-          } else if (values.recurringInterval) {
-            const recurring: Recurring = Recurring.fromJSON(
-              values.recurringInterval,
-            );
-            values.nextSendAt = Recurring.getNextDateInterval(
-              OneUptimeDate.getCurrentDate(),
-              recurring,
-            );
+          // The time zone the form showed: the creator's own, unless changed.
+          if (!values.timezone) {
+            values.timezone = OneUptimeDate.getCurrentTimezone();
+          }
+
+          /*
+           * Left empty, the first summary goes out at 09:00 in the summary's
+           * time zone at the start of the next week (or day, or month) - the
+           * date the form showed under the field. The server works the next
+           * send out from it on that zone's clock
+           * (WorkspaceSummaryScheduleUtil): a first summary dated in the past
+           * goes out at the schedule's next occurrence, not in a burst of
+           * catch-up summaries, and later ones keep its time of day there
+           * when the clocks change.
+           */
+          if (!values.sendFirstReportAt) {
+            values.sendFirstReportAt =
+              WorkspaceSummaryScheduleUtil.getDefaultFirstSendDate({
+                timezone: values.timezone,
+                intervalType: WorkspaceSummaryScheduleUtil.toRecurring(
+                  values.recurringInterval,
+                )?.intervalType,
+              });
           }
 
           // Parse channel names from comma-separated string
@@ -336,27 +386,16 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             values.isEnabled = true;
           }
 
-          // Clean up empty filters
+          // A condition row left empty is dropped, not saved.
           if (values.filters && Array.isArray(values.filters)) {
-            values.filters = values.filters.filter(
-              (f: NotificationRuleCondition) => {
-                if (!f.value) {
-                  return false;
-                }
-                if (Array.isArray(f.value)) {
-                  return f.value.length > 0;
-                }
-                // String-based conditions (e.g., title contains "X")
-                if (typeof f.value === "string") {
-                  return f.value.trim().length > 0;
-                }
-                return true;
-              },
-            );
+            values.filters =
+              NotificationRuleConditionUtil.withoutEmptyConditions(
+                values.filters,
+              );
           }
 
           if (!values.filterCondition) {
-            values.filterCondition = FilterCondition.Any;
+            values.filterCondition = FilterCondition.All;
           }
 
           return Promise.resolve(values);
@@ -367,6 +406,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             values.channelNames = (values.channelNames as Array<string>).join(
               ", ",
             ) as unknown as Array<string>;
+          }
+
+          // As on create: a condition row left empty is dropped, not saved.
+          if (values.filters && Array.isArray(values.filters)) {
+            values.filters =
+              NotificationRuleConditionUtil.withoutEmptyConditions(
+                values.filters,
+              );
           }
 
           return Promise.resolve(values);
@@ -432,6 +479,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               "When enabled, the summary will be sent automatically on the configured schedule.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * On, as the column defaults to. The switch drew off - its model
+             * column declares the default only to the database - and a
+             * switch left alone is sent as off, so a summary created as the
+             * form opened was saved disabled and never went out.
+             */
+            defaultValue: true,
           },
           {
             field: {
@@ -455,15 +509,33 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                       elementProps.onChange(recurring);
                     }
                   }}
-                  initialValue={
-                    value.recurringInterval &&
-                    value.recurringInterval instanceof Recurring
-                      ? Recurring.fromJSON(value.recurringInterval as Recurring)
-                      : undefined
-                  }
+                  // A saved interval in either shape: a Recurring or its JSON.
+                  initialValue={WorkspaceSummaryScheduleUtil.toRecurring(
+                    value.recurringInterval,
+                  )}
                 />
               );
             },
+          },
+          /*
+           * The clock the schedule is read on: the summary goes out at the
+           * same time of day there all year, the clocks changing for
+           * daylight saving time included. It starts on the creator's own
+           * time zone, so nobody has to touch it.
+           */
+          {
+            field: {
+              timezone: true,
+            },
+            title: "Timezone",
+            description:
+              "Summaries go out at the same time of day in this timezone all year, also after the clocks change.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: timezoneOptions,
+            defaultValue: OneUptimeDate.getCurrentTimezone(),
+            required: true,
+            stepId: "schedule",
+            placeholder: "Select Timezone",
           },
           {
             field: {
@@ -471,10 +543,28 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Send First Report At",
             description:
-              "When should the first summary report be sent? Subsequent reports will follow the recurring interval from this date. If left empty, the first report will be sent after the recurring interval from now.",
+              "Later summaries go out at the same time of day. Leave empty for 09:00 at the start of the next period.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",
+            /*
+             * When the first summary goes out, worked out from what the form
+             * holds the way the server will work it out on save - so leaving
+             * the date empty says what that means. Only while creating: a
+             * saved summary's next send is in the list.
+             */
+            getFooterElement: (
+              values: FormValues<WorkspaceNotificationSummary>,
+            ): ReactElement => {
+              return (
+                <WorkspaceSummaryFirstSendPreview
+                  recurringInterval={values.recurringInterval}
+                  sendFirstReportAt={values.sendFirstReportAt}
+                  timezone={values.timezone}
+                  isSaved={Boolean((values as Record<string, unknown>)["_id"])}
+                />
+              );
+            },
           },
           {
             field: {
@@ -487,6 +577,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             required: true,
             stepId: "schedule",
             placeholder: "7",
+            /*
+             * The last 7 days, as the column defaults to and as a weekly
+             * summary covers. It drew empty - its model column declares the
+             * default only to the database - and the step would not go on
+             * until a number was typed.
+             */
+            defaultValue: 7,
           },
           {
             field: {
@@ -581,33 +678,45 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              filterCondition: true,
-            },
-            title: "Filter Condition",
-            description: `Choose whether ${typeLabel.toLowerCase()}s must match ALL filters or ANY filter. If no filters are added, the summary will include all ${typeLabel.toLowerCase()}s.`,
-            fieldType: FormFieldSchemaType.RadioButton,
-            required: false,
-            stepId: "filters",
-            radioButtonOptions: [
-              {
-                title: "Any",
-                value: FilterCondition.Any,
-              },
-              {
-                title: "All",
-                value: FilterCondition.All,
-              },
-            ],
-          },
-          {
-            field: {
               filters: true,
             },
-            title: "Filter Conditions",
-            description: `Only include ${typeLabel.toLowerCase()}s that match these conditions. Leave empty to include all.`,
+            /*
+             * Which records the summary includes, asked as a workspace
+             * rule's conditions are: "All incidents" or "Only incidents that
+             * match conditions" (NotificationRuleConditions), under the
+             * rule form's own heading. It said "Leave empty to include
+             * all." over an Add Condition button.
+             */
+            title: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            customElementDrawsOwnLabel: true,
+            hideOptionalLabel: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             stepId: "filters",
+            /*
+             * Every condition complete, as a notification rule's are: a
+             * condition left without its operator was skipped when the
+             * summary was built, and took every or no item with it
+             * depending on All or Any. One left empty is still dropped on
+             * create.
+             */
+            customValidation: (
+              values: FormValues<WorkspaceNotificationSummary>,
+            ): string | null => {
+              return NotificationRuleConditionUtil.getConditionsValidationError(
+                {
+                  notificationRule: {
+                    filters:
+                      NotificationRuleConditionUtil.withoutEmptyConditions(
+                        (values.filters as
+                          | Array<NotificationRuleCondition>
+                          | undefined) || [],
+                      ),
+                  } as IncidentNotificationRule,
+                },
+              );
+            },
             getCustomElement: (
               value: FormValues<WorkspaceNotificationSummary>,
               elementProps: CustomElementProps,
@@ -635,6 +744,43 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   }
                 />
               );
+            },
+          },
+          /*
+           * Only once there are two conditions to combine: with one, All and
+           * Any include the same items (every condition is complete - the
+           * field above checks). Hidden, it keeps what the summary holds:
+           * All for a new one.
+           */
+          {
+            field: {
+              filterCondition: true,
+            },
+            title: "Match Condition",
+            description:
+              "Should all conditions match, or just any one of them?",
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: false,
+            stepId: "filters",
+            /*
+             * Only a summary saved without one reaches this default - the
+             * create form starts on All. The summary is built as Any then
+             * (WorkspaceNotificationSummaryService), so that is what it
+             * shows, and what it keeps when saved.
+             */
+            defaultValue: FilterCondition.Any,
+            radioButtonOptions: [
+              {
+                title: "All",
+                value: FilterCondition.All,
+              },
+              {
+                title: "Any",
+                value: FilterCondition.Any,
+              },
+            ],
+            showIf: (values: FormValues<WorkspaceNotificationSummary>) => {
+              return isFilterConditionNeeded(values.filters);
             },
           },
         ]}
@@ -702,6 +848,18 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          /*
+           * The clock the summary keeps its time of day on. One with none
+           * is read in UTC, so that is what it says.
+           */
+          {
+            field: {
+              timezone: true,
+            },
+            noValueMessage: "UTC",
+            title: "Timezone",
+            type: FieldType.Text,
+          },
           {
             field: {
               sendFirstReportAt: true,
@@ -743,7 +901,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Send Test Summary Now`}
           error={testError}
-          description={`This will send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} right now. The summary will include data from the last ${testSummary.numberOfDaysOfData || 7} days. This will not affect the regular schedule.`}
+          description={`Send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} now, with the last ${testSummary.numberOfDaysOfData || 7} days of data. The regular schedule is not affected.`}
           submitButtonText={"Send Now"}
           onClose={() => {
             setShowTestModal(false);

@@ -6,14 +6,17 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  WORKFLOW_ARCHIVE_COPY,
+  ARCHIVE_INSTEAD_OF_DELETE,
+} from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
@@ -39,8 +42,11 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -56,6 +62,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: WorkflowOwnerTeam,
       resourceIdField: "workflowId",
     });
+
+  // Archived workflows leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<Workflow>({
+    modelType: Workflow,
+    singularName: WORKFLOW_ARCHIVE_COPY.singularName,
+    pluralName: WORKFLOW_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   const workflowExtraFacets: Array<ResourceFacet> = [
     {
@@ -82,6 +97,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -105,13 +121,10 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               createdAt: new InBetween(startDate, endDate),
             }}
             title="Workflow Runs"
-            description={
-              "Workflow runs in the last 30 days. Your current plan is " +
-              plan +
-              ". It currently supports " +
-              WorkflowPlan[plan] +
-              " runs in the last 30 days."
-            }
+            description={translator.translateTemplate(
+              "Workflow runs in the last 30 days. Your current plan is {{plan}}. It currently supports {{runs}} runs in the last 30 days.",
+              { plan: plan, runs: WorkflowPlan[plan] },
+            )}
           />
         )}
 
@@ -121,16 +134,18 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="workflows-table"
           userPreferencesKey="workflow-table"
           topContent={filterBar}
+          emptyState={facetEmptyState}
           currentFacetState={facetSaveState}
           onFacetStateRestored={restoreFacetState}
-          query={mergeFiltersIntoQuery(undefined)}
+          query={mergeFiltersIntoQuery({ isArchived: false })}
           onFetchSuccess={(data: Array<Workflow>) => {
             onResourcesFetched(data);
           }}
           saveFilterProps={{
             tableId: "workflows-table",
           }}
-          isDeleteable={false}
+          isDeleteable={true}
+          deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
           isEditable={false}
           isCreateable={true}
           /*
@@ -143,77 +158,28 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setShowCreateModal(true);
           }}
           bulkActions={{
-            buttons: [...labelBulkActions, ...ownerBulkActions],
+            buttons: [
+              ...labelBulkActions,
+              ...ownerBulkActions,
+              ...archiveBulkActions,
+            ],
           }}
           name="Workflows"
           isViewable={true}
           showViewIdButton={true}
           cardProps={{
             title: "Workflows",
-            description: "Here is a list of workflows for this project.",
+            description:
+              "No-code automations that run when something happens, such as posting to Slack when an incident is created. Start from a template or build your own.",
           }}
           videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
-          noItemsMessage={"No workflows found."}
-          formSteps={[
-            {
-              title: "Workflow Info",
-              id: "workflow-info",
-            },
-            {
-              title: "Labels",
-              id: "labels",
-            },
-          ]}
-          formFields={[
-            {
-              field: {
-                name: true,
-              },
-              stepId: "workflow-info",
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Workflow Name",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              stepId: "workflow-info",
-              title: "Description",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Description",
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              stepId: "workflow-info",
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                labels: true,
-              },
-              stepId: "labels",
-              title: "Labels ",
-              description:
-                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Label,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Labels",
-            },
-          ]}
+          /*
+           * No formFields: this table never draws its own form. Creating goes
+           * through the template wizard above (CreateWorkflowModal), and a
+           * workflow's name, description and labels are edited on its own
+           * page. A field list here was never shown, and once carried a
+           * Labels step of its own.
+           */
           showRefreshButton={true}
           searchableFields={["name", "description"]}
           viewPageRoute={Navigation.getCurrentRoute()}

@@ -14,6 +14,8 @@ import CallService from "./CallService";
 import DataMigrationService from "./DataMigrationService";
 import MigrationFailureService from "./MigrationFailureService";
 import InstanceHealthLogService from "./InstanceHealthLogService";
+import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
+import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -28,6 +30,8 @@ import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateServi
 import IncidentNoteTemplateService from "./IncidentNoteTemplateService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import FormService from "./FormService";
+import FormSubmissionService from "./FormSubmissionService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -67,6 +71,7 @@ import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
+import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
@@ -88,6 +93,8 @@ import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
+import StorageArrayService from "./StorageArrayService";
+import StorageArrayResourceService from "./StorageArrayResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
@@ -105,13 +112,23 @@ import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
+import VMwareVCenterConnectionTestService from "./VMwareVCenterConnectionTestService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
+import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
+import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
+import StorageArrayOwnerTeamService from "./StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService from "./StorageArrayOwnerUserService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
 import DatabaseServerOwnerTeamService from "./DatabaseServerOwnerTeamService";
 import DatabaseServerOwnerUserService from "./DatabaseServerOwnerUserService";
+import MessageQueueService from "./MessageQueueService";
+import MessageQueueLabelRuleService from "./MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService from "./MessageQueueOwnerRuleService";
+import MessageQueueOwnerTeamService from "./MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "./MessageQueueOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
@@ -146,7 +163,7 @@ import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
 import RunbookLabelRuleService from "./RunbookLabelRuleService";
-import RunbookSecretService from "./RunbookSecretService";
+import RunbookVariableService from "./RunbookVariableService";
 import AIInsightService from "./AIInsightService";
 
 // Monitors
@@ -156,6 +173,7 @@ import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import DockerHostFeedService from "./DockerHostFeedService";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
+import StorageArrayFeedService from "./StorageArrayFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
@@ -189,6 +207,10 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeedService from "./ScheduledMaintenanceCalendarFeedService";
+import ScheduledMaintenanceExternalCalendarService from "./ScheduledMaintenanceExternalCalendarService";
+import ScheduledMaintenanceExternalCalendarEventService from "./ScheduledMaintenanceExternalCalendarEventService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
@@ -226,6 +248,11 @@ import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
+import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReportService from "./MarketplaceUsageReportService";
+import MarketplaceChargeService from "./MarketplaceChargeService";
+import VercelMarketplaceInstallationService from "./VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService from "./VercelMarketplaceConnectionService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
@@ -286,6 +313,9 @@ import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusP
 import TeamMemberService from "./TeamMemberService";
 import TeamMemberCustomFieldService from "./TeamMemberCustomFieldService";
 import TeamPermissionService from "./TeamPermissionService";
+import CustomRoleService from "./CustomRoleService";
+import CustomRolePermissionService from "./CustomRolePermissionService";
+import TeamCustomRoleService from "./TeamCustomRoleService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
 import TeamService from "./TeamService";
@@ -299,6 +329,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
 import UserSessionService from "./UserSessionService";
 import UserProjectSsoConsentService from "./UserProjectSsoConsentService";
+import UserProjectSsoIdentityService from "./UserProjectSsoIdentityService";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
@@ -344,8 +375,17 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
+import SecurityEventDestinationService from "./SecurityEventDestinationService";
+import SecurityLogSourceService from "./SecurityLogSourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
+import SecurityCaseService from "./SecurityCaseService";
+import SecurityCaseFeedService from "./SecurityCaseFeedService";
+import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityDetectionService from "./SecurityDetectionService";
+import SecurityPlaybookService from "./SecurityPlaybookService";
+import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -388,6 +428,8 @@ import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
 import LlmCostBudgetService from "./LlmCostBudgetService";
+import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
+import ExternalMcpServerService from "./ExternalMcpServerService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -410,8 +452,13 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import VideoCallConnectionService from "./VideoCallConnectionService";
+import IncidentVideoCallService from "./IncidentVideoCallService";
+import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
+import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
+import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
@@ -420,6 +467,7 @@ import NetworkFlowService from "./NetworkFlowService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
+import ProjectSCIMUserService from "./ProjectSCIMUserService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 import DeletedProjectService from "./DeletedProjectService";
 import CodeRepositoryService from "./CodeRepositoryService";
@@ -428,11 +476,15 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostCollectorConfigService from "./HostCollectorConfigService";
+import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IncomingCallLogService from "./IncomingCallLogService";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
+import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
 import CloudResourceOwnerTeamService from "./CloudResourceOwnerTeamService";
@@ -453,6 +505,9 @@ import IoTFleetOwnerUserService from "./IoTFleetOwnerUserService";
 import UserNotificationEmailRollupItemService from "./UserNotificationEmailRollupItemService";
 import UserNotificationEmailRollupBatchService from "./UserNotificationEmailRollupBatchService";
 import UserNotificationEmailRollupSettingService from "./UserNotificationEmailRollupSettingService";
+import McpOAuthClientService from "./McpOAuthClientService";
+import McpOAuthGrantService from "./McpOAuthGrantService";
+import McpOAuthTokenService from "./McpOAuthTokenService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -467,6 +522,11 @@ const services: Array<BaseService> = [
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,
   OpenSourceDeploymentService,
+  MarketplaceSubscriptionService,
+  MarketplaceUsageReportService,
+  MarketplaceChargeService,
+  VercelMarketplaceInstallationService,
+  VercelMarketplaceConnectionService,
 
   ResellerService,
   ResellerPlanService,
@@ -486,6 +546,8 @@ const services: Array<BaseService> = [
   DataMigrationService,
   MigrationFailureService,
   InstanceHealthLogService,
+  InstanceReceivingPeriodService,
+  InstanceTokenSigningKeyService,
   DomainService,
 
   EmailLogService,
@@ -506,6 +568,8 @@ const services: Array<BaseService> = [
   IncidentTemplateService,
   IncidentTemplateOwnerTeamService,
   IncidentTemplateOwnerUserService,
+  FormService,
+  FormSubmissionService,
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
@@ -542,6 +606,7 @@ const services: Array<BaseService> = [
   NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
   NetworkDeviceDiagnosticService,
+  PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
   NetworkSiteTypeService,
@@ -563,6 +628,8 @@ const services: Array<BaseService> = [
   ProxmoxResourceService,
   DockerSwarmResourceService,
   CephResourceService,
+  StorageArrayService,
+  StorageArrayResourceService,
   ProxmoxClusterLabelRuleService,
   DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
@@ -575,18 +642,28 @@ const services: Array<BaseService> = [
   CephClusterOwnerRuleService,
   CephClusterOwnerTeamService,
   CephClusterOwnerUserService,
+  StorageArrayLabelRuleService,
+  StorageArrayOwnerRuleService,
+  StorageArrayOwnerTeamService,
+  StorageArrayOwnerUserService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
+  VMwareVCenterConnectionTestService,
   DatabaseServerService,
   DatabaseServerEndpointService,
   DatabaseServerLabelRuleService,
   DatabaseServerOwnerRuleService,
   DatabaseServerOwnerTeamService,
   DatabaseServerOwnerUserService,
+  MessageQueueService,
+  MessageQueueLabelRuleService,
+  MessageQueueOwnerRuleService,
+  MessageQueueOwnerTeamService,
+  MessageQueueOwnerUserService,
   LlmProviderService,
   DataSourceService,
 
@@ -607,13 +684,14 @@ const services: Array<BaseService> = [
   RunbookOwnerUserService,
   RunbookOwnerTeamService,
   RunbookLabelRuleService,
-  RunbookSecretService,
+  RunbookVariableService,
   AIInsightService,
   MonitorFeedService,
   KubernetesClusterFeedService,
   DockerHostFeedService,
   DockerSwarmClusterFeedService,
   CephClusterFeedService,
+  StorageArrayFeedService,
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
@@ -701,12 +779,16 @@ const services: Array<BaseService> = [
   TeamMemberService,
   TeamMemberCustomFieldService,
   TeamPermissionService,
+  CustomRoleService,
+  CustomRolePermissionService,
+  TeamCustomRoleService,
   TeamComplianceSettingService,
   TeamService,
 
   UserService,
   UserSessionService,
   UserProjectSsoConsentService,
+  UserProjectSsoIdentityService,
   UserCallService,
   UserEmailService,
   UserNotificationRuleService,
@@ -748,6 +830,9 @@ const services: Array<BaseService> = [
   UserOnCallCalendarFeedService,
   OnCallDutyPolicyScheduleCalendarFeedService,
   ProjectOnCallCalendarFeedService,
+  ScheduledMaintenanceCalendarFeedService,
+  ScheduledMaintenanceExternalCalendarService,
+  ScheduledMaintenanceExternalCalendarEventService,
   UserOnCallShiftReminderService,
   UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
@@ -789,7 +874,16 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
+  SecurityEventDestinationService,
+  SecurityLogSourceService,
   ThreatIntelFeedService,
+  SecurityCaseService,
+  SecurityCaseFeedService,
+  SecurityCaseNoteService,
+  SecurityDetectionService,
+  SecurityPlaybookService,
+  SecurityPlaybookRunService,
+  SecurityProtectedEntityService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -833,6 +927,8 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
   LlmCostBudgetService,
+  LlmObservabilityConnectionService,
+  ExternalMcpServerService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
@@ -851,11 +947,17 @@ const services: Array<BaseService> = [
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
+  VideoCallConnectionService,
+  IncidentVideoCallService,
+  AlertVideoCallService,
   WorkspaceNotificationLogService,
+  WorkspaceLiveMessageService,
   WorkspaceNotificationSummaryService,
+  WorkspaceUserGroupService,
   WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
+  ProjectSCIMUserService,
   StatusPageSCIMLogService,
 
   // Session replay control tables (the recordings themselves are in ClickHouse).
@@ -873,6 +975,7 @@ const services: Array<BaseService> = [
    * "Component <id> not found" at execution time. Kept together because
    * none of these families has an existing entry to sit next to.
    */
+  CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,
   CloudResourceOwnerTeamService,
@@ -882,6 +985,8 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostCollectorConfigService,
+  HostCollectorConfigVersionService,
   IncomingCallPolicyService,
   IncomingCallPolicyPhoneNumberService,
   IncomingCallPolicyEscalationRuleService,
@@ -889,6 +994,7 @@ const services: Array<BaseService> = [
   IncomingCallPolicyOwnerRuleService,
   IncomingCallPolicyOwnerTeamService,
   IncomingCallPolicyOwnerUserService,
+  IncomingCallLogService,
   IoTFleetLabelRuleService,
   IoTFleetOwnerRuleService,
   IoTFleetOwnerTeamService,
@@ -904,6 +1010,9 @@ const services: Array<BaseService> = [
   UserNotificationEmailRollupItemService,
   UserNotificationEmailRollupBatchService,
   UserNotificationEmailRollupSettingService,
+  McpOAuthClientService,
+  McpOAuthGrantService,
+  McpOAuthTokenService,
 ];
 
 export const AnalyticsServices: Array<

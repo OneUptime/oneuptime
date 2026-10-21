@@ -1,5 +1,5 @@
+import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -29,9 +29,10 @@ const humanizeFieldName: (field: string) => string = (
   if (!field) {
     return "";
   }
-  const spaced: string = field
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+  const spaced: string = splitCapitalRunsBeforeWords(
+    field.replace(/([a-z\d])([A-Z])/g, "$1 $2"),
+    " ",
+  )
     .replace(/[_-]+/g, " ")
     .trim();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
@@ -128,12 +129,15 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   const isCreate: boolean = props.action === "Create";
   const isDelete: boolean = props.action === "Delete";
   const isUpdate: boolean = props.action === "Update";
+  const isDownload: boolean = props.action === "Download";
 
   let header: string = "Change details";
   if (isCreate) {
     header = "Created snapshot";
   } else if (isDelete) {
     header = "Deleted snapshot";
+  } else if (isDownload) {
+    header = "What was downloaded";
   } else if (isUpdate) {
     header = `${rows.length} field${rows.length === 1 ? "" : "s"} changed`;
   }
@@ -147,9 +151,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
       }
       description={header}
       onClose={props.onClose}
-      onSubmit={props.onClose}
-      submitButtonText="Close"
-      submitButtonStyleType={ButtonStyleType.NORMAL}
+      closeButtonText="Close"
       modalWidth={ModalWidth.Medium}
     >
       <div className="mt-4">
@@ -189,7 +191,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {renderValue(row.oldValue)}
                         </div>
                       </div>
-                      <div className="hidden md:flex items-center justify-center pt-5 text-gray-400">
+                      <div className="max-md:hidden md:flex items-center justify-center pt-5 text-gray-400">
                         <Icon
                           icon={IconProp.ArrowRight}
                           size={SizeProp.Small}

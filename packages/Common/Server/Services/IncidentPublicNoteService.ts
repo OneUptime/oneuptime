@@ -1,7 +1,8 @@
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentFeedService from "./IncidentFeedService";
@@ -18,24 +19,48 @@ import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/Publ
 import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
-import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageNote, {
+  SavedChatMessageNoteKind,
+} from "../Utils/Notes/SavedChatMessageNote";
+import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
+import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
+  /*
+   * A note posted from Slack or Microsoft Teams - a button's form, or a
+   * message saved with a note emoji - made with the props of the member who
+   * posted it (WorkspaceActionAuthorization.getProjectMemberProps), as the
+   * dashboard makes the note they post there: it needs their permission to
+   * create the note and their read of the incident, it is held to the
+   * project's plan, and it is theirs - DatabaseService stamps them as its
+   * creator.
+   *
+   * A message saved as a note keeps who wrote it, in which chat and when
+   * (savedFromChatMessage, SavedChatMessageNote). It is published now, as any public note is.
+   */
   @CaptureSpan()
   public async addNote(data: {
-    userId: ObjectID;
     incidentId: ObjectID;
     projectId: ObjectID;
     note: string;
-    attachmentFileIds?: Array<ObjectID>;
-    postedFromSlackMessageId?: string;
+    postedFromSlackMessageId?: string | undefined;
+    savedFromChatMessage?: SavedChatMessage | undefined;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const publicNote: Model = new Model();
-    publicNote.createdByUserId = data.userId;
     publicNote.incidentId = data.incidentId;
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
@@ -45,22 +70,25 @@ export class Service extends DatabaseService<Model> {
       publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
-      publicNote.attachments = data.attachmentFileIds.map(
-        (fileId: ObjectID) => {
-          const file: File = new File();
-          file.id = fileId;
-          return file;
-        },
-      );
-    }
-
-    return this.create({
-      data: publicNote,
-      props: {
-        isRoot: true,
+    return await SavedChatMessageNote.create({
+      createBy: {
+        data: publicNote,
+        props: data.props,
+      },
+      savedFromChatMessage: data.savedFromChatMessage,
+      create: (createBy: CreateBy<Model>): Promise<Model> => {
+        return this.create(createBy);
       },
     });
+  }
+
+  // Where a message saved as a note came from: no caller may write it.
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+    SavedChatMessageNote.writeHandedOver(onCreate.createBy);
   }
 
   @CaptureSpan()
@@ -88,6 +116,38 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The incident the note is posted on, read once for the two things it
+     * decides here. A private incident takes no new public notes: a public
+     * note on it reached no status page and no subscriber, whatever its form
+     * promised, so it is refused on every way one is made - the API,
+     * workflows, the AI, Slack and Microsoft Teams, an SLA's reminders, a
+     * state change (PrivateRecordPublicNoteRule). And a note that does not
+     * say whether to notify subscribers follows the incident (below).
+     */
+    const incident: Incident | null = await this.getIncidentOfNote(
+      createBy.data,
+    );
+
+    PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes({
+      kind: PrivateRecordKind.Incident,
+      record: incident,
+    });
+
+    /*
+     * The state the incident moved to, when this is the note a state change
+     * posts with it - what its subscriber messages name ("Status:
+     * Resolved"). Only that note carries one (StateChangePublicNote): any
+     * other create, whatever it sent, has none.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["postedWithIncidentStateId", "postedWithIncidentState"],
+      StateChangePublicNote.getStatePostedWith(createBy.data),
+    );
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -99,17 +159,16 @@ export class Service extends DatabaseService<Model> {
      * An explicit true or false is kept as sent.
      */
     if (
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+      (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
         undefined ||
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+          null) &&
+      incident
     ) {
-      const notifyByDefault: boolean | null =
-        await this.getIncidentNotifyDefault(createBy.data);
-
-      if (notifyByDefault !== null) {
-        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          notifyByDefault;
-      }
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+          incident,
+        );
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
@@ -134,12 +193,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Whether a note on this incident notifies subscribers when nobody said,
-   * or null when the incident cannot be found (the column default applies).
-   * Read as root: posting a note does not require permission to read the
-   * incident, and the answer is only this one flag.
+   * The incident a note is posted on, with the two switches the note's
+   * create reads: whether it is private, and whether it notified
+   * subscribers when it was declared. Null when the note names no incident
+   * or it cannot be found: nothing is refused, and the column default
+   * decides whether the note notifies. Read as root - the create has made
+   * sure its caller may read the incident (DatabaseService
+   * checkCreateParents) - and only these two switches.
    */
-  private async getIncidentNotifyDefault(note: Model): Promise<boolean | null> {
+  private async getIncidentOfNote(note: Model): Promise<Incident | null> {
     const incidentId: ObjectID | null | undefined =
       note.incidentId || note.incident?.id;
 
@@ -155,40 +217,62 @@ export class Service extends DatabaseService<Model> {
       query.projectId = note.projectId;
     }
 
-    const incident: Incident | null = await IncidentService.findOneBy({
+    return await IncidentService.findOneBy({
       query: query,
       select: {
+        isPrivate: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       },
       props: {
         isRoot: true,
       },
     });
-
-    if (!incident) {
-      return null;
-    }
-
-    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
-      incident,
-    );
   }
 
   /*
    * An edit tells subscribers nothing unless the editor asked for it on this
    * edit (see SubscriberUpdateNotification). When they did, queue the update
    * notification; the IncidentPublicNote worker job sends it.
+   *
+   * Sending the note's 'posted' notification again - its status written back
+   * to Pending, as the dashboard's Retry does - needs the permission to post
+   * a note that notifies subscribers, and a note whose notification can go
+   * out again (see SubscriberNotificationResendAccess). So does telling
+   * subscribers about an edit, which is also refused while that update
+   * notification is being sent.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+    });
+
     if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
       updateBy.data.subscriberNotificationStatusOnNoteUpdated =
         StatusPageSubscriberNotificationStatus.Pending;
       updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
         SubscriberUpdateNotification.queuedMessage;
     }
+
+    /*
+     * Telling subscribers about the edit - asked for above, or written as
+     * Pending directly (the dashboard's Retry of a failed update) - needs
+     * the permission to post a note that notifies subscribers too, and is
+     * refused while the update notification is being sent.
+     */
+    await SubscriberNotificationResendAccess.assertPublicNoteUpdateNotificationAllowed(
+      {
+        modelType: Model,
+        service: this,
+        updateBy: updateBy,
+      },
+    );
 
     return {
       updateBy: updateBy,
@@ -204,17 +288,6 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    /*
-     * A public note is always rendered on the status page, so any inline
-     * image the markdown editor uploaded as private must flip to public
-     * for anonymous status page viewers to be able to render it.
-     */
-    await syncIsPublicForMarkdownImages(
-      createdItem.note,
-      true,
-      `incident public note ${createdItem.id?.toString()}`,
-    );
-
     const incidentId: ObjectID = createdItem.incidentId!;
     const projectId: ObjectID = createdItem.projectId!;
     const incidentNumberResult: {
@@ -227,10 +300,22 @@ export class Service extends DatabaseService<Model> {
       incidentNumberResult.numberWithPrefix ||
       "#" + incidentNumberResult.number;
 
-    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+    const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
       createdItem.id!,
       "/incident-public-note/attachment",
     );
+
+    const incidentLink: string = (
+      await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)
+    ).toString();
+
+    /*
+     * A message saved as a public note: its entry names who wrote it and
+     * who saved it, and is not posted back into the channel the message is
+     * in. Like any public note it is filed when it was published.
+     */
+    const saved: SavedChatMessage | null =
+      SavedChatMessageNote.read(createdItem);
 
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
@@ -238,13 +323,34 @@ export class Service extends DatabaseService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **public note** for this [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) on status page:
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
+      ...(saved ? { savedFromChatMessage: saved } : {}),
+      feedInfoInMarkdown: saved
+        ? SavedChatMessageNote.getFeedMarkdown({
+            saved: saved,
+            noteKind: SavedChatMessageNoteKind.Public,
+            record: mdText`[Incident ${incidentNumberDisplay}](${incidentLink})`,
+            savedByName: await SavedChatMessageNote.getSavedByName({
+              saved: saved,
+              userId: userId,
+            }),
+            note: SavedChatMessageNote.getNoteMarkdown({
+              note: createdItem.note,
+              attachments: attachmentsMarkdown,
+            }),
+          }).toString()
+        : mdText`📄 posted **public note** for this [Incident ${incidentNumberDisplay}](${incidentLink}) on status page:
 
-${(createdItem.note || "") + attachmentsMarkdown}
-          `,
+${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+          `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId || undefined,
+        // A saved message's entry names its people itself.
+        notifyUserId: saved ? undefined : userId || undefined,
+        exceptChannel: SavedChatMessageNote.getSourceChannel({
+          saved: saved,
+          messageKey: createdItem.postedFromSlackMessageId,
+        }),
       },
     });
 
@@ -286,28 +392,26 @@ ${(createdItem.note || "") + attachmentsMarkdown}
       for (const updatedItem of updatedItems) {
         const incident: Incident = updatedItem.incident!;
 
-        await syncIsPublicForMarkdownImages(
-          updatedItem.note,
-          true,
-          `incident public note ${updatedItem.id?.toString()}`,
-        );
-
-        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/incident-public-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/incident-public-note/attachment",
+          );
 
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: updatedItem.incidentId!,
           projectId: updatedItem.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+          // An edit to a public note is a public note event, not a private one.
+          incidentFeedEventType: IncidentFeedEventType.PublicNote,
           displayColor: Blue500,
           userId: userId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
 
-          feedInfoInMarkdown: `📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
+          feedInfoInMarkdown:
+            mdText`📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
         
-${(updatedItem.note || "") + attachmentsMarkdown}
-                  `,
+${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
+                  `.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,
@@ -321,14 +425,15 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
   private async getAttachmentsMarkdown(
     modelId: ObjectID,
     attachmentApiPath: string,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     if (!modelId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const noteWithAttachments: Model | null = await this.findOneById({
       id: modelId,
       select: {
+        projectId: true,
         attachments: {
           _id: true,
         },
@@ -339,7 +444,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     });
 
     if (!noteWithAttachments || !noteWithAttachments.attachments) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
@@ -359,11 +464,12 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       });
 
     if (!attachmentIds.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
       modelId,
+      projectId: noteWithAttachments.projectId,
       attachmentIds,
       attachmentApiPath,
     });

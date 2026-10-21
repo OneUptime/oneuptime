@@ -63,6 +63,8 @@ let setNavigationLocation: (pathname: string) => void;
 const INGEST_ROUTE_PATTERN: RegExp = /router\.post\(\s*"([^"]+)"/;
 const SAMPLE_PATTERN: RegExp = /format: "([^"]*)",\s*body: `([\s\S]*?)`,/g;
 const DIALECT_PATTERN: RegExp = /\?format=([a-z-]+)/g;
+// A run of spaces and line breaks, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 const DASHBOARD_SRC: string = nodePath.join(
   __dirname,
@@ -85,10 +87,9 @@ const setupGuideSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsSetupGuide.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+const navigationSource: string = readDashboardSource(
+  "Utils",
+  "SecurityEventsNavigation.ts",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -229,22 +230,19 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide is one of the Security Events header tabs", () => {
-    expect(navTabsSource).toContain('label: "Setup Guide"');
-    expect(navTabsSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route",
+  test("the setup guide is a page of its own beside Connections, in the Connections section", () => {
+    const flat: string = navigationSource.replace(WHITESPACE_RUN, " ");
+
+    expect(flat).toContain(
+      'title: "Connections", startsCollapsed: true, items: [ { page: PageMap.SECURITY_EVENTS_CONNECTIONS, title: "Connections", icon: IconProp.Link, }, { page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide", icon: IconProp.Book, }, ],',
     );
   });
 
-  test("the layout renders the Security Events tabs in the page header", () => {
+  test("the layout renders the Security Events side menu", () => {
     expect(layoutSource).toContain(
-      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+      'import SecurityEventsSideMenu from "./SideMenu"',
     );
-    expect(layoutSource).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
-    // The destinations moved into the header; nothing renders a side menu.
-    expect(layoutSource).not.toContain("sideMenu=");
+    expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
   test("the setup guide has a breadcrumb trail", () => {
@@ -262,7 +260,7 @@ describe("Security events setup guide wiring", () => {
       trail!.map((link: Link) => {
         return link.title;
       }),
-    ).toEqual(["Project", "Security Events", "Setup Guide"]);
+    ).toEqual(["Project", "Security Events", "Connections", "Setup Guide"]);
   });
 
   /*

@@ -4,7 +4,7 @@ import URL from "Common/Types/API/URL";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,11 +18,7 @@ const ForgotPassword: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt={t("common.yourCompany")}
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("forgotPassword.title")}
         </h2>

@@ -22,6 +22,8 @@ import {
   getWorkflowLintTone,
 } from "./GraphLintSummary";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /** Where the draft is between the last edit and the server having it. */
 export enum WorkflowSaveState {
@@ -46,7 +48,7 @@ export const getWorkflowSaveStatePresentation: GetSaveStatePresentationFunction 
   (state: WorkflowSaveState): SaveStatePresentation => {
     if (state === WorkflowSaveState.Saved) {
       return {
-        label: "Saved",
+        label: translationKey("Saved"),
         dotClassName: "bg-emerald-500",
         textClassName: "text-emerald-700",
       };
@@ -54,7 +56,7 @@ export const getWorkflowSaveStatePresentation: GetSaveStatePresentationFunction 
 
     if (state === WorkflowSaveState.Saving) {
       return {
-        label: "Saving…",
+        label: translationKey("Saving…"),
         dotClassName: "bg-indigo-500 animate-pulse",
         textClassName: "text-indigo-700",
       };
@@ -62,14 +64,14 @@ export const getWorkflowSaveStatePresentation: GetSaveStatePresentationFunction 
 
     if (state === WorkflowSaveState.Error) {
       return {
-        label: "Could not save",
+        label: translationKey("Could not save"),
         dotClassName: "bg-red-500",
         textClassName: "text-red-700",
       };
     }
 
     return {
-      label: "Ready",
+      label: translationKey("Ready"),
       dotClassName: "bg-gray-400",
       textClassName: "text-gray-600",
     };
@@ -131,8 +133,13 @@ export interface ComponentProps {
 const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const savePresentation: SaveStatePresentation =
     getWorkflowSaveStatePresentation(props.saveState);
+  // RunStatusWatcher's sentence, in the reader's language.
+  const runStatusText: string | undefined = translator.translateText(
+    props.runStatusMessage || undefined,
+  );
 
   const lintResult: WorkflowLintResult | null = props.lintResult || null;
   const tone: WorkflowLintTone = lintResult
@@ -156,7 +163,7 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
           className={`h-1.5 w-1.5 shrink-0 rounded-full ${savePresentation.dotClassName}`}
           aria-hidden="true"
         />
-        {savePresentation.label}
+        {translator.translateText(savePresentation.label)}
       </span>
 
       {props.runStatusMessage &&
@@ -164,8 +171,13 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             onClick={props.onShowRunLog}
-            title="See this run's log"
-            aria-label={`${props.runStatusMessage} Open the run log.`}
+            title={translator.translateText("See this run's log")}
+            aria-label={translator.translateTemplate(
+              "{{status}} Open the run log.",
+              {
+                status: runStatusText || "",
+              },
+            )}
             data-testid="workflow-run-status-button"
             className={`${PILL_CLASS_NAME} cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getRunPillClassName(
               Boolean(props.runStatusFailed),
@@ -177,7 +189,7 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
               size={SizeProp.ExtraSmall}
               className="h-3 w-3 shrink-0"
             />
-            {props.runStatusMessage}
+            {runStatusText}
           </button>
         ) : (
           <span
@@ -192,7 +204,7 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
               size={SizeProp.ExtraSmall}
               className="h-3 w-3 shrink-0"
             />
-            {props.runStatusMessage}
+            {runStatusText}
           </span>
         ))}
 
@@ -200,10 +212,11 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           onClick={props.onShowIssues}
-          title="See everything the checks found"
-          aria-label={`${getWorkflowLintCountText(
-            lintResult,
-          )} found in this workflow. Open the list.`}
+          title={translator.translateText("See everything the checks found")}
+          aria-label={translator.translateTemplate(
+            "{{counts}} found in this workflow. Open the list.",
+            { counts: getWorkflowLintCountText(lintResult) },
+          )}
           data-testid="workflow-lint-status-button"
           className={`${PILL_CLASS_NAME} cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getLintPillClassName(
             tone,

@@ -8,6 +8,7 @@ import {
 import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import RuleRunClient, { RuleRunOutcome } from "../../Utils/Rules/RuleRunClient";
+import { ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ConfirmModal from "../Modal/ConfirmModal";
 import React, {
@@ -16,6 +17,8 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   ruleType: RuleRunType;
@@ -36,6 +39,7 @@ export interface ComponentProps {
 const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
@@ -112,6 +116,11 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
       error={error || undefined}
       isLoading={isRunning}
       submitButtonText="Run Rule"
+      /*
+       * Explicit, because Cancel is taken away while the run is in flight and
+       * a ConfirmModal without a Cancel draws its button plain.
+       */
+      submitButtonType={ButtonStyleType.PRIMARY}
       onSubmit={runRule}
       onClose={isRunning ? undefined : props.onClose}
     >
@@ -119,7 +128,14 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
         {isOwnerRule ? (
           <CheckboxElement
             title="Notify the owners this run adds"
-            description={`Off by default, and only honoured when the rule itself has Notify Owners turned on. An owner is notified once for every ${meta.resourceSingular} they are added to, which on a large project can be a lot of notifications.`}
+            description={translator.translateTemplate(
+              "Works only when the rule has Notify Owners on. Each owner gets a notification for every {{resource}} they are added to.",
+              {
+                resource: translatableTerm(meta.resourceSingular, {
+                  inSentence: true,
+                }),
+              },
+            )}
             value={notifyOwners}
             dataTestId="run-rule-notify-owners-checkbox"
             onChange={(value: boolean) => {

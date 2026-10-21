@@ -40,8 +40,10 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
  * orient a new user, by mounting the real components and reading them the
  * way a user would:
  *
- *  - the Products menu groups 40 products into small, named sections, with
- *    the core products first and in the order a problem flows through them;
+ *  - the Products menu groups 42 products into small, named sections, with
+ *    the core products first and in the order a problem flows through them,
+ *    and opens on those core products alone: every other section is one
+ *    line, opened with a click or found by searching;
  *  - Home explains how the core products fit together;
  *  - Help links to the documentation.
  *
@@ -195,7 +197,41 @@ async function renderGettingStarted(): Promise<void> {
 }
 
 function productsMenu(): HTMLElement {
-  return screen.getByRole("dialog", { name: "Products menu" });
+  // The dialog's name is translated like everything else in it.
+  return screen.getByRole("dialog", {
+    name: String(activeLocale["Products menu"] ?? "Products menu"),
+  });
+}
+
+// The heading rows that open and fold a section of the menu.
+function sectionToggles(): Array<HTMLElement> {
+  return within(productsMenu())
+    .queryAllByRole("button")
+    .filter((button: HTMLElement): boolean => {
+      return button.hasAttribute("aria-expanded");
+    });
+}
+
+function foldedSectionNames(): Array<string> {
+  return sectionToggles()
+    .filter((button: HTMLElement): boolean => {
+      return button.getAttribute("aria-expanded") === "false";
+    })
+    .map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+}
+
+/*
+ * The menu opens with Essentials open and every other section folded to
+ * one row. Open each folded one, as a user would, to read the whole catalog.
+ */
+function openEverySection(): void {
+  for (const toggle of sectionToggles()) {
+    if (toggle.getAttribute("aria-expanded") === "false") {
+      fireEvent.click(toggle);
+    }
+  }
 }
 
 function openProductsMenu(): void {
@@ -212,12 +248,18 @@ interface MenuSection {
   items: Array<string>;
 }
 
-// Reads the open menu top to bottom, the way a user scans it.
+/*
+ * Reads the menu top to bottom, the way a user scans it, with every folded
+ * section opened.
+ */
 function readMenuSections(): Array<MenuSection> {
+  openEverySection();
   const listbox: HTMLElement = within(productsMenu()).getByRole("listbox");
   return Array.from(listbox.querySelectorAll("h3")).map(
     (heading: HTMLHeadingElement): MenuSection => {
-      const section: HTMLElement = heading.closest(".mb-6") as HTMLElement;
+      const section: HTMLElement = heading.closest(
+        '[role="group"]',
+      ) as HTMLElement;
       const items: Array<string> = within(section)
         .getAllByRole("option")
         .map((option: HTMLElement): string => {
@@ -229,6 +271,7 @@ function readMenuSections(): Array<MenuSection> {
 }
 
 function optionFor(title: string): HTMLElement {
+  openEverySection();
   return within(productsMenu())
     .getAllByRole("option")
     .find((option: HTMLElement): boolean => {
@@ -270,11 +313,40 @@ describe("Products menu sections", () => {
       "Essentials",
       "Observability",
       "AI",
+      "Code",
       "Resources",
       "Infrastructure",
       "Dashboards & Automation",
       "Settings",
     ]);
+  });
+
+  test("AI is what you ask and read; Code is the work AI does in your code", () => {
+    openProductsMenu();
+
+    const sections: Array<MenuSection> = readMenuSections();
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "AI";
+      }),
+    ).toEqual({ heading: "AI", items: ["Chat", "Insights"] });
+    /*
+     * One item, Code: the repositories first, each repository's tasks
+     * inside it - not Tasks plus Code Repositories.
+     */
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "Code";
+      }),
+    ).toEqual({ heading: "Code", items: ["Code"] });
+  });
+
+  test("the Code item says what it does, and that GitHub is connected there", () => {
+    openProductsMenu();
+
+    expect(optionFor("Code")).toHaveTextContent(
+      "Ask AI to change your code and open pull requests. Connect GitHub here.",
+    );
   });
 
   test("no section is a catch-all called 'More' inside the products menu", () => {
@@ -288,8 +360,13 @@ describe("Products menu sections", () => {
   test("no section is so long that it stops being scannable", () => {
     openProductsMenu();
 
+    /*
+     * Infrastructure lists one product per platform and is the longest
+     * section: 13 since Storage Arrays joined Ceph there. Past that, split
+     * it rather than raising this again.
+     */
     for (const section of readMenuSections()) {
-      expect(section.items.length).toBeLessThanOrEqual(12);
+      expect(section.items.length).toBeLessThanOrEqual(13);
     }
   });
 
@@ -330,6 +407,7 @@ describe("Products menu sections", () => {
       "Proxmox",
       "VMware",
       "Ceph",
+      "Storage Arrays",
       "Network",
       "IoT",
     ]);
@@ -348,11 +426,12 @@ describe("Products menu sections", () => {
       "Inventory",
       "Services",
       "Databases",
+      "Queues",
       "Real User Monitoring",
     ]);
   });
 
-  test("regrouping lost no product: all 41 are still listed exactly once", () => {
+  test("regrouping lost no product: all 43 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -360,8 +439,119 @@ describe("Products menu sections", () => {
         return section.items;
       },
     );
-    expect(titles).toHaveLength(41);
-    expect(new Set(titles).size).toBe(41);
+    /*
+     * 43: Code Repositories became a page of Tasks, Forms (which replaced
+     * Incidents > Settings > Forms) became a product, and Storage Arrays
+     * joined Infrastructure.
+     */
+    expect(titles).toHaveLength(43);
+    expect(new Set(titles).size).toBe(43);
+    expect(titles).not.toContain("Code Repositories");
+    expect(titles).toContain("Forms");
+  });
+});
+
+describe("the Products menu opens on the essentials", () => {
+  test("only Essentials' products are listed; every other section is one folded line", () => {
+    openProductsMenu();
+
+    expect(
+      sectionToggles()
+        .filter((toggle: HTMLElement): boolean => {
+          return toggle.getAttribute("aria-expanded") === "true";
+        })
+        .map((toggle: HTMLElement): string => {
+          return toggle.textContent || "";
+        }),
+    ).toEqual(["Essentials"]);
+    expect(foldedSectionNames()).toEqual([
+      "Observability",
+      "AI",
+      "Code",
+      "Resources",
+      "Infrastructure",
+      "Dashboards & Automation",
+      "Settings",
+    ]);
+    expect(
+      within(productsMenu())
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.querySelector(".font-medium, .text-sm")!.textContent!;
+        }),
+    ).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "On-Call Duty",
+      "Status Pages",
+      "Scheduled Maintenance",
+      "SLOs",
+    ]);
+  });
+
+  test("a folded line says how many products it holds and what they are", () => {
+    openProductsMenu();
+
+    const infrastructure: HTMLElement = within(productsMenu()).getByRole(
+      "button",
+      { name: "Infrastructure" },
+    );
+
+    expect(infrastructure).toHaveAttribute("aria-expanded", "false");
+    expect(infrastructure).toHaveAccessibleDescription(
+      "13 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Serverless, Cloud, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
+    );
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Code" }),
+    ).toHaveAccessibleDescription("1 product Code");
+  });
+
+  test("opening a folded line lists its products, one click away", () => {
+    openProductsMenu();
+
+    fireEvent.click(
+      within(productsMenu()).getByRole("button", { name: "Settings" }),
+    );
+
+    expect(optionFor("Project Settings")).toBeInTheDocument();
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Settings" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("a search finds a product in a folded section", () => {
+    openProductsMenu();
+
+    fireEvent.change(within(productsMenu()).getByRole("combobox"), {
+      target: { value: "proxmox" },
+    });
+
+    expect(within(productsMenu()).getAllByRole("option")).toHaveLength(1);
+    expect(within(productsMenu()).getByRole("option")).toHaveTextContent(
+      "Proxmox",
+    );
+  });
+
+  test("the folded lines are named in German too", () => {
+    activeLocale = DE;
+    openProductsMenu();
+
+    expect(foldedSectionNames()).toContain(
+      lookupNested(DE, "navbar.categories.infrastructure"),
+    );
+    expect(foldedSectionNames()).not.toContain(
+      lookupNested(DE, "navbar.categories.essentials"),
+    );
+    // Essentials are the open row of the same list, named in German too.
+    expect(
+      within(productsMenu()).getByRole("button", {
+        name: lookupNested(DE, "navbar.categories.essentials")!,
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(sectionToggles()[0]).toHaveTextContent(
+      lookupNested(DE, "navbar.categories.essentials")!,
+    );
   });
 });
 
@@ -415,7 +605,9 @@ describe("Products menu descriptions say what each product is for", () => {
     expect(headings).toContain(
       lookupNested(DE, "navbar.categories.analyticsAutomation"),
     );
+    expect(headings).toContain(lookupNested(DE, "navbar.categories.code"));
     expect(headings).not.toContain("navbar.categories.infrastructure");
+    expect(headings).not.toContain("navbar.categories.code");
   });
 });
 

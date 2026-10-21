@@ -26,7 +26,14 @@ import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
+import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../TimeRangeZoom/TimeRangeZoomContext";
 
 export const AreaChartPalette: Array<AvailableChartColorsKeys> = [
   "blue",
@@ -61,6 +68,8 @@ export interface ComponentProps {
   /*
    * When provided, the chart supports drag-to-select: dragging across
    * buckets calls back with the [start, end) of the selected time range.
+   * Left unset, the chart zooms the enclosing page instead, when the page
+   * offers that (TimeRangeZoomScope).
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   /*
@@ -69,6 +78,11 @@ export interface ComponentProps {
    * onTimeRangeReset for why an idle handler costs click latency.
    */
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * Keeps this chart out of drag-to-zoom altogether, including the page's:
+   * for a chart whose window is not the page's time range.
+   */
+  disableTimeRangeZoom?: boolean | undefined;
   // Plain click on a bucket — see ChartLibrary onBucketClick.
   onBucketClick?:
     | ((
@@ -108,6 +122,22 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   props: AreaInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+
+  /*
+   * Drag-to-zoom: the host's own handlers, or else the enclosing page's
+   * (TimeRangeZoomScope), so a drag here retimes every chart on the page.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const timeRangeZoom: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onTimeRangeReset: props.onTimeRangeReset,
+    isTimeAxis:
+      props.xAxis.options.type === XAxisType.Time ||
+      props.xAxis.options.type === XAxisType.Date,
+    disableTimeRangeZoom: props.disableTimeRangeZoom,
+    pageZoom: pageZoom,
+  });
 
   const bandLower: string | undefined = props.anomalyBandLowerSeriesName;
   const bandUpper: string | undefined = props.anomalyBandUpperSeriesName;
@@ -257,8 +287,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
           formattedExemplars.length > 0 ? formattedExemplars : undefined
         }
         onExemplarClick={props.onExemplarClick}
-        onTimeRangeSelect={props.onTimeRangeSelect}
-        onTimeRangeReset={props.onTimeRangeReset}
+        onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+        onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
         onBucketClick={props.onBucketClick}
         ghostCategories={props.ghostSeriesNames}
         anomalyBandLowerKey={bandLower}

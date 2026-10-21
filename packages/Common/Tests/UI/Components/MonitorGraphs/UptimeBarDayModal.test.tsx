@@ -7,6 +7,7 @@ import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummar
 import { Green, Red } from "../../../../Types/BrandColors";
 import Color from "../../../../Types/Color";
 import OneUptimeDate from "../../../../Types/Date";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 import Timezone from "../../../../Types/Timezone";
 import UptimeBarTooltipIncident from "../../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeHistoryLabels, {
@@ -458,10 +459,12 @@ describe("UptimeBarDayModal - the day is named in the zone its bar was drawn in"
     expect(
       screen.getByText(
         new RegExp(
-          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            declaredAt,
-            false,
-          ).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          escapeRegExp(
+            OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              declaredAt,
+              false,
+            ),
+          ),
         ),
       ),
     ).toBeInTheDocument();

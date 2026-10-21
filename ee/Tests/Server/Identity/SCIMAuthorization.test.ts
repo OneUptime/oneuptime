@@ -1,6 +1,14 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import SCIMMiddleware from "../../../Server/Identity/Middleware/SCIMAuthorization";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import {
   ExpressRequest,
@@ -9,9 +17,8 @@ import {
 } from "Common/Server/Utils/Express";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 /*
  * This middleware is the entire authentication boundary for SCIM. Everything
@@ -29,8 +36,11 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * The other half is Express 4 mechanics. This is an async middleware, and
  * Express 4 does not catch a rejected promise from one - a throw here would
- * hang the request rather than answer it. Every failure has to arrive through
- * next(err), and the middleware must never reject.
+ * hang the request rather than answer it. So the middleware never rejects:
+ * it answers every failure itself, in the SCIM error format an identity
+ * provider reads (RFC 7644, section 3.12) - 401 for a credential it refuses,
+ * which Express's error handler would have answered 422 in its own { error }
+ * shape - and calls next only for a request it lets through.
  */
 
 const SCIM_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -66,25 +76,129 @@ const buildRequest: BuildRequestFunction = (data?: {
   return {
     params: data?.params ?? { projectScimId: SCIM_ID },
     headers: data?.noHeaders ? undefined : headers,
+    query: {},
     method: "GET",
     url: "/scim/v2/Users",
   } as unknown as OneUptimeRequest;
 };
 
-type RunFunction = (req: OneUptimeRequest) => Promise<unknown>;
+// What the middleware answered a request with, when it answered it.
+interface SentResponse {
+  statusCode: number | undefined;
+  headers: Record<string, string>;
+  body: unknown;
+  sends: number;
+}
 
-const run: RunFunction = async (req: OneUptimeRequest): Promise<unknown> => {
-  let passedToNext: unknown = "NEVER-CALLED";
+type BuildResponseFunction = () => {
+  res: ExpressResponse;
+  sent: SentResponse;
+};
+
+const buildResponse: BuildResponseFunction = (): {
+  res: ExpressResponse;
+  sent: SentResponse;
+} => {
+  const sent: SentResponse = {
+    statusCode: undefined,
+    headers: {},
+    body: undefined,
+    sends: 0,
+  };
+
+  const res: Record<string, unknown> = {
+    headersSent: false,
+    setHeader: (name: string, value: string): void => {
+      sent.headers[name.toLowerCase()] = value;
+    },
+    status: (code: number): unknown => {
+      sent.statusCode = code;
+      return res;
+    },
+    send: (body: unknown): unknown => {
+      sent.body = body;
+      sent.sends++;
+      return res;
+    },
+  };
+
+  return { res: res as unknown as ExpressResponse, sent: sent };
+};
+
+// What a request came to: let through (next), or answered (response).
+interface Outcome {
+  passedToNext: unknown;
+  nextCalls: number;
+  response: SentResponse;
+}
+
+type RunFunction = (req: OneUptimeRequest) => Promise<Outcome>;
+
+const run: RunFunction = async (req: OneUptimeRequest): Promise<Outcome> => {
+  const outcome: Outcome = {
+    passedToNext: "NEVER-CALLED",
+    nextCalls: 0,
+    response: buildResponse().sent,
+  };
+  const { res, sent } = buildResponse();
+  outcome.response = sent;
 
   await SCIMMiddleware.isAuthorizedSCIMRequest(
     req as unknown as ExpressRequest,
-    {} as ExpressResponse,
+    res,
     (err?: unknown): void => {
-      passedToNext = err;
+      outcome.passedToNext = err;
+      outcome.nextCalls++;
     },
   );
 
-  return passedToNext;
+  return outcome;
+};
+
+/*
+ * The request was refused: answered once, with `statusCode` and the SCIM
+ * error body, and never let through.
+ */
+const expectRefused: (
+  outcome: Outcome,
+  statusCode: number,
+  detail?: string,
+) => void = (outcome: Outcome, statusCode: number, detail?: string): void => {
+  expect(outcome.nextCalls).toBe(0);
+  expect(outcome.response.sends).toBe(1);
+  expect(outcome.response.statusCode).toBe(statusCode);
+  expect(outcome.response.headers["content-type"]).toContain(
+    "application/scim+json",
+  );
+
+  const body: Record<string, unknown> = outcome.response.body as Record<
+    string,
+    unknown
+  >;
+
+  expect(body["schemas"]).toEqual([
+    "urn:ietf:params:scim:api:messages:2.0:Error",
+  ]);
+  expect(body["status"]).toBe(String(statusCode));
+
+  if (detail !== undefined) {
+    expect(body["detail"]).toBe(detail);
+  }
+
+  if (statusCode === 401) {
+    expect(outcome.response.headers["www-authenticate"]).toBe(
+      'Bearer realm="OneUptime SCIM"',
+    );
+  }
+};
+
+// The request was let through, with no answer of the middleware's own.
+const expectLetThrough: (outcome: Outcome) => void = (
+  outcome: Outcome,
+): void => {
+  expect(outcome.nextCalls).toBe(1);
+  expect(outcome.passedToNext).toBeUndefined();
+  expect(outcome.response.sends).toBe(0);
 };
 
 type StubProjectFunction = (config: ProjectSCIM | null) => FindSpy;
@@ -131,6 +245,21 @@ const buildStatusPageConfig: BuildStatusPageConfigFunction =
     return config;
   };
 
+/*
+ * A SCIM request that authenticates is held to its project's plan
+ * (PlanCutoffCredentialAccess) when BILLING_ENABLED is set - as the ee CI
+ * job sets it and a bare local run does not. Unstubbed, that is a real
+ * ProjectService.findOneById. On a plan that includes SCIM the request goes
+ * on, the same either way; SCIMPlanCutoff.test.ts covers the plans below.
+ * Each describe restores its mocks after every test, so this re-stubs it.
+ */
+beforeEach(() => {
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Scale,
+    isSubscriptionUnpaid: false,
+  });
+});
+
 describe("a request with no usable credential never reaches a lookup", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -140,11 +269,11 @@ describe("a request with no usable credential never reaches a lookup", () => {
     const projectSpy: FindSpy = stubProjectLookup(buildProjectConfig());
     const statusPageSpy: FindSpy = stubStatusPageLookup(null);
 
-    const err: unknown = await run(
+    const outcome: Outcome = await run(
       buildRequest({ params: {}, authorization: `Bearer ${TOKEN}` }),
     );
 
-    expect(err).toBeInstanceOf(BadRequestException);
+    expectRefused(outcome, 400, "SCIM ID is required");
     expect(projectSpy.mock.calls.length).toBe(0);
     expect(statusPageSpy.mock.calls.length).toBe(0);
   });
@@ -152,26 +281,26 @@ describe("a request with no usable credential never reaches a lookup", () => {
   test("refuses a request with no Authorization header at all", async () => {
     const projectSpy: FindSpy = stubProjectLookup(buildProjectConfig());
 
-    const err: unknown = await run(buildRequest());
+    const outcome: Outcome = await run(buildRequest());
 
-    expect(err).toBeInstanceOf(NotAuthorizedException);
+    expectRefused(
+      outcome,
+      401,
+      "Bearer token is required for SCIM authentication",
+    );
     expect(projectSpy.mock.calls.length).toBe(0);
   });
 
   test("refuses a request with no headers object whatsoever", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(await run(buildRequest({ noHeaders: true }))).toBeInstanceOf(
-      NotAuthorizedException,
-    );
+    expectRefused(await run(buildRequest({ noHeaders: true })), 401);
   });
 
   test("refuses an empty Authorization header", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(await run(buildRequest({ authorization: "" }))).toBeInstanceOf(
-      NotAuthorizedException,
-    );
+    expectRefused(await run(buildRequest({ authorization: "" })), 401);
   });
 
   /*
@@ -182,18 +311,17 @@ describe("a request with no usable credential never reaches a lookup", () => {
   test("refuses a bare token with no Bearer scheme", async () => {
     const projectSpy: FindSpy = stubProjectLookup(buildProjectConfig());
 
-    expect(await run(buildRequest({ authorization: TOKEN }))).toBeInstanceOf(
-      NotAuthorizedException,
-    );
+    expectRefused(await run(buildRequest({ authorization: TOKEN })), 401);
     expect(projectSpy.mock.calls.length).toBe(0);
   });
 
   test("refuses a different auth scheme carrying the same token", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(
+    expectRefused(
       await run(buildRequest({ authorization: `Basic ${TOKEN}` })),
-    ).toBeInstanceOf(NotAuthorizedException);
+      401,
+    );
   });
 
   /*
@@ -205,17 +333,16 @@ describe("a request with no usable credential never reaches a lookup", () => {
   test("requires the scheme spelled with a capital B", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(
+    expectRefused(
       await run(buildRequest({ authorization: `bearer ${TOKEN}` })),
-    ).toBeInstanceOf(NotAuthorizedException);
+      401,
+    );
   });
 
   test("refuses the scheme with nothing after it", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(
-      await run(buildRequest({ authorization: "Bearer " })),
-    ).toBeInstanceOf(NotAuthorizedException);
+    expectRefused(await run(buildRequest({ authorization: "Bearer " })), 401);
   });
 });
 
@@ -289,22 +416,19 @@ describe("the lookup itself is the security boundary", () => {
     stubProjectLookup(null);
     stubStatusPageLookup(null);
 
-    const err: unknown = await run(
-      buildRequest({ authorization: `Bearer ${TOKEN}` }),
+    expectRefused(
+      await run(buildRequest({ authorization: `Bearer ${TOKEN}` })),
+      401,
     );
-
-    expect(err).toBeInstanceOf(NotAuthorizedException);
   });
 
   test("the refusal does not disclose whether the id or the token was wrong", async () => {
     stubProjectLookup(null);
     stubStatusPageLookup(null);
 
-    const err: unknown = await run(
-      buildRequest({ authorization: `Bearer ${TOKEN}` }),
-    );
-
-    expect((err as Error).message).toBe(
+    expectRefused(
+      await run(buildRequest({ authorization: `Bearer ${TOKEN}` })),
+      401,
       "Invalid bearer token or SCIM configuration not found",
     );
   });
@@ -318,9 +442,9 @@ describe("a project SCIM caller that authenticates", () => {
   test("is let through with no error", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    expect(
+    expectLetThrough(
       await run(buildRequest({ authorization: `Bearer ${TOKEN}` })),
-    ).toBeUndefined();
+    );
   });
 
   test("carries its project, its configuration and its type onward", async () => {
@@ -364,14 +488,14 @@ describe("a status page SCIM caller that authenticates", () => {
       buildStatusPageConfig(),
     );
 
-    const err: unknown = await run(
+    const outcome: Outcome = await run(
       buildRequest({
         params: { statusPageScimId: SCIM_ID },
         authorization: `Bearer ${TOKEN}`,
       }),
     );
 
-    expect(err).toBeUndefined();
+    expectLetThrough(outcome);
     expect(statusPageSpy.mock.calls.length).toBe(1);
   });
 
@@ -437,37 +561,41 @@ describe("Express 4 does not catch a rejected async middleware", () => {
   });
 
   /*
-   * So every failure has to arrive through next(err). A middleware that threw
-   * would leave the request hanging until the client gave up, which reads to
-   * an identity provider as a timeout rather than as a rejected credential -
-   * and identity providers retry timeouts.
+   * So every failure is answered, never thrown. A middleware that threw would
+   * leave the request hanging until the client gave up, which reads to an
+   * identity provider as a timeout rather than as a refusal - and identity
+   * providers retry timeouts. A database failure is answered 500 in the SCIM
+   * error format, with no detail of the failure in it.
    */
-  test("a database failure is handed to next, not thrown", async () => {
+  test("a database failure is answered with a SCIM 500, not thrown", async () => {
     jest
       .spyOn(ProjectSCIMService, "findOneBy")
       .mockRejectedValue(new Error("connection refused") as never);
 
-    const err: unknown = await run(
+    const outcome: Outcome = await run(
       buildRequest({ authorization: `Bearer ${TOKEN}` }),
     );
 
-    expect((err as Error).message).toBe("connection refused");
+    expectRefused(outcome, 500);
+    expect(JSON.stringify(outcome.response.body)).not.toContain(
+      "connection refused",
+    );
   });
 
-  test("a failure in the status page lookup is handed to next too", async () => {
+  test("a failure in the status page lookup is answered too", async () => {
     stubProjectLookup(null);
     jest
       .spyOn(StatusPageSCIMService, "findOneBy")
       .mockRejectedValue(new Error("clickhouse is unhappy") as never);
 
-    const err: unknown = await run(
+    const outcome: Outcome = await run(
       buildRequest({
         params: { statusPageScimId: SCIM_ID },
         authorization: `Bearer ${TOKEN}`,
       }),
     );
 
-    expect((err as Error).message).toBe("clickhouse is unhappy");
+    expectRefused(outcome, 500);
   });
 
   test("the middleware itself never rejects", async () => {
@@ -480,46 +608,48 @@ describe("Express 4 does not catch a rejected async middleware", () => {
         buildRequest({
           authorization: `Bearer ${TOKEN}`,
         }) as unknown as ExpressRequest,
-        {} as ExpressResponse,
+        buildResponse().res,
         (): void => {},
       ),
     ).resolves.toBeUndefined();
   });
 
-  test("next is called exactly once on the refusal path", async () => {
+  test("the refusal path answers exactly once and never calls next", async () => {
     stubProjectLookup(null);
     stubStatusPageLookup(null);
 
-    let calls: number = 0;
-
-    await SCIMMiddleware.isAuthorizedSCIMRequest(
-      buildRequest({
-        authorization: `Bearer ${TOKEN}`,
-      }) as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      (): void => {
-        calls++;
-      },
+    const outcome: Outcome = await run(
+      buildRequest({ authorization: `Bearer ${TOKEN}` }),
     );
 
-    expect(calls).toBe(1);
+    expect(outcome.nextCalls).toBe(0);
+    expect(outcome.response.sends).toBe(1);
   });
 
   test("next is called exactly once on the success path", async () => {
     stubProjectLookup(buildProjectConfig());
 
-    let calls: number = 0;
-
-    await SCIMMiddleware.isAuthorizedSCIMRequest(
-      buildRequest({
-        authorization: `Bearer ${TOKEN}`,
-      }) as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      (): void => {
-        calls++;
-      },
+    const outcome: Outcome = await run(
+      buildRequest({ authorization: `Bearer ${TOKEN}` }),
     );
 
-    expect(calls).toBe(1);
+    expect(outcome.nextCalls).toBe(1);
+    expect(outcome.response.sends).toBe(0);
+  });
+
+  test("an id that is not a UUID names no connection, and is never looked up", async () => {
+    const projectSpy: FindSpy = stubProjectLookup(buildProjectConfig());
+
+    expectRefused(
+      await run(
+        buildRequest({
+          params: { projectScimId: "not-a-uuid" },
+          authorization: `Bearer ${TOKEN}`,
+        }),
+      ),
+      401,
+      "Invalid bearer token or SCIM configuration not found",
+    );
+    expect(projectSpy.mock.calls.length).toBe(0);
   });
 });

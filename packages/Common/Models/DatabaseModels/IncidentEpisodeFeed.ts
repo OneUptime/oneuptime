@@ -1,9 +1,11 @@
+import { JSONObject } from "../../Types/JSON";
 import IncidentEpisode from "./IncidentEpisode";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -46,10 +48,12 @@ export enum IncidentEpisodeFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incidentEpisode")
+@OwnedThrough("incidentEpisodeId", IncidentEpisode)
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -620,4 +624,36 @@ export default class IncidentEpisodeFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisodeFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "For a note saved from a Slack or Microsoft Teams message: the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). The feed item's user is whoever saved it. Written by OneUptime.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

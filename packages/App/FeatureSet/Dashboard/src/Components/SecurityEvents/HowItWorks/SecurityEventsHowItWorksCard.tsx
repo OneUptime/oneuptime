@@ -266,7 +266,11 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
+        {/*
+          Under the summary on a phone, at the right edge, as a card header's
+          actions always are; beside the title from sm up.
+        */}
+        <div className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto">
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

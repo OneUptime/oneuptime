@@ -1,0 +1,265 @@
+# ebpf.features.spanMetrics asks OBI for `application_span_otel`
+# (traces.span.metrics.calls, traces.span.metrics.duration), never the
+# deprecated `application_span` (traces_spanmetrics_calls_total,
+# traces_spanmetrics_latency), whatever ebpf.image.tag says.
+#
+# OBI warns about `application_span` on every start since v0.12.2 and will
+# drop it, after which the unknown token stops OBI starting (since v0.11)
+# and every eBPF pod crash-loops. `application_span_otel` is in every OBI
+# release, so no tag needs the old name: not the v0.13.0 a --reuse-values
+# upgrade keeps, not an older pin, and not a branch build or a digest,
+# which are not versions at all. OBI refuses the two names together, so
+# the chart must never render both.
+suite: eBPF span metrics use OBI's current feature name on every tag
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/daemonset-ebpf.yaml
+  - templates/configmap-ebpf.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: asks the pinned OBI for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.14.0
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # A release after the pin, and a pre-release at that.
+  - it: asks OBI v0.15.0-rc.1 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.15.0-rc.1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: asks OBI v0.14.0 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.14.0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # The release a --reuse-values upgrade keeps (README, "Upgrading"). It
+  # warns about application_span too.
+  - it: asks OBI v0.13.0 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.13.0
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # A tag without the v, which the chart's other version checks
+  # (kubernetes-agent.obiSelectsSpanAttributes) read as a version too.
+  - it: asks OBI 0.13.0, tagged without a v, for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: 0.13.0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # The first release that warns about application_span.
+  - it: asks OBI v0.12.2 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.12.2
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # The last release before the deprecation: no gate on it either.
+  - it: asks OBI v0.12.1 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.12.1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # The first release that refuses an unknown feature, and the first to
+  # name the series traces.span.metrics.*.
+  - it: asks OBI v0.11.0 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.11.0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # This chart's earlier pin. (Before v0.11 OBI spells the series
+  # traces_span_metrics_duration and traces_span_metrics_calls_total.)
+  - it: asks OBI v0.9.0 for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.9.0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: asks a branch build (main) for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: main
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:main
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: asks a build pinned by digest for application_span_otel
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.image.tag: main@sha256:8f2d6d40f42991abc2cf68bb5b64953684e8c02ce8e24b75e0d6dea1e28e565d
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: drops span metrics, in either format, when spanMetrics is off
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.features.spanMetrics: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_METRICS_FEATURES")].value
+          pattern: application_span
+
+  - it: drops span metrics when every family is off
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.features.httpMetrics: false
+      ebpf.features.spanMetrics: false
+      ebpf.features.serviceGraph: false
+      ebpf.features.hostMetrics: false
+      ebpf.features.networkMetrics: false
+      ebpf.features.networkInterZoneMetrics: false
+      ebpf.features.tcpStats: false
+    asserts:
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_METRICS_FEATURES")].value
+          pattern: application_span
+
+  - it: renders application_span_otel alone when spanMetrics is the only family on
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.features.httpMetrics: false
+      ebpf.features.spanMetrics: true
+      ebpf.features.serviceGraph: false
+      ebpf.features.hostMetrics: false
+      ebpf.features.networkMetrics: false
+      ebpf.features.networkInterZoneMetrics: false
+      ebpf.features.tcpStats: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application_span_otel
+
+  # `application_span` as a whole entry: a plain substring check would also
+  # hit application_span_otel. application_span_sizes is the other
+  # deprecated span feature; the chart has never asked for it.
+  - it: never renders a deprecated span feature, with every family on
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.features.httpMetrics: true
+      ebpf.features.spanMetrics: true
+      ebpf.features.serviceGraph: true
+      ebpf.features.hostMetrics: true
+      ebpf.features.networkMetrics: true
+      ebpf.features.networkInterZoneMetrics: true
+      ebpf.features.tcpStats: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_METRICS_FEATURES")].value
+          pattern: (^|,)application_span_otel(,|$)
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_METRICS_FEATURES")].value
+          pattern: (^|,)application_span(,|$)
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_METRICS_FEATURES")].value
+          pattern: application_span_sizes
+
+  # The env var is the only place the chart sets metrics features. A
+  # `metrics.features` in the config file would be combined with it, and
+  # one naming application_span next to application_span_otel stops OBI
+  # starting ("you can only enable one format of span metrics").
+  - it: sets no metrics features in the OBI config file
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+      ebpf.routes.patterns: ["/api/items/{id}"]
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^\\s*features:"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: application_span

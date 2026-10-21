@@ -11,7 +11,11 @@ import React, {
 
 /*
  * Private inline images (pasted into notes, postmortems, runbooks) are served
- * from this route, and only to a request that carries a session.
+ * from this route, and only to a request whose session may see them: a
+ * member of the project they were uploaded in. An <img> cannot tell that
+ * refusal from a lapsed session, so the one refresh below runs for both; the
+ * app's refresh shares one renewal between every image that fails together
+ * (API.refreshSession).
  */
 export const PRIVATE_IMAGE_ROUTE_SEGMENT: string = "/image/access-token/";
 

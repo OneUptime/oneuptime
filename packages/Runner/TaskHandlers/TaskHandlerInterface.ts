@@ -1,6 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
-import BackendAPI from "../Utils/BackendAPI";
+import BackendAPI, { RecordPullRequestOptions } from "../Utils/BackendAPI";
+import { CodeTaskOutcomeReport } from "Common/Types/AI/CodeTask";
 
 // Base interface for task result data
 export interface TaskResultData {
@@ -49,6 +50,13 @@ export interface TaskContext {
 
   // Task timestamps
   startedAt: Date;
+
+  /*
+   * The records of pull requests the task opened but could not record
+   * (recordOpenedPullRequest). They go with the task's Completed status, and
+   * the server records them then.
+   */
+  unrecordedPullRequests?: Array<RecordPullRequestOptions> | undefined;
 }
 
 // Result returned by task handlers
@@ -67,6 +75,13 @@ export interface TaskResult {
 
   // List of PR URLs created
   pullRequestUrls?: Array<string>;
+
+  /*
+   * What a request from Code ended with - the AI's reply, the files it
+   * changed and their diff, where they went, and whether it asked a
+   * question. Reported with the Completed status, for the conversation.
+   */
+  outcome?: CodeTaskOutcomeReport;
 }
 
 // Interface that all task handlers must implement
@@ -146,6 +161,42 @@ export abstract class BaseTaskHandler implements TaskHandler {
         noFixFound: true,
       },
     };
+  }
+
+  /*
+   * Record a pull request the task has ALREADY opened.
+   *
+   * A failure is logged, never thrown. The pull request exists on GitHub by
+   * now, and failing the task over the bookkeeping told the person who asked
+   * that the run had failed while its pull request sat open.
+   *
+   * The record is kept on the context instead, and goes with the task's
+   * Completed status for the server to record then. Without a record the
+   * open-PR cap never counts the pull request, the PR state sync never
+   * tracks it, and the run's pages never list it.
+   */
+  protected async recordOpenedPullRequest(
+    context: TaskContext,
+    options: RecordPullRequestOptions,
+  ): Promise<void> {
+    try {
+      await context.backendAPI.recordPullRequest(options);
+    } catch (error) {
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
+
+      if (!context.unrecordedPullRequests) {
+        context.unrecordedPullRequests = [];
+      }
+
+      context.unrecordedPullRequests.push(options);
+
+      await this.log(
+        context,
+        `Opened ${options.pullRequestUrl} but could not record it: ${errorMessage} — keeping it for the run's Completed report`,
+        "error",
+      );
+    }
   }
 
   // Log to the task logger

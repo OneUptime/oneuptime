@@ -3,8 +3,10 @@ import CredentialGuard from "../Utils/CredentialGuard";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+} from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -23,10 +25,10 @@ import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPagePrivateUserSessionService, {
+  SIGN_IN_NO_LONGER_ACCEPTED_REASON,
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
-import EditionEnforcement from "Common/Server/Utils/EditionEnforcement";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -46,6 +48,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
 import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "Common/Types/StatusPage/MasterPassword";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -94,6 +99,60 @@ const respondWithMasterPasswordAccess: (
 
   Response.sendEmptySuccessResponse(data.req, data.res);
   return true;
+};
+
+type EndRefreshInput = {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  statusPageId: ObjectID;
+  // The session the refresh named, ended here, and why; none when there is none to end.
+  revoke?: { sessionId: ObjectID; reason: string } | undefined;
+  // What a visitor who is not signed in with the page's master password is told.
+  message: string;
+};
+
+/*
+ * A refresh that cannot renew the session: the session it named, when
+ * there is one, is ended, both of the page's sign-in cookies are removed,
+ * and the visitor is answered as one signed in with the page's master
+ * password, when they are, or as signed out.
+ */
+const endRefresh: (data: EndRefreshInput) => Promise<void> = async (
+  data: EndRefreshInput,
+): Promise<void> => {
+  if (data.revoke) {
+    await StatusPagePrivateUserSessionService.revokeSessionById(
+      data.revoke.sessionId,
+      {
+        reason: data.revoke.reason,
+      },
+    );
+  }
+
+  CookieUtil.removeCookie(
+    data.res,
+    CookieUtil.getUserTokenKey(data.statusPageId),
+  );
+  CookieUtil.removeCookie(
+    data.res,
+    CookieUtil.getRefreshTokenKey(data.statusPageId),
+  );
+
+  if (
+    respondWithMasterPasswordAccess({
+      req: data.req,
+      res: data.res,
+      statusPageId: data.statusPageId,
+    })
+  ) {
+    return;
+  }
+
+  return Response.sendErrorResponse(
+    data.req,
+    data.res,
+    new NotAuthenticatedException(data.message),
+  );
 };
 
 type FinalizeStatusPageLoginInput = {
@@ -264,6 +323,28 @@ router.post(
         );
       }
 
+      /*
+       * The SSO provider that gave the login code was turned off or deleted
+       * since, or the page now requires SSO of a code no provider gave
+       * (StatusPagePrivateUserSessionService.addSignInRule).
+       */
+      if (
+        !(await StatusPagePrivateUserSessionService.doesSignInStillCount({
+          sessionId: sessionMetadata.session.id,
+        }))
+      ) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          sessionMetadata.session.id,
+          { reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON },
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Login code is invalid or expired."),
+        );
+      }
+
       CookieUtil.setStatusPagePrivateUserCookie({
         expressResponse: res,
         user,
@@ -301,29 +382,12 @@ router.post(
         CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
 
       if (!refreshToken) {
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException(
-            "Refresh token missing. Please login again.",
-          ),
-        );
+          statusPageId,
+          message: "Refresh token missing. Please login again.",
+        });
       }
 
       const session: StatusPagePrivateUserSession | null =
@@ -337,123 +401,54 @@ router.post(
         !session.statusPageId ||
         StatusPagePrivateUserSessionService.isLoginCodeSession(session)
       ) {
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (session.statusPageId.toString() !== statusPageId.toString()) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Status page mismatch",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Status page mismatch",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (
         session.refreshTokenExpiresAt &&
         OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
       ) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Refresh token expired",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Refresh token expired",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (!session.statusPagePrivateUserId) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Session missing user",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Session missing user",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       const user: StatusPagePrivateUser | null =
@@ -471,34 +466,39 @@ router.post(
         });
 
       if (!user) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "User not found",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Account no longer exists."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "User not found",
+          },
+          message: "Account no longer exists.",
+        });
+      }
+
+      /*
+       * The SSO provider that signed the session in was turned off or
+       * deleted since, or the page now requires SSO of a session no
+       * provider signed in: it ends here rather than renew
+       * (StatusPagePrivateUserSessionService.addSignInRule).
+       */
+      if (
+        !(await StatusPagePrivateUserSessionService.doesSignInStillCount({
+          sessionId: session.id,
+        }))
+      ) {
+        return await endRefresh({
+          req,
+          res,
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       const renewedSession: StatusPageSessionMetadata =
@@ -578,7 +578,7 @@ router.post(
             _id: true,
             name: true,
             pageTitle: true,
-            logoFileId: true,
+            ...STATUS_PAGE_EMAIL_LOGO_SELECT,
             requireSsoForLogin: true,
             projectId: true,
             smtpConfig: {
@@ -606,15 +606,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -644,6 +636,18 @@ router.post(
         });
 
       if (alreadySavedUser) {
+        /*
+         * Each request emails the address a reset link, so it is counted
+         * first, per caller and per address (PublicMessageRateLimit), and
+         * refused when either has had enough - before the token is replaced,
+         * so the link in the latest email still works.
+         */
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.StatusPagePasswordReset,
+          contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+        });
+
         // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
         const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
@@ -665,8 +669,6 @@ router.post(
 
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-        const statusPageIdString: string | null =
-          statusPage.id?.toString() || statusPage._id?.toString() || null;
 
         MailService.sendMail(
           {
@@ -676,13 +678,11 @@ router.post(
             templateType: EmailTemplateType.StatusPageForgotPassword,
             vars: {
               statusPageName: statusPageName!,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               homeURL: statusPageURL,
               tokenVerifyUrl: URL.fromString(statusPageURL)
                 .addRoute("/reset-password/" + token)
@@ -707,6 +707,8 @@ router.post(
         `No user is registered with ${user.email?.toString()}`,
       );
     } catch (err) {
+      // A reset refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
       return next(err);
     }
   },
@@ -794,7 +796,7 @@ router.post(
             _id: true,
             name: true,
             pageTitle: true,
-            logoFileId: true,
+            ...STATUS_PAGE_EMAIL_LOGO_SELECT,
             requireSsoForLogin: true,
             projectId: true,
             smtpConfig: {
@@ -822,15 +824,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -857,8 +851,6 @@ router.post(
 
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-      const statusPageIdString: string | null =
-        statusPage.id?.toString() || statusPage._id?.toString() || null;
 
       MailService.sendMail(
         {
@@ -869,13 +861,11 @@ router.post(
           vars: {
             homeURL: statusPageURL,
             statusPageName: statusPageName || "",
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
+            logoUrl: StatusPageEmailLogo.getLogoUrl({
+              statusPage: statusPage,
+              host: host,
+              httpProtocol: httpProtocol,
+            }),
           },
         },
         {
@@ -950,15 +940,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );

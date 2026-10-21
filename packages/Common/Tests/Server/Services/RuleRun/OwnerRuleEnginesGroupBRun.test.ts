@@ -10,6 +10,11 @@ import IncidentEpisodeOwnerRuleService from "../../../../Server/Services/Inciden
 import IncidentEpisodeOwnerTeamService from "../../../../Server/Services/IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerUserService from "../../../../Server/Services/IncidentEpisodeOwnerUserService";
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import MessageQueueOwnerRuleEngineService from "../../../../Server/Services/MessageQueueOwnerRuleEngineService";
+import MessageQueueOwnerRuleService from "../../../../Server/Services/MessageQueueOwnerRuleService";
+import MessageQueueOwnerTeamService from "../../../../Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "../../../../Server/Services/MessageQueueOwnerUserService";
+import MessageQueueService from "../../../../Server/Services/MessageQueueService";
 import PodmanHostFeedService from "../../../../Server/Services/PodmanHostFeedService";
 import PodmanHostOwnerRuleEngineService from "../../../../Server/Services/PodmanHostOwnerRuleEngineService";
 import PodmanHostOwnerRuleService from "../../../../Server/Services/PodmanHostOwnerRuleService";
@@ -72,6 +77,8 @@ import AlertEpisodeOwnerUser from "../../../../Models/DatabaseModels/AlertEpisod
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentEpisodeOwnerTeam from "../../../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "../../../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import MessageQueueOwnerTeam from "../../../../Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "../../../../Models/DatabaseModels/MessageQueueOwnerUser";
 import PodmanHostOwnerTeam from "../../../../Models/DatabaseModels/PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "../../../../Models/DatabaseModels/PodmanHostOwnerUser";
 import ProxmoxClusterOwnerTeam from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerTeam";
@@ -100,12 +107,13 @@ import {
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - "Run now" for the owner rule engines of the Podman,
  * Proxmox, RUM, runbook, serverless, service, status page, vCenter, workflow,
- * alert episode and incident episode families.
+ * queue, alert episode and incident episode families.
  *
  * Each engine applies ONE rule to a resource that already exists. What a run
  * can get wrong that the create hook rarely does: an existing resource almost
@@ -424,6 +432,28 @@ const ENGINE_CASES: Array<EngineCase> = [
     prepare: noop,
   },
   {
+    name: "queue",
+    engine: MessageQueueOwnerRuleEngineService,
+    createHook: "applyRulesToMessageQueue",
+    ruleService: MessageQueueOwnerRuleService,
+    rereadService: MessageQueueService,
+    ownerUserService: MessageQueueOwnerUserService,
+    ownerTeamService: MessageQueueOwnerTeamService,
+    ownerUserModel: MessageQueueOwnerUser,
+    ownerTeamModel: MessageQueueOwnerTeam,
+    resourceIdColumn: "messageQueueId",
+    namePatternField: "messageQueueNamePattern",
+    hasNotificationFlag: true,
+    addOwnersService: null,
+    mockFeed: noFeed,
+    prepare: (): void => {
+      // The owners a rule adds are recorded as automatic, in raw SQL.
+      spy(MessageQueueService, "recordAutomaticAssignments").mockResolvedValue(
+        undefined,
+      );
+    },
+  },
+  {
     name: "alert episode",
     engine: AlertEpisodeOwnerRuleEngineService,
     createHook: "applyRulesToEpisode",
@@ -734,6 +764,8 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(true);
+  // ... and their teams the project's (OwnerRuleAssignment.test.ts covers others').
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

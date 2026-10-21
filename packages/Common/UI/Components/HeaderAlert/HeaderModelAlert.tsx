@@ -5,6 +5,8 @@ import HeaderAlert, { HeaderAlertType } from "./HeaderAlert";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -27,6 +29,7 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [count, setCount] = useState<number>(0);
@@ -83,7 +86,9 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
   return (
     <HeaderAlert
       title={`${count}`}
-      suffix={`${count > 1 ? props.pluralName : props.singularName}`}
+      suffix={translator.translateTerm(
+        count > 1 ? props.pluralName : props.singularName,
+      )}
       icon={props.icon}
       onClick={props.onClick}
       className={props.className}

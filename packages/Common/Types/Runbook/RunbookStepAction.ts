@@ -1,0 +1,262 @@
+/*
+ * What a person may do to one step of a runbook execution, and when.
+ *
+ * An execution stops for a person on a Manual step, and before a step that
+ * asks for approval before it runs (requireApprovalBeforeRunning) - and, in
+ * a run started before approvals moved, after a step whose copy still says
+ * requireApproval (RunbookStepApproval). Each parks the step as
+ * WaitingForUser and the execution as WaitingForManualStep, and when the run
+ * is resumed the execution loop walks straight past every step already
+ * Completed or Skipped. So marking a step Completed or Skipped before the run
+ * reaches it would remove the stop altogether: an "L2 approval" checklist
+ * step ticked off while the run is still paused on step one is never paused
+ * on at all.
+ *
+ * The rules:
+ *  - Complete: only the step the execution is paused on. On a Manual step it
+ *    ticks the step off; on a step waiting for approval before it runs it
+ *    approves it, and the step runs when the run goes on; on a step of an
+ *    older run that ran and waits for approval it lets the run go on.
+ *  - Skip: the step the execution is paused on (a step waiting for approval
+ *    before it runs then never runs), or - while it is paused - a later plain
+ *    automated step (neither Manual nor one that asks for approval), so a
+ *    responder can drop a step they already know is not needed before the run
+ *    gets to it. A Manual or approval step is never skipped ahead of time: its
+ *    whole purpose is to stop the run where a person decides.
+ *  - Nothing while the execution is Scheduled or Running. The Worker driving
+ *    the run holds the step list in memory and writes all of it back at every
+ *    step boundary, so a change made underneath it would be overwritten, and
+ *    resuming would start a second loop over the same execution.
+ *
+ * Shared by the API, which enforces it, and the execution page, which only
+ * offers the actions the API will accept.
+ */
+
+import RunbookExecutionStatus from "./RunbookExecutionStatus";
+import { RunbookStepExecutionState } from "./RunbookStepExecution";
+import RunbookStepExecutionStatus from "./RunbookStepExecutionStatus";
+import RunbookStepType from "./RunbookStepType";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+  hasApprovalAfterStep,
+  stepRequiresApprovalBeforeRunning,
+} from "./RunbookStepApproval";
+
+export enum RunbookStepAction {
+  Complete = "Complete",
+  Skip = "Skip",
+}
+
+export type RunbookStepActionDecision =
+  | {
+      allowed: true;
+      /*
+       * True when the action releases the step the execution is paused on,
+       * so the execution has to be resumed. False when a later step is
+       * skipped ahead of time: the execution stays paused where it is.
+       */
+      resumesExecution: boolean;
+    }
+  | {
+      allowed: false;
+      // Shown to the person who asked, so it says what to do instead.
+      reason: string;
+    };
+
+/*
+ * The steps the execution loop walks past without running: Completed,
+ * Skipped, and a Failed step that is allowed to fail.
+ */
+export function isStepExecutionSettled(
+  stepExecution: RunbookStepExecutionState,
+): boolean {
+  return (
+    stepExecution.status === RunbookStepExecutionStatus.Completed ||
+    stepExecution.status === RunbookStepExecutionStatus.Skipped ||
+    (stepExecution.status === RunbookStepExecutionStatus.Failed &&
+      Boolean(stepExecution.step.continueOnFailure))
+  );
+}
+
+/*
+ * The step a paused execution is waiting on: the first step the loop has not
+ * settled, provided that step is WaitingForUser and the execution is parked
+ * in WaitingForManualStep — the same step the loop would stop on if it ran
+ * now. Undefined for anything else, an inconsistent row included, so nothing
+ * can be advanced on one.
+ */
+export function getStepAwaitingUser(data: {
+  executionStatus: RunbookExecutionStatus | undefined;
+  stepExecutions: Array<RunbookStepExecutionState>;
+}): RunbookStepExecutionState | undefined {
+  if (data.executionStatus !== RunbookExecutionStatus.WaitingForManualStep) {
+    return undefined;
+  }
+
+  const firstUnsettled: RunbookStepExecutionState | undefined =
+    data.stepExecutions.find((stepExecution: RunbookStepExecutionState) => {
+      return !isStepExecutionSettled(stepExecution);
+    });
+
+  if (firstUnsettled?.status !== RunbookStepExecutionStatus.WaitingForUser) {
+    return undefined;
+  }
+
+  return firstUnsettled;
+}
+
+export function decideRunbookStepAction(data: {
+  action: RunbookStepAction;
+  executionStatus: RunbookExecutionStatus | undefined;
+  stepExecutions: Array<RunbookStepExecutionState>;
+  stepId: string;
+}): RunbookStepActionDecision {
+  if (
+    data.executionStatus === RunbookExecutionStatus.Completed ||
+    data.executionStatus === RunbookExecutionStatus.Failed ||
+    data.executionStatus === RunbookExecutionStatus.Cancelled
+  ) {
+    return refuse(`Cannot update step on a ${data.executionStatus} execution`);
+  }
+
+  const targetIndex: number = data.stepExecutions.findIndex(
+    (stepExecution: RunbookStepExecutionState) => {
+      return stepExecution.step.id === data.stepId;
+    },
+  );
+
+  const target: RunbookStepExecutionState | undefined =
+    data.stepExecutions[targetIndex];
+
+  if (!target) {
+    return refuse("This step is not part of this execution.");
+  }
+
+  const awaiting: RunbookStepExecutionState | undefined = getStepAwaitingUser({
+    executionStatus: data.executionStatus,
+    stepExecutions: data.stepExecutions,
+  });
+
+  if (awaiting && awaiting.step.id === target.step.id) {
+    return { allowed: true, resumesExecution: true };
+  }
+
+  const title: string = `Step "${target.step.title}"`;
+
+  if (
+    target.status === RunbookStepExecutionStatus.Completed ||
+    target.status === RunbookStepExecutionStatus.Skipped ||
+    target.status === RunbookStepExecutionStatus.Failed ||
+    target.status === RunbookStepExecutionStatus.Cancelled
+  ) {
+    return refuse(`${title} is already ${target.status}.`);
+  }
+
+  const waitingOn: string = awaiting
+    ? ` This execution is waiting on "${awaiting.step.title}".`
+    : " This execution is not waiting on a step right now.";
+
+  if (data.action === RunbookStepAction.Complete) {
+    if (target.status === RunbookStepExecutionStatus.Pending) {
+      return refuse(
+        `${title} has not been reached yet. Only the step the execution is waiting on can be completed.${waitingOn}`,
+      );
+    }
+
+    return refuse(
+      `Only the step the execution is waiting on can be completed.${waitingOn}`,
+    );
+  }
+
+  if (target.status === RunbookStepExecutionStatus.Pending) {
+    if (target.step.type === RunbookStepType.Manual) {
+      return refuse(
+        `${title} is a manual step, so it can only be completed or skipped once the execution reaches it.${waitingOn}`,
+      );
+    }
+
+    if (stepRequiresApprovalBeforeRunning(target.step)) {
+      return refuse(
+        `${title} needs approval before it runs, so it can only be approved or skipped once the execution reaches it.${waitingOn}`,
+      );
+    }
+
+    // A step of a run started before approvals moved: it stops after it runs.
+    if (hasApprovalAfterStep(target.step)) {
+      return refuse(
+        `${title} requires approval, so it can only be approved or skipped once it has run and the execution is waiting on it.${waitingOn}`,
+      );
+    }
+
+    if (!awaiting) {
+      return refuse(
+        `${title} can only be skipped ahead of time while the execution is paused on a step that is waiting for you.${waitingOn}`,
+      );
+    }
+
+    const awaitingIndex: number = data.stepExecutions.indexOf(awaiting);
+
+    if (targetIndex > awaitingIndex) {
+      return { allowed: true, resumesExecution: false };
+    }
+  }
+
+  return refuse(
+    `Only the step the execution is waiting on, or a later automated step that does not require approval, can be skipped.${waitingOn}`,
+  );
+}
+
+function refuse(reason: string): RunbookStepActionDecision {
+  return { allowed: false, reason };
+}
+
+/*
+ * What an action decideRunbookStepAction allowed writes on the step, as the
+ * step routes save it:
+ *
+ *   - approving a step that waits for approval before it runs: the step has
+ *     not run, so it goes back to Pending, approved (approvedAt, and who),
+ *     and the resumed run runs it - it is not marked done here;
+ *   - any other Complete: the step is Completed - a Manual step ticked off,
+ *     or a step of an older run that ran and waited for approval;
+ *   - Skip: the step is Skipped, and never runs.
+ *
+ * `notes` is what the person wrote with it, kept on the step either way.
+ */
+export function applyRunbookStepAction(data: {
+  stepExecution: RunbookStepExecutionState;
+  action: RunbookStepAction;
+  at: Date;
+  userId?: string | undefined;
+  notes?: string | undefined;
+}): void {
+  const stepExecution: RunbookStepExecutionState = data.stepExecution;
+  const at: string = data.at.toISOString();
+
+  if (
+    data.action === RunbookStepAction.Complete &&
+    getRunbookStepWait(stepExecution) === RunbookStepWait.ApprovalToRun
+  ) {
+    stepExecution.status = RunbookStepExecutionStatus.Pending;
+    stepExecution.approvedAt = at;
+
+    if (data.userId) {
+      stepExecution.approvedByUserId = data.userId;
+    }
+  } else {
+    stepExecution.status =
+      data.action === RunbookStepAction.Complete
+        ? RunbookStepExecutionStatus.Completed
+        : RunbookStepExecutionStatus.Skipped;
+    stepExecution.completedAt = at;
+
+    if (data.userId) {
+      stepExecution.completedByUserId = data.userId;
+    }
+  }
+
+  if (data.notes) {
+    stepExecution.notes = data.notes;
+  }
+}

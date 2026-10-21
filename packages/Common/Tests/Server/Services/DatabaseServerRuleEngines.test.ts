@@ -27,6 +27,7 @@ import DatabaseServerOwnerTeamService from "../../../Server/Services/DatabaseSer
 import DatabaseServerOwnerUserService from "../../../Server/Services/DatabaseServerOwnerUserService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import logger from "../../../Server/Utils/Logger";
 import {
   RuleApplicationResult,
@@ -46,6 +47,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 import { getJestSpyOn } from "../../Spy";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The database label and owner rule engines.
  *
@@ -175,11 +177,17 @@ beforeEach(() => {
   getJestSpyOn(
     DatabaseServerService,
     "getDatabaseServerMarkdownLink",
-  ).mockResolvedValue("[Database PostgreSQL orders-db.internal:5432](/db)");
+  ).mockResolvedValue(
+    FeedMarkdown.asMarkdown(
+      "[Database PostgreSQL orders-db.internal:5432](/db)",
+    ),
+  );
   feed = getJestSpyOn(
     DatabaseServerFeedService,
     "createDatabaseServerFeedItem",
   ).mockResolvedValue(undefined);
+  // The labels and teams the rules name are the project's.
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -542,6 +550,8 @@ describe("DatabaseServerOwnerRuleEngineService", () => {
     getJestSpyOn(TeamMemberService, "isUserMemberOfProject").mockResolvedValue(
       true,
     );
+    // The teams the rules name are the project's.
+    stubProjectDirectory({});
   }
 
   test("reads the database criteria fields and the owners to add", () => {

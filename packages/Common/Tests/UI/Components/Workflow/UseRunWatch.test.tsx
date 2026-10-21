@@ -662,4 +662,135 @@ describe("useRunWatch", () => {
       expect(logs()).toBe("fresh");
     });
   });
+
+  /*
+   * The run itself - id, status and times - not just its log and steps. The
+   * builder names a run downloaded from its modal after it.
+   */
+  describe("the run it holds", () => {
+    test("is none before a watch has found one", async () => {
+      fetchLatestRun.mockResolvedValue(null);
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      expect(watch.run).toBeNull();
+
+      await startWatching();
+      await settle();
+
+      expect(watch.run).toBeNull();
+    });
+
+    test("is the run it found, with its id, status and times", async () => {
+      const found: WatchedRunDetail = aRun({
+        status: WorkflowStatus.Running,
+        logs: "a line",
+        scheduledAt: new Date("2026-10-01T10:33:06.000Z"),
+        startedAt: new Date("2026-10-01T10:33:07.000Z"),
+        completedAt: null,
+      });
+
+      fetchLatestRun.mockResolvedValue(found);
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      await startWatching();
+      await settle();
+
+      expect(watch.run).toEqual(found);
+    });
+
+    test("keeps up with every poll", async () => {
+      fetchLatestRun.mockResolvedValueOnce(
+        aRun({ status: WorkflowStatus.Running, completedAt: null }),
+      );
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      await startWatching();
+      await settle();
+
+      expect(watch.run?.status).toBe(WorkflowStatus.Running);
+
+      fetchLatestRun.mockResolvedValue(
+        aRun({
+          status: WorkflowStatus.Success,
+          completedAt: new Date("2026-10-01T10:33:08.000Z"),
+        }),
+      );
+
+      await advanceOnePoll();
+
+      expect(watch.run?.status).toBe(WorkflowStatus.Success);
+      expect(watch.run?.completedAt).toEqual(
+        new Date("2026-10-01T10:33:08.000Z"),
+      );
+    });
+
+    test("is never the run that came before", async () => {
+      fetchLatestRun.mockResolvedValue(
+        aRun({ runId: PREVIOUS_RUN_ID, status: WorkflowStatus.Success }),
+      );
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      await act(async () => {
+        await watch.captureRunBeforeTrigger();
+      });
+
+      await startWatching();
+      await settle();
+
+      expect(watch.run).toBeNull();
+    });
+
+    test("lets go of the last run the moment another one starts", async () => {
+      fetchLatestRun.mockResolvedValue(
+        aRun({ runId: "run-first", status: WorkflowStatus.Success }),
+      );
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      await startWatching();
+      await settle();
+
+      expect(watch.run?.runId).toBe("run-first");
+
+      const pending: Deferred<WatchedRunDetail | null> =
+        deferred<WatchedRunDetail | null>();
+
+      fetchLatestRun.mockReturnValue(pending.promise);
+
+      await startWatching();
+
+      expect(watch.run).toBeNull();
+
+      await act(async () => {
+        pending.resolve(
+          aRun({ runId: "run-second", status: WorkflowStatus.Running }),
+        );
+      });
+      await settle();
+
+      expect(watch.run?.runId).toBe("run-second");
+    });
+
+    test("keeps the last run it saw through a failed poll", async () => {
+      fetchLatestRun.mockResolvedValueOnce(
+        aRun({ status: WorkflowStatus.Running }),
+      );
+
+      render(<Probe fetchLatestRun={fetchLatestRun} />);
+
+      await startWatching();
+      await settle();
+
+      fetchLatestRun.mockRejectedValueOnce(new Error("network"));
+
+      await advanceOnePoll();
+
+      expect(watch.run?.runId).toBe(NEW_RUN_ID);
+      expect(watch.run?.status).toBe(WorkflowStatus.Running);
+    });
+  });
 });

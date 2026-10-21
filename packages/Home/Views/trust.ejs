@@ -2,8 +2,8 @@
 <html lang="en" id="trust">
 
 <head>
-  <title>OneUptime Trust Center | Security, Compliance & Privacy</title>
-  <meta name="description" content="Security architecture, certifications, privacy, and operational practices behind OneUptime. SOC 2 Type II, ISO 27001, GDPR, HIPAA, and PCI compliant.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -51,6 +51,7 @@
     /* Anchor offset */
     section[id] { scroll-margin-top: 6rem; }
   </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body class="bg-gray-50 antialiased text-gray-900">

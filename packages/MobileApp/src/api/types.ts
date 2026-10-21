@@ -409,10 +409,12 @@ export interface OnCallShift {
 
 /**
  * A substitution: `overrideUser`'s pages go to `routeAlertsToUser` between
- * `startsAt` and `endsAt`. `onCallDutyPolicy` is null for a project-wide
- * override, which is the kind the app creates - covering somebody for one
- * policy while leaving them paged by the rest is not what "cover for me"
- * means to the person asking for it.
+ * `startsAt` and `endsAt` - or, when `routeAlertsToUser` is null, a skip:
+ * nobody is named, and each of their turns goes to the next person in the
+ * rotation. `onCallDutyPolicy` is null for a project-wide override, which is
+ * the kind the app creates - covering somebody for one policy while leaving
+ * them paged by the rest is not what "cover for me" means to the person
+ * asking for it.
  */
 export interface OnCallOverrideItem {
   _id: string;
@@ -447,6 +449,12 @@ export interface OnCallPageItem {
   statusMessage?: string;
   acknowledgedAt: string | null;
   policyName?: string;
+  /*
+   * A direct page: this person was paged with no on-call policy behind the
+   * page - by a workflow's Page Users, Page a Team or Page Whoever Is On Call
+   * step. It has no policy to name, and nothing about it is missing.
+   */
+  isDirectPage?: boolean;
   triggeredByIncident: { _id?: string; title?: string } | null;
   triggeredByAlert: { _id?: string; title?: string } | null;
   triggeredByIncidentEpisode: { _id?: string; title?: string } | null;
@@ -464,9 +472,11 @@ export interface OnCallPageItem {
  */
 
 /**
- * The three ways a calendar app can be pointed at one feed. `webcal` is a
- * `webcals://` URL when the server is served over https; `googleAdd` is the
- * Google Calendar "add by URL" deep link, which only works from a browser.
+ * The three ways a calendar app can be pointed at one feed. `webcal` is the
+ * link on the webcal:// scheme (servers before the Google Calendar fix sent
+ * webcals://, which iOS does not open, so the app rebuilds it); `googleAdd`
+ * is the Google Calendar "add by URL" deep link, which only works from a
+ * browser.
  */
 export interface OnCallCalendarFeedUrls {
   https: string;

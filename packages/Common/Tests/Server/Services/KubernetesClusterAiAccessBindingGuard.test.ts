@@ -2,12 +2,15 @@ import KubernetesClusterService, {
   AI_ACCESS_CREDENTIAL_REFUSAL,
   getAiAccessCredentialRefusal,
 } from "../../../Server/Services/KubernetesClusterService";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -25,6 +28,24 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  /*
+   * Binding a Runner lets it run OneUptime AI's commands
+   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
+   * which these unit tests do not have.
+   */
+  jest
+    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
+    .mockResolvedValue(undefined);
+});
 
 /*
  * Contract under test — the tenant guard on a cluster's AI access binding,
@@ -97,7 +118,7 @@ function hooks(): Hooks {
 
 /*
  * A signed-in user holding exactly `permissions` (as grants) in `tenantId`.
- * DatabaseCommonInteractionPropsUtil and holdsAnyPermission read only the
+ * DatabaseCommonInteractionPropsUtil and CallerPermission read only the
  * tenant bucket keyed by project id, so the key must be right or every
  * refusal below would pass for the wrong reason.
  */
@@ -201,12 +222,27 @@ function settingsReads(spy: jest.SpyInstance): Array<FindByArgs> {
     });
 }
 
+/*
+ * No cluster has a Kubernetes AI agent here: every operator write of an AI
+ * setting reads the clusters' agent rows (whether the agent sets
+ * investigation and fixes), and these blocks are about the binding and the
+ * settings themselves. Without an agent, OneUptime sets them.
+ */
+function withoutKubernetesAiAgents(): jest.SpyInstance {
+  return jest
+    .spyOn(KubernetesAiAgentService, "findForClusters")
+    .mockResolvedValue(new Map<string, KubernetesAiAgent>());
+}
+
 describe("KubernetesClusterService AI access binding guard", () => {
   let runnerLookup: jest.SpyInstance;
   let credentialLookup: jest.SpyInstance;
   let clusterLookup: jest.SpyInstance;
+  let boundRunnerRead: jest.SpyInstance;
 
   beforeEach(() => {
+    withoutKubernetesAiAgents();
+    boundRunnerRead = jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
@@ -248,6 +284,16 @@ describe("KubernetesClusterService AI access binding guard", () => {
           ];
         },
       );
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -459,6 +505,8 @@ describe("KubernetesClusterService AI access binding guard", () => {
       expect(result.updateBy).toBe(update);
       expect(runnerLookup).not.toHaveBeenCalled();
       expect(credentialLookup).not.toHaveBeenCalled();
+      // Nor the bound Runner: no agent here reports AI settings.
+      expect(boundRunnerRead).not.toHaveBeenCalled();
       expect(projectOnlyLookups(clusterLookup)).toHaveLength(0);
       expect(settingsReads(clusterLookup)).toHaveLength(1);
     });
@@ -811,7 +859,10 @@ describe("KubernetesClusterService AI access binding guard", () => {
           aiAccessRunnerId: RUNNER_ID,
         }),
       );
-      expect(lastQuery(runnerLookup)["projectId"]).toBe(PROJECT_ID);
+      // The project as the relation names it, read under either name.
+      expect(String(lastQuery(runnerLookup)["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
 
       await hooks().onBeforeCreate(
         createBy(
@@ -935,6 +986,7 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
   }
 
   beforeEach(() => {
+    withoutKubernetesAiAgents();
     current = {
       id: CLUSTER_ID,
       projectId: PROJECT_ID,
@@ -956,6 +1008,16 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
       .mockImplementation(async (): Promise<Array<KubernetesCluster>> => {
         return [current as unknown as KubernetesCluster];
       });
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1017,7 +1079,7 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
 
     // Never names the credential: the refusal is readable to cluster editors.
     expect(message).toContain('is not assigned to Runner "office-runner"');
-    expect(message).toContain("Runner Credentials");
+    expect(message).toContain("Runbooks → AI Access");
   });
 
   it("refuses switching the Runner while an unassigned credential stays bound", async () => {
@@ -1072,6 +1134,61 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
     ).resolves.toBeDefined();
   });
 
+  /*
+   * A Runner has no "Runs AI Remediation Commands" switch any more: binding
+   * it to a cluster is what lets OneUptime AI run that cluster's kubectl on
+   * it (RunnerAiCommandsPick), once the binding passed every check.
+   */
+  describe("binding a Runner lets it run OneUptime AI's commands", () => {
+    function allowSpy(): jest.SpyInstance {
+      return jest.mocked(RunnerAiCommandsPick.allowPickedRunners);
+    }
+
+    it("lets the Runner an operator binds run them, in the cluster's project", async () => {
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: RUNNER_ID }));
+
+      expect(allowSpy()).toHaveBeenCalledTimes(1);
+      const call: { projectId: ObjectID; runnerIds: Array<ObjectID> } =
+        allowSpy().mock.calls[0]![0];
+      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(
+        call.runnerIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ).toEqual([RUNNER_ID.toString()]);
+    });
+
+    it("reads the Runner from the relation too", async () => {
+      await hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunner: { _id: RUNNER_ID.toString() } }),
+      );
+
+      expect(allowSpy()).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks nothing for a binding that is cleared", async () => {
+      current["aiAccessRunnerId"] = RUNNER_ID;
+
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null }));
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
+
+    it("never lets a refused binding's Runner run them", async () => {
+      await refusalOf({ aiAccessRunnerId: OTHER_AGENT_ID });
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
+
+    it("leaves OneUptime's own writes - a registration binding its agent - to themselves", async () => {
+      await hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunnerId: OWN_AGENT_ID }, { isRoot: true }),
+      );
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
+  });
+
   it("negative control: the server's own (root) writes are not operator choices", async () => {
     await expect(
       hooks().onBeforeUpdate(
@@ -1112,6 +1229,7 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
   let runnerLookup: jest.SpyInstance;
 
   beforeEach(() => {
+    withoutKubernetesAiAgents();
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
@@ -1121,6 +1239,16 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
         projectId: PROJECT_ID,
       } as unknown as KubernetesCluster,
     ]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1531,6 +1659,7 @@ describe("KubernetesClusterService AI access configured marker", () => {
   let updateBySpy: jest.SpyInstance;
 
   beforeEach(() => {
+    withoutKubernetesAiAgents();
     jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
@@ -1540,6 +1669,15 @@ describe("KubernetesClusterService AI access configured marker", () => {
         projectId: PROJECT_ID,
       } as unknown as KubernetesCluster,
     ]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     updateBySpy = jest
       .spyOn(KubernetesClusterService, "updateBy")
       .mockResolvedValue(1);
@@ -1560,6 +1698,7 @@ describe("KubernetesClusterService AI access configured marker", () => {
         "writeKubernetesClusterUpdatedFeed",
       )
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

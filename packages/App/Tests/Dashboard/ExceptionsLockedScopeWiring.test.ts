@@ -219,8 +219,16 @@ describe("the pill joins the locked chips, ahead of the user's", () => {
   test("the builder reads the page's own key list and display map, and the stored scope's chips", () => {
     const call: string = blockAfter(memo, PILL_BUILDER_CALL, "{", "}");
 
+    /*
+     * The page's key list is read by value (issue #4709): a page that hands
+     * over a new but equal array must not rebuild the chips or read again.
+     */
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const entityKeysFilter: Array<string> | undefined = useStableValue( props.entityKeysFilter, );",
+    );
+
     for (const argument of [
-      "entityKeysFilter: props.entityKeysFilter,",
+      "entityKeysFilter: entityKeysFilter,",
       "entityKeyDisplays: props.entityKeyDisplays,",
       "storedScopeChips: hostScope.chips,",
     ]) {
@@ -277,7 +285,7 @@ describe("the pill joins the locked chips, ahead of the user's", () => {
     );
 
     for (const dependency of [
-      "props.entityKeysFilter",
+      "entityKeysFilter",
       "props.entityKeyDisplays",
       "hostScope",
       "activeFilters",
@@ -358,12 +366,12 @@ describe("the pill is display only", () => {
     );
 
     expect(instanceScopeMemo).toContain(
-      "buildExceptionEntityKeyScope(props.entityKeysFilter)",
+      "buildExceptionEntityKeyScope(entityKeysFilter)",
     );
     expect(instanceScopeMemo).not.toContain("entityKeyDisplays");
     expect(instanceScopeMemo).not.toContain(PILL_BUILDER_CALL);
     expect(dependenciesOf(EXCEPTIONS_VIEWER, marker)).toContain(
-      "props.entityKeysFilter",
+      "entityKeysFilter",
     );
   });
 

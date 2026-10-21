@@ -2,15 +2,13 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import File from "../../Models/DatabaseModels/File";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import BadDataException from "../../Types/Exception/BadDataException";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import IncidentService, {
   Service as IncidentServiceType,
 } from "../Services/IncidentService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
+import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
 import {
   ExpressRequest,
@@ -29,7 +27,15 @@ import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
 import JSONFunctions from "../../Types/JSONFunctions";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import { JSONObject } from "../../Types/JSON";
+import IncidentSubscriberAudience, {
+  IncidentSubscriberAudienceResult,
+} from "../../Types/StatusPage/IncidentSubscriberAudience";
+import IncidentSubscriberAudienceBuilder, {
+  IncidentSubscriberAudienceRequest,
+} from "../Utils/StatusPage/IncidentSubscriberAudienceBuilder";
 
 export default class IncidentAPI extends BaseAPI<
   Incident,
@@ -83,6 +89,161 @@ export default class IncidentAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Who an incident's status page notifications would reach, before it is
+     * declared or a public note is posted (see IncidentSubscriberAudience).
+     * A POST because the monitors and status pages of an incident being
+     * declared travel in the body.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/subscriber-audience`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getSubscriberAudience(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
+
+  private async getSubscriberAudience(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    /*
+     * The project is the caller's tenant. Project API keys are admitted like
+     * signed-in members: the permission check below and the reads the
+     * answer is built from are what bound it.
+     */
+    const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+    // One of the roles that may see the audience (read as Allow grants).
+    IncidentSubscriberAudienceBuilder.assertCallerMaySeeAudience(props);
+
+    const request: IncidentSubscriberAudienceRequest =
+      IncidentAPI.parseSubscriberAudienceRequest({
+        body: req.body,
+        projectId: projectId,
+        props: props,
+      });
+
+    const audience: IncidentSubscriberAudienceResult =
+      await IncidentSubscriberAudienceBuilder.build(request);
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      IncidentSubscriberAudience.toJSON(audience),
+    );
+  }
+
+  /*
+   * The request body: {incidentId} for an incident that exists, or
+   * {monitorIds, statusPageIds} for one being declared - never both. With
+   * incidentId, excludeStatusPagesNotifiedOnCreation asks who a Retry of
+   * its 'created' notification reaches.
+   */
+  public static parseSubscriberAudienceRequest(data: {
+    body: unknown;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): IncidentSubscriberAudienceRequest {
+    const body: JSONObject =
+      data.body && typeof data.body === "object" && !Array.isArray(data.body)
+        ? (data.body as JSONObject)
+        : {};
+
+    const hasIncidentId: boolean =
+      body["incidentId"] !== undefined && body["incidentId"] !== null;
+    const hasDraft: boolean =
+      (body["monitorIds"] !== undefined && body["monitorIds"] !== null) ||
+      (body["statusPageIds"] !== undefined && body["statusPageIds"] !== null);
+
+    if (hasIncidentId && hasDraft) {
+      throw new BadDataException(
+        "Send either incidentId, or monitorIds and statusPageIds - not both.",
+      );
+    }
+
+    if (hasIncidentId) {
+      return {
+        projectId: data.projectId,
+        props: data.props,
+        incidentId: IncidentAPI.parseObjectID(body["incidentId"], "incidentId"),
+        // Who a Retry of its 'created' notification reaches: only a real yes.
+        ...(body["excludeStatusPagesNotifiedOnCreation"] === true
+          ? { excludeStatusPagesNotifiedOnCreation: true }
+          : {}),
+      };
+    }
+
+    if (!hasDraft) {
+      throw new BadDataException(
+        "Send incidentId, or monitorIds and statusPageIds.",
+      );
+    }
+
+    return {
+      projectId: data.projectId,
+      props: data.props,
+      monitorIds: IncidentAPI.parseObjectIDs(body["monitorIds"], "monitorIds"),
+      statusPageIds: IncidentAPI.parseObjectIDs(
+        body["statusPageIds"],
+        "statusPageIds",
+      ),
+    };
+  }
+
+  // An id as a string or a serialized ObjectID.
+  private static parseObjectID(value: unknown, name: string): ObjectID {
+    let id: string = "";
+
+    if (typeof value === "string") {
+      id = value;
+    } else if (value instanceof ObjectID) {
+      id = value.toString();
+    } else if (value && typeof value === "object") {
+      id = new ObjectID(value as JSONObject).toString();
+    }
+
+    id = id.trim();
+
+    if (!id || !ObjectID.isValidUUID(id)) {
+      throw new BadDataException(`${name} must be a valid ID.`);
+    }
+
+    return new ObjectID(id);
+  }
+
+  private static parseObjectIDs(value: unknown, name: string): Array<ObjectID> {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    if (!Array.isArray(value)) {
+      throw new BadDataException(`${name} must be a list of IDs.`);
+    }
+
+    if (value.length > IncidentSubscriberAudience.maxIdsPerRequest) {
+      throw new BadDataException(
+        `${name} can list at most ${IncidentSubscriberAudience.maxIdsPerRequest} IDs.`,
+      );
+    }
+
+    return value.map((item: unknown): ObjectID => {
+      return IncidentAPI.parseObjectID(item, name);
+    });
   }
 
   private async getPostmortemAttachment(
@@ -118,6 +279,7 @@ export default class IncidentAPI extends BaseAPI<
         projectId,
       },
       select: {
+        projectId: true,
         postmortemAttachments: {
           _id: true,
           file: true,
@@ -132,18 +294,15 @@ export default class IncidentAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incident.postmortemAttachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in its own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incident.postmortemAttachments,
+        fileId: fileId,
+        projectId: incident.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -175,30 +334,15 @@ export default class IncidentAPI extends BaseAPI<
     CommonAPI.assertTenantScoped(props);
 
     /*
-     * Read through getUserPermissions(Allow) rather than off
-     * userTenantAccessPermission directly. That dictionary is keyed by project
-     * id and its entries hold GRANTS AND DENIALS together, discriminated only
-     * by isBlockPermission, so the previous
-     * `userTenantAccessPermission["permissions"]` read was always undefined
-     * and denied every caller who was not a master admin. Mapping the array
-     * raw would swing the other way and count a team's explicit block
-     * entry for one of these permissions as a grant of it.
+     * Held the way every permission check reads it (CallerPermission): a
+     * team's block row is no grant, and a block with no labels on any of
+     * these takes it away.
      */
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const hasPermission: boolean = permissions.some((p: Permission) => {
-      return (
-        p === Permission.ProjectOwner ||
-        p === Permission.ProjectAdmin ||
-        p === Permission.EditProjectIncident
-      );
-    });
+    const hasPermission: boolean = CallerPermission.holdsAnyOf(props, [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectIncident,
+    ]);
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(
@@ -244,6 +388,8 @@ export default class IncidentAPI extends BaseAPI<
         incidentId,
         includeWorkspaceMessages,
         workspaceMessageLimit: 500,
+        // What was said on the incident's calls, cause marked confirmed or not.
+        includeCalls: true,
       });
 
     // Format context for postmortem generation
@@ -313,32 +459,17 @@ export default class IncidentAPI extends BaseAPI<
     CommonAPI.assertTenantScoped(props);
 
     /*
-     * Read through getUserPermissions(Allow) rather than off
-     * userTenantAccessPermission directly. That dictionary is keyed by project
-     * id and its entries hold GRANTS AND DENIALS together, discriminated only
-     * by isBlockPermission, so the previous
-     * `userTenantAccessPermission["permissions"]` read was always undefined
-     * and denied every caller who was not a master admin. Mapping the array
-     * raw would swing the other way and count a team's explicit block
-     * entry for one of these permissions as a grant of it.
+     * Held the way every permission check reads it (CallerPermission): a
+     * team's block row is no grant, and a block with no labels on any of
+     * these takes it away.
      */
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const hasPermission: boolean = permissions.some((p: Permission) => {
-      return (
-        p === Permission.ProjectOwner ||
-        p === Permission.ProjectAdmin ||
-        p === Permission.EditProjectIncident ||
-        p === Permission.CreateIncidentInternalNote ||
-        p === Permission.CreateIncidentPublicNote
-      );
-    });
+    const hasPermission: boolean = CallerPermission.holdsAnyOf(props, [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectIncident,
+      Permission.CreateIncidentInternalNote,
+      Permission.CreateIncidentPublicNote,
+    ]);
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(

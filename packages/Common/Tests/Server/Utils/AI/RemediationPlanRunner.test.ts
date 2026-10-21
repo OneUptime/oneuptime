@@ -1,4 +1,9 @@
-import RemediationPlanRunner from "../../../../Server/Utils/AI/Remediation/RemediationPlanRunner";
+import RemediationPlanRunner, {
+  getBreakerNote,
+  getRemediationPlanningFraming,
+  NOT_STARTED_NOTE,
+  RULE_CHANGED_NOTE,
+} from "../../../../Server/Utils/AI/Remediation/RemediationPlanRunner";
 import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -11,14 +16,27 @@ import IncidentFeedService from "../../../../Server/Services/IncidentFeedService
 import IncidentService from "../../../../Server/Services/IncidentService";
 import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
 import RunbookService from "../../../../Server/Services/RunbookService";
+import RunbookRuleEngineService from "../../../../Server/Services/RunbookRuleEngineService";
+import { MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR } from "../../../../Server/Services/AutoRemediationRuleEngineService";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../../Server/Infrastructure/Semaphore";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
+import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AutoRemediationAction from "../../../../Types/AutoRemediation/AutoRemediationAction";
+import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import ObjectID from "../../../../Types/ObjectID";
+import PositiveNumber from "../../../../Types/PositiveNumber";
+import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
+import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -743,5 +761,579 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
     await RemediationPlanRunner.settleStrandedPlanningSuggestions();
 
     expect(feed).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A resource round (a Docker host's, a database server's, ...) is named
+   * by its resource on the feed, never as "Auto Remediation Rule ...";
+   * rule and cluster rounds read exactly as before.
+   */
+  describe("how the feed note names the stranded round", () => {
+    const RESOURCE_ID: ObjectID = new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    );
+
+    function resourceRound(
+      overrides: Partial<Record<string, unknown>> = {},
+    ): Partial<Record<string, unknown>> {
+      return {
+        autoRemediationRuleId: undefined,
+        ruleNameSnapshot: 'AI remediation for Docker host "web-1"',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+        ...overrides,
+      };
+    }
+
+    async function settleAndReadFeed(): Promise<string> {
+      const feed: jest.SpyInstance = jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+
+      await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+      expect(feed).toHaveBeenCalledTimes(1);
+
+      return String(
+        (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      );
+    }
+
+    it("reads the resource columns of the Planning rounds", async () => {
+      mockPlanningList();
+      mockRun({ status: AIRunStatus.Running });
+
+      await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+      const select: Record<string, unknown> = (
+        (AutoRemediationSuggestionService.findBy as unknown as jest.Mock).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["resourceType"]).toBe(true);
+      expect(select["resourceId"]).toBe(true);
+    });
+
+    it("a resource round is named by its resource", async () => {
+      mockPlanningList(resourceRound());
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for Docker host "web-1": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+
+    it("a resource round that had already run commands is named by its resource too", async () => {
+      mockPlanningList(
+        resourceRound({
+          commandPlan: {
+            commands: [
+              {
+                sequence: 1,
+                stepType: "ResourceCommand",
+                command: "docker restart web",
+                runnerId: RUN_ID.toString(),
+                resourceType: AiResourceType.DockerHost,
+                resourceId: RESOURCE_ID.toString(),
+                resourceNameSnapshot: "web-1",
+                policyVerdict: "AutoApproved",
+                rationale: "restart",
+                execution: { status: "Succeeded" },
+              },
+            ],
+          },
+        }),
+      );
+      mockRun({ status: AIRunStatus.Stale });
+
+      expect(await settleAndReadFeed()).toMatch(
+        /^⚡ \*\*AI remediation for Docker host "web-1": the AI command run was interrupted after executing 1 command\(s\)\.\*\*/,
+      );
+    });
+
+    it("negative control: a rule round keeps its rule label", async () => {
+      mockPlanningList();
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **Auto Remediation Rule "Restart API pods": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+
+    it("negative control: a cluster round's note is unchanged", async () => {
+      mockPlanningList({
+        autoRemediationRuleId: undefined,
+        kubernetesClusterId: RULE_ID,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **Auto Remediation Rule "AI remediation for cluster "prod-us"": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+  });
+});
+
+/*
+ * ONEUPTIME AI'S RUNBOOK PICK: ANY RUNBOOK, OR ONLY THE RULE'S.
+ *
+ * The maintainer: "Can oneuptime AI do things by default, and I can
+ * whitelist some Runbook for AI to pick and run? If I do not whitelist any
+ * Runbook, it can basically run any Runbook by default." The candidates are
+ * the rule's runbooks when it names some, and every enabled runbook of the
+ * project when it names none - or when no rule is set up at all. A pick is
+ * proposed, unless the rule engine made the suggestion FullAuto (a rule that
+ * fixes without asking and names its runbooks): then, if the rule - read
+ * again now - still allows it and its hourly breaker has room, the runbook
+ * picked starts right away.
+ */
+describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
+  const EXECUTION_ID: ObjectID = new ObjectID(
+    "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  );
+
+  /*
+   * What OneUptime AI posts for its pick: Markdown, which a rationale keeps
+   * as it was posted - never escaped as text.
+   */
+  const POSTED_REASONING: string =
+    "The pods are **crash-looping** since [the deploy](https://deploy.example/42).";
+  const POSTED_ANALYSIS: string = `${POSTED_REASONING}\nSelectedRunbook: ${RUNBOOK_A_ID.toString()}`;
+
+  // A OneUptime AI rule that fixes without asking and names runbook A.
+  function allowingRule(
+    overrides: Partial<Record<string, unknown>> = {},
+  ): AutoRemediationRule {
+    return {
+      id: RULE_ID,
+      _id: RULE_ID.toString(),
+      isEnabled: true,
+      executionMode: AutoRemediationExecutionMode.FullAuto,
+      remediationAction: AutoRemediationAction.OneUptimeAI,
+      runbooks: [{ id: RUNBOOK_A_ID, _id: RUNBOOK_A_ID.toString() }],
+      ...overrides,
+    } as unknown as AutoRemediationRule;
+  }
+
+  interface Recorded {
+    transitions: Array<{
+      fromStatus: AutoRemediationSuggestionStatus;
+      set: Record<string, unknown>;
+    }>;
+    feed: Array<string>;
+    starts: jest.SpyInstance;
+    links: jest.SpyInstance;
+    locks: jest.SpyInstance;
+    runbookReads: jest.SpyInstance;
+  }
+
+  function mockRun(data: {
+    suggestion?: Partial<Record<string, unknown>>;
+    // The rule as the candidates read it, then as the start reads it.
+    rules?: Array<AutoRemediationRule | null>;
+    startedInLastHour?: number;
+    execution?: RunbookExecution | null;
+    claim?: number;
+    selected?: string;
+  }): Recorded {
+    jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findOneById")
+      .mockResolvedValue(fakeSuggestion(data.suggestion || {}));
+
+    const ruleReads: jest.SpyInstance = jest.spyOn(
+      AutoRemediationRuleService,
+      "findOneById",
+    );
+    for (const rule of data.rules || [allowingRule(), allowingRule()]) {
+      ruleReads.mockResolvedValueOnce(rule as never);
+    }
+
+    const runbookReads: jest.SpyInstance = jest
+      .spyOn(RunbookService, "findBy")
+      .mockResolvedValue([
+        fakeRunbook(RUNBOOK_A_ID, "Restart pods"),
+        fakeRunbook(RUNBOOK_B_ID, "Failover database"),
+      ]);
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+      id: INCIDENT_ID,
+      title: "API error rate is high",
+      incidentNumber: 42,
+    } as unknown as Incident);
+    jest.spyOn(PostedRootCause, "getForSubject").mockResolvedValue(null);
+
+    const recorded: Recorded = {
+      transitions: [],
+      feed: [],
+      starts: jest
+        .spyOn(RunbookRuleEngineService, "startRunbookFor")
+        .mockResolvedValue(
+          (data.execution === undefined
+            ? ({ id: EXECUTION_ID } as unknown as RunbookExecution)
+            : data.execution) as never,
+        ),
+      links: jest
+        .spyOn(AutoRemediationSuggestionService, "updateOneById")
+        .mockResolvedValue(undefined as never),
+      locks: jest
+        .spyOn(Semaphore, "lock")
+        .mockResolvedValue({} as SemaphoreMutex),
+      runbookReads,
+    };
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(data.startedInLastHour || 0));
+
+    jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockImplementation(async (transition: unknown): Promise<number> => {
+        const typed: Recorded["transitions"][number] =
+          transition as Recorded["transitions"][number];
+        recorded.transitions.push(typed);
+        if (
+          typed.set["status"] === AutoRemediationSuggestionStatus.AutoExecuted
+        ) {
+          return data.claim ?? 1;
+        }
+        return 1;
+      });
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockImplementation(async (item: unknown): Promise<never> => {
+        recorded.feed.push(
+          String((item as { feedInfoInMarkdown: string }).feedInfoInMarkdown),
+        );
+        return undefined as never;
+      });
+
+    jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockImplementation(
+        async (run: {
+          aiRunId: ObjectID;
+          projectId: ObjectID;
+          attemptCount: number;
+          request: InvestigationRequest;
+        }): Promise<void> => {
+          await run.request.postAnalysis({
+            analysisMarkdown: `${POSTED_REASONING}\nSelectedRunbook: ${
+              data.selected || RUNBOOK_A_ID.toString()
+            }`,
+            confidence: {
+              confident: true,
+              source: "classification",
+            } as ConfidenceSignal,
+            result: {} as ObservabilityAssistantResult,
+          });
+        },
+      );
+
+    return recorded;
+  }
+
+  async function run(): Promise<void> {
+    await RemediationPlanRunner.executePlan({
+      aiRunId: RUN_ID,
+      projectId: PROJECT_ID,
+      suggestionId: SUGGESTION_ID,
+      attemptCount: 1,
+    });
+  }
+
+  function statuses(recorded: Recorded): Array<string> {
+    return recorded.transitions.map(
+      (transition: Recorded["transitions"][number]): string => {
+        return `${transition.fromStatus}->${String(transition.set["status"])}`;
+      },
+    );
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("the candidates", () => {
+    it("are only the rule's runbooks when it names some, enabled and in the project", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.Suggest },
+        rules: [allowingRule()],
+      });
+
+      await run();
+
+      const query: Record<string, unknown> = (
+        recorded.runbookReads.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+        }
+      ).query;
+      expect(query["projectId"]).toEqual(PROJECT_ID);
+      expect(query["isEnabled"]).toBe(true);
+      expect(JSON.stringify(query["_id"])).toContain(RUNBOOK_A_ID.toString());
+    });
+
+    it("are every enabled runbook of the project for a rule that names none", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.Suggest },
+        rules: [allowingRule({ runbooks: [] })],
+      });
+
+      await run();
+
+      expect(
+        (
+          recorded.runbookReads.mock.calls[0]![0] as {
+            query: Record<string, unknown>;
+          }
+        ).query,
+      ).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+    });
+
+    it("are every enabled runbook of the project for the project's own pick, which has no rule", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: {
+          autoRemediationRuleId: undefined,
+          ruleNameSnapshot: "OneUptime AI",
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        },
+        rules: [],
+      });
+
+      await run();
+
+      expect(AutoRemediationRuleService.findOneById).not.toHaveBeenCalled();
+      expect(
+        (
+          recorded.runbookReads.mock.calls[0]![0] as {
+            query: Record<string, unknown>;
+          }
+        ).query,
+      ).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+      // Proposed, and named as OneUptime AI's on the feed.
+      expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+      expect(recorded.feed).toEqual([
+        '⚡ **OneUptime AI proposed runbook "Restart pods".** Review the reasoning and approve it with one click to start remediation.',
+      ]);
+    });
+  });
+
+  describe("what the planning run is told", () => {
+    it("a pick to propose is PROPOSED to a human; a pick to start is STARTED right away", () => {
+      const proposed: string = getRemediationPlanningFraming(
+        AutoRemediationExecutionMode.Suggest,
+      );
+      const started: string = getRemediationPlanningFraming(
+        AutoRemediationExecutionMode.FullAuto,
+      );
+
+      expect(proposed).toContain("will be PROPOSED to a human");
+      expect(proposed).not.toContain("STARTED right away");
+      expect(started).toContain("will be STARTED right away");
+      expect(started).not.toContain("PROPOSED to a human");
+      for (const framing of [proposed, started]) {
+        expect(framing).not.toContain("{{PICK_OUTCOME}}");
+        expect(framing).toContain("SelectedRunbook: <id>");
+      }
+      // A suggestion that never said reads as proposed.
+      expect(getRemediationPlanningFraming(undefined)).toBe(proposed);
+    });
+  });
+
+  describe("when none applies", () => {
+    it("a OneUptime AI pick says nothing on the feed: the Remediation card does", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.Suggest },
+        selected: "none",
+      });
+
+      await run();
+
+      expect(statuses(recorded)).toEqual(["Planning->NoneApplicable"]);
+      expect(recorded.feed).toEqual([]);
+    });
+
+    it("a rule saved before rules were simplified says so, as it always has", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.Suggest },
+        rules: [allowingRule({ aiSelectsRunbook: true })],
+        selected: "none",
+      });
+
+      await run();
+
+      expect(recorded.feed).toEqual([
+        '⚡ **Auto Remediation Rule "Restart API pods": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.',
+      ]);
+    });
+  });
+
+  describe("a pick to start right away", () => {
+    it("starts the runbook picked, under the rule's breaker lock, and links its run", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: {
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+          verificationWindowMinutes: 15,
+        },
+      });
+
+      await run();
+
+      expect(recorded.locks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: `auto-remediation-rule-${RULE_ID.toString()}`,
+          namespace: "AutoRemediationRuleEngine",
+        }),
+      );
+      expect(statuses(recorded)).toEqual(["Planning->AutoExecuted"]);
+      expect(recorded.transitions[0]!.set).toEqual(
+        expect.objectContaining({
+          runbookId: RUNBOOK_A_ID.toString(),
+          runbookNameSnapshot: "Restart pods",
+        }),
+      );
+      expect(recorded.starts).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        runbookId: RUNBOOK_A_ID,
+        linkage: { incidentId: INCIDENT_ID },
+        trigger: RunbookTriggerType.AutoRemediation,
+      });
+      expect(recorded.links).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: SUGGESTION_ID,
+          data: expect.objectContaining({
+            runbookExecutionId: EXECUTION_ID,
+            verificationStatus: AutoRemediationVerificationStatus.Pending,
+          }),
+        }),
+      );
+      expect(recorded.feed).toEqual([
+        '⚡ **Auto Remediation Rule "Restart API pods": AI started runbook "Restart pods".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.',
+      ]);
+    });
+
+    it.each([
+      [
+        "the rule now asks first",
+        { executionMode: AutoRemediationExecutionMode.Suggest },
+      ],
+      ["the rule is off", { isEnabled: false }],
+      [
+        "the rule no longer names the runbook",
+        { runbooks: [{ id: RUNBOOK_B_ID, _id: RUNBOOK_B_ID.toString() }] },
+      ],
+      ["the rule now names no runbook", { runbooks: [] }],
+      [
+        "the rule now runs its runbooks every time",
+        { remediationAction: AutoRemediationAction.Runbooks },
+      ],
+    ])(
+      "proposes it instead when %s",
+      async (_name: string, change: Partial<Record<string, unknown>>) => {
+        const recorded: Recorded = mockRun({
+          suggestion: { executionMode: AutoRemediationExecutionMode.FullAuto },
+          rules: [allowingRule(), allowingRule(change)],
+        });
+
+        await run();
+
+        expect(recorded.starts).not.toHaveBeenCalled();
+        expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+        expect(recorded.transitions[0]!.set).toEqual(
+          expect.objectContaining({
+            executionMode: AutoRemediationExecutionMode.Suggest,
+            // Why first, then OneUptime AI's reasoning as it was posted.
+            rationaleMarkdown: `${RULE_CHANGED_NOTE}\n\n${POSTED_ANALYSIS}`,
+          }),
+        );
+        expect(recorded.feed[0]).toContain(RULE_CHANGED_NOTE);
+      },
+    );
+
+    it("proposes it instead once the rule started the most runbooks it may in an hour", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.FullAuto },
+        startedInLastHour: MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
+      });
+
+      await run();
+
+      expect(recorded.starts).not.toHaveBeenCalled();
+      expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+      expect(recorded.transitions[0]!.set["rationaleMarkdown"]).toBe(
+        `${getBreakerNote()}\n\n${POSTED_ANALYSIS}`,
+      );
+      expect(recorded.feed[0]).toContain(getBreakerNote());
+      expect(getBreakerNote()).toContain(
+        `(${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR})`,
+      );
+    });
+
+    it("a runbook that could not start is proposed instead, saying why", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.FullAuto },
+        execution: null,
+      });
+
+      await run();
+
+      expect(statuses(recorded)).toEqual([
+        "Planning->AutoExecuted",
+        "AutoExecuted->Suggested",
+      ]);
+      expect(recorded.transitions[1]!.set["rationaleMarkdown"]).toBe(
+        `${NOT_STARTED_NOTE}\n\n${POSTED_ANALYSIS}`,
+      );
+      expect(recorded.links).not.toHaveBeenCalled();
+      expect(recorded.feed).toEqual([
+        `⚡ **Auto Remediation Rule "Restart API pods": AI proposed runbook "Restart pods".** ${NOT_STARTED_NOTE} Approve it with one click to start remediation.`,
+      ]);
+    });
+
+    it("a racing attempt that settled it first starts nothing and says nothing", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.FullAuto },
+        claim: 0,
+      });
+
+      await run();
+
+      expect(recorded.starts).not.toHaveBeenCalled();
+      expect(recorded.feed).toEqual([]);
+    });
+
+    it("negative control: a pick made to propose never starts, whatever the rule says now", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: { executionMode: AutoRemediationExecutionMode.Suggest },
+      });
+
+      await run();
+
+      expect(recorded.locks).not.toHaveBeenCalled();
+      expect(recorded.starts).not.toHaveBeenCalled();
+      expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+    });
+
+    it("negative control: the project's own pick, which has no rule, never starts", async () => {
+      const recorded: Recorded = mockRun({
+        suggestion: {
+          autoRemediationRuleId: undefined,
+          ruleNameSnapshot: "OneUptime AI",
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        },
+        rules: [],
+      });
+
+      await run();
+
+      expect(recorded.starts).not.toHaveBeenCalled();
+      expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+    });
   });
 });

@@ -202,9 +202,19 @@ abstract class Navigation {
     return window.location.pathname.includes(text);
   }
 
+  /*
+   * Whether the user is on this route or on a page below it.
+   *
+   * React Router reads `/settings`, `/settings/` and the `/settings/*` it
+   * mounts the pages below under as one place, so this does too: a trailing
+   * slash or a trailing `/*` on the route is not one more segment the current
+   * page must have. Without that, `/dashboard/:projectId/settings/` matched
+   * no page of Project Settings, and the nav bar told people in Settings
+   * that they were nowhere ("Products").
+   */
   public static isStartWith(route: Route): boolean {
     const current: Route = this.getCurrentRoute();
-    const routeItems: Array<string> = route.toString().split("/");
+    const routeItems: Array<string> = this.getPrefixSegments(route);
     let anotherRouteItems: Array<string> = current.toString().split("/");
 
     if (routeItems.length > anotherRouteItems.length) {
@@ -231,6 +241,34 @@ abstract class Navigation {
       start++;
     }
     return startsWith;
+  }
+
+  /*
+   * The segments a route given to isStartWith asks the current page to begin
+   * with. Trailing slashes and a trailing `/*` (a mount point for the pages
+   * below) add none. The root route keeps its one segment, so `/` still
+   * means the root page only, not every page.
+   */
+  private static getPrefixSegments(route: Route): Array<string> {
+    const trimTrailingSlashes: (path: string) => string = (
+      path: string,
+    ): string => {
+      let trimmed: string = path;
+
+      while (trimmed.length > 1 && trimmed.endsWith("/")) {
+        trimmed = trimmed.slice(0, -1);
+      }
+
+      return trimmed;
+    };
+
+    let path: string = trimTrailingSlashes(route.toString());
+
+    if (path.endsWith("/*")) {
+      path = trimTrailingSlashes(path.slice(0, -2)) || "/";
+    }
+
+    return path.split("/");
   }
 
   public static isOnThisPage(route: Route | URL): boolean {
@@ -371,6 +409,12 @@ abstract class Navigation {
     options?: {
       openInNewTab?: boolean | undefined;
       forceNavigate?: boolean | undefined;
+      /*
+       * In place of the current history entry, for a page that only passes
+       * the browser on: Back then skips it instead of landing on it and
+       * being passed on again.
+       */
+      replace?: boolean | undefined;
     },
   ): void {
     const finalUrl: string = to.toString();
@@ -405,7 +449,11 @@ abstract class Navigation {
       to instanceof Route &&
       !this.isCurrentRoute(to, { caseSensitive: true })
     ) {
-      this.navigateHook(finalUrl);
+      if (options?.replace) {
+        this.navigateHook(finalUrl, { replace: true });
+      } else {
+        this.navigateHook(finalUrl);
+      }
     }
 
     // if its an external link outside of react.

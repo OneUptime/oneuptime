@@ -3,29 +3,137 @@
  *
  * These tools compose multiple OneUptime API calls (state lookup + timeline
  * creation) so agents can acknowledge/resolve incidents and alerts without
- * insider knowledge of the data model. The API layer is mocked via a spy on
- * OneUptimeApiService.makeAuthenticatedApiCall — no HTTP is performed.
+ * insider knowledge of the data model. In most of this file the API layer is
+ * mocked via a spy on OneUptimeApiService.makeAuthenticatedApiCall — no HTTP
+ * is performed.
+ *
+ * The last block does perform HTTP, against a small local server that answers
+ * as the API does. It exists because the mock above can answer in a shape the
+ * real API client never returns: a list endpoint answers
+ * `{ data, count, skip, limit }`, and the client hands back the ROWS, not
+ * that envelope. Tools that read `.data` off the result passed every mocked
+ * test and found nothing in production.
  */
 
 import {
   describe,
   it,
   expect,
+  beforeAll,
+  afterAll,
   beforeEach,
   afterEach,
   jest,
 } from "@jest/globals";
+import http from "http";
+import { AddressInfo } from "net";
 import {
   generateWorkflowTools,
+  isReadOnlyWorkflowTool,
   isWorkflowTool,
   handleWorkflowTool,
 } from "../Tools/WorkflowTools";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
+import McpCredentialUtil, { McpCredential } from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
+import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
+import McpDelegationToken from "Common/Server/Utils/Mcp/McpDelegationToken";
+import Email from "Common/Types/Email";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
+import McpOAuthScope from "Common/Types/Mcp/McpOAuthScope";
+import ObjectID from "Common/Types/ObjectID";
 
 const VALID_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
 const API_KEY: string = "test-api-key";
+
+// A client that signed in with OAuth, as the request gate hands it on.
+function oauthCredential(scopes: Array<McpOAuthScope>): McpCredential {
+  const grant: McpOAuthGrant = new McpOAuthGrant();
+
+  grant._id = ObjectID.generate().toString();
+  grant.projectId = ObjectID.generate();
+  grant.userId = ObjectID.generate();
+  grant.clientId = ObjectID.generate().toString();
+  grant.name = "Claude Code";
+  grant.scope = scopes.join(" ");
+
+  return McpCredentialUtil.fromPrincipal({
+    grant,
+    user: {
+      id: grant.userId,
+      email: new Email("jane@example.com"),
+      name: "Jane Doe",
+      isMasterAdmin: false,
+    },
+    scopes,
+  });
+}
+
+const OAUTH_READ_WRITE: McpCredential = oauthCredential([
+  McpOAuthScope.Read,
+  McpOAuthScope.Write,
+]);
+const OAUTH_READ_ONLY: McpCredential = oauthCredential([McpOAuthScope.Read]);
+
+/*
+ * The four tools that move an incident or alert to a state, with what each
+ * one looks up and what it then writes. The two acknowledge tools also read
+ * the record's current state in between (recordPath): one already
+ * acknowledged - in the Acknowledged state, a state after it, or resolved -
+ * is left as it is (Common/Utils/AcknowledgedState).
+ */
+const STATE_TOOLS: Array<{
+  tool: string;
+  idArgument: string;
+  statePath: string;
+  timelinePath: string;
+  flag: string;
+  stateName: string;
+  kind: string;
+  recordPath?: string | undefined;
+  stateRelation?: string | undefined;
+}> = [
+  {
+    tool: "acknowledge_incident",
+    idArgument: "incidentId",
+    statePath: "/api/incident-state/get-list",
+    timelinePath: "/api/incident-state-timeline",
+    flag: "isAcknowledgedState",
+    stateName: "Acknowledged",
+    kind: "incident",
+    recordPath: "/api/incident/get-list",
+    stateRelation: "currentIncidentState",
+  },
+  {
+    tool: "resolve_incident",
+    idArgument: "incidentId",
+    statePath: "/api/incident-state/get-list",
+    timelinePath: "/api/incident-state-timeline",
+    flag: "isResolvedState",
+    stateName: "Resolved",
+    kind: "incident",
+  },
+  {
+    tool: "acknowledge_alert",
+    idArgument: "alertId",
+    statePath: "/api/alert-state/get-list",
+    timelinePath: "/api/alert-state-timeline",
+    flag: "isAcknowledgedState",
+    stateName: "Acknowledged",
+    kind: "alert",
+    recordPath: "/api/alert/get-list",
+    stateRelation: "currentAlertState",
+  },
+  {
+    tool: "resolve_alert",
+    idArgument: "alertId",
+    statePath: "/api/alert-state/get-list",
+    timelinePath: "/api/alert-state-timeline",
+    flag: "isResolvedState",
+    stateName: "Resolved",
+    kind: "alert",
+  },
+];
 
 const WORKFLOW_TOOL_NAMES: string[] = [
   "acknowledge_incident",
@@ -84,7 +192,7 @@ describe("WorkflowTools", () => {
       });
     });
 
-    it("marks whoami read-only and mutating tools non-destructive", () => {
+    it("marks whoami read-only and every tool that changes something destructive", () => {
       const tools: McpToolInfo[] = generateWorkflowTools();
       const whoami: McpToolInfo | undefined = tools.find(
         (tool: McpToolInfo) => {
@@ -97,20 +205,37 @@ describe("WorkflowTools", () => {
         },
       );
 
-      expect(whoami?.annotations).toEqual({ readOnlyHint: true });
+      expect(whoami?.annotations).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      });
       expect(acknowledge?.annotations).toEqual({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
       });
     });
   });
 
   describe("acknowledge_incident", () => {
-    it("looks up the Acknowledged state, then creates a timeline entry", async () => {
+    it("looks up the Acknowledged state, reads the incident's state, then creates a timeline entry", async () => {
       apiCallSpy
         .mockResolvedValueOnce({
-          data: [{ _id: "state-1", name: "Acknowledged" }],
+          data: [{ _id: "state-1", name: "Acknowledged", order: 2 }],
         } as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentIncidentState: {
+              _id: "state-created",
+              name: "Created",
+              order: 1,
+              isAcknowledgedState: false,
+              isResolvedState: false,
+            },
+          },
+        ] as never)
         .mockResolvedValueOnce({} as never);
 
       const result: JSONObject = await handleWorkflowTool(
@@ -119,15 +244,16 @@ describe("WorkflowTools", () => {
         API_KEY,
       );
 
-      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      expect(apiCallSpy).toHaveBeenCalledTimes(3);
       expect(apiCallSpy).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           method: "POST",
           path: "/api/incident-state/get-list",
-          apiKey: API_KEY,
+          credential: API_KEY,
           body: expect.objectContaining({
             query: { isAcknowledgedState: true },
+            select: { _id: true, name: true, order: true },
           }),
         }),
       );
@@ -135,8 +261,31 @@ describe("WorkflowTools", () => {
         2,
         expect.objectContaining({
           method: "POST",
+          path: "/api/incident/get-list",
+          credential: API_KEY,
+          body: {
+            query: { _id: VALID_UUID },
+            select: {
+              _id: true,
+              currentIncidentState: {
+                _id: true,
+                name: true,
+                order: true,
+                isAcknowledgedState: true,
+                isResolvedState: true,
+              },
+            },
+            skip: 0,
+            limit: 1,
+          },
+        }),
+      );
+      expect(apiCallSpy).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({
+          method: "POST",
           path: "/api/incident-state-timeline",
-          apiKey: API_KEY,
+          credential: API_KEY,
           body: {
             data: {
               incidentId: VALID_UUID,
@@ -150,6 +299,144 @@ describe("WorkflowTools", () => {
       expect(result["operation"]).toBe("acknowledge_incident");
       expect(result["incidentId"]).toBe(VALID_UUID);
       expect(result["newState"]).toBe("Acknowledged");
+    });
+
+    /*
+     * The bug of #4453, on this surface: an incident in a state of the
+     * project's own placed between Acknowledged and Resolved
+     * ("Investigating") is acknowledged already. Writing the Acknowledged
+     * state would move it back up its list.
+     */
+    it("leaves an incident in a state placed after Acknowledged as it is, and writes nothing", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-1", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentIncidentState: {
+              _id: "state-investigating",
+              name: "Investigating",
+              order: 3,
+              isAcknowledgedState: false,
+              isResolvedState: false,
+            },
+          },
+        ] as never);
+
+      await expect(
+        handleWorkflowTool(
+          "acknowledge_incident",
+          { incidentId: VALID_UUID },
+          API_KEY,
+        ),
+      ).rejects.toThrow(
+        `Incident ${VALID_UUID} is already acknowledged: it is in 'Investigating', which is 'Acknowledged' or a state after it. It was left as it is.`,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it.each<[string, JSONObject]>([
+      [
+        "in the Acknowledged state",
+        {
+          _id: "state-1",
+          name: "Acknowledged",
+          order: 2,
+          isAcknowledgedState: true,
+        },
+      ],
+      [
+        "resolved",
+        {
+          _id: "state-resolved",
+          name: "Resolved",
+          order: 4,
+          isResolvedState: true,
+        },
+      ],
+      [
+        "in a state after Resolved",
+        { _id: "state-closed", name: "Closed", order: 5 },
+      ],
+      [
+        "in a state flagged resolved that has no place",
+        { _id: "state-done", name: "Done", isResolvedState: true },
+      ],
+    ])(
+      "leaves an incident %s as it is",
+      async (_label: string, currentState: JSONObject) => {
+        apiCallSpy
+          .mockResolvedValueOnce([
+            { _id: "state-1", name: "Acknowledged", order: 2 },
+          ] as never)
+          .mockResolvedValueOnce([
+            { _id: VALID_UUID, currentIncidentState: currentState },
+          ] as never);
+
+        await expect(
+          handleWorkflowTool(
+            "acknowledge_incident",
+            { incidentId: VALID_UUID },
+            API_KEY,
+          ),
+        ).rejects.toThrow(/is already acknowledged/);
+
+        expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    it.each<[string, JSONObject]>([
+      ["in a state placed before Acknowledged", { name: "Triage", order: 1.5 }],
+      ["in a state with no place", { name: "Imported" }],
+    ])(
+      "acknowledges an incident %s",
+      async (_label: string, currentState: JSONObject) => {
+        apiCallSpy
+          .mockResolvedValueOnce([
+            { _id: "state-1", name: "Acknowledged", order: 2 },
+          ] as never)
+          .mockResolvedValueOnce([
+            {
+              _id: VALID_UUID,
+              currentIncidentState: { _id: "state-other", ...currentState },
+            },
+          ] as never)
+          .mockResolvedValueOnce({} as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "acknowledge_incident",
+          { incidentId: VALID_UUID },
+          API_KEY,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(apiCallSpy).toHaveBeenCalledTimes(3);
+        expect(apiCallSpy).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ path: "/api/incident-state-timeline" }),
+        );
+      },
+    );
+
+    it("writes the timeline entry when the incident cannot be read, and lets the API answer", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-1", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([] as never)
+        .mockResolvedValueOnce({} as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "acknowledge_incident",
+        { incidentId: VALID_UUID },
+        API_KEY,
+      );
+
+      expect(result["success"]).toBe(true);
+      expect(apiCallSpy).toHaveBeenCalledTimes(3);
     });
 
     it("rejects a non-UUID incidentId without calling the API", async () => {
@@ -185,6 +472,49 @@ describe("WorkflowTools", () => {
 
       // No timeline entry may be created when the lookup fails.
       expect(apiCallSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("acknowledge_alert", () => {
+    it("leaves an alert in a state placed after Acknowledged as it is", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-2", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentAlertState: {
+              _id: "state-investigating",
+              name: "Investigating",
+              order: 3,
+            },
+          },
+        ] as never);
+
+      await expect(
+        handleWorkflowTool(
+          "acknowledge_alert",
+          { alertId: VALID_UUID },
+          API_KEY,
+        ),
+      ).rejects.toThrow(
+        `Alert ${VALID_UUID} is already acknowledged: it is in 'Investigating', which is 'Acknowledged' or a state after it. It was left as it is.`,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      expect(apiCallSpy).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          path: "/api/alert/get-list",
+          body: expect.objectContaining({
+            query: { _id: VALID_UUID },
+            select: expect.objectContaining({
+              currentAlertState: expect.objectContaining({ order: true }),
+            }),
+          }),
+        }),
+      );
     });
   });
 
@@ -295,7 +625,7 @@ describe("WorkflowTools", () => {
         expect.objectContaining({
           method: "POST",
           path: "/api/project/get-list",
-          apiKey: API_KEY,
+          credential: API_KEY,
         }),
       );
       expect(result["success"]).toBe(true);
@@ -311,5 +641,721 @@ describe("WorkflowTools", () => {
         handleWorkflowTool("not_a_workflow_tool", {}, API_KEY),
       ).rejects.toThrow(/Unknown workflow tool/);
     });
+  });
+
+  describe("isReadOnlyWorkflowTool", () => {
+    it("marks whoami, and only whoami, as a tool that only reads", () => {
+      expect(
+        WORKFLOW_TOOL_NAMES.filter((name: string): boolean => {
+          return isReadOnlyWorkflowTool(name);
+        }),
+      ).toEqual(["oneuptime_whoami"]);
+    });
+
+    it("agrees with the readOnlyHint each tool shows to clients", () => {
+      for (const tool of generateWorkflowTools()) {
+        expect(isReadOnlyWorkflowTool(tool.name)).toBe(
+          tool.annotations?.readOnlyHint === true,
+        );
+      }
+    });
+
+    it("is false for a tool that is not a workflow tool at all", () => {
+      expect(isReadOnlyWorkflowTool("list_incidents")).toBe(false);
+      expect(isReadOnlyWorkflowTool("oneuptime_help")).toBe(false);
+      expect(isReadOnlyWorkflowTool("")).toBe(false);
+    });
+  });
+
+  describe("a list answered the way the API client really answers it: as the rows themselves", () => {
+    it.each(STATE_TOOLS)(
+      "$tool finds the state in a bare array and writes the timeline entry",
+      async (definition: (typeof STATE_TOOLS)[number]) => {
+        apiCallSpy.mockResolvedValueOnce([
+          { _id: "state-7", name: definition.stateName, order: 2 },
+        ] as never);
+
+        if (definition.recordPath) {
+          // The record, in a bare array too: still in its first state.
+          apiCallSpy.mockResolvedValueOnce([
+            {
+              _id: VALID_UUID,
+              [definition.stateRelation!]: {
+                _id: "state-1",
+                name: "Created",
+                order: 1,
+              },
+            },
+          ] as never);
+        }
+
+        apiCallSpy.mockResolvedValueOnce({ _id: "timeline-1" } as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          definition.tool,
+          { [definition.idArgument]: VALID_UUID },
+          API_KEY,
+        );
+
+        const calls: number = definition.recordPath ? 3 : 2;
+
+        expect(apiCallSpy).toHaveBeenCalledTimes(calls);
+        expect(apiCallSpy).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            method: "POST",
+            path: definition.statePath,
+            body: expect.objectContaining({
+              query: { [definition.flag]: true },
+            }),
+          }),
+        );
+
+        if (definition.recordPath) {
+          expect(apiCallSpy).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+              method: "POST",
+              path: definition.recordPath,
+              body: expect.objectContaining({
+                query: { _id: VALID_UUID },
+              }),
+            }),
+          );
+        }
+
+        expect(apiCallSpy).toHaveBeenNthCalledWith(
+          calls,
+          expect.objectContaining({
+            method: "POST",
+            path: definition.timelinePath,
+            body: {
+              data: {
+                [definition.idArgument]: VALID_UUID,
+                [`${definition.kind}StateId`]: "state-7",
+              },
+            },
+          }),
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(result["operation"]).toBe(definition.tool);
+        expect(result["newState"]).toBe(definition.stateName);
+      },
+    );
+
+    it.each(STATE_TOOLS)(
+      "$tool still accepts the envelope, for a caller that passes one through",
+      async (definition: (typeof STATE_TOOLS)[number]) => {
+        apiCallSpy.mockResolvedValueOnce({
+          data: [{ _id: "state-8", name: definition.stateName, order: 2 }],
+          count: 1,
+          skip: 0,
+          limit: 1,
+        } as never);
+
+        if (definition.recordPath) {
+          apiCallSpy.mockResolvedValueOnce({
+            data: [
+              {
+                _id: VALID_UUID,
+                [definition.stateRelation!]: {
+                  _id: "state-1",
+                  name: "Created",
+                  order: 1,
+                },
+              },
+            ],
+            count: 1,
+            skip: 0,
+            limit: 1,
+          } as never);
+        }
+
+        apiCallSpy.mockResolvedValueOnce({} as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          definition.tool,
+          { [definition.idArgument]: VALID_UUID },
+          API_KEY,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(apiCallSpy).toHaveBeenCalledTimes(definition.recordPath ? 3 : 2);
+      },
+    );
+
+    it("whoami lists the projects in a bare array", async () => {
+      apiCallSpy.mockResolvedValueOnce([
+        { _id: "proj-1", name: "Acme" },
+        { _id: "proj-2", name: "Globex" },
+      ] as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "oneuptime_whoami",
+        {},
+        API_KEY,
+      );
+
+      expect(result["projects"] as JSONArray).toEqual([
+        { projectId: "proj-1", projectName: "Acme" },
+        { projectId: "proj-2", projectName: "Globex" },
+      ]);
+      expect(result["message"]).toBe(
+        "These are the project(s) your API key can access. projectId is inferred automatically on create operations.",
+      );
+    });
+  });
+
+  describe("a list with nothing in it", () => {
+    const EMPTY_ANSWERS: Array<[string, unknown]> = [
+      ["an empty array", []],
+      ["an envelope with no rows", { data: [], count: 0, skip: 0, limit: 1 }],
+      ["null", null],
+      ["undefined", undefined],
+      ["an empty object", {}],
+      ["an envelope whose data is not a list", { data: "nothing" }],
+      ["an envelope whose data is an object", { data: { _id: "state-1" } }],
+      ["a bare string", "nothing"],
+      ["a number", 0],
+    ];
+
+    describe.each(EMPTY_ANSWERS)("(%s)", (_label: string, answer: unknown) => {
+      it.each(STATE_TOOLS)(
+        "$tool says the state could not be found, blames the API key, and writes nothing",
+        async (definition: (typeof STATE_TOOLS)[number]) => {
+          apiCallSpy.mockResolvedValueOnce(answer as never);
+
+          await expect(
+            handleWorkflowTool(
+              definition.tool,
+              { [definition.idArgument]: VALID_UUID },
+              API_KEY,
+            ),
+          ).rejects.toThrow(
+            `Could not find the project's '${definition.stateName}' ${definition.kind} state. The API key may lack permission to read ${definition.kind} states.`,
+          );
+
+          // No timeline entry may be created when the lookup finds nothing.
+          expect(apiCallSpy).toHaveBeenCalledTimes(1);
+        },
+      );
+
+      it.each(STATE_TOOLS)(
+        "$tool blames the signed-in account, not a key, for a client that signed in",
+        async (definition: (typeof STATE_TOOLS)[number]) => {
+          apiCallSpy.mockResolvedValueOnce(answer as never);
+
+          await expect(
+            handleWorkflowTool(
+              definition.tool,
+              { [definition.idArgument]: VALID_UUID },
+              OAUTH_READ_WRITE,
+            ),
+          ).rejects.toThrow(
+            `Could not find the project's '${definition.stateName}' ${definition.kind} state. Your account may lack permission to read ${definition.kind} states.`,
+          );
+
+          expect(apiCallSpy).toHaveBeenCalledTimes(1);
+        },
+      );
+
+      it("whoami tells an API key that no project is visible to it", async () => {
+        apiCallSpy.mockResolvedValueOnce(answer as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          API_KEY,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(result["projects"]).toEqual([]);
+        expect(result["message"]).toBe(
+          "No project visible to this API key — it may lack read permission on Project.",
+        );
+      });
+
+      it("whoami tells a signed-in client that its user cannot read the project", async () => {
+        apiCallSpy.mockResolvedValueOnce(answer as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          OAUTH_READ_WRITE,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(result["projects"]).toEqual([]);
+        expect(result["message"]).toBe(
+          "You are signed in with OAuth, but this user cannot read the project - their teams may not grant read permission on Project.",
+        );
+      });
+    });
+
+    it("a state row with no id is no state", async () => {
+      apiCallSpy.mockResolvedValueOnce([{ name: "Acknowledged" }] as never);
+
+      await expect(
+        handleWorkflowTool(
+          "acknowledge_incident",
+          { incidentId: VALID_UUID },
+          API_KEY,
+        ),
+      ).rejects.toThrow(/Could not find the project's 'Acknowledged'/);
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("a client that signed in with OAuth", () => {
+    it("has its credential, not a key, on every API call a tool makes", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([{ _id: "state-1", name: "Resolved" }] as never)
+        .mockResolvedValueOnce({} as never);
+
+      await handleWorkflowTool(
+        "resolve_incident",
+        { incidentId: VALID_UUID },
+        OAUTH_READ_WRITE,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      expect(apiCallSpy.mock.calls[0]![0].credential).toBe(OAUTH_READ_WRITE);
+      expect(apiCallSpy.mock.calls[1]![0].credential).toBe(OAUTH_READ_WRITE);
+    });
+
+    it.each<[string, Record<string, unknown>, string]>([
+      [
+        "add_incident_note",
+        { incidentId: VALID_UUID, note: "n" },
+        "/api/incident-internal-note",
+      ],
+      [
+        "add_alert_note",
+        { alertId: VALID_UUID, note: "n" },
+        "/api/alert-internal-note",
+      ],
+    ])(
+      "has it on %s too",
+      async (tool: string, args: Record<string, unknown>, path: string) => {
+        apiCallSpy.mockResolvedValueOnce({ _id: "note-1" } as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          tool,
+          args,
+          OAUTH_READ_WRITE,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(apiCallSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ path, credential: OAUTH_READ_WRITE }),
+        );
+      },
+    );
+
+    describe("whoami", () => {
+      it("says who the client is signed in as, through which client, and that it may write", async () => {
+        apiCallSpy.mockResolvedValueOnce([
+          { _id: "proj-1", name: "Acme" },
+        ] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          OAUTH_READ_WRITE,
+        );
+
+        expect(result).toEqual({
+          success: true,
+          operation: "oneuptime_whoami",
+          projects: [{ projectId: "proj-1", projectName: "Acme" }],
+          authentication: "oauth",
+          signedInAs: { email: "jane@example.com", name: "Jane Doe" },
+          client: "Claude Code",
+          access: "read-and-write",
+          message:
+            "You are signed in with OAuth and act as this OneUptime user in the project above, with that user's permissions. projectId is inferred automatically on create operations.",
+        });
+      });
+
+      it("tells a read-only client that it is read-only, and what that rules out", async () => {
+        apiCallSpy.mockResolvedValueOnce([
+          { _id: "proj-1", name: "Acme" },
+        ] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          OAUTH_READ_ONLY,
+        );
+
+        expect(result["access"]).toBe("read-only");
+        expect(result["message"]).toBe(
+          "You are signed in with OAuth and act as this OneUptime user in the project above, with that user's permissions. projectId is inferred automatically on create operations. This connection is read-only: tools that create, update, delete, acknowledge or resolve will be refused until the user authorizes read and write access.",
+        );
+      });
+
+      it("says both things to a read-only client whose user cannot read the project", async () => {
+        apiCallSpy.mockResolvedValueOnce([] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          OAUTH_READ_ONLY,
+        );
+
+        expect(result["projects"]).toEqual([]);
+        expect(result["access"]).toBe("read-only");
+        expect(result["message"]).toBe(
+          "You are signed in with OAuth, but this user cannot read the project - their teams may not grant read permission on Project. This connection is read-only: tools that create, update, delete, acknowledge or resolve will be refused until the user authorizes read and write access.",
+        );
+      });
+
+      it("treats write alone as able to write", async () => {
+        apiCallSpy.mockResolvedValueOnce([] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          oauthCredential([McpOAuthScope.Write]),
+        );
+
+        expect(result["access"]).toBe("read-and-write");
+      });
+
+      it("reports no client name when the grant has none", async () => {
+        const credential: McpCredential = oauthCredential([McpOAuthScope.Read]);
+
+        if (credential.type === "oauth") {
+          delete credential.principal.grant.name;
+        }
+
+        apiCallSpy.mockResolvedValueOnce([] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          credential,
+        );
+
+        expect(result["client"]).toBeNull();
+      });
+
+      it("asks the API with the OAuth credential", async () => {
+        apiCallSpy.mockResolvedValueOnce([] as never);
+
+        await handleWorkflowTool("oneuptime_whoami", {}, OAUTH_READ_ONLY);
+
+        expect(apiCallSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            method: "POST",
+            path: "/api/project/get-list",
+            credential: OAUTH_READ_ONLY,
+          }),
+        );
+      });
+    });
+
+    describe("an API key's whoami", () => {
+      it("says nothing about a sign-in: no authentication, signedInAs, client or access", async () => {
+        apiCallSpy.mockResolvedValueOnce([
+          { _id: "proj-1", name: "Acme" },
+        ] as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          API_KEY,
+        );
+
+        expect(Object.keys(result).sort()).toEqual([
+          "message",
+          "operation",
+          "projects",
+          "success",
+        ]);
+      });
+
+      it("is the same for an API key credential object as for the bare string", async () => {
+        apiCallSpy.mockResolvedValue([
+          { _id: "proj-1", name: "Acme" },
+        ] as never);
+
+        const fromString: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          API_KEY,
+        );
+        const fromObject: JSONObject = await handleWorkflowTool(
+          "oneuptime_whoami",
+          {},
+          McpCredentialUtil.fromApiKey(API_KEY),
+        );
+
+        expect(fromObject).toEqual(fromString);
+      });
+    });
+  });
+});
+
+/*
+ * No mock of the API layer below this line. The real OneUptimeApiService and
+ * the real Common API client talk to a local server that answers a get-list
+ * the way the OneUptime API does, so the envelope is unwrapped by the same
+ * code that unwraps it in production.
+ */
+describe("WorkflowTools against an API that answers over HTTP", () => {
+  interface ReceivedRequest {
+    method: string;
+    path: string;
+    headers: http.IncomingHttpHeaders;
+    body: any;
+  }
+
+  const PROJECT_ID: string = "9d6f6f0e-3a61-4d0b-9f0a-2c1a7a5e4b11";
+  const STATE_ID: string = "0b0f5c3e-64a6-4b27-8a59-7d8d1f1f0c22";
+
+  let server: http.Server;
+  let received: Array<ReceivedRequest>;
+  // What each get-list answers with; a test empties one to see "no rows".
+  let rowsByPath: Record<string, Array<JSONObject>>;
+
+  beforeAll(async () => {
+    server = http.createServer(
+      (req: http.IncomingMessage, res: http.ServerResponse): void => {
+        let raw: string = "";
+
+        req.setEncoding("utf8");
+        req.on("data", (chunk: string): void => {
+          raw += chunk;
+        });
+        req.on("end", (): void => {
+          const path: string = req.url || "";
+
+          received.push({
+            method: req.method || "",
+            path,
+            headers: req.headers,
+            body: raw ? JSON.parse(raw) : null,
+          });
+
+          res.setHeader("Content-Type", "application/json");
+
+          if (path.endsWith("/get-list")) {
+            const rows: Array<JSONObject> = rowsByPath[path] || [];
+
+            // The envelope every OneUptime list endpoint answers with.
+            res.statusCode = 200;
+            res.end(
+              JSON.stringify({
+                data: rows,
+                count: rows.length,
+                skip: 0,
+                limit: 10,
+              }),
+            );
+            return;
+          }
+
+          res.statusCode = 200;
+          res.end(JSON.stringify({ _id: "created-1" }));
+        });
+      },
+    );
+
+    await new Promise<void>((resolve: () => void): void => {
+      server.listen(0, "127.0.0.1", (): void => {
+        resolve();
+      });
+    });
+
+    OneUptimeApiService.initialize({
+      url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+    });
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve: () => void): void => {
+      server.close((): void => {
+        resolve();
+      });
+      server.closeAllConnections();
+    });
+  });
+
+  beforeEach(() => {
+    received = [];
+    rowsByPath = {
+      "/api/project/get-list": [{ _id: PROJECT_ID, name: "Acme Production" }],
+      "/api/incident-state/get-list": [
+        { _id: STATE_ID, name: "Acknowledged", order: 2 },
+      ],
+      "/api/alert-state/get-list": [{ _id: STATE_ID, name: "Resolved" }],
+      // The incident, still in its first state.
+      "/api/incident/get-list": [
+        {
+          _id: VALID_UUID,
+          currentIncidentState: { _id: "created", name: "Created", order: 1 },
+        },
+      ],
+    };
+  });
+
+  it("whoami lists the project the API returned", async () => {
+    const result: JSONObject = await handleWorkflowTool(
+      "oneuptime_whoami",
+      {},
+      API_KEY,
+    );
+
+    expect(result["projects"]).toEqual([
+      { projectId: PROJECT_ID, projectName: "Acme Production" },
+    ]);
+    expect(result["message"]).toBe(
+      "These are the project(s) your API key can access. projectId is inferred automatically on create operations.",
+    );
+
+    expect(received).toHaveLength(1);
+    expect(received[0]!.method).toBe("POST");
+    expect(received[0]!.path).toBe("/api/project/get-list");
+    expect(received[0]!.headers["apikey"]).toBe(API_KEY);
+    expect(received[0]!.body).toEqual({
+      query: {},
+      select: { _id: true, name: true },
+      skip: 0,
+      limit: 10,
+    });
+  });
+
+  it("whoami for a signed-in client lists the project, and presents a delegation token to get it", async () => {
+    const result: JSONObject = await handleWorkflowTool(
+      "oneuptime_whoami",
+      {},
+      OAUTH_READ_ONLY,
+    );
+
+    expect(result["projects"]).toEqual([
+      { projectId: PROJECT_ID, projectName: "Acme Production" },
+    ]);
+    expect(result["authentication"]).toBe("oauth");
+    expect(result["access"]).toBe("read-only");
+
+    expect("apikey" in received[0]!.headers).toBe(false);
+    expect(
+      McpDelegationToken.verify(
+        received[0]!.headers["x-oneuptime-mcp-delegation"],
+      ),
+    ).not.toBeNull();
+  });
+
+  it("whoami says so when the API returns no project", async () => {
+    rowsByPath["/api/project/get-list"] = [];
+
+    const result: JSONObject = await handleWorkflowTool(
+      "oneuptime_whoami",
+      {},
+      API_KEY,
+    );
+
+    expect(result["projects"]).toEqual([]);
+    expect(result["message"]).toBe(
+      "No project visible to this API key — it may lack read permission on Project.",
+    );
+  });
+
+  it("acknowledge_incident finds the state the API returned, reads the incident, then creates the timeline entry", async () => {
+    const result: JSONObject = await handleWorkflowTool(
+      "acknowledge_incident",
+      { incidentId: VALID_UUID },
+      API_KEY,
+    );
+
+    expect(result["success"]).toBe(true);
+    expect(result["newState"]).toBe("Acknowledged");
+
+    expect(
+      received.map((request: ReceivedRequest): string => {
+        return `${request.method} ${request.path}`;
+      }),
+    ).toEqual([
+      "POST /api/incident-state/get-list",
+      "POST /api/incident/get-list",
+      "POST /api/incident-state-timeline",
+    ]);
+    expect(received[0]!.body.query).toEqual({ isAcknowledgedState: true });
+    expect(received[1]!.body.query).toEqual({ _id: VALID_UUID });
+    expect(received[2]!.body).toEqual({
+      data: { incidentId: VALID_UUID, incidentStateId: STATE_ID },
+    });
+  });
+
+  it("acknowledge_incident writes nothing for an incident the API returns in a state after Acknowledged", async () => {
+    rowsByPath["/api/incident/get-list"] = [
+      {
+        _id: VALID_UUID,
+        currentIncidentState: {
+          _id: "investigating",
+          name: "Investigating",
+          order: 3,
+        },
+      },
+    ];
+
+    await expect(
+      handleWorkflowTool(
+        "acknowledge_incident",
+        { incidentId: VALID_UUID },
+        API_KEY,
+      ),
+    ).rejects.toThrow(/is already acknowledged: it is in 'Investigating'/);
+
+    expect(
+      received.map((request: ReceivedRequest): string => {
+        return `${request.method} ${request.path}`;
+      }),
+    ).toEqual([
+      "POST /api/incident-state/get-list",
+      "POST /api/incident/get-list",
+    ]);
+  });
+
+  it("resolve_alert finds the state the API returned, then creates the timeline entry", async () => {
+    const result: JSONObject = await handleWorkflowTool(
+      "resolve_alert",
+      { alertId: VALID_UUID },
+      OAUTH_READ_WRITE,
+    );
+
+    expect(result["success"]).toBe(true);
+    expect(result["newState"]).toBe("Resolved");
+
+    expect(
+      received.map((request: ReceivedRequest): string => {
+        return `${request.method} ${request.path}`;
+      }),
+    ).toEqual([
+      "POST /api/alert-state/get-list",
+      "POST /api/alert-state-timeline",
+    ]);
+    expect(received[1]!.body).toEqual({
+      data: { alertId: VALID_UUID, alertStateId: STATE_ID },
+    });
+  });
+
+  it("a state tool writes nothing when the API returns no state", async () => {
+    rowsByPath["/api/incident-state/get-list"] = [];
+
+    await expect(
+      handleWorkflowTool(
+        "resolve_incident",
+        { incidentId: VALID_UUID },
+        API_KEY,
+      ),
+    ).rejects.toThrow(
+      "Could not find the project's 'Resolved' incident state. The API key may lack permission to read incident states.",
+    );
+
+    expect(received).toHaveLength(1);
   });
 });

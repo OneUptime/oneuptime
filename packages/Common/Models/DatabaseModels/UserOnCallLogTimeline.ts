@@ -50,8 +50,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: PlanType.Growth,
   delete: PlanType.Growth,
 })
+/*
+ * A person's own timeline of the notifications sent to them: read by that
+ * person (CurrentUser) whether or not they may read the on-call policy that
+ * paged them, so reading the policy is optional (isParentReadOptional). A
+ * caller who may read policies reaches the timelines of the policies they
+ * may read.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("onCallDutyPolicy")
+@CanAccessIfCanReadOn("onCallDutyPolicy", { isParentReadOptional: true })
 @CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -68,6 +75,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["userId", "createdAt"])
 @Index(["onCallDutyPolicyExecutionLogId", "status"])
 @Index(["projectId", "status"])
+/*
+ * The history of the pages sent to a person: who was paged, when, through
+ * which of their notification rules and methods, and how it went. The rule
+ * and the method are the person's own settings, which go when they remove
+ * them or leave the project (ProjectLeaveNotificationCleanup); their columns
+ * here are cleared by the database when that happens (ON DELETE SET NULL),
+ * so the history itself stays.
+ */
 @TableMetadata({
   tableName: "UserOnCallLogTimeline",
   singularName: "User On-Call Log Timeline",
@@ -233,7 +248,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -310,6 +326,13 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @JoinColumn({ name: "onCallDutyPolicyId" })
   public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
 
+  /*
+   * Empty for a delivery of a direct page: a person paged by name, as a
+   * member of a team or as whoever is on call in a schedule, with no
+   * on-call policy behind the page (Types/OnCallDutyPolicy/
+   * OnCallDirectPage). Not `required`, so such a row passes
+   * DatabaseService.checkRequiredFields.
+   */
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -318,15 +341,14 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "OnCallDutyPolicy ID",
     description:
-      "ID of your OneUptime on-call duty policy in which this object belongs",
+      "ID of your OneUptime on-call duty policy in which this object belongs. Empty when the person was paged directly, without an on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -664,6 +686,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
   })
   public userNotificationEventType?: UserNotificationEventType = undefined;
 
+  // Empty for a direct page, which has no escalation rules (see onCallDutyPolicyId).
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -672,15 +695,14 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of your On-Call Policy Escalation Rule where this timeline event belongs.",
+      "ID of your On-Call Policy Escalation Rule where this timeline event belongs. Empty when the person was paged directly, without an on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
@@ -892,7 +914,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -938,7 +961,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -985,7 +1009,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1032,7 +1057,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1078,7 +1104,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1125,7 +1152,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1172,7 +1200,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1218,7 +1247,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1264,7 +1294,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

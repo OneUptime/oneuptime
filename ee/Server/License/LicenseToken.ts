@@ -77,6 +77,16 @@ export interface LicenseTokenClaims {
   features: Array<string>;
   // When present, the license is valid only on the instance with this id.
   instanceId?: string | undefined;
+  /*
+   * True only on a license whose customer may white-label the installation:
+   * replace OneUptime's name and logo with their own (ee/Server/WhiteLabel).
+   * The license server writes the claim only when the license has the switch
+   * on, and never writes `false`, so the token of every other license - and
+   * every token issued before the claim existed - is byte for byte what it
+   * was, and says nothing about white-labelling to the customer who decodes
+   * it. Absent, or anything but `true`, means not allowed.
+   */
+  canBeWhiteLabelled?: boolean | undefined;
   // Seconds since the epoch. Informational only.
   iat?: number | undefined;
   // Seconds since the epoch.
@@ -448,6 +458,14 @@ export default class LicenseToken {
       isEvaluation: isEvaluation as boolean,
       features: features as Array<string>,
       instanceId: instanceId as string | undefined,
+      /*
+       * Read leniently, unlike the claims above: it grants one optional
+       * right, so a value this build does not understand (a newer license
+       * server's richer shape, say) withholds that right and never turns a
+       * paying customer's whole license invalid.
+       */
+      canBeWhiteLabelled:
+        payload["canBeWhiteLabelled"] === true ? true : undefined,
       iat: typeof iat === "number" && Number.isFinite(iat) ? iat : undefined,
       exp: exp as number,
     };
@@ -649,7 +667,15 @@ export type LicenseClassificationReason =
   | "unsupported-algorithm"
   | "bad-signature"
   | "bad-claims"
-  | "instance-mismatch";
+  | "instance-mismatch"
+  /*
+   * Not a token at all: a self-hosted installation bought on a cloud
+   * marketplace, licensed by that marketplace taking its usage reports
+   * (MarketplaceLicense.ts) - or, for "marketplace-refused", by the
+   * marketplace saying the buyer is not subscribed.
+   */
+  | "marketplace"
+  | "marketplace-refused";
 
 export interface LicenseTokenClassification extends EnterpriseLicenseSnapshot {
   reason: LicenseClassificationReason;
@@ -659,6 +685,15 @@ export interface LicenseTokenClassification extends EnterpriseLicenseSnapshot {
   licenseId?: string | undefined;
   // The instance a verified token is bound to, if any.
   instanceId?: string | undefined;
+  /*
+   * Whether the license lets the customer white-label the installation. Only
+   * ever true for a VERIFIED token carrying the claim: the right is read from
+   * nowhere else - not from a stored column, not from an unverified legacy
+   * token - so nobody can grant it without the signing key. Like every other
+   * term, it is about the license, not about whether the license is usable
+   * right now: ee/Server/WhiteLabel/WhiteLabelEntitlement.ts decides that.
+   */
+  canBeWhiteLabelled?: boolean | undefined;
 }
 
 interface ExpiryVerdict {
@@ -812,9 +847,9 @@ const classifyMissingToken: (
  *
  * It used to classify "invalid", which is not usable
  * (EnterpriseLicenseSnapshotUtil.isUsable accepts only "valid" and "grace"),
- * so SSO, SCIM and audit logging stopped the moment such an install upgraded:
- * no trial, no grace, no warning, for a customer whose license may be
- * perfectly good. A missing expiry is this product's own bookkeeping failing,
+ * so every licensed feature stopped the moment such an install upgraded: no
+ * trial, no grace, no warning, for a customer whose license may be perfectly
+ * good. A missing expiry is this product's own bookkeeping failing,
  * not an entitlement ending, so it must not be a cliff.
  *
  * It is therefore treated exactly as an install with no license at all: the
@@ -1102,5 +1137,6 @@ export const classifyLicenseToken: (
     kid: parsed.kid,
     licenseId: claims.sub,
     instanceId: claims.instanceId,
+    canBeWhiteLabelled: claims.canBeWhiteLabelled === true,
   };
 };

@@ -2,8 +2,8 @@
 <html lang="en" id="legal">
 
 <head>
-  <title>OneUptime | Legal Center</title>
-  <meta name="description" content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -161,6 +161,7 @@
     #content header p { color: #6b7280; font-size: 1.125rem; margin: 0; }
     #content section { padding-top: 0; padding-bottom: 0; }
   </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body class="bg-gray-50 antialiased text-gray-900">
@@ -339,7 +340,7 @@
           </div>
 
           <!-- Desktop sidebar (hidden on mobile) -->
-          <nav class="hidden lg:block space-y-6" aria-label="Legal navigation">
+          <nav class="max-lg:hidden lg:block space-y-6" aria-label="Legal navigation">
             <!-- Core Policies -->
             <div>
               <h2 class="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">

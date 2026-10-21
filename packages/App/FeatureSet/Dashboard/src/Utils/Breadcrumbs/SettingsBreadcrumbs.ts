@@ -38,15 +38,25 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Labels",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_IMPORT_FROM_TOOL, [
+      "Project",
+      "Settings",
+      "Import from another tool",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "Settings",
-      "Slack Integration",
+      "Slack",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
-      ["Project", "Settings", "Microsoft Teams Integration"],
+      ["Project", "Settings", "Microsoft Teams"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_VIDEO_CALLS, [
+      "Project",
+      "Settings",
+      "Video Calls",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_SETTINGS, [
       "Project",
       "Settings",
@@ -68,31 +78,24 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNERS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS, [
       "Project",
       "Settings",
-      "Runners",
+      "External MCP Servers",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_VIEW, [
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW,
+      ["Project", "Settings", "External MCP Servers", "View MCP Server"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_FEATURES, [
       "Project",
       "Settings",
-      "Runners",
-      "View Runner",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_CREDENTIALS, [
-      "Project",
-      "Settings",
-      "Runner Credentials",
+      "AI Features",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
       "Project",
       "Settings",
       "AI Credits",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_GUARDRAILS, [
-      "Project",
-      "Settings",
-      "AI Guardrails",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LOGS, [
       "Project",
@@ -144,11 +147,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Settings",
       "SSO",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_OIDC, [
-      "Project",
-      "Settings",
-      "OIDC",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
       "Project",

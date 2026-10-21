@@ -5,7 +5,7 @@ import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import { applyAlertEpisodeSelfPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertStateService from "./AlertStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -15,6 +15,8 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { clearPlaceholders } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AlertEpisodeStateTimeline from "../../Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -33,9 +35,13 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
 import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
+  getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import AlertEpisodeMemberService, {
+  AlertsForNewEpisode,
+} from "./AlertEpisodeMemberService";
+import { ALERT_IDS_TO_ADD_KEY } from "../../Types/Episode/EpisodeMembersAdd";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -48,23 +54,74 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import AlertEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/AlertEpisode";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import AlertService from "./AlertService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import AlertEpisodeLabelRuleEngineService from "./AlertEpisodeLabelRuleEngineService";
 import AlertEpisodeOnCallRuleEngineService from "./AlertEpisodeOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertEpisodeOwnerRuleEngineService from "./AlertEpisodeOwnerRuleEngineService";
 import AlertEpisodePrivacyRuleEngineService from "./AlertEpisodePrivacyRuleEngineService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import ProjectService from "./ProjectService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import Alert from "../../Models/DatabaseModels/Alert";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
 
-export class Service extends DatabaseService<Model> {
+/*
+ * The two names of an episode's state, ID column first. A write may name it
+ * under either, and the two must agree (RelationIdUtil.readConsistent), so
+ * the state the service acts on is the state stored.
+ */
+const ALERT_STATE_KEYS: Array<string> = [
+  "currentAlertStateId",
+  "currentAlertState",
+];
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess: how far along the episode
+ * starts (StartingStage), and the alerts it is being created with, checked
+ * and each once - empty unless it is created with alerts.
+ */
+type AlertEpisodeCreateCarryForward = StartingStageCarryForward & {
+  alertIdsToAdd: Array<ObjectID>;
+};
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity is checked by this service's own hooks below. Everything
+   * else an episode names - its state, its assignee, its on-call policies and
+   * labels, the grouping rule that opened it - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["alertSeverity"];
   }
 
   @CaptureSpan()
@@ -93,6 +150,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertEpisodeSelfPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -102,29 +161,58 @@ export class Service extends DatabaseService<Model> {
      * An episode carries the same project-scoped state and severity an alert
      * does, on FKs that are equally ON DELETE NO ACTION, so an id from another
      * project here leaves that project undeletable in exactly the same way.
-     * onBeforeCreate overwrites currentAlertStateId with this project's
-     * created state, which leaves the severity as the only create-reachable
-     * column — but an update can write either.
+     * onBeforeCreate checks both on a create, and an update can write either.
+     * Each by both of its names: every name that holds an id is checked, and
+     * two that disagree are refused - against the project of every episode
+     * the update changes, the request's or, for an update with none on it,
+     * each episode's own (where an id the episodes already hold is left
+     * alone).
      */
-    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
-      projectId: updateBy.props.tenantId,
+    await ProjectScopedReferenceValidator.validateUpdateReferences({
+      service: this,
+      updateBy: updateBy,
       subject: "alert episode",
-      references: [
+      relations: [
         {
+          idColumn: "currentAlertStateId",
+          relation: "currentAlertState",
           modelName: "Alert State",
-          id:
-            resolveReferenceId(updateBy.data.currentAlertStateId) ||
-            resolveReferenceId(updateBy.data.currentAlertState),
           service: AlertStateService,
         },
         {
+          idColumn: "alertSeverityId",
+          relation: "alertSeverity",
           modelName: "Alert Severity",
-          id:
-            resolveReferenceId(updateBy.data.alertSeverityId) ||
-            resolveReferenceId(updateBy.data.alertSeverity),
           service: AlertSeverityService,
         },
       ],
+    });
+
+    /*
+     * An update that writes the episode's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of alert states. Refused before anything
+     * is written, with the timeline's own sentence - the state the update
+     * writes is recorded on the timeline in onUpdateSuccess, and a write
+     * the timeline then refused used to leave the episode in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.AlertEpisode,
+      updateBy: updateBy,
+      stateKeys: ALERT_STATE_KEYS,
+      stateModelName: "Alert State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (projectId: ObjectID): Promise<Array<AlertState>> => {
+        return AlertStateService.getAllAlertStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
     });
 
     return { updateBy, carryForward: null };
@@ -145,6 +233,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create alert episode.");
     }
@@ -152,41 +242,138 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    // Get the created state for episodes
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
+    /*
+     * Created with the alerts it is for (EpisodeMembersAdd): the alerts
+     * lists' Add to New Episode, or the API. The ids are checked here,
+     * before the episode number is taken and before anything is written, so
+     * an alert the caller cannot see - or a caller who may not add alerts to
+     * episodes - refuses the whole create instead of leaving an episode
+     * without some of the alerts it was created for. They are added in
+     * onCreateSuccess, once the episode exists. An episode created with
+     * alerts and no severity takes the most severe of theirs.
+     */
+    const alertIdsToAdd: unknown =
+      createBy.miscDataProps?.[ALERT_IDS_TO_ADD_KEY];
+
+    const alertsToAdd: AlertsForNewEpisode | null =
+      alertIdsToAdd !== undefined && alertIdsToAdd !== null
+        ? await AlertEpisodeMemberService.validateAlertsForNewEpisode({
+            projectId: projectId,
+            alertIds: alertIdsToAdd,
+            props: createBy.props,
+            labels: createBy.data.labels,
+          })
+        : null;
+
+    if (
+      alertsToAdd?.mostSevereAlertSeverityId &&
+      !RelationIdUtil.readConsistent(
+        createData,
+        ["alertSeverityId", "alertSeverity"],
+        "Alert Severity",
+      )
+    ) {
+      RelationIdUtil.stamp(
+        createData,
+        ["alertSeverityId", "alertSeverity"],
+        alertsToAdd.mostSevereAlertSeverityId,
       );
     }
 
-    createBy.data.currentAlertStateId = alertState.id;
+    /*
+     * The state the episode starts in, when the write picks one: the Create
+     * Alert Episode form's Initial State sends the relation, the API,
+     * Terraform and workflows the ID column. Either name, and the two must
+     * agree. With none picked, the episode starts in the project's created
+     * state, where every episode a grouping rule opens starts.
+     */
+    const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      ALERT_STATE_KEYS,
+      "Alert State",
+    );
 
+    /*
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. The read holds only the project's
+     * own states, so it also checks the state picked. With none picked the
+     * episode starts in the created state - open, as every episode a
+     * grouping rule opens - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedAlertStateId
+      ? await AlertStateService.getStartingState({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
+
+    /*
+     * The state picked, unless the read above found it, and the severity: a
+     * state or a severity of another project is refused, with the same
+     * words as one that does not exist, before a number is used.
+     */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "alert episode",
       references: [
-        {
+        ...(pickedStart
+          ? []
+          : getWrittenRelationReferences({
+              payload: createBy.data,
+              idColumn: "currentAlertStateId",
+              relation: "currentAlertState",
+              modelName: "Alert State",
+              service: AlertStateService,
+            })),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "alertSeverityId",
+          relation: "alertSeverity",
           modelName: "Alert Severity",
-          id:
-            resolveReferenceId(createBy.data.alertSeverityId) ||
-            resolveReferenceId(createBy.data.alertSeverity),
           service: AlertSeverityService,
-        },
+        }),
       ],
     });
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the episode's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      ALERT_STATE_KEYS,
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
+    );
+
+    /*
+     * resolvedAt follows the state the episode starts in, by the one rule
+     * (Common/Utils/ResolvedState) its first timeline row reads too
+     * (AlertEpisodeStateTimelineService): set for a state that counts as
+     * resolved - the project's resolved state, or one placed after it. One
+     * recorded as already resolved is resolved from the moment it exists:
+     * grouping, auto-resolve and the Active episode lists read resolvedAt,
+     * which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels; that row
+     * keeps it. Any other episode has none yet, whatever the write sent: the
+     * first timeline row would clear it anyway.
+     */
+    if (pickedStart?.stage === StartingStage.Resolved) {
+      createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
+    }
 
     // Auto-generate episode number
     const episodeCounterResult: {
@@ -195,21 +382,96 @@ export class Service extends DatabaseService<Model> {
     } = await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
 
     createBy.data.episodeNumber = episodeCounterResult.counter;
-    createBy.data.episodeNumberWithPrefix = episodeCounterResult.prefix
-      ? `${episodeCounterResult.prefix}${episodeCounterResult.counter}`
-      : `#${episodeCounterResult.counter}`;
+    createBy.data.episodeNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      episodeCounterResult.prefix,
+      episodeCounterResult.counter,
+    );
 
     // Set initial lastAlertAddedAt
     if (!createBy.data.lastAlertAddedAt) {
       createBy.data.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: AlertEpisodeCreateCarryForward = {
+      startingStage: startingStage,
+      alertIdsToAdd: alertsToAdd?.alertIds || [],
+    };
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  // The validated alert ids an episode is being created with, if any.
+  private getAlertIdsCreatedWith(onCreate: OnCreate<Model>): Array<ObjectID> {
+    const carryForward: AlertEpisodeCreateCarryForward | null =
+      (onCreate.carryForward as AlertEpisodeCreateCarryForward | null) || null;
+
+    return carryForward?.alertIdsToAdd || [];
+  }
+
+  /*
+   * Who created the episode, as the one who added the alerts it was created
+   * with: the person making the request, as DatabaseService stamped them -
+   * nobody for an API key or a workflow. OneUptime's own writes name the
+   * creator themselves.
+   */
+  private getCreatingUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
+  /*
+   * The episode was created with alerts (see onBeforeCreate): add them now
+   * that it exists - after its privacy rules have run, since each alert's
+   * own feed entry leaves out a private episode's title. Awaited, unlike the
+   * chain in onCreateSuccess, so the episode the person lands on already
+   * lists its alerts. Written as OneUptime's writes, because the caller's
+   * right to add them was checked before the episode was created. Never
+   * rejects: an alert that cannot be added is logged. Hands back the ids
+   * added.
+   */
+  @CaptureSpan()
+  private async addAlertsCreatedWith(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+    privacyRulesApplied: Promise<void>,
+  ): Promise<Array<ObjectID>> {
+    const alertIds: Array<ObjectID> = this.getAlertIdsCreatedWith(onCreate);
+
+    if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return [];
+    }
+
+    await privacyRulesApplied;
+
+    try {
+      return await AlertEpisodeMemberService.addAlertsToNewEpisode({
+        projectId: createdItem.projectId,
+        alertEpisodeId: createdItem.id,
+        alertIds: alertIds,
+        addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+      });
+    } catch (error) {
+      logger.error(
+        `Adding the alerts an episode was created with failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          alertEpisodeId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+
+      return [];
+    }
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
@@ -224,14 +486,44 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
-    // Create initial state timeline entry
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * How far along the episode starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, no channel is opened for it either. Its rules, its
+     * feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+
+    /*
+     * Who could not be added to the episode's new Slack channels: set by the
+     * workspace step, told in those channels right after the episode's
+     * created message (ChannelMembersNotAddedNotice).
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
+    /*
+     * The holds of the policies the episode's on-call rules added that may
+     * not page yet - a rule that pages only during working hours, matched
+     * outside them (OnCallRulePagingHold): set by the on-call rules step,
+     * read by the on-call step after it.
+     */
+    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so the alerts the episode is created with are added once the
+     * rules have settled its privacy: each alert's own feed entry leaves out
+     * a private episode's title.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await AlertEpisodePrivacyRuleEngineService.applyRulesToEpisode(
             createdItem,
@@ -245,11 +537,31 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // The alerts it was created with, if any (never rejects).
+    const alertsAdded: Promise<Array<ObjectID>> = this.addAlertsCreatedWith(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
+
+    // Create initial state timeline entry
+    privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
-            await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
+            membersNotAddedToNewChannels =
+              await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
           logger.error(
@@ -297,6 +609,30 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        // Under the episode's created message: who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Created with alerts: name them once, here - after "Episode
+         * Created" and after the episode's Slack / Microsoft Teams channels
+         * exist - rather than once per alert as each is added.
+         */
+        const addedAlertIds: Array<ObjectID> = await alertsAdded;
+
+        if (addedAlertIds.length > 0) {
+          await AlertEpisodeMemberService.createAlertsAddedFeedItem({
+            projectId: createdItem.projectId!,
+            alertEpisodeId: createdItem.id!,
+            alertIds: addedAlertIds,
+            addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+          });
+        }
+      })
+      .then(async () => {
         // Apply owner rules: add matched owner users/teams to the episode.
         try {
           await AlertEpisodeOwnerRuleEngineService.applyRulesToEpisode(
@@ -334,9 +670,10 @@ export class Service extends DatabaseService<Model> {
          * onCallDutyPolicies before the fan-out below picks them up.
          */
         try {
-          await AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-            createdItem,
-          );
+          onCallRulePagingHolds =
+            (await AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+              createdItem,
+            )) || onCallRulePagingHolds;
         } catch (error) {
           logger.error(
             `Apply alert episode on-call rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
@@ -350,7 +687,11 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+          await this.executeEpisodeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+            onCallRulePagingHolds,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in AlertEpisodeService.onCreateSuccess: ${error}`,
@@ -371,13 +712,24 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
+    /*
+     * The episode's alerts are in it before the create answers, so the
+     * episode the person opens next already lists them.
+     */
+    await alertsAdded;
+
     return createdItem;
   }
 
+  /*
+   * Creates the episode's own channels and adds its people to them. Hands
+   * back who could not be added, for the channels to be told after the
+   * episode's created message.
+   */
   @CaptureSpan()
   private async handleEpisodeWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -385,9 +737,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await AlertEpisodeWorkspaceMessages.createChannelsAndInviteUsersToChannels(
           {
             projectId: createdItem.projectId,
@@ -402,18 +752,13 @@ export class Service extends DatabaseService<Model> {
           },
         );
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the episode while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -429,18 +774,70 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
+    /*
+     * The title is plain text, often copied from the episode's first alert -
+     * whose title a monitor may have filled in from an incoming email or
+     * request - placed into Markdown the dashboard renders without its safe
+     * mode and posts to Slack and Teams. Escaped as MarkdownEscape says a
+     * title must be (as an incident episode's is), so it cannot become an
+     * image, raw HTML, a chat mention or a link that hides where it goes.
+     * The description stays Markdown.
+     */
+    let feedInfoInMarkdown: string =
+      mdText`#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
 **${episode.title || "No title provided."}**
 
-`;
+`.toString();
 
     if (episode.description) {
-      feedInfoInMarkdown += `${episode.description}\n\n`;
+      feedInfoInMarkdown += mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`;
     }
 
     if (episode.isManuallyCreated) {
       feedInfoInMarkdown += `This episode was manually created.\n\n`;
+    }
+
+    /*
+     * The episode's state and severity, as an alert's created entry names
+     * them: its first state is not posted to Slack and Microsoft Teams on
+     * its own (WorkspaceStateChangePosting), so this is where a channel
+     * reads it. Names are plain text. A read that fails leaves them out:
+     * the created entry still goes out.
+     */
+    let episodeWithState: Model | null = null;
+
+    try {
+      episodeWithState = await this.findOneById({
+        id: episode.id,
+        select: {
+          currentAlertState: {
+            name: true,
+          },
+          alertSeverity: {
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Reading the state of a new alert episode for its created entry failed: ${error}`,
+        {
+          projectId: episode.projectId?.toString(),
+          alertEpisodeId: episode.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    if (episodeWithState?.currentAlertState?.name) {
+      feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentAlertState.name} \n\n`;
+    }
+
+    if (episodeWithState?.alertSeverity?.name) {
+      feedInfoInMarkdown += mdText`⚠️ **Severity**: ${episodeWithState.alertSeverity.name} \n\n`;
     }
 
     const episodeCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
@@ -463,9 +860,22 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Runs the episode's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   *
+   * A policy one of its on-call rules holds until working hours
+   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * they begin (OnCallDutyPolicyRunWait), and the feed says so beside it.
+   * Every other policy pages now.
+   */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
+    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
   ): Promise<void> {
     if (!createdItem.id || !createdItem.projectId) {
       return;
@@ -493,18 +903,36 @@ export class Service extends DatabaseService<Model> {
         return;
       }
 
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { alertEpisodeId: createdItem.id },
+          projectId: createdItem.projectId,
+          stage: startingStage,
+          policies: episodeWithPolicies.onCallDutyPolicies,
+        });
+        return;
+      }
+
       // Execute all on-call policies in parallel
       const policyPromises: Promise<void>[] =
         episodeWithPolicies.onCallDutyPolicies.map(
           (policy: OnCallDutyPolicy) => {
-            return OnCallDutyPolicyService.executePolicy(
-              new ObjectID(policy._id as string),
-              {
-                triggeredByAlertEpisodeId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.AlertEpisodeCreated,
-              },
+            const policyId: ObjectID = new ObjectID(policy._id as string);
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              policyId.toString(),
             );
+
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByAlertEpisodeId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.AlertEpisodeCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           },
         );
 
@@ -521,20 +949,32 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      // Create feed entry for on-call policy execution
-      const policyNames: string[] = episodeWithPolicies.onCallDutyPolicies
-        .map((policy: OnCallDutyPolicy) => {
-          return policy.name || "Unnamed Policy";
-        })
-        .filter((name: string) => {
-          return Boolean(name);
-        });
+      /*
+       * Create feed entry for on-call policy execution. A policy held until
+       * working hours says so after its name: it is not paging yet.
+       */
+      const policyLines: Array<{ name: string; waitingMessage?: string }> =
+        episodeWithPolicies.onCallDutyPolicies.map(
+          (policy: OnCallDutyPolicy) => {
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              new ObjectID(policy._id as string).toString(),
+            );
+
+            return {
+              name: policy.name || "Unnamed Policy",
+              ...(hold ? { waitingMessage: hold.waitingStatusMessage } : {}),
+            };
+          },
+        );
 
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
-      feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+      feedInfoInMarkdown += mdText`The following on-call ${policyLines.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
-      for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${policyName}\n`;
+      // Each policy name is plain text.
+      for (const policyLine of policyLines) {
+        feedInfoInMarkdown += policyLine.waitingMessage
+          ? mdText`- ${policyLine.name}: not paging yet. ${policyLine.waitingMessage}\n`
+          : mdText`- ${policyLine.name}\n`;
       }
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
@@ -562,6 +1002,13 @@ export class Service extends DatabaseService<Model> {
     rootCause: string | undefined;
     props: DatabaseCommonInteractionProps;
     cascadeToAlerts?: boolean;
+    /*
+     * OneUptime's reopen of a recently resolved episode for its grouping
+     * rule's reopen window (reopenEpisode): the one move back up the list of
+     * states the state move rule allows, written through the timeline's own
+     * reopen (AlertEpisodeStateTimelineService.createReopen).
+     */
+    isGroupingRuleReopen?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -571,6 +1018,7 @@ export class Service extends DatabaseService<Model> {
       rootCause,
       props,
       cascadeToAlerts,
+      isGroupingRuleReopen,
     } = data;
 
     // Get last episode state timeline
@@ -613,10 +1061,17 @@ export class Service extends DatabaseService<Model> {
       stateTimeline.rootCause = rootCause;
     }
 
-    await AlertEpisodeStateTimelineService.create({
-      data: stateTimeline,
-      props: props || {},
-    });
+    if (isGroupingRuleReopen) {
+      await AlertEpisodeStateTimelineService.createReopen({
+        data: stateTimeline,
+        props: props || {},
+      });
+    } else {
+      await AlertEpisodeStateTimelineService.create({
+        data: stateTimeline,
+        props: props || {},
+      });
+    }
 
     /*
      * Note: resolvedAt is updated by AlertEpisodeStateTimelineService.onCreateSuccess()
@@ -634,6 +1089,16 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Moves the episode's alerts into the state the episode moved into, each
+   * by the rule its own state timeline holds it to (Common/Utils/StateMove):
+   * an alert in that state already, or past it in the project's list of
+   * alert states - one resolved on its own, or a resolved alert of an
+   * episode its grouping rule reopened - is left where it is, rather than
+   * sent a move its timeline would refuse. An episode never reopens its
+   * alerts. Each move that is made is a row of the alert's timeline, written
+   * with `props`; one that still fails is logged, and the others go on.
+   */
   @CaptureSpan()
   public async cascadeStateToMemberAlerts(data: {
     projectId: ObjectID;
@@ -664,11 +1129,71 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    // Update state for each member alert
-    for (const member of members) {
-      if (!member.alertId) {
+    const memberAlertIds: Array<ObjectID> = members
+      .map((member: AlertEpisodeMember): ObjectID | undefined => {
+        return member.alertId;
+      })
+      .filter((alertId: ObjectID | undefined): alertId is ObjectID => {
+        return Boolean(alertId);
+      });
+
+    if (memberAlertIds.length === 0) {
+      return;
+    }
+
+    // Where each alert is now, and the project's list it walks down.
+    const [memberAlerts, alertStates] = await Promise.all([
+      AlertService.findBy({
+        query: {
+          _id: QueryHelper.any(memberAlertIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          currentAlertStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+      AlertStateService.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    // Update state for each member alert its own rule lets move there.
+    for (const memberAlert of memberAlerts as Array<Alert>) {
+      if (!memberAlert.id) {
         continue;
       }
+
+      if (
+        !StateMoveUtil.isMoveAllowed({
+          list: StateMoveUtil.getList(StateMoveRecord.Alert),
+          states: alertStates,
+          fromStateId: memberAlert.currentAlertStateId,
+          toStateId: alertStateId,
+        })
+      ) {
+        logger.debug(
+          `Alert ${memberAlert.id.toString()} of episode ${episodeId.toString()} is in that state or past it already, so the episode leaves it where it is.`,
+          {
+            projectId: projectId.toString(),
+            alertEpisodeId: episodeId.toString(),
+            alertId: memberAlert.id.toString(),
+          } as LogAttributes,
+        );
+        continue;
+      }
+
+      const member: { alertId: ObjectID } = {
+        alertId: memberAlert.id,
+      };
 
       try {
         await AlertService.changeAlertState({
@@ -693,6 +1218,14 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Acknowledges the episode - and, unless told not to, the alerts in it -
+   * as the user: moves it into its project's acknowledged state, the first
+   * from the top flagged acknowledged. One that is acknowledged already, or
+   * further along, is refused with a sentence that says which
+   * (Common/Utils/AcknowledgedState) rather than moved back up its list, or
+   * logged as acknowledged a second time.
+   */
   @CaptureSpan()
   public async acknowledgeEpisode(
     episodeId: ObjectID,
@@ -703,6 +1236,7 @@ export class Service extends DatabaseService<Model> {
       id: episodeId,
       select: {
         projectId: true,
+        currentAlertStateId: true,
       },
       props: {
         isRoot: true,
@@ -713,18 +1247,30 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
+    const alertStates: Array<AlertState> =
+      await AlertStateService.getAllAlertStates({
         projectId: episode.projectId,
-        isAcknowledgedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: episode.currentAlertStateId,
+      subject: "Episode",
     });
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
+
+    const alertState: AlertState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      });
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
@@ -781,20 +1327,16 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
+    // The project's resolved state: the first from the top flagged resolved.
+    const alertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
         projectId: episode.projectId,
-        isResolvedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        props: {
+          isRoot: true,
+        },
+      });
 
-    if (!alertState || !alertState.id) {
+    if (!alertState.id) {
       throw new BadDataException("Resolved state not found for this project.");
     }
 
@@ -919,12 +1461,16 @@ export class Service extends DatabaseService<Model> {
       alertCount: alertCount,
     };
 
-    // Update title with dynamic variables if template exists
+    /*
+     * Update title with dynamic variables if template exists - named as the
+     * grouping engine names an episode whose title template comes out empty
+     */
     if (episode?.titleTemplate) {
-      updateData.title = this.renderTemplateWithDynamicValues(
-        episode.titleTemplate,
-        alertCount,
-      );
+      updateData.title =
+        this.renderTemplateWithDynamicValues(
+          episode.titleTemplate,
+          alertCount,
+        ) || "Untitled Episode";
     }
 
     // Update description with dynamic variables if template exists
@@ -953,6 +1499,16 @@ export class Service extends DatabaseService<Model> {
     // Replace dynamic variables
     result = result.replace(/\{\{alertCount\}\}/g, alertCount.toString());
 
+    /*
+     * Clear anything else left in braces, as the grouping engine does when it
+     * first writes the title and description. The engine now stores only
+     * the count as a placeholder, but an episode opened before then can
+     * still hold "{{monitorName}}" and the like for a value its first
+     * alert did not have - which came back into its title each time
+     * another alert joined.
+     */
+    result = clearPlaceholders(result);
+
     return result;
   }
 
@@ -969,15 +1525,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  @CaptureSpan()
-  public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
+  // The episode's project and current state, as OneUptime.
+  private async getEpisodeWithState(episodeId: ObjectID): Promise<Model> {
     const episode: Model | null = await this.findOneById({
       id: episodeId,
       select: {
         projectId: true,
-        currentAlertState: {
-          order: true,
-        },
+        currentAlertStateId: true,
       },
       props: {
         isRoot: true,
@@ -988,53 +1542,28 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const resolvedState: AlertState =
-      await AlertStateService.getResolvedAlertState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentAlertState?.order || 0;
-    const resolvedOrder: number = resolvedState.order || 0;
-
-    return currentOrder >= resolvedOrder;
+    return episode;
   }
 
+  /*
+   * Whether the episode is acknowledged or further along - resolved
+   * included: what stops its on-call escalation and takes Acknowledge away
+   * (Common/Utils/AcknowledgedState).
+   */
   @CaptureSpan()
   public async isEpisodeAcknowledged(data: {
     episodeId: ObjectID;
   }): Promise<boolean> {
-    const episode: Model | null = await this.findOneById({
-      id: data.episodeId,
-      select: {
-        projectId: true,
-        currentAlertState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const episode: Model = await this.getEpisodeWithState(data.episodeId);
 
-    if (!episode || !episode.projectId) {
-      throw new BadDataException("Episode not found.");
+    if (!episode.currentAlertStateId) {
+      return false;
     }
 
-    const acknowledgedState: AlertState =
-      await AlertStateService.getAcknowledgedAlertState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentAlertState?.order || 0;
-    const acknowledgedOrder: number = acknowledgedState.order || 0;
-
-    return currentOrder >= acknowledgedOrder;
+    return await AlertStateService.isAcknowledgedAlertState({
+      projectId: episode.projectId!,
+      alertStateId: episode.currentAlertStateId,
+    });
   }
 
   @CaptureSpan()
@@ -1084,6 +1613,7 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
         userId: reopenedByUserId,
       },
+      isGroupingRuleReopen: true,
     });
 
     // Clear resolved timestamp and allAlertsResolvedAt
@@ -1142,22 +1672,58 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      ALERT_STATE_KEYS,
+      "Alert State",
+    );
+
     // Handle state changes
-    if (
-      onUpdate.updateBy.data.currentAlertStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    if (updatedAlertStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeEpisodeState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           episodeId: itemId,
-          alertStateId: onUpdate.updateBy.data.currentAlertStateId as ObjectID,
+          alertStateId: updatedAlertStateId,
           notifyOwners: true,
           rootCause: "State was changed when the episode was updated.",
           props: {
             isRoot: true,
           },
         });
+      }
+    }
+
+    /*
+     * The episode on-call rules match the severity, the labels, the title
+     * and the description. An episode whose runs wait for working hours,
+     * written one of those, may now match a rule that pages right away:
+     * those runs start paging now - an episode whose severity rises at
+     * night with a new member pages at once (WaitingRunsOnRecordChange).
+     * Starting a page must not fail the update.
+     */
+    if (
+      WaitingRunsOnRecordChange.isRuleInputWritten({
+        written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        severityKeys: ["alertSeverityId", "alertSeverity"],
+      })
+    ) {
+      for (const itemId of updatedItemIds) {
+        try {
+          await WaitingRunsOnRecordChange.startForAlertEpisode(itemId);
+        } catch (waitingRunsError) {
+          logger.error(
+            `Starting waiting on-call runs failed in AlertEpisodeService.onUpdateSuccess: ${waitingRunsError}`,
+            {
+              projectId: onUpdate.updateBy.props.tenantId?.toString(),
+              episodeId: itemId.toString(),
+            } as LogAttributes,
+          );
+        }
       }
     }
 

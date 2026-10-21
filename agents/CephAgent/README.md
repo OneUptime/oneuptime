@@ -4,6 +4,8 @@ Monitor Ceph clusters — health, mon quorum, OSDs, pools, and placement groups 
 
 The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the Ceph mgr `prometheus` module on every mgr daemon, stamps the data with your cluster identity, and ships it to OneUptime over OTLP.
 
+Next to the collector, `docker-compose.yml` also runs the **OneUptime AI agent** (`oneuptime-ceph-ai-agent`), which lets OneUptime AI look at this cluster with the `ceph` CLI while it investigates an incident or alert. It connects as its own read-only Ceph client and applies fixes only if you allow them; see [OneUptime AI agent](#oneuptime-ai-agent).
+
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Ceph mgr daemons (port 9283)
@@ -32,7 +34,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Ce
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and mgr endpoints, installs to `/opt/oneuptime-ceph-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and mgr endpoints, installs to `/opt/oneuptime-ceph-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, and re-running the script reuses everything in an existing `.env` instead of prompting again, which is how you [upgrade](#upgrading). Run on a machine where `ceph` works with admin rights, it also offers to create the AI agent's Ceph client and put its `ceph.conf` and keyring in place (see [OneUptime AI agent](#oneuptime-ai-agent)).
 
 ## Quick Start — Docker Compose
 
@@ -51,7 +53,7 @@ Then start the agent:
 docker compose up -d
 ```
 
-The cluster will appear automatically in the **Ceph** section of OneUptime.
+The cluster will appear automatically in the **Ceph** section of OneUptime. The AI agent service starts too, and waits for its `ceph/` folder: see [Setting up the AI agent](#setting-up-the-ai-agent).
 
 ## Environment Variables
 
@@ -115,12 +117,112 @@ processors:
 
 The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
 
+## OneUptime AI agent
+
+The `oneuptime-ceph-ai-agent` service (image `oneuptime/resource-ai-agent`) runs the `ceph` commands OneUptime AI asks for, so an investigation can read `ceph status`, `ceph health detail`, the OSD tree, pool and PG states, recent crashes and the cluster log — and, only if you allow it, apply a fix such as marking an OSD back in or clearing `noout`. It connects as **its own Ceph client**, `client.oneuptime-ai`, with the `ceph.conf` and keyring in the `ceph/` folder next to `docker-compose.yml` (mounted read-only at `/etc/ceph`); OneUptime never sends it a credential. It registers as the cluster named `CEPH_CLUSTER_NAME`, the same one the collector reports into, and appears on that cluster's **AI → AI agent** page in OneUptime, where you also choose whether OneUptime AI proposes fixes and whether a person approves each one.
+
+**The client's caps are the hard limit.** With the read caps below, nothing the agent runs can change the cluster, whatever its settings say. The agent runs as UID 1000 with a read-only root filesystem and no capabilities, starts `ceph` without a shell for every command, and passes its own `--conf`, `--keyring`, `--id` and `--connect-timeout` — a command can never choose another cluster, client or keyring. If you do not use OneUptime AI, delete the `oneuptime-ceph-ai-agent` service from `docker-compose.yml`.
+
+### Setting up the AI agent
+
+On a Ceph admin node (any machine where `ceph` works with the admin keyring), in the install directory (`/opt/oneuptime-ceph-agent` by default):
+
+```bash
+mkdir -p ceph
+ceph config generate-minimal-conf > ceph/ceph.conf
+ceph auth get-or-create client.oneuptime-ai mon 'allow r' mgr 'allow r' osd 'allow r' -o ceph/ceph.client.oneuptime-ai.keyring
+sudo chown 1000:1000 ceph/ceph.client.oneuptime-ai.keyring
+sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
+docker compose up -d
+```
+
+If the agent runs on another machine, copy the two files into its `ceph/` folder the same way. The keyring is a secret: keep it mode `600`, owned by UID 1000 (the agent's user). **Never put the admin keyring there** — the agent needs nothing but its own client.
+
+The agent connects **out** to the monitors listed in `mon_host` (TCP 3300 and 6789) and to the mgr and OSD daemons (TCP 6800–7300); Docker's default network reaches them whenever this machine does. If `mon_host` uses addresses only the host itself reaches (such as `127.0.0.1` on a monitor host), uncomment `network_mode: host` in the service.
+
+### What it may run
+
+Every command is checked by the same policy three times — by OneUptime's AI tools, when OneUptime queues it, and by the agent right before it starts `ceph` — and then by the monitors against the client's caps:
+
+| Kind | Commands | When it runs |
+|---|---|---|
+| **Read** | `ceph status` (`-s`), `health [detail]`, `df [detail]`, `versions`, `progress`, `quorum_status`, `log last ...`, `osd tree`, `osd df`, `osd perf`, `osd stat`, `osd dump`, `osd blocked-by`, `osd find ID`, `osd metadata`, `osd ok-to-stop ID`, `osd safe-to-destroy ID`, `osd pool ls [detail]`, `osd pool stats`, `osd pool get POOL VAR`, `pg stat`, `pg dump_stuck`, `pg PGID query`, `pg ls-by-*`, `mon stat`, `mon dump`, `mgr stat`, `mgr services`, `mgr module ls`, `crash ls`, `crash info ID`, `orch ps`, `orch ls`, `orch host ls`, `orch device ls`, `balancer status`, `fs status`, `fs ls`, `mds stat` — with `--format json`, `json-pretty` or `plain` | Investigations, always |
+| **Safe fix** | `ceph osd in ID`, `osd unset FLAG`, `crash archive ID`, `orch daemon restart TYPE.ID`, `pg scrub PGID`, `pg deep-scrub PGID` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; can run unattended in *Automatic* mode |
+| **Risky fix** | `ceph osd out ID`, `osd down ID`, `osd set FLAG`, `osd reweight ID 0..1`, `pg repair PGID`, `mgr fail [NAME]`, `orch daemon stop\|start TYPE.ID`, `orch restart SERVICE`, `crash archive-all`, `balancer on\|off` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; a person approves it unless your settings say otherwise |
+| **Always a person** | `ceph osd set pause` (stops all client I/O), `ceph osd pool set POOL size\|min_size N` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`, and always after a person approves |
+| **Never** | Anything else: `osd purge`, `destroy`, `rm`, `lost`, `crush`, creating, deleting or renaming pools and every other pool setting, `auth` (cephx keys), `config-key` (secrets), `config`, `tell`, `daemon` and `--admin-daemon`, `injectargs`, `fs` and `mon` changes, `mgr module enable\|disable`, `orch apply\|rm\|host\|upgrade`, `crash rm\|prune`, and every option that picks a cluster, client, keyring or file (`-c`, `-k`, `--id`, `-n`, `-m`, `-i`, `-o`, `-w`, ...) | — |
+
+FLAG is one of `noout`, `norebalance`, `nobackfill`, `norecover`, `noscrub`, `nodeep-scrub` and `pause`, and every fix names one OSD, PG, daemon, service or crash report. cephx keys and other secrets `ceph` prints are masked before the output leaves the agent.
+
+### Allowing fixes
+
+1. Give `client.oneuptime-ai` the caps for the fixes. `ceph auth caps` replaces the client's caps and keeps its key, so the keyring in `ceph/` stays valid. On top of the read caps, this profile allows the fixes above and no other change (verified on Ceph 19 Squid; the read caps never include `auth` or `config-key`):
+
+   ```bash
+   ceph auth caps client.oneuptime-ai \
+     mon 'allow r, allow command "osd in", allow command "osd out", allow command "osd down", allow command "osd set", allow command "osd unset", allow command "osd reweight", allow command "osd pool set" with var=size, allow command "osd pool set" with var=min_size, allow command "mgr fail"' \
+     mgr 'allow r, allow command "pg scrub", allow command "pg deep-scrub", allow command "pg repair", allow command "crash archive", allow command "crash archive-all", allow command "orch daemon" with action=start, allow command "orch daemon" with action=stop, allow command "orch daemon" with action=restart, allow command "orch" with action=restart, allow command "balancer on", allow command "balancer off"' \
+     osd 'allow r'
+   ```
+
+   (`osd set` and `osd unset` accept any flag at the cap level; the agent's policy only ever sends the flags listed above.) A shorter, broader alternative is `mon 'allow rw' mgr 'allow rw' osd 'allow r'` — the agent's command policy is then the only limit on what a fix may do. To go back to read-only, run `ceph auth caps client.oneuptime-ai mon 'allow r' mgr 'allow r' osd 'allow r'`.
+
+2. Add to `.env` and run `docker compose up -d`:
+
+   ```bash
+   ONEUPTIME_AI_ALLOW_WRITES=true
+   # Optional: only these targets may be changed (globs; "cluster" is the target of cluster-wide flags such as noout)
+   ONEUPTIME_AI_WRITE_TARGETS=osd.*,cluster
+   # Optional: never change these
+   ONEUPTIME_AI_PROTECTED_TARGETS=osd.0,.mgr
+   ```
+
+3. Fixes then wait for a person to approve each one (`ask-for-approval`, the default once writes are allowed). For another mode, set `ONEUPTIME_AI_FIXES` in the same `.env` (`automatic` or `bypass-approval`; `off` keeps the agent read-only) and run `docker compose up -d` again. The cluster's **AI → AI agent** page shows the mode, read-only.
+
+`install.sh` asks about fixes on a fresh install and, when it creates the client, gives it these caps for you.
+
+A fix's targets are written the way the agent compares them with `ONEUPTIME_AI_WRITE_TARGETS` and `ONEUPTIME_AI_PROTECTED_TARGETS`: `osd.3` for an OSD (whether the command wrote `3` or `osd.3`), the pool name, the PG id (`1.2f`), the daemon name as `ceph orch ps` lists it (`mon.host1`), the service name for `orch restart`, `mgr.NAME` for `mgr fail NAME`, `crash/ID` for a crash report, and `cluster` for cluster-wide changes (`osd set`/`unset`, `balancer on`/`off`, `crash archive-all`, `mgr fail` without a name).
+
+### AI agent settings
+
+These go in the same `.env`; the agent also reads `CEPH_CLUSTER_NAME` from the collector's settings above.
+
+| Variable | Default | Description |
+|---|---|---|
+| `ONEUPTIME_AI_ALLOW_WRITES` | `false` | `true` lets OneUptime AI apply fixes (within the client's caps). Anything else keeps the agent read-only |
+| `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs of the targets fixes may touch (see above). Empty means any, except the protected ones |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated targets (or globs) OneUptime AI must never change |
+| `CEPH_CLIENT_ID` | `oneuptime-ai` | The Ceph client the agent connects as, without `client.`. Its keyring is `ceph/ceph.client.<CEPH_CLIENT_ID>.keyring` |
+| `CEPH_CONF` / `CEPH_KEYRING` | `/etc/ceph/ceph.conf` / `/etc/ceph/ceph.client.<CEPH_CLIENT_ID>.keyring` | Paths **inside the agent's container**, for a layout other than the `ceph/` folder; set them in the service's `environment:`. Each must be one plain absolute path |
+
+### Troubleshooting the AI agent
+
+```bash
+docker logs --tail 100 oneuptime-ceph-ai-agent
+docker exec oneuptime-ceph-ai-agent wget -qO- http://127.0.0.1:3877/status
+```
+
+`/status` shows whether the agent is registered, which cluster it serves, the Ceph release and health it last saw and, if it cannot reach the cluster, why.
+
+| What you see | What to do |
+|---|---|
+| `The ceph.conf at /etc/ceph/ceph.conf is not in the agent's container` | Put `ceph config generate-minimal-conf`'s output at `ceph/ceph.conf` next to `docker-compose.yml`. |
+| `The keyring ... is not in the agent's container` / `is not a file` | Create the client's keyring in `ceph/` (see [Setting up the AI agent](#setting-up-the-ai-agent)); Docker mounts an empty directory where a file is missing. |
+| `... is not readable by the agent (UID 1000)` | `sudo chown 1000:1000 ceph/ceph.client.oneuptime-ai.keyring && sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring` |
+| `The monitors rejected client.oneuptime-ai's key` | The keyring belongs to another client or an old key: export it again with `ceph auth get client.oneuptime-ai -o ceph/ceph.client.oneuptime-ai.keyring`, and check `CEPH_CLIENT_ID`. |
+| `The agent cannot reach the monitors in ... (mon_host)` / `timed out` | Check `mon_host` in `ceph/ceph.conf` and that this machine reaches the monitors on TCP 3300 and 6789 (or use `network_mode: host`). |
+| `client.oneuptime-ai may not read this: give it the read caps` | `ceph auth caps client.oneuptime-ai mon 'allow r' mgr 'allow r' osd 'allow r'` |
+| `client.oneuptime-ai's caps do not allow this change` | Give it the fixes caps (see [Allowing fixes](#allowing-fixes)), or leave that change to a person. |
+| `... this agent is read-only` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env` and `docker compose up -d`. |
+| `Killed (timeout ...): ceph produced no output at all` | The monitors are unreachable, or the command needs an active mgr (`pg`, `df`, `osd df`, `crash`, `orch`, `balancer`): check `ceph mgr stat`. |
+| `This cluster has no orchestrator backend (cephadm)` | Normal on clusters not managed by cephadm (Proxmox, Rook, packages): OneUptime AI uses the other commands. |
+
 ## Run as a systemd Service
 
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo cp systemd/oneuptime-ceph-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/systemd/oneuptime-ceph-agent.service -o /etc/systemd/system/oneuptime-ceph-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-ceph-agent
 ```
@@ -129,11 +231,25 @@ The unit assumes the agent lives in `/opt/oneuptime-ceph-agent` (the install scr
 
 ## Upgrading
 
+The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the cluster's page; select it to see these commands. Pulling alone does not move the agent forward.
+
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again; an exported variable still overrides it), refreshes `docker-compose.yml` and `otel-collector-config.yaml`, pulls the images and recreates the agent so the collector reads its new config. A file you edited since `install.sh` installed it is kept next to the new one as `<file>.bak.<timestamp>`, and the script names it at the end. The AI agent's `ceph/` folder stays as it is.
+
 ```bash
-cd /opt/oneuptime-ceph-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
+bash install.sh
 ```
+
+Installed it with Docker Compose instead? Download both files again, then pull and recreate the agent (re-apply any change you made to the two files):
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+An agent installed before the collector was pinned reports no version until it is upgraded this way.
 
 ## Uninstalling
 
@@ -142,11 +258,13 @@ cd /opt/oneuptime-ceph-agent
 docker compose down
 ```
 
+Then remove the AI agent's Ceph client if you created one: `ceph auth del client.oneuptime-ai`.
+
 ## Troubleshooting
 
 ### Run the doctor script first
 
-`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion key (so a misconfigured collector cannot retry-flood the server), which means log inspection alone can never tell you the key is wrong. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a real 200/401 verdict:
+`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints refuse a bad ingestion key with `401` (`422` for a disabled key or a browser key), and the collector drops each refused batch with a single `Exporting failed` log line that is easy to miss. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a direct 200/401 verdict:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh
@@ -175,6 +293,10 @@ docker compose ps
 
 # View collector logs
 docker logs -f oneuptime-ceph-agent
+
+# View the AI agent's logs and status
+docker logs -f oneuptime-ceph-ai-agent
+docker exec oneuptime-ceph-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 # Check which mgr is active
 ceph mgr stat

@@ -3,13 +3,16 @@ import EnterpriseServerModule, {
   ENTERPRISE_SERVER_MODULE_NAME,
 } from "Common/Server/Enterprise/EnterpriseServerModule";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
+import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import EnterpriseArea from "./Types/EnterpriseArea";
 import AdminHealthArea, { getAdminHealthRouter } from "./AdminHealth/Index";
 import AuditLogArea, { getAuditLogRecorder } from "./AuditLog/Index";
 import IdentityArea from "./Identity/Index";
 import LicenseArea, { licensing } from "./License/Index";
 import LicenseServerArea from "./LicenseServer/Index";
+import MarketplaceArea from "./Marketplace/Index";
 import TeamComplianceArea from "./TeamCompliance/Index";
+import WhiteLabelArea, { getProductBranding } from "./WhiteLabel/Index";
 import WorkersArea from "./Workers/Index";
 import packageJson from "../package.json";
 
@@ -34,6 +37,8 @@ export const ENTERPRISE_AREAS: ReadonlyArray<EnterpriseArea> = [
   LicenseServerArea,
   AdminHealthArea,
   WorkersArea,
+  WhiteLabelArea,
+  MarketplaceArea,
 ];
 
 type RouterHook = (area: EnterpriseArea) => Array<ExpressRouter> | undefined;
@@ -112,6 +117,9 @@ const EnterpriseModule: EnterpriseServerModule = {
   },
   getAuditLogRecorder: (): AuditLogRecorder | null => {
     return getAuditLogRecorder();
+  },
+  getProductBranding: (): ProductBranding | null => {
+    return getProductBranding();
   },
 };
 

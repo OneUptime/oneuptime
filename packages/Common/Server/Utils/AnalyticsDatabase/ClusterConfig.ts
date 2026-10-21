@@ -79,7 +79,9 @@ export function getDistributedDdlTaskTimeoutSeconds(): number {
  * DROP / RENAME) so the object is created or dropped on every node of the
  * cluster. Per-table ALTERs and data mutations on ReplicatedMergeTree propagate
  * through Keeper automatically; emitting ON CLUSTER on them too is harmless and
- * keeps the reconcilers deterministic across replicas.
+ * keeps the reconcilers deterministic across replicas. The exception is a
+ * settings change (`ALTER TABLE … MODIFY SETTING`): each replica applies it to
+ * its own copy only, so it reaches every replica only through ON CLUSTER.
  */
 export function onClusterClause(): string {
   return ` ON CLUSTER '${getClickhouseClusterName()}'`;

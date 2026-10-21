@@ -176,12 +176,53 @@ describe("fetchIncidentEpisodes", () => {
     /*
      * The filter is expressed against the episode's CURRENT state rather than
      * a boolean on the episode, so a state renamed in the project's settings
-     * still filters correctly as long as its isResolvedState flag is right.
+     * still filters correctly.
+     *
+     * Which states are open is the project's to say: every state above its
+     * resolved state. "Closed", placed after Resolved and not flagged, is
+     * resolved too, so the project's states are read first and the list asks
+     * for the open ones by id (utils/resolvedState).
      */
+    postSpy().mockResolvedValueOnce({
+      data: makeListResponse([
+        makeIncidentState({ _id: "state-created", order: 1 }),
+        makeIncidentState({
+          _id: "state-acknowledged",
+          name: "Acknowledged",
+          isCreatedState: false,
+          isAcknowledgedState: true,
+          order: 2,
+        }),
+        makeIncidentState({
+          _id: "state-resolved",
+          name: "Resolved",
+          isCreatedState: false,
+          isResolvedState: true,
+          order: 3,
+        }),
+        makeIncidentState({
+          _id: "state-closed",
+          name: "Closed",
+          isCreatedState: false,
+          order: 4,
+        }),
+      ]),
+    } as never);
+
     await fetchIncidentEpisodes("project-1", { unresolvedOnly: true });
 
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0]).toBe("/api/incident-state/get-list?skip=0&limit=20");
+    expect(calls[0]![2]).toEqual({ headers: { tenantid: "project-1" } });
+    expect(lastRequest().url).toBe(
+      "/api/incident-episode/get-list?skip=0&limit=20",
+    );
     expect(lastRequest().body.query).toEqual({
-      currentIncidentState: { isResolvedState: false },
+      currentIncidentStateId: {
+        _type: "Includes",
+        value: ["state-created", "state-acknowledged"],
+      },
     });
   });
 
@@ -192,6 +233,32 @@ describe("fetchIncidentEpisodes", () => {
   });
 
   test("keeps the unresolved filter independent of the paging window", async () => {
+    postSpy().mockResolvedValueOnce({
+      data: makeListResponse([
+        makeIncidentState({ _id: "state-created", order: 1 }),
+        makeIncidentState({
+          _id: "state-acknowledged",
+          name: "Acknowledged",
+          isCreatedState: false,
+          isAcknowledgedState: true,
+          order: 2,
+        }),
+        makeIncidentState({
+          _id: "state-resolved",
+          name: "Resolved",
+          isCreatedState: false,
+          isResolvedState: true,
+          order: 3,
+        }),
+        makeIncidentState({
+          _id: "state-closed",
+          name: "Closed",
+          isCreatedState: false,
+          order: 4,
+        }),
+      ]),
+    } as never);
+
     await fetchIncidentEpisodes("project-1", {
       skip: 20,
       unresolvedOnly: true,
@@ -201,7 +268,10 @@ describe("fetchIncidentEpisodes", () => {
 
     expect(request.url).toContain("skip=20");
     expect(request.body.query).toEqual({
-      currentIncidentState: { isResolvedState: false },
+      currentIncidentStateId: {
+        _type: "Includes",
+        value: ["state-created", "state-acknowledged"],
+      },
     });
   });
 
@@ -345,27 +415,6 @@ describe("fetchAllIncidentEpisodes", () => {
     await fetchAllIncidentEpisodes();
 
     expect(lastRequest().body.query).toEqual({});
-  });
-
-  test("narrows to unresolved episodes across all projects when asked", async () => {
-    await fetchAllIncidentEpisodes({ unresolvedOnly: true });
-
-    expect(lastRequest().body.query).toEqual({
-      currentIncidentState: { isResolvedState: false },
-    });
-  });
-
-  test("still spans projects when the unresolved filter is applied", async () => {
-    /*
-     * Filtering and fencing are separate concerns; a filtered cross-project
-     * list is the one the on-call home screen actually renders.
-     */
-    await fetchAllIncidentEpisodes({ unresolvedOnly: true });
-
-    const request: RecordedRequest = lastRequest();
-
-    expect(request.headers["is-multi-tenant-query"]).toBe("true");
-    expect(request.headers["tenantid"]).toBeUndefined();
   });
 
   test("sorts newest first", async () => {

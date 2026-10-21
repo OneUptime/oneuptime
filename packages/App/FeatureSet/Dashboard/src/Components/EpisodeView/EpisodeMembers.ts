@@ -2,10 +2,43 @@ import Select from "Common/Types/BaseDatabase/Select";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 
 // How many members the overview previews before pointing at the full list.
 export const EPISODE_MEMBERS_PREVIEW_LIMIT: number = 8;
+
+/*
+ * Which incidents (or alerts) an episode holds: its membership rows, one per
+ * member. The member's own incidentEpisodeId / alertEpisodeId cannot say: an
+ * incident can be in several episodes, and that column names only the latest
+ * one it is still in (IncidentEpisodeMemberService keeps it so). An incident
+ * added to episode A and then to B points at B, so a query on the column
+ * would leave it out of A.
+ */
+export interface EpisodeMembership<TMembership extends BaseModel> {
+  // IncidentEpisodeMember or AlertEpisodeMember.
+  modelType: { new (): TMembership };
+  // Its link to the episode.
+  episodeIdField: keyof TMembership & string;
+  // Its link to the incident or alert.
+  memberIdField: keyof TMembership & string;
+}
+
+export const INCIDENT_EPISODE_MEMBERSHIP: EpisodeMembership<IncidentEpisodeMember> =
+  {
+    modelType: IncidentEpisodeMember,
+    episodeIdField: "incidentEpisodeId",
+    memberIdField: "incidentId",
+  };
+
+export const ALERT_EPISODE_MEMBERSHIP: EpisodeMembership<AlertEpisodeMember> = {
+  modelType: AlertEpisodeMember,
+  episodeIdField: "alertEpisodeId",
+  memberIdField: "alertId",
+};
 
 export interface EpisodeMemberPill {
   name: string;

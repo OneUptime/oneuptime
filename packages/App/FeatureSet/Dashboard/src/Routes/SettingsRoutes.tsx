@@ -3,6 +3,11 @@ import SettingsLayout from "../Pages/Settings/Layout";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
+import {
+  MOVED_OIDC_SETTINGS_PATH,
+  MOVED_RUNNER_SETTINGS_PATHS,
+} from "./MovedPagePaths";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -27,7 +32,6 @@ import SettingsDomains from "../Pages/Settings/Domains";
 
 import SettingsBilling from "../Pages/Settings/Billing";
 import SettingsSSO from "../Pages/Settings/SSO";
-import SettingsOIDC from "../Pages/Settings/OIDC";
 
 import SettingsSCIM from "../Pages/Settings/SCIM";
 
@@ -40,6 +44,7 @@ import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsI
 import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
+import SettingsVideoCalls from "../Pages/Settings/VideoCalls";
 
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
@@ -50,12 +55,14 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
-import SettingsRunners from "../Pages/Settings/Runners";
-import SettingsRunnerView from "../Pages/Settings/RunnerView";
-import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
+import SettingsExternalMcpServers from "../Pages/Settings/ExternalMcpServers";
 
+import SettingsExternalMcpServerView from "../Pages/Settings/ExternalMcpServerView";
+
+import MovedRunnerPageRedirect from "../Components/Runner/MovedRunnerPageRedirect";
+
+import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
 import SettingsAICredits from "../Pages/Settings/AICredits";
-import SettingsAIGuardrails from "../Pages/Settings/AIGuardrails";
 
 import SettingsAILogs from "../Pages/Settings/AILogs";
 
@@ -67,6 +74,16 @@ const SettingsDangerZone: React.LazyExoticComponent<
   return import("../Pages/Settings/DangerZone");
 });
 
+/*
+ * Lazy: an import is run once or twice in a project's life, so its page
+ * and its components load only when it is opened.
+ */
+const SettingsImportFromTool: React.LazyExoticComponent<
+  typeof import("../Pages/Settings/ImportFromTool").default
+> = lazy(() => {
+  return import("../Pages/Settings/ImportFromTool");
+});
+
 export interface ComponentProps extends PageComponentProps {
   onProjectDeleted: () => void;
 }
@@ -76,6 +93,39 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * The Runner pages moved to Runbooks. Their old Settings URLs forward
+       * there (see MovedRunnerPageRedirect) — outside the Settings layout, so
+       * the Settings menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runners}
+        element={<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}
+      />
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runnerView}
+        element={
+          <MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNER_VIEW} />
+        }
+      />
+      {/*
+       * The OIDC providers moved onto the SSO page, beside the SAML ones
+       * (Components/Sso/ProjectOidcProviders). The old address forwards
+       * there - outside the layout, so the menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_OIDC_SETTINGS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}
+      />
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}
+        element={
+          <MovedRunnerPageRedirect
+            pageMap={PageMap.RUNBOOKS_RUNNER_CREDENTIALS}
+          />
+        }
+      />
+
       <PageRoute
         path={SettingsRoutePath[PageMap.SETTINGS] || ""}
         element={<SettingsLayout {...props} />}
@@ -142,6 +192,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}
+          element={
+            <SettingsAIFeatures
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LLM_PROVIDERS)}
           element={
             <SettingsLlmProviders
@@ -167,43 +227,30 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNERS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS,
+          )}
           element={
-            <SettingsRunners
+            <SettingsExternalMcpServers
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNER_VIEW, 2)}
-          element={
-            <SettingsRunnerView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route
+              }
             />
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_RUNNER_CREDENTIALS,
+            PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW,
+            2,
           )}
           element={
-            <SettingsRunnerCredentials
+            <SettingsExternalMcpServerView
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_GUARDRAILS)}
-          element={
-            <SettingsAIGuardrails
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW] as Route
+              }
             />
           }
         />
@@ -297,21 +344,21 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SSO)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_VIDEO_CALLS)}
           element={
-            <SettingsSSO
+            <SettingsVideoCalls
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+              pageRoute={RouteMap[PageMap.SETTINGS_VIDEO_CALLS] as Route}
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_OIDC)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SSO)}
           element={
-            <SettingsOIDC
+            <SettingsSSO
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_OIDC] as Route}
+              pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
             />
           }
         />
@@ -423,6 +470,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLabels
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_IMPORT_FROM_TOOL)}
+          element={
+            <SettingsImportFromTool
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route}
             />
           }
         />

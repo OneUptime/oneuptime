@@ -40,8 +40,20 @@ const GENERATED_DIR: string = "internal/provider";
  *   Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts
  */
 const PERMISSION_MESSAGE: string =
+  "You do not have permissions to select on - serviceLanguage. You need one of these permissions: Project Owner, Project Admin.";
+
+/*
+ * Before the refusals said who may on the same line
+ * (Common/Server/Types/Database/Permissions/ColumnRefusalMessage.ts), the
+ * permissions came on a line of their own. A provider meets both servers.
+ */
+const OLDER_SERVER_PERMISSION_MESSAGE: string =
   "You do not have permissions to select on - serviceLanguage.\n" +
   "                    You need any one of these permissions: Project Owner, Project Admin";
+
+// A column nobody may read through the API: its list is empty.
+const NOBODY_READS_MESSAGE: string =
+  "You do not have permissions to select on - fileId. No permission allows it: the column is not readable through the API.";
 
 const UNKNOWN_COLUMN_MESSAGE: string =
   'Invalid select clause. Cannot select on "enableSearchEngineIndexing". ' +
@@ -49,6 +61,16 @@ const UNKNOWN_COLUMN_MESSAGE: string =
   "Here are the columns you can select on instead: _id, createdAt, updatedAt";
 
 const ANALYTICS_UNKNOWN_COLUMN_MESSAGE: string = "Unknown column: spanId";
+
+/*
+ * A root or master-admin caller - the master API key of a self-hosted
+ * OneUptime - skips the select permission check, so a column the server does
+ * not have is refused further in, by the model's column metadata
+ * (Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel.ts).
+ * OneUptime/terraform-provider-oneuptime#9 is this message failing a refresh.
+ */
+const ROOT_UNKNOWN_COLUMN_MESSAGE: string =
+  "TableColumnMetadata not found for alertEpisodeNumberPrefix column";
 
 beforeAll(async () => {
   outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tfgen-provider-"));
@@ -150,8 +172,19 @@ describe("select-rejection patterns", () => {
 
   test.each([
     ["permission denied", PERMISSION_MESSAGE, "serviceLanguage"],
+    [
+      "permission denied by an older server",
+      OLDER_SERVER_PERMISSION_MESSAGE,
+      "serviceLanguage",
+    ],
+    ["a column nobody may read", NOBODY_READS_MESSAGE, "fileId"],
     ["unknown column", UNKNOWN_COLUMN_MESSAGE, "enableSearchEngineIndexing"],
     ["analytics unknown column", ANALYTICS_UNKNOWN_COLUMN_MESSAGE, "spanId"],
+    [
+      "unknown column, for the master key",
+      ROOT_UNKNOWN_COLUMN_MESSAGE,
+      "alertEpisodeNumberPrefix",
+    ],
   ])(
     "extracts the column from the decoded %s message",
     (_name: string, message: string, column: string) => {
@@ -167,8 +200,19 @@ describe("select-rejection patterns", () => {
    */
   test.each([
     ["permission denied", PERMISSION_MESSAGE, "serviceLanguage"],
+    [
+      "permission denied by an older server",
+      OLDER_SERVER_PERMISSION_MESSAGE,
+      "serviceLanguage",
+    ],
+    ["a column nobody may read", NOBODY_READS_MESSAGE, "fileId"],
     ["unknown column", UNKNOWN_COLUMN_MESSAGE, "enableSearchEngineIndexing"],
     ["analytics unknown column", ANALYTICS_UNKNOWN_COLUMN_MESSAGE, "spanId"],
+    [
+      "unknown column, for the master key",
+      ROOT_UNKNOWN_COLUMN_MESSAGE,
+      "alertEpisodeNumberPrefix",
+    ],
   ])(
     "extracts the column from the JSON-encoded %s body, quotes escaped and all",
     (_name: string, message: string, column: string) => {
@@ -310,8 +354,8 @@ describe("data source lookups", () => {
     expect(monitorDataSourceGo).not.toContain("d.client.Post(ctx,");
   });
 
-  test("the by-name lookup still sends its query and limit", () => {
-    expect(monitorDataSourceGo).toContain('"query": map[string]interface{}{');
+  test("the lookup by arguments still sends its query and limit", () => {
+    expect(monitorDataSourceGo).toContain('"query":  filters,');
     expect(monitorDataSourceGo).toContain('"limit": 2,');
   });
 });

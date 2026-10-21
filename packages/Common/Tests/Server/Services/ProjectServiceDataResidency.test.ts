@@ -57,6 +57,14 @@ async function runOnBeforeUpdate(
   return { result, data: result.updateBy.data as UpdateData };
 }
 
+// The success hook, as DatabaseService runs it once the update wrote the project.
+async function runOnUpdateSuccess(data: UpdateData): Promise<void> {
+  await (ProjectService as any).onUpdateSuccess(
+    { updateBy: makeUpdateBy(data), carryForward: [] },
+    [PROJECT_ID],
+  );
+}
+
 describe("ProjectService data residency with billing enabled", () => {
   beforeEach(() => {
     /*
@@ -252,7 +260,8 @@ describe("ProjectService data residency with billing enabled", () => {
     });
 
     it("does not sync anything to the payment provider", async () => {
-      await runOnBeforeUpdate({ dataResidency: "EU" });
+      const { data } = await runOnBeforeUpdate({ dataResidency: "EU" });
+      await runOnUpdateSuccess(data);
 
       expect(
         BillingService.updateCustomerBusinessDetails,
@@ -260,13 +269,15 @@ describe("ProjectService data residency with billing enabled", () => {
       expect(ProjectService.findOneById).not.toHaveBeenCalled();
     });
 
-    it("still syncs business details to the payment provider when they ride along", async () => {
+    it("still syncs business details to the payment provider when they ride along, once the update is made", async () => {
       /*
        * The residency rules run first in the hook. This proves they do not
-       * short-circuit the rest of it.
+       * short-circuit the rest: the business details still reach the
+       * payment provider, after the write (onUpdateSuccess).
        */
       (ProjectService.findOneById as jest.Mock).mockResolvedValue({
         paymentProviderCustomerId: "cus_123",
+        businessDetails: "Acme Ltd",
       } as never);
 
       const { data } = await runOnBeforeUpdate({
@@ -275,6 +286,13 @@ describe("ProjectService data residency with billing enabled", () => {
       });
 
       expect(data["dataResidency"]).toBe("EU");
+      // Nothing is sent before the update is made.
+      expect(
+        BillingService.updateCustomerBusinessDetails,
+      ).not.toHaveBeenCalled();
+
+      await runOnUpdateSuccess(data);
+
       expect(
         BillingService.updateCustomerBusinessDetails,
       ).toHaveBeenCalledTimes(1);

@@ -47,6 +47,9 @@ import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
 import ServiceArchived from "../Pages/Service/Archived";
 import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
 import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
+import ServiceModel from "Common/Models/DatabaseModels/Service";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -122,6 +125,13 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServiceModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.SERVICE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -296,6 +306,12 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServiceModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

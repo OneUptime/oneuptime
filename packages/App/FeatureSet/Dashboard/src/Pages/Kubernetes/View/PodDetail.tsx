@@ -47,10 +47,13 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import KubernetesImageReferenceView from "../../../Components/Kubernetes/KubernetesImageReferenceView";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const podName: string = Navigation.getLastParamAsString();
 
@@ -147,7 +150,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "container_cpu",
       title: "Container CPU Utilization",
-      description: `CPU utilization for containers in pod ${podName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for containers in pod {{podName}}",
+        { podName: podName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -166,16 +172,17 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
     },
     getSeries: getContainerSeries,
-    transformValue: allocatable
-      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-      : undefined,
+    transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
   };
 
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "container_memory",
       title: "Container Memory Usage",
-      description: `Memory usage for containers in pod ${podName}`,
+      description: translator.translateTemplate(
+        "Memory usage for containers in pod {{podName}}",
+        { podName: podName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -201,7 +208,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "pod_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pod ${podName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pod {{podName}}",
+        { podName: podName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -219,16 +229,17 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: true,
       },
     },
-    transformValue: allocatable
-      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-      : undefined,
+    transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
   };
 
   const podMemoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "pod_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pod ${podName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pod {{podName}}",
+        { podName: podName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -386,8 +397,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <PageLoader isVisible={true} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
-          Container details not yet available. Ensure the kubernetes-agent Helm
-          chart has resourceSpecs.enabled set to true.
+          {translator.translateText(
+            "Container details not yet available. Ensure the kubernetes-agent Helm chart has resourceSpecs.enabled set to true.",
+          )}
         </div>
       ),
     },
@@ -404,8 +416,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <PageLoader isVisible={true} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
-          Environment variable details not yet available. Ensure the
-          kubernetes-agent Helm chart has resourceSpecs.enabled set to true.
+          {translator.translateText(
+            "Environment variable details not yet available. Ensure the kubernetes-agent Helm chart has resourceSpecs.enabled set to true.",
+          )}
         </div>
       ),
     },
@@ -422,8 +435,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <PageLoader isVisible={true} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
-          Volume mount details not yet available. Ensure the kubernetes-agent
-          Helm chart has resourceSpecs.enabled set to true.
+          {translator.translateText(
+            "Volume mount details not yet available. Ensure the kubernetes-agent Helm chart has resourceSpecs.enabled set to true.",
+          )}
         </div>
       ),
     },
@@ -458,7 +472,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Pod Metrics: ${podName}`}
+          title={translator.translateTemplate("Pod Metrics: {{podName}}", {
+            podName: podName,
+          })}
           description="CPU, memory, and container-level resource usage for this pod over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab

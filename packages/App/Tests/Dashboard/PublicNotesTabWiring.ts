@@ -6,14 +6,17 @@ import path from "path";
  * The Public Notes tab of an incident, a scheduled maintenance event and an
  * incident episode is a thin page around the shared notes feed
  * (Components/EventNotes). The page reads the event's own "notified
- * subscribers when it started" flag through useParentNotifyDefault, and the
- * feed turns that into where "Notify status page subscribers" starts on a new
- * public note, and why.
+ * subscribers when it started" flag through useParentNotifyDefault and hands
+ * it to the event's note kind (Components/EventNotes/NoteKinds), which the
+ * feed's composer (EventNoteComposer) turns into where "Notify status page
+ * subscribers" starts on a new public note, and why. The overview feed's
+ * "Add Public Note" dialog builds the same kind from the default the overview
+ * page loaded.
  *
- * What these pin is the wiring between the three pieces. What the feed then
+ * What these pin is the wiring between the pieces. What the composer then
  * does with the flag - that it is what gets posted, ticked or not - is pinned
- * against the rendered feed in Common/Tests/App/Dashboard/EventNotes.test.tsx
- * and PublicNotePagesNotifyDefault.test.tsx.
+ * against the rendered feed in Common/Tests/App/Dashboard/EventNotes.test.tsx,
+ * PublicNotePagesNotifyDefault.test.tsx and FeedNoteComposerDialog.test.tsx.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -52,6 +55,19 @@ export const EVENT_NOTES_FILE: Array<string> = [
   "EventNotes.tsx",
 ];
 
+// The create half of the notes feed, which the feed's dialog draws too.
+export const EVENT_NOTE_COMPOSER_FILE: Array<string> = [
+  "Components",
+  "EventNotes",
+  "EventNoteComposer.tsx",
+];
+
+export const EVENT_NOTE_COMPOSER_DIALOG_FILE: Array<string> = [
+  "Components",
+  "EventNotes",
+  "EventNoteComposerDialog.tsx",
+];
+
 export const PARENT_NOTIFY_DEFAULT_FILE: Array<string> = [
   "Components",
   "EventNotes",
@@ -68,6 +84,14 @@ export interface PublicNotesTabCase {
   noteModel: string;
   // The note's foreign key to the event, e.g. "incidentId".
   parentIdField: string;
+  /*
+   * The event's note kinds (Components/EventNotes/NoteKinds/...) and the
+   * function there that builds this public note's kind, e.g.
+   * "getIncidentPublicNoteKind". Its event id argument is named after
+   * parentIdField.
+   */
+  kindFile: Array<string>;
+  kindFunction: string;
   // The event's own flag, e.g. "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated".
   parentFlag: string;
   // The resolver argument's name and the helper it goes through.
@@ -75,13 +99,44 @@ export interface PublicNotesTabCase {
   helperCall: string;
   // e.g. "PublicNoteSubscriberNotificationDefault.quietIncidentDescription".
   quietDescriptionReference: string;
+  /*
+   * The "who will be notified" element the tab hands the feed, as written in
+   * the source - the incident tab's SubscriberAudienceSummary, which counts
+   * the status pages the incident's scope lets through. Left out for a tab
+   * that shows no audience, which then must not hand the feed one.
+   */
+  audienceSummary?: string | undefined;
   // A neighbour's helper call and wording, easy to copy over by mistake.
   foreignReferences?: Array<string> | undefined;
+  /*
+   * The event can be private (incidents and incident episodes): a private
+   * one takes no public notes (Common/Types/StatusPage/
+   * PrivateRecordPublicNotes). The tab reads whether it is, through the
+   * shared rule, and the kind says so to the feed (isPrivateEvent). Left
+   * out for an event that cannot be private, whose tab must not ask.
+   */
+  canBePrivate?: boolean | undefined;
 }
+
+export const PRIVATE_RULE_IMPORT: string =
+  'import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";';
 
 export function describePublicNotesTab(tab: PublicNotesTabCase): void {
   describe(`${tab.eventName} Public Notes tab`, () => {
     const source: string = readDashboardSource(...tab.file);
+    const kindSource: string = readDashboardSource(...tab.kindFile);
+    // The kind function, up to the next one in its module.
+    const kindStart: number = kindSource.indexOf(
+      `export function ${tab.kindFunction}(`,
+    );
+    const kindEnd: number = kindSource.indexOf(
+      "export function ",
+      kindStart + 1,
+    );
+    const kind: string =
+      kindStart < 0
+        ? ""
+        : kindSource.slice(kindStart, kindEnd < 0 ? undefined : kindEnd);
     const lookup: string =
       source.match(
         new RegExp(
@@ -93,12 +148,36 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
         new RegExp(`<EventNotes<${tab.noteModel}>[\\s\\S]*?\\/>`),
       )?.[0] || "";
 
-    test(`loads only the ${tab.eventName}'s own notify setting`, () => {
+    test(`loads only the ${tab.eventName}'s own notify setting${tab.canBePrivate ? ", and whether it is private" : ""}`, () => {
       expect(lookup).not.toBe("");
       expect(lookup).toContain(`modelType: ${tab.parentModel},`);
       expect(lookup).toContain("id: modelId,");
-      expect(lookup).toContain(`select: { ${tab.parentFlag}: true, },`);
+      expect(lookup).toContain(
+        tab.canBePrivate
+          ? `select: { ${tab.parentFlag}: true, isPrivate: true, },`
+          : `select: { ${tab.parentFlag}: true, },`,
+      );
     });
+
+    test(
+      tab.canBePrivate
+        ? `reads whether the ${tab.eventName} is private by the shared rule, which takes no public notes`
+        : `never asks whether the ${tab.eventName} is private: it cannot be`,
+      () => {
+        if (tab.canBePrivate) {
+          expect(source).toContain(PRIVATE_RULE_IMPORT);
+          expect(lookup).toContain(
+            `resolveIsPrivate: (${tab.resolveArgument}: ${tab.parentModel} | null): boolean => { return !PrivateRecordPublicNotes.takesPublicNotes(${tab.resolveArgument}); },`,
+          );
+          expect(kind).toContain("isPrivateEvent: data.isPrivate === true,");
+          return;
+        }
+
+        expect(source).not.toContain("isPrivate");
+        expect(source).not.toContain("PrivateRecordPublicNotes");
+        expect(kind).not.toContain("isPrivateEvent");
+      },
+    );
 
     test("derives the default from the shared helper", () => {
       expect(source).toContain(HELPER_IMPORT);
@@ -129,15 +208,40 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
       );
     });
 
-    test("hands the feed the default and the quiet explanation", () => {
+    test("hands the feed this event's public note kind, built from the default", () => {
       expect(feed).not.toBe("");
-      expect(feed).toContain(`modelType={${tab.noteModel}}`);
-      expect(feed).toContain('visibility="public"');
-      expect(feed).toContain(`parentIdField="${tab.parentIdField}"`);
-      expect(feed).toContain("parentId={modelId}");
-      expect(feed).toContain(
-        `subscriberNotifications={{ isNotifyingByDefault, quietDescription: ${tab.quietDescriptionReference}, }}`,
+      expect(feed).toBe(
+        `<EventNotes<${tab.noteModel}> key={modelId.toString()} {...${tab.kindFunction}({ ${tab.parentIdField}: modelId, isNotifyingByDefault,${tab.canBePrivate ? " isPrivate," : ""} })} currentProject={props.currentProject} />`,
       );
+      expect(source).toContain(
+        `import { ${tab.kindFunction} } from "../../../Components/EventNotes/NoteKinds/`,
+      );
+    });
+
+    test("the kind is this event's public note, with the default and the quiet explanation", () => {
+      expect(kind).not.toBe("");
+      expect(kind).toContain(
+        `modelType: ${tab.noteModel}, visibility: "public",`,
+      );
+      expect(kind).toContain(`parentIdField: "${tab.parentIdField}",`);
+      expect(kind).toContain(`parentId: ${tab.parentIdField},`);
+
+      const settings: string = `subscriberNotifications: { isNotifyingByDefault: data.isNotifyingByDefault, quietDescription: ${tab.quietDescriptionReference},`;
+
+      expect(kind).toContain(settings);
+
+      if (tab.audienceSummary) {
+        expect(kind).toContain(
+          `${settings} audienceSummary: ${tab.audienceSummary}`,
+        );
+      } else {
+        expect(kind).toContain(`${settings} },`);
+        expect(kindSource).not.toContain("audienceSummary");
+      }
+
+      for (const reference of tab.foreignReferences || []) {
+        expect(kindSource).not.toContain(reference);
+      }
     });
 
     test(`starts a new feed per ${tab.eventName}, so a draft never follows you to the next one`, () => {
@@ -150,12 +254,16 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
  * The shared pieces every Public Notes tab above relies on.
  */
 export function describeSharedPublicNoteWiring(): void {
-  describe("the shared notes feed", () => {
-    const source: string = readDashboardSource(...EVENT_NOTES_FILE);
+  describe("the shared notes composer", () => {
+    const source: string = readDashboardSource(...EVENT_NOTE_COMPOSER_FILE);
+    const notes: string = readDashboardSource(...EVENT_NOTES_FILE);
+    const dialog: string = readDashboardSource(
+      ...EVENT_NOTE_COMPOSER_DIALOG_FILE,
+    );
 
     test("starts a new public note's checkbox from the event's default instead of hard-coding true", () => {
       expect(source).toContain(
-        "const isNotifyingByDefault: boolean = props.subscriberNotifications?.isNotifyingByDefault ?? true;",
+        "const isNotifyingByDefault: boolean = kind.subscriberNotifications?.isNotifyingByDefault ?? true;",
       );
       expect(source).toContain("shouldNotify: isNotifyingByDefault,");
       expect(source).not.toContain("shouldNotify: true");
@@ -169,17 +277,28 @@ export function describeSharedPublicNoteWiring(): void {
 
     test("explains an unticked default with the page's quiet description", () => {
       expect(source).toMatch(
-        /uncheckedDescription: isNotifyingByDefault \? "[^"]+" : props\.subscriberNotifications!\.quietDescription,/,
+        /uncheckedDescription: isNotifyingByDefault \? translationKey\( "[^"]+", \) : kind\.subscriberNotifications!\.quietDescription,/,
       );
     });
 
     test("opens the composer only when asked, not because of the default", () => {
-      expect(source).toContain(
-        "const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);",
+      /*
+       * Folded, unless the page was opened to write a note (?compose=1, where
+       * "Add Private Note" on a private incident's public notes leads).
+       */
+      expect(notes).toContain(
+        "const [isComposerOpen, setIsComposerOpen] = useState<boolean>(() => { return isComposerOpenRequested(window.location.search); });",
       );
-      expect(source).not.toMatch(
-        /setIsComposerOpen\([^)]*isNotifyingByDefault/,
-      );
+      expect(notes).not.toMatch(/setIsComposerOpen\([^)]*isNotifyingByDefault/);
+      expect(source).not.toMatch(/onOpenChange\([^)]*isNotifyingByDefault/);
+      expect(source).not.toMatch(/setIsOpen\([^)]*isNotifyingByDefault/);
+    });
+
+    test("the Notes page and the feed's dialog are the same composer", () => {
+      expect(notes).toContain("<EventNoteComposer<TNote> kind={props}");
+      expect(notes).toContain('presentation={{ type: "inline",');
+      expect(dialog).toContain("<EventNoteComposer<TNote> kind={props.kind}");
+      expect(dialog).toContain('presentation={{ type: "dialog",');
     });
   });
 
@@ -189,20 +308,20 @@ export function describeSharedPublicNoteWiring(): void {
     test("reloads the setting per event and drops a stale answer", () => {
       expect(source).toContain("let isStale: boolean = false;");
       expect(source).toContain(
-        'if (!isStale) { setLoaded({ id, isNotifyingByDefault: props.resolve(parent), error: "", }); }',
+        'if (!isStale) { setLoaded({ id, isNotifyingByDefault: props.resolve(parent), isPrivate: props.resolveIsPrivate ? props.resolveIsPrivate(parent) : false, error: "", }); }',
       );
       expect(source).toContain("return () => { isStale = true; }; }, [id]);");
     });
 
     test("never pairs one event with another event's answer", () => {
       expect(source).toContain(
-        'if (!loaded || loaded.id !== id) { return { isNotifyingByDefault: null, error: "" }; }',
+        'if (!loaded || loaded.id !== id) { return { isNotifyingByDefault: null, isPrivate: false, error: "" }; }',
       );
     });
 
     test("turns a failed load into a readable error rather than a default", () => {
       expect(source).toContain(
-        "if (!isStale) { setLoaded({ id, isNotifyingByDefault: null, error: API.getFriendlyMessage(err), }); }",
+        "if (!isStale) { setLoaded({ id, isNotifyingByDefault: null, isPrivate: false, error: API.getFriendlyMessage(err), }); }",
       );
     });
   });

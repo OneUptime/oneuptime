@@ -31,6 +31,9 @@ import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
 import RumArchived from "../Pages/Rum/Archived";
 import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplicationLabelRule";
 import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -107,6 +110,13 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RumApplication,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.RUM_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -358,6 +368,12 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RumApplication,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

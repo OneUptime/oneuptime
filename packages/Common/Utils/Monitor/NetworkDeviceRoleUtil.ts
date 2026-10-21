@@ -178,6 +178,26 @@ const PRODUCT_RULES: ReadonlyArray<RoleRule> = [
     pattern:
       /\b(?:unifi ap|uap[- ]|u6-|nanostation|instant ap|iap\b|aruba ap|ap-\d{3}|fortiap|omada|eap\d{3}|cw9\d{3})/,
   },
+  /*
+   * UniFi access points by model ("U6+ 6.6.62", "U7-Pro 7.0.66",
+   * "UK-Ultra 6.6.65"), and IQ Engine (HiveOS) access points by the way
+   * they describe themselves ("AP230, HiveOS 8.2r1", "AP4000, IQ Engine
+   * 10.7r1") - Aerohive's switches say "SR2024P, HiveOS" and stay switches.
+   */
+  {
+    role: "wirelessAccessPoint",
+    /*
+     * The IQ Engine shape - a word that holds "ap" (or "hiveap") where a
+     * word part starts, followed by ", hiveos" or ", iq engine" - is read
+     * once per run of word characters and hyphens: from the character
+     * before the run, the run is taken whole, checked for such an "ap", and
+     * must be followed by the suffix. Tried from every "ap" of the run
+     * instead, each try read the rest of the run again.
+     */
+    pattern:
+      /\b(?:u6\+|u7-|uk-ultra)|(?:^|[^\w-])(?=([\w-]*))(?=[\w-]*?\b(?:hive)?ap)\1, (?:hiveos|iq engine)/,
+  },
+  { role: "wirelessAccessPoint", pattern: /\be7\b/, vendor: /ubiquiti/ },
   {
     role: "wirelessAccessPoint",
     pattern: /\bmr\d{2,3}/,
@@ -317,9 +337,20 @@ const SYS_OBJECT_ID_RULES: ReadonlyArray<{
   { prefix: "1.3.6.1.4.1.22610", role: "loadBalancer" }, // A10
   // Storage.
   { prefix: "1.3.6.1.4.1.789", role: "storage" }, // NetApp
+  /*
+   * Wireless. Cambium's and Aruba's arcs are product-specific, so only their
+   * access point arcs are named; Extreme's HiPath arc holds only its wireless
+   * controllers, which count as wireless here as Cisco's WLCs do.
+   */
+  { prefix: "1.3.6.1.4.1.17713.22", role: "wirelessAccessPoint" }, // Cambium Enterprise Wi-Fi
+  { prefix: "1.3.6.1.4.1.14823.1.2", role: "wirelessAccessPoint" }, // Aruba access points (apProducts)
+  { prefix: "1.3.6.1.4.1.4329.15", role: "wirelessAccessPoint" }, // Extreme wireless controllers (HiPath)
   // Switching / routing houses.
   { prefix: "1.3.6.1.4.1.30065", role: "switch" }, // Arista
   { prefix: "1.3.6.1.4.1.6027", role: "switch" }, // Force10 / Dell
+  { prefix: "1.3.6.1.4.1.17713.24", role: "switch" }, // Cambium cnMatrix
+  { prefix: "1.3.6.1.4.1.1916.2", role: "switch" }, // Extreme EXOS / Fabric Engine
+  { prefix: "1.3.6.1.4.1.2272", role: "switch" }, // Extreme VOSS (Avaya/Nortel arc)
   { prefix: "1.3.6.1.4.1.14988", role: "router" }, // MikroTik
 ];
 

@@ -135,8 +135,11 @@ Tout ce dont vous avez besoin sur un seul serveur (Debian / Ubuntu / RHEL, Docke
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ Déployez des agents **basés sur OpenTelemetry** en copier-coller pour surveill
 - **Proxmox** — nœuds, VM, conteneurs, stockage, état HA, couverture de sauvegarde et santé de la réplication. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, hôtes ESXi, machines virtuelles, datastores, clusters, pools de ressources et vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — santé du cluster, prévisions de capacité et visibilité OSD/pool/PG/moniteur. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Baies de stockage** — Pure Storage FlashArray et FlashBlade : capacité, latence, volumes, hôtes, réplication, santé du matériel, systèmes de fichiers et buckets. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **Bases de données** — PostgreSQL, MySQL, Redis, MongoDB et d'autres, détectées automatiquement à partir des traces applicatives, de Kubernetes et de Docker, avec métriques du moteur, échantillons de requêtes et logs depuis un agent collector composé uniquement de configuration. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ Déployez des agents **basés sur OpenTelemetry** en copier-coller pour surveill
 | **Idéal pour** | Auto-hébergeurs et petites équipes | Équipes réglementées nécessitant un support premium |
 | **Coût** | Gratuit et open source | [Contacter le service commercial](mailto:sales@oneuptime.com) |
 | **Licence** | Apache 2.0 | Apache 2.0, plus la [OneUptime Enterprise License](/ee/LICENSE) pour le répertoire `ee/` |
-| **Fonctionnalités** | Tout ce qui est inclus ci-dessus — monitoring, pages de statut, incidents, astreintes, logs, traces, métriques, suivi des erreurs, workflows et IA | Tout Community + authentification unique SAML et OIDC, provisionnement SCIM, journaux d'audit, conformité des équipes et tableaux de bord de santé de l'instance, avec support prioritaire, fonctionnalités sur mesure et résidence des données |
+| **Fonctionnalités** | Tout ce qui est inclus ci-dessus — monitoring, pages de statut, incidents, astreintes, logs, traces, métriques, suivi des erreurs, workflows et IA — ainsi que l'authentification unique SAML et OIDC | Tout Community + provisionnement SCIM, journaux d'audit, conformité des équipes et tableaux de bord de santé de l'instance, avec support prioritaire, fonctionnalités sur mesure et résidence des données |
 
 Les fonctionnalités Enterprise se trouvent dans le répertoire [`ee/`](/ee) et ne sont livrées que dans l'image Enterprise. Consultez [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) pour la comparaison complète.
 

@@ -20,6 +20,15 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
+import SafeHtml from "Common/Types/SafeHtml";
+import { ProjectNotificationChannel } from "Common/Utils/Project/NotificationChannels";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import Project from "Common/Models/DatabaseModels/Project";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import API from "Common/Utils/API";
@@ -28,6 +37,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { fitWhatsAppTemplateVariables } from "Common/Utils/WhatsAppTemplateFit";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
@@ -136,12 +146,14 @@ export default class WhatsAppService {
 
       const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
-      let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
 
-      if (shouldChargeForMessage) {
-        messageCost = WhatsAppTextDefaultCostInCents / 100;
-      }
+      // What it costs, in whole cents.
+      const messageCostInUSDCents: number = shouldChargeForMessage
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: WhatsAppTextDefaultCostInCents,
+          })
+        : 0;
 
       let project: Project | null = null;
 
@@ -169,6 +181,10 @@ export default class WhatsAppService {
               isRoot: true,
             },
           });
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: whatsAppLog.statusMessage!,
+          });
           return;
         }
 
@@ -186,9 +202,32 @@ export default class WhatsAppService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+          /*
+           * Nothing left, or less than this message costs. The log (which
+           * the project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance). The message goes
+           * into their email as text: it carries incident titles and other
+           * typed values, so any markup in it is shown, not rendered.
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          if (!balanceInUSDCents || balanceInUSDCents < messageCostInUSDCents) {
+            const shortfall: {
+              channel: ProjectNotificationChannel;
+              balanceInUSDCents: number;
+              costInUSDCents: number;
+            } = {
+              channel: ProjectNotificationChannel.WhatsApp,
+              balanceInUSDCents: balanceInUSDCents,
+              costInUSDCents: messageCostInUSDCents,
+            };
+
             whatsAppLog.status = WhatsAppStatus.LowBalance;
-            whatsAppLog.statusMessage = `Project ${options.projectId.toString()} does not have enough balance for WhatsApp messages.`;
+            whatsAppLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             // Tenant billing state, not a defect — the owners get emailed below.
             logger.error(whatsAppLog.statusMessage, EXTERNAL_FAULT);
 
@@ -199,62 +238,33 @@ export default class WhatsAppService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                id: project.id!,
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 `Low WhatsApp message balance for ${project.name || ""}`,
-                `We tried to send a WhatsApp message to ${message.to.toString()} with message:<br/><br/>${messageSummary}<br/><br/>The message was not sent because your project does not have enough balance for WhatsApp messages. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance for this message is ${messageCost} USD. Please enable auto recharge or recharge manually.`,
+                `We tried to send a WhatsApp message to ${SafeHtml.escape(
+                  message.to.toString(),
+                )} with message:<br/><br/>${SafeHtml.escape(
+                  messageSummary,
+                )}<br/><br/>This WhatsApp message was not sent. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
-            return;
-          }
-
-          if (project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100) {
-            whatsAppLog.status = WhatsAppStatus.LowBalance;
-            whatsAppLog.statusMessage = `Project does not have enough balance to send WhatsApp message. Current balance is ${
-              project.smsOrCallCurrentBalanceInUSDCents / 100
-            } USD. Required balance is ${messageCost} USD.`;
-            // Tenant billing state, not a defect — the owners get emailed below.
-            logger.error(whatsAppLog.statusMessage, EXTERNAL_FAULT);
-
-            await WhatsAppLogService.create({
-              data: whatsAppLog,
-              props: {
-                isRoot: true,
-              },
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: whatsAppLog.statusMessage!,
             });
-
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                id: project.id!,
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-              await ProjectService.sendEmailToProjectOwners(
-                project.id!,
-                `Low WhatsApp message balance for ${project.name || ""}`,
-                `We tried to send a WhatsApp message to ${message.to.toString()} with message:<br/><br/>${messageSummary}<br/><br/>The message was not sent because your project does not have enough balance for WhatsApp messages. Current balance is ${
-                  project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${messageCost} USD. Please enable auto recharge or recharge manually.`,
-              );
-            }
             return;
           }
         }
@@ -280,15 +290,21 @@ export default class WhatsAppService {
 
         const components: JSONArray = [];
 
-        if (
-          message.templateVariables &&
-          Object.keys(message.templateVariables).length > 0
-        ) {
+        /*
+         * Meta refuses a template whose text, its variables filled in, is
+         * more than 1,024 characters, and the message is lost: the longest
+         * variables are cut to fit (fitWhatsAppTemplateVariables).
+         */
+        const templateVariables: Record<string, string> | undefined =
+          fitWhatsAppTemplateVariables(
+            message.templateKey,
+            message.templateVariables,
+          );
+
+        if (templateVariables && Object.keys(templateVariables).length > 0) {
           const parameters: JSONArray = [];
 
-          for (const [key, value] of Object.entries(
-            message.templateVariables,
-          )) {
+          for (const [key, value] of Object.entries(templateVariables)) {
             parameters.push({
               type: "text",
               parameter_name: key,
@@ -434,26 +450,13 @@ export default class WhatsAppService {
         : "WhatsApp message sent successfully";
 
       if (shouldChargeForMessage && project) {
-        const deduction: number = Math.floor(messageCost * 100);
-        whatsAppLog.whatsAppCostInUSDCents = deduction;
+        whatsAppLog.whatsAppCostInUSDCents = messageCostInUSDCents;
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.max(
-          0,
-          Math.floor(
-            (project.smsOrCallCurrentBalanceInUSDCents || 0) - deduction,
-          ),
-        );
-
-        await ProjectService.updateOneById({
-          id: project.id!,
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false,
-          },
-          props: {
-            isRoot: true,
-          },
+        // Paid in one statement, from whatever the balance is now.
+        await MessagingBalance.payForSentMessage({
+          projectId: project.id!,
+          channel: ProjectNotificationChannel.WhatsApp,
+          costInUSDCents: messageCostInUSDCents,
         });
       }
     } catch (error: any) {

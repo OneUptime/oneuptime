@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -6,6 +7,9 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import getMonitorTypeFormField from "../../Utils/Form/Monitor/MonitorTypeFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import React, {
   Fragment,
   FunctionComponent,
@@ -31,9 +35,9 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MonitorTypeUtil from "../../Utils/MonitorType";
 import {
   CustomElementProps,
+  FormFieldCollapsibleSection,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import MonitorSteps from "../../Components/Form/Monitor/MonitorSteps";
@@ -62,7 +66,7 @@ import {
   buildQueryConfigsFromSerializedQueries,
 } from "../../Components/Metrics/Utils/MetricConfigReconstruct";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -71,6 +75,42 @@ import {
   buildDetectionRuleMonitorPrefill,
   buildThreatIntelFeedMonitorPrefill,
 } from "../../Utils/SecurityEventsMonitorPrefill";
+import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIInsightType from "Common/Types/AI/AIInsightType";
+import {
+  AI_INSIGHT_MONITOR_QUERY_PARAM,
+  AIInsightMetricShape,
+  AIInsightMonitorInput,
+  AIInsightMonitorSeedIds,
+  buildAIInsightMonitorPrefill,
+  getAIInsightMonitorBlocker,
+} from "../../Utils/AIInsightMonitorPrefill";
+import {
+  AI_INSIGHT_MONITOR_SELECT,
+  fetchAIInsightMetricShape,
+  fetchAIInsightMonitorSeedIds,
+  toAIInsightMonitorInput,
+} from "../../Utils/AIInsightMonitorData";
+import {
+  LLM_MONITOR_TEMPLATE_QUERY_PARAM,
+  LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR,
+  LlmMonitorSeedIds,
+  buildLlmMonitorPrefill,
+} from "../../Utils/LlmMonitorPrefill";
+import { fetchLlmMonitorSeedIds } from "../../Utils/LlmMonitorData";
+import {
+  ProfileMonitorLink,
+  buildProfileMonitorPrefill,
+  readProfileMonitorLink,
+} from "../../Utils/ProfileMonitorPrefill";
+import {
+  NETWORK_EVENT_ALERT_QUERY_PARAM,
+  NETWORK_EVENT_DEVICE_QUERY_PARAM,
+  NETWORK_EVENT_UNKNOWN_ALERT_ERROR,
+  NetworkEventMonitorDevice,
+  NetworkEventMonitorSeedIds,
+  buildNetworkEventMonitorPrefill,
+} from "../../Utils/NetworkEventMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
@@ -91,8 +131,21 @@ import {
   RevenueFunnelStage,
 } from "Common/Types/Analytics/RevenueEvent";
 import ProbeUtil from "../../Utils/Probe";
+import ProbeStatusProbeChoices, {
+  WATCH_PROBE_QUERY_PARAM,
+} from "../../Components/Form/Monitor/ProbeStatusMonitor/ProbeStatusProbeChoices";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 import { MonitorPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
+import ActiveMonitorLimitNotice, {
+  ActiveMonitorLimitNoticeShowWhen,
+} from "../../Components/Monitor/ActiveMonitorLimitNotice";
+import {
+  shouldDropDefaultMonitoringInterval,
+  withDefaultMonitoringInterval,
+} from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -198,6 +251,26 @@ export function getMetricViewMonitorDescription(data: {
   );
 }
 
+/*
+ * One config of a metric view that may carry thresholds — a query or a
+ * formula — with the alias a criteria compares it by.
+ */
+interface MetricViewThresholdSource {
+  metricAlias: string;
+  warningThreshold: number | undefined;
+  criticalThreshold: number | undefined;
+}
+
+/*
+ * Monitor Info's More fields: the description and the labels, folded at the
+ * end of the step. Neither is needed on the way to a first monitor - the
+ * step asks only what to monitor and what to call it - and the section says
+ * "Configured" once either is filled in (a template's labels, say). Built
+ * once, so both fields fold under the one header.
+ */
+const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =
+  getAdvancedFormSection<Monitor>();
+
 function buildThresholdCriteriaInstance(input: {
   name: string;
   description: string;
@@ -226,6 +299,7 @@ function buildThresholdCriteriaInstance(input: {
 const MonitorCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
 
@@ -351,9 +425,10 @@ const MonitorCreate: FunctionComponent<
    * pre-seed a Metric monitor from the shared serializer's
    * metricQueries/metricFormulas params (plus the window → rolling time, and
    * the description a link asks for — see getMetricViewMonitorDescription).
-   * Any warning/critical thresholds on the queries become generated
-   * warning/critical criteria; otherwise criteria stay at the form's
-   * defaults. Template links take priority — they carry full steps.
+   * Any warning/critical thresholds on the queries or the formulas become
+   * generated warning/critical criteria on their aliases; otherwise
+   * criteria stay at the form's defaults. Template links take priority —
+   * they carry full steps.
    */
   const preSeedFromMetricExplorerLink: (
     rawMetricQueries: string,
@@ -412,8 +487,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -431,9 +509,41 @@ const MonitorCreate: FunctionComponent<
     const warningFilters: Array<CriteriaFilter> = [];
     const criticalFilters: Array<CriteriaFilter> = [];
 
-    for (const queryConfig of queryConfigs) {
-      const metricAlias: string =
-        queryConfig.metricAliasData?.metricVariable || "";
+    /*
+     * Every config that can carry a threshold, the queries first. A
+     * formula's threshold is compared on the formula's own alias, which the
+     * monitor evaluates like a query's (MetricMonitorCriteria resolves an
+     * alias to a query, else to a formula), and a reconstructed formula
+     * always has one (buildFormulaConfigsFromSerializedFormulas letters it
+     * after the queries). A view whose number IS a formula puts its
+     * threshold there — the queue page's link for a RabbitMQ queue's depth
+     * adds up its ready and unacknowledged queries — and the monitor used
+     * to open without it. With the queries first, a link without formula
+     * thresholds builds exactly the criteria it always did.
+     */
+    const thresholdSources: Array<MetricViewThresholdSource> = [
+      ...queryConfigs.map(
+        (queryConfig: MetricQueryConfigData): MetricViewThresholdSource => {
+          return {
+            metricAlias: queryConfig.metricAliasData?.metricVariable || "",
+            warningThreshold: queryConfig.warningThreshold,
+            criticalThreshold: queryConfig.criticalThreshold,
+          };
+        },
+      ),
+      ...formulaConfigs.map(
+        (formulaConfig: MetricFormulaConfigData): MetricViewThresholdSource => {
+          return {
+            metricAlias: formulaConfig.metricAliasData?.metricVariable || "",
+            warningThreshold: formulaConfig.warningThreshold,
+            criticalThreshold: formulaConfig.criticalThreshold,
+          };
+        },
+      ),
+    ];
+
+    for (const thresholdSource of thresholdSources) {
+      const metricAlias: string = thresholdSource.metricAlias;
 
       const buildFilter: (thresholdValue: number) => CriteriaFilter = (
         thresholdValue: number,
@@ -449,12 +559,12 @@ const MonitorCreate: FunctionComponent<
         };
       };
 
-      if (queryConfig.criticalThreshold !== undefined) {
-        criticalFilters.push(buildFilter(queryConfig.criticalThreshold));
+      if (thresholdSource.criticalThreshold !== undefined) {
+        criticalFilters.push(buildFilter(thresholdSource.criticalThreshold));
       }
 
-      if (queryConfig.warningThreshold !== undefined) {
-        warningFilters.push(buildFilter(queryConfig.warningThreshold));
+      if (thresholdSource.warningThreshold !== undefined) {
+        warningFilters.push(buildFilter(thresholdSource.warningThreshold));
       }
     }
 
@@ -490,8 +600,17 @@ const MonitorCreate: FunctionComponent<
       monitorStep.data.monitorCriteria = monitorCriteria;
     }
 
+    /*
+     * Named after what the monitor watches: the view's first formula when
+     * it has a title — a formula is the number the view derives from its
+     * queries (a RabbitMQ queue's depth, not its "ready" part) — else the
+     * first query, by title or metric name.
+     */
     const firstQuery: SerializedMetricQuery = serializedQueries[0]!;
+    const firstFormula: SerializedMetricFormula | undefined =
+      serializedFormulas[0];
     const metricDisplayName: string =
+      firstFormula?.alias?.title?.trim() ||
       firstQuery.alias?.title?.trim() ||
       firstQuery.metricName.trim() ||
       "Metric";
@@ -600,6 +719,36 @@ const MonitorCreate: FunctionComponent<
    * The device is read once, up front, because the branch needs its
    * monitoring method and the Ping branch needs its address and probe.
    */
+  /*
+   * The probe's name names the monitor. A probe that cannot be read (gone,
+   * or not this project's) still leaves the type picked; the step form
+   * then falls back to its usual defaults.
+   */
+  const preSeedFromWatchProbeLink: (probeId: string) => Promise<void> = async (
+    probeId: string,
+  ): Promise<void> => {
+    let probeName: string = "";
+
+    try {
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+      const probe: Probe | undefined = probes.find((item: Probe): boolean => {
+        return item._id?.toString().toLowerCase() === probeId.toLowerCase();
+      });
+
+      probeName = probe?.name?.toString() || "";
+    } catch {
+      // Recoverable: the monitor type is still preselected below.
+    }
+
+    const monitorName: string =
+      ProbeStatusProbeChoices.getMonitorNameForProbe(probeName);
+
+    setInitialValues({
+      monitorType: MonitorType.ProbeStatus,
+      ...(monitorName ? { name: monitorName } : {}),
+    });
+  };
+
   const preSeedFromNetworkDeviceLink: (
     networkDeviceId: string,
   ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
@@ -614,6 +763,11 @@ const MonitorCreate: FunctionComponent<
           hostname: true,
           monitoringMethod: true,
           probeId: true,
+          // The pack adds a per-row health criteria for each of its tables.
+          snmpTables: true,
+          oidTemplate: {
+            tables: true,
+          },
         },
       });
     } catch {
@@ -663,8 +817,11 @@ const MonitorCreate: FunctionComponent<
           select: {
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -684,6 +841,10 @@ const MonitorCreate: FunctionComponent<
       const recommendedCriteria: Array<MonitorCriteriaInstance> =
         NetworkDeviceAlertPackUtil.buildCriteriaInstances({
           downMonitorStatusId: offlineStatus?.id || undefined,
+          tables: SnmpTableListUtil.resolveEffectiveTables({
+            templateTables: device?.oidTemplate?.tables,
+            deviceTables: device?.snmpTables,
+          }).tables,
         });
 
       if (recommendedCriteria.length > 0) {
@@ -698,10 +859,19 @@ const MonitorCreate: FunctionComponent<
     }
 
     setInitialValues({
-      name: deviceName ? `${deviceName} Monitor` : "Network Device Monitor",
+      name: deviceName
+        ? translator.translateTemplate("{{deviceName}} Monitor", {
+            deviceName: deviceName,
+          })
+        : translator.translateTemplate("Network Device Monitor"),
       description: deviceName
-        ? `Alerts on the ${deviceName} network device.`
-        : "Alerts on a registered network device.",
+        ? translator.translateTemplate(
+            "Alerts on the {{deviceName}} network device.",
+            { deviceName: deviceName },
+          )
+        : translator.translateTemplate(
+            "Alerts on a registered network device.",
+          ),
       monitorType: MonitorType.NetworkDevice,
       monitorSteps: monitorSteps.toJSON(),
     });
@@ -742,8 +912,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -804,8 +977,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -825,6 +1001,258 @@ const MonitorCreate: FunctionComponent<
         operationalStatusId,
       }),
     );
+  };
+
+  /*
+   * "Create Monitor" deep link from an AI insight: open on the monitor
+   * AIInsightMonitorPrefill builds from it — the type, the scope and a
+   * criteria that opens an incident on the condition the detector found.
+   * The insight is read here rather than carried in the link, so the link
+   * stays short whatever the evidence holds.
+   *
+   * An insight that cannot become a monitor (a latency regression, a
+   * cumulative counter) says why in place of the form: the insight page
+   * already refuses those, so only a hand-made link lands here, and an empty
+   * form would read as the prefill having silently failed.
+   */
+  /*
+   * "Alert me when its share passes 25%" from the Profiler's function
+   * panel: open on a Profiles monitor of the service whose Function Share
+   * criteria raises an alert above the threshold, built with the project's
+   * own statuses and severities (ProfileMonitorPrefill).
+   */
+  const preSeedFromProfileLink: (
+    link: ProfileMonitorLink,
+  ) => Promise<void> = async (link: ProfileMonitorLink): Promise<void> => {
+    let seeds: LlmMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchLlmMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildProfileMonitorPrefill({
+      link,
+      seeds,
+    });
+
+    if (prefill) {
+      setInitialValues(prefill);
+    }
+  };
+
+  /*
+   * "Create alert" from an AI alert template (AI / LLM > Alerts): open on
+   * the AI / LLM monitor the template describes, with criteria built from
+   * the project's own statuses and severities. A link naming no template
+   * says so in place of the form.
+   */
+  const preSeedFromLlmMonitorTemplate: (
+    templateId: string,
+  ) => Promise<void> = async (templateId: string): Promise<void> => {
+    let seeds: LlmMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchLlmMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildLlmMonitorPrefill({
+      templateId: templateId,
+      seeds: seeds,
+    });
+
+    if (!prefill) {
+      setError(LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR);
+      return;
+    }
+
+    setInitialValues(prefill);
+  };
+
+  /*
+   * "Create alert" from a network event (Network > Events, or one device's
+   * Events page): open on the Logs monitor that counts the event - one
+   * alert per device and per thing on it, resolved by the event that says
+   * it is over - with criteria built from the project's own statuses and
+   * severities. A link naming no alert says so in place of the form.
+   *
+   * From one device's page the link names the device, and the monitor is
+   * for that device alone. The device is read for its name only; a device
+   * that cannot be read still scopes the monitor, by its id.
+   */
+  const preSeedFromNetworkEventAlert: (
+    alertId: string,
+    networkDeviceId: string | null,
+  ) => Promise<void> = async (
+    alertId: string,
+    networkDeviceId: string | null,
+  ): Promise<void> => {
+    if (networkDeviceId && !ObjectID.isValidUUID(networkDeviceId)) {
+      setError(NETWORK_EVENT_UNKNOWN_ALERT_ERROR);
+      return;
+    }
+
+    let seeds: NetworkEventMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    let device: NetworkEventMonitorDevice | null = networkDeviceId
+      ? { id: networkDeviceId, name: "" }
+      : null;
+
+    const [seedsResult, deviceResult]: [
+      PromiseSettledResult<NetworkEventMonitorSeedIds>,
+      PromiseSettledResult<NetworkDevice | null>,
+    ] = await Promise.allSettled([
+      fetchLlmMonitorSeedIds(),
+      networkDeviceId
+        ? ModelAPI.getItem({
+            modelType: NetworkDevice,
+            id: new ObjectID(networkDeviceId),
+            select: {
+              name: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    /*
+     * Both are recoverable: without the ids the criteria come without the
+     * parts that need them, and the form asks for them; without the name
+     * the monitor is named after its event alone.
+     */
+    if (seedsResult.status === "fulfilled") {
+      seeds = seedsResult.value;
+    }
+
+    if (
+      device &&
+      deviceResult.status === "fulfilled" &&
+      deviceResult.value?.name
+    ) {
+      device = { id: device.id, name: deviceResult.value.name };
+    }
+
+    const prefill: JSONObject | null = buildNetworkEventMonitorPrefill({
+      alertId: alertId,
+      device: device,
+      seeds: seeds,
+    });
+
+    if (!prefill) {
+      setError(NETWORK_EVENT_UNKNOWN_ALERT_ERROR);
+      return;
+    }
+
+    setInitialValues(prefill);
+  };
+
+  const preSeedFromAIInsightLink: (
+    aiInsightId: string,
+  ) => Promise<void> = async (aiInsightId: string): Promise<void> => {
+    /*
+     * Messages go to ErrorMessage untranslated: it translates a string
+     * message itself, and translationKey() is what lets the extractor
+     * find them.
+     */
+    if (!ObjectID.isValidUUID(aiInsightId)) {
+      setError(
+        translationKey(
+          "This link does not point to an insight. Open the insight again and choose Create Monitor.",
+        ),
+      );
+      return;
+    }
+
+    let insight: AIInsight | null = null;
+
+    try {
+      insight = await ModelAPI.getItem<AIInsight>({
+        modelType: AIInsight,
+        id: new ObjectID(aiInsightId),
+        select: AI_INSIGHT_MONITOR_SELECT,
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      return;
+    }
+
+    if (!insight) {
+      setError(
+        translationKey(
+          "The insight this monitor was to be created from no longer exists.",
+        ),
+      );
+      return;
+    }
+
+    const input: AIInsightMonitorInput = toAIInsightMonitorInput(insight);
+
+    const metricShape: AIInsightMetricShape | null =
+      input.insightType === AIInsightType.MetricDrift
+        ? await fetchAIInsightMetricShape({
+            metricName:
+              input.metricName || input.evidence?.metricDrift?.metricName || "",
+            primaryEntityId: input.evidence?.metricDrift?.primaryEntityId,
+          })
+        : null;
+
+    const blocker: string | null = getAIInsightMonitorBlocker(input, {
+      metricShape: metricShape,
+    });
+
+    if (blocker) {
+      setError(blocker);
+      return;
+    }
+
+    let seeds: AIInsightMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      offlineMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchAIInsightMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildAIInsightMonitorPrefill({
+      insight: input,
+      seeds: seeds,
+      context: { metricShape: metricShape },
+    });
+
+    if (prefill) {
+      setInitialValues(prefill);
+    }
   };
 
   useEffect(() => {
@@ -878,6 +1306,77 @@ const MonitorCreate: FunctionComponent<
     if (threatIntelFeedId) {
       setIsLoading(true);
       preSeedFromThreatIntelFeedLink(threatIntelFeedId).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const aiInsightId: string | null = Navigation.getQueryStringByName(
+      AI_INSIGHT_MONITOR_QUERY_PARAM,
+    );
+
+    if (aiInsightId) {
+      setIsLoading(true);
+      preSeedFromAIInsightLink(aiInsightId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const llmMonitorTemplateId: string | null = Navigation.getQueryStringByName(
+      LLM_MONITOR_TEMPLATE_QUERY_PARAM,
+    );
+
+    if (llmMonitorTemplateId) {
+      setIsLoading(true);
+      preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const profileMonitorLink: ProfileMonitorLink | null =
+      readProfileMonitorLink((name: string): string | null => {
+        return Navigation.getQueryStringByName(name);
+      });
+
+    if (profileMonitorLink) {
+      setIsLoading(true);
+      preSeedFromProfileLink(profileMonitorLink).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const networkEventAlertId: string | null = Navigation.getQueryStringByName(
+      NETWORK_EVENT_ALERT_QUERY_PARAM,
+    );
+
+    if (networkEventAlertId) {
+      setIsLoading(true);
+      preSeedFromNetworkEventAlert(
+        networkEventAlertId.trim(),
+        Navigation.getQueryStringByName(
+          NETWORK_EVENT_DEVICE_QUERY_PARAM,
+        )?.trim() || null,
+      ).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    /*
+     * "Monitor this probe" from a probe's row or page: a Probe Status
+     * monitor, named after the probe. Its step form starts watching that
+     * probe (it reads the same parameter).
+     */
+    const watchProbeId: string | null = Navigation.getQueryStringByName(
+      WATCH_PROBE_QUERY_PARAM,
+    );
+
+    if (watchProbeId && watchProbeId.trim()) {
+      setIsLoading(true);
+      preSeedFromWatchProbeLink(watchProbeId.trim()).finally(() => {
         setIsLoading(false);
       });
       return;
@@ -1036,6 +1535,15 @@ const MonitorCreate: FunctionComponent<
   return (
     <Fragment>
       {/*
+       * At the plan's limit on active monitors, said first, before the form
+       * is filled in: the server refuses every one but a Manual monitor.
+       * Above the Free plan's pricing card, which fills a phone's screen
+       * with the price of a monitor that cannot be added.
+       */}
+      <ActiveMonitorLimitNotice
+        showWhen={ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit}
+      />
+      {/*
        * Every monitor type except Manual is metered as an active monitor, so
        * a Free plan project is told the rate before it picks a type.
        */}
@@ -1043,7 +1551,7 @@ const MonitorCreate: FunctionComponent<
       <Card
         title="Create New Monitor"
         description={
-          "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team."
+          "Pick what to monitor and give it a name. Everything else starts with defaults you can change."
         }
         className="mb-10"
       >
@@ -1062,11 +1570,23 @@ const MonitorCreate: FunctionComponent<
                  * The form reads initialValues once, on mount - which is why
                  * the render above waits for the probe list.
                  */
-                seededProbes
-                  ? { ...initialValues, probes: seededProbes }
-                  : initialValues
+                withDefaultMonitoringInterval(
+                  seededProbes
+                    ? { ...initialValues, probes: seededProbes }
+                    : initialValues,
+                )
               }
               fields={[
+                /*
+                 * What to monitor comes first: the name, and everything the
+                 * next steps ask, follow from it. The six common types are
+                 * on screen as compact rows, the rest one search or one
+                 * "More monitor types" away, and a picked type shrinks to
+                 * one line with a Change button (MonitorTypeFormField).
+                 */
+                getMonitorTypeFormField<Monitor>({
+                  stepId: "monitor-info",
+                }),
                 {
                   field: {
                     name: true,
@@ -1075,6 +1595,8 @@ const MonitorCreate: FunctionComponent<
                   stepId: "monitor-info",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
+                  description:
+                    "A name your team will recognize. It is used in alerts and incident titles.",
                   placeholder: "Monitor Name",
                   validation: {
                     minLength: 2,
@@ -1086,26 +1608,24 @@ const MonitorCreate: FunctionComponent<
                   },
                   stepId: "monitor-info",
                   title: "Description",
+                  description:
+                    "Anything your team should know about this monitor.",
                   fieldType: FormFieldSchemaType.LongText,
                   required: false,
                   placeholder: "Description",
+                  collapsibleSection: MONITOR_INFO_MORE_FIELDS,
                 },
-                {
-                  field: {
-                    monitorType: true,
-                  },
-                  title: "Monitor Type",
-                  description: "Select the type of monitor you want to create",
+                /*
+                 * Labels are folded under More fields at the end of Monitor
+                 * Info rather than walked as a last step of their own: the
+                 * one step every monitor type shows, Manual included. A
+                 * template's labels fill it in, and the section then says
+                 * "Configured".
+                 */
+                getLabelsFormField<Monitor>({
                   stepId: "monitor-info",
-                  fieldType: FormFieldSchemaType.CardSelect,
-                  required: true,
-                  cardSelectOptions:
-                    MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-                  cardSelectSearchable: true,
-                  cardSelectSearchPlaceholder:
-                    "Search monitor types - try ping, ssl, k8s, postgres",
-                  cardSelectCollapsibleGroups: true,
-                },
+                  collapsibleSection: MONITOR_INFO_MORE_FIELDS,
+                }),
                 {
                   field: {
                     monitorSteps: true,
@@ -1113,6 +1633,8 @@ const MonitorCreate: FunctionComponent<
                   stepId: "criteria",
                   styleType: FormFieldStyleType.Heading,
                   title: "Monitor Details",
+                  description:
+                    "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: true,
                   customValidation: (values: FormValues<Monitor>) => {
@@ -1133,6 +1655,12 @@ const MonitorCreate: FunctionComponent<
                         {...props}
                         monitorType={value.monitorType || MonitorType.Manual}
                         monitorName={value.name || ""}
+                        /*
+                         * A new monitor's criteria are defaults that suit
+                         * most monitors: each starts folded to its one-line
+                         * summary, so the step opens on what to check.
+                         */
+                        foldDefaultCriteria={true}
                       />
                     );
                   },
@@ -1153,10 +1681,25 @@ const MonitorCreate: FunctionComponent<
                   showEvenIfPermissionDoesNotExist: true,
                   stepId: "monitoring-interval",
                   title: "Probes",
+                  /*
+                   * It used to say an empty selection meant "use the
+                   * defaults". It does not: an explicit empty selection
+                   * reaches the server as "attach no probes", and nothing
+                   * ever checks that monitor.
+                   */
                   description:
-                    "Which probes should monitor this resource? Leave this empty to use every probe that is set to monitor new monitors by default.",
+                    "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  required: false,
+                  /*
+                   * So the form will not create a monitor that is never
+                   * checked: a project whose default set is empty (global
+                   * probes turned off for new monitors, no probe of its own
+                   * picked for them), or a picker someone cleared, has to
+                   * name one first. Only while there are probes to pick
+                   * (showIf), and only on this step, which the types no
+                   * probe checks (Manual, Incoming Request, ...) never show.
+                   */
+                  required: true,
                   placeholder: "Select Probes",
                   dropdownOptions: probeOptions,
                   showIf: () => {
@@ -1170,51 +1713,31 @@ const MonitorCreate: FunctionComponent<
                   },
                   stepId: "monitoring-interval",
                   title: "Monitoring Interval",
+                  /*
+                   * The column's own help is written for the API ("a 5-field
+                   * cron expression"); this field is a list of intervals.
+                   */
+                  description:
+                    "How often to check. Every 5 minutes suits most monitors.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
+                  /*
+                   * What the type is offered: no 1 or 2 minutes for
+                   * Synthetic, Custom Code and SSL monitors. A new monitor
+                   * keeps no interval its type is not offered, so nothing is
+                   * passed as current here.
+                   */
                   fetchDropdownOptions: (item: FormValues<Monitor>) => {
-                    let interval: Array<DropdownOption> = [
-                      ...MonitoringInterval,
-                    ];
-
-                    if (
-                      item &&
-                      (item.monitorType === MonitorType.SyntheticMonitor ||
-                        item.monitorType === MonitorType.CustomJavaScriptCode ||
-                        item.monitorType === MonitorType.SSLCertificate)
-                    ) {
-                      // remove the every minute option, every 2 mins, every 10 minutes
-                      interval = interval.filter((option: DropdownOption) => {
-                        return (
-                          option.value !== "* * * * *" &&
-                          option.value !== "*/2 * * * *"
-                        );
-                      });
-
-                      return Promise.resolve(interval);
-                    }
-
-                    return Promise.resolve(interval);
+                    return Promise.resolve(
+                      getMonitoringIntervalOptions({
+                        monitorType: item?.monitorType as
+                          | MonitorType
+                          | undefined,
+                      }),
+                    );
                   },
 
                   placeholder: "Select Monitoring Interval",
-                },
-                {
-                  field: {
-                    labels: true,
-                  },
-                  title: "Labels",
-                  stepId: "labels",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
                 },
               ]}
               steps={[
@@ -1244,12 +1767,19 @@ const MonitorCreate: FunctionComponent<
                     );
                   },
                 },
-                {
-                  title: "Labels",
-                  id: "labels",
-                },
               ]}
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
+                if (
+                  shouldDropDefaultMonitoringInterval({
+                    monitorType: item.monitorType,
+                    isIntervalPrefilled: Object.prototype.hasOwnProperty.call(
+                      initialValues,
+                      "monitoringInterval",
+                    ),
+                  })
+                ) {
+                  delete item.monitoringInterval;
+                }
                 if (monitorTemplateId) {
                   item.monitorTemplateId = new ObjectID(monitorTemplateId);
                 }

@@ -9,7 +9,14 @@ import ModelAPI, {
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
+import {
+  EmptyMessageParts,
+  splitEmptyMessage,
+  toHeadline,
+} from "../Table/EmptyTableMessage";
+import { getLoadErrorStateProps } from "../Table/TableEmptyStateBuilders";
+import useTranslateValue from "../../Utils/Translation";
 import Input from "../Input/Input";
 import StaticModelList from "../ModelList/StaticModelList";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -21,8 +28,12 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getDropTargetValue } from "../../../Utils/ListOrder";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import Select from "../../../Types/BaseDatabase/Select";
+
+export const NO_ITEMS_FOUND: string = "No items found.";
+export const NO_ITEMS_MATCH_YOUR_SEARCH: string = "No items match your search";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   id: string;
@@ -71,6 +82,11 @@ const ModelList: <TBaseModel extends BaseModel>(
     new props.modelType(),
     ModelAction.Delete,
   );
+
+  const { translateString } = useTranslateValue();
+  const translate: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
 
   const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
   const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
@@ -249,6 +265,39 @@ const ModelList: <TBaseModel extends BaseModel>(
     }
   };
 
+  /*
+   * The list's empty state, in the same shape as a table's (smaller - this
+   * list sits in a dialog or a card): a search that matched nothing, or the
+   * caller's message split into a title and a description.
+   */
+  const getEmptyState: () => ReactElement = (): ReactElement => {
+    if (searchText) {
+      return (
+        <TableEmptyState
+          kind={TableEmptyStateKind.Filtered}
+          title={toHeadline(translate(NO_ITEMS_MATCH_YOUR_SEARCH))}
+          isCompact={true}
+          dataTestId={`${props.id}-no-items`}
+        />
+      );
+    }
+
+    const parts: EmptyMessageParts = splitEmptyMessage(
+      translate(props.noItemsMessage || NO_ITEMS_FOUND),
+    );
+
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={new props.modelType().icon || undefined}
+        title={parts.title}
+        description={parts.description}
+        isCompact={true}
+        dataTestId={`${props.id}-no-items`}
+      />
+    );
+  };
+
   return (
     <div>
       <div>
@@ -264,20 +313,31 @@ const ModelList: <TBaseModel extends BaseModel>(
         )}
       </div>
       <div className="max-h-96 mb-5 overflow-y-auto p-2">
-        {error ? <ErrorMessage message={error} /> : <></>}
+        {error ? (
+          <TableEmptyState
+            {...getLoadErrorStateProps({
+              pluralLabel: new props.modelType().pluralName || "items",
+              error: error,
+              onRetry: () => {
+                fetchItems().catch((err: Error) => {
+                  setError(API.getFriendlyMessage(err));
+                });
+              },
+              translate: translate,
+            })}
+            isCompact={true}
+            dataTestId={`${props.id}-load-error`}
+          />
+        ) : (
+          <></>
+        )}
         {isLoading ? <ComponentLoader /> : <></>}
 
         {!isLoading &&
         !error &&
         searchedList.length === 0 &&
         (Boolean(searchText) || !props.hideEmptyState) ? (
-          <ErrorMessage
-            message={
-              searchText
-                ? "No items match your search"
-                : props.noItemsMessage || "No items found."
-            }
-          />
+          getEmptyState()
         ) : (
           <></>
         )}
@@ -292,10 +352,32 @@ const ModelList: <TBaseModel extends BaseModel>(
             descriptionField={props.descriptionField}
             dragAndDropScope={`${props.id}-dnd`}
             customElement={props.customElement}
-            onDragDrop={async (id: string, newOrder: number) => {
+            onDragDrop={async (
+              id: string,
+              destinationIndex: number,
+              sourceIndex: number,
+            ) => {
               if (!props.dragDropIndexField) {
                 return;
               }
+
+              /*
+               * The dragged row takes the number of the row it was dropped
+               * on; the server moves it there and shifts the rest
+               * (@ListOrderColumn). Its place on screen when that row has
+               * no number yet.
+               */
+              const orderField: string = props.dragDropIndexField as string;
+
+              const value: number =
+                getDropTargetValue<TBaseModel>({
+                  items: searchedList,
+                  sourceIndex: sourceIndex,
+                  destinationIndex: destinationIndex,
+                  getValue: (item: TBaseModel): unknown => {
+                    return (item as any)[orderField];
+                  },
+                }) ?? destinationIndex + 1;
 
               setIsLoading(true);
 
@@ -303,7 +385,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                 modelType: props.modelType,
                 id: new ObjectID(id),
                 data: {
-                  [props.dragDropIndexField]: newOrder,
+                  [orderField]: value,
                 },
               });
 

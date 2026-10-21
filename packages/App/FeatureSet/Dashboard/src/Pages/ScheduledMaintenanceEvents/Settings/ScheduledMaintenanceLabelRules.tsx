@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingLabelRuleActionFields,
+  getLabelRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -73,7 +77,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
         cardProps={{
           title: "Scheduled Maintenance Label Rules",
           description:
-            "Auto-attach labels to scheduled maintenance events — including labels inherited from the event's monitors, hosts, Kubernetes clusters, Docker hosts, and Podman hosts — when matching events are created.",
+            "Auto-attach labels to new scheduled maintenance events that match, including labels from their monitors and infrastructure.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Label Rules Work",
@@ -112,36 +116,8 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria", columns: 2 },
-          { title: "Labels", id: "labels" },
-        ]}
+        formSteps={getLabelRuleFormSteps<ScheduledMaintenanceLabelRule>()}
         formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Inherit monitor labels onto maintenance events",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this rule.",
-          },
           {
             field: { monitors: true },
             title: "Monitors",
@@ -186,7 +162,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           },
           {
             field: { titlePattern: true },
-            title: "Title Pattern",
+            title: "Event Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -197,7 +173,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           },
           {
             field: { descriptionPattern: true },
-            title: "Description Pattern",
+            title: "Event Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -205,7 +181,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -213,85 +189,15 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
           },
-          {
-            field: { labelsToAdd: true },
-            title: "Labels to Add",
-            stepId: "labels",
-            sectionTitle: "Labels to Attach",
-            sectionDescription:
-              "When this rule matches, every selected label is attached to the event. Existing labels are preserved.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Labels",
-          },
-          {
-            field: { inheritLabelsFromMonitors: true },
-            title: "Inherit Labels From Monitors",
-            stepId: "labels",
-            sectionTitle: "Inherit Labels",
-            sectionDescription:
-              "Optionally copy labels from related entities onto the event.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's monitors onto the event.",
-          },
-          {
-            field: { inheritLabelsFromHosts: true },
-            title: "Inherit Labels From Hosts",
-            stepId: "labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's affected hosts onto the event.",
-          },
-          {
-            field: { inheritLabelsFromKubernetesClusters: true },
-            title: "Inherit Labels From Kubernetes Clusters",
-            stepId: "labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's affected Kubernetes clusters onto the event.",
-          },
-          {
-            field: { inheritLabelsFromDockerHosts: true },
-            title: "Inherit Labels From Docker Hosts",
-            stepId: "labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's affected Docker hosts onto the event.",
-          },
-          {
-            field: { inheritLabelsFromPodmanHosts: true },
-            title: "Inherit Labels From Podman Hosts",
-            stepId: "labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's affected Podman hosts onto the event.",
-          },
-          {
-            field: { inheritLabelsFromServices: true },
-            title: "Inherit Labels From Services",
-            stepId: "labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Copy every label of the event's affected services onto the event.",
-          },
+          ...getInheritingLabelRuleActionFields<ScheduledMaintenanceLabelRule>(
+            "scheduledMaintenance",
+          ),
         ]}
         showRefreshButton={true}
       />

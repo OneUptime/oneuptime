@@ -148,6 +148,10 @@ describe("Probe production image without the build toolchain", () => {
     expect(afterPurge).toContain(
       "node -e \"require('/usr/src/Common/node_modules/isolated-vm')\"",
     );
+    // The process-memory helper, run with no arguments, exits 2 with its usage.
+    expect(afterPurge).toContain(
+      "{ /usr/lib/oneuptime-probe/synthetic-process-memory 2>/dev/null; test $? -eq 2; }",
+    );
   });
 
   test("keeps the runtime pieces: none of them is in the purge list", () => {

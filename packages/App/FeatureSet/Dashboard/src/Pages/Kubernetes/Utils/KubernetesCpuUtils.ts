@@ -72,8 +72,15 @@ export default class KubernetesCpuUtils {
     if (trimmed === "") {
       return 0;
     }
+    /*
+     * A number - digits, digits "." digits, or "." digits - then a unit.
+     * Written so a number reads only one way (as the inventory reads a
+     * memory limit): as "[0-9]*\.?[0-9]+" the digits could be split between
+     * the two runs in as many ways as there are digits, and a long run of
+     * them that did not match - what an agent reported - was tried every way.
+     */
     const match: RegExpMatchArray | null = trimmed.match(
-      /^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$/,
+      /^([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*([a-zA-Z]*)$/,
     );
     if (!match) {
       const direct: number = Number(trimmed);
@@ -202,16 +209,35 @@ export default class KubernetesCpuUtils {
   }
 
   /**
+   * Cores as a percent of ONE core (0.25 cores is 25%): what a CPU chart
+   * draws when it has no allocatable CPU to divide by.
+   */
+  public static coresToPercentOfOneCore(cores: number): number {
+    return cores * 100;
+  }
+
+  /**
    * Build a per-datapoint transform that converts a raw CPU *cores*
    * value into "% of its node's allocatable CPU". The datapoint's node
    * is read from `resource.k8s.node.name`; unknown nodes fall back to
    * the cluster's average node size. Designed to be passed as
    * `transformValue` on a MetricQueryConfigData CPU query.
+   *
+   * Pass it on every Kubernetes CPU query, also while the lookup is still
+   * loading (null) or came back empty. A query with its own transform gets
+   * its values as stored, in cores (MetricResultUnitConverter), so the
+   * chart never depends on the unit the metric catalog holds for the name:
+   * a project that also runs a Docker agent holds "%" for
+   * container.cpu.utilization. Without an allocatable reading the
+   * transform draws percent of one core.
    */
   public static makeCpuPercentTransform(
-    allocatable: NodeAllocatableCpu,
+    allocatable: NodeAllocatableCpu | null,
   ): (value: number, dataPoint: AggregatedModel) => number {
     return (value: number, dataPoint: AggregatedModel): number => {
+      if (!allocatable) {
+        return KubernetesCpuUtils.coresToPercentOfOneCore(value);
+      }
       const attributes: Record<string, unknown> =
         ((dataPoint as unknown as Record<string, unknown>)[
           "attributes"
@@ -221,10 +247,10 @@ export default class KubernetesCpuUtils {
       const denominator: number = allocatable.denominatorForNode(nodeName);
       if (!denominator || denominator <= 0) {
         /*
-         * No allocatable data at all for this cluster — fall back to
-         * the raw cores value rather than collapsing the chart to zero.
+         * No allocatable data at all for this cluster: percent of one
+         * core, rather than collapsing the chart to zero.
          */
-        return value;
+        return KubernetesCpuUtils.coresToPercentOfOneCore(value);
       }
       return (value / denominator) * 100;
     };
@@ -234,15 +260,15 @@ export default class KubernetesCpuUtils {
    * Build a transform that divides by a fixed scalar allocatable
    * (cores) — for single-node contexts (e.g. the Node detail page)
    * where every datapoint belongs to the same node and we already
-   * know its allocatable from the node object.
+   * know its allocatable from the node object. Until it is known, percent
+   * of one core.
    */
   public static makeScalarCpuPercentTransform(
     allocatableCores: number,
   ): (value: number) => number {
     return (value: number): number => {
       if (!allocatableCores || allocatableCores <= 0) {
-        // Allocatable unknown — fall back to raw cores rather than 0.
-        return value;
+        return KubernetesCpuUtils.coresToPercentOfOneCore(value);
       }
       return (value / allocatableCores) * 100;
     };

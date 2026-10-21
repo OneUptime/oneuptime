@@ -1,7 +1,5 @@
-import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentSlaRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -16,8 +14,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -26,36 +26,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // Auto-assign order on creation
-    if (!createBy.data.order) {
-      const highestOrderRule: Model | null = await this.findOneBy({
-        query: {
-          projectId: createBy.data.projectId!,
-        },
-        select: {
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      createBy.data.order = (highestOrderRule?.order || 0) + 1;
-    }
-
-    return {
-      createBy,
-      carryForward: null,
-    };
-  }
-
-  @CaptureSpan()
+  @RuleEvaluation()
   public async findMatchingRule(data: {
     incidentId: ObjectID;
     projectId: ObjectID;
@@ -374,8 +345,12 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        const regex: RegExp = new RegExp(rule.incidentTitlePattern, "i");
-        if (!regex.test(incident.title)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentTitlePattern,
+            incident.title,
+          )
+        ) {
           return false;
         }
       } catch {
@@ -394,8 +369,12 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        const regex: RegExp = new RegExp(rule.incidentDescriptionPattern, "i");
-        if (!regex.test(incident.description)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentDescriptionPattern,
+            incident.description,
+          )
+        ) {
           return false;
         }
       } catch {

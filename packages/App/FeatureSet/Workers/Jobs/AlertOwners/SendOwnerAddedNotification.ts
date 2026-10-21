@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -11,11 +12,14 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import AlertService from "Common/Server/Services/AlertService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
@@ -144,13 +148,17 @@ RunCron(
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
-          monitor: {
-            name: true,
-          },
+          /*
+           * The series a grouped monitor raised this alert for, named in the
+           * monitor's place under Resources Affected, as the created email does.
+           */
+          seriesLabels: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
         },
@@ -185,12 +193,31 @@ RunCron(
         alertNumber: alertNumber,
         projectName: alert.project!.name!,
         currentState: alert.currentAlertState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          alert.currentAlertState?.color,
+        ),
         alertDescription: await Markdown.convertToHTML(
           alert.description! || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected: alert.monitor?.name || "None",
+        // Every resource the alert's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForAlert({
+            service: AlertService,
+            projectId: alert.projectId!,
+            alertId: alert.id!,
+          }),
+          seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+            alert.seriesLabels,
+          ),
+          fallback: "None",
+        }),
         alertSeverity: alert.alertSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "alertSeverity",
+          alert.alertSeverity?.color,
+        ),
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(
             alert.projectId!,
@@ -213,7 +240,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the alert ${alertIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

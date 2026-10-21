@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLabelRule from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
@@ -16,6 +17,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
   implements
@@ -112,6 +115,7 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     schedule: OnCallDutyPolicySchedule;
     rules: Array<OnCallDutyPolicyScheduleLabelRule>;
@@ -174,11 +178,23 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: schedule.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of on-call schedule label rules",
+      logAttributes: {
+        projectId: schedule.projectId.toString(),
+        scheduleId: schedule.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -287,8 +303,7 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
     rule: OnCallDutyPolicyScheduleLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in on-call duty schedule label rule ${rule.id}: ${pattern}`,

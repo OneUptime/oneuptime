@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -9,16 +10,17 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -26,6 +28,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -51,14 +54,13 @@ RunCron(
         remediationNotes: true,
         currentIncidentState: {
           name: true,
+          color: true,
         } as Select<IncidentState>,
         incidentSeverity: {
           name: true,
+          color: true,
         },
         rootCause: true,
-        monitors: {
-          name: true,
-        },
         createdByProbe: {
           name: true,
         },
@@ -75,8 +77,6 @@ RunCron(
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
       const incidentNumber: number = incident.incidentNumber!;
-      const incidentNumberDisplay: string =
-        incident.incidentNumberWithPrefix || "#" + incidentNumber;
 
       /*
        * Mark the incident as notified first (matching the MonitorOwner worker)
@@ -93,8 +93,8 @@ RunCron(
         },
       });
 
-      const incidentFeedText: string = `🔔 **Owner Incident Created Notification Sent**:
-Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`;
+      const incidentFeedText: string =
+        OwnerNotificationFeedText.created("incident");
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
@@ -167,6 +167,16 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
         continue;
       }
 
+      // Every resource the incident's Affected Resources card lists.
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: projectId,
+          incidentId: incidentId,
+        }),
+        fallback: "None",
+      });
+
       for (const user of owners) {
         try {
           const vars: Dictionary<string> = {
@@ -174,14 +184,17 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             incidentNumber: incidentNumberStr,
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              incident.currentIncidentState?.color,
+            ),
             incidentDescription: incidentDescriptionHtml,
-            resourcesAffected:
-              incident
-                .monitors!.map((monitor: Monitor) => {
-                  return monitor.name!;
-                })
-                .join(", ") || "None",
+            resourcesAffected: resourcesAffected,
             incidentSeverity: incident.incidentSeverity!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "incidentSeverity",
+              incident.incidentSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: incidentIdentifiedDate,
@@ -216,7 +229,9 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `New incident created: ${incidentIdentifier}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -270,7 +285,13 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             eventType,
           });
 
-          moreIncidentFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreIncidentFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

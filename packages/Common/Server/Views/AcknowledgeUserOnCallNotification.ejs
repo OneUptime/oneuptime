@@ -12,11 +12,7 @@
         <main class="mx-auto max-w-3xl pb-10 lg:py-12 lg:px-8">
 
             <div class="sm:mx-auto sm:w-full sm:max-w-md flex justify-center mt-10 mb-10">
-                <img
-                    class="mx-auto h-12 w-auto"
-                    src="/oneuptime-assets/brand/oneuptime-logo.svg"
-                    alt="OneUptime"
-                />
+                <%- include('./Partials/ProductLogo.ejs') -%>
             </div>
 
 
@@ -42,6 +38,18 @@
                                             </a>
                                         </div>
                                     </div>
+
+                                    <%# "Can't take it? Pass it on": only for a link that carries the page's own token, while the page is the person's to pass on. -%>
+                                    <% if (typeof passOn !== 'undefined' && passOn) { %>
+                                    <div class="mt-6 border-t border-gray-200 pt-6" data-testid="pass-on">
+                                        <h3 class="text-sm font-medium text-gray-900"><%= passOn.lead %></h3>
+                                        <p class="mt-1 text-sm text-gray-500"><%= passOn.explanation %></p>
+                                        <% if (passOn.warning) { %>
+                                        <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: passOn.warning }) -%>
+                                        <% } %>
+                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOn.formUrl, tokenParam: passOn.tokenParam, token: passOn.token, buttonText: passOn.buttonText, isPrimary: false }) -%>
+                                    </div>
+                                    <% } %>
                                 </div>
                             </div>
 

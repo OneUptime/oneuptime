@@ -8,9 +8,8 @@ const KubernetesDocumentation: FunctionComponent<
   return (
     <Fragment>
       <KubernetesDocumentationCard
-        clusterName="my-cluster"
-        title="Agent Installation Guide"
-        description="Install the OneUptime Kubernetes Agent using Helm to connect your cluster. Once installed, the cluster will appear automatically."
+        title="Connect a Kubernetes Cluster"
+        description="Install the OneUptime Kubernetes agent with Helm. Pick where your cluster runs, then follow the steps — the cluster appears automatically once the agent connects."
       />
     </Fragment>
   );

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
+import { FOLLOW_UP_REPORT_LEAD_PREFIX } from "Common/Utils/AI/InvestigationReport";
 import {
   AIRootCauseFeedContent,
+  AI_FOLLOW_UP_FEED_LEAD,
   AI_ROOT_CAUSE_FEED_LEAD,
   DEFAULT_AI_ROOT_CAUSE_LABEL,
   FeedItemMarkdown,
@@ -12,7 +14,7 @@ import {
 /*
  * The incident and alert feeds show an AI investigation as a short entry:
  * a lead, the Summary and the root cause, without citation markers. The full
- * report moves behind More Information. These tests pin that shape for every
+ * report moves behind Show the full report. These tests pin that shape for every
  * report layout the parser understands, and pin that anything it cannot
  * structure is posted exactly as before.
  */
@@ -82,7 +84,7 @@ describe("buildAIRootCauseFeedContent", () => {
     expect(content.moreInformationInMarkdown).toBe(SERVER_REPORT);
   });
 
-  test("leaves the evidence, next steps, evidence checked list, footer and brand heading to More Information", () => {
+  test("leaves the evidence, next steps, evidence checked list, footer and brand heading to the full report", () => {
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(SERVER_REPORT);
 
@@ -254,7 +256,7 @@ describe("buildAIRootCauseFeedContent", () => {
     });
   });
 
-  test("text before the first section is left to More Information", () => {
+  test("text before the first section is left to the full report", () => {
     const markdown: string = `## AI — Automated Root Cause Analysis\n\nI looked at 10 data sources before writing this.\n\n**Summary** — ${SUMMARY_TEXT}`;
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(markdown);
@@ -310,7 +312,7 @@ describe("buildAIRootCauseFeedContent", () => {
     );
   });
 
-  test("CRLF reports produce the same compact text and keep the original as More Information", () => {
+  test("CRLF reports produce the same compact text and keep the original as the full report", () => {
     const crlfReport: string = SERVER_REPORT.replace(/\n/g, "\r\n");
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(crlfReport);
@@ -338,7 +340,7 @@ describe("buildAIRootCauseFeedContent", () => {
     ["an empty report", ""],
     ["a whitespace-only report", "  \r\n\t\n"],
   ])(
-    "%s is returned unchanged with no More Information",
+    "%s is returned unchanged with no full report",
     (_shape: string, markdown: string) => {
       const content: AIRootCauseFeedContent =
         buildAIRootCauseFeedContent(markdown);
@@ -532,7 +534,7 @@ describe("stripCitationMarkers", () => {
 });
 
 describe("getFeedItemMarkdown", () => {
-  test("an AI investigation with a structured report is compact, with the full report as More Information", () => {
+  test("an AI investigation with a structured report is compact, with the full report behind its toggle", () => {
     const markdown: FeedItemMarkdown = getFeedItemMarkdown({
       isAIInvestigation: true,
       feedInfoInMarkdown: SERVER_REPORT,
@@ -612,6 +614,80 @@ describe("getFeedItemMarkdown", () => {
     expect(getFeedItemMarkdown({ isAIInvestigation: false })).toEqual({
       textInMarkdown: "",
       moreTextInMarkdown: "",
+    });
+  });
+});
+
+/*
+ * A follow-up check (issue #4787) is the incident's second analysis: an
+ * alert opened on its linked infrastructure after the first one, and
+ * OneUptime AI checked again with it in hand. Its report leads with the
+ * server's line saying so. The feed's entry says it too - the entry used to
+ * read "OneUptime AI posted a root cause analysis", like the first one a few
+ * entries below it, and the reason sat behind Show the full report.
+ */
+describe("a follow-up check's entry", () => {
+  const FOLLOW_UP_LEAD: string = `${FOLLOW_UP_REPORT_LEAD_PREFIX} after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`;
+
+  function followUpReport(analysis: string): string {
+    return serverReport(analysis).replace(
+      "## 🧠 AI — Automated Root Cause Analysis\n\n",
+      `## 🧠 AI — Automated Root Cause Analysis\n\n${FOLLOW_UP_LEAD}\n\n`,
+    );
+  }
+
+  test("says OneUptime AI checked again, and why, before the summary and the root cause", () => {
+    const content: AIRootCauseFeedContent = buildAIRootCauseFeedContent(
+      followUpReport(SERVER_ANALYSIS),
+    );
+
+    expect(content.text).toBe(
+      [
+        `**${AI_FOLLOW_UP_FEED_LEAD}** after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`,
+        COMPACT_SUMMARY,
+        `**Most likely root cause:** ${COMPACT_ROOT_CAUSE}`,
+      ].join("\n\n"),
+    );
+    expect(AI_FOLLOW_UP_FEED_LEAD).toBe("OneUptime AI checked again");
+    // The whole report, its lead included, still unfolds under the entry.
+    expect(content.moreInformationInMarkdown).toBe(
+      followUpReport(SERVER_ANALYSIS),
+    );
+  });
+
+  test("its first paragraph is one short sentence, so the feed draws it as the entry's text above the card", () => {
+    const lead: string =
+      buildAIRootCauseFeedContent(followUpReport(SERVER_ANALYSIS)).text.split(
+        "\n\n",
+      )[0] || "";
+
+    expect(lead).not.toContain("\n");
+    expect(lead.length).toBeLessThan(600);
+  });
+
+  test("a first analysis keeps the plain lead", () => {
+    expect(buildAIRootCauseFeedContent(SERVER_REPORT).text).toBe(
+      EXPECTED_COMPACT_TEXT,
+    );
+  });
+
+  test("the same words written by the model, below the heading's paragraph, do not make it a follow-up", () => {
+    const modelWrote: string = serverReport(
+      `**Summary** — ${SUMMARY_TEXT}\n\n**Checked again** after the restart, nothing changed.\n\n**Most likely root cause** — ${ROOT_CAUSE_TEXT}`,
+    );
+
+    expect(buildAIRootCauseFeedContent(modelWrote).text.startsWith(LEAD)).toBe(
+      true,
+    );
+  });
+
+  test("an unstructured follow-up is posted exactly as written, lead and all", () => {
+    const unstructured: string = followUpReport(
+      "I read the host's CPU and found nothing new.",
+    );
+
+    expect(buildAIRootCauseFeedContent(unstructured)).toEqual({
+      text: unstructured,
     });
   });
 });

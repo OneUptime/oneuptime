@@ -1,4 +1,5 @@
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
@@ -7,6 +8,10 @@ import {
   getPublicDashboardData,
   PublicDashboardData,
 } from "../Utils/PublicDashboard";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 
 /*
  * Serves an llms.txt document for a public dashboard so that AI agents and
@@ -15,10 +20,11 @@ import {
  * without JavaScript).
  *
  * Access control: the dashboard is resolved with getPublicDashboardData,
- * which returns null (-> 404) when it cannot be resolved. This document
- * only exposes the dashboard title (already in the SPA shell's <title>)
- * and the overview URL; the overview endpoint itself enforces the
- * dashboard's access rules (public flag, IP whitelist, master password).
+ * and one whose link answers nobody - or that cannot be resolved - gets a
+ * 404. This document only exposes the dashboard title (already in the SPA
+ * shell's <title>) and the overview URL; the overview endpoint itself
+ * enforces the dashboard's access rules (public flag, IP whitelist, master
+ * password).
  */
 export const handleLlmsTxt: (
   req: ExpressRequest,
@@ -32,8 +38,14 @@ export const handleLlmsTxt: (
      * Resolve the dashboard from the host or the
      * /public-dashboard/:dashboardId path, same as the SPA shell render.
      */
-    const dashboardData: PublicDashboardData | null =
+    const dashboardData: PublicDashboardData | PublicPageNotFound | null =
       await getPublicDashboardData(req);
+
+    if (dashboardData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Dashboard not found");
+      return;
+    }
 
     if (!dashboardData) {
       res.status(404).send("Dashboard not found");
@@ -54,7 +66,7 @@ export const handleLlmsTxt: (
 
     const llmsTxt: string = `# ${title}
 
-> This is a public dashboard powered by OneUptime. It shows real-time charts, metrics, and monitoring data.
+> This is a public dashboard powered by ${ProductBrandingText.getProductName()}. It shows real-time charts, metrics, and monitoring data.
 
 - [Dashboard Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of this dashboard — its title, description, widgets, and the metric names it displays (HTTP GET).
 `;

@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -17,7 +20,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      {/*
+       * The sections an incident's own menu has, where an event has
+       * pages for them (Overview, Team, Notifications, Notes, Developer,
+       * Advanced), so a page is in the same place on every record.
+       */}
+      <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -31,26 +39,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Description",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Chat}
-        />
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-        <SideMenuItem
-          link={{
             title: "State Timeline",
             to: RouteUtil.populateRouteParams(
               RouteMap[
@@ -59,8 +47,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.List}
+          icon={IconProp.Timeline}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Description",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Chat}
+        />
+
         <SideMenuItem
           link={{
             title: "Runbooks",
@@ -73,7 +73,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Logs">
+      <SideMenuSection title="Team">
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Notifications">
         <SideMenuItem
           link={{
             title: "Notification Logs",
@@ -86,6 +99,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+
         <SideMenuItem
           link={{
             title: "AI Logs",
@@ -109,6 +123,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Lock}
         />
+
         <SideMenuItem
           link={{
             title: "Public Notes",
@@ -120,6 +135,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Public}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ScheduledMaintenance,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

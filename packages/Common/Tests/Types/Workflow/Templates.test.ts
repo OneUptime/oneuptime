@@ -28,25 +28,41 @@
  */
 
 import {
+  RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
   WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX,
   WorkflowTemplate,
   WorkflowTemplateCategories,
   WorkflowTemplateCategory,
+  WorkflowTemplateCategoryInfo,
+  WorkflowTemplateOAuth2Variable,
+  WorkflowTemplateOutline,
   WorkflowTemplateVariable,
   buildGraphForTemplate,
+  fillWorkflowTemplateSetting,
+  getRecommendedWorkflowTemplates,
   getTemplateGraphSpec,
   getWorkflowTemplate,
+  getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplateOutline,
+  getWorkflowTemplateSettingFieldNames,
   getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
+import {
+  OAuth2ClientAuthenticationMethod,
+  OAuth2GrantType,
+} from "../../../Types/Workflow/WorkflowVariableOAuth";
 import ComponentMetadata, {
   Argument,
   ComponentType,
   NodeDataProp,
   Port,
   ReturnValue,
+  isArgumentRequired,
+  isRecordListInputType,
 } from "../../../Types/Workflow/Component";
 import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -56,6 +72,7 @@ import {
   LintGraphNode,
   WorkflowLintIssue,
   WorkflowLintResult,
+  WorkflowLintRule,
   WorkflowLintSeverity,
   lintWorkflowGraph,
 } from "../../../UI/Components/Workflow/GraphLint";
@@ -71,8 +88,19 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import CronTab from "../../../Utils/CronTab";
+import MattermostWebhook from "../../../Server/Utils/Mattermost/MattermostWebhook";
 
 const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
+
+/*
+ * The categories whose templates come in an incident and an alert version,
+ * each filed under its kind.
+ */
+const SPLIT_CATEGORIES: Array<WorkflowTemplateCategory> = [
+  WorkflowTemplateCategory.Jira,
+  WorkflowTemplateCategory.Dynamics365,
+  WorkflowTemplateCategory.Zabbix,
+];
 
 /*
  * The same registry the builder loads: static components plus one set per
@@ -91,6 +119,16 @@ const findMetadata: FindMetadataFunction = (
   return registry.find((component: ComponentMetadata) => {
     return component.id === metadataId;
   });
+};
+
+/*
+ * Who a Page step pages: the one required setting a template leaves empty,
+ * for whoever creates the workflow to pick from their own project.
+ */
+type IsWhoToPageFunction = (argument: Argument) => boolean;
+
+const isWhoToPage: IsWhoToPageFunction = (argument: Argument): boolean => {
+  return isRecordListInputType(argument.type);
 };
 
 let idCounter: number = 0;
@@ -164,16 +202,76 @@ const hydrate: HydrateFunction = (
     },
   );
 
+  /*
+   * With the output each connection leaves from, as the builder hands the
+   * checks its edges: a Switch / Case's checks look at which of its cases
+   * are connected, and every step's at whether an output it no longer has
+   * still has a connection.
+   */
   const edges: Array<LintGraphEdge> = rawEdges.map(
     (edge: JSONObject): LintGraphEdge => {
       return {
         source: edge["source"] as string,
         target: edge["target"] as string,
+        sourceHandle: edge["sourceHandle"] as string,
       };
     },
   );
 
   return { nodes: nodes, edges: edges };
+};
+
+/*
+ * What the builder's checks say of a template, but for the one thing a
+ * paging template leaves for its user: who a Page step pages, which they
+ * pick in the builder (isWhoToPage). Everything else is the template's to
+ * get right.
+ */
+type LintIssuesBesidesWhoToPageFunction = (
+  templateId: string,
+  result: WorkflowLintResult,
+) => Array<WorkflowLintIssue>;
+
+const lintIssuesBesidesWhoToPage: LintIssuesBesidesWhoToPageFunction = (
+  templateId: string,
+  result: WorkflowLintResult,
+): Array<WorkflowLintIssue> => {
+  const spec: TemplateSpec = specOf(templateId);
+
+  return result.issues.filter((issue: WorkflowLintIssue): boolean => {
+    if (issue.rule !== WorkflowLintRule.MissingRequiredArgument) {
+      return true;
+    }
+
+    const node: TemplateNodeSpec | undefined = spec.nodes.find(
+      (candidate: TemplateNodeSpec): boolean => {
+        return candidate.componentId === issue.componentId;
+      },
+    );
+    const argument: Argument | undefined = node
+      ? findMetadata(node.metadataId)?.arguments.find(
+          (candidate: Argument): boolean => {
+            return candidate.id === issue.argumentId;
+          },
+        )
+      : undefined;
+
+    return !(argument && isWhoToPage(argument));
+  });
+};
+
+/*
+ * Whether a template has a Page step: the one kind of step a template
+ * leaves unfinished, for its user to say who is paged.
+ */
+type LeavesWhoToPageFunction = (templateId: string) => boolean;
+
+const leavesWhoToPage: LeavesWhoToPageFunction = (
+  templateId: string,
+): boolean => {
+  return specOf(templateId).nodes.some((node: TemplateNodeSpec): boolean => {
+    return (findMetadata(node.metadataId)?.arguments || []).some(isWhoToPage);
+  });
 };
 
 /** Every string an argument holds, including strings nested inside JSON objects. */
@@ -406,9 +504,373 @@ describe("workflow templates", () => {
           "variables",
           "workflowDescription",
           "workflowName",
+          // Only the Jira, Dynamics 365 and Zabbix templates are split into parts.
+          ...(SPLIT_CATEGORIES.includes(template.category)
+            ? ["subcategory"]
+            : []),
+          // Only the Dynamics 365 templates sign in with an OAuth 2.0 variable.
+          ...(template.category === WorkflowTemplateCategory.Dynamics365
+            ? ["oauth2Variables"]
+            : []),
+          // Only the templates that page people leave something for the Builder.
+          ...(leavesWhoToPage(template.id) ? ["setUpInBuilder"] : []),
         ].sort(),
       );
     }
+  });
+});
+
+/*
+ * What the template picker is built from. The picker used to show every
+ * template at once, as equally large cards; it now opens on a handful of
+ * recommended ones and keeps the rest under categories, and previews a
+ * template's blocks before anything is created. All of that is read from the
+ * catalog, so the catalog holds the rules.
+ */
+describe("workflow template categories, as the picker shows them", () => {
+  test("every category says what it is for, under a label and with an icon that exists", () => {
+    const iconValues: Array<string> = Object.values(IconProp);
+
+    for (const category of WorkflowTemplateCategories) {
+      const info: WorkflowTemplateCategoryInfo =
+        getWorkflowTemplateCategoryInfo(category);
+
+      expect(info.category).toBe(category);
+      expect(info.label.length).toBeGreaterThan(0);
+      expect(info.description.length).toBeGreaterThan(0);
+      expect(iconValues).toContain(info.icon);
+    }
+  });
+
+  test("every category the enum declares is shown, and described", () => {
+    expect([...WorkflowTemplateCategories].sort()).toEqual(
+      Object.values(WorkflowTemplateCategory).sort(),
+    );
+  });
+
+  test("labels are short enough to sit beside a count, and differ from one another", () => {
+    const labels: Array<string> = WorkflowTemplateCategories.map(
+      (category: WorkflowTemplateCategory): string => {
+        return getWorkflowTemplateCategoryInfo(category).label;
+      },
+    );
+
+    expect(new Set(labels).size).toBe(labels.length);
+
+    for (const label of labels) {
+      expect(label.length).toBeLessThanOrEqual(16);
+    }
+  });
+
+  test("a label is the category's own name, or a shorter form of it", () => {
+    type StemsFunction = (text: string) => Array<string>;
+
+    // Words of two letters or more, singular: "Status Pages" and "Status Page" agree.
+    const stems: StemsFunction = (text: string): Array<string> => {
+      return text
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((word: string) => {
+          return word.length > 1;
+        })
+        .map((word: string) => {
+          return word.replace(/s$/, "");
+        });
+    };
+
+    for (const category of WorkflowTemplateCategories) {
+      const categoryStems: Array<string> = stems(category);
+
+      expect({
+        category: category,
+        sharesAWord: stems(
+          getWorkflowTemplateCategoryInfo(category).label,
+        ).some((stem: string) => {
+          return categoryStems.includes(stem);
+        }),
+      }).toEqual({ category: category, sharesAWord: true });
+    }
+  });
+
+  test("each description is one sentence, said as something to get done", () => {
+    for (const category of WorkflowTemplateCategories) {
+      const description: string =
+        getWorkflowTemplateCategoryInfo(category).description;
+
+      expect(description).toMatch(/^[A-Z][^.]*\.$/);
+      expect(description.length).toBeLessThanOrEqual(90);
+    }
+  });
+
+  /*
+   * A search reads a template's category name, not its description: the
+   * Jira one names incidents and alerts both, and would otherwise bring back
+   * every Jira template for "alert". It is still worth saying here.
+   */
+  test("the Jira category says it works both ways, for incidents and alerts", () => {
+    expect(
+      getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Jira)
+        .description,
+    ).toMatch(/incidents and alerts, both ways/);
+  });
+});
+
+describe("the recommended workflow templates", () => {
+  const recommended: Array<WorkflowTemplate> =
+    getRecommendedWorkflowTemplates();
+
+  test("are a handful: enough to start from, few enough to choose between", () => {
+    expect(recommended.length).toBeGreaterThanOrEqual(4);
+    expect(recommended.length).toBeLessThanOrEqual(8);
+  });
+
+  test("each is a real template, named once, in the order declared", () => {
+    expect(new Set(RECOMMENDED_WORKFLOW_TEMPLATE_IDS).size).toBe(
+      RECOMMENDED_WORKFLOW_TEMPLATE_IDS.length,
+    );
+    expect(
+      recommended.map((template: WorkflowTemplate): string => {
+        return template.id;
+      }),
+    ).toEqual([...RECOMMENDED_WORKFLOW_TEMPLATE_IDS]);
+  });
+
+  test("span several kinds of job, not one category", () => {
+    const categories: Set<WorkflowTemplateCategory> = new Set(
+      recommended.map(
+        (template: WorkflowTemplate): WorkflowTemplateCategory => {
+          return template.category;
+        },
+      ),
+    );
+
+    expect(categories.size).toBeGreaterThanOrEqual(4);
+  });
+
+  /*
+   * A recommendation should work with what the wizard asks for. A template
+   * that needs an AI provider set up first, or a Jira webhook registered
+   * before it does anything, is a poor first workflow.
+   */
+  test("each works with only the settings it asks for", () => {
+    for (const template of recommended) {
+      const spec: {
+        nodes: Array<{ metadataId: string; componentType: string }>;
+      } | null = getTemplateGraphSpec(template.id);
+
+      expect(spec).not.toBeNull();
+
+      const metadataIds: Array<string> = (spec?.nodes || []).map(
+        (node: { metadataId: string }): string => {
+          return node.metadataId;
+        },
+      );
+
+      expect({
+        template: template.id,
+        usesAi: metadataIds.includes(ComponentID.AIGenerateText),
+      }).toEqual({
+        template: template.id,
+        usesAi: false,
+      });
+
+      const trigger: { metadataId: string; componentType: string } | undefined =
+        (spec?.nodes || []).find((node: { componentType: string }): boolean => {
+          return node.componentType === ComponentType.Trigger;
+        });
+
+      expect({
+        template: template.id,
+        trigger: trigger?.metadataId,
+      }).not.toEqual({
+        template: template.id,
+        trigger: ComponentID.Webhook,
+      });
+    }
+  });
+
+  test("the one Jira template among them is the one the Jira guide says to start with", () => {
+    const jira: Array<WorkflowTemplate> = recommended.filter(
+      (template: WorkflowTemplate) => {
+        return template.category === WorkflowTemplateCategory.Jira;
+      },
+    );
+
+    expect(
+      jira.map((template: WorkflowTemplate): string => {
+        return template.id;
+      }),
+    ).toEqual(["jira-create-issue-for-incident"]);
+  });
+});
+
+describe("the Jira templates' parts", () => {
+  const jira: Array<WorkflowTemplate> = getWorkflowTemplatesByCategory(
+    WorkflowTemplateCategory.Jira,
+  );
+
+  test("every Jira, Dynamics 365 and Zabbix template is filed under Incidents or Alerts, and no other template has a part", () => {
+    for (const template of templates) {
+      if (SPLIT_CATEGORIES.includes(template.category)) {
+        expect(["Incidents", "Alerts"]).toContain(template.subcategory);
+      } else {
+        expect(template.subcategory).toBeUndefined();
+      }
+    }
+  });
+
+  test("nine for incidents, then eight for alerts, as the Jira guide lists them", () => {
+    expect(
+      jira.map((template: WorkflowTemplate): string => {
+        return template.subcategory || "";
+      }),
+    ).toEqual([...Array(9).fill("Incidents"), ...Array(8).fill("Alerts")]);
+  });
+
+  test("Zabbix's six: three for incidents, then the same three for alerts, as the Zabbix guide lists them", () => {
+    const zabbix: Array<WorkflowTemplate> = getWorkflowTemplatesByCategory(
+      WorkflowTemplateCategory.Zabbix,
+    );
+
+    expect(
+      zabbix.map((template: WorkflowTemplate): string => {
+        return `${template.subcategory} ${template.id}`;
+      }),
+    ).toEqual([
+      "Incidents zabbix-declare-incident-from-problem",
+      "Incidents zabbix-update-problem-on-incident-state",
+      "Incidents zabbix-message-from-incident-private-note",
+      "Alerts zabbix-create-alert-from-problem",
+      "Alerts zabbix-update-problem-on-alert-state",
+      "Alerts zabbix-message-from-alert-private-note",
+    ]);
+  });
+
+  test("a template's part is the record it works on", () => {
+    for (const template of jira) {
+      const noun: string =
+        template.subcategory === "Incidents" ? "incident" : "alert";
+
+      expect({
+        template: template.id,
+        namesItsRecord: template.id.includes(`-${noun}`),
+      }).toEqual({
+        template: template.id,
+        namesItsRecord: true,
+      });
+    }
+  });
+});
+
+describe("a workflow template's outline", () => {
+  type OutlineFunction = (templateId: string) => WorkflowTemplateOutline;
+
+  const outlineOf: OutlineFunction = (
+    templateId: string,
+  ): WorkflowTemplateOutline => {
+    const outline: WorkflowTemplateOutline | null =
+      getWorkflowTemplateOutline(templateId);
+
+    if (!outline) {
+      throw new Error(`No outline for "${templateId}".`);
+    }
+
+    return outline;
+  };
+
+  test("an unknown template has none", () => {
+    expect(getWorkflowTemplateOutline("does-not-exist")).toBeNull();
+  });
+
+  test("a notification template: its trigger, its message, then Log", () => {
+    expect(outlineOf("incident-created-slack")).toEqual({
+      triggerComponentId: "incident-on-create",
+      stepComponentIds: [
+        ComponentID.SlackSendMessageToChannel,
+        ComponentID.Log,
+      ],
+      blockCount: 3,
+    });
+  });
+
+  /*
+   * Slack is reached from the API call's Error port here, and the template
+   * is named for it. Following only the way that works would leave it out.
+   */
+  test("a block reached only when something fails is listed, after the ones on the way that works", () => {
+    expect(outlineOf("scheduled-check-alert-slack").stepComponentIds).toEqual([
+      ComponentID.ApiGet,
+      ComponentID.SlackSendMessageToChannel,
+      ComponentID.Log,
+    ]);
+  });
+
+  test("a check's Yes side is listed before its No side", () => {
+    expect(outlineOf("monitor-offline-only-slack").stepComponentIds).toEqual([
+      ComponentID.IfElse,
+      ComponentID.SlackSendMessageToChannel,
+      ComponentID.Log,
+    ]);
+  });
+
+  test("a template that only logs has Log as its one step", () => {
+    expect(outlineOf("manual-log")).toEqual({
+      triggerComponentId: ComponentID.Manual,
+      stepComponentIds: [ComponentID.Log],
+      blockCount: 2,
+    });
+  });
+
+  describe.each(
+    templates.map((template: WorkflowTemplate): [string] => {
+      return [template.id];
+    }),
+  )("for %s", (templateId: string) => {
+    const spec: {
+      nodes: Array<{ metadataId: string; componentType: string }>;
+    } = getTemplateGraphSpec(templateId) as {
+      nodes: Array<{ metadataId: string; componentType: string }>;
+    };
+
+    test("names the template's one trigger", () => {
+      const triggers: Array<string> = spec.nodes
+        .filter((node: { componentType: string }) => {
+          return node.componentType === ComponentType.Trigger;
+        })
+        .map((node: { metadataId: string }) => {
+          return node.metadataId;
+        });
+
+      expect(triggers).toEqual([outlineOf(templateId).triggerComponentId]);
+    });
+
+    test("lists every other kind of block it uses, each once", () => {
+      const steps: Array<string> = outlineOf(templateId).stepComponentIds;
+      const used: Set<string> = new Set(
+        spec.nodes
+          .filter((node: { componentType: string }) => {
+            return node.componentType !== ComponentType.Trigger;
+          })
+          .map((node: { metadataId: string }) => {
+            return node.metadataId;
+          }),
+      );
+
+      expect(new Set(steps)).toEqual(used);
+      expect(new Set(steps).size).toBe(steps.length);
+    });
+
+    test("puts Log last, when there is one", () => {
+      const steps: Array<string> = outlineOf(templateId).stepComponentIds;
+
+      if (steps.includes(ComponentID.Log)) {
+        expect(steps[steps.length - 1]).toBe(ComponentID.Log);
+      }
+    });
+
+    test("counts every block, the trigger too", () => {
+      expect(outlineOf(templateId).blockCount).toBe(spec.nodes.length);
+    });
   });
 });
 
@@ -434,15 +896,141 @@ describe("workflow template variables", () => {
     }
   });
 
-  test("names are unique within a template, because they become one row each", () => {
+  /*
+   * Two fields of one Configure step under the same title read as one
+   * question asked twice. The Jira templates that link an issue ask for the
+   * site people open Jira at and for the address their API calls go to -
+   * often the same URL, and not always - so the titles tell them apart.
+   */
+  test("no two settings of a template share a title", () => {
+    for (const template of templates) {
+      const titles: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.title.trim().toLowerCase();
+        },
+      );
+
+      expect({
+        template: template.id,
+        repeated: titles.filter((title: string, index: number): boolean => {
+          return titles.indexOf(title) !== index;
+        }),
+      }).toEqual({ template: template.id, repeated: [] });
+    }
+  });
+
+  /*
+   * A setting prefilled from another takes what is typed there until it is
+   * typed into, so the other has to come first: the wizard asks in the
+   * template's order. Where the template does not ask for it, nothing fills
+   * the field in.
+   */
+  test("a setting prefilled from another follows it in its template, or names one the template does not ask for", () => {
     for (const template of templates) {
       const names: Array<string> = template.variables.map(
-        (variable: WorkflowTemplateVariable) => {
+        (variable: WorkflowTemplateVariable): string => {
           return variable.name;
         },
       );
 
+      template.variables.forEach(
+        (variable: WorkflowTemplateVariable, index: number): void => {
+          if (!variable.prefilledFrom) {
+            return;
+          }
+
+          const from: number = names.indexOf(variable.prefilledFrom);
+
+          expect({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: from === -1 || from < index,
+            notItself: variable.prefilledFrom !== variable.name,
+            // Filling in goes one step: from a setting someone types into, never through another.
+            fromATypedSetting:
+              from === -1 || !template.variables[from]?.prefilledFrom,
+          }).toEqual({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: true,
+            notItself: true,
+            fromATypedSetting: true,
+          });
+        },
+      );
+    }
+  });
+
+  test("names are unique within a template, because they become one row each", () => {
+    for (const template of templates) {
+      const names: Array<string> = [
+        ...template.variables.map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        }),
+        ...(template.oauth2Variables || []).map(
+          (variable: WorkflowTemplateOAuth2Variable) => {
+            return variable.name;
+          },
+        ),
+      ];
+
       expect(new Set(names).size).toBe(names.length);
+    }
+  });
+
+  /*
+   * A format is checked with test(), once per value typed. A global or sticky
+   * pattern keeps lastIndex between calls, so the same good value would pass
+   * on one keystroke and fail on the next.
+   */
+  test("a format matches the whole value and keeps no state between checks", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect({
+          variable: variable.name,
+          anchored:
+            variable.format.pattern.source.startsWith("^") &&
+            variable.format.pattern.source.endsWith("$"),
+          flags: variable.format.pattern.flags.replace(/[imsu]/g, ""),
+        }).toEqual({ variable: variable.name, anchored: true, flags: "" });
+      }
+    }
+  });
+
+  test("a format's message says what to type instead, in a sentence", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect(variable.format.message).toMatch(/^[A-Z].*\.$/);
+        expect(variable.format.message.length).toBeLessThanOrEqual(200);
+      }
+    }
+  });
+
+  /*
+   * The placeholder is the example the field shows, so it has to be one the
+   * wizard would accept. A secret's placeholder is a shape, not a value, and
+   * is held to it all the same.
+   */
+  test("a field's placeholder is a value its format accepts", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect({
+          variable: variable.name,
+          accepted: variable.format.pattern.test(variable.placeholder),
+        }).toEqual({ variable: variable.name, accepted: true });
+      }
     }
   });
 
@@ -509,6 +1097,270 @@ describe("workflow template variables", () => {
         );
       }
     }
+  });
+});
+
+/*
+ * A template can ask the wizard to create an OAuth 2.0 variable, built from
+ * values typed into its fields. Every way that goes wrong is silent until a
+ * run: a setting naming a field the wizard never asks for is filled in with
+ * nothing and the identity provider refuses it, and a field kept only for a
+ * setting that the graph also refers to ships literal braces, because no row
+ * is written for it.
+ */
+describe("workflow template OAuth 2.0 variables", () => {
+  const withOAuth2: Array<WorkflowTemplate> = templates.filter(
+    (template: WorkflowTemplate) => {
+      return (template.oauth2Variables || []).length > 0;
+    },
+  );
+
+  type SettingsOfFunction = (
+    variable: WorkflowTemplateOAuth2Variable,
+  ) => Array<string>;
+
+  const settingsOf: SettingsOfFunction = (
+    variable: WorkflowTemplateOAuth2Variable,
+  ): Array<string> => {
+    return [
+      variable.tokenUrl,
+      variable.clientId,
+      variable.clientSecret,
+      variable.scope,
+    ];
+  };
+
+  type FieldOfFunction = (
+    template: WorkflowTemplate,
+    name: string,
+  ) => WorkflowTemplateVariable | undefined;
+
+  const fieldOf: FieldOfFunction = (
+    template: WorkflowTemplate,
+    name: string,
+  ): WorkflowTemplateVariable | undefined => {
+    return template.variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === name;
+    });
+  };
+
+  test("some templates have them, so the checks below check something", () => {
+    expect(withOAuth2.length).toBeGreaterThan(0);
+  });
+
+  test("a template either has OAuth 2.0 variables or does not say so at all", () => {
+    for (const template of templates) {
+      if (template.oauth2Variables !== undefined) {
+        expect(template.oauth2Variables.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("every {name} in a setting is a required field of the same template", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        for (const setting of settingsOf(variable)) {
+          for (const name of getWorkflowTemplateSettingFieldNames(setting)) {
+            expect({
+              template: template.id,
+              setting: setting,
+              field: name,
+              required: fieldOf(template, name)?.required,
+            }).toEqual({
+              template: template.id,
+              setting: setting,
+              field: name,
+              required: true,
+            });
+          }
+        }
+      }
+    }
+  });
+
+  test("the client ID and secret come from what is typed, never from the template", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(
+          getWorkflowTemplateSettingFieldNames(variable.clientId),
+        ).toHaveLength(1);
+        expect(
+          getWorkflowTemplateSettingFieldNames(variable.clientSecret),
+        ).toHaveLength(1);
+        expect(variable.clientId).toMatch(/^\{[A-Za-z0-9_-]+\}$/);
+        expect(variable.clientSecret).toMatch(/^\{[A-Za-z0-9_-]+\}$/);
+      }
+    }
+  });
+
+  test("the client secret is filled in from a secret field, kept only for the setting", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        const [name] = getWorkflowTemplateSettingFieldNames(
+          variable.clientSecret,
+        );
+        const field: WorkflowTemplateVariable | undefined = fieldOf(
+          template,
+          name as string,
+        );
+
+        expect({
+          template: template.id,
+          isSecret: field?.isSecret,
+          isOAuth2SettingOnly: field?.isOAuth2SettingOnly,
+        }).toEqual({
+          template: template.id,
+          isSecret: true,
+          isOAuth2SettingOnly: true,
+        });
+      }
+    }
+  });
+
+  test("every field kept only for a setting fills one in", () => {
+    for (const template of templates) {
+      const named: Set<string> = new Set(
+        (template.oauth2Variables || []).flatMap(
+          (variable: WorkflowTemplateOAuth2Variable): Array<string> => {
+            return settingsOf(variable).flatMap(
+              getWorkflowTemplateSettingFieldNames,
+            );
+          },
+        ),
+      );
+
+      for (const variable of template.variables) {
+        if (!variable.isOAuth2SettingOnly) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          field: variable.name,
+          fillsASetting: named.has(variable.name),
+        }).toEqual({
+          template: template.id,
+          field: variable.name,
+          fillsASetting: true,
+        });
+      }
+    }
+  });
+
+  test("the graph never refers to a field kept only for a setting, which has no row", () => {
+    for (const template of templates) {
+      const settingOnly: Array<string> = template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        });
+
+      for (const reference of referencesOf(template.id)) {
+        if (reference.parsed.rootType !== ReferenceRootType.LocalVariable) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          reference: reference.raw,
+          settingOnly: settingOnly.includes(
+            reference.parsed.variableName as string,
+          ),
+        }).toEqual({
+          template: template.id,
+          reference: reference.raw,
+          settingOnly: false,
+        });
+      }
+    }
+  });
+
+  test("an OAuth 2.0 variable's name is never also a field's", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(variable.name).toMatch(WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX);
+        expect(fieldOf(template, variable.name)).toBeUndefined();
+      }
+    }
+  });
+
+  test("settings are filled in by the wizard, so none holds a {{...}} reference", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        for (const setting of settingsOf(variable)) {
+          expect(setting).not.toContain("{{");
+          expect(setting).not.toContain("}}");
+        }
+      }
+    }
+  });
+
+  test("each says how it signs in with values the service accepts", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(Object.values(OAuth2GrantType)).toContain(variable.grantType);
+        expect(Object.values(OAuth2ClientAuthenticationMethod)).toContain(
+          variable.clientAuthenticationMethod,
+        );
+        expect(variable.description.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  /*
+   * Filled in with each field's own example, a token URL has to be a real
+   * https URL: the service refuses anything else, and refuses it only after
+   * the workflow already exists.
+   */
+  test("the token URL is an https URL once its fields are filled in", () => {
+    for (const template of withOAuth2) {
+      const examples: Record<string, string> = {};
+
+      for (const variable of template.variables) {
+        examples[variable.name] = variable.placeholder;
+      }
+
+      for (const variable of template.oauth2Variables || []) {
+        const url: URL = new URL(
+          fillWorkflowTemplateSetting(variable.tokenUrl, examples),
+        );
+
+        expect(url.protocol).toBe("https:");
+      }
+    }
+  });
+
+  test("filling a setting in trims each value and leaves the rest of the text as it is", () => {
+    expect(
+      fillWorkflowTemplateSetting("https://login.example.com/{tenant}/token", {
+        tenant: "  contoso.onmicrosoft.com \n",
+      }),
+    ).toBe("https://login.example.com/contoso.onmicrosoft.com/token");
+
+    expect(
+      fillWorkflowTemplateSetting("{url}/.default", {
+        url: "https://acme.crm.dynamics.com",
+      }),
+    ).toBe("https://acme.crm.dynamics.com/.default");
+
+    // A field with no value fills in nothing, rather than leaving the braces.
+    expect(fillWorkflowTemplateSetting("{missing}/x", {})).toBe("/x");
+
+    // Text that only looks like a placeholder is left alone.
+    expect(fillWorkflowTemplateSetting("{not a name}", { a: "b" })).toBe(
+      "{not a name}",
+    );
+  });
+
+  test("the names a setting is filled in from, in the order it names them", () => {
+    expect(
+      getWorkflowTemplateSettingFieldNames(
+        "https://login.example.com/{tenant}/{tenant}/{path-part}",
+      ),
+    ).toEqual(["tenant", "tenant", "path-part"]);
+    expect(getWorkflowTemplateSettingFieldNames("no placeholders")).toEqual([]);
   });
 });
 
@@ -685,6 +1537,16 @@ describe.each(
     }
   });
 
+  /*
+   * Required as the step is set up: a Page step about an incident needs its
+   * Incident ID, and no title.
+   *
+   * One setting is the template's user's to fill in, and no template's: who
+   * a Page step pages - people, teams, schedules or policies of their own
+   * project, picked by name (isWhoToPage). The workflow is created switched
+   * off and opens in the builder, where the step says "Click to set up".
+   * "the paging templates" below holds those templates to exactly that.
+   */
   test("every required argument is filled in", () => {
     for (const node of specOf(templateId).nodes) {
       const metadata: ComponentMetadata = findMetadata(
@@ -692,7 +1554,10 @@ describe.each(
       ) as ComponentMetadata;
 
       for (const argument of metadata.arguments) {
-        if (!argument.required) {
+        if (
+          !isArgumentRequired(argument, node.args as JSONObject | undefined) ||
+          isWhoToPage(argument)
+        ) {
           continue;
         }
 
@@ -720,11 +1585,13 @@ describe.each(
         node.metadataId,
       ) as ComponentMetadata;
 
-      const port: Port | undefined = metadata.outPorts.find(
-        (candidate: Port) => {
-          return candidate.id === edge.fromPort;
-        },
-      );
+      // As the step is set up: a Switch / Case has an output per case.
+      const port: Port | undefined = getComponentOutPorts({
+        metadata: metadata,
+        arguments: node.args,
+      }).find((candidate: Port) => {
+        return candidate.id === edge.fromPort;
+      });
 
       expect({
         from: edge.fromComponentId,
@@ -1017,6 +1884,11 @@ describe.each(
     }
   });
 
+  /*
+   * A value kept only as an OAuth 2.0 setting is used by filling that
+   * setting in, not by the graph — which is checked under "workflow template
+   * OAuth 2.0 variables".
+   */
   test("every variable it declares is actually used by the graph", () => {
     const used: Set<string> = new Set(
       referencesOf(templateId)
@@ -1028,25 +1900,50 @@ describe.each(
         }),
     );
 
-    for (const variable of template.variables) {
+    const written: Array<string> = [
+      ...template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return !variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        }),
+      ...(template.oauth2Variables || []).map(
+        (variable: WorkflowTemplateOAuth2Variable) => {
+          return variable.name;
+        },
+      ),
+    ];
+
+    for (const name of written) {
       expect({
-        variable: variable.name,
-        used: used.has(variable.name),
-      }).toEqual({ variable: variable.name, used: true });
+        variable: name,
+        used: used.has(name),
+      }).toEqual({ variable: name, used: true });
     }
   });
 
   /*
    * The inverse, and the more dangerous direction: a reference to a variable
    * the wizard never asks for means no row is ever written for it, and the
-   * literal braces ship.
+   * literal braces ship. A value kept only as an OAuth 2.0 setting gets no row
+   * either, so it does not count as declared here.
    */
   test("every variable the graph references is declared by the template", () => {
-    const declared: Array<string> = template.variables.map(
-      (variable: WorkflowTemplateVariable) => {
-        return variable.name;
-      },
-    );
+    const declared: Array<string> = [
+      ...template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return !variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        }),
+      ...(template.oauth2Variables || []).map(
+        (variable: WorkflowTemplateOAuth2Variable) => {
+          return variable.name;
+        },
+      ),
+    ];
 
     for (const reference of referencesOf(templateId)) {
       if (reference.parsed.rootType !== ReferenceRootType.LocalVariable) {
@@ -1099,14 +1996,20 @@ describe.each(
     }
   });
 
+  /*
+   * But for the one thing a paging template leaves for its user: who to
+   * page, which the builder asks for with "Click to set up" (see "every
+   * required argument is filled in").
+   */
   test("passes the builder's own graph checks with no errors", () => {
     const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
 
-    const errors: Array<WorkflowLintIssue> = result.issues.filter(
-      (issue: WorkflowLintIssue) => {
-        return issue.severity === WorkflowLintSeverity.Error;
-      },
-    );
+    const errors: Array<WorkflowLintIssue> = lintIssuesBesidesWhoToPage(
+      templateId,
+      result,
+    ).filter((issue: WorkflowLintIssue) => {
+      return issue.severity === WorkflowLintSeverity.Error;
+    });
 
     expect(
       errors.map((issue: WorkflowLintIssue) => {
@@ -1124,10 +2027,40 @@ describe.each(
     const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
 
     expect(
-      result.issues.map((issue: WorkflowLintIssue) => {
-        return issue.message;
-      }),
+      lintIssuesBesidesWhoToPage(templateId, result).map(
+        (issue: WorkflowLintIssue) => {
+          return issue.message;
+        },
+      ),
     ).toEqual([]);
+  });
+
+  /*
+   * What the picker says a template will need. A template that leaves
+   * something for the Builder - who its Page steps page - says so
+   * (setUpInBuilder), and a template the builder's checks pass as it is
+   * created does not: "Nothing to fill in." is only said of a workflow that
+   * runs as it is created.
+   */
+  test("says what is left to set up in the Builder exactly when something is", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
+    const leftToSetUp: number =
+      result.issues.length -
+      lintIssuesBesidesWhoToPage(templateId, result).length;
+    const says: string = (
+      (getWorkflowTemplate(templateId) as WorkflowTemplate).setUpInBuilder || ""
+    ).trim();
+
+    expect({ templateId: templateId, says: says.length > 0 }).toEqual({
+      templateId: templateId,
+      says: leftToSetUp > 0,
+    });
+
+    if (says) {
+      // Short, like the line beside it, and it ends with where it is picked.
+      expect(says.endsWith("in the Builder.")).toBe(true);
+      expect(says.length).toBeLessThanOrEqual(80);
+    }
   });
 
   /*
@@ -1289,5 +2222,313 @@ describe.each(
         }),
       ).toContain("in");
     }
+  });
+});
+
+/*
+ * The IRC template has no webhook URL to ask for: the step connects to a
+ * server and joins a channel, so those are its two fields. What they accept
+ * is what the step can use - a host name, a channel with its "#" - and what
+ * people get wrong first is refused in the wizard rather than at the first
+ * incident.
+ */
+describe("the IRC template", () => {
+  const ircTemplate: WorkflowTemplate = getWorkflowTemplate(
+    "incident-created-irc",
+  ) as WorkflowTemplate;
+
+  type FieldFunction = (name: string) => WorkflowTemplateVariable;
+
+  const field: FieldFunction = (name: string): WorkflowTemplateVariable => {
+    return ircTemplate.variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === name;
+    }) as WorkflowTemplateVariable;
+  };
+
+  test("is an incident template that asks for a server and a channel, neither secret", () => {
+    expect(ircTemplate.category).toBe(WorkflowTemplateCategory.Incidents);
+    expect(
+      ircTemplate.variables.map((variable: WorkflowTemplateVariable) => {
+        return [variable.name, variable.required, variable.isSecret];
+      }),
+    ).toEqual([
+      ["ircServer", true, false],
+      ["ircChannel", true, false],
+    ]);
+  });
+
+  test.each(["irc.libera.chat", "irc.oftc.net", "irc-internal", "203.0.113.5"])(
+    "IRC Server takes %j",
+    (value: string) => {
+      expect(field("ircServer").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each([
+    "ircs://irc.libera.chat",
+    "irc.libera.chat:6697",
+    "irc.libera.chat/#ops",
+    "irc libera",
+    "-irc.example.com",
+  ])("IRC Server refuses %j", (value: string) => {
+    expect(field("ircServer").format?.pattern.test(value)).toBe(false);
+  });
+
+  test.each(["#ops", "##libera-overflow", "&local", "#部署"])(
+    "IRC Channel takes %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each(["ops", "#ops team", "#ops,#dev", "#"])(
+    "IRC Channel refuses %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(false);
+    },
+  );
+
+  test("its IRC step takes the server and the channel from those fields", () => {
+    const step: TemplateNodeSpec | undefined = specOf(
+      "incident-created-irc",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.metadataId === ComponentID.IRCSendMessageToChannel;
+    });
+
+    expect(step?.args?.["server"]).toBe("{{local.variables.ircServer}}");
+    expect(step?.args?.["channel"]).toBe("{{local.variables.ircChannel}}");
+    // Two lines: IRC sends each as a message of its own.
+    expect(String(step?.args?.["text"]).split("\n")).toHaveLength(2);
+  });
+});
+
+/*
+ * The Mattermost templates: the jobs the Slack templates do most, for a
+ * team whose chat is a Mattermost of its own. Each asks for the one thing
+ * it needs - the incoming webhook's URL, a secret - and refuses what people
+ * paste by mistake before the first incident does: the server's address, a
+ * page of its System Console, a Slack webhook.
+ */
+describe("the Mattermost templates", () => {
+  const MATTERMOST_TEMPLATE_IDS: Array<string> = [
+    "incident-created-mattermost",
+    "incident-state-changed-mattermost",
+    "alert-created-mattermost",
+    "monitor-status-changed-mattermost",
+    "maintenance-scheduled-mattermost",
+  ];
+
+  const ID: string = "3fd8pjcne7ry5bauiz8kpfo3hy";
+
+  type MattermostStepFunction = (templateId: string) => TemplateNodeSpec;
+
+  const mattermostStep: MattermostStepFunction = (
+    templateId: string,
+  ): TemplateNodeSpec => {
+    const steps: Array<TemplateNodeSpec> = specOf(templateId).nodes.filter(
+      (node: TemplateNodeSpec) => {
+        return node.metadataId === ComponentID.MattermostSendMessageToChannel;
+      },
+    );
+
+    expect(steps).toHaveLength(1);
+
+    return steps[0] as TemplateNodeSpec;
+  };
+
+  test("are the ones that use the Mattermost step, one for each job, in the categories they belong to", () => {
+    const usingMattermost: Array<string> = templates
+      .filter((template: WorkflowTemplate) => {
+        return specOf(template.id).nodes.some((node: TemplateNodeSpec) => {
+          return node.metadataId === ComponentID.MattermostSendMessageToChannel;
+        });
+      })
+      .map((template: WorkflowTemplate): string => {
+        return template.id;
+      });
+
+    expect([...usingMattermost].sort()).toEqual(
+      [...MATTERMOST_TEMPLATE_IDS].sort(),
+    );
+
+    expect(
+      MATTERMOST_TEMPLATE_IDS.map((id: string) => {
+        return getWorkflowTemplate(id)?.category;
+      }),
+    ).toEqual([
+      WorkflowTemplateCategory.Incidents,
+      WorkflowTemplateCategory.Incidents,
+      WorkflowTemplateCategory.Alerts,
+      WorkflowTemplateCategory.Monitors,
+      WorkflowTemplateCategory.ScheduledMaintenance,
+    ]);
+  });
+
+  test("each is named for Mattermost, so a search for it finds them all", () => {
+    for (const id of MATTERMOST_TEMPLATE_IDS) {
+      const template: WorkflowTemplate = getWorkflowTemplate(
+        id,
+      ) as WorkflowTemplate;
+
+      expect(template.name).toContain("Mattermost");
+      expect(template.workflowName).toContain("Mattermost");
+      // Not mistaken for a Slack, Discord or Teams template in a search.
+      expect(
+        `${template.name} ${template.description} ${template.workflowName}`,
+      ).not.toMatch(/slack|discord|teams|telegram|irc/i);
+    }
+  });
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s asks only for the webhook's URL: required, secret, and checked",
+    (id: string) => {
+      const template: WorkflowTemplate = getWorkflowTemplate(
+        id,
+      ) as WorkflowTemplate;
+
+      expect(
+        template.variables.map((variable: WorkflowTemplateVariable) => {
+          return [
+            variable.name,
+            variable.title,
+            variable.required,
+            variable.isSecret,
+            Boolean(variable.format),
+          ];
+        }),
+      ).toEqual([
+        [
+          "mattermostWebhookUrl",
+          "Mattermost Incoming Webhook URL",
+          true,
+          true,
+          true,
+        ],
+      ]);
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s posts through that URL, as the webhook, to the webhook's own channel",
+    (id: string) => {
+      const step: TemplateNodeSpec = mattermostStep(id);
+
+      expect(step.componentId).toBe("mattermost-1");
+      expect(Object.keys(step.args || {}).sort()).toEqual([
+        "text",
+        "webhook-url",
+      ]);
+      expect(step.args?.["webhook-url"]).toBe(
+        "{{local.variables.mattermostWebhookUrl}}",
+      );
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s writes Mattermost's Markdown: an emoji and a bold heading, then a bold label on each line",
+    (id: string) => {
+      const lines: Array<string> = String(
+        mattermostStep(id).args?.["text"],
+      ).split("\n");
+
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+      expect(lines[0]).toMatch(/^:[a-z0-9_+-]+: \*\*[^*\n]+\*\*$/);
+
+      for (const line of lines.slice(1)) {
+        expect(line).toMatch(/^\*\*[A-Z][A-Za-z ()]+:\*\* \{\{[^{}]+\}\}$/);
+      }
+
+      // Slack's *bold* is plain text with asterisks in Mattermost.
+      for (const line of lines) {
+        expect(line.replace(/\*\*/g, "")).not.toContain("*");
+      }
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s logs Mattermost's reason when the message does not get through",
+    (id: string) => {
+      const spec: TemplateSpec = specOf(id);
+      const errorEdges: Array<TemplateEdgeSpec> = spec.edges.filter(
+        (edge: TemplateEdgeSpec) => {
+          return (
+            edge.fromComponentId === "mattermost-1" && edge.fromPort === "error"
+          );
+        },
+      );
+
+      expect(errorEdges).toHaveLength(1);
+
+      const log: TemplateNodeSpec | undefined = spec.nodes.find(
+        (node: TemplateNodeSpec) => {
+          return node.componentId === errorEdges[0]?.toComponentId;
+        },
+      );
+
+      expect(log?.metadataId).toBe(ComponentID.Log);
+      expect(String(log?.args?.["value"])).toMatch(
+        /^❌ Mattermost could not deliver the [a-z ]+: \{\{local\.components\.mattermost-1\.returnValues\.error\}\}$/,
+      );
+    },
+  );
+
+  describe("the URL field", () => {
+    const field: WorkflowTemplateVariable = (
+      getWorkflowTemplate(
+        MATTERMOST_TEMPLATE_IDS[0] as string,
+      ) as WorkflowTemplate
+    ).variables[0] as WorkflowTemplateVariable;
+
+    const accepts: Array<string> = [
+      `https://mattermost.example.com/hooks/${ID}`,
+      `https://acme.cloud.mattermost.com/hooks/${ID}`,
+      `https://chat.example.com:8443/hooks/${ID}`,
+      `https://example.com/mattermost/hooks/${ID}`,
+      `http://mattermost.internal:8065/hooks/${ID}`,
+      `http://10.20.30.40:8065/hooks/${ID}`,
+      field.placeholder,
+    ];
+
+    const refuses: Array<string> = [
+      "https://mattermost.example.com",
+      "https://mattermost.example.com/",
+      "https://mattermost.example.com/acme/integrations/incoming_webhooks",
+      "https://mattermost.example.com/admin_console/integrations/integration_management",
+      `https://mattermost.example.com/hooks/${ID}/`,
+      `https://mattermost.example.com/hooks/${ID}?channel=ops`,
+      `https://mattermost.example.com/hooks/${ID.toUpperCase()}`,
+      `https://mattermost.example.com/hooks/${ID.slice(1)}`,
+      `mattermost.example.com/hooks/${ID}`,
+      `https://user:password@mattermost.example.com/hooks/${ID}`,
+      "https://hooks.slack.com/services/T000/B000/XXXX",
+      "https://discord.com/api/webhooks/123/abc",
+      "{{global.variables.MATTERMOST_WEBHOOK_URL}}",
+    ];
+
+    test.each(accepts)("takes %s", (value: string) => {
+      expect(field.format?.pattern.test(value)).toBe(true);
+    });
+
+    test.each(refuses)("refuses %s", (value: string) => {
+      expect(field.format?.pattern.test(value)).toBe(false);
+    });
+
+    test("agrees with the step on every one of them, so what the wizard takes the step can post to", () => {
+      for (const value of [...accepts, ...refuses]) {
+        expect({
+          value,
+          wizard: field.format?.pattern.test(value),
+        }).toEqual({
+          value,
+          wizard: MattermostWebhook.getWebhookUrlProblem(value) === null,
+        });
+      }
+    });
+
+    test("says where to find the URL, and what to type when it is refused", () => {
+      expect(field.description).toContain("Integrations");
+      expect(field.description).toContain("Incoming Webhooks");
+      expect(field.format?.message).toContain("/hooks/");
+    });
   });
 });

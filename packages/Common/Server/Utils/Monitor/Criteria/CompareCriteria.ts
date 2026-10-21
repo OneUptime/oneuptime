@@ -280,6 +280,39 @@ export default class CompareCriteria {
     return threshold as number;
   }
 
+  /*
+   * A metric-value threshold as a number, fraction included.
+   *
+   * The criteria form saves what the user typed as a STRING, and
+   * convertToNumber's parseInt truncated it: "0.9" on a ratio metric was
+   * compared as 0 and fired on every non-zero sample, and "85.5" was
+   * compared as 85. Metric values are where a fractional threshold is the
+   * natural one to type (ratios, seconds, load averages), so they are
+   * parsed with parseFloat. Every other checkOn keeps convertToNumber.
+   *
+   * Anything that does not parse to a finite number is treated as missing,
+   * so the caller ignores the filter instead of comparing against NaN.
+   */
+  @CaptureSpan()
+  public static convertMetricThresholdToNumber(
+    threshold: string | number | undefined,
+  ): number | null {
+    if (threshold === undefined || threshold === null) {
+      return null;
+    }
+
+    const parsed: number =
+      typeof threshold === Typeof.String
+        ? parseFloat(threshold as string)
+        : (threshold as number);
+
+    if (typeof parsed !== Typeof.Number || !Number.isFinite(parsed)) {
+      return null;
+    }
+
+    return parsed;
+  }
+
   @CaptureSpan()
   public static checkEqualToOrNotEqualTo(data: {
     value: string | number;

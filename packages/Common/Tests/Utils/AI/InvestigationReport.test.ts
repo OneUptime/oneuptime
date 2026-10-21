@@ -20,6 +20,7 @@ import {
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The investigation panel lays the AI report out section by section, links
  * the incidents it mentions and lists the evidence it checked; the API uses
@@ -68,7 +69,8 @@ function buildBrandedMarkdown(data: {
   modelName?: string | undefined;
   clusterToolCallCount?: number | undefined;
 }): string {
-  let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${data.analysisMarkdown}`;
+  let markdown: string =
+    mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(data.analysisMarkdown)}`.toString();
 
   const citations: Array<BrandedCitation> = data.citations;
   const clusterToolCallCount: number = data.clusterToolCallCount ?? 0;
@@ -80,16 +82,16 @@ function buildBrandedMarkdown(data: {
         describeClusterCitationOutcome(citation);
 
       if (clusterOutcome !== null) {
-        markdown += `\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+        markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;
         continue;
       }
 
-      markdown += `\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
+      markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;
     }
   }
 
   if (clusterToolCallCount <= 0) {
-    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
+    markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
       data.toolCallCount === 1 ? "y" : "ies"
     } run across your own telemetry${
       data.modelName ? ` using ${data.modelName}` : ""
@@ -129,7 +131,8 @@ function buildBrandedMarkdown(data: {
     counts.push("no telemetry queries or kubectl commands run");
   }
 
-  markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+  markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(
+    counts,
     " and ",
   )}${
     data.modelName ? ` using ${data.modelName}` : ""
@@ -2777,6 +2780,81 @@ describe("AI_ROOT_CAUSE_HEADING_TEXT", () => {
 });
 
 /*
+ * The server writes a citation's label and the model's name escaped for the
+ * Markdown the report is posted as. The parser reads both back as typed, so
+ * the evidence list and the run details show them as the tool and the
+ * provider wrote them.
+ */
+describe("the server's escaped labels and model name read back as typed", () => {
+  test("an evidence label with brackets, a '<' and a backslash", () => {
+    const label: string = 'Logs matching "[ERROR] <db>" in C:\\temp';
+    const markdown: string = buildBrandedMarkdown({
+      analysisMarkdown: "**Summary** — A.",
+      citations: [{ id: "C1", label, rowCount: 2 }],
+      toolCallCount: 1,
+    });
+
+    // Escaped where it is posted...
+    expect(markdown).toContain("\\[ERROR\\] \\<db>");
+
+    // ...and read back as typed.
+    expect(parseInvestigationReport(markdown).evidenceChecked).toEqual([
+      { citationId: "C1", label, rowCount: 2 },
+    ]);
+  });
+
+  test("a cluster tool's label reads back as typed too", () => {
+    const label: string = "kubectl logs deploy/api -c <container>";
+
+    expect(
+      parseInvestigationReport(
+        buildBrandedMarkdown({
+          analysisMarkdown: "**Summary** — A.",
+          citations: [
+            { id: "C1", label, rowCount: 1, toolName: RUN_KUBECTL_TOOL_NAME },
+          ],
+          toolCallCount: 1,
+          clusterToolCallCount: 1,
+        }),
+      ).evidenceChecked.map((entry: InvestigationEvidenceCheckedEntry) => {
+        return entry.label;
+      }),
+    ).toEqual([label]);
+  });
+
+  test("a model name with a chat mention in it", () => {
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: "**Summary** — A.",
+        citations: [],
+        toolCallCount: 1,
+        modelName: "custom-<!here>-[v2]",
+      }),
+    );
+
+    expect(parsed.footer?.modelName).toBe("custom-<!here>-[v2]");
+  });
+
+  test("a label written before the escaping reads as it always did", () => {
+    expect(
+      parseInvestigationReport(
+        [
+          "**Summary** — A.",
+          "",
+          "**Evidence checked**",
+          "- **[C1]** Active incidents (7 total) — 7 row(s)",
+          "",
+          "---",
+          "*Investigated automatically by OneUptime AI — read-only, 1 query run across your own telemetry using gpt-4.1-mini. This is an AI-generated first pass; verify before acting.*",
+        ].join("\n"),
+      ).evidenceChecked,
+    ).toEqual([
+      { citationId: "C1", label: "Active incidents (7 total)", rowCount: 7 },
+    ]);
+  });
+});
+
+/*
  * Source pin: the test copy of buildBrandedMarkdown above must stay in step
  * with the server. If the engine's report format changes, update the copy,
  * then make sure the parser still understands it.
@@ -2800,16 +2878,16 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
   test.each([
     [
       "the brand heading",
-      "`## 🧠 AI — Automated Root Cause Analysis\\n\\n${analysisMarkdown}`",
+      "mdText`## 🧠 AI — Automated Root Cause Analysis\\n\\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();",
     ],
     ["the Evidence checked label", "markdown += `\\n\\n**Evidence checked**`;"],
     [
       "the evidence entry",
-      "markdown += `\\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;",
+      "markdown += mdText`\\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;",
     ],
     [
       "the footer opening",
-      "markdown += `\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${",
+      "markdown += mdText`\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${",
     ],
     [
       "the singular/plural query word",
@@ -2822,7 +2900,7 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
     ],
     [
       "the cluster tool entry",
-      "markdown += `\\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;",
+      "markdown += mdText`\\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;",
     ],
     [
       "the kubectl outcomes",
@@ -2839,7 +2917,7 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
     ],
     [
       "the cluster footer opening",
-      "markdown += `\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(",
+      "markdown += mdText`\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(",
     ],
   ])("engine still writes %s", (_name: string, fragment: string) => {
     expect(engineSource).toContain(fragment);

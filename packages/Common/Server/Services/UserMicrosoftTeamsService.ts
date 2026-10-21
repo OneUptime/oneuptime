@@ -18,6 +18,7 @@ import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProj
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import Model from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -28,18 +29,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The methods the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const item of itemsToDelete) {
       await UserNotificationRuleService.deleteBy({
@@ -140,7 +137,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!projectAuth || !projectAuth.authToken) {
       throw new BadDataException(
-        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Microsoft Teams Integration.",
+        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
       );
     }
 
@@ -153,7 +150,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Microsoft Teams account is not connected to OneUptime for this project. Please go to User Settings > Microsoft Teams Integration and connect your Microsoft Teams account first.",
+        `Your Microsoft Teams account is not connected to ${ProductBrandingText.getProductName()} in this project yet. Connect it under User Settings > Workspace > Microsoft Teams, then add it here.`,
       );
     }
 

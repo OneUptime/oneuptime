@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -92,7 +95,31 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived status pages, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: StatusPage,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

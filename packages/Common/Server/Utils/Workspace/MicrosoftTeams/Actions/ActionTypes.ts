@@ -18,6 +18,18 @@ export enum MicrosoftTeamsIncidentActionType {
   SubmitChangeIncidentState = "SubmitChangeIncidentState",
   NewIncident = "CreateIncident",
   SubmitNewIncident = "SubmitNewIncident",
+  /*
+   * The incident card's menu (…), pressed by Slack's ids: the card is drawn
+   * from the Slack message's blocks (WorkspaceIncidentActions).
+   */
+  ViewChangeIncidentSeverity = "ViewChangeIncidentSeverity",
+  SubmitChangeIncidentSeverity = "SubmitChangeIncidentSeverity",
+  ViewAssignIncidentRole = "ViewAssignIncidentRole",
+  SubmitAssignIncidentRole = "SubmitAssignIncidentRole",
+  ViewPageAboutIncident = "ViewPageAboutIncident",
+  SubmitPageAboutIncident = "SubmitPageAboutIncident",
+  ViewEditIncidentCustomFields = "ViewEditIncidentCustomFields",
+  SubmitEditIncidentCustomFields = "SubmitEditIncidentCustomFields",
 }
 
 // Alert Actions
@@ -102,12 +114,26 @@ export enum MicrosoftTeamsOnCallDutyActionType {
   OnCallDutyPolicyTriggered = "OnCallDutyPolicyTriggered",
 }
 
+/*
+ * "page [who] [message]" typed to the bot opens the Page someone card when
+ * it cannot page at once (MicrosoftTeamsPage); this is the card, submitted.
+ */
+export enum MicrosoftTeamsPageActionType {
+  SubmitPageSomeone = "SubmitPageSomeone",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
   ViewDashboard = "ViewDashboard",
   ViewProject = "ViewProject",
 }
+
+/*
+ * The words typed to the bot - "incident [title]", "oncall", "help" - are
+ * Slack's words after /oneuptime too: WorkspaceCommands reads them for both,
+ * and MicrosoftTeamsCommands has the lists only Teams has.
+ */
 
 // Activity Types from Microsoft Teams
 export enum TeamsActivityType {
@@ -128,6 +154,49 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsMonitorActionType
   | MicrosoftTeamsScheduledMaintenanceActionType
   | MicrosoftTeamsOnCallDutyActionType
+  | MicrosoftTeamsPageActionType
   | MicrosoftTeamsGeneralActionType;
+
+/*
+ * The buttons of the cards OneUptime posts to Microsoft Teams are built from
+ * the same blocks as its Slack messages (WorkspaceMessages), so they carry
+ * Slack's action ids. Most are the Microsoft Teams ids too. These five are
+ * not, and no Teams handler took them: Acknowledge on an alert or an
+ * episode, and Mark as Ongoing and Mark as Completed on a scheduled
+ * maintenance event, were pressed and nothing happened. Each is read as the
+ * Teams action it is.
+ */
+const SLACK_BUTTON_ACTION_TYPES: ReadonlyMap<string, MicrosoftTeamsActionType> =
+  new Map<string, MicrosoftTeamsActionType>([
+    ["AcknowledgeAlert", MicrosoftTeamsAlertActionType.AckAlert],
+    [
+      "AcknowledgeAlertEpisode",
+      MicrosoftTeamsAlertEpisodeActionType.AckAlertEpisode,
+    ],
+    [
+      "AcknowledgeIncidentEpisode",
+      MicrosoftTeamsIncidentEpisodeActionType.AckIncidentEpisode,
+    ],
+    [
+      "MarkScheduledMaintenanceAsOngoing",
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+    ],
+    [
+      "MarkScheduledMaintenanceAsComplete",
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
+    ],
+  ]);
+
+// The Microsoft Teams action a card's button names, Slack's id or Teams'.
+export const getMicrosoftTeamsActionType: (
+  actionType: string,
+) => MicrosoftTeamsActionType = (
+  actionType: string,
+): MicrosoftTeamsActionType => {
+  return (
+    SLACK_BUTTON_ACTION_TYPES.get(actionType) ||
+    (actionType as MicrosoftTeamsActionType)
+  );
+};
 
 export default MicrosoftTeamsActionType;

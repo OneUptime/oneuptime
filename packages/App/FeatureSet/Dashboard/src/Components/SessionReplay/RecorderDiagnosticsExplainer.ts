@@ -109,7 +109,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     explanation:
       "The policy endpoint refused the request: the ingestion token is wrong or revoked, or the origin is not allowed.",
     action:
-      "Confirm the token under Project Settings > Telemetry Ingestion Keys and the origin allowlists on the key and the application.",
+      "Confirm the token under Project Settings > Telemetry & APM > Ingestion Keys and the origin allowlists on the key and the application.",
     isOutcome: true,
   },
   "config-body-unparseable": {
@@ -237,7 +237,19 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "session-rotated": {
     explanation:
-      "The session rolled over (30 minutes idle or the daily cap); a new recording starts here.",
+      "A new session started here: the user came back after 30 minutes idle, the session reached its length cap, a different user signed in, or another tab started one first.",
+  },
+  "session-ended-idle": {
+    explanation:
+      "Nothing happened on the page for 30 minutes, so the session ended at the last activity. Nothing more is recorded until the user comes back, which starts a new session.",
+  },
+  "recording-paused-idle": {
+    explanation:
+      "Nobody touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch, which resumes the same session.",
+  },
+  "recording-resumed": {
+    explanation:
+      "The user came back after recording paused for inactivity, and recording resumed in the same session on a fresh snapshot.",
   },
   "recorder-stopped": { explanation: "Recording stopped on this page." },
   "recorder-stopped-by-server": {

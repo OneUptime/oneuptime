@@ -8,12 +8,16 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * dead code.
  *
  * A cost audit flagged HardDelete:HardDeleteItemsInDatabase as a dead sweep
- * doing zero-yield scans and proposed deleting it. It is not dead. It is the
- * ONLY thing in the repo that ever hard-deletes a soft-deleted row: every
- * other delete path writes "deletedAt" and stops there. Removing it would
- * mean rows marked deleted are retained forever — a storage leak and, for
- * anything holding personal data, a deletion promise the product stops
- * keeping.
+ * doing zero-yield scans and proposed deleting it. It is not dead, though it
+ * has less to do than the audit assumed. OneUptime's own deletes
+ * (DatabaseService.deleteBy and the rest) remove a row at once, with a hard
+ * DELETE. A row is only marked deleted ("deletedAt" set) by a migration - the
+ * duplicates RestoreDroppedUniqueIndexes set aside, the SNMP monitors
+ * AddNetworkDeviceTables retired - or by a write from outside the app. This
+ * sweep is the ONLY thing in the repo that removes those rows for good.
+ * Removing it would mean rows marked deleted are retained forever — a storage
+ * leak and, for anything holding personal data, a deletion promise the
+ * product stops keeping.
  *
  * What the audit measured is the gate, not deadness. Both sweeps are keyed off
  * IsBillingEnabled (BILLING_ENABLED=true), which is a deployment flag, not a

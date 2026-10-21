@@ -10,10 +10,16 @@ import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
+import { FixProductionCheckHelper } from "Common/Types/AI/FixProductionCheck";
 import FixPullRequestCiStatus, {
   FixPullRequestCiStatusHelper,
 } from "Common/Types/AI/FixPullRequestCiStatus";
+import {
+  FixMergedFields,
+  fieldsWhenMerged,
+} from "Common/Server/Utils/AI/CodeFix/FixProductionVerdict";
 import GitHubUtil, {
+  GitHubPullRequestMerge,
   GitHubCheckRunsSummary,
   GitHubInstallationNotFoundError,
   GitHubInstallationToken,
@@ -309,23 +315,50 @@ RunCron(
           tokenByInstallationId.set(installationId, tokenBundle);
         }
 
-        const currentState: PullRequestState =
-          await GitHubUtil.getPullRequestStateWithToken({
+        const merge: GitHubPullRequestMerge =
+          await GitHubUtil.getPullRequestMergeWithToken({
             token: tokenBundle.token.token,
             organizationName,
             repositoryName,
             pullRequestNumber: pullRequest.pullRequestNumber,
           });
+        const currentState: PullRequestState = merge.state;
 
         // Everything that changed this sweep lands in one update.
         const updateData: {
           pullRequestState?: PullRequestState;
           ciStatus?: FixPullRequestCiStatus;
           ciStatusAt?: Date;
-        } = {};
+        } & Partial<FixMergedFields> = {};
 
         if (currentState !== PullRequestState.Open) {
           updateData.pullRequestState = currentState;
+        }
+
+        /*
+         * Merged is not fixed: a fix whose effect production shows - an
+         * exception's, a slow operation's, an incident's root cause, a
+         * telemetry improvement - is watched in production from here on
+         * (FixProductionVerifier), with the check its recipe calls for,
+         * which needs the commit GitHub merged it as.
+         */
+        if (currentState === PullRequestState.Merged) {
+          Object.assign(
+            updateData,
+            fieldsWhenMerged({
+              mergeCommitSha: merge.mergeCommitSha,
+              mergedAt: merge.mergedAt,
+              productionCheck: pullRequest.aiRunId
+                ? FixProductionCheckHelper.forTaskType(
+                    await getTaskTypeForRun(
+                      pullRequest.aiRunId,
+                      taskTypeByRunId,
+                    ),
+                  )
+                : null,
+              now: OneUptimeDate.getCurrentDate(),
+            }),
+          );
         }
 
         /*

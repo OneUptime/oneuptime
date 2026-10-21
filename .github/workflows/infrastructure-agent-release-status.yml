@@ -1,0 +1,124 @@
+name: Infrastructure Agent Release Status
+
+# Where the newest release of the infrastructure agent has got to in every place
+# people install it from, as agents/InfrastructureAgent/RELEASING.md describes. The
+# run's summary is the release's record:
+#
+#   status      Scripts/PackageManagers/ReleaseStatus.sh: the GitHub release, apt and
+#               yum (packages.oneuptime.com), the Homebrew tap, winget's pull request,
+#               the signing key and the site's HTTPS certificate. A problem fails it;
+#               waiting (for the Pages deploy, or for winget's review) does not.
+#   apt-dnf     once the site has the version: the docs' apt and dnf commands on
+#               Debian, Ubuntu, Rocky Linux, AlmaLinux, Fedora and Amazon Linux, on x64
+#               and Arm (InstallFromPackageRepository.sh).
+#   homebrew    once the tap has it: the docs' brew command on macOS, failing on
+#               anything brew calls deprecated in the cask (InstallFromHomebrew.sh).
+#
+# After every release run; every day, because the Pages deploy and winget's review
+# outlast the release run; by hand, for any version; and for a pull request into
+# master that changes these checks. It reads public repositories and the live site only, so it
+# needs no secret, and it publishes nothing.
+
+# Supersede in-flight runs for the same branch/PR: only the newest state needs checking.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_run:
+    # release.yml's name.
+    workflows: ["Push Release Images to Docker Hub and GitHub Container Registry"]
+    types: [completed]
+    branches: [release]
+  schedule:
+    - cron: "37 7 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The release (#.#.#). Empty takes the latest."
+        type: string
+        default: ""
+  # Into master only. A release's gate pull request (release-x.y.z into release)
+  # carries every file master changed, these included, and this checks the live
+  # state of the release before it, not the one the gate is for.
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/infrastructure-agent-release-status.yml"
+      - "Scripts/PackageManagers/ReleaseStatus.sh"
+      - "Scripts/PackageManagers/InstallFromPackageRepository.sh"
+      - "Scripts/PackageManagers/InstallFromHomebrew.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    name: Every place it is published
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.status.outputs.version }}
+      apt: ${{ steps.status.outputs.apt }}
+      yum: ${{ steps.status.outputs.yum }}
+      homebrew: ${{ steps.status.outputs.homebrew }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check each one
+        id: status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: bash ./Scripts/PackageManagers/ReleaseStatus.sh ${VERSION:+"$VERSION"}
+
+  apt-dnf:
+    name: apt and dnf on ${{ matrix.arch }}
+    needs: status
+    # Also when status found a problem elsewhere; not before the site has the version.
+    if: ${{ !cancelled() && needs.status.outputs.apt == 'published' && needs.status.outputs.yum == 'published' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-latest
+          - arch: Arm
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Docker Hub's official images, from Google's mirror of them: no Docker Hub pull
+      # limit, and none of the limits ECR Public puts on anonymous pulls.
+      - name: Install with the docs' commands
+        env:
+          VERSION: ${{ needs.status.outputs.version }}
+        run: >-
+          bash ./Scripts/PackageManagers/InstallFromPackageRepository.sh "$VERSION"
+          mirror.gcr.io/library/debian:12
+          mirror.gcr.io/library/debian:13
+          mirror.gcr.io/library/ubuntu:22.04
+          mirror.gcr.io/library/ubuntu:24.04
+          mirror.gcr.io/library/rockylinux:8
+          mirror.gcr.io/library/rockylinux:9
+          mirror.gcr.io/library/almalinux:10
+          mirror.gcr.io/library/fedora:latest
+          mirror.gcr.io/library/amazonlinux:2023
+
+  homebrew:
+    name: Homebrew on macOS
+    needs: status
+    if: ${{ !cancelled() && needs.status.outputs.homebrew == 'published' }}
+    runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      HOMEBREW_NO_ANALYTICS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install with the docs' command
+        env:
+          VERSION: ${{ needs.status.outputs.version }}
+        run: bash ./Scripts/PackageManagers/InstallFromHomebrew.sh "$VERSION"

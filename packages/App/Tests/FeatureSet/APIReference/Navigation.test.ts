@@ -101,6 +101,7 @@ describe("buildReferenceNavigation", () => {
           name: resource.name,
           slug: resource.path,
           description: resource.description,
+          isEnglishName: true,
         };
       }),
     );

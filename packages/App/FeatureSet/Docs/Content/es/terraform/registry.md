@@ -1,60 +1,108 @@
-# Registry Usage
+# Uso del registro
 
-The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
+El proveedor de OneUptime se publica en el [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) y en el [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest). `terraform init` y `tofu init` lo descargan de ahí: no hay nada que instalar a mano. Esta página explica qué se publica, cómo se numeran las versiones y cómo pasar a una más nueva.
 
-## What's on the registry
+:::cards
+- [Qué se publica](#qué-se-publica): El proveedor para cada plataforma, su referencia y sus versiones.
+- [Cómo se numeran las versiones](#cómo-se-numeran-las-versiones): La versión de un proveedor es la versión de OneUptime que lo publicó.
+- [El archivo de bloqueo](#el-archivo-de-bloqueo): La versión y las sumas de comprobación que instala cada máquina.
+- [Pasar a una versión más nueva](#pasar-a-una-versión-más-nueva): Lea qué cambió, descárguela y planifique.
+:::
 
-- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
-- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
-- **The version history**, one entry per published release.
+## Qué se publica
 
-Declare the provider like any registry provider:
+Cada versión de OneUptime genera el proveedor a partir de la propia API de OneUptime. Cuando el proveedor cambió, la versión lo publica, con el número de esa versión, una vez que ha superado sus pruebas de extremo a extremo con Terraform y con OpenTofu:
 
-```hcl
+```mermaid title="De una versión de OneUptime a su terraform init"
+flowchart TB
+    R["Una versión de OneUptime"] --> G["El proveedor se genera<br/>a partir de la API<br/>de OneUptime"]
+    G --> C{"¿Cambió<br/>el proveedor?"}
+    C -->|"sí"| P["Probado con Terraform<br/>y OpenTofu, y luego<br/>publicado con el número<br/>de esa versión"]
+    C -->|"no"| N["Ninguna versión del<br/>proveedor para esta versión"]
+    P --> I["terraform init<br/>y tofu init<br/>lo descargan"]
+```
+
+| Qué | Dónde |
+| --- | --- |
+| El proveedor, para Linux, macOS, Windows, FreeBSD, OpenBSD y Solaris | Lo descargan `terraform init` y `tofu init`, con sumas de comprobación que firma OneUptime |
+| La referencia de cada recurso y fuente de datos, con cada uno de sus atributos | La documentación del registro, agrupada por producto: monitores, páginas de estado, incidentes, guardias y los demás |
+| Una guía para usar el proveedor con OpenTofu | Las guías del registro |
+| Cada versión, la más nueva primero | La lista de versiones del registro |
+
+La referencia indica qué es cada atributo. Estos documentos muestran cómo usarlos juntos: empiece por la [Visión general de Terraform](/docs/terraform/index).
+
+## Cómo se numeran las versiones
+
+La versión de un proveedor es la de la versión de OneUptime que lo publicó: el proveedor {{TERRAFORM_PROVIDER_MAJOR}}.0.20 llegó con OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.20. Una versión cuyo proveedor no cambió no publica ninguno, así que las versiones tienen huecos, y una restricción que nombra una sola versión exacta puede nombrar una versión que no existe. Escriba en su lugar un rango:
+
+| Usted usa | Restricción | Terraform instala |
+| --- | --- | --- |
+| OneUptime Cloud | `{{TERRAFORM_PROVIDER_VERSION}}` | El proveedor {{TERRAFORM_PROVIDER_MAJOR}}.x más reciente |
+| Un OneUptime autoalojado | Un rango que termine en la versión de su OneUptime, como `>= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40` | El proveedor más reciente que no sea más nuevo que su OneUptime |
+
+En un OneUptime autoalojado, un proveedor más nuevo que su OneUptime puede enviar ajustes que su OneUptime aún no tiene: [Configuración autoalojada](/docs/terraform/self-hosted#elegir-la-versión-del-proveedor) muestra cómo escribir su rango.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 ```
 
-`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
+La dirección de origen no nombra ningún registro: Terraform la lee del Terraform Registry, y OpenTofu del OpenTofu Registry, que publican las mismas versiones.
 
-## How versioning works
+## El archivo de bloqueo
 
-Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
+`terraform init` registra la versión que eligió, y las sumas de comprobación de sus descargas, en `.terraform.lock.hcl`. Confirme ese archivo: cada máquina y cada ejecución de CI instalan entonces exactamente esa versión, hasta que elija otra. Las sumas de comprobación cubren cada plataforma que publica el registro, así que un archivo de bloqueo sirve igual a las máquinas con Linux, macOS y Windows.
 
-1. **Cloud users** always run the latest platform, so the newest provider is always correct:
-
-```hcl
-version = "~> 11.0"
+```hcl title=".terraform.lock.hcl"
+provider "registry.terraform.io/oneuptime/oneuptime" {
+  version     = "{{TERRAFORM_PROVIDER_MAJOR}}.0.20"
+  constraints = "{{TERRAFORM_PROVIDER_VERSION}}"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
 ```
 
-2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
+El archivo de bloqueo nombra el registro. OpenTofu escribe `registry.opentofu.org/oneuptime/oneuptime` donde Terraform escribe `registry.terraform.io/oneuptime/oneuptime`, así que cambiar de motor cambia el archivo de bloqueo: `init` sustituye la entrada, y le pide que confirme el cambio.
 
-**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## Pasar a una versión más nueva
 
-## Checking versions and release notes
+:::steps
+### Leer qué cambió
 
-- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
-- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
-- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+[Las versiones de OneUptime](https://github.com/OneUptime/oneuptime/releases) dicen qué cambió cada versión, incluido el proveedor. [Las versiones del proveedor](https://github.com/OneUptime/terraform-provider-oneuptime/releases) enlazan a los cambios desde la anterior.
 
-To move to a newer version within your constraint:
+### Descargarla
 
 ```bash
 terraform init -upgrade
 ```
 
-This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
+`init -upgrade` toma la versión más reciente que permite su restricción, la imprime y actualiza `.terraform.lock.hcl`. La restricción `{{TERRAFORM_PROVIDER_VERSION}}` toma cada versión {{TERRAFORM_PROVIDER_MAJOR}}.x; una nueva versión principal necesita una nueva restricción.
 
-## Where the code lives
+### Planificar antes de aplicar
 
-The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+Ejecute `terraform plan`, y aplique solo cuando esté vacío o muestre los cambios que espera. Confirme el archivo de bloqueo actualizado.
+:::
 
-## Air-gapped environments
+En un OneUptime autoalojado, actualice primero OneUptime, y luego suba el final del rango del proveedor.
 
-If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## Dónde está el código
+
+El proveedor se genera a partir de la API de OneUptime en el [repositorio principal de OneUptime](https://github.com/OneUptime/oneuptime), y cada versión se construye a partir de la versión que la publicó. Su propio repositorio, [OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime), guarda lo que escribió el generador, así que los cambios se hacen en el repositorio principal: notifique los problemas, también los de la documentación, en [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+
+## Próximos pasos
+
+:::cards
+- [Configuración autoalojada](/docs/terraform/self-hosted): El rango de versiones para su propio OneUptime, y un espejo para las máquinas sin conexión.
+- [OpenTofu](/docs/terraform/opentofu): El mismo proveedor y la misma configuración, con `tofu`.
+- [Guía completa](/docs/terraform/complete-guide): Autenticación, organización del proyecto, fuentes de datos, estado y actualizaciones.
+- [Solución de problemas](/docs/terraform/troubleshooting): Errores comunes y cómo solucionarlos.
+:::

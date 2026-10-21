@@ -8,8 +8,14 @@ import Modal from "../../../../UI/Components/Modal/Modal";
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
 import getJestMockFunction, { MockFunction } from "../../../../Tests/MockType";
+import {
+  getColorField,
+  getSwatch,
+  getTrigger,
+} from "../ColorPicker/ColorPickerDriver";
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -21,14 +27,16 @@ import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * The colour and icon fields are triggers dressed as text boxes: a readOnly
- * input whose only job is to open a portalled popup, which it used to do on
- * click and on nothing else. Every key was dead. That left a keyboard user with
- * no way in at all — and on the Create Label form (issue #3143) the colour is
- * required, so no way in meant no way to submit the form either.
+ * Fields that open a portalled popup - the compact color field (a custom
+ * field's options, a workflow value) and the icon field - used to open it on
+ * a click and on nothing else. Every key was dead. That left a keyboard user
+ * with no way in at all - and on the Create Label form (issue #3143) the
+ * color is required, so no way in meant no way to submit the form either.
  *
- * Both fields drive UseAnchoredFieldPopup, so the behaviour is stated once per
- * field here and the shared parts are pinned in both.
+ * Both fields drive UseAnchoredFieldPopup, so the behaviour is stated once
+ * per field here and the shared parts are pinned in both. A form's color
+ * field has no popup any more - its swatches are a radio group on the form -
+ * and is pinned by its own keys below.
  */
 
 const OPENING_KEYS: Array<string> = ["Enter", " ", "ArrowDown", "ArrowUp"];
@@ -44,8 +52,10 @@ const renderColorPicker: RenderColorPickerFunction = (
 
   render(
     <ColorPicker
+      layout="compact"
       dataTestId="color-value"
-      placeholder="Please select color for this label."
+      placeholder="No color"
+      initialValue={new Color("#ef4444")}
       onChange={onChange}
       readOnly={props.readOnly}
       disabled={props.disabled}
@@ -62,89 +72,131 @@ const getField: GetFieldFunction = (testId: string): HTMLInputElement => {
   return screen.getByTestId(testId) as HTMLInputElement;
 };
 
+// The compact color field's button.
+const getColorTrigger: () => HTMLElement = (): HTMLElement => {
+  return getTrigger(getColorField("color-value"));
+};
+
 describe("Opening an anchored field popup from the keyboard", () => {
   afterEach(() => {
     cleanup();
   });
 
-  describe("ColorPicker", () => {
+  describe("ColorPicker (compact)", () => {
     test.each(OPENING_KEYS)(
-      "%p opens the popup and moves focus into it",
+      "%p opens the popup and moves focus to the picked color",
       (key: string) => {
         renderColorPicker();
 
-        const field: HTMLInputElement = getField("color-value");
+        const trigger: HTMLElement = getColorTrigger();
 
-        field.focus();
-        fireEvent.keyDown(field, { key });
+        trigger.focus();
+        fireEvent.keyDown(trigger, { key });
 
         const popup: HTMLElement = screen.getByTestId("color-picker-popup");
 
         expect(popup).toBeInTheDocument();
 
         /*
-         * Landing on the popup's first control is what makes the field
-         * fillable: for a colour that control is ChromePicker's hex box, so
-         * "open it and type the brand hex" is a complete keyboard path.
+         * Landing on the picked swatch is what makes the field usable: the
+         * arrows move from there, Enter or Space chooses.
          */
-        expect(popup.contains(document.activeElement)).toBe(true);
+        expect(document.activeElement).toBe(getSwatch(popup, "Red"));
       },
     );
 
-    test("a keyboard user can open the picker and set a hex end to end", async () => {
+    test("a keyboard user can open it, arrow to a color and choose it, end to end", () => {
       const onChange: MockFunction = renderColorPicker();
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      field.focus();
-      fireEvent.keyDown(field, { key: "Enter" });
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "Enter" });
 
-      const focusedControl: HTMLElement = document.activeElement as HTMLElement;
+      const popup: HTMLElement = screen.getByTestId("color-picker-popup");
 
-      expect(focusedControl.tagName).toEqual("INPUT");
-
-      fireEvent.change(focusedControl, { target: { value: "#32a852" } });
-
-      await waitFor(() => {
-        expect(onChange).toHaveBeenCalledWith(new Color("#32a852"));
+      act(() => {
+        fireEvent.keyDown(document.activeElement as HTMLElement, {
+          key: "ArrowRight",
+        });
       });
 
-      // Escape puts the user back where they were, with the value kept.
-      fireEvent.keyDown(focusedControl, { key: "Escape" });
+      // The arrow picks as it moves, and the popover stays for more.
+      expect(onChange).toHaveBeenLastCalledWith(new Color("#d97706"));
+      expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
+
+      // Enter or Space on a radio button is its click: the choice is made.
+      act(() => {
+        fireEvent.click(getSwatch(popup, "Orange"), { detail: 0 });
+      });
 
       expect(screen.queryByTestId("color-picker-popup")).toBeNull();
-      expect(document.activeElement).toBe(field);
-      expect(field.value).toEqual("#32a852");
+      expect(document.activeElement).toBe(trigger);
+      expect(trigger).toHaveTextContent("Orange");
+    });
+
+    test("a keyboard user can open Custom color and type a brand code", () => {
+      const onChange: MockFunction = renderColorPicker();
+      const trigger: HTMLElement = getColorTrigger();
+
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "Enter" });
+
+      const popup: HTMLElement = screen.getByTestId("color-picker-popup");
+
+      act(() => {
+        fireEvent.click(within(popup).getByTestId("color-picker-custom"), {
+          detail: 0,
+        });
+      });
+
+      const codeBox: HTMLElement =
+        within(popup).getByTestId("color-picker-code");
+
+      expect(document.activeElement).toBe(codeBox);
+
+      act(() => {
+        fireEvent.change(codeBox, { target: { value: "#32a852" } });
+      });
+
+      expect(onChange).toHaveBeenLastCalledWith(new Color("#32a852"));
+
+      // Escape puts the user back where they were, with the value kept.
+      act(() => {
+        fireEvent.keyDown(codeBox, { key: "Escape" });
+      });
+
+      expect(screen.queryByTestId("color-picker-popup")).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+      expect(trigger).toHaveTextContent("#32a852");
     });
 
     test("an opening key is claimed, so nothing downstream acts on it too", () => {
       renderColorPicker();
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
       /*
        * fireEvent returns false when a cancelable event had preventDefault
-       * called on it. That is what stops Input's own onEnterPress from also
-       * firing, and what would stop a real <form> around the field from
-       * submitting on the way past.
+       * called on it: nothing around the field acts on the same key.
        */
-      expect(fireEvent.keyDown(field, { key: "Enter" })).toBe(false);
-      expect(fireEvent.keyDown(field, { key: " " })).toBe(false);
+      expect(fireEvent.keyDown(trigger, { key: "Enter" })).toBe(false);
+      expect(fireEvent.keyDown(trigger, { key: " " })).toBe(false);
     });
 
     test("Enter on an already open field moves focus in rather than closing it", () => {
       renderColorPicker();
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      fireEvent.click(field);
+      fireEvent.click(trigger);
 
       const popup: HTMLElement = screen.getByTestId("color-picker-popup");
 
       // A pointer user's popup opens under their cursor and leaves focus alone.
       expect(popup.contains(document.activeElement)).toBe(false);
 
-      field.focus();
-      fireEvent.keyDown(field, { key: "Enter" });
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "Enter" });
 
       expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
       expect(popup.contains(document.activeElement)).toBe(true);
@@ -153,21 +205,21 @@ describe("Opening an anchored field popup from the keyboard", () => {
     test("keys that are not opening keys are left alone", () => {
       renderColorPicker();
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      expect(fireEvent.keyDown(field, { key: "Tab" })).toBe(true);
-      expect(fireEvent.keyDown(field, { key: "a" })).toBe(true);
+      expect(fireEvent.keyDown(trigger, { key: "Tab" })).toBe(true);
+      expect(fireEvent.keyDown(trigger, { key: "a" })).toBe(true);
       expect(screen.queryByTestId("color-picker-popup")).toBeNull();
     });
 
     test("a readOnly field opens for neither pointer nor keyboard", () => {
       renderColorPicker({ readOnly: true });
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      fireEvent.click(field);
-      fireEvent.keyDown(field, { key: "Enter" });
-      fireEvent.keyDown(field, { key: "ArrowDown" });
+      fireEvent.click(trigger);
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
 
       expect(screen.queryByTestId("color-picker-popup")).toBeNull();
     });
@@ -175,11 +227,11 @@ describe("Opening an anchored field popup from the keyboard", () => {
     test("a disabled field opens for neither pointer nor keyboard", () => {
       renderColorPicker({ disabled: true });
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      fireEvent.click(field);
-      fireEvent.keyDown(field, { key: "Enter" });
-      fireEvent.keyDown(field, { key: "ArrowDown" });
+      fireEvent.click(trigger);
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
 
       expect(screen.queryByTestId("color-picker-popup")).toBeNull();
     });
@@ -187,18 +239,18 @@ describe("Opening an anchored field popup from the keyboard", () => {
     test("the field advertises the popup it controls", () => {
       renderColorPicker();
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      expect(field).toHaveAttribute("aria-haspopup", "dialog");
-      expect(field).toHaveAttribute("aria-expanded", "false");
-      expect(field).not.toHaveAttribute("aria-controls");
+      expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).not.toHaveAttribute("aria-controls");
 
-      fireEvent.click(field);
+      fireEvent.click(trigger);
 
       const popup: HTMLElement = screen.getByTestId("color-picker-popup");
 
-      expect(field).toHaveAttribute("aria-expanded", "true");
-      expect(field.getAttribute("aria-controls")).toEqual(popup.id);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      expect(trigger.getAttribute("aria-controls")).toEqual(popup.id);
       expect(popup.id).toBeTruthy();
       expect(popup).toHaveAttribute("role", "dialog");
       expect(popup).toHaveAttribute("aria-label", "Color picker");
@@ -296,6 +348,10 @@ describe("Opening an anchored field popup from the keyboard", () => {
    * The two surfaces the field actually ships on: inside a form, where Enter is
    * a submit, and inside a modal, where Escape is a dismissal.
    */
+  /*
+   * The two surfaces a form's color field ships on: inside a form, where
+   * Enter is a submit, and inside a modal, where Escape is a dismissal.
+   */
   describe("inside the Label form and its modal", () => {
     const LABEL_FIELDS: Fields<FormValues<Record<string, unknown>>> = [
       {
@@ -314,7 +370,7 @@ describe("Opening an anchored field popup from the keyboard", () => {
       },
     ];
 
-    test("Enter on the colour field opens the picker and posts nothing", async () => {
+    test("the color is reachable by Tab and set with the arrows, and posts nothing", async () => {
       const onSubmit: MockFunction = getJestMockFunction();
 
       render(
@@ -330,16 +386,28 @@ describe("Opening an anchored field popup from the keyboard", () => {
         target: { value: "WB Unit-BB" },
       });
 
-      const field: HTMLInputElement = getField("color-value");
+      const field: HTMLElement = getColorField("color-value");
+      const radios: Array<HTMLElement> = within(field).getAllByRole("radio");
 
-      field.focus();
-      expect(fireEvent.keyDown(field, { key: "Enter" })).toBe(false);
+      // One Tab stop for the whole group: the first color while none is set.
+      expect(
+        radios.filter((radio: HTMLElement): boolean => {
+          return radio.getAttribute("tabindex") === "0";
+        }),
+      ).toEqual([radios[0]]);
 
-      expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
+      radios[0]!.focus();
+
+      act(() => {
+        fireEvent.keyDown(radios[0]!, { key: "ArrowRight" });
+      });
+
+      expect(document.activeElement).toBe(radios[1]);
+      expect(radios[1]).toHaveAttribute("aria-checked", "true");
 
       /*
-       * The picker is the only thing that happens: no submit, so no "Label
-       * Color is required." for a field being filled in right now.
+       * The keys pick and do nothing else: no submit, so no "Label Color is
+       * required." for a field being filled in right now.
        */
       await waitFor(() => {
         expect(screen.queryByText("Label Color is required.")).toBeNull();
@@ -348,24 +416,66 @@ describe("Opening an anchored field popup from the keyboard", () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    test("Escape closes the picker without taking the modal with it", () => {
+    test("Escape in the color field's open Custom color closes it without taking the modal with it", () => {
       const onClose: MockFunction = getJestMockFunction();
 
       render(
         <Modal title="Create New Label" onClose={onClose}>
           <ColorPicker
             dataTestId="color-value"
-            placeholder="Please select color for this label."
+            value="#ef4444"
+            onChange={getJestMockFunction()}
+          />
+        </Modal>,
+      );
+
+      const field: HTMLElement = getColorField("color-value");
+      const custom: HTMLElement = within(field).getByTestId(
+        "color-picker-custom",
+      );
+
+      custom.focus();
+
+      // Enter on the button: a click with no pointer.
+      act(() => {
+        fireEvent.click(custom, { detail: 0 });
+      });
+
+      const codeBox: HTMLElement =
+        within(field).getByTestId("color-picker-code");
+
+      expect(document.activeElement).toBe(codeBox);
+
+      act(() => {
+        fireEvent.keyDown(codeBox, { key: "Escape" });
+      });
+
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
+      expect(document.activeElement).toBe(custom);
+    });
+
+    test("Escape in a row's color popover closes it without taking the modal with it", () => {
+      const onClose: MockFunction = getJestMockFunction();
+
+      render(
+        <Modal title="Create Custom Field" onClose={onClose}>
+          <ColorPicker
+            layout="compact"
+            dataTestId="color-value"
             onChange={getJestMockFunction()}
             tabIndex={0}
           />
         </Modal>,
       );
 
-      const field: HTMLInputElement = getField("color-value");
+      const trigger: HTMLElement = getColorTrigger();
 
-      field.focus();
-      fireEvent.keyDown(field, { key: "ArrowDown" });
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
 
       expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
 
@@ -376,7 +486,7 @@ describe("Opening an anchored field popup from the keyboard", () => {
       expect(screen.queryByTestId("color-picker-popup")).toBeNull();
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.getByTestId("modal")).toBeInTheDocument();
-      expect(document.activeElement).toBe(field);
+      expect(document.activeElement).toBe(trigger);
     });
   });
 });

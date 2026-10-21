@@ -347,6 +347,7 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   proxmoxClusterId: "Proxmox cluster",
   vmwareVCenterId: "vCenter",
   cephClusterId: "Ceph cluster",
+  storageArrayId: "storage array",
   serverlessFunctionId: "serverless function",
   cloudResourceId: "cloud resource",
   rumApplicationId: "RUM application",

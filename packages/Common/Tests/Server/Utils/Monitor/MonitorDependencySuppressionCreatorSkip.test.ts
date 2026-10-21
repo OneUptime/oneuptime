@@ -43,6 +43,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * PR #3122 (alert-dependency suppression) added a skip block to BOTH
@@ -188,6 +189,11 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
   let resourceContextSpy: SpyLike;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
     createdAlerts = [];
     createdAlertStateTimelines = [];
@@ -225,7 +231,13 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       }) as unknown as SpyLike;
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
 
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
@@ -451,6 +463,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
 
       const openAlerts: Array<Alert> =
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: {
             "old-criteria": ["alert-template-1"],
@@ -592,6 +605,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
 
       const openIncidents: Array<Incident> =
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
             "old-criteria": ["incident-template-1"],

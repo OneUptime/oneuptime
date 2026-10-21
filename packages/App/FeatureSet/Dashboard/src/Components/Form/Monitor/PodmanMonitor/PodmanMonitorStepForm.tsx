@@ -31,6 +31,7 @@ import {
   PodmanAlertTemplate,
   buildPodmanMonitorConfig,
 } from "Common/Types/Monitor/PodmanAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { PodmanMetricDefinition } from "Common/Types/Monitor/PodmanMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 
@@ -143,6 +144,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: PodmanAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const hostIdentifier: string = monitorStepPodmanMonitor.hostIdentifier;
 
@@ -181,6 +184,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: PodmanMetricDefinition,
   ) => void = (metric: PodmanMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const hostIdentifier: string = monitorStepPodmanMonitor.hostIdentifier;
@@ -200,11 +205,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Podman Host"
-          description={"Select the Podman host to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="Podman Host" required={true} />
         <Dropdown
           options={hostOptions}
           value={hostOptions.find((option: DropdownOption) => {
@@ -226,11 +227,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
-            title="Container Name"
-            description={"Filter by container name (optional)."}
-            required={false}
-          />
+          <FieldLabelElement title="Container Name" required={false} />
           <Input
             value={
               monitorStepPodmanMonitor.containerFilters.containerName || ""
@@ -249,11 +246,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Container Image"
-            description={"Filter by container image (optional)."}
-            required={false}
-          />
+          <FieldLabelElement title="Container Image" required={false} />
           <Input
             value={
               monitorStepPodmanMonitor.containerFilters.containerImage || ""
@@ -282,38 +275,17 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: PodmanAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepPodmanMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepPodmanMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepPodmanMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepPodmanMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepPodmanMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </PodmanTemplatePicker>
       </div>
     );
   };
@@ -322,13 +294,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Podman Metric"
-            description={
-              "Select a Podman metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Podman Metric" required={true} />
           <PodmanMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: PodmanMetricDefinition) => {
@@ -345,7 +311,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -399,7 +365,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={"Select the time range for the Podman monitor."}
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -430,7 +396,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the Podman monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -449,13 +415,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Podman metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
@@ -471,8 +431,13 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepPodmanMonitor,

@@ -14,6 +14,7 @@ import TelemetryIngestionKeyPolicy from "../../../../Types/Telemetry/TelemetryIn
 import TelemetryIngestionKeyType from "../../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  IDENTITY_REGISTRATION_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../../../Types/Telemetry/TelemetryIngestSurface";
 import ObjectID from "../../../../Types/ObjectID";
@@ -38,7 +39,7 @@ import ObjectID from "../../../../Types/ObjectID";
  *      strict comparison would leave a key valid for one final millisecond
  *      and, worse, make the boundary untestable and therefore unnoticed.
  *   3. The BROWSER ALLOWLIST is an allowlist. The four surfaces a real browser
- *      agent emits pass; all ten of the others - server and infrastructure
+ *      agent emits pass; all eleven of the others - server and infrastructure
  *      pipes, and the source map upload that a page could otherwise use to
  *      overwrite the maps de-obfuscating everyone else's stack traces - are
  *      refused with a message naming the surface and pointing at a server key.
@@ -136,10 +137,85 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all fifteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(15);
+    test("covers all nineteen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(19);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(11);
+      expect(BROWSER_FORBIDDEN).toHaveLength(15);
+      // The supervisor on a host OneUptime manages: never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(
+        TelemetryIngestSurface.HostCollectorManagement,
+      );
+    });
+
+    /*
+     * Every identity registration surface (a surface that mints a cluster
+     * credential) is server-only. Checked against the set, so adding an
+     * identity surface without keeping it off the allowlist fails here.
+     */
+    test("keeps every identity registration surface off the browser allowlist", () => {
+      expect(Array.from(IDENTITY_REGISTRATION_SURFACES).sort()).toEqual(
+        [
+          TelemetryIngestSurface.KubernetesAgentRunner,
+          TelemetryIngestSurface.KubernetesAiAgent,
+          TelemetryIngestSurface.ResourceAiAgent,
+        ].sort(),
+      );
+
+      for (const surface of Array.from(IDENTITY_REGISTRATION_SURFACES)) {
+        expect(BROWSER_FORBIDDEN).toContain(surface);
+        expect(BROWSER_ALLOWED).not.toContain(surface);
+      }
+    });
+
+    test("keeps Kubernetes AI agent registration off the browser allowlist", () => {
+      const refusal: TelemetryIngestionKeyRefusal | null = refusalFor({
+        policy: buildPolicy({
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: [ALLOWED_ORIGIN],
+        }),
+        surface: TelemetryIngestSurface.KubernetesAiAgent,
+      });
+
+      expect(refusal?.reason).toBe(
+        TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey,
+      );
+      expect(refusal?.message).toContain("Kubernetes AI agent registration");
+
+      expect(
+        refusalFor({
+          policy: buildPolicy(),
+          surface: TelemetryIngestSurface.KubernetesAiAgent,
+        }),
+      ).toBeNull();
+    });
+
+    test("keeps resource AI agent registration off the browser allowlist", () => {
+      /*
+       * A resource AI agent's key is what every command for a Docker host,
+       * a Proxmox cluster or a database server is claimed with — a key
+       * scraped off a public page must never be able to mint one.
+       */
+      const refusal: TelemetryIngestionKeyRefusal | null = refusalFor({
+        policy: buildPolicy({
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: [ALLOWED_ORIGIN],
+        }),
+        surface: TelemetryIngestSurface.ResourceAiAgent,
+      });
+
+      expect(refusal?.reason).toBe(
+        TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey,
+      );
+      expect(refusal?.message).toContain(
+        "infrastructure AI agent registration",
+      );
+
+      expect(
+        refusalFor({
+          policy: buildPolicy(),
+          surface: TelemetryIngestSurface.ResourceAiAgent,
+        }),
+      ).toBeNull();
     });
 
     /*

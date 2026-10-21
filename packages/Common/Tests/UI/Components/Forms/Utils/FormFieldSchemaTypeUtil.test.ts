@@ -82,6 +82,14 @@ const expectations: Array<SchemaToFieldExpectation> = [
   },
   { schemaType: FormFieldSchemaType.Icon, expected: FieldType.Icon },
   /*
+   * A people picker's picks are ids per kind; a summary draws them as chips
+   * of names, through the field's element.
+   */
+  {
+    schemaType: FormFieldSchemaType.PeoplePicker,
+    expected: FieldType.Element,
+  },
+  /*
    * These three schema types have no explicit case in the switch and therefore
    * fall through to the default arm, which returns Text. They are listed here
    * so the exhaustiveness guard below sees them and so their default-path
@@ -138,11 +146,12 @@ describe("FormFieldSchemaTypeUtil.toFieldType — many-to-one and renamed cases"
     ).toBe(FieldType.HiddenText);
   });
 
-  test("OptionChooserButton, Query and CustomComponent all render as Element fields", () => {
+  test("OptionChooserButton, Query, CustomComponent and PeoplePicker all render as Element fields", () => {
     const elementSchemaTypes: Array<FormFieldSchemaType> = [
       FormFieldSchemaType.OptionChooserButton,
       FormFieldSchemaType.Query,
       FormFieldSchemaType.CustomComponent,
+      FormFieldSchemaType.PeoplePicker,
     ];
 
     for (const schemaType of elementSchemaTypes) {

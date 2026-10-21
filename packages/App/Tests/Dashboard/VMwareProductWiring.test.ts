@@ -74,6 +74,10 @@ const VMWARE_PAGE_KEYS: ReadonlyArray<string> = [
   "VMWARE_VCENTER_VIEW_RESOURCE_POOLS",
   "VMWARE_VCENTER_VIEW_INSIGHTS",
   "VMWARE_VCENTER_VIEW_RECOMMENDATIONS",
+  // AI → Insights, AI → Logs and AI → AI agent (thin pages in View/AI).
+  "VMWARE_VCENTER_VIEW_AI_INSIGHTS",
+  "VMWARE_VCENTER_VIEW_AI_LOGS",
+  "VMWARE_VCENTER_VIEW_AI_AGENT",
   "VMWARE_VCENTER_VIEW_METRICS",
   "VMWARE_VCENTER_VIEW_LOGS",
   "VMWARE_VCENTER_VIEW_INCIDENTS",
@@ -534,7 +538,15 @@ describe("the install guide embeds the real agent configuration", () => {
      * from the Proxmox guide) registers nothing.
      */
     expect(markdownSource).toContain("key: vmware.vcenter.name");
-    expect(markdownSource).toContain("VMWARE_VCENTER_NAME=my-vcenter");
+    /*
+     * The `.env` block names the vCenter through VMWARE_VCENTER_NAME: the
+     * vCenter's own name on its Documentation tab, `my-vcenter` otherwise
+     * (the rendered block is pinned in Common's VMwareSetupGuide.test.ts).
+     */
+    expect(markdownSource).toMatch(/^VMWARE_VCENTER_NAME=\$\{/m);
+    expect(markdownSource).toContain(
+      'VMWARE_EXAMPLE_VCENTER_NAME: string = "my-vcenter"',
+    );
     expect(markdownSource).not.toContain("proxmox.cluster.name");
     expect(markdownSource).not.toContain("PROXMOX_CLUSTER_NAME");
   });
@@ -616,9 +628,26 @@ describe("the install guide embeds the real agent configuration", () => {
     expect(markdownSource).not.toContain("without quotes");
     expect(markdownSource).not.toContain("quotes included");
     expect(markdownSource).not.toContain("keeps your");
-    expect(markdownSource).toContain("single-quote it in \\`.env\\`");
+    // The settings table's password row, for the Docker installs.
+    expect(markdownSource).toContain("single-quote it in `.env`");
     expect(markdownSource).toContain(
       "a password containing \\`$\\`, \\`#\\`, spaces or quotes",
+    );
+  });
+
+  test("it gives systemd's quoting rule for the install without Docker", () => {
+    /*
+     * systemd reads that .env, and systemd 239 (RHEL 8) drops a backslash
+     * even inside single quotes: double quotes with \ and " escaped are the
+     * one form every version reads as typed (VMwareSetupGuide.test.ts reads
+     * the guide's .env with both versions' rules).
+     */
+    expect(markdownSource).toContain(
+      'VCENTER_USERNAME="oneuptime@vsphere.local"\nVCENTER_PASSWORD="a-strong-password"',
+    );
+    expect(markdownSource).toContain("systemdEnvQuote(data.vcenterName)");
+    expect(markdownSource).toContain(
+      "drop a backslash even inside single quotes",
     );
   });
 
@@ -638,13 +667,19 @@ describe("the install guide embeds the real agent configuration", () => {
   });
 
   test("the documentation card renders the guide with the selected key", () => {
+    /*
+     * The card is the shared SetupGuideCard (its key step picks the key);
+     * the guide is rebuilt from the picked key on every render.
+     */
     const card: string = squash(
       readSource("Components", "VMware", "DocumentationCard.tsx"),
     );
 
     expect(card).toContain("const VMwareDocumentationCard");
-    expect(card).toContain("getVMwareInstallationMarkdown({");
-    expect(card).toContain("apiKey: apiKeyValue");
+    expect(card).toContain("<SetupGuideCard");
+    expect(card).toContain("getVMwareSetupGuide({");
+    expect(card).toContain("apiKey: context.apiKey");
+    expect(card).toContain("hasApiKey: context.hasApiKey");
     expect(card).toContain("export default VMwareDocumentationCard");
   });
 });

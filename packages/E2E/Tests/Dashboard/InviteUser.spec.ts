@@ -176,6 +176,24 @@ test.describe("Invite user", () => {
   });
 
   /*
+   * The project's Members team is picked when the dialog opens
+   * (Dashboard/src/Utils/DefaultInviteTeam): this project's owner may invite
+   * to it. With a team picked, the Team field is a button named by its label
+   * that shows the team, not the "Select a team" search box.
+   */
+  test("starts on the Members team", async () => {
+    test.setTimeout(180000);
+
+    await openInviteModal();
+
+    const teamField: Locator = ctx.page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Team", exact: true });
+
+    await expect(teamField).toHaveText(/Members/, { timeout: 30000 });
+  });
+
+  /*
    * The form is only fixed if it can actually be submitted, so this finishes
    * the job: pick a team and invite. On success the page navigates to the
    * invited user, which is where the address shows up again.
@@ -194,8 +212,12 @@ test.describe("Invite user", () => {
     // The address survived long enough to pick a team.
     await expect(emailInput).toHaveValue(email);
 
-    const teamInput: Locator = page.getByPlaceholder("Select a team");
-    await teamInput.click();
+    // Members is picked to start with; open the field to pick another.
+    const teamField: Locator = page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Team", exact: true });
+    await expect(teamField).toHaveText(/Members/, { timeout: 30000 });
+    await teamField.click();
 
     const ownersOption: Locator = page
       .getByRole("option", { name: /Owners/ })

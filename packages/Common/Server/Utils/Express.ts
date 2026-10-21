@@ -53,6 +53,29 @@ export interface OneUptimeRequest extends express.Request {
    * the `Owned` permission scope. Absent for non-user callers.
    */
   userTeamIds?: Array<ObjectID>;
+  /*
+   * WHICH credential made the request, for the audit trail. The permission
+   * layer never reads these - who may do what is decided by userType and the
+   * permission sets above - they only let an audit entry say more than "an
+   * API key" or "this member".
+   *
+   * `apiKeyId` / `apiKeyName` are set by ProjectMiddleware for a project API
+   * key (and the name alone for the instance master key, which has no row).
+   * `mcpOAuth` is set by McpDelegationAuthorization when the request is made
+   * by the MCP server for a member who connected an MCP client with OAuth.
+   *
+   * The one field here that IS enforced is `mcpOAuth.isReadOnly`: a client
+   * its user authorized as read-only cannot create, update or delete (see
+   * DatabaseCommonInteractionProps.isReadOnlyCredential).
+   */
+  apiKeyId?: ObjectID;
+  apiKeyName?: string;
+  mcpOAuth?: {
+    grantId: ObjectID;
+    clientId: string;
+    clientName: string;
+    isReadOnly: boolean;
+  };
   rawFormUrlEncodedBody?: string;
   rawBody?: string; // Raw body for signature verification (JSON or URL-encoded)
 }

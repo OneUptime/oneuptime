@@ -1,99 +1,178 @@
 # Skapa ett arbetsflöde
 
-För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from** — välj **Start from scratch** eller en av mallarna — sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+Du bygger ett arbetsflöde i dess **Byggare**: en arbetsyta där du lägger till block, kopplar ihop dem och fyller i deras inställningar. Den här sidan visar hur du skapar ett arbetsflöde, [lägger till block](#lägg-till-block), [kopplar ihop](#koppla-ihop-block) och [konfigurerar](#konfigurera-ett-block) dem, [skickar värden mellan dem](#använd-värden-från-tidigare-block) och [slår på arbetsflödet](#slå-på-det).
 
-När det är skapat, öppna **Byggare** i vänstermenyn. Det är arbetsytan där du designar arbetsflödet.
+För att skapa ett arbetsflöde öppnar du **Arbetsflöden** och klickar på **Skapa arbetsflöde**. Dialogrutan **Skapa ett arbetsflöde** frågar först hur du vill börja och sedan efter ett namn. En mall som behöver egna inställningar, som en Slack-webhook-URL, ber om dem i ett extra steg och sparar dem som arbetsflödesvariabler, så att du kan ändra dem senare utan att redigera arbetsflödet.
+
+Välj hur du vill börja:
+
+- **Börja från grunden**, högst upp i dialogrutan, ger dig en tom arbetsyta. De flesta arbetsflöden börjar här.
+- **Eller börja från en mall** visar några **Rekommenderade** mallar. För de andra väljer du en kategori bredvid sökfältet, som **Incidenter**, **Monitorer** eller **Jira**, eller **Alla mallar**, eller så skriver du i **Sök mallar…**. Varje ord du skriver måste stämma.
+
+Klicka på en mall för att se vad den gör: dess utlösare, blocken den består av och inställningarna den kommer att fråga efter. Klicka sedan på **Använd den här mallen**, eller dubbelklicka på mallen. I sökfältet väljer piltangenterna en mall och **Enter** använder den. `/` tar dig tillbaka till sökfältet.
+
+Arbetsflöden skapas avstängda, så deras utlösare startar dem inte förrän du slår på dem. Ett nytt arbetsflöde öppnas i **Byggare**, arbetsytan där du utformar det.
 
 ## Arbetsytan
 
-Ett arbetsflöde som byggs från grunden öppnas med ett enda streckat block där det står **Please click here to add trigger**. Det blocket är startpunkten — klicka på det för att välja en utlösare. Ett arbetsflöde skapat från en mall öppnas med sina block redan på plats.
+Ett arbetsflöde från grunden öppnas med ett enda streckat block med texten **Choose what starts this workflow**. Det blocket är utgångspunkten — klicka på det för att välja en utlösare. Ett arbetsflöde som skapats från en mall öppnas med sina block redan på plats.
 
-Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. Lägger du till en andra utlösare ersätter den den första, och tar du bort den sista kommer den streckade platshållaren tillbaka.
+Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. För att byta utlösare tar du bort den: den streckade platshållaren kommer tillbaka på dess plats, och ett klick på den låter dig välja en annan. När du tar bort ett block tas dess linjer bort också, så koppla den nya utlösaren till det första blocket igen.
 
-Att lägga till block:
+Ändringar sparas automatiskt. En etikett i verktygsfältet håller koll på det: **Sparar…** medan ändringen är på väg, därefter **Sparad**, eller **Kunde inte spara** om det inte lyckades. Arbetsytan har ingen spara-knapp och inget separat publiceringssteg.
 
-- **Utlösaren** — klicka på det streckade platshållarblocket. En panel med rubriken **Add Trigger** öppnas.
-- **Allt annat** — klicka på **Lägg till komponent** i verktygsfältet ovanför arbetsytan. Samma panel öppnas, med rubriken **Lägg till komponent**.
+## Lägg till block
 
-Båda panelerna är sökbara — tryck på `/` för att hoppa till sökrutan — och grupperade efter kategori. Markera ett block och klicka på **Add to Workflow**.
+| För att lägga till     | Klicka på                                                      | Panel som öppnas              |
+| ---------------------- | -------------------------------------------------------------- | ----------------------------- |
+| Utlösaren              | Det streckade platshållarblocket, eller **Lägg till utlösare** i verktygsfältet | **Lägg till utlösare**        |
+| Vilket annat block som helst | **Lägg till komponent**, i verktygsfältet ovanför arbetsytan | **Lägg till komponent**     |
 
-Nya block landar alltid på samma plats på arbetsytan, så ett nytt kan hamna ovanpå något du redan placerat. Dra undan det; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
+Knappen i verktygsfältet heter **Lägg till utlösare** så länge arbetsflödet saknar en utlösare, och **Lägg till komponent** så snart det har en.
 
-Ändringar sparas automatiskt. En liten etikett i verktygsfältet håller koll på det: **Saving…** medan ändringen är på väg, sedan **Sparad**, eller **Could not save** om det inte gick. Det finns ingen spara-knapp och inget separat publiceringssteg.
+Båda panelerna öppnas på de block som de flesta arbetsflöden använder, under **Popular**, följt av resten av de inbyggda blocken. Under **OneUptime resources** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Browse all resources** visar alla. Eller sök: skriv några ord, som `create incident`, så kommer den bästa träffen först. Tryck på `/` för att hoppa till sökfältet, på piltangenterna för att gå igenom resultaten och på **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
 
-## Vad som finns på ett block
+Ett nytt block hamnar under det nedersta blocket på arbetsytan, och en ny utlösare tar det streckade blockets plats högst upp. Det nya blocket är markerat, och om det hamnar utanför synfältet rullar arbetsytan precis så mycket att det syns. Dess inställningar öppnas inte av sig själva: klicka på blocket när du är redo att konfigurera det. Tills de obligatoriska inställningarna är ifyllda står det **Click to set up** på det.
 
-| Fält                          | Vad det gör                                                                                                                                                                                                 |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Identifier** (under **ID**) | Det korta id:t som visas på blocket, som `log-1`. Det är så andra block refererar till det här blocket, så byter du namn på det slutar varje `{{local.components.…}}`-referens som pekar hit att fungera. Blockets rubrik är komponentens eget namn och går inte att ändra. |
-| **Inställningar**             | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Optional)**; allt annat är obligatoriskt. Mindre använda inställningar ligger bakom en **Avancerad**-utfällning. |
-| **Input**                     | Punkten på överkanten, dit linjer kommer in från tidigare block. Utlösare har ingen — inget körs före dem.                                                                                                   |
-| **Outputs**                   | Punkterna längs nederkanten, med sina etiketter strax ovanför, där linjer går ut till nästa block. Många block har separata **Success**- och **Error**-utgångar så att du kan hantera båda fallen.           |
+Dra blocken vart du vill; arbetsytan fäster dem i ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma layout som du lämnade.
+
+## Det som finns på ett block
+
+| Fält                                  | Vad det gör                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identifier** (under **ID**)         | Det korta ID som visas på blocket, som `log-1`. Det är så andra block hänvisar till det här, så om du byter namn på det slutar alla `{{local.components.…}}`-referenser som pekar på det att fungera. Blockets rubrik är komponentens eget namn och kan inte ändras.                                          |
+| **Inställningar**                     | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Valfritt)**; allt annat är obligatoriskt. En av/på-brytare har ingetdera, eftersom den alltid har ett värde. Mindre använda inställningar är hopfällda under **Fler fält**, vars rubrik nämner dem och visar de som är ifyllda. |
+| **Input**                             | Punkten på den övre kanten, där linjer från tidigare block kommer in. Utlösare har ingen — inget körs före dem.                                                                                                                                                                                               |
+| **Outputs**                           | Punkterna längs den nedre kanten, med etiketter precis ovanför, där linjer går ut till nästa block. Många block har separata utgångar **Success** och **Error**, så att du kan hantera båda fallen.                                                                                                         |
 
 ## Koppla ihop block
 
-Dra från en punkt på undersidan av ett block ner till punkten på ovansidan av nästa. Linjen du drar avgör vad som körs härnäst.
+Dra från en punkt längst ned på ett block ned till punkten högst upp på nästa. Linjen du drar avgör vad som körs därefter.
 
-- Kopplar du från **Success** körs nästa block bara när det tidigare fungerade.
-- Kopplar du från **Error** körs nästa block bara när det tidigare misslyckades.
-- Kopplar du inte en utgång alls stannar den vägen där.
+- Kopplar du från **Success** körs nästa block bara när det föregående lyckades.
+- Kopplar du från **Error** körs nästa block bara när det föregående misslyckades.
+- Kopplar du inte en utgång slutar den vägen helt enkelt.
 
-Du kan koppla en utgång till flera block. Alla körs — men en i taget, i en enda kö, inte parallellt. Lita inte på ordningen mellan grenar, och räkna inte med att de överlappar i tid. Varje block körs högst en gång per körning, så en loop tillbaka till ett tidigare block kör det inte en andra gång.
+```mermaid title="Bara utgången ett block tar leder någonstans"
+flowchart TB
+    hook["Webhook"] -->|"Out"| check{"If / Else"}
+    check -->|"Yes"| post["API Post (JSON)"]
+    check -->|"No"| ends(["Inget är kopplat,<br/>så körningen slutar"])
+    post -->|"Success"| slack["Send Message to Slack"]
+    post -->|"Error"| log["Log"]
+```
+
+Du kan koppla en utgång till flera block. Alla körs — men efter varandra, i en kö, inte parallellt. Räkna inte med ordningen mellan grenarna, och räkna inte med att de överlappar i tid.
+
+Varje block körs högst en gång per körning. En linje som leder till ett block som redan har körts — tillbaka upp på arbetsytan eller från en annan gren efter att den första nådde det — stoppar körningen med ett fel, så att ett arbetsflöde inte kan gå i cirkel.
 
 ## Konfigurera ett block
 
-Klicka på ett block för att öppna dess inställningar i en dialog. Varje inställning har rätt sorts inmatning — textfält, rullgardinsmenyer, kodredigerare, växlar och så vidare. Fyll i och klicka på **Spara**.
+Klicka på ett block för att öppna dess inställningar i en dialogruta, eller gå till det med **Tab** och tryck på **Enter**. Fyll i inställningarna och klicka på **Spara**.
 
-I samma dialog hittar du också:
+Varje inställning har det inmatningsfält dess värde kräver:
 
-- **Ta bort** — ta bort det här blocket.
-- **Run just this step** — kör bara det här blocket för sig, utan resten av arbetsflödet. Värden det skulle ha läst från andra steg kommer in tomma, och allt det skickar, skriver eller raderar händer på riktigt.
-- **Dokumentation**, **Inputs**, **Outputs** och **Returns** — referenskort för vad blocket förväntar sig och vad det producerar.
+| Inställningen innehåller                         | Du får                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Ord: ett meddelande, en prompt, ett värde att logga | Ett fält som växer medan du skriver. **Enter** börjar en ny rad.            |
+| Ett kort värde: en URL, ett ID, en ämnesrad      | En enda rad.                                                                   |
+| Kod eller HTML                                   | En kodredigerare.                                                              |
+| JSON                                             | En JSON-redigerare.                                                            |
+| På eller av                                      | En brytare med sitt namn bredvid. Klicka på brytaren eller namnet för att växla den. |
 
-De flesta textfält tar emot variabler — det är så data flödar från ett block till nästa. Istället för att skriva syntaxen för hand, använd värdeväljaren i redigeraren: den bygger en korrekt referens utifrån blocket och fältet du väljer. Se [Arbetsflödesvariabler](/docs/workflows/variables).
+Dialogrutan öppnas vid det du troligen kom för. För en **Webhook**-utlösare är det dess URL, med en knapp **Kopiera URL**, metoderna den accepterar och en exempelförfrågan. För en **Manual**-utlösare är det hur arbetsflödet startas. Alla andra block öppnas vid sina inställningar. Ett block utan inställningar har inget avsnitt **Inställningar** alls.
+
+Under det, uppifrån och ned:
+
+- **ID**, **Inputs** och **Outputs**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
+- **Returns** — data som det här blocket lämnar vidare till senare steg. Varje värde visar den exakta referens som läser det, med en knapp för att kopiera den.
+- **How to use** — vad blocket gör i en mening, stegen för att konfigurera det, ett exempel att kopiera och de misstag folk ofta gör. Exemplet är byggt utifrån ditt arbetsflöde: det använder det här blockets ID och utlösarens värden där det infogar data i ett meddelande. **Learn more** öppnar den längre förklaringen, och länkarna går till den fullständiga guiden. Varje block har en, och knappen **How to use** högst upp i dialogrutan hoppar direkt dit.
+
+Längst ned finns:
+
+- **Ta bort** — tar bort det här blocket. Den frågar först och nämner blocket med typ och identifierare, som **Send Email (send-email-2)**, så att du vet vilket av flera likadana block som försvinner.
+- **Run just this step** — kör bara det här enda blocket, utan resten av arbetsflödet. Värden det skulle ha läst från andra steg kommer fram tomma, och allt det skickar, skriver eller tar bort sker på riktigt. Det hoppar över alla villkor före blocket, så bara personer som får redigera arbetsflödet kan använda det.
+
+### Använd värden från tidigare block
+
+De flesta inställningar kan använda ett värde från ett tidigare block eller en variabel — så flödar data från ett block till nästa. Varje sådan inställning har en knapp **{ }** i slutet. Den öppnar en lista över värdena du kan använda: varje tidigare block med sitt namn, med varje värde det returnerar — vad det heter, vad det innehåller och dess typ —, sedan arbetsflödets variabler och dina globala. Sök i listan, välj ett med musen eller med piltangenterna och **Enter**, så infogas värdet där markören står.
+
+I inställningen visas ett värde som en bricka, som **Webhook › Request Body**. Håll muspekaren över den för att se referensen den står för, `{{local.components.webhook-1.returnValues.request-body}}`, vilket är det som sparas. Markören hoppar över en bricka i ett steg, **Backspace** tar bort den helt, och kopierar du den kopieras referensen. Kan du syntaxen skriver du `{{` i stället: samma lista öppnas under inställningen och smalnas av medan du skriver.
+
+- **Värden som finns kommer först, och resten visas för sig.** Utlösaren och de block som körs före det här erbjuds. Ett block som bara körs före det här i vissa körningar — efter en utgång från ett **If / Else**, till exempel — säger det, eftersom dess värden kan vara tomma här. Ett block som körs senare, eller på en gren som inte leder hit, visas sist, hopfällt och nedtonat, med orsaken, och dess värden kan inte väljas. Tills ett block är kopplat visas bara utlösarens värden, och listan säger det.
+- **En post öppnas på sina fält.** Ett Find One- eller On Create-block returnerar en hel post. Välj den för att se dess fält: först de som blocket skickar vidare, som blockets **Fields to pass on** anger, och sedan, för sig, de som det inte skickar vidare och som är tomma här. Ett JSON-värde eller en uppsättning headers öppnas på ett fält där du skriver en sökväg, som `title` eller `alerts[0].status`.
+- **När ett block har körts vet listan vad som finns i dess värden.** Varje värde säger vad det innehöll i den senaste körningen — `"production"` eller `3 fields` —, och ett JSON-värde eller en uppsättning headers öppnas på de fält det hade, vart och ett med sitt innehåll. Från en Webhooks **Request Body** väljer du alltså **incident.title** i stället för att skriva en sökväg. Sökningen hittar också de här fälten: skriv `title`, eller `{{` och början av en sökväg. En posts fält visar också vad de innehöll. Fälten kommer från den senaste körningen, så ett fält som en senare förfrågan utelämnar är tomt i den körningen. Ett värde som ser ut som en hemlighet, som en `Authorization`-header, en token eller ett lösenord, visas utan sitt innehåll.
+- **En Webhook som ännu inte har tagit emot en förfrågan säger det** högst upp i sina värden, med **Kopiera testbegäran**: ett `curl`-kommando som skickar `{"message": "Hello"}` till arbetsflödets webhook-URL. Kör det i en terminal medan listan är öppen, så dyker förfrågans fält upp i den så snart körningen den startar är klar, vanligtvis inom några sekunder. Bara personer som får se webhook-URL:en får knappen. Så länge arbetsflödet är avstängt avvisar dess URL förfrågningar, så listan erbjuder **Testa med ”Kör arbetsflöde”** i stället: fälten i förfrågan du skickar därifrån dyker upp på samma sätt. En Incoming Email-utlösare som ännu inte har tagit emot ett e-postmeddelande säger det på samma ställe; skicka ett e-postmeddelande till dess adress, så dyker dess headers och bilagor upp på samma sätt.
+- **Kodredigerare har Insert value i sitt verktygsfält.** I JSON lägger den till de citattecken ett värde behöver inne i ett dokument. **Run Custom JavaScript** läser värden via sina **Arguments**, så dess kod har ingen väljare.
+- **Tal, lösenord, brytare och datum behåller sin egen kontroll,** med **{ }** bredvid. Ett valt värde ersätter kontrollen, och **abc** går tillbaka till att skriva.
+
+En bricka blir orange när det den läser inte finns: ett block som har bytt namn eller tagits bort, ett värde som blocket inte returnerar, ett block som körs senare, ett fält i en post som dess block inte skickar vidare eller en variabel som inte finns. Dess verktygstips säger vilket. Se [Variabler](/docs/workflows/variables) för referenssyntaxen.
 
 ## Kontroller medan du bygger
 
-Byggaren kontrollerar hela grafen varje gång du ändrar något och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som listar varje problem och tar dig till blocket som orsakar det. Block med problem får också en röd markering på arbetsytan.
+Byggare kontrollerar hela grafen varje gång du ändrar den och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som visar varje problem och tar dig till blocket det gäller. På arbetsytan står det **Click to set up** på ett block vars obligatoriska inställningar fortfarande är tomma, och ett block med ett annat problem har ett märke i hörnet: rött för ett fel, orange för en varning. Håll muspekaren över märket för att läsa vad som är fel.
 
-Den fångar misstagen som annars är osynliga tills en körning går fel — ingen utlösare, två block som delar id, en punkt inuti ett id, ett block som ingenting kopplar till, en obligatorisk inställning som lämnats tom, felformad JSON, mellanslag inuti `{{ }}` och referenser till ett steg eller returvärde som inte finns.
+Den fångar de misstag som annars är osynliga tills en körning går fel:
 
-En sak den inte kan kontrollera: om ett variabelnamn finns. En omdöpt variabel visar sig först i körloggen.
+- ett arbetsflöde utan utlösare;
+- två block med samma ID, eller ett ID med en punkt i;
+- ett block som inget är kopplat till;
+- en obligatorisk inställning som lämnats tom;
+- ogiltig JSON;
+- mellanslag inne i `{{ }}`;
+- referenser till ett steg eller ett returvärde som inte finns.
+
+En sak kan den inte kontrollera: om ett variabelnamn finns. Ett blocks inställningar kan det — en referens till en variabel som inte finns visas där som en orange bricka. Överallt annars syns en variabel som bytt namn först i körningens logg.
 
 ## Ditt första arbetsflöde
 
-Snabbaste sättet att få känsla för arbetsytan:
+Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två block som du startar manuellt:
 
-1. Klicka på det streckade platshållarblocket, välj **Manual** i panelen **Add Trigger** och klicka på **Add to Workflow**.
-2. Klicka på **Lägg till komponent**, välj **Log** (under **Utils**) och klicka på **Add to Workflow**. Dra det nya blocket undan från utlösaren och koppla sedan utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
-3. Öppna Log-blocket och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
-4. Gå till **Översikt**, klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer** och slå på **Aktiverad**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
-5. Tillbaka i **Byggare**, klicka på **Kör arbetsflöde**, lägg `{ "name": "Ada" }` i fältet **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**.
-6. En panel med **Workflow Run** öppnas av sig själv och följer körningen. Loggen visar `Value:` följt av `Hello from Ada`.
+:::steps
+1. Klicka på det streckade platshållarblocket och klicka sedan på **Manual** i panelen **Lägg till utlösare**.
+2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Popular**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
+3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manual**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
+4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Kör arbetsflödet manuellt** och bekräftar med **Kör**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.
+5. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Högst upp står **Testkörning**, och loggen visar `Value:` följt av `Hello from` och JSON:en du skrev.
+:::
 
-Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är så du bygger varje arbetsflöde.
+Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är hur du bygger varje arbetsflöde.
+
+> [!TIP]
+> JSON som skrivs i **Kör arbetsflöde** når Manual-utlösaren som JSON. För att läsa ett fält i den, som `name`, lägger du till fältets namn i referensen: `{{local.components.manual-1.returnValues.value.name}}`. När arbetsflödet har körts visar värdeväljaren också fälten: öppna **JSON** under **Manual**.
 
 ## Slå på det
 
-Nya arbetsflöden startar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar.
+Nya arbetsflöden börjar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Avstängt är arbetsflödets utlösare pausad, så inget startar det av sig själv, men du kan ändå testa det. Medan ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med en knapp **Slå på arbetsflödet**.
 
-Växeln **Aktiverad** sitter på arbetsflödets sida **Översikt**, i kortet **Arbetsflödesdetaljer** — inte på inställningssidan. Samma kort visar aktuellt tillstånd som en grön **Aktiverad**- eller röd **Inaktiverad**-etikett.
+Brytaren **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**, vars kort **Arbetsflödesdetaljer** visar det aktuella läget som en grön etikett **Aktiverad** eller en röd etikett **Inaktiverad**: klicka på **Redigera arbetsflöde** och öppna **Fler fält**. Bara personer som får redigera arbetsflödet kan slå på eller av det; alla andra ser brytaren nedtonad.
 
-Ett inaktiverat arbetsflöde kan inte köras alls. Manuella körningar avvisas med "This workflow is not enabled" precis som utlösta, så ordningen är: aktivera det, testa det med **Kör arbetsflöde**, läs körloggen och slå av **Aktiverad** igen om du inte är redo för att dess utlösare ska smälla. För att testa ett enskilt block utan att köra hela saken, använd **Run just this step** i det blockets inställningar.
+Medan ett arbetsflöde är avstängt avgör det som startar det om det körs:
 
-För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Inga nya körningar startar. En körning som är mitt i exekveringen slutförs, men en som står parkerad på ett **Sleep**-block avbryts när den vaknar och registreras som ett fel.
+| Startat av                                                 | Medan arbetsflödet är avstängt                                                                                                                                                            |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dess utlösare: ett schema, en OneUptime-händelse eller ett e-postmeddelande | Ignoreras.                                                                                                                                                              |
+| **Kör arbetsflöde** eller **Run just this step**           | Körs, som **Testkörning**. Dess block körs på riktigt: ett meddelande skickas verkligen och en post ändras verkligen. Körningen är markerad som **Testkörning** i listorna över körningar och högst upp i körningen, med vem som startade den. |
+| Ett anrop till dess webhook-URL                            | Avvisas med HTTP 400 och "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
+| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Error**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
+
+Ordningen är alltså: bygg det, testa det med **Kör arbetsflöde** medan det fortfarande är avstängt, läs körningens logg och slå på **Aktiverad** när du är redo för att dess utlösare aktiveras. För att testa ett enda block utan att köra allt använder du **Run just this step** i det blockets inställningar.
+
+För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. Dess utlösare slutar starta körningar. En körning som pågår gör klart, men en som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar och registreras som ett fel. En testkörning fortsätter.
 
 ## Städa upp
 
 - Dra block för att flytta dem. Layouten sparas.
-- För att ta bort en linje, dra någon av dess ändar av punkten och släpp den på tom arbetsyta.
-- För att ta bort ett block, klicka på det och använd **Ta bort** längst ner i dess inställningsdialog. Att markera ett block eller en linje och trycka på backsteg tar också bort det.
-- Det går inte att duplicera ett enskilt block. **Duplicate Workflow** på arbetsflödets sida **Inställningar** kopierar hela saken, och kopian landar inaktiverad.
-- Stapla blocken uppifrån och ner så att de läses i den riktning de körs — inmatningar sitter på överkanten, utgångar på nederkanten, så flödet går naturligt nedåt.
+- För att ta bort en linje drar du en av dess ändar bort från punkten och släpper den på en tom plats på arbetsytan.
+- För att ta bort ett block klickar du på det och använder **Ta bort** längst ned i dess inställningsdialog. Att markera ett block eller en linje och trycka på Backspace tar också bort det.
+- Det finns inget sätt att duplicera ett enskilt block. **Duplicera Arbetsflöde** på arbetsflödets sida **Inställningar** kopierar allt. Kopians namn är ifyllt, numrerat förbi projektets arbetsflöden (”Nightly Sync” kopieras som ”Nightly Sync 2”), och kopian öppnas, inaktiverad.
+- Placera blocken uppifrån och ned så att de läses i den riktning de körs — ingången är på den övre kanten, utgångarna på den nedre, så flödet går naturligt nedåt.
 
-## Läs vidare
+## Nästa steg
 
-- [Arbetsflödesutlösare](/docs/workflows/triggers) — de fyra sätten ett arbetsflöde kan starta på.
-- [Arbetsflödeskomponenter](/docs/workflows/components) — varje block du kan lägga till.
-- [Arbetsflödesvariabler](/docs/workflows/variables) — flytta data mellan block.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.
+:::cards
+- [Utlösare](/docs/workflows/triggers): De fem sätten ett arbetsflöde kan starta på.
+- [Komponenter](/docs/workflows/components): Alla block du kan lägga till, med deras inställningar och utgångar.
+- [Variabler](/docs/workflows/variables): Flytta data mellan block och håll hemligheter utanför dem.
+- [Körningar](/docs/workflows/runs-and-logs): Kontrollera vad varje körning gjorde, steg för steg.
+:::

@@ -23,6 +23,9 @@ import ProxmoxClusterStorageDetail from "../Pages/Proxmox/View/StorageDetail";
 import ProxmoxClusterInsights from "../Pages/Proxmox/View/Insights";
 import ProxmoxClusterMetrics from "../Pages/Proxmox/View/Metrics";
 import ProxmoxClusterRecommendations from "../Pages/Proxmox/View/Recommendations";
+import ProxmoxClusterAiInsights from "../Pages/Proxmox/View/AI/Insights";
+import ProxmoxClusterAiLogs from "../Pages/Proxmox/View/AI/Logs";
+import ProxmoxClusterAiAgent from "../Pages/Proxmox/View/AI/Agent";
 import ProxmoxClusterLogs from "../Pages/Proxmox/View/Logs";
 import ProxmoxClusterIncidents from "../Pages/Proxmox/View/Incidents";
 import ProxmoxClusterAlerts from "../Pages/Proxmox/View/Alerts";
@@ -35,6 +38,9 @@ import ProxmoxClusterDelete from "../Pages/Proxmox/View/Delete";
 import ProxmoxClusterDocumentation from "../Pages/Proxmox/View/Documentation";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -119,6 +125,13 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ProxmoxCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.PROXMOX_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -245,6 +258,52 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <ProxmoxClusterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <ProxmoxClusterAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <ProxmoxClusterAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT] as Route
               }
             />
           }
@@ -401,6 +460,12 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ProxmoxCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

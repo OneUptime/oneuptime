@@ -23,6 +23,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DashboardOwnerRuleEngineServiceClass
   implements RuleRunEngine<Dashboard, DashboardOwnerRule>
@@ -117,6 +119,7 @@ class DashboardOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     dashboard: Dashboard;
     rules: Array<DashboardOwnerRule>;
@@ -356,8 +359,7 @@ class DashboardOwnerRuleEngineServiceClass
     rule: DashboardOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in dashboard owner rule ${rule.id}: ${pattern}`,

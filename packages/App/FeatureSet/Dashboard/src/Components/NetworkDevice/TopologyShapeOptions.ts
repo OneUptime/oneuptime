@@ -1,5 +1,6 @@
 import { NetworkTopologyNodeShape } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The silhouettes a device role can be drawn with, as picker options.
@@ -14,14 +15,14 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
  * "hexagon" on its own tells an operator nothing about whether to pick it.
  */
 export const TOPOLOGY_SHAPE_LABELS: Record<NetworkTopologyNodeShape, string> = {
-  circle: "Circle — router",
-  "rounded-square": "Rounded square — switch",
-  diamond: "Diamond — firewall",
-  triangle: "Triangle — wireless access point",
-  hexagon: "Hexagon — load balancer",
-  tower: "Tower — server",
-  cylinder: "Cylinder — storage",
-  rect: "Rectangle — endpoint or leaf device",
+  circle: translationKey("Circle — router"),
+  "rounded-square": translationKey("Rounded square — switch"),
+  diamond: translationKey("Diamond — firewall"),
+  triangle: translationKey("Triangle — wireless access point"),
+  hexagon: translationKey("Hexagon — load balancer"),
+  tower: translationKey("Tower — server"),
+  cylinder: translationKey("Cylinder — storage"),
+  rect: translationKey("Rectangle — endpoint or leaf device"),
 };
 
 export const TOPOLOGY_SHAPES_IN_PICKER_ORDER: ReadonlyArray<NetworkTopologyNodeShape> =

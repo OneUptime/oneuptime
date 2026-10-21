@@ -59,9 +59,33 @@ const TRANSLATED_CODES: Array<string> = LOCALE_CODES.filter(
   },
 );
 
-const RUNNERS_PAGE: Array<string> = ["Pages", "Settings", "Runners.tsx"];
-const RUNNER_VIEW: Array<string> = ["Pages", "Settings", "RunnerView.tsx"];
+const RUNNERS_PAGE: Array<string> = [
+  "Pages",
+  "Runbook",
+  "Runners",
+  "Runners.tsx",
+];
+const RUNNER_VIEW: Array<string> = [
+  "Pages",
+  "Runbook",
+  "Runners",
+  "RunnerView.tsx",
+];
 const STEPS_PAGE: Array<string> = ["Pages", "Runbook", "View", "Steps.tsx"];
+/*
+ * The step editor's Runner picker, and what it loads: one component every
+ * page that picks a Runner shares, with the global Runners first.
+ */
+const RUNNER_PICKER: Array<string> = [
+  "Components",
+  "Runner",
+  "RunnerPicker.tsx",
+];
+const RUNNER_CHOICES: Array<string> = [
+  "Components",
+  "Runner",
+  "RunnerChoices.ts",
+];
 const STATUS_COMPONENT: Array<string> = [
   "Components",
   "Runner",
@@ -146,14 +170,23 @@ const readLocale: ReadLocaleFunction = (
  * sixteen languages rather than failing anywhere.
  */
 const NEW_STRINGS: Array<string> = [
-  "Here are more details for this Runner.",
-  "Here is more details on the connection status for this Runner.",
-  "Here is the list of teams that own this Runner. They will be alerted when this Runner's status changes.",
-  "Here is the list of users that own this Runner. They will be alerted when this Runner's status changes.",
-  "No teams associated with this Runner so far.",
-  "No users associated with this Runner so far.",
+  /*
+   * The Runner Details and Runner Status cards have no description: their
+   * titles say what they hold (CardDescriptionsSayWhatFor).
+   */
+  /*
+   * The Runner's owners are one Owners card now, people and teams together,
+   * in place of an owner-teams and an owner-users table.
+   */
+  "People and teams who own this runner. They are alerted when its status changes.",
+  "Add a teammate or a team so they are alerted when this runner's status changes.",
   "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
-  "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure.",
+  /*
+   * The Runners page with no Runner of the project's own says what one is
+   * for, in one sentence, instead of "No Runners yet".
+   */
+  "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.",
+  "Add a Runner of your own.",
   "No Runners.",
   "more Runners",
   "Runner Key",
@@ -162,12 +195,21 @@ const NEW_STRINGS: Array<string> = [
   "Never",
   "None",
   "Capabilities",
+  /*
+   * "Runs Runbooks" is the Runner's one switch: an auto remediation rule,
+   * or a Kubernetes cluster's AI settings, picks the Runner OneUptime AI
+   * runs its commands on, so "Runs AI Remediation Commands" is gone.
+   */
   "Runs Runbooks",
-  "Runs AI Code Fixes",
-  "Runs AI Remediation Commands",
-  "AI code fixes",
-  "AI remediation commands",
   "You do not have permission to view this Runner's key",
+  /*
+   * A Runner has no "Runs AI Code Fixes" switch any more: a code repository
+   * picks its Runner in Code, and the Runner's details list the
+   * repositories that pick it, where the switch was.
+   */
+  "Code Repositories",
+  "None. A repository picks its Runner in its settings in Code.",
+  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
 ];
 
 describe("the Runner status element is the single source of truth", () => {
@@ -278,9 +320,14 @@ describe("no page decides liveness from connectionStatus", () => {
     ).toContain("lastAlive: true");
   });
 
+  /*
+   * And the name and posture, which say whether the Kubernetes agent chart
+   * installed the Runner - which decides how the version's upgrade dialog
+   * says to upgrade it (the chart, or the Runner image).
+   */
   test("the Runner Status card selects lastAlive", () => {
     expect(readCode(...RUNNER_VIEW)).toContain(
-      "selectMoreFields: { lastAlive: true }",
+      "selectMoreFields: { lastAlive: true, name: true, hostInfo: true }",
     );
   });
 
@@ -318,7 +365,7 @@ describe("no page decides liveness from connectionStatus", () => {
   test("the Last Seen column exports the relative time it displays", () => {
     const source: string = readCode(...RUNNERS_PAGE);
     const start: number = source.indexOf('title: "Last Seen"');
-    /* "Capabilities" is also a formStep title earlier in the file. */
+    // The column after it.
     const end: number = source.indexOf('title: "Capabilities"', start);
 
     expect(start).toBeGreaterThan(-1);
@@ -334,11 +381,15 @@ describe("no page decides liveness from connectionStatus", () => {
    * never run and they have no way to know it.
    */
   test("the runbook step picker derives its label from lastAlive", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_CHOICES);
 
-    expect(source).toContain("getRunnerLiveStatus(a.lastAlive)");
+    // The project's own Runners, and the global Runners, alike.
+    expect(source).toContain("getRunnerLiveStatus(runner.lastAlive)");
     expect(source).toContain("lastAlive: true");
     expect(source).not.toContain("connectionStatus: true");
+    // And the step editor draws the shared picker over what it loaded.
+    expect(readCode(...STEPS_PAGE)).toContain("<RunnerPicker");
+    expect(readCode(...STEPS_PAGE)).toContain("RunnerChoicesLoader.load(");
   });
 
   /*
@@ -349,9 +400,9 @@ describe("no page decides liveness from connectionStatus", () => {
    * literals here would pass just as happily with the mapping inverted.
    */
   test("the step picker labels through the shared helper", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_PICKER);
 
-    expect(source).toContain("getRunnerLiveStatusLabel(a.liveStatus)");
+    expect(source).toContain("getRunnerLiveStatusLabel(option.liveStatus)");
     expect(source).not.toContain('return "never connected"');
     expect(source).not.toContain('return "disconnected"');
   });
@@ -362,11 +413,12 @@ describe("no page decides liveness from connectionStatus", () => {
    * up on its own before it is joined.
    */
   test("the step picker translates the status word", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_PICKER);
 
     expect(source).toContain(
-      "translateString(getRunnerLiveStatusLabel(a.liveStatus))",
+      "const label: string = getRunnerLiveStatusLabel(option.liveStatus);",
     );
+    expect(source).toContain("return translateString(label) || label;");
   });
 });
 
@@ -525,7 +577,8 @@ describe("capabilities render as pills", () => {
 
   test("it still handles a Runner with no capabilities", () => {
     expect(source).toContain("if (capabilities.length === 0)");
-    expect(source).toContain('translateString("None")');
+    // translateText answers with "None" itself when a locale has no wording.
+    expect(source).toContain('translator.translateText("None")');
   });
 
   test("the capability labels are translated", () => {

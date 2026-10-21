@@ -12,6 +12,12 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -21,6 +27,26 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   description: string | ReactElement;
   modelId: ObjectID;
   onUpdateComplete?: undefined | ((updatedValue: ObjectID) => void);
+  /*
+   * The reset button's text, when the card is about more than the reset -
+   * a "Share Link" card showing the link, whose button is "Reset Link".
+   * Defaults to the card's title.
+   */
+  buttonTitle?: string | undefined;
+  // Shown in the card, under its title: the value the button replaces, say.
+  children?: ReactElement | Array<ReactElement> | undefined;
+  /*
+   * What the confirmation and the result say. By default they only name the
+   * column ("Reset Share Key", "Your new Share Key is ..."), which tells the
+   * reader nothing about what the reset does to whoever relies on the old
+   * value - a link that stops working, for example. Each defaults to that
+   * generic wording.
+   */
+  confirmTitle?: string | undefined;
+  confirmDescription?: string | undefined;
+  confirmButtonText?: string | undefined;
+  resultTitle?: string | undefined;
+  resultDescription?: string | undefined;
 }
 
 const ResetObjectID: <TBaseModel extends BaseModel>(
@@ -65,6 +91,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
     : undefined;
   const tableColumnName: string =
     tableColumn?.title || (props.fieldName as string);
+  const translator: Translator = useTranslator();
 
   /* Resetting the id writes to the record, so it is an update. */
   const updateGate: PermissionGateResult = PermissionGate.check(
@@ -79,7 +106,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         description={props.description}
         buttons={[
           {
-            title: `${props.title}`,
+            title: props.buttonTitle || `${props.title}`,
             buttonStyle: ButtonStyleType.NORMAL,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.disabledReason,
@@ -94,12 +121,25 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             icon: IconProp.Reload,
           },
         ]}
-      />
+      >
+        {props.children}
+      </Card>
 
       {showModal ? (
         <ConfirmModal
-          description={`Are you sure you want to reset ${tableColumnName}?`}
-          title={`Reset ${tableColumnName}`}
+          description={
+            props.confirmDescription ||
+            translator.translateTemplate(
+              "Are you sure you want to reset {{columnName}}?",
+              { columnName: translatableTerm(tableColumnName) },
+            )
+          }
+          title={
+            props.confirmTitle ||
+            translator.translateTemplate("Reset {{columnName}}", {
+              columnName: translatableTerm(tableColumnName),
+            })
+          }
           onSubmit={async () => {
             await resetKey();
           }}
@@ -107,7 +147,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText={`Reset`}
+          submitButtonText={props.confirmButtonText || `Reset`}
           submitButtonType={ButtonStyleType.DANGER}
         />
       ) : (
@@ -131,10 +171,23 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
 
       {showResultModal ? (
         <ConfirmModal
-          description={`Your new ${tableColumnName} is ${
-            newId?.toString() || ""
-          }`}
-          title={`New ${tableColumnName}`}
+          description={
+            props.resultDescription ||
+            translator.translateTemplate(
+              "Your new {{columnName}} is {{value}}",
+              {
+                columnName: translatableTerm(tableColumnName),
+                value: newId?.toString() || "",
+              },
+            )
+          }
+          title={
+            props.resultTitle ||
+            translateNamedAction(translator, {
+              template: "New {{itemName}}",
+              itemName: tableColumnName,
+            })
+          }
           onSubmit={() => {
             if (props.onUpdateComplete && newId) {
               props.onUpdateComplete(newId);

@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -97,6 +104,9 @@ import Route from "../../../Types/API/Route";
 import { getDatabaseAlertTemplates } from "../../../Types/Monitor/DatabaseAlertTemplates";
 import { MonitorRecommendationResourceType } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "../../../Types/ObjectID";
+
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route(
@@ -266,6 +276,52 @@ describe("the database Recommendations tab renders from the loaded context", () 
       await screen.findByText(/No recommendations for this database yet/),
     ).toBeInTheDocument();
     expect(screen.queryByText("Engine Metrics Stopped")).toBeNull();
+  });
+
+  /*
+   * "Create N Selected" is on the card's header and again on the bar pinned
+   * under the list once something is picked. Both used to be filled indigo:
+   * two primary buttons for one action. The pinned bar carries the page's one
+   * primary button; the header's copy is plain, and with nothing picked the
+   * next step is to pick, so nothing on the page is filled.
+   */
+  test("one primary Create button: the pinned bar's, once something is picked", async () => {
+    getItemMock.mockResolvedValue(databaseRow("postgresql"));
+    getAnalyticsListMock.mockResolvedValue(METRICS_ARRIVED);
+
+    renderPage();
+
+    expect(
+      await screen.findByText("Engine Metrics Stopped"),
+    ).toBeInTheDocument();
+
+    type FilledButtonsFunction = () => Array<HTMLElement>;
+
+    const filledButtons: FilledButtonsFunction = (): Array<HTMLElement> => {
+      return screen.getAllByRole("button").filter((button: HTMLElement) => {
+        return FILLED_BUTTON_CLASS.test(button.className);
+      });
+    };
+
+    const headerCreate: HTMLElement = screen.getByRole("button", {
+      name: "Create Monitors",
+    });
+
+    expect(headerCreate).toHaveClass("bg-white");
+    expect(filledButtons()).toEqual([]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Engine Metrics Stopped" }),
+    );
+
+    const pinnedCreate: HTMLElement = await screen.findByRole("button", {
+      name: "Create 1 Selected Monitor",
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Create 1 Selected" }),
+    ).toHaveClass("bg-white");
+    expect(filledButtons()).toEqual([pinnedCreate]);
   });
 
   test("a failed probe keeps the heartbeat's answer rather than failing the tab", async () => {

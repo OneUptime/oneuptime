@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageLabelRule from "../../Models/DatabaseModels/StatusPageLabelRule";
@@ -16,6 +17,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class StatusPageLabelRuleEngineServiceClass
   implements RuleRunEngine<StatusPage, StatusPageLabelRule>
@@ -103,6 +106,7 @@ class StatusPageLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     statusPage: StatusPage;
     rules: Array<StatusPageLabelRule>;
@@ -165,11 +169,23 @@ class StatusPageLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: statusPage.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of status page label rules",
+      logAttributes: {
+        projectId: statusPage.projectId.toString(),
+        statusPageId: statusPage.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -277,8 +293,7 @@ class StatusPageLabelRuleEngineServiceClass
     rule: StatusPageLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in status page label rule ${rule.id}: ${pattern}`,

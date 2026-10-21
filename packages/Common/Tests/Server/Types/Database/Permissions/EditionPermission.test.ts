@@ -16,6 +16,7 @@ import TablePermission from "../../../../../Server/Types/Database/Permissions/Ta
 import UpdatePermission from "../../../../../Server/Types/Database/Permissions/UpdatePermission";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import Query from "../../../../../Server/Types/Database/Query";
+import QueryDeepPartialEntity from "../../../../../Types/Database/PartialEntity";
 import EnterpriseEdition from "../../../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
@@ -60,10 +61,10 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
 
 /*
  * EditionPermission is the license gate on enterprise CONFIGURATION: creating
- * or updating the eleven @TableEditionAccessControl({ requiresEnterprise })
- * models (project, global and status page SSO/OIDC, SCIM, team compliance).
+ * or updating the three @TableEditionAccessControl({ requiresEnterprise })
+ * models - project SCIM, status page SCIM and team compliance settings.
  *
- * The rules under test (design v2 section 0 and 3):
+ * The rules under test:
  *   - billing on (the cloud): never refuses; plan gates live in
  *     BillingPermission.
  *   - internal root writes: never refused.
@@ -75,10 +76,18 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
  *     model's feature, and refused with the license message otherwise.
  *   - an unknown snapshot (the first load has not finished, or reading it
  *     throws) refuses writes - fail closed.
- *   - the exception: an update that only tightens security (disabling an
- *     identity provider, rotating a SCIM bearer token) needs no license, in
- *     either edition. It is judged on what the update writes, which only
- *     UpdatePermission has; without the data an update gets the full check.
+ *   - the exception: an update that only tightens security (rotating a SCIM
+ *     bearer token) needs no license, in either edition. It is judged on what
+ *     the update writes, which only UpdatePermission has; without the data an
+ *     update gets the full check.
+ *
+ * Single sign-on configuration (project, status page and global SAML/OIDC
+ * providers, and a global provider's project attachments) is Community
+ * Edition configuration: the edition check never refuses it, in any edition
+ * or license state, for any caller. Who may write it is decided by the usual
+ * table permissions (project owners and admins for project and status page
+ * providers, master admins for global ones), and on the cloud by the Scale
+ * plan gate (see SsoScalePlanGate.test.ts).
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true, so an unpinned suite would only test the cloud path
@@ -110,14 +119,6 @@ type EditionState =
 
 const ENTERPRISE_MODELS: ReadonlyArray<[string, ModelType, EnterpriseFeature]> =
   [
-    ["GlobalSSO", GlobalSSO, EnterpriseFeature.SSO],
-    ["GlobalOIDC", GlobalOIDC, EnterpriseFeature.SSO],
-    ["GlobalSSOProject", GlobalSSOProject, EnterpriseFeature.SSO],
-    ["GlobalOIDCProject", GlobalOIDCProject, EnterpriseFeature.SSO],
-    ["ProjectSSO", ProjectSSO, EnterpriseFeature.SSO],
-    ["ProjectOIDC", ProjectOIDC, EnterpriseFeature.SSO],
-    ["StatusPageSSO", StatusPageSSO, EnterpriseFeature.SSO],
-    ["StatusPageOIDC", StatusPageOIDC, EnterpriseFeature.SSO],
     ["ProjectSCIM", ProjectSCIM, EnterpriseFeature.SCIM],
     ["StatusPageSCIM", StatusPageSCIM, EnterpriseFeature.SCIM],
     [
@@ -126,6 +127,34 @@ const ENTERPRISE_MODELS: ReadonlyArray<[string, ModelType, EnterpriseFeature]> =
       EnterpriseFeature.TeamCompliance,
     ],
   ];
+
+// Community Edition configuration: never gated by the edition check.
+const SSO_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["GlobalSSO", GlobalSSO],
+  ["GlobalOIDC", GlobalOIDC],
+  ["GlobalSSOProject", GlobalSSOProject],
+  ["GlobalOIDCProject", GlobalOIDCProject],
+  ["ProjectSSO", ProjectSSO],
+  ["ProjectOIDC", ProjectOIDC],
+  ["StatusPageSSO", StatusPageSSO],
+  ["StatusPageOIDC", StatusPageOIDC],
+];
+
+// The single sign-on models a project owner configures.
+const PROJECT_SSO_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["ProjectSSO", ProjectSSO],
+  ["ProjectOIDC", ProjectOIDC],
+  ["StatusPageSSO", StatusPageSSO],
+  ["StatusPageOIDC", StatusPageOIDC],
+];
+
+// The single sign-on models only a master admin configures.
+const GLOBAL_SSO_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["GlobalSSO", GlobalSSO],
+  ["GlobalOIDC", GlobalOIDC],
+  ["GlobalSSOProject", GlobalSSOProject],
+  ["GlobalOIDCProject", GlobalOIDCProject],
+];
 
 const ORDINARY_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["Project", Project],
@@ -211,6 +240,11 @@ const propsFor: (caller: Caller) => DatabaseCommonInteractionProps = (
 
   return buildUserProps([Permission.ProjectOwner]);
 };
+
+const masterAdminProps: () => DatabaseCommonInteractionProps =
+  (): DatabaseCommonInteractionProps => {
+    return { userId, isMasterAdmin: true };
+  };
 
 const describeEdition: (edition: EditionState) => string = (
   edition: EditionState,
@@ -302,16 +336,19 @@ const runEditionCheck: (input: {
   modelType: ModelType;
   operation: DatabaseRequestType;
   caller: Caller;
+  data?: unknown;
 }) => Outcome = (input: {
   modelType: ModelType;
   operation: DatabaseRequestType;
   caller: Caller;
+  data?: unknown;
 }): Outcome => {
   try {
     const result: unknown = EditionPermissions.checkEditionPermissions(
       input.modelType,
       propsFor(input.caller),
       input.operation,
+      input.data,
     );
 
     // A Promise here would mean a refusal could be lost to a missed await.
@@ -394,7 +431,27 @@ const allEditionStates: () => Array<EditionState> = (): Array<EditionState> => {
 
   states.push({ kind: "enterprise", snapshot: null });
 
+  // A usable license that leaves every runtime feature out.
+  states.push({
+    kind: "enterprise",
+    snapshot: createLicenseSnapshot({
+      features: [EnterpriseFeature.TeamCompliance],
+    }),
+  });
+
   return states;
+};
+
+const withoutFeature: (
+  models: ReadonlyArray<[string, ModelType]>,
+) => Array<[string, ModelType, null]> = (
+  models: ReadonlyArray<[string, ModelType]>,
+): Array<[string, ModelType, null]> => {
+  return models.map(
+    ([name, modelType]: [string, ModelType]): [string, ModelType, null] => {
+      return [name, modelType, null];
+    },
+  );
 };
 
 describe("EditionPermission.checkEditionPermissions", () => {
@@ -430,6 +487,25 @@ describe("EditionPermission.checkEditionPermissions", () => {
     );
 
     test.each([true, false])(
+      "billing=%p: the single sign-on models are never gated in any edition state",
+      (billing: boolean) => {
+        const mismatches: Array<string> = [];
+
+        for (const edition of allEditionStates()) {
+          mismatches.push(
+            ...findMismatches({
+              billing,
+              edition,
+              models: withoutFeature(SSO_MODELS),
+            }),
+          );
+        }
+
+        expect(mismatches).toEqual([]);
+      },
+    );
+
+    test.each([true, false])(
       "billing=%p: ordinary models are never gated in any edition state",
       (billing: boolean) => {
         const mismatches: Array<string> = [];
@@ -439,15 +515,7 @@ describe("EditionPermission.checkEditionPermissions", () => {
             ...findMismatches({
               billing,
               edition,
-              models: ORDINARY_MODELS.map(
-                ([name, modelType]: [string, ModelType]): [
-                  string,
-                  ModelType,
-                  null,
-                ] => {
-                  return [name, modelType, null];
-                },
-              ),
+              models: withoutFeature(ORDINARY_MODELS),
             }),
           );
         }
@@ -484,7 +552,7 @@ describe("EditionPermission.checkEditionPermissions", () => {
 
         expect(
           runEditionCheck({
-            modelType: ProjectSSO,
+            modelType: ProjectSCIM,
             operation: DatabaseRequestType.Create,
             caller: "regular user",
           }),
@@ -517,6 +585,37 @@ describe("EditionPermission.checkEditionPermissions", () => {
               ),
             );
           }
+        }
+      },
+    );
+
+    test.each(SSO_MODELS)(
+      "%s: create and update are allowed, for users and master admins",
+      (_name: string, modelType: ModelType) => {
+        for (const caller of ALL_CALLERS) {
+          for (const operation of ALL_OPERATIONS) {
+            expect(runEditionCheck({ modelType, operation, caller })).toBe(
+              "allowed",
+            );
+          }
+        }
+
+        // Whatever the update writes: there is no tighten-only rule to meet.
+        for (const data of [
+          { isEnabled: true },
+          { isEnabled: false },
+          { name: "Okta", isEnabled: true },
+          {},
+          undefined,
+        ]) {
+          expect(
+            runEditionCheck({
+              modelType,
+              operation: DatabaseRequestType.Update,
+              caller: "regular user",
+              data,
+            }),
+          ).toBe("allowed");
         }
       },
     );
@@ -636,20 +735,48 @@ describe("EditionPermission.checkEditionPermissions", () => {
       },
     );
 
+    test.each(UNUSABLE_STATUSES)(
+      "a %s license leaves single sign-on configuration writable, for users and master admins",
+      (status: EnterpriseLicenseStatus) => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus(status),
+        });
+
+        for (const [, modelType] of SSO_MODELS) {
+          for (const caller of ALL_CALLERS) {
+            for (const operation of ALL_OPERATIONS) {
+              expect(runEditionCheck({ modelType, operation, caller })).toBe(
+                "allowed",
+              );
+            }
+          }
+        }
+      },
+    );
+
     test("before the first license load finishes (no snapshot) writes are refused - fail closed", () => {
       installFakeEnterpriseModule({ snapshot: null });
 
       expect(
         runEditionCheck({
-          modelType: GlobalSSO,
+          modelType: ProjectSCIM,
           operation: DatabaseRequestType.Create,
           caller: "master admin",
         }),
       ).toBe("license");
       expect(
         runEditionCheck({
-          modelType: GlobalSSO,
+          modelType: ProjectSCIM,
           operation: DatabaseRequestType.Read,
+          caller: "master admin",
+        }),
+      ).toBe("allowed");
+
+      // Single sign-on never waits for the license.
+      expect(
+        runEditionCheck({
+          modelType: GlobalSSO,
+          operation: DatabaseRequestType.Create,
           caller: "master admin",
         }),
       ).toBe("allowed");
@@ -661,15 +788,22 @@ describe("EditionPermission.checkEditionPermissions", () => {
 
       expect(
         runEditionCheck({
-          modelType: ProjectSSO,
+          modelType: TeamComplianceSetting,
           operation: DatabaseRequestType.Update,
           caller: "regular user",
         }),
       ).toBe("license");
       expect(
         runEditionCheck({
-          modelType: ProjectSSO,
+          modelType: TeamComplianceSetting,
           operation: DatabaseRequestType.Delete,
+          caller: "regular user",
+        }),
+      ).toBe("allowed");
+      expect(
+        runEditionCheck({
+          modelType: ProjectSSO,
+          operation: DatabaseRequestType.Update,
           caller: "regular user",
         }),
       ).toBe("allowed");
@@ -773,7 +907,7 @@ describe("EditionPermission.checkEditionPermissions", () => {
       },
     );
 
-    test("an empty feature list entitles nothing", () => {
+    test("an empty feature list entitles nothing, and single sign-on needs no feature", () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({ features: [] }),
       });
@@ -787,6 +921,16 @@ describe("EditionPermission.checkEditionPermissions", () => {
           }),
         ).toBe("license");
       }
+
+      for (const [, modelType] of SSO_MODELS) {
+        expect(
+          runEditionCheck({
+            modelType,
+            operation: DatabaseRequestType.Create,
+            caller: "regular user",
+          }),
+        ).toBe("allowed");
+      }
     });
   });
 
@@ -794,6 +938,8 @@ describe("EditionPermission.checkEditionPermissions", () => {
     /*
      * The facade's guard test should make this impossible; if it ever
      * happens the gate must fail closed rather than let the write through.
+     * (It is also why the single sign-on models lost their
+     * requiresEnterprise decorator, not only their map entries.)
      */
     class UnmappedEnterpriseModel extends Monitor {}
 
@@ -885,12 +1031,13 @@ describe("EditionPermission wiring through the permission entry points", () => {
   });
 
   describe("CreatePermission: master admins are checked before their early return", () => {
-    test("a master admin cannot create a global SSO provider on the Community Edition", () => {
+    test("a master admin cannot create a project's SCIM configuration on the Community Edition", () => {
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalSSO, new GlobalSSO(), {
-          userId,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          ProjectSCIM,
+          new ProjectSCIM(),
+          masterAdminProps(),
+        );
       }).toThrow(
         new PaymentRequiredException(
           EnterpriseEdition.COMMUNITY_EDITION_MESSAGE,
@@ -898,16 +1045,17 @@ describe("EditionPermission wiring through the permission entry points", () => {
       );
     });
 
-    test("a master admin cannot create a global OIDC provider when the license expired", () => {
+    test("a master admin cannot create team compliance settings when the license expired", () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),
       });
 
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalOIDC, new GlobalOIDC(), {
-          userId,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          TeamComplianceSetting,
+          new TeamComplianceSetting(),
+          masterAdminProps(),
+        );
       }).toThrow(
         new PaymentRequiredException(
           EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
@@ -915,37 +1063,42 @@ describe("EditionPermission wiring through the permission entry points", () => {
       );
     });
 
-    test("a master admin can create one with a valid license", () => {
+    test("a master admin can create them with a valid license", () => {
       installFakeEnterpriseModule();
 
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalSSO, new GlobalSSO(), {
-          userId,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          StatusPageSCIM,
+          new StatusPageSCIM(),
+          masterAdminProps(),
+        );
       }).not.toThrow();
     });
 
     test("internal root writes are not checked", () => {
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalSSO, new GlobalSSO(), {
-          isRoot: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          ProjectSCIM,
+          new ProjectSCIM(),
+          { isRoot: true },
+        );
       }).not.toThrow();
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalSSO, new GlobalSSO(), {
-          isRoot: true,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          ProjectSCIM,
+          new ProjectSCIM(),
+          { isRoot: true, isMasterAdmin: true },
+        );
       }).not.toThrow();
     });
 
     test("a master admin creating an ordinary model is unaffected", () => {
       expect(() => {
-        CreatePermission.checkCreatePermissions(Project, new Project(), {
-          userId,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          Project,
+          new Project(),
+          masterAdminProps(),
+        );
       }).not.toThrow();
     });
 
@@ -953,29 +1106,93 @@ describe("EditionPermission wiring through the permission entry points", () => {
       setTestBillingEnabled(true);
 
       expect(() => {
-        CreatePermission.checkCreatePermissions(GlobalSSO, new GlobalSSO(), {
-          userId,
-          isMasterAdmin: true,
-        });
+        CreatePermission.checkCreatePermissions(
+          ProjectSCIM,
+          new ProjectSCIM(),
+          masterAdminProps(),
+        );
       }).not.toThrow();
     });
+
+    describe.each([
+      [
+        "the Community Edition",
+        (): void => {
+          return uninstallEnterpriseModule();
+        },
+      ],
+      [
+        "an expired license",
+        (): void => {
+          installFakeEnterpriseModule({
+            snapshot: createLicenseSnapshotWithStatus("expired"),
+          });
+        },
+      ],
+      [
+        "no license snapshot yet",
+        (): void => {
+          installFakeEnterpriseModule({ snapshot: null });
+        },
+      ],
+      [
+        "a valid license",
+        (): void => {
+          installFakeEnterpriseModule();
+        },
+      ],
+    ] as Array<[string, () => void]>)(
+      "on %s",
+      (_state: string, install: () => void) => {
+        beforeEach(() => {
+          install();
+        });
+
+        test.each(GLOBAL_SSO_MODELS)(
+          "a master admin can create %s (global single sign-on)",
+          (_name: string, modelType: ModelType) => {
+            expect(() => {
+              CreatePermission.checkCreatePermissions(
+                modelType,
+                new modelType(),
+                masterAdminProps(),
+              );
+            }).not.toThrow();
+          },
+        );
+
+        test.each(PROJECT_SSO_MODELS)(
+          "a master admin can create %s too",
+          (_name: string, modelType: ModelType) => {
+            expect(() => {
+              CreatePermission.checkCreatePermissions(
+                modelType,
+                new modelType(),
+                masterAdminProps(),
+              );
+            }).not.toThrow();
+          },
+        );
+      },
+    );
   });
 
   /*
-   * These use { isEnabled: true }: switching a provider ON is configuration.
-   * Switching one off is a tighten-only update, allowed without the license
-   * (see "tighten-only updates" below).
+   * These use a column that is not a tighten-only update: a SCIM change
+   * other than rotating the bearer token is configuration.
    */
   describe("UpdatePermission: master admins are checked before their early return", () => {
-    const query: Query<GlobalSSO> = { name: "Okta" } as Query<GlobalSSO>;
+    const query: Query<ProjectSCIM> = {
+      _id: "44444444-4444-4444-8444-444444444444",
+    } as Query<ProjectSCIM>;
 
-    test("a master admin cannot update a global SSO provider on the Community Edition", async () => {
+    test("a master admin cannot update a project's SCIM configuration on the Community Edition", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          GlobalSSO,
+          ProjectSCIM,
           query,
-          { isEnabled: true },
-          { userId, isMasterAdmin: true },
+          { autoProvisionUsers: true },
+          masterAdminProps(),
         ),
       ).rejects.toThrow(
         new PaymentRequiredException(
@@ -993,10 +1210,10 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
         await expect(
           UpdatePermission.checkUpdatePermissions(
-            GlobalSSO,
+            ProjectSCIM,
             query,
-            { isEnabled: true },
-            { userId, isMasterAdmin: true },
+            { autoProvisionUsers: true },
+            masterAdminProps(),
           ),
         ).rejects.toThrow(
           new PaymentRequiredException(
@@ -1015,10 +1232,10 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
         await expect(
           UpdatePermission.checkUpdatePermissions(
-            GlobalSSO,
+            ProjectSCIM,
             query,
-            { isEnabled: true },
-            { userId, isMasterAdmin: true },
+            { autoProvisionUsers: true },
+            masterAdminProps(),
           ),
         ).resolves.toBe(query);
       },
@@ -1027,79 +1244,247 @@ describe("EditionPermission wiring through the permission entry points", () => {
     test("internal root updates are not checked", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          GlobalSSO,
+          ProjectSCIM,
           query,
-          { isEnabled: false },
+          { autoProvisionUsers: false },
           { isRoot: true },
         ),
       ).resolves.toBe(query);
     });
+
+    test.each([
+      [
+        "the Community Edition",
+        (): void => {
+          return uninstallEnterpriseModule();
+        },
+      ],
+      ...UNUSABLE_STATUSES.map((status: EnterpriseLicenseStatus) => {
+        return [
+          `a ${status} license`,
+          (): void => {
+            installFakeEnterpriseModule({
+              snapshot: createLicenseSnapshotWithStatus(status),
+            });
+          },
+        ];
+      }),
+    ] as Array<[string, () => void]>)(
+      "on %s a master admin can switch global single sign-on providers on and edit them",
+      async (_state: string, install: () => void) => {
+        install();
+
+        const globalQuery: Query<GlobalSSO> = {
+          name: "Okta",
+        } as Query<GlobalSSO>;
+
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            GlobalSSO,
+            globalQuery,
+            { isEnabled: true, name: "Okta (renamed)" },
+            masterAdminProps(),
+          ),
+        ).resolves.toBe(globalQuery);
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            GlobalOIDC,
+            globalQuery as unknown as Query<GlobalOIDC>,
+            { isEnabled: false, restrictToAttachedProjects: false },
+            masterAdminProps(),
+          ),
+        ).resolves.toBe(globalQuery);
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            GlobalSSOProject,
+            globalQuery as unknown as Query<GlobalSSOProject>,
+            { isEnabled: true },
+            masterAdminProps(),
+          ),
+        ).resolves.toBe(globalQuery);
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            GlobalOIDCProject,
+            globalQuery as unknown as Query<GlobalOIDCProject>,
+            { isEnabled: true },
+            masterAdminProps(),
+          ),
+        ).resolves.toBe(globalQuery);
+      },
+    );
   });
 
-  describe("DeletePermission: removing leftover configuration always works", () => {
-    test.each(ENTERPRISE_MODELS)(
+  describe("DeletePermission: removing configuration always works", () => {
+    test.each([
+      ...ENTERPRISE_MODELS.map(
+        ([name, modelType]: [string, ModelType, EnterpriseFeature]): [
+          string,
+          ModelType,
+        ] => {
+          return [name, modelType];
+        },
+      ),
+      ...SSO_MODELS,
+    ])(
       "a master admin can delete %s on the Community Edition",
       async (_name: string, modelType: ModelType) => {
         await expect(
           DeletePermission.checkDeletePermission(
             modelType,
             {},
-            { userId, isMasterAdmin: true },
+            masterAdminProps(),
           ),
         ).resolves.toEqual({});
       },
     );
 
     test("a project owner passes the table-level delete check on the Community Edition", () => {
-      expect(() => {
-        TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
-          buildUserProps([Permission.ProjectOwner]),
-          DatabaseRequestType.Delete,
-        );
-      }).not.toThrow();
+      for (const modelType of [ProjectSCIM, ProjectSSO, StatusPageOIDC]) {
+        expect(() => {
+          TablePermission.checkTableLevelPermissions(
+            modelType,
+            buildUserProps([Permission.ProjectOwner]),
+            DatabaseRequestType.Delete,
+          );
+        }).not.toThrow();
+      }
     });
   });
 
   describe("TablePermission: the operation reaches the edition check", () => {
-    test("a project owner's create is refused on the Community Edition", () => {
+    test("a project owner's create of SCIM configuration is refused on the Community Edition", () => {
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectOwner]),
           DatabaseRequestType.Create,
         );
-      }).toThrow(PaymentRequiredException);
+      }).toThrow(
+        new PaymentRequiredException(
+          EnterpriseEdition.COMMUNITY_EDITION_MESSAGE,
+        ),
+      );
     });
 
-    test("a project owner's read is allowed on the Community Edition", () => {
+    test("a project owner's read of SCIM configuration is allowed on the Community Edition", () => {
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectOwner]),
           DatabaseRequestType.Read,
         );
       }).not.toThrow();
     });
 
-    test("a project owner's create passes with a valid license", () => {
+    test("a project owner's create of SCIM configuration passes with a valid license", () => {
       installFakeEnterpriseModule();
 
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectOwner]),
           DatabaseRequestType.Create,
         );
       }).not.toThrow();
     });
 
+    describe.each([
+      [
+        "the Community Edition",
+        (): void => {
+          return uninstallEnterpriseModule();
+        },
+      ],
+      ...UNUSABLE_STATUSES.map((status: EnterpriseLicenseStatus) => {
+        return [
+          `a ${status} license`,
+          (): void => {
+            installFakeEnterpriseModule({
+              snapshot: createLicenseSnapshotWithStatus(status),
+            });
+          },
+        ];
+      }),
+      [
+        "a valid license",
+        (): void => {
+          installFakeEnterpriseModule();
+        },
+      ],
+    ] as Array<[string, () => void]>)(
+      "on %s",
+      (_state: string, install: () => void) => {
+        beforeEach(() => {
+          install();
+        });
+
+        test.each(PROJECT_SSO_MODELS)(
+          "a project owner can create and read %s",
+          (_name: string, modelType: ModelType) => {
+            for (const operation of [
+              DatabaseRequestType.Create,
+              DatabaseRequestType.Read,
+              DatabaseRequestType.Delete,
+            ]) {
+              expect(() => {
+                TablePermission.checkTableLevelPermissions(
+                  modelType,
+                  buildUserProps([Permission.ProjectOwner]),
+                  operation,
+                );
+              }).not.toThrow();
+            }
+          },
+        );
+
+        test.each(PROJECT_SSO_MODELS)(
+          "a project admin can create %s",
+          (_name: string, modelType: ModelType) => {
+            expect(() => {
+              TablePermission.checkTableLevelPermissions(
+                modelType,
+                buildUserProps([Permission.ProjectAdmin]),
+                DatabaseRequestType.Create,
+              );
+            }).not.toThrow();
+          },
+        );
+
+        // The right roles still decide: the edition gate never replaced them.
+        test.each(PROJECT_SSO_MODELS)(
+          "a project member still cannot create %s",
+          (_name: string, modelType: ModelType) => {
+            expect(() => {
+              TablePermission.checkTableLevelPermissions(
+                modelType,
+                buildUserProps([Permission.ProjectMember]),
+                DatabaseRequestType.Create,
+              );
+            }).toThrow(NotAuthorizedException);
+          },
+        );
+
+        test.each(GLOBAL_SSO_MODELS)(
+          "a project owner still cannot create %s (global single sign-on is for master admins)",
+          (_name: string, modelType: ModelType) => {
+            expect(() => {
+              TablePermission.checkTableLevelPermissions(
+                modelType,
+                buildUserProps([Permission.ProjectOwner]),
+                DatabaseRequestType.Create,
+              );
+            }).toThrow(NotAuthorizedException);
+          },
+        );
+      },
+    );
+
     test("the edition check does not replace the permission check: a licensed install still refuses a user without permission", () => {
       installFakeEnterpriseModule();
 
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectMember]),
           DatabaseRequestType.Create,
         );
@@ -1107,13 +1492,15 @@ describe("EditionPermission wiring through the permission entry points", () => {
     });
 
     test("a signed-out caller still gets 'not logged in' before any edition answer", () => {
-      expect(() => {
-        TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
-          {},
-          DatabaseRequestType.Create,
-        );
-      }).toThrow(NotAuthenticatedException);
+      for (const modelType of [ProjectSCIM, ProjectSSO]) {
+        expect(() => {
+          TablePermission.checkTableLevelPermissions(
+            modelType,
+            {},
+            DatabaseRequestType.Create,
+          );
+        }).toThrow(NotAuthenticatedException);
+      }
     });
 
     /*
@@ -1129,7 +1516,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectOwner]),
           DatabaseRequestType.Update,
         );
@@ -1138,7 +1525,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
       expect(() => {
         TablePermission.checkTableLevelPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           buildUserProps([Permission.ProjectOwner]),
           DatabaseRequestType.Create,
         );
@@ -1148,9 +1535,9 @@ describe("EditionPermission wiring through the permission entry points", () => {
   });
 
   describe("UpdatePermission: every caller's update is edition-checked with its data", () => {
-    const query: Query<ProjectSSO> = {
+    const query: Query<ProjectSCIM> = {
       _id: "33333333-3333-4333-8333-333333333333",
-    } as Query<ProjectSSO>;
+    } as Query<ProjectSCIM>;
 
     const ownerProps: () => DatabaseCommonInteractionProps =
       (): DatabaseCommonInteractionProps => {
@@ -1161,18 +1548,18 @@ describe("EditionPermission wiring through the permission entry points", () => {
       // What follows the edition check needs a database; it is not under test.
       jest.spyOn(BasePermission, "checkPermissions").mockImplementation((async (
         _modelType: unknown,
-        checkedQuery: Query<ProjectSSO>,
+        checkedQuery: Query<ProjectSCIM>,
       ) => {
         return { query: checkedQuery };
       }) as never);
     });
 
-    test("a project owner's ordinary update is refused on the Community Edition", async () => {
+    test("a project owner's ordinary SCIM update is refused on the Community Edition", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          ProjectSSO,
+          ProjectSCIM,
           query,
-          { name: "Okta (renamed)" },
+          { autoProvisionUsers: true },
           ownerProps(),
         ),
       ).rejects.toThrow(
@@ -1183,7 +1570,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
     });
 
     test.each(UNUSABLE_STATUSES)(
-      "a project owner cannot switch a provider on with a %s license",
+      "a project owner cannot change SCIM provisioning with a %s license",
       async (status: EnterpriseLicenseStatus) => {
         installFakeEnterpriseModule({
           snapshot: createLicenseSnapshotWithStatus(status),
@@ -1191,9 +1578,9 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
         await expect(
           UpdatePermission.checkUpdatePermissions(
-            ProjectSSO,
+            ProjectSCIM,
             query,
-            { isEnabled: true },
+            { enablePushGroups: true },
             ownerProps(),
           ),
         ).rejects.toThrow(
@@ -1205,7 +1592,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
     );
 
     test.each(UNUSABLE_STATUSES)(
-      "a project owner can switch a provider off with a %s license",
+      "a project owner can rotate a leaked SCIM bearer token with a %s license",
       async (status: EnterpriseLicenseStatus) => {
         installFakeEnterpriseModule({
           snapshot: createLicenseSnapshotWithStatus(status),
@@ -1213,29 +1600,14 @@ describe("EditionPermission wiring through the permission entry points", () => {
 
         await expect(
           UpdatePermission.checkUpdatePermissions(
-            ProjectSSO,
+            ProjectSCIM,
             query,
-            { isEnabled: false },
+            { bearerToken: ObjectID.generate().toString() },
             ownerProps(),
           ),
         ).resolves.toEqual(query);
       },
     );
-
-    test("a project owner can rotate a leaked SCIM bearer token with an expired license", async () => {
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("expired"),
-      });
-
-      await expect(
-        UpdatePermission.checkUpdatePermissions(
-          ProjectSCIM,
-          query as unknown as Query<ProjectSCIM>,
-          { bearerToken: ObjectID.generate().toString() },
-          ownerProps(),
-        ),
-      ).resolves.toEqual(query);
-    });
 
     test("a project owner cannot rotate the token and change anything else in one update", async () => {
       installFakeEnterpriseModule({
@@ -1245,7 +1617,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
           ProjectSCIM,
-          query as unknown as Query<ProjectSCIM>,
+          query,
           {
             bearerToken: ObjectID.generate().toString(),
             autoProvisionUsers: true,
@@ -1259,16 +1631,16 @@ describe("EditionPermission wiring through the permission entry points", () => {
      * The allowance is about the license, never about who may write: a
      * caller without update permission is still turned away.
      */
-    test("switching a provider off still needs permission to update it", async () => {
+    test("rotating a SCIM token still needs permission to update it", async () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),
       });
 
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          ProjectSSO,
+          ProjectSCIM,
           query,
-          { isEnabled: false },
+          { bearerToken: ObjectID.generate().toString() },
           buildUserProps([Permission.ProjectMember]),
         ),
       ).rejects.toThrow(NotAuthorizedException);
@@ -1277,48 +1649,64 @@ describe("EditionPermission wiring through the permission entry points", () => {
     test("a signed-out caller gets 'not logged in' before any edition answer", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          ProjectSSO,
+          ProjectSCIM,
           query,
-          { name: "Okta (renamed)" },
+          { autoProvisionUsers: true },
           {},
         ),
       ).rejects.toThrow(NotAuthenticatedException);
     });
 
-    test("a master admin can switch a global provider off with an expired license, and on the Community Edition", async () => {
-      const globalQuery: Query<GlobalSSO> = {
-        name: "Okta",
-      } as Query<GlobalSSO>;
+    test.each([
+      [
+        "the Community Edition",
+        (): void => {
+          return uninstallEnterpriseModule();
+        },
+      ],
+      ...UNUSABLE_STATUSES.map((status: EnterpriseLicenseStatus) => {
+        return [
+          `a ${status} license`,
+          (): void => {
+            installFakeEnterpriseModule({
+              snapshot: createLicenseSnapshotWithStatus(status),
+            });
+          },
+        ];
+      }),
+    ] as Array<[string, () => void]>)(
+      "on %s a project owner can edit, switch on and switch off single sign-on providers",
+      async (_state: string, install: () => void) => {
+        install();
 
+        for (const [, modelType] of PROJECT_SSO_MODELS) {
+          for (const data of [
+            { isEnabled: true },
+            { isEnabled: false },
+            { name: "Okta (renamed)", isEnabled: true },
+          ]) {
+            await expect(
+              UpdatePermission.checkUpdatePermissions(
+                modelType,
+                query as unknown as Query<BaseModel>,
+                data as QueryDeepPartialEntity<BaseModel>,
+                ownerProps(),
+              ),
+            ).resolves.toEqual(query);
+          }
+        }
+      },
+    );
+
+    test("editing a single sign-on provider still needs permission to update it", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
-          GlobalSSO,
-          globalQuery,
-          { isEnabled: false },
-          { userId, isMasterAdmin: true },
+          ProjectSSO,
+          query as unknown as Query<ProjectSSO>,
+          { isEnabled: true },
+          buildUserProps([Permission.ProjectMember]),
         ),
-      ).resolves.toBe(globalQuery);
-
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("expired"),
-      });
-
-      await expect(
-        UpdatePermission.checkUpdatePermissions(
-          GlobalSSO,
-          globalQuery,
-          { isEnabled: false },
-          { userId, isMasterAdmin: true },
-        ),
-      ).resolves.toBe(globalQuery);
-      await expect(
-        UpdatePermission.checkUpdatePermissions(
-          GlobalOIDC,
-          globalQuery as unknown as Query<GlobalOIDC>,
-          { isEnabled: false, restrictToAttachedProjects: false },
-          { userId, isMasterAdmin: true },
-        ),
-      ).rejects.toThrow(PaymentRequiredException);
+      ).rejects.toThrow(NotAuthorizedException);
     });
 
     test("the data reaches the edition check unchanged", async () => {
@@ -1328,10 +1716,12 @@ describe("EditionPermission wiring through the permission entry points", () => {
         EditionPermissions,
         "checkEditionPermissions",
       );
-      const data: { isEnabled: boolean } = { isEnabled: false };
+      const data: { bearerToken: string } = {
+        bearerToken: ObjectID.generate().toString(),
+      };
 
       await UpdatePermission.checkUpdatePermissions(
-        ProjectSSO,
+        ProjectSCIM,
         query,
         data,
         ownerProps(),
@@ -1349,21 +1739,11 @@ describe("EditionPermission wiring through the permission entry points", () => {
 });
 
 /*
- * Tighten-only updates: the incident-response moves (disable an identity
- * provider, rotate a leaked SCIM bearer token) need no license. Everything
- * else about enterprise configuration still does.
+ * Tighten-only updates: the incident-response move (rotate a leaked SCIM
+ * bearer token) needs no license. Everything else about enterprise
+ * configuration still does. Single sign-on configuration has no tighten-only
+ * rules because it needs none: every update of it is allowed.
  */
-const IDENTITY_PROVIDER_MODELS: ReadonlyArray<[string, ModelType]> = [
-  ["GlobalSSO", GlobalSSO],
-  ["GlobalOIDC", GlobalOIDC],
-  ["GlobalSSOProject", GlobalSSOProject],
-  ["GlobalOIDCProject", GlobalOIDCProject],
-  ["ProjectSSO", ProjectSSO],
-  ["ProjectOIDC", ProjectOIDC],
-  ["StatusPageSSO", StatusPageSSO],
-  ["StatusPageOIDC", StatusPageOIDC],
-];
-
 const SCIM_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["ProjectSCIM", ProjectSCIM],
   ["StatusPageSCIM", StatusPageSCIM],
@@ -1382,24 +1762,12 @@ const runUpdateCheck: (input: {
   caller: Caller;
   data: unknown;
 }): Outcome => {
-  try {
-    EditionPermissions.checkEditionPermissions(
-      input.modelType,
-      propsFor(input.caller),
-      DatabaseRequestType.Update,
-      input.data,
-    );
-
-    return "allowed";
-  } catch (err) {
-    if (!(err instanceof PaymentRequiredException)) {
-      throw err;
-    }
-
-    return err.message === EnterpriseEdition.COMMUNITY_EDITION_MESSAGE
-      ? "community"
-      : "license";
-  }
+  return runEditionCheck({
+    modelType: input.modelType,
+    operation: DatabaseRequestType.Update,
+    caller: input.caller,
+    data: input.data,
+  });
 };
 
 describe("EditionPermission: tighten-only updates", () => {
@@ -1415,34 +1783,6 @@ describe("EditionPermission: tighten-only updates", () => {
   });
 
   describe("isTightenOnlyUpdate", () => {
-    test.each(IDENTITY_PROVIDER_MODELS)(
-      "%s: only isEnabled=false is tighten-only",
-      (_name: string, modelType: ModelType) => {
-        const tableName: string = new modelType().tableName!;
-
-        expect(
-          EditionPermissions.isTightenOnlyUpdate(tableName, {
-            isEnabled: false,
-          }),
-        ).toBe(true);
-
-        for (const value of [true, "false", 0, null, "", {}]) {
-          expect(
-            EditionPermissions.isTightenOnlyUpdate(tableName, {
-              isEnabled: value,
-            }),
-          ).toBe(false);
-        }
-
-        // Another model's tighten-only column is not this model's.
-        expect(
-          EditionPermissions.isTightenOnlyUpdate(tableName, {
-            bearerToken: newBearerToken(),
-          }),
-        ).toBe(false);
-      },
-    );
-
     test.each(SCIM_MODELS)(
       "%s: only a new, long bearerToken is tighten-only",
       (_name: string, modelType: ModelType) => {
@@ -1482,32 +1822,43 @@ describe("EditionPermission: tighten-only updates", () => {
       },
     );
 
+    test.each(SSO_MODELS)(
+      "%s: has no tighten-only rules (single sign-on is not enterprise configuration)",
+      (_name: string, modelType: ModelType) => {
+        const tableName: string = new modelType().tableName!;
+
+        for (const data of [
+          { isEnabled: false },
+          { isEnabled: true },
+          { bearerToken: newBearerToken() },
+        ]) {
+          expect(EditionPermissions.isTightenOnlyUpdate(tableName, data)).toBe(
+            false,
+          );
+        }
+      },
+    );
+
     test("one more column makes it an ordinary update", () => {
-      expect(
-        EditionPermissions.isTightenOnlyUpdate("ProjectSSO", {
-          isEnabled: false,
-          name: "Okta",
-        }),
-      ).toBe(false);
-      expect(
-        EditionPermissions.isTightenOnlyUpdate("ProjectOIDC", {
-          isEnabled: false,
-          clientSecret: "new-secret",
-        }),
-      ).toBe(false);
       expect(
         EditionPermissions.isTightenOnlyUpdate("ProjectSCIM", {
           bearerToken: newBearerToken(),
           enablePushGroups: true,
         }),
       ).toBe(false);
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("StatusPageSCIM", {
+          bearerToken: newBearerToken(),
+          autoDeprovisionUsers: false,
+        }),
+      ).toBe(false);
     });
 
     test("columns set to undefined are not written, so they do not count", () => {
       expect(
-        EditionPermissions.isTightenOnlyUpdate("ProjectSSO", {
-          isEnabled: false,
-          name: undefined,
+        EditionPermissions.isTightenOnlyUpdate("ProjectSCIM", {
+          bearerToken: newBearerToken(),
+          enablePushGroups: undefined,
         }),
       ).toBe(true);
     });
@@ -1517,15 +1868,15 @@ describe("EditionPermission: tighten-only updates", () => {
         undefined,
         null,
         {},
-        { name: undefined },
+        { bearerToken: undefined },
         [],
-        [{ isEnabled: false }],
-        "isEnabled=false",
+        [{ bearerToken: newBearerToken() }],
+        `bearerToken=${newBearerToken()}`,
         false,
       ]) {
-        expect(EditionPermissions.isTightenOnlyUpdate("ProjectSSO", data)).toBe(
-          false,
-        );
+        expect(
+          EditionPermissions.isTightenOnlyUpdate("ProjectSCIM", data),
+        ).toBe(false);
       }
     });
 
@@ -1541,12 +1892,12 @@ describe("EditionPermission: tighten-only updates", () => {
         "__proto__",
       ]) {
         const data: Record<string, unknown> = JSON.parse(
-          `{"isEnabled": false, "${column}": false}`,
+          `{"bearerToken": "${newBearerToken()}", "${column}": false}`,
         );
 
-        expect(EditionPermissions.isTightenOnlyUpdate("ProjectSSO", data)).toBe(
-          false,
-        );
+        expect(
+          EditionPermissions.isTightenOnlyUpdate("ProjectSCIM", data),
+        ).toBe(false);
       }
     });
 
@@ -1567,7 +1918,7 @@ describe("EditionPermission: tighten-only updates", () => {
       for (const tableName of ["Monitor", "Project", "", null, undefined]) {
         expect(
           EditionPermissions.isTightenOnlyUpdate(tableName, {
-            isEnabled: false,
+            bearerToken: newBearerToken(),
           }),
         ).toBe(false);
       }
@@ -1575,16 +1926,29 @@ describe("EditionPermission: tighten-only updates", () => {
   });
 
   describe("the list itself", () => {
-    test("covers exactly the identity provider and SCIM models", () => {
-      expect(
-        Array.from(EditionPermissions.getTightenOnlyColumns().keys()).sort(),
-      ).toEqual(
-        [...IDENTITY_PROVIDER_MODELS, ...SCIM_MODELS]
-          .map(([name]: [string, ModelType]): string => {
-            return name;
-          })
-          .sort(),
+    test("covers exactly the SCIM models, and only their bearer token", () => {
+      const columns: ReadonlyMap<
+        string,
+        ReadonlyArray<string>
+      > = EditionPermissions.getTightenOnlyColumns();
+
+      expect(Array.from(columns.keys()).sort()).toEqual(
+        ["ProjectSCIM", "StatusPageSCIM"].sort(),
       );
+
+      for (const [, tableColumns] of columns) {
+        expect([...tableColumns]).toEqual(["bearerToken"]);
+      }
+    });
+
+    test("no single sign-on table is listed", () => {
+      const tables: Array<string> = Array.from(
+        EditionPermissions.getTightenOnlyColumns().keys(),
+      );
+
+      for (const [name] of SSO_MODELS) {
+        expect(tables).not.toContain(name);
+      }
     });
 
     test("every listed table is an enterprise model, and every listed column is a real column of it", () => {
@@ -1646,7 +2010,7 @@ describe("EditionPermission: tighten-only updates", () => {
         },
       ],
       [
-        "a license without SSO, SCIM or team compliance",
+        "a license without SCIM or team compliance",
         (): void => {
           installFakeEnterpriseModule({
             snapshot: createLicenseSnapshot({
@@ -1658,11 +2022,11 @@ describe("EditionPermission: tighten-only updates", () => {
     ];
 
     test.each(UNAVAILABLE_STATES)(
-      "with %s, switching any identity provider off is allowed, for users and master admins",
+      "with %s, rotating a SCIM bearer token is allowed, for users and master admins",
       (_state: string, install: () => void) => {
         install();
 
-        for (const [, modelType] of IDENTITY_PROVIDER_MODELS) {
+        for (const [, modelType] of SCIM_MODELS) {
           for (const caller of [
             "regular user",
             "master admin",
@@ -1671,7 +2035,7 @@ describe("EditionPermission: tighten-only updates", () => {
               runUpdateCheck({
                 modelType,
                 caller,
-                data: { isEnabled: false },
+                data: { bearerToken: newBearerToken() },
               }),
             ).toBe("allowed");
           }
@@ -1680,18 +2044,23 @@ describe("EditionPermission: tighten-only updates", () => {
     );
 
     test.each(UNAVAILABLE_STATES)(
-      "with %s, rotating a SCIM bearer token is allowed",
+      "with %s, every update of single sign-on configuration is allowed",
       (_state: string, install: () => void) => {
         install();
 
-        for (const [, modelType] of SCIM_MODELS) {
-          expect(
-            runUpdateCheck({
-              modelType,
-              caller: "regular user",
-              data: { bearerToken: newBearerToken() },
-            }),
-          ).toBe("allowed");
+        for (const [, modelType] of SSO_MODELS) {
+          for (const data of [
+            { isEnabled: true },
+            { isEnabled: false },
+            { isEnabled: false, name: "Okta" },
+            { name: "Okta" },
+            {},
+            undefined,
+          ]) {
+            expect(
+              runUpdateCheck({ modelType, caller: "master admin", data }),
+            ).toBe("allowed");
+          }
         }
       },
     );
@@ -1705,25 +2074,13 @@ describe("EditionPermission: tighten-only updates", () => {
           ? "license"
           : "community";
 
-        for (const [, modelType] of IDENTITY_PROVIDER_MODELS) {
-          for (const data of [
-            { isEnabled: true },
-            { isEnabled: false, name: "Okta" },
-            { name: "Okta" },
-            {},
-            undefined,
-          ]) {
-            expect(
-              runUpdateCheck({ modelType, caller: "regular user", data }),
-            ).toBe(expected);
-          }
-        }
-
         for (const [, modelType] of SCIM_MODELS) {
           for (const data of [
             { bearerToken: "short" },
             { bearerToken: newBearerToken(), autoDeprovisionUsers: false },
             { autoProvisionUsers: false },
+            {},
+            undefined,
           ]) {
             expect(
               runUpdateCheck({ modelType, caller: "master admin", data }),
@@ -1749,10 +2106,10 @@ describe("EditionPermission: tighten-only updates", () => {
 
       expect(() => {
         EditionPermissions.checkEditionPermissions(
-          ProjectSSO,
+          ProjectSCIM,
           propsFor("regular user"),
           DatabaseRequestType.Create,
-          { isEnabled: false },
+          { bearerToken: newBearerToken() },
         );
       }).toThrow(
         new PaymentRequiredException(
@@ -1768,7 +2125,7 @@ describe("EditionPermission: tighten-only updates", () => {
 
       expect(
         runUpdateCheck({
-          modelType: ProjectSSO,
+          modelType: ProjectSCIM,
           caller: "regular user",
           data: undefined,
         }),
@@ -1780,9 +2137,9 @@ describe("EditionPermission: tighten-only updates", () => {
 
       expect(
         runUpdateCheck({
-          modelType: ProjectSSO,
+          modelType: ProjectSCIM,
           caller: "regular user",
-          data: { isEnabled: true, name: "Okta" },
+          data: { autoProvisionUsers: true, enablePushGroups: true },
         }),
       ).toBe("allowed");
 
@@ -1791,9 +2148,9 @@ describe("EditionPermission: tighten-only updates", () => {
 
       expect(
         runUpdateCheck({
-          modelType: ProjectSSO,
+          modelType: ProjectSCIM,
           caller: "regular user",
-          data: { isEnabled: true },
+          data: { autoProvisionUsers: true },
         }),
       ).toBe("allowed");
 
@@ -1801,9 +2158,9 @@ describe("EditionPermission: tighten-only updates", () => {
 
       expect(
         runUpdateCheck({
-          modelType: ProjectSSO,
+          modelType: ProjectSCIM,
           caller: "root",
-          data: { isEnabled: true },
+          data: { autoProvisionUsers: true },
         }),
       ).toBe("allowed");
     });

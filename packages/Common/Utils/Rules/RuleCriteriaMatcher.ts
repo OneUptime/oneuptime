@@ -8,6 +8,8 @@ import RuleCriteria, {
   RuleCriteriaValue,
 } from "../../Types/Rules/RuleCriteria";
 import RulePatternMatchUtil from "./RulePatternMatchUtil";
+import escapeRegExp from "../RegExpEscape";
+import { getStoppedPatternQuestions } from "../LinearRegExp/PatternWork";
 
 export const RULE_CRITERIA_MAX_FILTERS: number = 50;
 export const RULE_CRITERIA_MAX_STRING_LENGTH: number = 500;
@@ -216,6 +218,15 @@ export function getRuleCriteriaFilterValidationError(
     (typeof value["value"] !== "string" ||
       !RulePatternMatchUtil.isSupportedPattern(value["value"]))
   ) {
+    const cannotRun: string | null =
+      typeof value["value"] === "string"
+        ? RulePatternMatchUtil.getRegexProblem(value["value"])
+        : null;
+
+    if (cannotRun) {
+      return `A pattern rule criteria operator's pattern cannot run: ${cannotRun}`;
+    }
+
     return "A pattern rule criteria operator requires a valid regular expression or wildcard pattern.";
   }
 
@@ -623,9 +634,14 @@ export class RuleCriteriaMatcher {
         ...options,
         value: textValue.pattern,
       });
+      const stoppedBefore: number = getStoppedPatternQuestions();
       const result: boolean = await options.matchesLegacyRule(rule);
 
-      return textValue.negate ? !result : result;
+      return RuleCriteriaMatcher.answerTextFilter({
+        result: result,
+        negate: textValue.negate,
+        unanswered: getStoppedPatternQuestions() > stoppedBefore,
+      });
     } catch {
       return false;
     }
@@ -652,12 +668,36 @@ export class RuleCriteriaMatcher {
         ...options,
         value: textValue.pattern,
       });
+      const stoppedBefore: number = getStoppedPatternQuestions();
       const result: boolean = options.matchesLegacyRule(rule);
 
-      return textValue.negate ? !result : result;
+      return RuleCriteriaMatcher.answerTextFilter({
+        result: result,
+        negate: textValue.negate,
+        unanswered: getStoppedPatternQuestions() > stoppedBefore,
+      });
     } catch {
       return false;
     }
+  }
+
+  /*
+   * A text condition's answer. A pattern question that stopped without an
+   * answer (LinearRegExp/PatternWork.ts) reads as "does not match" - so a
+   * negated condition (does not contain, does not match) would hold on a
+   * text nobody read to the end. Unless some way matched anyway, an
+   * unanswered condition does not hold, negated or not.
+   */
+  private static answerTextFilter(data: {
+    result: boolean;
+    negate: boolean;
+    unanswered: boolean;
+  }): boolean {
+    if (data.unanswered && !data.result) {
+      return false;
+    }
+
+    return data.negate ? !data.result : data.result;
   }
 
   private static async matchesLegacyRelationFilter<
@@ -805,32 +845,32 @@ export class RuleCriteriaMatcher {
     switch (filter.operator) {
       case RuleCriteriaOperator.Equals:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `^${escapeRegExp(value)}$`,
           negate: false,
         };
       case RuleCriteriaOperator.NotEquals:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `^${escapeRegExp(value)}$`,
           negate: true,
         };
       case RuleCriteriaOperator.Contains:
         return {
-          pattern: RuleCriteriaMatcher.escapeRegex(value),
+          pattern: escapeRegExp(value),
           negate: false,
         };
       case RuleCriteriaOperator.DoesNotContain:
         return {
-          pattern: RuleCriteriaMatcher.escapeRegex(value),
+          pattern: escapeRegExp(value),
           negate: true,
         };
       case RuleCriteriaOperator.StartsWith:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}`,
+          pattern: `^${escapeRegExp(value)}`,
           negate: false,
         };
       case RuleCriteriaOperator.EndsWith:
         return {
-          pattern: `${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `${escapeRegExp(value)}$`,
           negate: false,
         };
       case RuleCriteriaOperator.MatchesPattern:
@@ -851,16 +891,12 @@ export class RuleCriteriaMatcher {
     }
   }
 
-  private static escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   private static toLegacyPattern(value: string): string {
     if (RulePatternMatchUtil.isValidRegex(value)) {
       return value;
     }
 
-    if (value.includes("*")) {
+    if (RulePatternMatchUtil.isGlobPattern(value)) {
       return RuleCriteriaMatcher.toSafeLegacyGlobPattern(value);
     }
 
@@ -869,12 +905,13 @@ export class RuleCriteriaMatcher {
 
   /**
    * Converts a wildcard into a regex for legacy engines that compile patterns
-   * directly. Each wildcard-delimited literal is consumed atomically via a
-   * lookahead/backreference pair. This preserves full-string glob semantics
-   * without constructing chains of ambiguous `.*` expressions that can cause
-   * catastrophic regex backtracking. Unbounded runs use `{0,}` instead of `*`
-   * so legacy matchers that add a glob fallback do not reinterpret this safe
-   * generated regex as another wildcard supplied by the user.
+   * directly: the whole value, each wildcard a run of any text. The engines
+   * run patterns with the linear-time matcher (Utils/LinearRegExp), where a
+   * chain of runs costs time in line with the value however many there are -
+   * so a run is plain, and the regex matches exactly the values the wildcard
+   * does. Runs use `{0,}` instead of `*` so legacy matchers that add a glob
+   * fallback do not reinterpret this generated regex as another wildcard
+   * supplied by the user.
    */
   private static toSafeLegacyGlobPattern(value: string): string {
     const hasLeadingWildcard: boolean = value.startsWith("*");
@@ -893,7 +930,7 @@ export class RuleCriteriaMatcher {
     let literalIndex: number = 0;
 
     if (!hasLeadingWildcard) {
-      pattern += RuleCriteriaMatcher.escapeRegex(literals[0] || "");
+      pattern += escapeRegExp(literals[0] || "");
       literalIndex = 1;
     }
 
@@ -902,17 +939,13 @@ export class RuleCriteriaMatcher {
       : literals.length - 1;
 
     for (; literalIndex < suffixIndex; literalIndex++) {
-      const groupName: string = `ruleGlob${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}?${RuleCriteriaMatcher.escapeRegex(
-        literals[literalIndex] || "",
-      )}))\\k<${groupName}>`;
+      pattern += `[\\s\\S]{0,}?${escapeRegExp(literals[literalIndex] || "")}`;
     }
 
     if (!hasTrailingWildcard) {
-      const groupName: string = `ruleGlobSuffix${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}${RuleCriteriaMatcher.escapeRegex(
+      pattern += `[\\s\\S]{0,}${escapeRegExp(
         literals[literals.length - 1] || "",
-      )}$))\\k<${groupName}>`;
+      )}$`;
     } else {
       pattern += "[\\s\\S]{0,}$";
     }

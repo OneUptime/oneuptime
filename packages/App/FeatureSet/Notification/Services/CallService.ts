@@ -10,6 +10,7 @@ import CallRequest, {
 } from "Common/Types/Call/CallRequest";
 import CallStatus from "Common/Types/Call/CallStatus";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -22,12 +23,63 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
+import SafeHtml from "Common/Types/SafeHtml";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import {
+  getNoTwilioAccountMessage,
+  TwilioMessageKind,
+} from "Common/Utils/Project/TwilioAccount";
+import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import {
+  fitTextsToBudget,
+  MAX_CALL_TWIML_LENGTH,
+  TRUNCATED_TEXT_NOTE_PLAIN,
+} from "Common/Utils/MessageFit";
+
+/*
+ * How long a text is once Twilio's TwiML builder has escaped it: "&", "<"
+ * and ">" as references, quotes as they are.
+ */
+const getTwimlTextLength: (text: string) => number = (text: string): number => {
+  if (typeof text !== "string") {
+    return 0;
+  }
+
+  let length: number = text.length;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === 0x26) {
+      length += 4; // &amp;
+    } else if (code === 0x3c || code === 0x3e) {
+      length += 3; // &lt; &gt;
+    }
+  }
+
+  return length;
+};
+
+// generateTwimlForCall cuts a call's texts shorter at most this many times.
+const MAX_TWIML_FIT_ATTEMPTS: number = 4;
 
 /**
  * Extracts the main sayMessage values from a CallRequest's data array for call summary.
@@ -82,13 +134,33 @@ export default class CallService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Throw when the call is deliberately not placed - the project was
+       * not found, has call notifications turned off, or has too little
+       * balance - instead of returning as if it was, as SmsService does for
+       * an SMS. The call log and the owners' email are written either way.
+       * Send Test Call passes it, so a test that was not placed says why;
+       * everyone else keeps the quiet return.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
     const startNs: bigint = process.hrtime.bigint();
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.makeCallInternal(callRequest, options);
+      const notPlacedReason: string | null = await this.makeCallInternal(
+        // The installation's own name in what the call says, when it goes by one.
+        ProductBrandingText.brandCallRequest(callRequest),
+        options,
+      );
+
+      if (notPlacedReason !== null && options.failIfNotSent) {
+        // The tenant's settings or balance, not a defect: a user error.
+        throw new BadDataException(
+          `Call not placed: ${notPlacedReason}`,
+        ).asUserError();
+      }
     } catch (err) {
       outcome = "failure";
       throw err;
@@ -125,28 +197,34 @@ export default class CallService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      failIfNotSent?: boolean | undefined;
     },
-  ): Promise<void> {
+  ): Promise<string | null> {
+    /*
+     * Returns why the call was deliberately not placed (the project was not
+     * found, has calls turned off, or has too little balance), after logging
+     * it; null when it was handed to Twilio. A failure to place it throws.
+     */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
 
     try {
       logger.debug("Call Request received.");
 
-      let callCost: number = 0;
-
       // is no custom twilio config is provided, use default twilio config and charge for call.
       const shouldChargeForCall: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
-      if (shouldChargeForCall) {
-        callCost = CallDefaultCostInCentsPerMinute / 100;
-        if (isHighRiskPhoneNumber(callRequest.to)) {
-          callCost = CallHighRiskCostInCentsPerMinute / 100;
-        }
-      }
+      // What a minute costs, in whole cents.
+      const callCostInUSDCents: number = shouldChargeForCall
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: isHighRiskPhoneNumber(callRequest.to)
+              ? CallHighRiskCostInCentsPerMinute
+              : CallDefaultCostInCentsPerMinute,
+          })
+        : 0;
 
-      logger.debug("Call Cost: " + callCost);
+      logger.debug("Call Cost (cents): " + callCostInUSDCents);
 
       const twilioConfig: TwilioConfig | null =
         options.customTwilioConfig || (await getTwilioConfig());
@@ -155,9 +233,13 @@ export default class CallService {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty). Failing to place
-         * the call is the correct behaviour, not a defect.
+         * the call is the correct behaviour, not a defect. The log, and anyone
+         * waiting on this call, are told what is missing and who can add it
+         * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
          */
-        throw new BadDataException("Twilio Config not found").asUserError();
+        throw new BadDataException(
+          getNoTwilioAccountMessage(TwilioMessageKind.Call),
+        ).asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -167,11 +249,11 @@ export default class CallService {
 
       callLog.toNumber = callRequest.to;
 
-      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+      // One of the numbers the config makes calls from, never an SMS one.
+      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
+        config: twilioConfig,
+        kind: TwilioMessageKind.Call,
         to: callRequest.to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        secondaryPhoneNumbersToPickFrom:
-          twilioConfig.secondaryPhoneNumbers || [],
       });
       callLog.fromNumber = fromNumber;
       callLog.callData =
@@ -263,12 +345,18 @@ export default class CallService {
               isRoot: true,
             },
           });
-          return;
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: callLog.statusMessage!,
+          });
+          return callLog.statusMessage!;
         }
 
         if (!project.enableCallNotifications) {
           callLog.status = CallStatus.Error;
-          callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
+          callLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.Call,
+          );
           // The project turned calls off. Refusing to dial is the setting working.
           logger.error(callLog.statusMessage, EXTERNAL_FAULT);
           await CallLogService.create({
@@ -291,10 +379,19 @@ export default class CallService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "Call notifications not enabled for " + (project.name || ""),
-              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in Project Settings.`,
+              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.Call,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
-          return;
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: callLog.statusMessage!,
+          });
+          return callLog.statusMessage!;
         }
 
         if (shouldChargeForCall) {
@@ -311,9 +408,30 @@ export default class CallService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+          /*
+           * Nothing left, or less than this call costs. The log (which the
+           * project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          if (!balanceInUSDCents || balanceInUSDCents < callCostInUSDCents) {
+            const shortfall: {
+              channel: ProjectNotificationChannel;
+              balanceInUSDCents: number;
+              costInUSDCents: number;
+            } = {
+              channel: ProjectNotificationChannel.Call,
+              balanceInUSDCents: balanceInUSDCents,
+              costInUSDCents: callCostInUSDCents,
+            };
+
             callLog.status = CallStatus.LowBalance;
-            callLog.statusMessage = `Project ${options.projectId.toString()} does not have enough Call balance.`;
+            callLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             // Tenant billing state, not a defect — the owners get emailed below.
             logger.error(callLog.statusMessage, EXTERNAL_FAULT);
             await CallLogService.create({
@@ -323,59 +441,30 @@ export default class CallService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance to send this SMS should is ${callCost} USD. Please enable auto recharge or recharge manually.`,
+                `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
-            return;
-          }
-
-          if (project.smsOrCallCurrentBalanceInUSDCents < callCost * 100) {
-            callLog.status = CallStatus.LowBalance;
-            callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
-              project.smsOrCallCurrentBalanceInUSDCents / 100
-            } USD. Required balance is ${callCost} USD to make this call.`;
-            // Tenant billing state, not a defect — the owners get emailed below.
-            logger.error(callLog.statusMessage, EXTERNAL_FAULT);
-            await CallLogService.create({
-              data: callLog,
-              props: {
-                isRoot: true,
-              },
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: callLog.statusMessage!,
             });
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
-              await ProjectService.sendEmailToProjectOwners(
-                project.id!,
-                "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
-                  project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${callCost} USD to make this call. Please enable auto recharge or recharge manually.`,
-              );
-            }
-            return;
+            return callLog.statusMessage!;
           }
         }
       }
@@ -399,36 +488,26 @@ export default class CallService {
       if (shouldChargeForCall && project) {
         logger.debug("Updating Project Balance.");
 
-        callLog.callCostInUSDCents = callCost * 100;
+        callLog.callCostInUSDCents = callCostInUSDCents;
 
         if (twillioCall && parseInt(twillioCall.duration) > 60) {
           callLog.callCostInUSDCents = Math.ceil(
-            Math.ceil(parseInt(twillioCall.duration) / 60) * (callCost * 100),
+            Math.ceil(parseInt(twillioCall.duration) / 60) * callCostInUSDCents,
           );
         }
 
         logger.debug("Call Cost: " + callLog.callCostInUSDCents);
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
-          project.smsOrCallCurrentBalanceInUSDCents! - callCost * 100,
-        );
-
-        await ProjectService.updateOneById({
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
-        });
+        // Paid in one statement, from whatever the balance is now.
+        const balanceInUSDCents: number | null =
+          await MessagingBalance.payForSentMessage({
+            projectId: project.id!,
+            channel: ProjectNotificationChannel.Call,
+            costInUSDCents: callLog.callCostInUSDCents,
+          });
 
         logger.debug("Project's current balance updated.");
-        logger.debug(
-          "Current Balance: " + project.smsOrCallCurrentBalanceInUSDCents,
-        );
+        logger.debug("Current Balance: " + balanceInUSDCents);
       }
     } catch (e: any) {
       callLog.callCostInUSDCents = 0;
@@ -438,7 +517,9 @@ export default class CallService {
 
       logger.error("Call Request failed.");
       logger.error(callLog.statusMessage);
-      callError = e;
+
+      // Twilio's refusal keeps its words on the way out (TwilioSendError).
+      callError = TwilioSendError.toSendError(e, TwilioSendKind.Call) as Error;
     }
 
     logger.debug("Saving Call Log if project id is provided.");
@@ -475,19 +556,89 @@ export default class CallService {
     if (callError) {
       throw callError;
     }
+
+    return null;
   }
 
+  /*
+   * The TwiML a call is made with. Twilio refuses TwiML of more than
+   * MAX_CALL_TWIML_LENGTH characters, and the call is not made: a call whose
+   * spoken texts make it longer - a template that placed a description -
+   * has them cut, the longest first and all to about the same length, each
+   * ending with a note that the rest is in OneUptime (fitTextsToBudget). The
+   * TwiML is built again and measured, and the texts cut shorter while it is
+   * still over. A call that fits is made as it always was.
+   */
   public static generateTwimlForCall(callRequest: CallRequest): string {
+    const spoken: Array<string> = [];
+
+    const twiml: string = this.buildTwimlForCall(
+      callRequest,
+      (text: string): string => {
+        spoken.push(text);
+        return text;
+      },
+    );
+
+    if (twiml.length <= MAX_CALL_TWIML_LENGTH) {
+      return twiml;
+    }
+
+    // What the TwiML takes besides its texts: each text one character.
+    const overhead: number =
+      this.buildTwimlForCall(callRequest, (): string => {
+        return "x";
+      }).length - spoken.length;
+
+    let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
+    let fittedTwiml: string = twiml;
+
+    for (
+      let attempt: number = 0;
+      attempt < MAX_TWIML_FIT_ATTEMPTS && budget > 0;
+      attempt++
+    ) {
+      const fitted: Array<string> = fitTextsToBudget(spoken, budget, {
+        measure: getTwimlTextLength,
+        getNote: (): string => {
+          return TRUNCATED_TEXT_NOTE_PLAIN;
+        },
+      });
+
+      let next: number = 0;
+
+      fittedTwiml = this.buildTwimlForCall(callRequest, (): string => {
+        return fitted[next++] ?? "";
+      });
+
+      if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
+        return fittedTwiml;
+      }
+
+      budget -= fittedTwiml.length - MAX_CALL_TWIML_LENGTH;
+    }
+
+    return fittedTwiml;
+  }
+
+  /*
+   * The TwiML for a call, each text it speaks as `say` has it: in the order
+   * the call speaks them.
+   */
+  private static buildTwimlForCall(
+    callRequest: CallRequest,
+    say: (text: string) => string,
+  ): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
 
     for (const item of callRequest.data) {
       if ((item as Say).sayMessage) {
-        response.say((item as Say).sayMessage);
+        response.say(say((item as Say).sayMessage));
       }
 
       if ((item as GatherInput) && (item as GatherInput).numDigits > 0) {
-        response.say((item as GatherInput).introMessage);
+        response.say(say((item as GatherInput).introMessage));
 
         response.gather({
           numDigits: (item as GatherInput).numDigits,
@@ -506,7 +657,7 @@ export default class CallService {
           method: "POST",
         });
 
-        response.say((item as GatherInput).noInputMessage);
+        response.say(say((item as GatherInput).noInputMessage));
       }
     }
 

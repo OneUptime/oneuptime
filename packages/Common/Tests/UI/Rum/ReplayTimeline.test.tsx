@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it, jest } from "@jest/globals";
 import ReplayTimeline, {
+  REPLAY_TRACK_BAND_PAINT,
   ReplayTimelineProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimeline";
 import * as ReplayTimelineMath from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
@@ -14,6 +15,10 @@ import {
   offsetToPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
 import { ReplaySignal } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../Helpers/NestedControls";
 
 /*
  * The track and its lanes, rendered. The Dashboard resolves its own copy
@@ -408,17 +413,83 @@ describe("ReplayTimeline markers", () => {
     expect(notice.getAttribute("title")).toContain("Snapshot too large");
 
     /*
-     * The real browser sequence: pointerdown and pointerup bubble up to
-     * the slider track that contains the button, then click fires on the
-     * button. The track must not treat that as its own click-to-seek, or
-     * one press seeks twice (to the cursor, then to the marker).
+     * The real browser sequence: pointerdown, pointerup, then click on the
+     * button. The track must not treat the press as its own click-to-seek,
+     * or one press seeks twice (to the cursor, then to the marker). The
+     * marker lies over the track rather than inside it, so the press never
+     * reaches the track at all.
      */
-    getTrack();
+    const track: HTMLElement = getTrack();
     firePointer(notice, "pointerdown", 150);
     firePointer(notice, "pointerup", 150);
     fireEvent.click(notice);
 
     expect(seeks).toEqual([89000]);
+    expect(track.contains(notice)).toBe(false);
+  });
+
+  /*
+   * The track is one control - a slider - and a screen reader offers nothing
+   * drawn inside one: a marker inside the track was a button nobody could
+   * reach that way. The markers lie on a layer over the track that lets every
+   * other press through to it.
+   */
+  it("draws notice markers beside the slider, never inside it", () => {
+    const seeks: Array<number> = [];
+
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          markers: [
+            {
+              id: "notice:snapshot-too-large",
+              lane: "track",
+              offsetMs: 90000,
+              kind: "notice",
+              severity: "warn",
+              title: "1:30 Snapshot too large - a stretch may be unplayable",
+              tone: "gray",
+              fidelity: "exact",
+              isHollow: false,
+            },
+          ],
+          onSeek: (offsetMs: number): void => {
+            seeks.push(offsetMs);
+          },
+        })}
+      />,
+    );
+
+    const track: HTMLElement = getTrack();
+    const notice: HTMLElement = screen.getByRole("button", {
+      name: "1:30 Snapshot too large - a stretch may be unplayable",
+    });
+    const layer: HTMLElement = screen.getByTestId("timeline-notice-markers");
+
+    expect(track).toHaveAttribute("role", "slider");
+    expect(track.contains(notice)).toBe(false);
+    expect(layer.contains(notice)).toBe(true);
+    expect(layer.parentElement).toBe(track.parentElement);
+    // Presses anywhere else on the layer reach the track underneath.
+    expect(layer.className).toContain("pointer-events-none");
+    expect(notice.className).toContain("pointer-events-auto");
+    expect(
+      describeNestedControls(
+        findNestedControls(screen.getByTestId("replay-timeline")),
+      ),
+    ).toEqual([]);
+
+    // The track still seeks from a press of its own.
+    firePointer(track, "pointerdown", 500);
+    firePointer(track, "pointerup", 500);
+    expect(seeks.length).toBe(1);
+  });
+
+  it("draws no marker layer when there are no notices", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    expect(screen.queryByTestId("timeline-notice-markers")).toBeNull();
+    expect(screen.queryByTestId("timeline-notice-marker")).toBeNull();
   });
 });
 
@@ -472,6 +543,134 @@ describe("ReplayTimeline bands", () => {
 
     expect(screen.getByTestId("timeline-loaded-band")).toBeInTheDocument();
     expect(screen.getByTestId("timeline-available-band")).toBeInTheDocument();
+  });
+
+  /*
+   * A stretch the recorder paused through (issue #4208) is neither lost
+   * footage nor footage of a page nobody touched, and the player skips it
+   * on its own - so it is drawn in a pattern of its own, named for what it
+   * is, and kept apart from the idle bands a test or a viewer counts.
+   */
+  it("draws a paused band in its own pattern, named and focusable, apart from the idle bands", () => {
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          bands: [
+            ...bands,
+            {
+              kind: "paused",
+              startMs: 440000,
+              endMs: 560000,
+              label: "2m paused",
+              fidelity: "exact",
+            },
+          ],
+        })}
+      />,
+    );
+
+    const paused: HTMLElement = screen.getByTestId("timeline-paused-band");
+
+    expect(paused).toHaveTextContent("2m paused");
+    expect(paused.getAttribute("data-kind")).toBe("paused");
+    expect(paused.getAttribute("data-fidelity")).toBe("exact");
+    expect(paused.getAttribute("role")).toBe("note");
+    expect(paused.getAttribute("tabindex")).toBe("0");
+    expect(paused.getAttribute("aria-label")).toBe(
+      "Recording paused while the page was idle: 2m paused",
+    );
+    expect(paused.getAttribute("title")).toBe(
+      paused.getAttribute("aria-label"),
+    );
+
+    /* Still exactly the idle and background bands under the idle test id. */
+    expect(screen.getAllByTestId("timeline-idle-band")).toHaveLength(2);
+
+    /* Painted from its own row of the table, not the idle one. */
+    expect(paused.className).toContain(
+      REPLAY_TRACK_BAND_PAINT.paused.className,
+    );
+    expect(paused.className).toContain("border-dashed");
+    expect(paused.className).toContain("border-slate-400");
+    expect(paused.className).toContain("bg-white");
+    expect(paused.className).not.toContain("border-dotted");
+    expect(paused.className).not.toContain("bg-gray-200");
+  });
+
+  it("paints every full-height kind differently, the pause in upright bars", () => {
+    /*
+     * The patterns are pinned on the table rather than on the rendered
+     * band: jsdom's CSS parser drops every repeating-linear-gradient, so
+     * a rendered band reports no backgroundImage at all.
+     */
+    const paused: string | undefined =
+      REPLAY_TRACK_BAND_PAINT.paused.backgroundImage;
+
+    expect(paused).toContain("90deg");
+    expect(REPLAY_TRACK_BAND_PAINT.idle.backgroundImage).toContain("135deg");
+    expect(REPLAY_TRACK_BAND_PAINT.gap.backgroundImage).toContain("135deg");
+    expect(REPLAY_TRACK_BAND_PAINT["background-tab"].backgroundImage).toBe(
+      undefined,
+    );
+    expect(paused).not.toBe(REPLAY_TRACK_BAND_PAINT.idle.backgroundImage);
+    expect(paused).not.toBe(REPLAY_TRACK_BAND_PAINT.gap.backgroundImage);
+
+    const classNames: Array<string> = Object.values(
+      REPLAY_TRACK_BAND_PAINT,
+    ).map((paint: { className: string }): string => {
+      return paint.className;
+    });
+
+    expect(new Set<string>(classNames).size).toBe(classNames.length);
+
+    /* The other kinds are painted exactly as they were before pauses. */
+    render(<ReplayTimeline {...makeProps({ bands: bands })} />);
+
+    const [idle, background] = screen.getAllByTestId("timeline-idle-band");
+
+    expect(idle!.className).toContain("bg-gray-200");
+    expect(background!.className).toContain(
+      "border border-dotted border-gray-400 bg-gray-100",
+    );
+    expect(screen.getByTestId("timeline-gap-band").className).toContain(
+      "border border-dashed border-amber-400 bg-amber-50",
+    );
+  });
+
+  it("lists the paused band in the legend with the fill the band paints", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    const legend: HTMLElement = screen.getByTestId("timeline-legend");
+
+    expect(legend).toHaveTextContent("Recording paused");
+
+    const item: HTMLElement | undefined = Array.from(legend.children).find(
+      (child: Element): boolean => {
+        return child.textContent === "Recording paused";
+      },
+    ) as HTMLElement | undefined;
+    const swatch: HTMLElement | null =
+      item?.querySelector("span[aria-hidden='true']") ?? null;
+
+    expect(swatch).not.toBeNull();
+    expect(swatch!.className).toContain(
+      REPLAY_TRACK_BAND_PAINT.paused.className,
+    );
+
+    /* The existing entries are still there, in their order. */
+    expect(
+      Array.from(legend.children).map((child: Element): string => {
+        return child.textContent || "";
+      }),
+    ).toEqual([
+      "Loaded",
+      "Not yet loaded",
+      "Gap",
+      "Idle",
+      "Tab in background",
+      "Recording paused",
+      "Approximate",
+    ]);
   });
 
   it("drops the inline label on a band too narrow to hold it but keeps the name", () => {

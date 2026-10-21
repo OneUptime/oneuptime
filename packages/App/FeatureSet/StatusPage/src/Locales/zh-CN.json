@@ -22,6 +22,10 @@
     "label": "语言",
     "switchLanguage": "切换语言"
   },
+  "theme": {
+    "switchToDark": "切换到深色主题",
+    "switchToLight": "切换到浅色主题"
+  },
   "nav": {
     "overview": "概览",
     "incidents": "事件",
@@ -125,7 +129,27 @@
     "noneDescription": "此状态页未发布任何计划事件。",
     "scheduledAt": "计划于 ",
     "report": "计划事件报告",
-    "notFound": "在此状态页上未找到计划事件。"
+    "notFound": "在此状态页上未找到计划事件。",
+    "calendar": {
+      "subscribe": "订阅日历",
+      "subscribeTitle": "订阅计划维护",
+      "subscribeDescription": "在您的日历应用中获取此页面的计划维护。它会自动保持最新。",
+      "eventTitle": "添加到日历",
+      "eventDescription": "将此维护添加到您的日历应用。",
+      "addToCalendar": "添加到日历",
+      "addHeading": "添加到您的日历",
+      "google": "Google 日历",
+      "googleHint": "在新标签页中打开 Google 日历",
+      "device": "Apple 日历 / Outlook",
+      "deviceHint": "打开此设备上的日历应用",
+      "deviceFileHint": "为此设备上的日历应用下载该事件",
+      "copyHeading": "或复制链接",
+      "copyHint": "将它粘贴到任何可以通过 URL 订阅日历的日历应用中。",
+      "copy": "复制链接",
+      "copied": "已复制！",
+      "done": "完成",
+      "refreshNote": "日历应用会按照自己的时间安排检查更改，因此更新可能需要几个小时才会出现。"
+    }
   },
   "subscribe": {
     "title": "订阅",
@@ -151,7 +175,9 @@
       "placeholder": "subscriber@company.cn",
       "managePrompt": "请输入您订阅时使用的电子邮件",
       "manageDescription": "我们将把订阅管理链接发送到此电子邮件。",
-      "managePlaceholder": "email@yourcompany.cn"
+      "managePlaceholder": "email@yourcompany.cn",
+      "signedInEmailDescription": "您将使用登录所用的电子邮件地址订阅。",
+      "signInToSubscribe": "请登录此状态页面以进行订阅。"
     },
     "sms": {
       "title": "通过短信订阅",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "您的电话号码",
       "placeholder": "+8613800138000",
       "managePrompt": "请输入您订阅时使用的电话号码",
-      "manageDescription": "我们将把订阅管理链接发送到此电话号码。"
+      "manageDescription": "我们将把订阅管理链接发送到此电话号码。",
+      "confirmationSent": "我们已向此电话号码发送了一条短信。请打开短信中的链接以确认您的订阅。"
     },
     "slack": {
       "title": "通过 Slack 订阅",
@@ -210,11 +237,48 @@
       "saved": "您的更改已保存。",
       "submit": "更新订阅",
       "unsubscribe": "取消订阅",
-      "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。"
+      "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。",
+      "linkNotValid": "此订阅管理链接已过期或无效。要获取新链接，请使用“订阅”页面上的“管理现有订阅”。",
+      "getNewLink": "获取新链接",
+      "loadFailed": "无法加载此链接，请稍后重试。"
     },
     "confirm": {
       "title": "确认订阅",
-      "success": "订阅确认成功"
+      "success": "订阅确认成功",
+      "linkNotValid": "此订阅确认链接已过期或无效。链接在发送后 24 小时内有效。要获取新链接，请重新订阅。",
+      "subscribeAgain": "重新订阅"
+    },
+    "unsubscribe": {
+      "title": "取消订阅",
+      "titleWithName": "取消订阅 {{statusPageName}}",
+      "confirmPrompt": "您要停止接收此状态页的通知吗？",
+      "channelEmail": "电子邮件地址",
+      "channelSms": "电话号码",
+      "channelSlack": "Slack 工作区",
+      "channelMicrosoftTeams": "Microsoft Teams 工作区",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "此订阅由运营此状态页的团队添加。如果这是一个共享地址（例如邮件列表），取消订阅后，所有接收者都将不再收到这些通知，团队也会收到通知。",
+      "confirmButton": "取消订阅",
+      "manageInstead": "改为选择您要接收的通知",
+      "manageSubscription": "管理您的订阅",
+      "success": "您已取消订阅，将不再收到此状态页的通知。",
+      "alreadyUnsubscribed": "此订阅已被取消。您不会收到此状态页的通知。",
+      "outOfDateLink": "此取消订阅链接已过期。要取消订阅，请使用此状态页最近发送的消息中的取消订阅链接。",
+      "invalidLink": "此取消订阅链接无效。链接可能不完整，或者订阅可能已被删除。要取消订阅，请使用此状态页最近发送的消息中的取消订阅链接。",
+      "failed": "无法取消订阅，请重试。",
+      "loadFailed": "无法加载此取消订阅链接，请稍后重试。"
+    },
+    "preferences": {
+      "title": "偏好设置",
+      "description": "选择您要接收的更新内容。",
+      "summary": {
+        "everything": "您将收到此状态页的所有更新。",
+        "pickedResources": "您将仅收到所选资源的更新。",
+        "pickedEventTypes": "您将仅收到所选事件类型的更新。",
+        "pickedResourcesAndEventTypes": "您将仅收到所选资源和事件类型的更新。",
+        "noResources": "您尚未选择任何资源。",
+        "noEventTypes": "您尚未选择任何事件类型。"
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "请登录以查看 {{statusPageName}}",
       "forgotPassword": "忘记密码？",
       "submit": "登录",
-      "useSSO": "改用单点登录（SSO）"
+      "or": "或",
+      "logInWithSso": "通过 SSO 登录"
     },
     "sso": {
       "title": "通过 SSO 登录",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}}不能小于 {{minValue}}。",
   "{{field}} is required.": "{{field}}为必填项。",
   "{{field}} should match {{matchField}}": "{{field}}必须与 {{matchField}} 匹配",
-  "Email is not valid.": "电子邮件无效。"
+  "Email is not valid.": "电子邮件无效。",
+  "Next": "下一步",
+  "Opens in a new tab": "在新标签页中打开",
+  "Note": "注意",
+  "Tip": "提示",
+  "Info": "信息",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "小心",
+  "Danger": "危险"
 }

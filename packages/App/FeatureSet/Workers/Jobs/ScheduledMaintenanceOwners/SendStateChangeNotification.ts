@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -16,6 +17,7 @@ import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMa
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -23,12 +25,12 @@ import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
-import ObjectID from "Common/Types/ObjectID";
 import UserService from "Common/Server/Services/UserService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -193,10 +195,15 @@ RunCron(
           scheduledMaintenanceNumber: scheduledMaintenanceNumberStr,
           projectName: scheduledMaintenanceStateTimeline.project!.name!,
           currentState: scheduledMaintenanceState!.name!,
-          currentStateColor:
-            scheduledMaintenanceState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            scheduledMaintenanceState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           scheduledMaintenanceDescription: await Markdown.convertToHTML(
             scheduledMaintenance.description! || "",
@@ -234,8 +241,10 @@ RunCron(
             : scheduledMaintenance.title!;
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
-            .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -290,19 +299,14 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
-          {
-            userId: user.id!,
-            projectId: scheduledMaintenanceStateTimeline.projectId!,
-          },
-        )})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: scheduledMaintenanceStateTimeline.projectId!,
+            }),
+          );
       }
-
-      const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
-        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
-      const projectId: ObjectID = scheduledMaintenance.projectId!;
-      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
@@ -310,11 +314,19 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "scheduled maintenance event",
+          stateName: scheduledMaintenanceState.name,
+        }),
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * state change, which the channel was told of itself: posting it to
+         * Slack and Microsoft Teams said the same change twice.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | CLI - Command Line Interface for Observability</title>
-    <meta name="description"
-        content="OneUptime CLI lets you manage monitors, incidents, status pages, and observability data from your terminal. Deploy, configure, and automate your monitoring infrastructure with simple commands.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -34,7 +34,7 @@
             Observability from your terminal
           </h1>
           <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-            Manage monitors, incidents, status pages, and your entire observability stack from the command line. Automate workflows, integrate with CI/CD, and stay in your terminal.
+            Manage monitors, incidents, alerts, status pages and more from the command line. Script it with JSON output, run it in CI/CD, and stay in your terminal.
           </p>
 
           <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -42,7 +42,7 @@
               class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
               Get started
             </a>
-            <a href="/docs/cli" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+            <a href="/docs/cli/index" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
               Read docs <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
@@ -50,11 +50,11 @@
           <!-- Subtle feature list -->
           <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
             <span>Monitor management</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>Incident response</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>CI/CD integration</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>Scriptable</span>
           </div>
         </div>
@@ -72,43 +72,13 @@
                 </div>
                 <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
               </div>
-              <!-- Terminal content -->
-              <div class="p-6 font-mono text-sm space-y-3">
-                <div>
-                  <span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor list</span>
-                </div>
-                <div class="text-gray-400 pl-2 space-y-1">
-                  <div class="flex items-center gap-3">
-                    <span class="text-emerald-400">&#9679;</span>
-                    <span class="text-gray-300 w-40">API Gateway</span>
-                    <span class="text-emerald-400">Up</span>
-                    <span class="text-gray-500">99.98%</span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span class="text-emerald-400">&#9679;</span>
-                    <span class="text-gray-300 w-40">Web App</span>
-                    <span class="text-emerald-400">Up</span>
-                    <span class="text-gray-500">99.95%</span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span class="text-red-400">&#9679;</span>
-                    <span class="text-gray-300 w-40">Payment Service</span>
-                    <span class="text-red-400">Down</span>
-                    <span class="text-gray-500">98.50%</span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span class="text-emerald-400">&#9679;</span>
-                    <span class="text-gray-300 w-40">Database</span>
-                    <span class="text-emerald-400">Up</span>
-                    <span class="text-gray-500">99.99%</span>
-                  </div>
-                </div>
-                <div class="mt-4">
-                  <span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident create --title "Payment Service Down" --severity critical</span>
-                </div>
-                <div class="text-emerald-400 pl-2">
-                  Incident INC-2847 created successfully. On-call team notified.
-                </div>
+              <!-- Terminal content: the real CLI's (Utils/CliPage.ts) -->
+              <div class="p-6">
+                <%- include('./Partials/cli-transcript', {
+                  steps: cli.terminals.overview,
+                  name: 'overview',
+                  transcriptClass: 'text-xs leading-6 sm:text-sm'
+                }) -%>
               </div>
             </div>
           </div>
@@ -128,13 +98,13 @@
           Up and running in seconds
         </h2>
         <p class="mt-4 text-lg text-gray-600">
-          Install, authenticate, and start managing your infrastructure from the terminal.
+          Install, log in, and start managing your project from the terminal.
         </p>
       </div>
 
       <div class="mx-auto max-w-5xl">
         <!-- Connecting line for desktop -->
-        <div class="hidden lg:block relative">
+        <div class="max-lg:hidden lg:block relative">
           <div class="absolute top-8 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-emerald-200"></div>
         </div>
 
@@ -148,7 +118,8 @@
               <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">1</span>
             </div>
             <h3 class="text-base font-semibold text-gray-900 mb-2">Install</h3>
-            <p class="text-sm text-gray-600 leading-relaxed">Install the CLI via npm, Homebrew, or download the binary directly.</p>
+            <p class="text-sm text-gray-600 leading-relaxed">Install the CLI from npm. It needs Node.js.</p>
+            <code class="mt-4 inline-block max-w-full whitespace-pre-wrap break-words rounded-lg bg-white px-3 py-1.5 font-mono text-xs text-gray-800 ring-1 ring-inset ring-gray-200" data-cli-first-command="install"><%= cli.firstCommands.install %></code>
           </div>
 
           <!-- Step 2 -->
@@ -160,7 +131,8 @@
               <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">2</span>
             </div>
             <h3 class="text-base font-semibold text-gray-900 mb-2">Authenticate</h3>
-            <p class="text-sm text-gray-600 leading-relaxed">Login with your API key or authenticate via the browser.</p>
+            <p class="text-sm text-gray-600 leading-relaxed">Log in with an API key of your project. The CLI saves it for the commands that follow.</p>
+            <code class="mt-4 inline-block max-w-full whitespace-pre-wrap break-words rounded-lg bg-white px-3 py-1.5 font-mono text-xs text-gray-800 ring-1 ring-inset ring-gray-200" data-cli-first-command="login"><%= cli.firstCommands.login %></code>
           </div>
 
           <!-- Step 3 -->
@@ -172,7 +144,8 @@
               <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">3</span>
             </div>
             <h3 class="text-base font-semibold text-gray-900 mb-2">Run</h3>
-            <p class="text-sm text-gray-600 leading-relaxed">Start managing your monitors, incidents, and observability data from the terminal.</p>
+            <p class="text-sm text-gray-600 leading-relaxed">List, create, update and delete monitors, incidents, status pages and more.</p>
+            <code class="mt-4 inline-block max-w-full whitespace-pre-wrap break-words rounded-lg bg-white px-3 py-1.5 font-mono text-xs text-gray-800 ring-1 ring-inset ring-gray-200" data-cli-first-command="run"><%= cli.firstCommands.run %></code>
           </div>
         </div>
       </div>
@@ -195,7 +168,7 @@
           Power users love the terminal
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-600">
-          Everything you can do in the dashboard, now available as commands you can script, pipe, and automate.
+          Monitors, incidents, alerts, status pages and the rest of your project's records, as commands you can script, pipe and automate.
         </p>
       </div>
 
@@ -214,34 +187,39 @@
             </div>
             <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Create and Manage Monitors</h3>
             <p class="text-lg text-gray-600 mb-6">
-              Create, update, and manage monitors directly from the command line. List monitor statuses, view uptime history, and configure alerts without opening a browser.
+              Create, list, update and delete monitors from the command line. Keep each monitor as a JSON file next to your code, and find the ones you need without opening a browser.
             </p>
             <ul class="space-y-3 mb-8">
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Create monitors from YAML configs
+                Create monitors from JSON files
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                View real-time status and uptime
+                Filter, sort and page through them
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Bulk operations for large setups
+                Read each monitor's status history
               </li>
             </ul>
-            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-              Get started
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
+            <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              <a href="/docs/cli/resource-operations" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Read the docs <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
@@ -258,25 +236,20 @@
                   <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
                 </div>
 
-                <div class="p-4 font-mono text-xs space-y-2">
-                  <div><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor create \</span></div>
-                  <div class="text-gray-300 pl-4">--name "API Health Check" \</div>
-                  <div class="text-gray-300 pl-4">--type http \</div>
-                  <div class="text-gray-300 pl-4">--url https://api.example.com/health \</div>
-                  <div class="text-gray-300 pl-4">--interval 30s</div>
-                  <div class="mt-2 text-emerald-400">Monitor created: mon_8x7k2m9p</div>
-                  <div class="text-gray-500">Type: HTTP | Interval: 30s | Status: Active</div>
-                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor status mon_8x7k2m9p</span></div>
-                  <div class="mt-1 text-emerald-400">&#9679; Up - 200 OK (45ms)</div>
-                  <div class="text-gray-500">Last checked: 12s ago</div>
+                <div class="p-4">
+                  <%- include('./Partials/cli-transcript', {
+                    steps: cli.terminals.monitors,
+                    name: 'monitors',
+                    transcriptClass: 'text-[11px] leading-5 sm:text-xs'
+                  }) -%>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Feature 2: Incident Response -->
-        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+        <!-- Feature 2: Incident Response. Text first on a phone, as in Feature 1: flex makes the order classes apply below lg. -->
+        <div class="flex flex-col lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
@@ -292,27 +265,12 @@
                   <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
                 </div>
 
-                <div class="p-4 font-mono text-xs space-y-2">
-                  <div><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident list --state active</span></div>
-                  <div class="mt-1 space-y-1.5">
-                    <div class="flex items-center gap-2">
-                      <span class="text-red-400">&#9679;</span>
-                      <span class="text-gray-300">INC-2847</span>
-                      <span class="text-red-400 text-[10px] px-1.5 py-0.5 bg-red-900/30 rounded">Critical</span>
-                      <span class="text-gray-400">Payment Service Down</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-amber-400">&#9679;</span>
-                      <span class="text-gray-300">INC-2846</span>
-                      <span class="text-amber-400 text-[10px] px-1.5 py-0.5 bg-amber-900/30 rounded">Warning</span>
-                      <span class="text-gray-400">High latency on DB</span>
-                    </div>
-                  </div>
-                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident acknowledge INC-2847</span></div>
-                  <div class="text-emerald-400 mt-1">Incident INC-2847 acknowledged.</div>
-                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident resolve INC-2847 \</span></div>
-                  <div class="text-gray-300 pl-4">--note "Restarted payment service pod"</div>
-                  <div class="text-emerald-400 mt-1">Incident INC-2847 resolved.</div>
+                <div class="p-4">
+                  <%- include('./Partials/cli-transcript', {
+                    steps: cli.terminals.incidents,
+                    name: 'incidents',
+                    transcriptClass: 'text-[11px] leading-5 sm:text-xs'
+                  }) -%>
                 </div>
               </div>
             </div>
@@ -328,34 +286,39 @@
             </div>
             <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Respond to Incidents Faster</h3>
             <p class="text-lg text-gray-600 mb-6">
-              Acknowledge, investigate, and resolve incidents without leaving your terminal. Add notes, change severity, and notify your team all from the command line.
+              Find open incidents, acknowledge and resolve them, change their severity and add notes without leaving your terminal. A state you set from the CLI is recorded on the incident's timeline, as it is from the dashboard.
             </p>
             <ul class="space-y-3 mb-8">
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Acknowledge and resolve incidents
+                Find open incidents with a filter
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Add investigation notes
+                Acknowledge and resolve them
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Trigger on-call escalations
+                Add internal and public notes
               </li>
             </ul>
-            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-              Get started
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
+            <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              <a href="/docs/cli/resource-operations#update-a-record" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Read the docs <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -377,7 +340,7 @@
           Everything you need in the terminal
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-600">
-          A complete command-line toolkit for managing your observability infrastructure.
+          A command for each kind of record the OneUptime API opens to tools: monitors, incidents, alerts, status pages, on-call policies, teams, telemetry and more.
         </p>
       </div>
 
@@ -391,7 +354,7 @@
                 </svg>
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Monitor Management</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">Create, list, update, and delete monitors. Support for HTTP, TCP, UDP, ping, and custom monitors.</p>
+              <p class="mt-4 text-gray-600 leading-relaxed">Create, list, update and delete monitors, and read each monitor's status history. A monitor is JSON, so it can live in a file next to your code.</p>
             </div>
           </div>
 
@@ -403,7 +366,7 @@
                 </svg>
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Incident Response</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">Create, acknowledge, and resolve incidents. Add notes, change severity, and manage the full incident lifecycle.</p>
+              <p class="mt-4 text-gray-600 leading-relaxed">Create incidents, acknowledge and resolve them, change their severity, and add internal or public notes.</p>
             </div>
           </div>
 
@@ -415,7 +378,7 @@
                 </svg>
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Status Pages</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">Manage status pages, update component statuses, and post status updates from the command line.</p>
+              <p class="mt-4 text-gray-600 leading-relaxed">Manage status pages and post status page announcements from the command line.</p>
             </div>
           </div>
 
@@ -426,8 +389,8 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
               </div>
-              <h3 class="mt-6 text-xl font-semibold text-gray-900">Log Tailing</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">Tail logs in real-time, search with filters, and pipe output to other tools for advanced analysis.</p>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs and Telemetry</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">List and count logs, spans, metrics and exceptions with a JSON filter, and pipe the results to other tools.</p>
             </div>
           </div>
 
@@ -440,7 +403,7 @@
                 </svg>
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">CI/CD Integration</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">Integrate with GitHub Actions, GitLab CI, Jenkins, and more. Automate monitor creation on deployment.</p>
+              <p class="mt-4 text-gray-600 leading-relaxed">Run it in GitHub Actions, GitLab CI or any pipeline with Node.js. It reads its API key from environment variables, and its exit codes tell the job what happened.</p>
             </div>
           </div>
 
@@ -452,7 +415,7 @@
                 </svg>
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Scriptable Output</h3>
-              <p class="mt-4 text-gray-600 leading-relaxed">JSON output mode for scripting. Pipe output to jq, grep, or your own tools for custom workflows.</p>
+              <p class="mt-4 text-gray-600 leading-relaxed">Tables in a terminal, JSON when piped. Read the answers with jq, grep or your own tools.</p>
             </div>
           </div>
         </div>
@@ -474,7 +437,7 @@
           Install in one command
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-300">
-          Choose your preferred package manager and get started in seconds.
+          An npm package for macOS, Linux and Windows. It needs Node.js.
         </p>
       </div>
 
@@ -484,28 +447,36 @@
             <div class="flex items-center justify-between mb-3">
               <span class="text-sm font-medium text-gray-300">npm</span>
             </div>
-            <div class="font-mono text-sm text-emerald-400">
-              npm install -g oneuptime-cli
-            </div>
+            <div class="font-mono text-xs text-emerald-400 whitespace-pre-wrap break-words sm:text-sm" data-cli-install="npm"><%= cli.installCommand %></div>
           </div>
 
           <div class="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-6">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-gray-300">Homebrew</span>
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3">
+              <span class="text-sm font-medium text-gray-300">Self-hosted OneUptime</span>
+              <span class="text-xs text-gray-400">The CLI of your OneUptime's version</span>
             </div>
-            <div class="font-mono text-sm text-emerald-400">
-              brew install oneuptime/tap/oneuptime
-            </div>
+            <div class="font-mono text-xs text-emerald-400 whitespace-pre-wrap break-words sm:text-sm" data-cli-install="self-hosted"><%= cli.selfHostedInstallCommand %></div>
           </div>
 
           <div class="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-6">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3">
               <span class="text-sm font-medium text-gray-300">Docker</span>
+              <span class="text-xs text-gray-400">An image of your own, built from this Dockerfile</span>
             </div>
-            <div class="font-mono text-sm text-emerald-400">
-              docker run --rm oneuptime/cli monitor list
-            </div>
+            <div class="font-mono text-xs text-emerald-400 whitespace-pre-wrap break-words sm:text-sm" data-cli-install="docker"><%= cli.dockerfile.join('\n') %></div>
           </div>
+        </div>
+
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold">
+          <a href="/docs/cli/index#install-the-cli" class="text-emerald-400 hover:text-emerald-300 transition-colors">
+            Install guide <span aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="/docs/cli/scripting" class="text-emerald-400 hover:text-emerald-300 transition-colors">
+            Scripting &amp; CI/CD <span aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="/docs/cli/command-reference" class="text-emerald-400 hover:text-emerald-300 transition-colors">
+            Command reference <span aria-hidden="true">&rarr;</span>
+          </a>
         </div>
       </div>
     </div>

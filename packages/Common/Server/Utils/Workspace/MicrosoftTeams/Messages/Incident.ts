@@ -35,7 +35,7 @@ export default class MicrosoftTeamsIncidentMessages {
     /*
      * now add buttons.
      * View data.
-     * Execute On Call
+     * Execute On-Call Policy.
      * Acknowledge incident
      * Resolve data.
      * Change Incident State.
@@ -58,10 +58,13 @@ export default class MicrosoftTeamsIncidentMessages {
 
     buttons.push(viewIncidentButton);
 
-    // execute on call.
+    /*
+     * Execute On-Call Policy: named as the Actions menu of the record's feed
+     * in the Dashboard names it, and as the form it opens is titled.
+     */
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "📞 Execute On Call",
+      title: "📞 Execute On-Call Policy",
       value: data.incidentId?.toString() || "",
       actionId:
         MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,

@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { describe, expect, jest, test } from "@jest/globals";
 import {
   getSloFormFields,
@@ -9,20 +10,23 @@ import {
   describeSloErrorBudget,
   describeSloWindow,
   getSloDowntimeSettingsFormFields,
-  getSloEvaluationSettingsFormFields,
-  getSloMultiMonitorModeDropdownOptions,
+  getSloMultiMonitorModeChoices,
   getSloObjectiveSettingsFormFields,
   getSloPeriodSettingsFormFields,
   orderDowntimeMonitorStatuses,
+  SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS,
   SLO_MULTI_MONITOR_MODE_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Permission from "Common/Types/Permission";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import SloEvaluationSwitchCopy, {
+  SLO_EVALUATION_SWITCH_COLUMN,
+} from "../../FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -42,14 +46,12 @@ type SloValues = FormValues<ServiceLevelObjective>;
 const OBJECTIVE_FIELDS: Array<SloField> = getSloObjectiveSettingsFormFields();
 const PERIOD_FIELDS: Array<SloField> = getSloPeriodSettingsFormFields();
 const DOWNTIME_FIELDS: Array<SloField> = getSloDowntimeSettingsFormFields();
-const EVALUATION_FIELDS: Array<SloField> = getSloEvaluationSettingsFormFields();
 const CREATE_FIELDS: Array<SloField> = getSloFormFields();
 
 const SETTINGS_CARDS: Array<{ name: string; fields: Array<SloField> }> = [
   { name: "Objective", fields: OBJECTIVE_FIELDS },
   { name: "Compliance Period", fields: PERIOD_FIELDS },
   { name: "Downtime Calculation", fields: DOWNTIME_FIELDS },
-  { name: "Evaluation", fields: EVALUATION_FIELDS },
 ];
 
 function columnOf(field: SloField): string {
@@ -127,7 +129,12 @@ function makeStatus(
 }
 
 describe("SLO settings cards", () => {
-  test("edit the objective, period, downtime rules and evaluation switch, one card each", () => {
+  /*
+   * Whether the SLO is evaluated is not a form any more: it is the
+   * Evaluation card's switch, which saves when it is flipped
+   * (Components/Slo/SloEvaluationCard).
+   */
+  test("edit the objective, period and downtime rules, one card each", () => {
     expect(OBJECTIVE_FIELDS.map(columnOf)).toEqual([
       "targetPercentage",
       "atRiskThresholdPercentage",
@@ -141,7 +148,12 @@ describe("SLO settings cards", () => {
       "multiMonitorMode",
       "downtimeMonitorStatuses",
     ]);
-    expect(EVALUATION_FIELDS.map(columnOf)).toEqual(["isEnabled"]);
+  });
+
+  test("leave isEnabled to the Evaluation switch", () => {
+    for (const card of SETTINGS_CARDS) {
+      expect(card.fields.map(columnOf)).not.toContain("isEnabled");
+    }
   });
 
   test("never edit the same column from two cards", () => {
@@ -174,6 +186,37 @@ describe("SLO settings cards", () => {
           false,
         );
       }
+    }
+  });
+
+  /*
+   * The create form folds the threshold and the window under Advanced; the
+   * Objective and Compliance Period cards are where they are edited, so
+   * nothing on a card is folded away.
+   */
+  test("carry no folded section — what a card edits is open on it", () => {
+    for (const card of SETTINGS_CARDS) {
+      for (const field of card.fields) {
+        expect({
+          card: card.name,
+          column: columnOf(field),
+          folded: Boolean(field.collapsibleSection),
+        }).toEqual({
+          card: card.name,
+          column: columnOf(field),
+          folded: false,
+        });
+      }
+    }
+
+    // The create form does fold them: the picking is what unfolds them.
+    for (const column of [
+      "atRiskThresholdPercentage",
+      "windowType",
+      "windowDays",
+      "timezone",
+    ]) {
+      expect(fieldIn(CREATE_FIELDS, column).collapsibleSection).toBeDefined();
     }
   });
 
@@ -295,26 +338,56 @@ describe("the Objective and Compliance Period cards", () => {
 });
 
 describe("the Downtime Calculation card", () => {
-  test("offers every multi-monitor mode, each explained in plain language", () => {
+  /*
+   * A dropdown under a sentence about the field used to hide what each mode
+   * does inside its closed list. The two modes are answers on the form now,
+   * each with one line: what counts as downtime, and when to pick it.
+   */
+  test("offers every multi-monitor mode as an answer with one line, Any Monitor Down first", () => {
     const field: SloField = fieldIn(DOWNTIME_FIELDS, "multiMonitorMode");
-    const options: Array<DropdownOption> =
-      field.dropdownOptions as Array<DropdownOption>;
+    const options: Array<RadioButton> =
+      field.radioButtonOptions as Array<RadioButton>;
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
     expect(field.required).toBe(true);
-    expect(options).toEqual(getSloMultiMonitorModeDropdownOptions());
+    expect(field.dropdownOptions).toBeUndefined();
+    expect(options).toEqual(getSloMultiMonitorModeChoices());
     expect(
-      options.map((option: DropdownOption): unknown => {
+      options.map((option: RadioButton): string => {
         return option.value;
       }),
-    ).toEqual(Object.values(SloMultiMonitorMode));
+    ).toEqual([
+      SloMultiMonitorMode.AnyDown,
+      SloMultiMonitorMode.MonitorSecondsAverage,
+    ]);
+    // The column's default, Any Monitor Down, is the first answer.
+    expect(
+      new ServiceLevelObjective().getTableColumnMetadata("multiMonitorMode")
+        .defaultValue,
+    ).toBe(SloMultiMonitorMode.AnyDown);
 
     for (const option of options) {
-      expect(option.label).toBe(option.value);
+      // Named as the docs and the Settings card name the mode.
+      expect(option.title).toBe(option.value);
       expect(option.description).toBe(
-        SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[
+        SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[
           option.value as SloMultiMonitorMode
         ],
+      );
+      // One line under an answer.
+      expect(option.description!.length).toBeLessThanOrEqual(100);
+    }
+
+    // The field's own line says when the choice matters, nothing more.
+    expect(field.description).toBe(
+      "Only matters when this SLO measures more than one monitor.",
+    );
+  });
+
+  test("keeps the card's longer sentence for the chosen mode apart from the answers' lines", () => {
+    for (const mode of Object.values(SloMultiMonitorMode)) {
+      expect(SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode]).not.toBe(
+        SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[mode],
       );
     }
   });
@@ -330,7 +403,11 @@ describe("the Downtime Calculation card", () => {
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  test("picks downtime statuses from the project's monitor statuses by id", () => {
+  /*
+   * Listed in the project's own order - from the healthiest status to the
+   * worst, as the Monitor Statuses settings page puts them - not newest first.
+   */
+  test("picks downtime statuses from the project's monitor statuses by id, in their order", () => {
     const field: SloField = fieldIn(DOWNTIME_FIELDS, "downtimeMonitorStatuses");
 
     expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
@@ -338,6 +415,9 @@ describe("the Downtime Calculation card", () => {
       type: MonitorStatus,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        priority: SortOrder.Ascending,
+      },
     });
   });
 
@@ -358,13 +438,22 @@ describe("the Downtime Calculation card", () => {
   });
 });
 
-describe("the Evaluation card", () => {
-  test("switches evaluation with a toggle that may be left off", () => {
-    const field: SloField = fieldIn(EVALUATION_FIELDS, "isEnabled");
+describe("the Evaluation switch", () => {
+  test("writes isEnabled, which an SLO editor may update", () => {
+    expect(SLO_EVALUATION_SWITCH_COLUMN).toBe("isEnabled");
+    expect(
+      new ServiceLevelObjective().getColumnAccessControlFor(
+        SLO_EVALUATION_SWITCH_COLUMN,
+      )?.update,
+    ).toContain(Permission.EditServiceLevelObjective);
+  });
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
-    expect(field.required).toBe(false);
-    expect(String(field.description)).toContain("resolves");
+  test("reads on = evaluated, and warns before it resolves what the burn rate rules have open", () => {
+    expect(SloEvaluationSwitchCopy.switchTitle).toBe("Evaluate this SLO");
+    expect(SloEvaluationSwitchCopy.turnOffConfirmDescription).toContain(
+      "resolves",
+    );
+    expect(SloEvaluationSwitchCopy.turnOnButton).toBe("Turn evaluation on");
   });
 });
 

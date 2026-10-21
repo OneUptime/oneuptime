@@ -1,23 +1,28 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
-import Feed from "Common/UI/Components/Feed/Feed";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OnCallDutyPolicyFeed, {
   OnCallDutyPolicyFeedEventType,
 } from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import {
+  FeedEntryKind,
+  FeedTone,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -28,38 +33,75 @@ export interface ComponentProps {
 }
 
 /*
- * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match.
+ * What each event type is (FeedEntryKind): its icon and colour. Shared by the
+ * feed items and the event type filter's checklist (the feed's ⋯ menu), so
+ * the two always match.
  */
+export const ON_CALL_DUTY_POLICY_FEED_KINDS: Record<
+  OnCallDutyPolicyFeedEventType,
+  FeedEntryKind
+> = {
+  [OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated]: {
+    ...SHARED_FEED_ENTRY_KINDS.Created,
+    icon: IconProp.Call,
+  },
+  // Someone's turn on call starting or ending.
+  [OnCallDutyPolicyFeedEventType.RosterHandoff]: {
+    icon: IconProp.ArrowPath,
+    tone: FeedTone.Info,
+  },
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded]: {
+    icon: IconProp.Calendar,
+    tone: FeedTone.Neutral,
+  },
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved]: {
+    icon: IconProp.Calendar,
+    tone: FeedTone.Neutral,
+  },
+  [OnCallDutyPolicyFeedEventType.UserAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [OnCallDutyPolicyFeedEventType.TeamAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [OnCallDutyPolicyFeedEventType.OwnerUserAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [OnCallDutyPolicyFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [OnCallDutyPolicyFeedEventType.UserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [OnCallDutyPolicyFeedEventType.TeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  // Someone covering for someone else.
+  [OnCallDutyPolicyFeedEventType.UserOverrideAdded]: {
+    icon: IconProp.ArrowUturnRight,
+    tone: FeedTone.Warning,
+  },
+  [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]: {
+    icon: IconProp.ArrowUturnLeft,
+    tone: FeedTone.Neutral,
+  },
+  // Nobody on call: the one entry here that needs someone to act.
+  [OnCallDutyPolicyFeedEventType.CoverageGapStarted]: {
+    icon: IconProp.ExclaimationCircle,
+    tone: FeedTone.Danger,
+  },
+};
+
 export const ON_CALL_DUTY_POLICY_FEED_ICONS: Record<
   OnCallDutyPolicyFeedEventType,
   IconProp
-> = {
-  [OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated]: IconProp.Call,
-  [OnCallDutyPolicyFeedEventType.RosterHandoff]: IconProp.Calendar,
-  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded]: IconProp.Calendar,
-  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved]: IconProp.Close,
-  [OnCallDutyPolicyFeedEventType.UserAdded]: IconProp.User,
-  [OnCallDutyPolicyFeedEventType.TeamAdded]: IconProp.Team,
-  [OnCallDutyPolicyFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [OnCallDutyPolicyFeedEventType.OwnerUserAdded]: IconProp.User,
-  [OnCallDutyPolicyFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [OnCallDutyPolicyFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [OnCallDutyPolicyFeedEventType.UserRemoved]: IconProp.Close,
-  [OnCallDutyPolicyFeedEventType.TeamRemoved]: IconProp.Close,
-  [OnCallDutyPolicyFeedEventType.UserOverrideAdded]: IconProp.Circle,
-  [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]: IconProp.Circle,
-  [OnCallDutyPolicyFeedEventType.CoverageGapStarted]: IconProp.Circle,
-};
+> = getFeedIcons(ON_CALL_DUTY_POLICY_FEED_KINDS);
 
 export const getOnCallDutyPolicyFeedEventIcon: (
   eventType: string,
 ) => IconProp = (eventType: string): IconProp => {
-  return (
-    ON_CALL_DUTY_POLICY_FEED_ICONS[
-      eventType as OnCallDutyPolicyFeedEventType
-    ] || IconProp.Circle
-  );
+  return getFeedEntryKind({
+    kinds: ON_CALL_DUTY_POLICY_FEED_KINDS,
+    eventType,
+  }).icon;
 };
 
 const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
@@ -84,6 +126,11 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
 
   const getFeedItemFromOnCallDutyPolicyFeed: GetFeedItemFromOnCallDutyPolicyFeed =
     (onCallDutyPolicyFeed: OnCallDutyPolicyFeed): FeedItemProps => {
+      const kind: FeedEntryKind = getFeedEntryKind({
+        kinds: ON_CALL_DUTY_POLICY_FEED_KINDS,
+        eventType: onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType,
+      });
+
       return {
         key: onCallDutyPolicyFeed.id!.toString(),
         textInMarkdown: onCallDutyPolicyFeed.feedInfoInMarkdown || "",
@@ -92,10 +139,15 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         user: onCallDutyPolicyFeed.user,
         itemDateTime:
           onCallDutyPolicyFeed.postedAt || onCallDutyPolicyFeed.createdAt!,
-        color: onCallDutyPolicyFeed.displayColor || Gray500,
-        icon: getOnCallDutyPolicyFeedEventIcon(
-          onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType || "",
-        ),
+        color: getFeedEntryColor({
+          kind: kind,
+          rowColor: onCallDutyPolicyFeed.displayColor,
+        }),
+        icon: kind.icon,
+        burstKind: kind.burst,
+        detailsLabel: kind.moreText,
+        isNote: kind.isNote,
+        eventType: onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType,
       };
     };
 
@@ -106,17 +158,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: props.onCallDutyPolicyId.toString(),
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    refresh,
-    loadMore,
-  } = useFeedItems<OnCallDutyPolicyFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<OnCallDutyPolicyFeed>({
     resourceKey: props.onCallDutyPolicyId.toString(),
     viewKey: feedOptions.optionsKey,
     getItems: async (
@@ -155,47 +197,25 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
-      title={"On Call Duty Policy Feed"}
+    <FeedCard
+      title={"On-Call Policy Feed"}
       description={
-        "This is the timeline and feed for this on call duty policy. You can see all the updates and information about this on call duty policy here."
+        "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="on-call-policy-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={feed.refresh}
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this onCallDutyPolicy.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this on-call policy yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

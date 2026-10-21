@@ -57,6 +57,13 @@ import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlStat
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import { getTraceEntityOptionLabel } from "./TracesEntityDisplay";
+import {
+  TraceInsightsSpanInput,
+  TraceInsightsTrace,
+  TraceInsightsTraces,
+  getSlowestTraces,
+  summarizeRecentTraces,
+} from "../../Utils/TraceInsightsTraces";
 
 function timeRangeLabel(range: RangeStartAndEndDateTime): string {
   if (range.range === TimeRange.CUSTOM) {
@@ -75,14 +82,7 @@ interface ServiceTraceSummary {
   durations: Array<number>;
 }
 
-interface RecentTrace {
-  traceId: string;
-  name: string;
-  primaryEntityId: string;
-  startTime: Date;
-  statusCode: SpanStatus;
-  durationNano: number;
-}
+type RecentTrace = TraceInsightsTrace;
 
 const formatDuration: (nanos: number) => string = (nanos: number): string => {
   if (nanos >= 1_000_000_000) {
@@ -291,11 +291,8 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
 
         const serviceTraceIds: Map<string, Set<string>> = new Map();
         const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
-        const errorTraces: Array<RecentTrace> = [];
-        const allTraces: Array<RecentTrace> = [];
-        const seenTraceIds: Set<string> = new Set();
-        const seenErrorTraceIds: Set<string> = new Set();
         const allDurations: Array<number> = [];
+        const sampledSpans: Array<TraceInsightsSpanInput> = [];
 
         for (const span of allSpans) {
           const primaryEntityId: string =
@@ -347,38 +344,28 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             }
           }
 
-          if (!seenTraceIds.has(traceId) && traceId) {
-            seenTraceIds.add(traceId);
-            allTraces.push({
-              traceId,
-              name: span.name?.toString() || "Unknown",
-              primaryEntityId,
-              startTime: span.startTime
-                ? OneUptimeDate.fromString(span.startTime)
-                : new Date(),
-              statusCode: span.statusCode || SpanStatus.Unset,
-              durationNano: duration,
-            });
-          }
-
-          if (
-            span.statusCode === SpanStatus.Error &&
-            traceId &&
-            !seenErrorTraceIds.has(traceId)
-          ) {
-            seenErrorTraceIds.add(traceId);
-            errorTraces.push({
-              traceId,
-              name: span.name?.toString() || "Unknown",
-              primaryEntityId,
-              startTime: span.startTime
-                ? OneUptimeDate.fromString(span.startTime)
-                : new Date(),
-              statusCode: span.statusCode,
-              durationNano: duration,
-            });
-          }
+          sampledSpans.push({
+            traceId,
+            spanId: span.spanId?.toString() || "",
+            parentSpanId: span.parentSpanId?.toString() || "",
+            name: span.name?.toString() || "",
+            primaryEntityId,
+            startTime: span.startTime
+              ? OneUptimeDate.fromString(span.startTime)
+              : undefined,
+            durationNano: duration,
+            statusCode: span.statusCode || SpanStatus.Unset,
+          });
         }
+
+        /*
+         * Name and time each trace by its root span, not by whichever of its
+         * spans is newest in the sample — see TraceInsightsTraces.
+         */
+        const recentTraces: TraceInsightsTraces =
+          summarizeRecentTraces(sampledSpans);
+        const allTraces: Array<RecentTrace> = recentTraces.allTraces;
+        const errorTraces: Array<RecentTrace> = recentTraces.errorTraces;
 
         // Compute global percentiles
         setGlobalP50(getPercentile(allDurations, 50));
@@ -426,12 +413,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         setServiceSummaries(summariesWithData);
         setRecentErrorTraces(errorTraces.slice(0, 8));
 
-        const slowTraces: Array<RecentTrace> = [...allTraces]
-          .sort((a: RecentTrace, b: RecentTrace) => {
-            return b.durationNano - a.durationNano;
-          })
-          .slice(0, 8);
-        setRecentSlowTraces(slowTraces);
+        setRecentSlowTraces(getSlowestTraces(allTraces, 8));
       } catch (err) {
         if (loadGenerationRef.current !== generation) {
           return;

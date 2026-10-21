@@ -38,6 +38,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  mockProjectStates,
+} from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * An SLO's Metrics page charts the incidents and alerts that affect it by
@@ -140,7 +145,12 @@ describe("SLO attributes on incident metrics", () => {
     timeline._id = ObjectID.generate().toString();
     timeline.id = new ObjectID(timeline._id);
     timeline.projectId = PROJECT_ID;
-    timeline.incidentStateId = ObjectID.generate();
+    // The project's state the row is in, by its flags (ProjectStatesHelper).
+    timeline.incidentStateId = input.isResolvedState
+      ? INCIDENT_STATE_IDS.resolved
+      : input.isAcknowledgedState
+        ? INCIDENT_STATE_IDS.acknowledged
+        : INCIDENT_STATE_IDS.created;
     timeline.startsAt = input.startsAt;
 
     if (input.endsAt) {
@@ -158,6 +168,15 @@ describe("SLO attributes on incident metrics", () => {
   }
 
   beforeEach(() => {
+    /*
+     *
+     * The project's states: the refresh times a resolve as the move into
+     *
+     * a state that counts as resolved (Common/Utils/ResolvedState).
+     *
+     */
+
+    mockProjectStates();
     savedMetrics = [];
 
     mockIncident(undefined);
@@ -376,7 +395,12 @@ describe("SLO attributes on alert metrics", () => {
     timeline._id = ObjectID.generate().toString();
     timeline.id = new ObjectID(timeline._id);
     timeline.projectId = PROJECT_ID;
-    timeline.alertStateId = ObjectID.generate();
+    // The project's state the row is in, by its flags (ProjectStatesHelper).
+    timeline.alertStateId = input.isResolvedState
+      ? ALERT_STATE_IDS.resolved
+      : input.isAcknowledgedState
+        ? ALERT_STATE_IDS.acknowledged
+        : ALERT_STATE_IDS.created;
     timeline.startsAt = input.startsAt;
 
     if (input.endsAt) {
@@ -392,6 +416,15 @@ describe("SLO attributes on alert metrics", () => {
   }
 
   beforeEach(() => {
+    /*
+     *
+     * The project's states: the refresh times a resolve as the move into
+     *
+     * a state that counts as resolved (Common/Utils/ResolvedState).
+     *
+     */
+
+    mockProjectStates();
     savedMetrics = [];
 
     mockAlert(undefined);

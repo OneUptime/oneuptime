@@ -432,6 +432,24 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
       />,
     );
+  } else if (icon === IconProp.Indent) {
+    // Lines of text with the middle two pushed in, and an arrow pointing in.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M3.75 9l3 3-3 3"
+      />,
+    );
+  } else if (icon === IconProp.Outdent) {
+    // The same lines, with the arrow pointing back out.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M6.75 9l-3 3 3 3"
+      />,
+    );
   } else if (icon === IconProp.Template) {
     return getSvgWrapper(
       <path
@@ -440,7 +458,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 00-9-9z"
       />,
     );
-  } else if (icon === IconProp.TableCells) {
+  } else if (icon === IconProp.TableCells || icon === IconProp.TableCellsIcon) {
     return getSvgWrapper(
       <path
         strokeLinecap="round"
@@ -488,6 +506,18 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
       />,
     );
+  } else if (icon === IconProp.Switch) {
+    /*
+     * One line that splits into three arrows: a workflow's Switch / Case,
+     * which sends one value down whichever of several paths it matches.
+     */
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 12h6m0 0l6-6h6m-12 6h12m-12 0l6 6h6m-2.25-14.25L21 6l-2.25 2.25m0 1.5L21 12l-2.25 2.25m0 1.5L21 18l-2.25 2.25"
+      />,
+    );
   } else if (icon === IconProp.CPUChip) {
     return getSvgWrapper(
       <path
@@ -528,7 +558,10 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
       />,
     );
-  } else if (icon === IconProp.TransparentCube) {
+  } else if (
+    icon === IconProp.TransparentCube ||
+    icon === IconProp.CubeTransparent
+  ) {
     return getSvgWrapper(
       <path
         strokeLinecap="round"
@@ -658,7 +691,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
       />,
     );
-  } else if (icon === IconProp.User) {
+  } else if (icon === IconProp.User || icon === IconProp.UserIcon) {
     return getSvgWrapper(
       <path
         strokeLinecap="round"
@@ -724,7 +757,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M8.25 4.5l7.5 7.5-7.5 7.5"
       />,
     );
-  } else if (icon === IconProp.Clock) {
+  } else if (icon === IconProp.Clock || icon === IconProp.ClockIcon) {
     return getSvgWrapper(
       <path
         strokeLinecap="round"
@@ -1420,6 +1453,28 @@ const Icon: FunctionComponent<ComponentProps> = ({
         <rect x="17" y="17" width="5" height="4" rx="0.5" />
       </>,
     );
+  } else if (icon === IconProp.Timeline) {
+    /*
+     * A timeline: three stretches of time stepping down to the right, each
+     * starting halfway through the one above it - the steps a timeline view
+     * draws, and a status timeline's band with one status to a row. The
+     * three are the same length and the glyph is the same turned half a
+     * turn about the icon's centre, so it sits centred and as heavy as the
+     * icons around it; shorter bars read as dashes beside them. Solid bars
+     * rather than outlines, so they keep their shape at 16px: 3 units thick
+     * on rows 6, 12 and 18, each lands on whole pixels at 16px and at 32px.
+     * The bars run from 4.5 down to 19.5, the rows TableCells draws its
+     * frame on: the glyph it sits beside in a status timeline's Timeline |
+     * Table switch.
+     */
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+        d="M4.5 6h7.5M8.25 12h7.5M12 18h7.5"
+      />,
+    );
   } else if (icon === IconProp.Compass) {
     return getSvgWrapper(
       <path
@@ -1764,11 +1819,12 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Eye) {
+    // The outline and the pupil: the outline alone is an empty almond.
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
       />,
     );
   } else if (icon === IconProp.FaceFrown) {
@@ -2028,11 +2084,12 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.MapPin) {
+    // The dot and the pin around it: the dot alone is a small empty ring.
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+        d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
       />,
     );
   } else if (icon === IconProp.Megaphone) {
@@ -2360,11 +2417,15 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.StopCircle) {
+    /*
+     * The circle and the square inside it. With the circle alone this drew
+     * an empty ring, which reads as an unticked radio button, not as "stop".
+     */
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z"
       />,
     );
   } else if (icon === IconProp.Sun) {
@@ -2552,11 +2613,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.BellAlert) {
+    /*
+     * A bell ringing: the two strokes at its shoulders. This drew a bell with
+     * a "Z" in it - Heroicons' bell-snooze - so every critical alert, alert
+     * role and alert feed item showed a snoozed bell.
+     */
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M10.5 8.25h3l-3 4.5h3"
+        d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5"
       />,
     );
   } else if (icon === IconProp.BellSlash) {
@@ -3023,6 +3089,35 @@ const Icon: FunctionComponent<ComponentProps> = ({
         stroke="none"
         d="M11.959.257A11.912 11.912 0 003.503 3.76 11.92 11.92 0 000 12.217a11.934 11.934 0 001.207 5.243c.72 1.474 1.888 2.944 3.208 4.044.86-.47 1.35-.99 1.453-1.545.1-.533-.134-1.107-.737-1.805a9.031 9.031 0 01-2.219-5.937c0-4.988 4.058-9.047 9.047-9.047h.08c4.99 0 9.048 4.059 9.048 9.047a9.03 9.03 0 01-2.218 5.936c-.599.693-.84 1.292-.735 1.83.108.556.595 1.068 1.449 1.522 1.322-1.1 2.489-2.57 3.209-4.046A11.898 11.898 0 0024 12.217a11.929 11.929 0 00-3.503-8.457A11.923 11.923 0 0012.04.257h-.041zm-.005 4.837a7.072 7.072 0 00-3.76 1.075A7.202 7.202 0 006.15 8.093a7.164 7.164 0 00-1.161 2.65 7.188 7.188 0 00.04 3.125 7.14 7.14 0 001.22 2.607c.154.207.326.396.509.597l.185.202.005.006c.007.007.017.016.026.027.635.738.957 1.533.957 2.36a3.4 3.4 0 01-1.788 2.989 11.924 11.924 0 002.685 1.087c.14-.088.614-.441 1.077-1.083a4.899 4.899 0 00.94-2.99 6.595 6.595 0 00-.49-2.37 6.717 6.717 0 00-1.302-2.033l-.002-.004-.124-.142c-.21-.245-.428-.497-.602-.792a4.104 4.104 0 01-.462-1.135 4.258 4.258 0 01-.024-1.85 4.25 4.25 0 01.686-1.564 4.216 4.216 0 013.432-1.773H12.042a4.202 4.202 0 013.432 1.773c.33.466.568 1.007.686 1.565a4.27 4.27 0 01-.023 1.849c-.093.39-.249.772-.463 1.135-.173.295-.391.547-.602.792l-.123.142-.004.004a6.736 6.736 0 00-1.301 2.033 6.607 6.607 0 00-.49 2.37 4.897 4.897 0 00.94 2.99c.463.642.937.995 1.076 1.083a11.776 11.776 0 002.687-1.087 3.399 3.399 0 01-1.789-2.988c0-.817.313-1.59.956-2.359.009-.012.02-.022.027-.03l.006-.004.184-.204c.183-.2.355-.39.51-.596a7.14 7.14 0 001.22-2.608 7.21 7.21 0 00.04-3.124 7.185 7.185 0 00-1.16-2.65 7.203 7.203 0 00-2.044-1.924 7.074 7.074 0 00-3.762-1.075h-.09zM12 9.97a2.365 2.365 0 00-2.362 2.361A2.364 2.364 0 0012 14.691c1.301 0 2.36-1.059 2.36-2.36A2.364 2.364 0 0012 9.968z"
       />,
+    );
+  } else if (icon === IconProp.StorageArray) {
+    /*
+     * Storage array — a vendor-neutral enclosure of three stacked drive
+     * bays, each with a drive slot and a status light.
+     */
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 4.5h16.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H3.75a.75.75 0 0 1-.75-.75V5.25a.75.75 0 0 1 .75-.75Z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 9.5h18M3 14.5h18"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6.5 7h5.5M6.5 12h5.5M6.5 17h5.5"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M17.25 7h.01M17.25 12h.01M17.25 17h.01"
+        />
+      </>,
     );
   } else if (icon === IconProp.Gauge) {
     // Gauge/speedometer icon — semicircular meter with needle

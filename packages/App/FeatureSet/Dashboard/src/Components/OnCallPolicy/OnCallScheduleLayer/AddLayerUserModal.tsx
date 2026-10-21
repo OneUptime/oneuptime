@@ -1,5 +1,5 @@
 import ProjectUser, { ProjectUserResult } from "../../../Utils/ProjectUser";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -17,6 +17,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -30,6 +32,7 @@ const SEARCH_LIMIT: number = 50;
 const AddLayerUserModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [results, setResults] = useState<Array<ProjectUserResult>>([]);
@@ -154,12 +157,16 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
           </span>
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-900">
-              {hasSearch ? "No matching members" : "No project members"}
+              {translator.translateText(
+                hasSearch ? "No matching members" : "No project members",
+              )}
             </p>
             <p className="mx-auto max-w-[16rem] text-xs leading-relaxed text-gray-500">
-              {hasSearch
-                ? "No members match your search. Try a different name or email."
-                : "There are no members in this project to add."}
+              {translator.translateText(
+                hasSearch
+                  ? "No members match your search. Try a different name or email."
+                  : "There are no members in this project to add.",
+              )}
             </p>
           </div>
         </div>
@@ -190,8 +197,8 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
               ) : null}
 
               <span
-                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm ring-2 ring-white"
-                style={{ backgroundColor: getColorForUserId(user.userId) }}
+                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-sm ring-2 ring-white"
+                style={getUserAvatarStyle(user.userId)}
               >
                 {getUserInitials(user.name, user.email)}
               </span>
@@ -202,7 +209,9 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
                     isSelected ? "text-indigo-900" : "text-gray-900"
                   }`}
                 >
-                  {user.name || user.email || "Unknown user"}
+                  {user.name ||
+                    user.email ||
+                    translator.translateText("Unknown user")}
                 </div>
                 {user.name && user.email ? (
                   <div className="truncate text-xs text-gray-500">
@@ -247,8 +256,9 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
     >
       <div className="pt-1">
         <p className="mb-4 text-sm leading-relaxed text-gray-500">
-          Search your project members by name or email and add one to this
-          layer&apos;s rotation.
+          {translator.translateText(
+            "Search your project members by name or email and add one to this layer's rotation.",
+          )}
         </p>
 
         <div className="group relative">
@@ -262,7 +272,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearchText(e.target.value);
             }}
-            placeholder="Search by name or email…"
+            placeholder={translator.translateText("Search by name or email…")}
             className="h-11 w-full rounded-md border border-gray-300 bg-white pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
           <div className="absolute inset-y-0 right-2 flex items-center">
@@ -274,7 +284,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
             ) : searchText ? (
               <button
                 type="button"
-                aria-label="Clear search"
+                aria-label={translator.translateText("Clear search")}
                 onClick={() => {
                   setSearchText("");
                 }}
@@ -289,10 +299,15 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
         {showMeta ? (
           <div className="mb-1.5 mt-4 flex items-center justify-between px-0.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              Project members
+              {translator.translateText("Project members")}
             </span>
             <span className="text-[11px] font-medium tabular-nums text-gray-400">
-              {selectedUserId ? "1 selected · " : ""}
+              {selectedUserId ? (
+                <>
+                  {translator.translateText("1 selected")}
+                  {" · "}
+                </>
+              ) : null}
               {visibleUsers.length}
             </span>
           </div>

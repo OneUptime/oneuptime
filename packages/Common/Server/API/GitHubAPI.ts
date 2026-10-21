@@ -6,18 +6,25 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Exception from "../../Types/Exception/Exception";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
-  DashboardClientUrl,
+  GitHubAppClientId,
+  GitHubAppClientSecret,
   GitHubAppName,
   HomeClientUrl,
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
-import GitHubUtil from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubUtil, {
+  GitHubUserInstallation,
+} from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubConversation from "../Utils/CodeRepository/GitHub/GitHubConversation";
+import {
+  GITHUB_INSTALLATION_CHOICE_QUERY_PARAM,
+  GitHubInstallationChoice,
+} from "../../Types/CodeRepository/GitHubInstallationChoice";
 import GitHubWebhookHandler, {
   GitHubWebhookHandlingResult,
 } from "../Utils/CodeRepository/GitHub/GitHubWebhookHandler";
@@ -25,12 +32,24 @@ import CodeRepositoryService, {
   ImportReposFromInstallationResult,
 } from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
-import AccessTokenService from "../Services/AccessTokenService";
 import Project from "../../Models/DatabaseModels/Project";
-import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
-import JSONWebToken from "../Utils/JsonWebToken";
-import { UserTenantAccessPermission } from "../../Types/Permission";
+import WorkspaceOAuthState, {
+  WorkspaceOAuthFlow,
+  WorkspaceOAuthStateRecord,
+} from "../Utils/Workspace/WorkspaceOAuthState";
+import GitHubConnectAccess, {
+  GitHubConnectCaller,
+} from "./GitHubConnectAccess";
+import ConnectCallback, {
+  ConnectCallbackFinish,
+  ConnectCallbackRefusal,
+} from "./ConnectCallback";
+import {
+  ConnectCallbackError,
+  ConnectProviderNotice,
+  ConnectProvider,
+} from "../../Types/Workspace/ConnectCallback";
 
 export default class GitHubAPI {
   /*
@@ -99,7 +118,7 @@ export default class GitHubAPI {
         });
 
       logger.info(
-        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
+        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.reconnected} reconnected, ${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
       );
     }
   }
@@ -151,79 +170,307 @@ export default class GitHubAPI {
     }
   }
 
+  /*
+   * Binds an installation GitHub has vouched for to the project, and imports
+   * its repositories. The last step of every way the callback below connects
+   * one, after the installation was verified for the person connecting it.
+   */
+  private static async connectInstallation(data: {
+    req: ExpressRequest;
+    projectId: ObjectID;
+    installationId: string;
+  }): Promise<void> {
+    const { req, projectId, installationId } = data;
+
+    /*
+     * Store the installation ID in the project
+     * This allows reuse when connecting additional repositories
+     */
+    await ProjectService.updateOneById({
+      id: projectId,
+      data: {
+        gitHubAppInstallationId: installationId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Import all repositories in the installation automatically so the
+     * user does not have to pick them one at a time. Failures are
+     * logged but do not fail the callback — the import is retried via
+     * the installation_repositories webhook or on reinstall.
+     */
+    try {
+      const importResult: ImportReposFromInstallationResult =
+        await CodeRepositoryService.importReposFromInstallation({
+          projectId: projectId,
+          installationId: installationId,
+        });
+
+      logger.info(
+        `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.reconnected} reconnected, ${importResult.skipped} skipped) into project ${projectId.toString()}`,
+        getLogAttributesFromRequest(req as OneUptimeRequest),
+      );
+    } catch (importError) {
+      logger.error(
+        `GitHub Auth Callback: Failed to import repositories from installation ${installationId} into project ${projectId.toString()}:`,
+        getLogAttributesFromRequest(req as OneUptimeRequest),
+      );
+      logger.error(
+        importError,
+        getLogAttributesFromRequest(req as OneUptimeRequest),
+      );
+    }
+  }
+
+  /*
+   * A sign-in found more than one installation its GitHub account
+   * administers: Code shows them and the person picks one. The
+   * pick comes back through the callback with a state of its own, which
+   * carries the installations offered here, so it can only be one of them.
+   */
+  private static async offerInstallationChoice(data: {
+    finish: ConnectCallbackFinish;
+    installations: Array<GitHubUserInstallation>;
+  }): Promise<void> {
+    const choices: Array<GitHubInstallationChoice> = data.installations.map(
+      (installation: GitHubUserInstallation) => {
+        return {
+          installationId: installation.installationId,
+          accountLogin: installation.accountLogin,
+          accountType: installation.accountType,
+        };
+      },
+    );
+
+    const { state } = await WorkspaceOAuthState.create({
+      req: data.finish.req,
+      res: data.finish.res,
+      flow: WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+      projectId: data.finish.record.projectId,
+      userId: data.finish.record.userId,
+      payload: {
+        installations: choices as unknown as JSONArray,
+      },
+    });
+
+    data.finish.backToPage({
+      [GITHUB_INSTALLATION_CHOICE_QUERY_PARAM]: state,
+    });
+  }
+
+  // The installations a choice state offers, as recorded.
+  private static readOfferedInstallations(
+    record: WorkspaceOAuthStateRecord,
+  ): Array<GitHubInstallationChoice> {
+    const offered: unknown = record.payload?.["installations"];
+
+    if (!Array.isArray(offered)) {
+      return [];
+    }
+
+    return offered
+      .filter((choice: unknown) => {
+        return (
+          Boolean(choice) &&
+          typeof (choice as JSONObject)["installationId"] === "string"
+        );
+      })
+      .map((choice: unknown) => {
+        const recorded: JSONObject = choice as JSONObject;
+
+        return {
+          installationId: recorded["installationId"] as string,
+          accountLogin: recorded["accountLogin"]?.toString() || "",
+          accountType: recorded["accountType"]?.toString() || "",
+        };
+      });
+  }
+
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
     /*
-     * GitHub App installation callback
-     * This is called after a user installs the GitHub App
-     * The state parameter contains base64 encoded JSON with projectId and userId
+     * Where GitHub sends the browser back once the app is installed (the
+     * app's Callback URL and Setup URL both point here), or once the person
+     * signed in to connect an installation that already exists.
+     *
+     * Nothing in the redirect says which project or person this is for. Both
+     * come from the one-use state the start route recorded, spent here
+     * (WorkspaceOAuthState): one that is unknown, already used, expired,
+     * issued for another flow or brought back by another browser is refused.
+     * Then, in order, before anything is written: the person the state names
+     * may still add code repositories to that project (GitHubConnectAccess),
+     * and GitHub vouched for the installation, by its flow:
+     *
+     *  - installed (install-url): GitHub returned an installation and an
+     *    authorization code, and the code proves the GitHub account
+     *    completing the redirect administers that installation;
+     *  - signed in (connect-existing-url): the code tells which installations
+     *    that GitHub account administers - one is connected, several are
+     *    offered on Code Repositories;
+     *  - picked from those: only an installation the state offered.
+     *
+     * ConnectCallback.route answers every way this can end on Code
+     * Repositories, with a code - never with what GitHub or a failed read
+     * said.
      */
     router.get(
       "/github/auth/callback",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          // GitHub sends state parameter back which contains projectId and userId
-          const state: string | undefined = req.query["state"]?.toString();
+      ConnectCallback.route({
+        provider: ConnectProvider.GitHub,
+        /*
+         * GitHub's redirects that OneUptime did not start, with no state of
+         * ours, go to Code Repositories with nothing to refuse:
+         *
+         *  - "Redirect on update", once an installation is changed on GitHub
+         *    itself. There is nothing to connect: the installation webhooks
+         *    keep the repositories in sync.
+         *  - An install made on GitHub itself, from the app's Marketplace
+         *    listing or its page. Nothing in it says which project the
+         *    installation is for, so nothing is connected and its code is
+         *    left unused: the page says the app is installed and offers
+         *    "Connect an existing installation", which signs the person in
+         *    and checks they administer it.
+         */
+        isProviderRedirect: (req: ExpressRequest): boolean => {
+          const setupAction: string | undefined =
+            req.query["setup_action"]?.toString();
 
-          if (!state) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("State parameter is required"),
+          if (setupAction === "update") {
+            return !req.query["state"];
+          }
+
+          /*
+           * GitHub sends an install it started with no state parameter at
+           * all. One that is there but empty, or anything else, is a state
+           * of ours that went wrong, and is refused as one.
+           */
+          return setupAction === "install" && req.query["state"] === undefined;
+        },
+        noticeOfProviderRedirect: (
+          req: ExpressRequest,
+        ): ConnectProviderNotice | null => {
+          return req.query["setup_action"]?.toString() === "install"
+            ? ConnectProviderNotice.GitHubInstalled
+            : null;
+        },
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return WorkspaceOAuthState.consume({
+            req,
+            state: req.query["state"]?.toString(),
+            flows: [
+              WorkspaceOAuthFlow.GitHubAppInstall,
+              WorkspaceOAuthFlow.GitHubAppConnectExisting,
+              WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+            ],
+          });
+        },
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return GitHubConnectAccess.assertMayFinish(record);
+        },
+        refusedAs: ConnectCallbackError.NoPermission,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const projectId: ObjectID = record.projectId;
+
+          if (!GitHubAppClientId || !GitHubAppClientSecret) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.NotConfigured,
+              "GITHUB_APP_CLIENT_ID or GITHUB_APP_CLIENT_SECRET is not set, so no installation can be verified.",
             );
           }
 
-          // Verify and decode the signed state token
-          let projectId: string | undefined;
-          let userId: string | undefined;
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-          try {
-            const decodedState: JSONObject =
-              JSONWebToken.decodeJsonPayload(state);
-            projectId = decodedState["projectId"] as string | undefined;
-            userId = decodedState["userId"] as string | undefined;
-          } catch {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Invalid or expired state parameter. Please restart the GitHub App installation.",
-              ),
-            );
+          if (providerError) {
+            throw providerError;
           }
 
-          if (!projectId) {
-            return Response.sendErrorResponse(
+          /*
+           * The installation picked on Code Repositories, from the ones a
+           * sign-in found the person's GitHub account administers. Only one
+           * the state offered is connected.
+           */
+          if (record.flow === WorkspaceOAuthFlow.GitHubAppChooseInstallation) {
+            const pickedInstallationId: string | undefined =
+              req.query["installation_id"]?.toString();
+
+            const picked: GitHubInstallationChoice | undefined =
+              GitHubAPI.readOfferedInstallations(record).find(
+                (choice: GitHubInstallationChoice) => {
+                  return choice.installationId === pickedInstallationId;
+                },
+              );
+
+            if (!picked) {
+              throw new ConnectCallbackRefusal(
+                ConnectCallbackError.CouldNotFinish,
+                `Installation ${String(pickedInstallationId)} was picked, but it is not one the sign-in found.`,
+              );
+            }
+
+            await GitHubAPI.connectInstallation({
               req,
-              res,
-              new BadDataException("Project ID is required in state"),
-            );
+              projectId,
+              installationId: picked.installationId,
+            });
+
+            data.backToPage({ installation_id: picked.installationId });
+            return;
           }
 
-          if (!userId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("User ID is required in state"),
-            );
-          }
+          const oauthCode: string | undefined = req.query["code"]?.toString();
 
-          // Verify the user is a member of this project
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              new ObjectID(userId),
-              new ObjectID(projectId),
-            );
+          /*
+           * Connecting an installation that already exists. GitHub sends
+           * nobody back from an installation that is only reconfigured, so
+           * the person signed in to GitHub instead (GET
+           * /github/connect-existing-url), and what they may connect is
+           * every installation of the app their GitHub account administers:
+           * one is connected, several are offered on Code Repositories.
+           */
+          if (record.flow === WorkspaceOAuthFlow.GitHubAppConnectExisting) {
+            if (!oauthCode) {
+              throw new ConnectCallbackRefusal(
+                ConnectCallbackError.CouldNotFinish,
+                "GitHub sent no authorization code back from signing in.",
+              );
+            }
 
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
+            const installations: Array<GitHubUserInstallation> =
+              await GitHubUtil.listInstallationsUserAdministers(oauthCode);
+
+            if (installations.length === 0) {
+              throw new ConnectCallbackRefusal(
+                ConnectCallbackError.GitHubNoInstallationToConnect,
+                "The GitHub account signed in administers no installation of the app.",
+              );
+            }
+
+            if (installations.length > 1) {
+              await GitHubAPI.offerInstallationChoice({
+                finish: data,
+                installations: installations,
+              });
+              return;
+            }
+
+            await GitHubAPI.connectInstallation({
               req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
+              projectId,
+              installationId: installations[0]!.installationId,
+            });
+
+            data.backToPage({
+              installation_id: installations[0]!.installationId,
+            });
+            return;
           }
 
           // GitHub sends installation_id in query params after app installation
@@ -231,12 +478,9 @@ export default class GitHubAPI {
             req.query["installation_id"]?.toString();
 
           if (!installationId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Installation ID is required. Please install the GitHub App first.",
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNoInstallation,
+              `GitHub sent no installation back (setup_action: ${String(req.query["setup_action"] || "none")}).`,
             );
           }
 
@@ -258,15 +502,10 @@ export default class GitHubAPI {
            * GitHub account, it is single-use, and trading it in tells us which
            * installations that account can actually administer.
            */
-          const oauthCode: string | undefined = req.query["code"]?.toString();
-
           if (!oauthCode) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                'GitHub did not return an authorization code, so this installation could not be verified. Please enable "Request user authorization (OAuth) during installation" in the GitHub App settings and install again.',
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNoAuthorization,
+              'GitHub sent no authorization code back: "Request user authorization (OAuth) during installation" must be on in the GitHub App settings.',
             );
           }
 
@@ -276,8 +515,12 @@ export default class GitHubAPI {
               installationId: installationId,
             });
           } catch (verificationError) {
+            /*
+             * Whatever GitHub or the request said is logged here and never
+             * shown: the page is told the installation was not verified.
+             */
             logger.error(
-              `GitHub Auth Callback: refusing to bind installation ${installationId} to project ${projectId} — could not verify the installing user controls it.`,
+              `GitHub Auth Callback: refusing to bind installation ${installationId} to project ${projectId.toString()} — could not verify the installing user controls it.`,
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             logger.error(
@@ -285,179 +528,171 @@ export default class GitHubAPI {
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
 
-            return Response.sendErrorResponse(
-              req,
-              res,
-              verificationError instanceof Error
-                ? new BadDataException(verificationError.message)
-                : new BadDataException(
-                    "Could not verify this GitHub App installation.",
-                  ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNotVerified,
+              `The GitHub account completing the redirect was not verified to control installation ${installationId}.`,
             );
           }
 
-          /*
-           * Store the installation ID in the project
-           * This allows reuse when connecting additional repositories
-           */
-          await ProjectService.updateOneById({
-            id: new ObjectID(projectId),
-            data: {
-              gitHubAppInstallationId: installationId,
-            },
-            props: {
-              isRoot: true,
-            },
+          await GitHubAPI.connectInstallation({
+            req,
+            projectId,
+            installationId,
           });
 
-          /*
-           * Import all repositories in the installation automatically so the
-           * user does not have to pick them one at a time. Failures are
-           * logged but do not fail the callback — the import is retried via
-           * the installation_repositories webhook or on reinstall.
-           */
-          try {
-            const importResult: ImportReposFromInstallationResult =
-              await CodeRepositoryService.importReposFromInstallation({
-                projectId: new ObjectID(projectId),
-                installationId: installationId,
-              });
-
-            logger.info(
-              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId}`,
-              getLogAttributesFromRequest(req as OneUptimeRequest),
-            );
-          } catch (importError) {
-            logger.error(
-              `GitHub Auth Callback: Failed to import repositories from installation ${installationId} into project ${projectId}:`,
-              getLogAttributesFromRequest(req as OneUptimeRequest),
-            );
-            logger.error(
-              importError,
-              getLogAttributesFromRequest(req as OneUptimeRequest),
-            );
-          }
-
-          // Redirect back to dashboard with installation ID
-          const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
-
-          return Response.redirect(req, res, URL.fromString(redirectUrl));
-        } catch (error) {
-          logger.error(
-            "GitHub Auth Callback Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          return Response.sendErrorResponse(
-            req,
-            res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
-          );
-        }
-      },
+          // Back to Code Repositories, which shows the connection was made.
+          data.backToPage({ installation_id: installationId });
+        },
+      }),
     );
 
-    // Initiate GitHub App installation
+    /*
+     * Start connecting a GitHub App installation to the project.
+     *
+     * Returns the GitHub installation URL for the dashboard to navigate to,
+     * for a signed-in member who may add code repositories to the project the
+     * request names (GitHubConnectAccess). Its `state` is a one-use token
+     * recorded for that person and project and bound to this browser
+     * (WorkspaceOAuthState), which is all the callback above trusts.
+     */
     router.get(
-      "/github/auth/install",
+      "/github/install-url",
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           if (!GitHubAppName) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "GitHub App is not configured. Please set GITHUB_APP_NAME.",
-              ),
+            throw new BadDataException(
+              "GitHub App is not configured. Please set GITHUB_APP_NAME.",
             );
           }
 
-          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+          const caller: GitHubConnectCaller =
+            await GitHubConnectAccess.assertMayStart(req);
 
           /*
-           * The state this route signs is what the callback trusts to decide
-           * which project gets the installation, so it must only ever be
-           * issued to the logged-in user for a project they belong to. Taking
-           * the user id from a query parameter — as this route used to — let
-           * anyone mint a valid state for any (project, user) pair without
-           * even holding a session.
+           * GitHub addresses an app by its slug, not its display name: an app
+           * named "OneUptime Test" lives at /apps/oneuptime-test, and
+           * /apps/OneUptime%20Test is a 404. GITHUB_APP_NAME holds the display
+           * name, so the slug is read from GitHub (cached), with the name
+           * slugified the way GitHub does it when GitHub cannot be asked.
            */
-          if (!oneuptimeRequest.userAuthorization) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthenticatedException(
-                "Authentication is required to install the GitHub App.",
-              ),
-            );
-          }
+          const appSlug: string =
+            (await GitHubConversation.getAppSlug()) || GitHubAppName;
 
-          const projectId: string | undefined =
-            req.query["projectId"]?.toString();
-
-          if (!projectId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
-
-          const userId: string =
-            oneuptimeRequest.userAuthorization.userId.toString();
-
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              new ObjectID(userId),
-              new ObjectID(projectId),
-            );
-
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
-          }
-
-          /*
-           * Redirect to GitHub App installation page
-           * The state parameter is a signed JWT to prevent tampering
-           * It expires in 1 hour to limit the window for replay attacks
-           */
-          const state: string = JSONWebToken.signJsonPayload(
-            { projectId, userId },
-            3600, // 1 hour expiry
-          );
-
-          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
-          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-
-          return Response.redirect(req, res, URL.fromString(installUrl));
-        } catch (error) {
-          logger.error(
-            "GitHub Install Redirect Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          return Response.sendErrorResponse(
+          const { state } = await WorkspaceOAuthState.create({
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
-          );
+            flow: WorkspaceOAuthFlow.GitHubAppInstall,
+            projectId: caller.projectId,
+            userId: caller.userId,
+          });
+
+          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
+          const installUrl: string = `https://github.com/apps/${encodeURIComponent(
+            appSlug,
+          )}/installations/new?state=${encodeURIComponent(
+            state,
+          )}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            installUrl: installUrl,
+          });
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
+        }
+      },
+    );
+
+    /*
+     * Start connecting an installation of the app that already exists - on
+     * an account it was installed on before, for another project or straight
+     * from GitHub. Installing again is no way to do it: GitHub shows the
+     * existing installation's settings instead, and sends nobody back from
+     * them.
+     *
+     * Returns GitHub's sign-in URL instead, with the same one-use state as
+     * install-url, for the same people (GitHubConnectAccess). Signing in comes
+     * back to the callback above with a code, which tells OneUptime the
+     * installations that GitHub account administers.
+     */
+    router.get(
+      "/github/connect-existing-url",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          if (!GitHubAppClientId || !GitHubAppClientSecret) {
+            throw new BadDataException(
+              "GitHub App is not configured. Please set GITHUB_APP_CLIENT_ID and GITHUB_APP_CLIENT_SECRET.",
+            );
+          }
+
+          const caller: GitHubConnectCaller =
+            await GitHubConnectAccess.assertMayStart(req);
+
+          const { state } = await WorkspaceOAuthState.create({
+            req,
+            res,
+            flow: WorkspaceOAuthFlow.GitHubAppConnectExisting,
+            projectId: caller.projectId,
+            userId: caller.userId,
+          });
+
+          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
+          const authorizeUrl: string = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(
+            GitHubAppClientId,
+          )}&state=${encodeURIComponent(
+            state,
+          )}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            authorizeUrl: authorizeUrl,
+          });
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
+        }
+      },
+    );
+
+    /*
+     * The installations a sign-in found, for Code Repositories to offer when
+     * there is more than one (`?choice=` is the token the callback sent the
+     * browser back with). Read, not spent: picking one goes back through the
+     * callback, which spends it and connects only an installation it offers.
+     * Answered only for the person and project it was recorded for, in the
+     * browser it was recorded in.
+     */
+    router.get(
+      "/github/installation-choices",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const caller: GitHubConnectCaller =
+            await GitHubConnectAccess.assertMayStart(req);
+
+          const record: WorkspaceOAuthStateRecord | null =
+            await WorkspaceOAuthState.peek({
+              req,
+              state: req.query["choice"]?.toString(),
+              flows: [WorkspaceOAuthFlow.GitHubAppChooseInstallation],
+            });
+
+          if (
+            !record ||
+            record.projectId.toString() !== caller.projectId.toString() ||
+            record.userId.toString() !== caller.userId.toString()
+          ) {
+            throw new BadDataException(
+              "This choice of GitHub installations has expired. Please connect again.",
+            );
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            installations: GitHubAPI.readOfferedInstallations(
+              record,
+            ) as unknown as JSONArray,
+          });
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
         }
       },
     );

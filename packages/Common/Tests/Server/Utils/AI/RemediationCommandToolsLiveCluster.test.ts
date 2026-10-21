@@ -34,6 +34,18 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+
+/*
+ * Who declares a kubectl change's object is read through the cluster too
+ * (GitOpsInspector: GitOpsInspector.test.ts and
+ * RemediationCommandToolsGitOps.test.ts cover it); these tests count only
+ * the changes themselves.
+ */
+beforeEach(() => {
+  jest.spyOn(GitOpsInspector, "inspectCommand").mockResolvedValue(null);
+  jest.spyOn(GitOpsInspector, "captureRevertWatch").mockResolvedValue(null);
+});
 
 /*
  * Contract under test — what an unattended (FullAuto) run checks right
@@ -103,6 +115,8 @@ function cluster(
       posture: { inCluster: true, allowWrites: true },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -351,29 +365,33 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
     expect(enqueueKubectl).toHaveBeenCalledTimes(1);
   });
 
-  it("refuses when the project's AI switches went off (the status folds them into readiness)", async () => {
+  it("refuses when the project's Enable AI switch went off (the status folds it into readiness)", async () => {
     liveStatus.mockResolvedValue(
       cluster({
+        isInvestigationReady: false,
         isRemediationReady: false,
         gaps: [
           {
-            code: "project_ai_command_execution_disabled",
-            title: "AI command execution is off for this project",
-            description: "",
-            nextStep: "",
-            blocks: "remediation",
+            code: "project_ai_disabled",
+            title: "AI is disabled for this project",
+            description: "OneUptime AI is switched off at the project level.",
+            nextStep: "Enable AI under Project Settings → AI → AI Features.",
+            blocks: "both",
           },
         ],
       }),
     );
-    const toolkit: RemediationCommandToolkit = buildToolkit();
+    // A cluster round, which keeps changes a human's click could allow.
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      proposesRefusedCommands: true,
+    });
 
     const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
 
     expectNothingRanOrRecorded(toolkit, outcome);
-    expect(outcome.textForLlm).toContain(
-      "AI command execution is off for this project",
-    );
+    expect(outcome.textForLlm).toContain("AI is disabled for this project");
+    // No click can allow it while AI is off — nothing is kept for a proposal.
+    expect(toolkit.getCommandsNeedingApproval()).toHaveLength(0);
   });
 
   it("refuses — and keeps the change for a proposal — once the cluster was moved to Ask for approval mid-run", async () => {

@@ -13,6 +13,7 @@
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import ComponentID from "Common/Types/Workflow/ComponentID";
 import Queue from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
@@ -59,7 +60,7 @@ const variable: VariableFunction = (params: {
   workflowVariable.content = params.content;
 
   if (params.isSecret !== undefined) {
-    workflowVariable.isSecret = params.isSecret as string;
+    workflowVariable.isSecret = params.isSecret as boolean;
   }
 
   return workflowVariable;
@@ -88,6 +89,9 @@ const prepareQueue: PrepareFunction = (params: {
   const workflowRow: Workflow = new Workflow();
   workflowRow.isEnabled = true;
   workflowRow.projectId = PROJECT_ID;
+  // A live schedule, so the post-add reconcile leaves the repeatable alone.
+  workflowRow.triggerId = ComponentID.Schedule;
+  workflowRow.triggerArguments = { schedule: "0 */6 * * *" };
 
   jest
     .spyOn(WorkflowService as never, "findOneById")

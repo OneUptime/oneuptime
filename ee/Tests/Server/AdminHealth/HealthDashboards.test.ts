@@ -305,9 +305,9 @@ const LOCKED_STATES: Array<EditionState & { message: string }> = [
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
-        EnterpriseFeature.SSO,
         EnterpriseFeature.SCIM,
         EnterpriseFeature.AuditLogs,
+        EnterpriseFeature.TeamCompliance,
       ]);
     },
     message: EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,

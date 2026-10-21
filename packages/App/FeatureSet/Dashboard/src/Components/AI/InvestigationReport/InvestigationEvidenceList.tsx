@@ -8,7 +8,7 @@ import {
   describeClusterEvidenceTool,
   describeClusterToolOutcome,
   getClusterEvidenceNote,
-  isClusterToolName,
+  isLiveInfrastructureToolName,
 } from "../ClusterToolFormat";
 import {
   EvidenceToolDescription,
@@ -43,6 +43,11 @@ import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -80,6 +85,20 @@ type EvidenceRowsState =
   | { status: "loading" }
   | { status: "loaded"; response: InvestigationEvidenceRowsResponse }
   | { status: "error"; message: string };
+
+/*
+ * The list has no frame of its own inside the card, so its dividers stay at
+ * the width of the text, like every other rule on the card. What happens
+ * behind a row (its hover, and the highlight a citation chip gives it)
+ * reaches 12px past the text on both sides, so the badge and the count are
+ * never pressed against its edge. The highlight is a pseudo-element for
+ * that reason: the row, and the divider above it, never move.
+ */
+export const EVIDENCE_ROW_CLASS_NAME: string =
+  "relative isolate scroll-mt-32 before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:transition-colors before:duration-300 before:content-['']";
+
+export const EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME: string =
+  "before:bg-indigo-50/70 before:ring-2 before:ring-inset before:ring-indigo-500";
 
 const CITATION_BADGE_CLASS_NAME: string =
   "inline-flex h-5 min-w-[2.25rem] flex-shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums";
@@ -170,6 +189,7 @@ function prefersReducedMotion(): boolean {
 const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const idPrefix: string = useId();
   const contextKey: string = `${props.subjectType}:${props.subjectId}:${props.runId || ""}`;
   const [expandedCitationIds, setExpandedCitationIds] = useState<Array<string>>(
@@ -499,9 +519,9 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   const getRowClassName: (citationId: string) => string = (
     citationId: string,
   ): string => {
-    return `scroll-mt-32 transition-colors duration-300 ${
+    return `${EVIDENCE_ROW_CLASS_NAME} ${
       highlightedCitationId === citationId
-        ? "bg-indigo-50/70 ring-2 ring-inset ring-indigo-400"
+        ? EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME
         : ""
     }`;
   };
@@ -513,7 +533,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   return (
     <ul
       role="list"
-      aria-label="Evidence checked"
+      aria-label={translator.translateText("Evidence checked")}
       className="divide-y divide-gray-100"
     >
       {hasItems
@@ -530,7 +550,11 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
              * or returned an error (0); a cluster listing counts clusters.
              */
             const clusterOutcome: ClusterToolOutcome | null =
-              describeClusterToolOutcome(item.toolName, item.rowCount);
+              describeClusterToolOutcome(
+                item.toolName,
+                item.rowCount,
+                translator,
+              );
             const isOutcomeError: boolean = clusterOutcome?.isError === true;
             const icon: IconProp = item.target
               ? targetTypeToIcon[item.target.type] || tool.icon
@@ -564,7 +588,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   }}
                   aria-expanded={isExpanded}
                   aria-controls={detailsId}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
+                  className="-mx-3 flex w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
                   onClick={() => {
                     if (isExpanded) {
                       collapse(item.citationId);
@@ -581,7 +605,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   >
                     {item.citationId}
                   </span>
-                  <span className="hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
+                  <span className="max-sm:hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
                     <Icon icon={icon} className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -592,7 +616,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                       {displayLabel}
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {tool.description}
+                      {translator.translateText(tool.description)}
                       {executedAt ? ` · ${executedAt}` : ""}
                     </span>
                   </span>
@@ -616,9 +640,12 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                 <div
                   id={detailsId}
                   role="region"
-                  aria-label={`${displayLabel} details`}
+                  aria-label={translator.translateTemplate(
+                    "{{label}} details",
+                    { label: displayLabel },
+                  )}
                   hidden={!isExpanded}
-                  className="border-t border-gray-100 bg-gray-50/60 px-4 py-4 sm:px-5"
+                  className="pb-4 pt-1 sm:pl-12"
                 >
                   {isExpanded ? (
                     <EvidenceDetails
@@ -657,7 +684,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                       : undefined
                   }
                   tabIndex={-1}
-                  className={`flex items-center gap-3 px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5 ${getRowClassName(entry.citationId)}`}
+                  className={`flex items-center gap-3 py-3 focus:outline-none focus-visible:before:ring-2 focus-visible:before:ring-inset focus-visible:before:ring-indigo-500 ${getRowClassName(entry.citationId)}`}
                 >
                   <span
                     className={getCitationBadgeClassName(
@@ -698,6 +725,7 @@ interface EvidenceDetailsProps {
 const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   props: EvidenceDetailsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const item: InvestigationEvidenceItem = props.item;
   const argumentsRows: Array<FormattedEvidenceArgument> =
     formatEvidenceArguments(item.toolName, item.queryArguments);
@@ -705,9 +733,15 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   const took: string | undefined = formatEvidenceDuration(item.durationInMs);
   const targetRoute: Route | undefined = getRouteForCitationTarget(item.target);
   const detailRows: Array<FormattedEvidenceArgument> = [...argumentsRows];
-  // A kubectl command is run, not queried, and has no rows to load.
-  const isClusterTool: boolean = isClusterToolName(item.toolName);
-  const clusterNote: string | null = getClusterEvidenceNote(item.toolName);
+  /*
+   * A kubectl command is run, not queried, and has no rows to load.
+   * Infrastructure commands (through a resource's AI agent) likewise.
+   */
+  const isClusterTool: boolean = isLiveInfrastructureToolName(item.toolName);
+  const clusterNote: string | null = getClusterEvidenceNote(
+    item.toolName,
+    translator,
+  );
 
   if (ranAt) {
     detailRows.push({ key: "ranAt", label: "Ran at", value: ranAt });
@@ -721,24 +755,28 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
     <div className="space-y-4">
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {isClusterTool ? "What was run" : "What was queried"}
+          {translator.translateText(
+            isClusterTool ? "What was run" : "What was queried",
+          )}
         </h4>
         {argumentsRows.length === 0 ? (
           <p className="mt-1 text-xs text-gray-500">
-            No filters — the query ran with its defaults.
+            {translator.translateText(
+              "No filters — the query ran with its defaults.",
+            )}
           </p>
         ) : (
           <></>
         )}
-        <dl className="mt-2 divide-y divide-gray-100 rounded-lg bg-white px-3 ring-1 ring-inset ring-gray-200">
+        <dl className="mt-1">
           {detailRows.map((row: FormattedEvidenceArgument): ReactElement => {
             return (
               <div
                 key={row.key}
-                className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-3 sm:gap-3"
+                className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3"
               >
                 <dt className="text-xs font-medium text-gray-500">
-                  {row.label}
+                  {translator.translateText(row.label)}
                 </dt>
                 <dd className="min-w-0 break-words text-sm text-gray-900 sm:col-span-2">
                   {row.value}
@@ -746,8 +784,10 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
               </div>
             );
           })}
-          <div className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-3 sm:gap-3">
-            <dt className="text-xs font-medium text-gray-500">Tool</dt>
+          <div className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3">
+            <dt className="text-xs font-medium text-gray-500">
+              {translator.translateText("Tool")}
+            </dt>
             <dd className="min-w-0 break-all font-mono text-xs leading-5 text-gray-700 sm:col-span-2">
               {item.toolName}
             </dd>
@@ -762,7 +802,13 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
             className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-900"
           >
             <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            <span>Open in {describeCitationTargetPage(item.target.type)}</span>
+            <span>
+              {translator.translateTemplate("Open in {{page}}", {
+                page: translatableTerm(
+                  describeCitationTargetPage(item.target.type),
+                ),
+              })}
+            </span>
           </Link>
         </div>
       ) : (
@@ -779,8 +825,9 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
         <p className="text-xs leading-5 text-gray-500">{clusterNote}</p>
       ) : (
         <p className="text-xs leading-5 text-gray-500">
-          This query can&apos;t be re-run from the dashboard, so its rows
-          aren&apos;t available here.
+          {translator.translateText(
+            "This query can't be re-run from the dashboard, so its rows aren't available here.",
+          )}
         </p>
       )}
     </div>
@@ -796,6 +843,7 @@ interface EvidenceRowsProps {
 const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
   props: EvidenceRowsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const state: EvidenceRowsState | undefined = props.rowsState;
   const headingId: string = useId();
   const containerRef: React.RefObject<HTMLDivElement> =
@@ -804,15 +852,13 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
 
   if (!state || state.status === "loading") {
     body = (
-      <div
-        role="status"
-        aria-live="polite"
-        className="space-y-2 rounded-lg bg-white p-3 ring-1 ring-inset ring-gray-200"
-      >
+      <div role="status" aria-live="polite" className="space-y-2 py-1">
         <span className="block h-3 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-3/4 rounded bg-gray-100 motion-safe:animate-pulse" />
-        <span className="sr-only">Loading rows</span>
+        <span className="sr-only">
+          {translator.translateText("Loading rows")}
+        </span>
       </div>
     );
   } else if (state.status === "error") {
@@ -837,7 +883,7 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
           }}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          Try again
+          {translator.translateText("Try again")}
         </button>
       </div>
     );
@@ -857,7 +903,7 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
         id={headingId}
         className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500"
       >
-        Rows
+        {translator.translateText("Rows")}
       </h4>
       {body}
     </div>
@@ -872,15 +918,25 @@ interface LoadedEvidenceRowsProps {
 const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
   props: LoadedEvidenceRowsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const response: InvestigationEvidenceRowsResponse = props.response;
   const investigatedAt: string | null = formatEvidenceDateTime(
     response.investigatedAt || props.item.executedAt,
   );
-  const notice: string = response.isPinnedToInvestigationTime
-    ? "Re-run with your permissions over the same time window the AI used."
-    : `Shows current data with your permissions — it may differ from what the AI saw${
-        investigatedAt ? ` at ${investigatedAt}` : ""
-      }.`;
+  let notice: string = translator.translateText(
+    "Shows current data with your permissions — it may differ from what the AI saw.",
+  ) as string;
+
+  if (response.isPinnedToInvestigationTime) {
+    notice = translator.translateText(
+      "Re-run with your permissions over the same time window the AI used.",
+    ) as string;
+  } else if (investigatedAt) {
+    notice = translator.translateTemplate(
+      "Shows current data with your permissions — it may differ from what the AI saw at {{time}}.",
+      { time: investigatedAt },
+    );
+  }
   let content: ReactElement;
 
   if (response.rowCount === 0) {
@@ -894,15 +950,17 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
     );
 
     content = emptyRowsMessage ? (
-      <div className="rounded-lg bg-white px-3 py-3 ring-1 ring-inset ring-gray-200">
-        <p className="text-sm font-medium text-gray-700">No rows returned.</p>
+      <div>
+        <p className="text-sm font-medium text-gray-700">
+          {translator.translateText("No rows returned.")}
+        </p>
         <p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-line break-words text-xs leading-5 text-gray-500">
           {emptyRowsMessage}
         </p>
       </div>
     ) : (
-      <p className="rounded-lg bg-white px-3 py-4 text-center text-sm text-gray-500 ring-1 ring-inset ring-gray-200">
-        No rows returned.
+      <p className="text-sm text-gray-500">
+        {translator.translateText("No rows returned.")}
       </p>
     );
   } else if (response.widget) {
@@ -915,8 +973,8 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
     );
   } else {
     content = (
-      <p className="rounded-lg bg-white px-3 py-4 text-center text-sm text-gray-500 ring-1 ring-inset ring-gray-200">
-        No rows returned.
+      <p className="text-sm text-gray-500">
+        {translator.translateText("No rows returned.")}
       </p>
     );
   }
@@ -936,7 +994,9 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
       </div>
       {response.isTruncated && response.rowCount > 0 ? (
         <p className="text-xs text-gray-500">
-          The result was long, so only part of it is shown.
+          {translator.translateText(
+            "The result was long, so only part of it is shown.",
+          )}
         </p>
       ) : (
         <></>

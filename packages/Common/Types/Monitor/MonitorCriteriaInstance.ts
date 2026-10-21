@@ -18,7 +18,8 @@ import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
 import IncidentGroupingConfig, {
   IncidentGroupingConfigSchema,
 } from "./IncomingMonitor/IncidentGroupingConfig";
-import MonitorType from "./MonitorType";
+import MonitorType, { MonitorTypeHelper } from "./MonitorType";
+import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
@@ -40,10 +41,40 @@ export interface MonitorCriteriaInstanceType {
    * Grafana alert name) instead of a single active incident per criteria.
    */
   incidentGrouping?: IncidentGroupingConfig | undefined;
+  /**
+   * Incoming Email monitors only: every email that matches this criteria
+   * opens an incident (and an alert) of its own, even while earlier ones
+   * are open, instead of one at a time. A reply is added as a note to what
+   * its thread opened while that is open (once it is resolved, a reply opens
+   * its own), the same email delivered twice opens one, and automatic
+   * replies open none (IncomingEmailOpenForEveryEmail).
+   */
+  openForEveryEmail?: boolean | undefined;
   id: string;
 }
 
+/*
+ * The criteria fromJSON gave an id because the JSON had none. A caller that
+ * writes criteria without ids - the Terraform provider, or any API client -
+ * gets a fresh id on every parse, so on an update that id says nothing about
+ * which stored criteria this one is. MonitorStepsIdentityUtil reads this to
+ * hand such a criteria the stored criteria's id instead. A WeakSet, so the
+ * mark costs nothing, never reaches JSON, and a copy of the criteria (which
+ * no longer came from a parse) counts as carrying a real id.
+ */
+const criteriaWithIdGeneratedOnParse: WeakSet<MonitorCriteriaInstance> =
+  new WeakSet<MonitorCriteriaInstance>();
+
 export default class MonitorCriteriaInstance extends DatabaseProperty {
+  /*
+   * Whether this criteria's id was made up by fromJSON rather than sent.
+   */
+  public static isIdGeneratedOnParse(
+    criteria: MonitorCriteriaInstance,
+  ): boolean {
+    return criteriaWithIdGeneratedOnParse.has(criteria);
+  }
+
   /*
    * Keyword the out-of-the-box criteria for the two incoming monitor types
    * (Incoming Request and Incoming Email) look for in the payload body.
@@ -56,6 +87,47 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    * Email Received criteria by hand.
    */
   public static readonly DEFAULT_INCOMING_BODY_ERROR_KEYWORD: string = "error";
+
+  /*
+   * The HTTP status codes a new Website or API monitor counts as up: every
+   * 2xx and 3xx, i.e. from DEFAULT_HEALTHY_STATUS_CODE_FROM up to, but not
+   * including, DEFAULT_HEALTHY_STATUS_CODE_BELOW.
+   *
+   * The probe reports any answer at all as "online", so the status code is
+   * what tells a healthy endpoint from a failing one. The defaults used to
+   * demand exactly 200, which opened an incident the moment a monitor was
+   * created on a health check that answers 201 or 204, or on a redirect
+   * watched with "Do not follow redirects" on - none of which is an outage.
+   * 4xx and 5xx are still offline.
+   */
+  public static readonly DEFAULT_HEALTHY_STATUS_CODE_FROM: number = 200;
+  public static readonly DEFAULT_HEALTHY_STATUS_CODE_BELOW: number = 400;
+
+  /*
+   * How many days before expiry a new SSL Certificate monitor, and a new
+   * Domain monitor, raise their "expires soon" alert.
+   *
+   * Certificates get two weeks: renewal is automated almost everywhere
+   * (Let's Encrypt renews with a third of the lifetime left, and lifetimes
+   * are shrinking towards 47 days), so a certificate inside its last 14 days
+   * is one whose renewal has failed, and 14 days is still time to fix it by
+   * hand. Domains get 30: a registration is renewed once a year through a
+   * registrar, often with a payment or a contact check in the way, and a
+   * lapsed domain takes the website and its email down with it.
+   */
+  public static readonly DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 14;
+  public static readonly DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS: number = 30;
+
+  /*
+   * When a new AI / LLM monitor says the AI is answering badly: more than
+   * DEFAULT_LLM_BAD_ANSWER_PERCENT of its answers in the window were bad,
+   * and at least DEFAULT_LLM_MIN_BAD_ANSWERS of them. The share is what
+   * matters for an AI that answers thousands of times an hour - a few
+   * refusals are normal there - and the floor keeps one bad answer out of
+   * two from paging anyone at 3 a.m.
+   */
+  public static readonly DEFAULT_LLM_BAD_ANSWER_PERCENT: number = 5;
+  public static readonly DEFAULT_LLM_MIN_BAD_ANSWERS: number = 3;
 
   public data: MonitorCriteriaInstanceType | undefined = undefined;
 
@@ -88,36 +160,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       name: "",
       description: "",
     };
-  }
-
-  /*
-   * The monitor types whose criteria MonitorCriteriaEvaluator hands to
-   * MetricMonitorCriteria. That evaluator reads exactly one thing -
-   * CheckOn.MetricValue - so these types share a single pair of defaults:
-   * a metric that is reporting a value means online, a metric that has
-   * gone to zero means offline.
-   *
-   * Kept in step with the routing list in MonitorCriteriaEvaluator and
-   * with the check-on narrowing in the dashboard's CriteriaFilter util,
-   * which offers these types the metric value and nothing else. A type
-   * missing here falls through to `new MonitorCriteriaInstance()` and
-   * ships an unnamed criteria whose "Is Online" filter no evaluator on
-   * this path reads - a rule that can never fire and cannot be saved,
-   * since getValidationError requires a name and a description.
-   */
-  public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
-    return (
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.IoTDevice
-    );
   }
 
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
@@ -177,6 +219,45 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
         description: `This criteria checks if the email body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Llm) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * The complement of the offline default below, so every check lands
+       * on one of the two: a share of bad answers at or under the limit, or
+       * fewer bad answers than the floor, is healthy. A window with no
+       * answers at all is healthy too (0%) - quiet is not broken; "the AI
+       * stopped answering" is a criteria on AI Answers of its own.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: "AI answers are fine",
+        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts were bad`,
       };
 
       return monitorCriteriaInstance;
@@ -269,7 +350,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    /*
+     * The metric-backed types: MonitorCriteriaEvaluator hands their criteria
+     * to MetricMonitorCriteria, which reads exactly one thing -
+     * CheckOn.MetricValue - so they share one pair of defaults: a metric
+     * that is reporting a value means online, a metric that has gone to zero
+     * means offline. A type missing from the list would fall through to
+     * `new MonitorCriteriaInstance()` and ship an unnamed criteria whose
+     * "Is Online" filter no evaluator on this path reads - a rule that can
+     * never fire and cannot be saved, since getValidationError requires a
+     * name.
+     */
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -380,8 +472,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: `Check if ${arg.monitorName} certificate is valid`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid`,
       };
 
       return monitorCriteriaInstance;
@@ -478,11 +570,25 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         arg.monitorType === MonitorType.Website ||
         arg.monitorType === MonitorType.API
       ) {
-        monitorCriteriaInstance.data.filters.push({
-          checkOn: CheckOn.ResponseStatusCode,
-          filterType: FilterType.EqualTo,
-          value: 200,
-        });
+        /*
+         * Up means answering with any 2xx or 3xx status, not exactly 200:
+         * see DEFAULT_HEALTHY_STATUS_CODE_FROM. The offline criteria is the
+         * exact complement, so every answer lands in one of the two.
+         */
+        monitorCriteriaInstance.data.filters.push(
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_FROM,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_BELOW,
+          },
+        );
+
+        monitorCriteriaInstance.data.description = `This criteria checks if the ${arg.monitorName} is online and responds with a 2xx or 3xx status code`;
       }
 
       return monitorCriteriaInstance;
@@ -663,6 +769,50 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.NTP) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * Up means serving good time, not merely answering: the server replied,
+       * at stratum 1 to 15 without the leap alarm, and its clock is within
+       * DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS of the probe's. The offline
+       * criteria is the exact complement, so every check lands in one of the
+       * two.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.LessThan,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} serves good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server answers, is synchronized, and its clock is within ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms of the probe's`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -690,6 +840,156 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} is operational`,
         description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    /*
+     * Online while every probe the monitor watches is connected: the exact
+     * complement of the offline default below, so every evaluation lands on
+     * one of the two.
+     */
+    if (arg.monitorType === MonitorType.ProbeStatus) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if every probe is connected`,
+        /*
+         * "this monitor", not its name: "every probe Probe health watches"
+         * reads as a typo, and a renamed monitor would keep the old name.
+         */
+        description: `This criteria checks if every probe this monitor watches is connected`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    return null;
+  }
+
+  /*
+   * The "expires soon" criteria a new SSL Certificate or Domain monitor
+   * starts with, or null for every other monitor type.
+   *
+   * It is a heads-up, not an outage. It raises an alert, not an incident:
+   * nothing shows on a status page and nobody is paged unless an on-call
+   * policy is added to it. It leaves the monitor's status alone, because
+   * the certificate or the registration still works, so a monitor that was
+   * Operational stays Operational. The alert resolves itself once the
+   * renewal is picked up, because the online criteria then matches instead.
+   *
+   * MonitorCriteria.getDefaultMonitorCriteria places it between the offline
+   * and the online criteria. Only the first criteria that matches is acted
+   * on (MonitorCriteriaEvaluator.processMonitorStep), and a certificate
+   * that is valid but about to expire matches the online criteria too, so
+   * the warning has to be looked at first. Each one also requires a still
+   * valid certificate, or a registration that has not yet expired, so that
+   * it never claims an expired one even if the criteria are reordered.
+   *
+   * alertSeverityId should be the project's "warning" alert severity (the
+   * second one, see MonitorRecommendationSeverityMapper), not its most
+   * severe one: on a new project that is "Low" rather than "High".
+   */
+  public static getDefaultWarningMonitorCriteriaInstance(arg: {
+    monitorType: MonitorType;
+    alertSeverityId: ObjectID;
+    monitorName: string;
+  }): MonitorCriteriaInstance | null {
+    if (arg.monitorType === MonitorType.SSLCertificate) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.IsValidCertificate,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.ExpiresInDays,
+            filterType: FilterType.LessThanOrEqualTo,
+            value:
+              MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} certificate expires soon`,
+            description: `The SSL certificate of ${arg.monitorName} expires soon. Renew it before it expires, so visitors do not see a certificate error.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: true,
+        name: `Check if ${arg.monitorName} certificate expires soon`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid but expires in ${MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS} days or less`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Domain) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DomainIsExpired,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.DomainExpiresDaysIn,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} domain expires soon`,
+            description: `The registration of ${arg.monitorName} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: true,
+        name: `Check if ${arg.monitorName} domain expires soon`,
+        description: `This criteria checks if the ${arg.monitorName} domain registration expires in ${MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS} days or less`,
       };
 
       return monitorCriteriaInstance;
@@ -1009,6 +1309,62 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
+    if (arg.monitorType === MonitorType.NTP) {
+      /*
+       * Named for the outcome rather than "is offline": a server that
+       * answers with stratum 16, or two seconds off, is up and still breaks
+       * every clock that follows it. The incident's root cause says which of
+       * the three it was.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} is not serving good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server does not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's`,
+      };
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
@@ -1078,6 +1434,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       arg.monitorType === MonitorType.API ||
       arg.monitorType === MonitorType.Website
     ) {
+      /*
+       * Offline means unreachable, or answering with a status outside
+       * 2xx-3xx: the exact complement of the online criteria, see
+       * DEFAULT_HEALTHY_STATUS_CODE_FROM. It used to fire on anything but
+       * 200, so a 201, 204 or 301 opened an incident.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -1090,14 +1452,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
           {
             checkOn: CheckOn.ResponseStatusCode,
-            filterType: FilterType.NotEqualTo,
-            value: 200,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_BELOW,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_FROM,
           },
         ],
         alerts: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1108,7 +1475,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1118,7 +1485,57 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline or responds with an error status code`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.Llm) {
+      /*
+       * An alert, not an incident: answers going wrong is a quality
+       * problem worth a look, rarely an outage. Teams that want to page on
+       * it switch incidents on in the criteria.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.GreaterThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName}: too many bad AI answers`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName}: too many bad AI answers`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: true,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: "Too many bad AI answers",
+        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
       };
     }
 
@@ -1233,7 +1650,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -1502,14 +1919,21 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (arg.monitorType === MonitorType.SSLCertificate) {
+      /*
+       * Named for what went wrong. "Is Not A Valid Certificate" covers an
+       * expired, self-signed or otherwise untrusted certificate, and one
+       * that could not be checked because the endpoint did not answer - the
+       * incident's root cause says which. "<name> is offline" described none
+       * of them.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: `${arg.monitorName} certificate is not valid`,
+            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1526,8 +1950,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: `${arg.monitorName} certificate is not valid`,
+            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1536,13 +1960,74 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: `Check if ${arg.monitorName} certificate is not valid`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is not valid or could not be checked`,
+      };
+    }
+
+    /*
+     * One incident for a probe outage, however many monitors the probe
+     * runs, resolved by itself once every probe is back (issue #2733). The
+     * title names the probes ({{disconnectedProbeNames}}, see
+     * MonitorTemplateUtil): "Probe disconnected: EU Probe" is what the person
+     * paged needs, where "<monitor> is offline" would only name the watcher.
+     */
+    if (arg.monitorType === MonitorType.ProbeStatus) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidents: [
+          {
+            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if a probe is disconnected`,
+        description: `This criteria checks if any probe this monitor watches is disconnected`,
       };
     }
 
     return monitorCriteriaInstance;
   }
+
+  // The title of the incident and alert a Probe Status monitor opens by default.
+  public static readonly PROBE_DISCONNECTED_TITLE: string =
+    "Probe disconnected: {{disconnectedProbeNames}}";
+
+  /*
+   * What a Probe Status monitor's default incident and alert say. The first
+   * line names the probes ({{probeStatusSummary}}); the rest is what it
+   * means, what it costs and what happens next, so the person paged knows
+   * without reading the docs. It names no monitor: the incident is the
+   * monitor's own, and a renamed monitor would keep its old name here.
+   */
+  public static readonly PROBE_DISCONNECTED_DESCRIPTION: string =
+    "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.";
 
   public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
     return {
@@ -1572,16 +2057,24 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return `Monitor Step is required.`;
     }
 
+    /*
+     * The name is what the incidents and alerts a criteria opens say
+     * triggered them, so every criteria needs one. Nobody has to make one
+     * up: the criteria form names a criteria after its filters until the
+     * user types their own. Checked first, so the messages below always
+     * have a name to quote.
+     *
+     * The description is not checked. Nothing reads it but the dashboard,
+     * which shows it under the name when there is one, and Terraform has
+     * always treated it as optional; demanding it here stopped every new
+     * criteria at a field nobody needs.
+     */
+    if (!value.data.name?.trim()) {
+      return `Name is required for every criteria.`;
+    }
+
     if (value.data.filters.length === 0) {
       return `Filter is required for criteria "${value.data.name}"`;
-    }
-
-    if (!value.data.name) {
-      return `Name is required for criteria "${value.data.name}"`;
-    }
-
-    if (!value.data.description) {
-      return `Description is required for criteria "${value.data.name}"`;
     }
 
     /*
@@ -1807,6 +2300,32 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setOpenForEveryEmail(
+    openForEveryEmail: boolean | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.openForEveryEmail = openForEveryEmail;
+    }
+
+    return this;
+  }
+
+  /*
+   * Whether this criteria opens an incident and an alert for every email
+   * that matches it: on an Incoming Email monitor, with the switch on. The
+   * switch means nothing on any other monitor, and a criteria copied there
+   * with it on is read as off.
+   */
+  public static isOpenForEveryEmail(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance | null | undefined;
+  }): boolean {
+    return (
+      input.monitorType === MonitorType.IncomingEmail &&
+      input.criteriaInstance?.data?.openForEveryEmail === true
+    );
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -1826,6 +2345,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
         incidentGrouping: this.data.incidentGrouping,
+        /*
+         * Written only when it was set, so a criteria without it - every one
+         * saved before it existed - reads and writes as it did. A false the
+         * API was sent is kept, so the Terraform provider reads back what it
+         * wrote.
+         */
+        ...(typeof this.data.openForEveryEmail === "boolean"
+          ? { openForEveryEmail: this.data.openForEveryEmail }
+          : {}),
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -1926,8 +2454,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
+    const sentId: string = (json["id"] as string) || "";
+
+    if (!sentId) {
+      criteriaWithIdGeneratedOnParse.add(monitorCriteriaInstance);
+    }
+
     monitorCriteriaInstance.data = JSONFunctions.deserialize({
-      id: (json["id"] as string) || ObjectID.generate().toString(),
+      id: sentId || ObjectID.generate().toString(),
       monitorStatusId,
       filterCondition,
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,
@@ -1936,6 +2470,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
       incidentGrouping: (json["incidentGrouping"] as any) || undefined,
+      /*
+       * A boolean, as sent; anything else is not set at all. Only `true`
+       * turns it on (isOpenForEveryEmail).
+       */
+      ...(typeof json["openForEveryEmail"] === "boolean"
+        ? { openForEveryEmail: json["openForEveryEmail"] as boolean }
+        : {}),
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -1957,12 +2498,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: Zod.array(CriteriaIncidentSchema),
         alerts: Zod.array(CriteriaAlertSchema),
         name: Zod.string(),
-        description: Zod.string(),
+        // Optional: a criteria needs a name, not a description.
+        description: Zod.string().optional(),
         changeMonitorStatus: Zod.boolean().optional(),
         createIncidents: Zod.boolean().optional(),
         createAlerts: Zod.boolean().optional(),
         isEnabled: Zod.boolean().optional(),
         incidentGrouping: IncidentGroupingConfigSchema.optional(),
+        openForEveryEmail: Zod.boolean().optional(),
       }).openapi({
         type: "object",
         example: {

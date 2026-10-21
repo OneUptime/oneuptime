@@ -6,6 +6,7 @@ import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Make a per-series alert or incident say WHICH pod, container, node or
  * mount it is about.
@@ -158,7 +159,12 @@ export default class SeriesContextEnricher {
       return [];
     }
 
-    const text: string = input.text || "";
+    /*
+     * The text as it reads: a description places a label's value with the
+     * invisible word joiners that keep it from being read as Markdown
+     * (MonitorTemplateUtil.buildMarkdownStorageMap), and is still naming it.
+     */
+    const text: string = FeedMarkdown.withoutInvisibleBreaks(input.text);
 
     return labels.filter((label: DisplaySeriesLabel) => {
       return !SeriesContextEnricher.isValueMentioned({ text, label });

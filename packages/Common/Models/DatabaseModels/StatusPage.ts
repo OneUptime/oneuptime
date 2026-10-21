@@ -45,6 +45,7 @@ import {
 } from "typeorm";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageReportPeriodType from "../../Types/StatusPage/StatusPageReportPeriodType";
+import StatusPageTheme from "../../Types/StatusPage/StatusPageTheme";
 import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageLanguage";
 
 @OperationalResource()
@@ -97,6 +98,12 @@ import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageL
 @EnableAuditLog()
 @CrudApiEndpoint(new Route("/status-page"))
 @SlugifyColumn("name", "slug")
+/*
+ * Every list of this resource pins `isArchived` inside a project (the
+ * main list hides archived rows, the Archived page shows only them), so
+ * the pair is indexed together, like every other archivable resource.
+ */
+@Index(["projectId", "isArchived"])
 @Entity({
   name: "StatusPage",
 })
@@ -627,6 +634,155 @@ export default class StatusPage extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
+  /*
+   * Archiving takes a status page offline without deleting it, its
+   * subscribers or its history: it leaves the Status Pages list, every
+   * public route answers "Status Page not found", and subscribers are
+   * sent nothing (StatusPageService.hasReadAccess and
+   * StatusPageSubscriberService.getStatusPagesToSendNotification).
+   *
+   * No dedicated permission: archiving is an update, so it is gated by Edit.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description:
+      "Archived status pages are hidden from the Status Pages list, are not served to visitors, and send nothing to their subscribers. Unarchiving puts them back online.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.sanitizeCreateOrUpdate), which is why these are read-only
+   * to the client: "who archived this and when" cannot be spoofed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description:
+      "When this status page was archived. Empty while it is not archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
+
   //// Branding Files.
 
   @ColumnAccessControl({
@@ -938,7 +1094,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public headerHTML?: string = undefined;
 
@@ -984,7 +1140,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public footerHTML?: string = undefined;
 
@@ -1030,7 +1186,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public customCSS?: string = undefined;
 
@@ -1076,7 +1232,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public customJavaScript?: string = undefined;
 
@@ -1122,7 +1278,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public isPublicStatusPage?: boolean = undefined;
 
@@ -1326,7 +1482,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showIncidentLabelsOnStatusPage?: boolean = undefined;
 
@@ -1372,7 +1528,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
@@ -1459,7 +1615,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public allowSubscribersToChooseResources?: boolean = undefined;
 
@@ -1506,7 +1662,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public allowSubscribersToChooseEventTypes?: boolean = undefined;
 
@@ -1552,7 +1708,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public enableSmsSubscribers?: boolean = undefined;
 
@@ -1598,7 +1754,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public enableSlackSubscribers?: boolean = undefined;
 
@@ -1645,7 +1801,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public enableMicrosoftTeamsSubscribers?: boolean = undefined;
 
@@ -1691,9 +1847,168 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public enableWebhookSubscribers?: boolean = undefined;
+
+  /*
+   * Send Notifications to Subscribers: the one switch for everything this
+   * page tells its subscribers (Types/StatusPage/SubscriberNotificationsSwitch).
+   * The channel switches above decide how visitors sign up, and nothing
+   * else; off, this sends them nothing at all, however an event was
+   * created. Switching it on and off works on every plan: it adds no
+   * feature, it only stops messages.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Send Notifications to Subscribers",
+    description:
+      "Does this status page tell its subscribers anything? Off, it sends them nothing - no message about an incident, an episode, scheduled maintenance or an announcement, and no report - however the event was created. Its subscribers are kept, and the channel switches still decide how visitors can sign up.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public sendSubscriberNotifications?: boolean = undefined;
+
+  /*
+   * Only Private Users Can Subscribe (Types/StatusPage/SubscriberRestrictions):
+   * every subscriber is one of this page's private users, by the email
+   * address they sign in with, and a subscriber whose address is not a
+   * private user of the page now is sent nothing. Read by the status page
+   * itself, which offers a signed-in reader their own address.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+      Permission.Public,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Only Private Users Can Subscribe",
+    description:
+      "Only people who can sign in to this status page can be its subscribers, each with the email address they sign in with: no other address, and no phone, Slack, Microsoft Teams or webhook. A subscriber whose address is not a private user of this page - one removed since, by SCIM or by hand - is sent nothing.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public limitSubscribersToPrivateUsers?: boolean = undefined;
+
+  /*
+   * Allowed Email Domains (Types/StatusPage/SubscriberRestrictions): the
+   * domains an email subscriber may be at, one a line. Not read by the
+   * public status page: a private page's internal domains are its team's.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    required: false,
+    title: "Allowed Email Domains",
+    description:
+      "The domains an email subscriber's address may be at, one a line, such as acme.com. An address at a subdomain of one matches too. Sign-ups and additions at any other domain are refused, and an email subscriber at another domain is sent nothing. Empty: any domain.",
+    example: "acme.com\nacme.de",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public allowedSubscriberEmailDomains?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -1901,7 +2216,75 @@ export default class StatusPage extends BaseModel {
     unique: false,
     default: false,
   })
+  /*
+   * Requiring SSO is single sign-on, which OneUptime Cloud sells on the
+   * Scale plan (StatusPageSso, StatusPageOidc, Project.requireSsoForLogin).
+   * Turning it on - on a create too - needs Scale; turning it off is its
+   * default and works on every plan (Types/Billing/PlanGatedColumnDefault).
+   * A page a Scale trial left requiring SSO keeps requiring it until it is
+   * turned off: sign-in reads the column, never the plan.
+   */
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public requireSsoForLogin?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Sign Readers Out After (Hours)",
+    description:
+      "How long, in hours, a private user stays signed in to this private status page after signing in, however active they are - with a password, SSO or OIDC. When the time is up they sign in again. Applies to readers signed in now too. A whole number from 1 to 8760; empty for no limit, where a reader stays signed in while they open the page at least once every 30 days.",
+    example: 12,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  /*
+   * A ceiling on every private user's session, counted from its sign-in
+   * (Types/StatusPage/PrivateUserSessionLength): with SSO, readers go back
+   * to the identity provider at least this often, so Entra or Okta decides
+   * afresh rather than only at the first sign-in. Session hardening for
+   * single sign-on, sold with it on Scale; no limit - empty, its default -
+   * works on every plan (Types/Billing/PlanGatedColumnDefault).
+   */
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public privateUserSessionLengthInHours?: number = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -2350,7 +2733,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public hidePoweredByOneUptimeBranding?: boolean = undefined;
 
@@ -2398,6 +2781,60 @@ export default class StatusPage extends BaseModel {
     transformer: Color.getDatabaseTransformer(),
   })
   public defaultBarColor?: Color = undefined;
+
+  /*
+   * Light, Dark, or System - light or dark as each visitor's device is set
+   * (Types/StatusPage/StatusPageTheme). The column's default is Light, the
+   * page every status page was before the setting: the migration fills it
+   * in for them, and it is the default the generated Terraform provider
+   * sends, so a Terraform configuration that names no theme keeps its pages
+   * as they are. A page made in the dashboard or through the API with no
+   * theme starts with System instead (StatusPageService.onBeforeCreate).
+   * Free on every plan: it is how the page looks, not what it shows.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Theme",
+    required: false,
+    defaultValue: StatusPageTheme.Light,
+    description:
+      "How the status page looks to visitors: Light, Dark, or System (light or dark, as each visitor's device is set). A status page created without a theme starts with System.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: StatusPageTheme.Light,
+  })
+  public theme?: StatusPageTheme = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -2530,7 +2967,8 @@ export default class StatusPage extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Is Report Enabled",
-    description: "Is Report Enabled for this Status Page?",
+    description:
+      "Whether this status page's email subscribers get reports. Turned on without a schedule, reports go out on the 1st of every month at 09:00 in the report timezone, each covering the calendar month before it.",
     defaultValue: false,
   })
   @Column({
@@ -2540,7 +2978,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public isReportEnabled?: boolean = undefined;
 
@@ -2575,7 +3013,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Report Start Date Time",
-    description: "When would you like to send the first report?",
+    description:
+      "When the first report goes out. Every later one follows it by the recurring interval, at the same time of day. Left out when reports are turned on, it is 09:00 in the report timezone at the start of the next period of the interval: the next 1st of the month for a monthly schedule (the default), the next Monday for a weekly one, the next day for a daily one and the next 1 January for a yearly one. An hourly schedule starts at the next full hour.",
   })
   @Column({
     type: ColumnType.Date,
@@ -2584,7 +3023,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public reportStartDateTime?: Date = undefined;
 
@@ -2619,7 +3058,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     title: "Report Recurring Interval",
-    description: "How often would you like to send the report?",
+    description:
+      "How often a report goes out. Left out when reports are turned on, it is every month.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -2629,7 +3069,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public reportRecurringInterval?: Recurring = undefined;
 
@@ -2664,7 +3104,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Send Next Report By",
-    description: "When should the next report be sent?",
+    description:
+      "When the next report goes out. The server works it out from the schedule.",
   })
   @Index()
   @Column({
@@ -2674,7 +3115,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public sendNextReportBy?: Date = undefined;
 
@@ -2720,7 +3161,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public reportDataInDays?: number = undefined;
 
@@ -2767,7 +3208,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public reportPeriodType?: StatusPageReportPeriodType = undefined;
 
@@ -2814,7 +3255,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public reportTimezone?: Timezone = undefined;
 
@@ -2860,7 +3301,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public showOverallUptimePercentOnStatusPage?: boolean = undefined;
 
@@ -3033,9 +3474,64 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showIncidentsOnStatusPage?: boolean = undefined;
+
+  /*
+   * A page with this on shows, and notifies its subscribers of, only the
+   * incidents scoped to it (Incident.statusPages). Unscoped incidents never
+   * reach it. That matters for a monitor shared by many pages: incidents
+   * created from it by monitor criteria, Slack, Teams, the API or AI carry no
+   * scope, so without this switch they would reach every page within a minute.
+   * With it, none of these pages hears about such an incident until someone
+   * scopes it to them.
+   *
+   * Not plan-gated, unlike showIncidentsOnStatusPage: it only ever narrows
+   * what a page shows.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Only Show Incidents Scoped to This Page",
+    description:
+      "When on, this status page shows and notifies its subscribers about only the incidents limited to it. Incidents that are not limited to any status page never reach it.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: false,
+  })
+  public onlyShowScopedIncidents?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -3080,7 +3576,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showAnnouncementsOnStatusPage?: boolean = undefined;
 
@@ -3127,7 +3623,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showEpisodesOnStatusPage?: boolean = undefined;
 
@@ -3174,7 +3670,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showEpisodeHistoryInDays?: number = undefined;
 
@@ -3221,7 +3717,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showEpisodeLabelsOnStatusPage?: boolean = undefined;
 
@@ -3268,7 +3764,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showScheduledMaintenanceEventsOnStatusPage?: boolean = undefined;
 
@@ -3315,7 +3811,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public showSubscriberPageOnStatusPage?: boolean = undefined;
 
@@ -3362,7 +3858,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public ipWhitelist?: string = undefined;
 
@@ -3410,7 +3906,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public enableEmbeddedOverallStatus?: boolean = undefined;
 
@@ -3454,11 +3950,6 @@ export default class StatusPage extends BaseModel {
     type: ColumnType.Number,
     default: 90,
     nullable: false,
-  })
-  @ColumnBillingAccessControl({
-    read: PlanType.Free,
-    update: PlanType.Free,
-    create: PlanType.Free,
   })
   public showUptimeHistoryInDays?: number = undefined;
 
@@ -3506,7 +3997,7 @@ export default class StatusPage extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public embeddedOverallStatusToken?: string = undefined;
 

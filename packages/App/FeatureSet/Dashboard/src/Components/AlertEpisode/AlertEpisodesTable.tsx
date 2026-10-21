@@ -8,11 +8,13 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -27,6 +29,7 @@ import React, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import { ALERT_EPISODES_DOCS_PATH } from "../EpisodeView/EpisodeDocsLinks";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
@@ -38,6 +41,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -55,10 +59,14 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
   noItemsMessage?: string | undefined;
+  // The page's own words for the empty state. See EmptyStateOptions.
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
@@ -67,6 +75,7 @@ export interface ComponentProps {
 const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
@@ -259,7 +268,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={AlertEpisode}
         id="alert-episodes-table"
-        isDeleteable={false}
+        isDeleteable={true}
         query={props.query || {}}
         isEditable={false}
         isCreateable={false}
@@ -268,7 +277,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           title: props.title || "Alert Episodes",
           description:
             props.description ||
-            "Here is a list of alert episodes for this project.",
+            "Episodes group related alerts so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
           /*
            * Routes to the episode create page rather than the table's built in
            * create modal, so ModelTable's own permission gate never sees this
@@ -285,6 +294,12 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     ),
                   );
                 },
+                /*
+                 * NORMAL + Add is how a list's header picks its main
+                 * button: without a style this one went into the ⋯ menu,
+                 * and the empty list offered no way to create one.
+                 */
+                buttonStyle: ButtonStyleType.NORMAL,
                 icon: IconProp.Add,
               },
               new AlertEpisode(),
@@ -294,7 +309,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             return button !== null;
           }) as Array<CardButtonSchema>,
         }}
-        noItemsMessage={props.noItemsMessage || "No episodes found."}
+        noItemsMessage={props.noItemsMessage}
+        emptyState={props.emptyState}
+        documentationLink={Route.fromString(ALERT_EPISODES_DOCS_PATH)}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
@@ -499,7 +516,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
               if (item["alertGroupingRule"]) {
                 return <span>{item.alertGroupingRule.name || "-"}</span>;
               }
-              return <span>Manual</span>;
+              return <span>{translator.translateText("Manual")}</span>;
             },
           },
           {
@@ -553,16 +570,16 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated."
           stateFieldKey="alertStateId"
-          stateOptions={alertStates.map((state: AlertState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: alertStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Private}
           noteTitle="Private Note"
           noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected."
           noteTemplates={noteTemplates}
+          noteModel={new AlertEpisodeInternalNote()}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);

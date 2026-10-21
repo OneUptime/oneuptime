@@ -18,15 +18,30 @@
  *            Incident #1042, Alert #311 and both episodes. "ongoing" stops
  *            them at Acknowledged, "created" before it.
  *   ?ai=     report (default) | none | queued | running | failed | pending
- *            | legacy
+ *            | legacy | waiting | waiting-viewer
  *            What POST /ai-investigation/{incident,alert} returns for
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
+ *            "waiting" is an investigation rule's wait (issue #5074): no run
+ *            yet, and OneUptime AI investigates 8 minutes from NOW if the
+ *            record is still open (a 10-minute wait). It is answered for
+ *            someone who may change the record, so the card offers
+ *            Investigate now; "waiting-viewer" for someone who may not.
+ *            Investigate now (POST /ai-investigation/investigate-now) starts
+ *            it: the record's next read answers a queued run.
+ *   ?wait=   default | tomorrow | ended (with ?ai=waiting or waiting-viewer)
+ *            When the wait ends: 8 minutes from NOW (default), 23 hours from
+ *            NOW - tomorrow, a day's wait (1440 minutes) - or half a minute
+ *            ago, before the rule-wait job has taken the record.
  *   ?tldr=   default | long
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
  *            enough to wrap and clamp in the event header.
+ *   ?title=  default | long
+ *            "long" gives Alert #311 a 67-character title, wider than the
+ *            room its header leaves beside the actions from 1280px, so the
+ *            title row has to give way somewhere.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -37,11 +52,108 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, resend. The matching API call throws
- *            HTTPErrorResponse. "resend" also marks the subscriber
+ *            investigation, investigate-now, conversation, conversation-send, resend,
+ *            channel-links, channel-members (the channel card's read),
+ *            channel-add (its Join channel and Add people), pass-on-read
+ *            (whether the viewer is paged, for Pass it on), pass-on (passing
+ *            it on). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            the read of the AI card's thread and "conversation-send" a
+ *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
+ *   ?resources= default | many | none
+ *            What Incident #1042 is attached to, for its Affected Resources
+ *            card. "many" adds more monitors and services, two hosts, a
+ *            Kubernetes cluster and an SLO: five categories, one of them
+ *            behind a Show more. "none" leaves Incident #1042 and Scheduled
+ *            Maintenance #58 with nothing attached, for the empty state.
+ *   ?thread= empty (default) | answered | working | approval | error
+ *            | crowded
+ *            What the conversation that closes the AI Investigation card of
+ *            Incident #1042 and Alert #311 holds: nobody has asked,
+ *            two answered questions (one of them the viewer's, with a table,
+ *            an executed action and a source), an answer being written with
+ *            its live steps, an action waiting for approval, a failed and a
+ *            stopped answer, or twelve messages from six people (long enough
+ *            to open folded). Sending, approving and stopping are modelled:
+ *            see "The investigation card's conversation" below.
+ *   ?linked= none (default) | alerts | more | followup
+ *            What the AI investigations read about the infrastructure their
+ *            incident or alert is linked to, as the run's activity records
+ *            it (LinkedInfrastructureContext). "alerts": Incident #1042's
+ *            investigation read 2 open or recent alerts on its five linked
+ *            resources, and Alert #311's found none on its host. "more":
+ *            more alerts matched than the 10 it lists. "followup": alert
+ *            #318 opened on #1042's host after its first analysis, so the
+ *            run on the card is the follow-up check (IncidentFollowUpCheck)
+ *            - its activity starts with why, its report leads with
+ *            "Checked again", and the feed holds both reports.
+ *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
+ *            | not-enough | accepted | dismissed | failed | skipped | two
+ *            | waiting | fetch-stopped | summary | teams-recorded
+ *            | teams-not-recorded
+ *            Incident #1042's video calls (issue #4875). "zoom": a Zoom
+ *            meeting a workspace rule started, no transcript yet; "teams": a
+ *            Microsoft Teams meeting not on a calendar (only Add transcript:
+ *            Microsoft lets no app read it); "teams-recorded": one OneUptime
+ *            put on its organizer's calendar to record it, waiting for its
+ *            transcript (Get from Microsoft Teams); "teams-not-recorded":
+ *            one that could not be put on a calendar, stopped from the
+ *            start with why. The rest are the Zoom meeting with its
+ *            transcript: OneUptime AI reading it, stuck reading it, done with
+ *            a suggested root cause (transcript), done with "not enough was
+ *            said" (not-enough), its suggestion used (accepted) or dismissed,
+ *            a reading that failed, or one skipped because AI is off. "two":
+ *            the Zoom meeting with a suggestion, and an earlier Teams one.
+ *   ?transcriptFetch= found (default) | not-ready | permission
+ *            | not-transcribed
+ *            What Get from Zoom (POST .../transcript/from-provider) answers.
+ *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
+ *            private incident or episode takes no public notes: the
+ *            incident's state change dialogs fold a private note and ask
+ *            nothing about subscribers, and both feeds' Add Public Note is
+ *            locked with why.
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?channels= the record's own Slack / Microsoft Teams channels, as
+ *            GET /workspace-channel-link answers them (the header's Open in
+ *            Slack / Open in Microsoft Teams): a comma list of slack (one
+ *            Slack channel), slack2 (a second one), teams (one Teams
+ *            channel). None by default: no button, and no channel card.
+ *   ?members= who is in those Slack channels, as
+ *            GET /workspace-channel-members answers it for the channel card:
+ *            some (default: Sam, Jordan and Priya, who is in Slack only;
+ *            the viewer is not in it), in (the viewer is), empty (everybody
+ *            left: only the OneUptime app), many (fourteen people), archived,
+ *            unreachable (the app was removed from the private channel),
+ *            not-connected, unavailable, not-found (OneUptime cannot find the
+ *            viewer's Slack account), readonly (the viewer may not edit the
+ *            record) and readonly-public (nor is the channel private).
+ *            POST .../add adds people: Alex Kim is nobody Slack knows (not
+ *            found), and a team adds its people.
+ *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?paged=  the kinds of record an on-call policy is paging the viewer
+ *            about, as GET /on-call-page/pass-on answers it (the header's
+ *            Pass it on): a comma list of incident, alert, incident-episode
+ *            and alert-episode. Nobody is paged by default: no button.
+ *   ?passOn= what passing the page on would do, and did (POST
+ *            /on-call-page/pass-on): next (default; escalation rule 2 of 3,
+ *            Level 2, is paged at once), others (Bob Smith is still paged on
+ *            the rule, and Level 2 is next at 18:40), restart (the last rule:
+ *            the policy starts again from rule 1), stopped (nobody is left
+ *            to page), acknowledged (Sam Lee acknowledged it meanwhile: the
+ *            POST refuses) or two (two policies page the viewer about it).
+ *            Once passed on, the record no longer pages the viewer.
+ *   ?unknown= the people Slack does not know, as POST .../add answers them
+ *            (not found): a comma list of maya, sam, jordan, alex. Alex by
+ *            default.
+ *   ?role=   owner (default) | alert-member | loading
+ *            Who is signed in. "owner" is a master admin who is also the
+ *            Project Owner, so every permission gate is open. "alert-member"
+ *            is not a master admin and holds only Alert Member: it may
+ *            acknowledge and resolve alerts but not create an incident, so
+ *            gated actions show disabled with the reason. "loading" is the
+ *            moment before the permission snapshot arrives (no permissions
+ *            yet), when gated actions are hidden rather than refused.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -72,6 +184,8 @@ import IncidentEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Inc
 import AlertEpisodeViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Layout";
 import AlertEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Index";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import WorkspaceChannelLinkUtil from "Common/Types/Workspace/WorkspaceChannelLink";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -88,11 +202,16 @@ import AlertFeed, {
   AlertFeedEventType,
 } from "Common/Models/DatabaseModels/AlertFeed";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
+import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -107,11 +226,15 @@ import IncidentFeed, {
 } from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
+import IncidentMeasurementValue from "Common/Models/DatabaseModels/IncidentMeasurementValue";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -124,19 +247,25 @@ import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/Schedu
 import ScheduledMaintenanceFeed, {
   ScheduledMaintenanceFeedEventType,
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
+import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
+import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import {
   AIChatCitationTargetType,
+  AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -149,6 +278,7 @@ import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
+import MeasurementAnchorKind from "Common/Types/Measurement/MeasurementAnchorKind";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -161,6 +291,9 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
+import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 
@@ -174,7 +307,34 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
   ? params.get("state")
   : "resolved";
 const aiMode = params.get("ai") || "report";
+/*
+ * ?ai=waiting / waiting-viewer: an investigation rule makes OneUptime AI wait
+ * before it investigates Incident #1042 and Alert #311 (issue #5074). The
+ * records someone started with Investigate now, by id: they read as queued.
+ */
+const isWaitingMode = aiMode === "waiting" || aiMode === "waiting-viewer";
+const waitEndMode = ["tomorrow", "ended"].includes(params.get("wait"))
+  ? params.get("wait")
+  : "default";
+// When the wait ends, in minutes from NOW, and how long the rule waits.
+const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
+  waitEndMode
+];
+const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
+const startedNow = new Set();
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
+const titleMode = params.get("title") === "long" ? "long" : "default";
+/*
+ * ?paged=: whether somebody was paged about incident #1042 and alert #311
+ * (First Paged At), and the project's "Time to acknowledge after paging"
+ * measurement. Absent: neither, as before. `paged`: each was paged a minute
+ * after it began, and the overview's "Acknowledged in" tile adds how long
+ * after the page it was acknowledged. `never`: the measurement exists, and
+ * nobody was paged about either.
+ */
+const pagedMode = ["paged", "never"].includes(params.get("paged"))
+  ? params.get("paged")
+  : "none";
 const presetVerdict =
   params.get("verdict") === "confirmed"
     ? "Confirmed"
@@ -185,6 +345,136 @@ const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
+const roleMode = ["alert-member", "loading"].includes(params.get("role"))
+  ? params.get("role")
+  : "owner";
+const resourcesMode = ["many", "none"].includes(params.get("resources"))
+  ? params.get("resources")
+  : "default";
+/*
+ * Which Kubernetes clusters the investigation payload's clusterAccess lists
+ * (what OneUptime AI can reach with kubectl now): none (the default, and
+ * what a signal with no cluster gets), one it can reach, one it cannot, or
+ * both.
+ */
+const clustersMode = ["reachable", "unreachable", "mixed"].includes(
+  params.get("clusters"),
+)
+  ? params.get("clusters")
+  : "none";
+/*
+ * What the investigation card's shared conversation holds for incident #1042
+ * and alert #311 (see "The investigation card's conversation" below): nobody
+ * has asked anything (the default), two answered questions, an answer being
+ * written, an action waiting for approval, a failed and a stopped answer, or
+ * a long thread six people asked in.
+ */
+const THREAD_MODES = ["answered", "working", "approval", "error", "crowded"];
+const threadMode = THREAD_MODES.includes(params.get("thread"))
+  ? params.get("thread")
+  : "empty";
+/*
+ * The record's own chat channels (?channels=), each link built by the real
+ * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give.
+ */
+const channelModes = new Set(
+  (params.get("channels") || "").split(",").filter((value) => value.length > 0),
+);
+const MEMBERS_MODES = [
+  "some",
+  "in",
+  "empty",
+  "many",
+  "archived",
+  "unreachable",
+  "not-connected",
+  "unavailable",
+  "not-found",
+  "readonly",
+  "readonly-public",
+];
+const membersMode = MEMBERS_MODES.includes(params.get("members"))
+  ? params.get("members")
+  : "some";
+const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+/*
+ * ?paged= / ?passOn=: whether an on-call policy is paging the viewer about
+ * the record, for the header's Pass it on, and what passing on does.
+ */
+const pagedKinds = new Set(
+  (params.get("paged") || "").split(",").filter((value) => value.length > 0),
+);
+const PASS_ON_MODES = [
+  "next",
+  "others",
+  "restart",
+  "stopped",
+  "acknowledged",
+  "two",
+];
+const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
+  ? params.get("passOn")
+  : "next";
+const unknownToSlack = new Set(
+  (params.get("unknown") ?? "alex")
+    .split(",")
+    .filter((value) => value.length > 0),
+);
+/*
+ * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
+ * its feed entries now (OnCallFeedText) - four on-call entries within a
+ * minute, which the feed folds into the newest of them.
+ * ?feed=links-and-quotes: a private note on incident #1042 saved from a
+ * Slack message, with the quote and the file the message carried, a
+ * callout, links to another incident and to the docs, and the note's
+ * attachment (see "Links and quotes in a note" below).
+ */
+const FEED_MODES = ["oncall-run", "links-and-quotes"];
+const feedMode = FEED_MODES.includes(params.get("feed"))
+  ? params.get("feed")
+  : "default";
+/*
+ * ?linked=: what the investigations read about the infrastructure their
+ * incident or alert is linked to (see "Linked infrastructure" below).
+ */
+const LINKED_MODES = ["alerts", "more", "followup"];
+const linkedMode = LINKED_MODES.includes(params.get("linked"))
+  ? params.get("linked")
+  : "none";
+/*
+ * ?private=1: incident #1042 and incident episode #12 are private - hidden
+ * from every status page, and taking no public notes.
+ */
+const isPrivateMode = params.get("private") === "1";
+const CALL_MODES = [
+  "zoom",
+  "teams",
+  "reading",
+  "stuck",
+  "transcript",
+  "not-enough",
+  "accepted",
+  "dismissed",
+  "failed",
+  "skipped",
+  "two",
+  // Record and transcribe incident calls: OneUptime gets the transcript by itself.
+  "waiting",
+  "fetch-stopped",
+  "summary",
+  // The same for Microsoft Teams: on its organizer's calendar, or not.
+  "teams-recorded",
+  "teams-not-recorded",
+];
+const callsMode = CALL_MODES.includes(params.get("calls"))
+  ? params.get("calls")
+  : "none";
+const TRANSCRIPT_FETCH_MODES = ["not-ready", "permission", "not-transcribed"];
+const transcriptFetchMode = TRANSCRIPT_FETCH_MODES.includes(
+  params.get("transcriptFetch"),
+)
+  ? params.get("transcriptFetch")
+  : "found";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -243,6 +533,11 @@ const ID = {
   user: (number) => uuid("80000000", number),
   team: (number) => uuid("81000000", number),
   task: (number) => uuid("82000000", number),
+  host: (number) => uuid("84000000", number),
+  kubernetesCluster: (number) => uuid("85000000", number),
+  slo: (number) => uuid("86000000", number),
+  cluster: (number) => uuid("83000000", number),
+  measurement: (number) => uuid("87000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -264,10 +559,20 @@ const fixture = {
     state: stateMode,
     ai: aiMode,
     tldr: tldrMode,
+    title: titleMode,
     verdict: presetVerdict,
     sm: smMode,
     fail: Array.from(failures),
+    role: roleMode,
+    resources: resourcesMode,
+    clusters: clustersMode,
+    thread: threadMode,
+    members: membersMode,
+    linked: linkedMode,
+    private: isPrivateMode,
   },
+  // What the channel card asked to add: { channelId, userIds, teamIds }.
+  channelAdds: [],
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
@@ -517,6 +822,73 @@ const services = {
   payments: service(3, "payments-webhooks", "#14b8a6"),
 };
 
+/*
+ * What Incident #1042 is attached to (?resources=). The default is its two
+ * monitors and two services. "many" gives the Affected Resources card five
+ * categories, six monitors among them (so two wait behind Show more) and a
+ * name too long for the sidebar; its extra records exist only then.
+ */
+function incidentResources() {
+  if (resourcesMode === "none") {
+    return { monitors: [], services: [] };
+  }
+
+  if (resourcesMode !== "many") {
+    return {
+      monitors: [monitors.checkoutLatency, monitors.ordersPool],
+      services: [services.checkout, services.orders],
+    };
+  }
+
+  return {
+    monitors: [
+      monitors.checkoutLatency,
+      monitors.ordersPool,
+      monitor(
+        5,
+        "Checkout web journey (synthetic) from eu-west-1 and us-east-1",
+        MonitorType.SyntheticMonitor,
+        monitorStatus.operational,
+      ),
+      monitor(
+        6,
+        "Payments API uptime",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        7,
+        "Cart API p99 latency",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        8,
+        "CDN edge eu-west",
+        MonitorType.Website,
+        monitorStatus.operational,
+      ),
+    ],
+    hosts: [
+      insert(Host, { _id: ID.host(1), name: "checkout-api-7f9c" }),
+      insert(Host, { _id: ID.host(2), name: "orders-db-primary" }),
+    ],
+    kubernetesClusters: [
+      insert(KubernetesCluster, {
+        _id: ID.kubernetesCluster(1),
+        name: "prod-eks-eu-west-1",
+      }),
+    ],
+    services: [services.checkout, services.orders, services.payments],
+    serviceLevelObjectives: [
+      insert(ServiceLevelObjective, {
+        _id: ID.slo(1),
+        name: "Checkout availability 99.9%",
+      }),
+    ],
+  };
+}
+
 const policies = {
   checkout: insert(OnCallDutyPolicy, {
     _id: ID.onCallPolicy(1),
@@ -615,6 +987,10 @@ const alertSeverities = {
   }),
 };
 
+/*
+ * A new project starts with Incident Commander alone; this workspace has
+ * added two roles of its own, so the role cards show more than one role.
+ */
 const roles = {
   commander: insert(IncidentRole, {
     _id: ID.role(1),
@@ -641,9 +1017,17 @@ const roles = {
 
 /*
  * Tables the pages read that are intentionally empty in this workspace (no
- * custom fields, note templates, runbook runs or remediation suggestions).
- * Registering them marks them as modelled, so they never show up in
- * `unhandled`.
+ * custom fields, note templates, runbook runs, remediation suggestions or
+ * remediation decisions). Registering them marks them as modelled, so they
+ * never show up in `unhandled`.
+ *
+ * The incident and alert Remediation card reads the rule engine's decisions
+ * (what auto-remediation did, or why it did nothing) beside the suggestions.
+ * With neither, the API answers two empty lists and the card stays hidden,
+ * as for an incident or alert from before the rule engine recorded them.
+ *
+ * The incident and alert pages also list the record's video calls; no call
+ * has been started for any of them here.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -654,6 +1038,9 @@ for (const modelType of [
   ScheduledMaintenanceNoteTemplate,
   RunbookExecution,
   AutoRemediationSuggestion,
+  AutoRemediationDecision,
+  IncidentVideoCall,
+  AlertVideoCall,
 ]) {
   table(modelType);
 }
@@ -677,6 +1064,16 @@ function monitorLink(record) {
  */
 const INCIDENT_EPISODE_NUMBER = 12;
 const ALERT_EPISODE_NUMBER = 7;
+/*
+ * The episodes incident #1038 and alert #305 joined after #12 and #7. A
+ * record can be in several episodes, and its own incidentEpisodeId /
+ * alertEpisodeId names only the latest (IncidentEpisodeMemberService keeps
+ * it so), so these two point at the later ones. Episodes #12 and #7 still
+ * list them: an episode's members are its membership rows. Only the link and
+ * the membership row are modelled, not the later episodes themselves.
+ */
+const LATER_INCIDENT_EPISODE_NUMBER = 13;
+const LATER_ALERT_EPISODE_NUMBER = 8;
 
 // ?fail=resend: why the first delivery failed, and why the retry is refused.
 const RESEND_FAILURE_STATUS_MESSAGE =
@@ -718,6 +1115,7 @@ function defineIncident(spec) {
     declaredAt: spec.createdAt,
     createdAt: spec.createdAt,
     impactStartedAt: spec.impactStartedAt || spec.createdAt,
+    ...(spec.firstPagedAt ? { firstPagedAt: spec.firstPagedAt } : {}),
     incidentSeverity: spec.severity,
     incidentSeverityId: spec.severity.id,
     currentIncidentState: currentState,
@@ -725,6 +1123,14 @@ function defineIncident(spec) {
     labels: spec.labels || [labels.checkout, labels.production],
     monitors: spec.monitors || [],
     services: spec.services || [],
+    // Only ?resources=many attaches these, so every other record keeps its shape.
+    ...(spec.hosts ? { hosts: spec.hosts } : {}),
+    ...(spec.kubernetesClusters
+      ? { kubernetesClusters: spec.kubernetesClusters }
+      : {}),
+    ...(spec.serviceLevelObjectives
+      ? { serviceLevelObjectives: spec.serviceLevelObjectives }
+      : {}),
     onCallDutyPolicies: spec.onCallDutyPolicies || [policies.checkout],
     createdByProbe: spec.createdByUser ? undefined : probe,
     createdByProbeId: spec.createdByUser ? undefined : probe.id,
@@ -737,8 +1143,9 @@ function defineIncident(spec) {
     subscriberNotificationStatusMessage: spec.notificationFailed
       ? RESEND_FAILURE_STATUS_MESSAGE
       : "Notified 1,284 status page subscribers.",
-    isPrivate: false,
-    isVisibleOnStatusPage: true,
+    // ?private=1 makes #1042 private, which also hides it from status pages.
+    isPrivate: isPrivateMode && spec.number === 1042,
+    isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
@@ -815,6 +1222,10 @@ const incidentEpisodeRecord = make(IncidentEpisode, {
   _id: ID.incidentEpisode(INCIDENT_EPISODE_NUMBER),
   title: "Checkout degradation — Sep 14",
 });
+const laterIncidentEpisodeRecord = make(IncidentEpisode, {
+  _id: ID.incidentEpisode(LATER_INCIDENT_EPISODE_NUMBER),
+  title: "Cart service errors — Sep 14",
+});
 
 const PRIOR_INCIDENT_ROOT_CAUSE =
   "The orders database connection pool was exhausted, so checkout requests queued for a connection.";
@@ -878,7 +1289,8 @@ defineIncident({
   resolvedAt: at("18:10"),
   resolvedBy: people.sam,
   services: [services.checkout],
-  episode: incidentEpisodeRecord,
+  // Also in episode #13, which it joined later: see LATER_INCIDENT_EPISODE_NUMBER.
+  episode: laterIncidentEpisodeRecord,
 });
 defineIncident({
   number: 1040,
@@ -920,12 +1332,12 @@ const mainIncident = defineIncident({
   severity: incidentSeverities.sev2,
   createdAt: at("18:01"),
   impactStartedAt: at("17:58"),
+  firstPagedAt: pagedMode === "paged" ? at("18:02") : undefined,
   ackAt: isAcknowledged ? at("18:04") : undefined,
   ackBy: people.sam,
   resolvedAt: isResolved ? at("18:12") : undefined,
   resolvedBy: people.maya,
-  monitors: [monitors.checkoutLatency, monitors.ordersPool],
-  services: [services.checkout, services.orders],
+  ...incidentResources(),
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
   rootCause: isResolved
@@ -940,6 +1352,35 @@ insert(IncidentFeed, {
   postedAt: at("18:01", 10),
   createdAt: at("18:01", 10),
 });
+if (feedMode === "oncall-run") {
+  const checkoutPolicy = `[${policies.checkout.name}](${dashboard}/on-call-duty/policies/${policies.checkout._id})`;
+  const sam = `[${people.sam.name.toString()}](${dashboard}/settings/users/${people.sam._id})`;
+  const runStep = (seconds, markdown, color) => {
+    insert(IncidentFeed, {
+      incidentId: mainIncident.id,
+      incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+      feedInfoInMarkdown: markdown,
+      displayColor: new Color(color),
+      postedAt: at("18:01", seconds),
+      createdAt: at("18:01", seconds),
+    });
+  };
+  runStep(
+    25,
+    `On-call policy **${checkoutPolicy}** paged **${sam}** at escalation rule **First responders** (schedule **EU days**).\n\nNotification sent by SMS and push.`,
+    "#3b82f6",
+  );
+  runStep(
+    35,
+    `On-call policy **${checkoutPolicy}** paged nobody at escalation rule **Backup**: nobody was on call in schedule **EU nights**.`,
+    "#f59e0b",
+  );
+  runStep(
+    50,
+    `**${sam}** acknowledged the page from on-call policy **${checkoutPolicy}** at escalation rule **First responders** (schedule **EU days**).`,
+    "#22c55e",
+  );
+}
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
   incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
@@ -959,6 +1400,42 @@ insert(IncidentFeed, {
   createdAt: at("18:09"),
   user: people.maya,
 });
+/*
+ * Links and quotes in a note (?feed=links-and-quotes): a private note saved
+ * from a Slack message, written as IncidentInternalNoteService writes its
+ * feed entry. The quote and the "📎" file link are what ChatMessageMarkdown
+ * makes of the message; the attachment link is FileAttachmentMarkdownUtil's
+ * (the download route, project id first). The spec opens each link and
+ * reads how the quote and the callout are drawn.
+ */
+const SLACK_FILE_URL =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+if (feedMode === "links-and-quotes") {
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+    feedInfoInMarkdown: [
+      `📄 posted **private note** for this [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}):`,
+      "",
+      "> They said the payment provider is degraded in eu-west.",
+      "",
+      `📎 [image.png](${SLACK_FILE_URL})`,
+      "",
+      "> [!WARNING]",
+      "> **Do not restart the primary.** Fail over to the replica first.",
+      "",
+      `Same as [Incident #1036](${window.location.origin}${incidentLink(1036)}); see the [failover runbook](/docs/incidents/notes-owners-and-feed).`,
+      "",
+      "**Attachments:**",
+      `- [runbook.pdf](${NOTE_ATTACHMENT_PATH})`,
+    ].join("\n"),
+    displayColor: new Color("#64748b"),
+    postedAt: at("18:12"),
+    createdAt: at("18:12"),
+    user: people.sam,
+  });
+}
 insert(IncidentMember, {
   incidentId: mainIncident.id,
   userId: people.maya.id,
@@ -985,6 +1462,10 @@ const alertEpisodeRecord = make(AlertEpisode, {
   _id: ID.alertEpisode(ALERT_EPISODE_NUMBER),
   title: "Payment webhook failures — Sep 14",
 });
+const laterAlertEpisodeRecord = make(AlertEpisode, {
+  _id: ID.alertEpisode(LATER_ALERT_EPISODE_NUMBER),
+  title: "Payment latency — Sep 14",
+});
 
 function defineAlert(spec) {
   const alertId = new ObjectID(ID.alert(spec.number));
@@ -1000,6 +1481,7 @@ function defineAlert(spec) {
     alertNumber: spec.number,
     alertNumberWithPrefix: `#${spec.number}`,
     createdAt: spec.createdAt,
+    ...(spec.firstPagedAt ? { firstPagedAt: spec.firstPagedAt } : {}),
     alertSeverity: spec.severity,
     alertSeverityId: spec.severity.id,
     currentAlertState: currentState,
@@ -1131,18 +1613,24 @@ for (const [number, title, severity, createdAt] of ALERT_MEMBERS) {
     resolvedBy: people.alex,
     monitor: monitors.webhookErrors,
     services: [services.payments],
-    episode: alertEpisodeRecord,
+    // #305 is also in episode #8, which it joined later: see LATER_ALERT_EPISODE_NUMBER.
+    episode: number === 305 ? laterAlertEpisodeRecord : alertEpisodeRecord,
   });
 }
 
 const ALERT_NUMBER = 311;
+const ALERT_TITLE =
+  titleMode === "long"
+    ? "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster"
+    : "Payment webhook 5xx rate above 5%";
 const mainAlert = defineAlert({
   number: ALERT_NUMBER,
-  title: "Payment webhook 5xx rate above 5%",
+  title: ALERT_TITLE,
   description:
     "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
   severity: alertSeverities.high,
   createdAt: at("18:06"),
+  firstPagedAt: pagedMode === "paged" ? at("18:07") : undefined,
   ackAt: isAcknowledged ? at("18:08") : undefined,
   ackBy: people.alex,
   resolvedAt: isResolved ? at("18:15") : undefined,
@@ -1231,8 +1719,12 @@ table(ScheduledMaintenance).push({
   currentScheduledMaintenanceState: smCurrentState,
   currentScheduledMaintenanceStateId: smCurrentState.id,
   statusPages: [statusPages.public, statusPages.internal],
-  monitors: [monitors.ordersPrimary, monitors.checkoutLatency],
-  services: [services.orders, services.checkout],
+  monitors:
+    resourcesMode === "none"
+      ? []
+      : [monitors.ordersPrimary, monitors.checkoutLatency],
+  services:
+    resourcesMode === "none" ? [] : [services.orders, services.checkout],
   labels: [labels.platform, labels.production],
   subscriberNotificationStatusOnEventScheduled: failures.has("resend")
     ? StatusPageSubscriberNotificationStatus.Failed
@@ -1382,8 +1874,8 @@ table(IncidentEpisode).push({
   labels: [labels.checkout, labels.production],
   assignedToUser: people.maya,
   assignedToUserId: people.maya.id,
-  isVisibleOnStatusPage: true,
-  isPrivate: false,
+  isVisibleOnStatusPage: !isPrivateMode,
+  isPrivate: isPrivateMode,
 });
 for (const [number, addedAt] of [
   [1038, "17:56"],
@@ -1405,6 +1897,20 @@ for (const [number, addedAt] of [
     matchedRule: incidentGroupingRule,
   });
 }
+insert(IncidentEpisodeMember, {
+  incidentEpisodeId: new ObjectID(
+    ID.incidentEpisode(LATER_INCIDENT_EPISODE_NUMBER),
+  ),
+  incidentId: new ObjectID(ID.incident(1038)),
+  incident: make(
+    Incident,
+    table(Incident).find((record) => {
+      return record.incidentNumber === 1038;
+    }),
+  ),
+  addedAt: at("18:09"),
+  addedBy: "manual",
+});
 const incidentEpisodeTimeline = [
   [incidentStates.created, at("17:56"), undefined],
 ];
@@ -1570,6 +2076,18 @@ for (const [number, addedAt] of [
     matchedRule: alertGroupingRule,
   });
 }
+insert(AlertEpisodeMember, {
+  alertEpisodeId: new ObjectID(ID.alertEpisode(LATER_ALERT_EPISODE_NUMBER)),
+  alertId: new ObjectID(ID.alert(305)),
+  alert: make(
+    Alert,
+    table(Alert).find((record) => {
+      return record.alertNumber === 305;
+    }),
+  ),
+  addedAt: at("18:07"),
+  addedBy: "manual",
+});
 const alertEpisodeTimeline = [[alertStates.created, at("17:40"), undefined]];
 if (isAcknowledged) {
   alertEpisodeTimeline.push([
@@ -1606,7 +2124,7 @@ const alertEpisodeFeed = [
     [307, "Payment webhook 5xx rate above 2%", "17:52"],
     [309, "Refund callback queue backlog above 500", "18:01"],
     [310, "Payment provider callback retries above 50/min", "18:03"],
-    [311, "Payment webhook 5xx rate above 5%", "18:06"],
+    [ALERT_NUMBER, ALERT_TITLE, "18:06"],
   ].map(([number, title, when]) => {
     return [
       AlertEpisodeFeedEventType.AlertAdded,
@@ -1641,6 +2159,478 @@ for (const [eventType, markdown, color, when] of alertEpisodeFeed) {
     postedAt: when,
     createdAt: when,
   });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Measurements
+ * ---------------------------------------------------------------------------
+ * The project's incident, alert and maintenance measurements, and each
+ * event's value of each one, worked out the way the workers do: the real
+ * MeasurementEvaluator over the event's own fixture timeline. A state
+ * changed from a hero works them out again (applyStateChange), as the
+ * server's timeline hook does, so the page's refresh reads the new values.
+ *
+ * ?measurements= picks the definitions:
+ *   - default: what the cards show on a typical day, plus one measurement
+ *     kept off event pages and one switched off, which the cards must not
+ *     ask for;
+ *   - none: no measurements at all (the cards draw nothing);
+ *   - states: the default ones plus one whose end is before its start
+ *     (Invalid) and one created a moment ago, which the background job has
+ *     not worked out for any event yet (not worked out yet).
+ */
+const MEASUREMENT_MODES = ["none", "states"];
+const measurementsMode = MEASUREMENT_MODES.includes(params.get("measurements"))
+  ? params.get("measurements")
+  : "default";
+
+/*
+ * A state the project added between Acknowledged and Resolved. Only a
+ * measurement points at it: it is not one of the incident states, so the
+ * hero's step rail and every state list stay as they are, and no fixture
+ * incident ever enters it.
+ */
+const mitigatedState = make(IncidentState, {
+  _id: ID.incidentState(9),
+  name: "Mitigated",
+  color: new Color("#0ea5e9"),
+  order: 2.5,
+});
+
+function measurementDefinition(modelType, number, fields) {
+  return {
+    _id: ID.measurement(number),
+    projectId: projectObjectId,
+    key: fields.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    metricName: `oneuptime.measurement.${number}`,
+    unit: "seconds",
+    aggregationType: "Avg",
+    startStateOccurrence: "First",
+    endStateOccurrence: "First",
+    isEnabled: true,
+    createdAt: new Date("2026-08-01T09:00:00.000Z"),
+    ...fields,
+  };
+}
+
+const incidentMeasurementDefinitions = [
+  measurementDefinition(IncidentMeasurement, 1, {
+    name: "Time to acknowledge",
+    order: 1,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Acknowledged",
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 2, {
+    name: "Time to mitigate",
+    order: 2,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Entered",
+    endIncidentState: mitigatedState,
+    endIncidentStateId: mitigatedState.id,
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 3, {
+    name: "Time to resolve",
+    order: 3,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Resolved",
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 4, {
+    name: "Time to postmortem",
+    order: 4,
+    startAnchorType: "State Role Entered",
+    startIncidentStateRole: "Resolved",
+    endAnchorType: "Postmortem Posted At",
+    showOnIncidentView: true,
+  }),
+  // Charted, but kept off the incident page.
+  measurementDefinition(IncidentMeasurement, 5, {
+    name: "Time to page",
+    order: 5,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Acknowledged",
+    showOnIncidentView: false,
+  }),
+  // Switched off.
+  measurementDefinition(IncidentMeasurement, 6, {
+    name: "Time to detect",
+    order: 6,
+    startAnchorType: "Impact Started At",
+    endAnchorType: "Declared At",
+    isEnabled: false,
+    showOnIncidentView: true,
+  }),
+];
+
+// ?paged=: counted from the first page, next to Time to acknowledge.
+if (pagedMode !== "none") {
+  incidentMeasurementDefinitions.push(
+    measurementDefinition(IncidentMeasurement, 9, {
+      name: "Time to acknowledge after paging",
+      order: 1.5,
+      startAnchorType: "First Paged At",
+      endAnchorType: "State Role Entered",
+      endIncidentStateRole: "Acknowledged",
+      showOnIncidentView: true,
+    }),
+  );
+}
+
+if (measurementsMode === "states") {
+  incidentMeasurementDefinitions.push(
+    // Impact recorded at 17:58, before the 18:01 declaration: Invalid.
+    measurementDefinition(IncidentMeasurement, 7, {
+      name: "Time to impact",
+      order: 7,
+      startAnchorType: "Declared At",
+      endAnchorType: "Impact Started At",
+      showOnIncidentView: true,
+    }),
+    // Created a moment ago: no event has a value for it yet.
+    measurementDefinition(IncidentMeasurement, 8, {
+      name: "Time to close",
+      order: 8,
+      startAnchorType: "Declared At",
+      endAnchorType: "State Role Entered",
+      endIncidentStateRole: "Resolved",
+      endStateOccurrence: "Last",
+      createdAt: NOW,
+      showOnIncidentView: true,
+    }),
+  );
+}
+
+const alertMeasurementDefinitions = [
+  measurementDefinition(AlertMeasurement, 11, {
+    name: "Time to acknowledge",
+    order: 1,
+    startAnchorType: "Created At",
+    endAnchorType: "State Role Entered",
+    endAlertStateRole: "Acknowledged",
+    showOnAlertView: true,
+  }),
+  // ?paged=: counted from the first page, next to Time to acknowledge.
+  ...(pagedMode === "none"
+    ? []
+    : [
+        measurementDefinition(AlertMeasurement, 13, {
+          name: "Time to acknowledge after paging",
+          order: 1.5,
+          startAnchorType: "First Paged At",
+          endAnchorType: "State Role Entered",
+          endAlertStateRole: "Acknowledged",
+          showOnAlertView: true,
+        }),
+      ]),
+  measurementDefinition(AlertMeasurement, 12, {
+    name: "Time to resolve",
+    order: 2,
+    startAnchorType: "Created At",
+    endAnchorType: "State Role Entered",
+    endAlertStateRole: "Resolved",
+    unit: "minutes",
+    showOnAlertView: true,
+  }),
+];
+
+const scheduledMaintenanceMeasurementDefinitions = [
+  measurementDefinition(ScheduledMaintenanceMeasurement, 21, {
+    name: "Start delay",
+    order: 1,
+    startAnchorType: "Scheduled Starts At",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ongoing",
+    showOnScheduledMaintenanceView: true,
+  }),
+  measurementDefinition(ScheduledMaintenanceMeasurement, 22, {
+    name: "Overrun",
+    order: 2,
+    startAnchorType: "Scheduled Ends At",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ended",
+    showOnScheduledMaintenanceView: true,
+  }),
+  measurementDefinition(ScheduledMaintenanceMeasurement, 23, {
+    name: "Maintenance duration",
+    order: 3,
+    startAnchorType: "State Role Entered",
+    startScheduledMaintenanceStateRole: "Ongoing",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ended",
+    showOnScheduledMaintenanceView: true,
+  }),
+];
+
+/*
+ * Where each kind of event keeps its measurements, and what its anchors
+ * read from: the record's own times, and the roles its states play.
+ */
+const MEASUREMENT_DOMAINS = [
+  {
+    parent: Incident,
+    parentKey: "incidentId",
+    timeline: IncidentStateTimeline,
+    stateKey: "incidentStateId",
+    stateRelation: "incidentState",
+    definition: IncidentMeasurement,
+    value: IncidentMeasurementValue,
+    measurementKey: "incidentMeasurementId",
+    stateColumnPrefix: "Incident",
+    definitions: incidentMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Declared At": record.declaredAt,
+        "Created At": record.createdAt,
+        "Timeline Start": record.declaredAt || record.createdAt,
+        "Impact Started At": record.impactStartedAt,
+        "Postmortem Posted At": record.postmortemPostedAt,
+        "First Paged At": record.firstPagedAt,
+      };
+    },
+    /*
+     * Recorded after the fact, or once somebody is paged: still to come
+     * once the incident is resolved, as the server leaves them.
+     */
+    laterTimestamps: [
+      "Impact Started At",
+      "Postmortem Posted At",
+      "First Paged At",
+    ],
+    roles: (state) => {
+      return [
+        state?.isCreatedState ? "Created" : null,
+        state?.isAcknowledgedState ? "Acknowledged" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+  {
+    parent: Alert,
+    parentKey: "alertId",
+    timeline: AlertStateTimeline,
+    stateKey: "alertStateId",
+    stateRelation: "alertState",
+    definition: AlertMeasurement,
+    value: AlertMeasurementValue,
+    measurementKey: "alertMeasurementId",
+    stateColumnPrefix: "Alert",
+    definitions: alertMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Created At": record.createdAt,
+        "Timeline Start": record.createdAt,
+        "Impact Started At": record.impactStartedAt,
+        "First Paged At": record.firstPagedAt,
+      };
+    },
+    laterTimestamps: ["Impact Started At", "First Paged At"],
+    roles: (state) => {
+      return [
+        state?.isCreatedState ? "Created" : null,
+        state?.isAcknowledgedState ? "Acknowledged" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+  {
+    parent: ScheduledMaintenance,
+    parentKey: "scheduledMaintenanceId",
+    timeline: ScheduledMaintenanceStateTimeline,
+    stateKey: "scheduledMaintenanceStateId",
+    stateRelation: "scheduledMaintenanceState",
+    definition: ScheduledMaintenanceMeasurement,
+    value: ScheduledMaintenanceMeasurementValue,
+    measurementKey: "scheduledMaintenanceMeasurementId",
+    stateColumnPrefix: "ScheduledMaintenance",
+    definitions: scheduledMaintenanceMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Scheduled Starts At": record.startsAt,
+        "Scheduled Ends At": record.endsAt,
+        "Created At": record.createdAt,
+        "Timeline Start": record.createdAt,
+      };
+    },
+    laterTimestamps: [],
+    roles: (state) => {
+      return [
+        state?.isScheduledState ? "Scheduled" : null,
+        state?.isOngoingState ? "Ongoing" : null,
+        state?.isEndedState ? "Ended" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+];
+
+// The anchor one end of a definition is, as the server's toAnchor builds it.
+function measurementAnchor(domain, record, definition, end) {
+  const anchorType = definition[`${end}AnchorType`];
+  const role = definition[`${end}${domain.stateColumnPrefix}StateRole`];
+  const state = definition[`${end}${domain.stateColumnPrefix}State`];
+  const occurrence = definition[`${end}StateOccurrence`] || "First";
+
+  if (anchorType === MeasurementAnchorKind.StateEntered) {
+    return {
+      kind: MeasurementAnchorKind.StateEntered,
+      label: state?.name || "The chosen state",
+      stateId: state?._id?.toString(),
+      stateOrder: state?.order,
+      occurrence,
+      isDanglingStateReference: !state,
+    };
+  }
+
+  if (anchorType === MeasurementAnchorKind.StateRoleEntered) {
+    return {
+      kind: MeasurementAnchorKind.StateRoleEntered,
+      label: `The ${String(role || "").toLowerCase()} state`,
+      stateRole: role,
+      occurrence,
+    };
+  }
+
+  return {
+    kind: MeasurementAnchorKind.Timestamp,
+    label: anchorType,
+    timestamp: domain.timestamps(record)[anchorType],
+    canResolveAfterTerminalState: domain.laterTimestamps.includes(anchorType),
+  };
+}
+
+let measurementValueCounter = 0;
+
+/*
+ * When a work-out happened, on the server's clock: a moment later each
+ * time, as the server's own clock moves on while the page's is pinned, so a
+ * page can tell the values worked out after a state change from the ones it
+ * had (haveEventMeasurementsCaughtUp).
+ */
+let measurementComputeCounter = 0;
+
+function measurementComputedAt() {
+  measurementComputeCounter += 1;
+  return new Date(NOW.getTime() + measurementComputeCounter);
+}
+
+// The ones no event has a value for yet: just created.
+function isWorkedOutYet(definition) {
+  return definition.name !== "Time to close";
+}
+
+/*
+ * Works every measurement of one event out again from its timeline, and
+ * replaces its stored values, as IncidentMeasurementValueService and its
+ * twins do.
+ */
+function recomputeMeasurements(domain, parentId) {
+  const record = table(domain.parent).find((item) => {
+    return String(item._id) === String(parentId);
+  });
+  const definitions = table(domain.definition).filter(isWorkedOutYet);
+
+  if (!record || definitions.length === 0) {
+    return;
+  }
+
+  const computedAt = measurementComputedAt();
+
+  const timeline = table(domain.timeline)
+    .filter((entry) => {
+      return String(entry[domain.parentKey]) === String(parentId);
+    })
+    .map((entry) => {
+      const state = entry[domain.stateRelation];
+      return {
+        id: String(entry._id),
+        stateId: String(entry[domain.stateKey]),
+        stateName: state?.name,
+        stateOrder: state?.order,
+        stateRoles: domain.roles(state),
+        startsAt: entry.startsAt,
+      };
+    });
+
+  const evaluations = MeasurementEvaluator.evaluate({
+    definitions: definitions.map((definition) => {
+      return {
+        id: String(definition._id),
+        name: definition.name,
+        start: measurementAnchor(domain, record, definition, "start"),
+        end: measurementAnchor(domain, record, definition, "end"),
+      };
+    }),
+    timeline,
+  });
+
+  const values = table(domain.value);
+
+  for (const evaluation of evaluations) {
+    const existing = values.findIndex((value) => {
+      return (
+        String(value[domain.parentKey]) === String(parentId) &&
+        String(value[domain.measurementKey]) === evaluation.measurementId
+      );
+    });
+
+    measurementValueCounter += 1;
+
+    const value = {
+      _id: uuid("91000000", measurementValueCounter),
+      projectId: projectObjectId,
+      [domain.parentKey]: new ObjectID(String(parentId)),
+      [domain.measurementKey]: new ObjectID(evaluation.measurementId),
+      status: evaluation.status,
+      statusMessage: evaluation.statusMessage,
+      startedAt: evaluation.startedAt
+        ? new Date(evaluation.startedAt)
+        : undefined,
+      endedAt: evaluation.endedAt ? new Date(evaluation.endedAt) : undefined,
+      valueInSeconds: evaluation.valueInSeconds,
+      computedAt,
+    };
+
+    if (existing >= 0) {
+      values.splice(existing, 1, value);
+    } else {
+      values.push(value);
+    }
+  }
+}
+
+// The state timeline model a state change was written to: which domain.
+function recomputeMeasurementsAfterStateChange(timelineModelName, parentId) {
+  const domain = MEASUREMENT_DOMAINS.find((item) => {
+    return tableName(item.timeline) === timelineModelName;
+  });
+
+  if (domain) {
+    recomputeMeasurements(domain, parentId);
+  }
+}
+
+for (const domain of MEASUREMENT_DOMAINS) {
+  // Registered even when empty: the pages read them, and that is modelled.
+  table(domain.definition);
+  table(domain.value);
+
+  if (measurementsMode === "none") {
+    continue;
+  }
+
+  for (const definition of domain.definitions) {
+    table(domain.definition).push(definition);
+  }
+
+  for (const record of table(domain.parent)) {
+    recomputeMeasurements(domain, record._id);
+  }
 }
 
 /*
@@ -2373,8 +3363,14 @@ const ALERT_ANALYSIS = [
 const ALERT_TLDR =
   "A 17:35 config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes fail and payment webhooks return 502 — the same cause as alert #298.";
 
-function brandedMarkdown(analysis, citations, toolCallCount) {
-  let markdown = `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${analysis}`;
+/*
+ * The report as AIInvestigationEngine.buildBrandedMarkdown writes it. `lead`
+ * is the runner's own line under the heading (a follow-up check's why).
+ */
+function brandedMarkdown(analysis, citations, toolCallCount, lead) {
+  let markdown = `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${
+    lead ? `${lead}\n\n` : ""
+  }${analysis}`;
   if (citations.length > 0) {
     markdown += "\n\n**Evidence checked**";
     for (const citation of citations.slice(0, 15)) {
@@ -2394,7 +3390,12 @@ function defineInvestigation(spec) {
   return {
     ...spec,
     citations,
-    markdown: brandedMarkdown(spec.analysis, citations, citations.length),
+    markdown: brandedMarkdown(
+      spec.analysis,
+      citations,
+      citations.length,
+      spec.lead,
+    ),
     verdict: presetVerdict,
     verdictAt: presetVerdict ? at("18:10") : null,
   };
@@ -2452,8 +3453,12 @@ const investigations = {
   }),
 };
 
-// The AI root-cause feed item only exists once a report was posted.
-if (hasReport) {
+/*
+ * The AI root-cause feed item only exists once a report was posted. With
+ * ?linked=followup, #1042's first analysis was posted before its follow-up
+ * check started, whatever that check is doing now.
+ */
+if (hasReport || linkedMode === "followup") {
   insert(IncidentFeed, {
     incidentId: mainIncident.id,
     incidentFeedEventType: IncidentFeedEventType.RootCause,
@@ -2463,6 +3468,8 @@ if (hasReport) {
     postedAt: investigations.incident.completedAt,
     createdAt: investigations.incident.completedAt,
   });
+}
+if (hasReport) {
   insert(AlertFeed, {
     alertId: mainAlert.id,
     alertFeedEventType: AlertFeedEventType.RootCause,
@@ -2472,6 +3479,335 @@ if (hasReport) {
     postedAt: investigations.alert.completedAt,
     createdAt: investigations.alert.completedAt,
   });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Linked infrastructure (?linked=)
+ * ---------------------------------------------------------------------------
+ *
+ * What an investigation's starting context read about the infrastructure its
+ * incident or alert is linked to, recorded in its activity as the server
+ * does (LinkedInfrastructureContext.buildActivityNote): the resources, by
+ * kind (LinkedAffectedResourceType) and name, and how many open or recent
+ * alerts were on them. `message` is the server's English; the card words it
+ * from the data, in the reader's language.
+ */
+const LINKED_KIND_NOUNS = {
+  Host: "Host",
+  DockerHost: "Docker host",
+  KubernetesCluster: "Kubernetes cluster",
+  DatabaseServer: "Database",
+  Service: "Service",
+};
+
+const INCIDENT_LINKED_RESOURCES = [
+  { kind: "Host", name: "checkout-api-7f9c" },
+  { kind: "DockerHost", name: "checkout-api-7f9c" },
+  { kind: "KubernetesCluster", name: "prod-eks-eu-west-1" },
+  { kind: "DatabaseServer", name: "orders-db-primary" },
+  { kind: "Service", name: "checkout-api" },
+];
+
+const ALERT_LINKED_RESOURCES = [{ kind: "Host", name: "payments-web-2" }];
+
+function linkedInfrastructureNote(data) {
+  const names = data.resources.slice(0, 3).map((resource) => {
+    return `${LINKED_KIND_NOUNS[resource.kind]} ${resource.name}`;
+  });
+  const more = data.resources.length - names.length;
+  const resources =
+    more > 0
+      ? `${names.join(", ")} and ${more} more`
+      : names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+        : names.join("");
+
+  return {
+    message:
+      data.alertCount === 0
+        ? `No open or recent alerts on ${resources}`
+        : data.hasMoreAlerts
+          ? `Read the ${data.alertCount} newest open or recent alerts on ${resources}`
+          : `Read ${data.alertCount} open or recent alert${
+              data.alertCount === 1 ? "" : "s"
+            } on ${resources}`,
+    severity: "Info",
+    linkedInfrastructure: {
+      resources: data.resources,
+      alertCount: data.alertCount,
+      openAlertCount: data.openAlertCount,
+      hasMoreAlerts: data.hasMoreAlerts,
+      lookbackMinutes: 30,
+    },
+  };
+}
+
+if (linkedMode === "alerts" || linkedMode === "more") {
+  const isMore = linkedMode === "more";
+  investigations.incident.contextNotes = [
+    linkedInfrastructureNote({
+      resources: INCIDENT_LINKED_RESOURCES,
+      alertCount: isMore ? 10 : 2,
+      openAlertCount: isMore ? 7 : 1,
+      hasMoreAlerts: isMore,
+    }),
+  ];
+  investigations.alert.contextNotes = [
+    linkedInfrastructureNote({
+      resources: ALERT_LINKED_RESOURCES,
+      alertCount: 0,
+      openAlertCount: 0,
+      hasMoreAlerts: false,
+    }),
+  ];
+}
+
+/*
+ * ?linked=followup: alert #318 "High CPU on checkout-api-7f9c" opened on
+ * #1042's host at 18:04, 3 minutes after the incident was declared and after
+ * its first investigation finished, so OneUptime AI checked the incident
+ * again with that alert in hand (IncidentFollowUpCheck). That run is the
+ * latest, so it is the one the card shows: its activity starts with why it
+ * runs, and its report leads with the line the server writes
+ * (IncidentFollowUpCheck.buildReportLead).
+ */
+const FOLLOW_UP_ALERT_NUMBER = 318;
+const FOLLOW_UP_ALERT_TITLE = "High CPU on checkout-api-7f9c";
+const followUpWindow = { start: at("17:49", 5), end: at("18:04", 5) };
+
+const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
+
+const FOLLOW_UP_CITATIONS = [
+  {
+    toolName: "query_alerts",
+    queryArguments: { state: "active", createdWithinHours: 1, limit: 20 },
+    label: "Active alerts, last 1h (1 found)",
+    rowCount: 1,
+    durationInMs: 284,
+    target: { type: AIChatCitationTargetType.Alerts },
+    isPinnedToInvestigationTime: false,
+    widget: {
+      type: AIChatWidgetType.AlertList,
+      title: "Active alerts, last 1h",
+      data: {
+        items: [
+          {
+            id: ID.alert(FOLLOW_UP_ALERT_NUMBER),
+            alertNumber: FOLLOW_UP_ALERT_NUMBER,
+            title: FOLLOW_UP_ALERT_TITLE,
+            state: "Created",
+            severity: "Warning",
+            monitor: "checkout-api-7f9c CPU",
+            createdAt: iso(at("18:04")),
+          },
+        ],
+      },
+    },
+  },
+  {
+    toolName: "query_containers",
+    queryArguments: {
+      resourceType: "DockerHost",
+      resourceId: ID.host(3),
+      startTime: iso(followUpWindow.start),
+      endTime: iso(followUpWindow.end),
+      sortBy: "cpu",
+    },
+    label: `Containers of Docker host checkout-api-7f9c, ${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+    rowCount: 4,
+    durationInMs: 640,
+    target: {
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: { resourceType: "DockerHost", resourceId: ID.host(3) },
+    },
+    isPinnedToInvestigationTime: true,
+    widget: {
+      type: AIChatWidgetType.Table,
+      title: "Containers of Docker host checkout-api-7f9c",
+      description: `${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+      data: {
+        // As ContainerTools draws it (CONTAINER_STATUS_LABELS, one decimal).
+        columns: [
+          { key: "container", title: "Container" },
+          { key: "status", title: "Status" },
+          { key: "cpuAvg", title: "CPU avg %", type: "number" },
+          { key: "cpuPeak", title: "CPU peak %", type: "number" },
+          { key: "memoryPeak", title: "Memory peak %", type: "number" },
+          { key: "restarts", title: "Restarts", type: "number" },
+          { key: "lastSeen", title: "Last seen", type: "date" },
+          { key: "image", title: "Image" },
+        ],
+        rows: [
+          {
+            container: "cart-worker",
+            status: "Stopped reporting",
+            cpuAvg: 0.4,
+            cpuPeak: 0.9,
+            memoryPeak: 8.7,
+            restarts: 2,
+            lastSeen: iso(at("17:57")),
+            image: "acme/cart-worker:2026.09.10-1",
+          },
+          {
+            container: "checkout-api",
+            status: "Reporting",
+            cpuAvg: 187.4,
+            cpuPeak: 196.2,
+            memoryPeak: 61.3,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "acme/checkout-api:2026.09.14-2",
+          },
+          {
+            container: "otel-collector",
+            status: "Reporting",
+            cpuAvg: 3.1,
+            cpuPeak: 4.8,
+            memoryPeak: 12.4,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "otel/opentelemetry-collector-contrib:0.111.0",
+          },
+          {
+            container: "nginx-sidecar",
+            status: "Started in this window",
+            cpuAvg: 1.2,
+            cpuPeak: 2,
+            memoryPeak: 3.1,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "nginx:1.27-alpine",
+          },
+        ],
+      },
+    },
+  },
+  {
+    toolName: "query_resource_telemetry",
+    queryArguments: {
+      resourceType: "Host",
+      resourceId: ID.host(1),
+      signal: "metrics",
+      metricName: "system.cpu.utilization",
+      mode: "trend",
+      startTime: iso(followUpWindow.start),
+      endTime: iso(followUpWindow.end),
+    },
+    label: `Host metrics by state, ${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+    rowCount: 4,
+    durationInMs: 910,
+    target: {
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: { resourceType: "Host", resourceId: ID.host(1) },
+    },
+    isPinnedToInvestigationTime: true,
+    widget: {
+      type: AIChatWidgetType.TimeSeriesChart,
+      // As query_resource_telemetry draws a split metric, one line per state.
+      title: "Avg of system.cpu.utilization by state",
+      description: `${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+      data: {
+        xIsTime: true,
+        series: [
+          ["user", 0.21, 0.79],
+          ["system", 0.06, 0.16],
+          ["idle", 0.71, 0.03],
+          ["wait", 0.02, 0.02],
+        ].map(([name, before, after]) => {
+          return series(
+            name,
+            followUpWindow.start,
+            followUpWindow.end,
+            (date) => {
+              return date >= at("18:02") ? after : before;
+            },
+          );
+        }),
+      },
+    },
+  },
+  INCIDENT_CITATIONS[2],
+  INCIDENT_CITATIONS[5],
+];
+
+const FOLLOW_UP_ANALYSIS = [
+  `**Summary** — Alert #${FOLLOW_UP_ALERT_NUMBER} does not change the earlier analysis: checkout-api-7f9c ran out of CPU from 18:02 because checkout requests stuck behind the 10-connection database pool kept retrying [C2][C3]. The cause is still the 17:52 release that cut the pool from 40 to 10 connections [C4].`,
+  `**Most likely root cause** — Release 2026.09.14-2 of checkout-api started with its orders-db pool capped at 10 connections [C4]. Requests queued for a connection and p95 latency passed 2s at 18:01; their retries then pushed the checkout-api container to 1.9 of its 2 CPU cores from 18:02 [C2], and busy CPU (user + system) on checkout-api-7f9c reached 95% at 18:03 [C3], which opened alert #${FOLLOW_UP_ALERT_NUMBER} at 18:04 [C1]. The cart-worker container stopped reporting at 17:57, before the release's effects, and is not involved [C2].`,
+  [
+    "**Evidence**",
+    `- Alert #${FOLLOW_UP_ALERT_NUMBER} "${FOLLOW_UP_ALERT_TITLE}" opened at 18:04, 3 minutes after this incident [C1]`,
+    "- The checkout-api container used 1.9 of its 2 CPU cores from 18:02; no other container on the host was above 5% [C2]",
+    "- `system.cpu.utilization` on checkout-api-7f9c: user 0.79, system 0.16, idle 0.03 from 18:02 [C3]",
+    '- checkout-api logged "timeout acquiring connection from pool after 2000ms" from 17:59 [C4]',
+  ].join("\n"),
+  [
+    "**Suggested next steps**",
+    "1. Roll checkout-api back to 2026.09.14-1, or redeploy with `DB_POOL_MAX=40`; the CPU alert should resolve with the latency.",
+    "2. Check why cart-worker stopped at 17:57 separately: it is not part of this incident.",
+  ].join("\n"),
+].join("\n\n");
+
+const FOLLOW_UP_TLDR = `Alert #${FOLLOW_UP_ALERT_NUMBER} does not change the analysis: the host's CPU rose because requests stuck behind the 10-connection database pool kept retrying. The cause is still the 17:52 release.`;
+
+if (linkedMode === "followup") {
+  const followUp = defineInvestigation({
+    subjectType: "incident",
+    subjectId: ID.incident(INCIDENT_NUMBER),
+    runId: ID.aiRun(3),
+    createdAt: at("18:04", 2),
+    startedAt: at("18:04", 5),
+    completedAt: at("18:05", 50),
+    totalTokens: 31544,
+    citations: FOLLOW_UP_CITATIONS,
+    analysis: FOLLOW_UP_ANALYSIS,
+    tldr: FOLLOW_UP_TLDR,
+    lead: FOLLOW_UP_LEAD,
+    references: [
+      {
+        kind: "alert",
+        number: FOLLOW_UP_ALERT_NUMBER,
+        id: ID.alert(FOLLOW_UP_ALERT_NUMBER),
+        displayNumber: `#${FOLLOW_UP_ALERT_NUMBER}`,
+        title: FOLLOW_UP_ALERT_TITLE,
+        stateName: "Created",
+        stateColor: "#ef4444",
+      },
+    ],
+    contextNotes: [
+      {
+        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host "checkout-api-7f9c" after the first analysis`,
+        severity: "Info",
+        followUpCheck: {
+          alertNumber: FOLLOW_UP_ALERT_NUMBER,
+          resourceKind: "Host",
+          resourceName: "checkout-api-7f9c",
+          minutesAfterIncident: 3,
+        },
+      },
+      linkedInfrastructureNote({
+        resources: INCIDENT_LINKED_RESOURCES,
+        alertCount: 3,
+        openAlertCount: 2,
+        hasMoreAlerts: false,
+      }),
+    ],
+  });
+
+  // The follow-up's own report, once it posted one.
+  if (hasReport) {
+    insert(IncidentFeed, {
+      incidentId: mainIncident.id,
+      incidentFeedEventType: IncidentFeedEventType.RootCause,
+      aiRunId: new ObjectID(followUp.runId),
+      feedInfoInMarkdown: followUp.markdown,
+      displayColor: new Color("#3b82f6"),
+      postedAt: followUp.completedAt,
+      createdAt: followUp.completedAt,
+    });
+  }
+
+  investigations.incident = followUp;
 }
 
 /*
@@ -2502,6 +3838,13 @@ function buildEvents(investigation, options) {
   };
 
   push(AIRunEventType.RunStarted, {}, 300);
+  /*
+   * What the runner's starting context read (contextNotes), recorded as
+   * ProgressLog events before the model starts, as the engine does.
+   */
+  for (const note of investigation.contextNotes || []) {
+    push(AIRunEventType.ProgressLog, { resultSummary: note }, 120);
+  }
   thinking(3400);
   const tools = investigation.citations.slice(0, options.toolCount);
   tools.forEach((citation, index) => {
@@ -2580,10 +3923,90 @@ function buildEvents(investigation, options) {
   return events;
 }
 
+/*
+ * The payload's clusterAccess rows, shaped like the server's
+ * KubernetesClusterAiAccessStatus as every reader of the signal receives
+ * it. The unreachable cluster's gaps use the server's own wording, with the
+ * AI agent's install command shortened to one line.
+ */
+function clusterAccessRows() {
+  const evaluatedAt = iso(NOW);
+  const reachable = {
+    clusterId: ID.cluster(1),
+    clusterName: "prod-eu-west-1",
+    isInvestigationReady: true,
+    isRemediationReady: true,
+    remediationMode: "RequireApproval",
+    gaps: [],
+    evaluatedAt,
+  };
+  const unreachable = {
+    clusterId: ID.cluster(2),
+    clusterName: "staging-us-east-1",
+    isInvestigationReady: false,
+    isRemediationReady: false,
+    remediationMode: "Disabled",
+    gaps: [
+      {
+        code: "ai_agent_not_connected",
+        title: "The Kubernetes AI agent is not connected",
+        description:
+          "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+        nextStep:
+          "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true.",
+        blocks: "both",
+      },
+      {
+        code: "remediation_disabled",
+        title: "AI fixes are turned off for this cluster",
+        description:
+          "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
+        nextStep:
+          'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on the cluster\'s AI agent page.',
+        blocks: "remediation",
+      },
+    ],
+    evaluatedAt,
+  };
+
+  if (clustersMode === "reachable") {
+    return [reachable];
+  }
+
+  if (clustersMode === "unreachable") {
+    return [unreachable];
+  }
+
+  return clustersMode === "mixed" ? [reachable, unreachable] : [];
+}
+
 function investigationPayload(investigation) {
   if (aiMode === "none") {
     return {
       run: null,
+      events: [],
+      analysisMarkdown: null,
+      analysisTldr: null,
+      isAnalysisPending: false,
+    };
+  }
+
+  /*
+   * An investigation rule's wait, as AIInvestigationAPI answers it: no run,
+   * no reason it was not investigated (it will be), and the wait - when it
+   * ends, how long it is, and whether this reader may start it now.
+   */
+  if (isWaitingMode && !startedNow.has(String(investigation.subjectId))) {
+    return {
+      run: null,
+      notInvestigatedReason: null,
+      waitingInvestigation: {
+        waitUntil: iso(
+          new Date(NOW.getTime() + WAIT_ENDS_IN_MINUTES * 60 * 1000),
+        ),
+        waitMinutes: WAIT_MINUTES,
+        canStartNow: aiMode === "waiting",
+      },
       events: [],
       analysisMarkdown: null,
       analysisTldr: null,
@@ -2605,7 +4028,8 @@ function investigationPayload(investigation) {
   let isAnalysisPending = false;
   const toolCount = investigation.citations.length;
 
-  if (aiMode === "queued") {
+  // A waiting record someone started with Investigate now is queued.
+  if (aiMode === "queued" || isWaitingMode) {
     run.status = AIRunStatus.Queued;
   } else if (aiMode === "running") {
     run.status = AIRunStatus.Running;
@@ -2667,6 +4091,10 @@ function investigationPayload(investigation) {
     analysisTldr,
     isAnalysisPending,
   };
+
+  if (clustersMode !== "none") {
+    payload.clusterAccess = clusterAccessRows();
+  }
 
   // An API replica that predates structured evidence omits both keys.
   if (analysisMarkdown && aiMode !== "legacy") {
@@ -2752,11 +4180,19 @@ function evidenceRows(body) {
  * Identity and data-layer stubs
  * ---------------------------------------------------------------------------
  */
-UserUtil.isMasterAdmin = () => true;
+UserUtil.isMasterAdmin = () => roleMode === "owner";
 UserUtil.getUserId = () => people.maya.id;
 UserUtil.getName = () => people.maya.name;
 UserUtil.getEmail = () => people.maya.email;
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+PermissionUtil.getAllPermissions = () => {
+  if (roleMode === "alert-member") {
+    return [Permission.AlertMember];
+  }
+  if (roleMode === "loading") {
+    return [];
+  }
+  return [Permission.ProjectOwner];
+};
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
@@ -2795,6 +4231,10 @@ ModelAPI.getItem = async (options) => {
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
+  // A call's transcript being read finishes on a later read of the calls.
+  if (modelName === tableName(IncidentVideoCall)) {
+    advanceCallReadings();
+  }
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 10);
   fixture.listRequests.push({
@@ -2942,6 +4382,23 @@ function applyStateChange(modelName, record) {
   }
 }
 
+/*
+ * The server works an event's measurements out again once its new timeline
+ * entry is saved; so does the fixture, once the record is in its table.
+ */
+function recomputeAfterStateChange(modelName, record) {
+  const model = STATE_TIMELINE_MODELS.find((item) => {
+    return tableName(item.timeline) === modelName;
+  });
+  if (!model || !record[model.parentKey]) {
+    return;
+  }
+  recomputeMeasurementsAfterStateChange(
+    modelName,
+    String(record[model.parentKey]),
+  );
+}
+
 ModelAPI.createOrUpdate = async (options) => {
   const modelName = tableName(options.modelType);
   const data = BaseModel.toJSON(options.model, options.modelType);
@@ -2960,6 +4417,7 @@ ModelAPI.createOrUpdate = async (options) => {
   if (tables.has(modelName)) {
     tables.get(modelName).records.push(record);
   }
+  recomputeAfterStateChange(modelName, record);
   const created = make(options.modelType, record);
   return new HTTPResponse(
     200,
@@ -3021,10 +4479,1394 @@ AnalyticsModelAPI.aggregate = async (options) => {
   return { data: [] };
 };
 
+/*
+ * Who incident #1042's status page notifications reach
+ * (POST /incident/subscriber-audience), for the Retry and Resend
+ * confirmations of its 'created' notification. Its monitors reach two
+ * status pages. Asked for a Retry's audience
+ * (excludeStatusPagesNotifiedOnCreation), the page the failed send reached in
+ * full is left out, as the server leaves it out.
+ */
+const SUBSCRIBER_COUNTS = {
+  email: 1284,
+  sms: 0,
+  slack: 0,
+  microsoftTeams: 0,
+  webhook: 3,
+};
+const AUDIENCE_PAGES = [
+  { statusPageId: "90000000-0000-4000-8000-000000000001", name: "Acme EU" },
+  { statusPageId: "90000000-0000-4000-8000-000000000002", name: "Acme US" },
+];
+
+function subscriberAudience(body) {
+  const alreadyNotified =
+    body.excludeStatusPagesNotifiedOnCreation === true
+      ? [AUDIENCE_PAGES[1].statusPageId]
+      : [];
+  return {
+    hasMonitors: true,
+    isScoped: false,
+    isHiddenFromStatusPages: false,
+    statusPages: AUDIENCE_PAGES.filter((page) => {
+      return !alreadyNotified.includes(page.statusPageId);
+    }).map((page) => {
+      return { ...page, subscriberCounts: SUBSCRIBER_COUNTS };
+    }),
+    hiddenStatusPageCount: 0,
+    excludedStatusPages: AUDIENCE_PAGES.filter((page) => {
+      return alreadyNotified.includes(page.statusPageId);
+    }).map((page) => {
+      return { ...page, reason: "AlreadyNotified" };
+    }),
+    selectedStatusPagesNotListingMonitors: [],
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The investigation card's conversation
+ * ---------------------------------------------------------------------------
+ * The shared thread of incident #1042 and alert #311, as
+ * InvestigationThreadService.getView answers it: messages oldest first with
+ * who asked, and, while an answer is in flight, its run and live steps.
+ * `?thread=` picks what it starts with. Maya Chen is the viewer.
+ *
+ * It is a small state machine, so a spec can drive the card for real:
+ *  - a question that is sent appears with an answer in progress, which
+ *    narrates a step on the next read and is complete on the one after;
+ *  - an approval that is answered runs or skips its action and completes;
+ *  - Stop turns the answer in flight into a stopped one.
+ */
+function threadAuthor(user) {
+  return { userId: user.id.toString(), name: user.name.toString() };
+}
+
+let threadMessageCounter = 0;
+function threadMessage(role, author, createdAt, extra) {
+  threadMessageCounter += 1;
+  return {
+    _id: uuid("88000000", threadMessageCounter),
+    role,
+    contentInMarkdown: "",
+    status: AIChatMessageStatus.Completed,
+    citations: [],
+    widgets: [],
+    toolActions: [],
+    errorMessage: null,
+    aiRunId: null,
+    createdAt: iso(createdAt),
+    author,
+    ...extra,
+  };
+}
+
+function threadQuestion(user, createdAt, content) {
+  return threadMessage(
+    AIChatMessageRole.User,
+    typeof user.userId === "string" ? user : threadAuthor(user),
+    createdAt,
+    { contentInMarkdown: content },
+  );
+}
+
+function threadAnswer(user, createdAt, extra) {
+  return threadMessage(
+    AIChatMessageRole.Assistant,
+    typeof user.userId === "string" ? user : threadAuthor(user),
+    createdAt,
+    extra,
+  );
+}
+
+let threadRunCounter = 0;
+function threadRunId() {
+  threadRunCounter += 1;
+  return uuid("89000000", threadRunCounter);
+}
+
+/*
+ * The steps of an answer in flight, without tool arguments: getView never
+ * selects them. `openTool` leaves the last tool call running.
+ */
+function threadRunEvents(runId, startedAt, options) {
+  const events = [];
+  let time = startedAt.getTime();
+  const push = (eventType, extra, advanceMs) => {
+    events.push(
+      make(AIRunEvent, {
+        _id: uuid("8a000000", events.length + 1),
+        projectId: projectObjectId,
+        aiRunId: new ObjectID(runId),
+        sequence: events.length + 1,
+        eventType,
+        createdAt: new Date(time),
+        ...extra,
+      }),
+    );
+    time += advanceMs;
+  };
+  push(AIRunEventType.RunStarted, {}, 200);
+  push(AIRunEventType.LlmCallStarted, {}, 2100);
+  push(AIRunEventType.LlmCallCompleted, {}, 100);
+  if (options.toolCount > 0) {
+    push(AIRunEventType.ToolCallStarted, { toolName: "recent_changes" }, 470);
+    push(
+      AIRunEventType.ToolCallCompleted,
+      {
+        toolName: "recent_changes",
+        resultSummary: { rowCount: 3, durationInMs: 470 },
+      },
+      120,
+    );
+  }
+  if (options.openTool) {
+    push(AIRunEventType.ToolCallStarted, { toolName: "search_logs" }, 0);
+  }
+  return BaseModel.toJSONArray(events, AIRunEvent);
+}
+
+const THREAD_ANSWER_TO_SENT_QUESTION =
+  "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state [C1].";
+
+function seedThread(kind, number) {
+  const subject = `${kind} #${number}`;
+  const messages = [];
+  let activeRun = null;
+
+  const affectedCitations = [
+    {
+      id: "C1",
+      toolName: "query_metrics",
+      label: "db.client.connections.usage for orders-db, 17:30 – 18:15 UTC",
+      queryArguments: { metricName: "db.client.connections.usage" },
+      rowCount: 45,
+      target: { type: AIChatCitationTargetType.Metrics },
+    },
+    {
+      id: "C2",
+      toolName: "search_logs",
+      label: 'Logs matching "timeout acquiring connection" in cart-api',
+      queryArguments: { search: "timeout acquiring connection" },
+      rowCount: 0,
+      target: { type: AIChatCitationTargetType.Logs },
+    },
+    {
+      id: "C3",
+      toolName: "query_monitors",
+      label: "Monitors attached to checkout-api, cart-api and orders-db",
+      queryArguments: { nameSearch: "checkout" },
+      rowCount: 4,
+    },
+  ];
+  const affectedExchange = () => {
+    messages.push(
+      threadQuestion(
+        people.sam,
+        ago(9 * MINUTE),
+        `Is anything else affected by this ${kind}?`,
+      ),
+      threadAnswer(people.sam, ago(8 * MINUTE), {
+        contentInMarkdown: [
+          "Nothing outside checkout is degraded, but one dependency shares the cause:",
+          "",
+          "- **Orders DB connection pool** has sat at its 10-connection ceiling since 17:58 [C1].",
+          "- **cart-api** is healthy: p95 is 180 ms and it logged no pool timeouts [C2].",
+          "",
+          "Both monitors on checkout-api are the only ones not Operational [C3].",
+        ].join("\n"),
+        citations: affectedCitations,
+        aiRunId: threadRunId(),
+      }),
+    );
+  };
+
+  if (threadMode === "answered" || threadMode === "crowded") {
+    affectedExchange();
+    messages.push(
+      threadQuestion(
+        people.maya,
+        ago(4 * MINUTE),
+        `Acknowledge this ${kind} and tell me who is on call for checkout.`,
+      ),
+      threadAnswer(people.maya, ago(3 * MINUTE), {
+        contentInMarkdown: `Done — ${subject} is acknowledged. **Jordan Patel** is on call for Checkout on-call until 20:00 UTC [C1].`,
+        citations: [
+          {
+            id: "C1",
+            toolName: "get_on_call",
+            label: "Who is on call for Checkout on-call right now",
+            queryArguments: { policyName: "Checkout on-call" },
+            rowCount: 1,
+            target: { type: AIChatCitationTargetType.OnCallPolicies },
+          },
+        ],
+        toolActions: [
+          {
+            id: "call_acknowledge",
+            toolName: `acknowledge_${kind}`,
+            title: `Acknowledge ${subject}`,
+            arguments: { [`${kind}Number`]: number },
+            isMutation: true,
+            requiresApproval: false,
+            status: AIChatToolActionStatus.Executed,
+          },
+        ],
+        // Rows fetched under the asker's permissions: the viewer asked.
+        widgets: [
+          {
+            id: "W1",
+            citationId: "C1",
+            type: AIChatWidgetType.Table,
+            title: "Checkout on-call — current shift",
+            data: {
+              columns: [
+                { key: "who", title: "On call" },
+                { key: "layer", title: "Layer" },
+                { key: "until", title: "Until", type: "date" },
+              ],
+              rows: [
+                {
+                  who: "Jordan Patel",
+                  layer: "Primary",
+                  until: iso(at("20:00")),
+                },
+                {
+                  who: "Alex Kim",
+                  layer: "Secondary",
+                  until: iso(at("20:00")),
+                },
+              ],
+            },
+          },
+        ],
+        aiRunId: threadRunId(),
+      }),
+    );
+  }
+
+  if (threadMode === "crowded") {
+    // Six people have asked: the header shows four of them and "+2".
+    const askers = [
+      threadAuthor(people.jordan),
+      threadAuthor(people.alex),
+      { userId: ID.user(5), name: "Priya Nair" },
+      { userId: ID.user(6), name: "Diego Santos" },
+    ];
+    askers.forEach((author, index) => {
+      messages.push(
+        threadQuestion(
+          author,
+          ago((150 - 30 * index) * 1000),
+          [
+            "Did the 17:52 release change anything besides the pool size?",
+            "How many checkout requests failed while this was open?",
+            `Draft a short, customer-facing status update for this ${kind}. Don't post it yet.`,
+            "Is it safe to roll back to 2026.09.14-1 right now?",
+          ][index],
+        ),
+        threadAnswer(author, ago((140 - 30 * index) * 1000), {
+          contentInMarkdown: [
+            "No. The release diff only touches the pool configuration: `DB_POOL_MAX` went from 40 to 10 [C1].",
+            "About 2,140 checkout requests waited longer than 2 s between 17:58 and 18:11; 312 of them timed out [C1].",
+            "**Investigating — Checkout delays.** Some customers saw slow or failed checkouts between 17:58 and 18:11 UTC. A configuration change has been identified and reverted, and checkout is back to normal. We are monitoring.",
+            "Yes. 2026.09.14-1 ran for six days without pool exhaustion, and no migration shipped in between [C1].",
+          ][index],
+          citations:
+            index === 2
+              ? []
+              : [
+                  {
+                    id: "C1",
+                    toolName: "recent_changes",
+                    label: "Changes in the 24 hours before 18:07 UTC",
+                    queryArguments: { limitPerSource: 20 },
+                    rowCount: 2,
+                  },
+                ],
+          aiRunId: threadRunId(),
+        }),
+      );
+    });
+  }
+
+  if (threadMode === "working") {
+    affectedExchange();
+    const runId = threadRunId();
+    const answer = threadAnswer(people.sam, ago(20 * 1000), {
+      status: AIChatMessageStatus.InProgress,
+      aiRunId: runId,
+    });
+    messages.push(
+      threadQuestion(
+        people.sam,
+        ago(22 * 1000),
+        `What changed right before this ${kind} started — deploys, config, traffic, errors?`,
+      ),
+      answer,
+    );
+    activeRun = {
+      aiRunId: runId,
+      assistantMessageId: answer._id,
+      status: AIRunStatus.Running,
+      startedAt: iso(ago(20 * 1000)),
+      events: threadRunEvents(runId, ago(20 * 1000), {
+        toolCount: 1,
+        openTool: true,
+      }),
+    };
+  }
+
+  if (threadMode === "approval") {
+    const runId = threadRunId();
+    const answer = threadAnswer(people.maya, ago(40 * 1000), {
+      status: AIChatMessageStatus.WaitingForApproval,
+      aiRunId: runId,
+      toolActions: [
+        {
+          id: "call_acknowledge",
+          toolName: `acknowledge_${kind}`,
+          title: `Acknowledge ${subject}`,
+          arguments: { [`${kind}Number`]: number },
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+        },
+      ],
+    });
+    messages.push(
+      threadQuestion(people.maya, ago(45 * 1000), `Acknowledge this ${kind}.`),
+      answer,
+    );
+    activeRun = {
+      aiRunId: runId,
+      assistantMessageId: answer._id,
+      status: AIRunStatus.WaitingForApproval,
+      startedAt: iso(ago(40 * 1000)),
+      events: threadRunEvents(runId, ago(40 * 1000), { toolCount: 0 }),
+    };
+  }
+
+  if (threadMode === "error") {
+    messages.push(
+      threadQuestion(
+        people.maya,
+        ago(6 * MINUTE),
+        `Draft a short, customer-facing status update for this ${kind}. Don't post it yet.`,
+      ),
+      threadAnswer(people.maya, ago(6 * MINUTE - 5000), {
+        status: AIChatMessageStatus.Error,
+        errorMessage:
+          "The LLM provider returned 529 Overloaded three times. Nothing was changed.",
+        aiRunId: threadRunId(),
+      }),
+      threadQuestion(
+        people.sam,
+        ago(2 * MINUTE),
+        `What should I do right now to mitigate this ${kind}? Give me the next steps in order.`,
+      ),
+      threadAnswer(people.sam, ago(2 * MINUTE - 4000), {
+        status: AIChatMessageStatus.Cancelled,
+        contentInMarkdown: "Stopped before the answer was finished.",
+        aiRunId: threadRunId(),
+      }),
+    );
+  }
+
+  return { kind, number, messages, activeRun, turn: null };
+}
+
+const threads = {
+  [ID.incident(INCIDENT_NUMBER)]: seedThread("incident", INCIDENT_NUMBER),
+  [ID.alert(ALERT_NUMBER)]: seedThread("alert", ALERT_NUMBER),
+};
+
+function isThreadAnswerInFlight(message) {
+  return (
+    message.role === AIChatMessageRole.Assistant &&
+    [
+      AIChatMessageStatus.InProgress,
+      AIChatMessageStatus.Pending,
+      AIChatMessageStatus.WaitingForApproval,
+    ].includes(message.status)
+  );
+}
+
+function threadView(subjectId) {
+  const thread = threads[subjectId];
+  const viewerUserId = people.maya.id.toString();
+
+  // Every other incident and alert: nobody has asked anything.
+  if (!thread) {
+    return {
+      conversationId: null,
+      messages: [],
+      activeRun: null,
+      isBusy: false,
+      viewerUserId,
+    };
+  }
+
+  // The question a spec sent moves one step with every read.
+  if (thread.turn) {
+    thread.turn.reads += 1;
+    const answer = thread.messages.find((message) => {
+      return message._id === thread.turn.answerId;
+    });
+
+    if (thread.turn.reads >= 3) {
+      answer.status = AIChatMessageStatus.Completed;
+      answer.contentInMarkdown = THREAD_ANSWER_TO_SENT_QUESTION;
+      answer.citations = [
+        {
+          id: "C1",
+          toolName: "query_monitors",
+          label: "Monitors attached to checkout-api, right now",
+          queryArguments: { nameSearch: "checkout" },
+          rowCount: 2,
+          target: { type: AIChatCitationTargetType.Monitors },
+        },
+      ];
+      thread.activeRun = null;
+      thread.turn = null;
+    } else {
+      thread.activeRun = {
+        aiRunId: answer.aiRunId,
+        assistantMessageId: answer._id,
+        status: AIRunStatus.Running,
+        startedAt: iso(NOW),
+        events: threadRunEvents(answer.aiRunId, NOW, {
+          toolCount: 0,
+          openTool: thread.turn.reads >= 2,
+        }),
+      };
+    }
+  }
+
+  return {
+    conversationId: thread.messages.length > 0 ? uuid("87000000", 1) : null,
+    /*
+     * Charts and tables are built from rows fetched under the asker's
+     * permissions, so getView sends them only to the person who asked.
+     */
+    messages: thread.messages.map((message) => {
+      return message.author.userId === viewerUserId
+        ? message
+        : { ...message, widgets: [] };
+    }),
+    activeRun: thread.activeRun,
+    isBusy: thread.messages.some(isThreadAnswerInFlight),
+    viewerUserId,
+  };
+}
+
+function sendThreadMessage(body) {
+  const thread = threads[body.subjectId];
+
+  if (failures.has("conversation-send") || !thread) {
+    throw fail(
+      400,
+      "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
+    );
+  }
+
+  if (thread.messages.some(isThreadAnswerInFlight)) {
+    throw fail(
+      400,
+      "OneUptime AI is still answering the previous question. Ask again as soon as it finishes.",
+    );
+  }
+
+  const runId = threadRunId();
+  const question = threadQuestion(people.maya, NOW, body.content);
+  const answer = threadAnswer(people.maya, NOW, {
+    status: AIChatMessageStatus.InProgress,
+    aiRunId: runId,
+  });
+  thread.messages.push(question, answer);
+  thread.turn = { answerId: answer._id, reads: 0 };
+
+  return {
+    conversationId: uuid("87000000", 1),
+    userMessageId: question._id,
+    assistantMessageId: answer._id,
+    aiRunId: runId,
+  };
+}
+
+function respondToThreadApproval(body) {
+  const thread = threads[body.subjectId];
+  const answer = thread?.messages.find((message) => {
+    return message._id === body.assistantMessageId;
+  });
+
+  if (!answer || answer.status !== AIChatMessageStatus.WaitingForApproval) {
+    throw fail(400, "This answer is no longer waiting for approval.");
+  }
+
+  const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+  let approvedCount = 0;
+  answer.toolActions = answer.toolActions.map((action) => {
+    const decision = decisions.find((candidate) => {
+      return candidate.toolCallId === action.id;
+    });
+    const approved = decision ? decision.approved === true : false;
+    approvedCount += approved ? 1 : 0;
+    return {
+      ...action,
+      status: approved
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied,
+    };
+  });
+  answer.status = AIChatMessageStatus.Completed;
+  answer.contentInMarkdown =
+    approvedCount > 0
+      ? `Done — ${thread.kind} #${thread.number} is acknowledged.`
+      : `Okay — I left ${thread.kind} #${thread.number} as it is.`;
+  thread.activeRun = null;
+
+  return { assistantMessageId: answer._id, aiRunId: answer.aiRunId };
+}
+
+function cancelThreadRun(body) {
+  const thread = threads[body.subjectId];
+  const answer = thread?.messages.find(isThreadAnswerInFlight);
+
+  if (!answer) {
+    throw fail(400, "There is no answer in progress to stop.");
+  }
+
+  answer.status = AIChatMessageStatus.Cancelled;
+  answer.contentInMarkdown = "Stopped before the answer was finished.";
+  thread.activeRun = null;
+  thread.turn = null;
+
+  return { aiRunId: answer.aiRunId, cancelled: true };
+}
+
+const SLACK_TEAM_ID = "T0ACMECOM";
+const TEAMS_TEAM_ID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+const TEAMS_TENANT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+
+function channelLinks(url) {
+  const [recordType] = url.split("/workspace-channel-link/")[1].split("/");
+  const name =
+    {
+      incident: "incident-1042-checkout-latency",
+      alert: "alert-311-payment-webhook",
+      "incident-episode": "episode-12-checkout",
+      "alert-episode": "alert-episode-7-payments",
+      "scheduled-maintenance": "maintenance-58-db-failover",
+    }[recordType] || "oneuptime-updates";
+  const links = [];
+
+  if (channelModes.has("slack")) {
+    links.push({
+      workspaceType: WorkspaceType.Slack,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getSlackChannelUrl({
+        teamId: SLACK_TEAM_ID,
+        channelId: "C0ACME0001",
+      }),
+    });
+  }
+
+  if (channelModes.has("slack2")) {
+    links.push({
+      workspaceType: WorkspaceType.Slack,
+      channelName: "sre-war-room",
+      url: WorkspaceChannelLinkUtil.getSlackChannelUrl({
+        teamId: SLACK_TEAM_ID,
+        channelId: "C0ACME0002",
+      }),
+    });
+  }
+
+  if (channelModes.has("teams")) {
+    links.push({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({
+        tenantId: TEAMS_TENANT_ID,
+        teamId: TEAMS_TEAM_ID,
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        channelName: name,
+      }),
+    });
+  }
+
+  return links;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Who is in the record's channels (the channel card, ?members=)
+ * ---------------------------------------------------------------------------
+ */
+function channelPerson(key, name, member) {
+  return member
+    ? { key, name, userId: member.id.toString(), hasProfilePicture: true }
+    : { key, name };
+}
+
+const SLACK_ONLY_NAMES = [
+  "Priya from Support",
+  "Diego Alvarez",
+  "Hannah Okafor",
+  "Lena Fischer",
+  "Marco Rossi",
+  "Noor Haddad",
+  "Oliver Grant",
+  "Ravi Menon",
+  "Tomás Silva",
+  "Yuki Tanaka",
+];
+
+function initialChannelPeople() {
+  const sam = channelPerson("U0SAM", "Sam Rivera", people.sam);
+  const jordan = channelPerson("U0JORDAN", "Jordan Patel", people.jordan);
+  const maya = channelPerson("U0MAYA", "Maya Chen", people.maya);
+  const priya = channelPerson("U0PRIYA", SLACK_ONLY_NAMES[0]);
+
+  switch (membersMode) {
+    case "in":
+      return [maya, sam, priya];
+    case "empty":
+    case "unreachable":
+    case "not-connected":
+    case "unavailable":
+      return [];
+    case "many":
+      return [
+        sam,
+        jordan,
+        ...SLACK_ONLY_NAMES.map((name, index) => {
+          return channelPerson(`U0SLACK${index}`, name);
+        }),
+        channelPerson("U0ALEXK", "Alex Kim", people.alex),
+      ];
+    case "archived":
+      return [sam, jordan];
+    default:
+      return [sam, jordan, priya];
+  }
+}
+
+// The people in each Slack channel, as the card's adds change them.
+const channelPeopleById = {
+  C0ACME0001: initialChannelPeople(),
+  C0ACME0002: initialChannelPeople(),
+};
+
+const SLACK_CHANNEL_IDS_BY_NAME = {
+  "sre-war-room": "C0ACME0002",
+};
+
+function channelStateOf() {
+  return (
+    {
+      archived: "archived",
+      unreachable: "unreachable",
+      "not-connected": "not-connected",
+      unavailable: "unavailable",
+    }[membersMode] || "members"
+  );
+}
+
+function channelMembers(url) {
+  const route = url.split("/workspace-channel-members/")[1];
+  const links = channelLinks(`/workspace-channel-link/${route}`);
+  const state = channelStateOf();
+
+  const channels = links.map((link) => {
+    if (link.workspaceType === WorkspaceType.MicrosoftTeams) {
+      return {
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        name: link.channelName,
+        url: link.url,
+        isPrivate: isTeamsChannelPrivate,
+        state: "managed-in-teams",
+        people: [],
+        peopleCount: 0,
+        viewer: "not-found",
+        teamName: "Checkout SRE",
+      };
+    }
+
+    const channelId =
+      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+    const listed = state === "members" || state === "archived";
+    const inChannel = listed ? channelPeopleById[channelId] : [];
+    const viewerId = people.maya.id.toString();
+    const isViewerIn = inChannel.some((person) => {
+      return person.userId === viewerId;
+    });
+
+    return {
+      channelId,
+      workspaceType: WorkspaceType.Slack,
+      name: link.channelName,
+      url: link.url,
+      isPrivate: listed ? membersMode !== "readonly-public" : null,
+      state,
+      // The viewer first, then everybody by name, as the server sorts them.
+      people: inChannel
+        .map((person) => {
+          return person.userId === viewerId
+            ? { ...person, isViewer: true }
+            : person;
+        })
+        .sort((a, b) => {
+          if (Boolean(a.isViewer) !== Boolean(b.isViewer)) {
+            return a.isViewer ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        }),
+      peopleCount: inChannel.length,
+      viewer:
+        !listed || membersMode === "not-found"
+          ? "not-found"
+          : isViewerIn
+            ? "in"
+            : "not-in",
+    };
+  });
+
+  return {
+    canAddPeople:
+      roleMode === "owner" &&
+      membersMode !== "readonly" &&
+      membersMode !== "readonly-public",
+    channels,
+  };
+}
+
+function addToChannel(body) {
+  fixture.channelAdds.push(body);
+
+  const inChannel = channelPeopleById[body.channelId];
+
+  if (!inChannel) {
+    throw fail(404, "This channel is not one of this incident's channels.");
+  }
+
+  if (membersMode === "archived") {
+    return { channelState: "archived", results: [] };
+  }
+
+  const everybody = Object.values(people);
+  const userIds = [...(body.userIds || [])];
+
+  if ((body.teamIds || []).length > 0) {
+    for (const member of everybody) {
+      if (!userIds.includes(member.id.toString())) {
+        userIds.push(member.id.toString());
+      }
+    }
+  }
+
+  const results = userIds.map((userId) => {
+    const member = everybody.find((candidate) => {
+      return candidate.id.toString() === userId;
+    });
+    const name = member ? member.name.toString() : "Someone";
+
+    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    const memberKey = Object.keys(people).find((key) => {
+      return people[key] === member;
+    });
+
+    if (memberKey && unknownToSlack.has(memberKey)) {
+      return { userId, name, outcome: "not-found" };
+    }
+
+    if (
+      inChannel.some((person) => {
+        return person.userId === userId;
+      })
+    ) {
+      return { userId, name, outcome: "already-in" };
+    }
+
+    inChannel.push(
+      channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member),
+    );
+    return { userId, name, outcome: "added" };
+  });
+
+  return { results };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Incident #1042's calls and their transcripts (?calls=, ?transcriptFetch=)
+ * ---------------------------------------------------------------------------
+ *
+ * The calls the Video Call card lists, with their transcript and what
+ * OneUptime AI read in it, as IncidentVideoCall rows (issue #4875). The
+ * transcript routes are modelled: Get from Zoom answers as
+ * ?transcriptFetch= says, Add transcript stores what was sent, and a
+ * reading that starts is Pending for one read of the calls and Ready (with
+ * CALL_SUMMARY) on the next, as the page's polling would see it.
+ */
+const CALL_TRANSCRIPT_LINES = [
+  {
+    offsetInSeconds: 8,
+    speaker: "Sam Rivera",
+    text: "I'm on. Checkout p95 is at 2.4 seconds and climbing.",
+  },
+  {
+    offsetInSeconds: 31,
+    speaker: "Jordan Patel",
+    text: "Orders DB looks healthy from its side, CPU is at 30%.",
+  },
+  {
+    offsetInSeconds: 72,
+    speaker: "Sam Rivera",
+    text: "The app side is waiting on pg.pool.connect, most requests wait about two seconds.",
+  },
+  {
+    offsetInSeconds: 160,
+    speaker: "Maya Chen",
+    text: "Did anything ship in the last hour?",
+  },
+  {
+    offsetInSeconds: 175,
+    speaker: "Jordan Patel",
+    text: "checkout-api 2026.09.14-2 went out at 17:52.",
+  },
+  {
+    offsetInSeconds: 243,
+    speaker: "Sam Rivera",
+    text: "The new release has DB_POOL_MAX=10, it was 40 before.",
+  },
+  {
+    offsetInSeconds: 270,
+    speaker: "Maya Chen",
+    text: "That would explain the queueing. Can we roll back?",
+  },
+  {
+    offsetInSeconds: 302,
+    speaker: "Jordan Patel",
+    text: "Maybe the cache is cold too, I'm not sure.",
+  },
+  {
+    offsetInSeconds: 375,
+    speaker: "Sam Rivera",
+    text: "Rolling checkout-api back to 2026.09.14-1 now.",
+  },
+  {
+    offsetInSeconds: 588,
+    speaker: "Sam Rivera",
+    text: "Rollback done, p95 is back under 300 milliseconds.",
+  },
+  {
+    offsetInSeconds: 620,
+    speaker: "Maya Chen",
+    text: "So the pool size change caused it. Jordan, can you add an alert on pool usage?",
+  },
+  {
+    offsetInSeconds: 641,
+    speaker: "Jordan Patel",
+    text: "Yes, I'll add the alert today.",
+  },
+];
+
+function callCitation(lineNumber) {
+  const line = CALL_TRANSCRIPT_LINES[lineNumber - 1];
+  return {
+    line: lineNumber,
+    time: TranscriptText.formatOffset(line.offsetInSeconds),
+    speaker: line.speaker,
+    text: line.text,
+  };
+}
+
+function callPoint(text, lineNumbers) {
+  return { text, citations: lineNumbers.map(callCitation) };
+}
+
+// What OneUptime AI read in the fixture's transcript, as the server stores it.
+const CALL_SUMMARY = {
+  version: 1,
+  runId: "fixture-reading-1",
+  generatedAt: at("18:16").toISOString(),
+  rootCause: {
+    outcome: "Suggested",
+    summary:
+      "checkout-api 2026.09.14-2 shipped with DB_POOL_MAX=10 instead of 40, so checkout requests queued for a database connection.",
+    basis: "StatedOnCall",
+    citations: [callCitation(6), callCitation(11), callCitation(10)],
+  },
+  findings: [
+    {
+      ...callPoint("The orders database itself was healthy.", [2]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("Requests waited about two seconds in pg.pool.connect.", [
+        3,
+      ]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("A cold cache may have added to it.", [8]),
+      kind: "Hypothesis",
+    },
+  ],
+  stepsTried: [
+    callPoint("Checked the orders database's own health.", [2]),
+    callPoint("Rolled checkout-api back to 2026.09.14-1.", [9]),
+  ],
+  decisions: [callPoint("Roll checkout-api back to 2026.09.14-1.", [7, 9])],
+  actions: [
+    {
+      ...callPoint("Add an alert on database pool usage.", [11, 12]),
+      owner: "Jordan Patel",
+    },
+  ],
+  openQuestions: [callPoint("Why the release changed DB_POOL_MAX.", [])],
+  linesRead: CALL_TRANSCRIPT_LINES.length,
+  partsRead: 1,
+};
+
+const NOT_ENOUGH_SUMMARY = {
+  ...CALL_SUMMARY,
+  rootCause: { outcome: "NotEnoughDiscussion", citations: [] },
+  findings: [],
+  decisions: [],
+  actions: [],
+  openQuestions: [callPoint("What changed in checkout-api today?", [4])],
+};
+
+const CALL_TRANSCRIPT_STORED = TranscriptText.serialize(CALL_TRANSCRIPT_LINES);
+const CALL_TRANSCRIPT_INFO = TranscriptText.getInfo(CALL_TRANSCRIPT_LINES);
+
+// The fields of a call holding the fixture's transcript.
+function withTranscript(fields) {
+  return {
+    transcript: CALL_TRANSCRIPT_STORED,
+    transcriptSource: "Provider",
+    transcriptInfo: CALL_TRANSCRIPT_INFO,
+    transcriptAddedAt: at("18:15"),
+    transcriptAddedByUserId: people.maya.id,
+    transcriptAddedByUser: people.maya,
+    ...fields,
+  };
+}
+
+function incidentCall(number, fields) {
+  return insert(IncidentVideoCall, {
+    _id: uuid("88000000", number),
+    incidentId: mainIncident.id,
+    createdAt: at("18:02"),
+    ...fields,
+  });
+}
+
+const ZOOM_CALL = {
+  provider: "Zoom",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://acme.zoom.us/j/85746065432?pwd=abc",
+  externalMeetingId: "85746065432",
+  videoCallConnectionId: uuid("89000000", 1),
+  workspaceNotificationRuleId: uuid("89100000", 1),
+};
+
+const TEAMS_CALL = {
+  provider: "MicrosoftTeams",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc",
+  externalMeetingId: "MSo1N2Y5ZGFjYy03MWJm",
+  videoCallConnectionId: uuid("89000000", 2),
+  createdByUser: people.sam,
+  createdByUserId: people.sam.id,
+};
+
+if (callsMode === "zoom") {
+  incidentCall(1, ZOOM_CALL);
+}
+
+if (callsMode === "teams") {
+  incidentCall(1, TEAMS_CALL);
+}
+
+/*
+ * Record and transcribe incident calls, for Microsoft Teams: a meeting
+ * OneUptime put on its organizer's calendar, so Graph lets it read the
+ * transcript - waiting for it once the call is over - and one it could not
+ * put there (the connection lacks the calendar permission), which started
+ * unrecorded and was stopped from the start with why.
+ */
+if (callsMode === "teams-recorded") {
+  incidentCall(1, {
+    ...TEAMS_CALL,
+    externalCalendarEventId: "AAMkAGI2TG93AAA=",
+    createdByUser: undefined,
+    createdByUserId: undefined,
+    workspaceNotificationRuleId: uuid("89100000", 2),
+    transcriptFetchStatus: "Waiting",
+    transcriptFetchNextAttemptAt: at("18:25"),
+  });
+}
+
+if (callsMode === "teams-not-recorded") {
+  incidentCall(1, {
+    ...TEAMS_CALL,
+    transcriptFetchStatus: "Stopped",
+    transcriptFetchReason: "PermissionMissing",
+    transcriptFetchCheckedAt: at("18:02"),
+  });
+}
+
+if (callsMode === "reading") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(30 * 1000),
+    }),
+  });
+}
+
+if (callsMode === "stuck") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(40 * MINUTE),
+    }),
+  });
+}
+
+if (["transcript", "accepted", "dismissed", "two"].includes(callsMode)) {
+  incidentCall(callsMode === "two" ? 2 : 1, {
+    ...ZOOM_CALL,
+    createdAt: callsMode === "two" ? at("18:06") : at("18:02"),
+    ...withTranscript({
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus:
+        callsMode === "accepted"
+          ? "Accepted"
+          : callsMode === "dismissed"
+            ? "Dismissed"
+            : "Suggested",
+      rootCauseSuggestionReviewedAt: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? at("18:18")
+        : undefined,
+      rootCauseSuggestionReviewedByUser: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? people.jordan
+        : undefined,
+    }),
+  });
+}
+
+if (callsMode === "two") {
+  incidentCall(1, { ...TEAMS_CALL, createdAt: at("18:02") });
+}
+
+if (callsMode === "not-enough") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: NOT_ENOUGH_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "failed") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Failed",
+      callSummaryStatusMessage:
+        "This project reached its daily AI token limit. OneUptime AI starts again at midnight UTC.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "skipped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummaryStatus: "Skipped",
+      callSummaryStatusMessage:
+        "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+/*
+ * Record and transcribe incident calls: a Zoom meeting OneUptime is waiting
+ * to get the transcript of once the call is over, one it stopped waiting on
+ * (Zoom kept no transcript), and one whose transcript it got and OneUptime
+ * AI read - with what was read posted to the incident's feed, in the words
+ * the server writes it (CallSummaryFeedMarkdown).
+ */
+if (callsMode === "waiting") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Waiting",
+    transcriptFetchNextAttemptAt: at("18:25"),
+  });
+}
+
+if (callsMode === "fetch-stopped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Stopped",
+    transcriptFetchReason: "NotTranscribed",
+    transcriptFetchCheckedAt: at("18:15"),
+  });
+}
+
+if (callsMode === "summary") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      transcriptAddedByUserId: undefined,
+      transcriptAddedByUser: undefined,
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus: "Suggested",
+    }),
+  });
+
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallSummary,
+    feedInfoInMarkdown: CallSummaryFeedMarkdown.getFeedMarkdown({
+      callLabel: "Zoom meeting",
+      summary: CALL_SUMMARY,
+      details: TranscriptText.describeInfo(CALL_TRANSCRIPT_INFO),
+    }).toString(),
+    displayColor: new Color("#6366f1"),
+    postedAt: at("18:16"),
+    createdAt: at("18:16"),
+  });
+}
+
+function callRecord(callId) {
+  return table(IncidentVideoCall).find((record) => {
+    return String(record._id) === String(callId);
+  });
+}
+
+/*
+ * A reading that started finishes on the second read of the calls after
+ * it: Pending once - what the page shows first - then Ready.
+ */
+function advanceCallReadings() {
+  for (const record of table(IncidentVideoCall)) {
+    if (record.callSummaryStatus !== "Pending" || !record.fixtureReadsLeft) {
+      continue;
+    }
+
+    record.fixtureReadsLeft -= 1;
+
+    if (record.fixtureReadsLeft === 0) {
+      record.callSummaryStatus = "Ready";
+      record.callSummary = CALL_SUMMARY;
+      record.callSummaryUpdatedAt = NOW;
+      record.rootCauseSuggestionStatus = "Suggested";
+    }
+  }
+}
+
+/*
+ * The feed entry the server writes when a transcript is added
+ * (IncidentCallTranscriptSave.getFeedMarkdown): opening with "added",
+ * so the feed puts the person who added it first.
+ */
+function announceCallTranscript(record, source, info) {
+  const details = TranscriptText.describeInfo(info);
+  const feedInfoInMarkdown =
+    source === "Provider"
+      ? `📝 added the call's transcript from **${record.provider === "MicrosoftTeams" ? "Microsoft Teams" : "Zoom"}**: ${details}.`
+      : `📝 added a transcript of the **${record.provider === "MicrosoftTeams" ? "Microsoft Teams meeting" : "Zoom meeting"}**: ${details}.`;
+
+  insert(IncidentFeed, {
+    incidentId: record.incidentId,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallTranscriptAdded,
+    feedInfoInMarkdown,
+    displayColor: new Color("#3b82f6"),
+    postedAt: NOW,
+    createdAt: NOW,
+    user: people.maya,
+  });
+}
+
+function startCallReading(record) {
+  record.callSummary = { runId: `fixture-reading-${Date.now()}` };
+  record.callSummaryStatus = "Pending";
+  record.callSummaryStatusMessage = undefined;
+  record.callSummaryUpdatedAt = NOW;
+  record.rootCauseSuggestionStatus = undefined;
+  record.rootCauseSuggestionReviewedAt = undefined;
+  record.rootCauseSuggestionReviewedByUser = undefined;
+  record.fixtureReadsLeft = 2;
+}
+
+// What the transcript routes answer (IncidentVideoCallAPI), or null for another URL.
+function handleCallTranscriptApi(method, url, body) {
+  const marker = "/incident-video-call/";
+  const markerAt = url.indexOf(marker);
+
+  if (markerAt === -1) {
+    return null;
+  }
+
+  const [callId, ...rest] = url
+    .slice(markerAt + marker.length)
+    .split("?")[0]
+    .split("/");
+  const route = rest.join("/");
+  const record = callRecord(callId);
+
+  if (!record) {
+    throw fail(404, "Video call not found.");
+  }
+
+  if (route === "transcript/from-provider" && method === "POST") {
+    if (transcriptFetchMode === "not-ready") {
+      return ok({
+        added: false,
+        reason: "NotReady",
+        message:
+          "Zoom is still preparing this meeting's transcript. It is usually ready within twice the length of the call. Try again later.",
+      });
+    }
+
+    if (transcriptFetchMode === "permission") {
+      return ok({
+        added: false,
+        reason: "PermissionMissing",
+        message:
+          "This connection's Zoom app cannot read transcripts. On the app's Scopes page in the Zoom App Marketplace, add cloud_recording:read:list_recording_files:admin and cloud_recording:read:meeting_transcript:admin (or recording:read:admin on an older app).",
+      });
+    }
+
+    if (transcriptFetchMode === "not-transcribed") {
+      return ok({
+        added: false,
+        reason: "NotTranscribed",
+        message:
+          "Zoom has no transcript of this meeting. Zoom keeps one when the meeting is recorded to the cloud with Audio transcript on, or when AI Companion's meeting summary is on. You can add the transcript yourself.",
+      });
+    }
+
+    Object.assign(record, withTranscript({ transcriptAddedAt: NOW }));
+    startCallReading(record);
+    announceCallTranscript(record, "Provider", CALL_TRANSCRIPT_INFO);
+    return ok({
+      added: true,
+      transcriptSource: "Provider",
+      transcriptInfo: CALL_TRANSCRIPT_INFO,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "POST") {
+    const prepared = TranscriptText.prepare({
+      text: String(body.text || ""),
+      fileName: body.fileName,
+    });
+    Object.assign(record, {
+      transcript: prepared.stored,
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      transcriptAddedAt: NOW,
+      transcriptAddedByUserId: people.maya.id,
+      transcriptAddedByUser: people.maya,
+    });
+    startCallReading(record);
+    announceCallTranscript(record, "Upload", prepared.info);
+    return ok({
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "DELETE") {
+    for (const key of [
+      "transcript",
+      "transcriptSource",
+      "transcriptInfo",
+      "transcriptAddedAt",
+      "transcriptAddedByUserId",
+      "transcriptAddedByUser",
+      "callSummary",
+      "callSummaryStatus",
+      "callSummaryStatusMessage",
+      "callSummaryUpdatedAt",
+      "rootCauseSuggestionStatus",
+      "rootCauseSuggestionReviewedAt",
+      "rootCauseSuggestionReviewedByUser",
+    ]) {
+      delete record[key];
+    }
+    return ok({});
+  }
+
+  if (route === "call-summary" && method === "POST") {
+    startCallReading(record);
+    return ok({ callSummaryStatus: "Pending" });
+  }
+
+  if (route === "root-cause-suggestion" && method === "POST") {
+    if (failures.has("suggestion")) {
+      throw fail(
+        403,
+        "You do not have permission to edit this incident's root cause.",
+      );
+    }
+
+    record.rootCauseSuggestionStatus = body.decision;
+    record.rootCauseSuggestionReviewedAt =
+      body.decision === "Suggested" ? undefined : NOW;
+    record.rootCauseSuggestionReviewedByUser =
+      body.decision === "Suggested" ? undefined : people.maya;
+
+    if (body.decision === "Accepted") {
+      const incident = table(Incident).find((item) => {
+        return String(item._id) === String(record.incidentId);
+      });
+      if (incident) {
+        incident.rootCause = body.rootCause;
+      }
+    }
+
+    return ok({ rootCauseSuggestionStatus: body.decision });
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
   fixture.apiRequests.push({ method, url, body });
+
+  if (url.includes("/incident/subscriber-audience")) {
+    return ok(subscriberAudience(body));
+  }
 
   if (
     url.includes("/ai-investigation/incident") ||
@@ -3048,6 +5890,36 @@ async function handleApi(method, options) {
       });
     }
     return ok(investigationPayload(investigation));
+  }
+
+  /*
+   * Investigate now on a waiting record (issue #5074): started, as
+   * InvestigationRuleWait.startNow answers, or refused with the server's
+   * words - the project's daily AI limit, for ?fail=investigate-now.
+   */
+  if (url.endsWith("/ai-investigation/investigate-now")) {
+    if (failures.has("investigate-now")) {
+      throw fail(
+        400,
+        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+      );
+    }
+    const investigation =
+      body.subjectType === "alert"
+        ? investigations.alert
+        : investigations.incident;
+    if (
+      !isWaitingMode ||
+      String(body.subjectId) !== String(investigation.subjectId) ||
+      startedNow.has(String(investigation.subjectId))
+    ) {
+      throw fail(
+        400,
+        "OneUptime AI is no longer waiting to investigate this. Refresh to see where it stands.",
+      );
+    }
+    startedNow.add(String(investigation.subjectId));
+    return ok({ runId: investigation.runId });
   }
 
   if (url.includes("/ai-investigation/evidence")) {
@@ -3080,8 +5952,191 @@ async function handleApi(method, options) {
     return ok({ aiRunId: ID.task(1) });
   }
 
+  /*
+   * The investigation card's shared conversation, which it reads on load and
+   * then polls, and the three things a responder can do in it (see "The
+   * investigation card's conversation" above).
+   */
+  if (url.endsWith("/ai-investigation/conversation")) {
+    if (failures.has("conversation")) {
+      throw fail(500, "The conversation service is unavailable.");
+    }
+    return ok(threadView(body.subjectId));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/send-message")) {
+    return ok(sendThreadMessage(body));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/respond-to-approval")) {
+    return ok(respondToThreadApproval(body));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/cancel-run")) {
+    return ok(cancelThreadRun(body));
+  }
+
+  /*
+   * GET /workspace-channel-link/<record type>/<record id>: the links behind
+   * the header's Open in Slack / Open in Microsoft Teams (?channels=).
+   */
+  if (method === "GET" && url.includes("/workspace-channel-link/")) {
+    if (failures.has("channel-links")) {
+      throw fail(500, "The channel links could not be read.");
+    }
+    return ok({ links: channelLinks(url) });
+  }
+
+  /*
+   * GET /workspace-channel-members/<record type>/<record id>: who is in the
+   * record's channels (?members=); POST .../add adds people to one.
+   */
+  if (method === "POST" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-add")) {
+      throw fail(500, "Could not add people to the channel.");
+    }
+    return ok(addToChannel(body));
+  }
+
+  if (method === "GET" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-members")) {
+      throw fail(500, "Slack could not be reached.");
+    }
+    return ok(channelMembers(url));
+  }
+
+  /*
+   * GET /on-call-page/pass-on/<record type>/<record id>: the viewer's own
+   * open pages about the record (?paged=, ?passOn=); POST passes them on.
+   */
+  if (url.includes("/on-call-page/pass-on/")) {
+    const [recordType, recordId] = url
+      .split("/on-call-page/pass-on/")[1]
+      .split("?")[0]
+      .split("/");
+
+    if (method === "GET") {
+      if (failures.has("pass-on-read")) {
+        throw fail(500, "Whether you are paged could not be read.");
+      }
+      return ok({ pages: openPassOnPages(recordType, recordId) });
+    }
+
+    if (method === "POST") {
+      if (failures.has("pass-on")) {
+        throw fail(500, "The page could not be passed on.");
+      }
+      return ok({ answers: passOnAnswers(recordType, recordId) });
+    }
+  }
+
+  // An incident call's transcript routes (?calls=).
+  const callTranscriptAnswer = handleCallTranscriptApi(method, url, body);
+
+  if (callTranscriptAnswer) {
+    return callTranscriptAnswer;
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Pass it on (?paged=, ?passOn=): the record's on-call pages to the viewer.
+ * The answers have the shape OnCallPagePassOnAPI gives, times as ISO text.
+ * ---------------------------------------------------------------------------
+ */
+const passedOnRecords = new Set();
+
+function passOnResult(isPreview, policyName) {
+  const base = {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    pagedNames: [],
+    stillPagedNames: [],
+    ruleCount: 3,
+  };
+
+  if (passOnMode === "others") {
+    return {
+      ...base,
+      outcome: "OthersStillPaged",
+      rule: { order: 1, name: "Level 1" },
+      stillPagedNames: ["Bob Smith"],
+      nextStepAt: new Date(NOW.getTime() + 20 * 60 * 1000).toISOString(),
+      nextRule: { order: 2, name: "Level 2" },
+    };
+  }
+
+  if (passOnMode === "restart") {
+    return {
+      ...base,
+      outcome: "PolicyStartedAgain",
+      rule: { order: 1, name: "Level 1" },
+      pagedNames: isPreview ? [] : ["Jordan Lee"],
+    };
+  }
+
+  if (passOnMode === "stopped") {
+    return { ...base, outcome: "PagingStopped" };
+  }
+
+  return {
+    ...base,
+    outcome: "NextRulePaged",
+    rule: { order: 2, name: "Level 2" },
+    pagedNames: isPreview ? [] : ["Sam Lee", "Priya Patel"],
+  };
+}
+
+function openPassOnPages(recordType, recordId) {
+  if (
+    !pagedKinds.has(recordType) ||
+    passedOnRecords.has(`${recordType}:${recordId}`)
+  ) {
+    return [];
+  }
+
+  const policies =
+    passOnMode === "two"
+      ? ["Checkout on-call", "Payments escalation"]
+      : ["Checkout on-call"];
+
+  return policies.map((policyName, index) => {
+    return {
+      executionLogId: uuid("73000000", index + 1),
+      preview: passOnResult(true, policyName),
+    };
+  });
+}
+
+function passOnAnswers(recordType, recordId) {
+  const pages = openPassOnPages(recordType, recordId);
+
+  if (pages.length === 0) {
+    return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  if (passOnMode === "acknowledged") {
+    return [
+      {
+        passedOn: false,
+        refusal: "RecordAcknowledged",
+        acknowledgedByName: "Sam Lee",
+      },
+    ];
+  }
+
+  passedOnRecords.add(`${recordType}:${recordId}`);
+
+  return pages.map((page) => {
+    return {
+      passedOn: true,
+      result: passOnResult(false, page.preview.policyName),
+    };
+  });
 }
 
 /*
@@ -3110,6 +6165,21 @@ API.post = async (options) => handleApi("POST", options);
 API.put = async (options) => handleApi("PUT", options);
 API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
+
+/*
+ * The session refresh an attachment link asks for before its tab is pointed
+ * at the file (OpenAuthenticatedUrl). BaseAPI sends it through its parent
+ * class, past the stubs above, so it is answered here: the fixture's session
+ * is always live. It is recorded as the request it stands for.
+ */
+API.refreshSession = async () => {
+  fixture.apiRequests.push({
+    method: "POST",
+    url: "/identity/refresh-token",
+    body: {},
+  });
+  return true;
+};
 
 await i18next.use(initReactI18next).init({
   lng: "en",
@@ -3168,9 +6238,14 @@ function StubPage(props) {
 }
 
 const STUB_PAGES = [
-  [PageMap.AI_AGENT_TASK_VIEW, "AI Agent Task"],
-  [PageMap.AI_AGENT_TASKS, "AI Agent Tasks"],
+  // Where a fix task the AI Investigation card started leads: Code.
+  [PageMap.CODE_TASK_VIEW, "Code Task"],
+  [PageMap.CODE, "Code"],
   [PageMap.MONITOR_VIEW, "Monitor"],
+  // What the Affected Resources card links to with ?resources=many.
+  [PageMap.HOST_VIEW, "Host"],
+  [PageMap.KUBERNETES_CLUSTER_VIEW, "Kubernetes Cluster"],
+  [PageMap.SLO_VIEW, "SLO"],
   [PageMap.ON_CALL_DUTY_POLICY_VIEW, "On-Call Policy"],
   [PageMap.STATUS_PAGE_VIEW, "Status Page"],
   [PageMap.SERVICE_VIEW, "Service"],
@@ -3183,11 +6258,20 @@ const STUB_PAGES = [
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS, "Episode Roles"],
   [PageMap.ALERT_EPISODE_VIEW_ALERTS, "Episode Member Alerts"],
   [PageMap.INCIDENTS, "Incidents"],
+  // Where "Declare Incident" in an alert's header leads (?alertIds=<alert>).
+  [PageMap.INCIDENT_CREATE, "Create Incident"],
   [PageMap.INCIDENT_EPISODES, "Incident Episodes"],
   [PageMap.ALERTS, "Alerts"],
   [PageMap.ALERT_EPISODES, "Alert Episodes"],
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS, "Scheduled Maintenance"],
   [PageMap.HOME, "Home"],
+  // Where the AI Investigation card's cluster access notice links.
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, "Kubernetes AI Agent"],
+  // Where the sources of an answer in the card's conversation lead.
+  [PageMap.METRICS, "Metrics"],
+  [PageMap.LOGS, "Logs"],
+  [PageMap.MONITORS, "Monitors"],
+  [PageMap.ON_CALL_DUTY_POLICIES, "On-Call Policies"],
 ].filter(([pageKey]) => {
   return Boolean(pageKey && RouteMap[pageKey]);
 });

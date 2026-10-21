@@ -5,8 +5,8 @@ import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "../../../../Server/Services/PayAsYouGoBillingService";
 import BillingService from "../../../../Server/Services/BillingService";
-import MonitorService from "../../../../Server/Services/MonitorService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import ActiveMonitorLimit from "../../../../Server/Utils/Billing/ActiveMonitorLimit";
 import TelemetryUsageBillingService from "../../../../Server/Services/TelemetryUsageBillingService";
 import LogService from "../../../../Server/Services/LogService";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -14,7 +14,6 @@ import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUs
 import Decimal from "../../../../Types/Decimal";
 import ObjectID from "../../../../Types/ObjectID";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
-import PositiveNumber from "../../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../../Types/Date";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { getJestSpyOn } from "../../../Spy";
@@ -49,9 +48,6 @@ jest.mock("../../../../Server/Services/ProjectService", () => {
     __esModule: true,
     default: { findOneById: jest.fn(), updateOneById: jest.fn() },
   };
-});
-jest.mock("../../../../Server/Services/MonitorService", () => {
-  return { __esModule: true, default: { countBy: jest.fn() } };
 });
 jest.mock("../../../../Server/Services/LogService", () => {
   return {
@@ -104,6 +100,9 @@ jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
 jest.mock("../../../../Server/Services/CephClusterService", () => {
   return { __esModule: true, default: {} };
 });
+jest.mock("../../../../Server/Services/StorageArrayService", () => {
+  return { __esModule: true, default: {} };
+});
 jest.mock("../../../../Server/Services/DatabaseServerService", () => {
   return { __esModule: true, default: {} };
 });
@@ -146,11 +145,19 @@ describe("metered billing payment protection", () => {
   });
 
   describe("active monitors", () => {
+    let refreshCount: jest.SpyInstance;
+
     beforeEach(() => {
-      getJestSpyOn(MonitorService, "countBy").mockResolvedValue(
-        new PositiveNumber(3),
-      );
-      getJestSpyOn(ProjectService, "updateOneById").mockResolvedValue(1);
+      /*
+       * The count, and the project's stored copy of it, are made under the
+       * active monitor limit's lock (ActiveMonitorLimit.refreshCount, held
+       * to the table by ActiveMonitorLimitPostgres); what is billed is what
+       * it counted.
+       */
+      refreshCount = getJestSpyOn(
+        ActiveMonitorLimit,
+        "refreshCount",
+      ).mockResolvedValue(3);
     });
 
     it("updates visible monitor counts without charging a no-card project", async () => {
@@ -158,12 +165,8 @@ describe("metered billing payment protection", () => {
       await new ActiveMonitoringMeteredPlan().reportQuantityToBillingProvider(
         PROJECT_ID,
       );
-      expect(ProjectService.updateOneById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: PROJECT_ID,
-          data: { currentActiveMonitorsCount: 3 },
-        }),
-      );
+      expect(refreshCount).toHaveBeenCalledTimes(1);
+      expect(refreshCount).toHaveBeenCalledWith(PROJECT_ID);
       expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
       expect(report).not.toHaveBeenCalled();
     });
@@ -196,18 +199,26 @@ describe("metered billing payment protection", () => {
     });
 
     it("writes the visible monitor count before deciding whether to bill it", async () => {
-      const writeCount: jest.SpyInstance = getJestSpyOn(
-        ProjectService,
-        "updateOneById",
-      );
       canUse.mockResolvedValue(false);
       await new ActiveMonitoringMeteredPlan().reportQuantityToBillingProvider(
         PROJECT_ID,
       );
-      expect(writeCount.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(refreshCount.mock.invocationCallOrder[0]).toBeLessThan(
         canUse.mock.invocationCallOrder[0]!,
       );
       expect(report).not.toHaveBeenCalled();
+    });
+
+    it("bills the count it wrote, not one read again", async () => {
+      refreshCount.mockResolvedValue(2881);
+      const plan: ActiveMonitoringMeteredPlan =
+        new ActiveMonitoringMeteredPlan();
+      await plan.reportQuantityToBillingProvider(PROJECT_ID);
+      expect(report).toHaveBeenCalledWith("sub_metered", plan, 2881, {
+        liveAuthorization: expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+        }),
+      });
     });
 
     it("propagates a payment-provider outage without reporting monitors", async () => {

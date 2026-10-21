@@ -56,9 +56,25 @@ const (
 	envelopeMessage = "message"
 )
 
+/*
+ * A permission refusal says who may read the column on the same line
+ * (Common/Server/Types/Database/Permissions/ColumnRefusalMessage.ts), or that
+ * no permission does. A server from before that sent the permissions on a
+ * line of their own, and a provider talks to both.
+ */
 func permissionDeniedMessage(column string) string {
+	return fmt.Sprintf("You do not have permissions to select on - %s. "+
+		"You need one of these permissions: Project Owner, Project Admin.", column)
+}
+
+func olderServerPermissionDeniedMessage(column string) string {
 	return fmt.Sprintf("You do not have permissions to select on - %s.\n"+
 		"                    You need any one of these permissions: Project Owner, Project Admin", column)
+}
+
+func nobodyReadsMessage(column string) string {
+	return fmt.Sprintf("You do not have permissions to select on - %s. "+
+		"No permission allows it: the column is not readable through the API.", column)
 }
 
 func unknownColumnMessage(column string) string {
@@ -69,6 +85,16 @@ func unknownColumnMessage(column string) string {
 
 func analyticsUnknownColumnMessage(column string) string {
 	return fmt.Sprintf("Unknown column: %s", column)
+}
+
+/*
+ * A root or master-admin caller - the master API key of a self-hosted
+ * OneUptime - skips the select permission check, so a column the server does
+ * not have is refused further in, by the model's column metadata
+ * (Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel.ts).
+ */
+func rootUnknownColumnMessage(column string) string {
+	return fmt.Sprintf("TableColumnMetadata not found for %s column", column)
 }
 
 // rejection is one canned refusal, returned for as long as its column is still
@@ -332,6 +358,31 @@ func TestPostWithSelect_DropsAnalyticsUnknownColumn(t *testing.T) {
 		t.Fatalf("expected one retry (2 requests), got %d", api.requestCount())
 	}
 	assertSelected(t, api.selectAt(1), "_id", "body")
+}
+
+/*
+ * OneUptime/terraform-provider-oneuptime#9. The master API key refreshed a
+ * project against a server older than the provider, which has no
+ * alertEpisodeNumberPrefix column: the whole read failed instead of losing
+ * the one attribute.
+ */
+func TestPostWithSelect_DropsUnknownColumnForTheMasterKey(t *testing.T) {
+	selectParam := map[string]interface{}{"_id": true, "name": true, "alertEpisodeNumberPrefix": true}
+
+	api, client := newFakeAPI(t, rejection{
+		column:     "alertEpisodeNumberPrefix",
+		statusCode: http.StatusBadRequest,
+		envelope:   envelopeError,
+		message:    rootUnknownColumnMessage("alertEpisodeNumberPrefix"),
+	})
+
+	if _, err := client.PostWithSelect(context.Background(), "/project/abc/get-item", selectParam); err != nil {
+		t.Fatalf("PostWithSelect: %s", err)
+	}
+	if api.requestCount() != 2 {
+		t.Fatalf("expected one retry (2 requests), got %d", api.requestCount())
+	}
+	assertSelected(t, api.selectAt(1), "_id", "name")
 }
 
 /*
@@ -667,6 +718,16 @@ func TestDroppableSelectColumn(t *testing.T) {
 			want: "serviceLanguage",
 		},
 		{
+			name: "permission from an older server, on two lines",
+			body: jsonBody(t, envelopeError, olderServerPermissionDeniedMessage("serviceLanguage")),
+			want: "serviceLanguage",
+		},
+		{
+			name: "a column nobody may read",
+			body: jsonBody(t, envelopeMessage, nobodyReadsMessage("fileId")),
+			want: "fileId",
+		},
+		{
 			name: "unknown column, error envelope",
 			body: jsonBody(t, envelopeError, unknownColumnMessage("enableSearchEngineIndexing")),
 			want: "enableSearchEngineIndexing",
@@ -680,6 +741,11 @@ func TestDroppableSelectColumn(t *testing.T) {
 			name: "analytics unknown column",
 			body: jsonBody(t, envelopeError, analyticsUnknownColumnMessage("spanId")),
 			want: "spanId",
+		},
+		{
+			name: "unknown column, for a root or master-admin caller",
+			body: jsonBody(t, envelopeError, rootUnknownColumnMessage("alertEpisodeNumberPrefix")),
+			want: "alertEpisodeNumberPrefix",
 		},
 		{
 			/*

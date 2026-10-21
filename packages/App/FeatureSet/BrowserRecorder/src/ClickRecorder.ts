@@ -85,7 +85,11 @@ const SENSITIVE_DESCENDANT_SELECTOR: string = `.${MASK_CLASS}, .${BLOCK_CLASS}, 
 export interface ClickRecorderOptions {
   emitCustomEvent: (tag: string, payload: unknown) => void;
 
-  /* One labelled click was recorded; the recorder counts it on the chunk. */
+  /*
+   * One labelled click is being recorded; the recorder counts it on the
+   * chunk and notes it as user activity. Called just BEFORE the click's
+   * custom event is emitted (see record()).
+   */
   onClick: (atUnixMs: number, click: SessionReplayClickPayload) => void;
 
   /* The active policy's masking, shared with the rest of the recorder. */
@@ -302,8 +306,17 @@ export default class ClickRecorder {
       click.text = text;
     }
 
-    this.options.emitCustomEvent(SessionReplayCustomEventTag.Click, click);
+    /*
+     * Reported BEFORE the click is emitted. The recorder treats it as user
+     * activity, and the first click after a session went idle is what ends
+     * that session: it is sealed in onClick, so the click lands in no
+     * session rather than in the final chunk of the one that ended, dated
+     * hours after the user left. It also counts the click on the chunk the
+     * event is about to join, not on the one after it when adding the event
+     * happens to close a full chunk.
+     */
     this.options.onClick(atUnixMs, click);
+    this.options.emitCustomEvent(SessionReplayCustomEventTag.Click, click);
   }
 
   /*
@@ -491,6 +504,15 @@ export default class ClickRecorder {
     } catch {
       return true;
     }
+  }
+
+  /*
+   * The selector this module would send for a click on `target`, for
+   * other modules that name an element (the INP target). A target inside
+   * a blocked region is described as the blocked element itself.
+   */
+  public describeTarget(target: Element): string {
+    return ClickRecorder.buildSelector(this.findBlockedRoot(target) || target);
   }
 
   /*

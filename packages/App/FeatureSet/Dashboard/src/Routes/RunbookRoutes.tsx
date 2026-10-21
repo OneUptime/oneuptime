@@ -9,11 +9,18 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
-import RunbookSecrets from "../Pages/Runbook/Secrets";
+import RunbookGlobalVariables from "../Pages/Runbook/Variables";
+import RunbookVariables from "../Pages/Runbook/View/Variables";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import { MOVED_RUNBOOK_SECRETS_PATH } from "./MovedPagePaths";
+import RunbookRunners from "../Pages/Runbook/Runners/Runners";
+import RunbookRunnerView from "../Pages/Runbook/Runners/RunnerView";
+import RunbookRunnerCredentials from "../Pages/Runbook/Runners/RunnerCredentials";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
 import RunbookExecutionView from "../Pages/Runbook/View/ExecutionView";
+import RunbookTriggers from "../Pages/Runbook/View/Triggers";
 import RunbookOwners from "../Pages/Runbook/View/Owners";
 import RunbookAuditLogs from "../Pages/Runbook/View/AuditLogs";
 import RunbookSettings from "../Pages/Runbook/View/Settings";
@@ -22,12 +29,24 @@ import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
 import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
+import RunbookModel from "Common/Models/DatabaseModels/Runbook";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const RunbookRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * Runbook secrets were merged into variables. The old address
+       * forwards - outside the layout, so the menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_RUNBOOK_SECRETS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.RUNBOOKS_VARIABLES} />}
+      />
+
       <PageRoute path="/" element={<RunbooksLayout {...props} />}>
         <PageRoute
           index
@@ -48,11 +67,38 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_SECRETS] || ""}
+          path={RunbookRoutePath[PageMap.RUNBOOKS_VARIABLES] || ""}
           element={
-            <RunbookSecrets
+            <RunbookGlobalVariables
               {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_SECRETS] as Route}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_VARIABLES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS] || ""}
+          element={
+            <RunbookRunners
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW] || ""}
+          element={
+            <RunbookRunnerView
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] || ""}
+          element={
+            <RunbookRunnerCredentials
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route}
             />
           }
         />
@@ -106,6 +152,13 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.RUNBOOKS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -149,6 +202,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_TRIGGERS)}
+          element={
+            <RunbookTriggers
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_TRIGGERS] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_OWNERS)}
           element={
             <RunbookOwners
@@ -163,6 +225,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookAuditLogs
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_VARIABLES)}
+          element={
+            <RunbookVariables
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_VARIABLES] as Route}
             />
           }
         />
@@ -184,6 +255,12 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

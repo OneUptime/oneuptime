@@ -27,6 +27,13 @@ export interface PodmanAlertTemplateArgs {
 export interface PodmanAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: PodmanAlertTemplateCategory;
   severity: PodmanAlertTemplateSeverity;
@@ -169,6 +176,7 @@ export function buildPodmanMonitorConfig(args: {
 const highCpuTemplate: PodmanAlertTemplate = {
   id: "podman-high-cpu",
   name: "High Container CPU Usage",
+  summary: "A container averages more than 80% of one CPU core for 5 minutes.",
   description:
     "Alert when a container averages more than 80% of one CPU core for five minutes. 100% is one full core, so a container spread across several cores reads well above 100. One alert per container.",
   category: "Resource",
@@ -223,6 +231,7 @@ const highCpuTemplate: PodmanAlertTemplate = {
 const highMemoryTemplate: PodmanAlertTemplate = {
   id: "podman-high-memory",
   name: "High Container Memory Usage",
+  summary: "A container averages more than 85% of its memory for 5 minutes.",
   description:
     "Alert when a container averages more than 85% memory usage for five minutes — of its --memory limit where one is set, of host memory where it is not. One alert per container.",
   category: "Resource",
@@ -275,6 +284,7 @@ const highMemoryTemplate: PodmanAlertTemplate = {
 const containerRestartLoopTemplate: PodmanAlertTemplate = {
   id: "podman-restart-loop",
   name: "High Container Restart Count",
+  summary: "A container has restarted more than 5 times.",
   description:
     "Alert when a container's restart count passes 5. The count is a running total kept by the container engine, not a count of restarts inside the monitoring window. One alert per container.",
   category: "Container",
@@ -354,6 +364,7 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
 const highProcessCountTemplate: PodmanAlertTemplate = {
   id: "podman-high-pids",
   name: "High Container Process Count",
+  summary: "A container runs more than 500 processes.",
   description:
     "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak. One alert per container.",
   category: "Container",
@@ -397,6 +408,8 @@ const highProcessCountTemplate: PodmanAlertTemplate = {
 const containerUptimeTemplate: PodmanAlertTemplate = {
   id: "podman-container-down",
   name: "Container Restarted (Low Uptime)",
+  summary:
+    "A container restarted, crashed or was redeployed in the last 2 minutes.",
   description:
     "Alert when a container's uptime resets, meaning it restarted, crashed or was redeployed in the last two minutes. One alert per container.",
   category: "Container",

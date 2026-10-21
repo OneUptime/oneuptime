@@ -1,146 +1,174 @@
-# Prometheus Alertmanager-integration
+# Prometheus Alertmanager
 
-Gör notifieringar från [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) till OneUptime-incidenter. Prometheus utvärderar dina larmregler, Alertmanager dirigerar dem, och OneUptime registrerar och eskalerar dem.
+Skicka larm från [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) till OneUptime, så att varje larm som utlöses blir en incident som larmar ditt jourteam och löses när larmet har återhämtat sig. Alertmanager postar sina aviseringar till en webhook-mottagare, så det finns inget att installera på någon av sidorna.
 
-Den här integrationen är **inkommande**, och det finns två sätt att bygga den:
+:::cards
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En Incoming Request-monitor eller ett eget arbetsflöde.
+- [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
+- [Konfigurera Alertmanager](#konfigurera-alertmanager): En webhook-mottagare och den route som använder den.
+- [Felsökning](#felsökning): När larm inte kommer fram eller incidenter förblir öppna.
+:::
 
-| Tillvägagångssätt                                                                                  | Använd det när                                                                                                                                          |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor)** (rekommenderas) | Du vill att larm ska bli incidenter med jour-eskalering, en incident per larm och automatisk lösning vid återhämtning. Ingen egen logik att underhålla. |
-| **[Workflow](/docs/workflows/index) med en Webhook-utlösare**                                      | Du behöver dirigeringslogik som OneUptime inte gör inbyggt — anropa andra system, forma om payloads, villkorlig förgrening.                             |
+## Så fungerar det
 
-```text
-Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="Från ett utlöst larm till en incident"
+flowchart TB
+    rule["En Prometheus-regel<br/>utlöses"] --> group["Alertmanager<br/>grupperar larmen"]
+    group --> post["Mottagaren postar<br/>dem till OneUptime"]
+    post --> status{"Varje larms<br/>status"}
+    status -->|"firing"| open["Incident öppnad,<br/>jouren larmad"]
+    status -->|"resolved"| resolve["Incident löst"]
 ```
 
-## Förutsättningar
+Prometheus utvärderar dina larmregler och skickar de larm som utlöses till Alertmanager. Alertmanager grupperar dem efter etiketterna i din routes `group_by` och postar varje grupp till webhook-mottagaren som en JSON-avisering. Aviseringens lista `alerts` innehåller varje larm i gruppen, vart och ett med sin egen `status`, `firing` eller `resolved`, sina etiketter och anteckningar och ett `fingerprint` som identifierar det.
 
-- En Prometheus + Alertmanager-uppsättning där du kan redigera `alertmanager.yml`.
-- Alertmanager måste kunna nå din OneUptime-instans över HTTPS.
-- Ett OneUptime-projekt där du kan skapa monitorer (eller arbetsflöden).
+## Innan du börjar
 
-## Alternativ 1 — Monitor för inkommande förfrågningar
+- En Alertmanager vars `alertmanager.yml` du kan redigera och som kan nå din OneUptime över HTTPS.
+- I OneUptime behörighet att skapa monitorer, eller arbetsflöden om du väljer den vägen.
 
-### Steg 1 — Skapa monitorn
+## Välj hur OneUptime tar emot larm
 
-1. Gå till **Monitorer → Skapa monitor** och välj **Inkommande förfrågan**.
-2. Öppna monitorn och klicka på **Documentation** i vänstermenyn. Kopiera URL:en:
+Konfigurera OneUptime först: det ger dig den URL som Alertmanager skickar till.
 
-   ```
-   https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
-   ```
+| Väg | Använd den när |
+| --- | --- |
+| En Incoming Request-monitor (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
+| Ett arbetsflöde med en Webhook-utlösare | Du behöver egen logik: filtrera larm, forma om dem eller anropa andra system först. Ett arbetsflöde öppnar en incident per avisering, inte per larm, och löser den inte vid återhämtning. |
 
-   Använd din egen host om du kör självhostat. Den hemliga nyckeln i sökvägen är den enda inloggningsuppgiften.
+Båda får samma JSON från samma mottagare, så du kan börja med det ena och byta senare genom att ändra en URL i `alertmanager.yml`.
 
-### Steg 2 — Peka Alertmanager mot den
+## Ta emot larm med en monitor
 
-I `alertmanager.yml`:
+En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+:::steps
+### Skapa monitorn
 
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Alertmanager` och klicka på **Nästa**.
+
+### Deklarera en incident för varje utlöst larm
+
+Öppna det första kriteriet i steget **Kriterier**, det som markerar monitorn som offline. Ställ in dess filter på **Begärandekropp**, **Innehåller**, `"status":"firing"`. Det här kriteriet deklarerar redan en incident när filtret matchar. Fyll i incidenten:
+
+- **Incidenttitel**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
+- **Allvarlighetsgrad**: den incidentallvarlighetsgrad som de här larmen ska ha.
+- **Jourpolicyer**, under **Jour**: de policyer som ska larmas.
+- **Lös incident automatiskt**, under **Fler fält**: låt den vara påslagen, som den börjar. Utan den ignoreras återhämtningar och incidenter förblir öppna.
+
+### Öppna en incident per larm
+
+Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
+
+| Fält | Värde |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
+
+### Få monitorn online igen
+
+Öppna det andra kriteriet, det som markerar monitorn som online, och ställ in dess filter på **Begärandekropp**, **Innehåller**, `"status":"resolved"`.
+
+### Kopiera URL:en
+
+Klicka på **Skapa monitor**. Monitorns sida **Översikt** visar dess **Heartbeat URL**. Kopiera den till Alertmanager:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+En egenvärdad installation har sin egen värd i stället för `oneuptime.com`.
+:::
+
+`[*]` läser varje larm i en avisering, så en avisering med tre larm kan öppna tre incidenter, upp till **Max incidents per request** (`100` om du inte ändrar det). Varje larms egen `status` avgör vad som händer med dess incident: när ett larm i en avisering är löst och två fortfarande är utlösta stängs bara det lösta larmets incident. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
+
+> [!WARNING]
+> Gruppera efter ett värde som skiljer sig från larm till larm inom en avisering. Alertmanagers `fingerprint` är en hash av ett larms hela etikettuppsättning, så den skiljer sig alltid. En etikett i din routes `group_by` skiljer sig aldrig: det är den som samlar larmen i en avisering. Att gruppera efter `requestBody.alerts[*].labels.alertname` med routen nedan slår ihop varje larm i en avisering till en incident, som får det första larmets status.
+
+## Namnge incidenterna
+
+Titeln ovan läser etiketter som alla larm i aviseringen delar: `commonLabels` innehåller de etiketterna, och `commonAnnotations` de anteckningar som de delar. Med routen nedan, som grupperar efter `alertname` och `instance`, finns båda där. Ge incidenten en **Incidentbeskrivning** under **Beskrivning**, till exempel:
+
+```text
+{{requestBody.commonAnnotations.summary}}
+
+{{requestBody.commonAnnotations.description}}
+Severity: {{requestBody.commonLabels.severity}}
+Alertmanager: {{requestBody.externalURL}}
+```
+
+- Grupperingsnyckeln är också en variabel, uppkallad efter det sista segmentet i dess sökväg: `{{fingerprint}}`. Den är en hash, så den säger ingenting till den som svarar.
+- `{{requestBody.alerts[0].annotations.summary}}` läser aviseringens första larm, och det är inte alltid det larm som incidenten öppnades för.
+- En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt, i stället för att tömmas.
+
+Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
+
+## Konfigurera Alertmanager
+
+:::steps
+### Lägg till en webhook-mottagare
+
+Lägg till en mottagare i `alertmanager.yml` som skickar till den URL som du kopierade, och gör den till routens mottagare:
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
 ```
 
-`send_resolved: true` krävs — det är det som talar om för OneUptime att ett larm har återhämtat sig. Ladda om Alertmanager med `curl -X POST http://localhost:9093/-/reload`, eller starta om den.
+`send_resolved: true` är Alertmanagers standard, utskriven så att den förblir påslagen: utan den får OneUptime aldrig veta att ett larm har återhämtat sig. Alertmanager skickar `Content-Type: application/json`, som monitorn behöver för att läsa fälten i en avisering.
 
-Alertmanager skickar `Content-Type: application/json`, vilket OneUptime behöver för att kunna läsa fält ur payloaden.
+### Läs in Alertmanager igen
 
-### Steg 3 — Konfigurera kriterierna
-
-Öppna monitorns **Criteria** och redigera det första kriteriet.
-
-**Filter**
-
-- **Filter Type**: `JavaScript Expression`
-- **Filter Condition**: `Evaluates To True`
-- **Value**: `"{{requestBody.status}}" === "firing"`
-
-  Citattecknen runt platshållaren krävs för en strängjämförelse. Ett filter `Request Body` / `Contains` / `"status":"firing"` fungerar också om du hellre slipper ett uttryck.
-
-**Åtgärder**
-
-- Slå på _When filters match, change monitor status_ och sätt den till **Offline** (eller Degraded).
-- Slå på _When filters match, declare an incident_. Ange **Title**, **Severity** och de **On-Call Policies** som ska larmas.
-- Under **Advanced Options** på den incidenten slår du på **Auto Resolve Incident**. Utan detta ignoreras återhämtningsnotifieringar och incidenter står öppna för alltid.
-
-**Settings → Group incidents and alerts by a payload field**
-
-Slå på detta så att en endpoint kan hålla flera samtidiga incidenter — en per larm — i stället för en enda incident per notifiering.
-
-| Fält                               | Värde                               |
-| ---------------------------------- | ----------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-| Field that signals recovery        | `requestBody.alerts[*].status`      |
-| Value that means recovered         | `resolved`                          |
-| Max incidents per request          | `100`                               |
-
-`[*]` breder ut sig över Alertmanagers `alerts`-array och öppnar en incident per **unikt** uthämtat värde. Eftersom båda sökvägarna använder `[*]` bedöms återhämtning per larm: i en payload där ett larm har lösts och två fortfarande är aktiva stängs bara det lösta.
-
-> **Warning:** Gruppera på något som verkligen är unikt per larm. Alertmanagers `fingerprint` är en hash av larmets fullständiga etikettuppsättning, så den är det alltid. En etikett duger bara om den varierar **inom** en notifiering — och varje etikett som står i din routes `group_by` gör aldrig det, eftersom det är precis det som definierar aggregeringsgruppen. Med `group_by: ["alertname", "instance"]` ovan hämtar gruppering på `requestBody.alerts[*].labels.alertname` samma värde från varje larm i payloaden, så alla faller samman till en enda incident. Värre än så: av dubblettvärden behålls bara den **första** förekomsten, så en payload vars första larm är `resolved` stänger den incidenten medan resten fortfarande är aktiva.
-
-### Steg 4 — Skriv incidentens titel och beskrivning
-
-Grupperingsnyckeln finns som en variabel uppkallad efter sökvägens sista segment, så `requestBody.alerts[*].fingerprint` ger dig `{{fingerprint}}`. Det är en hash, inget att visa för en jourhavande — titulera i stället incidenten utifrån de etiketter som notifieringen delar. `commonLabels` bär varje etikett i din routes `group_by`, så med konfigurationen ovan är både `alertname` och `instance` tillgängliga:
-
-- **Title**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`
-- **Description**:
-
-  ```
-  {{requestBody.commonAnnotations.summary}}
-
-  {{requestBody.commonAnnotations.description}}
-  Severity: {{requestBody.commonLabels.severity}}
-  Alertmanager: {{requestBody.externalURL}}
-  ```
-
-`commonLabels` och `commonAnnotations` innehåller de fält som notifieringen delar. En sökväg per larm som `requestBody.alerts[0].annotations.summary` läser alltid det _första_ larmet i payloaden, inte det som just den här incidenten öppnades för — håll därför `group_by` snäv om du vill att varje incident ska bära sin egen annotationstext. En sökväg som inte löses upp skrivs ut ordagrant, klammerparenteser och allt, i stället för att lämnas tom. Se [Dynamiska incident- och varningsmallar](/docs/monitor/incident-alert-templating) för hela variabellistan.
-
-### Steg 5 — Skicka tillbaka monitorn till Operational (valfritt)
-
-Kriterier agerar bara när de matchar, så lägg till ett andra kriterium så att monitorn inte blir kvar som Offline när allt har lugnat ner sig:
-
-- **Filter Type**: `JavaScript Expression`, **Value**: `"{{requestBody.status}}" === "resolved"`
-- _Change monitor status to_ **Operational**, och skapa ingen incident.
-
-### Steg 6 — Testa det
+Läs in konfigurationen igen, eller starta om Alertmanager:
 
 ```bash
-curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+curl -X POST http://localhost:9093/-/reload
+```
+:::
+
+Routen behåller Alertmanagers standardtider. Den väntar `30s` innan den skickar en ny grupp (`group_wait`), `5m` innan den skickar en grupp med nya larm igen (`group_interval`) och `4h` innan den upprepar en avisering som inte har ändrats (`repeat_interval`).
+
+## Testa det
+
+Skicka en avisering med två utlösta larm till OneUptime, så som Alertmanager skulle göra:
+
+```bash
+curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   -H "Content-Type: application/json" \
   -d '{
     "version": "4",
     "status": "firing",
-    "commonLabels": { "alertname": "HighCPU", "severity": "critical" },
-    "commonAnnotations": { "summary": "CPU above 90% for 5m" },
+    "receiver": "oneuptime",
+    "groupLabels": { "alertname": "DiskFull", "instance": "web-1" },
+    "commonLabels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical" },
+    "commonAnnotations": { "summary": "Disk almost full on web-1" },
     "externalURL": "http://alertmanager:9093",
     "alerts": [
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-1" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sda1" },
         "fingerprint": "a1b2c3d4e5f60001"
       },
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-2" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sdb1" },
         "fingerprint": "a1b2c3d4e5f60002"
       }
     ]
   }'
 ```
 
-Du bör få två incidenter — en per `fingerprint`. Skicka igen med `status` satt till `resolved` för båda larmen, så bör båda stängas.
+Två incidenter öppnas, en per `fingerprint`, var och en med titeln `DiskFull on web-1`. Skicka samma begäran med varje `status` satt till `resolved`, så löses båda.
 
-Du kan också utlösa ett riktigt larm med `amtool`:
+För att testa hela vägen från Alertmanager utlöser du ett larm med `amtool`. Alertmanager skickar det efter `group_wait` och skickar sedan dess återhämtning när larmet går ut några minuter senare:
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -148,49 +176,60 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## Alternativ 2 — Workflow
+## Ta emot larm med ett arbetsflöde
 
-Använd detta när du behöver logik utöver "ett larm blir en incident".
+Använd ett [arbetsflöde](/docs/workflows/index) när du behöver egna steg mellan Alertmanager och incidenten.
 
-1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Alertmanager → Incidents` och öppna **Byggare**.
-2. Lägg till en **Webhook**-utlösare och **kopiera dess URL**. Byt namn på blocket till `Alertmanager`.
-3. Lägg till ett **Villkor**-block kopplat till utlösaren:
-   - **Left**: `{{Alertmanager.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. Från **Ja**, lägg till ett **Skapa incident**-block:
-   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Beskrivning**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Allvarlighetsgrad**: välj en (eller förgrena på `{{Alertmanager.Request Body.commonLabels.severity}}` först).
-5. **Spara**, och peka sedan `webhook_configs`-URL:en från Steg 2 ovan mot arbetsflödets URL i stället.
+:::steps
+### Skapa arbetsflödet
 
-För en incident per larm lägger du till ett [Custom Code](/docs/workflows/components#custom-code)-block som itererar över `Request Body.alerts`. Med `send_resolved: true` lägger du till en andra **Villkor**-gren på `status == resolved` som hittar den matchande incidenten och flyttar den till ditt lösta tillstånd med **Update Incident**.
+Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Ge det namnet `Alertmanager alerts` och klicka på **Skapa arbetsflöde**.
 
-## Dödmansgrepp
+### Lägg till Webhook-utlösaren
 
-Inget av alternativen talar om för dig när Prometheus självt slutar fungera — att inga larm kommer in ser precis ut som att inget är fel. Det vanliga svaret är ett alltid aktivt larm som dirigeras till en monitor som förväntar sig det enligt ett schema. [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) levererar ett som heter `Watchdog`; på ett rent Prometheus lägger du till en larmregel med ett uttryck som alltid är sant (`vector(1)`).
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i mottagaren i `alertmanager.yml`.
 
-Skapa en **andra** monitor för inkommande förfrågningar, dirigera `Watchdog` till den med ett kort `repeat_interval`, och ge den monitorn ett kriterium **Filter Type: Incoming Request** / **Filter Condition: Not Recieved In Minutes**. Det är det enda fall där ett kriterium om utebliven förfrågan hör hemma på en larmmottagare.
+### Kontrollera att aviseringen är utlöst
 
-Detta är konfigurationen från Steg 2 med watchdog-routen och -mottagaren inflätade — en underroute matchas före föräldrarouten egen mottagare, så `Watchdog` går till den andra monitorn och allt annat går fortfarande till den första:
+Klicka på **Lägg till komponent**, lägg till ett block **If / Else** och anslut utlösarens punkt **Out** till det. Ställ in **Value to check** på `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** på **is equal to** och **Compare with** på `firing`.
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+### Deklarera incidenten
 
-  - name: oneuptime-watchdog
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/WATCHDOG_SECRET_KEY"
+Lägg till ett block **Create One Incident** och anslut sidan **Yes** av blocket **If / Else** till det. Välj under **Incident Template** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON Object** vad som kommer från Alertmanager:
 
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.commonLabels.alertname}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.commonAnnotations.summary}}\nAlertmanager: {{local.components.webhook-1.returnValues.request-body.externalURL}}"
+}
+```
+
+Utan en mall måste **JSON Object** också innehålla `incidentSeverityId`, ID:t för en av projektets incidentallvarlighetsgrader.
+
+### Slå på arbetsflödet
+
+Slå på **Aktiverad** överst i **Byggare**. Ett arbetsflöde som är avstängt svarar Alertmanager med `400`.
+:::
+
+En körning hanterar en avisering, så den deklarerar en incident oavsett hur många larm aviseringen innehåller. En avisering som är `resolved` tar sidan **No** av blocket **If / Else**, där ingenting är anslutet, så körningen slutar där. Använd monitorn för en incident per larm som löses vid återhämtning.
+
+## Övervaka själva Alertmanager
+
+Ingen av vägarna märker när Prometheus eller Alertmanager slutar fungera: att inte få några larm ser precis ut som att allt är i sin ordning. Skicka därför ett larm som alltid är utlöst till en andra monitor, som deklarerar en incident när det larmet slutar komma. [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) levereras med ett sådant larm, som heter `Watchdog`. På en vanlig Prometheus lägger du till en larmregel som heter `Watchdog` och vars uttryck alltid är sant, till exempel `vector(1)`.
+
+:::steps
+### Skapa watchdog-monitorn
+
+Skapa en andra Incoming Request-monitor, som heter `Alertmanager watchdog`. Ställ in filtret för dess första kriterium, det som markerar monitorn som offline, på **Incoming Request**, **Not Recieved In Minutes**, `10`, och filtret för dess andra kriterium på **Incoming Request**, **Recieved In Minutes**, `10`. Instrumentpanelen stavar båda så. Kopiera den nya monitorns **Heartbeat URL**.
+
+### Skicka watchdog-larmet dit
+
+Lägg till en mottagare för watchdog-monitorns URL och en route som skickar `Watchdog` dit var femte minut. En underordnad route kontrolleras före sin överordnade routes mottagare, så `Watchdog` går till watchdog-monitorn och alla andra larm går fortfarande till den första:
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
   routes:
     - receiver: oneuptime-watchdog
       matchers:
@@ -198,21 +237,66 @@ route:
       group_wait: 0s
       group_interval: 5m
       repeat_interval: 5m
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
+  - name: oneuptime-watchdog
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<watchdog secret key>"
 ```
+:::
+
+När watchdog-larmet inte har kommit på tio minuter går watchdog-monitorn offline och deklarerar en incident. Nästa watchdog-avisering gör monitorn online igen och löser incidenten.
 
 ## Felsökning
 
-- **Ingenting kommer fram** — bekräfta att Alertmanager kan nå URL:en; kolla dess loggar efter leveransfel. OneUptime svarar på varje förfrågan med en tom `200` innan något valideras, så en `200` bekräftar inte att payloaden accepterades. Titta på monitorns tidslinje i stället.
-- **Incidenter öppnas men stängs aldrig** — kontrollera `send_resolved: true` i Alertmanager, återhämtningsfältet och värdet på kriteriet (jämförelsen skiljer på gemener och versaler), och **Auto Resolve Incident** under incidentens **Advanced Options**. Två subtilare orsaker: en payload med fler unika nycklar än **Max incidents per request** döljer även de bortom gränsen för återhämtning; och om det just är `resolved`-notifieringen som slås bort av sammanslagningen vid ingest (nedan) fastnar incidenten permanent, eftersom Alertmanager upprepar firing-notifieringar men inte resolved-notifieringar. Stäng dem för hand.
-- **Inga incidenter alls, monitorstatus oförändrad** — grupperingssökvägen måste börja med det bokstavliga `requestBody.`, och bara det första `[*]` i en sökväg är ett jokertecken. Båda misstagen misslyckas tyst.
-- **Incidenttexten visar råa `{{...}}`-platshållare** — sökvägen löstes inte upp, och OneUptime lämnar olösta platshållare på plats i stället för att tömma dem. Olika regler sätter olika annotationer, så referera till fält som faktiskt finns för dina regler (`commonAnnotations` kontra `annotations` per larm).
-- **Bara en incident för en payload full av larm** — du grupperade på en etikett som inte varierar inom en notifiering, oftast en som också finns i din routes `group_by`. Gruppera på `requestBody.alerts[*].fingerprint` i stället.
-- **För många incidenter** — bredda `group_by` / `group_interval` så att Alertmanager buntar ihop relaterade larm. Att sänka **Max incidents per request** begränsar dem, men döljer också nycklarna bortom gränsen för återhämtning.
-- **Vissa notifieringar verkar hoppas över vid kraftiga skurar** — förfrågningar till samma monitor slås samman vid ingest så att en avsändare inte kan överbelasta en monitor, vilket kan slå bort en mellanliggande payload när notifieringar kommer tätt inpå varandra. Att öka `group_wait` och `group_interval` glesar ut dem. Sammanslagningen styrs av appcontainerns miljövariabel `INCOMING_REQUEST_INGEST_COALESCE_ENABLED`, som är påslagen som standard; självhostande operatörer som behöver få varje payload utvärderad kan sätta den till `false` på den containern.
+:::details Inget kommer fram till OneUptime
+- Sök i Alertmanagers logg efter fel vid leverans till mottagaren.
+- Monitorn svarar `200` direkt, innan den kontrollerar något, även för en felaktig hemlig nyckel. Titta på monitorns tidslinje för att se om aviseringar kommer fram.
+- Ett arbetsflöde som är avstängt svarar `400`. Slå på **Aktiverad** överst i dess **Byggare**.
+:::
 
-## Läs vidare
+:::details Incidenter skapas men löses aldrig
+- Kontrollera att ingen mottagare anger `send_resolved: false`: då skickar Alertmanager aldrig någon återhämtning.
+- Kriteriets incident behöver **Lös incident automatiskt**, under **Fler fält**.
+- **Field that signals recovery** måste vara `requestBody.alerts[*].status`, och **Value that means recovered** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
+- Larm i en avisering utöver **Max incidents per request** läses inte alls, så deras återhämtningar går också förlorade.
+- En återhämtning som hoppas över i en skur (se nedan) lämnar sin incident öppen för alltid: Alertmanager upprepar utlösta larm, men aldrig en återhämtning. Lös en sådan incident manuellt.
+:::
 
-- [Monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) — monitortypen, dess kriterier och incidentgruppering i sin helhet.
-- [Översikt över integrationer](/docs/integrations/index) — de inkommande och utgående mönstren.
-- [Grafana](/docs/integrations/grafana) — samma idé, med Grafana-larm.
-- [Webhook-utlösare](/docs/workflows/triggers#webhook) — hur arbetsflödets mottagande URL fungerar.
+:::details Ingen incident öppnas
+Grupperingssökvägarna måste börja med `requestBody.`, och bara den första `[*]` i en sökväg läser en lista. En sökväg som bryter mot någon av reglerna matchar ingenting, utan något fel.
+:::
+
+:::details En incident för en avisering full av larm
+Du har grupperat efter en etikett som är densamma för varje larm i en avisering, oftast en etikett från din routes `group_by`. Gruppera i stället efter `requestBody.alerts[*].fingerprint`.
+:::
+
+:::details Incidenten visar en referens i stället för ett värde
+En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt. Regler sätter olika anteckningar, så använd de fält som dina regler sätter: i `commonAnnotations`, eller i varje larms `annotations`.
+:::
+
+:::details För många incidenter
+Gruppera din route efter färre etiketter, eller höj `group_interval`, så att Alertmanager skickar relaterade larm tillsammans. En lägre **Max incidents per request** begränsar incidenterna från en avisering, men larm utöver gränsen läses inte, så deras återhämtningar går också förlorade.
+:::
+
+:::details Aviseringar hoppas över under en skur
+När en nyare begäran når en monitor innan en tidigare har utvärderats, utvärderar OneUptime bara den nyaste, så att en enda avsändare inte kan översvämma en monitor. Den sista aviseringen i en skur utvärderas alltid, men en tidigare om andra larm kan hoppas över, eftersom Alertmanager skickar varje grupp till samma URL. Höj `group_wait` och `group_interval` för att sprida ut aviseringarna. På en egenvärdad installation anger du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljö för att utvärdera varje begäran.
+:::
+
+## Säkerhet
+
+- **Behandla URL:en som ett lösenord.** Alla som har den kan öppna incidenter. Om den läcker återställer du den: **Återställ hemlig nyckel för inkommande begäran** på monitorns sida **Inställningar**, eller **Återställ URL** i arbetsflödets **Webhook**-utlösare. Uppdatera sedan mottagarens `url` i `alertmanager.yml`.
+- **Egenvärdad?** Låt Alertmanager nå din OneUptime över HTTPS genom din brandvägg.
+
+## Nästa steg
+
+:::cards
+- [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Varje inställning för den monitor som tar emot dina larm.
+- [Grafana](/docs/integrations/grafana): Samma konfiguration, för Grafana-larm.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestäm vem en jourpolicy larmar, och när.
+- [Översikt över integrationer](/docs/integrations/index): De andra verktyg som du kan ansluta.
+:::

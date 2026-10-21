@@ -36,6 +36,13 @@ import {
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // What a leftover API key can do: readable on every plan.
+  readableBelowPlan: true,
+  /*
+   * A block permission restricts the key: deleting one gives the key more,
+   * so below the plan these are not deleted one by one (delete the key).
+   */
+  deleteStaysGated: true,
 })
 @EnableDocumentation()
 @TableAccessControl({
@@ -91,11 +98,11 @@ export default class APIKeyPermission extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectApiKeyPermissions,
-    ],
+    /*
+     * A permission row stays with the API key it was created for, under
+     * either name: apiKeyId is not updatable, and neither is the relation.
+     */
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "apiKeyId",
@@ -267,7 +274,7 @@ export default class APIKeyPermission extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

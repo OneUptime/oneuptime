@@ -17,7 +17,9 @@ import {
  *   - the window does not slide under sustained load;
  *   - a refused request gets 429 with Retry-After and never reaches the handler;
  *   - Redis being down lets requests THROUGH (daily reports must not fail on a
- *     Redis blip), unlike the sign-in limiter.
+ *     Redis blip), unlike the sign-in limiter;
+ *   - an IPv6 client's /64 is counted as well as its address, with room for
+ *     ten addresses: a server can send from every address of its /64.
  */
 
 jest.mock("Common/Server/Infrastructure/Redis", () => {
@@ -119,6 +121,16 @@ class FakePipeline {
     this.commands.push((): [Error | null, unknown] => {
       this.client.expires.push({ key, ttlSeconds });
       return [null, 1];
+    });
+
+    return this;
+  }
+
+  // As Redis answers GET: the count as a string, or null for no key.
+  public get(key: string): FakePipeline {
+    this.commands.push((): [Error | null, unknown] => {
+      const count: number | undefined = this.client.counters.get(key);
+      return [null, count === undefined ? null : String(count)];
     });
 
     return this;
@@ -567,6 +579,181 @@ describe("LicenseServerRateLimit", () => {
       expect(next).toHaveBeenCalledTimes(1);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
       expect(loggerWarnMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("an IPv6 /64", () => {
+    const NETWORK: string = "2001:db8:5:6::/64";
+
+    // Server `index` of the /64 2001:db8:5:6::/64 (or of another).
+    const hostOf: (index: number, prefix?: string) => string = (
+      index: number,
+      prefix: string = "2001:db8:5:6",
+    ): string => {
+      return `${prefix}:${(index >> 16).toString(16)}:${(index & 0xffff).toString(16)}:a:b`;
+    };
+
+    const allowedOf: (
+      count: number,
+      request: (index: number) => Promise<LicenseServerRateLimitDecision>,
+    ) => Promise<{
+      allowed: number;
+      last: LicenseServerRateLimitDecision | undefined;
+    }> = async (
+      count: number,
+      request: (index: number) => Promise<LicenseServerRateLimitDecision>,
+    ): Promise<{
+      allowed: number;
+      last: LicenseServerRateLimitDecision | undefined;
+    }> => {
+      let allowed: number = 0;
+      let last: LicenseServerRateLimitDecision | undefined = undefined;
+
+      for (let index: number = 0; index < count; index++) {
+        last = await request(index);
+
+        if (last.outcome === LicenseServerRateLimitOutcome.Allowed) {
+          allowed++;
+        }
+      }
+
+      return { allowed: allowed, last: last };
+    };
+
+    test.each([
+      [LicenseServerRateLimitBucket.Validate, 30],
+      [LicenseServerRateLimitBucket.ReportUserCount, 150],
+    ])(
+      "%s: one license key from address after address of one /64 gets ten addresses' worth",
+      async (bucket: LicenseServerRateLimitBucket, perLicenseKey: number) => {
+        const { allowed, last } = await allowedOf(
+          perLicenseKey * 10 + 20,
+          (index: number): Promise<LicenseServerRateLimitDecision> => {
+            return consume({
+              bucket: bucket,
+              socketAddress: hostOf(index + 1),
+            });
+          },
+        );
+
+        expect(allowed).toBe(perLicenseKey * 10);
+        expect(last).toEqual({
+          outcome: LicenseServerRateLimitOutcome.RateLimited,
+          retryAfterSeconds: WINDOW_SECONDS,
+          scope: LicenseServerRateLimitScope.LicenseKey,
+          ipv6Network64: NETWORK,
+          isFirstRejectionInWindow: false,
+        });
+      },
+    );
+
+    test.each([
+      [LicenseServerRateLimitBucket.Validate, 120],
+      [LicenseServerRateLimitBucket.ReportUserCount, 300],
+    ])(
+      "%s: rotating license keys as well still meets the /64's ceiling of ten addresses' worth",
+      async (bucket: LicenseServerRateLimitBucket, perIp: number) => {
+        const { allowed, last } = await allowedOf(
+          perIp * 10 + 20,
+          (index: number): Promise<LicenseServerRateLimitDecision> => {
+            return consume({
+              bucket: bucket,
+              licenseKey: `key-${index}`,
+              socketAddress: hostOf(index + 1),
+            });
+          },
+        );
+
+        expect(allowed).toBe(perIp * 10);
+        expect(last?.scope).toBe(LicenseServerRateLimitScope.Ip);
+        expect(last?.ipv6Network64).toBe(NETWORK);
+      },
+    );
+
+    test("a full /64 refuses only itself: another /64 and an IPv4 server keep their budget", async () => {
+      await allowedOf(1300, (index: number) => {
+        return consume({
+          licenseKey: `key-${index}`,
+          socketAddress: hostOf(index + 1),
+        });
+      });
+
+      expect((await consume({ socketAddress: hostOf(5000) })).outcome).toBe(
+        LicenseServerRateLimitOutcome.RateLimited,
+      );
+      expect(
+        (await consume({ socketAddress: hostOf(1, "2001:db8:5:7") })).outcome,
+      ).toBe(LicenseServerRateLimitOutcome.Allowed);
+      expect((await consume({ socketAddress: "198.51.100.4" })).outcome).toBe(
+        LicenseServerRateLimitOutcome.Allowed,
+      );
+    });
+
+    test("one server over its own limit leaves the rest of its /64 the rest of the /64's budget", async () => {
+      const noisy: { allowed: number } = await allowedOf(80, () => {
+        return consume({ socketAddress: hostOf(1) });
+      });
+
+      expect(noisy.allowed).toBe(30);
+
+      const neighbours: { allowed: number } = await allowedOf(
+        300,
+        (index: number) => {
+          return consume({ socketAddress: hostOf(index + 2) });
+        },
+      );
+
+      expect(neighbours.allowed).toBe(300 - 30);
+    });
+
+    test("an IPv4 server is held to exactly the budget it always had, and nothing is counted per /64", async () => {
+      const { allowed } = await allowedOf(40, () => {
+        return consume({ socketAddress: CLIENT_IP });
+      });
+
+      expect(allowed).toBe(30);
+      expect(
+        Array.from(client.counters.keys()).filter((key: string): boolean => {
+          return key.includes("/64");
+        }),
+      ).toEqual([]);
+    });
+
+    test("the middleware refuses a full /64 with 429, and logs the /64 once, never the license key", async () => {
+      const middleware: ReturnType<
+        typeof LicenseServerRateLimit.getMiddleware
+      > = LicenseServerRateLimit.getMiddleware(
+        LicenseServerRateLimitBucket.Validate,
+      );
+
+      const next: MockedFn = jest.fn();
+
+      for (let index: number = 0; index < 330; index++) {
+        await middleware(
+          buildRequest({ socketAddress: hostOf(index + 1) }),
+          buildResponse().response,
+          next as unknown as NextFunction,
+        );
+      }
+
+      expect(next).toHaveBeenCalledTimes(300);
+
+      const lastRefusal: Exception = sendErrorResponseMock.mock.calls[
+        sendErrorResponseMock.mock.calls.length - 1
+      ]![2] as Exception;
+
+      expect(lastRefusal.code).toBe(ExceptionCode.TooManyRequestsException);
+
+      const naming: Array<string> = loggerWarnMock.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.includes(`limit of ${NETWORK}`);
+        });
+
+      expect(naming).toHaveLength(1);
+      expect(collectLoggedText([loggerWarnMock])).not.toContain(LICENSE_KEY);
     });
   });
 });

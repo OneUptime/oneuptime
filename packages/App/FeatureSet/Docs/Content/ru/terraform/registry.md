@@ -1,60 +1,108 @@
-# Registry Usage
+# Использование реестра
 
-The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
+Провайдер OneUptime публикуется в [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) и в [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest). `terraform init` и `tofu init` скачивают его оттуда: вручную устанавливать ничего не нужно. Эта страница рассказывает, что публикуется, как нумеруются версии и как перейти на более новую.
 
-## What's on the registry
+:::cards
+- [Что публикуется](#что-публикуется): Провайдер для каждой платформы, его справочник и его версии.
+- [Как нумеруются версии](#как-нумеруются-версии): Версия провайдера – это релиз OneUptime, который его опубликовал.
+- [Файл блокировки](#файл-блокировки): Версия и контрольные суммы, которые устанавливает каждая машина.
+- [Переход на более новую версию](#переход-на-более-новую-версию): Прочитайте, что изменилось, скачайте её и запустите план.
+:::
 
-- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
-- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
-- **The version history**, one entry per published release.
+## Что публикуется
 
-Declare the provider like any registry provider:
+Каждый релиз OneUptime генерирует провайдер из собственного API OneUptime. Если провайдер изменился, релиз публикует его под версией релиза, как только он пройдёт сквозные тесты в Terraform и в OpenTofu:
 
-```hcl
+```mermaid title="От релиза OneUptime до вашего terraform init"
+flowchart TB
+    R["Релиз OneUptime"] --> G["Провайдер генерируется<br/>из API OneUptime"]
+    G --> C{"Провайдер<br/>изменился?"}
+    C -->|"да"| P["Проверен в Terraform<br/>и OpenTofu, затем<br/>опубликован<br/>под версией релиза"]
+    C -->|"нет"| N["Новой версии<br/>провайдера<br/>в этом релизе нет"]
+    P --> I["terraform init<br/>и tofu init<br/>скачивают его"]
+```
+
+| Что | Где |
+| --- | --- |
+| Провайдер для Linux, macOS, Windows, FreeBSD, OpenBSD и Solaris | Скачивается командами `terraform init` и `tofu init`, с контрольными суммами, которые подписывает OneUptime |
+| Справочник по каждому ресурсу и источнику данных со всеми их атрибутами | Документация реестра, сгруппированная по продуктам: мониторы, страницы состояния, инциденты, дежурства и остальные |
+| Руководство по использованию провайдера с OpenTofu | Руководства реестра |
+| Каждая версия, начиная с самой новой | Список версий в реестре |
+
+Справочник говорит, что такое каждый атрибут. Эта документация показывает, как использовать их вместе: начните с [Обзор Terraform](/docs/terraform/index).
+
+## Как нумеруются версии
+
+Версия провайдера – это версия релиза OneUptime, который его опубликовал: провайдер {{TERRAFORM_PROVIDER_MAJOR}}.0.20 вышел с OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.20. Релиз, в котором провайдер не изменился, его не публикует, поэтому в версиях есть пропуски, и ограничение, называющее одну точную версию, может назвать версию, которой не существует. Вместо этого пишите диапазон:
+
+| Вы используете | Ограничение | Terraform устанавливает |
+| --- | --- | --- |
+| OneUptime Cloud | `{{TERRAFORM_PROVIDER_VERSION}}` | Самый новый провайдер {{TERRAFORM_PROVIDER_MAJOR}}.x |
+| OneUptime с собственным хостингом | Диапазон, который заканчивается версией вашего OneUptime, например `>= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40` | Самый новый провайдер, который не новее вашего OneUptime |
+
+На OneUptime с собственным хостингом провайдер новее вашего OneUptime может отправлять настройки, которых у вашего OneUptime ещё нет: [Настройка собственного хостинга](/docs/terraform/self-hosted#выберите-версию-провайдера) показывает, как написать для него диапазон.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 ```
 
-`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
+Адрес источника не называет реестр: Terraform читает его из Terraform Registry, а OpenTofu из OpenTofu Registry, которые публикуют одни и те же версии.
 
-## How versioning works
+## Файл блокировки
 
-Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
+`terraform init` записывает выбранную версию и контрольные суммы своих загрузок в `.terraform.lock.hcl`. Закоммитьте этот файл: тогда каждая машина и каждый запуск CI устанавливают ровно эту версию, пока вы не выберете другую. Контрольные суммы охватывают все платформы, которые публикует реестр, поэтому один файл блокировки одинаково подходит машинам с Linux, macOS и Windows.
 
-1. **Cloud users** always run the latest platform, so the newest provider is always correct:
-
-```hcl
-version = "~> 11.0"
+```hcl title=".terraform.lock.hcl"
+provider "registry.terraform.io/oneuptime/oneuptime" {
+  version     = "{{TERRAFORM_PROVIDER_MAJOR}}.0.20"
+  constraints = "{{TERRAFORM_PROVIDER_VERSION}}"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
 ```
 
-2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
+Файл блокировки называет реестр. OpenTofu пишет `registry.opentofu.org/oneuptime/oneuptime` там, где Terraform пишет `registry.terraform.io/oneuptime/oneuptime`, поэтому смена инструмента меняет файл блокировки: `init` заменяет запись и просит закоммитить изменение.
 
-**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## Переход на более новую версию
 
-## Checking versions and release notes
+:::steps
+### Прочитайте, что изменилось
 
-- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
-- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
-- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+[Релизы OneUptime](https://github.com/OneUptime/oneuptime/releases) рассказывают, что изменил каждый релиз, включая провайдер. [Релизы провайдера](https://github.com/OneUptime/terraform-provider-oneuptime/releases) ссылаются на изменения с предыдущего.
 
-To move to a newer version within your constraint:
+### Скачайте её
 
 ```bash
 terraform init -upgrade
 ```
 
-This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
+`init -upgrade` берёт самую новую версию, которую допускает ваше ограничение, выводит её и обновляет `.terraform.lock.hcl`. Ограничение `{{TERRAFORM_PROVIDER_VERSION}}` берёт каждый релиз {{TERRAFORM_PROVIDER_MAJOR}}.x; для новой основной версии нужно новое ограничение.
 
-## Where the code lives
+### Запустите план перед применением
 
-The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+Выполните `terraform plan` и применяйте, только когда он пуст или показывает ожидаемые изменения. Закоммитьте обновлённый файл блокировки.
+:::
 
-## Air-gapped environments
+На OneUptime с собственным хостингом сначала обновите OneUptime, затем поднимите конец диапазона провайдера.
 
-If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## Где находится код
+
+Провайдер генерируется из API OneUptime в [основном репозитории OneUptime](https://github.com/OneUptime/oneuptime), и каждая версия собирается из релиза, который её опубликовал. Его собственный репозиторий, [OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime), содержит то, что написал генератор, поэтому изменения вносятся в основной репозиторий: сообщайте о проблемах, в том числе в документации, на [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+
+## Дальнейшие шаги
+
+:::cards
+- [Настройка собственного хостинга](/docs/terraform/self-hosted): Диапазон версий для вашего собственного OneUptime и зеркало для машин без интернета.
+- [OpenTofu](/docs/terraform/opentofu): Тот же провайдер и та же конфигурация, с `tofu`.
+- [Полное руководство](/docs/terraform/complete-guide): Аутентификация, структура проекта, источники данных, state и обновления.
+- [Устранение неполадок](/docs/terraform/troubleshooting): Частые ошибки и способы их исправить.
+:::

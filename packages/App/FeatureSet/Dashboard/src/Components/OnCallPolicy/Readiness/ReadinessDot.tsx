@@ -1,4 +1,6 @@
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   READINESS_STATUS_NOT_REACHABLE,
@@ -43,6 +45,7 @@ export interface ComponentProps {
 const ReadinessDot: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isNotReachable: boolean =
     props.user.status === READINESS_STATUS_NOT_REACHABLE;
   const isPartiallyReady: boolean =
@@ -69,8 +72,12 @@ const ReadinessDot: FunctionComponent<ComponentProps> = (
     props.label,
   )} ${
     isNotReachable
-      ? "They need to add and verify a notification method in User Settings — the Responder readiness card on this policy's overview has the details."
-      : "The Responder readiness card on this policy's overview lists which ones and how to fix them."
+      ? translator.translateTemplate(
+          "They need to add and verify a notification method in User Settings — the Responder readiness card on this policy's overview has the details.",
+        )
+      : translator.translateTemplate(
+          "The Responder readiness card on this policy's overview lists which ones and how to fix them.",
+        )
   }`;
 
   return (
@@ -105,7 +112,11 @@ export interface UnknownDotProps {
 export const ReadinessUnknownDot: FunctionComponent<UnknownDotProps> = (
   props: UnknownDotProps,
 ): ReactElement => {
-  const tooltipText: string = `Readiness for ${props.label} was not checked - this policy has more responders than the readiness check covered, so this chip is unknown rather than ready. Open the Responder readiness card for the full list.`;
+  const translator: Translator = useTranslator();
+  const tooltipText: string = translator.translateTemplate(
+    "Readiness for {{name}} was not checked - this policy has more responders than the readiness check covered, so this chip is unknown rather than ready. Open the Responder readiness card for the full list.",
+    { name: props.label },
+  );
 
   return (
     <Tooltip text={tooltipText}>

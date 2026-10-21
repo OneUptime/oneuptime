@@ -209,7 +209,13 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import UserViewNotificationMethods from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods";
+import UserViewNotificationMethods, {
+  CHANNELS_OFF_DESCRIPTION_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import UserViewOnCallLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Layout";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -224,6 +230,7 @@ import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -234,6 +241,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import ProjectNotificationChannelsStore from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
+import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import UserUtil from "../../../UI/Utils/User";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
@@ -626,6 +637,118 @@ const clickButton: ClickButtonFunction = (
   fireEvent.click(within(root).getByText(label));
 };
 
+/*
+ * Each row's actions are ONE button and a ⋯ menu holding the rest (RowActions).
+ * "Resend code" is the button when a row offers it, and "Remove" then sits in
+ * the menu; a row with nothing to resend keeps "Remove" as its lone button.
+ * These helpers drive the menu the way a person does, and say plainly when a
+ * row does not have one - a test reaching for a menu that is not there should
+ * fail on that fact, not on a missing "Remove" somewhere further down.
+ */
+const MORE_BUTTON_TEST_ID: string = "row-actions-more-button";
+
+type MoreButtonForFunction = (row: HTMLElement) => HTMLElement | null;
+
+const moreButtonFor: MoreButtonForFunction = (
+  row: HTMLElement,
+): HTMLElement | null => {
+  return within(row).queryByTestId(MORE_BUTTON_TEST_ID);
+};
+
+type RowButtonLabelsFunction = (row: HTMLElement) => Array<string>;
+
+// The buttons drawn on the row itself, the ⋯ trigger aside.
+const rowButtonLabels: RowButtonLabelsFunction = (
+  row: HTMLElement,
+): Array<string> => {
+  return within(row)
+    .queryAllByRole("button")
+    .filter((button: HTMLElement): boolean => {
+      return button.getAttribute("data-testid") !== MORE_BUTTON_TEST_ID;
+    })
+    .map((button: HTMLElement): string => {
+      return (button.textContent || "").trim();
+    });
+};
+
+type OpenRowMenuFunction = (row: HTMLElement) => HTMLElement;
+
+/*
+ * The menu is portalled to document.body so the card around the list cannot
+ * clip it, which is why it is found through `screen` rather than inside the
+ * row it belongs to.
+ */
+const openRowMenu: OpenRowMenuFunction = (row: HTMLElement): HTMLElement => {
+  const trigger: HTMLElement | null = moreButtonFor(row);
+
+  if (!trigger) {
+    throw new Error(
+      `this row has no ⋯ menu; its buttons are: ${rowButtonLabels(row).join(", ")}`,
+    );
+  }
+
+  fireEvent.click(trigger);
+
+  return screen.getByRole("menu");
+};
+
+type CloseRowMenuFunction = (menu: HTMLElement) => void;
+
+const closeRowMenu: CloseRowMenuFunction = (menu: HTMLElement): void => {
+  fireEvent.keyDown(within(menu).getAllByRole("menuitem")[0]!, {
+    key: "Escape",
+  });
+};
+
+type MenuItemLabelsFunction = (menu: HTMLElement) => Array<string>;
+
+const menuItemLabels: MenuItemLabelsFunction = (
+  menu: HTMLElement,
+): Array<string> => {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+};
+
+type ChooseFromRowMenuFunction = (row: HTMLElement, label: string) => void;
+
+const chooseFromRowMenu: ChooseFromRowMenuFunction = (
+  row: HTMLElement,
+  label: string,
+): void => {
+  const menu: HTMLElement = openRowMenu(row);
+
+  fireEvent.click(within(menu).getByRole("menuitem", { name: label }));
+};
+
+type EveryRowActionLabelFunction = () => Array<string>;
+
+/*
+ * Every action the list offers: the button on each row AND everything inside
+ * each row's ⋯ menu. A scan of the buttons on screen no longer sees the whole
+ * surface - a closed menu's items are not in the DOM at all - so a control
+ * slipped into a menu would pass any check that only looked at the page.
+ */
+const everyRowActionLabel: EveryRowActionLabelFunction = (): Array<string> => {
+  const labels: Array<string> = [];
+
+  for (const row of methodRows()) {
+    labels.push(...rowButtonLabels(row));
+
+    if (moreButtonFor(row)) {
+      const menu: HTMLElement = openRowMenu(row);
+
+      labels.push(...menuItemLabels(menu));
+
+      closeRowMenu(menu);
+    }
+  }
+
+  return labels;
+};
+
 type ModalFunction = () => HTMLElement;
 
 /*
@@ -644,6 +767,17 @@ const modal: ModalFunction = (): HTMLElement => {
 beforeEach((): void => {
   mountedTableModels = [];
   pendingRequestCount = 0;
+
+  /*
+   * The self view offers Slack and Microsoft Teams only for the workspaces
+   * the project has connected. Both are, unless a test says otherwise.
+   */
+  window.localStorage.clear();
+  ConnectedWorkspaces.reset();
+  ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [
+    WorkspaceType.Slack,
+    WorkspaceType.MicrosoftTeams,
+  ]);
 
   getListMock.mockReset();
   getItemMock.mockReset();
@@ -671,9 +805,21 @@ beforeEach((): void => {
     return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
   });
 
+  /*
+   * A project with SMS, calls, WhatsApp and Telegram on, so every channel an
+   * admin may add is offered. A new project has all four off; the tests
+   * under "a project with channels switched off" start from that.
+   */
   const project: Project = new Project();
   project.disableOnCallNotificationFallback = false;
+  project.enableSmsNotifications = true;
+  project.enableCallNotifications = true;
+  project.enableWhatsAppNotifications = true;
+  project.enableTelegramNotifications = true;
   getItemMock.mockResolvedValue(project as never);
+
+  // Which channels are on is shared by the page and its lists: start clean.
+  ProjectNotificationChannelsStore.reset();
 
   getCommonHeadersMock.mockReturnValue({} as never);
 
@@ -696,6 +842,7 @@ beforeEach((): void => {
 
 afterEach(async (): Promise<void> => {
   cleanup();
+  ConnectedWorkspaces.reset();
 
   for (
     let attempt: number = 0;
@@ -899,9 +1046,26 @@ describe("adding a method on somebody's behalf", () => {
       expect(label).not.toContain("verify");
     }
 
+    /*
+     * And inside every row's ⋯ menu, which the scan above cannot see: a closed
+     * menu's items are not in the DOM, and the menu is exactly where a new row
+     * action would land.
+     */
+    const rowActionLabels: Array<string> = everyRowActionLabel().map(
+      (label: string): string => {
+        return label.toLowerCase();
+      },
+    );
+
+    for (const label of rowActionLabels) {
+      expect(label).not.toContain("verify");
+    }
+
     // Not vacuous: the controls this page DOES offer are present.
     expect(buttonLabels.join(" ")).toContain("remove");
     expect(buttonLabels.join(" ")).toContain("resend code");
+    expect(rowActionLabels).toContain("remove");
+    expect(rowActionLabels).toContain("resend code");
   });
 
   test("posts the channel and the value to the admin endpoint", async () => {
@@ -1090,7 +1254,11 @@ describe("removing a method", () => {
   test("removes only after the confirmation, and names the method", async () => {
     await renderPage();
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    /*
+     * The SMS row is unverified, so "Resend code" is its button and "Remove"
+     * is in its ⋯ menu.
+     */
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     // Nothing is deleted by opening the confirmation.
     expect(apiDeleteMock).not.toHaveBeenCalled();
@@ -1171,6 +1339,10 @@ describe("removing a method", () => {
 
     expect(within(webhookRow).getByText("Remove")).toBeInTheDocument();
     expect(within(webhookRow).queryByText("Resend code")).toBeNull();
+
+    // Its only action, so a button of its own rather than a menu of one.
+    expect(rowButtonLabels(webhookRow)).toEqual(["Remove"]);
+    expect(moreButtonFor(webhookRow)).toBeNull();
   });
 });
 
@@ -1232,6 +1404,14 @@ describe("permissions", () => {
     expect(buttonLabels.join(" ")).not.toContain("remove");
     expect(buttonLabels.join(" ")).not.toContain("resend code");
     expect(buttonLabels.join(" ")).not.toContain("add notification method");
+
+    /*
+     * Nor a ⋯ menu on any row. The scan above cannot see inside a closed menu,
+     * so a Remove that had moved into one would sail past it; a row with no
+     * action it may take draws no actions area at all.
+     */
+    expect(screen.queryAllByTestId(MORE_BUTTON_TEST_ID)).toHaveLength(0);
+    expect(screen.queryAllByTestId("row-actions")).toHaveLength(0);
   });
 
   test("a project owner keeps the controls without the granular permission", async () => {
@@ -1422,6 +1602,49 @@ describe("the self-serve view", () => {
     expect(adminCalls).toHaveLength(0);
   });
 
+  /*
+   * The Workspace Apps tab offers a table only for the workspaces the
+   * project has connected, and is not there when it has none: adding Slack
+   * or Microsoft Teams points at your own account in a workspace the project
+   * is connected to.
+   */
+  test("offers only the connected workspace's table", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [WorkspaceType.Slack]);
+
+    await renderSelfPage();
+    await openTab("Workspace Apps");
+
+    expect(mountedTableModels).toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("has no Workspace Apps tab in a project with no workspace connected", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, []);
+
+    await renderSelfPage();
+
+    expect(screen.queryByTestId("tab-Workspace Apps")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-Direct Contact")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Push Notifications")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Webhooks")).toBeInTheDocument();
+    expect(mountedTableModels).not.toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("the admin's view of somebody else asks nothing about workspaces", async () => {
+    ConnectedWorkspaces.reset();
+
+    await renderPage();
+
+    const requestedModels: Array<unknown> = getListMock.mock.calls.map(
+      (call: Array<any>) => {
+        return call[0].modelType;
+      },
+    );
+
+    expect(requestedModels).not.toContain(WorkspaceProjectAuthToken);
+  });
+
   test("says these are the same settings they already have", async () => {
     const container: HTMLElement = await renderSelfPage();
 
@@ -1510,6 +1733,60 @@ describe("a row the server sends malformed", () => {
     );
   });
 
+  /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered and then stopped receiving notifications: its push service
+   * or Expo said it was gone. There is no code to wait for - its owner has to
+   * register it again from the app or browser it belongs to - so "waiting
+   * for them to verify" sent the admin after something that does not exist.
+   */
+  test("a push device that stopped receiving notifications waits for its owner to register it again, not to verify it", async () => {
+    respondWithMethods([
+      methodJson({
+        methodId: WEBHOOK_METHOD_ID,
+        methodType: "Push",
+        maskedIdentifier: "iPh•••",
+        isVerified: false,
+        isAdminAddable: false,
+        leakedRawValue: RAW_PHONE,
+      }),
+    ]);
+
+    await renderPage();
+
+    const row: HTMLElement = rowFor("iPh•••");
+
+    expect(row.textContent).toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to register it again`,
+    );
+    expect(row.textContent).not.toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to verify`,
+    );
+    // No code exists to send: removing it is the only action an admin has.
+    expect(within(row).queryByText("Resend code")).toBeNull();
+    expect(rowButtonLabels(row)).toEqual(["Remove"]);
+  });
+
+  test("a push device that still receives notifications is Verified like any method", async () => {
+    respondWithMethods([
+      methodJson({
+        methodId: WEBHOOK_METHOD_ID,
+        methodType: "Push",
+        maskedIdentifier: "iPh•••",
+        isVerified: true,
+        isAdminAddable: false,
+        leakedRawValue: RAW_PHONE,
+      }),
+    ]);
+
+    await renderPage();
+
+    const row: HTMLElement = rowFor("iPh•••");
+
+    expect(row.textContent).toContain("Verified");
+    expect(row.textContent).not.toContain("register it again");
+  });
+
   test("an unverified channel an admin could not have added offers no resend", async () => {
     const UNVERIFIED_TELEGRAM: JSONObject = methodJson({
       methodId: WEBHOOK_METHOD_ID,
@@ -1534,6 +1811,13 @@ describe("a row the server sends malformed", () => {
      */
     expect(within(row).queryByText("Resend code")).toBeNull();
     expect(within(row).getByText("Remove")).toBeInTheDocument();
+
+    /*
+     * Not in the ⋯ menu either - there is no menu. With Remove as the row's
+     * only action, it is the row's button.
+     */
+    expect(moreButtonFor(row)).toBeNull();
+    expect(rowButtonLabels(row)).toEqual(["Remove"]);
   });
 });
 
@@ -1687,7 +1971,7 @@ describe("a write the server refuses", () => {
       ) as never,
     );
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     fireEvent.click(within(modal()).getByText("Remove"));
 
@@ -1714,7 +1998,7 @@ describe("a write the server refuses", () => {
 
     apiGetMock.mockClear();
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     fireEvent.click(within(modal()).getByText("Remove"));
 
@@ -1896,5 +2180,682 @@ describe("who gets the controls", () => {
     expect(container.textContent).not.toContain(
       `Add one for ${TARGET_USER_FIRST_NAME}`,
     );
+  });
+});
+
+/*
+ * Each row's actions, drawn the way every row of actions in the product now is:
+ * one button, and a ⋯ menu holding the rest.
+ *
+ * On this list that means "Resend code" is the button on a row that offers it
+ * - it is the one thing an admin can do to move an unverified method forward -
+ * and "Remove" sits in the menu under it, in red. On every other row Remove is
+ * the only action, and a menu of one would only add a click, so it stays a
+ * button of its own.
+ *
+ * The part worth pinning hardest is that a menu item acts on ITS row. The menu
+ * is portalled out of the list to document.body, so nothing in the DOM ties an
+ * item to the row it was opened from; a menu wired to the wrong method would
+ * ask to remove one device and remove another.
+ */
+describe("each row's actions: one button and a ⋯ menu", () => {
+  const CALL_METHOD_ID: string = "60000000-0000-4000-8000-000000000004";
+  const MASKED_CALL_PHONE: string = "+1 ••• ••• 7730";
+  const RAW_CALL_PHONE: string = "+15557737730";
+
+  /*
+   * A second unverified, admin-addable row, so the list holds two rows whose
+   * actions are drawn identically. Anything that proves an action reached
+   * "the right row" has to be able to reach the wrong one.
+   */
+  const UNVERIFIED_CALL: JSONObject = methodJson({
+    methodId: CALL_METHOD_ID,
+    methodType: "Call",
+    maskedIdentifier: MASKED_CALL_PHONE,
+    isVerified: false,
+    isAdminAddable: true,
+    leakedRawValue: RAW_CALL_PHONE,
+  });
+
+  type DeletionImpactUrlsFunction = () => Array<string>;
+
+  const deletionImpactUrls: DeletionImpactUrlsFunction = (): Array<string> => {
+    return apiGetMock.mock.calls
+      .map((call: Array<any>): string => {
+        return String(call[0].url);
+      })
+      .filter((url: string): boolean => {
+        return url.includes("/deletion-impact");
+      });
+  };
+
+  test("an unverified row shows Resend code as its button and Remove in the ⋯ menu", async () => {
+    await renderPage();
+
+    const row: HTMLElement = rowFor(MASKED_PHONE);
+
+    // One button on the row, and it is the one that moves the method forward.
+    expect(rowButtonLabels(row)).toEqual(["Resend code"]);
+    expect(within(row).queryByText("Remove")).toBeNull();
+
+    const trigger: HTMLElement | null = moreButtonFor(row);
+
+    expect(trigger).not.toBeNull();
+    expect(trigger).toHaveAttribute("aria-label", "More actions");
+
+    const menu: HTMLElement = openRowMenu(row);
+
+    // Remove is everything else, and so the whole menu - and its last item.
+    expect(menuItemLabels(menu)).toEqual(["Remove"]);
+
+    const removeItem: HTMLElement = within(menu).getByRole("menuitem", {
+      name: "Remove",
+    });
+
+    /*
+     * Red, because in a menu there is no bordered button left to say that this
+     * one takes something away.
+     */
+    expect(removeItem).toHaveClass("text-red-600");
+
+    /*
+     * Portalled out of the row, so the card around the list cannot clip it.
+     */
+    expect(row.contains(menu)).toBe(false);
+  });
+
+  test("a verified row keeps Remove as its one button, in red, with no ⋯ menu", async () => {
+    await renderPage();
+
+    for (const masked of [MASKED_EMAIL, MASKED_WEBHOOK]) {
+      const row: HTMLElement = rowFor(masked);
+
+      expect(rowButtonLabels(row)).toEqual(["Remove"]);
+      expect(moreButtonFor(row)).toBeNull();
+
+      const removeButton: HTMLElement = within(row).getByRole("button", {
+        name: "Remove",
+      });
+
+      /*
+       * Still reads as destructive on its own: a red outline, as the row's
+       * raw button had before.
+       */
+      expect(removeButton).toHaveClass("text-red-700");
+      expect(removeButton).toHaveClass("border-red-700");
+    }
+  });
+
+  test("opening the ⋯ menu, or closing it unused, removes nothing", async () => {
+    await renderPage();
+
+    apiGetMock.mockClear();
+
+    const menu: HTMLElement = openRowMenu(rowFor(MASKED_PHONE));
+
+    closeRowMenu(menu);
+
+    await waitForSettled();
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    /*
+     * Not even the impact read. That request is the first step of a removal,
+     * and a menu opened and dismissed has not started one.
+     */
+    expect(deletionImpactUrls()).toHaveLength(0);
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("Remove chosen from a row's menu removes that row's method and no other", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    // Both unverified rows are drawn alike: Resend code, and a ⋯ menu.
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
+    expect(rowButtonLabels(rowFor(MASKED_CALL_PHONE))).toEqual(["Resend code"]);
+
+    apiGetMock.mockClear();
+
+    chooseFromRowMenu(rowFor(MASKED_CALL_PHONE), "Remove");
+
+    // The menu closes on the choice rather than hanging over the dialog.
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    // The confirmation is about the Call row, by channel and by mask.
+    expect(
+      within(modal()).getByText("Remove this Call method?"),
+    ).toBeInTheDocument();
+    expect(modal().textContent).toContain(MASKED_CALL_PHONE);
+    expect(modal().textContent).not.toContain(MASKED_PHONE);
+
+    // So is the impact it asked for.
+    await waitFor((): void => {
+      expect(deletionImpactUrls()).toHaveLength(1);
+    });
+
+    expect(deletionImpactUrls()[0]).toContain(`/Call/${CALL_METHOD_ID}/`);
+
+    // Choosing from the menu only asks; nothing is removed until confirmed.
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+
+    fireEvent.click(within(modal()).getByText("Remove"));
+
+    await waitFor((): void => {
+      expect(apiDeleteMock).toHaveBeenCalledTimes(1);
+    });
+
+    const url: string = String(apiDeleteMock.mock.calls[0]![0].url);
+
+    expect(url).toContain(`/Call/${CALL_METHOD_ID}`);
+    expect(url).not.toContain(SMS_METHOD_ID);
+    expect(url).not.toContain(EMAIL_METHOD_ID);
+  });
+
+  test("Resend code on a row resends for that row's method and no other", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    clickButton(rowFor(MASKED_CALL_PHONE), "Resend code");
+
+    expect(modal().textContent).toContain(MASKED_CALL_PHONE);
+    expect(modal().textContent).not.toContain(MASKED_PHONE);
+
+    fireEvent.click(within(modal()).getByText("Resend code"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalledTimes(1);
+    });
+
+    const url: string = String(apiPostMock.mock.calls[0]![0].url);
+
+    expect(url).toContain(`/Call/${CALL_METHOD_ID}/resend-verification-code`);
+    expect(url).not.toContain(SMS_METHOD_ID);
+  });
+
+  test("a row's button is handed back as soon as its confirmation opens", async () => {
+    await renderPage();
+
+    const smsRow: HTMLElement = rowFor(MASKED_PHONE);
+
+    clickButton(smsRow, "Resend code");
+
+    expect(within(modal()).getByText("Resend verification code")).toBeTruthy();
+
+    /*
+     * The confirmation carries the spinner for the request. A row button left
+     * spinning - and so disabled - behind it would be a second spinner for the
+     * same request, and one that never stops if the dialog is cancelled.
+     */
+    const resendButton: HTMLElement = within(smsRow).getByRole("button", {
+      name: "Resend code",
+    });
+
+    expect(resendButton).toBeEnabled();
+    expect(smsRow.querySelector(".animate-spin")).toBeNull();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(apiPostMock).not.toHaveBeenCalled();
+
+    // And it works again, rather than having been used up by the first click.
+    clickButton(smsRow, "Resend code");
+
+    expect(within(modal()).getByText("Resend verification code")).toBeTruthy();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    // The same for a lone Remove button, whose confirmation also fetches.
+    const emailRow: HTMLElement = rowFor(MASKED_EMAIL);
+
+    clickButton(emailRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this Email method?"),
+    ).toBeInTheDocument();
+
+    const removeButton: HTMLElement = within(emailRow).getByRole("button", {
+      name: "Remove",
+    });
+
+    expect(removeButton).toBeEnabled();
+    expect(emailRow.querySelector(".animate-spin")).toBeNull();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    clickButton(emailRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this Email method?"),
+    ).toBeInTheDocument();
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("a cancelled removal from the menu can be chosen again", async () => {
+    await renderPage();
+
+    const smsRow: HTMLElement = rowFor(MASKED_PHONE);
+
+    chooseFromRowMenu(smsRow, "Remove");
+
+    await waitForSettled();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    chooseFromRowMenu(smsRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this SMS method?"),
+    ).toBeInTheDocument();
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("every action on the list, row and menu alike, keeps identifiers masked", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    /*
+     * The menu is new DOM this page did not draw before, and it lives outside
+     * the list - so it is scanned in its own right, open, for the raw values
+     * planted in every fixture.
+     */
+    const menu: HTMLElement = openRowMenu(rowFor(MASKED_CALL_PHONE));
+
+    for (const raw of [...ALL_RAW_IDENTIFIERS, RAW_CALL_PHONE]) {
+      expect(menu.innerHTML).not.toContain(raw);
+      expect(document.body.innerHTML).not.toContain(raw);
+    }
+
+    closeRowMenu(menu);
+  });
+});
+
+/*
+ * A project with SMS, calls or WhatsApp switched off - which is every new
+ * project, where all four paid channels start off.
+ *
+ * The server refuses a method on a channel that is off ("SMS notifications
+ * are disabled for this project ..."), and refuses to send an SMS or call
+ * code again while it is. So the Add form offers only the channels that are
+ * on (email always), says once why the others are missing, asks for an
+ * email address alone when nothing else is on, and the copy under the list
+ * promises only what can be added. A channel the project read could not
+ * answer for is offered as before: the server has the last word.
+ */
+describe("a project with channels switched off", () => {
+  interface ChannelSwitches {
+    sms: boolean;
+    call: boolean;
+    whatsApp: boolean;
+    telegram: boolean;
+  }
+
+  const ALL_OFF: ChannelSwitches = {
+    sms: false,
+    call: false,
+    whatsApp: false,
+    telegram: false,
+  };
+
+  const ALL_ON: ChannelSwitches = {
+    sms: true,
+    call: true,
+    whatsApp: true,
+    telegram: true,
+  };
+
+  type RespondWithChannelsFunction = (switches: ChannelSwitches) => void;
+
+  const respondWithChannels: RespondWithChannelsFunction = (
+    switches: ChannelSwitches,
+  ): void => {
+    const project: Project = new Project();
+    project.disableOnCallNotificationFallback = false;
+    project.enableSmsNotifications = switches.sms;
+    project.enableCallNotifications = switches.call;
+    project.enableWhatsAppNotifications = switches.whatsApp;
+    project.enableTelegramNotifications = switches.telegram;
+    getItemMock.mockResolvedValue(project as never);
+  };
+
+  const WHATSAPP_METHOD_ID: string = "60000000-0000-4000-8000-000000000005";
+  const MASKED_WHATSAPP_PHONE: string = "+1 ••• ••• 9911";
+
+  const UNVERIFIED_WHATSAPP: JSONObject = methodJson({
+    methodId: WHATSAPP_METHOD_ID,
+    methodType: "WhatsApp",
+    maskedIdentifier: MASKED_WHATSAPP_PHONE,
+    isVerified: false,
+    isAdminAddable: true,
+    leakedRawValue: "+15557779911",
+  });
+
+  /*
+   * Said to the page's usual reader, a project admin: they may add methods
+   * here, but only a project owner or someone with Manage Billing may turn
+   * a channel on.
+   */
+  const WHY_MISSING: string =
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.";
+
+  // Said to someone who may turn them on, with the page as a link.
+  const WHY_MISSING_WITH_LINK: string =
+    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Settings.";
+
+  type ChannelsOffNoteFunction = () => HTMLElement;
+
+  const channelsOffNote: ChannelsOffNoteFunction = (): HTMLElement => {
+    return within(modal()).getByTestId(CHANNELS_OFF_DESCRIPTION_TEST_ID);
+  };
+
+  const OFFERED_CASES: Array<[string, ChannelSwitches, Array<string>]> = [
+    ["every channel off", ALL_OFF, ["Email"]],
+    ["SMS off", { ...ALL_ON, sms: false }, ["Email", "Phone call", "WhatsApp"]],
+    ["calls off", { ...ALL_ON, call: false }, ["Email", "SMS", "WhatsApp"]],
+    [
+      "WhatsApp off",
+      { ...ALL_ON, whatsApp: false },
+      ["Email", "SMS", "Phone call"],
+    ],
+    /*
+     * An admin cannot add Telegram for anyone (the account holder has to
+     * message the bot), so its switch changes nothing here.
+     */
+    [
+      "only Telegram off",
+      { ...ALL_ON, telegram: false },
+      ["Email", "SMS", "Phone call", "WhatsApp"],
+    ],
+  ];
+
+  test.each(OFFERED_CASES)(
+    "%s: the Add form offers only what is on, email always",
+    async (
+      _name: string,
+      switches: ChannelSwitches,
+      expected: Array<string>,
+    ) => {
+      respondWithChannels(switches);
+
+      await renderPage();
+
+      clickButton(document.body, "Add notification method");
+
+      expect(channelOptions()).toEqual(expected);
+    },
+  );
+
+  test("says once why a channel is missing, and nothing while every channel is on", async () => {
+    respondWithChannels({ ...ALL_ON, call: false });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(within(modal()).getByText(WHY_MISSING)).toBeInTheDocument();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+    cleanup();
+
+    respondWithChannels(ALL_ON);
+    ProjectNotificationChannelsStore.reset();
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
+  });
+
+  test("a project admin, who may add methods here but not turn a channel on, is told exactly who can - with no link", async () => {
+    respondWithChannels({ ...ALL_ON, sms: false });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    const note: HTMLElement = channelsOffNote();
+
+    expect(note.textContent).toBe(WHY_MISSING);
+    expect(within(note).queryByRole("link")).not.toBeInTheDocument();
+    expect(note.textContent?.toLowerCase()).not.toContain("project admin");
+  });
+
+  test.each([
+    ["a project owner", [Permission.ProjectOwner]],
+    [
+      "a project admin who also has Manage Billing",
+      [Permission.ProjectAdmin, Permission.ManageProjectBilling],
+    ],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s is sent straight to the switches",
+    async (_who: string, permissions: Array<Permission>) => {
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
+      respondWithChannels({ ...ALL_ON, call: false });
+
+      await renderPage();
+
+      clickButton(document.body, "Add notification method");
+
+      const note: HTMLElement = channelsOffNote();
+
+      expect(note.textContent).toBe(WHY_MISSING_WITH_LINK);
+
+      const link: HTMLElement = within(note).getByRole("link", {
+        name: "Project Settings → Notifications → Notification Settings",
+      });
+
+      expect(link.getAttribute("href")).toBe(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+        ).toString(),
+      );
+      expect(link.getAttribute("href")).toContain(
+        `/dashboard/${PROJECT_ID_STRING}/settings/notification-settings`,
+      );
+    },
+  );
+
+  test("says nothing about who can while every channel it could offer is on", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectOwner]);
+    respondWithChannels(ALL_ON);
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(
+      within(modal()).queryByTestId(CHANNELS_OFF_DESCRIPTION_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("with only email on, it asks for an email address alone, and adds it", async () => {
+    respondWithChannels(ALL_OFF);
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(
+      screen.queryByPlaceholderText("you@company.com or +15551234567"),
+    ).not.toBeInTheDocument();
+    expect(within(modal()).getByText("Email address")).toBeInTheDocument();
+    expect(
+      within(modal()).queryByText(
+        "Phone numbers need the country code, for example +15551234567.",
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("you@company.com"), {
+      target: { value: RAW_EMAIL },
+    });
+
+    fireEvent.click(within(modal()).getByText("Add"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalled();
+    });
+
+    expect(apiPostMock.mock.calls[0]![0].data).toEqual({
+      methodType: "Email",
+      value: RAW_EMAIL,
+    });
+  });
+
+  test.each([
+    [
+      "every channel on",
+      ALL_ON,
+      "You can add an email address, phone number or WhatsApp number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "WhatsApp off",
+      { ...ALL_ON, whatsApp: false },
+      "You can add an email address or phone number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "SMS and calls off",
+      { ...ALL_ON, sms: false, call: false },
+      "You can add an email address or WhatsApp number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "every channel off",
+      ALL_OFF,
+      "You can add an email address for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+  ])(
+    "%s: the note under the list promises only what can be added",
+    async (_name: string, switches: ChannelSwitches, sentence: string) => {
+      respondWithChannels(switches);
+
+      const container: HTMLElement = await renderPage();
+
+      expect(container.textContent).toContain(sentence);
+    },
+  );
+
+  test("an SMS or call code is not offered again while that channel is off; a WhatsApp one still is", async () => {
+    respondWithChannels(ALL_OFF);
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_WHATSAPP]);
+
+    await renderPage();
+
+    /*
+     * The server refuses to text an SMS code again while SMS is off, so the
+     * row offers Remove alone. WhatsApp sends its code whatever the switch
+     * says, so its row keeps Resend code.
+     */
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Remove"]);
+    expect(moreButtonFor(rowFor(MASKED_PHONE))).toBeNull();
+    expect(rowButtonLabels(rowFor(MASKED_WHATSAPP_PHONE))).toEqual([
+      "Resend code",
+    ]);
+  });
+
+  test("with SMS on, the unverified SMS row offers Resend code again", async () => {
+    respondWithChannels({ ...ALL_OFF, sms: true });
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS]);
+
+    await renderPage();
+
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
+  });
+
+  test("a project the page could not read offers every channel, as before", async () => {
+    const project: Project = new Project();
+    project.disableOnCallNotificationFallback = false;
+
+    getItemMock.mockImplementation((data: any): Promise<unknown> => {
+      if (data.select && data.select.enableSmsNotifications) {
+        return Promise.reject(new Error("Could not read the project."));
+      }
+
+      return Promise.resolve(project);
+    });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    /*
+     * "We could not check" is not "off": the form offers what it always
+     * did, says nothing about channels being off, and the server decides.
+     */
+    expect(channelOptions()).toEqual([
+      "Email",
+      "SMS",
+      "Phone call",
+      "WhatsApp",
+    ]);
+    expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
+  });
+
+  test("a channel turned on elsewhere on the screen is offered at once", async () => {
+    respondWithChannels(ALL_OFF);
+
+    await renderPage();
+
+    await act(async (): Promise<void> => {
+      announceModelSwitchSaved({
+        modelType: Project,
+        modelId: PROJECT_ID,
+        column: "enableSmsNotifications",
+        value: true,
+        source: "another-switch",
+      });
+    });
+
+    clickButton(document.body, "Add notification method");
+
+    expect(channelOptions()).toEqual(["Email", "SMS"]);
+  });
+
+  test("the project read asks for the four switches and nothing else", async () => {
+    respondWithChannels(ALL_ON);
+
+    await renderPage();
+
+    const channelReads: Array<any> = getItemMock.mock.calls
+      .map((call: Array<any>): any => {
+        return call[0];
+      })
+      .filter((data: any): boolean => {
+        return Boolean(data.select && data.select.enableSmsNotifications);
+      });
+
+    expect(channelReads.length).toBeGreaterThanOrEqual(1);
+    expect(channelReads[0].modelType).toBe(Project);
+    expect(channelReads[0].id.toString()).toBe(PROJECT_ID_STRING);
+    expect(channelReads[0].select).toEqual({
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+    });
   });
 });

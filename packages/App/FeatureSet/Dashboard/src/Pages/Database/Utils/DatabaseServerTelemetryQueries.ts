@@ -33,6 +33,10 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Database pages' own aggregate queries: the Overview's sections and
@@ -1452,7 +1456,11 @@ function readDatabaseMetricChartSpec(
     const isRate: boolean = definition.kind === "counter";
     return {
       metricName: name,
-      title: isRate ? `${definition.title} (per second)` : definition.title,
+      title: isRate
+        ? translateTemplate("{{metric}} (per second)", {
+            metric: translatableTerm(definition.title),
+          })
+        : definition.title,
       definition: definition,
       mode: "catalog",
       aggregations: isRate ? [] : DATABASE_METRIC_CATALOG_GAUGE_AGGREGATIONS,
@@ -1502,7 +1510,9 @@ function readDatabaseMetricChartSpec(
     ) {
       return {
         metricName: name,
-        title: `${name} (per second)`,
+        title: translateTemplate("{{metric}} (per second)", {
+          metric: name,
+        }),
         definition: null,
         mode: "rate",
         aggregations: [],

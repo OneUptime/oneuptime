@@ -450,6 +450,39 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Polling Interval (Minutes)",
+    description:
+      "How often the scan's probe polls each device this rule imports, in minutes: 1, 2, 5, 10, 15, 30 or 60. The probe pings every device and walks the ones that answered SNMP. Leave it empty for the devices' default, every 5 minutes. The same choice as Check every when importing from Review Results.",
+    example: "5",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public pollingIntervalInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceAutoImportRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
   @Index("IDX_network_device_auto_import_rule_isExclusion")
   @TableColumn({
     required: true,
@@ -473,15 +506,21 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.CreateNetworkDeviceAutoImportRule,
     ],
+    /*
+     * Which template a rule applies is part of the rule, so it is read with
+     * the rule's own read permission, like every other column here (and the
+     * OID Collection Template below). The templates' other fields stay with
+     * the templates' permissions: a relation select brings only what each
+     * template lets a joined row show - a monitor template's name,
+     * description and monitor type, an OID template's name and OIDs (as a
+     * device's reader sees its OID template's).
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -525,10 +564,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -563,7 +599,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadNetworkDeviceOidTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -616,7 +652,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadNetworkDeviceOidTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -11,15 +12,16 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
 import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
@@ -147,12 +149,11 @@ RunCron(
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
-          },
-          monitors: {
-            name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
@@ -188,17 +189,28 @@ RunCron(
         incidentNumber: incidentNumber,
         projectName: incident.project!.name!,
         currentState: incident.currentIncidentState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          incident.currentIncidentState?.color,
+        ),
         incidentDescription: await Markdown.convertToHTML(
           incident.description! || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+        // Every resource the incident's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForIncident({
+            service: IncidentService,
+            projectId: incident.projectId!,
+            incidentId: incident.id!,
+          }),
+          fallback: "None",
+        }),
         incidentSeverity: incident.incidentSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "incidentSeverity",
+          incident.incidentSeverity?.color,
+        ),
         incidentViewLink: (
           await IncidentService.getIncidentLinkInDashboard(
             incident.projectId!,
@@ -221,7 +233,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the incident ${incidentIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

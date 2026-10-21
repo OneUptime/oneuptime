@@ -1,6 +1,16 @@
 import { getMillisecondsUntilNextClockTick } from "../../Utils/Dashboard/ClockWidgetFormat";
 import { useEffect, useState } from "react";
 
+export interface UseClockTickOptions {
+  /*
+   * False stops the clock: no timer is armed, nothing listens for the tab
+   * coming back, and the time last read is handed back unchanged. Defaults
+   * to true. A live duration whose end has arrived turns it off, so a table
+   * of finished rows costs no timers at all.
+   */
+  isEnabled?: boolean | undefined;
+}
+
 /**
  * The current time, re-read once a second (or once a minute) and kept honest.
  *
@@ -21,15 +31,45 @@ import { useEffect, useState } from "react";
  *    tab comes back.
  *
  * @param showSeconds - tick every second when true, every minute when false.
+ * @param options - `isEnabled: false` pauses the clock (see above).
  */
-export type UseClockTickFunction = (showSeconds: boolean) => Date;
+export type UseClockTickFunction = (
+  showSeconds: boolean,
+  options?: UseClockTickOptions | undefined,
+) => Date;
 
-const useClockTick: UseClockTickFunction = (showSeconds: boolean): Date => {
+const useClockTick: UseClockTickFunction = (
+  showSeconds: boolean,
+  options?: UseClockTickOptions | undefined,
+): Date => {
+  const isEnabled: boolean = options?.isEnabled !== false;
+
   const [now, setNow] = useState<Date>(() => {
     return new Date();
   });
 
+  const [wasEnabled, setWasEnabled] = useState<boolean>(isEnabled);
+
+  /*
+   * Switched back on after a pause: the time read before it stopped is as
+   * stale as the pause was long. Re-read it during this render rather than in
+   * the effect below, so not even one frame is painted with the old time.
+   */
+  if (wasEnabled !== isEnabled) {
+    setWasEnabled(isEnabled);
+
+    if (isEnabled) {
+      setNow(new Date());
+    }
+  }
+
   useEffect(() => {
+    if (!isEnabled) {
+      return () => {
+        // Nothing was armed, so there is nothing to clean up.
+      };
+    }
+
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const clearPendingTick: () => void = (): void => {
@@ -70,7 +110,7 @@ const useClockTick: UseClockTickFunction = (showSeconds: boolean): Date => {
       clearPendingTick();
       document.removeEventListener("visibilitychange", resyncOnVisible);
     };
-  }, [showSeconds]);
+  }, [showSeconds, isEnabled]);
 
   return now;
 };

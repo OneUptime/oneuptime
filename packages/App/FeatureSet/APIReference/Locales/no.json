@@ -98,7 +98,7 @@
       "title": "Autentisering",
       "intro": "Du må autentisere forespørslene dine for å få tilgang til noen av endepunktene i OneUptime API-et. I denne veiledningen ser vi på hvordan autentisering fungerer. OneUptime tilbyr én måte å autentisere API-forespørslene dine på - ved å bruke en API-nøkkel.",
       "generateApiKey": "Generer en API-nøkkel",
-      "generateApiKeyBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>API-nøkler</strong>. Opprett en ny API-nøkkel. Vær oppmerksom: Nye API-nøkler har ingen tillatelser tildelt, så du må tildele en tillatelse før du kan bruke den.",
+      "generateApiKeyBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>Avansert</strong> > <strong>API-nøkler</strong>. Opprett en ny API-nøkkel. Vær oppmerksom: Nye API-nøkler har ingen tillatelser tildelt, så du må tildele en tillatelse før du kan bruke den.",
       "readMorePermissions": "Les mer om tillatelser",
       "projectId": "Prosjekt-ID",
       "projectIdBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>Prosjekt</strong>. Du skal se prosjekt-ID-en din der.",
@@ -132,7 +132,7 @@
       "metaDescription": "Lær hvordan tillatelser fungerer med OneUptime",
       "badge": "Veiledning",
       "title": "Tillatelser",
-      "intro": "API-tokenet ditt trenger tillatelser for å opprette, oppdatere, lese eller slette en ressurs. Hvis du ikke har tillatelser til å sende en forespørsel, vil en <code>4xx</code>-status sendes som svar. Du kan administrere tillatelser for API-nøkkelen din i Prosjektinnstillinger > API-nøkler.",
+      "intro": "API-tokenet ditt trenger tillatelser for å opprette, oppdatere, lese eller slette en ressurs. Hvis du ikke har tillatelser til å sende en forespørsel, vil en <code>4xx</code>-status sendes som svar. Du kan administrere tillatelser for API-nøkkelen din i Prosjektinnstillinger > Avansert > API-nøkler.",
       "jumpToCategory": "Hopp til en kategori"
     },
     "errors": {

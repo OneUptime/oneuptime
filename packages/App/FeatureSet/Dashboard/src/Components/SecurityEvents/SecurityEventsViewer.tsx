@@ -21,6 +21,9 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ActiveFilter,
   FacetConfig,
@@ -33,12 +36,15 @@ import {
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import { getTimeRangeScope } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import {
   parseTelemetryFilterTuples,
   serializeTelemetryFilterTuplesAsPairs,
@@ -282,9 +288,28 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
 
   const [events, setEvents] = useState<Array<SecurityEvent>>([]);
+  /*
+   * The list endpoint's `count`: a lower bound, not a total (it skips
+   * COUNT(*)), so the footer pages on `hasMore` instead of numbering pages
+   * by it. The window's total is the volume chart's, in its header.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  /*
+   * Why the list did not load (issue #4707): a search that took too long
+   * says so where the rows go, with the filters left to narrow it.
+   */
+  const [error, setError] = useState<TelemetryLoadError | undefined>(undefined);
+  // Why the volume chart did not load; it says so in its own card.
+  const [volumeError, setVolumeError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
+  // Facets the time limit stopped, and why the facets did not load at all.
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   const [volume, setVolume] = useState<SecurityEventVolume | null>(null);
   const [isVolumeLoading, setIsVolumeLoading] = useState<boolean>(true);
@@ -299,13 +324,8 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKey: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [latestEventTime, setLatestEventTime] =
     useState<LatestEventTime>(undefined);
@@ -410,15 +430,17 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
         setEvents(result.data);
         setTotalCount(result.count);
-        setError("");
+        setHasMore(result.hasMore);
+        setError(undefined);
       } catch (err) {
         if (requestId !== listRequestId.current) {
           return;
         }
 
-        setError(API.getFriendlyMessage(err));
+        setError(TelemetryLoadErrorUtil.fromError(err));
         setEvents([]);
         setTotalCount(0);
+        setHasMore(false);
       } finally {
         if (requestId === listRequestId.current) {
           setIsLoading(false);
@@ -464,17 +486,19 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
             endDate: endDate,
           }),
         );
-      } catch {
+        setVolumeError(undefined);
+      } catch (err) {
         if (requestId !== volumeRequestId.current) {
           return;
         }
 
         /*
          * The chart is a secondary read of the same rows the list is already
-         * showing. A failed count draws no bars rather than an error banner
-         * over a list that loaded fine.
+         * showing. A failed count never puts a banner over a list that loaded
+         * fine: the chart's own card says why it has no bars (issue #4707).
          */
         setVolume(null);
+        setVolumeError(TelemetryLoadErrorUtil.fromError(err));
       } finally {
         if (requestId === volumeRequestId.current) {
           setIsVolumeLoading(false);
@@ -540,15 +564,39 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
       const nextFacetData: FacetData = {};
 
+      const stoppedFacets: Array<string> = [];
+      const failures: Array<unknown> = [];
+
       SECURITY_EVENT_FACET_KEYS.forEach((facetKey: string, index: number) => {
         const result: PromiseSettledResult<Array<FacetValue>> | undefined =
           results[index];
 
         nextFacetData[facetKey] =
           result && result.status === "fulfilled" ? result.value : [];
+
+        if (result && result.status === "rejected") {
+          failures.push(result.reason);
+
+          if (TelemetryLoadErrorUtil.isTimedOut(result.reason)) {
+            stoppedFacets.push(facetKey);
+          }
+        }
       });
 
       setFacetData(nextFacetData);
+      /*
+       * A facet the time limit stopped is named, so the sidebar says so
+       * instead of "No values" (issue #4707). Every facet failing for
+       * another reason is the facets not loading at all.
+       */
+      setTimedOutFacets(stoppedFacets);
+      setFacetError(
+        stoppedFacets.length === 0 &&
+          failures.length > 0 &&
+          failures.length === SECURITY_EVENT_FACET_KEYS.length
+          ? TelemetryLoadErrorUtil.fromError(failures[0])
+          : undefined,
+      );
       setFacetLoading(false);
     }, [listQuery, timeWindow]);
 
@@ -650,6 +698,9 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
       })
       .catch(() => {
         // Non-critical: the bar still accepts hand-typed attribute keys.
+        if (!isCancelled) {
+          setAttributesFailed(true);
+        }
       })
       .finally(() => {
         if (!isCancelled) {
@@ -662,46 +713,30 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
     };
   }, []);
 
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-
-    const attributeKey: string = currentWord.substring(
-      1,
-      currentWord.indexOf(":"),
-    );
-
-    if (
-      !attributeKey ||
-      attributeKey === lastValueSuggestionKey.current ||
-      SECURITY_EVENT_SEARCH_FIELD_KEYS.has(attributeKey.toLowerCase())
-    ) {
-      return;
-    }
-
-    lastValueSuggestionKey.current = attributeKey;
-    setAttributeValuesLoading(true);
-
-    SecurityEventAttributeUtil.getAttributeValues(attributeKey)
-      .then((values: Array<string>) => {
-        setAttributeValueSuggestions(
-          (
-            previous: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...previous, [attributeKey]: values };
-          },
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's security events have, once
+   * per key and time range, from the events in the range on screen
+   * (issue #4708).
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: attributeKeys,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return SECURITY_EVENT_SEARCH_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `security-events|${projectId?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return SecurityEventAttributeUtil.getAttributeValues(
+          attributeKey,
+          undefined,
+          timeRange,
         );
-      })
-      .catch(() => {
-        // Non-critical.
-      })
-      .finally(() => {
-        setAttributeValuesLoading(false);
-      });
-  }, [searchValue]);
+      },
+    });
 
   // --- Live ---
 
@@ -770,6 +805,15 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
   // --- Filter actions ---
 
+  /*
+   * Include or exclude one value: the value ends up in exactly that state.
+   * Including a value it currently excludes (or the reverse) flips it.
+   *
+   * Never a toggle. The sidebar takes a checked or excluded value off
+   * through handleRemoveFilter, the chip's own x, and the drawer's "Filter
+   * by" is an add: pressing it on a value that is already applied used to
+   * take the filter off again.
+   */
   const applyFacetSelection: (
     facetKey: string,
     value: string,
@@ -787,10 +831,16 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
       setFacetFilters(
         (previous: Map<string, Set<string>>): Map<string, Set<string>> => {
-          const next: Map<string, Set<string>> = new Map(previous);
+          const opposite: Set<string> | undefined = previous.get(oppositeKey);
+          const isApplied: boolean = Boolean(
+            previous.get(targetKey)?.has(value),
+          );
 
-          // Including a value it currently excludes (or the reverse) flips it.
-          const opposite: Set<string> | undefined = next.get(oppositeKey);
+          if (isApplied && !opposite?.has(value)) {
+            return previous;
+          }
+
+          const next: Map<string, Set<string>> = new Map(previous);
 
           if (opposite?.has(value)) {
             const remaining: Set<string> = new Set(opposite);
@@ -803,20 +853,10 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
             }
           }
 
-          const current: Set<string> = new Set(next.get(targetKey) || []);
-
-          // A second click on the same choice clears it.
-          if (current.has(value)) {
-            current.delete(value);
-          } else {
-            current.add(value);
-          }
-
-          if (current.size === 0) {
-            next.delete(targetKey);
-          } else {
-            next.set(targetKey, current);
-          }
+          next.set(
+            targetKey,
+            new Set<string>([...Array.from(next.get(targetKey) || []), value]),
+          );
 
           return next;
         },
@@ -1024,9 +1064,12 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         searchPlaceholder={SECURITY_EVENT_SEARCH_PLACEHOLDER}
         searchSuggestions={[...SECURITY_EVENT_SEARCH_SUGGESTIONS]}
         searchAttributeSuggestions={attributeKeys}
-        searchValueSuggestions={attributeValueSuggestions}
+        searchValueSuggestions={attributeValues.valueSuggestions}
         searchAttributesLoading={attributesLoading}
-        searchValuesLoading={attributeValuesLoading}
+        searchValuesLoading={attributeValues.isLoading}
+        searchValuesError={attributeValues.error}
+        onRetrySearchValues={attributeValues.retry}
+        searchHasNoValues={attributeValues.hasNoValues}
         searchFieldAliasMap={SECURITY_EVENT_FIELD_ALIASES}
         searchHelpRows={SECURITY_EVENT_SEARCH_HELP_ROWS as Array<SearchHelpRow>}
         searchHelpCombinedExample={SECURITY_EVENT_SEARCH_COMBINED_EXAMPLE}
@@ -1060,6 +1103,11 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         facetData={facetData}
         facetConfigs={facetConfigs}
         facetLoading={facetLoading}
+        timedOutFacets={timedOutFacets}
+        facetError={facetError}
+        onRetryFacets={() => {
+          void fetchFacets();
+        }}
         onFacetInclude={handleFacetInclude}
         onFacetExclude={handleFacetExclude}
         // Active filters
@@ -1072,6 +1120,10 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         histogramSeries={histogramSeries}
         histogramTitle="Security Event Volume"
         histogramLoading={isVolumeLoading}
+        histogramError={volumeError}
+        onRetryHistogram={() => {
+          void fetchVolume();
+        }}
         histogramBucketIntervalMs={volume?.intervalMs}
         onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
         /*
@@ -1079,28 +1131,35 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
          * header actions, so an empty window would leave a hole where the
          * chart was. This keeps the frame — and states the count the window
          * holds, which on an empty one is the answer.
+         *
+         * Not while the chart could not load (issue #4707): the total is
+         * read from the same answer, so "Counting events..." would wait
+         * beside the chart's own message for a count that is not coming.
          */
         histogramHeaderActions={
-          <span
-            className="whitespace-nowrap text-[11px] text-gray-500"
-            data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
-          >
-            {isVolumeLoading || !volume ? (
-              "Counting events..."
-            ) : (
-              <>
-                <span className="font-semibold tabular-nums text-gray-900">
-                  {volume.total.toLocaleString()}
-                </span>{" "}
-                {volume.total === 1 ? "event" : "events"}
-              </>
-            )}
-          </span>
+          volumeError && !isVolumeLoading ? undefined : (
+            <span
+              className="whitespace-nowrap text-[11px] text-gray-500"
+              data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
+            >
+              {isVolumeLoading || !volume ? (
+                "Counting events..."
+              ) : (
+                <>
+                  <span className="font-semibold tabular-nums text-gray-900">
+                    {volume.total.toLocaleString()}
+                  </span>{" "}
+                  {volume.total === 1 ? "event" : "events"}
+                </>
+              )}
+            </span>
+          )
         }
         // Pagination
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
+        hasMore={hasMore}
         onPageChange={setPage}
         onPageSizeChange={(size: number) => {
           setPageSize(size);

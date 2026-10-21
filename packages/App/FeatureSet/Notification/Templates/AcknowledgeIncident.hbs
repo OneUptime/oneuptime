@@ -10,9 +10,9 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
 {{> DetailBoxField title="Description: " blockText=incidentDescription  }}
 {{> DetailBoxEnd this }}
@@ -23,6 +23,12 @@
 {{> ButtonBlock buttonUrl=acknowledgeIncidentLink buttonText="Acknowledge Incident"}}
 
 {{> LinkBlock linkUrl=acknowledgeIncidentLink linkLabel="You can also copy and paste this link:"}}
+
+{{#if passOnLink}}
+{{> InfoBlock info="Can't take it? Pass it on, and you won't be paged about it again."}}
+
+{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}
+{{/if}}
 
 {{> InfoBlock info="You will be notified when the status of this incident changes."}}
 

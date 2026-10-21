@@ -19,12 +19,17 @@ import logger from "Common/Server/Utils/Logger";
  * A step could otherwise name any credential id in the system and have the
  * server hand it over — the step config is authored by a project member, but
  * the credential is administered separately and on purpose.
+ *
+ * A caller that knows the kind of credential the job runs with names it
+ * (credentialType), and a credential of another kind is not read at all: a
+ * Kubernetes action never carries an SSH key out of here.
  */
 export default class RunbookCredentialsUtil {
   public static async resolveForJob(data: {
     credentialId: string;
     agentId: ObjectID;
     projectId: ObjectID;
+    credentialType?: RunbookCredentialType | undefined;
   }): Promise<JSONObject | null> {
     /*
      * Validate before querying, not with a try/catch around the constructor:
@@ -49,6 +54,9 @@ export default class RunbookCredentialsUtil {
           _id: credentialId.toString(),
           projectId: data.projectId,
           runners: QueryHelper.inRelationArray([data.agentId]),
+          ...(data.credentialType
+            ? { credentialType: data.credentialType }
+            : {}),
         },
         select: {
           _id: true,
@@ -70,7 +78,11 @@ export default class RunbookCredentialsUtil {
 
     if (!credential) {
       logger.warn(
-        `Runbook credential ${data.credentialId} is not available to Runner ${data.agentId.toString()} — it does not exist, belongs to another project, or is not assigned to this Runner.`,
+        `Runbook credential ${data.credentialId} is not available to Runner ${data.agentId.toString()} — it does not exist, belongs to another project, or is not assigned to this Runner${
+          data.credentialType
+            ? `, or is not a ${data.credentialType} credential`
+            : ""
+        }.`,
       );
       return null;
     }

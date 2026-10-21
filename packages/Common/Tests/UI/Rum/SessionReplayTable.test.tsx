@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -26,7 +27,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The session list, rendered against a mocked /list and /ingest-status.
  * Skeleton rows while loading; routes, trace counts, idle hint and the
- * first-error action on a row; whole-row navigation with Cmd-click as a
+ * first-error action in a row's ⋯ menu beside Watch; whole-row
+ * navigation with Cmd-click as a
  * real link; search debounced into the request; a sort change resets the
  * cursor; Next disabled without a cursor; unplayable rows never offer
  * Watch; the ignored user filter is called out instead of chipped; the
@@ -70,11 +72,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import SessionReplayTable, {
   fetchSessionReplayList,
+  getSessionReplayFirstErrorRoute,
+  getSessionReplayRouteTrail,
+  isSessionReplayHandheldDevice,
+  MAX_ROUTE_TRAIL_PAGES,
   parseSessionReplaySummary,
+  SESSION_REPLAY_CELL_LINE_CLASS_NAME,
+  SESSION_REPLAY_WHEN_LINE_CLASS_NAME,
   SESSION_REPLAY_FRUSTRATION_COUNTERS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
   SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+  SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
+  SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   SESSION_REPLAY_SIGNAL_BADGES,
   SessionReplayListResult,
   SessionReplaySignalBadge,
@@ -83,6 +93,16 @@ import SessionReplayTable, {
 import { clearSessionReplayHealthStore } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
 import { readReplayListUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayViewPrefs";
 import { SESSION_REPLAY_SEARCH_DEBOUNCE_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLASS_NAME,
+} from "../../../UI/Components/Table/TableHeaderControls";
+import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../UI/Components/Card/CardMoreMenu";
+import {
+  TIME_RANGE_PICKER_BUTTON_CLASS_NAMES,
+  TimeRangePickerSize,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
@@ -255,6 +275,34 @@ async function waitForRows(count: number): Promise<Array<HTMLElement>> {
   });
 
   return screen.getAllByTestId("session-row");
+}
+
+/* The ⋯ at the end of the list's header, opened. */
+function openHeaderMenu(): HTMLElement {
+  fireEvent.click(screen.getByTestId("session-replay-more"));
+
+  return screen.getByRole("menu");
+}
+
+// Refresh, from the header's ⋯, where every table keeps it.
+function refreshList(): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitem", { name: "Refresh" }),
+  );
+}
+
+// One of the ⋯'s sort orders.
+function chooseSort(label: string): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitemradio", { name: label }),
+  );
+}
+
+// The filter form, from the header's ⋯.
+function openFilterForm(): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitem", { name: "Filter" }),
+  );
 }
 
 beforeEach(() => {
@@ -495,16 +543,28 @@ describe("SessionReplayTable rendering", () => {
     const [row] = await waitForRows(1);
 
     expect(row).toHaveTextContent("/checkout/payment");
-    expect(screen.getByTestId("session-row-routes")).toHaveTextContent("/cart");
+    /*
+     * The pages after the entry, three written out and the rest counted;
+     * the page count is the Duration column's, never repeated here.
+     */
     expect(screen.getByTestId("session-row-routes")).toHaveTextContent(
-      "(4 pages)",
+      "→ /cart → /checkout → /checkout/payment+1",
+    );
+    expect(screen.getByTestId("session-row-routes-more")).toHaveTextContent(
+      "+1",
+    );
+    expect(screen.getByTestId("session-row-routes")).not.toHaveTextContent(
+      "pages",
     );
     expect(row).toHaveTextContent("3 traces");
     expect(row).toHaveTextContent("1 exception group");
     expect(row).toHaveTextContent("2 errors");
     expect(row).toHaveTextContent("1 rage");
     expect(screen.getByTestId("session-row-activity")).toHaveTextContent(
-      "4 pages · 41 clicks · idle 40%",
+      /^4 pages · 41 clicks$/,
+    );
+    expect(screen.getByTestId("session-row-idle")).toHaveTextContent(
+      /^idle 40%$/,
     );
     expect(row).toHaveTextContent("1h 30m");
     expect(row).toHaveTextContent("expires in 6d");
@@ -514,14 +574,26 @@ describe("SessionReplayTable rendering", () => {
       "jane@acme.com",
     );
 
-    const firstError: HTMLAnchorElement = screen
-      .getByTestId("session-row-first-error")
-      .closest("a") as HTMLAnchorElement;
+    /* The first-error action waits in the row's ⋯ menu, beside Watch. */
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const firstError: string = (
+      navigateMock.mock.calls[0]![0] as { toString: () => string }
+    ).toString();
 
     /* 65s minus the 1s pre-roll, whole seconds, on the errors rail. */
-    expect(firstError.getAttribute("href")).toContain(`/${SESSION_A}`);
-    expect(firstError.getAttribute("href")).toContain("t=64");
-    expect(firstError.getAttribute("href")).toContain("rail=errors");
+    expect(firstError).toContain(`/${SESSION_A}`);
+    expect(firstError).toContain("t=64");
+    expect(firstError).toContain("rail=errors");
   });
 
   it("a provisional row says Recording now with a live dot and honest placeholders", async () => {
@@ -595,9 +667,18 @@ describe("SessionReplayTable rendering", () => {
     expect(badge).toHaveAttribute("data-kind", "ended");
     expect(badge.getAttribute("aria-label")).toContain("Recording ended:");
     expect(row).toHaveTextContent("Recording ended");
-    expect(row).toHaveTextContent("finalizing · Always-on");
+    /* Under the badge, a line each: its fact, then why it was uploaded. */
+    expect(
+      within(row as HTMLElement)
+        .getAllByTestId("session-row-playability-detail")
+        .map((line: HTMLElement): string | null => {
+          return line.textContent;
+        }),
+    ).toEqual(["finalizing"]);
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
     expect(row).not.toHaveTextContent("Recording now");
-    expect(row).not.toHaveTextContent("live ·");
     expect(screen.queryByTestId("session-row-live")).toBeNull();
     /* Not counted yet is still true: the finalizer has not run. */
     expect(row).toHaveTextContent("Not counted yet");
@@ -634,7 +715,14 @@ describe("SessionReplayTable rendering", () => {
     expect(kinds).toEqual(["recording", "ended", "playable"]);
     expect(screen.getAllByTestId("session-row-live")).toHaveLength(1);
     expect(rows[0]).toContainElement(screen.getByTestId("session-row-live"));
-    expect(rows[0]).toHaveTextContent("live · Always-on");
+    expect(
+      within(rows[0] as HTMLElement).getByTestId(
+        "session-row-playability-detail",
+      ),
+    ).toHaveTextContent(/^live$/);
+    expect(
+      within(rows[0] as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
   });
 
   it("an unplayable row never offers Watch and keeps the reason reachable by keyboard", async () => {
@@ -650,7 +738,26 @@ describe("SessionReplayTable rendering", () => {
     await waitForRows(2);
 
     expect(screen.queryByTestId("session-row-watch")).toBeNull();
-    expect(screen.queryByTestId("session-row-first-error")).toBeNull();
+    /*
+     * Both rows have errors, but no footage to jump into: no first-error
+     * action. Their ⋯ holds Show ID alone.
+     */
+    for (const more of screen.getAllByTestId("row-actions-more-button")) {
+      fireEvent.click(more);
+
+      const menu: HTMLElement = screen.getByRole("menu");
+
+      expect(
+        within(menu).queryByRole("menuitem", {
+          name: "Watch from first error",
+        }),
+      ).toBeNull();
+      expect(
+        within(menu).getByRole("menuitem", { name: "Show ID" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(more);
+    }
     expect(screen.getAllByTestId("session-row-signals-only").length).toBe(2);
 
     const badges: Array<HTMLElement> = screen.getAllByTestId(
@@ -780,7 +887,7 @@ describe("SessionReplayTable user filter", () => {
     );
   });
 
-  it("clicking a visitor narrows by visitor id, writes it to the URL, and chips it short", async () => {
+  it("clicking a visitor narrows by visitor id, writes it to the URL, and opens the search to show it", async () => {
     mockApi(() => {
       return listResponse([
         wireRow({
@@ -807,12 +914,19 @@ describe("SessionReplayTable user filter", () => {
     expect(navigateMock).not.toHaveBeenCalled();
     expect(window.location.search).toContain(`visitor=${VISITOR_A}`);
 
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveAttribute("data-field", "visitorId");
-    expect(chip).toHaveTextContent("Visitor");
-    expect(chip).toHaveTextContent("abc123…");
-    expect(chip).not.toHaveTextContent(VISITOR_A);
+    /*
+     * The person is said once, where it is changed: in the search box,
+     * which opens to show it. No chip repeats it.
+     */
+    await waitFor(() => {
+      expect(screen.getByTestId("session-search-input")).toHaveValue(
+        `visitor:${VISITOR_A}`,
+      );
+    });
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
   });
 
   it("clicking a hidden identity with a key narrows by the digest without showing it", async () => {
@@ -1036,7 +1150,7 @@ describe("SessionReplayTable identity nudge", () => {
     ).toBe("1");
 
     /* Remembered: a re-render of the same list does not bring it back. */
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -1088,12 +1202,15 @@ describe("SessionReplayTable and the Users page", () => {
     expect(
       screen.queryByRole("button", { name: "Set up recording" }),
     ).toBeNull();
-    /* The list still has one Refresh and never embeds the Users table. */
+    /*
+     * The list still has one Refresh - in its header's ⋯, as every table
+     * has - and never embeds the Users table.
+     */
     expect(screen.queryByTestId("session-view-toggle")).toBeNull();
     expect(screen.queryByTestId("session-users-table")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Refresh sessions" }),
-    ).toBeInTheDocument();
+      within(openHeaderMenu()).getAllByRole("menuitem", { name: "Refresh" }),
+    ).toHaveLength(1);
     expect(requestsTo("/session-replay/users").length).toBe(0);
     expect(navigateMock).not.toHaveBeenCalled();
   });
@@ -1121,15 +1238,14 @@ describe("SessionReplayTable and the Users page", () => {
     expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
       identifiedUserRef: "jane@acme.com",
     });
-    /* The same UX as clicking the label here: box, chip, no reference in the URL. */
+    /*
+     * The same UX as clicking the label here: the person in the search box,
+     * said once, and no reference in the URL.
+     */
     expect(screen.getByTestId("session-search-input")).toHaveValue(
       "user:jane@acme.com",
     );
-
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveAttribute("data-field", "identifiedUserRef");
-    expect(chip).toHaveTextContent("jane@acme.com");
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
     expect(window.location.search).not.toContain("jane");
     /*
      * The digest stays in the address bar on the reference's behalf, so a
@@ -1152,7 +1268,7 @@ describe("SessionReplayTable and the Users page", () => {
     ).toBeNull();
 
     /* Once the person filter is gone, so is the digest written for it. */
-    fireEvent.click(screen.getByRole("button", { name: /^Remove .* filter$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -1361,6 +1477,393 @@ describe("SessionReplayTable navigation", () => {
   });
 });
 
+/*
+ * Where the ⋯ menu's "Watch from first error" goes, or null to keep it off
+ * the row: only a session with a route, footage that plays and an error.
+ */
+describe("getSessionReplayFirstErrorRoute", () => {
+  function firstErrorRouteFor(overrides?: JSONObject): string | null {
+    const route: { toString: () => string } | null =
+      getSessionReplayFirstErrorRoute({
+        row: parseSessionReplaySummary(wireRow(overrides)),
+        rumApplicationId: APP_ID,
+        nowUnixMs: NOW,
+      });
+
+    return route ? route.toString() : null;
+  }
+
+  it("opens the player one second before the first error, on the errors rail", () => {
+    const route: string | null = firstErrorRouteFor();
+
+    expect(route).toContain(APP_ID);
+    expect(route).toContain(`/${SESSION_A}`);
+    expect(route).toContain("t=64");
+    expect(route).toContain("rail=errors");
+  });
+
+  it("starts at zero when the error is inside the pre-roll or its offset is unknown", () => {
+    expect(firstErrorRouteFor({ firstErrorOffsetMs: 400 })).toContain("t=0");
+
+    const legacy: JSONObject = wireRow();
+
+    delete legacy["firstErrorOffsetMs"];
+
+    expect(
+      getSessionReplayFirstErrorRoute({
+        row: parseSessionReplaySummary(legacy),
+        rumApplicationId: APP_ID,
+        nowUnixMs: NOW,
+      })?.toString(),
+    ).toContain("t=0");
+  });
+
+  it("is null for a session without an error", () => {
+    expect(firstErrorRouteFor({ errorCount: 0, hasError: 0 })).toBeNull();
+  });
+
+  it("is null when the footage will not play", () => {
+    expect(firstErrorRouteFor({ sealedReason: "recording-lost" })).toBeNull();
+    expect(firstErrorRouteFor({ chunkCount: 0 })).toBeNull();
+  });
+
+  it("is null for a row with no session to open", () => {
+    expect(firstErrorRouteFor({ sessionId: "" })).toBeNull();
+  });
+
+  it("is offered on a session still recording, whose footage already plays", () => {
+    expect(firstErrorRouteFor({ isFinalized: 0 })).toContain("rail=errors");
+  });
+});
+
+/*
+ * A row carries one control and a ⋯ menu, not a stack of them: Watch (or
+ * Signals only) stays a real link, and "Watch from first error" - once a
+ * small link under it - is the menu's one item. A row with no first error
+ * to jump to has nothing for a menu, so it has no ⋯.
+ */
+describe("SessionReplayTable row actions", () => {
+  function navigatedTo(callIndex: number): string {
+    return (
+      navigateMock.mock.calls[callIndex]![0] as { toString: () => string }
+    ).toString();
+  }
+
+  function moreButtonOf(row: HTMLElement): HTMLElement {
+    return within(row).getByTestId("row-actions-more-button");
+  }
+
+  function openMenuOf(row: HTMLElement): HTMLElement {
+    fireEvent.click(moreButtonOf(row));
+
+    return screen.getByRole("menu");
+  }
+
+  function menuItemNames(menu: HTMLElement): Array<string> {
+    return within(menu)
+      .getAllByRole("menuitem")
+      .map((item: HTMLElement): string => {
+        return item.textContent || "";
+      });
+  }
+
+  it("a watchable row with an error shows Watch as its one button and the first-error jump in its ⋯ menu", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const actions: HTMLElement = within(row as HTMLElement).getByTestId(
+      "row-actions",
+    );
+
+    /* Watch is still the Actions cell's own link, with its real href. */
+    const watch: HTMLAnchorElement = within(row as HTMLElement)
+      .getByTestId("session-row-watch")
+      .closest("a") as HTMLAnchorElement;
+
+    expect(watch.getAttribute("href")).toContain(`/${SESSION_A}`);
+    expect(watch.getAttribute("href")).not.toContain("rail=errors");
+
+    /*
+     * Beside it RowActions draws only the ⋯: the first-error jump is never
+     * promoted to a second button, and the old link is gone from the cell.
+     */
+    expect(within(actions).getAllByRole("button")).toEqual([
+      moreButtonOf(row as HTMLElement),
+    ]);
+    expect(moreButtonOf(row as HTMLElement)).toHaveAttribute(
+      "aria-label",
+      "More actions",
+    );
+    expect(row).not.toHaveTextContent("from 1st error");
+    expect(screen.queryByTestId("session-row-first-error")).toBeNull();
+
+    /* The Actions cell holds exactly one link: Watch. */
+    const actionsCell: HTMLElement = actions.closest("td") as HTMLElement;
+
+    expect(within(actionsCell).getAllByRole("link")).toEqual([watch]);
+
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    expect(menuItemNames(menu)).toEqual(["Watch from first error", "Show ID"]);
+    /* Portalled out of the row, so the table's overflow cannot clip it. */
+    expect(row).not.toContainElement(menu);
+
+    /* Opening the menu is the ⋯'s click, not the row's. */
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("a watchable row without an error shows Watch, and its ⋯ holds Show ID alone", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ errorCount: 0, hasError: 0, firstErrorOffsetMs: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-watch"),
+    ).toBeInTheDocument();
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
+  });
+
+  it("an unplayable row with errors shows Signals only, and its ⋯ holds Show ID alone", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ sealedReason: "recording-lost" })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-signals-only"),
+    ).toBeInTheDocument();
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
+  });
+
+  /*
+   * A row without a ⋯ drew its Watch where the other rows' ⋯ was: the
+   * Watch buttons zig-zagged down the column. Every row carries one now.
+   */
+  it("every row carries a ⋯, so the rows' buttons line up; only a row with a first error offers the jump", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, errorCount: 0, hasError: 0 }),
+        wireRow({ sessionId: SESSION_C, chunkCount: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(3);
+
+    expect(
+      rows.map((row: HTMLElement): boolean => {
+        return Boolean(within(row).queryByTestId("row-actions-more-button"));
+      }),
+    ).toEqual([true, true, true]);
+
+    const offersJump: Array<boolean> = rows.map((row: HTMLElement): boolean => {
+      const more: HTMLElement = moreButtonOf(row);
+
+      fireEvent.click(more);
+
+      const names: Array<string> = menuItemNames(screen.getByRole("menu"));
+
+      fireEvent.click(more);
+
+      return names.includes("Watch from first error");
+    });
+
+    expect(offersJump).toEqual([true, false, false]);
+  });
+
+  it("Show ID puts the session's whole ID on screen, to copy, and opens nothing", async () => {
+    mockApi(() => {
+      return listResponse([wireRow(), wireRow({ sessionId: SESSION_B })]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "Show ID",
+      }),
+    );
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    expect(dialog).toHaveTextContent("Session ID");
+    expect(dialog).toHaveTextContent(SESSION_B);
+    expect(dialog).not.toHaveTextContent(SESSION_A);
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  it("choosing Watch from first error opens THAT row's session at its own first error", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, firstErrorOffsetMs: 10_000 }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    /* One navigation: the item's. The row it sits in does not add its own. */
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_B}`);
+    expect(navigatedTo(0)).not.toContain(SESSION_A);
+    /* 10s minus the 1s pre-roll, on the errors rail. */
+    expect(navigatedTo(0)).toContain("t=9");
+    expect(navigatedTo(0)).toContain("rail=errors");
+    /* In this tab, as the old link's plain click did. */
+    expect(navigateMock.mock.calls[0]![1]).toEqual({});
+
+    /* The menu closes behind the choice. */
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    /* And the first row's own menu still jumps to the first row's error. */
+    fireEvent.click(
+      within(openMenuOf(rows[0] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(2);
+    expect(navigatedTo(1)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(1)).toContain("t=64");
+  });
+
+  it("a session whose first error is at the very start jumps to t=0", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ firstErrorOffsetMs: 0 })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(
+      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(0)).toContain("t=0");
+    expect(navigatedTo(0)).toContain("rail=errors");
+  });
+
+  it("the jump re-stamps the list URL, so the player's back link returns to this page", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    window.sessionStorage.removeItem(SESSION_REPLAY_LIST_URL_STORAGE_KEY);
+
+    fireEvent.click(
+      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(
+      window.sessionStorage.getItem(SESSION_REPLAY_LIST_URL_STORAGE_KEY),
+    ).toBe(`${window.location.pathname}${window.location.search}`);
+    expect(readReplayListUrl(window.sessionStorage)).not.toBeNull();
+  });
+
+  it("Enter on the focused menu item jumps once, and the row does not also open", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const item: HTMLElement = within(openMenuOf(row as HTMLElement)).getByRole(
+      "menuitem",
+      { name: "Watch from first error" },
+    );
+
+    act((): void => {
+      item.focus();
+    });
+
+    fireEvent.keyDown(item, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain("rail=errors");
+  });
+
+  it("a click inside the open menu but off its items does not open the row's session", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    /*
+     * The menu is portalled to document.body but React bubbles its clicks
+     * to the row all the same; the menu's own padding is not the row.
+     */
+    fireEvent.click(menu);
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("the row itself still opens at the start, beside its ⋯", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(row as HTMLElement);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(0)).not.toContain("rail=errors");
+  });
+});
+
 describe("SessionReplayTable search, sort and paging", () => {
   it("uses the shared ModelTable footer and the replay page-size choices", async () => {
     mockApi(() => {
@@ -1457,12 +1960,7 @@ describe("SessionReplayTable search, sort and paging", () => {
 
     expect(window.location.search).toContain("page=2");
 
-    const combobox: HTMLElement = screen.getByRole("combobox", {
-      name: "Sort sessions",
-    });
-
-    fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
-    fireEvent.click(screen.getByText("Longest"));
+    chooseSort("Longest");
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(3);
@@ -1515,14 +2013,20 @@ describe("SessionReplayTable search, sort and paging", () => {
   });
 });
 
-describe("SessionReplayTable filter modal", () => {
-  /*
-   * ux-03: the modal writes urlPrefix straight from a text input and the
-   * endpoint matches it from the start of each stored address, so an
-   * un-anchored value is a filter that can only ever return nothing. It is
-   * anchored on apply, and the chip shows what was actually sent.
-   */
-  it("anchors an un-anchored URL prefix on apply, and chips what was sent", async () => {
+/*
+ * The maintainer's report: the list's header had controls of every size -
+ * a tall sort select with a clear x, a small time chip, a text "Advanced
+ * filters" button, a lone refresh icon and a "Search help" link. It is now
+ * the header every table has: the "Search…  /" pill, the time range, and
+ * the ⋯ holding the sort order, Refresh and Filter - one height - with the
+ * chips in the Filter row under it.
+ */
+describe("SessionReplayTable header", () => {
+  function header(): HTMLElement {
+    return screen.getByTestId("card-header");
+  }
+
+  it("is the toolbar header every table has: search, time range and ⋯, and no loose icon", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -1531,7 +2035,421 @@ describe("SessionReplayTable filter modal", () => {
 
     await waitForRows(1);
 
-    fireEvent.click(screen.getByTestId("session-open-filters"));
+    expect(header()).toHaveAttribute("data-header-layout", "toolbar");
+
+    const toolbar: HTMLElement = within(header()).getByTestId(
+      "session-replay-header-toolbar",
+    );
+
+    expect(toolbar).toHaveAttribute("data-toolbar-fill", "true");
+
+    /* Left to right: the search, the window, the ⋯. */
+    const slot: HTMLElement = within(toolbar).getByTestId(
+      "session-search-slot",
+    );
+    const time: HTMLElement = within(toolbar).getByTestId(
+      "telemetry-time-range-picker-button",
+    );
+    const more: HTMLElement = within(toolbar).getByTestId(
+      "session-replay-more",
+    );
+
+    expect(
+      slot.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      time.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    /* Nothing else sits in the header: no icon nudged beside the title. */
+    expect(within(header()).queryAllByTestId("card-button")).toHaveLength(0);
+    expect(
+      within(header()).queryByRole("combobox", { name: "Sort sessions" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Advanced filters" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Search help" })).toBeNull();
+    expect(screen.queryByText("Filter by")).toBeNull();
+  });
+
+  it("draws its controls at one height: the search box, the time range and the ⋯", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const heightClasses: Array<string> =
+      TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ");
+
+    const box: HTMLElement = screen.getByTestId("session-search-input")
+      .parentElement as HTMLElement;
+
+    expect(box).toHaveClass(...heightClasses);
+
+    const time: HTMLElement = screen.getByTestId(
+      "telemetry-time-range-picker-button",
+    );
+
+    expect(time).toHaveAttribute("data-size", TimeRangePickerSize.Header);
+    expect(time).toHaveClass(
+      ...TIME_RANGE_PICKER_BUTTON_CLASS_NAMES[TimeRangePickerSize.Header].split(
+        " ",
+      ),
+    );
+    expect(time).toHaveClass(...heightClasses, "text-sm");
+    expect(time).not.toHaveClass("text-xs");
+
+    /* The ⋯ is the one every card header has, 42px / 38px like the rest. */
+    expect(screen.getByTestId("session-replay-more")).toHaveClass(
+      ...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "),
+    );
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("py-2.5");
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("md:py-2");
+  });
+
+  it("keeps the sort order, Refresh and Filter in the ⋯, the order in use ticked", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(null, "", "/?sort=errorCount");
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const menu: HTMLElement = openHeaderMenu();
+
+    expect(within(menu).getByText("SORT")).toBeInTheDocument();
+
+    const choices: Array<HTMLElement> =
+      within(menu).getAllByRole("menuitemradio");
+
+    expect(
+      choices.map((choice: HTMLElement): string => {
+        return (choice.textContent || "").trim();
+      }),
+    ).toEqual(["Newest", "Longest", "Most errors", "Most frustration"]);
+    expect(
+      choices.map((choice: HTMLElement): string | null => {
+        return choice.getAttribute("aria-checked");
+      }),
+    ).toEqual(["false", "false", "true", "false"]);
+    /*
+     * Refresh before Filter, as every model table's ⋯ lists them (Refresh,
+     * Filter, Columns) and the hand-built lists' do.
+     */
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Refresh", "Filter"]);
+  });
+
+  it("a sort is applied once, from page one; the order in use changes nothing", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    chooseSort("Newest");
+
+    expect(requestsTo("/session-replay/list").length).toBe(1);
+
+    chooseSort("Most frustration");
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["sortBy"]).toBe(
+      "frustration",
+    );
+    expect(window.location.search).toContain("sort=frustration");
+    expect(
+      within(openHeaderMenu()).getByRole("menuitemradio", {
+        name: "Most frustration",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("Filter opens the filter form", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    openFilterForm();
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent(
+      "Filter Sessions",
+    );
+  });
+
+  it("the time range is the header's: a new window reads page one again and goes in the URL", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      return listResponse(
+        [wireRow()],
+        index === 0
+          ? { startTimeUnixMs: NOW - 3 * 60_000, sessionId: SESSION_A }
+          : null,
+      );
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("page=2");
+    });
+
+    fireEvent.click(screen.getByTestId("telemetry-time-range-picker-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Past 1 Week" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(3);
+    });
+
+    const sent: JSONObject = requestsTo("/session-replay/list")[2]!.data;
+
+    expect(sent["cursor"]).toBeUndefined();
+    expect(
+      new Date(sent["endTime"] as string).getTime() -
+        new Date(sent["startTime"] as string).getTime(),
+    ).toBeGreaterThan(6 * DAY_MS);
+    expect(window.location.search).toContain("range=Past+1+Week");
+    expect(window.location.search).not.toContain("page=");
+  });
+
+  it("the search is a folded pill until opened, and opening it puts the focus in the box", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const slot: HTMLElement = screen.getByTestId("session-search-slot");
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    expect(slot).toHaveClass(...TABLE_HEADER_SEARCH_CLASS_NAME.split(" "));
+    expect(input).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+
+    expect(slot).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+    expect(input).toHaveAttribute("tabindex", "0");
+    /* The window and the ⋯ stay beside an opened search. */
+    expect(
+      screen.getByTestId("telemetry-time-range-picker-button"),
+    ).toBeVisible();
+    expect(
+      screen.getByTestId("session-replay-more").closest("[aria-hidden]"),
+    ).toHaveAttribute("aria-hidden", "false");
+
+    /* Left with nothing in it, it folds back. */
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(slot).toHaveClass(...TABLE_HEADER_SEARCH_CLASS_NAME.split(" "));
+    });
+  });
+
+  it('"/" opens the search from anywhere but a text field', async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    fireEvent.keyDown(document.body, { key: "/" });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+  });
+
+  it("a search typed in the box goes to the server and keeps the search open", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    fireEvent.change(input, { target: { value: "user:jane@acme.com" } });
+
+    await waitFor(
+      () => {
+        expect(requestsTo("/session-replay/list").length).toBe(2);
+      },
+      { timeout: SESSION_REPLAY_SEARCH_DEBOUNCE_MS * 5 },
+    );
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      identifiedUserRef: "jane@acme.com",
+    });
+
+    fireEvent.blur(input);
+
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+  });
+
+  it("Clear all empties the chips and keeps what the search box holds", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      "/?signal=errors&browser=Firefox&country=GB&q=checkout",
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const bar: HTMLElement = screen.getByTestId("session-replay-facets");
+
+    expect(within(bar).getByTestId("facet-filter-bar-count")).toHaveTextContent(
+      "3",
+    );
+
+    fireEvent.click(within(bar).getByRole("button", { name: "Clear all" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      search: "checkout",
+    });
+    expect(screen.getByTestId("session-search-input")).toHaveValue("checkout");
+    expect(within(bar).queryByTestId("facet-filter-bar-count")).toBeNull();
+    expect(within(bar).queryByRole("button", { name: "Clear all" })).toBeNull();
+  });
+
+  it("an exact page and a pseudonymous key are listed in the applied filters box; Clear Filters removes only them", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      `/?route=${encodeURIComponent("https://app.acme.com/checkout")}&userKey=k1&browser=Firefox`,
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const box: HTMLElement = screen.getByTestId("session-applied-filters");
+    const chips: Array<HTMLElement> = within(box).getAllByTestId(
+      "session-filter-chip",
+    );
+
+    expect(
+      chips.map((chip: HTMLElement): string | null => {
+        return chip.getAttribute("data-field");
+      }),
+    ).toEqual(["identifiedUserKey", "route"]);
+    expect(box).toHaveTextContent("Showing Sessions that match");
+    expect(chips[0]).toHaveTextContent("User is pseudonymous key");
+    expect(chips[0]).not.toHaveTextContent("k1");
+    expect(chips[1]).toHaveTextContent(
+      "Page URL visited (exact) is https://app.acme.com/checkout",
+    );
+
+    fireEvent.click(within(box).getByRole("button", { name: "Clear Filters" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      browserNames: ["Firefox"],
+    });
+    expect(screen.queryByTestId("session-applied-filters")).toBeNull();
+  });
+
+  it("a filter the box or the chips show is never listed in the applied filters box", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      `/?urlPrefix=%2Fcheckout&visitor=${VISITOR_A}&tag=plan%3Dpro&browser=Firefox&q=jane`,
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-applied-filters")).toBeNull();
+    expect(screen.getByTestId("session-search-input")).toHaveValue(
+      `visitor:${VISITOR_A} url:/checkout tag:plan=pro jane`,
+    );
+  });
+});
+
+describe("SessionReplayTable filter modal", () => {
+  /*
+   * ux-03: the modal writes urlPrefix straight from a text input and the
+   * endpoint matches it from the start of each stored address, so an
+   * un-anchored value is a filter that can only ever return nothing. It is
+   * anchored on apply, and the chip shows what was actually sent.
+   */
+  it("anchors an un-anchored URL prefix on apply, and the search box shows what was sent", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    openFilterForm();
     fireEvent.change(screen.getByTestId("session-filter-urlPrefix"), {
       target: { value: "checkout" },
     });
@@ -1545,9 +2463,13 @@ describe("SessionReplayTable filter modal", () => {
       urlPrefix: "/checkout",
     });
 
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveTextContent("/checkout");
+    await waitFor(() => {
+      expect(screen.getByTestId("session-search-input")).toHaveValue(
+        "url:/checkout",
+      );
+    });
+    /* Said once: no chip repeats what the search box shows. */
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
   });
 });
 
@@ -1679,6 +2601,16 @@ describe("SessionReplayTable honesty", () => {
     );
     expect(screen.queryByTestId("list-empty")).toBeNull();
     expect(screen.getByTestId("list-error-retry")).toBeInTheDocument();
+    /*
+     * Retry starts where the error's words do: Button's own left margin
+     * (md:ml-3, a dialog footer's) drew it 12px to their right.
+     */
+    expect(screen.getByTestId("list-error-retry").parentElement).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
   });
 
   it("an empty page under a filter is filters-match-nothing with chips", async () => {
@@ -1700,7 +2632,11 @@ describe("SessionReplayTable honesty", () => {
       0,
     );
 
-    fireEvent.click(screen.getByTestId("session-clear-filters"));
+    const clear: HTMLElement = screen.getByTestId("list-empty-action");
+
+    expect(clear).toHaveTextContent("Clear filters");
+
+    fireEvent.click(clear);
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -1709,7 +2645,7 @@ describe("SessionReplayTable honesty", () => {
     expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({});
   });
 
-  it("the refresh button has an accessible name", async () => {
+  it("the header's ⋯ is named, and its Refresh re-reads the list", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -1718,14 +2654,20 @@ describe("SessionReplayTable honesty", () => {
 
     await waitForRows(1);
 
-    expect(
-      screen.getByRole("button", { name: "Refresh sessions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("session-replay-more")).toHaveAccessibleName(
+      "More options",
+    );
+
+    refreshList();
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
   });
 });
 
 describe("SessionReplayTable facet integration", () => {
-  it("applies facets to the server, restarts pagination, synchronizes search and clears one selection", async () => {
+  it("applies facets to the server, restarts pagination, leaves the search box alone and clears one selection", async () => {
     mockApi((_data: JSONObject, index: number) => {
       return listResponse(
         [wireRow({ sessionId: index === 1 ? SESSION_B : SESSION_A })],
@@ -1757,9 +2699,11 @@ describe("SessionReplayTable facet integration", () => {
     expect(filtered["cursor"]).toBeUndefined();
     expect(window.location.search).not.toContain("page=");
     expect(window.location.search).toContain("browser=Firefox");
-    expect(screen.getByTestId("session-search-input")).toHaveValue(
-      "browser:Firefox",
+    /* The chip says it; the search box does not repeat it. */
+    expect(screen.getByTestId("session-facet-browserName")).toHaveTextContent(
+      "Firefox",
     );
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
     fireEvent.click(
       screen.getByRole("button", { name: "Clear Browser filter" }),
     );
@@ -2181,7 +3125,7 @@ describe("SessionReplayTable auto-refresh", () => {
 
     await waitForRows(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(listRequestCount()).toBe(2);
@@ -2270,7 +3214,7 @@ describe("SessionReplayTable auto-refresh", () => {
 
     expect(listRequestCount()).toBe(exhaustedAt);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(listRequestCount()).toBe(exhaustedAt + 1);
@@ -2416,6 +3360,74 @@ describe("SessionReplayTable auto-refresh", () => {
     await waitForRows(2);
   });
 
+  /*
+   * The ⋯ menu is portalled to document.body: neither the pointer check
+   * nor the focus check sees it once the pointer has left the table. Rows
+   * are keyed by position, so a read under an open menu would leave its
+   * "Watch from first error" pointing at whichever session moved into the
+   * slot.
+   */
+  it("a tick stands down while a row's ⋯ menu is open, so the menu keeps acting on the session it was opened for", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0 })]);
+      }
+
+      return listResponse([
+        wireRow({ sessionId: SESSION_B, isFinalized: 0 }),
+        wireRow({ isFinalized: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+
+    const menu: HTMLElement = screen.getByRole("menu");
+
+    /* Nothing of the table's holds the pointer or the focus. */
+    act((): void => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+
+    fireEvent.click(
+      within(menu).getByRole("menuitem", { name: "Watch from first error" }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+    ).toContain(`/${SESSION_A}`);
+
+    /*
+     * The menu has closed. It hands focus back to its trigger a frame
+     * later; once that has moved on too, the next tick reads the page.
+     */
+    await advance(50);
+
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    act((): void => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    await waitForRows(2);
+  });
+
   it("ticks skipped under the viewer's hand do not spend the budget", async () => {
     mockApi(() => {
       return listResponse([wireRow({ isFinalized: 0 })]);
@@ -2471,7 +3483,7 @@ describe("SessionReplayTable auto-refresh", () => {
     });
 
     /* The viewer asks for a fresh read while the silent one hangs. */
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
@@ -2493,5 +3505,327 @@ describe("SessionReplayTable auto-refresh", () => {
       SESSION_B,
     );
     expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
+  });
+});
+
+/*
+ * The list fits a laptop's card. Its six columns each kept the table's 10rem
+ * floor and two lines of them never wrapped - a device, the session's id
+ * and start (with the absolute date from 2xl up) - so the table was 1144px
+ * in a 938px card at 1280: the Recording column went under the sticky
+ * Actions column, and still did at 1600. Measured in the offline suite; the
+ * classes that do it are held here.
+ */
+describe("SessionReplayTable fits a laptop's card", () => {
+  function wrappersOf(row: HTMLElement): Array<HTMLElement> {
+    return Array.from(row.querySelectorAll("td")).map(
+      (cell: HTMLTableCellElement): HTMLElement => {
+        return cell.firstElementChild as HTMLElement;
+      },
+    );
+  }
+
+  it("gives its short columns a floor below the table's", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const wrappers: Array<HTMLElement> = wrappersOf(row as HTMLElement);
+
+    expect(SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[8rem]",
+    );
+    expect(SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[7rem]",
+    );
+
+    /* Session */
+    expect(wrappers[0]).toHaveClass(
+      SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
+    );
+    expect(wrappers[0]).not.toHaveClass("min-w-[10rem]");
+    /* User & device keeps the table's floor: a name reads best whole. */
+    expect(wrappers[1]).toHaveClass("min-w-[10rem]");
+
+    /* Duration, Signals, Recording */
+    for (const index of [2, 3, 4]) {
+      expect(wrappers[index]).toHaveClass(
+        SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
+      );
+      expect(wrappers[index]).not.toHaveClass("min-w-[10rem]");
+    }
+  });
+
+  it("lets a line that keeps to one line end in an ellipsis rather than widen the table", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const wrappers: Array<HTMLElement> = wrappersOf(row as HTMLElement);
+
+    /*
+     * A minmax(0, 1fr) track adds nothing to the column's minimum width:
+     * Session, User & device, Duration and Recording.
+     */
+    for (const index of [0, 1, 2, 4]) {
+      expect(wrappers[index]?.firstElementChild).toHaveClass(
+        "grid",
+        "grid-cols-1",
+      );
+    }
+
+    expect(SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "truncate", "whitespace-nowrap"]),
+    );
+
+    /* The journey, the activity and the trigger: one line each. */
+    const scope: ReturnType<typeof within> = within(row as HTMLElement);
+
+    expect(
+      scope.getByTestId("session-row-routes").firstElementChild,
+    ).toHaveClass(...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "));
+    expect(scope.getByTestId("session-row-routes")).toHaveAttribute(
+      "title",
+      "/checkout/payment → /cart → /checkout → /checkout/payment → /thanks",
+    );
+    expect(scope.getByTestId("session-row-activity")).toHaveClass(
+      ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+    );
+    expect(scope.getByTestId("session-row-activity")).toHaveAttribute(
+      "title",
+      "4 pages · 41 clicks",
+    );
+    expect(scope.getByTestId("session-row-trigger")).toHaveClass(
+      ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+    );
+
+    const start: HTMLElement = scope.getByTestId("session-row-start");
+
+    /*
+     * The start is kept whole - never "7 minute..." - with the exact time
+     * on its title, and the id beside it is shown whole or not at all: the
+     * line is one line tall and clips what wraps under it.
+     */
+    expect(start).toHaveClass("flex-none");
+    expect(start).not.toHaveClass("truncate");
+    expect(start).toHaveAttribute("title");
+    expect(start.parentElement).toHaveAttribute(
+      "data-testid",
+      "session-row-when",
+    );
+    expect(start.parentElement).toHaveClass(
+      ...SESSION_REPLAY_WHEN_LINE_CLASS_NAME.split(" "),
+    );
+    expect(SESSION_REPLAY_WHEN_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["h-4", "flex-wrap", "overflow-hidden"]),
+    );
+
+    const id: HTMLElement = scope.getByTestId("session-row-id");
+
+    expect(id).toHaveClass("flex-none");
+    expect(id).not.toHaveClass("truncate");
+    expect(id).toHaveTextContent("a1b2c3d4");
+    expect(within(id).getByTitle(SESSION_A)).toHaveTextContent(/^a1b2c3d4$/);
+  });
+});
+
+describe("isSessionReplayHandheldDevice", () => {
+  it("is a browser's mobile or tablet, and the mobile SDK's ios or android", () => {
+    for (const deviceType of ["mobile", "tablet", "ios", "android", "iOS"]) {
+      expect(isSessionReplayHandheldDevice(deviceType)).toBe(true);
+    }
+
+    for (const deviceType of ["desktop", "", "tv"]) {
+      expect(isSessionReplayHandheldDevice(deviceType)).toBe(false);
+    }
+  });
+
+  /*
+   * The mobile SDK writes the platform as the device type, and its
+   * recordings were drawn with a desktop's monitor beside the device line.
+   */
+  it("draws a phone beside a mobile app's recording, as beside a phone browser's", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ deviceType: "mobile" }),
+        wireRow({ sessionId: SESSION_B, deviceType: "ios" }),
+        wireRow({ sessionId: SESSION_C, deviceType: "desktop" }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(3);
+    const iconOf: (row: HTMLElement) => string = (row: HTMLElement): string => {
+      const device: HTMLElement = within(row)
+        .getByTestId("session-row-user")
+        .closest("td") as HTMLElement;
+
+      return (device.querySelectorAll("svg")[0] as SVGElement).innerHTML;
+    };
+
+    expect(iconOf(rows[1] as HTMLElement)).toBe(iconOf(rows[0] as HTMLElement));
+    expect(iconOf(rows[2] as HTMLElement)).not.toBe(
+      iconOf(rows[0] as HTMLElement),
+    );
+  });
+});
+
+describe("getSessionReplayRouteTrail", () => {
+  it("leaves out the entry page the row's title already names", () => {
+    expect(
+      getSessionReplayRouteTrail("/collections", [
+        "/collections",
+        "/cart",
+        "/checkout",
+      ]),
+    ).toEqual({ shown: ["/cart", "/checkout"], hiddenCount: 0 });
+  });
+
+  it("writes out three pages and counts the rest", () => {
+    expect(MAX_ROUTE_TRAIL_PAGES).toBe(3);
+    expect(
+      getSessionReplayRouteTrail("/", ["/", "/a", "/b", "/c", "/d", "/e"]),
+    ).toEqual({ shown: ["/a", "/b", "/c"], hiddenCount: 2 });
+  });
+
+  it("keeps every page of a list that does not start at the entry page", () => {
+    expect(getSessionReplayRouteTrail("/", ["/checkout"])).toEqual({
+      shown: ["/checkout"],
+      hiddenCount: 0,
+    });
+  });
+
+  it("has nothing to show for a session that never left its entry page", () => {
+    expect(getSessionReplayRouteTrail("/cart", ["/cart"])).toEqual({
+      shown: [],
+      hiddenCount: 0,
+    });
+    expect(getSessionReplayRouteTrail("/cart", [])).toEqual({
+      shown: [],
+      hiddenCount: 0,
+    });
+  });
+});
+
+describe("SessionReplayTable rows read one fact per line", () => {
+  it("draws no trail for a session that stayed on its entry page", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          entryUrl: "https://app.acme.com/cart",
+          routes: ["https://app.acme.com/cart"],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-row-routes")).toBeNull();
+  });
+
+  it("writes the pages after the entry once, with no count when all fit", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          entryUrl: "https://app.acme.com/collections",
+          routes: [
+            "https://app.acme.com/collections",
+            "https://app.acme.com/cart",
+            "https://app.acme.com/checkout",
+          ],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const trail: HTMLElement = screen.getByTestId("session-row-routes");
+
+    expect(trail).toHaveTextContent(/^→ \/cart → \/checkout$/);
+    expect(screen.queryByTestId("session-row-routes-more")).toBeNull();
+    expect(trail).toHaveAttribute("title", "/collections → /cart → /checkout");
+  });
+
+  it("puts each fact of a Partial recording on its own line", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ missingChunkCount: 1 })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(screen.getByTestId("session-row-playability")).toHaveAttribute(
+      "data-kind",
+      "partial",
+    );
+
+    const lines: Array<HTMLElement> = within(row as HTMLElement).getAllByTestId(
+      "session-row-playability-detail",
+    );
+
+    expect(
+      lines.map((line: HTMLElement): string | null => {
+        return line.textContent;
+      }),
+    ).toEqual([expect.stringMatching(/^about \d+s missing$/), "expires in 6d"]);
+
+    for (const line of lines) {
+      expect(line).toHaveClass(
+        ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+      );
+      expect(line).toHaveAttribute("title", line.textContent as string);
+    }
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
+  });
+
+  it("puts the idle share beside the activity bar, not after the counts", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const bar: HTMLElement = screen.getByTestId("session-row-activity-bar");
+    const idle: HTMLElement = screen.getByTestId("session-row-idle");
+
+    expect(bar.parentElement).toBe(idle.parentElement);
+    expect(bar).toHaveClass("flex-none");
+    expect(idle).toHaveTextContent(/^idle 40%$/);
+    expect(screen.getByTestId("session-row-activity")).not.toHaveTextContent(
+      "idle",
+    );
+  });
+
+  it("says nothing about idle time it has not measured", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ activeMs: undefined })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-row-activity-bar")).toBeNull();
+    expect(screen.queryByTestId("session-row-idle")).toBeNull();
+    expect(screen.getByTestId("session-row-activity")).toHaveTextContent(
+      /^4 pages · 41 clicks$/,
+    );
   });
 });

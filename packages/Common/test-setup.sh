@@ -112,6 +112,21 @@ export $(grep -v '^#' config.env | xargs)
 echo "env vars"
 printenv | redact
 
+COMPOSE=(docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml)
+
+# The images first, as a step of their own, because pulling is the one part of
+# this that leans on a registry. On 2026-10-02 Docker Hub reset the connection
+# while one of eight Common Test shards fetched valkey's pull token, `up` gave
+# up on the spot, and the shard failed before a test ran. retry_registry_read
+# tries again only for errors a later attempt can clear - a reset or refused
+# connection, a timeout, a 5xx, a rate limit - so an image or tag that does
+# not exist still fails at once.
+# shellcheck source=Scripts/GHA/retry.sh
+source ./Scripts/GHA/retry.sh
+if ! retry_registry_read "Pulling the postgres and valkey images" "${COMPOSE[@]}" pull postgres valkey; then
+	fail "Could not pull the postgres and valkey images. What the registry answered is printed above."
+fi
+
 # --wait: the step passes only once postgres and valkey report healthy (both
 # have a healthcheck in docker-compose.base.yml: pg_isready and valkey-cli
 # ping), so a database that cannot start fails here, with its logs, instead of
@@ -119,7 +134,6 @@ printenv | redact
 # not the image pulls before it, and outlasts the healthchecks' own budget
 # (a 15s start period, then 5 retries 10s apart), so Docker's verdict is what
 # decides. Both are normally healthy within ten seconds of starting.
-COMPOSE=(docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml)
 if ! "${COMPOSE[@]}" up -d --wait --wait-timeout 120 postgres valkey; then
 	"${COMPOSE[@]}" ps --all postgres valkey || true
 	"${COMPOSE[@]}" logs --no-color --tail 100 postgres valkey || true

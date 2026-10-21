@@ -379,6 +379,7 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
         callId: "CA-one",
         dialStatus: expected,
         dialDurationSeconds: 42,
+        callerHungUp: false,
       });
     },
   );
@@ -392,10 +393,128 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
       callId: "CA-one",
       dialStatus: "failed",
       dialDurationSeconds: 0,
+      callerHungUp: false,
     });
     expect(() => {
       newProvider().parseDialStatusWebhook(makeWebhookRequest());
     }).toThrow("CallSid not found");
+  });
+
+  /*
+   * Twilio requests the <Dial> action URL with its standard parameters too.
+   * CallStatus among them is the incoming call's own status: "in-progress"
+   * while the caller waits on the line, a final status once they are gone.
+   */
+  test("reads a caller hanging up mid-ring from Twilio's real action request", () => {
+    expect(
+      newProvider().parseDialStatusWebhook(
+        makeWebhookRequest({
+          body: {
+            AccountSid: "AC-account",
+            ApiVersion: "2010-04-01",
+            CallSid: "CA-incoming",
+            CallStatus: "completed",
+            Called: "+14155550102",
+            Caller: "+14155550999",
+            Direction: "inbound",
+            From: "+14155550999",
+            To: "+14155550102",
+            DialCallSid: "CA-engineer-leg",
+            DialCallStatus: "no-answer",
+            DialBridged: "false",
+          },
+        }),
+      ),
+    ).toEqual({
+      callId: "CA-incoming",
+      dialStatus: "no-answer",
+      dialDurationSeconds: 0,
+      callerHungUp: true,
+    });
+  });
+
+  test.each(["completed", "canceled", "busy", "failed", "no-answer"])(
+    "treats an incoming call that is already %s as a caller who is gone",
+    (callStatus: string): void => {
+      expect(
+        newProvider().parseDialStatusWebhook(
+          makeWebhookRequest({
+            body: {
+              CallSid: "CA-one",
+              CallStatus: callStatus,
+              DialCallStatus: "no-answer",
+            },
+          }),
+        ).callerHungUp,
+      ).toBe(true);
+    },
+  );
+
+  test.each([
+    ["in-progress"],
+    ["ringing"],
+    ["queued"],
+    ["provider-new-status"],
+    [""],
+    [undefined],
+  ])(
+    "keeps a caller whose incoming call is %p on the line",
+    (callStatus: string | undefined): void => {
+      expect(
+        newProvider().parseDialStatusWebhook(
+          makeWebhookRequest({
+            body: {
+              CallSid: "CA-one",
+              CallStatus: callStatus,
+              DialCallStatus: "no-answer",
+            },
+          }),
+        ).callerHungUp,
+      ).toBe(false);
+    },
+  );
+
+  test("never mistakes the dialed leg's outcome for the caller's own status", () => {
+    for (const dialCallStatus of [
+      "completed",
+      "canceled",
+      "no-answer",
+      "busy",
+      "failed",
+    ]) {
+      expect(
+        newProvider().parseDialStatusWebhook(
+          makeWebhookRequest({
+            body: {
+              CallSid: "CA-one",
+              CallStatus: "in-progress",
+              DialCallStatus: dialCallStatus,
+            },
+          }),
+        ).callerHungUp,
+      ).toBe(false);
+    }
+  });
+
+  test("keeps an answered dial's outcome and duration when the caller hangs up at the end", () => {
+    expect(
+      newProvider().parseDialStatusWebhook(
+        makeWebhookRequest({
+          body: {
+            CallSid: "CA-one",
+            CallStatus: "completed",
+            DialCallStatus: "completed",
+            DialCallDuration: "95",
+            DialBridged: "true",
+          },
+        }),
+      ),
+    ).toEqual({
+      callId: "CA-one",
+      dialStatus: "completed",
+      dialDurationSeconds: 95,
+      callerHungUp: true,
+    });
   });
 
   test("validates against the public forwarded URL and removes only the internal /api prefix", () => {

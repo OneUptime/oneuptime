@@ -156,11 +156,14 @@ describe("bundle hygiene", (): void => {
      * transport, cross-tab adoption, attribute masking, the public API and
      * click/custom/visibility events), 92 KB since offline mode, 93 KB
      * since automatic same-origin trace propagation (2026-09-24, issue
-     * #3979: 94178 gzip after, 92376 before the feature);
-     * esbuild.config.js carries the measurements and the itemised reasons.
-     * Asserted here as well as there on purpose - see the loader note below.
+     * #3979: 94178 gzip after, 92376 before the feature), 95 KB since INP
+     * per single-page-app view (2026-09-26, issue #3975: 95550 gzip after,
+     * 94102 before), 97 KB since the idle pause (2026-10-02, issue #4208:
+     * 97650 gzip after, 96723 before); esbuild.config.js carries the
+     * measurements and the itemised reasons. Asserted here as well as there
+     * on purpose - see the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(93 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(97 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*
@@ -180,7 +183,7 @@ describe("bundle hygiene", (): void => {
    * The reason the shared pure logic is COPIED in at build time rather than
    * imported: Common/UI/Config.ts reads window.process.env, which only exists
    * because the OneUptime Dashboard server injects /env.js, and
-   * Common/package.json pulls express, typeorm, stripe and monaco.
+   * Common/package.json pulls express, typeorm and stripe.
    */
   it("carries no server dependency and no process.env", (): void => {
     for (const bundle of [recorderBundle, loaderBundle]) {

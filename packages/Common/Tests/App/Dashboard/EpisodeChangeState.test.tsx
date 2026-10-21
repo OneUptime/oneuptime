@@ -134,6 +134,8 @@ const CREATED_STATE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
 const ACKNOWLEDGED_STATE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
 const INVESTIGATING_STATE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3";
 const RESOLVED_STATE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4";
+// A state of the project's own after Resolved, for the tests that add it.
+const CLOSED_STATE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5";
 const TEMPLATE_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
 
 const MINUTE: number = 60 * 1000;
@@ -307,31 +309,42 @@ interface StateSpec {
   id: string;
   name: string;
   color: string;
+  // Where it sits in the project's list: what the acknowledged and resolved rules read.
+  order: number;
   flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
 }
 
+/*
+ * The project's states, in their places. Investigating sits between
+ * Acknowledged and Resolved without a flag: an episode in it is acknowledged
+ * (Common/Utils/AcknowledgedState), so it is offered Resolve, not Acknowledge.
+ */
 const STATE_SPECS: Array<StateSpec> = [
   {
     id: CREATED_STATE_ID,
     name: "Created",
     color: "#ef4444",
+    order: 1,
     flag: "isCreatedState",
   },
   {
     id: ACKNOWLEDGED_STATE_ID,
     name: "Acknowledged",
     color: "#f59e0b",
+    order: 2,
     flag: "isAcknowledgedState",
   },
   {
     id: INVESTIGATING_STATE_ID,
     name: "Investigating",
     color: "#6366f1",
+    order: 3,
   },
   {
     id: RESOLVED_STATE_ID,
     name: "Resolved",
     color: "#10b981",
+    order: 4,
     flag: "isResolvedState",
   },
 ];
@@ -346,6 +359,7 @@ const buildStates: BuildStatesFunction = (
     state.id = new ObjectID(spec.id);
     state.name = spec.name;
     state.color = new Color(spec.color);
+    state.order = spec.order;
 
     if (spec.flag) {
       state[spec.flag] = true;
@@ -715,6 +729,79 @@ describe.each(CASES)("$noun episode header", (episodeCase: EpisodeCase) => {
 
     await renderLoaded(episodeCase);
 
+    expect(actionButtons()).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
+  });
+
+  /*
+   * A project with a state of its own after Resolved ("Closed"): an episode
+   * moves down that list exactly as its members do (Common/Utils/StateMove),
+   * so the header offers a resolved episode only Closed, and an episode in
+   * Closed nothing - never a state back up the list.
+   */
+  type ServeWithClosedFunction = (current: "resolved" | "closed") => void;
+
+  const serveWithClosed: ServeWithClosedFunction = (
+    current: "resolved" | "closed",
+  ): void => {
+    const startedAt: Date = new Date("2026-09-14T10:00:00.000Z");
+
+    installFakeServer(episodeCase, { stage: "resolved", startedAt });
+
+    const defaultList: (...args: Array<unknown>) => unknown =
+      getListMock.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => unknown;
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: Record<string, any> = args[0] as Record<string, any>;
+
+      if (request["modelType"] === episodeCase.stateModel) {
+        const closed: any = new episodeCase.stateModel();
+        closed.id = new ObjectID(CLOSED_STATE_ID);
+        closed.name = "Closed";
+        closed.color = new Color("#64748b");
+        closed.order = 5;
+
+        return Promise.resolve(listOf([...buildStates(episodeCase), closed]));
+      }
+
+      if (request["modelType"] === episodeCase.timelineModel) {
+        const timelines: Array<any> = buildTimelines(
+          episodeCase,
+          "resolved",
+          startedAt,
+        );
+
+        if (current === "closed") {
+          const closedEntry: any = new episodeCase.timelineModel();
+          closedEntry[episodeCase.stateIdField] = new ObjectID(CLOSED_STATE_ID);
+          closedEntry.startsAt = new Date(startedAt.getTime() + 200 * MINUTE);
+          timelines.push(closedEntry);
+        }
+
+        return Promise.resolve(listOf(timelines));
+      }
+
+      return defaultList(...args);
+    });
+  };
+
+  test("a resolved episode is offered only the project's own state after Resolved", async () => {
+    serveWithClosed("resolved");
+
+    await renderLoaded(episodeCase);
+
+    expect(actionButtons()).toHaveLength(0);
+    expect(openMoreActions()).toEqual(["Closed"]);
+  });
+
+  test("an episode in the project's own state after Resolved is offered nothing back up the list", async () => {
+    serveWithClosed("closed");
+
+    await renderLoaded(episodeCase);
+
+    expect(screen.getAllByTestId("pill")[0]).toHaveTextContent("Closed");
     expect(actionButtons()).toHaveLength(0);
     expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
   });

@@ -14,6 +14,8 @@ import MetricQueryData from "../../../../Types/Metrics/MetricQueryData";
 import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -633,5 +635,62 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
     expect(message).toMatch(/ data points\. \(expected .+\)\.$/);
     // AnyValue lowercases to "any value".
     expect(message).toContain("using any value");
+  });
+});
+
+/*
+ * The expectation names the window as the monitor judges it: a JavaScript
+ * Expression saved with an aggregate is judged check by check - as All
+ * Values - where it keeps a match history (an API monitor), and keeps its
+ * aggregate's name where it does not (a SQL Query monitor), as the criteria
+ * list on the dashboard reads it.
+ */
+describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — a window, by monitor type", () => {
+  const expression: CriteriaFilter = {
+    checkOn: CheckOn.JavaScriptExpression,
+    filterType: FilterType.EvaluatesToTrue,
+    value: "{{rowCount}} > 0",
+    evaluateOverTime: true,
+    evaluateOverTimeOptions: {
+      timeValueInMinutes: 5,
+      evaluateOverTimeType: EvaluateOverTimeType.Average,
+    },
+  };
+
+  function messageOn(monitorType: MonitorType): string {
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.monitorType = monitorType;
+
+    const monitorStep: MonitorStep = new MonitorStep();
+
+    return MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
+      monitor: monitor,
+      criteriaFilter: expression,
+      dataToProcess: {
+        projectId: ObjectID.generate(),
+        monitorId: monitor.id,
+        monitorStepId: monitorStep.id,
+        probeId: ObjectID.generate(),
+        failureCause: "",
+        monitoredAt: new Date(),
+        isOnline: true,
+      } as ProbeMonitorResponse,
+      monitorStep: monitorStep,
+      didMeetCriteria: false,
+      matchMessage: null,
+    });
+  }
+
+  test("on an API monitor, as all values", () => {
+    expect(messageOn(MonitorType.API)).toContain(
+      "to evaluate to true over the last 5 minutes using all values",
+    );
+  });
+
+  test("on a SQL Query monitor, as the aggregate it was saved with", () => {
+    expect(messageOn(MonitorType.SQLQuery)).toContain(
+      "to evaluate to true over the last 5 minutes using average",
+    );
   });
 });

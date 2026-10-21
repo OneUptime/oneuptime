@@ -135,8 +135,11 @@ OneUptime объединяет мониторинг, оповещения, ре�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — узлы, VM, контейнеры, хранилище, состояние HA, покрытие резервным копированием и здоровье репликации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, хосты ESXi, виртуальные машины, хранилища данных, кластеры, пулы ресурсов и vSAN. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — здоровье кластера, прогнозы по ёмкости и видимость OSD/пулов/PG/мониторов. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Системы хранения данных** — Pure Storage FlashArray и FlashBlade: ёмкость, задержки, тома, хосты, репликация, состояние оборудования, файловые системы и бакеты. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **Базы данных** — PostgreSQL, MySQL, Redis, MongoDB и другие, автоматически обнаруживаются по трассировкам приложений, Kubernetes и Docker, с метриками движка, примерами запросов и логами от агента-коллектора, состоящего только из конфигурации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **Лучше всего для** | Тех, кто разворачивает у себя, и небольших команд | Регулируемых команд, которым нужна премиум-поддержка |
 | **Стоимость** | Бесплатно и с открытым исходным кодом | [Связаться с отделом продаж](mailto:sales@oneuptime.com) |
 | **Лицензия** | Apache 2.0 | Apache 2.0, а для каталога `ee/` — [OneUptime Enterprise License](/ee/LICENSE) |
-| **Возможности** | Всё из раздела «Всё в комплекте» выше — мониторинг, страницы статуса, инциденты, дежурства, логи, трейсы, метрики, отслеживание ошибок, рабочие процессы и ИИ | Всё из Community + единый вход SAML и OIDC, провижининг SCIM, журналы аудита, соответствие требованиям для команд и панели состояния экземпляра, а также приоритетная поддержка, индивидуальные функции и резидентность данных |
+| **Возможности** | Всё из раздела «Всё в комплекте» выше — мониторинг, страницы статуса, инциденты, дежурства, логи, трейсы, метрики, отслеживание ошибок, рабочие процессы и ИИ, — а также единый вход SAML и OIDC | Всё из Community + провижининг SCIM, журналы аудита, соответствие требованиям для команд и панели состояния экземпляра, а также приоритетная поддержка, индивидуальные функции и резидентность данных |
 
 Функции Enterprise находятся в каталоге [`ee/`](/ee) и поставляются только в образе Enterprise. Полное сравнение — в разделе [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md).
 

@@ -1,82 +1,105 @@
 # Oversikt over dashbord
 
-Dashbord gjør dataene OneUptime allerede samler inn — metrikker, logger, sporinger, hendelser, monitorer, Kubernetes-ressurser, hoster — om til én enkelt side noen kan kaste et blikk på og forstå hva som foregår.
+Et dashbord er én side med widgets som du ordner selv: diagrammer over metrikkene, loggene og sporene dine, lister over hendelser, varsler og overvåkinger, SLO-ene og infrastrukturen din, til og med data fra systemer utenfor OneUptime. Lag ett til vaktskjermen, til et teams morgensjekk eller som en side for kundene dine, og del det med prosjektet ditt eller med alle som har lenken.
 
-Plasser et diagram for forespørselslatens ved siden av en liste over åpne hendelser, ved siden av en måler for CPU, ved siden av et avsnitt med kontekst. Lagre det. Del lenken.
+:::cards
+- [Slik fungerer et dashbord](#slik-fungerer-et-dashbord): Hvor dataene kommer fra, og hvem som ser dem.
+- [Finn dashbordene dine](#finn-dashbordene-dine): Listen Dashbord og hvert dashbords egne sider.
+- [Bygg ditt første dashbord](#bygg-ditt-første-dashbord): Fra en mal til en delt side i fem steg.
+- [Et eksempel: et vaktdashbord](#et-eksempel-et-vaktdashbord): Én side som fungerer for alle tjenester.
+:::
 
-## Hva dashbord er gode til
+## Slik fungerer et dashbord
 
-- **En "er alt OK?"-side** — for vakthavende, et team-standup eller en vegg-TV.
-- **Å oppdage sammenhenger** — en CPU-topp samtidig med en latensøkning og en åpen hendelse er mye lettere å se på én side enn på tvers av tre faner.
-- **Å undersøke** — når du feilsøker, slår et dashbord du bygger på sparket ti spørringer kjørt én om gangen.
-- **Å dele eksternt** — en kundevendt ytelsesside, en partner-statusside, et offentlig dashbord for et open source-prosjekt.
+Hver widget leser fra én kilde, innenfor dashbordets tidsintervall og filtrert av variablene. Alle som åpner dashbordet, ser de samme widgetene: teamet ditt når det logger på, og besøkende via den offentlige lenken når du har delt det.
 
-## Hva du kan ha på et dashbord
+```mermaid title="Fra dataene dine til menneskene som leser dem"
+flowchart TB
+    S["Dine data: telemetri,<br/>overvåkinger,<br/>hendelser, SLO-er,<br/>infrastruktur,<br/>andre systemer"] --> W["Widgets: diagrammer,<br/>tall, lister, kart<br/>og tekst"]
+    W --> D["Ett dashbord: dets<br/>tidsintervall, variabler<br/>og automatisk<br/>oppdatering"]
+    D --> M["Teamet ditt,<br/>pålogget"]
+    D --> P["Alle med lenken,<br/>når du har delt det"]
+```
 
-- **Diagrammer** for trender over tid — latens, feil, gjennomstrømning.
-- **Enkeltverdifliser og målere** — nåværende feilrate, CPU, åpne hendelser.
-- **Tabeller** for nedbrytninger — topp 10 mest støyende hoster, feilantall per tjeneste.
-- **Tekstblokker** for overskrifter, kontekst og lenker til runbooks.
-- **Live lister** over hendelser, varsler, monitorer, logger, sporinger, Kubernetes-ressurser, Docker-ressurser og hoster.
+| Begrep | Hva det betyr |
+| --- | --- |
+| Dashbord | Én side: et navn, et rutenett med widgets, et tidsintervall, variabler og en innstilling for automatisk oppdatering. |
+| Widget | Én flis i rutenettet: et diagram, et tall, en liste, et kart, en klokke eller en tekstblokk. |
+| Variabel | En velger i verktøylinjen som snevrer inn hver widget som støtter den, til én tjeneste, vert eller kunde. |
+| Tidsintervall | Vinduet som alle diagrammer og tall leser. Et dashbord åpnes på standarden sin, den siste timen med mindre noen som redigerer det, velger en annen, og hver seer kan velge sin egen. |
+| Automatisk oppdatering | Hvor ofte widgetene leser dataene sine på nytt: av, eller fra hvert 5. sekund til hvert 15. minutt. |
+| Visning og redigering | Et dashbord åpnes for lesing. Redigering er et eget steg som slutter med at du lagrer eller forkaster endringene dine. |
 
-Se [Widgets](/docs/dashboards/widgets) for hele listen og hva hver enkelt viser.
+## Hva dashbord er gode for
 
-## Sentrale begreper
+- **En "er alt i orden?"-side** for den som har vakt, et teams standup eller en skjerm på veggen.
+- **Å se sammenhenger**: en CPU-topp ved siden av en økende ventetid og en åpen hendelse er tydelig på én side, og lett å overse når det er spredt over tre.
+- **Feilsøking**: legg diagrammene du stadig åpner på nytt side om side, og dra over en topp for å lese alle widgetene i det øyeblikket.
+- **Deling utenfor teamet**: en ytelsesside for en kunde eller partner, beskyttet av et passord eller en IP-tillatelsesliste om du vil.
 
-| Begrep          | Betydning                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| **Dashbord**    | Hele siden — et navn, et rutenett med widgets, tidsperiodekontroller og en liste over variabler. |
-| **Widget**      | Én flis på siden — et diagram, et tall, en liste, et avsnitt.                                    |
-| **Variabel**    | En nedtrekksliste øverst som filtrerer hver widget samtidig (klynge, tjeneste, kunde, miljø).    |
-| **Tidsperiode** | Tidsvinduet hvert diagram og tall bruker. Sett det én gang øverst på siden.                      |
-| **Oppdatering** | Hvor ofte widgets spør etter data på nytt. Av, hvert par sekunder, hvert par minutter.           |
-| **Modus**       | Enten **Rediger** (dra widgets rundt) eller **Vis** (kun lesing, slik besøkende ser det).        |
+## Finn dashbordene dine
 
-## Hvor du finner dashbord
+Åpne **Produkter → Dashbord**. Listen **Dashbord** viser prosjektets dashbord med beskrivelser, etiketter og eiere. Søk etter navn eller beskrivelse, snevre inn listen med filtrene **Eier** og **Etiketter**, eller velg flere dashbord for å endre etikettene eller eierne deres, arkivere dem eller eksportere dem som JSON.
 
-Åpne **Dashbord** i venstre navigasjon.
+Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 
-| Side                         | Hva du gjør der                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| **Dashbord**                 | Listen over dashbordene dine. Opprett et nytt, søk eller filtrer etter etikett.  |
-| **Dashbord → Vis**           | Lerretet. Veksle mellom **Rediger** og **Vis** i headeren.                       |
-| **Dashbord → Oversikt**      | Beskrivelse, eiere og etiketter.                                                 |
-| **Dashbord → Innstillinger** | Offentlig deling, passord, IP-tillatelse, egendefinert domene, merkevarebygging. |
-| **Dashbord → Eiere**         | Brukere og team med eksplisitt tilgang.                                          |
-| **Dashbord → Slett**         | Fjern dashbordet.                                                                |
+| Side | Hva du gjør der |
+| --- | --- |
+| **Dashbord** | Prosjektets dashbord. Opprett et, eller hent inn dashbord med **Import JSON**. |
+| **Innstillinger → Eierregler** | Legg til eiere automatisk på nye dashbord. |
+| **Innstillinger → Etikettregler** | Legg til etiketter automatisk på nye dashbord. |
+| **Innstillinger → Data Sources** | Koble til Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST-API. |
+| **Avansert → Arkivert** | Dashbord du har arkivert. Fjern dem fra arkivet her. |
 
-## Bygge et dashbord
+Åpne et dashbord, og dets egen sidemeny har disse sidene. Alle seksjoner unntatt **Grunnleggende** starter sammenslått: klikk på tittelen for å åpne den.
 
-1. **Opprett** — velg et navn. Lerretet åpnes tomt.
-2. **Legg til widgets** — velg en widget-type, konfigurer dataene, dra det dit du vil.
-3. **(Valgfritt) Legg til variabler** — for eksempel en `service`-nedtrekksliste slik at det samme dashbordet fungerer for hver tjeneste.
-4. **Sett tidsperioden** — standardene holder; juster senere.
-5. **(Valgfritt) Del offentlig** — vri på bryteren i Innstillinger, legg til et passord eller IP-tillatelsesliste om nødvendig.
-6. **(Valgfritt) Egendefinert domene** — host dashbordet på `status.your-domain.com`.
+| Side | Hva du gjør der |
+| --- | --- |
+| **Dashbord** | Selve dashbordet. Les det, eller rediger det fra **⋯**-menyen. |
+| **Oversikt** | Navnet, beskrivelsen og etikettene. |
+| **Deling** | Hvem som kan se det, den offentlige lenken og en IP-tillatelsesliste under Flere innstillinger. |
+| **Eiere** | Brukerne og teamene som eier det. |
+| **Merkevare** | Sidetittel, beskrivelse, logo, tema og favicon for det offentlige dashbordet. |
+| **Egendefinerte domener** | Host det offentlige dashbordet på ditt eget domene. |
+| **Innstillinger** | Dupliser, eksporter eller arkiver dashbordet. |
+| **Revisjonslogger** | Hver endring som er gjort på dashbordet, og hvem som gjorde den. |
+| **Slett** | Slett dashbordet for godt. |
 
-## Et raskt eksempel
+## Bygg ditt første dashbord
 
-Mål: en vakthavende-side for checkout-tjenesten med latens, feilrate, åpne hendelser og en live loggtail.
+:::steps
+1. **Opprett** — velg en mal, eller **Start fra bunnen**. En mal fyller inn navnet og åpnes med widgetene sine; et dashbord fra bunnen åpnes uten innhold, med **Legg til widget** på lerretet.
+2. **Legg til widgets** — velg en widget i katalogen, angi i innstillingene hva den leser, og dra den deretter på plass og endre størrelsen.
+3. **Legg til variabler, hvis du trenger dem** — en variabel `service` lar for eksempel ett dashbord vise hvilken som helst tjeneste.
+4. **Lagre** — klikk på **Lagre endringer**. Ingenting du endrer under redigeringen, blir tatt vare på før du gjør det.
+5. **(Valgfritt) Del offentlig** — velg **⋯ → Del** på dashbordet, og velg hvem som kan se det: alle med lenken, eller alle med lenken og et passord.
+:::
 
-1. Opprett et dashbord kalt "Checkout vakthavende."
-2. Legg til en `service`-variabel. Sett standarden til `checkout`.
-3. Legg til en **Diagram**-widget med P95-latens, filtrert etter `service`-variabelen.
-4. Ved siden av legg til en **Verdi**-widget for feilrate, med advarsel ved 1 % og kritisk ved 5 %.
-5. Under legg til en **Hendelsesliste**-widget for hendelser merket `checkout`.
-6. Under det, en **Loggstrøm**-widget som viser logger fra samme tjeneste.
-7. Lagre. Bytt nedtrekkslisten til `payments` — det samme dashbordet viser nå payments-tjenesten.
+[Opprette et dashbord](/docs/dashboards/authoring) går gjennom hvert steg.
 
-## Hvordan dashbord passer sammen med resten av OneUptime
+## Et eksempel: et vaktdashbord
 
-- **Monitorer og telemetri** er kildene til data. Hver metrikk, logg og sporing du samler inn kan spørres på en widget.
-- **Hendelser og varsler** dukker opp i widgetene **Hendelsesliste** og **Varselliste**. Dashbord er skrivebeskyttet for disse — opprett og oppdater dem andre steder.
-- **Statussider** er kundevendt kommunikasjon ("er systemet oppe?"). Dashbord er for å se på hvordan systemet oppfører seg i detalj. De to fungerer sammen, de erstatter ikke hverandre.
-- **Arbeidsflyter** er hvordan OneUptime tar handling. Dashbord er hvordan du leser hva som skjer.
+Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hendelsene og de nyeste loggene, som også fungerer for alle andre tjenester.
 
-## Hvor du leser videre
+1. Klikk på **Opprett dashbord**, velg **Start fra bunnen**, og gi dashbordet navnet "Checkout-vakt".
+2. Klikk på **Legg til widget**, og legg til et **Diagram** over metrikken for forespørslenes ventetid, aggregert som P95.
+3. Ved siden av legger du til en **Verdi** for feilraten, med en varselterskel på 1 og en kritisk terskel på 5.
+4. Under dem legger du til en **Hendelsesliste** filtrert på uløste hendelser, og en **Loggstrøm** med tjenestens logger.
+5. Åpne **Variabler**, legg til en variabel med navnet `service` med kilden Telemetry Attribute og attributtnøkkelen `service.name`, og gi den standardverdien `checkout`.
+6. Klikk på **Lagre endringer**. Velg `payments` i verktøylinjens velger `service`: diagrammet, verdien og loggstrømmen bytter til tjenesten payments, og hendelseslisten fortsetter å vise alle uløste hendelser.
 
-- [Lage et dashbord](/docs/dashboards/authoring) — å bruke lerretet, redigere widgets.
-- [Widgets](/docs/dashboards/widgets) — den fullstendige listen over widgets.
-- [Variabler & filtre](/docs/dashboards/variables) — å få et dashbord til å fungere for mange tjenester eller kunder.
-- [Deling & offentlige dashbord](/docs/dashboards/sharing) — offentlige URL-er, passord, IP-tillatelsesliste, egendefinerte domener.
-- [Konfigurasjon & tillatelser](/docs/dashboards/configuration) — eiere, etiketter, tilgangskontroll.
+## Slik passer dashbord inn i resten av OneUptime
+
+- **Overvåkinger og telemetri** er der dataene kommer fra. Alle metrikker, logger og spor du sender, kan havne på en widget.
+- **Hendelser og varsler** vises i widgetene **Hendelsesliste** og **Varselliste**. Et dashbord viser dem bare: du arbeider med dem på deres egne sider.
+- **Statussider** forteller kundene dine om tjenesten din er oppe. Dashbord viser i detalj hvordan den oppfører seg. De to arbeider side om side.
+- **Arbeidsflyter** handler på det som skjer. Dashbord er der du leser det.
+
+## Neste steg
+
+:::cards
+- [Opprette et dashbord](/docs/dashboards/authoring): Opprett et dashbord, rediger det og lagre endringene dine.
+- [Dashbord-widgets](/docs/dashboards/widgets): Hver widget, og hvilken du skal velge.
+- [Dashbord-variabler & filtre](/docs/dashboards/variables): Ett dashbord for hver tjeneste, vert eller kunde.
+- [Deling & offentlige dashbord](/docs/dashboards/sharing): Offentlige lenker, passord, IP-tillatelseslister og egendefinerte domener.
+:::

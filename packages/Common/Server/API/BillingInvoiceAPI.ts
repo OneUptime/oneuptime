@@ -16,12 +16,13 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import BaseAPI from "./BaseAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import { PROJECT_INVOICE_PAY_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import BillingInvoice, {
   InvoiceStatus,
 } from "../../Models/DatabaseModels/BillingInvoice";
@@ -123,7 +124,7 @@ const toPayInvoiceError: ToPayInvoiceErrorFunction = (
     : `${providerMessage}.`;
 
   return new BadDataException(
-    `Your payment could not be completed: ${sentence} Please update your payment method in Project Settings > Billing and try again.`,
+    `Your payment could not be completed: ${sentence} Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.`,
   );
 };
 
@@ -152,23 +153,20 @@ export default class UserAPI extends BaseAPI<
             );
           }
 
-          const userPermissions: Array<UserPermission> = (
-            await this.getPermissionsForTenant(req)
-          ).filter((permission: UserPermission) => {
-            return (
-              permission.permission.toString() ===
-                Permission.ProjectOwner.toString() ||
-              permission.permission.toString() ===
-                Permission.EditInvoices.toString()
-            );
-          });
-
+          /*
+           * Paying charges the card, so it stays with a project owner and
+           * Manage Billing (and Edit Invoices): the billing roles read the
+           * invoices and do not pay them (Utils/Project/ProjectBilling).
+           */
           if (
-            userPermissions.length === 0 &&
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PROJECT_INVOICE_PAY_PERMISSIONS,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
-              `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`,
+              "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
             );
           }
 

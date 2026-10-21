@@ -1,88 +1,163 @@
-# Интеграция с PagerDuty
+# PagerDuty
 
-Вызывайте инцидент [PagerDuty](https://www.pagerduty.com) при каждом создании инцидента OneUptime и разрешайте его при разрешении в OneUptime. Удобно, когда PagerDuty управляет вашими расписаниями эскалации и дежурств, а мониторинг OneUptime должен их питать.
+Отправляйте инциденты OneUptime в [PagerDuty](https://www.pagerduty.com). Один рабочий процесс запускает инцидент PagerDuty, когда объявляется инцидент OneUptime, а второй устраняет его, когда инцидент OneUptime устранён. Используйте это, когда дежурных вызывает PagerDuty, а за системами следит OneUptime.
 
-Эта интеграция является **исходящей**: OneUptime вызывает [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) PagerDuty. Используется OneUptime **[Workflow](/docs/workflows/index)** с триггером **Incident → On Create** и компонентом **API**.
+:::cards
+- [Сохранение routing key](#сохранение-routing-key): Держите ключ PagerDuty вне рабочих процессов.
+- [Запуск инцидентов PagerDuty](#запуск-инцидента-pagerduty-для-каждого-инцидента): Один рабочий процесс, два блока.
+- [Их устранение](#устранение-инцидента-pagerduty): Второй рабочий процесс, который следит за состоянием инцидента.
+- [Устранение неполадок](#устранение-неполадок): Когда PagerDuty отклоняет событие.
+:::
 
-> У OneUptime есть собственные встроенные дежурства и эскалация — см. [On Call](/docs/on-call/incoming-call-policy). Используйте эту интеграцию только если хотите, чтобы события также поступали в PagerDuty.
+> [!TIP]
+> OneUptime тоже вызывает людей — с политиками дежурств, расписаниями и правилами эскалации. Чтобы перевести команду с PagerDuty, см. [Переход с PagerDuty](/docs/moving-to-oneuptime/pagerduty): импорт переносит ваших пользователей, расписания и политики эскалации.
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  ──►  PagerDuty incident
+## Как это работает
+
+```mermaid title="Два рабочих процесса, один инцидент PagerDuty"
+flowchart TB
+    declared["Инцидент объявлен"] --> create["Рабочий процесс 1:<br/>On Create Incident"]
+    create -->|"trigger"| pd["Инцидент PagerDuty"]
+    resolved["Инцидент устранён"] --> update["Рабочий процесс 2:<br/>On Update Incident"]
+    update -->|"resolve"| pd
 ```
 
-## Предварительные требования
+Оба рабочих процесса вызывают [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) PagerDuty с одним и тем же `dedup_key`, составленным из ID инцидента OneUptime. Именно по этому ключу PagerDuty понимает, что событие resolve закрывает инцидент, открытый событием trigger.
 
-- Сервис PagerDuty с интеграцией **Events API v2**. В PagerDuty: **Service → Integrations → Add integration → Events API v2**. Скопируйте **Integration Key** (также называемый _routing key_).
-- Проект OneUptime, в котором вы можете создавать рабочие процессы.
+## Перед началом работы
 
-## Шаг 1 — Сохраните ключ маршрутизации
+- Сервис PagerDuty с интеграцией Events API v2. В PagerDuty откройте сервис, затем **Integrations**, нажмите **Add an integration** и выберите **Events API V2**. Скопируйте его **Integration Key**: Events API называет его routing key.
+- В OneUptime — право создавать рабочие процессы и глобальные переменные. В OneUptime Cloud для рабочих процессов нужен тариф **Growth** или выше.
 
-1. Перейдите в **Рабочие процессы → Глобальные переменные → Создать**.
-2. Назовите переменную `PAGERDUTY_ROUTING_KEY`, вставьте ключ интеграции и включите **Is Secret**.
+## Сохранение routing key
 
-## Шаг 2 — Создайте рабочий процесс «trigger»
+:::steps
+1. Перейдите в **Рабочие процессы → Глобальные переменные** и нажмите **Создать: Рабочий процесс Переменная**.
+2. Назовите её `PAGERDUTY_ROUTING_KEY` и нажмите **Далее**.
+3. Вставьте ключ интеграции в **Содержимое**, включите **Секрет** и нажмите **Создать: Рабочий процесс Переменная**.
+:::
 
-1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → PagerDuty` и откройте **Конструктор**.
-2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
-3. Добавьте блок **API**, соединённый с триггером:
+Секретная переменная заменяется на `[REDACTED]` в журналах запусков, поэтому ключ никогда не появляется в запуске.
 
-   - **Method**: `POST`
-   - **URL**: `https://events.pagerduty.com/v2/enqueue`
-   - **Headers**: `Content-Type: application/json`
-   - **Body**:
+## Запуск инцидента PagerDuty для каждого инцидента
 
-     ```json
-     {
-       "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-       "event_action": "trigger",
-       "dedup_key": "oneuptime-{{Incident._id}}",
-       "payload": {
-         "summary": "{{Incident.title}}",
-         "source": "OneUptime",
-         "severity": "critical",
-         "custom_details": {
-           "description": "{{Incident.description}}"
-         }
-       }
-     }
-     ```
+:::steps
+### Создайте рабочий процесс
 
-   **`dedup_key`** связывает этот инцидент PagerDuty с инцидентом OneUptime, чтобы его можно было разрешить позже. Использование ID инцидента OneUptime делает ключ уникальным и предсказуемым.
+Перейдите в **Рабочие процессы**, нажмите **Создать рабочий процесс**, затем **Начать с нуля**. Назовите его `Incidents to PagerDuty` и нажмите **Создать рабочий процесс**.
 
-4. **Сохраните**, включите и создайте тестовый инцидент. Ответ `202` в журналах рабочего процесса означает, что PagerDuty принял событие.
+### Добавьте триггер
 
-## Шаг 3 — Разрешение при разрешении в OneUptime (рекомендуется)
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер: его **Fields to pass on** начинаются с поля **Заголовок**, поэтому нажмите **Добавить поле** и выберите **Описание**.
 
-1. Добавить второй триггер **Incident** в **тот же** рабочий процесс? Нет — у рабочего процесса один триггер. Вместо этого создайте **второй** рабочий процесс с именем `Resolve PagerDuty` с триггером **Incident → On Update**.
-2. Добавьте блок **Условия**, чтобы проверить, что инцидент теперь разрешён (ветвление по состоянию инцидента / `{{Incident.currentIncidentState.name}}` равно имени вашего состояния разрешения).
-3. Из выхода **Да** добавьте блок **API** в PagerDuty с тем же **`dedup_key`** и `event_action` равным `resolve`:
+### Отправьте событие trigger
 
-   ```json
-   {
-     "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-     "event_action": "resolve",
-     "dedup_key": "oneuptime-{{Incident._id}}"
-   }
+Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **URL** значение `https://events.pagerduty.com/v2/enqueue`, а **Request Body** — следующее:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "trigger",
+  "dedup_key": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "payload": {
+    "summary": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    "source": "OneUptime",
+    "severity": "critical",
+    "custom_details": {
+      "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+    }
+  }
+}
+```
+
+### Проверьте, затем включите
+
+Нажмите **Запустить рабочий процесс**, выберите тестовый инцидент в поле **Инцидент** и запустите. Шаг **API Post (JSON)** покажет ответ `202` с `"status": "success"`, а PagerDuty откроет инцидент. Затем включите **Включено** вверху окна **Конструктор**.
+:::
+
+Блок отправляет JSON, поэтому заголовок `Content-Type` ему не нужен. `severity` в PagerDuty принимает одно из значений `critical`, `error`, `warning` и `info`: чтобы отправлять серьёзность каждого инцидента, см. [Сопоставление уровней серьёзности](#сопоставление-уровней-серьёзности).
+
+## Устранение инцидента PagerDuty
+
+У рабочего процесса только один триггер, поэтому для устранения нужен второй рабочий процесс, который запускается при смене состояния инцидента.
+
+:::steps
+### Добавьте триггер On Update Incident
+
+Создайте рабочий процесс с именем `Resolve PagerDuty incidents` и выберите триггер **On Update Incident**. В **Fields to watch** нажмите **Добавить поле** и выберите **Current Incident State**, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения: нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Is Resolved State**. Или нажмите **Изменить как JSON** и замените JSON на:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Проверьте, что инцидент устранён
+
+Добавьте после триггера блок **If / Else**. Задайте **Value to check** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Comparison** — **is true**.
+
+### Отправьте событие resolve
+
+Добавьте после стороны **Yes** блок **API Post (JSON)** с тем же **URL** и таким **Request Body**:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "resolve",
+  "dedup_key": "oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}"
+}
+```
+
+### Включите его
+
+Включите **Включено**, затем устраните тестовый инцидент в OneUptime. PagerDuty устранит свой инцидент.
+:::
+
+Проверка `isResolvedState` вместо имени состояния продолжает работать, когда вы переименовываете состояния. См. [Состояния и уровни серьёзности инцидентов](/docs/incidents/states-and-severities).
+
+## Сопоставление уровней серьёзности
+
+Чтобы отправлять серьёзность каждого инцидента, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript** и читайте его ответ в теле.
+
+1. В **Fields to pass on** триггера нажмите **Добавить поле**, откройте **Серьёзность инцидента** и выберите **Имя**.
+2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
+
+   ```javascript
+   // Your incident severities, by name, to PagerDuty's.
+   const SEVERITY = {
+     "Critical Incident": "critical",
+     "Major Incident": "error",
+     "Minor Incident": "warning",
+   };
+
+   return { severity: SEVERITY[args.severity] || "info" };
    ```
 
-PagerDuty находит инцидент по `dedup_key` и закрывает его.
+3. В теле запроса задайте `"severity"` значение `"{{local.components.javascript-1.returnValues.returnValue.severity}}"`.
 
-## Сопоставление уровней серьёзности (опционально)
-
-Параметр `severity` PagerDuty принимает значения `critical`, `error`, `warning` или `info`. Чтобы сопоставить с уровнями серьёзности OneUptime, добавьте ветви **Условия** по `{{Incident.incidentSeverity.name}}` перед блоком API и отправляйте разное тело из каждой.
-
-## Входящий путь (опционально)
-
-Чтобы сделать наоборот — открыть инцидент OneUptime из события PagerDuty — добавьте рабочий процесс с триггером **Webhook** и укажите его URL в [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) PagerDuty (или в Events Orchestration), затем используйте **Создать инцидент**. См. [входящий паттерн](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+Имена выше — три уровня серьёзности, с которыми начинается новый проект. Если вы их переименовали, используйте свои.
 
 ## Устранение неполадок
 
-- **`400` с `"invalid routing key"`** — интеграция должна быть **Events API v2**, а не старый Events API v1 или другой тип. Скопируйте ключ заново.
-- **Разрешение ничего не закрывает** — `dedup_key` в вызове разрешения должен точно совпадать с вызовом триггера.
-- **Ничего в журналах** — убедитесь, что рабочий процесс **Включено** и триггер установлен на **On Create**.
+:::details PagerDuty отвечает 400
+Тело ответа сообщает, что именно отклонил PagerDuty, и шаг **API Post (JSON)** запуска это показывает. Обычно routing key не является ключом интеграции Events API v2: скопируйте его заново из **Integrations** сервиса. Событие без `summary`, `source` или `severity` тоже отклоняется.
+:::
 
-## Что читать дальше
+:::details Событие resolve ничего не закрывает
+Оба события должны нести в точности один и тот же `dedup_key`. Убедитесь, что оба тела составляют его как `oneuptime-` и `_id` инцидента, и что рабочий процесс устранения включён.
+:::
 
-- [Обзор интеграций](/docs/integrations/index) — паттерны и шпаргалка по аутентификации.
-- [On Call](/docs/on-call/incoming-call-policy) — встроенная эскалация OneUptime.
-- [Opsgenie](/docs/integrations/opsgenie) — та же идея для Opsgenie.
+:::details Рабочий процесс никогда не запускается
+Убедитесь, что он включён: **Включено** вверху окна **Конструктор**. Затем откройте **Журналы → Запуски**: запуск, пошедший по стороне **No** блока **If / Else**, — это обновление, которое не было устранением.
+:::
+
+:::details PagerDuty показывает ссылку вместо значения
+Ссылка, которая не разрешается, отправляется в записанном виде, вместе с фигурными скобками. Проверьте идентификатор блока, имя поля и имя переменной, которое чувствительно к регистру. На вкладке **Шаги** запуска настройка с такой ссылкой помечена как **Did not resolve**.
+:::
+
+## Дальнейшие шаги
+
+:::cards
+- [Переход с PagerDuty](/docs/moving-to-oneuptime/pagerduty): Перенесите команду, расписания и политики эскалации.
+- [Правила эскалации](/docs/on-call/escalation-rules): Вызывайте людей прямо из OneUptime.
+- [Opsgenie](/docs/integrations/opsgenie): Те же два рабочих процесса для Opsgenie.
+- [Обзор интеграций](/docs/integrations/index): Схемы, на которых строится каждая интеграция.
+:::

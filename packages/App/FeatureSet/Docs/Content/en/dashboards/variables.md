@@ -1,34 +1,65 @@
-# Variables & Filters
+# Dashboard Variables & Filters
 
-A variable turns a single dashboard into a template. Add a `service` variable to your dashboard and the same charts re-render for `checkout`, `payments`, or `search` — viewers pick from a dropdown at the top instead of you building three near-identical dashboards.
+A variable is a picker in the dashboard's toolbar. Add a `service` variable and the same charts show `checkout`, `payments` or `search`: viewers pick from the toolbar instead of you building three near-identical dashboards.
 
-## Variable types
+:::cards
+- [Add a variable](#add-a-variable): Name it, choose where its values come from, save.
+- [Variable sources](#variable-sources): Telemetry Attribute, Project Labels, Custom List and Text Input.
+- [How widgets use a variable](#how-widgets-use-a-variable): Which widgets follow which variables.
+- [Links that keep the selection](#links-that-keep-the-selection): Send a link that opens on the same service.
+:::
 
-Add variables under **Dashboard → Settings → Variables**. Each variable has a name (used as `{{name}}` in your widgets), an optional label, and a type.
+## How a variable works
 
-### Custom List
+You define variables while you edit the dashboard, and they are saved with it. In view mode, each one is a picker in the toolbar. When a viewer picks a value, every widget that follows the variable reads its data again, and the page's link keeps the pick.
 
-A static dropdown. You type the options yourself.
+```mermaid title="From defining a variable to a viewer's pick"
+flowchart TB
+    A["Edit mode: Variables,<br/>then Add Variable"] --> B["Save Variables,<br/>then Save Changes"]
+    B --> C["View mode: a picker<br/>in the toolbar"]
+    C --> D["A viewer picks a value"]
+    D --> E["The widgets that follow<br/>the variable read again"]
+    D --> F["The page's link<br/>keeps the pick"]
+```
 
-Use it when: the choices are small and fixed. `environment` with values `prod, staging, dev`. `region` with values `us-east-1, eu-west-1, ap-south-1`.
+## Add a variable
 
-### Query
+:::steps
+### Open the variables dialog
 
-Existing query variable definitions are preserved, but loading dropdown options from a custom query is not supported. Use **Telemetry Attribute** for choices discovered from telemetry, or **Project Labels** for monitor label choices.
+Open the dashboard, pick **⋯ → Edit Dashboard**, and click **Variables** in the toolbar. The **Dashboard Variables** dialog lists the dashboard's variables; the button in the toolbar counts them.
 
-### Text Input
+### Add one
 
-A free-text field. Whatever the viewer types is used.
+Click **Add Variable**. A new variable reads a telemetry attribute; choose another **Source** if you need one.
 
-Use it when: you want the dashboard to act like a search tool. Filter by IP address, request ID, or any other free-form value.
+### Fill it in
+
+Give it a **Name**, which widgets and links use, such as `service`: letters, digits and underscores, starting with a letter or an underscore, and different from the dashboard's other names. Add a **Label** for the toolbar if you like, a **Default** to start on, and tick **Allow multi-select** to let viewers pick several values.
+
+### Save it
+
+Click **Save Variables**, then **Save Changes** in the toolbar. The variable's picker appears in the toolbar once the dashboard is back in view mode.
+:::
+
+To change or remove a variable later, open the dialog again: change its fields, or click the bin beside it.
+
+## Variable sources
+
+The **Source** decides where a variable's values come from, and which widgets follow it.
+
+| Source | Where its values come from | Multi-select |
+| --- | --- | --- |
+| Telemetry Attribute | The values of one attribute key in your metrics, such as `service.name` | Yes |
+| Project Labels | The project labels you allow, from 1 to 1,000 | Yes |
+| Custom List | Values you type, separated by commas, such as `prod, staging` | Yes |
+| Text Input | Whatever the viewer types | No |
 
 ### Telemetry Attribute
 
-The options are the distinct values of an attribute in your telemetry over the dashboard's time range.
+Set the **Attribute Key**, such as `service.name`, `host.name` or `k8s.namespace.name`; the field suggests the keys your telemetry carries. The picker offers up to 100 values of that key, read from your metrics of the past day, so a new service shows up in it without you editing the dashboard.
 
-Configure the **attribute key** (for example, `service.name`, `host.name`, `k8s.cluster.name`). The dropdown fills with every distinct value seen in your logs, metrics, and traces.
-
-Use it when: the choices match the tags you already send with your telemetry. This is the most common type because it updates automatically — when you ship a new service tagged `service.name = inventory`, that name appears in the dropdown without you editing the dashboard.
+This is the most common source, because it needs no list of its own: the values are the ones you already send.
 
 ### Project Labels
 
@@ -36,69 +67,62 @@ Choose existing project labels to offer as a dashboard dropdown. For example, cr
 
 The dashboard saves the chosen label IDs and display names. Filtering uses IDs, so renaming a project label does not break its binding. Display names are saved with the dashboard; reselect a renamed label in the variable editor to update its displayed name. Public dashboards show these same saved choices.
 
-In a **Monitor List** widget, open **Filters → Label Variable** and select `UNIT`. Selecting `0660` now shows monitors carrying that label. Other widgets are unaffected unless they explicitly support and bind the variable.
+In a **Monitor List** widget, open **Filters → Label Variable** and select `UNIT`. Selecting `0660` now shows monitors carrying that label. Other widgets are unaffected unless they explicitly support and bind the variable: the **SLO List** has the same **Label Variable** setting.
 
 Fixed widget filters remain in effect. For example, with a fixed `network` label and `UNIT` set to `0660`, a monitor must carry both labels. Multiple selected units match any selected unit. Choosing **All** removes only the variable condition, keeping fixed label, status, and monitor-type filters.
 
 A missing variable or a selection outside its configured choices shows an error. A selected label with no matching monitors shows the empty list. Remove the widget binding explicitly when it is no longer needed.
 
-## Multi-select
+### Custom List and Text Input
 
-Custom List, Telemetry Attribute, and Project Labels variables can allow multiple selections. When on, the viewer can pick one or more values; the dashboard filters to any of them. An empty selection means **All**.
+A Custom List offers the values you type, separated by commas. A Text Input lets the viewer type any value, such as an IP address or a request ID. Neither filters a widget by itself: their values go where you write `{{name}}` (see below).
 
-Use multi-select when: you want to compare "checkout and payments together" without leaving the dashboard. Avoid it when the math doesn't work across selected values (for example, averaging averages).
+A Query variable from an older dashboard is kept, and shows a text box in the toolbar: OneUptime no longer loads its values from a query.
 
-## Default values
+## Multi-select and defaults
 
-Single-select variables can have a default. The dashboard renders with the default until the viewer changes it. Multi-select variables start on **All** and do not use a default. A shared URL's explicit selection takes precedence, including an explicit **All**.
+With **Allow multi-select** ticked, viewers pick one or more values, and the widgets show any of them. An empty selection means **All**, and a multi-select variable always starts on **All**, so its **Default** is greyed out.
 
-## How to use a variable in a widget
+A single-select variable starts on its **Default**, or on **All** when it has none. **All** removes the variable's filter, so the widgets show everything.
 
-Variable support depends on the widget and filter. Telemetry attribute variables bind to their configured attribute key; Monitor List label filters use the explicit **Label Variable** setting described above.
+Use multi-select to compare "checkout and payments together" without leaving the dashboard. Avoid it where the numbers do not add up across values, such as an average of averages.
 
-For example, a chart filtered by service:
+## How widgets use a variable
 
+Each source reaches the widgets its own way:
+
+- **Telemetry Attribute** variables filter widgets with nothing to set on them: every metric chart, value, gauge and table; the **Log Chart**, the **Log Stream**, the **Trace Chart** and the **Trace Table**; and the infrastructure lists whose resources carry the attribute, such as `host.name` on host lists and `k8s.namespace.name` on Kubernetes lists. A chart of a metric without the attribute shows no data while a value is picked: pick **All** to see it again. The **Trace List** and the incident and alert lists do not follow them.
+- **Project Labels** variables filter a **Monitor List** or an **SLO List** whose **Label Variable** names them.
+- **Any variable** can be written into text as `{{name}}`: in an [HTML widget](/docs/dashboards/widgets#html), in the query of an [external data source](/docs/dashboards/data-sources), and in the title of a **Monitor List** or an **SLO List**. A title such as `{{UNIT}} NETWORK` shows `0660 NETWORK`, `0660, 0661 NETWORK`, or `All NETWORK`. A title controls displayed text; configure **Label Variable** to filter the monitor query.
+
+The [SLO widget](/docs/dashboards/widgets#slo) can follow a Telemetry Attribute variable on the `sloName` key, so viewers pick which SLO it shows.
+
+## Links that keep the selection
+
+The page's link carries each variable's pick as `?var-<name>=<value>`, several values separated by commas, so a link you copy opens with the same selection, and an explicit **All** too. A link like this one opens on the payments service:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
-service.name = '{{service}}'
-```
 
-When the dropdown is set to `checkout`, the chart filters to the checkout service. When the viewer switches to `payments`, the chart re-renders for payments.
+The link carries the time range and auto-refresh you picked as well, as `range` and `refresh`, so the people you send it to see what you see. [Sending a link](/docs/dashboards/sharing#sending-a-link) lists their values.
 
-For **Telemetry Attribute** variables, OneUptime knows which attribute the variable maps to and applies the filter to every widget that uses the same attribute — you don't have to edit each widget by hand.
+## An example: one dashboard for every service
 
-Monitor List titles also support `{{variable_name}}`. For example, `{{UNIT}} NETWORK` displays `0660 NETWORK`, `0660, 0661 NETWORK`, or `All NETWORK`. A title controls displayed text; configure **Label Variable** to filter the monitor query.
+A service dashboard usually has:
 
-## Time range
+1. A `service` variable, source Telemetry Attribute, attribute key `service.name`, defaulting to your busiest service. Leave multi-select off, so the charts show one service at a time.
+2. A `namespace` variable, source Telemetry Attribute, attribute key `k8s.namespace.name`, with multi-select on to compare namespaces.
+3. An `environment` variable, source Custom List, values `prod, staging`, used as `{{environment}}` in a data source query.
+4. Widgets that read those attributes: charts and values of the service's metrics, a log stream, and a Kubernetes pod list.
 
-The dashboard header has a global time range. Every metric widget queries against this window. Options:
+The result: one dashboard for every service, with three pickers at the top.
 
-- **Presets** — past hour, 24 hours, 7 days, 30 days, 90 days (depending on your data retention).
-- **Custom** — pick a start and end time.
+## Next steps
 
-The time range is part of the dashboard's URL — sharing the URL shares the window. Useful during an incident: pin the time range to "10:00–10:30 UTC today" and paste the link in the incident channel.
-
-## Refresh interval
-
-Next to the time range, pick how often widgets re-query:
-
-- **Off** — widgets query once when the page loads.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
-
-Auto-refresh is good for a wall-mounted screen or a live incident view. Leave it off when you're investigating so the view stays still while you look.
-
-## Putting it together
-
-A service-templated dashboard typically has:
-
-1. A `service` variable of type **Telemetry Attribute** for `service.name`. Default: your most-watched service. Multi-select off (so charts always show one at a time).
-2. An `environment` variable of type **Custom List**. Default: `prod`.
-3. A `cluster` variable of type **Telemetry Attribute** for `k8s.cluster.name`. Multi-select on (so you can compare across clusters).
-4. Widgets that reference these variables in their filters.
-
-The result: one dashboard, every service covered, three dropdowns at the top.
-
-## Where to read next
-
-- [Widgets](/docs/dashboards/widgets) — how each widget uses a filter.
-- [Sharing & Public Dashboards](/docs/dashboards/sharing) — variables and shared links.
-- [Authoring a Dashboard](/docs/dashboards/authoring) — the canvas mechanics.
+:::cards
+- [Dashboard Widgets](/docs/dashboards/widgets): Which widgets follow which variables.
+- [External Data Sources](/docs/dashboards/data-sources): Put a variable into a PromQL or SQL query.
+- [Sharing & Public Dashboards](/docs/dashboards/sharing): Variables on a public dashboard.
+- [Authoring a Dashboard](/docs/dashboards/authoring): Edit mode, saving and the time range.
+:::

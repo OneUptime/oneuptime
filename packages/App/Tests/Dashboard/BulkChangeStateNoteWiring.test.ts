@@ -36,6 +36,15 @@ interface BulkTableCase {
   timelineModelType: string;
   notifiesStatusPageSubscribers: boolean;
   noteTemplateModelType: string;
+  // The note the change posts, offered only to someone who may create it.
+  noteModelType: string;
+  /*
+   * The table's events can be private, and a private one takes no public
+   * notes (Common/Types/StatusPage/PrivateRecordPublicNotes): each change is
+   * built per event (buildIncidentBulkStateChange), the note going as a
+   * private note, notifying nobody, on a private one.
+   */
+  isPerEventPrivacy?: boolean | undefined;
 }
 
 const BULK_TABLES: Array<BulkTableCase> = [
@@ -48,6 +57,8 @@ const BULK_TABLES: Array<BulkTableCase> = [
     timelineModelType: "IncidentStateTimeline",
     notifiesStatusPageSubscribers: true,
     noteTemplateModelType: "IncidentNoteTemplate",
+    noteModelType: "IncidentPublicNote",
+    isPerEventPrivacy: true,
   },
   {
     name: "Alerts",
@@ -58,6 +69,7 @@ const BULK_TABLES: Array<BulkTableCase> = [
     timelineModelType: "AlertStateTimeline",
     notifiesStatusPageSubscribers: false,
     noteTemplateModelType: "AlertNoteTemplate",
+    noteModelType: "AlertInternalNote",
   },
   {
     name: "Scheduled Maintenance",
@@ -72,6 +84,7 @@ const BULK_TABLES: Array<BulkTableCase> = [
     timelineModelType: "ScheduledMaintenanceStateTimeline",
     notifiesStatusPageSubscribers: true,
     noteTemplateModelType: "ScheduledMaintenanceNoteTemplate",
+    noteModelType: "ScheduledMaintenancePublicNote",
   },
   {
     name: "Incident Episodes",
@@ -82,6 +95,7 @@ const BULK_TABLES: Array<BulkTableCase> = [
     timelineModelType: "IncidentEpisodeStateTimeline",
     notifiesStatusPageSubscribers: false,
     noteTemplateModelType: "IncidentNoteTemplate",
+    noteModelType: "IncidentEpisodeInternalNote",
   },
   {
     name: "Alert Episodes",
@@ -92,6 +106,7 @@ const BULK_TABLES: Array<BulkTableCase> = [
     timelineModelType: "AlertEpisodeStateTimeline",
     notifiesStatusPageSubscribers: false,
     noteTemplateModelType: "AlertNoteTemplate",
+    noteModelType: "AlertEpisodeInternalNote",
   },
 ];
 
@@ -108,6 +123,18 @@ describe("bulk change-state modal offers a note on every event table", () => {
       );
       expect(source).toContain(`noteTitle="${bulkTable.noteTitle}"`);
       expect(source).toContain("noteTemplates={noteTemplates}");
+    },
+  );
+
+  test.each(BULK_TABLES)(
+    "$name offers the note only to someone who may create a $noteModelType",
+    (bulkTable: BulkTableCase) => {
+      const source: string = readSource(...bulkTable.component);
+
+      expect(source).toContain(`noteModel={new ${bulkTable.noteModelType}()}`);
+      expect(source).toContain(
+        `import ${bulkTable.noteModelType} from "Common/Models/DatabaseModels/${bulkTable.noteModelType}";`,
+      );
     },
   );
 
@@ -130,14 +157,28 @@ describe("bulk change-state modal offers a note on every event table", () => {
     (bulkTable: BulkTableCase) => {
       const source: string = readSource(...bulkTable.component);
 
+      expect(source).toContain(
+        `ModelAPI.create<${bulkTable.timelineModelType}>(`,
+      );
+
+      if (bulkTable.isPerEventPrivacy) {
+        // Read with each event, and the change built for it.
+        expect(source).toContain(
+          "currentIncidentState: { order: true, name: true, }, isPrivate: true,",
+        );
+        expect(source).toContain(
+          "const change: IncidentBulkStateChange = buildIncidentBulkStateChange({ isPrivate: !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident), note: data.note, shouldStatusPageSubscribersBeNotified: data.shouldStatusPageSubscribersBeNotified, });",
+        );
+        expect(source).toContain("miscDataProps: change.miscDataProps,");
+        expect(source).not.toContain("buildBulkStateChangeMiscDataProps");
+        return;
+      }
+
       expect(source).toContain("buildBulkStateChangeMiscDataProps({");
       expect(source).toContain(
         `noteType: BulkStateChangeNoteType.${bulkTable.noteType},`,
       );
       expect(source).toContain("note: data.note,");
-      expect(source).toContain(
-        `ModelAPI.create<${bulkTable.timelineModelType}>(`,
-      );
       expect(source).toContain("miscDataProps: miscDataProps,");
     },
   );
@@ -150,7 +191,9 @@ describe("bulk change-state modal offers a note on every event table", () => {
       if (bulkTable.notifiesStatusPageSubscribers) {
         expect(source).toContain("showNotifyStatusPageSubscribers={true}");
         expect(source).toContain(
-          "stateTimeline.shouldStatusPageSubscribersBeNotified = data.shouldStatusPageSubscribersBeNotified ?? true;",
+          bulkTable.isPerEventPrivacy
+            ? "stateTimeline.shouldStatusPageSubscribersBeNotified = change.shouldStatusPageSubscribersBeNotified;"
+            : "stateTimeline.shouldStatusPageSubscribersBeNotified = data.shouldStatusPageSubscribersBeNotified ?? true;",
         );
       } else {
         expect(source).not.toContain("showNotifyStatusPageSubscribers");
@@ -178,10 +221,29 @@ describe("shared bulk change-state modal", () => {
     "BulkChangeStateModal.tsx",
   );
 
-  test("renders the note as an optional markdown textbox", () => {
-    expect(source).toContain("fieldType: FormFieldSchemaType.Markdown");
-    expect(source).toContain("title: props.noteTitle,");
-    expect(source).toContain("description: props.noteDescription,");
+  // The body every state change dialog shares: notify, then the folded note.
+  const stateChangeFields: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
+
+  test("renders the note as an optional markdown textbox, through the shared state change fields", () => {
+    expect(source).toContain("...getStateChangeFormFields<JSONObject>({");
+    expect(source).toContain("noteType: data.noteType,");
+    expect(source).toContain("noteTitle: data.noteTitle,");
+    expect(source).toContain("noteDescription: data.noteDescription,");
+    expect(source).toContain("noteTemplates: data.noteTemplates,");
+
+    expect(stateChangeFields).toContain(
+      "fieldType: FormFieldSchemaType.Markdown,",
+    );
+    expect(stateChangeFields).toContain(
+      "title: options.noteTitle || STATE_CHANGE_NOTE_TITLES[options.noteType],",
+    );
+    expect(stateChangeFields).toContain(
+      "description: options.noteDescription,",
+    );
   });
 
   test("keeps the state picker required", () => {
@@ -189,12 +251,36 @@ describe("shared bulk change-state modal", () => {
     expect(source).toContain("required: true,");
   });
 
-  test("shows the note template picker only when templates exist", () => {
-    expect(source).toContain("if (props.noteTemplates.length > 0) {");
+  test("shows the note template picker only when templates exist, and the note may be posted", () => {
+    expect(stateChangeFields).toContain(
+      "showIf: (): boolean => { return isNoteOffered && noteTemplates.length > 0; },",
+    );
+  });
+
+  test("shows the note itself only when it may be posted", () => {
+    expect(stateChangeFields).toContain(
+      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel);",
+    );
+    expect(stateChangeFields).toContain(
+      "showIf: (): boolean => { return isNoteOffered; },",
+    );
+  });
+
+  test("passes the note it posts on to the shared fields", () => {
+    expect(source).toContain("noteModel: data.noteModel,");
+    expect(source).toContain("noteModel: props.noteModel,");
   });
 
   test("adds the subscriber toggle only for events that have one", () => {
-    expect(source).toContain("if (props.showNotifyStatusPageSubscribers) {");
+    expect(source).toContain(
+      "notifySubscribers: data.showNotifyStatusPageSubscribers ? { byDefault: true } : undefined,",
+    );
+  });
+
+  test("is one page: the folded note no longer needs a step of its own", () => {
+    expect(source).not.toContain("steps:");
+    expect(source).not.toContain("FormStep");
+    expect(source).not.toContain("stepId");
   });
 
   test("submits the picked state as an ObjectID", () => {

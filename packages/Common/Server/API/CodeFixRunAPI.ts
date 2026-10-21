@@ -8,16 +8,14 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Select from "../Types/Database/Select";
 import { JSONObject } from "../../Types/JSON";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import AIRunType from "../../Types/AI/AIRunType";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
@@ -29,6 +27,7 @@ import ProjectService from "../Services/ProjectService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import LlmLogService from "../Services/LlmLogService";
+import CodeTaskAccess from "../Utils/AI/CodeTask/CodeTaskAccess";
 
 const MAX_EVENTS: number = 500;
 
@@ -49,7 +48,10 @@ const MAX_EVENTS: number = 500;
  *
  * Access is gated explicitly, the same pattern as AIInvestigationAPI: confirm
  * the caller can read the parent object (the project) under THEIR permissions,
- * then read the run and its events as root.
+ * then read the run and its events as root. A run that works in a repository
+ * (a task in Code) is the repository's to show, as Code's own pages are: a
+ * caller who may not read the repository - a team whose Read Code Repository
+ * is limited by labels - gets "not found" for its runs too.
  */
 
 const RUN_SELECT: Select<AIRun> = {
@@ -66,6 +68,8 @@ const RUN_SELECT: Select<AIRun> = {
   attemptCount: true,
   llmCallCount: true,
   toolCallCount: true,
+  // The repository a task in Code works in, which decides who reads it.
+  codeRepositoryId: true,
   /*
    * Deliberately NOT selected: totalCostInUSDCents. This endpoint's gate is
    * Project read, which admits roles beyond AIRun's own table ACL, so it must
@@ -110,6 +114,12 @@ const LLM_LOG_SELECT: Select<LlmLog> = {
   statusMessage: true,
   totalTokens: true,
   completionTokens: true,
+  /*
+   * The prompt-cache parts of totalTokens: the Log counts a call's tokens
+   * as the AI Logs do (AiTokenCount), not as the provider's raw total.
+   */
+  cachedInputTokens: true,
+  cacheCreationTokens: true,
   durationMs: true,
   requestStartedAt: true,
   requestCompletedAt: true,
@@ -181,7 +191,7 @@ export default class CodeFixRunAPI {
             props: { isRoot: true },
           });
 
-          if (!run) {
+          if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
               "Code fix run not found (or it does not belong to this project).",
             );
@@ -262,7 +272,7 @@ export default class CodeFixRunAPI {
             props: { isRoot: true },
           });
 
-          if (!run) {
+          if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
               "Code fix run not found (or it does not belong to this project).",
             );
@@ -323,27 +333,40 @@ export default class CodeFixRunAPI {
    * owners and admins only: the content embeds customer source code, so the
    * bar is higher than the Project-read gate that admits them to the page.
    *
-   * Read through getUserPermissions(Allow) rather than off
-   * userTenantAccessPermission directly, because that array holds GRANTS AND
-   * DENIALS together, discriminated only by isBlockPermission. Mapping it raw
-   * counts a team's explicit "block ProjectAdmin" entry as a grant of
-   * ProjectAdmin — inverting the control, so the admin action that restricts a
-   * team would be what hands it the source code.
+   * Held the way every permission check reads it (CallerPermission): a
+   * team's explicit "block ProjectAdmin" entry is a denial, never a grant of
+   * ProjectAdmin, and a block with no labels on either role takes the
+   * content away - the admin action that restricts a team must never be what
+   * hands it the source code.
    */
   private callerCanReadRunContent(
     props: DatabaseCommonInteractionProps,
   ): boolean {
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
+    return CallerPermission.holdsAnyOf(props, [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+    ]);
+  }
 
-    return (
-      permissions.includes(Permission.ProjectOwner) ||
-      permissions.includes(Permission.ProjectAdmin)
+  /*
+   * Whether the caller may read the repository the run works in, under their
+   * own permissions. A run with no repository (or one whose repository was
+   * removed) is the project's, as before.
+   */
+  private async callerCanReadRunRepository(
+    props: DatabaseCommonInteractionProps,
+    run: AIRun,
+  ): Promise<boolean> {
+    if (!run.codeRepositoryId) {
+      return true;
+    }
+
+    return Boolean(
+      await CodeTaskAccess.findReadableRepository({
+        props: props,
+        projectId: props.tenantId!,
+        repositoryId: run.codeRepositoryId,
+      }),
     );
   }
 

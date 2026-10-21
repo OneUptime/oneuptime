@@ -1,8 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
+import { ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Episode/EpisodeTemplateVariables";
+import EpisodeTemplateVariablesCopy from "../../../Components/IncidentGroupingRule/EpisodeTemplateVariablesCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -10,12 +14,40 @@ import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  EPISODE_OWNERS_FIELD_KEY,
+  EPISODE_OWNER_TEAMS_COLUMN,
+  EPISODE_OWNER_USERS_COLUMN,
+  GROUPING_RULE_COPY,
+  GROUPING_RULE_TEMPLATES,
+  GroupingRuleKind,
+  GroupingRuleValues,
+  getGroupingRuleMoreFieldsSummary,
+  getGroupingRuleSummarySelect,
+  getGroupingRuleSummaryText,
+} from "../../../Utils/GroupingRule/GroupingRuleSetup";
+import GroupingRuleSummary from "../../../Components/GroupingRule/GroupingRuleSummary";
+import {
+  getGroupingModeFormField,
+  getGroupingRuleColumnFormFields,
+  getInactivityTimeoutFormField,
+  getLegacyDefaultAssigneeColumnFormFields,
+  getLegacyDefaultAssigneeFormField,
+  getReopenWindowFormField,
+  getResolveDelayFormField,
+  getTimeWindowFormField,
+  isCustomGroupingSelected,
+} from "../../../Components/GroupingRule/GroupingRuleFormFields";
+import useGroupingRuleTableExtras, {
+  GroupingRuleTableExtras,
+} from "../../../Components/GroupingRule/GroupingRuleTableExtras";
+import { translateGroupingRuleText } from "../../../Components/GroupingRule/GroupingRuleTranslate";
 
 const documentationMarkdown: string = `
 ### How Alert Grouping Works
@@ -134,9 +166,43 @@ flowchart TD
 **Result:** Very specific episodes - one per unique combination of monitor + severity + title.
 `;
 
+const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
+
+/*
+ * Everything a rule can do beyond grouping - paging on-call and owning its
+ * episodes, reopening and resolving them, their titles and labels - folded
+ * under More fields at the end of the Grouping step, as on the incident
+ * rules - with a sentence under its names while the rule still has an old
+ * default assignee to settle. Built once: every field in it names this one
+ * section.
+ */
+const MORE_FIELDS: FormFieldCollapsibleSection<AlertGroupingRule> =
+  getAdvancedFormSection<AlertGroupingRule>({
+    getSummary: (
+      values: FormValues<AlertGroupingRule>,
+    ): Array<string> | undefined => {
+      return getGroupingRuleMoreFieldsSummary(
+        values as unknown as GroupingRuleValues,
+      );
+    },
+  });
+
+/*
+ * The alert twin of Incidents > Settings > Grouping Rules, kept to the same
+ * design (see Utils/GroupingRule/GroupingRuleSetup): ready-made rules added
+ * in one click, a sentence per rule in the list, and a form that asks how to
+ * group and how close together, with everything else folded under More
+ * fields. The rule stores and the engine reads exactly what they did before.
+ */
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const extras: GroupingRuleTableExtras<AlertGroupingRule> =
+    useGroupingRuleTableExtras<AlertGroupingRule>({
+      kind: KIND,
+      modelType: AlertGroupingRule,
+    });
+
   return (
     <Fragment>
       <ModelTable<AlertGroupingRule>
@@ -150,10 +216,11 @@ const AlertGroupingRulesPage: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Alert Grouping Rules",
-          description:
-            "Define rules to automatically group related alerts into episodes. Rules are evaluated in priority order - lower priority numbers are evaluated first.",
+          description: GROUPING_RULE_COPY.cardDescription[KIND],
+          buttons: extras.cardButtons,
         }}
         helpContent={{
           title: "How Alert Grouping Rules Work",
@@ -161,12 +228,23 @@ const AlertGroupingRulesPage: FunctionComponent<
             "Understanding Match Criteria, Group By, and how alerts are organized into episodes",
           markdown: documentationMarkdown,
         }}
+        noItemsMessage={extras.noItemsMessage}
+        createInitialValues={extras.createInitialValues}
+        showCreateForm={extras.showCreateForm}
+        onCreateEditModalClose={extras.onCreateEditModalClose}
+        refreshToggle={extras.refreshToggle}
         sortBy="priority"
         sortOrder={SortOrder.Ascending}
-        selectMoreFields={{
-          priority: true,
-          isEnabled: true,
-        }}
+        // Evaluated from the top down; a new rule goes to the end.
+        enableDragAndDrop={true}
+        dragDropIndexField="priority"
+        selectMoreFields={
+          {
+            isEnabled: true,
+            description: true,
+            ...getGroupingRuleSummarySelect(KIND),
+          } as Select<AlertGroupingRule>
+        }
         filters={[
           {
             field: {
@@ -190,20 +268,46 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+            wrapContent: true,
+            getElement: (item: AlertGroupingRule): ReactElement => {
+              return (
+                <div>
+                  <p className="font-medium text-gray-900">{item.name}</p>
+                  {item.description ? (
+                    <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">
+                      {item.description}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
-              description: true,
+              _id: true,
             },
-            title: "Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              priority: true,
+            id: "grouping-summary",
+            title: GROUPING_RULE_COPY.summaryColumnTitle,
+            type: FieldType.Element,
+            disableSort: true,
+            wrapContent: true,
+            getElement: (item: AlertGroupingRule): ReactElement => {
+              return (
+                <GroupingRuleSummary
+                  rule={item as unknown as GroupingRuleValues}
+                  kind={KIND}
+                />
+              );
             },
-            title: "Priority",
-            type: FieldType.Number,
+            getExportValue: (item: AlertGroupingRule): string => {
+              return getGroupingRuleSummaryText({
+                rule: item as unknown as GroupingRuleValues,
+                kind: KIND,
+                translate: translateGroupingRuleText,
+              });
+            },
           },
           {
             field: {
@@ -218,102 +322,254 @@ const AlertGroupingRulesPage: FunctionComponent<
               return <Pill color={Red} text="Disabled" />;
             },
           },
-          {
-            field: {
-              timeWindowMinutes: true,
-            },
-            title: "Time Window (min)",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              inactivityTimeoutMinutes: true,
-            },
-            title: "Inactivity Timeout (min)",
-            type: FieldType.Number,
-          },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * Two questions, then Create: how to group and how close together
+         * (Grouping), and which alerts (every one, unless narrowed down).
+         * Group By only appears for a custom mix of switches. Everything
+         * else is folded under More fields on the Grouping step.
+         */
         formSteps={[
           {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Match Criteria",
-            id: "match-criteria",
-            columns: 2,
+            title: GROUPING_RULE_COPY.groupingStepTitle,
+            id: "grouping",
           },
           {
             title: "Group By",
             id: "group-by",
             columns: 2,
+            showIf: (values: FormValues<AlertGroupingRule>): boolean => {
+              return isCustomGroupingSelected(
+                values as unknown as GroupingRuleValues,
+                KIND,
+              );
+            },
           },
           {
-            title: "Time Settings",
-            id: "time-settings",
-          },
-          {
-            title: "Episode Template",
-            id: "episode-template",
-          },
-          {
-            title: "Episode Settings",
-            id: "episode-settings",
-          },
-          {
-            title: "On-Call & Ownership",
-            id: "on-call-ownership",
+            title: GROUPING_RULE_COPY.whichStepTitle[KIND],
+            id: "match-criteria",
             columns: 2,
           },
         ]}
         formFields={[
+          // Grouping
+          getGroupingModeFormField<AlertGroupingRule>(KIND),
+          getTimeWindowFormField<AlertGroupingRule>(KIND),
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
+            stepId: "grouping",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Critical Service Alerts",
+            placeholder: GROUPING_RULE_TEMPLATES[0]!.name[KIND],
             validation: {
               minLength: 2,
             },
           },
           {
             field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "grouping",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            /*
+             * The column default. Without it the switch rendered off on the
+             * create form, and the form saved what it showed: every rule
+             * created here was disabled until somebody turned it on.
+             */
+            defaultValue: true,
+            description: "Enable or disable this grouping rule.",
+          },
+          ...getGroupingRuleColumnFormFields<AlertGroupingRule>(),
+          ...getLegacyDefaultAssigneeColumnFormFields<AlertGroupingRule>(),
+          /*
+           * More fields, the end of the Grouping step: everything else a
+           * rule can do, folded, under three small headings - who is paged
+           * and owns its episodes, how they reopen and resolve, and how
+           * they read. Every field names MORE_FIELDS.
+           */
+          {
+            field: {
+              onCallDutyPolicies: true,
+            },
+            title: "On-Call Duty Policies",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "On-Call & Ownership",
+            description:
+              "On-call policies to fire when an episode is created by this rule.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: OnCallDutyPolicy,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select On-Call Policies",
+            spanFullRow: true,
+          },
+          /*
+           * People and teams in one picker, saved to the rule's
+           * episodeOwnerUsers and episodeOwnerTeams: the engine makes them
+           * owners of every episode the rule opens. It replaced a Default
+           * Assign To Team and User pair that nothing ever showed; a rule
+           * that still has one gets a line about it just below.
+           */
+          getOwnersFormField<AlertGroupingRule>({
+            fieldKey: EPISODE_OWNERS_FIELD_KEY,
+            usersKey: EPISODE_OWNER_USERS_COLUMN,
+            teamsKey: EPISODE_OWNER_TEAMS_COLUMN,
+            title: GROUPING_RULE_COPY.episodeOwnersTitle,
+            description: GROUPING_RULE_COPY.episodeOwnersDescription,
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            spanFullRow: true,
+          }),
+          getLegacyDefaultAssigneeFormField<AlertGroupingRule>({
+            collapsibleSection: MORE_FIELDS,
+          }),
+          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
+          getReopenWindowFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "Episode Lifecycle",
+          }),
+          getResolveDelayFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+          }),
+          getInactivityTimeoutFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+          }),
+          // Details - the rule's own description, and the episodes it opens
+          {
+            field: {
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "Details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Groups all critical alerts from production services",
           },
           {
             field: {
-              priority: true,
+              episodeTitleTemplate: true,
             },
-            title: "Priority",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "1",
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
+            title: "Episode Title Template",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "{{alertSeverity}} Alert Episode on {{monitorName}}",
             description:
-              "Lower numbers have higher priority. Rules are evaluated in order.",
+              "Template for auto-generated episode titles. Uses the first alert's data to generate the title.",
           },
           {
             field: {
-              isEnabled: true,
+              episodeDescriptionTemplate: true,
             },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
+            title: "Episode Description Template",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.LongText,
             required: false,
-            description: "Enable or disable this grouping rule.",
+            placeholder:
+              "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
+            description:
+              "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
           },
-          // Match Criteria Fields
+          {
+            field: {
+              episodeLabels: true,
+            },
+            title: "Episode Labels",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Labels to automatically attach to episodes created by this rule.",
+            placeholder: "Select Labels (optional)",
+          },
+          // Group By - a custom mix of the five switches
+          {
+            field: {
+              groupByMonitor: true,
+            },
+            title: "Group By Monitor",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts from different monitors go into separate episodes.",
+          },
+          {
+            field: {
+              groupBySeverity: true,
+            },
+            title: "Group By Alert Severity",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts with different severities go into separate episodes.",
+          },
+          {
+            field: {
+              groupByAlertTitle: true,
+            },
+            title: "Group By Alert Title",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts with different titles go into separate episodes.",
+          },
+          {
+            field: {
+              groupByAlertLabels: true,
+            },
+            title: "Group By Alert Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts with different sets of labels go into separate episodes.",
+          },
+          {
+            field: {
+              groupByMonitorLabels: true,
+            },
+            title: "Group By Monitor Labels",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts whose monitors have different sets of labels go into separate episodes.",
+          },
+          // Which alerts - drawn as one conditions builder
           {
             field: {
               monitors: true,
@@ -343,6 +599,9 @@ const AlertGroupingRulesPage: FunctionComponent<
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -381,7 +640,8 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               alertTitlePattern: true,
             },
-            title: "Alert Title Pattern",
+            title: "Alert Title",
+            description: "Leave empty to match any title.",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -394,7 +654,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               alertDescriptionPattern: true,
             },
-            title: "Alert Description Pattern",
+            title: "Alert Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -404,7 +664,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               monitorNamePattern: true,
             },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -414,327 +674,17 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               monitorDescriptionPattern: true,
             },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
           },
-          // Group By Fields
-          {
-            field: {
-              groupByMonitor: true,
-            },
-            title: "Group By Monitor",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts from different monitors will be grouped into separate episodes. When disabled, alerts from any monitor can be grouped together.",
-          },
-          {
-            field: {
-              groupBySeverity: true,
-            },
-            title: "Group By Alert Severity",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts with different severities will be grouped into separate episodes. When disabled, alerts of any severity can be grouped together.",
-          },
-          {
-            field: {
-              groupByAlertTitle: true,
-            },
-            title: "Group By Alert Title",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts with different titles will be grouped into separate episodes. When disabled, alerts with any title can be grouped together.",
-          },
-          {
-            field: {
-              groupByAlertLabels: true,
-            },
-            title: "Group By Alert Labels",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts with different sets of labels will be grouped into separate episodes (exact set match). When disabled, alert labels are ignored for grouping.",
-          },
-          {
-            field: {
-              groupByMonitorLabels: true,
-            },
-            title: "Group By Monitor Labels",
-            stepId: "group-by",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "When enabled, alerts whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
-          },
-          // Time Settings Fields
-          {
-            field: {
-              enableTimeWindow: true,
-            },
-            title: "Enable Time Window",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "Enable time-based grouping to limit how long an episode stays open for new alerts. When disabled, all alerts matching the grouping criteria (severity, title, monitor, etc.) will be grouped into a single ongoing episode regardless of when they occur. When enabled, alerts are only grouped if they arrive within the specified time window of the last alert.",
-          },
-          {
-            field: {
-              timeWindowMinutes: true,
-            },
-            title: "Time Window (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "60",
-            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
-              return model.enableTimeWindow === true;
-            },
-            description:
-              "Rolling window that determines how long an episode stays open for new alerts. Alerts arriving within this time gap of the last alert will be grouped into the same episode. For example, if set to 60 minutes, alerts will keep grouping as long as each new alert arrives within 60 minutes of the previous one.",
-          },
-          {
-            field: {
-              enableResolveDelay: true,
-            },
-            title: "Enable Resolve Delay",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "Enable this to add a grace period before auto-resolving an episode after all its alerts are resolved. This helps prevent unnecessary state changes during alert flapping - when alerts rapidly toggle between triggered and resolved states. Without this, the episode would resolve immediately when alerts resolve, then potentially reopen moments later if the issue recurs.",
-          },
-          {
-            field: {
-              resolveDelayMinutes: true,
-            },
-            title: "Resolve Delay (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "5",
-            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
-              return model.enableResolveDelay === true;
-            },
-            description:
-              "Number of minutes to wait after all alerts in the episode are resolved before automatically resolving the episode itself.",
-          },
-          {
-            field: {
-              enableReopenWindow: true,
-            },
-            title: "Enable Reopen Window",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "Enable this to reopen recently resolved episodes instead of creating new ones when matching alerts arrive. This is useful for recurring issues - if a problem returns shortly after being resolved, it makes more sense to continue tracking it in the same episode rather than fragmenting the incident history across multiple episodes.",
-          },
-          {
-            field: {
-              reopenWindowMinutes: true,
-            },
-            title: "Reopen Window (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "30",
-            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
-              return model.enableReopenWindow === true;
-            },
-            description:
-              "Time window after an episode is resolved during which a new matching alert will reopen that episode instead of creating a new one.",
-          },
-          {
-            field: {
-              enableInactivityTimeout: true,
-            },
-            title: "Enable Inactivity Timeout",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            description:
-              "Enable this to automatically resolve episodes after a period of inactivity. This helps clean up stale episodes that are no longer receiving alerts, ensuring your active episode list stays current and relevant. Without this, episodes would remain open indefinitely until manually resolved.",
-          },
-          {
-            field: {
-              inactivityTimeoutMinutes: true,
-            },
-            title: "Inactivity Timeout (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "60",
-            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
-              return model.enableInactivityTimeout === true;
-            },
-            description:
-              "Number of minutes of inactivity (no new alerts added) after which the episode will be automatically resolved.",
-          },
-          {
-            field: {
-              episodeTitleTemplate: true,
-            },
-            title: "Episode Title Template",
-            stepId: "episode-template",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "{{alertSeverity}} Alert Episode on {{monitorName}}",
-            description:
-              "Template for auto-generated episode titles. Uses the first alert's data to generate the title.",
-          },
-          {
-            field: {
-              episodeDescriptionTemplate: true,
-            },
-            title: "Episode Description Template",
-            stepId: "episode-template",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
-            description:
-              "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
-            footerElement: (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-3">
-                  Supported Template Variables:
-                </p>
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Static Variables (from first alert):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertTitle}}"}
-                      </code>{" "}
-                      - Title of the alert
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertDescription}}"}
-                      </code>{" "}
-                      - Description of the alert
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertSeverity}}"}
-                      </code>{" "}
-                      - Severity level (e.g., Critical, Warning)
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{monitorName}}"}
-                      </code>{" "}
-                      - Name of the monitor that triggered the alert
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Dynamic Variables (updated as alerts join):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertCount}}"}
-                      </code>{" "}
-                      - Number of alerts in the episode
-                    </li>
-                  </ul>
-                </div>
-                <p className="mt-3 text-gray-500 text-xs">
-                  Static variables use data from the first alert. Dynamic
-                  variables update automatically when alerts are added or
-                  removed.
-                </p>
-              </div>
-            ),
-          },
-          // Episode Settings Fields
-          {
-            field: {
-              episodeLabels: true,
-            },
-            title: "Episode Labels",
-            stepId: "episode-settings",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            description:
-              "Labels to automatically attach to episodes created by this rule.",
-            placeholder: "Select Labels (optional)",
-          },
-          {
-            field: {
-              onCallDutyPolicies: true,
-            },
-            title: "On-Call Duty Policies",
-            stepId: "on-call-ownership",
-            sectionTitle: "Policies to Execute",
-            sectionDescription:
-              "On-call policies to fire when an episode is created by this rule.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On-Call Policies",
-            spanFullRow: true,
-          },
-          {
-            field: {
-              defaultAssignToTeam: true,
-            },
-            title: "Default Assign To Team",
-            stepId: "on-call-ownership",
-            sectionTitle: "Default Assignees",
-            sectionDescription:
-              "The team and user new episodes are assigned to by default. Both are optional.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Team",
-          },
-          {
-            field: {
-              defaultAssignToUser: true,
-            },
-            title: "Default Assign To User",
-            stepId: "on-call-ownership",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select User",
-          },
         ]}
         showRefreshButton={true}
       />
+      {extras.templatesModal}
+      {extras.statusMessage}
     </Fragment>
   );
 };

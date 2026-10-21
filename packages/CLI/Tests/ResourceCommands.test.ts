@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { ResourceInfo } from "../Types/CLITypes";
+import { buildProgram } from "../Program";
+import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -26,6 +28,7 @@ const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ResourceCommands", () => {
   let originalConfigContent: string | null = null;
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeAll(() => {
     if (fs.existsSync(CONFIG_FILE)) {
@@ -45,7 +48,7 @@ describe("ResourceCommands", () => {
     if (fs.existsSync(CONFIG_FILE)) {
       fs.unlinkSync(CONFIG_FILE);
     }
-    jest.spyOn(console, "log").mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(process, "exit").mockImplementation((() => {}) as any);
     mockExecuteApiRequest.mockReset();
@@ -160,19 +163,35 @@ describe("ResourceCommands", () => {
   });
 
   describe("resource command actions", () => {
+    /*
+     * Build on the real program so these tests parse argv exactly as the
+     * shipped CLI does. A hand-built root that left out the global
+     * -o/--output let the leaf subcommand parse -o itself, which hid the
+     * bug fixed in #4096. Subcommands copy exit and output settings when
+     * they are created, so they are silenced by walking the whole tree.
+     */
     function createProgramWithResources(): Command {
-      const program: Command = new Command();
-      program.exitOverride();
-      program.configureOutput({
-        writeOut: () => {},
-        writeErr: () => {},
-      });
-      program
-        .option("--api-key <key>", "API key")
-        .option("--url <url>", "URL")
-        .option("--context <name>", "Context");
-      registerResourceCommands(program);
+      const program: Command = buildProgram();
+      const silence: (cmd: Command) => void = (cmd: Command): void => {
+        cmd.exitOverride();
+        cmd.configureOutput({
+          writeOut: () => {},
+          writeErr: () => {},
+        });
+        cmd.commands.forEach(silence);
+      };
+      silence(program);
       return program;
+    }
+
+    const originalIsTTY: boolean | undefined = process.stdout.isTTY;
+
+    function setStdoutIsTTY(value: boolean | undefined): void {
+      Object.defineProperty(process.stdout, "isTTY", {
+        value,
+        writable: true,
+        configurable: true,
+      });
     }
 
     beforeEach(() => {
@@ -185,7 +204,31 @@ describe("ResourceCommands", () => {
       mockExecuteApiRequest.mockResolvedValue({ data: [] });
     });
 
+    afterEach(() => {
+      setStdoutIsTTY(originalIsTTY);
+    });
+
     describe("list subcommand", () => {
+      it("should use an env API key with the current context URL", async () => {
+        ConfigManager.addContext({
+          name: "saved",
+          apiUrl: "https://saved.oneuptime.com",
+          apiKey: "saved-key",
+        });
+        process.env["ONEUPTIME_API_KEY"] = "env-key";
+        delete process.env["ONEUPTIME_URL"];
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync(["node", "test", "incident", "list"]);
+
+        expect(mockExecuteApiRequest).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiKey: "env-key",
+            apiUrl: "https://saved.oneuptime.com",
+          }),
+        );
+      });
+
       it("should call API with list operation", async () => {
         const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "list"]);
@@ -224,6 +267,8 @@ describe("ResourceCommands", () => {
       });
 
       it("should extract data array from response object", async () => {
+        // A terminal gets a table by default, so JSON can only come from -o.
+        setStdoutIsTTY(true);
         mockExecuteApiRequest.mockResolvedValue({
           data: [{ _id: "1", name: "Test" }],
         });
@@ -238,11 +283,14 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { _id: "1", name: "Test" },
+        ]);
       });
 
       it("should handle response that is already an array", async () => {
+        setStdoutIsTTY(true);
         mockExecuteApiRequest.mockResolvedValue([{ _id: "1" }]);
 
         const program: Command = createProgramWithResources();
@@ -255,8 +303,10 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { _id: "1" },
+        ]);
       });
 
       it("should handle API errors", async () => {
@@ -292,24 +342,6 @@ describe("ResourceCommands", () => {
           mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("read");
         expect(opts.id).toBe("abc-123");
-      });
-
-      it("should support output format flag", async () => {
-        mockExecuteApiRequest.mockResolvedValue({ _id: "abc-123" });
-
-        const program: Command = createProgramWithResources();
-        await program.parseAsync([
-          "node",
-          "test",
-          "incident",
-          "get",
-          "abc-123",
-          "-o",
-          "json",
-        ]);
-
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
       });
 
       it("should handle get errors", async () => {
@@ -487,7 +519,7 @@ describe("ResourceCommands", () => {
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
         expect(mockExecuteApiRequest.mock.calls[0][0].operation).toBe("count");
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith(42);
+        expect(console.log).toHaveBeenCalledWith("42");
       });
 
       it("should pass query filter", async () => {
@@ -515,17 +547,24 @@ describe("ResourceCommands", () => {
         await program.parseAsync(["node", "test", "incident", "count"]);
 
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith(99);
+        expect(console.log).toHaveBeenCalledWith("99");
       });
 
       it("should handle non-object response in count", async () => {
         mockExecuteApiRequest.mockResolvedValue("some-string");
 
         const program: Command = createProgramWithResources();
-        await program.parseAsync(["node", "test", "incident", "count"]);
+        await program.parseAsync([
+          "node",
+          "test",
+          "incident",
+          "count",
+          "-o",
+          "json",
+        ]);
 
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith("some-string");
+        expect(console.log).toHaveBeenCalledWith('"some-string"');
       });
 
       it("should handle count errors", async () => {
@@ -536,6 +575,222 @@ describe("ResourceCommands", () => {
 
         expect(process.exit).toHaveBeenCalled();
       });
+    });
+
+    describe("output format through the CLI entry point", () => {
+      describe.each([
+        ["incident", "list"],
+        ["incident", "get", "test-id-123"],
+        ["incident", "create", "--data", '{"title":"API outage"}'],
+        [
+          "incident",
+          "update",
+          "test-id-123",
+          "--data",
+          '{"title":"API outage"}',
+        ],
+        ["log", "list"],
+        ["log", "create", "--data", '{"body":"API outage"}'],
+      ])("%s %s", (...args: string[]) => {
+        it.each([
+          { flag: "--output", format: "table", before: true, tty: false },
+          { flag: "-o", format: "table", before: false, tty: false },
+          { flag: "--output", format: "json", before: false, tty: true },
+          { flag: "", format: "table", before: false, tty: true },
+          { flag: "", format: "json", before: false, tty: false },
+        ])(
+          "uses $format with flag '$flag', before=$before, tty=$tty",
+          async ({
+            flag,
+            format,
+            before,
+            tty,
+          }: {
+            flag: string;
+            format: string;
+            before: boolean;
+            tty: boolean;
+          }) => {
+            setStdoutIsTTY(tty);
+            const item: { title: string } = { title: "API outage" };
+            const isList: boolean = args[1] === "list";
+            mockExecuteApiRequest.mockResolvedValue(
+              isList ? { data: [item] } : item,
+            );
+            const outputArgs: string[] = flag ? [flag, format] : [];
+            const program: Command = buildProgram();
+
+            await program.parseAsync([
+              "node",
+              "test",
+              ...(before ? [...outputArgs, ...args] : [...args, ...outputArgs]),
+            ]);
+
+            expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
+            const output: string = consoleLogSpy.mock.calls[0][0];
+            if (format === "json") {
+              expect(JSON.parse(output)).toEqual(isList ? [item] : item);
+            } else {
+              expect(output).toContain("\u2500");
+              expect(output).toContain("API outage");
+            }
+          },
+        );
+      });
+
+      it("ignores the output default older versions wrote to the config file", async () => {
+        /*
+         * Every config written by `oneuptime login` before this field was
+         * dropped says "table". Reading it would turn piped output into a
+         * table and break scripts that parse JSON.
+         */
+        if (!fs.existsSync(CONFIG_DIR)) {
+          fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        }
+        fs.writeFileSync(
+          CONFIG_FILE,
+          JSON.stringify({
+            currentContext: "",
+            contexts: {},
+            defaults: { output: "table", limit: 10 },
+          }),
+          { mode: 0o600 },
+        );
+        setStdoutIsTTY(false);
+        mockExecuteApiRequest.mockResolvedValue({
+          data: [{ title: "API outage" }],
+        });
+
+        await buildProgram().parseAsync(["node", "test", "incident", "list"]);
+
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { title: "API outage" },
+        ]);
+      });
+
+      it("honors wide output for lists with more than six columns", async () => {
+        mockExecuteApiRequest.mockResolvedValue({
+          data: [{ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, lastColumn: "visible" }],
+        });
+
+        await buildProgram().parseAsync([
+          "node",
+          "test",
+          "incident",
+          "list",
+          "--output",
+          "wide",
+        ]);
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("lastColumn"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("visible"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("\u2500"),
+        );
+      });
+
+      describe("incident count", () => {
+        it.each([
+          { argv: ["incident", "count"], tty: true, count: 42 },
+          { argv: ["incident", "count"], tty: false, count: 42 },
+          { argv: ["incident", "count", "-o", "json"], tty: true, count: 0 },
+          {
+            argv: ["--output", "table", "incident", "count"],
+            tty: false,
+            count: 0,
+          },
+          { argv: ["log", "count", "-o", "wide"], tty: false, count: 7 },
+        ])(
+          "prints the bare count for $argv, tty=$tty",
+          async ({
+            argv,
+            tty,
+            count,
+          }: {
+            argv: string[];
+            tty: boolean;
+            count: number;
+          }) => {
+            setStdoutIsTTY(tty);
+            mockExecuteApiRequest.mockResolvedValue({ count });
+
+            await buildProgram().parseAsync(["node", "test", ...argv]);
+
+            expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+            expect(consoleLogSpy).toHaveBeenCalledWith(String(count));
+          },
+        );
+
+        it.each([
+          { argv: ["incident", "count"], tty: false },
+          { argv: ["incident", "count", "-o", "json"], tty: true },
+          { argv: ["-o", "json", "incident", "count"], tty: true },
+        ])(
+          "prints a response without a count key as JSON for $argv, tty=$tty",
+          async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+            setStdoutIsTTY(tty);
+            mockExecuteApiRequest.mockResolvedValue({ total: 7 });
+
+            await buildProgram().parseAsync(["node", "test", ...argv]);
+
+            expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual({
+              total: 7,
+            });
+          },
+        );
+
+        it("prints a response without a count key as a table with -o table", async () => {
+          setStdoutIsTTY(false);
+          mockExecuteApiRequest.mockResolvedValue({ total: 7 });
+
+          await buildProgram().parseAsync([
+            "node",
+            "test",
+            "incident",
+            "count",
+            "-o",
+            "table",
+          ]);
+
+          const output: string = consoleLogSpy.mock.calls[0][0];
+          expect(output).toContain("\u2500");
+          expect(output).toContain("total");
+        });
+      });
+
+      it.each([
+        { argv: ["-o", "yaml", "incident", "list"] },
+        { argv: ["incident", "list", "-o", "yaml"] },
+        { argv: ["incident", "get", "test-id-123", "--output", "yaml"] },
+        { argv: ["incident", "count", "--output=yaml"] },
+        { argv: ["resources", "-o", "yaml"] },
+        { argv: ["context", "list", "-o", "yaml"] },
+      ])(
+        "rejects an unknown output format for $argv",
+        async ({ argv }: { argv: string[] }) => {
+          const errors: string[] = [];
+          const program: Command = buildProgram();
+          program.exitOverride();
+          program.configureOutput({
+            writeErr: (str: string) => {
+              errors.push(str);
+            },
+          });
+
+          await expect(
+            program.parseAsync(["node", "test", ...argv]),
+          ).rejects.toMatchObject({ code: "commander.invalidArgument" });
+          expect(errors.join("")).toContain(
+            "Allowed choices are json, table, wide.",
+          );
+          expect(mockExecuteApiRequest).not.toHaveBeenCalled();
+          expect(consoleLogSpy).not.toHaveBeenCalled();
+        },
+      );
     });
 
     describe("credential resolution in commands", () => {
@@ -562,6 +817,28 @@ describe("ResourceCommands", () => {
         );
         expect(mockExecuteApiRequest.mock.calls[0][0].apiUrl).toBe(
           "https://global.com",
+        );
+      });
+
+      it("should use a single --url flag over env credentials", async () => {
+        process.env["ONEUPTIME_API_KEY"] = "env-key";
+        process.env["ONEUPTIME_URL"] = "https://env.com";
+        mockExecuteApiRequest.mockResolvedValue({ data: [] });
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync([
+          "node",
+          "test",
+          "--url",
+          "https://cli.com",
+          "incident",
+          "list",
+        ]);
+
+        expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
+        expect(mockExecuteApiRequest.mock.calls[0][0].apiKey).toBe("env-key");
+        expect(mockExecuteApiRequest.mock.calls[0][0].apiUrl).toBe(
+          "https://cli.com",
         );
       });
     });

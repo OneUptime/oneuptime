@@ -10,10 +10,43 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import {
+  getOwnersPeoplePickerConfig,
+  OWNERS_ADD_BUTTON_TEXT,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import PeopleAvatar, {
+  PeopleAvatarItem,
+} from "Common/UI/Components/PeoplePicker/PeopleAvatar";
+import PeopleSearchPopup, {
+  PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
+  PEOPLE_SEARCH_POPUP_WIDTH_PX,
+} from "Common/UI/Components/PeoplePicker/PeopleSearchPopup";
+import {
+  getPeoplePickerKinds,
+  getPeoplePickerOptionKey,
+  PeoplePickerFieldConfig,
+  PeoplePickerKind,
+  PeoplePickerOption,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import useAnchoredFieldPopup, {
+  AnchoredFieldPopup,
+} from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import useProjectMembership from "../../Utils/UseProjectMembership";
+import {
+  ProjectMembershipAnswer,
+  ProjectMembershipStatus,
+} from "../../Utils/ProjectMembershipLoader";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,12 +55,21 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import AddOwnerPopover, { AddOwnerSelection } from "./AddOwnerPopover";
-import OwnerAvatar, { OwnerAvatarItem } from "./OwnerAvatar";
 
-interface OwnerCircle extends OwnerAvatarItem {
+/*
+ * A record's Owners page: the people and teams who own it, as avatars, and
+ * one "Add owner" list of people and teams to add more from - the same list
+ * every form that asks for owners opens (Common's PeoplePicker), so owners
+ * are picked the same way everywhere.
+ */
+
+const OWNERS_PICKER_CONFIG: PeoplePickerFieldConfig =
+  getOwnersPeoplePickerConfig();
+
+interface OwnerCircle extends PeopleAvatarItem {
   rowId: ObjectID;
   email?: string | undefined;
+  // The person's or the team's id: what the search list leaves out.
   existingId: string;
 }
 
@@ -41,19 +83,46 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   props: OwnerCircleViewProps,
 ): ReactElement => {
   const { item, isOverlapping } = props;
+  const translator: Translator = useTranslator();
+
+  /*
+   * An owner who has left the project is kept as the record of who owned it
+   * (a closed incident's owners are its history), but nothing of the project
+   * reaches them any more: the avatar fades and says so. The same for an
+   * owner who has not accepted their invitation yet, until they do.
+   */
+  const membership: ProjectMembershipAnswer = useProjectMembership(
+    item.kind === PeoplePickerKind.User ? item.userId : null,
+  );
+  const isNotProjectMember: boolean =
+    membership === ProjectMembershipStatus.NotMember;
+  const hasPendingInvitation: boolean =
+    membership === ProjectMembershipStatus.Invited;
 
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
       <div className="flex-shrink-0">
-        <OwnerAvatar item={item} size="lg" />
+        <PeopleAvatar item={item} size="lg" />
       </div>
       <div className="flex flex-col min-w-0">
         <div className="text-sm font-semibold text-gray-900 truncate">
           {item.name}
         </div>
-        <div className="text-xs text-gray-500 truncate">
-          {item.type === "team" ? "Team" : item.email || "Owner"}
-        </div>
+        {isNotProjectMember ? (
+          <div className="text-xs font-medium text-amber-700 truncate">
+            {translator.translateText("No longer a member")}
+          </div>
+        ) : hasPendingInvitation ? (
+          <div className="text-xs font-medium text-amber-700 truncate">
+            {translator.translateText("Invitation not accepted yet")}
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 truncate">
+            {item.kind === PeoplePickerKind.Team
+              ? translator.translateText("Team")
+              : item.email || translator.translateText("Owner")}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -66,15 +135,41 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
     >
       <Tooltip richContent={tooltipContent}>
         <div className="cursor-default">
-          <div className="transition-transform duration-200 group-hover:scale-105">
-            <OwnerAvatar item={item} size="md" />
+          <div
+            data-testid={
+              isNotProjectMember
+                ? "owner-not-project-member"
+                : hasPendingInvitation
+                  ? "owner-invitation-pending"
+                  : undefined
+            }
+            className={`transition-transform duration-200 group-hover:scale-105${
+              isNotProjectMember || hasPendingInvitation
+                ? " opacity-50 grayscale"
+                : ""
+            }`}
+          >
+            <PeopleAvatar item={item} size="md" />
+            {isNotProjectMember ? (
+              <span className="sr-only">
+                {translator.translateText("No longer a member")}
+              </span>
+            ) : hasPendingInvitation ? (
+              <span className="sr-only">
+                {translator.translateText("Invitation not accepted yet")}
+              </span>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       </Tooltip>
       <button
         type="button"
         onClick={props.onRemoveClick}
-        aria-label={`Remove ${item.name}`}
+        aria-label={translator.translateTemplate("Remove {{name}}", {
+          name: item.name,
+        })}
         className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
       >
         <Icon icon={IconProp.Close} className="h-3 w-3" size={SizeProp.Small} />
@@ -100,11 +195,24 @@ export interface ComponentProps<
   resourceDisplayName: string;
   ownerUserModelType: { new (): TOwnerUser };
   ownerTeamModelType: { new (): TOwnerTeam };
+  /*
+   * What owning the resource means, under the title. Default: they are
+   * responsible for it and notified about changes - right for an incident,
+   * not for a template, whose owners own what is declared from it. A whole
+   * English sentence, looked up as one in the locale files.
+   */
+  description?: string | undefined;
+  /*
+   * The empty state's sentence. Default: add someone to be notified. Looked
+   * up as one sentence too.
+   */
+  emptyDescription?: string | undefined;
 }
 
 function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   props: ComponentProps<TOwnerUser, TOwnerTeam>,
 ): ReactElement {
+  const translator: Translator = useTranslator();
   const resourceIdString: string = props.resourceId.toString();
   const { resourceIdField, resourceDisplayName } = props;
   const projectIdString: string | null =
@@ -114,11 +222,20 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
 
-  const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
-
   const [confirmRemove, setConfirmRemove] = useState<OwnerCircle | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
   const [removeError, setRemoveError] = useState<string>("");
+
+  /*
+   * One list for both "Add owner" buttons - the empty state's and the "+"
+   * after the avatars; only one is ever on screen. It follows the "+" as
+   * owners are added in front of it.
+   */
+  const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
+    popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
+    popupWidth: PEOPLE_SEARCH_POPUP_WIDTH_PX,
+    repositionKey: items.length,
+  });
 
   const loadOwners: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -130,7 +247,6 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
       const projectId: ObjectID = new ObjectID(projectIdString);
       const resourceId: ObjectID = new ObjectID(resourceIdString);
 
-      setIsLoading(true);
       setLoadError("");
 
       try {
@@ -198,7 +314,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
           }
           next.push({
             rowId: row.id,
-            type: "user",
+            kind: PeoplePickerKind.User,
             name: u.name?.toString() || u.email?.toString() || "User",
             userId: u.id ?? undefined,
             hasProfilePicture: Boolean(u.profilePictureId),
@@ -218,7 +334,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
           }
           next.push({
             rowId: row.id,
-            type: "team",
+            kind: PeoplePickerKind.Team,
             name: t.name?.toString() || "Team",
             hasProfilePicture: false,
             existingId: t._id?.toString() || "",
@@ -240,27 +356,28 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     ]);
 
   useEffect(() => {
+    setIsLoading(true);
     void loadOwners();
   }, [loadOwners]);
 
   const takenKeys: Set<string> = useMemo(() => {
     return new Set(
       items.map((i: OwnerCircle) => {
-        return `${i.type}:${i.existingId}`;
+        return getPeoplePickerOptionKey(i.kind, i.existingId);
       }),
     );
   }, [items]);
 
-  const handleAddOwner: (selection: AddOwnerSelection) => Promise<void> =
+  const handleAddOwner: (option: PeoplePickerOption) => Promise<void> =
     useCallback(
-      async (selection: AddOwnerSelection): Promise<void> => {
+      async (option: PeoplePickerOption): Promise<void> => {
         if (!projectIdString) {
           return;
         }
 
         const projectId: ObjectID = new ObjectID(projectIdString);
 
-        if (selection.kind === "user") {
+        if (option.kind === PeoplePickerKind.User) {
           const m: TOwnerUser = new props.ownerUserModelType();
           const fields: Record<string, unknown> = m as unknown as Record<
             string,
@@ -268,7 +385,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
           >;
           fields[resourceIdField] = props.resourceId;
           fields["projectId"] = projectId;
-          fields["userId"] = selection.id;
+          fields["userId"] = new ObjectID(option.id);
           await ModelAPI.create<TOwnerUser>({
             model: m,
             modelType: props.ownerUserModelType,
@@ -281,7 +398,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
           >;
           fields[resourceIdField] = props.resourceId;
           fields["projectId"] = projectId;
-          fields["teamId"] = selection.id;
+          fields["teamId"] = new ObjectID(option.id);
           await ModelAPI.create<TOwnerTeam>({
             model: m,
             modelType: props.ownerTeamModelType,
@@ -309,7 +426,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     setRemoveError("");
 
     try {
-      if (confirmRemove.type === "user") {
+      if (confirmRemove.kind === PeoplePickerKind.User) {
         await ModelAPI.deleteItem<TOwnerUser>({
           modelType: props.ownerUserModelType,
           id: confirmRemove.rowId,
@@ -332,13 +449,13 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
 
   const userCount: number = useMemo(() => {
     return items.filter((i: OwnerCircle) => {
-      return i.type === "user";
+      return i.kind === PeoplePickerKind.User;
     }).length;
   }, [items]);
 
   const teamCount: number = useMemo(() => {
     return items.filter((i: OwnerCircle) => {
-      return i.type === "team";
+      return i.kind === PeoplePickerKind.Team;
     }).length;
   }, [items]);
 
@@ -348,17 +465,35 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     }
     const parts: Array<string> = [];
     if (userCount > 0) {
-      parts.push(`${userCount} ${userCount === 1 ? "person" : "people"}`);
+      parts.push(
+        translator.translatePlural(
+          { one: "{{count}} person", other: "{{count}} people" },
+          userCount,
+        ),
+      );
     }
     if (teamCount > 0) {
-      parts.push(`${teamCount} ${teamCount === 1 ? "team" : "teams"}`);
+      parts.push(
+        translator.translatePlural(
+          { one: "{{count}} team", other: "{{count}} teams" },
+          teamCount,
+        ),
+      );
     }
     return parts.join(" · ");
-  }, [items.length, userCount, teamCount]);
+  }, [items.length, userCount, teamCount, translator.language]);
+
+  // The resource's noun as it reads in the middle of a sentence.
+  const resourceName: TranslatableTerm = translatableTerm(resourceDisplayName, {
+    inSentence: true,
+  });
+
+  const addOwnerText: string =
+    translator.translateText(OWNERS_ADD_BUTTON_TEXT) || OWNERS_ADD_BUTTON_TEXT;
 
   const titleNode: ReactElement = (
     <span className="inline-flex items-center gap-2">
-      <span>Owners</span>
+      <span>{translator.translateText("Owners")}</span>
       {items.length > 0 && (
         <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold ring-1 ring-inset ring-indigo-100">
           {items.length}
@@ -369,10 +504,29 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
 
   const descriptionNode: ReactElement = (
     <span>
-      People and teams responsible for this {resourceDisplayName}. They are
-      notified about changes.
+      {props.description
+        ? translator.translateText(props.description)
+        : translator.translateTemplate(
+            "People and teams responsible for this {{resourceName}}. They are notified about changes.",
+            { resourceName: resourceName },
+          )}
       {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
     </span>
+  );
+
+  const searchPopup: ReactElement = (
+    <PeopleSearchPopup
+      popup={popup}
+      kinds={getPeoplePickerKinds(OWNERS_PICKER_CONFIG)}
+      selectedKeys={takenKeys}
+      selectionMode="add"
+      onPick={(option: PeoplePickerOption): Promise<void> => {
+        return handleAddOwner(option);
+      }}
+      searchPlaceholder={OWNERS_PICKER_CONFIG.searchPlaceholder}
+      emptyText={OWNERS_PICKER_CONFIG.emptyText}
+      ariaLabel={OWNERS_ADD_BUTTON_TEXT}
+    />
   );
 
   return (
@@ -392,20 +546,24 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               />
             </div>
             <div className="text-sm font-medium text-gray-900">
-              No owners yet
+              {translator.translateText("No owners yet")}
             </div>
             <div className="text-xs text-gray-500 mt-1 max-w-xs">
-              Add a teammate or a team so they get notified about changes to
-              this {resourceDisplayName}.
+              {props.emptyDescription
+                ? translator.translateText(props.emptyDescription)
+                : translator.translateTemplate(
+                    "Add a teammate or a team so they get notified about changes to this {{resourceName}}.",
+                    { resourceName: resourceName },
+                  )}
             </div>
-            <div className="relative mt-4 inline-block">
+            <div ref={popup.anchorRef} className="mt-4 inline-block">
               <button
                 type="button"
-                onClick={() => {
-                  setIsPopoverOpen((prev: boolean) => {
-                    return !prev;
-                  });
-                }}
+                onClick={popup.togglePopup}
+                onKeyDown={popup.onTriggerKeyDown}
+                aria-haspopup="dialog"
+                aria-expanded={popup.isPopupOpen}
+                aria-controls={popup.isPopupOpen ? popup.popupId : undefined}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
               >
                 <Icon
@@ -413,16 +571,8 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                   className="h-3.5 w-3.5"
                   size={SizeProp.Small}
                 />
-                <span>Add owner</span>
+                <span>{addOwnerText}</span>
               </button>
-              <AddOwnerPopover
-                isOpen={isPopoverOpen}
-                onClose={() => {
-                  setIsPopoverOpen(false);
-                }}
-                takenKeys={takenKeys}
-                onSelect={handleAddOwner}
-              />
             </div>
           </div>
         ) : (
@@ -431,7 +581,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               {items.map((item: OwnerCircle) => {
                 return (
                   <OwnerCircleView
-                    key={`${item.type}-${item.rowId.toString()}`}
+                    key={`${item.kind}-${item.rowId.toString()}`}
                     item={item}
                     isOverlapping={true}
                     onRemoveClick={() => {
@@ -441,17 +591,18 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                   />
                 );
               })}
-              <div className="relative">
-                <Tooltip text="Add owner">
+              <div ref={popup.anchorRef} className="relative">
+                <Tooltip text={addOwnerText}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsPopoverOpen((prev: boolean) => {
-                        return !prev;
-                      });
-                    }}
-                    aria-label="Add owner"
-                    aria-expanded={isPopoverOpen}
+                    onClick={popup.togglePopup}
+                    onKeyDown={popup.onTriggerKeyDown}
+                    aria-label={addOwnerText}
+                    aria-haspopup="dialog"
+                    aria-expanded={popup.isPopupOpen}
+                    aria-controls={
+                      popup.isPopupOpen ? popup.popupId : undefined
+                    }
                     className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
                   >
                     <Icon
@@ -461,18 +612,12 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                     />
                   </button>
                 </Tooltip>
-                <AddOwnerPopover
-                  isOpen={isPopoverOpen}
-                  onClose={() => {
-                    setIsPopoverOpen(false);
-                  }}
-                  takenKeys={takenKeys}
-                  onSelect={handleAddOwner}
-                />
               </div>
             </div>
           </div>
         )}
+
+        {searchPopup}
 
         {loadError && (
           <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
@@ -490,12 +635,21 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
             title="Remove owner"
             description={
               <span>
-                Are you sure you want to remove{" "}
-                <span className="font-semibold text-gray-900">
-                  {confirmRemove.name}
-                </span>
-                {confirmRemove.type === "team" ? " (Team)" : ""} as an owner of
-                this {resourceDisplayName}?
+                <TranslatedSentence
+                  template={
+                    confirmRemove.kind === PeoplePickerKind.Team
+                      ? "Are you sure you want to remove {{name}} (Team) as an owner of this {{resourceName}}?"
+                      : "Are you sure you want to remove {{name}} as an owner of this {{resourceName}}?"
+                  }
+                  slots={{
+                    name: (
+                      <span className="font-semibold text-gray-900">
+                        {confirmRemove.name}
+                      </span>
+                    ),
+                  }}
+                  values={{ resourceName: resourceName }}
+                />
               </span>
             }
             submitButtonText="Remove"

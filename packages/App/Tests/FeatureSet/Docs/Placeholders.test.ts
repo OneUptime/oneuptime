@@ -1,5 +1,8 @@
 import DocsPlaceholders, {
   IP_WHITELIST_PLACEHOLDER,
+  TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+  TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
+  TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
 } from "../../../FeatureSet/Docs/Utils/Placeholders";
 import {
   PermissionPlaceholder,
@@ -203,6 +206,9 @@ describe("DocsPlaceholders", () => {
 
     const KNOWN_TOKENS: Set<string> = new Set([
       IP_WHITELIST_PLACEHOLDER,
+      TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
+      TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+      TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
       ...Object.values(PermissionPlaceholder),
     ]);
 

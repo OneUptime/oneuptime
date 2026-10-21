@@ -1,4 +1,6 @@
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -62,6 +64,16 @@ export interface SnmpConfigFormFieldOptions {
    * walked past. Callers that render the form without steps omit this.
    */
   stepId?: string | undefined;
+
+  /*
+   * The folded section these fields sit in, on a form that folds them - the
+   * Add Device form keeps SNMP under one "SNMP" header, because a device is
+   * pinged without it and most people add it later, or never. Every field
+   * gets the same section object, so BasicForm draws them as one fold.
+   */
+  collapsibleSection?:
+    | FormFieldCollapsibleSection<SnmpConfigModelFields>
+    | undefined;
 }
 
 /*
@@ -259,9 +271,15 @@ export function getSnmpConfigFormFields(
       fieldType: FormFieldSchemaType.EncryptedText,
       required: false,
       placeholder: "public",
+      /*
+       * The device forms' own words (Add Device, a device's Settings): the
+       * field is optional because a device without it is pinged, and it is
+       * hidden for V3 - so "Required for V1 and V2c. Not used for V3." under
+       * a label reading "(Optional)" said two contradictory things.
+       */
       description:
         options?.communityStringDescription ||
-        "Required for SNMP V1 and V2c. Not used for V3.",
+        "The community string the device answers SNMP with, such as public. Leave it empty to ping the device only.",
       showIf: (item: FormValues<SnmpConfigModelFields>): boolean => {
         return !isV3(item);
       },
@@ -355,16 +373,26 @@ export function getSnmpConfigFormFields(
     },
   ];
 
-  if (!options?.stepId) {
+  if (!options?.stepId && !options?.collapsibleSection) {
     return fields;
   }
 
-  const stepId: string = options.stepId;
+  const stepId: string | undefined = options.stepId;
+  const collapsibleSection:
+    | FormFieldCollapsibleSection<SnmpConfigModelFields>
+    | undefined = options.collapsibleSection;
 
   return fields.map((field: Field<SnmpConfigModelFields>) => {
-    return {
-      ...field,
-      stepId: stepId,
-    };
+    const placed: Field<SnmpConfigModelFields> = { ...field };
+
+    if (stepId) {
+      placed.stepId = stepId;
+    }
+
+    if (collapsibleSection) {
+      placed.collapsibleSection = collapsibleSection;
+    }
+
+    return placed;
   });
 }

@@ -244,6 +244,12 @@ describe("MonitorStepResourceIdentity — declared infra identifiers", () => {
     ],
     [MonitorType.Ceph, "cephMonitor", "clusterIdentifier", "cephClusterNames"],
     [
+      MonitorType.StorageArray,
+      "storageArrayMonitor",
+      "arrayIdentifier",
+      "storageArrayNames",
+    ],
+    [
       MonitorType.DockerSwarm,
       "dockerSwarmMonitor",
       "clusterIdentifier",
@@ -827,5 +833,81 @@ describe("MonitorStepResourceIdentity — databases", () => {
 
     expect(refs.databaseServerIds).toEqual([]);
     expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+});
+
+describe("MonitorStepResourceIdentity — storage arrays", () => {
+  test("a storage array monitor names its array, and its object filters name nothing else", () => {
+    /*
+     * The resource filters narrow the query to one volume or host of the
+     * array; they are datapoint labels (`name`, `host`), never a resource
+     * identity of their own, so only the array is named.
+     */
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.StorageArray, [
+        {
+          storageArrayMonitor: {
+            arrayIdentifier: "pure-prod-01",
+            storageSystem: "purestorage.flasharray",
+            resourceFilters: { volumeName: "vol-db-01", hostName: "esx-01" },
+            metricViewConfig: metricViewConfigWith({
+              dimension: "usec_per_read_op",
+              name: "vol-db-01",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.storageArrayNames).toEqual(["pure-prod-01"]);
+    expect(refs.hostNames).toEqual([]);
+    expect(refs.cephClusterNames).toEqual([]);
+
+    const populated: Array<string> = Object.entries(refs)
+      .filter(([, values]: [string, Array<string>]): boolean => {
+        return values.length > 0;
+      })
+      .map(([key]: [string, Array<string>]): string => {
+        return key;
+      });
+    expect(populated).toEqual(["storageArrayNames"]);
+  });
+
+  test("a storage array monitor's metric filters are read like every other metric step's", () => {
+    // A service.name filter on the array's metrics names that service too.
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.StorageArray, [
+        {
+          storageArrayMonitor: {
+            arrayIdentifier: "pure-prod-01",
+            resourceFilters: {},
+            metricViewConfig: metricViewConfigWith({
+              "resource.storage.array.name": "pure-dr-01",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.storageArrayNames.sort()).toEqual([
+      "pure-dr-01",
+      "pure-prod-01",
+    ]);
+  });
+
+  test("a numeric array identifier from an unchecked step names nothing and does not throw", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.StorageArray, [
+        { storageArrayMonitor: { arrayIdentifier: 42 } },
+      ]),
+    );
+
+    expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+
+  test("the empty refs carry an empty storage array list", () => {
+    const refs: SeriesResourceRefs = MonitorStepResourceIdentity.emptyRefs();
+
+    expect(refs.storageArrayNames).toEqual([]);
   });
 });

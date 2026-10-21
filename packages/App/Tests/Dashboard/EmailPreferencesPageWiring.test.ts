@@ -288,9 +288,7 @@ describe("Side menu", () => {
     const emailIndex: number = menu.indexOf(
       '{ link: { title: "Email Preferences", to: RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route, ), }, icon: IconProp.Envelope, }',
     );
-    const nextSectionIndex: number = menu.indexOf(
-      '{ title: "Incident On-Call",',
-    );
+    const nextSectionIndex: number = menu.indexOf('{ title: "On-Call Logs",');
 
     expect(sectionIndex).toBeGreaterThan(-1);
     expect(emailIndex).toBeGreaterThan(settingsIndex);

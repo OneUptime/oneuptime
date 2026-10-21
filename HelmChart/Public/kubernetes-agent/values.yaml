@@ -1,5 +1,19 @@
 # OneUptime Kubernetes Agent Configuration
 
+# The version of the chart this values.yaml comes with. Do not set it, and
+# leave it out of a values file you keep: the release pipeline stamps it with
+# the version it publishes the chart as (.github/workflows/release.yml), and
+# it equals Chart.yaml's version here.
+#
+# After every install and upgrade the chart compares it with its own version.
+# A different or missing one means the release renders with an older chart's
+# defaults — what `helm upgrade --reuse-values` does — so the notes say what
+# is stale (the eBPF image among them) and print the upgrade that applies
+# this chart's defaults and keeps the values you set: --reset-then-reuse-values
+# (Helm 3.14+), or `helm get values` into -f. The README's "Upgrading" section
+# has the details.
+chartDefaultsVersion: "0.7.0"
+
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to
 # think about hostPath, Pod Security Standards, or which log collection mode
@@ -11,21 +25,40 @@
 #
 #   gke-autopilot — GKE Autopilot. hostPath is blocked, so logs are
 #                   collected via the Kubernetes API from a Deployment.
-#                   A hardened security context is applied.
+#                   A hardened security context is applied. Privileged
+#                   pods are refused, so the eBPF instrumentation and the
+#                   profiler are left out, whatever ebpf.enabled and
+#                   profiling.enabled say.
 #
 #   eks-fargate   — EKS Fargate. Same config as gke-autopilot (no host
-#                   access, no DaemonSets on Fargate).
+#                   access, no privileged pods, no DaemonSets on Fargate).
 #
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
+# The one exception is the privileged pods: on gke-autopilot and
+# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the
+# profiler back on, because those platforms cannot run them.
 preset: ""
 
 # Required: Your OneUptime instance connection details
 oneuptime:
   # URL of your OneUptime instance (e.g., https://oneuptime.example.com)
   url: ""
-  # Project API key from OneUptime (Settings > API Keys)
+  # Telemetry ingestion key from OneUptime (Project Settings > Telemetry &
+  # APM > Ingestion Keys). The agent sends it as the x-oneuptime-token
+  # header, so a project API key (Settings > API Keys) does not work here.
   apiKey: ""
+  # Or keep the key out of your values: the name of a Secret you create in
+  # this release's namespace, holding the key under `api-key`:
+  #
+  #   kubectl create secret generic oneuptime-ingestion-key \
+  #     --namespace <namespace> --from-literal=api-key=<ingestion key>
+  #
+  # Every agent workload then reads the key from it, and the chart creates no
+  # Secret of its own. Set this or apiKey, not both. The Amazon EKS add-on
+  # takes its key this way, because EKS shows an add-on's configuration
+  # values in plain text.
+  existingSecretName: ""
   # Optional: Auto-tag every record this agent emits with project Labels.
   #
   # Each key/value pair becomes a resource attribute of the form
@@ -260,9 +293,16 @@ sampling:
     hashSeed: 22
 
 # OTel Collector image configuration
+#
+# The same collector the other OneUptime agents are built FROM. 0.96.0, the
+# pin before this one, carries known critical vulnerabilities (Go 1.21,
+# grpc 1.62, docker 24) that later releases fixed. The collector configs
+# keep what OneUptime reads as it was on 0.96.0 (the `*.cpu.utilization`
+# names, per-CPU `system.cpu.time`), and they still run on 0.96.0, which an
+# upgrade with --reuse-values keeps (see NOTES.txt).
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.96.0"
+  tag: "0.161.0"
   pullPolicy: IfNotPresent
 
 # Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)
@@ -455,6 +495,13 @@ collectionInterval: 30s
 # OTel `kubeletstats` receiver. Both groups run inside the existing
 # DaemonSet collector — no new pods, no new scrapes — they just expand
 # what kubeletstats reports.
+#
+# Separately, and with no flag, the chart always enables node and pod CPU
+# usage in cores (`k8s.node.cpu.usage`, `k8s.pod.cpu.usage`), which
+# kubeletstats also leaves off by default. The "High Node CPU Utilization"
+# monitor divides `k8s.node.cpu.usage` by the node's allocatable CPU and
+# never fires without it, so switching these groups off never removes it.
+# To drop the series anyway, list them in `filters.metrics.exclude`.
 kubeletstats:
   # Saturation metrics — container & pod CPU/memory expressed as a
   # percentage of request and limit. Enables the "Container CPU vs
@@ -525,7 +572,19 @@ kubeStateMetrics:
   # "external" — chart only adds a Prometheus scrape job; you must
   #              provide `endpoint` pointing at your existing KSM.
   mode: bundled
-  # Only used when mode == "external".
+  # Only used when mode == "external", where it is required. The URL of
+  # your KSM's metrics endpoint, scraped where it points:
+  #   - `https://` is scraped over TLS; `http://`, or no scheme at all, in
+  #     plain HTTP.
+  #   - A path other than /metrics is scraped at that path (a KSM published
+  #     under an ingress prefix, say). No path means /metrics.
+  # Credentials (user:password@), a query string and a fragment cannot be
+  # carried into the scrape, so the chart refuses to render a URL that has
+  # them instead of dropping them quietly.
+  # An https endpoint has to present a certificate from a public CA: the
+  # collector checks it against the CA bundle in its image, and there is no
+  # setting yet to trust a private CA, skip the check, or send credentials
+  # (so a KSM behind kube-rbac-proxy cannot be scraped).
   # Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics
   endpoint: ""
   scrapeInterval: 30s
@@ -566,7 +625,7 @@ kubeStateMetrics:
   # mode == "external".
   image:
     repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
-    tag: "v2.13.0"
+    tag: "v2.20.0"
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -610,6 +669,10 @@ cost:
     # Base URL of an EXISTING cost engine. Empty (the default) bundles
     # OpenCost + a minimal Prometheus instead; setting it disables the
     # bundle and reads from your engine.
+    #
+    # `http://` or `https://`. The poller and the metrics scrape both follow
+    # the scheme, and both verify an https engine's certificate against
+    # public CAs only: there is no setting yet to trust a private one.
     url: ""
     # Allocation API path. Empty auto-detects by probing, in order:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),
@@ -635,7 +698,7 @@ cost:
   opencost:
     image:
       repository: ghcr.io/opencost/opencost
-      tag: "1.121.0"
+      tag: "1.121.3"
       pullPolicy: IfNotPresent
     logLevel: info
     resources:
@@ -672,7 +735,10 @@ cost:
   prometheus:
     image:
       repository: quay.io/prometheus/prometheus
-      tag: "v2.55.1"
+      # Prometheus 3. Its scrape config and flags (templates/prometheus-cost.yaml)
+      # read the same as in 2.x, and OpenCost adjusts its queries to 3.x's
+      # left-open range selectors itself.
+      tag: "v3.15.0"
       pullPolicy: IfNotPresent
     # The cost poller only queries recently-closed hourly windows, so a
     # few days is all this TSDB needs for spend alone. It is set to 7d
@@ -735,6 +801,12 @@ cost:
   metrics:
     enabled: true
     # Metrics endpoint. Empty defaults to <cost.engine.url>/metrics.
+    #
+    # Set it when the engine serves its metrics somewhere else. It is a
+    # URL and is scraped where it points: `https://` over TLS, and a path
+    # other than /metrics at that path. As with kubeStateMetrics.endpoint,
+    # a URL with credentials, a query string or a fragment is refused; so
+    # is such a cost.engine.url while this is empty and stands in for it.
     endpoint: ""
     scrapeInterval: 60s
     # Exact-match allowlist — the engine exports many more series, and
@@ -775,13 +847,40 @@ cost:
 #     Fedora 34+, RHEL/Stream 9+). Kernel 4.18+ also works on RHEL-family
 #     distros with vendor backports.
 #   - The DaemonSet runs in privileged mode so it can load eBPF programs.
-#     If your cluster's Pod Security Standard rejects privileged pods (e.g.
-#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.
+#     GKE Autopilot and EKS Fargate refuse privileged pods, so the
+#     gke-autopilot and eks-fargate presets leave it out whatever this says.
+#     If another cluster's Pod Security Standard rejects privileged pods,
+#     set `ebpf.enabled: false`.
 ebpf:
   enabled: true
   image:
     repository: otel/ebpf-instrument
-    tag: "v0.9.0"
+    # v0.14.0, for what changed since the v0.9.0 this chart used to run:
+    #   - Node.js 26 and later are identified as Node.js (v0.14). Their
+    #     binaries contain Rust code, and older OBI checked for Rust first, so
+    #     it skipped its Node.js agent and their requests were not linked to
+    #     the calls they make.
+    #   - Redis replies to blocking commands (BullMQ's BZPOPMIN) are no longer
+    #     parsed as new requests flowing the wrong way, which made a fake
+    #     one-span "trace" named after the key (v0.11).
+    #   - Go clients only get a `traceparent` injected when contextPropagation
+    #     asks for it; v0.9.0 injected it regardless (v0.11).
+    #   - service.peer.name is opt-in (v0.14); the chart selects it, see
+    #     ebpf.extraSpanAttributes. The trace context the profiler reads is
+    #     only kept when asked (v0.14); the chart asks when profiling is on,
+    #     see profiling.obiProcessContext.
+    #
+    # Pinning back to v0.13.0 works: the v0.14-only span-attribute selection
+    # is left out below v0.14.0, so that OBI keeps its own defaults.
+    #
+    # OBI is pre-1.0: read its release notes before moving this, and check
+    # the feature names in kubernetes-agent.ebpfMetricsFeatures still exist —
+    # OBI refuses to start on one it does not know. Move
+    # kubernetes-agent.defaultEbpfImageTag (templates/_stale-defaults.tpl)
+    # with it: the notes name a release still on an older chart's tag by
+    # comparing with it (tests/stale-defaults-source_test.yaml fails when
+    # they differ).
+    tag: "v0.14.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
   # traffic through them, so the busiest nodes (databases + app tier packed
@@ -815,11 +914,29 @@ ebpf:
   affinity: {}
   # Optional PriorityClass for the agent pods (empty = none).
   priorityClassName: ""
-  # Glob pattern of executable paths to instrument. "*" means "every process
-  # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
-  # you only want specific runtimes.
+  # Comma-separated globs of executable paths to instrument. "*" means "every
+  # process OBI can recognize". Set to a narrower list (e.g. "*/python,*/java")
+  # if you only want specific runtimes. `*` matches across `/`, so `*/java`
+  # matches /usr/bin/java and /opt/jdk/bin/java alike.
+  #
+  # How this reaches OBI: each entry becomes one `discovery.instrument` selector
+  # in the OBI config file this chart renders (templates/configmap-ebpf.yaml).
+  # OBI compiles a selector as ONE glob, in which a comma is a literal
+  # character — so the list has to be split here, and is. (Earlier versions of
+  # this chart passed the whole string to OTEL_EBPF_AUTO_TARGET_EXE unsplit,
+  # where "*/python,*/java" matched nothing at all.)
   autoTargetExe: "*"
-  # Comma-separated globs of executables to skip. Defaults filter out:
+  # Comma-separated globs of executables to skip. Each entry becomes one
+  # `discovery.exclude_instrument` selector in the OBI config file, next to
+  # OBI's own built-in exclusions (itself, OTel collectors, kube-system and the
+  # other system namespaces).
+  #
+  # (Earlier versions of this chart passed this list as
+  # OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE, which is not an OBI setting — no OBI
+  # release has read it — so NOTHING on it was ever excluded. OBI only reads
+  # exclusions from its YAML config.)
+  #
+  # Defaults filter out:
   #   - Shell / coreutils noise (sh, bash, awk, sed, ...) so transient
   #     pod execs don't show up as one-off services.
   #   - Cluster plumbing (kubelet, kube-proxy, containerd, runc, dockerd,
@@ -830,10 +947,11 @@ ebpf:
   #     restart them — and most of them already export their own
   #     Prometheus metrics that the chart can scrape via
   #     `serviceMesh.enabled: true` instead.
-  #   - Browser binaries (firefox, chrome, chromium, headless_shell, webkit) so
-  #     synthetic-monitoring / Playwright probe pods don't bury OBI in
-  #     short-lived-process churn — a CPU-peg + container-runtime-stall risk on
-  #     any node co-located with probes.
+  #   - Browser binaries (firefox, chrome, chromium, headless_shell, webkit,
+  #     and Chrome's crash reporter chrome_crashpad_handler, which every
+  #     Playwright browser launch spawns) so synthetic-monitoring / Playwright
+  #     probe pods don't bury OBI in short-lived-process churn — a CPU-peg +
+  #     container-runtime-stall risk on any node co-located with probes.
   #   - ClickHouse (clickhouse): its server binary runs a self-integrity
   #     checksum at startup and REFUSES to boot the instant OBI attaches a
   #     uprobe and patches its in-memory text — it aborts with "Calculated
@@ -850,7 +968,7 @@ ebpf:
   # (Note: `*/node` is intentionally NOT excluded — it would drop traces for
   # every Node.js service, including your own apps; the browser basenames above
   # are what cover Playwright.)
-  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit,*/clickhouse"
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chrome_crashpad_handler,*/chromium,*/webkit,*/clickhouse"
   # OBI log level: debug, info, warn, error
   logLevel: "info"
   # Print spans to stdout in addition to OTLP export — useful for confirming
@@ -865,18 +983,28 @@ ebpf:
     # OBI emits `http.server.request.duration` and gRPC equivalents as
     # OpenTelemetry histograms. Maps to feature: `application`.
     httpMetrics: true
-    # Per-span metrics (request size, response size, span duration) keyed
-    # on span attributes. Useful for slicing traffic by URL path or DB
-    # operation. Maps to feature: `application_span`.
+    # Span metrics: a call counter and a duration histogram per service,
+    # span name (route or DB operation), span kind and status code —
+    # `traces.span.metrics.calls` and `traces.span.metrics.duration`
+    # (seconds). Maps to feature: `application_span_otel`. Earlier charts
+    # asked for OBI's deprecated `application_span`, which names the same
+    # series `traces_spanmetrics_calls_total` and
+    # `traces_spanmetrics_latency`; a dashboard or monitor on those names
+    # has to move to the new ones (README, "Upgrading").
     spanMetrics: true
     # Service graph metrics — for every observed caller→callee edge OBI
     # emits request rate and latency histograms, which power the service
     # map view. Maps to feature: `application_service_graph`.
     serviceGraph: true
-    # Per-host / per-process CPU and memory metrics for instrumented
-    # processes. Lighter-weight than running a separate profiler.
-    # Maps to feature: `application_host`.
-    hostMetrics: true
+    # No longer has any effect, and kept only so values files that set it
+    # still install. It mapped to OBI's `application_host` feature, which
+    # only ever emitted a host-info gauge (`traces_host_info`) — never the
+    # per-process CPU and memory this used to promise — and which OBI v0.14
+    # removed. Current OBI (since v0.11) refuses to start on a feature it
+    # does not know, so the chart no longer passes it. Per-node CPU, memory, disk and network
+    # metrics come from the top-level `hostMetrics` (the collector's
+    # hostmetrics receiver), which is unrelated.
+    hostMetrics: false
     # Pod-to-pod TCP/UDP network flow metrics — byte and packet counts
     # for every observed connection, with k8s pod/service/namespace
     # attributes. Maps to feature: `network`.
@@ -888,16 +1016,25 @@ ebpf:
     networkInterZoneMetrics: false
     # Node-level TCP statistics: RTT histograms, failed connection
     # counts, and retransmits. Aggregated across all processes on the
-    # node, not per-service. Maps to feature: `stats`.
+    # node, not per-service. Maps to features `stats_tcp_rtt`,
+    # `stats_tcp_failed_connections` and `stats_tcp_retransmits` — not
+    # `stats`, which in current OBI also turns on `stats_tcp_io` (a probe on
+    # every TCP send and receive) and successful-connection counts.
     tcpStats: true
 
   # Distributed trace context propagation. OBI injects a W3C `traceparent`
   # into outbound requests so a call crossing pod A → pod B shows up as ONE
   # trace in the dashboard, with no SDK changes in either app.
   #
-  # **OFF by default — opt in.** This matches OBI's own default
-  # (`OTEL_EBPF_BPF_CONTEXT_PROPAGATION` is disabled upstream), and it is off
-  # here because EVERY mode mutates traffic that is already in flight:
+  # **ON by default.** Without it, a call to a pod on another node starts a
+  # trace of its own: on one node OBI matches the two ends of the TCP
+  # connection itself, but across nodes only the injected `traceparent`
+  # carries the link. OBI reads a `traceparent` only with this on
+  # (`trackRequestHeaders` below is set with it), so with it off not even
+  # one an app sends itself links OBI's spans across nodes. (Upstream OBI
+  # ships it disabled: `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`.)
+  #
+  # EVERY mode mutates traffic that is already in flight:
   #
   #   - For plaintext HTTP, OBI grows the outbound request buffer in place
   #     (`bpf_probe_write_user`) to fit the extra header.
@@ -913,11 +1050,15 @@ ebpf:
   # size-dependent, it looks like an application or proxy bug, not like an
   # agent bug — it cost one user a three-week hunt.
   #
-  # Turn it on deliberately, on a non-production cluster first, and leave it
-  # off on any node whose traffic you cannot afford to have stall. Traces,
-  # RED metrics, and the service map all still work without it; what you
-  # lose is only the automatic stitching of spans across a service boundary
-  # for apps that don't propagate `traceparent` themselves.
+  # So turn it off (`contextPropagation: false`) on any cluster where large
+  # transfers through a proxy stall after the agent is installed, and where
+  # a service mesh or an eBPF CNI starts failing pods (README,
+  # "Troubleshooting"). Traces, RED metrics, and the service map all still
+  # work without it; only the cross-node links above go.
+  #
+  # A release upgraded with --reuse-values keeps the value of the chart it
+  # came from, `false` from the charts that shipped it off; the notes after
+  # the upgrade name it. A values file with no such key counts as off.
   #
   # There is NO kernel version at which turning this on is inert, so do not
   # rule the agent out as a suspect because a node is "too old". Kernel 5.17
@@ -928,7 +1069,7 @@ ebpf:
   # DaemonSet runs privileged, so that gate is always open. `tcp`/`all`
   # additionally load Traffic Control programs (CAP_NET_ADMIN); `headers`
   # loads none.
-  contextPropagation: false
+  contextPropagation: true
   # How OBI injects the `traceparent`. Maps directly to OBI's
   # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`. Only read when
   # `contextPropagation: true`.
@@ -962,6 +1103,247 @@ ebpf:
   # plain (non-Go, non-TLS) HTTP servers. Only takes effect if
   # `contextPropagation` is true.
   trackRequestHeaders: true
+
+  # OBI's Node.js support. For a process OBI identifies as Node.js it sends
+  # SIGUSR1, which opens Node's inspector on 127.0.0.1:9229 inside the pod's
+  # network namespace, and injects a small agent that follows async context.
+  # That agent is what makes a Node.js request's outgoing HTTP, SQL and Redis
+  # calls children of the request instead of separate one-span traces — Node
+  # runs every request on one thread, so the kernel alone cannot tell which
+  # request a call belongs to. Maps to `OTEL_EBPF_NODEJS_ENABLED`. (Route
+  # templates — "POST /api/items/:id" — do not come from this agent: OBI reads
+  # them from the app's files whether it is on or not; see `routes` below.)
+  #
+  # The agent ties a call to its request through the socket the call goes
+  # out on, and OBI learns a socket only when it sees it opened (connect()
+  # or accept()) in a process it already traces. A connection the app opened
+  # before OBI attached to it is never tied to a request: typically a
+  # database pool or Redis client connected at boot, in a pod started while
+  # OBI was still working through a rollout - and every open connection when
+  # this DaemonSet restarts. A call on such a connection goes under
+  # whichever request in that process most recently began, which on a busy
+  # server is usually another one, so the request that made it shows none of
+  # its calls. Calls made outside any request (a timer, a queue worker) are
+  # handled the same way: they join the trace of the request that last
+  # began, with no parent when that request had already finished. A client
+  # that replaces its connections after a lifetime (pg-pool's
+  # `maxLifetimeSeconds`, HikariCP's `maxLifetime`) is tied again within that
+  # lifetime; one that never reconnects stays this way until the app
+  # restarts.
+  #
+  # The inspector is open only while the agent is injected — about a second,
+  # a few on a loaded node — and closed again; it is never reachable from
+  # outside the pod. Node itself prints that it was, so each app logs
+  # "Debugger listening on ws://127.0.0.1:9229/…" and "Debugger attached." to
+  # its stderr once, when OBI first finds it. That is this, not an intrusion.
+  # OBI v0.14 also records its own requests to the inspector as the app's;
+  # see dropNodeInspectorMetrics below.
+  #
+  # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
+  # this off if your security policy forbids an inspector socket in your pods,
+  # even a brief loopback-only one; Node.js traces then keep working, with
+  # every call under whichever request most recently began, as above.
+  nodejs:
+    enabled: true
+
+  # OBI stops exporting its own traces (and metrics) for a process once it
+  # sees that process export OTLP itself — it watches the process's outgoing
+  # requests for OTLP exports (e.g. to `*/v1/traces`) — so an app that already
+  # has an OpenTelemetry SDK is not traced twice. Maps to
+  # `OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES` (OBI's default: true).
+  #
+  # Set false when those apps' SDKs report somewhere else — another OneUptime
+  # project, another backend — and you want this cluster's project to have
+  # eBPF traces for them too.
+  excludeOtelInstrumentedServices: true
+
+  # How OBI names HTTP spans. A span is named "<METHOD> <route>"; when the
+  # route template is not known, OBI derives one from the URL path. OBI v0.14
+  # knows the templates of Go (net/http, Gorilla mux, Gin), Java (Spring,
+  # JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django,
+  # FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP
+  # (Symfony, Laravel, Slim) apps, read from the running app or its files.
+  # Maps to OBI's `routes` config.
+  routes:
+    # Route templates to match URL paths against, e.g.
+    # ["/api/items/{id}", "/otlp/v1/{signal}"]. A matching path gets that
+    # route (and span name) verbatim. Use this for frameworks OBI cannot
+    # harvest routes from.
+    patterns: []
+    # What to do with a path no pattern matches. "" keeps OBI's default
+    # (`heuristic`: replace segments that look like ids with `*`). Others:
+    # `low-cardinality` (heuristic, plus a cap on distinct routes),
+    # `wildcard` (every unmatched route is `/**`), `path` (the raw path —
+    # unbounded cardinality, avoid), `unset` (no route; the span is named
+    # after the method alone).
+    unmatched: ""
+    # Languages OBI does not harvest route templates for (OBI's
+    # discovery.disabled_route_harvesters): any of dotnet, go, java, nodejs,
+    # php, python, ruby. Harvesting holds up tracing: OBI reads a new
+    # process's routes before it starts tracing it, one process at a time,
+    # and waits up to harvestTimeout for each. Node.js is skipped by default:
+    # its harvester regex-scans every source file under the app's directory
+    # and cannot stop early, so a large app (a monorepo, ts-node, a frontend
+    # in the same tree) uses up the whole wait every time. After an agent
+    # restart, a node with 19 Node.js processes was traced 6 minutes late
+    # rather than 8 seconds, long enough that connections the apps opened
+    # meanwhile could not be tied to their requests. A Node.js route then
+    # comes from the path (unmatched) or from patterns. [] harvests every
+    # language (from the command line: --set 'ebpf.routes.disabledHarvesters={}'),
+    # as does a values file without the key.
+    disabledHarvesters: ["nodejs"]
+    # How long OBI waits for one process's routes before it traces the
+    # process without them (OBI's discovery.route_harvester_timeout), a
+    # positive duration such as "2s" or "500ms". "" keeps OBI's 10s. A harvest
+    # that runs out of time goes on scanning in the background.
+    harvestTimeout: ""
+
+  # Span attributes to export beyond the ones the chart always asks OBI for.
+  # Those are OBI's own default span attributes plus `service.peer.name`,
+  # which OBI v0.14 made opt-in and which the service map uses to name the
+  # service a call went to. (Asking OBI for any attribute replaces its
+  # defaults, so the chart lists them too.) Add OBI's opt-in ones by name:
+  #   - http.request.body.size, http.response.body.size — sent by default
+  #     before OBI v0.14.
+  #   - obi.http.response.observed
+  #   - db.query.text — the full SQL or Redis command, including any literal
+  #     values in it (personal data, tokens). Think before turning it on.
+  # Entries are trimmed; blanks and repeats are dropped, and "*" is ignored:
+  # it would turn on every optional attribute, db.query.text and gen_ai
+  # prompt and completion payloads included. OBI matches entries as globs.
+  # Maps to OBI's `attributes.select.traces.include`, which the chart only
+  # renders for OBI v0.14 and later (ebpf.image.tag): older OBI has other
+  # defaults and sends service.peer.name anyway.
+  extraSpanAttributes: []
+
+  # How many bytes of each database request OBI copies out of the kernel to
+  # read it, per protocol (OBI's ebpf.buffer_sizes). 0 keeps OBI's small fixed
+  # capture, which stops db.query.text at about 250 characters and can miss a
+  # long statement sent with bound parameters, as most ORMs and drivers send
+  # them, altogether. 4096 covers most ORM statements. The same limit applies
+  # to each response, separately, so a buffer costs the agent CPU and memory
+  # in proportion to database traffic. At most 65535. A values file without
+  # the key copies nothing extra.
+  bufferSizes:
+    postgres: 0
+    mysql: 0
+    mssql: 0
+
+  # Drop eBPF database spans that are not part of any trace.
+  #
+  # OBI records a span for every database command it sees — on the client
+  # that sends it AND on the database server that receives it. When the
+  # command is made while handling a request, the client span is a child of
+  # that request and shows up inside its trace. But most database traffic is
+  # not like that, and each of these becomes a "trace" of exactly one span
+  # named after the bare command — `set`, `evalsha`, `SELECT`. On a cluster
+  # with a busy queue they are the large majority of everything OBI sends,
+  # burying the request traces you actually want to read.
+  #
+  # Each switch makes the agent's collector drop one kind of eBPF database
+  # span (`db.system.name` set). An application's database calls inside a
+  # request trace are always kept. Only OBI's spans are considered —
+  # spans that applications push to the agent's OTLP endpoint from their own
+  # SDKs are never touched. Database RED metrics
+  # (`db.client.operation.duration`, …) are computed by OBI before export, so
+  # they still count every command.
+  #
+  # The span OBI records inside a database server (Valkey/Redis, PostgreSQL,
+  # MySQL, MongoDB, ...), linked or not. It always duplicates the client span
+  # the caller already recorded. Database wire protocols carry no trace
+  # context, so when the caller runs on another node it is a trace of one;
+  # when they share a node OBI links it under the call, which doubles every
+  # database call in the request trace — and leaves it pointing at a missing
+  # parent whenever dropUnlinkedDatabaseCalls drops the call it hangs from.
+  # Nothing in OneUptime reads it.
+  dropDatabaseServerSpans: true
+  # An application's own database call that belongs to no trace: work no
+  # request triggered — queue workers polling Redis (BRPOP / BZPOPMIN /
+  # EVALSHA), connection-pool pings, cron jobs — and calls OBI could not
+  # place in their request's trace.
+  #
+  # Trade-off: OneUptime discovers databases, and draws them on the service
+  # map, from database client spans. A database that ONLY background work
+  # talks to is then no longer discovered from traces (an existing entry
+  # stops being seen and is eventually archived) and shows on the service
+  # map as a remote endpoint rather than a database. Its metrics are
+  # unaffected. Set false to keep these spans — and the one-span traces.
+  dropUnlinkedDatabaseCalls: true
+  # OBI's other client calls that belong to no trace: the HTTP, gRPC and
+  # other calls (not database, messaging or GenAI calls) made by work no
+  # request triggered — a worker querying ClickHouse over HTTP, a controller
+  # renewing its Kubernetes lease, a poller, a monitor checking a website —
+  # and calls OBI could not place in their request's trace, which look the
+  # same. Each reaches OneUptime as a trace of one span named after the bare
+  # request (`POST /`, `PUT /apis/*/...`).
+  #
+  # OFF by default, because the agent's collector decides span by span and
+  # cannot see what hangs under a span, so dropping these costs data:
+  #   - When the service a call went to runs on the same node and OBI traces
+  #     it, OBI links the request it served under the call. With
+  #     `contextPropagation` on, that happens on any node, and also when the
+  #     service runs its own OpenTelemetry SDK, which reads the `traceparent`
+  #     OBI injected. The call is then the root of a whole trace (a cron
+  #     job's call into your API and everything the API did for it), and
+  #     dropping it leaves that trace without its root: it no longer shows
+  #     in the Traces list's root-span view, and the service map loses the
+  #     traced edge between the two (OBI's service graph metrics still draw
+  #     it, without latency). On the cluster this was measured on, with
+  #     `contextPropagation` off, between one in twenty and one in ten of the
+  #     calls this drops were such roots, depending on the hour; with it on,
+  #     more are.
+  #   - The service map reads these calls. A service or endpoint that only
+  #     background work calls (an external API a worker syncs with) is then
+  #     drawn from OBI's service graph metrics alone — under the name OBI gives
+  #     it there, which for an address outside the cluster that OBI knows
+  #     only by IP is `outgoing` — and an edge also seen inside requests
+  #     counts only those calls: its rate, errors and latency describe the
+  #     request traffic, not all of it.
+  #   - A service's overview (Requests, Error rate, Latency p95) counts its
+  #     spans. A worker, runner or probe whose spans are mostly these calls
+  #     shows far fewer requests (none if it does nothing else), and its
+  #     error rate and p95 then cover only the spans that are left.
+  #   - Trace searches and trace monitors find none of these calls, failed
+  #     ones included: the status does not matter.
+  # Only OBI's spans are dropped, never spans your apps push from their own
+  # SDKs, and only CLIENT spans without a parent. Database calls are
+  # dropUnlinkedDatabaseCalls's business, and messaging calls (queue
+  # discovery reads them) and GenAI calls, MCP ones included (LLM cost and
+  # token figures come from them), are always kept. OBI's metrics are
+  # unaffected: `http.client.request.duration`, `rpc.client.call.duration`
+  # and the service graph counters still count every call.
+  #
+  # Only an explicit true turns it on: a key missing from your values (a
+  # release upgraded with --reuse-values) counts as off.
+  dropUnlinkedClientCalls: false
+
+  # Drop the HTTP metrics OBI records for its own Node.js agent injection
+  # (see `nodejs` above). OBI v0.14 starts tracing a Node.js process before
+  # it injects the agent, so its own requests to the app's inspector —
+  # GET /json/list (and GET /json/version when the inspector was already
+  # open) and the WebSocket upgrade that follows, from 127.0.0.1 to port
+  # 9229 — are counted as the app's: routes `/json/list`, `/json/version`
+  # and `/*` (status 101) show up in its http.server.* request metrics.
+  #
+  # The agent's collector drops OBI's http.server.* datapoints for GET on
+  # port 9229 with one of those routes (`/*` only when answered 101). A
+  # datapoint carries no client address, so an app's own GET /json/list or
+  # /json/version on port 9229, and its own WebSocket upgrades there that
+  # OBI names `/*` (no route template), lose their datapoints too; set false
+  # if that is yours. Those route names are OBI's default naming
+  # (`routes.unmatched` heuristic): with another `routes.unmatched`, or a
+  # `routes.patterns` entry that matches those paths, some or all of the
+  # injection's datapoints are kept. Nothing is dropped with `nodejs.enabled`
+  # false, since OBI then never injects.
+  #
+  # Only the http.server.* request metrics are filtered. OBI's span metrics
+  # (`features.spanMetrics`) carry neither the port nor the HTTP status, so
+  # they still count a GET /json/list call per injection (and a GET
+  # /json/version for an app started with --inspect) and add the upgrade to
+  # the app's GET /*. Spans are not this switch's business: OneUptime drops
+  # the injection's traces itself on ingest, where the client address is
+  # known.
+  dropNodeInspectorMetrics: true
 
   # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to
   # the `write()` syscall in every instrumented process, looks up the
@@ -1088,7 +1470,15 @@ ebpf:
 #   - Linux kernel 5.10+ (newer than the 5.8 OBI needs).
 #   - Privileged pod with hostPID — same constraints as the eBPF
 #     auto-instrumentation DaemonSet, so it lights up on the same
-#     clusters and fails on the same ones (GKE Autopilot, EKS Fargate).
+#     clusters, and the gke-autopilot and eks-fargate presets leave it
+#     out the same way, whatever this says.
+#   - Nodes whose hostPID is the kernel's root PID namespace, as any
+#     VM or bare-metal node's is. The profiler looks a sample's process
+#     up by its root-namespace PID in the node's /proc, with no
+#     PID-namespace translation, so on nodes that are themselves
+#     containers (KinD, k3d, container-based Docker Desktop nodes) it
+#     attributes samples to the wrong processes and almost no sample
+#     links to a span.
 profiling:
   enabled: false
   image:
@@ -1123,6 +1513,12 @@ profiling:
   # context via the shared bpffs map (`traces_ctx_v1`) — so flame
   # graphs carry trace_id/span_id and individual spans get their own
   # flame graph in the OneUptime UI. Requires `ebpf.enabled: true`.
+  # With this and `profiling.enabled` on, the chart also sets
+  # OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true on the eBPF DaemonSet: since
+  # v0.14 OBI leaves that map empty unless asked, because keeping it
+  # current costs a refresh on every async context switch of the
+  # instrumented apps (on Node.js, a hook on every callback). Set false
+  # to skip both the correlation and that cost.
   obiProcessContext: true
 
 # Per-node OS-level metrics. The Kubernetes-aware `kubeletstats`
@@ -1208,191 +1604,167 @@ serviceAccount:
   name: ""
   annotations: {}
 
-# OneUptime AI access — let OneUptime AI run kubectl on this cluster.
+# Kubernetes AI agent — lets OneUptime AI run kubectl on this cluster.
 #
-# When an incident or alert is raised on this cluster, OneUptime AI
-# investigates it. Without this block it can only use the telemetry the
-# agent ships; with it, it also runs kubectl the way an on-call engineer
-# would (describe the failing pod, read its events, tail the crashing
-# container's logs, check node capacity) and, if you allow it, fixes the
-# problem too. The investigation and the fix both appear on the incident /
-# alert page with every command that ran.
+# On by default, read-only. When an incident or alert is raised on this
+# cluster, OneUptime AI investigates it. With the agent it also runs
+# read-only kubectl the way an on-call engineer would (describe the failing
+# pod, read its events, tail the crashing container's logs) and shows every
+# command it ran. Fixes are a separate opt-in (aiAgent.remediation below).
 #
-# Enabling this deploys one small Deployment: the OneUptime Runner
-# (oneuptime/runner), which registers itself with the same ingestion key the
-# agent uses (oneuptime.apiKey) and binds itself to this cluster by name
-# (clusterName). No dashboard steps: after `helm upgrade` the cluster's AI
-# page in OneUptime shows "Connected". An ingestion key with a Pinned Service
-# Name cannot register the Runner. If a registration is refused, the Runner's
-# log says whether it clears on its own or what to change. Removing what the
-# Runner row holds keeps the cluster's binding; if you delete the Runner
-# instead, the agent registers a fresh one, but a registration never
-# re-binds a cluster that had a Runner bound, so select the new Runner on
-# the cluster's AI page afterwards.
+# It is one small pod (oneuptime/kubernetes-ai-agent) that connects with this
+# chart's oneuptime.apiKey and clusterName, so there is nothing to set up in
+# the dashboard: the cluster's AI → Agent page shows it as Connected within a
+# minute. An API key with a Pinned Service Name cannot register it. If it does
+# not connect, its log says whether a refusal clears on its own or what to
+# change:  kubectl logs -n <namespace> -l component=ai-agent --tail=100
+# Self-hosted OneUptime: the agent needs a OneUptime server of this chart's
+# version or newer, so upgrade the server first. It is not a OneUptime Runner,
+# and not related to the "AI Agent" retired in OneUptime 12.
 #
-# What it can do is decided in two places, and they do different jobs:
-#   * RBAC, here. aiAccess.enabled grants the Runner's ServiceAccount
-#     READ-ONLY verbs (get/list/watch, pods/log), cluster-wide.
-#     aiAccess.remediation.enabled adds the write verbs OneUptime AI's fixes
-#     use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets
+# Turn it off with --set aiAgent.enabled=false.
+#
+# What it may do is decided in two places:
+#   * RBAC, here. Read-only by default: get/list/watch and pod logs,
+#     cluster-wide. aiAgent.fixes (any level but off) adds the write verbs
+#     fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets
 #     (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on
 #     Jobs (`create job --from=cronjob/...`) and HPAs; delete on Pods and Jobs
 #     only; and, with remediation.nodeOperations, cordon/uncordon/taint/drain
-#     on nodes. It never grants secrets, exec, attach, port-forward, CRDs,
-#     RBAC writes, or deleting namespaces, volumes or nodes.
-#     Be clear about what that write access is, though: patch/update on
-#     workloads, pods and CronJobs (and create on Jobs) in a namespace is
-#     equivalent to running any image as any ServiceAccount in that namespace
-#     and reading its Secrets — a pod template can name any image,
-#     ServiceAccount and Secret volume. So RBAC bounds WHERE the Runner may
-#     write (remediation.namespaces), not what a write may do.
-#   * Policy, in OneUptime, re-checked by the Runner before it spawns
-#     kubectl. It refuses exec/attach/cp/port-forward/apply/edit/replace,
-#     Secret objects, pod-template security patches, patches that replace
-#     the pod spec or a whole containers list (`$patch: replace`, a merge
-#     patch of `containers`, a JSON-patch replace/remove of the pod spec),
-#     `set serviceaccount`, `create deployment|cronjob|job --image`,
-#     `expose --overrides` (which can create any kind of object instead of a
-#     Service), pod-template patches of host ports, hostUsers or
-#     runtimeClassName, patch bodies that are not JSON, labels/annotations
-#     on Namespace objects picked by --all or a selector, any write to RBAC
-#     objects, CRDs, APIServices, admission webhooks or admission policies,
-#     `--all-namespaces` writes and `delete --all` in every mode, even with
-#     a human approving. It does not refuse changing an
-#     image: `set image` (or a patch of an image field) is a riskier change
-#     that runs the new image as the workload's own ServiceAccount, with its
-#     Secrets; a human approves it unless the cluster bypasses approvals or
-#     its allowlist names the command.
-#     In every mode, "bypass approval" included, a write in kube-system,
-#     kube-public or kube-node-lease (a custom resource is judged by its
-#     namespace, even one named like a built-in kind), a drain, a taint and
-#     a patch of a node always wait for a human (a drain evicts pods in
-#     every namespace, those three and the agent's own included, and a
-#     NoExecute taint does too, whether `kubectl taint` or a node patch sets
-#     it), and the Runner never changes its own namespace, anything outside
-#     remediation.namespaces, or a node when remediation.nodeOperations is
-#     false. OneUptime reads that scope from what the Runner reports and
-#     refuses such a fix when it is proposed or approved, before the Runner
-#     would refuse it.
-#     The cluster's AI page decides whether AI may investigate (read-only
-#     kubectl), and whether it may remediate:
-#       - "ask for approval": a human approves the exact kubectl plan with
-#         one click;
-#       - "automatic": safe changes run on their own; a riskier change never
-#         does. When the round could only find riskier fixes it ends by
-#         proposing exactly those for one-click approval; when it also ran a
-#         safe fix, a riskier fix is proposed only if verification shows the
-#         safe one did not recover the signal (the follow-up round, which
-#         asks). Shapes on the cluster's kubectl allowlist run on their own,
-#         except the every-mode lines above (an allowlist entry must spell
-#         out its verb and be more than one word, or it is refused). A
-#         round proposes instead of running when the hourly circuit breaker
-#         trips or another unattended round still holds the cluster;
-#       - "bypass approval": AI does not ask. Every change the policy allows,
-#         riskier ones included, runs on its own, follow-up rounds included,
-#         except the every-mode lines above. A round still asks instead when
-#         the hourly circuit breaker trips, when another unattended OneUptime
-#         AI round is still changing or verifying the same cluster, or when it
-#         follows a fix whose rollback did not complete. The AI SRE docs
-#         (Cluster access) list every case.
+#     on nodes. Never secrets, exec, attach, port-forward, CRDs or RBAC writes.
+#     Be clear about what write access is: patch/update on workloads, pods and
+#     CronJobs (and create on Jobs) in a namespace is equivalent to running
+#     any image as any ServiceAccount in that namespace and reading its
+#     Secrets. So RBAC bounds WHERE the agent may write
+#     (remediation.namespaces), not what a write may do.
+#   * Policy, in OneUptime, re-checked by the agent before it runs kubectl.
+#     It refuses changing which ServiceAccount, security settings, volumes,
+#     command or Secret wiring a pod runs with (patches of host ports,
+#     hostUsers or runtimeClassName, and patches that replace the pod spec or
+#     a whole containers list, included), `expose --overrides`, Secret
+#     objects, RBAC writes, exec, attach, apply and edit, in every mode. It
+#     does not refuse changing an image: `set image` is a riskier change a
+#     human approves unless the cluster bypasses approvals or its allowlist
+#     names the command.
+#     In every mode, a write in kube-system, kube-public or kube-node-lease (a
+#     custom resource is judged by its namespace), a drain, a taint and a
+#     patch of a node always wait for a human, and the agent never changes its
+#     own namespace, anything outside remediation.namespaces, or a node when
+#     remediation.nodeOperations is false. OneUptime refuses such a fix
+#     already when it is proposed or approved.
+#     How fixes run is set here, with aiAgent.fixes below: off;
+#     ask-for-approval (a human approves the exact kubectl plan); automatic
+#     (safe changes run on their own; a round that could only find riskier
+#     fixes ends by proposing exactly those for one-click approval, and
+#     otherwise a riskier fix waits for the follow-up round, which asks); or
+#     bypass-approval (AI does not ask, except when the hourly circuit
+#     breaker trips, when another unattended OneUptime AI round is still
+#     changing or verifying the same cluster, or after a fix whose rollback
+#     did not complete). The cluster's AI → Agent page shows it, with the
+#     command that changes it. The chart README has the details.
 #
-# Read-only investigation only:
-#   --set aiAccess.enabled=true
-# Investigation + fixes:
-#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
-#
-# Existing install: run `helm repo update` first (an old local index serves
-# the previous chart, whose schema rejects aiAccess.*), then
-# `helm upgrade <release> oneuptime/kubernetes-agent -n <namespace>
-# --reuse-values --set ...`. That works even though the release's stored
-# values predate this block — every aiAccess.* value has a fallback in the
-# template matching the defaults below. On Helm 3.14+,
-# `--reset-then-reuse-values` is the safer flag: it keeps your overrides and
-# also picks up this chart's defaults for everything else, which plain
-# `--reuse-values` never does.
-aiAccess:
-  enabled: false
-  remediation:
-    # Grant the Runner write RBAC so OneUptime AI can apply fixes. A cluster
-    # registering for the FIRST time with this on starts in "ask for
-    # approval" on its AI page — unless someone already picked AI settings on
-    # that page before the install: then the Runner is bound and every
-    # setting is kept exactly as chosen. A cluster that was already
-    # registered (say, read-only first and writes now) keeps whatever mode
-    # its AI page has — the server never flips a switch an operator owns — so
-    # pick "ask for approval", "automatic" or "bypass approval" there after
-    # the upgrade.
-    enabled: false
-    # Where the write role applies. List namespaces to bind it with one
-    # RoleBinding in each (and nowhere else); the Runner is told the list
-    # and refuses a write outside it before spawning kubectl, and since it
-    # reports the list, OneUptime refuses such a write already when it is
-    # proposed or approved.
-    #
-    # Every listed namespace must already exist. The chart creates a
-    # RoleBinding in each and never creates a namespace, so a missing one
-    # fails the whole install or upgrade — the collector's too — with
-    # `namespaces "<name>" not found`: create it first, or take it off the
-    # list. Take a namespace off the list before you delete it (if it is
-    # already gone, drop it on the next upgrade). To go back to cluster-wide
-    # on a release that stores a list, pass
-    # `--set-json 'aiAccess.remediation.namespaces=[]'` (Helm 3.10+); leaving
-    # the flag out under --reuse-values keeps the stored list, and `={}` is
-    # read by Helm as one empty name, which the schema rejects.
-    # `--set aiAccess.remediation.namespaces=null` does not reset a stored
-    # list under --reuse-values: Helm keeps the stored list, and on a release
-    # installed before aiAccess existed the upgrade fails this schema. `=null`
-    # only works with --reset-then-reuse-values (Helm 3.14+) in place of
-    # --reuse-values.
-    #
-    # Empty (the default, so the one-flag setup keeps working) binds it
-    # cluster-wide with a ClusterRoleBinding. RBAC cannot leave namespaces
-    # out of a ClusterRoleBinding, so that includes kube-system,
-    # kube-public, kube-node-lease and this release's own namespace: there
-    # the policy (which never runs a write in those three system namespaces
-    # without a human) and the Runner (which never writes its own
-    # namespace) hold the line, not RBAC. List namespaces to make RBAC hold
-    # it too. This release's own namespace may not be listed.
-    #   namespaces: [web, api]
-    namespaces: []
-    # Node operations: cordon/uncordon/taint (patch on nodes) and drain
-    # (create on pods/eviction). Nodes are cluster-scoped and a drain evicts
-    # pods in every namespace, so these are bound cluster-wide in a role of
-    # their own whatever `namespaces` says, and a drain, a taint or a patch
-    # of a node always waits for a human, in every mode. On by default with
-    # remediation.enabled; set false to keep OneUptime AI's fixes off nodes:
-    # the chart then grants no node RBAC and tells the Runner
-    # (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false), which refuses cordon,
-    # uncordon, drain, taint and label/annotate/patch on a node before it
-    # spawns kubectl; OneUptime, which the Runner tells, refuses such a fix
-    # already when it is proposed or approved.
-    nodeOperations: true
+# Let AI fix things too (list the namespaces it may change; each must
+# already exist):
+#   helm repo update
+#   helm upgrade <release> oneuptime/kubernetes-agent -n <namespace> \
+#     --reset-then-reuse-values --set aiAgent.investigation=true \
+#     --set aiAgent.fixes=ask-for-approval \
+#     --set "aiAgent.remediation.namespaces={web,api}"
+aiAgent:
+  enabled: true
+  # What OneUptime AI may do on this cluster. The cluster's AI → Agent page
+  # shows these two and offers no way to change them there: change them
+  # here. They are left unset on purpose. A release that sets neither lets
+  # the agent use its defaults (investigation on; fixes ask-for-approval
+  # when the deprecated aiAgent.remediation.enabled is true, else off), and
+  # OneUptime applies those only to a cluster whose settings nobody chose on
+  # its AI → Agent page — a default here would replace such a choice on
+  # every upgrade that takes this chart's defaults.
+  #
+  # # AI runs read-only kubectl (get, describe, logs, events, top) while it
+  # # investigates an incident or alert on this cluster. false: it still
+  # # investigates, with the data OneUptime already has.
+  # investigation: true
+  #
+  # # What AI does when it finds a fix: off (never proposes or runs a
+  # # change; the agent stays read-only), ask-for-approval (a person approves
+  # # the exact kubectl plan before it runs), automatic (safe changes run on
+  # # their own, riskier ones ask) or bypass-approval (every change the
+  # # policy allows runs on its own). Every level but off grants the agent
+  # # the write RBAC described above, bound where remediation.namespaces
+  # # says; off grants none. Quote it in a values file ("off"): YAML reads a
+  # # bare off as false, which the chart also reads as off.
+  # fixes: "off"
   image:
-    repository: oneuptime/runner
+    repository: oneuptime/kubernetes-ai-agent
     # Leave empty to track `release` — the moving tag the release pipeline
     # re-points at every OneUptime version, like this chart's other OneUptime
-    # images. Pin a OneUptime version (e.g. "14.0.1") to hold it.
+    # images. Pin a OneUptime version (e.g. "14.1.0") to hold it. To use a
+    # mirror, set repository (e.g. registry.example.com/oneuptime/kubernetes-ai-agent).
     tag: ""
-    # Leave empty for Always while the tag is the moving `release` (so a
-    # node that cached an older Runner, and its policy re-check, never keeps
-    # running it after an upgrade) and IfNotPresent for a pinned tag.
+    # Leave empty for Always while the tag is the moving `release` (so a node
+    # that cached an older agent, and its policy re-check, never keeps running
+    # it after an upgrade) and IfNotPresent for a pinned tag.
     pullPolicy: ""
-  # The Runner idles between commands; a kubectl call is a short burst.
+  # Pull secrets for a private registry or mirror, e.g.
+  #   imagePullSecrets:
+  #     - name: my-registry-secret
+  imagePullSecrets: []
+  # The agent idles between commands; a kubectl call is a short burst.
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 64Mi
     limits:
       cpu: 500m
-      memory: 512Mi
-  # Extra environment for the Runner container (rarely needed), e.g.
-  # HTTPS_PROXY / NO_PROXY behind an egress proxy. The names the chart sets
-  # itself (ONEUPTIME_URL, ONEUPTIME_INGESTION_KEY,
-  # ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_RUNNER_NAME,
-  # ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES,
-  # ONEUPTIME_KUBECTL_WRITE_NAMESPACES,
-  # ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_RUNNER_POD_NAMESPACE,
-  # ONEUPTIME_RUNNER_ENABLE_RUNBOOKS, ONEUPTIME_RUNNER_ENABLE_CODE_FIXES,
-  # HOME, KUBECACHEDIR, PORT) and ONEUPTIME_RUNNER_ID / ONEUPTIME_RUNNER_KEY
-  # fail the render instead of silently replacing the chart's value.
-  extraEnv: []
+      memory: 256Mi
+  # The keys below are left unset on purpose. A release that used the
+  # previous aiAccess block keeps its aiAccess.remediation.* and
+  # aiAccess.extraEnv until the matching aiAgent key is set; a default here
+  # would silently replace them. Set them with --set as usual.
+  #
+  # remediation:
+  #   # Deprecated: set aiAgent.fixes instead, which grants the same write
+  #   # RBAC with every level but off. Read only while aiAgent.fixes is unset:
+  #   # true grants write RBAC, and the agent's default fixes are then
+  #   # ask-for-approval.
+  #   enabled: false
+  #   # Where the write role applies. List namespaces to bind it with one
+  #   # RoleBinding in each and nowhere else; the agent refuses a write
+  #   # outside the list before it runs kubectl, and OneUptime refuses it
+  #   # already when it is proposed or approved. Every listed namespace must
+  #   # already exist: the chart never creates one, so a missing one fails the
+  #   # whole install or upgrade with `namespaces "<name>" not found`. This
+  #   # release's own namespace may not be listed.
+  #   # Empty binds it cluster-wide with a ClusterRoleBinding, which RBAC
+  #   # cannot keep out of kube-system, kube-public, kube-node-lease or this
+  #   # release's namespace: there the policy and the agent hold the line.
+  #   # Leaving the flag out of an upgrade keeps a stored list; go back
+  #   # to cluster-wide with --set-json 'aiAgent.remediation.namespaces=[]'
+  #   # (not `={}`, which Helm reads as one empty name).
+  #   namespaces: []
+  #   # Node operations: cordon/uncordon/taint (patch on nodes) and drain
+  #   # (create on pods/eviction), cluster-wide in a role of their own. A
+  #   # drain, a taint or a patch of a node always waits for a human. Set
+  #   # false to keep fixes off nodes: no node RBAC, and
+  #   # ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false tells the agent to refuse
+  #   # them before it runs kubectl.
+  #   nodeOperations: true
+  #
+  # # Extra environment for the agent container, e.g. HTTPS_PROXY and
+  # # NO_PROXY when the cluster reaches OneUptime through an egress proxy.
+  # # Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_API_KEY,
+  # # ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION,
+  # # ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES,
+  # # ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_AI_AGENT_POD_NAMESPACE,
+  # # ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES,
+  # # HOME, KUBECACHEDIR, PORT) fail the render instead of silently replacing
+  # # the chart's value. Unset, a stored aiAccess.extraEnv carries over; clear
+  # # it with --set-json 'aiAgent.extraEnv=[]'.
+  # extraEnv: []
+
+# aiAccess (charts 14.0.2 to 14.0.8) is deprecated: use aiAgent. It stays in
+# values.schema.json so releases that stored it still upgrade. The chart
+# carries aiAccess.remediation.* and aiAccess.extraEnv over while the
+# matching aiAgent key is unset, and ignores aiAccess.enabled, aiAccess.image
+# and aiAccess.resources.

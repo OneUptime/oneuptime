@@ -1,0 +1,273 @@
+# Casos de segurança e playbooks (SOAR)
+
+O Security Events transforma o que as suas regras de detecção, a inteligência de ameaças e os produtos de segurança conectados encontram em casos: um caso para cada coisa que vale a pena investigar, com todas as detecções sobre o mesmo usuário, host ou endereço agrupadas nele. Os analistas tratam os casos em uma fila, e os playbooks respondem a eles, sozinhos ou com um clique.
+
+:::cards
+- [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados e pessoas.
+- [Tratar um caso](#tratar-um-caso): Atribua-o, investigue as entidades dele e feche-o com um veredito.
+- [Playbooks](#playbooks): Etapas que rodam em um caso, com aprovação onde ela importa.
+- [A visão geral](#a-visão-geral): O que precisa de alguém agora, e com que rapidez os casos são tratados.
+:::
+
+## Como funciona
+
+```mermaid title="De uma detecção a um caso fechado"
+flowchart TB
+    subgraph sources["Detecções"]
+        direction LR
+        rules["Regras de<br/>detecção"] ~~~ intel["Inteligência<br/>de ameaças"] ~~~ products["Produtos<br/>conectados"]
+    end
+    sources --> group{"Um caso aberto sobre<br/>a mesma entidade?"}
+    group -->|"Sim"| join["A detecção<br/>entra no caso"]
+    group -->|"Não"| open["Um novo caso é aberto"]
+    join --> playbooks["Os playbooks rodam"]
+    open --> playbooks
+    playbooks --> work["Um analista<br/>trata o caso"]
+    work --> close["Fechado com um veredito"]
+```
+
+Abra **Produtos → Security Events → Casos de segurança → Casos abertos** para a fila. **Atribuídos a mim**, **Não atribuído**, **Casos fechados** e **Todos os casos** são páginas próprias ao lado, cada uma listando os casos que o nome diz.
+
+## Antes de começar
+
+Os casos e os playbooks seguem os três papéis de segurança. Project Owner e Project Admin podem fazer tudo.
+
+| Papel | O que pode fazer |
+| --- | --- |
+| Security Admin | Tudo, inclusive excluir casos e configurar playbooks |
+| Security Member | Abrir, atribuir, alterar e fechar casos, escrever notas, executar playbooks e aprovar ou rejeitar as etapas deles |
+| Security Viewer | Ler casos, detecções, notas, playbooks e as execuções deles |
+
+Cada uma dessas ações também pode ser concedida separadamente, de criar um caso a aprovar as etapas de um playbook; veja [Referência de permissões](/docs/permissions/reference).
+
+## De onde vêm os casos
+
+| Origem | Abre um caso quando | Como desativar |
+| --- | --- | --- |
+| Regras de detecção | Uma regra corresponde | **Open a Case on Match**, na etapa **Ao corresponder** da regra |
+| Inteligência de ameaças | Um evento cita um indicador conhecido | **Open a Case on Match**, na etapa **Ao corresponder** do feed |
+| Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Polling** da conexão |
+| Pessoas | Alguém abre um em **Casos de segurança**, ou com **Open Case** no painel de um evento | Não há como |
+
+Todas as origens vêm ativadas por padrão. Uma conexão abre casos para **High and above**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
+
+### Como as detecções são agrupadas
+
+Uma detecção é sobre uma entidade: o valor pelo qual a regra dela agrupa, como o endereço IP de uma regra de força bruta, ou o indicador que uma correspondência de inteligência de ameaças cita. Uma detecção sem entidade fica sozinha.
+
+- Quando um caso aberto já é sobre essa entidade, a detecção entra nele. As entidades do caso e o mapeamento ATT&CK dele crescem, e a prioridade dele sobe até a da detecção, nunca desce.
+- Quando nenhum caso aberto é sobre ela, um novo caso é aberto, com o nome e a prioridade da detecção.
+- Uma detecção que dispara de novo aumenta a contagem na própria linha em vez de acrescentar outra.
+
+A prioridade de um caso vem da gravidade da detecção:
+
+| Gravidade | Prioridade |
+| --- | --- |
+| Critical ou Fatal | Crítico |
+| High | High |
+| Medium, Unknown ou Other | Medium |
+| Low | Low |
+| Informational | Informativos |
+
+## Tratar um caso
+
+Um caso passa por quatro status. Ele pode pular um, como um falso positivo fechado direto de Novo, e pode ser reaberto.
+
+| Status | Significado |
+| --- | --- |
+| Novo | Ninguém olhou para ele ainda |
+| Investigando | Alguém está apurando o que aconteceu |
+| Contained | A ameaça não pode mais causar danos; a limpeza ainda está por fazer |
+| Fechado | Concluído, com um veredito sobre o que era |
+
+A página do caso tem tudo para tratá-lo:
+
+- No topo: **Assign to Me**, **Run Playbook**, **Declarar incidente** e **Close Case**, as etapas de status e, no menu ao lado, a prioridade.
+- **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
+- **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
+- **MITRE ATT&CK**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
+- **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação.
+- **Notas** e **Linha do tempo**: o que a equipe escreveu, e tudo o que aconteceu, com quem fez.
+
+Para tratar vários casos de uma vez, selecione-os na fila e use **Assign to Me**, **Change Status** ou **Change Priority**.
+
+### Fechar um caso
+
+**Close Case** pede um veredito e uma nota de fechamento opcional:
+
+| Veredito | Significado |
+| --- | --- |
+| True Positive | Uma atividade maliciosa ou não autorizada realmente aconteceu |
+| Benign Positive | A atividade era real, mas esperada, como um teste de intrusão ou uma tarefa administrativa |
+| False Positive | A detecção estava errada: a regra ou os dados interpretaram mal uma atividade normal |
+| Undetermined | Não havia informação suficiente para dizer |
+
+Os vereditos são contados na visão geral. Uma regra cujos casos continuam sendo fechados como False Positive é uma regra a ajustar.
+
+### Declarar um incidente
+
+**Declarar incidente** abre um incidente do OneUptime para o caso, com a severidade que você escolher, e liga os dois nos dois sentidos: a descrição do incidente cita o caso, e o cabeçalho do caso tem um link para o incidente. A partir daí, o plantão, as páginas de status e o postmortem assumem. É preciso um papel que possa tanto tratar casos quanto criar incidentes.
+
+## Playbooks
+
+Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Security Events → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele.
+
+### Quando um playbook roda
+
+| Execuções | Quando |
+| --- | --- |
+| Case Opened | Uma vez, quando um caso é aberto |
+| Detection Added | Cada vez que uma nova detecção entra em um caso aberto |
+| Manual | Só quando alguém o executa a partir de um caso |
+
+Qualquer playbook habilitado também pode ser executado manualmente, com **Run Playbook** em um caso. Um playbook que roda sozinho pode ser restringido:
+
+- **For Cases At Least**: só casos desta prioridade ou maior.
+- **Only For Detections From**: só quando a detecção por trás do caso veio desta origem.
+- **Only For These Detection Rules**: só quando ela veio de uma destas regras.
+
+Um playbook desabilitado não roda nem sozinho nem manualmente.
+
+### Etapas
+
+| Categoria | Etapa | O que faz |
+| --- | --- | --- |
+| Caso | Assign the case | Atribui o caso a uma pessoa, a uma equipe ou a ambas |
+| Caso | Set the priority | Aumenta ou diminui a prioridade do caso |
+| Caso | Set the status | Define o status do caso como Investigando, Contained ou Fechado, com o veredito que você escolher |
+| Caso | Add a note | Escreve uma nota no caso, como uma checklist para o analista |
+| Caso | Add labels | Marca o caso com rótulos |
+| Investigação | Check entities against threat intel | Procura cada entidade na sua inteligência de ameaças, e pode aumentar a prioridade quando encontra uma correspondência |
+| Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
+| Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
+| Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
+| Notificação | Post to Microsoft Teams | Publica um resumo do caso em um canal do Microsoft Teams |
+| Escalonamento | Page on-call | Executa uma política de plantão |
+| Escalonamento | Declare an incident | Abre um incidente do OneUptime vinculado ao caso |
+| Contenção | Suspend the user in Okta | Suspende no Okta o usuário de que o caso trata |
+| Contenção | End the user's Okta sessions | Desconecta do Okta o usuário de que o caso trata e revoga os tokens dele |
+| Contenção | Contain the host in CrowdStrike | Aplica a contenção de rede ao host de que o caso trata com o CrowdStrike Falcon |
+| Contenção | Isolate the device in Microsoft Defender | Isola o host de que o caso trata com o Microsoft Defender for Endpoint |
+| Contenção | Unsuspend the user in Okta | Cancela no Okta a suspensão do usuário de que o caso trata |
+| Contenção | Lift containment in CrowdStrike | Retira do host de que o caso trata a contenção de rede do CrowdStrike Falcon |
+| Contenção | Release the device in Microsoft Defender | Libera do isolamento no Microsoft Defender for Endpoint o host de que o caso trata |
+| Automação | Send a webhook | Envia o caso como JSON para uma URL |
+| Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
+
+Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
+
+- **Needs Approval**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção.
+- **Only If Threat Intel Matched**: pular a etapa, a menos que uma etapa **Check entities against threat intel** anterior da mesma execução tenha encontrado um indicador conhecido.
+- **Carry On If It Fails**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
+
+### Contenção
+
+As etapas de contenção agem por meio de uma [conexão de eventos de segurança](/docs/telemetry/security-events#conecte-um-produto-de-segurança) com o produto, que precisa de mais do que acesso de leitura:
+
+| Etapa | Conexão | Precisa de |
+| --- | --- | --- |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Um token de API com permissão para gerenciar usuários |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Um cliente de API com o escopo Hosts de gravação |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Um app com a permissão Machine.Isolate |
+
+Uma etapa de contenção age só nos usuários ou hosts de que o caso trata, nunca em todos os que ele cita:
+
+- O valor pelo qual uma detecção do caso é agrupada, como a conta pela qual uma regra de viagem impossível agrupa, ou o host que o alerta de um produto conectado cita.
+- Um usuário ou host do caso que a sua inteligência de ameaças conhece como indicador.
+
+Um caso agrupado por um endereço, como um ataque de força bruta contra a sua VPN, não trata de nenhum dos dois: as etapas de contenção dele são puladas, e a conta tentada e o gateway atingido ficam intactos. Uma etapa age em no máximo 10 usuários ou hosts. Ela encontra cada um no produto pelo nome, e informa na execução o que fez com cada um: feito, já feito, não encontrado, recusado ou protegido.
+
+#### Entidades protegidas
+
+**Protected Entities**, em **Playbooks** no menu, lista os usuários e hosts aos quais nenhum playbook aplica contenção, como contas de acesso de emergência, controladores de domínio e gateways de VPN. Um valor corresponde sem diferenciar maiúsculas de minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` protege todas as contas de serviço. Uma etapa informa um usuário ou host protegido como protegido e o deixa intacto. Os Security Admins mantêm a lista.
+
+#### Aprovação
+
+As quatro etapas que cortam o acesso de alguém aguardam aprovação. Só um Security Admin pode desativar **Needs Approval** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Act On** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
+
+#### Desfazer
+
+As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Unsuspend**, **Lift Containment** ou **Liberar**. Uma sessão do Okta encerrada não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
+
+### Mensagens
+
+Uma nota, um e-mail, uma publicação no Slack e uma publicação no Teams podem usar os valores do caso:
+
+| Marcador | Vira |
+| --- | --- |
+| `{{case.number}}` | O número do caso, como CASE-42 |
+| `{{case.title}}` | O título do caso |
+| `{{case.priority}}` | Critical, High, Medium, Low ou Informational |
+| `{{case.status}}` | New, Investigating, Contained ou Closed |
+| `{{case.assignee}}` | A quem o caso está atribuído |
+| `{{case.url}}` | Um link para o caso no OneUptime |
+| `{{case.entities}}` | Os usuários, hosts e endereços de que o caso trata |
+| `{{case.detections}}` | Quantas detecções o caso contém |
+
+Um e-mail ou uma publicação sem mensagem própria envia um resumo do caso.
+
+### Execuções e aprovações
+
+Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções de playbooks**, etapa por etapa:
+
+| Status da execução | Significado |
+| --- | --- |
+| Queued | Aguardando um worker |
+| Em execução | Executando as etapas dela |
+| Waiting for Approval | Parada antes de uma etapa que precisa de aprovação |
+| Bem-sucedido | Todas as etapas rodaram, ou foram puladas |
+| Falhou | Uma etapa falhou e a execução parou |
+| Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
+
+Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. **Aguardando aprovação**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções de playbooks** lista todas as execuções.
+
+Uma execução que deixa de receber sinais do worker dela, depois de uma reinicialização, por exemplo, é retomada: uma execução na fila volta para a fila depois de 2 minutos, e uma execução que não dá sinal por 30 minutos é marcada como falha.
+
+## A visão geral
+
+**Produtos → Security Events → Visão geral** é onde o produto abre:
+
+- Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
+- **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou tirando-o de Novo), até Contained e até Fechado. Um caso que ainda está esperando não entra na média.
+- Os casos abertos a cada dia, nos últimos 30 dias, por prioridade, e as detecções geradas a cada dia, nos últimos 14 dias, por origem.
+- Os casos abertos por prioridade e por status, os vereditos dos últimos 30 dias, as táticas ATT&CK por trás dos casos, as detecções que mais dispararam e as entidades citadas pelo maior número de achados.
+
+Acima, uma faixa mostra como a segurança está configurada: suas origens, detecções, casos e playbooks, cada um com seus números. Um projeto que ainda não a configurou vê ali **Ativar o recomendado** e **Enviar um ataque de teste**; consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started). Quando nada precisa de ninguém, a página diz **Tudo tranquilo**, e os gráficos aparecem assim que há algo para mostrar.
+
+## Encontrar ameaças
+
+- **Entidades** classifica os usuários, hosts, endereços e hashes que os seus achados mais citam, no último dia, semana ou mês, e procura qualquer valor em 30 dias de eventos.
+- **Rule Library** tem regras de detecção prontas, para ameaças de identidade, endpoint, nuvem, rede, web e Kubernetes. Cada uma é uma regra Sigma escrita para os campos para os quais toda origem conectada é normalizada. **Adicionar regra** a cria como uma regra de detecção sua, ativada e abrindo casos em vez de alertas; altere-a em **Detection Rules** como qualquer outra. As regras marcadas como **Recomendados** encontram ameaças em dados que o OneUptime já tem, e um botão adiciona as que você ainda não tem.
+- **ATT&CK Coverage** desenha a matriz MITRE ATT&CK com as técnicas cobertas pelas suas regras habilitadas em destaque, e contorna as que uma regra da biblioteca cobriria.
+
+## Automatizar
+
+- **Fluxos de trabalho**: criar, atualizar ou excluir um caso ou uma nota pode iniciar um fluxo de trabalho. Uma etapa **Run a workflow** inicia um fluxo de trabalho cujo gatilho é um webhook.
+- **API**: casos, notas, detecções, playbooks, execuções e entidades protegidas têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` e `/security-protected-entity`. Veja [Referência da API](/docs/api-reference/api-reference).
+- Agentes de IA: o servidor MCP tem ferramentas para casos, notas, detecções e playbooks. Veja [Servidor MCP](/docs/ai/mcp-server).
+
+## Solução de problemas
+
+:::details Uma regra corresponde, mas nenhum caso abre
+Confira **Open a Case on Match** na etapa **Ao corresponder** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detections** no caso aberto.
+:::
+
+:::details Um playbook não rodou
+Confira se ele está habilitado, se a configuração **Trigger** dele é a certa (Case Opened roda uma vez, quando um caso abre) e se o caso atende às configurações **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** dele. Um caso aberto manualmente não tem detecção, então um playbook limitado a uma origem ou a regras não roda nele.
+:::
+
+:::details Uma etapa de contenção falhou
+Abra a execução no caso: a etapa diz, para cada usuário ou host, se o produto o recusou, não o encontrou ou não pôde ser alcançado. Confira se a credencial da conexão pode fazer a alteração, e use **Testar conexão** na linha dela.
+:::
+
+:::details Uma etapa de contenção foi pulada
+O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, ou todos os usuários ou hosts de que ele trata estão protegidos. Abra a execução no caso: a etapa diz qual dos dois.
+:::
+
+## Próximos passos
+
+:::cards
+- [Eventos de segurança](/docs/telemetry/security-events): Envie eventos, escreva regras de detecção e conecte produtos de segurança.
+- [Inteligência de ameaças](/docs/telemetry/threat-intelligence): Compare os seus eventos com feeds STIX/TAXII.
+- [Referência de permissões](/docs/permissions/reference): Os papéis de segurança, e o que cada um pode fazer.
+:::

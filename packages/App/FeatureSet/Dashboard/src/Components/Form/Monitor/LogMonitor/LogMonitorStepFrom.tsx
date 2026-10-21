@@ -1,4 +1,6 @@
-import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -6,10 +8,34 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
+import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
+
+/*
+ * The filters that narrow a log monitor down further - telemetry service,
+ * infrastructure entity and attributes - fold under the same More fields
+ * section as the rarely needed fields of every other form, instead of the
+ * Show / Hide Advanced Options link this form had of its own (which, taking
+ * an empty filter for a set one, never started folded). Log Severity stays
+ * on screen with the text and the time window: it is the filter most log
+ * monitors use, and the security event monitor learnt that a hidden
+ * severity reads as one that cannot be filtered on (issue #3398). Folded,
+ * the section's header names its filters and shows each one a monitor uses
+ * as a chip ("Filter by Telemetry Service: 1"), so editing a monitor never
+ * hides a filter it has. Folded fields stay mounted: the preview below and
+ * the saved step always get the whole filter set. Built once, so every
+ * render hands its fields the same section.
+ */
+const MORE_LOG_FILTERS: FormFieldCollapsibleSection<MonitorStepLogMonitor> =
+  getAdvancedFormSection<MonitorStepLogMonitor>();
 
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
@@ -30,20 +56,6 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [monitorStepLogMonitor, setMonitorStepLogMonitor] =
     React.useState<MonitorStepLogMonitor>(props.monitorStepLogMonitor);
-
-  let showAdvancedOptionsByDefault: boolean = false;
-
-  if (
-    monitorStepLogMonitor.attributes ||
-    monitorStepLogMonitor.severityTexts ||
-    monitorStepLogMonitor.telemetryServiceIds
-  ) {
-    showAdvancedOptionsByDefault = true;
-  }
-
-  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
-    showAdvancedOptionsByDefault,
-  );
 
   return (
     <div>
@@ -133,8 +145,67 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Log Severity",
             description: "Select the severity of the logs you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
+          },
+          /*
+           * Not a filter, so not folded with them: it changes what the
+           * monitor alerts on - one alert per group (per IPsec tunnel, per
+           * user) instead of one for the whole monitor.
+           */
+          {
+            field: {
+              groupByAttributes: true,
+            },
+            fieldType: FormFieldSchemaType.CustomComponent,
+            title: "Group by Attributes",
+            description:
+              "Open a separate alert or incident per combination of these values, such as one per IPsec tunnel. Leave empty to count every matching log together.",
+            hideOptionalLabel: true,
+            getCustomElement: (
+              values: FormValues<MonitorStepLogMonitor>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <LogGroupByAttributesInput
+                  initialValue={
+                    values.groupByAttributes as Array<string> | undefined
+                  }
+                  suggestions={props.attributeKeys}
+                  isLoadingSuggestions={props.isLoadingAttributeKeys}
+                  ariaLabelledby={customElementProps.ariaLabelledby}
+                  onChange={(groupByAttributes: Array<string>) => {
+                    customElementProps.onChange?.(groupByAttributes);
+                  }}
+                />
+              );
+            },
+          },
+          /*
+           * Only there once the monitor is grouped: it says how a GROUP
+           * is resolved, and a monitor with no groups has nothing for it
+           * to act on. What was entered is kept while Group By is empty.
+           */
+          {
+            field: {
+              resolvedByAttributes: true,
+            },
+            fieldType: FormFieldSchemaType.Dictionary,
+            title: "Resolved by Attributes",
+            description:
+              "Keep a group's alert or incident open until a log with these attributes arrives. Leave empty to resolve a group when its logs stop.",
+            jsonKeysForDictionary: props.attributeKeys,
+            isLoadingDictionaryKeys: props.isLoadingAttributeKeys,
+            dictionaryValueSuggestions: props.attributeValueSuggestions,
+            loadingDictionaryValueKeys: props.loadingAttributeValueKeys,
+            onDictionaryKeySelected: props.onAttributeKeySelected,
+            hideOptionalLabel: true,
+            showIf: (values: FormValues<MonitorStepLogMonitor>): boolean => {
+              return (
+                MonitorStepLogMonitorUtil.getGroupByAttributes({
+                  groupByAttributes: values.groupByAttributes as
+                    | Array<string>
+                    | undefined,
+                }).length > 0
+              );
             },
           },
           {
@@ -153,9 +224,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Telemetry Service",
             description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_LOG_FILTERS,
           },
           {
             field: {
@@ -177,9 +246,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Infrastructure Entity",
             description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_LOG_FILTERS,
           },
           {
             field: {
@@ -196,31 +263,16 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "You can filter the logs based on the attributes that are attached to the logs.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_LOG_FILTERS,
           },
         ]}
       />
-      <div className="-ml-3">
-        <Button
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          title={
-            showAdvancedOptions
-              ? "Hide Advanced Options"
-              : "Show Advanced Options"
-          }
-          onClick={() => {
-            return setShowAdvancedOptions(!showAdvancedOptions);
-          }}
-        />
-      </div>
       <div>
         <HorizontalRule />
         <FieldLabelElement
           title={"Logs Preview"}
           description={
-            "Here is the preview of the logs that will be monitored based on the filters you have set above."
+            "The logs these filters match, so you can check the filters before you save."
           }
           hideOptionalLabel={true}
           isHeading={true}

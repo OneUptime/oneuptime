@@ -14,19 +14,23 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
-import ChannelVerification from "../Utils/ChannelVerification";
+import ChannelVerification, {
+  ChannelVerificationStatus,
+} from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
+import { getProjectBalanceTooLowMessage } from "../../Utils/Project/ProjectBalance";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
   WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
-import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../Types/API/HTTPResponse";
-import { JSONObject } from "../../Types/JSON";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -37,18 +41,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The methods the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const item of itemsToDelete) {
       await UserNotificationRuleService.deleteBy({
@@ -115,7 +115,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableWhatsAppNotifications) {
       throw new BadDataException(
-        "WhatsApp notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.WhatsApp,
+        ),
       );
     }
 
@@ -124,7 +126,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your WhatsApp balance is low. Please recharge your balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.WhatsApp),
       );
     }
 
@@ -140,15 +142,79 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      this.issueAndSendVerificationCode(createdItem).catch((error: Error) => {
-        logger.error(error, {
-          projectId: createdItem.projectId?.toString(),
-          userId: createdItem.userId?.toString(),
-        } as LogAttributes);
+      /*
+       * The first code, or no number. This was sent fire-and-forget, so a
+       * code that never went out - WhatsApp not set up, a number Meta
+       * refused - left a number in the list that could never be verified,
+       * and a dialog saying the code had been sent. Now the add is refused
+       * with the reason, and the number taken out again.
+       */
+      await ChannelVerification.sendFirstCodeOrRemoveItem({
+        service: this,
+        itemId: createdItem.id!,
+        item: createdItem,
+        issueAndSend: async (): Promise<void> => {
+          await this.issueAndSendVerificationCode(createdItem);
+        },
       });
     }
 
     return createdItem;
+  }
+
+  /*
+   * Why no verification code can be sent right now, or null when one can.
+   *
+   * Only the balance: a WhatsApp code is sent while the project has
+   * WhatsApp off (the Notification service does not ask), but one the
+   * balance cannot pay for is dropped there without a word - so it is
+   * refused here, with who can add balance, rather than announced as sent.
+   */
+  @CaptureSpan()
+  public async getReasonCodeCannotBeSent(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        smsOrCallCurrentBalanceInUSDCents: true,
+      },
+    });
+
+    if (!project) {
+      return "Project not found";
+    }
+
+    if (
+      (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
+      IsBillingEnabled
+    ) {
+      return getProjectBalanceTooLowMessage(
+        ProjectNotificationChannel.WhatsApp,
+      );
+    }
+
+    return null;
+  }
+
+  /*
+   * Where this number's code stands, for its owner's verify dialog
+   * (ChannelVerification.getStatus). The item is read by the caller, who
+   * has already checked whose it is.
+   */
+  @CaptureSpan()
+  public async getVerificationStatus(
+    item: Model,
+  ): Promise<ChannelVerificationStatus> {
+    return ChannelVerification.getStatus({
+      item: item,
+      cannotSendReason: item.isVerified
+        ? null
+        : await this.getReasonCodeCannotBeSent(item.projectId!),
+    });
   }
 
   @CaptureSpan()
@@ -173,8 +239,26 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Only for a member of the row's project: anybody else's row is answered
+     * as one that does not exist, before the project is asked whether it can
+     * send (ChannelVerification.assertOwnerIsProjectMember).
+     */
+    await ChannelVerification.assertOwnerIsProjectMember({
+      item: item,
+      itemId: itemId,
+    });
+
     if (item.isVerified) {
       throw new BadDataException("WhatsApp number already verified");
+    }
+
+    // Before the cooldown: a send that cannot happen costs the person nothing.
+    const cannotSendReason: string | null =
+      await this.getReasonCodeCannotBeSent(item.projectId!);
+
+    if (cannotSendReason) {
+      throw new BadDataException(cannotSendReason);
     }
 
     /*
@@ -209,6 +293,9 @@ export class Service extends DatabaseService<Model> {
    * about why — expiry, the attempt counter, rotation, the resend cooldown —
    * is in Common/Server/Utils/ChannelVerification.ts.
    *
+   * Throws, with the reason, when the message was not sent - and then
+   * leaves no code on the row (ChannelVerification.issueAndSendCode).
+   *
    * This does NOT check whether a send is allowed. Callers decide that:
    * onCreateSuccess because a brand new row has never been sent to, and
    * resendVerificationCode after the cooldown and the channel's own
@@ -216,12 +303,14 @@ export class Service extends DatabaseService<Model> {
    */
   @CaptureSpan()
   public async issueAndSendVerificationCode(item: Model): Promise<void> {
-    const plainCode: string = await ChannelVerification.issueCodeOnItem({
+    await ChannelVerification.issueAndSendCode({
       service: this,
       itemId: item.id!,
+      destination: item.phone?.toString() || "this number",
+      send: async (plainCode: string): Promise<void> => {
+        await this.sendVerificationCode(item, plainCode);
+      },
     });
-
-    await this.sendVerificationCode(item, plainCode);
   }
 
   public async sendVerificationCode(item: Model, code: string): Promise<void> {
@@ -249,16 +338,13 @@ export class Service extends DatabaseService<Model> {
       templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
 
-    const response: HTTPResponse<JSONObject> =
+    ChannelVerification.throwIfNotSent(
       await WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
         projectId: item.projectId,
         isSensitive: true,
         userId: item.userId,
-      });
-
-    if (response instanceof HTTPErrorResponse) {
-      throw response;
-    }
+      }),
+    );
   }
 }
 

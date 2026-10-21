@@ -12,6 +12,8 @@ answers SNMP works as a "device". This compose file starts three:
 | `switch-a`  | `172.30.99.11`  | snmpsim replaying a fake 4-port switch (LLDP, FDB, ARP, live counters) | v2c, community `public`                                  |
 | `switch-b`  | `172.30.99.12`  | Same, LLDP-adjacent to `switch-a` (renders a topology edge)        | v2c, community `public`                                  |
 | `router-v3` | `172.30.99.13`  | Real `snmpd` agent, for exercising the SNMPv3 code path            | v3 user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123` (also v2c `public`) |
+| `sophos-xgs` | `172.30.99.15` | snmpsim replaying a Sophos firewall (SFOS v21): IPsec tunnel table, CPU cores, memory/disk/HA | v2c, community `public` |
+| `cambium-ap` | `172.30.99.16` | snmpsim replaying a Cambium Enterprise Wi-Fi access point: radio and SSID tables | v2c, community `public` |
 
 What the fake switches serve:
 
@@ -111,6 +113,23 @@ ports and use `127.0.0.1` + that port as the device address instead.)
 
    (`172.30.99.1` is this bridge network's gateway, i.e. the host where the
    host-networked probe is listening.)
+
+7. **SNMP tables and the Wi-Fi tab** - register `sophos-xgs`
+   (`172.30.99.15`) and `cambium-ap` (`172.30.99.16`), v2c `public`, and turn
+   on **Auto-Apply Vendor Health Template** (or pick the Sophos / Cambium
+   vendor template under Settings -> SNMP Tables). After the next poll:
+   - the firewall's **SNMP Tables** tab lists three IPsec tunnels -
+     `HQ-Branch1` active, `HQ-Branch2` inactive and `HQ-Cloud` partially
+     active, the last two marked unhealthy - and its CPU cores, numbered
+     196608 and 196609 the way SFOS numbers them;
+   - the access point's **Wi-Fi** tab shows the 2.4 GHz radio on channel 6
+     (2437 MHz, 20 MHz wide, 14 dBm, 9 clients) and the 5 GHz radio on channel
+     36 (5180 MHz, 80 MHz wide) switched off, plus the `Corp` and `Guest`
+     SSIDs.
+
+   A Network Device monitor with **SNMP Table Row Is Unhealthy** on the
+   `ipsec_tunnels` table and Row `*` raises one incident for `HQ-Branch2` and
+   one for `HQ-Cloud`. **Add Recommended Alerts** adds exactly that criteria.
 
 ## Simulating your own devices
 

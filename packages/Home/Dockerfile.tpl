@@ -57,6 +57,13 @@ WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./packages/Common /usr/src/Common
+# mermaid for the blog, built from mermaid's ES module source with the
+# packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
+# served at /oneuptime-assets/mermaid. A build that fails stops the image here
+# rather than leaving a post without its diagrams. It runs after the COPY
+# above so that it replaces any Common/build/mermaid-browser the build
+# context brought along (a build made on a developer's machine).
+RUN node /usr/src/Common/Scripts/build-mermaid-browser.js
 
 ENV PRODUCTION=true
 
@@ -92,11 +99,19 @@ COPY --chown=1000:1000 ./packages/Home /usr/src/app
 RUN npm run compile
 # Give node ownership of /usr/src itself (non-recursive — instant) so it can
 # create and own the blog clone below. Common/node_modules stay root-owned.
-RUN chown 1000:1000 /usr/src
+# Likewise /usr/src/app/build, which the compile above created as root, so the
+# Tailwind build below can write build/tailwind into it.
+RUN mkdir -p /usr/src/app/build && chown 1000:1000 /usr/src /usr/src/app/build
 USER node
 # Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
 # write into it — avoids a recursive chown of the blog's ~100k files.
 RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# The marketing site's Tailwind CSS (Scripts/BuildTailwindCss.ts): one
+# content-hashed stylesheet that every page links, instead of the Play CDN
+# runtime building the CSS in each visitor's browser. It reads the class
+# attributes in the blog's posts as well as the views, so it runs after the
+# clone, and --require-blog fails the build if the blog is not there.
+RUN npm run build:css -- --require-blog
 # Per-build metadata last so the heavy layers above stay cacheable across commits
 # and across the community + enterprise build passes.
 ARG GIT_SHA
@@ -111,6 +126,7 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 # above). Without this, ts-node/register redoes it on every container start.
 # See App/Dockerfile.tpl for the full rationale.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm, so node
+# is the container's only Node.js process. See App/Dockerfile.tpl for why.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts" ]
 {{ end }}

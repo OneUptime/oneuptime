@@ -23,14 +23,20 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Unlike phone-style methods there is nothing to type and nothing to verify
  * here: adding Slack is pointing at the Slack account the user has already
- * connected via OAuth (User Settings > Slack Integration). The server resolves
+ * connected via OAuth (User Settings > Workspace > Slack). The server resolves
  * the Slack member id from that link and refuses the add when the link does
  * not exist, so this component's whole job is one button, one table, and
  * routing the "connect your account first" error somewhere actionable.
+ *
+ * The empty table says where that page is, as the User Settings side menu
+ * draws it: the Workspace section (folded until opened, and there only when
+ * the project has connected a workspace - which it has, or this card would
+ * not be shown) and its Slack entry.
  */
 const Slack: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -96,7 +102,9 @@ const Slack: () => JSX.Element = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         setTestResult(
           (data["statusMessage"] as string) ||
-            "Test message sent. Check your Slack direct messages.",
+            translateTemplate(
+              "Test message sent. Check your Slack direct messages.",
+            ),
         );
       }
     } catch (err) {
@@ -162,7 +170,7 @@ const Slack: () => JSX.Element = (): ReactElement => {
           ],
         }}
         noItemsMessage={
-          "No Slack account added. Connect your Slack account under User Settings > Slack Integration, then click 'Add Slack Account'."
+          "No Slack account added. Connect your Slack account under User Settings > Workspace > Slack, then click 'Add Slack Account'."
         }
         showRefreshButton={true}
         filters={[]}
@@ -191,7 +199,7 @@ const Slack: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Slack`}
           description={addError}
-          submitButtonText={"Open Slack Integration Settings"}
+          submitButtonText={"Open Slack Settings"}
           closeButtonText={"Close"}
           onClose={() => {
             setAddError("");

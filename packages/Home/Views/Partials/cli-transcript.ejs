@@ -1,0 +1,23 @@
+<%#
+  A terminal transcript on the CLI page: each step's command, one row per
+  line as it is typed, then what the terminal shows after it. The steps are
+  the real CLI's (Utils/CliPage.ts), and the tests hold them to it.
+
+  Locals: steps (Array<CliTerminalStep>), name (the transcript's key), and
+  transcriptClass (its text size and line height).
+
+  Every element that holds text says font-mono itself: head-basic.ejs sets
+  the site's font on every element (*), so a parent's font is not inherited.
+-%>
+<div class="overflow-x-auto <%= transcriptClass %>" data-cli-transcript="<%= name %>">
+  <% steps.forEach(function (step, stepIndex) { %>
+  <div class="<%= stepIndex === 0 ? 'mt-0' : 'mt-4' %>" data-cli-step>
+    <% step.command.forEach(function (line, lineIndex) { %>
+    <div class="whitespace-pre font-mono text-gray-300" data-cli-command-line><% if (lineIndex === 0) { %><span class="select-none font-mono text-emerald-400" data-cli-prompt>$ </span><% } %><%= line %></div>
+    <% }); %>
+    <% step.output.forEach(function (line) { %>
+    <div class="whitespace-pre font-mono <%= step.isSuccessMessage ? 'text-emerald-400' : 'text-gray-400' %>" data-cli-output-line><%= line %></div>
+    <% }); %>
+  </div>
+  <% }); %>
+</div>

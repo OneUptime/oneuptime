@@ -1,4 +1,7 @@
-import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
+import UserNotificationRuleService, {
+  ON_CALL_INVITE_RECORD_MISSING_MESSAGE,
+  ON_CALL_INVITE_RECORDS_MIXED_MESSAGE,
+} from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
@@ -589,6 +592,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(arg.select).toEqual({
         _id: true,
         userId: true,
+        /*
+         * The rule's half of whether its push rings through silent mode
+         * (the device's isCriticalAlertEnabled below is the other half).
+         * Dropped, it reads as the default, Critical, and a rule its owner
+         * set to Standard keeps waking them through Do Not Disturb.
+         */
+        pushNotificationLevel: true,
         userCall: {
           phone: true,
           isVerified: true,
@@ -639,6 +649,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           isVerified: true,
           userId: true,
           isCriticalAlertEnabled: true,
+          /*
+           * The alarm and the iPhone volume the handset chose for critical
+           * pages. Dropped, they read as unset and every page plays the
+           * system sound at full volume instead of the one its owner picked.
+           */
+          criticalAlertSound: true,
+          criticalAlertVolume: true,
         },
       });
     });
@@ -818,7 +835,8 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           userPush: {
             id: METHOD_ID,
             deviceToken: "device-token",
-            deviceType: "iOS",
+            // As UserPush stores it (PushDeviceType.iOS).
+            deviceType: "ios",
             isVerified: false,
           },
         } as unknown as JSONObject) as never,
@@ -837,13 +855,77 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(spies.workspaceMessage).not.toHaveBeenCalled();
       expect(spies.push).not.toHaveBeenCalled();
 
-      // One "not verified" Error row per unverified channel: 8 in total.
+      // One Error row per unverified channel: 8 in total.
       expect(timelineRows).toHaveLength(8);
       for (const row of timelineRows) {
         expect(row.status).toBe(UserNotificationStatus.Error);
-        expect(row.statusMessage).toContain("not verified");
+      }
+
+      /*
+       * Seven say the method is not verified. The push row says what an
+       * unverified push device is - one its push service or Expo said is
+       * gone - and how to bring it back: "device is not verified" told
+       * on-call nothing they could act on.
+       */
+      const pushRows: Array<TimelineRow> = timelineRows.filter(
+        (row: TimelineRow): boolean => {
+          return Boolean(row.statusMessage?.startsWith("Push notification"));
+        },
+      );
+
+      expect(pushRows).toHaveLength(1);
+      expect(pushRows[0]!.statusMessage).toBe(
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      );
+
+      for (const row of timelineRows) {
+        if (row !== pushRows[0]) {
+          expect(row.statusMessage).toContain("not verified");
+        }
       }
     });
+
+    test.each([
+      [
+        "an iPhone",
+        "ios",
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      ],
+      [
+        "an Android phone",
+        "android",
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      ],
+      [
+        "a browser",
+        "web",
+        "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.",
+      ],
+    ])(
+      "a page not pushed to %s that no longer receives notifications says how to register it again",
+      async (_name: string, deviceType: string, message: string) => {
+        spies.findRule.mockResolvedValue(
+          ruleItem({
+            userPush: {
+              id: METHOD_ID,
+              deviceToken: "device-token",
+              deviceType: deviceType,
+              isVerified: false,
+            },
+          } as unknown as JSONObject) as never,
+        );
+
+        await UserNotificationRuleService.executeNotificationRuleItem(
+          RULE_ID,
+          executeOptions(),
+        );
+
+        expect(spies.push).not.toHaveBeenCalled();
+        expect(timelineRows).toHaveLength(1);
+        expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Error);
+        expect(timelineRows[0]?.statusMessage).toBe(message);
+      },
+    );
 
     test("the Telegram unverified branch keys off the RELATION, not the chat id", async () => {
       spies.findRule.mockResolvedValue(
@@ -1249,40 +1331,78 @@ describe("UserNotificationRuleService.startUserNotificationRulesExecution", () =
     await pending;
   });
 
-  test("an episode-triggered execution has no incident or alert id, so the workspace call always errors", async () => {
-    /*
-     * Discovered behaviour, pinned as-is: startUserNotificationRulesExecution
-     * forwards `alertId`/`incidentId` verbatim, and
-     * runWorkspaceRulesForOnCallNotification throws when BOTH are missing. For
-     * AlertEpisodeCreated / IncidentEpisodeCreated executions that is always
-     * the case, so every episode page logs a BadDataException on this path.
-     * Harmless to delivery (it is caught), but it is permanent log noise.
-     */
-    workspaceRules.mockRestore();
+  /*
+   * An episode's page adds the person paged to the episode's own channels,
+   * as an incident's or an alert's does. It used to hand the workspace step
+   * neither an incident nor an alert, which threw: every episode page
+   * logged a BadDataException and added nobody.
+   */
+  test.each([
+    {
+      eventType: UserNotificationEventType.AlertEpisodeCreated,
+      trigger: { triggeredByAlertEpisodeId: ALERT_EPISODE_ID },
+      notificationFor: { alertEpisodeId: ALERT_EPISODE_ID },
+      ruleEventType: NotificationRuleEventType.AlertEpisode,
+    },
+    {
+      eventType: UserNotificationEventType.IncidentEpisodeCreated,
+      trigger: { triggeredByIncidentEpisodeId: INCIDENT_EPISODE_ID },
+      notificationFor: { incidentEpisodeId: INCIDENT_EPISODE_ID },
+      ruleEventType: NotificationRuleEventType.IncidentEpisode,
+    },
+  ])(
+    "an episode-triggered execution ($ruleEventType) asks the episode's rules for the person paged, with no error",
+    async (episodeCase: {
+      eventType: UserNotificationEventType;
+      trigger: JSONObject;
+      notificationFor: JSONObject;
+      ruleEventType: NotificationRuleEventType;
+    }) => {
+      workspaceRules.mockRestore();
 
-    const getRules: jest.SpyInstance = jest.spyOn(
-      WorkspaceNotificationRuleService,
-      "getNotificationRulesWhereInviteOwnersIsTrue",
-    );
+      const getRules: jest.SpyInstance = jest
+        .spyOn(
+          WorkspaceNotificationRuleService,
+          "getNotificationRulesWhereOnCallIsTrue",
+        )
+        .mockResolvedValue([] as never);
 
-    await expect(
-      UserNotificationRuleService.startUserNotificationRulesExecution(
-        USER_ID,
-        startOptions({
-          userNotificationEventType:
-            UserNotificationEventType.AlertEpisodeCreated,
-          triggeredByAlertEpisodeId: ALERT_EPISODE_ID,
-        }),
-      ),
-    ).resolves.toBeUndefined();
+      jest
+        .spyOn(
+          WorkspaceNotificationRuleService,
+          "inviteUsersBasedOnRulesAndWorkspaceChannels",
+        )
+        .mockResolvedValue(undefined as never);
 
-    await flushMicrotasks();
+      jest
+        .spyOn(AlertEpisodeService, "getWorkspaceChannelForEpisode")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(IncidentEpisodeService, "getWorkspaceChannelForEpisode")
+        .mockResolvedValue([] as never);
 
-    expect(createLog).toHaveBeenCalledTimes(1);
-    expect(getRules).not.toHaveBeenCalled();
-    expect(loggerError).toHaveBeenCalled();
-    expect(loggerError.mock.calls[0][0]).toBeInstanceOf(BadDataException);
-  });
+      await expect(
+        UserNotificationRuleService.startUserNotificationRulesExecution(
+          USER_ID,
+          startOptions({
+            userNotificationEventType: episodeCase.eventType,
+            ...episodeCase.trigger,
+          }),
+        ),
+      ).resolves.toBeUndefined();
+
+      await flushMicrotasks();
+
+      expect(createLog).toHaveBeenCalledTimes(1);
+      expect(getRules).toHaveBeenCalledTimes(1);
+      expect(getRules.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        notificationFor: episodeCase.notificationFor,
+        notificationRuleEventType: episodeCase.ruleEventType,
+      });
+      expect(loggerError).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /*
@@ -1293,6 +1413,7 @@ describe("UserNotificationRuleService.startUserNotificationRulesExecution", () =
 
 describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", () => {
   let getRules: jest.SpyInstance;
+  let getOwnerRules: jest.SpyInstance;
   let inviteUsers: jest.SpyInstance;
   let incidentChannels: jest.SpyInstance;
   let alertChannels: jest.SpyInstance;
@@ -1304,6 +1425,13 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     });
 
     getRules = jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getNotificationRulesWhereOnCallIsTrue",
+      )
+      .mockResolvedValue([] as never);
+
+    getOwnerRules = jest
       .spyOn(
         WorkspaceNotificationRuleService,
         "getNotificationRulesWhereInviteOwnersIsTrue",
@@ -1341,11 +1469,8 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     ).rejects.toThrow(BadDataException);
   });
 
-  test("the both-supplied message is 'Either incidentId or alertId is required.'", async () => {
-    /*
-     * Pinned as-is even though it reads wrongly for this branch: the ambiguous
-     * case ("you gave me both") reuses the missing-case message verbatim.
-     */
+  // A page is for one record: two named at once is refused, saying so.
+  test("the both-supplied message says a page is for one record", async () => {
     await expect(
       UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
         projectId: PROJECT_ID,
@@ -1353,7 +1478,7 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
         alertId: ALERT_ID,
         userId: USER_ID,
       }),
-    ).rejects.toThrow("Either incidentId or alertId is required.");
+    ).rejects.toThrow(ON_CALL_INVITE_RECORDS_MIXED_MESSAGE);
   });
 
   test("supplying both short-circuits before any workspace query", async () => {
@@ -1372,16 +1497,89 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     expect(inviteUsers).not.toHaveBeenCalled();
   });
 
-  test("throws the same BadDataException when NEITHER is supplied", async () => {
+  test("throws a BadDataException when no record is supplied", async () => {
     await expect(
       UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
         projectId: PROJECT_ID,
         userId: USER_ID,
       }),
-    ).rejects.toThrow("Either incidentId or alertId is required.");
+    ).rejects.toThrow(ON_CALL_INVITE_RECORD_MISSING_MESSAGE);
 
     expect(getRules).not.toHaveBeenCalled();
   });
+
+  test("an incident and an episode at once are refused too, before any workspace query", async () => {
+    await expect(
+      UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        incidentEpisodeId: INCIDENT_EPISODE_ID,
+        userId: USER_ID,
+      }),
+    ).rejects.toThrow(ON_CALL_INVITE_RECORDS_MIXED_MESSAGE);
+
+    expect(getRules).not.toHaveBeenCalled();
+    expect(inviteUsers).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    {
+      record: { incidentEpisodeId: INCIDENT_EPISODE_ID },
+      eventType: NotificationRuleEventType.IncidentEpisode,
+    },
+    {
+      record: { alertEpisodeId: ALERT_EPISODE_ID },
+      eventType: NotificationRuleEventType.AlertEpisode,
+    },
+  ])(
+    "an episode's page asks its rules ($eventType) and its own channels, and the invite names the episode",
+    async (episodeCase: {
+      record: JSONObject;
+      eventType: NotificationRuleEventType;
+    }) => {
+      const channels: Array<unknown> = [{ id: "C0EP", name: "ie-3" }];
+      const incidentEpisodeChannels: jest.SpyInstance = jest
+        .spyOn(IncidentEpisodeService, "getWorkspaceChannelForEpisode")
+        .mockResolvedValue(channels as never);
+      const alertEpisodeChannels: jest.SpyInstance = jest
+        .spyOn(AlertEpisodeService, "getWorkspaceChannelForEpisode")
+        .mockResolvedValue(channels as never);
+
+      await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        ...(episodeCase.record as {
+          incidentEpisodeId?: ObjectID;
+          alertEpisodeId?: ObjectID;
+        }),
+      });
+
+      expect(getRules).toHaveBeenCalledTimes(1);
+      expect(getRules.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        notificationFor: episodeCase.record,
+        notificationRuleEventType: episodeCase.eventType,
+      });
+
+      expect(
+        episodeCase.eventType === NotificationRuleEventType.IncidentEpisode
+          ? incidentEpisodeChannels
+          : alertEpisodeChannels,
+      ).toHaveBeenCalledTimes(1);
+      expect(incidentChannels).not.toHaveBeenCalled();
+      expect(alertChannels).not.toHaveBeenCalled();
+
+      const inviteArg: {
+        workspaceChannels: Array<unknown>;
+        notificationFor: JSONObject;
+      } = inviteUsers.mock.calls[0]![0] as {
+        workspaceChannels: Array<unknown>;
+        notificationFor: JSONObject;
+      };
+      expect(inviteArg.workspaceChannels).toBe(channels);
+      expect(inviteArg.notificationFor).toEqual(episodeCase.record);
+    },
+  );
 
   test("the incident path queries incident rules and incident channels only", async () => {
     await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
@@ -1438,6 +1636,25 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     expect(incidentChannels).not.toHaveBeenCalled();
   });
 
+  /*
+   * REGRESSION: the person paged was invited by the rules that invite
+   * OWNERS. A rule with "Automatically Invite On Call Users" on and "Invite
+   * Owners" off created the incident's channel and never added the on-call
+   * user it paged (OnCallUsersInvitedToNewChannel.test.ts).
+   */
+  test("REGRESSION: the rules are the ones that invite on-call users, never the ones that invite owners", async () => {
+    for (const record of [{ incidentId: INCIDENT_ID }, { alertId: ALERT_ID }]) {
+      await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        ...record,
+      });
+    }
+
+    expect(getRules).toHaveBeenCalledTimes(2);
+    expect(getOwnerRules).not.toHaveBeenCalled();
+  });
+
   test("only the notified user is invited, with the resolved rules and channels", async () => {
     const rules: Array<unknown> = [{ _id: "rule-1" }];
     const channels: Array<unknown> = [{ id: "channel-1", name: "#incidents" }];
@@ -1467,6 +1684,53 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     expect(inviteArg.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(inviteArg.userIds).toHaveLength(1);
     expect(inviteArg.userIds[0]?.toString()).toBe(USER_ID.toString());
+  });
+
+  /*
+   * The invite is logged against the record it was for, so it is listed on
+   * the incident's (or alert's) Notification Logs > Workspace tab, beside
+   * the channel's creation and messages - not only on the project's.
+   */
+  test("the invite names the incident it was for, and no alert", async () => {
+    await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      userId: USER_ID,
+    });
+
+    const inviteArg: {
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    } = inviteUsers.mock.calls[0][0] as {
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    };
+    expect(inviteArg.notificationFor.incidentId?.toString()).toBe(
+      INCIDENT_ID.toString(),
+    );
+    expect(inviteArg.notificationFor.alertId).toBeUndefined();
+  });
+
+  test("the invite names the alert it was for, and no incident", async () => {
+    const channels: Array<unknown> = [{ id: "channel-2", name: "alert-12" }];
+    alertChannels.mockResolvedValue(channels as never);
+
+    await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+      projectId: PROJECT_ID,
+      alertId: ALERT_ID,
+      userId: USER_ID,
+    });
+
+    const inviteArg: {
+      workspaceChannels: Array<unknown>;
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    } = inviteUsers.mock.calls[0][0] as {
+      workspaceChannels: Array<unknown>;
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    };
+    expect(inviteArg.workspaceChannels).toBe(channels);
+    expect(inviteArg.notificationFor.alertId?.toString()).toBe(
+      ALERT_ID.toString(),
+    );
+    expect(inviteArg.notificationFor.incidentId).toBeUndefined();
   });
 
   test("a failing invite is swallowed and logged - it never rejects the caller", async () => {

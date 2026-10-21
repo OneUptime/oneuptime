@@ -22,6 +22,10 @@
     "label": "言語",
     "switchLanguage": "言語を切り替える"
   },
+  "theme": {
+    "switchToDark": "ダークテーマに切り替え",
+    "switchToLight": "ライトテーマに切り替え"
+  },
   "nav": {
     "overview": "概要",
     "incidents": "インシデント",
@@ -125,7 +129,27 @@
     "noneDescription": "このステータスページに予定されたイベントは投稿されていません。",
     "scheduledAt": "予定日時: ",
     "report": "予定イベントレポート",
-    "notFound": "このステータスページで予定されたイベントが見つかりません。"
+    "notFound": "このステータスページで予定されたイベントが見つかりません。",
+    "calendar": {
+      "subscribe": "カレンダーを購読",
+      "subscribeTitle": "計画メンテナンスを購読",
+      "subscribeDescription": "このページの計画メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
+      "eventTitle": "カレンダーに追加",
+      "eventDescription": "このメンテナンスをカレンダーアプリに追加します。",
+      "addToCalendar": "カレンダーに追加",
+      "addHeading": "カレンダーに追加",
+      "google": "Google カレンダー",
+      "googleHint": "Google カレンダーを新しいタブで開きます",
+      "device": "Apple カレンダー / Outlook",
+      "deviceHint": "このデバイスのカレンダーアプリを開きます",
+      "deviceFileHint": "このデバイスのカレンダーアプリ用にイベントをダウンロードします",
+      "copyHeading": "またはリンクをコピー",
+      "copyHint": "URL でカレンダーを購読できる任意のカレンダーアプリに貼り付けてください。",
+      "copy": "リンクをコピー",
+      "copied": "コピーしました",
+      "done": "完了",
+      "refreshNote": "カレンダーアプリは独自のスケジュールで変更を確認するため、更新が表示されるまで数時間かかることがあります。"
+    }
   },
   "subscribe": {
     "title": "購読する",
@@ -151,7 +175,9 @@
       "placeholder": "subscriber@company.jp",
       "managePrompt": "購読時に使用したメールアドレスを入力してください",
       "manageDescription": "購読管理リンクをこのメールアドレスに送信します。",
-      "managePlaceholder": "email@yourcompany.jp"
+      "managePlaceholder": "email@yourcompany.jp",
+      "signedInEmailDescription": "サインインに使用するメールアドレスで購読します。",
+      "signInToSubscribe": "購読するには、このステータスページにサインインしてください。"
     },
     "sms": {
       "title": "SMSで購読する",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "電話番号",
       "placeholder": "+81901234567",
       "managePrompt": "購読時に使用した電話番号を入力してください",
-      "manageDescription": "購読管理リンクをこの電話番号に送信します。"
+      "manageDescription": "購読管理リンクをこの電話番号に送信します。",
+      "confirmationSent": "この電話番号にSMSを送信しました。SMS内のリンクを開いて、購読を確認してください。"
     },
     "slack": {
       "title": "Slackで購読する",
@@ -210,11 +237,48 @@
       "saved": "変更が保存されました。",
       "submit": "購読を更新",
       "unsubscribe": "購読解除",
-      "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
+      "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。",
+      "linkNotValid": "この購読管理リンクは有効期限が切れているか、無効です。新しいリンクを受け取るには、「購読する」ページの「既存の購読を管理」を使用してください。",
+      "getNewLink": "新しいリンクを受け取る",
+      "loadFailed": "このリンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
     },
     "confirm": {
       "title": "購読を確認",
-      "success": "購読が正常に確認されました"
+      "success": "購読が正常に確認されました",
+      "linkNotValid": "この購読確認リンクは有効期限が切れているか、無効です。リンクは送信から 24 時間有効です。新しいリンクを受け取るには、もう一度購読してください。",
+      "subscribeAgain": "もう一度購読する"
+    },
+    "unsubscribe": {
+      "title": "購読解除",
+      "titleWithName": "{{statusPageName}} の購読を解除",
+      "confirmPrompt": "このステータスページからの通知の受信を停止しますか？",
+      "channelEmail": "メールアドレス",
+      "channelSms": "電話番号",
+      "channelSlack": "Slack ワークスペース",
+      "channelMicrosoftTeams": "Microsoft Teams ワークスペース",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "この購読は、このステータスページを運営するチームが追加したものです。メーリングリストなどの共有アドレスの場合、購読を解除すると、それを受け取っている全員にこれらの通知が届かなくなり、チームにも通知されます。",
+      "confirmButton": "購読を解除",
+      "manageInstead": "代わりに受け取る通知を選択する",
+      "manageSubscription": "購読を管理",
+      "success": "購読を解除しました。今後このステータスページからの通知は届きません。",
+      "alreadyUnsubscribed": "この購読はすでに解除されています。このステータスページからの通知は届きません。",
+      "outOfDateLink": "この購読解除リンクは古くなっています。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "invalidLink": "この購読解除リンクは無効です。リンクが不完全であるか、購読が削除された可能性があります。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "failed": "購読を解除できませんでした。もう一度お試しください。",
+      "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
+    },
+    "preferences": {
+      "title": "設定",
+      "description": "受け取る内容を選択してください。",
+      "summary": {
+        "everything": "このステータスページのすべてのアップデートを受け取ります。",
+        "pickedResources": "選択したリソースのアップデートのみを受け取ります。",
+        "pickedEventTypes": "選択したイベントタイプのアップデートのみを受け取ります。",
+        "pickedResourcesAndEventTypes": "選択したリソースとイベントタイプのアップデートのみを受け取ります。",
+        "noResources": "まだリソースを選択していません。",
+        "noEventTypes": "まだイベントタイプを選択していません。"
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
       "forgotPassword": "パスワードをお忘れですか？",
       "submit": "ログイン",
-      "useSSO": "代わりにシングルサインオン（SSO）を使用する"
+      "or": "または",
+      "logInWithSso": "SSOでログイン"
     },
     "sso": {
       "title": "SSOでログイン",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}}は{{minValue}}以上で入力してください。",
   "{{field}} is required.": "{{field}}は必須です。",
   "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
-  "Email is not valid.": "メールアドレスが無効です。"
+  "Email is not valid.": "メールアドレスが無効です。",
+  "Next": "次へ",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Note": "注記",
+  "Tip": "ヒント",
+  "Info": "情報",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "注意",
+  "Danger": "危険"
 }

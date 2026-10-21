@@ -13,7 +13,8 @@ const APP_NAME: string = process.env["SERVICE_NAME"];
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
-    const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+    const readyCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Ready only while Postgres, which the certificate jobs read, is reachable.
       return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: false,
         checkPostgresStatus: true,
@@ -28,8 +29,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       port: undefined,
       isFrontendApp: false,
       statusOptions: {
-        liveCheck: statusCheck,
-        readyCheck: statusCheck,
+        // Liveness must not depend on a datastore: see StatusAPIOptions.
+        liveCheck: async () => {},
+        readyCheck: readyCheck,
       },
     });
 

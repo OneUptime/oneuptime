@@ -15,7 +15,9 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "../../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
+import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -143,6 +145,7 @@ type FoundRecords = {
   telemetryServices?: Array<JSONObject>;
   teams?: Array<Team>;
   incidentRoles?: Array<IncidentRole>;
+  // The users with a membership in PROJECT_ID.
   users?: Array<User>;
 };
 
@@ -169,7 +172,24 @@ const stubLookups: (found: FoundRecords) => void = (
   jest
     .spyOn(IncidentRoleService, "findBy")
     .mockResolvedValue(found.incidentRoles || []);
-  jest.spyOn(UserService, "findBy").mockResolvedValue(found.users || []);
+  /*
+   * A user counts as the project's while they hold a membership in it: the
+   * check reads TeamMember rows pinned to the project, never the users table.
+   */
+  jest.spyOn(UserService, "findBy").mockResolvedValue([]);
+  jest
+    .spyOn(
+      ProjectScopedReferenceValidator.getLookupService(TeamMember),
+      "findBy",
+    )
+    .mockResolvedValue(
+      (found.users || []).map((member: User): TeamMember => {
+        const membership: TeamMember = new TeamMember();
+        membership.userId = new ObjectID(member._id!.toString());
+        membership.projectId = PROJECT_ID;
+        return membership;
+      }),
+    );
 };
 
 const objectIdJSON: (id: string) => JSONObject = (id: string): JSONObject => {
@@ -452,11 +472,12 @@ describe("MonitorStepsProjectValidator", () => {
   });
 
   describe("users the criteria name", () => {
-    it("accepts owner users and incident members, which belong to no project", async () => {
+    it("accepts owner users and incident members who are members of the project", async () => {
       /*
        * The shape from a support report: the person creating the monitor made
        * themselves both an owner and a member of the incidents it opens. User
-       * has no tenant column, so the record is only checked for existing.
+       * has no tenant column, so a user counts as the project's while they
+       * hold a membership in it.
        */
       stubLookups({
         monitorStatuses: [monitorStatus(OWN_STATUS_ID, PROJECT_ID)],
@@ -496,9 +517,43 @@ describe("MonitorStepsProjectValidator", () => {
         }),
       ).resolves.toBeUndefined();
 
-      // Owner users and incident members share one User lookup.
-      expect(UserService.findBy).toHaveBeenCalledTimes(1);
+      // Owner users and incident members share one membership lookup.
+      expect(
+        ProjectScopedReferenceValidator.getLookupService(TeamMember).findBy,
+      ).toHaveBeenCalledTimes(1);
+      expect(UserService.findBy).not.toHaveBeenCalled();
       expect(IncidentRoleService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects an owner user who exists but is not a member of the project", () => {
+      stubLookups({
+        monitorStatuses: [monitorStatus(OWN_STATUS_ID, PROJECT_ID)],
+        incidentSeverities: [
+          incidentSeverity(OWN_INCIDENT_SEVERITY_ID, PROJECT_ID),
+        ],
+      });
+      jest.spyOn(UserService, "findBy").mockResolvedValue([user(USER_ID)]);
+
+      return expect(
+        MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+          monitorSteps: steps({
+            defaultMonitorStatusId: OWN_STATUS_ID,
+            criteria: {
+              createIncidents: true,
+              incidents: [
+                {
+                  id: INCIDENT_TEMPLATE_ID,
+                  title: "Down",
+                  description: "",
+                  incidentSeverityId: objectIdJSON(OWN_INCIDENT_SEVERITY_ID),
+                  ownerUserIds: [objectIdJSON(USER_ID)],
+                },
+              ],
+            },
+          }),
+          projectId: PROJECT_ID,
+        }),
+      ).rejects.toThrow(`"${USER_ID}"`);
     });
 
     it("rejects an incident member who does not exist", () => {
@@ -625,7 +680,7 @@ describe("MonitorStepsProjectValidator", () => {
             },
           }),
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
 
     it("lets an update through when the cross-project id was already stored", () => {
@@ -686,7 +741,7 @@ describe("MonitorStepsProjectValidator", () => {
             defaultMonitorStatusId: OWN_STATUS_ID,
           }),
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
 
     it("issues no query at all when the update introduces nothing new", () => {
@@ -731,7 +786,7 @@ describe("MonitorStepsProjectValidator", () => {
           projectId: PROJECT_ID,
         }),
       ).rejects.toThrow(
-        'Monitor Status (default monitor status) "Operational"',
+        `Monitor Status (default monitor status) "${FOREIGN_STATUS_ID}"`,
       );
     });
 
@@ -762,7 +817,7 @@ describe("MonitorStepsProjectValidator", () => {
           }),
           projectId: PROJECT_ID,
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
 
     it("names every offending record in the message", () => {
@@ -782,7 +837,9 @@ describe("MonitorStepsProjectValidator", () => {
           projectId: PROJECT_ID,
         }),
       ).rejects.toThrow(
-        /belong to a different project: Monitor Status \(default monitor status\) "Operational"[\s\S]*do not exist: Monitor Status/,
+        new RegExp(
+          `not in this project: Monitor Status \\(default monitor status\\) "${FOREIGN_STATUS_ID}", Monitor Status \\(criteria "Monitor is offline" monitor status\\) "${UNKNOWN_STATUS_ID}"`,
+        ),
       );
     });
   });

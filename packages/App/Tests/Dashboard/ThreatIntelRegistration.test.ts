@@ -169,20 +169,19 @@ describe("registry wiring", () => {
         "App/FeatureSet/Dashboard/src/Routes/SecurityEventsRoutes.tsx",
       ),
     ).toContain("SecurityEventsThreatIntelPage");
-    const navTabs: string = readSquashed(
-      "App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsNavTabs.tsx",
+    const navigation: string = readSquashed(
+      "App/FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation.ts",
     );
-    expect(navTabs).toContain('label: "Threat Intel"');
-    expect(navTabs).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_THREAT_INTEL] as Route",
+    // A page of its own in the Detections section, after the Rule Library.
+    expect(navigation).toContain(
+      '{ page: PageMap.SECURITY_EVENTS_RULE_LIBRARY, title: "Rule Library", icon: IconProp.SquareStack3D, }, { page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel", icon: IconProp.Bug, },',
     );
+    expect(navigation).toContain('title: "Detections", startsCollapsed: true,');
     expect(
       readSquashed(
         "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout.tsx",
       ),
-    ).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
+    ).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
   test("both event-producing paths enrich BEFORE row building", () => {

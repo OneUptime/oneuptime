@@ -15,6 +15,7 @@ import {
   keyForKubernetesCluster,
   keyForKubernetesPod,
   keyForProxmoxCluster,
+  keyForStorageArray,
   keyForVMwareVCenter,
 } from "../../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "../../../../Utils/Telemetry/DatabaseServerEntityKeys";
@@ -36,6 +37,7 @@ const dockerSwarmClusterFindBy: jest.Mock = jest.fn();
 const proxmoxClusterFindBy: jest.Mock = jest.fn();
 const vmwareVCenterFindBy: jest.Mock = jest.fn();
 const cephClusterFindBy: jest.Mock = jest.fn();
+const storageArrayFindBy: jest.Mock = jest.fn();
 const serverlessFunctionFindBy: jest.Mock = jest.fn();
 const iotFleetFindBy: jest.Mock = jest.fn();
 const cloudResourceFindBy: jest.Mock = jest.fn();
@@ -66,6 +68,9 @@ jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
 });
 jest.mock("../../../../Server/Services/CephClusterService", () => {
   return { __esModule: true, default: { findBy: cephClusterFindBy } };
+});
+jest.mock("../../../../Server/Services/StorageArrayService", () => {
+  return { __esModule: true, default: { findBy: storageArrayFindBy } };
 });
 jest.mock("../../../../Server/Services/ServerlessFunctionService", () => {
   return { __esModule: true, default: { findBy: serverlessFunctionFindBy } };
@@ -112,6 +117,7 @@ const ALL_FIND_BY_MOCKS: Array<jest.Mock> = [
   proxmoxClusterFindBy,
   vmwareVCenterFindBy,
   cephClusterFindBy,
+  storageArrayFindBy,
   serverlessFunctionFindBy,
   iotFleetFindBy,
   cloudResourceFindBy,
@@ -155,6 +161,12 @@ const NAME_KEYED_CLUSTERS: Array<{
     findBy: cephClusterFindBy,
     attributeKey: "resource.ceph.cluster.name",
     keyFor: keyForCephCluster,
+  },
+  {
+    facetKey: "storageArrayId",
+    findBy: storageArrayFindBy,
+    attributeKey: "resource.storage.array.name",
+    keyFor: keyForStorageArray,
   },
 ];
 
@@ -366,7 +378,7 @@ describe("ResourceEntityFilter", () => {
     });
   });
 
-  describe("resolveScopes — name-keyed clusters (Docker Swarm / Proxmox / vCenter / Ceph)", () => {
+  describe("resolveScopes — name-keyed clusters (Docker Swarm / Proxmox / vCenter / Ceph / storage arrays)", () => {
     for (const cluster of NAME_KEYED_CLUSTERS) {
       test(`${cluster.facetKey} resolves to the ${cluster.attributeKey} entity key and attribute`, async () => {
         cluster.findBy.mockResolvedValue([{ name: "Prod-EU" }]);

@@ -39,10 +39,14 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const nodeName: string = Navigation.getLastParamAsString();
 
@@ -119,7 +123,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   /*
    * `k8s.node.cpu.utilization` is cores in use (not a ratio). Divide by
    * this node's allocatable CPU (from the node object) to render a true
-   * percentage. Falls back to raw cores until the node object loads.
+   * percentage. Falls back to percent of one core until the node object
+   * loads.
    */
   const nodeAllocatableCores: number = nodeObject
     ? KubernetesCpuUtils.parseCpuToCores(nodeObject.status.allocatable["cpu"])
@@ -129,7 +134,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_cpu",
       title: "CPU Utilization",
-      description: `CPU usage as a percentage of allocatable CPU for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "CPU usage as a percentage of allocatable CPU for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -155,7 +163,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_memory",
       title: "Memory Usage",
-      description: `Memory usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Memory usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -180,7 +191,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_filesystem",
       title: "Filesystem Usage",
-      description: `Filesystem usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Filesystem usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Filesystem",
       legendUnit: "",
     },
@@ -388,21 +402,34 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Node Metrics: ${nodeName}`}
+          title={translator.translateTemplate("Node Metrics: {{nodeName}}", {
+            nodeName: nodeName,
+          })}
           description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
             queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              /*
+               * The tab's card hands this chart its zoom: a drag here
+               * narrows the CPU, memory and filesystem charts above too,
+               * and a double-click on any of them undoes it.
+               */
               return (
-                <div className="mt-4">
+                <div className="group/zoomhint mt-4">
                   <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <span>Network Throughput</span>
+                    <span>
+                      {translator.translateText("Network Throughput")}
+                    </span>
                     <InfoTooltip
                       label="Network Throughput"
                       text={
                         KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeNetworkThroughput
                       }
+                    />
+                    <TimeRangeZoomHint
+                      revealOnHover={true}
+                      className="ml-auto font-normal"
                     />
                   </div>
                   <KubernetesNetworkThroughputChart

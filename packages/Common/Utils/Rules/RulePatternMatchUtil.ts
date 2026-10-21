@@ -14,11 +14,30 @@
  * attempt. Matching is therefore a superset of the old behaviour: nothing
  * that used to match stops matching.
  *
+ * The regex runs on the linear-time matcher (Utils/LinearRegExp), not on
+ * JavaScript's own RegExp: the people of a project write these patterns, and
+ * the alert titles, descriptions and names they read come from outside, so a
+ * pattern such as (a+)+$ must not hold the server that every project shares.
+ * JavaScript's syntax and answers are kept, look-arounds included; a
+ * back-reference (\1) cannot run in linear time and makes the pattern one
+ * this matcher refuses (see getRegexProblem).
+ *
  * Pure and dependency-free (no logger, no models) so rule decisions stay
  * unit-testable.
  */
 
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
+import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import { patternWorkRefusesQuestions } from "../LinearRegExp/PatternWork";
+import {
+  describePatternProblemReason,
+  PatternProblemError,
+  PatternProblemReason,
+  PatternWorkLimitError,
+} from "../LinearRegExp/PatternProblem";
+
+// How much of a pattern a refusal quotes: a rule's pattern column holds 500.
+const MAX_QUOTED_PATTERN_LENGTH: number = 500;
 
 export class RulePatternMatchUtil {
   /*
@@ -39,6 +58,15 @@ export class RulePatternMatchUtil {
       return false;
     }
 
+    if (patternWorkRefusesQuestions(value)) {
+      /*
+       * The evaluation's allowance is spent (LinearRegExp/PatternWork.ts):
+       * no answer, as a regular expression or as a wildcard, without a
+       * lookup. The wildcard below counts against it too.
+       */
+      return false;
+    }
+
     const trimmedPattern: string = pattern.trim();
 
     if (RulePatternMatchUtil.matchesRegex(value, trimmedPattern)) {
@@ -48,26 +76,119 @@ export class RulePatternMatchUtil {
     /*
      * Glob fallback only for patterns that actually carry a wildcard. Without
      * a '*' a glob is just a case-insensitive whole-string equality test,
-     * which the (unanchored) regex attempt above already covers.
+     * which the (unanchored) regex attempt above already covers. A regular
+     * expression this matcher cannot run is not read as a glob either: it
+     * matches nothing.
      */
-    if (trimmedPattern.includes("*")) {
+    if (RulePatternMatchUtil.isGlobPattern(trimmedPattern)) {
       return CidrMatchUtil.hostnameMatchesWildcard(value, trimmedPattern);
     }
 
     return false;
   }
 
-  // True when `pattern` compiles as a JavaScript regular expression.
+  /*
+   * True when `pattern` is a JavaScript regular expression the rule engines
+   * can run: one the linear-time matcher compiles.
+   */
   public static isValidRegex(pattern: string): boolean {
     if (typeof pattern !== "string") {
       return false;
     }
 
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex instanceof RegExp;
+      getLinearRegExp(pattern, "i");
+      return true;
     } catch {
       return false;
+    }
+  }
+
+  /*
+   * Why `pattern` cannot run as a rule's regular expression, in words for the
+   * person who wrote it - "it refers back to ..." - or null when it can. Only
+   * for a valid regular expression the matcher refuses (a back-reference, a
+   * pattern too large): a pattern that is not a regular expression at all is
+   * null here, and isValidRegex is false for it.
+   */
+  public static getRegexProblem(pattern: string): string | null {
+    const reason: PatternProblemReason | null =
+      RulePatternMatchUtil.getRegexProblemReason(pattern);
+
+    return reason === null
+      ? null
+      : `it ${describePatternProblemReason(reason)}`;
+  }
+
+  // The same, as the reason itself (Utils/LinearRegExp/PatternProblem).
+  public static getRegexProblemReason(
+    pattern: string,
+  ): PatternProblemReason | null {
+    if (typeof pattern !== "string") {
+      return null;
+    }
+
+    try {
+      getLinearRegExp(pattern, "i");
+      return null;
+    } catch (error: unknown) {
+      return error instanceof PatternProblemError ? error.reason : null;
+    }
+  }
+
+  /*
+   * The refusal a rule's save gives for a pattern that is a regular
+   * expression the matcher cannot run - `Monitor Name Pattern "(a)\1"
+   * cannot run: it refers back to ...` - or null for any other pattern. A
+   * long pattern is quoted by its beginning only: one too large to run can
+   * be megabytes.
+   */
+  public static getCannotRunMessage(
+    title: string,
+    pattern: string,
+  ): string | null {
+    const problem: string | null =
+      RulePatternMatchUtil.getRegexProblem(pattern);
+
+    if (problem === null) {
+      return null;
+    }
+
+    const quoted: string =
+      pattern.length > MAX_QUOTED_PATTERN_LENGTH
+        ? `${pattern.slice(0, MAX_QUOTED_PATTERN_LENGTH)}…`
+        : pattern;
+
+    return `${title} "${quoted}" cannot run: ${problem}`;
+  }
+
+  /*
+   * Whether `value` matches `pattern` as a case-insensitive regular
+   * expression, in time in line with the value's length. Throws when the
+   * pattern cannot run - not a regular expression (SyntaxError), or one the
+   * linear-time matcher refuses - so a rule engine can say which rule.
+   *
+   * A question that needs more work than it may take - on its own, or
+   * together with the other questions of the rule evaluation under way
+   * (LinearRegExp/PatternWork.ts) - has no answer: false here, with nothing
+   * wrong with the pattern. The evaluation counts it as unanswered, so a
+   * negated condition is not read as holding (RuleCriteriaMatcher), and a
+   * privacy rule keeps the record private.
+   */
+  public static testRegex(pattern: string, value: string): boolean {
+    if (patternWorkRefusesQuestions(value)) {
+      // The evaluation's allowance is spent: no answer, without a lookup.
+      return false;
+    }
+
+    try {
+      return getLinearRegExp(pattern, "i").test(value);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        return false;
+      }
+
+      throw error;
     }
   }
 
@@ -86,14 +207,26 @@ export class RulePatternMatchUtil {
 
     return (
       RulePatternMatchUtil.isValidRegex(trimmedPattern) ||
-      trimmedPattern.includes("*")
+      RulePatternMatchUtil.isGlobPattern(trimmedPattern)
+    );
+  }
+
+  /*
+   * Whether `pattern` is read as a '*' wildcard: it carries one, and is not
+   * a regular expression the matcher refuses - (\w)\1* refers back to a
+   * group, and is no wildcard.
+   */
+  public static isGlobPattern(pattern: string): boolean {
+    return (
+      typeof pattern === "string" &&
+      pattern.includes("*") &&
+      RulePatternMatchUtil.getRegexProblemReason(pattern) === null
     );
   }
 
   private static matchesRegex(value: string, pattern: string): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       return false;
     }

@@ -4,6 +4,7 @@ import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMo
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
@@ -18,6 +19,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ProfileMonitorResponse from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 
 export default class MonitorCriteriaDataExtractor {
   public static getProbeMonitorResponse(
@@ -76,6 +78,19 @@ export default class MonitorCriteriaDataExtractor {
     return null;
   }
 
+  public static getLlmMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): LlmMonitorResponse | null {
+    if (
+      dataToProcess &&
+      typeof (dataToProcess as LlmMonitorResponse).llmAnswerCount === "number"
+    ) {
+      return dataToProcess as LlmMonitorResponse;
+    }
+
+    return null;
+  }
+
   public static getTraceMonitorResponse(
     dataToProcess: DataToProcess,
   ): TraceMonitorResponse | null {
@@ -103,6 +118,19 @@ export default class MonitorCriteriaDataExtractor {
       (dataToProcess as ExceptionMonitorResponse).exceptionCount !== undefined
     ) {
       return dataToProcess as ExceptionMonitorResponse;
+    }
+
+    return null;
+  }
+
+  public static getProfileMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): ProfileMonitorResponse | null {
+    if (
+      dataToProcess &&
+      typeof (dataToProcess as ProfileMonitorResponse).profileCount === "number"
+    ) {
+      return dataToProcess as ProfileMonitorResponse;
     }
 
     return null;

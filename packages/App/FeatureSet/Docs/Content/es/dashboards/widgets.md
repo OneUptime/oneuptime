@@ -1,247 +1,252 @@
-# Widgets
+# Widgets del panel
 
-Un widget es una casilla en un panel. Esta página lista cada widget que puedes añadir, qué muestra y cuándo recurrir a él.
+Un widget es una casilla de un panel. Esta página enumera cada widget del catálogo **Añadir widget**, lo que muestra y los ajustes que importan, en los mismos grupos que el catálogo. Para colocar widgets en la cuadrícula y guardarlos, consulta [Crear un panel](/docs/dashboards/authoring).
 
-Para saber cómo arrastrar widgets por el lienzo, consulta [Crear un Panel](/docs/dashboards/authoring).
+:::cards
+- [¿Qué widget debo usar?](#qué-widget-debo-usar): Elige según la pregunta que responde la casilla.
+- [Gráficos y números](#gráficos-y-números): Gráfico, Valor, Indicador y Tabla, a partir de una consulta de métricas.
+- [Registros, trazas y seguridad](#registros-trazas-y-seguridad): Gráficos de volumen, flujos en vivo y listas.
+- [Ordenar listas y tablas](#ordenar-listas-y-tablas): Ordena por una columna y fija el orden que ven todos.
+- [Cuando un widget no se puede mostrar](#cuando-un-widget-no-se-puede-mostrar): Qué muestra un widget roto y cómo arreglarlo.
+:::
+
+## ¿Qué widget debo usar?
+
+Parte de la pregunta que tiene que responder la casilla:
+
+| La pregunta | El widget |
+| --- | --- |
+| ¿Cómo ha cambiado una métrica con el tiempo? | **Gráfico** |
+| ¿Cuántos registros, de qué gravedad, a lo largo del tiempo? | **Gráfico de registros** |
+| ¿Qué tan rápidas son las peticiones, y cuántas fallan, a lo largo del tiempo? | **Gráfico de trazas** |
+| ¿Cuál es un número concreto ahora mismo? | **Valor**, o **Indicador** cuando tiene un rango conocido |
+| ¿Qué hosts, servicios o endpoints destacan? | **Tabla** o **Tabla de trazas** |
+| ¿Qué está pasando ahora mismo? | **Flujo de registros**, **Lista de trazas**, **Lista de incidentes** o **Lista de alertas** |
+| ¿Están todos nuestros sitios en funcionamiento? | **Lista de monitores** |
+| ¿Mantenemos la fiabilidad que prometimos? | **SLO** o **Lista de SLO** |
+| ¿En qué estado están nuestros clústeres y hosts? | Un widget del grupo Infraestructura |
+| ¿Dónde está nuestra red en el mundo, y qué está caído? | **Mapa de red** |
+| ¿Un encabezado, una nota, la hora en otra oficina? | **Texto** o **Reloj** |
+| ¿Datos guardados fuera de OneUptime? | Un widget del grupo Fuentes de datos externas |
+| ¿Algo que ningún widget cubre? | **HTML**, una vez que estés seguro de que ningún otro widget lo hace |
+
+```mermaid title="Elegir un widget, una pregunta cada vez"
+flowchart TB
+    q1("¿Cambia la respuesta<br/>con el tiempo?") -->|"Sí"| w1["Gráfico, Gráfico de<br/>registros o Gráfico<br/>de trazas"]
+    q1 -->|"No"| q2("¿Es un solo número?")
+    q2 -->|"No"| q3("¿Son cosas y<br/>su estado?")
+    q2 -->|"Sí"| w2["Valor, o Indicador si<br/>el rango es conocido"]
+    q3 -->|"Sí"| w3["Un widget de lista,<br/>o una tabla"]
+    q3 -->|"No"| w4["Texto, Reloj<br/>o HTML"]
+```
+
+La mayoría de los paneles combinan unos pocos: un gráfico arriba, uno o dos valores al lado, un encabezado de texto y una o dos listas debajo.
 
 ## Gráficos y números
 
+Estos cuatro widgets leen una consulta de métricas, construida igual que en el explorador de métricas: elige una métrica y una agregación, añade filtros de atributos, y agrupa por un atributo para obtener una serie por valor.
+
 ### Gráfico
 
-Un gráfico de líneas, barras o áreas de una o más series de métricas durante el rango de tiempo del panel.
+Una serie temporal de una o varias consultas de métricas a lo largo del intervalo de tiempo del panel. **Chart Type** la dibuja como un gráfico de líneas, de barras, de áreas, de áreas apiladas o circular. **Additional Queries** superpone más métricas en los mismos ejes, y **Fórmulas** las combina con `+`, `-`, `*`, `/`, `%`, `^` y paréntesis, como en `(1 - a) * 100`. Los ajustes de visualización de cada consulta añaden una leyenda y una unidad, un color, líneas de advertencia y críticas, y una tasa por segundo para los contadores que solo crecen.
 
-**Configuración**:
-
-- Una o más consultas de métricas.
-- Una fórmula opcional que combina dos consultas (por ejemplo, `errors / total * 100` para obtener una tasa de errores).
-- Una opción "mostrar como tasa" para contadores acumulativos que crecen sin reiniciarse.
-- Opciones de visualización: apilado o superpuesto, unidad del eje Y, posición de la leyenda, tipo de gráfico.
-
-Úsalo cuando: las tendencias importan. Latencia a lo largo del tiempo, conteo de errores, profundidad de cola, cualquier cosa donde la forma de la línea cuenta la historia.
+Úsalo cuando la forma de la línea cuenta la historia: latencia, errores, rendimiento o profundidad de una cola.
 
 ### Valor
 
-Un solo número grande con umbrales coloreados opcionales.
+Un número grande con un minigráfico: el valor de la consulta en todo el intervalo de tiempo, sumado para una suma o un recuento, el más alto para un máximo, el más bajo para un mínimo, y la media en los demás casos. Una flecha compara la segunda mitad del intervalo con la primera, coloreada según **Trend Direction**: si un valor más alto es mejor o peor, o deducido del nombre de la métrica. **Umbral de advertencia** pone el fondo amarillo y **Umbral crítico** rojo en cuanto el valor los alcanza.
 
-**Configuración**:
-
-- Una consulta de métrica que devuelve un número (último valor, promedio o máximo durante el rango de tiempo).
-- Un umbral de **advertencia** opcional (amarillo cuando se supera).
-- Un umbral **crítico** opcional (rojo cuando se supera).
-- Formato y unidad de número.
-
-Úsalo cuando: un solo número responde la pregunta. Tasa de errores actual, latencia P95 ahora mismo, conteo de incidentes abiertos.
+Úsalo cuando un número responde a la pregunta: la tasa de errores, la latencia P95 o las peticiones atendidas hoy.
 
 ### Indicador
 
-Un indicador circular con un mínimo, un máximo, una banda de advertencia y una banda crítica.
+Un dial entre un mínimo y un máximo, 0 y 100 si no los defines, con una zona amarilla a partir de **Umbral de advertencia** y una zona roja a partir de **Umbral crítico**.
 
-**Configuración**: una consulta de métrica y los cuatro límites.
-
-Úsalo cuando: el valor encaja dentro de un rango conocido. Porcentaje de CPU (0–100%), uso de disco, capacidad de cola.
+Úsalo cuando el valor vive en un rango conocido: el uso de CPU o de disco en porcentaje, o la capacidad de una cola.
 
 ### Tabla
 
-Una tabla de resultados de métrica, una fila por grupo.
+Valores de métricas como filas. **Agrupar por atributos** da una fila por valor, por ejemplo una por `host.name`; sin ello, cada fila es un intervalo de tiempo. **Metrics & Columns** define las columnas: métricas, y fórmulas sobre ellas, como la disponibilidad en porcentaje. Cuando agrupas, **Reduce across time** convierte la serie de cada fila en un solo valor: el último valor, la media, la suma, el mínimo o el máximo.
 
-**Configuración**: una consulta de métrica (normalmente agrupada por una etiqueta como host o servicio), las columnas a mostrar y un límite de filas.
+Úsala para un desglose en lugar de una tendencia: los hosts más ruidosos, los errores por servicio, las peticiones por endpoint.
 
-Úsalo cuando: quieres un desglose en lugar de una tendencia. Top 10 de hosts más ruidosos, conteo de errores por servicio, solicitudes por endpoint.
+## Texto, reloj y HTML
 
-## Texto
+Estos widgets no necesitan ninguna fuente de datos.
 
-Un bloque estático de Markdown.
+### Texto
 
-**Configuración**: el cuerpo en Markdown. Encabezados, listas, enlaces, énfasis y bloques de código se renderizan.
+Una línea o un bloque de texto, para un encabezado, una nota o enlaces a tus runbooks. Activa **Markdown** para dibujar encabezados, enlaces, listas, código y tablas; si no, el texto se muestra tal como lo escribes, en negrita, cursiva o subrayado si quieres.
 
-Úsalo cuando: quieres un encabezado de sección, un párrafo de contexto, una lista de enlaces a runbooks o una banderola temporal durante un incidente.
+### Reloj
 
-## HTML
+La hora actual en cualquier zona horaria, en dígitos o en una esfera analógica, con una etiqueta como "Oficina de Sídney". Sin zona horaria, muestra la de cada espectador. Añade uno por oficina para ver quién está despierto.
 
-Tu propio HTML, CSS y JavaScript, renderizado como un widget.
+### HTML
 
-**Configuración**: el cuerpo HTML, una hoja de estilos opcional, un script opcional y tres interruptores de permisos.
+Tu propio HTML, CSS y JavaScript, dibujado como un widget. Sus ajustes son el cuerpo HTML, una hoja de estilos opcional, un script opcional y tres interruptores de permisos.
 
-Úsalo cuando: necesitas algo que ningún widget integrado cubre: una insignia de terceros incrustada, una tabla extraída de una API interna, una leyenda personalizada, un conjunto de enlaces con estilo hacia tus propias herramientas.
+Úsalo cuando necesites algo que ningún widget integrado cubre: una insignia incrustada de un tercero, una tabla obtenida de una API interna, una leyenda personalizada o un conjunto de enlaces con estilo a tus propias herramientas.
 
-### Qué puede y qué no puede hacer
+#### Qué puede y qué no puede hacer
 
-El widget se renderiza en un marco con sandbox, en su propio origen aislado. Dentro de ese marco tu código puede hacer prácticamente cualquier cosa: construir el DOM, ejecutar temporizadores, hacer fetch a cualquier URL, dibujar en un canvas.
+El widget se renderiza en un marco aislado (sandbox) en su propio origen aislado. Dentro de ese marco tu código puede hacer más o menos cualquier cosa: construir el DOM, ejecutar temporizadores, hacer peticiones a cualquier URL, dibujar en un canvas.
 
-Lo que no puede hacer es alcanzar la página de OneUptime que lo rodea. No tiene acceso al DOM del panel, ni a las cookies, ni al almacenamiento local, ni a la sesión de la API, y no puede sacar la pestaña del navegador a otra página. Esto se cumple tanto si el panel es privado como si se comparte públicamente.
+Lo que no puede hacer es llegar a la página de OneUptime que lo rodea. No tiene acceso al DOM del panel, a las cookies, al almacenamiento local ni a la sesión de la API, y no puede hacer que la pestaña del navegador navegue a otra página. Eso se cumple tanto si el panel es privado como si se comparte públicamente.
 
-Dos consecuencias que conviene conocer antes de pegar algo dentro:
+Dos consecuencias que conviene conocer antes de pegar algo:
 
-- Un `fetch` desde el widget es una solicitud de origen cruzado desde un origen opaco, así que el servidor al que llamas tiene que permitirla con CORS. No se admite llamar a la API de OneUptime desde aquí.
-- El widget empieza siendo transparente. Establece un fondo en `body` en tu CSS si quieres que rellene la tarjeta.
+- Un `fetch` desde el widget es una petición entre orígenes desde un origen opaco, así que el servidor al que llamas tiene que permitirla con CORS. Llamar a la API de OneUptime desde aquí no está soportado.
+- El widget empieza transparente. Define un fondo en `body` en tu CSS si quieres que llene la tarjeta. En el tema oscuro su texto empieza claro y su elemento `<html>` tiene la clase `dark`: empieza una regla CSS con `html.dark` para dar estilo solo al tema oscuro.
 
-### Usar variables del panel
+#### Usar las variables del panel
 
-Escribe `{{variableName}}` en cualquier lugar del HTML, CSS o JavaScript y se reemplaza por el valor actual de esa variable antes de que el widget se renderice. Elegir un valor nuevo vuelve a renderizar el widget. Un marcador de posición que nombra una variable que no existe se deja tal cual.
+Escribe `{{variableName}}` en cualquier parte del HTML, el CSS o el JavaScript y se sustituye por el valor actual de esa variable antes de que el widget se renderice. Elegir un valor nuevo vuelve a renderizar el widget. Un marcador que nombra una variable que no existe se deja tal cual.
 
-Los scripts reciben los mismos valores, más el rango de tiempo del panel, en `window.ONEUPTIME`:
+Los scripts reciben los mismos valores, más el intervalo de tiempo del panel, en `window.ONEUPTIME`:
 
-```javascript
-window.ONEUPTIME.variables.environment; // valor actual, o "" si no está definido
-window.ONEUPTIME.startDate; // cadena ISO 8601, inicio del rango de tiempo del panel
-window.ONEUPTIME.endDate; // cadena ISO 8601, fin del mismo
+```javascript title="window.ONEUPTIME"
+window.ONEUPTIME.variables.environment; // current value, or "" if unset
+window.ONEUPTIME.startDate; // ISO 8601 string, start of the dashboard's time range
+window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 ```
 
 El widget se recarga cada vez que el panel se actualiza, así que un widget que obtiene sus propios datos sigue el ritmo del intervalo de actualización.
 
-### Permisos
+#### Permisos
 
-**Run JavaScript** (ejecutar JavaScript; activado de forma predeterminada) ejecuta tu script. Desactívalo para renderizar solo el marcado y los estilos: en ese caso el script se omite por completo del widget en lugar de solo bloquearse.
+**Run JavaScript** (activado por defecto) ejecuta tu script. Desactívalo para renderizar solo el marcado y los estilos: el script se deja entonces totalmente fuera del widget, en lugar de simplemente bloquearse.
 
-**Open links in a new tab** (abrir enlaces en una pestaña nueva; activado de forma predeterminada) permite que los enlaces y `window.open` abran una pestaña del navegador. Los enlaces siempre se abren en una pestaña nueva; el widget nunca puede navegar el panel en sí.
+**Open links in a new tab** (activado por defecto) permite que los enlaces y `window.open` abran una pestaña del navegador. Los enlaces siempre se abren en una pestaña nueva; el widget nunca puede hacer navegar al propio panel.
 
-**Allow forms to submit** (permitir el envío de formularios; desactivado de forma predeterminada) permite que un `<form>` dentro del widget se envíe.
+**Allow forms to submit** (desactivado por defecto) permite que un `<form>` dentro del widget se envíe.
 
-Cualquiera que pueda editar el panel decide qué ejecuta este widget, y todo el que ve el panel lo ejecuta: en un panel público, eso incluye a visitantes anónimos. Trata el acceso de edición a un panel que lleva un widget HTML igual que tratarías el acceso a cualquier otro código que publicas.
+Quien puede editar el panel decide lo que ejecuta este widget, y todos los que ven el panel lo ejecutan: en un panel público, eso incluye a los visitantes anónimos. Trata el acceso de edición a un panel con un widget HTML como tratarías el acceso a cualquier otro código que publicas.
 
-## Logs y trazas
+## Registros, trazas y seguridad
 
-### Gráfico de Logs
+| Widget | Qué muestra | Ajustes que importan |
+| --- | --- | --- |
+| **Gráfico de registros** | El volumen de registros a lo largo del tiempo, una serie por gravedad, como barras, líneas o áreas. | Gravedades, texto que contiene el cuerpo, filtros de atributos. |
+| **Flujo de registros** | Las últimas líneas de registro que cumplen un filtro. | Gravedad, texto que contiene el cuerpo, filtros de atributos como `@service.name:checkout`, cuántas filas. |
+| **Gráfico de trazas** | Número de peticiones, número de errores o tiempo de respuesta (medio, mínimo, máximo, de P50 a P99) a lo largo del tiempo. | La métrica, qué spans contar, y un atributo por el que dividir las series. |
+| **Lista de trazas** | Las últimas trazas, con su duración y su estado. | Estado, cuántas filas. |
+| **Tabla de trazas** | Los principales nombres de span, estados o valores de atributo por número de peticiones, con los tiempos de respuesta mediano, medio, mínimo y máximo. | Por qué agrupar las filas, y qué spans contar. |
+| **Eventos de seguridad** | Los últimos eventos de seguridad, con su gravedad, su clase de evento y su host. | Gravedades, clases de evento, texto que contiene el mensaje. |
+| **Flujo de eventos de seguridad** | Un flujo de eventos de seguridad desde su origen, pasando por su clase de evento, hasta su gravedad. | Gravedades, cuántos eventos. |
 
-Un gráfico de series temporales del volumen de logs a lo largo del rango temporal del panel. Cada serie representa una severidad, así que los picos de error destacan sobre el tráfico normal.
+Los widgets de trazas solo cuentan los spans raíz, como hace el explorador de trazas, salvo que incluyas los spans hijos en sus ajustes. Un patrón habitual es un gráfico de latencia arriba con una lista de trazas lentas debajo.
 
-**Configuración**:
+## Incidentes, alertas y monitores
 
-- Visualización como gráfico de barras, líneas o áreas. Los gráficos de barras y áreas apilan las series de severidad.
-- Filtros de severidad opcionales.
-- Búsqueda de texto opcional en el cuerpo del log.
-- Filtros exactos de atributos de OpenTelemetry mediante filas de clave/valor buscables. Los nombres de atributo y los valores conocidos se sugieren mientras escribes, y los valores personalizados siguen admitiéndose.
-- Un título opcional.
+| Widget | Qué muestra | Filtros |
+| --- | --- | --- |
+| **Lista de incidentes** | Los incidentes con su estado y su gravedad. | Sin resolver, reconocidos o resueltos; gravedad, estado, monitores y etiquetas. |
+| **Lista de alertas** | Las alertas con su estado y su gravedad. | Sin resolver, reconocidas o resueltas; gravedad, estado, monitores y etiquetas. |
+| **Lista de monitores** | Los monitores con su estado actual. | Operativos o no, estado, tipo de monitor y etiquetas, o una **Variable de etiqueta** que los espectadores eligen en la barra de herramientas. |
 
-Los controles de rango temporal y de refresco del panel vuelven a consultar el gráfico automáticamente. Las variables de atributos de telemetría del panel también se le aplican, incluidas las de selección múltiple.
-
-El Gráfico de Logs requiere por ahora un panel autenticado. Los paneles públicos muestran el widget como no disponible en lugar de exponer de forma anónima los agregados de logs del proyecto.
-
-Úsalo cuando: quieres detectar cambios en el volumen de logs o comparar errores, advertencias e informativos sin salir del panel.
-
-### Flujo de Logs
-
-Un seguimiento en vivo de líneas de logs que coinciden con un filtro.
-
-**Configuración**: filtros de logs (servicio, severidad, atributos) y las columnas a mostrar.
-
-Úsalo cuando: quieres ver qué está diciendo la aplicación ahora mismo, sin salir del panel.
-
-### Lista de Trazas
-
-Una lista de trazas recientes que coinciden con un filtro, con duración, estado y servicio.
-
-**Configuración**: filtros de trazas (servicio, estado, atributos).
-
-Úsalo cuando: quieres una lista de actividad reciente en lugar de un gráfico. Un patrón común es un gráfico de latencia en la parte superior con una lista de trazas lentas debajo.
-
-## Listas en vivo
-
-### Lista de Incidentes
-
-Una lista en vivo de incidentes que coinciden con un filtro.
-
-**Configuración**: filtros por estado, severidad, etiquetas, monitor o equipo.
-
-Úsalo cuando: el panel responde "¿qué está roto ahora mismo?".
-
-### Lista de Alertas
-
-Una lista en vivo de alertas que coinciden con un filtro.
-
-**Configuración**: filtros por estado, severidad, etiquetas.
-
-Úsalo cuando: un panel de equipo sigue las alertas de sus servicios.
-
-### Lista de Monitores
-
-Una lista en vivo de monitores y su estado actual.
-
-**Configuración**: filtros por tipo de monitor, etiquetas o estado actual.
-
-Úsalo cuando: quieres una vista de flota: "¿están todos los sitios activos?".
+Como la mayoría de los widgets de lista, estos tres pueden dibujar un panal de celdas coloreadas por estado en lugar de una tabla: elígelo en **Modo de visualización**. Muestran el estado actual, sea cual sea el intervalo de tiempo del panel.
 
 ## Objetivos de nivel de servicio
 
 ### SLO
 
-Un objetivo de nivel de servicio, dibujado como un único número o como una línea a lo largo del tiempo.
+Un único objetivo de nivel de servicio, dibujado como un solo número o como una línea a lo largo del tiempo.
 
-**Configuración**: qué SLO, cuál de sus tres números (SLI, presupuesto de error restante o tasa de consumo), presentación como Tarjeta o Gráfico, y un título opcional.
+**Ajustes**: qué SLO, o el SLO elegido en una variable del panel; cuál de sus tres números (SLI, Error Budget Remaining o Burn Rate); la visualización Tile o Gráfico; y un título opcional.
 
-- **Tarjeta** muestra el número actual y, cuando la hay, una segunda línea: el objetivo debajo del SLI, los minutos restantes debajo del presupuesto de error. Una etiqueta de estado colorea el conjunto.
-- **Gráfico** dibuja el mismo número a lo largo del rango temporal del panel, con el objetivo marcado como una línea discontinua en la serie del SLI. El historial lo escribe el worker de evaluación cada pocos minutos, así que un SLO recién creado se dibuja vacío hasta que se evalúa por primera vez.
+- **Tile** muestra el número actual, más una segunda línea cuando la hay: el objetivo bajo el SLI, los minutos restantes bajo el presupuesto de errores. Una etiqueta de estado colorea el conjunto.
+- **Gráfico** dibuja el mismo número a lo largo del intervalo de tiempo del panel, con el objetivo marcado como una línea discontinua en la serie del SLI. El worker de evaluación escribe el historial cada pocos minutos, así que un SLO recién creado aparece vacío en el gráfico hasta que se evalúa por primera vez.
 
-Úsalo cuando: el panel responde a "¿estamos cumpliendo lo que prometimos?" en lugar de "¿qué está pasando ahora mismo?".
+Úsalo cuando el panel responde a "¿cumplimos lo que prometimos?" más que a "¿qué está pasando ahora mismo?".
 
-El widget de SLO funciona en [paneles públicos](/docs/dashboards/sharing). Lo que se publica son las cifras principales del SLO: su nombre, objetivo, SLI actual, presupuesto de error restante, tasa de consumo y estado, sin importar cuál de ellas dibuje el widget. Su definición sigue siendo privada: los monitores que vigila, sus etiquetas, su descripción, su consulta y su programación de evaluación nunca se envían a un visitante público. Un widget de Tarjeta publica solo esas cifras actuales; un widget de Gráfico publica además el historial de la única serie que dibuja, y nada más.
+El widget SLO funciona en los [paneles públicos](/docs/dashboards/sharing). Lo que se publica son las cifras principales del SLO (su nombre, su objetivo, el SLI actual, el presupuesto de errores restante, la tasa de consumo y el estado), sea cual sea la que dibuja el widget. Su definición sigue siendo privada: los monitores que vigila, sus etiquetas, su descripción, su consulta y su calendario de evaluación nunca se envían a un visitante público. Un widget Tile solo publica esas cifras actuales; un widget Gráfico publica además el historial de la única serie que dibuja, y nada más.
 
-## Listas de recursos de Kubernetes
+### Lista de SLO
 
-Para proyectos con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) instalado. Cada uno toma filtros opcionales para cluster, namespace y etiquetas.
-
-- **Lista de Pods de Kubernetes** — pods con su fase, reinicios y nodo.
-- **Lista de Nodos de Kubernetes** — nodos con sus condiciones y capacidad.
-- **Lista de Namespaces de Kubernetes** — namespaces y conteos de cargas de trabajo.
-- **Lista de Deployments de Kubernetes** — deployments con réplicas deseadas vs. listas.
-- **Lista de StatefulSets de Kubernetes** — stateful sets con réplicas listas.
-- **Lista de DaemonSets de Kubernetes** — daemon sets con deseadas vs. listas.
-- **Lista de Jobs de Kubernetes** — jobs y su estado de finalización.
-- **Lista de CronJobs de Kubernetes** — cron jobs con programación y última ejecución.
-
-Úsalos cuando: quieres un solo panel que mezcle el estado de Kubernetes con la telemetría de esas cargas de trabajo.
-
-## Listas de recursos de Docker
-
-Para proyectos con monitorización de Docker configurada.
-
-- **Lista de Hosts de Docker** — hosts ejecutando Docker, con conteos de contenedores.
-- **Lista de Contenedores de Docker** — contenedores con estado, imagen, host, tiempo activo.
-- **Lista de Imágenes de Docker** — imágenes y sus tamaños.
-- **Lista de Redes de Docker** — redes de Docker y contenedores conectados.
-- **Lista de Volúmenes de Docker** — volúmenes de Docker y su uso.
+Cada SLO con su estado, su SLI, su presupuesto de errores y su tasa de consumo, primero los que tienen menos presupuesto. Fíltrala por estado o etiquetas, o por una **Variable de etiqueta** que los espectadores eligen en la barra de herramientas. [Métricas y paneles de SLO](/docs/slo/metrics) muestra los dos widgets de SLO en acción.
 
 ## Infraestructura
 
-### Lista de Hosts
+Cada uno de estos widgets lista los recursos que un agente o un colector comunica a OneUptime. Acótalos por clúster, host o espacio de nombres en sus filtros, y muéstralos como una lista o como un panal.
 
-Hosts monitorizados por el monitor de servidor de OneUptime, con estado, CPU, memoria y tiempo activo.
+| Grupo | Widgets | Los alimenta |
+| --- | --- | --- |
+| **Hosts** | **Hosts**, con su estado de conexión, su sistema operativo, su CPU y su memoria | Cualquier colector de OpenTelemetry que envíe `host.name` |
+| **Kubernetes** | **Pods**, **Nodos**, **Espacios de nombres**, **Despliegues**, **StatefulSets**, **DaemonSets**, **Trabajos**, **CronJobs** | El [Agente de Kubernetes](/docs/monitor/kubernetes-agent) |
+| **Docker** | **Hosts**, **Contenedores**, **Imágenes**, **Redes**, **Volúmenes** | El agente de Docker |
+| **Docker Swarm** | **Nodos**, **Servicios** | El agente de Docker Swarm |
+| **Podman** | **Hosts**, **Contenedores**, **Imágenes**, **Redes**, **Volúmenes** | El agente de Podman |
+| **Proxmox** | **Nodos**, **Invitados** | El agente de Proxmox |
+| **VMware** | **Hosts**, **Máquinas virtuales** | El agente de VMware, o un vCenter que conectes |
+| **Ceph** | **OSD**, como un muro coloreado por estado, y **Pools** | El agente de Ceph |
+| **Cabinas de almacenamiento** | **Volúmenes**, y **Hardware** como un muro coloreado por estado | El agente de cabinas de almacenamiento |
 
-**Configuración**: filtros por etiquetas o estado actual.
+Úsalos para tener una página que combine el estado de tu infraestructura con la telemetría de las cargas de trabajo que corren en ella.
 
-## Red
+### Mapa de red
 
-### Mapa de Red
+Tus sitios de red dibujados en el mapa del mundo, cada uno fijado en su propia latitud y longitud y coloreado por el estado de monitor que se le agrega. Los sitios cercanos comparten un marcador con el recuento impreso dentro; un marcador que representa exactamente un sitio abre ese sitio al hacer clic en él.
 
-Tus sitios de red dibujados en el mapa del mundo, cada uno fijado en su propia latitud y longitud y coloreado según el estado de monitor agregado sobre él. Los sitios próximos entre sí comparten un marcador con el recuento impreso dentro; un marcador que representa exactamente un sitio abre ese sitio al hacer clic.
+El mapa se encuadra en los sitios que dibujó: una red dentro de un solo país llena el encuadre con ese país, y una repartida entre continentes se abre sobre el mundo. No hay controles de zoom ni de desplazamiento: una casilla de panel es una imagen, y la página Mapa de red, en Red, es donde se recorre la jerarquía.
 
-El mapa se encuadra según los sitios que dibujó: un parque dentro de un solo país llena el encuadre con ese país, y uno repartido entre continentes se abre sobre el mundo. No hay controles de zoom ni de desplazamiento: una tarjeta de panel es una imagen, y la página Mapa de Red, dentro de Red, es donde recorres la jerarquía.
+Encima del mapa indica cuántos sitios están caídos, porque nadie distingue un punto rojo de dos píxeles entre doscientos verdes a la distancia a la que se mira un panel. Debajo, una línea de cobertura dice lo que el mapa no muestra: los sitios sin coordenadas, y si se alcanzó el límite de filas.
 
-Sobre el mapa se imprime cuántos sitios están caídos, porque un punto rojo de dos píxeles entre doscientos verdes no es algo que nadie lea a distancia de panel. Debajo, una línea de cobertura dice lo que el mapa _no_ está mostrando: sitios sin coordenadas, y si se alcanzó el límite de filas.
+**Ajustes**: título, vista de mapa o de lista, número máximo de sitios dibujados, si se imprimen los nombres de los sitios, y filtros por tipo de sitio y por estado. Los nombres de los sitios se ocultan automáticamente cuando el mapa está demasiado cargado para poder leerlos; la información emergente sigue nombrando cada marcador.
 
-**Configuración**: título, vista de mapa o de lista, máximo de sitios dibujados, si se imprimen los nombres de sitio, y filtros por tipo de sitio y por estado. Los nombres de sitio desaparecen automáticamente cuando el mapa se llena demasiado para poder leerlos; el tooltip sigue nombrando cada marcador.
+Un sitio solo aparece si tiene coordenadas. Añade la latitud y la longitud en el sitio (o impórtalas desde un CSV) para fijarlo.
 
-Un sitio solo aparece si tiene coordenadas. Añade latitud y longitud en el sitio (o impórtalas desde CSV) para fijarlo.
+## Fuentes de datos externas
 
-## ¿Qué widget debo usar?
+El grupo Fuentes de datos externas dibuja un **Gráfico**, un **Valor**, un **Indicador** o una **Tabla** a partir de un sistema que no es de OneUptime: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch o cualquier API REST. Conectas el sistema una vez, y luego escribes la consulta de cada widget en el propio lenguaje de ese sistema. [Fuentes de datos externas](/docs/dashboards/data-sources) explica cómo.
 
-Algunas reglas rápidas:
+## Ordenar listas y tablas
 
-- **¿Tendencia a lo largo del tiempo?** Gráfico.
-- **¿Volumen de logs o picos de error a lo largo del tiempo?** Gráfico de Logs.
-- **¿Un número que importa ahora mismo?** Valor (o Indicador si tiene un mínimo/máximo claro).
-- **¿Desglose entre muchas cosas?** Tabla.
-- **¿Qué está pasando en el sistema ahora mismo?** Flujo de Logs, Lista de Trazas, Lista de Incidentes.
-- **¿El estado de un grupo específico de recursos?** El widget de lista correspondiente.
-- **¿Estamos cumpliendo la fiabilidad que prometimos?** SLO.
-- **¿Dónde está tu red en el mundo y qué está en rojo?** Mapa de Red.
-- **¿Un encabezado, un párrafo o un enlace?** Texto.
-- **¿Algo que no cubre nada de lo anterior?** HTML — pero solo después de comprobar que un widget integrado realmente no puede hacerlo.
+Haz clic en el encabezado de una columna para ordenar una lista o una tabla por ella: un primer clic la ordena como dice la tabla de abajo, el siguiente clic al revés, y el de después devuelve el widget a su propio orden. En la columna por la que el widget ya está ordenado, un clic invierte el orden. Una flecha marca la columna por la que están ordenadas las filas.
 
-La mayoría de los paneles mezclan varios: un gráfico en la parte superior, uno o dos valores al lado, un divisor de texto y una o dos listas debajo.
+| Columna | Primer clic | Siguiente clic |
+| --- | --- | --- |
+| Un estado o una gravedad | Peores primero | Mejores primero |
+| Una hora | Más recientes primero | Más antiguos primero |
+| Un número | Más altos primero | Más bajos primero |
+| Texto | De la A a la Z | De la Z a la A |
 
-## Dónde seguir leyendo
+Lo peor sigue el orden propio de tu proyecto: el estado de un monitor según su prioridad, la gravedad y el estado de un incidente o una alerta según el orden en que los tienes, y un recurso caído, no preparado o apagado antes que uno sano. La fase de un pod se ordena Failed, luego Unknown, luego Pending y luego Running y Succeeded. El SLI y el presupuesto de errores de un SLO, y el VMID de un invitado de Proxmox, se ordenan de menor a mayor.
 
-- [Variables y Filtros](/docs/dashboards/variables) — hacer que los widgets sean reutilizables para muchos servicios o clientes.
-- [Crear un Panel](/docs/dashboards/authoring) — la mecánica del lienzo.
-- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — compartir fuera de tu equipo.
+Se ordena la lista entera, no solo las filas de la pantalla: una lista que muestra 25 filas, ordenada con los peores primero, muestra los 25 peores de todos. Las filas empatadas conservan el orden propio del widget. Una columna por la que una lista no se puede ordenar entera, como el mensaje de un evento de seguridad, no ordena.
+
+### Tu propio orden
+
+Tu orden es solo tuyo: tu navegador lo recuerda para ese widget en ese panel, así que una recarga o el reinicio de una pantalla mural lo conservan, y nadie más lo ve. El clic que devuelve el widget a su propio orden olvida tu orden, y el widget sigue entonces su propio orden, aunque un editor lo cambie después.
+
+### El orden que ven todos
+
+Para fijar el orden en que un widget se abre para todos, edítalo y elige el orden en **Ordenar**, o haz clic en el encabezado de una columna en su **Vista previa en vivo**, y luego haz clic en **Guardar cambios**. Ves el nuevo orden al instante; quien haya ordenado el widget a su manera conserva su orden.
+
+Las plantillas de panel abren sus listas de hosts, nodos, pods, servicios de Swarm y dispositivos de red con los peores primero.
+
+Mediante la API y Terraform, el orden es el `arguments.sort` del widget: una columna y una dirección, por ejemplo `status:desc`. Un widget de lista rechaza una columna que no tiene, y el error enumera los órdenes que tiene.
+
+## En un panel público
+
+Un [panel público](/docs/dashboards/sharing) dibuja la mayoría de los widgets para sus visitantes, y cada uno muestra solo lo que se configuró para mostrar. Algunos no pueden mostrarse sin una sesión iniciada:
+
+- **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad** y **Flujo de eventos de seguridad** indican en su lugar que no están disponibles en los paneles públicos.
+- Los widgets de Fuentes de datos externas se quedan totalmente fuera de un panel público, porque sus ajustes son la propia consulta.
+
+## Cuando un widget no se puede mostrar
+
+Un widget que no se puede dibujar muestra **No se pudo mostrar este widget** en su propio lugar, y el resto del panel sigue funcionando. Eso ocurre cuando OneUptime no tiene ningún widget de su tipo (uno que se eliminó, que se escribió mal cuando el panel se creó a través de la API, o que añadió una versión más reciente), o cuando el widget falla al dibujarse, por ejemplo porque sus ajustes guardados están incompletos.
+
+Si puedes editar el panel, haz clic en **Editar widget** sobre él. El panel pasa al modo de edición con los ajustes de ese widget abiertos: corrígelos, o haz clic en **Eliminar widget**, y luego en **Guardar cambios**. Un widget que falló al dibujarse ofrece además **Volver a intentar**, y se vuelve a dibujar en la siguiente actualización automática o cuando cambias el intervalo de tiempo.
+
+A los visitantes de un panel público solo se les dice que el widget no se pudo mostrar.
+
+## Próximos pasos
+
+:::cards
+- [Variables y filtros del panel](/docs/dashboards/variables): Deja que los espectadores apunten los widgets a un servicio, un host o un cliente.
+- [Fuentes de datos externas](/docs/dashboards/data-sources): Grafica Prometheus, SQL, Loki y más junto a tus propios datos.
+- [Crear un panel](/docs/dashboards/authoring): Añade, organiza y guarda widgets.
+- [Compartir y paneles públicos](/docs/dashboards/sharing): Comparte el panel fuera de tu equipo.
+:::

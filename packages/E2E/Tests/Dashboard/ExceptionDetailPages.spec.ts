@@ -113,6 +113,26 @@ const desktopMenu: () => Locator = (): Locator => {
   );
 };
 
+/*
+ * Rarely used side-menu sections (here Manage, which holds Settings) start
+ * folded down to their titles: their rows are hidden until the section is
+ * opened, or until one of its pages is the one open. Opens one if it is
+ * folded.
+ */
+const openMenuSection: (section: string) => Promise<void> = async (
+  section: string,
+): Promise<void> => {
+  const toggle: Locator = desktopMenu().locator(
+    `xpath=.//h6[normalize-space(.)='${section}']/ancestor::button[1]`,
+  );
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+};
+
 const summary: () => Locator = (): Locator => {
   return ctx.page.getByTestId("exception-summary");
 };
@@ -482,6 +502,7 @@ test.describe("Exception detail pages", () => {
 
     for (const detailPage of DETAIL_PAGES) {
       const expectedPath: string = detailBasePath() + detailPage.suffix;
+      await openMenuSection(detailPage.section);
       await expect(
         desktopMenu().getByRole("link", {
           name: detailPage.title,
@@ -500,6 +521,7 @@ test.describe("Exception detail pages", () => {
         exact: true,
       });
 
+      await openMenuSection(detailPage.section);
       await link.click();
       await expect(ctx.page).toHaveURL(expectedUrl);
       await expect(link).toHaveClass(/bg-indigo-50/);

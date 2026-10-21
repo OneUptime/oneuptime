@@ -85,7 +85,7 @@ The runner prints the engine and its version in its header, and the summary is l
 
 It is hermetic and takes about a second: no network, no Docker, no OneUptime stack, and no real `terraform`/`tofu` binary. Engine dispatch is exercised against fakes on `PATH`; the rest are static contract checks over the fixtures, the runner, and the workflow. CI runs it immediately after checkout so a harness regression fails in seconds rather than after a stack bring-up.
 
-It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; the runner installing `hashicorp/random` only from `TF_E2E_PROVIDER_MIRROR` when it is set (and failing, without touching the registry, when the mirror lacks it); the workflow restoring sha256-pinned engines and providers from the Actions cache, staging the `hashicorp/random` version the runner requires, and setting up gomplate before `npm run dev`; and the workflow invoking the suite exactly twice with both wrappers disabled.
+It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; the runner installing `hashicorp/random` only from `TF_E2E_PROVIDER_MIRROR` when it is set (and failing, without touching the registry, when the mirror lacks it); the workflow restoring sha256-pinned engines and providers from the Actions cache, staging the `hashicorp/random` version the runner requires, and setting up gomplate before `npm run dev`; the workflow rendering the Dockerfiles (`npm run prerun`) and then warming the public.ecr.aws base images of every service the bring-up builds, before `npm run dev` builds them (and at least one such service being found, so the check cannot pass having read nothing); a bring-up attempt whose build fails ending there, with the build's error, instead of going on to status-check (the retry step's command is run the way nick-fields/retry runs it, against a fake `npm`); and the workflow invoking the suite exactly twice with both wrappers disabled.
 
 Add a check whenever you add a harness mechanism, and make sure it actually fails when that mechanism is broken — every check here was verified by breaking the thing it guards and confirming the suite went red.
 
@@ -238,13 +238,30 @@ bumping the random provider, change `RANDOM_PROVIDER_VERSION` in `run-tests.sh`
 and in the workflow together, with both new digests; the self-test fails if
 the versions differ.
 
+The images the bring-up builds, `app` and `ingress`, start FROM
+`public.ecr.aws/docker/library/node`, and public.ecr.aws serves anonymous
+pullers from one data quota that busy CI windows exhaust. Once it is gone the
+build fails on `429 Too Many Requests ... Data limit exceeded` on every
+attempt, since the quota does not come back within the retries. So the "Warm
+base images" step renders the Dockerfiles first (`npm run config-to-dev`,
+`npm run prerun`, as `npm run dev` does) and seeds their base images into the
+runner's image store with `Scripts/GHA/warm_base_images.sh`, from Docker Hub
+when ECR refuses; the compose build then finds them locally. When you add a
+service that has a `build:` section to `--services`, add its Dockerfile to
+that step: `Tests/Ops/KubernetesAiAgentRelease.test.js` fails until you do,
+and so does the self-test when that Dockerfile builds FROM public.ecr.aws. The
+bring-up runs `npm run dev ... && npm run status-check`, so a build that fails
+ends its attempt at once with its own error, instead of leaving status-check
+to wait five minutes on a stack that never started; the attempts are a minute
+apart.
+
 Both runs share one stack and one test project rather than getting a job
-each. Bring-up (disk cleanup, npm install, provider generation, docker
-compose, account setup) dominates this job's runtime, so a second job would
-roughly double CI cost for no extra coverage. Re-running against an
-already-used project is safe because every test destroys what it created and
-the runner fails the build when deletion cannot be verified — a leak from the
-first run cannot silently carry into the second.
+each. Bring-up (disk cleanup, npm install, provider generation, base-image
+warm-up, docker compose, account setup) dominates this job's runtime, so a
+second job would roughly double CI cost for no extra coverage. Re-running
+against an already-used project is safe because every test destroys what it
+created and the runner fails the build when deletion cannot be verified — a
+leak from the first run cannot silently carry into the second.
 
 See `.github/workflows/terraform-provider-e2e.yml` for the workflow configuration.
 

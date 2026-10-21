@@ -66,6 +66,15 @@ export const SESSION_REPLAY_CHECKOUT_INTERVAL_MS: number = 60_000;
 export const SESSION_REPLAY_ROLLING_BUFFER_MS: number = 60_000;
 export const SESSION_REPLAY_ROLLING_BUFFER_BYTES: number = 2 * 1024 * 1024;
 export const SESSION_REPLAY_IDLE_ROLLOVER_MS: number = 30 * 60_000;
+/*
+ * How long the recorder keeps capturing with nobody using the app (Common's
+ * SESSION_REPLAY_IDLE_PAUSE_MS). After this long without a touch it stops
+ * capturing altogether - no view-tree sample, no checkout, no chunk - and
+ * the next touch, or the app coming back to the foreground, resumes the
+ * same session on a fresh snapshot, as long as that comes inside
+ * SESSION_REPLAY_IDLE_ROLLOVER_MS.
+ */
+export const SESSION_REPLAY_IDLE_PAUSE_MS: number = 5 * 60_000;
 export const SESSION_REPLAY_MAX_SESSION_MS: number = 4 * 60 * 60_000;
 export const SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES: number =
   8 * 1024 * 1024;
@@ -265,3 +274,32 @@ export const IDENTIFY_CUSTOM_EVENT_TAG: string = "oneuptime.identify";
 export const TAGS_CUSTOM_EVENT_TAG: string = "oneuptime.tags";
 export const VISIBILITY_CUSTOM_EVENT_TAG: string = "oneuptime.visibility";
 export const TOUCH_CUSTOM_EVENT_TAG: string = "oneuptime.touch";
+export const SESSION_ROTATED_CUSTOM_EVENT_TAG: string =
+  "oneuptime.session-rotated";
+
+/*
+ * The idle pause's two markers, copied from Common's
+ * SessionReplayCustomEvents with their payloads. The player draws the
+ * stretch between them as unrecorded rather than as footage of a screen
+ * that sat still, so nothing at all is recorded between the two.
+ */
+export const IDLE_PAUSED_CUSTOM_EVENT_TAG: string = "oneuptime.idle-paused";
+export const IDLE_RESUMED_CUSTOM_EVENT_TAG: string = "oneuptime.idle-resumed";
+
+/* The last thing in the stream before an idle pause. */
+export interface SessionReplayIdlePausedPayload {
+  /* The last input before the pause: where the user actually stopped. */
+  idleSinceUnixMs: number;
+  /* When capture stopped. */
+  pausedAtUnixMs: number;
+}
+
+/*
+ * The first marker after an idle pause, directly behind the fresh snapshot
+ * that resumed capture. Carries the pause's start too, so the unrecorded
+ * stretch can be drawn from this marker alone.
+ */
+export interface SessionReplayIdleResumedPayload {
+  pausedAtUnixMs: number;
+  resumedAtUnixMs: number;
+}

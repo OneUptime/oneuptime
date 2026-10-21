@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Resource pages scope the shared telemetry viewers (logs, traces, metrics,
@@ -409,7 +410,7 @@ describe("source helpers", () => {
   test("comment stripping keeps URLs and string content", () => {
     const source: string = readPage("NetworkDevice/View/Logs.tsx");
     expect(source).not.toContain("/*");
-    expect(source).toContain("PROBE_SYSLOG_RECEIVER_ENABLED=true");
+    expect(source).toContain("on port 5140, over UDP and TCP.");
   });
 });
 
@@ -513,7 +514,7 @@ describe("every scoped resource page gives the viewer a name, not just an id", (
             value: expect.not.stringMatching(
               new RegExp(
                 `^(${RAW_IDENTIFIER_EXPRESSIONS.map((raw: string) => {
-                  return raw.replace(/[.*+?^${}()|[\]\\!]/g, "\\$&");
+                  return escapeRegExp(raw);
                 }).join("|")})$`,
               ),
             ),

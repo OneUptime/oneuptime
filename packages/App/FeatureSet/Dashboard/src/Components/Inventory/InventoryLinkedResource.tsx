@@ -25,6 +25,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The shared body of an inventory item's Incidents / Alerts / Maintenance
@@ -143,6 +148,7 @@ const resolveResourceId: ResolveFunction = async (
 const InventoryLinkedResource: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { item, isLoading, error }: UseInventoryItemResult = useInventoryItem(
     props.modelId,
   );
@@ -224,15 +230,20 @@ const InventoryLinkedResource: FunctionComponent<ComponentProps> = (
         id="inventory-linked-resource-empty-state"
         icon={IconProp.Alert}
         showSolidBackground={true}
-        title={`No ${props.signal} for this item`}
+        title={translator.translateTemplate("No {{signal}} for this item", {
+          signal: translatableTerm(props.signal, { inSentence: true }),
+        })}
         description={
           canEverLink
-            ? `This item looks like a ${
-                item.entityType === EntityType.Service ? "service" : "resource"
-              } OneUptime monitors, but no matching record was found, so there are no ${
-                props.signal
-              } to show.`
-            : describeMissingLink(item.entityType, props.signal)
+            ? translator.translateTemplate(
+                item.entityType === EntityType.Service
+                  ? "This item looks like a service OneUptime monitors, but no matching record was found, so there are no {{signal}} to show."
+                  : "This item looks like a resource OneUptime monitors, but no matching record was found, so there are no {{signal}} to show.",
+                {
+                  signal: translatableTerm(props.signal, { inSentence: true }),
+                },
+              )
+            : describeMissingLink(item.entityType, props.signal, translator)
         }
       />
     );

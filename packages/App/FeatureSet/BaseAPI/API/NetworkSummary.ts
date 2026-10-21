@@ -26,6 +26,7 @@ import NetworkEndpointService from "Common/Server/Services/NetworkEndpointServic
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import {
   DeviceHealthGroup,
@@ -514,6 +515,10 @@ async function getSitesNeedingAttention(data: {
     select: {
       _id: true,
       name: true,
+      // The type's name: the relation, and the old column as its fallback.
+      networkSiteType: {
+        name: true,
+      },
       siteType: true,
       currentMonitorStatusId: true,
     },
@@ -533,7 +538,7 @@ async function getSitesNeedingAttention(data: {
     return {
       _id: site.id?.toString() || "",
       name: site.name || "",
-      siteType: site.siteType?.toString() || null,
+      siteType: getNetworkSiteTypeName(site),
       statusName: status?.name || null,
       statusColor: status?.color?.toString() || null,
     };
@@ -802,12 +807,14 @@ export default class NetworkSummaryAPI {
             siteStatusCounts,
             vendors,
             endpointCount,
+            snmpFailingCount,
             attentionDevices,
             attentionSites,
           ]: [
             Array<DeviceHealthGroup>,
             Array<SiteStatusCount>,
             Array<{ vendor: string; count: number }>,
+            number,
             number,
             JSONArray,
             JSONArray,
@@ -830,6 +837,24 @@ export default class NetworkSummaryAPI {
             NetworkEndpointService.countBy({
               query: {
                 projectId: projectId,
+              },
+              props: props,
+            }).then((count: PositiveNumber) => {
+              return count.toNumber();
+            }),
+            /*
+             * Devices that answer ping while their SNMP walk fails - the
+             * same rows the attention list's SNMP-failing read pages
+             * through, counted whole. The Overview's headline says how many
+             * devices are not reporting their details, and the attention
+             * list shows at most eight of them.
+             */
+            NetworkDeviceService.countBy({
+              query: {
+                projectId: projectId,
+                isArchived: false,
+                isReachable: true,
+                isSnmpReachable: false,
               },
               props: props,
             }).then((count: PositiveNumber) => {
@@ -877,6 +902,7 @@ export default class NetworkSummaryAPI {
               down: fleet.down,
               pending: fleet.pending,
               interfacesDown: interfacesDown,
+              snmpFailing: snmpFailingCount,
             },
             siteCount: siteTally.totalSites,
             unhealthySiteCount: siteTally.unhealthySites,

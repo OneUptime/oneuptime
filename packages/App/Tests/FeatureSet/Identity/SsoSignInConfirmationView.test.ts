@@ -4,7 +4,7 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * SsoSignInConfirmation.ejs - the page a project-SSO confirmation email links
- * to (ee/Server/Identity/API/ProjectSsoSignInConfirmation.ts renders it).
+ * to (FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts renders it).
  *
  * What the page has to get right, each of which fails silently:
  *

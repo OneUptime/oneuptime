@@ -9,6 +9,7 @@ import {
   SECURITY_CONNECTION_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { isRequestTimeoutMessage } from "Common/Server/Utils/SecurityEvent/Connectors/RequestTimeoutMessage";
 import fs from "fs";
 import nodePath from "path";
 
@@ -145,9 +146,6 @@ const TOTAL_REQUEST_BUDGET_PATTERN: RegExp =
   /maxRequests:\s*GOOGLE_SECOPS_SEARCH_PAGE_BUDGET\s*\+\s*GOOGLE_SECOPS_CURATED_REQUEST_BUDGET\s*\+\s*GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET/;
 const FETCH_DURATION_BUDGET_PATTERN: RegExp =
   /maxDurationMs:\s*GOOGLE_SECOPS_FETCH_DURATION_MS/;
-/* The poller's "this failure was a timeout" detector. */
-const POLLER_TIMEOUT_PATTERN_SOURCE: RegExp =
-  /TIMEOUT_ERROR_PATTERN:\s*RegExp\s*=\s*\/(.+?)\/i;/;
 /* The client's timeout message, as a template. */
 const CLIENT_TIMEOUT_TEMPLATE_PATTERN: RegExp =
   /`(Google SecOps \$\{stepLabel\} timed out after \$\{timeoutInSeconds\} seconds with no response\.)`/;
@@ -654,12 +652,14 @@ const alertsFetchPrefix: string = httpErrorPrefixes.find(
 /*
  * The Troubleshooting section and the 400 walkthrough after it, ending where
  * the upgrade notes begin: those quote the migration and the API, not
- * connector messages, and are checked on their own below.
+ * connector messages, and are checked on their own below. Since the docs
+ * overhaul (task 28b) both are sections of their own (## headings), and each
+ * troubleshooting entry is a :::details block.
  */
 const docsSectionEndIndex: number = indexOfOrThrow(
   docsSource,
-  "\n### Upgrading from the earlier Google SecOps connector",
-  indexOfOrThrow(docsSource, "### Troubleshooting"),
+  "\n## Upgrading from the earlier Google SecOps connector",
+  indexOfOrThrow(docsSource, "\n## Troubleshooting"),
 );
 
 /* The pre-GA callout through the end of the Troubleshooting material. */
@@ -668,10 +668,10 @@ const docsGuidance: string = docsSource.slice(
   docsSectionEndIndex,
 );
 
-/* Just the Last Error bullet and everything after it in that material. */
+/* Just the Last Error entry and everything after it in that material. */
 const docsLastErrorGuidance: string = docsSource
   .slice(
-    indexOfOrThrow(docsSource, "- **Last Error is populated**"),
+    indexOfOrThrow(docsSource, ":::details Last Error is populated"),
     docsSectionEndIndex,
   )
   .trim();
@@ -1886,7 +1886,7 @@ describe('"Never" really means no poll has finished', () => {
 
   test("both texts still tell the operator what Never means", () => {
     expect(docsGuidance).toContain(
-      "- **Last Polled is `Never` and Last Error is empty** — no poll has finished for this connection",
+      ":::details Last Polled is `Never` and Last Error is empty\nNo poll has finished for this connection",
     );
     expect(docsGuidance).toContain(
       "the background worker has not executed the poll job at all",
@@ -1992,21 +1992,15 @@ describe("Partial-poll guidance matches what polling does", () => {
    * error reads as a timeout, and the client's timeout message is one.
    */
   test("a Google SecOps timeout is the failure that halves the next window", () => {
-    const pollerTimeoutPattern: RegExp = new RegExp(
-      requireGroup(
-        POLLER_TIMEOUT_PATTERN_SOURCE,
-        pollerSource,
-        "TIMEOUT_ERROR_PATTERN",
-      ),
-      "i",
-    );
     const clientTimeoutTemplate: string = requireGroup(
       CLIENT_TIMEOUT_TEMPLATE_PATTERN,
       clientSource,
       "the client's timeout message",
     );
 
-    expect(pollerTimeoutPattern.test(clientTimeoutTemplate)).toBe(true);
+    // The poller asks RequestTimeoutMessage whether a failed run timed out.
+    expect(pollerSource).toContain("isRequestTimeoutMessage(result.error)");
+    expect(isRequestTimeoutMessage(clientTimeoutTemplate)).toBe(true);
 
     for (const fragment of TIMEOUT_WARNING_FRAGMENTS) {
       expect(docsSource).toContain(fragment);
@@ -2158,8 +2152,8 @@ describe("Test connection guidance names the checks that ship, in order", () => 
 
   const docsTestSection: string = sliceBetween(
     docsSource,
-    "### Test connection",
-    "### Preview, run and import on demand",
+    "\n## Test connection",
+    "\n## Preview, run and import on demand",
   );
 
   test("every documented check is a name the code reports", () => {
@@ -2244,12 +2238,14 @@ describe("Test connection guidance names the checks that ship, in order", () => 
  * the models and the API rather than restated.
  */
 describe("Upgrade guidance matches the data migration and the API", () => {
+  // The upgrade notes run from their heading to the next section's.
+  const upgradeStart: number = indexOfOrThrow(
+    docsSource,
+    "\n## Upgrading from the earlier Google SecOps connector",
+  );
   const upgradeSection: string = docsSource.slice(
-    indexOfOrThrow(
-      docsSource,
-      "### Upgrading from the earlier Google SecOps connector",
-    ),
-    indexOfOrThrow(docsSource, "## Option 3"),
+    upgradeStart,
+    indexOfOrThrow(docsSource, "\n## ", upgradeStart + 1),
   );
 
   test("connections keep their id, provider, settings, cursor and scope", () => {

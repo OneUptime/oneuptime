@@ -7,17 +7,26 @@ const PICKER_SOURCE: string = path.join(
   COMMON_ROOT,
   "UI/Components/Forms/Fields/ColorPicker.tsx",
 );
-const COLOR_CONTROL_MODULE: RegExp =
-  /^(lib|es)\/(components\/(chrome|common)\/|helpers\/)/;
+
+interface BundledInputs {
+  // Paths under node_modules/react-color that put bytes in the output.
+  reactColor: Array<string>;
+  // The picker's own modules (Common/UI/Components/ColorPicker/*).
+  pickerParts: Array<string>;
+}
 
 /*
- * FormField reaches this component even on pages without a color field. The
- * react-color barrel included every picker implementation in those pages'
- * bundles. Build the actual component with the frontend configuration and
- * inspect emitted modules, so tree-shaking and type-only imports are accounted
- * for. A subprocess supplies the native Node environment esbuild requires.
+ * FormField reaches the color field even on pages without a color field, so
+ * what the field pulls in is paid for on every form. It used to pull in
+ * react-color's ChromePicker (and once, through the package's barrel, every
+ * picker react-color has). The field now draws its own swatches, square,
+ * strip and code box, so no react-color code may reach the bundle at all.
+ *
+ * Built with the frontend configuration and read from esbuild's metafile, so
+ * tree-shaking and type-only imports are accounted for. A subprocess
+ * supplies the native Node environment esbuild requires.
  */
-function bundledColorModules(nodeEnv: string): Array<string> {
+function bundledInputs(nodeEnv: string): BundledInputs {
   const script: string = `
     const path = require("path");
     const commonRoot = ${JSON.stringify(COMMON_ROOT)};
@@ -36,15 +45,26 @@ function bundledColorModules(nodeEnv: string): Array<string> {
       metafile: true,
       logLevel: "silent",
     }).then((result) => {
-      const included = new Set();
+      const reactColor = new Set();
+      const pickerParts = new Set();
       for (const output of Object.values(result.metafile.outputs)) {
         for (const [input, contribution] of Object.entries(output.inputs)) {
-          if (contribution.bytesInOutput > 0 && input.includes("/react-color/")) {
-            included.add(input.split("/react-color/")[1]);
+          if (contribution.bytesInOutput <= 0) {
+            continue;
+          }
+          if (input.includes("/react-color/")) {
+            reactColor.add(input.split("/react-color/")[1]);
+          }
+          const marker = "UI/Components/ColorPicker/";
+          if (input.includes(marker)) {
+            pickerParts.add(input.split(marker)[1]);
           }
         }
       }
-      console.log(JSON.stringify([...included].sort()));
+      console.log(JSON.stringify({
+        reactColor: [...reactColor].sort(),
+        pickerParts: [...pickerParts].sort(),
+      }));
     }).catch((error) => {
       console.error(error);
       process.exitCode = 1;
@@ -59,28 +79,24 @@ function bundledColorModules(nodeEnv: string): Array<string> {
       timeout: 60000,
       maxBuffer: 1024 * 1024,
     }),
-  ) as Array<string>;
+  ) as BundledInputs;
 }
 
 describe("color picker frontend bundle", () => {
   test.each(["production", "development"])(
-    "includes Chrome and shared controls without the other pickers in %s",
+    "carries the field's own parts and no react-color in %s",
     (nodeEnv: string) => {
-      const modules: Array<string> = bundledColorModules(nodeEnv);
+      const inputs: BundledInputs = bundledInputs(nodeEnv);
 
-      expect(modules).toEqual(
+      expect(inputs.reactColor).toEqual([]);
+      expect(inputs.pickerParts).toEqual(
         expect.arrayContaining([
-          expect.stringMatching(/^(lib|es)\/components\/chrome\/Chrome\.js$/),
-          expect.stringMatching(
-            /^(lib|es)\/components\/common\/ColorWrap\.js$/,
-          ),
+          "ColorPalette.ts",
+          "ColorSwatchGroup.tsx",
+          "ColorValue.ts",
+          "CustomColorPanel.tsx",
         ]),
       );
-      expect(
-        modules.filter((modulePath: string) => {
-          return !COLOR_CONTROL_MODULE.test(modulePath);
-        }),
-      ).toEqual([]);
     },
   );
 });

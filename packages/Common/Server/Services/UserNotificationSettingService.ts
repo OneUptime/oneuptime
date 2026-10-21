@@ -51,10 +51,14 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import EmailRollupWriter from "../Utils/EmailRollup/EmailRollupWriter";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { fitNotificationSmsForSending } from "../../Utils/Sms/NotificationSms";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -109,10 +113,21 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       );
     }
 
+    /*
+     * Every channel below is sent only through this setting row, and the row
+     * is read only while the person is a member of the project: somebody who
+     * has left (or never accepted their invitation) reads as having nothing
+     * set up, so a leftover row - an owner on a closed incident, a reference
+     * a failed cleanup left behind - never reaches them. The membership check
+     * rides on this read, so it costs no extra query (ProjectMembership).
+     */
     const notificationSettings: UserNotificationSetting | null =
       await this.findOneBy({
         query: {
-          userId: data.userId,
+          userId: ProjectMembership.userIdWhileMember({
+            userId: data.userId,
+            projectId: data.projectId,
+          }),
           projectId: data.projectId,
           eventType: data.eventType,
         },
@@ -261,10 +276,27 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           },
         });
 
+        /*
+         * The SMS copy, in the characters an SMS carries cheaply and in one
+         * part where it can be (NotificationSms), measured as the
+         * Notification service sends it - with the installation's own name.
+         * The Telegram, Slack and Microsoft Teams copies made from the same
+         * text below keep every character as written.
+         */
+        const smsMessage: SMSMessage = {
+          ...data.smsMessage,
+          message: fitNotificationSmsForSending(
+            data.smsMessage.message || "",
+            (text: string): string => {
+              return ProductBrandingText.brandText(text);
+            },
+          ),
+        };
+
         for (const userSms of userSmses) {
           SmsService.sendSms(
             {
-              ...data.smsMessage,
+              ...smsMessage,
               to: userSms.phone!,
             },
             {
@@ -471,7 +503,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
 
         if (subject || smsBody) {
           const lines: Array<string> = [];
-          lines.push(`🔔 **${subject || "OneUptime notification"}**`);
+          lines.push(
+            mdText`🔔 **${subject || "OneUptime notification"}**`.toString(),
+          );
           if (smsBody) {
             lines.push("");
             lines.push(smsBody);
@@ -791,6 +825,26 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addIncidentEpisodeNotificationSettings(userId, projectId);
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
     await this.addSloNotificationSettings(userId, projectId);
+    await this.addIncomingCallNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * Email on by default: a missed call is a customer who could not reach
+   * anyone, and the owners are the people who can call them back.
+   * Idempotent - the AddIncomingCallMissedNotificationSettingsForUsers data
+   * migration calls this for every existing member, and the missed call
+   * notification seeds it too before sending.
+   */
+  @CaptureSpan()
+  public async addIncomingCallNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION,
+    );
   }
 
   private async addSloNotificationSettings(

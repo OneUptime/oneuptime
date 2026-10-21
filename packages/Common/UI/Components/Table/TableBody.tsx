@@ -1,4 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCardContext, TableCellContext } from "./TableCellContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -15,6 +17,10 @@ export interface ComponentProps<T extends GenericObject> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
+  // The header's cell widths while a row is dragged (see Table).
+  dragColumnWidths?: Array<number> | null | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -32,6 +38,12 @@ export interface ComponentProps<T extends GenericObject> {
   /** Why a locked row is locked, in the caller's own words. */
   itemNotSelectableReason?: ((item: T) => string) | undefined;
 
+  /*
+   * The rows scroll sideways: the Actions cell, stuck at the right edge, is
+   * ruled off from the cells passing under it (TableLayout).
+   */
+  isOverflowing?: boolean | undefined;
+
   // responsive
   isMobile?: boolean;
 }
@@ -46,6 +58,41 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
   /*
+   * A row's React key: its id when the list can be dragged. Rows that move
+   * must keep their identity - keyed by position, React would hand a moved
+   * row's state (an open menu, a focused grip) to whichever row lands in
+   * its old place.
+   */
+  const getRowKey: (item: T, index: number) => string | number = (
+    item: T,
+    index: number,
+  ): string | number => {
+    if (props.enableDragAndDrop && props.dragDropIdField) {
+      const id: string | undefined = item[props.dragDropIdField]?.toString();
+
+      if (id) {
+        return id;
+      }
+    }
+
+    return index;
+  };
+
+  const getDragProps: (index: number) => {
+    dragIndex: number;
+    isDragDisabled: boolean | undefined;
+    dragDisabledReason: string | undefined;
+    dragColumnWidths: Array<number> | null | undefined;
+  } = (index: number) => {
+    return {
+      dragIndex: index,
+      isDragDisabled: props.isDragDisabled,
+      dragDisabledReason: props.dragDisabledReason,
+      dragColumnWidths: props.dragColumnWidths,
+    };
+  };
+
+  /*
    * Everything about ONE row's checkbox, computed once and spread into both the
    * desktop and the mobile TableRow. The selected-ness test used to be written
    * out twice, identically, a hundred lines apart; adding three more selection
@@ -57,6 +104,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     isItemSelectable: boolean;
     itemSelectLabel: string | undefined;
     itemNotSelectableReason: string | undefined;
+    itemLabel: string | undefined;
   };
 
   const getSelectionProps: SelectionPropsFunction = (item: T) => {
@@ -71,8 +119,12 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         }),
     );
 
-    const label: string | undefined = props.bulkItemToString
-      ? `Select ${props.bulkItemToString(item)}`
+    const itemLabel: string | undefined = props.bulkItemToString
+      ? props.bulkItemToString(item)
+      : undefined;
+
+    const label: string | undefined = itemLabel
+      ? `Select ${itemLabel}`
       : undefined;
 
     return {
@@ -84,6 +136,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       itemNotSelectableReason: props.itemNotSelectableReason
         ? props.itemNotSelectableReason(item)
         : undefined,
+      itemLabel: itemLabel,
     };
   };
 
@@ -97,7 +150,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
           id={props.id}
           ref={provided?.innerRef}
           {...provided?.droppableProps}
-          className="divide-y divide-gray-200 bg-white"
+          className="divide-y divide-gray-100 bg-white"
         >
           {props.data &&
             props.data.map((item: T, i: number) => {
@@ -109,7 +162,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   {...getSelectionProps(item)}
                   dragAndDropScope={props.dragAndDropScope}
                   enableDragAndDrop={props.enableDragAndDrop}
-                  key={i}
+                  key={getRowKey(item, i)}
+                  {...getDragProps(i)}
                   item={item}
                   rowProps={props.getRowProps?.(item)}
                   columns={props.columns}
@@ -131,19 +185,21 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         id={props.id}
         ref={provided?.innerRef}
         {...provided?.droppableProps}
-        className="divide-y divide-gray-200 bg-white"
       >
         {props.data &&
           props.data.map((item: T, i: number) => {
             return (
               <TableRow
+                isLastRow={i === props.data.length - 1}
+                isOverflowing={props.isOverflowing}
                 isBulkActionsEnabled={props.isBulkActionsEnabled}
                 onItemSelected={props.onItemSelected}
                 onItemDeselected={props.onItemDeselected}
                 {...getSelectionProps(item)}
                 dragAndDropScope={props.dragAndDropScope}
                 enableDragAndDrop={props.enableDragAndDrop}
-                key={i}
+                key={getRowKey(item, i)}
+                {...getDragProps(i)}
                 item={item}
                 rowProps={props.getRowProps?.(item)}
                 columns={props.columns}
@@ -159,16 +215,31 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     );
   };
 
-  if (props.enableDragAndDrop) {
-    return (
-      <Droppable droppableId={props.dragAndDropScope || ""}>
-        {(provided: DroppableProvided) => {
-          return getBody(provided);
-        }}
-      </Droppable>
-    );
-  }
-  return getBody();
+  /*
+   * A table's rows draw their cells as a table does - a record's labels on
+   * the row's one line, the first two and "+N"; nothing to list as a quiet
+   * dash (TableCellContext) - even where the table itself is drawn inside a
+   * detail card's value (DetailValueContext). On a phone each row is a card
+   * (TableCardContext), where a list's long names run onto the next line
+   * instead of ending in "...".
+   */
+  return (
+    <DetailValueContext.Provider value={false}>
+      <TableCellContext.Provider value={true}>
+        <TableCardContext.Provider value={Boolean(props.isMobile)}>
+          {props.enableDragAndDrop ? (
+            <Droppable droppableId={props.dragAndDropScope || ""}>
+              {(provided: DroppableProvided) => {
+                return getBody(provided);
+              }}
+            </Droppable>
+          ) : (
+            getBody()
+          )}
+        </TableCardContext.Provider>
+      </TableCellContext.Provider>
+    </DetailValueContext.Provider>
+  );
 };
 
 export default TableBody;

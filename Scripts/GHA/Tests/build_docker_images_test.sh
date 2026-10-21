@@ -156,6 +156,69 @@ run_build() {
 
 echo "build_docker_images.sh"
 
+# --- Base images come from Docker Hub, not public.ecr.aws. ---
+#
+# public.ecr.aws serves anonymous pullers from a shared data quota, and run
+# 36367719252 is what exhausting it looks like here: both amd64 builds dead on
+# "429 Too Many Requests / toomanyrequests: Data limit exceeded" after all four
+# push attempts, on an image nobody had touched. warm_base_images.sh cannot help
+# these builds -- they run on a docker-container buildx builder with its own
+# content store, which does not read the daemon's -- so the substitution is done
+# with --build-context, and every caller of this script is logged in to Docker
+# Hub by then.
+#
+# The exact spelling is what matters: get the reference on the left wrong and it
+# matches no FROM, BuildKit goes back to ECR, and the build fails exactly as it
+# did before with nothing to say it ignored the flag.
+ECR_DOCKERFILE="${WORK_DIR}/Dockerfile.ecr"
+cat > "$ECR_DOCKERFILE" <<'EOF'
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/node:26-bookworm-slim AS base
+FROM base AS build
+FROM nginx:1.30.5-alpine3.24 AS proxy
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim AS runtime
+EOF
+
+reset_state
+status=0
+output="$(run_build --image e2e --version 14.0.8 --dockerfile "$ECR_DOCKERFILE" --git-sha 0123456789abcdef)" || status=$?
+assert_eq 0 "$status" "ecr substitution: succeeds"
+assert_eq "public.ecr.aws/docker/library/node:26-bookworm-slim=docker-image://docker.io/library/node:26-bookworm-slim" "$(flag_values 1 --build-context)" "ecr substitution: maps the exact reference the Dockerfile names to its Docker Hub original"
+assert_contains "$output" "Substituting docker.io/library/node:26-bookworm-slim" "ecr substitution: says what it substituted"
+
+# Repeated across stages, and read past a --platform flag, but substituted once:
+# BuildKit takes one --build-context per reference.
+assert_eq 1 "$(flag_values 1 --build-context | wc -l | tr -d ' ')" "ecr substitution: substitutes a repeated base image exactly once"
+
+# The enterprise pass needs it just as much as the community one.
+assert_eq 1 "$(has_arg 2 "public.ecr.aws/docker/library/node:26-bookworm-slim=docker-image://docker.io/library/node:26-bookworm-slim")" "ecr substitution: applies to the enterprise pass too"
+
+# --- Images from elsewhere are left alone. ---
+reset_state
+status=0
+output="$(run_build --image test --version 14.0.8 --dockerfile "$LEGACY_DOCKERFILE" --git-sha 0123456789abcdef)" || status=$?
+assert_eq 0 "$status" "no ecr base image: succeeds"
+assert_eq "" "$(flag_values 1 --build-context)" "no ecr base image: passes no --build-context at all"
+
+# A registry we have no mapping for must not be guessed at.
+UNMAPPED_DOCKERFILE="${WORK_DIR}/Dockerfile.unmapped"
+cat > "$UNMAPPED_DOCKERFILE" <<'EOF'
+FROM public.ecr.aws/bitnami/mysql:8.4
+EOF
+
+reset_state
+status=0
+output="$(run_build --image odd --version 14.0.8 --dockerfile "$UNMAPPED_DOCKERFILE" --git-sha 0123456789abcdef)" || status=$?
+assert_eq 0 "$status" "unmapped ecr image: still builds"
+assert_eq "" "$(flag_values 1 --build-context)" "unmapped ecr image: substitutes nothing rather than guessing"
+assert_contains "$output" "no Docker Hub original" "unmapped ecr image: says why it was left to ECR"
+
+# --- The escape hatch, for building against ECR on purpose. ---
+reset_state
+status=0
+output="$(ONEUPTIME_KEEP_ECR_BASE_IMAGES=true run_build --image e2e --version 14.0.8 --dockerfile "$ECR_DOCKERFILE" --git-sha 0123456789abcdef)" || status=$?
+assert_eq 0 "$status" "keep-ecr: succeeds"
+assert_eq "" "$(flag_values 1 --build-context)" "keep-ecr: leaves the Dockerfile's own references in place"
+
 # --- Target mode: a Dockerfile with an `AS enterprise` stage. ---
 reset_state
 status=0

@@ -10,9 +10,10 @@ import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
+import OneUptimeDate from "Common/Types/Date";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
@@ -32,6 +33,18 @@ import AIPlanGate from "../../Components/AI/AIPlanGate";
 import InsightFilterBar, {
   InsightFilterOption,
 } from "../../Components/AIInsights/InsightFilterBar";
+import {
+  DEFAULT_INSIGHT_SORT,
+  INSIGHT_SEEN_WITHIN_OPTIONS,
+  INSIGHT_SORT_OPTIONS,
+  InsightSeenWithinValue,
+  InsightSortValue,
+  getInsightSeenWithinFilter,
+  getInsightSort,
+  parseInsightSeenWithin,
+  parseInsightSort,
+} from "../../Components/AIInsights/InsightListOrdering";
+import InsightHighlights from "../../Components/AIInsights/InsightHighlights";
 import InsightListItem from "../../Components/AIInsights/InsightListItem";
 import InsightListSkeleton from "../../Components/AIInsights/InsightListSkeleton";
 import InsightStatusSummary, {
@@ -42,6 +55,9 @@ import {
   STATUS_LABELS,
   getStatusDotClasses,
 } from "../../Components/AIInsights/InsightPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const INSIGHTS_PER_PAGE: number = 20;
 
@@ -128,14 +144,18 @@ const readFilterParam: ReadFilterParamFunction = (
 };
 
 /*
- * The AI insights inbox: a triage strip of per-status counts (which is also
- * the status filter), one search/type/severity toolbar, and a single aligned
- * list where every finding reads as title-first with its status, detection
- * count and freshness in fixed right-hand columns.
+ * The AI insights inbox. It leads with what to look at first — the open
+ * finding that matters most, with what OneUptime AI's triage concluded, the
+ * service behind most of them, and what is new this week
+ * (InsightHighlights) — then a triage strip of per-status counts (which is
+ * also the status filter), one search/type/severity toolbar, and a single
+ * aligned list where every finding reads as title-first with its status,
+ * detection count and freshness in fixed right-hand columns.
  */
 const AIInsightsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const settingsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.AI_INSIGHTS_SETTINGS] as Route,
   );
@@ -171,6 +191,17 @@ const AIInsightsPage: FunctionComponent<
   const [typeFilter, setTypeFilter] = useState<string>(() => {
     return readFilterParam("type", Object.values(AIInsightType));
   });
+  /*
+   * "Any time" is the same "All" sentinel the other filters use, so the bar's
+   * one unfilteredValue covers it too.
+   */
+  const [seenWithinFilter, setSeenWithinFilter] =
+    useState<InsightSeenWithinValue>(() => {
+      return parseInsightSeenWithin(Navigation.getQueryStringByName("seen"));
+    });
+  const [sortValue, setSortValue] = useState<InsightSortValue>(() => {
+    return parseInsightSort(Navigation.getQueryStringByName("sort"));
+  });
   const [searchText, setSearchText] = useState<string>(() => {
     return Navigation.getQueryStringByName("search") || "";
   });
@@ -185,9 +216,21 @@ const AIInsightsPage: FunctionComponent<
       status: statusFilter === ALL_FILTER_VALUE ? null : statusFilter,
       severity: severityFilter === ALL_FILTER_VALUE ? null : severityFilter,
       type: typeFilter === ALL_FILTER_VALUE ? null : typeFilter,
+      seen:
+        seenWithinFilter === InsightSeenWithinValue.AnyTime
+          ? null
+          : seenWithinFilter,
+      sort: sortValue === DEFAULT_INSIGHT_SORT ? null : sortValue,
       search: debouncedSearchText || null,
     });
-  }, [statusFilter, severityFilter, typeFilter, debouncedSearchText]);
+  }, [
+    statusFilter,
+    severityFilter,
+    typeFilter,
+    seenWithinFilter,
+    sortValue,
+    debouncedSearchText,
+  ]);
 
   // Debounce the title search so typing does not fire a request per key.
   useEffect(() => {
@@ -199,10 +242,12 @@ const AIInsightsPage: FunctionComponent<
     };
   }, [searchText]);
 
+  // The order is not a filter: it narrows nothing, and Clear keeps it.
   const hasActiveFilters: boolean = Boolean(
     statusFilter !== ALL_FILTER_VALUE ||
       severityFilter !== ALL_FILTER_VALUE ||
       typeFilter !== ALL_FILTER_VALUE ||
+      seenWithinFilter !== InsightSeenWithinValue.AnyTime ||
       debouncedSearchText,
   );
 
@@ -212,6 +257,7 @@ const AIInsightsPage: FunctionComponent<
     setStatusFilter(ALL_FILTER_VALUE);
     setSeverityFilter(ALL_FILTER_VALUE);
     setTypeFilter(ALL_FILTER_VALUE);
+    setSeenWithinFilter(InsightSeenWithinValue.AnyTime);
     setSearchText("");
     setDebouncedSearchText("");
   };
@@ -244,9 +290,19 @@ const AIInsightsPage: FunctionComponent<
         );
       }
 
+      const seenWithin: GreaterThanOrEqual<Date> | null =
+        getInsightSeenWithinFilter(
+          seenWithinFilter,
+          OneUptimeDate.getCurrentDate(),
+        );
+
+      if (seenWithin) {
+        (query as Record<string, unknown>)["lastSeenAt"] = seenWithin;
+      }
+
       return query;
     },
-    [severityFilter, typeFilter, debouncedSearchText],
+    [severityFilter, typeFilter, seenWithinFilter, debouncedSearchText],
   );
 
   /*
@@ -296,18 +352,17 @@ const AIInsightsPage: FunctionComponent<
               occurrenceCount: true,
             },
             /*
-             * The id is a tiebreaker, not decoration: the scanner stamps ONE
-             * lastSeenAt per project scan, so every live insight in a project
-             * carries the same timestamp to the millisecond. Ordering by a
-             * column that is tied across the whole page leaves Postgres free
-             * to return the rows in a different order per request, and offset
-             * pagination over a reshuffling order silently SKIPS rows — the
-             * de-dupe below only catches the opposite case (a row repeating).
+             * Every order ends on the id, and the id is a tiebreaker, not
+             * decoration: the scanner stamps ONE lastSeenAt per project scan,
+             * so every live insight in a project carries the same timestamp
+             * to the millisecond. Ordering by a column that is tied across
+             * the whole page leaves Postgres free to return the rows in a
+             * different order per request, and offset pagination over a
+             * reshuffling order silently SKIPS rows — the de-dupe below only
+             * catches the opposite case (a row repeating). See
+             * InsightListOrdering.getInsightSort.
              */
-            sort: {
-              lastSeenAt: SortOrder.Descending,
-              _id: SortOrder.Descending,
-            },
+            sort: getInsightSort(sortValue),
           },
         );
 
@@ -356,7 +411,7 @@ const AIInsightsPage: FunctionComponent<
         }
       }
     },
-    [buildQuery, statusFilter],
+    [buildQuery, statusFilter, sortValue],
   );
 
   const fetchStatusCounts: () => Promise<void> =
@@ -447,11 +502,17 @@ const AIInsightsPage: FunctionComponent<
    */
   const getListHeader: GetListHeaderFunction = (): ReactElement => {
     return (
-      <div className="hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
-        <span className="flex-1">Insight</span>
-        <span className="w-32 flex-shrink-0">Status</span>
-        <span className="w-24 flex-shrink-0 text-right">Detections</span>
-        <span className="w-36 flex-shrink-0 text-right">Last seen</span>
+      <div className="max-xl:hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
+        <span className="flex-1">{translator.translateText("Insight")}</span>
+        <span className="w-32 flex-shrink-0">
+          {translator.translateText("Status")}
+        </span>
+        <span className="w-24 flex-shrink-0 text-right">
+          {translator.translateText("Detections")}
+        </span>
+        <span className="w-36 flex-shrink-0 text-right">
+          {translator.translateText("Last seen")}
+        </span>
         <span className="w-5 flex-shrink-0" />
       </div>
     );
@@ -478,7 +539,9 @@ const AIInsightsPage: FunctionComponent<
           aria-live="polite"
           className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
         >
-          <span className="sr-only">Loading insights…</span>
+          <span className="sr-only">
+            {translator.translateText("Loading insights…")}
+          </span>
           {getListHeader()}
           <InsightListSkeleton rowCount={SKELETON_ROW_COUNT} />
         </div>
@@ -491,24 +554,30 @@ const AIInsightsPage: FunctionComponent<
           id="ai-insights-empty-state"
           icon={IconProp.LightBulb}
           showSolidBackground={true}
+          /*
+           * The whole page on a first run: tall on a laptop, not a screen
+           * and a half of white on a phone.
+           */
+          paddingClassName="py-20 md:pt-52 md:pb-52"
           title="No insights yet"
-          description={
-            <span>
-              When AI Insights is enabled, OneUptime AI continuously watches
-              this project&apos;s telemetry and files a quiet insight whenever a
-              deterministic sensor finds something — without paging anyone or
-              opening incidents.
-            </span>
-          }
+          description="OneUptime AI watches this project's telemetry and files a quiet insight when something looks off. It never pages anyone."
           footer={
-            <Button
-              title="Go to Insights Settings"
-              icon={IconProp.Settings}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                Navigation.navigate(settingsRoute);
-              }}
-            />
+            /*
+             * The page's one way on, drawn as a button: the OUTLINE style
+             * has no border, so it read as a line of text. The wrapper
+             * takes off the dialog-footer margin Button carries from md,
+             * which set it off centre.
+             */
+            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <Button
+                title="Go to Insights Settings"
+                icon={IconProp.Settings}
+                buttonStyle={ButtonStyleType.NORMAL}
+                onClick={() => {
+                  Navigation.navigate(settingsRoute);
+                }}
+              />
+            </div>
           }
         />
       );
@@ -527,11 +596,12 @@ const AIInsightsPage: FunctionComponent<
               <Icon icon={IconProp.Search} className="h-6 w-6" />
             </span>
             <h3 className="mt-4 text-sm font-semibold text-gray-900">
-              No insights match your filters
+              {translator.translateText("No insights match your filters")}
             </h3>
             <p className="mt-1 max-w-sm text-sm text-gray-500">
-              Try a different status or severity, or clear your search to see
-              everything OneUptime AI has found.
+              {translator.translateText(
+                "Try a different status or severity, or clear your search to see everything OneUptime AI has found.",
+              )}
             </p>
             <div className="mt-5">
               <Button
@@ -551,7 +621,10 @@ const AIInsightsPage: FunctionComponent<
       <div className="space-y-3">
         {error ? (
           <p className="text-sm text-red-500">
-            Could not refresh insights: {error}
+            {translator.translateTemplate(
+              "Could not refresh insights: {{error}}",
+              { error: error },
+            )}
           </p>
         ) : (
           <></>
@@ -570,12 +643,25 @@ const AIInsightsPage: FunctionComponent<
 
           <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row">
             <p className="text-xs text-gray-500">
-              Showing{" "}
-              <span className="font-medium text-gray-700">
-                {insights.length}
-              </span>{" "}
-              of <span className="font-medium text-gray-700">{totalCount}</span>{" "}
-              {totalCount === 1 ? "insight" : "insights"}
+              <TranslatedSentence
+                template={{
+                  one: "Showing {{shown}} of {{total}} insight",
+                  other: "Showing {{shown}} of {{total}} insights",
+                }}
+                count={totalCount}
+                slots={{
+                  shown: (
+                    <span className="font-medium text-gray-700">
+                      {translator.formatNumber(insights.length)}
+                    </span>
+                  ),
+                  total: (
+                    <span className="font-medium text-gray-700">
+                      {translator.formatNumber(totalCount)}
+                    </span>
+                  ),
+                }}
+              />
             </p>
 
             {insights.length < totalCount ? (
@@ -601,7 +687,10 @@ const AIInsightsPage: FunctionComponent<
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-500">
-            Could not load more insights: {loadMoreError}
+            {translator.translateTemplate(
+              "Could not load more insights: {{error}}",
+              { error: loadMoreError },
+            )}
           </p>
         ) : (
           <></>
@@ -610,16 +699,45 @@ const AIInsightsPage: FunctionComponent<
     );
   };
 
+  /*
+   * A project with no insights at all, and nothing filtered: the five
+   * status tiles would each read 0 and the filters would narrow nothing,
+   * so the page is its empty state alone - what Insights are, and one way
+   * on (Insights Settings). The intro above the list says what the empty
+   * state says. As soon as there is one insight, or a filter from a shared
+   * link, the inbox is drawn whole.
+   */
+  const isFirstRun: boolean =
+    !hasActiveFilters &&
+    !isLoading &&
+    !error &&
+    insights.length === 0 &&
+    statusCounts !== null &&
+    (statusCounts[ALL_FILTER_VALUE] || 0) === 0;
+
+  if (isFirstRun) {
+    return (
+      <div className="space-y-5" data-testid="ai-insights-first-run">
+        <AIPlanGate />
+        {getContent()}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <AIPlanGate />
 
       <p className="max-w-3xl text-sm leading-6 text-gray-500">
-        Proactive findings from OneUptime AI&apos;s deterministic telemetry
-        sensors — new or spiking exceptions, error-log spikes, latency
-        regressions and metric drift. Insights never page and never open
-        incidents.
+        {translator.translateText(
+          "OneUptime AI watches your telemetry around the clock and tells you about problems before anyone is paged: new or spiking exceptions, error-log spikes, slower requests and metrics that drift. Insights never page and never open incidents.",
+        )}{" "}
+        {translator.translateText(
+          "To be alerted when a finding happens again, open it and choose Create Monitor.",
+        )}
       </p>
+
+      <InsightHighlights />
 
       <InsightStatusSummary
         buckets={statusBuckets}
@@ -637,6 +755,16 @@ const AIInsightsPage: FunctionComponent<
         severityOptions={SEVERITY_FILTER_OPTIONS}
         severityValue={severityFilter}
         onSeverityChange={setSeverityFilter}
+        seenWithinOptions={INSIGHT_SEEN_WITHIN_OPTIONS}
+        seenWithinValue={seenWithinFilter}
+        onSeenWithinChange={(value: string) => {
+          setSeenWithinFilter(parseInsightSeenWithin(value));
+        }}
+        sortOptions={INSIGHT_SORT_OPTIONS}
+        sortValue={sortValue}
+        onSortChange={(value: string) => {
+          setSortValue(parseInsightSort(value));
+        }}
         unfilteredValue={ALL_FILTER_VALUE}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={clearFilters}

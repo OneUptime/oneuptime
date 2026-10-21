@@ -13,6 +13,8 @@ import { getExceptionSpansDefaultTimeRange } from "../../Utils/ExceptionDetailPr
 import TracesViewer from "../Traces/TracesViewer";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
 import OccouranceTable from "./OccuranceTable";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum ExceptionOccurrencesView {
   Spans = "spans",
@@ -35,6 +37,7 @@ export interface ComponentProps {
 const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [view, setView] = useState<ExceptionOccurrencesView>(
     ExceptionOccurrencesView.Spans,
   );
@@ -72,17 +75,21 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-gray-900">
-              {view === ExceptionOccurrencesView.Spans
-                ? "Spans that raised this exception"
-                : "Occurrence details"}
+              {translator.translateText(
+                view === ExceptionOccurrencesView.Spans
+                  ? "Spans that raised this exception"
+                  : "Occurrence details",
+              )}
             </h2>
             <p
               className="mt-0.5 text-sm text-gray-600"
               data-testid="exception-occurrences-description"
             >
-              {view === ExceptionOccurrencesView.Spans
-                ? "Search, filter and chart every span this exception was recorded in. Open a span to see its whole trace."
-                : "Each recorded occurrence with its release, environment, and links to its logs and session replay."}
+              {translator.translateText(
+                view === ExceptionOccurrencesView.Spans
+                  ? "Search, filter and chart every span this exception was recorded in. Open a span to see its whole trace."
+                  : "Each recorded occurrence with its release, environment, and links to its logs and session replay.",
+              )}
             </p>
           </div>
         </div>
@@ -101,11 +108,23 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {view === ExceptionOccurrencesView.Spans ? (
+      {/*
+       * The span list stays mounted while the details are shown, only
+       * hidden. Its window is lifted here, but a zoom's way back (Reset zoom
+       * and the double-click, issue #4105) lives inside the viewer - as do
+       * its search, filters and page - so unmounting it on a view switch
+       * came back on the zoomed window with no way back to the range before
+       * the zoom.
+       */}
+      <div
+        data-testid="exception-occurrences-spans"
+        hidden={view !== ExceptionOccurrencesView.Spans}
+      >
         <TracesViewer
           exceptionScope={exceptionScope}
           exceptionScopeLabel={
-            props.exception.exceptionType || "This exception"
+            props.exception.exceptionType ||
+            (translator.translateText("This exception") as string)
           }
           {...(props.exception.primaryEntityId
             ? {
@@ -120,13 +139,16 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
           timeRangeOverride={timeRange}
           onTimeRangeChange={setTimeRange}
           limit={25}
-          emptyMessage="No spans raised this exception in the selected time range. Exceptions captured from logs have no span; try a longer time range or the Occurrence details view."
+          emptyMessage="No spans raised this exception in this time range. Exceptions from logs have none: try a longer range or Occurrence details."
         />
-      ) : (
+      </div>
+      {view === ExceptionOccurrencesView.Details ? (
         <OccouranceTable
           exceptionFingerprint={props.fingerprint}
           primaryEntityId={props.exception.primaryEntityId}
         />
+      ) : (
+        <></>
       )}
     </div>
   );

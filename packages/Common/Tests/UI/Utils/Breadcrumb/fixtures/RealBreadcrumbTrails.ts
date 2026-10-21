@@ -14,31 +14,6 @@ export interface BreadcrumbTrailFixture {
 
 const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents",
-    titles: ["Project", "AI Tasks"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id",
-    titles: ["Project", "AI Tasks", "View Task"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/delete",
-    titles: ["Project", "AI Tasks", "View Task", "Delete Task"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/logs",
-    titles: ["Project", "AI Tasks", "View Task", "Logs"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/pull-requests",
-    titles: ["Project", "AI Tasks", "View Task", "Pull Requests"],
-  },
-  {
     getter: "getAIInsightsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/ai/insights",
     titles: ["Project", "Insights"],
@@ -161,23 +136,28 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/episodes/documentation",
-    titles: ["Project", "Alerts", "Episodes", "Documentation"],
-  },
-  {
-    getter: "getAlertsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/alerts/episodes/unresolved",
     titles: ["Project", "Alerts", "Active Episodes"],
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/ai",
-    titles: ["Project", "Alerts", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/insights",
+    titles: ["Project", "Alerts", "AI", "Insights"],
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/auto-remediation-rules",
-    titles: ["Project", "Alerts", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/logs",
+    titles: ["Project", "Alerts", "AI", "Logs"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/settings",
+    titles: ["Project", "Alerts", "AI", "Settings"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/auto-remediation-rules",
+    titles: ["Project", "Alerts", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getAlertsBreadcrumbs",
@@ -407,29 +387,45 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: ["Project", "Cloud", "View Resource", "Traces"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository",
-    titles: ["Project", "Code Repositories"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code",
+    titles: ["Project", "Code"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id",
-    titles: ["Project", "Code Repositories", "View Repository"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories",
+    titles: ["Project", "Code", "Repositories"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id/delete",
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id",
+    titles: ["Project", "Code", "Repositories", "Repository"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id/delete",
     titles: [
       "Project",
-      "Code Repositories",
-      "View Repository",
+      "Code",
+      "Repositories",
+      "Repository",
       "Delete Repository",
     ],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id/settings",
-    titles: ["Project", "Code Repositories", "View Repository", "Settings"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id/settings",
+    titles: ["Project", "Code", "Repositories", "Repository", "Settings"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/tasks/:id",
+    titles: ["Project", "Code", "Task"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/tasks/:id/log",
+    titles: ["Project", "Code", "Task", "Log"],
   },
   {
     getter: "getDashboardBreadcrumbs",
@@ -440,6 +436,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getDashboardBreadcrumbs",
     pagePattern: "/dashboard/:projectId/dashboards/:id",
     titles: ["Project", "Dashboards", "View Dashboard"],
+  },
+  {
+    getter: "getDashboardBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    titles: ["Project", "Dashboards", "View Dashboard", "Sharing"],
   },
   {
     getter: "getDashboardBreadcrumbs",
@@ -955,19 +956,38 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/incidents/settings/ai",
-    titles: ["Project", "Incidents", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/insights",
+    titles: ["Project", "Incidents", "AI", "Insights"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/incidents/settings/auto-remediation-rules",
-    titles: ["Project", "Incidents", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/logs",
+    titles: ["Project", "Incidents", "AI", "Logs"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/settings",
+    titles: ["Project", "Incidents", "AI", "Settings"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/auto-remediation-rules",
+    titles: ["Project", "Incidents", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/incidents/settings/custom-fields",
     titles: ["Project", "Incidents", "Settings", "Custom Fields"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/forms",
+    titles: ["Project", "Incidents", "Settings", "Forms"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/forms/:id",
+    titles: ["Project", "Incidents", "Settings", "Forms", "View Form"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -1384,8 +1404,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getLlmBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/llm/documentation",
-    titles: ["Project", "AI / LLM", "Setup Guide"],
+    pagePattern: "/dashboard/:projectId/llm/connect",
+    titles: ["Project", "AI / LLM", "Connect"],
   },
   {
     getter: "getLlmBreadcrumbs",
@@ -1431,6 +1451,76 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getLogsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/logs/settings/scrub-rules",
     titles: ["Project", "Logs", "Settings", "Scrub Rules"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues",
+    titles: ["Project", "Queues"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/archived",
+    titles: ["Project", "Queues", "Archived"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/documentation",
+    titles: ["Project", "Queues", "Documentation"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id",
+    titles: ["Project", "Queues", "View Queue"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/delete",
+    titles: ["Project", "Queues", "View Queue", "Delete Queue"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/documentation",
+    titles: ["Project", "Queues", "View Queue", "Documentation"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/metrics",
+    titles: ["Project", "Queues", "View Queue", "Metrics"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/owners",
+    titles: ["Project", "Queues", "View Queue", "Owners"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/settings",
+    titles: ["Project", "Queues", "View Queue", "Settings"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/traces",
+    titles: ["Project", "Queues", "View Queue", "Traces"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/label-rules",
+    titles: ["Project", "Queues", "Label Rules"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/label-rules/:id",
+    titles: ["Project", "Queues", "Label Rules", "View Rule"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/owner-rules",
+    titles: ["Project", "Queues", "Owner Rules"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/owner-rules/:id",
+    titles: ["Project", "Queues", "Owner Rules", "View Rule"],
   },
   {
     getter: "getMetricsBreadcrumbs",
@@ -1524,11 +1614,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getMonitorBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/monitors/:id/interval",
-    titles: ["Project", "Monitors", "View Monitor", "Interval"],
-  },
-  {
-    getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/logs",
     titles: ["Project", "Monitors", "View Monitor", "Monitoring Logs"],
   },
@@ -1550,7 +1635,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/probes",
-    titles: ["Project", "Monitors", "View Monitor", "Probes"],
+    titles: ["Project", "Monitors", "View Monitor", "Probes & Interval"],
   },
   {
     getter: "getMonitorBreadcrumbs",
@@ -1575,7 +1660,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/inoperational",
-    titles: ["Project", "Monitors", "Inoperational"],
+    titles: ["Project", "Monitors", "Not Operational"],
   },
   {
     getter: "getMonitorBreadcrumbs",
@@ -1742,13 +1827,19 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id",
-    titles: ["Project", "On-Call Duty", "View On-Call Policy"],
+    titles: ["Project", "On-Call Duty", "Policies", "View On-Call Policy"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/policies/:id/custom-fields",
-    titles: ["Project", "On-Call Duty", "View On-Call Policy", "Custom Fields"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Custom Fields",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1756,6 +1847,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
       "Delete On-Call Policy",
     ],
@@ -1766,6 +1858,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
       "Escalation Rules",
     ],
@@ -1774,18 +1867,37 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/policies/:id/execution-logs",
-    titles: ["Project", "On-Call Duty", "View On-Call Policy", "Logs"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Logs",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/on-call-duty/policies/:id/execution-logs/:subModelId",
-    titles: ["Project", "On-Call Duty", "View On-Call Policy", "Timeline"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Logs",
+      "Timeline",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/owners",
-    titles: ["Project", "On-Call Duty", "View On-Call Policy", "Owners"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Owners",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1794,8 +1906,67 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
       "User Overrides",
+    ],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/on-call-duty/policies/:id/notification-logs",
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Notification Logs",
+    ],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/on-call-duty/policies/:id/audit-logs",
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Audit Logs",
+    ],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/on-call-duty/schedules/:id/notification-logs",
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Schedules",
+      "View On-Call Schedule",
+      "Notification Logs",
+    ],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/audit-logs",
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Schedules",
+      "View On-Call Schedule",
+      "Audit Logs",
+    ],
+  },
+  {
+    getter: "getIncomingCallPolicyBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/audit-logs",
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Incoming Call Policies",
+      "View Policy",
+      "Audit Logs",
     ],
   },
   {
@@ -1806,7 +1977,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id",
-    titles: ["Project", "On-Call Duty", "View On-Call Schedule"],
+    titles: ["Project", "On-Call Duty", "Schedules", "View On-Call Schedule"],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -1814,6 +1985,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: [
       "Project",
       "On-Call Duty",
+      "Schedules",
       "View On-Call Schedule",
       "Delete On-Call Schedule",
     ],
@@ -1821,17 +1993,35 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
-    titles: ["Project", "On-Call Duty", "View On-Call Schedule", "Layers"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Schedules",
+      "View On-Call Schedule",
+      "Layers",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/owners",
-    titles: ["Project", "On-Call Duty", "View On-Call Schedule", "Owners"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Schedules",
+      "View On-Call Schedule",
+      "Owners",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/schedules/:id/settings",
-    titles: ["Project", "On-Call Duty", "View On-Call Schedule", "Settings"],
+    titles: [
+      "Project",
+      "On-Call Duty",
+      "Schedules",
+      "View On-Call Schedule",
+      "Settings",
+    ],
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
@@ -2134,6 +2324,21 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getRunbooksBreadcrumbs",
     pagePattern: "/dashboard/:projectId/runbooks/executions",
     titles: ["Project", "Runbooks", "Executions"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runner-credentials",
+    titles: ["Project", "Runbooks", "Runner Credentials"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners",
+    titles: ["Project", "Runbooks", "Runners"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners/:id",
+    titles: ["Project", "Runbooks", "Runners", "View Runner"],
   },
   {
     getter: "getRunbooksBreadcrumbs",
@@ -2545,7 +2750,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/microsoft-teams-integration",
-    titles: ["Project", "Settings", "Microsoft Teams Integration"],
+    titles: ["Project", "Settings", "Microsoft Teams"],
   },
   {
     getter: "getSettingsBreadcrumbs",
@@ -2565,7 +2770,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/slack-integration",
-    titles: ["Project", "Settings", "Slack Integration"],
+    titles: ["Project", "Settings", "Slack"],
   },
   {
     getter: "getSettingsBreadcrumbs",
@@ -2596,22 +2801,12 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/status-pages/:id/authentication-settings",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Authentication Settings",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Access"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/branding",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Essential Branding",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Branding"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2655,33 +2850,13 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/footer-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Footer"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/groups",
     titles: ["Project", "Status Pages", "View Status Page", "Resource Groups"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/header-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Header"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/languages",
-    titles: ["Project", "Status Pages", "View Status Page", "Languages"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/mcp",
     titles: ["Project", "Status Pages", "View Status Page", "MCP"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/navbar-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Navbar"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2697,17 +2872,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/oidc",
     titles: ["Project", "Status Pages", "View Status Page", "OIDC"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/status-pages/:id/overview-page-branding",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Overview Page Branding",
-    ],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2844,6 +3008,226 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     ],
   },
   {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays",
+    titles: ["Project", "Storage Arrays"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id",
+    titles: ["Project", "Storage Arrays", "View Storage Array"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/alerts",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Alerts"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/audit-logs",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Audit Logs"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/buckets",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Buckets"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/buckets/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Buckets",
+      "Bucket Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/delete",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Delete Storage Array",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/directories",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Directories"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/documentation",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Documentation",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/feed",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Feed"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/file-systems",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "File Systems"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/:id/file-systems/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "File Systems",
+      "File System Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hardware",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Hardware"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hosts",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Hosts"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hosts/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Hosts",
+      "Host Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/incidents",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Incidents"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/insights",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Resource Usage",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/logs",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Logs"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/metrics",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Metrics"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/owners",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Owners"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/recommendations",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Recommendations",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/replication",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Replication"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/:id/scheduled-maintenance",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Scheduled Maintenance",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/settings",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Settings"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/volumes",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Volumes"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/volumes/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Volumes",
+      "Volume Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/documentation",
+    titles: ["Project", "Storage Arrays", "Documentation"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/settings/label-rules",
+    titles: ["Project", "Storage Arrays", "Settings", "Label Rules"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/settings/label-rules/:id",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/settings/owner-rules",
+    titles: ["Project", "Storage Arrays", "Settings", "Owner Rules"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/settings/owner-rules/:id",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ],
+  },
+  {
     getter: "getTeamsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/teams",
     titles: ["Project", "Teams"],
@@ -2852,11 +3236,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getTeamsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/teams/:id",
     titles: ["Project", "Teams", "View Team"],
-  },
-  {
-    getter: "getTeamsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/teams/:id/block-permissions",
-    titles: ["Project", "Teams", "View Team", "Block Permissions"],
   },
   {
     getter: "getTeamsBreadcrumbs",
@@ -2945,17 +3324,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/user-settings/alert-episode-on-call-rules",
-    titles: ["Project", "User Settings", "Alert Episode On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/user-settings/alert-on-call-rules",
-    titles: ["Project", "User Settings", "Alert On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/calendar-feed",
     titles: ["Project", "User Settings", "Calendar Feed"],
   },
@@ -2967,17 +3335,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getUserSettingsBreadcrumbs",
     pagePattern:
-      "/dashboard/:projectId/user-settings/incident-episode-on-call-rules",
-    titles: ["Project", "User Settings", "Incident Episode On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/user-settings/incident-on-call-rules",
-    titles: ["Project", "User Settings", "Incident On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern:
       "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
     titles: ["Project", "User Settings", "Incoming Phone Numbers"],
   },
@@ -2985,7 +3342,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUserSettingsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/user-settings/microsoft-teams-integration",
-    titles: ["Project", "User Settings", "Microsoft Teams Integration"],
+    titles: ["Project", "User Settings", "Microsoft Teams"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",
@@ -3004,13 +3361,18 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/on-call-rules",
+    titles: ["Project", "User Settings", "On-Call Rules"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/setup",
     titles: ["Project", "User Settings", "Setup Checklist"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/slack-integration",
-    titles: ["Project", "User Settings", "Slack Integration"],
+    titles: ["Project", "User Settings", "Slack"],
   },
   {
     getter: "getUsersBreadcrumbs",
@@ -3213,7 +3575,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/:id/logs",
-    titles: ["Project", "Workflows", "View Workflow", "Logs"],
+    titles: ["Project", "Workflows", "View Workflow", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",
@@ -3233,7 +3595,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/logs",
-    titles: ["Project", "Workflows", "Logs"],
+    titles: ["Project", "Workflows", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",

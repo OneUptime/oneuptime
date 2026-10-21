@@ -12,7 +12,7 @@ import {
   gotoProjectPage,
   registerAndCreateProject,
 } from "./Helpers/ProductOnboarding";
-import { Page, expect, test } from "@playwright/test";
+import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("Topology page", () => {
@@ -83,107 +83,32 @@ test.describe("Topology page", () => {
     await expect(
       page.getByText("The network map is live", { exact: false }),
     ).toBeVisible();
-    await expect(
-      page.getByText("Set up network device monitoring"),
-    ).toBeVisible();
+    /*
+     * The way forward from an empty map is the Add Device form itself: the
+     * link carries ?open=add-device, which opens it on the Devices list.
+     */
+    const addDeviceLink: Locator = page.getByRole("link", {
+      name: "Add a device",
+    });
+    await expect(addDeviceLink).toBeVisible();
+    expect(await addDeviceLink.getAttribute("href")).toContain(
+      "network-devices?open=add-device",
+    );
     expect(page.url()).toContain("tab=Network");
 
     /*
-     * The network map's layout switcher lives in the card header, so it
-     * is present even with nothing to draw. A fresh project has no SNMP
-     * devices — the topology is derived server-side from LLDP/CDP
-     * neighbour tables — so the empty state is all E2E can reach here.
-     * The drag, viewport and layout behaviour is covered by the unit
-     * suites in App/Tests/Dashboard, which can exercise it exactly.
+     * A fresh project has no devices on its map (the topology is derived
+     * server-side from LLDP/CDP neighbour tables), so the card is the empty
+     * state alone: no toolbar to arrange, filter or export a map that is
+     * not there. The layout switcher is driven on a populated map by the
+     * offline Topology suite (E2E/Topology/TopologyExperience.spec.ts).
      */
-    await page
-      .getByRole("button", { name: "Map options", exact: false })
-      .click();
     await expect(
-      page.getByTestId("network-topology-layout-mode-force"),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Map options", exact: false }),
+    ).toHaveCount(0);
     await expect(
-      page.getByTestId("network-topology-layout-mode-tiered"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-radial"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-star"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-parentChild"),
-    ).toBeVisible();
-
-    // Force is the default, and it says so to assistive technology.
-    await expect(
-      page.getByTestId("network-topology-layout-mode-force"),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-tiered"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-star"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-parentChild"),
-    ).toHaveAttribute("aria-pressed", "false");
-
-    // Switching modes moves the pressed state, and only one is ever pressed.
-    await page.getByTestId("network-topology-layout-mode-radial").click();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-radial"),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-force"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-tiered"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-star"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-parentChild"),
-    ).toHaveAttribute("aria-pressed", "false");
-
-    // Star is a mode of its own, not a variant of radial.
-    await page.getByTestId("network-topology-layout-mode-star").click();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-star"),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-force"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-tiered"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-radial"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-parentChild"),
-    ).toHaveAttribute("aria-pressed", "false");
-
-    // ...and so is parent-child, the last option in the group.
-    await page.getByTestId("network-topology-layout-mode-parentChild").click();
-    await expect(
-      page.getByTestId("network-topology-layout-mode-parentChild"),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-force"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-tiered"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-radial"),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      page.getByTestId("network-topology-layout-mode-star"),
-    ).toHaveAttribute("aria-pressed", "false");
-
-    // The empty state survives a layout change rather than blanking.
+      page.getByRole("button", { name: "Export PDF", exact: true }),
+    ).toHaveCount(0);
     await expect(
       page.getByText("No network topology discovered yet", { exact: false }),
     ).toBeVisible();

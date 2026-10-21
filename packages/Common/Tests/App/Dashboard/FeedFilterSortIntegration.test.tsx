@@ -20,17 +20,18 @@ import {
 import * as React from "react";
 
 /*
- * Every dashboard activity feed carries one "Filter & Sort" button, and the
- * unit tests pin its pieces on their own: the rules in FeedOptions, the
- * panel in FeedOptionsButton, the hook that remembers the sort order and the
- * viewKey contract of useFeedItems. None of them can see a product feed
- * wiring the pieces together wrongly - a typo in the event type column, a
- * storage key shared with another feed, a query that forgets the resource,
+ * Every dashboard activity feed keeps its sort order, its event type filter
+ * and Refresh behind one ⋯ More button in its header (FeedCard), and the unit
+ * tests pin the pieces on their own: the rules in FeedOptions, the menu, the
+ * filter dialog and the filter box, the hook that remembers the sort order
+ * and the viewKey contract of useFeedItems. None of them can see a product
+ * feed wiring the pieces together wrongly - a typo in the event type column,
+ * a storage key shared with another feed, a query that forgets the resource,
  * a checklist whose icons disagree with the feed's own items, a resetKey
  * that does not follow the resource the feed reads.
  *
- * So these tests render each REAL product feed with the REAL button and
- * assert the exact requests it sends. Only the network (ModelAPI), the
+ * So these tests render each REAL product feed with the REAL menu and dialog
+ * and assert the exact requests it sends. Only the network (ModelAPI), the
  * markdown-rendering FeedItem, Icon (so an icon can be read back by name)
  * and the note / runbook modals are stubbed. Every stub the hoisted
  * jest.mock factories close over carries the "mock" prefix jest requires.
@@ -89,21 +90,20 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 /*
  * The real Feed stays - its More button and empty-feed message are part of
- * what is under test. Only the item, which renders markdown, is replaced by
+ * what is under test. Only the entry, which renders markdown, is replaced by
  * one that shows its text and names its icon.
  */
 jest.mock("../../../UI/Components/Feed/FeedItem", () => {
   return {
     __esModule: true,
     default: (props: {
-      textInMarkdown: string;
-      icon: string;
+      entry: { item: { textInMarkdown: string; icon: string } };
     }): React.ReactElement => {
-      mockPaintedItemTexts.push(props.textInMarkdown);
+      mockPaintedItemTexts.push(props.entry.item.textInMarkdown);
       return React.createElement(
         "li",
-        { "data-testid": "feed-item", "data-icon": props.icon },
-        props.textInMarkdown,
+        { "data-testid": "feed-item", "data-icon": props.entry.item.icon },
+        props.entry.item.textInMarkdown,
       );
     },
   };
@@ -196,10 +196,10 @@ import OnCallDutyPolicyFeed, {
 } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
   getFeedEventTypeLabel,
 } from "../../../UI/Components/Feed/FeedOptions";
@@ -243,8 +243,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(MonitorFeedEventType),
     storageKey: "monitor",
     iconFn: getMonitorFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this monitor.",
+    noItemsMessage: "Nothing has happened to this monitor yet.",
     hasActionsMenu: false,
   },
   {
@@ -259,8 +258,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(IncidentFeedEventType),
     storageKey: "incident",
     iconFn: getIncidentFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this incident.",
+    noItemsMessage: "Nothing has happened to this incident yet.",
     hasActionsMenu: true,
   },
   {
@@ -275,8 +273,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(AlertFeedEventType),
     storageKey: "alert",
     iconFn: getAlertFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this alert.",
+    noItemsMessage: "Nothing has happened to this alert yet.",
     hasActionsMenu: true,
   },
   {
@@ -291,8 +288,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(IncidentEpisodeFeedEventType),
     storageKey: "incident-episode",
     iconFn: getIncidentEpisodeFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this episode.",
+    noItemsMessage: "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -307,8 +303,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(AlertEpisodeFeedEventType),
     storageKey: "alert-episode",
     iconFn: getAlertEpisodeFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this episode.",
+    noItemsMessage: "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -326,7 +321,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "scheduled-maintenance",
     iconFn: getScheduledMaintenanceFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this scheduled maintenance.",
+      "Nothing has happened to this scheduled maintenance event yet.",
     hasActionsMenu: true,
   },
   {
@@ -341,20 +336,24 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(OnCallDutyPolicyFeedEventType),
     storageKey: "on-call-policy",
     iconFn: getOnCallDutyPolicyFeedEventIcon,
-    noItemsMessage:
-      "Looks like there are no items in this feed for this onCallDutyPolicy.",
+    noItemsMessage: "Nothing has happened to this on-call policy yet.",
     hasActionsMenu: false,
   },
 ];
 
 // Enough rows on the server that More stays available after one click.
-const SERVER_ROW_COUNT: number = 25;
+const SERVER_ROW_COUNT: number = FEED_PAGE_SIZE * 2 + 5;
 
 /*
- * The trigger's accessible name is its label alone; what the reader chose
- * (order and filter) is its description. So the name never changes.
+ * The ⋯ More button of the feed's header: the card-header button a table has,
+ * named the same.
  */
-const TRIGGER_NAME: string = "Filter & Sort";
+const MORE_BUTTON_NAME: string = "More options";
+
+const FILTER_ITEM_NAME: string = "Filter by event type";
+
+// The filter dialog is named by its title, the menu item that opens it.
+const FILTER_DIALOG_NAME: string = FILTER_ITEM_NAME;
 
 interface PendingRequest {
   request: FeedListRequest;
@@ -508,7 +507,12 @@ const buildPage: BuildPage = (
           feedCase,
           eventTypes[index % eventTypes.length]!,
           text,
-          new Date(Date.UTC(2026, 8, 1, 0, index)),
+          /*
+           * Ten minutes apart: this suite is about which rows are asked for
+           * and drawn, so no two of a kind arrive close enough to fold into
+           * one entry (FeedTimeline's bursts have suites of their own).
+           */
+          new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
         );
       },
     ),
@@ -571,67 +575,54 @@ const getRenderedItemTexts: GetRenderedItemTexts = (): Array<string> => {
   });
 };
 
-type GetTrigger = () => HTMLElement;
+type GetMoreButton = () => HTMLElement;
 
-const getTrigger: GetTrigger = (): HTMLElement => {
-  return screen.getByTestId("feed-options-button");
+const getMoreButton: GetMoreButton = (): HTMLElement => {
+  return within(screen.getByTestId("feed-more-menu")).getByRole("button", {
+    name: MORE_BUTTON_NAME,
+  });
 };
 
-/*
- * Checks the trigger says what the feed shows the way a screen reader hears
- * it: named by its label - found by that name, the badge's count left out -
- * and described by the summary, which is also its tooltip. A name that
- * carried the summary would be read twice, once as name and once as
- * description.
- */
-type ExpectTriggerSummary = (summary: string) => void;
+type OpenMoreMenu = () => HTMLElement;
 
-const expectTriggerSummary: ExpectTriggerSummary = (summary: string): void => {
-  const trigger: HTMLElement = getTrigger();
-
-  expect(screen.getByRole("button", { name: TRIGGER_NAME })).toBe(trigger);
-  expect(trigger).toHaveAccessibleName(TRIGGER_NAME);
-  expect(trigger).toHaveAccessibleDescription(summary);
-  expect(trigger).toHaveAttribute("title", summary);
-};
-
-/*
- * The trigger's leading glyph, read back through the Icon mock. The trailing
- * chevron comes after it.
- */
-type GetTriggerIcon = () => string | null;
-
-const getTriggerIcon: GetTriggerIcon = (): string | null => {
-  const icons: Array<HTMLElement> =
-    within(getTrigger()).getAllByTestId("mock-icon");
-
-  return icons[0]!.getAttribute("data-icon");
-};
-
-type OpenPanel = () => HTMLElement;
-
-const openPanel: OpenPanel = (): HTMLElement => {
-  if (!screen.queryByTestId("feed-options-panel")) {
-    fireEvent.click(getTrigger());
+const openMoreMenu: OpenMoreMenu = (): HTMLElement => {
+  if (getMoreButton().getAttribute("aria-expanded") !== "true") {
+    fireEvent.click(getMoreButton());
   }
 
-  return screen.getByRole("dialog", { name: "Filter and sort feed" });
+  return screen.getByRole("menu");
 };
 
-type GetEventTypeCheckbox = (eventType: string) => HTMLElement;
+type CloseMoreMenu = () => void;
 
-const getEventTypeCheckbox: GetEventTypeCheckbox = (
-  eventType: string,
-): HTMLElement => {
-  return within(openPanel()).getByTestId(
-    `feed-options-event-type-${eventType}`,
-  );
+const closeMoreMenu: CloseMoreMenu = (): void => {
+  if (getMoreButton().getAttribute("aria-expanded") === "true") {
+    fireEvent.click(getMoreButton());
+  }
+
+  expect(screen.queryByRole("menu")).toBeNull();
 };
 
-type ToggleEventType = (eventType: string) => void;
+/*
+ * The order the ⋯ menu marks as in use, read the way a screen reader hears
+ * it: the one choice whose aria-checked is true.
+ */
+type GetCheckedSortOrder = () => string;
 
-const toggleEventType: ToggleEventType = (eventType: string): void => {
-  fireEvent.click(getEventTypeCheckbox(eventType));
+const getCheckedSortOrder: GetCheckedSortOrder = (): string => {
+  const checked: Array<string> = within(openMoreMenu())
+    .getAllByRole("menuitemradio")
+    .filter((radio: HTMLElement): boolean => {
+      return radio.getAttribute("aria-checked") === "true";
+    })
+    .map((radio: HTMLElement): string => {
+      return (radio.textContent || "").trim();
+    });
+
+  closeMoreMenu();
+  expect(checked).toHaveLength(1);
+
+  return checked[0]!;
 };
 
 type ChooseSortOrder = (label: "Newest first" | "Oldest first") => void;
@@ -639,21 +630,120 @@ type ChooseSortOrder = (label: "Newest first" | "Oldest first") => void;
 const chooseSortOrder: ChooseSortOrder = (
   label: "Newest first" | "Oldest first",
 ): void => {
-  fireEvent.click(within(openPanel()).getByRole("radio", { name: label }));
+  fireEvent.click(
+    within(openMoreMenu()).getByRole("menuitemradio", { name: label }),
+  );
 };
 
-type ClickShowAll = () => void;
+type OpenFilterDialog = () => HTMLElement;
 
-const clickShowAll: ClickShowAll = (): void => {
+const openFilterDialog: OpenFilterDialog = (): HTMLElement => {
+  const open: HTMLElement | null = screen.queryByRole("dialog", {
+    name: FILTER_DIALOG_NAME,
+  });
+
+  if (open) {
+    return open;
+  }
+
   fireEvent.click(
-    within(openPanel()).getByRole("button", { name: "Show all" }),
+    within(openMoreMenu()).getByRole("menuitem", { name: FILTER_ITEM_NAME }),
   );
+
+  return screen.getByRole("dialog", { name: FILTER_DIALOG_NAME });
+};
+
+// Leaves the dialog without applying anything.
+type CancelFilterDialog = () => void;
+
+const cancelFilterDialog: CancelFilterDialog = (): void => {
+  fireEvent.click(
+    within(openFilterDialog()).getByRole("button", { name: "Cancel" }),
+  );
+
+  expect(screen.queryByRole("dialog", { name: FILTER_DIALOG_NAME })).toBeNull();
+};
+
+type GetEventTypeCheckbox = (eventType: string) => HTMLElement;
+
+const getEventTypeCheckbox: GetEventTypeCheckbox = (
+  eventType: string,
+): HTMLElement => {
+  return within(openFilterDialog()).getByTestId(
+    `feed-options-event-type-${eventType}`,
+  );
+};
+
+/*
+ * Ticks or unticks each of these in the filter dialog, then applies them
+ * together: one reader action, so one request however many boxes it took.
+ */
+type ToggleEventTypes = (eventTypes: Array<string>) => void;
+
+const toggleEventTypes: ToggleEventTypes = (
+  eventTypes: Array<string>,
+): void => {
+  const dialog: HTMLElement = openFilterDialog();
+
+  for (const eventType of eventTypes) {
+    fireEvent.click(
+      within(dialog).getByTestId(`feed-options-event-type-${eventType}`),
+    );
+  }
+
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Apply Filters" }),
+  );
+
+  expect(screen.queryByRole("dialog", { name: FILTER_DIALOG_NAME })).toBeNull();
+};
+
+type ToggleEventType = (eventType: string) => void;
+
+const toggleEventType: ToggleEventType = (eventType: string): void => {
+  toggleEventTypes([eventType]);
+};
+
+// The filter box's Clear Filters: back to every event type, in one request.
+type ClearFilters = () => void;
+
+const clearFilters: ClearFilters = (): void => {
+  fireEvent.click(
+    within(screen.getByTestId("feed-filter-summary")).getByRole("button", {
+      name: "Clear Filters",
+    }),
+  );
+};
+
+/*
+ * The title of the box over a filtered feed - "Showing 2 of 25 event types" -
+ * or null while the feed shows every event type and has no box.
+ */
+type GetFilterBoxTitle = () => string | null;
+
+const getFilterBoxTitle: GetFilterBoxTitle = (): string | null => {
+  const box: HTMLElement | null = screen.queryByTestId("feed-filter-summary");
+
+  if (!box) {
+    return null;
+  }
+
+  return within(box).getByText(/^Showing \d+ of \d+ event types$/).textContent;
+};
+
+// The ⋯'s glyph, read back through the Icon mock.
+type GetMoreButtonIcon = () => string | null;
+
+const getMoreButtonIcon: GetMoreButtonIcon = (): string | null => {
+  return within(getMoreButton())
+    .getByTestId("mock-icon")
+    .getAttribute("data-icon");
 };
 
 type ClickMore = () => void;
 
 const clickMore: ClickMore = (): void => {
-  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  fireEvent.click(screen.getByTestId("feed-more-button"));
 };
 
 type IsBefore = (first: Element, second: Element) => boolean;
@@ -809,7 +899,7 @@ describe("the first request", () => {
 
       const request: FeedListRequest = getRequest(0);
 
-      expectWindow(feedCase, request, SortOrder.Descending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Descending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
       expect(request.query[feedCase.eventTypeColumn]).toBeUndefined();
       // The event type drives each item's icon, so it is always read.
@@ -827,7 +917,7 @@ describe("the first request", () => {
 
 describe("the header", () => {
   test.each(FEED_CASES)(
-    "$name shows one Filter & Sort button, first among the header controls",
+    "$name keeps sort, filter and Refresh behind one ⋯ More button, last among its header controls",
     async (feedCase: FeedCase) => {
       renderFeedCase(feedCase);
       await waitForRequestCount(1);
@@ -839,65 +929,78 @@ describe("the header", () => {
       const heading: HTMLElement = within(card).getByTestId(
         "card-details-heading",
       );
-      const triggers: Array<HTMLElement> = within(card).getAllByTestId(
-        "feed-options-button",
+      const more: HTMLElement = getMoreButton();
+
+      expect(
+        within(card).getAllByRole("button", { name: MORE_BUTTON_NAME }),
+      ).toEqual([more]);
+      expect(more).toHaveAttribute("aria-haspopup", "menu");
+      expect(more).toHaveAttribute("aria-expanded", "false");
+      // Three dots and nothing else.
+      expect(more.textContent).toBe("");
+      expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+
+      // Sort, filter and Refresh are no longer buttons of their own.
+      expect(
+        within(card).queryByRole("button", { name: "Refresh" }),
+      ).toBeNull();
+      expect(
+        within(card).queryByRole("button", { name: /Filter|Sort/ }),
+      ).toBeNull();
+      expect(screen.queryByTestId("feed-options-button")).toBeNull();
+      expect(screen.queryByTestId("card-button")).toBeNull();
+      // An unfiltered feed has no filter box.
+      expect(getFilterBoxTitle()).toBeNull();
+
+      /*
+       * The header's menu buttons, in order: the feed's Actions when it has
+       * them - its main action stays in sight - and the ⋯ last.
+       */
+      const menuButtons: Array<Element> = Array.from(
+        card.querySelectorAll('[aria-haspopup="menu"]'),
       );
 
-      expect(triggers).toHaveLength(1);
-
-      const trigger: HTMLElement = triggers[0]!;
-
-      expect(trigger).toHaveTextContent(TRIGGER_NAME);
-      expectTriggerSummary("Newest first, all event types");
-      expect(trigger).toHaveAttribute("aria-expanded", "false");
-      expect(screen.queryByTestId("feed-options-count")).toBeNull();
-
-      const refresh: HTMLElement = within(card).getByRole("button", {
-        name: "Refresh",
-      });
-      const otherControls: Array<HTMLElement> = [];
-
       if (feedCase.hasActionsMenu) {
-        const actions: HTMLElement | null = within(card)
+        const actions: Element | null = within(card)
           .getByText("Actions")
           .closest('[aria-haspopup="menu"]');
 
         expect(actions).not.toBeNull();
-        otherControls.push(actions!);
+        expect(menuButtons).toEqual([actions, more]);
       } else {
         expect(within(card).queryByText("Actions")).toBeNull();
+        expect(menuButtons).toEqual([more]);
       }
-
-      otherControls.push(refresh);
-
-      /*
-       * The header row holds one slot per control. Walk up from the trigger
-       * to its slot - the ancestor whose parent also holds Refresh - and
-       * the row's slots must be exactly: Filter & Sort, then the rest in
-       * order.
-       */
-      let triggerSlot: HTMLElement = trigger;
-
-      while (
-        triggerSlot.parentElement &&
-        !triggerSlot.parentElement.contains(refresh)
-      ) {
-        triggerSlot = triggerSlot.parentElement;
-      }
-
-      const headerRow: HTMLElement = triggerSlot.parentElement!;
-      const slots: Array<Element> = Array.from(headerRow.children);
-
-      expect(slots).toHaveLength(otherControls.length + 1);
-      expect(slots[0]).toBe(triggerSlot);
-      otherControls.forEach((control: HTMLElement, index: number) => {
-        expect(slots[index + 1]!.contains(control)).toBe(true);
-      });
 
       // In the header: after the title, before the feed itself.
-      expect(isBefore(heading, trigger)).toBe(true);
-      expect(isBefore(refresh, emptyMessage)).toBe(true);
-      expect(headerRow.contains(emptyMessage)).toBe(false);
+      expect(isBefore(heading, more)).toBe(true);
+      expect(isBefore(more, emptyMessage)).toBe(true);
+      expect(screen.getByTestId("feed-more-menu").contains(emptyMessage)).toBe(
+        false,
+      );
+    },
+  );
+
+  test.each(FEED_CASES)(
+    "$name's ⋯ menu holds the sort order, the filter and Refresh, in that order",
+    async (feedCase: FeedCase) => {
+      renderFeedCase(feedCase);
+      await waitForRequestCount(1);
+
+      const menu: HTMLElement = openMoreMenu();
+
+      expect(within(menu).getByText("SORT BY TIME")).toBeVisible();
+      expect(
+        Array.from(
+          menu.querySelectorAll('[role="menuitemradio"], [role="menuitem"]'),
+        ).map((item: Element): string => {
+          return (item.textContent || "").trim();
+        }),
+      ).toEqual(["Newest first", "Oldest first", FILTER_ITEM_NAME, "Refresh"]);
+      expect(getCheckedSortOrder()).toBe("Newest first");
+
+      // Looking is not a change of view.
+      expect(mockGetListCalls).toHaveLength(1);
     },
   );
 });
@@ -912,7 +1015,12 @@ describe("the event type checklist", () => {
             feedCase,
             eventType,
             `fixture-${eventType}`,
-            new Date(Date.UTC(2026, 8, 1, 0, index)),
+            /*
+             * Ten minutes apart: this suite is about which rows are asked for
+             * and drawn, so no two of a kind arrive close enough to fold into
+             * one entry (FeedTimeline's bursts have suites of their own).
+             */
+            new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
           );
         },
       );
@@ -936,7 +1044,7 @@ describe("the event type checklist", () => {
         itemIcons.set(item.textContent || "", item.getAttribute("data-icon"));
       }
 
-      const panel: HTMLElement = openPanel();
+      const panel: HTMLElement = openFilterDialog();
       const checkboxes: Array<HTMLElement> =
         within(panel).getAllByRole("checkbox");
 
@@ -981,7 +1089,9 @@ describe("the event type checklist", () => {
         expect(itemIcons.get(`fixture-${eventType}`)).toBe(expectedIcon);
       }
 
-      // Opening the panel is not a change of view.
+      // Opening the dialog, and leaving it, is not a change of view.
+      cancelFilterDialog();
+      await flush();
       expect(mockGetListCalls).toHaveLength(1);
     },
   );
@@ -1003,12 +1113,11 @@ describe("Oldest first", () => {
 
       const request: FeedListRequest = getRequest(1);
 
-      expectWindow(feedCase, request, SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
-      expect(
-        within(openPanel()).getByRole("radio", { name: "Oldest first" }),
-      ).toHaveAttribute("aria-checked", "true");
-      expectTriggerSummary("Oldest first, all event types");
+      expect(getCheckedSortOrder()).toBe("Oldest first");
+      // A reversed feed is not a filtered one: no filter box.
+      expect(getFilterBoxTitle()).toBeNull();
 
       /*
        * One key, named for this feed kind. LocalStorage writes a string as
@@ -1025,7 +1134,12 @@ describe("Oldest first", () => {
       const remounted: RenderResult = renderFeedCase(feedCase);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectUnfilteredQuery(feedCase, getRequest(2));
 
       // Going back to the default forgets the choice rather than storing it.
@@ -1036,7 +1150,7 @@ describe("Oldest first", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expect(window.localStorage.getItem(storageKey)).toBeNull();
 
@@ -1048,7 +1162,7 @@ describe("Oldest first", () => {
         feedCase,
         getRequest(4),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
     },
   );
@@ -1077,11 +1191,14 @@ describe("ticking event types", () => {
         feedCase,
         getRequest(1),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(1), [enumLater]);
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 1 of ${feedCase.enumValues.length} event types`,
+      );
       expect(getEventTypeCheckbox(enumLater)).toBeChecked();
-      expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
+      cancelFilterDialog();
 
       toggleEventType(enumEarlier);
       await waitForRequestCount(3);
@@ -1090,15 +1207,16 @@ describe("ticking event types", () => {
         feedCase,
         getRequest(2),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(2), [enumEarlier, enumLater]);
       expect(getEventTypeCheckbox(enumEarlier)).toBeChecked();
       expect(getEventTypeCheckbox(enumLater)).toBeChecked();
-      expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^2$/);
-      expectTriggerSummary(
-        `Newest first, 2 of ${feedCase.enumValues.length} event types`,
+      cancelFilterDialog();
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 2 of ${feedCase.enumValues.length} event types`,
       );
+      expect(getCheckedSortOrder()).toBe("Newest first");
 
       // Unticking one leaves exactly the other.
       toggleEventType(enumLater);
@@ -1108,6 +1226,53 @@ describe("ticking event types", () => {
 
       // The filter is never remembered.
       expect(window.localStorage.length).toBe(0);
+    },
+  );
+});
+
+describe("one visit to the filter dialog", () => {
+  test.each(FEED_CASES)(
+    "$name asks for the filtered feed once, however many boxes were ticked, and not at all on Cancel",
+    async (feedCase: FeedCase) => {
+      const pair: [string, string] = getOutOfOrderPair(feedCase.enumValues)!;
+
+      renderFeedCase(feedCase);
+      await waitForRequestCount(1);
+
+      // Ticked, unticked and ticked again before applying: nothing is read.
+      const dialog: HTMLElement = openFilterDialog();
+
+      fireEvent.click(getEventTypeCheckbox(pair[1]));
+      fireEvent.click(getEventTypeCheckbox(pair[0]));
+      fireEvent.click(getEventTypeCheckbox(pair[1]));
+      fireEvent.click(getEventTypeCheckbox(pair[1]));
+      await flush();
+      expect(mockGetListCalls).toHaveLength(1);
+
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Apply Filters" }),
+      );
+      await waitForRequestCount(2);
+
+      expectFilteredQuery(feedCase, getRequest(1), [pair[0], pair[1]]);
+
+      // A visit that ends in Cancel changes nothing and asks for nothing.
+      fireEvent.click(getEventTypeCheckbox(pair[0]));
+      cancelFilterDialog();
+      await flush();
+      expect(mockGetListCalls).toHaveLength(2);
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 2 of ${feedCase.enumValues.length} event types`,
+      );
+
+      // Applying the ticks already applied asks for nothing either.
+      fireEvent.click(
+        within(openFilterDialog()).getByRole("button", {
+          name: "Apply Filters",
+        }),
+      );
+      await flush();
+      expect(mockGetListCalls).toHaveLength(2);
     },
   );
 });
@@ -1130,7 +1295,7 @@ describe("empty feeds", () => {
       ).toBeVisible();
       expect(screen.queryByText(feedCase.noItemsMessage)).toBeNull();
 
-      clickShowAll();
+      clearFilters();
       await waitForRequestCount(3);
 
       expect(await screen.findByText(feedCase.noItemsMessage)).toBeVisible();
@@ -1146,9 +1311,9 @@ describe("empty feeds", () => {
   );
 });
 
-describe("Show all", () => {
+describe("Clear Filters", () => {
   test.each(FEED_CASES)(
-    "$name returns the query to exactly the resource alone",
+    "$name returns the query to exactly the resource alone, and takes the box away",
     async (feedCase: FeedCase) => {
       const pair: [string, string] = getOutOfOrderPair(feedCase.enumValues)!;
       const enumEarlier: string = pair[0];
@@ -1164,15 +1329,16 @@ describe("Show all", () => {
 
       expectFilteredQuery(feedCase, getRequest(2), [enumEarlier, enumLater]);
 
-      clickShowAll();
+      clearFilters();
       await waitForRequestCount(4);
 
       const request: FeedListRequest = getRequest(3);
 
-      expectWindow(feedCase, request, SortOrder.Descending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Descending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
+      expect(getFilterBoxTitle()).toBeNull();
 
-      const panel: HTMLElement = openPanel();
+      const panel: HTMLElement = openFilterDialog();
 
       for (const checkbox of within(panel).getAllByRole("checkbox")) {
         expect(checkbox).not.toBeChecked();
@@ -1180,7 +1346,31 @@ describe("Show all", () => {
       expect(
         within(panel).queryByRole("button", { name: "Show all" }),
       ).toBeNull();
-      expect(screen.queryByTestId("feed-options-count")).toBeNull();
+      cancelFilterDialog();
+    },
+  );
+
+  test.each(FEED_CASES)(
+    "$name's dialog does the same with Show all and Apply Filters",
+    async (feedCase: FeedCase) => {
+      const eventType: string = getSampleEventType(feedCase);
+
+      renderFeedCase(feedCase);
+      await waitForRequestCount(1);
+
+      toggleEventType(eventType);
+      await waitForRequestCount(2);
+
+      const dialog: HTMLElement = openFilterDialog();
+
+      fireEvent.click(within(dialog).getByRole("button", { name: "Show all" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Apply Filters" }),
+      );
+      await waitForRequestCount(3);
+
+      expectUnfilteredQuery(feedCase, getRequest(2));
+      expect(getFilterBoxTitle()).toBeNull();
     },
   );
 });
@@ -1197,7 +1387,7 @@ describe("the window after More", () => {
       await waitForRequestCount(1);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE),
         );
       });
 
@@ -1208,12 +1398,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(1),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectUnfilteredQuery(feedCase, getRequest(1));
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT * 2),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE * 2),
         );
       });
 
@@ -1225,12 +1415,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(2),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`DESC:${eventType}`, DEFAULT_LIMIT),
+          getViewTexts(`DESC:${eventType}`, FEED_PAGE_SIZE),
         );
       });
 
@@ -1242,12 +1432,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`DESC:${eventType}`, DEFAULT_LIMIT * 2),
+          getViewTexts(`DESC:${eventType}`, FEED_PAGE_SIZE * 2),
         );
       });
 
@@ -1255,11 +1445,16 @@ describe("the window after More", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(5);
 
-      expectWindow(feedCase, getRequest(4), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(
+        feedCase,
+        getRequest(4),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(4), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`ASC:${eventType}`, DEFAULT_LIMIT),
+          getViewTexts(`ASC:${eventType}`, FEED_PAGE_SIZE),
         );
       });
 
@@ -1271,12 +1466,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(5),
         SortOrder.Ascending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(5), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`ASC:${eventType}`, DEFAULT_LIMIT * 2),
+          getViewTexts(`ASC:${eventType}`, FEED_PAGE_SIZE * 2),
         );
       });
     },
@@ -1317,7 +1512,7 @@ describe("slow responses for a previous view", () => {
         feedCase,
         pending[2]!.request,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, pending[2]!.request, [eventType]);
 
@@ -1328,7 +1523,7 @@ describe("slow responses for a previous view", () => {
 
       const currentTexts: Array<string> = getViewTexts(
         `ASC:${eventType}`,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       expect(getRenderedItemTexts()).toEqual(currentTexts);
@@ -1359,7 +1554,7 @@ describe("slow responses for a previous view", () => {
         request: FeedListRequest,
       ): Promise<FeedPageResponse> => {
         if (
-          request.limit > DEFAULT_LIMIT &&
+          request.limit > FEED_PAGE_SIZE &&
           !getRequestedEventTypes(feedCase, request)
         ) {
           return holdRequests(pendingMore)(request);
@@ -1372,7 +1567,7 @@ describe("slow responses for a previous view", () => {
       await waitForRequestCount(1);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE),
         );
       });
 
@@ -1386,7 +1581,7 @@ describe("slow responses for a previous view", () => {
 
       const filteredTexts: Array<string> = getViewTexts(
         `DESC:${eventType}`,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       await waitFor((): void => {
@@ -1400,7 +1595,7 @@ describe("slow responses for a previous view", () => {
 
       expect(getRenderedItemTexts()).toEqual(filteredTexts);
       expect(mockPaintedItemTexts).not.toContain(
-        `DESC:all#${DEFAULT_LIMIT + 1}`,
+        `DESC:all#${FEED_PAGE_SIZE + 1}`,
       );
 
       // The filtered view can still be widened.
@@ -1411,7 +1606,7 @@ describe("slow responses for a previous view", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
     },
@@ -1432,7 +1627,12 @@ describe("a later visit", () => {
       toggleEventType(eventType);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
 
       view.unmount();
@@ -1441,20 +1641,18 @@ describe("a later visit", () => {
 
       const request: FeedListRequest = getRequest(3);
 
-      expectWindow(feedCase, request, SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
 
-      expect(screen.queryByTestId("feed-options-count")).toBeNull();
-      expectTriggerSummary("Oldest first, all event types");
+      expect(getFilterBoxTitle()).toBeNull();
+      expect(getCheckedSortOrder()).toBe("Oldest first");
 
-      const panel: HTMLElement = openPanel();
+      const panel: HTMLElement = openFilterDialog();
 
-      expect(
-        within(panel).getByRole("radio", { name: "Oldest first" }),
-      ).toHaveAttribute("aria-checked", "true");
       for (const checkbox of within(panel).getAllByRole("checkbox")) {
         expect(checkbox).not.toBeChecked();
       }
+      cancelFilterDialog();
     },
   );
 
@@ -1478,7 +1676,7 @@ describe("a later visit", () => {
         feedCase,
         getRequest(0),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       view.unmount();
@@ -1490,7 +1688,12 @@ describe("a later visit", () => {
       renderFeedCase(feedCase);
       await waitForRequestCount(2);
 
-      expectWindow(feedCase, getRequest(1), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(
+        feedCase,
+        getRequest(1),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectUnfilteredQuery(feedCase, getRequest(1));
     },
   );
@@ -1516,9 +1719,16 @@ describe("moving to another resource", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
-      expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 1 of ${feedCase.enumValues.length} event types`,
+      );
 
       /*
        * The dashboard moves between resources by handing the same mounted
@@ -1538,24 +1748,22 @@ describe("moving to another resource", () => {
         feedCase,
         firstRequestForOther,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectUnfilteredQuery(feedCase, firstRequestForOther, otherResourceId);
 
-      expect(screen.queryByTestId("feed-options-count")).toBeNull();
-      expectTriggerSummary("Oldest first, all event types");
+      expect(getFilterBoxTitle()).toBeNull();
+      expect(getCheckedSortOrder()).toBe("Oldest first");
       // An empty unfiltered feed says so in its own words, not the filter's.
       expect(await screen.findByText(feedCase.noItemsMessage)).toBeVisible();
       expect(screen.queryByText(FILTERED_FEED_NO_ITEMS_MESSAGE)).toBeNull();
 
-      const panel: HTMLElement = openPanel();
+      const panel: HTMLElement = openFilterDialog();
 
-      expect(
-        within(panel).getByRole("radio", { name: "Oldest first" }),
-      ).toHaveAttribute("aria-checked", "true");
       for (const checkbox of within(panel).getAllByRole("checkbox")) {
         expect(checkbox).not.toBeChecked();
       }
+      cancelFilterDialog();
 
       // The stored order is untouched and the filter was never stored.
       expect(window.localStorage.length).toBe(1);
@@ -1574,59 +1782,88 @@ describe("moving to another resource", () => {
         feedCase,
         requestOnReturn,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectUnfilteredQuery(feedCase, requestOnReturn);
-      expect(screen.queryByTestId("feed-options-count")).toBeNull();
-      expectTriggerSummary("Oldest first, all event types");
+      expect(getFilterBoxTitle()).toBeNull();
+      expect(getCheckedSortOrder()).toBe("Oldest first");
 
-      for (const checkbox of within(openPanel()).getAllByRole("checkbox")) {
+      for (const checkbox of within(openFilterDialog()).getAllByRole(
+        "checkbox",
+      )) {
         expect(checkbox).not.toBeChecked();
       }
+      cancelFilterDialog();
     },
   );
 });
 
-describe("the trigger's glyph", () => {
+describe("the ⋯ button", () => {
   test.each(FEED_CASES)(
-    "$name shows the funnel while newest first and the up arrow while oldest first, whatever the filter",
+    "$name's ⋯ stays three dots whatever the view: the filter box and the menu's tick say what changed",
     async (feedCase: FeedCase) => {
       const eventType: string = getSampleEventType(feedCase);
 
       const view: RenderResult = renderFeedCase(feedCase);
       await waitForRequestCount(1);
 
-      expect(getTriggerIcon()).toBe(IconProp.Filter);
+      const defaultClass: string = getMoreButton().className;
 
-      // The glyph says the order, so a filter alone leaves the funnel.
+      expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+
       toggleEventType(eventType);
       await waitForRequestCount(2);
 
-      expect(getTriggerIcon()).toBe(IconProp.Filter);
+      expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+      expect(getMoreButton().className).toBe(defaultClass);
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 1 of ${feedCase.enumValues.length} event types`,
+      );
 
       chooseSortOrder("Oldest first");
       await waitForRequestCount(3);
 
-      expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
+      expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+      expect(getMoreButton().className).toBe(defaultClass);
+      expect(getCheckedSortOrder()).toBe("Oldest first");
 
-      // ...and clearing the filter leaves the order, so the arrow stays.
-      clickShowAll();
-      await waitForRequestCount(4);
-
-      expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
-
-      // A remembered order draws the arrow from the first paint.
+      // A remembered order shows in the menu from the first paint.
       view.unmount();
       renderFeedCase(feedCase);
 
-      expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
+      expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+      expect(getCheckedSortOrder()).toBe("Oldest first");
 
-      await waitForRequestCount(5);
+      await waitForRequestCount(4);
+    },
+  );
 
-      chooseSortOrder("Newest first");
-      await waitForRequestCount(6);
+  test.each(FEED_CASES)(
+    "$name's Refresh in the ⋯ re-reads the view the reader is looking at, once",
+    async (feedCase: FeedCase) => {
+      const eventType: string = getSampleEventType(feedCase);
 
-      expect(getTriggerIcon()).toBe(IconProp.Filter);
+      renderFeedCase(feedCase);
+      await waitForRequestCount(1);
+
+      chooseSortOrder("Oldest first");
+      await waitForRequestCount(2);
+      toggleEventType(eventType);
+      await waitForRequestCount(3);
+
+      fireEvent.click(
+        within(openMoreMenu()).getByRole("menuitem", { name: "Refresh" }),
+      );
+      await waitForRequestCount(4);
+
+      expectWindow(
+        feedCase,
+        getRequest(3),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
+      expectFilteredQuery(feedCase, getRequest(3), [eventType]);
+      expect(screen.queryByRole("menu")).toBeNull();
     },
   );
 });

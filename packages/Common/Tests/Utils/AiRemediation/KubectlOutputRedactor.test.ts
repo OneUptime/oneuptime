@@ -2,6 +2,7 @@ import KubectlOutputRedactor, {
   KUBECTL_REDACTED_MARKER,
   KubectlOutputRedaction,
 } from "../../../Utils/AiRemediation/KubectlOutputRedactor";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -1250,6 +1251,46 @@ describe("KubectlOutputRedactor", () => {
     });
 
     /*
+     * REGRESSION. A quoted key was read as a name and never scanned, so a
+     * URL password in one - a YAML key in quotes, any key of JSON - went to
+     * the model as it was. The seeded corpus of the test below found it
+     * ("'+g.-ap://:%:-@@':" is a quoted key with nothing after its colon)
+     * once it drew every text it asked for. A quoted key is still a name,
+     * read as one, but a URL password in it is masked.
+     */
+    it("masks a URL password inside a quoted key, and leaves a name alone", () => {
+      const result: KubectlOutputRedaction = redact(
+        lines(
+          "  'postgres://app:hunter2@db:5432/app': enabled",
+          '"https://ci:hunter2@registry.example.com": {',
+          "'+g.-ap://:%:-@@':",
+          '  "auth": "",',
+          '"name": "web"',
+          "'Image pull secrets': <none>",
+          // Names a pair rule or a base64 rule would take apart stay names.
+          '"pods:list": "allow",',
+          '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
+          '"Path=": "/usr/bin",',
+        ),
+      );
+
+      expect(result.text).toBe(
+        lines(
+          `  'postgres://app:${MARKER}@db:5432/app': enabled`,
+          `"https://ci:${MARKER}@registry.example.com": {`,
+          `'+g.-ap://:${MARKER}@@':`,
+          '  "auth": "",',
+          '"name": "web"',
+          "'Image pull secrets': <none>",
+          '"pods:list": "allow",',
+          '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
+          '"Path=": "/usr/bin",',
+        ),
+      );
+      expect(result.redactionCount).toBe(3);
+    });
+
+    /*
      * The URL rule used to start its match at the scheme,
      * /(\b[a-z][a-z0-9+.-]*:\/\/)…/, which retried from every word boundary
      * of a long dotted run and backtracked through the whole run each time
@@ -1320,19 +1361,15 @@ describe("KubectlOutputRedactor", () => {
         " ",
         "'",
       ];
-      let state: number = 3953;
-      const random: () => number = (): number => {
-        state = (state * 1103515245 + 12345) & 0x7fffffff;
-        return state / 0x7fffffff;
-      };
+      const random: SeededRandom = seededRandom(3953);
       const word: (alphabet: Array<string>, max: number) => string = (
         alphabet: Array<string>,
         max: number,
       ): string => {
         let text: string = "";
-        const length: number = Math.floor(random() * (max + 1));
+        const length: number = random(max + 1);
         for (let i: number = 0; i < length; i++) {
-          text += alphabet[Math.floor(random() * alphabet.length)];
+          text += alphabet[random(alphabet.length)];
         }
         return text;
       };
@@ -1349,6 +1386,11 @@ describe("KubectlOutputRedactor", () => {
       };
 
       let maskedByBoth: number = 0;
+      const differences: Array<{
+        text: string;
+        redacted: string;
+        expected: string;
+      }> = [];
 
       for (let sample: number = 0; sample < 10000; sample++) {
         const text: string = `${word(junk, 3)}${word(scheme, 5)}://${word(user, 3)}${random() < 0.8 ? ":" : ""}${word(pass, 4)}${random() < 0.8 ? "@" : ""}${word(junk, 3)}`;
@@ -1358,12 +1400,15 @@ describe("KubectlOutputRedactor", () => {
           maskedByBoth++;
         }
 
-        expect({ text, redacted: redact(text).text }).toEqual({
-          text,
-          redacted: expected,
-        });
+        const redacted: string = redact(text).text;
+
+        if (redacted !== expected) {
+          differences.push({ text, redacted, expected });
+        }
       }
 
+      // Gathered and checked once, rather than an expect for every sample.
+      expect(differences.slice(0, 5)).toEqual([]);
       // The corpus is not vacuous: hundreds of samples carry a password.
       expect(maskedByBoth).toBeGreaterThan(700);
     });

@@ -26,10 +26,12 @@ import logger from "Common/Server/Utils/Logger";
  *   - PROJECT-SCOPED (what customers install): ONEUPTIME_RUNNER_ID +
  *     ONEUPTIME_RUNNER_KEY, created in the dashboard. The Runner only ever
  *     sees work belonging to that one project.
- *   - CLUSTER-SCOPED (OneUptime's own deployment): a cluster key
- *     auto-registers the Runner to serve every project. This mode is for
- *     the in-cluster `runner` service only and must never be handed to a
- *     customer install.
+ *   - CLUSTER-SCOPED (OneUptime's own deployment): the installation's
+ *     shared Runner auto-registers to serve every project, with its
+ *     ONEUPTIME_RUNNER_KEY, which the OneUptime app holds too. This mode is
+ *     for the in-cluster `runner` service only, and works only where the
+ *     app was given the Runner's key: it is never handed to a customer
+ *     install.
  */
 
 if (!process.env["ONEUPTIME_URL"]) {
@@ -41,12 +43,39 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"]!,
 );
 
-// Cluster-key mode auto-registers and derives its own id; project mode does not.
-export const IS_CLUSTER_SCOPED: boolean = HasClusterKey;
+/*
+ * THE SHARED RUNNER
+ *
+ * The runner service of Docker Compose and the Helm chart is the
+ * installation's shared Runner: it serves AI code fixes for every project
+ * that has no Runner of its own, as the installation's global AI agent. It
+ * registers itself with its ONEUPTIME_RUNNER_KEY, which its deployment gives
+ * the OneUptime app as well, so it needs no id from the dashboard and no
+ * cluster key. Its deployment says so with ONEUPTIME_RUNNER_SHARED=true:
+ * only "true" (any case) turns it on, so a typo leaves a Runner that needs
+ * an id, and says so, rather than one that tries to be the shared Runner.
+ *
+ * A deployment of an earlier release said so by giving the Runner the
+ * cluster key (ONEUPTIME_SECRET) instead, and such a Runner still is the
+ * shared Runner (HasClusterKey).
+ */
+export function parseSharedRunnerSwitch(value: string | undefined): boolean {
+  return (value || "").trim().toLowerCase() === "true";
+}
+
+export const IS_SHARED_RUNNER: boolean = parseSharedRunnerSwitch(
+  process.env["ONEUPTIME_RUNNER_SHARED"],
+);
+
+// Cluster scope auto-registers and is given its id; project mode is not.
+export const IS_CLUSTER_SCOPED: boolean = IS_SHARED_RUNNER || HasClusterKey;
 
 /*
- * KUBERNETES-AGENT MODE: the Runner the kubernetes-agent Helm chart installs
- * next to the OpenTelemetry collector (aiAccess.enabled=true). It has no
+ * KUBERNETES-AGENT MODE (deprecated): the Runner that kubernetes-agent Helm
+ * charts 14.0.2–14.0.8 installed next to the OpenTelemetry collector
+ * (aiAccess.enabled=true). Newer charts install the Kubernetes AI agent
+ * (agents/KubernetesAIAgent, image oneuptime/kubernetes-ai-agent) instead;
+ * this mode keeps those older installs working until they upgrade. It has no
  * dashboard-issued id and key; it presents the project's telemetry ingestion
  * key (the same one the agent ships telemetry with) plus the cluster's name,
  * and the server issues it a Runner identity bound to that cluster. That is
@@ -73,14 +102,14 @@ if (
   !process.env["ONEUPTIME_RUNNER_ID"]
 ) {
   logger.error(
-    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
+    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
   );
   process.exit(1);
 }
 
 if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_KEY"]) {
   logger.error(
-    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container.",
+    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
   );
   process.exit(1);
 }
@@ -288,6 +317,28 @@ export const CLUSTER_ENABLE_CODE_FIXES: boolean =
   ENABLE_CODE_FIXES_OVERRIDE !== false;
 
 /*
+ * Whether this Runner may execute project-authored or model-composed shell
+ * commands as part of a code fix: the repository's Setup/Build/Test
+ * verification commands (BuildVerification), and the code agent's
+ * `run_command` tool (InHouseCodeAgent).
+ *
+ * A PROJECT-SCOPED Runner runs them. It is a host the operator installed in
+ * their own network, holds only that one project's credentials, and runs
+ * that project's own repository commands — the same trust model as a runbook
+ * Bash step, which this Runner already executes.
+ *
+ * The SHARED in-cluster Runner does NOT. It serves AI code fixes for every
+ * project that has no Runner of its own, so nothing one project configures,
+ * and nothing a model composes, runs on it. It writes the fix with its file
+ * tools (which stay inside the repository's working tree, see
+ * WorkspaceFileAccess) and opens it for review; the repository's own CI and
+ * the human reviewer run the tests. The kubernetes-agent Runner never runs
+ * the code-fix loop at all (its filesystem is read-only), so cluster scope is
+ * the whole condition.
+ */
+export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;
+
+/*
  * The runbook work mount on the OneUptime app:
  *   POST /runner-ingest/heartbeat
  *   POST /runner-ingest/claim-next-job
@@ -328,6 +379,14 @@ export const MAX_CONCURRENT_JOBS: number = NumberUtil.parseNumberWithDefault({
 });
 
 export const MAX_OUTPUT_BYTES: number = 50_000;
+
+/*
+ * kubectl output kept for the server. Larger than the other executors':
+ * `kubectl describe node` on a busy node or a pod's logs easily pass 50 KB,
+ * and the server pages long output to the model instead of cutting it, so
+ * everything kept here is readable by the investigation.
+ */
+export const MAX_KUBECTL_OUTPUT_BYTES: number = 1_000_000;
 
 // Health/metrics port (KEDA reads the code-fix queue depth from here).
 export const PORT: Port = new Port(

@@ -1,22 +1,41 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
   SloBurnRateTemplateVariableDefinition,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import {
+  BURN_RATE_DECLARES_ANSWERS,
+  BURN_RATE_DECLARES_COPY,
+  BURN_RATE_DECLARES_FIELD_KEY,
+  BURN_RATE_DECLARES_FIELD_TITLE,
+  BURN_RATE_DECLARES_REQUIRED,
+  BurnRateDeclares,
+  getBurnRateDeclares,
+  getValuesForBurnRateDeclares,
+  isBurnRateDeclares,
+} from "./BurnRateDeclares";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The burn rate rule form's pure half, split out of BurnRateRules.tsx so it
@@ -32,10 +51,9 @@ import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
  * App/Tests/FeatureSetImportsStayReactFree.test.ts is the guard for that,
  * and it is what caught this.
  *
- * The same constraint is why nothing here fetches anything: the owner-user
- * picker needs ProjectUser and ProjectUtil, which reach ModelAPI and read
- * `window` at module load, so the page injects that loader through
- * withOwnerUserDropdownOptions instead of this module importing it.
+ * The same constraint is why nothing here fetches anything. The owners
+ * pickers are plain data too (getOwnersFormField): the people picker the form
+ * draws them with does its own searching.
  *
  * BurnRateRules.tsx re-exports these names, so existing importers are
  * unchanged.
@@ -121,17 +139,9 @@ export const willDeclareIncident: ReadsBurnRateOutputFlagFunction = (
 /*
  * A rule that declares nothing is rejected by
  * ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate/onBeforeUpdate.
- * Mirrored here for the same reason the window and threshold validators are:
- * the server's rejection only surfaces after a failed round-trip that
- * re-renders the raw exception, and "turn the alert off, forget to turn the
- * incident on" is the obvious way into it.
- *
- * Both toggles live on ONE form step on purpose. Form validation only runs for
- * the step being left (Validation.validate skips every field whose stepId is
- * not the current one), so a validator that has to see both flags could not
- * span two steps: turning the alert off would fail the step the user was
- * leaving, before they ever reached the incident toggle they were on their way
- * to.
+ * The form asks one question with three answers now (BurnRateDeclares), none
+ * of which declares nothing, so this only speaks for a form whose two
+ * columns were both off when it opened - a rule written that way by hand.
  */
 export type ValidateBurnRateOutputsFunction = (
   value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -141,7 +151,7 @@ export const validateBurnRateOutputs: ValidateBurnRateOutputsFunction = (
   value: FormValues<ServiceLevelObjectiveBurnRateRule>,
 ): string | null => {
   if (!willCreateAlert(value) && !willDeclareIncident(value)) {
-    return "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.";
+    return BURN_RATE_DECLARES_REQUIRED;
   }
 
   return null;
@@ -163,19 +173,20 @@ export const describeBurnRateOutputs: DescribeBurnRateOutputsFunction = (
   const createsAlert: boolean = willCreateAlert(rule);
   const createsIncident: boolean = willDeclareIncident(rule);
 
+  // English; the page translates the label it shows.
   if (createsAlert && createsIncident) {
-    return "Alert + Incident";
+    return translationKey("Alert + Incident");
   }
 
   if (createsIncident) {
-    return "Incident";
+    return translationKey("Incident");
   }
 
   if (createsAlert) {
-    return "Alert";
+    return translationKey("Alert");
   }
 
-  return "Nothing";
+  return translationKey("Nothing");
 };
 
 /*
@@ -199,33 +210,52 @@ export type DescribeBurnRateOutputOptionsFunction = (
   rule: BurnRateRuleOptionFlags,
 ) => Array<string>;
 
+/*
+ * Each line whole, so a translation never has to glue "Alert" to a list of
+ * options: the page translates the English line it is given.
+ */
+interface OutputOptionLines {
+  resolvedByHand: string;
+  isPrivate: string;
+  both: string;
+}
+
+const ALERT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Alert: resolved by hand"),
+  isPrivate: translationKey("Alert: private"),
+  both: translationKey("Alert: resolved by hand, private"),
+};
+
+const INCIDENT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Incident: resolved by hand"),
+  isPrivate: translationKey("Incident: private"),
+  both: translationKey("Incident: resolved by hand, private"),
+};
+
 export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunction =
   (rule: BurnRateRuleOptionFlags): Array<string> => {
     const lines: Array<string> = [];
 
     type DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }) => void;
 
     const describeOutput: DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }): void => {
-      const options: Array<string> = [];
+      const resolvedByHand: boolean = data.autoResolve === false;
+      const isPrivate: boolean = data.isPrivate === true;
 
-      if (data.autoResolve === false) {
-        options.push("resolved by hand");
-      }
-
-      if (data.isPrivate === true) {
-        options.push("private");
-      }
-
-      if (options.length > 0) {
-        lines.push(`${data.label}: ${options.join(", ")}`);
+      if (resolvedByHand && isPrivate) {
+        lines.push(data.lines.both);
+      } else if (resolvedByHand) {
+        lines.push(data.lines.resolvedByHand);
+      } else if (isPrivate) {
+        lines.push(data.lines.isPrivate);
       }
     };
 
@@ -234,7 +264,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsAlert) {
       describeOutput({
-        label: "Alert",
+        lines: ALERT_OPTION_LINES,
         isPrivate: rule.isAlertPrivate,
         autoResolve: rule.autoResolveAlert,
       });
@@ -242,7 +272,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsIncident) {
       describeOutput({
-        label: "Incident",
+        lines: INCIDENT_OPTION_LINES,
         isPrivate: rule.isIncidentPrivate,
         autoResolve: rule.autoResolveIncident,
       });
@@ -252,7 +282,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
       rule.addSloOwnersAsOwners === true &&
       (createsAlert || createsIncident)
     ) {
-      lines.push("SLO owners added as owners");
+      lines.push(translationKey("SLO owners added as owners"));
     }
 
     return lines;
@@ -275,11 +305,29 @@ export const BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE: string = [
 ].join("\n");
 
 /*
- * Named in the descriptions of every template field. Three is enough to show
- * the shape; the help panel carries the full table.
+ * Every template field offers the variables itself: collapsed under the
+ * field, behind the Markdown editor's Insert variable button, and when "{{"
+ * is typed. They were three names run into each field's description, with
+ * the rest in the page's help panel.
  */
-const TEMPLATE_VARIABLES_HINT: string =
-  'Supports template variables such as {{sloName}}, {{ruleName}} and {{longWindowBurnRate}} - see "How Burn Rate Rules Work" for the full list.';
+export const BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION: string =
+  "When the rule fires, these variables are filled in with the SLO's values at that moment.";
+
+/*
+ * When it fires: the three answers, each with its line.
+ */
+export const getBurnRateDeclaresChoices: () => Array<RadioButton> =
+  (): Array<RadioButton> => {
+    return BURN_RATE_DECLARES_ANSWERS.map(
+      (declares: BurnRateDeclares): RadioButton => {
+        return {
+          value: declares,
+          title: BURN_RATE_DECLARES_COPY[declares].title,
+          description: BURN_RATE_DECLARES_COPY[declares].description,
+        };
+      },
+    );
+  };
 
 /*
  * Each output has one step, matching the monitor form: title and severity
@@ -362,10 +410,15 @@ const alertOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnR
     },
   };
 
+/*
+ * Auto-resolve, privacy and remediation notes: More fields, as on every form
+ * - folded on create and edit, its header naming the three and showing the
+ * ones chosen. A true auto-resolve is what a new rule starts with, so only
+ * turning it off counts.
+ */
 const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
+  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
     id: "alert-advanced",
-    title: "Advanced Options",
     description: "Auto-resolve, privacy and remediation settings",
     isConfigured: (
       value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -376,7 +429,7 @@ const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBur
         Boolean(value.alertRemediationNotes)
       );
     },
-  };
+  });
 
 const incidentDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
   {
@@ -424,9 +477,8 @@ const incidentOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBu
   };
 
 const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
+  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
     id: "incident-advanced",
-    title: "Advanced Options",
     description: "Auto-resolve, privacy and remediation settings",
     isConfigured: (
       value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -437,7 +489,7 @@ const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjective
         Boolean(value.incidentRemediationNotes)
       );
     },
-  };
+  });
 
 /*
  * Hoisted out of the JSX so the wiring is assertable: every field has to
@@ -457,8 +509,14 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.Text,
     required: true,
     placeholder: "Fast burn",
+    // The column's "Name of this burn rate rule" only says the title again.
+    hideColumnDescription: true,
     stepId: "rule",
   },
+  /*
+   * A new rule starts enabled (the column's default), so the switch is on
+   * the Edit form only, as on every rule form (RuleEnabledField).
+   */
   {
     field: {
       isEnabled: true,
@@ -466,12 +524,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     title: "Enabled",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    description: "Enable or disable this burn rate rule.",
-    /*
-     * The column default. Without it the toggle renders OFF on a
-     * create form while the row is in fact written enabled — the
-     * form would be telling the user the opposite of what it does.
-     */
+    description: "Off stops this rule from firing. Its history is kept.",
+    doNotShowWhenCreating: true,
+    // The column default, should a form ever open without a stored value.
     defaultValue: true,
     stepId: "rule",
   },
@@ -532,7 +587,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Re-fire Suppression (Minutes)",
     description:
-      "Quiet period after an alert or incident resolves before this rule may declare that same record again. Each output is suppressed independently. Defaults to the long window.",
+      "How long after an alert or incident resolves before this rule may open another. Defaults to the long window.",
     fieldType: FormFieldSchemaType.Number,
     required: false,
     placeholder: "60",
@@ -542,31 +597,64 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "burn-window",
   },
   /*
-   * Both toggles, on one step, before any per-output step. The validator that
-   * forbids a rule with no output has to see both values in one pass, and a
-   * step is the unit validation runs over.
-   *
-   * It hangs off the ALERT toggle, and only off that one. Validation hands a
-   * customValidation the whole form's values, so one attachment covers both
-   * flags — but it only runs a field's validators when that field has a value
-   * (Validation.validate's `name in entries` gate). `shouldCreateAlert` always
-   * does, because its defaultValue is written into the form values on open;
-   * `shouldCreateIncident` has no default, so an untouched incident toggle
-   * never validates anything. Attaching to both would just render the same
-   * sentence twice under two adjacent toggles.
+   * When it fires: one choice of three (BurnRateDeclares) where Create
+   * Alert and Declare Incident were two switches that could both be off.
+   * Form-only: it starts on the answer the rule's two columns make (Create an
+   * alert for a new rule), and a pick writes both columns, which are
+   * registered just below, unseen, so the form loads and saves them.
    */
+  {
+    overrideField: {
+      shouldCreateAlert: true,
+    },
+    overrideFieldKey: BURN_RATE_DECLARES_FIELD_KEY,
+    formOnly: true,
+    title: BURN_RATE_DECLARES_FIELD_TITLE,
+    fieldType: FormFieldSchemaType.RadioButton,
+    radioButtonOptions: getBurnRateDeclaresChoices(),
+    required: true,
+    // Each answer says what it opens; the column's sentence is half of it.
+    hideColumnDescription: true,
+    dataTestId: "burn-rate-declares",
+    getDefaultValue: (
+      values: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): string => {
+      return getBurnRateDeclares(values) || "";
+    },
+    onChange: (
+      value: unknown,
+      currentValues: FormValues<ServiceLevelObjectiveBurnRateRule>,
+      setNewFormValues: (
+        values: FormValues<ServiceLevelObjectiveBurnRateRule>,
+      ) => void,
+    ): void => {
+      if (!isBurnRateDeclares(value)) {
+        return;
+      }
+
+      setNewFormValues(
+        getValuesForBurnRateDeclares({
+          values: currentValues,
+          declares: value,
+        }),
+      );
+    },
+    customValidation: validateBurnRateOutputs,
+    stepId: "declares",
+  },
   {
     field: {
       shouldCreateAlert: true,
     },
     title: "Create Alert",
-    description:
-      "Raise an Alert when this rule fires. A rule must create an alert, declare an incident, or both.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    // The column default, so the toggle shows what the row will hold.
+    // The column default: a new rule raises an alert.
     defaultValue: true,
-    customValidation: validateBurnRateOutputs,
+    hideColumnDescription: true,
+    showIf: (): boolean => {
+      return false;
+    },
     stepId: "declares",
   },
   {
@@ -574,10 +662,12 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       shouldCreateIncident: true,
     },
     title: "Declare Incident",
-    description:
-      "Declare an Incident when this rule fires. Burn rate incidents are never published to status pages and never notify subscribers.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
+    hideColumnDescription: true,
+    showIf: (): boolean => {
+      return false;
+    },
     stepId: "declares",
   },
   /*
@@ -593,7 +683,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Add SLO Owners as Owners",
     description:
-      "Also add this SLO's owners - its owner users and the members of its owner teams - as owners of every alert and incident this rule creates. SLO owners are already notified when the SLO's status changes, so turning this on can notify them twice.",
+      "Add this SLO's owners as owners of every alert and incident this rule creates. They may be notified twice.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     stepId: "declares",
@@ -603,8 +693,16 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertTitleTemplate: true,
     },
     title: "Alert Title",
-    description: `Title of the alert this rule raises. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the alert this rule raises. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -625,6 +723,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Alert Severity",
@@ -635,8 +736,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertDescriptionTemplate: true,
     },
     title: "Alert Description",
-    description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the alert, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -645,42 +749,20 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: alertDescriptionSection,
     stepId: "alert-details",
   },
-  {
-    field: {
-      alertOwnerTeams: true,
-    },
-    title: "Alert Owner Teams",
-    description:
-      "Teams added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
-    collapsibleSection: alertOwnershipSection,
-    stepId: "alert-details",
-  },
   /*
-   * No dropdownModal: User is not a project-listable model, so its options
-   * come from the project's team members, which the page injects through
-   * withOwnerUserDropdownOptions (this module must not fetch).
+   * People and teams in one picker, saved to the rule's alertOwnerUsers and
+   * alertOwnerTeams columns.
    */
-  {
-    field: {
-      alertOwnerUsers: true,
-    },
-    title: "Alert Owner Users",
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "alertOwners",
+    usersKey: "alertOwnerUsers",
+    teamsKey: "alertOwnerTeams",
+    title: "Alert Owners",
     description:
-      "Users added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
+      "People and teams added as owners of the alert. Owners are notified when the alert is created.",
     collapsibleSection: alertOwnershipSection,
     stepId: "alert-details",
-  },
+  }),
   {
     field: {
       alertLabels: true,
@@ -722,7 +804,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Alert",
     description:
-      "Resolve the alert automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the alert open until someone resolves it - the rule will not raise another alert while it is open.",
+      "Resolve the alert when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     /*
@@ -750,8 +832,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertRemediationNotes: true,
     },
     title: "Alert Remediation Notes",
-    description: `Steps for whoever picks the alert up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the alert up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -764,8 +848,16 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentTitleTemplate: true,
     },
     title: "Incident Title",
-    description: `Title of the incident this rule declares. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the incident this rule declares. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -786,6 +878,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Incident Severity",
@@ -796,8 +891,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentDescriptionTemplate: true,
     },
     title: "Incident Description",
-    description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the incident, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -806,37 +904,17 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: incidentDescriptionSection,
     stepId: "incident-details",
   },
-  {
-    field: {
-      incidentOwnerTeams: true,
-    },
-    title: "Incident Owner Teams",
+  // Saved to the rule's incidentOwnerUsers and incidentOwnerTeams columns.
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "incidentOwners",
+    usersKey: "incidentOwnerUsers",
+    teamsKey: "incidentOwnerTeams",
+    title: "Incident Owners",
     description:
-      "Teams added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
+      "People and teams added as owners of the incident. Owners are notified when the incident is declared.",
     collapsibleSection: incidentOwnershipSection,
     stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentOwnerUsers: true,
-    },
-    title: "Incident Owner Users",
-    description:
-      "Users added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
-    collapsibleSection: incidentOwnershipSection,
-    stepId: "incident-details",
-  },
+  }),
   {
     field: {
       incidentLabels: true,
@@ -879,7 +957,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Incident",
     description:
-      "Resolve the incident automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the incident open until someone resolves it - the rule will not declare another incident while it is open.",
+      "Resolve the incident when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     // TRUE, as on the alert toggle above.
@@ -904,8 +982,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentRemediationNotes: true,
     },
     title: "Incident Remediation Notes",
-    description: `Steps for whoever picks the incident up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the incident up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -914,55 +994,3 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "incident-details",
   },
 ];
-
-// The two fields whose options only the page can load.
-export const BURN_RATE_RULE_OWNER_USER_COLUMNS: ReadonlyArray<string> = [
-  "alertOwnerUsers",
-  "incidentOwnerUsers",
-];
-
-export type FetchBurnRateRuleOwnerUserOptionsFunction = NonNullable<
-  ModelField<ServiceLevelObjectiveBurnRateRule>["fetchDropdownOptions"]
->;
-
-export type WithOwnerUserDropdownOptionsFunction = (
-  fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-  fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-) => Array<ModelField<ServiceLevelObjectiveBurnRateRule>>;
-
-/*
- * Hands the owner-user fields their option loader, and leaves every other
- * field - and the input array - untouched. A MultiSelectDropdown with neither
- * a dropdownModal nor a loader renders an empty list, which reads as "this
- * project has no users" rather than as a bug, so the page must not forget this.
- */
-export const withOwnerUserDropdownOptions: WithOwnerUserDropdownOptionsFunction =
-  (
-    fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-    fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-  ): Array<ModelField<ServiceLevelObjectiveBurnRateRule>> => {
-    return fields.map(
-      (
-        field: ModelField<ServiceLevelObjectiveBurnRateRule>,
-      ): ModelField<ServiceLevelObjectiveBurnRateRule> => {
-        const columns: Array<string> = Object.keys(
-          (field.field || {}) as Record<string, unknown>,
-        );
-
-        const isOwnerUserField: boolean = columns.some(
-          (column: string): boolean => {
-            return BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(column);
-          },
-        );
-
-        if (!isOwnerUserField) {
-          return field;
-        }
-
-        return {
-          ...field,
-          fetchDropdownOptions: fetchOptions,
-        };
-      },
-    );
-  };

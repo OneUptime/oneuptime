@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import {
   NETWORK_DEVICE_METRIC_DESCRIPTIONS,
   NetworkDeviceMetric,
@@ -193,8 +194,9 @@ describe("the site Overview hero", () => {
 
   test.each([
     ['title="Health"', "health"],
-    ["title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}", "uptime24h"],
-    ["title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}", "uptime30d"],
+    // The uptime titles are translated sentences with the window filled in.
+    ['title={translator.translateTemplate("Uptime ({{hours}}h)"', "uptime24h"],
+    ['title={translator.translateTemplate("Uptime ({{days}}d)"', "uptime30d"],
     ['title="Devices"', "devices"],
     ['title="Child Sites"', "childSites"],
     ['title="Endpoints"', "endpoints"],
@@ -210,13 +212,16 @@ describe("the site Overview hero", () => {
   test("the two uptime tiles each get their own window's text", () => {
     const daily: string = element(
       code,
-      "<SiteHeroTileTitle title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}",
+      '<SiteHeroTileTitle title={translator.translateTemplate("Uptime ({{hours}}h)"',
     );
     const monthly: string = element(
       code,
-      "<SiteHeroTileTitle title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}",
+      '<SiteHeroTileTitle title={translator.translateTemplate("Uptime ({{days}}d)"',
     );
 
+    // Each title fills in its own window.
+    expect(daily).toContain("hours: DAILY_UPTIME_WINDOW_DAYS * 24");
+    expect(monthly).toContain("days: UPTIME_WINDOW_DAYS");
     expect(daily).not.toContain(siteRef("uptime30d"));
     expect(monthly).not.toContain(siteRef("uptime24h"));
   });
@@ -468,78 +473,69 @@ describe("the device Overview's interface digest", () => {
   });
 });
 
-describe("the Traffic tab's top talkers", () => {
-  const code: string = readCode("Components/NetworkDevice/FlowTopTalkers.tsx");
-
-  test("the stat tile and section title components render the (i)", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
-    expect(
-      count(
-        code,
-        "<InfoTooltip label={props.title} text={props.description} />",
-      ),
-    ).toBe(2);
-  });
-
-  test.each([
-    ["Total Traffic", "flowTotalTraffic"],
-    ["Packets", "flowPackets"],
-    ["Flows", "flowCount"],
-  ] as Array<[string, NetworkDeviceMetric]>)(
-    "the %s tile is explained by NETWORK_DEVICE_METRIC_DESCRIPTIONS.%s",
-    (title: string, key: NetworkDeviceMetric) => {
-      expect(element(code, `<FlowStatTile title="${title}"`)).toContain(
-        `description={${deviceRef(key)}}`,
-      );
-    },
+describe("the Traffic pages (device, site, network)", () => {
+  const tiles: string = readCode(
+    "Components/NetworkTraffic/TrafficSummaryTiles.tsx",
   );
-
-  test.each([
-    ["Bandwidth Over Time", "flowBandwidth"],
-    ["Top Conversations", "flowTopConversations"],
-    ["Top Protocols & Ports", "flowTopProtocolsPorts"],
-  ] as Array<[string, NetworkDeviceMetric]>)(
-    "the %s section is explained by NETWORK_DEVICE_METRIC_DESCRIPTIONS.%s",
-    (title: string, key: NetworkDeviceMetric) => {
-      expect(element(code, `<FlowSectionTitle title="${title}"`)).toContain(
-        `description={${deviceRef(key)}}`,
-      );
-    },
+  const view: string = readCode(
+    "Components/NetworkTraffic/NetworkTrafficView.tsx",
   );
+  const list: string = readCode("Components/NetworkTraffic/TrafficTopList.tsx");
 
-  test.each([
-    ["Top Sources", "flowTopSources"],
-    ["Top Destinations", "flowTopDestinations"],
-  ] as Array<[string, NetworkDeviceMetric]>)(
-    "the %s table is explained by NETWORK_DEVICE_METRIC_DESCRIPTIONS.%s",
-    (title: string, key: NetworkDeviceMetric) => {
-      expect(element(code, `<TopEntryTable title="${title}"`)).toContain(
-        `description={${deviceRef(key)}}`,
-      );
-    },
-  );
-
-  test("the top-N tables title themselves through the section title", () => {
-    const table: string = between(
-      code,
-      "const TopEntryTable",
-      "<table className",
+  test("a tile and a top list render their (i) from the text they are given", () => {
+    expect(tiles).toContain(INFO_TOOLTIP_IMPORT);
+    expect(tiles).toContain(
+      "<InfoTooltip label={props.label} text={props.help} />",
     );
-
-    expect(table).toContain(
-      "<FlowSectionTitle title={props.title} description={props.description} />",
+    expect(list).toContain(INFO_TOOLTIP_IMPORT);
+    expect(list).toContain(
+      "<InfoTooltip label={props.title} text={props.help} />",
     );
   });
 
-  test("every stat tile and every section title has a description", () => {
-    expect(countTag(code, "FlowStatTile")).toBe(3);
-    expect(countTag(code, "FlowSectionTitle")).toBe(4);
-    expect(countTag(code, "TopEntryTable")).toBe(2);
-    expect(count(code, `description={${DEVICE_RECORD}.`)).toBe(3 + 3 + 2);
+  test.each([
+    ["Traffic", "traffic"],
+    ["Average", "average"],
+    ["Peak", "peak"],
+    ["Flows", "flows"],
+  ])(
+    "the %s tile is explained by TILE_HELP.%s",
+    (label: string, key: string) => {
+      expect(element(tiles, `<TrafficTile label="${label}"`)).toContain(
+        `help={TILE_HELP.${key}}`,
+      );
+    },
+  );
 
-    // No section kept a bare, unexplained heading.
-    expect(code).not.toContain(
-      '<div className="text-sm font-medium text-gray-900 mb-2">',
+  test("the four tiles, each with its text, and the sampled note with its own", () => {
+    expect(countTag(tiles, "TrafficTile")).toBe(4);
+    expect(count(tiles, "help={TILE_HELP.")).toBe(4);
+    expect(tiles).toContain(
+      '<InfoTooltip label="Sampled" text={TILE_HELP.sampled} />',
+    );
+  });
+
+  test.each([
+    ["Top sources", "sources"],
+    ["Top destinations", "destinations"],
+    ["Top applications", "applications"],
+    ["Top interfaces", "interfaces"],
+    ["Top devices", "devices"],
+  ])(
+    "the %s list is explained by TRAFFIC_HELP.%s",
+    (title: string, key: string) => {
+      expect(element(view, `<TrafficTopList title="${title}"`)).toContain(
+        `help={TRAFFIC_HELP.${key}}`,
+      );
+    },
+  );
+
+  test("every top list has a text; the conversations card carries its own", () => {
+    expect(countTag(view, "TrafficTopList")).toBe(
+      count(view, "help={TRAFFIC_HELP."),
+    );
+    expect(view).toContain(
+      "<InfoTooltip label={CONVERSATIONS_TITLE} text={TRAFFIC_HELP.conversations} />",
     );
   });
 });
@@ -870,7 +866,6 @@ describe("every description in the two records is wired to exactly the surfaces 
     "Components/NetworkDevice/DeviceLatencyTrend.tsx",
     "Components/NetworkDevice/DeviceSummaryTiles.ts",
     "Components/NetworkDevice/DeviceInterfacesPreview.tsx",
-    "Components/NetworkDevice/FlowTopTalkers.tsx",
     "Components/NetworkDevice/DeviceDiagnosticsViewModel.ts",
     "Components/NetworkDevice/TracerouteHopsTable.tsx",
     "Pages/NetworkDevice/View/Interfaces.tsx",
@@ -896,9 +891,7 @@ describe("every description in the two records is wired to exactly the surfaces 
 
       expect(
         SOURCES.filter((source: string): boolean => {
-          return new RegExp(`${reference.replace(/\./g, "\\.")}\\b`).test(
-            source,
-          );
+          return new RegExp(`${escapeRegExp(reference)}\\b`).test(source);
         }).length,
       ).toBeGreaterThan(0);
     },
@@ -911,9 +904,7 @@ describe("every description in the two records is wired to exactly the surfaces 
 
       expect(
         SOURCES.filter((source: string): boolean => {
-          return new RegExp(`${reference.replace(/\./g, "\\.")}\\b`).test(
-            source,
-          );
+          return new RegExp(`${escapeRegExp(reference)}\\b`).test(source);
         }).length,
       ).toBeGreaterThan(0);
     },

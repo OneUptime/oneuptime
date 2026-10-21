@@ -47,8 +47,17 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
+  /*
+   * Public OAuth client ids: the Video Calls page offers the one-click
+   * Connect for a provider whose app this server has.
+   */
+  "ZOOM_APP_CLIENT_ID",
+  "GOOGLE_MEET_APP_CLIENT_ID",
+  "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
   "GITHUB_APP_CLIENT_ID",
   "GITHUB_APP_NAME",
+  // Public client id: the sign-in page offers Sign in with Microsoft when it is set.
+  "MICROSOFT_SIGN_IN_CLIENT_ID",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
@@ -178,6 +187,36 @@ const parseClampedIntegerFromEnv: (
   return Math.min(parsePositiveIntegerFromEnv(envKey, fallback), ceiling);
 };
 
+/*
+ * parsePositiveIntegerFromEnv for settings where "0" is a real choice (it
+ * switches the behaviour off) rather than a misconfiguration. Anything else
+ * that is not a whole number of at least 0 still falls back to the default:
+ * parseInt would read "15m" as 15 and "abc" as NaN, which compares false
+ * against every bound and so never runs out.
+ */
+const parseNonNegativeIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+) => number = (envKey: string, fallback: number): number => {
+  const rawValue: string | undefined = process.env[envKey];
+
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return fallback;
+  }
+
+  const parsedValue: number = Number(rawValue.trim());
+
+  if (
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue) ||
+    parsedValue < 0
+  ) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
 export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
 export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
@@ -267,17 +306,90 @@ export const PostgresLockTimeoutMs: number = parseInt(
 );
 
 /*
- * Node-postgres client-side query timeout (ms). Belt-and-braces for the
- * server-side statement_timeout — fires even if the connection has gone
- * silent or the server-side timeout doesn't kick in.
+ * How long (ms) a statement of a SCHEMA migration may wait for a lock before
+ * the migration gives up, rolls back and is tried again
+ * (Postgres/SchemaMigrationRunner.ts).
+ *
+ * DDL needs strong table locks (ALTER TABLE takes ACCESS EXCLUSIVE), and a DDL
+ * statement waiting in a table's lock queue blocks every query that arrives on
+ * that table after it - reads included - until it gets the lock or gives up.
+ * Without this bound a migration queued behind one long transaction on
+ * "Monitor" parked every probe result, heartbeat and ingest lookup for as long
+ * as that transaction lived. With it, that queue lasts this long at most, and
+ * the runner tries again in the gaps.
+ *
+ * Kept BELOW DATABASE_LOCK_TIMEOUT_MS (3 s): an app query queued behind a
+ * migration's lock request then outlives the request, so it is delayed rather
+ * than failed with its own lock_timeout.
+ *
+ * Only the schema-migration connection gets this. 0 lets migration statements
+ * wait as long as it takes, as they did before.
+ */
+export const PostgresMigrationLockTimeoutMs: number = parseInt(
+  process.env["DATABASE_MIGRATION_LOCK_TIMEOUT_MS"] || "2000",
+  10,
+);
+
+/*
+ * How long (ms) the schema-migration runner keeps retrying ONE migration that
+ * keeps running out of DATABASE_MIGRATION_LOCK_TIMEOUT_MS before it fails the
+ * run, with the lock error. Counted per migration: a run that applies several
+ * migrations gives each its own window. 0 never retries.
+ */
+export const PostgresMigrationLockRetryTimeoutMs: number = parseInt(
+  process.env["DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS"] ||
+    String(10 * 60 * 1000),
+  10,
+);
+
+/*
+ * How long (ms) a process that does NOT apply the schema migrations itself
+ * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false: the runtime pods, when the migrate
+ * Job owns them) waits at boot for the migrations its code knows to be
+ * applied (Postgres/SchemaMigrationWait.ts).
+ *
+ * The migrate Job runs asynchronously by default (migrate.hook=false), so the
+ * new pods of a release start while it is still migrating. Code running on
+ * the older schema fails every query that touches what the missing
+ * migrations add: in 14.0.13 every monitor query filtered on
+ * Monitor."isArchived" before AddArchiveToMoreResources had committed, and no
+ * monitor was processed until it did. connect() holds the boot instead: the
+ * pod is not started, so not ready, and the old pods keep serving.
+ *
+ * When this runs out connect() fails and the process exits, to be restarted
+ * and wait again: it never starts on the older schema. Keep it below the
+ * startup probe window (17 minutes in the Helm chart), so the pod gives up
+ * with an explicit error instead of being killed by the probe.
+ *
+ * 0 does not wait: the process logs which migrations are missing and starts
+ * on the schema it finds, as it did before this setting existed.
+ */
+export const PostgresMigrationWaitTimeoutMs: number =
+  parseNonNegativeIntegerFromEnv(
+    "DATABASE_MIGRATION_WAIT_TIMEOUT_MS",
+    15 * 60 * 1000,
+  );
+
+/*
+ * The app's client-side query timeout (ms). Belt-and-braces for the
+ * server-side statement_timeout - fires even if the connection has gone
+ * silent or the server-side timeout doesn't kick in (behind a pooler that
+ * drops the statement_timeout the app asks for, with none set on the role).
+ * A statement still running when it fires is cancelled on the database, and
+ * its connection closed rather than handed to another request
+ * (Infrastructure/Postgres/CancelOnTimeoutClient); the caller then waits a
+ * little longer for the database's answer to the cancel
+ * (CANCEL_ANSWER_WAIT_IN_MS).
  *
  * Deliberately LONGER than statement_timeout. These two used to be equal, and
  * because the client timer starts before the packet even reaches the backend,
- * the client always won by a round trip — so the app never observed Postgres's
- * real SQLSTATE and, worse, the client-side timeout only ABANDONS the query:
- * the backend keeps running and keeps its place in the lock queue. Letting the
- * server win means contention is cancelled server-side instead of accumulating
- * invisibly behind a pooler.
+ * the client always won by a round trip - so the app never observed Postgres's
+ * real SQLSTATE, and node-postgres' own timeout only ABANDONED the query: the
+ * backend kept running and kept its place in the lock queue. Letting the
+ * server win means contention is cancelled server-side, with its own answer;
+ * the client's cancel is for where the server enforces no timeout. Keep
+ * PgBouncer's query_wait_timeout below it (HelmChart/Docs/Postgres.md): a
+ * statement still queued in the pooler cannot be cancelled.
  */
 export const PostgresQueryTimeoutMs: number = parseInt(
   process.env["DATABASE_QUERY_TIMEOUT_MS"] ||
@@ -310,6 +422,34 @@ export const PostgresConnectionAcquireTimeoutMs: number = parseInt(
  */
 export const PostgresIdleTimeoutMs: number = parseInt(
   process.env["DATABASE_IDLE_TIMEOUT_MS"] || "30000",
+  10,
+);
+
+/*
+ * pg-pool connection lifetime (ms). A connection older than this is closed
+ * and replaced: right away when it is idle, otherwise as soon as the query or
+ * transaction using it gives it back - never in the middle of one. Without
+ * it, the connections a busy process opens at boot stay open for as long as
+ * the process lives, and that hides its queries from anything that only
+ * sees a connection being opened:
+ *
+ *   - The Kubernetes agent's eBPF instrumentation ties a Node.js query to the
+ *     request that ran it through the socket the query goes out on, and it
+ *     learns a socket only when it sees it opened. A pod started while the
+ *     agent was still attaching to others (a rollout), or running when the
+ *     agent restarts, had its pool open before the agent could see it: every
+ *     query on it lands under whichever request most recently began - on a
+ *     pod busy with telemetry ingest, nearly always one of those - and the
+ *     request that ran it shows no database calls at all.
+ *   - A new PgBouncer or Postgres replica behind DATABASE_HOST only ever gets
+ *     the connections opened after it came up.
+ *
+ * Replacing a connection costs one new connection to PgBouncer or Postgres,
+ * once per connection per lifetime. Set to 0 to keep connections for as long
+ * as they stay healthy.
+ */
+export const PostgresConnectionMaxLifetimeMs: number = parseInt(
+  process.env["DATABASE_CONNECTION_MAX_LIFETIME_MS"] || "600000",
   10,
 );
 
@@ -390,8 +530,14 @@ export const InsecureEncryptionSecretPrefix: string = "please-change-this";
  * ENCRYPTION_SECRET, so leaving it unset or at one of the shipped placeholders
  * means anyone who can read a database dump can read every one of those
  * columns with a key that is public on GitHub. Nothing refuses to start over
- * it (that would take down an existing install on upgrade), but the boot log
- * says so loudly; see EncryptionSecretWarning and StartServer.init.
+ * it (that would take down an existing install on upgrade, and changing the
+ * key would make those columns unreadable), but the boot log says so loudly;
+ * see EncryptionSecretWarning and StartServer.init.
+ *
+ * Tokens are another matter: a token signed with a public key is a session
+ * anybody can mint. So when this is true nothing is signed with
+ * ENCRYPTION_SECRET at all - TokenSigningKey signs with a random key the
+ * installation keeps for itself in Postgres instead.
  *
  * The comparison is case-sensitive on purpose: the encryption key is, and the
  * warning is about the exact values an attacker would try first. Any other
@@ -420,7 +566,7 @@ export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
  * exported and the process entrypoint emits it.
  */
 export const EncryptionSecretWarning: string | null = IsEncryptionSecretInsecure
-  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
+  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable. Sign-in and other tokens are not signed with it: until it is set, OneUptime signs them with a random key it generated for this installation and keeps in the database.'
   : null;
 
 export const OpenSourceDeploymentWebhookUrl: string =
@@ -430,11 +576,111 @@ export const AirtableApiKey: string = process.env["AIRTABLE_API_KEY"] || "";
 
 export const AirtableBaseId: string = process.env["AIRTABLE_BASE_ID"] || "";
 
+/*
+ * A SHARED SECRET THIS REPOSITORY SHIPS
+ *
+ * The values a key OneUptime's own components share can be left at by an
+ * installation that never set it, all of them public in this repository:
+ *
+ *   - unset or blank;
+ *   - "secret", which the code used to fall back to;
+ *   - any placeholder config.example.env sets. Every one contains
+ *     "please-change-this" ("please-change-this-to-random-value",
+ *     "probe-1-please-change-this-to-random-value", ...), and the README's
+ *     Docker Compose install copies that file as it is.
+ *
+ * Whitespace around the value is ignored, as compose and shells keep it. The
+ * comparison is case-sensitive: these are the exact values anybody would try
+ * first, and any other weak value is the operator's own choice.
+ *
+ * Such a value is never accepted as proof that a caller is one of
+ * OneUptime's own components, whichever key it is. ENCRYPTION_SECRET keeps
+ * its own, older rule above (IsEncryptionSecretInsecure), because which of
+ * its values count decides which key every sign-in token is checked with.
+ */
+export const ShippedSecretFallback: string = "secret";
+
+export const ShippedSecretPlaceholderMark: string = "please-change-this";
+
+export function isShippedSecretValue(
+  value: string | null | undefined,
+): boolean {
+  if (typeof value !== "string") {
+    return true;
+  }
+
+  const trimmed: string = value.trim();
+
+  return (
+    trimmed === "" ||
+    trimmed === ShippedSecretFallback ||
+    trimmed.includes(ShippedSecretPlaceholderMark)
+  );
+}
+
+/*
+ * THE CLUSTER KEY (ONEUPTIME_SECRET)
+ *
+ * OneUptime's own services prove to each other that a call comes from one of
+ * them by presenting this key: the app and worker processes when one asks
+ * another to send an email, an SMS, a call, a WhatsApp or Telegram message
+ * or a webhook, to run a workflow or to write telemetry
+ * (ClusterKeyAuthorization). The routes that take it are reachable through
+ * the ingress like any other. The shared Runner holds no cluster key: it
+ * registers with its own key (SharedRunnerKey, below), and only a Runner of
+ * an earlier release, or one whose deployment still gives it
+ * ONEUPTIME_SECRET, registers with this one.
+ *
+ * ClusterKey is the value exactly as the operator set it, read only by
+ * ClusterKeyAuthorization, and only when it is not one this repository ships
+ * (IsClusterKeyShipped). There is no fallback: an installation that left it
+ * unset or at a placeholder has its services use a key of the installation's
+ * own instead, and refuses the public value from any caller.
+ */
 export const ClusterKey: ObjectID = new ObjectID(
-  process.env["ONEUPTIME_SECRET"] || "secret",
+  process.env["ONEUPTIME_SECRET"] || "",
 );
 
+/*
+ * Whether ONEUPTIME_SECRET is set at all: on a Runner, that its deployment
+ * (from an earlier release) marks it as the shared Runner by giving it one.
+ */
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
+
+export const IsClusterKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_SECRET"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when ONEUPTIME_SECRET is unset
+ * or a shipped value, or null. The Runner says its own.
+ */
+export const ClusterKeyWarning: string | null = IsClusterKeyShipped
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, and the shared Runner registers with its own ONEUPTIME_RUNNER_KEY, so nothing needs changing for them. Anything else that calls OneUptime with ONEUPTIME_SECRET needs a long random value: npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  : null;
+
+/*
+ * THE SHARED RUNNER'S KEY (ONEUPTIME_RUNNER_KEY), AS THE APP HOLDS IT
+ *
+ * The shared Runner - the runner service of Docker Compose and the Helm
+ * chart - serves AI code fixes for every project with no Runner of its own,
+ * as the installation's global AI agent. It proves it is that Runner with
+ * its own key, ONEUPTIME_RUNNER_KEY, which its deployment gives the app as
+ * well (SharedRunnerKeyAuthorization): so the Runner needs no cluster key,
+ * which opens far more than its registration.
+ *
+ * The value exactly as the operator set it, read only by
+ * SharedRunnerKeyAuthorization, and never accepted when it is a value this
+ * repository ships (IsSharedRunnerKeyShipped): then the shared Runner
+ * registers only as a Runner of an earlier release does, with the cluster
+ * key.
+ */
+export const SharedRunnerKey: string =
+  process.env["ONEUPTIME_RUNNER_KEY"] || "";
+
+export const IsSharedRunnerKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_RUNNER_KEY"],
+);
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";
@@ -442,13 +688,50 @@ export const EnableQueueDashboard: boolean =
 export const QueueDashboardSecret: string =
   process.env["QUEUE_DASHBOARD_SECRET"] || "";
 
+/*
+ * THE GLOBAL-PROBE REGISTRATION KEY (REGISTER_PROBE_KEY)
+ *
+ * A global probe belongs to no project and runs the monitors of every
+ * project on the installation. REGISTER_PROBE_KEY is what a probe presents to
+ * become one (Telemetry/API/ProbeIngest/Register). It is the installation's
+ * own secret: the value exactly as the operator set it, and there is no
+ * fallback. An installation that left it unset or at a value this repository
+ * ships (EnvironmentConfig.isShippedSecretValue) registers no global probe at
+ * all: a value public in the repository proves nothing.
+ *
+ * REGISTER_PROBE_KEY is a secret OneUptime's own containers share and that
+ * nothing stored depends on, so Docker Compose gives it a random value at
+ * install (Scripts/Install/ReplacePlaceholderSecrets.js) and the Helm chart
+ * generates one; a probe's own key (PROBE_KEY / GLOBAL_PROBE_n_KEY) is held to
+ * the same bar by ProbeService.verifyProbeKey.
+ */
 export const RegisterProbeKey: ObjectID = new ObjectID(
-  process.env["REGISTER_PROBE_KEY"] || "secret",
+  process.env["REGISTER_PROBE_KEY"] || "",
 );
 
+// Whether REGISTER_PROBE_KEY is set at all (whether this probe auto-registers as global).
 export const HasRegisterProbeKey: boolean = Boolean(
   process.env["REGISTER_PROBE_KEY"],
 );
+
+/*
+ * True when REGISTER_PROBE_KEY is unset or a value this repository ships, so
+ * global-probe registration is refused from every caller. Read by the
+ * registration route, never as a fallback identity.
+ */
+export const IsRegisterProbeKeyShipped: boolean = isShippedSecretValue(
+  process.env["REGISTER_PROBE_KEY"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when REGISTER_PROBE_KEY is
+ * unset or a value this repository ships, or null: every global probe's
+ * registration is refused until it is the installation's own, and the probe
+ * says so only in its own log.
+ */
+export const RegisterProbeKeyWarning: string | null = IsRegisterProbeKeyShipped
+  ? 'REGISTER_PROBE_KEY is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value, so no probe can register as a global probe until REGISTER_PROBE_KEY is a long random value, the same on the app and on every global probe. npm start and npm run update put one in config.env for Docker Compose; with Helm, leave registerProbeKey empty to have the chart generate one, or set it to one.'
+  : null;
 
 export const AppApiHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
@@ -602,12 +885,29 @@ export const DisableQueueWorkers: boolean =
   process.env["DISABLE_QUEUE_WORKERS"] === "true";
 
 /*
+ * Whether ingress traffic reaches this process: the agents', collectors',
+ * probes' and heartbeat senders' requests. Default true - the single App
+ * container of docker-compose, and the Helm chart's app pods, take it. The
+ * Helm chart's worker pods run the same image with no ingress in front of
+ * them and set it to "false", so they never vouch that OneUptime was
+ * receiving (InstanceReceivingHeartbeat): if every app pod is down while the
+ * workers keep running, that time is still recorded as time OneUptime was
+ * not receiving, and nobody's hosts are marked down for it.
+ */
+export const ReceivesIngressTraffic: boolean =
+  process.env["RECEIVES_INGRESS_TRAFFIC"] !== "false";
+
+/*
  * When "false", this process does NOT run schema or data migrations on boot.
  * Set on runtime pods (app/worker/nginx) when a dedicated one-shot migrate Job
  * (App/Migrate.ts) owns migrations instead, so the fleet's many replicas never
  * run them — which keeps boot DDL off pooled connections and, since the data
  * migration runner no longer takes an advisory lock, is also what keeps two
  * replicas from running the same migration concurrently.
+ *
+ * Such a process still does not start on a schema older than its code: it
+ * waits, in PostgresDatabase.connect(), for the schema migrations it knows to
+ * be applied (DATABASE_MIGRATION_WAIT_TIMEOUT_MS).
  *
  * Default true preserves the original self-migrating-on-boot behavior used by
  * docker-compose and any deploy that does not run the migrate Job. Those
@@ -636,6 +936,63 @@ export const ClickhouseUsername: string =
 
 export const ClickhousePassword: string =
   process.env["CLICKHOUSE_PASSWORD"] || "password";
+
+/*
+ * THE DATASTORE PASSWORDS
+ *
+ * config.example.env ships DATABASE_PASSWORD, CLICKHOUSE_PASSWORD and
+ * VALKEY_PASSWORD as placeholders, which are public in this repository. With
+ * Docker Compose, npm start gives the bundled ClickHouse and Valkey random
+ * passwords on any start, and the bundled PostgreSQL one before it creates
+ * its database (Scripts/Install). An installation started another way, or
+ * whose database was created with the placeholder, keeps it until an
+ * operator changes it, which the app cannot do for a datastore. So the app
+ * says, once at boot (App/Index.ts), which of them still holds a value this
+ * repository ships. A blank password is an operator's own choice (a cache
+ * without a password), so only a value that is not blank counts.
+ */
+export const ChangeDatabasePasswordDocsUrl: string =
+  "https://oneuptime.com/docs/installation/docker-compose#change-the-database-password";
+
+export const ShippedDatastorePasswordSettings: Array<string> = (
+  [
+    ["DATABASE_PASSWORD", process.env["DATABASE_PASSWORD"]],
+    ["CLICKHOUSE_PASSWORD", process.env["CLICKHOUSE_PASSWORD"]],
+    // VALKEY_PASSWORD, or the REDIS_PASSWORD it was called before.
+    ["VALKEY_PASSWORD", getCacheEnvVar("PASSWORD")],
+  ] as Array<[string, string | undefined]>
+)
+  .filter((setting: [string, string | undefined]): boolean => {
+    const value: string | undefined = setting[1];
+
+    return (
+      typeof value === "string" &&
+      value.trim() !== "" &&
+      isShippedSecretValue(value)
+    );
+  })
+  .map((setting: [string, string | undefined]): string => {
+    return setting[0];
+  });
+
+// What the app says about `settings`, or null when there are none.
+export function describeShippedDatastorePasswords(
+  settings: Array<string>,
+): string | null {
+  if (settings.length === 0) {
+    return null;
+  }
+
+  const named: string =
+    settings.length === 1
+      ? settings[0]!
+      : `${settings.slice(0, -1).join(", ")} and ${settings[settings.length - 1]}`;
+
+  return `${named} still ${settings.length === 1 ? "holds" : "hold"} a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env), which is public. With Docker Compose, npm start and npm run update give the bundled ClickHouse and Valkey a random password, and ${ChangeDatabasePasswordDocsUrl} shows how to change PostgreSQL's. A datastore OneUptime does not run needs a long random password of its own, set here and on the datastore.`;
+}
+
+export const DatastorePasswordWarning: string | null =
+  describeShippedDatastorePasswords(ShippedDatastorePasswordSettings);
 
 export const ClickhouseDatabase: string =
   process.env["CLICKHOUSE_DATABASE"] || "oneuptime";
@@ -778,6 +1135,52 @@ export const TrustedProxyHops: number = ((): number => {
 
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
+// One year: what browsers and security scanners expect of an HTTPS-only site.
+export const DEFAULT_HSTS_MAX_AGE_SECONDS: number = 365 * 24 * 60 * 60;
+
+// A number of seconds as the header writes it: plain digits, nothing else.
+const HSTS_MAX_AGE_DIGITS: RegExp = /^\d+$/;
+
+/*
+ * How long a browser keeps to HTTPS for this installation's own address
+ * (HOST) once it has reached it over HTTPS: the max-age of the
+ * Strict-Transport-Security header that an installation with
+ * HTTP_PROTOCOL=https sends (Server/Utils/RequestTransport.ts).
+ *
+ * One year unless HSTS_MAX_AGE_SECONDS says otherwise. 0 is the way back: it
+ * tells every browser that visits over HTTPS to forget the rule, for when the
+ * address has to answer over plain HTTP again. Anything that is not a whole,
+ * non-negative number of seconds keeps the default, so a typo never turns
+ * the protection off.
+ *
+ * That means plain digits, and a number small enough to be written back as
+ * digits. "1e3" or "+600" is a typo here, and a value past
+ * Number.MAX_SAFE_INTEGER (a few zeros too many) would come out of the
+ * header as "max-age=3.1536e+22", which browsers do not read as a max-age:
+ * they ignore the whole header, and the protection is off.
+ */
+export const parseHstsMaxAgeSeconds: (
+  rawValue: string | undefined,
+) => number = (rawValue: string | undefined): number => {
+  const trimmedValue: string = rawValue?.trim() || "";
+
+  if (!HSTS_MAX_AGE_DIGITS.test(trimmedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  const parsedValue: number = Number(trimmedValue);
+
+  if (!Number.isSafeInteger(parsedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  return parsedValue;
+};
+
+export const HstsMaxAgeSeconds: number = parseHstsMaxAgeSeconds(
+  process.env["HSTS_MAX_AGE_SECONDS"],
+);
+
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 
@@ -848,26 +1251,45 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- * Internal URL for server-to-server communication (uses internal Docker hostname).
- * Note: The internal path is /api/status-page (not /status-page-api) because
- * /status-page-api is the external route that Nginx rewrites to /api/status-page.
+ * The App's own API at its internal address, for the requests the App makes
+ * to itself: plain HTTP to SERVER_APP_HOSTNAME:APP_PORT, the address Nginx
+ * proxies /api to, as the App's other server-to-server calls make them
+ * (MailService, the MCP server's tools, ...).
+ *
+ * Never the public address, HTTP_PROTOCOL + HOST: a request sent there leaves
+ * the App and comes back in through Nginx, which works only where the App can
+ * reach the address people use. With HOST=localhost - a local install, and the
+ * e2e stack - that is the App container itself, where nothing listens on port
+ * 80, so every request failed with "connect ECONNREFUSED 127.0.0.1:80"; split
+ * DNS, egress rules or a self-signed certificate break it the same way.
  */
-export const StatusPageApiInternalUrl: URL = new URL(
+const AppApiInternalUrl: URL = new URL(
   Protocol.HTTP,
   AppApiHostname,
-  new Route(`${AppApiRoute.toString()}/status-page`),
+  new Route(AppApiRoute.toString()),
 );
 
 /*
- * Internal URL for server-to-server communication with the Dashboard API.
- * Note: The internal path is /api/dashboard (not /public-dashboard-api) because
- * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard.
+ * The status page API, for the servers that render a status page: what the
+ * page is (/seo - its title, description, search engine indexing and theme,
+ * which its HTML is sent in before any script runs), and its RSS feed and
+ * llms.txt. The internal path is /api/status-page (not /status-page-api)
+ * because /status-page-api is the external route that Nginx rewrites to
+ * /api/status-page.
  */
-export const DashboardApiInternalUrl: URL = new URL(
-  Protocol.HTTP,
-  AppApiHostname,
-  new Route(`${AppApiRoute.toString()}/dashboard`),
-);
+export const StatusPageApiInternalUrl: URL = URL.fromString(
+  AppApiInternalUrl.toString(),
+).addRoute(new Route("/status-page"));
+
+/*
+ * The public dashboard API, for the servers that render a public dashboard.
+ * The internal path is /api/dashboard (not /public-dashboard-api) because
+ * /public-dashboard-api is the external route that Nginx rewrites to
+ * /api/dashboard.
+ */
+export const DashboardApiInternalUrl: URL = URL.fromString(
+  AppApiInternalUrl.toString(),
+).addRoute(new Route("/dashboard"));
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
@@ -959,6 +1381,33 @@ export const OnCallCalendarFeedRateLimitPerIpPerWindow: number =
     "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
     3000,
   );
+
+/*
+ * OAuth sign-in for the MCP server: the authorization server under
+ * /mcp/oauth, its discovery documents under /.well-known, and the consent
+ * screen at /accounts/mcp-authorize, which together let an MCP client connect
+ * by having a project member sign in instead of being handed an API key.
+ *
+ * Kill switch. When true none of that is served and an OAuth access token is
+ * refused wherever it is presented, so the MCP server behaves exactly as it
+ * did before OAuth existed: API keys only. Nothing is deleted - the grants
+ * people made are still there when it is flipped back.
+ */
+export const DisableMcpOAuth: boolean =
+  process.env["DISABLE_MCP_OAUTH"] === "true";
+
+/*
+ * A client may identify itself with a Client ID Metadata Document: its client
+ * id is an https URL, and this server fetches that URL to learn the client's
+ * name and redirect URIs. That is an outbound request to wherever the client
+ * says, so it only works on an instance that can reach the internet.
+ *
+ * Set this on an instance that cannot. The authorization server then stops
+ * advertising the feature and clients fall back to registering themselves
+ * (Dynamic Client Registration), which needs no outbound request at all.
+ */
+export const DisableMcpOAuthClientIdMetadataDocuments: boolean =
+  process.env["DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS"] === "true";
 
 /*
  * Source map ingestion and resolution limits.
@@ -1145,7 +1594,7 @@ export const OneUptimeEnterpriseDirectory: string | undefined =
 
 /*
  * The hosted oneuptime.com (billing enabled) must run the Enterprise image:
- * on the Community image paid SSO and audit logging would silently stop, and
+ * on the Community image paid SCIM and audit logging would silently stop, and
  * the license server self-hosted customers activate against would be gone. The
  * boot refuses that combination unless this development escape hatch is set.
  */
@@ -1213,6 +1662,39 @@ export const MicrosoftTeamsAppClientSecret: string | null =
 export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
 
+/*
+ * The apps behind the one-click Connect of a video call provider
+ * (VideoCallAuthMethod.OAuth): someone signs in to Zoom, Google or Microsoft
+ * and allows this app to create meetings as that account. A provider whose
+ * client id and secret are both set is offered as one click on the Video
+ * Calls page; without them, a project connects its own app instead.
+ *
+ * The Teams meetings app is its own registration, not the Teams bot's
+ * (MICROSOFT_TEAMS_APP_CLIENT_ID): it asks a person for delegated meeting
+ * permissions, which the bot's admin consent does not cover, and a
+ * deployment that sets up the bot must not start sending people to a
+ * sign-in its registration has no redirect URI for.
+ *
+ * ZOOM_APP_WEBHOOK_SECRET_TOKEN verifies the events Zoom sends when someone
+ * removes the app from their Zoom account (/api/video-call-oauth/zoom/events).
+ */
+export const ZoomAppClientId: string | null =
+  process.env["ZOOM_APP_CLIENT_ID"] || null;
+export const ZoomAppClientSecret: string | null =
+  process.env["ZOOM_APP_CLIENT_SECRET"] || null;
+export const ZoomAppWebhookSecretToken: string | null =
+  process.env["ZOOM_APP_WEBHOOK_SECRET_TOKEN"] || null;
+
+export const GoogleMeetAppClientId: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_ID"] || null;
+export const GoogleMeetAppClientSecret: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_SECRET"] || null;
+
+export const MicrosoftTeamsMeetingsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsMeetingsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET"] || null;
+
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;
 export const GitHubAppName: string | null =
@@ -1258,12 +1740,101 @@ export const GitHubAppPrivateKey: string | null = decodePrivateKey(
 export const GitHubAppWebhookSecret: string | null =
   process.env["GITHUB_APP_WEBHOOK_SECRET"] || null;
 
+/*
+ * Cloud marketplaces - selling OneUptime Cloud on AWS Marketplace, Microsoft
+ * Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
+ * enabled (OneUptime Cloud); a marketplace whose settings are not all present
+ * is simply not offered. What each value is, and where it comes from in each
+ * marketplace's seller portal, is in
+ * Server/Utils/Marketplace/RELEASING.md.
+ *
+ * AWS: an IAM user of the seller account allowed ResolveCustomer,
+ * BatchMeterUsage, GetEntitlements and DescribeAgreement; the product code of
+ * the SaaS listing; and the secret the EventBridge API destination sends with
+ * every event (/api/marketplace/aws/events).
+ */
+export const AwsMarketplaceAccessKeyId: string | null =
+  process.env["AWS_MARKETPLACE_ACCESS_KEY_ID"] || null;
+export const AwsMarketplaceSecretAccessKey: string | null =
+  process.env["AWS_MARKETPLACE_SECRET_ACCESS_KEY"] || null;
+export const AwsMarketplaceProductCode: string | null =
+  process.env["AWS_MARKETPLACE_PRODUCT_CODE"] || null;
+export const AwsMarketplaceEventsSecret: string | null =
+  process.env["AWS_MARKETPLACE_EVENTS_SECRET"] || null;
+
+/*
+ * Azure: the single-tenant Microsoft Entra app registered in the offer's
+ * Technical configuration. It calls the SaaS fulfillment and metering APIs,
+ * and the webhook's bearer token is issued for it.
+ */
+export const AzureMarketplaceTenantId: string | null =
+  process.env["AZURE_MARKETPLACE_TENANT_ID"] || null;
+export const AzureMarketplaceClientId: string | null =
+  process.env["AZURE_MARKETPLACE_CLIENT_ID"] || null;
+export const AzureMarketplaceClientSecret: string | null =
+  process.env["AZURE_MARKETPLACE_CLIENT_SECRET"] || null;
+
+/*
+ * Google Cloud: the partner (provider) ID from Producer Portal, the JSON key
+ * of the service account linked there for the Procurement API, Pub/Sub and
+ * Service Control (raw JSON or base64), and the Service Control service and
+ * metric usage is reported to. The sign-up token's audience is the domain the
+ * product is listed under (the host, unless set); the Pub/Sub push
+ * subscription signs each delivery as the named service account, for the
+ * named audience (the push endpoint's URL, unless set).
+ */
+export const GoogleCloudMarketplaceProviderId: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID"] || null;
+export const GoogleCloudMarketplaceServiceAccountKey: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY"] || null;
+export const GoogleCloudMarketplaceServiceName: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME"] || null;
+export const GoogleCloudMarketplaceUsageMetric: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC"] || null;
+export const GoogleCloudMarketplaceSignupAudience: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE"] || null;
+export const GoogleCloudMarketplacePubSubServiceAccountEmail: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL"] || null;
+export const GoogleCloudMarketplacePubSubAudience: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE"] || null;
+
+/*
+ * Vercel Marketplace: OneUptime as a native integration
+ * (Server/Utils/Marketplace/Vercel, VERCEL_RELEASING.md). The integration's
+ * client ID (oac_...) is the audience of every token Vercel signs for
+ * OneUptime; its client secret signs webhooks and drain deliveries and
+ * exchanges sign-in codes.
+ */
+export const VercelMarketplaceClientId: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_ID"] || null;
+export const VercelMarketplaceClientSecret: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_SECRET"] || null;
+
+/*
+ * Sign in with Microsoft: a multi-tenant Microsoft Entra app (work, school
+ * and personal Microsoft accounts) that lets anyone sign in to OneUptime with
+ * their Microsoft account. Microsoft Marketplace requires it of a SaaS offer
+ * sold through Microsoft: the buyer must be able to sign in with the account
+ * they bought with. The client id is public (the sign-in page shows the
+ * button when it is set); the secret is not.
+ */
+export const MicrosoftSignInClientId: string | null =
+  process.env["MICROSOFT_SIGN_IN_CLIENT_ID"] || null;
+export const MicrosoftSignInClientSecret: string | null =
+  process.env["MICROSOFT_SIGN_IN_CLIENT_SECRET"] || null;
+
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =
   process.env["VAPID_PUBLIC_KEY"] || undefined;
 
+/*
+ * Read trimmed: on Kubernetes the key can come from a Secret the operator
+ * manages (the chart's vapid.existingSecret), and a Secret created from a file
+ * keeps the file's last newline. web-push refuses a key with anything around
+ * it, which failed every web push.
+ */
 export const VapidPrivateKey: string | undefined =
-  process.env["VAPID_PRIVATE_KEY"] || undefined;
+  process.env["VAPID_PRIVATE_KEY"]?.trim() || undefined;
 
 export const VapidSubject: string =
   process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
@@ -1274,6 +1845,43 @@ export const ExpoAccessToken: string | undefined =
 export const PushNotificationRelayUrl: string =
   process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
   "https://oneuptime.com/api/notification/push-relay/send";
+
+/*
+ * Whether this server relays mobile pushes for other OneUptime servers: the
+ * push relay (App/FeatureSet/Notification/API/PushRelay.ts), which sends
+ * what another server asks it to with this server's EXPO_ACCESS_TOKEN, and
+ * reads those pushes' receipts.
+ *
+ * OneUptime's cloud is the relay a self-hosted server sends through by
+ * default (PUSH_NOTIFICATION_RELAY_URL), so where BILLING_ENABLED is true it
+ * is on unless PUSH_NOTIFICATION_RELAY_SERVER_ENABLED says otherwise.
+ * Anywhere else it is off unless set to exactly "true": an EXPO_ACCESS_TOKEN
+ * set for a server's own pushes does not make it a relay for others.
+ *
+ * Empty or unset: on only where BILLING_ENABLED is true. "true": on.
+ * Anything else: off - a value that is not "true" never turns a relay on.
+ */
+export const readPushNotificationRelayServerEnabled: (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}) => boolean = (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}): boolean => {
+  const value: string = (data.value || "").trim();
+
+  if (!value) {
+    return data.isBillingEnabled;
+  }
+
+  return value === "true";
+};
+
+export const PushNotificationRelayServerEnabled: boolean =
+  readPushNotificationRelayServerEnabled({
+    value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],
+    isBillingEnabled: IsBillingEnabled,
+  });
 
 export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =
   "https://oneuptime.com";
@@ -1365,5 +1973,63 @@ export const InboundEmailProvider: InboundEmailProviderType =
 export const InboundEmailDomain: string | undefined =
   process.env["INBOUND_EMAIL_DOMAIN"] || undefined;
 
+/*
+ * THE INBOUND EMAIL WEBHOOK SECRET (INBOUND_EMAIL_WEBHOOK_SECRET)
+ *
+ * The mail provider delivers every email sent to the inbound domain by
+ * posting it to /incoming-email/sendgrid/<secret>, an address anybody can
+ * reach. What is delivered there becomes an Incoming Email monitor's or a
+ * workflow's email: it opens and resolves incidents and alerts and starts
+ * workflows. The last part of that address is the one thing that tells the
+ * provider's deliveries from anybody else's, so a delivery is taken only
+ * when it ends with this installation's own secret.
+ *
+ * InboundEmailWebhookSecret is the value as the operator set it, whitespace
+ * around it ignored, or undefined when there is none the installation may
+ * use: unset or blank, a value this repository ships (isShippedSecretValue),
+ * or a placeholder the setup guide prints (PublishedInboundEmailWebhookSecrets,
+ * whatever its case). Without one, every delivery is refused, as nothing
+ * could tell the provider's from anybody else's: the webhook answers 503,
+ * which the provider retries for up to three days, so the mail sent while an
+ * operator sets the secret arrives once it is set.
+ */
+export const PublishedInboundEmailWebhookSecrets: ReadonlyArray<string> = [
+  "your_secret",
+  "your-secret",
+  "replace-with-a-strong-random-secret",
+];
+
+export function getUsableInboundEmailWebhookSecret(
+  value: string | null | undefined,
+): string | undefined {
+  if (typeof value !== "string" || isShippedSecretValue(value)) {
+    return undefined;
+  }
+
+  const trimmed: string = value.trim();
+
+  if (PublishedInboundEmailWebhookSecrets.includes(trimmed.toLowerCase())) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
 export const InboundEmailWebhookSecret: string | undefined =
-  process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
+  getUsableInboundEmailWebhookSecret(
+    process.env["INBOUND_EMAIL_WEBHOOK_SECRET"],
+  );
+
+export const InboundEmailSetupDocsUrl: string =
+  "https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime";
+
+/*
+ * Said once at boot by the app (App/Index.ts) when incoming email is on
+ * (INBOUND_EMAIL_DOMAIN) and there is no secret it may use, or null: every
+ * delivery is refused until there is, and the provider says so to no one.
+ * Names the setting and what to set it to, never a value.
+ */
+export const InboundEmailWebhookSecretWarning: string | null =
+  InboundEmailDomain && !InboundEmailWebhookSecret
+    ? `INBOUND_EMAIL_DOMAIN is set, but INBOUND_EMAIL_WEBHOOK_SECRET is unset, blank or a placeholder from the OneUptime repository or its docs, so nothing proves an email was delivered by SendGrid. OneUptime refuses every email delivered to the inbound domain until it is set (with 503, which SendGrid retries for up to three days), and none reaches an Incoming Email monitor or a workflow. If the Destination URL in SendGrid's Inbound Parse settings already ends with a long random value of your own, set INBOUND_EMAIL_WEBHOOK_SECRET to that value. Otherwise change that URL first, to end with a new long random value (https://<your OneUptime host>/incoming-email/sendgrid/<the new value>), and then set INBOUND_EMAIL_WEBHOOK_SECRET to the same value, so that SendGrid retries the emails sent in between instead of having them refused for a wrong secret. With Docker Compose, set it in config.env and run npm start; with Helm, set inboundEmail.webhookSecret and upgrade the release. See ${InboundEmailSetupDocsUrl}.`
+    : null;

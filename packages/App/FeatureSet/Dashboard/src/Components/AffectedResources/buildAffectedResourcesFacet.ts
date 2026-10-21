@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -33,10 +34,9 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
- * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet,
- * Database and — for
- * Scheduled Maintenance only — Network Site, and — for Incidents and Alerts
- * only — SLO.
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, Storage Array,
+ * IoT Fleet, Database and — for Scheduled Maintenance only — Network Site,
+ * and — for Incidents and Alerts only — SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -59,6 +59,7 @@ type AffectedResourceType =
   | "proxmoxCluster"
   | "vmwareVCenter"
   | "cephCluster"
+  | "storageArray"
   | "dockerSwarmCluster"
   | "iotFleet"
   | "databaseServer"
@@ -127,6 +128,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Ceph,
     modelType: CephCluster,
   },
+  storageArray: {
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    icon: IconProp.StorageArray,
+    modelType: StorageArray,
+  },
   dockerSwarmCluster: {
     label: "Docker Swarm Cluster",
     pluralLabel: "Docker Swarm Clusters",
@@ -169,6 +176,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "proxmoxCluster",
   "vmwareVCenter",
   "cephCluster",
+  "storageArray",
   "dockerSwarmCluster",
   "iotFleet",
   "databaseServer",
@@ -205,6 +213,7 @@ const RESOURCE_QUERY_FIELD: Record<
   proxmoxCluster: "proxmoxClusters",
   vmwareVCenter: "vmwareVCenters",
   cephCluster: "cephClusters",
+  storageArray: "storageArrays",
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",
   databaseServer: "databaseServers",

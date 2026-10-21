@@ -837,10 +837,21 @@ export const postShortSession: PostShortSessionFunction = async (
   };
 };
 
+/*
+ * The RUM applications card's own Create button. An empty list offers the
+ * same action again under its "No RUM applications yet." message, with the
+ * same name, so the name alone matches two buttons on a new project.
+ */
+const rumCardCreateButton: (page: Page) => Locator = (page: Page): Locator => {
+  return page
+    .getByTestId("card-button")
+    .and(page.getByRole("button", { name: "Create RUM Application" }));
+};
+
 type CreateRumApplicationFunction = (data: {
   page: Page;
   projectId: string;
-  name: string;
+  // The service.name the application's telemetry reports.
   appIdentifier: string;
 }) => Promise<void>;
 
@@ -854,11 +865,14 @@ type CreateRumApplicationFunction = (data: {
  * way a RUM application could exist was auto-discovery from telemetry. Nothing
  * failed at build time and no unit test covered the form, which is why this
  * assertion lives at this level.
+ *
+ * The form asks for one thing, the App Name (service.name). The display name
+ * follows it, folded under More fields, so the application is named after its
+ * service.name exactly as a discovered one is.
  */
 export const createRumApplication: CreateRumApplicationFunction = async (data: {
   page: Page;
   projectId: string;
-  name: string;
   appIdentifier: string;
 }): Promise<void> => {
   const page: Page = data.page;
@@ -871,43 +885,51 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
     page,
     projectId: data.projectId,
     url: rumUrl,
-    ready: page.getByRole("button", { name: "Create RUM Application" }),
+    ready: rumCardCreateButton(page),
   });
 
-  await page.getByRole("button", { name: "Create RUM Application" }).click();
-  await page.getByTestId("modal").waitFor({ state: "visible" });
+  await rumCardCreateButton(page).click();
 
-  await page
-    .locator("input[placeholder='storefront-web']")
-    .first()
-    .fill(data.name);
+  const modal: Locator = page.getByTestId("modal");
+
+  await modal.waitFor({ state: "visible" });
 
   /*
-   * The App Identifier input. It shares the placeholder with Name, so it is
-   * addressed by position — and its very presence is the regression this
-   * helper exists to catch: when the column was not creatable, this locator
-   * resolved to nothing.
+   * The App Name (service.name) input - the form's only open field. Its very
+   * presence is the regression this helper exists to catch: when the column
+   * was not creatable, this locator resolved to nothing.
    */
-  const identifierInput: Locator = page
-    .locator("input[placeholder='storefront-web']")
-    .nth(1);
+  const identifierInput: Locator = modal.getByPlaceholder("storefront-web", {
+    exact: true,
+  });
 
   await expect(
     identifierInput,
-    "The create form must render an App Identifier field - the server requires the column",
+    "The create form must render the App Name (service.name) field - the server requires the column",
   ).toBeVisible();
+  await expect(identifierInput).toHaveCount(1);
 
   await identifierInput.fill(data.appIdentifier);
 
-  await page
-    .getByRole("button", { name: "Create RUM Application" })
-    .last()
-    .click();
+  /*
+   * One page: the app name, with the display name, the description and the
+   * labels folded under More fields (there is no Labels step to walk). The
+   * form's own submit - not one of the list's two Create buttons - creates
+   * the application.
+   */
+  await expect(
+    modal.getByRole("button", { name: "More fields", exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    modal.getByRole("button", { name: "Next", exact: true }),
+  ).toHaveCount(0);
+  await modal.getByRole("button", { name: "Create RUM Application" }).click();
 
   /* The modal closes only on a successful create. */
   await page.getByTestId("modal").waitFor({ state: "hidden", timeout: 60000 });
 
-  await expect(page.getByText(data.name).first()).toBeVisible({
+  // Named after its app name, as a discovered application is.
+  await expect(page.getByText(data.appIdentifier).first()).toBeVisible({
     timeout: 60000,
   });
 };
@@ -930,7 +952,7 @@ export const openRumApplications: OpenRumApplicationsFunction = async (data: {
     page: data.page,
     projectId: data.projectId,
     url: rumUrl,
-    ready: data.page.getByRole("button", { name: "Create RUM Application" }),
+    ready: rumCardCreateButton(data.page),
   });
 };
 
@@ -952,11 +974,15 @@ export const openSessionReplayList: OpenSessionReplayListFunction =
       )
       .toString();
 
+    /*
+     * Ready once the list's header has drawn: its search, time range and
+     * ⋯, as every table's header has them.
+     */
     await gotoProjectPage({
       page: data.page,
       projectId: data.projectId,
       url: listUrl,
-      ready: data.page.getByTestId("session-search-input"),
+      ready: data.page.getByTestId("session-replay-header-toolbar"),
     });
   };
 
@@ -1034,12 +1060,14 @@ type SearchSessionReplayListFunction = (data: {
 
 /*
  * Types into the search box and presses Enter, which flushes the 300ms
- * debounce so the list re-queries at once.
+ * debounce so the list re-queries at once. The search is the header's
+ * "Search…  /" pill until it is used: the box opens as it takes the focus.
  */
 export const searchSessionReplayList: SearchSessionReplayListFunction =
   async (data: { page: Page; query: string }): Promise<void> => {
     const input: Locator = data.page.getByTestId("session-search-input");
 
+    await input.focus();
     await input.fill(data.query);
     await input.press("Enter");
   };
@@ -1049,14 +1077,19 @@ type SelectSessionReplaySortFunction = (data: {
   label: "Newest" | "Longest" | "Most errors" | "Most frustration";
 }) => Promise<void>;
 
-/* The sort control is a react-select; its input carries the aria-label. */
+/*
+ * The sort order is a ticked choice in the ⋯ at the end of the list's
+ * header, as every table keeps it.
+ */
 export const selectSessionReplaySort: SelectSessionReplaySortFunction =
   async (data: {
     page: Page;
     label: "Newest" | "Longest" | "Most errors" | "Most frustration";
   }): Promise<void> => {
-    await data.page.getByRole("combobox", { name: "Sort sessions" }).click();
-    await data.page.getByRole("option", { name: data.label }).click();
+    await data.page.getByTestId("session-replay-more").click();
+    await data.page
+      .getByRole("menuitemradio", { name: data.label, exact: true })
+      .click();
   };
 
 type ReadListedSessionIdsFunction = (page: Page) => Promise<Array<string>>;

@@ -67,6 +67,7 @@ import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolic
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import logger from "../../../../Server/Utils/Logger";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
 import {
   RuleApplicationResult,
@@ -82,6 +83,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - "Run now" for the owner rules that create owner rows
  * directly (group A: Ceph, cloud resources, dashboards, Docker hosts, Docker
@@ -537,7 +539,7 @@ function mockEngine(
   if (c.feed) {
     jest
       .spyOn(c.resourceService, c.feed.markdownLinkMethod)
-      .mockResolvedValue("[prod-core-01](/resource)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[prod-core-01](/resource)"));
     createFeedItem = jest
       .spyOn(c.feed.service, c.feed.createItemMethod)
       .mockResolvedValue(undefined);
@@ -546,6 +548,9 @@ function mockEngine(
   const memberCheck: jest.SpyInstance = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(data.userIsProjectMember !== false);
+
+  // The rule's teams are the project's (OwnerRuleAssignment.test.ts covers others').
+  stubProjectDirectory({});
 
   return {
     ruleRead: ruleRead,

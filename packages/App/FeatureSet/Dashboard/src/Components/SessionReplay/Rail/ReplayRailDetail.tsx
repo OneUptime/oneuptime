@@ -5,6 +5,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../AppLink/AppLink";
 import {
+  formatReplayDuration,
   formatReplayOffset,
   formatReplayOffsetPrecise,
   formatReplayWallClock,
@@ -711,6 +712,39 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {detail.url}
         </Fact>
       )}
+      {detail.navigationType && (
+        <Fact label="View">
+          {detail.navigationType === "soft"
+            ? "Route change (single-page app)"
+            : "Page load"}
+        </Fact>
+      )}
+      {detail.interactionType && (
+        <Fact label="Input">
+          {detail.interactionType === "keyboard" ? "Keyboard" : "Pointer"}
+        </Fact>
+      )}
+      {detail.interactionTarget && (
+        <Fact label="Element" mono={true}>
+          {detail.interactionTarget}
+        </Fact>
+      )}
+      {/* Where the time went, in the order it was spent. */}
+      {isFiniteNumber(detail.inputDelayMs) && (
+        <Fact label="Input delay">
+          {formatSignalDuration(detail.inputDelayMs)}
+        </Fact>
+      )}
+      {isFiniteNumber(detail.processingDurationMs) && (
+        <Fact label="Processing">
+          {formatSignalDuration(detail.processingDurationMs)}
+        </Fact>
+      )}
+      {isFiniteNumber(detail.presentationDelayMs) && (
+        <Fact label="Presentation">
+          {formatSignalDuration(detail.presentationDelayMs)}
+        </Fact>
+      )}
     </dl>
   );
 };
@@ -1157,6 +1191,26 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         <Note>
           {detail.droppedCount ?? "Some"} custom events in this chunk were
           dropped: the per-chunk cap was reached.
+        </Note>
+      );
+    case "idle-pause":
+      return detail.idlePauseEdge === "resumed" ? (
+        <Note>
+          Input came back
+          {typeof detail.pausedForMs === "number"
+            ? ` after ${formatReplayDuration(detail.pausedForMs)}`
+            : ""}{" "}
+          and the recorder started again here, on a fresh snapshot of the page.
+          Nothing was recorded during the pause, so playback skips it.
+        </Note>
+      ) : (
+        <Note>
+          Nobody touched the page
+          {typeof detail.idleForMs === "number"
+            ? ` for ${formatReplayDuration(detail.idleForMs)}`
+            : ""}
+          , so the recorder stopped capturing here. Nothing the page did on its
+          own is recorded until the next input.
         </Note>
       );
     default:

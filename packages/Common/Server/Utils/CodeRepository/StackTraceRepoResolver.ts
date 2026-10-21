@@ -18,6 +18,11 @@ import {
   SuggestableRepository,
   computeLinkSuggestions,
 } from "./ServiceRepoLinkSuggester";
+import {
+  isAsciiLetterCode,
+  isDigitCode,
+  isWordCode,
+} from "../../../Utils/RegExpCharacterClasses";
 
 const WINDOWS_DRIVE_RE: RegExp = /^[A-Za-z]:\//;
 const FILE_EXTENSION_RE: RegExp = /\.[A-Za-z0-9]+$/;
@@ -76,9 +81,166 @@ const DEPENDENCY_FRAME_MARKERS: Array<string> = [
  * Ruby (`from /app/lib/x.rb:1`), Go (`\t/app/pkg/x.go:12 +0x1b`) and Java
  * (`at com.acme.X.method(X.java:12)` — the opening parenthesis is not a path
  * character, so only the reliable basename `X.java` is captured).
+ *
+ * Found exactly as the global pattern
+ *   ((?:[A-Za-z]:)?[\w.\-/\\@+~]+\.[A-Za-z][A-Za-z0-9]{0,9}):\d+
+ * found them (group 1 of each match, left to right), in time in line with
+ * the line's length. That pattern was tried again from every character of a
+ * run of path characters, each try reading on to the end of the run - a
+ * stack trace is whatever an application sent, and a long run with no
+ * ":<line>" after its extension took time that grows with the square of its
+ * length. Here each run is read a fixed number of times: a ":" cannot be a
+ * path character, so every start in a run reaches the same end, and the
+ * run's first start that can work is the only one to ask.
  */
-const PATH_WITH_LINE_REGEX: RegExp =
-  /((?:[A-Za-z]:)?[\w.\-/\\@+~]+\.[A-Za-z][A-Za-z0-9]{0,9}):\d+/g;
+const DOT: number = 0x2e;
+const COLON: number = 0x3a;
+
+// The path characters other than \w and ".": - / \ @ + ~
+const OTHER_PATH_CODES: ReadonlySet<number> = new Set<number>([
+  0x2d, 0x2f, 0x5c, 0x40, 0x2b, 0x7e,
+]);
+
+type IsPathCodeFunction = (code: number) => boolean;
+
+// A path character, as [\w.\-/\\@+~] matches it.
+const isPathCode: IsPathCodeFunction = (code: number): boolean => {
+  return isWordCode(code) || code === DOT || OTHER_PATH_CODES.has(code);
+};
+
+// The longest extension: [A-Za-z][A-Za-z0-9]{0,9}.
+const MAX_EXTENSION_LENGTH: number = 10;
+
+type LocationEndFunction = (
+  line: string,
+  firstDot: number,
+  runEnd: number,
+) => number;
+
+/*
+ * Where ".<extension>:<digits>" ends, for a run of path characters that ends
+ * at `runEnd` - the extension runs from its last "." to the run's end, and a
+ * ":" and a digit follow - or -1. The "." may be no earlier than `firstDot`,
+ * so the path before it is not empty.
+ */
+const locationEnd: LocationEndFunction = (
+  line: string,
+  firstDot: number,
+  runEnd: number,
+): number => {
+  if (
+    line.charCodeAt(runEnd) !== COLON ||
+    !isDigitCode(line.charCodeAt(runEnd + 1))
+  ) {
+    return -1;
+  }
+
+  // The extension holds no ".", so it starts after the run's last one.
+  let dot: number = runEnd - 1;
+  const earliestDot: number = Math.max(
+    firstDot,
+    runEnd - 1 - MAX_EXTENSION_LENGTH,
+  );
+
+  while (dot >= earliestDot && line.charCodeAt(dot) !== DOT) {
+    dot--;
+  }
+
+  if (dot < earliestDot || dot === runEnd - 1) {
+    return -1;
+  }
+
+  if (!isAsciiLetterCode(line.charCodeAt(dot + 1))) {
+    return -1;
+  }
+
+  for (let index: number = dot + 2; index < runEnd; index++) {
+    const code: number = line.charCodeAt(index);
+
+    if (!isAsciiLetterCode(code) && !isDigitCode(code)) {
+      return -1;
+    }
+  }
+
+  let end: number = runEnd + 1;
+
+  while (end < line.length && isDigitCode(line.charCodeAt(end))) {
+    end++;
+  }
+
+  return end;
+};
+
+type PathRunEndFunction = (line: string, from: number) => number;
+
+const pathRunEnd: PathRunEndFunction = (line: string, from: number): number => {
+  let index: number = from;
+
+  while (index < line.length && isPathCode(line.charCodeAt(index))) {
+    index++;
+  }
+
+  return index;
+};
+
+export type FindPathsWithLineNumberFunction = (line: string) => Array<string>;
+
+export const findPathsWithLineNumber: FindPathsWithLineNumberFunction = (
+  line: string,
+): Array<string> => {
+  const paths: Array<string> = [];
+  let position: number = 0;
+
+  while (position < line.length) {
+    let start: number = position;
+
+    while (start < line.length && !isPathCode(line.charCodeAt(start))) {
+      start++;
+    }
+
+    if (start >= line.length) {
+      break;
+    }
+
+    const runEnd: number = pathRunEnd(line, start);
+
+    // From the run's first character, with no drive letter.
+    if (start < runEnd - 1) {
+      const end: number = locationEnd(line, start + 1, runEnd);
+
+      if (end !== -1) {
+        paths.push(line.slice(start, runEnd));
+        position = end;
+        continue;
+      }
+    }
+
+    /*
+     * From its last character, as a drive letter ("C:"): the path is the run
+     * after the ":". No other start in the run can work.
+     */
+    const driveLetter: number = runEnd - 1;
+
+    if (
+      isAsciiLetterCode(line.charCodeAt(driveLetter)) &&
+      line.charCodeAt(runEnd) === COLON &&
+      isPathCode(line.charCodeAt(runEnd + 1))
+    ) {
+      const pathEnd: number = pathRunEnd(line, runEnd + 1);
+      const end: number = locationEnd(line, runEnd + 2, pathEnd);
+
+      if (end !== -1) {
+        paths.push(line.slice(driveLetter, pathEnd));
+        position = end;
+        continue;
+      }
+    }
+
+    position = runEnd;
+  }
+
+  return paths;
+};
 
 // Python traceback frames: `File "/app/src/x.py", line 1`.
 const PYTHON_FRAME_REGEX: RegExp = /File\s+"([^"]+)"\s*,\s*line\s+\d+/g;
@@ -159,10 +321,8 @@ export const extractCandidatePathsFromStackTrace: ExtractCandidatePathsFromStack
         }
       }
 
-      for (const match of line.matchAll(PATH_WITH_LINE_REGEX)) {
-        if (match[1]) {
-          rawPaths.push(match[1]);
-        }
+      for (const path of findPathsWithLineNumber(line)) {
+        rawPaths.push(path);
       }
 
       for (const rawPath of rawPaths) {
@@ -291,6 +451,63 @@ const matchCandidateAgainstRepository: MatchCandidateAgainstRepositoryFunction =
 
     return null;
   };
+
+/*
+ * Where one candidate path (already normalized: relative, forward slashes)
+ * sits in a repository's tree: the tree paths that end with its longest
+ * matching suffix, and how many segments matched. Null when not even its
+ * file name is in the tree. Exported for the profile frames' source links
+ * (SourceLocator), which match one file at a time.
+ */
+export type MatchPathInTreeFunction = (
+  candidatePath: string,
+  treePaths: Array<string>,
+) => {
+  matchedTreePaths: Array<string>;
+  matchedSegmentCount: number;
+  isStrongMatch: boolean;
+  isUniqueBasename: boolean;
+} | null;
+
+export const matchPathInTree: MatchPathInTreeFunction = (
+  candidatePath: string,
+  treePaths: Array<string>,
+): {
+  matchedTreePaths: Array<string>;
+  matchedSegmentCount: number;
+  isStrongMatch: boolean;
+  isUniqueBasename: boolean;
+} | null => {
+  const state: RepositoryMatchState = buildRepositoryMatchState(
+    {
+      id: "",
+      name: "",
+      organizationName: "",
+      repositoryName: "",
+      mainBranchName: "",
+      gitHubAppInstallationId: null,
+    },
+    treePaths,
+  );
+  const match: CandidateSuffixMatch | null = matchCandidateAgainstRepository(
+    candidatePath,
+    state,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const segments: Array<string> = candidatePath.split("/");
+  const basename: string = segments[segments.length - 1] || "";
+
+  return {
+    matchedTreePaths: match.matchedTreePaths,
+    matchedSegmentCount: match.matchedSegmentCount,
+    isStrongMatch: match.isStrongMatch,
+    isUniqueBasename: (state.basenameCounts.get(basename) || 0) === 1,
+  };
+};
 
 type TotalMatchedSegmentDepthFunction = (state: RepositoryMatchState) => number;
 
@@ -468,15 +685,51 @@ export const resolveRepositoryForExceptionFix: ResolveRepositoryForExceptionFixF
     repositories: Array<ResolvableRepository>;
     getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
   }): Promise<RepoResolution | null> => {
-    // Method 1 — stack trace vs. repository trees.
-    if (data.stackTrace && data.repositories.length > 0) {
-      const candidatePaths: Array<string> = extractCandidatePathsFromStackTrace(
-        data.stackTrace,
-      );
+    return await createRepositoryResolver({
+      repositories: data.repositories,
+      getTreePaths: data.getTreePaths,
+    }).resolve({
+      stackTrace: data.stackTrace,
+      serviceName: data.serviceName,
+    });
+  };
 
-      // No candidates → no reason to fetch any tree.
-      if (candidatePaths.length > 0) {
-        const fetched: Array<RepositoryMatchState | null> = await Promise.all(
+/*
+ * The same resolution, for many stack traces and service names against the
+ * same repositories: each repository's tree is fetched and indexed once, the
+ * first time a stack trace needs it, rather than once per stack trace. What
+ * the services a repository serves are is worked out this way
+ * (CodeAgentTelemetryScope), reading every service's facts in turn.
+ */
+export interface RepositoryResolver {
+  resolve(data: {
+    stackTrace: string | null;
+    serviceName: string | null;
+  }): Promise<RepoResolution | null>;
+}
+
+export type CreateRepositoryResolverFunction = (data: {
+  repositories: Array<ResolvableRepository>;
+  getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
+}) => RepositoryResolver;
+
+export const createRepositoryResolver: CreateRepositoryResolverFunction =
+  (data: {
+    repositories: Array<ResolvableRepository>;
+    getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
+  }): RepositoryResolver => {
+    let indexedTrees: Promise<Array<RepositoryMatchState>> | null = null;
+
+    /*
+     * Every repository's tree, indexed - fetched on the first stack trace
+     * that has a candidate path, and kept. A repository whose tree fetch
+     * fails is left out; the others are still tried.
+     */
+    const getIndexedTrees: () => Promise<
+      Array<RepositoryMatchState>
+    > = (): Promise<Array<RepositoryMatchState>> => {
+      if (!indexedTrees) {
+        indexedTrees = Promise.all(
           data.repositories.map(
             async (
               repository: ResolvableRepository,
@@ -486,91 +739,138 @@ export const resolveRepositoryForExceptionFix: ResolveRepositoryForExceptionFixF
                   await data.getTreePaths(repository);
                 return buildRepositoryMatchState(repository, treePaths);
               } catch {
-                // A repository whose tree fetch fails is skipped; the others are still tried.
                 return null;
               }
             },
           ),
-        );
-
-        const states: Array<RepositoryMatchState> = fetched.filter(
+        ).then(
           (
-            state: RepositoryMatchState | null,
-          ): state is RepositoryMatchState => {
-            return state !== null;
+            fetched: Array<RepositoryMatchState | null>,
+          ): Array<RepositoryMatchState> => {
+            return fetched.filter(
+              (
+                state: RepositoryMatchState | null,
+              ): state is RepositoryMatchState => {
+                return state !== null;
+              },
+            );
           },
         );
-
-        const resolution: RepoResolution | null = resolveViaStackTrace(
-          candidatePaths,
-          states,
-        );
-
-        if (resolution) {
-          return resolution;
-        }
       }
-    }
 
-    // Method 2 — exact service-name match (score 3, unique) via the suggester.
-    if (data.serviceName) {
-      const suggestions: Array<ServiceRepoLinkSuggestion> =
-        computeLinkSuggestions({
-          services: [{ id: "exception-service", name: data.serviceName }],
-          repositories: data.repositories.map(
-            (repository: ResolvableRepository): SuggestableRepository => {
-              return {
-                id: repository.id,
-                name: repository.name,
-                repositoryName: repository.repositoryName,
-                organizationName: repository.organizationName,
-              };
-            },
-          ),
-          existingLinks: [],
+      return indexedTrees;
+    };
+
+    return {
+      resolve: async (facts: {
+        stackTrace: string | null;
+        serviceName: string | null;
+      }): Promise<RepoResolution | null> => {
+        // Method 1 — stack trace vs. repository trees.
+        if (facts.stackTrace && data.repositories.length > 0) {
+          const candidatePaths: Array<string> =
+            extractCandidatePathsFromStackTrace(facts.stackTrace);
+
+          // No candidates → no reason to fetch any tree.
+          if (candidatePaths.length > 0) {
+            /*
+             * A fresh list of matches for each stack trace over the same
+             * indexes: matching reads the indexes and writes only the
+             * matches.
+             */
+            const states: Array<RepositoryMatchState> = (
+              await getIndexedTrees()
+            ).map((state: RepositoryMatchState): RepositoryMatchState => {
+              return { ...state, matches: [] };
+            });
+
+            const resolution: RepoResolution | null = resolveViaStackTrace(
+              candidatePaths,
+              states,
+            );
+
+            if (resolution) {
+              return resolution;
+            }
+          }
+        }
+
+        return resolveWithoutStackTrace({
+          serviceName: facts.serviceName,
+          repositories: data.repositories,
+        });
+      },
+    };
+  };
+
+type ResolveWithoutStackTraceFunction = (data: {
+  serviceName: string | null;
+  repositories: Array<ResolvableRepository>;
+}) => RepoResolution | null;
+
+// Methods 2 and 3, for facts no stack trace resolved.
+const resolveWithoutStackTrace: ResolveWithoutStackTraceFunction = (data: {
+  serviceName: string | null;
+  repositories: Array<ResolvableRepository>;
+}): RepoResolution | null => {
+  // Method 2 — exact service-name match (score 3, unique) via the suggester.
+  if (data.serviceName) {
+    const suggestions: Array<ServiceRepoLinkSuggestion> =
+      computeLinkSuggestions({
+        services: [{ id: "exception-service", name: data.serviceName }],
+        repositories: data.repositories.map(
+          (repository: ResolvableRepository): SuggestableRepository => {
+            return {
+              id: repository.id,
+              name: repository.name,
+              repositoryName: repository.repositoryName,
+              organizationName: repository.organizationName,
+            };
+          },
+        ),
+        existingLinks: [],
+      });
+
+    const exactMatches: Array<ServiceRepoLinkSuggestion> = suggestions.filter(
+      (suggestion: ServiceRepoLinkSuggestion) => {
+        return suggestion.score === EXACT_NAME_MATCH_SCORE;
+      },
+    );
+
+    const exactMatch: ServiceRepoLinkSuggestion | undefined = exactMatches[0];
+
+    if (exactMatches.length === 1 && exactMatch) {
+      const repository: ResolvableRepository | undefined =
+        data.repositories.find((candidate: ResolvableRepository) => {
+          return candidate.id === exactMatch.codeRepositoryId;
         });
 
-      const exactMatches: Array<ServiceRepoLinkSuggestion> = suggestions.filter(
-        (suggestion: ServiceRepoLinkSuggestion) => {
-          return suggestion.score === EXACT_NAME_MATCH_SCORE;
-        },
-      );
-
-      const exactMatch: ServiceRepoLinkSuggestion | undefined = exactMatches[0];
-
-      if (exactMatches.length === 1 && exactMatch) {
-        const repository: ResolvableRepository | undefined =
-          data.repositories.find((candidate: ResolvableRepository) => {
-            return candidate.id === exactMatch.codeRepositoryId;
-          });
-
-        if (repository) {
-          return {
-            codeRepositoryId: repository.id,
-            organizationName: repository.organizationName,
-            repositoryName: repository.repositoryName,
-            servicePathInRepository: null,
-            method: "name-match",
-            evidence: exactMatch.reason,
-          };
-        }
+      if (repository) {
+        return {
+          codeRepositoryId: repository.id,
+          organizationName: repository.organizationName,
+          repositoryName: repository.repositoryName,
+          servicePathInRepository: null,
+          method: "name-match",
+          evidence: exactMatch.reason,
+        };
       }
     }
+  }
 
-    // Method 3 — a single connected repository is unambiguous by definition.
-    const onlyRepository: ResolvableRepository | undefined =
-      data.repositories[0];
+  // Method 3 — a single connected repository is unambiguous by definition.
+  const onlyRepository: ResolvableRepository | undefined = data.repositories[0];
 
-    if (data.repositories.length === 1 && onlyRepository) {
-      return {
-        codeRepositoryId: onlyRepository.id,
-        organizationName: onlyRepository.organizationName,
-        repositoryName: onlyRepository.repositoryName,
-        servicePathInRepository: null,
-        method: "only-repository",
-        evidence: "Only repository connected to this project",
-      };
-    }
+  if (data.repositories.length === 1 && onlyRepository) {
+    return {
+      codeRepositoryId: onlyRepository.id,
+      organizationName: onlyRepository.organizationName,
+      repositoryName: onlyRepository.repositoryName,
+      servicePathInRepository: null,
+      method: "only-repository",
+      evidence: "Only repository connected to this project",
+    };
+  }
 
-    return null;
-  };
+  return null;
+};

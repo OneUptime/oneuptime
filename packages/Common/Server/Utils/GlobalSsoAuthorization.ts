@@ -1,5 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "./Realtime/RealtimeAccessChanges";
 
 /*
  * The stateful half of Global SSO enforcement.
@@ -40,6 +43,12 @@ export interface GlobalProviderTrust {
   isUsable: boolean;
   // The admin opted this provider into attachment-scoped access.
   restrictToAttachedProjects: boolean;
+  /*
+   * When the provider was last turned off (milliseconds), or null when it
+   * never was: a sign-in it gave before then no longer counts, even once it
+   * is on again (Utils/SsoSignInsEnded).
+   */
+  signInsEndedAtMs: number | null;
 }
 
 /*
@@ -101,8 +110,102 @@ export function doAttachmentsGovernProject(
   return attachments.enabledProjectIds.includes(projectId.toString());
 }
 
+/*
+ * Whether a write to a global provider, or to one of its project
+ * attachments, may let it sign fewer people in: it turns it off, or
+ * restricts the provider to its attached projects. Such a write is told to
+ * every server whatever it read before it was written: a write that turns a
+ * provider or an attachment on, or lifts the restriction, takes no lock, so
+ * one may have been written between what this one read and what it wrote.
+ */
+export function isGlobalProviderNarrowing(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  // Only the write's own fields count, never ones it inherits.
+  const writes: (column: string, value: boolean) => boolean = (
+    column: string,
+    value: boolean,
+  ): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      (data as Record<string, unknown>)[column] === value
+    );
+  };
+
+  return (
+    writes("isEnabled", false) || writes("restrictToAttachedProjects", true)
+  );
+}
+
+/*
+ * Whether an attachment added, turned off or removed changes who these
+ * providers sign in. Only a provider that is on and restricted to its
+ * attached projects reads its attachments (doAttachmentsGovernProject); for
+ * any other, an attachment only says where people are provisioned. A
+ * provider that cannot be named (null) or read counts as restricted, so a
+ * failed read never keeps a change quiet.
+ */
+export async function isAnyAttachedProviderRestricted(data: {
+  providerIds: Array<ObjectID | null>;
+  getProviderTrust: (providerId: ObjectID) => Promise<GlobalProviderTrust>;
+}): Promise<boolean> {
+  const asked: Set<string> = new Set();
+
+  for (const providerId of data.providerIds) {
+    if (!providerId) {
+      return true;
+    }
+
+    if (asked.has(providerId.toString())) {
+      continue;
+    }
+
+    asked.add(providerId.toString());
+
+    try {
+      const trust: GlobalProviderTrust =
+        await data.getProviderTrust(providerId);
+
+      if (trust.isUsable && trust.restrictToAttachedProjects) {
+        return true;
+      }
+    } catch {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
+ * A global provider now signs other people in - turned off or on, deleted,
+ * restricted to its attached projects or opened to every project again, or
+ * an attachment of a restricted one added, turned off or on, or removed.
+ * Every server forgets these answers (GlobalConfigService.forgetSignInRules)
+ * and asks the live updates it holds again, as their joins were
+ * (RealtimeAccessChanges, SignInRulesChanged for the whole instance): a page
+ * signed in with a provider that no longer signs it in stops hearing at
+ * once, as its requests are refused at once, and people a provider now signs
+ * in are let in at once on every server, not after a minute.
+ */
+export function announceGlobalSignInChange(): void {
+  RealtimeAccessChanges.announce({
+    kind: RealtimeAccessChangeKind.SignInRulesChanged,
+  });
+}
+
+/*
+ * Counts the times every answer was dropped. A lookup that started before
+ * the latest drop may hold an answer from before the change that caused it,
+ * so it is handed to the requests waiting on it but never cached.
+ */
+let forgets: number = 0;
+
 /** Drops every cached answer. Used by the write hooks and by tests. */
 export function clearGlobalSsoAuthorizationCaches(): void {
+  forgets++;
   globalSsoProviderTrustCache.clear();
   globalSsoAttachmentsCache.clear();
   inFlightTrustLookups.clear();
@@ -130,8 +233,16 @@ const inFlightAttachmentLookups: Map<
   Promise<GlobalProviderAttachments>
 > = new Map();
 
+/*
+ * One lookup per key at a time, cached for GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS
+ * once it answers - unless the answers were dropped while it ran: the
+ * change that dropped them may have landed after it read, so its answer is
+ * returned to the requests waiting on it and not cached. A lookup that fails
+ * is not cached either.
+ */
 async function loadOnce<T>(
   inFlight: Map<string, Promise<T>>,
+  cache: InMemoryTTLCache<T>,
   key: string,
   load: () => Promise<T>,
 ): Promise<T> {
@@ -141,7 +252,17 @@ async function loadOnce<T>(
     return existing;
   }
 
-  const pending: Promise<T> = load().finally((): void => {
+  const forgetsAtStart: number = forgets;
+
+  const loaded: Promise<T> = load().then((value: T): T => {
+    if (forgetsAtStart === forgets) {
+      cache.set(key, value, GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS);
+    }
+
+    return value;
+  });
+
+  const pending: Promise<T> = loaded.finally((): void => {
     /*
      * Only clear the slot if it is still OURS. A cache clear between the two
      * (every write to a Global SSO/OIDC service does exactly that, twice) lets
@@ -164,12 +285,17 @@ export function loadTrustOnce(
   key: string,
   load: () => Promise<GlobalProviderTrust>,
 ): Promise<GlobalProviderTrust> {
-  return loadOnce(inFlightTrustLookups, key, load);
+  return loadOnce(inFlightTrustLookups, globalSsoProviderTrustCache, key, load);
 }
 
 export function loadAttachmentsOnce(
   key: string,
   load: () => Promise<GlobalProviderAttachments>,
 ): Promise<GlobalProviderAttachments> {
-  return loadOnce(inFlightAttachmentLookups, key, load);
+  return loadOnce(
+    inFlightAttachmentLookups,
+    globalSsoAttachmentsCache,
+    key,
+    load,
+  );
 }

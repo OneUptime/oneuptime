@@ -22,8 +22,9 @@ import {
   ipv4AddressOfReverseName,
   ptrReply,
   rcodeReply,
-  reserveClosedUdpPort,
+  RefusingUdpPort,
   startFakeDnsServer,
+  startRefusingUdpPort,
 } from "../../TestingUtils/FakeDnsServer";
 import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
@@ -231,6 +232,7 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
   let helmPublics: Array<FakeDnsServer>;
   let helmRefused: ReverseDnsResolution;
   let helmRefusedSweep: ReverseDnsResolution;
+  let refusedCoreDns: RefusingUdpPort;
   let refusedCoreDnsAddress: string;
   let refusedPublics: Array<FakeDnsServer>;
   let steered: ReverseDnsResolution;
@@ -303,11 +305,9 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
       },
     );
 
-    /*
-     * Reserved LAST, so no server started above can have been handed the
-     * port after it was closed.
-     */
-    refusedCoreDnsAddress = `127.0.0.1:${await reserveClosedUdpPort()}`;
+    // Held until afterAll, so no other socket can be handed its port.
+    refusedCoreDns = await startRefusingUdpPort();
+    refusedCoreDnsAddress = refusedCoreDns.address;
 
     const refusedHelmServers: Array<string> = [
       refusedCoreDnsAddress,
@@ -364,6 +364,8 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
     for (const started of servers) {
       await started.close();
     }
+
+    await refusedCoreDns?.close();
   });
 
   it.each([

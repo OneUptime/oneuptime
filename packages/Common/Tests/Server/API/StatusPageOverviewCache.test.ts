@@ -6,6 +6,7 @@ import StatusPageGroupService from "../../../Server/Services/StatusPageGroupServ
 import StatusPageHistoryChartBarColorRuleService from "../../../Server/Services/StatusPageHistoryChartBarColorRuleService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import StatusPageOverviewCache from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -103,7 +104,17 @@ function buildPageFor(findOneByArgs: unknown): StatusPage {
   return page;
 }
 
+// The project of every page these requests are for.
+const OVERVIEW_PROJECT_ID: ObjectID = new ObjectID(
+  "72000000-0000-4000-8000-000000000001",
+);
+
 function mockOverviewServices(): OverviewSpies {
+  // The page's project, which keeps its overview by its generation.
+  jest
+    .spyOn(StatusPageService, "getProjectIdOfStatusPage")
+    .mockResolvedValue(OVERVIEW_PROJECT_ID as never);
+
   // Per-request auth gate: a PUBLIC page grants access to anonymous viewers.
   const authFindOneByIdSpy: jest.SpyInstance = (
     jest.spyOn(StatusPageService, "findOneById") as unknown as jest.SpyInstance
@@ -470,5 +481,58 @@ describe("StatusPageAPI overview response cache", () => {
     // ...and it still told HTTP caches not to store the response.
     expect(Response.setNoCacheHeaders).toHaveBeenCalledTimes(2);
     expect(Response.setNoCacheHeaders).toHaveBeenLastCalledWith(hit.res);
+  });
+
+  /*
+   * A record a status page stops showing - made private, hidden, deleted -
+   * is not served from the page's cached overview once the write is made:
+   * the write starts a new generation of its project's overviews
+   * (StatusPageOverviewCache), and the next request builds the page again.
+   */
+  describe("a record its project stops showing", () => {
+    it("is gone from the cached overview at once: the next request builds the page again", async () => {
+      const spies: OverviewSpies = mockOverviewServices();
+      const statusPageId: string = ObjectID.generate().toString();
+
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      expect(spies.buildFindOneBySpy).toHaveBeenCalledTimes(1);
+
+      await StatusPageOverviewCache.forgetProjects([OVERVIEW_PROJECT_ID]);
+
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      expect(spies.buildFindOneBySpy).toHaveBeenCalledTimes(2);
+
+      const payloads: Array<JSONObject> = sentPayloads();
+      expect(payloads[2]).not.toBe(payloads[1]);
+      // Auth was checked on every request.
+      expect(spies.authFindOneByIdSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it("a change in another project keeps the page's overview", async () => {
+      const spies: OverviewSpies = mockOverviewServices();
+      const statusPageId: string = ObjectID.generate().toString();
+
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+
+      await StatusPageOverviewCache.forgetProjects([ObjectID.generate()]);
+
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      expect(spies.buildFindOneBySpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("reads the page's project once, not on every request", async () => {
+      mockOverviewServices();
+      const statusPageId: string = ObjectID.generate().toString();
+
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+      await StatusPageOverviewCache.forgetProjects([OVERVIEW_PROJECT_ID]);
+      await invokeOverview({ statusPageIdOrDomain: statusPageId });
+
+      expect(StatusPageService.getProjectIdOfStatusPage).toHaveBeenCalledTimes(
+        1,
+      );
+    });
   });
 });

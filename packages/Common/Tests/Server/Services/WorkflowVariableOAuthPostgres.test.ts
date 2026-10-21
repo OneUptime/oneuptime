@@ -250,7 +250,7 @@ describePostgres("OAuth 2.0 workflow variables against Postgres", () => {
      * `defaultValue: false` is falsy, so checkRequiredFields has never filled
      * it in for an API caller that leaves it out (unchanged by this feature).
      */
-    variable.isSecret = false as unknown as string;
+    variable.isSecret = false;
 
     const created: WorkflowVariable = await WorkflowVariableService.create({
       data: variable,
@@ -515,7 +515,7 @@ describePostgres("OAuth 2.0 workflow variables against Postgres", () => {
     variable.name = "EDITED_PLAIN";
     variable.projectId = PROJECT_ID;
     variable.content = "plain";
-    variable.isSecret = false as unknown as string;
+    variable.isSecret = false;
 
     const created: WorkflowVariable = await WorkflowVariableService.create({
       data: variable,

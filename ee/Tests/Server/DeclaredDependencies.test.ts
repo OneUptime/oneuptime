@@ -64,6 +64,17 @@ const packageJson: PackageJson = JSON.parse(
   fs.readFileSync(path.join(EE_DIR, "package.json"), "utf8"),
 ) as PackageJson;
 
+/*
+ * The libraries single sign-on is built on. SAML and OIDC are core
+ * (packages/App/FeatureSet/Identity), so App declares these and ee must not:
+ * an ee copy would be a second module instance next to App's.
+ */
+const SINGLE_SIGN_ON_LIBRARIES: ReadonlyArray<string> = [
+  "openid-client",
+  "xml-crypto",
+  "@xmldom/xmldom",
+];
+
 const RUNTIME_DEPENDENCIES: ReadonlyArray<string> = Object.keys(
   packageJson.dependencies || {},
 );
@@ -330,10 +341,12 @@ describe("the declared-dependency check's own machinery", () => {
     ["fs/promises", true],
     ["Common/Server/Utils/Logger", true],
     ["App/Utils/EnterpriseLoader", true],
-    ["openid-client", true],
-    ["openid-client/lib/errors", true],
-    ["@xmldom/xmldom", true],
-    ["xml-crypto", true],
+    ["App/FeatureSet/Identity/SsoRouters", true],
+    // Single sign-on's libraries are App's: ee reaches SSO code through App/... only.
+    ["openid-client", false],
+    ["openid-client/lib/errors", false],
+    ["@xmldom/xmldom", false],
+    ["xml-crypto", false],
     ["@xmldom/other", false],
     ["lodash", false],
     ["typescript", false],
@@ -396,10 +409,11 @@ describe("the declared-dependency check's own machinery", () => {
       'const required = require("required-undeclared");',
       'const resolved = require.resolve("resolved-undeclared");',
       'const devOnly = require("typescript");',
+      'import { Issuer } from "openid-client";',
       // None of these is reported.
       'import fs from "fs";',
       'import Logger from "Common/Server/Utils/Logger";',
-      'import { Issuer } from "openid-client";',
+      'import { SSO_ROUTERS } from "App/FeatureSet/Identity/SsoRouters";',
       'import Local from "./Local";',
       'const text = "import x from \\"string-not-an-import\\"";',
       '// import y from "comment-not-an-import";',
@@ -417,14 +431,35 @@ describe("the declared-dependency check's own machinery", () => {
       "required-undeclared",
       "resolved-undeclared",
       "typescript",
+      "openid-client",
     ]);
   });
 });
 
 describe("ee/ imports only what its image can resolve", () => {
   test("ee/package.json keeps the packages the server needs in dependencies", () => {
-    for (const dependency of ["Common", "App", "openid-client"]) {
+    for (const dependency of ["Common", "App"]) {
       expect(RUNTIME_DEPENDENCIES).toContain(dependency);
+    }
+  });
+
+  test("ee/package.json declares none of single sign-on's libraries: they are App's", () => {
+    const appPackageJson: PackageJson = JSON.parse(
+      fs.readFileSync(
+        path.join(REPOSITORY_ROOT, "packages", "App", "package.json"),
+        "utf8",
+      ),
+    ) as PackageJson;
+
+    for (const library of SINGLE_SIGN_ON_LIBRARIES) {
+      expect({
+        library,
+        inEe: Boolean(
+          packageJson.dependencies?.[library] ||
+            packageJson.devDependencies?.[library],
+        ),
+        inApp: Boolean(appPackageJson.dependencies?.[library]),
+      }).toEqual({ library, inEe: false, inApp: true });
     }
   });
 

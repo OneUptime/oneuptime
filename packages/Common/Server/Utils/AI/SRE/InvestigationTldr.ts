@@ -5,6 +5,9 @@ import AIService, {
 } from "../../../Services/AIService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
+import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import { stripBlockMarkers } from "./TldrBlockMarkers";
 
 /*
  * AI SRE — the investigation TL;DR.
@@ -83,11 +86,20 @@ export const MIN_TLDR_CHARS: number = 20;
  * a label on its own line (often a markdown heading), and an inline label
  * followed by a separator. The line form must be removed BEFORE newlines
  * collapse into spaces, or the label silently becomes the first word.
+ *
+ * The white space around the line form's optional ":" is read one way only
+ * - spaces, then a ":" and spaces when a ":" is there - since two runs of
+ * spaces side by side split a long run in as many ways as it is long, each
+ * of them tried when no line break follows. A whole report's section reaches
+ * these rules (InvestigationReportSummary), not only a model's one sentence.
  */
 const LEADING_LABEL_LINE_RE: RegExp =
-  /^[ \t]*(?:#{1,6}[ \t]*)?(?:[>\-+*][ \t]+)?\*{0,2}(?:tl[;,]?[ \t]?dr|summary)\*{0,2}[ \t]*:?[ \t]*(?:\r?\n|$)/i;
+  /^[ \t]*(?:#{1,6}[ \t]*)?(?:[>\-+*][ \t]+)?\*{0,2}(?:tl[;,]?[ \t]?dr|summary)\*{0,2}[ \t]*(?::[ \t]*)?(?:\r?\n|$)/i;
 const LEADING_LABEL_RE: RegExp =
   /^\s*(?:\*{0,2})(tl[;,]?\s?dr|summary)(?:\*{0,2})\s*[:\-–—]\s*/i;
+
+// What a cut TL;DR may not end with, besides white space.
+const CUT_PUNCTUATION_CODES: ReadonlySet<number> = codesOf(".,;:");
 
 /*
  * Markdown inline syntax that must not reach a plain-text renderer.
@@ -105,13 +117,22 @@ const LEADING_LABEL_RE: RegExp =
  * opening mark must follow a non-word character (or start of string) and the
  * closing mark must be followed by one (or end of string).
  */
-const MARKDOWN_LINK_RE: RegExp = /\[([^\]]*)\]\([^)]*\)/g;
+/*
+ * A link (group 1 is its label), or - in a last alternative, with no group -
+ * a "[" that opens none: that "[" and what follows it up to the "]" after it,
+ * and the "(" and the rest of the text when only they follow, given back as
+ * written. Tried alone, the link was looked for again from every "[" before
+ * that "]", each try reading on to it (or to the end of the text): on a run
+ * of "[" a time that grew with the square of its length. No "[" in what the
+ * last alternative takes opens a link either: each would read on to the
+ * same "]", or find no ")" after it.
+ */
+const MARKDOWN_LINK_RE: RegExp =
+  /\[([^\]]*)\]\([^)]*\)|\[[^\]]*(?:\]\([^)]*)?/g;
 const MARKDOWN_STAR_OR_CODE_RE: RegExp = /[*`]+/g;
 const MARKDOWN_UNDERSCORE_EMPHASIS_RE: RegExp =
   /(^|[^\w])_{1,2}([^_]+?)_{1,2}(?=[^\w]|$)/g;
 const MARKDOWN_STRIKETHROUGH_RE: RegExp = /~~([^~]+?)~~/g;
-const MARKDOWN_HEADING_RE: RegExp = /^\s{0,3}#{1,6}\s*/gm;
-const MARKDOWN_QUOTE_OR_BULLET_RE: RegExp = /^\s{0,3}(?:[>\-+*]|\d+[.)])\s+/gm;
 const WHITESPACE_RE: RegExp = /\s+/g;
 
 export default class InvestigationTldr {
@@ -148,22 +169,21 @@ export default class InvestigationTldr {
     }
 
     /*
-     * Block markers can stack ("> ## cause", "- - cause"), and each pass only
-     * matches at the very start of a line, so a single pass leaves the inner
-     * marker behind for the panel to render verbatim. Repeat to a fixed point
-     * — the same idiom as the label loop above.
+     * Block markers can stack ("> ## cause", "- - cause"), and a heading's
+     * or a quote's or bullet's marker is only one at the very start of a
+     * line, so taking each off once leaves the inner marker behind for the
+     * panel to render verbatim. They are taken off to a fixed point
+     * (stripBlockMarkers).
      */
-    let withoutBlockMarkers: string = withoutLabelLines;
-    let previousBlockMarkers: string = "";
-    while (withoutBlockMarkers !== previousBlockMarkers) {
-      previousBlockMarkers = withoutBlockMarkers;
-      withoutBlockMarkers = withoutBlockMarkers
-        .replace(MARKDOWN_HEADING_RE, "")
-        .replace(MARKDOWN_QUOTE_OR_BULLET_RE, "");
-    }
+    const withoutBlockMarkers: string = stripBlockMarkers(withoutLabelLines);
 
     let text: string = withoutBlockMarkers
-      .replace(MARKDOWN_LINK_RE, "$1")
+      .replace(
+        MARKDOWN_LINK_RE,
+        (link: string, label: string | undefined): string => {
+          return label === undefined ? link : label;
+        },
+      )
       .replace(MARKDOWN_STRIKETHROUGH_RE, "$1")
       .replace(MARKDOWN_UNDERSCORE_EMPHASIS_RE, "$1$2")
       .replace(MARKDOWN_STAR_OR_CODE_RE, "")
@@ -202,7 +222,12 @@ export default class InvestigationTldr {
       lastSpaceIndex > MIN_TLDR_CHARS
         ? hardCut.substring(0, lastSpaceIndex)
         : hardCut;
-    const trimmed: string = truncated.replace(/[\s.,;:]+$/, "");
+    const trimmed: string = withoutTrailingRun(
+      truncated,
+      (code: number): boolean => {
+        return isWhiteSpaceCode(code) || CUT_PUNCTUATION_CODES.has(code);
+      },
+    );
 
     /*
      * The floor above was checked against the PRE-truncation text. Cutting at

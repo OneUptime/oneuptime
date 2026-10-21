@@ -1,8 +1,8 @@
+import CacheGenerations from "./CacheGenerations";
 import GlobalCache from "./GlobalCache";
-import InMemoryTTLCache from "./InMemoryTTLCache";
 import logger from "../Utils/Logger";
 import { RENDER_CONCURRENCY } from "../../Types/OnCallDutyPolicy/CalendarFeedWindow";
-import { createHash, randomBytes } from "crypto";
+import { createHash } from "crypto";
 
 /*
  * Caches for the on-call calendar feeds.
@@ -27,23 +27,27 @@ import { createHash, randomBytes } from "crypto";
  * Invalidation is by scope generation, not by key scan. GlobalCache has no
  * SCAN, and a SCAN across a Redis that also backs BullMQ is not something a
  * hook should do. Instead every project, user-in-project and schedule has a
- * generation token in Redis; a cached body's real key mixes in the current
- * generations of every scope the feed depends on, so bumping a generation
- * makes every dependent entry unreachable in one write. Old entries age out on
- * their own TTLs. purgeForUser / purgeForSchedule / purgeForProject are those
- * bumps. Last-good bodies are the deliberate exception: their key embeds the
- * feed's own cache key -- which carries the token hash and the candidate
- * schedule set -- and nothing else, so a rotated token or a changed schedule
- * set can never reach one, while a hook-triggered purge does not throw away
- * the only thing standing between a failed render and a 503.
+ * generation (CacheGenerations, which the status page overview is kept by
+ * too); a cached body's real key mixes in the current generations of every
+ * scope the feed depends on, so bumping a generation makes every dependent
+ * entry unreachable in one write. Old entries age out on their own TTLs.
+ * purgeForUser / purgeForSchedule / purgeForProject are those bumps. A purge
+ * takes effect in the process that made it at once, whatever Redis answers --
+ * and stays in effect when Redis did not take it, once Redis answers again --
+ * and in every other process within CacheGenerations.SHARED_READ_TTL_MS of
+ * Redis holding it. Last-good bodies are the deliberate exception: their key
+ * embeds the feed's own cache key -- which carries the token hash and the
+ * candidate schedule set -- and nothing else, so a rotated token or a changed
+ * schedule set can never reach one, while a hook-triggered purge does not
+ * throw away the only thing standing between a failed render and a 503.
  *
  * Every GlobalCache call is wrapped: each one throws
  * DatabaseNotConnectedException when Redis is down, and the feeds must keep
- * working through that. Reads and writes fall back to a per-process
- * InMemoryTTLCache; generations are written to both so a purge made while
- * Redis is down still takes effect in this process. The in-memory tier is
- * consulted only when Redis fails -- it is never a first-level cache, so a
- * purge made by another process is not masked by a stale local copy.
+ * working through that. Reads and writes fall back to a per-process store,
+ * and a purge made while Redis is down still takes effect in this process.
+ * The in-memory tier is consulted only when Redis fails -- it is never a
+ * first-level cache, so a purge made by another process is not masked by a
+ * stale local copy.
  *
  * The render slots are the per-process concurrency cap on cache-miss renders.
  * Not Redis-backed on purpose: the thing being protected is THIS process's
@@ -103,9 +107,6 @@ export const LAST_GOOD_TTL_SECONDS: number = 24 * 60 * 60;
  * and simply starts a fresh key space.
  */
 const GENERATION_TTL_SECONDS: number = 30 * 24 * 60 * 60;
-
-/* Generation value when none has ever been written for a scope. */
-const DEFAULT_GENERATION: string = "0";
 
 const MEMORY_MAX_ENTRIES: number = 500;
 const MEMORY_GENERATION_MAX_ENTRIES: number = 5000;
@@ -282,8 +283,17 @@ export default class OnCallCalendarFeedCache {
     MEMORY_MAX_ENTRIES,
     MEMORY_MAX_BYTES,
   );
-  private static memoryGenerations: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(MEMORY_GENERATION_MAX_ENTRIES);
+
+  /*
+   * Every scope's generation: the shared one, from Redis, and this
+   * process's own (CacheGenerations).
+   */
+  private static generations: CacheGenerations = new CacheGenerations({
+    namespace: ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE,
+    ttlSeconds: GENERATION_TTL_SECONDS,
+    maxKeys: MEMORY_GENERATION_MAX_ENTRIES,
+    description: "on-call calendar feeds",
+  });
 
   /*
    * In-flight renders by effective key, so two requests that miss the same
@@ -317,7 +327,7 @@ export default class OnCallCalendarFeedCache {
     OnCallCalendarFeedCache.memorySegments.clear();
     OnCallCalendarFeedCache.memoryBodies.clear();
     OnCallCalendarFeedCache.memoryLastGood.clear();
-    OnCallCalendarFeedCache.memoryGenerations.clear();
+    OnCallCalendarFeedCache.generations.clear();
     OnCallCalendarFeedCache.inFlightRenders.clear();
     OnCallCalendarFeedCache.activeRenderSlots = 0;
     OnCallCalendarFeedCache.renderConcurrency = DEFAULT_RENDER_CONCURRENCY;
@@ -859,58 +869,22 @@ export default class OnCallCalendarFeedCache {
   // -- Generations -------------------------------------------------------
 
   /*
-   * Redis first; the in-memory copy only when Redis fails. Reading memory
-   * first would let a stale local generation hide a purge another process
-   * made.
+   * A scope's generation (CacheGenerations): a purge made in this process
+   * counts here at once -- even when Redis did not take it, and still once
+   * Redis answers again -- and one made elsewhere within
+   * CacheGenerations.SHARED_READ_TTL_MS.
    */
   private static async getGeneration(generationKey: string): Promise<string> {
-    try {
-      const value: string | null = await GlobalCache.getString(
-        ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE,
-        generationKey,
-      );
-
-      if (value) {
-        return value;
-      }
-
-      return DEFAULT_GENERATION;
-    } catch (err) {
-      OnCallCalendarFeedCache.logCacheFailure("read generation", err);
-
-      return (
-        OnCallCalendarFeedCache.memoryGenerations.get(generationKey) ||
-        DEFAULT_GENERATION
-      );
-    }
+    return await OnCallCalendarFeedCache.generations.get(generationKey);
   }
 
   /*
    * A fresh random token, not an increment: GlobalCache has no INCR, and a
-   * value nobody can predict cannot collide with a stale one. Written to
-   * memory unconditionally so a purge made during a Redis outage is honoured
-   * by this process straight away; the Redis write is best effort and logged.
-   * Never throws -- hooks call this and must not fail over a cache.
+   * value nobody can predict cannot collide with a stale one. Never throws
+   * -- hooks call this and must not fail over a cache.
    */
   private static async bumpGeneration(generationKey: string): Promise<void> {
-    const generation: string = `${Date.now().toString(36)}-${randomBytes(6).toString("hex")}`;
-
-    OnCallCalendarFeedCache.memoryGenerations.set(
-      generationKey,
-      generation,
-      GENERATION_TTL_SECONDS * 1000,
-    );
-
-    try {
-      await GlobalCache.setString(
-        ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE,
-        generationKey,
-        generation,
-        { expiresInSeconds: GENERATION_TTL_SECONDS },
-      );
-    } catch (err) {
-      OnCallCalendarFeedCache.logCacheFailure("write generation", err);
-    }
+    await OnCallCalendarFeedCache.generations.bump([generationKey]);
   }
 
   // -- Storage tiers -----------------------------------------------------

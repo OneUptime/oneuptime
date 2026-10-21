@@ -15,6 +15,19 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
+import SafeHtml from "Common/Types/SafeHtml";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import { redactLogString } from "Common/Server/Utils/LogRedaction";
 import Project from "Common/Models/DatabaseModels/Project";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
@@ -24,6 +37,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import {
+  fitTelegramMessage,
+  TelegramMessageText,
+} from "Common/Utils/TelegramMessageFit";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
@@ -119,12 +136,14 @@ export default class TelegramService {
         telegramLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
 
-      let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
 
-      if (shouldChargeForMessage) {
-        messageCost = TelegramTextDefaultCostInCents / 100;
-      }
+      // What it costs, in whole cents.
+      const messageCostInUSDCents: number = shouldChargeForMessage
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: TelegramTextDefaultCostInCents,
+          })
+        : 0;
 
       let project: Project | null = null;
 
@@ -153,13 +172,18 @@ export default class TelegramService {
               isRoot: true,
             },
           });
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: telegramLog.statusMessage!,
+          });
           return;
         }
 
         if (!project.enableTelegramNotifications) {
           telegramLog.status = TelegramStatus.Error;
-          telegramLog.statusMessage =
-            "Telegram notifications are not enabled for this project. Please enable Telegram notifications in Project Settings.";
+          telegramLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.Telegram,
+          );
 
           // The project owner disabled this channel; refusal is expected.
           logger.error(telegramLog.statusMessage, EXTERNAL_FAULT);
@@ -189,14 +213,23 @@ export default class TelegramService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               `Telegram notifications not enabled for ${project.name || ""}`,
-              "A Telegram notification was not sent because Telegram notifications are disabled for this project. Please enable Telegram notifications in Project Settings if this channel should be used.",
+              `A Telegram notification was not sent. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.Telegram,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
 
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: telegramLog.statusMessage!,
+          });
           return;
         }
 
-        if (shouldChargeForMessage && messageCost > 0) {
+        if (shouldChargeForMessage && messageCostInUSDCents > 0) {
           let updatedBalance: number =
             project.smsOrCallCurrentBalanceInUSDCents || 0;
 
@@ -210,14 +243,30 @@ export default class TelegramService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (
-            !project.smsOrCallCurrentBalanceInUSDCents ||
-            project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100
-          ) {
+          /*
+           * Nothing left, or less than this message costs. The log (which
+           * the project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          const shortfall: {
+            channel: ProjectNotificationChannel;
+            balanceInUSDCents: number;
+            costInUSDCents: number;
+          } = {
+            channel: ProjectNotificationChannel.Telegram,
+            balanceInUSDCents: balanceInUSDCents,
+            costInUSDCents: messageCostInUSDCents,
+          };
+
+          if (!balanceInUSDCents || balanceInUSDCents < messageCostInUSDCents) {
             telegramLog.status = TelegramStatus.LowBalance;
-            telegramLog.statusMessage = `Project does not have enough balance to send Telegram message. Current balance is ${
-              (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-            } USD. Required balance is ${messageCost} USD.`;
+            telegramLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             logger.error(telegramLog.statusMessage);
 
             await TelegramLogService.create({
@@ -227,25 +276,34 @@ export default class TelegramService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                id: project.id!,
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
+              /*
+               * Like the email about Telegram being off, this leaves out the
+               * chat and the message: alert payloads can carry incident
+               * secrets, and the owners' email has other readers.
+               */
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 `Low Telegram message balance for ${project.name || ""}`,
-                `We tried to send a Telegram message to chat ${message.to} with message:<br/><br/>${messageSummary}<br/><br/>The message was not sent because your project does not have enough balance for Telegram messages. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance is ${messageCost} USD. Please enable auto recharge or recharge manually.`,
+                `A Telegram notification was not sent. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: telegramLog.statusMessage!,
+            });
             return;
           }
         }
@@ -257,13 +315,23 @@ export default class TelegramService {
         telegramLog.fromBotUsername = config.botUsername;
       }
 
+      /*
+       * Telegram refuses a message of more than 4,096 characters, and the
+       * notification is lost: a longer one is cut to fit, with a note that
+       * the rest is in OneUptime (fitTelegramMessage).
+       */
+      const fitted: TelegramMessageText = fitTelegramMessage(
+        message.body,
+        message.parseMode,
+      );
+
       const payload: JSONObject = {
         chat_id: message.to,
-        text: message.body,
+        text: fitted.text,
       };
 
-      if (message.parseMode) {
-        payload["parse_mode"] = message.parseMode;
+      if (fitted.parseMode) {
+        payload["parse_mode"] = fitted.parseMode;
       }
 
       if (message.disableWebPagePreview !== undefined) {
@@ -325,27 +393,14 @@ export default class TelegramService {
         ? `Message ID: ${telegramMessageId}`
         : "Telegram message sent successfully";
 
-      if (shouldChargeForMessage && project && messageCost > 0) {
-        const deduction: number = Math.floor(messageCost * 100);
-        telegramLog.telegramCostInUSDCents = deduction;
+      if (shouldChargeForMessage && project && messageCostInUSDCents > 0) {
+        telegramLog.telegramCostInUSDCents = messageCostInUSDCents;
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.max(
-          0,
-          Math.floor(
-            (project.smsOrCallCurrentBalanceInUSDCents || 0) - deduction,
-          ),
-        );
-
-        await ProjectService.updateOneById({
-          id: project.id!,
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false,
-          },
-          props: {
-            isRoot: true,
-          },
+        // Paid in one statement, from whatever the balance is now.
+        await MessagingBalance.payForSentMessage({
+          projectId: project.id!,
+          channel: ProjectNotificationChannel.Telegram,
+          costInUSDCents: messageCostInUSDCents,
         });
       }
     } catch (error: unknown) {

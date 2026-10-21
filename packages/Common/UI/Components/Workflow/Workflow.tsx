@@ -2,15 +2,42 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
-import { getNewWorkflowNodePosition } from "./NodePlacement";
+import {
+  WorkflowCanvasNode,
+  WorkflowCanvasRect,
+  WorkflowCanvasViewport,
+  getNewWorkflowNodePosition,
+  getViewportToRevealNode,
+  getViewportToRevealTrigger,
+} from "./NodePlacement";
 import {
   LintGraphEdge,
   LintGraphNode,
   WorkflowLintResult,
   lintWorkflowGraph,
 } from "./GraphLint";
-import { findStepNodeToOpen } from "./GraphLintSummary";
+import {
+  WorkflowNodeIssueSummary,
+  WorkflowNodeRenderData,
+  buildNodeIssueSummaries,
+  findStepNodeToOpen,
+} from "./GraphLintSummary";
+import {
+  StepGraphEdge,
+  StepGraphNode,
+  StepValueSources,
+  getStepValueSources,
+} from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
+import { getWorkflowAddButton } from "./WorkflowAddButton";
+import {
+  ConnectionGraphEdge,
+  ConnectionGraphNode,
+  dropConnectionsFromMissingOutputs,
+  getOutputConnections,
+} from "./OutputConnections";
+import { OutputConnections } from "./Switch/SwitchModel";
+import Dictionary from "../../../Types/Dictionary";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
@@ -20,7 +47,14 @@ import ComponentMetadata, {
   ComponentType,
   NodeDataProp,
   NodeType,
+  Port,
 } from "../../../Types/Workflow/Component";
+import {
+  getComponentOutPorts,
+  getNewStepArguments,
+  hasOutPortsFromSettings,
+} from "../../../Types/Workflow/ComponentOutPorts";
+import { getNewPageStepArguments } from "../../../Types/Workflow/Components/OnCallPageNewStep";
 import React, {
   FunctionComponent,
   useCallback,
@@ -42,11 +76,16 @@ import ReactFlow, {
   OnConnect,
   ProOptions,
   ReactFlowInstance,
+  ReactFlowState,
+  Viewport,
   addEdge,
   getConnectedEdges,
   updateEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
+  useStore,
+  useStoreApi,
 } from "reactflow";
 // 👇 you need to import the reactflow styles
 import "reactflow/dist/style.css";
@@ -111,19 +150,170 @@ export const getEdgeDefaultProps: GetEdgeDefaultPropsFunction = (
   };
 };
 
+type PrefersReducedMotionFunction = () => boolean;
+
+const prefersReducedMotion: PrefersReducedMotionFunction = (): boolean => {
+  try {
+    return Boolean(
+      typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  } catch {
+    return false;
+  }
+};
+
+/*
+ * How many animation frames to keep trying to focus a step that was just
+ * added. react-flow keeps a new step hidden until it has measured it, which
+ * takes a frame or two, and a hidden element cannot take focus.
+ */
+const MAX_FOCUS_ATTEMPTS: number = 60;
+
+type GetCanvasOverlaysFunction = (
+  canvas: HTMLElement,
+) => Array<WorkflowCanvasRect>;
+
+/*
+ * Where the minimap and the zoom buttons sit over the canvas, measured from
+ * the inside of its border, which is where react-flow's own coordinates
+ * start.
+ */
+const getCanvasOverlays: GetCanvasOverlaysFunction = (
+  canvas: HTMLElement,
+): Array<WorkflowCanvasRect> => {
+  const canvasBox: DOMRect = canvas.getBoundingClientRect();
+
+  return Array.from(
+    canvas.querySelectorAll<HTMLElement>(
+      ".react-flow__minimap, .react-flow__controls",
+    ),
+  ).map((overlay: HTMLElement): WorkflowCanvasRect => {
+    const box: DOMRect = overlay.getBoundingClientRect();
+
+    return {
+      left: box.left - canvasBox.left - canvas.clientLeft,
+      top: box.top - canvasBox.top - canvas.clientTop,
+      width: box.width,
+      height: box.height,
+    };
+  });
+};
+
+/*
+ * Once the canvas has opened and fitted the workflow, brings the trigger
+ * into view if the fit left it off screen (getViewportToRevealTrigger): a
+ * workflow too big to fit at the smallest zoom is fitted on its middle,
+ * with the trigger above the top edge. Drawn inside ReactFlow, whose store
+ * says when its first fit is done; it draws nothing.
+ */
+const RevealTriggerOnOpen: FunctionComponent<{
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}> = (props: {
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}): null => {
+  const isFitDone: boolean = useStore((state: ReactFlowState): boolean => {
+    return state.fitViewOnInitDone;
+  });
+  const store: ReturnType<typeof useStoreApi> = useStoreApi();
+  const { setViewport } = useReactFlow();
+  const hasRevealed: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!isFitDone || hasRevealed.current) {
+      return;
+    }
+
+    hasRevealed.current = true;
+
+    const state: ReactFlowState = store.getState();
+    const [x, y, zoom] = state.transform;
+    const canvas: HTMLDivElement | null = props.canvasRef.current;
+
+    const nextViewport: WorkflowCanvasViewport | null =
+      getViewportToRevealTrigger({
+        nodes: state.getNodes().map((node: Node): WorkflowCanvasNode => {
+          return {
+            position: node.positionAbsolute || node.position,
+            width: node.width,
+            height: node.height,
+            isTrigger:
+              node.data?.metadata?.componentType === ComponentType.Trigger,
+          };
+        }),
+        viewport: { x: x, y: y, zoom: zoom },
+        canvasSize: { width: state.width, height: state.height },
+        overlays: canvas ? getCanvasOverlays(canvas) : [],
+      });
+
+    if (nextViewport) {
+      // On open, nothing to follow: no animation.
+      setViewport(nextViewport);
+    }
+  }, [isFitDone]);
+
+  return null;
+};
+
 export interface ComponentProps {
   initialNodes: Array<Node>;
   initialEdges: Array<Edge>;
   onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+  /*
+   * The toolbar's add button was pressed. It opens the panel the button
+   * names (WorkflowAddButton): Add Trigger while the canvas has no trigger,
+   * Add Component once it has one.
+   */
   showComponentsPickerModal: boolean;
   showRunModal: boolean;
+  /*
+   * Told, with false, when an add panel closes - Add Trigger or Add
+   * Component, whatever opened it - so the page clears its request and the
+   * button opens a panel again the next time it is pressed.
+   */
   onComponentPickerModalUpdate: (isModalShown: boolean) => void;
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  /*
+   * A run started from the Run Workflow panel will be a test run: the
+   * workflow is turned off (and not archived, which no run gets past). The
+   * panel says so before anything runs (RunModal).
+   */
+  runsAreTestRuns?: boolean | undefined;
   /** Run one component on its own. */
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
+  /*
+   * Why "Run just this step" is locked for this user - it takes permission
+   * to edit the workflow (WorkflowRunGate) - or undefined when it is not.
+   */
+  runStepDisabledReason?: string | undefined;
+  /*
+   * Why Run Workflow is locked for this user (WorkflowRunGate), or undefined
+   * when it is not. A step's value picker offers a test run only when not.
+   */
+  runDisabledReason?: string | undefined;
   webhookSecretKey?: string | undefined;
+  /**
+   * Whether the user may read the webhook secret key; the builder only loads
+   * it when they may. Handed to the Webhook trigger's settings.
+   */
+  canSeeWebhookSecretKey?: boolean | undefined;
+  /**
+   * Gives the workflow a new webhook secret key: Reset URL in the Webhook
+   * trigger's settings. Resolves once the new key is saved.
+   */
+  onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
+  /**
+   * The key the Incoming Email trigger's address is built from, whether the
+   * user may read it (the builder only loads it when they may), and what
+   * gives the workflow a new one: Reset address, or the first address of a
+   * workflow that has none. Handed to the Incoming Email trigger's settings.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
   /**
    * Called whenever the static checks over the graph are recomputed, so the
    * page around the canvas can show a count and decide what to do about it.
@@ -160,9 +350,35 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     setAllComponentMetadata(value.components);
   }, []);
 
+  /*
+   * The same arrays every time a picker opens: it organises and indexes the
+   * catalog once per array (ComponentPicker), so only the first opening
+   * pays for that.
+   */
+  const actionComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Component;
+    });
+  }, [allComponentMetadata]);
+
+  const triggerComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Trigger;
+    });
+  }, [allComponentMetadata]);
+
   const edgeUpdateSuccessful: any = useRef(true);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
+  const canvasRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  /*
+   * The react-flow id of a step that was just added and should take the
+   * keyboard focus once the canvas has drawn it. See the effect further down.
+   */
+  const nodeIdToFocusRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
   const [showComponentSettingsModal, setShowComponentSettingsModal] =
     useState<boolean>(false);
   const [selectedNodeData, setSelectedNodeData] = useState<NodeDataProp | null>(
@@ -171,6 +387,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   type OnNodeClickFunction = (data: NodeDataProp) => void;
 
+  /*
+   * The one way into a step's settings from the canvas: a click on the step,
+   * or Enter while it has the keyboard focus. Adding a step does not open
+   * them; see addToGraph.
+   */
   const onNodeClick: OnNodeClickFunction = useCallback((data: NodeDataProp) => {
     // if placeholder node is clicked then show modal.
 
@@ -186,11 +407,37 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   }, []);
 
+  /*
+   * The toolbar's add button opens the panel it names, read from the canvas
+   * as it is when the button is pressed: Add Trigger while there is no
+   * trigger (the dashed card's panel), Add Component once there is one. It
+   * used to offer steps to a workflow that had nothing to start it.
+   *
+   * Only a change of the page's request acts. A request taken back closes
+   * the panel it opened; a canvas that merely starts without one closes
+   * nothing, so it never shuts a panel the dashed card opened before its
+   * first effects ran.
+   */
+  const wasAddPanelRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    if (props.showComponentsPickerModal) {
-      setShowComponentsModal(true);
+    const wasRequested: boolean = wasAddPanelRequestedRef.current;
+    wasAddPanelRequestedRef.current = props.showComponentsPickerModal;
+
+    if (!props.showComponentsPickerModal) {
+      if (wasRequested) {
+        setShowComponentsModal(false);
+        setShowTriggersModal(false);
+      }
+
+      return;
+    }
+
+    if (getWorkflowAddButton(nodes).componentsType === ComponentType.Trigger) {
+      setShowTriggersModal(true);
     } else {
-      setShowComponentsModal(false);
+      setShowComponentsModal(true);
     }
   }, [props.showComponentsPickerModal]);
 
@@ -290,6 +537,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, [lintResult]);
 
   /*
+   * The same results sorted into what each step shows on the canvas: "Click to
+   * set up" while its required settings are empty, and a badge for anything
+   * else.
+   */
+  const issueSummariesByNodeId: Dictionary<WorkflowNodeIssueSummary> =
+    useMemo(() => {
+      return buildNodeIssueSummaries(lintResult.issues);
+    }, [lintResult]);
+
+  /*
    * Opening a step from outside the canvas — the issues panel naming the node
    * it is complaining about. A node that has since been deleted simply opens
    * nothing; the request is still acknowledged so the page does not sit
@@ -313,24 +570,175 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     props.onStepOpened?.();
   }, [props.openStepForNodeId]);
 
+  /*
+   * Every step, for the settings dialog. Placeholder nodes are left out: the
+   * "click here to add trigger" node carries a partial metadata object - no
+   * return values, no arguments, an empty id - and passing it on made every
+   * consumer responsible for knowing that.
+   */
+  const graphComponents: Array<NodeDataProp> = useMemo(() => {
+    return nodes
+      .map((node: Node) => {
+        return node.data as NodeDataProp;
+      })
+      .filter((data: NodeDataProp) => {
+        return data.nodeType !== NodeType.PlaceholderNode;
+      });
+  }, [nodes]);
+
+  /*
+   * The steps the open step can read values from - the trigger and every
+   * step before it - and the ones after it, whose values never exist yet when
+   * it runs. Its value picker offers only the first.
+   */
+  const selectedStepValueSources: StepValueSources | undefined = useMemo(() => {
+    if (!selectedNodeData) {
+      return undefined;
+    }
+
+    const selectedNode: Node | undefined = nodes.find((node: Node) => {
+      return (
+        (node.data as NodeDataProp).internalId === selectedNodeData.internalId
+      );
+    });
+
+    if (!selectedNode) {
+      return undefined;
+    }
+
+    return getStepValueSources({
+      nodes: nodes as unknown as Array<StepGraphNode>,
+      edges: edges as unknown as Array<StepGraphEdge>,
+      nodeId: selectedNode.id,
+    });
+  }, [nodes, edges, selectedNodeData]);
+
+  /*
+   * Where each output of the open step leads, as the canvas is now: a
+   * Switch / Case's settings say it for each case, and what taking a case
+   * out disconnects.
+   */
+  const selectedOutputConnections: OutputConnections | undefined =
+    useMemo(() => {
+      if (!selectedNodeData) {
+        return undefined;
+      }
+
+      const selectedNode: Node | undefined = nodes.find((node: Node) => {
+        return (
+          (node.data as NodeDataProp).internalId === selectedNodeData.internalId
+        );
+      });
+
+      if (!selectedNode) {
+        return undefined;
+      }
+
+      return getOutputConnections({
+        nodes: nodes as unknown as Array<ConnectionGraphNode>,
+        edges: edges as unknown as Array<ConnectionGraphEdge>,
+        nodeId: selectedNode.id,
+      });
+    }, [nodes, edges, selectedNodeData]);
+
   const nodesToRender: Array<Node> = useMemo(() => {
     return nodes.map((node: Node) => {
       const error: string = lintResult.errorsByNodeId[node.id] || "";
+      const issueSummary: WorkflowNodeIssueSummary | undefined =
+        issueSummariesByNodeId[node.id];
 
       // Same object when there is nothing to say, so react-flow can bail early.
-      if (!error && !node.data.error) {
+      if (!error && !issueSummary && !node.data.error) {
         return node;
       }
 
+      const data: WorkflowNodeRenderData = {
+        ...(node.data as NodeDataProp),
+        error: error,
+        issueSummary: issueSummary,
+      };
+
       return {
         ...node,
-        data: {
-          ...node.data,
-          error: error,
-        },
+        data: data,
       };
     });
-  }, [nodes, lintResult]);
+  }, [nodes, lintResult, issueSummariesByNodeId]);
+
+  /*
+   * A step that was just added takes the keyboard focus once the canvas has
+   * drawn it, so Enter opens its settings straight away. The panel it was
+   * chosen from has closed by then and focus is on nothing in particular.
+   * Focus that has gone somewhere else in the meantime is left where it is.
+   */
+  useEffect(() => {
+    if (!nodeIdToFocusRef.current) {
+      return undefined;
+    }
+
+    let frame: number | null = null;
+    let attempts: number = 0;
+
+    const focusNewNode: () => void = (): void => {
+      frame = null;
+
+      const nodeId: string | null = nodeIdToFocusRef.current;
+      const canvas: HTMLDivElement | null = canvasRef.current;
+
+      if (!nodeId || !canvas) {
+        return;
+      }
+
+      const activeElement: Element | null = document.activeElement;
+
+      if (
+        activeElement &&
+        activeElement !== document.body &&
+        !canvas.contains(activeElement)
+      ) {
+        nodeIdToFocusRef.current = null;
+        return;
+      }
+
+      const element: HTMLElement | undefined = Array.from(
+        canvas.querySelectorAll<HTMLElement>(".react-flow__node"),
+      ).find((candidate: HTMLElement) => {
+        return candidate.getAttribute("data-id") === nodeId;
+      });
+
+      if (element) {
+        /*
+         * preventScroll: focus scrolls an overflow-hidden ancestor, and
+         * react-flow's pane is one, which would shift the whole drawing
+         * under its own pan. The canvas has already brought the step into
+         * view by panning.
+         */
+        element.focus({ preventScroll: true });
+
+        if (document.activeElement === element) {
+          nodeIdToFocusRef.current = null;
+          return;
+        }
+      }
+
+      attempts++;
+
+      if (attempts >= MAX_FOCUS_ATTEMPTS) {
+        nodeIdToFocusRef.current = null;
+        return;
+      }
+
+      frame = requestAnimationFrame(focusNewNode);
+    };
+
+    focusNewNode();
+
+    return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+    };
+  }, [nodes]);
 
   const proOptions: ProOptions = { hideAttribution: true };
 
@@ -415,9 +823,26 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     showComponentSettingsModal ||
     showRunModal;
 
+  /*
+   * The page hears when an add panel closes, either one: the toolbar's
+   * button opens Add Trigger on a canvas without a trigger, and a page that
+   * never heard it close would not open anything the next time. Only the
+   * closing is told. The page sets its own request when the button is
+   * pressed, and a canvas that also told it every opening could chase it
+   * back and forth for ever when both changed in the same render.
+   */
+  const wasAddPanelOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    props.onComponentPickerModalUpdate(showComponentsModal);
-  }, [showComponentsModal]);
+    const isAddPanelOpen: boolean = showComponentsModal || showTriggersModal;
+
+    if (wasAddPanelOpenRef.current && !isAddPanelOpen) {
+      props.onComponentPickerModalUpdate(false);
+    }
+
+    wasAddPanelOpenRef.current = isAddPanelOpen;
+  }, [showComponentsModal, showTriggersModal]);
 
   const refreshEdges: VoidFunction = (): void => {
     setEdges((eds: Array<Edge>) => {
@@ -433,6 +858,43 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   useEffect(() => {
     props.onRunModalUpdate(showRunModal);
   }, [showRunModal]);
+
+  type RevealNodeFunction = (node: Node) => void;
+
+  /*
+   * Bring a step that was just added into view, at the zoom the builder chose
+   * and only as far as it takes. See getViewportToRevealNode.
+   */
+  const revealNode: RevealNodeFunction = (node: Node): void => {
+    const instance: ReactFlowInstance | null = flowInstance.current;
+
+    if (!instance) {
+      return;
+    }
+
+    const viewport: Viewport = instance.getViewport();
+    const canvas: HTMLDivElement | null = canvasRef.current;
+
+    const nextViewport: WorkflowCanvasViewport | null = getViewportToRevealNode(
+      {
+        position: node.position,
+        viewport: viewport,
+        canvasSize: {
+          width: canvas?.clientWidth || 0,
+          height: canvas?.clientHeight || 0,
+        },
+        overlays: canvas ? getCanvasOverlays(canvas) : [],
+      },
+    );
+
+    if (!nextViewport) {
+      return;
+    }
+
+    instance.setViewport(nextViewport, {
+      duration: prefersReducedMotion() ? 0 : 200,
+    });
+  };
 
   type AddToGraphFunction = (componentMetadata: ComponentMetadata) => void;
 
@@ -477,6 +939,39 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       } as NodeDataProp,
     };
 
+    /*
+     * A step that starts with settings of its own - a Switch / Case starts
+     * with two cases - has them from the moment it is on the canvas, so its
+     * outputs are there to connect before it is opened.
+     */
+    const newStepArguments: JSONObject | null = getNewStepArguments(
+      componentMetadata.id,
+      componentMetadata.tableName,
+    );
+
+    if (newStepArguments) {
+      (compToAdd.data as NodeDataProp).arguments = newStepArguments;
+    }
+
+    /*
+     * A Page step added to a workflow that starts on an incident or an
+     * alert starts as a page about that record (OnCallPageNewStep): all it
+     * still asks is who to page.
+     */
+    const newPageStepArguments: JSONObject | null = getNewPageStepArguments({
+      metadataId: componentMetadata.id,
+      steps: nodes.map((node: Node): NodeDataProp => {
+        return node.data as NodeDataProp;
+      }),
+    });
+
+    if (newPageStepArguments) {
+      (compToAdd.data as NodeDataProp).arguments = {
+        ...((compToAdd.data as NodeDataProp).arguments || {}),
+        ...newPageStepArguments,
+      };
+    }
+
     if (componentMetadata.componentType === ComponentType.Trigger) {
       // remove the placeholder trigger element from graph.
       setNodes((nds: Array<Node>) => {
@@ -499,17 +994,70 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       });
     }
 
-    setSelectedNodeData(compToAdd.data as NodeDataProp);
-    setShowComponentSettingsModal(true);
-    flowInstance.current?.setCenter(
-      compToAdd.position.x + 128,
-      compToAdd.position.y + 100,
-      { zoom: 1, duration: 200 },
-    );
+    /*
+     * The new step lands selected and in view, and its settings stay closed
+     * until it is clicked. Opening them by themselves covered the canvas the
+     * moment anything was added, before the builder had seen where the step
+     * went or connected it, and turned adding a few steps in a row into
+     * closing a dialog after each one. A step that still needs settings says
+     * "Click to set up" on the canvas instead.
+     */
+    revealNode(compToAdd);
+    nodeIdToFocusRef.current = compToAdd.id;
+  };
+
+  type OnCanvasKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void;
+
+  /*
+   * Enter on a step opens its settings, the way a click does. react-flow makes
+   * every step a focusable button but only selects it on Enter, and a step
+   * that was just added is focused for exactly this.
+   */
+  const onCanvasKeyDown: OnCanvasKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    if (
+      event.key !== "Enter" ||
+      event.defaultPrevented ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    const target: HTMLElement = event.target as HTMLElement;
+
+    // The step itself, not something inside it or elsewhere on the canvas.
+    if (!target.classList || !target.classList.contains("react-flow__node")) {
+      return;
+    }
+
+    const nodeId: string | null = target.getAttribute("data-id");
+
+    const node: Node | undefined = nodesToRender.find((candidate: Node) => {
+      return candidate.id === nodeId;
+    });
+
+    if (!node) {
+      return;
+    }
+
+    /*
+     * Otherwise the Enter carries on into the settings once they have opened
+     * and focused their first box, and starts a new line in it.
+     */
+    event.preventDefault();
+    refreshEdges();
+    onNodeClick(node.data as NodeDataProp);
   };
 
   return (
     <div
+      ref={canvasRef}
       style={{
         height: "calc(100vh - 220px)",
         minHeight: "400px",
@@ -551,8 +1099,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             stroke: #6366f1 !important;
             stroke-width: 2.5px !important;
           }
+          /*
+           * A dot grows where it is. React Flow centres a top or bottom dot
+           * with translate(-50%, 0); a bare scale() replaced that, and the
+           * dot jumped half its width to the right under the pointer.
+           */
           .react-flow__handle:hover {
             transform: scale(1.3) !important;
+          }
+          .react-flow__handle-top:hover,
+          .react-flow__handle-bottom:hover {
+            transform: translate(-50%, 0) scale(1.3) !important;
           }
           .react-flow__connection-line {
             stroke: #6366f1 !important;
@@ -567,6 +1124,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           .react-flow__edge.animated .react-flow__edge-path {
             animation: flow-dash 0.5s linear infinite !important;
             stroke-dasharray: 5 5 !important;
+          }
+          /*
+           * react-flow removes the focus outline from steps, which leaves a
+           * keyboard user with no way to see which step Enter would open.
+           * Pointer focus stays unmarked, so a click draws no ring.
+           */
+          .react-flow__node.selectable:focus-visible {
+            outline: 2px solid var(--ou-chart-focus-ring, #4f46e5) !important;
+            outline-offset: 3px !important;
+            border-radius: 14px;
           }
         `}
       </style>
@@ -589,6 +1156,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            */
           onNodeClick(node.data as NodeDataProp);
         }}
+        onKeyDown={onCanvasKeyDown}
         proOptions={proOptions}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -638,6 +1206,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           size={1}
           color="var(--ou-chart-grid, #cbd5e1)"
         />
+        <RevealTriggerOnOpen canvasRef={canvasRef} />
       </ReactFlow>
 
       {showComponentsModal && (
@@ -647,9 +1216,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentsModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Component;
-          })}
+          components={actionComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowComponentsModal(false);
 
@@ -665,9 +1232,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowTriggersModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Trigger;
-          })}
+          components={triggerComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowTriggersModal(false);
 
@@ -678,22 +1243,33 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
       {showComponentSettingsModal && selectedNodeData && (
         <ComponentSettingsModal
-          /*
-           * Placeholder nodes are excluded here rather than defended against
-           * downstream. The "click here to add trigger" node carries a partial
-           * metadata object — no returnValues, no arguments, an empty id — and
-           * passing it on made every consumer responsible for knowing that.
-           */
-          graphComponents={nodes
-            .map((node: Node) => {
-              return node.data as NodeDataProp;
-            })
-            .filter((data: NodeDataProp) => {
-              return data.nodeType !== NodeType.PlaceholderNode;
-            })}
+          graphComponents={graphComponents}
+          valueSources={selectedStepValueSources}
           workflowId={props.workflowId}
           webhookSecretKey={props.webhookSecretKey}
+          canSeeWebhookSecretKey={props.canSeeWebhookSecretKey}
+          onResetWebhookSecretKey={props.onResetWebhookSecretKey}
+          incomingEmailSecretKey={props.incomingEmailSecretKey}
+          canSeeIncomingEmailSecretKey={props.canSeeIncomingEmailSecretKey}
+          onResetIncomingEmailSecretKey={props.onResetIncomingEmailSecretKey}
+          /*
+           * Off, and not archived: the trigger is paused, so its dialog says
+           * its URL or address starts nothing until the workflow is on.
+           */
+          isWorkflowOff={Boolean(props.runsAreTestRuns)}
+          /*
+           * The value picker's "Test with Run Workflow": the settings save
+           * and close, and the Run Workflow panel opens.
+           */
+          onRequestTestRun={
+            props.runDisabledReason
+              ? undefined
+              : () => {
+                  setShowRunModal(true);
+                }
+          }
           component={selectedNodeData}
+          outputConnections={selectedOutputConnections}
           title={
             selectedNodeData && selectedNodeData.metadata.title
               ? selectedNodeData.metadata.title
@@ -712,6 +1288,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               ? props.onRunStep
               : undefined
           }
+          runStepDisabledReason={props.runStepDisabledReason}
           description={
             selectedNodeData && selectedNodeData.metadata.description
               ? selectedNodeData.metadata.description
@@ -726,13 +1303,15 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * comes back carries whatever lint message was on it. Clear that
              * before it reaches node state — state is what gets saved, and a
              * message about today's mistake has no business being written into
-             * the workflow.
+             * the workflow. The same goes for the sorted summary the canvas
+             * draws its "Click to set up" and badges from.
              */
-            const dataToStore: NodeDataProp = {
+            const dataToStore: WorkflowNodeRenderData = {
               ...componentData,
               error: "",
             };
             delete dataToStore.onClick;
+            delete dataToStore.issueSummary;
 
             setNodes((nds: Array<Node>) => {
               return nds.map((n: Node) => {
@@ -743,6 +1322,39 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 return n;
               });
             });
+
+            /*
+             * A Switch / Case has an output per case. A case taken out in the
+             * settings takes its output with it, and a connection from an
+             * output that is gone would lead nowhere, so it goes too. The
+             * settings said so before Save, case by case, with a way to put
+             * the case back.
+             */
+            const savedNode: Node | undefined = nodes.find((n: Node) => {
+              return n.data.internalId === dataToStore.internalId;
+            });
+
+            if (
+              savedNode &&
+              hasOutPortsFromSettings(dataToStore.metadata?.id)
+            ) {
+              const outputIds: Array<string> = getComponentOutPorts({
+                metadata: dataToStore.metadata,
+                arguments: dataToStore.arguments,
+              }).map((port: Port): string => {
+                return port.id;
+              });
+
+              setEdges((eds: Array<Edge>) => {
+                const kept: Array<Edge> = dropConnectionsFromMissingOutputs({
+                  edges: eds,
+                  nodeId: savedNode.id,
+                  outputIds: outputIds,
+                });
+
+                return kept.length === eds.length ? eds : kept;
+              });
+            }
 
             setShowComponentSettingsModal(false);
           }}
@@ -758,6 +1370,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               }) || getPlaceholderTriggerNode()
             ).data
           }
+          isTestRun={Boolean(props.runsAreTestRuns)}
+          // A record trigger's record is looked up in this workflow's project.
+          workflowId={props.workflowId}
           onClose={() => {
             setShowRunModal(false);
           }}

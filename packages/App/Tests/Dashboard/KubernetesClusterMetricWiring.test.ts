@@ -43,8 +43,12 @@ const IDLE_THRESHOLDS: RegExp =
   /thresholds=\{\{ warn: (\d+), danger: (\d+) \}\}/;
 const EFFICIENCY_GREEN: RegExp = /percent >= (\d+) \? "bg-green-50/;
 const EFFICIENCY_YELLOW: RegExp = /: percent >= (\d+) \? "bg-yellow-50/;
+/*
+ * The silence threshold, in minutes of time OneUptime was receiving
+ * (issue #2825): with no gap that is the same as that many minutes ago.
+ */
 const DISCONNECT_MINUTES: RegExp =
-  /OneUptimeDate\.getCurrentDate\(\), -(\d+), \);/;
+  /ReceivingCoverage\.getSilenceCutoff\(\{ silenceInMinutes: (\d+), \}\);/;
 const TOP_PODS_HOURS: RegExp =
   /const hoursBack: number = options\.hoursBack \|\| (\d+);/;
 
@@ -282,7 +286,7 @@ describe("cluster overview: hero chips", () => {
   const hero: string = between(
     OVERVIEW,
     "const renderHero:",
-    "return ( <Fragment> {renderHero()}",
+    "return ( <TimeRangeZoomScope",
   );
 
   test("each pod status chip carries its own description", () => {
@@ -353,7 +357,7 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
   test("every summary card has a tooltip of its own", () => {
     const cards: string = between(
       OVERVIEW,
-      '<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">',
+      '<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">',
       "<ResourceActivityCards",
     );
 
@@ -374,6 +378,16 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
       ["Agent Status", "agentStatus"],
     ]);
     expect(countOf(OVERVIEW, "<InfoCard")).toBe(5);
+
+    /*
+     * The sixth card, beside Agent Status, is the Kubernetes AI agent's own
+     * component; its (i) comes from the same record. It shows the status
+     * the Overview reads once for it and the AI agent card at the bottom.
+     */
+    expectCode(
+      OVERVIEW,
+      `<KubernetesAiAgentOverviewCard clusterId={modelId} tooltip={${CLUSTER_RECORD}.aiAgent} read={aiAccessStatus} />`,
+    );
   });
 
   test("pod health and the two top-consumer lists put an (i) beside their title", () => {

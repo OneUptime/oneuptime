@@ -7,6 +7,10 @@ import OneUptimeDate from "../Date";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import {
+  ProfileCategory,
+  getQueryProfileTypes,
+} from "../../Utils/Profiles/ProfileTypes";
 
 export default interface MonitorStepProfileMonitor {
   attributes: Dictionary<string | number | boolean>;
@@ -21,11 +25,27 @@ export default interface MonitorStepProfileMonitor {
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfProfiles: number;
   profileType: string;
+  /*
+   * The code the "Function Share" criteria measures: text a stack frame
+   * contains - a function's name, or a file or package path - in any case.
+   * Optional: monitors saved before this field existed have it undefined,
+   * and a Profile Count monitor does not need it.
+   */
+  functionName?: string | undefined;
 }
 
+// The longest function text a Profiles monitor matches on.
+export const PROFILE_MONITOR_FUNCTION_MAX_LENGTH: number = 500;
+
 export class MonitorStepProfileMonitorUtil {
+  /*
+   * `evaluateUntil` ends the window earlier than now: a telemetry check
+   * judges only data OneUptime has finished reading while its ingest queue
+   * is behind (ReceivingCoverage.planTelemetryEvaluation, issue #2825).
+   */
   public static toQuery(
     monitorStepProfileMonitor: MonitorStepProfileMonitor,
+    evaluateUntil?: Date | undefined,
   ): Query<Profile> {
     const query: Query<Profile> = {};
 
@@ -65,7 +85,7 @@ export class MonitorStepProfileMonitorUtil {
     }
 
     if (monitorStepProfileMonitor.lastXSecondsOfProfiles) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveSeconds(
         endDate,
         monitorStepProfileMonitor.lastXSecondsOfProfiles * -1,
@@ -76,19 +96,40 @@ export class MonitorStepProfileMonitorUtil {
     return query;
   }
 
+  /*
+   * A new Profiles monitor reads CPU time over the last five minutes: long
+   * enough to hold several uploads of every profiler OneUptime knows (they
+   * upload every 5 to 60 seconds), so a share does not swing with one
+   * upload more or less.
+   */
   public static getDefault(): MonitorStepProfileMonitor {
     return {
       attributes: {},
       profileType: "",
-      profileTypes: [],
+      profileTypes: [...(getQueryProfileTypes(ProfileCategory.Cpu) || [])],
       telemetryServiceIds: [],
       entityKeys: [],
-      lastXSecondsOfProfiles: 60,
+      lastXSecondsOfProfiles: 300,
+      functionName: "",
     };
   }
 
+  /*
+   * The function text, read as the monitor stores it: trimmed, and empty
+   * when it is not text.
+   */
+  public static getFunctionName(
+    monitorStepProfileMonitor: MonitorStepProfileMonitor | undefined,
+  ): string {
+    const value: unknown = monitorStepProfileMonitor?.functionName;
+
+    return typeof value === "string"
+      ? value.trim().substring(0, PROFILE_MONITOR_FUNCTION_MAX_LENGTH)
+      : "";
+  }
+
   public static fromJSON(json: JSONObject): MonitorStepProfileMonitor {
-    return {
+    const monitor: MonitorStepProfileMonitor = {
       attributes:
         (json["attributes"] as Dictionary<string | number | boolean>) || {},
       profileType: json["profileType"] as string,
@@ -99,6 +140,12 @@ export class MonitorStepProfileMonitorUtil {
       entityKeys: (json["entityKeys"] as Array<string>) || [],
       lastXSecondsOfProfiles: json["lastXSecondsOfProfiles"] as number,
     };
+
+    if (typeof json["functionName"] === "string") {
+      monitor.functionName = json["functionName"] as string;
+    }
+
+    return monitor;
   }
 
   public static toJSON(monitor: MonitorStepProfileMonitor): JSONObject {
@@ -109,6 +156,7 @@ export class MonitorStepProfileMonitorUtil {
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       entityKeys: monitor.entityKeys || [],
       lastXSecondsOfProfiles: monitor.lastXSecondsOfProfiles,
+      functionName: MonitorStepProfileMonitorUtil.getFunctionName(monitor),
     };
   }
 }

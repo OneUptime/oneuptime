@@ -19,6 +19,7 @@ import ChannelVerification, {
   VerifiableChannelFields,
 } from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -32,7 +33,7 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -133,6 +134,13 @@ const installFakeRow: (data: { service: unknown; row: FakeRow | null }) => {
 
   service["resendVerificationCode"] = jest.fn().mockResolvedValue(undefined);
 
+  // The real state machine's answer for the row, as the services give it.
+  service["getVerificationStatus"] = jest
+    .fn()
+    .mockImplementation((item: FakeRow) => {
+      return Promise.resolve(ChannelVerification.getStatus({ item: item }));
+    });
+
   return store;
 };
 
@@ -162,6 +170,17 @@ interface Channel {
   service: unknown;
   build: () => void;
   createsDefaultRules: boolean;
+  /*
+   * SMS answers a verify with how many call numbers the code verified too
+   * (UserCallService.verifyNumbersProvenBySms); the others answer empty.
+   */
+  verifyAnswersWithCallHandOver: boolean;
+  /*
+   * The channels with a verify dialog answer a resend with where the new
+   * code stands. All five have one now; the flag stays so a channel added
+   * without one says so here.
+   */
+  resendAnswersWithStatus: boolean;
 }
 
 const CHANNELS: Array<Channel> = [
@@ -174,6 +193,8 @@ const CHANNELS: Array<Channel> = [
       new UserEmailAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserSmsAPI",
@@ -184,6 +205,8 @@ const CHANNELS: Array<Channel> = [
       new UserSmsAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: true,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserCallAPI",
@@ -194,6 +217,8 @@ const CHANNELS: Array<Channel> = [
       new UserCallAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserWhatsAppAPI",
@@ -204,6 +229,8 @@ const CHANNELS: Array<Channel> = [
       new UserWhatsAppAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserIncomingCallNumberAPI",
@@ -214,6 +241,8 @@ const CHANNELS: Array<Channel> = [
       new UserIncomingCallNumberAPI();
     },
     createsDefaultRules: false,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
 ];
 
@@ -222,6 +251,14 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
   let mockResponse: OneUptimeResponse;
   let nextFunction: NextFunction;
   let store: { current: FakeRow | null };
+
+  /*
+   * Whether the row's owner is a member of the row's project, as the
+   * database answers it (ProjectMembership.isMember). Every person verifying
+   * their own number from the dashboard is one; the cases below that are
+   * about somebody who is not turn it off.
+   */
+  let isMember: jest.SpyInstance;
 
   const callVerify: (body: Record<string, unknown>) => Promise<void> = async (
     body: Record<string, unknown>,
@@ -276,6 +313,14 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
     (
       UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod as unknown as jest.Mock
     ).mockResolvedValue(undefined as never);
+
+    isMember = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true as never);
+  });
+
+  afterEach(() => {
+    isMember.mockRestore();
   });
 
   describe("POST verify", () => {
@@ -326,13 +371,54 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
       expect(store.current?.isVerified).toBeFalsy();
     });
 
+    /*
+     * The row is the caller's own, but in a project they are not a member
+     * of: one they left, or one they added it to without ever being in it.
+     * The right code changes nothing, and the answer is the one a row that
+     * does not exist gets.
+     */
+    it("refuses the owner's right code when they are not a member of the row's project", async () => {
+      isMember.mockResolvedValue(false as never);
+
+      await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
+
+      expect(lastError().message).toBe("Item not found");
+      expect(store.current?.isVerified).toBe(false);
+      expect(store.current?.verificationFailedAttempts).toBe(0);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      expect(
+        UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("asks about the row's own project and owner, not the caller's request", async () => {
+      await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
+
+      expect(isMember).toHaveBeenCalledTimes(1);
+
+      const asked: { projectId: ObjectID; userId: ObjectID } = isMember.mock
+        .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+
+      expect(asked.projectId.toString()).toBe(PROJECT_ID);
+      expect(asked.userId.toString()).toBe(OWNER_ID);
+    });
+
     it("accepts the right code and marks the row verified", async () => {
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
-        mockRequest,
-        mockResponse,
-      );
+      if (channel.verifyAnswersWithCallHandOver) {
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          { alsoVerifiedForCalls: 0 },
+        );
+      } else {
+        expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+        );
+      }
       expect(store.current?.isVerified).toBe(true);
     });
 
@@ -464,7 +550,12 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
         await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-        expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+        expect(
+          channel.verifyAnswersWithCallHandOver
+            ? Response.sendJsonObjectResponse
+            : Response.sendEmptySuccessResponse,
+        ).toHaveBeenCalled();
+        expect(nextFunction).not.toHaveBeenCalled();
       });
     }
   });
@@ -504,16 +595,79 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
       ).not.toHaveBeenCalled();
     });
 
+    /*
+     * A session that names nobody - an API key reaching the handler, or a
+     * session with no user in it - is refused before any row is read, so
+     * an owner and a caller that are both missing can never compare equal.
+     */
+    it("refuses a request whose session names no person, before reading any row", async () => {
+      mockRequest.userAuthorization = {} as JSONWebTokenData;
+      store.current = buildRow({ userId: undefined });
+
+      await callResend({ itemId: ITEM_ID });
+
+      expect(lastError().message).toBe("Invalid user ID");
+      expect(
+        (channel.service as AnyService)["findOneById"],
+      ).not.toHaveBeenCalled();
+      expect(
+        (channel.service as AnyService)["resendVerificationCode"],
+      ).not.toHaveBeenCalled();
+    });
+
+    it("refuses a request with no authorization at all, before reading any row", async () => {
+      delete (mockRequest as { userAuthorization?: unknown }).userAuthorization;
+
+      await callResend({ itemId: ITEM_ID });
+
+      expect(lastError().message).toBe("Invalid user ID");
+      expect(
+        (channel.service as AnyService)["findOneById"],
+      ).not.toHaveBeenCalled();
+      expect(
+        (channel.service as AnyService)["resendVerificationCode"],
+      ).not.toHaveBeenCalled();
+    });
+
+    it("refuses a row that has no owner, even for a signed-in caller", async () => {
+      store.current = buildRow({ userId: undefined });
+
+      await callResend({ itemId: ITEM_ID });
+
+      expect(lastError().message).toBe("Invalid user ID");
+      expect(
+        (channel.service as AnyService)["resendVerificationCode"],
+      ).not.toHaveBeenCalled();
+    });
+
     it("sends a code for a row the caller owns", async () => {
       await callResend({ itemId: ITEM_ID });
 
       expect(
         (channel.service as AnyService)["resendVerificationCode"],
       ).toHaveBeenCalledWith(ITEM_ID);
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
-        mockRequest,
-        mockResponse,
-      );
+
+      if (channel.resendAnswersWithStatus) {
+        /*
+         * Where the new code stands, read from the row the way the status
+         * route reads it: the verify dialog shows it without asking again.
+         */
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          expect.objectContaining({
+            isVerified: false,
+            codeState: "active",
+            cannotSendReason: null,
+          }),
+        );
+        expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+      } else {
+        expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+        );
+      }
     });
   });
 

@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CephSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -20,15 +23,6 @@ const CephSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.List,
-        },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CEPH_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
         },
         {
           link: {
@@ -65,7 +59,31 @@ const CephSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived Ceph clusters, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CEPH_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: CephCluster,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

@@ -154,14 +154,52 @@ describe("fetchAlerts", () => {
   test("filters on a current state that is not a resolved one when asked", async () => {
     /*
      * The filter is expressed against the alert's CURRENT state rather than a
-     * flag on the alert, which is why it nests. A flat `isResolvedState:
-     * false` would be a field the alert does not have and would filter
-     * nothing.
+     * flag on the alert: a flat `isResolvedState: false` would be a field the
+     * alert does not have and would filter nothing.
+     *
+     * Which states are open is the project's to say: every state above its
+     * resolved state. "Closed", placed after Resolved and not flagged, is
+     * resolved too, so the project's states are read first and the list asks
+     * for the open ones by id (utils/resolvedState).
      */
+    postMock().mockResolvedValueOnce({
+      data: makeListResponse([
+        makeAlertState({ _id: "alert-state-created", order: 1 }),
+        makeAlertState({
+          _id: "alert-state-acknowledged",
+          name: "Acknowledged",
+          isCreatedState: false,
+          isAcknowledgedState: true,
+          order: 2,
+        }),
+        makeAlertState({
+          _id: "alert-state-resolved",
+          name: "Resolved",
+          isCreatedState: false,
+          isResolvedState: true,
+          order: 3,
+        }),
+        makeAlertState({
+          _id: "alert-state-closed",
+          name: "Closed",
+          isCreatedState: false,
+          order: 4,
+        }),
+      ]),
+    } as never);
+
     await fetchAlerts("project-1", { unresolvedOnly: true });
 
+    const calls: Array<Array<unknown>> = postMock().mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0]).toBe("/api/alert-state/get-list?skip=0&limit=20");
+    expect(calls[0]![2]).toEqual({ headers: { tenantid: "project-1" } });
+    expect(lastUrl()).toBe("/api/alert/get-list?skip=0&limit=20");
     expect(lastBody()["query"]).toEqual({
-      currentAlertState: { isResolvedState: false },
+      currentAlertStateId: {
+        _type: "Includes",
+        value: ["alert-state-created", "alert-state-acknowledged"],
+      },
     });
   });
 
@@ -290,14 +328,6 @@ describe("fetchAllAlerts", () => {
     expect(lastBody()["query"]).toEqual({});
   });
 
-  test("filters on a current state that is not a resolved one when asked", async () => {
-    await fetchAllAlerts({ unresolvedOnly: true });
-
-    expect(lastBody()["query"]).toEqual({
-      currentAlertState: { isResolvedState: false },
-    });
-  });
-
   test("selects the project id each row belongs to", async () => {
     /*
      * The per-project fetch can infer the project from the request it made;
@@ -353,7 +383,6 @@ describe("fetchAllAlerts", () => {
 
     const response: ListResponse<AlertItem> = await fetchAllAlerts({
       limit: 1,
-      unresolvedOnly: true,
     });
 
     expect(response.count).toBe(12);

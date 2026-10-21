@@ -6,18 +6,20 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
 import EditionEnforcement from "../../../Server/Utils/EditionEnforcement";
 import logger from "../../../Server/Utils/Logger";
-import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import ObjectID from "../../../Types/ObjectID";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
   EditionStateCase,
   installFakeEnterpriseModule,
+  LICENSE_STATE_CASES,
+  LicenseStateCase,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
@@ -26,17 +28,19 @@ import { getJestSpyOn } from "../../Spy";
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
- * EditionEnforcement answers "is this identity control live here?" for the
- * core enforcement sites (UserAuthorization, status page sign-in, SCIM team
- * locks, provider listings, read masking).
+ * EditionEnforcement answers one question for core: are the SCIM Push Groups
+ * team locks live here (TeamService, TeamMemberService, TeamMemberAPI)?
  *
- * The rule: the answer follows the RUNTIME state of the feature behind it
- * (EnterpriseEdition.isFeatureActive) - SSO for the SSO requirements, routes
- * and listings, SCIM for the team locks. So the controls are live on the
- * Enterprise Edition while the license covers the feature (or billing is on),
- * and relaxed on the Community Edition AND on an Enterprise install whose
- * license has lapsed - there the SSO routes refuse and nobody could satisfy a
- * requirement. An unknown license state and any error answer "enforce".
+ * The rule: the answer follows the RUNTIME state of SCIM
+ * (EnterpriseEdition.isFeatureActive(SCIM)). So the locks are live on the
+ * Enterprise Edition while the license covers SCIM (or billing is on), and
+ * relaxed on the Community Edition AND on an Enterprise install whose license
+ * no longer covers SCIM - there no SCIM endpoint answers the identity
+ * provider, and nobody else could manage those teams. An unknown license
+ * state and any error answer "enforce".
+ *
+ * Single sign-on is not decided here at all: it is part of the Community
+ * Edition and its requirements are enforced in every edition.
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
@@ -54,11 +58,6 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     >,
   );
 });
-
-const userProps: DatabaseCommonInteractionProps = {
-  userId: new ObjectID("22222222-2222-4222-8222-222222222222"),
-  tenantId: new ObjectID("11111111-1111-4111-8111-111111111111"),
-};
 
 const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
@@ -80,7 +79,7 @@ describe("EditionEnforcement", () => {
     jest.restoreAllMocks();
   });
 
-  describe("the answers follow the runtime state of SSO and SCIM", () => {
+  describe("the SCIM team locks follow the runtime state of SCIM", () => {
     test("the matrix has lapsed Enterprise states, not just the two editions", () => {
       expect(
         EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
@@ -98,47 +97,71 @@ describe("EditionEnforcement", () => {
     )("%s", (_label: string, editionCase: EditionStateCase) => {
       editionCase.apply();
 
-      expect(EditionEnforcement.isSsoEnforced()).toBe(editionCase.isActive);
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(editionCase.isActive);
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(
         editionCase.isActive,
       );
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(
-        editionCase.isActive,
-      );
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        !editionCase.isActive,
+      expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(
+        EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM),
       );
     });
+
+    test("the Community Edition relaxes them with billing off and on", () => {
+      for (const billing of [false, true]) {
+        setTestBillingEnabled(billing);
+        uninstallEnterpriseModule();
+
+        expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(false);
+      }
+    });
+
+    test.each(
+      LICENSE_STATE_CASES.map(
+        (licenseState: LicenseStateCase): [string, LicenseStateCase] => {
+          return [licenseState.label, licenseState];
+        },
+      ),
+    )(
+      "billing on (OneUptime Cloud) enforces them whatever the license says: %s",
+      (_label: string, licenseState: LicenseStateCase) => {
+        setTestBillingEnabled(true);
+        licenseState.install();
+
+        expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
+      },
+    );
   });
 
-  describe("SSO and SCIM are decided separately", () => {
-    test("a license without SCIM relaxes the SCIM team locks only", () => {
+  describe("only the SCIM license feature decides", () => {
+    test("a license without SCIM relaxes the locks", () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({
-          features: [EnterpriseFeature.SSO, EnterpriseFeature.AuditLogs],
+          features: [
+            EnterpriseFeature.AuditLogs,
+            EnterpriseFeature.TeamCompliance,
+            EnterpriseFeature.InstanceHealth,
+          ],
         }),
       });
 
-      expect(EditionEnforcement.isSsoEnforced()).toBe(true);
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(true);
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(false);
     });
 
-    test("a license without SSO relaxes the SSO requirements only", () => {
+    test("a license with only SCIM enforces them", () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({
           features: [EnterpriseFeature.SCIM],
         }),
       });
 
-      expect(EditionEnforcement.isSsoEnforced()).toBe(false);
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(false);
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(false);
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        true,
-      );
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
+    });
+
+    test("an empty feature list relaxes them", () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshot({ features: [] }),
+      });
+
+      expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(false);
     });
   });
 
@@ -146,54 +169,19 @@ describe("EditionEnforcement", () => {
     test("lapse relaxes, renewal enforces again, lapse relaxes again", () => {
       const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
 
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(true);
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(false);
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(false);
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(false);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(true);
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(true);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(false);
-    });
-  });
+      expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(false);
 
-  describe("isSsoRequired", () => {
-    test.each([false, undefined, null])(
-      "a requirement that is not configured (%p) is never required",
-      (configured: boolean | undefined | null) => {
-        installFakeEnterpriseModule();
-        expect(EditionEnforcement.isSsoRequired(configured)).toBe(false);
-
-        uninstallEnterpriseModule();
-        expect(EditionEnforcement.isSsoRequired(configured)).toBe(false);
-      },
-    );
-
-    test("a configured requirement is relaxed on the Enterprise Edition once the license lapsed", () => {
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("expired"),
-      });
-
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(false);
-    });
-
-    test("a configured requirement is still required during the grace period", () => {
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("grace"),
-      });
-
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(true);
-    });
-
-    test("a configured requirement is relaxed on the Community Edition", () => {
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(false);
+      fake.setSnapshot(createLicenseSnapshotWithStatus("grace"));
+      expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
     });
   });
 
@@ -213,91 +201,63 @@ describe("EditionEnforcement", () => {
       );
     });
 
-    test("an error while deciding SSO enforcement enforces SSO and logs it", () => {
-      expect(EditionEnforcement.isSsoEnforced()).toBe(true);
-      expect(EditionEnforcement.isSsoRequired(true)).toBe(true);
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        false,
-      );
-      expect(loggerError).toHaveBeenCalled();
-    });
-
-    test("an error while deciding whether the SSO routes are served serves them", () => {
-      expect(EditionEnforcement.areSsoRoutesServed()).toBe(true);
-      expect(loggerError).toHaveBeenCalled();
-    });
-
-    test("an error while deciding the SCIM team locks applies them", () => {
+    test("an error while deciding the SCIM team locks applies them and logs it", () => {
       expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(true);
-      expect(loggerError).toHaveBeenCalled();
+      expect(loggerError).toHaveBeenCalledWith(
+        "EditionEnforcement: could not tell whether SCIM team locks apply; applying them.",
+      );
     });
   });
 
-  describe("shouldMaskSsoRequirementOnRead", () => {
-    test("internal root reads are never masked, in any state", () => {
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead({ isRoot: true }),
-      ).toBe(false);
-
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("expired"),
-      });
-
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead({ isRoot: true }),
-      ).toBe(false);
-
+  describe("asks about SCIM and nothing else", () => {
+    test("isFeatureActive is asked for SCIM only", () => {
       installFakeEnterpriseModule();
+      const isFeatureActive: SpyInstance = getJestSpyOn(
+        EnterpriseEdition,
+        "isFeatureActive",
+      );
 
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead({ isRoot: true }),
-      ).toBe(false);
+      EditionEnforcement.areScimTeamLocksEnforced();
+
+      expect(isFeatureActive.mock.calls).toEqual([[EnterpriseFeature.SCIM]]);
     });
 
-    test("missing props are treated as an internal read", () => {
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(undefined)).toBe(
-        false,
-      );
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(null)).toBe(
-        false,
-      );
-    });
-
-    test("master admin and user reads are masked while SSO is not active only", () => {
-      const masterAdmin: DatabaseCommonInteractionProps = {
-        userId: userProps.userId!,
-        isMasterAdmin: true,
-      };
-
-      // Community Edition.
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead(masterAdmin),
-      ).toBe(true);
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        true,
-      );
-
-      // Enterprise Edition, lapsed license.
-      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("invalid"),
+    /*
+     * Single sign-on is part of the Community Edition: nothing may put it
+     * back behind the license through this class.
+     */
+    test("exposes no single sign-on question", () => {
+      const members: Array<string> = Object.getOwnPropertyNames(
+        EditionEnforcement,
+      ).filter((name: string): boolean => {
+        return !["length", "name", "prototype"].includes(name);
       });
 
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead(masterAdmin),
-      ).toBe(true);
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        true,
+      expect(members).toEqual(["areScimTeamLocksEnforced"]);
+
+      for (const removed of [
+        "isSsoEnforced",
+        "isSsoRequired",
+        "areSsoRoutesServed",
+        "shouldMaskSsoRequirementOnRead",
+        "guardSsoRequirementWrite",
+        "SSO_REQUIREMENT_UNCHANGEABLE_COMMUNITY_MESSAGE",
+        "SSO_REQUIREMENT_UNCHANGEABLE_LICENSE_MESSAGE",
+      ]) {
+        expect(
+          (EditionEnforcement as unknown as Record<string, unknown>)[removed],
+        ).toBeUndefined();
+      }
+    });
+
+    test("the source never mentions the retired SSO license feature", () => {
+      const source: string = fs.readFileSync(
+        path.join(__dirname, "../../../Server/Utils/EditionEnforcement.ts"),
+        "utf8",
       );
 
-      // Enterprise Edition, license renewed.
-      fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-
-      expect(
-        EditionEnforcement.shouldMaskSsoRequirementOnRead(masterAdmin),
-      ).toBe(false);
-      expect(EditionEnforcement.shouldMaskSsoRequirementOnRead(userProps)).toBe(
-        false,
-      );
+      expect(source).not.toMatch(/EnterpriseFeature\.SSO\b/);
+      expect(source).toContain("EnterpriseFeature.SCIM");
     });
   });
 });

@@ -8,7 +8,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import WebAuthn from "Common/UI/Utils/WebAuthn";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import {
   PASSKEY_LOGIN_API_URL,
   PASSKEY_LOGIN_OPTIONS_API_URL,
@@ -16,6 +16,13 @@ import {
 import MobilePasskey, { MobilePasskeyRequest } from "../Utils/MobilePasskey";
 
 type Stage = "idle" | "preparing" | "prompt" | "verifying" | "complete";
+
+/*
+ * What an attempt that did not sign in says under the button. Kept as its
+ * translation key, not its words, so it follows the footer's language
+ * switcher like the rest of the page.
+ */
+type Notice = "login.passkey.notCompleted" | "login.passkey.cancelled";
 
 const MobilePasskeyPage: () => JSX.Element = () => {
   const { t } = useTranslation();
@@ -26,7 +33,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
   const secure: boolean = window.location.protocol === "https:";
   const [stage, setStage] = React.useState<Stage>("idle");
   const [error, setError] = React.useState<string>("");
-  const [notice, setNotice] = React.useState<string>("");
+  const [notice, setNotice] = React.useState<Notice | null>(null);
   const [callbackUrl, setCallbackUrl] = React.useState<string>("");
   const attempt: React.MutableRefObject<AbortController | null> =
     React.useRef<AbortController | null>(null);
@@ -53,7 +60,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
     const controller: AbortController = new AbortController();
     attempt.current = controller;
     setError("");
-    setNotice("");
+    setNotice(null);
     setStage("preparing");
 
     try {
@@ -114,7 +121,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
         err instanceof Error &&
         (err.name === "NotAllowedError" || err.name === "AbortError")
       ) {
-        setNotice(t("login.passkey.notCompleted"));
+        setNotice("login.passkey.notCompleted");
       } else {
         setError(WebAuthn.getErrorMessage(err, "sign-in"));
       }
@@ -132,7 +139,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
     attempt.current?.abort();
     attempt.current = null;
     setStage("idle");
-    setNotice(t("login.passkey.cancelled"));
+    setNotice("login.passkey.cancelled");
     MobilePasskey.returnToApp(
       MobilePasskey.cancelCallback(request, window.location.origin),
     );
@@ -142,11 +149,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
   return (
     <main className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-md">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
+        <ProductLogo />
         <h1 className="mt-6 text-center text-xl tracking-tight text-gray-900 sm:text-2xl">
           {t("mobilePasskey.title")}
         </h1>
@@ -189,9 +192,17 @@ const MobilePasskeyPage: () => JSX.Element = () => {
             </>
           ) : (
             <>
-              <p className="mb-5 text-center text-sm leading-6 text-gray-600">
-                {t("mobilePasskey.returnDescription")}
-              </p>
+              {/*
+               * Where the browser cannot use passkeys there is nothing to
+               * approve and no passkey to set up from here: the page says
+               * so and sends the person back to the app, without the line
+               * about approving or the setup help.
+               */}
+              {supported && (
+                <p className="mb-5 text-center text-sm leading-6 text-gray-600">
+                  {t("mobilePasskey.returnDescription")}
+                </p>
+              )}
               <div ref={button}>
                 <Button
                   title={t(
@@ -230,7 +241,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
                 )}
                 {notice && (
                   <p className="mt-3 text-sm leading-6 text-gray-600">
-                    {notice}
+                    {t(notice)}
                   </p>
                 )}
               </div>
@@ -243,16 +254,24 @@ const MobilePasskeyPage: () => JSX.Element = () => {
                 </p>
               )}
               {!supported && (
+                /*
+                 * This page's own sentence, not the sign-in page's: that
+                 * one ends "you can still sign in with your password or
+                 * SSO", and there is neither here. The way on is back in
+                 * the app.
+                 */
                 <p className="mt-3 text-sm leading-6 text-gray-600">
-                  {t("login.passkey.unsupported")}
+                  {t("mobilePasskey.unsupported")}
                 </p>
               )}
-              <details className="mt-5 text-sm text-gray-600">
-                <summary className="cursor-pointer font-medium text-indigo-700">
-                  {t("login.passkey.helpTitle")}
-                </summary>
-                <p className="mt-2 leading-6">{t("mobilePasskey.setup")}</p>
-              </details>
+              {supported && (
+                <details className="mt-5 text-sm text-gray-600">
+                  <summary className="cursor-pointer font-medium text-indigo-700">
+                    {t("login.passkey.helpTitle")}
+                  </summary>
+                  <p className="mt-2 leading-6">{t("mobilePasskey.setup")}</p>
+                </details>
+              )}
             </>
           )}
           {request && !callbackUrl && (

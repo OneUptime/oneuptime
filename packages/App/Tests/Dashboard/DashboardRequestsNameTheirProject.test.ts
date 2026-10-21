@@ -2,12 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  AllowlistEntry,
   PACKAGES_DIR,
   listSourceFiles,
   readSources,
 } from "Common/Tests/Helpers/RefreshAwareApiScan";
 import {
+  ProjectFreeAllowlistEntry,
   RawApiCall,
   findImplicitProjectCalls,
   findImplicitProjectOffenders,
@@ -74,7 +74,7 @@ const DASHBOARD_SRC: string = path.join(
  * signed-in USER or the INSTANCE, not about a project. Anything that is about
  * a project does not belong on this list - it belongs behind the header.
  */
-const PROJECT_FREE_ALLOWLIST: Array<AllowlistEntry> = [
+const PROJECT_FREE_ALLOWLIST: Array<ProjectFreeAllowlistEntry> = [
   {
     file: "Components/Footer/Footer.tsx",
     reason:
@@ -99,6 +99,16 @@ const PROJECT_FREE_ALLOWLIST: Array<AllowlistEntry> = [
     file: "Pages/Global/UserProfile/TwoFactorAuth.tsx",
     reason:
       "TOTP enrolment for the signed-in user's own login. This page is under Global/UserProfile precisely because it is not project scoped.",
+  },
+  {
+    /*
+     * Only this route: the file's other requests register a browser in one
+     * project and are swept like any other.
+     */
+    file: "Components/NotificationMethods/Push.tsx",
+    routes: ["/user-push/subscription-change"],
+    reason:
+      "A browser's renewed push subscription belongs to the signed-in user's browser, not to one project: the route takes the user from the session and moves every device they registered with the old subscription - one per project they are a member of - onto the new one.",
   },
 ];
 
@@ -304,6 +314,61 @@ describe("Dashboard requests name the project they are for", () => {
       ].join("\n");
 
       expect(findImplicitProjectCalls(source, "Fake.ts")).toEqual([]);
+    });
+
+    /*
+     * An allowlist entry that names routes excuses the requests to those
+     * routes and nothing else in its file, so a module with one user-level
+     * request (Push.tsx) cannot hide a project request added beside it.
+     */
+    test("a route entry excuses only its routes; the rest of its file is still swept", () => {
+      const source: string = [
+        'import API from "Common/UI/Utils/API/API";',
+        "await API.post({",
+        '  url: URL.fromString("/user-thing/subscription-change"),',
+        "  data: {},",
+        "});",
+        "await API.post({",
+        '  url: URL.fromString("/user-thing/register"),',
+        "  data: {},",
+        "});",
+      ].join("\n");
+
+      const offenders: Array<string> = findImplicitProjectOffenders({
+        sources: new Map<string, string>([
+          [path.join(DASHBOARD_SRC, "Fake.ts"), source],
+        ]),
+        baseDir: DASHBOARD_SRC,
+        allowlist: [
+          {
+            file: "Fake.ts",
+            routes: ["/user-thing/subscription-change"],
+            reason: "A fake entry that excuses one route of a fake file.",
+          },
+        ],
+      });
+
+      expect(offenders.length).toBe(1);
+      expect(offenders[0]).toContain("Fake.ts:6");
+      expect(offenders[0]).toContain("/user-thing/register");
+    });
+
+    test("a route entry goes stale once its file no longer requests that route without a project", () => {
+      expect(
+        findStaleProjectAllowlistEntries({
+          baseDir: DASHBOARD_SRC,
+          allowlist: [
+            {
+              file: "Components/NotificationMethods/Push.tsx",
+              routes: ["/user-push/no-such-route"],
+              reason: "A route the file does not request, to prove the check.",
+            },
+          ],
+          allowlistName: "FAKE_ALLOWLIST",
+        }),
+      ).toEqual([
+        "Components/NotificationMethods/Push.tsx no longer sends a request to /user-push/no-such-route without a project - remove the route from FAKE_ALLOWLIST",
+      ]);
     });
   });
 

@@ -28,8 +28,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * - a RemediationExecution run without a suggestion subject can never
  *   execute — it finalizes as Error;
  * - RemediationExecution runs count in the BACKGROUND lane: when the
- *   background sub-cap is full the run stays Queued (no claim, no
- *   dispatch) for the poller / TTL to deal with.
+ *   project set a concurrency cap for the lane and the background sub-cap
+ *   is full, the run stays Queued (no claim, no dispatch) for the poller /
+ *   TTL to deal with. With no cap set (the default) nothing holds it back.
  */
 
 const RUN_ID: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
@@ -51,17 +52,10 @@ function mockBudgetOk(): void {
   });
 }
 
-function flushDetachedKick(): Promise<unknown> {
-  // The inline kick is detached; give the microtask a beat.
-  return new Promise((resolve: (value: unknown) => void) => {
-    setTimeout(resolve, 0);
-  });
-}
-
 describe("AIInvestigationQueue — RemediationExecution runs", () => {
   beforeEach(() => {
     mockBudgetOk();
-    // No per-project cap override => default of 3.
+    // No per-project cap override => no cap.
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({ id: PROJECT_ID } as unknown as Project);
@@ -79,8 +73,8 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    const processRun: jest.SpyInstance = jest
-      .spyOn(AIInvestigationQueue, "processRun")
+    const sendToWorkers: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
       .mockResolvedValue(undefined);
 
     const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
@@ -105,8 +99,7 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
       }),
     );
 
-    await flushDetachedKick();
-    expect(processRun).toHaveBeenCalledWith(
+    expect(sendToWorkers).toHaveBeenCalledWith(
       expect.objectContaining({
         id: RUN_ID,
         attemptCount: 0,
@@ -120,7 +113,9 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId: PROJECT_ID,
@@ -203,10 +198,14 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
     );
   });
 
-  test("a RemediationExecution run stays Queued when the background lane is full", async () => {
+  test("a RemediationExecution run stays Queued when the background lane of a capped lane is full", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: PROJECT_ID,
+      incidentAiMaxConcurrentInvestigations: 3,
+    } as unknown as Project);
     /*
      * Cap 3 => background sub-cap 2 (one slot reserved for interactive
-     * RCA). Global count 2 passes the cap; triage 1 + plans 1 = 2 fills
+     * RCA). Lane count 2 passes the cap; triage 1 + plans 1 = 2 fills
      * the background lane.
      */
     jest
@@ -226,11 +225,42 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
       projectId: PROJECT_ID,
       attemptCount: 0,
       runType: AIRunType.RemediationExecution,
+      triggeredByIncidentId: INCIDENT_ID,
       triggeredByAutoRemediationSuggestionId: SUGGESTION_ID,
     });
 
     // No claim: the run must remain Queued for the poller / TTL.
     expect(claim).not.toHaveBeenCalled();
     expect(execute).not.toHaveBeenCalled();
+  });
+
+  test("a RemediationExecution run in a lane with no cap is never held back by the background lane", async () => {
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(25));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+    const execute: jest.SpyInstance = jest
+      .spyOn(RemediationExecutionRunner, "executeRemediation")
+      .mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.processRun({
+      id: RUN_ID,
+      projectId: PROJECT_ID,
+      attemptCount: 0,
+      runType: AIRunType.RemediationExecution,
+      triggeredByIncidentId: INCIDENT_ID,
+      triggeredByAutoRemediationSuggestionId: SUGGESTION_ID,
+    });
+
+    expect(count).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith({
+      aiRunId: RUN_ID,
+      projectId: PROJECT_ID,
+      suggestionId: SUGGESTION_ID,
+      attemptCount: 1,
+    });
   });
 });

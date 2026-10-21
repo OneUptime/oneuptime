@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,12 +12,16 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil, {
+  EmailColorPair,
+} from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -28,6 +33,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -54,6 +60,7 @@ RunCron(
         remediationNotes: true,
         currentAlertState: {
           name: true,
+          color: true,
         } as Select<AlertState>,
         alertSeverity: {
           name: true,
@@ -99,8 +106,6 @@ RunCron(
     for (const alert of alerts) {
       const projectId: ObjectID = alert.projectId!;
       const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
       /*
        * Mark the alert as notified first (matching the MonitorOwner worker) so
@@ -117,8 +122,7 @@ RunCron(
         },
       });
 
-      const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
-      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
+      const alertFeedText: string = OwnerNotificationFeedText.created("alert");
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -173,13 +177,23 @@ RunCron(
        * the two agree. Monitors without group-by have no series labels and
        * keep the previous monitor-name fallback, which for them is the
        * correct answer.
+       *
+       * The rest of what the alert's Affected Resources card lists - hosts,
+       * clusters, services, SLOs - follows, so an alert with no monitor at
+       * all (an SLO burn-rate alert) still names what it is about.
        */
-      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
-        alert.seriesLabels,
-      );
+      const resourceNames: Array<string> = LinkedAffectedResources.getNames({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: projectId,
+          alertId: alertId,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+      });
 
-      const resourcesAffected: string =
-        seriesSummary || alert.monitor?.name || "None";
+      const resourcesAffected: string = resourceNames.join(", ") || "None";
 
       /*
        * These values do not vary per owner, so convert them once per alert
@@ -295,20 +309,27 @@ RunCron(
       /*
        * The severity's own colour, not a mapping onto a fixed palette: the
        * row already carries the answer, and severities are project-defined.
-       * The fallback is the same slate the detail rows use.
+       * The badge's name takes the nearest shade of it that reads on white.
+       * The fallback, for a severity with no usable colour, is the same slate
+       * the detail rows use.
        */
-      const severityColor: string =
-        alert.alertSeverity?.color?.toString() || "#64748b";
+      const severityColors: EmailColorPair = EmailColorUtil.getColorPair(
+        alert.alertSeverity?.color,
+      ) || {
+        color: "#64748b",
+        textColor: "#64748b",
+      };
 
       /*
        * Named separately from the affected resource, because they are
        * different things - except for an ungrouped monitor, where
-       * resourcesAffected already IS the monitor name and a Monitor row would
+       * resourcesAffected already names the monitor and a Monitor row would
        * print it twice.
        */
       const monitorNameRaw: string = alert.monitor?.name || "";
-      const monitorName: string =
-        monitorNameRaw === resourcesAffected ? "" : monitorNameRaw;
+      const monitorName: string = resourceNames.includes(monitorNameRaw.trim())
+        ? ""
+        : monitorNameRaw;
 
       /*
        * THE INBOX PREVIEW LINE.
@@ -342,9 +363,17 @@ RunCron(
             alertNumber: alertNumberStr,
             projectName: alert.project!.name!,
             currentState: alert.currentAlertState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              alert.currentAlertState?.color,
+            ),
             alertDescription: alertDescriptionHtml,
             resourcesAffected: resourcesAffected,
             alertSeverity: alert.alertSeverity!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "alertSeverity",
+              alert.alertSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: alertIdentifiedDate,
@@ -363,7 +392,8 @@ RunCron(
             flapWarning: flapWarning,
             monitorName: monitorName,
             severityBadgeText: alert.alertSeverity!.name!,
-            severityColor: severityColor,
+            severityColor: severityColors.color,
+            severityTextColor: severityColors.textColor,
             preheader: preheader,
           };
 
@@ -379,7 +409,9 @@ RunCron(
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New alert created: ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `New alert created: ${alertIdentifier}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -428,7 +460,13 @@ RunCron(
             eventType,
           });
 
-          moreAlertFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreAlertFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);
@@ -442,8 +480,12 @@ RunCron(
         displayColor: Yellow500,
         feedInfoInMarkdown: alertFeedText,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * alert's creation, which the channel was told of itself.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

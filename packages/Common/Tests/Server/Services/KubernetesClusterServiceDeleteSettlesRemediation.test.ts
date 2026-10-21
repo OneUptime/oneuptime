@@ -10,6 +10,10 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Known follow-up 10 — deleting a Kubernetes cluster settles its in-flight
@@ -141,6 +145,8 @@ describe("KubernetesClusterService delete settles in-flight cluster-level AI rem
           clusterIdentifier: "prod-us",
         } as unknown as KubernetesCluster,
       ]);
+    // The clusters the caller may delete: those the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(KubernetesClusterService, clusterFind);
     suggestionFind = jest
       .spyOn(AutoRemediationSuggestionService, "findBy")
       .mockResolvedValue([
@@ -191,11 +197,18 @@ describe("KubernetesClusterService delete settles in-flight cluster-level AI rem
   it("reads the rounds before the delete, for the matched clusters in the caller's project", async () => {
     await hooks.onBeforeDelete(deleteBy());
 
+    // The clusters the caller may delete, read in the caller's project.
+    const callerMayDelete: Record<string, unknown> = readsOfRowsCallerMayWrite(
+      KubernetesClusterService,
+    )[0]!.query;
+    expect(callerMayDelete["_id"]).toBe(CLUSTER_ID.toString());
+    expect(callerMayDelete["projectId"]).toBe(PROJECT_ID);
+
+    // The delete's clusters among them.
     const clusterQuery: Record<string, unknown> = (
       clusterFind.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
     expect(clusterQuery["_id"]).toBe(CLUSTER_ID.toString());
-    expect(clusterQuery["projectId"]).toBe(PROJECT_ID);
 
     const suggestionQuery: Record<string, unknown> = (
       suggestionFind.mock.calls[0]![0] as { query: Record<string, unknown> }

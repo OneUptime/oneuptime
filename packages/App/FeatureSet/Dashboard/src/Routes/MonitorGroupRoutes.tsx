@@ -17,6 +17,9 @@ import MonitorGroupViewMonitors from "../Pages/MonitorGroup/View/Monitors";
 import MonitorGroupViewIncidents from "../Pages/MonitorGroup/View/Incidents";
 import MonitorGroupViewOwners from "../Pages/MonitorGroup/View/Owners";
 import MonitorGroupViewAuditLogs from "../Pages/MonitorGroup/View/AuditLogs";
+import MonitorGroupModel from "Common/Models/DatabaseModels/MonitorGroup";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -115,6 +118,12 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: MonitorGroupModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

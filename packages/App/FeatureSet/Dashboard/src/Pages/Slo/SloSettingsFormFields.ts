@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { pickSloFormFields } from "./SloFormFields";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -5,22 +6,28 @@ import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMoni
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The SLO Settings page's edit forms and the plain-language summaries its
  * cards show, kept React-free for the same reason as SloFormFields.ts: App
  * tests can import this without pulling the Dashboard's react into App.
  *
- * Settings owns how an SLO measures. The create wizard asks only for the
- * objective and period and leaves the rest to server defaults, so this page
- * is the one place the downtime rules and evaluation switch can be changed.
- * Objective and period are editable here too, because they are what the
- * SLO measures against and the Overview's details card no longer edits
- * them.
+ * Settings owns how an SLO measures. The create form asks only for the
+ * name and the target, with the threshold and period folded at their
+ * defaults, and leaves the rest to server defaults, so this page is the
+ * one place the downtime rules can be changed. Objective and period
+ * are editable here too, because they are what the SLO measures against
+ * and the Overview's details card no longer edits them. Whether the SLO is
+ * evaluated at all is not a form: it is the Evaluation card's switch,
+ * which saves when it is flipped (Components/Slo/SloEvaluationCard).
  */
 
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
@@ -58,32 +65,49 @@ export const getSloPeriodSettingsFormFields: GetSloSettingsFormFieldsFunction =
 /*
  * The enum values ("Any Monitor Down", "Monitor Seconds Average") name the
  * maths, not the consequence. These say what each mode does to the error
- * budget and when to pick it, and are shown both under each dropdown option
- * and beside the chosen mode on the Settings card.
+ * budget and when to pick it, beside the chosen mode on the Settings card.
  */
 export const SLO_MULTI_MONITOR_MODE_DESCRIPTIONS: Record<
   SloMultiMonitorMode,
   string
 > = {
-  [SloMultiMonitorMode.AnyDown]:
+  [SloMultiMonitorMode.AnyDown]: translationKey(
     "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.",
-  [SloMultiMonitorMode.MonitorSecondsAverage]:
+  ),
+  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
     "Downtime is averaged across monitors, so one of four monitors down for an hour costs the budget a quarter of an hour. Pick this for redundant replicas or regions, where one being down is a partial outage.",
+  ),
 };
 
-export type GetSloMultiMonitorModeDropdownOptionsFunction =
-  () => Array<DropdownOption>;
+/*
+ * The same two modes as answers to pick in Edit Downtime Calculation, each
+ * with one line: what counts as downtime, and when to pick it. It was a
+ * dropdown under a description about the field, with each mode's meaning
+ * hidden in the closed list. Any Monitor Down - the column's default -
+ * comes first.
+ */
+export const SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS: Record<
+  SloMultiMonitorMode,
+  string
+> = {
+  [SloMultiMonitorMode.AnyDown]: translationKey(
+    "Down whenever any monitor is down. For monitors that must all be up.",
+  ),
+  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
+    "Downtime averaged across monitors. For replicas, where one down is a partial outage.",
+  ),
+};
 
-export const getSloMultiMonitorModeDropdownOptions: GetSloMultiMonitorModeDropdownOptionsFunction =
-  (): Array<DropdownOption> => {
-    return DropdownUtil.getDropdownOptionsFromEnum(SloMultiMonitorMode).map(
-      (option: DropdownOption): DropdownOption => {
+export type GetSloMultiMonitorModeChoicesFunction = () => Array<RadioButton>;
+
+export const getSloMultiMonitorModeChoices: GetSloMultiMonitorModeChoicesFunction =
+  (): Array<RadioButton> => {
+    return Object.values(SloMultiMonitorMode).map(
+      (mode: SloMultiMonitorMode): RadioButton => {
         return {
-          ...option,
-          description:
-            SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[
-              option.value as SloMultiMonitorMode
-            ],
+          title: mode,
+          value: mode,
+          description: SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[mode],
         };
       },
     );
@@ -98,15 +122,12 @@ export const getSloDowntimeSettingsFormFields: GetSloSettingsFormFieldsFunction 
         },
         title: "Multi Monitor Mode",
         description:
-          "How downtime is combined when this SLO measures more than one monitor. With a single monitor both modes measure the same thing.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: getSloMultiMonitorModeDropdownOptions(),
-        /*
-         * Required because the column is NOT NULL: clearing the dropdown
-         * would otherwise send an empty value the save then rejects.
-         */
+          "Only matters when this SLO measures more than one monitor.",
+        fieldType: FormFieldSchemaType.RadioButton,
+        radioButtonOptions: getSloMultiMonitorModeChoices(),
+        // The column is NOT NULL: a choice always holds one of the two.
         required: true,
-        placeholder: SloMultiMonitorMode.AnyDown,
+        dataTestId: "slo-multi-monitor-mode",
       },
       {
         field: {
@@ -121,37 +142,18 @@ export const getSloDowntimeSettingsFormFields: GetSloSettingsFormFieldsFunction 
          * time (ServiceLevelObjectiveService.onBeforeCreate).
          */
         description:
-          "Time a monitor spends in any of these statuses spends error budget. Leave empty to always count every non-operational status, including ones added later.",
+          "Time in these statuses spends error budget. Leave empty to count every non-operational status.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
           type: MonitorStatus,
           labelField: "name",
           valueField: "_id",
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         },
         required: false,
         placeholder: "Every non-operational status",
-      },
-    ];
-  };
-
-export const getSloEvaluationSettingsFormFields: GetSloSettingsFormFieldsFunction =
-  (): Array<ModelField<ServiceLevelObjective>> => {
-    return [
-      {
-        field: {
-          isEnabled: true,
-        },
-        title: "Enabled",
-        /*
-         * Worth spelling out: disabling is not only "stop measuring".
-         * ServiceLevelObjectiveService.onUpdateSuccess resolves every alert
-         * and incident the burn rate rules have open, because nothing would
-         * ever resolve them once the worker stops looking at this SLO.
-         */
-        description:
-          "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
       },
     ];
   };
@@ -195,13 +197,21 @@ export const describeSloWindow: DescribeSloWindowFunction = (
   data: SloWindowSummaryData,
 ): string => {
   if (data.windowType === SloWindowType.CalendarMonth) {
-    return `Calendar month (${data.timezone || "UTC"})`;
+    return translateTemplate("Calendar month ({{timezone}})", {
+      timezone: data.timezone || "UTC",
+    });
   }
 
   const windowDays: number =
     toFinitePositiveNumber(data.windowDays) ?? DEFAULT_ROLLING_WINDOW_DAYS;
 
-  return `Rolling ${windowDays}-day window`;
+  return translatePlural(
+    {
+      one: "Rolling {{count}}-day window",
+      other: "Rolling {{count}}-day window",
+    },
+    windowDays,
+  );
 };
 
 export interface SloErrorBudgetSummaryData extends SloWindowSummaryData {
@@ -249,7 +259,10 @@ export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
       Math.round(allowedFraction * 30 * SECONDS_PER_DAY),
     );
 
-    return `${allowedPercentage}% of each month: ${thirtyDayBudget} of downtime in a 30-day month`;
+    return translateTemplate(
+      "{{percentage}}% of each month: {{budget}} of downtime in a 30-day month",
+      { percentage: String(allowedPercentage), budget: thirtyDayBudget },
+    );
   }
 
   const windowDays: number =
@@ -258,7 +271,14 @@ export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
     Math.round(allowedFraction * windowDays * SECONDS_PER_DAY),
   );
 
-  return `${budget} of downtime per ${windowDays}-day window`;
+  return translatePlural(
+    {
+      one: "{{budget}} of downtime per {{count}}-day window",
+      other: "{{budget}} of downtime per {{count}}-day window",
+    },
+    windowDays,
+    { budget: budget },
+  );
 };
 
 export type OrderDowntimeMonitorStatusesFunction = (

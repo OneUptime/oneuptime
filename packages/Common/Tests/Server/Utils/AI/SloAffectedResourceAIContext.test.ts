@@ -31,6 +31,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * A burn-rate incident or alert has no monitor - by design - so every place
@@ -403,6 +404,8 @@ describe("query_alerts", () => {
   });
 
   test("the list branch gives a monitor-less burn-rate alert its SLO as a source", async () => {
+    // Active: the project's alert states above its resolved state.
+    mockProjectStates();
     const findBy: jest.SpyInstance = jest
       .spyOn(AlertService, "findBy")
       .mockResolvedValue([

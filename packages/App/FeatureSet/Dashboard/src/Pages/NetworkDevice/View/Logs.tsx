@@ -1,5 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -17,6 +21,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const NETWORK_DEVICE_ID_ATTR: string = "networkDevice.id";
 
@@ -33,6 +40,7 @@ const LOG_ATTRIBUTE_DISPLAY_KEYS: Record<string, string> = {
 const NetworkDeviceLogs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [deviceName, setDeviceName] = useState<string>("");
@@ -119,21 +127,39 @@ const NetworkDeviceLogs: FunctionComponent<
         >
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              Device logs are collected by your <strong>probe</strong>. It
-              listens for <strong>SNMP traps</strong> on UDP port 162 and for{" "}
-              <strong>syslog</strong> messages on UDP port 5140 (syslog is off
-              by default — enable it with{" "}
-              <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code> on the probe).
-              Point this device&apos;s syslog and trap destinations at the
-              probe&apos;s IP address and messages will appear here within a few
-              minutes.
+              <TranslatedSentence
+                template="Device logs are collected by your {{probe}}. It listens for {{snmpTraps}} on UDP port 162 and for {{syslog}} on port 5140, over UDP and TCP. Point this device's syslog and trap destinations at the probe's IP address and messages appear here within a minute."
+                slots={{
+                  probe: <strong>{translator.translateText("probe")}</strong>,
+                  snmpTraps: (
+                    <strong>{translator.translateText("SNMP traps")}</strong>
+                  ),
+                  syslog: <strong>{translator.translateText("syslog")}</strong>,
+                }}
+              />
             </p>
             <p className="text-gray-500">
-              On most routers and switches this is two steps: add a remote
-              syslog server pointing at the probe, then add the probe as an SNMP
-              trap receiver. Messages are matched to this device by the sender
-              IP address, which must equal this device&apos;s hostname/IP as
-              registered here.
+              {translator.translateText(
+                "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the address they come from: its hostname, or one of its Other Addresses.",
+              )}
+            </p>
+            <p className="text-gray-500">
+              <TranslatedSentence
+                template="What OneUptime reads out of these messages as events - a link going down, a tunnel, a restart - is on this device's {{events}} page, with each vendor's set-up steps."
+                slots={{
+                  events: (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_VIEW_EVENTS] as Route,
+                        { modelId: modelId },
+                      )}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {translator.translateText("Events") || ""}
+                    </AppLink>
+                  ),
+                }}
+              />
             </p>
           </div>
         </Card>

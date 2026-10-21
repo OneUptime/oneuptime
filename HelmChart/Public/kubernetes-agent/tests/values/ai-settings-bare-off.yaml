@@ -1,0 +1,3 @@
+# A values file with a bare `off`: YAML 1.1 reads it as the boolean false.
+aiAgent:
+  fixes: off

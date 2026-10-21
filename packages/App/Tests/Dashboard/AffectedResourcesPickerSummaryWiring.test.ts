@@ -58,6 +58,8 @@ function listSourceFiles(directory: string): Array<string> {
 
 interface PickerField {
   file: string;
+  // The whole file, to resolve a list the picker is given by name.
+  source: string;
   // The whole field object literal the picker is rendered from.
   fieldSource: string;
 }
@@ -120,7 +122,11 @@ function pickerEditorFields(file: string, source: string): Array<PickerField> {
     if (editorHook < 0 || summaryHook > editorHook) {
       continue;
     }
-    fields.push({ file, fieldSource: enclosingObject(source, editorHook) });
+    fields.push({
+      file,
+      source,
+      fieldSource: enclosingObject(source, editorHook),
+    });
   }
   return fields;
 }
@@ -129,14 +135,33 @@ function isSummaryEnabled(source: string): boolean {
   return source.includes("summary={{ enabled: true");
 }
 
-function resourceTypesOf(pickerSource: string): Array<string> {
-  const match: RegExpMatchArray | null = pickerSource.match(
+/*
+ * The resource types a picker element is given: an inline array, or the
+ * name of an array constant declared in the same file - how a page shares
+ * one list between its editor and its summary.
+ */
+function resourceTypesOf(
+  pickerSource: string,
+  fileSource: string,
+): Array<string> {
+  let list: string | undefined = pickerSource.match(
     /resourceTypes=\{\[([^\]]*)\]\}/,
-  );
-  if (!match) {
+  )?.[1];
+
+  const listName: string | undefined = pickerSource.match(
+    /resourceTypes=\{([A-Za-z_$][\w$]*)\}/,
+  )?.[1];
+
+  if (list === undefined && listName) {
+    list = fileSource.match(
+      new RegExp(`const ${listName}(?:: [^=]+)? = \\[([^\\]]*)\\]`),
+    )?.[1];
+  }
+
+  if (list === undefined) {
     return [];
   }
-  return (match[1] || "")
+  return list
     .split(",")
     .map((part: string) => {
       return part.trim().replace(/^"|"$/g, "");
@@ -209,12 +234,18 @@ describe("affected resources in a wizard's summary step", () => {
       },
     );
 
-    // Create Alert is one of them; the others summarise another way.
+    // A floor, not the full list: a new wizard joins the checks on its own.
     expect(
       summaryPickers.map((field: PickerField) => {
         return path.relative(DASHBOARD_SRC, field.file);
       }),
-    ).toContain(path.join("Pages", "Alerts", "Create.tsx"));
+    ).toEqual(
+      expect.arrayContaining([
+        path.join("Pages", "Alerts", "Create.tsx"),
+        path.join("Pages", "Incidents", "Create.tsx"),
+        path.join("Pages", "ScheduledMaintenanceEvents", "Create.tsx"),
+      ]),
+    );
 
     for (const field of summaryPickers) {
       const editor: string = pickerElementAfter(
@@ -227,8 +258,10 @@ describe("affected resources in a wizard's summary step", () => {
       );
 
       expect(summary).toContain("readOnly={true}");
-      expect(resourceTypesOf(summary)).toEqual(resourceTypesOf(editor));
-      expect(resourceTypesOf(summary).length).toBeGreaterThan(0);
+      expect(resourceTypesOf(summary, field.source)).toEqual(
+        resourceTypesOf(editor, field.source),
+      );
+      expect(resourceTypesOf(summary, field.source).length).toBeGreaterThan(0);
 
       /*
        * Each resource prop the editor reads, the summary reads too. Prettier

@@ -36,9 +36,12 @@ publish_to_npm() {
     local npm_package_name
     npm_package_name=$(node -p "require('./$directory_name/package.json').name")
 
-    # Check if this version is already published on npm.
-    # `--prefer-online` for the same reason as the wait loop below: without it
-    # this read can be answered from a packument npm cached earlier in the run.
+    # Check if this version is already published on npm, so a re-run of the
+    # release after a partial failure publishes only what is missing.
+    # `--prefer-online` asks the registry itself: registry.npmjs.org serves
+    # packuments with max-age=300, and without it npm answers from a packument
+    # it cached earlier in the job, one that can predate the version (a read
+    # like that, in a poll this script no longer has, failed 13.0.7's release).
     if npm view --prefer-online "$npm_package_name@$package_version" version 2>/dev/null; then
         echo "$npm_package_name@$package_version is already published on npm. Skipping."
         return 0
@@ -56,10 +59,14 @@ publish_to_npm() {
         # exits 1 with "Version not changed" and aborts the publish step.
         npm version --allow-same-version "$package_version"
 
-        # Replace any Common dependency with the pinned version being published
-        sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
-        sed -i "s/\"Common\": \"npm:@oneuptime\/common@latest\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
-
+        # No package published here needs Common when it runs (#4872). The
+        # CLI bundles the Common code it uses when npm packs it (its prepack
+        # script, packages/CLI/esbuild.config.js), so its lockfile's link to
+        # ../Common stays as it is: the bundle is built from this checkout's
+        # Common and its locked dependencies, the code CI tested. This used
+        # to rewrite that link to npm:@oneuptime/common@<version>, which
+        # swapped in a registry copy with freshly resolved dependencies and
+        # published a CLI that needed @oneuptime/common to run.
         npm install
         npm run compile
         npm publish --access public
@@ -67,37 +74,21 @@ publish_to_npm() {
 }
 
 
-# Publish Common first - other packages depend on it
+# Publish Common first, in the order the release has always published.
 publish_to_npm "packages/Common"
 
-# Wait for @oneuptime/common to be readable from the registry, because the
-# packages below install against it by version.
+# The packages below are published as soon as Common's publish has returned,
+# without waiting for @oneuptime/common@$package_version to become readable on
+# the registry. None of them installs it: since #4872 the CLI bundles ../Common
+# when npm packs it (its prepack script), and the React Native recorder never
+# used Common. So the wait that stood here - `npm view` polled every 10 seconds
+# for up to 90 minutes - only kept the order, and the order holds without it,
+# because each publish below starts after Common's has finished.
 #
-# `--prefer-online` is load-bearing, not belt and braces. registry.npmjs.org
-# serves packuments with max-age=300, and npm answers from its own cache
-# without revalidating until that expires. The `npm view` in publish_to_npm
-# above therefore seeds a cached packument that does not contain the version
-# being published, and every poll here reads that same stale copy — so the
-# loop could not observe the new version until the cache entry aged out,
-# which is the five minutes this loop used to allow in total. 13.0.7 timed
-# out here after publishing successfully, skipping the CLI and React Native
-# publishes and every job gated behind them.
-#
-# The budget is raised to 15 minutes as well: @oneuptime/common unpacks to
-# ~156 MB, and real propagation of a tarball that size is not instant.
-echo "Waiting for @oneuptime/common@$package_version to be available on npm..."
-max_attempts=90
-attempt=1
-until npm view --prefer-online "@oneuptime/common@$package_version" version 2>/dev/null; do
-    if [ "$attempt" -ge "$max_attempts" ]; then
-        echo "Timed out waiting for @oneuptime/common@$package_version to appear on npm after $((max_attempts * 10))s"
-        exit 1
-    fi
-    echo "Attempt $attempt/$max_attempts - not available yet, retrying in 10s..."
-    attempt=$((attempt + 1))
-    sleep 10
-done
-echo "@oneuptime/common@$package_version is now available on npm"
+# What the wait cost was every minute npm took to make a 181 MB package
+# readable: 8.6, 13.6 and 19.7 minutes in the releases of 14.0.61, 14.0.63 and
+# 14.0.65, and 55 minutes in 14.0.7's, with a runner held all along and the
+# release's e2e jobs, which needed this job, waiting behind it.
 
 # Install packages/Common's own dependencies before anything compiles against
 # it.
@@ -106,7 +97,8 @@ echo "@oneuptime/common@$package_version is now available on npm"
 # lockfiles pin node_modules/Common as a link to ../Common, and npm keeps that
 # link, so tsc follows the symlink and type-checks packages/Common's real
 # sources — which import typeorm, react, axios and zod. Those resolve only if
-# packages/Common/node_modules is populated.
+# packages/Common/node_modules is populated. The CLI's bundle is built from
+# the same sources and the same node_modules.
 #
 # publish_to_npm populates it as a side effect of publishing, but it returns
 # early when the version is already on npm, which is exactly the case when a
@@ -118,6 +110,6 @@ echo "@oneuptime/common@$package_version is now available on npm"
 echo "Installing packages/Common dependencies so dependents can compile against it"
 (cd packages/Common && npm install)
 
-# Publish packages that depend on Common (after Common is available on npm)
+# Then the React Native recorder and the CLI, in that order, as always.
 publish_to_npm "packages/App/FeatureSet/MobileRecorder"
 publish_to_npm "packages/CLI"

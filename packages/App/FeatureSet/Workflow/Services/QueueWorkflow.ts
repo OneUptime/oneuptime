@@ -2,13 +2,22 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ObjectID from "Common/Types/ObjectID";
+import ComponentID from "Common/Types/Workflow/ComponentID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import CronTab from "Common/Utils/CronTab";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
+import {
+  WORKFLOW_TURNED_OFF_MESSAGE,
+  getWorkflowTestRunLogLine,
+  getWorkflowTestRunStarter,
+} from "Common/Types/Workflow/WorkflowEnabled";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
+import UserService from "Common/Server/Services/UserService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -16,6 +25,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import logger from "Common/Server/Utils/Logger";
+import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
@@ -24,36 +34,27 @@ import {
   getSecretWorkflowVariableValues,
   redactSecretsFromString,
 } from "../Utils/SecretRedaction";
+import { buildWorkflowRunJobData } from "../Utils/WorkflowRunJob";
+
+const WORKFLOW_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default class QueueWorkflow {
+  /*
+   * Removes a workflow's schedule from the Workflow queue. Keyed by the
+   * workflow id, which is the job NAME of every scheduled run, so it still
+   * works once the row (and the repeatableJobKey stored on it) is gone.
+   * Idempotent: a workflow with no schedule, or no row, is a no-op.
+   */
   public static async removeWorkflow(workflowId: ObjectID): Promise<void> {
-    // get workflow to see if its enabled.
-    const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: workflowId,
-      select: {
-        projectId: true,
-        repeatableJobKey: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    await Queue.removeRepeatableByName(
+      QueueName.Workflow,
+      workflowId.toString(),
+    );
 
-    if (!workflow) {
-      throw new BadDataException("Workflow not found");
-    }
-
-    if (!workflow.projectId) {
-      throw new BadDataException(
-        "This workflow does not belong to a project and cannot be run",
-      );
-    }
-
-    await Queue.removeJob(QueueName.Workflow, workflow.repeatableJobKey!);
-
-    // update workflow.
+    // Clears the key if the row is still there; a missing row updates nothing.
     await WorkflowService.updateOneById({
-      id: workflow.id!,
+      id: workflowId,
       data: {
         repeatableJobKey: null!,
       },
@@ -62,6 +63,126 @@ export default class QueueWorkflow {
         ignoreHooks: true,
       },
     });
+  }
+
+  /*
+   * The persisted schedule if the workflow should have a repeatable on the
+   * queue - it exists, is on, is not archived, and its trigger is a Schedule
+   * with a schedule set - otherwise null.
+   */
+  private static async getWantedSchedule(
+    workflowId: ObjectID,
+  ): Promise<{ projectId: ObjectID | undefined; schedule: string } | null> {
+    const workflow: Workflow | null = await WorkflowService.findOneById({
+      id: workflowId,
+      select: {
+        isEnabled: true,
+        isArchived: true,
+        projectId: true,
+        triggerId: true,
+        triggerArguments: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const schedule: unknown = workflow?.triggerArguments?.["schedule"];
+
+    if (
+      !workflow ||
+      !workflow.isEnabled ||
+      workflow.isArchived ||
+      workflow.triggerId !== ComponentID.Schedule ||
+      !schedule
+    ) {
+      return null;
+    }
+
+    return { projectId: workflow.projectId, schedule: schedule as string };
+  }
+
+  /*
+   * Whether the persisted workflow still wants a schedule and, when a cron
+   * pattern is given, that it is still the workflow's current one (variables
+   * resolved), so a stale registration of an old cron is not replayed.
+   */
+  public static async isScheduleCurrent(
+    workflowId: ObjectID,
+    cronPattern?: string,
+  ): Promise<boolean> {
+    const wanted: { projectId: ObjectID | undefined; schedule: string } | null =
+      await QueueWorkflow.getWantedSchedule(workflowId);
+
+    if (!wanted) {
+      return false;
+    }
+
+    if (!cronPattern || !wanted.projectId) {
+      return true;
+    }
+
+    const resolution: { cron: string; error: string | null } =
+      await QueueWorkflow.resolveScheduleCron(
+        wanted.projectId,
+        workflowId,
+        wanted.schedule,
+      );
+
+    return !resolution.error && resolution.cron === cronPattern;
+  }
+
+  /*
+   * Makes the queue match the persisted workflow: if it should not be
+   * scheduled (deleted, off, archived, another trigger, no trigger) its
+   * repeatable is removed. Registering a wanted schedule stays with the
+   * Schedule trigger, which resolves variables and checks the plan.
+   */
+  public static async reconcileSchedule(workflowId: ObjectID): Promise<void> {
+    if (!(await QueueWorkflow.isScheduleCurrent(workflowId))) {
+      await QueueWorkflow.removeWorkflow(workflowId);
+    }
+  }
+
+  /*
+   * Startup fallback: drops repeatables left behind by deletes and trigger
+   * changes that predate reconcileSchedule (or whose notify failed). Only
+   * UUID-named repeatables - a workflow id is the job name of a schedule - are
+   * considered, and each is re-checked against the database right before it is
+   * removed, so a workflow created while this runs is not removed.
+   */
+  public static async reconcileAllSchedules(): Promise<number> {
+    const repeatables: Array<{ name: string }> = await Queue.getQueue(
+      QueueName.Workflow,
+    ).getRepeatableJobs();
+
+    const names: Set<string> = new Set<string>(
+      repeatables
+        .map((r: { name: string }) => {
+          return r.name;
+        })
+        .filter((name: string) => {
+          return WORKFLOW_ID_PATTERN.test(name);
+        }),
+    );
+
+    let removed: number = 0;
+
+    for (const name of names) {
+      try {
+        const id: ObjectID = new ObjectID(name);
+
+        if (!(await QueueWorkflow.isScheduleCurrent(id))) {
+          await QueueWorkflow.removeWorkflow(id);
+          removed++;
+        }
+      } catch (err) {
+        logger.error(`Failed to reconcile the schedule of workflow ${name}`);
+        logger.error(err);
+      }
+    }
+
+    return removed;
   }
 
   public static async addWorkflowToQueue(
@@ -75,6 +196,7 @@ export default class QueueWorkflow {
       id: workflowId,
       select: {
         isEnabled: true,
+        isArchived: true,
         projectId: true,
         repeatableJobKey: true,
       },
@@ -87,15 +209,106 @@ export default class QueueWorkflow {
       throw new BadDataException("Workflow not found");
     }
 
-    if (!workflow.isEnabled) {
-      throw new BadDataException("This workflow is not enabled");
+    /*
+     * Every way of starting a run comes through here - the Run button,
+     * "Run this step", a webhook call, a model event, an incoming email,
+     * another workflow's Run Workflow step, and the registration of a
+     * schedule - so this is where an archived workflow is stopped from
+     * running at all. Checked before isEnabled: archived is the reason a
+     * person needs to hear, whatever the toggle says (turning it on would
+     * not make it run).
+     */
+    if (workflow.isArchived) {
+      throw new BadDataException(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
     }
+
+    /*
+     * A workflow that is turned off is started by nothing but a person.
+     *
+     * Off pauses what starts it on its own - its webhook URL here, and its
+     * schedule, OneUptime events, incoming email and other workflows'
+     * Execute Workflow steps, which also check the switch before they get
+     * here - so those are refused, in words that say how to turn it on: a
+     * webhook sender's delivery log or a script may be the only place the
+     * refusal is read.
+     *
+     * A person testing the workflow from its Builder - Run Workflow or Run
+     * just this step, the only two routes that pass startedByUserId - may
+     * run it whether it is on or off: "Why do I have to enable a workflow in
+     * order to test run it?" Their run goes ahead as a test run, marked as
+     * one with who started it. A schedule is never a person.
+     */
+    const startedByUserId: ObjectID | undefined = scheduleAt
+      ? undefined
+      : executeWorkflow.startedByUserId;
+
+    if (!workflow.isEnabled && !startedByUserId) {
+      throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
+    }
+
+    const isTestRun: boolean = !workflow.isEnabled;
 
     if (!workflow.projectId) {
       throw new BadDataException(
         "This workflow does not belong to a project and cannot be run",
       );
     }
+
+    const projectId: ObjectID = workflow.projectId;
+
+    /*
+     * A project a master admin blocked runs no workflow until it is
+     * unblocked, so a run asked for now is refused - a webhook sender is
+     * told 403 - and nothing is written for it. Registering a schedule is
+     * let through, so the schedule fires again once the project is
+     * unblocked; the runner stops each firing while it is blocked
+     * (Common/Types/Workflow/WorkflowProjectBlocked).
+     */
+    if (!scheduleAt && (await ProjectService.isProjectBlocked(projectId))) {
+      throw new ProjectBlockedException();
+    }
+
+    // Who started a test run, as its log names them.
+    const testRunStartedBy: string | undefined =
+      isTestRun && startedByUserId
+        ? await QueueWorkflow.getTestRunStarter(startedByUserId)
+        : undefined;
+
+    type NewRunLogFunction = (lines: Array<string>) => WorkflowLog;
+
+    /*
+     * A row of this run's log, whatever becomes of the run: it says who
+     * started it, and a test run's opens with the line that says it is one.
+     */
+    const newRunLog: NewRunLogFunction = (
+      lines: Array<string>,
+    ): WorkflowLog => {
+      const time: string = OneUptimeDate.getCurrentDateAsFormattedString({
+        showSeconds: true,
+      });
+
+      const runLog: WorkflowLog = new WorkflowLog();
+      runLog.workflowId = workflowId;
+      runLog.projectId = projectId;
+      runLog.isTestRun = isTestRun;
+
+      if (startedByUserId) {
+        runLog.startedByUserId = startedByUserId;
+      }
+
+      runLog.logs = [
+        ...(isTestRun
+          ? [getWorkflowTestRunLogLine({ startedBy: testRunStartedBy })]
+          : []),
+        ...lines,
+      ]
+        .map((line: string): string => {
+          return `${time}: ${line}`;
+        })
+        .join("\n");
+
+      return runLog;
+    };
 
     /*
      * Resolve the cron pattern for scheduled workflows. The "Schedule at" value
@@ -156,14 +369,10 @@ export default class QueueWorkflow {
     if (projectPlan.isSubscriptionUnpaid) {
       // Add Workflow Run Log.
 
-      const runLog: WorkflowLog = new WorkflowLog();
-      runLog.workflowId = workflowId;
-      runLog.projectId = workflow.projectId;
+      const runLog: WorkflowLog = newRunLog([
+        "Workflow cannot run because subscription is unpaid.",
+      ]);
       runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
-      runLog.logs =
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) + ": Workflow cannot run because subscription is unpaid.";
 
       await WorkflowLogService.create({
         data: runLog,
@@ -192,17 +401,12 @@ export default class QueueWorkflow {
       if (workflowCount.toNumber() > WorkflowPlan[projectPlan.plan]) {
         // Add Workflow Run Log.
 
-        const runLog: WorkflowLog = new WorkflowLog();
-        runLog.workflowId = workflowId;
-        runLog.projectId = workflow.projectId;
-        runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
-        runLog.logs =
-          OneUptimeDate.getCurrentDateAsFormattedString({
-            showSeconds: true,
-          }) +
-          `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
+        const runLog: WorkflowLog = newRunLog([
+          `Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
             WorkflowPlan[projectPlan.plan]
-          }`;
+          }`,
+        ]);
+        runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
 
         await WorkflowLogService.create({
           data: runLog,
@@ -219,14 +423,10 @@ export default class QueueWorkflow {
     let workflowLog: WorkflowLog | null = null;
     if (!scheduleAt) {
       // if the workflow is to be run immediately.
-      const runLog: WorkflowLog = new WorkflowLog();
-      runLog.workflowId = workflowId;
-      runLog.projectId = workflow.projectId;
+      const runLog: WorkflowLog = newRunLog([
+        `Workflow ${workflowId.toString()} Scheduled.`,
+      ]);
       runLog.workflowStatus = WorkflowStatus.Scheduled;
-      runLog.logs =
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) + `: Workflow ${workflowId.toString()} Scheduled.`;
 
       workflowLog = await WorkflowLogService.create({
         data: runLog,
@@ -244,13 +444,15 @@ export default class QueueWorkflow {
       workflowLog
         ? (workflowLog._id?.toString() as string)
         : (workflow._id?.toString() as string),
-      {
-        data: executeWorkflow.returnValues,
-        workflowLogId: workflowLog?._id || null,
-        workflowId: workflow._id,
-        callChain: executeWorkflow.callChain || [],
-        runOnlyComponentId: executeWorkflow.runOnlyComponentId || null,
-      },
+      buildWorkflowRunJobData({
+        workflowId: workflowId,
+        workflowLogId: workflowLog?._id?.toString() || null,
+        returnValues: executeWorkflow.returnValues,
+        callChain: executeWorkflow.callChain,
+        runOnlyComponentId: executeWorkflow.runOnlyComponentId,
+        isTestRun: isTestRun,
+        testRunStartedBy: testRunStartedBy,
+      }),
       {
         scheduleAt: resolvedScheduleAt,
         repeatableKey: workflow.repeatableJobKey || undefined,
@@ -260,7 +462,6 @@ export default class QueueWorkflow {
     // update workflow with repeatable key.
 
     if (job.repeatJobKey) {
-      // update workflow.
       await WorkflowService.updateOneById({
         id: workflow.id!,
         data: {
@@ -271,6 +472,48 @@ export default class QueueWorkflow {
           ignoreHooks: true,
         },
       });
+    }
+
+    /*
+     * The row was read before the job was added. If the workflow was deleted
+     * or changed in between, its cleanup may already have run, so check
+     * again - after the key is saved, so that removing the repeatable also
+     * clears the key rather than being undone by it.
+     */
+    if (resolvedScheduleAt) {
+      await QueueWorkflow.reconcileSchedule(workflowId);
+    }
+  }
+
+  /*
+   * Who started a test run, as its log names them: their name, or their email
+   * when they have not set one. Undefined when the person cannot be read -
+   * the log then says the run was started by hand - because a run that has
+   * been asked for is not refused over a line of its log.
+   */
+  private static async getTestRunStarter(
+    userId: ObjectID,
+  ): Promise<string | undefined> {
+    try {
+      const user: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          name: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const startedBy: string =
+        getWorkflowTestRunStarter(user?.name?.toString()) ||
+        getWorkflowTestRunStarter(user?.email?.toString());
+
+      return startedBy || undefined;
+    } catch (err) {
+      logger.error(err);
+      return undefined;
     }
   }
 

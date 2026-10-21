@@ -135,8 +135,11 @@ AI 智能体提交一个包含修复的拉取请求，关联到该事件，测�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** —— 节点、VM、容器、存储、HA 状态、备份覆盖率与复制健康状况。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** —— vCenter、ESXi 主机、虚拟机、数据存储、集群、资源池与 vSAN。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** —— 集群健康、容量预测，以及 OSD/存储池/PG/监视器的可见性。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **存储阵列** —— Pure Storage FlashArray 和 FlashBlade：容量、延迟、卷、主机、复制、硬件健康状况、文件系统和存储桶。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **数据库** —— PostgreSQL、MySQL、Redis、MongoDB 等，可从应用追踪、Kubernetes 和 Docker 自动发现，并通过仅需配置的 Collector 代理获取引擎指标、查询样本和日志。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **适合谁** | 自托管用户与小型团队 | 需要高级支持的受监管团队 |
 | **费用** | 免费且开源 | [联系销售](mailto:sales@oneuptime.com) |
 | **许可证** | Apache 2.0 | Apache 2.0，另外 `ee/` 目录采用 [OneUptime Enterprise License](/ee/LICENSE) |
-| **功能** | 上方“开箱即有的一切”中的全部功能——监控、状态页、事件、值班、日志、链路追踪、指标、错误追踪、工作流与 AI | 社区版全部功能 + SAML 与 OIDC 单点登录、SCIM 用户配置、审计日志、团队合规与实例健康仪表盘，并提供优先支持、定制功能与数据驻留 |
+| **功能** | 上方“开箱即有的一切”中的全部功能——监控、状态页、事件、值班、日志、链路追踪、指标、错误追踪、工作流与 AI——以及 SAML 与 OIDC 单点登录 | 社区版全部功能 + SCIM 用户配置、审计日志、团队合规与实例健康仪表盘，并提供优先支持、定制功能与数据驻留 |
 
 企业版功能位于 [`ee/`](/ee) 目录，仅包含在企业版镜像中。完整对比请参阅 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)。
 

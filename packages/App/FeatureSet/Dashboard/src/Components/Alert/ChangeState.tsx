@@ -1,13 +1,12 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,8 +24,13 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -40,6 +44,18 @@ import {
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
+import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import { getEventEndDateForCurrentState } from "../../Utils/EventDuration";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -63,6 +79,11 @@ export interface ComponentProps {
   aiInvestigationVerdict?: AIRunHumanVerdict | null | undefined;
   // Context shown under the header pills ("Created", "Monitor", "Episode").
   facts?: Array<EventStatusFact> | undefined;
+  /*
+   * Actions beside the state actions that change no state - Join call, when
+   * the alert has a video call - after Declare incident.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
 }
 
 /*
@@ -71,6 +92,7 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -78,7 +100,9 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
       data-testid="alert-state-placeholder"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">Loading alert status</span>
+      <span className="sr-only">
+        {translator.translateText("Loading alert status")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -86,9 +110,11 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
               <div className="h-5 w-16 rounded-md bg-gray-100" />
               <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
             </div>
+            {/* Acknowledge, Resolve and Declare Incident. */}
             <div className="flex gap-2">
               <div className="h-9 w-28 rounded-md bg-gray-100" />
               <div className="h-9 w-24 rounded-md bg-gray-100" />
+              <div className="h-9 w-36 rounded-md bg-gray-100" />
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -108,6 +134,7 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
@@ -188,6 +215,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           isCreatedState: true,
           name: true,
           color: true,
+          order: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -299,45 +327,57 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
       })
     : undefined;
 
-  const acknowledgedState: AlertState | undefined = alertStates.find(
-    (state: AlertState) => {
-      return state.isAcknowledgedState;
+  /*
+   * The project's acknowledged state - where Acknowledge moves the alert: the
+   * first from the top flagged acknowledged - and whether a state counts as
+   * acknowledged: it, any state placed after it, or a resolved one
+   * (Common/Utils/AcknowledgedState). Acknowledge is offered only while the
+   * alert is not.
+   */
+  const acknowledgedState: AlertState | undefined =
+    AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }) || undefined;
+
+  const isAcknowledgedStateId: (stateId: string | undefined) => boolean = (
+    stateId: string | undefined,
+  ): boolean => {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: stateId,
+    });
+  };
+
+  /*
+   * The project's resolved state - where Resolve moves the alert - and every
+   * state that counts as resolved: it and any state placed after it
+   * (Common/Utils/ResolvedState).
+   */
+  const resolvedState: AlertState | undefined =
+    ResolvedStateUtil.getResolvedState({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }) || undefined;
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
     },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isAcknowledged: boolean = isAcknowledgedStateId(
+    currentAlertState?.id?.toString(),
   );
 
-  const resolvedState: AlertState | undefined = alertStates.find(
-    (state: AlertState) => {
-      return state.isResolvedState;
-    },
+  const isResolved: boolean = Boolean(
+    currentAlertState?.id &&
+      resolvedStateIds.includes(currentAlertState.id.toString()),
   );
-
-  const currentStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.id?.toString() === currentAlertState?.id?.toString();
-    },
-  );
-
-  const acknowledgedStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.isAcknowledgedState;
-    },
-  );
-
-  const resolvedStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.isResolvedState;
-    },
-  );
-
-  const isAcknowledged: boolean =
-    acknowledgedStateIndex >= 0 &&
-    currentStateIndex >= 0 &&
-    currentStateIndex >= acknowledgedStateIndex;
-
-  const isResolved: boolean =
-    resolvedStateIndex >= 0 &&
-    currentStateIndex >= 0 &&
-    currentStateIndex >= resolvedStateIndex;
 
   const getActions: () => Array<EventStateAction> =
     (): Array<EventStateAction> => {
@@ -381,29 +421,31 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const durationStartsAt: Date | undefined =
     props.eventStartsAt || alertStateTimelines[0]?.startsAt;
 
-  let durationPrefix: string = "Ongoing for";
+  let durationPrefix: string = translationKey("Ongoing for");
   let durationEndsAt: Date | undefined = undefined;
 
-  if (isResolved && resolvedState) {
-    const resolvedTimelines: Array<AlertStateTimeline> =
-      alertStateTimelines.filter((timeline: AlertStateTimeline) => {
-        return (
-          timeline.alertStateId?.toString() === resolvedState.id?.toString()
-        );
-      });
+  /*
+   * Resolved now - in the resolved state, or a state placed after it: the
+   * duration runs to when it was resolved this time.
+   */
+  const resolvedAt: Date | undefined = getEventEndDateForCurrentState(
+    alertStateTimelines.map((timeline: AlertStateTimeline) => {
+      return {
+        stateId: timeline.alertStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    resolvedStateIds,
+  );
 
-    const lastResolvedTimeline: AlertStateTimeline | undefined =
-      resolvedTimelines[resolvedTimelines.length - 1];
-
-    if (lastResolvedTimeline?.startsAt) {
-      /*
-       * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
-       * while the stat bar's "Resolved in" counts to the FIRST one, so a
-       * reopened alert would show one label with two different numbers.
-       */
-      durationPrefix = "Lasted";
-      durationEndsAt = lastResolvedTimeline.startsAt;
-    }
+  if (isResolved && resolvedAt) {
+    /*
+     * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
+     * while the stat bar's "Resolved in" counts to the FIRST one, so a
+     * reopened alert would show one label with two different numbers.
+     */
+    durationPrefix = translationKey("Lasted");
+    durationEndsAt = resolvedAt;
   }
 
   const openModalForState: (stateId: string) => void = (
@@ -419,29 +461,79 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
-  const isAcknowledgeTarget: boolean =
-    selectedAlertState?.isAcknowledgedState || false;
-  const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
+  /*
+   * Declaring an incident from the alert sits beside Acknowledge / Resolve,
+   * and stays there once the alert is resolved (declaring after the fact is
+   * allowed everywhere else too). Gated on permissions only - no request.
+   */
+  const declareIncidentAction: EventPanelAction | null =
+    getDeclareIncidentFromAlertAction(props.alertId);
+
+  const secondaryActions: Array<EventPanelAction> = [
+    ...(declareIncidentAction ? [declareIncidentAction] : []),
+    ...(props.secondaryActions || []),
+  ];
+
+  /*
+   * Acknowledging it: a move into the project's acknowledged state while it
+   * is not acknowledged yet. Picking a state placed after Acknowledged
+   * ("Investigating") names that state; the acknowledged state picked for a
+   * record already acknowledged - in a state after it - is no
+   * acknowledgement, only a move back up the list.
+   */
+  const isAcknowledgeTarget: boolean = Boolean(
+    !isAcknowledged &&
+      acknowledgedState?.id &&
+      selectedAlertState?.id?.toString() === acknowledgedState.id.toString(),
+  );
+  // A move that resolves it: into a resolved state, from one that is not.
+  const isResolveTarget: boolean = Boolean(
+    !isResolved &&
+      selectedAlertState?.id &&
+      resolvedStateIds.includes(selectedAlertState.id.toString()),
+  );
+
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedAlertState?.name || "",
+  );
 
   const modalTitle: string = isAcknowledgeTarget
-    ? "Acknowledge Alert"
+    ? translationKey("Acknowledge Alert")
     : isResolveTarget
-      ? "Resolve Alert"
-      : "Mark Alert as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve Alert")
+      : translator.translateTemplate("Mark Alert as {{state}}", {
+          state: selectedStateName,
+        });
 
   const modalSubmitButtonText: string = isAcknowledgeTarget
-    ? "Acknowledge"
+    ? translationKey("Acknowledge")
     : isResolveTarget
-      ? "Resolve"
-      : "Mark as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve")
+      : translator.translateTemplate("Mark as {{state}}", {
+          state: selectedStateName,
+        });
 
+  /*
+   * One sentence on what the change does; the optional note is the folded
+   * "Add a private note" line under it. Acknowledging is what stops the
+   * alert's on-call escalation, so the confirm says so.
+   */
   const modalDescription: string = isAcknowledgeTarget
-    ? "This records an acknowledgement on the alert timeline. You can add an optional private note for your team."
+    ? translationKey(
+        "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+      )
     : isResolveTarget
-      ? "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team."
-      : "You are about to mark this alert as " +
-        (selectedAlertState?.name || "") +
-        ".";
+      ? translationKey(
+          "This marks the alert as resolved on the alert timeline.",
+        )
+      : translator.translateTemplate(
+          "You are about to mark this alert as {{state}}.",
+          { state: selectedStateName },
+        );
 
   return (
     <Fragment>
@@ -452,8 +544,10 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             id: state.id?.toString() || "",
             name: state.name || "",
             color: state.color || Black,
+            order: state.order,
           };
         })}
+        stateList={StateListType.AlertState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentAlertState?.id?.toString()}
@@ -466,6 +560,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         onActionClick={(stateId: string) => {
           openModalForState(stateId);
         }}
+        secondaryActions={secondaryActions}
         onStateSelect={(stateId: string) => {
           openModalForState(stateId);
         }}
@@ -487,7 +582,6 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
           title={modalTitle}
@@ -526,65 +620,22 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             name: "create-alert-state-timeline",
             modelType: AlertStateTimeline,
             id: "create-alert-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<AlertNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<AlertStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate: AlertNoteTemplate | undefined =
-                    alertNoteTemplates.find((template: AlertNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    });
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: alertNoteTemplates.map(
-                  (template: AlertNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return alertNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Add an optional private note about this state change. Only your team can see it.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an alert's state change: just the private
+             * note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<AlertStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Add an optional private note about this state change. Only your team can see it.",
+              ),
+              noteTemplates: alertNoteTemplates.map(
+                toBulkStateChangeNoteTemplate,
+              ),
+              // Offered only to someone who may post a private note.
+              noteModel: new AlertInternalNote(),
+            }),
             formType: FormType.Create,
           }}
         />

@@ -1,16 +1,18 @@
 import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import CreateLimit from "../Types/Database/CreateLimit";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import CookieUtil from "../Utils/Cookie";
-import EditionEnforcement from "../Utils/EditionEnforcement";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseService from "./DatabaseService";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
@@ -28,6 +30,7 @@ import { Green } from "../../Types/BrandColors";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -43,7 +46,6 @@ import {
   LetsEncryptAccountKey,
 } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import Recurring from "../../Types/Events/Recurring";
 import Email from "../../Types/Email";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -53,7 +55,6 @@ import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -63,7 +64,8 @@ import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResour
 import MonitorGroupService from "./MonitorGroupService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
-import IncidentService from "./IncidentService";
+import IncidentStatusPageScope from "../Utils/StatusPage/IncidentStatusPageScope";
+import Select from "../Types/Database/Select";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService, {
   MergedDowntimeTotals,
@@ -79,15 +81,40 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
+import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 import { resolveClientIp } from "../Utils/ClientIp";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import {
+  STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
+  STATUS_PAGE_NOT_FOUND_MESSAGE,
+} from "../../Types/StatusPage/StatusPageArchive";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
+import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import {
+  getPrivateUserSessionLengthProblem,
+  PRIVATE_USER_SESSION_LENGTH_COLUMN,
+} from "../../Types/StatusPage/PrivateUserSessionLength";
+import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
+import {
+  ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN,
+  getAllowedEmailDomainsProblem,
+  normalizeAllowedEmailDomains,
+} from "../../Types/StatusPage/SubscriberRestrictions";
+import {
+  getStatusPageThemeProblem,
+  NEW_STATUS_PAGE_THEME,
+  STATUS_PAGE_THEME_COLUMN,
+} from "../../Types/StatusPage/StatusPageTheme";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -105,7 +132,22 @@ import {
 import StatusPageReportPeriodUtil, {
   StatusPageReportPeriod,
 } from "../../Utils/StatusPage/ReportPeriod";
-import Timezone from "../../Types/Timezone";
+import StatusPageReportScheduleUtil, {
+  StatusPageReportScheduleColumns,
+  StatusPageReportScheduleWrite,
+} from "../../Utils/StatusPage/ReportSchedule";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
+import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartBarColorRuleService";
+import {
+  DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT,
+  getSubscriberEmailFooterText,
+} from "../../Types/StatusPage/SubscriberEmailFooter";
+import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import Color from "../../Types/Color";
+import {
+  ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "../../Utils/StatusPage/HistoryChartBarColors";
 
 export {
   StatusPageReport,
@@ -115,14 +157,165 @@ export {
 };
 
 /*
- * The status page column that holds its SSO requirement: the one
- * onFindSuccess masks and onBeforeUpdate guards while SSO is not active.
+ * The report columns one status page's update has to carry as well
+ * (StatusPageReportScheduleUtil.getScheduleWrite), kept for after an update
+ * that matched several pages needing different ones - one write cannot hold
+ * a different first report date or next send for each.
  */
-export const STATUS_PAGE_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
-  "requireSsoForLogin",
-];
+interface ReportScheduleWriteForPage {
+  statusPageId: ObjectID;
+  write: StatusPageReportScheduleWrite;
+}
 
-export class Service extends DatabaseService<StatusPage> {
+interface StatusPageUpdateCarryForward {
+  reportScheduleWrites: Array<ReportScheduleWriteForPage>;
+}
+
+// The report columns a write carries, as the schedule rules read them.
+const getReportScheduleColumns: (
+  data: Partial<StatusPage> | Record<string, unknown>,
+) => StatusPageReportScheduleColumns = (
+  data: Partial<StatusPage> | Record<string, unknown>,
+): StatusPageReportScheduleColumns => {
+  const values: Record<string, unknown> = data as Record<string, unknown>;
+
+  return {
+    isReportEnabled: values["isReportEnabled"] as boolean | null | undefined,
+    reportStartDateTime: values["reportStartDateTime"] as
+      | Date
+      | string
+      | null
+      | undefined,
+    reportRecurringInterval: values[
+      "reportRecurringInterval"
+    ] as StatusPageReportScheduleColumns["reportRecurringInterval"],
+    reportTimezone: values["reportTimezone"] as string | null | undefined,
+    reportPeriodType: values["reportPeriodType"] as string | null | undefined,
+    sendNextReportBy: values["sendNextReportBy"] as
+      | Date
+      | string
+      | null
+      | undefined,
+  };
+};
+
+// Whether a computed write carries anything.
+const isEmptyReportScheduleWrite: (
+  write: StatusPageReportScheduleWrite,
+) => boolean = (write: StatusPageReportScheduleWrite): boolean => {
+  return Object.values(write).every((value: unknown): boolean => {
+    return value === undefined;
+  });
+};
+
+// Whether two pages need exactly the same report columns written.
+const isSameReportScheduleWrite: (
+  first: StatusPageReportScheduleWrite,
+  second: StatusPageReportScheduleWrite,
+) => boolean = (
+  first: StatusPageReportScheduleWrite,
+  second: StatusPageReportScheduleWrite,
+): boolean => {
+  return (
+    first.reportStartDateTime?.getTime() ===
+      second.reportStartDateTime?.getTime() &&
+    first.sendNextReportBy?.getTime() === second.sendNextReportBy?.getTime() &&
+    first.reportRecurringInterval?.toString() ===
+      second.reportRecurringInterval?.toString() &&
+    first.reportPeriodType === second.reportPeriodType
+  );
+};
+
+// Copies a computed write onto a create's or an update's data.
+const applyReportScheduleWrite: (
+  data: Partial<StatusPage> | Record<string, unknown>,
+  write: StatusPageReportScheduleWrite,
+) => void = (
+  data: Partial<StatusPage> | Record<string, unknown>,
+  write: StatusPageReportScheduleWrite,
+): void => {
+  const target: Record<string, unknown> = data as Record<string, unknown>;
+
+  for (const [column, value] of Object.entries(write)) {
+    if (value !== undefined) {
+      target[column] = value;
+    }
+  }
+};
+
+/*
+ * What a report's incident counts read of the status page: which project's
+ * incidents to count, and whether the page only shows incidents limited to
+ * it (IncidentStatusPageScope decides from that which incidents count).
+ */
+export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
+  _id: true,
+  projectId: true,
+  onlyShowScopedIncidents: true,
+};
+
+/*
+ * Refuses a status page write holding a value no reader of it can use
+ * (checkCreateBeforeReferences, checkUpdateBeforeReferences), and writes
+ * the Allowed Email Domains it holds the way every reader reads them: one
+ * valid domain a line, lower-cased, or nothing. A theme is Light, Dark or
+ * System, spelled exactly so (Types/StatusPage/StatusPageTheme), or nothing.
+ */
+export const assertStatusPageWriteValues: (
+  data: Record<string, unknown>,
+) => void = (data: Record<string, unknown>): void => {
+  const sessionLengthProblem: string | null =
+    getPrivateUserSessionLengthProblem(
+      data[PRIVATE_USER_SESSION_LENGTH_COLUMN],
+    );
+
+  if (sessionLengthProblem) {
+    throw new BadDataException(sessionLengthProblem);
+  }
+
+  const themeProblem: string | null = getStatusPageThemeProblem(
+    data[STATUS_PAGE_THEME_COLUMN],
+  );
+
+  if (themeProblem) {
+    throw new BadDataException(themeProblem);
+  }
+
+  if (data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] !== undefined) {
+    const domainsProblem: string | null = getAllowedEmailDomainsProblem(
+      data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN],
+    );
+
+    if (domainsProblem) {
+      throw new BadDataException(domainsProblem);
+    }
+
+    data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] =
+      normalizeAllowedEmailDomains(
+        data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] as string | null,
+      );
+  }
+};
+
+/*
+ * THE FREE PLAN'S LIMIT ON STATUS PAGES (AllowedStatusPageCountInFreePlan).
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so status pages created at the same moment cannot all
+ * pass. The lock's name, what it counts - every status page of the project,
+ * as the early check counts them - and the refusal both checks give.
+ */
+export const FREE_PLAN_STATUS_PAGE_LIMIT_NAME: string =
+  "free-plan-status-pages";
+
+export const STATUS_PAGE_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "StatusPage" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE: string =
+  "You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.";
+
+export class Service extends ProjectReferencesService<StatusPage> {
   /*
    * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
    * is called inside per-subscriber notification loops (see
@@ -152,6 +345,17 @@ export class Service extends DatabaseService<StatusPage> {
 
   private static readonly DOMAIN_TO_ID_CACHE_TTL_MS: number = 60 * 1000;
 
+  /*
+   * The project of each status page, which never changes, kept per process
+   * (getProjectIdOfStatusPage). Only pages that were found are kept: a page
+   * made a moment ago is found at once, and ids nobody has cannot fill it.
+   */
+  private projectIdOfStatusPageCache: InMemoryTTLCache<string> =
+    new InMemoryTTLCache(10_000);
+
+  private static readonly PROJECT_ID_OF_STATUS_PAGE_CACHE_TTL_MS: number =
+    60 * 60 * 1000;
+
   public constructor() {
     super(StatusPage);
   }
@@ -170,6 +374,52 @@ export class Service extends DatabaseService<StatusPage> {
       return;
     }
     this.statusPageDomainToIdCache.clear();
+  }
+
+  public clearProjectIdOfStatusPageCache(): void {
+    this.projectIdOfStatusPageCache.clear();
+  }
+
+  /*
+   * The project a status page belongs to, which never changes: its project
+   * column alone, read by its id as root, and kept per process for an hour.
+   * Every public request for a page asks it (BlockedProjectStatusPages), and
+   * the page's cached overview is kept by its project's generation
+   * (StatusPageOverviewCache). Null when there is no such page.
+   */
+  @CaptureSpan()
+  public async getProjectIdOfStatusPage(
+    statusPageId: ObjectID,
+  ): Promise<ObjectID | null> {
+    if (!ObjectID.isValidUUID(statusPageId.toString())) {
+      return null;
+    }
+
+    const key: string = statusPageId.toString().toLowerCase();
+
+    const kept: string | undefined = this.projectIdOfStatusPageCache.get(key);
+
+    if (kept) {
+      return new ObjectID(kept);
+    }
+
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: statusPageId,
+      select: { projectId: true },
+      props: { isRoot: true },
+    });
+
+    const projectId: ObjectID | null = statusPage?.projectId || null;
+
+    if (projectId) {
+      this.projectIdOfStatusPageCache.set(
+        key,
+        projectId.toString(),
+        Service.PROJECT_ID_OF_STATUS_PAGE_CACHE_TTL_MS,
+      );
+    }
+
+    return projectId;
   }
 
   /*
@@ -260,6 +510,8 @@ export class Service extends DatabaseService<StatusPage> {
       query: {
         _id: statusPageId,
         enableMcpServer: true,
+        // An archived status page is offline, its MCP server included.
+        isArchived: false,
       },
       select: {
         _id: true,
@@ -272,54 +524,78 @@ export class Service extends DatabaseService<StatusPage> {
     return Boolean(statusPage);
   }
 
-  public static getDefaultEmailFooterText(): string {
-    return "This is an automated email sent to you because you are subscribed to this Status Page.";
-  }
+  /*
+   * Whether this status page exists and is archived. For the places that
+   * find nothing because archived pages are filtered out, and want to say
+   * so to a dashboard user rather than report the page missing.
+   */
+  @CaptureSpan()
+  public async isStatusPageArchived(statusPageId: ObjectID): Promise<boolean> {
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: statusPageId,
+      select: {
+        _id: true,
+        isArchived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-  public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
-    if (
-      statusPage.enableCustomSubscriberEmailNotificationFooterText &&
-      statusPage.subscriberEmailNotificationFooterText
-    ) {
-      return statusPage.subscriberEmailNotificationFooterText;
-    }
-    return this.getDefaultEmailFooterText();
+    return statusPage?.isArchived === true;
   }
 
   /*
-   * While SSO is not active a status page's SSO requirement is not enforced:
-   * on the Community Edition (status page SSO login is part of the
-   * Enterprise Edition), and on an Enterprise install whose license is
-   * lapsed or does not include SSO (the SSO routes refuse). Reads made for a
-   * caller then report the EFFECTIVE value: not required. Internal (root)
-   * reads and the stored row keep the real value, and onBeforeUpdate keeps a
-   * caller from writing the masked value back, so running the Enterprise
-   * Edition with a valid license (or in its trial or grace period) again
-   * restores enforcement exactly as configured. The public master-page route
-   * reads as root and applies the same rule itself.
+   * The line subscriber emails end with, by the rule the dashboard's Email
+   * Footer card reads too (Types/StatusPage/SubscriberEmailFooter).
    */
-  @CaptureSpan()
-  protected override async onFindSuccess(
-    onFind: OnFind<StatusPage>,
-    items: Array<StatusPage>,
-  ): Promise<OnFind<StatusPage>> {
-    if (
-      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
-    ) {
-      for (const item of items) {
-        if (item.requireSsoForLogin !== undefined) {
-          item.requireSsoForLogin = false;
-        }
-      }
-    }
+  public static getDefaultEmailFooterText(): string {
+    return DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT;
+  }
 
-    return { ...onFind, carryForward: items };
+  public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
+    return getSubscriberEmailFooterText(statusPage);
+  }
+
+  /*
+   * What a write may hold, answered before anything is looked up
+   * (ProjectReferencesService runs these first, in the base hooks): Sign
+   * Readers Out After is a whole number of hours in range, or nothing for
+   * no limit (Types/StatusPage/PrivateUserSessionLength).
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPage>,
   ): Promise<OnCreate<StatusPage>> {
+    await super.onBeforeCreate(createBy);
+
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: StatusPageOwnerUserService,
+      ownerTeamService: StatusPageOwnerTeamService,
+      resourceIdColumn: "statusPageId",
+      resourceModelType: StatusPage,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -347,9 +623,7 @@ export class Service extends DatabaseService<StatusPage> {
         });
 
         if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
-          throw new BadDataException(
-            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`,
-          );
+          throw new BadDataException(FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE);
         }
       }
     }
@@ -384,6 +658,17 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     /*
+     * A page made from now on follows each visitor's device, light or dark,
+     * unless its create names a theme. The column's default stays Light: it
+     * is what the pages made before the setting were given, and what the
+     * Terraform provider sends for a configuration that names no theme
+     * (StatusPage.theme).
+     */
+    if (createBy.data.theme === undefined || createBy.data.theme === null) {
+      createBy.data.theme = NEW_STATUS_PAGE_THEME;
+    }
+
+    /*
      * For new status pages, set enableCustomSubscriberEmailNotificationFooterText to false by default
      * and provide a default custom footer text only if not provided
      */
@@ -400,10 +685,134 @@ export class Service extends DatabaseService<StatusPage> {
         (createBy.data?.pageTitle || createBy.data?.name || "Status Page");
     }
 
+    /*
+     * A status page created with its reports on but no schedule (through the
+     * API or Terraform) gets the default one - every month, on the 1st at
+     * 09:00 in the report timezone - and, with any schedule, the time its
+     * first report goes out, which the report worker waits for. A schedule
+     * the caller sent is kept, once it can be read.
+     */
+    const reportWrite: StatusPageReportScheduleColumns =
+      getReportScheduleColumns(createBy.data);
+
+    const reportWriteProblem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(reportWrite);
+
+    if (reportWriteProblem) {
+      throw new BadDataException(reportWriteProblem);
+    }
+
+    applyReportScheduleWrite(
+      createBy.data,
+      StatusPageReportScheduleUtil.getScheduleWrite({
+        write: reportWrite,
+      }),
+    );
+
     return {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The Free plan's limit on status pages, decided again with the INSERT:
+   * counted in the INSERT's own transaction, under the limit's lock in the
+   * project, so status pages created at the same moment - each of which
+   * passed the early count in onBeforeCreate - cannot all be added. Every
+   * create is asked, one that skips its hooks too. Null on a plan with no
+   * such limit, and without billing.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!IsBillingEnabled || !projectId) {
+      return null;
+    }
+
+    const currentPlan: CurrentPlan =
+      await ProjectService.getCurrentPlan(projectId);
+
+    if (currentPlan.plan !== PlanType.Free) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_STATUS_PAGE_LIMIT_NAME,
+      projectId: projectId,
+      allowed: AllowedStatusPageCountInFreePlan,
+      statement: STATUS_PAGE_COUNT_STATEMENT,
+      parameters: [projectId.toString()],
+      refusal: FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE,
+    });
+  }
+
+  /*
+   * The owners picked when a status page is created are added once the
+   * whole create has returned, not in onCreateSuccess: by then the creator
+   * owns the page (DatabaseService.create makes them an owner after the
+   * success hook), so a teammate whose read of status pages reaches only the
+   * ones they own adds them as themselves, with the same checks as adding
+   * them by hand - an owner row is created only under a page its creator may
+   * read (CreatePermission.checkParentPermission).
+   *
+   * Whether the creator may add owners at all is asked before anything is
+   * saved (OwnerRuleAssignment.checkOwnersPickedOnCreate, from
+   * onBeforeCreate): a refused pick refuses the create, so nobody gets a
+   * page without the owners they asked for. A creator whose read of status
+   * pages does not reach the page they just made - limited to labels it
+   * does not carry - has OneUptime add the owners for them
+   * (OwnerRuleAssignment.createOwner), rather than lose what they picked. In
+   * the background, as before: any other failure is logged, and the page is
+   * kept.
+   */
+  @CaptureSpan()
+  public override async create(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<StatusPage> {
+    const createdItem: StatusPage = await super.create(createBy);
+
+    if (!createBy.props.ignoreHooks) {
+      this.addOwnersPickedOnCreate(createBy, createdItem);
+    }
+
+    return createdItem;
+  }
+
+  // See create.
+  private addOwnersPickedOnCreate(
+    createBy: CreateBy<StatusPage>,
+    createdItem: StatusPage,
+  ): void {
+    const ownerUsers: Array<ObjectID> =
+      (createBy.miscDataProps?.["ownerUsers"] as Array<ObjectID>) || [];
+    const ownerTeams: Array<ObjectID> =
+      (createBy.miscDataProps?.["ownerTeams"] as Array<ObjectID>) || [];
+
+    if (
+      !createdItem.projectId ||
+      !createdItem.id ||
+      (ownerUsers.length === 0 && ownerTeams.length === 0)
+    ) {
+      return;
+    }
+
+    this.addOwners(
+      createdItem.projectId,
+      createdItem.id,
+      ownerUsers,
+      ownerTeams,
+      false,
+      createBy.props,
+      true,
+    ).catch((error: Error) => {
+      logger.error(`Error in StatusPageService owner assignment: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        statusPageId: createdItem.id?.toString(),
+      } as LogAttributes);
+    });
   }
 
   @CaptureSpan()
@@ -420,30 +829,32 @@ export class Service extends DatabaseService<StatusPage> {
       },
     });
 
-    // Execute owner assignment asynchronously
+    /*
+     * Before the create returns, so the page the dashboard opens next
+     * already has them. A failure is logged, and the page kept: it then
+     * colors its days by status, as every page without rules does.
+     */
     if (
+      onCreate.createBy.miscDataProps?.[
+        ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY
+      ] === true &&
       createdItem.projectId &&
-      createdItem.id &&
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
+      createdItem.id
     ) {
-      // Run owner assignment in background without blocking
-      this.addOwners(
-        createdItem.projectId!,
-        createdItem.id!,
-        (onCreate.createBy.miscDataProps!["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps!["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
-      ).catch((error: Error) => {
-        logger.error(`Error in StatusPageService owner assignment: ${error}`, {
-          projectId: createdItem.projectId?.toString(),
-          statusPageId: createdItem.id?.toString(),
-        } as LogAttributes);
-      });
+      try {
+        await this.addRecommendedHistoryChartBarColorRules({
+          projectId: createdItem.projectId,
+          statusPageId: createdItem.id,
+        });
+      } catch (error) {
+        logger.error(
+          `Error adding the recommended bar color rules in StatusPageService.onCreateSuccess: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            statusPageId: createdItem.id?.toString(),
+          } as LogAttributes,
+        );
+      }
     }
 
     /*
@@ -475,6 +886,86 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The recommended bar color rules (Utils/StatusPage/HistoryChartBarColors),
+   * in their order, for a status page that has none yet. Asked for on a
+   * create with miscDataProps.addRecommendedBarColorRules: the dashboard and
+   * the tool importer always ask; Terraform and scripts declare their own
+   * rules, and rules added for them would sit above theirs and win. Made as
+   * part of making the page, like its default bar color, so as OneUptime
+   * rather than as a creator whose role may not reach the rules.
+   */
+  @CaptureSpan()
+  public async addRecommendedHistoryChartBarColorRules(data: {
+    projectId: ObjectID;
+    statusPageId: ObjectID;
+  }): Promise<Array<StatusPageHistoryChartBarColorRule>> {
+    const created: Array<StatusPageHistoryChartBarColorRule> = [];
+    let order: number = 1;
+
+    try {
+      for (const recommended of RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES) {
+        const rule: StatusPageHistoryChartBarColorRule =
+          new StatusPageHistoryChartBarColorRule();
+        rule.projectId = data.projectId;
+        rule.statusPageId = data.statusPageId;
+        rule.uptimePercentGreaterThanOrEqualTo =
+          recommended.uptimePercentGreaterThanOrEqualTo;
+        rule.barColor = new Color(recommended.barColor.toString());
+        rule.order = order++;
+
+        created.push(
+          await StatusPageHistoryChartBarColorRuleService.create({
+            data: rule,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
+    } catch (error) {
+      /*
+       * All of them or none. Some of them would be worse than none: a day
+       * the rules made so far do not reach takes the page's default bar
+       * color, green on a new page - a day spent down drawn as a good one.
+       * With none, a day takes the color of its worst status, as before.
+       */
+      await this.removeHistoryChartBarColorRules(created);
+
+      throw error;
+    }
+
+    return created;
+  }
+
+  // Best effort: a rule that cannot be removed is logged.
+  private async removeHistoryChartBarColorRules(
+    rules: Array<StatusPageHistoryChartBarColorRule>,
+  ): Promise<void> {
+    for (const rule of rules) {
+      if (!rule.id) {
+        continue;
+      }
+
+      try {
+        await StatusPageHistoryChartBarColorRuleService.deleteOneById({
+          id: rule.id,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (error) {
+        logger.error(
+          `Error removing a recommended bar color rule after a failed add: ${error}`,
+          {
+            projectId: rule.projectId?.toString(),
+            statusPageId: rule.statusPageId?.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
@@ -571,6 +1062,12 @@ export class Service extends DatabaseService<StatusPage> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the status page are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -583,6 +1080,7 @@ export class Service extends DatabaseService<StatusPage> {
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
@@ -620,7 +1118,7 @@ export class Service extends DatabaseService<StatusPage> {
     req: ExpressRequest;
   }): Promise<{
     hasReadAccess: boolean;
-    error?: NotAuthenticatedException | ForbiddenException;
+    error?: NotAuthenticatedException | ForbiddenException | NotFoundException;
   }> {
     const statusPageId: ObjectID = data.statusPageId;
     const req: ExpressRequest = data.req;
@@ -638,8 +1136,25 @@ export class Service extends DatabaseService<StatusPage> {
           ipWhitelist: true,
           enableMasterPassword: true,
           masterPassword: true,
+          isArchived: true,
+          requireSsoForLogin: true,
+          privateUserSessionLengthInHours: true,
         },
       });
+
+      /*
+       * An archived status page is offline: nobody reads it, signed in or
+       * not, and it answers exactly as a page that does not exist would, so
+       * a visitor cannot tell an archived page from a missing one. This is
+       * the gate every public read goes through (StatusPageAPI's
+       * checkHasReadAccess), so one check takes the whole page down.
+       */
+      if (statusPage?.isArchived) {
+        return {
+          hasReadAccess: false,
+          error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
+        };
+      }
 
       if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
         const ipWhitelist: Array<string> = statusPage.ipWhitelist?.split("\n");
@@ -691,61 +1206,20 @@ export class Service extends DatabaseService<StatusPage> {
       }
 
       // token decode.
-      const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
-        req,
-        CookieUtil.getUserTokenKey(statusPageId),
-      );
-
-      if (token) {
+      if (statusPage) {
         try {
-          const decoded: JSONWebTokenData = JSONWebToken.decode(
-            token as string,
-          );
+          const session: StatusPagePrivateUserSession | null =
+            await this.findSignedInSession({
+              statusPage: statusPage,
+              statusPageId: statusPageId,
+              req: req,
+              select: ["session._id", "session.additionalInfo"],
+            });
 
-          if (
-            statusPage &&
-            decoded.statusPageId?.toString() === statusPageId.toString() &&
-            decoded.sessionId &&
-            ObjectID.isValidUUID(decoded.sessionId.toString()) &&
-            decoded.userId &&
-            ObjectID.isValidUUID(decoded.userId.toString())
-          ) {
-            /*
-             * One primary-key lookup joined to the private user. Do not cache
-             * authorization: revocation and soft deletion must take effect on
-             * the next request, even while the access JWT remains unexpired.
-             */
-            const session: StatusPagePrivateUserSession | null =
-              await StatusPagePrivateUserSessionService.getQueryBuilder(
-                "session",
-              )
-                .select(["session._id", "session.additionalInfo"])
-                .innerJoin("session.statusPagePrivateUser", "privateUser")
-                .where("session._id = :sessionId", {
-                  sessionId: decoded.sessionId.toString(),
-                })
-                .andWhere("session.statusPageId = :statusPageId", {
-                  statusPageId: statusPageId.toString(),
-                })
-                .andWhere("session.statusPagePrivateUserId = :userId", {
-                  userId: decoded.userId.toString(),
-                })
-                .andWhere("privateUser.statusPageId = :statusPageId")
-                .andWhere("privateUser.deletedAt IS NULL")
-                .andWhere("session.isRevoked = false")
-                .andWhere("session.refreshTokenExpiresAt > :now", {
-                  now: OneUptimeDate.getCurrentDate(),
-                })
-                .getOne();
-
-            if (
-              session &&
-              !StatusPagePrivateUserSessionService.isLoginCodeSession(session)
-            ) {
-              return {
-                hasReadAccess: true,
-              };
-            }
+          if (session) {
+            return {
+              hasReadAccess: true,
+            };
           }
         } catch (err) {
           logger.error(err, {
@@ -754,11 +1228,19 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
+      /*
+       * Who can see the page is one choice (Types/StatusPage/StatusPageAccess):
+       * the password is asked for only on a page that is not public, with the
+       * switch on and a password set. A public page returned above, so a page
+       * here is private, as the check above read it.
+       */
       const shouldEnforceMasterPassword: boolean = Boolean(
         statusPage &&
-          statusPage.enableMasterPassword &&
-          statusPage.masterPassword &&
-          !statusPage.isPublicStatusPage,
+          isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(statusPage.isPublicStatusPage),
+            enableMasterPassword: statusPage.enableMasterPassword,
+            hasMasterPassword: Boolean(statusPage.masterPassword),
+          }),
       );
 
       if (shouldEnforceMasterPassword) {
@@ -793,6 +1275,145 @@ export class Service extends DatabaseService<StatusPage> {
         "You do not have access to this status page. Please login to view the status page.",
       ),
     };
+  }
+
+  /*
+   * The session of the private user signed in to this status page on this
+   * request, or null: the page's sign-in cookie, its claims for this page,
+   * and the session behind it read live - not revoked, not expired, its
+   * private user not deleted, its sign-in still counting under the page's
+   * Require SSO for Login and Sign Readers Out After
+   * (StatusPagePrivateUserSessionService.addSignInRule). One primary-key
+   * lookup joined to the private user. Do not cache authorization:
+   * revocation and soft deletion must take effect on the next request, even
+   * while the access JWT remains unexpired. A login-code session - the
+   * moment between an SSO sign-in and the code exchange - is no sign-in.
+   */
+  private async findSignedInSession(data: {
+    statusPage: Pick<
+      StatusPage,
+      "requireSsoForLogin" | "privateUserSessionLengthInHours"
+    >;
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+    select: Array<string>;
+  }): Promise<StatusPagePrivateUserSession | null> {
+    const statusPageId: ObjectID = data.statusPageId;
+
+    const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      data.req,
+      CookieUtil.getUserTokenKey(statusPageId),
+    );
+
+    if (!token) {
+      return null;
+    }
+
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token as string,
+      JsonWebTokenPurpose.StatusPageSession,
+    );
+
+    if (
+      decoded.statusPageId?.toString() !== statusPageId.toString() ||
+      !decoded.sessionId ||
+      !ObjectID.isValidUUID(decoded.sessionId.toString()) ||
+      !decoded.userId ||
+      !ObjectID.isValidUUID(decoded.userId.toString())
+    ) {
+      return null;
+    }
+
+    const session: StatusPagePrivateUserSession | null =
+      await StatusPagePrivateUserSessionService.addSignInRule(
+        StatusPagePrivateUserSessionService.getQueryBuilder("session")
+          .select(data.select)
+          .innerJoin("session.statusPagePrivateUser", "privateUser")
+          .where("session._id = :sessionId", {
+            sessionId: decoded.sessionId.toString(),
+          })
+          .andWhere("session.statusPageId = :statusPageId", {
+            statusPageId: statusPageId.toString(),
+          })
+          .andWhere("session.statusPagePrivateUserId = :userId", {
+            userId: decoded.userId.toString(),
+          })
+          .andWhere("privateUser.statusPageId = :statusPageId")
+          .andWhere("privateUser.deletedAt IS NULL")
+          .andWhere("session.isRevoked = false")
+          .andWhere("session.refreshTokenExpiresAt > :now", {
+            now: OneUptimeDate.getCurrentDate(),
+          }),
+        {
+          requiresSso: Boolean(data.statusPage.requireSsoForLogin),
+          sessionLengthInHours: data.statusPage.privateUserSessionLengthInHours,
+        },
+      ).getOne();
+
+    if (
+      !session ||
+      StatusPagePrivateUserSessionService.isLoginCodeSession(session)
+    ) {
+      return null;
+    }
+
+    return session;
+  }
+
+  /*
+   * The email address of the private user signed in to this status page on
+   * this request, or null when no one is (findSignedInSession). What a page
+   * that takes only its private users as subscribers holds a sign-up to
+   * (Types/StatusPage/SubscriberRestrictions): the address comes from the
+   * private user's own row, never from the token, so a reader renamed or
+   * removed since they signed in subscribes no one.
+   */
+  @CaptureSpan()
+  public async getSignedInPrivateUserEmail(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<string | null> {
+    try {
+      const statusPage: StatusPage | null = await this.findOneById({
+        id: data.statusPageId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          requireSsoForLogin: true,
+          privateUserSessionLengthInHours: true,
+        },
+      });
+
+      if (!statusPage) {
+        return null;
+      }
+
+      const session: StatusPagePrivateUserSession | null =
+        await this.findSignedInSession({
+          statusPage: statusPage,
+          statusPageId: data.statusPageId,
+          req: data.req,
+          select: [
+            "session._id",
+            "session.additionalInfo",
+            "privateUser.email",
+          ],
+        });
+
+      const email: string = (
+        session?.statusPagePrivateUser?.email?.toString() || ""
+      ).trim();
+
+      return email || null;
+    } catch (err) {
+      logger.error(err, {
+        statusPageId: data.statusPageId?.toString(),
+      } as LogAttributes);
+
+      return null;
+    }
   }
 
   private hasValidMasterPasswordCookie(data: {
@@ -1118,32 +1739,16 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
-    /*
-     * While SSO is not active this caller only ever read the requirement as
-     * off (see onFindSuccess), so a write of it must not switch the stored
-     * requirement off, or set one nobody could see. Drops or refuses it.
-     */
-    EditionEnforcement.guardSsoRequirementWrite({
-      props: updateBy.props,
-      data: updateBy.data as unknown as Record<string, unknown>,
-      columns: STATUS_PAGE_SSO_REQUIREMENT_COLUMNS,
-    });
+    await super.onBeforeUpdate(updateBy);
 
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {
-      const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const statusPagesToBeUpdated: Array<StatusPage> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+        });
 
       for (const statusPage of statusPagesToBeUpdated) {
         const isSMSEnabled: boolean =
@@ -1151,68 +1756,154 @@ export class Service extends DatabaseService<StatusPage> {
 
         if (!isSMSEnabled) {
           throw new BadDataException(
-            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+            STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE,
           );
         }
       }
     }
 
-    if (
-      updateBy.data.reportStartDateTime ||
-      updateBy.data.reportRecurringInterval ||
-      updateBy.data.reportTimezone ||
-      updateBy.data.sendNextReportBy
-    ) {
-      const statusPages: Array<StatusPage> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          reportStartDateTime: true,
-          reportRecurringInterval: true,
-          reportTimezone: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
+    const carryForward: StatusPageUpdateCarryForward | null =
+      await this.addReportScheduleToUpdate(updateBy);
+
+    return {
+      carryForward: carryForward,
+      updateBy: updateBy,
+    };
+  }
+
+  /*
+   * The report columns an update has to carry as well, worked out per page
+   * from what it holds (StatusPageReportScheduleUtil.getScheduleWrite):
+   *
+   * - switching reports on - or rescheduling them - without a whole schedule
+   *   fills in the missing parts of the default one (every month, on the 1st
+   *   at 09:00 in the report timezone), so the dashboard's switch, an API
+   *   call or Terraform can switch reports on with nothing else. A schedule
+   *   the page holds or the caller sends is kept;
+   * - the next send (sendNextReportBy) is worked out again whenever the
+   *   schedule changes, reports are switched on, or the report worker moves
+   *   it on - calendar-correct and in the report timezone, so "the 1st at
+   *   09:00" stays the 1st at 09:00;
+   * - switching reports off needs, and adds, nothing.
+   *
+   * An update of one page - every update through the API or the dashboard -
+   * carries its columns in the same write. One that matched several pages
+   * needing different values (a workflow updating many) writes each page's
+   * after the update (onUpdateSuccess), as one write cannot hold them all.
+   */
+  private async addReportScheduleToUpdate(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<StatusPageUpdateCarryForward | null> {
+    const write: StatusPageReportScheduleColumns = getReportScheduleColumns(
+      updateBy.data as Record<string, unknown>,
+    );
+
+    if (!StatusPageReportScheduleUtil.isReportWrite(write)) {
+      return null;
+    }
+
+    const problem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    const statusPages: Array<StatusPage> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
+        _id: true,
+        isReportEnabled: true,
+        reportStartDateTime: true,
+        reportRecurringInterval: true,
+        reportTimezone: true,
       });
 
-      for (const statusPage of statusPages) {
-        const reportStartDate: Date | undefined =
-          (updateBy.data.reportStartDateTime as Date) ||
-          statusPage.reportStartDateTime;
-        const reportRecurringInterval: Recurring | undefined =
-          Recurring.fromJSON(
-            (updateBy.data.reportRecurringInterval as Recurring) ||
-              statusPage.reportRecurringInterval,
-          );
+    const now: Date = OneUptimeDate.getCurrentDate();
 
-        if (reportStartDate && reportRecurringInterval) {
-          /*
-           * Calendar-correct rather than Recurring.getNextDate's fixed
-           * millisecond approximation, which walks a monthly schedule anchored
-           * on the 1st backwards to the 31st, then the 30th, and eventually
-           * skips a month. Resolved in the report timezone so "the 1st at
-           * 09:00" survives a DST transition.
-           */
-          updateBy.data.sendNextReportBy = Recurring.getNextDateAfter({
-            startDate: reportStartDate,
-            recurring: reportRecurringInterval,
-            afterDate: OneUptimeDate.getCurrentDate(),
-            timezone:
-              (updateBy.data.reportTimezone as Timezone) ||
-              statusPage.reportTimezone ||
-              StatusPageReportPeriodUtil.DEFAULT_TIMEZONE,
-          });
-        }
-      }
+    const writes: Array<ReportScheduleWriteForPage> = statusPages.map(
+      (statusPage: StatusPage): ReportScheduleWriteForPage => {
+        return {
+          statusPageId: statusPage.id!,
+          write: StatusPageReportScheduleUtil.getScheduleWrite({
+            write: write,
+            stored: getReportScheduleColumns(statusPage),
+            now: now,
+          }),
+        };
+      },
+    );
+
+    const first: ReportScheduleWriteForPage | undefined = writes[0];
+
+    if (!first) {
+      return null;
+    }
+
+    const isSameForEveryPage: boolean = writes.every(
+      (entry: ReportScheduleWriteForPage): boolean => {
+        return isSameReportScheduleWrite(entry.write, first.write);
+      },
+    );
+
+    if (isSameForEveryPage) {
+      applyReportScheduleWrite(
+        updateBy.data as Record<string, unknown>,
+        first.write,
+      );
+      return null;
     }
 
     return {
-      carryForward: null,
-      updateBy: updateBy,
+      reportScheduleWrites: writes.filter(
+        (entry: ReportScheduleWriteForPage): boolean => {
+          return !isEmptyReportScheduleWrite(entry.write);
+        },
+      ),
     };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<StatusPage>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<StatusPage>> {
+    const carryForward: StatusPageUpdateCarryForward | null =
+      onUpdate.carryForward as StatusPageUpdateCarryForward | null;
+
+    if (!carryForward?.reportScheduleWrites?.length) {
+      return onUpdate;
+    }
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    /*
+     * Each page's own report columns, for an update that matched several
+     * pages needing different ones. Only for the pages the update wrote, and
+     * without the hooks: the values are worked out already.
+     */
+    for (const entry of carryForward.reportScheduleWrites) {
+      if (!updatedIds.has(entry.statusPageId.toString())) {
+        continue;
+      }
+
+      const data: Record<string, unknown> = {};
+      applyReportScheduleWrite(data, entry.write);
+
+      await this.updateOneById({
+        id: entry.statusPageId,
+        data: data as PartialEntity<StatusPage>,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    return onUpdate;
   }
 
   /*
@@ -1247,6 +1938,27 @@ export class Service extends DatabaseService<StatusPage> {
       ]);
 
     if (statusPages.length === 0) {
+      /*
+       * getStatusPagesToSendNotification leaves out archived pages and the
+       * pages of a blocked project, so a test report sent from the dashboard
+       * for one lands here. Say why, rather than "not found" for a page the
+       * sender is looking at - the block first, which unarchiving would not
+       * lift.
+       */
+      if (
+        await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+          data.statusPageId,
+        )
+      ) {
+        throw new BadDataException(
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+        );
+      }
+
+      if (await this.isStatusPageArchived(data.statusPageId)) {
+        throw new BadDataException(STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE);
+      }
+
       throw new BadDataException("Status page not found");
     }
 
@@ -1259,9 +1971,6 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageURL: string = await this.getStatusPageURL(statuspage.id);
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
-
-    const statusPageIdString: string | null =
-      statuspage.id?.toString() || statuspage._id?.toString() || null;
 
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
@@ -1306,13 +2015,11 @@ export class Service extends DatabaseService<StatusPage> {
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
         report: report as any,
-        logoUrl:
-          statuspage.logoFileId && statusPageIdString
-            ? new URL(httpProtocol, host)
-                .addRoute(StatusPageApiRoute)
-                .addRoute(`/logo/${statusPageIdString}`)
-                .toString()
-            : "",
+        logoUrl: StatusPageEmailLogo.getLogoUrl({
+          statusPage: statuspage,
+          host: host,
+          httpProtocol: httpProtocol,
+        }),
         isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
         unsubscribeUrl: unsubscribeUrl?.toString() || "",
@@ -1369,6 +2076,19 @@ export class Service extends DatabaseService<StatusPage> {
       return; // don't notify subscribers when explicitly sending a test email.
     }
 
+    /*
+     * A report is a notification: a page that sends its subscribers nothing
+     * (Send Notifications to Subscribers off) sends none. A test report,
+     * above, still goes to the address the team asked for.
+     */
+    if (!isSendingSubscriberNotifications(statuspage)) {
+      logger.debug(
+        `Status page ${statuspage.id.toString()} does not send notifications to its subscribers; no report sent.`,
+        { statusPageId: statuspage.id.toString() } as LogAttributes,
+      );
+      return;
+    }
+
     const subscribers: Array<StatusPageSubscriber> =
       await StatusPageSubscriberService.getSubscribersByStatusPage(
         statuspage.id!,
@@ -1393,7 +2113,7 @@ export class Service extends DatabaseService<StatusPage> {
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
-            subscriber.id!,
+            subscriber,
           ).toString();
 
         if (subscriber.subscriberEmail) {
@@ -1432,6 +2152,8 @@ export class Service extends DatabaseService<StatusPage> {
       },
       select: {
         downtimeMonitorStatuses: true,
+        // What the incident counts below are scoped by.
+        ...INCIDENT_COUNT_STATUS_PAGE_SELECT,
       },
     });
 
@@ -1499,7 +2221,7 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
-      statusPageId: data.statusPageId,
+      statusPage: statusPage,
       startDate: startDate,
       endDate: endDate,
     });
@@ -1661,6 +2383,7 @@ export class Service extends DatabaseService<StatusPage> {
         reportItem: {
           resourceName: resource.displayName || "",
           totalIncidentCount: await this.getIncidentCountByMonitorIds({
+            statusPage: statusPage,
             monitorIds: monitorIdsForThisResource,
             startDate: startDate,
             endDate: endDate,
@@ -1710,6 +2433,7 @@ export class Service extends DatabaseService<StatusPage> {
 
     const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> =
       await this.getReportGroupMetrics({
+        statusPage: statusPage,
         statusPageGroups: statusPageGroups,
         entries: entries,
         monitorIdsByResourceIndex: monitorIdsByResourceIndex,
@@ -1817,6 +2541,11 @@ export class Service extends DatabaseService<StatusPage> {
    */
   @CaptureSpan()
   public async getReportGroupMetrics(data: {
+    /*
+     * The status page the report is for, which the incident counts are
+     * scoped by: loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT.
+     */
+    statusPage: StatusPage;
     statusPageGroups: Array<StatusPageGroup>;
     entries: Array<StatusPageReportResourceEntry>;
     monitorIdsByResourceIndex: Array<Array<ObjectID>>;
@@ -1913,6 +2642,7 @@ export class Service extends DatabaseService<StatusPage> {
         totalIncidentCount =
           monitorIds.length > 0
             ? await this.getIncidentCountByMonitorIds({
+                statusPage: data.statusPage,
                 monitorIds: monitorIds,
                 startDate: data.reportWindow.startDate,
                 endDate: data.reportWindow.endDate,
@@ -1963,13 +2693,41 @@ export class Service extends DatabaseService<StatusPage> {
     });
   }
 
+  /*
+   * How many incidents the status page shows on these monitors, created in
+   * the window: the report's count for a resource, a group or the page.
+   *
+   * It counts what the page shows, through IncidentStatusPageScope - an
+   * incident limited to other status pages is not counted, nor is an
+   * unlimited one on a page that only shows incidents limited to it - and
+   * only the project's incidents visible on status pages. (Before the scope,
+   * this counted every incident on the monitors, hidden ones and all.)
+   *
+   * The status page must be loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT. It
+   * is passed in rather than read here because a report counts once for each
+   * resource and group.
+   */
   @CaptureSpan()
   public async getIncidentCountByMonitorIds(data: {
+    statusPage: StatusPage;
     monitorIds: Array<ObjectID>;
     startDate: Date;
     endDate: Date;
   }): Promise<number> {
-    const incidentCount: PositiveNumber = await IncidentService.countBy({
+    // No monitor, so no incident on one to count.
+    if (data.monitorIds.length === 0) {
+      return 0;
+    }
+
+    if (!data.statusPage.projectId) {
+      throw new BadDataException(
+        "Cannot count the incidents on a status page without its project.",
+      );
+    }
+
+    return await IncidentStatusPageScope.countIncidentsForStatusPage({
+      statusPage: data.statusPage,
+      projectId: data.statusPage.projectId,
       query: {
         monitors: data.monitorIds as any,
         createdAt: QueryHelper.inBetween(data.startDate, data.endDate),
@@ -1978,24 +2736,31 @@ export class Service extends DatabaseService<StatusPage> {
         isRoot: true,
       },
     });
-
-    return incidentCount.toNumber();
   }
 
+  // How many incidents the status page shows, over all of its monitors.
   @CaptureSpan()
   public async getIncidentCountOnStatusPage(data: {
-    statusPageId: ObjectID;
+    // Loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT.
+    statusPage: StatusPage;
     startDate: Date;
     endDate: Date;
   }): Promise<number> {
+    if (!data.statusPage.id) {
+      throw new BadDataException(
+        "Cannot count the incidents on a status page without its id.",
+      );
+    }
+
     const monitorsOnStatusPage: {
       monitorsOnStatusPage: Array<ObjectID>;
       monitorsInGroup: Dictionary<Array<ObjectID>>;
     } = await this.getMonitorIdsOnStatusPage({
-      statusPageId: data.statusPageId,
+      statusPageId: data.statusPage.id,
     });
 
     return this.getIncidentCountByMonitorIds({
+      statusPage: data.statusPage,
       monitorIds: monitorsOnStatusPage.monitorsOnStatusPage,
       startDate: data.startDate,
       endDate: data.endDate,
@@ -2097,6 +2862,7 @@ export class Service extends DatabaseService<StatusPage> {
           monitor: {
             _id: true,
             currentMonitorStatusId: true,
+            isArchived: true,
           },
           monitorGroupId: true,
           order: true,
@@ -2114,13 +2880,17 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-    // sort by order and then return
-
-    return statusPageResources.sort(
-      (a: StatusPageResource, b: StatusPageResource) => {
-        return a.order! - b.order!;
-      },
-    );
+    /*
+     * An archived monitor is retired and its status frozen, so it is not
+     * shown (see ArchivedMonitorResources). Everything that works out which
+     * monitors are on the page - incidents, maintenance, reports - reads it
+     * from here and so skips it too.
+     */
+    return ArchivedMonitorResources.withoutArchivedMonitors(
+      statusPageResources,
+    ).sort((a: StatusPageResource, b: StatusPageResource) => {
+      return a.order! - b.order!;
+    });
   }
 
   @CaptureSpan()

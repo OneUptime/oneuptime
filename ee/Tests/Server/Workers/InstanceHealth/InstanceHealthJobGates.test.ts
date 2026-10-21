@@ -133,7 +133,7 @@ const STATES: Array<EditionState> = [
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
-        EnterpriseFeature.SSO,
+        EnterpriseFeature.SCIM,
         EnterpriseFeature.AuditLogs,
       ]);
     },

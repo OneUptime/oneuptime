@@ -27,12 +27,20 @@ import SettingsTelegram from "./Pages/Settings/Telegram/Index";
 // Settings Pages.
 import SettingsEmail from "./Pages/Settings/Email/Index";
 import SettingsProbes from "./Pages/Settings/Probes/Index";
+import SettingsGlobalRunners from "./Pages/Settings/GlobalRunners/Index";
 import SettingsAIAgents from "./Pages/Settings/AIAgents/Index";
 import SettingsLlmProviders from "./Pages/Settings/LlmProviders/Index";
 import SendEmail from "./Pages/SendEmail/Index";
 import MoreEmail from "./Pages/More/Email";
 import Users from "./Pages/Users/Index";
 import EnterpriseLicenses from "./Pages/EnterpriseLicenses/Index";
+import { getAdminDashboardPlugins } from "./Enterprise/Plugins";
+import {
+  EnterprisePluginComponent,
+  EnterpriseSettingsPage,
+  getEnterpriseSettingsPageRoute,
+} from "./Enterprise/EnterprisePlugins";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import EnterpriseLicenseView from "./Pages/EnterpriseLicenses/View/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
@@ -40,7 +48,7 @@ import URL from "Common/Types/API/URL";
 import { ACCOUNTS_URL, DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
-import React from "react";
+import React, { Suspense } from "react";
 import {
   Route as PageRoute,
   Routes,
@@ -270,6 +278,11 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.SETTINGS_GLOBAL_RUNNERS]?.toString() || ""}
+          element={<SettingsGlobalRunners />}
+        />
+
+        <PageRoute
           path={RouteMap[PageMap.SETTINGS_AI_AGENTS]?.toString() || ""}
           element={<SettingsAIAgents />}
         />
@@ -313,6 +326,29 @@ const App: () => JSX.Element = () => {
           path={RouteMap[PageMap.SETTINGS_DATA_RETENTION]?.toString() || ""}
           element={<SettingsDataRetention />}
         />
+
+        {/*
+         * Settings pages an Enterprise area adds (EnterpriseSettingsPage),
+         * read here in render (never at module load); the Community stub
+         * has none.
+         */}
+        {(getAdminDashboardPlugins().SettingsPages || []).map(
+          (page: EnterpriseSettingsPage) => {
+            const SettingsPage: EnterprisePluginComponent = page.component;
+
+            return (
+              <PageRoute
+                key={page.path}
+                path={getEnterpriseSettingsPageRoute(page.path).toString()}
+                element={
+                  <Suspense fallback={<PageLoader isVisible={true} />}>
+                    <SettingsPage />
+                  </Suspense>
+                }
+              />
+            );
+          },
+        )}
 
         <PageRoute
           path={RouteMap[PageMap.SEND_EMAIL]?.toString() || ""}

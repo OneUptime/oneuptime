@@ -7,6 +7,10 @@ import {
   getDiscoveredHostFilterLabel,
   getDiscoveredHostFilterOptions,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredHostFilter";
+import {
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
 
@@ -14,7 +18,8 @@ import path from "path";
  * WHY THIS FILE EXISTS
  *
  * Every string the SNMP / No SNMP filter (#3322) puts in front of an operator,
- * and the wiring in Discovery.tsx that puts it there.
+ * and the wiring in the import dialog (DiscoveryImportDialog.tsx and its host
+ * list, DiscoveredHostTable.tsx) that puts it there.
  *
  * The filter shipped with a copy defect of exactly the kind nothing else in
  * the suite could catch. The empty-group line was built as
@@ -45,51 +50,91 @@ import path from "path";
  * Prettier can reflow props without making the test brittle.
  */
 
-const DISCOVERY_PAGE: string = path.join(
+const DISCOVERY_IMPORT_DIR: string = path.join(
   __dirname,
   "..",
   "..",
   "FeatureSet",
   "Dashboard",
   "src",
-  "Pages",
+  "Components",
   "NetworkDevice",
-  "Discovery.tsx",
+  "DiscoveryImport",
+);
+
+// The dialog: its description, and the mode it reads the scan in.
+const DIALOG_SOURCE: string = path.join(
+  DISCOVERY_IMPORT_DIR,
+  "DiscoveryImportDialog.tsx",
+);
+
+// The host list: the facets, the empty states, the rows and their pills.
+const TABLE_SOURCE: string = path.join(
+  DISCOVERY_IMPORT_DIR,
+  "DiscoveredHostTable.tsx",
+);
+
+/*
+ * The monitoring step: its "What this import does" summary is where what
+ * each kind of host imports as is said, with the counts of each.
+ */
+const MONITORING_SOURCE: string = path.join(
+  DISCOVERY_IMPORT_DIR,
+  "DiscoveryImportMonitoringStep.tsx",
 );
 
 /*
  * Read once per run, not once per helper call.
  *
  * The helpers below call this forty-odd times, twice inside a single test in
- * places, and the page they read is a file on disk that other processes edit —
- * a second agent, an editor, a rebase. An uncached read can hand two halves of
+ * places, and the files they read are on a disk other processes edit — a
+ * second agent, an editor, a rebase. An uncached read can hand two halves of
  * one test two different files and fail on a difference that never existed in
  * either version, which is a false red nobody can reproduce. The subject of a
  * source-level test has to hold still for the length of the run.
  */
-let cachedSource: string | null = null;
+const cachedSources: Map<string, string> = new Map<string, string>();
 
-function readSource(): string {
-  if (cachedSource === null) {
-    cachedSource = fs.readFileSync(DISCOVERY_PAGE, "utf8");
+function readSource(file: string): string {
+  if (!cachedSources.has(file)) {
+    cachedSources.set(file, fs.readFileSync(file, "utf8"));
   }
 
-  return cachedSource;
+  return cachedSources.get(file)!;
 }
 
+// Every run of whitespace, block comment and line comment, for the readers below.
+const WHITESPACE_RUNS: RegExp = /\s+/g;
+const BLOCK_COMMENTS: RegExp = /\/\*[\s\S]*?\*\//g;
+// Not after a colon, so "https://" in a string is not taken for a comment.
+const LINE_COMMENTS: RegExp = /(^|[^:])\/\/[^\n]*/g;
+
 function squash(source: string): string {
-  return source.replace(/\s+/g, " ");
+  return source.replace(WHITESPACE_RUNS, " ");
 }
 
 function stripComments(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  return source.replace(BLOCK_COMMENTS, " ").replace(LINE_COMMENTS, "$1");
 }
 
-/** The page with comments removed and whitespace squashed to single spaces. */
-function readCode(): string {
-  return squash(stripComments(readSource()));
+/** A file with comments removed and whitespace squashed to single spaces. */
+function readCode(file: string): string {
+  return squash(stripComments(readSource(file)));
+}
+
+/*
+ * The Dashboard's English locale (src/Locales/en.json): every key
+ * `npm run i18n:extract` found, each mapped to itself. The dialog's copy is
+ * looked up in the reader's language (#4280), so a sentence pinned below
+ * that is not in here is one no locale can ever translate.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(DISCOVERY_IMPORT_DIR, "..", "..", "..", "Locales", "en.json"),
+      "utf8",
+    ),
+  );
 }
 
 /*
@@ -98,7 +143,7 @@ function readCode(): string {
  * `String.indexOf` returns -1 for a miss, and `slice(-1, ...)` quietly yields
  * the tail of the file (or an empty string) rather than failing. Both turn a
  * `not.toContain` into a vacuous pass and a `toContain` into a check against
- * the whole page — which is how source-level tests rot into passing for the
+ * the whole file — which is how source-level tests rot into passing for the
  * wrong reason after a rename. Throwing here makes the rename a red test.
  */
 function sliceBetween(data: {
@@ -109,7 +154,7 @@ function sliceBetween(data: {
   const start: number = data.code.indexOf(data.from);
 
   if (start === -1) {
-    throw new Error(`Discovery.tsx no longer contains "${data.from}"`);
+    throw new Error(`The source no longer contains "${data.from}"`);
   }
 
   if (!data.to) {
@@ -120,35 +165,66 @@ function sliceBetween(data: {
 
   if (end === -1) {
     throw new Error(
-      `Discovery.tsx no longer contains "${data.to}" after "${data.from}"`,
+      `The source no longer contains "${data.to}" after "${data.from}"`,
     );
   }
 
   return data.code.slice(start, end);
 }
 
-/** Everything the Review Discovered Devices modal renders. */
-function modalSection(): string {
+/** Everything the import dialog renders and says, from the scan's label on. */
+function dialogSection(): string {
   return sliceBetween({
-    code: readCode(),
-    from: 'title="Review Discovered Devices"',
+    code: readCode(DIALOG_SOURCE),
+    from: "const scanLabel: string",
   });
 }
 
-/** The sentence under the modal title, before the layout props. */
-function descriptionSection(): string {
+/*
+ * The summary's line for the hosts that answered SNMP, and its line for the
+ * hosts that answered ping only - each with the condition it is shown under.
+ */
+function outcomeLineSection(key: "snmp" | "ping"): string {
+  const summary: string = sliceBetween({
+    code: readCode(MONITORING_SOURCE),
+    from: "export const OutcomeSummary",
+    to: "if (outcome.appliesVendorTemplates)",
+  });
+
+  return key === "snmp"
+    ? sliceBetween({
+        code: summary,
+        from: "if (outcome.snmpHostCount > 0) {",
+        to: "if (outcome.pingOnlyHostCount > 0) {",
+      })
+    : sliceBetween({
+        code: summary,
+        from: "if (outcome.pingOnlyHostCount > 0) {",
+      });
+}
+
+/** The host list, from its facets to its last row. */
+function tableSection(): string {
   return sliceBetween({
-    code: readCode(),
-    from: 'title="Review Discovered Devices"',
-    to: "modalWidth={",
+    code: readCode(TABLE_SOURCE),
+    from: 'data-testid="discovered-host-table"',
+  });
+}
+
+/** What the list says when it shows no host. */
+function emptyStateSection(): string {
+  return sliceBetween({
+    code: readCode(TABLE_SOURCE),
+    from: 'data-testid="discovered-host-empty"',
+    to: '<ul className="divide-y',
   });
 }
 
 /** The per-row checkbox, up to its change handler. */
 function checkboxSection(): string {
   return sliceBetween({
-    code: readCode(),
-    from: "<CheckboxElement",
+    code: readCode(TABLE_SOURCE),
+    from: "<CheckboxElement dataTestId={`discovered-device-checkbox-",
     to: "onChange={(value: boolean)",
   });
 }
@@ -156,8 +232,8 @@ function checkboxSection(): string {
 /** The "No SNMP" pill on a ping-only row. */
 function pingOnlyBadgeSection(): string {
   return sliceBetween({
-    code: readCode(),
-    from: "{isPingOnly && (",
+    code: readCode(TABLE_SOURCE),
+    from: "{isPingOnly ? (",
     to: "{entry.isAlreadyRegistered && (",
   });
 }
@@ -200,6 +276,22 @@ function labelsOf(hosts: Array<DiscoveredNetworkDevice>): Array<string> {
       return option.label;
     },
   );
+}
+
+/*
+ * A reader whose language words two of the groups differently from English,
+ * as de.json does. Only the lookup is stubbed; the real translator fills
+ * everything in.
+ */
+function germanTranslator(): Translator {
+  const words: Record<string, string> = {
+    "No SNMP": "Kein SNMP",
+    All: "Alle",
+  };
+
+  return createTranslator((text: string): string | undefined => {
+    return words[text];
+  }, "de");
 }
 
 /*
@@ -338,12 +430,51 @@ describe("the group names", () => {
      * exactly the connection the filter exists to make for them. Read from
      * the page rather than trusted, because the pill is hand-written JSX and
      * the button label comes from the module.
+     *
+     * Both are in the reader's language since #4280, so "worded alike" has
+     * to hold there too. The pill looks its words up under the group's own
+     * label, and the button names the group through the same lookup — in a
+     * locale that words the group ("Kein SNMP"), a button left reading
+     * "No SNMP (2,890)" above rows marked "Kein SNMP" is the drift this
+     * test exists to stop.
      */
     const badgeText: string = getDiscoveredHostFilterLabel(
       DiscoveredHostFilter.NoSnmp,
     );
 
-    expect(pingOnlyBadgeSection()).toContain(`> ${badgeText} </span>`);
+    expect(pingOnlyBadgeSection()).toContain(
+      `> {translator.translateText(${JSON.stringify(badgeText)})} </span>`,
+    );
+
+    const german: Translator = germanTranslator();
+    const noSnmpButton: DiscoveredHostFilterOption | undefined =
+      getDiscoveredHostFilterOptions(
+        scanOf({ snmpCount: 2866, pingOnlyCount: 2890 }),
+        german,
+      ).find((option: DiscoveredHostFilterOption): boolean => {
+        return option.value === DiscoveredHostFilter.NoSnmp;
+      });
+
+    expect(noSnmpButton?.label).toEqual(
+      `${german.translateText(badgeText)} (2,890)`,
+    );
+    expect(noSnmpButton?.label).toEqual("Kein SNMP (2,890)");
+  });
+
+  test("every button is named in the reader's language, around the same count", () => {
+    /*
+     * The other groups follow the same rule, and the count is untouched by
+     * it: still the group's own size, still with the en-US separators an
+     * operator checks against the probe's tally.
+     */
+    expect(
+      getDiscoveredHostFilterOptions(
+        scanOf({ snmpCount: 2866, pingOnlyCount: 2890 }),
+        germanTranslator(),
+      ).map((option: DiscoveredHostFilterOption): string => {
+        return option.label;
+      }),
+    ).toEqual(["Alle (5,756)", "SNMP (2,866)", "Kein SNMP (2,890)"]);
   });
 });
 
@@ -448,95 +579,102 @@ describe("the filter buttons", () => {
 });
 
 describe("the dialog puts that copy on screen", () => {
-  test("the anchors every slice below depends on are still in the page", () => {
+  test("the anchors every slice below depends on are still in the files", () => {
     /*
      * A rename that lost one would make the slices throw rather than silently
      * check the whole file. This test is where that is stated out loud, so
      * the failure names the anchor instead of turning up as an unrelated
      * assertion.
      */
-    expect(modalSection().length).toBeGreaterThan(0);
-    expect(descriptionSection().length).toBeGreaterThan(0);
+    expect(dialogSection().length).toBeGreaterThan(0);
+    expect(outcomeLineSection("snmp").length).toBeGreaterThan(0);
+    expect(outcomeLineSection("ping").length).toBeGreaterThan(0);
+    expect(tableSection().length).toBeGreaterThan(0);
+    expect(emptyStateSection().length).toBeGreaterThan(0);
     expect(checkboxSection().length).toBeGreaterThan(0);
     expect(pingOnlyBadgeSection().length).toBeGreaterThan(0);
   });
 
   test("both empty states are rendered through the shared message", () => {
     /*
-     * There are two of them and they say different things: a scan that found
-     * nothing at all (All, regardless of which filter happens to be active),
-     * and a scan that found hosts but none in the group on screen (the ACTIVE
-     * filter, which is the case the "No No SNMP" defect lived in). Both go
-     * through the module so neither can be reworded on its own.
+     * A scan that found nothing at all says so whatever facet is pressed,
+     * and a scan with hosts but none in the pressed SNMP / No SNMP group says
+     * which - the case the "No No SNMP" defect lived in. Both go through the
+     * module so neither can be reworded on its own. When the reader's own
+     * search or name facet is what empties the list, the list says that, and
+     * offers to clear them.
      */
-    const section: string = modalSection();
+    const empty: string = emptyStateSection();
 
-    expect(section).toContain("reviewEntries.length === 0");
-    expect(section).toContain(
+    expect(empty).toContain("hosts.length === 0");
+    expect(empty).toContain(
       "getDiscoveredHostFilterEmptyMessage(DiscoveredHostFilter.All)",
     );
-
-    expect(section).toContain("shownEntries.length === 0");
-    expect(section).toContain(
-      "getDiscoveredHostFilterEmptyMessage(hostFilter)",
+    expect(empty).toContain(
+      "getDiscoveredHostFilterEmptyMessage(query.answered)",
     );
+    expect(empty).toContain(
+      'translator.translateText( "No host matches the search and filters.", )',
+    );
+    expect(empty).toContain('dataTestId="discovered-host-clear-filters"');
   });
 
-  test("the page never builds an empty state out of a button label again", () => {
+  test("the files never build an empty state out of a button label again", () => {
     /*
      * The defect itself, banned at source. Any `No ${getDiscoveredHostFilterLabel(...)}`
      * is the collision returning, and the old frame's tail is banned with it
      * so the sentence cannot be reassembled around a different label call.
      */
-    const code: string = readCode();
-
     const labelDroppedIntoNoFrame: RegExp =
       /no\s+\$\{\s*getDiscoveredHostFilterLabel/i;
 
-    expect(labelDroppedIntoNoFrame.test(code)).toBe(false);
-    expect(code).not.toContain("hosts in this scan.");
+    for (const file of [DIALOG_SOURCE, TABLE_SOURCE]) {
+      const code: string = readCode(file);
+
+      expect(labelDroppedIntoNoFrame.test(code)).toBe(false);
+      expect(code).not.toContain("hosts in this scan.");
+    }
   });
 
-  test("the description explains what each group imports as", () => {
+  test("the dialog's description is the scan it imports from, on every step", () => {
     /*
-     * It used to end "hosts without SNMP cannot be imported", which stopped
-     * being true when ping-only hosts started importing as monitor-backed
-     * devices — and which reads as a flat contradiction sitting directly
-     * above a No SNMP filter whose whole purpose is importing them as a
-     * batch. What replaced it has to be more than the removal: the two groups
-     * import into different kinds of device, and that is the fact the
-     * operator needs before choosing a filter.
-     *
-     * REPAIRED BY #3445, which weakened this test without editing a line of
-     * it. The description became a ternary on the scan's mode, so
-     * `descriptionSection()` now spans BOTH arms — and the two `toContain`s
-     * below stopped saying anything about the SNMP sentence in particular.
-     * They would pass unchanged if the SNMP arm lost both phrases and the
-     * ICMP-only arm gained them, which is precisely the swap a new branch
-     * makes easy. The positive half is therefore asked of the SNMP arm
-     * itself. The bans stay on the whole section, because NEITHER sentence
-     * may tell an operator a host cannot be imported by a dialog whose only
-     * button imports it.
+     * It was a sentence per kind of scan, seven lines on a phone above the
+     * list, saying again what the monitoring step's summary says with the
+     * counts. One line - the scan and its range - leaves the steps the room,
+     * and can never describe a kind of host the scan does not have.
      */
-    const description: string = descriptionSection();
+    const code: string = readCode(DIALOG_SOURCE);
 
-    expect(description).not.toContain("cannot be imported");
-    expect(description).not.toContain("without SNMP cannot");
+    expect(code).toContain(
+      'title="Import Discovered Devices" description={scanLabel}',
+    );
+    expect(code).not.toContain("const description: string");
+    expect(dialogSection()).not.toContain("Hosts that answered");
+  });
 
+  test("the summary says what each kind of host imports as", () => {
     /*
-     * The two groups no longer import into different KINDS of device — both
-     * are Probe devices the scan's probe pings — so what the sentence has to
-     * carry is the one difference left: SNMP hosts arrive with the scan's
-     * credentials and are walked, hosts without SNMP are pinged until
-     * credentials are added. "monitor-backed" and "polling off" would be
-     * describing the import this dialog no longer does.
+     * It once ended "hosts without SNMP cannot be imported", which stopped
+     * being true when ping-only hosts started importing - and a dialog whose
+     * button imports them must never say so. What has to be said is the one
+     * difference between the two kinds of host: one that answered SNMP
+     * arrives with the credentials that answered it and is walked, the rest
+     * are pinged by the scan's probe until credentials are added.
      */
-    const snmpBranch: string = reviewDescriptionBranches().snmp;
+    const snmp: string = outcomeLineSection("snmp");
+    const ping: string = outcomeLineSection("ping");
 
-    expect(snmpBranch).toContain("credentials");
-    expect(snmpBranch).toContain("pinged by the scan's probe");
-    expect(snmpBranch).not.toContain("monitor-backed");
-    expect(snmpBranch).not.toContain("polling off");
+    for (const line of [snmp, ping]) {
+      expect(line).not.toContain("cannot be imported");
+      expect(line).not.toContain("without SNMP cannot");
+      expect(line).not.toContain("monitor-backed");
+      expect(line).not.toContain("polling off");
+    }
+
+    expect(snmp).toContain("with the credentials that answered");
+    expect(snmp).toContain("walked every {{minutes}} min");
+    expect(ping).toContain("pinged every {{minutes}} min");
+    expect(ping).toContain("Add SNMP credentials later");
   });
 
   test("a row's checkbox says which host it is for", () => {
@@ -575,345 +713,245 @@ describe("the dialog puts that copy on screen", () => {
 /*
  * THE ICMP-ONLY SWEEP (issue #3445)
  *
- * A discovery scan can now be run with Check SNMP off: a plain ICMP sweep that
+ * A discovery scan can be run as ICMP (ping): a plain ICMP sweep that
  * sends no SNMP packet, asks for no credentials, and reports every host that
- * answered ping. Every string in this dialog was written when that was
- * impossible, and three of them are wrong on such a scan in a way that reads as
- * a failure rather than as a result:
+ * answered ping. Three things the dialog says would be wrong on such a scan
+ * in a way that reads as a failure rather than as a result:
  *
- *   - the description offers a choice between two groups the sweep cannot have;
- *   - the SNMP / No SNMP row shows two identical groups and one permanently
- *     empty button;
- *   - that empty button's message, "No host in this scan answered SNMP.", reads
- *     as rejected credentials on a scan that carried none.
+ *   - a description that offers a choice between two kinds of host the sweep
+ *     cannot have;
+ *   - an SNMP / No SNMP facet showing two identical groups and one
+ *     permanently empty button;
+ *   - that empty button's message, "No host in this scan answered SNMP.",
+ *     which reads as rejected credentials on a scan that carried none.
  *
  * The first two are handled below. The third is handled by never showing the
- * button. The per-row pill is deliberately left exactly as it was — see the
+ * facet. The per-row pill is deliberately left exactly as it was — see the
  * last describe.
  */
 
-interface ReviewDescriptionBranches {
-  icmpOnly: string;
-  snmp: string;
-}
-
 /*
- * The two halves of the description's ternary, as literals.
- *
- * Same refusal-to-lie contract as sliceBetween: a regex that no longer matches
- * would otherwise hand back empty strings, and every `toContain` below would
- * pass against nothing and every `not.toContain` would pass vacuously. If the
- * description stops being a ternary on the scan's mode, this must be the thing
- * that fails, by name.
+ * The summary's two lines as the English sentences they look up: each is a
+ * plural template whose `other` sentence is its key. Read off the source so
+ * what is asserted is exactly what the step shows.
  */
-function reviewDescriptionBranches(): ReviewDescriptionBranches {
-  const match: RegExpMatchArray | null = descriptionSection().match(
-    /isIcmpOnlyReview \? "([^"]+)" : "([^"]+)"/,
-  );
+const PLURAL_OTHER: RegExp = /other:\s*"([^"]+)"/;
 
-  if (!match || !match[1] || !match[2]) {
+function outcomeSentence(key: "snmp" | "ping"): string {
+  const match: RegExpMatchArray | null =
+    outcomeLineSection(key).match(PLURAL_OTHER);
+
+  if (!match || !match[1]) {
     throw new Error(
-      "Discovery.tsx's Review description is no longer a ternary on isIcmpOnlyReview",
+      `The summary's ${key} line is no longer a plural template with an "other" sentence`,
     );
   }
 
-  return { icmpOnly: match[1], snmp: match[2] };
+  return match[1];
 }
 
 /*
- * Everything between the mode guard and the filter row it guards — which, if
- * the guard really does wrap that row, is nothing at all.
+ * Everything between the mode guard and the SNMP / No SNMP facet it guards —
+ * which, if the guard really does wrap that facet, is only the facet's own
+ * wrapper.
  */
-function filterButtonsGuardSection(): string {
+function answeredFacetGuardSection(): string {
   return sliceBetween({
-    code: readCode(),
-    from: "{!isIcmpOnlyReview && (",
-    to: "<FilterButtons",
+    code: readCode(TABLE_SOURCE),
+    from: "{!props.isIcmpOnly && (",
+    to: 'data-testid="discovered-host-answered-facet"',
   });
 }
 
-describe("the review dialog reads differently for a scan that only pinged", () => {
-  test("the anchors the ICMP-only slices depend on are still in the page", () => {
-    /*
-     * Stated out loud, for the same reason the existing anchors test is: a
-     * rename should fail here, naming the anchor, rather than turning up three
-     * tests later as an assertion about copy that was never read.
-     */
-    expect(reviewDescriptionBranches().icmpOnly.length).toBeGreaterThan(0);
-    expect(reviewDescriptionBranches().snmp.length).toBeGreaterThan(0);
-    expect(filterButtonsGuardSection().length).toBeGreaterThan(0);
+describe("the import dialog reads differently for a scan that only pinged", () => {
+  test("the anchors the ICMP-only slices depend on are still in the files", () => {
+    expect(outcomeSentence("snmp").length).toBeGreaterThan(0);
+    expect(outcomeSentence("ping").length).toBeGreaterThan(0);
+    expect(answeredFacetGuardSection().length).toBeGreaterThan(0);
   });
 
-  test("the mode this dialog branches on is read through ScanModeUtil", () => {
+  test("the mode the dialog branches on is read through ScanModeUtil", () => {
     /*
-     * The single line everything else in this file hangs off:
-     *
-     *   const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);
-     *
-     * Every other assertion here is satisfied by ANY derivation of that
-     * boolean — the guard is still around the row, both arms of the ternary
-     * are still there, the pill is still ungated. So rewriting it to
-     * `!scanToReview?.isSnmpEnabled` leaves this whole file green while
-     * flipping every scan that has no value for the column — every scan
-     * created before #3445, and every row read back through a `select` that
-     * omits it — onto the ICMP-only copy: it is told it "checked ICMP only"
-     * when it polled SNMP, and it loses the SNMP / No SNMP row it has always
-     * had. Absence means SNMP, and the one place that rule is written is
-     * ScanModeUtil's `!== false`.
+     * The single line everything else in this file hangs off. Rewriting it
+     * to `!scan?.isSnmpEnabled` would flip every scan that has no value for
+     * the column — every scan created before #3445 — onto the ICMP-only copy,
+     * and take away the SNMP / No SNMP facet it has always had. Absence means
+     * SNMP, and the one place that rule is written is ScanModeUtil.
      *
      * The second assertion is the same rule as a ban, so the mode cannot be
-     * re-derived off the column somewhere further down the page either. All
-     * three current mentions of the flag in this page are object KEYS (the
-     * toggle's field, the value its onChange writes, and selectMoreFields);
-     * a READ of it is a second copy of the rule by definition.
+     * re-derived off the column anywhere else in the dialog or the list: the
+     * only mention allowed is the select's object key.
      */
-    const code: string = readCode();
-
-    expect(code).toContain(
-      "const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);",
+    expect(readCode(DIALOG_SOURCE)).toContain(
+      "const isIcmpOnly: boolean = ScanModeUtil.isIcmpOnly(scan);",
     );
 
     const modeReadOffTheColumn: RegExp = /[.?]\s*isSnmpEnabled/;
 
-    expect(modeReadOffTheColumn.test(code)).toBe(false);
+    for (const file of [DIALOG_SOURCE, TABLE_SOURCE]) {
+      expect(modeReadOffTheColumn.test(readCode(file))).toBe(false);
+    }
+
+    // And the list is told the mode the dialog read, not left to work it out.
+    expect(readCode(DIALOG_SOURCE)).toContain("isIcmpOnly={isIcmpOnly}");
   });
 
-  test("the description has a branch for a scan that sent no SNMP", () => {
+  test("each kind of host has its own line, shown only when the scan has one", () => {
     /*
-     * The branch has to exist at all, and the two halves have to be different
-     * sentences — a ternary whose arms had converged would be a branch in name
-     * only, and the whole point is that one of these sentences is about a
-     * choice the operator does not have on an ICMP-only sweep.
+     * An ICMP-only sweep has no host that answered SNMP, so its summary has
+     * no SNMP line: nothing on screen describes a kind of host the sweep
+     * cannot have (#3445). Each line is gated on its own count.
      */
-    const description: string = descriptionSection();
-
-    expect(description).toContain("isIcmpOnlyReview");
-
-    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
-
-    expect(branches.icmpOnly).not.toEqual(branches.snmp);
-  });
-
-  test("the ICMP-only branch says what those hosts import as, and what to do next", () => {
-    /*
-     * The two facts an operator needs before pressing Import on a sweep that
-     * asked nothing about SNMP:
-     *
-     *   - what arrives in the inventory. "pinged by the scan's probe" is the
-     *     same phrase the No SNMP pill and the SNMP branch use, so the three
-     *     places this concept appears name it identically — and it says the
-     *     device has a status on its own, which is the thing the old
-     *     "monitor-backed ... polling off" import did not.
-     *   - what is still worth adding: SNMP credentials for inventory, and the
-     *     optional Ping monitor for incidents.
-     */
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
-
-    expect(icmpOnly).toContain("ICMP only");
-    expect(icmpOnly).toContain("pinged by the scan's probe");
-    expect(icmpOnly).toContain("SNMP credentials");
-    /*
-     * Named the way the dialog's own control names it. Every host an
-     * ICMP-only scan finds is a host without SNMP, so the Ping monitor
-     * option covers the whole import — pointing at it beats telling the
-     * operator to go and create 2,890 monitors by hand.
-     */
-    expect(icmpOnly).toContain("Create a Ping monitor");
-  });
-
-  test("the ICMP-only branch is exactly this sentence", () => {
-    /*
-     * Verbatim, so a reword is a deliberate act with a failing test attached
-     * rather than a silent one. This is the copy an operator reads at the
-     * moment they decide whether to import — it IS the feature, not a
-     * description of it.
-     */
-    expect(reviewDescriptionBranches().icmpOnly).toEqual(
-      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
+    expect(outcomeLineSection("snmp")).toMatch(
+      /^if \(outcome\.snmpHostCount > 0\) \{ lines\.push\(\{ key: "snmp",/,
+    );
+    expect(outcomeLineSection("ping")).toMatch(
+      /^if \(outcome\.pingOnlyHostCount > 0\) \{ lines\.push\(\{ key: "ping",/,
     );
   });
 
-  test("the SNMP branch is exactly this sentence", () => {
+  test("the ping-only line says what those hosts import as, and what to add later", () => {
     /*
-     * The other side of the branch, pinned whole so neither arm can be
-     * quietly rewritten in an edit aimed at the other. Reworded once, when
-     * ping-first polling replaced the monitor-backed import: "polled devices
-     * ... monitor-backed ones" described two kinds of device, and there is
-     * one kind now.
+     * The two facts an operator needs before importing a sweep that asked
+     * nothing about SNMP: what arrives in the inventory - pinged, the word
+     * the No SNMP pill uses - and what is still worth adding: SNMP
+     * credentials.
      */
-    expect(reviewDescriptionBranches().snmp).toEqual(
-      "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
+    expect(outcomeSentence("ping")).toEqual(
+      "{{count}} devices answered ping only: they are pinged every {{minutes}} min. Add SNMP credentials later to walk them too.",
     );
   });
 
-  test("the ICMP-only branch does not describe a filter row that is not on screen", () => {
-    /*
-     * The row is hidden for this scan (see the next describe), so a sentence
-     * telling the operator to "filter to a group" would be pointing at controls
-     * that are not there — and "SNMP hosts arrive as polled devices" would be
-     * describing an outcome no host on this scan can have.
-     */
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
-
-    expect(icmpOnly).not.toContain("Filter to a group");
-    expect(icmpOnly).not.toContain("walked for inventory");
-    expect(icmpOnly).not.toContain("SNMP hosts");
+  test("the SNMP line is exactly this sentence", () => {
+    expect(outcomeSentence("snmp")).toEqual(
+      "{{count}} devices answered SNMP: they are walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered them.",
+    );
   });
 
-  test("the ICMP-only branch never frames its own results as a shortfall", () => {
+  test("both lines ask for the count and the interval only, and are recorded for translation", () => {
     /*
-     * "hosts without SNMP" is a caveat: it names what these hosts are NOT, on a
-     * scan where that is the entire point of the sweep the operator asked for.
-     * And "cannot be imported" is the sentence this description used to end
-     * with, which is false for every host on this scan.
+     * A placeholder nobody fills is shown to the operator as "{{range}}".
+     * Both sentences are keys of en.json, with their one-host forms.
      */
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
+    const placeholder: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
+    const english: Record<string, string> = readEnglishLocale();
 
-    expect(icmpOnly).not.toContain("without SNMP");
-    expect(icmpOnly).not.toContain("cannot be imported");
-    expect(icmpOnly).not.toContain("cannot");
-  });
-
-  test("the new copy did not reintroduce the banned sentence frame", () => {
-    /*
-     * `No ${label} hosts in this scan.` is the frame that shipped as "No No
-     * SNMP hosts in this scan.", and the tail of it is banned at source. A new
-     * branch of copy about hosts and scans is exactly where it would come back.
-     */
-    expect(readCode()).not.toContain("hosts in this scan.");
-
-    for (const branch of [
-      reviewDescriptionBranches().icmpOnly,
-      reviewDescriptionBranches().snmp,
-    ]) {
-      expect(branch).not.toContain("hosts in this scan.");
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence.match(placeholder)).toEqual(["{{count}}", "{{minutes}}"]);
+      expect(english[sentence]).toEqual(sentence);
+      expect(english[`${sentence}_one`]).toBeTruthy();
     }
   });
 
-  test("both branches are punctuated as the sentences they are", () => {
-    /*
-     * They are concatenated into one paragraph with the scan's label before
-     * them and the probe's status message after them, so each has to end as a
-     * sentence and start as one. A branch that lost its full stop would run
-     * straight into the probe's summary.
-     */
-    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
+  test("the ping-only line never frames its own results as a shortfall", () => {
+    const ping: string = outcomeSentence("ping");
 
-    for (const branch of [branches.icmpOnly, branches.snmp]) {
-      expect(branch.trim()).toEqual(branch);
-      expect(branch.slice(0, 1)).toEqual(branch.slice(0, 1).toUpperCase());
-      expect(branch.endsWith(".")).toBe(true);
+    expect(ping).not.toContain("without SNMP");
+    expect(ping).not.toContain("cannot be imported");
+    expect(ping).not.toContain("cannot");
+  });
+
+  test("the new copy did not reintroduce the banned sentence frame", () => {
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence).not.toContain("hosts in this scan.");
+    }
+  });
+
+  test("both lines are punctuated as the sentences they are", () => {
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence.trim()).toEqual(sentence);
+      expect(sentence.endsWith(".")).toBe(true);
     }
   });
 });
 
-describe("the SNMP / No SNMP row is not offered on a sweep that sent no SNMP", () => {
-  test("the row is gated on the scan's mode, with nothing between the guard and it", () => {
+describe("the SNMP / No SNMP facet is not offered on a sweep that sent no SNMP", () => {
+  test("the facet is gated on the scan's mode, with nothing but its own wrapper between", () => {
     /*
-     * WHY the row is hidden rather than left to render its own zeroes:
+     * On an ICMP-only sweep every host is ping-only by construction, so the
+     * facet would read "All (2,890) · SNMP (0) · No SNMP (2,890)" — two
+     * buttons naming the identical set of hosts, and one that can never
+     * contain anything, whose empty message reads as a diagnosis of a
+     * credential problem on a scan that carried none.
      *
-     * On an ICMP-only sweep every host is ping-only by construction, so the row
-     * reads "All (2,890) · SNMP (0) · No SNMP (2,890)" — two buttons naming the
-     * identical set of hosts, and one that can never contain anything. Pressing
-     * the empty one shows "No host in this scan answered SNMP.", which is a
-     * true sentence that reads as a diagnosis: rejected credentials, wrong
-     * version, a firewall on 161. The scan sent no SNMP at all, so there is
-     * nothing there to diagnose, and a filter row is the wrong place to learn
-     * it.
-     *
-     * The slice is asserted to be empty because the guard has to wrap THIS row
-     * and not merely appear somewhere above it — a guard around a sibling would
-     * pass a `toContain` while leaving the row on screen.
+     * The guard has to wrap THIS facet and not merely appear somewhere above
+     * it — a guard around a sibling would pass a `toContain` while leaving
+     * the facet on screen.
      */
-    expect(filterButtonsGuardSection().trim()).toEqual(
-      "{!isIcmpOnlyReview && (",
+    expect(answeredFacetGuardSection().trim()).toEqual(
+      '{!props.isIcmpOnly && ( <div className="flex min-w-0 flex-col gap-1.5"',
     );
   });
 
-  test("the row is still rendered for a scan that did ask about SNMP", () => {
+  test("the facet is still rendered for a scan that did ask about SNMP", () => {
     /*
-     * The guard is a negation, so the SNMP case is the fall-through and has no
-     * literal of its own to assert. What can be asserted is that the row was
-     * hidden by a CONDITION rather than deleted: FilterButtons is still wired
-     * to the same options and the same state.
+     * The guard is a negation, so the SNMP case is the fall-through. What
+     * can be asserted is that the facet was hidden by a CONDITION rather
+     * than deleted: FilterButtons is still wired to its options and the
+     * query's answered value.
      */
-    const section: string = modalSection();
+    const facet: string = sliceBetween({
+      code: readCode(TABLE_SOURCE),
+      from: 'data-testid="discovered-host-answered-facet"',
+      to: 'data-testid="discovered-host-name-facet"',
+    });
 
-    expect(section).toContain("<FilterButtons");
-    expect(section).toContain("options={hostFilterOptions}");
-    expect(section).toContain("selectedValue={hostFilter}");
+    expect(facet).toContain("<FilterButtons");
+    expect(facet).toContain("options={answeredOptions}");
+    expect(facet).toContain("selectedValue={query.answered}");
   });
 });
 
 describe("the per-row No SNMP pill stays exactly where it was", () => {
   test("the pill is not gated on the scan's mode", () => {
     /*
-     * DELIBERATE, and the opposite decision to the filter row above.
-     *
-     * The pill is a statement about ONE host — this host answered ping and not
-     * SNMP — and that is true on an ICMP-only sweep as much as on an SNMP one.
-     * Its hover text is the useful part: it says what the host will import as
-     * and what to do afterwards, which is precisely the question an operator
-     * has about a row on a scan with no SNMP results. Redundancy across a list
-     * where every row carries it is a much smaller cost than removing the one
-     * place that explains what a credential-less device is.
+     * DELIBERATE, and the opposite decision to the facet above. The pill is
+     * a statement about ONE host — this host answered ping and not SNMP —
+     * and that is true on an ICMP-only sweep as much as on an SNMP one. Its
+     * hover text says what the host imports as and what to add afterwards.
      */
-    expect(pingOnlyBadgeSection()).not.toContain("isIcmpOnlyReview");
+    expect(pingOnlyBadgeSection()).not.toContain("isIcmpOnly");
   });
 
   test("the pill still explains what the host imports as and what to add to it", () => {
     /*
-     * The same two facts the ICMP-only description carries, in the same words,
-     * one row at a time. `title` is the only place they can live on a pill this
-     * small.
+     * The same facts the summary's ping-only line carries, in the same words,
+     * one row at a time. `title` is the only place they can live on a pill
+     * this small. The sentences of the imports it no longer does are banned.
      */
     const badge: string = pingOnlyBadgeSection();
 
     expect(badge).toContain("title=");
     expect(badge).toContain("pinged by the scan's probe");
     expect(badge).toContain("SNMP credentials");
-    /*
-     * What the pill has to convey, not the exact route to it: the device has
-     * a status on its own, so the Ping monitor is offered for what it still
-     * adds — incidents — rather than as the thing that makes the row go
-     * green. The old sentence ("needs a monitor bound to it before it
-     * reports a status") is banned because it is no longer true.
-     */
-    expect(badge).toContain("Create a Ping monitor");
-    expect(badge).toContain("incidents");
     expect(badge).not.toContain("needs a monitor bound to it");
     expect(badge).not.toContain("monitor-backed");
     expect(badge).not.toContain("no polling");
   });
 
-  test("the pill's wording and the description's agree about what arrives", () => {
+  test("the pill's wording and the summary's agree about what arrives", () => {
     /*
-     * Three pieces of copy, one concept. If any drifts to "unpolled device"
-     * or "monitor-backed device", the operator has to work out that the badge
-     * on the row and the sentence above the list are describing the same
-     * thing.
+     * One row at a time on the pill, all of them at once in the summary:
+     * pinged, and SNMP credentials to add later.
      */
     expect(pingOnlyBadgeSection()).toContain("pinged by the scan's probe");
-    expect(reviewDescriptionBranches().icmpOnly).toContain(
-      "pinged by the scan's probe",
-    );
-    expect(reviewDescriptionBranches().snmp).toContain(
-      "pinged by the scan's probe",
-    );
+    expect(pingOnlyBadgeSection()).toContain("SNMP credentials");
+    expect(outcomeSentence("ping")).toContain("pinged every");
+    expect(outcomeSentence("ping")).toContain("SNMP credentials");
   });
 
-  test("nothing in the dialog still describes the monitor-backed import", () => {
+  test("nothing in the dialog still describes the imports it no longer does", () => {
     /*
-     * The import this dialog used to do — a monitor-backed device with polling
-     * off, waiting for a monitor to be bound — is gone, and every sentence
-     * that described it went with it. Banned across the whole modal so it
-     * cannot survive in a tooltip or a toggle description that the exact
-     * assertions above do not reach.
+     * A monitor-backed device with polling off, waiting for a monitor to be
+     * bound - and, since the import moved to the server, the Ping monitor
+     * per host it used to offer: an imported device is monitored by a
+     * Network Device monitor from a template, chosen in the monitoring step.
      */
-    const section: string = modalSection();
-
-    expect(section).not.toContain("monitor-backed");
-    expect(section).not.toContain("polling off");
-    expect(section).not.toContain("never polled");
+    for (const section of [dialogSection(), tableSection()]) {
+      expect(section).not.toContain("monitor-backed");
+      expect(section).not.toContain("polling off");
+      expect(section).not.toContain("never polled");
+      expect(section).not.toContain("Create a Ping monitor");
+    }
   });
 });

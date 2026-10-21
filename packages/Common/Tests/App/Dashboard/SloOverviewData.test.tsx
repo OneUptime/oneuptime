@@ -57,6 +57,7 @@ import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/Servi
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import ObjectID from "../../../Types/ObjectID";
+import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
@@ -559,5 +560,103 @@ describe("getSloNoticeFingerprint", () => {
     ["the window filling", { errorBudgetTotalSeconds: 600 }],
   ])("changes with %s", (_label: string, overrides: SloOverrides) => {
     expect(getSloNoticeFingerprint(buildSlo(overrides))).not.toBe(base);
+  });
+});
+
+/*
+ * The banner's "Turn evaluation on" (and the Evaluation switch, wherever it
+ * is) announce the save; the overview reads the SLO again at once, so its
+ * hero stops saying "Disabled" without waiting for the next poll.
+ */
+describe("useSloOverviewData hears evaluation switched on or off", () => {
+  test("reads the SLO again at once, in the background", async () => {
+    stubApi({ slo: buildSlo({ isEnabled: false }) });
+
+    const { result } = renderDataHook();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(result.current.slo!.isEnabled).toBe(false);
+
+    getItemMock.mockResolvedValue(buildSlo({ isEnabled: true }));
+
+    act(() => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isEnabled",
+        value: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.slo!.isEnabled).toBe(true);
+    });
+    expect(getItemMock).toHaveBeenCalledTimes(2);
+    // Not a fresh load: the page keeps its numbers while it reads.
+    expect(result.current.hasLoaded).toBe(true);
+    expect(pollCallbacks).toHaveLength(1);
+  });
+
+  test("another SLO's, another column's or another table's save reads nothing", async () => {
+    stubApi({});
+
+    const { result } = renderDataHook();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+
+    act(() => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: new ObjectID("5f8b7c1e2d3a4b5c6d7e8f91"),
+        column: "isEnabled",
+        value: false,
+      });
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isArchived",
+        value: true,
+      });
+      announceModelSwitchSaved({
+        modelType: Monitor,
+        modelId: SLO_ID,
+        column: "isEnabled",
+        value: false,
+      });
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("after the page is gone it no longer reads", async () => {
+    stubApi({});
+
+    const { result, unmount } = renderDataHook();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+
+    unmount();
+
+    act(() => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isEnabled",
+        value: false,
+      });
+    });
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
   });
 });

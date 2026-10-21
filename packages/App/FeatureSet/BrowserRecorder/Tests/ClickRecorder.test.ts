@@ -10,6 +10,7 @@ import {
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import ClickRecorder from "../src/ClickRecorder";
 import Masking from "../src/Masking";
+import textOf from "./PayloadText";
 
 /*
  * The click recorder: structural selectors that never carry an attribute
@@ -242,7 +243,7 @@ describe("ClickRecorder", (): void => {
 
         expect(payloads[0]?.text).toBeUndefined();
         expect(payloads[1]?.text).toBe("Card number field");
-        expect(JSON.stringify(emitted)).not.toContain("4111");
+        expect(textOf(emitted)).not.toContain("4111");
       }
     });
 
@@ -308,6 +309,29 @@ describe("ClickRecorder", (): void => {
       expect(payload?.selector).toContain("medical");
     });
 
+    /*
+     * describeTarget is how the INP report names its slow interaction's
+     * element. It must honour blocking exactly as a click does, or a slow
+     * tap inside an excluded pane would ship that pane's structure.
+     */
+    it("describes another module's target under the same blocking rules", (): void => {
+      document.body.innerHTML =
+        "<section class='medical'><div class='dose'><button id='rx'>Refill</button></div></section><button class='pay'>Pay</button>";
+
+      const instance: ClickRecorder = makeRecorder(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        [],
+        [".medical"],
+      );
+
+      expect(
+        instance.describeTarget(document.getElementById("rx") as Element),
+      ).toBe("body > section.medical");
+      expect(
+        instance.describeTarget(document.querySelector(".pay") as Element),
+      ).toBe("body > button.pay");
+    });
+
     it("emits no label inside a region carrying rrweb's block class", (): void => {
       document.body.innerHTML =
         "<div class='oneuptime-block'><div><span id='chat'>Account 4417 for Alice</span></div></div>";
@@ -317,7 +341,7 @@ describe("ClickRecorder", (): void => {
       click(document.getElementById("chat") as Element);
 
       expect(clickPayloads()[0]?.text).toBeUndefined();
-      expect(JSON.stringify(emitted)).not.toContain("4417");
+      expect(textOf(emitted)).not.toContain("4417");
     });
 
     /*
@@ -338,7 +362,7 @@ describe("ClickRecorder", (): void => {
       })();
 
       expect(text).toBe("Card ending");
-      expect(JSON.stringify(emitted)).not.toContain("4111");
+      expect(textOf(emitted)).not.toContain("4111");
     });
 
     it("uses only its own text when a descendant matches a mask selector", (): void => {
@@ -380,7 +404,7 @@ describe("ClickRecorder", (): void => {
       click(document.getElementById("pick") as Element);
 
       expect(clickPayloads()[0]?.text).toBe("Pay from");
-      expect(JSON.stringify(emitted)).not.toContain("4417");
+      expect(textOf(emitted)).not.toContain("4417");
     });
 
     it("caps the label at the shared limit", (): void => {

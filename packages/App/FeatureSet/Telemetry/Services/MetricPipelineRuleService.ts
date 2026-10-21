@@ -11,7 +11,15 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
+import {
+  clearLinearRegExpCache,
+  getLinearRegExp,
+} from "Common/Utils/LinearRegExp/PatternCache";
+import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "Common/Utils/LinearRegExp/PatternWork";
 
 export interface MetricRulesForProject {
   projectRules: Array<MetricPipelineRule>;
@@ -26,39 +34,77 @@ const ruleCache: InMemoryTTLCache<MetricRulesForProject> =
 
 /*
  * Compiled-regex memo for MatchesRegex / DoesNotMatchRegex filters.
- * applyRules runs per metric ROW, and RegExp construction (plus a warn log
+ * applyRules runs per metric ROW, and compiling the pattern (plus a warn log
  * for invalid patterns) per row is exactly the per-record cost the 60s rule
  * cache exists to avoid. Patterns are compiled once per process; an invalid
  * pattern is stored as null and warned about once, not per datapoint. The
  * size cap only guards against a pathological churn of distinct patterns —
  * normal deployments hold one entry per configured regex rule.
+ *
+ * The patterns are the project's own and run on ingest every project shares,
+ * against attribute values the project's senders choose, so they run on the
+ * linear-time matcher (Utils/LinearRegExp): JavaScript's syntax and answers,
+ * in time in line with the value. A back-reference (\1) cannot run that
+ * way; such a filter is invalid like any pattern that does not compile.
+ * The compiled patterns are kept in the matcher's own cache
+ * (getLinearRegExp), bounded by the steps they hold; this memo only
+ * remembers which patterns were warned about - by at most the first
+ * REGEX_MEMO_MAX_KEY_LENGTH characters of each: a filter saved before such
+ * filters were refused can carry a pattern of megabytes, and a memo of a
+ * thousand of them would hold gigabytes.
  */
 const REGEX_MEMO_MAX_ENTRIES: number = 1000;
-const compiledRegexByPattern: Map<string, RegExp | null> = new Map();
+const REGEX_MEMO_MAX_KEY_LENGTH: number = 1000;
+const warnedInvalidPatterns: Set<string> = new Set<string>();
 
-function getCompiledRegex(pattern: string, ruleId: string): RegExp | null {
-  let regex: RegExp | null | undefined = compiledRegexByPattern.get(pattern);
+// What the memo keeps a pattern by: itself, or its length and beginning.
+function warnedPatternKey(pattern: string): string {
+  return pattern.length <= REGEX_MEMO_MAX_KEY_LENGTH
+    ? pattern
+    : `${pattern.length}\u0000${pattern.slice(0, REGEX_MEMO_MAX_KEY_LENGTH)}`;
+}
 
-  if (regex === undefined) {
-    if (compiledRegexByPattern.size >= REGEX_MEMO_MAX_ENTRIES) {
-      compiledRegexByPattern.clear();
+// How a warning shows a pattern: whole, or its beginning and its length.
+function shownPattern(pattern: string): string {
+  return pattern.length <= REGEX_MEMO_MAX_KEY_LENGTH
+    ? `"${pattern}"`
+    : `"${pattern.slice(0, REGEX_MEMO_MAX_KEY_LENGTH)}…" (${pattern.length} characters)`;
+}
+
+/*
+ * The compiled pattern, or null when it cannot be compiled - warned about
+ * once. Throws PatternWorkLimitError when it was not compiled only because
+ * the batch's work allowance is spent (Common/Utils/LinearRegExp/
+ * PatternWork.ts): nothing is wrong with the pattern then.
+ */
+function getCompiledRegex(
+  pattern: string,
+  ruleId: string,
+): LinearRegExp | null {
+  try {
+    return getLinearRegExp(pattern);
+  } catch (err) {
+    if (err instanceof PatternWorkLimitError) {
+      throw err;
     }
 
-    try {
-      regex = new RegExp(pattern);
-    } catch (err) {
+    const key: string = warnedPatternKey(pattern);
+
+    if (!warnedInvalidPatterns.has(key)) {
+      if (warnedInvalidPatterns.size >= REGEX_MEMO_MAX_ENTRIES) {
+        warnedInvalidPatterns.clear();
+      }
+
+      warnedInvalidPatterns.add(key);
       logger.warn(
-        `Invalid regex "${pattern}" (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
+        `Invalid regex ${shownPattern(pattern)} (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      regex = null;
     }
 
-    compiledRegexByPattern.set(pattern, regex);
+    return null;
   }
-
-  return regex;
 }
 
 /*
@@ -144,6 +190,13 @@ export default class MetricPipelineRuleService {
     serviceId: ObjectID | undefined,
     rules: MetricRulesForProject,
   ): MutableMetricRow | null {
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(row);
+
     const serviceKey: string | undefined = serviceId?.toString();
     const serviceRules: Array<MetricPipelineRule> = serviceKey
       ? rules.rulesByServiceId.get(serviceKey) ?? []
@@ -428,15 +481,42 @@ export default class MetricPipelineRuleService {
         return actual.endsWith(expectedValue);
       case MetricPipelineRuleFilterConditionType.MatchesRegex:
       case MetricPipelineRuleFilterConditionType.DoesNotMatchRegex: {
-        const re: RegExp | null = getCompiledRegex(
-          expectedValue,
-          String(rule._id),
-        );
-        if (!re) {
-          // Invalid pattern — warned once when first compiled.
+        if (patternWorkRefusesQuestions(actual)) {
+          /*
+           * The batch's work allowance is spent: no answer, so the filter
+           * does not match (as below), without a lookup.
+           */
           return false;
         }
-        const matched: boolean = re.test(actual);
+
+        let matched: boolean;
+
+        try {
+          const re: LinearRegExp | null = getCompiledRegex(
+            expectedValue,
+            String(rule._id),
+          );
+
+          if (!re) {
+            // Invalid pattern — warned once when first compiled.
+            return false;
+          }
+
+          matched = re.test(actual);
+        } catch (error: unknown) {
+          if (!(error instanceof PatternWorkLimitError)) {
+            throw error;
+          }
+
+          /*
+           * No answer: the pattern needed more work than the value - or
+           * what is left of the batch's work allowance - allows. The
+           * filter does not match, as for an invalid pattern, negated or
+           * not.
+           */
+          return false;
+        }
+
         return conditionType ===
           MetricPipelineRuleFilterConditionType.MatchesRegex
           ? matched
@@ -460,6 +540,8 @@ export default class MetricPipelineRuleService {
   // Testing helper — clears the in-memory caches.
   public static clearCache(): void {
     ruleCache.clear();
-    compiledRegexByPattern.clear();
+    warnedInvalidPatterns.clear();
+    // The compiled patterns too, so a pattern is compiled again.
+    clearLinearRegExpCache();
   }
 }

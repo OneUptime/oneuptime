@@ -1,10 +1,119 @@
+import {
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  isCustomFieldTemplateVariableName,
+  isValidCustomFieldVariableKey,
+  LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+} from "../CustomField/CustomFieldVariableKey";
 import BadDataException from "../Exception/BadDataException";
 import StatusPageSubscriberNotificationEventType from "./StatusPageSubscriberNotificationEventType";
+import { refusedValue } from "../../Utils/RefusedValue";
+import SubscriberNotificationTemplateCompiler from "./SubscriberNotificationTemplateCompiler";
 
 export interface SubscriberNotificationTemplateVariable {
   name: string;
   description: string;
+  /*
+   * In the body of an EMAIL template this variable is HTML already (rendered
+   * Markdown, or the resource list built from escaped names) and goes in as
+   * it is. Every other variable is plain text there, and is HTML-escaped (see
+   * SubscriberNotificationTemplateCompiler). A subject, SMS, Slack and Teams
+   * get every variable as text, never as HTML.
+   */
+  isHtmlInEmailBody?: boolean;
 }
+
+/*
+ * A family of variables whose names are not known in advance: one per
+ * incident custom field, {{incident.customFields.<key>}}, where <key> is the
+ * field's Template Variable key (IncidentCustomField.variableKey). Which keys
+ * exist depends on the project, so the family is listed by its prefix, and
+ * the worker passes one variable for every field the project has - an empty
+ * string when the incident holds no value for it.
+ */
+export interface SubscriberNotificationTemplateDynamicVariable {
+  // What every name in the family starts with, dot included.
+  prefix: string;
+  /*
+   * Older prefixes the family still answers to, so templates saved with them
+   * keep working: the worker fills those names too, with the same values.
+   * Never shown: the reference documents `prefix` only.
+   */
+  legacyPrefixes?: Array<string> | undefined;
+  // How the rest of the name is shown in the reference: "<key>".
+  placeholder: string;
+  // Whether what follows the prefix is a name in the family.
+  isValidKey: (key: string) => boolean;
+  description: string;
+  /*
+   * Some members are HTML in an email body - a Rich text field's rendered
+   * Markdown, a Long text field's lines, a Date and time field's time
+   * zones - and the rest are plain text, which is escaped there.
+   */
+  mayBeHtmlInEmailBody?: boolean;
+}
+
+/*
+ * The variables every incident event offers on top of its own: the
+ * incident's labels, the status pages it is on, and its custom fields.
+ *
+ * The worker never puts affectedStatusPages, or a custom field that is not
+ * marked Include in Subscriber Notifications, into a message on its own: a
+ * status page's subscribers are usually outside the team, and the list of
+ * pages names every other audience the incident reaches. They reach
+ * subscribers only where a template author places them.
+ */
+const INCIDENT_VARIABLES: Array<SubscriberNotificationTemplateVariable> = [
+  {
+    name: "incidentLabels",
+    description: "Labels of the incident, separated by commas",
+  },
+  {
+    name: "affectedStatusPages",
+    description:
+      "Names of every status page the incident is shown on, separated by commas",
+  },
+];
+
+const INCIDENT_DYNAMIC_VARIABLES: Array<SubscriberNotificationTemplateDynamicVariable> =
+  [
+    {
+      prefix: CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+      legacyPrefixes: [LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX],
+      placeholder: "<key>",
+      isValidKey: isValidCustomFieldVariableKey,
+      description:
+        "The value of an incident custom field, by the field's Template Variable key, whether or not the field is included in subscriber notifications",
+      mayBeHtmlInEmailBody: true,
+    },
+  ];
+
+/*
+ * The variables that read the team's own incident records rather than what
+ * the incident's status pages already show: its labels, and every custom
+ * field ({{incident.customFields.<key>}}, or the older
+ * {{customFields.<key>}}), marked for subscribers or not. The title,
+ * description, severity, state and public notes are on the status page for
+ * anyone who can see it; these are not, and the status page roles that may
+ * write templates may not read them. So a template can place them only if
+ * whoever writes it may read them (Server/Utils/StatusPage/
+ * SubscriberTemplateIncidentRecordAccess).
+ *
+ * {{affectedStatusPages}} is not one of them: it names status pages, which
+ * the same roles read.
+ */
+const INCIDENT_RECORD_VARIABLE_NAMES: ReadonlyArray<string> = [
+  "incidentLabels",
+];
+
+// The incident events, which offer INCIDENT_VARIABLES and the custom fields.
+const INCIDENT_EVENT_TYPES: ReadonlyArray<StatusPageSubscriberNotificationEventType> =
+  [
+    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+    StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+    StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+    StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
+    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+  ];
 
 /*
  * The variables a custom status page subscriber notification template can use
@@ -12,8 +121,9 @@ export interface SubscriberNotificationTemplateVariable {
  *
  * This is a promise to template authors: the worker that sends an event must
  * pass every one of these to the template, on every channel, or the
- * placeholder renders as an empty string. The worker tests hold each worker to
- * this list, and the dashboard's variable reference is tested against it.
+ * placeholder is left in the message as written, braces and all
+ * (SubscriberNotificationTemplateCompiler). The worker tests hold each worker
+ * to this list, and the dashboard's variable reference is tested against it.
  *
  * Kept free of database dependencies so both of those can import it.
  */
@@ -38,7 +148,11 @@ export default class SubscriberNotificationTemplateVariables {
 
     const commonVariables: Array<SubscriberNotificationTemplateVariable> = [
       ...statusPageVariables,
-      { name: "resourcesAffected", description: "List of affected resources" },
+      {
+        name: "resourcesAffected",
+        description: "List of affected resources",
+        isHtmlInEmailBody: true,
+      },
     ];
 
     switch (eventType) {
@@ -72,9 +186,11 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "incidentDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "incidentSeverity", description: "Severity of the incident" },
           { name: "detailsUrl", description: "URL to view incident details" },
+          ...INCIDENT_VARIABLES,
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
@@ -84,6 +200,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "incidentDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "incidentSeverity", description: "Severity of the incident" },
           {
@@ -91,6 +208,7 @@ export default class SubscriberNotificationTemplateVariables {
             description: "Current state of the incident",
           },
           { name: "detailsUrl", description: "URL to view incident details" },
+          ...INCIDENT_VARIABLES,
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
@@ -104,8 +222,13 @@ export default class SubscriberNotificationTemplateVariables {
             description: "Current state of the incident",
           },
           { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           { name: "detailsUrl", description: "URL to view incident details" },
+          ...INCIDENT_VARIABLES,
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
@@ -116,8 +239,10 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "postmortemNote",
             description: "Content of the postmortem note",
+            isHtmlInEmailBody: true,
           },
           { name: "detailsUrl", description: "URL to view incident details" },
+          ...INCIDENT_VARIABLES,
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
@@ -131,6 +256,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "announcementDescription",
             description: "Description of the announcement",
+            isHtmlInEmailBody: true,
           },
           {
             name: "detailsUrl",
@@ -148,6 +274,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledStartTime",
@@ -173,6 +300,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledMaintenanceState",
@@ -195,13 +323,18 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledMaintenanceState",
             description: "Current state of the scheduled maintenance",
           },
           { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           {
             name: "detailsUrl",
             description: "URL to view scheduled maintenance details",
@@ -215,6 +348,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "episodeDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "episodeSeverity", description: "Severity of the incident" },
           { name: "detailsUrl", description: "URL to view incident details" },
@@ -238,7 +372,11 @@ export default class SubscriberNotificationTemplateVariables {
           ...commonVariables,
           { name: "episodeTitle", description: "Title of the incident" },
           { name: "episodeSeverity", description: "Severity of the incident" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
@@ -315,8 +453,23 @@ export default class SubscriberNotificationTemplateVariables {
         ];
 
       default:
-        throw new BadDataException(`Unknown event type: ${eventType}`);
+        throw new BadDataException(
+          `Unknown event type: ${refusedValue(eventType)}`,
+        );
     }
+  }
+
+  // The variables that are HTML, not plain text, in an email template's body.
+  public static getEmailBodyHtmlVariableNamesForEventType(
+    eventType: StatusPageSubscriberNotificationEventType,
+  ): Array<string> {
+    return this.getAvailableVariablesForEventType(eventType)
+      .filter((variable: SubscriberNotificationTemplateVariable): boolean => {
+        return variable.isHtmlInEmailBody === true;
+      })
+      .map((variable: SubscriberNotificationTemplateVariable): string => {
+        return variable.name;
+      });
   }
 
   public static getVariableNamesForEventType(
@@ -326,6 +479,111 @@ export default class SubscriberNotificationTemplateVariables {
       (variable: SubscriberNotificationTemplateVariable): string => {
         return variable.name;
       },
+    );
+  }
+
+  /*
+   * The families of variables this event offers on top of the listed ones,
+   * by prefix: the incident events' {{incident.customFields.<key>}}.
+   */
+  public static getDynamicVariablesForEventType(
+    eventType: StatusPageSubscriberNotificationEventType,
+  ): Array<SubscriberNotificationTemplateDynamicVariable> {
+    return INCIDENT_EVENT_TYPES.includes(eventType)
+      ? INCIDENT_DYNAMIC_VARIABLES.map(
+          (
+            variable: SubscriberNotificationTemplateDynamicVariable,
+          ): SubscriberNotificationTemplateDynamicVariable => {
+            return {
+              ...variable,
+              ...(variable.legacyPrefixes
+                ? { legacyPrefixes: [...variable.legacyPrefixes] }
+                : {}),
+            };
+          },
+        )
+      : [];
+  }
+
+  /*
+   * The family this name belongs to, when it is one: its prefix (or one of
+   * its older prefixes) followed by a key of the family's shape (for a
+   * custom field, the shape its Template Variable key is made in, which the
+   * template compiler fills). Null for a listed variable, a bare prefix, or
+   * a name the event does not offer.
+   */
+  public static getDynamicVariableForName(
+    eventType: StatusPageSubscriberNotificationEventType,
+    name: string,
+  ): SubscriberNotificationTemplateDynamicVariable | null {
+    for (const variable of this.getDynamicVariablesForEventType(eventType)) {
+      if (this.getDynamicVariableKey(variable, name) !== null) {
+        return variable;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * What follows the family's prefix in this name - a custom field's key -
+   * when the name is a member of the family, written with its prefix or one
+   * of its older ones. Null otherwise.
+   */
+  public static getDynamicVariableKey(
+    variable: SubscriberNotificationTemplateDynamicVariable,
+    name: string,
+  ): string | null {
+    for (const prefix of [
+      variable.prefix,
+      ...(variable.legacyPrefixes || []),
+    ]) {
+      if (!name.startsWith(prefix)) {
+        continue;
+      }
+
+      const key: string = name.slice(prefix.length);
+
+      if (variable.isValidKey(key)) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * The placeholders in these texts - a template's body and email subject -
+   * that read the team's incident records (INCIDENT_RECORD_VARIABLE_NAMES
+   * and any {{incident.customFields.<key>}} or older {{customFields.<key>}},
+   * whether or not such a field exists), each once, as written, sorted.
+   * Found exactly as the compiler finds what it fills, whatever the
+   * template's event type: an update can change the event type without
+   * touching the text.
+   */
+  public static getIncidentRecordPlaceholders(
+    texts: Array<string | null | undefined>,
+  ): Array<string> {
+    return Array.from(
+      SubscriberNotificationTemplateCompiler.getPlaceholderNames(texts),
+    )
+      .filter((name: string): boolean => {
+        return (
+          INCIDENT_RECORD_VARIABLE_NAMES.includes(name) ||
+          isCustomFieldTemplateVariableName(name)
+        );
+      })
+      .sort();
+  }
+
+  // Whether a template for this event can use {{name}}.
+  public static isVariableOffered(
+    eventType: StatusPageSubscriberNotificationEventType,
+    name: string,
+  ): boolean {
+    return (
+      this.getVariableNamesForEventType(eventType).includes(name) ||
+      this.getDynamicVariableForName(eventType, name) !== null
     );
   }
 }

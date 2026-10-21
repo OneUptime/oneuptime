@@ -27,6 +27,19 @@ export default class MonitorCriteriaMessageBuilder {
       return `${description} condition met.`;
     }
 
+    /*
+     * An "All Values" metric criteria whose data points all meet the
+     * condition, waiting for them to cover the time range: say how far it
+     * has got - "Waiting for 15 minutes of data: 2 of 15 minutes so far" -
+     * which is the answer to "why did nothing fire?".
+     */
+    const windowWaitMessage: string | undefined =
+      input.criteriaFilter.metricCriteriaContext?.windowWait?.message;
+
+    if (windowWaitMessage) {
+      return windowWaitMessage;
+    }
+
     const failureMessage: string | null =
       MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureMessage({
         monitor: input.monitor,
@@ -71,7 +84,10 @@ export default class MonitorCriteriaMessageBuilder {
     const expectation: string | null =
       MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
         input.criteriaFilter,
-        metricDisplay,
+        {
+          ...metricDisplay,
+          monitorType: input.monitor.monitorType,
+        },
       );
 
     const observation: string | null =

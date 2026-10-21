@@ -18,6 +18,9 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import type { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import ProductBrandingUtil, {
+  ProductBranding,
+} from "../../Types/Branding/ProductBranding";
 
 /*
  * Which enterprise feature each enterprise configuration model belongs to,
@@ -27,27 +30,81 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
  */
 const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
   new Map<string, EnterpriseFeature>([
-    ["GlobalSSO", EnterpriseFeature.SSO],
-    ["GlobalOIDC", EnterpriseFeature.SSO],
-    ["GlobalSSOProject", EnterpriseFeature.SSO],
-    ["GlobalOIDCProject", EnterpriseFeature.SSO],
-    ["ProjectSSO", EnterpriseFeature.SSO],
-    ["ProjectOIDC", EnterpriseFeature.SSO],
-    ["StatusPageSSO", EnterpriseFeature.SSO],
-    ["StatusPageOIDC", EnterpriseFeature.SSO],
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
   ]);
 
 /*
+ * The resource tables whose telemetry retention can be overridden: every
+ * table with both a retainTelemetryDataForDays and a telemetryRetentionConfig
+ * column (a guard test keeps this list complete).
+ */
+export const TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
+  "Service",
+  "Host",
+  "DockerHost",
+  "PodmanHost",
+  "DockerSwarmCluster",
+  "KubernetesCluster",
+  "ProxmoxCluster",
+  "CephCluster",
+  "StorageArray",
+  "VMwareVCenter",
+  "IoTFleet",
+  "CloudResource",
+  "ServerlessFunction",
+  "DatabaseServer",
+  "RumApplication",
+];
+
+/*
+ * Enterprise configuration kept in COLUMNS of core models rather than in a
+ * model of its own, keyed by table name and then column. Writing a value to
+ * one of these columns needs the column's feature, exactly as creating or
+ * updating an enterprise model does (see EditionPermissions); clearing it
+ * does not.
+ *
+ *   Project.telemetryRetentionConfig       retention by telemetry type,
+ *                                          project-wide. The project's
+ *                                          default retention
+ *                                          (defaultTelemetryRetentionInDays)
+ *                                          is not listed: every edition has it.
+ *   <resource>.retainTelemetryDataForDays  per-service and per-resource
+ *   <resource>.telemetryRetentionConfig    retention, and their retention by
+ *                                          telemetry type.
+ */
+const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
+  string,
+  Readonly<Record<string, EnterpriseFeature>>
+> = new Map<string, Readonly<Record<string, EnterpriseFeature>>>([
+  [
+    "Project",
+    { telemetryRetentionConfig: EnterpriseFeature.TelemetryRetention },
+  ],
+  ...TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES.map(
+    (
+      tableName: string,
+    ): [string, Readonly<Record<string, EnterpriseFeature>>] => {
+      return [
+        tableName,
+        {
+          retainTelemetryDataForDays: EnterpriseFeature.TelemetryRetention,
+          telemetryRetentionConfig: EnterpriseFeature.TelemetryRetention,
+        },
+      ];
+    },
+  ),
+]);
+
+/*
  * The features whose RUNTIME behaviour stops when a self-hosted license
  * lapses (see isFeatureActive), in the order the lapse log names them.
  */
 export const RUNTIME_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> = [
-  EnterpriseFeature.SSO,
   EnterpriseFeature.SCIM,
   EnterpriseFeature.AuditLogs,
+  EnterpriseFeature.TelemetryRetention,
 ];
 
 // How the lapse log names each feature.
@@ -55,11 +112,11 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
   EnterpriseFeature,
   string
 >([
-  [EnterpriseFeature.SSO, "single sign-on (SSO)"],
   [EnterpriseFeature.SCIM, "SCIM provisioning"],
   [EnterpriseFeature.AuditLogs, "audit logging"],
   [EnterpriseFeature.TeamCompliance, "team compliance"],
   [EnterpriseFeature.InstanceHealth, "the OneUptime Health dashboards"],
+  [EnterpriseFeature.TelemetryRetention, "retention overrides"],
 ]);
 
 /*
@@ -90,8 +147,7 @@ export type EnterpriseFeatureStateListener = (
  *                         jobs exist and which edition operators are told they
  *                         run.
  *   isFeatureActive()     the ee code is present AND the feature is licensed
- *                         right now. Governs RUNTIME behaviour: SSO sign-in
- *                         and "Require SSO for login" enforcement, SCIM
+ *                         right now. Governs RUNTIME behaviour: SCIM
  *                         provisioning and its team locks, audit-log
  *                         recording. When a self-hosted license lapses these
  *                         stop, exactly as on the Community Edition, and they
@@ -141,6 +197,8 @@ export default class EnterpriseEdition {
 
   private static hasWarnedAboutUnknownTrialStart: boolean = false;
 
+  private static hasWarnedAboutUnreadableBranding: boolean = false;
+
   private static featureStateListeners: Array<EnterpriseFeatureStateListener> =
     [];
 
@@ -177,15 +235,16 @@ export default class EnterpriseEdition {
     EnterpriseEdition.hasWarnedAboutUnreadLicense = false;
     EnterpriseEdition.hasWarnedAboutUnreadableLicense = false;
     EnterpriseEdition.hasWarnedAboutUnknownTrialStart = false;
+    EnterpriseEdition.hasWarnedAboutUnreadableBranding = false;
     EnterpriseEdition.featureStateListeners = [];
   }
 
   /*
-   * Whether the feature's runtime behaviour runs right now: SSO sign-in and
-   * "Require SSO for login" enforcement (SSO), SCIM provisioning and its team
-   * locks (SCIM), audit-log recording (AuditLogs). Synchronous, because it is
-   * asked on every request that could need it; the license changes at runtime
-   * and routers are mounted once, so callers ask per request.
+   * Whether the feature's runtime behaviour runs right now: SCIM provisioning
+   * and its team locks (SCIM), audit-log recording (AuditLogs). Synchronous,
+   * because it is asked on every request that could need it; the license
+   * changes at runtime and routers are mounted once, so callers ask per
+   * request.
    *
    *   no enterprise module        false (the Community Edition)
    *   billing on                  true (OneUptime Cloud: plan tiers gate)
@@ -196,8 +255,8 @@ export default class EnterpriseEdition {
    *                               read or written yet, so whether the trial
    *                               is over is not known; see
    *                               EnterpriseLicenseSnapshotUtil.isTrialStartUnknown).
-   *                               An unknown state must never lock anyone out
-   *                               or switch SSO enforcement off. The loader
+   *                               An unknown state must never stop SCIM
+   *                               provisioning or audit logging. The loader
    *                               waits (bounded) for the first snapshot
    *                               before any router is mounted, so the window
    *                               is small. Warned about once per process.
@@ -228,7 +287,7 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnreadableLicense) {
         EnterpriseEdition.hasWarnedAboutUnreadableLicense = true;
         logger.warn(
-          "EnterpriseEdition: could not read the cached license snapshot. Until it can be read, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+          "EnterpriseEdition: could not read the cached license snapshot. Until it can be read, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
         );
         logger.warn(err);
       }
@@ -240,7 +299,7 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnreadLicense) {
         EnterpriseEdition.hasWarnedAboutUnreadLicense = true;
         logger.warn(
-          "EnterpriseEdition: the license has not been read yet. Until it is, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+          "EnterpriseEdition: the license has not been read yet. Until it is, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
         );
       }
 
@@ -257,7 +316,7 @@ export default class EnterpriseEdition {
            * trial (LicenseToken's classifyUnverifiedWithoutExpiry), so this
            * must not assert that nothing is installed.
            */
-          `EnterpriseEdition: there is no license this installation can date, and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
+          `EnterpriseEdition: there is no license this installation can date, and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
         );
       }
 
@@ -456,6 +515,42 @@ export default class EnterpriseEdition {
     }
   }
 
+  /*
+   * How this installation names and shows itself, or null for OneUptime's own
+   * name and logo: on the Community Edition, when the module has no say in it,
+   * and when the module answers null. Synchronous - it is asked while env.js,
+   * an index page or an email is rendered - and it never throws: a module
+   * that fails here costs a page OneUptime's branding, never the page. The
+   * answer is sanitized (ProductBrandingUtil.sanitize), so a module can hand
+   * core nothing but a usable name, an http(s) website and image paths on
+   * this host.
+   */
+  public static getProductBranding(): ProductBranding | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getProductBranding) {
+      return null;
+    }
+
+    try {
+      const branding: ProductBranding | null =
+        enterpriseModule.getProductBranding();
+
+      return branding ? ProductBrandingUtil.sanitize(branding) : null;
+    } catch (err) {
+      if (!EnterpriseEdition.hasWarnedAboutUnreadableBranding) {
+        EnterpriseEdition.hasWarnedAboutUnreadableBranding = true;
+        logger.warn(
+          "EnterpriseEdition: the enterprise module could not say how this installation is branded; showing OneUptime's branding. This warning is logged once per process.",
+        );
+        logger.warn(err);
+      }
+
+      return null;
+    }
+  }
+
   public static getModelFeature(
     modelType: DatabaseBaseModelType,
   ): EnterpriseFeature | null {
@@ -479,6 +574,25 @@ export default class EnterpriseEdition {
     }
 
     return ENTERPRISE_FEATURE_BY_TABLE_NAME.get(tableName) || null;
+  }
+
+  /*
+   * The enterprise columns of a table, as column -> feature, or null when
+   * the table has none (see ENTERPRISE_FEATURE_BY_TABLE_COLUMN).
+   */
+  public static getEnterpriseColumnsForTableName(
+    tableName: string | null | undefined,
+  ): Readonly<Record<string, EnterpriseFeature>> | null {
+    if (!tableName) {
+      return null;
+    }
+
+    return ENTERPRISE_FEATURE_BY_TABLE_COLUMN.get(tableName) || null;
+  }
+
+  // Every table with enterprise columns (for guard tests).
+  public static getTableNamesWithEnterpriseColumns(): Array<string> {
+    return Array.from(ENTERPRISE_FEATURE_BY_TABLE_COLUMN.keys());
   }
 
   // Every table name the facade maps to a feature (for guard tests).
@@ -512,12 +626,6 @@ export default class EnterpriseEdition {
         ? `The OneUptime Enterprise license does not include ${names}: ${stopped.length === 1 ? "it" : "they"} ${verb} stopped until a license that includes ${stopped.length === 1 ? "it" : "them"} is activated.`
         : `The OneUptime Enterprise license has lapsed (status: ${snapshot.status}): ${names} ${verb} stopped until a license is activated.`,
     ];
-
-    if (stopped.includes(EnterpriseFeature.SSO)) {
-      parts.push(
-        '"Require SSO for login" is not enforced meanwhile: users sign in with their password, and users who only ever signed in with SSO can reset their password.',
-      );
-    }
 
     if (snapshot.message) {
       parts.push(`License status: ${snapshot.message}`);

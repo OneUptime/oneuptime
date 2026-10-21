@@ -1,3 +1,4 @@
+import LogoPlate from "../../Components/Logo/LogoPlate";
 import { LOGIN_API_URL } from "../../Utils/ApiPaths";
 import LoginUtil from "../../Utils/Login";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
@@ -12,7 +13,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Link from "Common/UI/Components/Link/Link";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import IconProp from "Common/Types/Icon/IconProp";
 import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -107,7 +110,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {logoUrl ? (
-          <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          <LogoPlate className="mx-auto w-fit">
+            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          </LogoPlate>
         ) : (
           <></>
         )}
@@ -150,6 +155,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                   minLength: 6,
                 },
                 fieldType: FormFieldSchemaType.Password,
+                // The sign-in password: password managers fill it.
+                autoComplete: "current-password",
+                isOwnCredential: true,
                 sideLink: {
                   text: t("accounts.login.forgotPassword"),
                   url: new Route(
@@ -192,26 +200,37 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             }}
             maxPrimaryButtonWidth={true}
             footer={
-              <div className="actions pointer text-center mt-4 hover:underline fw-semibold">
-                {props.hasEnabledSSOConfig ? (
-                  <p>
-                    <Link
-                      to={
-                        new Route(
-                          StatusPageUtil.isPreviewPage()
-                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
-                            : "/sso",
-                        )
-                      }
-                      className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                    >
-                      {t("accounts.login.useSSO")}
-                    </Link>
-                  </p>
-                ) : (
-                  <></>
-                )}
-              </div>
+              /*
+               * Single sign-on, where the page has a provider turned on: an
+               * outlined button under "or", as wide and as tall as Login,
+               * named like the page it opens - the way OneUptime's own
+               * sign-in page offers it (SignInOptionStyle). It was a small
+               * text link.
+               */
+              props.hasEnabledSSOConfig ? (
+                <div data-testid="sign-in-options">
+                  <LabelledDivider
+                    label={t("accounts.login.or")}
+                    className="my-5"
+                    dataTestId="sign-in-options-divider"
+                  />
+                  <SignInOptionLink
+                    to={
+                      new Route(
+                        StatusPageUtil.isPreviewPage()
+                          ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
+                          : "/sso",
+                      )
+                    }
+                    id="sso-login"
+                    dataTestId="sso-login"
+                    icon={IconProp.ShieldCheck}
+                    title={t("accounts.login.logInWithSso")}
+                  />
+                </div>
+              ) : (
+                <></>
+              )
             }
           />
         </div>

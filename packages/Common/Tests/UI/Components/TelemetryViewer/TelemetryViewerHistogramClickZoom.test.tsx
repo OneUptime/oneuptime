@@ -249,7 +249,7 @@ describe("TelemetryViewer hands the chart the width of its bars", () => {
 
     click(BAR_B);
     expect(onHistogramTimeRangeSelect).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Double-click to zoom out")).toBeInTheDocument();
+    expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
 
     click(BAR_A);
     click(BAR_A);

@@ -6,14 +6,15 @@ import SmsAPI from "./API/SMS";
 import WhatsAppAPI from "./API/WhatsApp";
 import TelegramAPI from "./API/Telegram";
 import WebhookAPI from "./API/Webhook";
-import PushNotificationAPI from "./API/PushNotification";
 import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import PhoneNumberAPI from "./API/PhoneNumber";
 import IncomingCallAPI from "./API/IncomingCall";
+import SubscriberNotificationPreviewAPI from "./API/SubscriberNotificationPreview";
 import "./Utils/Handlebars";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import "ejs";
 
 const NotificationFeatureSet: FeatureSet = {
@@ -26,12 +27,23 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
     app.use([`/${APP_NAME}/telegram`, "/telegram"], TelegramAPI);
     app.use([`/${APP_NAME}/webhook`, "/webhook"], WebhookAPI);
-    app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
     app.use([`/${APP_NAME}/push-relay`, "/push-relay"], PushRelayAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);
     app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);
+    /*
+     * Status page subscriber email preview and test send. The Dashboard
+     * reaches it at NOTIFICATION_URL (/notification, which the ingress
+     * rewrites to /api/notification), like /smtp-config/test.
+     */
+    app.use(
+      [
+        `/${APP_NAME}${SubscriberNotificationPreview.routerPath}`,
+        SubscriberNotificationPreview.routerPath,
+      ],
+      SubscriberNotificationPreviewAPI,
+    );
     app.use(
       [`/${APP_NAME}/broadcast-email`, "/broadcast-email"],
       BroadcastEmailAPI,

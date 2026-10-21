@@ -21,6 +21,14 @@ import {
   LogicalConnector,
 } from "./Types";
 import { buildFilterQuery, parseFilterQuery } from "./FilterQueryParser";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   modelType: { new (): BaseModel };
@@ -31,10 +39,10 @@ export interface ComponentProps {
 }
 
 const operatorLabels: Record<string, string> = {
-  "=": "equals",
-  "!=": "does not equal",
-  LIKE: "contains",
-  IN: "is one of",
+  "=": translationKey("equals"),
+  "!=": translationKey("does not equal"),
+  LIKE: translationKey("contains"),
+  IN: translationKey("is one of"),
 };
 
 function getFieldLabel(fieldKey: string, config: FilterBuilderConfig): string {
@@ -49,13 +57,15 @@ function getFieldLabel(fieldKey: string, config: FilterBuilderConfig): string {
   return field?.label || fieldKey;
 }
 
+// The value as the pill shows it: an option's label, or the value as typed.
 function getValueLabel(
   fieldKey: string,
   value: string,
   config: FilterBuilderConfig,
+  translator: Translator,
 ): string {
   if (!value) {
-    return "(empty)";
+    return translator.translateText("(empty)") as string;
   }
   const field: FilterFieldDefinition | undefined = config.fields.find(
     (f: FilterFieldDefinition) => {
@@ -70,7 +80,7 @@ function getValueLabel(
         },
       );
     if (opt) {
-      return opt.label;
+      return translator.translateText(opt.label) as string;
     }
   }
   return value;
@@ -83,6 +93,7 @@ function getOperatorLabel(operator: string): string {
 const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { config } = props;
 
   const [conditions, setConditions] = useState<Array<FilterConditionData>>([
@@ -162,10 +173,20 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     setError("");
   };
 
-  const cardTitle: string = props.title || "Filter Conditions";
+  const entities: TranslatableTerm = translatableTerm(config.entityNamePlural, {
+    inSentence: true,
+  });
+  const entity: TranslatableTerm = translatableTerm(config.entityNameSingular, {
+    inSentence: true,
+  });
+
+  const cardTitle: string = props.title || translationKey("Filter Conditions");
   const cardDescription: string =
     props.description ||
-    `Define which ${config.entityNamePlural} this rule applies to. Only ${config.entityNamePlural} that match these conditions will be affected. Leave empty to match all ${config.entityNamePlural}.`;
+    translator.translateTemplate(
+      "Define which {{entities}} this rule applies to. Only {{entities}} that match these conditions will be affected. Leave empty to match all {{entities}}.",
+      { entities },
+    );
 
   const savedConditions: Array<FilterConditionData> = conditions.filter(
     (c: FilterConditionData) => {
@@ -193,6 +214,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       condition.field,
       condition.value,
       config,
+      translator,
     );
     if (fieldDef?.getValuePillClass) {
       const pillClass: string = fieldDef.getValuePillClass(condition.value);
@@ -236,7 +258,9 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <span className="text-sm">Loading...</span>
+            <span className="text-sm">
+              {translator.translateText("Loading...")}
+            </span>
           </div>
         </div>
       </Card>
@@ -305,10 +329,14 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                         <div className="flex-1 pb-2 pt-0">
                           <div className="flex items-center gap-2 py-1 pl-2 rounded-md hover:bg-gray-50 transition-colors duration-100 cursor-default">
                             <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-700 tracking-tight">
-                              {getFieldLabel(condition.field, config)}
+                              {translator.translateText(
+                                getFieldLabel(condition.field, config),
+                              )}
                             </span>
                             <span className="text-xs text-gray-400 italic">
-                              {getOperatorLabel(condition.operator)}
+                              {translator.translateText(
+                                getOperatorLabel(condition.operator),
+                              )}
                             </span>
                             {renderValuePill(condition)}
                           </div>
@@ -323,16 +351,32 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
               {savedConditions.length > 1 && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <span className="text-xs text-gray-400">
-                    {savedConditions.length} conditions joined with{" "}
-                    <span
-                      className={`font-semibold ${connector === "AND" ? "text-indigo-500" : "text-amber-500"}`}
-                    >
-                      {connector}
-                    </span>
-                    {" \u2014 "}
-                    {connector === "AND"
-                      ? `${config.entityNameSingular} must match all`
-                      : `${config.entityNameSingular} must match at least one`}
+                    <TranslatedSentence
+                      template={
+                        connector === "AND"
+                          ? {
+                              one: "{{count}} condition joined with {{connector}} \u2014 {{entity}} must match all",
+                              other:
+                                "{{count}} conditions joined with {{connector}} \u2014 {{entity}} must match all",
+                            }
+                          : {
+                              one: "{{count}} condition joined with {{connector}} \u2014 {{entity}} must match at least one",
+                              other:
+                                "{{count}} conditions joined with {{connector}} \u2014 {{entity}} must match at least one",
+                            }
+                      }
+                      count={savedConditions.length}
+                      slots={{
+                        connector: (
+                          <span
+                            className={`font-semibold ${connector === "AND" ? "text-indigo-500" : "text-amber-500"}`}
+                          >
+                            {connector}
+                          </span>
+                        ),
+                      }}
+                      values={{ entity }}
+                    />
                   </span>
                 </div>
               )}
@@ -361,11 +405,13 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                 </div>
               </div>
               <p className="text-sm font-medium text-gray-600">
-                No filter conditions
+                {translator.translateText("No filter conditions")}
               </p>
               <p className="text-xs text-gray-400 mt-1 max-w-xs">
-                This rule matches all incoming {config.entityNamePlural}. Add
-                conditions to target specific {config.entityNamePlural}.
+                {translator.translateTemplate(
+                  "This rule matches all incoming {{entities}}. Add conditions to target specific {{entities}}.",
+                  { entities },
+                )}
               </p>
             </div>
           )}
@@ -376,7 +422,10 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       {showModal && (
         <Modal
           title="Edit Filter Conditions"
-          description={`Build filter rules to target specific ${config.entityNamePlural}. Conditions are evaluated in order.`}
+          description={translator.translateTemplate(
+            "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
+            { entities },
+          )}
           onClose={closeModal}
           modalWidth={ModalWidth.Large}
           submitButtonText="Save Changes"

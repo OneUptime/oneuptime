@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -84,10 +90,10 @@ import Route from "../../../Types/API/Route";
 
 /*
  * DetailStyle.Compact is the dense label-over-value layout the overview
- * pages use for their right-hand details column. It is opt-in, so the other
- * styles must keep rendering exactly what they did, and it keeps the same
- * row -> [label block, value] DOM shape so code that walks from a label to
- * its value (including page tests) keeps working.
+ * pages use for their right-hand details column. It is opt-in, apart from
+ * the default style the detail cards draw with, and every style keeps the
+ * same row -> [label block, value] DOM shape so code that walks from a
+ * label to its value (including page tests) keeps working.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -97,7 +103,11 @@ const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 interface DetailItem {
   title?: string | undefined;
   owner?: string | undefined;
-  createdAt?: Date | undefined;
+  /*
+   * A date that is one of the record's facts. The record's own createdAt
+   * would leave the grid for the line under it (DetailCreatedOnIdLine).
+   */
+  declaredAt?: Date | undefined;
   apiKey?: string | undefined;
   notes?: string | undefined;
 }
@@ -105,7 +115,7 @@ interface DetailItem {
 const ITEM: DetailItem = {
   title: "Checkout latency",
   owner: "Payments team",
-  createdAt: new Date("2026-09-14T18:01:00.000Z"),
+  declaredAt: new Date("2026-09-14T18:01:00.000Z"),
   apiKey: "abc-123",
 };
 
@@ -366,7 +376,7 @@ describe("DetailStyle.Compact values", () => {
       style: DetailStyle.Compact,
       fields: [
         {
-          key: "createdAt",
+          key: "declaredAt",
           title: "Declared at",
           fieldType: FieldType.DateTime,
         },
@@ -374,8 +384,12 @@ describe("DetailStyle.Compact values", () => {
     });
 
     const row: HTMLElement = rowFor("Declared at");
+    const time: HTMLElement | null = row.querySelector("time");
 
-    expect(row.querySelector("svg")).not.toBeNull();
+    // A plain <time>, read as text, that gives the moment to a machine.
+    expect(time).not.toBeNull();
+    expect(time).toHaveAttribute("datetime", "2026-09-14T18:01:00.000Z");
+    expect(row.querySelector("svg")).toBeNull();
     expect(valueFor("Declared at")).not.toBe("");
     expect(valueFor("Declared at")).not.toBe("-");
   });
@@ -388,8 +402,16 @@ describe("DetailStyle.Compact values", () => {
 
     const valueWrapper: HTMLElement = rowFor("API key")
       .children[1] as HTMLElement;
+    const copy: HTMLElement | null = valueWrapper.querySelector(
+      "[data-testid='detail-value-copy']",
+    );
 
-    expect(valueWrapper.querySelector(".group\\/copyable")).not.toBeNull();
+    // In view, not waiting for a hover a keyboard or a phone never makes.
+    expect(copy).not.toBeNull();
+    expect(copy!.className).not.toContain("opacity-0");
+    expect(
+      within(copy!).getByRole("button", { name: "Copy to clipboard" }),
+    ).toBeInTheDocument();
     expect(valueWrapper).toHaveTextContent("abc-123");
   });
 
@@ -442,7 +464,12 @@ describe("DetailStyle.Compact values", () => {
 
     const description: HTMLElement = screen.getByText("Who gets paged");
 
-    expect(description).toHaveClass("text-xs", "text-gray-400");
+    /*
+     * The default style's grey: gray-400 on white does not reach WCAG AA,
+     * and a sidebar's small print is still something to read.
+     */
+    expect(description).toHaveClass("text-xs", "text-gray-500");
+    expect(description).not.toHaveClass("text-gray-400");
     expect(rowFor("Owner").children[0]).toContainElement(description);
   });
 
@@ -466,21 +493,35 @@ describe("DetailStyle.Compact values", () => {
   });
 });
 
-describe("Other detail styles are unchanged", () => {
-  test("default style keeps its roomy rows, uppercase labels and inline widths", () => {
+describe("The other styles", () => {
+  /*
+   * The default style is the detail cards' look, redone for "a lot better,
+   * more modern, cleaner, and simpler": rows laid out by their place in the
+   * grid (DetailGridLayout), no inline width, a muted name in the case the
+   * card writes it over a value in the reading colour. Its own suite is
+   * Detail/DetailDefaultLayout.test.tsx; here, that it is still apart from
+   * the compact style.
+   */
+  test("default style: rows by their place in the grid, muted names, no inline widths", () => {
     const grid: HTMLElement = renderDetail({ columns: 1 });
 
-    expect(grid.className).toBe("grid grid-cols-1 gap-0 sm:grid-cols-1 w-full");
+    expect(grid.className).toBe("grid grid-cols-1 w-full");
+    expect(grid.className).not.toContain("divide-y");
 
     const row: HTMLElement = rowFor("Title");
-    expect(row).toHaveClass("py-5", "border-b", "border-gray-100");
-    expect(row).toHaveAttribute("style", "width: 100%;");
-    expect(row.children[1]).toHaveClass("mt-3", "text-gray-700");
+    expect(row).toHaveClass("min-w-0", "pt-0", "pb-4");
+    expect(row).not.toHaveAttribute("style");
+    expect(row.className).not.toContain("hover:");
+    expect(row.className).not.toContain("-mx-");
+    expect(rowFor("Owner")).toHaveClass("border-t", "border-gray-100", "pt-4");
+    expect(row.children[1]).toHaveClass("mt-1", "text-sm", "text-gray-900");
 
     const label: HTMLElement = screen
       .getByText("Title")
       .closest("label") as HTMLElement;
-    expect(label).toHaveClass("uppercase", "tracking-widest");
+    expect(label).toHaveClass("text-sm", "font-medium", "text-gray-500");
+    expect(label).not.toHaveClass("uppercase");
+    expect(label.className).not.toContain("tracking-");
   });
 
   test("an explicit Default style renders the same markup as no style", () => {
@@ -580,7 +621,8 @@ describe("ModelDetail and CardModelDetail forward the style", () => {
 
     await screen.findByText("US East probe", {}, { timeout: WAIT_TIMEOUT });
 
-    expect(rowFor("Name")).toHaveClass("py-5");
+    expect(rowFor("Name")).toHaveClass("pt-0", "pb-0");
+    expect(rowFor("Name")).not.toHaveClass("py-3");
     expect(rowFor("Name").parentElement).not.toHaveClass("divide-y");
   });
 

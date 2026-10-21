@@ -671,9 +671,163 @@ describe("SessionId", (): void => {
     });
   });
 
+  /*
+   * Whose the current session is (#4206): one record, bound to one session
+   * id, so every page and tab of the session can name the user while a new
+   * session never inherits them.
+   */
+  describe("session user", (): void => {
+    const USER_KEY: string = "oneuptime.replay.user";
+
+    it("reads back the user written for the same session", (): void => {
+      const state: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab1",
+      );
+
+      expect(SessionId.readStoredUserRef(state.sessionId)).toBeNull();
+
+      SessionId.writeStoredUserRef(state.sessionId, "user-42");
+
+      expect(SessionId.readStoredUserRef(state.sessionId)).toBe("user-42");
+      expect(JSON.parse(window.localStorage.getItem(USER_KEY)!)).toEqual({
+        sessionId: state.sessionId,
+        userRef: "user-42",
+      });
+    });
+
+    it("is nobody for any other session", (): void => {
+      SessionId.writeStoredUserRef("a".repeat(32), "user-42");
+
+      expect(SessionId.readStoredUserRef("b".repeat(32))).toBeNull();
+      expect(SessionId.readStoredUserRef("")).toBeNull();
+    });
+
+    it("keeps one record: writing for a new session replaces the last", (): void => {
+      SessionId.writeStoredUserRef("a".repeat(32), "user-42");
+      SessionId.writeStoredUserRef("b".repeat(32), "user-7");
+
+      expect(SessionId.readStoredUserRef("a".repeat(32))).toBeNull();
+      expect(SessionId.readStoredUserRef("b".repeat(32))).toBe("user-7");
+    });
+
+    it("caps what it stores at the length the server accepts", (): void => {
+      SessionId.writeStoredUserRef("a".repeat(32), "u".repeat(600));
+
+      expect(SessionId.readStoredUserRef("a".repeat(32))).toBe("u".repeat(512));
+    });
+
+    it("writes nothing for an empty session id or reference", (): void => {
+      SessionId.writeStoredUserRef("", "user-42");
+      SessionId.writeStoredUserRef("a".repeat(32), "");
+
+      expect(window.localStorage.getItem(USER_KEY)).toBeNull();
+    });
+
+    /*
+     * Something this recorder did not write - a hand edit, a truncated
+     * sync, another script's key - names nobody rather than being repaired.
+     */
+    it("reads a record it could not have written as nobody", (): void => {
+      const sessionId: string = "a".repeat(32);
+      const malformed: Array<string> = [
+        "not json",
+        "null",
+        "42",
+        JSON.stringify({ sessionId: sessionId }),
+        JSON.stringify({ sessionId: sessionId, userRef: 42 }),
+        JSON.stringify({ sessionId: sessionId, userRef: "   " }),
+        JSON.stringify({ sessionId: sessionId, userRef: "u".repeat(513) }),
+        JSON.stringify({ userRef: "user-42" }),
+      ];
+
+      for (const raw of malformed) {
+        window.localStorage.setItem(USER_KEY, raw);
+
+        expect(SessionId.readStoredUserRef(sessionId)).toBeNull();
+      }
+    });
+
+    it("degrades to nobody when storage throws", (): void => {
+      const getItem: jest.SpyInstance = jest
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation((): string => {
+          throw new Error("SecurityError");
+        });
+      const setItem: jest.SpyInstance = jest
+        .spyOn(Storage.prototype, "setItem")
+        .mockImplementation((): void => {
+          throw new Error("QuotaExceededError");
+        });
+
+      try {
+        expect((): void => {
+          SessionId.writeStoredUserRef("a".repeat(32), "user-42");
+        }).not.toThrow();
+        expect(SessionId.readStoredUserRef("a".repeat(32))).toBeNull();
+      } finally {
+        getItem.mockRestore();
+        setItem.mockRestore();
+      }
+    });
+  });
+
+  describe("startNewSession", (): void => {
+    it("mints a new shared session even while the stored one is live", (): void => {
+      const live: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab1",
+      );
+
+      SessionId.getNextChunkIndex("tab1");
+      SessionId.getNextChunkIndex("tab1");
+
+      const next: SessionIdentityState = SessionId.startNewSession({
+        nowUnixMs: Date.now(),
+        tabId: "tab1",
+        previousSessionId: live.sessionId,
+        rotationReason: SessionRotationReason.IdentityChange,
+      });
+
+      expect(next.sessionId).not.toBe(live.sessionId);
+      expect(next.sessionId).toMatch(/^[0-9a-f]{32}$/);
+      expect(next.previousSessionId).toBe(live.sessionId);
+      expect(next.rotationReason).toBe(SessionRotationReason.IdentityChange);
+      expect(SessionId.readStoredSessionId()).toBe(next.sessionId);
+
+      /* Its own chunk sequence, from 0. */
+      expect(SessionId.peekChunkIndex("tab1")).toBe(0);
+
+      /* Other tabs adopt it rather than rotating again. */
+      expect(SessionId.shouldRotate(Date.now()).shouldRotate).toBe(false);
+    });
+
+    it("leaves the previous session's user behind", (): void => {
+      const live: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab1",
+      );
+
+      SessionId.writeStoredUserRef(live.sessionId, "user-42");
+
+      const next: SessionIdentityState = SessionId.startNewSession({
+        nowUnixMs: Date.now(),
+        tabId: "tab1",
+      });
+
+      expect(SessionId.readStoredUserRef(next.sessionId)).toBeNull();
+      expect(next.previousSessionId).toBeUndefined();
+      expect(next.rotationReason).toBeUndefined();
+    });
+  });
+
   describe("clearAll", (): void => {
-    it("removes session, tab, visitor id, reload log and every chunk counter", (): void => {
-      SessionId.resolveSession(Date.now(), "tab1");
+    it("removes session, tab, visitor id, session user, reload log and every chunk counter", (): void => {
+      const state: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab1",
+      );
+      SessionId.writeStoredUserRef(state.sessionId, "user-42");
       SessionId.resolveVisitorId();
       SessionId.rotateTabId();
       SessionId.getNextChunkIndex("tab1");

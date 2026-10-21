@@ -10,7 +10,10 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
+import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import IncidentAlertAiActivityAPI from "Common/Server/API/IncidentAlertAiActivityAPI";
+import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
@@ -37,12 +40,16 @@ import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import PacketCaptureAPI from "Common/Server/API/PacketCaptureAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
+import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
+import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
+import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -71,6 +78,8 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
+import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
+import VercelMarketplaceProviderAPI from "Common/Server/API/VercelMarketplaceProviderAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -78,6 +87,13 @@ import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import WorkspaceUserGroupAPI from "Common/Server/API/WorkspaceUserGroupAPI";
+import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
+import IncidentVideoCallAPI from "Common/Server/API/IncidentVideoCallAPI";
+import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import AlertVideoCallService, {
+  Service as AlertVideoCallServiceType,
+} from "Common/Server/Services/AlertVideoCallService";
 import WorkspaceNotificationSummaryAPI from "Common/Server/API/WorkspaceNotificationSummaryAPI";
 import DashboardAPI from "Common/Server/API/DashboardAPI";
 import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
@@ -94,7 +110,10 @@ import IncidentEpisodePublicNoteAPI from "Common/Server/API/IncidentEpisodePubli
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import FormAPI from "Common/Server/API/FormAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
+import IncidentEpisodeMemberAPI from "Common/Server/API/IncidentEpisodeMemberAPI";
+import AlertEpisodeMemberAPI from "Common/Server/API/AlertEpisodeMemberAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
 import AlertAPI from "Common/Server/API/AlertAPI";
 // User Notification methods.
@@ -109,15 +128,18 @@ import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
-import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
+import NetworkTrafficAPI from "./API/NetworkTraffic";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
 import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
+import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
+import TopologyAPI from "./API/Topology";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -156,14 +178,17 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
+import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
+import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -215,9 +240,6 @@ import AlertEpisodeFeedService, {
 import AlertEpisodeInternalNoteService, {
   Service as AlertEpisodeInternalNoteServiceType,
 } from "Common/Server/Services/AlertEpisodeInternalNoteService";
-import AlertEpisodeMemberService, {
-  Service as AlertEpisodeMemberServiceType,
-} from "Common/Server/Services/AlertEpisodeMemberService";
 import AlertEpisodeOwnerTeamService, {
   Service as AlertEpisodeOwnerTeamServiceType,
 } from "Common/Server/Services/AlertEpisodeOwnerTeamService";
@@ -236,9 +258,6 @@ import IncidentEpisodeFeedService, {
 import IncidentEpisodeInternalNoteService, {
   Service as IncidentEpisodeInternalNoteServiceType,
 } from "Common/Server/Services/IncidentEpisodeInternalNoteService";
-import IncidentEpisodeMemberService, {
-  Service as IncidentEpisodeMemberServiceType,
-} from "Common/Server/Services/IncidentEpisodeMemberService";
 import IncidentAlertService, {
   Service as IncidentAlertServiceType,
 } from "Common/Server/Services/IncidentAlertService";
@@ -422,6 +441,14 @@ import CephClusterLabelRuleService, {
   Service as CephClusterLabelRuleServiceType,
 } from "Common/Server/Services/CephClusterLabelRuleService";
 
+import StorageArrayOwnerRuleService, {
+  Service as StorageArrayOwnerRuleServiceType,
+} from "Common/Server/Services/StorageArrayOwnerRuleService";
+
+import StorageArrayLabelRuleService, {
+  Service as StorageArrayLabelRuleServiceType,
+} from "Common/Server/Services/StorageArrayLabelRuleService";
+
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
 } from "Common/Server/Services/RunbookOwnerRuleService";
@@ -559,12 +586,36 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
+import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
+import SecurityLogSourceService, {
+  Service as SecurityLogSourceServiceType,
+} from "Common/Server/Services/SecurityLogSourceService";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
 import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
+import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
+import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
+import SecurityCaseFeedService, {
+  Service as SecurityCaseFeedServiceType,
+} from "Common/Server/Services/SecurityCaseFeedService";
+import SecurityCaseNoteService, {
+  Service as SecurityCaseNoteServiceType,
+} from "Common/Server/Services/SecurityCaseNoteService";
+import SecurityDetectionService, {
+  Service as SecurityDetectionServiceType,
+} from "Common/Server/Services/SecurityDetectionService";
+import SecurityPlaybookService, {
+  Service as SecurityPlaybookServiceType,
+} from "Common/Server/Services/SecurityPlaybookService";
+import SecurityProtectedEntityService, {
+  Service as SecurityProtectedEntityServiceType,
+} from "Common/Server/Services/SecurityProtectedEntityService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -589,6 +640,9 @@ import TraceScrubRuleService, {
 import TraceRecordingRuleService, {
   Service as TraceRecordingRuleServiceType,
 } from "Common/Server/Services/TraceRecordingRuleService";
+import LogRecordingRuleService, {
+  Service as LogRecordingRuleServiceType,
+} from "Common/Server/Services/LogRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -622,6 +676,9 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import FormSubmissionService, {
+  Service as FormSubmissionServiceType,
+} from "Common/Server/Services/FormSubmissionService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -733,6 +790,9 @@ import DockerSwarmClusterService, {
 import CephClusterService, {
   Service as CephClusterServiceType,
 } from "Common/Server/Services/CephClusterService";
+import StorageArrayService, {
+  Service as StorageArrayServiceType,
+} from "Common/Server/Services/StorageArrayService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -763,6 +823,12 @@ import CephClusterOwnerTeamService, {
 import CephClusterOwnerUserService, {
   Service as CephClusterOwnerUserServiceType,
 } from "Common/Server/Services/CephClusterOwnerUserService";
+import StorageArrayOwnerTeamService, {
+  Service as StorageArrayOwnerTeamServiceType,
+} from "Common/Server/Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService, {
+  Service as StorageArrayOwnerUserServiceType,
+} from "Common/Server/Services/StorageArrayOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -781,6 +847,21 @@ import DatabaseServerLabelRuleService, {
 import DatabaseServerOwnerRuleService, {
   Service as DatabaseServerOwnerRuleServiceType,
 } from "Common/Server/Services/DatabaseServerOwnerRuleService";
+import MessageQueueService, {
+  Service as MessageQueueServiceType,
+} from "Common/Server/Services/MessageQueueService";
+import MessageQueueOwnerTeamService, {
+  Service as MessageQueueOwnerTeamServiceType,
+} from "Common/Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService, {
+  Service as MessageQueueOwnerUserServiceType,
+} from "Common/Server/Services/MessageQueueOwnerUserService";
+import MessageQueueLabelRuleService, {
+  Service as MessageQueueLabelRuleServiceType,
+} from "Common/Server/Services/MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService, {
+  Service as MessageQueueOwnerRuleServiceType,
+} from "Common/Server/Services/MessageQueueOwnerRuleService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -790,6 +871,12 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostCollectorConfigService, {
+  Service as HostCollectorConfigServiceType,
+} from "Common/Server/Services/HostCollectorConfigService";
+import HostCollectorConfigVersionService, {
+  Service as HostCollectorConfigVersionServiceType,
+} from "Common/Server/Services/HostCollectorConfigVersionService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -917,12 +1004,21 @@ import OnCallDutyPolicyScheduleService, {
 import UserOnCallCalendarFeedService, {
   Service as UserOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/UserOnCallCalendarFeedService";
+import McpOAuthGrantService, {
+  Service as McpOAuthGrantServiceType,
+} from "Common/Server/Services/McpOAuthGrantService";
 import OnCallDutyPolicyScheduleCalendarFeedService, {
   Service as OnCallDutyPolicyScheduleCalendarFeedServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService, {
   Service as ProjectOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/ProjectOnCallCalendarFeedService";
+import ScheduledMaintenanceCalendarFeedService, {
+  Service as ScheduledMaintenanceCalendarFeedServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceCalendarFeedService";
+import ScheduledMaintenanceExternalCalendarEventService, {
+  Service as ScheduledMaintenanceExternalCalendarEventServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceExternalCalendarEventService";
 import UserOnCallShiftReminderService, {
   Service as UserOnCallShiftReminderServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderService";
@@ -953,6 +1049,21 @@ import PromoCodeService, {
 import DeletedProjectService, {
   Service as DeletedProjectServiceType,
 } from "Common/Server/Services/DeletedProjectService";
+import MarketplaceSubscriptionService, {
+  Service as MarketplaceSubscriptionServiceType,
+} from "Common/Server/Services/MarketplaceSubscriptionService";
+import MarketplaceUsageReportService, {
+  Service as MarketplaceUsageReportServiceType,
+} from "Common/Server/Services/MarketplaceUsageReportService";
+import MarketplaceChargeService, {
+  Service as MarketplaceChargeServiceType,
+} from "Common/Server/Services/MarketplaceChargeService";
+import VercelMarketplaceInstallationService, {
+  Service as VercelMarketplaceInstallationServiceType,
+} from "Common/Server/Services/VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService, {
+  Service as VercelMarketplaceConnectionServiceType,
+} from "Common/Server/Services/VercelMarketplaceConnectionService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1053,6 +1164,15 @@ import TeamMemberCustomFieldService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import CustomRoleService, {
+  Service as CustomRoleServiceType,
+} from "Common/Server/Services/CustomRoleService";
+import CustomRolePermissionService, {
+  Service as CustomRolePermissionServiceType,
+} from "Common/Server/Services/CustomRolePermissionService";
+import TeamCustomRoleService, {
+  Service as TeamCustomRoleServiceType,
+} from "Common/Server/Services/TeamCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1096,9 +1216,16 @@ import AutoRemediationRuleService, {
 import AutoRemediationSuggestionService, {
   Service as AutoRemediationSuggestionServiceType,
 } from "Common/Server/Services/AutoRemediationSuggestionService";
-import RunnerService, {
-  Service as RunnerServiceType,
-} from "Common/Server/Services/RunnerService";
+import AutoRemediationDecisionService, {
+  Service as AutoRemediationDecisionServiceType,
+} from "Common/Server/Services/AutoRemediationDecisionService";
+import AIInvestigationRuleService, {
+  Service as AIInvestigationRuleServiceType,
+} from "Common/Server/Services/AIInvestigationRuleService";
+import AIPostmortemRuleService, {
+  Service as AIPostmortemRuleServiceType,
+} from "Common/Server/Services/AIPostmortemRuleService";
+import RunnerAPI from "Common/Server/API/RunnerAPI";
 import RunnerJobService, {
   Service as RunnerJobServiceType,
 } from "Common/Server/Services/RunnerJobService";
@@ -1108,9 +1235,9 @@ import RunnerOwnerTeamService, {
 import RunnerOwnerUserService, {
   Service as RunnerOwnerUserServiceType,
 } from "Common/Server/Services/RunnerOwnerUserService";
-import RunbookSecretService, {
-  Service as RunbookSecretServiceType,
-} from "Common/Server/Services/RunbookSecretService";
+import RunbookVariableService, {
+  Service as RunbookVariableServiceType,
+} from "Common/Server/Services/RunbookVariableService";
 import RunbookCredentialService, {
   Service as RunbookCredentialServiceType,
 } from "Common/Server/Services/RunbookCredentialService";
@@ -1185,7 +1312,6 @@ import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline"
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
-import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -1233,6 +1359,8 @@ import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
+import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
+import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1267,7 +1395,6 @@ import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/Sched
 // IncidentEpisode Models
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
-import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -1285,6 +1412,7 @@ import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 
@@ -1335,15 +1463,25 @@ import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwar
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
 import DatabaseServerOwnerUser from "Common/Models/DatabaseModels/DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
+import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
+import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
@@ -1376,8 +1514,11 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
+import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
+import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
@@ -1390,6 +1531,11 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
+import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
+import MarketplaceUsageReport from "Common/Models/DatabaseModels/MarketplaceUsageReport";
+import MarketplaceCharge from "Common/Models/DatabaseModels/MarketplaceCharge";
+import VercelMarketplaceInstallation from "Common/Models/DatabaseModels/VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "Common/Models/DatabaseModels/VercelMarketplaceConnection";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -1421,6 +1567,9 @@ import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -1434,11 +1583,13 @@ import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
-import Runner from "Common/Models/DatabaseModels/Runner";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
+import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
+import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
@@ -1474,6 +1625,12 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
+import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -1482,6 +1639,7 @@ import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelinePr
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "Common/Models/DatabaseModels/LogRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -1502,6 +1660,7 @@ import ScheduledMaintenanceFeedService, {
 import SlackAPI from "Common/Server/API/SlackAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
+import VideoCallOAuthAPI from "Common/Server/API/VideoCallOAuthAPI";
 
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService, {
@@ -1539,6 +1698,10 @@ import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
 import CephClusterFeedService, {
   Service as CephClusterFeedServiceType,
 } from "Common/Server/Services/CephClusterFeedService";
+import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
+import StorageArrayFeedService, {
+  Service as StorageArrayFeedServiceType,
+} from "Common/Server/Services/StorageArrayFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -1576,8 +1739,15 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import ToolImportAPI from "Common/Server/API/ToolImportAPI";
+import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
+import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
+import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
+import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
+import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -1919,13 +2089,24 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceType
       >(
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceInstance,
       ).getRouter(),
+    );
+
+    /*
+     * The Inventory Overview's counts and "Recently added" rows. Safe beside
+     * the InventoryItem CRUD router: the only single-segment routes BaseAPI
+     * registers under `/inventory-item` are PUT and DELETE `/:id`, so a POST
+     * to `/overview` is never mistaken for an item id.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new InventoryOverviewAPI().getRouter(),
     );
 
     // Project SCIM
@@ -2189,6 +2370,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Storage array feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
+        StorageArrayFeed,
+        StorageArrayFeedService,
+      ).getRouter(),
+    );
+
     // Database server feed
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -2370,10 +2560,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertCustomField, AlertCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         AlertCustomField,
-        AlertCustomFieldService,
-      ).getRouter(),
+        AlertCustomFieldServiceType
+      >(AlertCustomField, AlertCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -2414,12 +2604,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(AlertEpisodeInternalNote, AlertEpisodeInternalNoteService).getRouter(),
     );
 
+    // The CRUD routes, and adding several alerts to an episode at once.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisodeMember, AlertEpisodeMemberServiceType>(
-        AlertEpisodeMember,
-        AlertEpisodeMemberService,
-      ).getRouter(),
+      new AlertEpisodeMemberAPI().getRouter(),
     );
 
     app.use(
@@ -2474,12 +2662,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The CRUD routes, and adding several incidents to an episode at once.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisodeMember, IncidentEpisodeMemberServiceType>(
-        IncidentEpisodeMember,
-        IncidentEpisodeMemberService,
-      ).getRouter(),
+      new IncidentEpisodeMemberAPI().getRouter(),
     );
 
     app.use(
@@ -2908,6 +3094,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerRule, StorageArrayOwnerRuleServiceType>(
+        StorageArrayOwnerRule,
+        StorageArrayOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayLabelRule, StorageArrayLabelRuleServiceType>(
+        StorageArrayLabelRule,
+        StorageArrayLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
         DatabaseServerOwnerRule,
         DatabaseServerOwnerRuleService,
@@ -2919,6 +3121,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DatabaseServerLabelRule, DatabaseServerLabelRuleServiceType>(
         DatabaseServerLabelRule,
         DatabaseServerLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerRule, MessageQueueOwnerRuleServiceType>(
+        MessageQueueOwnerRule,
+        MessageQueueOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueLabelRule, MessageQueueLabelRuleServiceType>(
+        MessageQueueLabelRule,
+        MessageQueueLabelRuleService,
       ).getRouter(),
     );
 
@@ -3082,6 +3300,24 @@ const BaseAPIFeatureSet: FeatureSet = {
         LlmCostBudget,
         LlmCostBudgetService,
       ).getRouter(),
+    );
+
+    // AI / LLM connections: provider accounts and company AI tools.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new LlmObservabilityConnectionAPI().getRouter(),
+    );
+
+    // Cloud connections: AWS, Azure and Google Cloud accounts read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudConnectionAPI().getRouter(),
+    );
+
+    // External MCP servers OneUptime AI may use, and their connection test.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ExternalMcpServerAPI().getRouter(),
     );
 
     // LlmModelPrice
@@ -3252,6 +3488,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CephResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new StorageArrayResourceAPI().getRouter(),
     );
 
     app.use(
@@ -3572,10 +3813,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamMemberCustomField, TeamMemberCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         TeamMemberCustomField,
-        TeamMemberCustomFieldService,
-      ).getRouter(),
+        TeamMemberCustomFieldServiceType
+      >(TeamMemberCustomField, TeamMemberCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -3583,6 +3824,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TeamPermission, TeamPermissionServiceType>(
         TeamPermission,
         TeamPermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRole, CustomRoleServiceType>(
+        CustomRole,
+        CustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRolePermission, CustomRolePermissionServiceType>(
+        CustomRolePermission,
+        CustomRolePermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomRole, TeamCustomRoleServiceType>(
+        TeamCustomRole,
+        TeamCustomRoleService,
       ).getRouter(),
     );
 
@@ -3679,6 +3944,71 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityEventConnectionAPI().getRouter(),
     );
 
+    // Where security events are sent, and "Your logs" as a source.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityEventDestinationAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityLogSource, SecurityLogSourceServiceType>(
+        SecurityLogSource,
+        SecurityLogSourceService,
+      ).getRouter(),
+    );
+
+    // Security cases and playbooks: the SOAR half of the Security product.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseFeed, SecurityCaseFeedServiceType>(
+        SecurityCaseFeed,
+        SecurityCaseFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseNote, SecurityCaseNoteServiceType>(
+        SecurityCaseNote,
+        SecurityCaseNoteService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityDetection, SecurityDetectionServiceType>(
+        SecurityDetection,
+        SecurityDetectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityPlaybook, SecurityPlaybookServiceType>(
+        SecurityPlaybook,
+        SecurityPlaybookService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityPlaybookRunAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
+        SecurityProtectedEntity,
+        SecurityProtectedEntityService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
@@ -3751,6 +4081,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TraceRecordingRule, TraceRecordingRuleServiceType>(
         TraceRecordingRule,
         TraceRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LogRecordingRule, LogRecordingRuleServiceType>(
+        LogRecordingRule,
+        LogRecordingRuleService,
       ).getRouter(),
     );
 
@@ -3840,6 +4178,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, KubernetesClusterAiAccessAPI);
 
+    /*
+     * Resource AI access — readiness checklist, "test connection", agent
+     * reset and insights for the AI pages of every resource a resource AI
+     * agent serves (Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph,
+     * database servers, hosts). Mounted before those resources' CRUD
+     * routers so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ResourceAiAccessAPI);
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<AutoRemediationRule, AutoRemediationRuleServiceType>(
@@ -3856,6 +4203,31 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         AutoRemediationSuggestion,
         AutoRemediationSuggestionService,
+      ).getRouter(),
+    );
+
+    // Read-only: the rule engine writes these (AutoRemediationDecisionRecorder).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AutoRemediationDecision, AutoRemediationDecisionServiceType>(
+        AutoRemediationDecision,
+        AutoRemediationDecisionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
+        AIInvestigationRule,
+        AIInvestigationRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIPostmortemRule, AIPostmortemRuleServiceType>(
+        AIPostmortemRule,
+        AIPostmortemRuleService,
       ).getRouter(),
     );
 
@@ -3877,7 +4249,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Runner, RunnerServiceType>(Runner, RunnerService).getRouter(),
+      // The Runner CRUD routes, and the global Runners every project sees.
+      new RunnerAPI().getRouter(),
     );
 
     app.use(
@@ -3906,9 +4279,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookSecret, RunbookSecretServiceType>(
-        RunbookSecret,
-        RunbookSecretService,
+      new BaseAPI<RunbookVariable, RunbookVariableServiceType>(
+        RunbookVariable,
+        RunbookVariableService,
       ).getRouter(),
     );
 
@@ -4073,6 +4446,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
         IncidentNoteTemplate,
         IncidentNoteTemplateService,
+      ).getRouter(),
+    );
+
+    /*
+     * Form's CRUD routes plus the public routes its shareable link uses
+     * (/form/public/...), in one router - mounted once, since a second
+     * router for the model would shadow the first.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FormAPI().getRouter());
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormSubmission, FormSubmissionServiceType>(
+        FormSubmission,
+        FormSubmissionService,
       ).getRouter(),
     );
 
@@ -4621,6 +5009,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArray, StorageArrayServiceType>(
+        StorageArray,
+        StorageArrayService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerTeam, StorageArrayOwnerTeamServiceType>(
+        StorageArrayOwnerTeam,
+        StorageArrayOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerUser, StorageArrayOwnerUserServiceType>(
+        StorageArrayOwnerUser,
+        StorageArrayOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServer, DatabaseServerServiceType>(
         DatabaseServer,
         DatabaseServerService,
@@ -4653,6 +5065,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueue, MessageQueueServiceType>(
+        MessageQueue,
+        MessageQueueService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerTeam, MessageQueueOwnerTeamServiceType>(
+        MessageQueueOwnerTeam,
+        MessageQueueOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerUser, MessageQueueOwnerUserServiceType>(
+        MessageQueueOwnerUser,
+        MessageQueueOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<Host, HostServiceType>(Host, HostService).getRouter(),
     );
 
@@ -4669,6 +5105,31 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<HostOwnerUser, HostOwnerUserServiceType>(
         HostOwnerUser,
         HostOwnerUserService,
+      ).getRouter(),
+    );
+
+    /*
+     * Collector Configs (Hosts > Collector Configs): the config OneUptime
+     * sends to the hosts it manages, checked on every save, and the versions
+     * every save makes - written only by the config's service, so their
+     * router only reads.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostCollectorConfig, HostCollectorConfigServiceType>(
+        HostCollectorConfig,
+        HostCollectorConfigService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionServiceType
+      >(
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionService,
       ).getRouter(),
     );
 
@@ -4695,7 +5156,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         OnCallDutyPolicyCustomField,
         OnCallDutyPolicyCustomFieldServiceType
       >(
@@ -4889,6 +5350,26 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
 
     /*
+     * Import from another tool (Project Settings > Advanced > Import from
+     * another tool). A bare router for the same reason as OnCallReadinessAPI: its
+     * runs are internal rows with no CRUD API, so the router's own checks
+     * are the whole gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ToolImportAPI);
+
+    /*
+     * Importing a discovery scan's hosts as network devices (Network >
+     * Discovery > Review Results). A bare router for the same reason as
+     * ToolImportAPI: its imports are internal rows with no CRUD API, so the
+     * router's own checks are the whole gate, and the import itself acts
+     * as the person who asked for it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryImportAPI,
+    );
+
+    /*
      * On-call calendar feeds. The custom router carries the public
      * capability routes (/on-call-calendar/user|schedule|project/:token/...,
      * no UserMiddleware -- the token in the path is the credential) and the
@@ -4901,17 +5382,68 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
 
     /*
+     * The team's calendar link for scheduled maintenance: the public
+     * capability route (/scheduled-maintenance-calendar/project/:token/...,
+     * no UserMiddleware - the token in the path is the credential) and the
+     * session routes the Subscribe dialog uses (/project-feed/*). Its CRUD
+     * router below serves the link's on / off switch; the token columns
+     * have read [] so CRUD never returns one.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      ScheduledMaintenanceCalendarAPI,
+    );
+
+    /*
      * The schedule timeline: every schedule the caller can read, side by
      * side over a week or a month (/on-call-schedule-timeline). Session-only;
      * it reads through the same schedule-level shift cache as the feeds.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallScheduleTimelineAPI);
 
+    /*
+     * The links behind a record's Open in Slack / Open in Microsoft Teams
+     * button (/workspace-channel-link/<record type>/<id>). Session-only; the
+     * record is read with the caller's own permissions first.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
+
+    /*
+     * Who is in a record's own channel, and adding people to it from its
+     * page (/workspace-channel-members/<record type>/<id>, .../add). The
+     * record is read with the caller's own permissions first; adding
+     * needs permission to edit it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
+     * page in the Dashboard and from the mobile app.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallPagePassOnAPI);
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<UserOnCallCalendarFeed, UserOnCallCalendarFeedServiceType>(
         UserOnCallCalendarFeed,
         UserOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    /*
+     * The MCP clients members have connected by signing in
+     * (/mcp-client-authorization). Mounted so that a member can list and
+     * revoke their own, and an administrator everybody's; the model's create
+     * and update lists are empty, so reading and deleting are all the CRUD
+     * router will do. A grant is only ever MADE by the consent endpoint
+     * (FeatureSet/MCP/OAuth/ConsentEndpoint).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<McpOAuthGrant, McpOAuthGrantServiceType>(
+        McpOAuthGrant,
+        McpOAuthGrantService,
       ).getRouter(),
     );
 
@@ -4934,6 +5466,41 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ProjectOnCallCalendarFeed,
         ProjectOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedServiceType
+      >(
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedService,
+      ).getRouter(),
+    );
+
+    /*
+     * Calendars from outside the project, drawn on the maintenance
+     * calendar (Calendar Settings): their CRUD routes and Read now
+     * (/scheduled-maintenance-external-calendar/:id/read-now). Their link is
+     * write-only (read [] on the column). Their events are written by the
+     * Workers alone - every write list is empty - and this router serves the
+     * calendar page's reads of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ScheduledMaintenanceExternalCalendarAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventServiceType
+      >(
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventService,
       ).getRouter(),
     );
 
@@ -5020,6 +5587,29 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new WorkspaceUserGroupAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VideoCallConnectionAPI().getRouter(),
+    );
+    /*
+     * Incident calls, with their transcripts and what OneUptime AI read in
+     * them (IncidentVideoCallAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new IncidentVideoCallAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertVideoCall, AlertVideoCallServiceType>(
+        AlertVideoCall,
+        AlertVideoCallService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationSummaryAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
@@ -5081,6 +5671,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ResellerPlanAPI().getRouter(),
     );
     /*
+     * AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace:
+     * their landing pages, webhooks and event deliveries, and the purchase
+     * page's routes (OneUptime Cloud only - see MarketplaceAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MarketplaceAPI().getRouter(),
+    );
+    /*
+     * Vercel Marketplace: the provider API Vercel calls when a team installs
+     * OneUptime and adds, changes or deletes a resource, and its webhooks
+     * (OneUptime Cloud only - see VercelMarketplaceProviderAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VercelMarketplaceProviderAPI().getRouter(),
+    );
+    /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
      * license client (activate / refresh), team compliance status, and - only
      * on the hosted oneuptime.com (billing enabled) - the license server with
@@ -5103,6 +5711,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new MicrosoftTeamsAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GitHubAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VideoCallOAuthAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new GlobalConfigAPI().getRouter(),
@@ -5198,6 +5810,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       new AIAgentGitHubAPI().getRouter(),
     );
 
+    // The agent worker's protocol for requests from Code.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentCodeTaskAPI().getRouter(),
+    );
+
+    // The code agent's production telemetry tools, run by the server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTelemetryAPI().getRouter(),
+    );
+
+    // Code: repositories, their tasks, and asking AI in them.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5265,7 +5892,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         ScheduledMaintenanceCustomField,
         ScheduledMaintenanceCustomFieldServiceType
       >(
@@ -5338,6 +5965,50 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Marketplace purchases, the usage reported for them and their balance top-ups: master admin only (empty table ACLs).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceSubscription, MarketplaceSubscriptionServiceType>(
+        MarketplaceSubscription,
+        MarketplaceSubscriptionService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceUsageReport, MarketplaceUsageReportServiceType>(
+        MarketplaceUsageReport,
+        MarketplaceUsageReportService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceCharge, MarketplaceChargeServiceType>(
+        MarketplaceCharge,
+        MarketplaceChargeService,
+      ).getRouter(),
+    );
+    // Vercel Marketplace installations and their connected Vercel projects: master admin only too.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationServiceType
+      >(
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionServiceType
+      >(
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionService,
+      ).getRouter(),
+    );
+
     // Code Repository
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5360,10 +6031,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         IncidentCustomField,
-        IncidentCustomFieldService,
-      ).getRouter(),
+        IncidentCustomFieldServiceType
+      >(IncidentCustomField, IncidentCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -5379,15 +6050,15 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         MonitorCustomField,
-        MonitorCustomFieldService,
-      ).getRouter(),
+        MonitorCustomFieldServiceType
+      >(MonitorCustomField, MonitorCustomFieldService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<TeamCustomField, TeamCustomFieldServiceType>(
         TeamCustomField,
         TeamCustomFieldService,
       ).getRouter(),
@@ -5395,10 +6066,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         StatusPageCustomField,
-        StatusPageCustomFieldService,
-      ).getRouter(),
+        StatusPageCustomFieldServiceType
+      >(StatusPageCustomField, StatusPageCustomFieldService).getRouter(),
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
@@ -5408,11 +6079,20 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // AI code-fix readiness — the gates the AI Tasks page renders
+    // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
+
+    // What a project's AI used today, against its own daily AI limits
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIDailyUsageAPI);
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    // The AI section of the Incidents and Alerts menus: AI Insights and Logs.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, IncidentAlertAiActivityAPI);
+
+    // AI SRE — the shared conversation in the investigation box
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);
 
     /*
      * AI Insights — human verdict/resolve actions + live triage
@@ -5599,6 +6279,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // packet captures run on the project's probes (start, stop, download)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new PacketCaptureAPI().getRouter(),
+    );
+
     // network site
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5717,7 +6403,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new NetworkDeviceFlowAPI().getRouter(),
+      new NetworkTrafficAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5738,10 +6424,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
     );
+    /*
+     * When OneUptime itself was not receiving data, for the availability
+     * charts (issue #2825). No model owns /receiving-gaps.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ReceivingGapsAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceOperationalStatusAPI().getRouter(),
     );
+    /*
+     * The Topology maps (Service Map, Infrastructure and the detail drawer).
+     * Mounted after the InventoryItem / InventoryItemRelationship CRUD
+     * routers; every path is under /telemetry/topology, which no CRUD router
+     * claims.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new TopologyAPI().getRouter());
   },
 };
 

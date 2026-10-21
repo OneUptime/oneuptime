@@ -1,5 +1,11 @@
 import logger from "../Utils/Logger";
 import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
+import SchemaMigrationRunner, {
+  SchemaMigrationLockTimeoutError,
+} from "./Postgres/SchemaMigrationRunner";
+import SchemaMigrationWait, {
+  SchemaMigrationWaitTimeoutError,
+} from "./Postgres/SchemaMigrationWait";
 import { recordSchemaMigrationFailureBestEffort } from "../Utils/Database/MigrationFailureLog";
 import Sleep from "../../Types/Sleep";
 import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
@@ -46,22 +52,73 @@ export default class Database {
 
     const dataSourceOptions: DataSourceOptions = this.getDatasourceOptions();
 
+    /*
+     * Whether this process applies the schema migrations (see
+     * RunDatabaseMigrationsOnBoot). They are applied by SchemaMigrationRunner
+     * on a connection of its own, with a bounded lock wait and retries, never
+     * by initialize() on this pool: `migrationsRun` is switched off below. A
+     * process that does not apply them waits for them instead.
+     */
+    const runsSchemaMigrations: boolean =
+      (dataSourceOptions as { migrationsRun?: boolean }).migrationsRun === true;
+
     try {
       type ConnectToDatabaseFunction = () => Promise<DataSource>;
 
       const connectToDatabase: ConnectToDatabaseFunction =
         async (): Promise<DataSource> => {
+          let dataSource: DataSource | null = null;
+
           try {
-            const PostgresDataSource: DataSource = new DataSource(
-              dataSourceOptions,
-            );
-            const dataSource: DataSource =
-              await PostgresDataSource.initialize();
+            dataSource = await new DataSource({
+              ...dataSourceOptions,
+              migrationsRun: false,
+            } as DataSourceOptions).initialize();
+
+            if (runsSchemaMigrations) {
+              await SchemaMigrationRunner.runPendingMigrations(
+                dataSourceOptions,
+              );
+            } else {
+              /*
+               * Someone else applies them - in the Helm chart the migrate
+               * Job, which by default runs while the new pods start. Code
+               * running on the older schema fails every query that needs
+               * what the missing migrations add, so hold the boot until they
+               * are applied (bounded: DATABASE_MIGRATION_WAIT_TIMEOUT_MS).
+               * The pool is not handed out meanwhile, so the process is not
+               * connected, not started and not ready.
+               */
+              await SchemaMigrationWait.waitForPendingMigrations(dataSource);
+            }
+
             logger.debug("Postgres Database Connected");
             this.dataSource = dataSource;
             return dataSource;
           } catch (err) {
-            if (retry < 3) {
+            /*
+             * As initialize() did when a migration failed: drop the pool,
+             * without letting a failure to close it replace the real error.
+             */
+            if (dataSource?.isInitialized) {
+              await dataSource.destroy().catch((destroyError: unknown) => {
+                logger.warn(
+                  "Could not close the Postgres pool after a failure",
+                );
+                logger.warn(destroyError);
+              });
+            }
+
+            /*
+             * The runner already spent its whole retry window on a lock, or
+             * the wait its whole timeout; three more rounds of either would
+             * only hold the deploy longer.
+             */
+            if (
+              retry < 3 &&
+              !(err instanceof SchemaMigrationLockTimeoutError) &&
+              !(err instanceof SchemaMigrationWaitTimeoutError)
+            ) {
               logger.debug(
                 "Cannot connect to Postgres. Retrying again in 5 seconds",
               );

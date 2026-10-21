@@ -6,9 +6,11 @@ import BasicForm, {
   FormSummaryConfig,
 } from "./BasicForm";
 import Fields from "./Types/Fields";
+import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
   MutableRefObject,
@@ -55,6 +57,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialValues?: FormValues<TBaseModel> | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
+  allowAnyStepNavigation?: boolean | undefined;
+  // What the form's entity dropdowns search through (see BasicForm).
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const BasicModelForm: <TBaseModel extends BaseModel>(
@@ -86,7 +91,15 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
           ) as string;
         }
 
+        /*
+         * A color column's description tells an API reader how to write a
+         * color ("in Hex (#32a852 for example)"). The form's swatches need no
+         * such instructions, so FormField says something plainer instead.
+         */
         if (
+          field.fieldType !== FormFieldSchemaType.Color &&
+          // The field says what it means another way (Field.hideColumnDescription).
+          !field.hideColumnDescription &&
           props.model.getDisplayColumnDescriptionAs(
             Object.keys(field.field || {})[0] as string,
           ) &&
@@ -132,6 +145,8 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       hideSubmitButton={props.hideSubmitButton}
       ref={props.formRef}
       summary={props.summary}
+      allowAnyStepNavigation={props.allowAnyStepNavigation}
+      modelAPI={props.modelAPI}
     ></BasicForm>
   );
 };

@@ -16,7 +16,7 @@
   "moduleNameMapper": {
     "^Common/(.*)$": "<rootDir>/../Common/$1"
   },
-  "transformIgnorePatterns": ["node_modules/(?!(@oneuptime)/)"],
+  "transformIgnorePatterns": ["/node_modules/(?!(@oneuptime)/)"],
   "transform": {
     "^.+\\.ts$": [
       "ts-jest",

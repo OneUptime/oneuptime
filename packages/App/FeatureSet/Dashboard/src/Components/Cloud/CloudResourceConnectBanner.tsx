@@ -4,6 +4,9 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -28,6 +31,7 @@ export interface ComponentProps {
 const CloudResourceConnectBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const documentationRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
     { modelId: props.modelId },
@@ -48,18 +52,25 @@ const CloudResourceConnectBanner: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0 text-sm text-gray-700">
             <p>
-              Ingest matches telemetry to an environment by its{" "}
-              <span className="font-mono">cloud.platform</span>,{" "}
-              <span className="font-mono">cloud.account.id</span> and{" "}
-              <span className="font-mono">cloud.region</span> resource
-              attributes. Configure a cloud resource detector on your collector
-              or SDK so those are set; the environment fills in automatically
-              when the first batch is received.
+              <TranslatedSentence
+                template="Ingest matches telemetry to an environment by its {{platform}}, {{account}} and {{region}} resource attributes. Configure a cloud resource detector on your collector or SDK so those are set; the environment fills in automatically when the first batch is received."
+                slots={{
+                  platform: <span className="font-mono">cloud.platform</span>,
+                  account: <span className="font-mono">cloud.account.id</span>,
+                  region: <span className="font-mono">cloud.region</span>,
+                }}
+              />
             </p>
             {props.environmentKey ? (
               <p className="mt-2 text-xs text-gray-500">
-                Environment key:{" "}
-                <span className="font-mono">{props.environmentKey}</span>
+                <TranslatedSentence
+                  template="Environment key: {{key}}"
+                  slots={{
+                    key: (
+                      <span className="font-mono">{props.environmentKey}</span>
+                    ),
+                  }}
+                />
               </p>
             ) : (
               <></>
@@ -69,7 +80,11 @@ const CloudResourceConnectBanner: FunctionComponent<ComponentProps> = (
                 to={documentationRoute}
                 className="text-sm font-medium text-indigo-600 hover:underline"
               >
-                Open the connection guide →
+                {
+                  translator.translateText(
+                    "Open the connection guide →",
+                  ) as string
+                }
               </AppLink>
             </div>
           </div>

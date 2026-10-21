@@ -1,6 +1,5 @@
 import Log from "../../../../Models/AnalyticsModels/Log";
-import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import Search from "../../../../Types/BaseDatabase/Search";
@@ -18,6 +17,7 @@ import LogAggregationService, {
   HistogramBucket,
 } from "../../../Services/LogAggregationService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import { TelemetryReadScope } from "../../Telemetry/TelemetryReadScope";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
@@ -235,16 +235,14 @@ export const LogHistogramTool: ObservabilityTool = {
     );
 
     /*
-     * getHistogram builds raw aggregation SQL and skips the model layer's
-     * owned-scope filter, so a label-restricted user would otherwise see
-     * project-wide volume. Constrain to the services this user may read.
+     * getHistogram builds raw aggregation SQL that the model layer never
+     * narrows, so it is narrowed here to the services this user may read
+     * (TelemetryReadAccess) - or a scoped user would see project-wide volume.
      */
-    const accessibleServiceIds: Array<ObjectID> | null =
-      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-        Log,
-        ctx.props,
-        DatabaseRequestType.Read,
-      );
+    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+      Log,
+      ctx.props,
+    );
 
     const buckets: Array<HistogramBucket> =
       await LogAggregationService.getHistogram({
@@ -254,7 +252,7 @@ export const LogHistogramTool: ObservabilityTool = {
         bucketSizeInMinutes: bucketSizeInMinutes,
         severityTexts: ToolArgs.getStringArray(args, "severityTexts"),
         bodySearchText: ToolArgs.getString(args, "bodySearchText"),
-        serviceIds: ToolArgs.scopeServiceIds(accessibleServiceIds, serviceId),
+        ...ToolArgs.scopeServiceIds(scope, serviceId),
       });
 
     /*

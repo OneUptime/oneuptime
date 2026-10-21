@@ -51,7 +51,7 @@ type FindIdsFunction = (lookupIds: Array<string>) => Promise<Array<string>>;
 export default class SloOwnerReferenceValidator {
   /*
    * Team membership is what "in this project" means for a user, and it is
-   * exactly the set the dashboard's owner picker offers (AddOwnerPopover lists
+   * exactly the set the dashboard's owner picker offers (PeoplePickerKinds lists
    * the project's TeamMember rows). Pending invitations count for that reason:
    * refusing a user the picker just offered would fail a save nobody could
    * explain. It is the rule ServiceLevelObjectiveBurnRateRuleService applies to

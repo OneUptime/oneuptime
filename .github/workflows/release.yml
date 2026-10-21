@@ -21,6 +21,17 @@ permissions:
   contents: write
   packages: write
 
+# Every job checks out the commit that triggered the run (actions/checkout's
+# default), never the branch. `ref: ${{ github.ref }}` fetches the tip of
+# `release` as of the moment each job starts, and a run's jobs start hours
+# apart (they queue behind the organization's concurrent-job limit): after a
+# push to `release` mid-run, every job that started later built the newer
+# commit, still tagged with this run's version and GIT_SHA=${{ github.sha }},
+# so one release could publish images of two commits. A re-run of a failed
+# job did the same with whatever `release` was by then. No job needs the
+# tip: none pushes to this repository - helm-chart-deploy pushes to
+# OneUptime/helm-chart, from a clone of its own. Tests/Ops/ReleaseE2ePipeline.test.js
+# holds every checkout to this.
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
@@ -47,8 +58,6 @@ jobs:
       patch: ${{ steps.determine.outputs.patch }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Check version and verify not already released
         id: determine
         env:
@@ -157,9 +166,47 @@ jobs:
 
 
 
+  # Lints and renders both charts at the start of the run, with the same
+  # commands helm-chart-deploy runs. It keeps a chart that does not render
+  # from getting any further than it used to: the e2e jobs need this job, and
+  # push-release-tags needs them, so no `release` tag moves on a broken chart.
+  # helm-chart-deploy used to be that gate itself, but it now runs after
+  # push-release-tags (see there), and it cannot be both.
+  helm-chart-check:
+    runs-on: ubuntu-latest
+    needs: [read-version]
+    steps:
+
+      - name: Install Helm
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - uses: actions/checkout@v4
+
+      - name: Lint and render the Helm charts
+        working-directory: ./HelmChart/Public
+        run: |
+          helm lint oneuptime
+          helm template oneuptime --values oneuptime/values.yaml > /dev/null
+          # clusterName has no default; see helm-chart-deploy.
+          helm lint kubernetes-agent --set clusterName=ci-render-check
+          helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check > /dev/null
+
+  # Publishes the charts only after push-release-tags has moved `release`.
+  #
+  # The kubernetes-agent chart installs the Kubernetes AI agent by default, as
+  # oneuptime/kubernetes-ai-agent:release, and the agent needs this release's
+  # server API (/kubernetes-ai-agent-ingest). That tag moves in
+  # push-release-tags, with the App's, once the e2e jobs pass. This job used to
+  # need only read-version, so the chart went out before any image had been
+  # built: a new chart would have pulled an agent image that did not exist yet
+  # (on the first release, a repository that did not), and a release whose e2e
+  # failed would still have published its chart.
+  #
+  # The e2e jobs used to need this job. push-release-tags needs them, so that
+  # would now be a cycle; they need helm-chart-check instead.
   helm-chart-deploy:
     runs-on: ubuntu-latest
-    needs: [generate-build-number, read-version]
+    needs: [generate-build-number, read-version, push-release-tags]
     env:
         CI_COMMIT_AUTHOR: Continuous Integration
     steps:
@@ -168,8 +215,6 @@ jobs:
         run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name:  Build and Package Helm chart
         run: |
@@ -188,6 +233,14 @@ jobs:
           helm template oneuptime --values oneuptime/values.yaml
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
           echo "OneUptime Helm Chart Package created successfully"
+          # chartDefaultsVersion is the version of the chart its values.yaml
+          # comes with, so it is stamped with the version the chart is
+          # packaged as. The chart's notes compare the two and warn a release
+          # that renders with an older chart's defaults (what
+          # `helm upgrade --reuse-values` does); a stamp that is not the
+          # chart's version would warn every install, so the step fails then.
+          sed -i 's/^chartDefaultsVersion: .*/chartDefaultsVersion: "${{needs.read-version.outputs.major_minor}}"/' kubernetes-agent/values.yaml
+          grep -qx 'chartDefaultsVersion: "${{needs.read-version.outputs.major_minor}}"' kubernetes-agent/values.yaml
           # clusterName has no default and cannot have one -- it is what keeps
           # one cluster's nodes and namespaces distinct from another's in
           # OneUptime, so the chart refuses to render without it. Supply a
@@ -196,6 +249,11 @@ jobs:
           helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg kubernetes-agent --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
           echo "Kubernetes Agent Helm Chart Package created successfully"
+          # The stamp is for the package only. The chart's source is copied to
+          # the helm-chart repository below with Chart.yaml's own version, and
+          # a stamped values.yaml beside it would warn every install from that
+          # copy, so put back the repository's, which carries that version.
+          git checkout -- kubernetes-agent/values.yaml
           cd ..
           ls
           echo "Copying the package to helm-chart repo"
@@ -215,9 +273,19 @@ jobs:
           git push origin master
 
   # ─── Docker image build jobs (per-arch matrix) ───────────────────────
+  #
+  # The builds of images that get version tags only need read-version alone.
+  # They used to wait for generate-build-number too, which none of them reads
+  # (the app builds and the draft do), and every job queues for a runner of
+  # its own: on 14.0.65 (run 39000188317) generate-build-number sat 24.5
+  # minutes in the queue while read-version waited 3, and every build waited
+  # with it. The four agent images whose builds and merges also move their
+  # `release` tags (docker-agent, podman-agent, kubernetes-log-tailer,
+  # kubernetes-cost-agent) still wait for it, as does every job that
+  # publishes: nothing that moves a release tag starts any earlier.
 
   nginx-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -226,10 +294,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -269,8 +339,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -299,7 +367,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   e2e-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -308,10 +376,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -351,8 +421,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -381,7 +449,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   home-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -390,21 +458,18 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
+
+      # The home image is the biggest one (the blog repository's full
+      # history is in it), so this asks for room - and frees it only on a
+      # runner that does not already have it (see the action).
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
 
       - uses: actions/setup-node@v4
         with:
@@ -444,8 +509,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -474,7 +537,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   test-server-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -483,10 +546,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -526,8 +591,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -556,7 +619,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   test-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -565,10 +628,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -608,8 +673,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -638,7 +701,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   probe-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -647,10 +710,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -690,8 +755,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -720,7 +783,7 @@ jobs:
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
   runner-docker-image-build:
-    needs: [generate-build-number, read-version]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -729,10 +792,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -772,8 +837,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -811,10 +874,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -856,8 +921,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -895,10 +958,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -940,8 +1005,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -979,10 +1042,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1024,8 +1089,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1063,10 +1126,12 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1108,8 +1173,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1137,8 +1200,15 @@ jobs:
             --image kubernetes-cost-agent \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION},release,enterprise-release"
 
-  app-docker-image-build:
-    needs: [generate-build-number, read-version]
+  # The Kubernetes AI agent is tagged like the Runner, not like the two
+  # Kubernetes agents above: build and merge publish only <version> and
+  # enterprise-<version>, and `release` / `enterprise-release` move in
+  # push-release-tags, after the e2e jobs pass. The kubernetes-agent chart
+  # runs it by default at `release`, and it re-checks every kubectl command
+  # against its copy of the server's policy, so its `release` must not get
+  # ahead of the App's.
+  kubernetes-ai-agent-docker-image-build:
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -1147,10 +1217,185 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.ref }}
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image kubernetes-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./agents/KubernetesAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}"
+
+  kubernetes-ai-agent-docker-image-merge:
+    needs: [kubernetes-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image kubernetes-ai-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
+
+  # The resource AI agent is tagged like the Kubernetes AI agent above (the
+  # Runner's pattern): build and merge publish only <version> and
+  # enterprise-<version>, and `release` / `enterprise-release` move in
+  # push-release-tags, after the e2e jobs pass. The Docker, Podman, Swarm,
+  # Proxmox, VMware, Ceph, database and host agents run it at `release` next
+  # to their collector, it registers with this release's server API
+  # (/resource-ai-agent-ingest), and it re-checks every command against its
+  # copy of the server's resource command policy, so its `release` must not
+  # get ahead of the App's.
+  resource-ai-agent-docker-image-build:
+    needs: [read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image resource-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./agents/ResourceAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}"
+
+  resource-ai-agent-docker-image-merge:
+    needs: [resource-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image resource-ai-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
+
+  app-docker-image-build:
+    needs: [read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -1190,8 +1435,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1237,13 +1480,15 @@ jobs:
           node-version: 26
           registry-url: 'https://registry.npmjs.org'
       - name: Update npm for OIDC support
-        # Pin to the stable npm 11.x line instead of `@latest`. OIDC trusted
-        # publishing is supported since npm 11.5.1, and 11.x correctly bundles
-        # its `sigstore` dependency. `@latest` currently resolves to a broken
-        # npm 12 build whose bundled `sigstore` fails to resolve, causing
-        # `npm publish` to abort with "Cannot find module 'sigstore'" while
-        # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
-        run: npm install -g npm@11
+        uses: ./.github/actions/npm-install
+        with:
+          # Pin to the stable npm 11.x line instead of `@latest`. OIDC trusted
+          # publishing is supported since npm 11.5.1, and 11.x correctly bundles
+          # its `sigstore` dependency. `@latest` currently resolves to a broken
+          # npm 12 build whose bundled `sigstore` fails to resolve, causing
+          # `npm publish` to abort with "Cannot find module 'sigstore'" while
+          # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
+          args: -g npm@11
       # The pinned, cached gomplate, so prerun's configure.sh does not download
       # it from GitHub's release CDN (see .github/actions/setup-gomplate).
       - name: Set up gomplate
@@ -1259,6 +1504,10 @@ jobs:
   # is published to the public provider repo / Terraform Registry.
   terraform-provider-e2e:
     uses: ./.github/workflows/terraform-provider-e2e.yml
+    # A concurrency group of this run's own, so no other release run cancels
+    # this release's suite (see the workflow's concurrency).
+    with:
+      release_run_id: ${{ github.run_id }}
     secrets: inherit
 
   publish-terraform-provider:
@@ -1304,11 +1553,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing Terraform provider version: $VERSION"
 
-      - name: Install dependencies
-        run: |
-          npm install
-          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
-          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
+      # Generation runs Scripts/TerraformProvider through the root's ts-node,
+      # against Common's sources: it needs all three.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
 
       # Defense in depth: generate and check the provider here too, so a broken
       # generation fails this job before the publish script pushes anything.
@@ -1358,11 +1616,37 @@ jobs:
 
 
 
+  # Moves release / enterprise-release onto this version's images only once the
+  # three e2e jobs have passed. Every image in RELEASE_TAG_IMAGES is built with
+  # version tags only; the collector-based and Kubernetes telemetry agents move
+  # their own release tags at build time instead. kubernetes-ai-agent is here,
+  # not there, because the kubernetes-agent chart runs it at `release` and it
+  # must match the server it talks to (see kubernetes-ai-agent-docker-image-build).
+  # resource-ai-agent is here for the same reason: every resource agent's
+  # docker-compose.yml runs it at `release` (see
+  # resource-ai-agent-docker-image-build).
+  #
+  # One job moves all ten. It used to be a matrix of ten jobs, each four
+  # `imagetools create` calls of about three seconds after a checkout and two
+  # logins, and each queued for a runner of its own behind the organization's
+  # concurrent-job limit: on 14.0.65 (run 39000188317) the last of the ten
+  # started 68 minutes after the e2e jobs had passed, and the draft, the charts
+  # and the publish waited for it. As the matrix's fail-fast: false did, a
+  # failure on one image does not stop the others: each image is tried, and
+  # the job fails at the end naming the ones whose tags did not move.
+  #
+  # publish-npm-packages is needed here so a failed npm publish still holds the
+  # tags, the GitHub release and everything after them back. The e2e jobs used
+  # to need it, and everything after them waited for it through them; they do
+  # not install the packages it publishes (the e2e image installs packages/E2E's
+  # lockfile and packages/Common from the checkout), so they no longer wait for
+  # it.
   push-release-tags:
     name: Push release tags before GitHub release
     needs:
       - read-version
       - generate-build-number
+      - publish-npm-packages
       - nginx-docker-image-merge
       - e2e-docker-image-merge
       - home-docker-image-merge
@@ -1370,30 +1654,30 @@ jobs:
       - test-docker-image-merge
       - probe-docker-image-merge
       - runner-docker-image-merge
+      - kubernetes-ai-agent-docker-image-merge
+      - resource-ai-agent-docker-image-merge
       - app-docker-image-merge
       - test-e2e-release-saas
       - test-e2e-release-self-hosted
       - test-e2e-release-enterprise
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [
-          "nginx",
-          "e2e",
-          "home",
-          "test-server",
-          "test",
-          "probe",
-          "runner",
-          "app"
-        ]
+    env:
+      # The images whose release and enterprise-release tags move here.
+      RELEASE_TAG_IMAGES: >-
+        nginx
+        e2e
+        home
+        test-server
+        test
+        probe
+        runner
+        kubernetes-ai-agent
+        resource-ai-agent
+        app
     steps:
       # Needed for ./Scripts/GHA/docker_login.sh below — without a checkout the
       # login step fails with "No such file or directory" (exit 127).
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1413,112 +1697,75 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
-      - name: Create Docker Hub release tag from version
+      # For each image: `release` on Docker Hub and GHCR from the version tag,
+      # then `enterprise-release` on both from the enterprise- version tag -
+      # the four tags the matrix job's four steps created, from the same
+      # sources. Each `imagetools create` names both registries, as
+      # merge_docker_manifests.sh does, and is retried like its calls are: a
+      # retry rewrites the same tags from the same manifest.
+      - name: Move each image's release and enterprise-release tags to this version
+        env:
+          VERSION: ${{needs.read-version.outputs.major_minor}}
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          docker buildx imagetools create \
-            --tag oneuptime/${{ matrix.image }}:release \
-            ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
-
-      - name: Create GHCR release tag from version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          docker buildx imagetools create \
-            --tag ghcr.io/oneuptime/${{ matrix.image }}:release \
-            ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
-
-      - name: Create Docker Hub enterprise release tag from version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          docker buildx imagetools create \
-            --tag oneuptime/${{ matrix.image }}:enterprise-release \
-            ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
-
-      - name: Create GHCR enterprise release tag from version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          docker buildx imagetools create \
-            --tag ghcr.io/oneuptime/${{ matrix.image }}:enterprise-release \
-            ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
+          set -uo pipefail
+          source ./Scripts/GHA/retry.sh
+          if [ -z "${RELEASE_TAG_IMAGES//[[:space:]]/}" ]; then
+            echo "::error title=Release tags not moved::RELEASE_TAG_IMAGES names no image"
+            exit 1
+          fi
+          failed=()
+          for image in $RELEASE_TAG_IMAGES; do
+            echo "::group::${image}"
+            if retry_with_backoff "release tags for ${image}" \
+                docker buildx imagetools create \
+                --tag "oneuptime/${image}:release" \
+                --tag "ghcr.io/oneuptime/${image}:release" \
+                "ghcr.io/oneuptime/${image}:${VERSION}" \
+              && retry_with_backoff "enterprise-release tags for ${image}" \
+                docker buildx imagetools create \
+                --tag "oneuptime/${image}:enterprise-release" \
+                --tag "ghcr.io/oneuptime/${image}:enterprise-release" \
+                "ghcr.io/oneuptime/${image}:enterprise-${VERSION}"; then
+              echo "Moved ${image}'s release and enterprise-release tags to ${VERSION}"
+            else
+              failed+=("${image}")
+            fi
+            echo "::endgroup::"
+          done
+          if ((${#failed[@]} > 0)); then
+            echo "::error title=Release tags not moved::${failed[*]}"
+            exit 1
+          fi
 
 
 
   test-e2e-release-saas:
     runs-on: ubuntu-latest
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, e2e-docker-image-merge, helm-chart-check, read-version, nginx-docker-image-merge]
+    # Above the suite's own 90-minute globalTimeout, so a hang still reports.
+    timeout-minutes: 120
+    # One shard of the default suite per job (E2E_SHARD), as in
+    # test-release.yaml's test-e2e-test-saas job: whole spec files, balanced by their
+    # measured durations, each shard against a stack of its own with one
+    # worker. npm run test-sharding checks these counts add up to exactly
+    # the whole suite (WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts).
+    strategy:
+      # Every shard reports its own tests, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1615,6 +1862,20 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # Every image this job runs, pulled together: the App image the check
+      # below inspects, the rest of the stack, and the e2e image. compose pulls
+      # them in parallel; the check's own `docker pull` then finds the App
+      # image here.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, so check it is the Enterprise Edition before booting it: ee/
       # in the image and in its UI bundles, and the loader actually loading it.
@@ -1645,13 +1906,12 @@ jobs:
           echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
           echo "app container flag:"
           docker compose -f docker-compose.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
-      - name: Pull E2E test image
-        run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
-      - name: Run E2E Tests. Run docker container e2e in docker compose file
+      # docker-compose.base.yml hands E2E_SHARD to the e2e container, whose
+      # playwright.config.ts narrows the suite to this shard's spec files and
+      # prints them first.
+      - name: Run E2E Tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
@@ -1666,9 +1926,8 @@ jobs:
         # Run this on failure
         if: failure()
         with:
-          # Name of the artifact to upload.
-          # Optional. Default is 'artifact'
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          # Name of the artifact to upload; one per shard.
+          name: test-results-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
 
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
@@ -1681,85 +1940,47 @@ jobs:
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
           retention-days: 7
+      # How long each spec file took in this shard, in the shape of
+      # packages/E2E/Sharding/ShardWeights.json (see "Sharding the suite" in
+      # packages/E2E/README.md). Green runs only.
+      - name: Upload shard timings
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: e2e-shard-timings-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ./packages/E2E/test-results/shard-timings.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
   test-e2e-release-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, e2e-docker-image-merge, helm-chart-check, read-version, nginx-docker-image-merge]
+    # Above the suite's own 90-minute globalTimeout, so a hang still reports.
+    timeout-minutes: 120
+    # One shard of the default suite per job (E2E_SHARD), as in
+    # test-release.yaml's test-e2e-test-self-hosted job: whole spec files, balanced by their
+    # measured durations, each shard against a stack of its own with one
+    # worker. npm run test-sharding checks these counts add up to exactly
+    # the whole suite (WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts).
+    strategy:
+      # Every shard reports its own tests, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1784,6 +2005,20 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      # Every image this job runs, pulled together: the App image the check
+      # below inspects, the rest of the stack, and the e2e image. compose pulls
+      # them in parallel; the check's own `docker pull` then finds the App
+      # image here.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to release once this job
       # passes, so check it is the Community Edition before booting it: no ee/
       # anywhere in the image or its UI bundles, and the loader finding none.
@@ -1804,13 +2039,12 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
-      - name: Pull E2E test image
-        run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
-      - name: Run E2E Tests. Run docker container e2e in docker compose file
+      # docker-compose.base.yml hands E2E_SHARD to the e2e container, whose
+      # playwright.config.ts narrows the suite to this shard's spec files and
+      # prints them first.
+      - name: Run E2E Tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
@@ -1825,9 +2059,8 @@ jobs:
         # Run this on failure
         if: failure()
         with:
-          # Name of the artifact to upload.
-          # Optional. Default is 'artifact'
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          # Name of the artifact to upload; one per shard.
+          name: test-results-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
 
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
@@ -1840,16 +2073,28 @@ jobs:
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
           retention-days: 7
+      # How long each spec file took in this shard, in the shape of
+      # packages/E2E/Sharding/ShardWeights.json (see "Sharding the suite" in
+      # packages/E2E/README.md). Green runs only.
+      - name: Upload shard timings
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: e2e-shard-timings-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ./packages/E2E/test-results/shard-timings.json
+          if-no-files-found: warn
+          retention-days: 7
 
   # The self-hosted ENTERPRISE stack, on the release pipeline. The master job
   # test-e2e-test-enterprise (.github/workflows/test-release.yaml) is the same
   # job against the -test tags; this one gates the release tags, so keep the two
   # in step. The published enterprise- App image is booted from
   # docker-compose.yml with billing OFF - the only configuration in which the
-  # LICENSE, rather than the billing flag, decides whether SSO, SCIM and audit
-  # logging run - and the enterprise suite runs twice against that one stack:
-  # phase A inside the unlicensed 14-day trial, phase B after the trial has been
-  # pushed into the past.
+  # LICENSE, rather than the billing flag, decides whether SCIM and audit
+  # logging run (single sign-on is core and runs whatever the license says) -
+  # and the enterprise suite runs twice against that one stack: phase A inside
+  # the unlicensed 14-day trial, phase B after the trial has been pushed into
+  # the past.
   #
   # push-release-tags waits for this job, so an Enterprise stack that no longer
   # serves (or no longer refuses) its enterprise features cannot be promoted to
@@ -1857,80 +2102,20 @@ jobs:
   test-e2e-release-enterprise:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, e2e-docker-image-merge, helm-chart-check, read-version, nginx-docker-image-merge]
+    timeout-minutes: 90
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1981,9 +2166,21 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # Every image this job runs, pulled together; see the same step in
+      # test-e2e-release-saas.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, and the whole job is meaningless if the tag is not really the
-      # Enterprise Edition: a Community image answers 404 to every identity route
+      # Enterprise Edition: a Community image answers 404 to every SCIM route
       # and phase B would "pass" for the wrong reason. So check it before booting
       # it: ee/ in the image and in its UI bundles, and the loader actually
       # loading it.
@@ -2013,12 +2210,35 @@ jobs:
           echo "GET /api/global-config/license:"
           curl -sS --max-time 15 http://localhost/api/global-config/license
           echo ""
-      - name: Pull E2E test image
+      # PHASE A, setup: wait for the trial. A brand-new install can read its
+      # license before the AddDefaultGlobalConfig data migration has created
+      # the GlobalConfig row its trial is stamped on; it then reports
+      # "missing", and serves that for LICENSE_INPUTS_CACHE_TTL_IN_MS (60s,
+      # ee/Server/License/LicenseSettings.ts) until a later read stamps the row
+      # (ee/Server/License/LicenseStore.ts) and the trial starts. So poll the
+      # public license endpoint - it awaits the reload - until it reports a
+      # usable license, as phase B polls for the lapse. This used to be
+      # covered only by accident: the e2e image was built or pulled between the
+      # boot and phase A, and that took longer than the cache.
+      - name: Wait for the trial to start (phase A setup)
         run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
+          set -uo pipefail
+          DEADLINE=$(( $(date +%s) + 180 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            PAYLOAD="$(curl -sS --max-time 15 http://localhost/api/global-config/license || true)"
+            echo "attempt ${ATTEMPT}: ${PAYLOAD}"
+            STATUS="$(printf '%s' "$PAYLOAD" | jq -r '.status' 2>/dev/null || true)"
+            VALID="$(printf '%s' "$PAYLOAD" | jq -r '.licenseValid' 2>/dev/null || true)"
+            if [ "$VALID" = "true" ] && { [ "$STATUS" = "grace" ] || [ "$STATUS" = "valid" ]; }; then
+              echo "The license is usable after ${ATTEMPT} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::A fresh Enterprise install never started its trial within 180s of booting. Expected GET /api/global-config/license to report licenseValid=true with status=grace (or valid); the license inputs cache is 60s. The last payload is in this step's log above." >&2
+          exit 1
       # PHASE A. A fresh Enterprise install is inside its unlicensed 14-day
       # trial, so the license is usable and every enterprise feature is on.
       #
@@ -2138,8 +2358,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
@@ -2207,12 +2425,25 @@ jobs:
       # every attempt before it actually ran and failed, and the last one is
       # not `continue-on-error` — a genuine, persistent failure still fails the
       # job.
+      #
+      # `commit` is where the tag will point. A draft has no tag: GitHub cuts
+      # it when finalize-github-release publishes the draft, from the
+      # release's target_commitish, and without `commit` that is the default
+      # branch. So every tag landed on whatever master was at publish time:
+      # 14.0.11 on a master merge carrying 18 commits the release was not
+      # built from, 14.0.12 on one merged two minutes before the publish -
+      # and the release page's source archives followed the tag. github.sha
+      # is the commit this run stamps into its images (--git-sha). The action
+      # sends `commit` when it updates a draft as well as when it creates
+      # one, so a draft an earlier run left behind is corrected too. GitHub
+      # can refuse to create the tag there; see finalize-github-release.
       - name: Create draft release
         id: draft_release_1
         continue-on-error: true
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2231,6 +2462,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2247,6 +2479,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2254,7 +2487,29 @@ jobs:
           body: |
             ${{steps.fallback_changelog.outputs.changelog}}
 
-  # Attach a CycloneDX SBOM per published image to the draft release.
+  # ─── What the GitHub release carries, built ahead of it ───────────────
+  #
+  # The SBOMs, the infrastructure agent's files and the two apps need no e2e
+  # result to be built, only to be published. So they are built while the
+  # images are tested and kept as artifacts of this run, and
+  # finalize-github-release attaches them to the draft right before it
+  # publishes it - the one place any of them reaches the release. They used to
+  # be built after draft-github-release, in four jobs that each queued for a
+  # runner and then built and uploaded: the Android build alone is 22 minutes,
+  # and on 14.0.65 (run 39000188317) the draft-to-publish stretch took 62
+  # minutes for less than one minute of uploads.
+  #
+  # Each artifact is replaced, not added to, when its job is re-run
+  # (overwrite: true), and is kept for 30 days, so a re-run of
+  # finalize-github-release on its own still finds them.
+  #
+  # Each of the four runs only for `release`, as draft-github-release does:
+  # what they build is for the GitHub release alone, and a run of another
+  # branch has none (a workflow_dispatch for the store jobs, say). They used
+  # to need the draft, which skipped them on such a run, and still do not run
+  # there.
+
+  # A CycloneDX SBOM per published image.
   #
   # This is the copy enterprise buyers and Dependency-Track actually ingest. It
   # is deliberately separate from the SPDX attestations that
@@ -2263,37 +2518,38 @@ jobs:
   # talking to a registry, and CycloneDX is what the vulnerability-management
   # tooling speaks.
   #
-  # Ordering matters: this runs after draft-github-release so there is a release
-  # to attach to, and finalize-github-release depends on it so the release is
-  # never published without its SBOMs.
-  # The needs list is not just ordering sugar. This job scans eleven of the
-  # twelve published tags (home is deliberately skipped — see SKIPPED_IMAGES in
-  # generate_sboms.sh), and the unsuffixed tag it scans is created only by the
-  # corresponding *-docker-image-merge job. Seven of those merges are reached
-  # transitively via draft-github-release; docker-agent, podman-agent,
-  # kubernetes-log-tailer and kubernetes-cost-agent are leaves that nothing
-  # else depends on, so they must be named explicitly. Without them a failure
-  # in any of the four would let this job run against a tag that was never
-  # pushed, fail on MANIFEST_UNKNOWN, and — since finalize-github-release now
-  # needs this job — strand the release as a permanent draft after the images
-  # and tags had already gone out.
+  # The needs list is not ordering sugar. This job scans thirteen of the
+  # fourteen published images (home is deliberately skipped — see
+  # SKIPPED_IMAGES in generate_sboms.sh), and the unsuffixed tag it scans is
+  # created only by the corresponding *-docker-image-merge job, so it names the
+  # merge of every image it scans. Without one, a failure in that merge would
+  # let this job run against a tag that was never pushed and fail on
+  # MANIFEST_UNKNOWN. Tests/Ops/ReleaseCriticalPath.test.js holds the list to
+  # generate_sboms.sh's IMAGES.
   generate-sboms:
     name: Generate CycloneDX SBOMs
+    if: github.ref == 'refs/heads/release'
     needs:
-      - draft-github-release
       - read-version
+      - app-docker-image-merge
       - docker-agent-docker-image-merge
-      - podman-agent-docker-image-merge
-      - kubernetes-log-tailer-docker-image-merge
+      - e2e-docker-image-merge
+      - kubernetes-ai-agent-docker-image-merge
       - kubernetes-cost-agent-docker-image-merge
+      - kubernetes-log-tailer-docker-image-merge
+      - nginx-docker-image-merge
+      - podman-agent-docker-image-merge
+      - probe-docker-image-merge
+      - resource-ai-agent-docker-image-merge
+      - runner-docker-image-merge
+      - test-docker-image-merge
+      - test-server-docker-image-merge
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # syft reads the manifest over the registry API using the credentials in
       # ~/.docker/config.json — no image pull, so this job stays small and fast.
@@ -2309,10 +2565,9 @@ jobs:
       # docker holds a copy of the image while syft extracts its own. Skipping
       # home took the 7.86GB worst case out of this job, so what is left fits a
       # stock runner today -- this is insurance against that stopping being
-      # true, because running out of disk here would strand the release exactly
-      # the way the 429 did, after every image and tag had shipped. These are
-      # the preinstalled toolchains; this job needs only docker, syft and
-      # python3.
+      # true, because running out of disk here would hold the release back
+      # exactly the way the 429 did. These are the preinstalled toolchains;
+      # this job needs only docker, syft and python3.
       - name: Free runner disk space for large image scans
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
@@ -2325,35 +2580,27 @@ jobs:
           bash ./Scripts/GHA/generate_sboms.sh \
             --version "${{needs.read-version.outputs.major_minor}}"
 
-      - name: Attach SBOMs to release
-        uses: softprops/action-gh-release@v2
+      - name: Keep the SBOMs for the GitHub release
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            sbom/*.cdx.json
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
+          name: release-sboms
+          path: sbom/*.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
 
-  infrastructure-agent-deploy:
-    needs: [draft-github-release, generate-build-number, read-version]
+  # The infrastructure agent's archives, packages, MSIs, checksums and SBOMs.
+  # GoReleaser runs in --snapshot mode: it builds, and publishes nothing.
+  infrastructure-agent-build:
+    needs: [read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -2386,29 +2633,53 @@ jobs:
       - name: Release MSI Images
         run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
 
-      # Upload binaries to github release
-      - name: Release
-        uses: softprops/action-gh-release@v2
+      # What the release gets: the files at the top of dist/, as the upload of
+      # dist/* always attached them - softprops/action-gh-release skips
+      # directories (GoReleaser's per-target build directories) and, like any
+      # glob, dotfiles.
+      - name: Collect the files the release attaches
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-infrastructure-agent"
+          find agents/InfrastructureAgent/dist -maxdepth 1 -type f ! -name '.*' \
+            -exec cp {} "$RUNNER_TEMP/release-infrastructure-agent/" \;
+          ls -l "$RUNNER_TEMP/release-infrastructure-agent"
+
+      - name: Keep the infrastructure agent for the GitHub release
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            agents/InfrastructureAgent/dist/*
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
+          name: release-infrastructure-agent
+          path: ${{ runner.temp }}/release-infrastructure-agent/*
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
+      # The Homebrew cask and the winget manifests GoReleaser wrote for this
+      # version (dist/homebrew, dist/winget), for the
+      # publish-infrastructure-agent-* jobs. They are not release assets:
+      # finalize-github-release does not download them.
+      - name: Keep the package manager manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: |
+            agents/InfrastructureAgent/dist/homebrew
+            agents/InfrastructureAgent/dist/winget
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
 
 
-  # Build Android release APK and attach to GitHub Release.
+  # The Android release APK.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
-  mobile-app-android-deploy:
-    needs: [draft-github-release, generate-build-number, read-version]
+  mobile-app-android-build:
+    needs: [generate-build-number, read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2421,7 +2692,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native Android project
         run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
@@ -2445,33 +2718,34 @@ jobs:
       - name: Rename APK
         run: mv packages/MobileApp/android/app/build/outputs/apk/release/*.apk packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
 
-      - name: Upload APK to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Keep the APK for the GitHub release
+        uses: actions/upload-artifact@v4
         with:
-          files: packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{ needs.read-version.outputs.major_minor }}
+          name: release-android-app
+          path: packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
 
-  # Build iOS release IPA and attach to GitHub Release.
+  # The iOS release IPA.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
-  mobile-app-ios-deploy:
-    needs: [draft-github-release, generate-build-number, read-version]
+  mobile-app-ios-build:
+    needs: [generate-build-number, read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: macos-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native iOS project
         run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install
@@ -2579,28 +2853,142 @@ jobs:
       - name: Rename IPA
         run: mv ${{ runner.temp }}/build/*.ipa ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
 
-      - name: Upload IPA to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Keep the IPA for the GitHub release
+        uses: actions/upload-artifact@v4
         with:
-          files: ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{ needs.read-version.outputs.major_minor }}
+          name: release-ios-app
+          path: ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
 
       - name: Cleanup keychain
         if: always()
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
+  # Attaches the SBOMs, the infrastructure agent and the two apps to the
+  # draft, then publishes it. Nothing may write the release once it is
+  # published, so every attach is a step here, before the publish: 14.0.46
+  # shipped without its Android APK (run 38267959528) when the upload job
+  # finished three minutes after the publish, and GitHub answered the upload's
+  # update of the published release with 403 "Resource not accessible by
+  # integration". A repository with immutable releases refuses every upload
+  # after publishing.
+  #
+  # draft-github-release and helm-chart-deploy are named because nothing else
+  # here waits for them: nothing is attached to a draft that does not exist,
+  # and a release is not published without its charts.
+  #
+  # The app builds are waited for, not required: a failed app build still
+  # publishes the release, without that app - its attach steps are skipped -
+  # rather than leave a draft behind images and tags that have already gone
+  # out. !cancelled() lets this job run after a failed app build, so each job
+  # it does require is checked by name. An attach that fails, though, stops
+  # the job before the publish, an app's included: its file is kept as an
+  # artifact, so `gh run rerun <run> --failed` attaches it and publishes,
+  # where a published release could no longer take it.
+  # Tests/Ops/ReleaseE2ePipeline.test.js and ReleaseCriticalPath.test.js hold
+  # all of this.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-sboms, generate-build-number, read-version]
+    needs: [draft-github-release, helm-chart-deploy, generate-sboms, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/release'
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.draft-github-release.result == 'success'
+      && needs.helm-chart-deploy.result == 'success'
+      && needs.generate-sboms.result == 'success'
+      && needs.infrastructure-agent-build.result == 'success'
+      && needs.generate-build-number.result == 'success'
+      && needs.read-version.result == 'success' }}
     permissions:
       contents: write
     steps:
+      # Each artifact is downloaded into release-assets/ in the workspace (this
+      # job checks nothing out, so the directory is its own).
+      #
+      # target_commitish, on every attach: softprops/action-gh-release's lookup
+      # by tag skips drafts, so it creates a draft of its own, then switches to
+      # the oldest draft for the tag - draft-github-release's, which it leaves
+      # untouched - and deletes its own. If that switch finds nothing (it reads
+      # the newest 200 releases, three times a second apart), it uploads to the
+      # draft it created and keeps it, and that draft targets the default branch
+      # unless this says otherwise. The publish below could then publish it,
+      # and names the run's commit as well.
+      - name: Download the SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          name: release-sboms
+          path: release-assets/sboms
+
+      - name: Attach SBOMs to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/sboms/*.cdx.json
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the infrastructure agent
+        uses: actions/download-artifact@v4
+        with:
+          name: release-infrastructure-agent
+          path: release-assets/infrastructure-agent
+
+      - name: Attach the infrastructure agent to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/infrastructure-agent/*
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the APK
+        if: needs.mobile-app-android-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-android-app
+          path: release-assets/android-app
+
+      - name: Upload APK to GitHub Release
+        if: needs.mobile-app-android-build.result == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/android-app/oneuptime-on-call-android-app.apk
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the IPA
+        if: needs.mobile-app-ios-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-ios-app
+          path: release-assets/ios-app
+
+      - name: Upload IPA to GitHub Release
+        if: needs.mobile-app-ios-build.result == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/ios-app/oneuptime-on-call-ios-app.ipa
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
+
       - name: Publish release
         uses: actions/github-script@v7
         with:
@@ -2638,6 +3026,11 @@ jobs:
                 throw new Error(`Release with tag ${tag} not found in repository ${context.repo.owner}/${context.repo.repo}`);
               }
 
+              // Publishing is when GitHub cuts the tag, from target_commitish.
+              // draft-github-release's `commit` has set it already; naming it
+              // again here holds whichever draft this finds to the run's own
+              // commit, including one an upload step created and kept (see
+              // "Attach SBOMs to release"). context.sha is github.sha.
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -2645,6 +3038,7 @@ jobs:
                 draft: false,
                 prerelease: false,
                 make_latest: 'true',
+                target_commitish: context.sha,
               });
             };
 
@@ -2656,6 +3050,18 @@ jobs:
               } catch (error) {
                 const message = error.message ?? error;
 
+                // Not transient, so not retried. GITHUB_TOKEN may not create
+                // a ref at a commit whose .github/workflows differ from
+                // master's: test-release's build-number tag was refused this
+                // way (run 37040970616) moments after master changed a
+                // workflow. Creating the tag at context.sha can be refused
+                // the same way once master changes a workflow while a release
+                // is running. A person is not held to that, and the draft
+                // already targets this commit.
+                if (error.status === 403 && /Resource not accessible by integration/.test(message)) {
+                  throw new Error(`GitHub refused to create tag ${tag} at ${context.sha} (${message}). The likely cause is that master's .github/workflows have changed since this commit, and the workflow token may not create a ref at a commit whose workflows differ from master's. Re-running this job will not help. Publish the draft for ${tag} from the Releases page: it targets ${context.sha}, so the tag is created there.`);
+                }
+
                 if (attempt >= maxAttempts) {
                   throw new Error(`Failed to publish release for tag ${tag} after ${maxAttempts} attempts: ${message}`);
                 }
@@ -2665,6 +3071,216 @@ jobs:
                 await sleep(delayMs);
               }
             }
+
+  # Lists this release in the official MCP Registry
+  # (registry.modelcontextprotocol.io), where MCP clients and directories find
+  # OneUptime Cloud's MCP server: packages/App/FeatureSet/MCP/server.json,
+  # com.oneuptime/mcp, at this release's version.
+  # Scripts/MCP/PublishToMcpRegistry.sh skips a version the registry already
+  # has, as Scripts/NPM/PublishAllPackages.sh does on npm, so a re-run
+  # publishes nothing twice.
+  #
+  # It needs finalize-github-release, so the registry hears of a version only
+  # once it is released, and so runs only for `release`, as that job does.
+  #
+  # Only whoever controls oneuptime.com may publish under com.oneuptime:
+  # mcp-publisher proves it by signing with the private key whose public key
+  # is in oneuptime.com's MCPv1 TXT record. GitHub's OIDC token cannot prove
+  # a domain, so the key is a secret of the mcp-registry-publish environment,
+  # which only this job names. It can publish, and overwrite, any entry under
+  # com.oneuptime, and runs with the mcp-publisher pinned below.
+  # Tests/Ops/McpRegistryRelease.test.js holds all of this.
+  publish-mcp-registry:
+    name: Publish to the MCP Registry
+    needs: [read-version, finalize-github-release]
+    runs-on: ubuntu-latest
+    environment: mcp-registry-publish
+    permissions:
+      contents: read
+    env:
+      # The registry's publisher CLI and the sha256 of its linux_amd64 archive,
+      # both from https://github.com/modelcontextprotocol/registry/releases.
+      MCP_PUBLISHER_VERSION: "1.8.1"
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/mcp-publisher"
+          mkdir -p "$install_dir"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$install_dir/mcp-publisher.tar.gz" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  $install_dir/mcp-publisher.tar.gz" | sha256sum --check --strict
+          tar -xzf "$install_dir/mcp-publisher.tar.gz" -C "$install_dir" mcp-publisher
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Publish server.json at this release's version
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: bash ./Scripts/MCP/PublishToMcpRegistry.sh
+
+  # ─── The infrastructure agent in package managers ─────────────────────
+  #
+  # This release's agent, in the package managers fleet tools install from
+  # (Scripts/PackageManagers/README.md):
+  #
+  #   apt and yum  packages.oneuptime.com, the GitHub Pages site of
+  #                OneUptime/packages, signed with the release key
+  #   Homebrew     the cask in OneUptime/homebrew-tap
+  #   winget       a pull request to microsoft/winget-pkgs
+  #
+  # Each needs finalize-github-release: the packages are this run's release
+  # assets and the cask and manifests download them from the release, so
+  # nothing is published before the release is, or for a release that is not
+  # (and so only for `release`, as that job runs). Each skips a version its
+  # package manager already has, so a re-run publishes nothing twice. Each
+  # reads its secrets from the package-managers environment, and while they
+  # are not set it is skipped with a notice: they are one-time setup, and a
+  # release must not fail without them.
+  # Tests/Ops/InfrastructureAgentPackageManagers.test.js holds all of this.
+  publish-infrastructure-agent-apt-yum:
+    name: Publish the infrastructure agent to apt and yum
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: package-managers
+    # Two runs at once would each push the site as they cloned it, and the
+    # later push would be refused. One at a time; none cancelled.
+    concurrency:
+      group: infrastructure-agent-package-repository
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secrets
+        id: secrets
+        env:
+          PACKAGE_REPOSITORY_DEPLOY_KEY: ${{ secrets.PACKAGE_REPOSITORY_DEPLOY_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$PACKAGE_REPOSITORY_DEPLOY_KEY" ] && [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=apt and yum skipped::PACKAGE_REPOSITORY_DEPLOY_KEY or GPG_PRIVATE_KEY is not set, so the infrastructure agent was not published to packages.oneuptime.com. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the infrastructure agent
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-infrastructure-agent
+          path: ${{ runner.temp }}/infrastructure-agent
+
+      - name: Install the repository tools
+        if: steps.secrets.outputs.publish == 'true'
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends apt-utils createrepo-c rpm
+
+      - name: Publish to packages.oneuptime.com
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          PACKAGES_DIR: ${{ runner.temp }}/infrastructure-agent
+          PACKAGE_REPOSITORY_DEPLOY_KEY: ${{ secrets.PACKAGE_REPOSITORY_DEPLOY_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: bash ./Scripts/PackageManagers/PublishPackageRepository.sh
+
+  publish-infrastructure-agent-homebrew:
+    name: Publish the infrastructure agent to Homebrew
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: package-managers
+    concurrency:
+      group: infrastructure-agent-homebrew-tap
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secret
+        id: secrets
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          if [ -n "$HOMEBREW_TAP_DEPLOY_KEY" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Homebrew skipped::HOMEBREW_TAP_DEPLOY_KEY is not set, so the infrastructure agent's cask was not published to OneUptime/homebrew-tap. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the package manager manifests
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: ${{ runner.temp }}/package-manifests
+
+      - name: Publish the cask to OneUptime/homebrew-tap
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          CASK_FILE: ${{ runner.temp }}/package-manifests/homebrew/Casks/oneuptime-infrastructure-agent.rb
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: bash ./Scripts/PackageManagers/PublishHomebrewCask.sh
+
+  publish-infrastructure-agent-winget:
+    name: Publish the infrastructure agent to winget
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    # The 15 minutes the job had, and the 20 PublishWingetManifests.sh may
+    # wait for Microsoft's CLA bot once the pull request is open: up to 15
+    # for its Needs-CLA label, then up to 5 for the label to go.
+    timeout-minutes: 35
+    environment: package-managers
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secret
+        id: secrets
+        env:
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+        run: |
+          if [ -n "$WINGET_GITHUB_TOKEN" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=winget skipped::WINGET_GITHUB_TOKEN is not set, so no pull request was opened to add the infrastructure agent to microsoft/winget-pkgs. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the package manager manifests
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: ${{ runner.temp }}/package-manifests
+
+      - name: Open the pull request to microsoft/winget-pkgs
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          WINGET_MANIFESTS: ${{ runner.temp }}/package-manifests/winget/manifests/o/OneUptime/InfrastructureAgent/${{ needs.read-version.outputs.major_minor }}
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+          WINGET_FORK_OWNER: ${{ vars.WINGET_FORK_OWNER }}
+        run: bash ./Scripts/PackageManagers/PublishWingetManifests.sh
 
   # Publish Android app to Google Play Store.
   # This job only runs when manually triggered via workflow_dispatch with publish_android_to_store=true.
@@ -2680,8 +3296,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2694,7 +3308,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native Android project
         run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
@@ -2748,15 +3364,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native iOS project
         run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install

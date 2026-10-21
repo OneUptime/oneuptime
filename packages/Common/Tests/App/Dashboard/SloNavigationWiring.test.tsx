@@ -28,6 +28,10 @@ import RouteMap, {
   SloRoutePath,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
+import {
+  DeveloperDocsChildPage,
+  getDeveloperDocsChildPages,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -421,7 +425,22 @@ describe("SLO navigation wiring", () => {
   test.each([PageMap.SLOS, PageMap.SLO_VIEW])(
     "every link in the %s side menu opens a distinct SLO page",
     async (menuPage: string) => {
-      const sloPagePaths: Set<string> = new Set(SLO_PAGE_KEYS.map(pathFor));
+      // The SLO pages, and the Developer pages under the list and the view.
+      const sloPagePaths: Set<string> = new Set(
+        [
+          ...SLO_PAGE_KEYS,
+          ...getDeveloperDocsChildPages(PageMap.SLOS).map(
+            (child: DeveloperDocsChildPage): string => {
+              return child.key;
+            },
+          ),
+          ...getDeveloperDocsChildPages(PageMap.SLO_VIEW).map(
+            (child: DeveloperDocsChildPage): string => {
+              return child.key;
+            },
+          ),
+        ].map(pathFor),
+      );
 
       await renderSideMenuFor(menuPage);
 

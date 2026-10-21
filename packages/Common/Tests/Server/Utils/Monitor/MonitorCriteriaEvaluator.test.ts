@@ -36,6 +36,12 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * WI-21 monitor-routing seam: the worker-side monitorProxmox /
  * monitorCeph functions (App/FeatureSet/Workers) attach a
@@ -66,29 +72,29 @@ type EvaluatorPrivate = {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }) => string | null;
+  }) => MarkdownText | null;
   buildVMwareRootCauseContext: (input: {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }) => string | null;
+  }) => MarkdownText | null;
   buildCephRootCauseContext: (input: {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }) => string | null;
+  }) => MarkdownText | null;
   buildKubernetesRootCauseContext: (input: {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }) => Promise<string | null>;
+  }) => Promise<MarkdownText | null>;
   buildDockerSwarmRootCauseContext: (input: {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }) => string | null;
+  }) => MarkdownText | null;
   buildKubernetesRootCauseAnalysis: (input: {
     breakdown: {
       clusterName: string;
@@ -98,7 +104,7 @@ type EvaluatorPrivate = {
       attributes: Record<string, string>;
     };
     topResource: KubernetesAffectedResource;
-  }) => string | null;
+  }) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -197,19 +203,21 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
       },
     ];
 
-    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse({
-        proxmoxResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "pve_cpu_usage_ratio",
-          metricFriendlyName: "CPU Usage",
-          affectedResources,
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse({
+          proxmoxResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "pve_cpu_usage_ratio",
+            metricFriendlyName: "CPU Usage",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: proxmoxStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: proxmoxStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).not.toBeNull();
     expect(context).toContain("**Proxmox Cluster Details**");
@@ -248,28 +256,30 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
   });
 
   test("renders byte values at human scale", () => {
-    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse({
-        proxmoxResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "pve_memory_usage_bytes",
-          metricFriendlyName: "Memory Usage",
-          affectedResources: [
-            {
-              resourceId: "qemu/101",
-              resourceName: "db-vm",
-              resourceType: "qemu",
-              scope: "guest",
-              nodeName: "pve2",
-              metricValue: 8589934592,
-            },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse({
+          proxmoxResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "pve_memory_usage_bytes",
+            metricFriendlyName: "Memory Usage",
+            affectedResources: [
+              {
+                resourceId: "qemu/101",
+                resourceName: "db-vm",
+                resourceType: "qemu",
+                scope: "guest",
+                nodeName: "pve2",
+                metricValue: 8589934592,
+              },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: proxmoxStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: proxmoxStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     /*
      * The whole point of the change: an on-call engineer reading this at
@@ -298,19 +308,21 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
      * for the unitless path: a metric with no dimension to report must
      * still show its exact digits, never an abbreviated "1.2K".
      */
-    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse({
-        proxmoxResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "pve_replication_failed_syncs",
-          metricFriendlyName: "Failed Replication Syncs",
-          affectedResources,
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse({
+          proxmoxResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "pve_replication_failed_syncs",
+            metricFriendlyName: "Failed Replication Syncs",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: proxmoxStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: proxmoxStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("**Affected Resources** (12 total)");
     expect(context).toContain("*... and 2 more affected resources*");
@@ -327,23 +339,25 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
   });
 
   test("identity-less (cluster-wide) breakdowns render no list and fall back to the metric summary", () => {
-    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse({
-        proxmoxResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "pve_not_backed_up_total",
-          metricFriendlyName: "Guests Without Backup",
-          affectedResources: [
-            // WI-24 cluster gauge: a value but NO identity labels.
-            { metricValue: 3 },
-          ],
-          attributes: {},
-        },
-        metricResult: [{ data: [{}, {}] } as any],
+    const context: string | null = textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse({
+          proxmoxResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "pve_not_backed_up_total",
+            metricFriendlyName: "Guests Without Backup",
+            affectedResources: [
+              // WI-24 cluster gauge: a value but NO identity labels.
+              { metricValue: 3 },
+            ],
+            attributes: {},
+          },
+          metricResult: [{ data: [{}, {}] } as any],
+        }),
+        monitorStep: proxmoxStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: proxmoxStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).not.toContain("**Affected Resources**");
     expect(context).not.toContain("1. ");
@@ -363,11 +377,13 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
       pveId: "100",
     };
 
-    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse(),
-      monitorStep: step,
-      monitor: new Monitor(),
-    });
+    const context: string | null = textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse(),
+        monitorStep: step,
+        monitor: new Monitor(),
+      }),
+    );
 
     expect(context).toContain("- Cluster: prod-cluster");
     expect(context).toContain("- Scope Filter: guest");
@@ -410,19 +426,21 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       },
     ];
 
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.host.cpu.utilization",
-          metricFriendlyName: "Host CPU Utilization",
-          affectedResources,
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.host.cpu.utilization",
+            metricFriendlyName: "Host CPU Utilization",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).not.toBeNull();
     expect(context).toContain("**vCenter Details**");
@@ -464,58 +482,62 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
      * `_ratio` metrics would render that as 42.00%; the vcenter
      * receiver never emits ratios, so the same number must stay 0.42%.
      */
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.host.cpu.utilization",
-          metricFriendlyName: "Host CPU Utilization",
-          affectedResources: [
-            { datacenterName: "DC1", hostName: "esx-01", metricValue: 0.42 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.host.cpu.utilization",
+            metricFriendlyName: "Host CPU Utilization",
+            affectedResources: [
+              { datacenterName: "DC1", hostName: "esx-01", metricValue: 0.42 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("1. **Host** `esx-01` — **0.42%**");
     expect(context).not.toContain("42.00%");
   });
 
   test("renders VMs with their parent host and cluster, and bytes at human scale", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.vm.disk.usage",
-          metricFriendlyName: "VM Disk Usage",
-          affectedResources: [
-            {
-              datacenterName: "DC1",
-              clusterName: "prod-cluster",
-              hostName: "esx-02",
-              vmName: "db-01",
-              vmId: "5029abcd-1111-2222-3333-444455556666",
-              resourcePoolName: "Resources",
-              resourcePoolPath: "/DC1/host/prod-cluster/Resources",
-              metricValue: 8589934592,
-            },
-            {
-              datacenterName: "DC1",
-              hostName: "esx-standalone",
-              vmName: "lab-01",
-              vmId: "5029abcd-aaaa-bbbb-cccc-ddddeeeeffff",
-              metricValue: 1073741824,
-            },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.vm.disk.usage",
+            metricFriendlyName: "VM Disk Usage",
+            affectedResources: [
+              {
+                datacenterName: "DC1",
+                clusterName: "prod-cluster",
+                hostName: "esx-02",
+                vmName: "db-01",
+                vmId: "5029abcd-1111-2222-3333-444455556666",
+                resourcePoolName: "Resources",
+                resourcePoolPath: "/DC1/host/prod-cluster/Resources",
+                metricValue: 8589934592,
+              },
+              {
+                datacenterName: "DC1",
+                hostName: "esx-standalone",
+                vmName: "lab-01",
+                vmId: "5029abcd-aaaa-bbbb-cccc-ddddeeeeffff",
+                metricValue: 1073741824,
+              },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     /*
      * A VM row carries a resource pool AND a host, but it is still a
@@ -538,38 +560,40 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
   });
 
   test("renders datastores, clusters, datacenters and resource pools by their own identity", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.datacenter.host.count",
-          metricFriendlyName: "Datacenter Host Count",
-          affectedResources: [
-            { datacenterName: "DC1", metricValue: 4 },
-            {
-              datacenterName: "DC1",
-              clusterName: "prod-cluster",
-              metricValue: 3,
-            },
-            {
-              datacenterName: "DC1",
-              datastoreName: "vsan-ds-01",
-              metricValue: 2,
-            },
-            {
-              datacenterName: "DC1",
-              clusterName: "prod-cluster",
-              resourcePoolName: "batch",
-              resourcePoolPath: "/DC1/host/prod-cluster/Resources/batch",
-              metricValue: 1,
-            },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.datacenter.host.count",
+            metricFriendlyName: "Datacenter Host Count",
+            affectedResources: [
+              { datacenterName: "DC1", metricValue: 4 },
+              {
+                datacenterName: "DC1",
+                clusterName: "prod-cluster",
+                metricValue: 3,
+              },
+              {
+                datacenterName: "DC1",
+                datastoreName: "vsan-ds-01",
+                metricValue: 2,
+              },
+              {
+                datacenterName: "DC1",
+                clusterName: "prod-cluster",
+                resourcePoolName: "batch",
+                resourcePoolPath: "/DC1/host/prod-cluster/Resources/batch",
+                metricValue: 1,
+              },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     /*
      * `{hosts}` is an annotation-only unit, so counts render as bare
@@ -591,21 +615,23 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
   });
 
   test("renders latency in the catalog's unit", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.host.disk.latency.max",
-          metricFriendlyName: "Host Disk Latency (Max)",
-          affectedResources: [
-            { datacenterName: "DC1", hostName: "esx-01", metricValue: 85 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.host.disk.latency.max",
+            metricFriendlyName: "Host Disk Latency (Max)",
+            affectedResources: [
+              { datacenterName: "DC1", hostName: "esx-01", metricValue: 85 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     // Unit from the catalog ("ms"), not a bare, unit-less 85.
     expect(context).toMatch(/1\. \*\*Host\*\* `esx-01` — \*\*85(\.00)? ms\*\*/);
@@ -621,19 +647,21 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       });
     }
 
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.host.network.packet.error.rate",
-          metricFriendlyName: "Host Network Packet Error Rate",
-          affectedResources,
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.host.network.packet.error.rate",
+            metricFriendlyName: "Host Network Packet Error Rate",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("**Affected Resources** (12 total)");
     expect(context).toContain("*... and 2 more affected resources*");
@@ -645,23 +673,25 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
   });
 
   test("identity-less breakdowns render no list and fall back to the metric summary", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.datacenter.vm.count",
-          metricFriendlyName: "Datacenter VM Count",
-          affectedResources: [
-            // A value but NO identity attributes.
-            { metricValue: 3 },
-          ],
-          attributes: {},
-        },
-        metricResult: [{ data: [{}, {}] } as any],
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.datacenter.vm.count",
+            metricFriendlyName: "Datacenter VM Count",
+            affectedResources: [
+              // A value but NO identity attributes.
+              { metricValue: 3 },
+            ],
+            attributes: {},
+          },
+          metricResult: [{ data: [{}, {}] } as any],
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).not.toContain("**Affected Resources**");
     expect(context).toContain("**Metric Summary**");
@@ -684,11 +714,13 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       resourcePoolPath: "/DC1/host/prod-cluster/Resources/batch",
     };
 
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse(),
-      monitorStep: step,
-      monitor: new Monitor(),
-    });
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse(),
+        monitorStep: step,
+        monitor: new Monitor(),
+      }),
+    );
 
     expect(context).toContain("**vCenter Details**");
     expect(context).toContain("- vCenter: vcsa-prod");
@@ -708,11 +740,13 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
   });
 
   test("returns null when there is neither a step config nor a breakdown", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse(),
-      monitorStep: new MonitorStep(),
-      monitor: new Monitor(),
-    });
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse(),
+        monitorStep: new MonitorStep(),
+        monitor: new Monitor(),
+      }),
+    );
 
     expect(context).toBeNull();
   });
@@ -727,19 +761,21 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       { daemon: "osd.5", hostname: "ceph-node-2", metricValue: 0 },
     ];
 
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_osd_apply_latency_ms",
-          metricFriendlyName: "OSD Apply Latency",
-          affectedResources,
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_osd_apply_latency_ms",
+            metricFriendlyName: "OSD Apply Latency",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("**Ceph Cluster Details**");
     expect(context).toContain("- Cluster: prod-cluster");
@@ -780,21 +816,23 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
    * `unit: "count"`; ceph_health_status has no unit at all.
    */
   test("a count metric keeps exact bare digits in the value", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_osd_up",
-          metricFriendlyName: "OSD Up",
-          affectedResources: [
-            { daemon: "osd.3", hostname: "ceph-node-1", metricValue: 5000 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_osd_up",
+            metricFriendlyName: "OSD Up",
+            affectedResources: [
+              { daemon: "osd.3", hostname: "ceph-node-1", metricValue: 5000 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain(
       "1. **Daemon** `osd.3` — **5000**\n   - Host: `ceph-node-1`",
@@ -811,22 +849,24 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
    * daemon at the top of an incident.
    */
   test("rows still sort worst-first on the raw value, not the formatted string", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_pool_rd_bytes",
-          metricFriendlyName: "Pool Read Throughput",
-          affectedResources: [
-            { daemon: "osd.smaller", metricValue: 921600 },
-            { daemon: "osd.bigger", metricValue: 1073741824 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_pool_rd_bytes",
+            metricFriendlyName: "Pool Read Throughput",
+            affectedResources: [
+              { daemon: "osd.smaller", metricValue: 921600 },
+              { daemon: "osd.bigger", metricValue: 1073741824 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("1. **Daemon** `osd.bigger` — **1.07 GB**");
     expect(context).toContain("2. **Daemon** `osd.smaller` — **922 KB**");
@@ -839,19 +879,21 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
   });
 
   test("cluster-wide series (ceph_health_status) render no list", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_health_status",
-          metricFriendlyName: "Cluster Health",
-          affectedResources: [{ metricValue: 2 }],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_health_status",
+            metricFriendlyName: "Cluster Health",
+            affectedResources: [{ metricValue: 2 }],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("- Cluster: prod-cluster");
     expect(context).not.toContain("**Affected Resources**");
@@ -864,11 +906,13 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       poolId: "2",
     };
 
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse(),
-      monitorStep: step,
-      monitor: new Monitor(),
-    });
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse(),
+        monitorStep: step,
+        monitor: new Monitor(),
+      }),
+    );
 
     expect(context).toContain("- OSD Filter: osd.3");
     expect(context).toContain("- Pool ID Filter: 2");
@@ -940,20 +984,22 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
     metricName?: string;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
   }): string | null {
-    return Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: input.metricName || "ceph_osd_up",
-          metricFriendlyName: "OSD Up",
-          affectedResources: input.affectedResources,
-          attributes: {},
-        },
+    return textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: input.metricName || "ceph_osd_up",
+            metricFriendlyName: "OSD Up",
+            affectedResources: input.affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
+        criteriaInstance: input.criteriaInstance,
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-      criteriaInstance: input.criteriaInstance,
-    });
+    );
   }
 
   test("the real ceph-osd-down criteria is a `< 1` comparison on the metric value", () => {
@@ -1273,20 +1319,22 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     monitorStep?: MonitorStep | undefined;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
   }): Promise<string | null> {
-    return Evaluator.buildKubernetesRootCauseContext({
-      dataToProcess: metricResponse({
-        kubernetesResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: input.metricName,
-          metricFriendlyName: "Friendly Name",
-          affectedResources: input.affectedResources,
-          attributes: {},
-        },
+    return textOf(
+      await Evaluator.buildKubernetesRootCauseContext({
+        dataToProcess: metricResponse({
+          kubernetesResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: input.metricName,
+            metricFriendlyName: "Friendly Name",
+            affectedResources: input.affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: input.monitorStep || kubernetesStep("k8s-node-not-ready"),
+        monitor: new Monitor(),
+        criteriaInstance: input.criteriaInstance,
       }),
-      monitorStep: input.monitorStep || kubernetesStep("k8s-node-not-ready"),
-      monitor: new Monitor(),
-      criteriaInstance: input.criteriaInstance,
-    });
+    );
   }
 
   describe("k8s-node-not-ready", () => {
@@ -1427,10 +1475,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
-    const replicaStep: MonitorStep = kubernetesStep(
-      "k8s-deployment-replica-mismatch",
-    );
-    const criteria: MonitorCriteriaInstance = recoveryCriteria(replicaStep);
+    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
+    const criteria: MonitorCriteriaInstance = recoveryCriteria(jobStep);
 
     // Fixture guard: the real recovery is a non-incident `= 0`.
     expect(criteria.data?.filters[0]!.filterType).toBe(FilterType.EqualTo);
@@ -1439,12 +1485,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     expect(criteria.data?.createAlerts).toBe(false);
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
-      monitorStep: replicaStep,
+      metricName: "k8s.job.failed_pods",
+      monitorStep: jobStep,
       criteriaInstance: criteria,
       affectedResources: [
-        { workloadType: "Deployment", workloadName: "web", metricValue: 0 },
-        { workloadType: "Deployment", workloadName: "api", metricValue: 0 },
+        { workloadType: "Job", workloadName: "web", metricValue: 0 },
+        { workloadType: "Job", workloadName: "api", metricValue: 0 },
       ],
     });
 
@@ -1454,32 +1500,27 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("a `> 0` criteria renders exactly as the hardcoded filter did, on the highest sample", async () => {
-    const replicaStep: MonitorStep = kubernetesStep(
-      "k8s-deployment-replica-mismatch",
-    );
+    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
-      monitorStep: replicaStep,
-      criteriaInstance: firingCriteria(replicaStep),
+      metricName: "k8s.job.failed_pods",
+      monitorStep: jobStep,
+      criteriaInstance: firingCriteria(jobStep),
       affectedResources: [
         {
-          workloadType: "Deployment",
+          workloadType: "Job",
           workloadName: "web",
           metricValue: 3,
           lowestMetricValue: 0,
         },
-        { workloadType: "Deployment", workloadName: "api", metricValue: 5 },
-        { workloadType: "Deployment", workloadName: "ok", metricValue: 0 },
+        { workloadType: "Job", workloadName: "api", metricValue: 5 },
+        { workloadType: "Job", workloadName: "ok", metricValue: 0 },
       ],
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
     expect(context).toContain(
-      [
-        "1. **Deployment** `api` — **5**",
-        "2. **Deployment** `web` — **3**",
-      ].join("\n"),
+      ["1. **Job** `api` — **5**", "2. **Job** `web` — **3**"].join("\n"),
     );
     expect(context).not.toContain("`ok`");
 
@@ -1488,9 +1529,51 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     const webIndex: number = context!.indexOf("`web`");
     expect(apiIndex).toBeGreaterThan(-1);
     expect(webIndex).toBeGreaterThan(apiIndex);
-    expect(context).toContain(
-      "Deployment `api` has **5** unavailable replica(s).",
+    expect(context).toContain("Job `api` has **5** failed pod(s).");
+  });
+
+  /*
+   * REGRESSION: the breakdown is the RAW rows of the monitor's last query.
+   * k8s-deployment-replica-mismatch compares `desired - available`, so
+   * those rows are `k8s.deployment.available` — and ranking them against
+   * the criteria's "> 0" listed every HEALTHY deployment, with its
+   * available count, as having that many unavailable replicas.
+   */
+  test("a criteria on a formula names the formula and lists no raw operand values", async () => {
+    const replicaStep: MonitorStep = kubernetesStep(
+      "k8s-deployment-replica-mismatch",
     );
+
+    for (const criteria of [
+      firingCriteria(replicaStep),
+      recoveryCriteria(replicaStep),
+    ]) {
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.deployment.available",
+        monitorStep: replicaStep,
+        criteriaInstance: criteria,
+        affectedResources: [
+          { workloadType: "Deployment", workloadName: "web", metricValue: 3 },
+          { workloadType: "Deployment", workloadName: "api", metricValue: 5 },
+        ],
+      });
+
+      expect(context).toContain("**Kubernetes Cluster Details**");
+      expect(context).toContain("- Metric: Deployment Replica Shortfall");
+      expect(context).toContain(
+        "- Formula: `desired_replicas - available_replicas`",
+      );
+      /*
+       * The operands are NAMED (so an engineer knows what to query), but
+       * none of the raw scan's values is shown as the shortfall.
+       */
+      expect(context).toContain("`available_replicas` = ");
+      expect(context).not.toContain("**3**");
+      expect(context).not.toContain("**5**");
+      expect(context).not.toContain("**Affected Resources**");
+      expect(context).not.toContain("**Root Cause Analysis**");
+      expect(context).not.toContain("`web`");
+    }
   });
 
   test("a `<` criteria keeps the breaching rows and sorts worst (lowest) first", async () => {
@@ -1597,16 +1680,18 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
       metricValue: 93.4,
     };
 
-    return Evaluator.buildKubernetesRootCauseAnalysis({
-      breakdown: {
-        clusterName: "prod",
-        metricName: input.metricName,
-        metricFriendlyName: "Friendly Name",
-        affectedResources: [topResource],
-        attributes: input.attributes || {},
-      },
-      topResource,
-    });
+    return textOf(
+      Evaluator.buildKubernetesRootCauseAnalysis({
+        breakdown: {
+          clusterName: "prod",
+          metricName: input.metricName,
+          metricFriendlyName: "Friendly Name",
+          affectedResources: [topResource],
+          attributes: input.attributes || {},
+        },
+        topResource,
+      }),
+    );
   }
 
   test("k8s.node.cpu.utilization still gets the node CPU guidance", () => {
@@ -1773,7 +1858,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
 
     test("unavailable replicas stay a bare count", () => {
       const analysis: string | null = analyse({
-        metricName: "k8s.deployment.unavailable_replicas",
+        metricName: "kube_deployment_status_replicas_unavailable",
         topResource: {
           workloadType: "Deployment",
           workloadName: "web",
@@ -1805,21 +1890,23 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
     metricName?: string;
     clusterName?: string;
   }): Promise<string | null> {
-    return Evaluator.buildKubernetesRootCauseContext({
-      dataToProcess: metricResponse({
-        kubernetesResourceBreakdown: {
-          clusterName:
-            input.clusterName === undefined ? "prod-gke" : input.clusterName,
-          metricName: input.metricName || "k8s.container.restarts",
-          metricFriendlyName: "Container Restarts",
-          affectedResources: input.affectedResources,
-          attributes: {},
-        },
+    return textOf(
+      await Evaluator.buildKubernetesRootCauseContext({
+        dataToProcess: metricResponse({
+          kubernetesResourceBreakdown: {
+            clusterName:
+              input.clusterName === undefined ? "prod-gke" : input.clusterName,
+            metricName: input.metricName || "k8s.container.restarts",
+            metricFriendlyName: "Container Restarts",
+            affectedResources: input.affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: new MonitorStep(),
+        // No projectId, so the restart branch never reaches for container logs.
+        monitor: new Monitor(),
       }),
-      monitorStep: new MonitorStep(),
-      // No projectId, so the restart branch never reaches for container logs.
-      monitor: new Monitor(),
-    });
+    );
   }
 
   function podRestart(
@@ -2009,7 +2096,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
 
   test("a workload-level series is titled by its workload type and does not repeat it", async () => {
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
+      metricName: "k8s.statefulset.ready_pods",
       affectedResources: [
         {
           namespace: "payments",
@@ -2160,20 +2247,22 @@ describe("MonitorCriteriaEvaluator - Docker Swarm affected tasks list", () => {
     affectedResources: Array<DockerSwarmAffectedResource>;
     metricResult?: Array<any>;
   }): string | null {
-    return Evaluator.buildDockerSwarmRootCauseContext({
-      dataToProcess: metricResponse({
-        dockerSwarmResourceBreakdown: {
-          clusterName: "swarm-prod",
-          metricName: "container.pids.count",
-          metricFriendlyName: "Process Count",
-          affectedResources: input.affectedResources,
-          attributes: {},
-        },
-        metricResult: input.metricResult || [],
+    return textOf(
+      Evaluator.buildDockerSwarmRootCauseContext({
+        dataToProcess: metricResponse({
+          dockerSwarmResourceBreakdown: {
+            clusterName: "swarm-prod",
+            metricName: "container.pids.count",
+            metricFriendlyName: "Process Count",
+            affectedResources: input.affectedResources,
+            attributes: {},
+          },
+          metricResult: input.metricResult || [],
+        }),
+        monitorStep: new MonitorStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: new MonitorStep(),
-      monitor: new Monitor(),
-    });
+    );
   }
 
   test("renders each task with its service and node beneath it, worst first", () => {
@@ -2285,19 +2374,21 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
   function proxmoxContext(
     affectedResources: Array<ProxmoxAffectedResource>,
   ): string | null {
-    return Evaluator.buildProxmoxRootCauseContext({
-      dataToProcess: metricResponse({
-        proxmoxResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "pve_replication_failed_syncs",
-          metricFriendlyName: "Failed Replication Syncs",
-          affectedResources,
-          attributes: {},
-        },
+    return textOf(
+      Evaluator.buildProxmoxRootCauseContext({
+        dataToProcess: metricResponse({
+          proxmoxResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "pve_replication_failed_syncs",
+            metricFriendlyName: "Failed Replication Syncs",
+            affectedResources,
+            attributes: {},
+          },
+        }),
+        monitorStep: proxmoxStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: proxmoxStep(),
-      monitor: new Monitor(),
-    });
+    );
   }
 
   test("Proxmox: each pve.type gets a readable kind, and a node does not list itself as its node", () => {
@@ -2384,26 +2475,28 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
   });
 
   test("VMware: a VM with no display name is named by its instance UUID", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.vm.disk.usage",
-          metricFriendlyName: "VM Disk Usage",
-          affectedResources: [
-            {
-              datacenterName: "DC1",
-              hostName: "esx-01",
-              vmId: "5029abcd-1111-2222-3333-444455556666",
-              metricValue: 1073741824,
-            },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.vm.disk.usage",
+            metricFriendlyName: "VM Disk Usage",
+            affectedResources: [
+              {
+                datacenterName: "DC1",
+                hostName: "esx-01",
+                vmId: "5029abcd-1111-2222-3333-444455556666",
+                metricValue: 1073741824,
+              },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain(
       "1. **Virtual Machine** `5029abcd-1111-2222-3333-444455556666` — **1.07 GB**\n   - Host: `esx-01`",
@@ -2411,28 +2504,30 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
   });
 
   test("VMware: a pool on a standalone host lists its owner host; a row with no identity is the vCenter", () => {
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdown: {
-          vcenterName: "vcsa-prod",
-          metricName: "vcenter.datacenter.vm.count",
-          metricFriendlyName: "Datacenter VM Count",
-          affectedResources: [
-            {
-              datacenterName: "DC1",
-              hostName: "esx-standalone",
-              resourcePoolName: "Resources",
-              resourcePoolPath: "/DC1/host/esx-standalone/Resources",
-              metricValue: 2,
-            },
-            { metricValue: 1 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdown: {
+            vcenterName: "vcsa-prod",
+            metricName: "vcenter.datacenter.vm.count",
+            metricFriendlyName: "Datacenter VM Count",
+            affectedResources: [
+              {
+                datacenterName: "DC1",
+                hostName: "esx-standalone",
+                resourcePoolName: "Resources",
+                resourcePoolPath: "/DC1/host/esx-standalone/Resources",
+                metricValue: 2,
+              },
+              { metricValue: 1 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: vmwareStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: vmwareStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain(
       [
@@ -2457,21 +2552,23 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
 
     const step: MonitorStep = template.getMonitorStep(templateArgs());
 
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_health_detail",
-          metricFriendlyName: "Health Detail",
-          affectedResources: [{ poolName: "RECENT_CRASH", metricValue: 1 }],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_health_detail",
+            metricFriendlyName: "Health Detail",
+            affectedResources: [{ poolName: "RECENT_CRASH", metricValue: 1 }],
+            attributes: {},
+          },
+        }),
+        monitorStep: step,
+        monitor: new Monitor(),
+        criteriaInstance:
+          step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0],
       }),
-      monitorStep: step,
-      monitor: new Monitor(),
-      criteriaInstance:
-        step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0],
-    });
+    );
 
     expect(context).toContain(
       "**Affected Resources** (1 total)\n\n1. **Health Check** `RECENT_CRASH` — **1**",
@@ -2481,27 +2578,29 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
   });
 
   test("Ceph: a name without a pool id on another metric is a generic resource, and a daemon keeps it as a detail", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_fs_metadata",
-          metricFriendlyName: "Filesystem Metadata",
-          affectedResources: [
-            { poolName: "cephfs", metricValue: 2 },
-            {
-              daemon: "mds.a",
-              poolName: "cephfs",
-              hostname: "ceph-node-1",
-              metricValue: 1,
-            },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_fs_metadata",
+            metricFriendlyName: "Filesystem Metadata",
+            affectedResources: [
+              { poolName: "cephfs", metricValue: 2 },
+              {
+                daemon: "mds.a",
+                poolName: "cephfs",
+                hostname: "ceph-node-1",
+                metricValue: 1,
+              },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain(
       [
@@ -2515,53 +2614,57 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
   });
 
   test("Ceph: a pool id alone still makes a pool", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_pool_stored",
-          metricFriendlyName: "Pool Stored",
-          affectedResources: [{ poolId: "7", metricValue: 3 }],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_pool_stored",
+            metricFriendlyName: "Pool Stored",
+            affectedResources: [{ poolId: "7", metricValue: 3 }],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain("1. **Pool** `7` — **3 B**");
   });
 
   test("Ceph: a daemon lists its pool and host; a pool lists its host; a host and a cluster stand alone", () => {
-    const context: string | null = Evaluator.buildCephRootCauseContext({
-      dataToProcess: metricResponse({
-        cephResourceBreakdown: {
-          clusterName: "prod-cluster",
-          metricName: "ceph_osd_apply_latency_ms",
-          metricFriendlyName: "OSD Apply Latency",
-          affectedResources: [
-            {
-              daemon: "osd.7",
-              poolId: "2",
-              poolName: "rbd",
-              hostname: "ceph-node-1",
-              metricValue: 400,
-            },
-            {
-              poolId: "3",
-              poolName: "cephfs_data",
-              hostname: "ceph-node-2",
-              metricValue: 300,
-            },
-            { hostname: "ceph-node-3", metricValue: 200 },
-            { metricValue: 100 },
-          ],
-          attributes: {},
-        },
+    const context: string | null = textOf(
+      Evaluator.buildCephRootCauseContext({
+        dataToProcess: metricResponse({
+          cephResourceBreakdown: {
+            clusterName: "prod-cluster",
+            metricName: "ceph_osd_apply_latency_ms",
+            metricFriendlyName: "OSD Apply Latency",
+            affectedResources: [
+              {
+                daemon: "osd.7",
+                poolId: "2",
+                poolName: "rbd",
+                hostname: "ceph-node-1",
+                metricValue: 400,
+              },
+              {
+                poolId: "3",
+                poolName: "cephfs_data",
+                hostname: "ceph-node-2",
+                metricValue: 300,
+              },
+              { hostname: "ceph-node-3", metricValue: 200 },
+              { metricValue: 100 },
+            ],
+            attributes: {},
+          },
+        }),
+        monitorStep: cephStep(),
+        monitor: new Monitor(),
       }),
-      monitorStep: cephStep(),
-      monitor: new Monitor(),
-    });
+    );
 
     expect(context).toContain(
       [

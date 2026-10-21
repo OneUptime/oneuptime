@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ServiceModel from "Common/Models/DatabaseModels/Service";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -291,6 +294,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ServiceModel,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

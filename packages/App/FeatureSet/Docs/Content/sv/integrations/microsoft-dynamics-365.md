@@ -1,358 +1,451 @@
-# Microsoft Dynamics 365-integration
+# Microsoft Dynamics 365
 
-Öppna ett **Case** i [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) varje gång en OneUptime-incident deklareras, håll det ärendet i takt när incidenten rör sig, och låt Dynamics skicka tillbaka ärendeändringar till OneUptime — allt med ett [Arbetsflöde](/docs/workflows/index). Det finns inget Dynamics-specifikt block att installera: OneUptime pratar med **Dataverse Web API** via [API-komponenten](/docs/workflows/components#api), och Dynamics pratar tillbaka genom en [Webhook-utlösare](/docs/workflows/triggers#webhook).
+Håll [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365)-ärenden i takt med dina OneUptime-incidenter och -larm, åt båda hållen. Färdiga arbetsflödesmallar skapar ett ärende för varje incident eller larm, stänger det när posten är löst och kopierar anteckningar till det. Andra deklarerar incidenter från nya ärenden och hämtar tillbaka lösningar och anteckningar. Det finns inget plugin: arbetsflödena anropar Dataverse Web API, och Dynamics 365 anropar deras webhook-URL:er.
 
-```text
-OneUptime Incident → On Create  ──►  API Post (token)  ──►  API Post (POST /api/data/v9.2/incidents)  ──►  Dynamics 365 Case
+:::cards
+- [Förbered Dynamics 365](#förbered-dynamics-365): En appregistrering, en programanvändare och en kopplingskolumn.
+- [Börja från en mall](#börja-från-en-mall): De 13 mallarna, vad de frågar efter och hur du ställer in dem.
+- [Så fungerar mallarna](#så-fungerar-mallarna): Hur ärenden och poster förblir kopplade, utan loopar.
+- [Bygg det själv](#bygg-det-själv): Varje riktning för hand, när en mall inte passar.
+:::
 
-Dynamics 365 Case changed  ──►  Power Automate flow (HTTP)  ──►  OneUptime Webhook trigger  ──►  Update One Incident
+## Så fungerar det
+
+```mermaid title="Två riktningar, kopplade med en kolumn på ärendet"
+flowchart TB
+    record["Incident eller larm"] -->|"deklarerad, löst,<br/>antecknad"| out["Arbetsflöden till<br/>Dynamics 365"]
+    out -->|"Web API, inloggad<br/>via Entra ID"| case["Dynamics 365-ärende,<br/>med en<br/>kopplingskolumn"]
+    case -->|"skapat, löst,<br/>antecknat"| flow["Power Automate-flöde<br/>eller Dataverse-webhook"]
+    flow --> back["Arbetsflöden från<br/>Dynamics 365"]
+    back -->|"deklarera, lös,<br/>lägg till anteckningar"| record
 ```
 
-Den här sidan täcker båda riktningarna. Bygg den utgående halvan först — det är den som kräver konfigurationen i Microsoft Entra ID, och när den fungerar är den inkommande halvan ett enda flöde.
+Varje mall är ett litet arbetsflöde, så du tar bara de riktningar du vill ha, för incidenter, larm eller båda. Mallarna OneUptime → Dynamics 365 anropar Dataverse Web API, inloggade som ett program via Microsoft Entra ID. Mallarna Dynamics 365 → OneUptime startar när ett Power Automate-flöde eller en Dataverse-webhook anropar dem. En textkolumn som du lägger till i tabellen Case kopplar varje ärende till sin post.
 
-## Förutsättningar
+## Innan du börjar
 
-- En **Dynamics 365**-miljö som innehåller tabellen **Case**. Ärenden kommer från Dynamics 365 Customer Service; en Dataverse-miljö utan det har ingen `incident`-tabell att skriva till.
-- Miljöns **Web API-endpoint**. Hitta den i [Power Platform admin center](https://admin.powerplatform.microsoft.com/) under din miljös **Settings → Developer resources**, eller i **make.powerapps.com → Settings → Developer resources**. Den ser ut som `https://yourorg.crm.dynamics.com/api/data/v9.2/` — regionssegmentet varierar (`crm` för Nordamerika, `crm2` för Sydamerika, `crm7` för Japan, och så vidare).
-- Rättigheter att registrera en applikation i **Microsoft Entra ID** och att skapa en **application user** i Dynamics-miljön. Det här är oftast två olika administratörer.
-- Ett OneUptime-projekt där du kan skapa arbetsflöden och globala variabler.
+- En Dynamics 365-miljö med tabellen **Case**. Ärenden kommer från Dynamics 365 Customer Service: en Dataverse-miljö utan det har ingen `incident`-tabell att skriva till.
+- Behörighet att registrera ett program i **Microsoft Entra ID** och att skapa en programanvändare i miljön. Det är ofta två olika administratörer.
+- I OneUptime behörighet att skapa arbetsflöden. På OneUptime Cloud kräver arbetsflöden **Growth**-abonnemanget eller högre.
 
-> Allt nedan använder Dataverse-tabellnamnen, inte etiketterna på Dynamics-formulären. Ett ärende är tabellen **`incident`**, dess samling i en URL är **`incidents`**, dess primärnyckel är **`incidentid`** och dess titelkolumn är **`title`**. Ärendenumret du ser i gränssnittet är **`ticketnumber`**.
+> [!NOTE]
+> Den här sidan använder Dataverses namn, inte etiketterna på Dynamics-formulären. Ett ärende är tabellen `incident`, dess samling i en URL är `incidents`, dess nyckel är `incidentid` och dess titelkolumn är `title`. Ärendenumret du ser är `ticketnumber`.
 
-## Steg 1 — Registrera en applikation i Microsoft Entra ID
+## Förbered Dynamics 365
 
-OneUptime autentiserar sig som en applikation, inte som en person, så det använder OAuth 2.0-flödet **client credentials**.
+Både mallarna och ett arbetsflöde som du bygger själv behöver detta. OneUptime loggar in som ett program, inte som en person, med OAuth 2.0-flödet för klientautentiseringsuppgifter.
 
-1. Logga in på [Azure-portalen](https://portal.azure.com) som administratör för samma tenant som din Dynamics-miljö, och öppna **Microsoft Entra ID**.
-2. Gå till **App registrations → New registration**. Ge den ett namn som `OneUptime Integration`, lämna **Supported account types** på **Accounts in this organizational directory only** och välj **Register**.
-3. Från appens **Overview**-sida, kopiera **Application (client) ID** och **Directory (tenant) ID**.
-4. Gå till **Certificates & secrets → Client secrets → New client secret**. Kopiera hemlighetens **Value** — inte dess ID — innan du navigerar bort. Den visas aldrig igen. En klienthemlighet kan leva i högst 24 månader, så notera utgångsdatumet någonstans där du kommer att se det.
+:::steps
+### Registrera ett program i Microsoft Entra ID
 
-Två saker som folk lägger till här men som du inte behöver:
+1. Logga in på [Azure-portalen](https://portal.azure.com) som administratör för klientorganisationen för din Dynamics-miljö och öppna **Microsoft Entra ID**.
+2. Gå till **App registrations → New registration**. Ge den namnet `OneUptime Integration`, låt **Supported account types** stå på **Accounts in this organizational directory only** och välj **Register**.
+3. Kopiera **Application (client) ID** och **Directory (tenant) ID** från appens sida **Overview**.
+4. Gå till **Certificates & secrets → Client secrets → New client secret** och kopiera hemlighetens **Value**, inte dess ID, innan du lämnar sidan: den visas aldrig igen. En klienthemlighet lever högst 24 månader, så anteckna när den löper ut.
 
-- **Inga API-behörigheter.** I flödet client credentials finns ingen inloggad användare, så delegerade behörigheter gör ingenting. `user_impersonation` under **Dataverse** är en delegerad behörighet och är bara till för interaktiva appar. Microsoft Entra ID utfärdar med glädje en token för Dataverse helt utan konfigurerade behörigheter — åtkomsten avgörs på Dynamics-sidan, i Steg 2.
-- **Inget steg för administratörsmedgivande.** Samma skäl.
+Lägg inte till några API-behörigheter och ge inget administratörsmedgivande: utan en inloggad användare gör de ingenting. Dynamics 365 bestämmer vad programmet får göra, via dess programanvändare.
 
-Microsoft föredrar ett certifikat framför en klienthemlighet för produktionsapplikationer. Det alternativet kräver att anroparen själv bygger och signerar en JWT-assertion, vilket ett arbetsflöde inte kan göra, så en klienthemlighet är det praktiska valet här — behandla den därefter: håll den i en hemlig variabel, och rotera den innan den upphör att gälla.
+### Skapa programanvändaren
 
-## Steg 2 — Skapa application user i Dynamics
+1. Välj **Manage → Environments** i [administrationscentret för Power Platform](https://admin.powerplatform.microsoft.com/) och sedan din miljö.
+2. Välj **Settings → Users + permissions → Application users**, sedan **+ New app user** och **+ Add an app**. Välj registreringen och välj **Add**.
+3. Välj en **Business unit** och ge den sedan en anpassad säkerhetsroll med redigeringsikonen bredvid **Security roles**. På nivån Organization behöver rollen:
+   - **Case**: Create, Read, Write, Append och Append To.
+   - **Note**: Create, Read och Append, för anteckningsmallarna.
+   - **Activity**: Create, Read och Append, eftersom stängning av ett ärende registrerar en Case Resolution, som är en aktivitet.
+   - **Account**, och **Contact** om ärenden skapas i en kontakts namn: Read och Append To.
+4. Välj **Save** och sedan **Create**.
 
-Det här är steget som hoppas över, och att hoppa över det ger det mest förvirrande felet i hela den här integrationen: tokenförfrågan lyckas, och varje Dataverse-anrop misslyckas sedan med `403 Forbidden` och felkoden `0x80072560` — *"The user isn't a member of the organization."* Entra ID utfärdar token utan att veta något om Dynamics; Dynamics letar sedan efter en användarrad som matchar applikationen, och det finns ingen.
+En programanvändare kan bara ha en anpassad roll: kopiera en befintlig och skala ner den. Utan den här användaren utfärdar Microsoft Entra ID fortfarande tokens, men varje anrop till Dynamics 365 misslyckas med `403` och `0x80072560`, "The user isn't a member of the organization."
 
-1. Öppna [Power Platform admin center](https://admin.powerplatform.microsoft.com/) och välj **Manage → Environments**, sedan din miljö.
-2. Välj **Settings → Users + permissions → Application users**.
-3. Välj **+ New app user**, sedan **+ Add an app**, välj registreringen från Steg 1 och välj **Add**.
-4. Välj en **Business unit**, ange en **Email address**, och använd sedan redigeringsikonen bredvid **Security roles**.
-5. Tilldela en **anpassad** säkerhetsroll med behörigheterna skapa, läsa och skriva på tabellen **Case**. En application user kan inte tilldelas någon av de inbyggda rollerna — Microsoft kräver en anpassad. Om du inte har någon lämplig roll, kopiera en befintlig och skala ner den.
-6. Välj **Save**, sedan **Create**.
+### Lägg till en kopplingskolumn i tabellen Case
 
-Du kan bara ha en application user per registrerad applikation i en miljö. Application users är inte licensierade och är undantagna från miljöns regler för medlemskap i säkerhetsgrupper.
+Dataverse har inget som liknar Jiras etiketter, så ett ärende och en OneUptime-post hittar varandra via en kolumn som du lägger till.
 
-## Steg 3 — Spara uppgifterna i OneUptime
+1. Välj din miljö i [make.powerapps.com](https://make.powerapps.com), öppna **Tables → Case → Columns** och välj **New column**.
+2. Ge den namnet `OneUptime Link`, behåll **Data type** som **Single line of text** och spara. Standardmaxlängden på 100 räcker gott: mallarna skriver högst 55 tecken.
+3. Öppna den nya kolumnen och kopiera dess **Logical name**, t.ex. `new_oneuptimelink`. Prefixet kommer från din lösnings utgivare, så ditt kan vara annorlunda, t.ex. `cr4f2_oneuptimelink`.
 
-Gå till **Arbetsflöden → Globala variabler → Skapa** och lägg till de här, och slå på **Hemlighet** för dem som är markerade:
+Lägg till kolumnen i formuläret Case om agenterna ska se kopplingen.
+:::
 
-| Namn                     | Värde                                                       | Hemlighet |
-| ------------------------ | ----------------------------------------------------------- | ------ |
-| `DYNAMICS_TENANT_ID`     | Directory (tenant) ID från Steg 1                           | Nej    |
-| `DYNAMICS_CLIENT_ID`     | Application (client) ID från Steg 1                         | Nej    |
-| `DYNAMICS_CLIENT_SECRET` | Klienthemlighetens **Value** från Steg 1                    | Ja     |
-| `DYNAMICS_URL`           | `https://yourorg.crm.dynamics.com` — utan avslutande snedstreck | Nej |
+## Börja från en mall
 
-Klistra in klienthemligheten exakt som Entra ID gav dig den. OneUptime kodar formulärbodyn åt dig, så URL-koda den inte för hand.
+Dialogrutan **Skapa ett arbetsflöde** har 13 Dynamics 365-mallar under **Dynamics 365** i kategorilistan: sju för incidenter och sedan sex för larm, varje grupp under sin egen rubrik. De delar kopplingskolumnen, så alla kombinationer av dem fungerar tillsammans.
 
-Referera till vilken som helst av dem från ett block med `{{global.variables.DYNAMICS_CLIENT_ID}}`. Se [Variabler](/docs/workflows/variables) för hur hemligheter tvättas bort ur körloggarna.
+### Mallar för incidenter
 
-## Steg 4 — Hämta en åtkomsttoken
+| Mall | Vad den gör | Vad den frågar efter |
+| --- | --- | --- |
+| **OneUptime → Dynamics 365** | | |
+| Create a Dynamics 365 case when an incident is declared | Skapar ett ärende för varje ny incident, med en prioritet som väljs utifrån dess allvarlighetsgrad och incidentens ID i kopplingskolumnen. Incidenter som deklarerats från Dynamics 365, och privata incidenter, hoppas över. | De fem Dynamics 365-inställningarna, kunden för nya ärenden och OneUptime-URL:en |
+| Resolve the Dynamics 365 case when the incident is resolved | Stänger det kopplade ärendet som **Problem Solved** när incidenten är löst och registrerar en Case Resolution som när man löser det för hand. Öppnar aldrig ett ärende igen. | De fem Dynamics 365-inställningarna |
+| Copy incident private notes to the Dynamics 365 case | Lägger till varje ny privat anteckning i det kopplade ärendet som en anteckning. | De fem Dynamics 365-inställningarna |
+| Copy incident public notes to the Dynamics 365 case | Lägger till varje ny offentlig anteckning i det kopplade ärendet som en anteckning, så att agenterna kan berätta för kunderna vad statussidan säger. | De fem Dynamics 365-inställningarna |
+| **Dynamics 365 → OneUptime** | | |
+| Declare an incident when a Dynamics 365 case is created | Deklarerar en incident för varje nytt ärende, hållen borta från dina statussidor, med en allvarlighetsgrad som väljs utifrån ärendets prioritet, och skriver sedan incidentens ID i ärendets kopplingskolumn. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för nya ärenden |
+| Resolve the incident when its Dynamics 365 case is resolved | Löser incidenten när dess kopplade ärende är löst. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för statusändringar på ärenden |
+| Add Dynamics 365 case notes to the incident as private notes | Kopierar varje anteckning som en agent lägger till i ett kopplat ärende till incidenten som en privat anteckning. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för nya anteckningar |
 
-Varje körning hämtar sin egen token. Tokens håller i 60–90 minuter och flödet client credentials utfärdar aldrig en uppdateringstoken, så det finns inget att cacha och inget att förnya — ett extra HTTP-anrop per körning är hela kostnaden.
+### Mallar för larm
 
-1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Dynamics 365` och öppna **Byggare**.
-2. Klicka på den streckade platshållaren, lägg till utlösaren **On Create Incident**, och be i dess **Select Fields** om kolumnerna du vill skicka:
+Mallarna för larm gör samma jobb för larm. Det finns en färre, eftersom larm inte har offentliga anteckningar, och **Create an alert when a Dynamics 365 case is created** skriver inga statussideinställningar, eftersom ett larm aldrig når en statussida.
+
+| Mall | Vad den gör | Vad den frågar efter |
+| --- | --- | --- |
+| **OneUptime → Dynamics 365** | | |
+| Create a Dynamics 365 case when an alert is created | Skapar ett ärende för varje nytt larm, även varje larm som en monitor utlöser. Larm som skapats från Dynamics 365, och privata larm, hoppas över. | De fem Dynamics 365-inställningarna, kunden för nya ärenden och OneUptime-URL:en |
+| Resolve the Dynamics 365 case when the alert is resolved | Stänger det kopplade ärendet som **Problem Solved** när larmet är löst. | De fem Dynamics 365-inställningarna |
+| Copy alert private notes to the Dynamics 365 case | Lägger till varje ny privat anteckning i det kopplade ärendet som en anteckning. | De fem Dynamics 365-inställningarna |
+| **Dynamics 365 → OneUptime** | | |
+| Create an alert when a Dynamics 365 case is created | Skapar ett larm för varje nytt ärende, med en allvarlighetsgrad som väljs utifrån ärendets prioritet, och skriver sedan larmets ID i ärendets kopplingskolumn. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för nya ärenden |
+| Resolve the alert when its Dynamics 365 case is resolved | Löser larmet när dess kopplade ärende är löst. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för statusändringar på ärenden |
+| Add Dynamics 365 case notes to the alert as private notes | Kopierar varje anteckning som en agent lägger till i ett kopplat ärende till larmet som en privat anteckning. | De fem Dynamics 365-inställningarna och ett flöde eller en webhook för nya anteckningar |
+
+Ingen av mallarna OneUptime → Dynamics 365 skickar en incident markerad som **Privat incident**, eller ett larm markerat som **Privat larm**, till Dynamics 365: varken posten, dess status eller dess anteckningar, om du inte slår på det. Se [Ändra vad en mall gör](#ändra-vad-en-mall-gör).
+
+**Monitorer utlöser larm av sig själva, och det kan bli många.** **Create a Dynamics 365 case when an alert is created** skapar ett ärende för vart och ett. Om inte varje larm förtjänar ett ärende placerar du ett **If / Else**-block mellan utlösaren och resten av arbetsflödet, till exempel på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, och kopplar bara dess **Yes**-sida vidare.
+
+### Vad mallarna frågar efter
+
+Steget **Konfigurera** i skapandeguiden frågar efter upp till sju värden: varje mall frågar efter de första fem, Dynamics 365-inställningarna, och de två mallar som skapar ett ärende frågar också efter de två sista. Steget kontrollerar formen på varje Dynamics 365-inställning innan något skapas och säger vad du ska skriva i stället, eftersom ett värde med fel form inte ger fel någonstans förrän vid en körning.
+
+- **Dynamics 365 Environment URL** — din miljös adress, t.ex. `https://yourorg.crm.dynamics.com`, från [administrationscentret för Power Platform](https://admin.powerplatform.microsoft.com/) under **Environments**, din miljö, **Environment URL**. Bara adressen: inte Web API-slutpunkten, som slutar med `/api/data/v9.2`, och inget snedstreck på slutet.
+- **Directory (Tenant) ID** — från appregistreringens sida **Overview**.
+- **Application (Client) ID** — från samma sida.
+- **Client Secret Value** — klienthemlighetens **Value** från **Certificates & secrets**. Inte dess **Secret ID**, som är ett GUID: guiden avvisar ett GUID här.
+- **Case Link Column** — kopplingskolumnens logiska namn, t.ex. `new_oneuptimelink`.
+- **Customer for New Cases** — bara de två mallar som skapar ett ärende frågar efter den. Varje ärende behöver en kund, och en OneUptime-incident har ingen, så alla nya ärenden skapas i en kunds namn: klistra in ID:t för ett konto, eller `contacts(<id>)` för en kontakt. Öppna posten i Dynamics 365: dess ID är delen efter `id=` i adressen.
+- **OneUptime URL** — bara de två mallar som skapar ett ärende frågar efter den: adressen du öppnar OneUptime på, t.ex. `https://oneuptime.com`. Ärendets beskrivning länkar med den tillbaka till incidenten eller larmet.
+
+**Så loggar mallarna in.** Guiden sparar klientorganisationen, klient-ID:t och hemligheten i en enda [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva), `dynamicsAccessToken`, under arbetsflödets **Arbetsflödesvariabler**: Client Credentials, token-URL:en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` och klienthemligheten, som skickas i begärans innehåll och sparas krypterad. Varje anrop till Dynamics 365 skickar `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime hämtar token första gången ett steg behöver den, hämtar en ny innan den löper ut och ersätter den med `[REDACTED]` i körningsloggar och stegspår.
+
+För att kontrollera inloggningen innan något körs öppnar du **Arbetsflödesvariabler**, klickar på **Visa** vid `dynamicsAccessToken` och klickar på **Uppdatera nu**. **Access Token Fetched** betyder att appregistreringen är rätt. Annars säger felet från Microsoft Entra ID vad som är fel, t.ex. `AADSTS7000215: Invalid client secret provided`.
+
+Varje arbetsflöde har sin egen kopia. När du byter ut klienthemligheten öppnar du `dynamicsAccessToken` i varje Dynamics 365-arbetsflöde och använder **Update Credentials**.
+
+### Skapa arbetsflödena
+
+:::steps
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**. Välj **Dynamics 365** i kategorilistan under **Eller börja från en mall**, eller skriv `Dynamics` i **Sök mallar…**, och klicka på mallen du vill ha. Den öppnas och visar vad den gör och vilka inställningar den kommer att fråga efter. Klicka på **Använd den här mallen**.
+2. **Namn** fylls i från mallen. Ändra det om du vill.
+3. **Konfigurera** frågar efter värdena ovan.
+4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
+:::
+
+Börja med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** för larm: alla andra mallar OneUptime → Dynamics 365 av samma slag hittar ärendet via kopplingen som den här skriver. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningens sista steg ska visa `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+
+### Anslut mallarna Dynamics 365 → OneUptime
+
+Mallarna Dynamics 365 → OneUptime, tre för incidenter och tre för larm, startar från en [Webhook-utlösare](/docs/workflows/triggers#webhook), så Dynamics 365 måste få veta vart händelserna ska skickas. Gör det i den här ordningen:
+
+1. Skapa arbetsflödet och **slå på det först**. Ett arbetsflöde som är avstängt nekar leveranser, och de köas inte.
+2. Öppna arbetsflödets **Byggare**, klicka på utlösarblocket **Webhook** (`webhook-1`) och klicka på **Kopiera URL** högst upp i dess inställningar. URL:en ser ut så här:
+
+   ```text
+   https://<your OneUptime host>/workflow/trigger/<webhook secret key>
+   ```
+
+3. Låt Dynamics 365 skicka till den, från ett Power Automate-flöde eller från en Dataverse-webhook.
+
+Varje mall behöver bara veta vilken rad som ändrades. Den läser raden igen från Dynamics 365 innan den gör något, så den tar aldrig ett ärendes titel, status eller koppling från begäran, och det spelar ingen roll vilken av de två som skickar den.
+
+:::tabs
+@tab Power Automate flow
+Skapa i [Power Automate](https://make.powerautomate.com) ett **Automated cloud flow** med **Microsoft Dataverse**-utlösaren **When a row is added, modified or deleted**, inställd som nedan, med **Scope** inställt på **Organization**. Lägg till den inbyggda åtgärden **HTTP**: **Method** `POST`, **URI** arbetsflödets URL, en `Content-Type: application/json`-rubrik och innehållet nedan, med radens ID valt från utlösarens dynamiska innehåll.
+
+| Mall | Change type | Table name | Select columns | Body |
+| --- | --- | --- | --- | --- |
+| Deklarera en incident / skapa ett larm när ett ärende skapas | Added | Cases | | `{"incidentid": "<Case>"}` |
+| Lös incidenten / larmet när dess ärende löses | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
+| Lägg till ärendeanteckningar i incidenten / larmet som privata anteckningar | Added | Notes | | `{"annotationid": "<Note>"}` |
+
+För att bara skicka vissa ärenden använder du utlösarens **Filter rows**, t.ex. `prioritycode eq 1` för ärenden med hög prioritet. Du kan också skicka hela utlösarens utdata: mallarna läser radens ID och dess `SdkMessage` från dem på samma sätt.
+@tab Dataverse webhook
+Registrera URL:en med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-autentisering och en egen rubrik; själva URL:en är hemligheten. Registrera sedan ett steg på den för varje händelse nedan, med **Event Pipeline Stage of Execution** inställt på **PostOperation** och **Execution Mode** på **Asynchronous**.
+
+| Mall | Message | Primary Entity | Filtering Attributes |
+| --- | --- | --- | --- |
+| Deklarera en incident / skapa ett larm när ett ärende skapas | `Create` | `incident` | |
+| Lös incidenten / larmet när dess ärende löses | `Close`, och `Update` för statusändringar som andra gör | `incident` | `statecode, statuscode` (Update) |
+| Lägg till ärendeanteckningar i incidenten / larmet som privata anteckningar | `Create` | `annotation` | |
+
+När ett ärende löses utlöses meddelandet **Close**, inte **Update**, och därför behöver den mallen båda. En webhook skickar plugin-programmets körningskontext, som anger raden i `PrimaryEntityId`, eller för **Close** i dess `IncidentResolution`, och mallarna läser den därifrån. En Dataverse-webhook anropar bara portarna 80 och 443 och har inget eget radfilter: varje nytt ärende når skapandemallen, om du inte avgränsar den med `ONLY_PRIORITIES`.
+:::
+
+Innan du förlitar dig på någon av dem:
+
+- **Alla som har URL:en kan utlösa arbetsflödet.** Eftersom mallarna läser varje rad igen från Dynamics 365 kan en begäran bara få dem att titta på ett riktigt ärende eller en riktig anteckning. Den kan ändå få skapandemallarna att agera på ett ärende som inte är kopplat än. Ha bara URL:en i flödet eller webhooken. Om den läcker klickar du på **Webhook**-utlösaren i arbetsflödets **Byggare**, klickar på **Återställ URL** och klistrar in den nya URL:en i flödet eller webhooken. Den gamla URL:en slutar fungera direkt.
+- **Varje händelse är en körning**, även de som en mall hoppar över. På OneUptime Cloud räknas var och en mot ditt abonnemangs arbetsflödeskörningar, och filtrering i flödet håller antalet nere. Se [Abonnemangsgränser](/docs/workflows/configuration#plangränser).
+- **Använder du båda mallarna som skapar en post från ett ärende?** **Declare an incident when a Dynamics 365 case is created** och **Create an alert when a Dynamics 365 case is created** agerar båda på varje ärende de får. Var och en kontrollerar kopplingskolumnen först, men två leveranser för ett nytt ärende kommer samtidigt, så ärendet kan få både en incident och ett larm. Skicka olika ärenden till de två, till exempel efter ärendetyp.
+
+### Kontrollera att det fungerar
+
+Varje mall slutar med ett **Log**-steg som säger vad som hände, så det sista steget i en körning i **Loggar → Körningar** är platsen att titta på:
+
+- `✅` — den gjorde sitt jobb och nämner ärendet, incidenten eller larmet.
+- `ℹ️` — den hoppade över händelsen med flit och säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från den andra sidan, posten är privat, eller den nya statusen har ingen ärendestatus kopplad till sig.
+- `❌` — ett anrop misslyckades. Vid ett Dynamics 365-anrop innehåller raden svaret från Dynamics 365.
+- `⚠️` — en mall som skapar en post från ett ärende skapade den, men Dynamics 365 tog inte emot kopplingen, så de andra mallarna kan inte hitta den än. Skriv in kopplingen i ärendets kolumn för hand.
+
+Om en körning stannar vid det första Dynamics 365-steget med `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}` är inloggningsinställningarna fel, och meddelandet citerar svaret från Microsoft Entra ID. Se [Vad mallarna frågar efter](#vad-mallarna-frågar-efter).
+
+## Så fungerar mallarna
+
+### Så förblir de två sidorna kopplade
+
+Ärendet håller kopplingen. Ett ärende som hör till en incident har `oneuptime-incident-<incident id>` i sin kopplingskolumn, och ett som hör till ett larm har `oneuptime-alert-<alert id>`. ID:t är den sista delen av postens adress i instrumentpanelen.
+
+Mallarna som skapar ett ärende skriver den när de skapar ärendet, och mallarna som skapar en post från ett ärende skriver den så snart posten finns. Alla andra mallar korsar över via den: de från OneUptime → Dynamics 365 slår upp ärendet via dess koppling, och de från Dynamics 365 → OneUptime läser postens ID från ärendet. För att koppla ett ärende som skapats för hand skriver du in värdet i dess kopplingskolumn själv, men bara när posten inte har något ärende än.
+
+**Ett ärende är kopplat till en incident eller ett larm, aldrig båda.** En kolumn används för båda slagen. Mallarna för incidenter ignorerar ett ärende som är kopplat till ett larm, och omvänt, och mallarna som skapar en post från ett ärende lämnar alla ärenden vars kopplingskolumn innehåller något alls i fred.
+
+**En post har ett ärende.** Mallarna som skriver till ett ärende agerar bara när exakt ett ärende innehåller postens koppling. Om kopplingen kopieras till ett andra ärende stannar de, och varje körning slutar med ett överhopp som nämner båda:
+
+```text
+More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-01001-X1Y2Z3, CAS-01002-K4L5M6). Clear it on every case except the one opened for the incident.
+```
+
+Incidenter och larm som skapats från ett ärende sparar också ärendets ID och nummer i `customFields.dynamicsCaseId` och `customFields.dynamicsCaseNumber`, som skrivs när de skapas. Det är så mallarna som skapar ett ärende vet att posten redan har ett.
+
+### Så undviker mallarna loopar
+
+Varje skrivning i en riktning är en händelse i den andra: en anteckning som läggs till i ett ärende kommer tillbaka som en ny anteckning, och en privat anteckning som läggs till i OneUptime utlöser anteckningsutlösaren. Fyra saker stoppar ekot:
+
+- **Markörer i texten.** Varje anteckning som mallarna lägger till i ett ärende har titeln `Synced from OneUptime: …`, och det har också ämnet på varje Case Resolution som de registrerar. Varje anteckning som skrivs från Dynamics 365, och grundorsaken till varje statusändring som görs därifrån, börjar med `Synced from Dynamics 365`. Varje riktning hoppar över text som har den andra sidans markör, även i en anteckning som någon skrev och som citerar en.
+- **Kopplingen från första sparningen.** Ett ärende som OneUptime skapar har sin koppling från det ögonblick det finns, så när dess **Create** kommer tillbaka hittar mallen som skapar en post från ett ärende det kopplat och gör ingenting.
+- **`customFields.dynamicsCaseId`.** En post som skapats från ett ärende har detta fält, och mallarna som skapar ett ärende hoppar över sådana poster.
+- **Statusar går bara framåt, på båda sidor.** När posten löses stängs ärendet, och ärendets **Close** hittar då posten redan löst. När ärendet löses först löses posten, och dess uppdatering hittar ärendet redan stängt. Ett ärende som redan är löst eller avbrutet öppnas aldrig igen.
+
+Behåll markörerna när du redigerar mallarna. De är konstanterna `FROM_ONEUPTIME` och `FROM_DYNAMICS` i hjälpblocket högst upp i varje skript.
+
+### Ändra vad en mall gör
+
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Run Custom JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm har samma konstanter i samma block.
+
+| Konstant | Mall och block | Vad den styr |
+| --- | --- | --- |
+| `SYNC_PRIVATE_INCIDENTS`, `SYNC_PRIVATE_ALERTS` | Varje mall OneUptime → Dynamics 365 — `prepare-case-1`, `plan-case-1`, `build-note-1` | `false` håller privata poster utanför Dynamics 365: inget ärende skapas för dem, deras ärende ändras inte, och deras anteckningar läggs inte till. Ställ in den på `true` i varje mall som ska skicka dem. |
+| `SEVERITY_TO_PRIORITY`, `DEFAULT_PRIORITY` | Skapa ett Dynamics 365-ärende — `prepare-case-1` | Projektets allvarlighetsgrader fördelas över ärendeprioriteterna efter sin ordning: den allvarligaste skapar ett High-ärende (`1`), den minst allvarliga ett Low-ärende (`3`), och de däremellan Normal-ärenden (`2`). Ange en allvarlighetsgrad efter namn, med gemener, för att välja dess prioritet själv, t.ex. `{ 'major incident': 1 }`. `DEFAULT_PRIORITY` (`2`) gäller för en allvarlighetsgrad som projektets lista inte har, eller ett projekt med bara en. |
+| `CASE_ORIGIN`, `CASE_TYPE` | Skapa ett Dynamics 365-ärende — `prepare-case-1` | Det nya ärendets `caseorigincode` (`3`, Web) och `casetypecode` (`2`, Problem). För att ställa in någon annan kolumn lägger du till den i `CASE` i samma skript, under dess logiska namn. |
+| `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Skapa ett Dynamics 365-ärende — `prepare-case-1` | Tabellen Cases egna gränser, 200 och 2000 tecken. Beskrivningen behåller länken tillbaka till OneUptime hur mycket som än kortas. Höj dem om din tabell Case tillåter mer. |
+| `RESOLVED_CASE_STATUS` | Lös Dynamics 365-ärendet — `plan-case-1` | Statusen som en löst post stänger sitt ärende med: `5` är Problem Solved, `1000` Information Provided. |
+| `STATE_TO_CASE_STATUS` | Lös Dynamics 365-ärendet — `plan-case-1` | Flyttar ärendet när posten når en annan status, efter statusens namn: `{ Acknowledged: 4 }` flyttar det till Researching när incidenten kvitteras. De aktiva statusarna i Dynamics 365 är `1` In Progress, `2` On Hold, `3` Waiting for Details och `4` Researching. En löst status som står här stänger ärendet med den status den anger. |
+| `PRIORITY_RANK` | Skapa från ett Dynamics 365-ärende — `prepare-incident-1`, `prepare-alert-1` | Kopplar en ärendeprioritet (`1` High, `2` Normal, `3` Low) till `0` (din högsta allvarlighetsgrad), `1` eller `2` (den lägsta). Prioriteter som inte står här hamnar i mitten. Med de två allvarlighetsgrader för larm som ett nytt projekt har blir Normal till Low om du inte ändrar `2: 1` till `2: 0`. |
+| `ONLY_PRIORITIES` | Skapa från ett Dynamics 365-ärende — `prepare-incident-1`, `prepare-alert-1` | Tom tar den alla ärenden som flödet eller webhooken skickar. `[1]` skapar bara poster för ärenden med hög prioritet. |
+| `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Lös när Dynamics 365-ärendet är löst — `decide-state-1` | En ärendestatus, efter namn, till en OneUptime-status, t.ex. `{ Researching: 'Acknowledged' }`. Annars avgör ärendets tillstånd: Resolved löser posten. Lägg till `2: 'isResolvedState'` för att också lösa den när dess ärende avbryts. |
+| `MESSAGES` | Varje mall Dynamics 365 → OneUptime — `read-event-1` | Händelserna som mallen agerar på. Lägg till `'Update'` i anteckningsmallens lista för att också kopiera redigerade anteckningar: varje redigering blir en ny anteckning. |
+| `MAX_NOTE_LENGTH` | Anteckningsmallarna — `build-note-1`, `read-note-1` | Den längsta anteckning som var och en skriver: 100 000 tecken till Dynamics 365, vilket är en antecknings egen gräns, och 30 000 till OneUptime. |
+
+Status- och statusnamn som används som nycklar måste stavas exakt som de heter, versaler inräknade. Håll `{{` borta från koden: ett skript fylls i som vilken annan inställning som helst innan det körs, så två öppnande klammerparenteser i rad skulle läsas som en referens.
+
+### Begränsningar
+
+- **Microsofts kommersiella moln.** Token-URL:en är `login.microsoftonline.com`. För molnen US Government (GCC High, DoD) eller Kina öppnar du `dynamicsAccessToken`, använder **Redigera inställningar** och ändrar token-URL:en till inloggningsvärden för ditt moln, t.ex. `login.microsoftonline.us`.
+- **Dynamics 365 kan vägra att lösa ett ärende.** Dina Customer Service-inställningar kan hindra att ett ärende löses medan det har öppna aktiviteter eller öppna underordnade ärenden, och en affärsregel eller ett plugin-program kan också neka det. Körningen slutar med `❌ Dynamics 365 did not resolve the case`, med orsaken från Dynamics 365, och ärendet förblir som det var.
+- **Poster och ärenden går aldrig bakåt.** Att öppna ett ärende igen ändrar ingenting i OneUptime, och en löst post öppnas aldrig igen. Ett ärende som redan är löst eller avbrutet öppnas aldrig igen för att stängas på nytt.
+- **Anteckningar och beskrivningar är oformaterad text.** En anteckning som skrivits i Dynamics 365s redigerare för formaterad text kommer in i OneUptime som texten den visar, och det gör även en ärendebeskrivning som skrivits i redigeraren eller hämtats från ett e-postmeddelande: stycken och radbrytningar behålls, medan formatering, bilder och e-postmeddelandets egna format försvinner. En OneUptime-anteckning kommer fram i Dynamics 365 som sina råa tecken, Markdown och allt. Text från Dynamics 365 — ett ärendes titel och beskrivning, en anteckning, namnen på statusar, prioriteter, kunder och personer — läses exakt som den skrevs: en bild, en länk, HTML, ett diagram eller ett chattomnämnande som `<!channel>` som skrivits i den visas som sina tecken och gör ingenting, eftersom en osynlig word joiner placeras efter tecknet som skulle starta det. En kopia av texten behåller word joinern. Ett arbetsflöde behåller skripten det skapades med, så ett arbetsflöde som skapats från en äldre version av en mall skriver text som den versionen gjorde: skapa det igen från mallen för att få detta. Bilagor stannar i Dynamics 365; anteckningen i OneUptime nämner filen.
+- **Redigerade anteckningar kopieras inte**, bara nya, om du inte lägger till `'Update'` i `MESSAGES`.
+- **Privata incidenter och larm stannar i OneUptime**, men mallarna Dynamics 365 → OneUptime kontrollerar inte detta: anteckningar och statusändringar på ett kopplat ärende når fortfarande en privat post.
+- **Varje ärende får en post.** Om du inte filtrerar flödet eller ställer in `ONLY_PRIORITIES` skapar mallarna som skapar en post från ett ärende en incident eller ett larm för varje nytt ärende de får. I en livlig kundtjänstmiljö blir det många.
+- **Samma händelse kan komma två gånger.** En Dataverse-webhook försöker igen en gång när OneUptime svarar `502`, `503` eller `504`. Ett upprepat **Create** som kommer efter att den första körningen kopplat ärendet lämnas i fred. Ett som kommer medan den första körningen fortfarande pågår kan skapa en andra post.
+
+## Bygg det själv
+
+Mallarna täcker de vanliga fallen. För att bygga en riktning själv bygger det här avsnittet båda för hand, för incidenter, efter [Förbered Dynamics 365](#förbered-dynamics-365). [Gör samma sak för larm](#gör-samma-sak-för-larm) överför det till larm.
+
+### Logga in med en OAuth 2.0-variabel
+
+Skapa token en gång, för alla arbetsflöden, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva):
+
+1. Gå till **Arbetsflöden → Globala variabler**, öppna menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflöde Variabel** och välj **Create OAuth 2.0 Variable**. Ge den namnet `DYNAMICS_TOKEN`.
+2. Välj **Microsoft Entra ID** under **Leverantör**, ersätt `{tenant-id}` i **Token-URL** med ditt Directory (tenant) ID och välj **Client Credentials**.
+3. Ange **Klient-ID** och **Klienthemlighet** under **Autentiseringsuppgifter**. Ställ in scopet på `https://yourorg.crm.dynamics.com/.default` under **Avancerad** och skapa sedan variabeln.
+
+Alla block skickar då `Bearer {{global.variables.DYNAMICS_TOKEN}}` i sin `Authorization`-rubrik. OneUptime hämtar token, hämtar en ny innan den löper ut och håller den borta från körningsloggarna.
+
+Scopet måste vara din miljö-URL följd av `/.default`. En felaktig miljö-URL är den vanliga orsaken till `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.
+
+### Skapa ett ärende för varje incident
+
+:::steps
+1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fields to pass on** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare.
+2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in dess **Identifier** på `create-case` och dess **URL** på `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Ställ in dess **Request Headers** under **Fler fält** på:
 
    ```json
    {
-     "_id": true,
-     "title": true,
-     "description": true,
-     "incidentNumber": true,
-     "incidentSeverity": { "name": true }
+     "Authorization": "Bearer {{global.variables.DYNAMICS_TOKEN}}",
+     "OData-MaxVersion": "4.0",
+     "OData-Version": "4.0",
+     "Accept": "application/json",
+     "If-None-Match": "null",
+     "Prefer": "return=representation"
    }
    ```
 
-   Låt dess **Identifier** vara `incident-on-create-1`.
+4. Ställ in dess **Request Body** på ärendet, med GUID:t för kontot som dina ärenden hör till:
 
-3. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block, koppla utlösarens **Success**-punkt till det och öppna dess inställningar. Sätt dess **Identifier** till `get-token`, och sedan:
+   ```json
+   {
+     "title": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
+     "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+     "caseorigincode": 3,
+     "prioritycode": 1,
+     "new_oneuptimelink": "oneuptime-incident-{{local.components.incident-on-create-1.returnValues.model._id}}",
+     "customerid_account@odata.bind": "/accounts(00000000-0000-0000-0000-000000000000)"
+   }
+   ```
 
-   - **URL**: `https://login.microsoftonline.com/{{global.variables.DYNAMICS_TENANT_ID}}/oauth2/v2.0/token`
-   - **Request Headers**:
+5. Slå på **Aktiverad**, deklarera en testincident och öppna **Loggar → Körningar**. Steget `create-case` visar en `201` och ett innehåll med det nya `incidentid` och `ticketnumber`.
+:::
 
-     ```json
-     { "Content-Type": "application/x-www-form-urlencoded" }
-     ```
+Varje ärende behöver en kund, så `customerid` är obligatoriskt. Det kan peka på ett konto eller en kontakt, och därför skriver du `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, stavat exakt. `Prefer: return=representation` gör svaret till `201` med själva ärendet, så att nästa block kan läsa `{{local.components.create-case.returnValues.response-body.incidentid}}`. Utan den svarar Dynamics 365 `204` utan innehåll.
 
-   - **Request Body**:
+`new_oneuptimelink` är kopplingskolumnen från [Förbered Dynamics 365](#förbered-dynamics-365), med samma värde som mallarna skriver, så att dina arbetsflöden och mallarna hittar varandras ärenden. Använd din kolumns logiska namn.
 
-     ```json
-     {
-       "client_id": "{{global.variables.DYNAMICS_CLIENT_ID}}",
-       "client_secret": "{{global.variables.DYNAMICS_CLIENT_SECRET}}",
-       "scope": "{{global.variables.DYNAMICS_URL}}/.default",
-       "grant_type": "client_credentials"
-     }
-     ```
+### Koppla prioritet och status
 
-**Skriv headernamnet som `Content-Type`, med exakt den versaliseringen.** Det är det som säger åt OneUptime att skicka bodyn som en formulärpost i stället för som JSON, vilket är den enda form Microsofts token-endpoint accepterar. `content-type` med små bokstäver matchar inte, och förfrågan går ut som JSON och kommer tillbaka som `400`.
+Dynamics 365 levereras med `severitycode` med ett enda alternativ, så ställ in `prioritycode` i stället, och förgrena på incidentens allvarlighetsgrad med ett **If / Else**-block för en prioritet per allvarlighetsgrad. Skicka de här kolumnerna som tal:
 
-`scope` måste vara din miljö-URL följd av `/.default` — det är formen för en konfidentiell klient. En felaktig miljö-URL här är den vanliga orsaken till `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.
+| Kolumn | Värden |
+| --- | --- |
+| `prioritycode` | `1` High, `2` Normal, `3` Low |
+| `caseorigincode` | `1` Phone, `2` Email, `3` Web, `2483` Facebook, `3986` Twitter, `700610000` IoT |
+| `casetypecode` | `1` Question, `2` Problem, `3` Request |
+| `statecode` | `0` Active, `1` Resolved, `2` Cancelled |
+| `statuscode` | `1` In Progress, `2` On Hold, `3` Waiting for Details, `4` Researching, `5` Problem Solved, `6` Cancelled, `1000` Information Provided, `2000` Merged |
 
-Token är nu tillgänglig nedströms som:
+`statuscode` kan anpassas, så din miljö kan ha egna värden.
 
-```text
-{{local.components.get-token.returnValues.response-body.access_token}}
-```
+### Lös ärendet när incidenten löses
 
-## Steg 5 — Skapa ärendet
+Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att ärenden skapas.
 
-Lägg till ett andra **API Post (JSON)**-block, koppla `get-token`s **Success**-punkt till det och sätt dess **Identifier** till `create-case`.
+:::steps
+1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fields to pass on**, öppna **Current Incident State** och välj **Is Resolved State**.
+2. Lägg till ett **If / Else**-block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
+3. Lägg efter dess **Yes**-sida till ett **API Get (JSON)**-block med **Identifier** `find-case`, samma rubriker utan `Prefer` och denna **URL**:
 
-- **URL**: `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents?$select=incidentid,ticketnumber`
-- **Request Headers**:
+   ```text
+   https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
+   ```
 
-  ```json
-  {
-    "Authorization": "Bearer {{local.components.get-token.returnValues.response-body.access_token}}",
-    "OData-MaxVersion": "4.0",
-    "OData-Version": "4.0",
-    "Accept": "application/json",
-    "If-None-Match": "null",
-    "Prefer": "return=representation"
-  }
-  ```
+4. Lägg efter det till ett **API Post (JSON)**-block till `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, med samma rubriker och detta innehåll:
 
-- **Request Body**:
+   ```json
+   {
+     "IncidentResolution": {
+       "@odata.type": "Microsoft.Dynamics.CRM.incidentresolution",
+       "subject": "Resolved in OneUptime",
+       "incidentid@odata.bind": "/incidents({{local.components.find-case.returnValues.response-body.value[0].incidentid}})"
+     },
+     "Status": 5
+   }
+   ```
+:::
 
-  ```json
-  {
-    "title": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
-    "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
-    "caseorigincode": 3,
-    "prioritycode": 1,
-    "customerid_account@odata.bind": "/accounts(00000000-0000-0000-0000-000000000000)"
-  }
-  ```
+URL:en skickas exakt som den är skriven, så blankstegen i `$filter` skrivs som `%20`. En fråga svarar med en `value`-lista, och `value[0]` är dess första ärende. `Status` är en `statuscode` för tillståndet Resolved: `5` är Problem Solved.
 
-Ersätt konto-GUID:t med kontot som de här ärendena tillhör. **`customerid` är verkligen obligatoriskt på ett ärende** — det är en av kolumnerna som Dataverse framtvingar vid varje programmatisk skrivning, så en skapning utan den avvisas. Eftersom den kan peka på antingen ett konto eller en kontakt skriver du aldrig `customerid@odata.bind`; du skriver `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, och de namnen är skiftlägeskänsliga. `title` är obligatoriskt på ett annat sätt: Dynamics-formulären insisterar på det, API:et gör det inte, så skicka det ändå.
+Använd `CloseIncident` för att lösa, i stället för en `PATCH` av `statecode`: den registrerar den Case Resolution som ett löst ärende förväntas ha, och en `PATCH` nekas där en administratör har konfigurerat statusövergångar. För allt annat, som en prioritet eller en titel, skickar du ett **API Patch (JSON)**-block till `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` med en `If-Match: *`-rubrik, som hindrar det från att skapa ett nytt ärende, och bara de kolumner du ändrar.
 
-`Prefer: return=representation` är det som gör det här användbart från ett arbetsflöde. Utan det svarar en lyckad skapning `204 No Content` och lägger den nya postens URI i en `OData-EntityId`-svarsheader, som du sedan skulle behöva plocka ut ett GUID ur. Med det är svaret `201 Created` och bär posten själv, så nästa block kan läsa:
+### Ta emot ändringar från Dynamics 365
 
-```text
-{{local.components.create-case.returnValues.response-body.incidentid}}
-{{local.components.create-case.returnValues.response-body.ticketnumber}}
-```
+Bygg först det mottagande arbetsflödet:
 
-Slå nu på arbetsflödet — **Översikt → Redigera arbetsflöde → Aktiverad** — deklarera en testincident och läs körningen under **Körningar och loggar**. Blocket `create-case` bör visa en `201` och en body som innehåller det nya `incidentid`. Ändringar på arbetsytan sparar sig själva; det finns ingen Spara-knapp.
-
-### Mappa allvarlighetsgrad och status
-
-Dynamics levererar `severitycode` med ett enda alternativ, "Default Value", så det finns ingen färdig allvarlighetsskala att mappa mot. Använd **`prioritycode`** i stället, och förgrena med ett **If / Else**-block på `{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}` om du vill ha prioriteter per allvarlighetsgrad.
-
-| Kolumn           | Värden                                                                                                                            |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `prioritycode`   | `1` Hög, `2` Normal, `3` Låg                                                                                                      |
-| `caseorigincode` | `1` Telefon, `2` E-post, `3` Webb, `2483` Facebook, `3986` Twitter, `700610000` IoT                                               |
-| `casetypecode`   | `1` Fråga, `2` Problem, `3` Begäran                                                                                               |
-| `statecode`      | `0` Aktiv, `1` Löst, `2` Avbrutet                                                                                                 |
-| `statuscode`     | `1` Pågår, `2` Vilande, `3` Väntar på detaljer, `4` Undersöks, `5` Problem löst, `6` Avbrutet, `1000` Information lämnad, `2000` Sammanslagen |
-
-`statuscode` är anpassningsbar, så en tenant kan ha lagt till egna värden. Skicka heltal, inte etiketter.
-
-## Steg 6 — Håll incidenten och ärendet sökbara från varandra
-
-Vad du än gör senare — kommentera, lösa, synka tillbaka — kräver att ett av de två systemen håller det andras identifierare. Lägg den på Dynamics-sidan.
-
-Lägg till en kolumn av typen **single line of text** i Case-tabellen, till exempel `new_oneuptimeincidentid`, och sätt den när du skapar ärendet:
-
-```json
-"new_oneuptimeincidentid": "{{local.components.incident-on-create-1.returnValues.model._id}}"
-```
-
-Sedan kan vilket senare arbetsflöde som helst hitta ärendet med ett filter:
-
-```text
-{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents?$select=incidentid,ticketnumber&$filter=new_oneuptimeincidentid eq '<the incident id>'
-```
-
-Om du definierar den kolumnen som en **alternate key** på Case-tabellen kan du hoppa över uppslagningen helt och `PATCH`:a direkt mot `incidents(new_oneuptimeincidentid='<id>')` — en upsert som skapar ärendet om det saknas och uppdaterar det om det inte gör det. Nyckeln måste bli färdigbyggd (dess tillstånd blir **Active**) innan den kan användas, och värden för alternativa nycklar får inte innehålla `/ < > * % & : \ ? + #`. Ett OneUptime-id är en vanlig UUID, så det är säkert.
-
-Den omvända riktningen — att spara Dynamics-ärendets id på OneUptime-incidenten — fungerar också, med ett **Update One Incident**-block som skriver till `customFields`. Var försiktig med det: `customFields` är en enda JSON-kolumn, så att skriva till den ersätter varje anpassat fältvärde på den incidenten, inte bara ditt. Att hålla länken på Dynamics-sidan undviker det helt.
-
-## Steg 7 — Lös ärendet när incidenten löses
-
-Bygg det här som ett **andra** arbetsflöde så att ett fel här inte kan hindra att ärenden öppnas.
-
-1. **Skapa arbetsflöde**, namnge det `Incident resolved → Close Dynamics case` och lägg till utlösaren **On Update Incident**.
-2. I utlösarens **Listen on**, skriv `{"currentIncidentStateId": true}` så att arbetsflödet bara vaknar för tillståndsändringar snarare än varje redigering. I **Select Fields**, be om `{"_id": true, "currentIncidentState": {"name": true}}`.
-3. Lägg till ett **If / Else**-block. **Input 1** är `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** är `==`, **Input 2** är `Resolved` — eller vad ditt projekts lösta tillstånd nu heter. Se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
-4. Från grenen **Yes**, upprepa blocket `get-token` från Steg 4.
-5. Lägg till ett **API Get (JSON)**-block, sätt dess **Identifier** till `find-case` och ge det `$filter`-URL:en från Steg 6. En Dataverse-fråga svarar med en `value`-array, och en arbetsflödesreferens kan indexera in i en array med hakparenteser, så ärende-id:t är `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.
-6. Lägg till ett **API Post (JSON)**-block som stänger ärendet:
-
-   - **URL**: `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/CloseIncident`
-   - **Request Headers**: samma som i Steg 5, minus `Prefer`.
-   - **Request Body**:
-
-     ```json
-     {
-       "IncidentResolution": {
-         "@odata.type": "Microsoft.Dynamics.CRM.incidentresolution",
-         "subject": "Resolved in OneUptime",
-         "incidentid@odata.bind": "/incidents(<the case id>)"
-       },
-       "Status": 5
-     }
-     ```
-
-     `Status` är ett `statuscode`-värde i tillståndet Resolved — `5` är *Problem Solved*.
-
-     **Testa den här bodyn mot din egen miljö innan du förlitar dig på den.** `CloseIncident` tar två parametrar, `IncidentResolution` och `Status`, men Microsoft publicerar inget HTTP-exempel för den — varje officiellt exempel är C#. Formen ovan är den konventionella översättningen. Om din miljö avvisar den, prova att identifiera ärendet med en vanlig `"incidentid": "<the case id>"`-egenskap i stället för `@odata.bind`-formen, vilket är hur Microsofts andra åtgärdsexempel refererar till en befintlig post.
-
-**Varför inte bara `PATCH`:a ärendet till `statecode: 1`?** Det går — Microsoft dokumenterar en `PATCH` av `statecode` och `statuscode` som Web API-motsvarigheten till det äldre SetState-meddelandet, och det är rätt verktyg för att flytta ett ärende mellan aktiva statusar. Det den inte gör är att skapa den **Case Resolution**-aktivitet som ett löst ärende i Dynamics 365 Customer Service förväntas ha, och den avvisas rakt av i en miljö där en administratör har konfigurerat anpassade statusövergångar. Använd `CloseIncident` för att lösa; använd `PATCH` för allt annat. Och när du väl skriver `statecode` ska du sätta `statuscode` i samma förfrågan — annars tillämpar Dynamics tyst det tillståndets standardstatus.
-
-`CloseIncident` kommer från Dynamics 365 Customer Service snarare än från grundläggande Dataverse, och den är inte listad i Dataverse-åtgärdsreferensen. Om den returnerar `404`, bekräfta att den finns i din miljö genom att hämta `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/$metadata` och söka efter `CloseIncident`.
-
-För allt som inte är att stänga ärendet — en anteckning, en prioritetshöjning, en titeländring — använd ett **API Patch (JSON)**-block mot `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents(<the case id>)` med en `If-Match: *`-header, som hindrar en oavsiktlig upsert från att skapa ett nytt ärende. Skicka bara kolumnerna du ändrar.
-
-## Inkommande — Dynamics 365 till OneUptime
-
-Nu den andra riktningen: någon stänger ärendet i Dynamics, eller en handläggare lägger till en anteckning, och OneUptime bör få veta det.
-
-### Bygg det mottagande arbetsflödet först
-
-1. **Skapa arbetsflöde**, namnge det `Dynamics 365 → OneUptime` och lägg till utlösaren **Webhook**.
-2. Öppna **Inställningar** på det arbetsflödet och kopiera **Webhookens hemliga nyckel**. Din URL är:
+1. Skapa ett arbetsflöde som heter `Dynamics 365 to OneUptime`, med utlösaren **Webhook**.
+2. Öppna arbetsflödets **Byggare**, klicka på **Webhook**-utlösaren och klicka på **Kopiera URL** högst upp i dess inställningar. URL:en ser ut så här:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en självhostad installation byter du in din egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet. Du kan återställa nyckeln från samma sida.
+   På en egenhostad installation har URL:en din egen värd. Behandla URL:en som ett lösenord: alla som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe, och den gamla URL:en slutar fungera direkt.
 
-3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet innan något annat händer. **Input 1** är `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — ett värde du hittar på och sparar som en hemlig global variabel.
-4. Från grenen **Yes**, lägg till ett **Update One Incident**-block:
+3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet före allt annat: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** ett värde som du hittar på, sparat i en hemlig global variabel.
+4. Lägg efter dess **Yes**-sida till ett **Update One Incident**-block. Ställ in dess **Query** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
-   - **Query**: `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`
-   - **Data (JSON Object)**: vad ärendeändringen än ska betyda i OneUptime — en tillståndsändring, en anteckning, en etikett.
+Slå på det och låt sedan Dynamics 365 anropa det:
 
-   För att flytta incidenten till ett tillstånd behöver du det tillståndets id: ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig `{{local.components.incident-state-find-one-1.returnValues.model._id}}` att skriva in i `currentIncidentStateId`.
+:::tabs
+@tab Power Automate flow
+1. Skapa i [Power Automate](https://make.powerautomate.com) ett **Automated cloud flow** med **Microsoft Dataverse**-utlösaren **When a row is added, modified or deleted**: **Change type** `Modified`, **Table name** `Cases`, **Scope** `Organization` och **Select columns** `statecode,statuscode`, så att det bara utlöses vid statusändringar.
+2. Lägg till **Get a row by ID** på `Cases`, med radens ID från utlösaren: en uppdatering innehåller bara de kolumner som ändrades.
+3. Lägg till den inbyggda åtgärden **HTTP**: **Method** `POST`, **URI** arbetsflödets URL, rubrikerna `Content-Type: application/json` och `X-OneUptime-Secret: <your secret>`, och ett innehåll som byggs från raden: `oneuptimeIncidentId` är kopplingskolumnen utan `oneuptime-incident-`, t.ex. `replace(<link column>, 'oneuptime-incident-', '')`, bredvid `ticketnumber` och `statecode`.
+4. Spara flödet och slå på det.
 
-Lämna det aktiverat och redo. Ge nu Dynamics något att anropa.
+Microsoft Dataverse-anslutningen är premium: flödets ägare behöver licensen, och flödet stannar om den löper ut. Leveransen tar oftast några sekunder.
+@tab Dataverse webhook
+1. Registrera arbetsflödets URL med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-autentisering och rubriken `X-OneUptime-Secret`.
+2. Registrera ett steg för meddelandet **Update** på `incident`, med **Filtering Attributes** begränsat till de kolumner du behöver, **PostOperation** och **Asynchronous**.
+3. Läs payloaden i arbetsflödet: den är plugin-programmets körningskontext, där `InputParameters` är en lista med `{key, value}`-par och den ändrade raden finns under `Target`. Ett **Run Custom JavaScript**-block är det enklaste sättet att läsa den.
 
-### Alternativ A — ett Power Automate-flöde (rekommenderas)
+Dataverse anropar bara portarna 80 och 443, väntar 60 sekunder på ett svar och försöker igen en gång, bara vid `502`, `503` och `504`. En uppdatering innehåller bara de kolumner som ändrades, så registrera en post-image för de andra.
+:::
 
-Det här är vägen de flesta team bör ta: du styr payloaden, och det finns ingenting att installera.
+### Gör samma sak för larm
 
-1. Skapa ett **Automated cloud flow** i [Power Automate](https://make.powerautomate.com).
-2. Utlösare: **Microsoft Dataverse → When a row is added, modified or deleted**.
+Larm fungerar på samma sätt. Byt posttyp, så ändras inget annat:
 
-   - **Change type**: `Modified`
-   - **Table name**: `Cases`
-   - **Scope**: `Organization` — allt snävare utlöses bara för rader som ägs av dig eller din affärsenhet.
-   - **Select columns**: `statecode,statuscode`. Det här är ett filter som bara gäller uppdateringar och det är värt att få rätt. Uppslagskolumner stöds inte här, och lista aldrig en kolumn som finns med vid varje uppdatering (som primärnyckeln) — då utlöses flödet vid varje sparning.
+| Incident | Larm |
+| --- | --- |
+| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
+| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
+| **Find One Incident State** | **Find One Alert State** |
+| **Update One Incident** | **Update One Alert** |
 
-3. Lägg till **Microsoft Dataverse → Get a row by ID**, tabell `Cases`, rad-id från utlösaren, och **Select columns** satt till `incidentid,ticketnumber,title,statecode,statuscode,new_oneuptimeincidentid`.
-
-   Det här andra anropet är värt sin kostnad. Vid en uppdatering bär utlösaren bara de kolumner som ändrades, så identifierarna du behöver matcha på kanske helt enkelt inte finns där.
-
-4. Lägg till den inbyggda **HTTP**-åtgärden:
-
-   - **Method**: `POST`
-   - **URI**: OneUptime-webhookens URL ovanifrån
-   - **Headers**: `Content-Type: application/json` och `X-OneUptime-Secret: <the same secret>`
-   - **Body**: bygg den från utdata från *Get a row by ID*, till exempel
-
-     ```json
-     {
-       "oneuptimeIncidentId": "<new_oneuptimeincidentid>",
-       "caseId": "<incidentid>",
-       "caseNumber": "<ticketnumber>",
-       "statecode": "<statecode>",
-       "statuscode": "<statuscode>"
-     }
-     ```
-
-5. Spara och slå på flödet.
-
-Värt att veta innan du binder dig till den här vägen:
-
-- **Microsoft Dataverse-kopplingen är premium.** För ett automatiserat flöde behöver bara flödets ägare licensen, inte alla som ärendet berör — men att ägarens licens går ut stoppar flödet utan att det märks.
-- Dataverse-utlösare är **push, inte pollning** — Dynamics registrerar ett återanrop och utlöser det. Leverans sker normalt inom sekunder; något som tar mer än fem minuter betyder att den asynkrona tjänsten är överbelastad, vilket du kan se under **Settings → System Jobs** i admin center.
-- Egna headers överlever. Power Automate tar bort flera standardheaderfamiljer från HTTP-åtgärder (de flesta `Accept-*`- och `Content-*`-headers, `Host`, `Origin`, `Cookie`), men en egen header som `X-OneUptime-Secret` skickas vidare.
-- Flödet måste ligga i samma miljö som tabellen det bevakar.
-- Förfrågningar räknas mot din tenants Power Platform-förfrågningskvot, och kopplingsstrypning visar sig som `429` inuti flödeskörningen.
-
-### Alternativ B — en inbyggd Dataverse-webhook
-
-Om Power Automate inte är tillgängligt kan Dataverse anropa OneUptime direkt. Registrera endpointen med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, ge den OneUptime-URL:en, välj autentiseringen **HttpHeader** och lägg till `X-OneUptime-Secret` med din hemlighet. Registrera sedan ett steg på tabellen **incident** för meddelandet **Update**, med **Filtering Attributes** begränsade till kolumnerna du bryr dig om, stadiet **PostOperation**, exekveringsläget **Asynchronous**.
-
-Ta den här vägen med öppna ögon:
-
-- **Bara portarna 80 och 443.** En självhostad OneUptime på någon annan port kan inte registreras.
-- **Dataverse verifierar inte din hemlighet.** Den skickar headern; att avvisa en förfrågan som inte bär den är helt och hållet ditt arbetsflödes uppgift — vilket är vad **If / Else**-blocket i det mottagande arbetsflödet är till för.
-- **Payloaden är inte ett vänligt JSON-objekt.** Det är en serialiserad `RemoteExecutionContext`, där `InputParameters` är en *array* av `{key, value}`-par och den ändrade raden ligger under nyckeln `Target` med sina kolumner i ytterligare en `Attributes`-array. Räkna med att lägga till ett **Run Custom JavaScript**-block för att platta ut den innan något annat kan läsa den.
-- **Bara ändrade kolumner ingår** vid en uppdatering, så registrera en **Post Image** om du behöver `ticketnumber` eller din OneUptime-id-kolumn.
-- **Över 256 KB rensas de intressanta delarna bort** — `InputParameters`, `PreEntityImages` och `PostEntityImages` försvinner allihop, och förfrågan bär en `x-ms-dynamics-msg-size-exceeded`-header. `PrimaryEntityId` och `PrimaryEntityName` överlever, så reservlösningen är att läsa tillbaka raden via Web API:et.
-- **Leveransen är närapå oförlåtande.** Dataverse väntar 60 sekunder på en `2xx` och gör exakt ett nytt försök, bara för `502`, `503` och `504`. Allt annat — inklusive en `500` från din sida — görs inte om; det hamnar som ett misslyckat System Job.
-- Välj **Asynchronous**. Ett synkront steg blockerar handläggarens sparning på din endpoint, och om transaktionen rullas tillbaka efteråt har förfrågan redan gått ut och kan inte återkallas.
-
-Klassiska Dynamics-bakgrundsarbetsflöden har inget HTTP- eller webhooksteg alls, så de är inte ett tredje alternativ här.
-
-## Samma sak för larm
-
-Allt ovan är skrivet kring incidenter eftersom det är det vanliga fallet, men larm fungerar likadant — byt ut posttypen och inget annat ändras:
-
-| Incident                                                     | Larm                                                |
-| ------------------------------------------------------------ | --------------------------------------------------- |
-| **On Create Incident** (`incident-on-create-1`)               | **On Create Alert** (`alert-on-create-1`)           |
-| **On Update Incident** (`incident-on-update-1`)               | **On Update Alert** (`alert-on-update-1`)           |
-| `incidentNumber`, `currentIncidentState`, `incidentSeverity`  | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State**                                   | **Find One Alert State**                            |
-| **Update One Incident**                                       | **Update One Alert**                                |
-
-Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. Om de två skulle göra samma arbete, bygg Dynamics-halvan en gång och anropa den från båda med komponenten **Execute Workflow**.
+Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Dynamics 365-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manual**-utlösare och startar det från båda med ett **Execute Workflow**-block.
 
 ## Felsökning
 
-Läs det felande blocket i **Körningar och loggar** först — båda Microsoft-endpointerna returnerar en förklarande JSON-body, och API-komponenten behåller den i `response-body`.
+Öppna det misslyckade steget i **Loggar → Körningar** först. Båda Microsoft-slutpunkterna svarar med ett JSON-innehåll som förklarar problemet, och API-blocket sparar det i `response-body`.
 
-**Tokenförfrågan misslyckas med `400` och `invalid_request` eller en grant type som inte stöds.** Headern `Content-Type` är inte exakt `Content-Type: application/x-www-form-urlencoded`, så bodyn gick ut som JSON. Kontrollera versaliseringen.
+:::details 400 med AADSTS70011, scopet är inte giltigt
+Scopet är inte din miljö-URL följd av `/.default`. Kopiera URL:en från administrationscentret för Power Platform och ta bort eventuellt snedstreck på slutet och alla `/api/data/...`-sökvägar.
+:::
 
-**`400` med `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.** `scope` är inte din miljö-URL plus `/.default`. Kopiera URL:en från **Developer resources** och ta bort eventuellt avslutande snedstreck och eventuell `/api/data/...`-sökväg.
+:::details 401 Unauthorized från Dynamics 365
+`Authorization`-rubriken saknas eller är felaktigt utformad. Den måste innehålla `Bearer`, ett blanksteg och sedan token.
+:::
 
-**`401 Unauthorized` från Dynamics.** Headern `Authorization` saknas, är felformad, eller så har token gått ut mitt i körningen. Den måste lyda `Bearer <token>` med ett enda mellanslag.
+:::details 403 Forbidden med 0x80072560
+"The user isn't a member of the organization": programanvändaren saknas eller hör till en annan appregistrering. Token är i ordning. Skapa användaren som i [Förbered Dynamics 365](#förbered-dynamics-365).
+:::
 
-**`403 Forbidden` med `0x80072560`, "The user isn't a member of the organization".** Steg 2 hoppades över, eller så är application user bunden till en annan appregistrering. Token är i sin ordning; användaren på Dynamics-sidan finns inte där.
+:::details 403 Forbidden med ett behörighetsfel
+Programanvändaren finns, men dess säkerhetsroll saknar en behörighet som anropet behöver, t.ex. Create, Read eller Write på **Case**.
+:::
 
-**`403 Forbidden` med ett behörighetsfel.** Application user finns, men dess anpassade säkerhetsroll saknar Create, Read eller Write på **Case**.
+:::details 400 Bad Request om kunden
+`customerid` är obligatoriskt. Skicka `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, stavat exakt, med en adress som `/accounts(<guid>)`.
+:::
 
-**`400 Bad Request` som nämner kunden.** `customerid` är obligatoriskt. Sätt `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, exakt stavat, med en URI som inleds med snedstreck, till exempel `/accounts(<guid>)`.
+:::details 404 Not Found på CloseIncident
+`CloseIncident` följer med Dynamics 365 Customer Service, inte med enbart Dataverse. Sök efter den i din miljös `$metadata`.
+:::
 
-**`404 Not Found` på `/CloseIncident`.** Åtgärden är en Dynamics 365 Customer Service-åtgärd. Sök i din miljös `$metadata` efter den innan du antar att den är tillgänglig.
+:::details 412 Precondition Failed med DuplicateRecord
+En regel för dubblettidentifiering gav träff. Avgränsa regeln, eller sluta skicka fältet som den matchar på.
+:::
 
-**`412 Precondition Failed` med `DuplicateRecord`.** En regel för dubblettidentifiering matchade. Antingen begränsar du regeln eller slutar skicka fältet den matchar på.
+:::details 429 Too Many Requests
+Dataverses gränser för tjänsteskydd tillåter ungefär 6 000 begäranden, och 20 minuters körningstid, per användare under en period på fem minuter. Svaret innehåller `Retry-After`, i sekunder. Placera ett **Sleep**-block i ett arbetsflöde som skickar i skurar, eller flytta arbetet till ett schemalagt arbetsflöde.
+:::
 
-**`429 Too Many Requests`.** Dataverses tjänsteskyddsgränser — ungefär 6 000 förfrågningar och 20 minuters exekveringstid per användare under ett femminutersfönster, per webbserver. Svaret bär en `Retry-After` i sekunder. Om ett arbetsflöde skickar i skurar, lägg ett **Delay**-block i det eller flytta arbetet till ett schemalagt arbetsflöde som batchar.
+:::details Inget når OneUptime
+Skicka en begäran själv till webhook-URL:en med `curl` och leta upp den i **Loggar → Körningar**. Om din kommer fram och den från Dynamics 365 inte gör det tittar du längre upp i kedjan: flödets egen körningshistorik, eller de misslyckade System Jobs för en Dataverse-webhook.
+:::
 
-**Ingenting kommer fram på OneUptime-sidan.** Skicka en förfrågan till webhook-URL:en själv med `curl` och kontrollera arbetsflödets **Körningar och loggar**. Om din egen förfrågan dyker upp men inte Dynamics ligger problemet uppströms: för Power Automate, titta på flödets egen körhistorik; för en inbyggd webhook, titta under **Settings → System Jobs** filtrerat på misslyckanden.
+:::details Arbetsflödet körs, men incidenten ändras inte
+Ett **Update One Incident**-block rapporterar `Items Updated: 0` när dess fråga inte matchade något, och det är en framgång, inte ett fel. Kontrollera att ID:t i begäran verkligen är OneUptime-incidentens, och att du frågar på `_id`.
+:::
 
-**Arbetsflödet körs men incidenten ändras inte.** Ett **Update One Incident**-block rapporterar `Items Updated: 0` när frågan inte matchade något — det är en framgång, inte ett fel. Kontrollera att id:t i payloaden är OneUptime-incidentens id och att du frågar på `_id`.
+## Nästa steg
 
-## Läs vidare
-
-- [Integrationsöversikt](/docs/integrations/index) — de inkommande och utgående mönstren, och autentiseringsfuskbladet.
-- [Jira](/docs/integrations/jira) — samma tvåvägsbygge mot Jira.
-- [Översikt över arbetsflöden](/docs/workflows/index) och [Skapa ett arbetsflöde](/docs/workflows/authoring) — arbetsytan, identifierarna och att slå på ett arbetsflöde.
-- [Komponenter](/docs/workflows/components) — API-blocken, If / Else och OneUptime-datakomponenterna.
-- [Variabler](/docs/workflows/variables) — hemligheter, och att läsa ett blocks output från nästa.
-- [Konfiguration & säkerhet](/docs/workflows/configuration) — webhook-säkerhet och utgående nätverksåtkomst.
-- [IP-adresser](/docs/configuration/ip-addresses) — OneUptimes utgående intervall, om Dynamics sitter bakom en tillåtelselista.
+:::cards
+- [Jira](/docs/integrations/jira): Samma dubbelriktade synkronisering för Jira-ärenden.
+- [Arbetsflödesvariabler](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva): OAuth 2.0-variabler och de tokens som de håller färska.
+- [Arbetsflödeskonfiguration & säkerhet](/docs/workflows/configuration): Webhooksäkerhet, utgående nätverksåtkomst och abonnemangsgränser.
+- [IP-adresser](/docs/configuration/ip-addresses): OneUptimes utgående adresser, om Dynamics 365 står bakom en lista över tillåtna adresser.
+:::

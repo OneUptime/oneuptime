@@ -65,11 +65,15 @@ podman compose up -d
 
 These metrics come from the `docker_stats` receiver, which works against Podman's Docker-API compatible socket, so the metric names are identical to the Docker agent.
 
-- **CPU**: `container.cpu.usage.total`, `container.cpu.percent`, `container.cpu.throttling_data.throttled_time`
+- **CPU**: `container.cpu.usage.total`, `container.cpu.utilization`, `container.cpu.throttling_data.throttled_time`
 - **Memory**: `container.memory.usage.total`, `container.memory.usage.limit`, `container.memory.percent`
 - **Network**: `container.network.io.usage.rx_bytes`, `container.network.io.usage.tx_bytes`
 - **Block I/O**: `container.blockio.io_service_bytes_recursive.read`, `container.blockio.io_service_bytes_recursive.write`
 - **Container Info**: `container.uptime`, `container.restarts`, `container.pids.count`
+
+`container.cpu.utilization` is the CPU a container used over each 30-second collection interval, as a percent of one core: 100% is one full core, so a container busy on two cores reads 200%, as `podman stats` counts it. The agent works it out from `container.cpu.usage.total` (see `otel-collector-config.yaml`), so the two always agree. A container has no CPU percent at its first reading after the agent or the container starts. The `docker_stats` receiver's own CPU percent is turned off: Podman's Docker-compatible API sends no previous reading with a stats sample, so that figure is a flat line that does not follow the load.
+
+`container.memory.percent` is the memory in use as a percent of the container's memory limit, or of the host's memory when it has none, sent with the unit `%`.
 
 ## Collected Logs
 
@@ -122,6 +126,33 @@ log_size_max = 104857600
 Then recreate (not just restart) the affected containers — the log driver is baked in at container create time, so an existing container will keep its old driver until it is removed and recreated.
 
 > **Note:** If you must keep `journald`, the agent can still collect **metrics** and **inventory** (both go through the Docker-API socket); only the container **logs** pipeline depends on the file-based driver. Alternatively, point the filelog receiver at your journald export if you forward it to a file.
+
+## AI agent
+
+`install.sh` and `docker-compose.yml` also run the **OneUptime AI agent** for this host: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent`), that runs the `docker` commands OneUptime AI asks for, through Podman's Docker-compatible socket, while it investigates an incident or alert here. It shares the collector's settings (`ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `PODMAN_HOST_NAME`), so it serves exactly the host the collector reports, and it appears on the host's **AI → AI agent** page in OneUptime.
+
+- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream`, never `exec`, `run`, `rm`, `prune` or docker's global flags (`-H`, `--context`). Environment values in `docker inspect` output are masked before anything leaves the host.
+- **Fixes are opt-in.** Set `ONEUPTIME_AI_ALLOW_WRITES=true` (in `.env`, or re-run `install.sh` with it) to let it restart, start, stop, pause, kill or change the limits of a named container. `ONEUPTIME_AI_FIXES` beside it says whether each fix needs approval (`ask-for-approval`, `automatic` or `bypass-approval`), and the host's AI agent page in OneUptime shows it, read-only. `ONEUPTIME_AI_WRITE_TARGETS` (comma-separated globs such as `web-*,api-*`) limits which containers; `ONEUPTIME_AI_PROTECTED_TARGETS` adds containers it must never change. It never changes itself or the collector.
+- It needs the same socket as the collector (`sudo systemctl enable --now podman.socket`) and runs as root because the socket is root-owned. The socket's `:ro` mount does not make the API read-only; the agent's command policy is the limit.
+- To leave it out: `install.sh --no-ai-agent` (or `ONEUPTIME_INSTALL_AI_AGENT=false`), or delete the `oneuptime-podman-ai-agent` service from `docker-compose.yml`. To remove it later: `podman rm -f oneuptime-podman-ai-agent`.
+
+Without the installer:
+
+```bash
+podman run -d \
+  --name oneuptime-podman-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
+  -e ONEUPTIME_URL="https://oneuptime.com" \
+  -e ONEUPTIME_SERVICE_TOKEN="your-service-token" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+Logs: `podman logs -f oneuptime-podman-ai-agent`. Every setting is described in the [resource AI agent README](../ResourceAIAgent/README.md).
 
 ## Upgrading
 
@@ -238,6 +269,7 @@ podman ps --filter name=oneuptime-podman-agent
 # View agent logs
 podman logs -f oneuptime-podman-agent
 
-# Verify Podman socket access
-podman exec oneuptime-podman-agent ls -la /run/podman/podman.sock
+# Verify Podman socket access — the agent image has no shell, so look from a
+# throwaway container that shares its mounts
+podman run --rm --volumes-from oneuptime-podman-agent alpine:3.19 ls -la /run/podman/podman.sock
 ```

@@ -17,6 +17,8 @@ import {
   resolveClockFace,
 } from "Common/Utils/Dashboard/ClockWidgetFormat";
 import useClockTick from "Common/UI/Utils/UseClockTick";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardClockComponentType;
@@ -227,6 +229,7 @@ const DayNightGlyph: FunctionComponent<{ isDaytime: boolean }> = (props: {
 const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showSeconds: boolean = Boolean(props.component.arguments.showSeconds);
 
   /*
@@ -300,7 +303,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
       )}
       {display.isFallbackTimezone ? (
         <div className="text-[10px] text-amber-500 text-center truncate max-w-full">
-          Unknown timezone — showing yours
+          {translator.translateText("Unknown timezone — showing yours")}
         </div>
       ) : (
         <></>

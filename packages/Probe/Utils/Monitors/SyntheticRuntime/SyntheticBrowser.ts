@@ -80,9 +80,9 @@ export default class SyntheticBrowser {
    * longer waits on the disk. Two consequences are deliberate:
    *
    * - Chromium keeps the tenant's web storage (IndexedDB, OPFS, Cache Storage)
-   *   in memory too, so it is bounded by the worker's process-tree RSS limit
-   *   rather than the run directory's disk limit. Firefox still writes it to
-   *   the browser's temporary profile, under the disk limit.
+   *   in memory too, so it is bounded by the worker's process-tree memory
+   *   limit rather than the run directory's disk limit. Firefox still writes
+   *   it to the browser's temporary profile, under the disk limit.
    * - The browser's own temporary profile is created by Playwright under
    *   os.tmpdir(), which the worker checks is its run directory, so the disk
    *   watchdog and the run-directory cleanup still cover everything written.

@@ -1,0 +1,639 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import {
+  WorkflowTemplateCategory,
+  getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplates,
+} from "Common/Types/Workflow/Templates";
+import {
+  WorkflowTemplatePickerViewInfo,
+  getWorkflowTemplatePickerViews,
+  workflowTemplateCountText,
+} from "../../FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
+
+/*
+ * Create a workflow - the template picker and the wizard around it - looks
+ * every word it draws up in the Dashboard locale files, by its English text,
+ * so a string it renders that no locale carries stays English for everyone.
+ * This pins both halves: the strings the dialog translates, and a
+ * translation of each in all seventeen locales. It also walks the picker's
+ * and the wizard's source for every literal they hand to translation, so a
+ * new one cannot ship without being listed here.
+ *
+ * The templates themselves - their names, descriptions and settings - are
+ * catalog content, written in English in Common like the builder's own
+ * component names, and are not translated here.
+ */
+
+const DASHBOARD_SRC: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+);
+
+const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+
+const PICKER_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "Workflow",
+  "WorkflowTemplatePicker.tsx",
+);
+
+/*
+ * The step the picker draws is the shared template picker, which Create a
+ * dashboard draws too: Start from scratch, the heading, the search, the
+ * category select, the empty search. Its words are the picker's words.
+ */
+const SHARED_PICKER_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "TemplatePicker",
+  "TemplatePicker.tsx",
+);
+
+const MODAL_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "Workflow",
+  "CreateWorkflowModal.tsx",
+);
+
+/** Every string the picker translates that it writes out itself. */
+const PICKER_STRINGS: Array<string> = [
+  "Start from scratch",
+  "Begin with an empty canvas and add your own trigger and steps.",
+  "Or start from a template",
+  "Search templates…",
+  "Clear search",
+  "Template categories",
+  "1 result",
+  "{count} results",
+  "No templates match your search.",
+  "Try other words, or start from scratch.",
+  "Search all templates",
+  "How It Works",
+  "Trigger",
+  "What you'll need",
+  "Secret",
+  "Optional",
+  "Nothing to fill in.",
+];
+
+/*
+ * What the wizard around the picker draws: the dialog's title, description
+ * and buttons, which the dialog translates, the Name step's field help,
+ * prompts and message, and the Configure step's one sentence.
+ */
+const MODAL_STRINGS: Array<string> = [
+  "Create a workflow",
+  /*
+   * Off pauses the trigger, not a test from the Builder ("Why do I have to
+   * enable a workflow in order to test run it?"), so the note no longer says
+   * nothing runs.
+   */
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
+  "Use this template",
+  "Name",
+  "Workflow names are unique within a project.",
+  "What should this workflow be called?",
+  "Please give this workflow a name of at least 2 letters.",
+  "Description",
+  "What is this workflow for?",
+  "Back",
+  "Create Workflow",
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+];
+
+/*
+ * The category select's options - Recommended, each category, All
+ * templates - and the two parts of the Jira category. The picker translates
+ * them as it draws them; they are declared elsewhere.
+ */
+const VIEW_STRINGS: Array<string> = getWorkflowTemplatePickerViews().map(
+  (info: WorkflowTemplatePickerViewInfo): string => {
+    return info.label;
+  },
+);
+
+const SUBCATEGORY_STRINGS: Array<string> = Array.from(
+  new Set(
+    getWorkflowTemplates()
+      .map((template: { subcategory?: string | undefined }) => {
+        return template.subcategory || "";
+      })
+      .filter((subcategory: string) => {
+        return subcategory.length > 0;
+      }),
+  ),
+);
+
+const STRINGS: Array<string> = Array.from(
+  new Set([
+    ...PICKER_STRINGS,
+    ...MODAL_STRINGS,
+    /*
+     * The Name step's Next, before Configure: the shared stepped footer's
+     * (Forms/Utils/SteppedFormFooter), which the dialog translates.
+     */
+    "Next",
+    ...VIEW_STRINGS,
+    ...SUBCATEGORY_STRINGS,
+  ]),
+);
+
+/*
+ * Keys this dialog brought, now and in the template picker before it, and
+ * the wizard strings that were English placeholders until this change. The
+ * rest were in the locales already ("Clear search", "Incidents", "How It
+ * Works", ...) and keep the translations they had.
+ */
+const NEW_STRINGS: Array<string> = [
+  // The simpler dialog.
+  "Begin with an empty canvas and add your own trigger and steps.",
+  "Or start from a template",
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+  // Translated with it: the wizard's own words, English until now.
+  "Create a workflow",
+  "Workflow names are unique within a project.",
+  "What should this workflow be called?",
+  "What is this workflow for?",
+  "Please give this workflow a name of at least 2 letters.",
+  // The template picker before it.
+  "Search templates…",
+  "Start from scratch",
+  "Use this template",
+  "Recommended",
+  "All templates",
+  "Template categories",
+  "{count} results",
+  "1 result",
+  "No templates match your search.",
+  "Try other words, or start from scratch.",
+  "Search all templates",
+  "Trigger",
+  "Nothing to fill in.",
+  "Learn the basics",
+  "Maintenance",
+  "On a Schedule",
+  "Jira",
+  "Dynamics 365",
+  "Integrations",
+  // The Zabbix category, which came later.
+  "Zabbix",
+];
+
+/*
+ * A new key that reads the same as English in a locale, and why it is right
+ * there. Anything else identical to English is a copy someone forgot to
+ * translate.
+ */
+const NON_ENGLISH_LANGUAGES: Array<string> = [
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no",
+  "pt",
+  "ru",
+  "sv",
+  "zh-CN",
+  "zh-TW",
+];
+
+const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
+  // Product names.
+  Jira: NON_ENGLISH_LANGUAGES,
+  "Dynamics 365": NON_ENGLISH_LANGUAGES,
+  Zabbix: NON_ENGLISH_LANGUAGES,
+  /*
+   * The word these languages' workflow docs and tools already use for it.
+   * Not German: its Dashboard calls a trigger "Auslöser" on the builder's
+   * empty trigger block, in the trigger search and in the turn-on dialog, so
+   * the picker's Trigger reads "Auslöser" too.
+   */
+  Trigger: ["da", "it", "nl", "no", "pt"],
+  // French spells it the same.
+  Maintenance: ["fr"],
+};
+
+/*
+ * What the earlier pickers drew, and an earlier draft of one. None is drawn
+ * now. The ones only those pickers used were taken out of the locales with
+ * them.
+ */
+const RETIRED_STRINGS: Array<string> = [
+  "Pick a template to see what it does.",
+  "What you'll learn",
+  "You'll need",
+  "How it works",
+  "Blank",
+  // The categories-and-preview picker the maintainer found too busy.
+  "to move",
+  "to use",
+  "Back to templates",
+  "1 block",
+  "{count} blocks",
+  "A few good places to start.",
+  "Every template, grouped by what it is for.",
+  "Start from",
+  "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
+  // The note before test runs: off no longer means nothing runs.
+  "Workflows are created switched off, so nothing runs until you turn them on.",
+];
+
+// Retired strings no other part of the Dashboard draws, so no locale keeps them.
+const RETIRED_KEYS: Array<string> = [
+  "Pick a template to see what it does.",
+  "What you'll learn",
+  "You'll need",
+  "to move",
+  "to use",
+  "Back to templates",
+  "1 block",
+  "{count} blocks",
+  "A few good places to start.",
+  "Every template, grouped by what it is for.",
+  "Start from",
+  "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
+  "Workflows are created switched off, so nothing runs until you turn them on.",
+];
+
+const CONFIGURE_SENTENCE: string =
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.";
+
+type ReadLocaleFunction = (file: string) => Record<string, unknown>;
+
+const readLocale: ReadLocaleFunction = (
+  file: string,
+): Record<string, unknown> => {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+  ) as Record<string, unknown>;
+};
+
+const LOCALE_FILES: Array<string> = fs
+  .readdirSync(LOCALES_DIR)
+  .filter((file: string) => {
+    return file.endsWith(".json");
+  })
+  .sort();
+
+const NON_ENGLISH_FILES: Array<string> = LOCALE_FILES.filter((file: string) => {
+  return file !== "en.json";
+});
+
+type StripCommentsFunction = (source: string) => string;
+
+const stripComments: StripCommentsFunction = (source: string): string => {
+  return source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+};
+
+const PICKER_CODE: string = [PICKER_PATH, SHARED_PICKER_PATH]
+  .map((file: string): string => {
+    return stripComments(fs.readFileSync(file, "utf8"));
+  })
+  .join("\n");
+const MODAL_CODE: string = stripComments(fs.readFileSync(MODAL_PATH, "utf8"));
+
+type LiteralArgumentsFunction = (code: string, callee: string) => Array<string>;
+
+/** The string literal passed straight to every `callee("...")` call. */
+const literalArguments: LiteralArgumentsFunction = (
+  code: string,
+  callee: string,
+): Array<string> => {
+  return Array.from(
+    code.matchAll(
+      new RegExp(`\\b${callee}\\(\\s*"((?:[^"\\\\]|\\\\.)*)"`, "g"),
+    ),
+    (match: RegExpMatchArray): string => {
+      return match[1]!.replace(/\\"/g, '"');
+    },
+  );
+};
+
+describe("Create a workflow's strings", () => {
+  test("seventeen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(17);
+    expect(LOCALE_FILES).toContain("en.json");
+  });
+
+  test("every literal the picker translates is listed here", () => {
+    const translated: Array<string> = literalArguments(PICKER_CODE, "tx");
+
+    expect(translated.length).toBeGreaterThan(10);
+
+    for (const text of translated) {
+      expect({ text: text, listed: STRINGS.includes(text) }).toEqual({
+        text: text,
+        listed: true,
+      });
+    }
+  });
+
+  test("everything listed for the picker is drawn by it", () => {
+    for (const text of PICKER_STRINGS) {
+      expect({
+        text: text,
+        drawn: PICKER_CODE.includes(`"${text}"`),
+      }).toEqual({ text: text, drawn: true });
+    }
+  });
+
+  test("every sentence the wizard translates itself is listed, and every string listed for it is in its source", () => {
+    const translated: Array<string> = literalArguments(
+      MODAL_CODE,
+      "translateTemplate",
+    );
+
+    expect(translated).toEqual([CONFIGURE_SENTENCE]);
+
+    for (const text of MODAL_STRINGS) {
+      expect({
+        text: text,
+        inWizard: MODAL_CODE.includes(`"${text}"`),
+      }).toEqual({ text: text, inWizard: true });
+    }
+  });
+
+  /*
+   * The Configure step's intro used to be the template's name glued to an
+   * English sentence in the markup, which no locale could translate.
+   */
+  test("the Configure step's sentence is translated whole, with the template's name as a value", () => {
+    expect(MODAL_CODE).toContain("translateTemplate(");
+    expect(MODAL_CODE).toContain("templateName:");
+    expect(MODAL_CODE).not.toMatch(
+      /\{selectedTemplate\?\.name\}\s*needs a few details/,
+    );
+  });
+
+  test("the result count is passed to translation whole", () => {
+    expect(PICKER_CODE).toContain('"1 result"');
+    expect(PICKER_CODE).toContain('"{count} results"');
+    // No number glued to a word translated on its own.
+    expect(PICKER_CODE).not.toMatch(/tx\("results?"\)/);
+  });
+
+  test("none of the retired strings is drawn", () => {
+    for (const text of RETIRED_STRINGS) {
+      expect({
+        text: text,
+        inPicker: PICKER_CODE.includes(`"${text}"`),
+        inWizard: MODAL_CODE.includes(`"${text}"`),
+      }).toEqual({
+        text: text,
+        inPicker: false,
+        inWizard: false,
+      });
+    }
+  });
+
+  test.each(LOCALE_FILES)(
+    "%s keeps none of the strings only the old pickers drew",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      for (const text of RETIRED_KEYS) {
+        expect({ file: file, text: text, kept: text in locale }).toEqual({
+          file: file,
+          text: text,
+          kept: false,
+        });
+      }
+    },
+  );
+
+  test("English carries every string as itself", () => {
+    const english: Record<string, unknown> = readLocale("en.json");
+
+    for (const text of STRINGS) {
+      expect({ text: text, value: english[text] }).toEqual({
+        text: text,
+        value: text,
+      });
+    }
+  });
+
+  test.each(NON_ENGLISH_FILES)("%s translates every string", (file: string) => {
+    const locale: Record<string, unknown> = readLocale(file);
+
+    for (const text of STRINGS) {
+      const value: unknown = locale[text];
+
+      expect({
+        file: file,
+        text: text,
+        isText: typeof value === "string",
+      }).toEqual({
+        file: file,
+        text: text,
+        isText: true,
+      });
+      expect((value as string).trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s does not leave a new string in English, except where English is right",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const language: string = file.replace(/\.json$/, "");
+
+      for (const text of NEW_STRINGS) {
+        const allowed: boolean = (IDENTICAL_TO_ENGLISH[text] || []).includes(
+          language,
+        );
+
+        expect({
+          file: file,
+          text: text,
+          identical: locale[text] === text,
+        }).toEqual({ file: file, text: text, identical: allowed });
+      }
+    },
+  );
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s keeps the {count} the result count fills in",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      expect(locale["{count} results"]).toEqual(
+        expect.stringContaining("{count}"),
+      );
+      expect(String(locale["{count} results"]).split("{count}")).toHaveLength(
+        2,
+      );
+    },
+  );
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s names the template in the Configure sentence exactly once",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      expect(
+        String(locale[CONFIGURE_SENTENCE]).split("{{templateName}}"),
+      ).toHaveLength(2);
+    },
+  );
+
+  test.each(NON_ENGLISH_FILES)("%s keeps the name Jira", (file: string) => {
+    const locale: Record<string, unknown> = readLocale(file);
+
+    for (const text of STRINGS.filter((candidate: string) => {
+      return candidate.includes("Jira");
+    })) {
+      expect({ text: text, value: locale[text] }).toEqual({
+        text: text,
+        value: expect.stringContaining("Jira"),
+      });
+    }
+  });
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s keeps the name Dynamics 365",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const named: Array<string> = STRINGS.filter((candidate: string) => {
+        return candidate.includes("Dynamics 365");
+      });
+
+      expect(named).toContain("Dynamics 365");
+
+      for (const text of named) {
+        expect({ text: text, value: locale[text] }).toEqual({
+          text: text,
+          value: expect.stringContaining("Dynamics 365"),
+        });
+      }
+    },
+  );
+
+  /*
+   * The category's line is not drawn by the picker today, but every other
+   * category's is in the locales, and so is this one's - with the product
+   * named as it is.
+   */
+  test.each(LOCALE_FILES)(
+    "%s carries the Dynamics 365 category's line, naming the product",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const line: string = getWorkflowTemplateCategoryInfo(
+        WorkflowTemplateCategory.Dynamics365,
+      ).description;
+
+      expect(locale[line]).toEqual(expect.stringContaining("Dynamics 365"));
+
+      if (file !== "en.json") {
+        expect(locale[line]).not.toBe(line);
+      }
+    },
+  );
+
+  test.each(LOCALE_FILES)(
+    "%s carries the Zabbix category's line, naming the product",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const line: string = getWorkflowTemplateCategoryInfo(
+        WorkflowTemplateCategory.Zabbix,
+      ).description;
+
+      expect(locale["Zabbix"]).toBe("Zabbix");
+      expect(locale[line]).toEqual(expect.stringContaining("Zabbix"));
+
+      if (file !== "en.json") {
+        expect(locale[line]).not.toBe(line);
+      }
+    },
+  );
+
+  /*
+   * "Basics" is a form step's key, and reads "basic information" in several
+   * locales ("Datos básicos", "基本信息"). The category of first workflows
+   * has a key of its own.
+   */
+  test("the beginners' category is not labelled with the form step's Basics", () => {
+    expect(
+      getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Basics).label,
+    ).toBe("Learn the basics");
+    expect(STRINGS).not.toContain("Basics");
+  });
+});
+
+describe("a count and its noun, translated whole", () => {
+  type FakeTranslateFunction = (value: string) => string;
+
+  type TranslatorForFunction = (file: string) => FakeTranslateFunction;
+
+  const translatorFor: TranslatorForFunction = (
+    file: string,
+  ): FakeTranslateFunction => {
+    const locale: Record<string, unknown> = readLocale(file);
+
+    return (value: string): string => {
+      return typeof locale[value] === "string"
+        ? (locale[value] as string)
+        : value;
+    };
+  };
+
+  test("one is its own phrase", () => {
+    expect(
+      workflowTemplateCountText(
+        translatorFor("en.json"),
+        1,
+        "1 result",
+        "{count} results",
+      ),
+    ).toBe("1 result");
+    expect(
+      workflowTemplateCountText(
+        translatorFor("de.json"),
+        1,
+        "1 result",
+        "{count} results",
+      ),
+    ).toBe("1 Ergebnis");
+  });
+
+  test("any other number is put where the language puts it", () => {
+    expect(
+      workflowTemplateCountText(
+        translatorFor("en.json"),
+        12,
+        "1 result",
+        "{count} results",
+      ),
+    ).toBe("12 results");
+    expect(
+      workflowTemplateCountText(
+        translatorFor("ru.json"),
+        3,
+        "1 result",
+        "{count} results",
+      ),
+    ).toBe("Результатов: 3");
+    expect(
+      workflowTemplateCountText(
+        translatorFor("ko.json"),
+        0,
+        "1 result",
+        "{count} results",
+      ),
+    ).toBe("결과 0개");
+  });
+});

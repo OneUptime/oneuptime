@@ -416,3 +416,47 @@ describe("the custom address is masked in what gets stored", () => {
     expect(getInboundDomain).toHaveBeenCalled();
   });
 });
+
+/*
+ * Workflows receive mail on the same domain, at workflow-{key}@. An email can
+ * go to a monitor and to a workflow at once, and the monitor keeps the whole
+ * email where its readers - who may not be able to read the workflow - can
+ * see it. The workflow's address is its credential, so it is masked too.
+ */
+describe("a workflow's address on the same email", () => {
+  const WORKFLOW_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+  const WORKFLOW_ADDRESS: string = `workflow-${WORKFLOW_KEY}@${DOMAIN}`;
+
+  it("is masked in what the monitor stores and evaluates, with its domain kept", async () => {
+    await processIncomingEmailFromQueue(
+      customAddressJob({
+        emailTo: `${CUSTOM_ADDRESS}, ${WORKFLOW_ADDRESS}`,
+        emailHeaders: {
+          To: CUSTOM_ADDRESS,
+          Cc: `Ops <${WORKFLOW_ADDRESS.toUpperCase()}>`,
+        },
+        emailBody: `Copied to ${WORKFLOW_ADDRESS}.`,
+      }),
+    );
+
+    const stored: string = JSON.stringify(persistedEmailRequest());
+
+    expect(stored.toLowerCase()).not.toContain(WORKFLOW_KEY);
+    expect(stored).toContain(`workflow-[REDACTED]@${DOMAIN}`);
+    expect(JSON.stringify(evaluatedPayload()).toLowerCase()).not.toContain(
+      WORKFLOW_KEY,
+    );
+  });
+
+  it("leaves the rest of the email as it was", async () => {
+    await processIncomingEmailFromQueue(
+      customAddressJob({
+        emailBody: `Copied to ${WORKFLOW_ADDRESS}. Backup finished in 42 minutes.`,
+      }),
+    );
+
+    expect(persistedEmailRequest()["emailBody"]).toBe(
+      `Copied to workflow-[REDACTED]@${DOMAIN}. Backup finished in 42 minutes.`,
+    );
+  });
+});

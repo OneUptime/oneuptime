@@ -25,6 +25,8 @@ import DictionaryForm from "Common/UI/Components/Dictionary/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import SeriesColorSelector from "../../Metrics/SeriesColorSelector";
 import SeriesGroupColorSelector from "../../Metrics/SeriesGroupColorSelector";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -138,6 +140,7 @@ const Field: FunctionComponent<FieldProps> = (
 const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: TraceChartArguments =
     (props.component.arguments as unknown as TraceChartArguments) || {};
 
@@ -259,6 +262,16 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   };
 
   const currentGroupBy: string = (args.groupByAttribute || "").trim();
+
+  /*
+   * A split by span status keeps each status's own color, so the lead color
+   * does not apply (see resolveTraceSeriesColor). Pins still work, keyed by
+   * the stored value, which the chart itself now names — so suggest those.
+   */
+  const isStatusSplit: boolean = currentGroupBy === "statusCode";
+  const pinValueSuggestions: Record<string, Array<string>> = isStatusSplit
+    ? { ...valueSuggestions, statusCode: ["0", "1", "2"] }
+    : valueSuggestions;
 
   /*
    * Load value suggestions for the split attribute so the per-series color
@@ -418,17 +431,14 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <Field
+          <Toggle
             title="Include child spans"
             description="Off by default, so counts match the traces explorer (root spans only). Turn on to count every span."
-          >
-            <Toggle
-              value={Boolean(args.includeChildSpans)}
-              onChange={(checked: boolean): void => {
-                writeArgs({ includeChildSpans: checked });
-              }}
-            />
-          </Field>
+            value={Boolean(args.includeChildSpans)}
+            onChange={(checked: boolean): void => {
+              writeArgs({ includeChildSpans: checked });
+            }}
+          />
         </div>
       </CollapsibleSection>
 
@@ -445,24 +455,43 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
             defaultCollapsed={true}
           >
             <div className="space-y-5">
-              <SeriesColorSelector
-                label={currentGroupBy ? "Default series color" : "Series color"}
-                description={
-                  currentGroupBy
-                    ? "Colors the first unpinned series; the rest use the theme palette."
-                    : "Pick a color for the series, or leave on Auto to use the theme palette."
-                }
-                value={args.color}
-                onChange={(color: string | undefined): void => {
-                  writeArgs({ color });
-                }}
-              />
+              {isStatusSplit ? (
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid="trace-chart-status-split-colors"
+                >
+                  {translator.translateText(
+                    "A split by status keeps each status's own color: Unset green, Ok cyan, Error red. To change one, pin its stored value below: 0 for Unset, 1 for Ok, 2 for Error.",
+                  )}
+                </p>
+              ) : (
+                <SeriesColorSelector
+                  label={
+                    currentGroupBy ? "Default series color" : "Series color"
+                  }
+                  description={
+                    currentGroupBy
+                      ? "Colors the first unpinned series; the rest use the theme palette."
+                      : "Pick a color for the series, or leave on Auto to use the theme palette."
+                  }
+                  value={args.color}
+                  onChange={(color: string | undefined): void => {
+                    writeArgs({ color });
+                  }}
+                />
+              )}
 
               {currentGroupBy ? (
                 <SeriesGroupColorSelector
                   groupByKeys={[currentGroupBy]}
-                  valueSuggestions={valueSuggestions}
+                  valueSuggestions={pinValueSuggestions}
                   loadingKeys={loadingValueKeys}
+                  description={
+                    isStatusSplit
+                      ? "Pin a color to a status value. Unpinned statuses keep their own color."
+                      : undefined
+                  }
+                  offerEmptyGroupValue={!isStatusSplit}
                   value={args.colorsByGroup || {}}
                   onChange={(colorsByGroup: Record<string, string>): void => {
                     writeArgs({

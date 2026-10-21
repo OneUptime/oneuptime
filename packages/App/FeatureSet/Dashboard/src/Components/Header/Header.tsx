@@ -99,7 +99,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           modelType: Incident,
           query: {
             currentIncidentState: {
-              order: 1,
+              /*
+               * In the state new ones start in - not "the state numbered
+               * 1": states are dragged into any order, and the first one
+               * need not be where new ones start.
+               */
+              isCreatedState: true,
             },
           },
           requestOptions: {
@@ -119,7 +124,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           modelType: Alert,
           query: {
             currentAlertState: {
-              order: 1,
+              /*
+               * In the state new ones start in - not "the state numbered
+               * 1": states are dragged into any order, and the first one
+               * need not be where new ones start.
+               */
+              isCreatedState: true,
             },
           },
           requestOptions: {
@@ -671,7 +681,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       ) &&
       props.paymentMethodsCount !== undefined &&
       props.paymentMethodsCount === 0 &&
-      !props.selectedProject.resellerId,
+      !props.selectedProject.resellerId &&
+      // Billed by a cloud marketplace: there is no card to add.
+      !props.selectedProject.billingMarketplace,
   );
 
   const showTrialButton: boolean = Boolean(
@@ -907,8 +919,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
              * exist to advertise a keyboard chord, and none of the three is
              * worth the width on a phone. They are grouped rather than moved so
              * the desktop rail keeps the order it has always had.
+             *
+             * `max-lg:hidden`, not `hidden`: a foreign `.hidden` rule (browser
+             * extension, user stylesheet) would otherwise take them off every
+             * screen, desktop included — see Common's NavBar desktop view.
              */}
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="max-lg:hidden items-center gap-2 lg:flex">
               {BILLING_ENABLED &&
               props.selectedProject?.id &&
               props.selectedProject.paymentProviderPlanId &&
@@ -933,7 +949,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <div className="hidden items-center lg:flex">
+            <div className="max-lg:hidden items-center lg:flex">
               <Help />
             </div>
             <UserProfile

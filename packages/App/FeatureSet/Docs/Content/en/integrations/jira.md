@@ -1,128 +1,151 @@
-# Jira Integration
+# Jira
 
-Open a [Jira](https://www.atlassian.com/software/jira) issue whenever a OneUptime incident is declared or an alert is created, keep it in step as the incident or alert moves, and let Jira push status changes back into OneUptime — all with a [Workflow](/docs/workflows/index). There is no Jira-specific block to install: OneUptime calls Jira's REST API with the [API component](/docs/workflows/components#api), and Jira calls back into a [Webhook trigger](/docs/workflows/triggers#webhook).
+Keep [Jira](https://www.atlassian.com/software/jira) issues in step with your OneUptime incidents and alerts, both ways. Ready-made workflow templates open an issue for every incident or alert, move it as the record moves and copy notes into it as comments. Others declare incidents from new issues and bring status changes, comments and edits back. There is no plugin: the workflows call Jira's REST API, and Jira calls their webhook URLs.
 
-```text
-OneUptime Incident → On Create  ──►  API Post (POST /rest/api/3/issue)  ──►  Jira issue
+:::cards
+- [Start from a template](#start-from-a-template): The 17 templates, what they ask for, and how to set them up.
+- [How the templates work](#how-the-templates-work): How issues and records stay linked, without loops.
+- [Build it yourself](#build-it-yourself): Each direction by hand, for when a template does not fit.
+- [Troubleshooting](#troubleshooting): What Jira's answers mean.
+:::
 
-Jira issue transitioned  ──►  Automation rule (Send web request)  ──►  OneUptime Webhook trigger  ──►  Update One Incident
+> [!NOTE]
+> Atlassian is renaming things in Jira Cloud: a **project** is now a **space** in much of the UI, and an **issue** is a **work item**. Sites use both words, so where the wording matters you will find both here.
+
+## How it works
+
+```mermaid title="Two directions, linked by labels"
+flowchart TB
+    record["Incident or alert"] -->|"declared, moved,<br/>noted"| out["Workflows<br/>to Jira"]
+    out -->|"REST API"| issue["Jira issue, with<br/>the record's label"]
+    issue -->|"created, moved,<br/>commented"| hook["Jira webhook"]
+    hook --> back["Workflows<br/>from Jira"]
+    back -->|"declare, resolve,<br/>add notes"| record
 ```
 
-The quickest way in is one of the 17 ready-made Jira templates, nine for incidents and eight for alerts, described in the next section. The rest of the page builds both directions by hand for incidents, which is also your reference when you want a template to do something different. [Doing the same for alerts](#doing-the-same-for-alerts) maps that build onto alerts. Everything up to the inbound section is written for **Jira Cloud**; a section near the end lists what changes on **Jira Data Center**.
+Each template is a small workflow, so you take only the directions you want, for incidents, alerts or both. The OneUptime → Jira templates start from an event in OneUptime and call Jira's REST API. The Jira → OneUptime templates start from a Jira webhook. They all find each other's records by two labels on the issue.
 
-> Atlassian has been renaming things in Jira Cloud: a **project** is now a **space** in much of the UI, and an **issue** is a **work item**. Tenants are on both vocabularies, so where the wording matters below you will find both.
+Everything on this page is written for **Jira Cloud**. [Jira Data Center](#jira-data-center) lists what changes on a self-managed Jira.
+
+## Before you begin
+
+- A Jira Cloud site, such as `https://your-domain.atlassian.net`, and a project to file issues in.
+- A Jira user for the integration, and an API token for it. Give the user **Browse Projects**, **Create Issues**, **Edit Issues**, **Add Comments** and **Transition Issues** in the project.
+- A Jira administrator, to register the webhooks the Jira → OneUptime templates need.
+- In OneUptime, the right to create workflows. On OneUptime Cloud, workflows need the **Growth** plan or above.
 
 ## Start from a template
 
-The workflow picker has 17 Jira templates, grouped under **Jira**: nine for incidents, then eight for alerts. Each one is a small workflow of its own, so you can take only the records and directions you want — incidents, alerts, or both. They share one convention — labels on the Jira issue — so any combination of them works together.
+The **Create a workflow** dialog has 17 Jira templates, under **Jira** in its category list: nine for incidents, then eight for alerts, each set under its own heading. They share one convention, labels on the Jira issue, so any combination of them works together.
 
 ### Incident templates
 
-| Template                                                          | What it does                                                                                                                                                                  | What it asks for                                                |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **OneUptime → Jira**                                              |                                                                                                                                                                               |                                                                 |
-| Create a Jira issue when an incident is declared                  | Files an issue for every new incident and labels it with the incident's id. Incidents declared from Jira, and private incidents, are skipped.                                 | Site URL, API token, project key, issue type, OneUptime URL     |
-| Move the Jira issue when the incident is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the incident is acknowledged, and to a Done status when it is resolved. Never moves it back.                    | Site URL, API token                                             |
-| Copy incident private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                                | Site URL, API token                                             |
-| Copy incident public notes to the Jira issue                      | Posts each new public note as a comment on the linked issue.                                                                                                                  | Site URL, API token                                             |
-| Comment on the Jira issue when the incident is edited             | When the incident's title, severity, description, root cause or remediation notes change, posts how the incident now stands — an internal comment in Jira Service Management. | Site URL, API token                                             |
-| **Jira → OneUptime**                                              |                                                                                                                                                                               |                                                                 |
-| Declare an incident when a Jira issue is created                  | Declares an incident for each new issue, kept off your status pages, with a severity chosen from the issue's priority, then labels the issue to link the two.                 | Site URL, API token, and a Jira webhook for **Issue created**   |
-| Acknowledge or resolve the incident when its Jira issue moves     | Acknowledges the incident when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                        | A Jira webhook for **Issue updated**                            |
-| Add Jira comments to the incident as private notes                | Copies each comment on a linked issue onto the incident as a private note.                                                                                                    | Site URL, API token, and a Jira webhook for **Comment created** |
-| Add Jira issue changes to the incident as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the incident as a private note. Status changes are left to the template above.                 | A Jira webhook for **Issue updated**                            |
+| Template                                                          | What it does                                                                                                                                                                  | What it asks for                                                         |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **OneUptime → Jira**                                              |                                                                                                                                                                               |                                                                          |
+| Create a Jira issue when an incident is declared                  | Files an issue for every new incident and labels it with the incident's id. Incidents declared from Jira, and private incidents, are skipped.                                 | API URL, API token, project key, issue type, OneUptime URL               |
+| Move the Jira issue when the incident is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the incident is acknowledged, and to a Done status when it is resolved. Never moves it back.                    | API URL, API token                                                       |
+| Copy incident private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                                | API URL, API token                                                       |
+| Copy incident public notes to the Jira issue                      | Posts each new public note as a comment on the linked issue.                                                                                                                  | API URL, API token                                                       |
+| Comment on the Jira issue when the incident is edited             | When the incident's title, severity, description, root cause or remediation notes change, posts how the incident now stands — an internal comment in Jira Service Management. | API URL, API token                                                       |
+| **Jira → OneUptime**                                              |                                                                                                                                                                               |                                                                          |
+| Declare an incident when a Jira issue is created                  | Declares an incident for each new issue, kept off your status pages, with a severity chosen from the issue's priority, then labels the issue to link the two.                 | Site URL, API URL, API token, and a Jira webhook for **Issue created**   |
+| Acknowledge or resolve the incident when its Jira issue moves     | Acknowledges the incident when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                        | A Jira webhook for **Issue updated**                                     |
+| Add Jira comments to the incident as private notes                | Copies each comment on a linked issue onto the incident as a private note.                                                                                                    | Site URL, API URL, API token, and a Jira webhook for **Comment created** |
+| Add Jira issue changes to the incident as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the incident as a private note. Status changes are left to the template above.                 | Site URL, and a Jira webhook for **Issue updated**                       |
 
 ### Alert templates
 
-The alert templates do the same jobs for alerts. There is one fewer, because alerts have no public notes. Everything else that differs is listed under [What is different for alerts](#what-is-different-for-alerts).
+The alert templates do the same jobs for alerts. There is one fewer, because alerts have no public notes. [What is different for alerts](#what-is-different-for-alerts) lists the rest.
 
-| Template                                                       | What it does                                                                                                                                                              | What it asks for                                                |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **OneUptime → Jira**                                           |                                                                                                                                                                           |                                                                 |
-| Create a Jira issue when an alert is created                   | Files an issue for every new alert, including every alert a monitor raises, and labels it with the alert's id. Alerts created from Jira, and private alerts, are skipped. | Site URL, API token, project key, issue type, OneUptime URL     |
-| Move the Jira issue when the alert is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the alert is acknowledged, and to a Done status when it is resolved. Never moves it back.                   | Site URL, API token                                             |
-| Copy alert private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                            | Site URL, API token                                             |
-| Comment on the Jira issue when the alert is edited             | When the alert's title, severity, description or remediation notes change, posts how the alert now stands — an internal comment in Jira Service Management.               | Site URL, API token                                             |
-| **Jira → OneUptime**                                           |                                                                                                                                                                           |                                                                 |
-| Create an alert when a Jira issue is created                   | Creates an alert for each new issue, with a severity chosen from the issue's priority, then labels the issue to link the two.                                             | Site URL, API token, and a Jira webhook for **Issue created**   |
-| Acknowledge or resolve the alert when its Jira issue moves     | Acknowledges the alert when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                       | A Jira webhook for **Issue updated**                            |
-| Add Jira comments to the alert as private notes                | Copies each comment on a linked issue onto the alert as a private note.                                                                                                   | Site URL, API token, and a Jira webhook for **Comment created** |
-| Add Jira issue changes to the alert as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the alert as a private note. Status changes are left to the template above.                | A Jira webhook for **Issue updated**                            |
+| Template                                                       | What it does                                                                                                                                                              | What it asks for                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **OneUptime → Jira**                                           |                                                                                                                                                                           |                                                                          |
+| Create a Jira issue when an alert is created                   | Files an issue for every new alert, including every alert a monitor raises, and labels it with the alert's id. Alerts created from Jira, and private alerts, are skipped. | API URL, API token, project key, issue type, OneUptime URL               |
+| Move the Jira issue when the alert is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the alert is acknowledged, and to a Done status when it is resolved. Never moves it back.                   | API URL, API token                                                       |
+| Copy alert private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                            | API URL, API token                                                       |
+| Comment on the Jira issue when the alert is edited             | When the alert's title, severity, description or remediation notes change, posts how the alert now stands — an internal comment in Jira Service Management.               | API URL, API token                                                       |
+| **Jira → OneUptime**                                           |                                                                                                                                                                           |                                                                          |
+| Create an alert when a Jira issue is created                   | Creates an alert for each new issue, with a severity chosen from the issue's priority, then labels the issue to link the two.                                             | Site URL, API URL, API token, and a Jira webhook for **Issue created**   |
+| Acknowledge or resolve the alert when its Jira issue moves     | Acknowledges the alert when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                       | A Jira webhook for **Issue updated**                                     |
+| Add Jira comments to the alert as private notes                | Copies each comment on a linked issue onto the alert as a private note.                                                                                                   | Site URL, API URL, API token, and a Jira webhook for **Comment created** |
+| Add Jira issue changes to the alert as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the alert as a private note. Status changes are left to the template above.                | Site URL, and a Jira webhook for **Issue updated**                       |
 
-None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-5-more), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
+None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-1-incident-details), or an alert marked **Private Alert**, to Jira: not the record, its state, its notes or its edits, unless you switch that on. See [Limitations](#limitations).
 
 ### What is different for alerts
 
-Each alert template is built the same way as its incident twin, step for step. Where alerts differ from incidents, so do the templates:
+Each alert template is built like its incident twin, step for step. Where alerts differ from incidents, so do the templates:
 
-- **No public notes.** Alerts only have private notes, so there is no alert version of **Copy incident public notes to the Jira issue**, and every comment the alert templates post is an internal comment in Jira Service Management.
-- **No status page.** An alert never reaches a status page, so **Create an alert when a Jira issue is created** has no status page settings to turn off, as the incident version does. It writes the severity, title, description and `customFields.jiraIssueKey`, and nothing else.
-- **Two severities, so Medium becomes Low.** A new project starts with two alert severities, High and Low, where it has three incident severities. The create template spreads Jira's priorities across whatever severities the project has. On the default two, Highest, High, Critical and Blocker become High, and every other priority becomes Low — Medium and Major included, and any priority `PRIORITY_RANK` does not list. To send Medium to High, change `medium: 1` to `medium: 0` in `PRIORITY_RANK` in the `prepare-alert-1` script (see [Changing what a template does](#changing-what-a-template-does)). If you add a third alert severity between High and Low, the middle priorities land on it instead.
-- **Root cause edits are not watched.** An alert's root cause is written when the alert is created and cannot be edited afterwards, so **Comment on the Jira issue when the alert is edited** fires when the title, description, severity or remediation notes change. The comment it posts still shows the root cause.
-- **Alert links and labels.** The issue's description links to `/dashboard/<project id>/alerts/<alert id>`, and the issue is labelled `oneuptime-alert-<alert id>` rather than `oneuptime-incident-<incident id>`.
-- **Numbers say what they number.** With the default `#` prefix, an alert and an incident can both be `#12`, so the templates write a bare number as `Alert #12` or `Incident #12` in issue summaries and comments. A number with a prefix of its own, such as `ALT-12`, is written as it is.
-- **Private alerts.** An alert marked **Private Alert**, by hand or by an alert privacy rule, stays out of Jira unless you set `SYNC_PRIVATE_ALERTS` to `true`. It is the alert templates' copy of `SYNC_PRIVATE_INCIDENTS`.
+- **No public notes.** Alerts only have private notes, so every comment the alert templates post is an internal comment in Jira Service Management.
+- **No status page.** An alert never reaches a status page, so **Create an alert when a Jira issue is created** writes the severity, title, description and `customFields.jiraIssueKey`, and nothing else.
+- **Two severities, so Medium becomes Low.** A new project has two alert severities, High and Low, where it has three incident severities. The create template spreads Jira's priorities across the severities the project has. On the default two, Highest, High, Critical and Blocker become High, and every other priority becomes Low, Medium and Major included. To send Medium to High, change `medium: 1` to `medium: 0` in `PRIORITY_RANK` in the `prepare-alert-1` script.
+- **Root cause edits are not watched.** An alert's root cause is written when the alert is created and cannot be edited, so the edit template fires on the title, description, severity and remediation notes. Its comment still shows the root cause.
+- **Alert links and labels.** The issue links to `/dashboard/<project id>/alerts/<alert id>`, and is labelled `oneuptime-alert-<alert id>`.
+- **Numbers say what they number.** With the default `#` prefix, an alert and an incident can both be `#12`, so the templates write `Alert #12` or `Incident #12`. A number with its own prefix, such as `ALT-12`, is written as it is.
+- **Private alerts.** An alert marked **Private Alert**, by hand or by an alert privacy rule, stays out of Jira unless you set `SYNC_PRIVATE_ALERTS` to `true`.
 
-**Monitors raise alerts on their own, and can raise a lot of them.** **Create a Jira issue when an alert is created** files an issue for every one, so a noisy monitor can open dozens of issues. Unless every alert deserves a ticket, put a condition in front of the Jira step. To file issues only for High alerts, for example:
+**Monitors raise alerts on their own, and can raise a lot of them.** **Create a Jira issue when an alert is created** files an issue for every one. Unless every alert deserves a ticket, put a condition in front of the Jira step. To file issues only for High alerts:
 
 1. Open the workflow's **Builder** and add an **If / Else** block.
-2. Set **Input 1** to `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Operator** to `==`, and **Input 2** to `High`.
-3. Remove the line from the trigger, `alert-on-create-1`, to `prepare-issue-1` by dragging its end off the dot (see [Tidying up](/docs/workflows/authoring#tidying-up)). Then connect the trigger's **Success** to the **If / Else** block, and the block's **Yes** to `prepare-issue-1`.
+2. Set **Value to check** to `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** to **is equal to**, and **Compare with** to `High`.
+3. Remove the line from `alert-on-create-1` to `prepare-issue-1` by dragging its end off the dot (see [Tidying up](/docs/workflows/authoring#tidying-up)). Connect the trigger's **Success** to the **If / Else** block, and its **Yes** to `prepare-issue-1`.
 
-An alert that takes the **No** branch ends the run there, and no issue is filed for it.
+An alert that takes the **No** side ends the run there, and no issue is filed for it.
 
 ### What the templates ask for
 
 The **Configure** step of the create wizard asks for up to five values. The tables above show which ones each template needs.
 
-- **Jira Site URL** — your site, such as `https://your-domain.atlassian.net`, with no trailing slash. With a scoped API token (below), which includes every service account token, use `https://api.atlassian.com/ex/jira/<cloudId>` instead. Your `cloudId` is in the JSON at `https://your-domain.atlassian.net/_edge/tenant_info`.
-- **Jira API Token (base64 of email:token)** — not the token on its own, but the account's email and token encoded together, which is how Jira Cloud takes Basic auth:
-
-  1. Create a token for a dedicated Jira user — an ordinary Atlassian account used only by the integration — rather than for a person: issues and comments are attributed to the token's owner. Sign in as that user and create the token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). A classic token (**Create API token**) works with your site URL. A scoped token (**Create API token with scopes**) only works with the `api.atlassian.com` address above; the classic scopes `read:jira-work` and `write:jira-work` cover every call the templates make.
-
-     An Atlassian **service account** works too, set up differently. An organization admin creates it, and its token, in [admin.atlassian.com](https://admin.atlassian.com) under **Directory → Service accounts**, not at id.atlassian.com. That token is always scoped, so **Jira Site URL** must be the `https://api.atlassian.com/ex/jira/<cloudId>` address, and the email you encode in the next step is the service account's own, not the admin's. Give the service account access to Jira and the project permissions listed below, as you would any user.
-
-  2. Encode that account's email and the token:
-
-     ```bash
-     printf '%s' 'jira-bot@example.com:your_api_token' | base64 | tr -d '\n'
-     ```
-
-     Use `printf`, not `echo`: `echo` appends a newline, the newline is encoded along with everything else, and Jira no longer accepts the credentials. On your site URL that seldom shows up as a `401`; [Limitations](#limitations) describes what it does look like, and how to test the value. The `tr` at the end keeps the output on one line — GNU `base64` on Linux wraps every 76 characters, and a current Atlassian token is long enough to be wrapped.
-
-  3. Paste the output into this field.
-
-  Tokens expire, a year after creation by default. Note the date somewhere; [Limitations](#limitations) describes what an expired token looks like.
-
+- **Jira Site URL** — the address you open Jira at, such as `https://your-domain.atlassian.net`. On Jira Data Center, its base URL, such as `https://jira.example.com:8443` or `https://example.com/jira`. The templates that bring Jira into OneUptime link the issue in the description or note they write, and that link always goes to this site, whatever the event says. So the field takes a site's address and nothing else: a scheme, a host, a port if there is one and, on Data Center, the path Jira runs under. It refuses the address of a page in the site, a query or a user name, and says what to type instead. A slash at the end is fine. If the variable is later emptied, the issue is named without a link.
+- **Jira API URL** — where the workflow sends its Jira requests: your site, such as `https://your-domain.atlassian.net`, with no trailing slash. With a scoped API token, which includes every service account token, use `https://api.atlassian.com/ex/jira/<cloudId>` instead. Your `cloudId` is in the JSON at `https://your-domain.atlassian.net/_edge/tenant_info`. With a classic token, this is the same address as the **Jira Site URL**, so in the templates that ask for both, the wizard fills it in from the **Jira Site URL** until you type into it.
+- **Jira API Token (base64 of email:token)** — not the token on its own, but the account's email and token encoded together, which is how Jira Cloud takes Basic auth. [Create the API token](#create-the-api-token) shows how. Tokens expire, a year after they are created by default, so note the date somewhere.
 - **Jira Project Key** — the project (space) new issues are filed in: the `OPS` in `OPS-123`.
 - **Jira Issue Type** — the type of issue to create, spelled exactly as it is in that project, such as `Task`, `Bug` or `Incident`.
 - **OneUptime URL** — the address you open OneUptime at: `https://oneuptime.com`, or your own host. The issue's description links back to the incident or alert with it.
 
-The account behind the token needs **Browse Projects**, **Create Issues**, **Edit Issues**, **Add Comments** and **Transition Issues** in that project. Between them, the templates search for, create, label, comment on and transition issues. Registering the webhooks further down needs a Jira administrator.
+### Create the API token
+
+:::steps
+1. Create a token for a dedicated Jira user, an ordinary Atlassian account used only by the integration, rather than for a person: issues and comments are attributed to the token's owner. Sign in as that user and create the token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). A classic token (**Create API token**) works with your site URL. A scoped token (**Create API token with scopes**) only works with the `api.atlassian.com` address above. The classic scopes `read:jira-work` and `write:jira-work` cover every call the templates make.
+2. Encode that account's email and the token:
+
+   ```bash
+   printf '%s' 'jira-bot@example.com:your_api_token' | base64 | tr -d '\n'
+   ```
+
+   Use `printf`, not `echo`: `echo` adds a newline, which is encoded with the rest, and Jira no longer accepts the credentials. On your site URL that seldom shows up as a `401` (see [Limitations](#limitations)). `tr` keeps the output on one line: GNU `base64` on Linux wraps every 76 characters, and a current token is long enough to be wrapped.
+
+3. Paste the output into **Jira API Token (base64 of email:token)**.
+:::
+
+An Atlassian **service account** works too. An organization admin creates it, and its token, in [admin.atlassian.com](https://admin.atlassian.com) under **Directory → Service accounts**. That token is always scoped, so **Jira API URL** must be the `https://api.atlassian.com/ex/jira/<cloudId>` address (the **Jira Site URL** stays your site), and the email you encode is the service account's own. Give the service account the project permissions listed above, as you would any user.
 
 ### Create the workflows
 
-1. Open **Workflows → Create Workflow**. Under **Start from**, pick a card from the **Jira** group. Typing `Jira` into **Search templates…** narrows the list.
+:::steps
+1. Open **Workflows → Create Workflow**. Under **Or start from a template**, choose **Jira** from the category list, or type `Jira` into **Search templates…**, and click the template you want. It opens to show what it does and the settings it will ask for. Click **Use this template**.
 2. **Name** is filled in from the template. Change it if you like.
-3. **Configure** asks for the values above. They are saved as that workflow's own variables, under **Workflow Variables** in its left menu. The API token is saved as a secret: it is redacted from **Runs & Logs**, and it only ever goes into the `Authorization` header of the Jira calls.
-4. Click **Create Workflow**. Every workflow is created **disabled**. Turn it on from **Overview → Edit Workflow → Enabled**.
+3. **Configure** asks for the values above. They are saved as the workflow's own variables, under **Workflow Variables** in its menu. The API token is saved as a secret: it is redacted from **Logs → Runs**, and only ever goes into the `Authorization` header of the Jira calls.
+4. Click **Create Workflow**. Every workflow is created switched off: switch **Enabled** on at the top of its **Builder**.
+:::
 
-Start with **Create a Jira issue when an incident is declared**, or **Create a Jira issue when an alert is created** for alerts. Every other OneUptime → Jira template of the same kind finds the issue by the label this one adds. Enable it, declare a test incident (or create a test alert), and open the workflow's **Runs & Logs**: the run's last step should read `✅ Created Jira issue` and name the new issue.
+Start with **Create a Jira issue when an incident is declared**, or **Create a Jira issue when an alert is created** for alerts: every other OneUptime → Jira template of the same kind finds the issue by the label this one adds. Turn it on, declare a test incident or create a test alert, and open the workflow's **Logs → Runs**. The run's last step should read `✅ Created Jira issue` and name the new issue.
 
-Each workflow keeps its own copy of these values. When you replace the token, update `jiraBasicAuthToken` under **Workflow Variables** in every Jira workflow that asked for it.
+Each workflow keeps its own copy of these values. When you replace the token, update `jiraBasicAuthToken` under **Workflow Variables** in every Jira workflow that asked for it. If Jira moves to another address, update `jiraSiteUrl` and `jiraBaseUrl` the same way.
 
 ### Connect the webhook templates
 
 The Jira → OneUptime templates, four for incidents and four for alerts, start from a [Webhook trigger](/docs/workflows/triggers#webhook), so Jira has to be told where to send its events. Do it in this order:
 
-1. Create the workflow and **enable it first**. A disabled workflow answers Jira with `400`, and Jira does not retry a delivery that was refused with a `4xx` like that. Events sent before you enable the workflow are lost, not queued.
-2. Open the workflow's **Builder**, click the **Webhook** trigger block (`webhook-1`), and copy the URL from its **Documentation** card:
+1. Create the workflow and **turn it on first**. A workflow that is off answers Jira with `400`, and Jira does not retry a delivery refused with a `4xx`. Events sent before you turn it on are lost, not queued.
+2. Open the workflow's **Builder**, click the **Webhook** trigger block (`webhook-1`), and click **Copy URL** at the top of its settings. The URL looks like this:
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
    ```
 
-3. In Jira, go to **Settings → System → WebHooks** (under **Advanced**) and click **Create a WebHook**. Paste the URL, tick the event from the table below — the events are grouped under **Issue related events** — and enter a JQL filter so only your project's issues fire it. Leave **Exclude body** unticked; the workflow reads everything from the body.
+3. In Jira, go to **Settings → System → WebHooks** (under **Advanced**) and click **Create a WebHook**. Paste the URL, tick the event from the table below, under **Issue related events**, and enter a JQL filter so only your project's issues fire it. Leave **Exclude body** unticked: the workflow reads everything from the body.
 
 | Template                                                      | Jira event          | JQL filter                                                   |
 | ------------------------------------------------------------- | ------------------- | ------------------------------------------------------------ |
@@ -137,11 +160,11 @@ The Jira → OneUptime templates, four for incidents and four for alerts, start 
 | Add Jira comments to the alert as private notes               | **Comment created** | `project = OPS`                                              |
 | Add Jira issue changes to the alert as private notes          | **Issue updated**   | `project = OPS`                                              |
 
-Replace `OPS` with your project key. The filter on the two templates that create a record keeps the issues OneUptime opened from reaching them at all. The templates would skip them anyway, but an event that never arrives costs no run. `labels != oneuptime` on its own would also drop every issue that has no labels, which is why `labels is EMPTY` is there.
+Replace `OPS` with your project key. The filter on the two templates that create a record keeps the issues OneUptime opened from reaching them at all: they would skip them anyway, but an event that never arrives costs no run. `labels != oneuptime` alone would also drop every issue that has no labels, which is why `labels is EMPTY` is there. The other templates only act on linked issues, so `project = OPS AND labels = oneuptime` is a tighter filter for them.
 
-The other templates only act on linked issues, so `project = OPS AND labels = oneuptime` is a tighter filter for them if you want fewer runs. JQL matches a label only as a whole, so no filter can tell an incident's issue from an alert's. If you run the incident and alert versions of a template side by side, every event reaches both, and the one whose kind the issue is not linked to skips it.
+Each workflow has its own URL, so each needs its own Jira webhook. Two templates on **Issue updated** mean two webhooks, and four when you use the alert versions too.
 
-**Using both templates that create a record?** **Declare an incident when a Jira issue is created** and **Create an alert when a Jira issue is created** both listen for **Issue created**. If both are registered for the same issues, both act on each new issue. Each one checks the issue's labels with Jira before it creates anything, but the two deliveries arrive together, so usually neither run has labelled the issue by the time the other checks. The issue then gets an incident and an alert, and the labels of both. Register the two for different issues with the JQL filter, by project or by issue type:
+**Using both templates that create a record?** **Declare an incident when a Jira issue is created** and **Create an alert when a Jira issue is created** both listen for **Issue created**. Each checks the issue's labels with Jira before it creates anything, but the two deliveries arrive together, so a new issue can get both an incident and an alert. Register the two for different issues, by project or by issue type:
 
 ```text
 project = OPS AND issuetype = Incident AND (labels is EMPTY OR labels != oneuptime)
@@ -150,80 +173,73 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 Use issue types that exist in your project, spelled as Jira spells them.
 
-Each workflow has its own URL, so each needs its own Jira webhook. Two templates on **Issue updated** mean two webhooks, and four when you use the alert versions too.
-
 Before you rely on it:
 
-- **Jira only calls HTTPS, on its allowed ports.** OneUptime Cloud is fine. A self-hosted install has to be reachable from the internet over HTTPS on a port from Jira's list — see [Or use a Jira webhook instead](#or-use-a-jira-webhook-instead).
-- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents or create alerts — the templates that create a record ask Jira whether the issue they name exists and is not linked yet, but take the title, description and priority from the request — and can move or add notes to incidents and alerts whose id or Jira issue key they know. Keep the URL in Jira only. If it leaks, click **Reset Secret Key** on the workflow's **Settings** page and paste the new URL into the Jira webhook.
-- **Every event is a run.** On OneUptime Cloud each delivery counts toward your plan's workflow runs, including the ones a template skips. The JQL filter is what keeps that number down. See [Plan limits](/docs/workflows/configuration#plan-limits).
+- **Jira only calls HTTPS, on its allowed ports.** OneUptime Cloud is fine. A self-hosted install has to be reachable from the internet over HTTPS on a port from Jira's list.
+- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents or create alerts — the templates that create a record ask Jira whether the issue they name exists and is not linked yet, but take the title, description and priority from the request — and can move or add notes to incidents and alerts whose id or Jira issue key they know. Whatever such a request says is written as text (see [Limitations](#limitations)), and the link to the issue goes to the site your **Jira Site URL** names, whatever the request says. Keep the URL in Jira only. If it leaks, click the **Webhook** trigger in the workflow's **Builder**, click **Reset URL**, and paste the new URL into the Jira webhook. The old URL stops working at once.
+- **Every event is a run.** On OneUptime Cloud each delivery counts toward your plan's workflow runs, including the ones a template skips. The JQL filter keeps that number down. See [Plan limits](/docs/workflows/configuration#plan-limits).
 
 ### Check that it works
 
-Every template ends in a **Log** step that says what happened, so the last step of a run in **Runs & Logs** is the place to look:
+Every template ends in a **Log** step that says what happened, so the last step of a run in **Logs → Runs** is the place to look:
 
 - `✅` — it did its job, and names the issue, incident or alert.
-- `ℹ️` — it skipped the event on purpose, and says why: the issue is not linked to a record of this kind, the note came from Jira, the incident or alert is private, the new state has no Jira status mapped to it.
+- `ℹ️` — it skipped the event on purpose, and says why: the issue is not linked to a record of this kind, the note came from Jira, the record is private, or the new state has no Jira status mapped to it.
 - `❌` — a call failed. For a Jira call, the line includes Jira's answer.
-- `⚠️` — a template that creates a record from a Jira issue created the incident or alert, but Jira did not accept the link labels, so the other templates cannot find it yet.
+- `⚠️` — a template that creates a record from a Jira issue created it, but Jira did not take the link labels, so the other templates cannot find it yet. Add the labels by hand.
 
-A skipped run still ends **Executed**. Skips are normal: most Jira events are not ones a given template acts on. See [Runs & Logs](/docs/workflows/runs-and-logs).
+A skipped run still ends **Executed**. Skips are normal: most Jira events are not ones a given template acts on. See [Workflow Runs](/docs/workflows/runs-and-logs).
+
+## How the templates work
 
 ### How the two sides stay linked
 
 Jira holds the link. An issue that belongs to an incident or an alert carries two labels:
 
 - `oneuptime`, which marks the issue as linked.
-- `oneuptime-incident-<incident id>` for an incident, or `oneuptime-alert-<alert id>` for an alert, which names the record. The id is the last part of the record's address in the dashboard: `/dashboard/<project id>/incidents/<incident id>` or `/dashboard/<project id>/alerts/<alert id>`.
+- `oneuptime-incident-<incident id>` for an incident, or `oneuptime-alert-<alert id>` for an alert, which names the record. The id is the last part of the record's address in the dashboard: `/dashboard/<project id>/incidents/<incident id>`.
 
-**Create a Jira issue when an incident is declared** and **Create a Jira issue when an alert is created** add both labels when they file the issue. **Declare an incident when a Jira issue is created** and **Create an alert when a Jira issue is created** add both to the issue once the record exists. Every other template crosses over by these labels: the OneUptime → Jira ones search Jira for the record's label, and the Jira → OneUptime ones read the record's id off the issue's labels. So do not rename or remove them. To link an issue that was opened by hand, add the two labels to it yourself — but only when the record has no issue yet.
+The two create-issue templates add both labels when they file the issue, and the two templates that create a record from a Jira issue add both once the record exists. Every other template crosses over by them: the OneUptime → Jira ones search Jira for the record's label, and the Jira → OneUptime ones read the record's id off the issue's labels. So do not rename or remove them. To link an issue opened by hand, add the two labels yourself, but only when the record has no issue yet.
 
-**An issue is linked to an incident or to an alert, never both.** The templates that create a record from a Jira issue skip any issue that carries `oneuptime`, or a label starting with `oneuptime-incident-` or `oneuptime-alert-`. So an issue filed for an alert never becomes an incident as well, and an issue filed for an incident never becomes an alert. The templates of one kind ignore issues linked to the other: an incident template that receives an event for an alert's issue ends in a skip saying the issue is not linked to an incident. When you link an issue by hand, give it one record label, not one of each. Apart from labels added by hand, an issue only ends up with both when the two templates that create a record listen to the same issues — see [Connect the webhook templates](#connect-the-webhook-templates).
+**An issue is linked to an incident or to an alert, never both.** The templates that create a record skip any issue that carries `oneuptime`, or a label starting with `oneuptime-incident-` or `oneuptime-alert-`, and the templates of one kind ignore issues linked to the other. When you link an issue by hand, give it one record label, not one of each.
 
-A record has one issue. The templates that post to or move the issue act only when exactly one issue carries the record's label. Cloning an issue in Jira copies its labels, both of them, so a clone of a linked issue claims the same incident or alert. From then on those templates stop, and each run ends in a skip that names both issues:
+**A record has one issue.** The templates that post to or move an issue act only when exactly one issue carries the record's label. Cloning an issue in Jira copies its labels, so a clone of a linked issue claims the same record. From then on those templates stop, and each run ends in a skip that names both issues:
 
 ```text
 More than one Jira issue is labelled oneuptime-incident-<id> (OPS-17, OPS-30). A cloned issue copies the label: remove it from every issue except the one filed for the incident.
 ```
 
-The other direction has no such check. Status changes, comments and edits on the clone reach the record as if they were made on the original. So when you clone a linked issue, remove both labels from the clone.
+The other direction has no such check: status changes, comments and edits on the clone reach the record as if they were made on the original. So when you clone a linked issue, remove both labels from the clone.
 
-Incidents and alerts created from Jira also record the issue key in `customFields.jiraIssueKey`. That is how the create-issue templates know the record already has an issue.
-
-The link lives in Jira, not on the record, because of how `customFields` works: it is one JSON value, so a workflow that writes one key into it replaces every other custom field on the incident or alert (see [Step 3](#step-3-carry-the-incident-id-into-jira)). The templates that create a record from a Jira issue can write `jiraIssueKey` safely only because they do so when the record is created, when there is nothing there to replace.
+Incidents and alerts created from Jira also keep the issue key in `customFields.jiraIssueKey`, written when they are created. That is how the create-issue templates know the record already has an issue.
 
 ### How the templates avoid loops
 
-Every write in one direction is an event in the other. A comment the templates post in Jira comes back as a **Comment created** webhook, and a note they add in OneUptime fires the note trigger. Three things stop the echo:
+Every write in one direction is an event in the other: a comment posted in Jira comes back as a **Comment created** webhook, and a note added in OneUptime fires the note trigger. Three things stop the echo:
 
-- **Markers in the text.** Every comment the templates post in Jira starts with `Synced from OneUptime`. Every note written from Jira, and the root cause of every state change made from Jira, starts with `Synced from Jira`. Each direction skips text that contains the other side's marker: a Jira comment containing `Synced from OneUptime` is not copied back, and a note containing `Synced from Jira` is not posted to Jira. A comment someone writes that quotes a marker is skipped too. The incident and alert templates use the same markers.
-- **Labels on new issues.** Issues OneUptime opened carry the `oneuptime` label, and the templates that create a record from a Jira issue skip any issue that has it, or either record label — the JQL filter above keeps them from reaching those templates at all. Before they create anything, those templates also ask Jira for the issue's labels, rather than trusting the event. Incidents and alerts created from Jira carry `customFields.jiraIssueKey`, and the create-issue templates skip those.
-- **States only move forward, on both sides.** The status templates (**Acknowledge or resolve the incident when its Jira issue moves**, and the alert one) write a new row on the record's state timeline, the same as the **Resolve** button does, and only ever to a state later in the order than the current one. The transition templates (**Move the Jira issue when the incident is acknowledged or resolved**, and the alert one) never move an issue back either. When an incident is resolved from Jira, the transition template finds the issue already Done and stops. When the incident is resolved in OneUptime and the issue moves to Done, the status template finds the incident already resolved and changes nothing. Alerts settle the same way.
+- **Markers in the text.** Every comment the templates post in Jira starts with `Synced from OneUptime`. Every note written from Jira, and the root cause of every state change made from Jira, starts with `Synced from Jira`. Each direction skips text that carries the other side's marker, even in a comment someone wrote that quotes one.
+- **Labels on new issues.** Issues OneUptime opened carry the `oneuptime` label, and the templates that create a record skip them. They ask Jira for the issue's labels before they create anything, rather than trusting the event. Records created from Jira carry `customFields.jiraIssueKey`, and the create-issue templates skip them.
+- **States only move forward, on both sides.** The status templates write a new row on the record's state timeline, as the **Resolve** button does, and only ever to a later state. The transition templates never move an issue back either. So when one side resolves, the other finds itself already done and changes nothing.
 
-Keep the markers when you edit the templates. They are the `FROM_ONEUPTIME` and `FROM_JIRA` constants in the helper block at the top of every script. Change the words around them as you like, but a comment or note written without its marker is copied straight back.
+Keep the markers when you edit the templates. They are the `FROM_ONEUPTIME` and `FROM_JIRA` constants in the helper block at the top of every script. A comment or note written without its marker is copied straight back.
 
 ### How the transition template picks a status
 
-Jira has no "move to Done" call. An issue moves by a transition, and which transitions it has depends on its workflow and its current status. So **Move the Jira issue when the incident is acknowledged or resolved**, and its alert twin, read the transitions open to the issue and choose one by the status it leads to:
+Jira has no "move to Done" call. An issue moves by a transition, and which transitions it has depends on its workflow and its status. So **Move the Jira issue when the incident is acknowledged or resolved**, and its alert twin, read the transitions open to the issue and choose one by the status it leads to:
 
-- **Only forward.** Jira sorts statuses into three categories, To Do, In Progress and Done, and the template never picks a transition into an earlier category than the issue's current one — not even for a status you named in `STATE_TO_JIRA_STATUS`. Acknowledging an incident whose issue is already Done ends in `Jira issue OPS-17 is already Done, so it was not moved back to an In Progress status.`
-- **The usual names first.** For a resolved incident or alert, a status named Done, Resolved, Closed, Complete, Completed or Fixed wins. For an acknowledged one, In Progress or Work in Progress wins. A status with any other name in the right category is used when it is the only one that fits.
+- **Only forward.** Jira sorts statuses into three categories, To Do, In Progress and Done, and the template never picks a transition into an earlier category than the issue's, not even for a status named in `STATE_TO_JIRA_STATUS`. Acknowledging an incident whose issue is already Done ends in `Jira issue OPS-17 is already Done, so it was not moved back to an In Progress status.`
+- **The usual names first.** For a resolved record, a status named Done, Resolved, Closed, Complete, Completed or Fixed wins. For an acknowledged one, In Progress or Work in Progress wins. A status with another name in the right category is used when it is the only one that fits.
 - **Never a guess that drops the work.** A status whose name reads like Canceled, Declined, Rejected, Won't Do, Duplicate, Obsolete, Waiting, Pending, Escalated, On Hold or Blocked is never chosen unless `STATE_TO_JIRA_STATUS` names it. So a Jira Service Management request that can go to Resolved or to Canceled goes to Resolved.
 - **Two ways to the same status.** When two transitions lead to one status, it takes the one without a screen.
 
-When that still leaves it unsure, it moves nothing and says why. Either two different statuses fit equally well:
+When that still leaves it unsure, it moves nothing and says why: two statuses fit equally well, or none of the transitions is one it may pick on its own.
 
 ```text
 Jira issue OPS-17 could move to Released or Deployed for a Done status. Name the one to use in STATE_TO_JIRA_STATUS.
-```
-
-or none of the transitions is one it may pick on its own:
-
-```text
 Jira issue OPS-17 has no transition from In Review to a Done status that can be chosen without naming it in STATE_TO_JIRA_STATUS.
 ```
 
-Either way, name the status in `STATE_TO_JIRA_STATUS` at the top of the `plan-transition-1` script, keyed by your OneUptime incident or alert state names:
+Then name the status in `STATE_TO_JIRA_STATUS`, at the top of the `plan-transition-1` script, by your OneUptime state names. A state listed there moves the issue to that status by name, whatever its category, as long as that is not backwards:
 
 ```javascript
 const STATE_TO_JIRA_STATUS = {
@@ -232,11 +248,9 @@ const STATE_TO_JIRA_STATUS = {
 };
 ```
 
-A state listed there moves the issue to that status by name, whatever its category, as long as that is not backwards.
-
 ### Changing what a template does
 
-Open the workflow's **Builder** and click the block you want to change. The settings you are most likely to want are constants near the top of a script — the **JavaScript Code** of a **Run Custom JavaScript** block, just below the shared helper block. The incident and alert versions of a template keep the same constants in the same blocks, except where the table says otherwise:
+Open the workflow's **Builder** and click the block you want to change. The settings you are most likely to want are constants near the top of a script, the **JavaScript Code** of a **Run Custom JavaScript** block, just below the shared helper block. The incident and alert versions of a template keep the same constants in the same blocks:
 
 | Constant                          | Template, and block                                                                                                                       | What it controls                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -249,152 +263,96 @@ Open the workflow's **Builder** and click the block you want to change. The sett
 | `EVENTS`                          | Add Jira comments to the incident (or alert) as private notes — `read-comment-1`                                                          | The comment events that become notes. Add `'comment_updated'` to also copy edits — each edit becomes a new note — and tick **Comment updated** on the Jira webhook as well.                                                                                                                                                                                                                                          |
 | `IGNORED_FIELDS`                  | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1`                                                     | The Jira fields, in lowercase, whose changes are not worth a note. A change is left out when either its field id or its name is listed, which is how `'rank'` catches Rank, a custom field that arrives as an id like `customfield_10019`. Status is on the list because the status template handles it.                                                                                                             |
 
-State and status names used as keys must be spelled exactly as they are named, capitals included. Keep `{{` out of the code: a script is substituted like any other setting before it runs, so two opening braces in a row would be read as a reference.
+State and status names used as keys must be spelled exactly as they are named, capitals included. Keep `{{` out of the code: a script is filled in like any other setting before it runs, so two opening braces in a row would be read as a reference.
 
-To send more fields on new issues, edit the **Request Body** of the `create-issue-1` block in **Create a Jira issue when an incident is declared** or **Create a Jira issue when an alert is created**. It holds the issue's project, issue type, summary, labels and description, and you can add a priority, components, an assignee or custom fields inside `fields`, in the shapes [Filling in more fields](#filling-in-more-fields) describes. Keep both labels. The wording of the summary and description is in the `prepare-issue-1` script. The description gives the record's severity, state and description, then its root cause and remediation notes when it has them — a monitor fills those in when it raises an incident or alert, and they are often what explains it.
+To send more fields on new issues, edit the **Request Body** of the `create-issue-1` block of the create-issue templates. It holds the issue's project, issue type, summary, labels and description, and you can add a priority, components, an assignee or custom fields inside `fields`, in the shapes [Fill in more fields](#fill-in-more-fields) describes. Keep both labels. The wording of the summary and description is in the `prepare-issue-1` script. The description gives the record's severity, state and description, then its root cause and remediation notes when it has them: a monitor fills those in when it raises an incident or alert, and they often explain it.
 
-Private notes and edit comments, for incidents and alerts alike, are marked internal by the `properties` entry, `sd.public.comment`, in the **Request Body** of their `post-comment-1` block. Only Jira Service Management reads it. Delete it only if customers should see those comments.
+Private notes and edit comments are marked internal by the `properties` entry, `sd.public.comment`, in the **Request Body** of their `post-comment-1` block. Only Jira Service Management reads it. Delete it only if customers should see those comments.
 
 ### Limitations
 
-- **Jira Cloud only.** The templates call the Jira Cloud REST API v3 with Basic auth. Data Center has no v3 and takes a personal access token as `Bearer`, so every API block needs the v2 adjustments in [Jira Data Center](#jira-data-center): `/rest/api/2/...` paths, plain strings instead of Atlassian Document Format bodies, and the header. The `find-issue-1` blocks change the most: Data Center has no `/search/jql`, so they must `POST` to `/rest/api/2/search` instead.
-- **Incidents declared from Jira are quiet.** They are created hidden from your status pages and without notifying status page subscribers, because an issue's text was not written for customers. They stay that way until someone changes it: turn on **Visible on Status Page** on the incident's **Settings** page (see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page)), or change `isVisibleOnStatusPage` and `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in the template's `create-incident-1` block. Alerts created from Jira need no such setting, because an alert never reaches a status page.
-- **Private incidents and alerts stay in OneUptime.** The OneUptime → Jira templates skip an incident marked **Private Incident** and an alert marked **Private Alert**: no issue is filed for it, its issue is not moved, and neither its notes nor its edits are posted. Each skip says so in **Runs & Logs**. To send them anyway, set `SYNC_PRIVATE_INCIDENTS` or `SYNC_PRIVATE_ALERTS` to `true` in the template's script (see [Changing what a template does](#changing-what-a-template-does)). Making a record private later stops the sync from then on, but does not take back what Jira already has. The Jira → OneUptime templates do not check, so comments, edits and status changes on a linked issue still reach a private incident or alert.
-- **Incidents and alerts never move backwards, and neither do issues.** Reopening a Jira issue changes nothing in OneUptime, and a status in the To Do category maps to no state at all. See [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference). The transition templates likewise never move an issue to an earlier status category, not even for a status named in `STATE_TO_JIRA_STATUS`.
-- **An issue belongs to an incident or an alert, not both.** The templates that create a record skip an issue already linked to either kind, and the templates of one kind ignore issues linked to the other. If both templates that create a record are registered for the same issues, though, each new issue gets an incident and an alert — give them different projects or issue types, as [Connect the webhook templates](#connect-the-webhook-templates) shows.
-- **A cloned issue claims the same incident or alert.** A clone copies both link labels. The templates that post to or move the issue then stop with a skip naming both issues, and the clone's comments and changes reach the record, until the labels are removed from the clone. See [How the two sides stay linked](#how-the-two-sides-stay-linked).
-- **Every alert gets an issue.** Apart from private alerts, **Create a Jira issue when an alert is created** files an issue for every alert, including each one a monitor raises. [What is different for alerts](#what-is-different-for-alerts) shows how to add a condition in front of it.
-- **The first few seconds can miss the issue.** Jira's search is eventually consistent, so a note, state change or edit made in the first seconds after an incident or alert is created can fail to find the new issue and end in the `No Jira issue is labelled …` skip. That run is not retried. The same applies just after an incident or alert is created from Jira, until its labels are added.
-- **Private and public mean different things in Jira.** In a Jira Service Management project, private notes and edit comments (which carry the root cause and remediation) become internal comments, while an incident's public notes become comments the customer can see. Alerts have only private notes, so every comment the alert templates post is internal there. In any other kind of project, all of them are ordinary comments that anyone who can see the issue can read.
-- **Edit comments follow saves, not changes.** The edit-comment templates listen for the fields they report, but the incident and alert details forms send the title and severity every time they are saved. So saving one after changing only its labels, or its Private setting, also posts a comment — with the same values as the last one. The trigger hands the workflow the record as it now stands, not what changed, so the template cannot tell these saves apart.
-- **Formatting does not cross over.** Notes are posted to Jira as plain text, so Markdown arrives as its raw characters. Jira's rich text arrives in OneUptime as the wiki markup Jira's webhooks send, such as `*bold*`.
-- **A bad or expired token rarely says so.** On your site URL, Jira usually answers a call it cannot authenticate as it would an anonymous visitor, not with a `401`. So a wrong, mistyped or expired token shows up as one of these:
-
-  - the create template's `The target project doesn't exist or you don't have permission to create issues in it`, a `400`
-  - `Issue does not exist or you do not have permission to see it`, a `404`, from a step that reads an issue
-  - the skip `No Jira issue is labelled oneuptime-incident-<id>, or the Jira credentials cannot see it.` (or `oneuptime-alert-<id>`), because a search Jira cannot authenticate finds nothing rather than failing
-
-  A plain `401` is mostly what the `api.atlassian.com` address answers. To test the value you pasted, send it to `/rest/api/3/myself`, which needs a signed-in account: it answers with that account's name and email when the value works, and `401` when it does not.
+- **Jira Cloud only.** The templates call the Jira Cloud REST API v3 with Basic auth. Data Center has no v3 and takes a personal access token as `Bearer`, so every API block needs the changes in [Jira Data Center](#jira-data-center): `/rest/api/2/...` paths, plain strings instead of Atlassian Document Format bodies, and the header. The `find-issue-1` blocks change the most: Data Center has no `/search/jql`, so they must `POST` to `/rest/api/2/search` instead.
+- **Incidents declared from Jira are quiet.** They are created hidden from your status pages, without notifying status page subscribers, because an issue's text was not written for customers. To show one, turn on **Visible on Status Page** on the incident's **Settings** page (see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page)), or change `isVisibleOnStatusPage` and `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in the template's `create-incident-1` block.
+- **Private incidents and alerts stay in OneUptime.** The OneUptime → Jira templates skip them, and each skip says so in **Logs → Runs**. To send them anyway, set `SYNC_PRIVATE_INCIDENTS` or `SYNC_PRIVATE_ALERTS` to `true`. Making a record private later stops the sync from then on, but does not take back what Jira already has. The Jira → OneUptime templates do not check, so comments, edits and status changes on a linked issue still reach a private record.
+- **Nothing moves backwards.** Reopening a Jira issue changes nothing in OneUptime, and a status in the To Do category maps to no state. See [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference). The transition templates never move an issue to an earlier status category either.
+- **Every alert gets an issue.** Apart from private alerts, the alert create-issue template files an issue for every alert, including each one a monitor raises. [What is different for alerts](#what-is-different-for-alerts) shows how to add a condition.
+- **The first few seconds can miss the issue.** Jira's search catches up a moment after an issue changes, so a note, state change or edit in the first seconds after a record is created can miss the new issue and end in the `No Jira issue is labelled …` skip. That run is not retried. The same applies just after a record is created from Jira, until its labels are added.
+- **Private and public mean different things in Jira.** In a Jira Service Management project, private notes and edit comments, which carry the root cause and remediation, become internal comments, while an incident's public notes become comments the customer can see. In any other kind of project, all of them are ordinary comments that anyone who can see the issue can read.
+- **Edit comments follow saves, not changes.** The incident and alert details forms send the title and severity every time they are saved, so saving one after changing only its labels, or its Private setting, also posts a comment, with the same values as the last one. The trigger hands the workflow the record as it now stands, not what changed.
+- **Formatting does not cross over.** Notes are posted to Jira as plain text, so Markdown arrives as its raw characters. Jira's rich text arrives in OneUptime as the wiki markup Jira's webhooks send, such as `*bold*`, and reads exactly as it was written: an image, a link, HTML, a diagram or a chat mention such as `<!channel>` typed in an issue, a comment, a status or a name shows as its characters and does nothing, because an invisible word joiner goes after the character that would start it. A copy of the text keeps the joiner. The link to the issue goes to the site the workflow's **Jira Site URL** names. A workflow keeps the scripts it was created with, so one created from an older version of a template writes text the way that version did: create it again from its template to get this.
+- **Workflows created before the Jira Site URL link the issue at the site the event names.** A workflow keeps the scripts and settings it was created with, so a create-from-issue, comment or issue-change workflow made before its template asked for the **Jira Site URL** still takes the issue link's site from the address of the issue in the event. To link to your own site, create the workflow again from its template, which asks for the **Jira Site URL**. Enable the new workflow, paste its webhook URL into the Jira webhook in place of the old one (each workflow has its own URL), then delete the old workflow.
+- **A bad or expired token rarely says so.** On your site URL, Jira answers a call it cannot authenticate as it would an anonymous visitor, not with a `401`. So a wrong or expired token shows up as the create template's `The target project doesn't exist or you don't have permission to create issues in it` (a `400`), as `Issue does not exist or you do not have permission to see it` (a `404`), or as the skip `No Jira issue is labelled oneuptime-incident-<id>, or the Jira credentials cannot see it.` A plain `401` is mostly what the `api.atlassian.com` address answers. To test the value, send it to `/rest/api/3/myself`: it answers with the account's name and email when the value works, and `401` when it does not.
 
   ```bash
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-  If it does not work, create a new token, encode it again, and update `jiraBasicAuthToken` in every Jira workflow.
+- **The same event can arrive twice.** Jira retries a delivery that failed with a server error or timed out. If OneUptime had already started the run, the comment and issue-change templates add a second note. The templates that create a record do not create a second one: they ask Jira for the issue's labels first, and by the time a retry arrives, the first run has labelled the issue. That cannot help when the first run created the record but Jira refused the labels: the run ends in a `⚠️` line, and you should add the labels by hand.
 
-- **The same event can arrive twice.** Jira retries a delivery that failed with a server error or timed out. On the rare occasion that OneUptime had already started the run, the comment and issue-change templates add a second note. The templates that create a record do not create a second incident or alert: before they create anything, they ask Jira for the issue's labels, and by the time a retry arrives, the first run has labelled the issue. The same check stops a request that names an issue already linked. It cannot help when the first run created the record but Jira refused the labels — that run ends in a `⚠️` line saying so, and you should add the labels by hand.
+## Build it yourself
 
-## Prerequisites
+The templates cover the common cases. To build a direction yourself, or change one beyond its constants, this section builds both directions by hand, for incidents. [Do the same for alerts](#do-the-same-for-alerts) maps it onto alerts.
 
-- A Jira Cloud site (`https://your-domain.atlassian.net`) and a project to file issues in. Note its **project key** — the `OPS` in `OPS-1234`.
-- A Jira account that can create issues in that project, and an **API token** for it from [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). Use a dedicated Jira user — an ordinary Atlassian account used only by the integration — rather than a person's own, because issues created this way are attributed to the token's owner. An Atlassian service account works too, with the scoped token and `api.atlassian.com` address described under [What the templates ask for](#what-the-templates-ask-for).
-- Permission to create automation rules in that project, for the inbound half.
-- A OneUptime project where you can create workflows and global variables.
+### Store the Jira credentials
 
-## Step 1 — Store the Jira credentials as a secret
+Jira Cloud takes Basic auth built from the account's email and an API token, encoded together, as in [What the templates ask for](#what-the-templates-ask-for).
 
-Jira Cloud's REST API takes **Basic auth** built from your Atlassian account email and an API token, base64-encoded together.
+1. Go to **Workflows → Global Variables** and click **Create Workflow Variable**. Name it `JIRA_AUTH`, paste the encoded value into **Content**, turn on **Secret**, and create it.
+2. Create a second variable, `JIRA_URL`, holding `https://your-domain.atlassian.net` with no trailing slash, and leave **Secret** off.
 
-1. Encode `email:api_token` once:
+Any block can then send `Basic {{global.variables.JIRA_AUTH}}` as its `Authorization` header, and the token never appears in the workflow or its runs. With a scoped token, `JIRA_URL` is `https://api.atlassian.com/ex/jira/<cloudId>` instead, and every path below hangs off it unchanged.
 
-   ```bash
-   printf '%s' 'you@example.com:your_api_token' | base64
-   ```
+Tokens expire after a year by default and do not refresh. To avoid replacing one by hand, an organization on Atlassian's centralized user management can give a service account an [OAuth 2.0 credential](https://support.atlassian.com/user-management/docs/create-oauth-2-0-credential-for-service-accounts/): a client id and secret that a workflow exchanges for a short-lived token, the way the [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) page does.
 
-   Use `printf`, not `echo`. `echo` appends a newline, the newline is encoded along with everything else, and Jira stops accepting the credentials for reasons that are invisible in the string you pasted — usually without a `401` (see [Troubleshooting](#troubleshooting)). On Linux, also add `-w 0` to `base64`: GNU `base64` wraps its output every 76 characters, and a current Atlassian token is long enough to be wrapped.
+### Open a Jira issue for every incident
 
-2. In OneUptime, go to **Workflows → Global Variables → Create**. Name it `JIRA_AUTH`, paste the base64 string as **Content**, and turn on **Secret**.
-3. Add a second, non-secret variable `JIRA_URL` holding `https://your-domain.atlassian.net` with no trailing slash.
-
-Any block can now use `Basic {{global.variables.JIRA_AUTH}}` as its `Authorization` header, and the token never appears in the workflow or its run logs. See [Variables](/docs/workflows/variables).
-
-Two things about Atlassian API tokens that will eventually bite an integration nobody is watching:
-
-- **They expire.** Tokens are created with a lifetime of one day to one year, one year by default, and there is no refresh — an expired token has to be replaced by hand on the same page and re-encoded into `JIRA_AUTH`. Put the expiry date in a calendar somewhere. When a workflow that has worked for months starts reporting that a project or issue does not exist, or finding nothing — or answering `401` through `api.atlassian.com` — this is why.
-- **A scoped token needs a different base URL.** The token page offers **Create API token with scopes** as well as the classic **Create API token**. Scoped tokens are the more secure choice, but they are not addressed at your site: they go to `https://api.atlassian.com/ex/jira/<cloudId>`, so `JIRA_URL` becomes that instead, and every path below hangs off it unchanged. Your `cloudId` is in the JSON at `https://your-domain.atlassian.net/_edge/tenant_info`. A scoped token sent to `your-domain.atlassian.net` simply fails.
-
-If your organization is on Atlassian's centralized user management, there is a third option that sidesteps the expiry problem: an [OAuth 2.0 credential for a service account](https://support.atlassian.com/user-management/docs/create-oauth-2-0-credential-for-service-accounts/). It gives you a client id and secret rather than a token, and a workflow exchanges them for a short-lived access token at the start of each run — the same two-block shape the [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) page uses, with an **API Post (JSON)** block fetching the token and everything after it sending `Bearer <token>`. Nothing has to be replaced by hand a year later. Atlassian's page has the exact token request; the API base URL is `https://api.atlassian.com`.
-
-## Step 2 — Open a Jira issue for every incident
-
-1. Open **Workflows → Create Workflow**, name it `Incidents → Jira`, and open the **Builder**.
-2. Click the dashed placeholder block and add the **On Create Incident** trigger. In its **Select Fields**, ask for the columns you want to send:
+:::steps
+1. Create a workflow from scratch named `Incidents to Jira`. Click the dashed block and add the **On Create Incident** trigger. Its **Fields to pass on** starts with **Title**: click **Add field** and pick **Description** and **Incident Number**. The ID is always passed on. Leave its **Identifier** as `incident-on-create-1`.
+2. Click **Add Component**, add an **API Post (JSON)** block, and connect the trigger's **Success** dot to it. Set its **Identifier** to `create-issue`, its **URL** to `{{global.variables.JIRA_URL}}/rest/api/3/issue`, and, under **More fields**, its **Request Headers** to `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Set its **Request Body** to the issue, and replace `OPS` and `Bug` with your project key and an issue type of that project:
 
    ```json
    {
-     "_id": true,
-     "title": true,
-     "description": true,
-     "incidentNumber": true,
-     "incidentSeverity": { "name": true }
+     "fields": {
+       "project": { "key": "OPS" },
+       "issuetype": { "name": "Bug" },
+       "summary": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
+       "labels": ["oneuptime"],
+       "description": {
+         "type": "doc",
+         "version": 1,
+         "content": [
+           {
+             "type": "paragraph",
+             "content": [
+               {
+                 "type": "text",
+                 "text": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+               }
+             ]
+           }
+         ]
+       }
+     }
    }
    ```
 
-   Leave its **Identifier** as `incident-on-create-1` — that is the name later blocks refer to it by.
+4. Switch **Enabled** on, declare a test incident, and open **Logs → Runs**. The `create-issue` step shows a `201` and a body with the new issue's `id`, `key` and `self`.
+:::
 
-3. Click **Add Component**, add an **API Post (JSON)** block, and drag from the trigger's **Success** dot to the new block's input dot. Open it, set its **Identifier** to `create-issue`, and fill in:
+The description looks heavy because Jira Cloud's v3 API takes rich text as **Atlassian Document Format**, a document tree rather than a string. The body above holds the smallest valid document: one paragraph with one text node. The same goes for `environment` and multi-line text custom fields. A later block reads the new key as `{{local.components.create-issue.returnValues.response-body.key}}`.
 
-   - **URL**: `{{global.variables.JIRA_URL}}/rest/api/3/issue`
-   - **Request Headers**:
+### Fill in more fields
 
-     ```json
-     {
-       "Authorization": "Basic {{global.variables.JIRA_AUTH}}",
-       "Accept": "application/json"
-     }
-     ```
+Inside `fields`, you can add:
 
-   - **Request Body**:
+- **Priority**: `"priority": { "id": "20000" }`, with a priority id from your site.
+- **Assignee**: `"assignee": { "id": "<accountId>" }`. Jira Cloud names people by Atlassian account id.
+- **Labels**: `"labels": ["oneuptime", "sev1"]`, a list of strings without spaces.
+- **Components**: `"components": [{ "id": "10000" }]`.
+- **Custom fields**: `"customfield_10034": "..."`, by the field's own id. A single-select takes `{"value": "red"}`, a multi-line text field a document like the description.
 
-     ```json
-     {
-       "fields": {
-         "project": { "key": "OPS" },
-         "issuetype": { "name": "Bug" },
-         "summary": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
-         "labels": ["oneuptime"],
-         "description": {
-           "type": "doc",
-           "version": 1,
-           "content": [
-             {
-               "type": "paragraph",
-               "content": [
-                 {
-                   "type": "text",
-                   "text": "{{local.components.incident-on-create-1.returnValues.model.description}}"
-                 }
-               ]
-             }
-           ]
-         }
-       }
-     }
-     ```
-
-   Replace `OPS` with your project key and `Bug` with an issue type that exists in that project. Both can also be given by id — `{"id": "10000"}` — which is what Atlassian's own examples use and what you should prefer if two issue types in your site share a name. The `createmeta` calls further down hand you those ids.
-
-The description looks heavy because Jira Cloud's v3 API takes rich text as **Atlassian Document Format** — a document tree, not a string. The shape above is the minimum valid document: one paragraph holding one text node. The same applies to `environment` and to any multi-line text custom field; single-line text custom fields still take a plain string.
-
-Now turn the workflow on from **Overview → Edit Workflow → Enabled**, declare a test incident, and open **Runs & Logs**. The `create-issue` block should show a `201` and a body containing the new issue's `id`, `key` and `self`. Changes on the canvas save themselves — there is no Save button, and a disabled workflow cannot run at all, not even by hand.
-
-The new issue key is available to any block after this one:
-
-```text
-{{local.components.create-issue.returnValues.response-body.key}}
-```
-
-### Filling in more fields
-
-A few common additions inside `fields`:
-
-- **Priority** — `"priority": { "id": "20000" }`, using a priority id from your site. To map OneUptime severities onto Jira priorities, put an **If / Else** block between the trigger and the API block and branch on `{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}`.
-- **Assignee** — `"assignee": { "id": "<accountId>" }`. Jira Cloud identifies people by Atlassian account id; `username` and `userKey` were removed from the Cloud API years ago.
-- **Labels** — `"labels": ["oneuptime", "sev1"]`, a flat array of strings. Labels cannot contain spaces.
-- **Components** — `"components": [{ "id": "10000" }]`.
-- **Custom fields** — `"customfield_10034": "..."`, using the field's own id. The value's shape follows the field's type: a single-select takes `{"value": "red"}`, a multi-select an array of ids, a multi-line text field an Atlassian Document Format document.
-
-To find what a project actually requires, ask Jira rather than guessing. List the issue types in a project, then the fields for one of them:
+Ask Jira what a project needs rather than guessing. The first call lists a project's issue types, and the second the fields of one of them, which are required, and their `customfield_NNNNN` ids:
 
 ```bash
 curl -u 'you@example.com:your_api_token' \
@@ -404,27 +362,17 @@ curl -u 'you@example.com:your_api_token' \
   'https://your-domain.atlassian.net/rest/api/3/issue/createmeta/OPS/issuetypes/10001'
 ```
 
-The second call lists every field that issue type accepts, which of them are required, and the exact `customfield_NNNNN` ids. To read the ids off an issue you already have, fetch it with `?expand=names`.
+### Carry the incident id into Jira
 
-## Step 3 — Carry the incident id into Jira
-
-Both halves of a two-way sync need one system to hold the other's identifier, and Jira is the better place to keep it: OneUptime's `customFields` column is a single JSON blob, so writing one value from a workflow replaces every custom field on that incident.
-
-**With a Jira admin.** Add a short text custom field — call it *OneUptime Incident ID* — to the project's create screen, find its id with `createmeta`, and set it alongside everything else:
-
-```json
-"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"
-```
-
-**Without one.** Put it in a label instead. Labels take no spaces, and a OneUptime id is a plain UUID, so `oneuptime-incident-<id>` is a valid label:
+Each half of a two-way sync needs one system to hold the other's id. Keep the incident's id on the issue: Jira then sends it back with every event, and the inbound workflow reads it from the request. Put it in a label, the same one the [templates](#how-the-two-sides-stay-linked) use, so your workflows and the templates find each other's issues:
 
 ```json
 "labels": ["oneuptime", "oneuptime-incident-{{local.components.incident-on-create-1.returnValues.model._id}}"]
 ```
 
-These are the same two labels the [templates](#start-from-a-template) use, so a workflow you build by hand and the templates can find each other's issues. The inbound workflow then has to pick that label out of the list, which is a couple of lines in a **Run Custom JavaScript** block. The custom field is tidier if you can have one.
+A Jira admin can add a short text custom field instead, named OneUptime Incident ID for example, and you set it as `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. It is simpler to read back than a label.
 
-While you are here, it is worth adding a link on the Jira issue back to the incident. An **API Post (JSON)** block after `create-issue`, pointed at `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`, with:
+To give everyone in Jira a way back, add an **API Post (JSON)** block after `create-issue` that posts a remote link to `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -436,174 +384,86 @@ While you are here, it is worth adding a link on the Jira issue back to the inci
 }
 ```
 
-gives everyone in Jira a one-click route back. Add `projectId` to the trigger's **Select Fields** for this, and keep the `.value` after it: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`, and without `.value` the URL gets that whole object as JSON. The incident's own `_id` is a plain string, so it needs nothing. The `globalId` is what makes the call safe to repeat: Jira updates the link that already carries that id instead of adding a second one. Because an update also nulls anything you leave out, always send the whole `object`, not a patch of it.
+In the trigger's **Fields to pass on**, click **Add field** and pick **Project ID** for this, and keep the `.value`: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`. The `globalId` makes the call safe to repeat: Jira updates the link that carries it instead of adding a second one.
 
-## Step 4 — Comment and transition as the incident moves
+### Comment and transition as the incident moves
 
-Build this as a **second** workflow, so a failure here can never stop issues being opened.
+Build this as a second workflow, so a failure here never stops issues being opened.
 
-1. **Create Workflow**, name it `Incident updates → Jira`, and add the **On Update Incident** trigger.
-2. In **Listen on**, put `{"currentIncidentStateId": true}`. The trigger then only fires for state changes instead of every edit. In **Select Fields**, ask for `{"_id": true, "currentIncidentState": {"name": true}}`.
-3. Add an **If / Else** block: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
-
-From the **Yes** branch you first have to find the issue you opened in Step 2. Ask Jira for it by the id you stored in Step 3, with an **API Post (JSON)** block whose **Identifier** is `find-issue`:
-
-- **URL**: `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`
-- **Request Body**:
-
-  ```json
-  {
-    "jql": "project = OPS AND labels = \"oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}\"",
-    "maxResults": 1
-  }
-  ```
-
-  If you used a custom field rather than a label, the clause becomes `cf[10050] ~ \"...\"` with your own field id.
-
-The issue id is then `{{local.components.find-issue.returnValues.response-body.issues[0].id}}`, and every endpoint below takes an id just as happily as a key.
-
-Three things about this endpoint are worth knowing. **Post the JQL, do not put it in the URL** — a query string containing `=` inside a value is truncated on its way out of a workflow, and JQL is nothing but `=` signs. **The query must be bounded**: a bare `order by key desc` is rejected with `400`, which is why the `project =` clause is there. And `/rest/api/3/search/jql` is the current endpoint on Cloud — the older `/rest/api/3/search` has been removed there, so do not reach for it. Data Center is the other way round: it has no `/search/jql`, and searches with `POST /rest/api/2/search`.
-
-**Leaving a comment** is a single **API Post (JSON)** block to `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, with an Atlassian Document Format body just like the description:
-
-```json
-{
-  "body": {
-    "type": "doc",
-    "version": 1,
-    "content": [
-      {
-        "type": "paragraph",
-        "content": [{ "type": "text", "text": "Resolved in OneUptime." }]
-      }
-    ]
-  }
-}
-```
-
-**Moving the issue** takes two calls, because a transition is identified by an id that differs between workflows and, on some boards, between issues.
-
-1. An **API Get (JSON)** block on `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` returns the transitions available *from the issue's current status*, each with an `id` and a `name`, and a `to` object naming the status it leads to.
-2. An **API Post (JSON)** block to the same URL performs one:
+:::steps
+1. Create a workflow named `Incident updates to Jira`, with the **On Update Incident** trigger. In **Fields to watch**, click **Add field** and pick **Current Incident State**. In **Fields to pass on**, click **Add field**, open **Current Incident State** and pick **Name**.
+2. Add an **If / Else** block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, or your resolved state's name.
+3. After its **Yes** side, find the issue with an **API Post (JSON)** block whose **Identifier** is `find-issue`, posting to `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
-   { "transition": { "id": "31" } }
+   {
+     "jql": "project = OPS AND labels = \"oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}\"",
+     "fields": ["key"],
+     "maxResults": 1
+   }
    ```
 
-A successful transition answers `204` with no body. If you would rather not read the list at runtime, call it once by hand for an issue in the right status and hard-code the id — just remember it is tied to that workflow, so an admin editing the Jira workflow can break it silently.
+4. Read the issue's id as `{{local.components.find-issue.returnValues.response-body.issues[0].id}}`, and use it in the calls below.
+:::
 
-## Inbound — Jira to OneUptime
+Post the JQL rather than putting it in the URL: a URL is sent exactly as written, not encoded for you, and JQL is full of spaces, quotes and `=` signs. A query must be bounded, which is why the `project =` clause is there. On Cloud the endpoint is `/rest/api/3/search/jql`; the older `/rest/api/3/search` is gone.
 
-Now the other direction: someone moves the issue to Done, and the OneUptime incident should follow.
+- **Comment**: an **API Post (JSON)** block to `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, with a document as its `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Transition**: an **API Get (JSON)** block on `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` lists the transitions open from the issue's status, each with an `id`, a `name` and the status it leads `to`. An **API Post (JSON)** block to the same URL with `{"transition": {"id": "31"}}` performs one, and answers `204`.
 
-### Build the receiving workflow first
+A transition id belongs to the issue's Jira workflow, so a Jira admin editing that workflow can break a hard-coded one. Reading the list at run time, as the templates do, avoids that.
 
-1. **Create Workflow**, name it `Jira → OneUptime`, and add the **Webhook** trigger.
-2. Open that workflow's **Settings** and copy the **Webhook Secret Key**. Your URL is:
+### Receive changes from Jira
+
+First build the receiving workflow:
+
+1. Create a workflow named `Jira to OneUptime`, with the **Webhook** trigger.
+2. Open the workflow's **Builder**, click the **Webhook** trigger, and click **Copy URL** at the top of its settings. The URL looks like this:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Self-hosted installs use their own host. Treat the URL like a password — anyone who has it can start the workflow — and reset the key from that same page if it leaks.
+   A self-hosted install uses its own host. Treat the URL like a password: anyone who has it can start the workflow. If it leaks, click **Reset URL** in the same place, and the old URL stops working at once.
 
-3. Add an **If / Else** block that checks a shared secret before anything else runs. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** is `{{global.variables.JIRA_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
-4. From the **Yes** branch, add an **Update One Incident** block:
+3. From the trigger, add an **Update One Incident** block. Set its **Query** to `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, and its **Data (JSON Object)** to the change, such as a new `currentIncidentStateId`. A **Find One Incident State** block with the query `{"name": "Resolved"}` gives you that id as `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
-   - **Query**: `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`
-   - **Data (JSON Object)**: what the Jira change should mean here — usually a state change.
+Turn it on, then have Jira call it, from an automation rule or from a webhook:
 
-   Moving an incident needs the target state's id, which a **Find One Incident State** block with the query `{"name": "Resolved"}` will give you as `{{local.components.incident-state-find-one-1.returnValues.model._id}}`. Write that into `currentIncidentStateId`.
+:::tabs
+@tab Automation rule
+1. In Jira, open the project's automation: **Space settings → Automation**, or **Project settings → Automation** on older sites. For several projects, use **Settings → System → Global automation**.
+2. Create a rule with the **Work item transitioned** trigger (**Issue transitioned** on older sites), set to run when the status moves to **Done**. The **Work item updated** trigger leaves status changes out.
+3. Add the **Send web request** action: **Web request URL** the workflow's URL, **HTTP method** `POST`, a `Content-Type: application/json` header, and a **Custom data** body:
 
-Leave the workflow enabled. Now give Jira something to call.
+   ```json
+   {
+     "oneuptimeIncidentId": "{{issue.customfield_10050}}",
+     "issueKey": "{{issue.key}}",
+     "status": "{{issue.status.name}}"
+   }
+   ```
 
-### Send the event from a Jira automation rule
+   With a label rather than a custom field, send `"labels": "{{issue.labels}}"`, and pick the id out with a **Run Custom JavaScript** block.
 
-1. In Jira, open the project's automation rules: **Space settings → Automation** on newer tenants, **Project settings → Automation** on older ones. For a rule spanning several projects use **Settings → System → Global automation**, which needs the *Administer Jira* global permission.
-2. **Create rule**, and pick the **Work item transitioned** trigger — **Issue transitioned** on older tenants. Set it to run when the status moves *to* **Done**.
+4. Turn the rule on and move a test issue to Done. Check the rule's audit log in Jira, and **Logs → Runs** in OneUptime.
 
-   Use this trigger, not *Work item updated*: the update trigger deliberately excludes status changes.
+To be sure a request comes from your rule, add a second header, `X-OneUptime-Secret`, with a value you make up, and use the action's **Hide** option on it. In the workflow, put an **If / Else** block before the update: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, and **Compare with** the same value, kept in a secret global variable.
 
-3. Add the **Send web request** action and configure it:
+Send web request only calls ports 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 and 9900. Jira Cloud counts rule runs against a monthly allowance that depends on your plan, so a rule on every transition of a busy project adds up.
+@tab Jira webhook
+1. As a Jira admin, go to **Settings → System → WebHooks** (under **Advanced**) and click **Create a WebHook**.
+2. Paste the workflow's URL, tick **Issue updated**, and enter a JQL filter, such as `project = OPS AND labels = oneuptime`.
+3. In the workflow, read Jira's own payload: `issue` holds the issue, and `changelog.items` holds each changed field, before and after. For a status change, take the item whose `field` is `status`. A **Run Custom JavaScript** block is the easiest way to read it.
 
-   - **Web request URL**: the OneUptime webhook URL from above.
-   - **HTTP method**: `POST`
-   - **Headers**: `Content-Type` / `application/json`, and `X-OneUptime-Secret` / your shared secret. Use the **Hide** option on the secret's value so other rule editors cannot read it — note that hiding is irreversible for that value, and hidden values are lost if the rule is exported or duplicated.
-   - **Web request body**: **Custom format**, so you control the shape:
+A webhook can carry a secret, and Jira then signs the body in an `X-Hub-Signature` header. A workflow cannot check it, because the Webhook trigger hands over a body already read as JSON. Jira retries a failed delivery up to five times, so the workflow must cope with the same event twice.
+:::
 
-     ```json
-     {
-       "oneuptimeIncidentId": "{{issue.customfield_10050}}",
-       "issueKey": "{{issue.key}}",
-       "summary": "{{issue.summary}}",
-       "status": "{{issue.status.name}}"
-     }
-     ```
+Either way, the workflow's URL is a credential: keep it in Jira, and reset it if it leaks.
 
-     If you used a label instead of a custom field in Step 3, send `"labels": "{{issue.labels}}"` and pull the id out with a **Run Custom JavaScript** block on the OneUptime side.
+### Do the same for alerts
 
-4. Turn the rule on, move a test issue to Done, and check both sides: the rule's own audit log in Jira, and **Runs & Logs** in OneUptime.
-
-Things worth knowing before you rely on this:
-
-- **The destination port is restricted.** Send web request only reaches ports 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 and 9900. OneUptime Cloud is on 443; a self-hosted install on an unusual port cannot be called this way.
-- **There is no request signing.** The action has no HMAC option, so a shared secret in a header over HTTPS is the mechanism Atlassian documents. The **If / Else** check in Step 3 of the receiving workflow is what makes that worth having.
-- **Rule runs are metered.** Jira Cloud counts successful rule executions against a monthly allowance that depends on your plan — 100 on Free, 1,700 on Standard, 1,000 × users on Premium, unlimited on Enterprise. A rule that fires on every transition in a busy project adds up.
-- **Values are not URL-encoded** for you. That only matters if you send a form-encoded body; the JSON above is fine.
-- **Atlassian publishes its egress ranges** at [ip-ranges.atlassian.com](https://ip-ranges.atlassian.com) if your OneUptime install sits behind an allow list. They change, so poll the feed rather than pinning addresses.
-
-### Or use a Jira webhook instead
-
-A Jira admin can register a webhook directly under **Settings → System → Advanced → WebHooks**, choosing the events to send and, optionally, a JQL query that narrows which issues fire it. Compared with an automation rule:
-
-- The payload is Jira's own, not yours: `webhookEvent`, `issue_event_type_name`, the full `issue`, and a `changelog` whose `items` array holds the before-and-after of every changed field. For a status change you want the entry where `field` is `status`. Reading that inside a workflow usually means a **Run Custom JavaScript** block.
-- Webhooks **can** be signed — give the webhook a secret and Jira sends an `X-Hub-Signature` header holding an HMAC of the request body — but a workflow cannot check it. The signature covers the exact bytes Jira sent, and the Webhook trigger hands the workflow a body that has already been parsed into JSON, so there is nothing left to hash. If you want the request authenticated, use an automation rule with a shared-secret header instead.
-- The URL must be HTTPS on a port from Jira's own list, which is *not* the same list the automation action uses — port 80 is not allowed here.
-- Delivery is retried up to five times with a five to fifteen minute backoff, so your workflow must tolerate the same event arriving twice.
-
-Webhooks registered by an app through `/rest/api/3/webhook` are a different thing again: they expire 30 days after registration unless refreshed. The admin-registered ones above do not expire.
-
-## Jira Data Center
-
-Self-managed Jira works the same way with a handful of substitutions. **Jira Server** reached end of support in February 2024 and receives no fixes, so treat Data Center as the self-managed target.
-
-| Cloud                                             | Data Center                                                                                                                                                       |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/rest/api/3/...`                                 | `/rest/api/2/...` — there is no v3 on Data Center                                                                                                                 |
-| `POST /rest/api/3/search/jql` to search with JQL  | `POST /rest/api/2/search` — there is no `/search/jql` on Data Center. The body keeps `jql`, `fields` and `maxResults`; send `expand` as a list, `["transitions"]` |
-| `description` as an Atlassian Document Format doc | `description` as a plain string in wiki markup                                                                                                                    |
-| `Authorization: Basic base64(email:api_token)`    | `Authorization: Bearer <personal access token>`                                                                                                                   |
-| API token from id.atlassian.com                   | **Profile → Personal access tokens → Create token** on your own Jira account                                                                                      |
-| Automation action **Send web request**            | Automation action **Send outgoing web request**                                                                                                                   |
-
-So the create-issue block becomes a `POST` to `/rest/api/2/issue` with:
-
-```json
-{
-  "fields": {
-    "project": { "key": "OPS" },
-    "issuetype": { "name": "Bug" },
-    "summary": "OneUptime #123: Checkout is down",
-    "description": "Plain text goes straight in here."
-  }
-}
-```
-
-which is simpler to template — no document tree.
-
-Other differences to plan for:
-
-- **Personal access tokens** exist from Jira Core and Jira Software 8.14 and Jira Service Management 4.15. They expire — 365 days by default — and the UI flags one as *Expires soon* five days out. Basic auth with a username and password still works on Data Center, but a few failed logins trigger a CAPTCHA that locks the account out of the REST API entirely until a human clears it in a browser, which is a bad way to discover a typo. Prefer a token.
-- **Automation is bundled** from Jira Data Center 10.0. Before that it was the separately installed Automation for Jira app. Its outgoing request has a default timeout of 3000 ms, tunable with the `outgoing.webhook.timeout.ms` property.
-- **Webhooks** are registered at **Administration → System → Advanced → WebHooks**, and JQL scoping is supported. Keep those filters narrow: Jira evaluates every registered webhook's JQL on the thread that raised the event, so a dozen loose filters slow down the user action that triggered them.
-- **From Data Center 10.0 webhook delivery is asynchronous** and there is no synchronous option, so events can arrive out of order. Make the receiving workflow idempotent.
-- **Jira 10 dropped the `$` in webhook URL variables** — `${issue.id}` became `{issue.id}` — and moved the webhook REST resource from `/rest/webhooks/1.0/webhook` to `/rest/jira-webhook/1.0/webhooks`.
-
-## Doing the same for alerts
-
-Start with the eight alert templates in [Start from a template](#start-from-a-template). They do for alerts what the incident templates do for incidents, apart from public notes, which alerts do not have. [What is different for alerts](#what-is-different-for-alerts) lists the rest, including the two default alert severities and the condition worth adding before the create-issue template.
-
-To build an alert workflow by hand instead, follow the steps above with the alert version of each block and field:
+Start with the alert templates in [Start from a template](#start-from-a-template). To build an alert workflow by hand, follow the steps above with the alert version of each block and field:
 
 | Incident                                                     | Alert                                               |
 | ------------------------------------------------------------ | --------------------------------------------------- |
@@ -617,45 +477,86 @@ To build an alert workflow by hand instead, follow the steps above with the aler
 | Label `oneuptime-incident-<incident id>`                     | Label `oneuptime-alert-<alert id>`                  |
 | `/dashboard/<project id>/incidents/<incident id>`            | `/dashboard/<project id>/alerts/<alert id>`         |
 
-Label the issues the way the templates do, `oneuptime` plus `oneuptime-alert-<alert id>`, and a workflow you build and the alert templates can find each other's issues. Some things do not carry over one for one:
+A workflow has exactly one trigger, so incidents and alerts need one workflow each. To do the same Jira work for both, build it once in a workflow with a **Manual** trigger, and start it from both with an **Execute Workflow** block.
 
-- **Severities.** A new project has two alert severities, High and Low, where it has three incident severities. A priority mapping written for incidents needs redoing for alerts.
-- **Root cause.** An alert's root cause is written when the alert is created and cannot be edited afterwards, so there is no point listening on `rootCause` in **On Update Alert**.
-- **Status pages.** An alert never appears on a status page, so there is no `isVisibleOnStatusPage` to set when you create one from Jira.
-- **Volume.** Monitors raise alerts automatically, and **On Create Alert** fires for every one. Put an **If / Else** block between the trigger and the Jira call, on the severity or whatever decides which alerts deserve a ticket.
+## Jira Data Center
 
-A workflow has exactly one trigger, so incidents and alerts need one workflow each. If the two would do the same work, build the Jira half once and call it from both with the **Execute Workflow** component.
+Self-managed Jira works the same way with a handful of substitutions. Jira Server reached its end of support in February 2024, so Data Center is the self-managed target.
+
+| Cloud                                             | Data Center                                                                                                                                                       |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/rest/api/3/...`                                 | `/rest/api/2/...` — there is no v3 on Data Center                                                                                                                 |
+| `POST /rest/api/3/search/jql` to search with JQL  | `POST /rest/api/2/search` — there is no `/search/jql` on Data Center. The body keeps `jql`, `fields` and `maxResults`; send `expand` as a list, `["transitions"]` |
+| `description` as an Atlassian Document Format doc | `description` as a plain string in wiki markup                                                                                                                    |
+| `Authorization: Basic base64(email:api_token)`    | `Authorization: Bearer <personal access token>`                                                                                                                   |
+| API token from id.atlassian.com                   | **Profile → Personal access tokens → Create token** on your own Jira account                                                                                      |
+| Automation action **Send web request**            | Automation action **Send outgoing web request**                                                                                                                   |
+
+So the create-issue block becomes a `POST` to `/rest/api/2/issue`, with a plain description:
+
+```json
+{
+  "fields": {
+    "project": { "key": "OPS" },
+    "issuetype": { "name": "Bug" },
+    "summary": "OneUptime #123: Checkout is down",
+    "description": "Plain text goes straight in here."
+  }
+}
+```
+
+Other differences to plan for:
+
+- **The Jira Site URL is your base URL**, as **Administration → System → General configuration** shows it, with its port and the path Jira runs under: `https://jira.example.com:8443` or `https://example.com/jira`. The templates link an issue at `<base URL>/browse/<key>`. The field takes a path of one segment, such as `/jira`, and refuses a longer one, which is the address of a page in Jira rather than its base URL.
+- **Personal access tokens** exist from Jira Core and Jira Software 8.14 and Jira Service Management 4.15. They expire, after 365 days by default. Basic auth with a password still works, but a few failed logins put up a CAPTCHA that locks the account out of the REST API until someone clears it in a browser. Prefer a token.
+- **Automation is built in** from Jira Data Center 10.0. Before that, it was the separately installed Automation for Jira app.
+- **Webhook delivery is asynchronous** from Data Center 10.0, so events can arrive out of order. Make the receiving workflow cope with that.
 
 ## Troubleshooting
 
-Open the failing block in **Runs & Logs** first. Jira returns a JSON body naming exactly what it rejected, and the API component keeps it in `response-body`.
+Open the failing step in **Logs → Runs** first. Jira answers with a JSON body naming what it refused, and the API block keeps it in `response-body`.
 
-**`401 Unauthorized`.** Re-encode `email:api_token` with `printf` and update `JIRA_AUTH`; a trailing newline from `echo` is the usual cause. Then confirm the account owning the token can create issues in that project. On Data Center, check you are sending `Bearer`, not `Basic`. On a Cloud site URL, bad credentials more often look like the next entry.
+:::details 401 Unauthorized
+Encode `email:api_token` again with `printf`, not `echo`, and update the token: a trailing newline is the usual cause. Then check that the token's account can create issues in the project. On Data Center, check that you send `Bearer`, not `Basic`. On a Cloud site URL, bad credentials more often look like the next entry.
+:::
 
-**Jira says a project or issue that exists does not, or a search finds nothing.** On a Cloud site URL this is usually the credentials, not the data: Jira answers a call it cannot authenticate much as it would an anonymous visitor. Send the encoded value to `/rest/api/3/myself` as [Limitations](#limitations) shows. If that answers `401`, re-encode it or replace the token. If it answers with the right account, that account is missing a permission in the project: **Browse Projects** to see its issues, **Create Issues** to file one.
+:::details Jira says a project or issue that exists does not, or a search finds nothing
+On a Cloud site URL this is usually the credentials, not the data: Jira answers a call it cannot authenticate as it would an anonymous visitor. Send the encoded value to `/rest/api/3/myself`, as [Limitations](#limitations) shows. If it answers `401`, encode it again or replace the token. If it answers with the right account, that account is missing a permission in the project: **Browse Projects** to see its issues, **Create Issues** to file one.
+:::
 
-**`400 Bad Request` naming a field.** The issue type does not exist in the project, or the project has a required field you are not sending. Run the `createmeta` calls above against that project and issue type and compare.
+:::details 400 Bad Request naming a field
+The issue type does not exist in the project, or the project has a required field you are not sending. Run the `createmeta` calls in [Fill in more fields](#fill-in-more-fields) against that project and issue type, and compare. A `400` about `description` means Cloud's v3 API got a string instead of an Atlassian Document Format document.
+:::
 
-**`400` complaining about `description`.** On Cloud v3 the description must be an Atlassian Document Format document, not a string. Either send the document shown above, or switch that block to `/rest/api/2/issue` and send plain text.
+:::details 404 Not Found
+Check the base URL and the API version: `/rest/api/3/...` on Cloud, `/rest/api/2/...` on Data Center.
+:::
 
-**`404 Not Found`.** Check the base URL and the API version — `/rest/api/3/...` on Cloud, `/rest/api/2/...` on Data Center.
+:::details 429 Too Many Requests
+Jira is limiting how fast you call it. The answer carries `Retry-After`, in seconds. Writes to a single issue are capped tightly, so a workflow that comments and transitions in quick succession can trip it. Put a **Sleep** block between the calls, or move bulk work to a scheduled workflow.
+:::
 
-**`429 Too Many Requests`.** Jira is rate limiting. The response carries `Retry-After` in seconds and a `RateLimit-Reason` naming which limit you hit. Writes against a single issue are capped tightly — on the order of twenty in two seconds — so a workflow that comments and transitions in quick succession can trip it on one issue alone. Put a **Delay** block between the calls, or move bulk work to a scheduled workflow.
+:::details The transition call answers 400
+The transition id is not open from the issue's current status. Fetch `/transitions` for that issue, and use an id from the answer.
+:::
 
-**The transition call returns `400`.** The transition id is not valid from the issue's *current* status. Fetch `/transitions` for that issue and use an id from the response.
+:::details Jira shows the rule or webhook ran, but nothing reaches OneUptime
+Check the port first: Jira calls only its allowed ports. Then send a request to the workflow's URL yourself with `curl`, and look for it in **Logs → Runs**. If yours arrives and Jira's does not, the problem is on Jira's side. If the run is there but refused, check that the workflow is on.
+:::
 
-**The automation rule shows as successful but nothing reaches OneUptime.** Check the port first — see the restricted list above. Then send a request to the webhook URL yourself with `curl` and see whether it appears in **Runs & Logs**; if yours arrives and Jira's does not, the problem is on Jira's side.
+:::details The workflow runs, but the incident does not change
+An **Update One Incident** block reports `Items Updated: 0` when its query matched nothing, and that is a success, not an error. Check that the id in the request really is the OneUptime incident's, and that you query `_id`.
+:::
 
-**The workflow runs but the incident does not change.** An **Update One Incident** block reports `Items Updated: 0` when its query matched nothing, and that counts as success, not an error. Check the id in the payload really is the OneUptime incident id and that you are querying `_id`.
+:::details A reference shows up as written in a Jira issue
+A reference that does not resolve is sent as written, braces and all, rather than emptied. On the run's **Steps** tab, the setting it was in is marked **Did not resolve**: usually a mistyped block identifier or a renamed variable.
+:::
 
-**A `{{...}}` reference shows up literally in a Jira issue.** An unresolved reference is passed through as text rather than blanked. The run log names any reference that did not resolve — usually a mistyped block identifier or a renamed variable.
+## Next steps
 
-## Where to read next
-
-- [Integrations Overview](/docs/integrations/index) — the inbound and outbound patterns, and the auth cheat sheet.
-- [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — the same two-direction build against Dynamics.
-- [Workflows Overview](/docs/workflows/index) and [Authoring a Workflow](/docs/workflows/authoring) — the canvas, identifiers, and turning a workflow on.
-- [Components](/docs/workflows/components) — the API blocks, If / Else, and the OneUptime data components.
-- [Variables](/docs/workflows/variables) — secrets, and reading one block's output from the next.
-- [Configuration & Safety](/docs/workflows/configuration) — webhook security and outbound network access.
-- [ServiceNow](/docs/integrations/servicenow) and [PagerDuty](/docs/integrations/pagerduty) — the same outbound pattern for other tools.
+:::cards
+- [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365): The same two-way sync for Dynamics 365 cases.
+- [Workflow Variables](/docs/workflows/variables): Secrets, and reading one block's values from the next.
+- [Workflow Configuration & Safety](/docs/workflows/configuration): Webhook security, outbound network access and plan limits.
+- [Integrations Overview](/docs/integrations/index): The other tools you can connect.
+:::

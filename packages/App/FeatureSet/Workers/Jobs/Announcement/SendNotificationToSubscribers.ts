@@ -21,29 +21,35 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -89,7 +95,7 @@ const NOTIFICATION_COPY: Record<
 };
 
 const NO_MATCHING_SUBSCRIBERS_MESSAGE: string =
-  "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.";
+  "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.";
 
 const setNotificationStatus: (data: {
   announcementId: ObjectID;
@@ -134,6 +140,8 @@ const setNotificationStatus: (data: {
 
 const ANNOUNCEMENT_SELECT: Select<StatusPageAnnouncement> = {
   _id: true,
+  // Asked whether it is blocked when no status page is left to send from.
+  projectId: true,
   title: true,
   description: true,
   statusPages: {
@@ -184,6 +192,26 @@ const notifySubscribersOfAnnouncement: (data: {
       }),
     );
 
+  /*
+   * The pages of a blocked project send nothing, and are left out of the
+   * pages to send from. Say so, rather than that no subscriber matched.
+   */
+  if (
+    statusPages.length === 0 &&
+    (await BlockedProjectStatusPages.isProjectBlocked(announcement.projectId))
+  ) {
+    logger.debug(
+      `Announcement ${announcement.id} is in a blocked project; marking as Skipped.`,
+    );
+    await setNotificationStatus({
+      announcementId: announcement.id!,
+      trigger: trigger,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+      message: STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+    });
+    return;
+  }
+
   await setNotificationStatus({
     announcementId: announcement.id!,
     trigger: trigger,
@@ -208,12 +236,52 @@ const notifySubscribersOfAnnouncement: (data: {
     const announcementDescriptionPlainText: string =
       Markdown.convertToPlainText(announcement.description || "");
 
+    /*
+     * The resources the announcement affects on each status page: its
+     * monitors, and the monitor groups that hold them. A subscriber who
+     * picked a monitor group hears about an announcement on any monitor in
+     * it, as one who picked the monitor does. Looked up once for all of its
+     * pages; an announcement that names no monitor affects no resource.
+     */
+    const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+      await AffectedStatusPageResources.findForMonitors({
+        monitors: announcement.monitors || [],
+        statusPages: statusPages,
+        select: {
+          _id: true,
+          displayName: true,
+          statusPageId: true,
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
+        },
+      });
+
+    if (announcement.monitors && announcement.monitors.length > 0) {
+      logger.debug(
+        `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
+      );
+    } else {
+      logger.debug(
+        `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
+      );
+    }
+
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
     for (const statuspage of statusPages) {
       try {
         if (!statuspage.id) {
           logger.debug("Encountered a status page without an id; skipping.");
+          continue;
+        }
+
+        // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+        if (!isSendingSubscriberNotifications(statuspage)) {
+          logger.debug(
+            `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+          );
           continue;
         }
 
@@ -238,8 +306,6 @@ const notifySubscribersOfAnnouncement: (data: {
         );
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
-        const statusPageIdString: string | null =
-          statuspage.id?.toString() || statuspage._id?.toString() || null;
 
         const announcementDetailsUrl: string =
           announcement.id && statusPageURL
@@ -290,51 +356,13 @@ const notifySubscribersOfAnnouncement: (data: {
           `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
         );
 
-        // Get status page resources if monitors are specified
-        let statusPageResources: Array<StatusPageResource> = [];
+        // The announcement's resources on this page, if it names monitors.
+        const statusPageResources: Array<StatusPageResource> =
+          statusPageToResources[statuspage._id!] || [];
 
-        if (announcement.monitors && announcement.monitors.length > 0) {
-          logger.debug(
-            `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
-          );
-
-          statusPageResources = await StatusPageResourceService.findAllBy({
-            query: {
-              statusPageId: statuspage.id!,
-              monitorId: QueryHelper.any(
-                announcement.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            select: {
-              _id: true,
-              displayName: true,
-              statusPageId: true,
-              statusPageGroupId: true,
-              statusPageGroup: {
-                name: true,
-              },
-            },
-            skip: 0,
-          });
-
-          logger.debug(
-            `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
-          );
-        } else {
-          logger.debug(
-            `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
-          );
-        }
+        logger.debug(
+          `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
+        );
 
         /*
          * Variables for this status page's custom templates, built once so
@@ -347,6 +375,10 @@ const notifySubscribersOfAnnouncement: (data: {
          * both as HTML. SMS and the email subject are plain text. Slack and
          * Teams render the description's Markdown as written, and show
          * "<br/>" literally, so they get the plain-text resource list.
+         *
+         * The shared values are plain text: the email body escapes them
+         * (compileEmailBodyTemplate), and only the values wrapped in SafeHtml
+         * go into it as HTML.
          */
         const resourcesAffectedHtml: string =
           StatusPageResourceUtil.getResourcesGroupedByGroupName(
@@ -364,11 +396,14 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementTitle: announcement.title || "",
         };
 
-        const emailBodyTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedHtml,
-          announcementDescription: announcementDescriptionHtml,
-        };
+        const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...templateVariables,
+            resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedHtml),
+            announcementDescription: SafeHtml.fromTrustedHtml(
+              announcementDescriptionHtml,
+            ),
+          };
 
         const plainTextTemplateVariables: Record<string, string> = {
           ...templateVariables,
@@ -376,9 +411,19 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementDescription: announcementDescriptionPlainText,
         };
 
+        /*
+         * A custom Slack or Teams message is Markdown: every plain value -
+         * the title, the status page's name, the resource list - is escaped,
+         * so it reads as typed and cannot become a link, an image, raw HTML
+         * or a chat mention wherever the template places it
+         * (SubscriberMarkdownTemplateValues). The addresses are OneUptime's
+         * own; the description stays the Markdown it was written as.
+         */
         const markdownTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedPlainText,
+          ...SubscriberMarkdownTemplateValues.fromPlainValues({
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
+          }),
           announcementDescription: announcement.description || "",
         };
 
@@ -413,17 +458,18 @@ const notifySubscribersOfAnnouncement: (data: {
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
                 URL.fromString(statusPageURL),
-                subscriber.id!,
+                subscriber,
               ).toString();
 
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
 
-            const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-              ...emailBodyTemplateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+              {
+                ...emailBodyTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
             const subscriberPlainTextTemplateVariables: Dictionary<string> = {
               ...plainTextTemplateVariables,
               unsubscribeUrl: unsubscribeUrl,
@@ -495,11 +541,12 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                slackMessage = `## ${copy.chatHeading} - ${announcement.title || ""}
+                slackMessage =
+                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
 
-**Description:** ${announcement.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Slack notification here.
@@ -527,11 +574,12 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                teamsMessage = `## ${copy.chatHeading} - ${announcement.title || ""}
+                teamsMessage =
+                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
 
-**Description:** ${announcement.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Teams notification here.
@@ -585,7 +633,7 @@ const notifySubscribersOfAnnouncement: (data: {
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const customEmailBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );
@@ -630,13 +678,11 @@ const notifySubscribersOfAnnouncement: (data: {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: announcementDetailsUrl,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
+                      logoUrl: StatusPageEmailLogo.getLogoUrl({
+                        statusPage: statuspage,
+                        host: host,
+                        httpProtocol: httpProtocol,
+                      }),
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",
@@ -682,7 +728,7 @@ const notifySubscribersOfAnnouncement: (data: {
       );
     } else {
       logger.debug(
-        `No subscribers were notified for announcement ${announcement.id}. All status pages either hide announcements or had no matching subscribers.`,
+        `No subscribers were notified for announcement ${announcement.id}. All status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.`,
       );
     }
 
@@ -830,6 +876,23 @@ RunCron(
 
     for (const announcement of announcements) {
       try {
+        /*
+         * The announcement's notification is being sent right now, with the
+         * announcement as it was read before this edit. Left Pending,
+         * untouched: a later run sends the update once that has settled
+         * (SubscriberUpdateNotification).
+         */
+        if (
+          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+            announcement.subscriberNotificationStatus,
+          )
+        ) {
+          logger.debug(
+            `Announcement ${announcement.id}'s notification is being sent; its update notification waits for it.`,
+          );
+          continue;
+        }
+
         let skipReason: string | null =
           SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
             announcement.subscriberNotificationStatus,

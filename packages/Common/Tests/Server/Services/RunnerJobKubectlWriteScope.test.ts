@@ -2,6 +2,7 @@ import RunnerJobService, {
   Service as RunnerJobServiceClass,
 } from "../../../Server/Services/RunnerJobService";
 import AIRunService from "../../../Server/Services/AIRunService";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -94,6 +95,10 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses writes the Runner's p
     jest
       .spyOn(RunnerJobService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No Kubernetes AI agent: the bound Runner is the access target.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
       runType: AIRunType.RemediationExecution,
     } as unknown as AIRun);
@@ -471,7 +476,7 @@ describe("RunnerJobService.getRunnerWriteScopeRefusal words the Runner's rule fo
     expect(message).toContain('"web": aiAccess.remediation.namespaces');
     expect(message).toContain("ONEUPTIME_KUBECTL_WRITE_NAMESPACES");
     expect(message).toContain(
-      'To let OneUptime AI change "staging", add it to aiAccess.remediation.namespaces',
+      'To let OneUptime AI change "staging", upgrade the Kubernetes agent chart to the Kubernetes AI agent (it replaces the in-cluster Runner) and add it to aiAgent.remediation.namespaces',
     );
     expect(message).not.toContain("-n <namespace>");
   });
@@ -710,7 +715,7 @@ describe("RunnerJobService names where each kind of Runner sets its write scope"
         "its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS)",
       );
       expect(message).toContain(
-        "To let OneUptime AI change nodes, upgrade the agent with --set aiAccess.remediation.nodeOperations=true.",
+        "To let OneUptime AI change nodes, upgrade the Kubernetes agent chart to the Kubernetes AI agent (it replaces the in-cluster Runner) with --set aiAgent.remediation.nodeOperations=true.",
       );
       expect(message).not.toContain("on that Runner's host");
     });
@@ -731,7 +736,7 @@ describe("RunnerJobService names where each kind of Runner sets its write scope"
         '("prod": aiAccess.remediation.namespaces on the Kubernetes agent chart, ONEUPTIME_KUBECTL_WRITE_NAMESPACES)',
       );
       expect(outside).toContain(
-        'To let OneUptime AI change "payments", add it to aiAccess.remediation.namespaces and upgrade the agent.',
+        'To let OneUptime AI change "payments", upgrade the Kubernetes agent chart to the Kubernetes AI agent (it replaces the in-cluster Runner) and add it to aiAgent.remediation.namespaces.',
       );
       expect(clusterScoped).toContain(
         "aiAccess.remediation.namespaces on the Kubernetes agent chart",
@@ -739,6 +744,164 @@ describe("RunnerJobService names where each kind of Runner sets its write scope"
 
       for (const message of [outside, clusterScoped]) {
         expect(message).not.toContain("on that Runner's host");
+      }
+    });
+
+    it("says the Kubernetes AI agent replaces it, and never says 'this Runner'", () => {
+      for (const command of [
+        "kubectl cordon n1",
+        "kubectl rollout restart deployment/pay -n payments",
+      ]) {
+        const message: string = refusalFor(command, AGENT_RUNNER, false);
+
+        expect(message).toContain("Kubernetes AI agent");
+        expect(message).toContain("the cluster's Runner");
+        expect(message).not.toContain("this Runner");
+      }
+    });
+
+    it("absent executorKind reads as the in-cluster Runner, the same as naming it", () => {
+      for (const command of [
+        "kubectl cordon n1",
+        "kubectl rollout restart deployment/pay -n payments",
+        "kubectl rollout restart deployment/web",
+      ]) {
+        const policy: ReturnType<typeof KubectlPolicy.evaluateCommand> =
+          KubectlPolicy.evaluateCommand(command);
+
+        expect(
+          RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+            policy,
+            posture: AGENT_RUNNER,
+            usesCredential: false,
+          }),
+        ).toBe(
+          RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+            policy,
+            posture: AGENT_RUNNER,
+            usesCredential: false,
+            executorKind: "legacy_runner",
+          }),
+        );
+      }
+    });
+  });
+
+  /*
+   * The Kubernetes AI agent: its chart values are aiAgent.remediation.*,
+   * and a refusal names the agent, never a Runner.
+   */
+  describe("the Kubernetes AI agent", () => {
+    function agentRefusal(command: string): string {
+      const message: string | null =
+        RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+          policy: KubectlPolicy.evaluateCommand(command),
+          posture: AGENT_RUNNER,
+          usesCredential: false,
+          executorKind: "ai_agent",
+        });
+
+      expect({ command, refused: message !== null }).toEqual({
+        command,
+        refused: true,
+      });
+
+      return message!;
+    }
+
+    it("node operations: names aiAgent.remediation.nodeOperations and the chart upgrade", () => {
+      const message: string = agentRefusal("kubectl cordon n1");
+
+      expect(message).toContain(
+        "the cluster's Kubernetes AI agent does not allow node operations",
+      );
+      expect(message).toContain(
+        "it was installed with aiAgent.remediation.nodeOperations=false (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS)",
+      );
+      expect(message).toContain(
+        "To let OneUptime AI change nodes, upgrade the Kubernetes agent chart with --set aiAgent.remediation.nodeOperations=true.",
+      );
+      expect(message).toContain("so the AI agent would refuse it");
+    });
+
+    it("outside its scope: names aiAgent.remediation.namespaces", () => {
+      const message: string = agentRefusal(
+        "kubectl rollout restart deployment/pay -n payments",
+      );
+
+      expect(message).toContain(
+        '("prod": aiAgent.remediation.namespaces on the Kubernetes agent chart, ONEUPTIME_KUBECTL_WRITE_NAMESPACES)',
+      );
+      expect(message).toContain(
+        'To let OneUptime AI change "payments", add it to aiAgent.remediation.namespaces and upgrade the Kubernetes agent chart.',
+      );
+    });
+
+    it("its own namespace (a write with no -n lands there) names the agent", () => {
+      const message: string = agentRefusal(
+        "kubectl rollout restart deployment/web",
+      );
+
+      expect(message).toContain('namespace "oneuptime-agent"');
+      expect(message).toContain(
+        "the namespace the cluster's Kubernetes AI agent itself runs in",
+      );
+    });
+
+    it("never names aiAccess, a Runner's host or 'the cluster's Runner'", () => {
+      for (const command of [
+        "kubectl cordon n1",
+        "kubectl rollout restart deployment/pay -n payments",
+        "kubectl rollout restart deployment/web",
+        "kubectl label namespace staging team=a -n prod",
+        "kubectl annotate ingressclass nginx note=x -n prod",
+      ]) {
+        const message: string = agentRefusal(command);
+
+        for (const word of [
+          "aiAccess",
+          "that Runner's host",
+          "the cluster's Runner",
+          "in-cluster Runner",
+        ]) {
+          expect({ command, word, said: message.includes(word) }).toEqual({
+            command,
+            word,
+            said: false,
+          });
+        }
+      }
+    });
+
+    it("refuses exactly what the in-cluster Runner refuses: only the words differ", () => {
+      for (const command of [
+        "kubectl cordon n1",
+        "kubectl rollout restart deployment/pay -n payments",
+        "kubectl rollout restart deployment/pay -n prod",
+        "kubectl rollout restart deployment/web",
+        "kubectl get pods -n payments",
+      ]) {
+        const policy: ReturnType<typeof KubectlPolicy.evaluateCommand> =
+          KubectlPolicy.evaluateCommand(command);
+
+        expect({
+          command,
+          refused:
+            RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+              policy,
+              posture: AGENT_RUNNER,
+              usesCredential: false,
+              executorKind: "ai_agent",
+            }) !== null,
+        }).toEqual({
+          command,
+          refused:
+            RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+              policy,
+              posture: AGENT_RUNNER,
+              usesCredential: false,
+            }) !== null,
+        });
       }
     });
   });
@@ -770,6 +933,10 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses a credential Runner's
     jest
       .spyOn(RunnerJobService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No Kubernetes AI agent: the bound Runner is the access target.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
       runType: AIRunType.RemediationExecution,
     } as unknown as AIRun);

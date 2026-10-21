@@ -1,7 +1,7 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -10,28 +10,59 @@ import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { validateCustomFieldCreateSettings } from "../../Types/CustomField/CustomFieldCreateSettings";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
+import IncidentScopeAddedPagesNotification from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The initial state, the severity, the monitor status to switch to and
+   * every list a template carries are checked by this service's own hooks
+   * below, with ProjectScopedReferenceValidator and its own words.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return [
+      "initialIncidentState",
+      "incidentSeverity",
+      "changeMonitorStatusTo",
+    ];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "onCallDutyPolicies",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   /*
@@ -49,8 +80,29 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentTemplateOwnerUserService,
+      ownerTeamService: IncidentTemplateOwnerTeamService,
+      resourceIdColumn: "incidentTemplateId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
+
+    this.assertValidCustomFieldSettings(createBy.data.customFieldSettings);
+
+    // Derived from the list, whatever the caller sent (see the column).
+    createBy.data.isScopedToStatusPages =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      ).length > 0;
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
@@ -64,6 +116,19 @@ export class Service extends DatabaseService<Model> {
       ],
     });
 
+    /*
+     * A template's status pages are picked for everyone who declares from
+     * it, so picking them needs the same read access as picking an
+     * incident's (see StatusPageReadAccess).
+     */
+    await StatusPageReadAccess.assertCallerCanPickStatusPages({
+      statusPageIds: IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      ),
+      props: createBy.props,
+      subject: "incident template",
+    });
+
     return { createBy, carryForward: null };
   }
 
@@ -71,6 +136,26 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    /*
+     * The scope flag follows a write to the list and nothing else: a client
+     * value is dropped, and deleting the template's pages (join rows
+     * cascading away) never clears it.
+     */
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    delete data["isScopedToStatusPages"];
+
+    if (data["statusPages"] !== undefined) {
+      data["isScopedToStatusPages"] =
+        IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          data["statusPages"],
+        ).length > 0;
+    }
+
+    this.assertValidCustomFieldSettings(data["customFieldSettings"]);
+
     const references: Array<ProjectScopedReference> =
       this.getProjectScopedReferences(updateBy.data);
 
@@ -96,19 +181,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each template the query actually matches.
+     * The project of every template the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * template's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -131,7 +217,82 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // Once the pages are known to be the project's.
+    await this.assertCallerCanReadAddedStatusPages(updateBy);
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * customFieldSettings is only read by the dashboard's Declare Incident
+   * form, and leniently, so a malformed value would not break anything - it
+   * would silently do nothing, which is worse for whoever wrote it. It is
+   * refused where it comes in instead, root writes included (a workflow can
+   * send it too). A valid value is stored exactly as sent: see
+   * validateCustomFieldCreateSettings for why nothing is rewritten.
+   */
+  private assertValidCustomFieldSettings(value: unknown): void {
+    const problem: string | null = validateCustomFieldCreateSettings(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * The status pages an update adds to a template must be pages the caller
+   * can read (see StatusPageReadAccess). Pages the template already holds are
+   * not checked, so saving a template limited to a page the editor cannot
+   * see does not fail. The templates are read as root, from the ones the
+   * update writes (findRowsAndHoldUpdateToThem): the ones the caller may
+   * write, with the update held to them.
+   */
+  private async assertCallerCanReadAddedStatusPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const requested: unknown = (updateBy.data as Dictionary<unknown>)[
+      "statusPages"
+    ];
+
+    if (updateBy.props.isRoot || requested === undefined) {
+      return;
+    }
+
+    const requestedIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(requested);
+
+    if (requestedIds.length === 0) {
+      return;
+    }
+
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPages: {
+          _id: true,
+        },
+      },
+    );
+
+    const addedIds: Array<string> = [];
+
+    for (const template of templates) {
+      for (const id of IncidentScopeAddedPagesNotification.getScopeChange({
+        before: template.statusPages,
+        after: requestedIds,
+      }).addedStatusPageIds) {
+        if (!addedIds.includes(id)) {
+          addedIds.push(id);
+        }
+      }
+    }
+
+    await StatusPageReadAccess.assertCallerCanPickStatusPages({
+      statusPageIds: addedIds,
+      props: updateBy.props,
+      subject: "incident template",
+    });
   }
 
   /*
@@ -157,62 +318,46 @@ export class Service extends DatabaseService<Model> {
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
       },
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
+      },
       ...getAffectedResourceRelations(this.getModel()),
     ];
   }
 
+  /*
+   * Each relation by both of its names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked, and the two must agree.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
     return [
-      {
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "initialIncidentStateId",
+        relation: "initialIncidentState",
         modelName: "Incident State",
-        id:
-          resolveReferenceId(data.initialIncidentStateId) ||
-          resolveReferenceId(data.initialIncidentState),
         service: IncidentStateService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
         modelName: "Incident Severity",
-        id:
-          resolveReferenceId(data.incidentSeverityId) ||
-          resolveReferenceId(data.incidentSeverity),
         service: IncidentSeverityService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
         modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
-      },
+      }),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const template of templates) {
-      if (template.projectId) {
-        projectIds[template.projectId.toString()] = template.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -238,10 +383,68 @@ export class Service extends DatabaseService<Model> {
           [],
         false,
         onCreate.createBy.props,
+        true,
       );
     }
 
     return createdItem;
+  }
+
+  /*
+   * The owners of a template - its owner users and teams - read as `props`:
+   * the people and teams who own the incidents declared from it. An
+   * incident form reads them as OneUptime itself (IncidentFormTarget); a
+   * workflow's Create One Incident step as the step, so a step reads only
+   * what a Project Admin of its project may (IncidentService
+   * .createFromTemplate).
+   */
+  @CaptureSpan()
+  public async getOwnerIds(data: {
+    incidentTemplateId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<{ userIds: Array<ObjectID>; teamIds: Array<ObjectID> }> {
+    const query: { incidentTemplateId: ObjectID; projectId: ObjectID } = {
+      incidentTemplateId: data.incidentTemplateId,
+      projectId: data.projectId,
+    };
+
+    const [ownerUsers, ownerTeams]: [
+      Array<IncidentTemplateOwnerUser>,
+      Array<IncidentTemplateOwnerTeam>,
+    ] = await Promise.all([
+      IncidentTemplateOwnerUserService.findBy({
+        query: query,
+        select: { userId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      }),
+      IncidentTemplateOwnerTeamService.findBy({
+        query: query,
+        select: { teamId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      }),
+    ]);
+
+    return {
+      userIds: ownerUsers
+        .map((owner: IncidentTemplateOwnerUser): ObjectID | undefined => {
+          return owner.userId;
+        })
+        .filter((userId: ObjectID | undefined): userId is ObjectID => {
+          return Boolean(userId);
+        }),
+      teamIds: ownerTeams
+        .map((owner: IncidentTemplateOwnerTeam): ObjectID | undefined => {
+          return owner.teamId;
+        })
+        .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
+          return Boolean(teamId);
+        }),
+    };
   }
 
   @CaptureSpan()
@@ -252,6 +455,12 @@ export class Service extends DatabaseService<Model> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the template are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -264,6 +473,7 @@ export class Service extends DatabaseService<Model> {
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 }

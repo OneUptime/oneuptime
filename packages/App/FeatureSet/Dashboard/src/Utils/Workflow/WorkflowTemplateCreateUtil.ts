@@ -16,9 +16,12 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
   WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX,
   WorkflowTemplate,
+  WorkflowTemplateOAuth2Variable,
   WorkflowTemplateVariable,
   buildGraphForTemplate,
+  fillWorkflowTemplateSetting,
 } from "Common/Types/Workflow/Templates";
+import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 
 /** Keyed by WorkflowTemplateVariable.name. */
 export interface WorkflowTemplateVariableValues {
@@ -63,6 +66,10 @@ export type ValidateTemplateVariableValuesFunction = (
 /**
  * Validates the values typed into the variables step. Returns an empty object
  * when everything is fine.
+ *
+ * A value is checked against its variable's format as it will be saved:
+ * trimmed. A blank optional value has no format to meet — leaving it blank is
+ * how it is left out.
  */
 export const validateTemplateVariableValues: ValidateTemplateVariableValuesFunction =
   (
@@ -74,13 +81,103 @@ export const validateTemplateVariableValues: ValidateTemplateVariableValuesFunct
     for (const variable of template.variables) {
       const value: string | undefined = values[variable.name];
 
-      if (variable.required && isBlank(value)) {
-        errors[variable.name] = `${variable.title} is required.`;
+      if (isBlank(value)) {
+        if (variable.required) {
+          errors[variable.name] = `${variable.title} is required.`;
+        }
+
+        continue;
+      }
+
+      if (
+        variable.format &&
+        !variable.format.pattern.test((value as string).trim())
+      ) {
+        errors[variable.name] = variable.format.message;
       }
     }
 
     return errors;
   };
+
+type WithoutTrailingSlashesFunction = (value: string) => string;
+
+// A loop, not a pattern: what is typed into a field can be as long as anyone likes.
+const withoutTrailingSlashes: WithoutTrailingSlashesFunction = (
+  value: string,
+): string => {
+  let end: number = value.length;
+
+  while (end > 0 && value.charAt(end - 1) === "/") {
+    end--;
+  }
+
+  return value.slice(0, end);
+};
+
+/** What typing into one setting of the Configure step does to them all. */
+export interface TemplateVariableEdit {
+  values: WorkflowTemplateVariableValues;
+  /** The settings someone has typed into, which nothing fills in any more. */
+  typedVariableNames: Array<string>;
+  /** The setting typed into, and every one filled in from it. */
+  changedVariableNames: Array<string>;
+}
+
+interface EditTemplateVariableProps {
+  template: WorkflowTemplate;
+  values: WorkflowTemplateVariableValues;
+  typedVariableNames: Array<string>;
+  variableName: string;
+  value: string;
+}
+
+export type EditTemplateVariableFunction = (
+  props: EditTemplateVariableProps,
+) => TemplateVariableEdit;
+
+/**
+ * A setting takes what is typed into it. Every setting prefilled from it
+ * (WorkflowTemplateVariable.prefilledFrom) that nobody has typed into takes
+ * it too, trimmed and without the slashes it may end with: the Jira API URL
+ * follows the Jira Site URL, and the requests built on it never get a
+ * doubled slash. A setting counts as typed into while it holds something,
+ * so emptying it lets it follow again.
+ */
+export const editTemplateVariable: EditTemplateVariableFunction = (
+  props: EditTemplateVariableProps,
+): TemplateVariableEdit => {
+  const values: WorkflowTemplateVariableValues = {
+    ...props.values,
+    [props.variableName]: props.value,
+  };
+  const changedVariableNames: Array<string> = [props.variableName];
+
+  for (const variable of props.template.variables) {
+    if (
+      variable.prefilledFrom === props.variableName &&
+      variable.name !== props.variableName &&
+      !props.typedVariableNames.includes(variable.name)
+    ) {
+      values[variable.name] = withoutTrailingSlashes(props.value.trim());
+      changedVariableNames.push(variable.name);
+    }
+  }
+
+  const others: Array<string> = props.typedVariableNames.filter(
+    (name: string): boolean => {
+      return name !== props.variableName;
+    },
+  );
+
+  return {
+    values: values,
+    typedVariableNames: isBlank(props.value)
+      ? others
+      : [...others, props.variableName],
+    changedVariableNames: changedVariableNames,
+  };
+};
 
 export type TemplateVariablesToFillFunction = (
   template: WorkflowTemplate | null,
@@ -213,6 +310,59 @@ export const buildWorkflowFromTemplate: BuildWorkflowFromTemplateFunction = (
   return workflow;
 };
 
+interface BuildOAuth2VariableProps {
+  oauth2Variable: WorkflowTemplateOAuth2Variable;
+  values: WorkflowTemplateVariableValues;
+  workflowId: ObjectID;
+  projectId: ObjectID;
+}
+
+type BuildOAuth2WorkflowVariableFunction = (
+  props: BuildOAuth2VariableProps,
+) => WorkflowVariable;
+
+/*
+ * An OAuth 2.0 row, as Create OAuth 2.0 Variable would write it: the type
+ * stamped on, the settings filled in, and no content — its value is the
+ * access token OneUptime fetches, which the service stores in a column of its
+ * own. The service makes every OAuth 2.0 variable secret whatever it is sent,
+ * but isSecret is still sent, because the column is required on create.
+ */
+const buildOAuth2WorkflowVariable: BuildOAuth2WorkflowVariableFunction = (
+  props: BuildOAuth2VariableProps,
+): WorkflowVariable => {
+  const oauth2Variable: WorkflowTemplateOAuth2Variable = props.oauth2Variable;
+  const variable: WorkflowVariable = new WorkflowVariable();
+
+  variable.name = oauth2Variable.name;
+  variable.description = oauth2Variable.description;
+  variable.variableType = WorkflowVariableType.OAuth2;
+  variable.oauthGrantType = oauth2Variable.grantType;
+  variable.oauthClientAuthenticationMethod =
+    oauth2Variable.clientAuthenticationMethod;
+  variable.oauthTokenUrl = fillWorkflowTemplateSetting(
+    oauth2Variable.tokenUrl,
+    props.values,
+  );
+  variable.oauthClientId = fillWorkflowTemplateSetting(
+    oauth2Variable.clientId,
+    props.values,
+  );
+  variable.oauthClientSecret = fillWorkflowTemplateSetting(
+    oauth2Variable.clientSecret,
+    props.values,
+  );
+  variable.oauthScope = fillWorkflowTemplateSetting(
+    oauth2Variable.scope,
+    props.values,
+  );
+  variable.workflowId = props.workflowId;
+  variable.projectId = props.projectId;
+  variable.isSecret = true;
+
+  return variable;
+};
+
 interface BuildVariablesProps {
   template: WorkflowTemplate;
   values: WorkflowTemplateVariableValues;
@@ -229,6 +379,10 @@ export type BuildWorkflowVariablesFunction = (
  * variables are skipped — `content` is a required column, so there is no such
  * thing as an empty variable, and the matching reference has already been
  * stripped from the graph by applyTemplateVariableValuesToGraph.
+ *
+ * A value that is only an OAuth 2.0 setting gets no row of its own: it goes
+ * into the OAuth 2.0 variables, which come after the static ones, one row
+ * each, with every {name} in their settings filled in from what was typed.
  */
 export const buildWorkflowVariables: BuildWorkflowVariablesFunction = (
   props: BuildVariablesProps,
@@ -238,7 +392,7 @@ export const buildWorkflowVariables: BuildWorkflowVariablesFunction = (
   for (const templateVariable of props.template.variables) {
     const value: string | undefined = props.values[templateVariable.name];
 
-    if (isBlank(value)) {
+    if (isBlank(value) || templateVariable.isOAuth2SettingOnly) {
       continue;
     }
 
@@ -251,15 +405,24 @@ export const buildWorkflowVariables: BuildWorkflowVariablesFunction = (
     variable.projectId = props.projectId;
 
     /*
-     * isSecret is declared `string` on a genuinely boolean column, so it needs
-     * a cast. It must also be sent explicitly: the column is required and its
+     * isSecret must be sent explicitly: the column is required and its
      * `defaultValue` is not an `isDefaultValueColumn`, so leaving it undefined
      * is a 400 rather than a false.
      */
-    (variable as unknown as { isSecret?: boolean }).isSecret =
-      templateVariable.isSecret;
+    variable.isSecret = templateVariable.isSecret;
 
     variables.push(variable);
+  }
+
+  for (const oauth2Variable of props.template.oauth2Variables || []) {
+    variables.push(
+      buildOAuth2WorkflowVariable({
+        oauth2Variable: oauth2Variable,
+        values: props.values,
+        workflowId: props.workflowId,
+        projectId: props.projectId,
+      }),
+    );
   }
 
   return variables;

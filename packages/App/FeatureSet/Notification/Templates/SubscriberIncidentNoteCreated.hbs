@@ -6,9 +6,13 @@
 {{> InfoBlock info="A new note has been added to the incident. Here are the details:  "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title: " text=incidentTitle }}
+{{> DetailBoxField title="Incident Title: " plainText=incidentTitle }}
+{{#if incidentState}}
+{{> DetailBoxField title="Status: " plainText=incidentState color=incidentStateColor textColor=incidentStateTextColor }}
+{{/if}}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> IncidentCustomFieldRows this }}
 {{> DetailBoxField title="Note: " text=note  }}
 {{> DetailBoxEnd this }}
 

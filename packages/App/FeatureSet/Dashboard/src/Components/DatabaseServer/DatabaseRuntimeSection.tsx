@@ -15,6 +15,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Section 2 of a database's Overview, for a database that runs on
@@ -51,23 +53,26 @@ const PLATFORM_LABELS: Record<DatabaseRuntimePlatform, string> = {
 const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const metrics: DatabaseRuntimeMetrics =
     DATABASE_RUNTIME_METRICS[props.platform];
-  const instanceLabel: string =
-    props.platform === DatabaseRuntimePlatform.Kubernetes
-      ? "pods"
-      : "containers";
 
   return (
     <div data-testid="database-runtime">
       <Card
-        title={`Runtime — ${PLATFORM_LABELS[props.platform]}`}
-        description={`Where this database runs and the CPU and memory of its ${instanceLabel}.`}
+        title={translator.translateTemplate("Runtime — {{platform}}", {
+          platform: PLATFORM_LABELS[props.platform],
+        })}
+        description={
+          props.platform === DatabaseRuntimePlatform.Kubernetes
+            ? "Where this database runs and the CPU and memory of its pods."
+            : "Where this database runs and the CPU and memory of its containers."
+        }
       >
         <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Runs on
+              {translator.translateText("Runs on")}
             </dt>
             <dd className="mt-1 text-gray-900">
               <DatabaseRunsOnLink
@@ -78,7 +83,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Workload
+              {translator.translateText("Workload")}
             </dt>
             <dd className="mt-1 break-all font-mono text-gray-900">
               <DatabaseWorkloadLink
@@ -89,7 +94,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Instances
+              {translator.translateText("Instances")}
             </dt>
             <dd className="mt-1 text-gray-900">
               {props.instanceCount === null ? "—" : props.instanceCount}
@@ -97,11 +102,17 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Tracked {instanceLabel}
+              {translator.translateText(
+                props.platform === DatabaseRuntimePlatform.Kubernetes
+                  ? "Tracked pods"
+                  : "Tracked containers",
+              )}
             </dt>
             <dd className="mt-1 text-gray-900">
               {props.memberCount}
-              <span className="ml-1 text-xs text-gray-500">(last 30 days)</span>
+              <span className="ml-1 text-xs text-gray-500">
+                {translator.translateText("(last 30 days)")}
+              </span>
             </dd>
           </div>
         </dl>

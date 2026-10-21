@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -14,6 +15,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -22,9 +24,9 @@ import User from "Common/Models/DatabaseModels/User";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedService";
-import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertEpisodeOwner:SendCreatedResourceEmail",
@@ -49,9 +51,11 @@ RunCron(
         } as Select<Project>,
         currentAlertState: {
           name: true,
+          color: true,
         } as Select<AlertState>,
         alertSeverity: {
           name: true,
+          color: true,
         },
         createdByUser: {
           name: true,
@@ -64,13 +68,11 @@ RunCron(
     });
 
     for (const episode of episodes) {
-      const projectId: ObjectID = episode.projectId!;
-      const episodeId: ObjectID = episode.id!;
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
-      const episodeFeedText: string = `🔔 **Owner Alert Episode Created Notification Sent**:
-      Notification sent to owners because [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
+      const episodeFeedText: string =
+        OwnerNotificationFeedText.created("alert episode");
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -127,11 +129,19 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentAlertState?.color,
+            ),
             episodeDescription: await Markdown.convertToHTML(
               episode.description! || "",
               MarkdownContentType.Email,
             ),
             episodeSeverity: episode.alertSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.alertSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: episodeCreatedDate,
@@ -159,7 +169,9 @@ RunCron(
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New alert episode created: ${episodeIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `New alert episode created: ${episodeIdentifier}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -205,7 +217,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending alert episode created resource notification",

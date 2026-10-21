@@ -4,6 +4,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import BillingService from "../../../Server/Services/BillingService";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
+import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -11,7 +12,6 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -25,6 +25,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -127,9 +131,8 @@ beforeEach(() => {
     plan: PlanType.Free,
     isSubscriptionUnpaid: false,
   });
-  jest
-    .spyOn(MonitorService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0));
+  // The project's active monitors, as the plan's limit counts them.
+  jest.spyOn(ActiveMonitorLimit, "countActiveMonitors").mockResolvedValue(0);
   jest
     .spyOn(MonitorStepsProjectValidator, "validateMonitorStepsBelongToProject")
     .mockResolvedValue(undefined);
@@ -158,7 +161,7 @@ describe("monitor creation payment admission", () => {
         hooks.onBeforeCreate(createInput(monitorType)),
       ).rejects.toBeInstanceOf(PaymentRequiredException);
       expect(MonitorStatusService.findOneBy).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 
@@ -181,7 +184,7 @@ describe("monitor creation payment admission", () => {
         hooks.onBeforeCreate(createInput(MonitorType.Manual)),
       ).resolves.toBeDefined();
       expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 
@@ -201,17 +204,15 @@ describe("monitor creation payment admission", () => {
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
     ).resolves.toBeDefined();
-    expect(MonitorService.countBy).toHaveBeenCalledTimes(1);
+    expect(ActiveMonitorLimit.countActiveMonitors).toHaveBeenCalledTimes(1);
     jest
-      .spyOn(MonitorService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(
-          EnvironmentConfig.AllowedActiveMonitorCountInFreePlan,
-        ),
-      );
+      .spyOn(ActiveMonitorLimit, "countActiveMonitors")
+      .mockResolvedValue(EnvironmentConfig.AllowedActiveMonitorCountInFreePlan);
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
-    ).rejects.toThrow("maximum allowed monitor limit");
+    ).rejects.toThrow(
+      `This project has reached the Free plan's limit of ${EnvironmentConfig.AllowedActiveMonitorCountInFreePlan} active monitors, so no more can be added.`,
+    );
   });
 
   test("retains the existing unpaid subscription refusal after payment admission", async () => {
@@ -248,6 +249,41 @@ describe("monitor update payment admission", () => {
     expectPaymentCheckedFor(projectId);
   });
 
+  /*
+   * Unarchiving puts a monitor back into service the way enabling it does, so
+   * it passes the same gate. Archiving only ever stops work and is never
+   * gated.
+   */
+  test("requires payment to unarchive an active monitor", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Website)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: false })),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+    expectPaymentCheckedFor(projectId);
+  });
+
+  test("never gates archiving a monitor", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Website)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: true })),
+    ).resolves.toBeDefined();
+    expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+  });
+
+  test("allows unarchiving a Manual monitor without payment setup", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Manual)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: false })),
+    ).resolves.toBeDefined();
+    expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+  });
+
   test("guards internal Manual-to-active changes using the stored project", async () => {
     jest
       .spyOn(MonitorService, "findBy")
@@ -262,17 +298,25 @@ describe("monitor update payment admission", () => {
     expectPaymentCheckedFor(otherProjectId);
   });
 
-  test("scopes non-root update lookups to their tenant", async () => {
+  test("reads a teammate's update among the monitors they may write, in their project", async () => {
+    // The monitors the update path finds the caller may write: what findBy answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      MonitorService,
+      jest.spyOn(MonitorService, "findBy"),
+    );
     const input: UpdateBy<Monitor> = updateInput({
       disableActiveMonitoring: false,
     });
     input.props = { tenantId: projectId };
+    const query: UpdateBy<Monitor>["query"] = input.query;
+
     await hooks.onBeforeUpdate(input);
-    expect(MonitorService.findBy).toHaveBeenCalledWith(
+
+    expect(readsOfRowsCallerMayWrite(MonitorService)[0]).toEqual(
       expect.objectContaining({
-        query: { ...input.query, projectId },
-        limit: input.limit,
-        skip: input.skip,
+        query: { ...query, projectId },
+        limit: 10,
+        skip: 0,
       }),
     );
   });
@@ -317,7 +361,22 @@ describe("monitor update payment admission", () => {
         hooks.onBeforeUpdate(updateInput(data)),
       ).resolves.toBeDefined();
       expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
-      expect(MonitorService.findBy).not.toHaveBeenCalled();
+
+      /*
+       * No monitor is read to bill it. (A rename reads the name the monitor
+       * holds, so its updated feed item follows a real change only.)
+       */
+      expect(
+        (
+          MonitorService.findBy as unknown as {
+            mock: { calls: Array<Array<{ select?: Record<string, unknown> }>> };
+          }
+        ).mock.calls.filter(
+          (call: Array<{ select?: Record<string, unknown> }>): boolean => {
+            return Boolean(call[0]?.select?.["monitorType"]);
+          },
+        ),
+      ).toHaveLength(0);
     },
   );
 
@@ -344,7 +403,7 @@ describe("monitor operations use the stored subscription plan for payment eligib
       );
       expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
       expect(BillingService.getSubscription).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 

@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   osds?: number | undefined;
@@ -124,13 +127,13 @@ const CephClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.CEPH_CLUSTER_VIEW_INSIGHTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
+          icon={IconProp.ChartBar}
         />
         <RecommendationsSideMenuItem
           link={{
@@ -152,6 +155,44 @@ const CephClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Ceph AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -214,7 +255,12 @@ const CephClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Observability">
+      {/*
+       * The cluster's own log is read when something needs checking, as a
+       * Kubernetes cluster's events are, so it folds down to the section's
+       * title until opened (and opens by itself on its page).
+       */}
+      <SideMenuSection title="Observability" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Cluster Log",
@@ -296,6 +342,12 @@ const CephClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: CephCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

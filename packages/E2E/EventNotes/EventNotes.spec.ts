@@ -19,13 +19,25 @@ import path from "path";
  * errors or on any request the fixture does not model.
  */
 
-const PORT: string = "4223";
+// The fixture server's port (playwright.event-notes-ui.config.ts).
+const PORT: string = process.env["EVENT_NOTES_FIXTURE_PORT"] || "4223";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
 function uuid(prefix: string, suffix: number): string {
   return `${prefix}-0000-4000-8000-${String(suffix).padStart(12, "0")}`;
 }
+
+/*
+ * The Retry and Resend confirmations of a public note's notification
+ * (SubscriberNotificationResendCopy in the Dashboard).
+ */
+const RETRY_CONFIRM_TITLE: string = "Retry this notification?";
+const RESEND_CONFIRM_TITLE: string = "Send this notification again?";
+const NOTE_RETRY_DESCRIPTION: string =
+  "Retry sends this note again to the subscribers of every status page this incident reaches now, including the pages that were sent it before: notes and state changes do not resume where they stopped, only the incident-created notification does. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.";
+const NOTE_RESEND_DESCRIPTION: string =
+  "This note is sent again to the subscribers of every status page this incident reaches now, including the pages that were sent it before. Notes and state changes are always sent to every page again; only a retry of the incident-created notification resumes where it stopped. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.";
 
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
 const INCIDENT: string = `${DASHBOARD}/incidents/${uuid("20000000", 1042)}`;
@@ -270,6 +282,70 @@ async function openComposer(page: Page): Promise<Locator> {
     composer.locator('[contenteditable="true"]').first(),
   ).toBeFocused();
   return composer;
+}
+
+/*
+ * 'Preview' beside the public note composer's notify box: one word on
+ * screen, named for what it previews (SubscriberNotificationPreviewCopy).
+ */
+const PREVIEW_NAME: string = "Preview notification";
+const PREVIEW_NOTIFY_LABEL: string = "Notify status page subscribers";
+const PREVIEW_WAITING_REASON: string =
+  "Write the note first to preview the email it sends.";
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function previewLink(composer: Locator): Locator {
+  return composer.getByRole("button", { name: PREVIEW_NAME });
+}
+
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
+  expect(box, "the element should be laid out").not.toBeNull();
+  return box!;
+}
+
+async function colorOf(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    return window.getComputedStyle(element).color;
+  });
+}
+
+interface PreviewStyle {
+  borderTopWidth: string;
+  backgroundColor: string;
+  boxShadow: string;
+  fontSize: string;
+  textDecorationLine: string;
+}
+
+async function previewStyle(locator: Locator): Promise<PreviewStyle> {
+  return locator.evaluate((element: Element): PreviewStyle => {
+    const computed: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      borderTopWidth: computed.borderTopWidth,
+      backgroundColor: computed.backgroundColor,
+      boxShadow: computed.boxShadow,
+      fontSize: computed.fontSize,
+      textDecorationLine: computed.textDecorationLine,
+    };
+  });
+}
+
+// What the page asked the notification preview API.
+async function previewRequests(
+  page: Page,
+): Promise<Array<{ method: string; url: string; body: unknown }>> {
+  return (await fixture(page)).apiRequests.filter(
+    (request: { url: string }): boolean => {
+      return request.url.includes("/subscriber-notification-preview/");
+    },
+  );
 }
 
 async function openActions(noteCard: Locator): Promise<void> {
@@ -564,6 +640,530 @@ test.describe("writing a note", () => {
     await expect(page.getByTestId("note-composer")).toHaveCount(0);
     await expect(page.getByTestId("note-composer-prompt")).toBeVisible();
   });
+
+  /*
+   * Chromium's insertHTML folds a code block inserted after text on a line
+   * into that line, as a monospace <span> the note saved as plain text: the
+   * Code Block button after "Run:" posted "Run:code blocknpm ci", and a
+   * fenced block pasted there "Run:npm install". jsdom has no execCommand,
+   * so only a real browser shows it.
+   */
+  test("a code block started at the end of a line is posted as a code block", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    await composer.getByTitle("Code Block").click();
+    // The block's placeholder is selected, so the command replaces it.
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm ci")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm ci\n```",
+    );
+  });
+
+  test("the composer's toolbar is one line in the feed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+
+    expect(
+      await toolbarLayout(composer.getByTestId("markdown-editor-toolbar")),
+    ).toEqual({
+      rows: 1,
+      spillsPastTheLine: false,
+      isOneButtonTall: true,
+    });
+  });
+
+  test("a fenced block pasted at the end of a line is posted as a code block", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    // The paste event a real paste of that text delivers to the editor.
+    const pasted: boolean = await composer
+      .locator('[contenteditable="true"]')
+      .evaluate((editable: HTMLElement): boolean => {
+        const data: DataTransfer = new DataTransfer();
+        data.setData("text/plain", "```\nnpm install\n```");
+        const event: ClipboardEvent = new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        });
+        editable.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+    expect(pasted).toBe(true);
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm install")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm install\n```",
+    );
+  });
+
+  /*
+   * Tab moves list items by hand, which the browser's undo stack never hears
+   * of: Ctrl+Z after Tab undid the typing before it and left the indent.
+   */
+  test("Ctrl+Z takes back a Tab indent in a list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await composer.getByTitle("Bullet List").click();
+    await page.keyboard.type("alpha");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("beta");
+
+    await page.keyboard.press("Tab");
+    await expect(composer.locator('[contenteditable="true"] li li')).toHaveText(
+      "beta",
+    );
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(
+      composer.locator('[contenteditable="true"] li li'),
+    ).toHaveCount(0);
+
+    // The caret is back in the item: what is typed next goes on after it.
+    await page.keyboard.type(" gamma");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "beta gamma")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "- alpha\n- beta gamma",
+    );
+  });
+
+  /*
+   * A list pasted into a list item went in by hand and stayed inside the
+   * item, as a code block pasted there does: pasted into the bullet Enter
+   * starts, it was a list nested in an empty item, posted as
+   * "- first\n- - restart api" -- the double bullets of issue #4114.
+   */
+  test("a list pasted into a new bullet is posted as items of the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await composer.getByTitle("Bullet List").click();
+    await page.keyboard.type("first");
+    await page.keyboard.press("Enter");
+
+    // The paste event a real paste of that text delivers to the editor.
+    const pasted: boolean = await composer
+      .locator('[contenteditable="true"]')
+      .evaluate((editable: HTMLElement): boolean => {
+        const data: DataTransfer = new DataTransfer();
+        data.setData("text/plain", "- restart api\n- check logs");
+        const event: ClipboardEvent = new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        });
+        editable.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+    expect(pasted).toBe(true);
+    await expect(
+      composer.locator('[contenteditable="true"] li li'),
+    ).toHaveCount(0);
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "check logs")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "- first\n- restart api\n- check logs",
+    );
+  });
+
+  /*
+   * The Code Block button puts its block in by hand, and the code typed into
+   * it is the browser's own edit. Ctrl+Z undid that typing, and the next
+   * Ctrl+Z went to the browser's next entry: the "Run:" typed before the
+   * block was deleted and the block stayed. Now the block goes, then "Run:".
+   */
+  test("Ctrl+Z takes back a code block after the code typed into it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    const editable: Locator = composer.locator('[contenteditable="true"]');
+    await page.keyboard.type("Run:");
+    await composer.getByTitle("Code Block").click();
+    await page.keyboard.type("npm ci");
+
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(editable.locator("pre")).toHaveText("code block");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(editable.locator("pre")).toHaveCount(0);
+    await expect(editable).toHaveText("Run:");
+
+    // The caret is back after "Run:": what is typed next goes on after it.
+    await page.keyboard.type(" now");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "Run: now")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe("Run: now");
+  });
+
+  /*
+   * The arrow keys leave the caret inside a bold word at its very end. The
+   * line split there for the code block copied the <b> into the second half
+   * with nothing in it, which nothing showed and the note posted as
+   * "**** then check".
+   */
+  test("a code block started right after a bold word posts no stray asterisks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run ");
+    await page.keyboard.press("ControlOrMeta+b");
+    await page.keyboard.type("this");
+    await page.keyboard.press("ControlOrMeta+b");
+    await page.keyboard.type(" then check");
+    for (let step: number = 0; step < " then check".length; step++) {
+      await page.keyboard.press("ArrowLeft");
+    }
+
+    await composer.getByTitle("Code Block").click();
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "then check")).toHaveCount(1);
+    const note: string = String(
+      (await fixture(page)).creates[0]!.data!["note"],
+    );
+    expect(note).not.toContain("****");
+    expect(note).toMatch(
+      /^Run \*\*this\*\*\n```\nnpm ci\n```\n\n\s?then check$/,
+    );
+  });
+});
+
+/*
+ * The notification preview opens from the composer, portalled out of it. Its
+ * keys used to be stopped at the body so the composer would not see them,
+ * which also kept them from the dialog's own document-level handler: Escape
+ * did nothing and Tab walked out of the dialog. Now the dialog closes on
+ * Escape and keeps Tab inside, and the composer ignores keys from outside
+ * itself, so the draft survives.
+ */
+test.describe("previewing the notification", () => {
+  test("the preview closes on Escape, keeps Tab inside it, and leaves the draft", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    await composer
+      .getByRole("button", { name: "Preview notification" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Preview notification",
+    });
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-subject"),
+    ).toHaveText("[Update Incident] Card payments failing in the EU");
+
+    // Tab from the dialog's last control comes back round inside it.
+    const footerClose: Locator = dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" });
+    await footerClose.focus();
+    await page.keyboard.press("Tab");
+    expect(
+      await dialog.evaluate((element: Element): boolean => {
+        return element.contains(document.activeElement);
+      }),
+    ).toBe(true);
+    await page.keyboard.press("Shift+Tab");
+    expect(
+      await dialog.evaluate((element: Element): boolean => {
+        return element.contains(document.activeElement);
+      }),
+    ).toBe(true);
+
+    // Escape closes the dialog, not the draft.
+    await dialog
+      .getByTestId("subscriber-notification-preview-page-select")
+      .focus();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(composer).toBeVisible();
+    await expect(composer.locator('[contenteditable="true"]')).toContainText(
+      "Rolling back the edge config.",
+    );
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  /*
+   * "This preview notification button is quite big. Can we please improve
+   * the UI?" It was a bordered button with a 20px envelope on a line of its
+   * own. Now it is 'Preview' - one word and an eye in the link colour - on
+   * the notify box's own line, the size of the text it sits beside.
+   */
+  test("the preview is a small link on the notify box's line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const line: Locator = composer.getByTestId("note-notify-line");
+    const label: Locator = line.getByText(PREVIEW_NOTIFY_LABEL, {
+      exact: true,
+    });
+    const preview: Locator = previewLink(composer);
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveText("Preview");
+    await expect(preview).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect(line.getByRole("button", { name: PREVIEW_NAME })).toHaveCount(
+      1,
+    );
+
+    // On the label's line, to the right of it.
+    const labelBox: Box = await boxOf(label);
+    const previewBox: Box = await boxOf(preview);
+    expect(
+      Math.abs(
+        labelBox.y +
+          labelBox.height / 2 -
+          (previewBox.y + previewBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(previewBox.x).toBeGreaterThan(labelBox.x + labelBox.width);
+
+    // A word wide, with a 24px hit area, and the line no taller than its text.
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    expect(previewBox.width).toBeLessThan(100);
+    expect((await boxOf(line)).height).toBeLessThanOrEqual(labelBox.height + 1);
+
+    // No box of its own: no border, no background, no shadow, a 14px word.
+    expect(await previewStyle(preview)).toEqual({
+      borderTopWidth: "0px",
+      backgroundColor: "rgba(0, 0, 0, 0)",
+      boxShadow: "none",
+      fontSize: "14px",
+      textDecorationLine: "none",
+    });
+    // The link colour (indigo-600), underlined while the pointer is on it.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(79, 70, 229)");
+    await preview.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await previewStyle(preview)).textDecorationLine;
+      })
+      .toBe("underline");
+
+    // Who it reaches is said under the line, not on it.
+    await expect(composer.getByTestId("note-notify-audience")).toBeVisible();
+    expect(
+      (await boxOf(composer.getByTestId("note-notify-audience"))).y,
+    ).toBeGreaterThan(previewBox.y + previewBox.height);
+
+    await screenshot(page, "incident-public-notes-preview-link");
+  });
+
+  test("with nothing written it is grey, says why, and opens nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    const preview: Locator = previewLink(composer);
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute("aria-disabled", "true");
+    // Still a stop for the keyboard: aria-disabled, never disabled.
+    await expect(preview).not.toHaveAttribute("disabled");
+    await expect(preview).toHaveAccessibleName(PREVIEW_NAME);
+    await expect(preview).toHaveAccessibleDescription(PREVIEW_WAITING_REASON);
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(156, 163, 175)");
+
+    // The reason shows on hover.
+    await preview.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(PREVIEW_WAITING_REASON);
+
+    // Pressed by mouse or keyboard, it opens nothing and asks nothing.
+    await preview.click({ force: true });
+    await preview.focus();
+    await expect(preview).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: PREVIEW_NAME })).toHaveCount(
+      0,
+    );
+    expect(await previewRequests(page)).toEqual([]);
+
+    // Once there is something to preview, the same link opens it.
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Rolling back.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(79, 70, 229)");
+    await preview.click();
+    await expect(
+      page
+        .getByRole("dialog", { name: PREVIEW_NAME })
+        .getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    expect(await previewRequests(page)).toHaveLength(1);
+  });
+
+  test("the keyboard opens it, and closing the dialog gives the focus back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const preview: Locator = previewLink(composer);
+    await preview.focus();
+    await page.keyboard.press("Enter");
+
+    const dialog: Locator = page.getByRole("dialog", { name: PREVIEW_NAME });
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(preview).toBeFocused();
+
+    // Space opens it too, and Close hands the focus back the same way.
+    await page.keyboard.press(" ");
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    await expect(preview).toBeFocused();
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("in the dark theme it keeps the link colour, and grey while it waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "theme=dark");
+    expect(
+      await page.evaluate((): boolean => {
+        return document.documentElement.classList.contains("dark");
+      }),
+    ).toBe(true);
+
+    const composer: Locator = await openComposer(page);
+    const preview: Locator = previewLink(composer);
+
+    // Theme.css's grey for text-gray-400, not the light one.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(148, 163, 184)");
+
+    await page.keyboard.type("Rolling back.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    // Theme.css's light indigo for text-indigo-600 on a dark surface.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(165, 180, 252)");
+    await preview.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await previewStyle(preview)).textDecorationLine;
+      })
+      .toBe("underline");
+
+    await screenshot(page, "incident-public-notes-preview-link-dark");
+  });
+
+  test("on a phone it stays a word wide, inside the composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const preview: Locator = previewLink(composer);
+    await expect(preview).toBeVisible();
+
+    const previewBox: Box = await boxOf(preview);
+    const composerBox: Box = await boxOf(composer);
+    const label: Box = await boxOf(
+      composer
+        .getByTestId("note-notify-line")
+        .getByText(PREVIEW_NOTIFY_LABEL, { exact: true }),
+    );
+
+    // Not stretched across the screen as the old button was.
+    expect(previewBox.width).toBeLessThan(100);
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    // Inside the composer, on the label's line or wrapped under it.
+    expect(previewBox.x).toBeGreaterThanOrEqual(composerBox.x);
+    expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(
+      composerBox.x + composerBox.width,
+    );
+    expect(previewBox.y).toBeGreaterThanOrEqual(label.y - 2);
+
+    await screenshot(page, "incident-public-notes-preview-link-phone");
+  });
 });
 
 /*
@@ -648,6 +1248,23 @@ test.describe("managing notes", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Retry notification" }).click();
 
+    // It asks first: what Retry does, and who it reaches now.
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await expect(confirm).toBeVisible();
+    await expect(
+      confirm.getByTestId("note-notification-resend-description"),
+    ).toHaveText(NOTE_RETRY_DESCRIPTION);
+    await expect(
+      confirm.getByTestId("incident-public-note-resend-audience"),
+    ).toContainText("Acme Status (up to 1284 email, 3 webhook)");
+    // Nothing is written until it is confirmed.
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
+    await expect(confirm).toHaveCount(0);
     await expect(badge).not.toHaveText("Notification failed");
     const retry: RecordedWrite = (await fixture(page)).updates[0]!;
     expect(retry.id).toBe(uuid("70000000", 2));
@@ -655,6 +1272,61 @@ test.describe("managing notes", () => {
       subscriberNotificationStatusOnNoteCreated: "Pending",
       subscriberNotificationStatusMessage: null,
     });
+  });
+
+  test("a note that went out can be resent, after confirming who it reaches", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const badge: Locator = card(page, "Monitoring.").getByTestId(
+      "note-notification-status",
+    );
+    await expect(badge).toHaveText("Subscribers notified");
+
+    await badge.click();
+    await page.getByRole("button", { name: "Resend notification" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RESEND_CONFIRM_TITLE,
+    });
+    await expect(
+      confirm.getByTestId("note-notification-resend-description"),
+    ).toHaveText(NOTE_RESEND_DESCRIPTION);
+    await expect(
+      confirm.getByTestId("incident-public-note-resend-audience"),
+    ).toContainText("Acme Status (up to 1284 email, 3 webhook)");
+
+    await confirm.getByRole("button", { name: "Resend", exact: true }).click();
+
+    await expect(confirm).toHaveCount(0);
+    const resend: RecordedWrite = (await fixture(page)).updates[0]!;
+    expect(resend.id).toBe(uuid("70000000", 1));
+    expect(resend.data).toEqual({
+      subscriberNotificationStatusOnNoteCreated: "Pending",
+      subscriberNotificationStatusMessage: null,
+    });
+  });
+
+  test("cancelling the confirmation sends nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    await card(page, "rotating it now")
+      .getByTestId("note-notification-status")
+      .click();
+    await page.getByRole("button", { name: "Retry notification" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(confirm).toHaveCount(0);
+    expect((await fixture(page)).updates).toEqual([]);
   });
 
   test("a refused retry keeps the dialog open with the reason", async ({
@@ -668,11 +1340,20 @@ test.describe("managing notes", () => {
       .click();
     await page.getByRole("button", { name: "Retry notification" }).click();
 
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
     await expect(
-      page.getByText(
+      confirm.getByText(
         "Notifications cannot be resent while the SMTP relay is down.",
       ),
     ).toBeVisible();
+    // The note is left as it was.
+    await expect(
+      card(page, "rotating it now").getByTestId("note-notification-status"),
+    ).toHaveText("Notification failed");
   });
 });
 
@@ -846,7 +1527,132 @@ test.describe("small screens", () => {
 
     await screenshot(page, "incident-public-notes-mobile");
   });
+
+  /*
+   * "The controls of the markdown editor show in two lines" - on a phone
+   * they took five, pushing the note itself down the screen. The toolbar
+   * keeps one line: the buttons that do not fit are under More formatting.
+   */
+  test("the composer's toolbar keeps one line, the rest under More formatting", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    const toolbar: Locator = composer.getByTestId("markdown-editor-toolbar");
+
+    expect(await toolbarLayout(toolbar)).toEqual({
+      rows: 1,
+      spillsPastTheLine: false,
+      isOneButtonTall: true,
+    });
+
+    const more: Locator = toolbar.getByRole("button", {
+      name: "More formatting",
+    });
+    await expect(more).toBeVisible();
+    // The first group is still on the line.
+    await expect(toolbar.getByTitle(/^Bold/)).toBeVisible();
+    await expect(toolbar.getByTitle("Code Block")).toHaveCount(0);
+
+    await more.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(
+      menu.getByRole("menuitem", { name: /Code Block/ }),
+    ).toBeVisible();
+
+    // The menu opens inside the phone's screen.
+    const menuBox: { x: number; width: number } | null =
+      await menu.boundingBox();
+    expect(menuBox!.x).toBeGreaterThanOrEqual(0);
+    expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(390);
+
+    /*
+     * Once it has faded in, and of the screen as it is: a full-page shot
+     * stretches the viewport, which moves a fixed menu off its button.
+     */
+    await expect(menu).toHaveCSS("opacity", "1");
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-public-notes-composer-toolbar-mobile-synthetic.png",
+      ),
+    });
+
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(more).toBeFocused();
+  });
+
+  test("a code block picked from More formatting goes in at the cursor and is posted as one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    await composer.getByRole("button", { name: "More formatting" }).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: /Code Block/ })
+      .click();
+    // Back in the editor, the block's placeholder selected, as the button leaves it.
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm ci")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm ci\n```",
+    );
+  });
 });
+
+/*
+ * The rows the toolbar's buttons sit on, whether any reaches past the end of
+ * the toolbar's line, and whether the bar is one button tall.
+ */
+async function toolbarLayout(toolbar: Locator): Promise<{
+  rows: number;
+  spillsPastTheLine: boolean;
+  isOneButtonTall: boolean;
+}> {
+  return toolbar.evaluate(
+    (
+      element: HTMLElement,
+    ): {
+      rows: number;
+      spillsPastTheLine: boolean;
+      isOneButtonTall: boolean;
+    } => {
+      const line: HTMLElement = element.querySelector(
+        "[data-testid='markdown-editor-toolbar-line']",
+      ) as HTMLElement;
+      const buttons: Array<DOMRect> = Array.from(
+        element.querySelectorAll("button"),
+      ).map((button: HTMLButtonElement): DOMRect => {
+        return button.getBoundingClientRect();
+      });
+      const lineRight: number = line.getBoundingClientRect().right;
+
+      return {
+        rows: new Set(
+          buttons.map((box: DOMRect): number => {
+            return Math.round(box.top + box.height / 2);
+          }),
+        ).size,
+        spillsPastTheLine: buttons.some((box: DOMRect): boolean => {
+          return box.right > lineRight + 0.5;
+        }),
+        // A 32px row in the bar's 8px padding, and its border.
+        isOneButtonTall: element.getBoundingClientRect().height < 56,
+      };
+    },
+  );
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -877,5 +1683,551 @@ test.describe("screenshots", () => {
     await composer.getByTestId("note-template-menu-button").click();
     await expect(page.getByTestId("note-template-menu")).toBeVisible();
     await screenshot(page, "incident-public-notes-composer");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * It is on no status page and tells no subscriber, so a public note on it
+ * would reach nobody it was written for (Common/Types/StatusPage/
+ * PrivateRecordPublicNotes). Its Public Notes page says so where the
+ * composer was, with the way to its private notes; the public notes it
+ * already has stay, to read and edit, with nothing that tells subscribers.
+ */
+
+test.describe("a private incident or episode", () => {
+  const INCIDENT_EPISODE_PUBLIC: NotesPage = notesPage(
+    "incident-episode-public-notes",
+  );
+
+  test("the incident's public notes page takes no new public note, says why, and leads to its private notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+
+    const lock: Locator = page.getByTestId("note-composer-private-event");
+    await expect(lock).toContainText(
+      "This incident is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this incident. While it is private, no status page shows them.",
+    );
+
+    // The public notes it already has are still there, to read.
+    await expect(cards(page).first()).toContainText(INCIDENT_PUBLIC.firstNote);
+
+    await lock.getByRole("link", { name: "Add Private Note" }).click();
+    await page.waitForURL((url: URL): boolean => {
+      return url.pathname === INCIDENT_PRIVATE.path;
+    });
+    expect(new URL(page.url()).searchParams.get("compose")).toBe("1");
+
+    // One click: the private notes, their composer open, the cursor in it.
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Private·Only your team can see this",
+    );
+    await expect(composer.locator('[contenteditable="true"]')).toBeFocused();
+    await expect(cards(page).first()).toContainText(INCIDENT_PRIVATE.firstNote);
+    expect((await fixture(page)).creates).toEqual([]);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("a public note it already has is edited without asking to tell subscribers", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Edit note" }).click();
+
+    const composer: Locator = noteCard.getByTestId("note-edit-composer");
+    await expect(composer).toBeVisible();
+    await expect(composer.getByTestId("note-notify-checkbox")).toHaveCount(0);
+    // Still a public note, but no status page shows it while it is private.
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Public·Not shown while this incident is private",
+    );
+
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type(" Rotation complete.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(noteCard.getByTestId("note-edit-composer")).toHaveCount(0);
+    await expect(noteCard.getByTestId("note-body")).toContainText(
+      "Rotation complete.",
+    );
+
+    const update: RecordedWrite = (await fixture(page)).updates.find(
+      (entry: RecordedWrite) => {
+        return entry.modelName === "IncidentPublicNote";
+      },
+    )!;
+    expect(String(update.data!["note"])).toContain("Rotation complete.");
+    expect(update.miscDataProps?.["notifySubscribersOfUpdate"]).not.toBe(true);
+  });
+
+  test("a public note's notification is not offered to be sent again, nor retried", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const sent: Locator = card(page, "Monitoring.").getByTestId(
+      "note-notification-status",
+    );
+    await expect(sent).toHaveText("Subscribers notified");
+
+    await sent.click();
+    await expect(
+      page.getByRole("button", { name: "Resend notification" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    // A failed one still says what happened, and offers no Retry.
+    const failed: Locator = card(page, "rotating it now").getByTestId(
+      "note-notification-status",
+    );
+    await expect(failed).toHaveText("Notification failed");
+
+    await failed.click();
+    await expect(
+      page.getByText("1,284 subscribers were not notified."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry notification" }),
+    ).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("a public note it already has is deleted without claiming to leave a status page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Delete note" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Delete this public note?",
+    });
+    // On no status page while the incident is private: none to leave.
+    await expect(dialog).toContainText(
+      "The note will be permanently deleted. This cannot be undone.",
+    );
+    await expect(dialog).not.toContainText("status page");
+    await dialog.getByRole("button", { name: "Delete note" }).click();
+
+    await expect(card(page, "rotating it now")).toHaveCount(0);
+    expect((await fixture(page)).deletes).toEqual([
+      {
+        modelName: "IncidentPublicNote",
+        id: uuid("70000000", 2),
+      },
+    ]);
+  });
+
+  test("its private notes are written as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE, "private=1");
+    const composer: Locator = await openComposer(page);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("the episode's public notes page says the same for the episode", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+
+    await expect(page.getByTestId("note-composer-private-event")).toContainText(
+      "This episode is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this episode. While it is private, no status page shows them.",
+    );
+    await expect(cards(page).first()).toContainText(
+      INCIDENT_EPISODE_PUBLIC.firstNote,
+    );
+  });
+
+  test("an incident that is not private takes public notes as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+
+    await expect(page.getByTestId("note-composer-private-event")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toBeVisible();
+  });
+
+  test("screenshots of the private incident's and episode's public notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident-phone");
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+    await screenshot(page, "incident-episode-public-notes-private-episode");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried - took over the OneUptime tab, and quoted text showed an amber
+ * exclamation mark, as if it were a warning. ?notes=links-and-quotes puts a
+ * note like that on top of incident #1042's private notes: a quote, the
+ * message's file, a callout, a link to alert #311's notes, one to the docs
+ * and a link long enough to wrap on a phone. The feed draws the same note
+ * through the same viewer (packages/E2E/EventOverview, ?feed=).
+ */
+
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+const LONG_LINK: string =
+  "https://grafana.acme-commerce.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1";
+
+function savedNote(page: Page): Locator {
+  return card(page, QUOTED_WORDS);
+}
+
+function noteBody(page: Page): Locator {
+  return savedNote(page).getByTestId("note-body");
+}
+
+async function openSavedNote(page: Page, query: string = ""): Promise<void> {
+  await open(
+    page,
+    INCIDENT_PRIVATE,
+    ["notes=links-and-quotes", query].filter(Boolean).join("&"),
+  );
+  await expect(savedNote(page)).toBeVisible();
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+async function screenshotNote(page: Page, name: string): Promise<void> {
+  await fs.mkdir(SCREENSHOTS, { recursive: true });
+  await page.mouse.move(0, 0);
+  await savedNote(page).screenshot({
+    path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
+  });
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the notes stay open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openSavedNote(page);
+
+    const fileLink: Locator = noteBody(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The notes are still open, where they were.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PRIVATE.path);
+    await expect(savedNote(page)).toBeVisible();
+    await tab.close();
+  });
+
+  test("a link to another page of the dashboard stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const alertLink: Locator = noteBody(page).getByRole("link", {
+      name: "ALT-311",
+    });
+    const docsLink: Locator = noteBody(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docsLink).toHaveAttribute("target", "_blank");
+    await expect(docsLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(docsLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    await expect(alertLink).not.toHaveAttribute("target", /.*/);
+    await expect(alertLink).not.toHaveAttribute("rel", /.*/);
+    await expect(alertLink).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${ALERT_PRIVATE.path}`),
+      alertLink.click(),
+    ]);
+    await expect(page.getByTestId("event-notes")).toBeVisible({
+      timeout: 30000,
+    });
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      // border-gray-300, as the editor the note is written in draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: a shade lighter than the note's own words (gray-700).
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(75, 85, 99)");
+    expect(
+      await colorOf(
+        noteBody(page).locator("p").filter({ hasText: "It started with" }),
+      ),
+    ).toBe("rgb(55, 65, 81)");
+  });
+
+  test("a callout the note asked for is a panel with its sign, its marker not shown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const callout: Locator = noteBody(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    await expect(callout.locator("svg")).toBeVisible();
+    await expect(callout).toContainText(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(noteBody(page)).not.toContainText("[!WARNING]");
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes");
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page, "theme=dark");
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(203, 213, 225)");
+    expect(
+      await computedStyleOf(
+        noteBody(page).getByRole("note", { name: "Warning" }),
+        ["background-color"],
+      ),
+    ).toEqual({ "background-color": "rgba(120, 53, 15, 0.32)" });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes-dark");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("a long link wraps inside its note instead of running past its edge", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openSavedNote(page);
+
+      const body: Locator = noteBody(page);
+      const longLink: Locator = body.getByRole("link", {
+        name: LONG_LINK,
+        exact: true,
+      });
+      // The paragraph the link is in: the width the note's text may take.
+      const paragraph: Locator = body.locator("p").filter({
+        has: page.getByRole("link", { name: LONG_LINK, exact: true }),
+      });
+
+      await longLink.scrollIntoViewIfNeeded();
+
+      const paragraphBox: Box = await boxOf(paragraph);
+      const lineRights: Array<number> = await longLink.evaluate(
+        (element: Element): Array<number> => {
+          return Array.from(element.getClientRects()).map(
+            (rect: DOMRect): number => {
+              return rect.right;
+            },
+          );
+        },
+      );
+
+      // Several lines, every one of them inside the note's text.
+      expect(lineRights.length).toBeGreaterThan(2);
+      for (const right of lineRights) {
+        expect(right).toBeLessThanOrEqual(
+          paragraphBox.x + paragraphBox.width + 0.5,
+        );
+      }
+      expect(
+        await paragraph.evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(0);
+      expect(
+        await page.evaluate((): number => {
+          return (
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth
+          );
+        }),
+      ).toBeLessThanOrEqual(0);
+
+      await screenshotNote(
+        page,
+        "incident-private-notes-links-and-quotes-mobile",
+      );
+    });
   });
 });

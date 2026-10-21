@@ -1274,18 +1274,41 @@ describe("the kept DNS name on the device Overview", () => {
     "Index.tsx",
   );
 
-  const source: string = fs
-    .readFileSync(OVERVIEW_SOURCE_PATH, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
-    .replace(/\s+/g, " ");
+  // A device's one edit form: the Device Settings card (the Overview links there).
+  const SETTINGS_SOURCE_PATH: string = path.join(
+    path.dirname(OVERVIEW_SOURCE_PATH),
+    "Settings.tsx",
+  );
 
-  const formFieldsStart: number = source.indexOf("formFields={[");
+  const readCode: (sourcePath: string) => string = (
+    sourcePath: string,
+  ): string => {
+    return fs
+      .readFileSync(sourcePath, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+      .replace(/\s+/g, " ");
+  };
+
+  const source: string = readCode(OVERVIEW_SOURCE_PATH);
   const detailStart: number = source.indexOf("modelDetailProps={{");
 
-  test("the card declares both an edit form and a detail list", () => {
-    expect(formFieldsStart).toBeGreaterThan(-1);
-    expect(detailStart).toBeGreaterThan(formFieldsStart);
+  const settingsSource: string = readCode(SETTINGS_SOURCE_PATH);
+  const settingsFormStart: number = settingsSource.indexOf("formFields={[");
+  const settingsDetailStart: number = settingsSource.indexOf(
+    "modelDetailProps={{",
+    settingsFormStart,
+  );
+
+  /*
+   * A device's details are edited in one place, its Settings page: the
+   * Overview's card is a detail list with an "Edit in Settings" link.
+   */
+  test("the card declares a detail list and no edit form of its own", () => {
+    expect(source.indexOf("formFields={[")).toBe(-1);
+    expect(detailStart).toBeGreaterThan(-1);
+    expect(settingsFormStart).toBeGreaterThan(-1);
+    expect(settingsDetailStart).toBeGreaterThan(settingsFormStart);
   });
 
   test("is a read-only detail row, guarded so an empty value shows nothing", () => {
@@ -1294,8 +1317,10 @@ describe("the kept DNS name on the device Overview", () => {
     );
   });
 
-  test("is not a field of the edit form", () => {
-    expect(source.slice(formFieldsStart, detailStart)).not.toContain("dnsName");
+  test("is not a field of the device's edit form", () => {
+    expect(
+      settingsSource.slice(settingsFormStart, settingsDetailStart),
+    ).not.toContain("dnsName");
   });
 
   test("sits right after Hostname and before MAC Address", () => {

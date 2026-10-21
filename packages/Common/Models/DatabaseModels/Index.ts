@@ -1,6 +1,8 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
+import KubernetesAiAgent from "./KubernetesAiAgent";
+import ResourceAiAgent from "./ResourceAiAgent";
 import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
@@ -17,7 +19,9 @@ import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryImport from "./NetworkDeviceDiscoveryImport";
 import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
+import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
 import NetworkSiteType from "./NetworkSiteType";
@@ -52,18 +56,27 @@ import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
 import CephResource from "./CephResource";
+import StorageArray from "./StorageArray";
+import StorageArrayOwnerTeam from "./StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "./StorageArrayOwnerUser";
+import StorageArrayResource from "./StorageArrayResource";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
+import VMwareVCenterConnectionTest from "./VMwareVCenterConnectionTest";
 import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+// The config OneUptime sends to the hosts it manages, and its versions
+import HostCollectorConfig from "./HostCollectorConfig";
+import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
 import ServerlessFunction from "./ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
 import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
+import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
@@ -76,6 +89,11 @@ import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
 import DatabaseServerOwnerUser from "./DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "./DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "./DatabaseServerOwnerRule";
+import MessageQueue from "./MessageQueue";
+import MessageQueueOwnerTeam from "./MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "./MessageQueueOwnerUser";
+import MessageQueueLabelRule from "./MessageQueueLabelRule";
+import MessageQueueOwnerRule from "./MessageQueueOwnerRule";
 import RumApplication from "./RumApplication";
 import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
@@ -102,6 +120,8 @@ import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
+import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
+import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
 import GreenlockCertificate from "./GreenlockCertificate";
 // Greenlock
 import GreenlockChallenge from "./GreenlockChallenge";
@@ -120,6 +140,8 @@ import IncidentPublicNote from "./IncidentPublicNote";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
+import Form from "./Form";
+import FormSubmission from "./FormSubmission";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -134,17 +156,30 @@ import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
+import ToolImportRun from "./ToolImportRun";
+import ToolImportRecord from "./ToolImportRecord";
 import ThreatIntelFeed from "./ThreatIntelFeed";
+import SecurityCase from "./SecurityCase";
+import SecurityCaseFeed from "./SecurityCaseFeed";
+import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityDetection from "./SecurityDetection";
+import SecurityPlaybook from "./SecurityPlaybook";
+import SecurityPlaybookRun from "./SecurityPlaybookRun";
+import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityEventDestination from "./SecurityEventDestination";
+import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
 import LlmModelPrice from "./LlmModelPrice";
+import LlmObservabilityConnection from "./LlmObservabilityConnection";
 import MetricRecordingRule from "./MetricRecordingRule";
 import TracePipeline from "./TracePipeline";
 import TracePipelineProcessor from "./TracePipelineProcessor";
 import TraceDropFilter from "./TraceDropFilter";
 import TraceScrubRule from "./TraceScrubRule";
 import TraceRecordingRule from "./TraceRecordingRule";
+import LogRecordingRule from "./LogRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -185,6 +220,11 @@ import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUs
 import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
 import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
+// Calendars from outside the project, drawn on the maintenance calendar
+import ScheduledMaintenanceExternalCalendar from "./ScheduledMaintenanceExternalCalendar";
+import ScheduledMaintenanceExternalCalendarEvent from "./ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -267,6 +307,7 @@ import TelegramLog from "./TelegramLog";
 import WebhookLog from "./WebhookLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
+import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -294,11 +335,15 @@ import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
+import CustomRole from "./CustomRole";
+import CustomRolePermission from "./CustomRolePermission";
+import TeamCustomRole from "./TeamCustomRole";
 import TeamComplianceSetting from "./TeamComplianceSetting";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
 import UserProjectSsoConsent from "./UserProjectSsoConsent";
+import UserProjectSsoIdentity from "./UserProjectSsoIdentity";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -328,7 +373,7 @@ import RunnerJob from "./RunnerJob";
 import RunnerOwnerTeam from "./RunnerOwnerTeam";
 import RunnerOwnerUser from "./RunnerOwnerUser";
 import RunbookCredential from "./RunbookCredential";
-import RunbookSecret from "./RunbookSecret";
+import RunbookVariable from "./RunbookVariable";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
@@ -336,6 +381,10 @@ import RunbookRule from "./RunbookRule";
 
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
+import AutoRemediationDecision from "./AutoRemediationDecision";
+import AIInvestigationRule from "./AIInvestigationRule";
+import AIPostmortemRule from "./AIPostmortemRule";
+import ExternalMcpServer from "./ExternalMcpServer";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -445,6 +494,8 @@ import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
+import StorageArrayOwnerRule from "./StorageArrayOwnerRule";
+import StorageArrayLabelRule from "./StorageArrayLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
@@ -467,7 +518,11 @@ import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
+import VideoCallConnection from "./VideoCallConnection";
+import IncidentVideoCall from "./IncidentVideoCall";
+import AlertVideoCall from "./AlertVideoCall";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
+import WorkspaceUserGroup from "./WorkspaceUserGroup";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
@@ -475,6 +530,7 @@ import KubernetesClusterFeed from "./KubernetesClusterFeed";
 import DockerHostFeed from "./DockerHostFeed";
 import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
 import CephClusterFeed from "./CephClusterFeed";
+import StorageArrayFeed from "./StorageArrayFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
 import VMwareVCenterFeed from "./VMwareVCenterFeed";
@@ -484,11 +540,20 @@ import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
+import ProjectSCIMUser from "./ProjectSCIMUser";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
+import MarketplaceSubscription from "./MarketplaceSubscription";
+import MarketplaceUsageReport from "./MarketplaceUsageReport";
+import MarketplaceCharge from "./MarketplaceCharge";
+import VercelMarketplaceInstallation from "./VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "./VercelMarketplaceConnection";
 import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
 import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
+import McpOAuthClient from "./McpOAuthClient";
+import McpOAuthGrant from "./McpOAuthGrant";
+import McpOAuthToken from "./McpOAuthToken";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -504,6 +569,9 @@ const AllModelTypes: Array<{
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,
+  CustomRole,
+  CustomRolePermission,
+  TeamCustomRole,
   TeamComplianceSetting,
   ApiKey,
   Label,
@@ -516,17 +584,30 @@ const AllModelTypes: Array<{
   DetectionRule,
   SecurityEventConnection,
   SecurityEventConnectionRun,
+  ToolImportRun,
+  ToolImportRecord,
   ThreatIntelFeed,
+  SecurityCase,
+  SecurityCaseFeed,
+  SecurityCaseNote,
+  SecurityDetection,
+  SecurityPlaybook,
+  SecurityPlaybookRun,
+  SecurityProtectedEntity,
+  SecurityEventDestination,
+  SecurityLogSource,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
   LlmModelPrice,
+  LlmObservabilityConnection,
   MetricRecordingRule,
   TracePipeline,
   TracePipelineProcessor,
   TraceDropFilter,
   TraceScrubRule,
   TraceRecordingRule,
+  LogRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
@@ -570,6 +651,8 @@ const AllModelTypes: Array<{
   IncidentSeverity,
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,
+  Form,
+  FormSubmission,
 
   AlertState,
   Alert,
@@ -663,6 +746,8 @@ const AllModelTypes: Array<{
   IoTFleetLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
+  StorageArrayOwnerRule,
+  StorageArrayLabelRule,
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
   RunbookOwnerRule,
@@ -720,12 +805,16 @@ const AllModelTypes: Array<{
   RunbookRule,
   AutoRemediationRule,
   AutoRemediationSuggestion,
+  AutoRemediationDecision,
+  AIInvestigationRule,
+  AIPostmortemRule,
+  ExternalMcpServer,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,
   RunnerOwnerUser,
   RunbookCredential,
-  RunbookSecret,
+  RunbookVariable,
 
   ProjectSSO,
   ProjectOIDC,
@@ -754,6 +843,7 @@ const AllModelTypes: Array<{
   WebhookLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
+  WorkspaceLiveMessage,
   CallLog,
   EmailLog,
 
@@ -796,6 +886,8 @@ const AllModelTypes: Array<{
 
   GlobalConfig,
   InstanceHealthLog,
+  InstanceReceivingPeriod,
+  InstanceTokenSigningKey,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
@@ -809,6 +901,9 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
+  ScheduledMaintenanceCalendarFeed,
+  ScheduledMaintenanceExternalCalendar,
+  ScheduledMaintenanceExternalCalendarEvent,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,
@@ -861,6 +956,7 @@ const AllModelTypes: Array<{
 
   UserSession,
   UserProjectSsoConsent,
+  UserProjectSsoIdentity,
   UserTotpAuth,
   UserTwoFactorBackupCode,
   UserWebAuthn,
@@ -885,13 +981,18 @@ const AllModelTypes: Array<{
 
   WorkspaceSetting,
   WorkspaceNotificationRule,
+  VideoCallConnection,
+  IncidentVideoCall,
+  AlertVideoCall,
   WorkspaceNotificationSummary,
+  WorkspaceUserGroup,
 
   MonitorFeed,
   KubernetesClusterFeed,
   DockerHostFeed,
   DockerSwarmClusterFeed,
   CephClusterFeed,
+  StorageArrayFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
   VMwareVCenterFeed,
@@ -905,9 +1006,12 @@ const AllModelTypes: Array<{
 
   ProjectSCIM,
   ProjectSCIMLog,
+  ProjectSCIMUser,
   StatusPageSCIMLog,
 
   KubernetesCluster,
+  KubernetesAiAgent,
+  ResourceAiAgent,
   KubernetesClusterOwnerTeam,
   KubernetesClusterOwnerUser,
   KubernetesResource,
@@ -924,7 +1028,9 @@ const AllModelTypes: Array<{
   NetworkAlertPolicy,
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
+  NetworkDeviceDiscoveryImport,
   NetworkDeviceDiagnostic,
+  PacketCapture,
   NetworkInterface,
   NetworkSite,
   NetworkSiteType,
@@ -959,18 +1065,26 @@ const AllModelTypes: Array<{
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
   CephResource,
+  StorageArray,
+  StorageArrayOwnerTeam,
+  StorageArrayOwnerUser,
+  StorageArrayResource,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
+  VMwareVCenterConnectionTest,
   VMwareResource,
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  HostCollectorConfig,
+  HostCollectorConfigVersion,
   ServerlessFunction,
   ServerlessFunctionOwnerTeam,
   ServerlessFunctionOwnerUser,
   ServerlessFunctionLabelRule,
   ServerlessFunctionOwnerRule,
+  CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,
   CloudResourceOwnerUser,
@@ -983,6 +1097,11 @@ const AllModelTypes: Array<{
   DatabaseServerOwnerUser,
   DatabaseServerLabelRule,
   DatabaseServerOwnerRule,
+  MessageQueue,
+  MessageQueueOwnerTeam,
+  MessageQueueOwnerUser,
+  MessageQueueLabelRule,
+  MessageQueueOwnerRule,
   RumApplication,
   RumApplicationOwnerTeam,
   RumApplicationOwnerUser,
@@ -995,9 +1114,17 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   DeletedProject,
+  MarketplaceSubscription,
+  MarketplaceUsageReport,
+  MarketplaceCharge,
+  VercelMarketplaceInstallation,
+  VercelMarketplaceConnection,
   UserNotificationEmailRollupItem,
   UserNotificationEmailRollupBatch,
   UserNotificationEmailRollupSetting,
+  McpOAuthClient,
+  McpOAuthGrant,
+  McpOAuthToken,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

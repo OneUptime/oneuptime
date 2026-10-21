@@ -24,6 +24,13 @@ export enum QueueName {
    * receiver being briefly unreachable.
    */
   MarketingEvent = "MarketingEvent",
+  /*
+   * AI investigations, remediation plans and executions, and insight triage
+   * (AIInvestigationQueue): each job names a Queued AIRun for a worker-role
+   * server to claim and run. The run row is the durable record, so a job
+   * lost here is sent again by the queue's poller.
+   */
+  AIInvestigation = "AIInvestigation",
 }
 
 export type QueueJob = Job;
@@ -42,6 +49,35 @@ export default class Queue {
       options: JobsOptions;
     }>
   > = {};
+
+  /*
+   * Optional per-queue veto on the reconnect re-add below. The registry is
+   * per process, so a pod that registered a repeatable keeps it after another
+   * pod (or a delete) removed it; a queue whose schedules are owned by
+   * persisted state can say "no longer wanted" here instead of resurrecting it.
+   */
+  private static reconnectGuards: Dictionary<
+    (jobName: string, cronPattern?: string) => Promise<boolean>
+  > = {};
+
+  public static setReconnectGuard(
+    queueName: QueueName,
+    isStillWanted: (jobName: string, cronPattern?: string) => Promise<boolean>,
+  ): void {
+    this.reconnectGuards[queueName] = isStillWanted;
+  }
+
+  // A removed repeatable must also leave the reconnect registry.
+  private static forgetRepeatable(queueName: QueueName, jobName: string): void {
+    const jobs: Dictionary<{ jobName: string }> | undefined =
+      this.repeatableJobs[queueName];
+
+    for (const jobId in jobs) {
+      if (jobs[jobId]?.jobName === jobName) {
+        delete jobs[jobId];
+      }
+    }
+  }
 
   // BullMQ rejects custom IDs containing colons, so normalize them early.
   private static sanitizeJobId(jobId: string): string {
@@ -69,6 +105,42 @@ export default class Queue {
             | undefined = jobs[jobId];
           if (job) {
             try {
+              const guard:
+                | ((jobName: string, cronPattern?: string) => Promise<boolean>)
+                | undefined = Queue.reconnectGuards[queueName];
+
+              /*
+               * The guard sees the registered cron too: a stale pod must not
+               * replay cron A for a workflow since changed to cron B.
+               */
+              const registeredPattern: string | undefined = (
+                job.options.repeat as { pattern?: string } | undefined
+              )?.pattern;
+
+              let isStillWanted: boolean = true;
+
+              if (guard) {
+                /*
+                 * A guard that cannot answer (say its database is down)
+                 * re-adds, as before guards existed: a schedule Valkey lost
+                 * would otherwise stay lost, with nothing to say so, while
+                 * one re-added in error is removed by its owner later.
+                 */
+                try {
+                  isStillWanted = await guard(job.jobName, registeredPattern);
+                } catch (err: unknown) {
+                  logger.error(
+                    `Could not check repeatable job ${job.jobName} on queue ${queueName} before re-adding it, re-adding it anyway`,
+                  );
+                  logger.error(err);
+                }
+              }
+
+              if (!isStillWanted) {
+                delete jobs[jobId];
+                continue;
+              }
+
               logger.debug(
                 `Re-adding repeatable job ${job.jobName} to queue ${queueName}`,
               );
@@ -302,6 +374,8 @@ export default class Queue {
 
     const queue: BullQueue = this.getQueue(queueName);
 
+    this.forgetRepeatable(queueName, jobName);
+
     const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
 
     let removedCount: number = 0;
@@ -388,18 +462,34 @@ export default class Queue {
        * duplicate job ids. Safe (and two Redis calls cheaper per
        * enqueue) when the caller's job ids are globally unique, e.g.
        * the telemetry enqueue path which suffixes ids with a unix-nano
-       * timestamp.
+       * timestamp. Also what a caller wants when adding an id that is
+       * still stored should do nothing: BullMQ then keeps the job it has
+       * (AIInvestigationQueue sends a queued run again this way).
        */
       skipExistenceCheck?: boolean | undefined;
       /**
+       * BullMQ priority: 0 (the default) is the highest, and a worker
+       * takes no job with a higher number while one with a lower number
+       * is waiting.
+       */
+      priority?: number | undefined;
+      /**
+       * Remove the job as soon as it completes or fails, instead of
+       * keeping it in the queue's recent history. An add with its id is
+       * then a new job again the moment it is done.
+       */
+      removeWhenDone?: boolean | undefined;
+      /**
        * Coalesce same-key jobs so they are never processed in parallel.
        * When set, BullMQ keeps at most one active + one waiting job per
-       * `deduplication.id`: additional adds while one is active collapse into
-       * the single waiting slot, keeping only the latest job data
-       * (keepLastIfActive). Used by the incoming-request ingest path to stop
-       * an external sender hammering one monitor's URL from fanning out into
-       * many concurrent same-monitor jobs that contend on the per-monitor
-       * lock. Independent of `jobId`, which stays unique.
+       * `deduplication.id`. With keepLastIfActive, adds that arrive while
+       * that job is ACTIVE collapse into the single job queued after it, and
+       * the latest job data wins. Adds that arrive while it is still WAITING
+       * (or delayed for a retry) are discarded: the waiting job runs with its
+       * OLDER data. A caller that needs the newest data processed must keep
+       * that data outside the job, as the incoming-request ingest path does
+       * (TelemetryQueueService.addIncomingRequestIngestJob). Independent of
+       * `jobId`, which stays unique.
        */
       deduplication?:
         | { id: string; keepLastIfActive?: boolean | undefined }
@@ -425,6 +515,15 @@ export default class Queue {
         type: "exponential",
         delay: options?.backoffDelayInMs ?? 5000,
       };
+    }
+
+    if (options?.priority && options.priority > 0) {
+      optionsObject.priority = options.priority;
+    }
+
+    if (options?.removeWhenDone) {
+      optionsObject.removeOnComplete = true;
+      optionsObject.removeOnFail = true;
     }
 
     if (options?.deduplication?.id) {
@@ -588,6 +687,24 @@ export default class Queue {
   }
 
   /*
+   * How many jobs wait with a priority. BullMQ keeps them in a set of their
+   * own, which getWaitingCount() does not count, but they are waiting work
+   * all the same. Only the AIInvestigation queue adds such jobs (its
+   * background runs), so this is 0 for every other queue - and guarded like
+   * the scheduler count, so a client without it reads 0 instead of taking
+   * the whole scaling metric offline.
+   */
+  private static async getPrioritizedJobCount(
+    queue: BullQueue,
+  ): Promise<number> {
+    if (typeof queue.getPrioritizedCount !== "function") {
+      return 0;
+    }
+
+    return (await queue.getPrioritizedCount()) || 0;
+  }
+
+  /*
    * Backlog = jobs still waiting for a worker, for autoscaling signals.
    *
    * ACTIVE jobs are deliberately excluded: they are already being served, so
@@ -645,17 +762,24 @@ export default class Queue {
     queueName: QueueName,
   ): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const [waitingCount, delayedCount, schedulerCount]: [
+    const [waitingCount, prioritizedCount, delayedCount, schedulerCount]: [
+      number,
       number,
       number,
       number,
     ] = await Promise.all([
       queue.getWaitingCount(),
+      // Jobs waiting with a priority are backlog too (getPrioritizedJobCount).
+      this.getPrioritizedJobCount(queue),
       queue.getDelayedCount(),
       this.getJobSchedulerCount(queue),
     ]);
 
-    return waitingCount + Math.max(0, delayedCount - schedulerCount);
+    return (
+      waitingCount +
+      prioritizedCount +
+      Math.max(0, delayedCount - schedulerCount)
+    );
   }
 
   @CaptureSpan()
@@ -668,7 +792,10 @@ export default class Queue {
     total: number;
   }> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waitingCount: number = await queue.getWaitingCount();
+    // Jobs waiting with a priority are waiting too (getPrioritizedJobCount).
+    const waitingCount: number =
+      (await queue.getWaitingCount()) +
+      (await this.getPrioritizedJobCount(queue));
     const activeCount: number = await queue.getActiveCount();
     const completedCount: number = await queue.getCompletedCount();
     const failedCount: number = await queue.getFailedCount();
@@ -689,60 +816,8 @@ export default class Queue {
     };
   }
 
-  @CaptureSpan()
-  public static async getFailedJobs(
-    queueName: QueueName,
-    options?: {
-      start?: number;
-      end?: number;
-    },
-  ): Promise<
-    Array<{
-      id: string;
-      name: string;
-      data: JSONObject;
-      failedReason: string;
-      stackTrace?: string;
-      processedOn: Date | null;
-      finishedOn: Date | null;
-      attemptsMade: number;
-    }>
-  > {
-    const queue: BullQueue = this.getQueue(queueName);
-    const start: number = options?.start || 0;
-    const end: number = options?.end || 100;
-    const failed: Job[] = await queue.getFailed(start, end);
-
-    return failed.map((job: Job) => {
-      const result: {
-        id: string;
-        name: string;
-        data: JSONObject;
-        failedReason: string;
-        stackTrace?: string;
-        processedOn: Date | null;
-        finishedOn: Date | null;
-        attemptsMade: number;
-      } = {
-        id: job.id || "unknown",
-        name: job.name || "unknown",
-        data: job.data as JSONObject,
-        failedReason: Queue.normalizeFailedReason(job.failedReason),
-        processedOn: job.processedOn ? new Date(job.processedOn) : null,
-        finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
-        attemptsMade: job.attemptsMade || 0,
-      };
-
-      if (job.stacktrace && job.stacktrace.length > 0) {
-        result.stackTrace = job.stacktrace.join("\n");
-      }
-
-      return result;
-    });
-  }
-
   /**
-   * Like getFailedJobs, but returns the FULL job for deep debugging: the job
+   * A queue's failed jobs, the FULL job for deep debugging: the job
    * body (data), its options, return value, progress, all the timing/attempt
    * metadata, and the per-job log lines BullMQ keeps (job.log()/getJobLogs).
    * Used by the master-admin health dashboard / support bundle. The caller is

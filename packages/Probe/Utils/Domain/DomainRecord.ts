@@ -4,6 +4,14 @@ const WHITESPACE_PATTERN: RegExp = /\s/;
 const LOWERCASE_WORD_PATTERN: RegExp = /^[a-z]+$/;
 const IPV4_PATTERN: RegExp = /^[0-9.]+$/;
 const URL_PATTERN: RegExp = /\bhttps?:\/\/\S+/gi;
+
+/*
+ * A record id after a date, "19960424 #7137" (registro.br), tried only where
+ * a run of white space starts: the date is whatever a registry's server
+ * sent, and tried from every character of a long run of white space that is
+ * not followed by "#...", each try read on to the end of the run.
+ */
+const TRAILING_RECORD_ID_PATTERN: RegExp = /(?<!\s)\s+#\S+$/;
 const COMPACT_DATE_PATTERN: RegExp = /^(\d{4})(\d{2})(\d{2})$/;
 const DAY_FIRST_DATE_PATTERN: RegExp =
   /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/;
@@ -171,7 +179,7 @@ export class DomainRecordUtil {
     }
 
     // registro.br appends a record id: "19960424 #7137".
-    const cleaned: string = trimmed.replace(/\s+#\S+$/, "");
+    const cleaned: string = trimmed.replace(TRAILING_RECORD_ID_PATTERN, "");
 
     const parsed: Date = new Date(cleaned);
 
@@ -366,9 +374,9 @@ export class DomainRecordUtil {
        * and every EPP URL marks the end of the entry before it.
        */
       const pieces: Array<string> = segment
-        .replace(URL_PATTERN, " ")
-        .replace(/[()[\]]/g, " ")
-        .split(" ");
+        .replace(URL_PATTERN, "\u0000")
+        .replace(/[()[\]]/g, "\u0000")
+        .split("\u0000");
 
       for (const piece of pieces) {
         phrases.push(...DomainRecordUtil.splitStatusPiece(piece));

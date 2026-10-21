@@ -203,6 +203,7 @@ class InMemoryCallProvider implements ICallProvider {
     const result: DialStatusData = {
       callId: String(request.body["CallSid"] || ""),
       dialStatus,
+      callerHungUp: request.body["CallStatus"] === "completed",
     };
 
     if (rawDuration !== undefined && !isNaN(Number(rawDuration))) {
@@ -260,8 +261,31 @@ describe("CallProvider types (compile-time contract)", () => {
       callId: "CA1",
       // @ts-expect-error - "ringing" is not a terminal dial status
       dialStatus: "ringing",
+      callerHungUp: false,
     };
     expect(invalid.callId).toBe("CA1");
+  });
+
+  it("makes every provider say whether the caller was still on the line", () => {
+    /*
+     * A dial result alone cannot tell "nobody answered" from "the caller hung
+     * up while it rang", and the two need opposite handling: keep hunting, or
+     * stop. Leaving the flag optional would let a provider stay silent, and
+     * silence would read as "still connected".
+     */
+    // @ts-expect-error - callerHungUp is required on DialStatusData
+    const silent: DialStatusData = {
+      callId: "CA1",
+      dialStatus: "no-answer",
+    };
+    expect(silent.callId).toBe("CA1");
+
+    const caller: DialStatusData = {
+      callId: "CA1",
+      dialStatus: "no-answer",
+      callerHungUp: true,
+    };
+    expect(caller.callerHungUp).toBe(true);
   });
 
   it("requires the mandatory fields and allows the optional ones to be omitted", () => {
@@ -487,11 +511,40 @@ describe("ICallProvider usage through the interface", () => {
         callId: "CA2",
         dialStatus: "failed",
         dialDurationSeconds: 17,
+        callerHungUp: false,
       });
 
       expect(
         provider.parseDialStatusWebhook(makeRequest({ CallSid: "CA3" })),
-      ).toEqual({ callId: "CA3", dialStatus: "failed" });
+      ).toEqual({ callId: "CA3", dialStatus: "failed", callerHungUp: false });
+    });
+
+    it("reports whether the caller was still on the line when the dial ended", () => {
+      const provider: ICallProvider = new InMemoryCallProvider("s");
+
+      expect(
+        provider.parseDialStatusWebhook(
+          makeRequest({
+            CallSid: "CA4",
+            CallStatus: "completed",
+            DialCallStatus: "no-answer",
+          }),
+        ),
+      ).toEqual({ callId: "CA4", dialStatus: "no-answer", callerHungUp: true });
+
+      expect(
+        provider.parseDialStatusWebhook(
+          makeRequest({
+            CallSid: "CA5",
+            CallStatus: "in-progress",
+            DialCallStatus: "no-answer",
+          }),
+        ),
+      ).toEqual({
+        callId: "CA5",
+        dialStatus: "no-answer",
+        callerHungUp: false,
+      });
     });
   });
 

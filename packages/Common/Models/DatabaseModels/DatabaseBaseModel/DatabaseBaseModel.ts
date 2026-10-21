@@ -10,6 +10,7 @@ import { getColumnAccessControlForAllColumns } from "../../../Types/Database/Acc
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
 import Columns from "../../../Types/Database/Columns";
 import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
@@ -26,6 +27,10 @@ import {
   coerceDateColumnValue,
   isDateTableColumnType,
 } from "../../../Types/Database/DateColumnValue";
+import {
+  isBooleanTableColumnType,
+  toStoredBoolean,
+} from "../../../Types/Database/BooleanColumnValue";
 import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
@@ -155,6 +160,17 @@ export default class DatabaseBaseModel extends BaseEntity {
   public deleteBillingPlan!: PlanType | null;
 
   /*
+   * Set by @TableBillingAccessControl({ readableBelowPlan: true }) on
+   * configuration that keeps working after a downgrade (SSO providers, API
+   * keys, schedules...): below its read plan, the records a project has stay
+   * readable. And by deleteStaysGated on a table whose records restrict
+   * something (an API key's block permissions): below its delete plan they
+   * are not deleted. See Types/Billing/PlanGatedTable.
+   */
+  public readableBelowPlan!: boolean;
+  public deleteStaysGated!: boolean;
+
+  /*
    * Edition gating. When true, the model is only available on the
    * Enterprise self-hosted edition or on the cloud Enterprise plan.
    * Set by the @TableEditionAccessControl decorator.
@@ -177,6 +193,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   public saveSlugToColumn!: string | null;
   public singularName!: string | null;
   public pluralName!: string | null;
+  // Set by @TableMetadata's displayNameColumn; see getDisplayNameColumn.
+  public displayNameColumn!: string | null;
 
   // realtime events.
   public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
@@ -206,6 +224,13 @@ export default class DatabaseBaseModel extends BaseEntity {
   // set by the @UniqueColumnsTogether() decorator.
   public uniqueColumnsTogether!: Array<UniqueColumnsTogetherMetadata> | null;
 
+  /*
+   * Set by the @ListOrderColumn() decorator: this model is a list people put
+   * in order by dragging rows, and DatabaseService keeps the number column
+   * that says where each row sits. See Types/Database/ListOrderColumn.
+   */
+  public listOrder!: ListOrderSettings | null;
+
   public isPermissionIf: Dictionary<JSONObject> = {};
 
   public isMultiTenantRequestAllowed!: boolean | null;
@@ -225,6 +250,9 @@ export default class DatabaseBaseModel extends BaseEntity {
   public tableName!: string | null;
 
   public canAccessIfCanReadOn!: string | null;
+
+  // Read without a read of that record too (CanAccessIfCanReadOn's options).
+  public isParentReadOptional!: boolean;
 
   public constructor(id?: ObjectID) {
     super();
@@ -387,6 +415,15 @@ export default class DatabaseBaseModel extends BaseEntity {
     return this.uniqueColumnsTogether || [];
   }
 
+  /*
+   * The number column that holds each row's place in its list, the columns
+   * that say which list a row is in, and which end is the top. Null for a
+   * model whose rows are not put in order by hand.
+   */
+  public getListOrder(): ListOrderSettings | null {
+    return this.listOrder || null;
+  }
+
   public getRequiredColumns(): Columns {
     const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
     const columns: Array<string> = [];
@@ -401,6 +438,15 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getSlugifyColumn(): string | null {
     return this.slugifyColumn;
+  }
+
+  /*
+   * The column the model declares names one of its records, or null when it
+   * declares none. Most models leave it to UI/Utils/ModelDisplayName to work
+   * out; read the name through that, not through this alone.
+   */
+  public getDisplayNameColumn(): string | null {
+    return this.displayNameColumn || null;
   }
 
   public getCrudApiPath(): Route | null {
@@ -789,6 +835,15 @@ export default class DatabaseBaseModel extends BaseEntity {
            * Types/Database/DateColumnValue.
            */
           (baseModel as any)[key] = coerceDateColumnValue(json[key]);
+        } else if (isBooleanTableColumnType(tableColumnMetadata.type)) {
+          /*
+           * A switch the API, Terraform or a workflow sends as "true",
+           * "yes" or 1 is the boolean the database stores for it, so a
+           * hook reading the new record sees true, not text. A value the
+           * database would refuse is left as it is, for DatabaseService
+           * to refuse. See Types/Database/BooleanColumnValue.
+           */
+          (baseModel as any)[key] = toStoredBoolean(json[key]);
         } else {
           (baseModel as any)[key] = json[key];
         }

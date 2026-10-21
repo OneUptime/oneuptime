@@ -13,6 +13,8 @@ import ExceptionDetailList, {
   ExceptionDetailListItem,
 } from "./ExceptionDetailList";
 import ExceptionResource from "./ExceptionResource";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   exceptionType?: string | undefined;
@@ -28,11 +30,22 @@ export interface ComponentProps {
   environment?: string | undefined;
 }
 
-const NOT_RECORDED: ReactElement = (
-  <span className="text-gray-400">Not recorded</span>
-);
+const NotRecorded: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
 
-function renderTime(date: Date | undefined): ReactElement {
+  return (
+    <span className="text-gray-400">
+      {translator.translateText("Not recorded")}
+    </span>
+  );
+};
+
+const NOT_RECORDED: ReactElement = <NotRecorded />;
+
+function renderTime(
+  date: Date | undefined,
+  translator: Translator,
+): ReactElement {
   if (!date) {
     return NOT_RECORDED;
   }
@@ -41,7 +54,7 @@ function renderTime(date: Date | undefined): ReactElement {
     <span>
       {OneUptimeDate.getDateAsLocalShortDateTimeString(date)}
       <span className="ml-1.5 text-gray-500">
-        ({formatRelativeTime(date) || "unknown"})
+        ({formatRelativeTime(date) || translator.translateText("unknown")})
       </span>
     </span>
   );
@@ -63,6 +76,7 @@ function renderText(value: string | undefined, isMono?: boolean): ReactElement {
 const ExceptionDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const activeSpan: string | null = formatActiveSpan(
     props.firstSeenAt,
     props.lastSeenAt,
@@ -98,17 +112,21 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
     },
     {
       label: "First seen",
-      value: renderTime(props.firstSeenAt),
+      value: renderTime(props.firstSeenAt, translator),
       hint: props.firstSeenInRelease
-        ? `Introduced in ${props.firstSeenInRelease}`
+        ? translator.translateTemplate("Introduced in {{release}}", {
+            release: props.firstSeenInRelease,
+          })
         : undefined,
       testId: "exception-detail-first-seen",
     },
     {
       label: "Last seen",
-      value: renderTime(props.lastSeenAt),
+      value: renderTime(props.lastSeenAt, translator),
       hint: props.lastSeenInRelease
-        ? `Latest release ${props.lastSeenInRelease}`
+        ? translator.translateTemplate("Latest release {{release}}", {
+            release: props.lastSeenInRelease,
+          })
         : undefined,
       testId: "exception-detail-last-seen",
     },
@@ -118,7 +136,9 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       value: props.fingerprint ? (
         <span className="flex min-w-0 items-center gap-2">
           <code
-            title="Occurrences with this fingerprint are grouped into this exception."
+            title={translator.translateText(
+              "Occurrences with this fingerprint are grouped into this exception.",
+            )}
             className="min-w-0 truncate rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
           >
             {props.fingerprint}

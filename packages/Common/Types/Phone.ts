@@ -3,6 +3,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 export default class Phone extends DatabaseProperty {
   private _phone: string = "";
@@ -79,7 +80,9 @@ export default class Phone extends DatabaseProperty {
     const re: RegExp = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,7}$/; // regex for international phone numbers format based on (ITU-T E.123)
     const isValid: boolean = re.test(v);
     if (!isValid) {
-      throw new BadDataException(`Phone is not in valid format: ${v}`);
+      throw new BadDataException(
+        `Phone is not in valid format: ${refusedValue(v)}`,
+      );
     }
     this._phone = v;
   }
@@ -96,6 +99,32 @@ export default class Phone extends DatabaseProperty {
 
   public override toString(): string {
     return this.phone;
+  }
+
+  /*
+   * Whether two numbers are the same line, however each was typed. A number
+   * is stored as it was entered, so "+1 (555) 123-0100" and "+15551230100"
+   * are different strings; their digits are not. A number written with its
+   * country code and one written without are different digits, and are not
+   * matched - the safe way round for everything that asks.
+   */
+  public static isSameNumber(
+    first: Phone | string | undefined | null,
+    second: Phone | string | undefined | null,
+  ): boolean {
+    if (!first || !second) {
+      return false;
+    }
+
+    const digitsOf: (phone: Phone | string) => string = (
+      phone: Phone | string,
+    ): string => {
+      return phone.toString().replace(/\D/g, "");
+    };
+
+    const firstDigits: string = digitsOf(first);
+
+    return firstDigits.length > 0 && firstDigits === digitsOf(second);
   }
 
   public override toJSON(): JSONObject {

@@ -399,6 +399,7 @@ describe("LogsFacetSidebar resource rows", () => {
   test("rows use server displayName first, then the preloaded map, then resolver names", () => {
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{
           primaryEntityId: [
             { value: SERVICE_ID, count: 5 },
@@ -433,6 +434,7 @@ describe("LogsFacetSidebar resource rows", () => {
   test("a displayName that only echoes the id (or is blank) does not hide the resolved name", () => {
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{
           primaryEntityId: [
             { value: RUM_ID, count: 3, displayName: RUM_ID },
@@ -464,6 +466,7 @@ describe("LogsFacetSidebar resource rows", () => {
     const onInclude: MockFunction = getJestMockFunction();
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{ primaryEntityId: [{ value: RUM_ID, count: 3 }] }}
         isLoading={false}
         serviceMap={{}}

@@ -129,6 +129,11 @@ describePostgres("permission block removal against Postgres", () => {
     "TeamMember",
     "TeamPermission",
     "TeamPermissionLabel",
+    // Custom roles (#4909): the team permission services read them too.
+    "CustomRole",
+    "CustomRolePermission",
+    "CustomRolePermissionLabel",
+    "TeamCustomRole",
     "Label",
     "Monitor",
     "MonitorLabel",
@@ -420,6 +425,7 @@ describePostgres("permission block removal against Postgres", () => {
         expect(await visibleMonitors(target)).toEqual([
           otherMonitorId.toString(),
         ]);
+        // The editor reads the permissions it removes: a write needs a read.
         await expect(
           remove(
             target,
@@ -427,6 +433,7 @@ describePostgres("permission block removal against Postgres", () => {
             blockId,
             props([
               grant(target.editor),
+              grant(target.reader),
               grant(Permission.MonitorViewer, {
                 labelIds: [otherLabelId],
                 scope: PermissionScope.Labels,
@@ -444,6 +451,7 @@ describePostgres("permission block removal against Postgres", () => {
             blockId,
             props([
               grant(target.editor),
+              grant(target.reader),
               grant(Permission.MonitorViewer, {
                 labelIds: [labelId, otherLabelId],
                 scope: PermissionScope.Labels,
@@ -467,6 +475,7 @@ describePostgres("permission block removal against Postgres", () => {
               blockId,
               props([
                 grant(target.editor),
+                grant(target.reader),
                 grant(Permission.MonitorViewer, {
                   scope,
                   labelIds: scope === PermissionScope.Labels ? [labelId] : [],
@@ -486,7 +495,7 @@ describePostgres("permission block removal against Postgres", () => {
             query: { projectId },
             skip: 0,
             limit: 10,
-            props: props([grant(target.editor)]),
+            props: props([grant(target.editor), grant(target.reader)]),
           }),
         ).rejects.toBeInstanceOf(NotAuthorizedException);
         expect(await storedIds(target)).toEqual(
@@ -503,7 +512,7 @@ describePostgres("permission block removal against Postgres", () => {
             target,
             "deleteOneBy",
             allowId,
-            props([grant(target.editor)]),
+            props([grant(target.editor), grant(target.reader)]),
           ),
         ).toBe(1);
         expect(await storedIds(target)).toEqual([]);

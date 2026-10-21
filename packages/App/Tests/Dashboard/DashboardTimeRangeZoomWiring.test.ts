@@ -54,9 +54,18 @@ describe("dashboard-wide time range zoom wiring", () => {
        * dashboard ended up with a "Reset Zoom" button that appeared after
        * an ordinary picker change.
        */
+      /*
+       * Through the viewer settings (issue #5080), which own the zoom hook
+       * and open the board on the link's, the viewer's or the dashboard's
+       * own range instead of always the past hour.
+       */
       expect(shell).toContain(
-        "useDashboardTimeRangeZoom({ range: TimeRange.PAST_ONE_HOUR, })",
+        "const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(), });",
       );
+      expect(shell).toContain(
+        "const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;",
+      );
+      expect(shell).not.toContain("useDashboardTimeRangeZoom(");
       expect(shell).toContain(
         "onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}",
       );
@@ -73,14 +82,22 @@ describe("dashboard-wide time range zoom wiring", () => {
     /*
      * An explicit pick is a new baseline. Routing it through
      * zoomToTimeRange instead would make "Reset zoom" offer to jump back
-     * to a range the user just deliberately left.
+     * to a range the user just deliberately left. The viewer settings'
+     * pickTimeRange hands it to setStartAndEndDate (selectRange), and keeps
+     * a preset as the viewer's own (issue #5080).
      */
     expect(readSquashed(AUTHENTICATED_SHELL)).toContain(
-      "timeRangeZoom.setStartAndEndDate(newStartAndEndDate);",
+      "viewerSettings.pickTimeRange(newStartAndEndDate);",
     );
     expect(readSquashed(PUBLIC_SHELL)).toContain(
-      "timeRangeZoom.setStartAndEndDate(newRange);",
+      "viewerSettings.pickTimeRange(newRange);",
     );
+    expect(
+      readSquashed("Common/UI/Utils/UseDashboardViewerSettings.ts"),
+    ).toContain("setStartAndEndDate(range);");
+    expect(
+      readSquashed("Common/UI/Utils/UseDashboardViewerSettings.ts"),
+    ).not.toContain("zoomToTimeRange(");
   });
 
   test("the public dashboard's hand-rolled range stack is gone", () => {
@@ -106,7 +123,9 @@ describe("dashboard-wide time range zoom wiring", () => {
     expect(toolbar).toContain(
       "props.isTimeRangeZoomed && props.onResetTimeRangeZoom &&",
     );
-    expect(toolbar).toContain('aria-label="Reset zoom"');
+    expect(toolbar).toContain(
+      'aria-label={translator.translateText("Reset zoom")}',
+    );
   });
 
   test("entering edit mode drops the zoom rather than stranding the board", () => {
@@ -115,10 +134,20 @@ describe("dashboard-wide time range zoom wiring", () => {
      * left zoomed would have no way out until the user leaves edit mode.
      */
     const shell: string = readSquashed(AUTHENTICATED_SHELL);
-    const editHandlerIndex: number = shell.indexOf("onEditClick={() => {");
+    /*
+     * Both ways into edit mode - the toolbar's Edit Dashboard and an empty
+     * board's Add Widget - go through startEditing.
+     */
+    const editHandlerIndex: number = shell.indexOf(
+      "const startEditing: () => void = (): void => {",
+    );
     expect(editHandlerIndex).toBeGreaterThan(-1);
-    expect(shell.slice(editHandlerIndex, editHandlerIndex + 400)).toContain(
+    expect(shell.slice(editHandlerIndex, editHandlerIndex + 600)).toContain(
       "timeRangeZoom.resetZoom();",
+    );
+    expect(shell).toContain("onEditClick={startEditing}");
+    expect(shell).toMatch(
+      /const startWithFirstWidget: \(\) => void = \(\): void => \{ if \(!canEditDashboard\) \{ return; \} startEditing\(\);/,
     );
   });
 
@@ -142,11 +171,16 @@ describe("dashboard-wide time range zoom wiring", () => {
     /*
      * Two chart bags are built — one per query chart, one per formula
      * chart. A reset wired to only one of them leaves half a dashboard
-     * unable to undo the zoom.
+     * unable to undo the zoom. The third is the bucket inspector, which
+     * resolves the same reset the charts end up with, for the rest of a
+     * double-click that lands on it (issue #4116).
      */
     const matches: RegExpMatchArray | null = source.match(
       /onTimeRangeReset: props\.onTimeRangeReset,/g,
     );
-    expect(matches?.length).toBe(2);
+    expect(matches?.length).toBe(3);
+    expect(source).toContain(
+      "resolveChartTimeRangeZoom({ onTimeRangeSelect: props.onTimeRangeSelect, onTimeRangeReset: props.onTimeRangeReset, isTimeAxis: true, pageZoom: pageZoom, }).onTimeRangeReset;",
+    );
   });
 });

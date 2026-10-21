@@ -1,0 +1,178 @@
+# outboundConnections.blockPrivateNetwork is the Helm half of
+# DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES: the switch that makes a self-hosted
+# install refuse private-range targets (RFC-1918, CGNAT, IPv6 unique-local) for
+# data sources, LLM providers, SMTP, OAuth token URLs, OIDC discovery and
+# runbook HTTP steps. Before this value existed the chart never rendered the
+# variable, so a Kubernetes operator had no way to turn it on.
+#
+# Things that have to hold:
+#
+#   - It must default to "false". Unlike the webhook switch, "off" here is the
+#     permissive direction on a self-hosted install, and it is what every
+#     release before this one did; an upgrade must not start refusing the
+#     database or mail server a project already connects to.
+#   - The app reads it as `process.env[...] === "true"`, so it must arrive as
+#     the quoted STRING "true", never a YAML boolean. The parenthesised
+#     `(($.Values.outboundConnections).blockPrivateNetwork)` idiom keeps the
+#     block optional for values files written before it existed.
+#   - It has to reach the worker deployment too: workflows (email, OAuth token
+#     URLs), security event pollers and runbooks run there when it is enabled.
+#   - It is independent of webhooks.allowPrivateNetwork. The two gate different
+#     sinks and point in opposite directions, so neither may move the other.
+suite: outbound connections egress
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: defaults to not blocking when the operator never set it
+    templates:
+      - templates/app.yaml
+    # app.yaml renders a Service and a Deployment under one name.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "false"
+
+  - it: blocks when the operator explicitly enables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      outboundConnections:
+        blockPrivateNetwork: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "true"
+
+  # false is empty in a Go template, so an explicit false must not fall back to
+  # anything else.
+  - it: stays off when the operator explicitly disables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      outboundConnections:
+        blockPrivateNetwork: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "false"
+
+  # A values file written before the block existed, or one that nulls it out,
+  # must render the safe default rather than fail or emit an empty value.
+  - it: stays off when the whole block is nulled out
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      outboundConnections: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "false"
+
+  - it: reaches the worker deployment as well
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # The worker deployment ships disabled; turn it on so it renders.
+      worker:
+        enabled: true
+      outboundConnections:
+        blockPrivateNetwork: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "true"
+
+  - it: is not turned on by opening private-network webhooks
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "false"
+
+  - it: does not close private-network webhooks when it blocks
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+      outboundConnections:
+        blockPrivateNetwork: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+            value: "true"
+
+  # The app honors only the exact string "true", so a quoted value or a number
+  # would deploy as "off" without a word. Reject it at install time instead.
+  - it: rejects the quoted string "true"
+    templates:
+      - templates/app.yaml
+    set:
+      outboundConnections.blockPrivateNetwork: "true"
+    asserts:
+      - failedTemplate:
+          errorPattern: "outboundConnections.blockPrivateNetwork: Invalid type. Expected: boolean, given: string"
+
+  - it: rejects a number such as 1
+    templates:
+      - templates/app.yaml
+    set:
+      outboundConnections.blockPrivateNetwork: 1
+    asserts:
+      - failedTemplate:
+          errorPattern: "outboundConnections.blockPrivateNetwork: Invalid type. Expected: boolean, given: integer"
+
+  # A misspelt key would otherwise leave the switch silently off.
+  - it: rejects an unknown key in the block
+    templates:
+      - templates/app.yaml
+    set:
+      outboundConnections.blockPrivateAddresses: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "Additional property blockPrivateAddresses is not allowed"

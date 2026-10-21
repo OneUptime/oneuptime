@@ -22,6 +22,7 @@ import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundExce
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
@@ -38,10 +39,7 @@ import {
 import { getJestSpyOn } from "../../../Tests/Spy";
 import getJestMockFunction from "../../../Tests/MockType";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
-import {
-  installFakeEnterpriseModule,
-  uninstallEnterpriseModule,
-} from "../Enterprise/FakeEnterpriseModule";
+import { uninstallEnterpriseModule } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -56,13 +54,13 @@ jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
 /*
- * SSO enforcement is an Enterprise Edition control (on while SSO is active:
- * ee loaded and, with billing off, a license that covers SSO; relaxed on the
- * Community Edition and while the license is lapsed). The enforcement tests
- * below install a fake enterprise module with a valid license and pin billing
- * so they test the same thing locally and in CI, whose config.env sets
- * BILLING_ENABLED=true. The Community Edition and lapsed-license cases live in
- * UserAuthorizationEditionEnforcement.test.ts.
+ * SSO enforcement is part of the Community Edition: a configured requirement
+ * is enforced whether or not ee/ is loaded and whatever the license says. The
+ * enforcement tests below run with NO enterprise module (the Community
+ * Edition) and billing pinned off, which proves they need nothing from ee/,
+ * and test the same thing locally and in CI, whose config.env sets
+ * BILLING_ENABLED=true. Every other edition and license state is covered by
+ * UserAuthorizationSsoEnforcement.test.ts.
  */
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -171,7 +169,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).toHaveBeenCalledWith(error, undefined);
     });
 
@@ -190,7 +191,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).not.toBeCalled();
     });
 
@@ -272,7 +276,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return false, when decoded JWT object's userId does not match with userId passed as parameter", () => {
@@ -293,7 +300,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return true", () => {
@@ -408,7 +418,10 @@ describe("UserMiddleware", () => {
         ),
       );
       expect(next).not.toHaveBeenCalled();
-      expect(spyJWTDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyJWTDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(UserService.updateOneBy).not.toHaveBeenCalled();
     });
 
@@ -762,12 +775,13 @@ describe("UserMiddleware", () => {
 
     /*
      * By default no project requires a specific SSO provider (discriminator),
-     * and the instance-wide "Require SSO for Login" flag is off. The
-     * Enterprise Edition is loaded, so a configured requirement is enforced.
+     * and the instance-wide "Require SSO for Login" flag is off. No
+     * enterprise module is loaded: a configured requirement is enforced on
+     * the Community Edition too.
      */
     beforeEach(() => {
       setTestBillingEnabled(false);
-      installFakeEnterpriseModule();
+      uninstallEnterpriseModule();
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
     });
@@ -785,6 +799,38 @@ describe("UserMiddleware", () => {
         }),
       ).rejects.toThrowError(new TenantNotFoundException("Invalid tenantId"));
       expect(spyGetRequireSsoForLogin).toHaveBeenCalledWith(projectId);
+    });
+
+    test("should throw, when the instance-wide sign-in rule cannot be read: never 'not required'", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
+      spyGetGlobalRequireSsoForLogin.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+          req,
+          tenantId: projectId,
+          userId,
+        }),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
+    });
+
+    test("should throw, when the provider the project pins cannot be read: never 'any provider will do'", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
+      spyGetRequireSsoWithSsoProviderId.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+          req,
+          tenantId: projectId,
+          userId,
+        }),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
     });
 
     test("should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist", async () => {
@@ -921,12 +967,13 @@ describe("UserMiddleware", () => {
 
     /*
      * By default neither a project's own nor the instance-wide "Require SSO for
-     * Login" flag is on, and no project requires a specific SSO provider. The
-     * Enterprise Edition is loaded, so a configured requirement is enforced.
+     * Login" flag is on, and no project requires a specific SSO provider. No
+     * enterprise module is loaded: a configured requirement is enforced on
+     * the Community Edition too.
      */
     beforeEach(() => {
       setTestBillingEnabled(false);
-      installFakeEnterpriseModule();
+      uninstallEnterpriseModule();
       spyGetProjectRequireSsoForLogin.mockResolvedValue(false);
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
@@ -1020,26 +1067,30 @@ describe("UserMiddleware", () => {
       );
     });
 
-    test("should return user tenant access permission, when project for a projectId is not found, but project level permission exist for the projectId", async () => {
+    test("should leave a project out, when project for a projectId is not found, even when a project level permission is still held for the projectId", async () => {
       spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
         new BadDataException("Project not found"),
       );
 
-      getJestSpyOn(
+      // What a permission cache could still hold for a project deleted since.
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
-      ).mockResolvedValueOnce(mockedUserTenantAccessPermission);
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
 
-      const result: Dictionary<UserTenantAccessPermission> | null =
-        await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
-          req,
-          userId,
-          [projectId],
-        );
+      try {
+        const result: Dictionary<UserTenantAccessPermission> | null =
+          await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+            req,
+            userId,
+            [projectId],
+          );
 
-      expect(result).toEqual({
-        [projectId.toString()]: mockedUserTenantAccessPermission,
-      });
+        expect(result).toBeNull();
+        expect(spyGetUserTenantAccessPermission).not.toHaveBeenCalled();
+      } finally {
+        spyGetUserTenantAccessPermission.mockReset();
+      }
     });
 
     test("should return null, when project for a projectId is not found, and project level permission does not exist for the projectId", async () => {
@@ -1050,7 +1101,7 @@ describe("UserMiddleware", () => {
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
-      ).mockResolvedValueOnce(null);
+      );
 
       const result: Dictionary<UserTenantAccessPermission> | null =
         await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
@@ -1060,11 +1111,75 @@ describe("UserMiddleware", () => {
         );
 
       expect(result).toBeNull();
-      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
-        userId,
-        projectId,
-        { userGlobalAccessPermission: undefined },
+      expect(spyGetUserTenantAccessPermission).not.toHaveBeenCalled();
+    });
+
+    test("should throw, when the sign-in rule of a project cannot be read", async () => {
+      spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
+        new Error("database down"),
       );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+    });
+
+    test("should throw, when the instance-wide sign-in rule cannot be read, and not read it for a master admin", async () => {
+      spyGetGlobalRequireSsoForLogin.mockRejectedValue(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+
+      spyGetGlobalRequireSsoForLogin.mockClear();
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
+
+      try {
+        await expect(
+          UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+            {
+              userAuthorization: { isMasterAdmin: true },
+            } as unknown as ExpressRequest,
+            userId,
+            [projectId],
+          ),
+        ).resolves.toEqual({
+          [projectId.toString()]: mockedUserTenantAccessPermission,
+        });
+        expect(spyGetGlobalRequireSsoForLogin).not.toHaveBeenCalled();
+      } finally {
+        spyGetUserTenantAccessPermission.mockReset();
+      }
+    });
+
+    test("should throw, when the provider a project pins cannot be read", async () => {
+      spyGetProjectRequireSsoForLogin.mockResolvedValueOnce(true);
+      spyGetRequireSsoWithSsoProviderId.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
     });
 
     test("should hand every project's lookup the global permission the project list came from", async () => {

@@ -1,0 +1,139 @@
+import Permission from "Common/Types/Permission";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import { RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS } from "./ResourceAiAccessSettingsUtil";
+import {
+  getAiAccessTestPermissionMessage,
+  getAiAccessTestPermissionRequirement,
+} from "../AiAccess/AiAccessModes";
+
+/*
+ * What the signed-in user may do on a resource's AI pages, read from the
+ * permission snapshot the way the server reads it. Browser-side (it reads
+ * the snapshot through the UI utils); the pure rules live in
+ * ResourceAiAccessSettingsUtil.ts.
+ */
+
+/*
+ * Whether the signed-in user holds one of `allowed` in this project, read
+ * the way the server reads it (PermissionGate.holdsAnyOf): a BLOCK row is a
+ * denial rather than a grant, and a block with no labels on any of them
+ * takes them away. A master admin holds everything.
+ */
+export function holdsProjectPermission(
+  allowed: ReadonlyArray<Permission>,
+  options?: PermissionGateOptions | undefined,
+): boolean {
+  return PermissionGate.holdsAnyOf(allowed, options);
+}
+
+/*
+ * Whether the signed-in user may LOOSEN what AI may do on the resource:
+ * turn fixes on or up, or add an allowlist entry. The server refuses the
+ * write without RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS; tightening stays open
+ * to every editor of the resource.
+ */
+export function canConfigureUnattendedResourceAiAccess(): boolean {
+  return holdsProjectPermission(RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS);
+}
+
+/*
+ * Resetting the agent revokes its key; the agent registers again on its
+ * own. The server gates the route on the admin set - counting a block on
+ * any of them as a refusal, labelled or not - and on an edit of THIS
+ * resource (decided for its own row, labels and owners included). The
+ * snapshot cannot tell a resource's labels, so the menu offers it to
+ * whoever holds the admin set and may edit resources of this kind at all;
+ * the server refuses the rest in its own words.
+ */
+export function canResetResourceAiAgent(
+  descriptor: ResourceAiAgentDescriptor,
+): boolean {
+  return (
+    holdsProjectPermission(RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS, {
+      labelledBlocksRefuse: true,
+    }) && getResourceSettingsGate(descriptor).isAllowed
+  );
+}
+
+/*
+ * The project-level AI switches (AI Features, LLM providers, AI credits)
+ * are changed by project owners and admins. Everyone else is told who to
+ * ask instead of being sent to a page that refuses them.
+ */
+export const RESOURCE_PROJECT_AI_SETTINGS_PERMISSIONS: ReadonlyArray<Permission> =
+  [Permission.ProjectOwner, Permission.ProjectAdmin];
+
+export function canChangeProjectAiSettingsForResource(): boolean {
+  return holdsProjectPermission(RESOURCE_PROJECT_AI_SETTINGS_PERMISSIONS);
+}
+
+/*
+ * The command history is RunnerJob rows. Roles that may open a resource's
+ * AI pages may not read them (RunnerJob's runbook rows carry scripts and
+ * their output), so such users get an explanation instead of a table that
+ * can only fail.
+ */
+export function canReadResourceCommandJobs(): boolean {
+  return PermissionGate.check(new RunnerJob(), ModelAction.Read).isAllowed;
+}
+
+export function getResourceCommandJobsPermissionTitles(): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new RunnerJob().getReadPermissions(),
+  );
+}
+
+// The resource's own edit gate: the settings' Change button and one-click fixes.
+export function getResourceSettingsGate(
+  descriptor: ResourceAiAgentDescriptor,
+): PermissionGateResult {
+  return PermissionGate.check(new descriptor.modelType(), ModelAction.Update);
+}
+
+/*
+ * The connection test spends the agent's time, so its endpoint requires
+ * edit access to the resource (the same gate as the Kubernetes cluster's).
+ */
+export function getResourceAccessTestPermissionGate(
+  descriptor: ResourceAiAgentDescriptor,
+): PermissionGateResult {
+  return getResourceSettingsGate(descriptor);
+}
+
+// Who may edit the resource, and so run the test.
+function getResourceAccessTestPermissionTitles(
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new descriptor.modelType().getUpdatePermissions(),
+  );
+}
+
+// Why the test is locked, for the disabled button's tooltip and note.
+export function getResourceAccessTestPermissionRequirement(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return getAiAccessTestPermissionRequirement({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
+}
+
+/*
+ * What a refused test says. The server's sentence for this route may talk
+ * about CHANGING the resource's AI access, which the user did not try.
+ */
+export function getResourceAccessTestPermissionMessage(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return getAiAccessTestPermissionMessage({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
+}

@@ -5,19 +5,30 @@ import AIComponents from "./Components/AI";
 import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
+import HuntressComponents, {
+  HUNTRESS_COMPONENT_CATEGORY,
+} from "./Components/Huntress";
+import IncomingEmailComponents from "./Components/IncomingEmail";
+import IRCComponents from "./Components/IRC";
 import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
 import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
+import MattermostComponents from "./Components/Mattermost";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
+import OnCallComponents, {
+  ON_CALL_COMPONENT_CATEGORY,
+} from "./Components/OnCall";
 import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
 import SleepComponents from "./Components/Sleep";
+import SwitchComponents from "./Components/Switch";
 import TelegramComponents from "./Components/Telegram";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
 
 const components: Array<ComponentMetadata> = [
+  ...OnCallComponents,
   ...AIComponents,
   ...LogComponents,
   ...APIComponents,
@@ -25,11 +36,16 @@ const components: Array<ComponentMetadata> = [
   ...SlackComponents,
   ...DiscordComponents,
   ...TelegramComponents,
+  ...IRCComponents,
+  ...MattermostComponents,
   ...ConditionComponents,
+  ...SwitchComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
   ...EmailComponents,
   ...WebhookComponents,
+  ...IncomingEmailComponents,
+  ...HuntressComponents,
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
@@ -39,6 +55,16 @@ const components: Array<ComponentMetadata> = [
 export default components;
 
 export const Categories: Array<ComponentCategory> = [
+  /*
+   * First: paging people is what an on-call product's workflows are most
+   * often for, so the Page steps lead the Add Component panel's groups.
+   */
+  {
+    name: ON_CALL_COMPONENT_CATEGORY,
+    description:
+      "Page people, a team, whoever is on call, or an on-call policy.",
+    icon: IconProp.Call,
+  },
   {
     name: "AI",
     description:
@@ -76,6 +102,16 @@ export const Categories: Array<ComponentCategory> = [
     icon: IconProp.SendMessage,
   },
   {
+    name: "IRC",
+    description: "Integrate OneUptime with your IRC channels.",
+    icon: IconProp.SendMessage,
+  },
+  {
+    name: "Mattermost",
+    description: "Integrate OneUptime with your Mattermost channels.",
+    icon: IconProp.SendMessage,
+  },
+  {
     name: "Conditions",
     description: "Add logic to your workflows.",
     icon: IconProp.Condition,
@@ -97,8 +133,14 @@ export const Categories: Array<ComponentCategory> = [
   },
   {
     name: "Email",
-    description: "Send email to anyone in your workflows.",
-    icon: IconProp.Clock,
+    description: "Receive email to start a workflow, and send email from one.",
+    icon: IconProp.Email,
+  },
+  {
+    name: HUNTRESS_COMPONENT_CATEGORY,
+    description:
+      "Start a workflow from Huntress incident reports: new ones, comments and closes.",
+    icon: IconProp.ShieldCheck,
   },
   {
     name: "Utils",

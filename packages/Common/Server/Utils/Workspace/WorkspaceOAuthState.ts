@@ -7,12 +7,17 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import ConnectCallbackUtil, {
+  ConnectStartPage,
+} from "../../../Types/Workspace/ConnectCallback";
 
 /*
- * Every redirect-based flow that ends with OneUptime writing a Slack or
- * Microsoft Teams binding. A state minted for one flow is never accepted by
- * another, so a nonce issued for "sign in with Teams" cannot be spent on the
- * admin-consent callback.
+ * Every redirect-based flow that ends with OneUptime writing a Slack,
+ * Microsoft Teams, GitHub or video call binding. A state minted for one flow
+ * is never accepted by another, so a nonce issued for "sign in with Teams"
+ * cannot be spent on the admin-consent callback, nor one issued for Slack on
+ * the GitHub App installation callback, nor one issued for Zoom on the
+ * Google Meet callback.
  */
 export enum WorkspaceOAuthFlow {
   SlackInstall = "SlackInstall",
@@ -21,16 +26,47 @@ export enum WorkspaceOAuthFlow {
   MicrosoftTeamsAdminConsent = "MicrosoftTeamsAdminConsent",
   // Second leg of admin consent: the sign-in that proves which tenant it was.
   MicrosoftTeamsAdminConsentSignIn = "MicrosoftTeamsAdminConsentSignIn",
+  // Installing the GitHub App, which connects its repositories to a project.
+  GitHubAppInstall = "GitHubAppInstall",
+  /*
+   * Connecting an installation of the GitHub App that already exists. GitHub
+   * sends nobody back from an installation that is only reconfigured, so
+   * the person signs in to GitHub instead, and OneUptime asks which
+   * installations their GitHub account administers.
+   */
+  GitHubAppConnectExisting = "GitHubAppConnectExisting",
+  /*
+   * Picking one of those installations, when there is more than one. The
+   * state carries the installations OneUptime confirmed, so the pick can
+   * only be one of them.
+   */
+  GitHubAppChooseInstallation = "GitHubAppChooseInstallation",
+  // The one-click Connect of a video call provider (VideoCallOAuthAPI).
+  VideoCallZoomConnect = "VideoCallZoomConnect",
+  VideoCallGoogleMeetConnect = "VideoCallGoogleMeetConnect",
+  VideoCallMicrosoftTeamsConnect = "VideoCallMicrosoftTeamsConnect",
 }
 
 export interface WorkspaceOAuthStateRecord {
   flow: WorkspaceOAuthFlow;
   projectId: ObjectID;
   userId: ObjectID;
+  /*
+   * The page the flow was started from, which its callback sends the browser
+   * back to (ConnectCallback): the project's settings unless the start said
+   * the person's own settings.
+   */
+  startPage: ConnectStartPage;
   // Microsoft Entra tenant the flow is pinned to, when it is pinned to one.
   tenantId?: string | undefined;
   // OpenID Connect nonce the ID token returned by this flow must carry.
   oidcNonce?: string | undefined;
+  /*
+   * Whatever else the start decided for its callback: the video call
+   * connection a sign-in reconnects. Recorded on the server like the rest,
+   * so nothing in the redirect can change it.
+   */
+  payload?: JSONObject | undefined;
 }
 
 export interface CreatedWorkspaceOAuthState {
@@ -44,12 +80,14 @@ const STATE_NAMESPACE: string = "workspace-oauth-state";
 const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
 
 /*
- * The `state` parameter of the Slack and Microsoft Teams connect flows.
+ * The `state` parameter of the Slack, Microsoft Teams and GitHub App connect
+ * flows.
  *
- * The callbacks of those flows are unauthenticated by nature — Slack and
- * Microsoft redirect the browser to them — and they write the binding that
- * everything downstream trusts: which workspace or tenant a project's bot
- * token belongs to, and which chat identity acts as which OneUptime user. So
+ * The callbacks of those flows are unauthenticated by nature — Slack,
+ * Microsoft and GitHub redirect the browser to them — and they write the
+ * binding that everything downstream trusts: which workspace or tenant a
+ * project's bot token belongs to, which chat identity acts as which OneUptime
+ * user, and which GitHub App installation's repositories a project holds. So
  * the callback must not learn the project or the user from anything in the
  * redirect itself.
  *
@@ -68,6 +106,10 @@ const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
  *
  * The raw state is never stored either — the cache key is its SHA-256 — so a
  * read of the cache does not yield a usable state.
+ *
+ * A state says who started a flow and where, not that they may still finish
+ * it: before a callback writes, it asks the start's question again of the
+ * person the state names, as they are now (WorkspaceOAuthCallbackAccess).
  */
 export default class WorkspaceOAuthState {
   /*
@@ -79,9 +121,6 @@ export default class WorkspaceOAuthState {
 
   public static readonly BROWSER_BINDING_COOKIE_NAME: string =
     "oneuptime-workspace-oauth-binding";
-
-  public static readonly INVALID_STATE_MESSAGE: string =
-    "This connection link is invalid, has expired, or has already been used. Please start connecting again from your OneUptime project settings.";
 
   /*
    * Who may start a flow that binds a Slack workspace or Microsoft 365 tenant
@@ -101,8 +140,11 @@ export default class WorkspaceOAuthState {
     flow: WorkspaceOAuthFlow;
     projectId: ObjectID;
     userId: ObjectID;
+    // Where the callback sends the browser back to; the project's settings by default.
+    startPage?: ConnectStartPage | undefined;
     tenantId?: string | undefined;
     includeOidcNonce?: boolean | undefined;
+    payload?: JSONObject | undefined;
   }): Promise<CreatedWorkspaceOAuthState> {
     /*
      * One binding value per browser, reused while it lasts, so two flows
@@ -139,6 +181,7 @@ export default class WorkspaceOAuthState {
       flow: data.flow,
       projectId: data.projectId.toString(),
       userId: data.userId.toString(),
+      startPage: data.startPage || ConnectStartPage.ProjectSettings,
       browserBindingHash: WorkspaceOAuthState.hash(browserBinding),
       expiresAt: new Date(
         Date.now() + WorkspaceOAuthState.EXPIRES_IN_SECONDS * 1000,
@@ -151,6 +194,10 @@ export default class WorkspaceOAuthState {
 
     if (oidcNonce) {
       record["oidcNonce"] = oidcNonce;
+    }
+
+    if (data.payload) {
+      record["payload"] = data.payload;
     }
 
     await GlobalCache.setString(
@@ -189,6 +236,54 @@ export default class WorkspaceOAuthState {
       STATE_NAMESPACE,
       WorkspaceOAuthState.hash(data.state),
     );
+
+    return WorkspaceOAuthState.readRecord({
+      req: data.req,
+      rawRecord: rawRecord,
+      flows: data.flows,
+    });
+  }
+
+  /*
+   * Reads a state without spending it, refused for every reason consume
+   * refuses one. For a page that shows what a state offers before the person
+   * picks - the GitHub installations their account administers - while the
+   * pick itself goes through the callback that spends it.
+   */
+  @CaptureSpan()
+  public static async peek(data: {
+    req: ExpressRequest;
+    state: string | undefined;
+    flows: Array<WorkspaceOAuthFlow>;
+  }): Promise<WorkspaceOAuthStateRecord | null> {
+    if (!WorkspaceOAuthState.isWellFormedToken(data.state)) {
+      logger.debug("Workspace OAuth state refused: malformed state.");
+      return null;
+    }
+
+    const rawRecord: string | null = await GlobalCache.getString(
+      STATE_NAMESPACE,
+      WorkspaceOAuthState.hash(data.state),
+    );
+
+    return WorkspaceOAuthState.readRecord({
+      req: data.req,
+      rawRecord: rawRecord,
+      flows: data.flows,
+    });
+  }
+
+  /*
+   * What a stored record stands for, or null when it must be refused:
+   * missing, unreadable, minted for another flow, expired, or presented by a
+   * browser other than the one that started the flow.
+   */
+  private static readRecord(data: {
+    req: ExpressRequest;
+    rawRecord: string | null;
+    flows: Array<WorkspaceOAuthFlow>;
+  }): WorkspaceOAuthStateRecord | null {
+    const rawRecord: string | null = data.rawRecord;
 
     if (!rawRecord) {
       logger.debug(
@@ -251,8 +346,16 @@ export default class WorkspaceOAuthState {
       flow,
       projectId: new ObjectID(projectId),
       userId: new ObjectID(userId),
+      // A record written before start pages were recorded goes to the project's settings.
+      startPage: ConnectCallbackUtil.readStartPage(record["startPage"]),
       tenantId: (record["tenantId"] as string | undefined) || undefined,
       oidcNonce: (record["oidcNonce"] as string | undefined) || undefined,
+      payload:
+        record["payload"] &&
+        typeof record["payload"] === "object" &&
+        !Array.isArray(record["payload"])
+          ? (record["payload"] as JSONObject)
+          : undefined,
     };
   }
 

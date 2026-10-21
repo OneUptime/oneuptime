@@ -10,6 +10,12 @@ import React, {
 } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
+import AttributeKeySentence, {
+  LOADING_ATTRIBUTE_VALUES_SENTENCE,
+} from "../../TelemetryViewer/components/AttributeKeySentence";
 import LogSearchSuggestions from "./LogSearchSuggestions";
 import LogSearchHelp from "./LogSearchHelp";
 
@@ -28,6 +34,18 @@ export interface LogSearchBarProps {
   isAttributesLoading?: boolean | undefined;
   // Loading state for `@attribute:value` autocomplete (per-key value fetch).
   isValuesLoading?: boolean | undefined;
+  /*
+   * The values of the key being typed could not be loaded: the dropdown
+   * says so, with Try again (onRetryValues), instead of showing nothing
+   * (issue #4708).
+   */
+  valuesError?: TelemetryLoadError | undefined;
+  onRetryValues?: (() => void) | undefined;
+  /*
+   * The lookup of the key being typed came back with no values: the
+   * dropdown says so, instead of vanishing (issue #4708).
+   */
+  hasNoValues?: boolean | undefined;
 }
 
 export interface LogSearchBarRef {
@@ -38,11 +56,13 @@ const LogSearchBar: React.ForwardRefExoticComponent<
   LogSearchBarProps & React.RefAttributes<LogSearchBarRef>
 > = forwardRef<LogSearchBarRef, LogSearchBarProps>(
   (props: LogSearchBarProps, ref: React.Ref<LogSearchBarRef>): ReactElement => {
+    const translator: Translator = useTranslator();
     const [isFocused, setIsFocused] = useState<boolean>(false);
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
       useState<number>(-1);
+    const [isRetrySelected, setIsRetrySelected] = useState<boolean>(false);
     const inputRef: React.RefObject<HTMLInputElement> =
       useRef<HTMLInputElement>(null!);
     const containerRef: React.RefObject<HTMLDivElement> =
@@ -129,10 +149,39 @@ const LogSearchBar: React.ForwardRefExoticComponent<
         ? Boolean(props.isAttributesLoading)
         : false;
 
+    const hasValuesError: boolean =
+      isValueMode && !isLoadingForCurrentMode && Boolean(props.valuesError);
+
+    /*
+     * The values' Try again is reached with the down arrow and pressed with
+     * Enter, so a keyboard reader never has to leave the search box for it
+     * (Tab would move the focus away, and the dropdown closes with it).
+     */
+    const canSelectRetry: boolean =
+      hasValuesError &&
+      Boolean(props.onRetryValues) &&
+      filteredSuggestions.length === 0;
+    const retrySelected: boolean = canSelectRetry && isRetrySelected;
+
+    /*
+     * The key's values came back empty: said until the reader types a value
+     * of their own, which needs no comment.
+     */
+    const hasNoValues: boolean =
+      isValueMode &&
+      !isLoadingForCurrentMode &&
+      !hasValuesError &&
+      Boolean(props.hasNoValues) &&
+      filteredSuggestions.length === 0 &&
+      partialValue.length === 0;
+
     const shouldShowSuggestions: boolean =
       showSuggestions &&
       isFocused &&
-      (filteredSuggestions.length > 0 || isLoadingForCurrentMode) &&
+      (filteredSuggestions.length > 0 ||
+        isLoadingForCurrentMode ||
+        hasValuesError ||
+        hasNoValues) &&
       (isValueMode ? true : currentWord.length > 0);
 
     // Show help when focused, input is empty, and no suggestions visible
@@ -144,12 +193,20 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
     useEffect(() => {
       setSelectedSuggestionIndex(-1);
+      setIsRetrySelected(false);
     }, [currentWord]);
 
     const handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void =
       useCallback(
         (e: KeyboardEvent<HTMLInputElement>): void => {
           if (e.key === "Enter") {
+            if (shouldShowSuggestions && retrySelected) {
+              setIsRetrySelected(false);
+              props.onRetryValues?.();
+              e.preventDefault();
+              return;
+            }
+
             if (
               shouldShowSuggestions &&
               !isLoadingForCurrentMode &&
@@ -228,6 +285,10 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
           if (e.key === "ArrowDown") {
             e.preventDefault();
+            if (canSelectRetry) {
+              setIsRetrySelected(true);
+              return;
+            }
             setSelectedSuggestionIndex((prev: number): number => {
               return Math.min(prev + 1, filteredSuggestions.length - 1);
             });
@@ -236,6 +297,10 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
           if (e.key === "ArrowUp") {
             e.preventDefault();
+            if (canSelectRetry) {
+              setIsRetrySelected(false);
+              return;
+            }
             setSelectedSuggestionIndex((prev: number): number => {
               return Math.max(prev - 1, 0);
             });
@@ -251,6 +316,8 @@ const LogSearchBar: React.ForwardRefExoticComponent<
           partialValue,
           props,
           isLoadingForCurrentMode,
+          canSelectRetry,
+          retrySelected,
         ],
       );
 
@@ -321,9 +388,15 @@ const LogSearchBar: React.ForwardRefExoticComponent<
       };
     }, []);
 
-    const loadingMessage: string = isValueMode
-      ? `Loading values for ${fieldPrefix}...`
-      : "Loading attributes...";
+    const loadingMessage: React.ReactNode = isValueMode ? (
+      <AttributeKeySentence
+        template={LOADING_ATTRIBUTE_VALUES_SENTENCE}
+        attributeKey={fieldPrefix}
+      />
+    ) : (
+      translator.translateText("Loading attributes...") ||
+      "Loading attributes..."
+    );
 
     const emptyMessage: string | undefined =
       isValueMode &&
@@ -366,8 +439,13 @@ const LogSearchBar: React.ForwardRefExoticComponent<
             }}
             onKeyDown={handleKeyDown}
             placeholder={
-              props.placeholder ||
-              'Search logs... (e.g. severity:error service:api "connection refused")'
+              translator.translateText(props.placeholder) ||
+              translator.translateTemplate(
+                "Search logs... (e.g. {{example}})",
+                {
+                  example: 'severity:error service:api "connection refused"',
+                },
+              )
             }
             className="flex-1 bg-transparent font-mono text-sm text-gray-900 placeholder-gray-400 outline-none"
             spellCheck={false}
@@ -383,7 +461,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
                 setShowSuggestions(false);
                 inputRef.current?.focus();
               }}
-              title="Clear search"
+              title={translator.translateText("Clear search")}
             >
               <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
             </button>
@@ -400,6 +478,10 @@ const LogSearchBar: React.ForwardRefExoticComponent<
             isLoading={isLoadingForCurrentMode}
             loadingMessage={loadingMessage}
             emptyMessage={emptyMessage}
+            valuesError={hasValuesError ? props.valuesError : undefined}
+            onRetryValues={props.onRetryValues}
+            isRetrySelected={retrySelected}
+            hasNoValues={hasNoValues}
           />
         )}
 
@@ -424,6 +506,18 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
   trace: "traceId",
   span: "spanId",
 };
+
+/*
+ * Whether a key typed after `@` is one of the log fields above rather than
+ * an attribute: `@service:` offers the services, never the values of an
+ * attribute that happens to be called "service".
+ */
+export function isLogSearchFieldAlias(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    FIELD_ALIAS_MAP,
+    key.toLowerCase(),
+  );
+}
 
 function getValueSuggestions(
   fieldName: string,

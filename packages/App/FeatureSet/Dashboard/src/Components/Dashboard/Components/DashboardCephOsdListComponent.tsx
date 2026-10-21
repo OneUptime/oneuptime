@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import CephResource from "Common/Models/DatabaseModels/CephResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -38,11 +38,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "OSD", widthPct: "20%" },
-  { label: "Host", widthPct: "20%" },
-  { label: "State", widthPct: "20%" },
+  { label: "OSD", widthPct: "20%", sortKey: "name" },
+  { label: "Host", widthPct: "20%", sortKey: "host" },
+  { label: "State", widthPct: "20%", sortKey: "state" },
   { label: "Used", widthPct: "22%" },
-  { label: "Cluster", widthPct: "18%" },
+  { label: "Cluster", widthPct: "18%", sortKey: "cluster" },
 ];
 
 /*
@@ -337,7 +337,8 @@ const DashboardCephOsdListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ externalId: SortOrder.Ascending }}
+      componentType={DashboardComponentType.CephOsdList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

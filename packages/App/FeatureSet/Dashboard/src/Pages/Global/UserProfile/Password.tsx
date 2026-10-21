@@ -6,12 +6,15 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 class UserWithConfirmPassword extends User {
   public confirmPassword: string = "";
 }
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
 
   return (
@@ -42,6 +45,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 password: true,
               },
               fieldType: FormFieldSchemaType.Password,
+              /*
+               * The person's own new password - the one password field in the
+               * Dashboard password managers should save.
+               */
+              autoComplete: "new-password",
+              isOwnCredential: true,
               validation: {
                 minLength: 6,
               },
@@ -60,6 +69,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 toMatchField: "password",
               },
               fieldType: FormFieldSchemaType.Password,
+              autoComplete: "new-password",
+              isOwnCredential: true,
               placeholder: "Confirm Password",
               title: "Confirm Password",
               required: true,
@@ -71,7 +82,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           submitButtonText={"Update Password"}
         />
       ) : (
-        <p>Your password has been updated.</p>
+        <p>{translator.translateText("Your password has been updated.")}</p>
       )}
     </Card>
   );

@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { ReactElement } from "react";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const RunbookSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -32,18 +35,56 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * Runners have a section of their own, not a row inside Settings: a Bash,
+     * SSH or Kubernetes step cannot run without one, and the section's title
+     * is where people look to see whether theirs is still connected. The AI
+     * pages that need a Runner (code fixes, remediation commands) link
+     * straight to these too.
+     *
+     * Folded down to that title until opened, like every rarely used section:
+     * a Runner is installed once and checked now and then, while the
+     * runbooks and their executions above are what this menu is opened for.
+     * It opens by itself on the Runners and AI Access pages, and on a
+     * Runner's own page. AI Access is what OneUptime AI's commands reach
+     * through a Runner (the credentials runbook steps no longer use).
+     */
+    {
+      title: "Runners",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Runners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
+            title: "AI Access",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route,
+            ),
+          },
+          icon: IconProp.Key,
+        },
+      ],
+    },
     {
       title: "Settings",
       defaultCollapsed: true,
       items: [
         {
           link: {
-            title: "Secrets",
+            title: "Global Variables",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_SECRETS] as Route,
+              RouteMap[PageMap.RUNBOOKS_VARIABLES] as Route,
             ),
           },
-          icon: IconProp.Lock,
+          icon: IconProp.Variable,
         },
         {
           link: {
@@ -66,6 +107,11 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Runbook,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

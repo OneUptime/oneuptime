@@ -72,12 +72,35 @@ export type EntityAttributeValue = string | number | boolean | null | undefined;
  * and truncation both skip it. So bound them here, at the one place both
  * producers pass through.
  *
- * One value is bounded elsewhere instead: a joined `host.ip` list carries
- * its own cap (`MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH`, 512) because it
- * has to truncate on whole addresses rather than mid-string. So 512, not
- * this, is the true ceiling for that one key.
+ * Two values are bounded elsewhere instead: a joined `host.ip` or
+ * `host.mac` list carries its own cap
+ * (`MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH`, 512) because it has to
+ * truncate on whole addresses rather than mid-string. So 512, not this, is
+ * the true ceiling for those two keys.
  */
 export const MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH: number = 256;
+
+/**
+ * Bound one descriptive value to `MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH`,
+ * never leaving half of a surrogate pair behind (see
+ * `InventoryItem.truncateDescriptiveValue`). Exported so the inventory
+ * mirror (`InventoryEntityRegistry`) bounds the free-text columns it
+ * projects — a network device's `sysDescr` — by the same rule.
+ */
+export function truncateDescriptiveAttributeValue(value: string): string {
+  if (value.length <= MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH) {
+    return value;
+  }
+
+  let end: number = MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH;
+  const lastUnit: number = value.charCodeAt(end - 1);
+  const isHighSurrogate: boolean = lastUnit >= 0xd800 && lastUnit <= 0xdbff;
+  if (isHighSurrogate) {
+    end -= 1;
+  }
+
+  return value.substring(0, end);
+}
 
 /**
  * A flat resource-attribute map keyed by the *raw* semconv attribute name
@@ -802,6 +825,28 @@ export default class InventoryItem {
     },
 
     /*
+     * storage.array — storage.array.name only, mirroring ceph.cluster.
+     * `storage.system` (the platform, e.g. purestorage.flasharray) is
+     * descriptive, not identity: the typed Postgres row (StorageArray) and
+     * the read side (`EntityKey.keyForStorageArray`) are name-based, and an
+     * agent may omit the platform (ingest also detects it from the
+     * purefa_ / purefb_ metric names). Volumes, hosts and the other objects
+     * inside an array are StorageArrayResource inventory rows, not entities.
+     */
+    (attrs: EntityAttributes) => {
+      const name: string | null = InventoryItem.str(
+        attrs,
+        "storage.array.name",
+      );
+      return name
+        ? {
+            entityType: EntityType.StorageArray,
+            id: { "storage.array.name": name },
+          }
+        : null;
+    },
+
+    /*
      * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
      * proxmox/ceph/vmware root identity: the typed Postgres row
      * (DockerSwarmCluster) and the read side
@@ -1048,9 +1093,11 @@ export default class InventoryItem {
       "service.version",
       "telemetry.sdk.version",
       "host.ip",
+      "host.mac",
       "host.image.id",
       "os.version",
       "os.description",
+      "device.firmware.version",
       "container.image.tag",
       "container.image.tags",
       "container.image.id",
@@ -1080,19 +1127,40 @@ export default class InventoryItem {
      * the config OneUptime generates on the host's Documentation tab
      * already enables every one of them.
      *
-     * No detector can produce a serial number, make or model — those are
-     * read from WMI (Windows) or DMI (Linux) at provisioning time and
-     * stamped onto the resource, which is what the docs now describe.
+     * So do `host.mac` and `os.version` (issue #4107) — opt-in like
+     * `host.ip`, and enabled by that same generated config.
+     *
+     * No detector can produce a serial number, make, model or firmware
+     * version — those are read from WMI (Windows) or DMI (Linux) at
+     * provisioning time and stamped onto the resource, which is what the
+     * docs describe.
+     *
+     * The make / model / serial / firmware keys are shared with mirrored
+     * network devices (see InventoryEntityRegistry), so a CMDB export has
+     * one column per fact across both kinds of machine.
+     *
+     * So are `os.name`, `device.type` and `device.location` (issue #4569):
+     * the network device mirror always writes them, and a host that is
+     * stamped with them - its OS name from an SDK, the rack it sits in -
+     * fills the same Asset details rows (Utils/Inventory/
+     * InventoryAssetDetails), which otherwise derive them from the OS, the
+     * name and the cloud zone.
      */
     [EntityType.Host]: [
       "os.type",
+      "os.name",
       "os.description",
+      "os.version",
       "host.arch",
       "host.id",
       "host.ip",
+      "host.mac",
       "host.serial_number",
       "device.manufacturer",
       "device.model.name",
+      "device.firmware.version",
+      "device.type",
+      "device.location",
       "cloud.provider",
       "cloud.region",
       "cloud.availability_zone",
@@ -1121,6 +1189,7 @@ export default class InventoryItem {
     ],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
     [EntityType.CephCluster]: ["ceph.cluster.fsid"],
+    [EntityType.StorageArray]: ["storage.system"],
     /*
      * VMware: the cluster an ESXi host sits in and the host / name / pool a
      * VM currently has are exactly the things vSphere moves or renames
@@ -1163,6 +1232,20 @@ export default class InventoryItem {
   > = new Map<string, ReadonlyArray<string>>([
     ["device.manufacturer", ["host.manufacturer"]],
     ["device.model.name", ["host.model.name", "host.model"]],
+    /*
+     * Firmware follows make and model into `device.*`: it is the key IoT
+     * devices and mirrored network devices already store it under. The
+     * BIOS is what a PC or server calls its firmware, so that spelling
+     * is accepted too.
+     */
+    ["device.firmware.version", ["host.firmware.version", "host.bios.version"]],
+    /*
+     * The reverse case: `host.serial_number` predates this and stays
+     * canonical, but an operator who has just written `device.manufacturer`
+     * and `device.model.name` will reasonably write `device.serial_number`
+     * next.
+     */
+    ["host.serial_number", ["device.serial_number"]],
   ]);
 
   /*
@@ -1175,9 +1258,27 @@ export default class InventoryItem {
    * Docker host it is as likely to be a veth as the LAN address). These
    * keys are deduped and comma-joined through the same helper that fills
    * `Host.hostIpAddresses`, so the two surfaces read identically.
+   *
+   * `host.mac` is the same shape (issue #4107): the detector sends one
+   * address per interface that is up. The helper dedupes case-insensitively,
+   * which is right for MACs too, and no MAC notation contains a comma, so
+   * the env-scalar split is safe here as well.
    */
   private static readonly joinedListDescriptiveKeys: ReadonlySet<string> =
-    new Set<string>(["host.ip"]);
+    new Set<string>(["host.ip", "host.mac"]);
+
+  /*
+   * An all-zero MAC is not an address, it is the absence of one. Some
+   * virtual adapters (and a few tunnel drivers on Windows) report it for
+   * an interface that is up, and listing it would read as a real NIC.
+   */
+  private static readonly placeholderMacPattern: RegExp = new RegExp(
+    "^0{2}([-:.]?0{2}){5}$",
+  );
+
+  private static isPlaceholderMac(value: string): boolean {
+    return this.placeholderMacPattern.test(value.trim());
+  }
 
   private static descriptiveAttributesFor(
     entityType: EntityType,
@@ -1223,13 +1324,16 @@ export default class InventoryItem {
 
     for (const source of sources) {
       if (isJoinedList) {
-        const joined: string | null = normalizeHostIpAddresses(
-          this.descriptiveList(attrs, source),
-          {
-            maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
-            maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
-          },
-        );
+        let items: Array<string> = this.descriptiveList(attrs, source);
+        if (key === "host.mac") {
+          items = items.filter((item: string): boolean => {
+            return !this.isPlaceholderMac(item);
+          });
+        }
+        const joined: string | null = normalizeHostIpAddresses(items, {
+          maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+          maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+        });
         if (joined) {
           return joined;
         }
@@ -1295,18 +1399,7 @@ export default class InventoryItem {
    * silently stops updating rather than anything that surfaces.
    */
   private static truncateDescriptiveValue(value: string): string {
-    if (value.length <= MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH) {
-      return value;
-    }
-
-    let end: number = MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH;
-    const lastUnit: number = value.charCodeAt(end - 1);
-    const isHighSurrogate: boolean = lastUnit >= 0xd800 && lastUnit <= 0xdbff;
-    if (isHighSurrogate) {
-      end -= 1;
-    }
-
-    return value.substring(0, end);
+    return truncateDescriptiveAttributeValue(value);
   }
 
   /**

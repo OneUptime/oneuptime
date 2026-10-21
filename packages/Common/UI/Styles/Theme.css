@@ -1,7 +1,9 @@
 /*
- * Shared dashboard theme tokens (Dashboard + Admin Dashboard). Light is
- * intentionally the default; the dark values are activated only by the
- * explicit class applied to <html>.
+ * Shared dashboard theme tokens (Dashboard + Admin Dashboard), and the
+ * public status page's dark theme. Light is intentionally the default; the
+ * dark values are activated only by the explicit class applied to <html>:
+ * by the reader's own pick in the dashboards, and by the page's Theme
+ * setting on a status page (Common/Types/StatusPage/StatusPageTheme.ts).
  */
 :root {
   color-scheme: light;
@@ -186,7 +188,7 @@ html.dark :is(.bg-gray-200, .bg-slate-200) {
   background-color: var(--ou-surface-quaternary);
 }
 
-html.dark [class~="bg-gray-200/70"] {
+html.dark :is([class~="bg-gray-200/70"], [class~="bg-gray-200/80"]) {
   background-color: color-mix(
     in srgb,
     var(--ou-surface-quaternary) 82%,
@@ -223,7 +225,9 @@ html.dark :is(
     [class~="hover:bg-white"],
     [class~="hover:bg-white/60"]
   ):hover,
-html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus {
+html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus,
+/* A row a keyboard reaches takes its hover's ground (Code's task and repository rows). */
+html.dark [class~="focus-visible:bg-gray-50"]:focus-visible {
   background-color: var(--ou-surface-secondary) !important;
 }
 
@@ -239,7 +243,9 @@ html.dark [class~="active:bg-gray-100"]:active,
  * near-white bar across whatever it is on - see the status page group tree.
  */
 html.dark [class~="focus-within:bg-gray-100"]:focus-within,
-html.dark [class~="disabled:bg-gray-100"]:disabled {
+html.dark [class~="disabled:bg-gray-100"]:disabled,
+/* A locked menu item reached with the keyboard (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-gray-100"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
@@ -307,7 +313,20 @@ html.dark :is(
     [class~="hover:text-gray-900"]
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
-html.dark .group:hover [class*="group-hover"][class*="text-gray-"] {
+html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
+/*
+ * Named as well as matched below: the status page's calendar tiles brighten
+ * their arrow on hover, and its dark-mode guard reads named classes.
+ */
+html.dark .group:hover [class~="group-hover:text-gray-600"],
+html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
+/*
+ * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
+ * `.hidden { display: none !important }` cannot pin it shut (see Common's
+ * NavBar desktop view). It must brighten on hover exactly as the
+ * `hidden group-hover:flex` it replaced did.
+ */
+html.dark .group:hover [class*="group-[:not(:hover)"][class*="text-gray-"] {
   color: var(--ou-text-primary) !important;
 }
 
@@ -374,6 +393,14 @@ html.dark :is(
   ),
 html.dark [class~="!border-gray-300"] {
   border-color: var(--ou-border-strong) !important;
+}
+
+/*
+ * A box's border while it has the focus - a table's opened search - is the
+ * strong border the hover rule below draws, not Tailwind's light gray-400.
+ */
+html.dark .border-gray-400 {
+  border-color: #64748b !important;
 }
 
 html.dark :is(
@@ -496,6 +523,30 @@ html.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
   --tw-shadow: var(--ou-shadow-lg);
 }
 
+/*
+ * The soft shadow a table's Actions column casts over the cells that scroll
+ * under it (Common/UI/Components/Table/TableLayout.ts): the light one is
+ * lost against a dark row.
+ */
+html.dark [class~="shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)]"] {
+  --tw-shadow: -8px 0 12px -10px rgb(0 0 0 / 70%);
+}
+
+/*
+ * A ticked table row (TableLayout's TABLE_SELECTED_ROW_CLASS_NAME), its
+ * indigo wash mixed over the card's own surface so it is opaque: the
+ * Actions cell that sticks at the card's edge takes its row's background,
+ * and the see-through wash above let the cells scrolling under it - an
+ * owner's avatar - show through that cell. It reads the same as the wash.
+ */
+html.dark tr[data-selected="true"].bg-indigo-50 {
+  background-color: color-mix(
+    in srgb,
+    rgb(49 46 129) 35%,
+    var(--ou-surface-primary)
+  );
+}
+
 /* Light gradients become layered dark surfaces. */
 html.dark :is(
     .from-white,
@@ -523,7 +574,8 @@ html.dark :is(
     .to-gray-50,
     .to-gray-100,
     .to-slate-50,
-    [class~="to-gray-50/50"]
+    [class~="to-gray-50/50"],
+    [class~="to-gray-50/80"]
   ) {
   --tw-gradient-to: var(--ou-surface-secondary)
     var(--tw-gradient-to-position);
@@ -585,6 +637,23 @@ html.dark :is(
     [class~="to-indigo-50/50"]
   ) {
   --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
+}
+
+/*
+ * Pill (Common/UI/Components/Pill). Its colours are worked out from whatever
+ * hex a user picked for a state, a severity or a label, so no utility class
+ * can carry them: the pill writes the light theme's inline and the dark
+ * theme's as custom properties (PillColors.ts), and these rules swap them in.
+ * Important, because what they replace is an inline style.
+ */
+html.dark [data-ou-pill] {
+  background-color: var(--ou-pill-dark-bg) !important;
+  color: var(--ou-pill-dark-text) !important;
+  box-shadow: var(--ou-pill-dark-shadow) !important;
+}
+
+html.dark [data-ou-pill-dot] {
+  background-color: var(--ou-pill-dark-dot) !important;
 }
 
 /* Semantic light surfaces retain hue without becoming luminous cards. */
@@ -664,6 +733,14 @@ html.dark :is(
     [class~="bg-indigo-100/50"],
     [class~="bg-indigo-500/5"]
   ) {
+  background-color: rgb(49 46 129 / 35%);
+}
+
+/*
+ * The same wash painted on a row's ::before, which reaches past the row's
+ * text without moving the row (the AI investigation's evidence rows).
+ */
+html.dark [class~="before:bg-indigo-50/70"]::before {
   background-color: rgb(49 46 129 / 35%);
 }
 
@@ -864,6 +941,19 @@ html.dark :is(
   --tw-ring-color: rgb(52 211 153 / 32%);
 }
 
+html.dark :is(.border-cyan-100, .ring-cyan-200) {
+  border-color: rgb(34 211 238 / 42%);
+  --tw-ring-color: rgb(34 211 238 / 32%);
+}
+
+/*
+ * The teal products (Runbooks, Forms) draw their icon in a teal-ringed
+ * square in the products menu and on Home's product directory.
+ */
+html.dark .ring-teal-200 {
+  --tw-ring-color: rgb(45 212 191 / 32%);
+}
+
 html.dark :is(
     .border-fuchsia-100,
     .border-pink-100,
@@ -931,6 +1021,8 @@ html.dark :is(
     [class~="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
   ):hover,
+/* Menu items give keyboard focus the same ground as hover (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-indigo-50"]:focus-visible,
 html.dark .group:hover :is(
     [class*="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
@@ -951,11 +1043,13 @@ html.dark :is(
     [class~="hover:bg-blue-100"],
     [class~="hover:bg-rose-50"],
     [class~="hover:bg-rose-100"]
-  ):hover {
+  ):hover,
+html.dark [class~="focus-visible:bg-red-50"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
 html.dark [class*="hover:text-red-"]:hover,
+html.dark [class~="focus-visible:text-red-700"]:focus-visible,
 html.dark .group:hover [class*="group-hover:text-red-"] {
   color: #fca5a5 !important;
 }
@@ -1003,7 +1097,10 @@ html.dark [class*="focus-visible:ring-red-"]:focus-visible {
 
 html.dark [class*="focus:ring-blue-"]:focus,
 html.dark [class*="focus:ring-emerald-"]:focus,
-html.dark [class*="focus:ring-green-"]:focus {
+html.dark [class*="focus:ring-green-"]:focus,
+html.dark [class*="focus-visible:ring-blue-"]:focus-visible,
+html.dark [class*="focus-visible:ring-emerald-"]:focus-visible,
+html.dark [class*="focus-visible:ring-green-"]:focus-visible {
   --tw-ring-color: rgb(96 165 250 / 50%) !important;
 }
 
@@ -1038,9 +1135,60 @@ html.dark optgroup {
   color-scheme: dark;
 }
 
-/* Switch thumbs are an affordance, not a surface, and must stay distinct. */
-html.dark button[role="switch"] > span.bg-white {
+/*
+ * Switch thumbs are an affordance, not a surface, and must stay distinct -
+ * including a knob drawn inside a larger control (the session replay's
+ * transport switch), which the first selector cannot reach. A track drawn as
+ * a span straight under its button (that same switch) is a surface, never a
+ * thumb: it keeps the colour its own rules below give it.
+ */
+html.dark button[role="switch"] > span.bg-white:not([data-ou-toggle-track]),
+html.dark [data-ou-toggle-knob].bg-white {
   background-color: #f8fafc !important;
+}
+
+/*
+ * The switch (Common/UI/Components/Toggle), scoped to its data attributes:
+ * these classes mean other things on other elements.
+ *
+ * Off is a gray-300 track under the near-white knob. The theme's general
+ * .bg-gray-300 rule would make it slate-500, as light as the indigo-500 "on"
+ * track below: off and on would then differ by hue alone. It takes slate-600
+ * instead, a step darker, which still holds the knob at 7.2:1 and stands off
+ * the card, and slate-500 under the pointer.
+ */
+html.dark [data-ou-toggle-track].bg-gray-300 {
+  background-color: var(--ou-border-default);
+}
+
+html.dark [data-ou-toggle-track][class~="hover:bg-gray-400"]:hover {
+  background-color: var(--ou-border-strong);
+}
+
+/*
+ * On is filled with the brand indigo. Indigo-600 is 2.6:1 on a dark card, so
+ * the track lightens to indigo-500 (3.6:1), which still holds the near-white
+ * knob at 4.3:1. Hover lightens it again, where the light theme deepens it.
+ */
+html.dark [data-ou-toggle-track].bg-indigo-600 {
+  background-color: #6366f1;
+}
+
+html.dark [data-ou-toggle-track][class~="hover:bg-indigo-700"]:hover {
+  background-color: #818cf8;
+}
+
+/*
+ * The products menu (Common/UI/Components/Navbar/NavBarMenuModal): the card
+ * of the page the user is on, while the keyboard cursor is elsewhere. The
+ * general rules give its faint bg-indigo-50/40 and border-indigo-100 the
+ * same wash and edge as the cursor's bg-indigo-50 and border-indigo-300, so
+ * in the dark theme two cards looked chosen and Enter's was not clear. It
+ * keeps, as in the light theme, about two fifths of the cursor's wash.
+ */
+html.dark [role="option"][aria-current="page"] > a[class~="bg-indigo-50/40"] {
+  background-color: rgb(49 46 129 / 14%);
+  border-color: rgb(129 140 248 / 18%);
 }
 
 html.dark option,
@@ -1259,7 +1407,6 @@ html.dark .chrome-picker svg {
 
 /* React Big Calendar ships a light-only skin; these remain wrapper-scoped. */
 html.dark .oneuptime-calendar .rbc-calendar,
-html.dark .oneuptime-calendar .rbc-toolbar-label,
 html.dark .oneuptime-calendar .rbc-date-cell,
 html.dark .oneuptime-calendar .rbc-agenda-view table,
 html.dark .oneuptime-calendar .rbc-agenda-date-cell,
@@ -1267,11 +1414,17 @@ html.dark .oneuptime-calendar .rbc-agenda-time-cell {
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar :is(
+/*
+ * .rbc-calendar is in these two selectors for its weight: Calendar.css paints
+ * the week view's day names with a selector four classes deep, and the
+ * agenda's column titles with one as heavy as the second rule would be
+ * without it. (The toolbar's selectors that used to sit in these lists gave
+ * them that weight; the toolbar is now the product's own, CalendarToolbar.)
+ */
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-month-view,
     .rbc-time-view,
     .rbc-agenda-view,
-    .rbc-toolbar .rbc-btn-group,
     .rbc-time-content,
     .rbc-day-bg,
     .rbc-timeslot-group
@@ -1280,11 +1433,9 @@ html.dark .oneuptime-calendar :is(
   border-color: var(--ou-border-default);
 }
 
-html.dark .oneuptime-calendar :is(
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-header,
     .rbc-off-range-bg,
-    .rbc-toolbar button:hover,
-    .rbc-toolbar button:focus,
     .rbc-agenda-view thead > tr > th
   ) {
   background-color: var(--ou-surface-secondary);
@@ -1296,16 +1447,70 @@ html.dark .oneuptime-calendar .rbc-today {
   background-color: var(--ou-accent-soft);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button {
+/* Today in the month grid: the surface rule above paints every day cell
+   the card's colour and outranks .rbc-today, so today needs its own. */
+html.dark .oneuptime-calendar .rbc-month-view .rbc-day-bg.rbc-today {
+  background-color: var(--ou-accent-soft);
+}
+
+/* A block in a dark colour - a state or a person whose colour is black or
+   near it - keeps an edge on the dark grid. */
+html.dark .oneuptime-calendar .rbc-event {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+html.dark .oneuptime-calendar-legend-dot {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 35%);
+}
+
+/*
+ * A soft block (Calendar's eventAppearance, CalendarEventTone): its dark
+ * tone rides along on the inline style as custom properties. Important,
+ * because what it replaces is an inline style. Not scoped to the calendar's
+ * wrapper: the "+N more" list is drawn outside it.
+ */
+html.dark .rbc-event.oneuptime-calendar-event--soft {
+  background-color: var(--ou-calendar-event-dark-bg) !important;
+  color: var(--ou-calendar-event-dark-text) !important;
+  box-shadow: var(--ou-calendar-event-dark-shadow) !important;
+}
+
+/* An overlay block (an event from another calendar): the same, its stripes and dashed edge included, and no second edge inside the dashed one. */
+html.dark .rbc-event.oneuptime-calendar-event--overlay {
+  background-color: var(--ou-calendar-overlay-dark-bg) !important;
+  background-image: var(--ou-calendar-overlay-dark-image) !important;
+  color: var(--ou-calendar-overlay-dark-text) !important;
+  border: var(--ou-calendar-overlay-dark-border) !important;
+  box-shadow: none !important;
+}
+
+/* The "+N more" list, a small card at the end of the page's body. */
+html.dark .rbc-overlay {
   background-color: var(--ou-surface-primary);
   border-color: var(--ou-border-default);
+  box-shadow: var(--ou-shadow-md);
+}
+
+html.dark .rbc-overlay .rbc-overlay-header {
+  border-color: var(--ou-border-subtle);
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button.rbc-active {
-  background-color: var(--ou-accent-soft);
-  border-color: var(--ou-border-strong);
-  color: var(--ou-accent-text);
+/*
+ * The week and day grids: the lines between days, and only the hours'
+ * lines - the half hours' would draw every hour twice as busy as the light
+ * theme's faint ones.
+ */
+html.dark .oneuptime-calendar .rbc-time-content > * + * > * {
+  border-left-color: var(--ou-border-subtle) !important;
+}
+
+html.dark .oneuptime-calendar .rbc-day-slot .rbc-time-slot {
+  border-top-color: transparent !important;
+}
+
+html.dark .oneuptime-calendar .rbc-time-view .rbc-timeslot-group {
+  border-bottom-color: var(--ou-border-subtle) !important;
 }
 
 html.dark .oneuptime-calendar :is(.rbc-off-range, .rbc-label) {
@@ -1348,9 +1553,79 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
   fill: var(--ou-chart-tick) !important;
 }
 
+/*
+ * A fullscreen view and its backdrop take the page colour instead of the
+ * browser's black. Only the fullscreen backdrop: modal dialogs and popovers in
+ * the top layer have one too, and extensions show their in-page UI as
+ * popovers (1Password's "Sign in" prompt is one). A bare ::backdrop painted
+ * theirs opaque, and the whole app disappeared behind the prompt. See the
+ * matching rule in Dashboard/views/index.ejs.
+ */
 html.dark :fullscreen,
-html.dark ::backdrop {
+html.dark :fullscreen::backdrop {
   background-color: var(--ou-background-primary);
+}
+
+/*
+ * Status colours (Common/UI/Utils/StatusColorStyle). People pick them for a
+ * light page, and on a dark card the darkest of them all but vanish. Text in
+ * a status colour - a status's name, an uptime percentage, a group's rollup
+ * - takes the nearest lighter shade of it that reads at 4.5:1 on the dark
+ * card, which the element carries as a custom property. Important, because
+ * what it replaces is an inline style.
+ */
+html.dark [data-ou-status-text] {
+  color: var(--ou-status-text-dark) !important;
+}
+
+/*
+ * An uptime bar keeps its colour exactly as picked: the recommended colours
+ * are told apart by lightness, for people with red-green colour blindness,
+ * and a lighter red would look like the orange beside it. A bar too dark to
+ * stand out from the dark card (the very dark red of a long outage) gets a
+ * one-pixel edge inside it, in a lighter shade of its own colour that does.
+ */
+html.dark [data-ou-bar-edge] {
+  box-shadow: inset 0 0 0 1px var(--ou-bar-edge-dark);
+}
+
+/*
+ * A day with no data (Graphs/DayUptimeGraph.css): on the light theme a pale
+ * grey, hatched in white, that sits back behind the days that were
+ * measured. The same grey on a dark card is the brightest thing in the
+ * strip, so the dark theme draws it a step darker, hatched in the page's own
+ * colour: still told apart from every measured day by its stripes, and
+ * still back where it belongs. Important, because the grey is the bar's
+ * inline background colour.
+ */
+html.dark .uptime-bar-no-data {
+  background-color: #64748b !important;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(15 23 42 / 45%) 0,
+    rgb(15 23 42 / 45%) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+/*
+ * A status page's logo, on a page a visitor can see dark: a Dark page, and
+ * one that follows each visitor's device (StatusPage/src/Components/Logo/
+ * LogoPlate). That one logo is also the light page's and the emails', so it
+ * is made for a light background - dark lettering on nothing, as often as
+ * not - and on the dark page it sits on a small light backdrop, where it
+ * reads as it does on the light page. A public dashboard's logo does the
+ * same (PublicDashboard/src/Components/LogoPlate): any visitor can turn a
+ * public dashboard dark from its toolbar.
+ */
+html.dark [data-ou-logo-plate] {
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  box-shadow:
+    0 0 0 1px rgb(148 163 184 / 24%),
+    0 1px 2px rgb(0 0 0 / 30%);
 }
 
 /*
@@ -1418,4 +1693,22 @@ html.dark ::backdrop {
   .ou-animate-pop-in {
     animation: ou-pop-in 120ms ease-out;
   }
+}
+
+/*
+ * A spinner's arc, and any top border drawn in a colour of its own
+ * (border-t-*), over a border colour the rules above re-colour: their
+ * border-color paints all four sides, so the arc took the track's colour,
+ * and a ring that is one colour all round does not look like it turns.
+ * Last in the sheet, so they win over every remap above.
+ */
+html.dark .border-t-indigo-500,
+html.dark .border-t-indigo-600 {
+  border-top-color: #a5b4fc !important;
+}
+
+html.dark .border-t-gray-400,
+html.dark .border-t-gray-500,
+html.dark .border-t-gray-600 {
+  border-top-color: var(--ou-text-muted) !important;
 }

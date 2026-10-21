@@ -8,9 +8,9 @@ import {
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -69,8 +69,17 @@ const SloMetricsElement: FunctionComponent<ComponentProps> = (
       );
     }, [categories, sloIdString, projectId]);
 
+  /*
+   * Drag-to-zoom (issue #4105) over the shared range: a drag on any card's
+   * chart zooms every card to the window dragged out, and a double-click on
+   * any of them - or "Reset zoom" in any card's header - puts the range from
+   * before the zoom back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       {categories.map(
         (category: SloMetricCategory, index: number): ReactElement => {
           return (
@@ -85,7 +94,7 @@ const SloMetricsElement: FunctionComponent<ComponentProps> = (
           );
         },
       )}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

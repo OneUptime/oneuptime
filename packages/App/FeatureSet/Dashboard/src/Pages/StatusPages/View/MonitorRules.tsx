@@ -9,8 +9,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { Green, Red } from "Common/Types/BrandColors";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -24,6 +26,13 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { RULE_NAME_MAX_LENGTH } from "../../../Utils/Form/ResourceRuleForm";
+import StatusPageMonitorRuleCopy, {
+  followGroupWithRuleName,
+  getStatusPageMonitorRuleName,
+} from "../../../Components/StatusPage/StatusPageMonitorRuleForm";
 
 const monitorRuleDocumentation: string = `
 ### How Status Page Monitor Rules Work
@@ -54,9 +63,20 @@ A rule only ever removes resources it added itself. A monitor you added to this 
 Disabling or deleting a rule removes the resources that rule added, and leaves everything else alone. A monitor that is already on the page is never added a second time, so rules and manual resources cannot produce duplicates.
 `;
 
+/*
+ * More fields, folded at the end of the Group step, where the monitors land:
+ * how each monitor a rule adds is shown - the same options a monitor added
+ * by hand has, at the rule's own defaults (StatusPageMonitorRule turns
+ * uptime on, where a hand-added resource leaves it off) - and the rule's
+ * description, which most rules leave empty.
+ */
+const advancedSection: FormFieldCollapsibleSection<StatusPageMonitorRule> =
+  getAdvancedFormSection<StatusPageMonitorRule>();
+
 const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const viewRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
     props,
     StatusPageMonitorRule,
@@ -136,6 +156,12 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         }}
         id="status-page-monitor-rules-table"
         name="Status Page > Monitor Rules"
+        /*
+         * On a status page's own Monitor Rules page the rows are its monitor
+         * rules: "Create Monitor Rule", not "Create Status Page Monitor Rule".
+         */
+        singularName={StatusPageMonitorRuleCopy.singularName}
+        pluralName={StatusPageMonitorRuleCopy.pluralName}
         userPreferencesKey="status-page-monitor-rules-table"
         saveFilterProps={{
           tableId: "status-page-monitor-rules-table",
@@ -169,7 +195,6 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             "Match monitors by label or pattern and add them to a group automatically.",
           markdown: monitorRuleDocumentation,
         }}
-        noItemsMessage={"No monitor rules created for this status page."}
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         selectMoreFields={{ isEnabled: true }}
@@ -192,13 +217,22 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             title: "Adds Monitors To",
             type: FieldType.Text,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
-              return <span>{item.statusPageGroup?.name || "Top of page"}</span>;
+              return (
+                <span>
+                  {item.statusPageGroup?.name ||
+                    translator.translateText("Top of page")}
+                </span>
+              );
             },
           },
           {
             field: { isEnabled: true },
             title: "Status",
-            type: FieldType.Boolean,
+            /*
+             * An element, not a Boolean: a phone's card leaves out a Boolean
+             * that is off, so a disabled rule showed no status at all.
+             */
+            type: FieldType.Element,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
               return item.isEnabled ? (
                 <Pill color={Green} text="Enabled" />
@@ -208,39 +242,16 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             },
           },
         ]}
+        /*
+         * What the rule matches, then where the monitors go - with the name
+         * filled in from that, as every other rule form asks
+         * (StatusPageMonitorRuleForm.ts).
+         */
         formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria" },
+          { title: "Match", id: "match-criteria" },
           { title: "Group", id: "group" },
-          { title: "Advanced", id: "advanced" },
         ]}
         formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Show every production API monitor",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: true,
-            description:
-              "Turning a rule off removes the monitors it added to this status page. Monitors you added by hand are left alone.",
-          },
           {
             field: { monitorLabels: true },
             title: "Monitor Labels",
@@ -259,7 +270,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -270,7 +281,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -278,40 +289,63 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           {
             field: { statusPageGroup: true },
-            title: "Add Monitors To Group",
+            title: StatusPageMonitorRuleCopy.groupFieldTitle,
+            description: StatusPageMonitorRuleCopy.groupFieldDescription,
             stepId: "group",
-            sectionTitle: "Destination Group",
-            sectionDescription:
-              "Where matched monitors land on this status page. Leave empty to add them ungrouped.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchGroupOptions,
             required: false,
-            placeholder: "No group (uncategorized)",
+            placeholder: StatusPageMonitorRuleCopy.groupPlaceholder,
+            // The name follows the group, until somebody types their own.
+            onChange: followGroupWithRuleName<StatusPageMonitorRule>(),
+          },
+          {
+            field: { name: true },
+            title: "Name",
+            description: StatusPageMonitorRuleCopy.nameDescription,
+            stepId: "group",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            // A new rule, with no group picked yet, puts its monitors on top.
+            defaultValue: getStatusPageMonitorRuleName([]),
+            placeholder: StatusPageMonitorRuleCopy.namePlaceholder,
+            validation: { minLength: 2, maxLength: RULE_NAME_MAX_LENGTH },
+          },
+          {
+            field: { isEnabled: true },
+            title: "Enabled",
+            stepId: "group",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+            description: StatusPageMonitorRuleCopy.enabledDescription,
           },
           {
             field: { showCurrentStatus: true },
             title: "Show Current Resource Status",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Current resource status will be shown beside every monitor this rule adds.",
+            collapsibleSection: advancedSection,
           },
           {
             field: { showUptimePercent: true },
             title: "Show Uptime %",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Show uptime percentage beside every monitor this rule adds.",
+            collapsibleSection: advancedSection,
           },
           {
             field: { uptimePercentPrecision: true },
             title: "Select Uptime Precision",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
@@ -320,16 +354,28 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             },
             defaultValue: UptimePrecision.ONE_DECIMAL,
             required: false,
+            collapsibleSection: advancedSection,
           },
           {
             field: { showStatusHistoryChart: true },
             title: "Show Status History Chart",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Show the status history chart for every monitor this rule adds.",
+            collapsibleSection: advancedSection,
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            stepId: "group",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            // "Description of this status page monitor rule" says no more.
+            hideColumnDescription: true,
+            collapsibleSection: advancedSection,
           },
         ]}
         showRefreshButton={true}

@@ -1,4 +1,7 @@
-import GitHubCommandType from "../CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../CodeRepository/GitHubCommand";
+import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -8,8 +11,9 @@ import GitHubCommandType from "../CodeRepository/GitHubCommand";
  *
  * First user: the FixPerformance recipe. Its evidence is computed
  * DETERMINISTICALLY from a trace's span tree when the user clicks "Fix
- * performance with AI" (see Common/Server/Utils/AI/PerfEvidence/
- * SpanTreeAnalyzer.ts) and stored here verbatim — ClickHouse span retention
+ * performance with AI" (see Common/Utils/Traces/SpanTreeAnalyzer.ts, and
+ * Common/Utils/Suggestions/TracePerformanceFixSuggestion.ts for which
+ * findings are worth a fix) and stored here verbatim — ClickHouse span retention
  * is short, so by the time the agent worker claims the run the spans may
  * already be gone. The stored findings ARE the task's context.
  *
@@ -135,6 +139,12 @@ export interface GitHubTaskContext {
   isPullRequestFromFork?: boolean | undefined;
   // The comment that triggered the run, so the app can react on it.
   triggerCommentId?: number | undefined;
+  /*
+   * What kind of comment triggerCommentId names, which decides where its
+   * reactions go. Absent on runs queued before it was recorded; those are
+   * read as conversation comments, the only kind they were reacted on as.
+   */
+  triggerCommentKind?: GitHubCommentKind | undefined;
   // The GitHub login that issued the command. Attribution, never authority.
   triggeredByLogin?: string | undefined;
   /*
@@ -144,6 +154,14 @@ export interface GitHubTaskContext {
   acknowledgementCommentId?: number | undefined;
   // The X-GitHub-Delivery of the webhook that started this run.
   webhookDeliveryId?: string | undefined;
+  /*
+   * The pull requests the worker said this run opened, sent with its
+   * Completed report and stored with that status. Read only when the run
+   * recorded no pull request of its own — recording one can fail after GitHub
+   * has opened it — and only those that are plainly pull requests of this
+   * repository (see GitHubRunReply.readOpenedPullRequests).
+   */
+  openedPullRequestUrls?: Array<string> | undefined;
   /*
    * When the run's OUTCOME was reported back into the thread. Set by the
    * sweeper that posts it, and the only thing stopping the next sweep from
@@ -185,6 +203,50 @@ export interface CodeFixTaskContext {
    * came from and must report back to.
    */
   github?: GitHubTaskContext | undefined;
+  /*
+   * CodeRequest: what a person asked in this turn, in Code, and the context
+   * they added to it (see Types/AI/CodeTask). The repository is the run's
+   * codeRepositoryId, and the turns before this one are the runs of the same
+   * task (codeTaskId).
+   */
+  request?: CodeTaskRequest | undefined;
+}
+
+/*
+ * Treat partial, empty and malformed JSON as no request: a CodeRequest run
+ * that cannot say what was asked is not executable.
+ */
+export function getCodeTaskRequest(
+  taskContext: CodeFixTaskContext | null | undefined,
+): CodeTaskRequest | null {
+  const request: CodeTaskRequest | undefined = taskContext?.request;
+
+  if (
+    !request ||
+    typeof request.message !== "string" ||
+    request.message.trim().length === 0
+  ) {
+    return null;
+  }
+
+  const result: CodeTaskRequest = {
+    message: request.message,
+    context: Array.isArray(request.context) ? request.context : [],
+  };
+
+  /*
+   * The branch the person picked to start from, kept only when git would
+   * take it: whatever reads it (the Runner's brief, the conversation) gets
+   * a branch name or nothing.
+   */
+  if (
+    typeof request.baseBranch === "string" &&
+    CodeTaskBranchName.isValid(request.baseBranch)
+  ) {
+    result.baseBranch = request.baseBranch;
+  }
+
+  return result;
 }
 
 /*

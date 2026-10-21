@@ -153,24 +153,30 @@ describe("AI command step id prefixes", () => {
 });
 
 describe("AI_COMMAND_STEP_TYPES", () => {
-  test("permits exactly Bash, SSH and Kubectl, in that order", () => {
+  test("permits exactly Bash, SSH, Kubectl and ResourceCommand, in that order", () => {
     /*
      * This array IS the whitelist parse checks against. Widening it (to
      * Kubernetes, JavaScript, ...) would let the AI compose step types the
      * command lane was never reviewed for. Kubectl is the one cluster lane
      * that was: a single kubectl argv, tiered by KubectlPolicy, on a Runner
-     * the cluster's AI page bound.
+     * the cluster's AI page bound. ResourceCommand is its counterpart for
+     * every other infrastructure resource: a single argv, tiered by the
+     * resource command policy, on the resource's own AI agent.
      */
     expect(AI_COMMAND_STEP_TYPES).toEqual([
       RunbookStepType.Bash,
       RunbookStepType.SSH,
       RunbookStepType.Kubectl,
+      RunbookStepType.ResourceCommand,
     ]);
   });
 
-  test("places Kubectl last, after the two host lanes, with no duplicates", () => {
-    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+  test("places Kubectl after the two host lanes and ResourceCommand last, with no duplicates", () => {
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand)).toBe(
       AI_COMMAND_STEP_TYPES.length - 1,
+    );
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+      AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand) - 1,
     );
     expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.SSH)).toBeLessThan(
       AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl),
@@ -1333,5 +1339,46 @@ describe("isSettledCommandExecutionStatus", () => {
     expect(Object.values(AiRemediationCommandExecutionStatus).sort()).toEqual(
       ["Failed", "Pending", "Running", "Skipped", "Succeeded"].sort(),
     );
+  });
+});
+
+/*
+ * A rollback OneUptime built from a recorded change (roll_back_change)
+ * carries that change's id, for the card and the feed. Cosmetic like the
+ * snapshots: a value that is not an id is dropped, never fatal.
+ */
+describe("AiRemediationCommandPlanUtil.parse — the change a command rolls back", () => {
+  const CHANGE_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  test("keeps the id of the recorded change a rollback was built from", () => {
+    expect(
+      onlyCommand(makePlan([makeCommand({ rolledBackChangeId: CHANGE_ID })]))
+        .rolledBackChangeId,
+    ).toBe(CHANGE_ID);
+  });
+
+  test("leaves it out when absent, or when it is not an id", () => {
+    expect(
+      onlyCommand(makePlan([makeCommand()])).rolledBackChangeId,
+    ).toBeUndefined();
+
+    for (const value of ["api", "", 42, true, null, { id: CHANGE_ID }]) {
+      expect(
+        onlyCommand(
+          makePlan([makeCommand({ rolledBackChangeId: value as never })]),
+        ).rolledBackChangeId,
+      ).toBeUndefined();
+    }
+  });
+
+  test("survives the round trip through the suggestion's column", () => {
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand({ rolledBackChangeId: CHANGE_ID })]),
+    );
+
+    expect(
+      parseOk(AiRemediationCommandPlanUtil.toJSON(plan)).commands[0]!
+        .rolledBackChangeId,
+    ).toBe(CHANGE_ID);
   });
 });

@@ -40,6 +40,7 @@ export enum MonitorStepsReferenceModel {
 const TELEMETRY_SERVICE_STEP_FIELDS: Array<string> = [
   "logMonitor",
   "securityEventsMonitor",
+  "llmMonitor",
   "traceMonitor",
   "exceptionMonitor",
   "profileMonitor",
@@ -412,6 +413,51 @@ export default class MonitorStepsReferenceExtractor {
       path: data.path,
       isOperative: data.isOperative,
     });
+  }
+
+  /*
+   * The probes the Probe Status steps watch, each once, in step order.
+   *
+   * Not a MonitorStepsReference: a reference belongs to one project, while
+   * a monitor may watch the global probes, which belong to none.
+   * MonitorStepsProjectValidator checks these with the rule a monitor's
+   * probes follow everywhere else (ProbeService.getProbesAttachableToProject).
+   */
+  public static extractWatchedProbeIds(
+    monitorSteps: MonitorSteps | JSONObject | undefined | null,
+  ): Array<string> {
+    const root: JSONObject | null = this.toJSONObject(monitorSteps);
+
+    if (!root) {
+      return [];
+    }
+
+    const probeIds: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const step of asArray(root["monitorStepsInstanceArray"])) {
+      const stepValue: JSONObject | null = unwrap(step as JSONValue);
+      const probeStatusMonitor: JSONObject | null = stepValue
+        ? unwrap(stepValue["probeStatusMonitor"])
+        : null;
+
+      if (!probeStatusMonitor) {
+        continue;
+      }
+
+      for (const value of asArray(probeStatusMonitor["probeIds"])) {
+        const probeId: string | null = toReferenceId(value as JSONValue);
+
+        if (!probeId || seen.has(probeId.toLowerCase())) {
+          continue;
+        }
+
+        seen.add(probeId.toLowerCase());
+        probeIds.push(probeId);
+      }
+    }
+
+    return probeIds;
   }
 
   private static toJSONObject(

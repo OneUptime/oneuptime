@@ -84,8 +84,8 @@
         <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-8">One incident, handled end to end</p>
         <div class="relative">
           <!-- Connecting rail through the lifecycle, in its colors -->
-          <div class="absolute left-[10%] right-[10%] top-5 hidden sm:block h-px bg-[linear-gradient(to_right,rgb(147_197_253/0.6)_10%,rgb(253_164_175/0.6)_30%,rgb(110_231_183/0.6)_50%,rgb(252_211_77/0.6)_70%,rgb(196_181_253/0.6)_90%)]" aria-hidden="true"></div>
-          <div class="rail-comet absolute top-5 hidden sm:block h-px w-24 -translate-y-px pointer-events-none" style="left: 10%; opacity: 0; background: linear-gradient(to right, transparent, rgb(99 102 241 / 0.9), transparent); box-shadow: 0 0 12px 1px rgb(99 102 241 / 0.45);" aria-hidden="true"></div>
+          <div class="absolute left-[10%] right-[10%] top-5 max-sm:hidden sm:block h-px bg-[linear-gradient(to_right,rgb(147_197_253/0.6)_10%,rgb(253_164_175/0.6)_30%,rgb(110_231_183/0.6)_50%,rgb(252_211_77/0.6)_70%,rgb(196_181_253/0.6)_90%)]" aria-hidden="true"></div>
+          <div class="rail-comet absolute top-5 max-sm:hidden sm:block h-px w-24 -translate-y-px pointer-events-none" style="left: 10%; opacity: 0; background: linear-gradient(to right, transparent, rgb(99 102 241 / 0.9), transparent); box-shadow: 0 0 12px 1px rgb(99 102 241 / 0.45);" aria-hidden="true"></div>
           <ol class="grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-5">
             <li>
               <a href="#detect" class="group flex flex-col items-center gap-1 transition-transform hover:-translate-y-0.5">
@@ -148,7 +148,7 @@
           <%- include('./home-mocks/mock-hero') -%>
 
           <!-- Floating story notifications -->
-          <div class="float-a absolute -top-7 -right-5 hidden lg:flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 shadow-lg ring-1 ring-gray-200" aria-hidden="true">
+          <div class="float-a absolute -top-7 -right-5 max-lg:hidden lg:flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 shadow-lg ring-1 ring-gray-200" aria-hidden="true">
             <span class="relative flex h-2.5 w-2.5 flex-none">
               <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
               <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500"></span>
@@ -156,7 +156,7 @@
             <span class="text-xs font-medium text-gray-900">Checkout API degraded</span>
             <span class="font-mono text-[10px] text-gray-400 tabular-nums">2:47 AM</span>
           </div>
-          <div class="float-b absolute -bottom-7 -left-6 hidden lg:flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 shadow-lg ring-1 ring-gray-200" aria-hidden="true">
+          <div class="float-b absolute -bottom-7 -left-6 max-lg:hidden lg:flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 shadow-lg ring-1 ring-gray-200" aria-hidden="true">
             <svg class="h-4 w-4 flex-none text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
             <span class="text-xs font-medium text-gray-900">AI agent opens PR #1284 with the fix</span>
             <span class="font-mono text-[10px] text-gray-400 tabular-nums">3:26 AM</span>

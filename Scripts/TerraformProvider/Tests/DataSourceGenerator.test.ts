@@ -48,8 +48,9 @@ describe("naming", () => {
 });
 
 describe("lookup semantics", () => {
-  test("exactly one of id or name must be set", () => {
-    expect(monitorGo).toContain("hasId == hasName");
+  test("id, or at least one other argument - never both, never neither", () => {
+    expect(monitorGo).toContain("if hasId && len(filters) > 0 {");
+    expect(monitorGo).toContain("if !hasId && len(filters) == 0 {");
     expect(monitorGo).toContain("Invalid Lookup");
   });
 
@@ -86,5 +87,123 @@ describe("response mapping", () => {
 
   test("id maps from the API's _id", () => {
     expect(monitorGo).toContain('item["_id"]');
+  });
+});
+
+describe("lookup by arguments", () => {
+  /*
+   * Any plain attribute set in configuration is a filter on the list, so a
+   * data source works for models without a name, and a lookup can be as
+   * specific as it needs to be.
+   */
+  test("every plain attribute is a filter, keyed by its API field", () => {
+    expect(monitorGo).toContain(
+      'filters["monitorType"] = data.MonitorType.ValueString()',
+    );
+    expect(monitorGo).toContain(
+      'filters["priority"] = lookupNumber(data.Priority)',
+    );
+    expect(monitorGo).toContain(
+      'filters["isPaused"] = data.IsPaused.ValueBool()',
+    );
+    expect(monitorGo).toContain('filters["name"] = data.Name.ValueString()');
+  });
+
+  test("only what is set in configuration filters", () => {
+    expect(monitorGo).toContain(
+      "if !data.MonitorType.IsNull() && !data.MonitorType.IsUnknown() {",
+    );
+  });
+
+  test("JSON, lists, timestamps and the project are never filters", () => {
+    for (const field of [
+      "serverMeta",
+      "labels",
+      "disableMonitoringDatetime",
+      "projectId",
+      "monitorSteps",
+    ]) {
+      expect(monitorGo).not.toContain(`filters["${field}"]`);
+    }
+  });
+
+  test("the lookup sends the filters as the list query", () => {
+    expect(monitorGo).toContain('"query":  filters,');
+  });
+
+  test("errors say what was looked up, in Terraform's own terms", () => {
+    expect(monitorGo).toContain(
+      'filterNames = append(filterNames, "monitor_type = "+fmt.Sprintf("%q", data.MonitorType.ValueString()))',
+    );
+    expect(monitorGo).toContain("describeLookup(filterNames)");
+  });
+
+  test("the lookup helpers ship with the provider", () => {
+    for (const file of ["lookup.go", "lookup_test.go"]) {
+      expect(
+        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+      ).toBe(true);
+    }
+  });
+});
+
+describe("a model with a list endpoint but no get endpoint", () => {
+  let emailLogGo: string;
+
+  beforeAll(() => {
+    emailLogGo = fs.readFileSync(
+      path.join(outputDir, "internal/provider/data_source_email_log.go"),
+      "utf-8",
+    );
+  });
+
+  test("is looked up by id through the list", () => {
+    expect(emailLogGo).toContain('filters["_id"] = data.Id.ValueString()');
+    expect(emailLogGo).toContain("if item == nil {");
+    expect(emailLogGo).not.toContain("/get-item");
+  });
+
+  test("can be looked up by its fields", () => {
+    expect(emailLogGo).toContain(
+      'filters["toEmail"] = data.ToEmail.ValueString()',
+    );
+  });
+});
+
+describe("a renamed data source", () => {
+  let fleetGo: string;
+
+  beforeAll(() => {
+    fleetGo = fs.readFileSync(
+      path.join(outputDir, "internal/provider/data_source_iot_fleet.go"),
+      "utf-8",
+    );
+  });
+
+  test("keeps its old name as a deprecated alias", () => {
+    expect(fleetGo).toContain(
+      'resp.TypeName = req.ProviderTypeName + "_iot_fleet"',
+    );
+    expect(fleetGo).toContain(
+      'resp.TypeName = req.ProviderTypeName + "_io_t_fleet"',
+    );
+    expect(fleetGo).toContain("resp.Schema.DeprecationMessage =");
+    expect(dataSourcesGo).toContain("NewIotFleetLegacyDataSource,");
+    expect(dataSourcesGo).toContain(
+      '{Name: "iot_fleet", LegacyName: "io_t_fleet", New: NewIotFleetDataSource, NewLegacy: NewIotFleetLegacyDataSource},',
+    );
+  });
+
+  test("an unrenamed one has no alias", () => {
+    expect(monitorGo).not.toContain("isLegacyAlias");
+    expect(dataSourcesGo).not.toContain("NewMonitorLegacyDataSource");
+  });
+});
+
+describe("the data source's description", () => {
+  test("says how to look one up, naming its arguments", () => {
+    expect(monitorGo).toContain(
+      "Look up an existing monitor by `id`, or by any of its other arguments (`name`,",
+    );
   });
 });

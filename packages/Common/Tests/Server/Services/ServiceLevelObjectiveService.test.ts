@@ -36,6 +36,31 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
+});
 
 /*
  * Contract under test for ServiceLevelObjectiveService:
@@ -227,6 +252,7 @@ async function expectBadData(
 describe("ServiceLevelObjectiveService.onBeforeCreate - target percentage guard", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -380,6 +406,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - target percentage guard"
 describe("ServiceLevelObjectiveService - window days validation", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -530,6 +557,7 @@ describe("ServiceLevelObjectiveService - window days validation", () => {
 describe("ServiceLevelObjectiveService - numeric columns supplied as strings", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -898,6 +926,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1206,6 +1235,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1300,6 +1330,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1522,6 +1553,7 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     ruleFindBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1573,10 +1605,12 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     expect(result.carryForward.burnRateRules).toEqual([firstRule, secondRule]);
   });
 
-  it("reads the SLOs as root through the caller's query pinned to the caller's project, and each SLO's rules inside its project", async () => {
+  it("reads the SLOs the caller may delete in the caller's project, holds the delete to them, and reads each SLO's rules inside its project", async () => {
     findBySpy.mockResolvedValue([
       makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
     ]);
+    // The SLOs the caller may delete: those the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(ServiceLevelObjectiveService, findBySpy);
 
     const deleteBy: DeleteBy<ServiceLevelObjective> = makeDeleteBy({
       tenantId: PROJECT_ID,
@@ -1585,19 +1619,26 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
 
     await callHook("onBeforeDelete", deleteBy);
 
-    const findByArg: ReadArguments = findBySpy.mock
-      .calls[0]![0] as ReadArguments;
-
-    expect(findByArg.query).toEqual({
+    // The SLOs the caller may delete, read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveService)[0]!.query,
+    ).toEqual({
       _id: SLO_ID.toString(),
       projectId: PROJECT_ID,
     });
+
+    // The delete's SLOs among them, read as OneUptime.
+    const findByArg: ReadArguments = findBySpy.mock
+      .calls[0]![0] as ReadArguments;
+
+    expect(findByArg.query).toEqual({ _id: SLO_ID.toString() });
     expect(findByArg.select).toEqual({ _id: true, projectId: true });
     expect(findByArg.skip).toBe(0);
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
 
-    // A copy: DatabaseService still receives the caller's query as it came.
+    // The delete removes exactly the SLO read.
     expect(deleteBy.query).toEqual({ _id: SLO_ID.toString() });
+    expect(deleteBy.limit).toBe(1);
 
     const ruleFindByArg: ReadArguments = ruleFindBySpy.mock
       .calls[0]![0] as ReadArguments;
@@ -1689,6 +1730,7 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
         "clearOpenOutputStateForRule",
       )
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2003,21 +2045,29 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
 
     const alertFindByArg: { query: Record<string, unknown> } = alertFindBySpy
       .mock.calls[0]![0] as { query: Record<string, unknown> };
-    expect(alertFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentAlertState: { isResolvedState: false },
-    });
+    expect(alertFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(alertFindByArg.query["seriesFingerprint"]).toBe(fingerprint);
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(alertFindByArg.query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(Object.keys(alertFindByArg.query).sort()).toEqual(
+      ["currentAlertStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     const incidentFindByArg: { query: Record<string, unknown> } =
       incidentFindBySpy.mock.calls[0]![0] as {
         query: Record<string, unknown>;
       };
-    expect(incidentFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentIncidentState: { isResolvedState: false },
-    });
+    expect(incidentFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(incidentFindByArg.query["seriesFingerprint"]).toBe(fingerprint);
+    // Unresolved: in a state above the project's resolved state.
+    expect(
+      idsOfAnyFilter(incidentFindByArg.query["currentIncidentStateId"]),
+    ).toEqual(openStateIds(INCIDENT_STATE_IDS));
+    expect(Object.keys(incidentFindByArg.query).sort()).toEqual(
+      ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     // And both actually resolved, through their own state timeline tables.
     expect(alertTimelineCreateSpy).toHaveBeenCalledTimes(1);
@@ -2170,11 +2220,16 @@ describe("ServiceLevelObjectiveService.getDueSlos", () => {
       "project"
     ] as Record<string, unknown>;
 
-    // Spread of ProjectService.getActiveProjectStatusQuery().
+    /*
+     * Spread of ProjectService.getActiveProjectStatusQuery(): its two
+     * subscription statuses, and not blocked.
+     */
     expect(Object.keys(projectQuery).sort()).toEqual([
+      "isBlocked",
       "paymentProviderMeteredSubscriptionStatus",
       "paymentProviderSubscriptionStatus",
     ]);
+    expect(projectQuery["isBlocked"]).toBe(false);
   });
 
   it("treats a never-evaluated SLO as due via lessThanEqualToOrNull", async () => {
@@ -2464,6 +2519,7 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2644,6 +2700,7 @@ describe("ServiceLevelObjectiveService - applying the label and owner rules", ()
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

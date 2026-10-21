@@ -1,8 +1,9 @@
 # Update-phase config: the runner copies this over main.tf after the initial
 # apply + drift gate. Changed vs main.tf: description, color.
-# NOTE: priority is intentionally NOT changed here. The API rejects updating a
-# monitor status priority ("Monitor Status priority should not be updated") —
-# it must stay equal to main.tf's value or the update apply fails with a 400.
+# NOTE: priority is intentionally NOT changed here, so this phase checks the
+# description and color alone. A priority can be updated (statuses are
+# dragged into order in the dashboard): a number no other status holds is
+# kept as written, one another status holds is taken over.
 terraform {
   required_providers {
     oneuptime = {

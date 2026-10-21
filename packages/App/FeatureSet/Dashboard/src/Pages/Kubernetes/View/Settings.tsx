@@ -1,17 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -24,141 +17,36 @@ const KubernetesClusterSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<KubernetesCluster>
-        name="Cluster Settings"
-        cardProps={{
-          title: "Cluster Settings",
-          description: "Manage settings for this Kubernetes cluster.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            description: "Friendly name for this Kubernetes cluster.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            description: "Friendly description for this Kubernetes cluster.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East region on EKS",
-          },
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Default retention for telemetry collected from this Kubernetes cluster. Leave blank to use the project's default.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: KubernetesCluster,
-          id: "kubernetes-cluster-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                clusterIdentifier: true,
-              },
-              title: "Cluster Identifier",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Default retention for telemetry collected from this Kubernetes cluster. Falls back to the project's default when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
-          ],
-        }}
-      />
-      <CardModelDetail<KubernetesCluster>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
+      <ResourceDetailsCard<KubernetesCluster>
+        modelType={KubernetesCluster}
+        modelId={modelId}
+        id="kubernetes-cluster-details"
+        title="Cluster Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Display Name",
           description:
-            "Override retention for specific telemetry types for this Kubernetes cluster. Any field left blank falls back to the cluster default, then the project's settings.",
+            "Shown everywhere this resource appears. Telemetry is not matched by the display name, so renaming is safe.",
+          placeholder: "Production US East",
         }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
+        descriptionField={{
+          placeholder: "Production cluster running in US East",
+        }}
+        identityFields={[
           {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<KubernetesCluster>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...props}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
+            column: "clusterIdentifier",
+            title: "Cluster Name (clusterName)",
+            description:
+              "Must match the kubernetes-agent clusterName. Change it only when that changes: telemetry that still reports the old name creates a new cluster.",
+            placeholder: "production-us-east-1",
           },
         ]}
-        modelDetailProps={{
-          modelType: KubernetesCluster,
-          id: "model-detail-kubernetes-cluster-telemetry-retention-overrides",
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: KubernetesCluster) => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
+      />
+      <TelemetryResourceRetentionSettings<KubernetesCluster>
+        modelType={KubernetesCluster}
+        modelId={modelId}
+        resourceName="Kubernetes cluster"
+        modelDetailIdPrefix="model-detail-kubernetes-cluster"
       />
       <ArchiveResourceCard<KubernetesCluster>
         modelType={KubernetesCluster}

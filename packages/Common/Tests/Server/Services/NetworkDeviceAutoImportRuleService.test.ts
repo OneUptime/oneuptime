@@ -20,8 +20,13 @@ jest.mock(
   },
 );
 
-import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
+import NetworkDeviceAutoImportRuleService, {
+  MONITOR_TEMPLATE_NOT_FOUND_MESSAGE,
+  OID_TEMPLATE_NOT_FOUND_MESSAGE,
+} from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
+import NetworkDeviceOidTemplateService from "../../../Server/Services/NetworkDeviceOidTemplateService";
+import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPolicyService";
 import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -40,6 +45,26 @@ import { getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+import {
+  DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL,
+  DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES,
+} from "../../../Types/NetworkDevice/DiscoveryImport";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkDeviceAutoImportRuleService,
+    jest.spyOn(NetworkDeviceAutoImportRuleService, "findBy"),
+  );
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
@@ -74,15 +99,17 @@ const TEMPLATE_UPDATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.EditNetworkDeviceAutoImportRule,
 ];
-const MONITOR_TEMPLATE_READ_PERMISSIONS: Array<Permission> = [
+/*
+ * Which template a rule applies is read with the rule itself, like every
+ * other column of it: whoever may read the rule sees its template. The
+ * template's own fields stay with the template's permissions.
+ */
+const RULE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,
   Permission.Viewer,
-  Permission.MonitorAdmin,
-  Permission.MonitorMember,
-  Permission.MonitorViewer,
-  Permission.ReadMonitorTemplate,
+  Permission.ReadNetworkDeviceAutoImportRule,
 ];
 
 function makeCreateBy(
@@ -171,11 +198,14 @@ describe("NetworkDeviceAutoImportRule monitor template column access", () => {
   );
 
   it.each(MONITOR_TEMPLATE_COLUMNS)(
-    "%s requires monitor-template permission to read",
+    "%s is read with the rule's own read permissions",
     (columnName: string) => {
-      expect(rule.getColumnAccessControlFor(columnName)?.read).toEqual(
-        MONITOR_TEMPLATE_READ_PERMISSIONS,
-      );
+      const read: Array<Permission> =
+        rule.getColumnAccessControlFor(columnName)?.read || [];
+
+      expect(read).toEqual(RULE_READ_PERMISSIONS);
+      expect([...read].sort()).toEqual([...rule.getReadPermissions()].sort());
+      expect(read).not.toContain(Permission.ReadMonitorTemplate);
     },
   );
 });
@@ -293,14 +323,67 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     ).rejects.toThrow("Monitor template not found.");
   });
 
-  it("rejects a monitor template from another project", async () => {
+  /*
+   * A root write reads the template past the tenant; another project's
+   * template still reads exactly like one that does not exist.
+   */
+  it("rejects a monitor template from another project like one that does not exist", async () => {
     mockMonitorTemplate({ projectId: OTHER_PROJECT_ID });
+
+    const refusal: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ monitorTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe(MONITOR_TEMPLATE_NOT_FOUND_MESSAGE);
+  });
+
+  it("rejects an OID Collection Template from another project like one that does not exist", async () => {
+    const foreignTemplate: NetworkDeviceOidTemplate =
+      new NetworkDeviceOidTemplate();
+    foreignTemplate._id = TEMPLATE_ID.toString();
+    foreignTemplate.projectId = OTHER_PROJECT_ID;
+
+    const findOidTemplateSpy: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(foreignTemplate);
+
+    const foreign: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ oidTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    findOidTemplateSpy.mockResolvedValue(null);
+
+    const missing: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ oidTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    expect(foreign).toBeInstanceOf(BadDataException);
+    expect((foreign as Error).message).toBe(OID_TEMPLATE_NOT_FOUND_MESSAGE);
+    expect((missing as Error).message).toBe(OID_TEMPLATE_NOT_FOUND_MESSAGE);
+  });
+
+  it("accepts an OID Collection Template of the rule's own project", async () => {
+    const ownTemplate: NetworkDeviceOidTemplate =
+      new NetworkDeviceOidTemplate();
+    ownTemplate._id = TEMPLATE_ID.toString();
+    ownTemplate.projectId = PROJECT_ID;
+
+    jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(ownTemplate);
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
-        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        makeCreateBy({ oidTemplateId: TEMPLATE_ID }),
       ),
-    ).rejects.toThrow("Monitor template must belong to the same project.");
+    ).resolves.toBeDefined();
   });
 
   it("rejects a monitor template without a project", async () => {
@@ -571,6 +654,7 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
     overrides: Partial<NetworkDeviceAutoImportRule> = {},
   ): jest.SpyInstance {
     const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
+    rule._id = "some-rule-id";
     rule.projectId = PROJECT_ID;
     rule.ipMatchTarget = "10.0.0.0/24";
     rule.isExclusion = false;
@@ -602,7 +686,7 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 
-  it("tenant-scopes the privileged update snapshot before validating a guessed rule ID", async () => {
+  it("reads a guessed rule ID among the rules the caller may write, in their project, before validating", async () => {
     const findRulesSpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceAutoImportRuleService, "findBy")
       .mockResolvedValue([]);
@@ -622,15 +706,14 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
       (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(updateBy),
     ).resolves.toBeDefined();
 
-    expect(findRulesSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          _id: "some-rule-id",
-          projectId: PROJECT_ID,
-        },
-        props: { isRoot: true },
-      }),
-    );
+    expect(
+      readsOfRowsCallerMayWrite(NetworkDeviceAutoImportRuleService)[0]!.query,
+    ).toEqual({
+      _id: "some-rule-id",
+      projectId: PROJECT_ID,
+    });
+    // Not one of them: nothing more is read about it.
+    expect(findRulesSpy).not.toHaveBeenCalled();
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 
@@ -933,5 +1016,111 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
 
     expect(allowSpy).not.toHaveBeenCalled();
     expect(findTemplateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * "Check every" on a rule (issue #4811): how often the devices it imports
+ * are polled - the same choices the import dialog offers, or nothing for the
+ * devices' own default. Refused, never rounded: a rule that polls a fleet at
+ * a rate nobody picked is not a small mistake.
+ */
+describe("how often a rule's devices are polled", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeUpdateBy(
+    data: Record<string, unknown>,
+  ): UpdateBy<NetworkDeviceAutoImportRule> {
+    return {
+      query: { _id: "some-rule-id" },
+      data: data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkDeviceAutoImportRule>;
+  }
+
+  it("is written and read with the rule's own permissions, like its other behaviour", () => {
+    const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
+
+    expect(rule.getColumnAccessControlFor("pollingIntervalInMinutes")).toEqual(
+      rule.getColumnAccessControlFor("includePingOnlyHosts"),
+    );
+  });
+
+  it.each(
+    DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.map(
+      (minutes: number): Array<number> => {
+        return [minutes];
+      },
+    ),
+  )(
+    "a new rule may check its devices every %i minutes",
+    async (minutes: number) => {
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ pollingIntervalInMinutes: minutes }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it("a new rule that says nothing leaves the devices' default", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it.each([[7], [0], [-1], [1.5], [1440]])(
+    "a new rule checking every %p minutes is refused",
+    async (minutes: number) => {
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ pollingIntervalInMinutes: minutes }),
+        ),
+      ).rejects.toThrow(
+        new BadDataException(DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL),
+      );
+    },
+  );
+
+  it("changing it alone reads no rule and no template", async () => {
+    const findRulesSpy: jest.SpyInstance = jest.spyOn(
+      NetworkDeviceAutoImportRuleService,
+      "findBy",
+    );
+    const findTemplateSpy: jest.SpyInstance = jest.spyOn(
+      MonitorTemplateService,
+      "findOneById",
+    );
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: 15 }),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(findRulesSpy).not.toHaveBeenCalled();
+    expect(findTemplateSpy).not.toHaveBeenCalled();
+  });
+
+  it("clearing it hands the devices back to their default", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: null }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("changing it to a rate nobody can pick is refused", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: "3" }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException(DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL),
+    );
   });
 });

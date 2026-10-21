@@ -29,7 +29,10 @@ import { createItem, getItem, JSONish, toId } from "./Helpers/MonitorAlerting";
 test.describe.configure({ mode: "serial" });
 
 const recipes: Array<MonitorTypeRecipe> = [
-  // Manual skips criteria and interval, then lands on the final Labels step.
+  /*
+   * Manual skips criteria and interval: Monitor Info, with the labels under
+   * More fields, is its only step.
+   */
   {
     label: "Manual",
     cardValue: "Manual",
@@ -117,6 +120,18 @@ const recipes: Array<MonitorTypeRecipe> = [
       await fillDestination({ page, value: "https://example.com" });
     },
   },
+  /*
+   * NTP asks only for the time server: the port (123), the timeout and the
+   * retries wait folded under More fields.
+   */
+  {
+    label: "NTP",
+    cardValue: "NTP",
+    hasInterval: true,
+    fillCriteria: async ({ page }: { page: Page }) => {
+      await fillDestination({ page, value: "time.example.com" });
+    },
+  },
 
   // Probeable types with placeholder-labelled step forms + interval.
   {
@@ -180,7 +195,7 @@ const recipes: Array<MonitorTypeRecipe> = [
    * separately configured device and is outside this general recipe table.
    */
 
-  // Code-based probeable types: fill the Monaco editor + interval.
+  // Code-based probeable types: fill the code editor + interval.
   {
     label: "Synthetic Monitor",
     cardValue: "Synthetic Monitor",
@@ -301,8 +316,9 @@ test.describe("Monitor Creation - Representative Types", () => {
        * This suite creates one monitor of every type in a single project. On
        * the Free plan, non-Manual monitors are capped
        * (AllowedActiveMonitorCountInFreePlan), so once the suite passes that
-       * count the remaining creates fail with "reached the maximum allowed
-       * monitor limit" and the wizard stalls on /monitors/create. That cap
+       * count the remaining creates fail with "This project has reached the
+       * Free plan's limit of 10 active monitors" (ActiveMonitorLimit) and the
+       * wizard stalls on /monitors/create. That cap
        * only applies to the Free plan, so when billing is enabled land the
        * project on a paid plan — the same reason MonitorIncidentOnCall picks
        * Growth. With billing disabled there is no limit and no plan step.

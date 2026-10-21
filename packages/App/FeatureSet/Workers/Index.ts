@@ -71,6 +71,11 @@ import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
+// Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
+import "./Jobs/Marketplace/ReportMarketplaceUsage";
+import "./Jobs/Marketplace/SyncMarketplacePurchases";
+import "./Jobs/Marketplace/BillVercelMarketplace";
+
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
@@ -82,6 +87,8 @@ import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 // Network Device Discovery
 import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
+import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
+import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
 
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
@@ -128,6 +135,7 @@ import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 import "./Jobs/ScheduledMaintenance/KeepCurrentStateConsistent";
+import "./Jobs/ScheduledMaintenance/RefreshExternalCalendars";
 
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
@@ -144,7 +152,18 @@ import "./Jobs/ServerMonitor/CheckOnlineStatus";
 
 // // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";
+/*
+ * Dashboard custom domain certificates. Load-bearing like every import here:
+ * without it dashboard domains are never verified, ordered or renewed by the
+ * workers.
+ */
+import "./Jobs/DashboardCerts/DashboardCerts";
 import "./Jobs/CoreSsl/ProvisionPrimaryDomain";
+/*
+ * Removes certificates that expired long ago and that nobody owns, which the
+ * renewal runs above leave alone.
+ */
+import "./Jobs/Certificates/RemoveExpiredUnownedCertificates";
 
 // Status Page Announcements
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
@@ -161,6 +180,11 @@ import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 
 // Microsoft Teams: save pinned / megaphoned channel messages as notes
 import "./Jobs/MicrosoftTeams/SyncReactionNotes";
+import "./Jobs/WorkspaceUserGroup/SyncUserGroups";
+
+// Video calls: keep the sign-ins of connections made by signing in from expiring
+import "./Jobs/VideoCall/KeepVideoCallSignInsAlive";
+import "./Jobs/VideoCall/GetIncidentCallTranscripts";
 
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
@@ -168,6 +192,14 @@ import "./Jobs/EmailRollup/FlushDueRollups";
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+
+/*
+ * Mobile push receipts. Load-bearing like every import here: without it the
+ * receipts of pushes Expo accepted are never read, so a phone whose app was
+ * removed keeps being paged until a later push's ticket is refused, and the
+ * page that first went to it says it was sent.
+ */
+import "./Jobs/PushNotification/CheckExpoPushReceipts";
 import "./Jobs/Workflow/TimeoutJobs";
 
 /*
@@ -177,18 +209,55 @@ import "./Jobs/Workflow/TimeoutJobs";
  */
 import "./Jobs/Runbook/TimeoutStuckExecutions";
 
+/*
+ * Starts the runs runbooks' schedules are due for, once a minute. Each due
+ * time is claimed before its run starts, so no time starts two runs however
+ * many Workers run it.
+ */
+import "./Jobs/Runbook/StartScheduledRuns";
+
+/*
+ * Status page subscriber notifications are sent inside a single queue job
+ * too. This fails the ones a dead Worker left In progress, so a notification
+ * can never hang in "being sent" and can always be retried.
+ */
+import "./Jobs/StatusPageSubscriber/TimeoutStuckNotifications";
+
+/*
+ * Imports from another tool (Project Settings > Advanced > Import from
+ * another tool).
+ * Load-bearing like every import here: the first registers the job a read
+ * or an import is queued as - without it the run waits in Reading or
+ * Importing until the sweep fails it - and the second is that sweep, which
+ * also clears the API key of a read a dead worker left behind.
+ */
+import "./Jobs/ToolImport/RunToolImport";
+import "./Jobs/ToolImport/SweepStaleToolImports";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
+
+// Probe Status monitors: one incident when a probe a project watches goes offline.
+import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
+
+/*
+ * Packet captures: fail the ones no probe will finish, and delete them with
+ * their files after the retention period.
+ */
+import "./Jobs/PacketCapture/SweepPacketCaptures";
 
 // AI Agents
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
+import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
+import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";
+import "./Jobs/AIChat/InvestigateAfterRuleWait";
 
 // Auto-remediation — settle Planning suggestions whose plan run died.
 import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
@@ -201,13 +270,20 @@ import "./Jobs/AIInsight/ScanForInsights";
 // LLM observability — daily cost budget evaluation over LLM spans.
 import "./Jobs/Llm/EvaluateLlmCostBudgets";
 
+// LLM observability — reads of connected AI provider accounts and AI tools.
+import "./Jobs/LlmObservability/PullLlmConnections";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
+import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
+import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
+import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
+import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis
@@ -221,6 +297,9 @@ import "./Jobs/Metrics/ComputeRecordingRules";
 
 // Derived metrics from spans.
 import "./Jobs/Traces/ComputeTraceRecordingRules";
+
+// Derived metrics from logs.
+import "./Jobs/Logs/ComputeLogRecordingRules";
 
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
@@ -239,9 +318,14 @@ import "./Jobs/Proxmox/CleanupStaleResources";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";
+// vCenter connection tests no probe will answer: failed, password wiped.
+import "./Jobs/VMware/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
+
+// Storage array disconnection sweeper + inventory cleanup.
+import "./Jobs/StorageArray/CleanupStaleResources";
 
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
@@ -251,6 +335,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
+import "./Jobs/Cloud/ReadCloudConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";
@@ -260,6 +345,9 @@ import "./Jobs/DatabaseServer/CleanupStaleResources";
 
 // Database workload discovery on connected Kubernetes clusters and Docker / Podman hosts.
 import "./Jobs/DatabaseServer/DiscoverContainerDatabases";
+
+// Auto-archive of stale discovered queues.
+import "./Jobs/MessageQueue/CleanupStaleResources";
 
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
@@ -286,6 +374,11 @@ import "./Jobs/Rum/CleanupStaleResources";
 import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
+/*
+ * The storage budgets as oneuptime.rum.session.replay.budget.* metrics, so a
+ * budget about to run out can alert instead of recordings silently stopping.
+ */
+import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry
@@ -340,6 +433,7 @@ import runWorkerJob from "./Utils/RunWorkerJob";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import MarketingEventWebhook from "Common/Server/Utils/Marketing/MarketingEventWebhook";
+import AIInvestigationQueue from "Common/Server/Utils/AI/SRE/InvestigationQueue";
 import { MarketingEvent } from "Common/Types/Marketing/MarketingEvent";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
@@ -349,7 +443,7 @@ import {
   QueueDashboardSecret,
   RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
-import { WORKER_CONCURRENCY } from "./Config";
+import { AI_INVESTIGATION_CONCURRENCY, WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";
 import EnterpriseLoader from "../../Utils/EnterpriseLoader";
 
@@ -405,9 +499,12 @@ const WorkersFeatureSet: FeatureSet = {
        * (migrate.hook=false), so on a fresh install / schema-adding upgrade there
        * is a window where pods are up but the tables/MVs don't exist yet —
        * telemetry inserts transiently fail with UNKNOWN_TABLE and retry until the
-       * Job finishes. This is the same model Postgres schema already follows, and
-       * the boot self-heal of a wiped ClickHouse volume likewise becomes "re-run
-       * the migrate Job".
+       * Job finishes. The Postgres schema has no such window any more: a pod
+       * waits at boot for the Postgres migrations its code needs
+       * (PostgresDatabase.connect()), and the Job applies those before it syncs
+       * these tables, so this one lasts about as long as that sync. The boot
+       * self-heal of a wiped ClickHouse volume also becomes "re-run the migrate
+       * Job".
        *
        * Deployments WITHOUT a dedicated migrate Job leave the flag at its default
        * (true) and keep the original behavior: every boot reconciles the schema
@@ -501,6 +598,16 @@ const WorkersFeatureSet: FeatureSet = {
           },
           { concurrency: 10 },
         );
+
+        /*
+         * AI investigations. Worker-role servers run them, a few at a time
+         * each, and hand the ones still running back to the queue when they
+         * shut down — so an API server never runs one, and a storm queues
+         * instead of piling onto one server.
+         */
+        AIInvestigationQueue.startWorker({
+          concurrency: AI_INVESTIGATION_CONCURRENCY,
+        });
       }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workers" });

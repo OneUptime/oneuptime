@@ -66,12 +66,17 @@ const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
       }}
       isEditable={true}
       editButtonText="Edit capacity policy"
+      formSteps={[
+        { title: "Notifications", id: "notifications" },
+        { title: "Automatic Pruning", id: "automatic-pruning" },
+      ]}
       formFields={[
         {
           field: {
             clickhouseCapacityNotificationEnabled: true,
           },
           title: "Notify on high capacity",
+          stepId: "notifications",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -82,6 +87,7 @@ const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
             clickhouseCapacityNotificationThresholdPercent: true,
           },
           title: "Notification threshold (%)",
+          stepId: "notifications",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isNotificationEnabled,
           showIf: isNotificationEnabled,
@@ -98,6 +104,7 @@ const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
             clickhouseDataPruningEnabled: true,
           },
           title: "Enable automatic data pruning",
+          stepId: "automatic-pruning",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -116,6 +123,7 @@ const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
             clickhouseDataPruningThresholdPercent: true,
           },
           title: "Pruning trigger (%)",
+          stepId: "automatic-pruning",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isPruningEnabled,
           showIf: isPruningEnabled,
@@ -132,6 +140,7 @@ const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
             clickhouseDataPruningTargetPercent: true,
           },
           title: "Pruning target (%)",
+          stepId: "automatic-pruning",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isPruningEnabled,
           showIf: isPruningEnabled,

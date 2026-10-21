@@ -1,5 +1,6 @@
 import BadDataException from "../Exception/BadDataException";
 import MonitorType from "./MonitorType";
+import { refusedValue } from "../../Utils/RefusedValue";
 
 export interface MonitorTemplateSyncField {
   path: string;
@@ -34,6 +35,7 @@ export default class MonitorTemplateSyncFieldUtil {
         MonitorType.IP,
         MonitorType.Port,
         MonitorType.SSLCertificate,
+        MonitorType.NTP,
       ].includes(monitorType)
     ) {
       add("monitorDestination", "Monitor destination");
@@ -61,7 +63,7 @@ export default class MonitorTemplateSyncFieldUtil {
       );
     }
 
-    if (monitorType === MonitorType.Port) {
+    if ([MonitorType.Port, MonitorType.NTP].includes(monitorType)) {
       add("monitorDestinationPort", "Port");
     }
 
@@ -143,6 +145,11 @@ export default class MonitorTemplateSyncFieldUtil {
       add("externalStatusPageMonitor.retries", "Status page retries");
     }
 
+    // The probes each monitor made from a Probe Status template watches.
+    if (monitorType === MonitorType.ProbeStatus) {
+      add("probeStatusMonitor.probeIds", "Probes to watch");
+    }
+
     const infrastructure: Partial<
       Record<MonitorType, [string, string, string]>
     > = {
@@ -165,6 +172,11 @@ export default class MonitorTemplateSyncFieldUtil {
         "Docker Swarm cluster",
       ],
       [MonitorType.Ceph]: ["cephMonitor", "clusterIdentifier", "Ceph cluster"],
+      [MonitorType.StorageArray]: [
+        "storageArrayMonitor",
+        "arrayIdentifier",
+        "Storage array",
+      ],
       [MonitorType.IoTDevice]: ["iotMonitor", "fleetIdentifier", "IoT fleet"],
     };
     const infrastructureConfig: [string, string, string] | undefined =
@@ -172,7 +184,13 @@ export default class MonitorTemplateSyncFieldUtil {
     if (infrastructureConfig) {
       const [prefix, identity, label]: [string, string, string] =
         infrastructureConfig;
-      add(`${prefix}.${identity}`, label);
+      add(
+        `${prefix}.${identity}`,
+        label,
+        monitorType === MonitorType.StorageArray
+          ? "Keep the array and its storage platform together."
+          : undefined,
+      );
       if (monitorType === MonitorType.Kubernetes) {
         add(`${prefix}.resources`, "Resource scope and filters");
       } else if (
@@ -193,6 +211,7 @@ export default class MonitorTemplateSyncFieldUtil {
         "Security event query configuration",
       ],
       [MonitorType.Traces]: ["traceMonitor", "Trace query configuration"],
+      [MonitorType.Llm]: ["llmMonitor", "AI / LLM answer configuration"],
       [MonitorType.Metrics]: ["metricMonitor", "Metric query configuration"],
       [MonitorType.Exceptions]: [
         "exceptionMonitor",
@@ -240,7 +259,9 @@ export default class MonitorTemplateSyncFieldUtil {
 
     for (const path of value) {
       if (!allowedFields.has(path)) {
-        throw new BadDataException(`Unsupported do not sync field: ${path}.`);
+        throw new BadDataException(
+          `Unsupported do not sync field: ${refusedValue(path)}.`,
+        );
       }
     }
 
@@ -284,6 +305,16 @@ export default class MonitorTemplateSyncFieldUtil {
       return [
         "kubernetesMonitor.resourceScope",
         "kubernetesMonitor.resourceFilters",
+      ];
+    }
+    if (field === "storageArrayMonitor.arrayIdentifier") {
+      /*
+       * The platform decides which label a hardware filter reads (FlashArray
+       * `component_name`, FlashBlade `name`), so a kept array keeps its own.
+       */
+      return [
+        "storageArrayMonitor.arrayIdentifier",
+        "storageArrayMonitor.storageSystem",
       ];
     }
     return [field];

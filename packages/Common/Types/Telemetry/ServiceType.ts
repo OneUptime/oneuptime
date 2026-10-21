@@ -26,6 +26,7 @@ enum ServiceType {
   KubernetesCluster = "KubernetesCluster",
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   VMwareVCenter = "VMwareVCenter",
   IoTDevice = "IoTDevice",

@@ -6,7 +6,6 @@ import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
-import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import Service from "./Service";
 import StatusPage from "./StatusPage";
 import User from "./User";
@@ -975,12 +974,24 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    /*
+     * The same list as changeMonitorStatusToId: the two name one column. The
+     * template's Affected Resources card writes this name, and an empty list
+     * here dropped the field from its Edit for everyone but master admins.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: ScheduledMaintenanceState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.",
@@ -1233,7 +1244,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1274,7 +1285,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1319,7 +1330,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1362,7 +1373,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1406,7 +1417,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({

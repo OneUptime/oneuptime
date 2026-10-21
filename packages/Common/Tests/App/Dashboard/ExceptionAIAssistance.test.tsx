@@ -27,6 +27,9 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 
 /*
  * The AI Assistance page reads the setup checklist and the latest task of
@@ -77,13 +80,21 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   };
 });
 
-// Routes are populated with the current project id.
+/*
+ * Routes are populated with the current project id; the selected project is
+ * not loaded (read as AI on) unless a test switches AI off.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
       getCurrentProjectId: (): ObjectID => {
         return new ObjectID("10000000-0000-4000-8000-000000000001");
+      },
+      getCurrentProject: (): { enableAi?: boolean } | null => {
+        return mockCurrentProject;
       },
     },
   };
@@ -197,7 +208,36 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
+
+/*
+ * The signed-in person's permissions, as the permission snapshot hands them
+ * to every gate - or (null) a snapshot that has not arrived yet.
+ */
+function grant(permissions: Array<Permission> | null): void {
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue(permissions || []);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
+    permissions
+      ? {
+          projectId: new ObjectID("10000000-0000-4000-8000-000000000001"),
+          userId: ObjectID.generate(),
+          permissions: permissions.map((permission: Permission) => {
+            return {
+              permission: permission,
+              labelIds: [],
+              _type: "UserPermission",
+            };
+          }),
+          _type: "UserTenantAccessPermission",
+        }
+      : null,
+  );
+}
 
 async function renderAssistance(
   props: { isResolved?: boolean; isArchived?: boolean } = {},
@@ -220,6 +260,67 @@ function card(taskType: string): HTMLElement {
 }
 
 describe("ExceptionAIAssistance", () => {
+  /*
+   * With the project's AI switched off the page says so as Code does (the
+   * tasks it starts are Code's), with the one step that changes it, and
+   * nothing else: no task cards, nothing to start.
+   */
+  describe("with the project's AI switched off", () => {
+    afterEach(() => {
+      mockCurrentProject = null;
+    });
+
+    function expectNothingToStart(): void {
+      expect(screen.queryByTestId("exception-ai-ready")).toBeNull();
+      expect(screen.queryByTestId("exception-ai-task-FixException")).toBeNull();
+      expect(screen.queryByTestId("exception-ai-task-start")).toBeNull();
+    }
+
+    test("someone who may turn AI on is offered Turn AI on, to AI Features", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant([Permission.ProjectUser, Permission.ProjectOwner]);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      const link: HTMLElement = within(notice).getByTestId("code-blocker-fix");
+      expect(link).toHaveTextContent("Turn AI on");
+      expect(
+        (link.getAttribute("href") || "").endsWith("/settings/ai-features"),
+      ).toBe(true);
+      expect(within(notice).queryByTestId("code-blocker-who-can")).toBeNull();
+      expectNothingToStart();
+    });
+
+    test("everyone else is told who can turn it on", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant([Permission.ProjectUser, Permission.ProjectMember]);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+      expect(
+        within(notice).getByTestId("code-blocker-who-can"),
+      ).toHaveTextContent(
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      );
+      expectNothingToStart();
+    });
+
+    test("before the permissions arrive, the sentence alone", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant(null);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+      expect(within(notice).queryByTestId("code-blocker-who-can")).toBeNull();
+      expectNothingToStart();
+    });
+  });
+
   test("shows one card per task type, ready to start", async () => {
     await renderAssistance();
 
@@ -461,6 +562,66 @@ describe("ExceptionAIAssistance", () => {
     expect(
       within(taskCard).getByTestId("exception-ai-task-view"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Merged is not fixed: a completed fix says what production showed once
+   * it shipped - fixed (green), still happening (red), or not yet known.
+   */
+  test("a merged fix says whether production showed it fixed", async () => {
+    state.tasks = [
+      {
+        ...task("FixException", "Completed"),
+        production: {
+          status: "Verified",
+          summary:
+            "No occurrence in the 24 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
+          statusAt: new Date().toISOString(),
+          deployedVersion: "2.3.2",
+        },
+      },
+    ];
+    await renderAssistance();
+
+    const production: HTMLElement = within(card("FixException")).getByTestId(
+      "exception-ai-task-production",
+    );
+    expect(production).toHaveTextContent("Fixed in production");
+    expect(production).toHaveTextContent(
+      "No occurrence in the 24 hours since version 2.3.2 shipped the fix",
+    );
+    expect(production.className).toContain("bg-emerald-50");
+  });
+
+  test("a fix that did not stop the exception says so, in red", async () => {
+    state.tasks = [
+      {
+        ...task("FixException", "Completed"),
+        production: {
+          status: "Regressed",
+          summary:
+            "The exception happened 3 times after version 2.3.2 shipped the fix, so the fix did not stop it.",
+        },
+      },
+    ];
+    await renderAssistance();
+
+    const production: HTMLElement = within(card("FixException")).getByTestId(
+      "exception-ai-task-production",
+    );
+    expect(production).toHaveTextContent("Still happening after the fix");
+    expect(production.className).toContain("bg-red-50");
+  });
+
+  test("a task with no production verdict shows none", async () => {
+    state.tasks = [task("FixException", "Completed")];
+    await renderAssistance();
+
+    expect(
+      within(card("FixException")).queryByTestId(
+        "exception-ai-task-production",
+      ),
+    ).toBeNull();
   });
 
   test("polls while a task is active and stops once it finishes", async () => {

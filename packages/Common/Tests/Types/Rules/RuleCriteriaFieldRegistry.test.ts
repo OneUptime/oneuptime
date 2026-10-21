@@ -3,7 +3,9 @@ import path from "path";
 import { describe, expect, test } from "@jest/globals";
 import RULE_CRITERIA_FIELDS_BY_MODEL, {
   RULE_CRITERIA_FIELDS_BY_MODEL as NAMED_RULE_CRITERIA_FIELDS_BY_MODEL,
+  RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION,
   getRuleCriteriaFieldsForModel,
+  isRuleCriteriaConditionRequired,
 } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 
 const DATABASE_MODELS_ROOT: string = path.join(
@@ -195,7 +197,14 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
     }
   });
 
-  test("AutoRemediationRule is the one rule that can match both incident and alert severities", () => {
+  /*
+   * The three tables that serve incident and alert rules alike, told apart
+   * by their triggerEntityType. Each rule still uses only its own trigger's
+   * severities (the auto-remediation, investigation and runbook rule forms
+   * offer one or the other, and AIInvestigationRuleService and
+   * RunbookRuleService refuse the other).
+   */
+  test("only the trigger-entity rules can match both incident and alert severities", () => {
     const both: Array<string> = MODEL_NAMES.filter((modelName: string) => {
       const fields: ReadonlyArray<string> =
         RULE_CRITERIA_FIELDS_BY_MODEL[modelName]!;
@@ -205,7 +214,11 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
       );
     });
 
-    expect(both).toEqual(["AutoRemediationRule"]);
+    expect(both).toEqual([
+      "AIInvestigationRule",
+      "AutoRemediationRule",
+      "RunbookRule",
+    ]);
   });
 
   test("pins a few representative contracts exactly", () => {
@@ -220,13 +233,94 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
       "subnetCidr",
       "hostnamePattern",
     ]);
+    // What incident, alert and scheduled maintenance rules match on, together.
     expect(RULE_CRITERIA_FIELDS_BY_MODEL["RunbookRule"]).toEqual([
+      "monitors",
+      "incidentSeverities",
+      "alertSeverities",
+      "labels",
+      "monitorLabels",
       "titlePattern",
       "descriptionPattern",
+      "monitorNamePattern",
+      "monitorDescriptionPattern",
     ]);
     // IncidentSlaRule deliberately carries no monitor name/description patterns.
     expect(RULE_CRITERIA_FIELDS_BY_MODEL["IncidentSlaRule"]).not.toContain(
       "monitorNamePattern",
+    );
+    // An infrastructure resource matches on its labels, then its name and description.
+    expect(RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayLabelRule"]).toEqual([
+      "storageArrayLabels",
+      "storageArrayNamePattern",
+      "storageArrayDescriptionPattern",
+    ]);
+    expect(RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayOwnerRule"]).toEqual(
+      RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayLabelRule"],
+    );
+  });
+});
+
+/*
+ * Most rule kinds read "no conditions" as "match everything"; a few match
+ * nothing until they have one, and their services refuse to save an empty
+ * condition list. The dashboard words its empty builder and its rule summary
+ * from this list and asks for a condition before sending the form, so the list
+ * has to name exactly the services that refuse.
+ */
+describe("RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION", () => {
+  const SERVICES_ROOT: string = path.join(
+    __dirname,
+    "../../../Server/Services",
+  );
+  const REFUSES_EMPTY_CONDITIONS: RegExp = /at least one [a-z -]*condition/i;
+
+  test("names exactly the rule kinds whose services refuse no conditions", () => {
+    const refusing: Array<string> = fs
+      .readdirSync(SERVICES_ROOT)
+      .filter((file: string): boolean => {
+        return (
+          file.endsWith("Service.ts") &&
+          REFUSES_EMPTY_CONDITIONS.test(
+            fs.readFileSync(path.join(SERVICES_ROOT, file), "utf8"),
+          )
+        );
+      })
+      .map((file: string): string => {
+        return file.replace(/Service\.ts$/, "");
+      })
+      .sort();
+
+    expect(refusing.length).toBeGreaterThan(0);
+    expect([...RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION].sort()).toEqual(
+      refusing,
+    );
+  });
+
+  test("every one is a registered rule model", () => {
+    for (const modelName of RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION) {
+      expect(MODEL_NAMES).toContain(modelName);
+    }
+  });
+
+  test("isRuleCriteriaConditionRequired answers for those and no other", () => {
+    for (const modelName of MODEL_NAMES) {
+      expect({
+        modelName,
+        required: isRuleCriteriaConditionRequired(modelName),
+      }).toEqual({
+        modelName,
+        required: (
+          RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION as ReadonlyArray<string>
+        ).includes(modelName),
+      });
+    }
+
+    expect(isRuleCriteriaConditionRequired(null)).toBe(false);
+    expect(isRuleCriteriaConditionRequired(undefined)).toBe(false);
+    expect(isRuleCriteriaConditionRequired("")).toBe(false);
+    expect(isRuleCriteriaConditionRequired("statuspagemonitorrule")).toBe(
+      false,
     );
   });
 });

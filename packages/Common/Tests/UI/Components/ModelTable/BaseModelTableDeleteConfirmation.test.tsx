@@ -479,7 +479,10 @@ describe("getDeleteConfirmation", () => {
     await clickRemove(1);
 
     expect(await waitForDialog()).toHaveTextContent(
-      'Are you sure you want to delete "Billing Worker"? This action cannot be undone.',
+      "Are you sure you want to delete Billing Worker? This action cannot be undone.",
+    );
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Billing Worker$/,
     );
     expect(screen.getByText("Delete Monitor")).toBeInTheDocument();
   });

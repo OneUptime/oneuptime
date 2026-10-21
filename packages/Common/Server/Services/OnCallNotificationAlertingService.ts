@@ -15,6 +15,10 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import {
+  OnCallRulesLink,
+  getUserSettingsOnCallRulesLink,
+} from "../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
@@ -697,43 +701,34 @@ export class OnCallNotificationAlertingService extends BaseService {
   }
 
   /*
-   * The four severity-scoped rule types each have their own settings page, and sending
-   * someone to the wrong one is how a "fix your rules" email gets ignored. The two shift
-   * rule types are configured on the incident page alongside everything else.
+   * The person's On-Call Rules page, opened on the tab for the rule type they were paged
+   * without: sending someone to the wrong tab is how a "fix your rules" email gets ignored.
+   * The two shift rule types have no tab of their own and open the first one.
    *
-   * These path segments mirror UserSettingsRoutePath in the Dashboard's RouteMap. They are
-   * duplicated rather than imported because Common/Server cannot reach App sources — the
-   * same reason OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard spells its
-   * route out by hand.
+   * The address comes from Common's OnCallRuleKind, which the dashboard's routes and the
+   * setup reminder read too. A rule type this build has not heard of goes to
+   * Notification Methods, the one page that matters for every gap.
    */
-  private getUserSettingsPathForRuleType(
-    ruleType: NotificationRuleType,
-  ): string {
-    switch (ruleType) {
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-        return "alert-on-call-rules";
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-        return "alert-episode-on-call-rules";
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-        return "incident-episode-on-call-rules";
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT:
-      case NotificationRuleType.WHEN_USER_GOES_ON_CALL:
-      case NotificationRuleType.WHEN_USER_GOES_OFF_CALL:
-        return "incident-on-call-rules";
-      default:
-        return "notification-methods";
-    }
-  }
-
   private async getNotificationRulesLinkInDashboard(
     projectId: ObjectID,
     ruleType: NotificationRuleType,
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/user-settings/${this.getUserSettingsPathForRuleType(ruleType)}`,
-    );
+    const rulesLink: OnCallRulesLink | null = getUserSettingsOnCallRulesLink({
+      projectId: projectId.toString(),
+      ruleType: ruleType,
+    });
+
+    if (!rulesLink) {
+      return URL.fromString(dashboardUrl.toString()).addRoute(
+        `/${projectId.toString()}/user-settings/notification-methods`,
+      );
+    }
+
+    return URL.fromString(dashboardUrl.toString())
+      .addRoute(rulesLink.path)
+      .addQueryParams(rulesLink.query);
   }
 
   private formatChannelList(channels: Array<string>): string {

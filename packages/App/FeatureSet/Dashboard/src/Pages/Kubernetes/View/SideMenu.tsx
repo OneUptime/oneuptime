@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   namespaces?: number | undefined;
@@ -132,25 +135,20 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * The cluster's resource charts. Named "Resource Usage" (not
+         * "Insights", and not the LightBulb) so the AI section below owns
+         * both the word and the icon.
+         */}
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
-        />
-        <SideMenuItem
-          link={{
-            title: "AI",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Sparkles}
+          icon={IconProp.ChartBar}
         />
         <RecommendationsSideMenuItem
           link={{
@@ -184,6 +182,46 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after Basic, so it is not buried under forty resource links:
+       * what OneUptime AI learned here (Insights), everything it did (Logs),
+       * and the in-cluster agent it works through (with what it may do).
+       * Folded down to its title until opened, like the AI section of every
+       * menu (see SideMenuSectionState.ts), and open by itself on its pages.
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "Agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -357,7 +395,15 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Scaling">
+      {/*
+       * Autoscalers, and the cluster's events, control plane and service
+       * mesh, are where a deeper dig goes, not where a visit starts: the
+       * workloads, nodes and telemetry above are. So these two fold down to
+       * their titles, which keeps the longest menu in the product to what
+       * most visits need. Each opens with one click, and by itself on its
+       * own pages.
+       */}
+      <SideMenuSection title="Scaling" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "HPAs",
@@ -382,7 +428,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Observability">
+      <SideMenuSection title="Observability" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Events",
@@ -484,6 +530,12 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: KubernetesCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

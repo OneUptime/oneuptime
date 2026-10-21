@@ -9,7 +9,7 @@ import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaint
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import logger from "../../../Server/Utils/Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -67,6 +67,18 @@ interface KindUnderTest {
   pluralName: string;
   // The subject column holding its current state.
   stateColumn: string;
+  /*
+   * How the project's states are read. Each kind reads every state, top
+   * first, and keeps the ones its subjects are still open in by its one
+   * rule: incidents and alerts the states above the resolved state
+   * (Common/Utils/ResolvedState), scheduled maintenance the states it is not
+   * complete in - all but Completed and the project's own states after it
+   * (Common/Utils/ScheduledMaintenanceStart.isComplete).
+   */
+  stateRead: {
+    query: (projectId: ObjectID) => JSONObject;
+    limit: number;
+  };
   refreshOpenSubjects: (
     projectId: ObjectID,
     options?: RefreshOptions,
@@ -80,6 +92,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "incident",
     pluralName: "incidents",
     stateColumn: "currentIncidentStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId };
+      },
+      limit: LIMIT_MAX,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -117,6 +135,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "alert",
     pluralName: "alerts",
     stateColumn: "currentAlertStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId };
+      },
+      limit: LIMIT_MAX,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -154,6 +178,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "scheduled maintenance",
     pluralName: "scheduled maintenances",
     stateColumn: "currentScheduledMaintenanceStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId };
+      },
+      limit: LIMIT_MAX,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -397,11 +427,8 @@ describe.each(KINDS)(
       });
 
       expect(stateReads).toHaveLength(1);
-      expect(stateReads[0]!["query"]).toEqual({
-        projectId: projectId,
-        isResolvedState: false,
-      });
-      expect(stateReads[0]!["limit"]).toBe(LIMIT_PER_PROJECT);
+      expect(stateReads[0]!["query"]).toEqual(kind.stateRead.query(projectId));
+      expect(stateReads[0]!["limit"]).toBe(kind.stateRead.limit);
       expect(stateReads[0]!["props"]).toEqual({ isRoot: true });
     });
 

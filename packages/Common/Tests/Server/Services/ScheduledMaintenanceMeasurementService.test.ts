@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The scheduled maintenance twin of
@@ -59,6 +68,9 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnUpdate<ScheduledMaintenanceMeasurement>>;
+  onUpdatePermitted(
+    updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
+  ): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnDelete<ScheduledMaintenanceMeasurement>>;
@@ -66,6 +78,21 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   ScheduledMaintenanceMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(
+  updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
+): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -198,6 +225,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
     jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
       .mockResolvedValue([] as Array<ScheduledMaintenanceState> as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -214,10 +242,6 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         hooks.onBeforeCreate(buildCreateBy({ key: "Start Delay" })),
       ).rejects.toThrow(BadDataException);
 
-      await expect(
-        hooks.onBeforeCreate(buildCreateBy({ key: "" })),
-      ).rejects.toThrow(BadDataException);
-
       // Leading hyphen, and one character past the 50 the column allows.
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "-start-delay" })),
@@ -226,6 +250,24 @@ describe("ScheduledMaintenanceMeasurementService", () => {
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "a".repeat(51) })),
       ).rejects.toThrow(BadDataException);
+    });
+
+    /*
+     * An empty key is no longer refused: it is a key left out, made from the
+     * name. The rest of that behaviour, for all three kinds of measurement,
+     * is in MeasurementKeyGeneration.test.ts.
+     */
+    test("makes the key from the name when the create sends an empty one", async () => {
+      const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy(
+        { key: "", name: "Start Delay" },
+      );
+
+      await hooks.onBeforeCreate(createBy);
+
+      expect(createBy.data.key).toBe("start-delay");
+      expect(createBy.data.metricName).toBe(
+        "oneuptime.scheduled-maintenance.measurement.start-delay",
+      );
     });
 
     test("accepts a lowercase hyphenated key", async () => {
@@ -248,14 +290,17 @@ describe("ScheduledMaintenanceMeasurementService", () => {
       );
     });
 
-    test("puts a new definition after the project's last one, so the settings list has a stable order", async () => {
-      const highest: ScheduledMaintenanceMeasurement =
-        new ScheduledMaintenanceMeasurement();
-      highest.order = 2;
-
-      jest
-        .spyOn(ScheduledMaintenanceMeasurementService, "findOneBy")
-        .mockResolvedValue(highest as never);
+    /*
+     * Where a new definition goes is the list's business, not this hook's:
+     * the model is a drag-ordered list (@ListOrderColumn), and
+     * DatabaseService puts a row created without an order at the end of its
+     * project's list (see DatabaseServiceListOrder.test.ts).
+     */
+    test("leaves the order of a new definition to the list, which puts it at the end", async () => {
+      const findOneBy: jest.SpyInstance = jest.spyOn(
+        ScheduledMaintenanceMeasurementService,
+        "findOneBy",
+      ) as unknown as jest.SpyInstance;
 
       const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy(
         {},
@@ -263,17 +308,16 @@ describe("ScheduledMaintenanceMeasurementService", () => {
 
       await hooks.onBeforeCreate(createBy);
 
-      expect(createBy.data.order).toBe(3);
+      expect(createBy.data.order).toBeUndefined();
+      expect(findOneBy).not.toHaveBeenCalled();
     });
 
-    test("gives the first definition in a project order 1", async () => {
-      const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy(
-        {},
-      );
-
-      await hooks.onBeforeCreate(createBy);
-
-      expect(createBy.data.order).toBe(1);
+    test("is a list ordered within its project, lowest number first", () => {
+      expect(new ScheduledMaintenanceMeasurement().getListOrder()).toEqual({
+        column: "order",
+        scopeColumns: ["projectId"],
+        sortOrder: "ASC",
+      });
     });
 
     test("keeps an order the caller supplied, so a reordered list is not overwritten on save", async () => {
@@ -498,7 +542,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { endStateOccurrence: "Last" },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -509,31 +553,50 @@ describe("ScheduledMaintenanceMeasurementService", () => {
     });
 
     test("restarts the backfill for every column that changes what the number means", async () => {
-      const definitionKeys: Array<string> = [
-        "startAnchorType",
-        "endAnchorType",
-        "startScheduledMaintenanceStateId",
-        "endScheduledMaintenanceStateId",
-        "startScheduledMaintenanceStateRole",
-        "endScheduledMaintenanceStateRole",
-        "startStateOccurrence",
-        "endStateOccurrence",
-        "isEnabled",
+      /*
+       * A new value for any of these - the stored measurement starts at the
+       * scheduled start and ends when the event goes ongoing, in seconds.
+       */
+      const changes: Array<[string, unknown]> = [
+        [
+          "startAnchorType",
+          ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt,
+        ],
+        [
+          "endAnchorType",
+          ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt,
+        ],
+        ["startScheduledMaintenanceStateId", SCHEDULED_STATE_ID],
+        ["endScheduledMaintenanceStateId", COMPLETED_STATE_ID],
+        [
+          "startScheduledMaintenanceStateRole",
+          ScheduledMaintenanceStateRole.Resolved,
+        ],
+        [
+          "endScheduledMaintenanceStateRole",
+          ScheduledMaintenanceStateRole.Ended,
+        ],
+        ["startStateOccurrence", "Last"],
+        ["endStateOccurrence", "Last"],
+        ["isEnabled", false],
+        // The number every chart point is written in.
+        ["unit", "hours"],
       ];
 
-      for (const key of definitionKeys) {
+      for (const [key, value] of changes) {
         jest
           .spyOn(ScheduledMaintenanceMeasurementService, "findBy")
-          .mockResolvedValue(
-            [] as Array<ScheduledMaintenanceMeasurement> as never,
-          );
+          .mockResolvedValue([buildExistingMeasurement({})] as never);
 
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =
-          buildUpdateBy({ [key]: undefined });
+          buildUpdateBy({ [key]: value });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
-        expect(dataOf(updateBy)["backfillRequestedAt"]).toBeInstanceOf(Date);
+        expect({
+          key,
+          restarted: dataOf(updateBy)["backfillRequestedAt"] instanceof Date,
+        }).toEqual({ key, restarted: true });
       }
     });
 
@@ -553,7 +616,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { isEnabled: false },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -574,7 +637,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { name: "Start Delay (v2)" },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -589,13 +652,13 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         "description",
         "showOnScheduledMaintenanceView",
         "order",
-        "unit",
+        // Not the unit: it is the number the points are in.
         "aggregationType",
       ]) {
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =
           buildUpdateBy({ [key]: undefined });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(dataOf(updateBy)["backfillRequestedAt"]).toBeUndefined();
       }

@@ -1,20 +1,18 @@
 import ComponentCodeAPI from "./API/ComponentCode";
+import HuntressLegacyWebhookAPI from "./API/HuntressLegacyWebhook";
 import ManualAPI from "./API/Manual";
 import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
+import RunRecordsAPI from "./API/RunRecords";
+import StepSamplesAPI from "./API/StepSamples";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
+import { getRunPropsFromJobData } from "./Utils/WorkflowRunJob";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
-import Express, {
-  ExpressApplication,
-  ExpressRequest,
-  ExpressResponse,
-} from "Common/Server/Utils/Express";
-import path from "path";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import {
   DisableQueueWorkers,
@@ -33,38 +31,35 @@ const WorkflowFeatureSet: FeatureSet = {
 
       app.use(`/${APP_NAME}`, new ModelSchemaAPI().router);
 
+      // What each step held the last times it ran, for the value picker.
+      app.use(`/${APP_NAME}`, new StepSamplesAPI().router);
+
+      /*
+       * The records Run Workflow can run a record trigger with, looked up by
+       * number, name or ID.
+       */
+      app.use(`/${APP_NAME}`, new RunRecordsAPI().router);
+
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 
-      app.get(
-        `/${APP_NAME}/docs/:componentName`,
-        (req: ExpressRequest, res: ExpressResponse) => {
-          const docsDir: string =
-            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation";
-          const componentName: string = path.basename(
-            req.params["componentName"] || "",
-          );
-
-          if (!componentName) {
-            res.status(404).send("Not Found");
-            return;
-          }
-
-          const filePath: string = path.join(docsDir, componentName);
-
-          // Ensure resolved path is within the docs directory
-          if (!filePath.startsWith(docsDir + "/")) {
-            res.status(404).send("Not Found");
-            return;
-          }
-
-          res.sendFile(filePath);
-        },
-      );
+      /*
+       * There is no /workflow/docs route any more. Each step's "How to use"
+       * help is built in the dashboard from the step itself
+       * (Common/Types/Workflow/Documentation), so there are no Markdown files
+       * left to serve.
+       */
 
       const componentCodeAPI: ComponentCodeAPI = new ComponentCodeAPI();
       componentCodeAPI.init();
 
       app.use(`/${APP_NAME}`, componentCodeAPI.router);
+
+      /*
+       * The address Huntress connections had, before Huntress became a
+       * workflow trigger: POST /api/huntress/webhook/<key> still starts the
+       * workflow each connection became (API/HuntressLegacyWebhook).
+       */
+      app.use("/api", new HuntressLegacyWebhookAPI().router);
 
       /*
        * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —
@@ -79,20 +74,13 @@ const WorkflowFeatureSet: FeatureSet = {
         QueueWorker.getWorker(
           QueueName.Workflow,
           async (job: QueueJob) => {
-            await new RunWorkflow().runWorkflow({
-              workflowId: new ObjectID(job.data["workflowId"] as string),
-              workflowLogId: job.data["workflowLogId"]
-                ? new ObjectID(job.data["workflowLogId"] as string)
-                : null,
-              arguments: job.data.data as JSONObject,
-              timeout: WorkflowTimeoutInMs || 120000,
-              callChain:
-                (job.data["callChain"] as Array<string> | undefined) || [],
-              isResume: job.data["isResume"] === true,
-              runOnlyComponentId:
-                (job.data["runOnlyComponentId"] as string | undefined) ||
-                undefined,
-            });
+            // What QueueWorkflow wrote (Utils/WorkflowRunJob).
+            await new RunWorkflow().runWorkflow(
+              getRunPropsFromJobData(
+                (job.data as JSONObject) || {},
+                WorkflowTimeoutInMs || 120000,
+              ),
+            );
           },
           { concurrency: 100 },
         );

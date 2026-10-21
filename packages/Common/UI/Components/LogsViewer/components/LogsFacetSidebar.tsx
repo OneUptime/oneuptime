@@ -5,6 +5,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   FacetData,
   FacetValue,
@@ -35,11 +37,26 @@ import HiddenFacetsFooter from "../../TelemetryViewer/components/HiddenFacetsFoo
 import {
   FacetVisibility,
   computeFacetVisibility,
+  getFacetValuesInScope,
   getSidebarFacetEmptyStateText,
 } from "../../TelemetryViewer/FacetVisibility";
 import useFacetSearchExemptions, {
   FacetSearchExemptions,
 } from "../../TelemetryViewer/useFacetSearchExemptions";
+import {
+  FacetSectionSelection,
+  FacetSelections,
+  buildFacetSelections,
+  getFacetChipsToClear,
+  getFacetSectionSelection,
+  getSelectedValuesByKey,
+  withSelectedFacetValues,
+} from "../../TelemetryViewer/FacetSelection";
+import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import {
+  TelemetryLoadError,
+  TelemetryLoadErrorKind,
+} from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsFacetSidebarProps {
   facetData: FacetData;
@@ -55,8 +72,18 @@ export interface LogsFacetSidebarProps {
    * server sent no displayName and no preloaded map names the value.
    */
   entityNameMap?: TelemetryEntityNameMap | undefined;
+  // An unchecked value was clicked: keep only its rows.
   onIncludeFilter: (facetKey: string, value: string) => void;
-  onExcludeFilter: (facetKey: string, value: string) => void;
+  /*
+   * Leave a value's rows out. Absent where the explorer cannot exclude: the
+   * rows then carry no exclude button.
+   */
+  onExcludeFilter?: ((facetKey: string, value: string) => void) | undefined;
+  /*
+   * Take one chip off - the chip's own x. A click on a checked value takes
+   * off the chips that put it there, through this.
+   */
+  onRemoveFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
@@ -80,6 +107,25 @@ export interface LogsFacetSidebarProps {
    * only, so the sidebar stays mounted and keeps its search and expand state.
    */
   isCollapsedOnSmallScreens?: boolean | undefined;
+  /*
+   * The viewer is pinned to a scope (it shows locked chips): list only the
+   * values found in it, never the project's zero-count catalog padding.
+   * See getFacetValuesInScope.
+   */
+  onlyShowValuesInScope?: boolean | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit, and why
+   * the facets did not load at all (issue #4707): a note at the top says so,
+   * with a way to try again, and the stopped facets show no counts.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
+  /*
+   * Off while the list says the search could not finish: one message, and
+   * one Try again, for the whole search. The stopped facets still say so.
+   */
+  showCountsNotice?: boolean | undefined;
 }
 
 /*
@@ -249,6 +295,7 @@ const PRIORITY_FACET_KEYS: ReadonlyArray<string> = [
 const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   props: LogsFacetSidebarProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const severityColorMap: Record<string, string> = useMemo(() => {
     return buildSeverityColorMap();
   }, []);
@@ -314,22 +361,18 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     ];
   }, [props.facetData]);
 
-  // Build a map of facetKey -> Set<activeValue>
-  const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
-    const map: Record<string, Set<string>> = {};
-
-    if (props.activeFilters) {
-      for (const filter of props.activeFilters) {
-        if (!map[filter.facetKey]) {
-          map[filter.facetKey] = new Set<string>();
-        }
-
-        map[filter.facetKey]!.add(filter.value);
-      }
-    }
-
-    return map;
+  /*
+   * What each value is doing, read from the chips, and so which chips a
+   * click on it takes off (see FacetSelection).
+   */
+  const selections: FacetSelections = useMemo(() => {
+    return buildFacetSelections(props.activeFilters);
   }, [props.activeFilters]);
+
+  // Every value that is filtering, per facet: a facet in use never folds away.
+  const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
+    return getSelectedValuesByKey(selections);
+  }, [selections]);
 
   const [showHidden, setShowHidden] = useState<boolean>(false);
   const facetListId: string = useId();
@@ -339,34 +382,57 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     onFacetSearchChange: props.onFacetSearchChange,
   });
 
+  // What the sections list: under a locked scope, only values in it.
+  const facetData: FacetData = useMemo(() => {
+    return props.onlyShowValuesInScope
+      ? getFacetValuesInScope({
+          facetData: props.facetData,
+          activeValuesByKey: activeValuesByKey,
+        })
+      : props.facetData;
+  }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
+
+  const timedOutFacetKeys: Set<string> = useMemo(() => {
+    return new Set<string>(props.timedOutFacets || []);
+  }, [props.timedOutFacets]);
+
+  // A facet the time limit stopped is never folded away as empty.
   const visibility: FacetVisibility = useMemo(() => {
     return computeFacetVisibility({
       keys: facetKeys,
-      facetData: props.facetData,
+      facetData: facetData,
       isHideable: isHideableFacetKey,
       activeValuesByKey: activeValuesByKey,
       searchExemptKeys: facetSearch.searchExemptKeys,
       showHidden: showHidden,
       getTitle: getFacetTitle,
+      stoppedKeys: timedOutFacetKeys,
     });
   }, [
     facetKeys,
-    props.facetData,
+    facetData,
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
+    timedOutFacetKeys,
   ]);
+
+  const countsNotice: TelemetryLoadError | undefined =
+    props.facetError ||
+    (timedOutFacetKeys.size > 0
+      ? { kind: TelemetryLoadErrorKind.TimedOut, message: "" }
+      : undefined);
 
   return (
     <div
       id={props.id}
       className={`${
-        props.isCollapsedOnSmallScreens ? "hidden md:flex" : "flex"
+        props.isCollapsedOnSmallScreens ? "max-md:hidden md:flex" : "flex"
       } max-h-80 w-full flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white md:h-full md:max-h-none md:w-56`}
     >
       <div className="border-b border-gray-100 px-3 py-2.5">
         <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-          Filters
+          {translator.translateText("Filters")}
         </h3>
       </div>
 
@@ -374,6 +440,15 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         <div className="flex flex-1 items-center justify-center py-8">
           <ComponentLoader />
         </div>
+      )}
+
+      {!props.isLoading && countsNotice && props.showCountsNotice !== false && (
+        <TelemetryLoadErrorMessage
+          error={countsNotice}
+          subject="counts"
+          variant="note"
+          onRetry={props.onRetryFacets}
+        />
       )}
 
       <div id={facetListId} className="flex-1 overflow-y-auto">
@@ -387,7 +462,17 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         )}
 
         {visibility.visibleKeys.map((key: string) => {
-          const values: Array<FacetValue> = props.facetData[key] || [];
+          /*
+           * A value that is filtering keeps its row even when the answer
+           * left it out, so it can always be clicked off where it was
+           * clicked on.
+           */
+          const values: Array<FacetValue> = withSelectedFacetValues(
+            facetData[key] || [],
+            selections.get(key),
+          );
+          const sectionSelection: FacetSectionSelection =
+            getFacetSectionSelection(selections, key);
 
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;
@@ -422,9 +507,20 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
               values={values}
               onIncludeValue={props.onIncludeFilter}
               onExcludeValue={props.onExcludeFilter}
+              onClearValue={(facetKey: string, value: string) => {
+                for (const chip of getFacetChipsToClear(
+                  selections,
+                  facetKey,
+                  value,
+                )) {
+                  props.onRemoveFilter(chip.facetKey, chip.value);
+                }
+              }}
               valueDisplayMap={valueDisplayMap}
               valueColorMap={valueColorMap}
-              activeValues={activeValuesByKey[key]}
+              activeValues={sectionSelection.includedValues}
+              excludedValues={sectionSelection.excludedValues}
+              lockedValues={sectionSelection.lockedValues}
               onSearchChange={onSearchChange}
               icon={getFacetIcon(key)}
               searchText={facetSearch.searchTextByKey[key] ?? ""}
@@ -435,7 +531,9 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
                 isHideable: isHideableFacetKey(key),
                 emptyStateNoun: getResourceFacetDefinition(key)?.pluralLabel,
                 searchedAtArrivalText: facetSearch.searchedAtArrivalByKey[key],
+                isScoped: props.onlyShowValuesInScope,
               })}
+              isCountStopped={timedOutFacetKeys.has(key)}
             />
           );
         })}

@@ -52,6 +52,7 @@ import UpdateWorkflowVariableCredentialsModal from "./UpdateWorkflowVariableCred
 import WorkflowVariableTokenRefreshModal from "./WorkflowVariableTokenRefreshModal";
 import WorkflowVariableTokenStatus from "./WorkflowVariableTokenStatus";
 import {
+  OAUTH_SETTINGS_FORM_STEPS,
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getClientAuthenticationLabel,
@@ -517,7 +518,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "OAuth 2.0 Settings",
             description:
-              "How OneUptime asks your identity provider for a token. Changing a setting discards the cached token, so the next run fetches one with the new settings. The client secret and refresh token are never shown - use Update Credentials to replace them.",
+              "How OneUptime gets a token from your identity provider. Secrets are never shown: use Update Credentials to replace them.",
             buttons: isUpdateActionVisible
               ? [
                   {
@@ -545,6 +546,12 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
             // A settings change discards the cached token.
             void loadVariable({ isBackground: true });
           }}
+          /*
+           * The create form's Provider, Credentials and Advanced steps, so a
+           * setting is found under the same step it was entered on. Save
+           * Changes is on every step, as on every stepped edit form.
+           */
+          formSteps={OAUTH_SETTINGS_FORM_STEPS}
           formFields={getOAuthSettingsFormFields()}
           modelDetailProps={{
             modelType: WorkflowVariable,

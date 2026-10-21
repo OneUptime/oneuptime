@@ -8,7 +8,7 @@
 
   "features": {
     "app_home": {
-      "home_tab_enabled": false,
+      "home_tab_enabled": true,
       "messages_tab_enabled": true,
       "messages_tab_read_only_enabled": false
     },
@@ -32,32 +32,18 @@
     ],
     "slash_commands": [
       {
-        "command": "/incident",
-        "url": "{{SERVER_URL}}/api/slack/interactive",
-        "description": "Create a new Incident in OneUptime",
-        "usage_hint": "[incident title]",
-        "should_escape": false
-      },
-      {
-        "command": "/maintenance",
-        "url": "{{SERVER_URL}}/api/slack/interactive",
-        "description": "Create a new Scheduled Maintenance in OneUptime",
-        "usage_hint": "[maintenance title]",
-        "should_escape": false
-      },
-      {
         "command": "/oneuptime",
         "url": "{{SERVER_URL}}/api/slack/command",
-        "description": "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-        "usage_hint": "ask which monitors are down?",
-        "should_escape": false
+        "description": "Declare an incident, schedule maintenance, see who is on call, page someone or ask OneUptime AI",
+        "usage_hint": "incident [title or number] | maintenance [title] | oncall | page [who] [message] | ask [question] | help",
+        "should_escape": true
       }
     ]
   },
   "oauth_config": {
     "redirect_urls": ["{{SERVER_URL}}/api/slack/auth"],
     "scopes": {
-      "user": ["users:read"],
+      "user": [],
       "bot": [
         "commands",
         "app_mentions:read",
@@ -66,17 +52,18 @@
         "channels:manage",
         "channels:read",
         "channels:write.invites",
-        "channels:write.topic",
         "chat:write",
+        "files:write",
         "users:read",
+        "users:read.email",
+        "usergroups:read",
+        "usergroups:write",
         "groups:read",
         "groups:write",
         "groups:history",
         "im:read",
-        "im:write",
         "im:history",
         "mpim:read",
-        "mpim:write",
         "mpim:history",
         "pins:read",
         "reactions:read"
@@ -97,6 +84,8 @@
       "bot_events": [
         "reaction_added",
         "pin_added",
+        "app_home_opened",
+        "member_joined_channel",
         "app_mention",
         "message.im",
         "message.channels",

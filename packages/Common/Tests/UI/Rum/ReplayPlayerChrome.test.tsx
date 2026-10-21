@@ -19,6 +19,12 @@ import {
   derivePhase,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 import { REPLAY_CONTROL_HEIGHT_CLASS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  isVisibleAtWidth,
+} from "../../ResponsiveVisibility";
 
 /*
  * The design decisions of the player redesign, held across components.
@@ -426,12 +432,24 @@ describe("transport row", () => {
 
     const responsive: Array<HTMLElement> = dividers.filter(
       (divider: HTMLElement): boolean => {
-        return Boolean(divider.parentElement?.className.includes("hidden"));
+        return !isVisibleAtWidth(divider, PHONE_WIDTH_IN_PX);
       },
     );
 
     expect(responsive).toHaveLength(1);
     expect(responsive[0]?.parentElement?.className).toContain("md:inline-flex");
+    expect(isVisibleAtWidth(responsive[0]!, TABLET_WIDTH_IN_PX)).toBe(true);
+    /*
+     * `max-md:hidden`, not the bare `hidden`: a foreign
+     * `.hidden { display: none !important }` rule would beat `md:inline-flex`
+     * and lose the hairline on a desktop too, where the row does not wrap.
+     */
+    expect(responsive[0]?.parentElement).not.toHaveClass("hidden");
+    expect(
+      isVisibleAtWidth(responsive[0]!, LAPTOP_WIDTH_IN_PX, {
+        withForeignHiddenRule: true,
+      }),
+    ).toBe(true);
   });
 
   /*

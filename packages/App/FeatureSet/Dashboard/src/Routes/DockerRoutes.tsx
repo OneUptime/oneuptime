@@ -15,6 +15,9 @@ import DockerHostContainers from "../Pages/Docker/View/Containers";
 import DockerHostContainerDetail from "../Pages/Docker/View/ContainerDetail";
 import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostRecommendations from "../Pages/Docker/View/Recommendations";
+import DockerHostAiInsights from "../Pages/Docker/View/AI/Insights";
+import DockerHostAiLogs from "../Pages/Docker/View/AI/Logs";
+import DockerHostAiAgent from "../Pages/Docker/View/AI/Agent";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
 import DockerHostTraces from "../Pages/Docker/View/Traces";
 import DockerHostProfiles from "../Pages/Docker/View/Profiles";
@@ -32,6 +35,9 @@ import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
 import DockerArchived from "../Pages/Docker/Archived";
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DockerRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -108,6 +114,13 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerHost,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DOCKER_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -164,6 +177,48 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <DockerHostAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <DockerHostAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <DockerHostAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_AI_AGENT] as Route}
             />
           }
         />
@@ -322,6 +377,12 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerHost,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

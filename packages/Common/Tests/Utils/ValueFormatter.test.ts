@@ -317,6 +317,42 @@ describe("ValueFormatter", () => {
         expect(ValueFormatter.isFractionMetric(metricName)).toBe(true);
       }
     });
+
+    test("a storage array's data reduction ratio is not a fraction", () => {
+      // Logical over physical space: 4.2 means 4.2:1, never 420%.
+      for (const metricName of [
+        "purefa_array_space_data_reduction_ratio",
+        "purefa_volume_space_data_reduction_ratio",
+        "purefb_array_space_data_reduction_ratio",
+        " PureFA_Array_Space_Data_Reduction_Ratio ",
+      ]) {
+        expect(ValueFormatter.isFractionMetric(metricName)).toBe(false);
+      }
+    });
+
+    test("the data reduction exclusion leaves every other ratio a fraction", () => {
+      for (const metricName of [
+        "volume_space_used_ratio",
+        "cache_hit_ratio",
+        // Anchored at the end: only the data reduction ratio itself.
+        "purefa_array_space_data_reduction_ratio.utilization",
+      ]) {
+        expect(ValueFormatter.isFractionMetric(metricName)).toBe(true);
+      }
+    });
+
+    test("formatValue shows a data reduction ratio on its own scale", () => {
+      expect(
+        ValueFormatter.formatValue(4.2, "1", {
+          metricName: "purefa_array_space_data_reduction_ratio",
+        }),
+      ).toBe("4.2");
+      expect(
+        ValueFormatter.formatValue(0.42, "1", {
+          metricName: "volume_space_used_ratio",
+        }),
+      ).toBe("42.00%");
+    });
   });
 
   describe("kubeletstats cores gauges render as cores, never as a percent", () => {

@@ -8,6 +8,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as passOnApi from "../api/onCallPassOn";
+import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import AlertDetailScreen from "./AlertDetailScreen";
 import { lightColors } from "../theme";
@@ -125,6 +127,31 @@ jest.mock("../api/alertNotes", () => {
   };
 });
 
+/*
+ * Whether the signed-in person is being paged about it, for Pass it on
+ * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
+ * the answer never comes: the screen renders as it always did, and nothing
+ * updates it after a test has looked.
+ */
+const mockPassOnPages: { current: OnCallPassOnPage[] | null } = {
+  current: null,
+};
+
+jest.mock("../api/onCallPassOn", () => {
+  return {
+    fetchOnCallPassOnPages: jest.fn(() => {
+      return mockPassOnPages.current
+        ? Promise.resolve(mockPassOnPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    passOnOnCallPages: jest.fn(async () => {
+      return [];
+    }),
+  };
+});
+
 jest.mock("../hooks/useHaptics", () => {
   return {
     useHaptics: () => {
@@ -162,6 +189,16 @@ const RESOLVED_STATE: AlertState = makeAlertState({
   isCreatedState: false,
   isResolvedState: true,
   order: 3,
+});
+/*
+ * A state the project placed after Resolved, without the resolved flag: by
+ * the one resolved rule (utils/resolvedState) a record in it is resolved.
+ */
+const CLOSED_STATE: AlertState = makeAlertState({
+  _id: "alert-state-closed",
+  name: "Closed",
+  isCreatedState: false,
+  order: 4,
 });
 
 /**
@@ -554,6 +591,35 @@ describe("The controls a responder is offered", () => {
     expect(screen.queryByText("Actions")).toBeNull();
   });
 
+  test("a alert in a state placed after Resolved is offered nothing to press either", async () => {
+    /*
+     * "Closed" comes after Resolved and does not carry the resolved flag. The
+     * alert is resolved all the same, so there is nothing to acknowledge -
+     * and no Resolve, which could only move it back up the list.
+     */
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE, CLOSED_STATE],
+    });
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: CLOSED_STATE._id,
+          name: CLOSED_STATE.name,
+        }),
+      }),
+    });
+    const client: QueryClient = createTestQueryClient();
+
+    await renderScreen(client);
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resolve alert" })).toBeNull();
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(screen.getByText("Response complete")).toBeTruthy();
+  });
+
   test("a project with no acknowledged state offers only the state it does have", async () => {
     /*
      * Alert states are configured per project, and a project can perfectly
@@ -649,6 +715,40 @@ describe("Acknowledging and resolving", () => {
         PROJECT_ID,
         ALERT_ID,
         ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+
+  test("Resolve sends the project's resolved state - the first flagged from the top - whatever order the states arrive in", async () => {
+    /*
+     * A project may flag a second state resolved further down. Resolve means
+     * the first one from the top (utils/resolvedState), so a list that
+     * arrives with the lower one first still resolves into Resolved.
+     */
+    const autoClosedState: AlertState = makeAlertState({
+      _id: "alert-state-auto-closed",
+      name: "Auto-closed",
+      isCreatedState: false,
+      isResolvedState: true,
+      order: 5,
+    });
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [autoClosedState, TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(ALERT_QUERY_KEY, alertFixture);
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolve alert" }),
+    );
+
+    await waitFor(() => {
+      expect(changeAlertStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        ALERT_ID,
+        RESOLVED_STATE._id,
       );
     });
   });
@@ -1111,5 +1211,167 @@ describe("Guidance and actions for each alert stage", () => {
       "Internal Notes",
     ]);
     expect(screen.getAllByTestId("response-section-card")).toHaveLength(4);
+  });
+});
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved, without
+   * the acknowledged flag. An alert in it has been acknowledged - on-call
+   * stopped paging when it got there - so Acknowledge, a move back up the
+   * list the server refuses, is not offered.
+   */
+  const INVESTIGATING_STATE: AlertState = makeAlertState({
+    _id: "alert-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const LATER_RESOLVED_STATE: AlertState = makeAlertState({
+    _id: "alert-state-resolved",
+    name: "Resolved",
+    isCreatedState: false,
+    isResolvedState: true,
+    order: 4,
+  });
+  const SECOND_ACKNOWLEDGED_STATE: AlertState = makeAlertState({
+    _id: "alert-state-second-acknowledged",
+    name: "Escalated",
+    isCreatedState: false,
+    isAcknowledgedState: true,
+    order: 3,
+  });
+
+  beforeEach(() => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        INVESTIGATING_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+    changeAlertStateMock.mockResolvedValue(undefined);
+  });
+
+  function loadInState(state: AlertState): void {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an alert in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve alert" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this alert. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    loadInState(SECOND_ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Resolve alert" })).toBeTruthy();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+      ],
+    });
+    loadInState(TRIAGE_STATE);
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(
+      ALERT_QUERY_KEY,
+      mockAlertDetail.current.data as AlertItem,
+    );
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge alert" }),
+    );
+
+    await waitFor(() => {
+      expect(changeAlertStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        ALERT_ID,
+        ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+});
+
+describe("Passing the page on", () => {
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+
+  const PASS_ON_PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+  };
+
+  afterEach(() => {
+    mockPassOnPages.current = null;
+  });
+
+  test("the person being paged about this alert is offered Pass it on", async () => {
+    fetchPassOnMock.mockClear();
+    mockPassOnPages.current = [PASS_ON_PAGE];
+
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert(),
+    });
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      await screen.findByRole("button", { name: "Pass this alert page on" }),
+    ).toBeTruthy();
+    expect(fetchPassOnMock).toHaveBeenCalledWith(PROJECT_ID, "alert", ALERT_ID);
   });
 });

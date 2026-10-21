@@ -1,5 +1,6 @@
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -76,14 +77,27 @@ export default interface NotificationRuleCondition {
 }
 
 export class NotificationRuleConditionUtil {
+  /*
+   * Why a rule cannot be saved, or null when it can: its conditions first,
+   * then where it posts. The rule form asks the two on separate steps
+   * (Conditions, then Destination), and each step checks its own half.
+   */
   public static getValidationError(data: {
     notificationRule: IncidentNotificationRule;
     eventType: NotificationRuleEventType;
     workspaceType: WorkspaceType;
   }): string | null {
-    const { notificationRule, eventType, workspaceType } = data;
+    return (
+      NotificationRuleConditionUtil.getConditionsValidationError(data) ||
+      NotificationRuleConditionUtil.getDestinationValidationError(data)
+    );
+  }
 
-    for (const condition of notificationRule.filters) {
+  // The rule's conditions: every one complete. No conditions at all is fine.
+  public static getConditionsValidationError(data: {
+    notificationRule: IncidentNotificationRule | undefined;
+  }): string | null {
+    for (const condition of data.notificationRule?.filters || []) {
       if (!condition.checkOn) {
         return "Check On is required";
       }
@@ -100,6 +114,23 @@ export class NotificationRuleConditionUtil {
         return `Value is required for ${condition.checkOn}`;
       }
     }
+
+    return null;
+  }
+
+  /*
+   * Where the rule posts: an event that can get a channel of its own needs
+   * at least one destination, and every destination picked needs what it
+   * posts to.
+   */
+  public static getDestinationValidationError(data: {
+    notificationRule: IncidentNotificationRule | undefined;
+    eventType: NotificationRuleEventType;
+    workspaceType: WorkspaceType;
+  }): string | null {
+    const { eventType, workspaceType } = data;
+    const notificationRule: Partial<IncidentNotificationRule> =
+      data.notificationRule || {};
 
     if (
       eventType === NotificationRuleEventType.Incident ||
@@ -131,11 +162,11 @@ export class NotificationRuleConditionUtil {
         }
       }
 
-      if (notificationRule.shouldCreateNewChannel) {
-        if (!notificationRule.newChannelTemplateName?.trim()) {
-          return "New " + workspaceDisplayName + " channel name is required";
-        }
-      }
+      /*
+       * A channel the rule creates needs no name: it is named after its
+       * record (inc-42), and the rule's prefix, when it has one, goes in
+       * front (WorkspaceChannelName).
+       */
     }
 
     if (notificationRule.shouldPostToExistingChat) {
@@ -150,6 +181,45 @@ export class NotificationRuleConditionUtil {
     }
 
     return null;
+  }
+
+  /*
+   * A condition with nothing in it yet - the row Add Condition draws, its
+   * value "" - or one emptied again: no value, an empty list, or blank text.
+   * A rule or summary is saved without such rows. A condition with text in
+   * it ("Incident Title contains database") is not empty: the notification
+   * rule table used to keep only conditions holding a list, so a rule saved
+   * with a text condition lost it and fired for every event.
+   */
+  public static isEmptyCondition(
+    condition: NotificationRuleCondition,
+  ): boolean {
+    const value: string | Array<string> | undefined = condition.value;
+
+    if (!value) {
+      return true;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length === 0;
+    }
+
+    return false;
+  }
+
+  // The conditions with something in them, in their order.
+  public static withoutEmptyConditions(
+    conditions: Array<NotificationRuleCondition>,
+  ): Array<NotificationRuleCondition> {
+    return conditions.filter(
+      (condition: NotificationRuleCondition): boolean => {
+        return !NotificationRuleConditionUtil.isEmptyCondition(condition);
+      },
+    );
   }
 
   public static hasValueField(data: {
@@ -203,6 +273,11 @@ export class NotificationRuleConditionUtil {
     }
   }
 
+  /*
+   * What a condition's value dropdown offers. States, severities, monitor
+   * statuses and labels come with their colours (when the rows were fetched
+   * with them), as they do in every other picker.
+   */
   public static getDropdownOptionsByCheckOn(data: {
     alertSeverities: Array<AlertSeverity>;
     alertStates: Array<AlertState>;
@@ -214,71 +289,51 @@ export class NotificationRuleConditionUtil {
     monitors: Array<Monitor>;
     checkOn: NotificationRuleConditionCheckOn;
   }): Array<DropdownOption> {
+    type ToOptionsFunction = (rows: Array<BaseModel>) => Array<DropdownOption>;
+
+    const toOptions: ToOptionsFunction = (
+      rows: Array<BaseModel>,
+    ): Array<DropdownOption> => {
+      return DropdownUtil.getDropdownOptionsFromEntityArray({
+        array: rows,
+        labelField: "name",
+        valueField: "_id",
+      });
+    };
+
     if (
       data.checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeSeverity
     ) {
-      return data.incidentSeverities.map((severity: IncidentSeverity) => {
-        return {
-          value: severity.id!.toString(),
-          label: severity.name || "",
-        };
-      });
+      return toOptions(data.incidentSeverities);
     }
 
     if (
       data.checkOn === NotificationRuleConditionCheckOn.AlertSeverity ||
       data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeSeverity
     ) {
-      return data.alertSeverities.map((severity: AlertSeverity) => {
-        return {
-          value: severity.id!.toString(),
-          label: severity.name || "",
-        };
-      });
+      return toOptions(data.alertSeverities);
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.IncidentSeverity) {
-      return data.incidentSeverities.map((severity: IncidentSeverity) => {
-        return {
-          value: severity.id!.toString(),
-          label: severity.name || "",
-        };
-      });
+      return toOptions(data.incidentSeverities);
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.MonitorStatus) {
-      return data.monitorStatus.map((status: MonitorStatus) => {
-        return {
-          value: status.id!.toString(),
-          label: status.name || "",
-        };
-      });
+      return toOptions(data.monitorStatus);
     }
 
     if (
       data.checkOn === NotificationRuleConditionCheckOn.IncidentState ||
       data.checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeState
     ) {
-      return data.incidentStates.map((state: IncidentState) => {
-        return {
-          value: state.id!.toString(),
-          label: state.name || "",
-        };
-      });
+      return toOptions(data.incidentStates);
     }
 
     if (
       data.checkOn ===
       NotificationRuleConditionCheckOn.ScheduledMaintenanceState
     ) {
-      return data.scheduledMaintenanceStates.map(
-        (state: ScheduledMaintenanceState) => {
-          return {
-            value: state.id!.toString(),
-            label: state.name || "",
-          };
-        },
-      );
+      return toOptions(data.scheduledMaintenanceStates);
     }
 
     if (
@@ -291,21 +346,11 @@ export class NotificationRuleConditionUtil {
         NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels
     ) {
-      return data.labels.map((label: Label) => {
-        return {
-          value: label.id!.toString(),
-          label: label.name || "",
-        };
-      });
+      return toOptions(data.labels);
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.Monitors) {
-      return data.monitors.map((monitor: Monitor) => {
-        return {
-          value: monitor.id!.toString(),
-          label: monitor.name || "",
-        };
-      });
+      return toOptions(data.monitors);
     }
 
     // alert states (also used for alert episodes)
@@ -313,12 +358,7 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.AlertState ||
       data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeState
     ) {
-      return data.alertStates.map((state: AlertState) => {
-        return {
-          value: state.id!.toString(),
-          label: state.name || "",
-        };
-      });
+      return toOptions(data.alertStates);
     }
 
     // if monitor type

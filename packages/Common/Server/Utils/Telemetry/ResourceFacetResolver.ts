@@ -14,12 +14,18 @@ import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService"
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
 import RumApplicationService from "../../Services/RumApplicationService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import CaptureSpan from "./CaptureSpan";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "./TelemetryReadScope";
+import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 
 /*
  * Facet keys whose values are entity IDs backed by a Postgres source-of-truth
@@ -49,6 +55,14 @@ export interface ResourceFacetListSpec {
   facetKey: string;
   searchText?: string | undefined;
   limit?: number | undefined;
+  /*
+   * Whose telemetry the caller may read (TelemetryReadScope). The Services
+   * facet - the resource a row belongs to, which the scope is about - lists
+   * only those; every other resource facet lists the project's resources,
+   * and mergeCounts keeps the ones the caller's rows name or whose own
+   * telemetry they may read. Absent: every resource of the project.
+   */
+  scope?: TelemetryReadScope | undefined;
 }
 
 export interface ResourceFacetSpec extends ResourceFacetListSpec {
@@ -87,6 +101,16 @@ interface ResourceFacetListing {
    * search `name` alone.
    */
   identifierField: string | null;
+  /*
+   * Narrows which rows of the table are the facet's values. The Cloud
+   * Resource facet lists environments only: a facet value matches
+   * telemetry by its primaryEntityId, and only an environment is ever a
+   * row's primary entity - a resource discovered from cloud monitoring is
+   * scoped by its metrics' attributes instead (CloudResource
+   * .telemetryAttributes), so listing one would offer a filter that
+   * matches nothing.
+   */
+  baseQuery?: Record<string, unknown> | undefined;
 }
 
 /*
@@ -95,9 +119,9 @@ interface ResourceFacetListing {
  * root, first `limit` rows, optional name search), so the only per-type
  * facts are the service and the identifier column.
  *
- * Ceph and Docker Swarm also join on `name`, but carry a stable descriptive
- * id (`fsid` / `swarmId`) an operator may well paste into the search box,
- * so it is searched too.
+ * Ceph, Docker Swarm and storage arrays also join on `name`, but carry a
+ * stable descriptive id (`fsid` / `swarmId` / the array's `systemId`) an
+ * operator may well paste into the search box, so it is searched too.
  *
  * Built on first use rather than at module load: the services pull in much
  * of the server, and a module cycle that reached this file first would
@@ -150,6 +174,10 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
     ],
     ["cephClusterId", { service: CephClusterService, identifierField: "fsid" }],
     [
+      "storageArrayId",
+      { service: StorageArrayService, identifierField: "systemId" },
+    ],
+    [
       "serverlessFunctionId",
       {
         service: ServerlessFunctionService,
@@ -158,7 +186,11 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
     ],
     [
       "cloudResourceId",
-      { service: CloudResourceService, identifierField: "resourceIdentifier" },
+      {
+        service: CloudResourceService,
+        identifierField: "resourceIdentifier",
+        baseQuery: { cloudResourceKind: CloudResourceKind.Environment },
+      },
     ],
     [
       "rumApplicationId",
@@ -263,10 +295,29 @@ export default class ResourceFacetResolver {
   public static mergeCounts(
     entities: Array<ResourceFacetEntity>,
     counts: Map<string, number>,
+    /*
+     * The caller's scope, for a caller whose read is limited: a resource is
+     * kept when the rows they may read name it (it has a count) or its own
+     * telemetry is theirs to read, so the sidebar offers the resources the
+     * caller's rows can be filtered by, and not every resource of the
+     * project. Absent or project-wide: every listed resource is kept.
+     */
+    scope?: TelemetryReadScope | undefined,
   ): Array<ResolvedFacetValue> {
+    const isLimited: boolean = Boolean(
+      scope && !TelemetryReadScopeUtil.isProjectWide(scope),
+    );
+
     const out: Array<ResolvedFacetValue> = entities
       .filter((e: ResourceFacetEntity): boolean => {
         return e.id.length > 0;
+      })
+      .filter((e: ResourceFacetEntity): boolean => {
+        return (
+          !isLimited ||
+          (counts.get(e.id) || 0) > 0 ||
+          TelemetryReadScopeUtil.isReadable(scope as TelemetryReadScope, e.id)
+        );
       })
       .map((e: ResourceFacetEntity): ResolvedFacetValue => {
         return {
@@ -304,8 +355,39 @@ export default class ResourceFacetResolver {
         : undefined;
     const identifierField: string | null = listing.identifierField;
 
-    const query: Record<string, unknown> = { projectId };
+    const query: Record<string, unknown> = {
+      ...(listing.baseQuery || {}),
+      projectId,
+    };
     const select: Record<string, boolean> = { _id: true, name: true };
+
+    /*
+     * The Services facet filters on the resource a row belongs to - the very
+     * thing the caller's scope limits - so a caller whose telemetry read is
+     * limited lists only the resources whose rows they may read. (A host or
+     * cluster facet filters on what a readable row names, which can be any
+     * resource of the project: see mergeCounts.)
+     */
+    if (
+      spec.scope &&
+      SERVICE_FACET_KEYS.includes(spec.facetKey) &&
+      !TelemetryReadScopeUtil.isProjectWide(spec.scope)
+    ) {
+      const readableIds: Array<string> | null =
+        TelemetryReadScopeUtil.getReadableIds(spec.scope);
+
+      if (readableIds !== null) {
+        if (readableIds.length === 0) {
+          return [];
+        }
+
+        query["_id"] = QueryHelper.any(readableIds);
+      } else {
+        query["_id"] = QueryHelper.notIn(
+          TelemetryReadScopeUtil.getBlockedIds(spec.scope),
+        );
+      }
+    }
 
     if (identifierField) {
       select[identifierField] = true;

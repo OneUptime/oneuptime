@@ -5,13 +5,43 @@ export interface ComponentProps {
   text: string;
 }
 
+/*
+ * What a detail card shows in place of a value that is not set, in the
+ * field's own words ("No logo uploaded."): quiet grey text where the value
+ * would be.
+ *
+ * It was a dashed, grey-filled chip, which read as a button or a drop zone
+ * - something to press - rather than as "nothing here yet". The text is
+ * what tells the reader what is missing; the grey says it is not a value.
+ *
+ * It wraps, and breaks a word too long for its line: a long one - "No
+ * subscriber timezones selected so far. Subscribers will receive
+ * notifications with times shown in GMT, EST, PST, IST, ACT timezones by
+ * default." - used to run past the card's edge on a phone. It is an inline
+ * block no wider than what it sits in (max-w-full), and as a flex item (a
+ * detail value is a flex row) it may shrink below its longest word
+ * (min-w-0), which break-words then breaks, so not even a long URL in a
+ * placeholder can push it out.
+ *
+ * Its lines are a detail value's (leading-6): text-sm alone sets 20px ones,
+ * which drew the words 2px above a set value beside them in the row. Where
+ * a page hands it in as the value's element it sits in a line of the
+ * value's own, top to top (align-top): centred there, it hung a pixel
+ * lower than the values beside it and made the line a pixel taller.
+ */
+export const PLACEHOLDER_TEXT_CLASS_NAME: string =
+  "inline-block max-w-full min-w-0 whitespace-normal break-words align-top text-sm leading-6 font-normal text-gray-500";
+
 const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translatedText: string = translateString(props.text) ?? props.text;
   return (
-    <span className="inline-flex items-center whitespace-nowrap rounded-md border border-dashed border-gray-300 bg-gray-50 px-2 py-0.5 align-middle text-sm font-normal text-gray-500 select-none">
+    <span
+      className={PLACEHOLDER_TEXT_CLASS_NAME}
+      data-testid="placeholder-text"
+    >
       {translatedText}
     </span>
   );

@@ -359,14 +359,14 @@ describe("MonitorService.validateDependencyConfiguration", () => {
       };
 
       await expect(run()).rejects.toThrow(BadDataException);
-      await expect(run()).rejects.toThrow(/do not exist/);
+      await expect(run()).rejects.toThrow(/not in this project/);
       // The message names the model and echoes the offending id.
       await expect(run()).rejects.toThrow(
         new RegExp(`Monitor "${MONITOR_B_ID.toString()}"`),
       );
     });
 
-    test("a parent from another project is rejected with the house wording", async () => {
+    test("a parent from another project is rejected with the house wording, like one that matches nothing", async () => {
       spyOnFindBySequence([
         [makeMonitorRow({ id: MONITOR_B_ID, projectId: OTHER_PROJECT_ID })],
       ]);
@@ -377,7 +377,9 @@ describe("MonitorService.validateDependencyConfiguration", () => {
           proposedParents: [makeMonitorRef(MONITOR_B_ID)],
           proposedSuppressionStatuses: undefined,
         }),
-      ).rejects.toThrow(/belong to a different project/);
+      ).rejects.toThrow(
+        new RegExp(`not in this project: Monitor "${MONITOR_B_ID.toString()}"`),
+      );
     });
 
     test("a bare uuid STRING parent id is validated like any other shape", async () => {
@@ -389,10 +391,10 @@ describe("MonitorService.validateDependencyConfiguration", () => {
           proposedParents: [MONITOR_B_ID.toString()],
           proposedSuppressionStatuses: undefined,
         }),
-      ).rejects.toThrow(/do not exist/);
+      ).rejects.toThrow(/not in this project/);
     });
 
-    test("duplicate parent ids are deduped; the validator lookup runs first with the id/name/project select", async () => {
+    test("duplicate parent ids are deduped; the validator lookup runs first, pinned to the project and selecting only the id and the project", async () => {
       /*
        * [B, B] must dedupe to one id; findBy returning that single row must
        * satisfy the existence check. The walk then sees B with no
@@ -416,15 +418,24 @@ describe("MonitorService.validateDependencyConfiguration", () => {
 
       expect(findBySpy.mock.calls.length).toBe(2);
 
-      // Call #1 is the validator's lookup: existence + tenant column.
-      const validatorSelect: Record<string, unknown> = (
-        findBySpy.mock.calls[0]![0] as { select: Record<string, unknown> }
-      ).select;
-      expect(validatorSelect).toEqual({
+      /*
+       * Call #1 is the validator's lookup: pinned to the project, it reads
+       * nothing but the id and the tenant column - never a name.
+       */
+      const validatorCall: {
+        select: Record<string, unknown>;
+        query: Record<string, unknown>;
+      } = findBySpy.mock.calls[0]![0] as {
+        select: Record<string, unknown>;
+        query: Record<string, unknown>;
+      };
+      expect(validatorCall.select).toEqual({
         _id: true,
-        name: true,
         projectId: true,
       });
+      expect(String(validatorCall.query["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
 
       // Call #2 is the cycle walk: parents of the frontier.
       const walkSelect: Record<string, unknown> = (
@@ -616,7 +627,7 @@ describe("MonitorService.validateDependencyConfiguration", () => {
           proposedParents: [makeMonitorRef(MONITOR_B_ID)],
           proposedSuppressionStatuses: undefined,
         }),
-      ).rejects.toThrow(/belong to a different project/);
+      ).rejects.toThrow(/not in this project/);
     });
   });
 

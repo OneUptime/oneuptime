@@ -9,7 +9,6 @@ import {
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
-import { isSsoLoginOffered } from "../Utils/SsoAvailability";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -27,8 +26,11 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  MicrosoftSignInClientId,
 } from "Common/UI/Config";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import LoginUtil from "Common/UI/Utils/Login";
@@ -49,6 +51,15 @@ import WebAuthn from "Common/UI/Utils/WebAuthn";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import SignInOptionLabel from "Common/UI/Components/SignInOption/SignInOptionLabel";
+import {
+  getSignInOptionClassName,
+  SIGN_IN_OPTION_ICON_CLASS,
+  SignInOptionState,
+} from "Common/UI/Components/SignInOption/SignInOptionStyle";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
 
@@ -77,6 +88,44 @@ const BACKUP_CODE_OFFER_SKIPPED_KEY: string = "backup-code-offer-skipped-at";
 
 type PasskeyStage = "idle" | "preparing" | "prompt" | "verifying";
 
+/*
+ * What the passkey option says, and what the status line under it says, at
+ * each stage of an attempt. Only the device prompt has a line of its own; at
+ * the other stages the status line repeats the option, for screen readers.
+ */
+const PASSKEY_STAGE_TEXT: Record<
+  Exclude<PasskeyStage, "idle">,
+  { option: string; status: string }
+> = {
+  preparing: {
+    option: "login.passkey.preparing",
+    status: "login.passkey.preparing",
+  },
+  prompt: {
+    option: "login.passkey.waiting",
+    status: "login.passkey.waitingDescription",
+  },
+  verifying: {
+    option: "login.passkey.verifying",
+    status: "login.passkey.verifying",
+  },
+};
+
+/*
+ * What an attempt that did not start, or did not sign in, says under the
+ * option. Kept as its translation key, not its words, so the notice follows
+ * the footer's language switcher like the rest of the page.
+ */
+type PasskeyNotice =
+  | "login.passkey.notCompleted"
+  | "login.passkey.cancelled"
+  | "login.passkey.unsupported"
+  | "login.passkey.insecure";
+
+// The focus ring of the page's link-weight controls: Cancel and "New to passkeys?".
+const QUIET_CONTROL_FOCUS: string =
+  "rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
 interface PasskeyAttempt {
   controller: AbortController;
   canCancel: boolean;
@@ -86,18 +135,49 @@ const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts. Not on every render: a sign-in on this page stores
+   * the user and navigates to the Dashboard itself (LoginUtil.login), the
+   * form then re-renders the page as it stops loading, and a second
+   * navigation from here would abort the first.
+   */
+  React.useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
+  /*
+   * The email and password the sign-in form last submitted, kept for the
+   * two-factor steps, which send them again. Never what the form shows or
+   * locks: see formStartValues.
+   */
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
+  /*
+   * What the sign-in form starts with: the address a link opened the page
+   * with (?email=), if any. The Email field stays editable, before an
+   * attempt and after one. It used to turn read-only as soon as
+   * `initialValues` held an email - and every attempt stores what it
+   * submitted there, so a wrong password locked a mistyped address in place
+   * until the page was reloaded. A link's address never reached the field
+   * either: it was locked, and empty.
+   */
+  const [formStartValues] = React.useState<JSONObject | undefined>(
+    (): JSONObject | undefined => {
+      const email: string | null = Navigation.getQueryStringByName("email");
+      return email ? { email: email } : undefined;
+    },
+  );
   const [passkeyStage, setPasskeyStage] = React.useState<PasskeyStage>("idle");
   const isPasskeyLoading: boolean = passkeyStage !== "idle";
   const [isPasskeySupported] = React.useState<boolean>(WebAuthn.isSupported);
   const [isPasswordLoading, setIsPasswordLoading] =
     React.useState<boolean>(false);
   const [passkeyError, setPasskeyError] = React.useState<string>("");
-  const [passkeyNotice, setPasskeyNotice] = React.useState<string>("");
+  const [passkeyNotice, setPasskeyNotice] =
+    React.useState<PasskeyNotice | null>(null);
   const passkeyInProgress: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
   const passkeyAttempt: React.MutableRefObject<PasskeyAttempt | null> =
@@ -268,7 +348,6 @@ const LoginPage: () => JSX.Element = () => {
       fieldType: FormFieldSchemaType.Email,
       placeholder: "jeff@example.com",
       required: true,
-      disabled: Boolean(initialValues && initialValues["email"]),
       title: t("common.email"),
       dataTestId: "email",
       disableSpellCheck: true,
@@ -283,6 +362,9 @@ const LoginPage: () => JSX.Element = () => {
         minLength: 6,
       },
       fieldType: FormFieldSchemaType.Password,
+      // The sign-in password: password managers fill it.
+      autoComplete: "current-password",
+      isOwnCredential: true,
       sideLink: {
         text: t("login.forgotPassword"),
         url: new Route("/accounts/forgot-password"),
@@ -324,14 +406,6 @@ const LoginPage: () => JSX.Element = () => {
       },
     ]);
   }
-
-  useAsyncEffect(async () => {
-    if (Navigation.getQueryStringByName("email")) {
-      setInitialValues({
-        email: Navigation.getQueryStringByName("email"),
-      });
-    }
-  }, []);
 
   useAsyncEffect(async () => {
     if (selectedWebAuthn) {
@@ -405,11 +479,21 @@ const LoginPage: () => JSX.Element = () => {
 
   const signInWithPasskey: SignInWithPasskeyFunction =
     async (): Promise<void> => {
-      if (
-        passkeyInProgress.current ||
-        isPasswordLoading ||
-        !isPasskeySupported
-      ) {
+      if (passkeyInProgress.current || isPasswordLoading) {
+        return;
+      }
+
+      /*
+       * A browser that cannot use passkeys says so when somebody asks for
+       * one, not on every visit, and asks the server for nothing.
+       */
+      if (!isPasskeySupported) {
+        setPasskeyError("");
+        setPasskeyNotice(
+          window.isSecureContext === false
+            ? "login.passkey.insecure"
+            : "login.passkey.unsupported",
+        );
         return;
       }
 
@@ -421,7 +505,7 @@ const LoginPage: () => JSX.Element = () => {
       passkeyAttempt.current = attempt;
       setPasskeyStage("preparing");
       setPasskeyError("");
-      setPasskeyNotice("");
+      setPasskeyNotice(null);
 
       try {
         WebAuthn.ensureSupported();
@@ -486,7 +570,7 @@ const LoginPage: () => JSX.Element = () => {
           error instanceof Error &&
           (error.name === "NotAllowedError" || error.name === "AbortError")
         ) {
-          setPasskeyNotice(t("login.passkey.notCompleted"));
+          setPasskeyNotice("login.passkey.notCompleted");
         } else {
           setPasskeyError(WebAuthn.getErrorMessage(error, "sign-in"));
         }
@@ -509,8 +593,34 @@ const LoginPage: () => JSX.Element = () => {
     attempt.controller.abort();
     passkeyInProgress.current = false;
     setPasskeyStage("idle");
-    setPasskeyNotice(t("login.passkey.cancelled"));
+    setPasskeyNotice("login.passkey.cancelled");
   };
+
+  const passkeyStageText: { option: string; status: string } | null =
+    passkeyStage === "idle" ? null : PASSKEY_STAGE_TEXT[passkeyStage];
+
+  /*
+   * A browser that cannot use passkeys has said so (see signInWithPasskey).
+   * From then on the option is drawn as unavailable, and says so to a screen
+   * reader, instead of looking like something to click again. The notice
+   * stays for as long as the page does: nothing clears it there.
+   */
+  const isPasskeyUnavailable: boolean =
+    !isPasskeySupported && Boolean(passkeyNotice);
+
+  /*
+   * How the passkey option looks (SignInOptionStyle): unavailable once a
+   * browser without passkeys has said so; busy, at full strength, while its
+   * own attempt runs; paused, faded, while the password form is signing in,
+   * which it waits for; and otherwise ready.
+   */
+  const passkeyOptionState: SignInOptionState = isPasskeyUnavailable
+    ? "unavailable"
+    : isPasskeyLoading
+      ? "busy"
+      : isPasswordLoading
+        ? "paused"
+        : "ready";
 
   type ReadBackupCodesFunction = (miscData: JSONObject) => Array<string>;
 
@@ -749,14 +859,18 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
-        <div className="mt-4 flex justify-center">
-          <EditionLabel />
-        </div>
+        <ProductLogo />
+        {/*
+         * Which OneUptime edition this is, and its license: not on an
+         * installation that goes by a name of its own (ProductBranding),
+         * whose sign-in page is its own. Its master admins still find the
+         * license in the Admin Dashboard header.
+         */}
+        {!isProductRenamed() && (
+          <div className="mt-4 flex justify-center">
+            <EditionLabel />
+          </div>
+        )}
         {/*
          * The heading is the only thing on screen that names which of the six
          * states the card below is in, so `pendingLogin` has to come FIRST and
@@ -784,7 +898,11 @@ const LoginPage: () => JSX.Element = () => {
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            {/*
+             * Balanced: on a phone the line breaks in the middle of the
+             * list rather than leaving its last word, "passkey", alone.
+             */}
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
               {t("login.subtitle")}
             </p>
           </>
@@ -973,126 +1091,38 @@ const LoginPage: () => JSX.Element = () => {
 
           {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
             <>
-              <section
-                aria-labelledby="passkey-heading"
-                className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4"
+              {/*
+               * The password form comes first, and its "Login" is the page's
+               * one filled button: it is how most people sign in. Under it,
+               * an "or" divider and the other ways in, as normal buttons as
+               * wide and as tall as Login, outlined where Login is filled:
+               * single sign-on, Microsoft where this server offers it, and a
+               * passkey, last (SignInOptionStyle). Passkeys used to open the
+               * card in a tinted panel of their own, which pushed the form
+               * people came for below the fold on a phone; after that, the
+               * other ways in were centred text links, which read as small
+               * print rather than as choices.
+               *
+               * While a passkey attempt runs, the form is paused, and looks
+               * it: disabled, faded, and out of the pointer's reach, its
+               * links, the divider, the single sign-on and Microsoft buttons
+               * and any captcha included. A bright Login that does nothing
+               * when clicked reads as broken, and a link that leaves the page
+               * while the server is finishing the sign-in would throw that
+               * sign-in away. Cancel, outside the form, brings it back. (The
+               * keyboard can still reach the form's links, as it always
+               * could: a fieldset does not disable links.)
+               */}
+              <fieldset
+                disabled={isPasskeyLoading}
+                className="transition-opacity disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
               >
-                <div className="mb-4 flex items-start gap-3">
-                  <div
-                    aria-hidden="true"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm"
-                  >
-                    <Icon icon={IconProp.Fingerprint} className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3
-                      id="passkey-heading"
-                      className="text-sm font-semibold text-gray-900"
-                    >
-                      {t("login.passkey.title")}
-                    </h3>
-                    <p className="mt-1 text-sm leading-5 text-gray-600">
-                      {t("login.passkey.description")}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  id="passkey-login"
-                  title={t(
-                    passkeyStage === "preparing"
-                      ? "login.passkey.preparing"
-                      : passkeyStage === "prompt"
-                        ? "login.passkey.waiting"
-                        : passkeyStage === "verifying"
-                          ? "login.passkey.verifying"
-                          : passkeyError || passkeyNotice
-                            ? "login.passkey.tryAgain"
-                            : "login.passkey.signIn",
-                  )}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  className="w-full justify-center"
-                  style={{ width: "100%", marginLeft: 0 }}
-                  dataTestId="passkey-login"
-                  isLoading={isPasskeyLoading}
-                  disabled={
-                    !isPasskeySupported || isPasskeyLoading || isPasswordLoading
-                  }
-                  onClick={() => {
-                    void signInWithPasskey();
-                  }}
-                />
-                <div role="status" aria-live="polite" aria-atomic="true">
-                  {isPasskeyLoading && (
-                    <p className="mt-3 text-center text-sm text-gray-600">
-                      {t(
-                        passkeyStage === "prompt"
-                          ? "login.passkey.waitingDescription"
-                          : passkeyStage === "verifying"
-                            ? "login.passkey.verifying"
-                            : "login.passkey.preparing",
-                      )}
-                    </p>
-                  )}
-                  {passkeyNotice && (
-                    <p className="mt-3 text-sm text-gray-600">
-                      {passkeyNotice}
-                    </p>
-                  )}
-                </div>
-                {(passkeyStage === "preparing" ||
-                  passkeyStage === "prompt") && (
-                  <div className="mt-3 text-center">
-                    <Button
-                      title={t("common.cancel")}
-                      buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                      dataTestId="cancel-passkey-login"
-                      onClick={cancelPasskeySignIn}
-                    />
-                  </div>
-                )}
-                {passkeyError && (
-                  <div
-                    role="alert"
-                    className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-800"
-                  >
-                    {passkeyError}
-                  </div>
-                )}
-                {!isPasskeySupported && (
-                  <p className="mt-3 text-sm text-gray-600">
-                    {t(
-                      window.isSecureContext === false
-                        ? "login.passkey.insecure"
-                        : "login.passkey.unsupported",
-                    )}
-                  </p>
-                )}
-                <details className="mt-3 text-sm text-gray-600">
-                  <summary className="w-fit cursor-pointer rounded-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
-                    {t("login.passkey.helpTitle")}
-                  </summary>
-                  <p className="mt-2 leading-6">{t("login.passkey.help")}</p>
-                </details>
-              </section>
-              <div className="relative mb-6">
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-sm text-gray-500">
-                    {t("login.passkey.passwordAlternative")}
-                  </span>
-                </div>
-              </div>
-              <fieldset disabled={isPasskeyLoading}>
                 <ModelForm<User>
                   modelType={User}
                   id="login-form"
                   name="Login"
                   disableAutofocus={true}
+                  initialValues={formStartValues}
                   fields={loginFields}
                   createOrUpdateApiUrl={apiUrl}
                   formType={FormType.Create}
@@ -1102,7 +1132,14 @@ const LoginPage: () => JSX.Element = () => {
                       throw new Error(t("login.passkey.inProgress"));
                     }
                     setPasskeyError("");
-                    setPasskeyNotice("");
+                    /*
+                     * What an attempt said is over once the form is used.
+                     * What this browser cannot do stays said, next to the
+                     * option it leaves unavailable.
+                     */
+                    if (isPasskeySupported) {
+                      setPasskeyNotice(null);
+                    }
                     if (isCaptchaEnabled) {
                       const captchaToken: string | undefined = (
                         miscDataProps["captchaToken"] as string | undefined
@@ -1194,24 +1231,176 @@ const LoginPage: () => JSX.Element = () => {
                   maxPrimaryButtonWidth={true}
                   footer={
                     /*
-                     * SSO login is part of the Enterprise Edition; a
-                     * Community Edition server does not serve it, so it
-                     * does not offer it either.
+                     * The other ways in that leave this page: single sign-on,
+                     * and Microsoft where this server offers it. Inside the
+                     * fieldset, so a passkey attempt pauses them with the
+                     * form; the passkey option, last, follows the fieldset.
                      */
-                    isSsoLoginOffered() ? (
-                      <div className="actions text-center mt-4 hover:underline fw-semibold">
-                        <div>
-                          <Link to={new Route("/accounts/sso")}>
-                            <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                              {t("login.useSso")}
-                            </div>
-                          </Link>
-                        </div>
+                    <div data-testid="sign-in-options">
+                      <LabelledDivider
+                        label={t("common.or")}
+                        className="my-5"
+                        dataTestId="sign-in-options-divider"
+                      />
+                      <div className="space-y-3">
+                        <SignInOptionLink
+                          to={new Route("/accounts/sso")}
+                          id="sso-login"
+                          dataTestId="sso-login"
+                          icon={IconProp.ShieldCheck}
+                          title={t("login.signInWithSso")}
+                        />
+                        {MicrosoftSignInClientId ? (
+                          <MicrosoftSignInButton
+                            title={t("login.signInWithMicrosoft")}
+                          />
+                        ) : (
+                          <></>
+                        )}
                       </div>
-                    ) : undefined
+                    </div>
                   }
                 />
               </fieldset>
+
+              {/*
+               * THE PASSKEY OPTION: the last of the other ways in, a button
+               * like the single sign-on one above it, not a panel over the
+               * form. Outside the fieldset above on purpose: the fieldset is
+               * disabled while a passkey attempt runs, and this button, its
+               * words saying what the attempt waits for, and its Cancel have
+               * to stay at full strength.
+               *
+               * Everything an attempt says - the device prompt, a cancel, a
+               * timeout, an error - appears right here, under the control
+               * that was clicked. "New to passkeys?" appears with those
+               * messages: it is for somebody whose attempt did not sign them
+               * in, typically because they have no passkey yet, and nobody
+               * else needs it on the page.
+               *
+               * A browser that cannot use passkeys (no WebAuthn, or a page
+               * not served over HTTPS) still shows the option, and says why
+               * it cannot work here when it is clicked: somebody whose only
+               * way in is a passkey learns to switch browsers, and nobody
+               * else reads a sentence about it on every visit. Once it has
+               * said so, it is drawn as unavailable (isPasskeyUnavailable).
+               */}
+              <div
+                className="mt-3 text-center text-sm"
+                data-testid="passkey-option"
+              >
+                <button
+                  type="button"
+                  id="passkey-login"
+                  data-testid="passkey-login"
+                  disabled={isPasskeyLoading || isPasswordLoading}
+                  /*
+                   * Not `disabled`: the option keeps the focus it was given
+                   * when it explained itself.
+                   */
+                  aria-disabled={isPasskeyUnavailable || undefined}
+                  onClick={() => {
+                    if (!isPasskeyUnavailable) {
+                      void signInWithPasskey();
+                    }
+                  }}
+                  className={getSignInOptionClassName(passkeyOptionState)}
+                >
+                  <SignInOptionLabel
+                    icon={
+                      <Icon
+                        icon={
+                          isPasskeyLoading
+                            ? IconProp.Spinner
+                            : IconProp.Fingerprint
+                        }
+                        className={`${SIGN_IN_OPTION_ICON_CLASS}${
+                          isPasskeyLoading ? " animate-spin" : ""
+                        }`}
+                        data-testid={
+                          isPasskeyLoading
+                            ? "passkey-login-spinner"
+                            : "passkey-login-fingerprint"
+                        }
+                      />
+                    }
+                    title={t(
+                      passkeyStageText
+                        ? passkeyStageText.option
+                        : isPasskeySupported && (passkeyError || passkeyNotice)
+                          ? "login.passkey.tryAgain"
+                          : "login.passkey.signIn",
+                    )}
+                  />
+                </button>
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  {passkeyStageText && (
+                    /*
+                     * Only the device prompt needs a line of its own; while
+                     * preparing and verifying, the button already says the
+                     * same words, so the line is there for screen readers.
+                     */
+                    <p
+                      className={
+                        passkeyStage === "prompt"
+                          ? "mt-2 text-balance text-gray-600"
+                          : "sr-only"
+                      }
+                    >
+                      {t(passkeyStageText.status)}
+                    </p>
+                  )}
+                  {passkeyNotice && (
+                    <p
+                      className="mt-2 text-balance text-gray-600"
+                      data-testid="passkey-notice"
+                    >
+                      {t(passkeyNotice)}
+                    </p>
+                  )}
+                </div>
+                {(passkeyStage === "preparing" ||
+                  passkeyStage === "prompt") && (
+                  <button
+                    type="button"
+                    data-testid="cancel-passkey-login"
+                    onClick={cancelPasskeySignIn}
+                    className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                  >
+                    {t("common.cancel")}
+                  </button>
+                )}
+                {passkeyError && (
+                  /*
+                   * The same alert the form shows at the top of the card for
+                   * a wrong password: one look for "that did not work",
+                   * wherever it happened.
+                   */
+                  <Alert
+                    type={AlertType.DANGER}
+                    title={passkeyError}
+                    className="mt-3 text-start"
+                    dataTestId="passkey-error"
+                  />
+                )}
+                {isPasskeySupported &&
+                  !isPasskeyLoading &&
+                  (passkeyNotice || passkeyError) && (
+                    <details
+                      className="mt-2 text-gray-600"
+                      data-testid="passkey-help"
+                    >
+                      <summary
+                        className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                      >
+                        {t("login.passkey.helpTitle")}
+                      </summary>
+                      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
+                        {t("login.passkey.help")}
+                      </p>
+                    </details>
+                  )}
+              </div>
             </>
           )}
 

@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -21,6 +22,8 @@ import Filter from "Common/UI/Components/Filters/Types/Filter";
 import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Search from "Common/Types/BaseDatabase/Search";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -195,12 +198,14 @@ function getMemoryBarColor(pct: number): string {
 const ResourceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showGroupColumn: boolean = props.showGroupColumn !== false;
   const groupColumnTitle: string = props.groupColumnTitle || "Group";
   const groupFallbackLabel: string = props.groupFallbackLabel || "-";
   const showStatus: boolean = props.showStatus !== false;
   const showResourceMetrics: boolean = props.showResourceMetrics !== false;
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -328,11 +333,22 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     return data;
   }, [props.resources, filterData, sortBy, sortOrder]);
 
+  /*
+   * The page above can refetch a shorter list, so clamp instead of trusting
+   * currentPage — otherwise the reader is stranded on a page past the end,
+   * staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
   // Paginate
   const paginatedData: Array<InfrastructureResource> = useMemo(() => {
-    const start: number = (currentPage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, currentPage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   const tableColumns: Array<Column<InfrastructureResource>> = [
     {
@@ -423,7 +439,11 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.cpuUtilization === null ||
             resource.cpuUtilization === undefined
           ) {
-            return <span className="text-gray-400">N/A</span>;
+            return (
+              <span className="text-gray-400">
+                {translator.translateText("N/A")}
+              </span>
+            );
           }
           const pct: number = Math.min(resource.cpuUtilization, 100);
           return (
@@ -451,7 +471,11 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.memoryUsageBytes === null ||
             resource.memoryUsageBytes === undefined
           ) {
-            return <span className="text-gray-400">N/A</span>;
+            return (
+              <span className="text-gray-400">
+                {translator.translateText("N/A")}
+              </span>
+            );
           }
 
           /*
@@ -553,6 +577,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
     actionButtons.push({
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
         resource: InfrastructureResource,
@@ -571,12 +596,16 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [];
 
   if (props.onRefreshClick) {
     cardButtons.push({
       ...getRefreshButton(),
-      className: "py-0 pr-0 pl-0 mt-1",
       onClick: props.onRefreshClick,
     });
   }
@@ -584,7 +613,6 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   cardButtons.push({
     title: "",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
     onClick: () => {
       setShowFilterModal(true);
     },
@@ -595,7 +623,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     <Card
       title={props.title}
       description={props.description}
-      buttons={cardButtons}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<InfrastructureResource>
         id={`${props.tableIdPrefix || "infrastructure"}-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}
@@ -606,11 +635,14 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         pluralLabel={props.title}
         isLoading={props.isLoading || false}
         error=""
-        currentPageNumber={currentPage}
+        currentPageNumber={effectivePage}
         totalItemsCount={processedData.length}
-        itemsOnPage={paginatedData.length}
-        onNavigateToPage={(page: number) => {
+        itemsOnPage={pageSize}
+        onNavigateToPage={(page: number, itemsOnPage: number) => {
           setCurrentPage(page);
+          if (itemsOnPage > 0) {
+            setPageSize(itemsOnPage);
+          }
         }}
         sortBy={sortBy as keyof InfrastructureResource | null}
         sortOrder={sortOrder}

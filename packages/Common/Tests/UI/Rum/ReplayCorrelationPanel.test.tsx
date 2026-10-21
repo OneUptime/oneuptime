@@ -1178,6 +1178,78 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
     expect(section).toHaveTextContent("app.css");
   });
 
+  /*
+   * github.com/OneUptime/oneuptime/issues/4119: the player now feeds this
+   * list with the recorded images and stylesheets that did not load in the
+   * viewer's browser, and a viewer looking at one needs to know why and
+   * what the site's owner can change.
+   */
+  it("says the missing assets did not load in this browser, and links to why", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      missingAssets: ["https://wbdynprod.powerappsportals.com/logo.png"],
+    });
+
+    const section: HTMLElement = screen.getByTestId(
+      "details-section-missing-assets",
+    );
+
+    expect(section).toHaveTextContent("did not load in your browser");
+
+    /*
+     * Found by the words on screen (WCAG 2.5.3, label in name): a voice
+     * control user says what they see, and an aria-label with other words
+     * would leave them nothing to say.
+     */
+    const docs: HTMLElement = within(section).getByRole("link", {
+      name: /^Why they go missing, and how to allow them \(opens in a new tab\)$/,
+    });
+
+    expect(docs).toHaveAttribute(
+      "data-testid",
+      "replay-details-missing-assets-docs",
+    );
+    expect(docs).not.toHaveAttribute("aria-label");
+    expect(docs.getAttribute("href")).toMatch(
+      /\/rum\/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay$/,
+    );
+    expect(docs).toHaveAttribute("target", "_blank");
+    expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+    expect(
+      screen.queryByTestId("replay-details-missing-assets-truncated"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says when more failed than the list holds", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      missingAssets: [
+        "https://h0.flood.example/x.png",
+        "https://h1.flood.example/x.png",
+      ],
+      areMissingAssetsTruncated: true,
+    });
+
+    expect(
+      screen.getByTestId("replay-details-missing-assets-truncated"),
+    ).toHaveTextContent("More failed than this; only the first 2 are listed.");
+  });
+
+  it("counts missing assets on the Fidelity tab with the gaps and notices", () => {
+    renderPanel({
+      activeTabId: "session",
+      fidelityNotices: [SessionReplayFidelityNotice.StylesheetInaccessible],
+      missingAssets: [
+        "https://content.powerapps.com/img/web.png",
+        "https://content.powerapps.com/img/close.png",
+      ],
+    });
+
+    expect(
+      within(screen.getByRole("tab", { name: /^Fidelity/ })).getByText("3"),
+    ).toBeInTheDocument();
+  });
+
   it("explains why the recording ended from the sealed reason", () => {
     renderPanel({
       activeTabId: "fidelity",

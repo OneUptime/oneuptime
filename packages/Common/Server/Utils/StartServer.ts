@@ -45,6 +45,8 @@ import {
   UnitOfWork,
 } from "../../Types/Telemetry/UnitOfWork";
 import mountVendorAssets from "./VendorAssets";
+import RequestTransport from "./RequestTransport";
+import StartupGate from "./StartupGate";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -138,7 +140,7 @@ const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded(
   urlEncodedBodyParserOptions,
 ); // 50 MB limit.
 
-const setDefaultHeaders: RequestHandler = (
+export const setDefaultHeaders: RequestHandler = (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
@@ -180,6 +182,19 @@ const setDefaultHeaders: RequestHandler = (
    * /file, so set it here for everything the app itself serves.
    */
   res.header("X-Content-Type-Options", "nosniff");
+
+  /*
+   * An installation served over HTTPS tells browsers to reach its own
+   * address over HTTPS only (RequestTransport says when, and for how long),
+   * so a browser that has been here never sends a request - or the cookies
+   * that go with it - over plain HTTP again.
+   */
+  const strictTransportSecurity: string | null =
+    RequestTransport.getStrictTransportSecurity(req);
+
+  if (strictTransportSecurity) {
+    res.header("Strict-Transport-Security", strictTransportSecurity);
+  }
 
   next();
 };
@@ -235,6 +250,21 @@ export const isProtobufContentType: (
   return PROTOBUF_CONTENT_TYPES.includes(mediaType);
 };
 
+/*
+ * The Vercel log drain (/vercel/v1/logs, also under /telemetry) reads its
+ * body raw: the signature it checks is over the bytes Vercel sent, which a
+ * body parser would not give back. Matched on the path's end, so the
+ * Vercel Marketplace provider API under /api/marketplace/vercel/v1/ is
+ * parsed as JSON as usual.
+ */
+export const isVercelLogDrainPath: (path: string) => boolean = (
+  path: string,
+): boolean => {
+  return (
+    path === "/vercel/v1/logs" || path.endsWith("/telemetry/vercel/v1/logs")
+  );
+};
+
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
   type: PROTOBUF_CONTENT_TYPES,
   limit: "50mb",
@@ -254,7 +284,8 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    */
   if (
     req.path.includes("/otlp/v1/") ||
-    req.path.includes("/session-replay/v1/")
+    req.path.includes("/session-replay/v1/") ||
+    isVercelLogDrainPath(req.path)
   ) {
     return next();
   }
@@ -293,6 +324,7 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   if (
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
+    isVercelLogDrainPath(req.path) ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();
@@ -356,6 +388,20 @@ export interface InitFuctionOptions {
   port?: Port | undefined;
   isFrontendApp?: boolean;
   statusOptions: StatusAPIOptions;
+  /*
+   * Answer 503 with Retry-After for every route mounted after this call
+   * until StartupGate.open() is called - for a service that keeps mounting
+   * routes for a while after it starts listening (the App). The status
+   * routes are mounted first and keep answering. See StartupGate.
+   */
+  useStartupGate?: boolean | undefined;
+  /*
+   * Whether this process reads or writes data protected by ENCRYPTION_SECRET.
+   * The Runner does not: it reaches the server over its API and is never
+   * handed the secret, so it passes false and does not repeat a warning about
+   * a value it never holds (one setting the secret would not silence there).
+   */
+  usesEncryptionSecret?: boolean | undefined;
   getVariablesToRenderIndexPage?: (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -378,8 +424,10 @@ const init: InitFunction = async (
    * will see it. EnvironmentConfig computes the message but cannot log it
    * (Logger depends on EnvironmentConfig), so the entrypoint does.
    */
-  if (EncryptionSecretWarning) {
-    logger.warn(EncryptionSecretWarning);
+  if (data.usesEncryptionSecret !== false) {
+    if (EncryptionSecretWarning) {
+      logger.warn(EncryptionSecretWarning);
+    }
   }
 
   await Express.launchApplication(appName, port);
@@ -396,6 +444,15 @@ const init: InitFunction = async (
    * a stylesheet.
    */
   mountVendorAssets(app);
+
+  /*
+   * After the status routes and the vendor assets, before everything the
+   * service mounts later: those answer "starting" until the service opens
+   * the gate.
+   */
+  if (data.useStartupGate) {
+    app.use(StartupGate.middleware);
+  }
 
   if (isFrontendApp) {
     app.use(ExpressStatic("/usr/src/app/public"));

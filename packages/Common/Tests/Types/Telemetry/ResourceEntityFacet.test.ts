@@ -41,6 +41,7 @@ const NEWLY_FILTERABLE_KEYS: Array<string> = [
   "proxmoxClusterId",
   "vmwareVCenterId",
   "cephClusterId",
+  "storageArrayId",
   "serverlessFunctionId",
   "cloudResourceId",
   "rumApplicationId",
@@ -87,7 +88,7 @@ describe("ResourceEntityFacet", () => {
       expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual([
         ...RESOURCE_FACET_CATALOG_KEYS,
       ]);
-      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(13);
+      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(14);
     });
 
     test("the non-Service group is a copy, not the catalog's own array", () => {

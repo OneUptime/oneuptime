@@ -22,6 +22,10 @@
     "label": "Lingua",
     "switchLanguage": "Cambia lingua"
   },
+  "theme": {
+    "switchToDark": "Passa al tema scuro",
+    "switchToLight": "Passa al tema chiaro"
+  },
   "nav": {
     "overview": "Panoramica",
     "incidents": "Incidenti",
@@ -125,7 +129,27 @@
     "noneDescription": "Nessun evento pianificato pubblicato per questa pagina di stato.",
     "scheduledAt": "Pianificato per ",
     "report": "Rapporto evento pianificato",
-    "notFound": "Nessun evento pianificato trovato per questa pagina di stato."
+    "notFound": "Nessun evento pianificato trovato per questa pagina di stato.",
+    "calendar": {
+      "subscribe": "Iscriviti al calendario",
+      "subscribeTitle": "Iscriviti alle manutenzioni programmate",
+      "subscribeDescription": "Ricevi le manutenzioni programmate di questa pagina nella tua app di calendario. Si aggiorna da sola.",
+      "eventTitle": "Aggiungi al calendario",
+      "eventDescription": "Aggiungi questa manutenzione alla tua app di calendario.",
+      "addToCalendar": "Aggiungi al calendario",
+      "addHeading": "Aggiungi al tuo calendario",
+      "google": "Google Calendar",
+      "googleHint": "Apre Google Calendar in una nuova scheda",
+      "device": "Calendario Apple / Outlook",
+      "deviceHint": "Apre l'app di calendario di questo dispositivo",
+      "deviceFileHint": "Scarica la manutenzione per l'app di calendario di questo dispositivo",
+      "copyHeading": "Oppure copia il link",
+      "copyHint": "Incollalo in qualsiasi app di calendario che possa iscriversi a un calendario tramite URL.",
+      "copy": "Copia link",
+      "copied": "Copiato!",
+      "done": "Fatto",
+      "refreshNote": "Le app di calendario controllano le modifiche con i propri tempi, quindi un aggiornamento può richiedere qualche ora per comparire."
+    }
   },
   "subscribe": {
     "title": "Iscriviti",
@@ -151,7 +175,9 @@
       "placeholder": "iscritto@azienda.it",
       "managePrompt": "Inserisci l'e-mail con cui ti sei iscritto",
       "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo indirizzo e-mail.",
-      "managePlaceholder": "email@tuaazienda.it"
+      "managePlaceholder": "email@tuaazienda.it",
+      "signedInEmailDescription": "Ti iscrivi con l'indirizzo email con cui accedi.",
+      "signInToSubscribe": "Accedi a questa pagina di stato per iscriverti."
     },
     "sms": {
       "title": "Iscriviti via SMS",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "Il tuo numero di telefono",
       "placeholder": "+393123456789",
       "managePrompt": "Inserisci il numero di telefono con cui ti sei iscritto",
-      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo numero di telefono."
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo numero di telefono.",
+      "confirmationSent": "Abbiamo inviato un SMS a questo numero di telefono. Apri il link che contiene per confermare l'iscrizione."
     },
     "slack": {
       "title": "Iscriviti via Slack",
@@ -210,11 +237,48 @@
       "saved": "Le tue modifiche sono state salvate.",
       "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
-      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
+      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse.",
+      "linkNotValid": "Questo link per gestire la tua iscrizione è scaduto o non è valido. Per riceverne uno nuovo, usa «Gestisci iscrizione esistente» nella pagina «Iscriviti».",
+      "getNewLink": "Ricevi un nuovo link",
+      "loadFailed": "Impossibile caricare questo link. Riprova più tardi."
     },
     "confirm": {
       "title": "Conferma iscrizione",
-      "success": "Iscrizione confermata con successo"
+      "success": "Iscrizione confermata con successo",
+      "linkNotValid": "Questo link per confermare la tua iscrizione è scaduto o non è valido. Un link funziona per 24 ore dall'invio. Per riceverne uno nuovo, iscriviti di nuovo.",
+      "subscribeAgain": "Iscriviti di nuovo"
+    },
+    "unsubscribe": {
+      "title": "Annulla iscrizione",
+      "titleWithName": "Annulla l'iscrizione a {{statusPageName}}",
+      "confirmPrompt": "Vuoi smettere di ricevere notifiche da questa pagina di stato?",
+      "channelEmail": "Indirizzo email",
+      "channelSms": "Numero di telefono",
+      "channelSlack": "Workspace Slack",
+      "channelMicrosoftTeams": "Workspace Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Questa iscrizione è stata aggiunta dal team che gestisce questa pagina di stato. Se si tratta di un indirizzo condiviso, come una mailing list, annullandola queste notifiche non arriveranno più a nessuno di chi le riceve, e il team ne sarà informato.",
+      "confirmButton": "Annulla iscrizione",
+      "manageInstead": "Scegli invece quali notifiche ricevere",
+      "manageSubscription": "Gestisci la tua iscrizione",
+      "success": "La tua iscrizione è stata annullata. Non riceverai più notifiche da questa pagina di stato.",
+      "alreadyUnsubscribed": "Questa iscrizione è già stata annullata. Non ricevi notifiche da questa pagina di stato.",
+      "outOfDateLink": "Questo link per annullare l'iscrizione non è più valido. Per annullare l'iscrizione, usa il link in un messaggio recente di questa pagina di stato.",
+      "invalidLink": "Questo link per annullare l'iscrizione non è valido. Potrebbe essere incompleto, oppure l'iscrizione potrebbe essere stata rimossa. Per annullare l'iscrizione, usa il link in un messaggio recente di questa pagina di stato.",
+      "failed": "Impossibile annullare l'iscrizione. Riprova.",
+      "loadFailed": "Impossibile caricare questo link per annullare l'iscrizione. Riprova più tardi."
+    },
+    "preferences": {
+      "title": "Preferenze",
+      "description": "Scegli di cosa vuoi essere informato.",
+      "summary": {
+        "everything": "Riceverai tutti gli aggiornamenti di questa pagina di stato.",
+        "pickedResources": "Riceverai solo gli aggiornamenti sulle risorse che hai scelto.",
+        "pickedEventTypes": "Riceverai solo gli aggiornamenti dei tipi di eventi che hai scelto.",
+        "pickedResourcesAndEventTypes": "Riceverai solo gli aggiornamenti sulle risorse e sui tipi di eventi che hai scelto.",
+        "noResources": "Non hai ancora scelto nessuna risorsa.",
+        "noEventTypes": "Non hai ancora scelto nessun tipo di evento."
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
-      "useSSO": "Usa il Single Sign-On (SSO) invece"
+      "or": "oppure",
+      "logInWithSso": "Accedi con SSO"
     },
     "sso": {
       "title": "Accedi con SSO",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} non deve essere minore di {{minValue}}.",
   "{{field}} is required.": "{{field}} è obbligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} deve corrispondere a {{matchField}}",
-  "Email is not valid.": "L'email non è valida."
+  "Email is not valid.": "L'email non è valida.",
+  "Next": "Avanti",
+  "Opens in a new tab": "Si apre in una nuova scheda",
+  "Note": "Nota",
+  "Tip": "Suggerimento",
+  "Info": "Info",
+  "Important": "Importante",
+  "Warning": "Avviso",
+  "Caution": "Attenzione",
+  "Danger": "Pericolo"
 }

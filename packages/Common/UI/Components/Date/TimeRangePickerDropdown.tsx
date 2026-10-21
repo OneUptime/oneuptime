@@ -18,12 +18,29 @@ import {
   getDropdownAlignmentClassName,
   useDropdownHorizontalAlignment,
 } from "../../Utils/DropdownAlignment";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../Table/TableHeaderControls";
 import CustomTimeRangeModal from "./CustomTimeRangeModal";
 
 export interface TimeRangePickerPresetOption {
   range: TimeRange;
   label: string;
+}
+
+/*
+ * How big the picker's button is drawn.
+ *
+ * Compact is the small chip an explorer's toolbar and an overview page's
+ * header hold, beside other chips of its size. Header is as tall as a card
+ * header's buttons - 42px on a phone, 38px from md up - for a table that
+ * keeps its time range in its header, beside its search and its ⋯: there a
+ * chip sat a size smaller than everything around it.
+ */
+export enum TimeRangePickerSize {
+  Compact = "compact",
+  Header = "header",
 }
 
 export interface ComponentProps {
@@ -35,9 +52,50 @@ export interface ComponentProps {
    */
   dataTestIdPrefix: string;
   dropdownWidthInPx: number;
+  // Compact unless said otherwise.
+  size?: TimeRangePickerSize | undefined;
 }
 
-export const CUSTOM_RANGE_OPTION_LABEL: string = "Custom Range...";
+// The button's box at each size; its colours follow whether it is open.
+export const TIME_RANGE_PICKER_BUTTON_CLASS_NAMES: Record<
+  TimeRangePickerSize,
+  string
+> = {
+  [TimeRangePickerSize.Compact]:
+    "inline-flex max-w-full items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors",
+  [TimeRangePickerSize.Header]: `inline-flex max-w-full items-center gap-2 rounded-md border px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} text-sm font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`,
+};
+
+/*
+ * At rest, the header-sized button wears the border a card's buttons and its
+ * ⋯ wear (gray-300); the chip keeps its lighter one.
+ */
+const TIME_RANGE_PICKER_RESTING_CLASS_NAMES: Record<
+  TimeRangePickerSize,
+  string
+> = {
+  [TimeRangePickerSize.Compact]:
+    "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+  [TimeRangePickerSize.Header]:
+    "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+};
+
+const TIME_RANGE_PICKER_ICON_CLASS_NAMES: Record<TimeRangePickerSize, string> =
+  {
+    [TimeRangePickerSize.Compact]: "h-3.5 w-3.5",
+    [TimeRangePickerSize.Header]: "h-4 w-4 text-gray-500",
+  };
+
+const TIME_RANGE_PICKER_CHEVRON_CLASS_NAMES: Record<
+  TimeRangePickerSize,
+  string
+> = {
+  [TimeRangePickerSize.Compact]: "h-3 w-3",
+  [TimeRangePickerSize.Header]: "h-4 w-4 text-gray-400",
+};
+
+export const CUSTOM_RANGE_OPTION_LABEL: string =
+  translationKey("Custom Range...");
 
 // Preset options to show in the dropdown, ordered shortest window first.
 export const TIME_RANGE_PRESET_OPTIONS: Array<TimeRangePickerPresetOption> = [
@@ -66,6 +124,18 @@ function formatDateShort(date: Date): string {
   return OneUptimeDate.getDateAsLocalShortDateTimeString(date);
 }
 
+/*
+ * A range's English label: its preset's ("Past 5 Minutes"), or the range
+ * itself ("Custom"). Look it up in the reader's language where it is shown.
+ */
+export function getTimeRangeLabel(range: TimeRange): string {
+  const preset: TimeRangePickerPresetOption | undefined =
+    TIME_RANGE_PRESET_OPTIONS.find((opt: TimeRangePickerPresetOption) => {
+      return opt.range === range;
+    });
+  return preset ? preset.label : range;
+}
+
 export function getTimeRangeButtonLabel(
   value: RangeStartAndEndDateTime,
 ): string {
@@ -75,16 +145,13 @@ export function getTimeRangeButtonLabel(
     return `${start} – ${end}`;
   }
 
-  const preset: TimeRangePickerPresetOption | undefined =
-    TIME_RANGE_PRESET_OPTIONS.find((opt: TimeRangePickerPresetOption) => {
-      return opt.range === value.range;
-    });
-  return preset ? preset.label : value.range;
+  return getTimeRangeLabel(value.range);
 }
 
 const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   /*
    * The custom window is edited in a modal rather than inline in this panel.
@@ -155,29 +222,46 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
   }, [props.value]);
 
   const buttonLabel: string = getTimeRangeButtonLabel(props.value);
+  const size: TimeRangePickerSize = props.size || TimeRangePickerSize.Compact;
 
+  /*
+   * In a row too narrow for a custom range's two dates (a phone), the
+   * label is cut short rather than the row running off the screen; the
+   * whole custom range is the button's tooltip.
+   */
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0 max-w-full">
       <button
         ref={buttonRef}
         type="button"
         data-testid={`${props.dataTestIdPrefix}-button`}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+        title={
+          props.value.range === TimeRange.CUSTOM
+            ? translator.translateText(buttonLabel)
+            : undefined
+        }
+        data-size={size}
+        className={`${TIME_RANGE_PICKER_BUTTON_CLASS_NAMES[size]} ${
           isOpen
             ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+            : TIME_RANGE_PICKER_RESTING_CLASS_NAMES[size]
         }`}
         onClick={() => {
           setIsOpen(!isOpen);
         }}
       >
-        <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-        <span>{buttonLabel}</span>
+        <Icon
+          icon={IconProp.Clock}
+          className={`${TIME_RANGE_PICKER_ICON_CLASS_NAMES[size]} shrink-0`}
+        />
+        <span className="min-w-0 truncate">
+          {translator.translateText(buttonLabel)}
+        </span>
         <Icon
           icon={IconProp.ChevronDown}
-          className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`${TIME_RANGE_PICKER_CHEVRON_CLASS_NAMES[size]} shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -209,7 +293,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
                       handlePresetSelect(option.range);
                     }}
                   >
-                    {option.label}
+                    {translator.translateText(option.label)}
                   </button>
                 );
               },
@@ -226,7 +310,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
               }`}
               onClick={openCustomModal}
             >
-              {CUSTOM_RANGE_OPTION_LABEL}
+              {translator.translateText(CUSTOM_RANGE_OPTION_LABEL)}
             </button>
           </div>
         </div>

@@ -11,20 +11,26 @@ import TelemetryIngestSurface, {
  *
  * TelemetryIngest (the Express middleware) runs these inline as part of a
  * longer chain that also covers the Origin allowlist and the per-key rate
- * limit, neither of which means anything off HTTP. Everything else that
- * accepts a TelemetryIngestionKey - the gRPC OTLP server, the MQTT broker,
- * and the two key-validation probes - is NOT an Express route and cannot use
- * that middleware, yet must answer these same three questions or a disabled
- * key keeps working on the pipe nobody remembered to update.
+ * limit, neither of which means anything off HTTP. Other places that accept a
+ * TelemetryIngestionKey cannot use that middleware - the gRPC OTLP server and
+ * the MQTT broker are not Express routes, and the two key-validation probes
+ * have to describe a refusal in their own JSON answer rather than let the
+ * middleware end the request - yet must answer these same three questions or
+ * a disabled key keeps working on the pipe nobody remembered to update.
  *
  * The refusal SENTENCES are deliberately identical to the middleware's, so a
- * customer who moves the same key between HTTP, gRPC and MQTT reads the same
- * explanation each time rather than three differently-worded versions of one
- * problem. If you change wording here, change it there too.
+ * customer who moves the same key between OTLP/HTTP and OTLP/gRPC reads the
+ * same explanation on both: gRPC sends `message` back as its status details,
+ * and the session replay probe returns it in its JSON body. MQTT cannot carry
+ * it - an MQTT 3.1.1 CONNACK has no reason field - so the broker logs
+ * `reason` and the device sees only a generic credential error. If you change
+ * wording here, change it in the middleware too;
+ * GrpcServerAuthStatusLive.test.ts compares the two and fails on drift.
  *
  * What this deliberately does NOT do is decide the transport-level response.
- * A refusal is a status code on HTTP, a CONNACK return code on MQTT, and a
- * silent success on gRPC (see GrpcServer for why); each caller owns that
+ * A refusal is an HTTP status, a non-retryable gRPC status (UNAUTHENTICATED
+ * or PERMISSION_DENIED, mapped from the middleware's HTTP status - see
+ * GrpcServer), or MQTT CONNACK return code 4; each caller owns that
  * translation because each transport's retry semantics are its own.
  */
 export enum TelemetryIngestionKeyRefusalReason {

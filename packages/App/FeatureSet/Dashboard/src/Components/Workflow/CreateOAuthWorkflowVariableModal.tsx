@@ -4,6 +4,11 @@
  * the kind almost everybody wants - so this form is the one place that asks
  * for a token URL, a client ID and credentials, and it never asks which kind of
  * variable it is creating: it stamps OAuth 2.0 itself before it saves.
+ *
+ * It walks four steps (OAUTH_VARIABLE_FORM_STEPS): Variable, Provider,
+ * Credentials and Advanced. Picking an identity provider fills in its token
+ * URL; the provider itself is a form-only field, never sent, so the variable
+ * is created exactly as before the form had steps.
  */
 
 import React, { FunctionComponent, ReactElement } from "react";
@@ -38,7 +43,7 @@ const CreateOAuthWorkflowVariableModal: FunctionComponent<ComponentProps> = (
       modelType={WorkflowVariable}
       title="Create OAuth 2.0 Variable"
       name="Workflow > Create OAuth 2.0 Variable"
-      description="OneUptime fetches an access token from your identity provider and fetches a new one whenever a workflow is about to use an expired token. Workflows use the variable like any other, for example as a bearer token."
+      description="OneUptime fetches an access token from your identity provider, and a new one when it expires. Workflows use it like any other variable."
       modalWidth={ModalWidth.Medium}
       submitButtonText="Create OAuth 2.0 Variable"
       onClose={props.onClose}

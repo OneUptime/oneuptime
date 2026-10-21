@@ -4,22 +4,9 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>About OneUptime | Open Source Observability Platform</title>
-    <meta name="description" content="OneUptime is the open source observability platform replacing Datadog, PagerDuty, and Statuspage. Apache 2.0 licensed. Built by developers, for developers. Join 6,000+ GitHub stars.">
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="About OneUptime | Open Source Observability Platform">
-    <meta property="og:description" content="OneUptime is the open source observability platform replacing Datadog, PagerDuty, and Statuspage. Apache 2.0 licensed. Built by developers, for developers.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://oneuptime.com/about">
-    <meta property="og:image" content="https://oneuptime.com/img/og-image.png">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="About OneUptime | Open Source Observability Platform">
-    <meta name="twitter:description" content="Learn about OneUptime's mission to democratize observability. We're building an open-source platform that helps teams monitor, debug, and resolve issues faster.">
-    <meta name="twitter:image" content="https://oneuptime.com/img/og-image.png">
-
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
+    <%# Open Graph and Twitter tags come from head-social.ejs, built from seo. -%>
     <%- include('head', {
         enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
     }) -%>
@@ -90,6 +77,7 @@
 
 
     </style>
+    <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -120,7 +108,7 @@
 
                         <!-- Main headline -->
                         <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-                            Building the Future of<br class="hidden sm:block" />
+                            Building the Future of<br class="max-sm:hidden sm:block" />
                             <span class="text-gray-700">Observability</span>
                         </h1>
 
@@ -290,12 +278,12 @@
                             <p class="text-4xl font-bold text-gray-900"><%= contributors.length %>+</p>
                             <p class="text-sm text-gray-500 mt-1">Contributors</p>
                         </div>
-                        <div class="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                        <div class="h-12 w-px bg-gray-200 max-sm:hidden sm:block"></div>
                         <div class="text-center">
                             <p class="text-4xl font-bold text-gray-900"><%= contributors.reduce((sum, c) => sum + (c.contributions || 0), 0).toLocaleString() %></p>
                             <p class="text-sm text-gray-500 mt-1">Total Commits</p>
                         </div>
-                        <div class="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                        <div class="h-12 w-px bg-gray-200 max-sm:hidden sm:block"></div>
                         <div class="text-center">
                             <p class="text-4xl font-bold text-gray-900">24/7</p>
                             <p class="text-sm text-gray-500 mt-1">Global Coverage</p>
@@ -443,8 +431,8 @@
                                 We see you.
                             </p>
                             <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                The late nights and early mornings.<br class="hidden sm:block" />
-                                The countless iterations no one will ever see.<br class="hidden sm:block" />
+                                The late nights and early mornings.<br class="max-sm:hidden sm:block" />
+                                The countless iterations no one will ever see.<br class="max-sm:hidden sm:block" />
                                 The persistence when it would be easier to stop.
                             </p>
                         </div>
@@ -455,8 +443,8 @@
                                 We believe in you.
                             </p>
                             <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                In your vision. In your craft.<br class="hidden sm:block" />
-                                In the fire that made you start<br class="hidden sm:block" />
+                                In your vision. In your craft.<br class="max-sm:hidden sm:block" />
+                                In the fire that made you start<br class="max-sm:hidden sm:block" />
                                 and the resolve that keeps you going.
                             </p>
                         </div>
@@ -467,8 +455,8 @@
                                 We build alongside you.
                             </p>
                             <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                Shoulder to shoulder. As builders ourselves,<br class="hidden sm:block" />
-                                who understand what it takes<br class="hidden sm:block" />
+                                Shoulder to shoulder. As builders ourselves,<br class="max-sm:hidden sm:block" />
+                                who understand what it takes<br class="max-sm:hidden sm:block" />
                                 to ship something that matters.
                             </p>
                         </div>

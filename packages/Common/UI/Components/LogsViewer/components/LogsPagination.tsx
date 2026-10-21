@@ -9,6 +9,22 @@ export interface LogsPaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   isDisabled?: boolean;
+  /*
+   * Set while the list loads with no rows on screen yet - the first page,
+   * or a list that waits for a saved view to apply (issue #4709). The
+   * summary then says "Loading..." rather than "No logs", which would
+   * contradict the loader over the rows. Rows already on screen keep their
+   * range while the next page loads: they are what the reader sees.
+   */
+  isLoading?: boolean | undefined;
+  /*
+   * Set when `totalItems` is not a total but the lower bound the logs list
+   * endpoint answers with: the footer then pages forward while more logs
+   * follow, and prints no "of N" and no page numbers it cannot know.
+   */
+  hasMore?: boolean | undefined;
+  // Logs this page rendered, so the printed range never runs past them.
+  itemsOnCurrentPage?: number | undefined;
 }
 
 /**
@@ -28,9 +44,11 @@ const LogsPagination: FunctionComponent<LogsPaginationProps> = (
       totalItemsCount={props.totalItems}
       itemsOnPage={props.pageSize}
       itemsOnPageOptions={props.pageSizeOptions}
+      hasMore={props.hasMore}
+      itemsOnCurrentPage={props.itemsOnCurrentPage}
       isCompact={true}
       className="bg-gray-50/50"
-      isLoading={false}
+      isLoading={Boolean(props.isLoading)}
       isError={false}
       isDisabled={Boolean(props.isDisabled)}
       onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {

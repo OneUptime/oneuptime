@@ -4,6 +4,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
 
 /*
  * Pure, React-free data helpers for the trace chart widget. Kept out of the
@@ -57,10 +58,33 @@ export interface TraceSeriesColorOptions {
 }
 
 /*
+ * A chart split by span status gets one series per stored status value,
+ * "0" / "1" / "2" (Unset / Ok / Error).
+ */
+const STATUS_SPLIT_ATTRIBUTE: string = "statusCode";
+const STATUS_SERIES_KEYS: ReadonlySet<string> = new Set<string>([
+  "0",
+  "1",
+  "2",
+]);
+
+function isStatusSeries(
+  seriesKey: string,
+  groupByAttribute: string | undefined,
+): boolean {
+  return (
+    groupByAttribute?.trim() === STATUS_SPLIT_ATTRIBUTE &&
+    STATUS_SERIES_KEYS.has(seriesKey)
+  );
+}
+
+/*
  * Resolve the color for one series, mirroring the metric Chart widget: a
  * per-series pin wins first, then the effective palette by series position —
  * the lead `color` heads the palette, so a single-series chart with only a
- * lead color renders exactly that color.
+ * lead color renders exactly that color. A status split is the exception to
+ * the palette: each status keeps its own color (Error red, Unset green, Ok
+ * cyan), where going by position could paint Error green.
  */
 export function resolveTraceSeriesColor(
   seriesKey: string,
@@ -75,10 +99,27 @@ export function resolveTraceSeriesColor(
       return pinned;
     }
   }
+  if (isStatusSeries(seriesKey, groupBy)) {
+    return getSpanStatusPresentation(seriesKey).color;
+  }
   const palette: Array<string> = options.color
     ? [options.color, ...TRACE_CHART_PALETTE]
     : TRACE_CHART_PALETTE;
   return palette[index % palette.length]!;
+}
+
+/*
+ * Legend and tooltip text for one series. A status split comes back as the
+ * raw stored value, so name it; every other series key is shown as is.
+ */
+export function formatTraceSeriesLabel(
+  seriesKey: string,
+  groupByAttribute: string | undefined,
+): string {
+  if (isStatusSeries(seriesKey, groupByAttribute)) {
+    return getSpanStatusPresentation(seriesKey).displayLabel;
+  }
+  return seriesKey;
 }
 
 /*

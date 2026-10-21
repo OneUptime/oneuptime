@@ -3,7 +3,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -20,8 +20,9 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -52,6 +53,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -67,19 +71,14 @@ export class Service extends DatabaseService<Model> {
       deleteBy.query,
       deleteBy.props,
     );
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         incidentEpisodeId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -133,7 +132,8 @@ export class Service extends DatabaseService<Model> {
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Episode ${episodeNumberDisplay}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Episode ${episodeNumberDisplay}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -176,12 +176,11 @@ export class Service extends DatabaseService<Model> {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** to the [Episode ${episodeNumberDisplay}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) as the owner.`,
+          })}** to the [Episode ${episodeNumberDisplay}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) as the owner.`.toString(),
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -221,6 +220,9 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             workspaceChannels: episode.postUpdatesToWorkspaceChannels || [],
             userIds: [userId],
+            notificationFor: {
+              incidentEpisodeId: incidentEpisodeId,
+            },
           },
         ).catch((error: Error) => {
           logger.error(error);

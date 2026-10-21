@@ -15,6 +15,9 @@ import PodmanHostContainers from "../Pages/Podman/View/Containers";
 import PodmanHostContainerDetail from "../Pages/Podman/View/ContainerDetail";
 import PodmanHostMetrics from "../Pages/Podman/View/Metrics";
 import PodmanHostRecommendations from "../Pages/Podman/View/Recommendations";
+import PodmanHostAiInsights from "../Pages/Podman/View/AI/Insights";
+import PodmanHostAiLogs from "../Pages/Podman/View/AI/Logs";
+import PodmanHostAiAgent from "../Pages/Podman/View/AI/Agent";
 import PodmanHostLogs from "../Pages/Podman/View/Logs";
 import PodmanHostTraces from "../Pages/Podman/View/Traces";
 import PodmanHostProfiles from "../Pages/Podman/View/Profiles";
@@ -32,6 +35,9 @@ import PodmanSettingsLabelRules from "../Pages/Podman/Settings/LabelRules";
 import PodmanArchived from "../Pages/Podman/Archived";
 import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
 import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const PodmanRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -108,6 +114,13 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: PodmanHost,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.PODMAN_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -164,6 +177,48 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <PodmanHostAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <PodmanHostAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <PodmanHostAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_AI_AGENT] as Route}
             />
           }
         />
@@ -322,6 +377,12 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: PodmanHost,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

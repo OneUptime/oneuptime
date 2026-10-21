@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | One Complete Observability platform. </title>
-  <meta name="description"
-    content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <style>
@@ -606,6 +606,21 @@
           </div>
         </div>
 
+        <%#
+          OneUptime Cloud on the cloud marketplaces, for buyers who pay through
+          their cloud provider: only the listings that are public
+          (Utils/CloudMarketplaces.ts), and no line while there is none.
+        -%>
+        <% if (typeof cloudMarketplaces !== 'undefined' && cloudMarketplaces.publicListings.cloud.length > 0) { -%>
+        <div class="mx-auto mt-10 max-w-5xl" data-testid="pricing-cloud-marketplaces">
+          <p class="text-balance text-center text-sm leading-6 text-gray-600">
+            Prefer to pay on your cloud bill? Buy <span class="whitespace-nowrap">OneUptime Cloud</span> on
+            <% cloudMarketplaces.publicListings.cloud.forEach(function (link) { %><%= link.separator %><a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= cloudMarketplaces.ctaName %>" class="whitespace-nowrap font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= link.name %><span class="sr-only"> (opens in a new tab)</span></a><% }); %>, at the same prices.
+            <a href="<%= cloudMarketplaces.sectionPath %>" class="whitespace-nowrap font-medium text-gray-900 hover:text-gray-600">See every marketplace <span aria-hidden="true">&rarr;</span></a>
+          </p>
+        </div>
+        <% } -%>
+
         <!-- Pay As You Go Section -->
         <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:max-w-none">
           <div class="p-6 sm:p-8">
@@ -938,7 +953,7 @@
                   </div>
                   <div class="ml-3">
                     <h3 class="text-sm font-semibold text-gray-900">Bring Your Own LLM Provider</h3>
-                    <p class="mt-1 text-sm text-gray-600">Connect your own LLM provider (OpenAI, Anthropic, or others) and pay nothing to OneUptime for AI features. You only pay your provider directly at their rates.</p>
+                    <p class="mt-1 text-sm text-gray-600">On the Growth plan and above, connect your own LLM provider (OpenAI, Anthropic, or others) and OneUptime charges nothing for the tokens it uses. You only pay your provider directly at their rates.</p>
                   </div>
                 </div>
               </div>
@@ -1375,7 +1390,7 @@
           </div>
 
           <!-- lg+ -->
-          <div class="hidden lg:block">
+          <div class="max-lg:hidden lg:block">
             <table class="h-px w-full table-fixed">
               <caption class="sr-only">
                 Pricing plan comparison
@@ -1717,6 +1732,24 @@
                 </dt>
                 <dd class="mt-2 pr-12" id="faq-0">
                   <p class="text-base leading-7 text-gray-600">Annual billing is discounted against monthly billing &mdash; the annual price for each plan is shown in the table above. You can upgrade an existing plan to annual billing at any time. Volume discounts are available on high monitor counts, high telemetry ingest, and extended retention; contact us for a written quote.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">What happens to API keys and SCIM if I move to a lower
+                      plan?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">API keys need the Growth plan and SCIM provisioning needs
+                    the Scale plan. On a lower plan, requests made with your API keys are refused, and your identity
+                    provider can only remove people through SCIM: adding or changing people is refused until you
+                    upgrade again. Nothing is deleted &mdash; both work fully again as they are as soon as you are back
+                    on the plan.</p>
                 </dd>
               </div>
             </dl>

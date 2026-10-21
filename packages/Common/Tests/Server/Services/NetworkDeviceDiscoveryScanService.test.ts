@@ -22,6 +22,19 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test: a discovery scan cannot be saved with a target the
@@ -593,6 +606,14 @@ beforeEach(() => {
   lastFindByArgs = null;
 
   /*
+   * The read of the rows a teammate's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(NetworkDeviceDiscoveryScanService, () => {
+    return storedScans;
+  });
+
+  /*
    * The probe a scan points at is looked up so it can be checked against the
    * scan's own project. By default it is one of this project's probes.
    */
@@ -865,10 +886,18 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     await saveSettings({ cidr: "10.0.0.0/24" });
 
     expect(lastFindByArgs).not.toBeNull();
-    expect((lastFindByArgs as any).query).toEqual({
-      _id: SCAN_ID,
-      projectId: PROJECT_ID,
-    });
+
+    // The scans the caller may write are found in the caller's project...
+    expect(
+      readsOfRowsCallerMayWrite(NetworkDeviceDiscoveryScanService)[0]!.query[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+
+    // ... and the hook reads that scan, by its id.
+    const query: Record<string, unknown> = (lastFindByArgs as any).query;
+    expect(Object.keys(query)).toEqual(["_id"]);
+    expect(String(query["_id"])).toBe(SCAN_ID.toString());
     expect((lastFindByArgs as any).props.isRoot).toBe(true);
   });
 
@@ -2650,7 +2679,7 @@ const EVERY_SNMP_COLUMN: Array<string> = [
  *   - The SNMP step is hidden for an ICMP-only scan, but ModelForm builds the
  *     request body out of every DECLARED field without checking whether it was
  *     visible. So the half-finished credential card an operator typed before
- *     they unticked "Check SNMP on hosts that answer" is still in the POST.
+ *     they picked ICMP instead of SNMP is still in the POST.
  *     Validating it would refuse the create with a sentence about a step that
  *     is no longer on screen — which is issue #3445's own original symptom
  *     ("SNMP Version is required" blocking a ping sweep), reintroduced through
@@ -2948,8 +2977,8 @@ describe("NetworkDeviceDiscoveryScanService SNMP config on update", () => {
  *
  * The same collision as on the create path, arriving through a different door:
  * a scan's method became editable when its settings did, so an operator can
- * untick "Check SNMP on hosts that answer" on a scan that already HAS a
- * credential list, with the list editor's cards still filled in behind the
+ * switch a scan that already HAS a credential list to ICMP, with the list
+ * editor's cards still filled in behind the
  * hidden step.
  *
  * The update hook answers it as a strict either/or. A save that WRITES

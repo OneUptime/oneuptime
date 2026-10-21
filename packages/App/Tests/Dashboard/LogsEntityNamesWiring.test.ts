@@ -271,7 +271,9 @@ describe("LogsDashboard resource names", () => {
       "describeLogsResource({resourceId:row.resourceId,nameMap:resourceNames})",
     );
     expect(LOGS_DASHBOARD).toContain("{resourceDisplay.name}");
-    expect(LOGS_DASHBOARD).toContain("{resourceDisplay.typeLabel}");
+    expect(LOGS_DASHBOARD).toContain(
+      "{translator.translateText(resourceDisplay.typeLabel)}",
+    );
     expect(LOGS_DASHBOARD).toContain("resourceDisplay.name!==row.resourceId?");
   });
 });

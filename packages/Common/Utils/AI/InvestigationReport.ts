@@ -17,6 +17,19 @@
 export const AI_ROOT_CAUSE_HEADING_TEXT: string =
   "AI — Automated Root Cause Analysis";
 
+/*
+ * How the runner's own first line of a follow-up check's report starts: the
+ * report OneUptime AI writes when it checks an incident again after an alert
+ * opened on its linked infrastructure ("**Checked again** after alert #12
+ * (High CPU on web-1) opened on Host web-1, 2 minutes after this incident was
+ * declared." - IncidentFollowUpCheck.buildReportLead). The server puts it
+ * right under the brand heading, before the model's analysis.
+ */
+export const FOLLOW_UP_REPORT_LEAD_PREFIX: string = "**Checked again**";
+
+// A lead is one short paragraph; anything longer is the model's own text.
+const MAX_FOLLOW_UP_LEAD_LENGTH: number = 1000;
+
 export enum InvestigationReportSectionKind {
   Summary = "Summary",
   RootCause = "RootCause",
@@ -47,7 +60,8 @@ export interface InvestigationEvidenceCheckedEntry {
   /*
    * What a cluster tool's line says in place of a row count, as written:
    * "succeeded", "kubectl returned an error", "2 cluster(s)". Absent for a
-   * telemetry query's "N row(s)".
+   * telemetry query's "N row(s)". An infrastructure tool's line reads the
+   * same way: "succeeded", "command returned an error", "3 resource(s)".
    */
   outcome?: string | undefined;
 }
@@ -64,6 +78,13 @@ export interface InvestigationReportFooter {
    * kubectl commands run"). Absent when the footer does not say.
    */
   kubectlCommandCount?: number | undefined;
+  /*
+   * "K infrastructure commands run on your infrastructure", which the
+   * footer of a run that used the infrastructure tools states (0 for "no
+   * telemetry queries or infrastructure commands run"). Absent when the
+   * footer does not say — every report before those tools existed.
+   */
+  infrastructureCommandCount?: number | undefined;
 }
 
 export interface ParsedInvestigationReport {
@@ -78,6 +99,14 @@ export interface ParsedInvestigationReport {
    * is the whole body.
    */
   preamble: string;
+  /*
+   * The runner's first line on a follow-up check's report, as written
+   * ("**Checked again** after alert #12 ..."): the paragraph straight under
+   * the brand heading when it starts with FOLLOW_UP_REPORT_LEAD_PREFIX. It
+   * says why the report was written, so it is never part of the preamble,
+   * the sections or bodyMarkdown. Undefined on every other report.
+   */
+  followUpLead?: string | undefined;
   /*
    * Recognised sections with a non-empty body, in document order. The
    * Evidence checked block and the footer are NOT included.
@@ -95,8 +124,8 @@ export interface ParsedInvestigationReport {
   evidenceChecked: Array<InvestigationEvidenceCheckedEntry>;
   footer?: InvestigationReportFooter | undefined;
   /*
-   * The whole report with the brand heading, the Evidence checked block and
-   * the footer removed.
+   * The whole report with the brand heading, a follow-up check's lead, the
+   * Evidence checked block and the footer removed.
    */
   bodyMarkdown: string;
 }
@@ -164,13 +193,22 @@ const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
 const WHITESPACE_RUN_REGEX: RegExp = /\s+/g;
 const BLANK_LINE_SPLIT_REGEX: RegExp = /\n[ \t]*\n/;
 
-// Fences may sit inside list items, so any indentation opens one.
-const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})(.*)$/;
+/*
+ * Fences may sit inside list items, so any indentation opens one.
+ *
+ * The run of backticks or tildes is taken whole (nothing of its kind may
+ * follow it): when the rest of the line cannot be read to its end - a line
+ * that holds a line separator other than "\n" - every shorter run was tried
+ * in turn, each reading the rest of the line again. Taking it whole changes
+ * nothing that matches: the pattern took the longest run first.
+ */
+const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const FENCE_CLOSE_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})[ \t]*$/;
 
 // Four spaces or a tab is an indented code block, never a section label.
 const INDENTED_CODE_REGEX: RegExp = /^(?: {4}|\t)/;
-const ATX_HEADING_REGEX: RegExp = /^ {0,3}#{1,6}(?:[ \t]+(.*))?$/;
+// The white space after the hashes is taken whole, as the fence's run is above.
+const ATX_HEADING_REGEX: RegExp = /^ {0,3}#{1,6}(?:[ \t]+(?![ \t])(.*))?$/;
 const THEMATIC_BREAK_REGEX: RegExp =
   /^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/;
 
@@ -189,8 +227,13 @@ const CITATION_MARKER_TEST_REGEX: RegExp = /\[C\d{1,3}\]/;
 /*
  * "**Label** rest" / "__Label__ rest". The optional second group lets
  * "***Label***" (bold italic) unwrap cleanly instead of leaving a stray "*".
+ *
+ * Every part of it reads only characters other than line separators, so it
+ * matches only a line that holds none - which the look-ahead at the start
+ * checks once. Without it a line holding one ("\u2028") was tried with the
+ * label ending at every place, each try reading on to that separator.
  */
-const STRONG_LEAD_REGEX: RegExp = /^(\*\*|__)(\*|_)?(.+?)\2?\1(.*)$/;
+const STRONG_LEAD_REGEX: RegExp = /^(?=.*$)(\*\*|__)(\*|_)?(.+?)\2?\1(.*)$/;
 const SEPARATOR_PREFIX_REGEX: RegExp = /^(?:[:—–]|-{1,2})[ \t]*/;
 // The text before the first ":" of a plain "Summary: body" line.
 const PLAIN_LABEL_REGEX: RegExp = /^[A-Za-z][A-Za-z \t;,()]{0,60}$/;
@@ -208,11 +251,13 @@ const LEADING_WHITESPACE_REGEX: RegExp = /^[ \t]/;
  * "- **[C1]** label — 7 row(s)", or a cluster tool's line, which says what
  * the call did instead of counting rows: "— succeeded", "— kubectl returned
  * an error", "— 2 cluster(s)" (and "— never ran" / "— result unknown" for a
- * kubectl command that gave no result). The label is greedy so a label
- * that itself contains " — " keeps everything up to the LAST " — <outcome>".
+ * kubectl command that gave no result). An infrastructure tool's line says
+ * "— succeeded", "— command returned an error" or "— 3 resource(s)". The
+ * label is greedy so a label that itself contains " — " keeps everything
+ * up to the LAST " — <outcome>".
  */
 const EVIDENCE_CHECKED_ENTRY_REGEX: RegExp =
-  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+[ \t]+(?:rows?|clusters?)(?:\(s\))?|succeeded|kubectl[ \t]+returned[ \t]+an[ \t]+error|never[ \t]+ran|did[ \t]+not[ \t]+run|(?:kubectl[ \t]+)?result[ \t]+unknown|unknown)[ \t]*$/i;
+  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+[ \t]+(?:rows?|clusters?|resources?)(?:\(s\))?|succeeded|kubectl[ \t]+returned[ \t]+an[ \t]+error|command[ \t]+returned[ \t]+an[ \t]+error|never[ \t]+ran|did[ \t]+not[ \t]+run|(?:kubectl[ \t]+)?result[ \t]+unknown|unknown)[ \t]*$/i;
 // The entry regex backtracks over the label; never feed it a runaway line.
 const MAX_EVIDENCE_CHECKED_LINE_LENGTH: number = 2000;
 
@@ -221,6 +266,10 @@ const EVIDENCE_ROWS_OUTCOME_REGEX: RegExp = /^(\d+)[ \t]+rows?(?:\(s\))?$/i;
 const EVIDENCE_CLUSTERS_OUTCOME_REGEX: RegExp =
   /^(\d+)[ \t]+clusters?(?:\(s\))?$/i;
 const EVIDENCE_KUBECTL_SUCCEEDED_REGEX: RegExp = /^succeeded$/i;
+const EVIDENCE_RESOURCES_OUTCOME_REGEX: RegExp =
+  /^(\d+)[ \t]+resources?(?:\(s\))?$/i;
+const EVIDENCE_INFRASTRUCTURE_ERROR_REGEX: RegExp =
+  /^command[ \t]+returned[ \t]+an[ \t]+error$/i;
 
 const FOOTER_EMPHASIS_REGEX: RegExp = /^(\*\*|__|\*|_)([\s\S]+)\1$/;
 const FOOTER_USING_REGEX: RegExp = /\busing[ \t]+/;
@@ -231,11 +280,37 @@ const FOOTER_KUBECTL_COMMANDS_RUN_REGEX: RegExp =
 // A run that used cluster tools but cited no query and no kubectl command.
 const FOOTER_NOTHING_RUN_REGEX: RegExp =
   /\bno[ \t]+telemetry[ \t]+queries[ \t]+or[ \t]+kubectl[ \t]+commands[ \t]+run\b/i;
+// "... and 3 infrastructure commands run on your infrastructure" -> 3.
+const FOOTER_INFRASTRUCTURE_COMMANDS_RUN_REGEX: RegExp =
+  /\b(\d{1,9})[ \t]+infrastructure[ \t]+commands?[ \t]+run\b/i;
+/*
+ * A run that used the infrastructure tools (and maybe the cluster ones) but
+ * cited no query and no command: "no telemetry queries or infrastructure
+ * commands run", "no telemetry queries, kubectl commands or infrastructure
+ * commands run".
+ */
+const FOOTER_NOTHING_RUN_WITH_INFRASTRUCTURE_REGEX: RegExp =
+  /\bno[ \t]+telemetry[ \t]+queries(,[ \t]+kubectl[ \t]+commands)?[ \t]+or[ \t]+infrastructure[ \t]+commands[ \t]+run\b/i;
 const DIGIT_REGEX: RegExp = /\d/;
 
 const EVENT_REFERENCE_PATTERN: string = "#(\\d{1,9})(?!\\w)";
 const WORD_CHARACTER_REGEX: RegExp = /\w/;
 const WHITESPACE_CHARACTER_REGEX: RegExp = /\s/;
+
+/*
+ * The server writes an evidence label and the model's name escaped for
+ * Markdown (FeedMarkdown): a backslash before punctuation, and an
+ * invisible word joiner inside a chat mention. Read back, each is the text
+ * as typed.
+ */
+const MARKDOWN_BACKSLASH_ESCAPE_REGEX: RegExp = /\\([!-/:-@[-`{-~])/g;
+const WORD_JOINER_REGEX: RegExp = /\u2060/g;
+
+function readEscapedText(text: string): string {
+  return text
+    .replace(MARKDOWN_BACKSLASH_ESCAPE_REGEX, "$1")
+    .replace(WORD_JOINER_REGEX, "");
+}
 const FORBIDDEN_BEFORE_REFERENCE: string = "&/#";
 /*
  * Punctuation that may sit between a qualifier word and its "#": "incidents:
@@ -874,24 +949,48 @@ function findFooter(
   }
 
   const nothingRun: boolean = FOOTER_NOTHING_RUN_REGEX.test(text);
+  const nothingRunWithInfrastructure: RegExpExecArray | null =
+    FOOTER_NOTHING_RUN_WITH_INFRASTRUCTURE_REGEX.exec(text);
 
-  const queryCount: number | undefined = nothingRun
-    ? 0
-    : readFooterQueryCount(text);
+  const queryCount: number | undefined =
+    nothingRun || nothingRunWithInfrastructure ? 0 : readFooterQueryCount(text);
 
   if (queryCount !== undefined) {
     footer.queryCount = queryCount;
   }
 
-  const kubectlCommandCount: number | undefined = nothingRun
-    ? 0
-    : readFooterKubectlCommandCount(text);
+  const kubectlCommandCount: number | undefined =
+    nothingRun || nothingRunWithInfrastructure?.[1]
+      ? 0
+      : readFooterKubectlCommandCount(text);
 
   if (kubectlCommandCount !== undefined) {
     footer.kubectlCommandCount = kubectlCommandCount;
   }
 
+  const infrastructureCommandCount: number | undefined =
+    nothingRunWithInfrastructure
+      ? 0
+      : readFooterInfrastructureCommandCount(text);
+
+  if (infrastructureCommandCount !== undefined) {
+    footer.infrastructureCommandCount = infrastructureCommandCount;
+  }
+
   return { breakIndex, footer };
+}
+
+/*
+ * "... and 3 infrastructure commands run on ..." / "1 infrastructure
+ * command run" -> 3 / 1.
+ */
+function readFooterInfrastructureCommandCount(
+  text: string,
+): number | undefined {
+  const commands: RegExpExecArray | null =
+    FOOTER_INFRASTRUCTURE_COMMANDS_RUN_REGEX.exec(text);
+
+  return commands ? parseInt(commands[1] || "0", 10) : undefined;
 }
 
 // "... and 2 kubectl commands run on ..." / "1 kubectl command run" -> 2 / 1.
@@ -923,7 +1022,7 @@ function readFooterModelName(text: string): string | undefined {
       (index + 1 === text.length ||
         WHITESPACE_CHARACTER_REGEX.test(text.charAt(index + 1)))
     ) {
-      return text.slice(start, index).trim() || undefined;
+      return readEscapedText(text.slice(start, index).trim()) || undefined;
     }
   }
 
@@ -1013,8 +1112,18 @@ function findEvidenceCheckedBlockEnd(
  * What kind of tool call an Evidence checked line is about, which decides
  * which count of the footer it must fit in: a telemetry query ("N row(s)"),
  * a kubectl command, or a cluster listing (which the footer never counts).
+ * "kubectl" is also every outcome the two command tools share ("succeeded",
+ * "never ran", ...): such a line fits the kubectl and infrastructure counts
+ * together. "infrastructure" is a line only an infrastructure command
+ * writes ("command returned an error"), and "resources" a resource listing
+ * (never counted, like a cluster listing).
  */
-type EvidenceCheckedEntryKind = "query" | "kubectl" | "clusters";
+type EvidenceCheckedEntryKind =
+  | "query"
+  | "kubectl"
+  | "clusters"
+  | "infrastructure"
+  | "resources";
 
 interface ParsedEvidenceCheckedEntry {
   entry: InvestigationEvidenceCheckedEntry;
@@ -1044,6 +1153,22 @@ function readEvidenceCheckedOutcome(outcomeText: string): {
       rowCount: parseInt(clusters[1] || "0", 10),
       outcome,
     };
+  }
+
+  const resources: RegExpExecArray | null =
+    EVIDENCE_RESOURCES_OUTCOME_REGEX.exec(outcome);
+
+  if (resources) {
+    return {
+      kind: "resources",
+      rowCount: parseInt(resources[1] || "0", 10),
+      outcome,
+    };
+  }
+
+  // An infrastructure command that ran and returned an error counts as 0.
+  if (EVIDENCE_INFRASTRUCTURE_ERROR_REGEX.test(outcome)) {
+    return { kind: "infrastructure", rowCount: 0, outcome };
   }
 
   /*
@@ -1076,7 +1201,7 @@ function parseEvidenceCheckedEntries(
     }
 
     const citationId: string = (match[1] || "").toUpperCase();
-    const label: string = (match[2] || "").trim();
+    const label: string = readEscapedText((match[2] || "").trim());
 
     if (!citationId || !label || seen.has(citationId)) {
       continue;
@@ -1117,6 +1242,12 @@ function parseEvidenceCheckedEntries(
  * the one run whose only citations are listings. A footer saying "0
  * queries run" never goes with a block. Without a readable count (no
  * footer, an older format) the block is trusted.
+ *
+ * Infrastructure commands follow the same rule against the footer's
+ * infrastructure count, and a resource listing like a cluster listing. A
+ * line the two command tools share ("succeeded") fits their counts
+ * together; a footer that says nothing about infrastructure reads as 0 of
+ * them, so every older report is judged exactly as it was.
  */
 function isServerEvidenceCheckedBlock(
   entries: Array<ParsedEvidenceCheckedEntry>,
@@ -1124,13 +1255,20 @@ function isServerEvidenceCheckedBlock(
 ): boolean {
   const queryCount: number | undefined = footer?.queryCount;
   const kubectlCommandCount: number | undefined = footer?.kubectlCommandCount;
+  const infrastructureCommandCount: number | undefined =
+    footer?.infrastructureCommandCount;
 
-  if (queryCount === undefined && kubectlCommandCount === undefined) {
+  if (
+    queryCount === undefined &&
+    kubectlCommandCount === undefined &&
+    infrastructureCommandCount === undefined
+  ) {
     return true;
   }
 
   let queryLines: number = 0;
   let kubectlLines: number = 0;
+  let infrastructureLines: number = 0;
   let clusterLines: number = 0;
 
   for (const parsed of entries) {
@@ -1138,6 +1276,8 @@ function isServerEvidenceCheckedBlock(
       queryLines++;
     } else if (parsed.kind === "kubectl") {
       kubectlLines++;
+    } else if (parsed.kind === "infrastructure") {
+      infrastructureLines++;
     } else {
       clusterLines++;
     }
@@ -1147,21 +1287,89 @@ function isServerEvidenceCheckedBlock(
     return false;
   }
 
-  if (kubectlLines > (kubectlCommandCount ?? 0)) {
+  if (infrastructureLines > (infrastructureCommandCount ?? 0)) {
     return false;
   }
 
-  if ((queryCount ?? 0) + (kubectlCommandCount ?? 0) > 0) {
+  if (
+    kubectlLines + infrastructureLines >
+    (kubectlCommandCount ?? 0) + (infrastructureCommandCount ?? 0)
+  ) {
+    return false;
+  }
+
+  if (
+    (queryCount ?? 0) +
+      (kubectlCommandCount ?? 0) +
+      (infrastructureCommandCount ?? 0) >
+    0
+  ) {
     return true;
   }
 
-  return kubectlCommandCount !== undefined && clusterLines > 0;
+  return (
+    (kubectlCommandCount !== undefined ||
+      infrastructureCommandCount !== undefined) &&
+    clusterLines > 0
+  );
+}
+
+/*
+ * The follow-up lead in lines [from, to), when the first non-blank line
+ * there starts one: that paragraph, which is marked as no longer kept, as
+ * written. Undefined (and nothing marked) otherwise.
+ */
+function takeFollowUpLead(data: {
+  lines: Array<string>;
+  fenced: Array<boolean>;
+  kept: Array<boolean>;
+  from: number;
+  to: number;
+}): string | undefined {
+  let start: number = data.from;
+
+  while (start < data.to && (data.lines[start] || "").trim() === "") {
+    start++;
+  }
+
+  if (
+    start >= data.to ||
+    data.fenced[start] ||
+    !(data.lines[start] || "")
+      .trimStart()
+      .startsWith(FOLLOW_UP_REPORT_LEAD_PREFIX)
+  ) {
+    return undefined;
+  }
+
+  let end: number = start;
+
+  while (
+    end < data.to &&
+    !data.fenced[end] &&
+    (data.lines[end] || "").trim() !== ""
+  ) {
+    end++;
+  }
+
+  const lead: string = data.lines.slice(start, end).join("\n").trim();
+
+  if (lead.length > MAX_FOLLOW_UP_LEAD_LENGTH) {
+    return undefined;
+  }
+
+  for (let index: number = start; index < end; index++) {
+    data.kept[index] = false;
+  }
+
+  return lead;
 }
 
 function createEmptyReport(): ParsedInvestigationReport {
   return {
     isStructured: false,
     preamble: "",
+    followUpLead: undefined,
     sections: [],
     summary: undefined,
     rootCause: undefined,
@@ -1455,11 +1663,12 @@ export function parseInvestigationReport(
     return line.trim() !== "";
   });
 
-  if (
+  const hasBrandHeading: boolean =
     firstContentIndex >= 0 &&
     !fenced[firstContentIndex] &&
-    isBrandHeading(lines[firstContentIndex] || "")
-  ) {
+    isBrandHeading(lines[firstContentIndex] || "");
+
+  if (hasBrandHeading) {
     kept[firstContentIndex] = false;
   }
 
@@ -1468,6 +1677,21 @@ export function parseInvestigationReport(
   const contentEnd: number = footerMatch
     ? footerMatch.breakIndex
     : lines.length;
+
+  /*
+   * 2b. A follow-up check's lead: the paragraph straight under the brand
+   * heading, where the server writes it, when it starts with the lead's
+   * prefix. Anywhere else the words are the model's and stay content.
+   */
+  const followUpLead: string | undefined = hasBrandHeading
+    ? takeFollowUpLead({
+        lines,
+        fenced,
+        kept,
+        from: firstContentIndex + 1,
+        to: contentEnd,
+      })
+    : undefined;
 
   for (let index: number = contentEnd; index < lines.length; index++) {
     kept[index] = false;
@@ -1593,6 +1817,7 @@ export function parseInvestigationReport(
   return {
     isStructured: summary !== undefined || rootCause !== undefined,
     preamble,
+    followUpLead,
     sections,
     summary,
     rootCause,

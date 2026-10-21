@@ -1,29 +1,20 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
-import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
-import GenerateFromAIModal, {
-  AITemplate,
-  GenerateAIRequestData,
-} from "Common/UI/Components/AI/GenerateFromAIModal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -46,76 +37,40 @@ import {
   NoteRecord,
   NoteSortOrder,
   NotesCopy,
-  NoteVisibility,
-  applyTemplateToDraft,
   buildNotesQuery,
   buildNotesSelect,
   canWriteNoteColumn,
   getNoteId,
   getNotesCopy,
+  getNoteSortField,
   getNoteTimestamp,
   groupNotesByDay,
   hasNotificationInFlight,
-  isNoteBlank,
+  isComposerOpenRequested,
 } from "./EventNotesUtil";
-import NoteAvatar from "./NoteAvatar";
 import NoteCard, { NoteActionGate } from "./NoteCard";
-import NoteComposer, {
-  AudienceBadge,
+import { NoteResendConfirmation } from "./NoteNotificationBadge";
+import SubscriberNotificationResendCopy from "../StatusPageSubscribers/SubscriberNotificationResendCopy";
+import {
   AUDIENCE_STYLES,
   NoteComposerValues,
   NotifyOption,
 } from "./NoteComposer";
-import NoteTemplateMenu, { NoteTemplateOption } from "./NoteTemplateMenu";
+import EventNoteComposer from "./EventNoteComposer";
+import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
 
-type NoteTemplateModel = BaseModel & {
-  templateName?: string | undefined;
-  note?: string | undefined;
-};
-
-export interface EventNotesTemplatesConfig {
-  modelType: { new (): NoteTemplateModel };
-  // Where templates are managed, linked from the picker.
-  settingsRoute?: Route | undefined;
-}
-
-export interface EventNotesAIConfig {
-  title: string;
-  description: string;
-  templates: Array<AITemplate>;
-  generate: (data: GenerateAIRequestData) => Promise<string>;
-}
-
-export interface EventNotesSubscriberConfig {
-  // Where "Notify status page subscribers" starts on a new note.
-  isNotifyingByDefault: boolean;
-  // Why it starts unticked, shown while it is.
-  quietDescription: string;
-}
-
-export interface ComponentProps<TNote extends BaseModel> {
-  modelType: { new (): TNote };
-  visibility: NoteVisibility;
-  // How the page refers to the parent: "incident", "alert", "episode"...
-  eventNoun: string;
-  // The note column holding the parent's id, e.g. "incidentId".
-  parentIdField: string;
-  parentId: ObjectID;
+/*
+ * What the page hands the notes feed: the kind of note it shows, from the
+ * event's NoteKinds module, and the project new notes are saved in.
+ */
+export interface ComponentProps<TNote extends BaseModel>
+  extends EventNoteKind<TNote> {
   currentProject: Project | null;
-  /*
-   * The note model's attachment download route. Note types with no such
-   * route cannot serve files back, so they are offered no attachments.
-   */
-  attachmentApiPath?: string | undefined;
-  subscriberNotifications?: EventNotesSubscriberConfig | undefined;
-  templates?: EventNotesTemplatesConfig | undefined;
-  ai?: EventNotesAIConfig | undefined;
-  // The other kind of note's page for the same event.
-  siblingRoute?: Route | undefined;
 }
-
-type DraftFactory = () => NoteComposerValues;
 
 const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
   result: PermissionGateResult,
@@ -137,9 +92,10 @@ const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
 
 /*
  * The notes of one incident, alert, scheduled maintenance event or episode:
- * a composer at the top that says who will read the note, and a timeline of
- * what has been written, grouped by day, newest first. Notes are edited in
- * place and every action a note offers lives in its own menu.
+ * a composer at the top that says who will read the note (EventNoteComposer,
+ * the same one the overview feed's "Add ... Note" opens in a dialog), and a
+ * timeline of what has been written, grouped by day, newest first. Notes are
+ * edited in place and every action a note offers lives in its own menu.
  *
  * This replaced a notes table whose every write went through a modal - and
  * a second modal for picking a template - and which looked the same whether
@@ -148,18 +104,43 @@ const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
 function EventNotes<TNote extends BaseModel>(
   props: ComponentProps<TNote>,
 ): ReactElement {
+  const translator: Translator = useTranslator();
   const { translateString } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
 
-  const copy: NotesCopy = getNotesCopy(props.visibility, props.eventNoun);
   const model: TNote = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
 
   const isPublic: boolean = props.visibility === "public";
-  const userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  /*
+   * A private incident's or episode's public notes: the ones it already
+   * has, read and edited as any are, but no new ones - its composer says
+   * why, with the way to its private notes - and nothing offered that
+   * tells subscribers, whom a private event never reaches.
+   */
+  const isPrivateEvent: boolean = isPublic && Boolean(props.isPrivateEvent);
+  /*
+   * And nothing on the page says they are on a status page: the
+   * description, the audience of a note being edited and what deleting one
+   * does are a private event's own (getPrivateEventPublicNotesCopy).
+   */
+  const visibilityCopy: NotesCopy = getNotesCopy(
+    props.visibility,
+    props.eventNoun,
+    translator,
+  );
+  const copy: NotesCopy = isPrivateEvent
+    ? getPrivateEventPublicNotesCopy(
+        visibilityCopy,
+        props.eventNoun,
+        translator,
+      )
+    : visibilityCopy;
+  // What the viewer holds, blocks included.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string, action: "create" | "update") => boolean = (
@@ -172,7 +153,7 @@ function EventNotes<TNote extends BaseModel>(
         model,
         column,
         action,
-        userPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       })
     );
@@ -190,30 +171,57 @@ function EventNotes<TNote extends BaseModel>(
     PermissionGate.check(model, ModelAction.Delete),
   );
 
-  const isCreateAttachmentsEnabled: boolean =
-    hasAttachments && canWrite("attachments", "create");
   const isEditAttachmentsEnabled: boolean =
     hasAttachments && canWrite("attachments", "update");
-  const isCreatePostedAtEditable: boolean =
-    isPublic && canWrite("postedAt", "create");
   const isEditPostedAtEditable: boolean =
     isPublic && canWrite("postedAt", "update");
-  const isNotifyControlShown: boolean =
+
+  /*
+   * Sending a note's 'posted' notification again writes its status, and
+   * tells every subscriber what the note says - what posting it did. So it
+   * takes both: permission to edit the note's notification status, and
+   * permission to post a note that notifies subscribers. The server checks
+   * the same (SubscriberNotificationResendAccess).
+   */
+  const canResendPostedNotification: boolean =
     isPublic &&
-    Boolean(props.subscriberNotifications) &&
+    !isPrivateEvent &&
+    editGate.isShown &&
+    !editGate.isDisabled &&
+    createGate.isAllowed &&
+    canWrite("subscriberNotificationStatusOnNoteCreated", "update") &&
     canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create");
 
-  const isNotifyingByDefault: boolean =
-    props.subscriberNotifications?.isNotifyingByDefault ?? true;
+  /*
+   * Telling subscribers about an edit - the edit form's checkbox, and Retry
+   * of a failed update - tells them what the note says now, and an editor
+   * can change the text first. So it takes the permission to post a note
+   * that notifies subscribers as well as the note's edit permission, as
+   * sending the 'posted' notification again does. The server checks the
+   * same (SubscriberNotificationResendAccess).
+   */
+  const canNotifyAboutEdit: boolean =
+    isPublic &&
+    !isPrivateEvent &&
+    createGate.isAllowed &&
+    canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") &&
+    canWrite("subscriberNotificationStatusOnNoteUpdated", "update");
 
-  const createDraft: DraftFactory = (): NoteComposerValues => {
-    return {
-      note: "",
-      attachments: [],
-      shouldNotify: isNotifyingByDefault,
-      postedAt: null,
-    };
-  };
+  const canResendUpdateNotification: boolean =
+    editGate.isShown && !editGate.isDisabled && canNotifyAboutEdit;
+
+  const postedNotificationResendConfirmation:
+    | NoteResendConfirmation
+    | undefined =
+    isPublic && props.subscriberNotifications?.resend
+      ? {
+          resendDescription:
+            SubscriberNotificationResendCopy.noteResendDescription,
+          retryDescription:
+            SubscriberNotificationResendCopy.noteRetryDescription,
+          audience: props.subscriberNotifications.resend.audience,
+        }
+      : undefined;
 
   // Feed.
   const [notes, setNotes] = useState<Array<TNote>>([]);
@@ -228,15 +236,15 @@ function EventNotes<TNote extends BaseModel>(
   const [sortOrder, setSortOrder] = useState<NoteSortOrder>("newest");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
-  // Composer.
-  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);
-  const [draft, setDraft] = useState<NoteComposerValues>(createDraft);
-  const [composerRevision, setComposerRevision] = useState<number>(0);
-  const [isPosting, setIsPosting] = useState<boolean>(false);
-  const [postError, setPostError] = useState<string>("");
-  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] =
-    useState<boolean>(false);
-  const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
+  /*
+   * Whether the composer is open or folded to its prompt. Kept here, not in
+   * the composer, so the empty feed's "Post the first update" can open it -
+   * and a page opened to write a note (?compose=1, where "Add Private Note"
+   * on a private incident's public notes leads) starts with it open.
+   */
+  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(() => {
+    return isComposerOpenRequested(window.location.search);
+  });
 
   /*
    * Every fetch takes a number and drops its answer if a newer one started,
@@ -251,7 +259,7 @@ function EventNotes<TNote extends BaseModel>(
       model,
       visibility: props.visibility,
       isAttachmentsEnabled: hasAttachments,
-      userPermissions,
+      held: heldPermissions,
       isMasterAdmin,
     });
   }, [
@@ -259,11 +267,12 @@ function EventNotes<TNote extends BaseModel>(
     props.visibility,
     hasAttachments,
     isMasterAdmin,
-    userPermissions.join(","),
+    heldPermissions.allowed.join(","),
+    heldPermissions.blocked.join(","),
   ]);
 
-  const timestampField: string =
-    isPublic && model.hasColumn("postedAt") ? "postedAt" : "createdAt";
+  // The time each note is filed under (getNoteTimestamp), as the server sorts.
+  const timestampField: string = getNoteSortField(model);
 
   /*
    * initial: the first load, drawn as a skeleton.
@@ -396,85 +405,6 @@ function EventNotes<TNote extends BaseModel>(
     };
   }, [notes, isLoading, isRefreshing, isLoadingMore]);
 
-  const resetComposer: (options: { isOpen: boolean }) => void = (options: {
-    isOpen: boolean;
-  }): void => {
-    setDraft(createDraft());
-    setPostError("");
-    setComposerRevision((revision: number) => {
-      return revision + 1;
-    });
-    setIsComposerOpen(options.isOpen);
-  };
-
-  const insertIntoDraft: (text: string) => void = (text: string): void => {
-    setDraft((current: NoteComposerValues) => {
-      return { ...current, note: applyTemplateToDraft(current.note, text) };
-    });
-    setComposerRevision((revision: number) => {
-      return revision + 1;
-    });
-    setIsComposerOpen(true);
-  };
-
-  const postNote: () => Promise<void> = async (): Promise<void> => {
-    if (isNoteBlank(draft.note)) {
-      return;
-    }
-
-    setPostError("");
-
-    if (!props.currentProject || !props.currentProject._id) {
-      setPostError(
-        tx(
-          "Select a project before posting a note. Project ID cannot be null.",
-        ),
-      );
-      return;
-    }
-
-    setIsPosting(true);
-
-    try {
-      const note: TNote = new props.modelType();
-      const record: JSONObject = note as unknown as JSONObject;
-
-      record["note"] = draft.note;
-      record[props.parentIdField] = props.parentId;
-      record["projectId"] = new ObjectID(props.currentProject._id);
-
-      if (isCreateAttachmentsEnabled && draft.attachments.length > 0) {
-        record["attachments"] = draft.attachments;
-      }
-
-      if (isNotifyControlShown) {
-        /*
-         * Always sent, never left to the default: an unsent flag makes the
-         * server fall back to the event's setting, which is not necessarily
-         * what the box showed.
-         */
-        record["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"] =
-          draft.shouldNotify;
-      }
-
-      if (isCreatePostedAtEditable) {
-        record["postedAt"] = draft.postedAt || OneUptimeDate.getCurrentDate();
-      }
-
-      await ModelAPI.create<TNote>({
-        model: note,
-        modelType: props.modelType,
-      });
-
-      resetComposer({ isOpen: true });
-      await refresh();
-    } catch (err) {
-      setPostError(API.getFriendlyMessage(err));
-    }
-
-    setIsPosting(false);
-  };
-
   const saveEdit: (
     original: TNote,
     values: NoteComposerValues,
@@ -520,7 +450,7 @@ function EventNotes<TNote extends BaseModel>(
       modelType: props.modelType,
       formType: FormType.Update,
       miscDataProps:
-        isPublic && values.shouldNotify
+        canNotifyAboutEdit && values.shouldNotify
           ? SubscriberUpdateNotification.getMiscDataProps()
           : {},
     });
@@ -588,56 +518,7 @@ function EventNotes<TNote extends BaseModel>(
     await refresh();
   };
 
-  const loadTemplates: () => Promise<
-    Array<NoteTemplateOption>
-  > = async (): Promise<Array<NoteTemplateOption>> => {
-    if (!props.templates) {
-      return [];
-    }
-
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    const result: ListResult<NoteTemplateModel> =
-      await ModelAPI.getList<NoteTemplateModel>({
-        modelType: props.templates.modelType,
-        query: (projectId ? { projectId } : {}) as Query<NoteTemplateModel>,
-        select: {
-          _id: true,
-          templateName: true,
-          note: true,
-        } as Select<NoteTemplateModel>,
-        sort: {
-          templateName: SortOrder.Ascending,
-        } as Sort<NoteTemplateModel>,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-    return result.data
-      .map((template: NoteTemplateModel): NoteTemplateOption => {
-        return {
-          id: template.id?.toString() || template._id?.toString() || "",
-          name: template.templateName || "",
-          note: template.note || "",
-        };
-      })
-      .filter((template: NoteTemplateOption) => {
-        return Boolean(template.id);
-      });
-  };
-
-  const createNotifyOption: NotifyOption | undefined = isNotifyControlShown
-    ? {
-        title: "Notify status page subscribers",
-        checkedDescription:
-          "Subscribers will be notified about this update as soon as you post it.",
-        uncheckedDescription: isNotifyingByDefault
-          ? "The update will appear on your status page without notifying subscribers."
-          : props.subscriberNotifications!.quietDescription,
-      }
-    : undefined;
-
-  const updateNotifyOption: NotifyOption | undefined = isPublic
+  const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit
     ? {
         title: SubscriberUpdateNotification.formFieldTitle,
         checkedDescription:
@@ -647,111 +528,8 @@ function EventNotes<TNote extends BaseModel>(
       }
     : undefined;
 
-  const composerActions: ReactElement = (
-    <>
-      {props.templates && (
-        <NoteTemplateMenu
-          loadTemplates={loadTemplates}
-          settingsRoute={props.templates.settingsRoute}
-          isOpeningUpwards={isComposerOpen}
-          onPick={(template: NoteTemplateOption) => {
-            insertIntoDraft(template.note);
-          }}
-        />
-      )}
-      {props.ai && (
-        <button
-          type="button"
-          data-testid="note-ai-button"
-          onClick={() => {
-            setIsAIModalOpen(true);
-          }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-violet-500" />
-          <span>{tx("Draft with AI")}</span>
-        </button>
-      )}
-    </>
-  );
-
   const openComposer: () => void = (): void => {
     setIsComposerOpen(true);
-  };
-
-  const getComposer: () => ReactElement | null = (): ReactElement | null => {
-    if (!createGate.isAllowed) {
-      if (!createGate.disabledReason) {
-        return null;
-      }
-
-      return (
-        <div
-          className="flex items-start gap-3 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray-600"
-          data-testid="note-composer-locked"
-        >
-          <Icon icon={IconProp.Lock} className="mt-0.5 h-4 w-4 text-gray-400" />
-          <span>{tx(createGate.disabledReason)}</span>
-        </div>
-      );
-    }
-
-    if (!isComposerOpen) {
-      return (
-        <div
-          className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center"
-          data-testid="note-composer-prompt"
-        >
-          <button
-            type="button"
-            onClick={openComposer}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            <NoteAvatar userId={safeUserId()} name={safeUserName()} size="sm" />
-            <span className="truncate text-sm text-gray-500">
-              {tx(copy.composerPrompt)}
-            </span>
-          </button>
-          <div className="flex items-center gap-1 pl-10 sm:pl-0">
-            <span className="mr-1 hidden xl:inline-flex">
-              <AudienceBadge visibility={props.visibility} copy={copy} />
-            </span>
-            {composerActions}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <NoteComposer
-        key={`composer-${composerRevision}`}
-        mode="create"
-        visibility={props.visibility}
-        copy={copy}
-        values={draft}
-        onChange={setDraft}
-        editorKey={`create-${composerRevision}`}
-        isAttachmentsEnabled={isCreateAttachmentsEnabled}
-        notifyOption={createNotifyOption}
-        isPostedAtEditable={isCreatePostedAtEditable}
-        isSubmitting={isPosting}
-        error={postError}
-        isAutoFocused={true}
-        leadingActions={composerActions}
-        dataTestId="note-composer"
-        onSubmit={() => {
-          postNote();
-        }}
-        onCancel={() => {
-          if (isNoteBlank(draft.note) && draft.attachments.length === 0) {
-            resetComposer({ isOpen: false });
-            return;
-          }
-
-          setIsDiscardConfirmOpen(true);
-        }}
-      />
-    );
   };
 
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -862,7 +640,7 @@ function EventNotes<TNote extends BaseModel>(
           <p className="mt-1 max-w-md text-sm text-gray-500">
             {tx(copy.emptyDescription)}
           </p>
-          {createGate.isAllowed && !isComposerOpen && (
+          {createGate.isAllowed && !isComposerOpen && !isPrivateEvent && (
             <button
               type="button"
               onClick={openComposer}
@@ -892,8 +670,10 @@ function EventNotes<TNote extends BaseModel>(
                 <span>{tx(group.label)}</span>
                 <span className="h-px flex-1 bg-gray-100" />
                 <span className="font-medium normal-case tracking-normal text-gray-400">
-                  {group.notes.length}{" "}
-                  {group.notes.length === 1 ? tx("note") : tx("notes")}
+                  {translator.translatePlural(
+                    { one: "{{count}} note", other: "{{count}} notes" },
+                    group.notes.length,
+                  )}
                 </span>
               </h3>
               <ol className="relative">
@@ -925,18 +705,21 @@ function EventNotes<TNote extends BaseModel>(
                         return deleteNote(note);
                       }}
                       onRetryPostedNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendPostedNotification
                           ? () => {
                               return resendNotification(note, "posted");
                             }
                           : undefined
                       }
                       onRetryUpdateNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendUpdateNotification
                           ? () => {
                               return resendNotification(note, "update");
                             }
                           : undefined
+                      }
+                      postedNotificationResendConfirmation={
+                        postedNotificationResendConfirmation
                       }
                       isPostedAtEditable={
                         isEditPostedAtEditable &&
@@ -972,7 +755,10 @@ function EventNotes<TNote extends BaseModel>(
                 ? tx("Show older notes")
                 : tx("Show newer notes")}
               <span className="text-gray-400">
-                ({totalCount - notes.length} {tx("more")})
+                {translator.translatePlural(
+                  { one: "({{count}} more)", other: "({{count}} more)" },
+                  totalCount - notes.length,
+                )}
               </span>
             </button>
           </div>
@@ -985,6 +771,19 @@ function EventNotes<TNote extends BaseModel>(
     !isLoading &&
     !loadError &&
     (notes.length > 0 || isSearching || searchInput.length > 0);
+
+  /*
+   * A private event with no public notes has nothing to list: the composer's
+   * place already says why it takes none, so no empty feed is drawn under it.
+   */
+  const showFeed: boolean = !(
+    isPrivateEvent &&
+    !isLoading &&
+    !loadError &&
+    notes.length === 0 &&
+    !isSearching &&
+    searchInput.length === 0
+  );
 
   return (
     <div className="space-y-4" data-testid="event-notes">
@@ -1015,12 +814,19 @@ function EventNotes<TNote extends BaseModel>(
                   </span>
                 )}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              <p
+                className="mt-1 max-w-2xl text-sm text-gray-500"
+                data-testid="notes-description"
+              >
                 {tx(copy.description)}
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          {/*
+            Under the description below lg, at the right edge, as a card
+            header's actions always are; beside the title from lg up.
+          */}
+          <div className="flex shrink-0 items-center gap-2 self-end lg:self-auto">
             {props.siblingRoute && (
               <NotesVisibilitySwitch
                 current={props.visibility}
@@ -1047,7 +853,20 @@ function EventNotes<TNote extends BaseModel>(
         </div>
       </section>
 
-      {getComposer()}
+      <EventNoteComposer<TNote>
+        kind={props}
+        projectId={
+          props.currentProject?._id
+            ? new ObjectID(props.currentProject._id)
+            : null
+        }
+        presentation={{
+          type: "inline",
+          isOpen: isComposerOpen,
+          onOpenChange: setIsComposerOpen,
+        }}
+        onPosted={refresh}
+      />
 
       {actionError && (
         <div
@@ -1068,121 +887,74 @@ function EventNotes<TNote extends BaseModel>(
         </div>
       )}
 
-      <section
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        data-testid="notes-feed"
-        aria-live="polite"
-      >
-        {showToolbar && (
-          <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-            <label className="relative flex min-w-0 flex-1 items-center">
-              <span className="sr-only">{tx("Search notes")}</span>
-              <Icon
-                icon={IconProp.Search}
-                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="search"
-                data-testid="notes-search"
-                value={searchInput}
-                placeholder={tx("Search notes…")}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchInput(event.target.value);
-                }}
-                className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </label>
-            <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <span
-                className="text-xs text-gray-500"
-                data-testid="notes-summary"
-              >
-                {isSearching
-                  ? `${totalCount} ${totalCount === 1 ? tx("match") : tx("matches")}`
-                  : `${totalCount} ${totalCount === 1 ? tx("note") : tx("notes")}`}
-              </span>
-              <button
-                type="button"
-                data-testid="notes-sort"
-                onClick={() => {
-                  setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
+      {showFeed && (
+        <section
+          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+          data-testid="notes-feed"
+          aria-live="polite"
+        >
+          {showToolbar && (
+            <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <label className="relative flex min-w-0 flex-1 items-center">
+                <span className="sr-only">{tx("Search notes")}</span>
                 <Icon
-                  icon={
-                    sortOrder === "newest"
-                      ? IconProp.BarsArrowDown
-                      : IconProp.BarsArrowUp
-                  }
-                  className="h-4 w-4 text-gray-400"
+                  icon={IconProp.Search}
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                 />
-                {sortOrder === "newest"
-                  ? tx("Newest first")
-                  : tx("Oldest first")}
-              </button>
+                <input
+                  type="search"
+                  data-testid="notes-search"
+                  value={searchInput}
+                  placeholder={tx("Search notes…")}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchInput(event.target.value);
+                  }}
+                  className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span
+                  className="text-xs text-gray-500"
+                  data-testid="notes-summary"
+                >
+                  {isSearching
+                    ? translator.translatePlural(
+                        { one: "{{count}} match", other: "{{count}} matches" },
+                        totalCount,
+                      )
+                    : translator.translatePlural(
+                        { one: "{{count}} note", other: "{{count}} notes" },
+                        totalCount,
+                      )}
+                </span>
+                <button
+                  type="button"
+                  data-testid="notes-sort"
+                  onClick={() => {
+                    setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
+                  }}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <Icon
+                    icon={
+                      sortOrder === "newest"
+                        ? IconProp.BarsArrowDown
+                        : IconProp.BarsArrowUp
+                    }
+                    className="h-4 w-4 text-gray-400"
+                  />
+                  {sortOrder === "newest"
+                    ? tx("Newest first")
+                    : tx("Oldest first")}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-        <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
-      </section>
-
-      {isDiscardConfirmOpen && (
-        <ConfirmModal
-          title={tx("Discard this draft?")}
-          description={tx("The note you started writing will be lost.")}
-          submitButtonText={tx("Discard draft")}
-          submitButtonType={ButtonStyleType.DANGER}
-          closeButtonText={tx("Keep writing")}
-          onClose={() => {
-            setIsDiscardConfirmOpen(false);
-          }}
-          onSubmit={() => {
-            setIsDiscardConfirmOpen(false);
-            resetComposer({ isOpen: false });
-          }}
-        />
-      )}
-
-      {isAIModalOpen && props.ai && (
-        <GenerateFromAIModal
-          title={props.ai.title}
-          description={props.ai.description}
-          templates={props.ai.templates}
-          onClose={() => {
-            setIsAIModalOpen(false);
-          }}
-          onGenerate={props.ai.generate}
-          onSuccess={(generated: string) => {
-            setIsAIModalOpen(false);
-            insertIntoDraft(generated);
-          }}
-        />
+          )}
+          <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
+        </section>
       )}
     </div>
   );
-}
-
-function safeUserId(): ObjectID | null {
-  try {
-    return User.getUserId();
-  } catch {
-    return null;
-  }
-}
-
-function safeUserName(): string {
-  try {
-    const name: string = User.getName()?.toString() || "";
-
-    if (name) {
-      return name;
-    }
-
-    return User.getEmail()?.toString() || "You";
-  } catch {
-    return "You";
-  }
 }
 
 export default EventNotes;

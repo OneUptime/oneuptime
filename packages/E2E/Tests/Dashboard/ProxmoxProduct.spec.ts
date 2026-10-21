@@ -7,7 +7,8 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -41,8 +42,12 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       projectNamePrefix: "E2E Proxmox Project",
     });
 
-    // Nav entry: Proxmox is listed in the "Products" navbar menu.
+    /*
+     * Nav entry: Proxmox is listed in the "Products" navbar menu, under
+     * Infrastructure, which the menu opens folded.
+     */
     await page.getByRole("button", { name: "Products" }).click();
+    await openProductsMenuSection(page, "Infrastructure");
     const proxmoxNavOption: Locator = page
       .getByRole("option")
       .filter({ hasText: "Proxmox" });
@@ -52,7 +57,7 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the DocumentationCard install guide.
+    // Empty state renders the setup guide (SetupGuideCard).
     await expect(
       page.getByText("Getting Started with Proxmox Monitoring"),
     ).toBeVisible({ timeout: 60000 });
@@ -71,7 +76,11 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // ...and the install command block interpolates URL, key, and cluster name.
+    /*
+     * ...and the guide interpolates it. It opens on the install script,
+     * whose command carries only the URL and the key; the .env file with
+     * the cluster name is on the Docker Compose option.
+     */
     await expect
       .poll(
         async () => {
@@ -80,6 +89,8 @@ test.describe.skip("Proxmox Product Onboarding", () => {
         { timeout: 30000 },
       )
       .toMatch(ingestionKeyEnvLineRegex);
+
+    await page.getByRole("radio", { name: /^Docker Compose/ }).click();
 
     const bodyText: string = await page.locator("body").innerText();
     expect(bodyText).toMatch(/ONEUPTIME_URL=http/);
@@ -107,18 +118,18 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "Proxmox" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Proxmox Monitor " + Faker.generateName().toString());
 
-    await selectMonitorTypeCard({ page, cardValue: "Proxmox" });
-
     /*
-     * The submit button keeps the "Create Monitor" test id on every form
-     * step (BasicForm uses props.submitButtonText as the test id); on the
-     * first step it reads "Next" and advances to the criteria step.
+     * Monitor Info is not the last step: its one way on is a plain Next
+     * (Create Monitor is on the last step only), which opens the criteria.
      */
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
 
     await expect(page.getByText("Proxmox Monitor Configuration")).toBeVisible({
       timeout: 30000,
@@ -149,9 +160,15 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       await expect(page.getByText(templateName, { exact: true })).toBeVisible();
     }
 
-    // Selecting a template auto-configures the monitor step.
+    // Selecting a template sets the monitor step up.
     await page.getByText("Node Offline", { exact: true }).click();
-    await expect(page.getByText("Template Configuration")).toBeVisible();
+    // The list folds into the picked template, with its Time Range under it.
+    await expect(page.getByTestId("alert-template-picked")).toContainText(
+      "Node Offline",
+    );
+    await expect(
+      page.getByTestId("alert-template-configuration"),
+    ).toBeVisible();
   });
 
   /*

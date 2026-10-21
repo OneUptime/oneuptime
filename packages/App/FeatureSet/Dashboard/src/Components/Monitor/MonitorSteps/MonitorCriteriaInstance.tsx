@@ -4,6 +4,8 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -18,6 +20,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -30,11 +39,25 @@ export interface ComponentProps {
   teamOptions: Array<Team>;
   userOptions: Array<User>;
   incidentRoleOptions: Array<IncidentRole>;
+  monitorType?: MonitorType | undefined;
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const filters: Array<CriteriaFilter> =
+    props.monitorCriteriaInstance.data?.filters || [];
+  // As the evaluator reads a criteria saved without one.
+  const filterCondition: FilterCondition =
+    props.monitorCriteriaInstance.data?.filterCondition || FilterCondition.All;
+  // An Incoming Email criteria that opens an incident for every email.
+  const isOpenForEveryEmail: boolean =
+    MonitorCriteriaInstance.isOpenForEveryEmail({
+      monitorType: props.monitorType,
+      criteriaInstance: props.monitorCriteriaInstance,
+    });
+
   return (
     <div className="mb-4">
       {props.monitorCriteriaInstance.data?.description && (
@@ -46,21 +69,52 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       <div className="mt-4">
         <div className="flex">
           <Icon icon={IconProp.Filter} className="h-5 w-5 text-gray-900" />
-          <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-            <span className="font-medium text-gray-900">
-              Filters ({props.monitorCriteriaInstance.data?.filterCondition})
-            </span>{" "}
-            {props.monitorCriteriaInstance.data?.filterCondition} of these can
-            match for this criteria to be met:
+          {/*
+           * All or Any is named only once there are two filters to combine
+           * (isFilterConditionNeeded): one filter is simply the filter, and
+           * no filter is no sentence at all. A criteria saved without a
+           * condition is evaluated as All, so that is what it says.
+           */}
+          <div
+            className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500"
+            data-testid="monitor-criteria-filters-heading"
+          >
+            {isFilterConditionNeeded(filters) ? (
+              <>
+                <span className="font-medium text-gray-900">
+                  {translator.translateTemplate("Filters ({{condition}})", {
+                    condition: translatableTerm(filterCondition),
+                  })}
+                </span>{" "}
+                {translator.translateTemplate(
+                  "{{condition}} of these can match for this criteria to be met:",
+                  {
+                    condition: translatableTerm(filterCondition),
+                  },
+                )}
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-gray-900">
+                  {translator.translateText("Filters")}
+                </span>
+                {filters.length === 1 && (
+                  <>
+                    {" "}
+                    {translator.translateText(
+                      "This criteria is met when this filter matches:",
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         <CriteriaFilters
-          criteriaFilters={props.monitorCriteriaInstance?.data?.filters || []}
-          filterCondition={
-            props.monitorCriteriaInstance?.data?.filterCondition ||
-            FilterCondition.Any
-          }
+          criteriaFilters={filters}
+          filterCondition={filterCondition}
+          monitorType={props.monitorType}
         />
       </div>
 
@@ -69,10 +123,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           <div className="flex">
             <Icon icon={IconProp.AltGlobe} className="h-5 w-5 text-gray-900" />
             <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-              <span className="font-medium text-gray-900">
-                Change Monitor Status
-              </span>{" "}
-              when this criteria is met. Change monitor status to:
+              <TranslatedSentence
+                template="{{action}} when this criteria is met. Change monitor status to:"
+                slots={{
+                  action: (
+                    <span className="font-medium text-gray-900">
+                      {translator.translateText("Change Monitor Status")}
+                    </span>
+                  ),
+                }}
+              />
               <div className="mt-3">
                 <Statusbubble
                   color={
@@ -109,10 +169,20 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="flex">
               <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-900" />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                <span className="font-medium text-gray-900">
-                  Create incident
-                </span>{" "}
-                when this criteria is met. These are the incident details:{" "}
+                <TranslatedSentence
+                  template={
+                    isOpenForEveryEmail
+                      ? "{{action}} for every email that meets this criteria. These are the incident details:"
+                      : "{{action}} when this criteria is met. These are the incident details:"
+                  }
+                  slots={{
+                    action: (
+                      <span className="font-medium text-gray-900">
+                        {translator.translateText("Create incident")}
+                      </span>
+                    ),
+                  }}
+                />{" "}
               </div>
             </div>
             <MonitorCriteriaIncidents
@@ -136,8 +206,20 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 className="h-5 w-5 text-gray-900"
               />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                <span className="font-medium text-gray-900">Create alert</span>{" "}
-                when this criteria is met. These are the alert details:{" "}
+                <TranslatedSentence
+                  template={
+                    isOpenForEveryEmail
+                      ? "{{action}} for every email that meets this criteria. These are the alert details:"
+                      : "{{action}} when this criteria is met. These are the alert details:"
+                  }
+                  slots={{
+                    action: (
+                      <span className="font-medium text-gray-900">
+                        {translator.translateText("Create alert")}
+                      </span>
+                    ),
+                  }}
+                />{" "}
               </div>
             </div>
             <MonitorCriteriaAlerts

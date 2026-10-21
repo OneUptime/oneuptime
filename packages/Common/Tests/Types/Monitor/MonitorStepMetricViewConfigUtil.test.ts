@@ -31,6 +31,7 @@ const METRIC_SHAPED_KEYS: Array<keyof MonitorStepType> = [
   "proxmoxMonitor",
   "vmwareMonitor",
   "cephMonitor",
+  "storageArrayMonitor",
   "iotMonitor",
 ];
 

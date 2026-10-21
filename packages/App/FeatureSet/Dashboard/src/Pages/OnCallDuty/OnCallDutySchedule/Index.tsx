@@ -5,18 +5,31 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import OneUptimeDate from "Common/Types/Date";
-import IconProp from "Common/Types/Icon/IconProp";
-import AppLink from "../../../Components/AppLink/AppLink";
-import DashboardUserUtil from "../../../Utils/User";
 import ScheduleSubscribeCard from "../../../Components/OnCallPolicy/CalendarFeed/ScheduleSubscribeCard";
+import ScheduleUserGroupsCard from "../../../Components/OnCallPolicy/UserGroups/ScheduleUserGroupsCard";
+import { SCHEDULE_EDIT_BUTTON_TEXT } from "../../../Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
 
+/*
+ * A schedule's Overview: its details, then who is on call now and next, with
+ * every layer, override and coverage gap applied (FinalPreview's Final
+ * Schedule), then the ways to follow it elsewhere - Slack user groups and
+ * Teams tags, and calendar links.
+ *
+ * It used to open with a banner of its own about "the roster" - "Bob Rivera
+ * is currently on the roster for this schedule. This user has been on the
+ * roster since ..." - above the Final Schedule, which says who is on call
+ * now and next in its first two tiles, overrides included. Two answers to
+ * one question on one page; the Final Schedule's is the one kept. A schedule
+ * with nobody to take turns yet said it in red, and below two calendar cards
+ * offering links to shifts nobody has: it now shows one step instead - add
+ * the people who take turns on its Layers page - and the cards that follow
+ * a schedule's shifts wait until it has some.
+ */
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -25,121 +38,27 @@ const OnCallDutyScheduleView: FunctionComponent<
   const [onCallSchedule, setOnCallSchedule] =
     React.useState<OnCallDutySchedule | null>(null);
 
-  let alertTitle: ReactElement | null = null;
+  // How many layers the schedule has, once FinalPreview has read them.
+  const [layerCount, setLayerCount] = React.useState<number | null>(null);
 
-  /*
-   * Rendered as soon as the schedule has loaded, NOT only when somebody is on
-   * the roster. The old condition required a current OR next user, which made
-   * the "does not have any users on the roster" branch below unreachable in the
-   * one state it was written for — a schedule with nobody on call now and
-   * nobody scheduled next showed no banner at all.
-   */
-  if (onCallSchedule) {
-    alertTitle = (
-      <div className="space-y-2">
-        {onCallSchedule.currentUserOnRoster && (
-          <div>
-            <strong>
-              <AppLink
-                className="underline"
-                to={DashboardUserUtil.getUserLinkInDashboard(
-                  onCallSchedule.currentUserOnRoster.id!,
-                )}
-              >
-                {onCallSchedule.currentUserOnRoster.name?.toString() ||
-                  onCallSchedule.currentUserOnRoster.email?.toString() ||
-                  ""}
-              </AppLink>
-            </strong>{" "}
-            is currently on the roster for this schedule. &nbsp;
-            {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && (
-              <span>
-                This user has been on the roster since{" "}
-                <strong>
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    onCallSchedule.rosterStartAt,
-                  )}
-                </strong>{" "}
-                and will remain on the roster until{" "}
-                <strong>
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    onCallSchedule.rosterHandoffAt,
-                  )}
-                </strong>
-                . &nbsp;
-              </span>
-            )}
-          </div>
-        )}
-        {!onCallSchedule.currentUserOnRoster && (
-          <div>
-            <strong>No one is currently on call in this schedule.</strong>{" "}
-            <span>
-              {onCallSchedule.nextUserOnRoster
-                ? "This is a coverage gap: any alert that escalates to this schedule right now will not page anyone. Coverage resumes at the hand-off below."
-                : "Nobody is on call now and nobody is scheduled next, so every alert that escalates to this schedule will go unanswered. Check the layers below - a layer with no users assigned, or restricted active hours with no 24/7 fallback layer, will leave the schedule uncovered."}
-              &nbsp;
-            </span>
-          </div>
-        )}
-        {onCallSchedule.nextUserOnRoster && (
-          <div>
-            <strong>
-              <AppLink
-                className="underline"
-                to={DashboardUserUtil.getUserLinkInDashboard(
-                  onCallSchedule.nextUserOnRoster.id!,
-                )}
-              >
-                {onCallSchedule.nextUserOnRoster.name?.toString() ||
-                  onCallSchedule.nextUserOnRoster.email?.toString() ||
-                  ""}
-              </AppLink>
-            </strong>{" "}
-            is the next user scheduled to be on the roster. &nbsp;
-            {onCallSchedule.rosterNextHandoffAt &&
-              onCallSchedule.rosterNextStartAt && (
-                <span>
-                  This user will be on the roster from{" "}
-                  <strong>
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      onCallSchedule.rosterNextStartAt,
-                    )}
-                  </strong>{" "}
-                  and remain on the roster until{" "}
-                  <strong>
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      onCallSchedule.rosterNextHandoffAt,
-                    )}
-                  </strong>
-                  . &nbsp;
-                </span>
-              )}
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Nothing to follow before anybody takes turns.
+  const hasLayers: boolean = layerCount !== null && layerCount > 0;
 
   return (
     <Fragment>
       {/* OnCallDutySchedule View  */}
       <CardModelDetail<OnCallDutySchedule>
         name="On-Call Schedule > On-Call Schedule Details"
+        /*
+         * The model is named for its table (On-Call Policy Schedule), which
+         * made this "Edit On-Call Policy Schedule" on a page every menu calls
+         * an On-Call Schedule.
+         */
+        editButtonText={SCHEDULE_EDIT_BUTTON_TEXT}
+        editModalTitle={SCHEDULE_EDIT_BUTTON_TEXT}
         cardProps={{
           title: "On-Call Schedule Details",
-          description: "Here are more details for this on-call Schedule.",
         }}
-        formSteps={[
-          {
-            title: "On-Call Schedule Info",
-            id: "on-call-Schedule-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -147,10 +66,10 @@ const OnCallDutyScheduleView: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "On-Call Schedule Name",
+            placeholder: "e.g., Platform primary",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -159,51 +78,19 @@ const OnCallDutyScheduleView: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "on-call-Schedule-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<OnCallDutySchedule>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: OnCallDutySchedule,
           id: "model-detail-monitors",
           selectMoreFields: {
-            currentUserOnRoster: {
-              name: true,
-              _id: true,
-              email: true,
-              profilePictureId: true,
-            },
-            nextUserOnRoster: {
-              name: true,
-              _id: true,
-              email: true,
-              profilePictureId: true,
-            },
-            rosterNextHandoffAt: true,
-            rosterHandoffAt: true,
-            rosterStartAt: true,
-            rosterNextStartAt: true,
             timezone: true,
           },
           onItemLoaded: (item: OnCallDutySchedule): void => {
@@ -249,33 +136,37 @@ const OnCallDutyScheduleView: FunctionComponent<
         }}
       />
 
-      {onCallSchedule && alertTitle && (
-        <Alert
-          type={
-            onCallSchedule.currentUserOnRoster
-              ? AlertType.INFO
-              : AlertType.DANGER
-          }
-          title={alertTitle}
-          icon={
-            onCallSchedule.currentUserOnRoster ? IconProp.Calendar : undefined
-          }
-        />
-      )}
-
-      <ScheduleSubscribeCard
-        scheduleId={modelId}
-        scheduleTimezone={
-          onCallSchedule
-            ? onCallSchedule.timezone?.toString() || null
-            : undefined
-        }
-      />
-
       <FinalPreview
         onCallDutyPolicyScheduleId={modelId}
         projectId={ProjectUtil.getCurrentProjectId() as ObjectID}
+        onLayersLoaded={(count: number): void => {
+          setLayerCount(count);
+        }}
       />
+
+      {hasLayers ? (
+        <Fragment>
+          {/*
+           * The Slack user groups and Microsoft Teams tags that hold whoever
+           * is on call here: beside the roster they mirror.
+           */}
+          <ScheduleUserGroupsCard
+            scheduleId={modelId}
+            scheduleName={onCallSchedule?.name?.toString() || ""}
+          />
+
+          <ScheduleSubscribeCard
+            scheduleId={modelId}
+            scheduleTimezone={
+              onCallSchedule
+                ? onCallSchedule.timezone?.toString() || null
+                : undefined
+            }
+          />
+        </Fragment>
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

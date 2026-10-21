@@ -16,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * Issue #3394, the service half: DatabaseService.create must refuse a second
@@ -157,6 +158,8 @@ function uniquenessQueries(table: FakeTable): Array<Record<string, unknown>> {
 
 beforeEach(() => {
   jest.restoreAllMocks();
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

@@ -32,6 +32,7 @@ import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 /*
  * Render the overview and its real details card, field renderer and edit
@@ -389,7 +390,7 @@ describe("SLO overview details sidebar", () => {
     },
   );
 
-  test("stacks the title above the documentation and edit actions for the narrow column", async () => {
+  test("stacks the title above the edit action and the ⋯ that holds the documentation, for the narrow column", async () => {
     renderPage();
     await waitForDetails();
 
@@ -403,9 +404,16 @@ describe("SLO overview details sidebar", () => {
     expect(
       within(actions).getByRole("button", { name: EDIT_LABEL }),
     ).toBeEnabled();
+    /*
+     * The documentation is in the card's ⋯, as a table keeps it - not a
+     * button of its own beside Edit.
+     */
     expect(
-      within(actions).getByRole("button", { name: "View Documentation" }),
+      within(actions).getByRole("button", { name: "More options" }),
     ).toBeInTheDocument();
+    expect(
+      within(actions).queryByRole("button", { name: "View Documentation" }),
+    ).toBeNull();
     expect(
       within(actions).queryByRole("heading", { name: "SLO Details" }),
     ).toBeNull();
@@ -420,6 +428,11 @@ describe("SLO overview details sidebar", () => {
     await waitForDetails();
     fireEvent.click(
       within(getDetailsCard()).getByRole("button", {
+        name: "More options",
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
         name: "View Documentation",
       }),
     );
@@ -448,7 +461,9 @@ describe("SLO overview details sidebar", () => {
     expect(within(details).getByText("Customer facing")).toBeInTheDocument();
     const fields: HTMLElement =
       details.querySelector<HTMLElement>("#slo-details")!;
-    expect(fields).toHaveClass("grid-cols-1", "sm:grid-cols-1");
+    // One column at every width: no wider grid from any breakpoint.
+    expect(fields).toHaveClass("grid-cols-1");
+    expect(fields.className).not.toMatch(/(^|\s)(sm|md|lg|xl):grid-cols-[2-9]/);
     expect(
       Array.from(fields.querySelectorAll("label")).map(
         (labelElement: HTMLLabelElement): string | null => {
@@ -511,7 +526,8 @@ describe("SLO overview details sidebar", () => {
     expect(
       within(dialog).getByDisplayValue("Availability of the checkout API."),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("Labels")).toBeInTheDocument();
+    // Labels are there, folded under More fields, which names them.
+    expect(listedNames(dialog)).toContain("Labels");
     expect(within(dialog).queryByText("Target (%)")).toBeNull();
 
     fireEvent.change(

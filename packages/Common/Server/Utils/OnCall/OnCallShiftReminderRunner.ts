@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
 import UserOnCallShiftReminderService from "../../Services/UserOnCallShiftReminderService";
@@ -205,7 +206,10 @@ export interface ShiftReminderRetentionStats {
 // Where a recipient's wall clock is rendered: their zone, else the schedule's, else UTC.
 export interface ShiftReminderMessage {
   subject: string;
+  // What the call says.
   text: string;
+  // What the SMS says: the same news, in the words of every notification SMS.
+  smsText: string;
   pushTitle: string;
   pushBody: string;
   vars: Dictionary<string>;
@@ -978,6 +982,7 @@ export default class OnCallShiftReminderRunner {
     return {
       subject: `Reminder: your on-call shift on ${shift.scheduleName} starts in ${remainingText}`,
       text: `This is a message from OneUptime. ${sentence} To change these reminders go to User Settings in the OneUptime Dashboard.`,
+      smsText: buildNotificationSms(sentence),
       pushTitle: "On-call shift reminder",
       pushBody: `Your on-call shift on ${shift.scheduleName} starts in ${remainingText} (${whenText}).`,
       vars,
@@ -1056,6 +1061,7 @@ export default class OnCallShiftReminderRunner {
     return {
       subject: `Heads up: your on-call shift on ${shift.scheduleName} starts in ${remainingText}`,
       text: `This is a message from OneUptime. ${sentence} To change these reminders go to User Settings in the OneUptime Dashboard.`,
+      smsText: buildNotificationSms(sentence),
       pushTitle: "On-call shift reminder",
       pushBody: `Your on-call shift on ${shift.scheduleName} starts in ${remainingText} (${whenText})${coveringClause}.`,
       vars,
@@ -1104,6 +1110,7 @@ export default class OnCallShiftReminderRunner {
     return {
       subject: `Your on-call shift on ${data.scheduleName} ${outcome}`,
       text: `This is a message from OneUptime. ${sentence} To change these notices go to User Settings in the OneUptime Dashboard.`,
+      smsText: buildNotificationSms(sentence),
       pushTitle: "On-call shift reassigned",
       pushBody: sentence,
       vars,
@@ -2053,7 +2060,7 @@ export default class OnCallShiftReminderRunner {
       };
 
       const smsMessage: SMSMessage = {
-        message: message.text,
+        message: message.smsText,
       };
 
       const callRequestMessage: CallRequestMessage = {

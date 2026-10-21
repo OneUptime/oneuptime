@@ -14,6 +14,7 @@ import AIService, {
   AI_INVESTIGATION_GRADING_FEATURE,
 } from "../../../Services/AIService";
 import logger from "../../Logger";
+import PromptText from "../../../../Utils/AI/PromptText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -145,11 +146,23 @@ export default class InvestigationGrader {
        * executeWithLogging throw would file a permanent error for every
        * incident such a project ever resolves. It is a silent skip instead —
        * the same posture the sibling on-resolve job takes via
-       * AIInvestigationEngine.isEnabledForProject.
+       * AIIncidentPostmortemRunner.isEnabledForProject.
        */
       if (!(await AIService.isProjectAIEnabled(projectId))) {
         logger.debug(
           `AI grading: AI is disabled for project ${projectId.toString()} — skipping.`,
+        );
+        return;
+      }
+
+      /*
+       * The project's own daily AI limits, the same way: a limit someone
+       * set is a setting too, and every grading call would be refused
+       * until midnight UTC.
+       */
+      if (await AIService.getReachedProjectDailyLimit({ projectId })) {
+        logger.debug(
+          `AI grading: project ${projectId.toString()} has reached its own daily AI limit — skipping.`,
         );
         return;
       }
@@ -239,7 +252,7 @@ export default class InvestigationGrader {
             content: [
               "Human-recorded root cause:",
               '"""',
-              rootCause.substring(0, MAX_ROOT_CAUSE_CHARS),
+              PromptText.field(rootCause, { maxLength: MAX_ROOT_CAUSE_CHARS }),
               '"""',
               "",
               "AI investigation analysis:",

@@ -1,4 +1,16 @@
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+} from "react";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -43,6 +55,11 @@ export interface LogsTableProps {
   resourceEntityMaps?: LogsResourceEntityMaps | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
+  /*
+   * Drawn in place of the empty list's message when set - the Logs page's
+   * first steps (LogsViewer's emptyContentWhenUnfiltered).
+   */
+  emptyContent?: ReactNode | undefined;
   onRowClick: (log: Log, rowId: string) => void;
   selectedLogId?: string | null;
   renderExpandedContent?: (log: Log) => ReactElement | null;
@@ -96,6 +113,46 @@ export const resolveLogIdentifier: (log: Log, index: number) => string = (
 
 export type LogsTableSortField = "time" | "severityText";
 
+// The list's own box: the rows, their loader and their empty state.
+export const LOGS_TABLE_TEST_ID: string = "logs-table";
+
+// What an empty list says, and the line under it when its host says nothing.
+export const LOGS_TABLE_EMPTY_TITLE: string = translationKey("No logs found");
+export const LOGS_TABLE_EMPTY_HINT: string = translationKey(
+  "Adjust filters or check again later.",
+);
+
+// "No logs found." and "no logs found" read as the same sentence.
+const asSentenceKey: (text: string) => string = (text: string): string => {
+  let value: string = text.trim().toLowerCase();
+
+  while (value.endsWith(".")) {
+    value = value.slice(0, -1).trimEnd();
+  }
+
+  return value;
+};
+
+/**
+ * The line under "No logs found". A host's message says why nothing came
+ * or what to try; one that only says "No logs found" again - an incident's
+ * or an alert's logs, a log monitor's preview - would print the title twice
+ * in a row, so it gives way to the list's own hint, as an unset one does.
+ */
+export function getLogsTableEmptyHint(
+  emptyMessage: string | undefined,
+): string {
+  if (
+    !emptyMessage ||
+    asSentenceKey(emptyMessage).length === 0 ||
+    asSentenceKey(emptyMessage) === asSentenceKey(LOGS_TABLE_EMPTY_TITLE)
+  ) {
+    return LOGS_TABLE_EMPTY_HINT;
+  }
+
+  return emptyMessage;
+}
+
 const stringifyLogValue: (value: unknown) => string = (
   value: unknown,
 ): string => {
@@ -121,7 +178,16 @@ const stringifyLogValue: (value: unknown) => string = (
 const LogsTable: FunctionComponent<LogsTableProps> = (
   props: LogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showEmptyState: boolean = !props.isLoading && props.logs.length === 0;
+  /*
+   * Loading with no rows yet - the first page, or a list that waits for a
+   * saved view to apply (issue #4709). The loader gets the room the rows
+   * will take, as the other explorers' lists give theirs, rather than a
+   * strip across the column headings.
+   */
+  const isLoadingFirstRows: boolean =
+    props.isLoading && props.logs.length === 0;
   const activeSortField: LogsTableSortField | undefined = props.sortField;
   const activeSortOrder: SortOrder = props.sortOrder || SortOrder.Descending;
   const selectedColumns: Array<string> = normalizeLogsTableColumns(
@@ -213,7 +279,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         <Link
           to={traceRoute}
           className={linkClassName}
-          title={`View trace ${traceId}`}
+          title={translator.translateTemplate("View trace {{id}}", {
+            id: traceId,
+          })}
         >
           {traceId}
         </Link>
@@ -244,7 +312,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           <Link
             to={spanRoute}
             className={linkClassName}
-            title={`View span ${spanId}`}
+            title={translator.translateTemplate("View span {{id}}", {
+              id: spanId,
+            })}
           >
             {spanId}
           </Link>
@@ -264,7 +334,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               openSpanLazily(spanId, log);
             }}
             className={linkClassName}
-            title={`View span ${spanId}`}
+            title={translator.translateTemplate("View span {{id}}", {
+              id: spanId,
+            })}
           >
             {spanId}
           </Link>
@@ -301,7 +373,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 : "none"
             }
           >
-            <span>Time</span>
+            <span>{translator.translateText("Time")}</span>
             <Icon
               icon={resolveSortIcon("time")}
               className={resolveSortIconClass("time")}
@@ -331,7 +403,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 : "none"
             }
           >
-            <span>Severity</span>
+            <span>{translator.translateText("Severity")}</span>
             <Icon
               icon={resolveSortIcon("severityText")}
               className={resolveSortIconClass("severityText")}
@@ -345,7 +417,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "service") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Service
+          {translator.translateText("Service")}
         </th>
       );
     }
@@ -353,7 +425,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "message") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Message
+          {translator.translateText("Message")}
         </th>
       );
     }
@@ -361,7 +433,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "traceId") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Trace ID
+          {translator.translateText("Trace ID")}
         </th>
       );
     }
@@ -369,7 +441,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "spanId") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Span ID
+          {translator.translateText("Span ID")}
         </th>
       );
     }
@@ -382,7 +454,10 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   };
 
   return (
-    <div className="relative">
+    <div
+      className={isLoadingFirstRows ? "relative min-h-48" : "relative"}
+      data-testid={LOGS_TABLE_TEST_ID}
+    >
       <div className="overflow-x-auto bg-white">
         <table className="min-w-full">
           <thead className="bg-gray-50/80">
@@ -403,10 +478,14 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 resourceMaps: props.resourceEntityMaps,
                 entityNameMap: props.entityNameMap,
               });
-              const serviceName: string = entityDisplay.name || "Unknown";
+              const serviceName: string =
+                entityDisplay.name || translator.translateText("Unknown") || "";
               const serviceColor: string = entityDisplay.color || "#94a3b8";
               const serviceTitle: string = entityDisplay.typeLabel
-                ? `${entityDisplay.typeLabel}: ${serviceName}`
+                ? translator.translateTemplate("{{type}}: {{name}}", {
+                    type: translatableTerm(entityDisplay.typeLabel),
+                    name: serviceName,
+                  })
                 : serviceName;
 
               const message: string = log.body?.toString() || "";
@@ -493,13 +572,25 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                   <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
                                     {traceId && !showTraceColumn && (
                                       <span>
-                                        Trace:{" "}
-                                        {renderTraceIdValue(traceId, log)}
+                                        <TranslatedSentence
+                                          template="Trace: {{id}}"
+                                          slots={{
+                                            id: renderTraceIdValue(
+                                              traceId,
+                                              log,
+                                            ),
+                                          }}
+                                        />
                                       </span>
                                     )}
                                     {spanId && !showSpanColumn && (
                                       <span>
-                                        Span: {renderSpanIdValue(spanId, log)}
+                                        <TranslatedSentence
+                                          template="Span: {{id}}"
+                                          slots={{
+                                            id: renderSpanIdValue(spanId, log),
+                                          }}
+                                        />
                                       </span>
                                     )}
                                   </div>
@@ -608,16 +699,31 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         </div>
       )}
 
-      {showEmptyState && (
-        <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-white">
-          <div className="w-full max-w-xl rounded-md border border-gray-200 bg-white p-6 text-left shadow-sm">
-            <p className="font-mono text-sm uppercase text-gray-500">
-              No logs found
-            </p>
-            <p className="mt-3 font-mono text-xs text-gray-400">
-              {props.emptyMessage || "Adjust filters or check again later."}
-            </p>
-          </div>
+      {showEmptyState && props.emptyContent !== undefined && (
+        <div className="bg-white" data-testid="logs-table-empty-content">
+          {props.emptyContent}
+        </div>
+      )}
+
+      {/*
+       * Drawn as every other explorer draws an empty list (TelemetryViewer):
+       * a search icon, what is true, and what to try. It was a boxed card of
+       * upper-case monospace text, unlike any other empty list.
+       */}
+      {showEmptyState && props.emptyContent === undefined && (
+        <div
+          className="flex flex-col items-center justify-center gap-2 bg-white px-6 py-12 text-center"
+          data-testid="logs-table-empty"
+        >
+          <Icon icon={IconProp.Search} className="h-8 w-8 text-gray-300" />
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText(LOGS_TABLE_EMPTY_TITLE)}
+          </p>
+          <p className="max-w-xl text-xs text-gray-400">
+            {translator.translateText(
+              getLogsTableEmptyHint(props.emptyMessage),
+            )}
+          </p>
         </div>
       )}
     </div>

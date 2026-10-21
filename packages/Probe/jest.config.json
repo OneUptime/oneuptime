@@ -2,8 +2,8 @@
 
  "preset": "ts-jest",
 "testPathIgnorePatterns": [
-        "node_modules",
-        "dist",
+        "/node_modules/",
+        "/dist/",
         "<rootDir>/build/"
     ],
     "modulePathIgnorePatterns": ["<rootDir>/build/"],
@@ -11,7 +11,8 @@
     "globals": {
         "ts-jest": {
             "tsconfig": "tsconfig.json",
-            "babelConfig": false
+            "babelConfig": false,
+            "isolatedModules": true
         }
     },
     "moduleNameMapper": {

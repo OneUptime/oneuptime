@@ -20,6 +20,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const getListMock: MockFunction = getJestMockFunction();
 const modelFormModalMock: MockFunction = getJestMockFunction();
+const fetchNoteTemplateVariablesMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -48,6 +49,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
+
+// The values a note template's placeholders are filled with.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentNoteTemplateVariables",
+  () => {
+    return {
+      __esModule: true,
+      fetchIncidentNoteTemplateVariables: (...args: Array<unknown>) => {
+        return fetchNoteTemplateVariablesMock(...args);
+      },
+    };
+  },
+);
 
 /*
  * The state-change modal is a full model form with its own API traffic. These
@@ -186,6 +200,7 @@ const listResult: (data: Array<unknown>) => ListResultShape = (
 
 interface FakeApiOptions {
   withTemplate?: boolean | undefined;
+  templateNote?: string | undefined;
 }
 
 const buildStates: () => Array<IncidentState> = (): Array<IncidentState> => {
@@ -228,7 +243,7 @@ const respondWith: (options?: FakeApiOptions) => void = (
       const template: IncidentNoteTemplate = new IncidentNoteTemplate();
       template.id = new ObjectID(TEMPLATE_ID);
       template.templateName = "Investigating update";
-      template.note = TEMPLATE_NOTE;
+      template.note = options.templateNote || TEMPLATE_NOTE;
       return Promise.resolve(listResult([template]));
     }
 
@@ -380,12 +395,15 @@ beforeEach(() => {
   project.id = new ObjectID(PROJECT_ID);
 
   jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+
+  fetchNoteTemplateVariablesMock.mockResolvedValue({} as never);
 });
 
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
   modelFormModalMock.mockReset();
+  fetchNoteTemplateVariablesMock.mockReset();
   jest.restoreAllMocks();
 });
 
@@ -617,6 +635,78 @@ describe("ChangeIncidentState note template", () => {
     expect(fieldByKey(props, "publicNoteTemplate").showIf!()).toBe(false);
     expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: false });
   });
+
+  test("a picked template's placeholders are filled with this incident's values", async () => {
+    fetchNoteTemplateVariablesMock.mockResolvedValue({
+      "incident.title": "Checkout latency above 2s",
+      "incident.severity": "Critical",
+    } as never);
+
+    await openModal(OPEN_CASES[0]!, false, {
+      withTemplate: true,
+      templateNote:
+        "Looking into {{incident.title}} ({{incident.severity}}). Owner: {{incident.owner}}",
+    });
+
+    // Read for this incident as the form opens.
+    await waitFor(() => {
+      expect(fetchNoteTemplateVariablesMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      String(fetchNoteTemplateVariablesMock.mock.calls[0]![0] as ObjectID),
+    ).toBe(INCIDENT_ID);
+
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    await waitFor(() => {
+      setNewFormValues.mockClear();
+      fieldByKey(lastModalProps(), "publicNoteTemplate").onChange!(
+        TEMPLATE_ID,
+        { [NOTIFY_FIELD_KEY]: false },
+        setNewFormValues,
+      );
+
+      expect(setNewFormValues).toHaveBeenCalledWith({
+        [NOTIFY_FIELD_KEY]: false,
+        publicNote:
+          "Looking into Checkout latency above 2s (Critical). Owner: {{incident.owner}}",
+      });
+    });
+  });
+
+  test("when the values cannot be read, the template goes in as written", async () => {
+    fetchNoteTemplateVariablesMock.mockRejectedValue(
+      new Error("No access.") as never,
+    );
+
+    await openModal(OPEN_CASES[0]!, false, {
+      withTemplate: true,
+      templateNote: "Looking into {{incident.title}}.",
+    });
+
+    await waitFor(() => {
+      expect(fetchNoteTemplateVariablesMock).toHaveBeenCalledTimes(1);
+    });
+
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    fieldByKey(lastModalProps(), "publicNoteTemplate").onChange!(
+      TEMPLATE_ID,
+      { [NOTIFY_FIELD_KEY]: false },
+      setNewFormValues,
+    );
+
+    expect(setNewFormValues).toHaveBeenCalledWith({
+      [NOTIFY_FIELD_KEY]: false,
+      publicNote: "Looking into {{incident.title}}.",
+    });
+  });
+
+  test("with no templates to pick, nothing is read for them", async () => {
+    await openModal(OPEN_CASES[0]!, false);
+
+    expect(fetchNoteTemplateVariablesMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("ChangeIncidentState: the default follows the page", () => {
@@ -661,5 +751,213 @@ describe("ChangeIncidentState: the default follows the page", () => {
       PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
     );
     expect(getListMock.mock.calls.length).toBe(listCallsBefore);
+  });
+});
+
+/*
+ * A private incident takes no public notes and reaches no status page
+ * subscriber (Common/Types/StatusPage/PrivateRecordPublicNotes; the server
+ * refuses a state change that comes with a public note on one). Its state
+ * change dialog asks nothing about subscribers, notifies nobody, and folds a
+ * private note under "Add a private note" - as an alert's does - which the
+ * incident's state timeline posts as a private note (`privateNote`).
+ */
+describe("ChangeIncidentState on a private incident", () => {
+  const renderPrivateHeader: (
+    isPrivate: boolean | undefined,
+    notifyStatusPageSubscribersByDefault?: boolean | undefined,
+  ) => RenderResult = (
+    isPrivate: boolean | undefined,
+    notifyStatusPageSubscribersByDefault?: boolean | undefined,
+  ): RenderResult => {
+    return render(
+      <ChangeIncidentState
+        incidentId={new ObjectID(INCIDENT_ID)}
+        eventNumber="INC-42"
+        title="Checkout latency above 2s"
+        eventStartsAt={START}
+        onActionComplete={jest.fn()}
+        isPrivate={isPrivate}
+        notifyStatusPageSubscribersByDefault={
+          notifyStatusPageSubscribersByDefault
+        }
+      />,
+    );
+  };
+
+  const openPrivateModal: (
+    openCase: OpenCase,
+    options?: FakeApiOptions,
+  ) => Promise<StateChangeModalProps> = async (
+    openCase: OpenCase,
+    options?: FakeApiOptions,
+  ): Promise<StateChangeModalProps> => {
+    respondWith(options);
+    // Even an incident declared notifying: once private, nobody hears.
+    renderPrivateHeader(true, true);
+    await waitForHeader();
+
+    openCase.open();
+
+    const props: StateChangeModalProps = lastModalProps();
+
+    expect(props.title).toBe(openCase.expectedTitle);
+
+    return props;
+  };
+
+  const fieldKeys: (props: StateChangeModalProps) => Array<string> = (
+    props: StateChangeModalProps,
+  ): Array<string> => {
+    return props.formProps.fields.map((field: StateChangeField): string => {
+      return field.overrideFieldKey || Object.keys(field.field)[0] || "";
+    });
+  };
+
+  describe.each(OPEN_CASES)("$label", (openCase: OpenCase) => {
+    test("asks nothing about status page subscribers, and notifies nobody", async () => {
+      const props: StateChangeModalProps = await openPrivateModal(openCase);
+
+      expect(fieldKeys(props)).not.toContain(NOTIFY_FIELD_KEY);
+      expect(
+        props.formProps.fields.some((field: StateChangeField): boolean => {
+          return field.title === "Notify Status Page Subscribers";
+        }),
+      ).toBe(false);
+      expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: false });
+    });
+
+    test("folds a private note, never a public one", async () => {
+      const props: StateChangeModalProps = await openPrivateModal(openCase, {
+        withTemplate: true,
+      });
+
+      expect(fieldKeys(props)).toEqual(["privateNoteTemplate", "privateNote"]);
+
+      const note: StateChangeField = fieldByKey(props, "privateNote");
+
+      expect(note.title).toBe("Private Note");
+      expect(note.description).toBe(
+        "Post a private note about this state change.",
+      );
+      expect(note.fieldType).toBe(FormFieldSchemaType.Markdown);
+      expect(
+        (note as unknown as { collapsibleSection: { title: string } })
+          .collapsibleSection.title,
+      ).toBe("Add a private note");
+      expect(() => {
+        return fieldByKey(props, "publicNote");
+      }).toThrow();
+    });
+
+    test("still records the change on this incident, in the chosen state", async () => {
+      const props: StateChangeModalProps = await openPrivateModal(openCase);
+      const model: IncidentStateTimeline = new IncidentStateTimeline();
+
+      await props.onBeforeCreate(model);
+
+      expect(model.incidentId?.toString()).toBe(INCIDENT_ID);
+      expect(model.incidentStateId?.toString()).toBe(openCase.expectedStateId);
+    });
+
+    test("sends 'notify nobody' itself: the form sends no value for the box it does not show", async () => {
+      const props: StateChangeModalProps = await openPrivateModal(openCase);
+      const model: IncidentStateTimeline = new IncidentStateTimeline();
+
+      // What the form hands over: no notify value at all.
+      expect(model.shouldStatusPageSubscribersBeNotified).toBeUndefined();
+
+      await props.onBeforeCreate(model);
+
+      // Not left to the column's default, which notifies.
+      expect(model.shouldStatusPageSubscribersBeNotified).toBe(false);
+    });
+  });
+
+  test("an incident that is not private leaves the notify value to its box", async () => {
+    respondWith();
+    renderPrivateHeader(false, true);
+    await waitForHeader();
+
+    clickAcknowledge();
+
+    const model: IncidentStateTimeline = new IncidentStateTimeline();
+    model.shouldStatusPageSubscribersBeNotified = true;
+
+    await lastModalProps().onBeforeCreate(model);
+
+    expect(model.shouldStatusPageSubscribersBeNotified).toBe(true);
+  });
+
+  test("a picked template goes into the private note, its placeholders filled", async () => {
+    fetchNoteTemplateVariablesMock.mockResolvedValue({
+      "incident.title": "Checkout latency above 2s",
+    } as never);
+
+    const props: StateChangeModalProps = await openPrivateModal(
+      OPEN_CASES[0]!,
+      {
+        withTemplate: true,
+        templateNote: "Looking into {{incident.title}}.",
+      },
+    );
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    await waitFor(() => {
+      lastModalProps().formProps.fields.find(
+        (field: StateChangeField): boolean => {
+          return field.overrideFieldKey === "privateNoteTemplate";
+        },
+      )!.onChange!(TEMPLATE_ID, { privateNote: "" }, setNewFormValues);
+
+      expect(setNewFormValues).toHaveBeenLastCalledWith({
+        privateNote: "Looking into Checkout latency above 2s.",
+      });
+    });
+
+    expect(props.title).toBe("Acknowledge Incident");
+  });
+
+  test("an incident that is not private keeps its public note and the notify box", async () => {
+    respondWith({ withTemplate: true });
+    renderPrivateHeader(false, true);
+    await waitForHeader();
+
+    clickAcknowledge();
+
+    const props: StateChangeModalProps = lastModalProps();
+
+    expect(fieldKeys(props)).toEqual([
+      NOTIFY_FIELD_KEY,
+      "publicNoteTemplate",
+      "publicNote",
+    ]);
+    expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: true });
+  });
+
+  test("a form opened after the incident is made private offers the private note", async () => {
+    respondWith();
+
+    const view: RenderResult = renderPrivateHeader(false, true);
+    await waitForHeader();
+
+    view.rerender(
+      <ChangeIncidentState
+        incidentId={new ObjectID(INCIDENT_ID)}
+        eventNumber="INC-42"
+        title="Checkout latency above 2s"
+        eventStartsAt={START}
+        onActionComplete={jest.fn()}
+        isPrivate={true}
+        notifyStatusPageSubscribersByDefault={true}
+      />,
+    );
+
+    clickAcknowledge();
+
+    await waitFor(() => {
+      expect(fieldKeys(lastModalProps())).toContain("privateNote");
+    });
+    expect(fieldKeys(lastModalProps())).not.toContain(NOTIFY_FIELD_KEY);
   });
 });

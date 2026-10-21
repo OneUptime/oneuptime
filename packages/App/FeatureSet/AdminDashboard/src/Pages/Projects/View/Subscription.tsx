@@ -12,14 +12,18 @@ import BalanceAdjustmentType from "Common/Types/Billing/BalanceAdjustmentType";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import ActiveMonitorLimitUtil from "Common/Types/Monitor/ActiveMonitorLimit";
 import ObjectID from "Common/Types/ObjectID";
+import { Amber600 } from "Common/Types/BrandColors";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -47,7 +51,16 @@ const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
 const MAX_BALANCE_ADJUSTMENT_IN_USD: number = 10000;
 
 const ProjectSubscription: FunctionComponent = (): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // A count the way the admin's language writes it: 2881 is "2,881".
+  const formatCount: (value: number) => string = (value: number): string => {
+    try {
+      return value.toLocaleString(i18n.language || undefined);
+    } catch {
+      return value.toLocaleString();
+    }
+  };
 
   const modelIdString: string = Navigation.getLastParamAsString(1);
 
@@ -548,6 +561,131 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
         />
 
         {/*
+         * What the plan lets the project have in active monitors - every
+         * monitor but a Manual one (Common/Server/Utils/Billing/
+         * ActiveMonitorLimit). A plan bought from a reseller writes the limit;
+         * staff see how many the project has beside it and can change it
+         * here. The count is the one the bill reports
+         * (Project.currentActiveMonitorsCount).
+         */}
+        <CardModelDetail<Project>
+          name="Project Active Monitors"
+          modelAPI={AdminModelAPI}
+          refresher={refresher}
+          cardProps={{
+            title: t("pages.projectSubscription.monitorLimitCardTitle"),
+            description: t(
+              "pages.projectSubscription.monitorLimitCardDescription",
+            ),
+          }}
+          isEditable={true}
+          editButtonText={t("pages.projectSubscription.monitorLimitEditButton")}
+          editModalTitle={t("pages.projectSubscription.monitorLimitEditButton")}
+          formFields={[
+            {
+              field: {
+                activeMonitorsLimit: true,
+              },
+              title: t("pages.projectSubscription.fieldMonitorLimit"),
+              description: t(
+                "pages.projectSubscription.fieldMonitorLimitDescription",
+              ),
+              fieldType: FormFieldSchemaType.Number,
+              required: false,
+              placeholder: t("pages.projectSubscription.noMonitorLimit"),
+              validation: {
+                minValue: 1,
+              },
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-active-monitors",
+            refresher: refresher,
+            fields: [
+              {
+                field: {
+                  currentActiveMonitorsCount: true,
+                },
+                title: t("pages.projectSubscription.fieldActiveMonitors"),
+                fieldType: FieldType.Element,
+                /*
+                 * The count, and how it stands against the project's own
+                 * limit: a project past it (the support report's, 2,881 on
+                 * a limit of 500) says by how many at a glance.
+                 */
+                getElement: (item: Project): ReactElement => {
+                  const count: number = Number(
+                    item.currentActiveMonitorsCount || 0,
+                  );
+                  const limit: number | null =
+                    ActiveMonitorLimitUtil.getProjectLimit(
+                      item.activeMonitorsLimit,
+                    );
+
+                  return (
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      data-testid="project-active-monitors-count"
+                    >
+                      <span>{formatCount(count)}</span>
+                      {limit !== null && count > limit ? (
+                        <Pill
+                          text={t(
+                            "pages.projectSubscription.overMonitorLimit",
+                            {
+                              over: formatCount(count - limit),
+                            },
+                          )}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      {limit !== null && count === limit ? (
+                        <Pill
+                          text={t("pages.projectSubscription.atMonitorLimit")}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                  );
+                },
+              },
+              {
+                field: {
+                  activeMonitorsLimit: true,
+                },
+                title: t("pages.projectSubscription.fieldMonitorLimit"),
+                fieldType: FieldType.Element,
+                // Nothing, or 0, is no limit (ActiveMonitorLimitUtil).
+                getElement: (item: Project): ReactElement => {
+                  const limit: number | null =
+                    ActiveMonitorLimitUtil.getProjectLimit(
+                      item.activeMonitorsLimit,
+                    );
+
+                  return limit === null ? (
+                    <PlaceholderText
+                      text={t("pages.projectSubscription.noMonitorLimit")}
+                    />
+                  ) : (
+                    <span data-testid="project-active-monitor-limit">
+                      {formatCount(limit)}
+                    </span>
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {/*
          * Prepaid balances live next to the subscription because they are the
          * other half of what the customer owes: the plan is invoiced, these
          * are drawn down. Staff correct them here when a charge was wrong or
@@ -631,12 +769,26 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 amountInUSD: "",
                 reason: "",
               },
+              // Which balance and which way, then by how much and why.
+              steps: [
+                {
+                  title: t(
+                    "pages.projectSubscription.adjustBalanceStepBalance",
+                  ),
+                  id: "balance",
+                },
+                {
+                  title: t("pages.projectSubscription.adjustBalanceStepAmount"),
+                  id: "amount",
+                },
+              ],
               fields: [
                 {
                   field: {
                     balanceType: true,
                   },
                   title: t("pages.projectSubscription.balanceTypeLabel"),
+                  stepId: "balance",
                   description: t(
                     "pages.projectSubscription.balanceTypeDescription",
                   ),
@@ -649,6 +801,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     adjustmentType: true,
                   },
                   title: t("pages.projectSubscription.adjustmentTypeLabel"),
+                  stepId: "balance",
                   description: t(
                     "pages.projectSubscription.adjustmentTypeDescription",
                   ),
@@ -661,6 +814,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     amountInUSD: true,
                   },
                   title: t("pages.projectSubscription.amountLabel"),
+                  stepId: "amount",
                   description: t(
                     "pages.projectSubscription.amountDescription",
                     {
@@ -676,6 +830,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     reason: true,
                   },
                   title: t("pages.projectSubscription.reasonLabel"),
+                  stepId: "amount",
                   description: t("pages.projectSubscription.reasonDescription"),
                   required: true,
                   fieldType: FormFieldSchemaType.Text,

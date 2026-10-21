@@ -4,7 +4,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
 
 /*
- * The monitor overview groups the 34 monitor types into seven families that
+ * The monitor overview groups the 35 monitor types into eight families that
  * behave alike on the page: where the "last checked" time comes from, which
  * facts the hero shows, which cards appear. Everything type-specific on the
  * overview goes through this one switch, so a new MonitorType fails to
@@ -24,6 +24,8 @@ export enum MonitorOverviewFamily {
   Infrastructure = "Infrastructure",
   // Evaluated on every device poll and matching trap.
   NetworkDevice = "NetworkDevice",
+  // Evaluated every minute from the connection status of the probes it watches.
+  ProbeStatus = "ProbeStatus",
   // No checks at all; people set the status.
   Manual = "Manual",
 }
@@ -72,6 +74,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.CustomJavaScriptCode:
       case MonitorType.DNS:
       case MonitorType.DNSSEC:
+      case MonitorType.NTP:
       case MonitorType.Domain:
       case MonitorType.SQLQuery:
       case MonitorType.Database:
@@ -91,6 +94,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Exceptions:
       case MonitorType.Profiles:
       case MonitorType.SecurityEvents:
+      case MonitorType.Llm:
         return MonitorOverviewFamily.TelemetrySignal;
 
       case MonitorType.Kubernetes:
@@ -101,11 +105,15 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Proxmox:
       case MonitorType.VMware:
       case MonitorType.Ceph:
+      case MonitorType.StorageArray:
       case MonitorType.IoTDevice:
         return MonitorOverviewFamily.Infrastructure;
 
       case MonitorType.NetworkDevice:
         return MonitorOverviewFamily.NetworkDevice;
+
+      case MonitorType.ProbeStatus:
+        return MonitorOverviewFamily.ProbeStatus;
 
       case MonitorType.Manual:
         return MonitorOverviewFamily.Manual;
@@ -253,6 +261,8 @@ export default class MonitorOverviewFamilyUtil {
         return "How the criteria judged the data on the most recent evaluation.";
       case MonitorOverviewFamily.NetworkDevice:
         return "How this monitor is evaluated.";
+      case MonitorOverviewFamily.ProbeStatus:
+        return "Each probe this monitor watches, as the latest evaluation found it.";
       case MonitorOverviewFamily.Manual:
         // Nothing is evaluated, so there is nothing to summarise.
         return null;

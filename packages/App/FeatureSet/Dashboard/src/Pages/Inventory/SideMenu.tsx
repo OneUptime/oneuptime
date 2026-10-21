@@ -9,6 +9,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 /*
  * The Inventory product's left rail.
@@ -104,15 +107,6 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ExclaimationCircle,
         },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INVENTORY_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -157,7 +151,31 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived inventory items, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: InventoryItem,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

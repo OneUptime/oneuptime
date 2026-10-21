@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -12,7 +13,6 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -21,19 +21,7 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
-import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
-import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import {
-  XAxis as ChartXAxis,
-  XAxisAggregateType,
-} from "Common/UI/Components/Charts/Types/XAxis/XAxis";
-import YAxis, {
-  YAxisPrecision,
-} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -63,8 +51,13 @@ import {
   noCostDataMessage,
 } from "../Utils/KubernetesCostTableCells";
 import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
+import KubernetesCostTrendChart from "./KubernetesCostTrendChart";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * `description` explains a section whose chart has no title of its own -
@@ -86,10 +79,10 @@ function getSectionTitle(
 
 function sentinelDisplayName(namespace: string): string {
   if (namespace === IDLE_NAMESPACE) {
-    return "Idle capacity";
+    return translateTemplate("Idle capacity");
   }
   if (namespace === UNALLOCATED_NAMESPACE) {
-    return "Unallocated";
+    return translateTemplate("Unallocated");
   }
   return namespace;
 }
@@ -110,7 +103,9 @@ function getNamespaceCellElement(namespace: string): ReactElement {
       <span className="inline-flex rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
         {sentinelDisplayName(namespace)}
       </span>
-      <span className="text-xs text-gray-400">not a workload</span>
+      <span className="text-xs text-gray-400">
+        {translateText("not a workload")}
+      </span>
     </span>
   );
 }
@@ -130,6 +125,8 @@ const KubernetesClusterCosts: FunctionComponent<
   const [workloadRows, setWorkloadRows] = useState<Array<WorkloadCostRow>>([]);
 
   const [namespacePage, setNamespacePage] = useState<number>(1);
+  const [namespacePageSize, setNamespacePageSize] =
+    useState<number>(COST_ROWS_PER_PAGE);
   const [namespaceSortBy, setNamespaceSortBy] = useState<
     keyof NamespaceCostRow | null
   >("totalCost");
@@ -138,6 +135,8 @@ const KubernetesClusterCosts: FunctionComponent<
   );
 
   const [workloadPage, setWorkloadPage] = useState<number>(1);
+  const [workloadPageSize, setWorkloadPageSize] =
+    useState<number>(COST_ROWS_PER_PAGE);
   const [workloadSortBy, setWorkloadSortBy] = useState<
     keyof WorkloadCostRow | null
   >("totalCost");
@@ -155,7 +154,7 @@ const KubernetesClusterCosts: FunctionComponent<
     }),
   );
 
-  // Bumped by the tables' Refresh buttons to re-run the load effect.
+  // Bumped by every Refresh (and a retry) to re-run the load effect.
   const [refreshToggle, setRefreshToggle] = useState<number>(0);
 
   const handleTimeRangeChange: (
@@ -165,6 +164,18 @@ const KubernetesClusterCosts: FunctionComponent<
     setStartAndEndDate(
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
     );
+  }, []);
+
+  /*
+   * Loads the page's window again. A window alone cannot ask for that: a
+   * Custom window, and every zoom is one, re-resolves to the same instants,
+   * so the Spend card's Refresh changed nothing the load effect could see
+   * while zoomed - an error included.
+   */
+  const reload: () => void = useCallback((): void => {
+    setRefreshToggle((toggle: number) => {
+      return toggle + 1;
+    });
   }, []);
 
   const startMs: number = startAndEndDate.startValue.getTime();
@@ -240,6 +251,12 @@ const KubernetesClusterCosts: FunctionComponent<
   const idlePercent: number | null =
     totalSpend > 0 ? (idleSpend / totalSpend) * 100 : null;
 
+  /*
+   * After a failed load the rows still hold the previous window's figures,
+   * which the picker no longer shows: the tiles read "—" rather than those.
+   */
+  const showFigures: boolean = !isLoading && !error;
+
   const sortedNamespaceRows: Array<NamespaceCostRow> = useMemo(() => {
     return sortCostRows<NamespaceCostRow>(
       namespaceRows,
@@ -249,8 +266,12 @@ const KubernetesClusterCosts: FunctionComponent<
   }, [namespaceRows, namespaceSortBy, namespaceSortOrder]);
 
   const pagedNamespaceRows: Array<NamespaceCostRow> = useMemo(() => {
-    return pageCostRows<NamespaceCostRow>(sortedNamespaceRows, namespacePage);
-  }, [sortedNamespaceRows, namespacePage]);
+    return pageCostRows<NamespaceCostRow>(
+      sortedNamespaceRows,
+      namespacePage,
+      namespacePageSize,
+    );
+  }, [sortedNamespaceRows, namespacePage, namespacePageSize]);
 
   const sortedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
     return sortCostRows<WorkloadCostRow>(
@@ -261,8 +282,12 @@ const KubernetesClusterCosts: FunctionComponent<
   }, [workloadRows, workloadSortBy, workloadSortOrder]);
 
   const pagedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
-    return pageCostRows<WorkloadCostRow>(sortedWorkloadRows, workloadPage);
-  }, [sortedWorkloadRows, workloadPage]);
+    return pageCostRows<WorkloadCostRow>(
+      sortedWorkloadRows,
+      workloadPage,
+      workloadPageSize,
+    );
+  }, [sortedWorkloadRows, workloadPage, workloadPageSize]);
 
   const namespaceColumns: Array<Column<NamespaceCostRow>> = useMemo(() => {
     return [
@@ -390,54 +415,34 @@ const KubernetesClusterCosts: FunctionComponent<
     ];
   }, [workloadSpend]);
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const refreshButton: CardButtonSchema = {
     title: "",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
-    onClick: () => {
-      setRefreshToggle((toggle: number) => {
-        return toggle + 1;
-      });
-    },
+    onClick: reload,
     icon: IconProp.Refresh,
   };
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  const series: Array<SeriesPoint> = [
-    {
-      seriesName: "Total Cost",
-      data: trend,
-    },
-  ];
-
-  const xAxis: ChartXAxis = {
-    legend: "Time",
-    options: {
-      type: XAxisType.Time,
-      min: startAndEndDate.startValue,
-      max: startAndEndDate.endValue,
-      aggregateType: XAxisAggregateType.Sum,
-    },
-  };
-
-  const yAxis: YAxis = {
-    legend: "Cost",
-    options: {
-      type: YAxisType.Number,
-      min: 0,
-      max: "auto",
-      precision: YAxisPrecision.TwoDecimals,
-      formatter: (value: number): string => {
-        return formatCost(value);
-      },
-    },
-  };
-
+  /*
+   * Issue #4105: a drag across the spend chart narrows the page to the
+   * window dragged out - the tiles, the right-sizing card and both tables
+   * are all read for the page's window, so they follow - and a
+   * double-click on the chart (or Reset zoom beside the card's picker)
+   * puts the range back.
+   *
+   * A failed load is shown where the chart and the tables were, not in
+   * place of the page: the zoom, the picker, Reset zoom and every Refresh
+   * stay, so a zoom whose load fails can still be retried or undone.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(
           IconProp.Billing,
@@ -448,6 +453,7 @@ const KubernetesClusterCosts: FunctionComponent<
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
+        onRefresh={reload}
       >
         <div>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -455,7 +461,7 @@ const KubernetesClusterCosts: FunctionComponent<
               title="Total Spend"
               icon={IconProp.CurrencyDollar}
               iconColor="emerald"
-              value={isLoading ? "—" : formatCost(totalSpend)}
+              value={showFigures ? formatCost(totalSpend) : "—"}
               sublabel="allocated in this window"
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.totalSpend}
             />
@@ -463,7 +469,7 @@ const KubernetesClusterCosts: FunctionComponent<
               title="Workload Spend"
               icon={IconProp.Cube}
               iconColor="blue"
-              value={isLoading ? "—" : formatCost(workloadSpend)}
+              value={showFigures ? formatCost(workloadSpend) : "—"}
               sublabel="namespaces and workloads"
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.workloadSpend}
             />
@@ -471,7 +477,7 @@ const KubernetesClusterCosts: FunctionComponent<
               title="Idle Spend"
               icon={IconProp.Clock}
               iconColor="amber"
-              value={isLoading ? "—" : formatCost(idleSpend)}
+              value={showFigures ? formatCost(idleSpend) : "—"}
               sublabel="provisioned but unused"
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.idleSpend}
             />
@@ -480,32 +486,24 @@ const KubernetesClusterCosts: FunctionComponent<
               icon={IconProp.ChartPie}
               iconColor="slate"
               value={
-                isLoading || idlePercent === null
+                !showFigures || idlePercent === null
                   ? "—"
                   : `${Math.round(idlePercent)}%`
               }
               sublabel="share of total spend"
-              percent={isLoading ? null : idlePercent}
+              percent={showFigures ? idlePercent : null}
               thresholds={{ warn: 25, danger: 40 }}
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.idlePercent}
             />
           </div>
-          {isLoading ? (
-            <div className="h-48 animate-pulse rounded-md bg-gray-50" />
-          ) : trend.length > 0 ? (
-            <LineChartElement
-              data={series}
-              xAxis={xAxis}
-              yAxis={yAxis}
-              curve={ChartCurve.MONOTONE}
-              heightInPx={300}
-              showLegend={false}
-              sync={false}
-              syncid={`k8s-costs-${modelId.toString()}`}
-            />
-          ) : (
-            <ErrorMessage message={noCostDataMessage} />
-          )}
+          <KubernetesCostTrendChart
+            trend={trend}
+            isLoading={isLoading}
+            error={error}
+            onRetry={reload}
+            startAndEndDate={startAndEndDate}
+            syncid={`k8s-costs-${modelId.toString()}`}
+          />
         </div>
       </EmbeddedMetricCard>
 
@@ -519,7 +517,8 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Namespace"
         description="Whole-window cost per namespace with cpu / memory / storage split and request-vs-usage efficiency."
-        buttons={[refreshButton]}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<NamespaceCostRow>
           id="kubernetes-namespace-costs-table"
@@ -528,12 +527,16 @@ const KubernetesClusterCosts: FunctionComponent<
           singularLabel="Namespace"
           pluralLabel="Namespaces"
           isLoading={isLoading}
-          error=""
+          error={error}
+          onRefreshClick={error ? reload : undefined}
           currentPageNumber={namespacePage}
           totalItemsCount={sortedNamespaceRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={namespacePageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setNamespacePage(pageNumber);
+            if (itemsOnPage > 0) {
+              setNamespacePageSize(itemsOnPage);
+            }
           }}
           sortBy={namespaceSortBy}
           sortOrder={namespaceSortOrder}
@@ -552,7 +555,8 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Workload"
         description="Whole-window cost per workload (controller), highest spend first. Idle capacity is excluded."
-        buttons={[refreshButton]}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<WorkloadCostRow>
           id="kubernetes-workload-costs-table"
@@ -561,12 +565,16 @@ const KubernetesClusterCosts: FunctionComponent<
           singularLabel="Workload"
           pluralLabel="Workloads"
           isLoading={isLoading}
-          error=""
+          error={error}
+          onRefreshClick={error ? reload : undefined}
           currentPageNumber={workloadPage}
           totalItemsCount={sortedWorkloadRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={workloadPageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setWorkloadPage(pageNumber);
+            if (itemsOnPage > 0) {
+              setWorkloadPageSize(itemsOnPage);
+            }
           }}
           sortBy={workloadSortBy}
           sortOrder={workloadSortOrder}
@@ -581,7 +589,7 @@ const KubernetesClusterCosts: FunctionComponent<
           noItemsMessage={noCostDataMessage}
         />
       </Card>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

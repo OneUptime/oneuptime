@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -14,6 +15,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -25,6 +27,7 @@ import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFe
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentEpisodeOwner:SendCreatedResourceEmail",
@@ -50,9 +53,11 @@ RunCron(
           } as Select<Project>,
           currentIncidentState: {
             name: true,
+            color: true,
           } as Select<IncidentState>,
           incidentSeverity: {
             name: true,
+            color: true,
           },
           createdByUser: {
             name: true,
@@ -70,8 +75,8 @@ RunCron(
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
-      const episodeFeedText: string = `🔔 **Owner Incident Episode Created Notification Sent**:
-      Notification sent to owners because [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
+      const episodeFeedText: string =
+        OwnerNotificationFeedText.created("incident episode");
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -128,11 +133,19 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentIncidentState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentIncidentState?.color,
+            ),
             episodeDescription: await Markdown.convertToHTML(
               episode.description! || "",
               MarkdownContentType.Email,
             ),
             episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.incidentSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: episodeCreatedDate,
@@ -160,7 +173,9 @@ RunCron(
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New incident episode created: ${episodeIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `New incident episode created: ${episodeIdentifier}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -206,7 +221,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident episode created resource notification",

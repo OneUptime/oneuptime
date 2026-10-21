@@ -4,14 +4,23 @@ import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/Dashboard
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
+import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
+import { resumePendingMarketplacePurchase } from "./Utils/MarketplacePurchaseResume";
+import {
+  rememberWorkspaceConnectLink,
+  resumeWorkspaceConnect,
+} from "./Utils/WorkspaceConnectResume";
+import { listenForRealtimeSsoSignIn } from "./Utils/RealtimeSsoSignIn";
 import PageMap from "./Utils/PageMap";
 import {
   ProjectSelectionNavigationDecision,
   getProjectSelectionNavigationDecision,
 } from "./Utils/ProjectNavigation";
 import RouteMap from "./Utils/RouteMap";
+import useSelectedProjectSwitches from "./Utils/UseSelectedProjectSwitches";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
@@ -20,6 +29,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import BlockedProject from "Common/UI/Utils/BlockedProject";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { useEffect, useState, Suspense, lazy } from "react";
@@ -73,6 +83,9 @@ const AICopilot: LazyRoutes = lazy(() => {
 });
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
+});
+const HomeActiveIncidents: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveIncidents");
 });
 const NotOperationalMonitors: LazyRoutes = lazy(() => {
   return import("./Pages/Home/NotOperationalMonitors");
@@ -132,6 +145,12 @@ const InitRoutes: React.LazyExoticComponent<
   return import("./Routes/InitRoutes");
 });
 
+const ConnectReturn: React.LazyExoticComponent<
+  React.FunctionComponent<RoutesProps>
+> = lazy(() => {
+  return import("./Pages/ConnectReturn/ConnectReturn");
+});
+
 const LogsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/LogsRoutes");
 });
@@ -184,6 +203,9 @@ const WorkflowRoutes: LazyRoutes = lazy(() => {
 const RunbookRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RunbookRoutes");
 });
+const FormsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/FormsRoutes");
+});
 const StatusPagesRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/StatusPagesRoutes");
 });
@@ -226,6 +248,9 @@ const DockerSwarmRoutes: LazyRoutes = lazy(() => {
 const CephRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/CephRoutes");
 });
+const StorageArrayRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/StorageArrayRoutes");
+});
 const HostRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/HostRoutes");
 });
@@ -238,14 +263,21 @@ const CloudResourceRoutes: LazyRoutes = lazy(() => {
 const DatabaseRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/DatabaseRoutes");
 });
+const MessageQueueRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MessageQueueRoutes");
+});
 const RumApplicationRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RumApplicationRoutes");
 });
-const CodeRepositoryRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/CodeRepositoryRoutes");
+const CodeRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/CodeRoutes");
 });
-const AIAgentTasksRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/AIAgentTasksRoutes");
+// Tasks and Code Repositories became Code: their addresses forward there.
+const MovedTaskRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MovedTaskRoutes");
+});
+const MovedRepositoryRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MovedRepositoryRoutes");
 });
 const AIInsightsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/AIInsightsRoutes");
@@ -278,6 +310,41 @@ const App: () => JSX.Element = () => {
   const [projects, setProjects] = useState<Array<Project>>([]);
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  /*
+   * Projects a request was refused for this visit because a master admin
+   * blocked them (BlockedProject.REFUSED_EVENT, raised by API.handleError), on top
+   * of those the project list says are blocked. The request was for the
+   * project open at the time.
+   */
+  const [blockedProjectIds, setBlockedProjectIds] = useState<Array<string>>([]);
+
+  useEffect(() => {
+    const onProjectBlocked: () => void = (): void => {
+      const projectId: string | undefined =
+        ProjectUtil.getCurrentProjectId()?.toString();
+
+      if (!projectId) {
+        return;
+      }
+
+      setBlockedProjectIds((current: Array<string>): Array<string> => {
+        return current.includes(projectId) ? current : [...current, projectId];
+      });
+    };
+
+    GlobalEvents.addEventListener(
+      BlockedProject.REFUSED_EVENT,
+      onProjectBlocked,
+    );
+
+    return () => {
+      GlobalEvents.removeEventListener(
+        BlockedProject.REFUSED_EVENT,
+        onProjectBlocked,
+      );
+    };
+  }, []);
 
   const [paymentMethodsCount, setPaymentMethodsCount] = useState<
     number | undefined
@@ -318,7 +385,18 @@ const App: () => JSX.Element = () => {
         setHasPaymentMethod(true);
       }
     } catch (e) {
-      setError(API.getFriendlyMessage(e));
+      const message: string = API.getFriendlyMessage(e);
+
+      /*
+       * A project a master admin blocked shows its own page, with the
+       * project picker (BlockedProject.REFUSED_EVENT) - not an error in place of
+       * the whole dashboard.
+       */
+      if (ProjectBlockedException.isException(message)) {
+        return;
+      }
+
+      setError(message);
     }
   }, [selectedProject?._id]);
 
@@ -368,6 +446,44 @@ const App: () => JSX.Element = () => {
     }
   };
 
+  /*
+   * Monitor Groups (Settings -> Feature Flags) saves the moment its switch
+   * is flipped, and the menus read it off the selected project: take the
+   * new value into the selected project, the project list and ProjectUtil's
+   * copy (which a status page's menu reads), so the menus follow at once
+   * instead of after a reload. See Utils/SelectedProjectSwitches.
+   */
+  useSelectedProjectSwitches({
+    selectedProject: selectedProject,
+    onProjectUpdated: (updated: Project): void => {
+      setSelectedProject(updated);
+      setProjects((current: Array<Project>): Array<Project> => {
+        return current.map((project: Project): Project => {
+          return project._id?.toString() === updated._id?.toString()
+            ? updated
+            : project;
+        });
+      });
+      ProjectUtil.setCurrentProject(updated);
+    },
+  });
+
+  /*
+   * Live updates of a project that requires an SSO sign-in are refused to a
+   * session without one, as its API requests are: the open project then
+   * sends the person to sign in with SSO, the same way (MasterPage).
+   */
+  useEffect(() => {
+    return listenForRealtimeSsoSignIn({
+      getCurrentProjectId: () => {
+        return ProjectUtil.getCurrentProjectId();
+      },
+      onSsoSignInRequired: () => {
+        setError(new SSOAuthorizationException().message);
+      },
+    });
+  }, []);
+
   useEffect(() => {
     GlobalEvents.addEventListener(
       EventName.PROJECT_INVITATIONS_REFRESH,
@@ -385,6 +501,13 @@ const App: () => JSX.Element = () => {
 
   const fetchProjects: PromiseVoidFunction = async (): Promise<void> => {
     setLoading(true);
+
+    /*
+     * A Connect link from Slack or Microsoft Teams is remembered before the
+     * first request, which sends a signed-out browser to the sign-in page
+     * (see Utils/WorkspaceConnectResume).
+     */
+    rememberWorkspaceConnectLink();
 
     // get list of projects.
     try {
@@ -404,6 +527,35 @@ const App: () => JSX.Element = () => {
         },
       });
       setProjects(result.data);
+
+      /*
+       * Somebody who was on their way to connecting an MCP client and had to
+       * sign in first. Every kind of sign-in ends here, so this is where the
+       * browser is sent back to the consent screen (see
+       * Utils/McpAuthorizationResume). Checked only once the project list has
+       * loaded, because that is what proves there is a session to return
+       * with.
+       */
+      if (resumePendingMcpAuthorization()) {
+        return;
+      }
+
+      /*
+       * Somebody who bought OneUptime on a cloud marketplace and had to sign
+       * in first: back to the page where they set up the purchase (see
+       * Utils/MarketplacePurchaseResume).
+       */
+      if (resumePendingMarketplacePurchase()) {
+        return;
+      }
+
+      /*
+       * Somebody who pressed Connect in Slack or Microsoft Teams and had to
+       * sign in first: back to the page that connects their account.
+       */
+      if (resumeWorkspaceConnect()) {
+        return;
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -433,6 +585,11 @@ const App: () => JSX.Element = () => {
         setShowProjectModal(false);
       }}
       selectedProject={selectedProject}
+      isSelectedProjectBlocked={BlockedProject.isSelectedProjectBlocked({
+        selectedProject: selectedProject,
+        projects: projects,
+        blockedProjectIds: blockedProjectIds,
+      })}
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
       onSsoAuthorizationRequired={() => {
         setError(new SSOAuthorizationException().message);
@@ -507,6 +664,15 @@ const App: () => JSX.Element = () => {
                     pageRoute={RouteMap[PageMap.HOME] as Route}
                     projects={projects}
                     isLoadingProjects={isLoading}
+                  />
+                }
+              />
+              <PageRoute
+                path={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS]?.toString() || ""}
+                element={
+                  <HomeActiveIncidents
+                    {...commonPageProps}
+                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
                   />
                 }
               />
@@ -665,6 +831,12 @@ const App: () => JSX.Element = () => {
               element={<RunbookRoutes {...commonPageProps} />}
             />
 
+            {/* Forms */}
+            <PageRoute
+              path={RouteMap[PageMap.FORMS_ROOT]?.toString() || ""}
+              element={<FormsRoutes {...commonPageProps} />}
+            />
+
             {/* Status Pages */}
             <PageRoute
               path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ""}
@@ -749,6 +921,12 @@ const App: () => JSX.Element = () => {
               element={<CephRoutes {...commonPageProps} />}
             />
 
+            {/* Storage Arrays */}
+            <PageRoute
+              path={RouteMap[PageMap.STORAGE_ARRAYS_ROOT]?.toString() || ""}
+              element={<StorageArrayRoutes {...commonPageProps} />}
+            />
+
             {/* Hosts */}
             <PageRoute
               path={RouteMap[PageMap.HOST_ROOT]?.toString() || ""}
@@ -773,16 +951,30 @@ const App: () => JSX.Element = () => {
               element={<DatabaseRoutes {...commonPageProps} />}
             />
 
+            {/* Queues */}
+            <PageRoute
+              path={RouteMap[PageMap.MESSAGE_QUEUE_ROOT]?.toString() || ""}
+              element={<MessageQueueRoutes {...commonPageProps} />}
+            />
+
             {/* Real User Monitoring */}
             <PageRoute
               path={RouteMap[PageMap.RUM_ROOT]?.toString() || ""}
               element={<RumApplicationRoutes {...commonPageProps} />}
             />
 
-            {/* Code Repository */}
+            {/* Code: repositories, their tasks, and asking AI */}
             <PageRoute
-              path={RouteMap[PageMap.CODE_REPOSITORY_ROOT]?.toString() || ""}
-              element={<CodeRepositoryRoutes {...commonPageProps} />}
+              path={RouteMap[PageMap.CODE_ROOT]?.toString() || ""}
+              element={<CodeRoutes {...commonPageProps} />}
+            />
+
+            {/* Code Repositories' old addresses, forwarded to Code */}
+            <PageRoute
+              path={
+                RouteMap[PageMap.MOVED_CODE_REPOSITORY_ROOT]?.toString() || ""
+              }
+              element={<MovedRepositoryRoutes {...commonPageProps} />}
             />
 
             {/* Incidents */}
@@ -984,6 +1176,23 @@ const App: () => JSX.Element = () => {
               }
             />
 
+            {/*
+             * A Slack, Microsoft Teams or GitHub connection that came back
+             * without a project the server could trust: passed on to the
+             * provider's page in the project that is open.
+             */}
+            <PageRoute
+              path={RouteMap[PageMap.CONNECT_RETURN]?.toString() || ""}
+              element={
+                <ConnectReturn
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.CONNECT_RETURN] as Route}
+                  projects={projects}
+                  isLoading={isLoading}
+                />
+              }
+            />
+
             {/* User Settings */}
 
             <PageRoute
@@ -991,11 +1200,13 @@ const App: () => JSX.Element = () => {
               element={<UserSettingsRoutes {...commonPageProps} />}
             />
 
-            {/** AI Agent Tasks */}
+            {/** Tasks' old addresses, forwarded to Code */}
 
             <PageRoute
-              path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
-              element={<AIAgentTasksRoutes {...commonPageProps} />}
+              path={
+                RouteMap[PageMap.MOVED_AI_AGENT_TASKS_ROOT]?.toString() || ""
+              }
+              element={<MovedTaskRoutes {...commonPageProps} />}
             />
 
             {/** AI Insights */}

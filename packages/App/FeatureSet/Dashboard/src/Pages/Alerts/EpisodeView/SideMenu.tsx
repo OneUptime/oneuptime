@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -17,7 +20,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      {/*
+       * The same sections as an incident episode's own menu (Overview,
+       * Investigation, Team, the episode's members, Notes, Developer,
+       * Advanced), so a page is in the same place on both kinds.
+       */}
+      <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -29,6 +37,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
+        <SideMenuItem
+          link={{
+            title: "State Timeline",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Timeline}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Investigation">
         <SideMenuItem
           link={{
             title: "Description",
@@ -63,7 +84,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Ownership">
+      <SideMenuSection title="Team">
         <SideMenuItem
           link={{
             title: "Owners",
@@ -73,19 +94,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Timeline">
-        <SideMenuItem
-          link={{
-            title: "State Timeline",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
         />
       </SideMenuSection>
 
@@ -102,7 +110,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Episode Notes">
+      <SideMenuSection title="Notes">
         <SideMenuItem
           link={{
             title: "Private Notes",
@@ -114,6 +122,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Lock}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: AlertEpisode,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

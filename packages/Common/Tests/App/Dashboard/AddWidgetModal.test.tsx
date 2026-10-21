@@ -377,11 +377,22 @@ describe("AddWidgetModal", () => {
         DashboardComponentType.LogChart,
         DashboardComponentType.DockerVolumeList,
         DashboardComponentType.PodmanVolumeList,
+        DashboardComponentType.StorageArrayVolumeList,
       ]);
 
       typeSearch("podman volume");
       expect(getVisibleWidgetTypes()).toEqual([
         DashboardComponentType.PodmanVolumeList,
+      ]);
+
+      /*
+       * The storage array Hardware card names FlashArray too (in its
+       * category's description), so it is the second word that leaves
+       * only the array's Volumes.
+       */
+      typeSearch("flasharray volume");
+      expect(getVisibleWidgetTypes()).toEqual([
+        DashboardComponentType.StorageArrayVolumeList,
       ]);
     });
 

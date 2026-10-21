@@ -21,9 +21,9 @@ import { APIRequestContext } from "@playwright/test";
  * the stacks it does not apply to. These specs are the opposite: they exist
  * only because the enterprise job boots a stack nothing else boots, and a
  * silent skip there would turn the whole point of the job - "the published
- * enterprise image really serves SSO, SCIM and audit logging with billing off"
- * - into a green tick that proved nothing. A misconfigured job must be as red
- * as a broken image.
+ * enterprise image really serves SCIM and audit logging with billing off, and
+ * stops them when its licence lapses" - into a green tick that proved
+ * nothing. A misconfigured job must be as red as a broken image.
  *
  * Every message names the stack that answered AND the stack the suite wanted,
  * because the three stacks differ only in their image tag and one environment
@@ -131,7 +131,7 @@ export const assertEnterpriseStack: AssertEnterpriseStackFunction =
     if (frontendEnvironment.enterpriseEditionRequestedButNotLoaded) {
       throw new Error(
         `${wanted} The stack was ASKED for the Enterprise Edition but its enterprise ` +
-          `module did not load, so it is serving the Community Edition: the identity ` +
+          `module did not load, so it is serving the Community Edition: the SCIM ` +
           `routes are not mounted and the Dashboard ships no enterprise screens. ` +
           `This is an image problem, not a test problem - check that APP_TAG is an ` +
           `enterprise-* tag. Found: ${describeStackFrontendEnvironment(
@@ -147,7 +147,8 @@ export const assertEnterpriseStack: AssertEnterpriseStackFunction =
     if (state.edition !== "enterprise") {
       throw new Error(
         `${wanted} The stack under test is the COMMUNITY Edition, where none of ` +
-          `these routes or screens exist at all (they answer 404). Found: ` +
+          `the enterprise routes or screens exist at all (the SCIM routes answer ` +
+          `404). Found: ` +
           `${describeEnterpriseLicenseState(state)}.`,
       );
     }

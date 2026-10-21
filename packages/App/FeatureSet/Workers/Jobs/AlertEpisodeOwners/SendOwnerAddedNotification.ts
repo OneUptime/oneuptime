@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -16,6 +17,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
@@ -145,9 +147,11 @@ RunCron(
             },
             currentAlertState: {
               name: true,
+              color: true,
             },
             alertSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -183,11 +187,19 @@ RunCron(
         episodeNumber: episodeNumber,
         projectName: episode.project!.name!,
         currentState: episode.currentAlertState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          episode.currentAlertState?.color,
+        ),
         episodeDescription: await Markdown.convertToHTML(
           episode.description! || "",
           MarkdownContentType.Email,
         ),
         episodeSeverity: episode.alertSeverity?.name || "Not Set",
+        ...EmailColorUtil.getTemplateVariables(
+          "episodeSeverity",
+          episode.alertSeverity?.color,
+        ),
         episodeViewLink: (
           await AlertEpisodeService.getEpisodeLinkInDashboard(
             episode.projectId!,
@@ -210,7 +222,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the alert episode ${episodeIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the alert episode ${episodeIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

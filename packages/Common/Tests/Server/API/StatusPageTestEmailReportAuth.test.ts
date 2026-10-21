@@ -18,6 +18,7 @@ import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
@@ -491,9 +492,10 @@ describe("POST /status-page/test-email-report authorization", () => {
     jest
       .spyOn(ProjectService, "updateLastActive")
       .mockResolvedValue(undefined as never);
-    jest
-      .spyOn(ProjectService, "getCurrentPlan")
-      .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false });
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    });
 
     // Ownership lookups made by the Owned permission scope.
     jest
@@ -614,6 +616,10 @@ describe("POST /status-page/test-email-report authorization", () => {
       );
     });
 
+    /*
+     * A role limited to other labels may not read this page either; the
+     * test send answers it with its one refusal, as every other.
+     */
     it("rejects an edit grant restricted to labels this page does not carry", async () => {
       expectRejected(
         await send({

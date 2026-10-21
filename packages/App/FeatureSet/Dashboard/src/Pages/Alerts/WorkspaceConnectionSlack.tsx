@@ -3,58 +3,17 @@ import WorkspaceNotificationRuleTable from "../../Components/Workspace/Workspace
 import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
+import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
+import WorkspaceReactionNotesTips from "../../Components/Workspace/WorkspaceReactionNotesTips";
+import WorkspacePlanLeftoverGate from "../../Components/Workspace/WorkspacePlanLeftoverGate";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceUtil from "../../Utils/Workspace/Workspace";
-import API from "Common/UI/Utils/API/API";
-import Exception from "Common/Types/Exception/Exception";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import IconProp from "Common/Types/Icon/IconProp";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 
 const AlertsSlackPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [isSlackConnected, setIsSlackConnected] =
-    React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setError(null);
-      setIsLoading(true);
-      const isSlackConnected: boolean =
-        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.Slack);
-
-      setIsSlackConnected(isSlackConnected);
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      setError(API.getFriendlyErrorMessage(error as Exception));
-    }
-  };
-
-  React.useEffect(() => {
-    loadItems().catch(() => {
-      // Do nothing
-    });
-  }, []);
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   const tabs: Array<Tab> = [
     {
       name: "Alerts",
@@ -64,19 +23,11 @@ const AlertsSlackPage: FunctionComponent<
             workspaceType={WorkspaceType.Slack}
             eventType={NotificationRuleEventType.Alert}
           />
-          <Card
-            title="Tips: Using Emoji Reactions"
-            description="You can use emoji reactions in Slack to quickly save messages as notes to alerts."
-          >
-            <MarkdownViewer
-              text={`
-- 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
-- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as the pin emoji.
-
-When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the alert linked to that channel and confirm with a reply in the thread.
-              `}
-            />
-          </Card>
+          <WorkspaceReactionNotesTips
+            workspaceType={WorkspaceType.Slack}
+            resourceName="alert"
+            supportsPublicNotes={false}
+          />
         </>
       ),
     },
@@ -88,19 +39,11 @@ When you react with a pin emoji, OneUptime will automatically save the message c
             workspaceType={WorkspaceType.Slack}
             eventType={NotificationRuleEventType.AlertEpisode}
           />
-          <Card
-            title="Tips: Using Emoji Reactions"
-            description="You can use emoji reactions in Slack to quickly save messages as notes to alert episodes."
-          >
-            <MarkdownViewer
-              text={`
-- 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
-- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as the pin emoji.
-
-When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the alert episode linked to that channel and confirm with a reply in the thread.
-              `}
-            />
-          </Card>
+          <WorkspaceReactionNotesTips
+            workspaceType={WorkspaceType.Slack}
+            resourceName="alert episode"
+            supportsPublicNotes={false}
+          />
         </>
       ),
     },
@@ -122,26 +65,26 @@ When you react with a pin emoji, OneUptime will automatically save the message c
   ];
 
   return (
-    <div>
-      {isSlackConnected && (
+    <WorkspacePlanLeftoverGate
+      workspaceType={WorkspaceType.Slack}
+      eventTypes={[
+        NotificationRuleEventType.Alert,
+        NotificationRuleEventType.AlertEpisode,
+      ]}
+      summaryTypes={[
+        WorkspaceNotificationSummaryType.Alert,
+        WorkspaceNotificationSummaryType.AlertEpisode,
+      ]}
+    >
+      <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
         <Tabs
           tabs={tabs}
           onTabChange={() => {
             // Tab changed
           }}
         />
-      )}
-      {!isSlackConnected && (
-        <div>
-          <EmptyState
-            id="slack-connection"
-            icon={IconProp.Slack}
-            title="Slack is not connected yet!"
-            description="Connect your slack workspace to receive alert notifications. Please go to Project Settings > Workspace Connections > Slack to connect your workspace."
-          />
-        </div>
-      )}
-    </div>
+      </WorkspaceConnectionGate>
+    </WorkspacePlanLeftoverGate>
   );
 };
 

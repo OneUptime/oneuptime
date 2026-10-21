@@ -1,99 +1,252 @@
 # Skriva ett runbook
 
-Skapa ett runbook under **Runbooks → Create Runbook**, öppna det och gå till fliken **Steg**.
+Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den här sidan visar hur du skapar ett runbook, hur du konfigurerar var och en av de sju stegtyperna och hur fel och godkännanden ändrar en körnings förlopp.
 
-## Anatomin av ett steg
+:::cards
+- [Skapa ett runbook](#skapa-ett-runbook): Från ett tomt runbook till sparade steg.
+- [Stegtyper](#stegtyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl och AI.
+- [Felhantering och godkännanden](#felhantering-och-godkännanden): Vad som händer när ett steg misslyckas eller väntar på godkännande.
+- [Ett genomgånget exempel](#ett-genomgånget-exempel): En databas-failover i fem steg.
+:::
 
-Varje steg har:
+## Innan du börjar
 
-| Fält                          | Syfte                                                                                                  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Titel**                     | Kort etikett som visas i checklist-UI:t. Obligatoriskt.                                                |
-| **Beskrivning**               | Valfri kontext för svararen. Markdown-säker text.                                                      |
-| **Fortsätt vid fel**          | Om på stoppar ett misslyckat steg inte körningen — nästa steg körs ändå.                               |
-| **Kräver godkännande**        | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
-| **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan.                                                                   |
+- **En roll som skriver runbooks.** Project Owner, Project Admin och Runbook Admin skapar runbooks och sparar deras steg. Med detaljerade behörigheter behöver du **Create Runbook** och **Edit Runbook**. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
+- **En Runner, för Bash-, SSH- och kubectl-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett JavaScript-steg körs på en [global Runner](/docs/runbooks/agents#globala-runners) om du inte väljer en av dina egna.
+- **En hemlig variabel, för SSH- och kubectl-steg.** Den nyckel, det lösenord eller den kubeconfig som ett steg loggar in med är en hemlig [runbook-variabel](/docs/runbooks/variables). Project Owner och Project Admin skapar variabler, och Runbook Admin väljer dem i de steg den skriver. Ett kubectl-steg kan i stället använda Runnerns egen åtkomst.
+- **En LLM-leverantör, för AI-steg.** Se [LLM-leverantörer](/docs/ai/llm-provider).
 
-Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steg-editorn.
+## Skapa ett runbook
+
+:::steps
+### Öppna Runbooks
+
+Öppna **Produkter → Runbooks**. Runbooks finns i gruppen **Instrumentpaneler och automatisering**.
+
+### Skapa runbooket
+
+Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning** av vad runbooket är till för. Under **Fler fält** finns brytaren **Aktiverad**, som är påslagen som standard, och **Etiketter**. Det nya runbooket öppnas på sin sida **Steg**.
+
+### Lägg till steg
+
+Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel** och det som dess typ behöver; resten, till exempel dess **Beskrivning** och tidsgränser, är hopfällt under **Fler fält**. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
+
+### Ordna stegen
+
+Steg körs **i ordning**. Du ändrar ordningen genom att dra ett steg i handtaget till vänster i dess rubrik; med tangentbordet sätter du fokus på handtaget, trycker på blanksteg, flyttar steget med piltangenterna och trycker på blanksteg igen.
+
+### Spara stegen
+
+Klicka på **Save Steps**. Tills du gör det visar redigeraren **Osparade ändringar**. När de är sparade ser du **Sparad**, och runbooket är redo att [köras](/docs/runbooks/running).
+:::
+
+## Hur ett steg är uppbyggt
+
+Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och inställningarna för sin typ och fäller ihop resten under **Fler fält**, som visar vad av det som är satt:
+
+| Fält | Syfte |
+| --- | --- |
+| **Titel** | En kort etikett som visas i steglistan och vid varje körning. |
+| **Beskrivning** | Valfri kontext för den som hanterar incidenten, i Markdown, under **Fler fält**. På ett Manual-steg är det de **Instruktioner** personen läser och följer, visade under titeln. |
+| **Fortsätt vid fel** | Bara automatiserade steg. När den är påslagen stoppar ett steg som misslyckas inte körningen: nästa steg körs ändå. |
+| **Kräv godkännande** | Bara automatiserade steg. När den är påslagen stannar körningen före det här steget tills någon godkänner det, och först då körs det. Brytaren heter **Kräv godkännande innan det här steget körs**, och stegets rubrik visar **Kräver godkännande**. |
+| Typspecifika inställningar | Skriptet, URL:en, Runnern, en hemlig variabel eller prompten. Se [Stegtyper](#stegtyper). |
 
 ## Stegtyper
 
-### Manuell
+| Typ | Körs på | Kräver |
+| --- | --- | --- |
+| [Manual](#manual) | En person | Ingenting |
+| [JavaScript](#javascript) | En Runner | En Runner |
+| [HTTP request](#http-request) | OneUptime Worker | Ingenting |
+| [Bash](#bash) | En Runner | En Runner |
+| [SSH](#ssh) | En Runner | En Runner och en hemlig variabel att logga in med |
+| [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
+| [AI](#ai) | OneUptime Worker | En LLM-leverantör |
 
-En kryssruta som svararen bockar av. Runbook-körningen pausar när den når ett Manuellt steg och stannar i `WaitingForManualStep` tills någon markerar det som klart (eller hoppar över det).
+I varje automatiserat steg nedan innehåller stegets **Fler fält** först **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port och nyckelns lösenfras, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna.
 
-Använd detta för saker bara en människa kan verifiera: "Bekräftade att trafik har flyttats till sekundära regionen i load balancer-dashboarden."
+### Manual
+
+En checklistepunkt för en person: stegets **Instruktioner** säger vad som ska göras eller kontrolleras. Körningen pausar när den når ett Manual-steg och stannar i `WaitingForManualStep` (**Väntar på dig**) tills någon klickar på **Markera som klar** eller **Hoppa över**. En körning som väntar på en person löper aldrig ut. Ett Manual-steg har ingen godkännandebrytare: det stoppar redan körningen för en person.
+
+Använd det för det som bara en människa kan kontrollera eller göra: "Bekräfta i lastbalanserarens instrumentpanel att trafiken har flyttats till den sekundära regionen."
 
 ### JavaScript
 
-En snutt JavaScript som körs i en `isolated-vm`-sandlåda. Sandlådan lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — inte på OneUptime-Worker'n.
+Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-agent](/docs/runbooks/agents), inte på OneUptime Worker: på en av dina egna, eller på en [global Runner](/docs/runbooks/agents#globala-runners) när steget inte väljer någon.
 
-Konfigurera följande på ett JavaScript-steg:
+| Fält | Vad det gör | Standard |
+| --- | --- | --- |
+| **Runner** | Den Runner som kör steget: **Global Runner** eller en av dina egna. Bara den Runner du väljer får ta jobbet; vilken global Runner som helst får ta ett steg på **Global Runner**. | **Global Runner**, när det finns en |
+| **Script** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
+| **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. En global Runner låter den köra i högst 5 minuter. | 30 sekunder |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
-- **Runbook-agent** — välj agenten som ska köra detta steg från dropdownen. Bara den valda agenten får claim:a jobbet.
-- **Skript** — JavaScript som ska köras.
-- **Körnings-timeout** — hur länge agenten låter skriptet köra innan sandlådan rivs ner. Standard är 30 sekunder.
-- **Claim-timeout** — hur länge Worker'n väntar på att agenten plockar upp jobbet. Standard är 2 minuter.
-
-```js
+```javascript
 const start = Date.now();
-// ... din logik ...
+// ... your logic ...
+console.log("replica lag checked");
 return { durationMs: Date.now() - start };
 ```
 
-Returvärdet fångas på stegkörningen. `console.log`-utdata fångas som loggrader. Standard körnings-timeout: 30 sekunder. Standard claim-timeout (hur länge Worker'n väntar på att agenten plockar upp jobbet): 2 minuter. Båda kan redigeras på steget — se **Körnings-timeout** och **Claim-timeout** under skriptet.
+Sandlådan har 128 MB minne och ingen åtkomst till filsystemet eller processer. Den kan göra HTTP-begäranden med `axios`, men bara till publika adresser: en begäran till ett privat nätverk, till Runnerns egen värd eller till en metadataslutpunkt i molnet avvisas. Använd ett [Bash](#bash)-steg med `curl` för att nå en tjänst i ditt nätverk.
 
-### HTTP-förfrågan
+### HTTP request
 
-Gör ett utgående HTTP-anrop. Konfigurera metod (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valfria JSON-headers, valfri body och en **Förfrågnings-timeout** (standard 30 sekunder). Svarsstatus, headers och body fångas (begränsat till 50KB totalt).
+Ett utgående HTTP-anrop som görs av OneUptime Worker. Ingen Runner behövs.
 
-Användbart för: att sparka igång en PagerDuty-incident, posta till Slack, anropa din egen admin-API, osv. HTTP-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
+| Fält | Vad det gör | Standard |
+| --- | --- | --- |
+| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
+| **URL** | Slutpunkten som ska anropas. | Tom |
+| **Headers (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
+| **Body** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
+| **Request timeout** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
+
+Steget lyckas vid ett `2xx`- eller `3xx`-svar och misslyckas vid allt annat, med `HTTP <status>` som fel. Omdirigeringar följs inte. Svarets status, headers och body registreras, upp till 50 KB.
+
+> [!NOTE]
+> Workern anropar aldrig loopback- eller link-local-adresser, till exempel en metadataslutpunkt i molnet. På OneUptime Cloud anropar den bara publika adresser. En självhostad OneUptime når även privata nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`. Använd ett [Bash](#bash)-steg med `curl` för att anropa en tjänst i ditt nätverk från OneUptime Cloud.
+
+Användbart för: att öppna en PagerDuty-incident, posta till en Slack-webhook, anropa din molnleverantörs API eller ditt eget publika API.
 
 ### Bash
 
-Ett bash-skript (`bash -c <skript>`) som körs på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash körs aldrig på OneUptime-Worker'n.
+Ett bash-skript som körs med `bash -c <script>` på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash körs aldrig på OneUptime Worker.
 
-Konfigurera följande på ett Bash-steg:
+| Fält | Vad det gör | Standard |
+| --- | --- | --- |
+| **Runner** | Den Runner som kör steget. Bara den Runnern får ta jobbet. | — |
+| **Bash-skript** | Skriptet. Output (stdout och stderr) registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. | — |
+| **Tidsgräns för körning** | Hur länge Runnern låter skriptet köra innan den dödar det med `SIGKILL`. Höj den för steg som av goda skäl tar minuter. | 30 sekunder |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
-- **Runbook-agent** — välj agenten som ska köra detta steg från dropdownen. Bara den valda agenten får claim:a jobbet.
-- **Skript** — bash:en som ska köras. Utdata (stdout + stderr) fångas upp till 50 KB; processen dödas vid timeout.
-- **Körnings-timeout** — hur länge agenten låter skriptet köra innan den dödar det med `SIGKILL`. Standard är 30 sekunder; höj den för steg som verkligen tar flera minuter.
-- **Claim-timeout** — hur länge Worker'n väntar på att agenten plockar upp jobbet. Standard är 2 minuter.
+Skriptet körs i Runnerns container med de verktyg som dess image levereras med, som `curl`, `wget` och `ssh`-klienten, och med nätverksåtkomsten från den värd det körs på. Till exempel för att kontrollera en tjänst som bara ditt nätverk kan nå:
 
-Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Inställningar → Runbook-agenter** innan du lutar dig mot ett Bash-steg.
+```bash
+set -euo pipefail
+HTTP_CODE=$(curl -s -o /tmp/resp.txt -w "%{http_code}" "http://payments.internal:8080/health")
+echo "HTTP $HTTP_CODE"
+cat /tmp/resp.txt
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Health check failed"
+  exit 1
+fi
+```
+
+Om den valda Runnern är offline när körningen når det här steget väntar steget upp till **claim timeout** (2 minuter som standard) och misslyckas sedan på grund av tidsgräns. Lägg till en agent under **Runbooks → Runbook-agenter** innan du räknar med ett Bash-steg.
+
+> [!TIP]
+> Håll lösenord och tokens utanför skriptet. Spara dem som hemliga [runbook-variabler](/docs/runbooks/variables) och skriv `{{global.variables.NAME}}` där värdet ska stå: Runnern får skriptet med värdet ifyllt, och stegets utdata visar `[REDACTED]` i dess ställe.
+
+### SSH
+
+Logga in på en maskin över SSH och kör ett bash-skript där. Runnern öppnar anslutningen, så maskinen behöver bara kunna nås från Runnern, och den nyckel eller det lösenord som steget loggar in med är en hemlig [runbook-variabel](/docs/runbooks/variables) som aldrig skrivs i steget.
+
+| Fält | Vad det gör |
+| --- | --- |
+| **Runner** | Den Runner som öppnar anslutningen. Den måste kunna nå maskinen över nätverket. |
+| **SSH till** | Användaren och maskinen, som du skulle skriva dem efter `ssh`: `deploy@10.0.4.21`. |
+| **Logga in med** | Den hemliga variabel som innehåller den privata nyckeln eller lösenordet; värdet visar vilket det är. Bara hemliga variabler erbjuds, och steget säger till när dess Runner inte får använda den valda. |
+| **Bash-skript** | Körs med `bash` på maskinen som den användare steget loggar in som. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Port** | Under **Fler fält**. 22 när den lämnas tom. |
+| **Nyckelns lösenfras** | Under **Fler fält**. Den hemliga variabel som innehåller lösenfrasen för en nyckel som har en. |
+| **Tidsgräns för körning** | Täcker anslutning, inloggning och körning av skriptet tillsammans, så att ett skript som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
+
+Till exempel för att starta om en tjänst och visa att den kom tillbaka:
+
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Kör kubectl-kommandon mot ett kluster. Skriptet körs med bash på Runnern, som levereras med `kubectl`, med `KUBECONFIG` pekande på klustret: alla kubectl-kommandon fungerar, och det gör all bash runt dem också.
+
+| Fält | Vad det gör |
+| --- | --- |
+| **Runner** | Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. |
+| **Kubeconfig** | Den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst**: Runnerns egen kubeconfig, eller dess tjänstkonto när den körs i klustret. Runnern skriver en kubeconfig till en fil som bara den kan läsa, och tar bort den när skriptet slutar. |
+| **Script** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Tidsgräns för körning** | Hur länge Runnern låter skriptet köras innan den stoppar det med `SIGKILL`. Standard 30 sekunder. |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
+
+Till exempel för att starta om en deployment och vänta tills dess nya poddar är redo:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Exempel – klicka för att infoga**, under varje skript, fyller i vanliga skript som dessa. Ge kubeconfigens användare bara det som dina skript gör: en Role i de namespaces där de verkar, med de verb de använder. Om API-servern nekar ett kommando står kubectls eget meddelande i stegets utdata, så ett behörighetsfel talar om vilken role binding du ska utöka.
 
 ### AI
 
-Be AI analysera, sammanfatta eller avgöra något mitt i körningen. Prompten skickas till ditt projekts LLM-leverantör (**Inställningar → AI → LLM-leverantörer**) och modellens svar blir stegets utdata på körningstidslinjen. AI-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
+Be AI att analysera, sammanfatta eller besluta något mitt i körningen. Svaret blir stegets output på körningen. AI-steg körs på OneUptime Worker; ingen Runner behövs.
 
-Konfigurera på ett AI-steg:
+| Fält | Vad det gör |
+| --- | --- |
+| **Prompt** | Vad AI:n ska göra. Till exempel: "Gå igenom outputen från de föregående stegen och säg om det är säkert att fortsätta med åtgärden." |
+| **LLM provider** | Valfritt. **Project default** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
+| **Include previous step context** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
+| **Include trigger context** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
 
-- **Prompt** — vad AI:n ska göra. Till exempel: "Granska utdata från föregående steg och ange om det är säkert att fortsätta med åtgärden."
-- **Inkludera kontext från tidigare steg** — om på ser AI:n allt om stegen som kördes före detta: titel, typ, status, utdata och felmeddelanden.
-- **Inkludera trigger-kontext** — om på ser AI:n vad som startade körningen: den länkade incidenten, larmet eller det planerade underhållet (dess beskrivning, allvarlighetsgrad, aktuellt tillstånd, påverkade monitorer, grundorsak, statustidslinje och offentliga anteckningar), eller vem som körde runbooket manuellt.
+För att hålla en människa i loopen slår du på **Kräv godkännande** på steget efter ett AI-steg: AI:n analyserar, en person läser svaret, och det åtgärdande steget körs först när personen godkänner det.
 
-Para ett AI-steg med **Kräver godkännande** för att ha en människa i loopen: AI:n analyserar, en svarare läser dess svar och godkänner, och först då körs nästa (åtgärds)steg.
+**Vad AI:n aldrig ser.** Svaret från ett AI-steg sparas som stegoutput på körningen, och körningar kan läsas av alla med läsbehörighet för runbooks, en bredare publik än incidentens. Därför utelämnar utlösarkontexten **privata interna anteckningar** och **kanalmeddelanden från Slack och Microsoft Teams**. Outputen från tidigare steg genomsöks efter hemligheter (tokens, nycklar, autentiseringsuppgifter), som maskeras innan den skickas till modellen. Inbäddade bilder och långa kodade data, till exempel en skärmbild som klistrats in i en incidents beskrivning, utelämnas också, med en kort notering i stället.
 
-**Vad AI:n aldrig ser.** Ett AI-stegs svar lagras som stegutdata på körningen, och körningar kan läsas av alla med läsbehörighet för runbooks — en bredare målgrupp än incidentens ACL. Därför utesluter trigger-kontexten medvetet **privata interna anteckningar** och **Slack/Teams-kanalmeddelanden**: de stannar inuti incidenten, där de befintliga generatorerna för postmortem och anteckningar behåller sin härledda text. Stegutdata från tidigare steg genomsöks efter hemligheter (tokens, nycklar, autentiseringsuppgifter) och maskeras innan det skickas till modellen.
+AI-steg mäts och faktureras som alla andra AI-funktioner. Steget misslyckas med ett meddelande som säger varför när det saknar prompt, när AI-funktioner är avstängda för projektet, när ingen LLM-leverantör är tillgänglig eller när den låsta leverantören inte längre är tillgänglig för projektet. Slå på **Fortsätt vid fel** om resten av runbooket ändå ska köras.
 
-AI-steg mäts och faktureras som vilken annan AI-funktion som helst. Om ingen LLM-leverantör är konfigurerad för projektet misslyckas steget med ett tydligt fel (sätt **Fortsätt vid fel** om resten av runbooket ändå ska köras).
+## Felhantering och godkännanden
 
-## Sparande och redigering
+```mermaid title="Vad som händer vid ett automatiserat steg"
+flowchart TB
+    reach["Körningen når ett<br/>automatiserat steg"] --> approval{"Kräv godkännande<br/>påslaget?"}
+    approval -->|"ja"| wait["Körningen<br/>väntar på att en<br/>person godkänner"]
+    wait -->|"godkänt"| run["Steget körs"]
+    approval -->|"nej"| run
+    wait -->|"överhoppat"| next["Nästa steg"]
+    run --> ok{"Lyckades det?"}
+    ok -->|"ja"| next
+    ok -->|"nej"| cont{"Fortsätt vid<br/>fel påslaget?"}
+    cont -->|"ja"| next
+    cont -->|"nej"| failed["Körningen stoppar<br/>som misslyckad"]
+```
 
-Tryck **Spara steg** för att persistera. Pågående körningar av äldre versioner av runbooket påverkas inte — de fortsätter använda sitt snapshot.
+Som standard stoppar ett steg som misslyckas körningen och markerar den som `Failed`, med stegets fel som orsak. Med **Fortsätt vid fel** påslaget registreras felet och nästa steg körs, vilket passar runbooks av typen "prova de här tre sakerna och meddela sedan".
 
-## Flera steg och felhantering
+**Kräv godkännande** gäller innan ett steg körs, vad som än hände före det: körningen väntar tills någon klickar på **Godkänn och kör**, och steget körs, eller på **Hoppa över**, och det körs aldrig. Slå på det för steget som ändrar något - omstarten, failovern, nedskalningen - så att en person först ser vad stegen före det hittade. Godkännandet hör till steget, så flyttar du steget följer det med.
 
-Som standard stoppar ett misslyckat steg körningen och markerar körningen som `Failed`. Om du sätter **Fortsätt vid fel** på ett steg registreras ett fel men nästa steg körs. Detta är användbart för "prova dessa tre saker, sedan notifiera"-mönster.
+:::note
+Via API:t och Terraform är brytaren ett stegs fält `requireApprovalBeforeRunning`. Ett stegs fält `requireApproval`, som runbooks skrev innan godkännanden flyttade till steget de skyddar, fungerar fortfarande och betyder det det betydde: ett godkännande efter det steget. OneUptime läser det som ett godkännande före nästa steg eller, efter det sista steget, som ett Manual-steg i slutet med titeln **Approve the result**.
+:::
 
-## Ett genomarbetat exempel
+## Spara och redigera
 
-Ett enkelt runbook för "DB-primary onåbar":
+Ändringar av stegen träder i kraft när du klickar på **Save Steps**. Varje körning arbetar utifrån den ögonblicksbild som togs när den startade, så pågående körningar behåller de steg de startade med, och redigering skriver aldrig om historiken för tidigare körningar.
 
-1. **JavaScript** — hämta nuvarande primary-värd från din konfigurationstjänst och logga den.
-2. **Manuellt** — "Bekräfta att replikationslaggen i sekundären är under 5 sekunder."
-3. **HTTP-förfrågan** — POST till din failover-orchestrators API.
-4. **Manuellt** — "Verifiera att skrivningar nu går till den nya primary."
-5. **HTTP-förfrågan** — POST till Slack med ett "klart"-meddelande.
+## Ett genomgånget exempel
 
-Svararen ser ett automatiserat steg köra, bockar av ett manuellt, ser nästa automatiserade steg köra, och så vidare. Varje stegs utdata fångas för post-mortemen.
+Ett runbook för "DB primary unreachable":
+
+| # | Typ | Vad det gör |
+| --- | --- | --- |
+| 1 | JavaScript | Hämta den aktuella primära värden från din konfigurationstjänst och logga den. |
+| 2 | Manual | "Bekräfta att replikeringsfördröjningen på den sekundära är under 5 sekunder." |
+| 3 | HTTP request | `POST` till din failover-orkestrerares API. |
+| 4 | Manual | "Kontrollera att skrivningar nu går till den nya primära." |
+| 5 | HTTP request | `POST` ett klartecken till en Slack-webhook. |
+
+Den som hanterar incidenten ser steg 1 köras, bockar av steg 2, ser steg 3 köras, bockar av steg 4, och körningen avslutas med steg 5. Varje stegs output registreras för postmortem.
+
+## Nästa steg
+
+:::cards
+- [Köra ett runbook](/docs/runbooks/running): Starta en körning och slutför, godkänn eller hoppa över dess steg.
+- [Runbook-regler](/docs/runbooks/rules): Starta det här runbooket automatiskt vid matchande incidenter.
+- [Runbook-agenter](/docs/runbooks/agents): Installera den Runner som dina skriptsteg behöver.
+- [Runbook-variabler](/docs/runbooks/variables): Håll värdar, nycklar, lösenord och kubeconfigs utanför dina steg.
+:::

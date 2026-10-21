@@ -25,10 +25,14 @@ import React, {
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const MonitorDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [error, setError] = useState<string>("");
@@ -119,18 +123,25 @@ const MonitorDocumentation: FunctionComponent<
           title={`Network Device Monitoring Guide`}
           description={
             <span>
-              Learn how to register devices, run subnet discovery, enable
-              interface monitoring and SNMP traps, and use template variables in
-              the{" "}
-              <Link
-                openInNewTab={true}
-                to={new URL(HTTP_PROTOCOL, HOST).addRoute(
-                  "/docs/monitor/network-device-monitor",
-                )}
-              >
-                <span>Network Device Monitor documentation</span>
-              </Link>
-              .
+              <TranslatedSentence
+                template="Learn how to register devices, run subnet discovery, enable interface monitoring and SNMP traps, and use template variables in the {{documentation}}."
+                slots={{
+                  documentation: (
+                    <Link
+                      openInNewTab={true}
+                      to={new URL(HTTP_PROTOCOL, HOST).addRoute(
+                        "/docs/monitor/network-device-monitor",
+                      )}
+                    >
+                      <span>
+                        {translator.translateText(
+                          "Network Device Monitor documentation",
+                        )}
+                      </span>
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           }
         />

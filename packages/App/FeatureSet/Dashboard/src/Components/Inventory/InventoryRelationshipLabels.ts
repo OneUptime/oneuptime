@@ -1,4 +1,5 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a relationship reads in a sentence, in both directions.
@@ -23,28 +24,28 @@ export interface RelationshipPhrasing {
 
 const PHRASINGS: Record<EntityRelationshipType, RelationshipPhrasing> = {
   [EntityRelationshipType.RunsOn]: {
-    outgoing: "runs on",
-    incoming: "runs",
+    outgoing: translationKey("runs on"),
+    incoming: translationKey("runs"),
   },
   [EntityRelationshipType.MemberOf]: {
-    outgoing: "is a member of",
-    incoming: "has member",
+    outgoing: translationKey("is a member of"),
+    incoming: translationKey("has member"),
   },
   [EntityRelationshipType.HostedOn]: {
-    outgoing: "is hosted on",
-    incoming: "hosts",
+    outgoing: translationKey("is hosted on"),
+    incoming: translationKey("hosts"),
   },
   [EntityRelationshipType.PartOf]: {
-    outgoing: "is part of",
-    incoming: "contains",
+    outgoing: translationKey("is part of"),
+    incoming: translationKey("contains"),
   },
   [EntityRelationshipType.InstanceOf]: {
-    outgoing: "is an instance of",
-    incoming: "has instance",
+    outgoing: translationKey("is an instance of"),
+    incoming: translationKey("has instance"),
   },
   [EntityRelationshipType.DependsOn]: {
-    outgoing: "depends on",
-    incoming: "is depended on by",
+    outgoing: translationKey("depends on"),
+    incoming: translationKey("is depended on by"),
   },
 };
 
@@ -65,7 +66,7 @@ export const getRelationshipPhrase: GetRelationshipPhraseFunction = (
   direction: RelationshipDirection,
 ): string => {
   if (!relationshipType) {
-    return "is related to";
+    return translationKey("is related to");
   }
 
   const phrasing: RelationshipPhrasing | undefined =

@@ -39,29 +39,78 @@ import logger from "Common/Server/Utils/Logger";
  * enqueueing and counting a fix only for it to fail here.
  */
 
-export const SERVICE_ACCOUNT_TOKEN_PATH: string =
-  "/var/run/secrets/kubernetes.io/serviceaccount/token";
+export const SERVICE_ACCOUNT_DIR: string =
+  "/var/run/secrets/kubernetes.io/serviceaccount";
+export const SERVICE_ACCOUNT_TOKEN_PATH: string = `${SERVICE_ACCOUNT_DIR}/token`;
+export const SERVICE_ACCOUNT_CA_PATH: string = `${SERVICE_ACCOUNT_DIR}/ca.crt`;
+export const SERVICE_ACCOUNT_NAMESPACE_PATH: string = `${SERVICE_ACCOUNT_DIR}/namespace`;
 
 const KUBECTL_VERSION_TIMEOUT_MS: number = 10_000;
+
+// The in-cluster API server address, as kubectl's own detection reads it.
+export interface InClusterApiServer {
+  host: string;
+  port: string;
+}
 
 export default class KubernetesPosture {
   private static cachedKubectlVersion: string | null | undefined = undefined;
 
   /*
-   * kubectl's own in-cluster detection is the same two facts: the API
-   * server's service host in the environment and a mounted token. This is
-   * the raw fact about the process — it is NOT permission to use that
-   * ServiceAccount for OneUptime AI; see canUseOwnServiceAccount.
+   * kubectl's own in-cluster detection (client-go inClusterClientConfig)
+   * needs three facts: the API server's service host AND port in the
+   * environment, and a mounted token that is a file. This is the raw fact
+   * about the process — it is NOT permission to use that ServiceAccount for
+   * OneUptime AI; see canUseOwnServiceAccount.
    */
   public static isInCluster(): boolean {
-    if (!process.env["KUBERNETES_SERVICE_HOST"]) {
+    if (!KubernetesPosture.getInClusterApiServer()) {
       return false;
     }
 
     try {
-      return fs.existsSync(SERVICE_ACCOUNT_TOKEN_PATH);
+      return fs.statSync(SERVICE_ACCOUNT_TOKEN_PATH).isFile();
     } catch {
       return false;
+    }
+  }
+
+  /*
+   * The in-cluster API server the pod's own ServiceAccount talks to, or null
+   * outside a pod. KubectlExecutor writes it into an explicit kubeconfig:
+   * kubectl's implicit in-cluster fallback is skipped whenever any flag
+   * changes the client config (--request-timeout does), and kubectl then
+   * dials http://localhost:8080 instead.
+   */
+  public static getInClusterApiServer(): InClusterApiServer | null {
+    const host: string = (process.env["KUBERNETES_SERVICE_HOST"] || "").trim();
+    const port: string = (process.env["KUBERNETES_SERVICE_PORT"] || "").trim();
+
+    if (!host || !port) {
+      return null;
+    }
+
+    return { host, port };
+  }
+
+  /*
+   * The namespace the pod runs in: the chart's downward-API value when set,
+   * else the ServiceAccount mount's namespace file, else null.
+   */
+  public static getOwnPodNamespace(): string | null {
+    const configured: string | null = KubernetesPosture.getPodNamespace();
+
+    if (configured) {
+      return configured;
+    }
+
+    try {
+      const fromMount: string = fs
+        .readFileSync(SERVICE_ACCOUNT_NAMESPACE_PATH, "utf8")
+        .trim();
+      return fromMount || null;
+    } catch {
+      return null;
     }
   }
 

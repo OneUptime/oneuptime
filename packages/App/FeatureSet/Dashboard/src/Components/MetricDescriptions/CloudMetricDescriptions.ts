@@ -18,6 +18,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type CloudMetric =
   | "cpu"
   | "memory"
@@ -30,23 +32,33 @@ export type CloudMetric =
   | "topInstancesByCpu";
 
 export const CLOUD_METRIC_DESCRIPTIONS: Record<CloudMetric, string> = {
-  cpu: "Average of the latest CPU reading of each task or instance seen in the last 15 minutes (ones with none are left out); it ignores the selected time range. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%.",
-  memory:
+  cpu: translationKey(
+    "Average of the latest CPU reading of each task or instance seen in the last 15 minutes (ones with none are left out); it ignores the selected time range. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%.",
+  ),
+  memory: translationKey(
     "Memory in use, added up across every task or instance seen in the last 15 minutes from each one's latest reading. It is a live snapshot, so it ignores the selected time range.",
-  instances:
+  ),
+  instances: translationKey(
     "Running tasks, replicas or instances in this environment that sent telemetry in the last 15 minutes. It is a live count, so it ignores the selected time range.",
-  requests:
+  ),
+  requests: translationKey(
     "Every span reported from this environment (matched by its cloud platform, account and region) in the selected range, across all its services. One user request often produces several spans, so this is usually higher than the request count.",
-  errorRate:
+  ),
+  errorRate: translationKey(
     "The share of this environment's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
-  p95Latency:
+  ),
+  p95Latency: translationKey(
     "p95 means the 95th percentile: 95% of the spans from this environment finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range, so quiet and busy intervals count equally.",
-  requestsChart:
+  ),
+  requestsChart: translationKey(
     "Spans reported from this environment in each interval, with the ones whose status was Error as a second line. Every service running in the environment counts.",
-  memoryChart:
+  ),
+  memoryChart: translationKey(
     "Container memory (container.memory.usage) in this environment for each interval. Every reading in an interval is added up, so a container that reports more than once per interval counts more than once - read it as a trend, not a total.",
-  topInstancesByCpu:
+  ),
+  topInstancesByCpu: translationKey(
     "Up to five tasks or instances seen in the last 15 minutes, ordered by their latest CPU reading, highest first, with each one's latest memory in use; it ignores the selected time range. Ones that have not reported CPU show a dash and may be listed first.",
+  ),
 };
 
 /*
@@ -62,14 +74,18 @@ export type CloudFleetMetric =
 
 export const CLOUD_FLEET_METRIC_DESCRIPTIONS: Record<CloudFleetMetric, string> =
   {
-    environments:
+    environments: translationKey(
       "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below breaks them down by provider.",
-    connected:
+    ),
+    connected: translationKey(
       "Environments currently marked as sending telemetry. One switches to disconnected after about 15 to 20 minutes with no logs, metrics or traces, and back as soon as telemetry returns.",
-    disconnected:
+    ),
+    disconnected: translationKey(
       "Environments not currently sending telemetry: ones silent for about 15 minutes or more, and ones added by hand that have never reported. Check that the OpenTelemetry collector for each is running.",
-    liveInstances:
+    ),
+    liveInstances: translationKey(
       "Running tasks, replicas or instances that sent telemetry in the last 15 minutes, across every cloud environment in this project, archived ones included.",
+    ),
   };
 
 /*
@@ -91,7 +107,10 @@ export const CLOUD_INSTANCE_METRIC_DESCRIPTIONS: Record<
   CloudInstanceMetric,
   string
 > = {
-  cpu: "The latest CPU reading this task or instance sent - one snapshot, not an average - kept until a newer one arrives. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%. A dash means no CPU reading has arrived.",
-  memory:
+  cpu: translationKey(
+    "The latest CPU reading this task or instance sent - one snapshot, not an average - kept until a newer one arrives. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%. A dash means no CPU reading has arrived.",
+  ),
+  memory: translationKey(
     "The latest memory-in-use reading this task or instance sent - one snapshot, not an average or a peak - kept until a newer one arrives. For an ECS task the whole task's figure is preferred over a single container's. A dash means no memory reading has arrived.",
+  ),
 };

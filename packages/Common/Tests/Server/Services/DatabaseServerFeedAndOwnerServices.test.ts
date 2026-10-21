@@ -41,7 +41,10 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The database feed and the owner join services: every owner change is
  * explained on the database's feed, and a feed write can never fail the
@@ -58,13 +61,15 @@ const LINK: string = "[Database PostgreSQL orders-db.internal:5432](/db)";
 let feed: jest.SpyInstance;
 
 beforeEach(() => {
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
   });
   getJestSpyOn(
     DatabaseServerService,
     "getDatabaseServerMarkdownLink",
-  ).mockResolvedValue(LINK);
+  ).mockResolvedValue(FeedMarkdown.asMarkdown(LINK));
 });
 
 afterEach(() => {
@@ -175,7 +180,9 @@ describe("DatabaseServerOwnerTeamService feed items", () => {
   });
 
   test("removing a team owner is recorded from the rows read before the delete", async () => {
-    const row: DatabaseServerOwnerTeam = new DatabaseServerOwnerTeam();
+    const row: DatabaseServerOwnerTeam = new DatabaseServerOwnerTeam(
+      ObjectID.generate(),
+    );
     row.databaseServerId = DATABASE_ID;
     row.projectId = PROJECT_ID;
     row.teamId = TEAM_ID;
@@ -183,18 +190,23 @@ describe("DatabaseServerOwnerTeamService feed items", () => {
       DatabaseServerOwnerTeamService,
       "findBy",
     ).mockResolvedValue([row]);
+    // The caller may delete the owner row.
+    stubRowsCallerMayDelete(DatabaseServerOwnerTeamService, () => {
+      return [row];
+    });
     const ownerTeamService: any = DatabaseServerOwnerTeamService;
 
     const onDelete: any = await ownerTeamService.onBeforeDelete({
-      query: { _id: ObjectID.generate().toString() },
+      query: { _id: row._id },
       limit: 1,
       skip: 0,
-      props: { userId: ACTING_USER_ID },
+      props: { userId: ACTING_USER_ID, tenantId: PROJECT_ID },
     });
     expect(findBy.mock.calls[0]![0].select).toEqual({
       databaseServerId: true,
       projectId: true,
       teamId: true,
+      _id: true,
     });
 
     await ownerTeamService.onDeleteSuccess(onDelete, []);
@@ -221,7 +233,7 @@ describe("DatabaseServerOwnerUserService feed items", () => {
 
   test("adding a user owner is recorded on the database's feed", async () => {
     getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-      "Jane Doe (jane@example.com)",
+      FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
     );
     const owner: DatabaseServerOwnerUser = new DatabaseServerOwnerUser();
     owner.databaseServerId = DATABASE_ID;
@@ -246,13 +258,19 @@ describe("DatabaseServerOwnerUserService feed items", () => {
   });
 
   test("removing a user owner names who was removed", async () => {
-    const row: DatabaseServerOwnerUser = new DatabaseServerOwnerUser();
+    const row: DatabaseServerOwnerUser = new DatabaseServerOwnerUser(
+      ObjectID.generate(),
+    );
     row.databaseServerId = DATABASE_ID;
     row.projectId = PROJECT_ID;
     row.userId = USER_ID;
     getJestSpyOn(DatabaseServerOwnerUserService, "findBy").mockResolvedValue([
       row,
     ]);
+    // The caller may delete the owner row.
+    stubRowsCallerMayDelete(DatabaseServerOwnerUserService, () => {
+      return [row];
+    });
     const user: User = new User(USER_ID);
     user.name = new Name("Jane Doe");
     user.email = new Email("jane@example.com");
@@ -482,7 +500,7 @@ describe("database child rows created by a caller", () => {
           "forgetAutomaticAssignments",
         ).mockResolvedValue(undefined);
         getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-          "Jane Doe (jane@example.com)",
+          FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
         );
         const team: Team = new Team(TEAM_ID);
         team.name = "Data Platform";

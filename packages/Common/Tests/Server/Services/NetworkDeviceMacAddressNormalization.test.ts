@@ -1,4 +1,3 @@
-import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import { Service as NetworkDeviceServiceType } from "../../../Server/Services/NetworkDeviceService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -7,6 +6,18 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -163,6 +174,7 @@ function writtenMacOf(result: OnUpdate<NetworkDevice>): unknown {
 describe("the MAC address is normalised on create", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test.each(ACCEPTED_SPELLINGS)(
@@ -253,51 +265,64 @@ describe("the MAC address is normalised on create", () => {
   });
 
   /*
-   * Ordering within the hook. The site tenancy guard is the first thing
-   * onBeforeCreate reaches for the database on, and a payload can be wrong
-   * in both ways at once. The MAC check runs first, so the operator hears
-   * about the field they just typed rather than about a site lookup — and,
-   * more to the point, a malformed MAC never costs a database round trip.
+   * Ordering within the hook. Every reference a device names is checked
+   * against the project first (ProjectReferencesService), before anything
+   * of the hook's own - so a payload wrong in both ways at once hears about
+   * the site. A malformed MAC on its own is refused without a single
+   * lookup: the MAC check reads nothing.
    *
-   * The stub resolves null, which is what the guard sees for a site that
-   * does not exist; the companion test below proves the stub is live.
+   * The directory has no sites, which is what the check sees for a site
+   * that does not exist (or belongs to another project).
    */
-  test("normalises before the site guard runs, so a bad MAC wins over a bad site", async () => {
+  test("checks the site first, and refuses a bad MAC alone without a lookup", async () => {
     const { internals } = buildDeviceService();
 
-    const siteFindSpy: jest.SpyInstance = jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(null as never);
+    const directory: ProjectDirectoryStub = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkSite: [] },
+    });
 
-    const createBy: CreateBy<NetworkDevice> = createWithMac("not-a-mac");
-    createBy.data.siteId = BOGUS_SITE_ID;
+    const both: CreateBy<NetworkDevice> = createWithMac("not-a-mac");
+    both.data.siteId = BOGUS_SITE_ID;
 
-    await expect(internals.onBeforeCreate(createBy)).rejects.toThrow(
-      NOT_A_MAC_MESSAGE,
+    await expect(internals.onBeforeCreate(both)).rejects.toThrow(
+      `Network Site "${BOGUS_SITE_ID.toString()}"`,
     );
-    expect(siteFindSpy).not.toHaveBeenCalled();
+
+    directory.recordLookups.length = 0;
+
+    await expect(
+      internals.onBeforeCreate(createWithMac("not-a-mac")),
+    ).rejects.toThrow(NOT_A_MAC_MESSAGE);
+    expect(directory.recordLookups).toHaveLength(0);
   });
 
-  test("...and the site guard really would have refused that site", async () => {
+  test("...and the site check really refuses that site, with a well-formed MAC", async () => {
     const { internals } = buildDeviceService();
 
-    const siteFindSpy: jest.SpyInstance = jest
-      .spyOn(NetworkSiteService, "findOneById")
-      .mockResolvedValue(null as never);
+    const directory: ProjectDirectoryStub = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkSite: [] },
+    });
 
     const createBy: CreateBy<NetworkDevice> = createWithMac(STORED_FORM);
     createBy.data.siteId = BOGUS_SITE_ID;
 
     await expect(internals.onBeforeCreate(createBy)).rejects.toThrow(
-      /Network site not found/,
+      `This network device references records that are not in this project: Network Site "${BOGUS_SITE_ID.toString()}"`,
     );
-    expect(siteFindSpy).toHaveBeenCalledTimes(1);
+    expect(
+      directory.recordLookups.filter((lookup: { model: string }): boolean => {
+        return lookup.model === "NetworkSite";
+      }),
+    ).toHaveLength(1);
   });
 });
 
 describe("the MAC address is normalised on update", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test.each(ACCEPTED_SPELLINGS)(
@@ -511,6 +536,7 @@ describe("the MAC address is normalised on update", () => {
 describe("a MAC written through the API is the operator's", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test("create clears the learned flag beside a typed MAC", async () => {

@@ -123,7 +123,8 @@ const LAST_15_MINUTE_LISTS: Array<HostMetric> = [
   "unitListState",
 ];
 
-const SPLIT_CPU_READINGS: Array<HostMetric> = [
+// Every text that shows a process's CPU: the tile, the chart and the list.
+const PROCESS_CPU_TEXTS: Array<HostMetric> = [
   "processCpu",
   "processCpuChart",
   "processListCpu",
@@ -489,36 +490,61 @@ describe("denominators, units and caps", () => {
 });
 
 describe("honest about how process CPU is read", () => {
-  test.each(SPLIT_CPU_READINGS)(
-    "%s says the collector's user, system and wait readings are not added up",
+  test.each(PROCESS_CPU_TEXTS)(
+    "%s says it adds user and system time and leaves wait out",
     (key: HostMetric) => {
-      expect(D[key]).toContain("user, system and wait");
+      /*
+       * The tile, the chart and the list all add a process's user and system
+       * readings (Pages/Host/Utils/Processes.ts) - the chart and tile per
+       * interval, the list at the newest scrape. Wait is time blocked on
+       * disk, not CPU, so each text says it is not counted.
+       */
+      expect(D[key]).toContain("(user plus system time)");
+      expect(D[key]).toContain("waiting on disk is left out");
     },
   );
 
-  test("the tile and chart say they read about a third of the real use", () => {
-    expect(D.processCpu).toContain("about a third of the real use");
-    expect(D.processCpuChart).toContain("about a third of the real use");
-  });
+  test.each(PROCESS_CPU_TEXTS)(
+    "%s no longer warns that it reads low",
+    (key: HostMetric) => {
+      // What the tile and chart said while they averaged the three readings.
+      expect(D[key]).not.toContain("a third of the real use");
+      expect(D[key]).not.toContain("averaged, not added");
+      expect(D[key]).not.toContain("instead of adding them");
+      expect(D[key]).not.toContain("user, system and wait");
+      // What the list said while it kept whichever reading came back first.
+      expect(D[key]).not.toContain("only one of them");
+      expect(D[key]).not.toContain("can read low");
+    },
+  );
 
-  test("the list says it shows only one of the readings", () => {
-    expect(D.processListCpu).toContain("only one of them");
-  });
-
-  test("the pages still read process CPU the way the texts describe", () => {
+  test("the pages read process CPU the way the texts describe", () => {
     /*
-     * If someone fixes the aggregation (filter or sum the states), these
-     * texts must change with it - this test is the reminder.
+     * Both pages leave the adding up to the tested module, so the texts
+     * above stay true only while they keep handing it their readings. The
+     * process page has to ask for one average per mode: an Avg over every
+     * reading in a bucket is the third-of-the-real-use number it drew
+     * before. It never filters on `state` equality either, which would drop
+     * the readings that carry only `cpu.mode`.
      */
     const processView: string = readPage("ProcessView.tsx");
     const processes: string = readPage("Processes.tsx");
 
-    expect(processView).toContain('"process.cpu.utilization",');
-    expect(processView).not.toContain('state: "user"');
-    expect(processes).toContain('buildQuery("process.cpu.utilization")');
-    expect(processes).toContain(
-      "// Skip — first datapoint per key is the most recent (sorted DESC).",
+    expect(processView).toContain(
+      "cpuAggregate.groupByAttributeKeys = [...PROCESS_CPU_MODE_ATTRIBUTE_KEYS];",
     );
+    expect(processView).toContain("processCpuWaitExclusion(),");
+    expect(processView).toContain(
+      "data: buildProcessCpuSeries(cpuResult.data || []).map(",
+    );
+    expect(processView).toContain("aggregateBy: cpuAggregate,");
+    expect(processView).not.toContain('"process.cpu.utilization"');
+    expect(processView).not.toContain('state: "user"');
+    expect(processes).toContain(
+      "const rollup: ProcessRollup = buildProcessRows({",
+    );
+    expect(processes).toContain("processCpuWaitExclusion(),");
+    expect(processes).not.toContain("first datapoint per key");
   });
 });
 

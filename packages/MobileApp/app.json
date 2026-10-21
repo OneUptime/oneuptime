@@ -2,7 +2,7 @@
   "expo": {
     "name": "OneUptime On-Call",
     "slug": "oneuptime-on-call",
-    "version": "1.0.0",
+    "version": "1.6.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
-      "icon": "./assets/icon.png",
+      "buildNumber": "7",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
@@ -23,7 +23,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.oneuptime.oncall",
-      "versionCode": 2,
+      "versionCode": 8,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
@@ -55,7 +55,14 @@
       [
         "expo-notifications",
         {
-          "color": "#58A6FF"
+          "color": "#58A6FF",
+          "sounds": [
+            "./assets/sounds/oneuptime_klaxon.wav",
+            "./assets/sounds/oneuptime_siren.wav",
+            "./assets/sounds/oneuptime_digital.wav",
+            "./assets/sounds/oneuptime_smoke_alarm.wav",
+            "./assets/sounds/oneuptime_rising.wav"
+          ]
         }
       ],
       "expo-local-authentication",

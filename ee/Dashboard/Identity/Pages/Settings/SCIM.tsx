@@ -1,0 +1,452 @@
+import ProjectUtil from "Common/UI/Utils/Project";
+import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import { useDefaultSsoTeamsInitialValues } from "@oneuptime/dashboard/Components/Sso/UseDefaultSsoTeams";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import { IDENTITY_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
+import ObjectID from "Common/Types/ObjectID";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import ProjectSCIMLogsTable from "../../Components/SCIMLogs/ProjectSCIMLogsTable";
+import {
+  getProjectScimFormFields,
+  withoutHiddenScimDefaultTeams,
+} from "../../ScimFormFields";
+import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  LicensedFeature,
+  isEnterpriseConfigurationReadOnly,
+} from "../../License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
+import ReadOnlyActionsNotice from "../../TightenOnly/ReadOnlyActionsNotice";
+import {
+  buildRotateBearerTokenUpdate,
+  generateScimBearerToken,
+} from "../../TightenOnly/TightenOnlyUpdates";
+import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
+import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
+import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredentials";
+
+/*
+ * Settings > SCIM: the project's SCIM connections and their logs.
+ *
+ * Adding one asks for its name and the teams newcomers join (the members
+ * team to start with); provisioning, deprovisioning, push groups and the
+ * description wait under Advanced at their defaults (../../ScimFormFields).
+ * Once it is saved, the dialog with the SCIM URLs and the bearer token to
+ * give the identity provider opens straight away: that is the next thing to
+ * do. The same dialog makes the OAuth 2.0 client secret for identity
+ * providers that ask for client credentials instead of a bearer token
+ * (../../Components/ScimOAuthClientCredentials).
+ *
+ * A connection can change the members of any team, so only someone who
+ * could invite people to every team - a project owner - may add one, change
+ * one, see or reset its bearer token, or make its client secrets
+ * (../../ScimSaveAccess; the server lets only a project owner read the token
+ * or when the secrets expire). Everyone else who can see the page is told
+ * so instead of being offered what the server would refuse.
+ */
+const SCIMPage: FunctionComponent<PageComponentProps> = (
+  _props: PageComponentProps,
+): ReactElement => {
+  const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
+  const [currentSCIMConfig, setCurrentSCIMConfig] =
+    useState<ProjectSCIM | null>(null);
+  const [refresher, setRefresher] = useState<boolean>(false);
+  const [resetSCIMId, setResetSCIMId] = useState<string>("");
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+  const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
+  const [resetError, setResetError] = useState<string>("");
+  const [showResetErrorModal, setShowResetErrorModal] =
+    useState<boolean>(false);
+
+  /*
+   * Without a valid Enterprise license (after the trial or the grace period)
+   * the server refuses to create or change this configuration, and refuses
+   * the identity provider's SCIM requests until a license is activated; the
+   * banner says both up front, and the page hides what would fail. Reads and
+   * deletes keep working, and so does "Reset Bearer Token": it writes the
+   * bearer token alone, which the server accepts without a license, so a
+   * leaked token can be replaced before SCIM resumes.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.SCIM,
+  );
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
+
+  // Adding, changing or resetting a connection: a project owner's to do.
+  const canSaveConnections: boolean = canCurrentUserSaveScimConnections();
+
+  const [showResetSuccessModal, setShowResetSuccessModal] =
+    useState<boolean>(false);
+  const [newBearerToken, setNewBearerToken] = useState<string>("");
+
+  const createInitialValues: FormValues<ProjectSCIM> | undefined =
+    useDefaultSsoTeamsInitialValues<ProjectSCIM>();
+
+  const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
+    setIsResetLoading(true);
+    try {
+      /*
+       * The bearer token alone, 256 bits from the browser's secure random
+       * number generator (never Math.random), so the server accepts it with
+       * or without a license (see TightenOnlyUpdates).
+       */
+      const newToken: string = generateScimBearerToken();
+      await ModelAPI.updateById<ProjectSCIM>({
+        modelType: ProjectSCIM,
+        id: new ObjectID(resetSCIMId),
+        data: buildRotateBearerTokenUpdate(newToken),
+      });
+      setNewBearerToken(newToken);
+      setShowResetModal(false);
+      setShowResetSuccessModal(true);
+      setRefresher(!refresher);
+    } catch (err) {
+      setResetError(API.getFriendlyMessage(err));
+      setShowResetErrorModal(true);
+      setShowResetModal(false);
+    }
+    setIsResetLoading(false);
+  };
+
+  return (
+    <Fragment>
+      <EnterpriseLicenseBanner
+        mode={licenseMode}
+        feature={LicensedFeature.SCIM}
+      />
+      {canSaveConnections ? (
+        <ReadOnlyActionsNotice mode={licenseMode} />
+      ) : (
+        <ScimSaveAccessNotice />
+      )}
+      <Tabs
+        tabs={[
+          {
+            name: "Configuration",
+            children: (
+              <ModelTable<ProjectSCIM>
+                key={refresher.toString()}
+                modelType={ProjectSCIM}
+                userPreferencesKey={"project-scim-table"}
+                query={{
+                  projectId: ProjectUtil.getCurrentProjectId()!,
+                }}
+                id="scim-table"
+                name="Settings > Project SCIM"
+                saveFilterProps={{
+                  tableId: "settings-project-scim-table",
+                }}
+                isDeleteable={true}
+                isEditable={!isReadOnly && canSaveConnections}
+                isCreateable={!isReadOnly && canSaveConnections}
+                showRefreshButton={true}
+                cardProps={{
+                  title: "SCIM (System for Cross-domain Identity Management)",
+                  description:
+                    "Let your identity provider add and remove the people in this project.",
+                }}
+                documentationLink={Route.fromString("/docs/identity/scim")}
+                noItemsMessage={"No SCIM configuration found."}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                formFields={getProjectScimFormFields()}
+                createInitialValues={createInitialValues}
+                onBeforeCreate={(item: ProjectSCIM): Promise<ProjectSCIM> => {
+                  return Promise.resolve(withoutHiddenScimDefaultTeams(item));
+                }}
+                onCreateSuccess={(
+                  item: ProjectSCIM,
+                  modalType?: ModalType,
+                ): Promise<ProjectSCIM> => {
+                  if (modalType === ModalType.Create && item.id) {
+                    setCurrentSCIMConfig(item);
+                    setShowSCIMUrlId(item.id.toString());
+                  }
+
+                  return Promise.resolve(item);
+                }}
+                columns={[
+                  {
+                    field: {
+                      name: true,
+                    },
+                    title: "Name",
+                    type: FieldType.Text,
+                  },
+                  {
+                    field: {
+                      autoProvisionUsers: true,
+                    },
+                    title: "Auto Provision",
+                    type: FieldType.Boolean,
+                  },
+                  {
+                    field: {
+                      autoDeprovisionUsers: true,
+                    },
+                    title: "Auto Deprovision",
+                    type: FieldType.Boolean,
+                  },
+                  {
+                    field: {
+                      enablePushGroups: true,
+                    },
+                    title: "Push Groups",
+                    type: FieldType.Boolean,
+                  },
+                ]}
+                selectMoreFields={{
+                  // Only a project owner may read the token, or when the secrets expire.
+                  ...(canSaveConnections
+                    ? {
+                        bearerToken: true,
+                        oauthClientSecretExpiresAt: true,
+                        oauthPreviousClientSecretExpiresAt: true,
+                      }
+                    : {}),
+                  createdAt: true,
+                  updatedAt: true,
+                  enablePushGroups: true,
+                  teams: {
+                    name: true,
+                    _id: true,
+                  },
+                }}
+                filters={[
+                  {
+                    field: {
+                      name: true,
+                    },
+                    title: "Name",
+                    type: FieldType.Text,
+                  },
+                ]}
+                actionButtons={[
+                  {
+                    title: "View SCIM URLs",
+                    icon: IconProp.Link,
+                    buttonStyleType: ButtonStyleType.NORMAL,
+                    onClick: async (
+                      item: ProjectSCIM,
+                      onCompleteAction: () => void,
+                      _onError: (error: Error) => void,
+                    ) => {
+                      onCompleteAction();
+                      setCurrentSCIMConfig(item);
+                      setShowSCIMUrlId(item.id?.toString() || "");
+                    },
+                  },
+                  ...(canSaveConnections
+                    ? [
+                        {
+                          title: "Reset Bearer Token",
+                          buttonStyleType: ButtonStyleType.OUTLINE,
+                          icon: IconProp.Refresh,
+                          onClick: async (
+                            item: ProjectSCIM,
+                            onCompleteAction: () => void,
+                            _onError: (error: Error) => void,
+                          ) => {
+                            onCompleteAction();
+                            setResetSCIMId(item.id?.toString() || "");
+                            setShowResetModal(true);
+                          },
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            ),
+          },
+          {
+            name: "Logs",
+            children: <ProjectSCIMLogsTable />,
+          },
+        ]}
+        onTabChange={() => {}}
+      />
+
+      {showSCIMUrlId && currentSCIMConfig && (
+        <ConfirmModal
+          title={`SCIM Configuration URLs`}
+          description={
+            <div>
+              <p className="text-gray-500 mb-4">
+                Use these URLs to configure SCIM in your identity provider:
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    SCIM Base URL:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
+                  </code>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use this as the SCIM endpoint URL in your identity provider
+                  </p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Service Provider Config URL:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
+                    /ServiceProviderConfig
+                  </code>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Users Endpoint:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
+                  </code>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Unique identifier field for users:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    userName
+                  </code>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use this field as the unique identifier for users in your
+                    identity provider SCIM configuration
+                  </p>
+                </div>
+
+                {canSaveConnections && (
+                  <div
+                    className="border-t pt-4"
+                    data-testid="scim-bearer-token-section"
+                  >
+                    <p className="font-medium text-gray-700 mb-1">
+                      Bearer Token:
+                    </p>
+                    <div className="mb-2">
+                      <HiddenText
+                        text={currentSCIMConfig.bearerToken || ""}
+                        isCopyable={true}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Use this bearer token for authentication in your identity
+                      provider SCIM configuration.
+                    </p>
+                  </div>
+                )}
+
+                {canSaveConnections && (
+                  <ScimOAuthClientCredentials
+                    key={showSCIMUrlId}
+                    connectionType="project"
+                    connectionId={showSCIMUrlId}
+                    clientSecretExpiresAt={
+                      currentSCIMConfig.oauthClientSecretExpiresAt
+                    }
+                    previousClientSecretExpiresAt={
+                      currentSCIMConfig.oauthPreviousClientSecretExpiresAt
+                    }
+                    canChange={!isReadOnly}
+                    onChange={() => {
+                      setRefresher((value: boolean) => {
+                        return !value;
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          }
+          submitButtonText={"Close"}
+          onSubmit={() => {
+            setShowSCIMUrlId("");
+            setCurrentSCIMConfig(null);
+          }}
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
+
+      {/* Reset Bearer Token Modals */}
+      {showResetModal && (
+        <ConfirmModal
+          title="Reset Bearer Token"
+          description="The current token stops working at once. Update your identity provider with the new token."
+          onSubmit={async () => {
+            await resetBearerToken();
+          }}
+          isLoading={isResetLoading}
+          onClose={() => {
+            setShowResetModal(false);
+            setResetSCIMId("");
+          }}
+          submitButtonText="Reset"
+          submitButtonType={ButtonStyleType.DANGER}
+        />
+      )}
+
+      {showResetErrorModal && (
+        <ConfirmModal
+          title="Reset Error"
+          description={resetError}
+          onSubmit={() => {
+            setShowResetErrorModal(false);
+            setResetError("");
+            setResetSCIMId("");
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
+
+      {showResetSuccessModal && (
+        <ConfirmModal
+          title="New Bearer Token"
+          description={
+            <div>
+              <p className="mb-3">Your new Bearer Token has been generated:</p>
+              <div className="mb-2">
+                <HiddenText text={newBearerToken} isCopyable={true} />
+              </div>
+              <p className="text-sm text-gray-500">
+                Please update your identity provider with this new token.
+              </p>
+            </div>
+          }
+          onSubmit={() => {
+            setShowResetSuccessModal(false);
+            setNewBearerToken("");
+            setResetSCIMId("");
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
+    </Fragment>
+  );
+};
+
+export default SCIMPage;

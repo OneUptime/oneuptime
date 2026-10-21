@@ -45,6 +45,25 @@ type LanguageEntry =
   | DocsLanguage
   | StatusPageLanguage;
 
+/*
+ * What every registry has to agree on. Docs also records which way each
+ * language is written, for its right-to-left pages, and the others do not.
+ */
+type LanguageIdentity = Pick<
+  LanguageEntry,
+  "code" | "nativeName" | "englishName"
+>;
+
+const identityOf: (language: LanguageEntry) => LanguageIdentity = (
+  language: LanguageEntry,
+): LanguageIdentity => {
+  return {
+    code: language.code,
+    nativeName: language.nativeName,
+    englishName: language.englishName,
+  };
+};
+
 const REGISTRIES: Array<[string, Array<LanguageEntry>]> = [
   ["Accounts", SUPPORTED_ACCOUNTS_LANGUAGES],
   ["AdminDashboard", SUPPORTED_ADMIN_DASHBOARD_LANGUAGES],
@@ -65,7 +84,9 @@ describe("supported language registries", () => {
   test.each(REGISTRIES)(
     "%s offers the same languages, in the same order, as the Status Page",
     (_name: string, languages: Array<LanguageEntry>) => {
-      expect(languages).toEqual(SUPPORTED_STATUS_PAGE_LANGUAGES);
+      expect(languages.map(identityOf)).toEqual(
+        SUPPORTED_STATUS_PAGE_LANGUAGES.map(identityOf),
+      );
     },
   );
 
@@ -109,7 +130,7 @@ describe("supported language registries", () => {
 
   test("Persian is registered on every surface, not just the Status Page", () => {
     for (const [, languages] of REGISTRIES) {
-      expect(languages).toContainEqual({
+      expect(languages.map(identityOf)).toContainEqual({
         code: "fa",
         nativeName: "فارسی",
         englishName: "Persian",

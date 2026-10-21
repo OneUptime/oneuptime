@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime for Platform Teams | Internal Developer Platform Observability</title>
-    <meta name="description"
-        content="Empower your platform team to deliver self-service observability. Build golden paths for developers with standardized monitoring, alerting, and incident response.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -36,7 +36,7 @@
 
           <!-- Main Headline -->
           <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-            Build your internal <br class="hidden sm:block" />
+            Build your internal <br class="max-sm:hidden sm:block" />
             <span class="text-gray-700">developer platform.</span>
           </h1>
 
@@ -197,7 +197,7 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4">Platform Engineering</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Empower developers with<br class="hidden sm:block" />
+            Empower developers with<br class="max-sm:hidden sm:block" />
             <span class="text-gray-500">self-service observability.</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600">
@@ -259,7 +259,7 @@
               <h3 class="text-base font-semibold text-gray-900 mb-1">Multi-tenant RBAC</h3>
               <p class="text-sm text-gray-500 mb-3">Fine-grained access control with SSO integration. Teams see only their services while platform teams see everything.</p>
               <div class="pt-3 border-t border-gray-100">
-                <a href="/docs/rbac" class="text-xs text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
+                <a href="/docs/permissions/index" class="text-xs text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
                   RBAC Documentation
                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />

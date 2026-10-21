@@ -16,9 +16,22 @@ import moment from "moment-timezone";
 
 const NY: Timezone = Timezone.AmericaNew_York;
 
+/*
+ * The report came in on a summer day, when Adak reads "HDT" and New York
+ * "EDT". Pin the clock to it: on the real clock the zone names below would
+ * read "HST" and "EST" every winter.
+ */
+const REPORTED_AT: Date = new Date("2026-07-09T18:00:00.000Z");
+
 describe("user timezone overrides a browser reporting a different zone", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(REPORTED_AT);
+  });
+
   afterEach(() => {
     OneUptimeDate.setUserTimezone(null);
+    jest.useRealTimers();
   });
 
   it("confirms the process really is on the Adak (HDT) clock", () => {

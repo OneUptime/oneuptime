@@ -3,7 +3,11 @@ import OneUptimeDate from "../../../Types/Date";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
-import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  CriteriaFilterUtil,
+} from "../../../Types/Monitor/CriteriaFilter";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse, {
@@ -18,9 +22,16 @@ import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResp
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import LogMonitorGroupResult, {
+  LogMonitorGroupResultUtil,
+} from "../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ProfileMonitorResponse, {
+  ProfileFunctionShareReading,
+} from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -33,15 +44,27 @@ import {
   getDatabaseMetricByMetricType,
 } from "../../../Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
+import ProbeNetworkFailureUtil from "../../../Utils/ProbeNetworkFailureUtil";
+import { collapseLineBreakRuns } from "../../../Utils/LineBreakRuns";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
+import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
+import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
+
+// A sentence's closing period, dropped where it is quoted mid-sentence.
+const TRAILING_PERIOD: RegExp = /\.$/;
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -181,12 +204,23 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSpanCountObservation(
           input,
         );
+      case CheckOn.LlmBadAnswerPercent:
+      case CheckOn.LlmBadAnswerCount:
+      case CheckOn.LlmAnswerCount:
+        return MonitorCriteriaObservationBuilder.describeLlmAnswersObservation(
+          input,
+        );
       case CheckOn.MetricValue:
         return MonitorCriteriaObservationBuilder.describeMetricValueObservation(
           input,
         );
       case CheckOn.ExceptionCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
+          input,
+        );
+      case CheckOn.ProfileCount:
+      case CheckOn.ProfileFunctionShare:
+        return MonitorCriteriaObservationBuilder.describeProfileObservation(
           input,
         );
       case CheckOn.SnmpIsOnline:
@@ -209,6 +243,33 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
           input,
         );
+      case CheckOn.SnmpTableValue:
+      case CheckOn.SnmpTableRowCount:
+      case CheckOn.SnmpTableRowIsUnhealthy:
+        return SnmpTableCriteria.describeTableObservation({
+          tables: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.tables,
+          criteriaFilter: input.criteriaFilter,
+        });
+      case CheckOn.SnmpTransceiverNotDetected:
+      case CheckOn.SnmpTransceiverPastAlarmThreshold:
+      case CheckOn.SnmpTransceiverPastWarningThreshold:
+      case CheckOn.SnmpTransceiverReading:
+      case CheckOn.SnmpTransceiverRxPowerDrop:
+        return SnmpTransceiverCriteria.describeObservation({
+          transceivers: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.transceivers,
+          criteriaFilter: input.criteriaFilter,
+        });
+      case CheckOn.SnmpTrapVarbindValue:
+        return SnmpTableCriteria.describeTrapVarbindObservation({
+          snmpTrap: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpTrapResponse,
+          criteriaFilter: input.criteriaFilter,
+        });
       case CheckOn.DatabaseIsOnline:
         return MonitorCriteriaObservationBuilder.describeDatabaseIsOnlineObservation(
           input,
@@ -221,6 +282,160 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeDatabaseCollectionErrorObservation(
           input,
         );
+      case CheckOn.NtpIsOnline:
+      case CheckOn.NtpIsSynchronized:
+      case CheckOn.NtpStratum:
+      case CheckOn.NtpClockOffset:
+      case CheckOn.NtpResponseTime:
+      case CheckOn.NtpRootDispersion:
+        return MonitorCriteriaObservationBuilder.describeNtpObservation(input);
+      case CheckOn.ConnectedProbes:
+      case CheckOn.DisconnectedProbes:
+        return MonitorCriteriaObservationBuilder.describeProbeStatusObservation(
+          input,
+        );
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * What a Probe Status evaluation found, for the check being explained:
+   * the count it compared, and which probes it counted, so "Disconnected
+   * Probes was 1" also says which one. The names follow a colon, not
+   * parentheses: probe names often carry their own ("Singapore
+   * (ap-southeast-1)").
+   */
+  public static describeProbeStatusObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const response: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorCriteria.getResponse(input.dataToProcess);
+
+    if (!response) {
+      return null;
+    }
+
+    const total: number =
+      response.connectedProbeCount + response.disconnectedProbeCount;
+
+    if (input.criteriaFilter.checkOn === CheckOn.ConnectedProbes) {
+      const connected: string = ProbeStatusMonitorUtil.joinProbeNames(
+        ProbeStatusMonitorUtil.getConnectedProbes(response),
+      );
+
+      return `${response.connectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
+        total,
+      )} connected${connected ? `: ${connected}` : ""}.`;
+    }
+
+    const disconnected: string = ProbeStatusMonitorUtil.joinProbeNames(
+      ProbeStatusMonitorUtil.getDisconnectedProbes(response),
+    );
+
+    return `${response.disconnectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
+      total,
+    )} disconnected${disconnected ? `: ${disconnected}` : ""}.`;
+  }
+
+  /*
+   * What an NTP check found, for the filter being explained. A server that
+   * did not answer has no stratum, offset or synchronized state, and says so
+   * rather than reading as a zero.
+   */
+  public static describeNtpObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    if (!probeResponse) {
+      return null;
+    }
+
+    const ntpResponse: NtpMonitorResponse | undefined =
+      probeResponse.ntpResponse;
+    const isAnswered: boolean = Boolean(ntpResponse?.isOnline);
+    const failureCause: string =
+      ntpResponse?.failureCause || probeResponse.failureCause || "";
+
+    const evaluationWindow: string | null =
+      MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+        input.criteriaFilter,
+      );
+    const windowSuffix: string = evaluationWindow ? ` ${evaluationWindow}` : "";
+
+    const notAnswered: string = failureCause
+      ? `The NTP server did not answer: ${failureCause.replace(TRAILING_PERIOD, "")}`
+      : "The NTP server did not answer";
+
+    switch (input.criteriaFilter.checkOn) {
+      case CheckOn.NtpIsOnline:
+        return isAnswered
+          ? `The NTP server answered${windowSuffix}`
+          : `${notAnswered}${windowSuffix}`;
+
+      case CheckOn.NtpIsSynchronized:
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so its synchronization was not checked`;
+        }
+
+        return ntpResponse.isSynchronized
+          ? `The NTP server is synchronized, at stratum ${ntpResponse.stratum}${windowSuffix}`
+          : `The NTP server is not synchronized: ${(ntpResponse.failureCause || "").replace(TRAILING_PERIOD, "")}${windowSuffix}`;
+
+      case CheckOn.NtpStratum:
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so it reported no stratum`;
+        }
+
+        return `NTP Stratum was ${NtpMonitorUtil.describeStratum(
+          ntpResponse.stratum,
+          ntpResponse.kissCode,
+        )}${windowSuffix}`;
+
+      case CheckOn.NtpClockOffset: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so no clock offset was measured`;
+        }
+
+        if (ntpResponse.clockOffsetInMs === undefined) {
+          return "The NTP reply carried no usable time, so no clock offset was measured";
+        }
+
+        return `NTP Clock Offset (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          Math.abs(ntpResponse.clockOffsetInMs),
+        )}: the server's clock is ${NtpMonitorUtil.describeClockOffset(
+          ntpResponse.clockOffsetInMs,
+        )}${windowSuffix}`;
+      }
+
+      case CheckOn.NtpRootDispersion: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so it reported no root dispersion`;
+        }
+
+        if (ntpResponse.rootDispersionInMs === undefined) {
+          return "The NTP reply carried no root dispersion";
+        }
+
+        return `NTP Root Dispersion (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.rootDispersionInMs,
+        )}${windowSuffix}`;
+      }
+
+      case CheckOn.NtpResponseTime: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so there is no response time`;
+        }
+
+        return `NTP Response Time (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.responseTimeInMs,
+        )}${windowSuffix}`;
+      }
+
       default:
         return null;
     }
@@ -1119,6 +1334,7 @@ export default class MonitorCriteriaObservationBuilder {
 
   private static describeLogCountObservation(input: {
     dataToProcess: DataToProcess;
+    criteriaFilter: CriteriaFilter;
   }): string | null {
     const logResponse: LogMonitorResponse | null =
       MonitorCriteriaDataExtractor.getLogMonitorResponse(input.dataToProcess);
@@ -1127,7 +1343,50 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    return `Log count was ${logResponse.logCount}.`;
+    // One group, judged alone by the per-group pass.
+    if (logResponse.evaluatedGroup) {
+      return `Log count for ${LogMonitorGroupResultUtil.describeGroup(
+        logResponse.evaluatedGroup.labels,
+      )} was ${logResponse.logCount}.`;
+    }
+
+    const groups: Array<LogMonitorGroupResult> | undefined =
+      logResponse.groupBreakdown;
+
+    if (!groups) {
+      return `Log count was ${logResponse.logCount}.`;
+    }
+
+    if (
+      CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
+    ) {
+      return "Anomaly detection is not evaluated per group - the baseline covers the whole monitor, not each group.";
+    }
+
+    if (groups.length === 0) {
+      return "No logs matched, so there was no group to evaluate.";
+    }
+
+    const busiest: LogMonitorGroupResult = groups[0]!;
+    const groupCount: number = Math.max(
+      logResponse.totalGroupCount || 0,
+      groups.length,
+    );
+
+    let observation: string = `Log count was ${logResponse.logCount} across ${groupCount} ${
+      groupCount === 1 ? "group" : "groups"
+    }; the most was ${busiest.logCount}, for ${LogMonitorGroupResultUtil.describeGroup(
+      busiest.labels,
+    )}`;
+
+    if (groupCount > groups.length) {
+      observation +=
+        groups.length === 1
+          ? ". Only the group with the most logs was evaluated"
+          : `. Only the ${groups.length} groups with the most logs were evaluated`;
+    }
+
+    return `${observation}.`;
   }
 
   private static describeSecurityEventCountObservation(input: {
@@ -1145,6 +1404,31 @@ export default class MonitorCriteriaObservationBuilder {
     return `Security event count was ${securityEventsResponse.securityEventCount}.`;
   }
 
+  /*
+   * The same sentence for every AI / LLM check-on: how many answers there
+   * were and how many of them were bad, so a reader of the root cause sees
+   * both the count and the share whichever one the criteria compared.
+   */
+  public static describeLlmAnswersObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const llmResponse: LlmMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getLlmMonitorResponse(input.dataToProcess);
+
+    if (!llmResponse) {
+      return null;
+    }
+
+    const answers: number = Number(llmResponse.llmAnswerCount) || 0;
+    const bad: number = Number(llmResponse.llmBadAnswerCount) || 0;
+
+    if (answers === 0) {
+      return "The AI gave no answers in the window.";
+    }
+
+    return `${bad} of ${answers} AI ${answers === 1 ? "answer was" : "answers were"} bad (${Number(llmResponse.llmBadAnswerPercent) || 0}%).`;
+  }
+
   private static describeSpanCountObservation(input: {
     dataToProcess: DataToProcess;
   }): string | null {
@@ -1156,6 +1440,44 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Span count was ${traceResponse.spanCount}.`;
+  }
+
+  /*
+   * What a Profiles monitor read: how many profiles it counted, or how much
+   * of the window ran through its function ("parseOrder was 34.2% of the
+   * window (1,234 samples)").
+   */
+  public static describeProfileObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const response: ProfileMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProfileMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (!response) {
+      return null;
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.ProfileCount) {
+      return `Profile count was ${response.profileCount}.`;
+    }
+
+    const reading: ProfileFunctionShareReading | undefined =
+      response.functionShare;
+
+    if (!reading) {
+      return "No function is set on this monitor, so there is no share to compare.";
+    }
+
+    if (!(reading.windowSampleCount > 0)) {
+      return `Nothing was profiled in the window, so ${JSON.stringify(
+        reading.functionName,
+      )} has no share to compare.`;
+    }
+
+    return `${JSON.stringify(reading.functionName)} was ${reading.sharePercent}% of the window (${reading.windowSampleCount} samples).`;
   }
 
   private static describeExceptionCountObservation(input: {
@@ -1556,6 +1878,15 @@ export default class MonitorCriteriaObservationBuilder {
       return "Device is reachable (answered ping or SNMP).";
     }
 
+    /*
+     * A probe that could not send at all (no IPv6 on the probe, say) never
+     * contacted the device, so "unreachable" would be a verdict on a device
+     * nobody checked, and would contradict the cause that follows it.
+     */
+    if (ProbeNetworkFailureUtil.isProbeSideCause(probeResponse.failureCause)) {
+      return `Device could not be checked from this probe: ${probeResponse.failureCause}`;
+    }
+
     if (probeResponse.failureCause) {
       return `Device is unreachable by ping and SNMP: ${probeResponse.failureCause}`;
     }
@@ -1787,9 +2118,11 @@ export default class MonitorCriteriaObservationBuilder {
     if (status.remediation) {
       /*
        * A remediation can span lines - Azure SQL Database's names two
-       * statements for two databases - but this is one sentence.
+       * statements for two databases - but this is one sentence. It is what
+       * the probe reported, so each run of white space is read once
+       * (collapseLineBreakRuns).
        */
-      message += ` (${status.remediation.replace(/\s*[\r\n]+\s*/g, " ")})`;
+      message += ` (${collapseLineBreakRuns(status.remediation)})`;
     }
 
     return `${message}.`;

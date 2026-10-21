@@ -1,156 +1,225 @@
-# Autentificering
+# Godkendelse
 
-OneUptime CLI understøtter flere måder at autentificere med din OneUptime-instans på. Du kan bruge navngivne kontekster, miljøvariabler eller sende legitimationsoplysninger direkte som flag.
+Hver anmodning, CLI'en sender, bærer en API-nøgle til dit projekt. Gem nøgler én gang med `oneuptime login`, én kontekst til hvert miljø, eller giv dem til en kommando i flag eller miljøvariabler, som scripts gør. Denne side viser hver måde, og hvilken en kommando bruger, når der er flere.
 
-## Login
+:::cards
+- [Log ind](#log-ind): Gem en API-nøgle og adressen på din OneUptime.
+- [Kontekster](#kontekster): Et gemt login til hvert projekt eller miljø, og skift mellem dem.
+- [Hvilke legitimationsoplysninger en kommando bruger](#hvilke-legitimationsoplysninger-en-kommando-bruger): Først flag, så miljøvariabler, så kontekster.
+- [Fejlfinding](#fejlfinding): Ingen legitimationsoplysninger fundet, ugyldige nøgler og afvisninger.
+:::
 
-Autentificer med din OneUptime-instans ved hjælp af en API-nøgle:
+## Før du begynder
 
-```bash
-oneuptime login <api-key> <instance-url>
-```
+Du skal bruge en API-nøgle til dit projekt. Opret en under **Projektindstillinger → Avanceret → API-nøgler** med **Opret API-nøgle**, og giv den den adgang, dine kommandoer har brug for: se [Opret en API-nøgle](/docs/api-reference/api-reference#opret-en-api-nøgle). En nøgle gør, hvad dens tilladelser tillader: en nøgle, der kun må læse poster, kan vise og læse dem, men ikke ændre dem.
 
-**Argumenter:**
+På OneUptime Cloud virker API-nøgler kun, mens projektet har abonnementet **Growth** eller højere. Under det svarer hver kommando med `API error (402)` og en meddelelse, der nævner abonnementet, indtil projektet opgraderes; så virker den samme nøgle igen. Se [API-nøgler og SCIM under deres abonnement](/docs/api-reference/api-reference#api-nøgler-og-scim-under-deres-abonnement).
 
-| Argument         | Beskrivelse                                                       |
-| ---------------- | ----------------------------------------------------------------- |
-| `<api-key>`      | Din OneUptime API-nøgle (f.eks. `sk-your-api-key`)                |
-| `<instance-url>` | URL'en til din OneUptime-instans (f.eks. `https://oneuptime.com`) |
+## Log ind
 
-**Indstillinger:**
-
-| Indstilling             | Beskrivelse                                     |
-| ----------------------- | ----------------------------------------------- |
-| `--context-name <name>` | Navn til denne kontekst (standard: `"default"`) |
-
-**Eksempler:**
+`oneuptime login` gemmer en API-nøgle og adressen på din OneUptime som en kontekst og gør den til den aktuelle kontekst:
 
 ```bash
-# Log ind med standardkontekst
-oneuptime login sk-abc123 https://oneuptime.com
-
-# Log ind med en navngivet kontekst
-oneuptime login sk-abc123 https://oneuptime.com --context-name production
-
-# Opsæt flere miljøer
-oneuptime login sk-prod-key https://oneuptime.com --context-name production
-oneuptime login sk-staging-key https://staging.oneuptime.com --context-name staging
+oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
+
+| Argument eller indstilling | Hvad det er |
+| --- | --- |
+| `<api-key>` | En API-nøgle til dit projekt |
+| `<instance-url>` | Adressen på din OneUptime: `https://oneuptime.com`, eller din egen servers, for eksempel `https://oneuptime.example.com` |
+| `--context-name <name>` | Navnet, konteksten gemmes under. Standard: `default` |
+
+For eksempel en kontekst ved navn `production`:
+
+```bash
+oneuptime login <api-key> https://oneuptime.com --context-name production
+```
+
+Den svarer `Logged in successfully. Context "production" is now active.` En skråstreg i slutningen af adressen fjernes, og et nyt login under det samme navn erstatter den kontekst.
+
+> [!NOTE]
+> `login` gemmer nøglen uden at spørge OneUptime om den. Kør en kommando, for eksempel `oneuptime incident count`, for at se, at nøglen virker.
 
 ## Kontekster
 
-Kontekster giver dig mulighed for at gemme og skifte mellem flere OneUptime-miljøer (f.eks. produktion, staging, udvikling).
+En kontekst er et gemt login: et navn, en adresse og en API-nøgle. Gem én til hvert projekt eller miljø, og vælg så én til alle de kommandoer, der følger, eller til en enkelt kommando.
 
-### Liste over kontekster
+:::steps
+### Gem en kontekst til hvert miljø
+
+```bash
+oneuptime login <production-api-key> https://oneuptime.com --context-name production
+oneuptime login <staging-api-key> https://oneuptime.example.com --context-name staging
+```
+
+Hvert login gør sin kontekst til den aktuelle, så nu er `staging` den aktuelle.
+
+### Vis dem
 
 ```bash
 oneuptime context list
 ```
 
-Viser alle konfigurerede kontekster. Den aktuelle kontekst er markeret med `*`.
-
-### Skift kontekst
-
-```bash
-oneuptime context use <name>
+```text
+┌───┬────────────┬───────────────────────────────┐
+│   │ Name       │ URL                           │
+├───┼────────────┼───────────────────────────────┤
+│   │ production │ https://oneuptime.com         │
+├───┼────────────┼───────────────────────────────┤
+│ * │ staging    │ https://oneuptime.example.com │
+└───┴────────────┴───────────────────────────────┘
 ```
 
-Skift til en anden navngivet kontekst for alle efterfølgende kommandoer.
+`*` markerer den aktuelle kontekst. API-nøgler vises aldrig.
+
+### Skift til en anden kontekst
 
 ```bash
-# Skift til staging
-oneuptime context use staging
-
-# Skift til produktion
 oneuptime context use production
 ```
 
-### Vis aktuel kontekst
+Den svarer `Switched to context "production".` og de kommandoer, der følger, bruger den.
+
+### Brug en kontekst til én kommando
 
 ```bash
-oneuptime context current
+oneuptime incident list --context staging
 ```
 
-Viser den aktuelt aktive kontekst, herunder instans-URL og en maskeret API-nøgle.
+Den aktuelle kontekst forbliver, som den var.
+:::
 
-### Slet en kontekst
+| Kommando | Hvad den gør |
+| --- | --- |
+| `oneuptime context list` | Viser de gemte kontekster; `*` markerer den aktuelle. Med `-o json` hver konteksts `name`, `apiUrl` og `isCurrent`, aldrig dens nøgle |
+| `oneuptime context use <name>` | Gør en gemt kontekst til den aktuelle |
+| `oneuptime context current` | Viser den aktuelle konteksts navn, URL og API-nøgle, med nøglen skjult bortset fra de første fire og sidste fire tegn |
+| `oneuptime context delete <name>` | Sletter en gemt kontekst. Var det den aktuelle, bliver den første tilbageværende kontekst den aktuelle |
 
-```bash
-oneuptime context delete <name>
+## Hvilke legitimationsoplysninger en kommando bruger
+
+En kommando skal bruge en API-nøgle og en URL. Den tager hver af de to fra det første af disse steder, der har den:
+
+```mermaid title="Hvor en kommando finder sin API-nøgle og sin URL"
+flowchart TB
+    F["1. Flag på kommandoen:<br/>--api-key og --url"] --> E["2. Miljøvariabler:<br/>ONEUPTIME_API_KEY<br/>og ONEUPTIME_URL"]
+    E --> N["3. Konteksten, der<br/>nævnes med --context"]
+    N --> C["4. Den aktuelle kontekst"]
+    C --> X["Ikke fundet nogen steder:<br/>kommandoen stopper"]
 ```
 
-Fjern en navngivet kontekst. Hvis den slettede kontekst er den aktuelle, skifter CLI automatisk til den første resterende kontekst.
+Du kan altså blande dem: for eksempel en API-nøgle fra en miljøvariabel med URL'en fra den aktuelle kontekst. Miljøvariabler passer til scripts og CI-job, som ikke har gemte kontekster:
 
-## Løsning af legitimationsoplysninger
-
-Legitimationsoplysninger løses i følgende prioritetsrækkefølge:
-
-1. **CLI-flag** (`--api-key` og `--url`)
-2. **Miljøvariabler** (`ONEUPTIME_API_KEY` og `ONEUPTIME_URL`)
-3. **Navngivet kontekst** (via `--context`-flag)
-4. **Aktuel kontekst** (fra gemt konfiguration)
-
-Du kan blande kilder – brug f.eks. en miljøvariabel til API-nøglen og en gemt kontekst til URL'en.
-
-### Brug af CLI-flag
-
+:::tabs
+@tab Linux
 ```bash
-oneuptime --api-key sk-abc123 --url https://oneuptime.com incident list
-```
-
-### Brug af miljøvariabler
-
-```bash
-export ONEUPTIME_API_KEY=sk-abc123
+export ONEUPTIME_API_KEY=<api-key>
 export ONEUPTIME_URL=https://oneuptime.com
-
 oneuptime incident list
 ```
+@tab macOS
+```bash
+export ONEUPTIME_API_KEY=<api-key>
+export ONEUPTIME_URL=https://oneuptime.com
+oneuptime incident list
+```
+@tab Windows
+```powershell
+$env:ONEUPTIME_API_KEY = "<api-key>"
+$env:ONEUPTIME_URL = "https://oneuptime.com"
+oneuptime incident list
+```
+:::
 
-### Brug af en specifik kontekst
+Flag går forud for alt andet, for én kommando:
 
 ```bash
-oneuptime --context production incident list
+oneuptime --api-key <api-key> --url https://oneuptime.com incident list
 ```
 
-## Bekræft autentificering
+> [!WARNING]
+> En nøgle, der gives som flag, havner i din shell-historik, og andre brugere af maskinen kan se den i proceslisten. Brug i stedet en kontekst eller en miljøvariabel på en delt maskine.
 
-Kontroller din aktuelle autentificeringsstatus:
+## Tjek, hvad CLI'en vil bruge
+
+`oneuptime whoami` viser den URL og API-nøgle, den næste kommando vil bruge, og den kontekst, de kommer fra:
 
 ```bash
 oneuptime whoami
 ```
 
-Dette viser:
+```text
+URL:     https://oneuptime.com
+API Key: 4f1c****0a13
+Context: production
+```
 
-- Instans-URL
-- Maskeret API-nøgle
-- Aktuel kontekstnavn (vises kun, hvis en gemt kontekst er aktiv)
+Kun nøglens første fire og sidste fire tegn vises. Linjen `Context` vises kun, når URL'en og nøglen er kontekstens egne, ikke værdier, som et flag eller en miljøvariabel har erstattet. `whoami` læser dine indstillinger uden at kalde OneUptime: den viser, hvad en kommando vil sende, ikke om OneUptime accepterer det. Er intet gemt eller sat, svarer den:
 
-Hvis ikke autentificeret, viser kommandoen en hjælpsom besked, der foreslår, at du kører `oneuptime login`.
+```text
+Not authenticated. Run `oneuptime login` to authenticate.
+```
 
-## Konfigurationsfil
+## Konfigurationsfilen
 
-Legitimationsoplysninger gemmes i `~/.oneuptime/config.json` med begrænsede tilladelser (`0600`).
+`oneuptime login` gemmer kontekster i `~/.oneuptime/config.json` i din hjemmemappe (`%USERPROFILE%\.oneuptime\config.json` på Windows). CLI'en opretter den, så kun din bruger kan læse og skrive den (tilstand `0600`):
 
-```json
+```json title="~/.oneuptime/config.json"
 {
   "currentContext": "production",
   "contexts": {
     "production": {
       "name": "production",
       "apiUrl": "https://oneuptime.com",
-      "apiKey": "sk-..."
+      "apiKey": "<api-key>"
     },
     "staging": {
       "name": "staging",
-      "apiUrl": "https://staging.oneuptime.com",
-      "apiKey": "sk-..."
+      "apiUrl": "https://oneuptime.example.com",
+      "apiKey": "<api-key>"
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
+
+Filen indeholder API-nøglerne, som de er: hold den ude af delte mapper, sikkerhedskopier og repositories. Log ud af én kontekst ved at slette den med `oneuptime context delete <name>`; log ud af alle ved at slette filen. En nøgle, der kan være lækket, er gyldig, indtil du sletter den i OneUptime under **Projektindstillinger → Avanceret → API-nøgler**.
+
+Outputformater og listestørrelser gemmes ikke her: giv `-o` og `--limit` til hver kommando.
+
+## Fejlfinding
+
+:::details Meddelelsen "No credentials found"
+`Authentication error: No credentials found.` betyder, at intet flag, ingen miljøvariabel og ingen gemt kontekst gav kommandoen dens API-nøgle og URL. Kør `oneuptime login`, eller sæt både `ONEUPTIME_API_KEY` og `ONEUPTIME_URL`. Kommandoen afslutter med koden `2`.
+:::
+
+:::details Meddelelsen "API error (400): Invalid API Key"
+Nøglen er ikke en API-nøgle til OneUptime, er udløbet eller er blevet nulstillet. Kopiér den igen fra dens side under **Projektindstillinger → Avanceret → API-nøgler**, hvor dens dato også står under **Udløber**, og log ind igen under det samme kontekstnavn. Kommandoen afslutter med koden `2`.
+:::
+
+:::details Meddelelsen "API error (402): API keys need the Growth plan"
+På OneUptime Cloud er projektet under abonnementet **Growth**, så dets API-nøgler holdt op med at virke. Opgradér projektet, og den samme nøgle virker igen: der er intet at ændre i CLI'en.
+:::
+
+:::details Meddelelsen "API error (422): You do not have permissions"
+Nøglens tilladelser rækker ikke til det, kommandoen beder om. Giv nøglen en rolle eller en tilladelse på dens side under **Projektindstillinger → Avanceret → API-nøgler**: meddelelsen nævner de tilladelser, der ville lukke anmodningen igennem.
+:::
+
+:::details Meddelelsen "Context "staging" does not exist"
+Der er ikke gemt nogen kontekst med det navn. `oneuptime context list` viser de navne, der findes.
+:::
+
+:::details whoami viser en anden URL eller nøgle end konteksten
+En miljøvariabel eller et flag erstatter kontekstens værdi. `env | grep ONEUPTIME` viser de variabler, der er sat, og `unset ONEUPTIME_API_KEY ONEUPTIME_URL` fører dig tilbage til dine kontekster.
+:::
+
+:::details Anmodningen til adressen mislykkes
+`Error: Request failed to https://...` betyder, at CLI'en ikke kunne nå OneUptime på den adresse. Tjek URL'en med `oneuptime whoami`: det er den adresse, du åbner OneUptime på, med `https://`, for eksempel `https://oneuptime.com`.
+:::
+
+## Næste skridt
+
+:::cards
+- [Ressourceoperationer](/docs/cli/resource-operations): Vis, læs, opret, ændr, slet og tæl poster.
+- [Scripting og CI/CD](/docs/cli/scripting): Giv en pipeline dens nøgle i miljøvariabler.
+- [OneUptime API-reference](/docs/api-reference/api-reference): Hvad en API-nøgle må gøre, og hvad hvert svar betyder.
+:::

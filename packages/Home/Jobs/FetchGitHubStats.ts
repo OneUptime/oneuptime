@@ -5,6 +5,7 @@ import logger from "Common/Server/Utils/Logger";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
+import { commitCountFromLinkHeader } from "../Utils/GitHubCommitCount";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -126,39 +127,21 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
       });
 
     if (!(commitsResponse instanceof HTTPErrorResponse)) {
-      /*
-       * Parse the Link header to get total commits count
-       * Format: '<https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=22486>; rel="last"'
-       */
-      const link: string | undefined = commitsResponse.headers["link"];
-      if (link) {
-        const lastLink: string | undefined = link
-          .split(",")
-          .find((s: string) => {
-            return s.includes('rel="last"');
-          });
-        if (lastLink) {
-          const urlMatch: RegExpMatchArray | null = lastLink.match(/<([^>]+)>/);
-          if (urlMatch && urlMatch[1]) {
-            const url: URL = URL.fromString(urlMatch[1]);
-            const commitsCount: number = Number.parseInt(
-              url.getQueryParam("page") as string,
-              10,
-            );
+      // The count is the last page's number (commitCountFromLinkHeader).
+      const commitsCount: number | null = commitCountFromLinkHeader(
+        commitsResponse.headers["link"],
+      );
 
-            if (commitsCount > 0) {
-              LocalCache.setNumber(
-                GITHUB_STATS_NAMESPACE,
-                GITHUB_COMMITS_CACHE_KEY,
-                commitsCount,
-              );
-              logger.debug(
-                `FetchGitHubStats: Updated commits count to ${commitsCount}`,
-                { service: "home", job: "FetchGitHubStats" },
-              );
-            }
-          }
-        }
+      if (commitsCount !== null) {
+        LocalCache.setNumber(
+          GITHUB_STATS_NAMESPACE,
+          GITHUB_COMMITS_CACHE_KEY,
+          commitsCount,
+        );
+        logger.debug(
+          `FetchGitHubStats: Updated commits count to ${commitsCount}`,
+          { service: "home", job: "FetchGitHubStats" },
+        );
       }
     }
   } catch (error) {

@@ -1,15 +1,13 @@
-import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import Label from "../../Models/DatabaseModels/Label";
-import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -17,43 +15,14 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // Auto-assign order on creation
-    if (!createBy.data.order) {
-      const highestOrderRule: Model | null = await this.findOneBy({
-        query: {
-          projectId: createBy.data.projectId!,
-        },
-        select: {
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      createBy.data.order = (highestOrderRule?.order || 0) + 1;
-    }
-
-    return {
-      createBy,
-      carryForward: null,
-    };
   }
 
   @CaptureSpan()
@@ -131,27 +100,16 @@ export class Service extends DatabaseService<Model> {
     );
 
     try {
-      const openStates: Array<ScheduledMaintenanceState> =
-        await ScheduledMaintenanceStateService.findBy({
-          query: {
-            projectId: projectId,
-            isResolvedState: false,
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const openStateIds: Array<ObjectID> = openStates
-        .map((state: ScheduledMaintenanceState) => {
-          return state.id!;
-        })
-        .filter(Boolean);
+      /*
+       * Open until it is completed: every state but the completed state and
+       * the states of the project's own placed after it, such as "Archived"
+       * (ScheduledMaintenanceStartUtil.isComplete) - the rule that stops the
+       * reminders themselves.
+       */
+      const openStateIds: Array<ObjectID> =
+        await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+          projectId,
+        );
 
       if (openStateIds.length === 0) {
         return;
@@ -255,6 +213,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async findMatchingRule(data: {
     projectId: ObjectID;
     labelIds?: Array<ObjectID> | undefined;

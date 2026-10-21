@@ -56,6 +56,13 @@ export interface SessionReplayCustomEventTagMap {
   readonly Identify: "oneuptime.identify";
   /* setTags()/addTag() changed the session's tag map. */
   readonly Tags: "oneuptime.tags";
+  /*
+   * Nobody touched the page for SESSION_REPLAY_IDLE_PAUSE_MS, so capture
+   * stopped here. Nothing is recorded until the matching IdleResumed.
+   */
+  readonly IdlePaused: "oneuptime.idle-paused";
+  /* Input came back after an idle pause; capture resumed on a snapshot. */
+  readonly IdleResumed: "oneuptime.idle-resumed";
 }
 
 export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
@@ -74,6 +81,8 @@ export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
   CustomDropped: "oneuptime.custom-dropped",
   Identify: "oneuptime.identify",
   Tags: "oneuptime.tags",
+  IdlePaused: "oneuptime.idle-paused",
+  IdleResumed: "oneuptime.idle-resumed",
 };
 
 export type SessionReplayCustomEventTagValue =
@@ -215,15 +224,27 @@ export type SessionReplayWebVitalMetric =
 export type SessionReplayWebVitalRating = "good" | "needs-improvement" | "poor";
 
 /*
- * A web vital observed once per metric per page. Informational only:
- * vitals never trigger an upload, and CLS's value is unitless while the
- * others are milliseconds.
+ * How the view an INP describes began: the document load ("hard") or a
+ * single-page-app route change ("soft").
+ */
+export type SessionReplayNavigationType = "hard" | "soft";
+
+/* The input that produced an INP, as the browser classes it. */
+export type SessionReplayInteractionType = "pointer" | "keyboard";
+
+/*
+ * A web vital. LCP, FCP, CLS and TTFB are observed once per page load;
+ * INP once per VIEW (newer recorders), so a single-page app reports one
+ * INP for each route the user interacted on instead of one for the whole
+ * visit. Informational only: vitals never trigger an upload, and CLS's
+ * value is unitless while the others are milliseconds.
  */
 export interface SessionReplayWebVitalPayload {
   kind: "web-vital";
   metric: SessionReplayWebVitalMetric;
   value: number;
   rating: SessionReplayWebVitalRating;
+  /* INP: the scrubbed URL of the view the interaction happened on. */
   url?: string;
   /*
    * As on SessionReplayPerformanceBudgetPayload: when the measured entry
@@ -232,6 +253,20 @@ export interface SessionReplayWebVitalPayload {
    * after the moment the number describes. Optional for older recorders.
    */
   occurredAtUnixMs?: number;
+
+  /*
+   * INP attribution, all optional (older recorders and engines without
+   * the timing fields omit them). The three phases add up to roughly the
+   * value: waiting for the main thread, running the page's handlers, and
+   * rendering the next frame. The target is a structural selector built
+   * exactly as a click's is - never an attribute value or text.
+   */
+  navigationType?: SessionReplayNavigationType;
+  interactionType?: SessionReplayInteractionType;
+  interactionTarget?: string;
+  inputDelayMs?: number;
+  processingDurationMs?: number;
+  presentationDelayMs?: number;
 }
 
 export type SessionReplayPerformancePayload =
@@ -299,6 +334,32 @@ export interface SessionReplayIdentifyPayload {
 
 export interface SessionReplayTagsPayload {
   tags: Record<string, string>;
+}
+
+/* ---- Payloads introduced with the idle pause. ---- */
+
+/*
+ * The last thing in the stream before an idle pause. Nothing is recorded
+ * between this and the next IdleResumed of the same tab - no DOM, no
+ * requests, no console, no errors - so the player treats that stretch as
+ * unrecorded rather than as footage of a page that sat still.
+ */
+export interface SessionReplayIdlePausedPayload {
+  /* The last input before the pause: where the user actually stopped. */
+  idleSinceUnixMs: number;
+  /* When capture stopped. */
+  pausedAtUnixMs: number;
+}
+
+/*
+ * The first marker after an idle pause, directly behind the fresh snapshot
+ * that resumed capture. Carries the pause's start as well, so the stretch
+ * that was not recorded can be drawn from this one marker even when the
+ * chunk holding the IdlePaused marker has not been decoded.
+ */
+export interface SessionReplayIdleResumedPayload {
+  pausedAtUnixMs: number;
+  resumedAtUnixMs: number;
 }
 
 /* ---- Type guards. Minimum required fields only; the rest is optional. ---- */
@@ -546,4 +607,29 @@ export function isSessionReplayTagsPayload(
   value: unknown,
 ): value is SessionReplayTagsPayload {
   return isRecord(value) && isSessionReplayStringMap(value["tags"]);
+}
+
+export function isSessionReplayIdlePausedPayload(
+  value: unknown,
+): value is SessionReplayIdlePausedPayload {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value["idleSinceUnixMs"]) &&
+    isFiniteNumber(value["pausedAtUnixMs"])
+  );
+}
+
+/*
+ * A resume before its own pause describes no stretch at all, and drawing
+ * one would hand the skipper a band with its end before its start.
+ */
+export function isSessionReplayIdleResumedPayload(
+  value: unknown,
+): value is SessionReplayIdleResumedPayload {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value["pausedAtUnixMs"]) &&
+    isFiniteNumber(value["resumedAtUnixMs"]) &&
+    value["resumedAtUnixMs"] >= value["pausedAtUnixMs"]
+  );
 }

@@ -9,6 +9,11 @@ import {
   validateCustomFieldMappingOnCreate,
   validateCustomFieldMappingOnUpdate,
 } from "../Utils/CustomField/CustomFieldMappingValidator";
+import {
+  applyCustomFieldOptionEdit,
+  CustomFieldOptionEditCarryForward,
+  prepareCustomFieldOptionEdit,
+} from "../Utils/CustomField/CustomFieldOptionEditHooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -17,6 +22,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * (OneUptime/oneuptime#3549). These hooks are the two halves of that
  * configuration being saved: refusing a mapping that could never resolve, and
  * filling in the events that already exist once one is saved.
+ *
+ * And, as every custom field definition service does, a dropdown field's
+ * options: renaming one moves the values that held it
+ * (CustomFieldOptionEditHooks, issue #4564).
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -45,7 +54,14 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
     });
 
-    return { updateBy, carryForward: null };
+    const optionEdit: CustomFieldOptionEditCarryForward | null =
+      await prepareCustomFieldOptionEdit({
+        definitionModelType: Model,
+        definitionService: this,
+        updateBy: updateBy,
+      });
+
+    return { updateBy, carryForward: optionEdit };
   }
 
   @CaptureSpan()
@@ -67,6 +83,16 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Before the backfill, which copies values under the options saved now.
+    await applyCustomFieldOptionEdit({
+      definitionModelType: Model,
+      definitionService: this,
+      carryForward:
+        (onUpdate.carryForward as CustomFieldOptionEditCarryForward | null) ||
+        null,
+      updatedItemIds: updatedItemIds,
+    });
+
     if (updatedItemIds.length > 0) {
       backfillMappedCustomFieldValues({
         definitionModelType: Model,

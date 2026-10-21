@@ -148,7 +148,7 @@ const HEALTH_GROUPS_FOR_SITES: string = squash(
       SERVICE_RAW,
       "NetworkDeviceService.ts",
       "public async getHealthGroupsForSites(data: {",
-      "private async assertSiteBelongsToProject(",
+      "protected override async onBeforeDelete(",
     ),
   ),
 );

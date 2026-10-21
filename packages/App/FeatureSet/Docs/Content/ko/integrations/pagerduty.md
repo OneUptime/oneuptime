@@ -1,88 +1,163 @@
-# PagerDuty 통합
+# PagerDuty
 
-OneUptime 인시던트가 생성될 때마다 [PagerDuty](https://www.pagerduty.com) 인시던트를 트리거하고, OneUptime이 해결하면 함께 해결합니다. PagerDuty가 에스컬레이션과 온콜 일정을 관리하고 OneUptime의 모니터링이 여기로 연결되도록 하고 싶을 때 유용합니다.
+OneUptime 인시던트를 [PagerDuty](https://www.pagerduty.com)로 보냅니다. 첫 번째 워크플로는 OneUptime 인시던트가 선언되면 PagerDuty 인시던트를 트리거하고, 두 번째 워크플로는 OneUptime 인시던트가 해결되면 이를 해결합니다. PagerDuty가 팀을 호출하고 OneUptime이 시스템을 모니터링할 때 사용하세요.
 
-이 통합은 **아웃바운드**: OneUptime이 PagerDuty의 [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/)를 호출합니다. **Incident → On Create** 트리거와 **API 컴포넌트** 를 갖춘 OneUptime **[Workflow](/docs/workflows/index)** 를 사용합니다.
+:::cards
+- [라우팅 키 저장하기](#라우팅-키-저장하기): PagerDuty의 키를 워크플로 밖에 둡니다.
+- [PagerDuty 인시던트 트리거하기](#인시던트마다-pagerduty-인시던트-트리거하기): 워크플로 하나, 블록 두 개.
+- [해결하기](#pagerduty-인시던트-해결하기): 인시던트 상태를 따라가는 두 번째 워크플로.
+- [문제 해결](#문제-해결): PagerDuty가 이벤트를 거부할 때.
+:::
 
-> OneUptime에는 자체 온콜 및 에스컬레이션이 내장되어 있습니다 — [On Call](/docs/on-call/incoming-call-policy)을 참조하세요. 이벤트를 PagerDuty에도 전달하고 싶을 때만 이 통합을 사용하세요.
+> [!TIP]
+> OneUptime도 온콜 정책, 일정, 에스컬레이션 규칙으로 사람을 호출합니다. 팀을 PagerDuty에서 옮기려면 [PagerDuty에서 이전](/docs/moving-to-oneuptime/pagerduty)을 참고하세요. 가져오기로 사용자, 일정, 에스컬레이션 정책을 옮길 수 있습니다.
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  ──►  PagerDuty incident
+## 작동 방식
+
+```mermaid title="워크플로 두 개, PagerDuty 인시던트 하나"
+flowchart TB
+    declared["인시던트 선언"] --> create["워크플로 1:<br/>On Create Incident"]
+    create -->|"trigger"| pd["PagerDuty 인시던트"]
+    resolved["인시던트 해결"] --> update["워크플로 2:<br/>On Update Incident"]
+    update -->|"resolve"| pd
 ```
+
+두 워크플로 모두 OneUptime 인시던트의 ID로 만든 같은 `dedup_key`로 PagerDuty의 [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/)를 호출합니다. PagerDuty는 이 키로 resolve 이벤트가 trigger 이벤트로 열린 인시던트를 닫는다는 것을 압니다.
 
 ## 사전 요건
 
-- **Events API v2** 통합이 있는 PagerDuty 서비스. PagerDuty에서: **Service → Integrations → Add integration → Events API v2**. **Integration Key** (라우팅 키라고도 함)를 복사합니다.
-- 워크플로를 만들 수 있는 OneUptime 프로젝트.
+- Events API v2 통합이 있는 PagerDuty 서비스. PagerDuty에서 서비스를 연 다음 **Integrations**를 열고, **Add an integration**을 클릭해 **Events API V2**를 고릅니다. 그 **Integration Key**를 복사합니다. Events API에서는 이를 라우팅 키라고 부릅니다.
+- OneUptime에서 워크플로와 전역 변수를 만들 권한. OneUptime Cloud에서는 워크플로에 **Growth** 요금제 이상이 필요합니다.
 
-## 1단계 — 라우팅 키 저장
+## 라우팅 키 저장하기
 
-1. **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
-2. 이름을 `PAGERDUTY_ROUTING_KEY` 로 지정하고 통합 키를 붙여넣고 **Is Secret** 를 켭니다.
+:::steps
+1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭합니다.
+2. 이름을 `PAGERDUTY_ROUTING_KEY`로 정하고 **다음**을 클릭합니다.
+3. 통합 키를 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 다음 **워크플로 변수 만들기**를 클릭합니다.
+:::
 
-## 2단계 — "트리거" 워크플로 구성
+시크릿 변수는 실행 로그에서 `[REDACTED]`로 바뀌므로 키가 실행에 표시되지 않습니다.
 
-1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → PagerDuty` 로 지정하고 **빌더** 를 엽니다.
-2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
-3. 트리거에 연결된 **API** 블록을 추가합니다:
+## 인시던트마다 PagerDuty 인시던트 트리거하기
 
-   - **Method**: `POST`
-   - **URL**: `https://events.pagerduty.com/v2/enqueue`
-   - **Headers**: `Content-Type: application/json`
-   - **Body**:
+:::steps
+### 워크플로 만들기
 
-     ```json
-     {
-       "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-       "event_action": "trigger",
-       "dedup_key": "oneuptime-{{Incident._id}}",
-       "payload": {
-         "summary": "{{Incident.title}}",
-         "source": "OneUptime",
-         "severity": "critical",
-         "custom_details": {
-           "description": "{{Incident.description}}"
-         }
-       }
-     }
-     ```
+**워크플로**로 이동해 **워크플로 생성**을 클릭한 다음 **처음부터 시작**을 클릭합니다. 이름을 `Incidents to PagerDuty`로 정하고 **워크플로 생성**을 클릭합니다.
 
-   **`dedup_key`** 는 이 PagerDuty 인시던트를 OneUptime 인시던트에 연결하므로 나중에 해결할 수 있습니다. OneUptime 인시던트 id를 사용하면 고유하고 예측 가능합니다.
+### 트리거 추가하기
 
-4. **Save** 하고, 활성화하고, 테스트 인시던트를 만듭니다. 워크플로 로그에서 `202` 응답이 나오면 PagerDuty가 이벤트를 수락한 것입니다.
+점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
-## 3단계 — OneUptime 해결 시 함께 해결 (권장)
+### trigger 이벤트 보내기
 
-1. **같은** 워크플로에 두 번째 **Incident** 트리거를 추가하려고 하지 마세요 — 워크플로는 트리거가 하나입니다. 대신 **Incident → On Update** 트리거를 가진 **별도** 워크플로 `Resolve PagerDuty` 를 만듭니다.
-2. 인시던트가 이제 해결되었는지 확인하는 **Conditions** 블록을 추가합니다(인시던트 상태/`{{Incident.currentIncidentState.name}}` 이 해결 상태 이름과 같은지 분기합니다).
-3. **Yes** 에서 **같은 `dedup_key`** 와 `event_action` 을 `resolve` 로 설정한 **API** 블록을 PagerDuty에 추가합니다:
+**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **URL**을 `https://events.pagerduty.com/v2/enqueue`로, **Request Body**를 다음으로 설정합니다:
 
-   ```json
-   {
-     "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-     "event_action": "resolve",
-     "dedup_key": "oneuptime-{{Incident._id}}"
-   }
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "trigger",
+  "dedup_key": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "payload": {
+    "summary": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    "source": "OneUptime",
+    "severity": "critical",
+    "custom_details": {
+      "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+    }
+  }
+}
+```
+
+### 테스트한 다음 켜기
+
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API Post (JSON)** 단계에 `"status": "success"`가 담긴 `202` 응답이 표시되고, PagerDuty가 인시던트를 엽니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
+:::
+
+블록은 JSON을 보내므로 `Content-Type` 헤더가 필요 없습니다. PagerDuty의 `severity`는 `critical`, `error`, `warning`, `info` 중 하나입니다. 인시던트마다 그 심각도를 보내려면 [심각도 매핑](#심각도-매핑)을 참고하세요.
+
+## PagerDuty 인시던트 해결하기
+
+워크플로에는 트리거가 하나뿐이므로, 해결에는 인시던트 상태가 바뀔 때 시작되는 두 번째 워크플로가 필요합니다.
+
+:::steps
+### On Update Incident 트리거 추가하기
+
+`Resolve PagerDuty incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### 인시던트가 해결되었는지 확인하기
+
+트리거 뒤에 **If / Else** 블록을 추가합니다. **Value to check**를 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **Comparison**을 **is true**로 설정합니다.
+
+### resolve 이벤트 보내기
+
+**Yes** 쪽 뒤에 같은 **URL**과 다음 **Request Body**를 가진 **API Post (JSON)** 블록을 추가합니다:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "resolve",
+  "dedup_key": "oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}"
+}
+```
+
+### 켜기
+
+**활성화됨**을 켠 다음 OneUptime에서 테스트 인시던트를 해결합니다. PagerDuty가 자기 인시던트를 해결합니다.
+:::
+
+상태 이름 대신 `isResolvedState`를 확인하면 상태 이름을 바꿔도 계속 작동합니다. [인시던트 상태 및 심각도](/docs/incidents/states-and-severities)를 참고하세요.
+
+## 심각도 매핑
+
+인시던트마다 그 심각도를 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가하고, 그 응답을 본문에서 읽습니다.
+
+1. 트리거의 **Fields to pass on**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
+2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript Code**를 다음으로 설정합니다:
+
+   ```javascript
+   // Your incident severities, by name, to PagerDuty's.
+   const SEVERITY = {
+     "Critical Incident": "critical",
+     "Major Incident": "error",
+     "Minor Incident": "warning",
+   };
+
+   return { severity: SEVERITY[args.severity] || "info" };
    ```
 
-PagerDuty가 `dedup_key` 로 원래 인시던트를 찾아 닫습니다.
+3. 요청 본문에서 `"severity"`를 `"{{local.components.javascript-1.returnValues.returnValue.severity}}"`로 설정합니다.
 
-## 심각도 매핑 (선택 사항)
-
-PagerDuty의 `severity` 는 `critical`, `error`, `warning`, `info` 를 허용합니다. OneUptime 심각도에서 매핑하려면 API 블록 앞에서 `{{Incident.incidentSeverity.name}}` 으로 **Conditions** 분기를 추가하고 각 분기에서 다른 본문을 전송합니다.
-
-## 인바운드 (선택 사항)
-
-반대 방향으로 — PagerDuty 이벤트에서 OneUptime 인시던트를 열려면 — **Webhook** 트리거 워크플로를 추가하고 PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/)(또는 Events Orchestration)을 해당 URL로 지정한 다음 **Create Incident** 를 사용합니다. [인바운드 패턴](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime)을 참조하세요.
+위의 이름은 새 프로젝트가 처음 갖는 세 가지 심각도입니다. 이름을 바꿨다면 자신의 이름을 사용하세요.
 
 ## 문제 해결
 
-- **`400` with `"invalid routing key"`** — 통합은 이전 Events API v1이나 다른 통합 유형이 아닌 반드시 **Events API v2** 여야 합니다. 키를 다시 복사하세요.
-- **Resolve가 아무것도 닫지 않습니다** — 해결 호출의 `dedup_key` 가 트리거 호출과 정확히 일치해야 합니다.
-- **로그에 아무것도 없습니다** — 워크플로가 **활성화됨** 상태이고 트리거가 **On Create** 인지 확인합니다.
+:::details PagerDuty가 400으로 응답함
+응답 본문에 PagerDuty가 거부한 내용이 있으며, 실행의 **API Post (JSON)** 단계에 표시됩니다. 대개 라우팅 키가 Events API v2 통합 키가 아닌 경우입니다. 서비스의 **Integrations**에서 다시 복사하세요. `summary`, `source`, `severity`가 없는 이벤트도 거부됩니다.
+:::
 
-## 다음에 읽어 볼 내용
+:::details resolve 이벤트가 아무것도 닫지 않음
+두 이벤트는 정확히 같은 `dedup_key`를 가져야 합니다. 두 본문이 모두 `oneuptime-` 뒤에 인시던트의 `_id`를 붙여 만드는지, 해결 워크플로가 켜져 있는지 확인하세요.
+:::
 
-- [통합 개요](/docs/integrations/index) — 패턴과 인증 빠른 참조.
-- [On Call](/docs/on-call/incoming-call-policy) — OneUptime의 내장 에스컬레이션.
-- [Opsgenie](/docs/integrations/opsgenie) — Opsgenie에 대한 동일한 아이디어.
+:::details 워크플로가 실행되지 않음
+켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **If / Else** 블록의 **No** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
+:::
+
+:::details PagerDuty에 값 대신 참조가 표시됨
+확인되지 않는 참조는 중괄호까지 포함해 쓰인 그대로 전송됩니다. 블록의 식별자, 필드 이름, 대소문자를 구분하는 변수 이름을 확인하세요. 실행의 **단계** 탭에서 이런 참조가 있는 설정에는 **Did not resolve**가 표시됩니다.
+:::
+
+## 다음 단계
+
+:::cards
+- [PagerDuty에서 이전](/docs/moving-to-oneuptime/pagerduty): 팀, 일정, 에스컬레이션 정책을 옮깁니다.
+- [에스컬레이션 규칙](/docs/on-call/escalation-rules): OneUptime 자체에서 사람을 호출합니다.
+- [Opsgenie](/docs/integrations/opsgenie): Opsgenie용 같은 두 워크플로.
+- [통합 개요](/docs/integrations/index): 모든 통합의 바탕이 되는 패턴.
+:::

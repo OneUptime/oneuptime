@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   ATTRIBUTES_JSON_FORMATS,
   AttributesJSONFormat,
@@ -32,6 +34,7 @@ export interface ComponentProps {
 const AttributesJSONView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [format, setFormat] = useAttributesJSONFormat();
 
   const lines: Array<Array<JSONToken>> = useMemo(() => {
@@ -52,7 +55,7 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/80 px-2.5 py-1.5">
         <div
           role="group"
-          aria-label="JSON shape"
+          aria-label={translator.translateText("JSON shape")}
           className="inline-flex items-center gap-0.5"
         >
           {ATTRIBUTES_JSON_FORMATS.map(
@@ -74,7 +77,9 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
                     setFormat(itemFormat);
                   }}
                 >
-                  {ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat]}
+                  {translator.translateText(
+                    ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat],
+                  )}
                 </button>
               );
             },
@@ -82,7 +87,9 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
         </div>
         {/* The section header already counts the attributes; say what the shape means. */}
         <span className="min-w-0 truncate text-[10.5px] text-gray-400">
-          {ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[format]}
+          {translator.translateText(
+            ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[format],
+          )}
         </span>
       </div>
       <div
@@ -91,7 +98,14 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
         <pre
           className="py-2 font-mono text-[12px] leading-5"
           data-json-format={format}
-          aria-label={`Attributes as ${format} JSON`}
+          aria-label={translator.translateTemplate(
+            "Attributes as {{format}} JSON",
+            {
+              format: translatableTerm(ATTRIBUTES_JSON_FORMAT_LABELS[format], {
+                inSentence: true,
+              }),
+            },
+          )}
         >
           <code className="block">
             {lines.map(

@@ -7,7 +7,12 @@ import {
 } from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { isEveryoneInLayerAway } from "./LayerUserAway";
+import {
+  getColorForUserId,
+  getUserAvatarStyle,
+  getUserInitials,
+} from "./LayerUserColors";
 import {
   formatRelativeStart,
   summarizeRestriction,
@@ -26,6 +31,9 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -57,6 +65,11 @@ export interface ComponentProps {
   onDeleteLayer: () => void;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  /*
+   * "Skip until..." on a person in this layer (SkipLayerUserModal, opened by
+   * the page). Left out, the people list does not offer it.
+   */
+  onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
 }
 
 interface SummaryChipProps {
@@ -67,10 +80,11 @@ interface SummaryChipProps {
 const SummaryChip: FunctionComponent<SummaryChipProps> = (
   props: SummaryChipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
       <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
-      <span>{props.text}</span>
+      <span>{translator.translateText(props.text)}</span>
     </span>
   );
 };
@@ -78,6 +92,7 @@ const SummaryChip: FunctionComponent<SummaryChipProps> = (
 const LayerCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const layer: OnCallDutyPolicyScheduleLayer = props.layer;
   const isTopPriority: boolean = props.index === 0;
 
@@ -163,7 +178,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       nameById[id] =
         layerUser.user?.name?.toString() ||
         layerUser.user?.email?.toString() ||
-        "Unknown user";
+        translator.translateTemplate("Unknown user");
     }
   }
 
@@ -177,7 +192,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
     if (!info || nameById[userId]) {
       continue;
     }
-    nameById[userId] = info.name || info.email || "Unknown user";
+    nameById[userId] =
+      info.name || info.email || translator.translateTemplate("Unknown user");
   }
 
   /*
@@ -223,6 +239,27 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Nobody on call, because everybody in the layer is away: say so, rather
+   * than leave the reader to guess - the layers below it decide meanwhile.
+   */
+  const isEveryoneAway: boolean =
+    !currentAndNext.current &&
+    isEveryoneInLayerAway({
+      userIds: Array.from(layerUserIds),
+      overrides: props.overrides,
+      now: preview.now,
+    });
+
+  // The names of the people overrides name to cover, for the away badges.
+  const coverNameById: Record<string, string> = {};
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (info) {
+      coverNameById[userId] = info.name || info.email;
+    }
+  }
+
+  /*
    * "Covering for Alice Nakamura" when the shift carries the override that put
    * this person on it.
    *
@@ -239,7 +276,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         policyNameById: {},
       }).coveringLabel
     : isCurrentUserSubstitute
-      ? "Covering via override"
+      ? translator.translateTemplate("Covering via override")
       : null;
 
   const userCount: number = props.users.length;
@@ -270,8 +307,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               return (
                 <Tooltip key={rowKey} text={name || email || "Unknown user"}>
                   <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ring-white"
-                    style={{ backgroundColor: getColorForUserId(userId) }}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-white"
+                    style={getUserAvatarStyle(userId)}
                   >
                     {getUserInitials(name, email)}
                   </span>
@@ -286,7 +323,10 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           )}
         </span>
         <span className="text-xs font-medium text-gray-600">
-          {userCount === 1 ? "1 user" : `${userCount} users`}
+          {translator.translatePlural(
+            { one: "{{count}} user", other: "{{count}} users" },
+            userCount,
+          )}
         </span>
       </span>
     );
@@ -306,7 +346,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
     return (
       <button
         type="button"
-        aria-label={params.label}
+        aria-label={translator.translateText(params.label)}
         disabled={params.disabled || props.actionsDisabled}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
@@ -338,7 +378,9 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           text={
             isTopPriority
               ? "Highest priority layer"
-              : `Priority ${props.index + 1}`
+              : translator.translateTemplate("Priority {{number}}", {
+                  number: props.index + 1,
+                })
           }
         >
           <span
@@ -366,11 +408,14 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         >
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate text-base font-semibold text-gray-900">
-              {layer.name?.toString() || `Layer ${props.index + 1}`}
+              {layer.name?.toString() ||
+                translator.translateTemplate("Layer {{number}}", {
+                  number: props.index + 1,
+                })}
             </span>
             {isTopPriority && props.total > 1 && (
               <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
-                Highest priority
+                {translator.translateText("Highest priority")}
               </span>
             )}
           </div>
@@ -391,47 +436,93 @@ const LayerCard: FunctionComponent<ComponentProps> = (
            * Rendered even with no users assigned — that is precisely the case
            * where this layer can never put anybody on call, so suppressing the
            * line there (as this used to) hid the most important state it has.
+           *
+           * On a phone the line wraps: the dot stays with the first line of
+           * what it marks (it was left on a line of its own), and "Up next"
+           * takes a line of its own rather than starting with a dangling "·".
            */}
           <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
             <span
-              className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-              style={{
-                backgroundColor: currentAndNext.current
-                  ? getColorForUserId(currentAndNext.current.userId)
-                  : "#d1d5db",
-              }}
-            />
-            {currentAndNext.current ? (
-              <span>
-                <span className="font-semibold text-gray-700">
-                  {nameById[currentAndNext.current.userId] || "Unknown user"}
-                </span>{" "}
-                on call now
-                {coveringLabel && (
-                  <span
-                    data-testid="layer-card-covering"
-                    className="ml-1 font-medium text-indigo-600"
-                  >
-                    ({coveringLabel.toLowerCase()})
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="text-amber-700">
-                {userCount === 0
-                  ? "No users assigned - this layer never puts anyone on call"
-                  : "No one on call in this layer right now"}
-              </span>
-            )}
+              data-testid="layer-card-live-status"
+              className="inline-flex min-w-0 max-w-full items-start gap-1.5"
+            >
+              <span
+                className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: currentAndNext.current
+                    ? getColorForUserId(currentAndNext.current.userId)
+                    : "#d1d5db",
+                }}
+              />
+              {currentAndNext.current ? (
+                <span>
+                  <TranslatedSentence
+                    template="{{name}} on call now"
+                    slots={{
+                      name: (
+                        <span className="font-semibold text-gray-700">
+                          {nameById[currentAndNext.current.userId] ||
+                            translator.translateText("Unknown user")}
+                        </span>
+                      ),
+                    }}
+                  />
+                  {/*
+                   * As the label is written: lowercasing it turned the name it
+                   * holds into "alex kim", and a German noun into a misspelling.
+                   */}
+                  {coveringLabel && (
+                    <span
+                      data-testid="layer-card-covering"
+                      className="ml-1 font-medium text-indigo-600"
+                    >
+                      ({coveringLabel})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span
+                  data-testid={
+                    isEveryoneAway ? "layer-card-everyone-away" : undefined
+                  }
+                  className="text-amber-700"
+                >
+                  {translator.translateText(
+                    userCount === 0
+                      ? "No users assigned - this layer never puts anyone on call"
+                      : isEveryoneAway
+                        ? "Everyone in this layer is away right now"
+                        : "No one on call in this layer right now",
+                  )}
+                </span>
+              )}
+            </span>
             {currentAndNext.next && (
               <>
-                <span className="text-gray-300">&middot;</span>
-                <span>
-                  Up next{" "}
-                  <span className="font-medium text-gray-700">
-                    {nameById[currentAndNext.next.userId] || "Unknown user"}
-                  </span>{" "}
-                  {formatRelativeStart(currentAndNext.next.start, preview.now)}
+                <span className="max-sm:hidden text-gray-300 sm:inline">
+                  &middot;
+                </span>
+                <span
+                  data-testid="layer-card-up-next"
+                  className="basis-full sm:basis-auto"
+                >
+                  <TranslatedSentence
+                    template="Up next {{name}} {{when}}"
+                    values={{
+                      when: formatRelativeStart(
+                        currentAndNext.next.start,
+                        preview.now,
+                      ),
+                    }}
+                    slots={{
+                      name: (
+                        <span className="font-medium text-gray-700">
+                          {nameById[currentAndNext.next.userId] ||
+                            translator.translateText("Unknown user")}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </>
             )}
@@ -459,7 +550,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           <Tooltip text="Delete layer">
             <button
               type="button"
-              aria-label="Delete layer"
+              aria-label={translator.translateText("Delete layer")}
               disabled={props.isDeleteButtonLoading || props.actionsDisabled}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
@@ -479,7 +570,9 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           </Tooltip>
           <button
             type="button"
-            aria-label={props.isExpanded ? "Collapse layer" : "Expand layer"}
+            aria-label={translator.translateText(
+              props.isExpanded ? "Collapse layer" : "Expand layer",
+            )}
             onClick={props.onToggleExpand}
             className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
@@ -521,22 +614,33 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
               />
               <span>
-                <span className="font-semibold">No users assigned.</span> This
-                layer produces no on-call coverage at all. Add at least one user
-                below, or this layer will never page anyone.
+                <span className="font-semibold">
+                  {translator.translateText("No users assigned.")}
+                </span>{" "}
+                {translator.translateText(
+                  "This layer produces no on-call coverage at all. Add at least one user below, or this layer will never page anyone.",
+                )}
               </span>
             </div>
           )}
 
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-900">
-              On-call users
+              {translator.translateText("On-call users")}
             </h4>
             <p className="mb-3 mt-0.5 text-sm text-gray-500">
-              On-call duty rotates through these users top to bottom. Drag the
-              handle to reorder.
+              {translator.translateText(
+                "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
+              )}
             </p>
-            <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
+            <LayerUser
+              layer={layer}
+              onUpdateUsers={props.onUsersChange}
+              overrides={props.overrides}
+              coverNameById={coverNameById}
+              timezone={props.timezone}
+              onSkipUser={props.onSkipUser}
+            />
           </div>
 
           <div className="border-t border-gray-200 pt-5">

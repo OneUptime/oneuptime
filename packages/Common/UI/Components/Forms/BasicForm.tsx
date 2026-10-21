@@ -1,6 +1,10 @@
 import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
+import DropdownUtil from "../../Utils/Dropdown";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -10,18 +14,32 @@ import {
   DropdownOptionGroup,
   DropdownValue,
 } from "../Dropdown/Dropdown";
+import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
 import FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
-import Field from "./Types/Field";
+import Field, { FormFieldCollapsibleSection } from "./Types/Field";
 import Fields from "./Types/Fields";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
+import { isFormSectionConfigured } from "./Utils/AdvancedFormSection";
+import { getFoldedFormFieldItems } from "./Utils/FoldedFormFields";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import {
+  FORM_NEXT_BUTTON_TEST_ID,
+  NEXT_BUTTON_STYLE,
+  NEXT_BUTTON_TEXT,
+  SteppedFormFooter,
+  getSteppedFormFooter,
+} from "./Utils/SteppedFormFooter";
+import {
+  getPeoplePickerValueKeys,
+  toPeoplePickerFormValue,
+} from "../PeoplePicker/PeoplePickerTypes";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import { VoidFunction } from "../../../Types/FunctionTypes";
@@ -40,6 +58,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -61,6 +80,33 @@ export const DefaultValidateFunction: DefaultValidateFunctionType = (
 export interface FormSummaryConfig {
   enabled: boolean;
   defaultStepName?: string | undefined;
+}
+
+/*
+ * What a form's ref offers beyond Formik's shape. A dialog that owns the
+ * buttons (hideSubmitButton) drives the form through it.
+ */
+export interface BasicFormHandle {
+  setFieldTouched: (fieldName: string, value: boolean) => void;
+  setFieldValue: (fieldName: string, value: JSONValue) => void;
+  /*
+   * What Enter in a field does: validates the current step, then moves on -
+   * or, on the last step, submits as submitAllSteps does.
+   */
+  submitForm: () => void;
+  /*
+   * Validates the current step, then moves on. Never submits: on the last
+   * step it does nothing. What Next calls, so a second click that lands
+   * after the last step opened cannot submit.
+   */
+  goToNextStep: () => void;
+  /*
+   * The form's action, which a stepped form offers on its last step only
+   * (Utils/SteppedFormFooter.ts): validates every step and submits. A field
+   * that fails sends the user to the first step it is on, with its error
+   * showing. On a form without steps it validates the form and submits.
+   */
+  submitAllSteps: () => void;
 }
 
 export interface BaseComponentProps<T> {
@@ -90,10 +136,30 @@ export interface BaseComponentProps<T> {
   hideSubmitButton?: undefined | boolean;
   error?: string | undefined;
   onFormStepChange?: undefined | ((stepId: string) => void);
+  /*
+   * Whether the step on screen is the last one. A host that draws its own
+   * buttons (hideSubmitButton) offers the form's action there only, and a
+   * plain Next on every other step (Utils/SteppedFormFooter.ts).
+   */
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
   summary?: FormSummaryConfig | undefined;
+  /*
+   * Every step can be opened from the step list, not only the ones already
+   * walked through. For a form whose steps are all filled in already - an
+   * edit form - so a change on the third step does not mean clicking Next
+   * twice to reach it, and the last step, where Save is, is one click away.
+   * The action validates the steps the user skipped (submitAllSteps).
+   */
+  allowAnyStepNavigation?: boolean | undefined;
+  /*
+   * What the form's entity dropdowns search through (EntityDropdown's
+   * modelAPI). ModelForm hands the API it reads its model with; an Admin
+   * Dashboard form hands AdminModelAPI, which names no project. Unset, the
+   * shared ModelAPI.
+   */
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -108,23 +174,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     ref: Ref<any>,
   ): ReactElement => {
     const { translateString } = useTranslateValue();
+    const translator: Translator = useTranslator();
     const isSubmitting: MutableRefObject<boolean> = useRef(false);
 
     const [didSomethingChange, setDidSomethingChange] =
       useState<boolean>(false);
 
-    const [isLoading, setIsLoading] = useState<boolean | undefined>(
-      props.isLoading,
-    );
+    /*
+     * Read straight from the prop, never copied into state: a copy kept in
+     * step by an effect lagged one render behind it, so a failed save drew
+     * its error (props.error) while the fields were still disabled, and a
+     * save that had just started still left the form enabled for that
+     * render.
+     */
+    const isLoading: boolean | undefined = props.isLoading;
 
     const [formError, setFormError] = useState<string | null>(null);
 
     const [isDropdownOptionsLoading, setIsDropdownOptionsLoading] =
       useState<boolean>(false);
-
-    useEffect(() => {
-      setIsLoading(props.isLoading);
-    }, [props.isLoading]);
 
     const getFormSteps: () => Array<FormStep<T>> | undefined = () => {
       if (props.summary && props.summary.enabled) {
@@ -182,18 +250,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }) ?? -1;
     const activeStep: FormStep<T> | undefined = formSteps?.[activeStepIndex];
 
-    const isOnLastFormStep: boolean =
-      !currentFormStepId ||
-      !formSteps ||
-      formSteps.length === 0 ||
-      ((formSteps as Array<FormStep<T>>)[formSteps.length - 1] as FormStep<T>)
-        .id === currentFormStepId;
+    /*
+     * Whether the step on screen is the last one, worked out on every render
+     * from the values as they are now - not from the step list, which an
+     * effect updates a frame later: an answer that brings a later step into
+     * view takes the form's action away in the same pass, and one that hides
+     * the steps after this one brings it in.
+     *
+     * Before the first step opens (a mount effect opens it) the form is about
+     * to show its first step, so a form of several steps is not on its last
+     * one yet: a host's footer starts on Next, never on the form's action.
+     */
+    const visibleFormSteps: Array<FormStep<T>> = getVisibleFormSteps() || [];
 
-    const submitButtonTextRaw: string = isOnLastFormStep
-      ? props.submitButtonText || "Submit"
-      : "Next";
-    const submitButtonText: string =
-      translateString(submitButtonTextRaw) ?? submitButtonTextRaw;
+    const isOnLastFormStep: boolean =
+      visibleFormSteps.length === 0 ||
+      (currentFormStepId
+        ? (visibleFormSteps[visibleFormSteps.length - 1] as FormStep<T>).id ===
+          currentFormStepId
+        : visibleFormSteps.length === 1);
 
     useEffect(() => {
       if (props.values) {
@@ -207,7 +282,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }
     }, []);
 
-    useEffect(() => {
+    /*
+     * A layout effect: a host that draws the buttons (a dialog's footer)
+     * learns where the form is in the same pass that moved it, before
+     * anything is painted. With a plain effect the footer said what the step
+     * before wanted for a frame - long enough for a quick second click meant
+     * as Next to land on the form's action, which the last step had just
+     * brought in.
+     */
+    useLayoutEffect(() => {
       if (props.onIsLastFormStep) {
         props.onIsLastFormStep(isOnLastFormStep);
       }
@@ -230,6 +313,22 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, [refCurrentValue.current]);
 
     const [formFields, setFormFields] = useState<Fields<T>>([]);
+
+    /*
+     * Next on every step but the last; the form's action - its one primary
+     * button - on the last step only (Utils/SteppedFormFooter.ts).
+     */
+    const footer: SteppedFormFooter = getSteppedFormFooter({
+      hasSteps: visibleFormSteps.length > 0,
+      isOnLastStep: isOnLastFormStep,
+    });
+
+    const actionText: string = props.submitButtonText || "Submit";
+
+    const submitButtonText: string = translateString(actionText) ?? actionText;
+
+    const nextButtonText: string =
+      translateString(NEXT_BUTTON_TEXT) ?? NEXT_BUTTON_TEXT;
 
     const setFieldTouched: (fieldName: string, value: boolean) => void = (
       fieldName: string,
@@ -264,11 +363,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       validate(currentValue);
     }, [currentValue]);
 
-    useImperativeHandle(ref, () => {
+    useImperativeHandle(ref, (): BasicFormHandle => {
       return {
         setFieldTouched,
         setFieldValue,
         submitForm,
+        goToNextStep,
+        submitAllSteps,
       };
     }, [
       currentValue,
@@ -320,7 +421,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           try {
             const options: Array<DropdownOption | DropdownOptionGroup> =
               await item.fetchDropdownOptions(refCurrentValue.current);
-            item.dropdownOptions = options;
+            /*
+             * The field's own list replaces the one the form fetched for its
+             * dropdown model, but never the colours that list carried: a
+             * state picked from a re-sorted list still shows its colour.
+             */
+            item.dropdownOptions = DropdownUtil.keepKnownOptionColors(
+              options,
+              item.dropdownOptions,
+            );
           } catch (err) {
             setFormError(API.getFriendlyMessage(err));
           }
@@ -358,6 +467,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         : (Object.keys(field.field || {})[0] as string);
 
       return fieldName;
+    };
+
+    /*
+     * Whether a field names the value it starts with. Any value but
+     * undefined and null does: 0 and false are values like any other. A
+     * truthiness check skipped them, so a field starting on 0 or off started
+     * empty - and a required one refused the form, though it said what it
+     * started on.
+     */
+    type HasDefaultValueFunction = (field: Field<T>) => boolean;
+
+    const hasDefaultValue: HasDefaultValueFunction = (
+      field: Field<T>,
+    ): boolean => {
+      return field.defaultValue !== undefined && field.defaultValue !== null;
     };
 
     const setAllTouched: VoidFunction = (): void => {
@@ -401,9 +525,135 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }
     };
 
-    const submitForm: () => void = (): void => {
-      // check for any boolean values and if they don't exist in values - mark them as false.
+    /*
+     * A field's footer setting the field's value (FieldFooterProps): the way
+     * FormField stores a pick - the field's own onChange first, with the
+     * values as they are and, for a dropdown, what the pick changed as its
+     * options name it (DropdownChange) - then the value itself.
+     */
+    const setFieldValueFromFooter: (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ) => void = (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ): void => {
+      if (field.onChange) {
+        field.onChange(
+          value,
+          refCurrentValue.current,
+          (values: FormValues<T>) => {
+            refCurrentValue.current = values;
+            setCurrentValue(refCurrentValue.current);
+          },
+          isDropdownField(field)
+            ? getDropdownChange({
+                options: field.dropdownOptions,
+                value: value,
+                previousValue: (
+                  refCurrentValue.current as Record<string, unknown>
+                )[fieldName],
+              })
+            : undefined,
+        );
+      }
 
+      setFieldValue(fieldName, value);
+    };
+
+    /*
+     * Hands the form's values to onSubmit, normalised for the API. Called once
+     * every step that is going to be validated has been.
+     */
+    const submitValues: () => void = (): void => {
+      const values: FormValues<T> = refCurrentValue.current;
+
+      for (const field of formFields) {
+        if (field.fieldType === FormFieldSchemaType.Toggle) {
+          const fieldName: string = field.name!;
+          if (!(values as any)[fieldName]) {
+            (values as any)[fieldName] = false;
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Email) {
+          const fieldName: string = field.name!;
+          if ((values as any)[fieldName]) {
+            (values as any)[fieldName] = ((values as any)[fieldName] as string)
+              .toString()
+              .toLowerCase();
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown) {
+          const fieldName: string = field.name!;
+
+          if (
+            (values as any)[fieldName] &&
+            (values as any)[fieldName].length > 0 &&
+            (values as any)[fieldName][0]["value"]
+          ) {
+            (values as any)[fieldName] = (
+              (values as any)[fieldName] as Array<DropdownOption>
+            ).map((item: DropdownOption) => {
+              return item.value;
+            });
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Dropdown) {
+          const fieldName: string = field.name!;
+          if (
+            (values as any)[fieldName] &&
+            (values as any)[fieldName]["value"]
+          ) {
+            (values as any)[fieldName] = (values as any)[fieldName]["value"];
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Password) {
+          const fieldName: string = field.name!;
+          if (
+            (values as any)[fieldName] &&
+            typeof (values as any)[fieldName] === Typeof.String
+          ) {
+            (values as any)[fieldName] = new HashedString(
+              (values as any)[fieldName],
+              false,
+            );
+          }
+        }
+      }
+
+      const analyticsName: string | undefined = FormAnalyticsName.resolve(
+        props.name,
+      );
+
+      /*
+       * Unnamed forms are embedded sub-forms (filter builders, argument
+       * editors) rather than conversions. Skip them instead of reporting an
+       * event named after a missing prop.
+       */
+      if (analyticsName) {
+        UiAnalytics.capture("FORM SUBMIT: " + analyticsName);
+      }
+
+      props.onSubmit(values, () => {
+        setDidSomethingChange(false);
+      });
+    };
+
+    /*
+     * Checks the step on screen, then walks on to the next one. On the last
+     * step it submits, unless told not to - after checking every step, as
+     * the form's action does - and a form without steps submits once it is
+     * checked.
+     */
+    const validateStepAndWalkOn: (data: {
+      submitOnLastStep: boolean;
+    }) => void = (data: { submitOnLastStep: boolean }): void => {
       setValidationAttempt((attempt: number) => {
         return attempt + 1;
       });
@@ -424,90 +674,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
 
-      if (
-        (steps &&
-          steps.length > 0 &&
-          (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
-        currentFormStepId === null
-      ) {
-        const values: FormValues<T> = refCurrentValue.current;
-
-        for (const field of formFields) {
-          if (field.fieldType === FormFieldSchemaType.Toggle) {
-            const fieldName: string = field.name!;
-            if (!(values as any)[fieldName]) {
-              (values as any)[fieldName] = false;
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Email) {
-            const fieldName: string = field.name!;
-            if ((values as any)[fieldName]) {
-              (values as any)[fieldName] = (
-                (values as any)[fieldName] as string
-              )
-                .toString()
-                .toLowerCase();
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown) {
-            const fieldName: string = field.name!;
-
-            if (
-              (values as any)[fieldName] &&
-              (values as any)[fieldName].length > 0 &&
-              (values as any)[fieldName][0]["value"]
-            ) {
-              (values as any)[fieldName] = (
-                (values as any)[fieldName] as Array<DropdownOption>
-              ).map((item: DropdownOption) => {
-                return item.value;
-              });
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Dropdown) {
-            const fieldName: string = field.name!;
-            if (
-              (values as any)[fieldName] &&
-              (values as any)[fieldName]["value"]
-            ) {
-              (values as any)[fieldName] = (values as any)[fieldName]["value"];
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Password) {
-            const fieldName: string = field.name!;
-            if (
-              (values as any)[fieldName] &&
-              typeof (values as any)[fieldName] === Typeof.String
-            ) {
-              (values as any)[fieldName] = new HashedString(
-                (values as any)[fieldName],
-                false,
-              );
-            }
-          }
+      if (currentFormStepId === null || !steps || steps.length === 0) {
+        if (data.submitOnLastStep) {
+          submitValues();
         }
+        return;
+      }
 
-        const analyticsName: string | undefined = FormAnalyticsName.resolve(
-          props.name,
-        );
-
-        /*
-         * Unnamed forms are embedded sub-forms (filter builders, argument
-         * editors) rather than conversions. Skip them instead of reporting an
-         * event named after a missing prop.
-         */
-        if (analyticsName) {
-          UiAnalytics.capture("FORM SUBMIT: " + analyticsName);
+      if ((steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) {
+        if (data.submitOnLastStep) {
+          submitAllSteps();
         }
-
-        props.onSubmit(values, () => {
-          setDidSomethingChange(false);
-        });
-      } else if (steps && steps.length > 0) {
+      } else {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
             return step.id === currentFormStepId;
@@ -520,12 +698,142 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }
     };
 
+    const submitForm: () => void = (): void => {
+      validateStepAndWalkOn({ submitOnLastStep: true });
+    };
+
+    const goToNextStep: () => void = (): void => {
+      validateStepAndWalkOn({ submitOnLastStep: false });
+    };
+
+    const submitAllSteps: () => void = (): void => {
+      const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
+
+      if (!steps || steps.length === 0 || currentFormStepId === null) {
+        validateStepAndWalkOn({ submitOnLastStep: true });
+        return;
+      }
+
+      setValidationAttempt((attempt: number) => {
+        return attempt + 1;
+      });
+
+      /*
+       * Every field on a step the user can reach - a step hidden by its
+       * showIf is not one, and neither are its fields - validated as if it
+       * were the step on screen.
+       */
+      const fieldsOnVisibleSteps: Fields<T> = formFields.filter(
+        (field: Field<T>): boolean => {
+          return steps.some((step: FormStep<T>): boolean => {
+            return step.id === field.stepId;
+          });
+        },
+      );
+
+      const validationErrors: Dictionary<string> = Validation.validate({
+        values: refCurrentValue.current,
+        formFields: fieldsOnVisibleSteps,
+        currentFormStepId: null,
+        onValidate: props.onValidate || undefined,
+      });
+
+      if (props.onFormValidationErrorChanged) {
+        props.onFormValidationErrorChanged(
+          Object.keys(validationErrors).length !== 0,
+        );
+      }
+
+      isSubmitting.current = true;
+
+      const failingFieldNames: Array<string> = Object.keys(validationErrors);
+
+      if (failingFieldNames.length === 0) {
+        submitValues();
+        return;
+      }
+
+      // Show every failing field's error, on whichever step it is.
+      const touchedFields: Dictionary<boolean> = {};
+
+      for (const fieldName of failingFieldNames) {
+        touchedFields[fieldName] = true;
+      }
+
+      setTouched({ ...touched, ...touchedFields });
+      setErrors(validationErrors);
+
+      // And go to the first step that has one, unless the user is on it.
+      const firstStepWithAnError: FormStep<T> | undefined = steps.find(
+        (step: FormStep<T>): boolean => {
+          return fieldsOnVisibleSteps.some((field: Field<T>): boolean => {
+            return (
+              field.stepId === step.id &&
+              failingFieldNames.includes(getFieldName(field))
+            );
+          });
+        },
+      );
+
+      if (
+        firstStepWithAnError &&
+        firstStepWithAnError.id !== currentFormStepId
+      ) {
+        setCurrentFormStepId(firstStepWithAnError.id);
+      }
+    };
+
     useEffect(() => {
       if (isSubmitting.current) {
         return;
       }
 
-      if (isInitialValuesSet.current || hasUserEdited.current) {
+      if (isInitialValuesSet.current) {
+        return;
+      }
+
+      /*
+       * A field wrote a value before the defaults were filled in: a custom
+       * element that reports what it holds as soon as it is drawn (its
+       * effect runs before this one). Nothing it wrote, and nothing typed,
+       * is re-seeded - the form keeps every value it holds - but the fields
+       * still empty get their defaults, as they would have without it.
+       * Skipping them drew a switch on (its default) and sent it off, and
+       * never sent a hidden field's default at all.
+       */
+      if (hasUserEdited.current) {
+        if (formFields.length === 0) {
+          return;
+        }
+
+        const filledIn: FormValues<T> = {
+          ...refCurrentValue.current,
+        } as FormValues<T>;
+        let didFillIn: boolean = false;
+
+        for (const field of formFields) {
+          const fieldName: string = field.name!;
+
+          if ((filledIn as any)[fieldName] !== undefined) {
+            continue;
+          }
+
+          if (hasDefaultValue(field)) {
+            (filledIn as any)[fieldName] = field.defaultValue;
+            didFillIn = true;
+          } else if (field.getDefaultValue) {
+            (filledIn as any)[fieldName] = field.getDefaultValue(filledIn);
+            didFillIn = true;
+          }
+        }
+
+        isInitialValuesSet.current = true;
+
+        if (didFillIn) {
+          refCurrentValue.current = filledIn;
+          setCurrentValue(refCurrentValue.current);
+        }
+
         return;
       }
 
@@ -609,8 +917,38 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           });
         }
 
-        // if the field is still null but has a default value then... have the default initial value
-        if (field.defaultValue && (values as any)[fieldName] === undefined) {
+        /*
+         * A people picker keeps its picks in form values of its own (owners
+         * in ownerUsers and ownerTeams). Whatever the form started with -
+         * ObjectIDs, related rows, ids - is held as plain ids, which is what
+         * the picker writes, so an untouched picker sends what it shows. A
+         * picker that takes one pick holds one id: an edit form's userId
+         * column arrives as an ObjectID and is sent back as its id.
+         */
+        if (
+          field.fieldType === FormFieldSchemaType.PeoplePicker &&
+          field.peoplePicker
+        ) {
+          for (const valueKey of getPeoplePickerValueKeys(field.peoplePicker)) {
+            const startValue: unknown = (values as any)[valueKey];
+
+            if (startValue !== undefined && startValue !== null) {
+              (values as any)[valueKey] = toPeoplePickerFormValue(
+                field.peoplePicker,
+                startValue,
+              );
+            }
+          }
+        }
+
+        /*
+         * A field the form does not start with a value for starts on its
+         * default - 0 and false included (hasDefaultValue).
+         */
+        if (
+          hasDefaultValue(field) &&
+          (values as any)[fieldName] === undefined
+        ) {
           (values as any)[fieldName] = field.defaultValue;
         }
 
@@ -651,6 +989,46 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       showSubmitButton = true;
     }
 
+    /*
+     * Next, on every step but the last, where the form's action will be.
+     * Plain, like Cancel: Next commits nothing, so it never wears the
+     * primary colour (Utils/SteppedFormFooter.ts). Where the action spans
+     * the form (a status page's Subscribe), Next spans it too.
+     */
+    const nextButtonElement: ReactElement | null =
+      showSubmitButton && footer.showNextButton ? (
+        <div
+          className="mt-3"
+          style={{
+            width: props.maxPrimaryButtonWidth ? "100%" : "auto",
+          }}
+        >
+          <Button
+            title={nextButtonText}
+            dataTestId={FORM_NEXT_BUTTON_TEST_ID}
+            id={`${props.id}-next-button`}
+            onClick={() => {
+              goToNextStep();
+            }}
+            disabled={isLoading || isDropdownOptionsLoading || false}
+            buttonStyle={NEXT_BUTTON_STYLE}
+            style={primaryButtonStyle}
+          />
+        </div>
+      ) : null;
+
+    /*
+     * The step list - the Progress list beside the form and, on a narrow
+     * screen, "Step 1 of 3" above it - is drawn only while there is more
+     * than one step to walk. A form whose steps come down to one, the
+     * others hidden by their showIf (a Server ingestion key's Browser
+     * Settings step), is the one page it is, not "Step 1 of 1". A step
+     * shown later brings the list back.
+     */
+    const showsStepList: boolean = Boolean(
+      currentFormStepId && formSteps && formSteps.length > 1,
+    );
+
     return (
       <div className="row" id={props.id}>
         <div className="col-lg-1">
@@ -670,10 +1048,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             )}
 
             <div className="flex">
-              {formSteps && currentFormStepId && (
+              {showsStepList && formSteps && currentFormStepId && (
                 <div
                   style={{ flex: "0 1 auto" }}
-                  className="mr-10 hidden lg:block"
+                  className="mr-10 max-lg:hidden lg:block"
                 >
                   {/* Form Steps */}
 
@@ -681,6 +1059,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     currentFormStepId={currentFormStepId}
                     steps={formSteps}
                     formValues={refCurrentValue.current}
+                    allowAnyStep={props.allowAnyStepNavigation || false}
                     onClick={(step: FormStep<T>) => {
                       setCurrentFormStepId(step.id);
                     }}
@@ -688,19 +1067,22 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${
-                  formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
-                }`}
+                className={`${showsStepList ? "w-auto pt-6" : "w-full pt-1"}`}
                 style={{ flex: "1 1 auto" }}
               >
-                {activeStep && (
+                {showsStepList && activeStep && (
                   <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
                     <p
                       className="ml-auto text-right text-sm text-gray-500 lg:hidden"
                       role="status"
                     >
-                      {translateString("Step") ?? "Step"} {activeStepIndex + 1}{" "}
-                      {translateString("of") ?? "of"} {formSteps?.length}
+                      {translator.translateTemplate(
+                        "Step {{current}} of {{total}}",
+                        {
+                          current: activeStepIndex + 1,
+                          total: formSteps?.length || 0,
+                        },
+                      )}
                       <span className="block font-medium text-gray-900">
                         {translateString(activeStep.title) ?? activeStep.title}
                       </span>
@@ -799,6 +1181,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               setFieldTouched={setFieldTouched}
                               submitForm={submitForm}
                               disableAutofocus={props.disableAutofocus || false}
+                              modelAPI={props.modelAPI}
                               setFormValues={(values: FormValues<T>) => {
                                 refCurrentValue.current = values;
                                 setCurrentValue(refCurrentValue.current);
@@ -811,6 +1194,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 touched[fieldName]
                                   ? errors[fieldName] || undefined
                                   : undefined,
+                                {
+                                  setValue: (value: JSONValue): void => {
+                                    setFieldValueFromFooter(
+                                      field,
+                                      fieldName,
+                                      value,
+                                    );
+                                  },
+                                },
                               )}
                           </div>
                         </Fragment>
@@ -834,16 +1226,49 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             return fields[0]!;
                           }
 
+                          const section: FormFieldCollapsibleSection<T> =
+                            firstField.collapsibleSection;
+
+                          /*
+                           * The section's own answer, or - without one -
+                           * whether a field in it that is on screen holds a
+                           * value other than empty or its default.
+                           */
+                          const isSectionConfigured: boolean =
+                            isFormSectionConfigured({
+                              section: section,
+                              fields: group,
+                              values: refCurrentValue.current,
+                            });
+
                           return (
                             <CollapsibleFormSection
-                              key={`${firstField.collapsibleSection.id}-${getFieldName(firstField)}`}
-                              title={firstField.collapsibleSection.title}
-                              description={
-                                firstField.collapsibleSection.description
+                              key={`${section.id}-${getFieldName(firstField)}`}
+                              title={section.title}
+                              description={section.description}
+                              sectionId={section.id}
+                              isConfigured={isSectionConfigured}
+                              openWhenConfigured={
+                                section.openWhenConfigured !== false
                               }
-                              isConfigured={firstField.collapsibleSection.isConfigured(
+                              summary={section.getSummary?.(
                                 refCurrentValue.current,
                               )}
+                              /*
+                               * What the folded header lists: the fields on
+                               * screen, the set ones with what they are set
+                               * to.
+                               */
+                              items={getFoldedFormFieldItems(
+                                group,
+                                refCurrentValue.current,
+                                { isSectionConfigured: isSectionConfigured },
+                              )}
+                              listFieldsWhileFolded={Boolean(
+                                section.listFieldsWhileFolded,
+                              )}
+                              variant={section.variant}
+                              icon={section.icon}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {
                                   const fieldName: string = getFieldName(field);
@@ -879,7 +1304,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
 
                 <div className="flex w-full justify-end">
-                  {showSubmitButton && (
+                  {nextButtonElement}
+                  {showSubmitButton && footer.showActionButton && (
                     <div
                       className="mt-3"
                       style={{
@@ -890,7 +1316,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         title={submitButtonText}
                         dataTestId={props.submitButtonText!}
                         onClick={() => {
-                          submitForm();
+                          // Checks every step, and opens one with a problem.
+                          submitAllSteps();
                         }}
                         id={`${props.id}-submit-button`}
                         isLoading={

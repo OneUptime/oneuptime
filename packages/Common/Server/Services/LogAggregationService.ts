@@ -3,16 +3,20 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
@@ -54,6 +58,8 @@ export interface HistogramRequest {
   endTime: Date;
   bucketSizeInMinutes: number;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -86,6 +92,8 @@ export interface FacetRequest {
   facetKey: string;
   limit?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -118,6 +126,8 @@ export interface AnalyticsRequest {
   aggregation: AnalyticsAggregation;
   aggregationField?: string | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
    * cluster / ... — any ResourceFacetCatalog type) already resolved to
@@ -174,6 +184,8 @@ export interface ErrorPatternFilters {
   startTime: Date;
   endTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   resourceScopes?: Array<ResourceEntityScope> | undefined;
   /** Defaults to DEFAULT_ERROR_LOG_SEVERITIES when absent or empty. */
@@ -282,12 +294,13 @@ export class LogAggregationService {
   /*
    * Read-side retention filter (mirrors
    * AnalyticsDatabaseService.getRetentionReadFilter): rows past their
-   * per-service retention stay queryable until their whole part drops
-   * (ttl_only_drop_parts), so raw-table reads exclude them explicitly.
+   * retention stay on disk until the midnight after it (Log's TTL is
+   * rounded up to the day, see RetentionTtl), so raw-table reads exclude
+   * them explicitly.
    * Deliberately NOT applied to projection-shaped queries (the severity
-   * histogram): an aggregate projection cannot evaluate a predicate on a
-   * column it does not store, so adding it would silently force a full
-   * base-table scan.
+   * histogram with nothing but severities to filter on): an aggregate
+   * projection cannot evaluate a predicate on a column it does not store,
+   * so adding it would silently force a full base-table scan.
    */
   private static readonly RETENTION_FILTER: string =
     " AND retentionDate >= now()";
@@ -399,26 +412,57 @@ export class LogAggregationService {
 
     LogAggregationService.appendCommonFilters(statement, request);
 
+    /*
+     * Where it is free, the histogram leaves out rows past their retention
+     * like every other read: a filter the projection does not store already
+     * sends this query to the base table, and the retention filter only adds
+     * a column to that scan. On the projection-only shape it would force the
+     * scan, so there it is left out - and a window reaching back past the
+     * retention can count, at its far edge, up to a day of rows the list no
+     * longer shows (they are on disk until the midnight after their
+     * retentionDate).
+     */
+    if (LogAggregationService.histogramScansBaseTable(request)) {
+      statement.append(LogAggregationService.RETENTION_FILTER);
+    }
+
     statement.append(
       " GROUP BY minute, severityText ) GROUP BY bucket, severityText ORDER BY bucket ASC",
     );
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. 'break' returns partial aggregated results
-     * rather than throwing, which is acceptable for a density viz.
-     * Explicitly enable projection use.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete. Explicitly enable projection use.
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
 
     return statement;
+  }
+
+  /*
+   * Whether a histogram request filters on anything proj_severity_histogram
+   * does not store (it keeps projectId, severityText and the minute) - that
+   * is, whether its query reads the base table anyway. Decided by what the
+   * filters render, not by which fields are set: an empty attribute list or
+   * resource scope renders nothing and leaves the projection in use.
+   */
+  private static histogramScansBaseTable(request: HistogramRequest): boolean {
+    const filtersBeyondSeverity: Statement = new Statement();
+
+    LogAggregationService.appendCommonFilters(filtersBeyondSeverity, {
+      ...request,
+      severityTexts: undefined,
+    });
+
+    return filtersBeyondSeverity.query.trim().length > 0;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {
@@ -518,12 +562,13 @@ export class LogAggregationService {
 
     /*
      * Defense in depth: cap individual facet query runtime below nginx's
-     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint. A
+     * facet stopped at the limit is reported as such (see
+     * INTERACTIVE_READ_TIME_LIMIT and the facets endpoint's timedOutFacets).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -677,18 +722,30 @@ export class LogAggregationService {
     }
   }
 
-  private static getAggregationExpression(request: AnalyticsRequest): string {
+  /*
+   * What a row counts: its rows, or the distinct values of one field. A
+   * top-level column is one of TOP_LEVEL_COLUMNS, named as it is; an
+   * attribute key is bound as a query parameter, as every other attribute
+   * read in this service binds it, so no character of it is ever read as
+   * SQL (validateFacetKey limits the key as well).
+   */
+  private static getAggregationExpression(
+    request: AnalyticsRequest,
+  ): Statement {
     if (request.aggregation === "unique" && request.aggregationField) {
       LogAggregationService.validateFacetKey(request.aggregationField);
 
       if (LogAggregationService.isTopLevelColumn(request.aggregationField)) {
-        return `uniqExact(${request.aggregationField})`;
+        return new Statement().append(`uniqExact(${request.aggregationField})`);
       }
 
-      return `uniqExact(attributes['${request.aggregationField.replace(/'/g, "\\'")}'])`;
+      return SQL`uniqExact(attributes[${{
+        type: TableColumnType.Text,
+        value: request.aggregationField,
+      }}])`;
     }
 
-    return "count()";
+    return new Statement().append("count()");
   }
 
   private static validateGroupBy(groupBy: Array<string> | undefined): void {
@@ -713,7 +770,7 @@ export class LogAggregationService {
     LogAggregationService.validateGroupBy(request.groupBy);
 
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const statement: Statement = SQL`
@@ -723,7 +780,7 @@ export class LogAggregationService {
           value: intervalSeconds,
         }} SECOND) AS bucket`;
 
-    statement.append(`, ${aggExpr} AS cnt`);
+    statement.append(", ").append(aggExpr).append(" AS cnt");
 
     if (request.groupBy && request.groupBy.length > 0) {
       LogAggregationService.appendGroupBySelect(statement, request.groupBy);
@@ -760,13 +817,12 @@ export class LogAggregationService {
 
     /*
      * Defense in depth: cap runtime below the client's 58s request_timeout
-     * (matches the histogram / facet paths above). 'break' returns partial
-     * aggregated results rather than holding a pool connection.
+     * (matches the histogram / facet paths above; see
+     * INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -782,7 +838,7 @@ export class LogAggregationService {
 
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_ANALYTICS_LIMIT;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const isTopLevel: boolean =
@@ -791,9 +847,7 @@ export class LogAggregationService {
     const statement: Statement = new Statement();
 
     if (isTopLevel) {
-      statement.append(
-        `SELECT toString(${groupByKey}) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
-      );
+      statement.append(`SELECT toString(${groupByKey}) AS val, `);
     } else {
       statement.append(`SELECT attributes[`);
       statement.append(
@@ -802,10 +856,12 @@ export class LogAggregationService {
           value: groupByKey,
         }}`,
       );
-      statement.append(
-        `] AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
-      );
+      statement.append(`] AS val, `);
     }
+
+    statement
+      .append(aggExpr)
+      .append(` AS cnt FROM ${LogAggregationService.TABLE_NAME}`);
 
     statement.append(
       SQL` WHERE projectId = ${{
@@ -841,13 +897,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial results (matches the histogram / facet paths).
+     * Cap runtime below the client's 58s request_timeout (matches the
+     * histogram / facet paths; see INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -863,11 +918,11 @@ export class LogAggregationService {
     const groupByKeys: Array<string> = request.groupBy!;
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_ANALYTICS_LIMIT;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const statement: Statement = new Statement();
-    statement.append(`SELECT ${aggExpr} AS cnt`);
+    statement.append("SELECT ").append(aggExpr).append(" AS cnt");
 
     LogAggregationService.appendGroupBySelect(statement, groupByKeys);
 
@@ -911,13 +966,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial results (matches the histogram / facet paths).
+     * Cap runtime below the client's 58s request_timeout (matches the
+     * histogram / facet paths; see INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -930,6 +984,7 @@ export class LogAggregationService {
     request: Pick<
       HistogramRequest,
       | "serviceIds"
+      | "excludedServiceIds"
       | "entityKeys"
       | "resourceScopes"
       | "severityTexts"
@@ -940,18 +995,7 @@ export class LogAggregationService {
       | "attributes"
     >,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.entityKeys && request.entityKeys.length > 0) {
       statement.append(
@@ -1015,90 +1059,33 @@ export class LogAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        LogAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — keys in the data come
-         * from many sources (OTEL conventions are dot.lowercase, app code
-         * often uses camelCase like `requestId`), and forcing users to
-         * remember the exact casing is a poor experience. The user-supplied
-         * key is validated above.
-         */
-        if (Array.isArray(attrValue)) {
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-        } else if (typeof attrValue === "object" && attrValue !== null) {
-          LogAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            attrValue as unknown as Record<string, unknown>,
-          );
-        } else if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": the list query compares `attributes['k'] = ''`, and a Map
-           * subscript returns the type default for a key the row does not
-           * carry, so rows without the attribute match too. Routed through the
-           * operator builder so a bare "" and an explicit EqualTo("") — the
-           * same filter written two ways — cannot disagree.
-           */
-          LogAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            { _type: ObjectType.IsNull },
-          );
-        } else {
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v = ${{
-              type: TableColumnType.Text,
-              value: attrValue,
-            }}, mapKeys(attributes), mapValues(attributes))`,
-          );
-        }
-      }
-    }
-  }
-
-  /*
-   * Attribute filter rows carry an operator (`contains`, `is any of`,
-   * `is empty`, `matches`, ...) as well as a value, and the operator travels
-   * over the wire as the serialized `{_type, value}` shape every
-   * QueryOperator's toJSON() produces. The list query compiles those through
-   * StatementGenerator; these aggregation endpoints (histogram, facets,
-   * export) used to treat anything non-array as a plain string, so an
-   * operator object bound as "[object Object]", matched nothing, and left the
-   * log monitor preview showing an empty chart beside a populated list.
-   *
-   * The compilation itself lives in AttributeFilterStatement so the trace,
-   * metric and exception builders answer identically — see the comment there.
-   */
-  private static appendAttributeOperatorFilter(
-    statement: Statement,
-    attrKey: string,
-    attrValue: Record<string, unknown>,
-  ): void {
-    appendAttributeOperatorFilter({
-      statement,
-      attributeKey: attrKey,
-      operator: attrValue,
+    /*
+     * Attribute filters: a value, a list ("is any of"), a blank ("is empty")
+     * or an operator (`contains`, `matches`, `>`, ...) in the `{_type,
+     * value}` shape every QueryOperator's toJSON() produces. Keys match
+     * case-insensitively - keys in the data come from many sources (OTEL
+     * conventions are dot.lowercase, app code often uses camelCase like
+     * `requestId`) - and an exact value is looked up in the attribute value
+     * index first, so a search for a rare value skips the granules that do
+     * not hold it (#4706). The compilation lives in AttributeFilterStatement
+     * so the trace and metric charts answer identically; each key is
+     * validated before it reaches SQL.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        LogAggregationService.validateFacetKey(attributeKey);
+      },
     });
   }
 
+  /*
+   * The newest logs that match, up to 10,000, for a file. Every filter the
+   * histogram and the facets take narrows it the same way — an attribute
+   * filter, an entity key and a resource picked in the facets included — so
+   * an export holds the rows the search shows and no others.
+   */
   @CaptureSpan()
   public static async getExportLogs(request: {
     projectId: ObjectID;
@@ -1106,12 +1093,16 @@ export class LogAggregationService {
     endTime: Date;
     limit: number;
     serviceIds?: Array<ObjectID> | undefined;
+    // Resources whose rows are left out whatever else matches.
+    excludedServiceIds?: Array<ObjectID> | undefined;
+    entityKeys?: Array<string> | undefined;
+    resourceScopes?: Array<ResourceEntityScope> | undefined;
     severityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;
     sessionIds?: Array<string> | undefined;
-    attributes?: Record<string, string> | undefined;
+    attributes?: LogAttributeFilters | undefined;
   }): Promise<Array<JSONObject>> {
     const maxLimit: number = Math.min(request.limit || 10000, 10000);
 
@@ -1152,15 +1143,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial rows rather than holding a pool connection on a large export.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection on a large export. An export stopped at the limit
+     * fails with a QueryTimeoutException: a file missing rows it says
+     * nothing about is worse than no file (see INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     const dbResult: Results = await LogDatabaseService.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{
@@ -1302,6 +1290,8 @@ export class LogAggregationService {
     endTime: Date;
     filterQuery: string;
     serviceIds?: Array<ObjectID> | undefined;
+    // Resources whose rows are left out whatever else matches.
+    excludedServiceIds?: Array<ObjectID> | undefined;
     severityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
   }): Promise<{
@@ -1332,15 +1322,12 @@ export class LogAggregationService {
     LogAggregationService.appendCommonFilters(totalStatement, request);
 
     /*
-     * Cap the count scan below the client's 58s request_timeout; 'break'
-     * returns a partial (lower-bound) count, acceptable for an estimate.
+     * Cap the count scan below the client's 58s request_timeout. 'break'
+     * was meant to give a lower-bound count here, but ClickHouse answers a
+     * count it breaks off with an empty body, so a window too wide to count
+     * fails with a QueryTimeoutException (see INTERACTIVE_READ_TIME_LIMIT).
      */
-    totalStatement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    totalStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     // Get matching count using the filter query as body search
     const matchStatement: Statement = SQL`
@@ -1367,16 +1354,8 @@ export class LogAggregationService {
       bodySearchText: request.filterQuery,
     });
 
-    /*
-     * Cap the count scan below the client's 58s request_timeout; 'break'
-     * returns a partial (lower-bound) count, acceptable for an estimate.
-     */
-    matchStatement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    // Same cap, and the same stop, as the total above.
+    matchStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     const [totalResult, matchResult] = await Promise.all([
       LogDatabaseService.executeQuery(totalStatement),
@@ -1730,13 +1709,12 @@ export class LogAggregationService {
   private static errorPatternQuerySettings(): string {
     /*
      * Same ceiling as every other aggregation here: below the client's 58s
-     * request timeout, 'break' so a wide window degrades to partial counts
-     * instead of an error page, and the scan-memory bound because these
-     * queries read the fat `attributes` map alongside `body`.
+     * request timeout, stopping with an error a wide window can explain
+     * (see INTERACTIVE_READ_TIME_LIMIT), and the scan-memory bound because
+     * these queries read the fat `attributes` map alongside `body`.
      */
     return getQuerySettings({
-      maxExecutionTimeInSeconds: 45,
-      timeoutOverflowMode: "break",
+      ...INTERACTIVE_READ_TIME_LIMIT,
       boundScanMemory: true,
     });
   }

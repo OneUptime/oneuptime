@@ -20,6 +20,7 @@ import MonitorRecommendations from "./MonitorRecommendations";
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "./RecommendationResourceRegistry";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -53,7 +54,10 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
   useAsyncEffect(async () => {
     if (!definition) {
       setError(
-        `Recommendations are not wired up for ${props.resourceType} resources.`,
+        translateTemplate(
+          "Recommendations are not wired up for {{resourceType}} resources.",
+          { resourceType: props.resourceType },
+        ),
       );
       setIsLoading(false);
       return;

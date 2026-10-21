@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { getUnresolvedStateIds, toStateIdsQuery } from "../utils/resolvedState";
 import type { AxiosResponse } from "axios";
 import type {
   ListResponse,
@@ -17,7 +18,14 @@ export async function fetchIncidentEpisodes(
 
   const query: Record<string, unknown> = {};
   if (unresolvedOnly) {
-    query.currentIncidentState = { isResolvedState: false };
+    /*
+     * Open episodes: in a state that is not resolved by the project's
+     * rule (utils/resolvedState). A state placed after Resolved is not
+     * open, flagged or not, so the project's states are read first.
+     */
+    query.currentIncidentStateId = toStateIdsQuery(
+      getUnresolvedStateIds(await fetchIncidentEpisodeStates(projectId)),
+    );
   }
 
   const response: AxiosResponse = await apiClient.post(
@@ -46,15 +54,17 @@ export async function fetchIncidentEpisodes(
   return response.data;
 }
 
+/*
+ * Every project's episodes, newest first. Open ones only is a
+ * per-project question - which states count as resolved is each project's
+ * own (utils/resolvedState) - so it is fetchIncidentEpisodes's unresolvedOnly.
+ */
 export async function fetchAllIncidentEpisodes(
-  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+  options: { skip?: number; limit?: number } = {},
 ): Promise<ListResponse<IncidentEpisodeItem>> {
-  const { skip = 0, limit = 100, unresolvedOnly = false } = options;
+  const { skip = 0, limit = 100 } = options;
 
   const query: Record<string, unknown> = {};
-  if (unresolvedOnly) {
-    query.currentIncidentState = { isResolvedState: false };
-  }
 
   const response: AxiosResponse = await apiClient.post(
     `/api/incident-episode/get-list?skip=${skip}&limit=${limit}`,

@@ -3,10 +3,10 @@ import {
   NetworkDeviceCriteriaCatalogue,
   NetworkDeviceCriteriaCatalogueContext,
   NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
 } from "./CriteriaFilter";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
-import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
@@ -28,6 +28,11 @@ import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import React, {
   FunctionComponent,
@@ -41,8 +46,17 @@ import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
+import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
+import { getCriteriaFilterCountText } from "../../../Utils/Form/Monitor/CriteriaFilterCount";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
+import { DOCS_URL } from "Common/UI/Config";
+import { OPEN_FOR_EVERY_EMAIL_DOCS_PATH } from "Common/Types/Monitor/IncomingEmailMonitor/OpenForEveryEmail";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -50,7 +64,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
@@ -67,6 +80,10 @@ export interface ComponentProps {
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  // The device's effective SNMP tables, for the table criteria pickers.
+  networkDeviceTableCatalogue?:
+    | Array<NetworkDeviceTableCatalogueEntry>
+    | undefined;
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
@@ -88,15 +105,22 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
    * simply doesn't render the series-labels section.
    */
   const seriesAttributeKeys: Array<string> = Array.from(
-    new Set(
-      (
+    new Set([
+      ...(
         MonitorStepMetricViewConfigUtil.getMetricViewConfig(
           props.monitorStep?.data,
         )?.queryConfigs || []
       ).flatMap((q: MetricQueryConfigData): Array<string> => {
         return q.metricQueryData?.groupByAttributeKeys || [];
       }),
-    ),
+      /*
+       * A Logs monitor's Group By: each group value is a template variable
+       * the same way a metric series label is (`{{con_name}}`).
+       */
+      ...MonitorStepLogMonitorUtil.getGroupByAttributes(
+        props.monitorStep?.data?.logMonitor,
+      ),
+    ]),
   );
 
   /*
@@ -108,11 +132,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     useMemo((): NetworkDeviceCriteriaCatalogue => {
       return {
         oids: props.networkDeviceOidCatalogue || [],
+        tables: props.networkDeviceTableCatalogue || [],
         interfaceNames: props.networkDeviceInterfaceNames || [],
         isLoaded: props.isNetworkDeviceCatalogueLoaded === true,
       };
     }, [
       props.networkDeviceOidCatalogue,
+      props.networkDeviceTableCatalogue,
       props.networkDeviceInterfaceNames,
       props.isNetworkDeviceCatalogueLoaded,
     ]);
@@ -121,11 +147,83 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     ObjectID | undefined
   >(monitorCriteriaInstance?.data?.monitorStatusId);
 
-  const filterConditionOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
+  const translator: Translator = useTranslator();
 
-  const [errors, setErrors] = useState<Dictionary<string>>({});
-  const [touched, setTouched] = useState<Dictionary<boolean>>({});
+  // All, then Any, each in the reader's language.
+  const filterConditionOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(FilterCondition).map(
+      (option: DropdownOption): DropdownOption => {
+        return {
+          ...option,
+          label: translator.translateText(option.label) || option.label,
+        };
+      },
+    );
+
+  // Ties each label to its field, so a screen reader names the field.
+  const nameInputId: string = useId();
+  const descriptionInputId: string = useId();
+  const filterConditionLabelId: string = useId();
+
+  /*
+   * The name the filters give this criteria. A criteria added with "Add
+   * Criteria" starts with it, and keeps following the filters until the
+   * user types a name of their own (CriteriaNameUtil).
+   */
+  const nameFromFilters: string = CriteriaNameUtil.getNameForCriteria(
+    monitorCriteriaInstance,
+  );
+
+  const isNameFromFilters: boolean = CriteriaNameUtil.isNameFromFilters({
+    name: monitorCriteriaInstance.data?.name,
+    filters: monitorCriteriaInstance.data?.filters,
+    filterCondition: monitorCriteriaInstance.data?.filterCondition,
+  });
+
+  /*
+   * Every change to the filters or to how they combine goes through here,
+   * so a generated name follows them: "Response Time (in ms) is above 3000"
+   * becomes "... is above 5000" when the threshold does. A name the user
+   * typed, or one the monitor was seeded with, is left alone.
+   */
+  const changeFilters: (change: {
+    filters?: Array<CriteriaFilter> | undefined;
+    filterCondition?: FilterCondition | undefined;
+  }) => void = (change: {
+    filters?: Array<CriteriaFilter> | undefined;
+    filterCondition?: FilterCondition | undefined;
+  }): void => {
+    const previousFilters: Array<CriteriaFilter> =
+      monitorCriteriaInstance.data?.filters || [];
+    const previousFilterCondition: FilterCondition =
+      monitorCriteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    if (change.filters) {
+      monitorCriteriaInstance.setFilters(change.filters);
+    }
+
+    if (change.filterCondition) {
+      monitorCriteriaInstance.setFilterCondition(change.filterCondition);
+    }
+
+    monitorCriteriaInstance.setName(
+      CriteriaNameUtil.getNameAfterFiltersChange({
+        name: monitorCriteriaInstance.data?.name,
+        previous: {
+          filters: previousFilters,
+          filterCondition: previousFilterCondition,
+        },
+        next: {
+          filters: monitorCriteriaInstance.data?.filters,
+          filterCondition: monitorCriteriaInstance.data?.filterCondition,
+        },
+      }),
+    );
+
+    if (props.onChange) {
+      props.onChange(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+    }
+  };
 
   useEffect(() => {
     // set first value as default
@@ -165,6 +263,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     Boolean(props.value?.data?.incidentGrouping?.groupByJSONPath),
   );
 
+  // Read from the criteria itself: the switch has nothing to seed.
+  const isOpenForEveryEmail: boolean =
+    monitorCriteriaInstance.data?.openForEveryEmail === true;
+
   const incidentGrouping: IncidentGroupingConfig | undefined =
     monitorCriteriaInstance?.data?.incidentGrouping;
 
@@ -192,14 +294,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // Calculate summary information for badges
-  const filterCount: number =
-    monitorCriteriaInstance?.data?.filters?.length || 0;
-  const filterCondition: FilterCondition =
-    monitorCriteriaInstance?.data?.filterCondition || FilterCondition.All;
-  const filterSummary: string = `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? `, ${filterCondition === FilterCondition.All ? "ALL" : "ANY"} match` : ""}`;
+  /*
+   * What the folded Filters section says: how many filters, and how they
+   * combine once there are two - as the criteria's own folded header says.
+   */
+  const filterSummary: string = getCriteriaFilterCountText({
+    translator: translator,
+    filters: monitorCriteriaInstance?.data?.filters,
+    filterCondition: monitorCriteriaInstance?.data?.filterCondition,
+  });
 
-  // Calculate actions summary
+  /*
+   * What the folded Actions section says it does: "Status: Offline, 1
+   * incident". Each piece in the reader's language - the section draws its
+   * badge as given, so English pieces glued together read English everywhere.
+   */
   const getActionsSummary: () => string = (): string => {
     const actions: Array<string> = [];
     if (showMonitorStatusChangeControl) {
@@ -211,22 +320,32 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           );
         });
       if (statusOption) {
-        actions.push(`Status: ${statusOption.label}`);
+        actions.push(
+          translator.translateTemplate("Status: {{status}}", {
+            status: translatableTerm(statusOption.label),
+          }),
+        );
       }
     }
     if (showAlertControl) {
-      const alertCount: number =
-        monitorCriteriaInstance?.data?.alerts?.length || 0;
-      actions.push(`${alertCount} alert${alertCount !== 1 ? "s" : ""}`);
-    }
-    if (showIncidentControl) {
-      const incidentCount: number =
-        monitorCriteriaInstance?.data?.incidents?.length || 0;
       actions.push(
-        `${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`,
+        translator.translatePlural(
+          { one: "{{count}} alert", other: "{{count}} alerts" },
+          monitorCriteriaInstance?.data?.alerts?.length || 0,
+        ),
       );
     }
-    return actions.length > 0 ? actions.join(", ") : "No actions";
+    if (showIncidentControl) {
+      actions.push(
+        translator.translatePlural(
+          { one: "{{count}} incident", other: "{{count}} incidents" },
+          monitorCriteriaInstance?.data?.incidents?.length || 0,
+        ),
+      );
+    }
+    return actions.length > 0
+      ? actions.join(", ")
+      : translator.translateText("No actions") || "No actions";
   };
 
   const hasActions: boolean =
@@ -236,53 +355,23 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mt-4">
-      {/* Criteria Name and Description */}
+      {/*
+       * The name, filled in from the filters. The description is optional
+       * and lives under Settings, below.
+       */}
       <div className="mb-4">
         <div className="mt-3">
           <FieldLabelElement
             title={"Criteria Name"}
-            description={
-              "Any friendly name for this criteria, that will help you remember later."
-            }
+            htmlFor={nameInputId}
             required={true}
           />
           <Input
+            id={nameInputId}
+            dataTestId="monitor-criteria-name-input"
             value={monitorCriteriaInstance?.data?.name?.toString() || ""}
-            onBlur={() => {
-              setTouched({
-                ...touched,
-                name: true,
-              });
-
-              if (!monitorCriteriaInstance?.data?.name) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-            }}
-            error={
-              touched["name"] && errors["name"] ? errors["name"] : undefined
-            }
-            placeholder="Online Criteria"
+            placeholder={nameFromFilters}
             onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-
               monitorCriteriaInstance.setName(value);
               if (props.onChange) {
                 props.onChange(
@@ -290,62 +379,39 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 );
               }
             }}
-          />
-        </div>
-        <div className="mt-4">
-          <FieldLabelElement
-            title={"Criteria Description"}
-            description={
-              "Any friendly description for this criteria, that will help you remember later."
-            }
-            required={true}
-          />
-          <TextArea
-            value={monitorCriteriaInstance?.data?.description?.toString() || ""}
             onBlur={() => {
-              setTouched({
-                ...touched,
-                description: true,
-              });
+              /*
+               * A criteria cannot be saved without a name, so a name cleared
+               * and left empty goes back to the one the filters give it -
+               * the field never strands the user on "Name is required".
+               */
+              if (monitorCriteriaInstance.data?.name?.trim()) {
+                return;
+              }
 
-              if (!monitorCriteriaInstance?.data?.description) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
-            }}
-            error={
-              touched["description"] && errors["description"]
-                ? errors["description"]
-                : undefined
-            }
-            onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
-              monitorCriteriaInstance.setDescription(value);
+              monitorCriteriaInstance.setName(nameFromFilters);
               if (props.onChange) {
                 props.onChange(
                   MonitorCriteriaInstance.clone(monitorCriteriaInstance),
                 );
               }
             }}
-            placeholder="This criteria checks if the monitor is online."
           />
+          {isNameFromFilters && (
+            <p
+              className="mt-1 text-xs text-gray-500"
+              data-testid="monitor-criteria-name-follows-filters"
+            >
+              {props.monitorType === MonitorType.Kubernetes ||
+              props.monitorType === MonitorType.Metrics
+                ? translator.translateText(
+                    "Named after the alert rules below. It follows them until you type a name of your own.",
+                  )
+                : translator.translateText(
+                    "Named after the filters below. It follows them until you type a name of your own.",
+                  )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -369,43 +435,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         className="mb-4"
       >
         <div>
-          <div className="mb-3">
-            <FieldLabelElement
-              title={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Match Condition"
-                  : "Filter Condition"
-              }
-              description={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Should all rules match, or just any one of them?"
-                  : "Select All if you want all the criteria to be met. Select any if you like any criteria to be met."
-              }
-              required={true}
-            />
-            <Radio
-              value={
-                monitorCriteriaInstance?.data?.filterCondition ||
-                FilterCondition.All
-              }
-              options={filterConditionOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                monitorCriteriaInstance.setFilterCondition(
-                  value as FilterCondition,
-                );
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
-              }}
-            />
-          </div>
-
           <NetworkDeviceCriteriaCatalogueContext.Provider
             value={networkDeviceCatalogue}
           >
@@ -418,15 +447,54 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 FilterCondition.All
               }
               onChange={(value: Array<CriteriaFilter>) => {
-                monitorCriteriaInstance.setFilters(value);
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
+                changeFilters({
+                  filters: value,
+                });
               }}
             />
           </NetworkDeviceCriteriaCatalogueContext.Provider>
+
+          {/*
+           * All or Any, once there are two filters to combine
+           * (isFilterConditionNeeded): with one, a criteria is met when that
+           * filter is, whichever is picked. Below the filters, so it
+           * appears without moving the filter just added. Hidden, the
+           * criteria keeps the condition it holds - All for a new one - and
+           * is saved with it.
+           */}
+          {isFilterConditionNeeded(monitorCriteriaInstance?.data?.filters) && (
+            <div
+              className="mt-4"
+              data-testid="monitor-criteria-filter-condition"
+            >
+              <FieldLabelElement
+                id={filterConditionLabelId}
+                title="Match Condition"
+                description={
+                  props.monitorType === MonitorType.Kubernetes ||
+                  props.monitorType === MonitorType.Metrics
+                    ? "Should all rules match, or just any one of them?"
+                    : "Should all filters match, or just any one of them?"
+                }
+                required={true}
+              />
+              <Radio
+                ariaLabelledby={filterConditionLabelId}
+                value={
+                  monitorCriteriaInstance?.data?.filterCondition ||
+                  FilterCondition.All
+                }
+                options={filterConditionOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  changeFilters({
+                    filterCondition: value as FilterCondition,
+                  });
+                }}
+              />
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 
@@ -544,8 +612,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
-                userDropdownOptions={props.userDropdownOptions}
                 monitorType={props.monitorType}
                 seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaAlert>) => {
@@ -564,7 +630,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <Toggle
               value={showIncidentControl}
               title="When filters match, declare an incident."
-              tooltip="When you delcare an incident, it is used to notify the team and is shown on the status page as well."
+              tooltip="When you declare an incident, it is used to notify the team and is shown on the status page as well."
               onChange={(value: boolean) => {
                 setShowIncidentControl(value);
                 monitorCriteriaInstance.setCreateIncidents(value);
@@ -605,7 +671,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
                 incidentRoleOptions={props.incidentRoleOptions}
                 monitorType={props.monitorType}
@@ -621,14 +686,82 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+
+          {/*
+           * An Incoming Email monitor can open an incident (and alert) for
+           * every email instead of one at a time - for people who raise
+           * incidents by emailing the address. Only once the criteria opens
+           * something; the switch keeps its value while both are off.
+           *
+           * Below the actions, set apart by a rule: it is not an action of
+           * its own, it says how often the alert and incident above open.
+           * Its label and help name what the criteria opens.
+           */}
+          {props.monitorType === MonitorType.IncomingEmail &&
+            (showIncidentControl || showAlertControl) && (
+              <div
+                className="mt-6 border-t border-gray-100 pt-4"
+                data-testid="monitor-criteria-open-for-every-email"
+              >
+                <Toggle
+                  value={isOpenForEveryEmail}
+                  dataTestId="monitor-criteria-open-for-every-email-toggle"
+                  title={
+                    showIncidentControl && showAlertControl
+                      ? "Open a new incident and alert for every email"
+                      : showIncidentControl
+                        ? "Open a new incident for every email"
+                        : "Open a new alert for every email"
+                  }
+                  description={
+                    <>
+                      {translator.translateText(
+                        showIncidentControl && showAlertControl
+                          ? "Each matching email opens its own incident and alert. Replies are added as notes until they are resolved."
+                          : showIncidentControl
+                            ? "Each matching email opens its own incident. Replies are added to it as notes until it is resolved."
+                            : "Each matching email opens its own alert. Replies are added to it as notes until it is resolved.",
+                      )}{" "}
+                      {/* Styled as the incident form's docs link above it. */}
+                      <Link
+                        className="underline text-blue-600 hover:text-blue-800"
+                        openInNewTab={true}
+                        to={URL.fromString(
+                          DOCS_URL.toString() + OPEN_FOR_EVERY_EMAIL_DOCS_PATH,
+                        )}
+                      >
+                        {translator.translateText("How it works")}
+                      </Link>
+                    </>
+                  }
+                  onChange={(value: boolean) => {
+                    monitorCriteriaInstance.setOpenForEveryEmail(
+                      value ? true : undefined,
+                    );
+
+                    if (props.onChange) {
+                      props.onChange(
+                        MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
         </div>
       </CollapsibleSection>
 
-      {/* Settings — criteria enable toggle + (incoming request) incident grouping */}
+      {/*
+       * Settings — the enable switch, the optional description and, for
+       * incoming request monitors, incident grouping.
+       */}
       <CollapsibleSection
         title="Settings"
         description="Configure additional settings for this criteria."
-        badge={isEnabled ? "Enabled" : "Disabled"}
+        badge={
+          translator.translateText(isEnabled ? "Enabled" : "Disabled") ||
+          (isEnabled ? "Enabled" : "Disabled")
+        }
         variant="bordered"
         defaultCollapsed={!showIncidentGrouping}
         className="mb-4"
@@ -648,12 +781,39 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             }}
           />
 
+          {/*
+           * Optional: the name already says what the criteria is for. When
+           * there is one, it shows under the name in the criteria's header.
+           */}
+          <div className="mt-4">
+            <FieldLabelElement
+              title={"Description"}
+              htmlFor={descriptionInputId}
+            />
+            <TextArea
+              id={descriptionInputId}
+              dataTestId="monitor-criteria-description-input"
+              autoGrow={true}
+              value={
+                monitorCriteriaInstance?.data?.description?.toString() || ""
+              }
+              onChange={(value: string) => {
+                monitorCriteriaInstance.setDescription(value);
+                if (props.onChange) {
+                  props.onChange(
+                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                  );
+                }
+              }}
+            />
+          </div>
+
           {props.monitorType === MonitorType.IncomingRequest && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <Toggle
                 value={showIncidentGrouping}
                 title="Group incidents and alerts by a payload field"
-                description="When enabled, this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once. Leave off for the default one-active-incident-per-criteria behaviour."
+                description="Open a separate incident and alert for each value of a field in the request body, so one webhook can keep several open."
                 onChange={(value: boolean) => {
                   setShowIncidentGrouping(value);
                   if (value) {
@@ -685,20 +845,27 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         id={groupByLabelId}
                         className="text-sm font-medium text-gray-900"
                       >
-                        Open a separate incident for each…
+                        {translator.translateText(
+                          "Open a separate incident for each…",
+                        )}
                       </span>
                     </div>
                     <p className="mb-2 ml-7 mt-1 text-xs text-gray-500">
-                      A path into the request body — the same{" "}
-                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                        requestBody
-                      </code>{" "}
-                      you reference in incident templates. Every distinct value
-                      opens its own incident; add{" "}
-                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                        [*]
-                      </code>{" "}
-                      to fan out over an array.
+                      <TranslatedSentence
+                        template="A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array."
+                        slots={{
+                          requestBody: (
+                            <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                              requestBody
+                            </code>
+                          ),
+                          wildcard: (
+                            <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                              [*]
+                            </code>
+                          ),
+                        }}
+                      />
                     </p>
                     <div className="ml-7 font-mono">
                       <Input
@@ -711,7 +878,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                       />
                     </div>
                     <p className="ml-7 mt-1.5 text-xs text-gray-500">
-                      e.g. one incident per Grafana alert name.
+                      {translator.translateText(
+                        "e.g. one incident per Grafana alert name.",
+                      )}
                     </p>
                   </div>
 
@@ -722,17 +891,18 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         2
                       </span>
                       <span className="text-sm font-medium text-gray-900">
-                        Auto-resolve each incident when…{" "}
+                        {translator.translateText(
+                          "Auto-resolve each incident when…",
+                        )}{" "}
                         <span className="font-normal text-gray-500">
-                          (optional)
+                          {translator.translateText("(optional)")}
                         </span>
                       </span>
                     </div>
                     <p className="mb-3 ml-7 mt-1 text-xs text-gray-500">
-                      A webhook only describes what is firing right now, so
-                      OneUptime cannot tell an incident has recovered unless the
-                      payload says so. Set the field and value that signal
-                      recovery. Leave blank to resolve these incidents manually.
+                      {translator.translateText(
+                        "A webhook only describes what is firing right now, so OneUptime cannot tell an incident has recovered unless the payload says so. Set the field and value that signal recovery. Leave blank to resolve these incidents manually.",
+                      )}
                     </p>
                     <div className="ml-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
@@ -740,7 +910,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                           htmlFor={resolvedPathInputId}
                           className="block text-xs font-medium text-gray-600"
                         >
-                          Field that signals recovery
+                          {translator.translateText(
+                            "Field that signals recovery",
+                          )}
                         </label>
                         <div className="mt-1 font-mono">
                           <Input
@@ -760,7 +932,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                           htmlFor={resolvedValueInputId}
                           className="block text-xs font-medium text-gray-600"
                         >
-                          Value that means recovered
+                          {translator.translateText(
+                            "Value that means recovered",
+                          )}
                         </label>
                         <div className="mt-1 font-mono">
                           <Input
@@ -779,15 +953,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     {incidentGrouping?.resolvedWhenJSONPath &&
                       incidentGrouping?.resolvedWhenValue && (
                         <p className="ml-7 mt-2 text-xs text-gray-500">
-                          Resolves an incident when{" "}
-                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                            {incidentGrouping.resolvedWhenJSONPath}
-                          </code>{" "}
-                          equals{" "}
-                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                            {incidentGrouping.resolvedWhenValue}
-                          </code>
-                          .
+                          <TranslatedSentence
+                            template="Resolves an incident when {{field}} equals {{value}}."
+                            slots={{
+                              field: (
+                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                  {incidentGrouping.resolvedWhenJSONPath}
+                                </code>
+                              ),
+                              value: (
+                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                  {incidentGrouping.resolvedWhenValue}
+                                </code>
+                              ),
+                            }}
+                          />
                         </p>
                       )}
                   </div>
@@ -799,11 +979,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         id={maxKeysLabelId}
                         className="text-sm font-medium text-gray-900"
                       >
-                        Max incidents per request
+                        {translator.translateText("Max incidents per request")}
                       </p>
                       <p className="mt-0.5 text-xs text-gray-500">
-                        Safety cap so a high-cardinality field cannot open
-                        unbounded incidents. Defaults to 100.
+                        {translator.translateText(
+                          "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.",
+                        )}
                       </p>
                     </div>
                     <div className="w-24 flex-shrink-0">

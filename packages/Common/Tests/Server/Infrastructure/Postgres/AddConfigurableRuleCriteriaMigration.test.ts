@@ -31,6 +31,16 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1795000000000-AddDatabaseServerTables
   "DatabaseServerLabelRule",
   "DatabaseServerOwnerRule",
+  // 1796700000000-AddMessageQueueTables
+  "MessageQueueLabelRule",
+  "MessageQueueOwnerRule",
+  // 1798700000000-AddStorageArrayTables
+  "StorageArrayLabelRule",
+  "StorageArrayOwnerRule",
+  // AddAutomaticRemediationSwitchesAndInvestigationRules
+  "AIInvestigationRule",
+  // 1804200000000-AddAIPostmortemRules
+  "AIPostmortemRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

@@ -23,6 +23,9 @@ import CephClusterInsights from "../Pages/Ceph/View/Insights";
 import CephClusterClusterLog from "../Pages/Ceph/View/ClusterLog";
 import CephClusterMetrics from "../Pages/Ceph/View/Metrics";
 import CephClusterRecommendations from "../Pages/Ceph/View/Recommendations";
+import CephClusterAiInsights from "../Pages/Ceph/View/AI/Insights";
+import CephClusterAiLogs from "../Pages/Ceph/View/AI/Logs";
+import CephClusterAiAgent from "../Pages/Ceph/View/AI/Agent";
 import CephClusterLogs from "../Pages/Ceph/View/Logs";
 import CephClusterIncidents from "../Pages/Ceph/View/Incidents";
 import CephClusterAlerts from "../Pages/Ceph/View/Alerts";
@@ -35,6 +38,9 @@ import CephClusterDelete from "../Pages/Ceph/View/Delete";
 import CephClusterDocumentation from "../Pages/Ceph/View/Documentation";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CephRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -111,6 +117,13 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CephCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.CEPH_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -227,6 +240,48 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <CephClusterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <CephClusterAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <CephClusterAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT] as Route}
             />
           }
         />
@@ -367,6 +422,12 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CephCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

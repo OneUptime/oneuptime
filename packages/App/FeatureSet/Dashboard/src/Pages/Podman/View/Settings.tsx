@@ -1,17 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -24,121 +17,36 @@ const PodmanHostSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<PodmanHost>
-        name="Host Settings"
-        cardProps={{
-          title: "Host Settings",
-          description: "Manage settings for this Podman host.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Default retention for telemetry collected from this Podman host. Leave blank to use the project's default.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: PodmanHost,
-          id: "podman-host-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostIdentifier: true,
-              },
-              title: "Host Identifier",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Default retention for telemetry collected from this Podman host. Falls back to the project's default when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
-          ],
-        }}
-      />
-      <CardModelDetail<PodmanHost>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
+      <ResourceDetailsCard<PodmanHost>
+        modelType={PodmanHost}
+        modelId={modelId}
+        id="podman-host-details"
+        title="Podman Host Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Display Name",
           description:
-            "Override retention for specific telemetry types for this Podman host. Any field left blank falls back to the Podman host default, then the project's settings.",
+            "Shown everywhere this resource appears. Telemetry is not matched by the display name, so renaming is safe.",
+          placeholder: "Production Podman host",
         }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
+        descriptionField={{
+          placeholder: "Production Podman host running in US East",
+        }}
+        identityFields={[
           {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<PodmanHost>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...props}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
+            column: "hostIdentifier",
+            title: "Host Name (host.name)",
+            description:
+              "Telemetry is matched by this host name. Change it only when the host reports a new one: telemetry that still reports the old name creates a new host.",
+            placeholder: "podman-host-prod-1",
           },
         ]}
-        modelDetailProps={{
-          modelType: PodmanHost,
-          id: "model-detail-podman-host-telemetry-retention-overrides",
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: PodmanHost) => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
+      />
+      <TelemetryResourceRetentionSettings<PodmanHost>
+        modelType={PodmanHost}
+        modelId={modelId}
+        resourceName="Podman host"
+        modelDetailIdPrefix="model-detail-podman-host"
       />
       <ArchiveResourceCard<PodmanHost>
         modelType={PodmanHost}

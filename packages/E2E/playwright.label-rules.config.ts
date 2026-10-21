@@ -9,7 +9,15 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "list",
-  outputDir: "../../output/playwright/label-rule-import-export/test-results",
+  /*
+   * Inside packages/E2E, like the enterprise suites': in CI this suite runs in
+   * a `docker compose run --rm e2e` container (test-release.yaml's
+   * test-e2e-test-self-hosted), whose only durable paths are the
+   * playwright-report/ and test-results/ bind mounts. An outputDir above the
+   * package would be discarded with the container, and a failed run would
+   * leave no trace to read.
+   */
+  outputDir: "./test-results/label-rule-transfer",
   use: {
     ...devices["Desktop Chrome"],
     viewport: { width: 1600, height: 1100 },

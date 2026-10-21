@@ -7,12 +7,11 @@ import ServiceLevelObjectiveOwnerUser from "../../Models/DatabaseModels/ServiceL
 import User from "../../Models/DatabaseModels/User";
 import URL from "../../Types/API/URL";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -23,7 +22,7 @@ import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceVali
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertSeverityService from "./AlertSeverityService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
@@ -71,6 +70,7 @@ import {
 import Select from "../Types/Database/Select";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess: the watched
@@ -87,7 +87,7 @@ interface SloFeedUpdateSnapshot {
 interface SloFeedPendingItem {
   eventType: ServiceLevelObjectiveFeedEventType;
   displayColor: Color;
-  getMarkdown: (sloMarkdownLink: string) => SloFeedMarkdown;
+  getMarkdown: (sloMarkdownLink: MarkdownText) => SloFeedMarkdown;
 }
 
 /*
@@ -112,15 +112,28 @@ interface SloDeleteCarryForward {
   burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * OneUptime's own writes to an SLO are the monitor rule engine's
+   * membership sync, which attaches and releases the monitors it read pinned
+   * to the SLO's own project, and the evaluator's numbers - neither names a
+   * record anyone typed. An SLO written by an API call or a workflow is
+   * checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -339,6 +352,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Same string-arrival path as onBeforeCreate — coerce, validate, and write
      * the number back onto the update payload.
@@ -579,23 +594,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The SLOs the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
 
@@ -1008,7 +1014,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     sloId: ObjectID;
     sloName?: string | undefined;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     let sloName: string | undefined = data.sloName;
 
     if (sloName === undefined) {
@@ -1033,11 +1039,12 @@ export class Service extends DatabaseService<Model> {
       data.sloId,
     );
 
-    const escapedName: string = escapeMarkdownInline(sloName).trim();
+    // The name is the link's own text, placed as text (mdText).
+    const name: string = (sloName || "").trim();
 
-    const linkText: string = escapedName ? `SLO ${escapedName}` : "SLO";
-
-    return `[${linkText}](${link.toString()})`;
+    return name
+      ? mdText`[SLO ${name}](${link.toString()})`
+      : mdText`[SLO](${link.toString()})`;
   }
 
   /*
@@ -1169,7 +1176,7 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * A dashboard, API-key or Terraform create carries an acting user; a
-     * workflow or other automation creating as root does not, and the item
+     * workflow step or OneUptime's own automation does not, and the item
      * then says so instead of naming somebody.
      */
     const createdByUserId: ObjectID | undefined =
@@ -1177,7 +1184,7 @@ export class Service extends DatabaseService<Model> {
       data.onCreate.createBy.props.userId ||
       undefined;
 
-    const createdByUserMarkdown: string | null =
+    const createdByUserMarkdown: MarkdownText | null =
       await SloFeedUtil.getUserMarkdown({
         userId: createdByUserId,
         projectId: projectId,
@@ -1246,19 +1253,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        // Pinned: this hook runs before DatabaseService applies permissions.
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: this.getFeedSelect(columns),
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        this.getFeedSelect(columns),
+      );
 
       const rowsById: Dictionary<Model> = {};
 
@@ -1401,7 +1399,7 @@ export class Service extends DatabaseService<Model> {
           ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveArchived
           : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveRestored,
         displayColor: isArchived ? Yellow500 : Blue500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloArchivedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             isArchived: isArchived,
@@ -1420,7 +1418,7 @@ export class Service extends DatabaseService<Model> {
           ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveEnabled
           : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveDisabled,
         displayColor: isEnabled ? Green500 : Gray500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloEnabledFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             isEnabled: isEnabled,
@@ -1447,7 +1445,7 @@ export class Service extends DatabaseService<Model> {
         eventType:
           ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveUpdated,
         displayColor: Gray500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloUpdatedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             changes: changes,
@@ -1471,7 +1469,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const sloMarkdownLink: string = await this.getSloMarkdownLink({
+    const sloMarkdownLink: MarkdownText = await this.getSloMarkdownLink({
       projectId: projectId,
       sloId: data.sloId,
       sloName: after.name || data.before.name || "",
@@ -1578,7 +1576,7 @@ export class Service extends DatabaseService<Model> {
       items.push({
         eventType: ServiceLevelObjectiveFeedEventType.MonitorsAttached,
         displayColor: Blue500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloMonitorsChangedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             monitors: attached,
@@ -1595,7 +1593,7 @@ export class Service extends DatabaseService<Model> {
       items.push({
         eventType: ServiceLevelObjectiveFeedEventType.MonitorsDetached,
         displayColor: Orange500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloMonitorsChangedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             monitors: detached,
@@ -1615,8 +1613,8 @@ export class Service extends DatabaseService<Model> {
    * The column stays in the API so upgrades do not break, and it is still
    * written: a dashboard tab opened before the upgrade sends it with every
    * save of the SLO form, and so can an API client or a workflow written
-   * against the previous release. Workflows write as root, which is why every
-   * caller is handled here, not only users - nothing on this release writes
+   * against the previous release. A workflow step is no person, which is why
+   * every caller is handled here, not only users - nothing on this release writes
    * the column for its own reasons. Nothing else on this release reads it
    * either, so storing it and moving on left the SLO measuring something other
    * than what the caller had just saved. It is applied instead, the way this
@@ -1836,10 +1834,10 @@ export class Service extends DatabaseService<Model> {
    * out-of-date SLO form re-sends every field it loaded, labels included, on
    * every save.
    *
-   * Pinned to the caller's tenant like the feed snapshot, since this runs
-   * before DatabaseService applies the update's permissions. A failed read
-   * never blocks the update; its SLOs then count as re-submitting their list,
-   * the reading that can never bring a deleted rule back.
+   * Read as the rows the update writes, like the feed snapshot
+   * (findRowsAndHoldUpdateToThem). A failed read never blocks the update; its
+   * SLOs then count as re-submitting their list, the reading that can never
+   * bring a deleted rule back.
    */
   private async readDeprecatedMonitorLabelsBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -1851,23 +1849,15 @@ export class Service extends DatabaseService<Model> {
     const labelIdsBySloId: Dictionary<Array<string>> = {};
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: {
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           monitorLabels: {
             _id: true,
           },
         },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const row of rows) {
         if (row.id) {
@@ -1900,10 +1890,11 @@ export class Service extends DatabaseService<Model> {
    * Root writes pass untouched: the rule engine itself writes `monitors` as
    * root, and it must never be refused by the guard that protects its output.
    *
-   * This hook runs before DatabaseService's update permission check, so the
-   * caller's raw query is pinned to the caller's tenant before anything is
-   * read - a validation read must not answer questions about another
-   * project's SLOs.
+   * The SLOs judged are the ones the update writes - for a teammate, the SLOs
+   * they may write - and the update is held to them
+   * (findRowsAndHoldUpdateToThem): a validation read must not answer
+   * questions about another project's SLOs, and no SLO may be written
+   * unjudged.
    */
   private async assertMonitorEditRespectsMonitorRules(
     updateBy: UpdateBy<Model>,
@@ -1914,17 +1905,9 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    const slos: Array<Model> = await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         monitors: {
           _id: true,
@@ -1933,12 +1916,7 @@ export class Service extends DatabaseService<Model> {
           _id: true,
         },
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const sloIds: Array<ObjectID> = slos
       .map((slo: Model): ObjectID | null => {

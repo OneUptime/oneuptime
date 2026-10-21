@@ -1,9 +1,17 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import HostLabelRuleEngineService from "./HostLabelRuleEngineService";
 import HostOwnerRuleEngineService from "./HostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Host";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import HostFeedService from "./HostFeedService";
 import { HostFeedEventType } from "../../Models/DatabaseModels/HostFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -12,6 +20,16 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  NamedAfterIdentityOptions,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnIdentifier,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -22,12 +40,38 @@ import InProcessMemo from "../Utils/InProcessMemo";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import HostCollectorAgentCache from "../Utils/HostCollector/HostCollectorAgentCache";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "host-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
+
+// The columns that decide the config a managed host runs (HostCollectorAgent).
+export const HOST_COLLECTOR_STATE_COLUMNS: ReadonlyArray<string> = [
+  "labels",
+  "collectorConfigId",
+  "isCollectorConfigPinned",
+  "collectorFailedConfigHash",
+  "osType",
+];
+
+/*
+ * A host is matched to its telemetry by host.name, and named after it unless
+ * somebody gives it a display name of their own (DiscoveredResourceCreate).
+ */
+const HOST_IDENTITY: NamedAfterIdentityOptions = {
+  identityColumn: "hostIdentifier",
+  resourceName: "host",
+  identityName: "host name",
+};
+
+const HOST_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>(HOST_IDENTITY);
+
+const HOST_MATCH_COLUMN: MatchColumn = matchedOnIdentifier(HOST_IDENTITY);
 
 /*
  * What `findOrCreateByHostIdentifier` memoizes: the resolved row's id plus
@@ -69,7 +113,7 @@ const hostResolutionInProcessMemo: InProcessMemo<HostResolution> =
     maxEntries: HOST_RESOLUTION_MEMO_MAX_ENTRIES,
   });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -119,6 +163,20 @@ export class Service extends DatabaseService<Model> {
   public async findOrCreateByHostIdentifier(data: {
     projectId: ObjectID;
     hostIdentifier: string;
+    /*
+     * Skip the in-process memo and look the row up (the memo is then
+     * refreshed with what was found or created). For a caller that learned
+     * the memoed id names a host deleted since: the memo is never
+     * invalidated by a delete, so it keeps that id for up to its TTL.
+     */
+    bypassMemo?: boolean | undefined;
+    /*
+     * The collector OneUptime manages on the host asked for its config
+     * before the host sent any telemetry (HostCollectorAgent). The host is
+     * created without a last-seen time or a "connected" status: those say
+     * its telemetry arrives, which it has not yet.
+     */
+    isRegisteredByCollectorManagement?: boolean | undefined;
   }): Promise<Model> {
     /*
      * Canonicalize the identifier (trim + lowercase, matching
@@ -141,8 +199,9 @@ export class Service extends DatabaseService<Model> {
      * the resolving call performed within the last minute.
      */
     const memoKey: string = `${data.projectId.toString()}:${hostIdentifier}`;
-    const memoedResolution: HostResolution | undefined =
-      hostResolutionInProcessMemo.get(memoKey);
+    const memoedResolution: HostResolution | undefined = data.bypassMemo
+      ? undefined
+      : hostResolutionInProcessMemo.get(memoKey);
     if (memoedResolution) {
       const memoedHost: Model = new Model();
       memoedHost._id = memoedResolution.hostIdStr;
@@ -227,8 +286,10 @@ export class Service extends DatabaseService<Model> {
       newHost.projectId = data.projectId;
       newHost.name = hostIdentifier;
       newHost.hostIdentifier = hostIdentifier;
-      newHost.otelCollectorStatus = "connected";
-      newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
+      if (!data.isRegisteredByCollectorManagement) {
+        newHost.otelCollectorStatus = "connected";
+        newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
+      }
 
       const createdHost: Model = await this.create({
         data: newHost,
@@ -464,8 +525,14 @@ export class Service extends DatabaseService<Model> {
       cloudAccountId: extra?.cloudAccountId ?? null,
     };
 
+    /*
+     * Change detection only, but the payload carries the cloud account id,
+     * so it is hashed with SHA-256 rather than SHA-1. The value lives in the
+     * heartbeat throttle's cache, so the switch costs each host one extra
+     * metadata write after a deploy, nothing more.
+     */
     return crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(JSON.stringify(normalized))
       .digest("hex");
   }
@@ -562,15 +629,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedHosts: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -687,11 +759,11 @@ export class Service extends DatabaseService<Model> {
   public async getHostMarkdownLink(
     projectId: ObjectID,
     hostId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getHostName({ hostId: hostId });
     const link: URL = await this.getHostLinkInDashboard(projectId, hostId);
 
-    return `[Host ${name}](${link.toString()})`;
+    return mdText`[Host ${name}](${link.toString()})`;
   }
 
   private async writeHostCreatedFeed(
@@ -739,16 +811,180 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a host settles its in-flight AI remediation rounds and removes its
+   * resource AI agent — read before the delete, done after it for the hosts
+   * actually deleted (ResourceAiDeleteCleanup, shared by every resource AI
+   * agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.Host,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.Host,
+      onDelete,
+      deletedItemIds,
+    });
+
+    /*
+     * A managed host's collector that still runs asks for its config again:
+     * its next poll finds the host gone, and files it anew.
+     */
+    for (const hostId of deletedItemIds) {
+      await HostCollectorAgentCache.dropState(hostId.toString());
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new host starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.Host,
+      createBy,
+    });
+
+    // Named after its host name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({ createBy, naming: HOST_NAMING });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * A host that is already there - discovered from its telemetry or added
+   * before - is refused by its host name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: HOST_NAMING,
+    });
+  }
+
+  /*
+   * A host's host name - edited from the details card on its Settings page - is stored
+   * without the spaces around it, and refused when another one of the
+   * project already has it (DiscoveredResourceUpdate).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: HOST_MATCH_COLUMN,
+    });
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this host — the rules every resource AI agent's
+   * resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.Host,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A change to what decides the config a managed host runs (its labels,
+     * the config picked for it, Try again on a failed one) reaches the host
+     * with its next poll, not a minute later: its cached state is dropped.
+     */
+    if (
+      HOST_COLLECTOR_STATE_COLUMNS.some((column: string): boolean => {
+        return (
+          (onUpdate.updateBy.data as unknown as JSONObject)[column] !==
+          undefined
+        );
+      })
+    ) {
+      for (const hostId of updatedItemIds) {
+        await HostCollectorAgentCache.dropState(hostId.toString());
+      }
+    }
+
     this.writeHostUpdatedFeed(onUpdate, updatedItemIds).catch(
       (error: Error) => {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the host marked
+     * AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        hostId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getHostMarkdownLink(projectId, hostId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await HostFeedService.createHostFeedItem({
+          hostId: item.resourceId,
+          projectId: item.projectId,
+          hostFeedEventType: HostFeedEventType.HostUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -801,7 +1037,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getHostMarkdownLink(
+      const resourceMarkdownLink: MarkdownText = await this.getHostMarkdownLink(
         projectId,
         hostId,
       );
@@ -815,8 +1051,8 @@ export class Service extends DatabaseService<Model> {
             : HostFeedEventType.HostRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

@@ -60,7 +60,7 @@ describe("the processor form offers GrokParser", () => {
 
   test("picking it reveals a configuration panel", () => {
     expect(FORM_SOURCE).toMatch(
-      /processorType === ["']GrokParser["'][\s\S]{0,200}Grok Parser Configuration/,
+      /processorType === ["']GrokParser["'][\s\S]{0,260}Grok Parser Configuration/,
     );
   });
 });

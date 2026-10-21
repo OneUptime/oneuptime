@@ -19,13 +19,16 @@ import {
 } from "../hooks/useMonitorDetail";
 import { rgbToHex, withAlpha } from "../utils/color";
 import { formatDateTime, formatRelativeTime } from "../utils/date";
+import { formatElapsed, toTimestamp } from "../utils/duration";
 import { toPlainText } from "../utils/text";
 import type { MonitorsStackParamList } from "../navigation/types";
 import type { MonitorStatusTimelineItem } from "../api/monitors";
 import AppText from "../components/AppText";
 import Banner from "../components/Banner";
 import Card from "../components/Card";
+import CurrentlyActiveBadge from "../components/CurrentlyActiveBadge";
 import FeedTimeline from "../components/FeedTimeline";
+import LiveElapsed from "../components/LiveElapsed";
 import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
 import {
@@ -66,10 +69,42 @@ function getMonitorTypeLabel(monitorType?: string): string {
 }
 
 /*
+ * When a change began, in epoch milliseconds: its start, or - for a row
+ * written before starts were recorded - when it was created.
+ */
+function getEntryStart(entry: MonitorStatusTimelineItem): number | null {
+  return toTimestamp(entry.startsAt ?? entry.createdAt);
+}
+
+/*
+ * When a change ended, or null for the status in effect now. Only the newest
+ * change can still be in effect: an older one the server never closed was
+ * superseded all the same, and lasted until the change after it began.
+ */
+function getEntryEnd(
+  entries: MonitorStatusTimelineItem[],
+  index: number,
+): number | null {
+  const entry: MonitorStatusTimelineItem | undefined = entries[index];
+  const endsAt: number | null = toTimestamp(entry?.endsAt);
+
+  if (endsAt !== null || index === 0) {
+    return endsAt;
+  }
+
+  const newer: MonitorStatusTimelineItem | undefined = entries[index - 1];
+
+  return newer ? getEntryStart(newer) : null;
+}
+
+/*
  * Status changes as a vertical timeline on one card: a dot in the status
  * colour, a rail joining it to the next change, then the status, when it
- * began and why. The rail is drawn inside each row, so there are no hairline
- * separators for it to cross.
+ * began, how long it lasted and why. The rail is drawn inside each row, so
+ * there are no hairline separators for it to cross.
+ *
+ * The status in effect now - the newest change, with no end - is marked
+ * Currently Active, and its duration counts up every second.
  */
 function StatusHistory({
   entries,
@@ -84,6 +119,10 @@ function StatusHistory({
           ? rgbToHex(entry.monitorStatus.color)
           : theme.colors.textTertiary;
         const isLast: boolean = index === entries.length - 1;
+        const startedAt: number | null = getEntryStart(entry);
+        const endedAt: number | null = getEntryEnd(entries, index);
+        const isCurrent: boolean =
+          index === 0 && toTimestamp(entry.endsAt) === null;
         return (
           <View
             key={entry._id}
@@ -136,11 +175,38 @@ function StatusHistory({
                 paddingBottom: isLast ? 0 : spacing.lg,
               }}
             >
-              <AppText variant="headline">
-                {entry.monitorStatus?.name ?? "Unknown"}
-              </AppText>
-              <AppText variant="footnote" tone="secondary">
+              <View
+                testID="monitor-status-history-title"
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
+              >
+                <AppText variant="headline">
+                  {entry.monitorStatus?.name ?? "Unknown"}
+                </AppText>
+                {isCurrent ? <CurrentlyActiveBadge /> : null}
+              </View>
+              <AppText
+                variant="footnote"
+                tone="secondary"
+                testID="monitor-status-history-timing"
+              >
                 {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
+                {isCurrent && startedAt !== null ? (
+                  <>
+                    {" · for "}
+                    <LiveElapsed
+                      since={startedAt}
+                      testID="monitor-status-history-live-duration"
+                    />
+                  </>
+                ) : null}
+                {!isCurrent && startedAt !== null && endedAt !== null
+                  ? ` · for ${formatElapsed(endedAt - startedAt)}`
+                  : null}
               </AppText>
               {entry.rootCause ? (
                 <View style={{ marginTop: spacing.xs }}>

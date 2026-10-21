@@ -1,9 +1,9 @@
+import { isScimEmailChanging } from "./SCIMUtils";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ObjectID from "Common/Types/ObjectID";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
-import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoConsentService";
 import UserService from "Common/Server/Services/UserService";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
@@ -23,12 +23,15 @@ import User from "Common/Models/DatabaseModels/User";
  * 1. MEMBERSHIP. Accepting a membership is a permission grant (see
  *    TeamMemberService.onBeforeCreate), so on the hosted service SCIM creates
  *    an ACCEPTED membership only for:
- *      - an account this SCIM request has just created,
- *      - an account that has already joined this project, or
- *      - an account whose mailbox owner confirmed this project's single
- *        sign-on (UserProjectSsoConsent), which is them agreeing to join.
+ *      - an account this SCIM request has just created, or
+ *      - an account that has already joined this project - which includes
+ *        everybody whose mailbox owner confirmed this project's single
+ *        sign-on (UserProjectSsoConsent): confirming joins them.
  *    Any other existing account is INVITED: a pending membership and the
- *    ordinary invitation email, which it accepts or rejects for itself.
+ *    ordinary invitation email, which it accepts or rejects for itself. That
+ *    includes somebody who has left the project: leaving ends their consent
+ *    to its single sign-on (ProjectLeaveAccessCleanup), so the project
+ *    cannot add them back without asking.
  *    Self-hosted installs keep accepting on arrival. Their project admins are
  *    usually one organisation, and many have no working SMTP to invite with.
  *
@@ -186,15 +189,6 @@ export default class ProjectSCIMAccountPolicy {
       return await this.createAcceptedMembership(teamMember);
     }
 
-    if (
-      await UserProjectSsoConsentService.hasConsent({
-        userId: data.userId,
-        projectId: data.projectId,
-      })
-    ) {
-      return await this.createAcceptedMembership(teamMember);
-    }
-
     teamMember.hasAcceptedInvitation = false;
 
     /*
@@ -333,16 +327,13 @@ export default class ProjectSCIMAccountPolicy {
 
   /*
    * Whether an update carrying `newEmail` would change the address of an
-   * account whose current address is `currentEmail`. Email normalises case
-   * and whitespace, so this compares what would actually be stored.
+   * account whose current address is `currentEmail`: SCIMUtils'
+   * isScimEmailChanging, which compares what would actually be stored.
    */
   public static isEmailChanging(data: {
     currentEmail: string | undefined;
     newEmail: string;
   }): boolean {
-    return (
-      (data.currentEmail || "").trim().toLowerCase() !==
-      data.newEmail.trim().toLowerCase()
-    );
+    return isScimEmailChanging(data);
   }
 }

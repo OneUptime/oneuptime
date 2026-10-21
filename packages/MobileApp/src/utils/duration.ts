@@ -14,7 +14,8 @@
  * shift, and the format is small enough to write out.
  */
 
-const MILLISECONDS_PER_MINUTE: number = 60 * 1000;
+const MILLISECONDS_PER_SECOND: number = 1000;
+const MILLISECONDS_PER_MINUTE: number = 60 * MILLISECONDS_PER_SECOND;
 const MILLISECONDS_PER_HOUR: number = 60 * MILLISECONDS_PER_MINUTE;
 const MILLISECONDS_PER_DAY: number = 24 * MILLISECONDS_PER_HOUR;
 
@@ -98,6 +99,53 @@ export function formatDuration(milliseconds: number): string {
   );
 
   return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+}
+
+/**
+ * How long something has lasted, down to the second: "54s", "2m 54s",
+ * "1h 2m 54s" - and from a day on "2d 4h 12m", where the seconds have stopped
+ * meaning anything.
+ *
+ * formatDuration's two coarse units suit a countdown. A status that is in
+ * effect right now counts UP, live, on screen, and a count that only moves
+ * once a minute reads as frozen; the finished ones beside it use the same
+ * wording so the two can be compared at a glance.
+ *
+ * Anything under a second - including a negative span, which is a start a
+ * little ahead of the handset's clock - is "0s", never a blank or a minus.
+ */
+export function formatElapsed(milliseconds: number): string {
+  if (
+    !Number.isFinite(milliseconds) ||
+    milliseconds < MILLISECONDS_PER_SECOND
+  ) {
+    return "0s";
+  }
+
+  const days: number = Math.floor(milliseconds / MILLISECONDS_PER_DAY);
+  const hours: number = Math.floor(
+    (milliseconds % MILLISECONDS_PER_DAY) / MILLISECONDS_PER_HOUR,
+  );
+  const minutes: number = Math.floor(
+    (milliseconds % MILLISECONDS_PER_HOUR) / MILLISECONDS_PER_MINUTE,
+  );
+  const seconds: number = Math.floor(
+    (milliseconds % MILLISECONDS_PER_MINUTE) / MILLISECONDS_PER_SECOND,
+  );
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
 }
 
 /**

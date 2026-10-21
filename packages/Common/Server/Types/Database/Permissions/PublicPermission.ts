@@ -2,10 +2,10 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import TablePermission from "./TablePermission";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import Permission from "../../../../Types/Permission";
-import UserType from "../../../../Types/UserType";
 
 export default class PublicPermission {
   @CaptureSpan()
@@ -30,8 +30,15 @@ export default class PublicPermission {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
     if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
-      if (props.userType === UserType.API) {
-        // if its an API request then continue.
+      /*
+       * An API key or a workflow step: signed in, though not as a person.
+       * Its permission rows decide the rest.
+       */
+      if (
+        DatabaseCommonInteractionPropsUtil.isProjectPrincipalWithoutPerson(
+          props,
+        )
+      ) {
         return;
       }
 

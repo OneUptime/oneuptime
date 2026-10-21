@@ -44,6 +44,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.dataRetention.logEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.dataRetention.logEditButton")}
         formFields={[
           {
             field: {
@@ -53,7 +55,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.PositiveNumber,
             required: false,
             description:
-              "Number of days to retain monitor logs. Monitor logs older than this will be automatically deleted. Default is 1 day if not set. Minimum: 1 day, Maximum: 365 days.",
+              "How many days monitor logs are kept, from 1 to 365. Leave empty for 1 day.",
             validation: {
               minValue: 1,
               maxValue: 365,
@@ -88,6 +90,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.dataRetention.metricEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.dataRetention.metricEditButton")}
         formFields={[
           {
             field: {
@@ -97,7 +101,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.PositiveNumber,
             required: false,
             description:
-              "Number of days to retain monitor metrics and the oneuptime.slo.* metrics SLO evaluations post. Metrics older than this will be automatically deleted. Default is 30 days if not set. Minimum: 1 day, Maximum: 365 days.",
+              "How many days monitor, SLO and session replay budget metrics are kept, from 1 to 365. Leave empty for 30 days.",
             validation: {
               minValue: 1,
               maxValue: 365,
@@ -117,7 +121,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Monitor Metric Retention (Days)",
               placeholder: "30 (default)",
               description:
-                "Number of days to retain monitor metrics and SLO metrics. Metrics older than this will be automatically deleted.",
+                "Number of days to retain monitor metrics, SLO metrics and session replay budget metrics. Metrics older than this will be automatically deleted.",
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

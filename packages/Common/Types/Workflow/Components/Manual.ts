@@ -28,7 +28,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.JSON,
         name: "JSON",
-        description: "Enter JSON value that you need to run this workflow",
+        description: "The JSON this run was started with.",
         required: false,
         id: "value",
         placeholder: '{"key1": "value1", "key2": "value2", ....}',
@@ -38,8 +38,7 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Execute",
-        description:
-          "Connect other components to this port if you want them to be executed.",
+        description: "Connect the steps to run when the workflow is started.",
         id: "success",
       },
     ],

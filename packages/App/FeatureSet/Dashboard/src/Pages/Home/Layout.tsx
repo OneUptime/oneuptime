@@ -7,7 +7,7 @@ import Route from "Common/Types/API/Route";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { matchPath, Outlet, useLocation } from "react-router-dom";
 
 interface HomePagePresentation {
   title: string;
@@ -30,6 +30,20 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
     route: Route;
     presentation: HomePagePresentation;
   }> = [
+    {
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+      ),
+      presentation: {
+        title: "Active Incidents",
+        breadcrumb: {
+          title: "Active Incidents",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+          ),
+        },
+      },
+    },
     {
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
@@ -69,9 +83,9 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
         RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
       ),
       presentation: {
-        title: "Inoperational Monitors",
+        title: "Not Operational Monitors",
         breadcrumb: {
-          title: "Inoperational Monitors",
+          title: "Not Operational Monitors",
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
           ),
@@ -103,6 +117,18 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
     },
   )?.presentation || { title: "Home" };
 
+  /*
+   * The overview draws every list this menu holds, each with its count, so it
+   * takes the full width. Every other Home page is a list it opens, and keeps
+   * the menu: it moves between them, holds the two Active Episodes lists, and
+   * leads back to Overview.
+   */
+  const isOverview: boolean =
+    matchPath(
+      { path: (RouteMap[PageMap.HOME] as Route).toString(), end: true },
+      location.pathname,
+    ) !== null;
+
   const breadcrumbLinks: Array<Link> = [
     {
       title: "Project",
@@ -123,7 +149,9 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
       title={presentation.title}
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={
-        <DashboardSideMenu project={props.currentProject || undefined} />
+        isOverview ? undefined : (
+          <DashboardSideMenu project={props.currentProject || undefined} />
+        )
       }
     >
       <Suspense fallback={<PageLoader isVisible={true} />}>

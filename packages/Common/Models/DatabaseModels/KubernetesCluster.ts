@@ -1,3 +1,5 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Label from "./Label";
 import Project from "./Project";
 import RunbookCredential from "./RunbookCredential";
@@ -951,6 +953,11 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -992,6 +999,11 @@ export default class KubernetesCluster extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
   /*
@@ -1013,7 +1025,8 @@ export default class KubernetesCluster extends BaseModel {
    * KubernetesClusterService unless the caller holds one of
    * KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the permissions that may author
    * a FullAuto AutoRemediationRule), and binding a credential also needs
-   * KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS. A column ACL cannot express
+   * the read of runbook credentials (RunbookCredentialReaders - the one rule
+   * every use of a runbook credential asks). A column ACL cannot express
    * "tightening is free", which is why the rule lives in the service. The
    * descriptions say so, because they are the API and Terraform docs.
    */
@@ -1203,13 +1216,13 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Investigate With kubectl",
     description:
-      "When on, OneUptime AI runs read-only kubectl commands (get, describe, logs, events, top, rollout status) on this cluster while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Anyone who may edit the cluster can turn it on or off.",
-    defaultValue: false,
+      "When on, OneUptime AI runs read-only kubectl commands (get, describe, logs, events, top, rollout status) on this cluster, through the cluster's Kubernetes AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the cluster can turn it on or off.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public isAiInvestigationEnabled?: boolean = undefined;
 

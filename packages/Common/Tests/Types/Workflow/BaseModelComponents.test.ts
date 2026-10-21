@@ -1,16 +1,18 @@
 /*
- * The generated database components: eleven per model, across 227 models that
+ * The generated database components: twelve per model, across 227 models that
  * enable workflows. Nothing here is written by hand, so a single wrong string
  * in the generator is a wrong string on well over a thousand components — which
  * is how one shared documentation file came to be attached to eight of them and
  * to none of the three triggers.
  *
- * These pin the metadata a builder actually reads: which documentation each
- * component points at, which arguments it opens on, and what its own palette
- * entry says it does.
+ * These pin the metadata a builder actually reads: the help each component
+ * gets, which arguments it opens on, and what its own palette entry says it
+ * does.
  */
 
 import BaseModelComponent from "../../../Types/Workflow/Components/BaseModel";
+import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
+import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import ComponentMetadata, {
   Argument,
   ComponentInputType,
@@ -19,6 +21,10 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../../Models/DatabaseModels/MonitorSecret";
+import {
+  DatabaseOperation,
+  getDatabaseOperation,
+} from "../../../Types/Workflow/DatabaseOperation";
 import { describe, expect, test } from "@jest/globals";
 
 const COMPONENTS: Array<ComponentMetadata> = BaseModelComponent.getComponents(
@@ -72,11 +78,16 @@ const COMPONENT_IDS: Array<string> = [
   "-delete-many",
 ];
 
-const TRIGGER_IDS: Array<string> = ["-on-create", "-on-update", "-on-delete"];
+const TRIGGER_IDS: Array<string> = [
+  "-on-create",
+  "-on-update",
+  "-on-create-or-update",
+  "-on-delete",
+];
 
 describe("generated database components", () => {
-  test("a model with everything enabled gets eleven components", () => {
-    expect(COMPONENTS).toHaveLength(11);
+  test("a model with everything enabled gets twelve components", () => {
+    expect(COMPONENTS).toHaveLength(12);
   });
 
   test("a model with workflows disabled gets none", () => {
@@ -102,64 +113,64 @@ describe("generated database components", () => {
   });
 });
 
-describe("documentation links", () => {
+describe("help", () => {
   /*
-   * One shared file used to serve all eight components, so on Create One most
-   * of it described arguments that component does not have. Splitting it per
-   * operation is only correct if every component points at its own file.
+   * One shared Markdown file once served all eight components, so on Create
+   * One most of it described arguments that component does not have; then one
+   * file per operation, still shared by every model. Each component's help is
+   * now built for its own operation and model (DatabaseDocumentation.ts), and
+   * ComponentDocumentation.test.ts holds what it says. Here: that every one of
+   * the eleven gets help of its own, and only for what it is.
    */
-  type ExpectDocsFunction = (idSuffix: string, fileName: string) => void;
+  type DocsOfFunction = (idSuffix: string) => ComponentDocumentation;
 
-  const expectDocs: ExpectDocsFunction = (
-    idSuffix: string,
-    fileName: string,
-  ): void => {
-    expect(find(idSuffix).documentationLink?.toString()).toBe(
-      `/workflow/docs/${fileName}`,
-    );
+  const docsOf: DocsOfFunction = (idSuffix: string): ComponentDocumentation => {
+    const metadata: ComponentMetadata = find(idSuffix);
+    const documentation: ComponentDocumentation | null =
+      getComponentDocumentation({ metadata, stepId: `${metadata.id}-1` });
+
+    if (!documentation) {
+      throw new Error(`No help for ${metadata.id}`);
+    }
+
+    return documentation;
   };
 
-  test("find components point at the find docs", () => {
-    expectDocs("-find-one", "DatabaseFind.md");
-    expectDocs("-find-many", "DatabaseFind.md");
+  test("every generated component has help", () => {
+    for (const idSuffix of [...COMPONENT_IDS, ...TRIGGER_IDS]) {
+      expect(docsOf(idSuffix).summary.length).toBeGreaterThan(0);
+    }
   });
 
-  test("create components point at the create docs", () => {
-    expectDocs("-create-one", "DatabaseCreate.md");
-    expectDocs("-create-many", "DatabaseCreate.md");
+  test("each component's help is its own, not one shared page", () => {
+    const summaries: Set<string> = new Set(
+      [...COMPONENT_IDS, ...TRIGGER_IDS].map((idSuffix: string) => {
+        return docsOf(idSuffix).summary;
+      }),
+    );
+
+    expect(summaries.size).toBe(COMPONENT_IDS.length + TRIGGER_IDS.length);
   });
 
-  test("update components point at the update docs", () => {
-    expectDocs("-update-one", "DatabaseUpdate.md");
-    expectDocs("-update-many", "DatabaseUpdate.md");
-  });
-
-  test("delete components point at the delete docs", () => {
-    expectDocs("-delete-one", "DatabaseDelete.md");
-    expectDocs("-delete-many", "DatabaseDelete.md");
+  test("the help names the model it is about", () => {
+    for (const idSuffix of [...COMPONENT_IDS, ...TRIGGER_IDS]) {
+      expect(docsOf(idSuffix).summary).toMatch(/Monitors?\b/);
+    }
   });
 
   /*
-   * The triggers had no documentationLink at all, so ComponentSettingsModal
-   * rendered no documentation card for them and nothing explained the absence.
+   * The triggers once had no documentation at all, so their dialog showed no
+   * card for it and nothing explained the absence.
    */
-  test("triggers now have documentation of their own", () => {
+  test("triggers have help of their own", () => {
     for (const idSuffix of TRIGGER_IDS) {
-      expectDocs(idSuffix, "DatabaseTriggers.md");
+      expect(docsOf(idSuffix).summary).toMatch(/^Starts this workflow/);
     }
   });
 
-  test("no component is left pointing at the old shared file", () => {
+  test("no component carries a link to a Markdown file any more", () => {
     for (const component of COMPONENTS) {
-      expect(component.documentationLink?.toString()).not.toContain(
-        "DatabaseComponents.md",
-      );
-    }
-  });
-
-  test("every generated component has documentation", () => {
-    for (const component of COMPONENTS) {
-      expect(component.documentationLink).toBeDefined();
+      expect(Object.keys(component)).not.toContain("documentationLink");
     }
   });
 });
@@ -297,16 +308,53 @@ describe("what the palette says each component does", () => {
     }
   });
 
-  test("the On Update listen-on description is spelled correctly and honest", () => {
-    const description: string =
-      argumentOf(find("-on-update"), "listen-on")?.description || "";
+  /*
+   * "Listen on" and "Select Fields" were the maintainer's "very confusing"
+   * pair. Each is named for what it decides, and its one line says what
+   * leaving it empty means. The finer points - a field written back as it
+   * was is no change; an update that says nothing of its fields runs the
+   * workflow anyway - are in the step's How to use (ComponentDocumentation
+   * holds them there).
+   */
+  test("On Update's two field lists say what they decide, and what empty means", () => {
+    const watch: Argument | undefined = argumentOf(
+      find("-on-update"),
+      "listen-on",
+    );
+    const passOn: Argument | undefined = argumentOf(
+      find("-on-update"),
+      "select",
+    );
 
-    expect(description).not.toContain("upate");
-    /*
-     * OnTriggerBaseModel skips this filter entirely when the event carries no
-     * record of which fields changed, so it cannot be described as a guarantee.
-     */
-    expect(description).toMatch(/skipped|anyway/);
+    expect(watch?.name).toBe("Fields to watch");
+    expect(watch?.required).toBe(false);
+    expect(watch?.description).toBe(
+      "Run only when an update changes one of these fields. Leave it empty to run on every change to the Monitor.",
+    );
+    expect(passOn?.name).toBe("Fields to pass on");
+    expect(passOn?.required).toBe(true);
+    expect(passOn?.description).toBe(
+      "The Monitor fields the next steps can use. A field you leave out is empty in later steps.",
+    );
+  });
+
+  test("every step that passes a record on calls its field list Fields to pass on, never Select Fields", () => {
+    for (const idSuffix of [
+      "-on-create",
+      "-on-update",
+      "-on-create-or-update",
+      "-find-one",
+      "-find-many",
+    ]) {
+      const select: Argument | undefined = argumentOf(find(idSuffix), "select");
+
+      expect([idSuffix, select?.name]).toEqual([idSuffix, "Fields to pass on"]);
+      // Column keys only matter in the JSON, which says so itself.
+      expect([idSuffix, select?.description.includes("_id")]).toEqual([
+        idSuffix,
+        false,
+      ]);
+    }
   });
 });
 
@@ -337,6 +385,7 @@ describe("return values", () => {
       "-create-one",
       "-on-create",
       "-on-update",
+      "-on-create-or-update",
       "-on-delete",
     ]) {
       expect(returnValueOf(find(idSuffix), "model")?.type).toBe(
@@ -426,21 +475,39 @@ describe("a model that enables only some operations", () => {
     }
   });
 
-  test("each component's documentation matches its own operation", () => {
-    for (const component of secretComponents) {
-      const link: string = component.documentationLink?.toString() || "";
+  /*
+   * Told apart by the operation the id ends in, never by a part of it:
+   * "-on-create-or-update" holds "-create-", and is a trigger.
+   */
+  test("each component's help is about its own operation", () => {
+    const verbs: Record<DatabaseOperation, RegExp> = {
+      [DatabaseOperation.CreateOne]: /^Creates /,
+      [DatabaseOperation.CreateMany]: /^Creates /,
+      [DatabaseOperation.FindOne]: /^Finds /,
+      [DatabaseOperation.FindMany]: /^Finds /,
+      [DatabaseOperation.UpdateOne]: /^Changes /,
+      [DatabaseOperation.UpdateMany]: /^Changes /,
+      [DatabaseOperation.DeleteOne]: /^Deletes /,
+      [DatabaseOperation.DeleteMany]: /^Deletes /,
+      [DatabaseOperation.OnCreate]: /^Starts this workflow /,
+      [DatabaseOperation.OnUpdate]: /^Starts this workflow /,
+      [DatabaseOperation.OnCreateOrUpdate]: /^Starts this workflow /,
+      [DatabaseOperation.OnDelete]: /^Starts this workflow /,
+    };
 
-      if (component.id.includes("-create-")) {
-        expect(link).toBe("/workflow/docs/DatabaseCreate.md");
-      } else if (component.id.includes("-find-")) {
-        expect(link).toBe("/workflow/docs/DatabaseFind.md");
-      } else if (component.id.includes("-update-")) {
-        expect(link).toBe("/workflow/docs/DatabaseUpdate.md");
-      } else if (component.id.includes("-delete-")) {
-        expect(link).toBe("/workflow/docs/DatabaseDelete.md");
-      } else {
-        expect(link).toBe("/workflow/docs/DatabaseTriggers.md");
-      }
+    for (const component of secretComponents) {
+      const summary: string =
+        getComponentDocumentation({
+          metadata: component,
+          stepId: `${component.id}-1`,
+        })?.summary || "";
+      const operation: DatabaseOperation | null = getDatabaseOperation({
+        componentId: component.id,
+        tableName: component.tableName || "",
+      });
+
+      expect(operation).not.toBeNull();
+      expect(summary).toMatch(verbs[operation!]);
     }
   });
 });

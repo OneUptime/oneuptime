@@ -3,15 +3,18 @@ import {
   CriteriaFilterUtil,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 
 /**
- * How a criteria's values are displayed: the unit, and the metric name
- * the formatter's fraction / epoch rules are keyed on.
+ * How a criteria's values are displayed: the unit, the metric name the
+ * formatter's fraction / epoch rules are keyed on, and the monitor type,
+ * which decides how a window over the filter is judged.
  */
 export interface CriteriaDisplayOptions {
   unit?: string | undefined;
   metricName?: string | undefined;
+  monitorType?: MonitorType | undefined;
 }
 
 export default class MonitorCriteriaExpectationBuilder {
@@ -185,6 +188,7 @@ export default class MonitorCriteriaExpectationBuilder {
     const evaluationWindow: string | null =
       MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
         criteriaFilter,
+        options?.monitorType,
       );
 
     if (evaluationWindow) {
@@ -196,11 +200,17 @@ export default class MonitorCriteriaExpectationBuilder {
 
   public static getEvaluationWindowDescription(
     criteriaFilter: CriteriaFilter,
+    monitorType?: MonitorType | undefined,
   ): string | null {
     const parts: Array<string> = [];
 
+    const isEvaluatedOverTime: boolean = CriteriaFilterUtil.isEvaluatedOverTime(
+      criteriaFilter,
+      monitorType,
+    );
+
     if (
-      criteriaFilter.evaluateOverTime &&
+      isEvaluatedOverTime &&
       criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
     ) {
       parts.push(
@@ -208,9 +218,19 @@ export default class MonitorCriteriaExpectationBuilder {
       );
     }
 
-    // A boolean series saved with an aggregate is judged as All Values.
+    /*
+     * The window's type only while the filter is evaluated over time: the
+     * form keeps a window when its box is unticked, so ticking it again
+     * brings the window back, and that filter is judged on the latest check.
+     * A boolean series saved with an aggregate is judged as All Values.
+     */
     const aggregation: string | undefined =
-      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter) ||
+      (isEvaluatedOverTime
+        ? CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+            criteriaFilter,
+            monitorType,
+          )
+        : undefined) ||
       criteriaFilter.metricMonitorOptions?.metricAggregationType;
 
     if (aggregation) {

@@ -34,6 +34,16 @@ import {
   matchGrokPattern,
 } from "Common/Utils/Grok/Grok";
 import { getGrokPatternNames } from "Common/Utils/Grok/GrokPatterns";
+import {
+  DEFAULT_KEY_VALUE_DELIMITER,
+  KeyValueParserOptions,
+  ResolvedKeyValueParserOptions,
+  parseKeyValuePairs,
+  resolveKeyValueParserOptions,
+} from "Common/Utils/Log/KeyValueParser";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -43,6 +53,7 @@ export interface ComponentProps {
 
 type ProcessorType =
   | "GrokParser"
+  | "KeyValueParser"
   | "SeverityRemapper"
   | "AttributeRemapper"
   | "CategoryProcessor"
@@ -54,6 +65,12 @@ const processorTypeOptions: Array<DropdownOption> = [
     label: "Grok Parser",
     description:
       "Pulls structured fields out of an unstructured log line (e.g. an nginx access line) and stores them as log attributes",
+  },
+  {
+    value: "KeyValueParser",
+    label: "Key=Value Parser",
+    description:
+      "Splits key=value lines (e.g. Sophos XGS, Fortinet or logfmt) into log attributes, whatever order the fields arrive in",
   },
   {
     value: "SeverityRemapper",
@@ -88,9 +105,16 @@ interface GrokTestResult {
   fields?: Record<string, GrokValue>;
 }
 
+interface KeyValueTestResult {
+  // The delimiters do not validate.
+  error?: string;
+  // The pairs the sample line holds - empty when it holds none.
+  fields?: Record<string, string>;
+}
+
 /*
  * A prefix names a namespace, so the separator is implied unless the
- * user typed one. Mirrors LogPipelineService.normalizeGrokTargetPrefix -
+ * user typed one. Mirrors LogPipelineService.normalizeTargetPrefix -
  * this is only used to render the preview of the resulting keys.
  */
 function previewAttributeKey(targetPrefix: string, fieldName: string): string {
@@ -115,6 +139,7 @@ function previewAttributeKey(targetPrefix: string, fieldName: string): string {
 const ProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Common fields
   const [name, setName] = useState<string>("");
   const [processorType, setProcessorType] = useState<ProcessorType>("");
@@ -127,6 +152,22 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   const [grokSample, setGrokSample] = useState<string>("");
   const [showGrokPatternList, setShowGrokPatternList] =
     useState<boolean>(false);
+
+  /*
+   * Key=Value Parser fields. A blank pair delimiter means "any
+   * whitespace", which is what Sophos, Fortinet and logfmt use, so it is
+   * left out of the saved configuration rather than saved as "".
+   */
+  const [keyValueSource, setKeyValueSource] = useState<string>("body");
+  const [keyValueTargetPrefix, setKeyValueTargetPrefix] = useState<string>("");
+  const [keyValuePairDelimiter, setKeyValuePairDelimiter] =
+    useState<string>("");
+  const [keyValueDelimiter, setKeyValueDelimiter] = useState<string>(
+    DEFAULT_KEY_VALUE_DELIMITER,
+  );
+  const [keyValueOverrideOnConflict, setKeyValueOverrideOnConflict] =
+    useState<boolean>(false);
+  const [keyValueSample, setKeyValueSample] = useState<string>("");
 
   // Severity Remapper fields
   const [severitySourceKey, setSeveritySourceKey] = useState<string>("level");
@@ -191,6 +232,46 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
     return { matched: true, fields: fields };
   }, [processorType, grokPattern, grokSample]);
 
+  /*
+   * The delimiters as the processor will read them: blank means the
+   * default (any whitespace between pairs, = between key and value).
+   * Delimiters are not trimmed - " | " is a different delimiter from "|".
+   */
+  const getKeyValueParserOptions: () => KeyValueParserOptions =
+    (): KeyValueParserOptions => {
+      return {
+        pairDelimiter: keyValuePairDelimiter || undefined,
+        keyValueDelimiter: keyValueDelimiter || undefined,
+      };
+    };
+
+  /*
+   * Live tester for the key=value parser. It runs the parser ingest runs
+   * (Common/Utils/Log/KeyValueParser), so what it shows is exactly what
+   * the processor will add.
+   */
+  const keyValueTestResult: KeyValueTestResult | null = useMemo(() => {
+    if (processorType !== "KeyValueParser") {
+      return null;
+    }
+
+    let options: ResolvedKeyValueParserOptions;
+
+    try {
+      options = resolveKeyValueParserOptions(getKeyValueParserOptions());
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    if (!keyValueSample.trim()) {
+      return null;
+    }
+
+    return { fields: parseKeyValuePairs(keyValueSample, options) };
+  }, [processorType, keyValuePairDelimiter, keyValueDelimiter, keyValueSample]);
+
   const buildConfiguration: () => JSONObject = (): JSONObject => {
     switch (processorType) {
       case "GrokParser":
@@ -198,6 +279,16 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           source: grokSource.trim() || "body",
           pattern: grokPattern.trim(),
           targetPrefix: grokTargetPrefix.trim(),
+        };
+      case "KeyValueParser":
+        return {
+          source: keyValueSource.trim() || "body",
+          targetPrefix: keyValueTargetPrefix.trim(),
+          keyValueDelimiter: keyValueDelimiter || DEFAULT_KEY_VALUE_DELIMITER,
+          overrideOnConflict: keyValueOverrideOnConflict,
+          ...(keyValuePairDelimiter
+            ? { pairDelimiter: keyValuePairDelimiter }
+            : {}),
         };
       case "SeverityRemapper":
         return {
@@ -249,6 +340,22 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
          */
         try {
           compileGrokPattern(grokPattern.trim());
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+        break;
+      }
+      case "KeyValueParser": {
+        if (!keyValueSource.trim()) {
+          return "Source field is required.";
+        }
+
+        /*
+         * The same check the API makes, so a delimiter clash reads next
+         * to the delimiter fields instead of as a failed save.
+         */
+        try {
+          resolveKeyValueParserOptions(getKeyValueParserOptions());
         } catch (err) {
           return err instanceof Error ? err.message : String(err);
         }
@@ -336,7 +443,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Add Processor"
-      description="Processors transform logs as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the log before it is stored."
+      description="Processors change logs before they are stored. They run in order, after the pipeline's filter matches."
       modalWidth={ModalWidth.Large}
       submitButtonText="Create Processor"
       onSubmit={handleSave}
@@ -397,56 +504,75 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "GrokParser" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Grok Parser Configuration
+              {translator.translateText("Grok Parser Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Extracts structured fields out of an unstructured log line and
-              stores them in the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object, so you can search and filter on them. A grok pattern is
-              regex with names:{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                %&#123;IPV4:client_ip&#125;
-              </code>{" "}
-              means &quot;match an IPv4 address and store it as client_ip&quot;.
+              <TranslatedSentence
+                template={
+                  'Extracts structured fields out of an unstructured log line and stores them in the log\'s {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means "match an IPv4 address and store it as client_ip".'
+                }
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                  example: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      %&#123;IPV4:client_ip&#125;
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the text from the Source Field (usually the log{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    body
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Reads the text from the Source Field (usually the log {{field}})."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          body
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Runs your pattern against it. The pattern does not have to
-                  match the whole line.
+                  {translator.translateText(
+                    "2. Runs your pattern against it. The pattern does not have to match the whole line.",
+                  )}
                 </p>
                 <p>
-                  3. Every named capture becomes a log attribute. Add{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    :int
-                  </code>{" "}
-                  or{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    :float
-                  </code>{" "}
-                  to a capture to store it as a number.
+                  <TranslatedSentence
+                    template="3. Every named capture becomes a log attribute. Add {{int}} or {{float}} to a capture to store it as a number."
+                    slots={{
+                      int: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          :int
+                        </code>
+                      ),
+                      float: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          :float
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  4. If the line does not match, the log passes through
-                  unchanged.
+                  {translator.translateText(
+                    "4. If the line does not match, the log passes through unchanged.",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
                 <span className="text-gray-500">// Log body</span>
                 <br />
                 <span className="text-sky-400">10.0.1.5 - GET /health 200</span>
@@ -468,7 +594,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <span className="text-sky-400">&quot;/health&quot;</span>,{" "}
                 <span className="text-amber-400">status</span>:{" "}
                 <span className="text-sky-400">200</span>
-              </div>
+              </code>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -574,15 +700,17 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
 
               {grokTestResult?.compiledOnly && (
                 <div className="mt-2 p-2 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-500">
-                  Pattern is valid. Paste a sample log line above to see what it
-                  extracts.
+                  {translator.translateText(
+                    "Pattern is valid. Paste a sample log line above to see what it extracts.",
+                  )}
                 </div>
               )}
 
               {grokTestResult?.matched === false && (
                 <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-700">
-                  This pattern does not match the sample line. Logs that do not
-                  match are left unchanged.
+                  {translator.translateText(
+                    "This pattern does not match the sample line. Logs that do not match are left unchanged.",
+                  )}
                 </div>
               )}
 
@@ -590,13 +718,19 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <div className="mt-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
                   {Object.keys(grokTestResult.fields || {}).length === 0 ? (
                     <p className="text-xs text-emerald-700">
-                      Matches, but captures nothing. Name your captures like
-                      %&#123;WORD:my_field&#125; to store them.
+                      <TranslatedSentence
+                        template="Matches, but captures nothing. Name your captures like {{example}} to store them."
+                        slots={{
+                          example: <code>%&#123;WORD:my_field&#125;</code>,
+                        }}
+                      />
                     </p>
                   ) : (
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-emerald-700">
-                        Attributes this processor would add
+                        {translator.translateText(
+                          "Attributes this processor would add",
+                        )}
                       </p>
                       {Object.entries(grokTestResult.fields || {}).map(
                         ([fieldName, fieldValue]: [string, GrokValue]) => {
@@ -629,46 +763,287 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {/* === Severity Remapper Configuration === */}
-        {processorType === "SeverityRemapper" && (
+        {/* === Key=Value Parser Configuration === */}
+        {processorType === "KeyValueParser" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Severity Remapper Configuration
+              {translator.translateText("Key=Value Parser Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Normalizes raw severity values from your logs into standard levels
-              (TRACE, DEBUG, INFO, WARNING, ERROR, FATAL). This processor reads
-              a value from a log attribute and maps it to the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                severityText
-              </code>{" "}
-              field.
+              <TranslatedSentence
+                template={
+                  "Splits a line of key=value pairs into the log's {{attributes}} object, whatever order the fields arrive in. Firewalls such as Sophos XGS and Fortinet log every event this way, so their fields become searchable and filterable - and usable as a log monitor's group-by - without writing a pattern."
+                }
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. The processor reads the value from the Source Attribute in
-                  your log&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes
-                  </code>{" "}
-                  object.
+                  <TranslatedSentence
+                    template="1. Reads the text from the Source Field (usually the log {{field}})."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          body
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
-                <p>2. It looks up the value in your mappings below.</p>
                 <p>
-                  3. If a match is found, the log&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    severityText
-                  </code>{" "}
-                  is updated to the mapped severity level.
+                  <TranslatedSentence
+                    template={
+                      "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped."
+                    }
+                    slots={{
+                      pair: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          key=value
+                        </code>
+                      ),
+                    }}
+                  />
+                </p>
+                <p>
+                  {translator.translateText(
+                    "3. Values are stored as text. If a key appears twice, the first value is kept.",
+                  )}
+                </p>
+                <p>
+                  {translator.translateText(
+                    "4. An attribute the log already has is left alone unless Override on Conflict is on. A line with no pairs passes through unchanged.",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
+                <span className="text-gray-500">// Log body (Sophos XGS)</span>
+                <br />
+                <span className="text-sky-400">
+                  log_component=&quot;IPSec&quot;
+                  con_name=&quot;HQ-Branch1&quot; status=&quot;Terminated&quot;
+                </span>
+                <br />
+                <span className="text-gray-500">
+                  // Attributes added (target prefix &quot;sophos&quot;)
+                </span>
+                <br />
+                <span className="text-amber-400">
+                  sophos.log_component
+                </span>: <span className="text-sky-400">&quot;IPSec&quot;</span>
+                , <span className="text-amber-400">sophos.con_name</span>:{" "}
+                <span className="text-sky-400">&quot;HQ-Branch1&quot;</span>,{" "}
+                <span className="text-amber-400">sophos.status</span>:{" "}
+                <span className="text-sky-400">&quot;Terminated&quot;</span>
+              </code>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <FieldLabelElement
+                  title="Source Field"
+                  description="The field to parse. Use 'body' for the log message, or an attribute key like 'attributes.raw_line'."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="body"
+                    value={keyValueSource}
+                    onChange={setKeyValueSource}
+                  />
+                </div>
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Target Prefix (optional)"
+                  description="Namespace for the extracted attributes. 'sophos' stores con_name as sophos.con_name."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="e.g. sophos"
+                    value={keyValueTargetPrefix}
+                    onChange={setKeyValueTargetPrefix}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <FieldLabelElement
+                  title="Pair Delimiter (optional)"
+                  description="What separates one pair from the next. Leave blank to split on any whitespace, which is what Sophos, Fortinet and logfmt use."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="Any whitespace"
+                    value={keyValuePairDelimiter}
+                    onChange={setKeyValuePairDelimiter}
+                  />
+                </div>
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Key-Value Delimiter"
+                  description="What separates a key from its value. Must differ from the pair delimiter."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="="
+                    value={keyValueDelimiter}
+                    onChange={setKeyValueDelimiter}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <Toggle
+                title="Override on Conflict"
+                description="Overwrite an attribute the log already has under the same key, including ones set at ingest."
+                value={keyValueOverrideOnConflict}
+                onChange={setKeyValueOverrideOnConflict}
+              />
+            </div>
+
+            {/* Parser tester */}
+            <div>
+              <FieldLabelElement
+                title="Test With a Sample Line"
+                description="Paste a real log line here to see exactly which attributes this processor would add."
+              />
+              <div className="mt-1">
+                <TextArea
+                  placeholder='device_name="SFW" log_component="IPSec" con_name="HQ-Branch1" status="Terminated"'
+                  value={keyValueSample}
+                  onChange={setKeyValueSample}
+                  disableSpellCheck={true}
+                  className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs font-mono placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
+                />
+              </div>
+
+              {keyValueTestResult?.error && (
+                <div className="mt-2 p-2 rounded-md border border-red-200 bg-red-50 text-xs text-red-700">
+                  {keyValueTestResult.error}
+                </div>
+              )}
+
+              {keyValueTestResult?.fields &&
+                Object.keys(keyValueTestResult.fields).length === 0 && (
+                  <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-700">
+                    {translator.translateText(
+                      "No key=value pairs found in the sample line. Logs like this are left unchanged.",
+                    )}
+                  </div>
+                )}
+
+              {keyValueTestResult?.fields &&
+                Object.keys(keyValueTestResult.fields).length > 0 && (
+                  <div className="mt-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-emerald-700">
+                        {translator.translateText(
+                          "Attributes this processor would add",
+                        )}
+                      </p>
+                      {Object.entries(keyValueTestResult.fields).map(
+                        ([fieldName, fieldValue]: [string, string]) => {
+                          return (
+                            <div
+                              key={fieldName}
+                              className="text-[11px] font-mono text-gray-700"
+                            >
+                              <span className="text-indigo-700">
+                                {previewAttributeKey(
+                                  keyValueTargetPrefix,
+                                  fieldName,
+                                )}
+                              </span>
+                              {": "}
+                              <span className="text-gray-600">
+                                {`"${fieldValue}"`}
+                              </span>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+
+        {/* === Severity Remapper Configuration === */}
+        {processorType === "SeverityRemapper" && (
+          <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">
+              {translator.translateText("Severity Remapper Configuration")}
+            </h4>
+            <p className="text-xs text-gray-500 mb-3">
+              <TranslatedSentence
+                template="Normalizes raw severity values from your logs into standard levels (TRACE, DEBUG, INFO, WARNING, ERROR, FATAL). This processor reads a value from a log attribute and maps it to the log's {{field}} field."
+                slots={{
+                  field: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      severityText
+                    </code>
+                  ),
+                }}
+              />
+            </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">
+                {translator.translateText("How it works")}
+              </p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>
+                  <TranslatedSentence
+                    template="1. The processor reads the value from the Source Attribute in your log's {{attributes}} object."
+                    slots={{
+                      attributes: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes
+                        </code>
+                      ),
+                    }}
+                  />
+                </p>
+                <p>
+                  {translator.translateText(
+                    "2. It looks up the value in your mappings below.",
+                  )}
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template="3. If a match is found, the log's {{field}} is updated to the mapped severity level."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          severityText
+                        </code>
+                      ),
+                    }}
+                  />
+                </p>
+              </div>
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">// Example: incoming log</span>
                 <br />
                 <span className="text-amber-400">attributes</span>: {"{"}{" "}
@@ -681,7 +1056,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <br />
                 <span className="text-amber-400">severityText</span>:{" "}
                 <span className="text-sky-400">&quot;WARNING&quot;</span>
-              </div>
+              </code>
             </div>
 
             <div className="mb-4">
@@ -700,10 +1075,19 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
-                Common values: <code className="text-gray-500">level</code>,{" "}
-                <code className="text-gray-500">log_level</code>,{" "}
-                <code className="text-gray-500">severity</code>,{" "}
-                <code className="text-gray-500">priority</code>
+                <TranslatedSentence
+                  template="Common values: {{values}}"
+                  slots={{
+                    values: (
+                      <>
+                        <code className="text-gray-500">level</code>,{" "}
+                        <code className="text-gray-500">log_level</code>,{" "}
+                        <code className="text-gray-500">severity</code>,{" "}
+                        <code className="text-gray-500">priority</code>
+                      </>
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -767,43 +1151,58 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "AttributeRemapper" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Attribute Remapper Configuration
+              {translator.translateText("Attribute Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Renames or copies a key inside the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object. Useful for standardizing attribute names across services
-              or cleaning up legacy key names.
+              <TranslatedSentence
+                template="Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[sourceKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="1. Reads the value from {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[sourceKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Writes that value to{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="2. Writes that value to {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  3. Optionally removes the original source key (if Preserve
-                  Source is off).
+                  {translator.translateText(
+                    "3. Optionally removes the original source key (if Preserve Source is off).",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">
                   // Before: attributes has &quot;src_ip&quot;
                 </span>
@@ -819,7 +1218,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <span className="text-amber-400">attributes</span>: {"{"}{" "}
                 <span className="text-emerald-400">&quot;source_ip&quot;</span>:{" "}
                 <span className="text-sky-400">&quot;10.0.1.5&quot;</span> {"}"}
-              </div>
+              </code>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -874,48 +1273,68 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "CategoryProcessor" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Category Processor Configuration
+              {translator.translateText("Category Processor Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Tags each log with a category name based on filter rules. The
-              category value is stored in the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object under the Target Attribute key. Rules are evaluated in
-              order and <strong>the first matching rule wins</strong>.
+              <TranslatedSentence
+                template="Tags each log with a category name based on filter rules. The category value is stored in the log's {{attributes}} object under the Target Attribute key. Rules are evaluated in order and {{firstMatch}}."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                  firstMatch: (
+                    <strong>
+                      {translator.translateText("the first matching rule wins")}
+                    </strong>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Each category rule has a filter condition (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    severityText = &apos;Error&apos;
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Each category rule has a filter condition (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          severityText = &apos;Error&apos;
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. The processor evaluates rules top to bottom. The first rule
-                  that matches the log is applied.
+                  {translator.translateText(
+                    "2. The processor evaluates rules top to bottom. The first rule that matches the log is applied.",
+                  )}
                 </p>
                 <p>
-                  3. The category name is stored at{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetAttribute]
-                  </code>{" "}
-                  on the log.
+                  <TranslatedSentence
+                    template="3. The category name is stored at {{key}} on the log."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetAttribute]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  4. You can then filter and search logs by this attribute in
-                  the Logs Viewer.
+                  {translator.translateText(
+                    "4. You can then filter and search logs by this attribute in the Logs Viewer.",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">
                   // Rule: &quot;Critical Errors&quot; when severityText =
                   &apos;Error&apos;
@@ -942,7 +1361,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                   &quot;Critical Errors&quot;
                 </span>{" "}
                 {"}"}
-              </div>
+              </code>
             </div>
 
             <div className="mb-4">
@@ -961,11 +1380,16 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
-                The category will be accessible as{" "}
-                <code className="text-gray-500">
-                  attributes.{categoryTargetKey || "category"}
-                </code>{" "}
-                in your logs.
+                <TranslatedSentence
+                  template="The category will be accessible as {{key}} in your logs."
+                  slots={{
+                    key: (
+                      <code className="text-gray-500">
+                        attributes.{categoryTargetKey || "category"}
+                      </code>
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -984,7 +1408,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
                           <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                            Category name
+                            {translator.translateText("Category name")}
                           </label>
                           <Input
                             type={InputType.TEXT}
@@ -1022,7 +1446,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                          When logs match
+                          {translator.translateText("When logs match")}
                         </label>
                         <FilterQueryBuilderField
                           initialValue={cat.filterQuery || ""}

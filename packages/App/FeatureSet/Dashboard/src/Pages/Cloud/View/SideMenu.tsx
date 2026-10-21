@@ -7,14 +7,30 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  CloudResourceKind,
+  isCloudResourceKindResource,
+} from "Common/Types/Cloud/CloudResourceKind";
 
 export interface ComponentProps {
   modelId: ObjectID;
+  /*
+   * A resource discovered from cloud monitoring has the provider's metrics
+   * only: no logs, traces or instances of its own.
+   */
+  cloudResourceKind?: CloudResourceKind | undefined;
 }
 
 const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isResource: boolean = isCloudResourceKindResource(
+    props.cloudResourceKind,
+  );
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -51,36 +67,42 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ChartBar}
         />
-        <SideMenuItem
-          link={{
-            title: "Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Terminal}
-        />
-        <SideMenuItem
-          link={{
-            title: "Traces",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_TRACES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Workflow}
-        />
-        <SideMenuItem
-          link={{
-            title: "Instances",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
-        />
+        {isResource ? (
+          <></>
+        ) : (
+          <>
+            <SideMenuItem
+              link={{
+                title: "Logs",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Terminal}
+            />
+            <SideMenuItem
+              link={{
+                title: "Traces",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.CLOUD_RESOURCE_VIEW_TRACES] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Workflow}
+            />
+            <SideMenuItem
+              link={{
+                title: "Instances",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Cube}
+            />
+          </>
+        )}
         <SideMenuItem
           link={{
             title: "Feed",
@@ -106,6 +128,12 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {getDeveloperSideMenuSection({
+        modelType: CloudResource,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
@@ -119,7 +147,7 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Delete Environment",
+            title: isResource ? "Delete Resource" : "Delete Environment",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DELETE] as Route,
               { modelId: props.modelId },

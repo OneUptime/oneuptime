@@ -1,5 +1,9 @@
 import { JSONObject, JSONValue } from "../../JSON";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Turning a metric series' raw label map into something an on-call
  * engineer can read at 3am.
@@ -78,6 +82,10 @@ const FriendlyLabelNames: Record<string, string> = {
   "network.interface": "Interface",
   interfaceName: "Interface",
   interfaceAlias: "Interface Alias",
+  // One row of a walked SNMP table (PerEntityCriteriaFanOut).
+  snmpTableRow: "Row",
+  snmpTable: "SNMP Table",
+  snmpTableRowIndex: "Row Index",
   diskPath: "Disk",
   cpu: "CPU",
   direction: "Direction",
@@ -145,10 +153,50 @@ const FriendlyLabelNames: Record<string, string> = {
   pool: "Pool",
   osd: "OSD",
 
+  /*
+   * --- Storage arrays ---
+   *
+   * Pure Storage FlashArray / FlashBlade keep object identity in DATAPOINT
+   * labels (stored unprefixed): `name` on volumes, pods, directories and
+   * every FlashBlade object, `host` on FlashArray hosts, `component_name`
+   * on FlashArray hardware and drives, `local_pod` on pod replica links,
+   * `summary` on open alerts. The agent stamps `storage.array.name` and
+   * `storage.system` on the resource.
+   */
+  "storage.array.name": "Storage Array",
+  "storage.system": "Storage Platform",
+  name: "Name",
+  host: "Host",
+  component_name: "Component",
+  local_pod: "Pod",
+  summary: "Alert Summary",
+
   // --- IoT ---
   "iot.fleet.name": "Fleet",
   "device.id": "Device",
   "device.name": "Device",
+
+  /*
+   * --- Network events ---
+   *
+   * What a device's syslog and its standard traps are read into
+   * (NetworkEventAttribute): which device, and what on it. A Logs monitor
+   * on an event groups by these, so "Interface down" reads "Interface:
+   * Gi0/1, Device: Core Switch" on its alert.
+   */
+  "event.device": "Device",
+  "networkDevice.name": "Device",
+  "network.interface.name": "Interface",
+  "vpn.tunnel.name": "Tunnel",
+  "network.gateway.name": "Gateway",
+  "network.peer.address": "Neighbor",
+  "hw.name": "Component",
+  "ha.peer": "Peer",
+  "ha.role": "Role",
+  "user.name": "User",
+  "client.mac": "Client",
+  "client.address": "Client Address",
+  "wifi.ssid": "Wi-Fi Network",
 
   /*
    * --- Databases ---
@@ -216,8 +264,32 @@ const LabelPriority: Record<string, number> = {
   "docker.swarm.service.name": 25,
   ceph_daemon: 25,
   pool_id: 25,
+  /*
+   * Storage arrays: the object that breached (a volume, file system,
+   * bucket, hardware component, pod or open alert), then the host, then
+   * the array that merely scopes it.
+   */
+  name: 25,
+  component_name: 25,
+  local_pod: 25,
+  summary: 25,
+  host: 30,
   "device.id": 25,
   "device.name": 25,
+  /*
+   * Network events: what the event happened to (the interface, the
+   * tunnel, the neighbour) first, then the device that reported it.
+   */
+  "network.interface.name": 25,
+  "vpn.tunnel.name": 25,
+  "network.gateway.name": 25,
+  "network.peer.address": 25,
+  "hw.name": 25,
+  "ha.peer": 25,
+  "user.name": 28,
+  "client.mac": 28,
+  "event.device": 40,
+  "networkDevice.name": 40,
   "proxmox.vm.name": 25,
   vmid: 25,
   /*
@@ -256,6 +328,9 @@ const LabelPriority: Record<string, number> = {
   diskPath: 30,
   "disk.path": 30,
   interfaceName: 30,
+  snmpTableRow: 30,
+  snmpTable: 60,
+  snmpTableRowIndex: 95,
   device: 35,
   "system.device": 35,
   storage: 35,
@@ -291,6 +366,8 @@ const LabelPriority: Record<string, number> = {
   "docker.swarm.cluster.name": 80,
   "proxmox.cluster.name": 80,
   "ceph.cluster.name": 80,
+  "storage.array.name": 80,
+  "storage.system": 85,
   "iot.fleet.name": 80,
   "k8s.pod.uid": 95,
   "container.id": 95,
@@ -491,7 +568,7 @@ export default class SeriesLabelDisplay {
 
       const name: string = SeriesLabelDisplay.getFriendlyLabelName(key);
 
-      const dedupeKey: string = `${name} ${value}`;
+      const dedupeKey: string = `${name}\u0000${value}`;
 
       if (seenNameValuePairs.has(dedupeKey)) {
         continue;
@@ -590,6 +667,11 @@ export default class SeriesLabelDisplay {
    * A markdown block naming every identifier the series carries, for
    * alert/incident descriptions (which is what Slack, email and the
    * mobile push actually show).
+   *
+   * A label's name and value come from the telemetry itself: mdText places
+   * the name as text and the value as code (writing the span around it), so
+   * a backtick cannot close the span early and nothing in either is read as
+   * Markdown or as a chat mention.
    */
   public static buildMarkdownBlock(
     seriesLabels: JSONObject | undefined,
@@ -602,13 +684,14 @@ export default class SeriesLabelDisplay {
       return "";
     }
 
-    const heading: string = options?.heading || "Affected resource";
+    // A label's name is text and its value code, each placed by mdText.
+    const lines: Array<MarkdownText> = labels.map(
+      (label: DisplaySeriesLabel): MarkdownText => {
+        return mdText`**${label.name}:** \`${label.value}\``;
+      },
+    );
 
-    const lines: Array<string> = labels.map((label: DisplaySeriesLabel) => {
-      return `- **${label.name}:** \`${label.value}\``;
-    });
-
-    return `**${heading}**\n${lines.join("\n")}`;
+    return mdText`**${options?.heading || "Affected resource"}**\n${FeedMarkdown.bulletList(lines)}`.toString();
   }
 
   /*

@@ -1,5 +1,7 @@
 import Project from "./Project";
 import User from "./User";
+import Incident from "./Incident";
+import Alert from "./Alert";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -23,7 +25,10 @@ import { AIChatPageContext } from "../../Types/AI/AIChatPageContext";
 /*
  * A conversation between a user and the OneUptime AI about the project's
  * observability data. Conversations are personal: AIConversationService pins
- * all non-root reads/updates/deletes to the creating user.
+ * all non-root reads/updates/deletes to the creating user. The exception is
+ * an incident's or alert's shared investigation thread (incidentId /
+ * alertId set): it has no creating user and is served only by the
+ * investigation API to viewers who can read its incident or alert.
  */
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -266,6 +271,127 @@ export default class AIConversation extends BaseModel {
     type: ColumnType.JSON,
   })
   public pageContext?: AIChatPageContext = undefined;
+
+  /*
+   * Set on the one SHARED conversation of an incident's investigation box:
+   * every responder who can read the incident asks and acts in it, so it is
+   * never a personal conversation (no createdByUserId — the privacy pin keeps
+   * it out of everyone's Ask AI history) and is read only through the
+   * investigation API, after that API checked the viewer can read the
+   * incident. Deleting the incident deletes its thread.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentId",
+    type: TableColumnType.Entity,
+    modelType: Incident,
+    title: "Incident",
+    description:
+      "The incident whose investigation box this shared conversation belongs to.",
+  })
+  @ManyToOne(
+    () => {
+      return Incident;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentId" })
+  public incident?: Incident = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Incident ID",
+    description:
+      "ID of the incident whose investigation box this shared conversation belongs to.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentId?: ObjectID = undefined;
+
+  // The alert counterpart of incidentId — the shared thread of an alert.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertId",
+    type: TableColumnType.Entity,
+    modelType: Alert,
+    title: "Alert",
+    description:
+      "The alert whose investigation box this shared conversation belongs to.",
+  })
+  @ManyToOne(
+    () => {
+      return Alert;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertId" })
+  public alert?: Alert = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert ID",
+    description:
+      "ID of the alert whose investigation box this shared conversation belongs to.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

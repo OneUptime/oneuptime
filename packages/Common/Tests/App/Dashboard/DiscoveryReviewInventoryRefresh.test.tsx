@@ -15,20 +15,31 @@ import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import Permission from "../../../Types/Permission";
 import { VoidFunction } from "../../../Types/FunctionTypes";
+import { JSONObject } from "../../../Types/JSON";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal";
+import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 
 /*
- * Keep the page's review, selection and import handlers real. The table mock
- * exposes its actual row action; the modal mock removes animation and portals.
+ * What the import dialog offers is the inventory as it is NOW, not as the
+ * scans table had it when it loaded: a device deleted since is importable
+ * again, a host added since is not, and the scan's naming choice is the one
+ * it has now. The dialog reads the scan fresh on every open, and a read that
+ * is pending, failed or overtaken offers nothing to import.
+ *
+ * The import itself is the server's (issue #4812): it creates the devices,
+ * under the names these rows show, from the same scan read with the same
+ * naming choice - DiscoveryImportRunner.test.ts creates them through the real
+ * builder ("names: ..."). Here the page's real review handlers run against
+ * an in-memory import API (DiscoveryImportFakeServer); the table mock exposes
+ * the real row action, and the modal mock removes animation and portals.
  */
 interface TableProps {
   actionButtons: Array<{
@@ -41,7 +52,6 @@ interface TableProps {
 }
 
 let capturedTable: TableProps | null = null;
-let capturedModal: ModalProps | null = null;
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -56,21 +66,31 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 jest.mock("../../../UI/Components/Modal/Modal", () => {
   return {
     __esModule: true,
-    ModalWidth: { Medium: 1 },
+    ModalWidth: { Medium: 1, Large: 2 },
     default: (props: ModalProps) => {
-      capturedModal = props;
       return (
         <div role="dialog" aria-label={props.title}>
           <p>{props.description}</p>
           {props.error && <p role="alert">{props.error}</p>}
           {props.isBodyLoading ? <p>Refreshing inventory</p> : props.children}
+          {props.leftFooterElement}
           <button onClick={props.onClose}>Close review</button>
-          <button
-            disabled={props.disableSubmitButton || props.isLoading}
-            onClick={props.onSubmit}
-          >
-            {props.submitButtonText}
-          </button>
+          {props.secondaryButton && (
+            <button
+              disabled={props.secondaryButton.disabled}
+              onClick={props.secondaryButton.onClick}
+            >
+              {props.secondaryButton.title}
+            </button>
+          )}
+          {props.submitButtonText && (
+            <button
+              disabled={props.disableSubmitButton || props.isLoading}
+              onClick={props.onSubmit}
+            >
+              {props.submitButtonText}
+            </button>
+          )}
         </div>
       );
     },
@@ -86,8 +106,10 @@ const OTHER_SCAN_ID: ObjectID = new ObjectID(
 );
 const PROBE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
+const IMPORT_BUTTON: RegExp = /^Import \d+ devices?$/;
+
 let getItemSpy: jest.SpyInstance;
-let createSpy: jest.SpyInstance;
+let server: DiscoveryImportFakeServer;
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -123,6 +145,7 @@ function scan(
 ): NetworkDeviceDiscoveryScan {
   const value: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
   value.id = id;
+  value._id = id.toString();
   value.projectId = PROJECT_ID;
   value.probeId = PROBE_ID;
   value.name =
@@ -167,18 +190,58 @@ async function openReview(value: NetworkDeviceDiscoveryScan): Promise<void> {
   await act(async () => {
     await reviewAction().onClick(value, () => {});
   });
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 function checkbox(ipAddress: string): HTMLElement {
   return screen.getByTestId(`discovered-device-checkbox-${ipAddress}`);
 }
 
-function submit(): HTMLElement {
-  return screen.getByRole("button", { name: /Import Selected/ });
+function next(): HTMLElement {
+  return screen.getByRole("button", { name: "Next" });
 }
 
-async function importSelected(): Promise<void> {
-  fireEvent.click(submit());
+/*
+ * A scan that could not be read leaves nothing to choose from: no Next, no
+ * count of hosts - only Try again, which reads it again in place.
+ */
+function expectOnlyTryAgain(): void {
+  expect(
+    screen.queryByRole("button", { name: "Next" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId("discovery-import-choose-summary"),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+}
+
+// On to the monitoring step, then Import: what the server is asked to import.
+async function importSelected(): Promise<JSONObject> {
+  const before: number = server.startBodies.length;
+
+  fireEvent.click(next());
+
+  const submit: HTMLElement = await screen.findByRole("button", {
+    name: IMPORT_BUTTON,
+  });
+
+  await waitFor(() => {
+    expect(submit).toBeEnabled();
+  });
+
+  fireEvent.click(submit);
+
+  await waitFor(() => {
+    expect(server.startBodies.length).toBe(before + 1);
+  });
+
+  return server.startBodies[before]!;
+}
+
+async function closeReview(): Promise<void> {
+  fireEvent.click(screen.getByText("Close review"));
   await waitFor(() => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -186,16 +249,20 @@ async function importSelected(): Promise<void> {
 
 beforeEach(() => {
   capturedTable = null;
-  capturedModal = null;
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([]);
   jest
     .spyOn(PermissionUtil, "getAllPermissions")
     .mockReturnValue([Permission.ProjectAdmin]);
   getItemSpy = jest.spyOn(ModelAPI, "getItem");
-  createSpy = jest
-    .spyOn(ModelAPI, "create")
-    .mockResolvedValue(undefined as never);
+  // The monitoring step's lists: nothing in them is needed here.
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
+  server = new DiscoveryImportFakeServer().install();
 });
 
 afterEach(() => {
@@ -219,23 +286,18 @@ describe("Discovery review refreshes registration from current inventory", () =>
     expect(checkbox("10.0.0.1")).toBeChecked();
     expect(checkbox("10.0.0.2")).toBeDisabled();
     expect(checkbox("10.0.0.2")).not.toBeChecked();
-    expect(submit()).toHaveTextContent("Import Selected (1)");
+    expect(screen.getByText("1 host will be imported")).toBeInTheDocument();
 
-    await importSelected();
+    const body: JSONObject = await importSelected();
 
-    expect(createSpy).toHaveBeenCalledTimes(1);
-    expect(createSpy.mock.calls[0]![0].model.hostname).toBe("10.0.0.1");
-    expect(createSpy.mock.calls[0]![0].modelType).toBe(NetworkDevice);
+    expect(body["ipAddresses"]).toEqual(["10.0.0.1"]);
+    expect(body["scanId"]).toBe(SCAN_ID.toString());
+    // The table's row is not rewritten by the review.
     expect(oldScan.discoveredDevices![0]!.isAlreadyRegistered).toBe(true);
   });
 
-  test("requests the scan identity, current results, probe and all import credentials", async () => {
-    const freshScan: NetworkDeviceDiscoveryScan = scan([
-      { ...host("10.0.0.1", false), snmpReachable: true },
-    ]);
-    freshScan.snmpCommunityString = "refreshed-community";
-    freshScan.snmpVersion = "2c";
-    getItemSpy.mockResolvedValue(freshScan);
+  test("reads the scan's identity, results, probe and naming - and never its credentials, which the server reads itself", async () => {
+    getItemSpy.mockResolvedValue(scan([host("10.0.0.1", false)]));
     await renderPage();
     await openReview(scan([host("10.0.0.1", true)]));
 
@@ -259,103 +321,82 @@ describe("Discovery review refreshes registration from current inventory", () =>
          * (issue #3916) — see DiscoveryReviewUnnamedHostHint.test.tsx.
          */
         isNetbiosLookupEnabled: true,
-        snmpConfigs: true,
-        snmpVersion: true,
-        snmpCommunityString: true,
-        snmpPort: true,
-        snmpV3SecurityLevel: true,
-        snmpV3Username: true,
-        snmpV3AuthProtocol: true,
-        snmpV3AuthKey: true,
-        snmpV3PrivProtocol: true,
-        snmpV3PrivKey: true,
       },
     });
-    await importSelected();
-    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-    expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
-    expect(device.snmpCommunityString).toBe("refreshed-community");
   });
 
-  test("reopening on the same page allows reimport after deleting a device imported during this visit", async () => {
-    const oldScan: NetworkDeviceDiscoveryScan = scan([host("10.0.0.1", false)]);
+  test("reopening after the import was undone - its device deleted - offers the host again", async () => {
     getItemSpy.mockResolvedValue(scan([host("10.0.0.1", false)]));
     await renderPage();
-    await openReview(oldScan);
+    await openReview(scan([host("10.0.0.1", false)]));
     await importSelected();
+    expect(await screen.findByText("Import finished")).toBeInTheDocument();
+    await closeReview();
 
     /*
-     * The inventory no longer contains the device; the page still remembers
-     * importing it, but a successful new read supersedes that old record.
+     * The inventory no longer has the device: the fresh read says so, and
+     * the host is offered again.
      */
-    await openReview(oldScan);
+    await openReview(scan([host("10.0.0.1", false)]));
+
     expect(checkbox("10.0.0.1")).toBeEnabled();
     expect(checkbox("10.0.0.1")).toBeChecked();
-    await importSelected();
-    expect(createSpy).toHaveBeenCalledTimes(2);
-    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(getItemSpy).toHaveBeenCalledTimes(3);
   });
 
-  test("reopening keeps an existing device disabled even when its monitor was removed", async () => {
-    const oldScan: NetworkDeviceDiscoveryScan = scan([host("10.0.0.1", false)]);
-    getItemSpy.mockResolvedValueOnce(oldScan);
-    await renderPage();
-    await openReview(oldScan);
-    await importSelected();
-
+  test("reopening keeps a device that is there disabled, and offers nothing to import", async () => {
     getItemSpy.mockResolvedValue(scan([host("10.0.0.1", true)]));
-    await openReview(oldScan);
+    await renderPage();
+    await openReview(scan([host("10.0.0.1", false)]));
 
     expect(checkbox("10.0.0.1")).toBeDisabled();
     expect(screen.getByText("Already added")).toBeInTheDocument();
-    expect(submit()).toBeDisabled();
-    fireEvent.click(submit());
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(next()).toBeDisabled();
+    expect(screen.getByText("0 hosts will be imported")).toBeInTheDocument();
   });
 
-  test("keeps a successful batch retired while allowing the failed host to be retried", async () => {
+  test("after a partly failed import, the imported host reads as added and the failed one can be imported again", async () => {
     getItemSpy.mockResolvedValue(
       scan([host("10.0.0.1", false), host("10.0.0.2", false)]),
     );
-    createSpy
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("Device creation failed"))
-      .mockRejectedValueOnce(new Error("Device creation failed"));
+    server.control.failDevices.set("10.0.0.2", "Device creation failed");
     await renderPage();
     await openReview(scan([]));
-    fireEvent.click(submit());
+    await importSelected();
+
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Device creation failed",
-      );
+      expect(
+        screen.getByTestId("discovery-import-issue-DeviceFailed"),
+      ).toHaveTextContent("Device creation failed");
     });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Import more devices" }),
+    );
 
     expect(checkbox("10.0.0.1")).toBeDisabled();
     expect(checkbox("10.0.0.2")).toBeEnabled();
     expect(checkbox("10.0.0.2")).toBeChecked();
-    expect(submit()).toHaveTextContent("Import Selected (1)");
-    await importSelected();
-    expect(createSpy).toHaveBeenCalledTimes(4);
-    expect(createSpy.mock.calls[3]![0].model.hostname).toBe("10.0.0.2");
+
+    server.control.failDevices.clear();
+    const body: JSONObject = await importSelected();
+
+    expect(body["ipAddresses"]).toEqual(["10.0.0.2"]);
   });
 });
 
 /*
- * OneUptime issue #3678, end to end through the page's real review and import
- * handlers: a scan set to short device names shows the short name, creates the
- * device under it, keeps the FQDN as the device's DNS name, and — on a name
- * collision — retries as "short (address)" rather than falling back to the
- * FQDN the scan was told not to use.
+ * OneUptime issue #3678: a scan set to short device names shows the short
+ * name - the name the server's import creates the device under - with the
+ * FQDN it was cut from beside the address. The choice is the FRESH scan's,
+ * not the table row's: the operator may have switched short names on since
+ * the list loaded.
  */
-describe("Discovery review names devices by the scan's short-name choice", () => {
+describe("Discovery review names hosts by the scan's short-name choice", () => {
   const FQDN: string = "core-gw.corp.example.com";
 
-  // A ping-only host named only by its PTR record, like the reporter's.
-  function namedHost(
-    ipAddress: string,
-    dnsHostname: string = FQDN,
-  ): DiscoveredNetworkDevice {
-    return { ...host(ipAddress, false), dnsHostname };
+  function namedHost(ipAddress: string): DiscoveredNetworkDevice {
+    return { ...host(ipAddress, false), dnsHostname: FQDN };
   }
 
   function scanNaming(
@@ -383,24 +424,8 @@ describe("Discovery review names devices by the scan's short-name choice", () =>
     );
   });
 
-  test("a scan set to short names imports the short name and keeps the FQDN as the DNS name", async () => {
-    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
-    await renderPage();
-    await openReview(scanNaming([namedHost("10.0.0.1")], true));
-    await importSelected();
-
-    expect(createSpy).toHaveBeenCalledTimes(1);
-
-    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-
-    expect(device.name).toBe("core-gw");
-    expect(device.dnsName).toBe(FQDN);
-    expect(device.hostname).toBe("10.0.0.1");
-  });
-
-  test("a scan that did not ask imports the full name, and still keeps the DNS name", async () => {
+  test("a scan that did not ask shows the full name", async () => {
     for (const flag of [false, undefined]) {
-      createSpy.mockClear();
       cleanup();
       capturedTable = null;
       getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], flag));
@@ -411,101 +436,51 @@ describe("Discovery review names devices by the scan's short-name choice", () =>
         "aria-label",
         `Import ${FQDN} (10.0.0.1)`,
       );
-
-      await importSelected();
-
-      const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-
-      expect(device.name).toBe(FQDN);
-      expect(device.dnsName).toBe(FQDN);
     }
   });
 
-  /*
-   * The choice is read off the FRESH scan, not the table row the dialog was
-   * opened from. The operator may have switched short names on in the Edit
-   * dialog (or another tab) since the list loaded; the review is what they
-   * are about to import, so it has to name hosts the way the scan says now.
-   */
   test("the fresh read decides the naming, not the stale table row", async () => {
     getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
     await renderPage();
     await openReview(scanNaming([namedHost("10.0.0.1")], false));
-    await importSelected();
 
-    expect(createSpy.mock.calls[0]![0].model.name).toBe("core-gw");
-  });
-
-  test("a short name that is already taken is retried as the short name plus the address", async () => {
-    /*
-     * Short names collide more than FQDNs do — "core-gw" in two domains is one
-     * name. The first create fails on the duplicate; the retry must build from
-     * the same naming choice.
-     */
-    createSpy
-      .mockRejectedValueOnce(
-        new Error("Network Device with the same name already exists"),
-      )
-      .mockResolvedValueOnce(undefined);
-    getItemSpy.mockResolvedValue(scanNaming([namedHost("10.0.0.1")], true));
-    await renderPage();
-    await openReview(scanNaming([namedHost("10.0.0.1")], true));
-    await importSelected();
-
-    expect(createSpy).toHaveBeenCalledTimes(2);
-
-    /*
-     * The page retries with the SAME device object, renamed — so both calls
-     * hold it and both now read the final name. What distinguishes the retry
-     * is that it happened, and what it was renamed to.
-     */
-    const device: NetworkDevice = createSpy.mock.calls[1]![0].model;
-
-    expect(device.name).toBe("core-gw (10.0.0.1)");
-    expect(device.dnsName).toBe(FQDN);
-  });
-
-  test("two hosts whose short names collide both import", async () => {
-    const taken: Set<string> = new Set<string>();
-
-    createSpy.mockImplementation(
-      async (args: { model: NetworkDevice }): Promise<undefined> => {
-        const name: string = String(args.model.name);
-
-        if (taken.has(name)) {
-          throw new Error("Network Device with the same name already exists");
-        }
-
-        taken.add(name);
-        return undefined;
-      },
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import core-gw (10.0.0.1)",
     );
+  });
 
-    const hosts: Array<DiscoveredNetworkDevice> = [
-      namedHost("10.0.0.1", "web.corp.example.com"),
-      namedHost("10.0.0.2", "web.lab.example.com"),
-    ];
-
-    getItemSpy.mockResolvedValue(scanNaming(hosts, true));
+  test("a search finds the short name the row shows", async () => {
+    getItemSpy.mockResolvedValue(
+      scanNaming(
+        [
+          namedHost("10.0.0.1"),
+          { ...host("10.0.0.2", false), dnsHostname: "web.corp.example.com" },
+        ],
+        true,
+      ),
+    );
     await renderPage();
-    await openReview(scanNaming(hosts, true));
-    await importSelected();
+    await openReview(scan([]));
 
-    expect(Array.from(taken)).toEqual(["web", "web (10.0.0.2)"]);
+    fireEvent.change(screen.getByTestId("discovered-host-search"), {
+      target: { value: "core-gw" },
+    });
+
+    expect(screen.getByText("1 host will be imported")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discovered-host-row-10.0.0.2"),
+    ).not.toBeInTheDocument();
   });
 });
 
 /*
- * OneUptime issue #3677, end to end through the page's real review and import
- * handlers: a host with no SNMP and no PTR record, which the probe named by
- * asking it over NetBIOS, is shown under that name with a plain "NetBIOS name"
- * hint beside its address, and imports under that name.
- *
- * The name is self-reported by the host, so it is never stored as the
- * device's DNS name — `dnsName` means "a record in DNS says so", and that is
- * the one thing a NetBIOS answer is not.
+ * OneUptime issues #3677 and #4518: a host named by its NetBIOS answer shows
+ * that name, with a plain "NetBIOS name" hint beside its address - and the
+ * PTR name after it, when DNS names it too. A NetBIOS answer the rules
+ * reject leaves the host on its address.
  */
-describe("Discovery review names a host by its NetBIOS answer when nothing else names it", () => {
+describe("Discovery review names a host by its NetBIOS answer", () => {
   function netbiosHost(
     ipAddress: string,
     netbiosName: string,
@@ -534,52 +509,20 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     expect(hint.tagName).toBe("SPAN");
     // Beside the address, on the address line — not a badge elsewhere.
     expect(hint.parentElement).toHaveTextContent("10.0.0.1 · NetBIOS name");
+    // Says what the name is, and why it beat any reverse-DNS name (#4518).
     expect(hint.getAttribute("title") || "").toContain(
-      "reported this name itself",
+      "Windows computer name this host reported for itself",
+    );
+    expect(hint.getAttribute("title") || "").toContain(
+      "ahead of its reverse-DNS name",
     );
   });
 
-  test("a host with only a NetBIOS name imports under it, with no DNS name", async () => {
-    getItemSpy.mockResolvedValue(
-      scan([netbiosHost("10.0.0.1", "accounts-pc01")]),
-    );
-    await renderPage();
-    await openReview(scan([netbiosHost("10.0.0.1", "accounts-pc01")]));
-    await importSelected();
-
-    expect(createSpy).toHaveBeenCalledTimes(1);
-
-    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-
-    expect(device.name).toBe("accounts-pc01");
-    expect(device.hostname).toBe("10.0.0.1");
-    expect(device.dnsName).toBeUndefined();
-  });
-
-  test("the short-name option imports a NetBIOS name unchanged", async () => {
-    const value: NetworkDeviceDiscoveryScan = scan([
-      netbiosHost("10.0.0.1", "accounts-pc01"),
-    ]);
-    value.useShortDeviceNames = true;
-    getItemSpy.mockResolvedValue(value);
-    await renderPage();
-    await openReview(value);
-
-    expect(screen.getByText(/NetBIOS name/)).toBeInTheDocument();
-
-    await importSelected();
-
-    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-
-    expect(device.name).toBe("accounts-pc01");
-    expect(device.dnsName).toBeUndefined();
-  });
-
-  test("a host DNS names carries no NetBIOS hint, and imports under its DNS name", async () => {
+  test("a host DNS names as well is named by its NetBIOS name, with the PTR name after the hint", async () => {
     getItemSpy.mockResolvedValue(
       scan([
         {
-          ...netbiosHost("10.0.0.1", "accounts-pc01"),
+          ...netbiosHost("10.0.0.1", "ACCOUNTS-PC01"),
           dnsHostname: "core-gw.corp.example.com",
         },
       ]),
@@ -587,15 +530,13 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     await renderPage();
     await openReview(scan([]));
 
-    expect(screen.getByText("core-gw.corp.example.com")).toBeInTheDocument();
-    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
-
-    await importSelected();
-
-    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
-
-    expect(device.name).toBe("core-gw.corp.example.com");
-    expect(device.dnsName).toBe("core-gw.corp.example.com");
+    expect(screen.getByText("ACCOUNTS-PC01")).toHaveAttribute(
+      "title",
+      "ACCOUNTS-PC01",
+    );
+    expect(screen.getByText(/NetBIOS name/).parentElement).toHaveTextContent(
+      "10.0.0.1 · NetBIOS name · core-gw.corp.example.com",
+    );
   });
 
   test("a NetBIOS answer the rules reject leaves the host on its address, with no hint", async () => {
@@ -611,15 +552,96 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     );
     expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
     expect(screen.queryByText(/onerror/)).not.toBeInTheDocument();
+  });
+});
 
-    await importSelected();
+/*
+ * OneUptime issue #4518, rendered: the reporter's kitchen displays. Each is
+ * named by its own hostname — WB0024KDS03 by SNMP, WB0024KDS04 and
+ * WB0024KDS05 by the Windows name they report over NetBIOS — with its DNS
+ * name beside the address, and the unnamed one says why.
+ */
+describe("Discovery review names the reported displays by their hostnames (issue #4518)", () => {
+  const REPORTED: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.16.42.52", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: true,
+      sysName: "WB0024KDS03",
+      dnsHostname: "wb-0024-kds03.wbhq.com",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds05.wbhq.com",
+      netbiosName: "WB0024KDS05",
+    },
+  ];
 
-    expect(createSpy.mock.calls[0]![0].model.name).toBe("10.0.0.1");
+  function reportedScan(): NetworkDeviceDiscoveryScan {
+    const value: NetworkDeviceDiscoveryScan = scan(REPORTED);
+    value.useShortDeviceNames = true;
+    value.isNetbiosLookupEnabled = true;
+    return value;
+  }
+
+  test("each row reads as its hostname, with the DNS name beside the address", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+
+    for (const [address, name] of [
+      ["10.16.42.53", "WB0024KDS03"],
+      ["10.16.42.54", "WB0024KDS04"],
+      ["10.16.42.55", "WB0024KDS05"],
+    ] as Array<[string, string]>) {
+      expect(screen.getByText(name)).toHaveAttribute("title", name);
+      expect(checkbox(address)).toHaveAttribute(
+        "aria-label",
+        `Import ${name} (${address})`,
+      );
+    }
+
+    expect(screen.getByText(/^10\.16\.42\.53/)).toHaveTextContent(
+      "10.16.42.53 · wb-0024-kds03.wbhq.com",
+    );
+    expect(screen.getByText(/^10\.16\.42\.54/)).toHaveTextContent(
+      "10.16.42.54 · NetBIOS name · wb-0024-kds04.wbhq.com",
+    );
+    // The SNMP-named display carries no NetBIOS hint.
+    expect(screen.getAllByText(/NetBIOS name/)).toHaveLength(2);
+    // The unnamed one is still listed by its address, and says so.
+    expect(checkbox("10.16.42.52")).toHaveAttribute(
+      "aria-label",
+      "Import 10.16.42.52 (10.16.42.52)",
+    );
+    expect(screen.getByText("No name found")).toBeInTheDocument();
+  });
+
+  test("all four are imported, the unnamed one with them", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+
+    const body: JSONObject = await importSelected();
+
+    expect(body["ipAddresses"]).toEqual([
+      "10.16.42.52",
+      "10.16.42.53",
+      "10.16.42.54",
+      "10.16.42.55",
+    ]);
   });
 });
 
 describe("Discovery review waits for a successful current response", () => {
-  test("does not expose stale selection or import while the inventory read is pending", async () => {
+  test("offers nothing to select or import while the inventory read is pending", async () => {
     const pending: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();
     getItemSpy.mockReturnValue(pending.promise);
     await renderPage();
@@ -632,21 +654,25 @@ describe("Discovery review waits for a successful current response", () => {
     });
 
     expect(screen.getByText("Refreshing inventory")).toBeInTheDocument();
-    expect(submit()).toBeDisabled();
+    expect(next()).toBeDisabled();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    await act(async () => {
-      capturedModal?.onSubmit?.();
-    });
-    expect(createSpy).not.toHaveBeenCalled();
+    // No "0 hosts will be imported" while the hosts are still being read.
+    expect(
+      screen.queryByTestId("discovery-import-choose-summary"),
+    ).not.toBeInTheDocument();
 
     await act(async () => {
       pending.resolve(scan([host("10.0.0.1", true)]));
       await opening;
     });
     expect(checkbox("10.0.0.1")).toBeDisabled();
+    expect(
+      screen.getByTestId("discovery-import-choose-summary"),
+    ).toHaveTextContent("0 hosts will be imported");
+    expect(server.startBodies).toEqual([]);
   });
 
-  test("a failed refresh cannot fall back to a stale importable row and can be retried by reopening", async () => {
+  test("a failed refresh cannot fall back to a stale importable row, and reopening tries again", async () => {
     getItemSpy.mockRejectedValueOnce(new Error("Inventory refresh failed"));
     await renderPage();
     const oldScan: NetworkDeviceDiscoveryScan = scan([host("10.0.0.1", false)]);
@@ -655,19 +681,16 @@ describe("Discovery review waits for a successful current response", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Inventory refresh failed",
     );
-    expect(submit()).toBeDisabled();
+    expectOnlyTryAgain();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    await act(async () => {
-      capturedModal?.onSubmit?.();
-    });
-    expect(createSpy).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText("Close review"));
+    await closeReview();
     getItemSpy.mockResolvedValue(scan([host("10.0.0.1", false)]));
     await openReview(oldScan);
+
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(checkbox("10.0.0.1")).toBeChecked();
-    expect(submit()).toBeEnabled();
+    expect(next()).toBeEnabled();
   });
 
   test("a scan deleted since the table loaded leaves import disabled", async () => {
@@ -678,8 +701,33 @@ describe("Discovery review waits for a successful current response", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "This discovery scan could not be found.",
     );
-    expect(submit()).toBeDisabled();
-    expect(createSpy).not.toHaveBeenCalled();
+    expectOnlyTryAgain();
+    expect(server.startBodies).toEqual([]);
+  });
+
+  test("Try again reads the scan again in place, and a read that works shows its hosts", async () => {
+    getItemSpy.mockRejectedValueOnce(new Error("Inventory refresh failed"));
+    await renderPage();
+    await openReview(scan([host("10.0.0.1", false)]));
+
+    expectOnlyTryAgain();
+    const readsBefore: number = getItemSpy.mock.calls.length;
+
+    getItemSpy.mockResolvedValue(scan([host("10.0.0.1", false)]));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getItemSpy.mock.calls.length).toBe(readsBefore + 1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(checkbox("10.0.0.1")).toBeChecked();
+    expect(next()).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
   });
 
   test("closing during a pending read does not reopen the dialog when the read completes", async () => {
@@ -701,35 +749,32 @@ describe("Discovery review waits for a successful current response", () => {
     expect(completed).toHaveBeenCalledTimes(1);
   });
 
-  test.each([false, true])(
-    "an older response cannot replace a newer review (same scan: %s)",
-    async (sameScan: boolean) => {
-      const older: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();
-      getItemSpy.mockReturnValueOnce(older.promise);
-      getItemSpy.mockResolvedValueOnce(
-        scan([host("10.0.0.2", true)], sameScan ? SCAN_ID : OTHER_SCAN_ID),
-      );
-      await renderPage();
-      let opening: Promise<void> = Promise.resolve();
-      await act(async () => {
-        opening = reviewAction().onClick(scan([]), () => {});
-      });
-      await openReview(scan([], sameScan ? SCAN_ID : OTHER_SCAN_ID));
+  test("an older response cannot replace another scan's review", async () => {
+    const older: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();
+    getItemSpy.mockReturnValueOnce(older.promise);
+    getItemSpy.mockResolvedValueOnce(
+      scan([host("10.0.0.2", true)], OTHER_SCAN_ID),
+    );
+    await renderPage();
+    let opening: Promise<void> = Promise.resolve();
+    await act(async () => {
+      opening = reviewAction().onClick(scan([]), () => {});
+    });
+    await openReview(scan([], OTHER_SCAN_ID));
 
-      await act(async () => {
-        older.resolve(scan([host("10.0.0.1", false)]));
-        await opening;
-      });
+    await act(async () => {
+      older.resolve(scan([host("10.0.0.1", false)]));
+      await opening;
+    });
 
-      expect(
-        screen.queryByTestId("discovered-device-checkbox-10.0.0.1"),
-      ).not.toBeInTheDocument();
-      expect(checkbox("10.0.0.2")).toBeDisabled();
-      expect(submit()).toBeDisabled();
-    },
-  );
+    expect(
+      screen.queryByTestId("discovered-device-checkbox-10.0.0.1"),
+    ).not.toBeInTheDocument();
+    expect(checkbox("10.0.0.2")).toBeDisabled();
+    expect(next()).toBeDisabled();
+  });
 
-  test("an older failure cannot show an error on the current review", async () => {
+  test("an older failure cannot show an error on another scan's review", async () => {
     const older: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();
     getItemSpy.mockReturnValueOnce(older.promise);
     getItemSpy.mockResolvedValueOnce(
@@ -748,42 +793,6 @@ describe("Discovery review waits for a successful current response", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(checkbox("10.0.0.2")).toBeChecked();
-    expect(submit()).toBeEnabled();
-  });
-
-  test("an import finishing during a reopened review's read remains retired even if the read predates it", async () => {
-    const importPending: Deferred<undefined> = deferred();
-    const refreshPending: Deferred<NetworkDeviceDiscoveryScan | null> =
-      deferred();
-    const oldScan: NetworkDeviceDiscoveryScan = scan([host("10.0.0.1", false)]);
-    getItemSpy
-      .mockResolvedValueOnce(oldScan)
-      .mockReturnValueOnce(refreshPending.promise);
-    createSpy.mockReturnValueOnce(importPending.promise);
-    await renderPage();
-    await openReview(oldScan);
-    fireEvent.click(submit());
-    await waitFor(() => {
-      expect(createSpy).toHaveBeenCalledTimes(1);
-    });
-    fireEvent.click(screen.getByText("Close review"));
-    let opening: Promise<void> = Promise.resolve();
-    await act(async () => {
-      opening = reviewAction().onClick(oldScan, () => {});
-    });
-
-    await act(async () => {
-      importPending.resolve(undefined);
-    });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Refreshing inventory")).toBeInTheDocument();
-
-    await act(async () => {
-      refreshPending.resolve(scan([host("10.0.0.1", false)]));
-      await opening;
-    });
-    expect(checkbox("10.0.0.1")).toBeDisabled();
-    expect(submit()).toBeDisabled();
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(next()).toBeEnabled();
   });
 });

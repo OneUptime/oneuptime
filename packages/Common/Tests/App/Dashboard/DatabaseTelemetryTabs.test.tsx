@@ -36,6 +36,20 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const MODEL_ID_STRING: string = "84858d6c-1111-4aaa-8bbb-000000000001";
+
+interface DisplayWithGroup {
+  displayKey: string;
+  displayValue: string;
+  group?:
+    | {
+        id: string;
+        displayKey: string;
+        displayValue: string;
+        memberLabel?: string;
+        memberValue?: string;
+      }
+    | undefined;
+}
 const PROJECT_ID_STRING: string = "10000000-0000-4000-8000-000000000001";
 
 // What ProjectUtil.getCurrentProjectId returns; null for "no project".
@@ -406,19 +420,15 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     render(<tabCase.Page {...PAGE_PROPS} />);
     await screen.findByTestId(tabCase.viewerTestId);
 
-    const displays: Record<
-      string,
-      { displayKey: string; displayValue: string }
-    > = lastProps(tabCase.viewerMock)["entityKeyDisplays"] as Record<
-      string,
-      { displayKey: string; displayValue: string }
-    >;
+    const displays: Record<string, DisplayWithGroup> = lastProps(
+      tabCase.viewerMock,
+    )["entityKeyDisplays"] as Record<string, DisplayWithGroup>;
 
-    expect(displays[ROW_KEY]).toEqual({
+    expect(displays[ROW_KEY]).toMatchObject({
       displayKey: "Database",
       displayValue: "PostgreSQL db.prod.internal:5432",
     });
-    expect(displays[ENDPOINT_KEY]).toEqual({
+    expect(displays[ENDPOINT_KEY]).toMatchObject({
       displayKey: "Database Endpoint",
       displayValue: "db.prod.internal:5432",
     });
@@ -426,6 +436,37 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     expect(displays[POD_KEY]!.displayValue).toContain(
       "PostgreSQL db.prod.internal:5432",
     );
+  });
+
+  test("files every key under ONE database group, so the viewer draws one chip", async () => {
+    getItemMock.mockResolvedValue(
+      databaseServer({
+        memberEntityKeys: { [POD_KEY]: "2026-09-23T10:00:00.000Z" },
+      }),
+    );
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<tabCase.Page {...PAGE_PROPS} />);
+    await screen.findByTestId(tabCase.viewerTestId);
+
+    const displays: Record<string, DisplayWithGroup> = lastProps(
+      tabCase.viewerMock,
+    )["entityKeyDisplays"] as Record<string, DisplayWithGroup>;
+
+    for (const key of [ROW_KEY, ENDPOINT_KEY, POD_KEY]) {
+      expect(displays[key]!.group).toMatchObject({
+        id: `database:${MODEL_ID_STRING}`,
+        displayKey: "Database",
+        displayValue: "PostgreSQL db.prod.internal:5432",
+      });
+    }
+
+    expect(
+      [ROW_KEY, ENDPOINT_KEY, POD_KEY].map((key: string): string => {
+        return displays[key]!.group!.memberLabel as string;
+      }),
+    ).toEqual(["Database ID", "Endpoints", "Instances"]);
+    expect(displays[ROW_KEY]!.group!.memberValue).toBe(MODEL_ID_STRING);
   });
 
   test("reads the endpoints of THIS database", async () => {

@@ -26,10 +26,11 @@ import {
 } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
-import { UserPermission } from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -210,29 +211,6 @@ export default class BaseAnalyticsAPI<
     this.service = service;
   }
 
-  @CaptureSpan()
-  public async getPermissionsForTenant(
-    req: ExpressRequest,
-  ): Promise<Array<UserPermission>> {
-    const permissions: Array<UserPermission> = [];
-
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-    if (
-      props &&
-      props.userTenantAccessPermission &&
-      props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-    ) {
-      return (
-        props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-          ?.permissions || []
-      );
-    }
-
-    return permissions;
-  }
-
   public getTenantId(req: ExpressRequest): ObjectID | null {
     if ((req as OneUptimeRequest).tenantId) {
       return (req as OneUptimeRequest).tenantId as ObjectID;
@@ -330,6 +308,22 @@ export default class BaseAnalyticsAPI<
       this.entityType,
       { hasMore },
     );
+  }
+
+  /*
+   * Whether a count request asked for the exact total (see CountBy.exact):
+   * the telemetry explorers' "712,345 spans", which must match the list and
+   * so must not come from a shortcut or a count cut short. Only the JSON
+   * boolean `true` asks — a stringly-typed "true" is not a request this API
+   * documents, and the default stays the cheap count every other caller
+   * already gets.
+   */
+  public static isExactCountRequested(body: unknown): boolean {
+    if (!body || typeof body !== "object") {
+      return false;
+    }
+
+    return (body as JSONObject)["exact"] === true;
   }
 
   /*
@@ -559,6 +553,7 @@ export default class BaseAnalyticsAPI<
     const count: PositiveNumber = await this.service.countBy({
       query,
       props: databaseProps,
+      exact: BaseAnalyticsAPI.isExactCountRequested(req.body),
     });
 
     return Response.sendJsonObjectResponse(req, res, {
@@ -587,6 +582,17 @@ export default class BaseAnalyticsAPI<
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
 
+    /*
+     * A row that does not exist, is in another project or is one the caller
+     * may not read is answered as missing - the same answer as a change or
+     * a delete of it, and as the database models give (BaseAPI.getItem).
+     */
+    if (!item) {
+      throw new NotFoundException(
+        `${new this.entityType().singularName || "Record"} not found.`,
+      );
+    }
+
     return Response.sendEntityResponse(req, res, item, this.entityType);
   }
 
@@ -598,12 +604,26 @@ export default class BaseAnalyticsAPI<
     await this.onBeforeDelete(req, res);
     const objectId: ObjectID = new ObjectID(req.params["id"] as string);
 
-    await this.service.deleteBy({
-      query: {
-        _id: objectId.toString(),
-      },
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const numberOfRowsDeleted: number = await this.service.deleteOneById({
+      id: objectId,
+      props: props,
     });
+
+    /*
+     * A delete that reached nothing says so, as on the database models: a
+     * row the caller may not read is answered as missing (404), one they
+     * may read but not delete is refused (422). See getUnwrittenByIdError.
+     */
+    if (numberOfRowsDeleted === 0) {
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Delete,
+      });
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }
@@ -661,13 +681,27 @@ export default class BaseAnalyticsAPI<
     delete (item as any)["createdAt"];
     delete (item as any)["updatedAt"];
 
-    await this.service.updateBy({
-      query: {
-        _id: objectIdString,
-      },
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const numberOfRowsUpdated: number = await this.service.updateOneById({
+      id: new ObjectID(objectIdString),
       data: item,
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      props: props,
     });
+
+    /*
+     * An update that reached nothing says so: 404 for a row the caller may
+     * not read, 422 for one they may read but not change. See
+     * getUnwrittenByIdError.
+     */
+    if (numberOfRowsUpdated === 0) {
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Update,
+      });
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }

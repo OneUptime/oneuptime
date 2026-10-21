@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -138,7 +140,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
   /*
    * Live ingest verification, same idea as the profiles guide: the user
    * finds out on this page whether their source is actually sending,
-   * instead of navigating to the events tab and guessing whether an empty
+   * instead of navigating to the Events page and guessing whether an empty
    * table means "not wired up" or "nothing has happened yet".
    * `isDataConfirmed` is a one-way latch so the success state cannot
    * flicker back if a later window happens to be empty.
@@ -156,7 +158,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
    * cannot distinguish the new source from another active one, but it
    * can no longer confirm on history alone. The trade-off: a source that
    * stamps events with old timestamps confirms late or not at all — the
-   * events tab still shows them.
+   * Events page still shows them.
    */
   const [verifyStartTime] = useState<Date>(() => {
     return OneUptimeDate.getCurrentDate();
@@ -627,7 +629,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
           </li>
           <li className="flex items-start gap-2">
             <Icon
-              icon={IconProp.Graph}
+              icon={IconProp.Share}
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>
@@ -653,7 +655,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
               <AppLink
                 className="font-medium text-indigo-600 hover:text-indigo-700"
                 to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route,
+                  RouteMap[PageMap.MONITORS] as Route,
                 )}
               >
                 Security Events monitor
@@ -771,6 +773,12 @@ curl -X POST "${ingestUrl}?format=udm" \\
                 endpointLabel="Security Events Ingest Endpoint"
                 endpointValue={ingestUrl}
                 endpointHint="Send the token in the x-oneuptime-token header. Name the source with x-oneuptime-service-name, or let it be inferred from the payload's product or vendor."
+                /*
+                 * Security events come from a SIEM, a log shipper or a
+                 * script, never a page: only a Server key may write them.
+                 */
+                keyTypeFilter={TelemetryIngestionKeyType.Server}
+                newKeyName={translationKey("Security events key")}
                 onSelectedKeyChange={setSelectedKey}
               />,
             )}

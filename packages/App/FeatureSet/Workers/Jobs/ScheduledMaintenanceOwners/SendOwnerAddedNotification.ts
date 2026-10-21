@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -15,6 +16,7 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
@@ -166,6 +168,7 @@ RunCron(
             },
             currentScheduledMaintenanceState: {
               name: true,
+              color: true,
             },
             scheduledMaintenanceNumber: true,
             scheduledMaintenanceNumberWithPrefix: true,
@@ -204,6 +207,10 @@ RunCron(
         projectName: scheduledMaintenance.project!.name!,
         currentState:
           scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          scheduledMaintenance.currentScheduledMaintenanceState?.color,
+        ),
         scheduledMaintenanceDescription: await Markdown.convertToHTML(
           scheduledMaintenance.description! || "",
           MarkdownContentType.Email,
@@ -230,7 +237,9 @@ RunCron(
             : scheduledMaintenance.title!;
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenanceIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

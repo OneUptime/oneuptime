@@ -22,8 +22,11 @@ import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
 } from "../../../Server/Services/DatabaseServerEndpointService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
@@ -40,6 +43,24 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { readsOfRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
+
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  /*
+   * An endpoint has no labels of its own: under grants limited to labels it
+   * is reached through its database's labels, against the database's label
+   * join table.
+   */
+  withLabelJoinTables();
+});
 
 /*
  * DatabaseServerEndpointService - the one-owner-per-endpoint table.
@@ -379,8 +400,83 @@ interface FakeDatabase {
   labelIds: Array<string>;
 }
 
+/*
+ * A condition the label rule puts on an endpoint's id
+ * (ReadPermission.addLabelGrantToQuery): a subquery over the label join
+ * tables of the records the endpoint names. The database evaluates it, so
+ * the fake does, from the endpoint's database (labelRuleKeeps); it names
+ * no ids of its own.
+ */
+function isLabelRuleCondition(value: unknown): boolean {
+  const operator: any = value;
+
+  return (
+    operator?._type === "raw" &&
+    typeof operator.getSql === "function" &&
+    String(operator.getSql("DatabaseServerEndpoint._id")).includes("SELECT")
+  );
+}
+
+// The label rule's conditions on an endpoint's id, wherever they are.
+function labelRuleConditionsOf(value: unknown): Array<any> {
+  const operator: any = value;
+
+  if (isLabelRuleCondition(operator)) {
+    return [operator];
+  }
+
+  if (operator?._type === "and" && Array.isArray(operator._value)) {
+    return operator._value.flatMap((child: unknown): Array<any> => {
+      return labelRuleConditionsOf(child);
+    });
+  }
+
+  return [];
+}
+
+/*
+ * Whether a grant's condition keeps `endpoint`: it names no database, or
+ * its database carries one of the labels the condition is bound to.
+ */
+function labelRuleKeeps(
+  endpoint: DatabaseServerEndpoint,
+  condition: any,
+  databases: Array<FakeDatabase>,
+): boolean {
+  if (!endpoint.databaseServerId) {
+    return true;
+  }
+
+  const labelIds: Array<string> = Object.values(
+    condition._objectLiteralParameters || condition.objectLiteralParameters,
+  )
+    .flat()
+    .map((labelId: unknown): string => {
+      return String(labelId).toLowerCase();
+    });
+
+  const database: FakeDatabase | undefined = databases.find(
+    (candidate: FakeDatabase): boolean => {
+      return (
+        candidate.row.id!.toString() === endpoint.databaseServerId!.toString()
+      );
+    },
+  );
+
+  return Boolean(
+    database &&
+      database.labelIds.some((labelId: string): boolean => {
+        return labelIds.includes(labelId.toLowerCase());
+      }),
+  );
+}
+
 function operatorValues(value: unknown): Array<string> | null {
   if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (isLabelRuleCondition(value)) {
     return null;
   }
 
@@ -594,11 +690,75 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     });
     findOwner = getJestSpyOn(service, "findOwnerByEndpoint");
     findOwner.mockResolvedValue(null);
+    /*
+     * An endpoint is created only under a database its creator may read
+     * (CreatePermission.checkParentPermission): the databases a read by the
+     * caller finds, answered by the same fake table as the service's own
+     * lookup.
+     */
+    getJestSpyOn(
+      DatabaseService as never,
+      "findReadableParentIds",
+    ).mockImplementation((async (lookup: {
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<string>> => {
+      const query: any = (
+        await ModelPermission.checkReadQueryPermission(
+          DatabaseServer,
+          { _id: QueryHelper.any(lookup.ids) },
+          { _id: true },
+          lookup.props,
+        )
+      ).query;
+
+      return databases
+        .filter((database: FakeDatabase) => {
+          return fakeRowMatches(database, query);
+        })
+        .map((database: FakeDatabase) => {
+          return database.row.id!.toString();
+        });
+    }) as never);
+    /*
+     * An endpoint a label-scoped editor adds names a database carrying one
+     * of the labels their permission to add it is limited to
+     * (CreateScopePermission): the labels of the same fake table.
+     */
+    getJestSpyOn(
+      DatabaseService as never,
+      "findRecordLabels",
+    ).mockImplementation((async (lookup: {
+      ids: Array<string>;
+    }): Promise<Record<string, Array<string>>> => {
+      const asked: Array<string> = lookup.ids.map((id: string): string => {
+        return id.toLowerCase();
+      });
+      const labels: Record<string, Array<string>> = {};
+
+      for (const database of databases) {
+        const id: string = database.row.id!.toString().toLowerCase();
+
+        if (asked.includes(id)) {
+          labels[id] = database.labelIds.map((labelId: string): string => {
+            return labelId.toLowerCase();
+          });
+        }
+      }
+
+      return labels;
+    }) as never);
+    getJestSpyOn(DatabaseService as never, "findLabelNames").mockImplementation(
+      (async (lookup: { labelIds: Array<string> }): Promise<Array<string>> => {
+        return lookup.labelIds;
+      }) as never,
+    );
     // The Feed item an added alias writes - see "the database's Feed".
     getJestSpyOn(
       DatabaseServerFeedService,
       "createDatabaseServerFeedItem",
     ).mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
@@ -718,7 +878,9 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           }),
           props: memberProps(),
         }),
-      ).rejects.toThrow("Conflicting database references were provided.");
+      ).rejects.toThrow(
+        /^Conflicting database references were provided\. databaseServerId and databaseServer are names for the same field/i,
+      );
       expect(save).not.toHaveBeenCalled();
       expect(findParent).not.toHaveBeenCalled();
     });
@@ -768,6 +930,68 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
   });
 
   /*
+   * The project check every service runs (ProjectReferencesService) leaves
+   * the database to this service, so a person hears the same sentence for a
+   * database of another project, one that does not exist and one they may
+   * not edit. The check is real here: the project has DATABASE_ID only.
+   */
+  describe("the project check and the service's own answer agree", () => {
+    const MISSING_DATABASE_ID: ObjectID = new ObjectID(
+      "33333333-3333-4333-8333-333333333333",
+    );
+
+    beforeEach(() => {
+      addDatabase({ id: OTHER_DATABASE_ID, projectId: OTHER_PROJECT_ID });
+      stubProjectDirectory({
+        projectId: PROJECT_ID,
+        records: { DatabaseServer: [DATABASE_ID.toString()] },
+        elsewhere: [OTHER_DATABASE_ID.toString()],
+      });
+    });
+
+    test.each([
+      ["another project's database", OTHER_DATABASE_ID],
+      ["a database that does not exist", MISSING_DATABASE_ID],
+    ])(
+      "a person naming %s hears what a database they may not edit gets",
+      async (_case: string, databaseId: ObjectID) => {
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: aliasRequest("orders-db.example.com", {
+              databaseServerId: databaseId,
+            }),
+            props: memberProps(),
+          }),
+        ).rejects.toThrow(
+          "Database not found, or you do not have permission to edit it.",
+        );
+        expect(save).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a root write may name only the project's database", async () => {
+      for (const databaseId of [OTHER_DATABASE_ID, MISSING_DATABASE_ID]) {
+        const data: DatabaseServerEndpoint = aliasRequest(
+          "orders-db.example.com:5432",
+          { databaseServerId: databaseId },
+        );
+        data.projectId = PROJECT_ID;
+
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: data,
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(
+          `This database endpoint references records that are not in this project: Database "${databaseId.toString()}". Please pick values from this project and try again.`,
+        );
+      }
+
+      expect(save).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
    * Adding an endpoint decides which traffic a database's pages show, and
    * that no other database can claim it: it is an edit of that database, so
    * a label- or Owned-scoped editor may only do it on the rows they edit.
@@ -786,6 +1010,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       expect(created.databaseServerId!.toString()).toBe(DATABASE_ID.toString());
     });
 
+    /*
+     * A database the caller may not read is answered like one that does
+     * not exist, before the service's own lookup or anything about the
+     * endpoint's owner.
+     */
     test("an editor scoped to label A cannot add an alias to a database labelled only B", async () => {
       addDatabase({ labelIds: [LABEL_TEAM_B] });
 
@@ -796,11 +1025,12 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
         return e;
       });
 
-      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error).toBeInstanceOf(ProjectScopedReferenceException);
       expect((error as Error).message).toBe(
-        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+        `This database endpoint references records that are not in this project: Database "${DATABASE_ID.toString()}". Please pick values from this project and try again.`,
       );
       expect(save).not.toHaveBeenCalled();
+      expect(findParent).not.toHaveBeenCalled();
       // Refused before anything about the endpoint's owner is looked up.
       expect(findOwner).not.toHaveBeenCalled();
     });
@@ -813,8 +1043,40 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           data: aliasRequest("orders-db.example.com"),
           props: labelScopedEditorProps(LABEL_TEAM_A),
         }),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).rejects.toThrow("references records that are not in this project");
       expect(save).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Adding an endpoint needs permission to edit the database, too: a
+     * database the caller may read but not edit is refused by the service's
+     * own check, in its own words.
+     */
+    test("an editor who may read a database but not edit it cannot add an alias to it", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_A] });
+
+      const error: unknown = await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com"),
+        props: propsWith([
+          permissionRow(Permission.EditDatabaseServer, {
+            labelIds: [new ObjectID(LABEL_TEAM_B)],
+            scope: PermissionScope.Labels,
+          }),
+          permissionRow(Permission.ReadDatabaseServer, {
+            labelIds: [new ObjectID(LABEL_TEAM_A)],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+      }).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+      );
+      expect(save).not.toHaveBeenCalled();
+      expect(findOwner).not.toHaveBeenCalled();
     });
 
     test("an Owned-scoped editor adds an alias to a database they own", async () => {
@@ -841,7 +1103,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           data: aliasRequest("orders-db.example.com"),
           props: ownedScopeEditorProps(),
         }),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).rejects.toThrow("references records that are not in this project");
       expect(save).not.toHaveBeenCalled();
       expect(findOwner).not.toHaveBeenCalled();
     });
@@ -1193,8 +1455,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person adds is an edit on the database's Feed, naming the endpoint and who added it", async () => {
@@ -1364,7 +1629,12 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         );
         return (
           (!ids || ids.includes(endpoint.id!.toString())) &&
-          (!projects || projects.includes(endpoint.projectId!.toString()))
+          (!projects || projects.includes(endpoint.projectId!.toString())) &&
+          labelRuleConditionsOf(input.query._id).every(
+            (condition: any): boolean => {
+              return labelRuleKeeps(endpoint, condition, databases);
+            },
+          )
         );
       });
     });
@@ -1398,8 +1668,17 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
     expect(repositoryDelete).not.toHaveBeenCalled();
   });
 
-  test("the lookup only looks inside the caller's project, as root", async () => {
-    const endpointId: string = ObjectID.generate().toString();
+  test("the lookup reads only endpoints the caller may delete, in the caller's project, as root", async () => {
+    /*
+     * An endpoint of the caller's project, so the delete reaches its hook:
+     * DatabaseService runs no hook for a delete that names no row the caller
+     * may delete.
+     */
+    addDatabase({ id: DATABASE_ID });
+    const endpointId: string = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "replica-db.example.com:5432",
+    }).id!.toString();
 
     await DatabaseServerEndpointService.deleteBy({
       query: { _id: endpointId, projectId: OTHER_PROJECT_ID },
@@ -1410,11 +1689,22 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       return 0;
     });
 
+    // The endpoints the caller may delete: read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(DatabaseServerEndpointService)[0]!.query[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+
+    /*
+     * The delete's own query among them, read as root: another project's
+     * endpoint, which the caller may not delete, is never in it.
+     */
     const call: any = findBy.mock.calls[0]![0];
     expect(call.query._id).toBe(endpointId);
-    // The request tenant wins over whatever project the query named.
-    expect(call.query.projectId).toEqual(PROJECT_ID);
+    expect(call.query.projectId).toEqual(OTHER_PROJECT_ID);
     expect(call.props.isRoot).toBe(true);
+    expect(repositoryDelete).not.toHaveBeenCalled();
   });
 
   test("an endpoint in another project is never matched, so nothing is removed or revealed", async () => {
@@ -1455,28 +1745,25 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       expect(repositoryDelete).toHaveBeenCalledTimes(1);
     });
 
-    test("an editor scoped to label A cannot remove an alias of a database labelled only B", async () => {
+    /*
+     * An endpoint carries the labels of its database: a grant limited to
+     * label A reaches the endpoints of databases labelled A only, so the
+     * others are not among the rows a delete finds.
+     */
+    test("an editor scoped to label A does not reach an alias of a database labelled only B", async () => {
       addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
       const alias: DatabaseServerEndpoint = addEndpoint({
         databaseServerId: OTHER_DATABASE_ID,
         endpoint: "payments-db.example.com:5432",
       });
 
-      const error: unknown = await removeEndpoint(
-        alias,
-        labelScopedEditorProps(LABEL_TEAM_A),
-      ).catch((e: unknown) => {
-        return e;
-      });
-
-      expect(error).toBeInstanceOf(NotAuthorizedException);
-      expect((error as Error).message).toBe(
-        "Database not found, or you do not have permission to edit it. Removing an endpoint from a database needs permission to edit that database.",
-      );
+      await expect(
+        removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
+      ).resolves.toBe(0);
       expect(repositoryDelete).not.toHaveBeenCalled();
     });
 
-    test("another team's PRIMARY endpoint is refused as not editable - its endpoint is not echoed", async () => {
+    test("another team's PRIMARY endpoint is not reached - nothing is removed or echoed", async () => {
       addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
       const primary: DatabaseServerEndpoint = addEndpoint({
         databaseServerId: OTHER_DATABASE_ID,
@@ -1484,15 +1771,16 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         isPrimary: true,
       });
 
-      const error: unknown = await removeEndpoint(
+      const outcome: unknown = await removeEndpoint(
         primary,
         labelScopedEditorProps(LABEL_TEAM_A),
       ).catch((e: unknown) => {
         return e;
       });
 
-      expect(error).toBeInstanceOf(NotAuthorizedException);
-      expect((error as Error).message).not.toContain("payments-db");
+      expect(outcome).toBe(0);
+      expect(String(outcome)).not.toContain("payments-db");
+      expect(repositoryDelete).not.toHaveBeenCalled();
     });
 
     test("an unlabelled database is outside a label-scoped editor's reach", async () => {
@@ -1504,7 +1792,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
 
       await expect(
         removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).resolves.toBe(0);
       expect(repositoryDelete).not.toHaveBeenCalled();
     });
 
@@ -1588,8 +1876,11 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person removes is an edit on its database's Feed, naming the endpoint and who removed it", async () => {
@@ -1726,6 +2017,7 @@ describe("DatabaseServerEndpointService - endpoint lifecycle", () => {
         service,
         "updateColumnsByIdWithoutHooks",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     test("a match after more than an hour moves lastMatchedAt to now, without bumping updatedAt", async () => {

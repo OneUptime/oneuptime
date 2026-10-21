@@ -1,286 +1,118 @@
-# macOS 설치 가이드
+# macOS 설치
 
-원활한 모니터링 및 인시던트 관리를 위해 macOS에 OneUptime을 네이티브 데스크탑 애플리케이션으로 설치합니다.
+OneUptime 대시보드는 Mac에 앱으로 설치됩니다. Safari에서 Dock에 추가하거나, Google Chrome 또는 Microsoft Edge에서 설치하세요. 별도의 창에서 열리고, Dock과 Launchpad에 자체 아이콘이 생기며, 알림을 표시할 수 있습니다. 다운로드할 것은 없습니다. 앱은 사용 중인 OneUptime의 대시보드 그 자체이며, 사용 중인 OneUptime이 최신이면 앱도 항상 최신입니다.
 
-## 설치 방법
+:::cards
+- [앱 설치하기](#앱-설치하기): Safari, Chrome 또는 Edge에서.
+- [Dock에 유지하기](#dock에-유지하기): 클릭 한 번으로, 또는 로그인할 때 엽니다.
+- [이 Mac에서 알림 받기](#이-mac에서-알림-받기): 앱을 푸시 알림용으로 등록합니다.
+- [문제 해결](#문제-해결): Dock에 추가가 없음, 알림이 없음, 다시 로그인해야 함.
+:::
 
-### 방법 1: Safari (macOS 권장)
+## 데스크톱 앱의 작동 방식
 
-Safari는 네이티브 macOS 기능과 함께 훌륭한 PWA 통합을 제공합니다.
-
-1. **Safari에서 OneUptime 열기**
-
-   - Safari 브라우저를 실행합니다
-   - OneUptime 인스턴스 URL로 이동합니다
-   - OneUptime 계정에 로그인합니다
-   - 페이지가 완전히 로드될 때까지 기다립니다
-
-2. **PWA 설치**
-
-   - 메뉴 막대에서 **파일**을 클릭합니다
-   - **"Dock에 추가"**를 선택합니다 (macOS Sonoma 이상)
-   - 또는 주소 표시줄에서 **설치 아이콘**을 찾습니다
-   - 대안: **파일** → **"홈 화면에 추가"** (구형 macOS)
-
-3. **설치 커스터마이징**
-
-   - **앱 이름**: 원하는 경우 수정합니다 (기본값: OneUptime)
-   - **Dock**: Dock에 추가 선택
-   - **Launchpad**: 쉬운 액세스를 위해 Launchpad에 추가
-
-4. **앱 실행**
-   - Dock, Launchpad 또는 응용 프로그램 폴더에서 OneUptime을 찾습니다
-   - 클릭하여 전용 창으로 실행합니다
-   - 앱이 Safari 브라우저와 독립적으로 실행됩니다
-
-### 방법 2: Google Chrome
-
-Chrome은 훌륭한 데스크탑 통합으로 강력한 PWA 지원을 제공합니다.
-
-1. **Chrome에서 OneUptime 열기**
-
-   - Google Chrome을 실행합니다
-   - OneUptime 인스턴스로 이동합니다
-   - 로그인되어 있는지 확인합니다
-   - 페이지가 완전히 로드될 때까지 기다립니다
-
-2. **메뉴를 통해 설치**
-
-   - 주소 표시줄에서 **설치 아이콘** (⊞)을 찾습니다
-   - **"OneUptime 설치"**를 클릭합니다
-   - 또는 **Chrome 메뉴** → **추가 도구** → **바로 가기 만들기**를 사용합니다
-
-3. **설치 옵션**
-
-   - 네이티브 앱 경험을 위해 **"창으로 열기"**를 체크합니다
-   - 필요한 경우 앱 이름을 커스터마이징합니다
-   - **"설치"** 또는 **"만들기"**를 클릭합니다
-
-4. **앱 액세스**
-   - 응용 프로그램 폴더에서 OneUptime을 찾습니다
-   - 또는 Spotlight 검색으로 액세스합니다
-   - 빠른 액세스를 위해 Dock에 고정합니다
-
-### 방법 3: Microsoft Edge
-
-Edge는 좋은 macOS 통합으로 견고한 PWA 지원을 제공합니다.
-
-1. **Edge에서 OneUptime 열기**
-
-   - Microsoft Edge를 실행합니다
-   - OneUptime URL로 이동합니다
-   - 로그인 프로세스를 완료합니다
-
-2. **앱 설치**
-   - **세 점 메뉴** → **앱** → **이 사이트를 앱으로 설치**를 클릭합니다
-   - 또는 주소 표시줄의 설치 프롬프트를 찾습니다
-   - 원하는 경우 앱 이름을 커스터마이징합니다
-   - **"설치"**를 클릭합니다
-
-### 커스터마이징 옵션
-
-### Dock 및 Launchpad
-
-1. **Dock 위치**: OneUptime을 원하는 Dock 위치로 드래그합니다
-2. **Dock 크기**: Dock 설정에서 아이콘 크기를 조정합니다
-3. **Launchpad 정리**: 모니터링 앱 폴더 생성
-4. **배지 알림**: Dock 아이콘에 인시던트 수 표시
-
-### 메뉴 막대 및 알림
-
-1. **알림 센터**
-
-   - 시스템 환경설정 → 알림 → OneUptime
-   - 알림 스타일 및 전달 구성
-   - 다양한 인시던트 유형에 대한 우선 순위 수준 설정
-
-2. **메뉴 막대 통합**
-   - Safari PWA에 대한 네이티브 메뉴 막대
-   - 자주 사용하는 작업에 대한 커스텀 메뉴 항목
-   - 일반적인 작업에 대한 키보드 단축키
-
-## 문제 해결
-
-### 설치 문제
-
-**Safari에서 "Dock에 추가"를 사용할 수 없는 경우:**
-
-```
-해결책:
-1. macOS Sonoma (14.0) 이상인지 확인합니다
-2. Safari를 최신 버전으로 업데이트합니다
-3. 대안 시도: 파일 → 홈 화면에 추가
-4. Safari 캐시를 지우고 다시 시도합니다
-5. Chrome 또는 Edge를 대안으로 사용합니다
+```mermaid title="대시보드를 설치하면 얻는 것"
+flowchart TB
+    Browser["Safari, Chrome<br/>또는 Edge가<br/>대시보드를 엽니다"]
+    Install["Dock에 추가하거나<br/>앱으로 설치합니다"]
+    App["별도의 창에서 열리는<br/>OneUptime, Dock과<br/>Launchpad에도"]
+    OneUptime["사용 중인 OneUptime이<br/>대시보드를 제공합니다"]
+    Browser --> Install --> App
+    App -->|"열 때마다<br/>대시보드를 불러옴"| OneUptime
 ```
 
-**PWA가 설치되지 않거나 충돌하는 경우:**
+Safari 웹 앱은 Safari와 별도로 자체 로그인, 쿠키, 설정을 가집니다. Chrome이나 Edge에서 설치한 앱은 이를 해당 브라우저와 함께 사용합니다.
 
-```
-해결책:
-1. macOS 버전 호환성을 확인합니다
-2. 충분한 디스크 공간이 있는지 확인합니다 (100MB 이상)
-3. 브라우저를 최신 버전으로 업데이트합니다
-4. 브라우저 캐시와 쿠키를 지웁니다
-5. 브라우저 확장 프로그램을 일시적으로 비활성화합니다
-6. Mac을 다시 시작하고 설치를 다시 시도합니다
-```
+## 시작하기 전에
 
-**응용 프로그램에 앱이 나타나지 않는 경우:**
+- Safari의 경우 macOS Sonoma 14 이상. Chrome과 Edge는 실행되는 모든 macOS에서 앱을 설치합니다.
+- HTTPS로 제공되는 사용 중인 OneUptime의 주소. OneUptime Cloud에서는 `https://oneuptime.com`, 자체 주소라면 `https://oneuptime.example.com` 같은 주소입니다.
+- 대시보드에 로그인할 수 있는 계정.
 
-```
-해결책:
-1. OneUptime 아이콘에 대한 Launchpad를 확인합니다
-2. Spotlight (⌘+Space)로 검색합니다
-3. 브라우저의 PWA 관리 섹션을 확인합니다
-4. 다른 브라우저로 재설치를 시도합니다
-5. 다른 이름으로 설치되었는지 확인합니다
-```
+## 앱 설치하기
 
-### 알림 문제
+:::tabs
+@tab Safari
+1. Safari에서 사용 중인 OneUptime을 열고 로그인합니다.
+2. 대시보드의 아무 페이지에서나 **파일 → Dock에 추가**를 선택하거나, 도구 막대의 공유 버튼을 클릭한 다음 **Dock에 추가**를 클릭합니다.
+3. 이름을 그대로 두거나 바꾸고 **추가**를 클릭합니다.
+4. Dock에서 OneUptime을 열고 한 번 더 로그인합니다. 웹 앱은 Safari의 로그인을 함께 사용하지 않습니다.
+@tab Chrome
+1. Chrome에서 사용 중인 OneUptime을 열고 로그인합니다.
+2. 대시보드의 아무 페이지에서나 주소 표시줄 오른쪽의 설치 아이콘을 클릭한 다음 **설치**를 클릭합니다. 또는 **⋮ → 전송, 저장 및 공유 → 페이지를 앱으로 설치**를 엽니다.
+3. Chrome이 별도의 창에서 OneUptime을 열고 Launchpad에 추가합니다.
+@tab Edge
+1. Edge에서 사용 중인 OneUptime을 열고 로그인합니다.
+2. 대시보드의 아무 페이지에서나 주소 표시줄 오른쪽의 설치 아이콘을 클릭한 다음 **설치**를 클릭합니다. 또는 **설정 및 기타 (…) → 기타 도구 → 앱 → 이 사이트를 앱으로 설치**를 엽니다.
+3. Edge가 별도의 창에서 OneUptime을 열고 Launchpad에 추가합니다.
+:::
 
-**macOS 알림이 작동하지 않는 경우:**
+로그인한 뒤 대시보드 페이지에서 설치하세요. 로그인 페이지는 앱이 아닙니다. Safari는 웹 앱을 홈 폴더의 응용 프로그램 폴더에 저장합니다.
 
-```
-해결책:
-1. 시스템 환경설정 → 알림 → OneUptime
-2. "알림 허용" 활성화
-3. 적절한 알림 스타일 설정 (배너/경보)
-4. 방해 금지 설정 확인
-5. OneUptime 알림 설정 확인
-6. 메시지가 표시될 때 알림 권한 부여
-```
+## Dock에 유지하기
+
+- **Dock.** 앱이 열려 있을 때 Dock 아이콘을 Control-클릭하고 **옵션 → Dock에 유지**를 선택합니다. Safari 웹 앱은 이미 Dock에 있습니다.
+- **로그인 시 열기.** Dock 아이콘을 Control-클릭하고 **옵션 → 로그인 시 열기**를 선택합니다.
+- **Spotlight.** Command-스페이스 바를 누르고 OneUptime을 입력합니다.
+
+## 이 Mac에서 알림 받기
+
+알림을 받으려는 각 프로젝트에서 앱을 푸시 알림용으로 등록하면 앱이 알림을 표시합니다. Safari 웹 앱은 웹 앱 안에서 등록하세요. 웹 앱은 그 자체로 별도의 브라우저입니다. Chrome이나 Edge에서 설치한 앱은 해당 브라우저로 등록됩니다.
+
+:::steps
+### 푸시 디바이스 열기
+앱에서 **사용자 설정 → 알림 방법**을 열고 **Push Notifications** 탭을 엽니다.
+
+### 이 앱 등록하기
+**디바이스 등록**을 클릭하고, **디바이스 이름**은 `Safari on macOS` 같은 제안된 이름을 그대로 두거나 바꾼 다음, **디바이스 등록**을 다시 클릭합니다. OneUptime이 알림을 보내도 되는지 macOS나 브라우저가 물으면 **허용**을 선택합니다.
+
+### 테스트 보내기
+**Browser Registered** 대화 상자에서 **Send Test Notification**을 클릭합니다. 아무것도 나타나지 않으면 Mac의 알림 설정을 확인하세요. [문제 해결](#문제-해결)을 참고하세요.
+:::
+
+브라우저는 방해 금지 모드 같은 집중 모드를 뚫고 울릴 수 없습니다. 반드시 깨워야 하는 호출에는 중요 알림을 켠 모바일 앱을 사용하세요. [iOS 설치](/docs/mobile-desktop-apps/ios-installation#무음-모드에서도-울리게-하기)를 참고하세요.
+
+자체 호스팅 OneUptime에서는 브라우저 알림에 서버의 VAPID 키가 필요합니다. [푸시 알림](/docs/self-hosted/push-notifications#자체-호스팅-설정)을 참고하세요.
+
+## 업데이트
+
+업데이트할 것이 없습니다. 앱은 열 때마다 사용 중인 OneUptime에서 대시보드를 불러오므로, 사용 중인 OneUptime이 업그레이드되면 함께 바뀝니다. 업그레이드 이전부터 열려 있던 창은 Command-R로 새로 고치세요.
 
 ## 제거
 
-### 완전 제거
+:::tabs
+@tab Safari
+Finder에서 홈 폴더를 열고, 그 안의 응용 프로그램 폴더에서 OneUptime을 휴지통으로 드래그합니다.
+@tab Chrome
+앱 창에서 **⋮** 메뉴를 열고 앱을 제거하는 항목을 선택한 다음 **삭제**를 선택합니다.
+@tab Edge
+Edge에서 `edge://apps`를 열고 OneUptime의 **세부 정보**를 선택한 다음 **제거**를 선택합니다.
+:::
 
-1. **응용 프로그램 폴더 방법**
+앱을 제거해도 등록은 해제되지 않습니다. 브라우저는 계속 알림을 받습니다. 알림을 멈추려면 **사용자 설정 → 알림 방법**의 **Push Notifications** 탭에서 **삭제**로 삭제하세요.
 
-   - 응용 프로그램 폴더 열기
-   - OneUptime 찾기
-   - 휴지통으로 드래그하거나 오른쪽 클릭 → 휴지통으로 이동
+## 문제 해결
 
-2. **Dock 방법**
+:::details Safari에 Dock에 추가가 없음
+Safari는 macOS Sonoma 14부터 웹 앱을 Dock에 추가합니다. macOS를 업데이트하거나, 대신 Chrome이나 Edge에서 앱을 설치하세요.
+:::
 
-   - Dock에서 OneUptime을 오른쪽 클릭합니다
-   - "옵션" → "Dock에서 제거"를 선택합니다
-   - 그런 다음 응용 프로그램 폴더에서 삭제합니다
+:::details 알림이 나타나지 않음
+- **사용자 설정 → 알림 방법**의 **Push Notifications** 탭에서 앱이나 그 브라우저가 목록에 있는지 확인하고 **테스트 알림**을 보냅니다.
+- Mac에서 **시스템 설정 → 알림**을 열고 OneUptime이나 설치한 브라우저가 알림을 보낼 수 있는지, 집중 모드가 알림을 보류하고 있지 않은지 확인합니다.
+- 브라우저가 OneUptime의 알림을 차단하고 있다면 브라우저의 사이트 설정에서 알림을 허용하고 다시 등록합니다.
+- 자체 호스팅 OneUptime에서는 서버에 VAPID 키가 없으면 **디바이스 등록** 대화 상자에 그렇게 표시됩니다.
+:::
 
-3. **브라우저 PWA 관리**
-   - **Chrome**: chrome://apps/ → OneUptime 찾기 → 제거
-   - **Edge**: edge://apps/ → OneUptime 찾기 → 제거
-   - **Safari**: 전용 관리 페이지 없음
+:::details 앱이 다시 로그인하라고 함
+Safari 웹 앱은 자체 로그인을 가지므로 앱 안에서 로그인하세요. Chrome이나 Edge에서 설치한 앱은 브라우저의 로그인을 함께 사용하므로, 브라우저에서 로그아웃하거나 쿠키를 지우면 앱에서도 로그아웃됩니다.
+:::
 
-### 깨끗한 제거
+## 다음 단계
 
-모든 관련 데이터를 제거합니다:
-
-```bash
-# Safari PWA 데이터 지우기 (일반 웹 사이트 데이터)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
-
-# Chrome PWA 데이터 지우기
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
-
-# Edge PWA 데이터 지우기
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
-
-## 업데이트 및 유지 관리
-
-### 자동 업데이트
-
-- OneUptime PWA는 온라인 상태에서 자동으로 업데이트됩니다
-- App Store 업데이트가 필요하지 않습니다
-- 새 기능을 즉시 사용할 수 있습니다
-- 중요한 업데이트가 즉시 적용됩니다
-
-### 수동 업데이트 프로세스
-
-애플리케이션을 강제로 업데이트합니다:
-
-1. **Safari PWA**: Safari 브라우저 내에서 새로 고침
-2. **Chrome PWA**: 앱 오른쪽 클릭 → 다시 로드 또는 ⌘+R
-3. **완전 새로 고침**: 앱 닫기, 브라우저 다시 열기, OneUptime 방문
-
-### 유지 관리 일정
-
-최적의 성능을 위한 정기적인 유지 관리:
-
-**주간:**
-
-- OneUptime 앱 재시작
-- 문제가 있는 경우 브라우저 캐시 지우기
-- macOS 업데이트 확인
-
-**월간:**
-
-- 저장 공간 사용량 검토 및 필요시 정리
-- 자동 업데이트되지 않는 경우 브라우저 업데이트
-- 알림 설정이 여전히 작동하는지 확인
-
-## macOS 기능과의 통합
-
-### 단축어 앱 통합
-
-OneUptime에 대한 커스텀 단축어 생성:
-
-1. **단축어** 앱 열기
-2. **새 단축어** 생성
-3. **"앱 열기"** 작업 추가
-4. **OneUptime** 선택
-5. 음성 활성화를 위해 Siri에 추가
-
-### Automator 통합
-
-OneUptime 작업 자동화:
-
-1. **Automator** 실행
-2. **애플리케이션** 또는 **워크플로** 생성
-3. **"애플리케이션 실행"** 작업 추가
-4. OneUptime PWA 선택
-5. 추가 자동화 단계 추가
-
-### 터미널 통합
-
-터미널을 통해 OneUptime 관리:
-
-```bash
-# 빠른 OneUptime 실행을 위한 별칭 생성
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# OneUptime이 실행 중인지 확인하는 함수
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## 보안 및 개인 정보 보호
-
-### macOS 보안 기능
-
-1. **Gatekeeper**: PWA 설치가 신뢰할 수 있는 소스에서 이루어지는지 확인합니다
-2. **시스템 무결성 보호**: 시스템 파일을 보호합니다
-3. **FileVault**: 데이터 보호를 위해 디스크를 암호화합니다
-4. **키체인**: 안전한 자격 증명 저장
-
-### 개인 정보 보호 고려 사항
-
-1. **위치 서비스**: 모니터링에 필요한 경우 구성합니다
-2. **카메라/마이크**: 필요에 따라 권한을 부여합니다
-3. **화면 녹화**: 특정 모니터링 기능에 필요할 수 있습니다
-4. **네트워크 액세스**: 적절한 방화벽 구성을 확인합니다
-
-### 모범 사례
-
-1. **정기적인 업데이트**: macOS 및 브라우저를 최신 상태로 유지합니다
-2. **강력한 인증**: 가능한 경우 Touch ID/Face ID를 사용합니다
-3. **네트워크 보안**: 원격 모니터링 액세스에 VPN을 사용합니다
-4. **데이터 백업**: 정기적인 Time Machine 백업에는 PWA 데이터가 포함됩니다
-5. **권한 검토**: 부여된 권한을 정기적으로 검토합니다
+:::cards
+- [iOS 설치](/docs/mobile-desktop-apps/ios-installation): 중요 알림과 함께 iPhone으로 호출을 받습니다.
+- [Windows 설치](/docs/mobile-desktop-apps/windows-installation): Windows에서 같은 앱을 사용합니다.
+- [FAQ 및 문제 해결](/docs/mobile-desktop-apps/faq-troubleshooting): 두 앱에 대한 답변.
+- [내 계정](/docs/introduction/your-account): OneUptime이 각 프로젝트에서 나에게 연락하는 방법.
+:::

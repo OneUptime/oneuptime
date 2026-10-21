@@ -24,30 +24,98 @@ image:
 
   ## Which edition of the OneUptime images to run.
   ## Possible values: community-edition, enterprise-edition
-  ## - community-edition: the Apache-2.0 images (tags as given in image.tag).
+  ## - community-edition: the Apache-2.0 images (tags as given in image.tag),
+  ##   SAML and OIDC single sign-on included.
   ## - enterprise-edition: the Enterprise Edition images, the same tags with an
-  ##   "enterprise-" prefix. They add the enterprise features (SSO/SAML, OIDC,
-  ##   SCIM, audit logs, team compliance, instance health dashboards), licensed
-  ##   under the OneUptime Enterprise License. Production use of the Enterprise
-  ##   Edition requires a subscription under that license. An install with no
-  ##   license, or one holding a license whose expiry was never recorded, runs
-  ##   as a 14-day trial, which is for evaluation. After the trial (or 30 days
-  ##   after a license expires), until a license is activated, SSO,
-  ##   OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require
-  ##   SSO" is no longer enforced (users sign in with their password), SCIM
-  ##   requests are refused and audit logging stops recording. Enterprise
-  ##   configuration becomes read-only and the enterprise admin dashboards are
-  ##   locked too. Everything resumes, without a restart, as soon as a license
-  ##   is activated, and core monitoring is never affected.
+  ##   "enterprise-" prefix. They add the enterprise features (SCIM, audit logs,
+  ##   team compliance, instance health dashboards), licensed under the
+  ##   OneUptime Enterprise License. Production use of the Enterprise Edition
+  ##   requires a subscription under that license. An install with no license,
+  ##   or one holding a license whose expiry was never recorded, runs as a
+  ##   14-day trial, which is for evaluation. After the trial (or 30 days after
+  ##   a license expires), until a license is activated, SCIM and audit logging
+  ##   stop: SCIM requests are refused and audit logging stops recording.
+  ##   Enterprise configuration becomes read-only and the enterprise admin
+  ##   dashboards are locked too. Single sign-on does not depend on the license.
+  ##   Everything resumes, without a restart, as soon as a license is activated,
+  ##   and core monitoring is never affected.
   ## Please contact sales@oneuptime.com for a license.
   type: community-edition
+
+  ## Image references that replace the ones this chart builds, by image:
+  ## app, nginx, probe, runner, home, test, postgres, clickhouse,
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## reference, or {registry, repository, tag | digest} (registry optional).
+  ## The marketplace editions of this chart point them at the marketplace's own
+  ## registry; on Microsoft Marketplace, global.azure.images does the same.
+  ## Leave empty to use the references the chart builds from the values above.
+  # overrides:
+  #   app: registry.example.com/oneuptime/app:enterprise-14.0.0
+  #   nginx:
+  #     registry: registry.example.com
+  #     repository: oneuptime/nginx
+  #     tag: enterprise-14.0.0
+  overrides: {}
   
   restartPolicy: Always
+# Pull secrets for every pod the chart defines: the OneUptime services, the
+# bundled PostgreSQL, ClickHouse and Valkey, the cleanup CronJobs and the
+# `helm test` hook - and the PostgreSQL cluster and ClickHouse installation
+# the database operators run. Set it when your images come from a registry
+# that asks for credentials, as an air-gapped install's do.
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
 
-# Important: You do need to set this to a long random values if you're using OneUptime in production.
-# Please set this to string.
+# The Kubernetes service account the OneUptime app and worker pods run as.
+# Empty runs them as the namespace's default service account. On Amazon EKS
+# the AWS Marketplace edition runs them as a service account with an IAM role
+# (IAM roles for service accounts): that role is how the installation bills
+# its users through AWS Marketplace.
+serviceAccount:
+  # Create the service account, named `name` (or "<release>-oneuptime").
+  create: false
+  # The service account to run as: an existing one, or the name of the one created.
+  name: ""
+  # Annotations of the created service account, for example
+  # eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/oneuptime
+  annotations: {}
+
+# Billing this OneUptime Enterprise installation through the cloud marketplace
+# it was bought on - AWS Marketplace (Amazon EKS), Microsoft Marketplace (AKS)
+# or Google Cloud Marketplace (GKE) - by the user-hour. The marketplace
+# editions of this chart set it; leave `provider` empty anywhere else. Every 15
+# minutes the installation notes how many users it has and reports each hour
+# to the marketplace; the marketplace accepting the reports is also what
+# licenses the Enterprise features, with no license key.
+enterpriseMarketplace:
+  # "" (not bought on a marketplace), "aws", "azure" or "google-cloud".
+  provider: ""
+  aws:
+    # The AWS Region, for a pod EKS does not tell it (EKS sets AWS_REGION on
+    # pods whose service account has an IAM role).
+    region: ""
+  # On Microsoft Marketplace the extension's identity, plan and resource come
+  # from global.azure.identity.clientId, global.azure.marketplace.planId and
+  # global.azure.extension.resourceId, which Azure fills in at install.
+  googleCloud:
+    # The Service Control service of OneUptime's Google Cloud Marketplace listing.
+    serviceName: ""
+    # The Secret Google Cloud Marketplace created for this deployment (its
+    # reporting secret, with consumer-id, entitlement-id and reporting-key).
+    reportingSecret: ""
+
+# The `helm test` hook pod (templates/tests/test.yaml).
+testHook:
+  enabled: true
+
+# Leave these empty and the chart generates a long random value for each on
+# install, into the `<release>-secrets` Secret, and keeps it across upgrades.
+# If you set one, make it a long random string.
+#
+# oneuptimeSecret is the cluster key OneUptime's own services present to each
+# other. OneUptime refuses a value its repository ships ("secret", or a
+# "please-change-this-..." placeholder) from every caller. The in-cluster
+# Runner does not hold it: it registers with its own key (runner.key below).
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -93,6 +161,15 @@ deployment:
     type: RollingUpdate
   # Dynamic timestamp label to force updates
   includeTimestampLabel: true
+  # Spread each service's replicas across nodes, so a node going away (drained
+  # by a node-pool upgrade or a scale-down, or failing) cannot take every
+  # replica of a service with it. A soft rule: pods still schedule when only
+  # one node has room, so it never blocks a rollout. Covers app, home, nginx,
+  # worker, runner, telemetry-writer, every probe, test-server and pgbouncer,
+  # unless topologySpreadConstraints are set for them (see the chart-wide
+  # topologySpreadConstraints below). It only helps services that run more
+  # than one replica; pair it with podDisruptionBudget.enabled.
+  spreadReplicasAcrossNodes: true
 
 metalLb:
   enabled: false
@@ -120,6 +197,10 @@ nginx:
   #   maxReplicas: 10
   #   targetCPUUtilizationPercentage: 80
   #   targetMemoryUtilizationPercentage: 80
+  # Where the gateway listens inside its pod. Empty, it listens on every IPv4
+  # and IPv6 address it has; name one address to listen there only
+  # ("0.0.0.0:" for IPv4 only, "[::]:" for IPv6 only). listenOptions are
+  # options of the listening socket, such as "backlog=4096".
   listenAddress: ""
   listenOptions: ""
   # Per-request access logging for the high-volume ingest locations (/otlp,
@@ -141,12 +222,31 @@ nginx:
     loadBalancerClass:
     annotations:
     type: LoadBalancer
+    # Whether visitors keep their own address on the way to the gateway, which
+    # is the address OneUptime counts them by (sign-in limits, IP allowlists).
+    # See "Visitor addresses" in docs/configuration.md.
+    #   ""       Kubernetes' default, Cluster: kube-proxy hands the gateway
+    #            every visitor from a node's own address, so OneUptime sees
+    #            all visitors that came through one node as one visitor.
+    #            helm install and helm upgrade say so.
+    #   Local    each visitor keeps their own address, when the load balancer
+    #            passes it through (MetalLB and the network load balancers of
+    #            most clouds). Visitors are then sent only to nodes that run a
+    #            gateway pod: Kubernetes tells the load balancer which nodes
+    #            those are through a health check.
+    #   Cluster  Kubernetes' default, chosen: nothing is said about it.
+    # For a LoadBalancer or NodePort Service, or one with externalIPs.
+    externalTrafficPolicy: ""
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
   resources: {}
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -375,6 +475,12 @@ postgresOperator:
 
 clickhouse:
   enabled: true
+  # The service account the ClickHouse pods run as. Set create to false to run
+  # them as the namespace's default service account instead, for a platform
+  # that does not let a chart create service accounts (the Google Cloud
+  # Marketplace edition).
+  serviceAccount:
+    create: true
   auth:
     username: oneuptime
     # Will be auto-generated if not provided
@@ -714,10 +820,12 @@ clickhouseOperator:
 # =============================================================================
 # Database migrations (dedicated Job — enabled by default).
 #
-# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
-# post-install Job (App/Migrate.ts), connecting directly to the backend. The
-# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
-# false). See HelmChart/Docs/Postgres.md.
+# Schema + data migrations run ONCE per release in a dedicated Job
+# (App/Migrate.ts), connecting directly to the backend: an async Job by default,
+# a pre-upgrade / post-install hook with migrate.hook. The runtime
+# app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false),
+# and each waits at boot for the schema migrations its code needs before it
+# starts (migrate.runtimeWaitTimeoutSeconds). See HelmChart/Docs/Postgres.md.
 #
 # KEEP THIS ENABLED. The migration runners take no advisory lock, so this Job
 # is the only thing making one runner the single runner. Setting enabled: false
@@ -725,10 +833,11 @@ clickhouseOperator:
 # at once and unserialized — two replicas can read the same migration as "not
 # executed" and both run it.
 #
-# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
-# race). An init container waits for the database first, so a fresh install does
-# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
-# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# Behavior: one runner, so no cross-pod race, and no new pod serves until the
+# schema migrations it needs are applied. An init container waits for the
+# database first, so a fresh install does not race the bundled Postgres / CNPG
+# bootstrap; on a very slow first-time cluster bootstrap you may need a longer
+# `helm upgrade --install --timeout`.
 # docker-compose and enabled: false installs run the boot path with no lock at
 # all, so data migrations must be written to tolerate concurrent runs.
 migrate:
@@ -736,17 +845,39 @@ migrate:
   # Whether the deploy WAITS for migrations:
   #   false (default): migrations run as an async background Job (both install and
   #     upgrade) — helm returns immediately and pods roll while migrations run.
-  #     Non-blocking deploys, BUT pods may run before migrations finish, so keep
-  #     your migrations backward-compatible (expand/contract: new code must
-  #     tolerate the old schema). On a FRESH install the app pods come up against
-  #     an un-migrated database and stay unready (likely CrashLoopBackOff) until
-  #     the Job finishes creating the schema — they self-heal once it does.
+  #     A new pod does not start on a schema older than its code: it waits at
+  #     boot, unready (the old pods keep serving), until the schema migrations
+  #     it needs are applied — see runtimeWaitTimeoutSeconds. On a FRESH install
+  #     the pods likewise wait for the Job to create the schema instead of
+  #     crash-looping. Keep migrations backward-compatible all the same
+  #     (expand/contract): the OLD pods serve on the NEW schema until replaced.
   #   true: migrations run as a BLOCKING Helm hook (post-install on install,
-  #     pre-upgrade on upgrade) — the deploy waits before rolling new pods, so new
-  #     code never hits an un-migrated schema.
-  # Note: `helm upgrade --wait` waits for the async Job too, so don't pass --wait
-  # if you want it non-blocking.
+  #     pre-upgrade on upgrade) — `helm upgrade` waits for them, data migrations
+  #     included, before rolling new pods, and fails the release if they outlast
+  #     its --timeout (5m by default). A post-install hook runs only after the
+  #     release's pods exist — after they are READY under `helm install --wait`
+  #     and Argo CD (which renders every sync as an install, so there the Job is
+  #     always a PostSync hook) — so with hook: true the pods of an install do
+  #     not wait for it (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0), as before.
+  # Note: `helm upgrade --wait` waits for the new pods to be ready, and they now
+  # wait for the schema migrations, so a --wait (or --atomic) deploy lasts until
+  # those are applied: size --timeout for them. It does not wait for the Job
+  # itself (data migrations included) unless you add --wait-for-jobs.
   hook: false
+  # How long each new runtime pod (app, worker, telemetry-writer, nginx) waits at
+  # boot for the schema migrations its code needs, in seconds (rendered as
+  # DATABASE_MIGRATION_WAIT_TIMEOUT_MS). Meanwhile it has not started: its
+  # startup probe fails, it gets no traffic, the old pods keep serving. It goes
+  # on as soon as the migrations are applied. When the time runs out it exits
+  # with an error naming the missing migrations, is restarted, and waits again —
+  # it never serves on the older schema. Keep it below the startup probe window,
+  # startupProbe.periodSeconds x (startupProbe.failureThreshold - 1) = 17
+  # minutes by default, with room for the rest of the boot, so a pod gives up by
+  # itself rather than being killed by the probe (with startupProbe.enabled:
+  # false the liveness probe kills a waiting pod after about two minutes).
+  # 0 = do not wait: start on the schema as found, as before this setting.
+  # Empty = the app's default (900).
+  runtimeWaitTimeoutSeconds: 900
   # Auto-clean finished async Jobs after this many seconds (hook: false only).
   ttlSecondsAfterFinished: 86400
   # Job retries (handles the DB not being ready yet on a fresh install).
@@ -835,6 +966,16 @@ pgbouncer:
   maxDbConnections: 450
   # Close server connections idle longer than this (seconds).
   serverIdleTimeoutSeconds: 600
+  # How long (seconds) a statement may wait in pgbouncer's queue for a free
+  # server connection before pgbouncer refuses it (query_wait_timeout). Kept
+  # below the app's own wait for a statement, DATABASE_QUERY_TIMEOUT_MS (35 s
+  # by default), so pgbouncer gives up on a queued statement before the app
+  # does: pgbouncer does not cancel a statement still in its queue, and at its
+  # own default (120 s) such a statement started long after the app had
+  # reported it failed. If you raise DATABASE_QUERY_TIMEOUT_MS, you may raise
+  # this with it - keep it a few seconds below. 0 lets a statement wait for
+  # ever. See HelmChart/Docs/Postgres.md ("Statements queued in the pooler").
+  queryWaitTimeoutSeconds: 30
   # Startup parameters the app sends that pgbouncer must accept (otherwise it
   # rejects the connection with a FATAL "unsupported startup parameter"). The
   # node-postgres driver sends statement_timeout and idle_in_transaction_session_timeout
@@ -844,14 +985,24 @@ pgbouncer:
   # so those server-side GUCs are not applied through the pooler.
   #
   # The app's client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) is NOT a
-  # substitute: it ABANDONS the query rather than cancelling it. The backend
-  # keeps executing and keeps its place in the lock queue, which is how killed
-  # and scaled-down workers left orphaned statements holding a queue through
-  # the pooler during the row-lock convoy incident.
+  # substitute. The app cancels a statement it stops waiting for, and closes
+  # its connection - pgbouncer passes the cancel on to the server connection
+  # the statement runs on - but a cancel cannot reach a backend whose
+  # connection is lost, nor a statement still in pgbouncer's queue
+  # (queryWaitTimeoutSeconds above). It used to cancel nothing at all: the
+  # backend kept executing and kept its place in the lock queue, which is how
+  # killed and scaled-down workers left orphaned statements holding a queue
+  # through the pooler during the row-lock convoy incident.
   # Server-side enforcement must therefore be set on the BACKEND — the chart
   # now ships lock_timeout in both postgresql.primary.configuration and
   # postgresOperator.cnpg.parameters. For an externalPostgres, set it yourself
   # (e.g. `ALTER DATABASE oneuptimedb SET lock_timeout='3s'`).
+  # statement_timeout is not shipped (it would reach admin sessions too): set
+  # it on the app's database role, to DATABASE_STATEMENT_TIMEOUT_MS, e.g.
+  # `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s'`.
+  # Some writes are held back until a statement the app stopped waiting for
+  # could no longer land, and only this timeout bounds that. See
+  # HelmChart/Docs/Postgres.md ("Statement timeout behind the pooler").
   ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
   # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
   # with ssl.enabled, this auto-defaults to "require" and verifies against
@@ -867,6 +1018,9 @@ pgbouncer:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Spread rules for pgbouncer only. Like its affinity, this never inherits the
+  # chart-wide list; left empty, deployment.spreadReplicasAcrossNodes applies.
+  topologySpreadConstraints: []
   # Optional: override global security contexts just for the pgbouncer pod/container
   podSecurityContext: {}
   containerSecurityContext: {}
@@ -1073,12 +1227,46 @@ webhooks:
   # 169.254.169.254 or a range containing it.
   privateNetworkAllowlist: ""
 
+# Outbound connection egress policy, for everything that is not a webhook:
+# external data sources (security event connections, threat intel feeds), LLM
+# providers, SMTP servers (project settings and the workflow Email component),
+# SMTP and workflow OAuth token URLs, OIDC discovery, status page / dashboard
+# domain verification and Runbook HTTP steps.
+#
+# Loopback, link-local (169.254.169.254) and reserved ranges are refused for
+# these in every deployment. The private tier (RFC-1918, CGNAT, IPv6
+# unique-local) is allowed on a self-hosted install, because the servers these
+# connect to usually live there. Rendered as DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES.
+outboundConnections:
+  # Refuse the private tier for these connections too — for example when
+  # projects on this instance belong to people who should not reach your
+  # internal network. Always on when billing.enabled is true, whatever this
+  # says. Does not change which targets webhooks (above) or
+  # probes.<key>.allowPrivateNetworkMonitors allow, and does not apply to
+  # Global LLM Providers (vllm.globalProvider, or one added in the Admin
+  # Dashboard): you choose their address, not a project. With it on, a refused
+  # host name (webhooks and workflow requests included) is reported as "...
+  # could not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG
+  # logs the reason.
+  blockPrivateNetwork: false
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:
   publicKey:
   privateKey:
   subject: mailto:support@oneuptime.com
+  # Read the private key from a Secret you manage instead of privateKey, to
+  # keep it out of these values (Helm stores them with every revision). Create
+  # it in the release's namespace:
+  #   kubectl create secret generic oneuptime-vapid -n <namespace> \
+  #     --from-literal=privateKey=<private key>
+  # Leave privateKey empty then: the chart refuses the two together. The
+  # public key stays in publicKey - every browser is given it.
+  existingSecret:
+    name:
+    # The key of that Secret that holds the private key.
+    privateKeyKey: privateKey
 
 # Expo access token for sending mobile push notifications directly via Expo SDK.
 # If not set, notifications are relayed through the push notification relay URL.
@@ -1088,6 +1276,13 @@ expo:
 # Push notification relay URL for self-hosted instances without Expo credentials
 pushNotification:
   relayUrl: https://oneuptime.com/api/notification/push-relay/send
+  # Whether this server relays mobile pushes for other OneUptime servers
+  # (/api/notification/push-relay), sending what they ask with its
+  # expo.accessToken. Leave it unset: it is then on only where billing is on
+  # (OneUptime's cloud). Set it to true only if your other OneUptime servers
+  # send their pushes through this one (their pushNotification.relayUrl);
+  # expo.accessToken alone sends this server's own pushes and relays nothing.
+  relayServerEnabled:
 
 incidents:
   disableAutomaticCreation: false
@@ -1191,6 +1386,23 @@ onCallCalendarFeed:
     windowSeconds: 60
     perTokenPerWindow: 60
     perIpPerWindow: 3000
+
+# OAuth sign-in for the MCP server (https://<host>/mcp): an MCP client can
+# connect by having a project member sign in to OneUptime and approve it,
+# instead of being handed an API key.
+#
+# disabled: true switches that off. The authorization server under /mcp/oauth
+# and its discovery documents stop being served and the MCP server accepts API
+# keys only, as it did before. Nothing is deleted.
+#
+# disableClientIdMetadataDocuments: true is for an instance that cannot reach
+# the internet. A client may identify itself by an https URL that OneUptime
+# fetches to read the client's name and redirect URIs; with no outbound access
+# that fetch always fails, so turn it off and clients register themselves with
+# this server instead.
+mcpOAuth:
+  disabled: false
+  disableClientIdMetadataDocuments: false
 
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
@@ -1309,8 +1521,13 @@ probes:
     # Maximum number of isolated browser worker processes started concurrently
     # by this Probe. Additional executions wait in a bounded FIFO queue.
     syntheticMonitorMaxConcurrency: 4
-    # Aggregate resident-memory ceiling for each short-lived synthetic worker
-    # and all of its browser descendants.
+    # Memory ceiling for each short-lived synthetic worker and all of its
+    # browser descendants together. A check is held to the memory its process
+    # tree actually holds, its proportional set size, which counts the pages
+    # the browser's processes share -- its code, and the buffers a renderer
+    # shares with the GPU process -- once rather than once per process. The
+    # probe can run up to syntheticMonitorMaxConcurrency checks at a time, so
+    # size the probe's memory for that many times this, plus the probe itself.
     syntheticMonitorMaxProcessTreeRssBytes: 1610612736
     # Maximum writable disk space for each short-lived synthetic execution,
     # including browser profiles, caches, downloads, IndexedDB, and OPFS.
@@ -1403,6 +1620,10 @@ probes:
     nodeSelector: {}
     podSecurityContext: {}
     hostAliases: []
+    # Affinity and topology spread for this service only. Each replaces the
+    # chart-wide value (they are not merged).
+    affinity: {}
+    topologySpreadConstraints: []
     containerSecurityContext: {}
     # Extra env / volumes for this service only. A non-empty list REPLACES the
     # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1491,6 +1712,10 @@ testServer:
     http: 3800
   resources: {}
   nodeSelector: {}
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   podSecurityContext: {}
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
@@ -1510,6 +1735,15 @@ openTelemetryExporter:
   # namespace, node and deployment names; the cluster name is not visible from
   # inside a pod, so it is only reported when set here.
   kubernetesClusterName:
+  # Record what OneUptime AI's own calls said - the system prompt, the
+  # messages, the tool calls and their results, and the answer - in this
+  # telemetry, so the AI / LLM conversations of the project it goes to show
+  # them (sets OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT). Without it
+  # they show each call's model, tokens, cost and timing only. The prompts hold
+  # incident details, logs and Ask AI chats (otherwise private to the person
+  # who asked), so turn it on only when everyone who can read that project may
+  # read them.
+  captureAiMessageContent: false
 
 # Browser RUM uses a separate, deliberately public credential. Only use a
 # OneUptime Browser ingestion key with an origin allowlist; never put a Server
@@ -1524,6 +1758,26 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+# Chart-wide topology spread constraints, for app, home, nginx, worker, runner,
+# telemetry-writer, every probe and test-server. A service's own
+# <service>.topologySpreadConstraints replaces this list (they are not merged).
+# When neither is set, deployment.spreadReplicasAcrossNodes spreads each
+# service across nodes.
+#
+# A constraint without a labelSelector is scoped to each service's own pods
+# (app: <release>-<service>) and, on Kubernetes 1.27+, counted per rollout
+# (matchLabelKeys: [pod-template-hash]), so one entry here spreads every
+# service on its own. For example, to spread across zones as well on a
+# multi-zone cluster (this list replaces the default, so keep the node rule):
+#
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: kubernetes.io/hostname
+#     whenUnsatisfiable: ScheduleAnyway
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+topologySpreadConstraints: []
 
 # Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
 # app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
@@ -1780,6 +2034,10 @@ home:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1796,6 +2054,11 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # Max AI investigations each pod runs at once (more wait in the queue,
+  # incident and alert investigations first). App pods run them only while
+  # worker.enabled is false; otherwise worker.aiInvestigationConcurrency
+  # applies.
+  aiInvestigationConcurrency: 10
   # How many NetworkDevice SNMP walks one probe is handed per fetch. A probe
   # fetches once a minute, so this is the ceiling on how fast that probe's
   # fleet can be polled, whatever the devices' configured intervals say.
@@ -1855,6 +2118,10 @@ app:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1910,6 +2177,10 @@ worker:
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
   telemetryConcurrency: 100
+  # Max AI investigations each worker pod runs at once (more wait in the
+  # queue, incident and alert investigations first, and count toward the
+  # KEDA queue-size trigger). Each holds its conversation in memory.
+  aiInvestigationConcurrency: 10
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so worker replicas can scale horizontally
   # without exploding ClickHouse insert concurrency. Defaults match the code
@@ -1950,6 +2221,10 @@ worker:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2087,6 +2362,10 @@ telemetryWriter:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2097,8 +2376,9 @@ telemetryWriter:
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
 # The in-cluster OneUptime Runner. It serves the AI code-fix capability for
-# every project in this deployment; it registers itself automatically (no
-# credentials needed) and idles cheaply when no LLM provider is configured.
+# every project in this deployment; it registers itself automatically with its
+# key (runner.key below, which the chart gives the app as well) and idles
+# cheaply when no LLM provider is configured.
 # Customers who want runbook steps executed inside their OWN network install
 # their own project-scoped Runner instead — see Runner/README.md.
 # Set enabled to false to not run it.
@@ -2121,7 +2401,8 @@ runner:
   # in-cluster Runner auto-registers itself using the key below)
   id:
   # Runner Key (optional — auto-generated and stored in the release
-  # secrets when not provided)
+  # secrets when not provided). The app is given the same key, and lets the
+  # Runner register as this installation's shared Runner with it.
   key:
   # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
   # the chart generates into `<release>-secrets`. The key is the Runner's identity
@@ -2139,6 +2420,10 @@ runner:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2164,13 +2449,63 @@ runner:
       failureThreshold: 3
       replicas: 1
 
+# The bundled global Runner. It runs the runbook JavaScript steps of every
+# project that uses global Runners (every project does, unless it turns them
+# off under Runbooks > Runners), each in a sandbox of its own that can reach
+# the internet but no private address. It is the Runner image started with a
+# fixed id and its own key, and holds nothing else: no cluster key, none of the
+# server's settings. Bash, SSH and Kubernetes steps never run on it: they run
+# on a Runner a project installs in its own network.
+# Set enabled to false to turn it off: the server then removes it, and projects
+# use the global Runners a master admin adds (Admin Dashboard > Settings >
+# Global Runners) and their own Runners.
+# See https://oneuptime.com/docs/runbooks/agents#global-runners
+globalRunner:
+  enabled: true
+  replicaCount: 1
+  # How many steps each replica runs at the same time. A project runs at most
+  # three of its steps on global Runners at once, whatever this says.
+  concurrency: 4
+  disableTelemetryCollection: false
+  enableProfiling: false
+  # The global Runner's key (optional — generated and kept in the release
+  # secrets when not provided). The server and the global Runner both read it.
+  key:
+  # Reference a Secret you manage for the key instead of the value the chart
+  # generates into `<release>-secrets` (`helm template` — Argo CD, Flux —
+  # generates a new one on every render). Ignored when `key` is set.
+  existingSecret:
+    name:
+    passwordKey:
+  ports:
+    http: 3877
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
+  containerSecurityContext: {}
+  # Extra env / volumes for the global Runner. Unlike every other service, it
+  # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those
+  # are written for the server's pods, and this one runs every project's
+  # steps.
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
 # Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes
-# (device plugin or GPU Operator installed). Once running, connect OneUptime to
-# it from the dashboard: AI Agents > LLM Providers > Create LLM Provider,
-# with LLM Provider "OpenAI" and Base URL:
+# (device plugin or GPU Operator installed). Once running, it is registered as
+# a Global LLM Provider automatically (see vllm.globalProvider below). To
+# connect it by hand instead: Project Settings > AI > LLM Providers > Create
+# LLM Provider, with LLM Provider "OpenAI Compatible" and Base URL:
 #   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
+# With billing.enabled or outboundConnections.blockPrivateNetwork on, a
+# project's own provider cannot reach that address; add it in the Admin
+# Dashboard under Settings > Global LLM Providers instead.
 vllm:
   enabled: false
   # N replicas = N independent copies of the model (each replica needs its own
@@ -2232,8 +2567,7 @@ vllm:
   # Optional API key. When set, /v1/* requires "Authorization: Bearer <key>"
   # (injected as VLLM_API_KEY via a chart-managed secret) - use the same value
   # as the API Key in the OneUptime LLM Provider form. When unset, the server is
-  # unauthenticated (in-cluster ClusterIP only) and any placeholder value
-  # satisfies the form.
+  # unauthenticated (in-cluster ClusterIP only); leave the form's API Key blank.
   apiKey: ""
   # Alternative to apiKey: reference an existing secret containing the API key.
   existingApiKeySecret:
@@ -2253,10 +2587,14 @@ vllm:
   # the auto-registered provider on the next deploy, and manual edits to its
   # env-managed fields (name, description, type, model, base URL, API key) in the
   # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
-  # Note: project-scoped AI Agents cannot
-  # use global providers (product rule) - they still need a project-specific
-  # LLM Provider. Intended for self-hosted installs; with billing.enabled=true
-  # global providers are subject to AI-credit balance checks.
+  # A project's own LLM Provider takes precedence; AI fix tasks fall back to
+  # this one when a project has none. Works with billing.enabled=true and
+  # outboundConnections.blockPrivateNetwork=true: they refuse private addresses
+  # such as this Service's ClusterIP only to providers a project configures,
+  # and this provider's address comes from the chart, not from a project.
+  # Loopback and link-local addresses stay refused for every provider. With
+  # billing.enabled=true, global providers are subject to AI-credit balance
+  # checks once you set their token cost in the Admin Dashboard.
   globalProvider:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.
@@ -2357,6 +2695,71 @@ microsoftTeamsApp:
   #   clientSecretKey: clientSecret
   #   tenantIdKey: tenantId
 
+# Video calls: the apps behind the one-click Connect of Zoom, Google Meet and
+# Microsoft Teams in Project Settings > Video Calls. Someone signs in to the
+# provider and allows this app to create meetings as that account - nothing
+# to set up on the provider's side for them. A provider whose clientId and
+# clientSecret are both set is connected by signing in; without them, projects
+# connect their own Zoom, Google or Microsoft app instead.
+#
+# Each app registers this redirect URI (https://<host>/api/...):
+#   zoomApp:                   /api/video-call-oauth/zoom/callback
+#   googleMeetApp:             /api/video-call-oauth/google-meet/callback
+#   microsoftTeamsMeetingsApp: /api/video-call-oauth/microsoft-teams/callback
+# See https://oneuptime.com/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server
+
+# A Zoom General app (user-managed) with the meeting:write:meeting and
+# user:read:user scopes. webhookSecretToken is the app's Secret Token: it
+# verifies the event Zoom sends to /api/video-call-oauth/zoom/events when
+# someone removes the app from their Zoom account.
+zoomApp:
+  clientId:
+  clientSecret:
+  webhookSecretToken:
+  # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+  # existingSecret:
+  #   name: "zoom-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+  #   webhookSecretTokenKey: webhookSecretToken
+
+# A Google Cloud OAuth client (web application) in a project with the Google
+# Meet REST API enabled, asking for the meetings.space.created scope.
+googleMeetApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "google-meet-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
+# A multi-tenant Microsoft Entra app registration with the delegated
+# OnlineMeetings.ReadWrite permission. Not the Teams bot (microsoftTeamsApp):
+# it signs people in for meetings, which the bot's registration does not.
+microsoftTeamsMeetingsApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "microsoft-teams-meetings-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
+# Cloud > Connect: this OneUptime's own AWS identity, which signs in to the
+# read-only IAM roles customers create for it - an IAM user's access key,
+# allowed to call sts:AssumeRole and nothing else. With it, an AWS account is
+# connected with a role (nothing secret is stored); without it, with a
+# read-only access key. Azure and Google Cloud need nothing here.
+# See https://oneuptime.com/docs/telemetry/cloud-accounts#amazon-web-services
+cloudConnect:
+  aws:
+    accessKeyId:
+    secretAccessKey:
+    # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+    # existingSecret:
+    #   name: "cloud-connect-aws-secret"
+    #   accessKeyIdKey: accessKeyId
+    #   secretAccessKeyKey: secretAccessKey
+
 # GitHub Example Configuration
 #
 # `name` must match the app's real name on GitHub: its mention handle is derived
@@ -2384,6 +2787,79 @@ gitHubApp:
   privateKey:
   webhookSecret:
 
+# Sign in with Microsoft: a multi-tenant Microsoft Entra app registration
+# (work, school and personal Microsoft accounts) that lets people sign in to
+# OneUptime with their Microsoft account. Required to sell on Microsoft
+# Marketplace. Redirect URI: https://<host>/identity/microsoft/callback; add
+# the optional ID token claims "email" and "xms_edov". Leave empty to not
+# offer it.
+microsoftSignInApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "microsoft-sign-in-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
+# Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
+# Marketplace (Azure), Google Cloud Marketplace and Vercel Marketplace. Used
+# only where billing is enabled; a marketplace is offered only when all of its
+# settings are set.
+# What each value is and where it comes from:
+# packages/Common/Server/Utils/Marketplace/RELEASING.md in the repository.
+cloudMarketplace:
+  # AWS Marketplace SaaS product. Fulfillment URL:
+  # https://<host>/api/marketplace/aws/register. EventBridge API destination:
+  # https://<host>/api/marketplace/aws/events, API key header
+  # x-oneuptime-marketplace-secret = eventsSecret.
+  aws:
+    accessKeyId:
+    secretAccessKey:
+    productCode:
+    eventsSecret:
+    # existingSecret:
+    #   name: "aws-marketplace-secret"
+    #   secretAccessKeyKey: secretAccessKey
+    #   eventsSecretKey: eventsSecret
+  # Microsoft Marketplace transactable SaaS offer. Landing page:
+  # https://<host>/api/marketplace/azure/landing. Connection webhook:
+  # https://<host>/api/marketplace/azure/webhook.
+  azure:
+    tenantId:
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "azure-marketplace-secret"
+    #   clientSecretKey: clientSecret
+  # Google Cloud Marketplace integrated SaaS. Sign-up URL:
+  # https://<host>/api/marketplace/google-cloud/signup. Pub/Sub push endpoint:
+  # https://<host>/api/marketplace/google-cloud/events.
+  googleCloud:
+    providerId:
+    # The service account's JSON key, as downloaded or base64-encoded.
+    serviceAccountKey:
+    serviceName:
+    usageMetric:
+    pubSubServiceAccountEmail:
+    # Optional: default to the host and to the push endpoint's URL.
+    signupAudience:
+    pubSubAudience:
+    # existingSecret:
+    #   name: "google-cloud-marketplace-secret"
+    #   serviceAccountKeyKey: serviceAccountKey
+  # Vercel Marketplace native integration (Integration Console). Base URL:
+  # https://<host>/api/marketplace/vercel. Redirect Login URL:
+  # https://<host>/identity/vercel/sso. Webhook URL:
+  # https://<host>/api/marketplace/vercel/webhook. Log drain endpoint:
+  # https://<host>/telemetry/vercel/v1/logs.
+  vercel:
+    # The integration's client ID (oac_...) and client secret.
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "vercel-marketplace-secret"
+    #   clientSecretKey: clientSecret
+
 # Inbound Email Configuration
 # Required for Incoming Email Monitor feature
 # See documentation: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email
@@ -2393,7 +2869,11 @@ inboundEmail:
   # The domain configured for inbound email (e.g., inbound.yourdomain.com)
   # Required for the Incoming Email Monitor feature to work
   domain:
-  # Optional webhook secret for validating incoming webhooks from the email provider
+  # Required once domain is set: a long random value of your own (openssl rand
+  # -hex 32 makes one), which the Destination URL in SendGrid's Inbound Parse
+  # settings ends with: https://<your OneUptime host>/incoming-email/sendgrid/<this value>.
+  # While it is empty, OneUptime refuses every email SendGrid delivers, and
+  # helm install / helm upgrade say so.
   webhookSecret:
 
 # BullMQ Queue Dashboard (Bull Board)
@@ -2475,9 +2955,18 @@ cloudnative-pg:
 # The operator is cluster-scoped and installs its CRDs via pre-install/pre-upgrade
 # Helm hooks. Full operator values: https://github.com/Altinity/clickhouse-operator/tree/master/deploy/helm/clickhouse-operator
 altinity-clickhouse-operator:
-  # The operator manages ClickHouse using its own "clickhouse_operator" user. Override
-  # these for production (the password is otherwise a well-known default).
+  # The operator manages ClickHouse with a user of its own, "clickhouse_operator".
+  # This chart renders that user's credentials Secret itself (secret.create stays
+  # false), under the name the operator reads it by: the operator chart's own
+  # Secret would give every installation the same password.
+  #
+  # Leave password empty to have the chart generate a random one on install and
+  # keep it on upgrade; an installation whose Secret already holds a password keeps
+  # that one. Set it to a long random value of your own to change it (then restart
+  # the operator: see HelmChart/Docs/Clickhouse.md), or when the chart is rendered
+  # with `helm template` (as Argo CD does), which cannot look up the stored one and
+  # would make a new one on every render.
   secret:
-    create: true
+    create: false
     username: clickhouse_operator
-    password: clickhouse_operator_password
+    password: ""

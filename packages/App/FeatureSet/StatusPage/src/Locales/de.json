@@ -22,6 +22,10 @@
     "label": "Sprache",
     "switchLanguage": "Sprache wechseln"
   },
+  "theme": {
+    "switchToDark": "Zum dunklen Design wechseln",
+    "switchToLight": "Zum hellen Design wechseln"
+  },
   "nav": {
     "overview": "Übersicht",
     "incidents": "Vorfälle",
@@ -125,7 +129,27 @@
     "noneDescription": "Für diese Statusseite wurden keine geplanten Ereignisse veröffentlicht.",
     "scheduledAt": "Geplant für ",
     "report": "Bericht über geplantes Ereignis",
-    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden."
+    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden.",
+    "calendar": {
+      "subscribe": "Kalender abonnieren",
+      "subscribeTitle": "Geplante Wartungen abonnieren",
+      "subscribeDescription": "Holen Sie sich die geplanten Wartungen dieser Seite in Ihre Kalender-App. Sie bleiben von selbst auf dem neuesten Stand.",
+      "eventTitle": "Zum Kalender hinzufügen",
+      "eventDescription": "Fügen Sie diese Wartung Ihrer Kalender-App hinzu.",
+      "addToCalendar": "Zum Kalender hinzufügen",
+      "addHeading": "Zu Ihrem Kalender hinzufügen",
+      "google": "Google Kalender",
+      "googleHint": "Öffnet Google Kalender in einem neuen Tab",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Öffnet die Kalender-App auf diesem Gerät",
+      "deviceFileHint": "Lädt die Wartung für die Kalender-App auf diesem Gerät herunter",
+      "copyHeading": "Oder Link kopieren",
+      "copyHint": "Fügen Sie ihn in eine beliebige Kalender-App ein, die einen Kalender per URL abonnieren kann.",
+      "copy": "Link kopieren",
+      "copied": "Kopiert!",
+      "done": "Fertig",
+      "refreshNote": "Kalender-Apps suchen nach eigenem Zeitplan nach Änderungen, daher kann es einige Stunden dauern, bis eine Änderung erscheint."
+    }
   },
   "subscribe": {
     "title": "Abonnieren",
@@ -151,7 +175,9 @@
       "placeholder": "abonnent@firma.de",
       "managePrompt": "Bitte geben Sie die E-Mail-Adresse ein, mit der Sie abonniert haben",
       "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese E-Mail-Adresse.",
-      "managePlaceholder": "email@ihrefirma.de"
+      "managePlaceholder": "email@ihrefirma.de",
+      "signedInEmailDescription": "Sie abonnieren mit der E-Mail-Adresse, mit der Sie sich anmelden.",
+      "signInToSubscribe": "Melden Sie sich bei dieser Statusseite an, um sie zu abonnieren."
     },
     "sms": {
       "title": "Per SMS abonnieren",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "Ihre Telefonnummer",
       "placeholder": "+491234567890",
       "managePrompt": "Bitte geben Sie die Telefonnummer ein, mit der Sie abonniert haben",
-      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer."
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer.",
+      "confirmationSent": "Wir haben eine SMS an diese Telefonnummer gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen."
     },
     "slack": {
       "title": "Über Slack abonnieren",
@@ -210,11 +237,48 @@
       "saved": "Ihre Änderungen wurden gespeichert.",
       "submit": "Abonnement aktualisieren",
       "unsubscribe": "Abbestellen",
-      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
+      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten.",
+      "linkNotValid": "Dieser Link zum Verwalten Ihres Abonnements ist abgelaufen oder ungültig. Einen neuen erhalten Sie über „Bestehendes Abonnement verwalten“ auf der Seite „Abonnieren“.",
+      "getNewLink": "Neuen Link anfordern",
+      "loadFailed": "Dieser Link konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
     },
     "confirm": {
       "title": "Abonnement bestätigen",
-      "success": "Abonnement erfolgreich bestätigt"
+      "success": "Abonnement erfolgreich bestätigt",
+      "linkNotValid": "Dieser Link zum Bestätigen Ihres Abonnements ist abgelaufen oder ungültig. Ein Link gilt 24 Stunden, nachdem er gesendet wurde. Einen neuen erhalten Sie, wenn Sie erneut abonnieren.",
+      "subscribeAgain": "Erneut abonnieren"
+    },
+    "unsubscribe": {
+      "title": "Abbestellen",
+      "titleWithName": "{{statusPageName}} abbestellen",
+      "confirmPrompt": "Möchten Sie keine Benachrichtigungen mehr von dieser Statusseite erhalten?",
+      "channelEmail": "E-Mail-Adresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-Workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-Workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dieses Abonnement wurde vom Team hinzugefügt, das diese Statusseite betreibt. Handelt es sich um eine gemeinsam genutzte Adresse wie eine Mailingliste, erhält nach dem Abbestellen niemand mehr diese Benachrichtigungen, der sie über diese Adresse bekommt, und das Team wird informiert.",
+      "confirmButton": "Abbestellen",
+      "manageInstead": "Stattdessen auswählen, welche Benachrichtigungen Sie erhalten",
+      "manageSubscription": "Abonnement verwalten",
+      "success": "Sie haben die Benachrichtigungen abbestellt. Sie erhalten keine weiteren Benachrichtigungen von dieser Statusseite.",
+      "alreadyUnsubscribed": "Dieses Abonnement wurde bereits beendet. Sie erhalten keine Benachrichtigungen von dieser Statusseite.",
+      "outOfDateLink": "Dieser Abbestelllink ist veraltet. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "invalidLink": "Dieser Abbestelllink ist ungültig. Er ist möglicherweise unvollständig, oder das Abonnement wurde entfernt. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "failed": "Das Abbestellen ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "loadFailed": "Dieser Abbestelllink konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
+    },
+    "preferences": {
+      "title": "Einstellungen",
+      "description": "Wählen Sie, worüber Sie informiert werden.",
+      "summary": {
+        "everything": "Sie erhalten alle Updates dieser Statusseite.",
+        "pickedResources": "Sie erhalten nur Updates zu den ausgewählten Ressourcen.",
+        "pickedEventTypes": "Sie erhalten nur Updates der ausgewählten Ereignistypen.",
+        "pickedResourcesAndEventTypes": "Sie erhalten nur Updates zu den ausgewählten Ressourcen und Ereignistypen.",
+        "noResources": "Sie haben noch keine Ressourcen ausgewählt.",
+        "noEventTypes": "Sie haben noch keine Ereignistypen ausgewählt."
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
       "forgotPassword": "Passwort vergessen?",
       "submit": "Anmelden",
-      "useSSO": "Stattdessen Single Sign-On (SSO) verwenden"
+      "or": "oder",
+      "logInWithSso": "Mit SSO anmelden"
     },
     "sso": {
       "title": "Mit SSO anmelden",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} darf nicht kleiner als {{minValue}} sein.",
   "{{field}} is required.": "{{field}} ist erforderlich.",
   "{{field}} should match {{matchField}}": "{{field}} muss mit {{matchField}} übereinstimmen",
-  "Email is not valid.": "E-Mail ist ungültig."
+  "Email is not valid.": "E-Mail ist ungültig.",
+  "Next": "Weiter",
+  "Opens in a new tab": "Öffnet in einem neuen Tab",
+  "Note": "Hinweis",
+  "Tip": "Tipp",
+  "Info": "Info",
+  "Important": "Wichtig",
+  "Warning": "Warnung",
+  "Caution": "Vorsicht",
+  "Danger": "Gefahr"
 }

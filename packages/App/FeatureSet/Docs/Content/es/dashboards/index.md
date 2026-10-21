@@ -1,82 +1,105 @@
-# Resumen de Paneles
+# Visión general de los paneles
 
-Los paneles convierten los datos que OneUptime ya está recopilando —métricas, logs, trazas, incidentes, monitores, recursos de Kubernetes, hosts— en una sola página que alguien puede mirar de un vistazo y entender qué está ocurriendo.
+Un panel es una página de widgets que tú mismo organizas: gráficos de tus métricas, registros y trazas, listas de incidentes, alertas y monitores, tus SLO y tu infraestructura, e incluso datos de sistemas ajenos a OneUptime. Crea uno para la pantalla de guardia, la revisión matinal de un equipo o una página para tus clientes, y compártelo con tu proyecto o con cualquiera que tenga el enlace.
 
-Coloca un gráfico de latencia de solicitudes junto a una lista de incidentes abiertos, junto a un indicador de CPU, junto a un párrafo de contexto. Guárdalo. Comparte el enlace.
+:::cards
+- [Cómo funciona un panel](#cómo-funciona-un-panel): De dónde vienen sus datos y quién lo ve.
+- [Encontrar tus paneles](#encontrar-tus-paneles): La lista Paneles y las páginas propias de cada panel.
+- [Crear tu primer panel](#crear-tu-primer-panel): De una plantilla a una página compartida en cinco pasos.
+- [Un ejemplo: un panel de guardia](#un-ejemplo-un-panel-de-guardia): Una página que sirve para todos los servicios.
+:::
 
-## Para qué son útiles los paneles
+## Cómo funciona un panel
 
-- **Una página de "¿está todo bien?"** — para guardias, una reunión de equipo o una pantalla en la pared.
-- **Detectar conexiones** — un pico de CPU al mismo tiempo que un aumento de latencia y un incidente abierto es mucho más fácil de ver en una sola página que en tres pestañas.
-- **Investigar** — cuando estás depurando, un panel que construyes sobre la marcha supera ejecutar diez consultas una a una.
-- **Compartir externamente** — una página de rendimiento de cara al cliente, una página de estado para socios, un panel público para un proyecto de código abierto.
+Cada widget lee de una fuente, dentro del intervalo de tiempo del panel y filtrado por sus variables. Todos los que abren el panel ven los mismos widgets: tu equipo cuando inicia sesión, y los visitantes a través de su enlace público una vez que lo compartes.
 
-## Qué puedes poner en un panel
+```mermaid title="De tus datos a las personas que los leen"
+flowchart TB
+    S["Tus datos: telemetría,<br/>monitores, incidentes,<br/>SLO, infraestructura,<br/>otros sistemas"] --> W["Widgets: gráficos,<br/>números, listas,<br/>mapas y texto"]
+    W --> D["Un panel: su intervalo<br/>de tiempo, variables y<br/>actualización automática"]
+    D --> M["Tu equipo, con<br/>sesión iniciada"]
+    D --> P["Cualquiera con el<br/>enlace, una vez que<br/>lo compartes"]
+```
 
-- **Gráficos** para tendencias a lo largo del tiempo: latencia, errores, throughput.
-- **Casillas de valor único e indicadores** — tasa de errores actual, CPU, incidentes abiertos.
-- **Tablas** para desgloses: top 10 de hosts más ruidosos, conteo de errores por servicio.
-- **Bloques de texto** para encabezados, contexto y enlaces a runbooks.
-- **Listas en vivo** de incidentes, alertas, monitores, logs, trazas, recursos de Kubernetes, recursos de Docker y hosts.
+| Término | Qué significa |
+| --- | --- |
+| Panel | Una página: un nombre, una cuadrícula de widgets, un intervalo de tiempo, variables y un ajuste de actualización automática. |
+| Widget | Una casilla de la cuadrícula: un gráfico, un número, una lista, un mapa, un reloj o un bloque de texto. |
+| Variable | Un selector en la barra de herramientas que limita cada widget compatible a un servicio, host o cliente. |
+| Intervalo de tiempo | La ventana que leen todos los gráficos y números. Un panel se abre en su valor predeterminado, la última hora salvo que alguien que lo edite elija otro, y cada lector puede elegir el suyo. |
+| Actualización automática | Con qué frecuencia los widgets vuelven a leer sus datos: desactivada, o de cada 5 segundos a cada 15 minutos. |
+| Lectura y edición | Un panel se abre para leerlo. Editarlo es un paso aparte que termina guardando o descartando tus cambios. |
 
-Consulta [Widgets](/docs/dashboards/widgets) para ver la lista completa y qué muestra cada uno.
+## Para qué sirven los paneles
 
-## Términos clave
+- **Una página de "¿va todo bien?"** para la persona de guardia, la reunión diaria de un equipo o una pantalla en la pared.
+- **Ver relaciones**: un pico de CPU junto a una subida de latencia y un incidente abierto salta a la vista en una sola página, y se pasa por alto repartido entre tres.
+- **Investigar**: pon lado a lado los gráficos que sueles volver a abrir, y arrastra sobre un pico para leer todos los widgets en ese momento.
+- **Compartir fuera del equipo**: una página de rendimiento para un cliente o un socio, protegida con una contraseña o una lista de IP permitidas si quieres.
 
-| Término             | Qué significa                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Panel**           | La página completa: un nombre, una cuadrícula de widgets, controles de rango de tiempo y una lista de variables.   |
-| **Widget**          | Una casilla en la página: un gráfico, un número, una lista, un párrafo.                                            |
-| **Variable**        | Un menú desplegable en la parte superior que filtra cada widget a la vez (cluster, servicio, cliente, entorno).    |
-| **Rango de tiempo** | La ventana de tiempo que usan todos los gráficos y números. Configúrala una vez en la parte superior de la página. |
-| **Actualización**   | Con qué frecuencia los widgets vuelven a consultar los datos. Apagado, cada pocos segundos, cada pocos minutos.    |
-| **Modo**            | **Edición** (arrastrar widgets) o **Vista** (solo lectura, la forma en que lo ven los visitantes).                 |
+## Encontrar tus paneles
 
-## Dónde encontrar los paneles
+Abre **Productos → Paneles**. La lista **Paneles** muestra los paneles del proyecto con sus descripciones, etiquetas y propietarios. Busca por nombre o descripción, acota la lista con los filtros **Propietario** y **Etiquetas**, o selecciona varios paneles para cambiar sus etiquetas o propietarios, archivarlos o exportarlos como JSON.
 
-Abre **Paneles** en la navegación lateral.
+El menú lateral de la lista tiene las páginas que gestionan todos tus paneles:
 
-| Página                    | Qué haces allí                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------ |
-| **Paneles**               | Tu lista de paneles. Crea uno nuevo, busca o filtra por etiqueta.                          |
-| **Panel → Vista**         | El lienzo. Alterna entre **Edición** y **Vista** en el encabezado.                         |
-| **Panel → Vista General** | Descripción, propietarios y etiquetas.                                                     |
-| **Panel → Ajustes**       | Compartir públicamente, contraseña, lista de IPs permitidas, dominio personalizado, marca. |
-| **Panel → Propietarios**  | Usuarios y equipos con acceso explícito.                                                   |
-| **Panel → Eliminar**      | Eliminar el panel.                                                                         |
+| Página | Qué haces allí |
+| --- | --- |
+| **Paneles** | Los paneles del proyecto. Crea uno, o trae paneles con **Importar JSON**. |
+| **Ajustes → Reglas del propietario** | Añadir propietarios a los paneles nuevos automáticamente. |
+| **Ajustes → Reglas de etiquetas** | Añadir etiquetas a los paneles nuevos automáticamente. |
+| **Ajustes → Fuentes de datos** | Conectar Prometheus, bases de datos SQL, ClickHouse, Loki, Elasticsearch o una API REST. |
+| **Avanzado → Archivado** | Los paneles que archivaste. Desarchívalos desde aquí. |
 
-## Construir un panel
+Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secciones salvo **Básico** empiezan plegadas: haz clic en su título para abrirla.
 
-1. **Crear** — elige un nombre. El lienzo se abre vacío.
-2. **Añadir widgets** — elige un tipo de widget, configura sus datos y arrástralo donde quieras.
-3. **(Opcional) Añadir variables** — por ejemplo, un menú desplegable `service` para que el mismo panel funcione para cada servicio.
-4. **Establecer el rango de tiempo** — los valores predeterminados están bien; ajústalos después.
-5. **(Opcional) Compartir públicamente** — activa el interruptor en Configuración, añade una contraseña o lista de IPs permitidas si es necesario.
-6. **(Opcional) Dominio personalizado** — aloja el panel en `status.tu-dominio.com`.
+| Página | Qué haces allí |
+| --- | --- |
+| **Panel** | El propio panel. Léelo, o edítalo desde su menú **⋯**. |
+| **Vista general** | Su nombre, su descripción y sus etiquetas. |
+| **Uso compartido** | Quién puede verlo, su enlace público y una lista de IP permitidas en Más ajustes. |
+| **Propietarios** | Los usuarios y equipos a los que pertenece. |
+| **Marca** | Título de la página, descripción, logotipo, tema y favicon del panel público. |
+| **Dominios personalizados** | Alojar el panel público en tu propio dominio. |
+| **Ajustes** | Duplicar, exportar o archivar el panel. |
+| **Registros de auditoría** | Cada cambio hecho en el panel, y quién lo hizo. |
+| **Eliminar** | Eliminar el panel para siempre. |
 
-## Un ejemplo rápido
+## Crear tu primer panel
 
-Objetivo: una página de guardia para el servicio de checkout con latencia, tasa de errores, incidentes abiertos y un seguimiento de logs en vivo.
+:::steps
+1. **Crear** — elige una plantilla, o **Empezar desde cero**. Una plantilla rellena el nombre y se abre con sus widgets; un panel empezado desde cero se abre vacío, con **Añadir widget** en su lienzo.
+2. **Añadir widgets** — elige un widget del catálogo, define en sus ajustes lo que lee, y luego arrástralo a su sitio y ajusta su tamaño.
+3. **Añadir variables, si las necesitas** — una variable `service`, por ejemplo, permite que un solo panel muestre cualquier servicio.
+4. **Guardar** — haz clic en **Guardar cambios**. Nada de lo que cambias al editar se conserva hasta que lo haces.
+5. **(Opcional) Compartir públicamente** — elige **⋯ → Compartir** en el panel y decide quién puede verlo: cualquiera con el enlace, o cualquiera con el enlace y una contraseña.
+:::
 
-1. Crea un panel llamado "Checkout de guardia".
-2. Añade una variable `service`. Establece el valor predeterminado en `checkout`.
-3. Añade un widget de **Gráfico** con latencia P95, filtrado por la variable `service`.
-4. Junto a él, añade un widget de **Valor** para la tasa de errores, con advertencia al 1% y crítico al 5%.
-5. Debajo, añade un widget de **Lista de incidentes** para incidentes etiquetados como `checkout`.
-6. Debajo de eso, un widget de **Flujo de registros** mostrando logs del mismo servicio.
-7. Guarda. Cambia el menú desplegable a `payments`: el mismo panel ahora muestra el servicio de pagos.
+[Crear un panel](/docs/dashboards/authoring) recorre cada paso.
+
+## Un ejemplo: un panel de guardia
+
+El objetivo: una página para el servicio de checkout, con su latencia, su tasa de errores, sus incidentes abiertos y sus últimos registros, que sirva también para cualquier otro servicio.
+
+1. Haz clic en **Crear panel**, elige **Empezar desde cero** y llama al panel "Checkout de guardia".
+2. Haz clic en **Añadir widget** y añade un **Gráfico** de tu métrica de latencia de las peticiones, agregada como P95.
+3. Junto a él, añade un **Valor** de tu tasa de errores, con un umbral de advertencia de 1 y un umbral crítico de 5.
+4. Debajo, añade una **Lista de incidentes** filtrada a los incidentes sin resolver, y un **Flujo de registros** con los registros del servicio.
+5. Abre **Variables**, añade una variable llamada `service` con el origen Telemetry Attribute y la clave de atributo `service.name`, y dale el valor predeterminado `checkout`.
+6. Haz clic en **Guardar cambios**. Elige `payments` en el selector `service` de la barra de herramientas: el gráfico, el valor y el flujo de registros pasan al servicio payments, y la lista de incidentes sigue mostrando todos los incidentes sin resolver.
 
 ## Cómo encajan los paneles con el resto de OneUptime
 
-- Los **monitores y la telemetría** son las fuentes de datos. Cada métrica, log y traza que recopilas se puede consultar en un widget.
-- Los **incidentes y alertas** aparecen en los widgets **Lista de incidentes** y **Lista de alertas**. Los paneles son solo de lectura para estos; créalos y actualízalos en otra parte.
-- Las **páginas de estado** son comunicación de cara al cliente ("¿está el sistema activo?"). Los paneles son para ver con detalle cómo se comporta el sistema. Ambos trabajan juntos, no se reemplazan.
-- Los **workflows** son cómo OneUptime actúa. Los paneles son cómo lees lo que ocurre.
+- **Los monitores y la telemetría** son el origen de los datos. Cada métrica, registro y traza que envías puede ir en un widget.
+- **Los incidentes y las alertas** aparecen en los widgets **Lista de incidentes** y **Lista de alertas**. Un panel solo los muestra: se gestionan en sus propias páginas.
+- **Las páginas de estado** dicen a tus clientes si tu servicio funciona. Los paneles muestran en detalle cómo se comporta. Los dos trabajan lado a lado.
+- **Los flujos de trabajo** actúan sobre lo que ocurre. Los paneles son donde lo lees.
 
-## Dónde seguir leyendo
+## Próximos pasos
 
-- [Crear un Panel](/docs/dashboards/authoring) — usar el lienzo, editar widgets.
-- [Widgets](/docs/dashboards/widgets) — la lista completa de widgets.
-- [Variables y Filtros](/docs/dashboards/variables) — hacer que un panel funcione para muchos servicios o clientes.
-- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — URLs públicas, contraseñas, lista de IPs permitidas, dominios personalizados.
-- [Configuración y Permisos](/docs/dashboards/configuration) — propietarios, etiquetas, control de acceso.
+:::cards
+- [Crear un panel](/docs/dashboards/authoring): Crea un panel, edítalo y guarda tus cambios.
+- [Widgets del panel](/docs/dashboards/widgets): Cada widget, y cuál elegir.
+- [Variables y filtros del panel](/docs/dashboards/variables): Un panel para cada servicio, host o cliente.
+- [Compartir y paneles públicos](/docs/dashboards/sharing): Enlaces públicos, contraseñas, listas de IP permitidas y dominios personalizados.
+:::

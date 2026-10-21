@@ -1,19 +1,13 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
-import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
-import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
-import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceType, {
-  getWorkspaceTypeDisplayName,
-} from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import Columns from "Common/UI/Components/ModelTable/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Field from "Common/UI/Components/Detail/Field";
-import Detail from "Common/UI/Components/Detail/Detail";
 import NotificationRuleConditions from "./NotificationRuleViewConditions";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
-import ObjectID from "Common/Types/ObjectID";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -22,19 +16,53 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import TeamsElement from "../../Team/TeamsElement";
-import UsersElement from "../../User/Users";
+import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import NotificationRuleSummary from "../NotificationRuleForm/NotificationRuleSummary";
+import {
+  NO_CONDITIONS_SENTENCES,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  RULE_THEN_TITLE,
+} from "../NotificationRuleForm/NotificationRuleCopy";
+import VideoCallRuleSummary from "./VideoCallRuleSummary";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
-export interface ComponentProps {
-  value:
-    | IncidentNotificationRule
-    | AlertNotificationRule
-    | ScheduledMaintenanceNotificationRule
-    | MonitorNotificationRule;
+/*
+ * A WORKSPACE NOTIFICATION RULE'S CARD: WHICH RECORDS, THEN WHAT.
+ *
+ *   Rule Name        Acknowledged incidents
+ *   Which incidents  Incident State  Contains Any  (Acknowledged)
+ *   Then             - Creates a channel like #ack-inc-42 for each incident.
+ *                    - Invites on-call responders as they are paged, the
+ *                      Incident Commander and other incident roles as they
+ *                      are assigned and owners as they are added.
+ *                    - Archives the channel when the incident is resolved.
+ *   Video Call       Starts a Zoom call with Zoom (Ops)
+ *
+ * "Which incidents" and "Then" are the rule form's own words: the
+ * Conditions step asks "Which incidents", the Destination step opens with
+ * "Then, in Slack".
+ *
+ * Each is a row of the rule's card of its own (a column of the rules list),
+ * so the rows line up and the list's Customize Columns names every one. A
+ * rule without a description, or without a video call, leaves that row off
+ * its card instead of drawing a label over nothing.
+ *
+ * The card listed every switch the rule holds, Yes or No, a dozen rows a
+ * rule. Then When and Then were a card inside a row with no name - the
+ * Customize Columns list showed a box with no name for it - and the name of
+ * the channel the rule creates was said twice: in Then, and in a Channel
+ * Name Prefix row of its own.
+ */
+
+// Which records the rule is for: its conditions, or every record.
+export interface NotificationRuleWhenProps {
+  rule: IncidentNotificationRule | undefined;
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
@@ -44,397 +72,198 @@ export interface ComponentProps {
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   monitorStatus: Array<MonitorStatus>;
-  workspaceType: WorkspaceType;
-  teams: Array<Team>;
-  microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
-  microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
-  users: Array<User>;
 }
 
-const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  let detailFields: Array<
-    Field<
-      | IncidentNotificationRule
-      | AlertNotificationRule
-      | ScheduledMaintenanceNotificationRule
-      | MonitorNotificationRule
-    >
-  > = [
-    {
-      key: "filters",
-      title: "",
-      fieldType: FieldType.Element,
-      getElement: () => {
-        if (
-          props.value.filters === undefined ||
-          props.value.filters.length === 0
-        ) {
-          return (
-            <div className="text-gray-700 text-sm">
-              No filters have been set. This rule will be executed for all{" "}
-              {props.eventType}
-            </div>
-          );
-        }
+export const NotificationRuleWhen: FunctionComponent<
+  NotificationRuleWhenProps
+> = (props: NotificationRuleWhenProps): ReactElement => {
+  const translator: Translator = useTranslator();
 
+  if (!props.rule?.filters || props.rule.filters.length === 0) {
+    return (
+      <div
+        className="text-sm text-gray-700"
+        data-testid="notification-rule-no-conditions"
+      >
+        {translator.translateText(NO_CONDITIONS_SENTENCES[props.eventType])}
+      </div>
+    );
+  }
+
+  return (
+    <NotificationRuleConditions
+      monitors={props.monitors}
+      labels={props.labels}
+      alertStates={props.alertStates}
+      alertSeverities={props.alertSeverities}
+      incidentSeverities={props.incidentSeverities}
+      incidentStates={props.incidentStates}
+      scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+      monitorStatus={props.monitorStatus}
+      filterCondition={props.rule.filterCondition}
+      criteriaFilters={props.rule.filters}
+    />
+  );
+};
+
+// What the rule does with them, in sentences (NotificationRuleSummary).
+export interface NotificationRuleThenProps {
+  rule: IncidentNotificationRule | undefined;
+  eventType: NotificationRuleEventType;
+  workspaceType: WorkspaceType;
+  teams: Array<Team>;
+  users: Array<User>;
+  microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
+  microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
+  // For the example of the name of the channel the rule creates.
+  numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
+  exampleRecordName?: string | undefined;
+}
+
+export const NotificationRuleThen: FunctionComponent<
+  NotificationRuleThenProps
+> = (props: NotificationRuleThenProps): ReactElement => {
+  return (
+    <NotificationRuleSummary
+      rule={props.rule}
+      eventType={props.eventType}
+      workspaceType={props.workspaceType}
+      users={props.users}
+      teams={props.teams}
+      microsoftTeamsTeams={props.microsoftTeamsTeams}
+      microsoftTeamsChats={props.microsoftTeamsChats}
+      numberPrefixes={props.numberPrefixes}
+      exampleRecordName={props.exampleRecordName}
+      showWhenEmpty={true}
+      dataTestId="notification-rule-summary"
+    />
+  );
+};
+
+// Everything a rule's card refers to by id, loaded once for the whole list.
+export interface NotificationRuleCardData
+  extends Omit<NotificationRuleWhenProps, "rule">,
+    Omit<NotificationRuleThenProps, "rule" | "eventType"> {
+  // Incident and alert rules can start a video call; the others cannot.
+  canStartVideoCall: boolean;
+  videoCallConnections: Array<VideoCallConnection>;
+}
+
+/*
+ * The ids the card's rows are kept under in a viewer's Customize Columns
+ * choices. When, Then and Video Call all read the rule's notificationRule,
+ * so each names its own.
+ */
+export const NOTIFICATION_RULE_CARD_COLUMN_IDS: {
+  readonly when: string;
+  readonly then: string;
+  readonly videoCall: string;
+} = {
+  when: "when",
+  then: "then",
+  videoCall: "videoCall",
+};
+
+function ruleOf(item: WorkspaceNotificationRule): IncidentNotificationRule {
+  return item.notificationRule as IncidentNotificationRule;
+}
+
+// The rows of a rule's card, as the rules list's columns.
+export function getNotificationRuleCardColumns(
+  data: NotificationRuleCardData,
+): Columns<WorkspaceNotificationRule> {
+  const columns: Columns<WorkspaceNotificationRule> = [
+    {
+      field: {
+        name: true,
+      },
+      title: "Rule Name",
+      type: FieldType.Text,
+    },
+    {
+      field: {
+        description: true,
+      },
+      noValueMessage: "-",
+      title: "Rule Description",
+      type: FieldType.Text,
+      showInListIf: (item: WorkspaceNotificationRule): boolean => {
+        return Boolean(item.description?.toString().trim());
+      },
+    },
+    {
+      field: {
+        notificationRule: true,
+      },
+      id: NOTIFICATION_RULE_CARD_COLUMN_IDS.when,
+      title: NOTIFICATION_RULE_CONDITIONS_TITLES[data.eventType],
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (item: WorkspaceNotificationRule): ReactElement => {
         return (
-          <NotificationRuleConditions
-            eventType={props.eventType}
-            monitors={props.monitors}
-            labels={props.labels}
-            alertStates={props.alertStates}
-            alertSeverities={props.alertSeverities}
-            incidentSeverities={props.incidentSeverities}
-            incidentStates={props.incidentStates}
-            scheduledMaintenanceStates={props.scheduledMaintenanceStates}
-            monitorStatus={props.monitorStatus}
-            filterCondition={props.value.filterCondition}
-            criteriaFilters={props.value.filters}
+          <NotificationRuleWhen
+            rule={ruleOf(item)}
+            eventType={data.eventType}
+            monitors={data.monitors}
+            labels={data.labels}
+            alertStates={data.alertStates}
+            alertSeverities={data.alertSeverities}
+            incidentSeverities={data.incidentSeverities}
+            incidentStates={data.incidentStates}
+            scheduledMaintenanceStates={data.scheduledMaintenanceStates}
+            monitorStatus={data.monitorStatus}
           />
         );
       },
     },
     {
-      key: "shouldPostToExistingChannel",
-      title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
-      description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
-      fieldType: FieldType.Boolean,
-    },
-
-    {
-      key: "existingTeam",
-      title: `Team select in ${getWorkspaceTypeDisplayName(props.workspaceType)} `,
-      description: `The team where the message will be posted.`,
-      fieldType: FieldType.Element,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule
-          | MonitorNotificationRule,
-      ) => {
+      field: {
+        notificationRule: true,
+      },
+      id: NOTIFICATION_RULE_CARD_COLUMN_IDS.then,
+      title: RULE_THEN_TITLE,
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (item: WorkspaceNotificationRule): ReactElement => {
         return (
-          Boolean(formValue.shouldPostToExistingChannel) &&
-          props.workspaceType === WorkspaceType.MicrosoftTeams &&
-          Boolean(formValue.existingTeam)
-        );
-      },
-      getElement: () => {
-        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam: MicrosoftTeamsTeam | undefined = (
-            props.microsoftTeamsTeams || []
-          ).find((i: MicrosoftTeamsTeam) => {
-            return props.value.existingTeam?.toString() === i.id;
-          });
-          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
-        }
-
-        return <span>N/A</span>;
-      },
-    },
-    {
-      key: "existingChannelNames",
-      title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
-      description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
-      fieldType: FieldType.Text,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule
-          | MonitorNotificationRule,
-      ) => {
-        return Boolean(formValue.shouldPostToExistingChannel) || false;
-      },
-    },
-    {
-      key: "shouldPostToExistingChat",
-      title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Chat`,
-      description: `When above conditions are met, post to a group chat or one-on-one chat where the OneUptime app has been added.`,
-      fieldType: FieldType.Boolean,
-      showIf: () => {
-        return props.workspaceType === WorkspaceType.MicrosoftTeams;
-      },
-    },
-    {
-      key: "existingChatIds",
-      title: `${getWorkspaceTypeDisplayName(props.workspaceType)} Chats to Post To`,
-      description: `The chats where the message will be posted.`,
-      fieldType: FieldType.Element,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule
-          | MonitorNotificationRule,
-      ) => {
-        return (
-          props.workspaceType === WorkspaceType.MicrosoftTeams &&
-          Boolean(formValue.shouldPostToExistingChat) &&
-          (formValue.existingChatIds || []).length > 0
-        );
-      },
-      getElement: () => {
-        const chatIds: Array<string> = props.value.existingChatIds || [];
-
-        return (
-          <div className="flex flex-wrap gap-2">
-            {chatIds.map((chatId: string) => {
-              const chat: MicrosoftTeamsChat | undefined = (
-                props.microsoftTeamsChats || []
-              ).find((i: MicrosoftTeamsChat) => {
-                return i.id === chatId;
-              });
-
-              return (
-                <span
-                  key={chatId}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
-                >
-                  {chat?.name ||
-                    `Disconnected chat (${chatId.substring(0, 16)}…)`}
-                  {chat?.chatType === "personal" && (
-                    <span className="text-indigo-400">(1:1)</span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
+          <NotificationRuleThen
+            rule={ruleOf(item)}
+            eventType={data.eventType}
+            workspaceType={data.workspaceType}
+            users={data.users}
+            teams={data.teams}
+            microsoftTeamsTeams={data.microsoftTeamsTeams}
+            microsoftTeamsChats={data.microsoftTeamsChats}
+            numberPrefixes={data.numberPrefixes}
+            exampleRecordName={data.exampleRecordName}
+          />
         );
       },
     },
   ];
 
-  let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
-  let archiveDescription: string = `When above conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;
-
-  if (props.eventType === NotificationRuleEventType.Monitor) {
-    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
-    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the monitor is deleted.`;
-  }
-
-  if (props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
-    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the scheduled maintenance is completed.`;
-  }
-
-  if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
-    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
-    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the on call duty policy is deleted.`;
-  }
-
-  // incident.
-  if (props.eventType === NotificationRuleEventType.Incident) {
-    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
-    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the incident is resolved.`;
-  }
-
-  // alert
-  if (props.eventType === NotificationRuleEventType.Alert) {
-    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
-    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the alert is resolved.`;
-  }
-
-  const incidentAlertMaintenanceFields: Array<
-    Field<
-      | IncidentNotificationRule
-      | AlertNotificationRule
-      | ScheduledMaintenanceNotificationRule
-    >
-  > = [
-    {
-      key: "shouldCreateNewChannel",
-      title: `Create ${props.workspaceType} Channel`,
-      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
-      fieldType: FieldType.Boolean,
-    },
-    {
-      key: "teamToCreateChannelIn",
-      title: `Team to Create Channel In`,
-      description: `The team where the new channel will be created.`,
-      fieldType: FieldType.Element,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
+  if (data.canStartVideoCall) {
+    columns.push({
+      field: {
+        notificationRule: true,
+      },
+      id: NOTIFICATION_RULE_CARD_COLUMN_IDS.videoCall,
+      title: "Video Call",
+      type: FieldType.Element,
+      disableSort: true,
+      showInListIf: (item: WorkspaceNotificationRule): boolean => {
+        return ruleOf(item)?.shouldStartVideoCall === true;
+      },
+      getElement: (item: WorkspaceNotificationRule): ReactElement => {
         return (
-          formValue.shouldCreateNewChannel &&
-          props.workspaceType === WorkspaceType.MicrosoftTeams &&
-          Boolean((formValue as any).teamToCreateChannelIn)
+          <VideoCallRuleSummary
+            rule={ruleOf(item)}
+            connections={data.videoCallConnections}
+          />
         );
       },
-      getElement: () => {
-        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam: MicrosoftTeamsTeam | undefined = (
-            props.microsoftTeamsTeams || []
-          ).find((i: MicrosoftTeamsTeam) => {
-            return (
-              (props.value as any).teamToCreateChannelIn?.toString() === i.id
-            );
-          });
-          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
-        }
-
-        return <span>N/A</span>;
-      },
-    },
-    {
-      key: "newChannelTemplateName",
-      title: `${props.workspaceType} Channel Template Name`,
-      description: `If your new channel name is "oneuptime-${props.eventType?.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType?.toLowerCase()}-X".`,
-      fieldType: FieldType.Text,
-      placeholder: `oneuptime-${props.eventType?.toLowerCase()}-`,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-    },
-    {
-      key: "shouldInviteOwnersToNewChannel",
-      title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
-      fieldType: FieldType.Boolean,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-    },
-    {
-      key: "inviteTeamsToNewChannel",
-      title: `Invite Teams to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
-      fieldType: FieldType.Element,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-      getElement: () => {
-        const selectedTeams: Array<Team> = props.teams.filter((i: Team) => {
-          return (
-            props.value as
-              | IncidentNotificationRule
-              | AlertNotificationRule
-              | ScheduledMaintenanceNotificationRule
-          ).inviteTeamsToNewChannel?.find((j: ObjectID) => {
-            return j.toString() === i._id!.toString();
-          });
-        });
-
-        return <TeamsElement teams={selectedTeams} />;
-      },
-    },
-    {
-      key: "inviteUsersToNewChannel",
-      title: `Invite Users to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these users.`,
-      fieldType: FieldType.Element,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-      getElement: () => {
-        const selectedUsers: Array<User> = props.users.filter((i: User) => {
-          return (
-            props.value as
-              | IncidentNotificationRule
-              | AlertNotificationRule
-              | ScheduledMaintenanceNotificationRule
-          ).inviteUsersToNewChannel?.find((j: ObjectID) => {
-            return j.toString() === i._id!.toString();
-          });
-        });
-
-        return <UsersElement users={selectedUsers} />;
-      },
-    },
-
-    // archive channel automatically
-    {
-      key: "archiveChannelAutomatically",
-      title: archiveTitle,
-      description: archiveDescription,
-      fieldType: FieldType.Boolean,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule,
-      ) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-    },
-  ];
-
-  detailFields = detailFields.concat(
-    incidentAlertMaintenanceFields as Field<
-      | IncidentNotificationRule
-      | AlertNotificationRule
-      | ScheduledMaintenanceNotificationRule
-      | MonitorNotificationRule
-    >[],
-  );
-
-  if (
-    props.eventType === NotificationRuleEventType.Alert ||
-    props.eventType === NotificationRuleEventType.Incident
-  ) {
-    const alertIncidentField: Array<
-      Field<AlertNotificationRule | IncidentNotificationRule>
-    > = [
-      {
-        key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
-        title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
-        description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
-        fieldType: FieldType.Boolean,
-        showIf: (
-          formValue: IncidentNotificationRule | AlertNotificationRule,
-        ) => {
-          return formValue.shouldCreateNewChannel || false;
-        },
-      },
-    ];
-
-    detailFields = detailFields.concat(
-      alertIncidentField as Field<
-        | IncidentNotificationRule
-        | AlertNotificationRule
-        | ScheduledMaintenanceNotificationRule
-        | MonitorNotificationRule
-      >[],
-    );
+    });
   }
 
-  return (
-    <Detail<
-      | IncidentNotificationRule
-      | AlertNotificationRule
-      | ScheduledMaintenanceNotificationRule
-      | MonitorNotificationRule
-    >
-      item={props.value}
-      fields={detailFields}
-    />
-  );
-};
-
-export default NotificationRuleViewElement;
+  return columns;
+}

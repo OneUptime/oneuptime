@@ -7,6 +7,17 @@ import {
   SYSTEMD_UNIT_NAME_ATTR,
   encodeUnitNameForUrl,
 } from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
+import {
+  HOST_INSTALL_METHODS,
+  HostInstallMethod,
+  getHostSetupGuide,
+} from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  SetupGuideContent,
+  SetupGuideOption,
+  SetupGuideTopic,
+  getSetupGuideMarkdown,
+} from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 
 /*
  * The Systemd Units tab is the Linux twin of the Windows Services tab: a list
@@ -58,6 +69,9 @@ const DOCS_CONTENT: string = path.join(
   "Docs",
   "Content",
 );
+
+// A fenced YAML block, with or without a title on its opening line.
+const YAML_FENCE: RegExp = /```yaml[^\n]*\n[\s\S]*?```/g;
 
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
@@ -294,7 +308,12 @@ describe("Systemd Units side-menu gating", () => {
      * widen that gap for no benefit.
      */
     const source: string = readCode("Pages", "Host", "View", "SideMenu.tsx");
-    expect(source.split("modelType: Host,").length - 1).toBe(1);
+    /*
+     * Count the fetches themselves: the Developer section also names the
+     * Host model, but it fetches nothing.
+     */
+    const HOST_FETCH: RegExp = /ModelAPI\.getItem\(\{\s*modelType: Host,/g;
+    expect((source.match(HOST_FETCH) || []).length).toBe(1);
   });
 });
 
@@ -444,19 +463,19 @@ describe("systemd receiver documentation", () => {
   }
 
   /*
-   * The three "Complete example" sections are the configs users copy whole.
-   * They are found by their fenced YAML rather than by heading text, because
-   * the headings are translated and the YAML is not.
+   * The configs users copy whole: the Linux, macOS and Windows configs of the
+   * install's first step, and the lean one. They are found by their fenced
+   * YAML rather than by heading text, because the headings are translated
+   * and the YAML is not. A fence may carry a title (```yaml title="..."),
+   * which the docs draw above the block.
    */
   function completeExampleConfigs(doc: string): Array<string> {
-    return (doc.match(/```yaml\n[\s\S]*?```/g) || []).filter(
-      (block: string): boolean => {
-        return (
-          block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
-          block.includes("service:\n  pipelines:")
-        );
-      },
-    );
+    return (doc.match(YAML_FENCE) || []).filter((block: string): boolean => {
+      return (
+        block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
+        block.includes("service:\n  pipelines:")
+      );
+    });
   }
 
   test("the English page documents the receiver end to end", () => {
@@ -631,18 +650,50 @@ describe("systemd receiver documentation", () => {
     expect(unbalanced).toEqual([]);
   });
 
-  test("the in-app Documentation tab explains the Linux setup", () => {
-    const source: string = readSource(
-      "Pages",
-      "Host",
-      "Utils",
-      "DocumentationMarkdown.ts",
-    );
+  /*
+   * The in-app guide is data (a SetupGuideContent per install method), so
+   * these ask it what each install method is offered instead of counting
+   * call sites in its source.
+   */
+  const guideFor: (method: HostInstallMethod) => SetupGuideContent = (
+    method: HostInstallMethod,
+  ): SetupGuideContent => {
+    return getHostSetupGuide({
+      oneuptimeUrl: "https://oneuptime.example.com",
+      apiKey: "tik_secret_123",
+      method: method,
+    });
+  };
 
-    expect(source).toContain("getLinuxSystemdStepMarkdown");
-    expect(source).toContain("Step 3 — Enable the Systemd Units tab");
-    expect(source).toContain("receivers: [hostmetrics, systemd]");
-    expect(source).toContain(MIN_OTELCOL_CONTRIB_VERSION.replace("v", ""));
+  const systemdTopicFor: (
+    method: HostInstallMethod,
+  ) => SetupGuideTopic | undefined = (
+    method: HostInstallMethod,
+  ): SetupGuideTopic | undefined => {
+    return (guideFor(method).advanced || []).find(
+      (topic: SetupGuideTopic): boolean => {
+        return topic.title === "Enable the Systemd Units tab";
+      },
+    );
+  };
+
+  const NATIVE_LINUX_METHODS: Array<HostInstallMethod> = [
+    "linux-deb",
+    "linux-rpm",
+    "linux-tarball",
+  ];
+
+  test("the in-app Documentation tab explains the Linux setup", () => {
+    for (const method of NATIVE_LINUX_METHODS) {
+      const topic: SetupGuideTopic | undefined = systemdTopicFor(method);
+
+      expect(topic).toBeDefined();
+      expect(topic!.markdown).toContain("receivers: [hostmetrics, systemd]");
+      expect(topic!.markdown).toContain(MIN_OTELCOL_CONTRIB_VERSION);
+      expect(topic!.markdown).toContain(
+        "sudo systemctl restart otelcol-contrib",
+      );
+    }
   });
 
   test("the Linux setup is offered on every native Linux install, and only those", () => {
@@ -651,37 +702,26 @@ describe("systemd receiver documentation", () => {
      * offering the step for Docker or Kubernetes would send users down a
      * path that cannot work.
      */
-    const raw: string = fs.readFileSync(
-      path.join(
-        DASHBOARD_SRC,
-        "Pages",
-        "Host",
-        "Utils",
-        "DocumentationMarkdown.ts",
-      ),
-      "utf8",
-    );
+    const offeredOn: Array<HostInstallMethod> = HOST_INSTALL_METHODS.map(
+      (option: SetupGuideOption<HostInstallMethod>): HostInstallMethod => {
+        return option.key;
+      },
+    ).filter((method: HostInstallMethod): boolean => {
+      return systemdTopicFor(method) !== undefined;
+    });
 
-    const callSites: number = (
-      raw.match(/\$\{getLinuxSystemdStepMarkdown\(\)\}/g) || []
-    ).length;
-    expect(callSites).toBe(3);
+    expect(offeredOn).toEqual(NATIVE_LINUX_METHODS);
 
-    const withoutTheStep: Array<string> = [];
-
-    for (const method of ["linux-deb", "linux-rpm", "linux-tarball"]) {
-      const caseStart: number = raw.indexOf(`case "${method}":`);
-      expect(caseStart).toBeGreaterThan(-1);
-      const caseBody: string = raw.substring(
-        caseStart,
-        raw.indexOf('case "', caseStart + 10),
+    for (const method of [
+      "docker",
+      "kubernetes",
+      "macos",
+      "windows",
+    ] as Array<HostInstallMethod>) {
+      expect(getSetupGuideMarkdown(guideFor(method))).not.toContain(
+        "receivers: [hostmetrics, systemd]",
       );
-      if (!caseBody.includes("getLinuxSystemdStepMarkdown")) {
-        withoutTheStep.push(method);
-      }
     }
-
-    expect(withoutTheStep).toEqual([]);
   });
 });
 

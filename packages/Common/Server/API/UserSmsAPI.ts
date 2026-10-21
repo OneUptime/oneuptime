@@ -17,10 +17,13 @@ import ChannelVerification, {
 } from "../Utils/ChannelVerification";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import ChannelVerificationResendRoute from "./ChannelVerificationResendRoute";
+import ChannelVerificationStatusRoute from "./ChannelVerificationStatusRoute";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
+import UserCallService from "../Services/UserCallService";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 /*
@@ -115,73 +118,78 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             );
           }
 
-          return Response.sendEmptySuccessResponse(req, res);
-        } catch (err) {
-          return next(err);
-        }
-      },
-    );
-
-    this.router.post(
-      `/user-sms/resend-verification-code`,
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-      VerificationCodeRateLimit.getMiddleware(
-        VerificationCodeRateLimitBucket.Resend,
-      ),
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          req = req as OneUptimeRequest;
-
-          if (!req.body.itemId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item ID"),
-            );
-          }
-
-          const item: UserSMS | null = await this.service.findOneById({
-            id: req.body["itemId"],
-            props: {
-              isRoot: true,
-            },
-            select: {
-              userId: true,
-            },
-          });
-
-          if (!item) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item not found"),
-            );
-          }
-
           /*
-           * A caller may only ask for a code to be sent to a row they own.
-           * Without this the resend route is a way to make somebody else's
-           * device ring on demand.
+           * A number verified for SMS is verified for calls: the call
+           * numbers this person added for the same number in this project
+           * are verified with it (UserCallService.isNumberVerifiedForSms
+           * says why, and why not the other way round). The answer says how
+           * many, so the dialog can tell them they need no second code.
            */
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+          let alsoVerifiedForCalls: number = 0;
+
+          try {
+            const smsNumber: UserSMS | null = await this.service.findOneById({
+              id: result.itemId!,
+              props: {
+                isRoot: true,
+              },
+              select: {
+                phone: true,
+              },
+            });
+
+            if (smsNumber?.phone) {
+              alsoVerifiedForCalls =
+                await UserCallService.verifyNumbersProvenBySms({
+                  userId: new ObjectID(result.userId!.toString()),
+                  projectId: new ObjectID(result.projectId!.toString()),
+                  phone: smsNumber.phone,
+                });
+            }
+          } catch (e) {
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
             );
           }
 
-          await this.service.resendVerificationCode(req.body.itemId);
-
-          return Response.sendEmptySuccessResponse(req, res);
+          return Response.sendJsonObjectResponse(req, res, {
+            alsoVerifiedForCalls: alsoVerifiedForCalls,
+          });
         } catch (err) {
           return next(err);
         }
       },
     );
+
+    // A new code for the person's own row. See ChannelVerificationResendRoute.
+    ChannelVerificationResendRoute.register({
+      router: this.router,
+      path: "/user-sms",
+      service: this.service,
+    });
+
+    // Where the person's own code stands, for the verify dialog.
+    ChannelVerificationStatusRoute.register({
+      router: this.router,
+      path: "/user-sms",
+      service: this.service,
+    });
+  }
+
+  /*
+   * Adding one sends its first code at once, so the add is counted first:
+   * per person, per kind of method and per address
+   * (VerificationCodeRateLimit.checkAddAllowed).
+   */
+  protected override async onBeforeCreate(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    await VerificationCodeRateLimit.checkAddAllowed({
+      req: req,
+      res: res,
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
+    });
   }
 }

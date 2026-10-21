@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getRumApplicationConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -8,7 +10,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -23,6 +24,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -35,14 +37,18 @@ import ResourceOverview, {
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
+import WebVitalRouteBreakdownCard from "../../../Components/TelemetryResource/WebVitalRouteBreakdownCard";
 import {
   fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   fetchSpanNameStats,
+  fetchWebVitalByRoute,
   fetchWebVitals,
   formatCompact,
   formatDurationMs,
@@ -51,6 +57,7 @@ import {
   SpanMetrics,
   SpanNameStats,
   WebVital,
+  WebVitalByRoute,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { RUM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
 import {
@@ -72,6 +79,9 @@ import {
   sumTimeSeries,
   TileText,
 } from "./OverviewHelpers";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -110,6 +120,7 @@ function getTimeRangeKey(timeRange: RangeStartAndEndDateTime): string {
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [rumApplication, setRumApplication] = useState<RumApplication | null>(
@@ -152,6 +163,8 @@ const RumApplicationOverview: FunctionComponent<
   const [signalsLoading, setSignalsLoading] = useState<boolean>(true);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
+  const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);
+  const [inpByRouteLoading, setInpByRouteLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
@@ -273,6 +286,7 @@ const RumApplicationOverview: FunctionComponent<
       if (showLoading) {
         setMetricsLoading(true);
         setWebVitalsLoading(true);
+        setInpByRouteLoading(true);
         setPageLoadsLoading(true);
         setSignalsLoading(true);
         setSessionReplayCount(null);
@@ -310,12 +324,49 @@ const RumApplicationOverview: FunctionComponent<
           }
           setWebVitals(v);
           setWebVitalsLoading(false);
+
+          /*
+           * INP per route, under the name the card found INP under. No INP
+           * at all means no breakdown to ask for - the card's own empty
+           * state already says how to start.
+           */
+          const inpMetricName: string | null =
+            v.find((vital: WebVital): boolean => {
+              return vital.key === "inp";
+            })?.metricName || null;
+
+          if (!inpMetricName) {
+            setInpByRoute(null);
+            setInpByRouteLoading(false);
+            return;
+          }
+
+          fetchWebVitalByRoute({
+            primaryEntityId,
+            metricName: inpMetricName,
+            start,
+            end,
+          })
+            .then((breakdown: WebVitalByRoute) => {
+              if (!isCurrent()) {
+                return;
+              }
+              setInpByRoute(breakdown);
+              setInpByRouteLoading(false);
+            })
+            .catch(() => {
+              if (!isCurrent()) {
+                return;
+              }
+              setInpByRouteLoading(false);
+            });
         })
         .catch(() => {
           if (!isCurrent()) {
             return;
           }
           setWebVitalsLoading(false);
+          setInpByRouteLoading(false);
         });
 
       /*
@@ -537,7 +588,9 @@ const RumApplicationOverview: FunctionComponent<
       sublabel: spanLookupFailed
         ? "could not load"
         : m
-          ? `${formatCompact(m.errors)} errored`
+          ? translator.translateTemplate("{{errors}} errored", {
+              errors: formatCompact(m.errors),
+            })
           : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
@@ -749,10 +802,16 @@ const RumApplicationOverview: FunctionComponent<
     describeRecordingHealthRow(health);
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "App Identifier (service.name)", value: a.appIdentifier },
+    { label: "App Name (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
     { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
-    { label: "SDK Version", value: a.agentVersion },
+    {
+      label: "SDK Version",
+      value: a.agentVersion,
+      element: (
+        <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
+      ),
+    },
     ...(recordingHealthValue
       ? [{ label: "Recording health", value: recordingHealthValue }]
       : []),
@@ -766,23 +825,36 @@ const RumApplicationOverview: FunctionComponent<
    */
   const showRumSdkMissingNotice: boolean = isReplayOnlyInstrumented(a);
 
+  // Shown only once INP has reported; until then the vitals card explains.
+  const inpVital: WebVital | undefined = webVitals.find(
+    (vital: WebVital): boolean => {
+      return vital.key === "inp";
+    },
+  );
+
+  /*
+   * Drag-to-zoom (issue #4105): a drag across any chart on the page sets
+   * the page's range to the window dragged out, and a double-click on any
+   * chart - or "Reset zoom" beside the picker - puts the range from before
+   * the zoom back. The charts, the tiles, both web-vitals cards and the
+   * sessions link are all read from `timeRange`, so all of them follow; a
+   * zoomed (custom) range also stays put across auto-refresh ticks.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {showRumSdkMissingNotice && (
         <Alert
           type={AlertType.INFO}
           strongTitle="Session replay is reporting, the RUM SDK is not"
           title={
             <span>
-              Recordings are arriving for this application, so the replay
-              snippet and your ingestion key are working. Page loads, events,
-              error rate, durations, exceptions and clients come from a
-              different install — the OpenTelemetry browser SDK — and nothing
-              has reported through it yet, which is why those tiles read zero.
-              Add the SDK with <code>service.name</code> set to{" "}
-              <code>{(a.appIdentifier as string) || ""}</code> to fill them in;
-              the steps are on this application&apos;s Documentation tab.
-              Session replay does not need it.
+              <TranslatedSentence
+                template="Recordings are arriving for this application, so the replay snippet and your ingestion key are working. Page loads, events, error rate, durations, exceptions and clients come from a different install — the OpenTelemetry browser SDK — and nothing has reported through it yet, which is why those tiles read zero. Add the SDK with {{attribute}} set to {{value}} to fill them in; the steps are on this application's Documentation tab. Session replay does not need it."
+                slots={{
+                  attribute: <code>service.name</code>,
+                  value: <code>{(a.appIdentifier as string) || ""}</code>,
+                }}
+              />
             </span>
           }
         />
@@ -795,6 +867,21 @@ const RumApplicationOverview: FunctionComponent<
         identifierLabel="service.name"
         status={a.otelCollectorStatus}
         lastSeenAt={a.lastSeenAt}
+        connectionGuide={
+          <ResourceConnectionGuideCard
+            status={a.otelCollectorStatus as string | undefined}
+            lastSeenAt={a.lastSeenAt}
+            guide={getRumApplicationConnectionGuide(
+              (a.appIdentifier as string | undefined) ||
+                (a.name as string | undefined) ||
+                "",
+            )}
+            documentationRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            )}
+          />
+        }
         description={a.description as string}
         chips={chips}
         tiles={tiles}
@@ -820,6 +907,7 @@ const RumApplicationOverview: FunctionComponent<
         }
         quickLinks={quickLinks}
         detailRows={detailRows}
+        settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}
       />
 
@@ -828,7 +916,16 @@ const RumApplicationOverview: FunctionComponent<
         loading={webVitalsLoading}
         description={RUM_METRIC_DESCRIPTIONS.webVitals}
       />
-    </Fragment>
+
+      {inpVital && inpVital.metricName && (
+        <WebVitalRouteBreakdownCard
+          vital={inpVital}
+          breakdown={inpByRoute}
+          loading={inpByRouteLoading}
+          description={RUM_METRIC_DESCRIPTIONS.inpByRoute}
+        />
+      )}
+    </TimeRangeZoomScope>
   );
 };
 

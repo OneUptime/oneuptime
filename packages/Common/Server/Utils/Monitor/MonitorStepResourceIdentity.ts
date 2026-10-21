@@ -54,6 +54,7 @@ type NameRefKey = keyof Pick<
   | "proxmoxClusterNames"
   | "vmwareVCenterNames"
   | "cephClusterNames"
+  | "storageArrayNames"
   | "dockerSwarmClusterNames"
   | "iotFleetNames"
 >;
@@ -408,6 +409,15 @@ export default class MonitorStepResourceIdentity {
           key: "cephClusterNames",
           value: stepData.cephMonitor?.clusterIdentifier,
         };
+      case MonitorType.StorageArray:
+        /*
+         * The `storage.array.name` the Storage Array Agent stamps.
+         * Returned untrimmed and untyped for the same reason as VMware's.
+         */
+        return {
+          key: "storageArrayNames",
+          value: stepData.storageArrayMonitor?.arrayIdentifier,
+        };
       case MonitorType.DockerSwarm:
         return {
           key: "dockerSwarmClusterNames",
@@ -437,6 +447,7 @@ export default class MonitorStepResourceIdentity {
     const idLists: Array<Array<ObjectID> | undefined> = [
       stepData.logMonitor?.telemetryServiceIds,
       stepData.securityEventsMonitor?.telemetryServiceIds,
+      stepData.llmMonitor?.telemetryServiceIds,
       stepData.traceMonitor?.telemetryServiceIds,
       stepData.exceptionMonitor?.telemetryServiceIds,
       stepData.profileMonitor?.telemetryServiceIds,
@@ -539,6 +550,7 @@ export default class MonitorStepResourceIdentity {
       stepData.proxmoxMonitor?.metricViewConfig,
       stepData.vmwareMonitor?.metricViewConfig,
       stepData.cephMonitor?.metricViewConfig,
+      stepData.storageArrayMonitor?.metricViewConfig,
       stepData.dockerSwarmMonitor?.metricViewConfig,
       stepData.iotMonitor?.metricViewConfig,
     ];
@@ -652,6 +664,7 @@ export default class MonitorStepResourceIdentity {
       proxmoxClusterNames: [],
       vmwareVCenterNames: [],
       cephClusterNames: [],
+      storageArrayNames: [],
       iotFleetNames: [],
       serviceIds: [],
       serviceNames: [],

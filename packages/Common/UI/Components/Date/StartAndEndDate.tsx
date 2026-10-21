@@ -2,6 +2,8 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Input, { InputType } from "../Input/Input";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect } from "react";
 
 export enum StartAndEndDateType {
@@ -14,6 +16,12 @@ export interface ComponentProps {
   onValueChanged: (value: InBetween<Date> | null) => void;
   type: StartAndEndDateType;
   hideTimeButtons?: boolean | undefined;
+  /*
+   * From above To at every width, for a narrow column - the time range
+   * picker's, beside its quick ranges - where two date and time fields side
+   * by side ran past the edge of the dialog.
+   */
+  isStacked?: boolean | undefined;
 }
 
 type DateFilterFunction = (props: ComponentProps) => ReactElement;
@@ -21,6 +29,7 @@ type DateFilterFunction = (props: ComponentProps) => ReactElement;
 const StartAndEndDate: DateFilterFunction = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [startDateError, setStartDateError] = React.useState<string>("");
   const [endDateError, setEndDateError] = React.useState<string>("");
 
@@ -126,9 +135,17 @@ const StartAndEndDate: DateFilterFunction = (
   ) {
     return (
       <div>
-        <div className="flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1">
-          <div className="w-full md:w-1/2">
-            <div className="text-xs text-gray-500">From:</div>
+        <div
+          className={
+            props.isStacked
+              ? "mt-3 flex flex-col space-y-3"
+              : "flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1"
+          }
+        >
+          <div className={props.isStacked ? "w-full" : "w-full md:w-1/2"}>
+            <div className="text-xs text-gray-500">
+              {translator.translateText("From:")}
+            </div>
             <div>
               <Input
                 error={startDateError}
@@ -164,8 +181,10 @@ const StartAndEndDate: DateFilterFunction = (
               />
             </div>
           </div>
-          <div className="w-full md:w-1/2">
-            <div className="text-xs text-gray-500">To:</div>
+          <div className={props.isStacked ? "w-full" : "w-full md:w-1/2"}>
+            <div className="text-xs text-gray-500">
+              {translator.translateText("To:")}
+            </div>
             <div>
               <Input
                 error={endDateError}
@@ -252,7 +271,7 @@ const StartAndEndDate: DateFilterFunction = (
                   );
                 }}
                 title="3 hours"
-                className="hidden md:block"
+                className="max-md:hidden md:block"
               />
             )}
 
@@ -314,7 +333,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="2 weeks"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -335,7 +354,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="3 weeks"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -356,7 +375,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="1 month"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -377,7 +396,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="3 months"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
           </div>
         )}

@@ -5,6 +5,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
@@ -12,11 +13,17 @@ import {
 } from "../../../Types/Permission";
 import AccessTokenService from "../../Services/AccessTokenService";
 import DatabaseService from "../../Services/DatabaseService";
+import ProjectService from "../../Services/ProjectService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import ModelPermission from "../../Types/Database/Permissions/Index";
+import ColumnWriteRefusedException from "../../Types/Database/Permissions/ColumnWriteRefusedException";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import CallerPlan from "../Billing/CallerPlan";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -26,6 +33,12 @@ export interface WorkspaceActionResource {
   // The service that owns the resource, e.g. IncidentService.
   service: DatabaseService<DatabaseBaseModel>;
   id: ObjectID;
+  /*
+   * What the action needs of the record besides its id - the state an
+   * incident is in, say - read in the same read that checks the member may
+   * read it (assertCanCreateAndRead), so nothing reads it again.
+   */
+  select?: Select<DatabaseBaseModel> | undefined;
 }
 
 /*
@@ -36,10 +49,12 @@ export interface WorkspaceActionResource {
  * do in the project today: it survives a downgrade to a read-only role, and it
  * used to survive removal from the project as well.
  *
- * The services those actions call (acknowledgeIncident, addNote,
- * executePolicy, ...) write as root. So a chat action that changes data asks
- * this class first, and gets the answer the dashboard would give the same
- * user for the same change:
+ * So a chat action runs as the member the account is connected to, with the
+ * props the dashboard would use for them (getProjectMemberProps), and what it
+ * changes it changes with those props (WorkspaceMemberActions, the note
+ * services' addNote): the write is held to the same rules as the API. Before
+ * it, the action asks this class, for an answer it can tell them in their
+ * own words before anything about the record is read out to them:
  *
  *   1. the user holds an accepted membership in the project, read from the
  *      database rather than from the permission cache,
@@ -49,13 +64,18 @@ export interface WorkspaceActionResource {
  *      state, an IncidentPublicNote for a public note, an
  *      OnCallDutyPolicyExecutionLog to page an on-call policy, and so on,
  *   3. every resource the action names is one the user can read in THIS
- *      project, under their label, owner and privacy scoping. This also keeps
- *      an id from another project out, since the services look rows up by id
- *      alone.
+ *      project, under their label, owner and privacy scoping.
  */
 export default class WorkspaceActionAuthorization {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
     "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.";
+
+  /*
+   * How a record the member may not read is answered, after its name: like
+   * one that is not there, so that nothing about it is told to them.
+   */
+  public static readonly NOT_FOUND_OR_NOT_READABLE: string =
+    "was not found in this project, or you do not have access to it.";
 
   @CaptureSpan()
   public static async isProjectMember(data: {
@@ -90,6 +110,17 @@ export default class WorkspaceActionAuthorization {
       throw new NotAuthorizedException(
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
       );
+    }
+
+    /*
+     * A project a master admin blocked: a member acts in it from chat no
+     * more than from the dashboard, and is told why - as a refusal, which
+     * the chat answers in the member's own words, where any other error
+     * would read "try again in a minute". Asked after membership, so
+     * somebody who is not a member is told only that.
+     */
+    if (await ProjectService.isProjectBlocked(projectId)) {
+      throw new NotAuthorizedException(ExceptionMessages.ProjectBlocked);
     }
 
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
@@ -134,6 +165,22 @@ export default class WorkspaceActionAuthorization {
     action: string;
     resources?: Array<WorkspaceActionResource> | undefined;
   }): Promise<void> {
+    await this.assertCanCreateAndRead(data);
+  }
+
+  /*
+   * assertCanCreate, handing back the records it read to check `resources`
+   * - one per resource, in the order given, each with the columns its
+   * `select` asks for - so the action that follows writes from them instead
+   * of reading them again (WorkspaceMemberActions.authorize).
+   */
+  @CaptureSpan()
+  public static async assertCanCreateAndRead(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    action: string;
+    resources?: Array<WorkspaceActionResource> | undefined;
+  }): Promise<Array<DatabaseBaseModel>> {
     const { props, modelType, action } = data;
     const projectId: ObjectID | undefined = props.tenantId;
 
@@ -144,7 +191,19 @@ export default class WorkspaceActionAuthorization {
     }
 
     try {
-      ModelPermission.checkCreatePermissions(modelType, new modelType(), props);
+      /*
+       * Checked on the project's plan where a plan decides the create, as
+       * the create itself is (CallerPlan) - never on "no plan".
+       */
+      ModelPermission.checkCreatePermissions(
+        modelType,
+        new modelType(),
+        await CallerPlan.withPlanFor({
+          props: props,
+          modelType: modelType,
+          type: DatabaseRequestType.Create,
+        }),
+      );
     } catch (err) {
       if (err instanceof NotAuthorizedException) {
         throw new NotAuthorizedException(
@@ -154,6 +213,8 @@ export default class WorkspaceActionAuthorization {
 
       throw err;
     }
+
+    const readableResources: Array<DatabaseBaseModel> = [];
 
     for (const resource of data.resources || []) {
       let readableResource: DatabaseBaseModel | null = null;
@@ -165,6 +226,7 @@ export default class WorkspaceActionAuthorization {
             projectId: projectId,
           } as Query<DatabaseBaseModel>,
           select: {
+            ...(resource.select || {}),
             _id: true,
           } as Select<DatabaseBaseModel>,
           props: props,
@@ -181,9 +243,64 @@ export default class WorkspaceActionAuthorization {
         ).toLowerCase();
 
         throw new NotAuthorizedException(
-          `You do not have permission to ${action}: the ${resourceName} was not found in this project, or you do not have access to it.`,
+          `You do not have permission to ${action}: the ${resourceName} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
         );
       }
+
+      readableResources.push(readableResource);
+    }
+
+    return readableResources;
+  }
+
+  /*
+   * Throws NotAuthorizedException, worded for the chat, unless `props` may
+   * change the columns `data` names on `modelType` rows in props.tenantId -
+   * the table's update permission, each column's, and the plan where a plan
+   * decides it - as the update itself would check them: an incident's
+   * severity or custom fields, from chat. `action` completes "You do not
+   * have permission to ...", e.g. "change the severity of this incident".
+   * A column their role may not write is refused the same way: to the API
+   * it is bad data (ColumnWriteRefusedException), to a member pressing a
+   * button it is a permission they lack. Which rows they may change - their
+   * labels and owners - the update itself holds them to.
+   */
+  @CaptureSpan()
+  public static async assertCanUpdate(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    data: Record<string, unknown>;
+    action: string;
+  }): Promise<void> {
+    const { props, modelType, action } = data;
+    const projectId: ObjectID | undefined = props.tenantId;
+
+    if (!props.userId || !projectId) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${action}.`,
+      );
+    }
+
+    try {
+      await ModelPermission.checkUpdateQueryPermissions(
+        modelType,
+        {
+          projectId: projectId,
+        } as Query<DatabaseBaseModel>,
+        data.data as never,
+        props,
+      );
+    } catch (err) {
+      if (
+        err instanceof NotAuthorizedException ||
+        err instanceof ColumnWriteRefusedException
+      ) {
+        throw new NotAuthorizedException(
+          `You do not have permission to ${action}. ${err.message}`,
+        );
+      }
+
+      throw err;
     }
   }
 
@@ -213,6 +330,84 @@ export default class WorkspaceActionAuthorization {
     });
 
     return props;
+  }
+
+  /*
+   * THE RECORDS A CHAT FORM OFFERS ITS USER: the severities, monitors,
+   * monitor statuses, on-call policies and labels a "new incident" form
+   * lists, the monitors and labels of a "new maintenance event" form, the
+   * on-call policies an "execute on-call policy" form lists. They are read
+   * with that user's own props (getProjectMemberProps), as the dashboard
+   * reads the same lists for them - in the project, under their labels,
+   * owners and blocks - so a form never names a record its user could not
+   * pick in OneUptime. A user who may not read that kind of record at all
+   * (or whose plan does not include it) is offered none of it: the read is
+   * refused, and answered with an empty list. Anything else that fails is
+   * the caller's to answer. What the user then submits is checked by the
+   * create itself, made with the same props.
+   */
+  @CaptureSpan()
+  public static async findReadable<TBaseModel extends DatabaseBaseModel>(data: {
+    service: DatabaseService<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    query: Query<TBaseModel>;
+    select: Select<TBaseModel>;
+    sort?: Sort<TBaseModel> | undefined;
+    limit: number;
+  }): Promise<Array<TBaseModel>> {
+    try {
+      return await data.service.findBy({
+        query: data.query,
+        select: data.select,
+        sort: data.sort,
+        limit: data.limit,
+        skip: 0,
+        props: data.props,
+      });
+    } catch (err) {
+      if (WorkspaceActionAuthorization.isReadRefusal(err)) {
+        return [];
+      }
+
+      throw err;
+    }
+  }
+
+  /*
+   * How many records of a kind a chat form's user may read (findReadable's
+   * count): for a form that lists the first ones and says how many it left
+   * out. A refused read counts none.
+   */
+  @CaptureSpan()
+  public static async countReadable<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
+    service: DatabaseService<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    query: Query<TBaseModel>;
+  }): Promise<number> {
+    try {
+      return (
+        await data.service.countBy({
+          query: data.query,
+          props: data.props,
+        })
+      ).toNumber();
+    } catch (err) {
+      if (WorkspaceActionAuthorization.isReadRefusal(err)) {
+        return 0;
+      }
+
+      throw err;
+    }
+  }
+
+  // A read refused for its caller: no permission, or not on the plan.
+  public static isReadRefusal(err: unknown): boolean {
+    return (
+      err instanceof NotAuthorizedException ||
+      err instanceof PaymentRequiredException
+    );
   }
 
   private static async getAcceptedTeamIds(data: {

@@ -167,10 +167,10 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
             props.isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
           }`}
         />
-        <span className="hidden sm:inline">Refresh</span>
+        <span className="max-sm:hidden sm:inline">Refresh</span>
       </button>
       <label className="flex items-center gap-1.5 text-xs text-gray-500">
-        <span className="hidden sm:inline">Auto-refresh</span>
+        <span className="max-sm:hidden sm:inline">Auto-refresh</span>
         {durationMs !== null ? (
           <CountdownCircle
             durationMs={durationMs}

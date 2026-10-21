@@ -1,10 +1,11 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RumSessionPin";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OneUptimeDate from "../../Types/Date";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../Types/Database/CreateBy";
@@ -12,6 +13,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
 import ReadPermission from "../Types/Database/Permissions/ReadPermission";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -96,7 +98,7 @@ const isInternalCaller: IsInternalCallerFunction = (
  * clicking Pin twice, or pinning the same recording from two incidents,
  * is not an error the user has to interpret.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -105,6 +107,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -126,16 +130,19 @@ export class Service extends DatabaseService<Model> {
     delete createBy.data.materializedAt;
 
     /*
-     * Assigned or removed, never left as the client sent it. pinnedByUserId
-     * is declared `computed` on the model, which is what lets this
+     * Pinned by the person making the request. DatabaseService has already
+     * taken out whatever pinnedByUser the request named, under both names
+     * (UserAttribution), so with no person on it - an API key - nobody
+     * pinned it. pinnedByUserId is computed, which is what lets this
      * assignment survive the create-column permission check that runs after
-     * this hook; the delete is what stops an API-key caller (no
-     * props.userId) attributing the pin to a colleague.
+     * this hook.
      */
     if (createBy.props.userId) {
-      createBy.data.pinnedByUserId = createBy.props.userId;
-    } else {
-      delete createBy.data.pinnedByUserId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["pinnedByUserId", "pinnedByUser"],
+        createBy.props.userId,
+      );
     }
 
     return { createBy, carryForward: null };
@@ -335,7 +342,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.rumApplicationId = rumApplicationId;
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["rumApplicationId", "rumApplication"],
+      rumApplicationId,
+    );
 
     return {
       projectId: projectId,
@@ -356,7 +367,7 @@ export class Service extends DatabaseService<Model> {
     pinKey: PinKey,
     props: DatabaseCommonInteractionProps,
   ): Promise<Model> {
-    if (await this.callerMayReadPins(props)) {
+    if (await this.callerMayReadPin(pin, props)) {
       return pin;
     }
 
@@ -373,26 +384,59 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The gates a read of this table applies, answered instead of thrown: the
-   * read block list (label-scoped blocks included, which this model cannot
-   * narrow to rows and so refuses outright) and the read list itself. Any
-   * refusal, whatever its type, means the caller does not get the pin.
+   * Whether the caller could read THIS pin, by the gates a read of the table
+   * applies, answered instead of thrown: the read list, the block list (a
+   * block with no labels refuses outright), and a block with labels, which
+   * leaves out the pins of a recording whose application, incident or alert
+   * carries one of its labels (ReadPermission.checkReadBlockPermission) - so
+   * the pin is looked up again with that condition, and is the caller's to
+   * read only if it is still found. Any refusal, whatever its type, means
+   * the caller does not get the pin.
    */
-  private async callerMayReadPins(
+  private async callerMayReadPin(
+    pin: Model,
     props: DatabaseCommonInteractionProps,
   ): Promise<boolean> {
     if (isInternalCaller(props)) {
       return true;
     }
 
-    try {
-      await ReadPermission.checkReadBlockPermission(Model, {}, props);
+    if (!pin.id) {
+      return false;
+    }
 
+    try {
       TablePermission.checkTableLevelPermissions(
         Model,
         props,
         DatabaseRequestType.Read,
       );
+
+      const pinId: string = pin.id.toString();
+      const blocked: { query: Query<Model> } =
+        await ReadPermission.checkReadBlockPermission(
+          Model,
+          { _id: pinId } as Query<Model>,
+          props,
+        );
+
+      const isNarrowed: boolean =
+        blocked.query._id !== pinId ||
+        Object.keys(blocked.query).some((key: string): boolean => {
+          return key !== "_id";
+        });
+
+      if (!isNarrowed) {
+        return true;
+      }
+
+      const stillReadable: Model | null = await this.findOneBy({
+        query: blocked.query,
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      return Boolean(stillReadable);
     } catch (err) {
       if (err instanceof Exception) {
         return false;
@@ -400,8 +444,6 @@ export class Service extends DatabaseService<Model> {
 
       throw err;
     }
-
-    return true;
   }
 
   /* Null when the recording is not pinned. */

@@ -160,12 +160,13 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — target", ()
 
 describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — order", () => {
   /*
-   * A rule created without an explicit order goes to the end of the policy's
-   * escalation chain, which is one past the rules already there.
+   * Where a rule goes in the escalation is the list's business, not this
+   * hook's: the model is a drag-ordered list (@ListOrderColumn) scoped to
+   * its policy, and DatabaseService puts a rule created without an order at
+   * the end of its policy's chain - scoped to the policy, so orders never
+   * collide across policies (see DatabaseServiceListOrder.test.ts).
    */
-  test("appends a rule with no order to the end of the chain", async () => {
-    countBy = stubCountBy(3);
-
+  test("leaves the order of a new rule to the list, without counting rules", async () => {
     const result: { createBy: CreateBy<IncomingCallPolicyEscalationRule> } =
       await service.onBeforeCreate(
         makeCreateBy({
@@ -174,39 +175,16 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — order", () 
         }),
       );
 
-    expect(result.createBy.data.order).toBe(4);
+    expect(result.createBy.data.order).toBeUndefined();
+    expect(countBy.mock.calls).toHaveLength(0);
   });
 
-  test("gives the first rule of a policy order 1", async () => {
-    countBy = stubCountBy(0);
-
-    const result: { createBy: CreateBy<IncomingCallPolicyEscalationRule> } =
-      await service.onBeforeCreate(
-        makeCreateBy({
-          incomingCallPolicyId: POLICY_ID,
-          userId: USER_ID,
-        }),
-      );
-
-    expect(result.createBy.data.order).toBe(1);
-  });
-
-  // Counting must be scoped to the policy, or orders collide across policies.
-  test("counts only the rules of the policy being appended to", async () => {
-    await service.onBeforeCreate(
-      makeCreateBy({
-        incomingCallPolicyId: POLICY_ID,
-        userId: USER_ID,
-      }),
-    );
-
-    const query: { incomingCallPolicyId?: ObjectID } = (
-      countBy.mock.calls[0]![0] as unknown as {
-        query: { incomingCallPolicyId?: ObjectID };
-      }
-    ).query;
-
-    expect(query.incomingCallPolicyId).toBe(POLICY_ID);
+  test("is a list ordered within its policy, lowest number first", () => {
+    expect(new IncomingCallPolicyEscalationRule().getListOrder()).toEqual({
+      column: "order",
+      scopeColumns: ["incomingCallPolicyId"],
+      sortOrder: "ASC",
+    });
   });
 
   test("keeps an explicitly requested order", async () => {

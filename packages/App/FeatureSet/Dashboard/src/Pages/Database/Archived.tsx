@@ -16,6 +16,8 @@ import {
   getDatabaseEndpointLabel,
   getDatabaseEngineLabel,
 } from "./Utils/DatabaseServerPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Archived databases. A discovered database that is not seen for a while is
@@ -26,6 +28,7 @@ import {
 const DatabaseArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { unarchiveBulkActions } = useBulkArchiveActions<DatabaseServer>({
     modelType: DatabaseServer,
   });
@@ -39,7 +42,7 @@ const DatabaseArchivedPage: FunctionComponent<
         query={{
           isArchived: true,
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -50,7 +53,7 @@ const DatabaseArchivedPage: FunctionComponent<
         cardProps={{
           title: "Archived Databases",
           description:
-            "Databases you archived, and discovered databases archived automatically after they stopped being seen. They are hidden from the main list; an automatically archived database returns on its own when it is seen again. Select databases to unarchive them.",
+            "Databases archived by hand or after they stopped being seen. They are hidden from the main list; select some to unarchive them.",
         }}
         // As on the main list: the id is on the Overview, not worth a column.
         viewButtonText="View"
@@ -172,7 +175,7 @@ const DatabaseArchivedPage: FunctionComponent<
               if (item.autoArchivedAt) {
                 return (
                   <span className="text-sm text-gray-500">
-                    Automatically (not seen)
+                    {translator.translateText("Automatically (not seen)")}
                   </span>
                 );
               }

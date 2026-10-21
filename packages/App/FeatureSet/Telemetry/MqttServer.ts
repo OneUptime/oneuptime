@@ -17,6 +17,8 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingService";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
+import ProjectService from "Common/Server/Services/ProjectService";
 import TelemetryIngestionKeyGuard, {
   TelemetryIngestionKeyRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
@@ -60,9 +62,11 @@ import {
  * password (username is ignored; the key is accepted there as a
  * fallback for clients that only expose one field). The key resolves
  * to a projectId through the same cached lookup the HTTP OTLP path
- * uses — unlike the gRPC path we reject bad credentials explicitly
- * (CONNACK rc=4) so a misconfigured device fails loudly instead of
- * silently dropping data. On success the MQTT clientId is namespaced
+ * uses, and like the HTTP and gRPC paths we reject bad credentials
+ * explicitly (CONNACK rc=4) so a misconfigured device fails loudly
+ * instead of silently dropping data. An MQTT 3.1.1 CONNACK carries no
+ * reason, so unlike gRPC's status details the device is not told why;
+ * the broker logs it. On success the MQTT clientId is namespaced
  * by projectId: aedes keys its session/takeover map on clientId
  * globally, so without the prefix a client in one project could evict
  * (and fire the Last Will of) another project's device that happens
@@ -183,6 +187,13 @@ async function resolveAuthContext(
         !secretsMatch(passwordText, context.secretKey)
       ) {
         return null;
+      }
+
+      // Device credentials do not resolve a project key: asked here instead.
+      if (
+        await ProjectService.isProjectBlocked(new ObjectID(context.projectId))
+      ) {
+        throw new ProjectBlockedException();
       }
 
       await PayAsYouGoBillingService.requirePayAsYouGo(
@@ -334,8 +345,13 @@ async function handleAuthorizePublish(
 
   /*
    * A connected session can outlive its project's payment setup, including
-   * device credentials that do not use a project ingestion key.
+   * device credentials that do not use a project ingestion key - and can
+   * outlive its project being blocked by a master admin.
    */
+  if (await ProjectService.isProjectBlocked(projectId)) {
+    throw new ProjectBlockedException();
+  }
+
   await PayAsYouGoBillingService.requirePayAsYouGo(projectId);
 
   const payload: Buffer = Buffer.isBuffer(packet.payload)
@@ -484,7 +500,11 @@ async function createMqttBroker(): Promise<Aedes> {
         done(null, true);
       })
       .catch((err: unknown) => {
-        if (err instanceof PaymentRequiredException) {
+        // Refusals, not outages: the device is not asked to retry.
+        if (
+          err instanceof PaymentRequiredException ||
+          err instanceof ProjectBlockedException
+        ) {
           logger.warn(err.message, { service: "telemetry" });
           done(
             makeAuthenticateError(

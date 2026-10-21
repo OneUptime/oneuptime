@@ -1,60 +1,108 @@
 # استفاده از رجیستری
 
-ارائه‌دهنده OneUptime از طریق رجیستری عمومی Terraform در نشانی [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime) توزیع می‌شود. این صفحه توضیح می‌دهد چه چیزی آنجا منتشر می‌شود و نسخه‌بندی چگونه کار می‌کند.
+ارائه‌دهندهٔ OneUptime در [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) و [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) منتشر می‌شود. `terraform init` و `tofu init` آن را از آنجا بارگیری می‌کنند: چیزی برای نصب دستی نیست. این صفحه می‌گوید چه چیزی منتشر می‌شود، نسخه‌ها چگونه شماره می‌خورند، و چگونه به نسخه‌ای جدیدتر بروید.
 
-## چه چیزی روی رجیستری هست
+:::cards
+- [چه چیزی منتشر می‌شود](#چه-چیزی-منتشر-میشود): ارائه‌دهنده برای هر سکو، مرجع آن، و نسخه‌هایش.
+- [نسخه‌ها چگونه شماره می‌خورند](#نسخهها-چگونه-شماره-میخورند): نسخهٔ یک ارائه‌دهنده همان انتشاری از OneUptime است که آن را منتشر کرده است.
+- [فایل قفل](#فایل-قفل): نسخه و checksumهایی که هر ماشین نصب می‌کند.
+- [رفتن به نسخه‌ای جدیدتر](#رفتن-به-نسخهای-جدیدتر): بخوانید چه تغییر کرده است، آن را بارگیری کنید، و پلن بگیرید.
+:::
 
-- **باینری ارائه‌دهنده** برای همه بسترهای رایج (Linux، macOS، Windows؛ amd64 و arm64). دستور `terraform init` آن را به‌صورت خودکار دانلود و راستی‌آزمایی می‌کند — چیزی نیست که دستی نصب کنید.
-- **مستندات مرجع تولیدشده** برای هر منبع و منبع داده — فهرست کامل ویژگی‌ها به تفکیک نوع، در زبانه *Documentation* صفحه رجیستری. آن را در کنار این راهنماها به کار ببرید: این مستندات گردش کار را توضیح می‌دهند؛ مستندات رجیستری مرجع تک‌تک ویژگی‌ها هستند.
-- **تاریخچه نسخه‌ها**، یک مدخل به ازای هر انتشار منتشرشده.
+## چه چیزی منتشر می‌شود
 
-ارائه‌دهنده را مانند هر ارائه‌دهنده رجیستری اعلام کنید:
+هر انتشار OneUptime ارائه‌دهنده را از API خود OneUptime می‌سازد. اگر ارائه‌دهنده تغییر کرده باشد، انتشار آن را با نسخهٔ همان انتشار منتشر می‌کند، پس از آنکه آزمون‌های سرتاسری‌اش را زیر Terraform و زیر OpenTofu گذرانده باشد:
 
-```hcl
+```mermaid title="از یک انتشار OneUptime تا terraform init شما"
+flowchart TB
+    R["یک انتشار OneUptime"] --> G["ارائه‌دهنده از API<br/>در OneUptime ساخته می‌شود"]
+    G --> C{"آیا ارائه‌دهنده<br/>تغییر کرده است؟"}
+    C -->|"بله"| P["زیر Terraform و<br/>OpenTofu آزموده، سپس<br/>با نسخهٔ همان انتشار<br/>منتشر می‌شود"]
+    C -->|"نه"| N["هیچ نسخه‌ای از ارائه‌دهنده<br/>برای این انتشار نیست"]
+    P --> I["terraform init<br/>و tofu init<br/>آن را بارگیری می‌کنند"]
+```
+
+| چه چیزی | کجا |
+| --- | --- |
+| ارائه‌دهنده، برای Linux، macOS، Windows، FreeBSD، OpenBSD و Solaris | با `terraform init` و `tofu init` بارگیری می‌شود، با checksumهایی که OneUptime امضا می‌کند |
+| مرجع هر منبع و منبع داده، با هر یک از ویژگی‌هایش | مستندات رجیستری، گروه‌بندی‌شده بر اساس محصول: مانیتورها، صفحه‌های وضعیت، حادثه‌ها، آنکال و بقیه |
+| راهنمایی برای استفاده از ارائه‌دهنده با OpenTofu | راهنماهای رجیستری |
+| هر نسخه، تازه‌ترین نخست | فهرست نسخه‌های رجیستری |
+
+مرجع می‌گوید هر ویژگی چیست. این مستندات نشان می‌دهند چگونه آن‌ها را با هم به کار ببرید: از [نمای کلی Terraform](/docs/terraform/index) شروع کنید.
+
+## نسخه‌ها چگونه شماره می‌خورند
+
+نسخهٔ یک ارائه‌دهنده نسخهٔ همان انتشاری از OneUptime است که آن را منتشر کرده است: ارائه‌دهندهٔ {{TERRAFORM_PROVIDER_MAJOR}}.0.20 با OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.20 آمد. انتشاری که ارائه‌دهنده‌اش تغییر نکرده است هیچ منتشر نمی‌کند، پس نسخه‌ها فاصله دارند، و قیدی که دقیقاً یک نسخه را نام می‌برد ممکن است نسخه‌ای را نام ببرد که وجود ندارد. به‌جای آن یک بازه بنویسید:
+
+| آنچه استفاده می‌کنید | قید | آنچه Terraform نصب می‌کند |
+| --- | --- | --- |
+| OneUptime Cloud | `{{TERRAFORM_PROVIDER_VERSION}}` | تازه‌ترین ارائه‌دهندهٔ {{TERRAFORM_PROVIDER_MAJOR}}.x |
+| یک OneUptime خودمیزبان | بازه‌ای که به نسخهٔ OneUptime شما ختم می‌شود، مانند `>= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40` | تازه‌ترین ارائه‌دهنده‌ای که از OneUptime شما جدیدتر نیست |
+
+در یک OneUptime خودمیزبان، ارائه‌دهنده‌ای که از OneUptime شما جدیدتر است ممکن است تنظیماتی بفرستد که OneUptime شما هنوز ندارد: [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted#نسخهٔ-ارائهدهنده-را-برگزینید) نشان می‌دهد بازهٔ آن را چگونه بنویسید.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 ```
 
-دستور `terraform init` نسخه دقیق انتخاب‌شده و مجموع‌های کنترلی آن را در `.terraform.lock.hcl` ثبت می‌کند — آن فایل را کامیت کنید؛ همان چیزی است که اجراهای CI را تکرارپذیر می‌کند.
+نشانی منبع هیچ رجیستری‌ای را نام نمی‌برد: Terraform آن را از Terraform Registry می‌خواند، و OpenTofu از OpenTofu Registry، که همان نسخه‌ها را منتشر می‌کنند.
 
-## نسخه‌بندی چگونه کار می‌کند
+## فایل قفل
 
-نسخه‌های ارائه‌دهنده **نسخه‌های پلتفرم OneUptime را دنبال می‌کنند**: ارائه‌دهنده 11.x از OneUptime 11.x تولید و در برابر آن آزمایش شده است. این دو پیامد عملی دارد:
+`terraform init` نسخه‌ای را که برگزیده است، و checksumهای بارگیری‌هایش را، در `.terraform.lock.hcl` ثبت می‌کند. آن فایل را commit کنید: آن‌وقت هر ماشین و هر اجرای CI دقیقاً همان نسخه را نصب می‌کند، تا وقتی نسخهٔ دیگری برگزینید. checksumها هر سکویی را که رجیستری منتشر می‌کند پوشش می‌دهند، پس یک فایل قفل به ماشین‌های Linux، macOS و Windows یکسان خدمت می‌کند.
 
-1. **کاربران ابری** همیشه تازه‌ترین پلتفرم را اجرا می‌کنند، پس تازه‌ترین ارائه‌دهنده همیشه درست است:
-
-```hcl
-version = "~> 11.0"
+```hcl title=".terraform.lock.hcl"
+provider "registry.terraform.io/oneuptime/oneuptime" {
+  version     = "{{TERRAFORM_PROVIDER_MAJOR}}.0.20"
+  constraints = "{{TERRAFORM_PROVIDER_VERSION}}"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
 ```
 
-2. **کاربران خودمیزبان** باید تازه‌ترین نسخه منتشرشده ارائه‌دهنده را به کار ببرند که **کوچک‌تر یا مساوی** نسخه پلتفرم OneUptime آن‌هاست. ارائه‌دهنده جدیدتر ممکن است به فیلدهای APIای ارجاع دهد که پلتفرم قدیمی‌تر شما ندارد.
+فایل قفل رجیستری را نام می‌برد. OpenTofu `registry.opentofu.org/oneuptime/oneuptime` را می‌نویسد جایی که Terraform `registry.terraform.io/oneuptime/oneuptime` را می‌نویسد، پس جابه‌جا کردن موتور فایل قفل را تغییر می‌دهد: `init` مدخل را جایگزین می‌کند، و از شما می‌خواهد تغییر را commit کنید.
 
-**فاصله میان نسخه‌ها عادی است.** ارائه‌دهنده به ازای هر تغییر معنادار دوباره تولید و منتشر می‌شود، نه به ازای هر انتشار وصله‌ای پلتفرم — بنابراین نسخه‌های وصله‌ای را دقیق پین نکنید (`= 11.0.7` ممکن است اصلاً روی رجیستری نباشد و `terraform init` با خطای `no matching version found` شکست بخورد). محدودیت‌های بدبینانه (`~> 11.0`) همیشه به یک نسخه واقعی منتشرشده می‌رسند. درباره قاعده انتخاب برای خودمیزبان‌ها در [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) بیشتر بخوانید.
+## رفتن به نسخه‌ای جدیدتر
 
-## بررسی نسخه‌ها و یادداشت‌های انتشار
+:::steps
+### بخوانید چه تغییر کرده است
 
-- فهرست نسخه‌های رجیستری: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
-- یادداشت‌های انتشار: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
-- انتشارهای پلتفرم (که نسخه‌های ارائه‌دهنده را تعیین می‌کنند): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+[انتشارهای OneUptime](https://github.com/OneUptime/oneuptime/releases) می‌گویند هر انتشار چه چیزی را تغییر داده است، از جمله ارائه‌دهنده را. [انتشارهای ارائه‌دهنده](https://github.com/OneUptime/terraform-provider-oneuptime/releases) به تغییرهای پس از انتشار پیشین پیوند می‌دهند.
 
-برای رفتن به نسخه‌ای تازه‌تر درون محدودیت خود:
+### آن را بارگیری کنید
 
 ```bash
 terraform init -upgrade
 ```
 
-این کار محدودیت را دوباره تفکیک می‌کند، `.terraform.lock.hcl` را به‌روزرسانی می‌کند و نسخه انتخاب‌شده را چاپ می‌کند. سپس `terraform plan` را اجرا کنید تا مطمئن شوید چیز غیرمنتظره‌ای تغییر نکرده است.
+`init -upgrade` تازه‌ترین نسخه‌ای را که قید شما اجازه می‌دهد برمی‌دارد، آن را چاپ می‌کند، و `.terraform.lock.hcl` را به‌روز می‌کند. قید `{{TERRAFORM_PROVIDER_VERSION}}` هر انتشار {{TERRAFORM_PROVIDER_MAJOR}}.x را برمی‌دارد؛ یک نسخهٔ اصلی تازه به قیدی تازه نیاز دارد.
+
+### پیش از اعمال پلن بگیرید
+
+`terraform plan` را اجرا کنید، و فقط وقتی اعمال کنید که خالی باشد یا تغییرهایی را نشان دهد که انتظار دارید. فایل قفل به‌روزشده را commit کنید.
+:::
+
+در یک OneUptime خودمیزبان، نخست OneUptime را ارتقا دهید، سپس انتهای بازهٔ ارائه‌دهنده را بالا ببرید.
 
 ## کد کجاست
 
-ارائه‌دهنده **از مشخصات OpenAPI OneUptime** در [مخزن اصلی OneUptime](https://github.com/OneUptime/oneuptime) تولید می‌شود. مخزن منتشرشده ارائه‌دهنده، خروجی بیلد و فقط‌خواندنی است. مشکلات — از جمله مشکلات مستندات — را در مخزن اصلی ثبت کنید: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+ارائه‌دهنده از API در OneUptime در [مخزن اصلی OneUptime](https://github.com/OneUptime/oneuptime) ساخته می‌شود، و هر نسخه از همان انتشاری ساخته می‌شود که آن را منتشر کرده است. مخزن خود آن، [OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime)، آنچه را مولد نوشته است نگه می‌دارد، پس تغییرها در مخزن اصلی انجام می‌شوند: مشکل‌ها، از جمله مشکل‌های مستندات، را در [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues) گزارش کنید.
 
-## محیط‌های ایزوله از شبکه
+## گام‌های بعدی
 
-اگر میزبان‌های Terraform شما به رجیستری عمومی دسترسی ندارند، ارائه‌دهنده را با `terraform providers mirror` به‌صورت داخلی آینه کنید — راهنمای گام‌به‌گام در [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted).
+:::cards
+- [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted): بازهٔ نسخه برای OneUptime خودتان، و یک آینه برای ماشین‌های بدون اینترنت.
+- [OpenTofu](/docs/terraform/opentofu): همان ارائه‌دهنده و پیکربندی، با `tofu`.
+- [راهنمای کامل](/docs/terraform/complete-guide): احراز هویت، چیدمان پروژه، منبع‌های داده، state و ارتقاها.
+- [رفع اشکال](/docs/terraform/troubleshooting): خطاهای رایج و چگونگی رفع آن‌ها.
+:::

@@ -221,13 +221,24 @@ describe("Breadcrumbs", () => {
 });
 
 describe("Side menus", () => {
+  /*
+   * The section folds down to its title until opened, like every section of
+   * User Settings after Alerts & Notifications: the feed is set up once.
+   */
   test("User Settings has a Calendar section before Workspace, holding Calendar Feed", () => {
     const menu: string = readCode("Pages", "UserSettings", "SideMenu.tsx");
 
     const calendarIndex: number = menu.indexOf(
-      '{ title: "Calendar", items: [ { link: { title: "Calendar Feed", to: RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route, ), }, icon: IconProp.Calendar, }, ], }',
+      '{ title: "Calendar", defaultCollapsed: true, items: [ { link: { title: "Calendar Feed", to: RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route, ), }, icon: IconProp.Calendar, }, ], }',
     );
-    const workspaceIndex: number = menu.indexOf('{ title: "Workspace",');
+    /*
+     * The Workspace section lists only the chat workspaces the project has
+     * connected, so it is built by useWorkspaceSideMenuSection and placed in
+     * the list by this spread.
+     */
+    const workspaceIndex: number = menu.indexOf(
+      "...(workspaceSection ? [workspaceSection] : [])",
+    );
 
     expect(calendarIndex).toBeGreaterThan(-1);
     expect(workspaceIndex).toBeGreaterThan(calendarIndex);
@@ -279,7 +290,13 @@ describe("Pages and cards", () => {
     );
   });
 
-  test("the schedule page renders the subscribe card between the roster alert and the preview, with the schedule's timezone", () => {
+  /*
+   * The schedule page leads with who is on call - the Final Schedule
+   * (FinalPreview) - now that the roster banner which said it first is gone,
+   * and offers the calendar links after it, once the schedule has layers:
+   * before anybody takes turns there are no shifts to follow.
+   */
+  test("the schedule page renders the subscribe card after the preview, once the schedule has layers, with the schedule's timezone", () => {
     const page: string = readCode(
       "Pages",
       "OnCallDuty",
@@ -291,9 +308,13 @@ describe("Pages and cards", () => {
       "<ScheduleSubscribeCard scheduleId={modelId} scheduleTimezone={ onCallSchedule ? onCallSchedule.timezone?.toString() || null : undefined } />",
     );
     const previewIndex: number = page.indexOf("<FinalPreview");
+    const layersCheckIndex: number = page.indexOf("{hasLayers ? (");
 
     expect(subscribeIndex).toBeGreaterThan(-1);
-    expect(previewIndex).toBeGreaterThan(subscribeIndex);
+    expect(previewIndex).toBeGreaterThan(-1);
+    expect(subscribeIndex).toBeGreaterThan(previewIndex);
+    expect(layersCheckIndex).toBeGreaterThan(previewIndex);
+    expect(subscribeIndex).toBeGreaterThan(layersCheckIndex);
     // The timezone must be SELECTED for the legacy-timezone warning to work.
     expect(page).toContain("timezone: true,");
   });
@@ -493,6 +514,185 @@ describe("Setup checklist", () => {
   });
 });
 
+/*
+ * THE UPCOMING SHIFTS CARD.
+ *
+ * Its redesign ("Please improve the UI of this card") replaced a heading per
+ * day and a row per rotation turn with one row per stretch on call, written
+ * in the reader's zone and language. What a unit test cannot see: that the
+ * card's words are keys in every locale, translated - the card is read once
+ * a week by somebody planning their life around it, in whatever language
+ * they read; that the three sentences it no longer says are gone from every
+ * file; and that neither component formats a date itself - every time on
+ * the card goes through UpcomingShiftTime, with one clock, so the start and
+ * the end of a row can never again be in two different zones.
+ */
+const UPCOMING_SHIFTS_KEYS: Array<string> = [
+  "Upcoming shifts",
+  "Your shifts over the next 30 days. Times are in {{timezone}}.",
+  "On call now",
+  "until {{time}}",
+  "until at least {{time}}",
+  "at least {{time}}",
+  "{{duration}} left",
+  "At least {{duration}}",
+  "At least {{duration}} left",
+  "Show {{count}} more shifts",
+  "Show fewer shifts",
+  "No shifts in the next 30 days",
+  "When a schedule puts you on call, your shifts show up here.",
+  "Could not load your shifts.",
+  "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+];
+
+const RETIRED_UPCOMING_SHIFTS_KEYS: Array<string> = [
+  "Upcoming shifts (next 30 days)",
+  "You have no shifts on any schedule in the next 30 days.",
+  "Direct and team assignments on escalation policies are standing and are not shown.",
+];
+
+// A date written by one of OneUptimeDate's own formatters, moment's English.
+const DATE_FORMATTING_CALL: RegExp =
+  /OneUptimeDate\.(?:toTimeString|getDateAs\w*|fromNow|getZoneAbbr\w*)/;
+
+describe("Upcoming shifts card", () => {
+  const card: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "UpcomingShiftsCard.tsx",
+  );
+  const row: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "UpcomingShiftRow.tsx",
+  );
+
+  test("every word the card says is a key in en.json, translated in every locale", () => {
+    const en: Record<string, unknown> = readLocale("en");
+
+    for (const key of UPCOMING_SHIFTS_KEYS) {
+      expect(en[key]).toBe(key);
+    }
+
+    // The fold's one form, for the counts a language calls "one".
+    expect(en["Show {{count}} more shifts_one"]).toBe(
+      "Show {{count}} more shift",
+    );
+
+    for (const locale of LOCALES) {
+      if (locale === "en") {
+        continue;
+      }
+
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of [
+        ...UPCOMING_SHIFTS_KEYS,
+        "Show {{count}} more shifts_one",
+      ]) {
+        const value: unknown = json[key];
+
+        expect({ locale, key, isString: typeof value === "string" }).toEqual({
+          locale,
+          key,
+          isString: true,
+        });
+        expect({ locale, key, translated: value !== en[key] }).toEqual({
+          locale,
+          key,
+          translated: true,
+        });
+      }
+    }
+  });
+
+  test("the sentences it no longer says are gone from every locale", () => {
+    for (const locale of LOCALES) {
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of RETIRED_UPCOMING_SHIFTS_KEYS) {
+        expect({ locale, key, present: key in json }).toEqual({
+          locale,
+          key,
+          present: false,
+        });
+      }
+    }
+  });
+
+  test("the card's words live where the extractor finds them", () => {
+    // A call prettier wrapped over three lines reads as one: translationKey("…").
+    const util: string = readSource(
+      "Components",
+      "OnCallPolicy",
+      "CalendarFeed",
+      "CalendarFeedUtil.ts",
+    )
+      .split("translationKey( ")
+      .join("translationKey(")
+      .split('", )')
+      .join('")');
+
+    for (const key of [
+      "Upcoming shifts",
+      "Your shifts over the next 30 days. Times are in {{timezone}}.",
+      "No shifts in the next 30 days",
+      "When a schedule puts you on call, your shifts show up here.",
+      "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+    ]) {
+      expect(util).toContain(`translationKey("${key}")`);
+    }
+
+    // The phrases that hold a time the row keeps whole are TranslatedSentences.
+    expect(row).toContain('"until at least {{time}}" : "until {{time}}"');
+    expect(row).toContain('template="at least {{time}}"');
+  });
+
+  test("neither component formats a date itself: one clock for every time on the card", () => {
+    for (const source of [card, row]) {
+      expect(source).not.toMatch(DATE_FORMATTING_CALL);
+      expect(source).not.toContain("moment");
+    }
+
+    expect(card).toContain(
+      "getFeedClock({ language: translator.language, now: now, })",
+    );
+  });
+
+  test("the card asks for the window it says, and lists spans rather than shifts", () => {
+    expect(card).toContain("getUpcomingShiftsWindow(");
+    expect(card).toContain(
+      "buildUpcomingShiftSpans(response.shifts, now, askedWindow?.to)",
+    );
+    expect(card).toContain("<UpcomingShiftRow");
+    expect(card).not.toContain("groupShiftsByDay");
+  });
+});
+
+/*
+ * The words the card's redesign added: the ⋯ and its items, the status pill,
+ * the subscribe options' lines, the link field and the status sentences.
+ */
+const REDESIGN_KEYS: Array<string> = [
+  "Manage link",
+  "Disable link",
+  "Enable link",
+  "Delete link",
+  "Waiting for first sync",
+  "Needs regeneration",
+  "Show link",
+  "Hide link",
+  "Calendar link",
+  "Calendar link, hidden",
+  "Link copied.",
+  "Opens Google Calendar in a new tab",
+  "Opens the calendar app on this device",
+  "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.",
+  "No calendar app has fetched this link yet. Most apps do within minutes of subscribing; Google Calendar can take a few hours.",
+];
+
 describe("Locales", () => {
   const en: Record<string, unknown> = readLocale("en");
 
@@ -508,17 +708,46 @@ describe("Locales", () => {
     "Regenerate link",
     "Publish shared link",
     "Remind me before shifts",
-    "Upcoming shifts (next 30 days)",
+    "Upcoming shifts",
     "Get cover",
-    "Apple / other apps",
-    "Copy webcal link",
+    "Add to your calendar",
     "Google Calendar",
+    "Apple Calendar / Outlook",
+    "Or copy the link",
+    "Copy link",
     "Add your shifts to your calendar",
     "Add to calendar",
     "Before my on-call shift starts",
     "My upcoming on-call shift is reassigned",
-    "Google Calendar and Outlook on the web fetch this link from their servers; it must be reachable from the internet. Apple Calendar, Thunderbird and Outlook desktop fetch from your computer.",
+    "Google Calendar refreshes subscribed calendars on its own schedule, every few hours (sometimes only once a day), so changes take a while to show up there. Reminders and pages still come from OneUptime on time.",
+    "Google Calendar reads this link from Google's servers, so this OneUptime server must be reachable from the internet.",
+    "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
+    ...REDESIGN_KEYS,
   ];
+
+  /*
+   * The subscribe block's old controls are gone with the redesign - a third
+   * "Copy webcal link" button and an "Apple / other apps" link to webcals://,
+   * which iOS refuses to open - and so are their keys.
+   */
+  test("the retired subscribe-block keys are gone from every locale", () => {
+    for (const locale of LOCALES) {
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of [
+        "Apple / other apps",
+        "Copy webcal link",
+        "Opens Google Calendar's 'From URL' page with this link filled in.",
+        "Outlook: Add calendar, then Subscribe from web, then paste this link.",
+      ]) {
+        expect({ locale, key, present: key in json }).toEqual({
+          locale,
+          key,
+          present: false,
+        });
+      }
+    }
+  });
 
   test("every calendar-feed string is a key in en.json whose value is the key", () => {
     for (const key of REQUIRED_KEYS) {
@@ -549,6 +778,29 @@ describe("Locales", () => {
     }
   });
 
+  /*
+   * Every word the redesign added is in all sixteen languages - translated,
+   * not an English placeholder: the card is the one page a reader sets up
+   * once, in whatever language they read.
+   */
+  test("the redesign's words are translated in every locale", () => {
+    for (const locale of LOCALES) {
+      if (locale === "en") {
+        continue;
+      }
+
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of REDESIGN_KEYS) {
+        expect({ locale, key, translated: json[key] !== key }).toEqual({
+          locale,
+          key,
+          translated: true,
+        });
+      }
+    }
+  });
+
   test("the strings the components translate at runtime are all in en.json", () => {
     const sources: Array<string> = [
       readSource("Components", "OnCallPolicy", "CalendarFeedLinks.tsx"),
@@ -556,7 +808,13 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
-        "FeedStatusLine.tsx",
+        "FeedStatusPanel.tsx",
+      ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "FeedLinkField.tsx",
       ),
       readSource(
         "Components",
@@ -586,13 +844,25 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
+        "UpcomingShiftRow.tsx",
+      ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
         "CalendarFeedPlanGate.tsx",
       ),
       readSource("Pages", "OnCallDuty", "CalendarFeeds.tsx"),
     ];
 
     const literalPattern: RegExp =
-      /translateString\(\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
+      /(?:translateString|translateText)\(\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
+    /*
+     * A word chosen between two - Show or Hide, Copy link or Copied! - is
+     * looked up as `translateText(cond ? "A" : "B")`: both are keys.
+     */
+    const choicePattern: RegExp =
+      /translateText\(\s*[\w.!]+\s*\?\s*"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
     let found: number = 0;
 
     for (const source of sources) {
@@ -601,9 +871,17 @@ describe("Locales", () => {
         found += 1;
         expect(en[key]).toBe(key);
       }
+
+      for (const match of source.matchAll(choicePattern)) {
+        for (const literal of [match[1], match[2]] as Array<string>) {
+          const key: string = literal.replace(/\\"/g, '"');
+          found += 1;
+          expect(en[key]).toBe(key);
+        }
+      }
     }
 
-    expect(found).toBeGreaterThan(30);
+    expect(found).toBeGreaterThan(40);
   });
 
   /*
@@ -618,7 +896,7 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
-        "FeedStatusLine.tsx",
+        "FeedStatusPanel.tsx",
       ),
       readSource(
         "Components",
@@ -626,14 +904,22 @@ describe("Locales", () => {
         "CalendarFeed",
         "UpcomingShiftsCard.tsx",
       ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "UpcomingShiftRow.tsx",
+      ),
     ];
 
     /*
      * The key argument is sometimes a singular/plural ternary, so the call is
-     * matched up to its values object and every literal inside is collected.
+     * matched up to its values object and every literal inside is collected:
+     * translator.translateTemplate in the status panel and the upcoming
+     * shifts rows.
      */
     const callPattern: RegExp =
-      /translateInterpolated\(\s*translateString,\s*(.*?),\s*\{/g;
+      /(?:translateInterpolated\(\s*translateString,|translateTemplate\()\s*(.*?),\s*\{/g;
     const literalPattern: RegExp = /"((?:[^"\\]|\\.)*)"/g;
     const keys: Array<string> = [];
 
@@ -647,9 +933,9 @@ describe("Locales", () => {
 
     /*
      * Both status-line variants, both fetch counts, the hint, both rotation
-     * ages and the two shift pills.
+     * ages, the two shift pills and the upcoming rows' lengths.
      */
-    expect(keys.length).toBeGreaterThanOrEqual(9);
+    expect(keys.length).toBeGreaterThanOrEqual(12);
 
     for (const key of keys) {
       expect(en[key]).toBe(key);
@@ -670,7 +956,7 @@ describe("Locales", () => {
       "Shifts you cover for someone else, when an override names you.",
       "Private to you. Anyone who has the link can read your shifts, so treat it like a password.",
       "No shared link yet",
-      "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.",
+      "Apps subscribed to the current link stop getting shifts and show an empty calendar. Paste the new link into every app you subscribed with.",
       "Your previous link returns an empty calendar until {{date}}, then stops working.",
       "The previous link returns an empty calendar until {{date}}, then stops working.",
       "{{count}} weeks",
@@ -723,14 +1009,25 @@ describe("Locales", () => {
     for (const [locale, phrase] of Object.entries(forbidden)) {
       const json: Record<string, unknown> = readLocale(locale);
 
-      // The three sentences that describe the rotated-out link, by their key.
+      /*
+       * The two sentences that describe the rotated-out link, by their key.
+       * Each says what the old link serves - an empty calendar - which is also
+       * what tells them apart from other features' sentences about an old
+       * link of their own (an incident form's Reset Link, whose old link
+       * stops working at once; an external calendar's Change link, whose old
+       * link's events are forgotten). The rotate dialog itself only says that
+       * subscribed apps go empty and need the new link.
+       */
       const previousLinkKeys: Array<string> = Object.keys(json).filter(
         (key: string): boolean => {
-          return key.includes("previous link") || key.includes("old link");
+          return (
+            (key.includes("previous link") || key.includes("old link")) &&
+            key.includes("empty calendar")
+          );
         },
       );
 
-      expect(previousLinkKeys.length).toBe(3);
+      expect(previousLinkKeys.length).toBe(2);
 
       for (const key of previousLinkKeys) {
         expect(String(json[key])).not.toContain(phrase);

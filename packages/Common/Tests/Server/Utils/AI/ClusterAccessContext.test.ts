@@ -1,5 +1,8 @@
 import ClusterAccessContext, {
   UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
+  describeClusterAccessTarget,
+  describeClusterAccessTargetOfCluster,
+  describeClusterAccessTargetRole,
 } from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
 import { KUBECTL_ALWAYS_ASKS_SUMMARY } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
@@ -36,6 +39,8 @@ function status(
       canRunAiCommands: true,
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -255,7 +260,9 @@ describe("ClusterAccessContext", () => {
     expect(addendum).toContain("did not pick up a command");
     expect(addendum).toContain("do not call run_kubectl on it again");
     expect(addendum).not.toContain("try again");
-    expect(addendum).toContain("the cluster's Runner not responding");
+    expect(addendum).toContain(
+      "the cluster's AI agent or Runner not responding",
+    );
   });
 
   it("describes missing access for humans with the first blocking gap and its next step", () => {
@@ -281,5 +288,104 @@ describe("ClusterAccessContext", () => {
     expect(ClusterAccessContext.describeMissingAccessForHumans(status())).toBe(
       'OneUptime AI has kubectl access to cluster "prod-us".',
     );
+  });
+});
+
+/*
+ * The Kubernetes AI agent and the chart's previous in-cluster Runner are
+ * both accessMethod "in_cluster" (both use their own ServiceAccount); only
+ * runner.kind tells them apart, and the text names each for what it is.
+ */
+describe("ClusterAccessContext names the access target by its kind", () => {
+  const AGENT: Partial<KubernetesClusterAiAccessStatus> = {
+    runner: {
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Kubernetes AI agent",
+      kind: "ai_agent",
+      isOnline: true,
+      canRunAiCommands: true,
+    },
+    accessMethod: "in_cluster",
+  };
+
+  it("says the kubectl access is via the in-cluster Kubernetes AI agent", () => {
+    const section: string = ClusterAccessContext.buildContextSection([
+      status(AGENT),
+    ]);
+
+    expect(section).toContain(
+      "kubectl READ access available via run_kubectl (via the in-cluster Kubernetes AI agent)",
+    );
+    expect(section).not.toContain("in-cluster Runner");
+  });
+
+  it("still says in-cluster Runner for the previous in-cluster Runner (no kind, or kind runner)", () => {
+    for (const kind of [undefined, "runner" as const]) {
+      const section: string = ClusterAccessContext.buildContextSection([
+        status({
+          runner: {
+            id: "44444444-4444-4444-8444-444444444444",
+            name: "kubernetes-agent/prod-us",
+            kind,
+            isOnline: true,
+            canRunAiCommands: true,
+          },
+        }),
+      ]);
+
+      expect(section).toContain("(in-cluster Runner)");
+      expect(section).not.toContain("Kubernetes AI agent");
+    }
+  });
+
+  it("names a Runner reached with a credential and its credential", () => {
+    const section: string = ClusterAccessContext.buildContextSection([
+      status({
+        runner: {
+          id: "44444444-4444-4444-8444-444444444444",
+          name: "platform-ops-runner",
+          kind: "runner",
+          isOnline: true,
+          canRunAiCommands: true,
+        },
+        accessMethod: "credential",
+        credentialName: "prod-us kubeconfig",
+      }),
+    ]);
+
+    expect(section).toContain(
+      '(Runner "platform-ops-runner" with credential "prod-us kubeconfig")',
+    );
+  });
+
+  it("the describers: the agent by role, a Runner by name", () => {
+    expect(describeClusterAccessTarget(status(AGENT))).toBe(
+      "the Kubernetes AI agent",
+    );
+    expect(describeClusterAccessTarget(status())).toBe(
+      'Runner "kubernetes-agent/prod-us"',
+    );
+    expect(describeClusterAccessTarget(status({ runner: null }))).toBe(
+      'Runner "Runner"',
+    );
+    expect(describeClusterAccessTargetRole(status(AGENT))).toBe(
+      "the cluster's Kubernetes AI agent",
+    );
+    expect(describeClusterAccessTargetRole(status())).toBe(
+      "the cluster's Runner",
+    );
+    expect(describeClusterAccessTargetOfCluster(status(AGENT))).toBe(
+      "its Kubernetes AI agent",
+    );
+    expect(describeClusterAccessTargetOfCluster(status())).toBe("its Runner");
+  });
+
+  it("sends the human to the cluster's AI agent page, never the retired AI page", () => {
+    const addendum: string = ClusterAccessContext.buildPersonaAddendum([
+      status(AGENT),
+    ]);
+
+    expect(addendum).toContain("the cluster's AI agent page (AI → Agent)");
+    expect(addendum).not.toContain("the cluster's AI page");
   });
 });

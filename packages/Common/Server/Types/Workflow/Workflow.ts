@@ -24,4 +24,12 @@ export interface RunProps {
    * graph from the trigger. See ExecuteWorkflowType.runOnlyComponentId.
    */
   runOnlyComponentId?: string | undefined;
+  /**
+   * A person started this run by hand while the workflow was turned off: a
+   * test run (WorkflowLog.isTestRun). Its log opens with a line that says so,
+   * and who started it (testRunStartedBy).
+   */
+  isTestRun?: boolean | undefined;
+  /** Who started a test run, as its log names them. */
+  testRunStartedBy?: string | undefined;
 }

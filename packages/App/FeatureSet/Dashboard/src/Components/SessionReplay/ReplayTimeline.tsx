@@ -19,6 +19,7 @@ import {
   ReplayTimelineMarkerTone,
   ReplayTimelinePreview,
   ReplayTrackBand,
+  ReplayTrackBandKind,
   buildHoverPreview,
   clampOffset,
   clusterMarkers,
@@ -47,7 +48,9 @@ import {
  * seeking on every pointermove (each seek can rebuild the Replayer and
  * fetch chunks), and drawing a hole in the recording as blank track. A
  * drag previews locally and commits ONE seek on release; a gap is a
- * hatched, labelled, focusable band.
+ * hatched, labelled, focusable band, and so is a stretch the recorder
+ * paused through - drawn in its own pattern, because it is neither lost
+ * footage (the gap's amber) nor footage of a page nobody touched (idle).
  *
  * The clock ticks this component ~30 times a second and the only things
  * that move are the playhead and the slider's aria values. Every band,
@@ -118,6 +121,51 @@ const HATCH_AMBER: string =
   "repeating-linear-gradient(135deg, rgba(251,191,36,0.55) 0 3px, transparent 3px 7px)";
 const HATCH_GRAY: string =
   "repeating-linear-gradient(135deg, rgba(156,163,175,0.45) 0 2px, transparent 2px 6px)";
+/*
+ * Upright bars, the pause symbol repeated: no diagonal, so it cannot be
+ * read as the idle or gap hatch, on a white ground with a dashed slate
+ * edge, so it reads as an absence rather than as footage.
+ */
+const PAUSE_BARS: string =
+  "repeating-linear-gradient(90deg, rgba(100,116,139,0.4) 0 2px, transparent 2px 6px)";
+
+/* The kinds drawn full height over the track, each in its own paint. */
+export type ReplayTrackMarkBandKind = Exclude<
+  ReplayTrackBandKind,
+  "loaded" | "available"
+>;
+
+export interface ReplayTrackBandPaint {
+  /* The fill and edge, as classes. */
+  className: string;
+  /* The pattern drawn over the fill, if any. */
+  backgroundImage: string | undefined;
+}
+
+/*
+ * How each full-height band is painted, in one table that TrackBand and
+ * the legend both read, so a swatch cannot drift from its band. Exported
+ * because the patterns are the one part a rendered test cannot see: jsdom
+ * drops every repeating-linear-gradient it is given.
+ */
+export const REPLAY_TRACK_BAND_PAINT: Record<
+  ReplayTrackMarkBandKind,
+  ReplayTrackBandPaint
+> = {
+  gap: {
+    className: "border border-dashed border-amber-400 bg-amber-50",
+    backgroundImage: HATCH_AMBER,
+  },
+  idle: { className: "bg-gray-200", backgroundImage: HATCH_GRAY },
+  "background-tab": {
+    className: "border border-dotted border-gray-400 bg-gray-100",
+    backgroundImage: undefined,
+  },
+  paused: {
+    className: "border border-dashed border-slate-400 bg-white",
+    backgroundImage: PAUSE_BARS,
+  },
+};
 
 /* Solid fill per tone; hollow markers use the matching ring. */
 const TONE_CLASS: Record<ReplayTimelineMarkerTone, string> = {
@@ -134,23 +182,33 @@ const TONE_CLASS: Record<ReplayTimelineMarkerTone, string> = {
 interface TimelineLegendItem {
   label: string;
   swatchClassName: string;
+  /*
+   * The pattern painted over the fill, where the fill alone would not
+   * tell the swatch apart from its neighbours at 8px.
+   */
+  swatchBackgroundImage?: string | undefined;
 }
 
 /*
  * The legend, as data, so the swatches cannot drift from the bands they
- * stand for: each className here is the fill TrackBand actually paints.
+ * stand for: each className here is the fill TrackBand actually paints
+ * (REPLAY_TRACK_BAND_PAINT for the full-height kinds). Only the paused
+ * swatch carries its pattern as well: its white fill and dashed edge alone
+ * would read as "Tab in background" or "Approximate" at 8px.
  */
 const TIMELINE_LEGEND_ITEMS: Array<TimelineLegendItem> = [
   { label: "Loaded", swatchClassName: "bg-indigo-400" },
   { label: "Not yet loaded", swatchClassName: "bg-gray-300" },
-  {
-    label: "Gap",
-    swatchClassName: "border border-dashed border-amber-400 bg-amber-50",
-  },
-  { label: "Idle", swatchClassName: "bg-gray-200" },
+  { label: "Gap", swatchClassName: REPLAY_TRACK_BAND_PAINT.gap.className },
+  { label: "Idle", swatchClassName: REPLAY_TRACK_BAND_PAINT.idle.className },
   {
     label: "Tab in background",
-    swatchClassName: "border border-dotted border-gray-400 bg-gray-100",
+    swatchClassName: REPLAY_TRACK_BAND_PAINT["background-tab"].className,
+  },
+  {
+    label: "Recording paused",
+    swatchClassName: REPLAY_TRACK_BAND_PAINT.paused.className,
+    swatchBackgroundImage: REPLAY_TRACK_BAND_PAINT.paused.backgroundImage,
   },
   {
     label: "Approximate",
@@ -237,44 +295,50 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
   const isWideEnoughForLabel: boolean = width >= 9;
   const isGap: boolean = band.kind === "gap";
   const isBackground: boolean = band.kind === "background-tab";
+  const isPaused: boolean = band.kind === "paused";
+  const paint: ReplayTrackBandPaint = REPLAY_TRACK_BAND_PAINT[band.kind];
   const accessibleName: string = isGap
     ? `Recording gap: ${band.label}`
     : isBackground
       ? `Tab in background: ${band.label}`
-      : `Idle: ${band.label}${
-          band.fidelity === "coarse" ? " (estimated until the chunk loads)" : ""
-        }`;
+      : isPaused
+        ? `Recording paused while the page was idle: ${band.label}`
+        : `Idle: ${band.label}${
+            band.fidelity === "coarse"
+              ? " (estimated until the chunk loads)"
+              : ""
+          }`;
 
   return (
     <div
-      data-testid={isGap ? "timeline-gap-band" : "timeline-idle-band"}
+      data-testid={
+        isGap
+          ? "timeline-gap-band"
+          : isPaused
+            ? "timeline-paused-band"
+            : "timeline-idle-band"
+      }
       data-kind={band.kind}
       data-fidelity={band.fidelity || "exact"}
       role="note"
       tabIndex={0}
       aria-label={accessibleName}
       title={accessibleName}
-      className={`absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-        isGap
-          ? "border border-dashed border-amber-400 bg-amber-50"
-          : isBackground
-            ? "border border-dotted border-gray-400 bg-gray-100"
-            : "bg-gray-200"
-      }`}
+      className={`absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${paint.className}`}
       style={{
         left: `${left}%`,
         width: `${width}%`,
-        backgroundImage: isGap
-          ? HATCH_AMBER
-          : isBackground
-            ? undefined
-            : HATCH_GRAY,
+        backgroundImage: paint.backgroundImage,
       }}
     >
       {isWideEnoughForLabel && (
         <span
           className={`whitespace-nowrap px-1 text-[11px] font-medium ${
-            isGap ? "text-amber-800" : "text-gray-600"
+            isGap
+              ? "text-amber-800"
+              : isPaused
+                ? "rounded-sm bg-white/80 text-slate-600"
+                : "text-gray-600"
           }`}
         >
           {band.label}
@@ -779,22 +843,6 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   }, [updateHover]);
 
   /*
-   * Notice markers sit INSIDE the slider track, so without this a click on
-   * one would start the track's own gesture on pointerdown, commit a seek
-   * to the cursor on pointerup, and then seek AGAIN to marker - 1s on
-   * click: two seeks (each a possible Replayer rebuild) for one press. The
-   * button owns its pointer; the track never sees it.
-   */
-  const stopTrackGesture: (
-    event: React.PointerEvent<HTMLButtonElement>,
-  ) => void = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>): void => {
-      event.stopPropagation();
-    },
-    [],
-  );
-
-  /*
    * The WAI-ARIA slider keys, on the element itself, so they work whenever
    * the track has focus - including while the page-level shortcuts are
    * off. stopPropagation keeps the window listener from seeing the same
@@ -1004,43 +1052,54 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               },
             )}
 
-            {/*
-             * Notice markers: a fidelity notice that says a stretch is
-             * unplayable, pinned to WHERE (finding 15), drawn as a small
-             * triangle on the top edge of the track.
-             */}
-            {trackMarkers.map((marker: ReplayTimelineMarker): ReactElement => {
-              return (
-                <button
-                  key={marker.id}
-                  type="button"
-                  data-testid="timeline-notice-marker"
-                  title={marker.title}
-                  aria-label={marker.title}
-                  className="absolute top-0 z-10 h-2.5 w-3 -translate-x-1/2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  style={{
-                    left: `${offsetToPercent(marker.offsetMs, durationMs)}%`,
-                  }}
-                  onPointerDown={stopTrackGesture}
-                  onPointerUp={stopTrackGesture}
-                  onClick={(): void => {
-                    handleMarkerActivate(marker);
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-500"
-                  />
-                </button>
-              );
-            })}
-
             <TimelinePlayhead
               playheadPercent={playheadPercent}
               hoverPercent={hoverPercent}
               ghostPercent={ghostPercent}
             />
           </div>
+
+          {/*
+           * Notice markers: a fidelity notice that says a stretch is
+           * unplayable, pinned to WHERE (finding 15), drawn as a small
+           * triangle on the top edge of the track. They lie over the track
+           * rather than inside it: the track is one control (a slider), so a
+           * screen reader would not offer a button drawn inside it, and a
+           * press on a marker would also have started the track's own seek.
+           * The layer lets every other press through to the track.
+           */}
+          {trackMarkers.length > 0 && (
+            <div
+              data-testid="timeline-notice-markers"
+              className="pointer-events-none absolute inset-0"
+            >
+              {trackMarkers.map(
+                (marker: ReplayTimelineMarker): ReactElement => {
+                  return (
+                    <button
+                      key={marker.id}
+                      type="button"
+                      data-testid="timeline-notice-marker"
+                      title={marker.title}
+                      aria-label={marker.title}
+                      className="pointer-events-auto absolute top-0 z-10 h-2.5 w-3 -translate-x-1/2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      style={{
+                        left: `${offsetToPercent(marker.offsetMs, durationMs)}%`,
+                      }}
+                      onClick={(): void => {
+                        handleMarkerActivate(marker);
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-500"
+                      />
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1094,6 +1153,11 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
                     <span
                       aria-hidden="true"
                       className={`h-2 w-2 shrink-0 rounded-[2px] ${item.swatchClassName}`}
+                      style={
+                        item.swatchBackgroundImage
+                          ? { backgroundImage: item.swatchBackgroundImage }
+                          : undefined
+                      }
                     />
                     {item.label}
                   </span>

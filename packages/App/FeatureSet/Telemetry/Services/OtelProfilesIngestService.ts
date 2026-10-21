@@ -303,6 +303,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =

@@ -33,6 +33,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import UserSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu";
 import OnCallDutySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   DESKTOP_WIDTH,
   MenuLink,
@@ -54,9 +56,16 @@ describe("User Settings side menu - Calendar section", () => {
 
   afterEach(() => {
     cleanup();
+    ConnectedWorkspaces.reset();
   });
 
-  test("has a Calendar section placed right before Workspace", async () => {
+  /*
+   * Workspace is the last section now, and only there in a project with a
+   * chat workspace connected (WorkspaceMenusConnected.test.tsx), so the
+   * calendar link everybody on a rota wants still comes before it.
+   */
+  test("has a Calendar section placed before Workspace", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Slack]);
     await renderMenu(<UserSettingsSideMenu />);
 
     const titles: Array<string> = sectionTitlesInOrder();
@@ -65,7 +74,7 @@ describe("User Settings side menu - Calendar section", () => {
 
     expect(calendarIndex).toBeGreaterThan(-1);
     expect(workspaceIndex).toBeGreaterThan(-1);
-    expect(calendarIndex).toBe(workspaceIndex - 1);
+    expect(calendarIndex).toBeLessThan(workspaceIndex);
   });
 
   test("the Calendar section holds exactly the Calendar Feed page", async () => {

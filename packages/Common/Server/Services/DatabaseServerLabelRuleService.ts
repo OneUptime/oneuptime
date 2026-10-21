@@ -1,8 +1,8 @@
-import DatabaseService from "./DatabaseService";
+import LabelAndOwnerRuleBaseService from "./LabelAndOwnerRuleBaseService";
 import Model from "../../Models/DatabaseModels/DatabaseServerLabelRule";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends LabelAndOwnerRuleBaseService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {

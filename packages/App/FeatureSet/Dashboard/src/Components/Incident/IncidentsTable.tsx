@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
@@ -18,8 +20,11 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
+import { INCIDENT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -28,6 +33,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -46,6 +52,7 @@ import {
 } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import buildStatusPageScopeFacet from "./buildStatusPageScopeFacet";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import React, {
   FunctionComponent,
@@ -77,22 +84,45 @@ import BulkChangeStateModal, {
 import {
   BulkStateChangeNoteType,
   BulkStateChangeSkipDecision,
-  buildBulkStateChangeMiscDataProps,
+  IncidentBulkStateChange,
+  buildIncidentBulkStateChange,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
+  /*
+   * The record whose Incidents tab this is - a monitor, a host, a cluster:
+   * Declare Incident and Create from Template open the create page with it
+   * already picked (Components/CreateFromRecord).
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [incidentTemplates, setIncidentTemplates] = useState<
     Array<IncidentTemplate>
   >([]);
@@ -107,9 +137,31 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<Incident> | null>(null);
   const [visibleIncidents, setVisibleIncidents] = useState<Array<Incident>>([]);
 
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isIncidentResolved: (incident: Incident) => boolean = (
+    incident: Incident,
+  ): boolean => {
+    const stateId: string | undefined =
+      incident.currentIncidentState?._id?.toString();
+
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
+
   const resolvedIncidentIds: Array<string> = visibleIncidents
     .filter((incident: Incident) => {
-      return Boolean(incident.currentIncidentState?.isResolvedState);
+      return isIncidentResolved(incident);
     })
     .map((incident: Incident) => {
       return incident.id?.toString() || "";
@@ -124,7 +176,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   } = useEventTimelineEndDates<IncidentStateTimeline>({
     eventIds: resolvedIncidentIds,
     eventIdField: "incidentId",
+    stateIdField: "incidentStateId",
     timelineModelType: IncidentStateTimeline,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
@@ -140,6 +194,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       ownerTeamModelType: IncidentOwnerTeam,
       resourceIdField: "incidentId",
     });
+
+  // Add to Existing Episode / Add to New Episode.
+  const { bulkActions: episodeBulkActions, modals: episodeBulkActionModals } =
+    useBulkAddToEpisodeActions<Incident>(INCIDENT_EPISODE_MEMBER_KIND);
 
   const incidentExtraFacets: Array<ResourceFacet> = [
     {
@@ -285,6 +343,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       // Burn rate incidents are linked to the SLO that declared them.
       includeServiceLevelObjective: true,
     }),
+    // Incidents limited to some status pages (Incident.statusPages).
+    buildStatusPageScopeFacet(),
   ];
 
   /*
@@ -309,6 +369,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -383,11 +444,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
     const targetOrder: number = targetState.order || 0;
 
-    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
-      noteType: BulkStateChangeNoteType.Public,
-      note: data.note,
-    });
-
     onBulkActionStart();
 
     const inProgressItems: Array<Incident> = [...items];
@@ -403,7 +459,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           throw new Error("Incident ID not found");
         }
 
-        // Fetch the incident's current state order since it's not loaded in the table
+        /*
+         * The incident's current state order, which the table does not
+         * load, and whether it is private: a private incident takes no
+         * public notes (buildIncidentBulkStateChange).
+         */
         const fetchedIncident: Incident | null =
           await ModelAPI.getItem<Incident>({
             modelType: Incident,
@@ -413,6 +473,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 order: true,
                 name: true,
               },
+              isPrivate: true,
             },
           });
 
@@ -434,6 +495,15 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             failedMessage: skipDecision.skippedMessage!,
           });
         } else {
+          // The note: public, or private on a private incident.
+          const change: IncidentBulkStateChange = buildIncidentBulkStateChange({
+            isPrivate:
+              !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident),
+            note: data.note,
+            shouldStatusPageSubscribersBeNotified:
+              data.shouldStatusPageSubscribersBeNotified,
+          });
+
           // Create state timeline to change state
           const stateTimeline: IncidentStateTimeline =
             new IncidentStateTimeline();
@@ -441,12 +511,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           stateTimeline.incidentStateId = targetStateId;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
           stateTimeline.shouldStatusPageSubscribersBeNotified =
-            data.shouldStatusPageSubscribersBeNotified ?? true;
+            change.shouldStatusPageSubscribersBeNotified;
 
           await ModelAPI.create<IncidentStateTimeline>({
             model: stateTimeline,
             modelType: IncidentStateTimeline,
-            miscDataProps: miscDataProps,
+            miscDataProps: change.miscDataProps,
           });
 
           successItems.push(incident);
@@ -518,6 +588,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.Incident,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * Both buttons route to the incident create page instead of the table's
@@ -544,9 +620,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           title: "Declare Incident",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_CREATE] as Route,
-              ),
+              RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, {
+                query: createQuery,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -571,6 +647,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             getBulkChangeStateAction(),
             ...labelBulkActions,
             ...ownerBulkActions,
+            ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -578,9 +655,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         saveFilterProps={props.saveFilterProps}
         urlStateKey={tableUrlStateKey}
         id="incidents-table"
-        isDeleteable={false}
+        isDeleteable={true}
         showCreateForm={false}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
@@ -599,7 +677,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             "An incident is a problem that affects your users, like an outage or a slowdown. Declare one to page on-call, track the fix and update your status page.",
         }}
         createVerb="Declare"
-        noItemsMessage={props.noItemsMessage || "No incidents found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
@@ -680,6 +758,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          storageArrays: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           dockerSwarmClusters: {
             name: true,
             _id: true,
@@ -748,11 +831,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   {numberContent}
                   {item.isPrivate === true && (
                     <span
-                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      title={translator.translateText(
+                        "Private incident — visible only to its owners, project admins, and project owners",
+                      )}
                       className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
                     >
                       <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                      Private
+                      {translator.translateText("Private")}
                     </span>
                   )}
                 </span>
@@ -773,9 +858,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentIncidentState: {
+                _id: true,
                 name: true,
                 color: true,
-                isResolvedState: true,
               },
             },
             title: "State",
@@ -867,6 +952,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -908,6 +998,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   proxmoxClusters={item.proxmoxClusters || []}
                   vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
+                  storageArrays={item.storageArrays || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}
@@ -935,9 +1026,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             disableCsvExport: true,
             getElement: (item: Incident): ReactElement => {
               const incidentId: string = item.id?.toString() || "";
-              const isResolved: boolean = Boolean(
-                item.currentIncidentState?.isResolvedState,
-              );
+              const isResolved: boolean = isIncidentResolved(item);
               const resolvedAt: Date | undefined = incidentId
                 ? resolvedAtByIncidentId[incidentId]
                 : undefined;
@@ -953,6 +1042,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 <LiveDuration
                   startDate={item.declaredAt}
                   endDate={isResolved ? resolvedAt : undefined}
+                  isCompact={true}
                 />
               );
             },
@@ -994,19 +1084,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       {incidentTemplates.length === 0 &&
         showIncidentTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Incident Templates`}
-            description={`No incident templates have been created yet. You can create these in Project Settings > Incident Templates.`}
-            submitButtonText={"Create Template"}
-            onSubmit={() => {
-              setShowIncidentTemplateModal(false);
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
-                ),
-              );
-            }}
-            closeButtonText={"Close"}
+          <NoTemplatesYetModal
+            title="No Incident Templates"
+            description="This project has no incident templates yet. Create them in Incidents → Settings → Incident Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+            )}
             onClose={() => {
               setShowIncidentTemplateModal(false);
             }}
@@ -1038,15 +1121,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
               "incidentTemplateId"
             ] as ObjectID;
 
-            // Navigate to declare incident page with the template id
+            // The declare page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (RouteMap[PageMap.INCIDENT_CREATE] as Route).toString(),
-                ).addQueryParams({
+              RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, {
+                query: {
+                  ...createQuery,
                   incidentTemplateId: incidentTemplateId.toString(),
-                }),
-              ),
+                },
+              }),
             );
           }}
           formProps={{
@@ -1079,22 +1161,23 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {episodeBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BulkChangeStateModal
           title="Change Incident State"
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
           stateFieldKey="incidentStateId"
-          stateOptions={incidentStates.map((state: IncidentState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: incidentStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"
-          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected."
+          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected, as a private note on private incidents."
           noteTemplates={noteTemplates}
+          noteModel={new IncidentPublicNote()}
           showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);

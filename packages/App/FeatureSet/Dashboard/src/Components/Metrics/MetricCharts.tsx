@@ -69,6 +69,12 @@ import HintChip from "./HintChip";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
 import {
+  ChartTimeRangeZoomContextValue,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { isSecondPressOfDoubleClick } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
+import {
   CrossSignalQueryParams,
   MetricScopeFilterExtraction,
   buildExemplarLogsPivotParams,
@@ -98,6 +104,14 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -210,10 +224,26 @@ interface SeriesSortOption {
 }
 
 const SERIES_SORT_OPTIONS: Array<SeriesSortOption> = [
-  { key: "peak", label: "Peak", rankedByLabel: "peak value" },
-  { key: "avg", label: "Average", rankedByLabel: "average value" },
-  { key: "latest", label: "Latest", rankedByLabel: "latest value" },
-  { key: "name", label: "Name", rankedByLabel: "peak value" },
+  {
+    key: "peak",
+    label: "Peak",
+    rankedByLabel: translationKey("ranked by peak value"),
+  },
+  {
+    key: "avg",
+    label: "Average",
+    rankedByLabel: translationKey("ranked by average value"),
+  },
+  {
+    key: "latest",
+    label: "Latest",
+    rankedByLabel: translationKey("ranked by latest value"),
+  },
+  {
+    key: "name",
+    label: "Name",
+    rankedByLabel: translationKey("ranked by peak value"),
+  },
 ];
 
 // Choices offered by the per-chart Top-N series selector.
@@ -612,7 +642,13 @@ function buildThresholdReferenceLines(input: {
   if (input.warningThreshold !== undefined && input.warningThreshold !== null) {
     referenceLines.push({
       value: input.warningThreshold,
-      label: `Warning: ${ValueFormatter.formatValue(input.warningThreshold, input.unit, input.formatterOptions)}`,
+      label: translateTemplate("Warning: {{value}}", {
+        value: ValueFormatter.formatValue(
+          input.warningThreshold,
+          input.unit,
+          input.formatterOptions,
+        ),
+      }),
       color: "#f59e0b", // amber
     });
   }
@@ -623,7 +659,13 @@ function buildThresholdReferenceLines(input: {
   ) {
     referenceLines.push({
       value: input.criticalThreshold,
-      label: `Critical: ${ValueFormatter.formatValue(input.criticalThreshold, input.unit, input.formatterOptions)}`,
+      label: translateTemplate("Critical: {{value}}", {
+        value: ValueFormatter.formatValue(
+          input.criticalThreshold,
+          input.unit,
+          input.formatterOptions,
+        ),
+      }),
       color: "#ef4444", // red
     });
   }
@@ -950,8 +992,11 @@ function renderSeriesControls(input: {
    * aria-expanded on that chip's magnifier button.
    */
   investigatedSeriesName?: string | null | undefined;
+  // The reader's language, for every word the panel draws.
+  translator: Translator;
 }): ReactElement {
   const {
+    translator,
     chartId,
     controls,
     updateControls,
@@ -984,7 +1029,7 @@ function renderSeriesControls(input: {
   const rankedByLabel: string =
     SERIES_SORT_OPTIONS.find((option: SeriesSortOption) => {
       return option.key === sortBy;
-    })?.rankedByLabel || "peak value";
+    })?.rankedByLabel || translationKey("ranked by peak value");
 
   /*
    * Map each currently-rendered series to the same color the chart
@@ -1100,20 +1145,35 @@ function renderSeriesControls(input: {
             {unitLabel}
           </span>
         ) : null}
-        <span className="text-xs text-gray-500">{totalSeries} series</span>
+        <span className="text-xs text-gray-500">
+          {translator.translateTemplate("{{count}} series", {
+            count: translator.formatNumber(totalSeries),
+          })}
+        </span>
         {serverHasMoreSeries ? (
           <span className="text-xs text-gray-500">
-            Showing top{" "}
-            <span className="font-medium text-gray-700">{totalSeries}</span> of{" "}
-            <span className="font-medium text-gray-700">
-              {serverTotalGroups}
-            </span>{" "}
-            series
+            <TranslatedSentence
+              template="Showing top {{shown}} of {{total}} series"
+              slots={{
+                shown: (
+                  <span className="font-medium text-gray-700">
+                    {totalSeries}
+                  </span>
+                ),
+                total: (
+                  <span className="font-medium text-gray-700">
+                    {serverTotalGroups}
+                  </span>
+                ),
+              }}
+            />
           </span>
         ) : null}
         {serverTruncatedWithoutTopK ? (
           <HintChip variant="amber">
-            Results truncated by server row limit — data may be incomplete.
+            {translator.translateText(
+              "Results truncated by server row limit — data may be incomplete.",
+            )}
           </HintChip>
         ) : null}
         {warningElement || null}
@@ -1125,11 +1185,12 @@ function renderSeriesControls(input: {
             <Icon icon={IconProp.EyeSlash} className="h-4 w-4 text-gray-400" />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-900">
-            All series hidden
+            {translator.translateText("All series hidden")}
           </p>
           <p className="mt-0.5 text-xs text-gray-500">
-            Every series on this chart is hidden — click a series below to show
-            it again.
+            {translator.translateText(
+              "Every series on this chart is hidden — click a series below to show it again.",
+            )}
           </p>
           <button
             type="button"
@@ -1138,7 +1199,7 @@ function renderSeriesControls(input: {
               updateControls(chartId, { hiddenSeries: new Set<string>() });
             }}
           >
-            Show all series
+            {translator.translateText("Show all series")}
           </button>
         </div>
       ) : null}
@@ -1161,22 +1222,25 @@ function renderSeriesControls(input: {
             <input
               type="text"
               value={controls.searchQuery}
-              aria-label="Filter series by name"
+              aria-label={translator.translateText("Filter series by name")}
               onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
                 updateControls(chartId, { searchQuery: e.target.value });
               }}
-              placeholder={`Filter ${totalSeries} series`}
+              placeholder={translator.translateTemplate(
+                "Filter {{count}} series",
+                { count: translator.formatNumber(totalSeries) },
+              )}
               className="w-full rounded-md border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <label htmlFor={`series-sort-${chartId}`} className="sr-only">
-              Sort series by
+              {translator.translateText("Sort series by")}
             </label>
             <select
               id={`series-sort-${chartId}`}
               value={sortBy}
-              title="Sort the node list by"
+              title={translator.translateText("Sort the node list by")}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
                 updateControls(chartId, {
                   sortBy: e.target.value as SeriesSortBy,
@@ -1187,7 +1251,9 @@ function renderSeriesControls(input: {
               {SERIES_SORT_OPTIONS.map((option: SeriesSortOption) => {
                 return (
                   <option key={option.key} value={option.key}>
-                    {`Sort: ${option.label}`}
+                    {translator.translateTemplate("Sort: {{label}}", {
+                      label: translatableTerm(option.label),
+                    })}
                   </option>
                 );
               })}
@@ -1198,12 +1264,14 @@ function renderSeriesControls(input: {
               effectiveTopN !== DEFAULT_TOP_N_SERIES) ? (
               <>
                 <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
-                  Number of series to show
+                  {translator.translateText("Number of series to show")}
                 </label>
                 <select
                   id={`series-top-n-${chartId}`}
                   value={topNSelectValue}
-                  title="How many series to fetch and plot"
+                  title={translator.translateText(
+                    "How many series to fetch and plot",
+                  )}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
                     if (e.target.value === "all") {
                       return;
@@ -1215,12 +1283,16 @@ function renderSeriesControls(input: {
                   {topNChoices.map((choice: number) => {
                     return (
                       <option key={choice} value={String(choice)}>
-                        {`Top ${choice}`}
+                        {translator.translateTemplate("Top {{count}}", {
+                          count: choice,
+                        })}
                       </option>
                     );
                   })}
                   {topNSelectValue === "all" ? (
-                    <option value="all">All series</option>
+                    <option value="all">
+                      {translator.translateText("All series")}
+                    </option>
                   ) : null}
                 </select>
               </>
@@ -1234,8 +1306,12 @@ function renderSeriesControls(input: {
                 }}
               >
                 {isShowAllActive
-                  ? `Top ${revertTopNLabel}`
-                  : `Show all ${showAllCount}`}
+                  ? translator.translateTemplate("Top {{count}}", {
+                      count: revertTopNLabel,
+                    })
+                  : translator.translateTemplate("Show all {{count}}", {
+                      count: translator.formatNumber(showAllCount),
+                    })}
               </button>
             ) : null}
             {controls.hiddenSeries.size > 0 ? (
@@ -1248,7 +1324,9 @@ function renderSeriesControls(input: {
                   });
                 }}
               >
-                Show {controls.hiddenSeries.size} hidden
+                {translator.translateTemplate("Show {{count}} hidden", {
+                  count: translator.formatNumber(controls.hiddenSeries.size),
+                })}
               </button>
             ) : null}
           </div>
@@ -1257,17 +1335,31 @@ function renderSeriesControls(input: {
 
       {hasStatus ? (
         <div className="text-xs text-gray-500">
-          <span className="font-medium text-gray-700">{visibleCount}</span>
-          <span> of </span>
-          <span className="font-medium text-gray-700">{totalSeries}</span>
-          <span> series shown</span>
+          <TranslatedSentence
+            template="{{visible}} of {{total}} series shown"
+            slots={{
+              visible: (
+                <span className="font-medium text-gray-700">
+                  {visibleCount}
+                </span>
+              ),
+              total: (
+                <span className="font-medium text-gray-700">{totalSeries}</span>
+              ),
+            }}
+          />
           {hiddenFromTopN > 0 ? (
-            <span className="text-gray-400"> · ranked by {rankedByLabel}</span>
+            <span className="text-gray-400">
+              {" · "}
+              {translator.translateText(rankedByLabel)}
+            </span>
           ) : null}
           {controls.hiddenSeries.size > 0 ? (
             <span className="text-gray-400">
-              {" "}
-              · {controls.hiddenSeries.size} hidden
+              {" · "}
+              {translator.translateTemplate("{{count}} hidden", {
+                count: translator.formatNumber(controls.hiddenSeries.size),
+              })}
             </span>
           ) : null}
         </div>
@@ -1276,7 +1368,9 @@ function renderSeriesControls(input: {
       <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
         {visibleForChips.length === 0 ? (
           <div className="py-1 text-xs italic text-gray-400">
-            No series match &ldquo;{controls.searchQuery}&rdquo;
+            {translator.translateTemplate("No series match “{{search}}”", {
+              search: controls.searchQuery,
+            })}
           </div>
         ) : (
           visibleForChips.map((series: SeriesPoint) => {
@@ -1317,11 +1411,12 @@ function renderSeriesControls(input: {
                       ? "text-gray-400 hover:text-gray-500"
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   }`}
-                  title={
+                  title={translator.translateTemplate(
                     isHidden
-                      ? `${series.seriesName} — click to show`
-                      : `${series.seriesName} — click to hide`
-                  }
+                      ? "{{name}} — click to show"
+                      : "{{name}} — click to hide",
+                    { name: series.seriesName },
+                  )}
                 >
                   <span
                     aria-hidden="true"
@@ -1358,10 +1453,15 @@ function renderSeriesControls(input: {
                 {onInvestigateSeries ? (
                   <button
                     type="button"
-                    aria-label={`Investigate ${series.seriesName}`}
+                    aria-label={translator.translateTemplate(
+                      "Investigate {{name}}",
+                      { name: series.seriesName },
+                    )}
                     aria-haspopup="menu"
                     aria-expanded={investigatedSeriesName === series.seriesName}
-                    title="Investigate this series — logs, traces, and more"
+                    title={translator.translateText(
+                      "Investigate this series — logs, traces, and more",
+                    )}
                     onClick={(
                       event: React.MouseEvent<HTMLButtonElement>,
                     ): void => {
@@ -1399,6 +1499,7 @@ function renderSeriesControls(input: {
 const MetricCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Exemplar data keyed by (metric name + sanitized attribute filters) —
    * see getExemplarStateKey. Two differently-filtered charts of the same
@@ -1760,10 +1861,40 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     setIsComponentVisible: setIsBucketInspectorVisible,
   } = useComponentOutsideClick(false);
 
+  /*
+   * Whether the inspector has been pressed since it opened. The click that
+   * opens it can be the first half of a double-click: with no zoom to
+   * reset, a chart acts on a click at once (see useDeferredChartClick).
+   * Clamped into the viewport, the inspector then opens under the pointer,
+   * and the rest of that double-click landed on it: the second press
+   * selected the word under the pointer, and its click pressed whatever
+   * button was there ("Investigate this moment" opened the drawer). Until
+   * a press of its own, the inspector ignores presses and clicks counted
+   * past the first (event.detail), which can only be that rest.
+   */
+  const bucketInspectorPressedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const closeBucketInspector: VoidFunction = useCallback((): void => {
     setIsBucketInspectorVisible(false);
     setBucketInspector(null);
   }, [setIsBucketInspectorVisible]);
+
+  /*
+   * The double-click reset the charts below end up with (see
+   * resolveChartTimeRangeZoom): this component's host's, or else the
+   * page's. The inspector hands it on when the rest of a double-click
+   * lands on it instead of on the chart.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const chartsTimeRangeReset: (() => void) | undefined =
+    resolveChartTimeRangeZoom({
+      onTimeRangeSelect: props.onTimeRangeSelect,
+      onTimeRangeReset: props.onTimeRangeReset,
+      isTimeAxis: true,
+      pageZoom: pageZoom,
+    }).onTimeRangeReset;
 
   const openBucketInspector: (input: {
     title: string;
@@ -1812,6 +1943,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         BUCKET_INSPECTOR_HEIGHT_PX -
         EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
 
+      bucketInspectorPressedRef.current = false;
       setBucketInspector({
         title: input.title,
         bucketStart: input.bucketStart,
@@ -2361,6 +2493,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
     const seriesControls: ReactElement | undefined = showControls
       ? renderSeriesControls({
+          translator: translator,
           chartId: input.chartId,
           controls,
           updateControls,
@@ -2554,8 +2687,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const unitMismatchWarning: ReactElement | undefined =
         distinctUnits.length > 1 ? (
           <HintChip variant="amber">
-            Overlaid queries use different units ({distinctUnits.join(", ")}) —
-            they share one axis, so values may not be directly comparable.
+            {translator.translateTemplate(
+              "Overlaid queries use different units ({{units}}) — they share one axis, so values may not be directly comparable.",
+              { units: distinctUnits.join(", ") },
+            )}
           </HintChip>
         ) : undefined;
 
@@ -3194,7 +3329,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             colorsOverride: undefined,
             seriesControls: (
               <ErrorMessage
-                message={`Formula error: ${formulaResult.errorMessage}`}
+                message={translator.translateTemplate(
+                  "Formula error: {{error}}",
+                  { error: formulaResult.errorMessage || "" },
+                )}
               />
             ),
           }
@@ -3243,10 +3381,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         type: formulaChartType,
         title:
           formulaConfig.metricAliasData?.title ||
-          `Formula: ${formulaExpression}`,
+          translator.translateTemplate("Formula: {{formula}}", {
+            formula: formulaExpression,
+          }),
         description:
           formulaConfig.metricAliasData?.description ||
-          `Evaluates: ${formulaExpression}`,
+          translator.translateTemplate("Evaluates: {{formula}}", {
+            formula: formulaExpression,
+          }),
         metricInfo: formulaMetricInfo,
         seriesControls: formulaSeriesControls,
         props: {
@@ -3378,7 +3520,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ref={exemplarMenuRef}
               role="menu"
               aria-orientation="vertical"
-              aria-label="Exemplar actions"
+              aria-label={translator.translateText("Exemplar actions")}
               className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
               style={{
                 left: `${exemplarMenu.position.x}px`,
@@ -3414,7 +3556,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ref={seriesMenuRef}
               role="menu"
               aria-orientation="vertical"
-              aria-label="Series investigation actions"
+              aria-label={translator.translateText(
+                "Series investigation actions",
+              )}
               className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
               style={{
                 left: `${seriesMenu.position.x}px`,
@@ -3434,7 +3578,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 truncate text-[11px] text-gray-500"
                     title={seriesMenuNarrowSummary}
                   >
-                    Scoped to {seriesMenuNarrowSummary}
+                    {translator.translateTemplate("Scoped to {{scope}}", {
+                      scope: seriesMenuNarrowSummary,
+                    })}
                   </p>
                 ) : seriesMenu.groupByKeys.length > 0 ? (
                   /*
@@ -3444,8 +3590,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                    * happened.
                    */
                   <p className="mt-0.5 truncate text-[11px] text-gray-500">
-                    Couldn&apos;t scope to this series — actions cover the whole
-                    chart
+                    {translator.translateText(
+                      "Couldn't scope to this series — actions cover the whole chart",
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -3547,11 +3694,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         : null}
       {bucketInspector && isBucketInspectorVisible
         ? ReactDOM.createPortal(
+            /*
+             * The chrome (title, row numbers, notes, buttons) is not
+             * selectable; the values are (select-text), so the window, a
+             * series name or a number can still be copied.
+             */
             <div
               ref={bucketInspectorRef}
               role="dialog"
-              aria-label={`Values at ${OneUptimeDate.getDateAsFormattedString(bucketInspector.bucketStart)}`}
-              className="fixed z-50 w-[300px] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              aria-label={translator.translateTemplate("Values at {{time}}", {
+                time: OneUptimeDate.getDateAsFormattedString(
+                  bucketInspector.bucketStart,
+                ),
+              })}
+              className="fixed z-50 w-[300px] select-none rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
               style={{
                 left: `${bucketInspector.position.x}px`,
                 top: `${bucketInspector.position.y}px`,
@@ -3562,6 +3718,40 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   closeBucketInspector();
                 }
               }}
+              onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
+                if (event.detail <= 1) {
+                  bucketInspectorPressedRef.current = true;
+                  return;
+                }
+                if (!bucketInspectorPressedRef.current) {
+                  // The chart's double-click: select no word of this card.
+                  event.preventDefault();
+                  /*
+                   * A double-click slower than the chart's wait for one
+                   * (DOUBLE_CLICK_DISAMBIGUATION_MS, well inside the
+                   * platforms' own double-click time) opened this card
+                   * under the pointer with its first click, and its second
+                   * press landed here instead of on the chart. While the
+                   * chart offers a reset, that press is still the way back
+                   * out of the zoom (issue #4116): the card goes, and the
+                   * zoom is reset.
+                   */
+                  if (
+                    isSecondPressOfDoubleClick(event) &&
+                    chartsTimeRangeReset
+                  ) {
+                    closeBucketInspector();
+                    chartsTimeRangeReset();
+                  }
+                }
+              }}
+              onClickCapture={(event: React.MouseEvent<HTMLDivElement>) => {
+                if (event.detail > 1 && !bucketInspectorPressedRef.current) {
+                  // Nor press the button it happens to land on.
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
+              }}
             >
               <div className="border-b border-gray-100 px-3 py-2">
                 <p
@@ -3570,7 +3760,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 >
                   {bucketInspector.title}
                 </p>
-                <p className="mt-0.5 text-[11px] tabular-nums text-gray-500">
+                <p className="mt-0.5 select-text text-[11px] tabular-nums text-gray-500">
                   {OneUptimeDate.getInBetweenDatesAsFormattedString(
                     new InBetween<Date>(
                       bucketInspector.bucketStart,
@@ -3582,7 +3772,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               <div className="max-h-52 space-y-0.5 overflow-y-auto px-3 py-2">
                 {bucketInspector.entries.length === 0 ? (
                   <p className="text-xs text-gray-400">
-                    No data points in this bucket.
+                    {translator.translateText("No data points in this bucket.")}
                   </p>
                 ) : (
                   bucketInspector.entries.map(
@@ -3592,13 +3782,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                           key={entry.name}
                           className="flex items-baseline justify-between gap-3"
                         >
-                          <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
-                            <span className="mr-1.5 tabular-nums text-gray-400">
+                          <span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700">
+                            <span className="mr-1.5 select-none tabular-nums text-gray-400">
                               {index + 1}.
                             </span>
                             {entry.name}
                           </span>
-                          <span className="shrink-0 text-xs font-medium tabular-nums text-gray-900">
+                          <span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900">
                             {bucketInspector.formatValue(entry.value)}
                           </span>
                         </div>
@@ -3608,7 +3798,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 )}
                 {bucketInspector.hiddenCount > 0 ? (
                   <p className="pt-1 text-[11px] text-gray-400">
-                    +{bucketInspector.hiddenCount} more series
+                    {translator.translateTemplate("+{{count}} more series", {
+                      count: translator.formatNumber(
+                        bucketInspector.hiddenCount,
+                      ),
+                    })}
                   </p>
                 ) : null}
               </div>
@@ -3618,7 +3812,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   onClick={closeBucketInspector}
                 >
-                  Close
+                  {translator.translateText("Close")}
                 </button>
                 <button
                   type="button"
@@ -3629,7 +3823,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     icon={IconProp.MagnifyingGlassPlus}
                     className="h-3.5 w-3.5"
                   />
-                  Investigate this moment
+                  {translator.translateText("Investigate this moment")}
                 </button>
               </div>
             </div>,

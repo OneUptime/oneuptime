@@ -138,9 +138,13 @@ jest.mock(
 );
 
 import InvestigationPanel, {
+  InvestigationConversationSlot,
   InvestigationSubjectType,
+  VERDICT_QUESTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectUtil from "../../../UI/Utils/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
@@ -532,7 +536,7 @@ describe("InvestigationPanel report lifecycle", () => {
     renderPanel({ onAnalysisAvailable });
     await flush();
 
-    expect(screen.getByText("Investigation complete")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "The database connection pool was exhausted.",
@@ -550,8 +554,12 @@ describe("InvestigationPanel report lifecycle", () => {
         renderEventReference: expect.any(Function),
       }),
     });
+    /*
+     * Sections sit directly under the card's title, so their headings are
+     * h3s, like the Summary's.
+     */
     expect(
-      screen.getByRole("heading", { level: 4, name: "Root cause" }),
+      screen.getByRole("heading", { level: 3, name: "Root cause" }),
     ).toBeInTheDocument();
     /*
      * This report carries no evidence, so the section is only the activity
@@ -602,7 +610,7 @@ describe("InvestigationPanel report lifecycle", () => {
     renderPanel({ onAnalysisAvailable });
     await flush();
 
-    expect(screen.getByText("Preparing investigation report…")).toBeVisible();
+    expect(screen.getByText("Preparing report…")).toBeVisible();
     expect(screen.getByText("Preparing the final report")).toBeVisible();
     expect(screen.queryByTestId("investigation-markdown")).toBeNull();
     // The steps can already be checked while the report is being written.
@@ -612,7 +620,7 @@ describe("InvestigationPanel report lifecycle", () => {
     /* Status, run id, events and recommendation remain identical. */
     await tick(POLL_INTERVAL_MS);
 
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "The database connection pool was exhausted.",
     );
@@ -652,7 +660,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(postMock).toHaveBeenCalledTimes(2);
 
     await resolveDeferred(slowPoll, completedResponse());
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(postMock).toHaveBeenCalledTimes(2);
   });
 
@@ -682,7 +690,7 @@ describe("InvestigationPanel report lifecycle", () => {
     );
     await flush();
 
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(postRequestAt(1).data).toEqual({ alertId: ALERT_ID.toString() });
 
     await resolveDeferred(
@@ -690,7 +698,7 @@ describe("InvestigationPanel report lifecycle", () => {
       successfulResponse(investigationPayload({ status: AIRunStatus.Running })),
     );
 
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(screen.queryByText("Investigating…")).toBeNull();
     expect(statuses[statuses.length - 1]).toBe(AIRunStatus.Completed);
   });
@@ -749,9 +757,7 @@ describe("InvestigationPanel report lifecycle", () => {
     renderPanel();
     await flush();
 
-    expect(
-      screen.getByText("Investigation completed without a report"),
-    ).toBeVisible();
+    expect(screen.getByText("No report")).toBeVisible();
     expect(
       screen.getByText("No investigation report was published."),
     ).toBeVisible();
@@ -770,7 +776,7 @@ describe("InvestigationPanel report lifecycle", () => {
     );
     expect(fixButton()).toBeDisabled();
     // There is no report to judge, so the rating row is left out entirely.
-    expect(screen.queryByText("Rate this investigation")).toBeNull();
+    expect(screen.queryByText("Was this analysis correct?")).toBeNull();
     expect(screen.queryByRole("button", { name: "Confirmed" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Rejected" })).toBeNull();
   });
@@ -789,7 +795,7 @@ describe("InvestigationPanel report lifecycle", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByText("Investigation did not finish")).toBeVisible();
+    expect(screen.getByText("Did not finish")).toBeVisible();
     expect(screen.getByText("The model provider timed out.")).toBeVisible();
     expect(
       screen.getByText("The investigation stopped before it could report."),
@@ -804,7 +810,7 @@ describe("InvestigationPanel report lifecycle", () => {
       }),
     );
     expect(fixButton()).toBeNull();
-    expect(screen.queryByText("Rate this investigation")).toBeNull();
+    expect(screen.queryByText("Was this analysis correct?")).toBeNull();
   });
 
   test("uses the alert endpoint and alert id", async () => {
@@ -845,6 +851,51 @@ describe("InvestigationPanel card states", () => {
     expect(live).toHaveTextContent("OneUptime AI is investigating");
     expect(live).toHaveTextContent("Read-only — nothing is changed");
     expect(live).toContainElement(screen.getByTestId("investigation-activity"));
+  });
+
+  /*
+   * An incident's follow-up check (issue #4787) replaces the report the
+   * responder was reading with a live run: its heading says why, while its
+   * first activity line says which alert made it check again.
+   */
+  test("heads a follow-up check's live run 'checking again'", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          events: [
+            {
+              _id: EVENT_ID,
+              sequence: 1,
+              eventType: AIRunEventType.ProgressLog,
+              resultSummary: {
+                message:
+                  'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+                severity: "Info",
+                followUpCheck: {
+                  alertNumber: 12,
+                  resourceKind: "Host",
+                  resourceName: "web-1",
+                  minutesAfterIncident: 2,
+                },
+              },
+              createdAt: new Date("2026-08-07T10:00:00.000Z"),
+            },
+            { ...activityEvent, _id: undefined, sequence: 2 },
+          ],
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const live: HTMLElement = screen.getByLabelText("Live investigation");
+    expect(within(live).getByRole("heading", { level: 3 })).toHaveTextContent(
+      "OneUptime AI is checking again",
+    );
+    expect(live).not.toHaveTextContent("OneUptime AI is investigating");
+    expect(live).toHaveTextContent("Read-only — nothing is changed");
   });
 
   test("explains the wait while the run is only queued", async () => {
@@ -1078,9 +1129,19 @@ describe("InvestigationPanel TL;DR", () => {
     renderPanel();
     await flush();
 
+    /*
+     * The summary is the card's first section, under the same kind of
+     * heading as the rest, and the TL;DR is its lead line. There is no
+     * "TL;DR" chip any more: the larger type says it is the answer.
+     */
     const summary: HTMLElement = screen.getByLabelText("Investigation summary");
-    expect(summary).toHaveTextContent("TL;DR");
-    expect(summary).toHaveTextContent(TLDR);
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Summary" }),
+    ).toBeInTheDocument();
+    expect(summary).not.toHaveTextContent("TL;DR");
+    const lead: HTMLElement = within(summary).getByText(TLDR);
+    expect(lead.tagName).toBe("P");
+    expect(lead).toHaveClass("text-base", "font-semibold");
 
     // The summary is never routed through the markdown renderer.
     expect(markdownTexts().length).toBeGreaterThan(0);
@@ -1306,7 +1367,7 @@ describe("InvestigationPanel TL;DR", () => {
  */
 describe("InvestigationPanel verdict control", () => {
   function verdictGroup(): HTMLElement | null {
-    return screen.queryByRole("group", { name: "Rate this investigation" });
+    return screen.queryByRole("group", { name: "Was this analysis correct?" });
   }
 
   test("offers both verdicts inside one labelled group", async () => {
@@ -1383,7 +1444,7 @@ describe("InvestigationPanel verdict control", () => {
     await flush();
 
     expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Investigation complete",
+      "Completed",
     );
   });
 });
@@ -1399,11 +1460,13 @@ describe("InvestigationPanel verdict control", () => {
  */
 describe("InvestigationPanel rating availability", () => {
   function ratingHeading(): HTMLElement | null {
-    return screen.queryByRole("heading", { name: "Rate this investigation" });
+    return screen.queryByRole("heading", {
+      name: "Was this analysis correct?",
+    });
   }
 
   function ratingGroup(): HTMLElement | null {
-    return screen.queryByRole("group", { name: "Rate this investigation" });
+    return screen.queryByRole("group", { name: "Was this analysis correct?" });
   }
 
   function actionsFrame(): HTMLElement | null {
@@ -1428,7 +1491,7 @@ describe("InvestigationPanel rating availability", () => {
 
   function expectNoRating(): void {
     expect(ratingHeading()).toBeNull();
-    expect(screen.queryByText("Rate this investigation")).toBeNull();
+    expect(screen.queryByText("Was this analysis correct?")).toBeNull();
     expect(ratingGroup()).toBeNull();
     expect(verdictAnswers()).toEqual([]);
     expect(screen.queryByText(/You (confirmed|rejected) this/)).toBeNull();
@@ -1530,9 +1593,7 @@ describe("InvestigationPanel rating availability", () => {
       await flush();
 
       expect(requestPath(0)).toContain(path);
-      expect(
-        screen.getByText("Investigation completed without a report"),
-      ).toBeVisible();
+      expect(screen.getByText("No report")).toBeVisible();
       expect(
         screen.getByText("No investigation report was published."),
       ).toBeVisible();
@@ -1592,7 +1653,7 @@ describe("InvestigationPanel rating availability", () => {
     await flush();
 
     expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Investigation complete",
+      "Completed",
     );
     expect(
       screen.getByText("No investigation report was published."),
@@ -1986,7 +2047,27 @@ describe("InvestigationPanel code-fix recommendation", () => {
 
     expect(fixButton()).toBeEnabled();
     expect(screen.getByText("Act on this investigation")).toBeVisible();
-    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByText("Was this analysis correct?")).toBeVisible();
+  });
+
+  test("with the project's AI switched off, offers no fix action, and keeps the rating", async () => {
+    const projectSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: false }) as Project,
+      );
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    try {
+      renderPanel();
+      await flush();
+
+      expect(fixButton()).toBeNull();
+      expect(screen.queryByText("Act on this investigation")).toBeNull();
+      expect(screen.getByText("Was this analysis correct?")).toBeVisible();
+    } finally {
+      projectSpy.mockRestore();
+    }
   });
 
   test("hides every fix-task element for NotRecommended but retains verdict controls", async () => {
@@ -2002,7 +2083,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     expect(fixButton()).toBeNull();
     expect(screen.queryByText("Act on this investigation")).toBeNull();
     expect(screen.queryByText(/Fix task created/)).toBeNull();
-    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
   });
@@ -2019,7 +2100,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     await flush();
 
     expect(fixButton()).toBeNull();
-    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(jest.getTimerCount()).toBe(1);
 
     await advanceFastPolls(4);
@@ -2055,7 +2136,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     await flush();
 
     expect(fixButton()).toBeNull();
-    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(jest.getTimerCount()).toBe(2);
 
     await advanceFastPolls();
@@ -2077,7 +2158,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(fixButton()).toBeNull();
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(jest.getTimerCount()).toBe(2);
@@ -2099,7 +2180,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
     expect(screen.queryByText("Investigating…")).toBeNull();
     expect(
       document.querySelector('[class~="motion-safe:animate-ping"]'),
@@ -2361,7 +2442,7 @@ describe("InvestigationPanel completed actions", () => {
 
     expect(screen.queryByRole("alert")).toBeNull();
     expect(fixButton()).toBeEnabled();
-    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.getByText("Completed")).toBeVisible();
   });
 
   test("resets fix-task and verdict state when the same subject gets a new run", async () => {
@@ -2439,7 +2520,7 @@ describe("InvestigationPanel completed actions", () => {
     expect(fixButton()).toBeNull();
     expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
     expect(screen.getByText("Change")).toBeVisible();
-    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByText("Was this analysis correct?")).toBeVisible();
   });
 
   test("a GET started before verdict save cannot overwrite the saved verdict", async () => {
@@ -2709,7 +2790,7 @@ describe("InvestigationPanel structured report", () => {
     });
     expect(
       within(report)
-        .getAllByRole("heading", { level: 4 })
+        .getAllByRole("heading", { level: 3 })
         .map((heading: HTMLElement): string => {
           return heading.textContent || "";
         }),
@@ -3360,7 +3441,7 @@ describe("InvestigationPanel structured report", () => {
       screen.getByRole("heading", { name: "Act on this investigation" }),
     ).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "Rate this investigation" }),
+      screen.getByRole("heading", { name: "Was this analysis correct?" }),
     ).toBeVisible();
     expect(container.querySelectorAll("p div")).toHaveLength(0);
   });
@@ -4203,5 +4284,1158 @@ describe("InvestigationPanel verdict callback", () => {
 
     expect(reportedVerdicts(second)).toEqual([AIRunHumanVerdict.Rejected]);
     expect(first).toHaveBeenCalledTimes(firstCallCount);
+  });
+});
+
+/*
+ * A completed investigation used to stack a tinted summary box, a report box
+ * with an amber callout inside it, a details box and an actions box inside
+ * the card: a card inside a card inside a card. Every state is now the card
+ * and plain content inside it, spaced apart and split by at most a hairline,
+ * with the state named once, in the header's neutral pill.
+ */
+describe("InvestigationPanel as one flat card", () => {
+  const CLUSTER_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
+  const OTHER_CLUSTER_ID: string = "0193c0de-2222-4aaa-8bbb-000000000002";
+
+  const clusterAccess: JSONArray = [
+    {
+      clusterId: CLUSTER_ID,
+      clusterName: "prod-east",
+      isInvestigationReady: true,
+      isRemediationReady: true,
+      remediationMode: "RequireApproval",
+      gaps: [],
+      evaluatedAt: COMPLETED_AT,
+    },
+    {
+      clusterId: OTHER_CLUSTER_ID,
+      clusterName: "staging-west",
+      isInvestigationReady: false,
+      isRemediationReady: false,
+      remediationMode: "Disabled",
+      gaps: [
+        {
+          code: "investigation_disabled",
+          title: "Investigation is off",
+          description: "AI may not run kubectl on this cluster.",
+          nextStep: "Turn on 'Investigate with kubectl'.",
+          blocks: "investigation",
+        },
+      ],
+      evaluatedAt: COMPLETED_AT,
+    },
+  ];
+
+  const structuredMarkdown: string = [
+    "**Summary** — the connection pool ran dry after the 18:00 deploy [C1].",
+    "",
+    "**Most likely root cause** — the deploy halved the pool size [C1].",
+    "",
+    "**Suggested next steps**",
+    "- Roll back the deploy",
+  ].join("\n");
+
+  const evidenceItems: JSONArray = [
+    {
+      citationId: "C1",
+      toolName: "search_logs",
+      label: "Logs 17:20 – 18:20 (1 shown)",
+      rowCount: 1,
+      queryArguments: { bodySearchText: "pool timeout" },
+      executedAt: "2026-08-07T11:59:00.000Z",
+      canLoadRows: true,
+    },
+  ];
+
+  function withClusters(response: ApiResponse): ApiResponse {
+    return { data: { ...response.data, clusterAccess } };
+  }
+
+  function fullReportResponse(): ApiResponse {
+    return withClusters(
+      completedResponse({
+        analysisMarkdown: structuredMarkdown,
+        analysisTldr: TLDR,
+        evidence: evidenceItems,
+      }),
+    );
+  }
+
+  /*
+   * Classes that turn an element into a panel of its own: a large rounded
+   * frame, a shadow, a gradient or a tinted wash. Controls (buttons, links,
+   * tabs and the verdict's two-answer group) are drawn as controls and are
+   * left out.
+   */
+  const PANEL_CLASS: RegExp =
+    /^(rounded-xl|rounded-2xl|shadow|shadow-(sm|md|lg)|bg-gradient-to-[a-z]+|bg-(indigo|amber|emerald|red|green|rose|violet)-50(\/\d+)?|bg-gray-50(\/\d+)?)$/;
+  const CONTROL_SELECTOR: string =
+    "button, a, [role='tab'], [role='group'], [data-testid='investigation-markdown']";
+
+  function classTokens(element: Element): Array<string> {
+    return (element.getAttribute("class") || "").split(/\s+/);
+  }
+
+  function panelsInsideTheCard(): Array<string> {
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+
+    return Array.from(region.querySelectorAll("*"))
+      .filter((element: Element): boolean => {
+        if (element.closest(CONTROL_SELECTOR)) {
+          return false;
+        }
+
+        const tokens: Array<string> = classTokens(element);
+        const isFramedBox: boolean =
+          tokens.includes("border") &&
+          tokens.some((token: string): boolean => {
+            return token.startsWith("rounded");
+          });
+
+        return (
+          isFramedBox ||
+          tokens.some((token: string): boolean => {
+            return PANEL_CLASS.test(token);
+          })
+        );
+      })
+      .map((element: Element): string => {
+        return `<${element.tagName.toLowerCase()} class="${element.getAttribute("class")}">`;
+      });
+  }
+
+  const STATES: Array<[string, () => ApiResponse]> = [
+    [
+      "a completed report with a TL;DR, evidence and cluster access",
+      fullReportResponse,
+    ],
+    [
+      "a running investigation",
+      (): ApiResponse => {
+        return withClusters(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Running,
+              events: [activityEvent],
+            }),
+          ),
+        );
+      },
+    ],
+    [
+      "a queued investigation",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({ status: AIRunStatus.Queued }),
+        );
+      },
+    ],
+    [
+      "a run that stopped with an error",
+      (): ApiResponse => {
+        return withClusters(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Error,
+              errorMessage: "The model provider timed out.",
+              events: [activityEvent],
+              toolCallCount: 3,
+              totalTokens: 900,
+            }),
+          ),
+        );
+      },
+    ],
+    [
+      "a report that is still being prepared",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+        });
+      },
+    ],
+    [
+      "a run that finished without a report",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: false,
+        });
+      },
+    ],
+  ];
+
+  test.each(STATES)(
+    "draws %s as one card with no panel inside it",
+    async (_state: string, response: () => ApiResponse) => {
+      postMock.mockResolvedValue(response() as never);
+
+      renderPanel();
+      await flush();
+
+      expect(screen.getAllByTestId("card")).toHaveLength(1);
+      expect(panelsInsideTheCard()).toEqual([]);
+    },
+  );
+
+  test("still draws no panel once the details and an evidence row are open", async () => {
+    routePosts({
+      investigation: (): unknown => {
+        return Promise.resolve(fullReportResponse());
+      },
+      evidence: (): unknown => {
+        return Promise.resolve(
+          evidenceRowsResponse("C1", "18:01 ERROR pool timeout"),
+        );
+      },
+    });
+
+    renderPanel();
+    await flush();
+
+    openDetails();
+    fireEvent.click(
+      within(evidenceList()).getByRole("button", { name: /Logs 17:20/ }),
+    );
+    await flush();
+
+    expect(screen.getByText("18:01 ERROR pool timeout")).toBeVisible();
+    expect(panelsInsideTheCard()).toEqual([]);
+  });
+
+  test.each([
+    [
+      "Investigating…",
+      "live",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({ status: AIRunStatus.Running }),
+        );
+      },
+    ],
+    [
+      "Queued",
+      "live",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({ status: AIRunStatus.Queued }),
+        );
+      },
+    ],
+    [
+      "Preparing report…",
+      "live",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+        });
+      },
+    ],
+    [
+      "Completed",
+      "done",
+      (): ApiResponse => {
+        return completedResponse();
+      },
+    ],
+    [
+      "No report",
+      "attention",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: false,
+        });
+      },
+    ],
+    [
+      "Did not finish",
+      "failed",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Error,
+            errorMessage: "The provider timed out.",
+          }),
+        );
+      },
+    ],
+  ])(
+    'names the state "%s" in the neutral header pill, marked %s',
+    async (text: string, indicator: string, response: () => ApiResponse) => {
+      postMock.mockResolvedValue(response() as never);
+
+      renderPanel();
+      await flush();
+
+      const badge: HTMLElement = screen.getByLabelText("Investigation status");
+      expect(badge).toHaveTextContent(text);
+      expect(badge).toHaveAttribute("data-indicator", indicator);
+      // The pill itself never changes colour with the state.
+      expect(badge).toHaveClass("bg-gray-50", "text-gray-700", "ring-gray-200");
+      expect(badge.className).not.toMatch(
+        /(^|\s)(bg|text|ring)-(green|indigo|red|amber|rose|emerald)-/,
+      );
+      // It sits in the card's header, not in the body with the report.
+      expect(
+        screen.getByRole("region", { name: "AI Investigation" }),
+      ).not.toContainElement(badge);
+    },
+  );
+
+  test("reads summary, report, cluster access, working, then actions, in that order", async () => {
+    postMock.mockResolvedValue(fullReportResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const order: Array<HTMLElement> = [
+      screen.getByRole("region", { name: "Investigation summary" }),
+      screen.getByRole("region", { name: "Investigation report" }),
+      screen.getByTestId("cluster-access-notice"),
+      runDetails(),
+      screen.getByTestId("investigation-actions"),
+    ];
+
+    for (let index: number = 1; index < order.length; index++) {
+      expect(
+        order[index - 1]!.compareDocumentPosition(order[index]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    // The report comes first: nothing about clusters stands above the answer.
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+    expect(region.firstElementChild).toBe(
+      screen.getByRole("region", { name: "Investigation summary" }),
+    );
+  });
+
+  test("separates the report from its working and its actions with hairlines, not boxes", async () => {
+    postMock.mockResolvedValue(fullReportResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(runDetails()).toHaveClass("border-t", "border-gray-200", "pt-5");
+    expect(classTokens(runDetails())).not.toContain("border");
+    expect(runDetails().className).not.toMatch(/rounded|shadow|bg-/);
+
+    const actions: HTMLElement = screen.getByTestId("investigation-actions");
+    expect(actions).toHaveClass("border-t", "border-gray-200", "divide-y");
+    expect(classTokens(actions)).not.toContain("border");
+    expect(actions.className).not.toMatch(/rounded|shadow|bg-/);
+  });
+
+  test("gives every heading inside the card the same weight and size", async () => {
+    postMock.mockResolvedValue(fullReportResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+    const headings: Array<HTMLElement> = within(region).getAllByRole("heading");
+    expect(
+      headings.map((heading: HTMLElement): string => {
+        return heading.textContent || "";
+      }),
+    ).toEqual([
+      "Summary",
+      "Most likely root cause",
+      "Suggested next steps",
+      "Evidence and activity",
+      "Act on this investigation",
+      VERDICT_QUESTION,
+    ]);
+
+    for (const heading of headings) {
+      expect(heading.tagName).toBe("H3");
+      expect(heading).toHaveClass("text-sm", "font-semibold", "text-gray-900");
+      expect(heading.className).not.toMatch(/uppercase|amber|indigo/);
+    }
+  });
+
+  test("asks for the verdict in plain words", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(VERDICT_QUESTION).toBe("Was this analysis correct?");
+    expect(
+      screen.getByRole("heading", { level: 3, name: VERDICT_QUESTION }),
+    ).toBeVisible();
+    const answers: HTMLElement = screen.getByRole("group", {
+      name: VERDICT_QUESTION,
+    });
+    expect(
+      within(answers)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+    ).toEqual(["Confirmed", "Rejected"]);
+  });
+
+  test("describes only a queued or running investigation as live", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({ status: AIRunStatus.Running }),
+      ) as never,
+    );
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "OneUptime AI's live root-cause investigation for this incident.",
+    );
+    view.unmount();
+
+    postMock.mockReset();
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The provider timed out.",
+        }),
+      ) as never,
+    );
+    renderPanel();
+    await flush();
+
+    // A run that stopped is not live any more.
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "OneUptime AI's root-cause investigation for this incident.",
+    );
+    expect(screen.getByTestId("card-description")).not.toHaveTextContent(
+      "live",
+    );
+  });
+
+  test("tells a live run's story without a frame or a progress bar of its own", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          events: [activityEvent],
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const live: HTMLElement = screen.getByRole("region", {
+      name: "Live investigation",
+    });
+    expect(live.className).toBe("space-y-4");
+    expect(
+      within(live).getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI is investigating",
+      }),
+    ).toBeVisible();
+    expect(live).toContainElement(screen.getByTestId("investigation-activity"));
+    // The header's pulsing badge says the run is moving; no hairline bar.
+    expect(
+      screen
+        .getByRole("region", { name: "AI Investigation" })
+        .querySelector(".h-0\\.5"),
+    ).toBeNull();
+  });
+
+  test("states a failure as a line with a red mark, not a red box", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The model provider timed out.",
+          events: [activityEvent],
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const failure: HTMLElement = screen.getByTestId("investigation-error");
+    expect(failure).toHaveTextContent(
+      "The investigation stopped before it could report.",
+    );
+    expect(failure).toHaveTextContent("The model provider timed out.");
+    expect(failure.className).toBe("flex items-start gap-3");
+    expect(failure.querySelector("svg")?.getAttribute("class")).toContain(
+      "text-red-600",
+    );
+    for (const paragraph of Array.from(failure.querySelectorAll("p"))) {
+      expect(paragraph.className).not.toMatch(/red/);
+    }
+  });
+
+  test.each([
+    [
+      "Preparing the final report",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+        });
+      },
+    ],
+    [
+      "No investigation report was published.",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: false,
+        });
+      },
+    ],
+  ])(
+    'stands "%s" in for the report as a plain line',
+    async (title: string, response: () => ApiResponse) => {
+      postMock.mockResolvedValue(response() as never);
+
+      renderPanel();
+      await flush();
+
+      const line: HTMLElement = screen
+        .getByText(title)
+        .closest("div")!.parentElement!;
+      expect(line.className).toBe("flex items-start gap-3");
+      expect(screen.getByText(title)).toHaveClass(
+        "text-sm",
+        "font-medium",
+        "text-gray-900",
+      );
+      expect(panelsInsideTheCard()).toEqual([]);
+    },
+  );
+
+  test("renders no block inside a paragraph in any state", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+
+    try {
+      for (const [, response] of STATES) {
+        postMock.mockReset();
+        postMock.mockResolvedValue(response() as never);
+        const view: ReturnType<typeof render> = renderPanel();
+        await flush();
+
+        expect(view.container.querySelectorAll("p div")).toHaveLength(0);
+        view.unmount();
+      }
+
+      expect(
+        consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+          return args.some((value: unknown): boolean => {
+            return (
+              typeof value === "string" && value.includes("validateDOMNesting")
+            );
+          });
+        }),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+});
+
+/*
+ * The conversation with OneUptime AI is supplied by the page and placed by
+ * the panel, which closes the AI Investigation card with it in every state.
+ * With no run the page used to show two cards: the explanation of why
+ * nothing was investigated, and the conversation in a card of its own under
+ * it. There is one AI card now, whatever OneUptime AI did.
+ */
+describe("InvestigationPanel conversation slot", () => {
+  const renderConversationMock: MockFunction = getJestMockFunction();
+
+  function renderWithConversation(): ReturnType<typeof render> {
+    renderConversationMock.mockImplementation(((
+      slot: InvestigationConversationSlot,
+    ): React.ReactElement => {
+      return React.createElement(
+        "div",
+        {
+          "data-testid": "conversation",
+          "data-stage": slot.investigationStage,
+        },
+        "Ask OneUptime AI",
+      );
+    }) as never);
+
+    return render(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        renderConversation={(slot: InvestigationConversationSlot) => {
+          return renderConversationMock(slot) as React.ReactElement;
+        }}
+      />,
+    );
+  }
+
+  function noReportResponse(): ApiResponse {
+    return successfulResponse(
+      investigationPayload({ status: AIRunStatus.Completed }),
+    );
+  }
+
+  interface SlotState {
+    name: string;
+    arrange: () => void;
+    badge: string;
+    stage: string;
+  }
+
+  const STATES: Array<SlotState> = [
+    {
+      name: "the status is still loading",
+      arrange: (): void => {
+        postMock.mockReturnValue(new Promise<never>(() => {}) as never);
+      },
+      badge: "Checking",
+      stage: "checking",
+    },
+    {
+      name: "no investigation ran",
+      arrange: (): void => {
+        postMock.mockResolvedValue(noInvestigationResponse() as never);
+      },
+      badge: "Not investigated",
+      stage: "none",
+    },
+    {
+      name: "the status could not be loaded",
+      arrange: (): void => {
+        postMock.mockRejectedValue(new Error("Offline") as never);
+      },
+      badge: "Unable to check",
+      stage: "none",
+    },
+    {
+      name: "an investigation is queued",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({ status: AIRunStatus.Queued }),
+          ) as never,
+        );
+      },
+      badge: "Queued",
+      stage: "underway",
+    },
+    {
+      name: "an investigation is running",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Running,
+              events: [activityEvent],
+            }),
+          ) as never,
+        );
+      },
+      badge: "Investigating…",
+      stage: "underway",
+    },
+    {
+      name: "the report is being written",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Completed,
+              isAnalysisPending: true,
+            }),
+          ) as never,
+        );
+      },
+      badge: "Preparing report…",
+      stage: "underway",
+    },
+    {
+      name: "a report is on screen",
+      arrange: (): void => {
+        postMock.mockResolvedValue(completedResponse() as never);
+      },
+      badge: "Completed",
+      stage: "reported",
+    },
+    {
+      name: "the run finished without a report",
+      arrange: (): void => {
+        postMock.mockResolvedValue(noReportResponse() as never);
+      },
+      badge: "No report",
+      stage: "none",
+    },
+    {
+      name: "the run stopped before it could report",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Error,
+              errorMessage: "The provider timed out.",
+              events: [activityEvent],
+            }),
+          ) as never,
+        );
+      },
+      badge: "Did not finish",
+      stage: "none",
+    },
+  ];
+
+  afterEach(() => {
+    renderConversationMock.mockReset();
+  });
+
+  test.each(
+    STATES.map((state: SlotState): [string, SlotState] => {
+      return [state.name, state];
+    }),
+  )(
+    "is one card that the conversation closes when %s",
+    async (_name: string, state: SlotState) => {
+      state.arrange();
+
+      renderWithConversation();
+      await flush();
+
+      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+        state.badge,
+      );
+
+      // One card, one titled header, one region: never a second card.
+      const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+      expect(cards).toHaveLength(1);
+      expect(
+        screen.getAllByRole("heading", { level: 2, name: "AI Investigation" }),
+      ).toHaveLength(1);
+
+      const region: HTMLElement = screen.getByRole("region", {
+        name: "AI Investigation",
+      });
+      const conversation: HTMLElement = screen.getByTestId("conversation");
+
+      expect(cards[0]).toContainElement(region);
+      expect(region).toContainElement(conversation);
+      // It is the last thing in the card, after whatever the state shows.
+      expect(region.lastElementChild).toBe(conversation);
+      expect(region.children.length).toBeGreaterThan(1);
+      expect(screen.getAllByTestId("conversation")).toHaveLength(1);
+    },
+  );
+
+  test.each(
+    STATES.map((state: SlotState): [string, string, SlotState] => {
+      return [state.stage, state.name, state];
+    }),
+  )(
+    "tells the conversation the investigation is %s when %s",
+    async (stage: string, _name: string, state: SlotState) => {
+      state.arrange();
+
+      renderWithConversation();
+      await flush();
+
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        stage,
+      );
+    },
+  );
+
+  test("shows the conversation at once, before the investigation status arrives", async () => {
+    const deferred: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock.mockReturnValue(deferred.promise as never);
+
+    renderWithConversation();
+    await flush();
+
+    expect(screen.getByText("Checking investigation status…")).toBeVisible();
+    expect(screen.getByTestId("conversation")).toHaveAttribute(
+      "data-stage",
+      "checking",
+    );
+
+    await resolveDeferred(deferred, completedResponse());
+
+    expect(screen.getByTestId("conversation")).toHaveAttribute(
+      "data-stage",
+      "reported",
+    );
+    expect(screen.getAllByTestId("card")).toHaveLength(1);
+  });
+
+  /*
+   * The conversation used to be handed a different place for a subject with
+   * a run and one without, so React threw it away and built it again the
+   * moment an investigation appeared: whatever a responder was typing went
+   * with it. It now keeps one slot in the card for every state.
+   */
+  describe("stays mounted while the card around it changes", () => {
+    let mountCount: number = 0;
+    let unmountCount: number = 0;
+
+    const TypingConversation: React.FunctionComponent<{
+      stage: string;
+    }> = (props: { stage: string }): React.ReactElement => {
+      const [draft, setDraft] = React.useState<string>("");
+
+      React.useEffect(() => {
+        mountCount += 1;
+
+        return () => {
+          unmountCount += 1;
+        };
+      }, []);
+
+      return (
+        <div data-testid="conversation" data-stage={props.stage}>
+          <textarea
+            aria-label="Ask OneUptime AI"
+            value={draft}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setDraft(event.target.value);
+            }}
+          />
+        </div>
+      );
+    };
+
+    function renderWithTypingConversation(
+      subjectId: ObjectID = INCIDENT_ID,
+    ): React.ReactElement {
+      return (
+        <InvestigationPanel
+          subjectType="incident"
+          subjectId={subjectId}
+          renderConversation={(slot: InvestigationConversationSlot) => {
+            return <TypingConversation stage={slot.investigationStage} />;
+          }}
+        />
+      );
+    }
+
+    function draft(): HTMLTextAreaElement {
+      return screen.getByRole("textbox", {
+        name: "Ask OneUptime AI",
+      }) as HTMLTextAreaElement;
+    }
+
+    beforeEach(() => {
+      mountCount = 0;
+      unmountCount = 0;
+    });
+
+    test("a question being typed survives an investigation starting and reporting", async () => {
+      postMock
+        .mockResolvedValueOnce(noInvestigationResponse() as never)
+        .mockResolvedValueOnce(
+          successfulResponse(
+            investigationPayload({ status: AIRunStatus.Queued }),
+          ) as never,
+        )
+        .mockResolvedValueOnce(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Running,
+              events: [activityEvent],
+            }),
+          ) as never,
+        )
+        .mockResolvedValue(completedResponse() as never);
+
+      render(renderWithTypingConversation());
+      await flush();
+
+      expect(screen.getByText("Not investigated")).toBeVisible();
+      fireEvent.change(draft(), {
+        target: { value: "Which deploy changed the pool size?" },
+      });
+      const element: HTMLTextAreaElement = draft();
+
+      const seen: Array<string> = [];
+
+      for (const badge of ["Queued", "Investigating…", "Completed"]) {
+        await advanceFastPolls();
+        expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+          badge,
+        );
+        // The very same element, with what was typed still in it.
+        expect(draft()).toBe(element);
+        expect(draft().value).toBe("Which deploy changed the pool size?");
+        seen.push(
+          screen.getByTestId("conversation").getAttribute("data-stage") || "",
+        );
+      }
+
+      expect(seen).toEqual(["underway", "underway", "reported"]);
+      expect(mountCount).toBe(1);
+      expect(unmountCount).toBe(0);
+    });
+
+    test("it survives the status loading, a failed run and a retry of the status", async () => {
+      const deferred: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+      postMock.mockReturnValueOnce(deferred.promise as never).mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Error,
+            errorMessage: "The provider timed out.",
+          }),
+        ) as never,
+      );
+
+      render(renderWithTypingConversation());
+      await flush();
+
+      // Typed while the card is still asking whether a run exists.
+      fireEvent.change(draft(), { target: { value: "Is this the pool?" } });
+      const element: HTMLTextAreaElement = draft();
+
+      await resolveDeferred(deferred, noInvestigationResponse());
+      expect(screen.getByText("Not investigated")).toBeVisible();
+      expect(draft()).toBe(element);
+
+      await advanceFastPolls();
+      expect(screen.getByText("Did not finish")).toBeVisible();
+      expect(draft()).toBe(element);
+      expect(draft().value).toBe("Is this the pool?");
+      expect(mountCount).toBe(1);
+      expect(unmountCount).toBe(0);
+    });
+
+    test("the page still decides what a new incident starts with", async () => {
+      postMock.mockResolvedValue(completedResponse() as never);
+
+      const view: ReturnType<typeof render> = render(
+        renderWithTypingConversation(),
+      );
+      await flush();
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        "reported",
+      );
+
+      // The next incident's status is not known yet: no stale "reported".
+      postMock.mockReset();
+      postMock.mockReturnValue(new Promise<never>(() => {}) as never);
+      view.rerender(renderWithTypingConversation(ALERT_ID));
+      await flush();
+
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        "checking",
+      );
+      expect(screen.getAllByTestId("card")).toHaveLength(1);
+    });
+  });
+
+  test("renders nothing extra when the page supplies no conversation", async () => {
+    postMock.mockResolvedValue(noInvestigationResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByTestId("conversation")).toBeNull();
+    expect(screen.getAllByTestId("card")).toHaveLength(1);
+    expect(
+      screen.getByRole("region", { name: "AI Investigation" }).lastElementChild,
+    ).toBe(screen.getByTestId("investigation-not-started"));
+  });
+});
+
+/*
+ * What came of pressing a button in the card (a fix task, a verdict) is said
+ * the way the card says everything else: a mark, a sentence and a quieter
+ * line. They were green and red alert boxes, the loudest things in a card
+ * that draws no boxes.
+ */
+describe("InvestigationPanel says what happened in a notice, not a box", () => {
+  const BOX_CLASS: RegExp =
+    /(^|\s)(bg-(red|green|emerald|rose|amber|blue)-(50|100)|border-(red|green|emerald|rose|amber|blue)-\d{3}|rounded-xl|rounded-2xl|shadow(-sm|-md|-lg)?)(\s|$)/;
+
+  function boxesInside(element: HTMLElement): Array<string> {
+    return [element, ...Array.from(element.querySelectorAll("*"))]
+      .filter((node: Element): boolean => {
+        return BOX_CLASS.test(node.getAttribute("class") || "");
+      })
+      .map((node: Element): string => {
+        return `<${node.tagName.toLowerCase()} class="${node.getAttribute("class")}">`;
+      });
+  }
+
+  test("a created fix task is a line with a green mark and a link to the task", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-fix-task-created",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Fix task createdAI will open a pull request from this analysis. View task progress.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector("svg")).not.toBeNull();
+    expect(notice.querySelector(".text-emerald-600")).not.toBeNull();
+    expect(
+      within(notice).getByRole("link", { name: "View task progress" }),
+    ).toHaveAttribute("href", expect.stringContaining(FIX_RUN_ID));
+    // It sits in the action's own row of the card.
+    expect(screen.getByTestId("investigation-actions")).toContainElement(
+      notice,
+    );
+  });
+
+  test("a fix task that could not be created is a line with a red mark", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          400,
+          { message: "No connected repository exists." },
+          {},
+        ) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-fix-task-error",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Could not create the fix taskNo connected repository exists. Open Code.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector(".text-red-600")).not.toBeNull();
+    expect(
+      within(notice).getByRole("link", { name: "Open Code" }),
+    ).toBeVisible();
+  });
+
+  test("a verdict that could not be saved is a line with a red mark", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Verdict storage is unavailable." },
+          {},
+        ) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-verdict-error",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Could not save your verdictVerdict storage is unavailable.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector(".text-red-600")).not.toBeNull();
+  });
+
+  test("the run's own failure uses the same notice", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The provider timed out.",
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const failure: HTMLElement = screen.getByTestId("investigation-error");
+    expect(failure).toHaveTextContent(
+      "The investigation stopped before it could report.The provider timed out.",
+    );
+    expect(boxesInside(failure)).toEqual([]);
+
+    // One notice component: the same skeleton as the messages above.
+    expect(failure.className).toBe("flex items-start gap-3");
+  });
+
+  test("none of the card's messages nests a block inside a paragraph", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      postMock
+        .mockResolvedValueOnce(completedResponse() as never)
+        .mockResolvedValueOnce(
+          new HTTPErrorResponse(
+            400,
+            { message: "No repository." },
+            {},
+          ) as never,
+        )
+        .mockResolvedValueOnce(
+          new HTTPErrorResponse(500, { message: "No storage." }, {}) as never,
+        );
+
+      renderPanel();
+      await flush();
+      fireEvent.click(fixButton()!);
+      await flush();
+      fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+      await flush();
+
+      expect(screen.getAllByRole("alert")).toHaveLength(2);
+      expect(
+        screen
+          .getByRole("region", { name: "AI Investigation" })
+          .querySelectorAll("p div"),
+      ).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+          return args.some((value: unknown): boolean => {
+            return (
+              typeof value === "string" && value.includes("validateDOMNesting")
+            );
+          });
+        }),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

@@ -277,6 +277,8 @@ import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRenotify";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 const INCIDENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const OTHER_INCIDENT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -855,4 +857,114 @@ describe("incident overview: where Notify Status Page Subscribers starts", () =>
       );
     });
   });
+});
+
+/*
+ * The 'created' notification badge in the details card. A notification the
+ * worker skipped because the incident was hidden from status pages says so
+ * in the badge itself; every other status keeps the badge's own wording.
+ */
+describe("incident overview: the created notification badge", () => {
+  interface DetailField {
+    field?: Record<string, unknown>;
+    getElement?: (item: Incident) => ReactElement;
+  }
+
+  interface BadgeProps {
+    status?: StatusPageSubscriberNotificationStatus;
+    subscriberNotificationStatusMessage?: string;
+    statusText?: string;
+  }
+
+  function renderBadge(
+    status: StatusPageSubscriberNotificationStatus,
+    message: string | undefined,
+  ): BadgeProps {
+    const cards: Array<Record<string, unknown>> =
+      recordedProps["CardModelDetail:Incident Details"] || [];
+    expect(cards.length).toBeGreaterThan(0);
+
+    const fields: Array<DetailField> = (
+      cards[cards.length - 1]!["modelDetailProps"] as {
+        fields: Array<DetailField>;
+      }
+    ).fields;
+    const badgeField: DetailField | undefined = fields.find(
+      (field: DetailField): boolean => {
+        return Boolean(
+          field.field?.["subscriberNotificationStatusOnIncidentCreated"],
+        );
+      },
+    );
+    expect(badgeField?.getElement).toBeDefined();
+
+    const item: Incident = buildIncident({});
+    item.subscriberNotificationStatusOnIncidentCreated = status;
+    if (message !== undefined) {
+      item.subscriberNotificationStatusMessage = message;
+    }
+
+    render(badgeField!.getElement!(item));
+
+    const badges: Array<Record<string, unknown>> =
+      recordedProps["SubscriberNotificationStatus"] || [];
+    return badges[badges.length - 1] as BadgeProps;
+  }
+
+  test("names the hidden-from-status-pages skip in the badge", async () => {
+    serve({});
+    renderPage();
+    await waitForPage();
+
+    const badge: BadgeProps = renderBadge(
+      StatusPageSubscriberNotificationStatus.Skipped,
+      IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+    );
+
+    expect(badge.statusText).toBe(
+      IncidentCreatedRenotify.hiddenFromStatusPagesLabel,
+    );
+    // The full reason is still there behind "more details".
+    expect(badge.subscriberNotificationStatusMessage).toBe(
+      IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+    );
+  });
+
+  test.each([
+    [
+      "another skip reason",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "No monitors are attached to this incident. Skipping notifications to subscribers.",
+    ],
+    [
+      "a skip without a reason",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      undefined,
+    ],
+    [
+      "a pending notification",
+      StatusPageSubscriberNotificationStatus.Pending,
+      IncidentCreatedRenotify.queuedMessage,
+    ],
+    [
+      "a sent notification",
+      StatusPageSubscriberNotificationStatus.Success,
+      "Notifications sent successfully to all subscribers",
+    ],
+  ] as Array<
+    [string, StatusPageSubscriberNotificationStatus, string | undefined]
+  >)(
+    "keeps the badge's own label for %s",
+    async (
+      _label: string,
+      status: StatusPageSubscriberNotificationStatus,
+      message: string | undefined,
+    ) => {
+      serve({});
+      renderPage();
+      await waitForPage();
+
+      expect(renderBadge(status, message).statusText).toBeUndefined();
+    },
+  );
 });

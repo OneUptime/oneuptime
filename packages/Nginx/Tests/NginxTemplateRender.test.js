@@ -13,13 +13,17 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const http = require("node:http");
+const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const {
   NGINX_DIRECTORY,
+  ingressListenEnvironment,
+  primaryServerNameEnvironment,
   readTemplate,
   readNginxConf,
 } = require("./NginxConfigParser");
@@ -147,7 +151,10 @@ function render(environment) {
 
 /**
  * A full container environment minus the variables under test, so a render is
- * representative of a real deployment.
+ * representative of a real deployment. The listen directives are the ones
+ * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
+ * with, on a kernel with IPv6, and the primary server's name the one it
+ * exports for HOST; an override names them to differ.
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -166,7 +173,6 @@ function baseEnvironment(overrides = {}) {
     BACKEND_APP_TARGET: "$backend_app",
     BACKEND_APP_GRPC_TARGET: "$backend_app_grpc",
     NGINX_RESOLVER: "127.0.0.11",
-    PROVISION_SSL_LISTEN_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
     SERVER_APP_HOSTNAME: "app",
@@ -178,7 +184,18 @@ function baseEnvironment(overrides = {}) {
   delete environment.NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS;
   delete environment.NGINX_INGEST_ACCESS_LOG;
 
-  return { ...environment, ...overrides };
+  const listenAddress =
+    overrides.NGINX_LISTEN_ADDRESS === undefined
+      ? environment.NGINX_LISTEN_ADDRESS
+      : overrides.NGINX_LISTEN_ADDRESS;
+  const host = overrides.HOST === undefined ? environment.HOST : overrides.HOST;
+
+  return {
+    ...environment,
+    ...ingressListenEnvironment({ listenAddress }),
+    ...primaryServerNameEnvironment(host),
+    ...overrides,
+  };
 }
 
 test("the only template variable the container environment does not supply is the ingest switch", () => {
@@ -322,14 +339,15 @@ test(
 
     // One per operator-controllable ingest location: /telemetry, /otlp,
     // /kubernetes-cost, /security-events, /session-replay, /pyroscope and
-    // /source-maps.
+    // /source-maps in the primary ingress, plus /otlp and /telemetry in each
+    // of the two status-page servers (GH#3978).
     assert.equal(
       (
         rendered.match(
           /access_log \/var\/log\/nginx\/access\.log main buffer=64k flush=10s if=\$ingest_access_log;/g,
         ) || []
       ).length,
-      7,
+      11,
     );
 
     // The {8,} repetition quantifier in the immutable location's regex must not
@@ -429,7 +447,7 @@ test(
     const rendered = render(baseEnvironment());
 
     const locationHeader =
-      "location ~ ^/api/on-call-calendar/(user|schedule|project)/ {";
+      "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {";
 
     assert.equal(rendered.split(locationHeader).length - 1, 3);
     assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);
@@ -526,3 +544,943 @@ test(
     );
   },
 );
+
+// ---------------------------------------------------------------------------
+// OAuth discovery documents for the MCP server
+// ---------------------------------------------------------------------------
+
+const OAUTH_DISCOVERY_LOCATION_HEADER =
+  "location ~ ^/\\.well-known/oauth-(authorization-server|protected-resource)(/|$) {";
+
+const OAUTH_DISCOVERY_PATHS = [
+  "/.well-known/oauth-protected-resource",
+  "/.well-known/oauth-protected-resource/mcp",
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-authorization-server/mcp",
+];
+
+test(
+  "the OAuth discovery location survives rendering",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * The location's regex ends in `(/|$)`. envsubst is only told about names
+     * from the environment, so a bare `$` must come through untouched - but
+     * that is exactly the kind of thing worth reading off the rendered output
+     * rather than assuming: a mangled regex is a location that matches
+     * nothing, and the documents silently go back to the marketing site.
+     */
+    const rendered = render(baseEnvironment());
+
+    assert.equal(
+      rendered.split(OAUTH_DISCOVERY_LOCATION_HEADER).length - 1,
+      1,
+      "the OAuth discovery location must render exactly once, unmangled",
+    );
+
+    const start = rendered.indexOf(OAUTH_DISCOVERY_LOCATION_HEADER);
+    const block = rendered.slice(start, rendered.indexOf("\n    }", start));
+
+    for (const directive of [
+      "resolver 127.0.0.11 valid=30s;",
+      "set $backend_app http://app:3002;",
+      "proxy_set_header Host $host;",
+      "proxy_set_header X-Real-IP $remote_addr;",
+      "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+      "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
+      "proxy_http_version 1.1;",
+      "proxy_set_header Connection $connection_upgrade;",
+      "proxy_pass $backend_app;",
+    ]) {
+      assert.ok(
+        block.includes(directive),
+        `the OAuth discovery location lost "${directive}" in rendering`,
+      );
+    }
+
+    // Home is never an option for these paths, with billing on or off.
+    for (const billingEnabled of ["true", "false"]) {
+      const withBilling = render(
+        baseEnvironment({ BILLING_ENABLED: billingEnabled }),
+      );
+      const blockStart = withBilling.indexOf(OAUTH_DISCOVERY_LOCATION_HEADER);
+      const renderedBlock = withBilling.slice(
+        blockStart,
+        withBilling.indexOf("\n    }", blockStart),
+      );
+
+      assert.ok(
+        !renderedBlock.includes("backend_home"),
+        `BILLING_ENABLED=${billingEnabled}: the OAuth discovery location must not mention Home`,
+      );
+      assert.ok(renderedBlock.includes("proxy_pass $backend_app;"));
+    }
+  },
+);
+
+test(
+  "the OAuth discovery location follows the app upstream when upstream keepalive is on",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * With NGINX_UPSTREAM_KEEPALIVE=true the app is reached through the
+     * pooled `upstream backend_app` block and BACKEND_APP_TARGET names it.
+     * The location must proxy to whatever that is, like /mcp does - a
+     * hard-coded $backend_app here would quietly bypass the pool.
+     */
+    const rendered = render(
+      baseEnvironment({
+        NGINX_UPSTREAM_KEEPALIVE: "true",
+        NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS: "64",
+        BACKEND_APP_TARGET: "http://backend_app",
+      }),
+    );
+
+    const start = rendered.indexOf(OAUTH_DISCOVERY_LOCATION_HEADER);
+
+    assert.ok(start >= 0, "the OAuth discovery location did not render");
+
+    const block = rendered.slice(start, rendered.indexOf("\n    }", start));
+
+    assert.ok(block.includes("proxy_pass http://backend_app;"));
+
+    const mcpStart = rendered.indexOf("location /mcp {");
+    const mcpBlock = rendered.slice(
+      mcpStart,
+      rendered.indexOf("\n    }", mcpStart),
+    );
+
+    assert.ok(mcpBlock.includes("proxy_pass http://backend_app;"));
+  },
+);
+
+/*
+ * The rest of this file asks a REAL nginx where it sends a request: the
+ * rendered config is loaded into the nginx on PATH, in front of two tiny
+ * upstreams standing in for the app and for Home, and requests are sent
+ * through it. That is the only way to be sure of location precedence - a
+ * regex location against the prefix locations around it - rather than
+ * reasoning about nginx's rules from the source.
+ *
+ * It needs the same nginx `nginx -t` above needs, so it is skipped wherever
+ * that is (CI's runners carry an older nginx). To run it:
+ *
+ *   docker run --rm -v <repo>:/repo -w /repo/packages/Nginx \
+ *     nginx:1.30.5-alpine3.24 sh -c \
+ *     'rm -f /var/log/nginx/*; apk add -q nodejs openssl; node --test Tests/'
+ */
+
+// Every nginx this file starts, so none can outlive a crashed run.
+const startedNginxProcesses = new Set();
+
+process.on("exit", () => {
+  for (const child of startedNginxProcesses) {
+    child.kill("SIGKILL");
+  }
+});
+
+/** A stand-in upstream that answers every request with who it is and what it was asked. */
+function startUpstream(name) {
+  const server = http.createServer((request, response) => {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(
+      JSON.stringify({
+        upstream: name,
+        url: request.url,
+        host: request.headers.host,
+        forwardedFor: request.headers["x-forwarded-for"] || null,
+        forwardedProto: request.headers["x-forwarded-proto"] || null,
+      }),
+    );
+  });
+
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      resolve({
+        port: server.address().port,
+        close: () => {
+          return new Promise((done) => {
+            server.closeAllConnections();
+            server.close(() => {
+              done();
+            });
+          });
+        },
+      });
+    });
+  });
+}
+
+/** A port nothing is listening on right now, for nginx to take. */
+function reservePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+
+      probe.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
+
+function canConnect(port) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: "127.0.0.1", port });
+
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      resolve(false);
+    });
+  });
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+/** GET a path through the ingress under a given Host; resolves with the upstream's own account of it. */
+function getThroughIngress(port, requestPath, host, extraHeaders = {}) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        host: "127.0.0.1",
+        port,
+        path: requestPath,
+        method: "GET",
+        headers: { ...extraHeaders, Host: host },
+        agent: false,
+      },
+      (response) => {
+        let body = "";
+
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+        response.on("end", () => {
+          let answer = null;
+
+          try {
+            answer = JSON.parse(body);
+          } catch {
+            // Not one of the stand-in upstreams: leave it null.
+          }
+
+          resolve({ status: response.statusCode, answer, body });
+        });
+      },
+    );
+
+    request.setTimeout(10000, () => {
+      request.destroy(new Error(`GET ${requestPath} timed out`));
+    });
+    request.once("error", reject);
+    request.end();
+  });
+}
+
+/**
+ * Run the rendered config in a real nginx, with the app and Home replaced by
+ * stand-ins, and hand `callback` the port to send requests to. Everything it
+ * starts is stopped again, whatever the callback does.
+ */
+async function withRunningIngress(billingEnabled, callback) {
+  const app = await startUpstream("app");
+  const home = await startUpstream("home");
+  const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-nginx-run-"));
+
+  let nginx = null;
+  let nginxOutput = "";
+
+  try {
+    // The workers may run as another user than the one that made the directory.
+    fs.chmodSync(prefix, 0o755);
+    fs.mkdirSync(path.join(prefix, "conf.d"), { recursive: true });
+    fs.mkdirSync(path.join(prefix, "logs"), { recursive: true });
+
+    const httpPort = await reservePort();
+    const tlsPort = await reservePort();
+
+    // The same image-dependent lines the `nginx -t` test strips, plus temp
+    // paths and a single worker so the run stays inside its own directory.
+    const mainConf = nginxConf
+      .replace(/^load_module .*\n/m, "")
+      .replace(/^user\s+.*\n/m, "")
+      .replace(/^worker_processes\s+.*\n/m, "worker_processes 1;\n")
+      .replace(/^\s*include\s+\/etc\/nginx\/mime\.types;\n/m, "")
+      .replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`)
+      .replace(/\/var\/run\/nginx\.pid/g, `${prefix}/logs/nginx.pid`)
+      .replace(
+        "include /etc/nginx/conf.d/default.conf;",
+        `include ${prefix}/conf.d/default.conf;`,
+      )
+      .replace(/^http\s*\{/m, (match) => {
+        return [
+          match,
+          `    client_body_temp_path ${prefix}/client_temp;`,
+          `    proxy_temp_path ${prefix}/proxy_temp;`,
+          `    fastcgi_temp_path ${prefix}/fastcgi_temp;`,
+          `    uwsgi_temp_path ${prefix}/uwsgi_temp;`,
+          `    scgi_temp_path ${prefix}/scgi_temp;`,
+        ].join("\n");
+      });
+
+    /*
+     * Loopback only, and on ports that are free here: the listeners are
+     * hard-coded to 7849/7850 in the template, so they are moved once the
+     * config is rendered (as OtlpIngestBodySize.test.js does for its own live
+     * runs).
+     */
+    const serverConf = render(
+      baseEnvironment({
+        BILLING_ENABLED: billingEnabled ? "true" : "false",
+        NGINX_LISTEN_ADDRESS: "127.0.0.1:",
+        NGINX_RESOLVER: "127.0.0.1",
+        SERVER_APP_HOSTNAME: "127.0.0.1",
+        APP_PORT: String(app.port),
+        SERVER_HOME_HOSTNAME: "127.0.0.1",
+        HOME_PORT: String(home.port),
+      }),
+    )
+      .split("127.0.0.1:7849")
+      .join(`127.0.0.1:${httpPort}`)
+      .split("127.0.0.1:7850")
+      .join(`127.0.0.1:${tlsPort}`);
+
+    assert.ok(
+      serverConf.includes(`listen 127.0.0.1:${httpPort}`),
+      "the test could not move the ingress listener to a free port",
+    );
+    // Directive lines only: the template's comments mention the ports too.
+    assert.ok(
+      !/^[^\S\n]*listen[^\S\n]+[^;\n#]*\b78(49|50)\b/m.test(serverConf),
+      "a listener was left on the ingress's real port",
+    );
+
+    const mainConfPath = path.join(prefix, "nginx.conf");
+
+    fs.writeFileSync(mainConfPath, mainConf);
+    fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), serverConf);
+
+    nginx = spawn(
+      "nginx",
+      [
+        "-p",
+        prefix,
+        "-e",
+        path.join(prefix, "logs", "startup-error.log"),
+        "-c",
+        mainConfPath,
+        "-g",
+        "daemon off;",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+
+    startedNginxProcesses.add(nginx);
+
+    nginx.stdout.on("data", (chunk) => {
+      nginxOutput += chunk;
+    });
+    nginx.stderr.on("data", (chunk) => {
+      nginxOutput += chunk;
+    });
+
+    const deadline = Date.now() + 15000;
+    let listening = false;
+
+    while (Date.now() < deadline) {
+      if (nginx.exitCode !== null) {
+        break;
+      }
+
+      if (await canConnect(httpPort)) {
+        listening = true;
+        break;
+      }
+
+      await wait(50);
+    }
+
+    assert.ok(
+      listening,
+      `nginx did not start listening on ${httpPort} (exit code ${nginx.exitCode}): ${nginxOutput}`,
+    );
+
+    await callback({ port: httpPort });
+  } finally {
+    if (nginx && nginx.exitCode === null) {
+      const exited = new Promise((resolve) => {
+        nginx.once("exit", resolve);
+      });
+
+      nginx.kill("SIGTERM");
+
+      const stopped = await Promise.race([
+        exited.then(() => {
+          return true;
+        }),
+        wait(5000).then(() => {
+          return false;
+        }),
+      ]);
+
+      if (!stopped) {
+        nginx.kill("SIGKILL");
+        await exited;
+      }
+    }
+
+    if (nginx) {
+      startedNginxProcesses.delete(nginx);
+    }
+
+    await app.close();
+    await home.close();
+    fs.rmSync(prefix, { recursive: true, force: true });
+  }
+}
+
+const runningNginxSkipReason =
+  nginxCheckSkipReason || (hasEnvsubst ? false : "envsubst not on PATH");
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends the OAuth discovery documents to the app (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        // The primary ingress answers for "localhost" and for HOST.
+        for (const host of ["localhost", "oneuptime.example.com"]) {
+          for (const uri of [
+            ...OAUTH_DISCOVERY_PATHS,
+            // A query string does not change which location serves it, and
+            // reaches the app with the path.
+            "/.well-known/oauth-protected-resource/mcp?probe=1",
+          ]) {
+            const response = await getThroughIngress(port, uri, host);
+
+            assert.equal(response.status, 200, `${host}${uri}`);
+            assert.ok(
+              response.answer,
+              `${host}${uri}: not proxied: ${response.body}`,
+            );
+            assert.equal(
+              response.answer.upstream,
+              "app",
+              `${host}${uri} must reach the app, not ${response.answer.upstream}`,
+            );
+            // The app registers these routes at the paths themselves.
+            assert.equal(response.answer.url, uri);
+            // Host is the one the browser asked for, as on /mcp.
+            assert.equal(response.answer.host, host);
+            assert.ok(
+              response.answer.forwardedFor,
+              `${host}${uri} lost X-Forwarded-For`,
+            );
+          }
+        }
+
+        /*
+         * Everything else under /.well-known goes where it went before. With
+         * billing on the catch-all is Home, which is what makes the split
+         * visible; with billing off the catch-all is the app as well.
+         */
+        const catchAll = billingEnabled ? "home" : "app";
+
+        for (const uri of [
+          "/.well-known/mcp.json",
+          "/.well-known/openid-configuration",
+          "/.well-known/apple-app-site-association",
+          "/.well-known/oauth-protected-resourceX",
+          "/.well-known/oauth-authorization-servers",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(
+            response.answer?.upstream,
+            catchAll,
+            `${uri} must keep going to the catch-all (${catchAll})`,
+          );
+          assert.equal(response.answer.url, uri);
+        }
+
+        const assetLinks = await getThroughIngress(
+          port,
+          "/.well-known/assetlinks.json",
+          "localhost",
+        );
+
+        assert.equal(assetLinks.answer?.upstream, "home");
+
+        const acme = await getThroughIngress(
+          port,
+          "/.well-known/acme-challenge/some-token",
+          "localhost",
+        );
+
+        assert.equal(acme.answer?.upstream, "app");
+        assert.equal(
+          acme.answer.url,
+          "/api/acme-challenge/.well-known/some-token",
+        );
+
+        // The copies under /mcp were always the app's, through location /mcp.
+        for (const uri of [
+          "/mcp/.well-known/oauth-protected-resource",
+          "/mcp/.well-known/oauth-authorization-server",
+          "/mcp/oauth/authorize?client_id=x",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.answer?.upstream, "app", uri);
+          assert.equal(response.answer.url, uri);
+        }
+      });
+    },
+  );
+}
+
+test(
+  "a real nginx does not serve the MCP discovery documents on a status page's domain",
+  { skip: runningNginxSkipReason, timeout: 60000 },
+  async () => {
+    /*
+     * A Host the primary ingress does not name lands in the status-page
+     * server, which has no /mcp and so nothing to discover. There the path
+     * is the status page's own well-known namespace, as it always was: the
+     * app is handed the rewritten status-page path, not the document's.
+     */
+    await withRunningIngress(false, async ({ port }) => {
+      for (const uri of OAUTH_DISCOVERY_PATHS) {
+        const response = await getThroughIngress(
+          port,
+          uri,
+          "status.customer.example",
+        );
+
+        assert.equal(response.answer?.upstream, "app", uri);
+        assert.equal(response.answer.url, `/api/status-page${uri}`);
+      }
+    });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// /workflows and /runbooks: the marketing site's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * `location /workflow` and `location /runbook` are prefixes of these two
+ * paths, so they used to reach the app, which answered with a JSON 404,
+ * instead of Home, which redirects them to their product pages. Each now has
+ * an exact location that proxies like `location /`.
+ */
+const MARKETING_ALIASES = ["/workflows", "/runbooks"];
+
+test(
+  "the marketing alias locations survive rendering, pointed at Home and the app",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    for (const billingEnabled of ["true", "false"]) {
+      const rendered = render(
+        baseEnvironment({ BILLING_ENABLED: billingEnabled }),
+      );
+
+      // The switch the two locations read is the server block's.
+      assert.ok(rendered.includes(`set $billing_enabled ${billingEnabled};`));
+
+      for (const alias of MARKETING_ALIASES) {
+        const header = `location = ${alias} {`;
+
+        assert.equal(
+          rendered.split(header).length - 1,
+          1,
+          `location = ${alias} must render exactly once`,
+        );
+
+        const start = rendered.indexOf(header);
+        const block = rendered.slice(start, rendered.indexOf("\n    }", start));
+
+        for (const directive of [
+          "resolver 127.0.0.11 valid=30s;",
+          "set $backend_app http://app:3002;",
+          "set $backend_home http://home:1444;",
+          "if ($billing_enabled = true) {",
+          "proxy_pass $backend_home;",
+          "if ($billing_enabled != true) {",
+          "proxy_pass $backend_app;",
+          "proxy_http_version 1.1;",
+          "proxy_set_header Connection $connection_upgrade;",
+        ]) {
+          assert.ok(
+            block.includes(directive),
+            `location = ${alias} lost "${directive}" in rendering`,
+          );
+        }
+
+        assert.ok(
+          !/\breturn\b/.test(block),
+          `location = ${alias} must not redirect`,
+        );
+      }
+    }
+  },
+);
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends /workflows and /runbooks where it sends the marketing site (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        // Home is the marketing site when billing is on; otherwise the app is.
+        const marketingSite = billingEnabled ? "home" : "app";
+
+        for (const uri of [
+          "/workflows",
+          "/runbooks",
+          // The query a paid click carries reaches Home as it was sent.
+          "/workflows?gclid=EAIaIQobChMI&utm_source=google",
+          "/runbooks?utm_campaign=brand%20%2B%20competitor",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.status, 200, uri);
+          assert.equal(
+            response.answer?.upstream,
+            marketingSite,
+            `${uri} must reach ${marketingSite}: ${response.body}`,
+          );
+          assert.equal(response.answer.url, uri);
+        }
+
+        // The pages they redirect to go the same way, as every page does.
+        for (const uri of [
+          "/product/workflows",
+          "/product/runbooks",
+          "/pricing",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.answer?.upstream, marketingSite, uri);
+        }
+
+        /*
+         * The app's own workflow and runbook paths, and anything under the
+         * two aliases, still reach the app whatever billing says.
+         */
+        for (const uri of [
+          "/workflow/manual/run/6a7b",
+          "/workflow/update/6a7b",
+          "/runbook/run/6a7b",
+          "/runbook-agent-ingest/heartbeat",
+          "/runner-ingest/heartbeat",
+          "/workflows/6a7b",
+          "/runbooks/",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.answer?.upstream, "app", uri);
+          assert.equal(response.answer.url, uri);
+        }
+      });
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// /files/: the old addresses of the compliance PDFs
+// ---------------------------------------------------------------------------
+
+/*
+ * `location /file`, the app's file API, is a prefix of /files/, so the
+ * compliance PDFs the marketing site once published (/files/soc-3.pdf and the
+ * rest) reached the app as /api/files/... and got a JSON 404, instead of
+ * reaching Home, which redirects them to its legal center. A `^~ /files/`
+ * location now proxies them like `location /`.
+ */
+const LEGACY_FILES_HEADER = "location ^~ /files/ {";
+
+test(
+  "the /files/ location survives rendering, pointed at Home and the app",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    for (const billingEnabled of ["true", "false"]) {
+      const rendered = render(
+        baseEnvironment({ BILLING_ENABLED: billingEnabled }),
+      );
+
+      assert.equal(
+        rendered.split(LEGACY_FILES_HEADER).length - 1,
+        1,
+        `${LEGACY_FILES_HEADER} must render exactly once`,
+      );
+
+      const start = rendered.indexOf(LEGACY_FILES_HEADER);
+      const block = rendered.slice(start, rendered.indexOf("\n    }", start));
+
+      for (const directive of [
+        "resolver 127.0.0.11 valid=30s;",
+        "set $backend_app http://app:3002;",
+        "set $backend_home http://home:1444;",
+        "if ($billing_enabled = true) {",
+        "proxy_pass $backend_home;",
+        "if ($billing_enabled != true) {",
+        "proxy_pass $backend_app;",
+        "proxy_http_version 1.1;",
+        "proxy_set_header Connection $connection_upgrade;",
+      ]) {
+        assert.ok(
+          block.includes(directive),
+          `the /files/ location lost "${directive}" in rendering`,
+        );
+      }
+
+      assert.ok(
+        !/\b(return|rewrite)\b/.test(block),
+        "the /files/ location must pass the address on as it came",
+      );
+    }
+  },
+);
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends the old /files/ addresses where it sends the marketing site (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        // Home is the marketing site when billing is on; otherwise the app is.
+        const marketingSite = billingEnabled ? "home" : "app";
+
+        for (const uri of [
+          "/files/soc-3.pdf",
+          "/files/pci.pdf",
+          "/files/iso-27001.pdf",
+          "/files/iso-27017.pdf",
+          "/files/iso-27018.pdf",
+          "/files/soc-3.pdf?utm_source=security-questionnaire",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.status, 200, uri);
+          assert.equal(
+            response.answer?.upstream,
+            marketingSite,
+            `${uri} must reach ${marketingSite}: ${response.body}`,
+          );
+          assert.equal(response.answer.url, uri);
+        }
+
+        /*
+         * The app's file API still reaches the app, under /api, whatever
+         * billing says; so does /files with no trailing slash, which this
+         * change leaves where it was.
+         */
+        for (const [uri, upstreamUrl] of [
+          ["/file/image/6a7b", "/api/file/image/6a7b"],
+          ["/file/6a7b", "/api/file/6a7b"],
+          ["/files", "/api/files"],
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.answer?.upstream, "app", uri);
+          assert.equal(response.answer.url, upstreamUrl, uri);
+        }
+      });
+    },
+  );
+}
+
+/*
+ * The scheme the visitor used, as the app is told it (X-Forwarded-Proto
+ * $visitor_scheme). The app marks a visitor's cookies Secure when it says
+ * https (Common/Server/Utils/RequestTransport.ts), so it has to be https
+ * whenever the visitor really used it - TLS ended here, or at a proxy in
+ * front that said so - and nothing a caller sends may turn it into http.
+ */
+const VISITOR_SCHEME_MAP_LINES = [
+  "map $http_x_forwarded_proto $visitor_scheme {",
+  "    default                   $scheme;",
+  '    "~*^\\s*https\\s*(,|$)"   https;',
+  "}",
+];
+
+test(
+  "the visitor's scheme map survives rendering unmangled",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    const rendered = render(baseEnvironment());
+
+    assert.ok(
+      rendered.includes(VISITOR_SCHEME_MAP_LINES.join("\n")),
+      "the $visitor_scheme map must render exactly as written",
+    );
+
+    const forwardedProtoLines = rendered
+      .split("\n")
+      .filter((line) => {
+        return /^\s*proxy_set_header X-Forwarded-Proto /.test(line);
+      })
+      .map((line) => {
+        return line.trim();
+      });
+
+    assert.ok(forwardedProtoLines.length > 60);
+    assert.deepEqual([...new Set(forwardedProtoLines)].sort(), [
+      "proxy_set_header X-Forwarded-Proto $forwarded_proto;",
+      "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
+    ]);
+  },
+);
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx tells the app the scheme the visitor used (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        const claims = [
+          [undefined, "http"],
+          ["http", "http"],
+          ["https", "https"],
+          ["HTTPS", "https"],
+          ["https, http", "https"],
+          ["http, https", "http"],
+          ["httpsx", "http"],
+        ];
+
+        // The primary ingress, where sign-ins set the session's cookies.
+        for (const uri of [
+          "/identity/login",
+          "/api/user/refresh",
+          "/dashboard/",
+          "/accounts/login",
+          "/status-page-identity-api/login/x",
+        ]) {
+          for (const [claim, expected] of claims) {
+            const response = await getThroughIngress(
+              port,
+              uri,
+              "localhost",
+              claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+            );
+
+            assert.equal(
+              response.answer?.forwardedProto,
+              expected,
+              `${uri} with X-Forwarded-Proto ${claim}: ${response.body}`,
+            );
+          }
+        }
+
+        // A status page's custom domain, on the status-page server.
+        for (const [claim, expected] of claims) {
+          const response = await getThroughIngress(
+            port,
+            "/status-page-identity-api/login/x",
+            "status.customer.com",
+            claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+          );
+
+          assert.equal(
+            response.answer?.forwardedProto,
+            expected,
+            `status page with X-Forwarded-Proto ${claim}: ${response.body}`,
+          );
+        }
+
+        // /notification passes on what the proxy in front said, for Twilio.
+        for (const [claim, expected] of [
+          [undefined, "http"],
+          ["http", "http"],
+          ["https", "https"],
+        ]) {
+          const response = await getThroughIngress(
+            port,
+            "/notification/call/x",
+            "localhost",
+            claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+          );
+
+          assert.equal(response.answer?.forwardedProto, expected);
+        }
+      });
+    },
+  );
+}
+
+/*
+ * The app knows its own address (HOST, oneuptime.example.com in these
+ * renders) by the Host this ingress passes on: an installation with
+ * HTTP_PROTOCOL=https keeps HOST's cookies Secure, and tells browsers to stay
+ * on HTTPS for it, by that Host alone. So a real nginx must hand the app the
+ * Host the browser asked for on every sign-in address - in nginx's own
+ * spelling, lower case and without a port - and a custom domain must reach
+ * the app as itself, whatever X-Forwarded-Host a caller adds.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx hands the app the Host the browser asked for on the sign-in addresses (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        for (const requestedHost of [
+          "oneuptime.example.com",
+          "OneUptime.Example.COM",
+          "oneuptime.example.com:80",
+        ]) {
+          for (const uri of [
+            "/identity/login",
+            "/identity/refresh-token",
+            "/api/identity/login",
+            "/accounts/login",
+            "/dashboard/",
+            "/status-page-api/x",
+            "/status-page-identity-api/login/x",
+            "/public-dashboard-api/x",
+          ]) {
+            const response = await getThroughIngress(port, uri, requestedHost, {
+              "X-Forwarded-Host": "status.customer.com",
+            });
+
+            assert.equal(response.answer?.upstream, "app", response.body);
+            assert.equal(
+              response.answer?.host,
+              "oneuptime.example.com",
+              `${uri} under Host ${requestedHost}: ${response.body}`,
+            );
+          }
+        }
+
+        // A custom domain reaches the app as itself, never as HOST.
+        for (const uri of [
+          "/status-page-identity-api/login/x",
+          "/status-page-api/x",
+          "/public-dashboard-api/x",
+        ]) {
+          const response = await getThroughIngress(
+            port,
+            uri,
+            "status.customer.com",
+            { "X-Forwarded-Host": "oneuptime.example.com" },
+          );
+
+          assert.equal(response.answer?.upstream, "app", response.body);
+          assert.equal(response.answer?.host, "status.customer.com");
+        }
+      });
+    },
+  );
+}

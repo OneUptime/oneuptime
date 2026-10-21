@@ -31,6 +31,8 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pool list page reading the CephResource Postgres inventory (kind=Pool).
@@ -46,6 +48,7 @@ const IOPS_WINDOW_MINUTES: number = 15;
 const CephClusterPools: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
@@ -206,7 +209,10 @@ const CephClusterPools: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Pools"
-      description={`Storage pools in this cluster. Read / write IOPS are averaged over the last ${IOPS_WINDOW_MINUTES} minutes.`}
+      description={translator.translateTemplate(
+        "Storage pools in this cluster. Read / write IOPS are averaged over the last {{minutes}} minutes.",
+        { minutes: IOPS_WINDOW_MINUTES },
+      )}
       resources={resources}
       tableIdPrefix="ceph"
       showGroupColumn={false}

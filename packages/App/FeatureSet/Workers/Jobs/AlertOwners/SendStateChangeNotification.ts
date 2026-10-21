@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -10,6 +11,7 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import Text from "Common/Types/Text";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
@@ -18,6 +20,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
@@ -31,6 +34,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -91,13 +95,11 @@ RunCron(
           title: true,
           projectId: true,
           description: true,
-          monitor: {
-            name: true,
-          },
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
             name: true,
+            color: true,
           },
           /*
            * The series this alert was raised for. Without it this email said
@@ -212,17 +214,22 @@ RunCron(
       );
 
       /*
-       * Same formatter the created-alert email uses, so a firing and its
-       * resolution name the same thing. A monitor without group-by has no
-       * series labels and keeps the monitor-name fallback, which for it is
-       * the correct answer.
+       * Same list the created-alert email uses, so a firing and its
+       * resolution name the same thing: the series in the monitor's place
+       * (a monitor without group-by has no series labels and keeps its own
+       * name), then everything else the Affected Resources card lists.
        */
-      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
-        alert.seriesLabels,
-      );
-
-      const resourcesAffected: string =
-        seriesSummary || alert.monitor?.name || "";
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+        fallback: "",
+      });
 
       /*
        * Assigned unconditionally, "" when the timeline row carries no root
@@ -279,9 +286,15 @@ RunCron(
           alertNumber: alertNumberStr,
           projectName: alertStateTimeline.project!.name!,
           currentState: alertState!.name!,
-          currentStateColor: alertState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            alertState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           alertDescription: alertDescriptionHtml,
           resourcesAffected: resourcesAffected,
@@ -293,6 +306,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           alertSeverity: alert.alertSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "alertSeverity",
+            alert.alertSeverity?.color,
+          ),
           alertViewLink: (
             await AlertService.getAlertLinkInDashboard(
               alertStateTimeline.projectId!,
@@ -315,8 +332,10 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Alert ${alertIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -373,27 +392,32 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
-          {
-            userId: user.id!,
-            projectId: alertStateTimeline.projectId!,
-          },
-        )})\n`;
+        moreAlertFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: alertStateTimeline.projectId!,
+            }),
+          );
       }
-
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
-      const projectId: ObjectID = alert.projectId!;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "alert",
+          stateName: alertState.name,
+        }),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * state change, which the channel was told of itself: posting it to
+         * Slack and Microsoft Teams said the same change twice.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

@@ -1,6 +1,5 @@
 import InvestigationEligibility from "../../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import AIIncidentInvestigationRunner, {
-  DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
   IncidentGateDecision,
 } from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -16,24 +15,25 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Cost gates for autonomous INCIDENT investigations.
  *
- * Alerts have had a severity floor and a per-monitor cooldown since Phase 1;
- * incidents had neither, so every incident in an enabled project enqueued a
- * run. These tests lock in the gates AND the one deliberate asymmetry:
+ * A project may narrow which incidents are investigated with a severity floor
+ * and a per-monitor cooldown. These tests lock in the gates AND that both are
+ * opt-in, so a project that never touched them has every incident
+ * investigated:
  *
- *   - the severity floor is UNSET by default, so an existing project's
- *     coverage does not silently shrink on deploy (an incident already
- *     cleared a human-authored threshold to exist, unlike an alert firing
- *     straight off a monitor);
- *   - the cooldown IS on by default at 30 minutes, because it only suppresses
- *     repeat work on a monitor that was just investigated;
+ *   - the severity floor is UNSET by default — every severity is
+ *     investigated;
+ *   - the cooldown is OFF by default (it used to default to 30 minutes, which
+ *     silently skipped a repeat incident on a monitor investigated within
+ *     the half hour);
  *   - an incident affects a SET of monitors, so the dedupe key is "any of
- *     them" — a storm that opens several incidents is the case this exists
- *     for.
+ *     them" — a storm that opens several incidents is the case a configured
+ *     cooldown exists for.
  *
  * Fail directions are asserted explicitly: an incident whose severity order is
  * unknown PASSES the severity gate (it only filters known-low severities), and
@@ -98,6 +98,91 @@ function gate(): Promise<IncidentGateDecision> {
     projectId: PROJECT_ID,
   });
 }
+
+// No investigation rule unless a test sets some: every incident is in scope.
+beforeEach(() => {
+  jest
+    .spyOn(InvestigationRules, "getIncidentScope")
+    .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+});
+
+describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — investigation rules", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an incident no rule matches is not investigated, whatever its severity, and says how many rules there are", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(
+        fakeIncident({ monitorIds: [MONITOR_A, MONITOR_B], severityOrder: 1 }),
+      );
+    jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: false, rulesChecked: 3 });
+    const project: jest.SpyInstance = jest.spyOn(ProjectService, "findOneById");
+    const runs: jest.SpyInstance = mockRecentRunCount(0);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision).toMatchObject({
+      investigate: false,
+      notStartedCode: "no_investigation_rule_matched",
+      notStartedDetails: { rulesChecked: 3 },
+      monitorId: MONITOR_A,
+    });
+    expect(decision.reason).toContain("investigation rules");
+    // Checked first: neither the floor nor the cooldown is read.
+    expect(project).not.toHaveBeenCalled();
+    expect(runs).not.toHaveBeenCalled();
+  });
+
+  test("an incident a rule matches goes on to the other gates", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({ severityOrder: 3 }));
+    jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: true, rulesChecked: 2 });
+    mockProject({ minimumSeverityId: SEVERITY_ID });
+    jest
+      .spyOn(IncidentSeverityService, "findOneById")
+      .mockResolvedValue({ order: 1, name: "Critical" } as never);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision.investigate).toBe(false);
+    expect(decision.notStartedCode).toBe("severity_below_threshold");
+  });
+
+  test("the rules see the incident with what they match on", async () => {
+    const read: jest.SpyInstance = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({}));
+    const scope: jest.SpyInstance = jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+    mockProject({});
+    mockRecentRunCount(0);
+
+    expect((await gate()).investigate).toBe(true);
+    expect(read.mock.calls[0]![0]).toMatchObject({
+      id: INCIDENT_ID,
+      select: {
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: { _id: true },
+        monitors: { _id: true },
+      },
+      props: { isRoot: true },
+    });
+    expect(scope).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      incident: expect.objectContaining({ id: INCIDENT_ID }),
+    });
+  });
+});
 
 describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — severity floor", () => {
   afterEach(() => {
@@ -231,24 +316,51 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     jest.restoreAllMocks();
   });
 
-  test("a monitor investigated inside the window skips the incident", async () => {
+  // A cooldown a project set, for the tests about how a set window behaves.
+  const COOLDOWN_MINUTES: number = 30;
+
+  /*
+   * The headline change for incidents: no cooldown unless one is set, so an
+   * incident on a monitor that was investigated a minute ago is investigated
+   * too — and nothing is even looked up to decide that.
+   */
+  test("with no configured cooldown, a just-investigated monitor's incident is investigated", async () => {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
     mockProject({});
+    const countBy: jest.SpyInstance = mockRecentRunCount(1);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision.investigate).toBe(true);
+    expect(decision.monitorId?.toString()).toBe(MONITOR_A.toString());
+    expect(countBy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor investigated inside a configured window skips the incident", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
     mockRecentRunCount(1);
 
     const decision: IncidentGateDecision = await gate();
 
     expect(decision.investigate).toBe(false);
     expect(decision.reason).toContain("already investigated");
+    expect(decision.reason).toContain(`${COOLDOWN_MINUTES} minutes`);
+    expect(decision.notStartedCode).toBe("monitor_cooldown");
+    expect(decision.notStartedDetails).toEqual({
+      cooldownWindowMinutes: COOLDOWN_MINUTES,
+    });
   });
 
-  test("no recent run investigates", async () => {
+  test("no recent run investigates inside a configured window", async () => {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
-    mockProject({});
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
     mockRecentRunCount(0);
 
     expect((await gate()).investigate).toBe(true);
@@ -263,7 +375,7 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A, MONITOR_B] }));
-    mockProject({});
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
     const countBy: jest.SpyInstance = mockRecentRunCount(0);
 
     await gate();
@@ -291,7 +403,7 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
-    mockProject({});
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
     const countBy: jest.SpyInstance = mockRecentRunCount(0);
 
     await gate();
@@ -307,7 +419,7 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [] }));
-    mockProject({});
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
     const countBy: jest.SpyInstance = mockRecentRunCount(0);
 
     const decision: IncidentGateDecision = await gate();
@@ -352,16 +464,14 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     expect(decision.reason).toContain(`${60 * 24} minutes`);
   });
 
-  test("the default window is used when the project sets none", async () => {
+  test("a custom window is used as set", async () => {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
-    mockProject({});
+    mockProject({ dedupeWindowMinutes: 45 });
     mockRecentRunCount(1);
 
-    expect((await gate()).reason).toContain(
-      `${DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES} minutes`,
-    );
+    expect((await gate()).reason).toContain("within the last 45 minutes");
   });
 });
 

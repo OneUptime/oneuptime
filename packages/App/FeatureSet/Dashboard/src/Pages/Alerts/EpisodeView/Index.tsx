@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import AlertEpisodeFeedElement from "../../../Components/AlertEpisode/AlertEpisodeFeed";
 import PageComponentProps from "../../PageComponentProps";
@@ -21,7 +22,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -33,6 +34,7 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
 import {
   DerivedTelemetrySnapshot,
@@ -46,19 +48,39 @@ import EventStatTile from "../../../Components/EventView/EventStatTile";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
 import {
+  ALERT_EPISODE_MEMBERSHIP,
   ALERT_EPISODE_MEMBER_SELECT,
   getAlertEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
+import {
+  FetchedEpisodeMembers,
+  fetchEpisodeMembers,
+} from "../../../Components/EpisodeView/FetchEpisodeMembers";
 import {
   EpisodeTiming,
   getEpisodeTiming,
 } from "../../../Components/EpisodeView/EpisodeTiming";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 
 const AlertEpisodeView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -91,7 +113,9 @@ const AlertEpisodeView: FunctionComponent<
   /*
    * Telemetry snapshot of the episode's FIRST member alert (earliest
    * created): the first member's evaluation window is the "what kicked
-   * this off" view.
+   * this off" view. Members are the episode's membership, as on the member
+   * card: an alert that joined this episode and then a later one is still
+   * this one's.
    */
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
@@ -119,27 +143,32 @@ const AlertEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [memberAlerts, episodeTimelines, stateList, loaded]: [
-        ListResult<Alert>,
+      const [firstMembers, episodeTimelines, stateList, loaded]: [
+        FetchedEpisodeMembers<Alert> | null,
         ListResult<AlertEpisodeStateTimeline>,
         ListResult<AlertState>,
         AlertEpisode | null,
       ] = await Promise.all([
-        ModelAPI.getList({
+        /*
+         * The one read here the page can do without: it takes the episode's
+         * membership as well as its alerts, and a reader who may not read
+         * the membership (a custom role) still gets the overview, without
+         * the panel.
+         */
+        fetchEpisodeMembers<Alert, AlertEpisodeMember>({
+          episodeId: modelId,
+          membership: ALERT_EPISODE_MEMBERSHIP,
           modelType: Alert,
-          query: {
-            alertEpisodeId: modelId,
-          },
-          limit: 1,
-          skip: 0,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sort: {
-            createdAt: SortOrder.Ascending,
-          },
+          sortField: "createdAt",
+          sortOrder: SortOrder.Ascending,
+          limit: 1,
+        }).catch((): null => {
+          return null;
         }),
         ModelAPI.getList({
           modelType: AlertEpisodeStateTimeline,
@@ -167,8 +196,11 @@ const AlertEpisodeView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem({
           modelType: AlertEpisode,
@@ -185,7 +217,7 @@ const AlertEpisodeView: FunctionComponent<
         return;
       }
 
-      const firstMember: Alert | undefined = memberAlerts.data[0];
+      const firstMember: Alert | undefined = firstMembers?.members[0];
 
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({
@@ -245,6 +277,29 @@ const AlertEpisodeView: FunctionComponent<
     });
   };
 
+  // The episode's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.AlertEpisode,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new episode is created.
+    recordStartedAt:
+      loadedModelId === modelIdString
+        ? episode?.createdAt || undefined
+        : undefined,
+  });
+
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.AlertEpisode,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: () => {
+      setContentRefreshToken((token: number): number => {
+        return token + 1;
+      });
+    },
+  });
+
   if (loadedModelId !== modelIdString) {
     return (
       <EventOverviewSkeleton statCount={4} loadingText="Loading episode" />
@@ -272,10 +327,12 @@ const AlertEpisodeView: FunctionComponent<
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.AlertState,
     states: alertStates.map((state: AlertState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };
@@ -297,6 +354,10 @@ const AlertEpisodeView: FunctionComponent<
     <div className="space-y-5">
       <ChangeEpisodeState
         episodeId={modelId}
+        secondaryActions={[
+          ...passOn.actions,
+          ...getOpenInChatActions(channelLinks),
+        ]}
         refreshToken={headerRefreshToken}
         onActionComplete={async () => {
           // The change also moved the member alerts; reload what shows them.
@@ -306,9 +367,12 @@ const AlertEpisodeView: FunctionComponent<
           setDetailsRefresher((refresher: boolean): boolean => {
             return !refresher;
           });
+          // Acknowledging it ends the reader's own page, if they had one.
+          passOn.refresh();
           await fetchData();
         }}
       />
+      {passOn.dialog}
 
       {refreshError && (
         <div
@@ -316,14 +380,17 @@ const AlertEpisodeView: FunctionComponent<
           className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
         >
           <span className="min-w-0 break-words">
-            {`Couldn't refresh episode timings: ${refreshError}`}
+            {translator.translateTemplate(
+              "Couldn't refresh episode timings: {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <button
             type="button"
             onClick={refreshInPlace}
             className="rounded-sm font-medium underline underline-offset-2 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
           >
-            Try again
+            {translator.translateText("Try again")}
           </button>
         </div>
       )}
@@ -331,13 +398,17 @@ const AlertEpisodeView: FunctionComponent<
       <EventStatBar columns={4} ariaLabel="Episode timing">
         <EventStatTile
           variant="segment"
-          label={`${timing.acknowledgedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.acknowledgedStateName,
+          })}
           icon={IconProp.Check}
           value={timing.timeToAcknowledge}
         />
         <EventStatTile
           variant="segment"
-          label={`${timing.resolvedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.resolvedStateName,
+          })}
           icon={IconProp.CheckCircle}
           value={timing.timeToResolve}
         />
@@ -366,10 +437,10 @@ const AlertEpisodeView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <EpisodeMembersCard<Alert>
+          <EpisodeMembersCard<Alert, AlertEpisodeMember>
             modelType={Alert}
             episodeId={modelId}
-            episodeIdField="alertEpisodeId"
+            membership={ALERT_EPISODE_MEMBERSHIP}
             select={ALERT_EPISODE_MEMBER_SELECT}
             sortField="createdAt"
             toRow={getAlertEpisodeMemberRow}
@@ -407,6 +478,19 @@ const AlertEpisodeView: FunctionComponent<
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          {/* Who is in the episode's own channel, above its details. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.AlertEpisode}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={() => {
+              setContentRefreshToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />
+
           <CardModelDetail<AlertEpisode>
             name="Episode Details"
             cardProps={{
@@ -427,23 +511,12 @@ const AlertEpisodeView: FunctionComponent<
               });
               refreshInPlace();
             }}
-            formSteps={[
-              {
-                title: "Episode Details",
-                id: "episode-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Episode Title",
-                stepId: "episode-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Episode Title",
@@ -458,32 +531,18 @@ const AlertEpisodeView: FunctionComponent<
                 title: "Episode Severity",
                 description: "What is the severity of this episode?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "episode-details",
                 dropdownModal: {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Episode Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<AlertEpisode>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {
@@ -585,7 +644,9 @@ const AlertEpisodeView: FunctionComponent<
                       return <span>{item.alertGroupingRule.name}</span>;
                     }
 
-                    return <span>Manual Episode</span>;
+                    return (
+                      <span>{translator.translateText("Manual Episode")}</span>
+                    );
                   },
                 },
                 {
@@ -603,7 +664,7 @@ const AlertEpisodeView: FunctionComponent<
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span>System</span>;
+                    return <span>{translator.translateText("System")}</span>;
                   },
                 },
                 {

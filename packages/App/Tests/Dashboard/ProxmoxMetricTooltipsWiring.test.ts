@@ -5,6 +5,7 @@ import {
   PROXMOX_METRIC_DESCRIPTIONS,
   ProxmoxMetric,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Every metric on the Proxmox pages carries an (i) that explains it. The
@@ -62,12 +63,6 @@ function count(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
 
-const REGEX_SPECIALS: RegExp = /[.*+?^${}()|[\]\\]/g;
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEX_SPECIALS, "\\$&");
-}
-
 /*
  * `<InfoTooltip label="X" text={PROXMOX_METRIC_DESCRIPTIONS.key} />`, with
  * `before` right in front of it and `after` right behind it. Prettier puts
@@ -82,6 +77,15 @@ function tooltipPattern(
   return new RegExp(
     `${escapeRegExp(before)}<InfoTooltip label="${escapeRegExp(label)}" text=\\{ ?PROXMOX_METRIC_DESCRIPTIONS\\.${key} ?\\} />${escapeRegExp(after)}`,
   );
+}
+
+/*
+ * A heading as the page draws it: its English text, looked up in the
+ * reader's language. The (i) beside it keeps the English text as its label,
+ * which InfoTooltip translates for the screen reader itself.
+ */
+function shown(text: string): string {
+  return `{translator.translateText("${text}")}`;
 }
 
 function referencedKeys(source: string): Array<string> {
@@ -278,9 +282,16 @@ describe("cluster overview: hero, cards and tables", () => {
   test("the hero's count chips carry one (i), and only when a count chip is shown", () => {
     const chips: string = between(
       OVERVIEW,
-      "{specChips.length > 0 && (",
+      "{(specChips.length > 0 || Boolean(cluster.agentVersion)) && (",
       "</div> )}",
     );
+
+    // The agent's chip is AgentVersion's own, after the spec chips and before the (i).
+    const agentChip: number = chips.indexOf(
+      '<AgentVersion kind={AgentKind.ProxmoxAgent} version={cluster.agentVersion} variant="chip" />',
+    );
+    expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
+    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && ("));
 
     expect(chips).toMatch(
       tooltipPattern(
@@ -356,7 +367,11 @@ describe("cluster overview: hero, cards and tables", () => {
     );
 
     expect(ceph).toMatch(
-      tooltipPattern("Capacity used", "cephCapacityUsed", "Capacity used "),
+      tooltipPattern(
+        "Capacity used",
+        "cephCapacityUsed",
+        `${shown("Capacity used")} `,
+      ),
     );
   });
 
@@ -367,7 +382,7 @@ describe("cluster overview: hero, cards and tables", () => {
     "the top consumers heading %s carries %s",
     (heading: string, key: ProxmoxMetric) => {
       expect(OVERVIEW).toMatch(
-        tooltipPattern(heading, key, `${heading} </h4> `),
+        tooltipPattern(heading, key, `${shown(heading)} </h4> `),
       );
     },
   );
@@ -488,6 +503,13 @@ function expectPlainField(source: string, title: string): void {
   });
 }
 
+/*
+ * Each rate chart's heading ends with the drag-to-zoom hint (issue #4105),
+ * after its (i).
+ */
+const RATE_CHART_HINT: string =
+  '<TimeRangeZoomHint revealOnHover={true} className="ml-auto font-normal" />';
+
 function expectThroughputHeaders(
   source: string,
   headers: Array<[string, ProxmoxMetric]>,
@@ -499,7 +521,12 @@ function expectThroughputHeaders(
 
   for (const [header, key] of headers) {
     expect(extra).toMatch(
-      tooltipPattern(header, key, `${header} `, " </div> <ProxmoxRateChart"),
+      tooltipPattern(
+        header,
+        key,
+        `${shown(header)} `,
+        ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
+      ),
     );
   }
 }
@@ -659,8 +686,8 @@ describe("insights", () => {
       tooltipPattern(
         "Disk Throughput",
         "insightsDiskThroughput",
-        "Disk Throughput ",
-        " </div> <ProxmoxRateChart",
+        `${shown("Disk Throughput")} `,
+        ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );
     expect(INSIGHTS).toContain(TOOLTIP_IMPORT);

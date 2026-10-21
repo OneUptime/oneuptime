@@ -323,6 +323,16 @@ export interface NetworkRecorderOptions {
   /* The per-session cap was hit; the recorder raises a fidelity notice. */
   onCapReached?: (cap: number) => void;
 
+  /*
+   * True while the recorder is paused because nobody is at the page (see
+   * SESSION_REPLAY_IDLE_PAUSE_MS). Nothing is recorded then, and nothing
+   * is counted against the per-session cap either: a page polling or
+   * logging on its own for twenty minutes must not spend the budget the
+   * user's own session needs once they come back. Optional, so the module
+   * still works on its own.
+   */
+  isSuspended?: () => boolean;
+
   scrubUrl: (url: string) => string;
 
   /*
@@ -1330,6 +1340,10 @@ export default class NetworkRecorder {
      * records nothing.
      */
     if (!this.started) {
+      return;
+    }
+
+    if (this.options.isSuspended && this.options.isSuspended()) {
       return;
     }
 

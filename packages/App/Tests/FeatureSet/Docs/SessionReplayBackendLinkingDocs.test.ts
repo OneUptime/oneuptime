@@ -3,6 +3,7 @@ import {
   SESSION_TRACE_STATE_KEY,
   buildSessionTraceStateMember,
 } from "Common/Utils/Rum/SessionTraceState";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -130,9 +131,7 @@ function tableRow(markdown: string, firstCell: string): string {
   const row: string | undefined = markdown
     .split("\n")
     .find((line: string): boolean => {
-      return new RegExp(
-        `^\\|\\s*${firstCell.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|`,
-      ).test(line);
+      return new RegExp(`^\\|\\s*${escapeRegExp(firstCell)}\\s*\\|`).test(line);
     });
 
   expect([firstCell, row !== undefined]).toEqual([firstCell, true]);
@@ -396,10 +395,13 @@ describe("Session Replay docs: automatic backend linking (issue #3979)", (): voi
     expect(off).toContain("if you listed your own origin there");
     expect(off).toContain("remove it as well");
     expect(off).toContain("your own requests keep getting a `traceparent`");
-    /* A privacy control, so it is in the controls table with its default. */
-    expect(tableRow(section(page, "## Privacy"), SWITCH_TITLE)).toContain(
-      "| **on** |",
-    );
+    /*
+     * A privacy control, so it is in the controls table with its default,
+     * under the title the form gives it, in bold as every Dashboard label.
+     */
+    expect(
+      tableRow(section(page, "## Privacy"), `**${SWITCH_TITLE}**`),
+    ).toContain("| On |");
   });
 
   it("warns about redirects to another origin and names the breaker's code", (): void => {
@@ -556,7 +558,8 @@ describe("Session Replay docs: automatic backend linking (issue #3979)", (): voi
     expect(carried).toContain("stays the same for the whole visit");
     expect(carried).toContain("[anonymous visitor id](#anonymous-visitors)");
     expect(carried).toContain("never travel this way");
-    expect(carried).toContain("**Capture user identity** off");
+    // The policy form's own title for the identity switch.
+    expect(carried).toContain("**Capture end-user identity** off");
     expect(carried).toContain("removes the member from the trace state");
 
     /* Only POSTs to the OTLP paths are skipped (OTLP/HTTP always POSTs). */
@@ -1048,7 +1051,10 @@ describe("the Persian mirrors carry the same change", (): void => {
         "<16 hex parent id>",
       )}`,
     );
-    expect(tableRow(sessionReplay, SWITCH_TITLE)).toContain("| **روشن** |");
+    // The default, "On", unbolded as the English privacy table writes it.
+    expect(tableRow(sessionReplay, `**${SWITCH_TITLE}**`)).toContain(
+      "| روشن |",
+    );
 
     for (const snippet of [
       "remoteParentSampled: new TraceIdRatioBasedSampler(0.1)",

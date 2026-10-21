@@ -2,6 +2,7 @@ import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import RouteParams from "./Utils/RouteParams";
 import PublicDashboardUtil from "./Utils/PublicDashboard";
+import DashboardThemeUtil from "./Utils/DashboardTheme";
 import { PUBLIC_DASHBOARD_API_URL } from "./Utils/Config";
 import API from "./Utils/API";
 import URL from "Common/Types/API/URL";
@@ -20,6 +21,12 @@ import {
 } from "react-router-dom";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { isDashboardMasterPasswordRequired } from "Common/Types/Dashboard/DashboardAccess";
+import {
+  DASHBOARD_THEME_COLUMN,
+  UNKNOWN_DASHBOARD_THEME,
+  parseDashboardTheme,
+} from "Common/Types/Dashboard/DashboardTheme";
 import useAsyncEffect from "use-async-effect";
 
 // Lazy load page components
@@ -66,9 +73,11 @@ const App: () => JSX.Element = () => {
   const [dashboardId, setDashboardId] = useState<ObjectID | null>(null);
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
-  type GetIdFunction = () => Promise<ObjectID>;
+  const [isForbidden, setIsForbidden] = useState<boolean>(false);
+  // The dashboard this address shows, or null when it shows none.
+  type GetIdFunction = () => Promise<ObjectID | null>;
 
-  const getId: GetIdFunction = async (): Promise<ObjectID> => {
+  const getId: GetIdFunction = async (): Promise<ObjectID | null> => {
     if (PublicDashboardUtil.isPreviewPage()) {
       const id: string | null = Navigation.getParamByName(
         RouteParams.DashboardId,
@@ -90,6 +99,19 @@ const App: () => JSX.Element = () => {
       headers: {},
     });
 
+    /*
+     * 404: no dashboard shows on this domain - none was added, or its
+     * dashboard is shared only with its project or archived. Any other
+     * failure is an error to show.
+     */
+    if (response.isFailure()) {
+      if (response.statusCode === 404) {
+        return null;
+      }
+
+      throw response;
+    }
+
     if (response.data && response.data["dashboardId"]) {
       return new ObjectID(response.data["dashboardId"] as string);
     }
@@ -101,7 +123,15 @@ const App: () => JSX.Element = () => {
     try {
       setIsLoading(true);
 
-      const id: ObjectID = await getId();
+      const id: ObjectID | null = await getId();
+
+      // Nothing to show here: the not-found page, which follows the visitor.
+      if (!id) {
+        DashboardThemeUtil.setDashboardTheme(UNKNOWN_DASHBOARD_THEME);
+        setIsLoading(false);
+        return;
+      }
+
       setDashboardId(id);
       PublicDashboardUtil.setDashboardId(id);
 
@@ -114,7 +144,51 @@ const App: () => JSX.Element = () => {
         headers: {},
       });
 
+      /*
+       * The metadata answers only for a dashboard this visitor may see:
+       *
+       *   404  a dashboard that is not here - one shared only with its
+       *        project, an archived one and a missing one answer alike
+       *   403  its IP allowlist refuses this address. The client has
+       *        already sent the browser to the forbidden page for it
+       *        (API.getForbiddenRoute); there the metadata answers 403
+       *        again, and this shows the Access Denied page
+       *
+       * Anything else (a rate limit, a server error) is an error to show,
+       * not a dashboard that is missing.
+       */
+      if (response.isFailure()) {
+        PublicDashboardUtil.setRequiresMasterPassword(false);
+
+        /*
+         * Access Denied and not found show nothing of the dashboard, its
+         * theme included: they follow the visitor - their own pick, else
+         * their device. An error keeps the theme the page was sent in.
+         */
+        if (response.statusCode === 403 || response.statusCode === 404) {
+          DashboardThemeUtil.setDashboardTheme(UNKNOWN_DASHBOARD_THEME);
+        }
+
+        if (response.statusCode === 403) {
+          setIsForbidden(true);
+        } else if (response.statusCode !== 404) {
+          setError(API.getFriendlyMessage(response));
+        }
+
+        setIsLoading(false);
+        return;
+      }
+
       if (response.data) {
+        /*
+         * How the dashboard looks to visitors, its password prompt included:
+         * the theme its page was sent in, read again here, so the page is
+         * drawn in it even when its server could not read it.
+         */
+        DashboardThemeUtil.setDashboardTheme(
+          parseDashboardTheme(response.data[DASHBOARD_THEME_COLUMN]),
+        );
+
         const name: string = (response.data["name"] as string) || "Dashboard";
         const pageTitle: string =
           (response.data["pageTitle"] as string) || name;
@@ -149,11 +223,16 @@ const App: () => JSX.Element = () => {
 
         setIsPublicDashboard(isPublic);
 
-        if (isPublic && enableMasterPassword) {
-          PublicDashboardUtil.setRequiresMasterPassword(true);
-        } else {
-          PublicDashboardUtil.setRequiresMasterPassword(false);
-        }
+        /*
+         * Whether visitors enter the password first, by the rule the server
+         * enforces and the Sharing page writes (DashboardAccess).
+         */
+        PublicDashboardUtil.setRequiresMasterPassword(
+          isDashboardMasterPasswordRequired({
+            isPublicDashboard: isPublic,
+            enableMasterPassword: enableMasterPassword,
+          }),
+        );
       }
 
       setIsLoading(false);
@@ -167,11 +246,24 @@ const App: () => JSX.Element = () => {
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * On the page's own ground (the body's), so it is the darkest tone on the
+   * dark page, as the dashboard is.
+   */
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center">
         <ErrorMessage message={error} />
       </div>
+    );
+  }
+
+  // The dashboard's IP allowlist does not let this visitor in.
+  if (isForbidden) {
+    return (
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <ForbiddenPage />
+      </Suspense>
     );
   }
 

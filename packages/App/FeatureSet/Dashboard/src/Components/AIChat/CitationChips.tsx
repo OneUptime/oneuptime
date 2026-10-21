@@ -1,6 +1,8 @@
 import { AIChatCitation } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   navigateToCitationTarget,
@@ -19,6 +21,8 @@ export interface ComponentProps {
 const CitationChips: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.citations || props.citations.length === 0) {
     return <></>;
   }
@@ -32,7 +36,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-        Sources
+        {translator.translateText("Sources")}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {props.citations.map((citation: AIChatCitation) => {
@@ -49,7 +53,10 @@ const CitationChips: FunctionComponent<ComponentProps> = (
               disabled={!isNavigable}
               title={
                 isEmpty
-                  ? `${citation.label} — checked, found nothing`
+                  ? translator.translateTemplate(
+                      "{{label}} — checked, found nothing",
+                      { label: citation.label },
+                    )
                   : citation.label
               }
               onClick={() => {
@@ -88,7 +95,12 @@ const CitationChips: FunctionComponent<ComponentProps> = (
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {isEmpty ? "0 rows" : `${citation.rowCount}`}
+                {isEmpty
+                  ? translator.translatePlural(
+                      { one: "{{count}} row", other: "{{count}} rows" },
+                      0,
+                    )
+                  : `${citation.rowCount}`}
               </span>
             </button>
           );

@@ -21,6 +21,10 @@
  */
 
 import ColumnLength from "../../Types/Database/ColumnLength";
+import {
+  TemplateVariable,
+  TemplateVariableGroups,
+} from "../../Types/Template/TemplateVariable";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import { formatDurationCompact } from "./SloDuration";
 
@@ -156,6 +160,26 @@ export const SLO_BURN_RATE_TEMPLATE_VARIABLES: ReadonlyArray<SloBurnRateTemplate
       example: "rolling 30-day window",
     },
   ];
+
+/*
+ * The same catalog as the rule form's template fields offer it: under each
+ * title, description and remediation field, behind the Markdown editor's
+ * Insert variable button, and when "{{" is typed. Each with its example, so
+ * the reader can picture what goes in.
+ */
+export const SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS: TemplateVariableGroups = [
+  {
+    variables: SLO_BURN_RATE_TEMPLATE_VARIABLES.map(
+      (definition: SloBurnRateTemplateVariableDefinition): TemplateVariable => {
+        return {
+          name: definition.key,
+          description: definition.description,
+          example: definition.example,
+        };
+      },
+    ),
+  },
+];
 
 /*
  * The longest template the rule service accepts, shared with the dashboard

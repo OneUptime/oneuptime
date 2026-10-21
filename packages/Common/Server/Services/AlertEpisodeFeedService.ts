@@ -3,6 +3,9 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "../../Types/Workspace/SavedChatMessage";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -11,23 +14,35 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   AlertEpisodeFeedEventType,
 } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelToSkip,
 } from "./WorkspaceNotificationRuleService";
 import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * Feed items are mostly written by OneUptime itself as things happen, naming
+   * the record they are about and crediting whoever did it - someone who may
+   * have left the project since, or an admin from outside it. Refusing one of
+   * those would only lose the item. A feed item written by an API call or a
+   * workflow is checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   @CaptureSpan()
@@ -56,6 +71,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertEpisodeRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -84,11 +101,19 @@ export class Service extends DatabaseService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    /*
+     * A note saved from a Slack or Microsoft Teams message: who wrote it,
+     * in which chat, and when (SavedChatMessage). The row's user is
+     * whoever saved it.
+     */
+    savedFromChatMessage?: SavedChatMessage | undefined;
     workspaceNotification?:
       | {
           notifyUserId?: ObjectID | undefined;
           sendWorkspaceNotification: boolean;
           appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+          // Not posted in this channel: the note came from a message there.
+          exceptChannel?: WorkspaceChannelToSkip | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -136,6 +161,12 @@ export class Service extends DatabaseService<Model> {
       if (data.moreInformationInMarkdown) {
         alertEpisodeFeed.moreInformationInMarkdown =
           data.moreInformationInMarkdown;
+      }
+
+      if (data.savedFromChatMessage) {
+        alertEpisodeFeed.savedFromChatMessage = SavedChatMessageUtil.toJSON(
+          data.savedFromChatMessage,
+        );
       }
 
       await this.create({
@@ -189,6 +220,8 @@ export class Service extends DatabaseService<Model> {
       notifyUserId?: ObjectID | undefined;
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      // Not posted in this channel: the note came from a message there.
+      exceptChannel?: WorkspaceChannelToSkip | undefined;
     };
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(

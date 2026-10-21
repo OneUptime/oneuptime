@@ -9,20 +9,20 @@ import path from "path";
 
 /*
  * Contract under test — the kubectl policy and the kubernetes-agent chart's
- * RBAC agree on what the in-cluster Runner can do unattended.
+ * RBAC agree on what the Kubernetes AI agent can do unattended.
  *
  * A SafeWrite runs with nobody asked on an Automatic cluster. If the policy
- * tiers a command SafeWrite that the chart's RBAC does not allow, the Runner
+ * tiers a command SafeWrite that the chart's RBAC does not allow, the agent
  * runs it unattended, the API server answers Forbidden, and the failure lands
- * on the incident and the cluster's AI page as if the fix had been tried and
- * failed. So every command the policy tiers SafeWrite must be covered by the
- * roles the chart renders; a new SafeWrite kind with no grant fails here.
- * The fix for a failure is normally in the policy (tier it riskier), not in
- * the chart: widening the Runner's write RBAC is a deliberate decision, which
- * the second half of this file pins.
+ * on the incident and the cluster's AI agent page as if the fix had been
+ * tried and failed. So every command the policy tiers SafeWrite must be
+ * covered by the roles the chart renders; a new SafeWrite kind with no grant
+ * fails here. The fix for a failure is normally in the policy (tier it
+ * riskier), not in the chart: widening the agent's write RBAC is a
+ * deliberate decision, which the second half of this file pins.
  *
  * The rules are not copied here. They are read from the arrays
- * tests/ai-runner_test.yaml pins with `equal` against the rendered chart, so
+ * tests/ai-agent_test.yaml pins with `equal` against the rendered chart, so
  * this file and the chart cannot drift apart silently: change the chart and
  * helm-unittest makes you change those arrays, and this test reads the new
  * ones. Each command is mapped to the (apiGroup, resource, verb) requests
@@ -38,11 +38,17 @@ const CHART_TEST_PATH: string = path.join(
   "Public",
   "kubernetes-agent",
   "tests",
-  "ai-runner_test.yaml",
+  "ai-agent_test.yaml",
 );
 // The helm-unittest case that pins all three roles with remediation on.
 const PINNED_TEST_NAME_PREFIX: string =
   "puts the fix verbs in a remediation role";
+/*
+ * Every object the chart renders for the agent is `<fullname>-ai-agent`,
+ * plus `-remediation` / `-node-operations` for the write roles; the prefix
+ * is the release's, so it is stripped before the roles are told apart.
+ */
+const KUBERNETES_AI_AGENT_OBJECT_SUFFIX: string = "ai-agent";
 
 interface RbacRule {
   apiGroups: Array<string>;
@@ -70,6 +76,8 @@ interface PinnedRoles {
   read: Array<RbacRule>;
   remediation: Array<RbacRule>;
   nodeOperations: Array<RbacRule>;
+  // The rendered names of the roles whose rules were read, by index.
+  names: Array<string>;
 }
 
 function readPinnedRoles(): PinnedRoles {
@@ -84,7 +92,7 @@ function readPinnedRoles(): PinnedRoles {
 
   if (!test) {
     throw new Error(
-      `tests/ai-runner_test.yaml has no case starting "${PINNED_TEST_NAME_PREFIX}"`,
+      `tests/ai-agent_test.yaml has no case starting "${PINNED_TEST_NAME_PREFIX}"`,
     );
   }
 
@@ -116,20 +124,28 @@ function readPinnedRoles(): PinnedRoles {
     Array<RbacRule>
   >();
 
+  const names: Array<string> = [];
+
   for (const [index, rules] of rulesByIndex) {
     const name: string | undefined = namesByIndex.get(index);
 
     if (name) {
-      rolesBySuffix.set(name.replace(/^.*-ai-runner/, "ai-runner"), rules);
+      names.push(name);
+      rolesBySuffix.set(
+        name.replace(/^.*-ai-agent/, KUBERNETES_AI_AGENT_OBJECT_SUFFIX),
+        rules,
+      );
     }
   }
 
-  const read: Array<RbacRule> | undefined = rolesBySuffix.get("ai-runner");
+  const read: Array<RbacRule> | undefined = rolesBySuffix.get(
+    KUBERNETES_AI_AGENT_OBJECT_SUFFIX,
+  );
   const remediation: Array<RbacRule> | undefined = rolesBySuffix.get(
-    "ai-runner-remediation",
+    `${KUBERNETES_AI_AGENT_OBJECT_SUFFIX}-remediation`,
   );
   const nodeOperations: Array<RbacRule> | undefined = rolesBySuffix.get(
-    "ai-runner-node-operations",
+    `${KUBERNETES_AI_AGENT_OBJECT_SUFFIX}-node-operations`,
   );
 
   if (!read || !remediation || !nodeOperations) {
@@ -138,7 +154,7 @@ function readPinnedRoles(): PinnedRoles {
     );
   }
 
-  return { read, remediation, nodeOperations };
+  return { read, remediation, nodeOperations, names };
 }
 
 function isAllowed(rules: Array<RbacRule>, request: ApiRequest): boolean {
@@ -357,7 +373,7 @@ const GRANTED_FIXES: Array<Candidate> = [
 
 /*
  * Writes the chart deliberately does not grant. The policy may still let a
- * human approve them for an external Runner whose credential allows them;
+ * human approve them for an advanced Runner whose credential allows them;
  * in-cluster they fail Forbidden, which is why none of them may be
  * SafeWrite (checked above) and why the docs say so.
  */
@@ -599,6 +615,18 @@ describe("KubectlPolicy against the kubernetes-agent chart's RBAC", () => {
       });
   }
 
+  it("reads the Kubernetes AI agent's roles, as the chart names them", () => {
+    /*
+     * The pinned case renders release `oneuptime-agent`; the agent's
+     * objects are `<fullname>-ai-agent[-remediation|-node-operations]`.
+     */
+    expect(roles.names).toEqual([
+      "oneuptime-agent-kubernetes-agent-ai-agent",
+      "oneuptime-agent-kubernetes-agent-ai-agent-remediation",
+      "oneuptime-agent-kubernetes-agent-ai-agent-node-operations",
+    ]);
+  });
+
   it("reads the three roles the chart test pins", () => {
     expect(roles.read.length).toBeGreaterThan(0);
     expect(roles.remediation.length).toBeGreaterThan(0);
@@ -680,7 +708,7 @@ describe("KubectlPolicy against the kubernetes-agent chart's RBAC", () => {
     }
   });
 
-  it("does not grant writes outside the workload kinds, so widening the Runner's RBAC stays a deliberate change", () => {
+  it("does not grant writes outside the workload kinds, so widening the agent's RBAC stays a deliberate change", () => {
     for (const candidate of NOT_GRANTED) {
       expect({
         command: candidate.command,
@@ -693,7 +721,7 @@ describe("KubectlPolicy against the kubernetes-agent chart's RBAC", () => {
     /*
      * Bound per namespace, a nodes rule would do nothing (nodes are
      * cluster-scoped) — and bound cluster-wide it would ignore
-     * aiAccess.remediation.nodeOperations.
+     * aiAgent.remediation.nodeOperations.
      */
     expect(isAllowed(roles.remediation, request("node", "patch"))).toBe(false);
     expect(

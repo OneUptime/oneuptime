@@ -1,4 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
+import ServiceLevelObjective from "../DatabaseModels/ServiceLevelObjective";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -12,10 +14,12 @@ import Permission from "../../Types/Permission";
  * by the SLO evaluation worker and read by dashboard charts through this
  * model's auto-generated `/aggregate` endpoint.
  *
- * Why a dedicated table (and NOT MetricItemV3): MetricItemV3 partitions
- * by `toYYYYMMDD(time)` with `ttl_only_drop_parts = 1`, so a single
- * 400-day SLO row per day would pin every daily raw-telemetry partition
- * for 400 days. This table owns its retention (monthly partitions,
+ * Why a dedicated table (and NOT MetricItemV3): MetricItemV3 is the
+ * high-volume raw telemetry table, partitioned by `toYYYYMMDD(time)`, so
+ * a 400-day SLO row per day would keep a part alive in every daily
+ * partition for 400 days (and, while that table set
+ * `ttl_only_drop_parts = 1`, the whole partition with it). This table
+ * owns its retention (monthly partitions,
  * `bucketStart + INTERVAL 400 DAY` TTL) so history rows never interfere
  * with telemetry retention — and SLO rows stay out of telemetry usage
  * billing entirely.
@@ -48,6 +52,13 @@ import Permission from "../../Types/Permission";
  * reserved for event-based (Metric) SLIs, which the worker does not
  * evaluate yet; nothing writes or reads them.
  */
+/*
+ * An SLO's history is read through its SLO: a caller whose grants are
+ * limited to labels or to owned SLOs reads the history of the SLOs those
+ * reach, and a block with labels takes away the history of the SLOs
+ * carrying them (ModelPermission.getReadScope).
+ */
+@OwnedThrough("sloId", ServiceLevelObjective, { onlyParentModels: true })
 export default class SloHistory extends AnalyticsBaseModel {
   public constructor() {
     const readPermissions: Array<Permission> = [

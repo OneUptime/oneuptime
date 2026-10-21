@@ -63,11 +63,15 @@ docker compose up -d
 
 ## Collected Metrics
 
-- **CPU**: `container.cpu.usage.total`, `container.cpu.percent`, `container.cpu.throttling_data.throttled_time`
+- **CPU**: `container.cpu.usage.total`, `container.cpu.utilization`, `container.cpu.throttling_data.throttled_time`
 - **Memory**: `container.memory.usage.total`, `container.memory.usage.limit`, `container.memory.percent`
 - **Network**: `container.network.io.usage.rx_bytes`, `container.network.io.usage.tx_bytes`
 - **Block I/O**: `container.blockio.io_service_bytes_recursive.read`, `container.blockio.io_service_bytes_recursive.write`
 - **Container Info**: `container.uptime`, `container.restarts`, `container.pids.count`
+
+`container.cpu.utilization` is the CPU a container used over each 30-second collection interval, as a percent of one core: 100% is one full core, so a container busy on two cores reads 200%, as `docker stats` counts it. The agent works it out from `container.cpu.usage.total` (see `otel-collector-config.yaml`), so the two always agree. A container has no CPU percent at its first reading after the agent or the container starts. The `docker_stats` receiver's own CPU percent is turned off: since collector 0.150.0 it comes from a single stats reading and is a flat line that does not follow the load.
+
+`container.memory.percent` is the memory in use as a percent of the container's memory limit, or of the host's memory when it has none, sent with the unit `%`.
 
 ## Collected Logs
 
@@ -115,6 +119,33 @@ services:
 ```
 
 Then restart Docker and recreate (not just restart) the affected containers — the log driver is baked in at container create time, so an existing container will keep its old driver until it is removed and recreated.
+
+## AI agent
+
+`install.sh` and `docker-compose.yml` also run the **OneUptime AI agent** for this host: a second container, `oneuptime-docker-ai-agent` (image `oneuptime/resource-ai-agent`), that runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert here. It shares the collector's settings (`ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`), so it serves exactly the host the collector reports, and it appears on the host's **AI → AI agent** page in OneUptime.
+
+- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream`, never `exec`, `run`, `rm`, `prune` or docker's global flags (`-H`, `--context`). Environment values in `docker inspect` output are masked before anything leaves the host.
+- **Fixes are opt-in.** Set `ONEUPTIME_AI_ALLOW_WRITES=true` (in `.env`, or re-run `install.sh` with it) to let it restart, start, stop, pause, kill or change the limits of a named container. `ONEUPTIME_AI_FIXES` beside it says whether each fix needs approval (`ask-for-approval`, `automatic` or `bypass-approval`), and the host's AI agent page in OneUptime shows it, read-only. `ONEUPTIME_AI_WRITE_TARGETS` (comma-separated globs such as `web-*,api-*`) limits which containers; `ONEUPTIME_AI_PROTECTED_TARGETS` adds containers it must never change. It never changes itself or the collector.
+- It runs as root because the Docker socket is root-owned. The socket's `:ro` mount does not make the Docker API read-only; the agent's command policy is the limit.
+- To leave it out: `install.sh --no-ai-agent` (or `ONEUPTIME_INSTALL_AI_AGENT=false`), or delete the `oneuptime-docker-ai-agent` service from `docker-compose.yml`. To remove it later: `docker rm -f oneuptime-docker-ai-agent`.
+
+Without the installer:
+
+```bash
+docker run -d \
+  --name oneuptime-docker-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e ONEUPTIME_URL="https://oneuptime.com" \
+  -e ONEUPTIME_SERVICE_TOKEN="your-service-token" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+Logs: `docker logs -f oneuptime-docker-ai-agent`. Every setting is described in the [resource AI agent README](../ResourceAIAgent/README.md).
 
 ## Upgrading
 
@@ -230,6 +261,7 @@ docker ps --filter name=oneuptime-docker-agent
 # View agent logs
 docker logs -f oneuptime-docker-agent
 
-# Verify Docker socket access
-docker exec oneuptime-docker-agent ls -la /var/run/docker.sock
+# Verify Docker socket access — the agent image has no shell, so look from a
+# throwaway container that shares its mounts
+docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 ls -la /var/run/docker.sock
 ```

@@ -1,17 +1,14 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
+import ColumnRefusalMessage from "./ColumnRefusalMessage";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Columns from "../../../../Types/Database/Columns";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import { PermissionHelper, UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectPermission {
@@ -23,16 +20,10 @@ export default class SelectPermission {
   ): void {
     const model: BaseModel = new modelType();
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns =
       ColumnPermissions.getModelColumnsByPermissions(
         modelType,
-        userPermissions || [],
+        ColumnPermissions.getColumnCheckRows(props),
         DatabaseRequestType.Read,
       );
 
@@ -57,13 +48,12 @@ export default class SelectPermission {
           );
         }
 
+        // Who may read it, or that nobody may (ColumnRefusalMessage).
         throw new NotAuthorizedException(
-          `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                      model.getColumnAccessControlFor(key)
-                        ? model.getColumnAccessControlFor(key)!.read
-                        : [],
-                    ).join(", ")}`,
+          ColumnRefusalMessage.getSelectRefusal({
+            column: key,
+            permissions: model.getColumnAccessControlFor(key)?.read || [],
+          }),
         );
       }
     }

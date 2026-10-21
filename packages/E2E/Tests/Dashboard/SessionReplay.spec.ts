@@ -142,7 +142,6 @@ test.describe("Session Replay", () => {
     await createRumApplication({
       page,
       projectId,
-      name: appIdentifier,
       appIdentifier: appIdentifier,
     });
 
@@ -1098,7 +1097,6 @@ test.describe("Session Replay", () => {
     await createRumApplication({
       page,
       projectId,
-      name: appIdentifier,
       appIdentifier: appIdentifier,
     });
 
@@ -1259,7 +1257,6 @@ test.describe("Session Replay", () => {
     await createRumApplication({
       page,
       projectId,
-      name: quietIdentifier,
       appIdentifier: quietIdentifier,
     });
 
@@ -1380,7 +1377,6 @@ test.describe("Session Replay", () => {
     await createRumApplication({
       page,
       projectId,
-      name: appIdentifier,
       appIdentifier: appIdentifier,
     });
 

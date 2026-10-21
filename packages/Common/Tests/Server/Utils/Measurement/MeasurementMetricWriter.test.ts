@@ -198,6 +198,92 @@ describe("MeasurementMetricWriter.write builds mutable metrics", () => {
   });
 });
 
+/*
+ * A chart labels a point with the metric's unit, so the point has to be in
+ * it. The writer used to write seconds whatever the unit said: a
+ * measurement in minutes charted 5,400 minutes for an hour and a half.
+ */
+describe("MeasurementMetricWriter.write writes each value in its measurement's unit", () => {
+  type WrittenFunction = (unit: string | undefined) => Promise<{
+    value: number | undefined;
+    unit: string | undefined;
+  }>;
+
+  const written: WrittenFunction = async (
+    unit: string | undefined,
+  ): Promise<{ value: number | undefined; unit: string | undefined }> => {
+    replaceEntityMetricsMock.mockClear();
+    indexMetricNameServiceNameMapMock.mockClear();
+
+    await MeasurementMetricWriter.write({
+      projectId: PROJECT_ID,
+      primaryEntityId: ENTITY_ID,
+      primaryEntityType: ServiceType.Incident,
+      allMeasurementMetricNames: ["oneuptime.incident.measurement.ttr"],
+      points: [
+        point({
+          metricName: "oneuptime.incident.measurement.ttr",
+          valueInSeconds: 5400,
+          unit: unit,
+        }),
+      ],
+      baseAttributes: {},
+    });
+
+    const metric: MutableMetric = (
+      lastReplaceCall()["metrics"] as Array<MutableMetric>
+    )[0]!;
+    const map: Record<string, { unit?: string }> = (
+      indexMetricNameServiceNameMapMock.mock.calls[0]![0] as Record<
+        string,
+        unknown
+      >
+    )["metricNameServiceNameMap"] as Record<string, { unit?: string }>;
+
+    return {
+      value: metric.value as number | undefined,
+      unit: map["oneuptime.incident.measurement.ttr"]!.unit,
+    };
+  };
+
+  test.each([
+    [undefined, 5400, "seconds"],
+    ["seconds", 5400, "seconds"],
+    ["minutes", 90, "minutes"],
+    ["hours", 1.5, "hours"],
+    ["days", 5400 / 86400, "days"],
+  ])(
+    "a measurement in %p writes %p, registered as %p",
+    async (
+      unit: string | undefined,
+      expectedValue: number,
+      expectedUnit: string,
+    ) => {
+      const result: { value: number | undefined; unit: string | undefined } =
+        await written(unit);
+
+      expect(result.value).toBeCloseTo(expectedValue, 10);
+      expect(result.unit).toBe(expectedUnit);
+    },
+  );
+
+  test("a unit typed by hand is read as the unit it spells", async () => {
+    const result: { value: number | undefined; unit: string | undefined } =
+      await written("Mins");
+
+    expect(result.value).toBe(90);
+    expect(result.unit).toBe("minutes");
+  });
+
+  test("a unit nobody can read as a time unit charts the seconds the value really is", async () => {
+    const result: { value: number | undefined; unit: string | undefined } =
+      await written("widgets");
+
+    expect(result.value).toBe(5400);
+    expect(result.unit).toBe("seconds");
+  });
+});
+
 describe("MeasurementMetricWriter.write tombstone scope invariant", () => {
   test("replace is scoped to ALL measurement names, not just the points written", async () => {
     /*

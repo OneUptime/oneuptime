@@ -147,18 +147,101 @@ test("keeps password sign-in first and offers passkeys as a credential-free alte
   expect(buttons.indexOf("Sign In")).toBeLessThan(
     buttons.indexOf("Sign in with a passkey"),
   );
-  expect(screen.getByText("Other ways to sign in")).toBeTruthy();
+  expect(screen.getByText("or")).toBeTruthy();
+  expect(screen.queryByText("Other ways to sign in")).toBeNull();
   const disclosure: () => ReturnType<typeof screen.getByRole> = () => {
     return screen.getByRole("button", { name: "New to passkeys?" });
   };
   expect(disclosure().props.accessibilityState.expanded).toBe(false);
   await fireEvent.press(screen.getByText("New to passkeys?"));
   expect(disclosure().props.accessibilityState.expanded).toBe(true);
-  expect(screen.getByText(/In your profile, open Passkeys/)).toBeTruthy();
+  expect(
+    screen.getByText(
+      /then open User Profile → Security → Passkeys to add a passkey\./,
+    ),
+  ).toBeTruthy();
+  expect(screen.queryByText(/Two Factor Auth/)).toBeNull();
   await fireEvent.press(screen.getByTestId("passkey-sign-in"));
   expect(mockLoginWithPasskey).toHaveBeenCalledTimes(1);
   expect(mockLogin).not.toHaveBeenCalled();
   expect(screen.queryByText("Email and password are required.")).toBeNull();
+});
+
+/*
+ * The other ways in, under "or", in the order and words of the web sign-in
+ * page: single sign-on, then a passkey, last, so that what a passkey attempt
+ * says, and "New to passkeys?", sit right under the passkey button.
+ */
+describe("the other ways to sign in", () => {
+  function buttonLabels(): Array<string> {
+    return screen
+      .getAllByRole("button")
+      .map((button: ReturnType<typeof screen.getByRole>): string => {
+        return button.props.accessibilityLabel as string;
+      });
+  }
+
+  test("under 'or': Sign in with SSO, then Sign in with a passkey, then 'New to passkeys?'", async () => {
+    await show();
+    const labels: Array<string> = buttonLabels();
+    const signIn: number = labels.indexOf("Sign In");
+    const sso: number = labels.indexOf("Sign in with SSO");
+    const passkey: number = labels.indexOf("Sign in with a passkey");
+    const help: number = labels.indexOf("New to passkeys?");
+
+    expect(signIn).toBeGreaterThanOrEqual(0);
+    expect(sso).toBeGreaterThan(signIn);
+    expect(passkey).toBeGreaterThan(sso);
+    expect(help).toBeGreaterThan(passkey);
+    // The divider's word, and nothing else, between them and the form.
+    expect(screen.getByText("or")).toBeTruthy();
+  });
+
+  test("both are buttons in the alternatives group, single sign-on first", async () => {
+    await show();
+    const group: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "alternative-sign-in",
+    );
+    const inGroup: Array<string> = within(group)
+      .getAllByRole("button")
+      .map((button: ReturnType<typeof screen.getByRole>): string => {
+        return button.props.accessibilityLabel as string;
+      });
+
+    expect(inGroup).toEqual(["Sign in with SSO", "Sign in with a passkey"]);
+    expect(within(group).getByTestId("sso-sign-in")).toBeTruthy();
+    expect(within(group).getByTestId("passkey-sign-in")).toBeTruthy();
+  });
+
+  test("a canceled attempt's notice sits under the passkey button, not between the two options", async () => {
+    mockLoginWithPasskey.mockResolvedValue(null);
+    await show();
+    await fireEvent.press(screen.getByTestId("passkey-sign-in"));
+    await screen.findByText(/Passkey sign-in canceled/);
+
+    const group: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "alternative-sign-in",
+    );
+    const order: Array<string> = within(group)
+      .getAllByText(
+        /Sign in with SSO|Try passkey again|Passkey sign-in canceled/,
+      )
+      .map((node: ReturnType<typeof screen.getByText>): string => {
+        return String(node.props.children);
+      });
+
+    expect(order[0]).toBe("Sign in with SSO");
+    expect(order[1]).toBe("Try passkey again");
+    expect(order[2]).toContain("Passkey sign-in canceled");
+  });
+
+  test("single sign-on opens the SSO screen", async () => {
+    await show();
+    await fireEvent.press(screen.getByTestId("sso-sign-in"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("SSOLogin");
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
+  });
 });
 
 test("announces preparation, browser prompt and verification without ambiguous spinners", async () => {

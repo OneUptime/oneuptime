@@ -7,12 +7,18 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
-import { FormType, ModelField } from "../Forms/ModelForm";
+import {
+  FormType,
+  ModelField,
+  ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
+} from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, {
   BaseTableProps,
   BulkActionProps,
   ModalType,
+  translateCreateAction,
 } from "./BaseModelTable";
 import {
   BulkActionButtonSchema,
@@ -30,7 +36,33 @@ import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  translatableTerm,
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
+
+/*
+ * The create dialog's title. A table's own verb ("Add", "Invite") gets its
+ * own phrase, so a locale can word each one; an unlisted verb goes through
+ * the verb-and-noun template.
+ */
+const CREATE_NEW_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add New {{itemName}}"),
+  // Connecting another product makes nothing new: "Connect vCenter".
+  Connect: translationKey("Connect {{itemName}}"),
+  Create: translationKey("Create New {{itemName}}"),
+  Declare: translationKey("Declare New {{itemName}}"),
+  Invite: translationKey("Invite New {{itemName}}"),
+  Link: translationKey("Link New {{itemName}}"),
+};
+
+const CREATE_NEW_TEMPLATE: string = translationKey(
+  "{{action}} New {{itemName}}",
+);
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
@@ -39,11 +71,20 @@ import {
   getRuleCriteriaTableConfiguration,
   RuleCriteriaTableConfiguration,
 } from "../RuleCriteria/RuleCriteriaModelTable";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   enableJsonImportExport?: boolean | undefined;
+  /*
+   * What a table of rules about several kinds of record holds - the AI and
+   * runbook rules, one table per kind (RuleCriteriaSubject): its form asks
+   * "All incidents" or "Only incidents that match conditions", and a rule
+   * with no conditions reads "All incidents" in its Match Criteria column.
+   * Every other rule table is named by its model.
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 const ModelTable: <TBaseModel extends BaseModel>(
@@ -53,6 +94,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
@@ -135,6 +177,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
       filters: props.filters,
       selectMoreFields: props.selectMoreFields,
       helpContent: props.helpContent,
+      subject: props.ruleCriteriaSubject,
     });
 
   if (props.enableJsonImportExport) {
@@ -260,32 +303,41 @@ const ModelTable: <TBaseModel extends BaseModel>(
           showCreateEditModal: (data: {
             modalType: ModalType;
             modelIdToEdit?: ObjectID | undefined;
-            onBeforeCreate?:
-              | ((
-                  item: TBaseModel,
-                  miscDataProps: JSONObject,
-                ) => Promise<TBaseModel>)
-              | undefined;
+            onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+            onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
+            existingItems?: Array<TBaseModel> | undefined;
           }): ReactElement => {
             const {
               modalType,
               modelIdToEdit,
               onBeforeCreate,
+              onBeforeUpdate,
               onSuccess,
               onClose,
+              existingItems,
             } = data;
 
             return (
               <ModelFormModal<TBaseModel>
                 modelAPI={props.modelAPI}
                 title={
-                  modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} New ${
-                        props.singularName || model.singularName
-                      }`
-                    : `Edit ${props.singularName || model.singularName}`
+                  modalType === ModalType.Create && props.createFormTitle
+                    ? props.createFormTitle
+                    : translateNamedAction(translator, {
+                        template:
+                          modalType === ModalType.Create
+                            ? CREATE_NEW_TEMPLATES[
+                                props.createVerb || "Create"
+                              ] || CREATE_NEW_TEMPLATE
+                            : "Edit {{itemName}}",
+                        itemName:
+                          props.singularName || model.singularName || "",
+                        values: {
+                          action: translatableTerm(props.createVerb || ""),
+                        },
+                      })
                 }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
@@ -306,13 +358,17 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 onClose={onClose}
                 submitButtonText={
                   modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} ${
-                        props.singularName || model.singularName
-                      }`
+                    ? props.createFormSubmitButtonText ||
+                      translateCreateAction(translator, {
+                        verb: props.createVerb,
+                        itemName:
+                          props.singularName || model.singularName || "",
+                      })
                     : `Save Changes`
                 }
                 onSuccess={onSuccess}
                 onBeforeCreate={onBeforeCreate}
+                onBeforeUpdate={onBeforeUpdate}
                 modelType={props.modelType}
                 formProps={{
                   summary: props.formSummary,
@@ -346,6 +402,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     modalType === ModalType.Create
                       ? FormType.Create
                       : FormType.Update,
+                  // A colour picked for a new row is one no row uses yet.
+                  existingItems:
+                    modalType === ModalType.Create ? existingItems : undefined,
+                  ruleCriteriaSubject: props.ruleCriteriaSubject,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />

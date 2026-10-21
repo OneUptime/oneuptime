@@ -15,6 +15,7 @@ import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
@@ -460,6 +461,34 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: false,
   })
   public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
+  /*
+   * The numbers SMS go out from, as on a project's Twilio config
+   * (ProjectCallSMSConfig): for numbers that can only make calls - in
+   * Singapore, national numbers are voice-only and SMS need a mobile number.
+   * Once set, every SMS goes out from one of them: the one in the
+   * recipient's country, or else the first. Empty - as on every
+   * installation before them - SMS go out from the numbers calls do
+   * (Types/CallAndSMS/TwilioPhoneNumbers).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio SMS Phone Numbers",
+    description:
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
   @ColumnAccessControl({
     create: [],
@@ -973,6 +1002,141 @@ export default class GlobalConfig extends GlobalConfigModel {
   public enterpriseEditionFirstSeenAt?: Date = undefined;
 
   /*
+   * How a self-hosted Enterprise installation bought on a cloud marketplace
+   * bills its users there, by the user-hour: the hourly reports the
+   * marketplace has not taken yet, the last one it took, and when it last
+   * confirmed (or refused) the subscription. An accepted report is what
+   * licenses such an installation without a license key, so this is a
+   * license column (GlobalConfigService.ROOT_ONLY_LICENSE_COLUMNS), written
+   * only by the Enterprise Edition's usage job (isRoot). The shape is
+   * Types/EnterpriseLicense/EnterpriseMarketplaceBilling.ts.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Enterprise Marketplace Billing",
+    description:
+      "How this self-hosted Enterprise installation bills its users through the cloud marketplace it was bought on: the hourly reports not taken yet, the last one taken, and when the marketplace last confirmed or refused the subscription.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public enterpriseMarketplaceBilling?: JSONObject = undefined;
+
+  /*
+   * The installation's own branding: the name it goes by and its logos, in
+   * place of OneUptime's (Types/Branding/ProductBranding.ts). Written and read
+   * only by OneUptime itself - the enterprise module, which decides whether
+   * they apply - never through the generic API (GlobalConfigService,
+   * ROOT_ONLY_BRANDING_COLUMNS). Null keeps OneUptime's own. Each image is a
+   * data: URL, checked before it is stored, and served from its own route,
+   * so no File row and no file id is involved.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Branding Product Name",
+    description: "The name this installation goes by.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public brandingProductName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Branding Website URL",
+    description: "Where a 'Powered by' line links to.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public brandingWebsiteUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Logo",
+    description: "The logo for light backgrounds, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingLogo?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Dark Logo",
+    description: "The logo for dark backgrounds, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingDarkLogo?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Favicon",
+    description: "The browser tab icon, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingFavicon?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Branding Updated At",
+    description:
+      "When the branding last changed. Part of every branding image's address, so browsers and mail clients fetch a changed image again.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public brandingUpdatedAt?: Date = undefined;
+
+  /*
    * The four latestRelease* columns cache the daily GitHub release check
    * (Workers/Jobs/InstanceUpdate/CheckForNewVersion). They are a cache, not
    * configuration: an air-gapped installation simply leaves them null and no
@@ -1056,7 +1220,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Number,
     title: "Monitor Metric Retention Days",
     description:
-      "Number of days to retain monitor metrics and the oneuptime.slo.* metrics SLO evaluations post. Metrics older than this will be automatically deleted. Default is 30 days.",
+      "Number of days to retain monitor metrics, the oneuptime.slo.* metrics SLO evaluations post and the oneuptime.rum.session.replay.budget.* metrics the session replay budget sweep posts. Metrics older than this will be automatically deleted. Default is 30 days.",
   })
   @Column({
     type: ColumnType.Number,

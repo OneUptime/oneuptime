@@ -3,6 +3,7 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { StateListType } from "Common/Utils/StateOrder";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -42,18 +43,42 @@ import {
 const CREATED: EpisodeTimingState = {
   id: "created",
   name: "Created",
+  order: 1,
 };
 
 const ACKNOWLEDGED: EpisodeTimingState = {
   id: "acknowledged",
   name: "Acknowledged",
+  order: 2,
   isAcknowledgedState: true,
 };
 
 const RESOLVED: EpisodeTimingState = {
   id: "resolved",
   name: "Resolved",
+  order: 3,
   isResolvedState: true,
+};
+
+/*
+ * A state of the project's own placed after Resolved, without the flag: an
+ * episode in it is resolved all the same (Common/Utils/ResolvedState).
+ */
+const CLOSED: EpisodeTimingState = {
+  id: "closed",
+  name: "Closed",
+  order: 4,
+};
+
+/*
+ * A state of the project's own placed between Acknowledged and Resolved,
+ * without a flag: an episode in it is acknowledged all the same
+ * (Common/Utils/AcknowledgedState).
+ */
+const INVESTIGATING: EpisodeTimingState = {
+  id: "investigating",
+  name: "Investigating",
+  order: 2.5,
 };
 
 const STATES: Array<EpisodeTimingState> = [CREATED, ACKNOWLEDGED, RESOLVED];
@@ -69,6 +94,7 @@ const at: AtFunction = (minutes: number): Date => {
 describe("getEpisodeTiming", () => {
   test("measures acknowledge and resolve from the episode start, not the first timeline entry", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -86,8 +112,97 @@ describe("getEpisodeTiming", () => {
     expect(timing.isResolved).toBe(true);
   });
 
+  test("an episode moved on from Resolved into a state after it stays resolved, and ended when it was resolved", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: [...STATES, CLOSED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(10) },
+        { stateId: RESOLVED.id, startsAt: at(60) },
+        { stateId: CLOSED.id, startsAt: at(90) },
+      ],
+    });
+
+    expect(timing.isResolved).toBe(true);
+    expect(timing.durationEndsAt).toEqual(at(60));
+    expect(timing.timeToResolve).toBe("1 hour");
+  });
+
+  test("an episode moved straight into a state after Resolved is resolved, from then", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: [...STATES, CLOSED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: CLOSED.id, startsAt: at(45) },
+      ],
+    });
+
+    expect(timing.isResolved).toBe(true);
+    expect(timing.durationEndsAt).toEqual(at(45));
+    expect(timing.timeToResolve).toBe("45 minutes");
+  });
+
+  /*
+   * A state of the project's own placed between Acknowledged and Resolved
+   * counts as acknowledged (Common/Utils/AcknowledgedState): an episode
+   * moved straight into it was acknowledged then. Reading the acknowledged
+   * state alone said "Not yet acknowledged" until it was resolved.
+   */
+  test("an episode moved straight into a state after Acknowledged was acknowledged then", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: [CREATED, ACKNOWLEDGED, INVESTIGATING, RESOLVED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: INVESTIGATING.id, startsAt: at(9) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("9 minutes");
+    expect(timing.timeToResolve).toBe("Not yet resolved");
+    expect(timing.isResolved).toBe(false);
+  });
+
+  test("moving on from Acknowledged to a state after it keeps the first acknowledgement", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.AlertState,
+      startedAt: START,
+      states: [CREATED, ACKNOWLEDGED, INVESTIGATING, RESOLVED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(4) },
+        { stateId: INVESTIGATING.id, startsAt: at(20) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("4 minutes");
+  });
+
+  test("a resolution before the first acknowledgement is the first response", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: STATES,
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: RESOLVED.id, startsAt: at(15) },
+        { stateId: CREATED.id, startsAt: at(30) },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(50) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("15 minutes");
+    expect(timing.timeToResolve).toBe("15 minutes");
+  });
+
   test("uses the state names the project configured", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: [
         { id: "a", name: "Triaged", isAcknowledgedState: true },
@@ -104,6 +219,7 @@ describe("getEpisodeTiming", () => {
 
   test("falls back to generic names when no state is flagged", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: [CREATED],
       timelines: [{ stateId: CREATED.id, startsAt: START }],
@@ -119,6 +235,7 @@ describe("getEpisodeTiming", () => {
 
   test("an episode resolved without acknowledgement was acknowledged when it resolved", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -133,6 +250,7 @@ describe("getEpisodeTiming", () => {
 
   test("uses the FIRST acknowledge and resolve, so reopening does not rewrite them", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -152,6 +270,7 @@ describe("getEpisodeTiming", () => {
 
   test("a reopened episode keeps its duration running", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       resolvedAt: at(20),
       states: STATES,
@@ -169,6 +288,7 @@ describe("getEpisodeTiming", () => {
 
   test("sorts timelines that arrive out of order", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -184,6 +304,7 @@ describe("getEpisodeTiming", () => {
 
   test("ignores timeline entries without a date", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -200,6 +321,7 @@ describe("getEpisodeTiming", () => {
 
   test("never measures from now when the start is unknown", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: undefined,
       states: STATES,
       timelines: [
@@ -215,6 +337,7 @@ describe("getEpisodeTiming", () => {
 
   test("still says 'Not yet' without a start date", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: undefined,
       states: STATES,
       timelines: [],
@@ -226,6 +349,7 @@ describe("getEpisodeTiming", () => {
 
   test("uses resolvedAt only when no timeline could be read", () => {
     const withoutTimeline: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       resolvedAt: at(33),
       states: STATES,
@@ -236,6 +360,7 @@ describe("getEpisodeTiming", () => {
     expect(withoutTimeline.isResolved).toBe(true);
 
     const withTimeline: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       resolvedAt: at(33),
       states: STATES,
@@ -247,6 +372,7 @@ describe("getEpisodeTiming", () => {
 
   test("less than a minute reads naturally", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: STATES,
       timelines: [
@@ -262,6 +388,7 @@ describe("getEpisodeTiming", () => {
 
   test("ignores states without an id", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
       startedAt: START,
       states: [
         { id: "", name: "Ghost", isAcknowledgedState: true },
@@ -281,7 +408,12 @@ describe("getEpisodeTiming", () => {
       { stateId: CREATED.id, startsAt: START },
     ];
 
-    getEpisodeTiming({ startedAt: START, states: STATES, timelines });
+    getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: STATES,
+      timelines,
+    });
 
     expect(timelines[0]!.stateId).toBe(RESOLVED.id);
     expect(timelines[1]!.stateId).toBe(CREATED.id);
@@ -355,7 +487,7 @@ describe("episode feed icons", () => {
     ).toBe(IconProp.EyeSlash);
   });
 
-  test("keeps the icons the feeds already used", () => {
+  test("an episode opens with its own icon, and a member shows the icon its own feed opens with", () => {
     expect(
       getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.EpisodeCreated),
     ).toBe(IconProp.Layers);
@@ -364,9 +496,18 @@ describe("episode feed icons", () => {
         IncidentEpisodeFeedEventType.EpisodeStateChanged,
       ),
     ).toBe(IconProp.ArrowCircleRight);
+    expect(
+      getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.IncidentAdded),
+    ).toBe(IconProp.Flag);
+    expect(
+      getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.IncidentRemoved),
+    ).toBe(IconProp.Flag);
     expect(getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.AlertAdded)).toBe(
-      IconProp.Alert,
+      IconProp.BellAlert,
     );
+    expect(
+      getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.AlertRemoved),
+    ).toBe(IconProp.BellAlert);
     expect(
       getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.SeverityChanged),
     ).toBe(IconProp.ExclaimationCircle);

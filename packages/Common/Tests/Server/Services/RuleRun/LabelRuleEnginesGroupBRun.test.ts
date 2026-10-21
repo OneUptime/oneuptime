@@ -7,6 +7,9 @@ import IncidentEpisodeLabelRuleEngineService from "../../../../Server/Services/I
 import IncidentEpisodeLabelRuleService from "../../../../Server/Services/IncidentEpisodeLabelRuleService";
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
 import LabelService from "../../../../Server/Services/LabelService";
+import MessageQueueLabelRuleEngineService from "../../../../Server/Services/MessageQueueLabelRuleEngineService";
+import MessageQueueLabelRuleService from "../../../../Server/Services/MessageQueueLabelRuleService";
+import MessageQueueService from "../../../../Server/Services/MessageQueueService";
 import PodmanHostFeedService from "../../../../Server/Services/PodmanHostFeedService";
 import PodmanHostLabelRuleEngineService from "../../../../Server/Services/PodmanHostLabelRuleEngineService";
 import PodmanHostLabelRuleService from "../../../../Server/Services/PodmanHostLabelRuleService";
@@ -53,6 +56,8 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeLabelRule from "../../../../Models/DatabaseModels/IncidentEpisodeLabelRule";
 import Label from "../../../../Models/DatabaseModels/Label";
+import MessageQueue from "../../../../Models/DatabaseModels/MessageQueue";
+import MessageQueueLabelRule from "../../../../Models/DatabaseModels/MessageQueueLabelRule";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import PodmanHostLabelRule from "../../../../Models/DatabaseModels/PodmanHostLabelRule";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
@@ -81,6 +86,16 @@ import RuleCriteria, {
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
+
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - "Run now" for the second group of label rule engines.
@@ -182,6 +197,11 @@ interface LabelEngineCase {
   severity: SeverityFields | null;
   expectedRuleSelect: Record<string, unknown>;
   expectedResourceSelect: Record<string, unknown>;
+  /*
+   * What a re-reading engine reads back, when it matches on more than
+   * the name, description and labels (a queue's messaging system).
+   */
+  reReadSelect?: Record<string, unknown> | undefined;
   // Mocks the feed write (and anything it reads) and returns the write spy.
   mockFeed: (() => jest.SpyInstance) | null;
   feedResourceIdKey: string | null;
@@ -235,7 +255,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(PodmanHostService, "getPodmanHostMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(PodmanHostFeedService, "createPodmanHostFeedItem")
         .mockResolvedValue(undefined);
@@ -272,7 +292,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ProxmoxClusterService, "getProxmoxClusterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(ProxmoxClusterFeedService, "createProxmoxClusterFeedItem")
         .mockResolvedValue(undefined);
@@ -396,7 +416,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ServiceService, "getServiceMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(ServiceFeedService, "createServiceFeedItem")
         .mockResolvedValue(undefined);
@@ -434,7 +454,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(
           ServiceLevelObjectiveFeedService,
@@ -502,7 +522,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(VMwareVCenterService, "getVMwareVCenterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(VMwareVCenterFeedService, "createVMwareVCenterFeedItem")
         .mockResolvedValue(undefined);
@@ -534,6 +554,44 @@ const cases: Array<LabelEngineCase> = [
       labelsToAdd: { _id: true },
     },
     expectedResourceSelect: IDS_ONLY_RESOURCE_SELECT,
+    mockFeed: null,
+    feedResourceIdKey: null,
+  }),
+  labelEngineCase<MessageQueue, MessageQueueLabelRule>({
+    name: "MessageQueueLabelRuleEngineService",
+    engine: MessageQueueLabelRuleEngineService,
+    applyOnCreate: (resource: MessageQueue): Promise<void> => {
+      return MessageQueueLabelRuleEngineService.applyRulesToMessageQueue(
+        resource,
+      );
+    },
+    ruleService: MessageQueueLabelRuleService as unknown as RuleReadService,
+    resourceService: MessageQueueService as unknown as ResourceService,
+    resourceModel: MessageQueue,
+    textField: "name",
+    patternField: "messageQueueNamePattern",
+    labelMatchField: "messageQueueLabels",
+    matchesHandedResource: false,
+    syncsInMemoryLabels: true,
+    severity: null,
+    expectedRuleSelect: {
+      _id: true,
+      name: true,
+      criteria: true,
+      messageQueueLabels: { _id: true },
+      messageQueueNamePattern: true,
+      messageQueueDescriptionPattern: true,
+      messageQueueSystemPattern: true,
+      labelsToAdd: { _id: true },
+    },
+    expectedResourceSelect: IDS_ONLY_RESOURCE_SELECT,
+    // The system pattern matches on the queue's messaging system too.
+    reReadSelect: {
+      name: true,
+      description: true,
+      messagingSystem: true,
+      labels: { _id: true },
+    },
     mockFeed: null,
     feedResourceIdKey: null,
   }),
@@ -833,6 +891,7 @@ describe("label rule engines (group B) - applying a rule to existing resources",
     jest
       .spyOn(LabelService, "findBy")
       .mockResolvedValue([fakeLabel(LABEL_A_ID)]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -844,7 +903,7 @@ describe("label rule engines (group B) - applying a rule to existing resources",
       cases.map((c: LabelEngineCase) => {
         return c.name;
       }),
-    ).toHaveLength(12);
+    ).toHaveLength(13);
   });
 
   describe.each(cases)("$name", (c: LabelEngineCase) => {
@@ -1168,11 +1227,13 @@ describe("label rule engines (group B) - applying a rule to existing resources",
       expect(writes).toHaveLength(1);
       const reReadArgs: any = reRead.mock.calls[0]![0];
       expect(reReadArgs.id.toString()).toBe(RESOURCE_ID.toString());
-      expect(reReadArgs.select).toEqual({
-        name: true,
-        description: true,
-        labels: { _id: true },
-      });
+      expect(reReadArgs.select).toEqual(
+        c.reReadSelect || {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+      );
     });
 
     /*

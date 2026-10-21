@@ -7,24 +7,32 @@ import EnterpriseModule, { ENTERPRISE_AREAS } from "../../../Server/Index";
 import SCIMMiddleware from "../../../Server/Identity/Middleware/SCIMAuthorization";
 import LicensedFeatureGate from "../../../Server/Identity/Middleware/LicensedFeatureGate";
 import EnterpriseArea from "../../../Server/Types/EnterpriseArea";
+import {
+  SSO_ROUTERS,
+  SsoRouterEntry,
+} from "App/FeatureSet/Identity/SsoRouters";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 
 /*
- * The identity routes are configured INSIDE customers' identity providers:
- * the SAML ACS URLs, the OIDC redirect URIs and the SCIM base URLs are pasted
- * into Okta, Entra ID, Google Workspace and the like, and nginx forwards
- * /identity/... to them. Changing one silently breaks sign-in or
- * provisioning for every customer that uses it, with nothing on our side to
- * notice.
+ * The SCIM routes are configured INSIDE customers' identity providers: the
+ * SCIM base URLs are pasted into Okta, Entra ID, Google Workspace and the
+ * like, and nginx forwards /identity/... to them. Changing one silently
+ * breaks provisioning for every customer that uses it, with nothing on our
+ * side to notice.
  *
- * PINNED_ROUTES is the full (method, path) list of the eight routers as they
- * were registered in packages/App/FeatureSet/Identity/API/*.ts at commit
+ * PINNED_ROUTES is the full (method, path) list of the two SCIM routers as
+ * they were registered in packages/App/FeatureSet/Identity/API/*.ts at commit
  * 2eeec4a847, read from the live routers' stacks (not from the source text)
  * before they moved to ee/. The order is the registration order, which is
  * also Express's match order. Changing this list is changing a public
  * contract: it needs a migration plan for every configured identity
  * provider, not just an updated test.
+ *
+ * Single sign-on (SAML and OIDC) is core and served in every edition; its
+ * routes are pinned next to the code, by
+ * packages/App/Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts. This
+ * suite also checks the Enterprise Edition declares none of them.
  *
  * RunCron is captured so importing the assembled module never reaches Redis.
  */
@@ -38,40 +46,6 @@ jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
 type PinnedRoute = [method: string, path: string];
 
 const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
-  {
-    name: "SSO",
-    routes: [
-      ["GET", "/service-provider-login"],
-      ["GET", "/sso/:projectId/:projectSsoId"],
-      ["GET", "/idp-login/:projectId/:projectSsoId"],
-      ["POST", "/idp-login/:projectId/:projectSsoId"],
-    ],
-  },
-  {
-    name: "OIDC",
-    routes: [
-      ["GET", "/service-provider-login-oidc"],
-      ["GET", "/oidc/:projectId/:projectOidcId"],
-      ["GET", "/oidc-callback/:projectId/:projectOidcId"],
-    ],
-  },
-  {
-    name: "GlobalSSO",
-    routes: [
-      ["GET", "/global-sso/service-provider-login"],
-      ["GET", "/global-sso/:globalSsoId"],
-      ["GET", "/global-idp-login/:globalSsoId"],
-      ["POST", "/global-idp-login/:globalSsoId"],
-    ],
-  },
-  {
-    name: "GlobalOIDC",
-    routes: [
-      ["GET", "/global-oidc/service-provider-login"],
-      ["GET", "/global-oidc/:globalOidcId"],
-      ["GET", "/global-oidc-callback/:globalOidcId"],
-    ],
-  },
   {
     name: "SCIM",
     routes: [
@@ -108,32 +82,14 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["DELETE", "/status-page-scim/v2/:statusPageScimId/Users/:userId"],
     ],
   },
-  {
-    name: "StatusPageSSO",
-    routes: [
-      ["GET", "/status-page-sso/:statusPageId/:statusPageSsoId"],
-      ["POST", "/status-page-idp-login/:statusPageId/:statusPageSsoId"],
-    ],
-  },
-  {
-    name: "StatusPageOIDC",
-    routes: [
-      ["GET", "/status-page-oidc/:statusPageId/:statusPageOidcId"],
-      ["GET", "/status-page-oidc-callback/:statusPageId/:statusPageOidcId"],
-    ],
-  },
   /*
-   * Added after the move to ee/, so not from the commit above. Nobody pastes
-   * this one into an identity provider, but it is written into confirmation
-   * emails that are already sitting in inboxes, so it is just as fixed once
-   * shipped.
+   * The token endpoint of SCIM's OAuth 2.0 client credentials, added after
+   * the move to ee/. Microsoft Entra ID admins type it in as the Token
+   * Endpoint, so it is pinned like the SCIM base URLs.
    */
   {
-    name: "ProjectSsoSignInConfirmation",
-    routes: [
-      ["GET", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
-      ["POST", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
-    ],
+    name: "SCIMOAuthToken",
+    routes: [["POST", "/scim/oauth/token"]],
   },
 ];
 
@@ -174,6 +130,12 @@ const getRoutes: (router: ExpressRouter) => Array<PinnedRoute> = (
 
 const SCIM_ROUTER_NAMES: Array<string> = ["SCIM", "StatusPageSCIM"];
 
+/*
+ * The token endpoint authenticates its client itself (client ID and
+ * secret), so it runs the license gate and no bearer-token check.
+ */
+const TOKEN_ROUTER_NAME: string = "SCIMOAuthToken";
+
 describe("ee identity routers", () => {
   test("are the routers core mounts, in the same order", () => {
     expect(
@@ -201,17 +163,34 @@ describe("ee identity routers", () => {
     },
   );
 
-  test("the Identity area hands core all 46 routes, in mount order", () => {
+  test("the Identity area hands core all 26 SCIM routes and the token endpoint, in mount order", () => {
     const routers: Array<ExpressRouter> =
       IdentityArea.getIdentityRouters!() as Array<ExpressRouter>;
 
-    expect(routers).toHaveLength(9);
+    expect(routers).toHaveLength(3);
     expect(routers.flatMap(getRoutes)).toEqual(
       PINNED_ROUTES.flatMap((pinned: { routes: Array<PinnedRoute> }) => {
         return pinned.routes;
       }),
     );
-    expect(routers.flatMap(getRoutes)).toHaveLength(46);
+    expect(routers.flatMap(getRoutes)).toHaveLength(27);
+  });
+
+  test("the token endpoint runs the SCIM license gate first, and no bearer-token check", () => {
+    const entry: IdentityRouterEntry = IDENTITY_ROUTERS.find(
+      (candidate: IdentityRouterEntry) => {
+        return candidate.name === TOKEN_ROUTER_NAME;
+      },
+    ) as IdentityRouterEntry;
+
+    for (const layer of getLayers(entry.router)) {
+      expect(layer.route!.stack[0]!.handle).toBe(LicensedFeatureGate.forScim);
+      expect(
+        layer.route!.stack.some((handler: { handle: unknown }) => {
+          return handler.handle === SCIMMiddleware.isAuthorizedSCIMRequest;
+        }),
+      ).toBe(false);
+    }
   });
 
   test("returns the same router instances on every call (core mounts them once)", () => {
@@ -278,7 +257,7 @@ describe("ee identity routers", () => {
     },
   );
 
-  test("the SAML ACS, OIDC redirect and SCIM base paths the configuration screens print are all served", () => {
+  test("the SCIM base paths the configuration screens print are all served", () => {
     const served: Array<string> = IDENTITY_ROUTERS.flatMap(
       (entry: IdentityRouterEntry) => {
         return getRoutes(entry.router).map((route: PinnedRoute) => {
@@ -288,21 +267,64 @@ describe("ee identity routers", () => {
     );
 
     /*
-     * The URLs the Dashboard and Admin Dashboard tell admins to paste into
-     * their identity provider (ee/Dashboard/SSO, ee/AdminDashboard/GlobalSSO).
+     * The SCIM base URLs the Dashboard tells admins to paste into their
+     * identity provider (ee/Dashboard/Identity), which the provider extends
+     * with the resource it calls.
      */
     expect(served).toEqual(
       expect.arrayContaining([
-        "POST /idp-login/:projectId/:projectSsoId",
-        "GET /oidc-callback/:projectId/:projectOidcId",
-        "POST /global-idp-login/:globalSsoId",
-        "GET /global-oidc-callback/:globalOidcId",
-        "POST /status-page-idp-login/:statusPageId/:statusPageSsoId",
-        "GET /status-page-oidc-callback/:statusPageId/:statusPageOidcId",
         "GET /scim/v2/:projectScimId/ServiceProviderConfig",
+        "GET /scim/v2/:projectScimId/Users",
         "GET /status-page-scim/v2/:statusPageScimId/ServiceProviderConfig",
+        "GET /status-page-scim/v2/:statusPageScimId/Users",
       ]),
     );
+  });
+
+  test("every route is under a SCIM base path: the Enterprise Edition serves no single sign-on route", () => {
+    for (const entry of IDENTITY_ROUTERS) {
+      for (const route of getRoutes(entry.router)) {
+        expect({
+          router: entry.name,
+          route: route.join(" "),
+          isScim:
+            route[1].startsWith("/scim/v2/") ||
+            route[1].startsWith("/status-page-scim/v2/") ||
+            route[1] === "/scim/oauth/token",
+        }).toEqual({
+          router: entry.name,
+          route: route.join(" "),
+          isScim: true,
+        });
+      }
+    }
+  });
+
+  test("no ee identity router declares a (method, path) that a core SSO router serves", () => {
+    const coreSsoRoutes: Set<string> = new Set(
+      SSO_ROUTERS.flatMap((entry: SsoRouterEntry): Array<string> => {
+        return getRoutes(entry.router).map((route: PinnedRoute): string => {
+          return route.join(" ");
+        });
+      }),
+    );
+
+    // The core SSO routes this compares against are really there (20 of them).
+    expect(coreSsoRoutes.size).toBe(20);
+
+    for (const entry of IDENTITY_ROUTERS) {
+      for (const route of getRoutes(entry.router)) {
+        expect(coreSsoRoutes.has(route.join(" "))).toBe(false);
+      }
+    }
+
+    // And none of the core SSO routers is handed over by ee as well.
+    const eeRouters: Array<ExpressRouter> =
+      EnterpriseModule.getIdentityRouters();
+
+    for (const entry of SSO_ROUTERS) {
+      expect(eeRouters).not.toContain(entry.router);
+    }
   });
 });
 

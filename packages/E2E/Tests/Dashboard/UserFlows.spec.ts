@@ -78,7 +78,6 @@ test.describe("User Flows", () => {
     await createRumApplication({
       page,
       projectId,
-      name: appIdentifier,
       appIdentifier: appIdentifier,
     });
 

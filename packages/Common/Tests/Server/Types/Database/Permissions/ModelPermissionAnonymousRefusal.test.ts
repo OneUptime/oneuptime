@@ -4,6 +4,7 @@ import DeletePermission from "../../../../../Server/Types/Database/Permissions/D
 import ReadPermission from "../../../../../Server/Types/Database/Permissions/ReadPermission";
 import UpdatePermission from "../../../../../Server/Types/Database/Permissions/UpdatePermission";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
+import Reseller from "../../../../../Models/DatabaseModels/Reseller";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -15,6 +16,7 @@ import Permission from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { getJestSpyOn } from "../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * Every throw below is deliberate and asserted on, but @CaptureSpan hands each
@@ -31,8 +33,8 @@ jest.mock("../../../../../Server/Utils/Logger");
  * and getUserMiddleware lets it through as Public. The browser client
  * refreshes the session and replays the request on a 401 and on nothing else.
  *
- * On a model whose table ACL includes Permission.Public (Probe, AIAgent and
- * LlmProvider reads; StatusPageSubscriber create) that anonymous caller passes
+ * On a model whose table ACL includes Permission.Public (Reseller reads;
+ * StatusPageSubscriber create) that anonymous caller passes
  * the "is anyone logged in" check at the top of the permission layer, and is
  * then refused by the column, select or query checks with a 422
  * NotAuthorizedException - a bogus error for a user whose session merely
@@ -41,9 +43,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  * when, and only when, the caller has no credentials at all.
  *
  * The first half drives each entry point against a stubbed underlying check so
- * every branch is reached on every entry point. The second half runs the real
- * permission layer on Probe, so the conversion is proved against a refusal the
- * permission code actually produces.
+ * every branch is reached on every entry point (the model they name does not
+ * matter there). The second half runs the real permission layer on Reseller,
+ * so the conversion is proved against a refusal the permission code actually
+ * produces.
  */
 
 const REFUSAL_MESSAGE: string = "x";
@@ -143,6 +146,10 @@ const entryPoints: Array<EntryPoint> = [
 type PropsCase = [string, () => DatabaseCommonInteractionProps];
 
 // Callers with no credentials at all: the expired-session shape.
+/*
+ * A request naming a project carries the project's plan (CommonAPI reads it
+ * for every request with a tenant), signed in or not.
+ */
 const anonymousCases: Array<PropsCase> = [
   [
     "no props at all",
@@ -153,7 +160,7 @@ const anonymousCases: Array<PropsCase> = [
   [
     "a tenant but no user",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate() };
+      return { tenantId: ObjectID.generate(), ...ON_HIGHEST_PLAN };
     },
   ],
   [
@@ -165,7 +172,11 @@ const anonymousCases: Array<PropsCase> = [
   [
     "a Public caller with a tenant",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate(), userType: UserType.Public };
+      return {
+        tenantId: ObjectID.generate(),
+        userType: UserType.Public,
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
 ];
@@ -178,7 +189,11 @@ const credentialedCases: Array<PropsCase> = [
   [
     "a signed-in user",
     (): DatabaseCommonInteractionProps => {
-      return { userId: ObjectID.generate(), tenantId: ObjectID.generate() };
+      return {
+        userId: ObjectID.generate(),
+        tenantId: ObjectID.generate(),
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
   [
@@ -190,7 +205,11 @@ const credentialedCases: Array<PropsCase> = [
   [
     "a project API key (no user)",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate(), userType: UserType.API };
+      return {
+        tenantId: ObjectID.generate(),
+        userType: UserType.API,
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
   [
@@ -351,6 +370,7 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
 
       const props: DatabaseCommonInteractionProps = {
         tenantId: ObjectID.generate(),
+        ...ON_HIGHEST_PLAN,
       };
 
       await expect(entry.call(props)).resolves.toBe(sentinel);
@@ -418,39 +438,39 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
 });
 
 /*
- * The real thing, no stubs. Probe's table read list carries Permission.Public
- * (status pages show probe names to logged-out visitors), so an anonymous
- * read of Probe gets past the login check. Its `key` column is readable only
- * by ProjectOwner / ProjectAdmin, so selecting it is refused by
- * SelectPermission with a NotAuthorizedException - exactly the 422 an expired
- * dashboard session used to get on the probes page.
+ * The real thing, no stubs. Reseller's table read list carries
+ * Permission.Public (the sign-up page reads a reseller's public settings
+ * before anyone is signed in), so an anonymous read of Reseller gets past the
+ * login check. Its `name` column is read by nobody, so selecting it is
+ * refused by SelectPermission with a NotAuthorizedException - the 422 an
+ * expired session would otherwise get.
  */
 describe("ModelPermission: anonymous refusals become 401 (real permission layer)", () => {
   const projectId: ObjectID = ObjectID.generate();
 
-  type ReadKeyFunction = (
+  type ReadNameFunction = (
     props: DatabaseCommonInteractionProps,
   ) => Promise<unknown>;
 
-  const readProbeKey: ReadKeyFunction = async (
+  const readResellerName: ReadNameFunction = async (
     props: DatabaseCommonInteractionProps,
   ): Promise<unknown> => {
     return await ModelPermission.checkReadQueryPermission(
-      Probe,
+      Reseller,
       {},
-      { key: true },
+      { name: true },
       props,
     );
   };
 
-  test("the fixture: Probe is publicly readable but its key column is not", () => {
-    expect(new Probe().readRecordPermissions).toContain(Permission.Public);
-    expect(new Probe().getColumnAccessControlFor("key")!.read).not.toContain(
-      Permission.Public,
-    );
-    expect(new Probe().getColumnAccessControlFor("name")!.read).toContain(
-      Permission.Public,
-    );
+  test("the fixture: Reseller is publicly readable but its name column is not", () => {
+    expect(new Reseller().readRecordPermissions).toContain(Permission.Public);
+    expect(
+      new Reseller().getColumnAccessControlFor("name")!.read,
+    ).not.toContain(Permission.Public);
+    expect(
+      new Reseller().getColumnAccessControlFor("resellerId")!.read,
+    ).toContain(Permission.Public);
   });
 
   test.each([
@@ -462,38 +482,38 @@ describe("ModelPermission: anonymous refusals become 401 (real permission layer)
   ])(
     "an anonymous caller (%s) selecting a non-public column gets a 401",
     async (_label: string, props: DatabaseCommonInteractionProps) => {
-      const error: unknown = await rejectionOf(readProbeKey(props));
+      const error: unknown = await rejectionOf(readResellerName(props));
 
       expect(error).toBeInstanceOf(NotAuthenticatedException);
       expect((error as Exception).code).toBe(401);
       // The select refusal's own wording survives the conversion.
       expect((error as Exception).message).toContain(
-        "You do not have permissions to select on - key.",
+        "You do not have permissions to select on - name.",
       );
     },
   );
 
   /*
    * The same refusal for a caller who has credentials stays the 422 it always
-   * was: a project API key without ProjectOwner/ProjectAdmin really may not
-   * see probe keys, and refreshing a session would not change that.
+   * was: a project API key really may not read that column, and refreshing a
+   * session would not change that.
    */
   test("a project API key selecting the same column still gets the 422", async () => {
     const error: unknown = await rejectionOf(
-      readProbeKey({ tenantId: projectId, userType: UserType.API }),
+      readResellerName({ tenantId: projectId, userType: UserType.API }),
     );
 
     expect(error).toBeInstanceOf(NotAuthorizedException);
     expect(error).not.toBeInstanceOf(NotAuthenticatedException);
     expect((error as Exception).code).toBe(422);
     expect((error as Exception).message).toContain(
-      "You do not have permissions to select on - key.",
+      "You do not have permissions to select on - name.",
     );
   });
 
   test("a signed-in user without the column permission still gets the 422", async () => {
     const error: unknown = await rejectionOf(
-      readProbeKey({
+      readResellerName({
         tenantId: projectId,
         userId: ObjectID.generate(),
         userType: UserType.User,
@@ -508,9 +528,9 @@ describe("ModelPermission: anonymous refusals become 401 (real permission layer)
   test("an anonymous caller selecting only public columns is not refused", async () => {
     await expect(
       ModelPermission.checkReadQueryPermission(
-        Probe,
+        Reseller,
         {},
-        { name: true },
+        { resellerId: true },
         { tenantId: projectId },
       ),
     ).resolves.toBeDefined();

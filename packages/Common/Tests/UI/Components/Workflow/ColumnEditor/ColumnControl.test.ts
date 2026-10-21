@@ -15,9 +15,11 @@ import {
   columnTypeLabel,
   controlForColumn,
   isOfferableColumn,
+  jsonOnlyColumns,
   literalFitsControl,
 } from "../../../../../UI/Components/Workflow/ColumnEditor/ColumnControl";
 import { ModelColumnControl } from "../../../../../UI/Components/Workflow/ColumnEditor/ColumnRow";
+import { ColumnUse } from "../../../../../UI/Components/Workflow/ColumnEditor/ColumnUse";
 import { ModelSchemaColumn } from "../../../../../UI/Components/Workflow/ModelSchema";
 import { describe, expect, test } from "@jest/globals";
 
@@ -234,23 +236,223 @@ describe("literalFitsControl", () => {
   });
 });
 
+const ALL_USES: Array<ColumnUse> = [
+  ColumnUse.Create,
+  ColumnUse.Update,
+  ColumnUse.Filter,
+];
+
 describe("isOfferableColumn", () => {
-  test("an ordinary scalar column is offered", () => {
-    expect(isOfferableColumn(makeColumn({}))).toBe(true);
+  test("an ordinary scalar column is offered for every use", () => {
+    for (const use of ALL_USES) {
+      expect({ use, offered: isOfferableColumn(makeColumn({}), use) }).toEqual({
+        use,
+        offered: true,
+      });
+    }
   });
 
   test("a relation is not offered — its scalar ID sibling is", () => {
-    expect(isOfferableColumn(makeColumn({ isRelation: true }))).toBe(false);
+    for (const use of ALL_USES) {
+      expect(isOfferableColumn(makeColumn({ isRelation: true }), use)).toBe(
+        false,
+      );
+    }
   });
 
   test("the project column is not offered, because the runner stamps it", () => {
-    expect(isOfferableColumn(makeColumn({ isTenantColumn: true }))).toBe(false);
+    for (const use of ALL_USES) {
+      expect(isOfferableColumn(makeColumn({ isTenantColumn: true }), use)).toBe(
+        false,
+      );
+    }
   });
 
   test("a column no row can hold is not offered", () => {
+    for (const use of ALL_USES) {
+      expect(
+        isOfferableColumn(
+          makeColumn({ type: TableColumnType.MonitorSteps }),
+          use,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  /*
+   * The complaint: Create One Incident offered Created At and Created by User
+   * ID next to the incident's own fields.
+   */
+  test("a column OneUptime fills in is not offered for a create or an update", () => {
+    const createdAt: ModelSchemaColumn = makeColumn({
+      id: "createdAt",
+      title: "Created At",
+      type: TableColumnType.Date,
+      isSystemColumn: true,
+    });
+
+    expect(isOfferableColumn(createdAt, ColumnUse.Create)).toBe(false);
+    expect(isOfferableColumn(createdAt, ColumnUse.Update)).toBe(false);
+  });
+
+  test("but it is still offered as a filter - 'created after' is a real question", () => {
+    const createdAt: ModelSchemaColumn = makeColumn({
+      id: "createdAt",
+      title: "Created At",
+      type: TableColumnType.Date,
+      isSystemColumn: true,
+    });
+    const createdBy: ModelSchemaColumn = makeColumn({
+      id: "createdByUserId",
+      title: "Created by User ID",
+      type: TableColumnType.ObjectID,
+      isSystemColumn: true,
+    });
+
+    expect(isOfferableColumn(createdAt, ColumnUse.Filter)).toBe(true);
+    expect(isOfferableColumn(createdBy, ColumnUse.Filter)).toBe(true);
+  });
+
+  test("a column empty on every record is not offered even as a filter", () => {
     expect(
-      isOfferableColumn(makeColumn({ type: TableColumnType.MonitorSteps })),
+      isOfferableColumn(
+        makeColumn({
+          id: "deletedAt",
+          title: "Deleted At",
+          type: TableColumnType.Date,
+          isSystemColumn: true,
+        }),
+        ColumnUse.Filter,
+      ),
     ).toBe(false);
+  });
+
+  test("a create-only column is offered on a create and not on an update", () => {
+    const monitorType: ModelSchemaColumn = makeColumn({
+      id: "monitorType",
+      canCreate: true,
+      canUpdate: false,
+    });
+
+    expect(isOfferableColumn(monitorType, ColumnUse.Create)).toBe(true);
+    expect(isOfferableColumn(monitorType, ColumnUse.Update)).toBe(false);
+    expect(isOfferableColumn(monitorType, ColumnUse.Filter)).toBe(true);
+  });
+
+  test("an update-only column is offered on an update and not on a create", () => {
+    const column: ModelSchemaColumn = makeColumn({
+      id: "postmortemNote",
+      canCreate: false,
+      canUpdate: true,
+    });
+
+    expect(isOfferableColumn(column, ColumnUse.Create)).toBe(false);
+    expect(isOfferableColumn(column, ColumnUse.Update)).toBe(true);
+  });
+});
+
+/*
+ * The line under the record form that says which fields can only be written
+ * as JSON. It used to name every column the picker skipped, so on Create One
+ * Incident it opened with "Created by User, Current Incident State and 25
+ * other fields" - one that nobody sets, and one that is set through its "ID"
+ * column right there in the list.
+ */
+describe("jsonOnlyColumns", () => {
+  const COLUMNS: Array<ModelSchemaColumn> = [
+    makeColumn({ id: "title", title: "Title" }),
+    makeColumn({
+      id: "currentIncidentState",
+      title: "Current Incident State",
+      type: TableColumnType.Entity,
+      isRelation: true,
+    }),
+    makeColumn({
+      id: "currentIncidentStateId",
+      title: "Current Incident State ID",
+      type: TableColumnType.ObjectID,
+    }),
+    makeColumn({
+      id: "createdByUser",
+      title: "Created by User",
+      type: TableColumnType.Entity,
+      isRelation: true,
+    }),
+    makeColumn({
+      id: "createdByUserId",
+      title: "Created by User ID",
+      type: TableColumnType.ObjectID,
+    }),
+    makeColumn({
+      id: "monitors",
+      title: "Monitors",
+      type: TableColumnType.EntityArray,
+      isRelation: true,
+    }),
+    makeColumn({
+      id: "customFields",
+      title: "Custom Fields",
+      type: TableColumnType.JSON,
+    }),
+    makeColumn({
+      id: "project",
+      title: "Project",
+      type: TableColumnType.Entity,
+      isRelation: true,
+      isTenantColumn: true,
+    }),
+    makeColumn({
+      id: "statusPagesNotifiedOnCreation",
+      title: "Status Pages Notified On Creation",
+      type: TableColumnType.JSON,
+      isSystemColumn: true,
+    }),
+    makeColumn({
+      id: "telemetryQuery",
+      title: "Telemetry Query",
+      type: TableColumnType.JSON,
+      canCreate: true,
+      canUpdate: false,
+    }),
+  ];
+
+  type IdsFunction = (use: ColumnUse) => Array<string>;
+
+  const ids: IdsFunction = (use: ColumnUse): Array<string> => {
+    return jsonOnlyColumns(COLUMNS, use).map((column: ModelSchemaColumn) => {
+      return column.id;
+    });
+  };
+
+  test("names the lists and blobs a row cannot hold", () => {
+    expect(ids(ColumnUse.Create)).toEqual([
+      "monitors",
+      "customFields",
+      "telemetryQuery",
+    ]);
+  });
+
+  test("never names a relation set through its own ID column", () => {
+    expect(ids(ColumnUse.Create)).not.toContain("currentIncidentState");
+  });
+
+  test("never names what OneUptime fills in, or the project", () => {
+    expect(ids(ColumnUse.Create)).not.toContain("createdByUser");
+    expect(ids(ColumnUse.Create)).not.toContain(
+      "statusPagesNotifiedOnCreation",
+    );
+    expect(ids(ColumnUse.Create)).not.toContain("project");
+  });
+
+  test("never names a field this use cannot write at all", () => {
+    expect(ids(ColumnUse.Update)).toEqual(["monitors", "customFields"]);
+  });
+
+  test("never names a field that is offered as a row", () => {
+    for (const use of ALL_USES) {
+      expect(ids(use)).not.toContain("title");
+      expect(ids(use)).not.toContain("currentIncidentStateId");
+    }
   });
 });
 

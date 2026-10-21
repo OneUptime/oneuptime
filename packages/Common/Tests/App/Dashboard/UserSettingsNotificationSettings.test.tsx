@@ -8,7 +8,9 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import NotificationSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
+import NotificationSettings, {
+  getShownChannelKeys,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import Route from "../../../Types/API/Route";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -20,6 +22,8 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
  * User Settings > Notification Settings: the per-event, per-channel matrix,
@@ -45,6 +49,18 @@ describe("user settings > notification settings", () => {
   let getList: jest.SpyInstance;
 
   beforeEach(() => {
+    /*
+     * The Slack and Microsoft Teams columns are there only for the
+     * workspaces the project has connected; both are, unless a test says
+     * otherwise. The store is answered here rather than through
+     * ModelAPI.getList, whose calls these tests read as the matrix's own.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setFetcher(async (): Promise<Array<WorkspaceType>> => {
+      return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    });
+
     rows = Object.values(NotificationSettingEventType).map(
       (
         eventType: NotificationSettingEventType,
@@ -100,6 +116,8 @@ describe("user settings > notification settings", () => {
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+    ConnectedWorkspaces.setFetcher(null);
+    ConnectedWorkspaces.reset();
   });
 
   function renderPage(): void {
@@ -177,7 +195,7 @@ describe("user settings > notification settings", () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByText("Email Rollup")).not.toBeInTheDocument();
       expect(
-        screen.queryByRole("switch", { name: /^Roll up notification emails:/ }),
+        screen.queryByRole("switch", { name: /^Roll up notification emails/ }),
       ).not.toBeInTheDocument();
     });
   });
@@ -219,6 +237,56 @@ describe("user settings > notification settings", () => {
         expect(call.query.projectId).toEqual(PROJECT_ID);
         expect(call.query.userId).toEqual(USER_ID);
       }
+    });
+
+    /*
+     * Issue #4159: owners of an Incoming Call Policy are told about missed
+     * calls, and this row is where each of them picks the channels or turns
+     * it off. It sits on the On-Call tab, under its own card.
+     */
+    test("the On-Call tab has the missed call row for incoming call policy owners", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      await findEventRow("Assigned to an incident");
+      fireEvent.click(screen.getByRole("tab", { name: "On-Call" }));
+
+      expect(await screen.findByText("Incoming Call Policies")).toBeVisible();
+      expect(
+        screen.getByText(
+          "Notify me about calls to incoming call policies I own.",
+        ),
+      ).toBeVisible();
+
+      const row: HTMLElement = await findEventRow("Missed call");
+      expect(
+        within(row).getByText(
+          "A call to an incoming call policy you own ends without reaching anyone.",
+        ),
+      ).toBeVisible();
+
+      const emailSwitch: HTMLElement = within(row).getByRole("switch", {
+        name: /^Email:/,
+      });
+      expect(emailSwitch).toHaveAttribute("aria-checked", "true");
+
+      fireEvent.click(emailSwitch);
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      const missedCallRow: UserNotificationSetting | undefined = rows.find(
+        (setting: UserNotificationSetting): boolean => {
+          return (
+            setting.eventType ===
+            NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      expect(updateById.mock.calls[0][0].id).toEqual(missedCallRow!.id);
+      expect(updateById.mock.calls[0][0].data).toEqual({ alertByEmail: false });
     });
 
     /*
@@ -282,6 +350,255 @@ describe("user settings > notification settings", () => {
           ).getByRole("switch", { name: /^Email:/ }),
         ).toHaveAttribute("aria-checked", "true");
       });
+    });
+
+    test("every channel has a column when both workspaces are connected", async () => {
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      for (const channel of [
+        "Email",
+        "SMS",
+        "Call",
+        "Push",
+        "WhatsApp",
+        "Telegram",
+        "Slack",
+        "Microsoft Teams",
+        "Webhook",
+      ]) {
+        expect(
+          within(row).getByRole("switch", {
+            name: new RegExp(`^${channel}:`),
+          }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    /*
+     * The column names the product, as every other list of channels does.
+     * It was labelled "Teams", the key that means teams of people - and
+     * most languages translate it that way (see
+     * NotificationSettingsMicrosoftTeamsInEveryLanguage.test.tsx).
+     */
+    test("the Microsoft Teams column is labelled with the product's name, between Slack and Webhook", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      const headers: Array<string> = within(screen.getAllByRole("table")[0]!)
+        .getAllByRole("columnheader")
+        .map((header: HTMLElement): string => {
+          return header.textContent?.trim() || "";
+        });
+
+      expect(headers).toEqual([
+        "Event",
+        "Email",
+        "SMS",
+        "Call",
+        "Push",
+        "WhatsApp",
+        "Telegram",
+        "Slack",
+        "Microsoft Teams",
+        "Webhook",
+      ]);
+      expect(headers).not.toContain("Teams");
+    });
+
+    test("its switches say Microsoft Teams, on and off, so a screen reader names the product", async () => {
+      const created: UserNotificationSetting | undefined = rows.find(
+        (row: UserNotificationSetting): boolean => {
+          return (
+            row.eventType ===
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      created!.alertByMicrosoftTeams = true;
+
+      renderPage();
+
+      expect(
+        within(await findEventRow("Incident created")).getByRole("switch", {
+          name: "Microsoft Teams: On. Click to disable.",
+        }),
+      ).toHaveAttribute("aria-checked", "true");
+      expect(
+        within(await findEventRow("Incident note posted")).getByRole("switch", {
+          name: "Microsoft Teams: Off. Click to enable.",
+        }),
+      ).toHaveAttribute("aria-checked", "false");
+    });
+
+    test("a switch in the Microsoft Teams column writes the Microsoft Teams setting", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident note posted");
+      fireEvent.click(
+        within(row).getByRole("switch", { name: /^Microsoft Teams:/ }),
+      );
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].data).toEqual({
+        alertByMicrosoftTeams: true,
+      });
+    });
+
+    /*
+     * "Microsoft Teams" takes two lines in its column at most widths: the
+     * headers are top-aligned so the icons stay in one row.
+     */
+    test("every channel header is top-aligned, so the icons stay level when a label wraps", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      const channelHeaders: Array<HTMLElement> = within(
+        screen.getAllByRole("table")[0]!,
+      )
+        .getAllByRole("columnheader")
+        .slice(1);
+
+      expect(channelHeaders).toHaveLength(9);
+
+      for (const header of channelHeaders) {
+        expect(header).toHaveClass("align-top");
+      }
+    });
+
+    test.each([
+      [[WorkspaceType.Slack], "Slack", "Microsoft Teams"],
+      [[WorkspaceType.MicrosoftTeams], "Microsoft Teams", "Slack"],
+    ])(
+      "with only %j connected, the %s column is there and the %s one is not",
+      async (
+        connected: Array<WorkspaceType>,
+        shown: string,
+        hidden: string,
+      ) => {
+        ConnectedWorkspaces.setFetcher(
+          async (): Promise<Array<WorkspaceType>> => {
+            return connected;
+          },
+        );
+
+        renderPage();
+        const row: HTMLElement = await findEventRow("Incident created");
+
+        expect(
+          within(row).getByRole("switch", { name: new RegExp(`^${shown}:`) }),
+        ).toBeInTheDocument();
+        expect(
+          within(row).queryByRole("switch", {
+            name: new RegExp(`^${hidden}:`),
+          }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getAllByRole("columnheader").map((header: HTMLElement) => {
+            return header.textContent;
+          }),
+        ).not.toContain(hidden);
+      },
+    );
+
+    test("with neither connected, the matrix offers the seven other channels", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          return [];
+        },
+      );
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      expect(within(row).getAllByRole("switch")).toHaveLength(7);
+      expect(
+        within(row).queryByRole("switch", { name: /^Slack:/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(row).queryByRole("switch", { name: /^Microsoft Teams:/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("if asking which are connected fails, both columns stay, as before", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          throw new Error("Permission denied");
+        },
+      );
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      expect(within(row).getAllByRole("switch")).toHaveLength(9);
+    });
+
+    test("on a first visit the matrix keeps its loader until it knows, rather than dropping columns under the reader", async () => {
+      ConnectedWorkspaces.setFetcher((): Promise<Array<WorkspaceType>> => {
+        return new Promise<Array<WorkspaceType>>((): void => {});
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(getList).toHaveBeenCalled();
+      });
+      expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    });
+
+    test("a hidden column keeps what was saved: a toggle elsewhere writes only its own column", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          return [];
+        },
+      );
+      for (const row of rows) {
+        row.alertBySlack = true;
+      }
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident note posted");
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].data).toEqual({ alertByEmail: false });
+    });
+
+    test("getShownChannelKeys drops only the workspaces that are not offered", () => {
+      expect(getShownChannelKeys([])).toEqual([
+        "alertByEmail",
+        "alertBySMS",
+        "alertByCall",
+        "alertByPush",
+        "alertByWhatsApp",
+        "alertByTelegram",
+        "alertByWebhook",
+      ]);
+      expect(getShownChannelKeys([WorkspaceType.MicrosoftTeams])).toContain(
+        "alertByMicrosoftTeams",
+      );
+      expect(getShownChannelKeys([WorkspaceType.MicrosoftTeams])).not.toContain(
+        "alertBySlack",
+      );
+      expect(
+        getShownChannelKeys([
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+        ]),
+      ).toHaveLength(9);
     });
 
     test("switching projects re-reads every row against the new project", async () => {

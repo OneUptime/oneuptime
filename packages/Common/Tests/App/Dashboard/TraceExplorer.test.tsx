@@ -16,7 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { Mock } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 import * as React from "react";
 import TraceExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -33,6 +33,12 @@ import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Clipboard from "../../../UI/Utils/Clipboard";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { resetPreferencesForTesting } from "../../../UI/Components/AttributesJSON/AttributesJSONPreferences";
 
 /*
@@ -123,12 +129,21 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * The selected project, as the dashboard keeps it: null (not loaded, read
+ * as AI on) unless a test sets it.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
       getCurrentProjectId: () => {
         return new ObjectID("10000000-0000-4000-8000-000000000001");
+      },
+      getCurrentProject: () => {
+        return mockCurrentProject;
       },
     },
   };
@@ -1275,6 +1290,9 @@ describe("the span panel", () => {
     expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
       expect.objectContaining({ traceId: TRACE_ID, spanIds: ["update"] }),
     );
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 42 profile samples linked to this span.",
+    );
 
     fireEvent.click(row("auth"));
     await waitFor(() => {
@@ -1325,6 +1343,341 @@ describe("the span panel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not load this span.",
     );
+  });
+});
+
+/*
+ * OBI v0.14 links a Node.js request's CPU samples to its "processing" span or
+ * to the client call in flight, never to the SERVER span, so a span's Profile
+ * tab covers the span and the spans nested under it.
+ */
+describe("the span panel's Profile tab", () => {
+  // The presence probe counts the samples linked to the span ids it is sent.
+  function linkSamples(samplesBySpanId: (spanId: string) => number): void {
+    postMock.mockImplementation(async (args: PostArgs) => {
+      if (args.url.toString().includes("/telemetry/profiles/trace-presence")) {
+        const spanIds: Array<string> =
+          (args.data["spanIds"] as Array<string> | undefined) || [];
+        return new HTTPResponse(
+          200,
+          {
+            sampleCount: spanIds.reduce((total: number, spanId: string) => {
+              return total + samplesBySpanId(spanId);
+            }, 0),
+          },
+          {},
+        );
+      }
+      return new HTTPResponse(200, {}, {});
+    });
+  }
+
+  function linkSamplesTo(samples: Record<string, number>): void {
+    linkSamples((spanId: string): number => {
+      return samples[spanId] || 0;
+    });
+  }
+
+  function probedSpanIds(): Array<Array<string>> {
+    return postsTo("/telemetry/profiles/trace-presence").map(
+      (args: PostArgs) => {
+        return args.data["spanIds"] as Array<string>;
+      },
+    );
+  }
+
+  function lastProbedSpanIds(): Array<string> {
+    const probes: Array<Array<string>> = probedSpanIds();
+    return probes[probes.length - 1]!;
+  }
+
+  /*
+   *   GET /api/items/:id (server)
+   *   ├── in queue
+   *   └── processing
+   *       ├── SELECT postgres (client)
+   *       └── GET /ping (client)
+   */
+  function obiRequest(): Array<Span> {
+    return [
+      {
+        spanId: "server",
+        parentSpanId: "",
+        name: "GET /api/items/:id",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 20,
+        kind: SpanKind.Server,
+      },
+      {
+        spanId: "queue",
+        parentSpanId: "server",
+        name: "in queue",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 1,
+      },
+      {
+        spanId: "processing",
+        parentSpanId: "server",
+        name: "processing",
+        serviceId: GATEWAY,
+        startMs: 1,
+        durationMs: 19,
+      },
+      {
+        spanId: "select",
+        parentSpanId: "processing",
+        name: "SELECT postgres",
+        serviceId: GATEWAY,
+        startMs: 2,
+        durationMs: 3,
+        kind: SpanKind.Client,
+      },
+      {
+        spanId: "ping",
+        parentSpanId: "processing",
+        name: "GET /ping",
+        serviceId: GATEWAY,
+        startMs: 8,
+        durationMs: 10,
+        kind: SpanKind.Client,
+      },
+    ].map(makeSpan);
+  }
+
+  // GET /reindex (server) with 1,249 spans directly under it: three pages.
+  function wideRequest(): Array<Span> {
+    const definitions: Array<SpanDefinition> = [
+      {
+        spanId: "root",
+        parentSpanId: "",
+        name: "GET /reindex",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 1250,
+        kind: SpanKind.Server,
+      },
+    ];
+    for (let index: number = 1; index < 1250; index++) {
+      definitions.push({
+        spanId: `s${index}`,
+        parentSpanId: "root",
+        name: `item ${index}`,
+        serviceId: CHECKOUT,
+        startMs: index,
+        durationMs: 1,
+      });
+    }
+    return definitions.map(makeSpan);
+  }
+
+  test("a server span shows the samples linked to the spans under it", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ processing: 30, ping: 4 });
+    await renderTrace();
+
+    fireEvent.click(row("server"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+      "34",
+    );
+    expect(probedSpanIds()).toContainEqual([
+      "server",
+      "queue",
+      "processing",
+      "select",
+      "ping",
+    ]);
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 34 profile samples linked to this span and the 4 spans nested under it.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        traceId: TRACE_ID,
+        spanIds: ["server", "queue", "processing", "select", "ping"],
+      }),
+    );
+  });
+
+  test("a span's tab leaves out its parent and siblings", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ server: 5, queue: 2, ping: 4 });
+    await renderTrace();
+
+    fireEvent.click(row("processing"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent("4");
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: ["processing", "select", "ping"] }),
+    );
+
+    fireEvent.click(row("queue"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 2 profile samples linked to this span.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: ["queue"] }),
+    );
+  });
+
+  test("a search does not narrow a span's Profile tab", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ processing: 30, ping: 4 });
+    await renderTrace();
+
+    fireEvent.change(screen.getByTestId("trace-search"), {
+      target: { value: "GET /api" },
+    });
+    expect(rows()).toEqual(["server"]);
+
+    fireEvent.click(row("server"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+      "34",
+    );
+    expect(lastProbedSpanIds()).toEqual([
+      "server",
+      "queue",
+      "processing",
+      "select",
+      "ping",
+    ]);
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: lastProbedSpanIds() }),
+    );
+  });
+
+  test("a huge subtree asks for the nearest spans, again as more spans load", async () => {
+    setBackend({ traceSpans: wideRequest() });
+    // One sample on every span under the root.
+    linkSamples((spanId: string): number => {
+      return spanId === "root" ? 0 : 1;
+    });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "499",
+      );
+    });
+    expect(lastProbedSpanIds()).toHaveLength(500);
+
+    fireEvent.click(screen.getByTestId("trace-load-all"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "999",
+      );
+    });
+    const lastProbe: Array<string> = lastProbedSpanIds();
+    expect(lastProbe).toHaveLength(1000);
+    expect(lastProbe[0]).toBe("root");
+
+    fireEvent.click(screen.getByTestId("span-panel-tab-profile"));
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 999 profile samples linked to this span and the nearest 999 of the 1,249 spans nested under it.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: lastProbe }),
+    );
+  });
+
+  test("an open Profile tab stays open while more spans load", async () => {
+    setBackend({ traceSpans: wideRequest() });
+    linkSamples((spanId: string): number => {
+      return spanId === "root" ? 0 : 1;
+    });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "the 499 spans nested under it",
+    );
+
+    // The tab keeps its count while it asks again, so it never closes.
+    fireEvent.click(screen.getByTestId("trace-load-all"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "999",
+      );
+    });
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "the nearest 999 of the 1,249 spans nested under it",
+    );
+  });
+
+  test("a capped subtree asks again when a nearer span loads", async () => {
+    /*
+     *   GET /reindex (server)
+     *   ├── a, with 1,247 spans under it
+     *   └── b, loaded with the last page
+     */
+    const definitions: Array<SpanDefinition> = [
+      {
+        spanId: "root",
+        parentSpanId: "",
+        name: "GET /reindex",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 2000,
+        kind: SpanKind.Server,
+      },
+      {
+        spanId: "a",
+        parentSpanId: "root",
+        name: "a",
+        serviceId: GATEWAY,
+        startMs: 1,
+        durationMs: 1500,
+      },
+    ];
+    for (let index: number = 2; index < 1249; index++) {
+      definitions.push({
+        spanId: `g${index}`,
+        parentSpanId: "a",
+        name: `item ${index}`,
+        serviceId: CHECKOUT,
+        startMs: index,
+        durationMs: 1,
+      });
+    }
+    definitions.push({
+      spanId: "b",
+      parentSpanId: "root",
+      name: "b",
+      serviceId: GATEWAY,
+      startMs: 2,
+      durationMs: 1,
+    });
+    setBackend({ traceSpans: definitions.map(makeSpan) });
+    linkSamplesTo({ b: 7 });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(lastProbedSpanIds()).toHaveLength(1000);
+    });
+    expect(
+      screen.queryByTestId("span-panel-tab-profile"),
+    ).not.toBeInTheDocument();
+
+    // b displaces a's farthest span: as many ids as before, but not the same.
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "7",
+      );
+    });
+    expect(lastProbedSpanIds()).toHaveLength(1000);
+    expect(lastProbedSpanIds()).toContain("b");
   });
 });
 
@@ -1674,71 +2027,712 @@ describe("operations", () => {
   });
 });
 
-describe("performance fix with AI", () => {
-  test("creates the task for this trace and links to it", async () => {
-    postMock.mockImplementation(async (args: PostArgs) => {
-      if (
-        args.url
-          .toString()
-          .includes("/ai-investigation/create-performance-fix-task")
-      ) {
-        return new HTTPResponse(
-          200,
-          { aiRunId: "70000000-0000-4000-8000-000000000009" },
-          {},
-        );
+/*
+ * "Fix performance with AI" shows only on a trace worth fixing. The page
+ * asks the server (POST /ai-investigation/performance-fix-suggestion), which
+ * runs the span-tree analysis with the spans' attributes and the same gates
+ * the create route enforces, and draws exactly what it answers: the finding
+ * in plain words with the fix (Act), a quiet link to connect GitHub
+ * (SetUp), a link to the fix already on its way (InProgress) - or nothing
+ * at all (None).
+ */
+const SUGGESTION_PATH: string = "/ai-investigation/performance-fix-suggestion";
+const CREATE_PATH: string = "/ai-investigation/create-performance-fix-task";
+const RUN_ID: string = "70000000-0000-4000-8000-000000000009";
+
+function nPlusOneFinding(overrides: JSONObject = {}): JSONObject {
+  return {
+    findingType: "NPlusOneQuery",
+    headline: 'N+1: 12x "SELECT products"',
+    evidence: "12 sibling spans ...",
+    spanCount: 12,
+    combinedDurationMs: 840,
+    traceDurationMs: 1600,
+    percentOfTrace: 52.5,
+    normalizedSpanName: "SELECT products WHERE id = {n}",
+    parentSpanName: "OrderService.validateCart",
+    normalizedDbStatement: "SELECT * FROM products WHERE id = ?",
+    dbSystem: "postgresql",
+    implicatedSpans: [
+      {
+        spanId: "query-0",
+        name: "SELECT products WHERE id = $1",
+        durationMs: 70,
+      },
+      {
+        spanId: "query-1",
+        name: "SELECT products WHERE id = $1",
+        durationMs: 70,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function answerSuggestion(
+  suggestion: JSONObject | Error,
+  onCreate?: () => Promise<unknown>,
+  /*
+   * What the suggestion route answers once a click was refused: the
+   * server's offer as it stands after the refusal.
+   */
+  afterRefusal?: JSONObject,
+): void {
+  postMock.mockImplementation(async (args: PostArgs) => {
+    const url: string = args.url.toString();
+    if (url.includes(SUGGESTION_PATH)) {
+      if (suggestion instanceof Error) {
+        throw suggestion;
       }
-      return new HTTPResponse(200, { sampleCount: 0 }, {});
+      const isAfterRefusal: boolean = postsTo(CREATE_PATH).length > 0;
+      return new HTTPResponse(
+        200,
+        isAfterRefusal && afterRefusal ? afterRefusal : suggestion,
+        {},
+      );
+    }
+    if (url.includes(CREATE_PATH)) {
+      if (onCreate) {
+        return onCreate();
+      }
+      return new HTTPResponse(200, { aiRunId: RUN_ID }, {});
+    }
+    return new HTTPResponse(200, { sampleCount: 0, items: [] }, {});
+  });
+}
+
+async function suggestionStrip(): Promise<HTMLElement> {
+  return screen.findByTestId("trace-performance-suggestion");
+}
+
+describe("performance fix with AI", () => {
+  afterEach(() => {
+    mockCurrentProject = null;
+  });
+
+  test("asks the server what to offer for this trace when the page loads", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(postsTo(SUGGESTION_PATH)[0]!.data).toEqual({ traceId: TRACE_ID });
+  });
+
+  test("a trace with nothing worth fixing shows nothing: no button, no note", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("trace-fix-performance"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Fix performance with AI"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a trace worth fixing names what was found, what it costs, and offers the fix", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding(),
+      findingCount: 1,
     });
     await renderTrace();
 
-    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+    const strip: HTMLElement = await suggestionStrip();
 
+    expect(strip).toHaveAttribute("data-offer", "Act");
     expect(
-      await screen.findByText("Performance fix task created"),
-    ).toBeInTheDocument();
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent(
+      "The same database query ran 12 times in OrderService.validateCart",
+    );
     expect(
-      postsTo("/ai-investigation/create-performance-fix-task")[0]!.data,
-    ).toEqual({ traceId: TRACE_ID });
+      within(strip).getByTestId("trace-performance-query"),
+    ).toHaveTextContent("SELECT * FROM products WHERE id = ?");
     expect(
-      screen.getByText("View task progress").closest("a")!.getAttribute("href"),
-    ).toContain("70000000-0000-4000-8000-000000000009");
-    expect(screen.getByTestId("trace-fix-performance")).toBeDisabled();
+      within(strip).getByTestId("trace-performance-detail"),
+    ).toHaveTextContent("Together they take 840 ms of this 1.6 s request.");
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).toHaveTextContent("Fix performance with AI");
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
+    // The header's own actions no longer carry the AI button.
+    expect(
+      within(screen.getByTestId("trace-header")).getAllByTestId(
+        "trace-fix-performance",
+      ),
+    ).toHaveLength(1);
   });
 
-  test("a refusal is shown, not swallowed", async () => {
-    postMock.mockImplementation(async (args: PostArgs) => {
-      if (
-        args.url
-          .toString()
-          .includes("/ai-investigation/create-performance-fix-task")
-      ) {
+  test("calls one after another that are not database work are named by their operation", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding({
+        findingType: "SequentialSiblings",
+        spanCount: 4,
+        combinedDurationMs: 600,
+        traceDurationMs: 900,
+        percentOfTrace: 66.7,
+        normalizedSpanName: "GET /inventory/{n}",
+        parentSpanName: "reserve stock",
+        normalizedDbStatement: undefined,
+        dbSystem: undefined,
+        implicatedSpans: [
+          { spanId: "reserve", name: "GET /inventory/41", durationMs: 150 },
+          { spanId: "update", name: "GET /inventory/42", durationMs: 150 },
+        ],
+      }),
+    });
+    await renderTrace();
+
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent(
+      "4 calls to GET /inventory/{n} ran one after another in reserve stock",
+    );
+    expect(within(strip).queryByTestId("trace-performance-query")).toBeNull();
+    expect(
+      within(strip).getByTestId("trace-performance-detail"),
+    ).toHaveTextContent(
+      "Together they take 600 ms of this 900 ms request, and they could run at the same time.",
+    );
+  });
+
+  test("clicking the fix creates the task for this trace and links to it", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix. View task progress");
+    expect(postsTo(CREATE_PATH)).toHaveLength(1);
+    expect(postsTo(CREATE_PATH)[0]!.data).toEqual({ traceId: TRACE_ID });
+    expect(
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    // One fix per click: the button gives way to the link.
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("a refusal is shown beside the finding, and the fix can be tried again", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() }, async () => {
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+        },
+        {},
+      );
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+    );
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
+    // The refusal asked again what the server offers: still the fix.
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(2);
+  });
+
+  test("refused because someone else's fix is already on its way: links to it, no error", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
         throw new HTTPErrorResponse(
           400,
           {
             message:
-              "No deterministic performance pattern was found in this trace.",
+              "A performance fix task is already queued or running for this trace. Track its progress in Code.",
           },
           {},
         );
+      },
+      { offer: "InProgress", finding: nPlusOneFinding(), aiRunId: RUN_ID },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix. View task progress");
+    expect(strip).toHaveAttribute("data-offer", "InProgress");
+    expect(
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("refused because the repository was disconnected: the quiet Connect GitHub link takes the button's place", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+          },
+          {},
+        );
+      },
+      { offer: "SetUp", finding: nPlusOneFinding() },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-connect"),
+    ).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(strip).toHaveAttribute("data-offer", "SetUp");
+    // Said in the strip's own words, not the server's.
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("refused, and the offer cannot be read again: the reason stays beside the fix", async () => {
+    let suggestionReads: number = 0;
+    postMock.mockImplementation(async (args: PostArgs) => {
+      const url: string = args.url.toString();
+      if (url.includes(SUGGESTION_PATH)) {
+        suggestionReads += 1;
+        if (suggestionReads > 1) {
+          throw new Error("network down");
+        }
+        return new HTTPResponse(
+          200,
+          { offer: "Act", finding: nPlusOneFinding() },
+          {},
+        );
       }
-      return new HTTPResponse(200, { sampleCount: 0 }, {});
+      if (url.includes(CREATE_PATH)) {
+        throw new HTTPErrorResponse(
+          400,
+          { message: "This project used today's AI fix runs." },
+          {},
+        );
+      }
+      return new HTTPResponse(200, { sampleCount: 0, items: [] }, {});
     });
     await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
 
-    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
-      await screen.findByText("Could not create the performance fix task"),
-    ).toBeInTheDocument();
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "Could not start the fix: This project used today's AI fix runs.",
+    );
+    expect(strip).toHaveAttribute("data-offer", "Act");
     expect(
-      screen.getByText(
-        "No deterministic performance pattern was found in this trace.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("trace-fix-performance")).not.toBeDisabled();
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
+  });
+
+  test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
+    answerSuggestion({ offer: "SetUp", finding: nPlusOneFinding() });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(strip).toHaveAttribute("data-offer", "SetUp");
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent("The same database query ran 12 times");
+    const connect: HTMLElement = within(strip).getByTestId(
+      "trace-fix-performance-connect",
+    );
+    expect(connect).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(connect.closest("a")!.getAttribute("href")).toContain(
+      `/dashboard/${PROJECT_ID}/code`,
+    );
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("a fix already on its way: links to it instead of offering another", async () => {
+    answerSuggestion({
+      offer: "InProgress",
+      finding: nPlusOneFinding(),
+      aiRunId: RUN_ID,
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(
+      within(strip).getByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix.");
+    expect(
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("AI switched off for the project: the server is not even asked, and nothing is drawn", async () => {
+    mockCurrentProject = { enableAi: false };
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(
+        postsTo("/telemetry/profiles/trace-presence").length,
+      ).toBeGreaterThan(0);
+    });
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(0);
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failed suggestion read shows nothing and leaves the page working", async () => {
+    answerSuggestion(new Error("network down"));
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("trace-title")).toHaveTextContent(
+      "POST /api/v1/checkout",
+    );
+  });
+
+  test.each([
+    ["an offer with no finding", { offer: "Act" }],
+    [
+      "a finding too small to fix",
+      { offer: "Act", finding: nPlusOneFinding({ combinedDurationMs: 12 }) },
+    ],
+    [
+      "in progress with no run",
+      { offer: "InProgress", finding: nPlusOneFinding() },
+    ],
+    [
+      "an offer this build does not know",
+      { offer: "Later", finding: nPlusOneFinding() },
+    ],
+  ])("%s shows nothing", async (_label: string, answer: JSONObject) => {
+    answerSuggestion(answer);
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * "Show them" puts the finding's spans in view: their shared name as the
+   * search, nothing else hiding them, the waterfall scrolled to. The first
+   * is opened where the span panel sits beside the waterfall (xl); on a
+   * narrower screen the panel is a sheet over the page, so spans the search
+   * marks are left in view instead of covered.
+   */
+  describe("'Show them'", () => {
+    const XL_QUERY: string = "(min-width: 1280px)";
+    let restoreWidth: () => void = () => {};
+    let scrollIntoView: Mock<(options?: ScrollIntoViewOptions) => void>;
+
+    function screenIs(width: "wide" | "narrow"): void {
+      const window_: { matchMedia?: unknown } = window as unknown as {
+        matchMedia?: unknown;
+      };
+      const original: unknown = window_.matchMedia;
+      window_.matchMedia = (query: string): MediaQueryList => {
+        return {
+          matches: query === XL_QUERY && width === "wide",
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => {
+            return false;
+          },
+        } as MediaQueryList;
+      };
+      restoreWidth = (): void => {
+        window_.matchMedia = original;
+      };
+    }
+
+    beforeEach(() => {
+      scrollIntoView = jest.fn<(options?: ScrollIntoViewOptions) => void>();
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        writable: true,
+        value: scrollIntoView,
+      });
+    });
+
+    afterEach(() => {
+      restoreWidth();
+      restoreWidth = () => {};
+      delete (HTMLElement.prototype as unknown as { scrollIntoView?: unknown })
+        .scrollIntoView;
+    });
+
+    function scrolledTo(): Array<unknown> {
+      return scrollIntoView.mock.contexts;
+    }
+
+    test("on a wide screen: marks them all, opens the first beside the waterfall and scrolls to it", async () => {
+      screenIs("wide");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      ).toHaveTextContent("Show them");
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("SELECT products WHERE id = $1");
+      await waitFor(() => {
+        expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(screen.getByTestId("trace-span-panel")).toBeInTheDocument();
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    test("on a narrower screen: marks them all and scrolls to them, with no sheet over them", async () => {
+      screenIs("narrow");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("SELECT products WHERE id = $1");
+      expect(screen.getByTestId("trace-search-count")).toHaveTextContent(
+        "12 matches",
+      );
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+      expect(row("query-0")).toHaveAttribute("aria-selected", "false");
+      expect(screen.queryByTestId("trace-span-panel")).not.toBeInTheDocument();
+    });
+
+    test("a single slow span is opened on any screen ('Show it'), and a search typed before is cleared", async () => {
+      screenIs("narrow");
+      answerSuggestion({
+        offer: "Act",
+        finding: nPlusOneFinding({
+          findingType: "DominantSpan",
+          spanCount: 1,
+          combinedDurationMs: 900,
+          percentOfTrace: 90,
+          implicatedSpans: [
+            { spanId: "update", name: "UPDATE stock", durationMs: 900 },
+          ],
+        }),
+      });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+      fireEvent.change(screen.getByTestId("trace-search"), {
+        target: { value: "auth" },
+      });
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      ).toHaveTextContent("Show it");
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("");
+      await waitFor(() => {
+        expect(row("update")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+    });
+
+    test("lets go of the filters that would hide them: errors only and a service", async () => {
+      screenIs("wide");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+      fireEvent.click(screen.getByTestId("trace-errors-only"));
+      fireEvent.click(screen.getAllByTestId("trace-service-chip")[1]!);
+      expect(row("query-0")).toBeNull();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(screen.getByTestId("trace-errors-only")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      for (const chip of screen.getAllByTestId("trace-service-chip")) {
+        expect(chip).toHaveAttribute("aria-pressed", "false");
+      }
+      await waitFor(() => {
+        expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(row("query-11")).not.toBeNull();
+    });
+  });
+
+  test("no 'Show them' when none of the finding's spans is loaded", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding({
+        implicatedSpans: [
+          { spanId: "not-loaded", name: "SELECT 1", durationMs: 70 },
+        ],
+      }),
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(
+      within(strip).queryByTestId("trace-performance-show-spans"),
+    ).toBeNull();
+  });
+
+  test("Refresh asks again, so the offer follows the trace", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    fireEvent.click(screen.getByTestId("trace-refresh"));
+
+    expect(await suggestionStrip()).toHaveAttribute("data-offer", "Act");
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(2);
   });
 });
+
+/*
+ * The permission snapshot the page reads, as the response header carries
+ * it: the project's rows, allow and block. Every gate on the page reads it
+ * (PermissionUtil.getAllPermissions goes through getProjectPermissions), so
+ * the Metrics tab and the rest of the page agree. No rows at all is a
+ * snapshot that has not landed yet.
+ */
+interface HeldPermissions {
+  set: (allowed: Array<Permission>, blocked?: Array<Permission>) => void;
+  restore: () => void;
+}
+
+function snapshotOf(
+  allowed: Array<Permission>,
+  blocked: Array<Permission>,
+): UserTenantAccessPermission | null {
+  if (allowed.length === 0 && blocked.length === 0) {
+    return null;
+  }
+
+  const row: (
+    isBlockPermission: boolean,
+  ) => (permission: Permission) => UserPermission = (
+    isBlockPermission: boolean,
+  ): ((permission: Permission) => UserPermission) => {
+    return (permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: isBlockPermission,
+      };
+    };
+  };
+
+  return {
+    _type: "UserTenantAccessPermission",
+    projectId: ObjectID.generate(),
+    permissions: [...allowed.map(row(false)), ...blocked.map(row(true))],
+  };
+}
+
+function holdPermissions(
+  allowed: Array<Permission>,
+  blocked: Array<Permission> = [],
+): HeldPermissions {
+  let current: UserTenantAccessPermission | null = snapshotOf(allowed, blocked);
+
+  const project: SpyInstance<typeof PermissionUtil.getProjectPermissions> = jest
+    .spyOn(PermissionUtil, "getProjectPermissions")
+    .mockImplementation((): UserTenantAccessPermission | null => {
+      return current;
+    });
+  const global: SpyInstance<typeof PermissionUtil.getGlobalPermissions> = jest
+    .spyOn(PermissionUtil, "getGlobalPermissions")
+    .mockReturnValue(null);
+
+  return {
+    set: (
+      nextAllowed: Array<Permission>,
+      nextBlocked: Array<Permission> = [],
+    ): void => {
+      current = snapshotOf(nextAllowed, nextBlocked);
+    },
+    restore: (): void => {
+      project.mockRestore();
+      global.mockRestore();
+    },
+  };
+}
 
 describe("related signals", () => {
   test("logs and exceptions are scoped to this trace, with an exception count", async () => {
@@ -1807,6 +2801,186 @@ describe("related signals", () => {
     expect(screen.getByTestId("trace-signal-tab-metrics")).toHaveTextContent(
       "2",
     );
+  });
+
+  /*
+   * Metrics are read with the metric permission, not the trace one. Somebody
+   * who may read this trace but not metrics gets no Metrics tab, rather than
+   * a tab whose request the server refuses.
+   */
+  test.each([
+    [[Permission.ReadTelemetryServiceTraces], []],
+    /*
+     * Nor does the metric permission held only as a block: a block row is
+     * never a grant.
+     */
+    [
+      [Permission.ReadTelemetryServiceTraces],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+    /*
+     * A block with no labels takes the permission away, whatever another
+     * team allows - the route reads it so.
+     */
+    [
+      [Permission.ReadTelemetryServiceMetrics],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+    // A blocked wildcard grants nothing.
+    [
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadAllOperationalResources,
+      ],
+      [Permission.ReadAllOperationalResources],
+    ],
+  ])(
+    "the metrics tab is left out for %j (blocked: %j), which reads the trace but not metrics",
+    async (allowed: Array<Permission>, blocked: Array<Permission>) => {
+      const permissions: HeldPermissions = holdPermissions(allowed, blocked);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId("trace-signal-tab-logs")).toBeInTheDocument();
+        expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+      } finally {
+        permissions.restore();
+      }
+    },
+  );
+
+  test("a master admin gets the metrics tab whatever the project grants", async () => {
+    const permissions: HeldPermissions = holdPermissions([
+      Permission.ReadTelemetryServiceTraces,
+    ]);
+    const masterAdmin: SpyInstance<typeof User.isMasterAdmin> = jest
+      .spyOn(User, "isMasterAdmin")
+      .mockReturnValue(true);
+
+    try {
+      await renderTrace();
+
+      expect(
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
+    } finally {
+      masterAdmin.mockRestore();
+      permissions.restore();
+    }
+  });
+
+  test.each([
+    [[Permission.ReadTelemetryServiceMetrics], []],
+    [[Permission.TelemetryViewer], []],
+    /*
+     * Metrics are an operational resource: the metrics route accepts "Read
+     * All Operational Resources" as the CRUD API does, so the tab opens too.
+     */
+    [
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadAllOperationalResources,
+      ],
+      [],
+    ],
+    /*
+     * A block on another permission the route does not ask for changes
+     * nothing.
+     */
+    [[Permission.ReadTelemetryServiceMetrics], [Permission.DeleteProject]],
+    [[], []],
+  ])(
+    "the metrics tab is there for %j (blocked: %j; an empty snapshot is still loading)",
+    async (allowed: Array<Permission>, blocked: Array<Permission>) => {
+      const permissions: HeldPermissions = holdPermissions(allowed, blocked);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.getByTestId("trace-signal-tab-metrics"),
+        ).toBeInTheDocument();
+      } finally {
+        permissions.restore();
+      }
+    },
+  );
+
+  test("a Metrics tab still on screen after the snapshot changed sends nothing when clicked", async () => {
+    const permissions: HeldPermissions = holdPermissions([]);
+
+    try {
+      await renderTrace();
+      expect(
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
+
+      // The snapshot lands without re-rendering the card: the tab is stale.
+      permissions.set([Permission.ReadTelemetryServiceTraces]);
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+          "aria-selected",
+          "true",
+        );
+      });
+      expect(
+        screen.queryByTestId("trace-signal-tab-metrics"),
+      ).not.toBeInTheDocument();
+      expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+    } finally {
+      permissions.restore();
+    }
+  });
+
+  test("metrics opened while the snapshot loaded fall back to logs once it shows they may not be read", async () => {
+    const permissions: HeldPermissions = holdPermissions([]);
+    let releaseMetrics: () => void = () => {};
+    const metricsHeld: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseMetrics = resolve;
+      },
+    );
+
+    postMock.mockImplementation(async (args: PostArgs) => {
+      if (args.url.toString().includes("/telemetry/metrics/for-trace")) {
+        await metricsHeld;
+        return new HTTPResponse(200, { items: [] }, {});
+      }
+      return new HTTPResponse(200, { sampleCount: 0 }, {});
+    });
+
+    try {
+      await renderTrace();
+
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+      expect(screen.getByTestId("trace-metrics")).toBeInTheDocument();
+
+      // The snapshot arrives: this trace's reader may not read metrics.
+      permissions.set([Permission.ReadTelemetryServiceTraces]);
+      releaseMetrics();
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("trace-metrics")).not.toBeInTheDocument();
+      expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(logsViewerProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ traceIds: [TRACE_ID] }),
+      );
+    } finally {
+      permissions.restore();
+    }
   });
 
   test("the profile tab only exists when the trace was profiled", async () => {

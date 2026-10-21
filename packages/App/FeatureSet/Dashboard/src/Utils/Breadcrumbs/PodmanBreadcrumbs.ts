@@ -27,6 +27,27 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Recommendations",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AI_LOGS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AI_AGENT, [
+      "Project",
+      "Podman",
+      "View Host",
+      "AI",
+      "AI agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_LOGS, [
       "Project",
       "Podman",
@@ -45,6 +66,10 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Podman", "View Host", "Scheduled Maintenance"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_SETTINGS, [
       "Project",
       "Podman",

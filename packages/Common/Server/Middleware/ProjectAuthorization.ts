@@ -1,5 +1,6 @@
-import ApiKeyService from "../Services/ApiKeyService";
+import ApiKeyService, { ResolvedApiKey } from "../Services/ApiKeyService";
 import GlobalConfigService from "../Services/GlobalConfigService";
+import ProjectService from "../Services/ProjectService";
 import UserService from "../Services/UserService";
 import {
   ExpressRequest,
@@ -9,16 +10,28 @@ import {
 } from "../Utils/Express";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import ObjectID from "../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
+import PlanCutoffCredentialAccess from "../Utils/Billing/PlanCutoffCredentialAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
+import { PlanCutoffCredential } from "../../Types/Billing/PlanCutoffCredentials";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 
 export default class ProjectMiddleware {
+  /*
+   * What the audit trail calls the instance-wide master API key. It has no
+   * row in ApiKey - it is a column on GlobalConfig - so there is no id or
+   * name to record, and without a label a change made with it reads as the
+   * master admin user having made it by hand.
+   */
+  public static readonly MASTER_API_KEY_AUDIT_NAME: string = "Master API Key";
+
   @CaptureSpan()
   public static getProjectId(req: ExpressRequest): ObjectID | null {
     let projectId: ObjectID | null = null;
@@ -189,14 +202,60 @@ export default class ProjectMiddleware {
        * Cached lookup — see ApiKeyService.findApiKey. Hot path for any
        * automated caller hitting the API by key.
        */
-      const apiKeyRow: { id: ObjectID; projectId: ObjectID } | null =
+      const apiKeyRow: ResolvedApiKey | null =
         await ApiKeyService.findApiKey(apiKey);
 
       if (apiKeyRow) {
+        /*
+         * A blocked project's keys are refused, whatever they may do and
+         * whatever the project's plan: a master admin blocked the project
+         * (Admin Dashboard > Projects), and until it is unblocked nothing
+         * but a master admin acts in it. Asked first, at the one door every
+         * API-key request goes through - the CLI, Terraform and the MCP
+         * server's API-key mode included. Cached per server
+         * (ProjectService.isProjectBlocked); a lookup that fails is an
+         * error, not a pass.
+         */
+        if (await ProjectService.isProjectBlocked(apiKeyRow.projectId)) {
+          throw new ProjectBlockedException();
+        }
+
+        /*
+         * A project's API keys work only while it is on the plan that sells
+         * them (Types/Billing/PlanCutoffCredentials). Below it - after a
+         * downgrade - the key is refused here, with a 402 that names the
+         * plan, before anything is read with it: this is the one door every
+         * API-key request goes through, so every route behind it, and
+         * everything built on the API (Terraform, the CLI, the MCP server's
+         * API-key mode), is covered at once. The key itself is untouched
+         * and works again as soon as the project is back on the plan.
+         * Billing off: no plans, nothing to refuse.
+         */
+        const planRefusal: PaymentRequiredException | null =
+          await PlanCutoffCredentialAccess.getRefusal({
+            projectId: apiKeyRow.projectId,
+            credential: PlanCutoffCredential.ApiKey,
+          });
+
+        if (planRefusal) {
+          throw planRefusal;
+        }
+
         tenantId = apiKeyRow.projectId;
 
         (req as OneUptimeRequest).tenantId = tenantId;
         (req as OneUptimeRequest).userType = UserType.API;
+
+        /*
+         * Which key this is, for the audit trail. A key request carries no
+         * userId, so these two are the only thing that lets an audit entry
+         * tell one key's changes from another's. Nothing below reads them.
+         */
+        (req as OneUptimeRequest).apiKeyId = apiKeyRow.id;
+
+        if (apiKeyRow.name) {
+          (req as OneUptimeRequest).apiKeyName = apiKeyRow.name;
+        }
 
         /*
          * The two halves of an API key's authority. The global half is the
@@ -233,6 +292,8 @@ export default class ProjectMiddleware {
 
         if (isMasterApiKey) {
           (req as OneUptimeRequest).userType = UserType.MasterAdmin;
+          (req as OneUptimeRequest).apiKeyName =
+            ProjectMiddleware.MASTER_API_KEY_AUDIT_NAME;
 
           // get master admin user
 

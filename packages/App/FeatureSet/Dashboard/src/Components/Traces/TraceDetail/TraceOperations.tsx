@@ -211,7 +211,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                 <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <div
-                      className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-gray-100 sm:block"
+                      className="max-sm:hidden h-1.5 w-16 overflow-hidden rounded-full bg-gray-100 sm:block"
                       aria-hidden="true"
                     >
                       <div

@@ -17,6 +17,8 @@ import ChannelVerification, {
 } from "../Utils/ChannelVerification";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import ChannelVerificationResendRoute from "./ChannelVerificationResendRoute";
+import ChannelVerificationStatusRoute from "./ChannelVerificationStatusRoute";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserCall from "../../Models/DatabaseModels/UserCall";
@@ -125,66 +127,34 @@ export default class UserCallAPI extends BaseAPI<
       },
     );
 
-    this.router.post(
-      `/user-call/resend-verification-code`,
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-      VerificationCodeRateLimit.getMiddleware(
-        VerificationCodeRateLimitBucket.Resend,
-      ),
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          req = req as OneUptimeRequest;
+    // A new code for the person's own row. See ChannelVerificationResendRoute.
+    ChannelVerificationResendRoute.register({
+      router: this.router,
+      path: "/user-call",
+      service: this.service,
+    });
 
-          if (!req.body.itemId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item ID"),
-            );
-          }
+    // Where the person's own code stands, for the verify dialog.
+    ChannelVerificationStatusRoute.register({
+      router: this.router,
+      path: "/user-call",
+      service: this.service,
+    });
+  }
 
-          const item: UserCall | null = await this.service.findOneById({
-            id: req.body["itemId"],
-            props: {
-              isRoot: true,
-            },
-            select: {
-              userId: true,
-            },
-          });
-
-          if (!item) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          /*
-           * A caller may only ask for a code to be sent to a row they own.
-           * Without this the resend route is a way to make somebody else's
-           * device ring on demand.
-           */
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
-            );
-          }
-
-          await this.service.resendVerificationCode(req.body.itemId);
-
-          return Response.sendEmptySuccessResponse(req, res);
-        } catch (err) {
-          return next(err);
-        }
-      },
-    );
+  /*
+   * Adding one sends its first code at once, so the add is counted first:
+   * per person, per kind of method and per address
+   * (VerificationCodeRateLimit.checkAddAllowed).
+   */
+  protected override async onBeforeCreate(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    await VerificationCodeRateLimit.checkAddAllowed({
+      req: req,
+      res: res,
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
+    });
   }
 }

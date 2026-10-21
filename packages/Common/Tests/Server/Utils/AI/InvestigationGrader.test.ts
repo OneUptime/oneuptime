@@ -3,6 +3,7 @@ import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
 import AIService, {
   AILogResponse,
 } from "../../../../Server/Services/AIService";
@@ -178,6 +179,38 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
       id: projectId,
       enableAi: false,
     } as unknown as Project);
+    const findRun: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
+    const executeWithLogging: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "executeWithLogging",
+    );
+
+    await expect(
+      InvestigationGrader.gradeInvestigationOnResolve({
+        incidentId,
+        projectId,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(findRun).not.toHaveBeenCalled();
+    expect(executeWithLogging).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The project's own daily AI limits are a setting too: past one, the
+   * grading call would be refused - and logged as an error - for every
+   * incident resolved until midnight UTC. It is skipped quietly instead.
+   */
+  test("the project's own daily AI limit reached → skips silently, no LLM call", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      aiDailyTokenLimit: 1000,
+    } as unknown as Project);
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: 1000,
+      billedCostInUSDCents: 0,
+    });
     const findRun: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
     const executeWithLogging: jest.SpyInstance = jest.spyOn(
       AIService,

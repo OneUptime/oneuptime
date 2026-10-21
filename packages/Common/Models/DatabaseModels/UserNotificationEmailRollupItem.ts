@@ -2,6 +2,7 @@ import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
+import Color from "../../Types/Color";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -41,7 +42,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * WHAT IS DELIBERATELY NOT STORED: the envelope vars, the template type, and
  * any rendered body. A rollup line stores eventType, subject, an optional deep
- * link, and the severity and state names shown in alert/incident emails.
+ * link, and the severity and state names shown in alert/incident emails, with
+ * their colours.
  * Storing envelopes would multiply row size roughly fiftyfold, add a
  * stale-template bug class the moment a template changes under a queued row,
  * and buy nothing a reader of the rollup email ever sees.
@@ -331,6 +333,52 @@ export default class UserNotificationEmailRollupItem extends BaseModel {
     nullable: true,
   })
   public currentState?: string = undefined;
+
+  /*
+   * The colours of that severity and that state, snapshotted with their names
+   * for the same reason, so the rollup paints each one the way the email it
+   * stands in for would have. Always the #rrggbb EmailColorUtil wrote, never a
+   * colour as a project typed it. NULL for older queue items, for families
+   * with no severity or state, and for a colour that was not a usable hex or
+   * rgb() colour - all of which the rollup shows in its neutral chip.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Color,
+    title: "Severity Color",
+    description: "Color of the severity when this notification was queued",
+    example: "#ef4444",
+  })
+  @Column({
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
+    nullable: true,
+    transformer: Color.getDatabaseTransformer(),
+  })
+  public severityColor?: Color = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Color,
+    title: "Current State Color",
+    description: "Color of the state when this notification was queued",
+    example: "#22c55e",
+  })
+  @Column({
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
+    nullable: true,
+    transformer: Color.getDatabaseTransformer(),
+  })
+  public currentStateColor?: Color = undefined;
 
   /*
    * The deep link back into the dashboard, lifted out of the envelope vars,

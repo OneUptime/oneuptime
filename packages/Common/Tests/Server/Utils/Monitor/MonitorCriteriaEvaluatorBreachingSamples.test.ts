@@ -13,6 +13,7 @@ import Markdown, {
   MarkdownContentType,
 } from "../../../../Server/Types/Markdown";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
@@ -27,6 +28,12 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../../Types/ObjectID";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
+
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
 
 /*
  * THE BREACHING SAMPLES LIST.
@@ -60,7 +67,7 @@ type EvaluatorPrivate = {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
-  }) => string | null;
+  }) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -213,10 +220,12 @@ function makeCriteriaInstance(
 }
 
 function rootCause(ctx: MetricCriteriaContext, monitor?: Monitor): string {
-  const context: string | null = Evaluator.buildMetricRootCauseContext({
-    criteriaInstance: makeCriteriaInstance(ctx),
-    monitor: monitor || new Monitor(),
-  });
+  const context: string | null = textOf(
+    Evaluator.buildMetricRootCauseContext({
+      criteriaInstance: makeCriteriaInstance(ctx),
+      monitor: monitor || new Monitor(),
+    }),
+  );
 
   expect(context).not.toBeNull();
   return context as string;
@@ -753,8 +762,12 @@ describe("Breaching Samples - attributes", () => {
     expect(html).not.toContain('href="https://evil.example"');
     expect(html).not.toContain("<img");
     expect(html).toMatch(/<code[^>]*>\*\*key\*\*<\/code>/);
+    /*
+     * The "<" carries an invisible word joiner (markdownCodeSpan): a Teams
+     * card, which has no code spans, does not read a tag there either.
+     */
     expect(html).toMatch(
-      /<code[^>]*>\*\*bold\*\* \[x\]\(https:\/\/evil\.example\) &lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;<\/code>/,
+      /<code[^>]*>\*\*bold\*\* \[x\]\(https:\/\/evil\.example\) &lt;⁠img src=x onerror=&quot;alert\(1\)&quot;&gt;<\/code>/,
     );
   });
 });
@@ -1041,7 +1054,7 @@ describe("Breaching Samples - in Slack", () => {
 
     for (let i: number = 1; i <= 20; i++) {
       expect(slack).toMatch(
-        new RegExp(`(^|\\n)${i}\\.\\s+\`${iso(i - 1).replace(/\./g, "\\.")}\``),
+        new RegExp(`(^|\\n)${i}\\.\\s+\`${escapeRegExp(iso(i - 1))}\``),
       );
     }
 

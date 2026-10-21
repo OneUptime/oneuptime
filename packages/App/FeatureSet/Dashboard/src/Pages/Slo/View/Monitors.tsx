@@ -63,6 +63,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface SloMonitorState {
   membership: SloMonitorMembership;
@@ -97,6 +100,7 @@ type SaveMonitorChangeFunction = (data: {
  * page from offering what the API would refuse.
  */
 const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // The route is <sloId>/monitors, so the id is one segment back.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
@@ -419,19 +423,19 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
               className="text-sm font-medium underline"
               to={monitorRulesRoute}
             >
-              Manage Monitor Rules
+              {translator.translateTemplate("Manage Monitor Rules")}
             </AppLink>
           }
         >
           <span>
-            {enabledMonitorRuleCount === 1
-              ? "An enabled monitor rule decides"
-              : `${enabledMonitorRuleCount} enabled monitor rules decide`}{" "}
-            which monitors this SLO measures. Matching monitors are attached
-            automatically, so monitors cannot be added by hand, and monitors a
-            rule attached cannot be removed here. Monitors attached by hand
-            before the rules were enabled can still be removed. Disable every
-            rule to pick monitors yourself.
+            {translator.translatePlural(
+              {
+                one: "An enabled monitor rule decides which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
+                other:
+                  "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
+              },
+              enabledMonitorRuleCount,
+            )}
           </span>
         </AlertBanner>
       ) : (
@@ -463,7 +467,10 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         cardProps={{
           title: "Monitors",
-          description: `The monitors whose uptime this SLO measures. ${describeSloMonitorCounts(membership)}.`,
+          description: translator.translateTemplate(
+            "The monitors whose uptime this SLO measures. {{monitorCounts}}.",
+            { monitorCounts: describeSloMonitorCounts(membership) },
+          ),
           buttons: addMonitorsButton ? [addMonitorsButton] : [],
         }}
         noItemsMessage={
@@ -471,9 +478,34 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ? "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches."
             : "No monitors attached. Add monitors by hand, or create a monitor rule to attach matching monitors automatically."
         }
+        /*
+         * The empty list names two ways to attach monitors, so it offers
+         * both: the card's Add Monitors, which it repeats, and the way to a
+         * monitor rule. Monitor Rules is folded away under the side menu's
+         * Rules section, so it gets a button here, as on the Overview's
+         * monitors card. While a rule is enabled, the banner above links to
+         * the rules instead.
+         */
+        emptyState={
+          enabledMonitorRuleCount > 0
+            ? undefined
+            : {
+                actions: [
+                  {
+                    title: "Create a monitor rule",
+                    icon: IconProp.Filter,
+                    dataTestId: "slo-monitors-create-monitor-rule",
+                    onClick: (): void => {
+                      Navigation.navigate(monitorRulesRoute);
+                    },
+                  },
+                ],
+              }
+        }
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         selectMoreFields={{
+          isArchived: true,
           disableActiveMonitoring: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
@@ -508,6 +540,20 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Current Status",
             type: FieldType.Entity,
             getElement: (item: Monitor): ReactElement => {
+              /*
+               * An archived monitor stays attached to the SLO but is not
+               * checked, so its last status is frozen: say so.
+               */
+              if (item.isArchived) {
+                return (
+                  <Statusbubble
+                    shouldAnimate={false}
+                    color={Gray500}
+                    text={"Archived"}
+                  />
+                );
+              }
+
               if (item.disableActiveMonitoring) {
                 return (
                   <Statusbubble
@@ -674,9 +720,6 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onSubmit={() => {
             setShowNothingToAddModal(false);
           }}
-          onClose={() => {
-            setShowNothingToAddModal(false);
-          }}
         />
       ) : (
         <></>
@@ -687,9 +730,16 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title="Remove Monitor from SLO"
           description={
             <div>
-              Remove <strong>{monitorToRemove.name || "this monitor"}</strong>{" "}
-              from this SLO? It will no longer count towards the SLO&apos;s SLI
-              and error budget. The monitor itself is not changed.
+              {monitorToRemove.name ? (
+                <TranslatedSentence
+                  template="Remove {{monitor}} from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed."
+                  slots={{ monitor: <strong>{monitorToRemove.name}</strong> }}
+                />
+              ) : (
+                translator.translateText(
+                  "Remove this monitor from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed.",
+                )
+              )}
             </div>
           }
           submitButtonText="Remove"

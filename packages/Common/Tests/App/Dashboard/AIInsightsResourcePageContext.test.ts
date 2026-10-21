@@ -6,6 +6,7 @@ import ResourcePageContextUtil from "../../../../App/FeatureSet/Dashboard/src/Co
 import { encodeServiceNameForUrl } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/WindowsServices";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -92,6 +93,12 @@ const RESOURCES: Array<ResourceCase> = [
     path: "ceph",
     modelType: CephCluster,
     chip: "This Ceph cluster",
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    modelType: StorageArray,
+    chip: "This storage array",
   },
   {
     type: AIResourceType.ServerlessFunction,
@@ -352,6 +359,53 @@ const CHILDREN: Array<ChildCase> = [
     collection: "pools",
     kind: AIResourceSubresourceKind.Pool,
     key: "1",
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "volumes",
+    kind: AIResourceSubresourceKind.Volume,
+    // A volume in a volume group is named "vgroup/volume".
+    key: "vg1/db-data",
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "hosts",
+    kind: AIResourceSubresourceKind.Host,
+    key: "esx-01",
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "replication",
+    kind: AIResourceSubresourceKind.Pod,
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "hardware",
+    kind: AIResourceSubresourceKind.Hardware,
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "directories",
+    kind: AIResourceSubresourceKind.Directory,
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "file-systems",
+    kind: AIResourceSubresourceKind.FileSystem,
+    key: "home-dirs",
+  },
+  {
+    type: AIResourceType.StorageArray,
+    path: "storage-arrays",
+    collection: "buckets",
+    kind: AIResourceSubresourceKind.Bucket,
+    key: "backups",
   },
   {
     type: AIResourceType.IoTFleet,

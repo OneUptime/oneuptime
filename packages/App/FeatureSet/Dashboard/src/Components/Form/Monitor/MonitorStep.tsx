@@ -35,7 +35,10 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
 import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
@@ -49,6 +52,10 @@ import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
+import LlmMonitorStepForm from "./LlmMonitor/LlmMonitorStepForm";
+import MonitorStepLlmMonitor, {
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -74,6 +81,7 @@ import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import { INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION } from "./AlertTemplatePicker/AlertTemplateGroups";
 import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
@@ -110,9 +118,17 @@ import CephMonitorStepForm from "./CephMonitor/CephMonitorStepForm";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
+import StorageArrayMonitorStepForm from "./StorageArrayMonitor/StorageArrayMonitorStepForm";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
+import ProfileMonitorStepForm from "./ProfileMonitor/ProfileMonitorStepForm";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProfileMonitor";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
@@ -127,6 +143,7 @@ import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   NetworkDeviceCriteriaCatalogue,
   NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
 } from "./CriteriaFilter";
 import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
@@ -149,14 +166,37 @@ import MonitorStepDnssecMonitor, {
   MonitorStepDnssecMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm";
+import ProbeStatusMonitorStepForm from "./ProbeStatusMonitor/ProbeStatusMonitorStepForm";
+import MonitorStepProbeStatusMonitor, {
+  MonitorStepProbeStatusMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import {
-  getRetriesOnFailureDescription,
+  getRequestTimeoutField,
+  getRetriesOnFailureField,
+  MonitorStepFieldHelp,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
-  REQUEST_TIMEOUT_DESCRIPTION,
 } from "../../../Utils/MonitorRetryHelpText";
+import SyntheticMonitorCopy from "../../../Utils/Form/Monitor/SyntheticMonitorCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  getMonitorDestinationFieldCopy,
+  MONITOR_PORT_FIELD_DESCRIPTION,
+  MonitorDestinationFieldCopy,
+  NTP_PORT_FIELD_DESCRIPTION,
+  NTP_PORT_FIELD_ERROR,
+} from "../../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
+import { DEFAULT_NTP_PORT } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import {
+  SnmpTableDefinition,
+  SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -181,7 +221,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
@@ -198,11 +237,14 @@ export interface ComponentProps {
   defaultIncidentSeverityId?: ObjectID | undefined;
   defaultAlertSeverityId?: ObjectID | undefined;
   monitorName?: string | undefined;
+  // Fold each criteria to its header (MonitorCriteria: foldDefaultCriteria).
+  foldDefaultCriteria?: boolean | undefined;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [
     showAdvancedOptionsRequestBodyAndHeaders,
     setShowAdvancedOptionsRequestBodyAndHeaders,
@@ -348,7 +390,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           props.monitorType === MonitorType.Logs ||
           props.monitorType === MonitorType.Traces ||
           props.monitorType === MonitorType.Metrics ||
-          props.monitorType === MonitorType.Exceptions
+          props.monitorType === MonitorType.Exceptions ||
+          props.monitorType === MonitorType.Profiles
         ) {
           await fetchTelemetryEntities();
         }
@@ -395,6 +438,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   >([]);
   const [networkDeviceInterfaceNames, setNetworkDeviceInterfaceNames] =
     useState<Array<string>>([]);
+  const [networkDeviceTableCatalogue, setNetworkDeviceTableCatalogue] =
+    useState<Array<NetworkDeviceTableCatalogueEntry>>([]);
 
   /*
    * The device the catalogue currently in state was fetched for, rather than
@@ -427,9 +472,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       id: new ObjectID(networkDeviceId),
       select: {
         snmpOids: true,
+        snmpTables: true,
+        snmpTableSnapshot: true,
         oidTemplate: {
           name: true,
           oids: true,
+          tables: true,
         },
       },
     });
@@ -507,7 +555,37 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         return true;
       });
 
+    /*
+     * The tables the device walks (template plus device-specific, merged
+     * the way the poll merges them), each with the row names its last walk
+     * reported so the row picker can offer them - as a walk stores them
+     * now, so a row a walk no longer keeps is never offered.
+     */
+    const snapshots: Array<SnmpTableSnapshot> =
+      SnmpTableListUtil.withListedRows(device?.snmpTableSnapshot || []);
+
+    const tables: Array<NetworkDeviceTableCatalogueEntry> =
+      SnmpTableListUtil.resolveEffectiveTables({
+        templateTables: device?.oidTemplate?.tables,
+        deviceTables: device?.snmpTables,
+      }).tables.map(
+        (definition: SnmpTableDefinition): NetworkDeviceTableCatalogueEntry => {
+          const snapshot: SnmpTableSnapshot | undefined =
+            SnmpTableListUtil.findSnapshot(snapshots, definition.key);
+
+          return {
+            definition: definition,
+            rowNames: (snapshot?.rows || []).map(
+              (row: SnmpTableSnapshotRow): string => {
+                return row.label;
+              },
+            ),
+          };
+        },
+      );
+
     return {
+      tables: tables,
       oids: effectiveOids.map(
         (entry: SnmpOid): NetworkDeviceOidCatalogueEntry => {
           const isFromTemplate: boolean = normalizedTemplateOids.has(entry.oid);
@@ -536,6 +614,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           }
 
           setNetworkDeviceOidCatalogue(catalogue.oids);
+          setNetworkDeviceTableCatalogue(catalogue.tables);
           setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
           setLoadedCatalogueNetworkDeviceId(selectedNetworkDeviceId);
         })
@@ -552,11 +631,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           }
 
           setNetworkDeviceOidCatalogue([]);
+          setNetworkDeviceTableCatalogue([]);
           setNetworkDeviceInterfaceNames([]);
           setLoadedCatalogueNetworkDeviceId(undefined);
         });
     } else {
       setNetworkDeviceOidCatalogue([]);
+      setNetworkDeviceTableCatalogue([]);
       setNetworkDeviceInterfaceNames([]);
       setLoadedCatalogueNetworkDeviceId(undefined);
     }
@@ -569,11 +650,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [errors, setErrors] = useState<Dictionary<string>>({});
   const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
-  const [destinationFieldTitle, setDestinationFieldTitle] =
-    useState<string>("URL");
-  const [destinationFieldDescription, setDestinationFieldDescription] =
-    useState<string>("");
-
   const requestTypeDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
 
@@ -581,10 +657,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props.value?.data?.monitorDestination?.toString() || "",
   );
 
-  let codeEditorPlaceholder: string = "";
+  let exampleScript: string = "";
 
   if (props.monitorType === MonitorType.CustomJavaScriptCode) {
-    codeEditorPlaceholder = `
+    exampleScript = `
 // You can use axios, http modules here.
 const response = await axios.get('https://example.com');
 
@@ -604,7 +680,7 @@ return {
   }
 
   if (props.monitorType === MonitorType.SyntheticMonitor) {
-    codeEditorPlaceholder = `
+    exampleScript = `
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
@@ -641,34 +717,9 @@ return {
         `;
   }
 
-  useEffect(() => {
-    if (props.monitorType === MonitorType.API) {
-      setDestinationFieldTitle("API URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the API you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Website) {
-      setDestinationFieldTitle("Website URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the website you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Ping) {
-      setDestinationFieldTitle("Ping Hostname or IP address");
-      setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
-      );
-    } else if (props.monitorType === MonitorType.IP) {
-      setDestinationFieldTitle("IP Address");
-      setDestinationFieldDescription(
-        "Whats the IP address you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Port) {
-      setDestinationFieldTitle("Hostname or IP address");
-      setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
-      );
-    }
-  }, [props.monitorType]);
+  // The address field's name, help and example, by monitor type.
+  const destinationFieldCopy: MonitorDestinationFieldCopy | null =
+    getMonitorDestinationFieldCopy(props.monitorType);
 
   const hasMonitorDestination: boolean =
     props.monitorType === MonitorType.IP ||
@@ -676,7 +727,8 @@ return {
     props.monitorType === MonitorType.Port ||
     props.monitorType === MonitorType.Website ||
     props.monitorType === MonitorType.API ||
-    props.monitorType === MonitorType.SSLCertificate;
+    props.monitorType === MonitorType.SSLCertificate ||
+    props.monitorType === MonitorType.NTP;
 
   const isCodeMonitor: boolean =
     props.monitorType === MonitorType.CustomJavaScriptCode ||
@@ -692,19 +744,31 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
-  // Check if there are any advanced options configured
-  const hasAdvancedOptionsConfigured: boolean =
-    Boolean(
-      monitorStep.data?.requestHeaders &&
-        Object.keys(monitorStep.data.requestHeaders).length > 0,
-    ) ||
-    Boolean(monitorStep.data?.requestBody) ||
-    Boolean(monitorStep.data?.doNotFollowRedirects) ||
-    Boolean(monitorStep.data?.allowSelfSignedCertificates) ||
-    Boolean(monitorStep.data?.tlsClientCertificate) ||
-    Boolean(monitorStep.data?.tlsClientKey) ||
-    monitorStep.data?.requestTimeoutInMs !== undefined ||
-    monitorStep.data?.retryCount !== undefined;
+  /*
+   * What the monitor type's More fields section holds, for its folded
+   * header: the options by name, and the ones that are set as chips. The
+   * section starts folded, as every More fields section does - the chips
+   * say what is set - and stays open once someone opens it.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getMonitorStepMoreFieldsItems({
+      monitorType: props.monitorType,
+      monitorStep: monitorStep,
+      usesClientCertificate: useTlsClientCertificate,
+    });
+
+  /*
+   * The timeout field starts on the default the probe really uses for this
+   * type: 5 seconds for NTP, 60 for the TCP and HTTP checks. Both fields say
+   * what they are in one line; the exact rule waits in the (i) by the title.
+   */
+  const requestTimeoutField: MonitorStepFieldHelp & {
+    defaultSeconds: number;
+  } = getRequestTimeoutField(props.monitorType);
+
+  const retriesOnFailureField: MonitorStepFieldHelp = getRetriesOnFailureField(
+    props.monitorType,
+  );
 
   const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
     return (
@@ -712,7 +776,8 @@ return {
         <div>
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
-            description={REQUEST_TIMEOUT_DESCRIPTION}
+            description={requestTimeoutField.description}
+            tooltip={requestTimeoutField.tooltip}
             required={false}
           />
           <Input
@@ -721,7 +786,7 @@ return {
                 ? Math.round(
                     monitorStep.data.requestTimeoutInMs / 1000,
                   ).toString()
-                : "60"
+                : requestTimeoutField.defaultSeconds.toString()
             }
             onChange={(value: string) => {
               const seconds: number = parseInt(value);
@@ -735,7 +800,7 @@ return {
                 props.onChange(MonitorStep.clone(monitorStep));
               }
             }}
-            placeholder="60"
+            placeholder={requestTimeoutField.defaultSeconds.toString()}
             type={InputType.NUMBER}
           />
         </div>
@@ -743,7 +808,8 @@ return {
         <div>
           <FieldLabelElement
             title={"Retries on Failure"}
-            description={getRetriesOnFailureDescription(props.monitorType)}
+            description={retriesOnFailureField.description}
+            tooltip={retriesOnFailureField.tooltip}
             required={false}
           />
           <Input
@@ -783,20 +849,22 @@ return {
         onChange={props.onChange}
       />
       {/* Monitor Target Card */}
+      {/*
+       * The address field below says what to enter, so the card's title is
+       * all it needs: its old description said nothing the field does not.
+       */}
       {hasMonitorDestination && (
-        <Card
-          title="Monitor Target"
-          description="Configure what you want to monitor"
-        >
+        <Card title="Monitor Target">
           <div className="space-y-4">
             <div>
               <FieldLabelElement
-                title={destinationFieldTitle}
-                description={destinationFieldDescription}
+                title={destinationFieldCopy?.title || "URL"}
+                description={destinationFieldCopy?.description}
                 required={true}
               />
               <Input
                 initialValue={destinationInputValue}
+                placeholder={destinationFieldCopy?.placeholder}
                 disableSpellCheck={true}
                 onBlur={() => {
                   setTouched({
@@ -870,25 +938,45 @@ return {
               <TinyFormDocumentation title="URL placeholder help">
                 <>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{timestamp}}"}
-                    </code>{" "}
-                    — replaced with current Unix timestamp
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with current Unix timestamp"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{random}}"}
-                    </code>{" "}
-                    — replaced with a random unique string
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with a random unique string"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{random}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Example:{" "}
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"https://example.com?cb={{timestamp}}"}
-                    </code>
+                    <TranslatedSentence
+                      template="Example: {{url}}"
+                      slots={{
+                        url: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"https://example.com?cb={{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Useful for busting CDN or proxy caches on each check.{" "}
+                    {translator.translateText(
+                      "Useful for busting CDN or proxy caches on each check.",
+                    )}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -899,7 +987,7 @@ return {
                             : "/monitor/website-monitor"),
                       )}
                     >
-                      Learn more.
+                      {translator.translateText("Learn more.")}
                     </Link>
                   </div>
                 </>
@@ -910,11 +998,12 @@ return {
               <div>
                 <FieldLabelElement
                   title={"Port"}
-                  description={"Whats the port you want to monitor?"}
+                  description={MONITOR_PORT_FIELD_DESCRIPTION}
                   required={true}
                 />
                 <Input
                   initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                  placeholder="443"
                   onChange={(value: string) => {
                     const port: Port = new Port(value);
                     monitorStep.setPort(port);
@@ -930,10 +1019,15 @@ return {
               <div>
                 <FieldLabelElement
                   title={"API Request Type"}
-                  description={"What is the type of the API request?"}
+                  description={"GET unless the endpoint needs another method."}
                   required={true}
                 />
+                {/*
+                 * A request always has a method, so nothing to clear: an
+                 * emptied box sent GET anyway.
+                 */}
                 <Dropdown
+                  isClearable={false}
                   initialValue={requestTypeDropdownOptions.find(
                     (i: DropdownOption) => {
                       return (
@@ -956,472 +1050,545 @@ return {
                 />
               </div>
             )}
+            {/*
+             * The request settings are More fields of the target, so they
+             * sit in its card, after its last field: More fields is one
+             * quiet line now, not a card of its own, and drawn after this
+             * card it would open its fields loose between two cards.
+             *
+             * More fields for API monitors: headers, body, redirects, TLS, then
+             * the timeout and the retries - all of them named by the description.
+             */}
+            {props.monitorType === MonitorType.API && (
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                description="Headers, body, redirect, TLS, timeout and retry settings"
+                items={moreFieldsItems}
+                defaultCollapsed={!showAdvancedOptionsRequestBodyAndHeaders}
+                dataTestId="monitor-step-more-fields"
+                onToggle={(isCollapsed: boolean) => {
+                  if (!isCollapsed) {
+                    setShowAdvancedOptionsRequestBodyAndHeaders(true);
+                  }
+                }}
+              >
+                <div className="space-y-4">
+                  <div>
+                    <FieldLabelElement
+                      title={"Request Headers"}
+                      description={
+                        <p>
+                          {translator.translateText("Sent with every request.")}{" "}
+                          <Link
+                            className="underline"
+                            openInNewTab={true}
+                            to={URL.fromString(
+                              DOCS_URL.toString() + "/monitor/monitor-secrets",
+                            )}
+                          >
+                            {translator.translateText(
+                              "You can use secrets here.",
+                            )}
+                          </Link>
+                        </p>
+                      }
+                      required={false}
+                    />
+                    <DictionaryOfStrings
+                      addButtonSuffix="Request Header"
+                      keyPlaceholder={"Header Name"}
+                      valuePlaceholder={"Header Value"}
+                      initialValue={monitorStep.data?.requestHeaders || {}}
+                      onChange={(value: Dictionary<string>) => {
+                        monitorStep.setRequestHeaders(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabelElement
+                      title={"Request Body (in JSON)"}
+                      description={
+                        <p>
+                          {translator.translateText(
+                            "Sent with every request, as JSON.",
+                          )}{" "}
+                          <Link
+                            className="underline"
+                            openInNewTab={true}
+                            to={URL.fromString(
+                              DOCS_URL.toString() + "/monitor/monitor-secrets",
+                            )}
+                          >
+                            {translator.translateText(
+                              "You can use secrets here.",
+                            )}
+                          </Link>
+                        </p>
+                      }
+                      required={false}
+                    />
+                    <CodeEditor
+                      type={CodeType.JSON}
+                      onBlur={() => {
+                        setTouched({
+                          ...touched,
+                          requestBody: true,
+                        });
+                      }}
+                      error={
+                        touched["requestBody"] && errors["requestBody"]
+                          ? errors["requestBody"]
+                          : undefined
+                      }
+                      initialValue={monitorStep.data?.requestBody}
+                      onChange={(value: string) => {
+                        try {
+                          JSON.parse(value);
+                          setErrors({
+                            ...errors,
+                            requestBody: "",
+                          });
+                        } catch {
+                          setErrors({
+                            ...errors,
+                            requestBody: "Invalid JSON",
+                          });
+                        }
+
+                        monitorStep.setRequestBody(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <CheckboxElement
+                      initialValue={
+                        monitorStep.data?.doNotFollowRedirects || false
+                      }
+                      title={"Do not follow redirects"}
+                      description="Check the redirect response itself, not the page it leads to."
+                      onChange={(value: boolean) => {
+                        monitorStep.setDoNotFollowRedirects(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <CheckboxElement
+                      initialValue={
+                        monitorStep.data?.allowSelfSignedCertificates || false
+                      }
+                      title={"Allow self-signed certificates"}
+                      description="Skip certificate validation for this host, so self-signed certificates work."
+                      onChange={(value: boolean) => {
+                        monitorStep.setAllowSelfSignedCertificates(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <CheckboxElement
+                      initialValue={useTlsClientCertificate}
+                      title={"Use client certificate (mTLS)"}
+                      description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
+                      onChange={(value: boolean) => {
+                        setUseTlsClientCertificate(value);
+                        if (!value) {
+                          monitorStep.setTlsClientCertificate(undefined);
+                          monitorStep.setTlsClientKey(undefined);
+                          monitorStep.setTlsClientKeyPassphrase(undefined);
+                          if (props.onChange) {
+                            props.onChange(MonitorStep.clone(monitorStep));
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {useTlsClientCertificate && (
+                    <>
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Certificate (PEM)"}
+                          description={
+                            <p>
+                              <TranslatedSentence
+                                template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                                slots={{
+                                  secret: (
+                                    <code className="bg-gray-100 px-1 rounded">
+                                      {"{{monitorSecrets.name}}"}
+                                    </code>
+                                  ),
+                                }}
+                              />{" "}
+                              <Link
+                                className="underline"
+                                openInNewTab={true}
+                                to={URL.fromString(
+                                  DOCS_URL.toString() +
+                                    "/monitor/monitor-secrets",
+                                )}
+                              >
+                                {translator.translateText(
+                                  "Learn more about secrets.",
+                                )}
+                              </Link>
+                            </p>
+                          }
+                          required={true}
+                        />
+                        <TextArea
+                          initialValue={
+                            monitorStep.data?.tlsClientCertificate || ""
+                          }
+                          disableSpellCheck={true}
+                          placeholder={
+                            "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientCertificate(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Private Key (PEM)"}
+                          description={
+                            <p>
+                              <TranslatedSentence
+                                template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                                slots={{
+                                  secret: (
+                                    <code className="bg-gray-100 px-1 rounded">
+                                      {"{{monitorSecrets.name}}"}
+                                    </code>
+                                  ),
+                                }}
+                              />
+                            </p>
+                          }
+                          required={true}
+                        />
+                        <TextArea
+                          initialValue={monitorStep.data?.tlsClientKey || ""}
+                          disableSpellCheck={true}
+                          placeholder={
+                            "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientKey(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Private Key Passphrase"}
+                          description={
+                            "Optional passphrase if the private key above is encrypted."
+                          }
+                          required={false}
+                        />
+                        <Input
+                          initialValue={
+                            monitorStep.data?.tlsClientKeyPassphrase || ""
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientKeyPassphrase(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                          placeholder="Leave blank if the key is not encrypted"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {renderTimeoutAndRetryFields()}
+                </div>
+              </FoldedSection>
+            )}
+
+            {/* More fields for Website monitors: redirects, TLS, timeout, retries. */}
+            {props.monitorType === MonitorType.Website && (
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                description="Redirect, TLS, timeout and retry settings"
+                items={moreFieldsItems}
+                defaultCollapsed={!showDoNotFollowRedirects}
+                dataTestId="monitor-step-more-fields"
+                onToggle={(isCollapsed: boolean) => {
+                  if (!isCollapsed) {
+                    setShowDoNotFollowRedirects(true);
+                  }
+                }}
+              >
+                <div className="space-y-4">
+                  <div>
+                    <CheckboxElement
+                      initialValue={
+                        monitorStep.data?.doNotFollowRedirects || false
+                      }
+                      title={"Do not follow redirects"}
+                      description="Check the redirect response itself, not the page it leads to."
+                      onChange={(value: boolean) => {
+                        monitorStep.setDoNotFollowRedirects(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <CheckboxElement
+                      initialValue={
+                        monitorStep.data?.allowSelfSignedCertificates || false
+                      }
+                      title={"Allow self-signed certificates"}
+                      description="Skip certificate validation for this host, so self-signed certificates work."
+                      onChange={(value: boolean) => {
+                        monitorStep.setAllowSelfSignedCertificates(value);
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <CheckboxElement
+                      initialValue={useTlsClientCertificate}
+                      title={"Use client certificate (mTLS)"}
+                      description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
+                      onChange={(value: boolean) => {
+                        setUseTlsClientCertificate(value);
+                        if (!value) {
+                          monitorStep.setTlsClientCertificate(undefined);
+                          monitorStep.setTlsClientKey(undefined);
+                          monitorStep.setTlsClientKeyPassphrase(undefined);
+                          if (props.onChange) {
+                            props.onChange(MonitorStep.clone(monitorStep));
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {useTlsClientCertificate && (
+                    <>
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Certificate (PEM)"}
+                          description={
+                            <p>
+                              <TranslatedSentence
+                                template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                                slots={{
+                                  secret: (
+                                    <code className="bg-gray-100 px-1 rounded">
+                                      {"{{monitorSecrets.name}}"}
+                                    </code>
+                                  ),
+                                }}
+                              />{" "}
+                              <Link
+                                className="underline"
+                                openInNewTab={true}
+                                to={URL.fromString(
+                                  DOCS_URL.toString() +
+                                    "/monitor/monitor-secrets",
+                                )}
+                              >
+                                {translator.translateText(
+                                  "Learn more about secrets.",
+                                )}
+                              </Link>
+                            </p>
+                          }
+                          required={true}
+                        />
+                        <TextArea
+                          initialValue={
+                            monitorStep.data?.tlsClientCertificate || ""
+                          }
+                          disableSpellCheck={true}
+                          placeholder={
+                            "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientCertificate(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Private Key (PEM)"}
+                          description={
+                            <p>
+                              <TranslatedSentence
+                                template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                                slots={{
+                                  secret: (
+                                    <code className="bg-gray-100 px-1 rounded">
+                                      {"{{monitorSecrets.name}}"}
+                                    </code>
+                                  ),
+                                }}
+                              />
+                            </p>
+                          }
+                          required={true}
+                        />
+                        <TextArea
+                          initialValue={monitorStep.data?.tlsClientKey || ""}
+                          disableSpellCheck={true}
+                          placeholder={
+                            "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientKey(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <FieldLabelElement
+                          title={"Client Private Key Passphrase"}
+                          description={
+                            "Optional passphrase if the private key above is encrypted."
+                          }
+                          required={false}
+                        />
+                        <Input
+                          initialValue={
+                            monitorStep.data?.tlsClientKeyPassphrase || ""
+                          }
+                          onChange={(value: string) => {
+                            monitorStep.setTlsClientKeyPassphrase(value);
+                            if (props.onChange) {
+                              props.onChange(MonitorStep.clone(monitorStep));
+                            }
+                          }}
+                          placeholder="Leave blank if the key is not encrypted"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {renderTimeoutAndRetryFields()}
+                </div>
+              </FoldedSection>
+            )}
+
+            {/*
+             * More fields for NTP monitors: the port, which nearly everyone leaves
+             * at 123, then the timeout and the retries.
+             */}
+            {props.monitorType === MonitorType.NTP && (
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                description="Port, timeout and retry settings"
+                items={moreFieldsItems}
+                dataTestId="monitor-step-more-fields"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <FieldLabelElement
+                      title={"Port"}
+                      description={NTP_PORT_FIELD_DESCRIPTION}
+                      required={false}
+                    />
+                    <Input
+                      initialValue={
+                        monitorStep.data?.monitorDestinationPort?.toString() ||
+                        ""
+                      }
+                      placeholder={DEFAULT_NTP_PORT.toString()}
+                      type={InputType.NUMBER}
+                      ariaLabel="Port"
+                      error={errors["ntpPort"] ? errors["ntpPort"] : undefined}
+                      onChange={(value: string) => {
+                        const trimmed: string = value.trim();
+                        const portNumber: number = Number(trimmed);
+                        const isValidPort: boolean =
+                          Number.isInteger(portNumber) &&
+                          portNumber >= 1 &&
+                          portNumber <= 65535;
+
+                        setErrors({
+                          ...errors,
+                          ntpPort:
+                            trimmed && !isValidPort ? NTP_PORT_FIELD_ERROR : "",
+                        });
+
+                        monitorStep.setPort(
+                          trimmed && isValidPort
+                            ? new Port(portNumber)
+                            : undefined,
+                        );
+
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+                  {renderTimeoutAndRetryFields()}
+                </div>
+              </FoldedSection>
+            )}
+
+            {/* More fields for Ping, IP, Port and SSL monitors: timeout, retries. */}
+            {(props.monitorType === MonitorType.Ping ||
+              props.monitorType === MonitorType.IP ||
+              props.monitorType === MonitorType.Port ||
+              props.monitorType === MonitorType.SSLCertificate) && (
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                description="Timeout and retry settings"
+                items={moreFieldsItems}
+                dataTestId="monitor-step-more-fields"
+              >
+                <div className="space-y-4">{renderTimeoutAndRetryFields()}</div>
+              </FoldedSection>
+            )}
           </div>
         </Card>
       )}
 
-      {/* Advanced Options - Collapsible Section for API monitors */}
-      {props.monitorType === MonitorType.API && (
-        <CollapsibleSection
-          title="Advanced Options"
-          description="Request headers, body, and redirect settings"
-          badge={hasAdvancedOptionsConfigured ? "Configured" : undefined}
-          variant="card"
-          defaultCollapsed={
-            !hasAdvancedOptionsConfigured &&
-            !showAdvancedOptionsRequestBodyAndHeaders
-          }
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowAdvancedOptionsRequestBodyAndHeaders(true);
-            }
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <FieldLabelElement
-                title={"Request Headers"}
-                description={
-                  <p>
-                    Request Headers to send.{" "}
-                    <Link
-                      className="underline"
-                      openInNewTab={true}
-                      to={URL.fromString(
-                        DOCS_URL.toString() + "/monitor/monitor-secrets",
-                      )}
-                    >
-                      You can use secrets here.
-                    </Link>
-                  </p>
-                }
-                required={false}
-              />
-              <DictionaryOfStrings
-                addButtonSuffix="Request Header"
-                keyPlaceholder={"Header Name"}
-                valuePlaceholder={"Header Value"}
-                initialValue={monitorStep.data?.requestHeaders || {}}
-                onChange={(value: Dictionary<string>) => {
-                  monitorStep.setRequestHeaders(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <FieldLabelElement
-                title={"Request Body (in JSON)"}
-                description={
-                  <p>
-                    Request Headers to send in JSON.{" "}
-                    <Link
-                      className="underline"
-                      openInNewTab={true}
-                      to={URL.fromString(
-                        DOCS_URL.toString() + "/monitor/monitor-secrets",
-                      )}
-                    >
-                      You can use secrets here.
-                    </Link>
-                  </p>
-                }
-                required={false}
-              />
-              <CodeEditor
-                type={CodeType.JSON}
-                onBlur={() => {
-                  setTouched({
-                    ...touched,
-                    requestBody: true,
-                  });
-                }}
-                error={
-                  touched["requestBody"] && errors["requestBody"]
-                    ? errors["requestBody"]
-                    : undefined
-                }
-                initialValue={monitorStep.data?.requestBody}
-                onChange={(value: string) => {
-                  try {
-                    JSON.parse(value);
-                    setErrors({
-                      ...errors,
-                      requestBody: "",
-                    });
-                  } catch {
-                    setErrors({
-                      ...errors,
-                      requestBody: "Invalid JSON",
-                    });
-                  }
-
-                  monitorStep.setRequestBody(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <CheckboxElement
-                initialValue={monitorStep.data?.doNotFollowRedirects || false}
-                title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
-                onChange={(value: boolean) => {
-                  monitorStep.setDoNotFollowRedirects(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <CheckboxElement
-                initialValue={
-                  monitorStep.data?.allowSelfSignedCertificates || false
-                }
-                title={"Allow self-signed certificates"}
-                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
-                onChange={(value: boolean) => {
-                  monitorStep.setAllowSelfSignedCertificates(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <CheckboxElement
-                initialValue={useTlsClientCertificate}
-                title={"Use client certificate (mTLS)"}
-                description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
-                onChange={(value: boolean) => {
-                  setUseTlsClientCertificate(value);
-                  if (!value) {
-                    monitorStep.setTlsClientCertificate(undefined);
-                    monitorStep.setTlsClientKey(undefined);
-                    monitorStep.setTlsClientKeyPassphrase(undefined);
-                    if (props.onChange) {
-                      props.onChange(MonitorStep.clone(monitorStep));
-                    }
-                  }
-                }}
-              />
-            </div>
-
-            {useTlsClientCertificate && (
-              <>
-                <div>
-                  <FieldLabelElement
-                    title={"Client Certificate (PEM)"}
-                    description={
-                      <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
-                        <Link
-                          className="underline"
-                          openInNewTab={true}
-                          to={URL.fromString(
-                            DOCS_URL.toString() + "/monitor/monitor-secrets",
-                          )}
-                        >
-                          Learn more about secrets.
-                        </Link>
-                      </p>
-                    }
-                    required={true}
-                  />
-                  <TextArea
-                    initialValue={monitorStep.data?.tlsClientCertificate || ""}
-                    disableSpellCheck={true}
-                    placeholder={
-                      "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientCertificate(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <FieldLabelElement
-                    title={"Client Private Key (PEM)"}
-                    description={
-                      <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
-                      </p>
-                    }
-                    required={true}
-                  />
-                  <TextArea
-                    initialValue={monitorStep.data?.tlsClientKey || ""}
-                    disableSpellCheck={true}
-                    placeholder={
-                      "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientKey(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <FieldLabelElement
-                    title={"Client Private Key Passphrase"}
-                    description={
-                      "Optional passphrase if the private key above is encrypted."
-                    }
-                    required={false}
-                  />
-                  <Input
-                    initialValue={
-                      monitorStep.data?.tlsClientKeyPassphrase || ""
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientKeyPassphrase(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                    placeholder="Leave blank if the key is not encrypted"
-                  />
-                </div>
-              </>
-            )}
-
-            {renderTimeoutAndRetryFields()}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Advanced Options - Collapsible Section for Website monitors */}
-      {props.monitorType === MonitorType.Website && (
-        <CollapsibleSection
-          title="Advanced Options"
-          description="Redirect and TLS settings"
-          badge={
-            monitorStep.data?.doNotFollowRedirects ||
-            monitorStep.data?.allowSelfSignedCertificates ||
-            monitorStep.data?.tlsClientCertificate ||
-            monitorStep.data?.tlsClientKey
-              ? "Configured"
-              : undefined
-          }
-          variant="card"
-          defaultCollapsed={
-            !monitorStep.data?.doNotFollowRedirects &&
-            !monitorStep.data?.allowSelfSignedCertificates &&
-            !monitorStep.data?.tlsClientCertificate &&
-            !monitorStep.data?.tlsClientKey &&
-            !showDoNotFollowRedirects
-          }
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowDoNotFollowRedirects(true);
-            }
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <CheckboxElement
-                initialValue={monitorStep.data?.doNotFollowRedirects || false}
-                title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
-                onChange={(value: boolean) => {
-                  monitorStep.setDoNotFollowRedirects(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <CheckboxElement
-                initialValue={
-                  monitorStep.data?.allowSelfSignedCertificates || false
-                }
-                title={"Allow self-signed certificates"}
-                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
-                onChange={(value: boolean) => {
-                  monitorStep.setAllowSelfSignedCertificates(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <CheckboxElement
-                initialValue={useTlsClientCertificate}
-                title={"Use client certificate (mTLS)"}
-                description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
-                onChange={(value: boolean) => {
-                  setUseTlsClientCertificate(value);
-                  if (!value) {
-                    monitorStep.setTlsClientCertificate(undefined);
-                    monitorStep.setTlsClientKey(undefined);
-                    monitorStep.setTlsClientKeyPassphrase(undefined);
-                    if (props.onChange) {
-                      props.onChange(MonitorStep.clone(monitorStep));
-                    }
-                  }
-                }}
-              />
-            </div>
-
-            {useTlsClientCertificate && (
-              <>
-                <div>
-                  <FieldLabelElement
-                    title={"Client Certificate (PEM)"}
-                    description={
-                      <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
-                        <Link
-                          className="underline"
-                          openInNewTab={true}
-                          to={URL.fromString(
-                            DOCS_URL.toString() + "/monitor/monitor-secrets",
-                          )}
-                        >
-                          Learn more about secrets.
-                        </Link>
-                      </p>
-                    }
-                    required={true}
-                  />
-                  <TextArea
-                    initialValue={monitorStep.data?.tlsClientCertificate || ""}
-                    disableSpellCheck={true}
-                    placeholder={
-                      "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientCertificate(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <FieldLabelElement
-                    title={"Client Private Key (PEM)"}
-                    description={
-                      <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
-                      </p>
-                    }
-                    required={true}
-                  />
-                  <TextArea
-                    initialValue={monitorStep.data?.tlsClientKey || ""}
-                    disableSpellCheck={true}
-                    placeholder={
-                      "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientKey(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <FieldLabelElement
-                    title={"Client Private Key Passphrase"}
-                    description={
-                      "Optional passphrase if the private key above is encrypted."
-                    }
-                    required={false}
-                  />
-                  <Input
-                    initialValue={
-                      monitorStep.data?.tlsClientKeyPassphrase || ""
-                    }
-                    onChange={(value: string) => {
-                      monitorStep.setTlsClientKeyPassphrase(value);
-                      if (props.onChange) {
-                        props.onChange(MonitorStep.clone(monitorStep));
-                      }
-                    }}
-                    placeholder="Leave blank if the key is not encrypted"
-                  />
-                </div>
-              </>
-            )}
-
-            {renderTimeoutAndRetryFields()}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Advanced Options - Collapsible Section for Ping/IP/Port/SSL monitors */}
-      {(props.monitorType === MonitorType.Ping ||
-        props.monitorType === MonitorType.IP ||
-        props.monitorType === MonitorType.Port ||
-        props.monitorType === MonitorType.SSLCertificate) && (
-        <CollapsibleSection
-          title="Advanced Options"
-          description="Timeout and retry settings"
-          badge={
-            monitorStep.data?.requestTimeoutInMs !== undefined ||
-            monitorStep.data?.retryCount !== undefined
-              ? "Configured"
-              : undefined
-          }
-          variant="card"
-          defaultCollapsed={
-            monitorStep.data?.requestTimeoutInMs === undefined &&
-            monitorStep.data?.retryCount === undefined
-          }
-        >
-          <div className="space-y-4">{renderTimeoutAndRetryFields()}</div>
-        </CollapsibleSection>
-      )}
-
       {/* Telemetry Monitor Forms */}
       {props.monitorType === MonitorType.Logs && (
-        <Card
-          title="Log Monitor Configuration"
-          description="Configure the log monitoring settings"
-        >
+        <Card title="Log Monitor Configuration">
           <LogMonitorStepForm
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
@@ -1439,10 +1606,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.SecurityEvents && (
-        <Card
-          title="Security Events Monitor Configuration"
-          description="Configure the security event monitoring settings"
-        >
+        <Card title="Security Events Monitor Configuration">
           <SecurityEventsMonitorStepForm
             monitorStepSecurityEventsMonitor={
               monitorStep.data?.securityEventsMonitor ||
@@ -1459,11 +1623,27 @@ return {
         </Card>
       )}
 
-      {props.monitorType === MonitorType.Metrics && (
+      {props.monitorType === MonitorType.Llm && (
         <Card
-          title="Metric Monitor Configuration"
-          description="Configure the metric monitoring settings"
+          title="What counts as a bad answer"
+          description="Pick the problems that count, and where to look. The criteria below decide how many bad answers are too many."
         >
+          <LlmMonitorStepForm
+            monitorStepLlmMonitor={
+              monitorStep.data?.llmMonitor ||
+              MonitorStepLlmMonitorUtil.getDefault()
+            }
+            onMonitorStepLlmMonitorChanged={(value: MonitorStepLlmMonitor) => {
+              monitorStep.setLlmMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            telemetryServices={telemetryServices}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Metrics && (
+        <Card title="Metric Monitor Configuration">
           <MetricMonitorStepForm
             monitorStepMetricMonitor={
               monitorStep.data?.metricMonitor ||
@@ -1480,7 +1660,7 @@ return {
       {props.monitorType === MonitorType.Kubernetes && (
         <Card
           title="Kubernetes Monitor Configuration"
-          description="Configure your Kubernetes cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <KubernetesMonitorStepForm
             monitorStepKubernetesMonitor={
@@ -1507,7 +1687,7 @@ return {
       {props.monitorType === MonitorType.Docker && (
         <Card
           title="Docker Monitor Configuration"
-          description="Configure your Docker container monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <DockerMonitorStepForm
             monitorStepDockerMonitor={
@@ -1534,7 +1714,7 @@ return {
       {props.monitorType === MonitorType.Host && (
         <Card
           title="Host Monitor Configuration"
-          description="Configure your host monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <HostMonitorStepForm
             monitorStepHostMonitor={
@@ -1561,7 +1741,7 @@ return {
       {props.monitorType === MonitorType.Podman && (
         <Card
           title="Podman Monitor Configuration"
-          description="Configure your Podman container monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <PodmanMonitorStepForm
             monitorStepPodmanMonitor={
@@ -1588,7 +1768,7 @@ return {
       {props.monitorType === MonitorType.Proxmox && (
         <Card
           title="Proxmox Monitor Configuration"
-          description="Configure your Proxmox cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <ProxmoxMonitorStepForm
             monitorStepProxmoxMonitor={
@@ -1615,7 +1795,7 @@ return {
       {props.monitorType === MonitorType.VMware && (
         <Card
           title="VMware Monitor Configuration"
-          description="Configure your vCenter monitoring — ESXi hosts, virtual machines, datastores and clusters — using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <VMwareMonitorStepForm
             monitorStepVMwareMonitor={
@@ -1642,7 +1822,7 @@ return {
       {props.monitorType === MonitorType.IoTDevice && (
         <Card
           title="IoT Monitor Configuration"
-          description="Configure your IoT fleet monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <IoTMonitorStepForm
             monitorStepIoTMonitor={
@@ -1669,7 +1849,7 @@ return {
       {props.monitorType === MonitorType.DockerSwarm && (
         <Card
           title="Docker Swarm Monitor Configuration"
-          description="Configure your Docker Swarm cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <DockerSwarmMonitorStepForm
             monitorStepDockerSwarmMonitor={
@@ -1696,7 +1876,7 @@ return {
       {props.monitorType === MonitorType.Ceph && (
         <Card
           title="Ceph Monitor Configuration"
-          description="Configure your Ceph cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <CephMonitorStepForm
             monitorStepCephMonitor={
@@ -1720,11 +1900,35 @@ return {
         </Card>
       )}
 
-      {props.monitorType === MonitorType.Traces && (
+      {props.monitorType === MonitorType.StorageArray && (
         <Card
-          title="Trace Monitor Configuration"
-          description="Configure the trace monitoring settings"
+          title="Storage Array Monitor Configuration"
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
+          <StorageArrayMonitorStepForm
+            monitorStepStorageArrayMonitor={
+              monitorStep.data?.storageArrayMonitor ||
+              MonitorStepStorageArrayMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepStorageArrayMonitor) => {
+              monitorStep.setStorageArrayMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Traces && (
+        <Card title="Trace Monitor Configuration">
           <TraceMonitorStepForm
             monitorStepTraceMonitor={
               monitorStep.data?.traceMonitor ||
@@ -1744,10 +1948,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Exceptions && (
-        <Card
-          title="Exception Monitor Configuration"
-          description="Configure the exception monitoring settings"
-        >
+        <Card title="Exception Monitor Configuration">
           <ExceptionMonitorStepForm
             monitorStepExceptionMonitor={
               monitorStep.data?.exceptionMonitor ||
@@ -1759,6 +1960,28 @@ return {
               value: MonitorStepExceptionMonitor,
             ) => {
               monitorStep.setExceptionMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Profiles && (
+        <Card
+          title="Profiles Monitor Configuration"
+          description="Which profiles the monitor reads, and the function its Function Share criteria watch"
+        >
+          <ProfileMonitorStepForm
+            monitorStepProfileMonitor={
+              monitorStep.data?.profileMonitor ||
+              MonitorStepProfileMonitorUtil.getDefault()
+            }
+            telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
+            onMonitorStepProfileMonitorChanged={(
+              value: MonitorStepProfileMonitor,
+            ) => {
+              monitorStep.setProfileMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
@@ -1784,10 +2007,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.DNS && (
-        <Card
-          title="DNS Monitor Configuration"
-          description="Configure the DNS monitoring settings"
-        >
+        <Card title="DNS Monitor Configuration">
           <DnsMonitorStepForm
             monitorStepDnsMonitor={
               monitorStep.data?.dnsMonitor ||
@@ -1838,10 +2058,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Domain && (
-        <Card
-          title="Domain Monitor Configuration"
-          description="Configure the domain registration monitoring settings"
-        >
+        <Card title="Domain Monitor Configuration">
           <DomainMonitorStepForm
             monitorStepDomainMonitor={
               monitorStep.data?.domainMonitor ||
@@ -1891,6 +2108,24 @@ return {
         </Card>
       )}
 
+      {props.monitorType === MonitorType.ProbeStatus && (
+        <Card
+          title="Probes to Watch"
+          description="Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back."
+        >
+          <ProbeStatusMonitorStepForm
+            monitorStepProbeStatusMonitor={
+              monitorStep.data?.probeStatusMonitor ||
+              MonitorStepProbeStatusMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepProbeStatusMonitor) => {
+              monitorStep.setProbeStatusMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
       {/* Code Monitor Section */}
       {isCodeMonitor && (
         <Card
@@ -1901,8 +2136,8 @@ return {
           }
           description={
             props.monitorType === MonitorType.CustomJavaScriptCode
-              ? "Write your JavaScript code here. You can use secrets for sensitive data."
-              : "Write browser automation for Chromium and Firefox using OneUptime's secure Playwright-compatible facade. See the OneUptime docs below."
+              ? SyntheticMonitorCopy.javaScriptCodeDescription
+              : SyntheticMonitorCopy.playwrightCodeDescription
           }
         >
           <div className="space-y-4">
@@ -1916,7 +2151,8 @@ return {
                     props.onChange(MonitorStep.clone(monitorStep));
                   }
                 }}
-                placeholder={codeEditorPlaceholder}
+                example={exampleScript}
+                minLines={12}
               />
               <p className="mt-2 text-sm text-gray-500">
                 <Link
@@ -1926,7 +2162,7 @@ return {
                     DOCS_URL.toString() + "/monitor/monitor-secrets",
                   )}
                 >
-                  You can use secrets here.
+                  {translator.translateText("You can use secrets here.")}
                 </Link>
               </p>
               {props.monitorType === MonitorType.SyntheticMonitor && (
@@ -1938,7 +2174,9 @@ return {
                       DOCS_URL.toString() + "/monitor/synthetic-monitor",
                     )}
                   >
-                    Read the OneUptime Synthetic Monitor documentation.
+                    {translator.translateText(
+                      "Read the OneUptime Synthetic Monitor documentation.",
+                    )}
                   </Link>
                 </p>
               )}
@@ -1949,7 +2187,7 @@ return {
                 <div>
                   <FieldLabelElement
                     title={"Browser Type"}
-                    description={"Select the browser type."}
+                    description={SyntheticMonitorCopy.browserTypeDescription}
                     required={true}
                   />
                   <CheckBoxList
@@ -1967,9 +2205,7 @@ return {
                 <div>
                   <FieldLabelElement
                     title={"Screen Type"}
-                    description={
-                      "Which screen type should we use to run this test?"
-                    }
+                    description={SyntheticMonitorCopy.screenTypeDescription}
                     required={true}
                   />
                   <CheckBoxList
@@ -1987,60 +2223,63 @@ return {
                 </div>
               </>
             )}
+            {/*
+             * More fields for Synthetic monitors: retries on error - in the
+             * code card, after its last field, as the target's are in theirs.
+             */}
+            {props.monitorType === MonitorType.SyntheticMonitor && (
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                description="Retry settings and more"
+                items={moreFieldsItems}
+                defaultCollapsed={!showSyntheticMonitorAdvancedOptions}
+                dataTestId="monitor-step-more-fields"
+                onToggle={(isCollapsed: boolean) => {
+                  if (!isCollapsed) {
+                    setShowSyntheticMonitorAdvancedOptions(true);
+                  }
+                }}
+              >
+                <div>
+                  <FieldLabelElement
+                    title={"Retry Count on Error"}
+                    description={
+                      SyntheticMonitorCopy.retryCountOnErrorDescription
+                    }
+                    required={false}
+                  />
+                  <Input
+                    initialValue={
+                      props.value?.data?.retryCountOnError?.toString() || "0"
+                    }
+                    onChange={(value: string) => {
+                      const retryCountOnError: number = parseInt(value) || 0;
+                      monitorStep.setRetryCountOnError(
+                        retryCountOnError < 0
+                          ? 0
+                          : retryCountOnError > 5
+                            ? 5
+                            : retryCountOnError,
+                      );
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                    placeholder="0"
+                    type={InputType.NUMBER}
+                  />
+                </div>
+              </FoldedSection>
+            )}
           </div>
         </Card>
-      )}
-
-      {/* Synthetic Monitor Advanced Options */}
-      {props.monitorType === MonitorType.SyntheticMonitor && (
-        <CollapsibleSection
-          title="Advanced Options"
-          description="Retry settings and more"
-          variant="card"
-          defaultCollapsed={!showSyntheticMonitorAdvancedOptions}
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowSyntheticMonitorAdvancedOptions(true);
-            }
-          }}
-        >
-          <div>
-            <FieldLabelElement
-              title={"Retry Count on Error"}
-              description={
-                "How many times should we retry the synthetic monitor if it fails? Set to 0 for no retries. Max is 5."
-              }
-              required={false}
-            />
-            <Input
-              initialValue={
-                props.value?.data?.retryCountOnError?.toString() || "0"
-              }
-              onChange={(value: string) => {
-                const retryCountOnError: number = parseInt(value) || 0;
-                monitorStep.setRetryCountOnError(
-                  retryCountOnError < 0
-                    ? 0
-                    : retryCountOnError > 5
-                      ? 5
-                      : retryCountOnError,
-                );
-                if (props.onChange) {
-                  props.onChange(MonitorStep.clone(monitorStep));
-                }
-              }}
-              placeholder="0"
-              type={InputType.NUMBER}
-            />
-          </div>
-        </CollapsibleSection>
       )}
 
       {/* Test Monitor Card - only shown for probeable monitors */}
       {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (
         <Card
           title="Test Monitor"
-          description="Verify your monitor configuration before saving"
+          description="Run one check now, before you save."
           className="bg-blue-50 border-blue-200"
         >
           <MonitorTestForm
@@ -2056,13 +2295,15 @@ return {
       {/* Monitor Criteria Section */}
       <Card
         title="Monitor Criteria"
-        description="Add Monitoring Criteria for this monitor. Monitor different properties."
+        description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
       >
         <MonitorCriteriaElement
           monitorType={props.monitorType}
           monitorStep={monitorStep}
+          foldDefaultCriteria={props.foldDefaultCriteria}
           networkDeviceOidCatalogue={networkDeviceOidCatalogue}
           networkDeviceInterfaceNames={networkDeviceInterfaceNames}
+          networkDeviceTableCatalogue={networkDeviceTableCatalogue}
           isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
           offlineMonitorStatusId={props.offlineMonitorStatusId}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
@@ -2072,7 +2313,6 @@ return {
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           labelDropdownOptions={props.labelDropdownOptions}
-          teamDropdownOptions={props.teamDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
           value={monitorStep?.data?.monitorCriteria}

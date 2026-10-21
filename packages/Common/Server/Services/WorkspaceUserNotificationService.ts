@@ -4,6 +4,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -42,6 +43,13 @@ export interface SendWorkspaceDirectMessageOptions {
    */
   workspaceUserId: string;
   messageBlocks: Array<WorkspaceMessageBlock>;
+  /*
+   * What the phone's notification of the message says (Slack's top-level
+   * text, the Teams card's summary). When left out it is the start of the
+   * message (WorkspaceNotificationText): a page used to arrive with nothing
+   * readable in its notification.
+   */
+  notificationText?: string | undefined;
   /* Short plain-text form of the message, stored on the workspace log row. */
   messageSummary?: string | undefined;
   userId?: ObjectID | undefined;
@@ -95,17 +103,24 @@ export class WorkspaceUserNotificationService extends BaseService {
         );
       }
 
+      const notificationText: string | undefined =
+        options.notificationText ||
+        WorkspaceNotificationText.fromBlocks(options.messageBlocks);
+
       if (options.workspaceType === WorkspaceType.Slack) {
         await SlackUtil.sendDirectMessageToUser({
           authToken: projectAuth.authToken,
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
+          // Escaped as Slack reads text where it is sent.
+          ...(notificationText ? { text: notificationText } : {}),
         });
       } else if (options.workspaceType === WorkspaceType.MicrosoftTeams) {
         await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
           projectId: options.projectId,
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
+          ...(notificationText ? { text: notificationText } : {}),
         });
       } else {
         throw new BadDataException(

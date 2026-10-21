@@ -1,17 +1,29 @@
-import MonitorsElement from "../../../Components/Monitor/Monitors";
+import MonitorSecretAccessElement from "../../../Components/MonitorSecret/MonitorSecretAccessElement";
+import {
+  MONITOR_SECRET_ACCESS_STEP_ID,
+  MONITOR_SECRET_ACCESS_TITLES,
+  getMonitorSecretAccessFormFields,
+} from "./MonitorSecretAccessFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
+import MonitorSecretAccess, {
+  MonitorSecretAccessUtil,
+} from "Common/Types/Monitor/MonitorSecretAccess";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue from "Common/UI/Utils/Translation";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import React, {
@@ -28,6 +40,19 @@ const MonitorSecrets: FunctionComponent<
     useState<MonitorSecret | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /*
+   * Why a new secret value was not saved. It used to be dropped: the dialog
+   * stopped spinning and stayed open with no word of what went wrong, so
+   * the secret looked updated when it was not.
+   */
+  const [updateError, setUpdateError] = useState<string>("");
+
+  const { translateString } = useTranslateValue();
+
+  const translate: (text: string) => string = (text: string): string => {
+    return translateString(text) || text;
+  };
 
   return (
     <Fragment>
@@ -48,6 +73,7 @@ const MonitorSecrets: FunctionComponent<
         actionButtons={[
           {
             title: "Update Secret Value",
+            icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: async (
               item: MonitorSecret,
@@ -70,19 +96,21 @@ const MonitorSecrets: FunctionComponent<
             "Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.",
         }}
         documentationLink={Route.fromString("/docs/monitor/monitor-secrets")}
-        noItemsMessage={
-          'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
-        }
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={[
+          { title: "Secret", id: "secret" },
+          { title: "Access", id: MONITOR_SECRET_ACCESS_STEP_ID },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "secret",
             fieldType: FormFieldSchemaType.Text,
             description:
-              "Name of the secret. This is a unique identifier and can only contain letters, numbers, hyphens (-), and underscores (_). You can then use this name to access the secret in your monitors.",
+              "Letters, numbers, hyphens and underscores. Monitors use this name to read the secret.",
             required: true,
             placeholder: "Secret Name",
             validation: {
@@ -97,6 +125,7 @@ const MonitorSecrets: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "secret",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Secret Description",
@@ -106,26 +135,13 @@ const MonitorSecrets: FunctionComponent<
               secretValue: true,
             },
             title: "Secret Value",
+            stepId: "secret",
             doNotShowWhenEditing: true, // Do not show this field when editing
             fieldType: FormFieldSchemaType.LongText,
             required: true,
             placeholder: "Secret Value (eg: API Key, Password, etc.)",
           },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors which have access to this secret",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            description: "Which monitors should have access to this secret?",
-            placeholder: "Select monitors",
-          },
+          ...getMonitorSecretAccessFormFields(translate),
         ]}
         sortBy="name"
         sortOrder={SortOrder.Ascending}
@@ -141,12 +157,43 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              monitorAccess: true,
+            },
+            title: "Access",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: MonitorSecretAccessUtil.ALL_ACCESS_MODES.map(
+              (access: MonitorSecretAccess) => {
+                return {
+                  label: translate(MONITOR_SECRET_ACCESS_TITLES[access]),
+                  value: access,
+                };
+              },
+            ),
+          },
+          {
+            field: {
               monitors: true,
             },
-            title: "Monitors which have access to this secret",
+            title: "Monitors",
             type: FieldType.EntityArray,
 
             filterEntityType: Monitor,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+
+            filterEntityType: Label,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
             },
@@ -173,17 +220,23 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              monitorAccess: true,
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              labels: {
+                name: true,
+                color: true,
+                _id: true,
+              },
             },
-            title: "Monitors which have access to this secret",
-            type: FieldType.EntityArray,
+            title: "Access",
+            type: FieldType.Element,
 
             getElement: (item: MonitorSecret): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return <MonitorSecretAccessElement secret={item} />;
             },
           },
         ]}
@@ -194,13 +247,16 @@ const MonitorSecrets: FunctionComponent<
           title={"Update Secret Value"}
           name="Monitor > Update Secret Value"
           isLoading={isLoading}
+          error={updateError || undefined}
           onClose={() => {
             setIsLoading(false);
+            setUpdateError("");
             return setCurrentlyEditingItem(null);
           }}
           onSubmit={async (data: JSONObject) => {
             try {
               setIsLoading(true);
+              setUpdateError("");
 
               await ModelAPI.updateById<MonitorSecret>({
                 modelType: MonitorSecret,
@@ -211,8 +267,9 @@ const MonitorSecrets: FunctionComponent<
               });
 
               setCurrentlyEditingItem(null);
-            } catch {
-              // do nothing
+            } catch (err) {
+              // Said in the dialog, which stays open to try again.
+              setUpdateError(API.getFriendlyMessage(err));
             }
 
             setIsLoading(false);

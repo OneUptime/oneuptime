@@ -1,4 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
+import KubernetesCluster from "../DatabaseModels/KubernetesCluster";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -60,6 +62,15 @@ type CostColumnDef = {
   description: string;
 };
 
+/*
+ * A cost row is read through the cluster it was metered on: a caller whose
+ * grants are limited to labels or to owned clusters reads the costs of the
+ * clusters those reach, and a block with labels takes away the costs of
+ * the clusters carrying them (ModelPermission.getReadScope).
+ */
+@OwnedThrough("kubernetesClusterId", KubernetesCluster, {
+  onlyParentModels: true,
+})
 export default class KubernetesCostAllocation extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

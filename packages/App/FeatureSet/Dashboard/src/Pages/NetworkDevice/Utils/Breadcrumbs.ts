@@ -17,6 +17,16 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "Devices",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_TRAFFIC, [
+      "Project",
+      "Network",
+      "Traffic",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_EVENTS, [
+      "Project",
+      "Network",
+      "Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW, [
       "Project",
       "Network",
@@ -27,6 +37,18 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "View Device",
       "Interfaces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_TABLES, [
+      "Project",
+      "Network",
+      "View Device",
+      "SNMP Tables",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_WIFI, [
+      "Project",
+      "Network",
+      "View Device",
+      "Wi-Fi",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_METRICS, [
       "Project",
@@ -39,6 +61,12 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "View Device",
       "Traffic",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_EVENTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Events",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_MONITORS, [
       "Project",
@@ -78,11 +106,12 @@ export function getNetworkDeviceBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_DISCOVERY, [
       "Project",
       "Network",
-      "Discovery Scans",
+      "Discovery",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_ENDPOINTS, [
       "Project",
       "Network",
+      "Topology",
       "Endpoints",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_TOPOLOGY, [

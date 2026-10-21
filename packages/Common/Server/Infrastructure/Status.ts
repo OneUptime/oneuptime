@@ -50,6 +50,16 @@ export default class InfrastructureStatus {
     }
   }
 
+  /**
+   * For readiness checks and the per-datastore checks behind /status/database,
+   * /status/analytics-database and /status/global-cache. Never for liveness:
+   * StatusAPIOptions explains why liveness must not depend on a datastore.
+   *
+   * Makes up to retryCount attempts (at least one), a second apart, so one
+   * dropped connection does not fail the probe, then throws the last error.
+   * StatusAPI answers non-2xx only when the check throws. This used to swallow
+   * the error, and every probe answered 200 through a datastore outage.
+   */
   @CaptureSpan()
   public static async checkStatusWithRetry(data: {
     retryCount: number;
@@ -57,22 +67,32 @@ export default class InfrastructureStatus {
     checkPostgresStatus: boolean;
     checkClickhouseStatus: boolean;
   }): Promise<void> {
-    let retry: number = 0;
+    // A loop that never ran would report healthy without checking anything.
+    const attempts: number = Math.max(data.retryCount, 1);
+    let lastError: unknown = null;
 
-    while (retry < data.retryCount) {
+    for (let attempt: number = 1; attempt <= attempts; attempt++) {
       try {
         await this.checkStatus({
           checkRedisStatus: data.checkRedisStatus,
           checkPostgresStatus: data.checkPostgresStatus,
           checkClickhouseStatus: data.checkClickhouseStatus,
         });
-        break;
+        return;
       } catch (err) {
-        logger.error("Error checking infrastructure status");
+        lastError = err;
+        logger.error(
+          `Error checking infrastructure status (attempt ${attempt} of ${attempts})`,
+        );
         logger.error(err);
-        retry++;
-        await Sleep.sleep(1000);
+
+        // Pausing after the last attempt would only delay the failure.
+        if (attempt < attempts) {
+          await Sleep.sleep(1000);
+        }
       }
     }
+
+    throw lastError;
   }
 }

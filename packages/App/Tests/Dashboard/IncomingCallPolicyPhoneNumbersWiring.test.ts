@@ -55,10 +55,51 @@ describe("the incoming-call phone-number manager", () => {
 
   test("renders zero, one, and many attached-number states from the array", () => {
     expect(MANAGER_CODE).toContain("props.phoneNumbers.length === 0");
-    expect(MANAGER_CODE).toContain("props.phoneNumbers.length === 1");
+    // One and many are the two forms of one translated plural sentence.
+    expect(MANAGER_CODE).toMatch(
+      /translatePlural\(\s*\{\s*one: "\{\{count\}\} phone number routes calls to this policy\.",\s*other: "\{\{count\}\} phone numbers route calls to this policy\.",\s*\},\s*props\.phoneNumbers\.length,\s*\)/,
+    );
     expect(MANAGER_CODE).toContain("props.phoneNumbers.map(");
     expect(MANAGER_CODE).toContain("No Phone Numbers Configured");
     expect(MANAGER_CODE).toContain("phone numbers route calls to this policy");
+  });
+
+  /*
+   * On the policy page the phone numbers are step 2 of 3. "Add Phone Number"
+   * is the primary button while the policy has none - it is the next step -
+   * and plain once it has one, when the next step is step 3's "Manage Rules".
+   * Both used to be filled at once. Once there are rules, Manage Rules is
+   * the same outlined button as Add Phone Number beside it: it was a grey
+   * link (text-gray-400, 2.8:1 on white) that read as disabled.
+   */
+  test("Add Phone Number is the primary step only while the policy has no number", () => {
+    expect(MANAGER_CODE).toMatch(
+      /title="Add Phone Number"\s*buttonStyle=\{\s*props\.phoneNumbers\.length === 0\s*\?\s*ButtonStyleType\.PRIMARY\s*:\s*ButtonStyleType\.NORMAL\s*\}/,
+    );
+    expect(OVERVIEW_CODE).toMatch(
+      /title="Manage Rules"\s*buttonStyle=\{\s*hasEscalationRules\s*\?\s*ButtonStyleType\.NORMAL\s*:\s*ButtonStyleType\.PRIMARY\s*\}/,
+    );
+    expect(OVERVIEW_CODE).toMatch(
+      /title="Manage Rules"\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    // No grey link that reads as disabled on the policy page.
+    expect(OVERVIEW_CODE).not.toContain("ButtonStyleType.SECONDARY_LINK");
+  });
+
+  test("a number to pick from a list is a plain button, and its confirmation the primary one", () => {
+    expect(MANAGER_CODE).not.toContain("ButtonStyleType.SUCCESS");
+    expect(MANAGER_CODE).toMatch(
+      /title=\{isAlreadyAttached \? "Attached" : "Select"\}\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /title="Reserve"\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /submitButtonText="Reserve"\s*submitButtonType=\{ButtonStyleType\.PRIMARY\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /submitButtonText="Assign Number"\s*submitButtonType=\{ButtonStyleType\.PRIMARY\}/,
+    );
   });
 
   test("offers another addition even when numbers are already attached", () => {
@@ -124,14 +165,29 @@ describe("the incoming-call phone-number manager", () => {
     expect(MANAGER_CODE).toContain(
       "!props.projectCallSMSConfigId && props.phoneNumbers.length === 0",
     );
-    expect(MANAGER_CODE).toContain("disabled={!props.projectCallSMSConfigId}");
-    expect(MANAGER_CODE).toContain("disabled: !props.projectCallSMSConfigId");
+    /*
+     * Both Add controls - the inline button and the card's - are disabled
+     * without a config, and for someone the phone-number routes would
+     * refuse (IncomingCallPhoneNumberLock), and say why through one helper.
+     */
+    expect(MANAGER_CODE).toContain(
+      "disabled={!props.projectCallSMSConfigId || addLock.isLocked}",
+    );
+    expect(MANAGER_CODE).toContain(
+      "disabled: !props.projectCallSMSConfigId || addLock.isLocked",
+    );
+    expect(countMatches(MANAGER_CODE, /getAddButtonTooltip\(\)/g)).toBe(2);
     expect(
       countMatches(
         MANAGER_CODE,
         /Link a Twilio configuration before adding another number\./g,
       ),
-    ).toBe(2);
+    ).toBe(1);
+  });
+
+  test("locks Release for someone who may not change the policy's numbers", () => {
+    expect(MANAGER_CODE).toContain("disabled={releaseLock.isLocked}");
+    expect(MANAGER_CODE).toContain("tooltip={releaseLock.tooltip}");
   });
 });
 
@@ -227,8 +283,9 @@ describe("the incoming-call policies table", () => {
     expect(POLICIES_TABLE_CODE).toContain(
       "getCompactPhoneNumberSummary(phoneNumbers)",
     );
-    expect(POLICIES_TABLE_CODE).toContain(
-      "+{summary.additionalPhoneNumbersCount} more",
+    // "+2 more" is one translated sentence, filled with the overflow count.
+    expect(POLICIES_TABLE_CODE).toMatch(
+      /translatePlural\(\s*\{\s*one: "\+\{\{count\}\} more",\s*other: "\+\{\{count\}\} more",?\s*\},\s*summary\.additionalPhoneNumbersCount,?\s*\)/,
     );
     expect(POLICIES_TABLE_CODE).toContain('title: "Phone Numbers"');
   });

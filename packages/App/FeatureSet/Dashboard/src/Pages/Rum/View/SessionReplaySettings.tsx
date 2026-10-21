@@ -8,13 +8,12 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import PageMap from "../../../Utils/PageMap";
@@ -27,6 +26,14 @@ import RecordingHealthCard, {
 import PrivacySummaryCard from "../../../Components/SessionReplay/PrivacySummaryCard";
 import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
 import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
+import {
+  asksForIgnoredErrorPatterns,
+  CAPTURE_TRIGGER_CHOICES,
+  CONSENT_MODE_CHOICES,
+  EDIT_SESSION_REPLAY_POLICY_TITLE,
+  fillEmptiedPolicyNumbers,
+  MASKING_MODE_CHOICES,
+} from "../../../Components/SessionReplay/SessionReplayPolicyChoices";
 import {
   formatSessionReplayRetention,
   SESSION_REPLAY_RETENTION_OPTIONS,
@@ -42,6 +49,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE settings page for one application's session replay.
@@ -57,6 +66,18 @@ import React, {
  * capture, before anything is uploaded. So loosening masking cannot be
  * undone for recordings already taken, and tightening it does not scrub
  * recordings already stored.
+ *
+ * The page opens on the health card, with no banner above it. The project's
+ * switch is on unless someone turned it off (Project.isSessionReplayAllowed
+ * defaults to true), and when it is off the health card says "Session replay
+ * is switched off for this project" with a "Turn it on" action - the
+ * disabled-project diagnosis in Common/Utils/Rum/SessionReplayHealth.ts. A
+ * blue "Recording must also be allowed for the project" banner used to sit
+ * here on every visit, saying so in the case nothing was wrong.
+ *
+ * This is also the one place an application's replay retention is edited
+ * (Edit Policy > Limits). The application's Settings page shows the value
+ * and links here (SessionReplayRetentionSettingsCard).
  */
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
@@ -183,6 +204,7 @@ export function describeSameOriginTracePropagation(
 const RumApplicationSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route is ":id/session-replay-settings", so the model id is one segment
    * before the end. Same as Pages/Rum/View/Clients.tsx.
@@ -217,12 +239,6 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
   return (
     <Fragment>
-      <Alert
-        type={AlertType.INFO}
-        strongTitle="Recording must also be allowed for the project"
-        title="These settings only take effect while session replay is allowed project-wide. That master switch lives under Real User Monitoring > Settings > Session Replay; the health card below says whether it is on."
-      />
-
       <RecordingHealthCard rumApplicationId={modelId} />
 
       {recordsNothing && (
@@ -273,13 +289,25 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
           }}
           isEditable={true}
           editButtonText="Edit Policy"
+          editModalTitle={EDIT_SESSION_REPLAY_POLICY_TITLE}
           createEditModalWidth={ModalWidth.Large}
           onSaveSuccess={(item: RumApplication): void => {
             setApplication(item);
           }}
+          onBeforeUpdate={async (
+            item: RumApplication,
+          ): Promise<RumApplication> => {
+            return fillEmptiedPolicyNumbers(item);
+          }}
+          /*
+           * Privacy was one step of seven settings. Masking asks what a
+           * recording hides; Consent & Identity asks whether it may be
+           * uploaded and what it says about the person recorded.
+           */
           formSteps={[
             { title: "Recording", id: "recording" },
-            { title: "Privacy", id: "privacy" },
+            { title: "Masking", id: "privacy" },
+            { title: "Consent & Identity", id: "consent" },
             { title: "Performance & Tracing", id: "performance" },
             { title: "Limits", id: "limits" },
           ]}
@@ -293,18 +321,35 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               description:
                 "On by default. Also requires session replay to be allowed for the project.",
             },
+            /*
+             * The three modes of the policy are answers to pick, each saying
+             * in one line what it does (SessionReplayPolicyChoices), so no
+             * description above them names every mode again.
+             */
             {
               field: { sessionReplayCaptureTrigger: true },
               title: "When to upload a recording",
               stepId: "recording",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayCaptureTrigger,
-                ),
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: CAPTURE_TRIGGER_CHOICES,
+              required: true,
+              hideColumnDescription: true,
+              dataTestId: "session-replay-capture-trigger",
+            },
+            {
+              field: { sessionReplayIgnoreErrorPatterns: true },
+              title: "Ignored error patterns",
+              stepId: "recording",
+              fieldType: FormFieldSchemaType.JSON,
               required: false,
+              placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
               description:
-                "Always (default) uploads every sampled session from its first event, so an ordinary session is just as watchable as a broken one. On error or frustration keeps a rolling in-memory buffer and only uploads when something actually went wrong, which costs roughly 15x less and stores far less end-user data - pick it when storage or data minimisation matters more than being able to watch a session that did not fail. In the list, an error-triggered session starts a few seconds before its first error.",
+                "A JSON array of regexes for errors that should not trigger an upload, such as a noisy third-party script. They are still recorded.",
+              showIf: (values: FormValues<RumApplication>): boolean => {
+                return asksForIgnoredErrorPatterns(
+                  values.sessionReplayCaptureTrigger,
+                );
+              },
             },
             {
               field: { sessionReplaySamplePercentage: true },
@@ -314,7 +359,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: "100",
               description:
-                "Percentage of sessions eligible for recording, decided once per session from a hash of the session id so a session is never half-recorded. 100 by default. This is the dial for cost: with the Always trigger, halving it halves both the bytes stored and the end-user data at rest. 0 records nothing at all.",
+                "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.",
               validation: { minValue: 0, maxValue: 100 },
             },
             {
@@ -325,44 +370,29 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '["https://app.example.com"]',
               description:
-                "JSON array of origins allowed to post recordings for this application. Empty (the default) accepts any origin the ingestion key allows: the key has its own allowed-origins list, checked first, and a request must pass both. List your domains here before production so a copied key cannot write forged recordings from elsewhere.",
-            },
-            {
-              field: { sessionReplayIgnoreErrorPatterns: true },
-              title: "Ignored error patterns",
-              stepId: "recording",
-              fieldType: FormFieldSchemaType.JSON,
-              required: false,
-              placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
-              description:
-                'JSON array of regex patterns matched against an uncaught error\'s message and source URL. Matching errors are still recorded in the session but no longer trigger an upload - use this to quiet a chronically-throwing third-party script without turning error capture off. Stackless cross-origin "Script error." noise is ignored automatically.',
+                "A JSON array of origins that may send recordings. Empty accepts any origin the ingestion key allows; list your domains before production.",
             },
 
             {
               field: { sessionReplayMaskingMode: true },
               title: "Masking mode",
               stepId: "privacy",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayMaskingMode,
-                ),
-              required: false,
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: MASKING_MODE_CHOICES,
+              required: true,
               description:
-                "Mask Sensitive Inputs Only (default) masks passwords and declared card / one-time-code fields and records the rest of the page as it looked: the player shows real page text. Mask Inputs Only additionally masks every other input value: the player shows page text but every form field as blocks. Mask All Text also replaces static page text: the player shows a wireframe with no readable copy. Anything your markup does not declare as sensitive - an account number in a plain text input, an order id in a heading - is only covered by the two stricter modes or by the selectors below.",
+                "For other sensitive data, pick a stricter mode or add selectors below.",
+              dataTestId: "session-replay-masking-mode",
             },
             {
               field: { sessionReplayConsentMode: true },
               title: "Consent",
-              stepId: "privacy",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayConsentMode,
-                ),
-              required: false,
-              description:
-                "Not Required (the default) asserts you have a lawful basis that does not need a per-session grant. Require Explicit uploads nothing until your page calls grantConsent(); the recorder still buffers in memory so the run-up to an error is not lost while a banner is on screen. Under Require Explicit, a page that never grants consent shows up on the health card as consent-required refusals.",
+              stepId: "consent",
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: CONSENT_MODE_CHOICES,
+              required: true,
+              hideColumnDescription: true,
+              dataTestId: "session-replay-consent-mode",
             },
             {
               field: { sessionReplayMaskSelectors: true },
@@ -372,7 +402,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '[".customer-name", "#invoice-total"]',
               description:
-                "JSON array of CSS selectors whose content is masked on top of whatever the masking mode already covers. This is the setting to reach for under the default masking mode, since it is what protects data your markup does not declare as sensitive. The player shows these elements as blocks.",
+                "A JSON array of CSS selectors to mask as well, shown as blocks. Use it for sensitive data your markup does not mark.",
             },
             {
               field: { sessionReplayBlockSelectors: true },
@@ -382,21 +412,21 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '["iframe.payment", ".id-document"]',
               description:
-                "JSON array of CSS selectors that are not recorded at all - the element is replaced by an empty placeholder the player draws as a grey box. Use this for anything masking cannot make safe, including attribute values, which the recorder serialises verbatim.",
+                "A JSON array of CSS selectors never recorded at all, shown as grey boxes. Use it for anything masking cannot make safe.",
             },
             {
               field: { sessionReplayCaptureUserIdentity: true },
               title: "Capture end-user identity",
-              stepId: "privacy",
+              stepId: "consent",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
-                "On by default, so you can find the session a named customer is complaining about. This is what makes a recording identified rather than pseudonymous: the reference and traits your page supplies through identify() are stored alongside the hash used for erasure requests, and the list can be searched by user:. Turn it off to keep recordings pseudonymous.",
+                "Store the user your page passes to identify(), so you can search for a customer's sessions.",
             },
             {
               field: { sessionReplayCaptureGeo: true },
               title: "Capture country",
-              stepId: "privacy",
+              stepId: "consent",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
@@ -409,7 +439,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
-                "Off by default and expensive. Note that the player never replays canvas: doing so requires script execution inside the replay document, which is not acceptable for content authored by your end users. Recorded canvas frames are stored but shown as a fidelity notice instead.",
+                "Store canvas frames too. Costly, and the player shows a notice instead of replaying them.",
             },
 
             {
@@ -420,7 +450,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: "0",
               description:
-                "Fire the performance capture trigger when the page's LCP exceeds this many milliseconds. 0 (default) turns this trigger off. A common starting point is 4000 - the boundary of a poor LCP.",
+                "Capture a session when its LCP exceeds this many milliseconds, such as 4000. 0 (default) turns it off.",
               validation: { minValue: 0 },
             },
             {
@@ -431,7 +461,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: "0",
               description:
-                "Fire the performance capture trigger when a single main-thread task blocks for at least this many milliseconds. 0 (default) turns this trigger off. Browsers only report tasks over 50ms; values of 200+ avoid recording ordinary jank.",
+                "Capture a session when a main-thread task blocks this long, such as 200 ms. 0 (default) turns it off.",
               validation: { minValue: 0 },
             },
             {
@@ -442,7 +472,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: "0",
               description:
-                "Fire the performance capture trigger when a fetch or XHR SUCCEEDS but takes at least this many milliseconds. 0 (default) turns this trigger off. Failed requests already trigger via the error path.",
+                "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.",
               validation: { minValue: 0 },
             },
             {
@@ -452,7 +482,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
-                "On by default. While a session is uploading, the recorder adds a W3C traceparent and a tracestate carrying this session's id to the fetch and XHR requests your page makes to its own origin, so the backend spans, logs and exceptions those requests cause show up in the player's rail with no code in your frontend or backend. Nothing is added before consent, after it is revoked, or before an on-error trigger fires, and a request that already carries a traceparent or tracestate keeps its own. A generated traceparent is marked sampled, so ParentBased samplers in your backend keep every browser-originated trace; to keep ratio sampling, set a remoteParentSampled ratio delegate only on the service(s) your pages call directly, never on the services they call (ratio decisions differ between language SDKs; for one rate across services, use tail sampling in an OpenTelemetry Collector). Your backend's OpenTelemetry forwards the session id to every service it calls, third parties included; the visitor id is never sent. CAUTION: a same-origin request that redirects to another origin (a download handed off to cloud storage, an API moved to a subdomain) takes the headers with it, and that origin must allow them in Access-Control-Allow-Headers. The recorder stops adding them for the rest of the page load when that fails and retries a failed body-less fetch GET or HEAD once; an XMLHttpRequest cannot be retried. Turn this off if downloads or redirects break after installing Session Replay, and take your own origin out of Trace propagation origins if you listed it there.",
+                "Link requests to your own origin to their backend traces. Turn it off if downloads or redirects break after installing Session Replay.",
             },
             {
               field: { sessionReplayTracePropagationOrigins: true },
@@ -462,7 +492,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '["https://api.example.com"]',
               description:
-                "For APIs on OTHER origins than your page; requests to your own origin are linked automatically (see Same-origin trace propagation). JSON array of origins whose fetch/XHR requests get a generated W3C traceparent header, linking recordings to their backend traces by trace id without any browser tracing SDK - the player's rail then shows the backend spans behind each request. Listed origins get traceparent only, never the session id. CAUTION: adding a header makes cross-origin requests preflighted - list an origin only if its API allows traceparent in Access-Control-Allow-Headers. Empty (default) injects nothing cross-origin. Requests that already carry a traceparent are left untouched.",
+                "A JSON array of other origins whose requests get a traceparent header, linking them to backend traces. Their APIs must allow it (CORS).",
             },
 
             {
@@ -473,7 +503,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               dropdownOptions: SESSION_REPLAY_RETENTION_OPTIONS,
               required: true,
               description:
-                "How long recordings are kept. Defaults to 7 days, not the 15 the other telemetry pillars use: replay is the highest-sensitivity pillar and a short retention is itself a privacy control. The session row - counts, signals, device - expires together with its footage; only the session's logs, spans and exceptions follow the telemetry retention.",
+                "How long recordings and their session rows are kept, 7 days by default. A session's logs, spans and exceptions follow the telemetry retention.",
             },
             {
               field: { sessionReplayMonthlyBudgetInGB: true },
@@ -483,7 +513,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: "No ceiling",
               description:
-                "Upload budget for this application. Once exceeded, ingest tells live recorders to stop rather than silently dropping their chunks, and the health card says so. 0 or blank means no application-level ceiling; the project's daily byte limit still applies.",
+                "Stop recording for this application after this many GB a month. Leave empty for no limit.",
               validation: { minValue: 0 },
             },
           ]}
@@ -519,9 +549,15 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {labelEnum(
-                        CAPTURE_TRIGGER_LABELS,
-                        item.sessionReplayCaptureTrigger ?? "",
+                      {/*
+                       * The words Edit Policy's choices use, in the reader's
+                       * language like those choices.
+                       */}
+                      {translator.translateText(
+                        labelEnum(
+                          CAPTURE_TRIGGER_LABELS,
+                          item.sessionReplayCaptureTrigger ?? "",
+                        ),
                       )}
                     </span>
                   );
@@ -542,7 +578,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   ) {
                     return (
                       <span className="text-sm text-gray-500">
-                        not set (defaults to 100%)
+                        {translator.translateText("not set (defaults to 100%)")}
                       </span>
                     );
                   }
@@ -571,8 +607,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   if (origins.length === 0) {
                     return (
                       <span className="text-sm text-amber-700">
-                        Any origin the ingestion key allows - list your domains
-                        before production
+                        {translator.translateText(
+                          "Any origin the ingestion key allows - list your domains before production",
+                        )}
                       </span>
                     );
                   }
@@ -637,9 +674,11 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {labelEnum(
-                        CONSENT_MODE_LABELS,
-                        item.sessionReplayConsentMode ?? "",
+                      {translator.translateText(
+                        labelEnum(
+                          CONSENT_MODE_LABELS,
+                          item.sessionReplayConsentMode ?? "",
+                        ),
                       )}
                     </span>
                   );
@@ -774,7 +813,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {gb && gb > 0 ? `${gb} GB` : "No ceiling (0 or blank)"}
+                      {gb && gb > 0
+                        ? `${gb} GB`
+                        : translator.translateText("No ceiling (0 or blank)")}
                     </span>
                   );
                 },

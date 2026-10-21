@@ -53,7 +53,7 @@ const LINK_DIALOG: string =
   "Components/IncidentAlert/LinkIncidentAlertModal.tsx";
 const CREATE_PAGE: string = "Pages/Incidents/Create.tsx";
 const SETTINGS_PAGE: string =
-  "Pages/Incidents/Settings/IncidentMoreSettings.tsx";
+  "Pages/Incidents/Settings/IncidentLinkedAlertsSettings.tsx";
 
 interface SourceString {
   text: string;
@@ -149,9 +149,9 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [CREATE_PAGE],
   },
 
-  // Incidents > Settings > More Settings > Linked Alerts
+  // Incidents > Settings > Linked Alerts
   {
-    text: "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
+    text: "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -159,7 +159,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [SETTINGS_PAGE],
   },
   {
-    text: "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+    text: "Acknowledging the incident acknowledges its linked alerts and stops their on-call escalations.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -167,7 +167,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [SETTINGS_PAGE],
   },
   {
-    text: "When the incident is resolved, resolve every alert linked to it - except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
+    text: "Resolving the incident resolves its linked alerts, unless an alert is linked to another open incident.",
     sources: [SETTINGS_PAGE],
   },
 ];
@@ -183,14 +183,17 @@ const ALREADY_LINKED_MESSAGE: string =
 /*
  * Keys the feature once added and no longer renders: the table's built-in
  * create form ("Link New Alert" / "Link New Incident" as its title) gave way
- * to the link dialog, and the acknowledge switch's description was reworded
+ * to the link dialog, the acknowledge switch's description was reworded
  * because alert reminders stop on acknowledge only when the reminder rule
- * says so. Left behind, they would be orphans no page looks up.
+ * says so, and the settings card stopped saying the switches are off by
+ * default when they became on for new projects. Left behind, they would be
+ * orphans no page looks up.
  */
 const RETIRED_KEYS: Array<string> = [
   "Link New Alert",
   "Link New Incident",
   "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
 ];
 
 interface FeedLabel {
@@ -525,7 +528,7 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ),
       ),
       ...translatedPropLiterals(
-        sectionFrom(settingsPage, 'name="Linked Alerts"'),
+        sectionFrom(settingsPage, "<ModelSwitchesCard<Project>"),
       ),
     ]);
 
@@ -760,8 +763,8 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         "translateString(field.title)",
       ],
       [
-        ["UI", "Components", "Feed", "FeedOptionsButton.tsx"],
-        "translateString",
+        ["UI", "Components", "Feed", "FeedEventTypeChecklist.tsx"],
+        "translator.translateText",
       ],
     ];
 

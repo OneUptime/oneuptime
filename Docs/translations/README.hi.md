@@ -135,8 +135,11 @@ AI एजेंट फ़िक्स के साथ एक पुल रि�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — नोड्स, VMs, कंटेनर, स्टोरेज, HA स्थिति, बैकअप कवरेज और रेप्लिकेशन हेल्थ। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi होस्ट, वर्चुअल मशीनें, डेटास्टोर, क्लस्टर, रिसोर्स पूल और vSAN। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — क्लस्टर हेल्थ, क्षमता पूर्वानुमान, और OSD/पूल/PG/मॉनिटर विज़िबिलिटी। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **स्टोरेज ऐरे** — Pure Storage FlashArray और FlashBlade: क्षमता, लेटेंसी, वॉल्यूम, होस्ट, रेप्लिकेशन, हार्डवेयर हेल्थ, फ़ाइल सिस्टम और बकेट। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **डेटाबेस** — PostgreSQL, MySQL, Redis, MongoDB और अन्य, एप्लिकेशन ट्रेस, Kubernetes और Docker से स्वतः पहचाने गए, एक केवल-कॉन्फ़िगरेशन collector एजेंट से इंजन मेट्रिक्स, क्वेरी सैंपल और लॉग्स के साथ। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **किसके लिए सर्वश्रेष्ठ** | सेल्फ़-होस्टर और छोटी टीमें | प्रीमियम समर्थन की ज़रूरत वाली विनियमित टीमें |
 | **लागत** | मुफ़्त और ओपन सोर्स | [सेल्स से संपर्क करें](mailto:sales@oneuptime.com) |
 | **लाइसेंस** | Apache 2.0 | Apache 2.0, साथ में `ee/` डायरेक्टरी के लिए [OneUptime Enterprise License](/ee/LICENSE) |
-| **फ़ीचर** | ऊपर बॉक्स में सब कुछ — मॉनिटरिंग, स्टेटस पेज, इंसिडेंट, ऑन-कॉल, लॉग, ट्रेस, मेट्रिक्स, एरर ट्रैकिंग, वर्कफ़्लो और AI | कम्युनिटी का सब कुछ + SAML और OIDC सिंगल साइन-ऑन, SCIM प्रोविज़निंग, ऑडिट लॉग, टीम कंप्लायंस और इंस्टेंस हेल्थ डैशबोर्ड, साथ में प्राथमिकता समर्थन, कस्टम फ़ीचर और डेटा रेज़िडेंसी |
+| **फ़ीचर** | ऊपर बॉक्स में सब कुछ — मॉनिटरिंग, स्टेटस पेज, इंसिडेंट, ऑन-कॉल, लॉग, ट्रेस, मेट्रिक्स, एरर ट्रैकिंग, वर्कफ़्लो और AI — साथ ही SAML और OIDC सिंगल साइन-ऑन | कम्युनिटी का सब कुछ + SCIM प्रोविज़निंग, ऑडिट लॉग, टीम कंप्लायंस और इंस्टेंस हेल्थ डैशबोर्ड, साथ में प्राथमिकता समर्थन, कस्टम फ़ीचर और डेटा रेज़िडेंसी |
 
 एंटरप्राइज़ फ़ीचर [`ee/`](/ee) डायरेक्टरी में हैं और केवल एंटरप्राइज़ इमेज में शामिल होते हैं। पूरी तुलना के लिए [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) देखें।
 

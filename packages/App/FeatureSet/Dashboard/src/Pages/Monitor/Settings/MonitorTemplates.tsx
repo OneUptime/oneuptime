@@ -10,23 +10,32 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
-import MonitorTypeUtil from "../../../Utils/MonitorType";
+import getMonitorTypeFormField from "../../../Utils/Form/Monitor/MonitorTypeFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
 import {
   CustomElementProps,
+  FormFieldCollapsibleSection,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+/*
+ * Monitor Defaults' More fields: the default description and the labels,
+ * folded at the end of the step, as Create Monitor folds a monitor's own.
+ * Built once, so both fields fold under the one header.
+ */
+const MONITOR_DEFAULTS_MORE_FIELDS: FormFieldCollapsibleSection<MonitorTemplate> =
+  getAdvancedFormSection<MonitorTemplate>();
 
 const MonitorTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -42,7 +51,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
           tableId: "monitor-templates-table",
         }}
         name="Settings > Monitor Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -124,10 +133,6 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               );
             },
           },
-          {
-            title: "Labels",
-            id: "labels",
-          },
         ]}
         formFields={[
           {
@@ -156,6 +161,14 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               minLength: 2,
             },
           },
+          /*
+           * What kind of monitor comes first, as on Create Monitor: the
+           * same picker (MonitorTypeFormField), common types first.
+           */
+          getMonitorTypeFormField<MonitorTemplate>({
+            stepId: "monitor-defaults",
+            description: "What kind of monitor will this template produce?",
+          }),
           {
             field: {
               monitorName: true,
@@ -187,23 +200,19 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "monitor-defaults",
             required: false,
             placeholder: "Description",
+            collapsibleSection: MONITOR_DEFAULTS_MORE_FIELDS,
           },
-          {
-            field: {
-              monitorType: true,
-            },
-            title: "Monitor Type",
-            description: "What kind of monitor will this template produce?",
+          /*
+           * Folded under More fields at the end of Monitor Defaults, where
+           * Create Monitor folds a monitor's own labels, rather than walked
+           * as a last step of its own.
+           */
+          getLabelsFormField<MonitorTemplate>({
             stepId: "monitor-defaults",
-            fieldType: FormFieldSchemaType.CardSelect,
-            required: true,
-            cardSelectOptions:
-              MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-            cardSelectSearchable: true,
-            cardSelectSearchPlaceholder:
-              "Search monitor types - try ping, ssl, k8s, postgres",
-            cardSelectCollapsibleGroups: true,
-          },
+            description:
+              "Default labels applied to monitors created from this template.",
+            collapsibleSection: MONITOR_DEFAULTS_MORE_FIELDS,
+          }),
           {
             field: {
               monitorSteps: true,
@@ -253,43 +262,15 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             title: "Monitoring Interval",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
+            // What Create Monitor offers the type.
             fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
-              let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-              if (
-                item &&
-                (item.monitorType === MonitorType.SyntheticMonitor ||
-                  item.monitorType === MonitorType.CustomJavaScriptCode ||
-                  item.monitorType === MonitorType.SSLCertificate)
-              ) {
-                interval = interval.filter((option: DropdownOption) => {
-                  return (
-                    option.value !== "* * * * *" &&
-                    option.value !== "*/2 * * * *"
-                  );
-                });
-              }
-
-              return Promise.resolve(interval);
+              return Promise.resolve(
+                getMonitoringIntervalOptions({
+                  monitorType: item?.monitorType as MonitorType | undefined,
+                }),
+              );
             },
             placeholder: "Select Monitoring Interval",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Default labels applied to monitors created from this template.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         showRefreshButton={true}

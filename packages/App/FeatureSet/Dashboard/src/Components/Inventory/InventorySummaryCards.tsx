@@ -11,13 +11,16 @@ import { buildInventoryScopeQueryString } from "./InventoryScope";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The number strip at the top of the Inventory Overview.
  *
- * Purely presentational: the Overview does one fetch and folds it, so the
- * tiles and the category breakdown below them are always two views of the
- * same snapshot rather than two requests that can disagree.
+ * Purely presentational: the Overview makes one request, counted in one
+ * grouped query on the server, so the tiles and the category breakdown below
+ * them are always two views of the same snapshot rather than two requests
+ * that can disagree.
  *
  * Every tile navigates rather than toggling — the rows it counted live on the
  * Items page — so none of them passes `isSelected`. An InfoCard given
@@ -33,6 +36,7 @@ export interface ComponentProps {
 const InventorySummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   type NavigateToTileFunction = (tile: InventorySummaryTile) => void;
 
   const navigateToTile: NavigateToTileFunction = (
@@ -74,7 +78,13 @@ const InventorySummaryCards: FunctionComponent<ComponentProps> = (
                       navigateToTile(tile);
                     }
               }
-              ariaLabel={`${tile.label}: ${count}. Activate to open these in the inventory list.`}
+              ariaLabel={translator.translateTemplate(
+                "{{label}}: {{count}}. Activate to open these in the inventory list.",
+                {
+                  label: translator.translateText(tile.label) as string,
+                  count,
+                },
+              )}
               value={
                 props.isLoading ? (
                   <div className="mt-1 space-y-2">
@@ -92,7 +102,7 @@ const InventorySummaryCards: FunctionComponent<ComponentProps> = (
                       {count}
                     </div>
                     <div className="mt-2 text-sm text-gray-500">
-                      {tile.caption}
+                      {translator.translateText(tile.caption)}
                     </div>
                   </div>
                 )

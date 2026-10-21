@@ -1,5 +1,8 @@
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { formatCost, formatEfficiency } from "./KubernetesCostUtils";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Shared cell renderers for the Kubernetes cost breakdown tables (project
@@ -117,16 +120,27 @@ function getInlineCodeElement(text: string): ReactElement {
  * always means the agent was never told to ship it — say how to turn it
  * on rather than leaving an empty grid.
  */
-export const noCostDataMessage: ReactElement = (
-  <div className="mx-auto max-w-xl space-y-2">
-    <div className="font-medium text-gray-700">
-      No cost data reported for the selected time range.
+const NoCostDataMessage: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="mx-auto max-w-xl space-y-2">
+      <div className="font-medium text-gray-700">
+        {translator.translateText(
+          "No cost data reported for the selected time range.",
+        )}
+      </div>
+      <div>
+        <TranslatedSentence
+          template="Cost data is shipped by the OneUptime Kubernetes agent — enable it with {{enableFlag}} in the kubernetes-agent Helm chart. That alone is a complete install; if you already run OpenCost or Kubecost, set {{engineUrl}} to it instead."
+          slots={{
+            enableFlag: getInlineCodeElement("cost.enabled=true"),
+            engineUrl: getInlineCodeElement("cost.engine.url"),
+          }}
+        />
+      </div>
     </div>
-    <div>
-      Cost data is shipped by the OneUptime Kubernetes agent — enable it with{" "}
-      {getInlineCodeElement("cost.enabled=true")} in the kubernetes-agent Helm
-      chart. That alone is a complete install; if you already run OpenCost or
-      Kubecost, set {getInlineCodeElement("cost.engine.url")} to it instead.
-    </div>
-  </div>
-);
+  );
+};
+
+export const noCostDataMessage: ReactElement = <NoCostDataMessage />;

@@ -186,6 +186,24 @@ export function keyForCephCluster(
 }
 
 /**
+ * `storage.array.name` is the storage array identity (matches the
+ * StorageArray row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only — `storage.system`
+ * and the array's own reported name are descriptive, never identity). Pass
+ * `StorageArray.name`.
+ */
+export function keyForStorageArray(
+  projectId: string,
+  arrayName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.StorageArray,
+    identifyingAttributes: { "storage.array.name": arrayName },
+  });
+}
+
+/**
  * `docker.swarm.cluster.name` is the cluster identity (matches the
  * DockerSwarmCluster row's `name`, the project-unique join key written by
  * `findOrCreateByName`; the ingest resolver is name-only — see
@@ -395,6 +413,54 @@ export function keyForDatabaseServerRow(
     identifyingAttributes: {
       [DATABASE_SERVER_ROW_IDENTITY_ATTRIBUTE]: databaseServerId,
     },
+  });
+}
+
+/**
+ * Identity attribute carrying a message queue's broker scope — the Azure
+ * Service Bus / Event Hubs namespace — in `keyForMessageQueue`.
+ * OneUptime-defined: semconv has no attribute for it.
+ */
+export const MESSAGE_QUEUE_BROKER_SCOPE_IDENTITY_ATTRIBUTE: string =
+  "oneuptime.messaging.broker.scope";
+
+/**
+ * Key for one message QUEUE — the `message.queue` membership key ingest
+ * appends to every messaging span and broker / client datapoint that
+ * resolves to the queue, and the Queues product queries by. The identity is
+ * `messaging.system` + `messaging.destination.name`, plus the broker scope
+ * (`oneuptime.messaging.broker.scope`) only when it is non-blank — so the
+ * key of a queue with no scope stays exactly the two-attribute one.
+ *
+ * Pass an identity already canonicalized by
+ * `Types/MessageQueue/MessageQueueIdentity.toMessageQueueIdentity` (system
+ * aliases folded, scope only for a namespace-scoped system). This module
+ * takes the plain shape rather than importing that one so it stays a leaf;
+ * values are trimmed and lowercased here like every identity value, but no
+ * alias is folded.
+ */
+export function keyForMessageQueue(
+  projectId: string,
+  identity: {
+    system: string;
+    brokerScope?: string | null | undefined;
+    destination: string;
+  },
+): string {
+  const identifyingAttributes: Dictionary<string> = {
+    "messaging.system": identity.system,
+    "messaging.destination.name": identity.destination,
+  };
+
+  if (isIdentityBearing(identity.brokerScope)) {
+    identifyingAttributes[MESSAGE_QUEUE_BROKER_SCOPE_IDENTITY_ATTRIBUTE] =
+      identity.brokerScope;
+  }
+
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.MessageQueue,
+    identifyingAttributes,
   });
 }
 

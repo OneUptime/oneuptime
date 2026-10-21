@@ -54,9 +54,12 @@ import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "../../../Types/Rum/Session
 import {
   buildRailTabModels,
   computeRailWindow,
+  glyphForSignal,
   groupRepeatedSignals,
   stepRailRow,
+  tabsWithTruncatedRecordingRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailTabs";
+import { fromTimelineEvent } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals";
 
 /*
  * The synced rail. What is pinned here is the contract the player and the
@@ -528,6 +531,109 @@ describe("ReplayRail tabs and counts", () => {
     result.rerender({ loadedChunkCount: 9, totalChunkCount: 9 });
 
     expect(screen.queryByTestId("rail-coverage-note")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * The idle pause (issue #4208): the two rows that say where the footage
+ * stopped and started again are markers, so they list under All and Nav,
+ * and they carry a glyph of their own so a viewer scanning the merged
+ * stream finds the pause without reading every title.
+ */
+describe("ReplayRail recording pauses", () => {
+  function pauseSignals(): Array<ReplaySignal> {
+    return [
+      fromTimelineEvent(
+        {
+          id: "rec:0:5",
+          kind: "idle-pause",
+          chunkIndex: 0,
+          offsetMs: 10_000,
+          idlePauseEdge: "paused",
+          idleSinceUnixMs: START_UNIX_MS - 290_000,
+          pausedAtUnixMs: START_UNIX_MS + 10_000,
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+      fromTimelineEvent(
+        {
+          id: "rec:1:0",
+          kind: "idle-pause",
+          chunkIndex: 1,
+          offsetMs: 70_000,
+          idlePauseEdge: "resumed",
+          pausedAtUnixMs: START_UNIX_MS + 10_000,
+          resumedAtUnixMs: START_UNIX_MS + 70_000,
+          pausedAtOffsetMs: 10_000,
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    ];
+  }
+
+  it("lists the pause and the resume under All and Nav, in time order", () => {
+    const result: RenderResult = renderRail({
+      signals: [...defaultSignals(), ...pauseSignals()],
+    });
+
+    expect(screen.getByTestId("rail-tab-all")).toHaveTextContent("All6");
+    expect(screen.getByTestId("rail-tab-navigation")).toHaveTextContent("Nav3");
+    expect(rowTitles()).toEqual([
+      "rec:0:1",
+      "rec:0:2",
+      "rec:0:3",
+      "rec:0:4",
+      "rec:0:5",
+      "rec:1:0",
+    ]);
+
+    result.rerender({ activeTab: "navigation" });
+
+    expect(rowTitles()).toEqual(["rec:0:3", "rec:0:5", "rec:1:0"]);
+  });
+
+  it("reads each pause row out with its own glyph and its length", () => {
+    renderRail({ signals: pauseSignals() });
+
+    const buttons: Array<HTMLElement> = rows().map(
+      (row: HTMLElement): HTMLElement => {
+        return row.querySelector("[data-rail-row-body='true']") as HTMLElement;
+      },
+    );
+
+    expect(buttons[0]!.getAttribute("aria-label")).toBe(
+      "recording pause, info at 0:10.0: Recording paused: no input for 5m",
+    );
+    expect(buttons[1]!.getAttribute("aria-label")).toBe(
+      "recording pause, info at 1:10.0: Recording resumed after 1m idle",
+    );
+    expect(buttons[0]).toHaveTextContent("‖");
+  });
+
+  it("gives only the pause markers the pause glyph", () => {
+    const [paused] = pauseSignals();
+    const hidden: ReplaySignal = fromTimelineEvent(
+      {
+        id: "rec:0:9",
+        kind: "visibility",
+        chunkIndex: 0,
+        offsetMs: 1000,
+        visibilityState: "hidden",
+      },
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+
+    expect(glyphForSignal(paused!).label).toBe("‖");
+    expect(glyphForSignal(paused!).description).toBe("recording pause, info");
+    expect(glyphForSignal(hidden).label).toBe("#");
+    expect(glyphForSignal(hidden).description).toBe("marker, info");
+  });
+
+  it("puts a capped run of pause rows' notice under Nav, where the rows are", () => {
+    expect([...tabsWithTruncatedRecordingRows(["idle-pause"])].sort()).toEqual([
+      "all",
+      "navigation",
+    ]);
   });
 });
 

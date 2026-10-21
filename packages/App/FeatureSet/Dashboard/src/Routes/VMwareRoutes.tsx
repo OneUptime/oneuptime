@@ -26,6 +26,9 @@ import VMwareVCenterResourcePools from "../Pages/VMware/View/ResourcePools";
 import VMwareVCenterInsights from "../Pages/VMware/View/Insights";
 import VMwareVCenterMetrics from "../Pages/VMware/View/Metrics";
 import VMwareVCenterRecommendations from "../Pages/VMware/View/Recommendations";
+import VMwareVCenterAiInsights from "../Pages/VMware/View/AI/Insights";
+import VMwareVCenterAiLogs from "../Pages/VMware/View/AI/Logs";
+import VMwareVCenterAiAgent from "../Pages/VMware/View/AI/Agent";
 import VMwareVCenterLogs from "../Pages/VMware/View/Logs";
 import VMwareVCenterIncidents from "../Pages/VMware/View/Incidents";
 import VMwareVCenterAlerts from "../Pages/VMware/View/Alerts";
@@ -38,6 +41,9 @@ import VMwareVCenterDelete from "../Pages/VMware/View/Delete";
 import VMwareVCenterDocumentation from "../Pages/VMware/View/Documentation";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const VMwareRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,6 +120,13 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: VMwareVCenter,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.VMWARE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -293,6 +306,50 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <VMwareVCenterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <VMwareVCenterAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <VMwareVCenterAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_AGENT] as Route
+              }
+            />
+          }
+        />
+
         {/* Metrics */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -437,6 +494,12 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: VMwareVCenter,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

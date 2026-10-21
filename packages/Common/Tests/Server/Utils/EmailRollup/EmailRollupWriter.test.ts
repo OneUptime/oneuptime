@@ -13,6 +13,7 @@ import {
 import logger from "../../../../Server/Utils/Logger";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import Color from "../../../../Types/Color";
 import Dictionary from "../../../../Types/Dictionary";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import Email from "../../../../Types/Email";
@@ -717,6 +718,257 @@ describe("EmailRollupWriter.sendOrRollup", () => {
 
       expect(writtenItem().severity).toBeUndefined();
       expect(writtenItem().currentState).toBeUndefined();
+    });
+  });
+
+  /*
+   * The rollup paints each chip in the severity's and the state's own
+   * colour, and the colour - like the name - has to be the one the original
+   * email carried, so it is snapshotted beside the name at enqueue time. It
+   * is also about to be replayed into a style attribute minutes later, so
+   * only a colour EmailColorUtil can vouch for is ever stored.
+   */
+  describe("severity and state colour snapshots", () => {
+    const colourCases: Array<{
+      severityVar: string;
+      eventType: NotificationSettingEventType;
+    }> = [
+      {
+        severityVar: "alertSeverity",
+        eventType:
+          NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+      },
+      {
+        severityVar: "incidentSeverity",
+        eventType:
+          NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+      },
+      {
+        severityVar: "episodeSeverity",
+        eventType:
+          NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        severityVar: "episodeSeverity",
+        eventType:
+          NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+      },
+    ];
+
+    function colourOf(color: Color | undefined): string | undefined {
+      return color === undefined ? undefined : color.toString();
+    }
+
+    test.each(colourCases)(
+      "snapshots $severityVar's colour and the state's colour for $eventType, as #rrggbb",
+      async (colourCase: {
+        severityVar: string;
+        eventType: NotificationSettingEventType;
+      }) => {
+        recentCount(BURST_THRESHOLD);
+
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            eventType: colourCase.eventType,
+            emailEnvelope: buildEnvelope({
+              vars: {
+                [colourCase.severityVar]: "Critical",
+                [`${colourCase.severityVar}Color`]: " #EF4444 ",
+                currentState: "Investigating",
+                currentStateColor: "rgb(59, 130, 246)",
+              },
+            }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBe("Critical");
+        expect(colourOf(writtenItem().severityColor)).toBe("#ef4444");
+        expect(writtenItem().currentState).toBe("Investigating");
+        expect(colourOf(writtenItem().currentStateColor)).toBe("#3b82f6");
+        expect(sendMail).not.toHaveBeenCalled();
+      },
+    );
+
+    test("stores the colours of an immediate send too, for the accounting record", async () => {
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          emailEnvelope: buildEnvelope({
+            vars: {
+              incidentSeverity: "Critical",
+              incidentSeverityColor: "#dc2626",
+              currentState: "Resolved",
+              currentStateColor: "#22c55e",
+            },
+          }),
+        }),
+      );
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(writtenItem().sentAt).toBeInstanceOf(Date);
+      expect(colourOf(writtenItem().severityColor)).toBe("#dc2626");
+      expect(colourOf(writtenItem().currentStateColor)).toBe("#22c55e");
+    });
+
+    test("reads the colour of THIS family's severity, not an incidental one", async () => {
+      recentCount(BURST_THRESHOLD);
+
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          eventType: INCIDENT_EVENT,
+          emailEnvelope: buildEnvelope({
+            vars: {
+              incidentSeverity: "Critical",
+              alertSeverityColor: "#dc2626",
+              episodeSeverityColor: "#dc2626",
+            },
+          }),
+        }),
+      );
+
+      expect(writtenItem().severity).toBe("Critical");
+      expect(writtenItem().severityColor).toBeUndefined();
+    });
+
+    test.each([
+      "red",
+      "#fff; background-image: url(https://evil.example/t.gif)",
+      'rgb(1, 2, 3)" onmouseover="alert(1)',
+      "rgb(1, 2, 3); position: fixed",
+      "expression(alert(1))",
+      "",
+    ])(
+      "refuses the unsafe or unreadable colour %p but keeps the names",
+      async (value: string) => {
+        recentCount(BURST_THRESHOLD);
+
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            emailEnvelope: buildEnvelope({
+              vars: {
+                incidentSeverity: "Critical",
+                incidentSeverityColor: value,
+                currentState: "Investigating",
+                currentStateColor: value,
+              },
+            }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBe("Critical");
+        expect(writtenItem().currentState).toBe("Investigating");
+        expect(writtenItem().severityColor).toBeUndefined();
+        expect(writtenItem().currentStateColor).toBeUndefined();
+        expect(loggerError).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([42, true, { color: "#dc2626" }, ["#dc2626"]])(
+      "ignores a colour var that is not text: %p",
+      async (value: unknown) => {
+        recentCount(BURST_THRESHOLD);
+
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            emailEnvelope: buildEnvelope({
+              vars: {
+                incidentSeverity: "Critical",
+                incidentSeverityColor: value,
+                currentState: "Investigating",
+                currentStateColor: value,
+              } as Dictionary<string | JSONObject>,
+            }),
+          }),
+        );
+
+        expect(writtenItem().severityColor).toBeUndefined();
+        expect(writtenItem().currentStateColor).toBeUndefined();
+        expect(loggerError).not.toHaveBeenCalled();
+      },
+    );
+
+    test("drops a colour that arrived without the name it belongs to", async () => {
+      recentCount(BURST_THRESHOLD);
+
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          emailEnvelope: buildEnvelope({
+            vars: {
+              incidentSeverity: "   ",
+              incidentSeverityColor: "#dc2626",
+              currentStateColor: "#22c55e",
+            },
+          }),
+        }),
+      );
+
+      expect(writtenItem().severity).toBeUndefined();
+      expect(writtenItem().severityColor).toBeUndefined();
+      expect(writtenItem().currentState).toBeUndefined();
+      expect(writtenItem().currentStateColor).toBeUndefined();
+    });
+
+    test("stores no colours for a family with no severity or state chip", async () => {
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          eventType: MONITOR_EVENT,
+          emailEnvelope: buildEnvelope({
+            vars: {
+              currentStatus: "Offline",
+              currentStatusColor: "#dc2626",
+              currentState: "Offline",
+              currentStateColor: "#dc2626",
+            },
+          }),
+        }),
+      );
+
+      expect(writtenItem().severityColor).toBeUndefined();
+      expect(writtenItem().currentStateColor).toBeUndefined();
+    });
+
+    test("leaves the envelope the immediate email is sent with untouched", async () => {
+      const vars: Dictionary<string | JSONObject> = {
+        incidentSeverity: "Critical",
+        incidentSeverityColor: "#DC2626",
+        incidentSeverityTextColor: "#b91c1c",
+        currentState: "Resolved",
+        currentStateColor: "rgb(34, 197, 94)",
+      };
+      const original: Dictionary<string | JSONObject> = { ...vars };
+
+      await EmailRollupWriter.sendOrRollup(
+        sendData({ emailEnvelope: buildEnvelope({ vars: vars }) }),
+      );
+
+      expect(vars).toEqual(original);
+      expect((sendMail.mock.calls[0]?.[0] as EmailEnvelope).vars).toEqual(
+        original,
+      );
+    });
+
+    test("a stored colour always fits its ten-character column", async () => {
+      recentCount(BURST_THRESHOLD);
+
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          emailEnvelope: buildEnvelope({
+            vars: {
+              incidentSeverity: "Critical",
+              incidentSeverityColor: "rgba(220, 38, 38, 0.75)",
+              currentState: "Resolved",
+              currentStateColor: "#22c55eff",
+            },
+          }),
+        }),
+      );
+
+      for (const color of [
+        writtenItem().severityColor,
+        writtenItem().currentStateColor,
+      ]) {
+        expect(colourOf(color)).toMatch(/^#[0-9a-f]{6}$/);
+        expect(colourOf(color)!.length).toBeLessThanOrEqual(ColumnLength.Color);
+      }
     });
   });
 

@@ -15,6 +15,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CloudDocumentationCard from "../../../Components/Cloud/CloudDocumentationCard";
+import CloudMonitoringDocumentationCard from "../../../Components/Cloud/CloudMonitoringDocumentationCard";
+import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const CloudResourceDocumentation: FunctionComponent<
   PageComponentProps
@@ -41,6 +43,9 @@ const CloudResourceDocumentation: FunctionComponent<
            * steps for an ECS environment rather than on the default.
            */
           cloudPlatform: true,
+          // A resource's tab opens on its own provider's guide.
+          cloudResourceKind: true,
+          cloudProvider: true,
         },
       });
       setCloudResource(item);
@@ -66,6 +71,18 @@ const CloudResourceDocumentation: FunctionComponent<
 
   if (!cloudResource) {
     return <ErrorMessage message="Cloud resource not found." />;
+  }
+
+  if (isCloudResourceKindResource(cloudResource.cloudResourceKind)) {
+    return (
+      <Fragment>
+        <CloudMonitoringDocumentationCard
+          title="Discover your cloud resources"
+          description="How resources are discovered: an OpenTelemetry Collector with read-only access to your cloud's monitoring API reads the metrics it publishes about every resource and sends them to OneUptime."
+          initialOption={cloudResource.cloudProvider}
+        />
+      </Fragment>
+    );
   }
 
   return (

@@ -8,7 +8,9 @@ import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicySe
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import OnCallReadinessService, {
   IDENTIFIER_MASK,
+  INVITATION_NOT_ACCEPTED_READINESS_REASONS,
   MaskedIdentifierKind,
+  NOT_A_PROJECT_MEMBER_READINESS_REASONS,
   ReadinessCoverageCell,
   ReadinessMethod,
   ReadinessMethodType,
@@ -34,6 +36,9 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import logger from "../../../Server/Utils/Logger";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../../../Server/Utils/TeamMember/ProjectMembership";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -290,6 +295,10 @@ let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
+let projectMembershipRead: jest.SpyInstance;
+let projectStandingsRead: jest.SpyInstance;
+// People invited to the project who have not accepted yet.
+let invitedUserIds: Array<ObjectID> = [];
 
 function makeUser(id: ObjectID, name: string, loginEmail: string): User {
   const user: User = new User();
@@ -679,6 +688,8 @@ function everySpy(): Array<jest.SpyInstance> {
     incidentSeverityFindBy,
     alertSeverityFindBy,
     projectFindOneById,
+    projectMembershipRead,
+    projectStandingsRead,
   ];
 }
 
@@ -693,7 +704,12 @@ function everyFindByCall(): Array<FindByCall> {
   const calls: Array<FindByCall> = [];
 
   for (const spy of everySpy()) {
-    if (spy === policyFindOneById || spy === projectFindOneById) {
+    if (
+      spy === policyFindOneById ||
+      spy === projectFindOneById ||
+      spy === projectMembershipRead ||
+      spy === projectStandingsRead
+    ) {
       // findOneById takes an id, not a limit; nothing to assert about paging.
       continue;
     }
@@ -936,6 +952,73 @@ beforeEach(() => {
   projectFindOneById = jest
     .spyOn(ProjectService, "findOneById")
     .mockResolvedValue(makeProject() as never);
+
+  /*
+   * Who is a member of the project now, for the summary's responders: the
+   * same world the per-user membership read answers from, filtered by the ids
+   * asked for, so a responder missing from membershipRows has left.
+   */
+  invitedUserIds = [];
+
+  projectMembershipRead = jest
+    .spyOn(ProjectMembership, "getMemberUserIds")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<Set<string>> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      return new Set<string>(
+        membershipRows
+          .map((row: TeamMember): string => {
+            return row.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+    }) as never);
+
+  // Members and invitees in one read, from the same world as the two above.
+  projectStandingsRead = jest
+    .spyOn(ProjectMembership, "getStandings")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<ProjectMembershipStandings> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      const memberUserIds: Set<string> = new Set<string>(
+        membershipRows
+          .map((row: TeamMember): string => {
+            return row.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+
+      return {
+        memberUserIds,
+        invitedUserIds: new Set<string>(
+          invitedUserIds
+            .map((userId: ObjectID): string => {
+              return userId.toString().toLowerCase();
+            })
+            .filter((userId: string): boolean => {
+              return asked.has(userId) && !memberUserIds.has(userId);
+            }),
+        ),
+      };
+    }) as never);
 });
 
 afterEach(() => {
@@ -1307,7 +1390,7 @@ describe("responder resolution", () => {
     ]);
   });
 
-  test("team members are NOT filtered on hasAcceptedInvitation, because the runtime pages them anyway", async () => {
+  test("team members are the accepted rows only, as paging expands a team", async () => {
     escalationTeamFindBy.mockResolvedValue([
       escalationTeamRow(TEAM_ID),
     ] as never);
@@ -1317,7 +1400,8 @@ describe("responder resolution", () => {
 
     const query: Record<string, unknown> = firstCall(teamMemberFindBy).query;
 
-    expect(query["hasAcceptedInvitation"]).toBeUndefined();
+    // A pending invitation puts nobody on the roster the runtime pages.
+    expect(query["hasAcceptedInvitation"]).toBe(true);
     expect(query["projectId"]?.toString()).toBe(PROJECT_ID.toString());
   });
 
@@ -1708,6 +1792,104 @@ describe("status", () => {
     );
   });
 
+  /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered, and then its push service or Expo said it was gone
+   * (UserPushService.markWebPushSubscriptionAsGone, markExpoPushTokenAsGone).
+   * "Added Push but never verified" sent the admin after a verification code
+   * that does not exist; the fix is to register the device again.
+   */
+  test("a push device that stopped receiving notifications is NotReachable, and says to register it again - not 'never verified'", async () => {
+    pushFindBy.mockResolvedValue([
+      pushMethod({
+        userId: USER_A_ID,
+        deviceName: RAW_PUSH_DEVICE,
+        isVerified: false,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).toBe(ReadinessStatus.NotReachable);
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+    ]);
+    expect(readiness.methods).toHaveLength(1);
+    expect(readiness.methods[0]!.methodType).toBe(ReadinessMethodType.Push);
+    expect(readiness.methods[0]!.isVerified).toBe(false);
+  });
+
+  test("several push devices that stopped receiving notifications are counted in one sentence", async () => {
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "2 push devices no longer receive notifications - register them again from the mobile app or browser they belong to",
+    ]);
+  });
+
+  test("an unverified email next to a push device that stopped receiving: each is named for its own fix", async () => {
+    emailFindBy.mockResolvedValue([
+      emailMethod({
+        userId: USER_A_ID,
+        email: RAW_NOTIFICATION_EMAIL,
+        isVerified: false,
+      }),
+    ] as never);
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "Added Email but never verified - unverified methods are never used",
+      "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+    ]);
+  });
+
+  /*
+   * Reachable on another channel, the person is paged there, and readiness
+   * says nothing about the device: a line on every such row would be one
+   * nobody can act on from here. The device list, the on-call timeline and
+   * the person's own readiness methods still show it.
+   */
+  test("a push device that stopped receiving next to a verified email does not make the person unreachable", async () => {
+    emailFindBy.mockResolvedValue([
+      emailMethod({
+        userId: USER_A_ID,
+        email: RAW_NOTIFICATION_EMAIL,
+        isVerified: true,
+      }),
+    ] as never);
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).not.toBe(ReadinessStatus.NotReachable);
+    expect(
+      readiness.methods.map(
+        (method: { methodType: string; isVerified: boolean }) => {
+          return [method.methodType, method.isVerified];
+        },
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        [ReadinessMethodType.Email, true],
+        [ReadinessMethodType.Push, false],
+      ]),
+    );
+  });
+
   test("an unverified method is still LISTED, because the UI has to show what to go and verify", async () => {
     emailFindBy.mockResolvedValue([
       emailMethod({
@@ -1933,7 +2115,7 @@ describe("status", () => {
 
       expect(readiness.status).toBe(ReadinessStatus.NotReachable);
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on SMS, Call, and this project has those channels switched off - that is a project setting, not something this user can fix",
+        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings",
       );
     });
 
@@ -1954,10 +2136,17 @@ describe("status", () => {
       /*
        * "Add and verify a notification method" is the WRONG instruction here -
        * they have done that, and doing it again on the same channel changes
-       * nothing. The sentence has to send an admin to the project settings.
+       * nothing. The sentence has to say it is a project setting, and who may
+       * change it: a project owner or someone with Manage Billing - not a
+       * project admin, who may not.
        */
       expect(readiness.reasons[1]).toContain("WhatsApp");
-      expect(readiness.reasons[1]).toContain("project setting");
+      expect(readiness.reasons[1]).toContain(
+        "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings",
+      );
+      expect((readiness.reasons[1] || "").toLowerCase()).not.toContain(
+        "project admin",
+      );
       expect(
         readiness.reasons.some((reason: string): boolean => {
           return reason.includes("add and verify");
@@ -2935,7 +3124,7 @@ describe("notification channels", () => {
         "No usable notification method - cannot be paged",
       );
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on Telegram, and this project has that channel switched off - that is a project setting, not something this user can fix",
+        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings",
       );
     });
 
@@ -3575,6 +3764,10 @@ describe("batching and paging", () => {
         `Responder ${index}`,
         `responder${index}@corp.example.com`,
       );
+    });
+    // Members, like the two above: like is compared with like.
+    membershipRows = ids.map((id: ObjectID): TeamMember => {
+      return teamMemberRow(id, TEAM_ID);
     });
     attachDirectly(...ids);
     setSeverities({
@@ -4616,5 +4809,296 @@ describe("cache", () => {
     await OnCallReadinessService.getReadinessForUser(USER_B_ID, PROJECT_ID);
 
     expect(userFindBy).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A responder who is no longer a member of the project.
+ * ---------------------------------------------------------------------------
+ *
+ * A layer, a rule or an override can still name somebody who has left (the
+ * leave cleanup removes those references; one it missed, or one written
+ * while they were leaving, can remain). The runtime never pages them
+ * (ProjectMembership), so readiness must not call them reachable: they are
+ * listed, NotReachable, with the one fix that matters.
+ */
+describe("a responder who is no longer a member of the project", () => {
+  beforeEach(() => {
+    attachDirectly(USER_A_ID, USER_B_ID);
+
+    // Both have a working webhook; only A is still a member.
+    webhookFindBy.mockResolvedValue([
+      webhookMethod({ userId: USER_A_ID, name: RAW_WEBHOOK_NAME }),
+      webhookMethod({ userId: USER_B_ID, name: RAW_WEBHOOK_NAME }),
+    ] as never);
+
+    membershipRows = [teamMemberRow(USER_A_ID, TEAM_ID)];
+  });
+
+  function readinessOf(
+    summary: ReadinessSummary,
+    userId: ObjectID,
+  ): UserReadiness {
+    const readiness: UserReadiness | undefined = summary.users.find(
+      (candidate: UserReadiness): boolean => {
+        return candidate.userId.toString() === userId.toString();
+      },
+    );
+
+    if (!readiness) {
+      throw new Error(`${userId.toString()} is not in the summary`);
+    }
+
+    return readiness;
+  }
+
+  test("is listed as NotReachable, whatever methods they have, with the fix", async () => {
+    const summary: ReadinessSummary = await policySummary();
+
+    const former: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(former.status).toBe(ReadinessStatus.NotReachable);
+    expect(former.reasons).toEqual([...NOT_A_PROJECT_MEMBER_READINESS_REASONS]);
+
+    // The member with the same method is reachable.
+    expect(readinessOf(summary, USER_A_ID).status).toBe(ReadinessStatus.Ready);
+  });
+
+  test("membership is read once for the whole responder set", async () => {
+    await policySummary();
+
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+    expect(projectMembershipRead).not.toHaveBeenCalled();
+
+    const asked: Array<string> = (
+      projectStandingsRead.mock.calls[0]![0] as {
+        userIds: Array<ObjectID | string>;
+      }
+    ).userIds
+      .map((userId: ObjectID | string): string => {
+        return userId.toString();
+      })
+      .sort();
+
+    expect(asked).toEqual([USER_A_ID.toString(), USER_B_ID.toString()].sort());
+  });
+
+  test("somebody invited who has not accepted yet is told to accept, not called a former member", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    const summary: ReadinessSummary = await policySummary();
+
+    const invited: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(invited.status).toBe(ReadinessStatus.NotReachable);
+    expect(invited.reasons).toEqual([
+      ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
+    ]);
+
+    // Told apart in the same one read: no second read for invitations.
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("everybody a member: one read, and nobody is asked about invitations", async () => {
+    membershipRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_B_ID, TEAM_ID),
+    ];
+
+    await policySummary();
+
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("per-user readiness asks nobody twice: the membership it began with answers", async () => {
+    await OnCallReadinessService.getReadinessForUser(USER_A_ID, PROJECT_ID);
+
+    expect(projectStandingsRead).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A caller that has already read who the members are hands that set in
+   * (the per-user path does). A responder the set leaves out is read again,
+   * and the read decides: somebody who joined after the caller looked is a
+   * member, not somebody who has left.
+   */
+  describe("with the members the caller has already read", () => {
+    type BuildReadiness = (data: {
+      projectId: ObjectID;
+      responders: Map<
+        string,
+        { sources: Set<ResponderSource>; teamIds: Set<string> }
+      >;
+      projectSettings: {
+        isFallbackDisabled: boolean;
+        enableSmsNotifications: boolean;
+        enableCallNotifications: boolean;
+        enableWhatsAppNotifications: boolean;
+        enableTelegramNotifications: boolean;
+      };
+      completeness: { isTruncated: boolean };
+      memberUserIds?: Set<string> | undefined;
+    }) => Promise<Array<UserReadiness>>;
+
+    function buildReadinessFor(data: {
+      responderIds: Array<ObjectID>;
+      memberUserIds: Array<ObjectID>;
+    }): Promise<Array<UserReadiness>> {
+      const responders: Map<
+        string,
+        { sources: Set<ResponderSource>; teamIds: Set<string> }
+      > = new Map();
+
+      for (const responderId of data.responderIds) {
+        responders.set(responderId.toString(), {
+          sources: new Set<ResponderSource>([ResponderSource.Direct]),
+          teamIds: new Set<string>(),
+        });
+      }
+
+      const service: { buildReadiness: BuildReadiness } =
+        OnCallReadinessService as unknown as {
+          buildReadiness: BuildReadiness;
+        };
+
+      return service.buildReadiness({
+        projectId: PROJECT_ID,
+        responders: responders,
+        projectSettings: {
+          isFallbackDisabled: false,
+          enableSmsNotifications: true,
+          enableCallNotifications: true,
+          enableWhatsAppNotifications: true,
+          enableTelegramNotifications: true,
+        },
+        completeness: { isTruncated: false },
+        memberUserIds: new Set<string>(
+          data.memberUserIds.map((userId: ObjectID): string => {
+            return userId.toString().toLowerCase();
+          }),
+        ),
+      });
+    }
+
+    function readinessIn(
+      list: Array<UserReadiness>,
+      userId: ObjectID,
+    ): UserReadiness {
+      const readiness: UserReadiness | undefined = list.find(
+        (candidate: UserReadiness): boolean => {
+          return candidate.userId.toString() === userId.toString();
+        },
+      );
+
+      if (!readiness) {
+        throw new Error(`${userId.toString()} is not in the list`);
+      }
+
+      return readiness;
+    }
+
+    test("nobody left out: no second membership read", async () => {
+      membershipRows = [
+        teamMemberRow(USER_A_ID, TEAM_ID),
+        teamMemberRow(USER_B_ID, TEAM_ID),
+      ];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID, USER_B_ID],
+      });
+
+      expect(projectStandingsRead).not.toHaveBeenCalled();
+      expect(readinessIn(readiness, USER_B_ID).status).toBe(
+        ReadinessStatus.Ready,
+      );
+    });
+
+    test("a member the set left out is read, and counted as the member they are", async () => {
+      // B joined after the caller read who the members were.
+      membershipRows = [
+        teamMemberRow(USER_A_ID, TEAM_ID),
+        teamMemberRow(USER_B_ID, TEAM_ID),
+      ];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      // One read, about the one left out only.
+      expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          projectStandingsRead.mock.calls[0]![0] as {
+            userIds: Array<ObjectID | string>;
+          }
+        ).userIds.map((userId: ObjectID | string): string => {
+          return userId.toString();
+        }),
+      ).toEqual([USER_B_ID.toString()]);
+
+      const member: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(member.status).toBe(ReadinessStatus.Ready);
+      expect(member.reasons).not.toEqual([
+        ...NOT_A_PROJECT_MEMBER_READINESS_REASONS,
+      ]);
+    });
+
+    test("somebody the set left out who has left is still not reachable", async () => {
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      const former: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(former.status).toBe(ReadinessStatus.NotReachable);
+      expect(former.reasons).toEqual([
+        ...NOT_A_PROJECT_MEMBER_READINESS_REASONS,
+      ]);
+      expect(readinessIn(readiness, USER_A_ID).status).toBe(
+        ReadinessStatus.Ready,
+      );
+    });
+
+    test("somebody the set left out who is only invited is told to accept", async () => {
+      invitedUserIds = [USER_B_ID];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      const invited: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(invited.status).toBe(ReadinessStatus.NotReachable);
+      expect(invited.reasons).toEqual([
+        ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
+      ]);
+    });
+  });
+
+  test("a membership read that fails is not swallowed into a summary that calls people reachable", async () => {
+    projectStandingsRead.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(policySummary()).rejects.toThrow("database unavailable");
+  });
+
+  test("the reasons say they cannot be paged, and what to do about it", () => {
+    expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[0]).toContain(
+      "cannot be paged",
+    );
+    expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[1]).toContain(
+      "invite them back",
+    );
+    expect(INVITATION_NOT_ACCEPTED_READINESS_REASONS[0]).toContain(
+      "cannot be paged",
+    );
+    expect(INVITATION_NOT_ACCEPTED_READINESS_REASONS[1]).toContain(
+      "accept their invitation",
+    );
   });
 });

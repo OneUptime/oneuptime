@@ -6,6 +6,7 @@ import {
   MAX_REVERSE_DNS_NAME_LENGTH,
   normalizeReverseDnsName,
 } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -222,7 +223,7 @@ describe("getShortHostname", () => {
       expect(getShortHostname("kds01.wbhq.com (10.0.0.5)")).toBeUndefined();
       expect(getShortHostname("café.example.com")).toBeUndefined();
       expect(getShortHostname("kds01.wbhq.cöm")).toBeUndefined();
-      expect(getShortHostname("kds01 .wbhq.com")).toBeUndefined();
+      expect(getShortHostname("kds01\u0000.wbhq.com")).toBeUndefined();
       expect(getShortHostname("kds01.wbhq.com")).toBeUndefined();
       expect(getShortHostname("kds01.wb​hq.com")).toBeUndefined();
       expect(getShortHostname("kds01/.wbhq.com")).toBeUndefined();
@@ -411,20 +412,8 @@ describe("getShortHostname", () => {
    * prove.
    */
   describe("properties over generated names", () => {
+    // Draws of the suites' seeded generator: the same on every platform.
     type RandomFunction = () => number;
-
-    // mulberry32: small, fast, and deterministic across platforms.
-    function seededRandom(seed: number): RandomFunction {
-      let state: number = seed >>> 0;
-
-      return (): number => {
-        state = (state + 0x6d2b79f5) >>> 0;
-        let t: number = state;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-    }
 
     function pick(random: RandomFunction, characters: string): string {
       return characters.charAt(Math.floor(random() * characters.length));
@@ -449,7 +438,7 @@ describe("getShortHostname", () => {
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const DIGITS: string = "0123456789";
     const INNER: string = `${LETTERS}${DIGITS}-_`;
-    const JUNK: string = " <>\"'/\\:;()[]{}é ​";
+    const JUNK: string = " <>\"'/\\:;()[]{}é\u0000​";
 
     function label(random: RandomFunction): string {
       const kind: number = random();

@@ -21,7 +21,8 @@ import OneUptimeDate from "Common/Types/Date";
 import TimezoneAlias from "Common/Types/TimezoneAlias";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
 import ScheduleShiftUtil, {
   CoverageGap,
   OnCallShift,
@@ -52,6 +53,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * How often the preview re-reads the wall clock. Everything on this screen is
@@ -91,6 +95,11 @@ export interface ComponentProps {
    * overrides only. See POLICY_CONTEXT below.
    */
   onCallDutyPolicyScheduleId?: ObjectID | undefined;
+  /*
+   * Changed by the page when it knows the overrides changed (somebody was
+   * just skipped on the layers above), so they are read again at once.
+   */
+  overridesRefreshKey?: number | undefined;
 }
 
 interface UserInfo {
@@ -115,6 +124,7 @@ interface UserColorAssignment {
 const LayersPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The range the grid shows, in the grid's own terms: Dates whose
    * browser-local wall clock is the view zone's wall clock, as
@@ -293,6 +303,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       scheduleUserIds,
       windowStart: overrideWindow.start,
       windowEnd: overrideWindow.end,
+      refreshKey: props.overridesRefreshKey,
     });
 
   const overrideRecords: Array<UserOverrideRecord> = overrideResolution.records;
@@ -331,7 +342,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     }
 
     for (const o of overrideRecords) {
-      const routeId: string = o.routeAlertsToUserId;
+      // A skip names nobody: whoever has the turn is on the roster already.
+      const routeId: string = o.routeAlertsToUserId || "";
       if (!routeId || seen.has(routeId)) {
         continue;
       }
@@ -384,8 +396,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * The combined-schedule shifts for the summary. Computed over a fixed forward
    * window from "now" (independent of where the user has navigated the calendar)
    * so "on call now / up next / upcoming hand-offs" stays stable and meaningful.
-   * Uses the same LayerUtil + override application as the calendar, so the
-   * summary never contradicts the grid below it.
+   * Uses the same resolution as the calendar and the server (ScheduleResolution:
+   * people who are away skipped in their layers, then named covers), so the
+   * summary never contradicts the grid below it - or the page a phone rings for.
    */
   const summaryData: {
     shifts: Array<OnCallShift>;
@@ -399,19 +412,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
      */
     const windowEnd: Date = getCoverageWindowEnd(now);
 
-    let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+    const events: Array<CalendarEvent> = ScheduleResolution.resolve({
       calendarStartDate: now,
       calendarEndDate: windowEnd,
       layers: buildLayerProps(),
-    });
-
-    if (overrideRecords.length > 0) {
-      events = UserOverrideUtil.applyOverridesToEvents({
-        events,
-        overrides: overrideRecords,
-        currentOnCallDutyPolicyId: policyContextIdString || undefined,
-      });
-    }
+      overrides: overrideRecords,
+      currentOnCallDutyPolicyId: policyContextIdString || undefined,
+    }).events;
 
     /*
      * Grouped so an override window is its own shift. The default grouping is
@@ -452,25 +459,25 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         windowEnd,
       }),
     };
-  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords, now]);
+  }, [
+    props.layers,
+    props.allLayerUsers,
+    props.timezone,
+    overrideRecords,
+    policyContextIdString,
+    now,
+  ]);
 
   useEffect(() => {
-    const layerUtil: LayerUtil = new LayerUtil();
     const layerProps: Array<LayerProps> = buildLayerProps();
 
-    let events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
+    const events: Array<CalendarEvent> = ScheduleResolution.resolve({
       calendarEndDate: computeEndTime,
       calendarStartDate: computeStartTime,
       layers: layerProps,
-    });
-
-    if (overrideRecords.length > 0) {
-      events = UserOverrideUtil.applyOverridesToEvents({
-        events,
-        overrides: overrideRecords,
-        currentOnCallDutyPolicyId: policyContextIdString || undefined,
-      });
-    }
+      overrides: overrideRecords,
+      currentOnCallDutyPolicyId: policyContextIdString || undefined,
+    }).events;
 
     /*
      * Gaps for the VISIBLE range, computed before the events below are
@@ -589,6 +596,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             : {}),
         }),
         timezone: viewAsTimezone,
+        isSkip: UserOverrideUtil.isSkipMeta(meta),
       });
       event.accentColor = getColorForUserId(meta.originalUserId);
       event.className = OVERRIDE_EVENT_CLASS_NAME;
@@ -604,6 +612,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     computeStartTime,
     computeEndTime,
     overrideRecords,
+    policyContextIdString,
     allUsersById,
     policyNameById,
     viewAsTimezone,
@@ -702,9 +711,18 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
   const viewNote: string = scheduleZoneName
     ? viewZoneName === scheduleZoneName
-      ? `Times below are shown in the schedule's timezone (${scheduleZoneName}) — the zone people are actually paged in.`
-      : `Viewing in ${viewZoneName}. This schedule is configured and paged in ${scheduleZoneName}, so the times below are for your reference only.`
-    : `Viewing in ${viewZoneName}. This schedule has no timezone set, so it is paged in the server's local time.`;
+      ? translator.translateTemplate(
+          "Times below are shown in the schedule's timezone ({{timezone}}) — the zone people are actually paged in.",
+          { timezone: scheduleZoneName },
+        )
+      : translator.translateTemplate(
+          "Viewing in {{viewZone}}. This schedule is configured and paged in {{scheduleZone}}, so the times below are for your reference only.",
+          { viewZone: viewZoneName, scheduleZone: scheduleZoneName },
+        )
+    : translator.translateTemplate(
+        "Viewing in {{viewZone}}. This schedule has no timezone set, so it is paged in the server's local time.",
+        { viewZone: viewZoneName },
+      );
 
   const hasActiveOverrides: boolean = overrideRecords.length > 0;
 
@@ -738,11 +756,17 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         return null;
       }
 
+      const globalWord: ReactElement = (
+        <span className="font-medium">
+          {translator.translateText("global")}
+        </span>
+      );
+
       const globalOnly: ReactElement = (
-        <>
-          Note: this preview reflects{" "}
-          <span className="font-medium">global</span> user overrides only.
-        </>
+        <TranslatedSentence
+          template="Note: this preview reflects {{global}} user overrides only."
+          slots={{ global: globalWord }}
+        />
       );
 
       if (
@@ -751,10 +775,10 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       ) {
         return (
           <div className="mt-2 text-xs text-gray-500">
-            Note: this preview reflects{" "}
-            <span className="font-medium">global</span> user overrides and the
-            overrides scoped to the one on-call policy that escalates to this
-            schedule — the same set used to route alerts.
+            <TranslatedSentence
+              template="Note: this preview reflects {{global}} user overrides and the overrides scoped to the one on-call policy that escalates to this schedule — the same set used to route alerts."
+              slots={{ global: globalWord }}
+            />
           </div>
         );
       }
@@ -767,10 +791,15 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       if (overrideResolution.attachedPolicyCount > 1) {
         return (
           <div className="mt-2 text-xs text-gray-500">
-            {globalOnly} {overrideResolution.attachedPolicyCount} on-call
-            policies escalate to this schedule and each may scope its own
-            overrides, so the person actually paged by a given policy may
-            differ.
+            {globalOnly}{" "}
+            {translator.translatePlural(
+              {
+                one: "{{count}} on-call policy escalates to this schedule and may scope its own overrides, so the person actually paged by a given policy may differ.",
+                other:
+                  "{{count}} on-call policies escalate to this schedule and each may scope its own overrides, so the person actually paged by a given policy may differ.",
+              },
+              overrideResolution.attachedPolicyCount,
+            )}
           </div>
         );
       }
@@ -785,8 +814,10 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
       return (
         <div className="mt-2 text-xs text-gray-500">
-          {globalOnly} No on-call policy escalates to this schedule yet, so
-          there are no policy-scoped overrides to apply.
+          {globalOnly}{" "}
+          {translator.translateText(
+            "No on-call policy escalates to this schedule yet, so there are no policy-scoped overrides to apply.",
+          )}
         </div>
       );
     };
@@ -799,10 +830,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           title="Layer Preview"
           description={
             scheduleZoneName
-              ? "Here is a preview of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
-                scheduleZoneName
-              : "Here is a preview of who is on call and when. This is based on your local timezone - " +
-                OneUptimeDate.getCurrentTimezoneString()
+              ? translator.translateTemplate(
+                  "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
+                  { timezone: scheduleZoneName },
+                )
+              : translator.translateTemplate(
+                  "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
+                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
+                )
           }
         />
       )}
@@ -854,7 +889,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       {(uniqueUsers.length > 0 || calendarGaps.length > 0) && (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {uniqueUsers.length > 0 ? "On-Call Users" : "Legend"}
+            {translator.translateText(
+              uniqueUsers.length > 0 ? "On-Call Users" : "Legend",
+            )}
           </span>
           {uniqueUsers.map((u: UserColorAssignment) => {
             return (
@@ -889,11 +926,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             <div
               data-testid="legend-override-key"
               className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-indigo-200"
-              title="A block with a striped edge is covered by a substitute. The stripe is the colour of the person who was overridden."
+              title={translator.translateText(
+                "A block with a striped edge is covered by a substitute. The stripe is the colour of the person who was overridden.",
+              )}
             >
               <span className="oneuptime-calendar-override-swatch inline-block h-2.5 w-2.5 rounded-sm" />
               <span className="font-medium text-indigo-700">
-                Covered by an override
+                {translator.translateText("Covered by an override")}
               </span>
             </div>
           )}
@@ -906,10 +945,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           {calendarGaps.length > 0 && (
             <div
               className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-amber-200"
-              title="Nobody is on call during these hours"
+              title={translator.translateText(
+                "Nobody is on call during these hours",
+              )}
             >
               <span className="oneuptime-calendar-gap-swatch inline-block h-2.5 w-2.5 rounded-sm" />
-              <span className="font-medium text-amber-800">Uncovered</span>
+              <span className="font-medium text-amber-800">
+                {translator.translateText("Uncovered")}
+              </span>
             </div>
           )}
         </div>
@@ -917,13 +960,16 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
       {hasActiveOverrides && (
         <div className="mt-2 text-xs text-gray-500">
-          A block marked{" "}
-          <span className="font-medium text-indigo-600">
-            {OVERRIDE_TITLE_MARKER} covering
-          </span>{" "}
-          is an override: the name on it is the substitute the alerts go to, and
-          the name in brackets is the person whose shift it was. Hover a block
-          for the override&apos;s window and scope.
+          <TranslatedSentence
+            template="A block marked {{marker}} is an override: the name on it is the substitute the alerts go to, and the name in brackets is the person whose shift it was. Hover a block for the override's window and scope."
+            slots={{
+              marker: (
+                <span className="font-medium text-indigo-600">
+                  {OVERRIDE_TITLE_MARKER} {translator.translateText("covering")}
+                </span>
+              ),
+            }}
+          />
         </div>
       )}
 
@@ -933,13 +979,15 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            View as
+            {translator.translateText("View as")}
           </span>
           <TimezoneSelectButton
             value={viewAsTimezone}
             icon={IconProp.Clock}
-            modalTitle="View schedule in timezone"
-            modalDescription="Change the timezone this preview is shown in — for example, to see how an India schedule lands in your US working hours. This only changes what you see; it does not affect who is on call or when."
+            modalTitle={translationKey("View schedule in timezone")}
+            modalDescription={translationKey(
+              "Change the timezone this preview is shown in — for example, to see how an India schedule lands in your US working hours. This only changes what you see; it does not affect who is on call or when.",
+            )}
             submitButtonText="Apply"
             dataTestId="view-as-timezone-button"
             onChange={(timezone: string | undefined) => {

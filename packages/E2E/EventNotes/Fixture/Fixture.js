@@ -24,6 +24,8 @@
  *   ?templates= some (default) | none | many
  *   ?quiet=     1 marks Incident #1042 as declared without notifying
  *               subscribers, so its public note composer starts unticked.
+ *   ?private=   1 makes Incident #1042 and Incident Episode #12 private: a
+ *               private incident or episode takes no new public notes.
  *   ?fail=      comma separated: list, create, update, delete, resend,
  *               templates, ai. The matching call throws HTTPErrorResponse.
  *   ?theme=     dark adds html.dark (handled by server.js).
@@ -74,6 +76,7 @@ import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEp
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -106,7 +109,15 @@ import PermissionUtil from "Common/UI/Utils/Permission";
  * ---------------------------------------------------------------------------
  */
 const params = new URLSearchParams(window.location.search);
-const notesMode = ["empty", "many"].includes(params.get("notes"))
+/*
+ * ?notes=links-and-quotes: the full set, plus the newest private note on
+ * incident #1042 saved from a Slack message - a quote, the file it carried,
+ * a callout, links to another incident and to the docs, and a long link
+ * (see "Links and quotes" below).
+ */
+const notesMode = ["empty", "many", "links-and-quotes"].includes(
+  params.get("notes"),
+)
   ? params.get("notes")
   : "full";
 const roleMode = ["viewer", "member"].includes(params.get("role"))
@@ -116,6 +127,7 @@ const templatesMode = ["none", "many"].includes(params.get("templates"))
   ? params.get("templates")
   : "some";
 const isQuietIncident = params.get("quiet") === "1";
+const isPrivateEvent = params.get("private") === "1";
 const failures = new Set((params.get("fail") || "").split(",").filter(Boolean));
 
 const NOW = new Date();
@@ -160,6 +172,7 @@ const fixture = {
     role: roleMode,
     templates: templatesMode,
     quiet: isQuietIncident,
+    private: isPrivateEvent,
     fail: Array.from(failures),
   },
   ids: {
@@ -321,6 +334,7 @@ insert(Incident, {
   incidentNumberWithPrefix: "INC-1042",
   title: "Checkout API returning 502s for EU customers",
   shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: !isQuietIncident,
+  isPrivate: isPrivateEvent,
 });
 insert(Alert, {
   _id: ID.alert(311),
@@ -339,6 +353,7 @@ insert(IncidentEpisode, {
   episodeNumber: 12,
   title: "EU edge network degradation",
   shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+  isPrivate: isPrivateEvent,
 });
 insert(AlertEpisode, {
   _id: ID.alertEpisode(7),
@@ -357,7 +372,12 @@ function note(modelType, parentKey, parentId, spec) {
     note: spec.note,
     createdAt,
     updatedAt: createdAt,
-    postedAt: spec.postedAt || (spec.isPublic ? createdAt : undefined),
+    /*
+     * Every note is filed at postedAt, private ones too: the services set it
+     * on create, and AddSavedChatMessageToNotes1801800000000 filled it in
+     * from createdAt for the private notes written before.
+     */
+    postedAt: spec.postedAt || createdAt,
     createdByUser: spec.by || undefined,
     createdByUserId: spec.by ? spec.by.id : undefined,
     attachments: spec.attachments || [],
@@ -511,6 +531,32 @@ if (notesMode !== "empty") {
     by: people.sam,
     note: "All 5 alerts in this episode are downstream of the payments queue backlog.",
   });
+
+  /*
+   * Links and quotes (?notes=links-and-quotes): the newest private note on
+   * incident #1042, with what a note saved from a Slack message holds - a
+   * quote and the "📎" file link ChatMessageMarkdown writes - and a callout,
+   * a link to alert #311's notes, one to the docs and a link long enough to
+   * wrap on a phone. Added last, so no other note's id moves.
+   */
+  if (notesMode === "links-and-quotes") {
+    note(IncidentInternalNote, "incidentId", ID.incident(1042), {
+      createdAt: ago(2 * MINUTE),
+      by: people.sam,
+      note: [
+        "> They said the payment provider is degraded in eu-west.",
+        "",
+        "📎 [image.png](https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png)",
+        "",
+        "> [!WARNING]",
+        "> **Do not restart the primary.** Fail over to the replica first.",
+        "",
+        `It started with [ALT-311](/dashboard/${PROJECT_ID}/alerts/${ID.alert(311)}/internal-notes); see the [failover runbook](/docs/incidents/notes-owners-and-feed).`,
+        "",
+        "Latency panel: https://grafana.acme-commerce.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1",
+      ].join("\n"),
+    });
+  }
 }
 
 const TEMPLATE_SETS = {
@@ -567,6 +613,13 @@ for (const modelType of [
   IncidentNoteTemplate,
   AlertNoteTemplate,
   ScheduledMaintenanceNoteTemplate,
+  /*
+   * An incident note template's placeholders ({{incident.title}},
+   * {{incident.customFields.<key>}}) are filled in from the incident when it is
+   * inserted, which reads the project's incident custom fields. This
+   * workspace has none.
+   */
+  IncidentCustomField,
 ]) {
   table(modelType);
 }
@@ -778,8 +831,9 @@ ModelAPI.createOrUpdate = async (options) => {
   record.createdAt = NOW;
   record.createdByUser = people.maya;
   record.createdByUserId = people.maya.id;
+  // As every note service does on create, a private note's included.
+  record.postedAt = record.postedAt || NOW;
   if (isPublicNote) {
-    record.postedAt = record.postedAt || NOW;
     const shouldNotify =
       record.shouldStatusPageSubscribersBeNotifiedOnNoteCreated !== false;
     record.subscriberNotificationStatusOnNoteCreated = shouldNotify
@@ -820,10 +874,78 @@ ModelAPI.deleteItem = async (options) => {
 const AI_DRAFT =
   "**Update.** We have identified the cause of the elevated error rates and a fix is being deployed. We will post another update within 30 minutes.";
 
+/*
+ * Who an incident's status page notifications reach
+ * (POST /incident/subscriber-audience): the public note composer's "Will
+ * notify" line under Notify Status Page Subscribers, and the confirmation of
+ * a note's Retry and Resend, ask it. Incident #1042's monitors reach one
+ * status page.
+ */
+const SUBSCRIBER_AUDIENCE = {
+  hasMonitors: true,
+  isScoped: false,
+  isHiddenFromStatusPages: false,
+  statusPages: [
+    {
+      statusPageId: "90000000-0000-4000-8000-000000000001",
+      name: "Acme Status",
+      subscriberCounts: {
+        email: 1284,
+        sms: 0,
+        slack: 0,
+        microsoftTeams: 0,
+        webhook: 3,
+      },
+    },
+  ],
+  hiddenStatusPageCount: 0,
+  excludedStatusPages: [],
+  selectedStatusPagesNotListingMonitors: [],
+};
+
+/*
+ * 'Preview notification' under the public note composer
+ * (POST /notification/subscriber-notification-preview/preview): each status
+ * page's email as the server would render it. Two pages, so the dialog has
+ * its page picker.
+ */
+function subscriberNotificationPreview(body) {
+  return {
+    event: body.event || "IncidentPublicNoteCreated",
+    nothingSentReason: null,
+    statusPages: [
+      ["90000000-0000-4000-8000-000000000001", "Acme Status"],
+      ["90000000-0000-4000-8000-000000000002", "Acme EU"],
+    ].map(([statusPageId, name]) => {
+      return {
+        statusPageId,
+        name,
+        subscriberCounts: SUBSCRIBER_AUDIENCE.statusPages[0].subscriberCounts,
+        subject: "[Update Incident] Card payments failing in the EU",
+        html: `<html><body><h1>${name}</h1><p>A new note was posted.</p><a href="https://status.acme.example">View status page</a></body></html>`,
+        templateChoice: {
+          usesCustomTemplate: false,
+          reason: "NoCustomTemplate",
+          customTemplateName: null,
+        },
+      };
+    }),
+    audience: SUBSCRIBER_AUDIENCE,
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
   fixture.apiRequests.push({ method, url, body });
+
+  if (url.includes("/incident/subscriber-audience")) {
+    return ok(SUBSCRIBER_AUDIENCE);
+  }
+
+  if (url.includes("/subscriber-notification-preview/preview")) {
+    return ok(subscriberNotificationPreview(body));
+  }
 
   if (url.includes("/generate-note-from-ai/")) {
     if (failures.has("ai")) {

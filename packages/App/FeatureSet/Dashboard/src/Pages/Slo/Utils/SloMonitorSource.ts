@@ -1,5 +1,9 @@
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The decisions behind the SLO Monitors page, kept out of the page so they can
@@ -342,20 +346,39 @@ export const describeSloMonitorCounts: DescribeSloMonitorCountsFunction = (
   const total: number = membership.monitorIds.length;
 
   if (total === 0) {
-    return "No monitors attached";
+    return translateTemplate("No monitors attached");
   }
 
   const byRules: number = membership.ruleAttachedMonitorIds.size;
   const byHand: number = total - byRules;
-  const noun: string = total === 1 ? "monitor" : "monitors";
 
   if (byRules === 0) {
-    return `${total} ${noun}, all attached by hand`;
+    return translatePlural(
+      {
+        one: "{{count}} monitor, all attached by hand",
+        other: "{{count}} monitors, all attached by hand",
+      },
+      total,
+    );
   }
 
   if (byHand === 0) {
-    return `${total} ${noun}, all attached by monitor rules`;
+    return translatePlural(
+      {
+        one: "{{count}} monitor, all attached by monitor rules",
+        other: "{{count}} monitors, all attached by monitor rules",
+      },
+      total,
+    );
   }
 
-  return `${total} ${noun}: ${byRules} attached by monitor rules, ${byHand} by hand`;
+  return translatePlural(
+    {
+      one: "{{count}} monitor: {{byRules}} attached by monitor rules, {{byHand}} by hand",
+      other:
+        "{{count}} monitors: {{byRules}} attached by monitor rules, {{byHand}} by hand",
+    },
+    total,
+    { byRules: byRules, byHand: byHand },
+  );
 };

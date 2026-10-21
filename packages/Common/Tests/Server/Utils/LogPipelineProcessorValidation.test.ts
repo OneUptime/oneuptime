@@ -196,3 +196,148 @@ describe("log pipeline processor validation — other processor types", () => {
     }
   });
 });
+
+/*
+ * The key=value parser has no pattern to compile, but its delimiters are
+ * the same kind of easy, invisible mistake: a pair delimiter equal to the
+ * key-value delimiter - or an empty one - parses every line into nothing.
+ */
+function keyValueProcessor(configuration: JSONObject | string | null): {
+  processorType: string;
+  configuration: JSONObject | string | null;
+} {
+  return {
+    processorType: LogPipelineProcessorType.KeyValueParser,
+    configuration: configuration,
+  };
+}
+
+describe("log pipeline processor validation — key=value parser", () => {
+  it("accepts the defaults, including a missing configuration", () => {
+    for (const configuration of [
+      { source: "body" },
+      {},
+      null,
+      JSON.stringify({ source: "body" }),
+    ]) {
+      expect(() => {
+        return validateLogPipelineProcessor(keyValueProcessor(configuration));
+      }).not.toThrow();
+    }
+  });
+
+  it("accepts a fully configured Sophos processor", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({
+          source: "body",
+          targetPrefix: "sophos",
+          keyValueDelimiter: "=",
+          overrideOnConflict: false,
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("accepts custom delimiters that differ", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({
+          source: "body",
+          pairDelimiter: ";",
+          keyValueDelimiter: ":",
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("rejects empty delimiters", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({ source: "body", pairDelimiter: "" }),
+      );
+    }).toThrow("Pair delimiter cannot be empty.");
+
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({ source: "body", keyValueDelimiter: "" }),
+      );
+    }).toThrow("Key-value delimiter cannot be empty.");
+  });
+
+  it("rejects identical pair and key-value delimiters", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({
+          source: "body",
+          pairDelimiter: ",",
+          keyValueDelimiter: ",",
+        }),
+      );
+    }).toThrow("Pair delimiter and key-value delimiter must be different.");
+
+    // "=" is the default key-value delimiter, so this collides with it.
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({ source: "body", pairDelimiter: "=" }),
+      );
+    }).toThrow(BadDataException);
+  });
+
+  it("rejects delimiters that contain one another", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({
+          source: "body",
+          pairDelimiter: "==",
+          keyValueDelimiter: "=",
+        }),
+      );
+    }).toThrow(BadDataException);
+  });
+
+  it("rejects quotes in a delimiter and a whitespace-only key-value delimiter", () => {
+    for (const config of [
+      { source: "body", pairDelimiter: '"' },
+      { source: "body", keyValueDelimiter: " " },
+      { source: "body", keyValueDelimiter: 5 },
+    ]) {
+      expect(() => {
+        return validateLogPipelineProcessor(
+          keyValueProcessor(config as unknown as JSONObject),
+        );
+      }).toThrow(BadDataException);
+    }
+  });
+
+  it("holds the target prefix and source to the grok rules", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({ source: "body", targetPrefix: "my prefix" }),
+      );
+    }).toThrow(BadDataException);
+
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({ source: 12 } as unknown as JSONObject),
+      );
+    }).toThrow("Source field must be text.");
+  });
+
+  it("rejects an override flag that is not a boolean", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(
+        keyValueProcessor({
+          source: "body",
+          overrideOnConflict: "yes",
+        } as unknown as JSONObject),
+      );
+    }).toThrow("Override on conflict must be true or false.");
+  });
+
+  it("rejects a configuration string that is not JSON", () => {
+    expect(() => {
+      return validateLogPipelineProcessor(keyValueProcessor("{not json"));
+    }).toThrow("Processor configuration is not valid JSON.");
+  });
+});

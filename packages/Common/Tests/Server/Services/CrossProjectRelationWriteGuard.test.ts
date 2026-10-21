@@ -76,6 +76,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Incidents, alerts and scheduled maintenance events carry many-to-many
@@ -102,10 +103,12 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * These tests drive the real ProjectScopedReferenceValidator through the
  * service hooks and only stub the lookups it makes, so a foreign or unknown id
- * has to be caught by the actual check. Rejections assert the record's name
- * as the lookup returned it: that name only exists on the record registered
- * under the right service, so validating labels against the monitor table
- * (say) cannot pass them.
+ * has to be caught by the actual check. A rejection names the field and the
+ * id the caller sent - never the record's name, which every foreign record
+ * here carries - and answers a foreign id like an unknown one. The tests that
+ * accept this project's own records are what pin each list to its table:
+ * those records are registered only under the right service, so validating
+ * labels against the monitor table (say) would refuse them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -359,6 +362,7 @@ const INCIDENT_TEMPLATE_LISTS: Array<ResourceList> = [
   MONITOR_LIST,
   LABEL_LIST,
   POLICY_LIST,
+  STATUS_PAGE_LIST,
   ...TEMPLATE_RESOURCE_LISTS,
 ];
 
@@ -404,10 +408,11 @@ async function expectEveryForeignResourceNamed(
     message = (err as Error).message;
   }
 
-  expect(message).toContain("belong to a different project: ");
+  expect(message).toContain("not in this project: ");
 
   for (const list of lists) {
-    expect(message).toContain(`${list.modelName} "${nameOf(list.foreignId)}"`);
+    expect(message).toContain(`${list.modelName} "${list.foreignId}"`);
+    expect(message).not.toContain(nameOf(list.foreignId));
   }
 }
 
@@ -415,6 +420,25 @@ function expectNoResourceLookedUp(): void {
   for (const list of ALL_RESOURCE_LISTS) {
     expect(list.service.findBy).not.toHaveBeenCalled();
   }
+}
+
+/*
+ * The reads of a service that load a relation list of its records - what
+ * the guard reads back to see which ids a record already holds. (An update
+ * that writes a title has its own record read too, of the title alone, so
+ * its feed line follows a real change: no list is loaded by it.)
+ */
+function listReadsOf(service: { findBy: unknown }): Array<Array<unknown>> {
+  return (
+    service.findBy as unknown as { mock: { calls: Array<Array<unknown>> } }
+  ).mock.calls.filter((call: Array<unknown>): boolean => {
+    const select: Record<string, unknown> =
+      (call[0] as { select?: Record<string, unknown> }).select || {};
+
+    return Object.values(select).some((value: unknown): boolean => {
+      return typeof value === "object" && value !== null;
+    });
+  });
 }
 
 function nameOf(id: string): string {
@@ -539,7 +563,7 @@ function callHook(
 }
 
 function foreignMessage(modelName: string, id: string): string {
-  return `belong to a different project: ${modelName} "${nameOf(id)}"`;
+  return `not in this project: ${modelName} "${id}"`;
 }
 
 describe("cross-project relation guard on write", () => {
@@ -632,11 +656,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", On-Call Policy "${nameOf(
-          FOREIGN_POLICY_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -646,7 +666,7 @@ describe("cross-project relation guard on write", () => {
           data: incidentWith({ monitors: [stubOf(Monitor, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Monitor "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Monitor "${UNKNOWN_ID}"`);
     });
 
     test("root creates are checked against the project on the payload", async () => {
@@ -727,7 +747,71 @@ describe("cross-project relation guard on write", () => {
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
+      expect(StatusPageService.findBy).not.toHaveBeenCalled();
       expectNoResourceLookedUp();
+    });
+
+    /*
+     * The status pages an incident is limited to. Another project's page
+     * would put that project's page name into this incident's feed and scope
+     * the incident to a page it can never show on.
+     */
+    test("rejects another project's status page", async () => {
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({
+            statusPages: [stubOf(StatusPage, FOREIGN_STATUS_PAGE_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Status Page", FOREIGN_STATUS_PAGE_ID));
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects a status page id that matches no record", async () => {
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({
+            statusPages: [UNKNOWN_ID as unknown as StatusPage],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(`not in this project: Status Page "${UNKNOWN_ID}"`);
+    });
+
+    test("status pages copied from an incident template are checked too", async () => {
+      const template: IncidentTemplate = new IncidentTemplate();
+      template._id = TEMPLATE_ID;
+      template.statusPages = [stubOf(StatusPage, FOREIGN_STATUS_PAGE_ID)];
+
+      jest
+        .spyOn(IncidentTemplateService, "findOneBy")
+        .mockResolvedValue(template as never);
+
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({
+            createdIncidentTemplateId: TEMPLATE_ID,
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Status Page", FOREIGN_STATUS_PAGE_ID));
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("accepts this project's status page", async () => {
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({
+            statusPages: [stubOf(StatusPage, OWN_STATUS_PAGE_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(counter).toHaveBeenCalledTimes(1);
     });
 
     test.each(RESOURCE_LISTS)(
@@ -767,7 +851,7 @@ describe("cross-project relation guard on write", () => {
           data: incidentWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
     });
 
     test("affected resources copied from an incident template are checked too", async () => {
@@ -820,6 +904,14 @@ describe("cross-project relation guard on write", () => {
       jest.spyOn(IncidentService, "findBy").mockImplementation((async () => {
         return matchedIncidents;
       }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(IncidentService, () => {
+        return matchedIncidents;
+      });
     });
 
     function storedIncident(data: {
@@ -828,6 +920,7 @@ describe("cross-project relation guard on write", () => {
       monitorIds?: Array<string>;
       labelIds?: Array<string>;
       policyIds?: Array<string>;
+      statusPageIds?: Array<string>;
       resourceIds?: Dictionary<Array<string>>;
     }): Incident {
       const incident: Incident = new Incident();
@@ -835,6 +928,9 @@ describe("cross-project relation guard on write", () => {
       incident.projectId = data.projectId;
       incident.monitors = (data.monitorIds || []).map((id: string) => {
         return stubOf(Monitor, id);
+      });
+      incident.statusPages = (data.statusPageIds || []).map((id: string) => {
+        return stubOf(StatusPage, id);
       });
       incident.labels = (data.labelIds || []).map((id: string) => {
         return stubOf(Label, id);
@@ -889,9 +985,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Label "${nameOf(
-          FOREIGN_LABEL_ID,
-        )}", On-Call Policy "${nameOf(FOREIGN_POLICY_ID)}"`,
+        `not in this project: Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1012,9 +1106,92 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(IncidentService.findBy).not.toHaveBeenCalled();
+      expect(listReadsOf(IncidentService)).toHaveLength(0);
       expect(MonitorService.findBy).not.toHaveBeenCalled();
+      expect(StatusPageService.findBy).not.toHaveBeenCalled();
       expectNoResourceLookedUp();
+    });
+
+    test("rejects adding another project's status page", async () => {
+      matchedIncidents = [
+        storedIncident({
+          id: INCIDENT_ID,
+          projectId: PROJECT_ID,
+          statusPageIds: [OWN_STATUS_PAGE_ID],
+        }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          // Bare uuid strings, as the dashboard's picker saves them.
+          data: { statusPages: [OWN_STATUS_PAGE_ID, FOREIGN_STATUS_PAGE_ID] },
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Status Page", FOREIGN_STATUS_PAGE_ID));
+    });
+
+    test("re-saving a list keeps a status page the incident already holds", async () => {
+      matchedIncidents = [
+        storedIncident({
+          id: INCIDENT_ID,
+          projectId: PROJECT_ID,
+          statusPageIds: [FOREIGN_STATUS_PAGE_ID],
+        }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: {
+            statusPages: [
+              FOREIGN_STATUS_PAGE_ID.toUpperCase(),
+              OWN_STATUS_PAGE_ID,
+            ],
+          },
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("updates without a tenant check status pages against the matched incident's project", async () => {
+      matchedIncidents = [
+        storedIncident({ id: INCIDENT_ID, projectId: PROJECT_ID }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: { statusPages: [{ _id: FOREIGN_STATUS_PAGE_ID }] },
+          query: { _id: INCIDENT_ID },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(foreignMessage("Status Page", FOREIGN_STATUS_PAGE_ID));
+    });
+
+    test("accepts this project's status page and clearing the list", async () => {
+      matchedIncidents = [
+        storedIncident({
+          id: INCIDENT_ID,
+          projectId: PROJECT_ID,
+          statusPageIds: [OWN_STATUS_PAGE_ID],
+        }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: { statusPages: [{ _id: OWN_STATUS_PAGE_ID }] },
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: { statusPages: [] },
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
     });
 
     test.each(RESOURCE_LISTS)(
@@ -1208,11 +1385,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", On-Call Policy "${nameOf(
-          FOREIGN_POLICY_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1224,7 +1397,7 @@ describe("cross-project relation guard on write", () => {
           }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: On-Call Policy "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: On-Call Policy "${UNKNOWN_ID}"`);
     });
 
     test("root creates are checked against the project on the payload", async () => {
@@ -1323,7 +1496,7 @@ describe("cross-project relation guard on write", () => {
           data: alertWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
     });
 
     test("root creates check resources against the project on the payload", async () => {
@@ -1370,6 +1543,14 @@ describe("cross-project relation guard on write", () => {
       jest.spyOn(AlertService, "findBy").mockImplementation((async () => {
         return matchedAlerts;
       }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(AlertService, () => {
+        return matchedAlerts;
+      });
     });
 
     function storedAlert(data: {
@@ -1413,9 +1594,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Label "${nameOf(
-          FOREIGN_LABEL_ID,
-        )}", On-Call Policy "${nameOf(FOREIGN_POLICY_ID)}"`,
+        `not in this project: Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1531,7 +1710,7 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(AlertService.findBy).not.toHaveBeenCalled();
+      expect(listReadsOf(AlertService)).toHaveLength(0);
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
@@ -1795,7 +1974,7 @@ describe("cross-project relation guard on write", () => {
           }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Network Site "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Network Site "${UNKNOWN_ID}"`);
     });
 
     test("root creates check resources against the project on the payload", async () => {
@@ -1851,6 +2030,14 @@ describe("cross-project relation guard on write", () => {
         .mockImplementation((async () => {
           return matchedEvents;
         }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(ScheduledMaintenanceService, () => {
+        return matchedEvents;
+      });
     });
 
     function storedEvent(data: {
@@ -1892,11 +2079,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", Status Page "${nameOf(
-          FOREIGN_STATUS_PAGE_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", Status Page "${FOREIGN_STATUS_PAGE_ID}"`,
       );
     });
 
@@ -2036,7 +2219,11 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(ScheduledMaintenanceService.findBy).not.toHaveBeenCalled();
+      /*
+       * The title is read, to tell whether the update changes it (the
+       * event's updated feed item); no list is.
+       */
+      expect(listReadsOf(ScheduledMaintenanceService)).toHaveLength(0);
       expectNoResourceLookedUp();
     });
   });
@@ -2119,13 +2306,11 @@ describe("cross-project relation guard on write", () => {
         }
 
         expect(message).toContain(
-          `This ${templateCase.subject} references records that belong to a different project: `,
+          `This ${templateCase.subject} references records that are not in this project: `,
         );
 
         for (const list of templateCase.lists) {
-          expect(message).toContain(
-            `${list.modelName} "${nameOf(list.foreignId)}"`,
-          );
+          expect(message).toContain(`${list.modelName} "${list.foreignId}"`);
         }
       });
 
@@ -2135,7 +2320,7 @@ describe("cross-project relation guard on write", () => {
             data: templateWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
             props: { tenantId: PROJECT_ID },
           }),
-        ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+        ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
       });
 
       test("root creates are checked against the project on the payload", async () => {
@@ -2188,6 +2373,14 @@ describe("cross-project relation guard on write", () => {
           .mockImplementation((async () => {
             return matchedTemplates;
           }) as never);
+
+        /*
+         * The read of the rows the caller's update may write, which the
+         * update path makes before the hooks (stubRowsCallerMayWrite).
+         */
+        stubRowsCallerMayWrite(templateCase.service, () => {
+          return matchedTemplates;
+        });
       });
 
       function storedTemplate(data: {
@@ -2347,51 +2540,84 @@ describe("cross-project relation guard on write", () => {
   describe("every many-to-many list of project records is checked", () => {
     test.each([
       {
+        name: "IncidentService",
+        service: IncidentService,
+        /*
+         * The SLOs an incident affects are checked on their own, by
+         * SloRecordReferenceValidator in both hooks, so they are not in the
+         * relation table.
+         */
+        checkedElsewhere: ["serviceLevelObjectives"],
+      },
+      {
         name: "ScheduledMaintenanceService",
         service: ScheduledMaintenanceService,
+        checkedElsewhere: [],
       },
-      { name: "IncidentTemplateService", service: IncidentTemplateService },
+      {
+        name: "IncidentTemplateService",
+        service: IncidentTemplateService,
+        checkedElsewhere: [],
+      },
       {
         name: "ScheduledMaintenanceTemplateService",
         service: ScheduledMaintenanceTemplateService,
+        checkedElsewhere: [],
       },
-    ])("$name", ({ service }: { service: unknown }) => {
-      const model: DatabaseBaseModel = (
-        service as DatabaseService<DatabaseBaseModel>
-      ).getModel();
+    ])(
+      "$name",
+      ({
+        service,
+        checkedElsewhere,
+      }: {
+        service: unknown;
+        checkedElsewhere: Array<string>;
+      }) => {
+        const model: DatabaseBaseModel = (
+          service as DatabaseService<DatabaseBaseModel>
+        ).getModel();
 
-      const projectScopedLists: Array<string> = model
-        .getTableColumns()
-        .columns.filter((column: string) => {
-          const metadata: TableColumnMetadata =
-            model.getTableColumnMetadata(column);
+        const projectScopedLists: Array<string> = model
+          .getTableColumns()
+          .columns.filter((column: string) => {
+            const metadata: TableColumnMetadata =
+              model.getTableColumnMetadata(column);
 
-          return (
-            metadata.type === TableColumnType.EntityArray &&
-            Boolean(metadata.modelType) &&
-            Boolean(new metadata.modelType!().getTenantColumn())
+            return (
+              metadata.type === TableColumnType.EntityArray &&
+              Boolean(metadata.modelType) &&
+              Boolean(new metadata.modelType!().getTenantColumn()) &&
+              !checkedElsewhere.includes(column)
+            );
+          });
+
+        // Harness guard: a list named as checked elsewhere really exists.
+        for (const column of checkedElsewhere) {
+          expect(model.getTableColumnMetadata(column)?.type).toBe(
+            TableColumnType.EntityArray,
           );
-        });
-
-      const relations: Array<ProjectScopedRelation> = (
-        service as {
-          getProjectScopedRelations: () => Array<ProjectScopedRelation>;
         }
-      ).getProjectScopedRelations();
 
-      expect(
-        relations
-          .map((relation: ProjectScopedRelation) => {
-            return relation.column;
-          })
-          .sort(),
-      ).toEqual([...projectScopedLists].sort());
+        const relations: Array<ProjectScopedRelation> = (
+          service as {
+            getProjectScopedRelations: () => Array<ProjectScopedRelation>;
+          }
+        ).getProjectScopedRelations();
 
-      for (const relation of relations) {
-        expect(relation.service.getModel()).toBeInstanceOf(
-          model.getTableColumnMetadata(relation.column).modelType!,
-        );
-      }
-    });
+        expect(
+          relations
+            .map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            })
+            .sort(),
+        ).toEqual([...projectScopedLists].sort());
+
+        for (const relation of relations) {
+          expect(relation.service.getModel()).toBeInstanceOf(
+            model.getTableColumnMetadata(relation.column).modelType!,
+          );
+        }
+      },
+    );
   });
 });

@@ -61,6 +61,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "11111111-aaaa-4111-8111-111111111111",
@@ -290,6 +291,8 @@ describe("RunWorkflow with OAuth 2.0 variables", () => {
   };
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
@@ -574,6 +577,22 @@ describe("RunWorkflow with OAuth 2.0 variables", () => {
     expect(lastPersisted(harness)["logs"] as string).toContain(
       "Could not refresh the OAuth 2.0 access token for {{global.variables.API_TOKEN}}: Could not reach the token endpoint: it did not answer within 20 seconds. Using the cached token, which expires at",
     );
+
+    /*
+     * The run's Steps view shows it on the step that went ahead, not only in
+     * the full log - and the token it went ahead with is not in it.
+     */
+    const step: WorkflowStepTraceEntry = lastTrace(harness)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.warnings).toHaveLength(1);
+    expect(step.warnings?.[0]?.message).toContain(
+      "Could not refresh the OAuth 2.0 access token for {{global.variables.API_TOKEN}}",
+    );
+    expect(step.warnings?.[0]?.argumentId).toBeUndefined();
+    expect(JSON.stringify(lastTrace(harness))).not.toContain(
+      "nearly-expired-token",
+    );
   });
 
   /*
@@ -802,6 +821,11 @@ describe("RunWorkflow.getVariables with OAuth 2.0 variables", () => {
  * and the socket.
  */
 describe("RunWorkflow, WorkflowVariableOAuthToken and OAuth2TokenClient together", () => {
+  beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -914,5 +938,101 @@ describe("RunWorkflow, WorkflowVariableOAuthToken and OAuth2TokenClient together
     );
     expect(persisted).not.toContain("brand-new-access-token");
     expect(persisted).not.toContain("client-secret-value");
+  });
+
+  /*
+   * The identity provider's error page is quoted in the error: on the
+   * variable (its Access Token card), on the failed step and in the run log.
+   * Its words get there; none of its markup does - not a comment holding
+   * ">", not an attribute value holding ">", not a tag that never closes.
+   */
+  test("an error page reaches the variable, the step and the run log as its words, with none of its markup", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    const stored: Record<string, unknown> = {
+      _id: GLOBAL_TOKEN_ID.toString(),
+      name: "API_TOKEN",
+      variableType: WorkflowVariableType.OAuth2,
+      oauthGrantType: OAuth2GrantType.ClientCredentials,
+      oauthTokenUrl: "https://login.example.com/oauth2/token",
+      oauthClientId: "client-123",
+      oauthClientSecret: "client-secret-value",
+      oauthAccessToken: "expired-access-token",
+      oauthAccessTokenExpiresAt: secondsFromNow(-60),
+      oauthLastRefreshedAt: secondsFromNow(-3660),
+    };
+
+    jest
+      .spyOn(WorkflowVariableService, "findOneById")
+      .mockImplementation(async () => {
+        const row: WorkflowVariable = new WorkflowVariable();
+        Object.assign(row, stored);
+        return row;
+      });
+
+    const writes: Array<Record<string, unknown>> = [];
+
+    jest
+      .spyOn(WorkflowVariableService, "updateOneById")
+      .mockImplementation(async (input: unknown) => {
+        writes.push((input as { data: Record<string, unknown> }).data);
+        return 1 as never;
+      });
+
+    jest
+      .spyOn(Semaphore, "lock")
+      .mockResolvedValue({} as unknown as SemaphoreMutex);
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+
+    jest.spyOn(OAuth2TokenClient, "transport").mockResolvedValue({
+      statusCode: 502,
+      bodyText:
+        '<html><!-- build > 42 --><body><h1>Bad Gateway</h1><p><a title="a > b" href="/status">Status</a></p>Retry <img src=x onerror=alert(1)',
+      headers: { "content-type": "text/html" },
+    });
+
+    const harness: Harness = prepareRun({
+      nodes: [
+        node(
+          "call-api",
+          '{"Authorization":"Bearer {{global.variables.API_TOKEN}}"}',
+        ),
+      ],
+      global: [
+        oauthVariable({
+          id: GLOBAL_TOKEN_ID,
+          name: "API_TOKEN",
+          accessToken: "expired-access-token",
+          expiresAt: stored["oauthAccessTokenExpiresAt"] as Date,
+          refreshedAt: stored["oauthLastRefreshedAt"] as Date,
+        }),
+      ],
+    });
+
+    await run(harness);
+
+    const refusal: string =
+      "The token endpoint answered HTTP 502: Bad Gateway Status Retry img src=x onerror=alert(1). Check the Token URL.";
+
+    expect(harness.componentArgs).toHaveLength(0);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!["oauthLastRefreshError"]).toBe(refusal);
+
+    const step: WorkflowStepTraceEntry = lastTrace(harness)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.status).toBe(WorkflowStepStatus.Error);
+    expect(step.errorMessage).toBe(
+      `Could not get an OAuth 2.0 access token for {{global.variables.API_TOKEN}}: ${refusal}`,
+    );
+    expect(lastPersisted(harness)["workflowStatus"]).toBe(WorkflowStatus.Error);
+    expect(lastPersisted(harness)["logs"] as string).toContain(refusal);
+
+    for (const markup of ["<html", "<!--", "-->", "<a ", '">', "<img"]) {
+      expect(JSON.stringify(lastPersisted(harness))).not.toContain(markup);
+      expect(String(writes[0]!["oauthLastRefreshError"])).not.toContain(markup);
+    }
   });
 });

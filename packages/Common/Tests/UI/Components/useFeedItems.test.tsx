@@ -11,8 +11,9 @@ import * as React from "react";
 
 /*
  * Start next to the API ceiling so this regression reaches the boundary in a
- * single click instead of issuing a thousand requests. The production values
- * remain 10 and 10,000; only this test module's default page size is enlarged.
+ * single click instead of issuing four hundred requests: the harness asks
+ * for pages of 9,995 (useFeedItems' pageSize). The production values remain
+ * FEED_PAGE_SIZE and 10,000.
  */
 jest.mock("../../../Types/Database/LimitMax", () => {
   return {
@@ -45,6 +46,7 @@ const Harness: React.FunctionComponent<HarnessProps> = (
   const { feedItems, hasMore, isLoadingMore, loadMore } =
     useFeedItems<TestFeedModel>({
       resourceKey: "resource",
+      pageSize: 9995,
       getItems: props.getItems,
       mapItems: (items: Array<TestFeedModel>): Array<FeedItemProps> => {
         return items.map((item: TestFeedModel): FeedItemProps => {

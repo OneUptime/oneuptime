@@ -58,7 +58,7 @@ const HorizontalStepChain: FunctionComponent<ComponentProps> = (
             {/* Arrow */}
             <Icon
               icon={IconProp.ChevronRight}
-              className="h-4 w-4 text-gray-300 hidden sm:block"
+              className="h-4 w-4 text-gray-300 max-sm:hidden sm:block"
             />
           </React.Fragment>
         );

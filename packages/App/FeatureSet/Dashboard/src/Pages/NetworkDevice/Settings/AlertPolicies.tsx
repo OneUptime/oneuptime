@@ -6,21 +6,22 @@ import {
   summarizeScope,
   toScope,
 } from "../../../Components/NetworkDevice/AlertPolicyScopeFormFields";
-import PingMonitorSeedIds from "../../../Components/NetworkDevice/PingMonitorSeedIds";
+import PingMonitorSeedIds, {
+  SeedIdsPurpose,
+} from "../../../Components/NetworkDevice/PingMonitorSeedIds";
+import { findOrCreateRecommendedTemplate } from "../../../Components/NetworkDevice/RecommendedMonitorTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkAlertPolicyScope from "Common/Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "Common/Types/ObjectID";
@@ -42,6 +43,9 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Column from "Common/UI/Components/ModelTable/Column";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -56,6 +60,13 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const networkAlertPolicyDocumentation: string = `
 ### What an Alert Policy Is
@@ -149,6 +160,7 @@ export interface AlertPolicyScopeEditorProps {
 const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
   props: AlertPolicyScopeEditorProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selection, setSelection] = useState<AlertPolicyScopeSelection>(
     readScopeSelection(props.initialValue),
   );
@@ -232,71 +244,54 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
         />
       </div>
       <p className="text-sm text-gray-500">
-        Currently covers: <strong>{summarizeScope(selection)}</strong>. A device
-        must match every kind that is filled in, and any entry within a kind.
+        <TranslatedSentence
+          template="Currently covers: {{scope}}. A device must match every kind that is filled in, and any entry within a kind."
+          slots={{
+            scope: (
+              <strong>
+                {translator.translateText(summarizeScope(selection))}
+              </strong>
+            ),
+          }}
+        />
       </p>
     </div>
   );
 };
 
 /*
- * The recommended template, found by its marker or created. Returns its id.
+ * The recommended policy's words, kept honest about three things an operator
+ * must not have to infer (AlertPoliciesPageWiring holds them):
  *
- * Listed with a narrow select and matched client-side rather than searched
- * by description on the server: a project holds a handful of Network Device
- * templates, and the marker check is one string test per row.
+ *   - the bill: one monitor per covered device, each counted towards the
+ *     plan, with the device count said as an UPPER bound - the engine skips
+ *     monitor-backed devices and devices with no probe, and an exact-looking
+ *     number that undershoots teaches people to ignore it;
+ *   - the ping-only device: four of the pack's five checks read an SNMP
+ *     walk, so a device without credentials can only fire the stops-
+ *     answering one;
+ *   - the template: the pair adds a monitor template to the project, under a
+ *     name the person will meet again among their monitor templates.
+ *
+ * Plain words and whole sentences: the confirmation used to be glued
+ * together from English pieces around the count, so no language could word
+ * it. The policy's and the template's names are quoted, as the names they
+ * will be found under: unquoted, "an Alert on every device policy" read as
+ * a sentence that had lost its grammar.
  */
-async function findOrCreateRecommendedTemplate(data: {
-  projectId: ObjectID;
-  seedIds: MonitorCriteriaSeedIds;
-}): Promise<ObjectID> {
-  const templates: ListResult<MonitorTemplate> =
-    await ModelAPI.getList<MonitorTemplate>({
-      modelType: MonitorTemplate,
-      query: {
-        projectId: data.projectId,
-        monitorType: MonitorType.NetworkDevice,
-      },
-      select: {
-        _id: true,
-        templateDescription: true,
-      },
-      sort: { createdAt: SortOrder.Ascending },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
+  "One policy covers every device, including ones added later. The recommended one opens an incident when a device stops answering or a port goes down.",
+);
 
-  const existingTemplate: MonitorTemplate | null =
-    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(templates.data);
+export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
+  'This adds the "Alert on every device" policy and its monitor template: one monitor per device, each counted towards your plan.',
+);
 
-  if (existingTemplate?.id) {
-    return existingTemplate.id;
-  }
-
-  const response: HTTPResponse<
-    JSONObject | JSONArray | MonitorTemplate | Array<MonitorTemplate>
-  > = await ModelAPI.create<MonitorTemplate>({
-    model: NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate({
-      projectId: data.projectId,
-      incidentSeverityId: data.seedIds.defaultIncidentSeverityId,
-      alertSeverityId: data.seedIds.defaultAlertSeverityId,
-      onlineMonitorStatusId: data.seedIds.onlineMonitorStatusId,
-      offlineMonitorStatusId: data.seedIds.offlineMonitorStatusId,
-    }),
-    modelType: MonitorTemplate,
-  });
-
-  const createdTemplateId: ObjectID | undefined =
-    (response.data as MonitorTemplate | undefined)?.id ?? undefined;
-
-  if (!createdTemplateId) {
-    throw new BadDataException(
-      "The recommended monitor template was created but the server did not return its id. Refresh the page and try again; the template will be found rather than created twice.",
-    );
-  }
-
-  return createdTemplateId;
-}
+export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
+  one: 'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitor today, one per device, each counted towards your plan.',
+  other:
+    'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitors today, one per device, each counted towards your plan.',
+};
 
 export interface RecommendedPolicyEmptyStateProps {
   onCreated: () => void;
@@ -308,9 +303,10 @@ export interface RecommendedPolicyEmptyStateProps {
  * moment a policy exists and never shows against a search that matched
  * nothing (BaseModelTable overrides the message in that case).
  */
-const RecommendedPolicyEmptyState: FunctionComponent<
+export const RecommendedPolicyEmptyState: FunctionComponent<
   RecommendedPolicyEmptyStateProps
 > = (props: RecommendedPolicyEmptyStateProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -377,7 +373,7 @@ const RecommendedPolicyEmptyState: FunctionComponent<
          * until all four ids resolve.
          */
         const seedIds: MonitorCriteriaSeedIds =
-          await PingMonitorSeedIds.resolve();
+          await PingMonitorSeedIds.resolve(SeedIdsPurpose.RecommendedTemplate);
 
         const monitorTemplateId: ObjectID =
           await findOrCreateRecommendedTemplate({
@@ -410,38 +406,44 @@ const RecommendedPolicyEmptyState: FunctionComponent<
    * device estate into four thousand billable monitors, and a number presented
    * as exact and then undershot by a thousand teaches them to ignore it.
    */
-  const confirmDescription: string = `This creates the "Network device alert pack (recommended)" monitor template if the project does not have it yet, and an "Alert on every device" policy that applies it to every probe-polled device in the project, and to every device added later. One Network Device monitor is provisioned per covered device, and each counts towards your plan${
+  const confirmDescription: string =
     deviceCount !== null
-      ? `: the project holds ${deviceCount} active ${deviceCount === 1 ? "device" : "devices"} today, which is the most this can provision`
-      : ""
-  }. You can narrow the policy's scope afterwards.`;
+      ? translator.translatePlural(
+          RECOMMENDED_POLICY_CONFIRM_COUNTED,
+          deviceCount,
+        )
+      : translator.translateText(RECOMMENDED_POLICY_CONFIRM) || "";
 
   return (
-    <div className="py-4">
-      <p className="text-sm font-medium text-gray-900">No alert policies yet</p>
-      <p className="mt-1 text-sm text-gray-500">
-        A policy alerts on a whole set of devices at once: one monitor per
-        matching device, kept as devices come and go. The recommended one raises
-        an incident when a device stops answering or an interface goes down, and
-        an alert when its SNMP walk fails, an interface saturates or an
-        interface logs errors. A device with no SNMP credentials is pinged, not
-        walked, so only the reachability item can fire on it.
-      </p>
-      {createGate.isAllowed ? (
-        <div className="mt-4 flex justify-center">
-          <Button
-            title="Create the recommended policy"
-            icon={IconProp.Add}
-            buttonStyle={ButtonStyleType.PRIMARY}
-            dataTestId="create-recommended-alert-policy"
-            onClick={(): void => {
-              openConfirm().catch((err: unknown): void => {
-                setError(API.getFriendlyMessage(err));
-              });
-            }}
-          />
-        </div>
-      ) : (
+    <div>
+      {/*
+       * Drawn the way every empty list in the product is (TableEmptyState),
+       * with the recommended policy as the one primary action: this is
+       * where the Network first-run path's "Set up alerts" lands.
+       */}
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={IconProp.Alert}
+        title="No alert policies yet"
+        description={RECOMMENDED_POLICY_EMPTY_STATE}
+        dataTestId="network-alert-policies-empty"
+        // The table already frames a page's own empty state with room.
+        isCompact={true}
+        actionElement={
+          createGate.isAllowed ? (
+            <Button
+              title="Create the recommended policy"
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="create-recommended-alert-policy"
+              onClick={(): void => {
+                openConfirm().catch((err: unknown): void => {
+                  setError(API.getFriendlyMessage(err));
+                });
+              }}
+            />
+          ) : undefined
+        }
         /*
          * Say why there is no button, when there is something to say. An
          * empty state that offers nothing and explains nothing reads as a
@@ -450,12 +452,12 @@ const RecommendedPolicyEmptyState: FunctionComponent<
          * still loading, and PermissionGate's contract is to show nothing
          * rather than accuse the user in that window.
          */
-        createGate.disabledReason && (
-          <p className="mt-4 text-sm text-gray-400">
-            {createGate.disabledReason}
-          </p>
-        )
-      )}
+        note={
+          !createGate.isAllowed && createGate.disabledReason
+            ? createGate.disabledReason
+            : undefined
+        }
+      />
       {error && !showConfirm && <ErrorMessage message={error} />}
       {showConfirm && (
         <ConfirmModal
@@ -491,20 +493,34 @@ const RecommendedPolicyEmptyState: FunctionComponent<
 const NetworkAlertPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [refreshToggle, setRefreshToggle] = useState<string>(
     ObjectID.generate().toString(),
   );
 
   /*
    * Selecting an unreadable relation fails the whole list request, so the
-   * template column and the template field only exist for a user who may
-   * read monitor templates (the AutoImportRules precedent). The server
-   * still requires a template, so a user without the field is told so on
-   * save rather than shown a form that silently drops it.
+   * template column is asked for only when the user may read it. Which
+   * template a policy uses is read with the policy itself (the model's read
+   * list), so every policy reader sees it; the template's name rides along
+   * on the relation.
    */
   const canReadMonitorTemplate: boolean = PermissionGate.canReadColumn(
     new NetworkAlertPolicy(),
     "monitorTemplate",
+  );
+
+  /*
+   * The template field lists the project's Network Device templates, which
+   * takes listing templates as well as reading the policy
+   * (PermissionGate.canPickRelation, as on the auto-import rules page). The
+   * server still requires a template, so a user without the field is told
+   * so on save rather than shown a picker whose list it may not load.
+   */
+  const canPickMonitorTemplate: boolean = PermissionGate.canPickRelation(
+    new NetworkAlertPolicy(),
+    "monitorTemplate",
+    new MonitorTemplate(),
   );
 
   const monitorTemplateColumn: Column<NetworkAlertPolicy> | null =
@@ -554,7 +570,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
            * that the monitors go with the policy before they click it.
            */
           description:
-            "Alert on a set of devices at once. Each policy provisions one Network Device monitor per matching device from its monitor template and keeps the set in step as devices come and go — and every one of those monitors counts towards your plan. Disabling a policy stands its monitors down; deleting one deletes them.",
+            "A policy adds one monitor to every device it covers, and each monitor counts towards your plan. Deleting a policy deletes its monitors.",
         }}
         helpContent={{
           title: "How Alert Policies Work",
@@ -632,7 +648,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             getElement: (item: NetworkAlertPolicy): ReactElement => {
               if (!item.lastSyncAt) {
                 return (
-                  <span className="text-sm text-gray-400">Not counted yet</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not counted yet")}
+                  </span>
                 );
               }
 
@@ -676,7 +694,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
               }
 
               return (
-                <span className="text-sm text-gray-400">Not synced yet</span>
+                <span className="text-sm text-gray-400">
+                  {translator.translateText("Not synced yet")}
+                </span>
               );
             },
             getExportValue: (item: NetworkAlertPolicy): string => {
@@ -710,7 +730,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   )}
                 </span>
               ) : (
-                <span className="text-sm text-gray-400">Never</span>
+                <span className="text-sm text-gray-400">
+                  {translator.translateText("Never")}
+                </span>
               );
             },
             getExportValue: (item: NetworkAlertPolicy): string => {
@@ -764,7 +786,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             description:
               "Disable to stand the policy's monitors down without deleting them; enable again to bring the same set back.",
           },
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   field: { monitorTemplate: true },
@@ -772,13 +794,13 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   stepId: "template",
                   sectionTitle: "What every covered device is alerted on",
                   sectionDescription:
-                    "Every matching device gets a monitor cloned from this template, and is re-synced from it when the template changes.",
+                    "Every device in scope gets a monitor made from this template, kept in step with it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
                   required: true,
                   placeholder: "Select a Network Device template",
                   description:
-                    "Only Network Device monitor templates are listed. A template can back one policy, and cannot also be selected by an auto-import rule — the save is refused with the reason if it is.",
+                    "A template can back one policy, and cannot also be used by an auto import rule.",
                 },
               ]
             : []),
@@ -789,7 +811,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description:
-              "Which devices this policy covers. Leave every picker empty to cover every device in the project — the widest scope, and the one that provisions the most monitors.",
+              "Leave every picker empty to cover every device in the project.",
             getCustomElement: (
               values: FormValues<NetworkAlertPolicy>,
               elementProps: CustomElementProps,

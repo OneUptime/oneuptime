@@ -1,7 +1,9 @@
 import logger from "../../Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
-import GitHubCommandType from "../../../../Types/CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../../../../Types/CodeRepository/GitHubCommand";
 import CodeFixTaskContext, {
   getGitHubConversationNumber,
   getGitHubTaskContext,
@@ -16,6 +18,29 @@ import GitHubConversation, { GitHubReaction } from "./GitHubConversation";
 import GitHubReplyComposer from "./GitHubReplyComposer";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+
+/*
+ * A pull request on github.com and nothing more: an owner, a repository, a
+ * number, and no path, query or fragment after it. Names are held to letters,
+ * digits, ".", "_" and "-" — every character GitHub allows in an owner or a
+ * repository name, and none that means anything to markdown or to the command
+ * parser.
+ */
+const OPENED_PULL_REQUEST_URL: RegExp =
+  /^https:\/\/github\.com\/([A-Za-z0-9._-]{1,100})\/([A-Za-z0-9._-]{1,100})\/pull\/([1-9][0-9]{0,9})$/;
+
+/*
+ * A GitHub run opens one pull request. Only this many reported URLs are read,
+ * so a worker that sends more cannot grow the run's context, or the time
+ * spent checking them, without limit.
+ */
+const MAX_OPENED_PULL_REQUESTS: number = 10;
+
+// A pull request the worker reported opening, once it has been checked.
+export interface OpenedPullRequest {
+  pullRequestNumber: number;
+  pullRequestUrl: string;
+}
 
 /*
  * How a GitHub-triggered run talks back to the thread it came from.
@@ -35,15 +60,17 @@ import LIMIT_MAX from "../../../../Types/Database/LimitMax";
  * so a GitHub outage costs a minute rather than the reply.
  */
 export default class GitHubRunReply {
+  // The task's conversation in Code.
   public static buildRunUrl(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
   }): string {
-    return `${DashboardClientUrl.toString()}/${data.projectId.toString()}/ai/agents/${data.aiRunId.toString()}`;
+    return `${DashboardClientUrl.toString()}/${data.projectId.toString()}/code/tasks/${data.aiRunId.toString()}`;
   }
 
+  // Code, the project's repositories and their tasks.
   public static buildProjectRunsUrl(projectId: ObjectID): string {
-    return `${DashboardClientUrl.toString()}/${projectId.toString()}/ai/agents`;
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/code`;
   }
 
   /*
@@ -70,7 +97,9 @@ export default class GitHubRunReply {
         installationId: data.github.installationId,
         organizationName: data.github.organizationName,
         repositoryName: data.github.repositoryName,
+        issueNumber: conversationNumber,
         commentId: data.github.triggerCommentId,
+        commentKind: GitHubRunReply.getTriggerCommentKind(data.github),
         reaction: GitHubReaction.Eyes,
       });
     } else {
@@ -199,7 +228,9 @@ export default class GitHubRunReply {
           installationId: data.github.installationId,
           organizationName: data.github.organizationName,
           repositoryName: data.github.repositoryName,
+          issueNumber: getGitHubConversationNumber(data.github),
           commentId: data.github.triggerCommentId,
+          commentKind: GitHubRunReply.getTriggerCommentKind(data.github),
           reaction:
             data.run.status === AIRunStatus.Completed
               ? GitHubReaction.Rocket
@@ -211,6 +242,17 @@ export default class GitHubRunReply {
     }
 
     return true;
+  }
+
+  /*
+   * A run queued before the kind was recorded carries none. Those were all
+   * reacted on as conversation comments, so that is what they are read as —
+   * the same route, and the same result, as before.
+   */
+  private static getTriggerCommentKind(
+    github: GitHubTaskContext,
+  ): GitHubCommentKind {
+    return github.triggerCommentKind || GitHubCommentKind.IssueComment;
   }
 
   private static async composeOutcomeBody(data: {
@@ -283,16 +325,150 @@ export default class GitHubRunReply {
       });
 
     if (pullRequests.length === 0) {
-      return ["The run finished, but it did not record a pull request."];
+      /*
+       * Recording a pull request can fail after GitHub has opened it, and the
+       * run still finishes Completed. The worker then reports the pull
+       * requests it opened with that status, and they are linked here rather
+       * than denied while the thread can already see them.
+       */
+      const openedPullRequests: Array<OpenedPullRequest> =
+        GitHubRunReply.readOpenedPullRequests({
+          pullRequestUrls: data.github.openedPullRequestUrls,
+          github: data.github,
+        });
+
+      if (openedPullRequests.length === 0) {
+        return ["The run finished, but it did not record a pull request."];
+      }
+
+      return openedPullRequests.map((pullRequest: OpenedPullRequest) => {
+        return GitHubRunReply.describeOpenedPullRequest(pullRequest);
+      });
     }
 
     return pullRequests.map((pullRequest: AIAgentTaskPullRequest) => {
-      const url: string = pullRequest.pullRequestUrl?.toString() || "";
-
-      return pullRequest.pullRequestNumber
-        ? `Opened #${pullRequest.pullRequestNumber} — ${url}`
-        : `Opened a pull request — ${url}`;
+      return GitHubRunReply.describeOpenedPullRequest({
+        pullRequestNumber: pullRequest.pullRequestNumber,
+        pullRequestUrl: pullRequest.pullRequestUrl?.toString() || "",
+      });
     });
+  }
+
+  private static describeOpenedPullRequest(data: {
+    pullRequestNumber: number | undefined;
+    pullRequestUrl: string;
+  }): string {
+    return data.pullRequestNumber
+      ? `Opened #${data.pullRequestNumber} — ${data.pullRequestUrl}`
+      : `Opened a pull request — ${data.pullRequestUrl}`;
+  }
+
+  /*
+   * The pull requests a worker reported opening, kept only where each is
+   * plainly a pull request of the repository this run was started from.
+   *
+   * Nothing else checked them: they arrived as strings with the worker's
+   * status report, while the result lines they become go into the comment
+   * unescaped (see GitHubReplyComposer.completed). So a value that is not
+   * exactly https://github.com/{organization}/{repository}/pull/{number}, for
+   * this run's repository, is dropped rather than escaped. GitHub compares
+   * those names without case, and so does this. Each pull request is kept
+   * once, in the order reported.
+   */
+  public static readOpenedPullRequests(data: {
+    pullRequestUrls: unknown;
+    github: GitHubTaskContext;
+  }): Array<OpenedPullRequest> {
+    if (!Array.isArray(data.pullRequestUrls)) {
+      return [];
+    }
+
+    const reportedUrls: Array<unknown> = data.pullRequestUrls.slice(
+      0,
+      MAX_OPENED_PULL_REQUESTS,
+    );
+
+    const openedPullRequests: Array<OpenedPullRequest> = [];
+
+    for (const pullRequestUrl of reportedUrls) {
+      if (typeof pullRequestUrl !== "string") {
+        continue;
+      }
+
+      const match: RegExpExecArray | null =
+        OPENED_PULL_REQUEST_URL.exec(pullRequestUrl);
+
+      if (
+        !match ||
+        match[1]!.toLowerCase() !==
+          data.github.organizationName.toLowerCase() ||
+        match[2]!.toLowerCase() !== data.github.repositoryName.toLowerCase()
+      ) {
+        continue;
+      }
+
+      const pullRequestNumber: number = Number(match[3]);
+
+      const isRepeat: boolean = openedPullRequests.some(
+        (openedPullRequest: OpenedPullRequest) => {
+          return openedPullRequest.pullRequestNumber === pullRequestNumber;
+        },
+      );
+
+      if (!isRepeat) {
+        openedPullRequests.push({
+          pullRequestNumber: pullRequestNumber,
+          pullRequestUrl: pullRequestUrl,
+        });
+      }
+    }
+
+    return openedPullRequests;
+  }
+
+  /*
+   * The run's context with the pull requests its worker reported opening, to
+   * be written with the Completed status — or null when there is nothing to
+   * write: the run did not come from GitHub, or none of what was reported is
+   * a pull request of its repository.
+   *
+   * Only what readOpenedPullRequests keeps is stored, and the whole context
+   * is spread back in, because TypeORM replaces a jsonb column (see
+   * markReported).
+   */
+  public static withOpenedPullRequestUrls(data: {
+    taskContext: CodeFixTaskContext | undefined;
+    pullRequestUrls: unknown;
+  }): CodeFixTaskContext | null {
+    const github: GitHubTaskContext | null = getGitHubTaskContext(
+      data.taskContext,
+    );
+
+    if (!github) {
+      return null;
+    }
+
+    const openedPullRequests: Array<OpenedPullRequest> =
+      GitHubRunReply.readOpenedPullRequests({
+        pullRequestUrls: data.pullRequestUrls,
+        github: github,
+      });
+
+    if (openedPullRequests.length === 0) {
+      return null;
+    }
+
+    return {
+      ...data.taskContext,
+      github: {
+        ...github,
+        openedPullRequestUrls: openedPullRequests.map(
+          (openedPullRequest: OpenedPullRequest) => {
+            return openedPullRequest.pullRequestUrl;
+          },
+        ),
+      },
+    };
   }
 
   /*

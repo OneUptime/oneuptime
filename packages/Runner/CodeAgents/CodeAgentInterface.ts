@@ -20,6 +20,22 @@ export interface CodeAgentTask {
   context?: string;
   timeoutMs?: number;
   servicePath?: string; // Path within the repo where the service code lives
+  /*
+   * The task may end by asking the person who made the request a question
+   * (a request from Code): the agent is offered an ask_question tool, and a
+   * question ends its turn with needsInput set.
+   */
+  allowQuestions?: boolean;
+  /*
+   * The task may query production: the agent asks the server for the
+   * production telemetry tools of its run (the traces, logs, metrics,
+   * exceptions, incidents and deploys of the services its repository
+   * serves) and offers them alongside the file tools. The server decides
+   * whether there are any and what they read; the worker names only the
+   * run. A review and the fixes of an exception, a slow trace or an
+   * incident ask.
+   */
+  productionTelemetry?: boolean;
 }
 
 // Result from the code agent execution
@@ -30,6 +46,8 @@ export interface CodeAgentResult {
   logs: Array<string>;
   error?: string;
   exitCode?: number;
+  // The turn ended by asking the person a question (allowQuestions).
+  needsInput?: boolean;
 }
 
 // Progress event from the code agent

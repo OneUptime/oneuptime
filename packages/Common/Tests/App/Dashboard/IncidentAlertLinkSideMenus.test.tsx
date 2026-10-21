@@ -94,7 +94,7 @@ afterEach(() => {
 });
 
 describe("the incident view side menu", () => {
-  test("keeps its sections exactly as they were", async () => {
+  test("keeps its sections, with Developer just before Advanced", async () => {
     goTo(pageRoute(PageMap.INCIDENT_VIEW_ALERTS));
     await renderMenu(<IncidentSideMenu modelId={MODEL_ID} />);
 
@@ -104,6 +104,7 @@ describe("the incident view side menu", () => {
       "Team",
       "Notifications",
       "Notes",
+      "Developer",
       "Advanced",
     ]);
   });
@@ -169,38 +170,41 @@ describe("the incident view side menu", () => {
 });
 
 describe("the alert view side menu", () => {
-  test("keeps its sections", async () => {
+  /*
+   * An incident's sections, where an alert has pages for them: Linked
+   * Incidents sits where an incident's Linked Alerts does.
+   */
+  test("has an incident's sections", async () => {
     goTo(pageRoute(PageMap.ALERT_VIEW_INCIDENTS));
     await renderMenu(<AlertSideMenu modelId={MODEL_ID} />);
 
     expect(sectionTitlesInOrder()).toEqual([
-      "Basic",
-      "On Call",
-      "Logs",
-      "Alert Notes",
+      "Overview",
+      "Investigation",
+      "Team",
+      "Notifications",
+      "Notes",
+      "Developer",
       "Advanced",
     ]);
   });
 
-  test("lists Linked Incidents at the end of Basic", async () => {
+  test("lists Linked Incidents at the end of Investigation", async () => {
     goTo(pageRoute(PageMap.ALERT_VIEW));
     await renderMenu(<AlertSideMenu modelId={MODEL_ID} />);
 
-    expect(linksIn("Basic")).toEqual(
+    expect(linksIn("Investigation")).toEqual(
       expectedLinks([
-        { title: "Overview", page: PageMap.ALERT_VIEW },
         { title: "Description", page: PageMap.ALERT_VIEW_DESCRIPTION },
         { title: "Root Cause", page: PageMap.ALERT_VIEW_ROOT_CAUSE },
         { title: "Remediation", page: PageMap.ALERT_VIEW_REMEDIATION },
         { title: "Runbooks", page: PageMap.ALERT_VIEW_RUNBOOKS },
-        { title: "State Timeline", page: PageMap.ALERT_VIEW_STATE_TIMELINE },
-        { title: "Owners", page: PageMap.ALERT_VIEW_OWNERS },
         { title: "Linked Incidents", page: PageMap.ALERT_VIEW_INCIDENTS },
       ]),
     );
   });
 
-  test("marks Linked Incidents active on its page and expands Basic", async () => {
+  test("marks Linked Incidents active on its page and expands Investigation", async () => {
     const linkedIncidents: string = pageRoute(PageMap.ALERT_VIEW_INCIDENTS);
 
     goTo(linkedIncidents);
@@ -209,11 +213,11 @@ describe("the alert view side menu", () => {
     expect(linkedIncidents).toBe(
       `/dashboard/${PROJECT_ID}/alerts/${MODEL_ID.toString()}/incidents`,
     );
-    expect(activeAnchorIn("Basic", linkedIncidents)).toHaveClass(
+    expect(activeAnchorIn("Investigation", linkedIncidents)).toHaveClass(
       "bg-indigo-50",
       "text-indigo-700",
     );
-    expect(isExpanded("Basic")).toBe(true);
+    expect(isExpanded("Investigation")).toBe(true);
   });
 
   test("links every page once, fully populated", async () => {

@@ -1,13 +1,12 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
+import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MonitorType, {
-  MonitorTypeHelper,
-} from "Common/Types/Monitor/MonitorType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
@@ -15,14 +14,14 @@ import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InlineCode from "Common/UI/Components/InlineCode/InlineCode";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { MONITOR_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, {
   Fragment,
   FunctionComponent,
@@ -31,16 +30,12 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
-import OneUptimeDate from "Common/Types/Date";
 import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [alertRefreshToggle, setAlertRefreshToggle] = useState<string>(
-    OneUptimeDate.getCurrentDate().toString(),
-  );
-
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -84,113 +79,34 @@ const MonitorCriteria: FunctionComponent<
   }, []);
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
-    if (!monitor?.monitorType || isLoading) {
-      return <ComponentLoader />;
-    }
-
+    /*
+     * The error first: a monitor that could not be read has no type, and
+     * waiting for one kept the loader up for good.
+     */
     if (error) {
       return <ErrorMessage message={error} />;
     }
 
+    if (!monitor?.monitorType || isLoading) {
+      return <ComponentLoader />;
+    }
+
     return (
       <div>
+        {/*
+         * Whether the monitor is checked: one switch that saves when it is
+         * flipped. The banner above the page follows it (and its own "Turn
+         * monitoring on" button moves it) through ModelSwitchEvents. A
+         * manual monitor runs no checks, so it has no switch.
+         */}
         {monitor?.monitorType !== MonitorType.Manual && (
-          <CardModelDetail
-            name="Monitor Settings"
-            editButtonText="Edit Settings"
-            cardProps={{
-              title: "Monitor Settings",
-              description: "Here are some advanced settings for this monitor.",
-            }}
-            onSaveSuccess={() => {
-              setAlertRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-            }}
-            isEditable={true}
-            formFields={[
-              {
-                field: {
-                  disableActiveMonitoring: true,
-                },
-
-                title: "Disable Active Monitoring",
-                fieldType: FormFieldSchemaType.Toggle,
-                required: false,
-              },
-            ]}
-            modelDetailProps={{
-              showDetailsInNumberOfColumns: 1,
-              modelType: Monitor,
-              id: "model-detail-monitors",
-              fields: [
-                {
-                  field: {
-                    disableActiveMonitoring: true,
-                  },
-                  title: "Disable Active Monitoring",
-                  fieldType: FieldType.Boolean,
-                },
-              ],
-              modelId: modelId,
-            }}
-          />
+          <MonitoringCard monitorId={modelId} />
         )}
 
-        {monitor?.monitorType &&
-        MonitorTypeHelper.isProbableMonitor(monitor.monitorType) ? (
-          <div className="mt-5">
-            <CardModelDetail
-              name="Probe Agreement Settings"
-              editButtonText="Edit Probe Agreement"
-              cardProps={{
-                title: "Probe Agreement Settings",
-                description:
-                  "Configure how many probes must agree on a status before the monitor status changes.",
-              }}
-              onSaveSuccess={() => {
-                setAlertRefreshToggle(
-                  OneUptimeDate.getCurrentDate().toString(),
-                );
-              }}
-              isEditable={true}
-              formFields={[
-                {
-                  field: {
-                    minimumProbeAgreement: true,
-                  },
-                  title: "Minimum Probe Agreement",
-                  description:
-                    "The minimum number of probes that must agree on a condition before the monitor status changes. Leave empty to require all enabled and connected probes to agree.",
-                  fieldType: FormFieldSchemaType.Number,
-                  required: false,
-                  placeholder: "Leave empty for all probes",
-                  validation: {
-                    minValue: 1,
-                  },
-                },
-              ]}
-              modelDetailProps={{
-                showDetailsInNumberOfColumns: 1,
-                modelType: Monitor,
-                id: "model-detail-probe-agreement",
-                fields: [
-                  {
-                    field: {
-                      minimumProbeAgreement: true,
-                    },
-                    title: "Minimum Probe Agreement",
-                    description:
-                      "Number of probes that must agree on a condition. Empty means all probes.",
-                    fieldType: FieldType.Number,
-                    placeholder: "All probes must agree",
-                  },
-                ],
-                modelId: modelId,
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
+        {/*
+         * How many probes must agree before the status changes is on the
+         * Probes & Interval page now, under the probes it counts.
+         */}
 
         {monitor?.monitorType === MonitorType.IncomingRequest ? (
           <div className="mt-5">
@@ -202,17 +118,25 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"incomingRequestSecretKey"}
               title={"Reset Incoming Request Secret Key"}
               description={
-                <p className="mt-2">
-                  Your current incoming request secret key is {"  "}
-                  <InlineCode
-                    text={
-                      monitor.incomingRequestSecretKey?.toString() ||
-                      "No key generated"
-                    }
-                  />{" "}
-                  Resetting the secret key will generate a new key. Secret is
-                  used to authenticate incoming requests.
-                </p>
+                /*
+                 * A span: the card draws its description in a <p>, and a
+                 * <p> inside one is invalid HTML (React warns of it).
+                 */
+                <span>
+                  <TranslatedSentence
+                    template="The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender."
+                    slots={{
+                      key: (
+                        <InlineCode
+                          text={
+                            monitor.incomingRequestSecretKey?.toString() ||
+                            "No key generated"
+                          }
+                        />
+                      ),
+                    }}
+                  />
+                </span>
               }
               modelId={modelId}
             />
@@ -246,17 +170,21 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"serverMonitorSecretKey"}
               title={"Reset Server Monitor Secret Key"}
               description={
-                <p className="mt-2">
-                  Your current server monitor secret key is {"  "}
-                  <InlineCode
-                    text={
-                      monitor.serverMonitorSecretKey?.toString() ||
-                      "No key generated"
-                    }
-                  />{" "}
-                  Resetting the secret key will generate a new key. Secret is
-                  used to authenticate monitoring agents deployed on the.
-                </p>
+                <span>
+                  <TranslatedSentence
+                    template="The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key."
+                    slots={{
+                      key: (
+                        <InlineCode
+                          text={
+                            monitor.serverMonitorSecretKey?.toString() ||
+                            "No key generated"
+                          }
+                        />
+                      ),
+                    }}
+                  />
+                </span>
               }
               modelId={modelId}
             />
@@ -297,9 +225,15 @@ const MonitorCriteria: FunctionComponent<
                 field: {
                   disableActiveMonitoring: true,
                 },
-                title: "Disable Monitor",
+                /*
+                 * On by default: a copy checks what the original checks,
+                 * so it would otherwise alert on the same problem twice.
+                 * Named for what "on" does, so it reads right either way
+                 * (it was "Disable Monitor", explained as if always on).
+                 */
+                title: "Start with monitoring off",
                 description:
-                  "Should the new monitor be disabled when its duplicated?",
+                  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.",
                 fieldType: FormFieldSchemaType.Toggle,
                 defaultValue: true,
                 required: false,
@@ -311,13 +245,32 @@ const MonitorCriteria: FunctionComponent<
         <div className="mt-5">
           <ExportModelCard modelId={modelId} modelType={Monitor} />
         </div>
+
+        <div className="mt-5">
+          <ArchiveResourceCard<Monitor>
+            modelType={Monitor}
+            modelId={modelId}
+            singularName={MONITOR_ARCHIVE_COPY.singularName}
+            listRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS] as Route,
+            )}
+            archiveCardDescription={MONITOR_ARCHIVE_COPY.archiveCardDescription}
+            unarchiveCardDescription={
+              MONITOR_ARCHIVE_COPY.unarchiveCardDescription
+            }
+            archiveConfirmMessage={MONITOR_ARCHIVE_COPY.archiveConfirmMessage}
+            unarchiveConfirmMessage={
+              MONITOR_ARCHIVE_COPY.unarchiveConfirmMessage
+            }
+          />
+        </div>
       </div>
     );
   };
 
   return (
     <Fragment>
-      <DisabledWarning monitorId={modelId} refreshToggle={alertRefreshToggle} />
+      <DisabledWarning monitorId={modelId} />
       {getPageContent()}
     </Fragment>
   );

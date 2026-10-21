@@ -1,10 +1,11 @@
 import Model from "../../Models/DatabaseModels/LlmCostBudget";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { isLlmBudgetSpendSource } from "../../Types/LlmObservability/LlmBudgetSpendSource";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 
 const BUDGET_ERROR_MESSAGE: string =
   "Daily budget must be a number greater than 0.";
@@ -15,7 +16,7 @@ const BUDGET_ERROR_MESSAGE: string =
  * Metrics monitors own the alerting (thresholds, anomaly baselines, on-call
  * routing). This service only guards the budget definition itself.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -24,6 +25,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Numeric columns can arrive as strings: the dashboard's number fields
      * hand Formik `e.target.value`, ModelForm copies it verbatim and
@@ -36,6 +39,8 @@ export class Service extends DatabaseService<Model> {
       createBy.data.dailyBudgetInUSD,
     );
 
+    this.validateSpendSource(createBy.data.spendSource);
+
     return {
       createBy,
       carryForward: null,
@@ -46,12 +51,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // Same string-arrival path as onBeforeCreate: coerce, validate, write back.
     const newBudget: unknown = updateBy.data.dailyBudgetInUSD as unknown;
 
     if (newBudget !== undefined && newBudget !== null) {
       updateBy.data.dailyBudgetInUSD = this.validateDailyBudget(newBudget);
     }
+
+    this.validateSpendSource(updateBy.data.spendSource as unknown);
 
     return {
       updateBy,
@@ -77,6 +86,19 @@ export class Service extends DatabaseService<Model> {
     }
 
     return Number.NaN;
+  }
+
+  // Unset keeps the default (the project's AI calls); anything else must be one.
+  private validateSpendSource(value: unknown): void {
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (!isLlmBudgetSpendSource(value)) {
+      throw new BadDataException(
+        "Count spend from must be 'calls' (your AI calls) or 'providers' (your connected AI provider accounts).",
+      );
+    }
   }
 
   private validateDailyBudget(value: unknown): number {

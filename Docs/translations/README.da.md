@@ -135,8 +135,11 @@ Alt hvad du behøver på en enkelt server (Debian / Ubuntu / RHEL, Docker + Dock
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt
 - **Proxmox** — noder, VM'er, containere, lager, HA-tilstand, backup-dækning og replikeringssundhed. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-værter, virtuelle maskiner, datastores, klynger, ressourcepuljer og vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — klyngesundhed, kapacitetsprognoser og OSD-/pool-/PG-/monitor-indsigt. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Storage-arrays** — Pure Storage FlashArray og FlashBlade: kapacitet, latenstid, volumener, værter, replikering, hardwaresundhed, filsystemer og buckets. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **Databaser** — PostgreSQL, MySQL, Redis, MongoDB m.fl., fundet automatisk fra applikationstraces, Kubernetes og Docker, med motor-metrikker, forespørgselsprøver og logs fra en collector-agent, der kun består af konfiguration. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt
 | **Bedst til** | Selv-hostere og små teams | Regulerede teams med behov for premium-support |
 | **Pris** | Gratis og open source | [Kontakt salg](mailto:sales@oneuptime.com) |
 | **Licens** | Apache 2.0 | Apache 2.0 samt [OneUptime Enterprise License](/ee/LICENSE) for mappen `ee/` |
-| **Funktioner** | Alt i pakken ovenfor — overvågning, statussider, hændelser, vagter, logs, traces, metrikker, fejlsporing, workflows og AI | Alt i Community + SAML- og OIDC-single sign-on, SCIM-provisionering, auditlogs, team-compliance og dashboards for instansens sundhed, med prioriteret support, brugerdefinerede funktioner og dataophold |
+| **Funktioner** | Alt i pakken ovenfor — overvågning, statussider, hændelser, vagter, logs, traces, metrikker, fejlsporing, workflows og AI — samt SAML- og OIDC-single sign-on | Alt i Community + SCIM-provisionering, auditlogs, team-compliance og dashboards for instansens sundhed, med prioriteret support, brugerdefinerede funktioner og dataophold |
 
 Enterprise-funktionerne ligger i mappen [`ee/`](/ee) og leveres kun i Enterprise-imaget. Se [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for den fulde sammenligning.
 

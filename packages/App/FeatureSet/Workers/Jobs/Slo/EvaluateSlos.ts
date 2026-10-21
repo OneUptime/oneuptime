@@ -7,6 +7,9 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -52,6 +55,7 @@ import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyServ
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
 import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
@@ -64,6 +68,7 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
@@ -72,6 +77,8 @@ import SloHistoryService, {
 } from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
@@ -98,13 +105,17 @@ import {
   buildSloBurnRateTemplateVariables,
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
-import { escapeMarkdownInline } from "Common/Utils/Markdown/MarkdownEscape";
 import {
   SloFeedMarkdown,
   SloFeedStatusMeasurement,
   getSloStatusChangedFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import { collapseLineBreakRuns } from "Common/Utils/LineBreakRuns";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * How far in the future the next full evaluation is scheduled, and the
@@ -368,10 +379,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   /*
-   * Paused guard: if every attached monitor is disabled (manually, because of
-   * a manual incident, or because of a scheduled maintenance event — the same
-   * three flags MonitorService.getEnabledMonitorQuery filters on), there is
-   * no live signal: mark Paused and skip evaluation and alerts.
+   * Paused guard: if every attached monitor is archived or disabled
+   * (manually, because of a manual incident, or because of a scheduled
+   * maintenance event — the same four flags MonitorService.getEnabledMonitorQuery
+   * filters on, read through MonitorPauseState), there is no live signal:
+   * mark Paused and skip evaluation and alerts.
    */
   const monitors: Array<Monitor> = await MonitorService.findBy({
     query: {
@@ -380,9 +392,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     },
     select: {
       _id: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      ...MONITOR_PAUSE_FLAGS_SELECT,
     },
     skip: 0,
     limit: LIMIT_PER_PROJECT,
@@ -405,11 +415,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   const areAllMonitorsDisabled: boolean = monitors.every((monitor: Monitor) => {
-    return (
-      monitor.disableActiveMonitoring === true ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident === true ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent === true
-    );
+    return MonitorPauseState.isPaused(monitor);
   });
 
   if (areAllMonitorsDisabled) {
@@ -421,7 +427,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
       reason:
-        "Every monitor attached to this SLO is disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
+        "Every monitor attached to this SLO is archived or disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
     });
     return;
   }
@@ -1073,7 +1079,7 @@ async function postSloStatusChangedFeedItem(data: {
   }
 
   try {
-    const sloMarkdownLink: string =
+    const sloMarkdownLink: MarkdownText =
       await ServiceLevelObjectiveService.getSloMarkdownLink({
         projectId: data.slo.projectId,
         sloId: data.slo.id,
@@ -1381,22 +1387,31 @@ function computeBurnRateForLookback(data: {
 /*
  * Simplified form of MonitorAlert's scheduled-maintenance suppression: the
  * SLO alerting layer suppresses burn-rate alert CREATION while any attached
- * monitor is attached to an ongoing ScheduledMaintenance (same
- * currentScheduledMaintenanceState.isOngoingState query
- * MonitorMaintenanceSuppression uses, intersected against the SLO's monitors
- * instead of series labels). Existing open alerts still resolve normally.
+ * monitor is attached to a ScheduledMaintenance in progress - in its
+ * project's ongoing state, or in a state of the project's own placed between
+ * Ongoing and Ended, such as "Verifying" (the same in-progress states
+ * MonitorMaintenanceSuppression asks for, intersected against the SLO's
+ * monitors instead of series labels). Existing open alerts still resolve
+ * normally.
  */
 async function isAnySloMonitorUnderOngoingMaintenance(data: {
   projectId: ObjectID;
   monitorIds: Array<ObjectID>;
 }): Promise<boolean> {
+  const inProgressStateIds: Array<ObjectID> =
+    await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+      data.projectId,
+    );
+
+  if (inProgressStateIds.length === 0) {
+    return false;
+  }
+
   const ongoingEvents: Array<ScheduledMaintenance> =
     await ScheduledMaintenanceService.findBy({
       query: {
         projectId: data.projectId,
-        currentScheduledMaintenanceState: {
-          isOngoingState: true,
-        },
+        currentScheduledMaintenanceStateId: QueryHelper.any(inProgressStateIds),
       },
       select: {
         _id: true,
@@ -1653,7 +1668,7 @@ async function evaluateBurnRateRule(data: {
     ruleId: ruleId,
     rootCause: hasFullLongWindow
       ? "Burn rate dropped below threshold."
-      : `The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`,
+      : mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
     /*
      * Only a measured recovery is what the rule's auto-resolve switches
      * describe. Losing the history to measure at all is not a recovery - the
@@ -2186,7 +2201,8 @@ async function buildBurnRateDeclaration(data: {
 
   return {
     fingerprint: data.fingerprint,
-    rootCause: `Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`,
+    rootCause:
+      mdText`Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`.toString(),
     variables: variables,
     alert: renderBurnRateOutputCopy({
       titleTemplate: rule.alertTitleTemplate,
@@ -2229,8 +2245,6 @@ function renderBurnRateOutputCopy(data: {
   };
 }
 
-const TITLE_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
-
 /*
  * Alert.title and Incident.title are required varchar(ColumnLength.LongText)
  * columns. A template the rule service accepted can still render past that once
@@ -2247,7 +2261,7 @@ function toRecordTitle(
   const title: string =
     renderedTitle === null
       ? defaultTitle
-      : renderedTitle.replace(TITLE_LINE_BREAK_PATTERN, " ");
+      : collapseLineBreakRuns(renderedTitle);
 
   const usableTitle: string = title.trim() === "" ? defaultTitle : title;
 
@@ -2812,9 +2826,12 @@ async function findOpenBurnRateAlert(data: {
     query: {
       projectId: data.context.projectId,
       seriesFingerprint: data.fingerprint,
-      currentAlertState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentAlertStateId: QueryHelper.any(
+        await AlertStateService.getUnresolvedAlertStateIds(
+          data.context.projectId,
+        ),
+      ),
     },
     select: {
       _id: true,
@@ -2833,9 +2850,12 @@ async function findOpenBurnRateIncident(data: {
     query: {
       projectId: data.context.projectId,
       seriesFingerprint: data.fingerprint,
-      currentIncidentState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentIncidentStateId: QueryHelper.any(
+        await IncidentStateService.getUnresolvedIncidentStateIds(
+          data.context.projectId,
+        ),
+      ),
     },
     select: {
       _id: true,
@@ -3079,15 +3099,12 @@ async function postBurnRateRaisedFeedItem(data: {
           serviceLevelObjectiveFeedEventType: isAlert
             ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
             : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
-          feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`,
-          moreInformationInMarkdown: [
-            `**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
+          feedInfoInMarkdown:
+            mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
+          moreInformationInMarkdown: FeedMarkdown.bulletList([
+            mdText`**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
             ...getBurnRateFeedMeasurementLines(variables),
-          ]
-            .map((line: string): string => {
-              return `- ${line}`;
-            })
-            .join("\n"),
+          ]).toString(),
           displayColor: Red500,
           postedAt: context.now,
         },
@@ -3096,12 +3113,12 @@ async function postBurnRateRaisedFeedItem(data: {
     }
 
     const recordLabel: string = data.recordNumber
-      ? `${isAlert ? "Alert" : "Incident"} ${escapeMarkdownInline(data.recordNumber)}`
+      ? `${isAlert ? "Alert" : "Incident"} ${data.recordNumber}`
       : isAlert
         ? "an alert"
         : "an incident";
 
-    let recordReference: string = recordLabel;
+    let recordReference: MarkdownText = mdText`${recordLabel}`;
 
     if (data.recordId) {
       const recordLink: string = isAlert
@@ -3118,13 +3135,13 @@ async function postBurnRateRaisedFeedItem(data: {
             )
           ).toString();
 
-      recordReference = `[${recordLabel}](${recordLink})`;
+      recordReference = mdText`[${recordLabel}](${recordLink})`;
     }
 
     const variables: SloBurnRateTemplateVariables = data.declaration.variables;
 
-    const moreInformation: Array<string> = [
-      `**Title:** ${escapeMarkdownInline(data.copy.title)}`,
+    const moreInformation: Array<MarkdownText> = [
+      mdText`**Title:** ${data.copy.title}`,
       ...getBurnRateFeedMeasurementLines(variables),
     ];
 
@@ -3134,12 +3151,10 @@ async function postBurnRateRaisedFeedItem(data: {
       serviceLevelObjectiveFeedEventType: isAlert
         ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
         : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
-      feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised" : "declared"} ${recordReference}.`,
-      moreInformationInMarkdown: moreInformation
-        .map((line: string): string => {
-          return `- ${line}`;
-        })
-        .join("\n"),
+      feedInfoInMarkdown:
+        mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised" : "declared"} ${recordReference}.`.toString(),
+      moreInformationInMarkdown:
+        FeedMarkdown.bulletList(moreInformation).toString(),
       displayColor: Red500,
       postedAt: context.now,
     });
@@ -3158,12 +3173,12 @@ async function postBurnRateRaisedFeedItem(data: {
  */
 function getBurnRateFeedMeasurementLines(
   variables: SloBurnRateTemplateVariables,
-): Array<string> {
+): Array<MarkdownText> {
   return [
-    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
-    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
-    `**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
-    `**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+    mdText`**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
+    mdText`**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
+    mdText`**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
+    mdText`**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
   ];
 }
 
@@ -3184,7 +3199,7 @@ async function postBurnRateResolvedFeedItem(data: {
   const isAlert: boolean = data.output === "alert";
   const record: string = isAlert ? "alert" : "incident";
   const createdVerb: string = isAlert ? "raised" : "declared";
-  const ruleName: string = escapeMarkdownInline(rule.name);
+  const ruleName: string = rule.name || "";
 
   try {
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
@@ -3195,12 +3210,12 @@ async function postBurnRateResolvedFeedItem(data: {
         : ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
       feedInfoInMarkdown:
         data.closure === "resolved-by-hand"
-          ? `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`
-          : `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`,
+          ? mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`.toString()
+          : mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`.toString(),
       moreInformationInMarkdown:
         data.closure === "resolved-by-hand"
-          ? `Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`
-          : `**Reason:** ${data.rootCause}`,
+          ? mdText`Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`.toString()
+          : mdText`**Reason:** ${FeedMarkdown.asMarkdown(data.rootCause)}`.toString(),
       displayColor: Green500,
       postedAt: context.now,
     });
@@ -3315,8 +3330,10 @@ async function sendStatusChangeNotification(data: {
         isSubjectLiteral: true,
       };
 
+      const news: string = `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`;
+
       const sms: SMSMessage = {
-        message: `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`,
+        message: buildNotificationSms(news),
       };
 
       const callMessage: CallRequestMessage = {
@@ -3342,8 +3359,9 @@ async function sendStatusChangeNotification(data: {
           requireInteraction: false,
         });
 
+      // WhatsApp says the news alone, as it did before the SMS gained its words.
       const whatsAppMessage: WhatsAppMessagePayload = {
-        body: sms.message,
+        body: news,
       };
 
       /*

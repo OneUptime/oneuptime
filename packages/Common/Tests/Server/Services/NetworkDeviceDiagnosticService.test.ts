@@ -24,6 +24,15 @@ import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -167,6 +176,7 @@ function pingCreate(
 describe("onBeforeCreate fills the row in from the device", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test.each(["networkDeviceId", "networkDevice"] as const)(
@@ -616,6 +626,7 @@ function flatten(sql: string): string {
 describe("claimPendingForProbe", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   async function claim(
@@ -724,6 +735,7 @@ describe("claimPendingForProbe", () => {
 describe("recordReport", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   const pingResult: NetworkDeviceDiagnosticPingResult = {

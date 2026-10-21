@@ -12,6 +12,11 @@ import {
   getPublicDashboardData,
   PublicDashboardData,
 } from "./src/Server/Utils/PublicDashboard";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
+import { getDashboardThemeHead } from "Common/Types/Dashboard/DashboardTheme";
 
 export const APP_NAME: string = "public-dashboard";
 
@@ -34,20 +39,45 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
       getVariablesToRenderIndexPage: async (
         req: ExpressRequest,
-        _res: ExpressResponse,
+        res: ExpressResponse,
       ) => {
-        const dashboardData: PublicDashboardData | null =
+        const dashboardData: PublicDashboardData | PublicPageNotFound | null =
           await getPublicDashboardData(req);
+
+        if (dashboardData === PUBLIC_PAGE_NOT_FOUND) {
+          /*
+           * No dashboard answers on this link: none was made, it is archived
+           * or shared only with its project, or a master admin blocked its
+           * project. The app still loads and says so, from the placeholder
+           * below, as a 404 kept out of search results (PublicPageNotFound).
+           */
+          applyPublicPageNotFound(res);
+
+          return {
+            title: "Dashboard",
+            description: "View dashboard metrics and insights.",
+            isSearchEngineIndexingEnabled: false,
+            // No dashboard to read a theme from: the page follows the visitor.
+            dashboardTheme: getDashboardThemeHead(null),
+          };
+        }
 
         if (dashboardData) {
           return {
             title: dashboardData.title,
             description: dashboardData.description,
+            // The dashboard's theme, applied before its first paint.
+            dashboardTheme: getDashboardThemeHead(dashboardData.theme),
           };
         }
         return {
           title: "Dashboard",
           description: "View dashboard metrics and insights.",
+          /*
+           * No dashboard to read a theme from: the page follows the
+           * visitor until the app reads the dashboard's own.
+           */
+          dashboardTheme: getDashboardThemeHead(null),
         };
       },
     });

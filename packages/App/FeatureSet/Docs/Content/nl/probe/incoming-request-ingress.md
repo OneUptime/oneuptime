@@ -1,37 +1,56 @@
-# Inkomend verzoek-ingress
+# Ingress voor inkomende verzoeken
 
-Een aangepaste probe kan optioneel een **inkomende HTTP-listener** uitvoeren die `heartbeat`- en `incoming-request`-aanroepen accepteert vanuit uw privénetwerk en deze doorstuurt naar OneUptime. Hierdoor kunnen diensten die **geen uitgaande internettoegang hebben** toch rapporteren aan een [Inkomend verzoek-monitor](/docs/monitor/incoming-request-monitor) door het verzoek te sturen naar een probe op het lokale netwerk in plaats van rechtstreeks naar `oneuptime.com`.
+Een dienst zonder internettoegang kan toch heartbeats sturen naar een [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor). Hij stuurt ze in plaats daarvan naar een [aangepaste sonde](/docs/probe/custom-probe) in zijn eigen netwerk, en de sonde geeft ze door aan OneUptime.
 
-## Overzicht
+:::cards
+- [Hoe het werkt](#hoe-het-werkt): Van uw dienst, via de sonde, naar de monitor.
+- [De listener inschakelen](#de-listener-inschakelen): Eén instelling op de sonde, voor Docker, Docker Compose of Kubernetes.
+- [Verzoeken naar de sonde sturen](#verzoeken-naar-de-sonde-sturen): De URL wijzigen waarnaar uw dienst stuurt, en verder niets.
+- [Probleemoplossing](#probleemoplossing): Wat de sonde logt als een verzoek niet doorkomt.
+:::
 
-Wanneer `PROBE_INGRESS_PORT` is ingesteld, bindt de probe een extra HTTP-listener op die poort. De listener accepteert dezelfde `secretkey` URL-paden als de openbare OneUptime-eindpunten:
+## Hoe het werkt
 
-- `POST /heartbeat/:secretkey`
-- `GET /heartbeat/:secretkey`
-- `POST /incoming-request/:secretkey`
-- `GET /incoming-request/:secretkey`
+```mermaid title="Een heartbeat via de sonde"
+flowchart TB
+    subgraph net["Uw privénetwerk"]
+        direction LR
+        S["Dienst zonder<br/>internettoegang"] -->|"HTTP"| P["Aangepaste sonde"]
+    end
+    P -->|"HTTPS"| O["OneUptime"]
+    O --> M["Inkomende-verzoek-monitor"]
+```
 
-De probe proxieert vervolgens het verzoek naar uw OneUptime-instantie, waarbij de methode, het lichaam en de verzoekheaders behouden blijven (minus hop-by-hop-headers zoals `Host`, `Connection`, `Content-Length`, enz.). De probe voegt automatisch een `OneUptime-Probe-Id`-header toe zodat het verzoek wordt toegeschreven aan de doorsturende probe.
+1. **Uw dienst stuurt het verzoek naar de sonde.** Dezelfde `GET` of `POST`, met dezelfde geheime sleutel, die hij naar OneUptime zou sturen, naar een poort waarop de sonde luistert.
+2. **De sonde antwoordt meteen.** Hij antwoordt `200` voordat hij het verzoek doorgeeft, zodat uw dienst nooit op OneUptime wacht.
+3. **De sonde stuurt het door.** Hij stuurt het verzoek door naar OneUptime met de methode, de headers en de body, en voegt een header `OneUptime-Probe-Id` toe die de sonde noemt.
+4. **OneUptime leest het zoals altijd.** De criteria van de monitor zien het verzoek alsof de dienst het rechtstreeks had gestuurd.
 
-De listener draait op een **speciale poort**, gescheiden van de interne status-/metrics-eindpunten van de probe, zodat u deze kunt blootstellen aan uw privénetwerk zonder iets anders bloot te stellen.
+De listener draait op een eigen poort, los van de gezondheidscontroles van de sonde, zodat u hem voor uw privénetwerk kunt openstellen zonder verder iets open te zetten.
 
-## Wanneer dit gebruiken
+## Wanneer u hem gebruikt
 
-Gebruik de ingress-listener wanneer:
+Gebruik de listener wanneer:
 
 - Uw diensten draaien in een geïsoleerd netwerksegment zonder uitgaande HTTPS-toegang
-- U al het monitoringverkeer binnen uw VPC/on-premises netwerk wilt houden
-- U een enkel uitgangspunt wilt — de probe — die OneUptime mag bereiken
-- U al een [Aangepaste probe](/docs/probe/custom-probe) hebt geïmplementeerd en deze opnieuw wilt gebruiken voor inkomende heartbeats
+- U al het bewakingsverkeer binnen uw VPC of on-premises netwerk moet houden
+- U één uitgangspunt wilt, de sonde, dat OneUptime mag bereiken
+- U al een [aangepaste sonde](/docs/probe/custom-probe) hebt uitgerold en die wilt hergebruiken voor inkomende heartbeats
 
-Als uw diensten al rechtstreeks `https://oneuptime.com` (of uw zelf-gehoste URL) kunnen bereiken, hebt u deze functie **niet** nodig — roep de heartbeat-URL rechtstreeks aan vanuit de dienst.
+Kunnen uw diensten `https://oneuptime.com` (of uw zelf gehoste URL) al rechtstreeks bereiken, dan hebt u deze functie **niet** nodig: roep de heartbeat-URL rechtstreeks vanuit de dienst aan.
 
-## De ingress-listener inschakelen
+## Voordat u begint
 
-Stel `PROBE_INGRESS_PORT` in op de poort waarop u de listener wilt binden. Elke waarde groter dan `0` schakelt de listener in; als u dit niet instelt (of `0`), wordt deze uitgeschakeld.
+- **Een draaiende aangepaste sonde.** Zijn **Status** toont **Verbonden**. Zie [Aangepaste probes](/docs/probe/custom-probe) om er een te installeren.
+- **Een monitor voor inkomende verzoeken.** Zijn heartbeat-URL bevat de geheime sleutel die uw dienst stuurt: zie [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor).
+- **Een poort op de host van de sonde die uw diensten kunnen bereiken.** De voorbeelden gebruiken `3875`.
 
-### Docker
+## De listener inschakelen
 
+Stel `PROBE_INGRESS_PORT` in op de poort die de listener moet gebruiken. Elke waarde groter dan `0` schakelt hem in; niet ingesteld, of `0`, laat hem uit.
+
+:::tabs
+@tab Docker
 ```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
@@ -41,23 +60,9 @@ docker run --name oneuptime-probe --network host \
   -d oneuptime/probe:release
 ```
 
-Als u `--network host` niet gebruikt, publiceer de ingress-poort dan expliciet:
-
-```bash
-docker run --name oneuptime-probe \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e PROBE_INGRESS_PORT=3875 \
-  -p 3875:3875 \
-  -d oneuptime/probe:release
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-
+Zonder `--network host` publiceert u de poort met `-p 3875:3875`.
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -67,14 +72,13 @@ services:
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
       - PROBE_INGRESS_PORT=3875
-    ports:
-      - "3875:3875"
+    network_mode: host
     restart: always
 ```
 
-### Kubernetes
-
-```yaml
+Zonder `network_mode: host` publiceert u de poort onder `ports:` als `"3875:3875"`.
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -118,72 +122,94 @@ spec:
   type: ClusterIP
 ```
 
-Interne diensten kunnen dan heartbeats sturen naar `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+Diensten in het cluster sturen dan naar `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+:::
 
-## Verzoeken versturen naar de probe
+Draait de listener, dan staat in het log van de sonde `Probe ingress listener started on port 3875 (heartbeat / incoming-request endpoints)`.
 
-Vervang de openbare heartbeat-URL:
+## Verzoeken naar de sonde sturen
 
-```
+Uw dienst stuurt naar de sonde in plaats van naar OneUptime. Vervang de openbare heartbeat-URL:
+
+```text
 https://oneuptime.com/heartbeat/<secret-key>
 ```
 
-door de ingress-URL van de probe:
+door de ingress-URL van de sonde:
 
-```
+```text
 http://<probe-host>:<PROBE_INGRESS_PORT>/heartbeat/<secret-key>
 ```
 
-Het pad, de methode, het lichaam en de headers zijn verder identiek, zodat bestaande clientcode alleen de basis-URL hoeft te wijzigen.
-
-### Voorbeelden
+Pad, methode, body en headers blijven verder gelijk, dus bestaande clientcode hoeft alleen de basis-URL te wijzigen. De sonde accepteert ook `/incoming-request/<secret-key>`, dat op dezelfde manier werkt.
 
 ```bash
 # GET heartbeat
 curl http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY
 
-# POST heartbeat met JSON-lichaam
+# POST heartbeat with JSON body
 curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
   -H "Content-Type: application/json" \
   -d '{"status": "healthy", "version": "1.2.3"}'
 
-# Cron-taak
+# Cron job
 */5 * * * * curl -s http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
 
-## Doorstuurgedrag
+## Hoe verzoeken worden doorgestuurd
 
-- **Synchrone respons, asynchrone doorsturing.** De probe bevestigt het inkomende verzoek onmiddellijk met een `200` en stuurt door naar OneUptime op de achtergrond. Uw dienst hoeft niet te wachten tot de doorsturing is voltooid.
-- **Headers worden bewaard.** Alle headers behalve hop-by-hop-headers (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) worden doorgegeven. De probe voegt een `OneUptime-Probe-Id`-header toe die zichzelf identificeert.
-- **Lichaam wordt bewaard.** JSON-, URL-gecodeerde en onbewerkte `application/octet-stream`-payloads tot **50 MB** worden geaccepteerd.
-- **Nieuwe pogingen met backoff.** Als de doorsturing mislukt, probeert de probe opnieuw tot `PROBE_INGRESS_FORWARD_RETRY_LIMIT` keer met exponentiële backoff (2s, 4s, 8s, maximaal 15s).
-- **Proxy-bewust.** Als de probe zelf is geconfigureerd met `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`, gaan doorgestuurde verzoeken via de proxy.
+| Wat | Hoe de sonde ermee omgaat |
+| --- | --- |
+| Het antwoord | `200` met een leeg JSON-object (`{}`), gestuurd voordat het verzoek wordt doorgestuurd. Net als bij OneUptime wordt het gestuurd wat er daarna ook gebeurt: ook een verkeerde geheime sleutel krijgt het. |
+| Methoden | `POST` wordt doorgestuurd als `POST`. `GET`, en `HEAD`, worden doorgestuurd als `GET`. Andere methoden krijgen een `404` van de sonde. |
+| Headers | Alle, behalve de hop-by-hop-headers (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) en `Content-Encoding`, omdat de sonde de body ongecomprimeerd doorstuurt. De sonde voegt `OneUptime-Probe-Id` toe. |
+| De body | JSON- en formulierbody's tot 50 MB, net als wanneer u rechtstreeks naar OneUptime stuurt. Net als daar komt elke andere body leeg bij de monitor aan. |
+| Herhalingen | Mislukt het doorsturen, dan probeert de sonde het tot `PROBE_INGRESS_FORWARD_RETRY_LIMIT` keer opnieuw en wacht daarbij 2 s, dan 4 s, dan 8 s, en nooit langer dan 15 s. Daarna logt hij de fout en laat het verzoek vallen. |
+| Proxy's | Het doorsturen gaat via de proxy van de sonde als `HTTP_PROXY_URL` of `HTTPS_PROXY_URL` is ingesteld. |
+| Waar het heen gaat | `ONEUPTIME_URL`, gevolgd door `/incoming-request-ingest/incoming-request/<secret-key>`. |
 
 ## Omgevingsvariabelen
 
-| Variabele                           | Standaard                        | Beschrijving                                                                                                             |
-| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `PROBE_INGRESS_PORT`                | _niet ingesteld_ (uitgeschakeld) | Poort waarop de inkomende listener bindt. Elke waarde `> 0` schakelt ingress in.                                         |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                          | Time-out (ms) voor elke doorstuurpoging naar OneUptime. Minimum `1000`.                                                  |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                              | Aantal nieuwe pogingen voordat de probe opgeeft met een doorsturing. Stel in op `0` om nieuwe pogingen uit te schakelen. |
+| Variabele | Standaard | Wat hij doet |
+| --- | --- | --- |
+| `PROBE_INGRESS_PORT` | niet ingesteld (uit) | De poort die de listener gebruikt. Elke waarde groter dan `0` schakelt hem in. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Hoe lang elk doorsturen naar OneUptime mag duren, in milliseconden. Een waarde onder `1000` valt terug op de standaard. |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Hoe vaak een mislukt doorsturen opnieuw wordt geprobeerd. `0` zet herhalingen uit. |
 
-De standaard probe-variabelen (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxy-variabelen) zijn allemaal van toepassing — zie [Aangepaste probes](/docs/probe/custom-probe) voor de volledige lijst.
+De gewone variabelen van de sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` en de proxyvariabelen) gelden allemaal: zie [Aangepaste probes](/docs/probe/custom-probe) voor de volledige lijst.
 
 ## Beveiligingsoverwegingen
 
-- **Het eindpunt is ontworpen zonder authenticatie** — de geheime sleutel in het URL-pad _is_ de authenticatie, net als op het openbare `oneuptime.com`-eindpunt. Behandel de geheime sleutel als een inloggegevens.
-- **Bind alleen aan een privé-interface.** De ingress-listener mag niet bereikbaar zijn vanaf het publieke internet. Gebruik een netwerkbeleid, firewallregel of `ClusterIP`-service om de toegang te beperken.
-- **Gebruik HTTPS-beëindiging als u versleuteling in transit vereist.** De listener van de probe spreekt gewoon HTTP. Plaats hem achter een interne load balancer/ingress controller als u TLS op de inkomende hop nodig heeft. Het doorstuurgedeelte van probe → OneUptime gebruikt altijd HTTPS (aangenomen dat `ONEUPTIME_URL` `https://` is).
-- **Resourcelimieten.** De listener accepteert verzoeklichamen tot 50 MB. Als u een strengere limiet nodig heeft, plaatst u een reverse proxy ervoor.
+- **Het endpoint is bewust niet geauthenticeerd**: de geheime sleutel in het URL-pad *is* de authenticatie, net als bij het openbare endpoint `oneuptime.com`. Behandel de geheime sleutel als een inloggegeven.
+- **Houd de listener in uw privénetwerk.** Hij hoort niet bereikbaar te zijn vanaf internet. Gebruik een network policy, een firewallregel of een `ClusterIP`-service om te beperken wie hem kan bereiken.
+- **Zet TLS ervoor als u versleuteling in uw netwerk nodig hebt.** De listener spreekt gewoon HTTP. Plaats hem achter een interne load balancer of ingress-controller voor TLS op dat traject. Het doorsturen van de sonde naar OneUptime gebruikt HTTPS wanneer `ONEUPTIME_URL` met `https://` begint.
+- **Begrens de bodygrootte zelf als 50 MB te veel is.** Plaats een reverse proxy met een lagere grens vóór de listener.
 
 ## Probleemoplossing
 
-- **Probe logt `Probe ingress listener started on port <port>` bij opstarten** — bevestigt dat de listener actief is. Als u deze regel niet ziet, is `PROBE_INGRESS_PORT` niet ingesteld, `0` of ongeldig.
-- **`Probe ingress: failed to forward to <url> after N attempts`** — de probe kon OneUptime niet bereiken. Controleer de uitgaande connectiviteit van de probe, de proxyinstellingen en de waarde van `ONEUPTIME_URL`.
-- **`Probe ingress: probe ID not available, forwarding without it`** — de probe is nog niet geregistreerd. De doorsturing slaagt toch; de heartbeat wordt eenvoudigweg niet toegeschreven aan een probe.
-- **Heartbeat verschijnt in OneUptime maar niet via de probe** — bevestig dat uw dienst `http://<probe-host>:<port>/...` aanroept en niet de openbare URL. Een onjuist geconfigureerde DNS- of `/etc/hosts`-vermelding is de gebruikelijke oorzaak.
+:::details Het log van de sonde meldt nooit dat de listener is gestart
+`PROBE_INGRESS_PORT` is niet ingesteld, `0` of geen getal. Stel een poortnummer in en start de sonde opnieuw. De logregel is `Probe ingress listener started on port <port> (heartbeat / incoming-request endpoints)`.
+:::
 
-## Gerelateerd
+:::details De sonde logt `Probe ingress: failed to forward to <url> after N attempts`
+De sonde kon OneUptime niet bereiken, ook niet na de herhalingen. Controleer de uitgaande connectiviteit van de sonde, de proxy-instellingen en de waarde van `ONEUPTIME_URL`. Toont de sonde ook **Verbinding verbroken**, zie dan [Aangepaste probes](/docs/probe/custom-probe) om te vinden waar zijn verzoeken blijven steken.
+:::
 
-- [Aangepaste probes](/docs/probe/custom-probe)
-- [Inkomend verzoek-monitor](/docs/monitor/incoming-request-monitor)
+:::details De sonde logt `Probe ingress: probe ID not available, forwarding without it`
+De sonde is nog niet klaar met verbinden met OneUptime en stuurt het verzoek daarom door zonder de header `OneUptime-Probe-Id`. Het verzoek bereikt de monitor toch.
+:::
+
+:::details De monitor krijgt de verzoeken, maar niet via de sonde
+Uw dienst stuurt nog naar de openbare URL. Controleer of hij naar `http://<probe-host>:<port>/...` stuurt: een DNS-naam of een vermelding in `/etc/hosts` die ergens anders naartoe wijst, is de gebruikelijke oorzaak.
+:::
+
+:::details De monitor krijgt niets, en de sonde logt niets
+Het verzoek heeft de sonde nooit bereikt. Controleer of de dienst de host van de sonde op de poort kan bereiken: een firewallregel, een niet gepubliceerde poort, of een Kubernetes-Service die de pod van de sonde niet selecteert.
+:::
+
+## Volgende stappen
+
+:::cards
+- [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor): Bepalen wat telt als een gezonde heartbeat.
+- [Aangepaste probes](/docs/probe/custom-probe): De sonde installeren, en elke instelling die hij leest.
+:::

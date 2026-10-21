@@ -160,6 +160,10 @@ describe("Every product is fully populated", () => {
   );
 });
 
+// Single sign-on as copy names it.
+const SINGLE_SIGN_ON_WORDING: RegExp =
+  /\bSSO\b|single sign-on|\bSAML\b|\bOIDC\b|OpenID Connect/i;
+
 const FULLY_OPEN_SOURCE_CLAIM: RegExp = /OneUptime is fully open[- ]source/i;
 
 const WHOLE_PLATFORM_FREE_CLAIM: RegExp =
@@ -167,10 +171,12 @@ const WHOLE_PLATFORM_FREE_CLAIM: RegExp =
 
 describe("Comparison copy matches the Community / Enterprise Edition split", () => {
   /*
-   * OneUptime is open-core: SSO, SCIM and audit logs live in the separately
-   * licensed ee/ directory. The SigNoz page used to contrast "OneUptime is
-   * fully Apache 2.0 across the platform" with SigNoz's open-core ee module,
-   * which now describes OneUptime as well.
+   * OneUptime is open-core: SCIM, audit logs, team compliance and the instance
+   * health dashboards live in the separately licensed ee/ directory, while
+   * SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition
+   * (on OneUptime Cloud, SSO is on the Scale plan). The SigNoz page used to
+   * contrast "OneUptime is fully Apache 2.0 across the platform" with
+   * SigNoz's open-core ee module, which now describes OneUptime as well.
    */
   const signoz: Product = ProductCompare("signoz");
 
@@ -199,13 +205,53 @@ describe("Comparison copy matches the Community / Enterprise Edition split", () 
     expect(row!.oneuptimeColumn).toContain("Apache 2.0");
   });
 
-  test("the SigNoz SSO row no longer implies OneUptime SSO is ungated", () => {
+  test("the SigNoz SSO row puts OneUptime single sign-on in the Community Edition, and on the Scale plan on Cloud", () => {
     const row: Item | undefined = findSignozRow("SSO/SAML");
 
     expect(row).toBeDefined();
-    expect(row!.oneuptimeColumn).not.toBe("tick");
-    expect(row!.oneuptimeColumn).toContain("Enterprise Edition");
+    expect(row!.productColumn).toBe("Enterprise only");
+    expect(row!.oneuptimeColumn).toBe("Community Edition; Scale plan on Cloud");
+    expect(row!.oneuptimeColumn).not.toContain("Enterprise Edition");
   });
+
+  test("the SigNoz FAQ names single sign-on with the Community Edition, and SCIM and audit logs as what the enterprise module adds", () => {
+    const answer: string = signoz.faq.find((faq: FAQ) => {
+      return faq.question === "Is SigNoz really open source like OneUptime?";
+    })!.answer;
+    const [communityPart, enterprisePart] = answer.split(
+      "its enterprise module adds",
+    ) as [string, string];
+
+    expect(communityPart).toContain("Apache 2.0 Community Edition");
+    expect(communityPart).toContain("SAML and OIDC single sign-on");
+    expect(enterprisePart).toContain(
+      "SCIM, audit logs, and instance administration",
+    );
+    expect(enterprisePart).not.toMatch(SINGLE_SIGN_ON_WORDING);
+  });
+
+  test.each([
+    ["pagerduty", "Is OneUptime enterprise-ready?"],
+    [
+      "elastic",
+      "Does OneUptime meet enterprise security and compliance needs?",
+    ],
+  ])(
+    "the %s enterprise FAQ puts single sign-on in the Apache 2.0 platform, and only audit logs in the Enterprise Edition",
+    (slug: string, question: string) => {
+      const answer: string = ProductCompare(slug).faq.find((faq: FAQ) => {
+        return faq.question === question;
+      })!.answer;
+
+      expect(answer).toContain("SAML and OIDC single sign-on included");
+      expect(answer).toMatch(
+        /audit logs (?:need|are part of) the Enterprise Edition/,
+      );
+      expect(answer).not.toMatch(
+        /SSO\/SAML and audit logs (?:need|are part of) the Enterprise Edition/,
+      );
+    },
+  );
 
   test("the SigNoz page no longer sells OneUptime as a single permissive license", () => {
     const text: string = [
@@ -372,6 +418,39 @@ describe("Comparison pages, as rendered, use no retired edition language", () =>
     expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toEqual([]);
   });
 
+  test("a FAQ that files OneUptime single sign-on under the Enterprise Edition is caught, and the accurate answer passes", () => {
+    const withAnswer: (answer: string) => Product = (
+      answer: string,
+    ): Product => {
+      return {
+        ...ProductCompare(slugs[0]!),
+        faq: [{ question: "Is OneUptime enterprise-ready?", answer }],
+      };
+    };
+
+    const found: Array<string> = retiredEditionLanguageIn(
+      oneUptimeCopyOf(
+        withAnswer(
+          "Yes. The Apache 2.0 Community Edition can be self-hosted; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+        ),
+      ),
+    );
+
+    expect(found).toHaveLength(1);
+    expect(found[0]).toContain(
+      "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition",
+    );
+    expect(
+      retiredEditionLanguageIn(
+        oneUptimeCopyOf(
+          withAnswer(
+            "Yes. The Apache 2.0 Community Edition, SAML and OIDC single sign-on included, can be self-hosted; self-hosted audit logs need the Enterprise Edition and an Enterprise license.",
+          ),
+        ),
+      ),
+    ).toEqual([]);
+  });
+
   test("the accurate Community Edition row passes", () => {
     const planted: Product = {
       ...ProductCompare(slugs[0]!),
@@ -392,5 +471,62 @@ describe("Comparison pages, as rendered, use no retired edition language", () =>
     };
 
     expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toEqual([]);
+  });
+});
+
+/*
+ * Paid plans are priced per user per month (Utils/Pricing.ts), and a seat is
+ * each unique team member in the project. Comparison copy used to tell buyers
+ * the opposite - "no per-seat fees", "$0 per user", "seats included",
+ * "unlimited users" - and to price Growth as a flat ~$99/mo tier. Saying
+ * on-call is included rather than a paid add-on, or that there is no cap on
+ * team members, is still fine.
+ */
+const NO_SEAT_PRICING_CLAIM: RegExp =
+  /\bno (?:extra |additional )?per[- ](?:seat|user|responder|person)\b|\bwithout per[- ](?:seat|user)\b|\bnot per[- ]seat\b|\bseats? included\b|\$0 per user|\bunlimited (?:users|user seats|team members|team seats|teammates|responders)\b|\bdoes not charge per user\b|\bnot seats\b|\binstead of per[- ](?:user|seat)\b|\bwithout (?:cost scaling|growing the bill)\b|\bfree to add\b|\bnever inflates\b/i;
+
+const FLAT_GROWTH_PRICE_CLAIM: RegExp =
+  /\bGrowth\b[^."]{0,40}\$99\b|\$99\b[^."]{0,20}\bGrowth\b/i;
+
+type SeatPricingDenialsFunction = (copy: Array<string>) => Array<string>;
+
+const seatPricingDenialsIn: SeatPricingDenialsFunction = (
+  copy: Array<string>,
+): Array<string> => {
+  return copy.filter((text: string) => {
+    return (
+      NO_SEAT_PRICING_CLAIM.test(text) || FLAT_GROWTH_PRICE_CLAIM.test(text)
+    );
+  });
+};
+
+describe("Comparison pages do not deny per-user pricing", () => {
+  test.each(slugs)(
+    "%s does not say OneUptime has no per-seat pricing",
+    (slug: string) => {
+      expect(
+        seatPricingDenialsIn(oneUptimeCopyOf(ProductCompare(slug))),
+      ).toEqual([]);
+    },
+  );
+
+  test.each([
+    "Add team members without cost scaling",
+    "OneUptime charges a flat $1 per active monitor with no per-seat fees",
+    "About $50/mo for 50 active monitors, seats included",
+    "~$600 / year for 50 monitors, $0 per user",
+    "OneUptime with unlimited users and monitoring included",
+    "No. OneUptime pricing is based on usage, not seats.",
+    "Predictable Growth tier around $99/mo, status pages included",
+  ])("the retired wording is caught: %s", (text: string) => {
+    expect(seatPricingDenialsIn([text])).toEqual([text]);
+  });
+
+  test.each([
+    "Built-in on-call rotations and escalations included, not a separate paid add-on",
+    "Paid plans from $22 per user per month, with no cap on team members",
+    "Status pages with unlimited subscribers included, not a seat-based add-on",
+  ])("accurate wording passes: %s", (text: string) => {
+    expect(seatPricingDenialsIn([text])).toEqual([]);
   });
 });

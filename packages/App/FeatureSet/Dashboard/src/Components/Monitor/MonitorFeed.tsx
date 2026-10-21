@@ -1,23 +1,27 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
-import Feed from "Common/UI/Components/Feed/Feed";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import MonitorFeed, {
   MonitorFeedEventType,
 } from "Common/Models/DatabaseModels/MonitorFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import {
+  FeedEntryKind,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -36,32 +40,45 @@ export interface ComponentProps {
 
 const DEFAULT_TITLE: string = "Monitor Feed";
 const DEFAULT_DESCRIPTION: string =
-  "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here.";
+  "Everything that has happened to this monitor, newest first.";
 
 /*
- * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match.
+ * What each event type is (FeedEntryKind): its icon and colour, and whether a
+ * burst of it folds together. Shared by the feed items and the event type
+ * filter's checklist (the feed's ⋯ menu), so the two always match. A status
+ * change is drawn in the new status's colour.
  */
-export const MONITOR_FEED_ICONS: Record<MonitorFeedEventType, IconProp> = {
-  [MonitorFeedEventType.MonitorCreated]: IconProp.AltGlobe,
-  [MonitorFeedEventType.MonitorStatusChanged]: IconProp.ArrowCircleRight,
-  [MonitorFeedEventType.MonitorUpdated]: IconProp.Edit,
-  [MonitorFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [MonitorFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
-  [MonitorFeedEventType.OwnerUserAdded]: IconProp.User,
-  [MonitorFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [MonitorFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [MonitorFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [MonitorFeedEventType.OwnerRuleExecuted]: IconProp.Circle,
-  [MonitorFeedEventType.LabelRuleExecuted]: IconProp.Circle,
+export const MONITOR_FEED_KINDS: Record<MonitorFeedEventType, FeedEntryKind> = {
+  [MonitorFeedEventType.MonitorCreated]: {
+    ...SHARED_FEED_ENTRY_KINDS.Created,
+    icon: IconProp.AltGlobe,
+  },
+  [MonitorFeedEventType.MonitorStatusChanged]:
+    SHARED_FEED_ENTRY_KINDS.StateChanged,
+  [MonitorFeedEventType.MonitorUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+  [MonitorFeedEventType.OwnerNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+  [MonitorFeedEventType.SubscriberNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+  [MonitorFeedEventType.OwnerUserAdded]: SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [MonitorFeedEventType.OwnerTeamAdded]: SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [MonitorFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [MonitorFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [MonitorFeedEventType.OwnerRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+  [MonitorFeedEventType.LabelRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
 };
+
+export const MONITOR_FEED_ICONS: Record<MonitorFeedEventType, IconProp> =
+  getFeedIcons(MONITOR_FEED_KINDS);
 
 export const getMonitorFeedEventIcon: (eventType: string) => IconProp = (
   eventType: string,
 ): IconProp => {
-  return (
-    MONITOR_FEED_ICONS[eventType as MonitorFeedEventType] || IconProp.Circle
-  );
+  return getFeedEntryKind({ kinds: MONITOR_FEED_KINDS, eventType }).icon;
 };
 
 const MonitorFeedElement: FunctionComponent<ComponentProps> = (
@@ -84,14 +101,26 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromMonitorFeed: GetFeedItemFromMonitorFeed = (
     monitorFeed: MonitorFeed,
   ): FeedItemProps => {
+    const kind: FeedEntryKind = getFeedEntryKind({
+      kinds: MONITOR_FEED_KINDS,
+      eventType: monitorFeed.monitorFeedEventType,
+    });
+
     return {
       key: monitorFeed.id!.toString(),
       textInMarkdown: monitorFeed.feedInfoInMarkdown || "",
       moreTextInMarkdown: monitorFeed.moreInformationInMarkdown || "",
       user: monitorFeed.user,
       itemDateTime: monitorFeed.postedAt || monitorFeed.createdAt!,
-      color: monitorFeed.displayColor || Gray500,
-      icon: getMonitorFeedEventIcon(monitorFeed.monitorFeedEventType || ""),
+      color: getFeedEntryColor({
+        kind: kind,
+        rowColor: monitorFeed.displayColor,
+      }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      detailsLabel: kind.moreText,
+      isNote: kind.isNote,
+      eventType: monitorFeed.monitorFeedEventType,
     };
   };
 
@@ -102,16 +131,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: props.monitorId.toString(),
   });
 
-  const {
-    feedItems,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    refresh,
-    loadMore,
-  } = useFeedItems<MonitorFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<MonitorFeed>({
     resourceKey: props.monitorId.toString(),
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -149,50 +169,23 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
+    <FeedCard
       title={props.title || DEFAULT_TITLE}
       description={props.description || DEFAULT_DESCRIPTION}
-      buttons={[
-        <FeedOptionsButton
-          key="monitor-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={feed.refresh}
     >
       <div>
-        {/*
-         * The loader is for a feed that has not loaded yet (first load, or
-         * another monitor). A refresh keeps the items on screen and swaps
-         * them when the new page arrives, so a poll never blanks the feed.
-         */}
-        {!isCurrentFeedLoaded && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this monitor.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this monitor yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

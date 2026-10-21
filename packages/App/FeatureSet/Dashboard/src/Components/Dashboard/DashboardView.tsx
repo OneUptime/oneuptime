@@ -15,6 +15,7 @@ import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import TimeRange from "Common/Types/Time/TimeRange";
 import { ObjectType } from "Common/Types/JSON";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
@@ -66,6 +67,8 @@ import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
+import DashboardStorageArrayVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardStorageArrayVolumeListComponent";
+import DashboardStorageArrayHardwareListComponentUtil from "Common/Utils/Dashboard/Components/DashboardStorageArrayHardwareListComponent";
 import DashboardNetworkMapComponentUtil from "Common/Utils/Dashboard/Components/DashboardNetworkMapComponent";
 import DashboardHtmlComponentUtil from "Common/Utils/Dashboard/Components/DashboardHtmlComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -76,15 +79,16 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import useDashboardTimeRangeZoom, {
-  DashboardTimeRangeZoom,
-} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
-import TimeRange from "Common/Types/Time/TimeRange";
+import { DashboardTimeRangeZoom } from "Common/UI/Utils/UseDashboardTimeRangeZoom";
+import useDashboardViewerSettings, {
+  DashboardViewerSettings,
+} from "Common/UI/Utils/UseDashboardViewerSettings";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable, {
   DashboardVariableOption,
@@ -98,6 +102,11 @@ import PermissionGate, {
 
 export interface ComponentProps {
   dashboardId: ObjectID;
+  /*
+   * Opens the dashboard's Sharing page from the toolbar's ⋯ menu (Share).
+   * The page that shows the dashboard knows where that is.
+   */
+  onShareClick?: (() => void) | undefined;
 }
 
 type SaveDashboardViewConfigFunction = (
@@ -112,15 +121,30 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * The board's one time range, plus the undo that makes drag-to-zoom on a
-   * panel reversible. A drag-selection on any time-series widget retimes
-   * every widget; a double-click on one puts them all back.
+   * The Add Widget dialog, opened by the toolbar's Add Widget while editing
+   * or by the empty board's own (startWithFirstWidget, below).
    */
-  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
-    range: TimeRange.PAST_ONE_HOUR,
+  const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] =
+    useState<boolean>(false);
+
+  /*
+   * The board's time range and auto-refresh as this viewer has them, shared
+   * with the public dashboard (issue #5080): a link's, else their own pick
+   * that their browser remembers for this dashboard, else the dashboard's
+   * defaults (applied as its config loads), else the past hour with no
+   * auto-refresh. Inside it, the board's one time range plus the undo that
+   * makes drag-to-zoom on a panel reversible: a drag-selection on any
+   * time-series widget retimes every widget; a double-click on one puts them
+   * all back.
+   */
+  const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({
+    dashboardId: props.dashboardId.toString(),
   });
+  const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;
   const startAndEndDate: RangeStartAndEndDateTime =
     timeRangeZoom.startAndEndDate;
+  const autoRefreshInterval: AutoRefreshInterval =
+    viewerSettings.autoRefreshInterval;
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -150,9 +174,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const canEditDashboard: boolean = editGate.isAllowed;
 
-  // Auto-refresh state
-  const [autoRefreshInterval, setAutoRefreshInterval] =
-    useState<AutoRefreshInterval>(AutoRefreshInterval.OFF);
+  // Auto-refresh state: the interval itself is the viewer settings'.
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [dashboardVariables, setDashboardVariables] = useState<
     Array<DashboardVariable>
@@ -216,11 +238,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   /*
    * Takes the config to persist as an argument rather than reading the
-   * `dashboardViewConfig` state. The caller stamps the auto-refresh interval
-   * onto the config immediately before saving, and a setState is not visible
-   * to the closure that scheduled it - so reading the state here wrote the
-   * board the user had *before* their last change to the refresh interval,
-   * and that setting only landed on the following save.
+   * `dashboardViewConfig` state, so what is written is exactly the board the
+   * caller hands over - a setState is not visible to the closure that
+   * scheduled it.
    *
    * Returns whether the write actually happened, so the caller can keep the
    * user in edit mode with their work intact when it did not.
@@ -309,10 +329,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const config: DashboardViewConfig = JSONFunctions.deserializeValue(
-        dashboard.dashboardViewConfig ||
-          DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-      ) as DashboardViewConfig;
+      /*
+       * Whatever shape the config was stored in - the API reference's
+       * envelope, JSON text, no widget list, widgets without arguments - is
+       * read into the one the board draws (issue #4571: the stored config
+       * had no `components` and the board never opened).
+       */
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read(
+        dashboard.dashboardViewConfig,
+      );
 
       setDashboardViewConfig(config);
       setDashboardName(
@@ -322,10 +347,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboard.pageDescription || dashboard.description || "",
       );
 
-      // Restore saved auto-refresh interval
-      if (config.refreshInterval) {
-        setAutoRefreshInterval(config.refreshInterval);
-      }
+      /*
+       * The dashboard's own default time range and auto-refresh. They move
+       * the board only for a viewer on the default: a link's or the
+       * viewer's own pick stays, on load and on Discard Changes alike.
+       */
+      viewerSettings.applySavedDefaults(config);
 
       /*
        * Restore saved variables, with URL overrides applied so shared
@@ -490,6 +517,63 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setSelectedComponentId(null);
   }, []);
 
+  /*
+   * Edit mode, from the toolbar's Edit Dashboard or the empty board's Add
+   * Widget. Readers get no editor: see `editGate` above.
+   */
+  const startEditing: () => void = (): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    setSaveError(null);
+    /*
+     * Editing hides the time-range picker and the reset button, so a
+     * board left zoomed would be stranded on a Custom window with no
+     * way out until the user leaves edit mode. Drop the zoom on the
+     * way in.
+     */
+    timeRangeZoom.resetZoom();
+    /*
+     * Heal any layout corruption (overlapping or out-of-bounds
+     * widgets saved by older builds) before editing starts, so
+     * every drag begins from a valid board.
+     */
+    setDashboardViewConfig(
+      DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
+    );
+    setDashboardMode(DashboardMode.Edit);
+  };
+
+  /*
+   * The empty board's Add Widget: a dashboard made from Blank Dashboard
+   * opens empty (Pages/Dashboards), and its next step is its first widget -
+   * so this goes straight to edit mode with the widget catalog open. Only
+   * someone who may edit gets the button (the canvas is handed no handler
+   * otherwise).
+   */
+  const startWithFirstWidget: () => void = (): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    startEditing();
+    setIsAddWidgetModalOpen(true);
+  };
+
+  /*
+   * A widget that cannot be drawn offers Edit widget (DashboardWidgetFallback):
+   * edit mode with that widget's settings open, where it can be fixed or
+   * deleted. Handed to the canvas only for someone who may edit the board.
+   */
+  const editWidget: (componentId: ObjectID) => void = (
+    componentId: ObjectID,
+  ): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    startEditing();
+    setSelectedComponentId(componentId);
+  };
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -533,14 +617,17 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboardDescription={dashboardDescription}
         isSaving={isSaving}
         onSaveClick={() => {
-          // Save auto-refresh interval with the config
-          const configWithRefresh: DashboardViewConfig = {
-            ...dashboardViewConfig,
-            refreshInterval: autoRefreshInterval,
-          };
-          setDashboardViewConfig(configWithRefresh);
+          /*
+           * The board as it was edited, its defaults included - and only
+           * those. Save Changes used to stamp whatever auto-refresh the
+           * editor had last picked while viewing onto the dashboard, so an
+           * editor who had turned refresh off for a while turned it off for
+           * every viewer with an unrelated save (issue #5080). The defaults
+           * change only through the editing row (onDashboardDefaultsChange).
+           */
+          const configToSave: DashboardViewConfig = dashboardViewConfig;
 
-          saveDashboardViewConfig(configWithRefresh)
+          saveDashboardViewConfig(configToSave)
             .then((didSave: boolean) => {
               /*
                * Only leave edit mode once the board is actually persisted.
@@ -548,6 +635,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
                * looked exactly like a successful one.
                */
               if (didSave) {
+                /*
+                 * An editor who changed a default sees it at once: their
+                 * own pick of that setting gives way to it.
+                 */
+                viewerSettings.applySavedDefaults(configToSave, {
+                  followChangedDefaults: true,
+                });
                 setDashboardMode(DashboardMode.View);
               }
             })
@@ -559,8 +653,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          timeRangeZoom.setStartAndEndDate(newStartAndEndDate);
+          /*
+           * An explicit pick, a new baseline: a preset is remembered for
+           * this dashboard and goes in the address, a custom range is not.
+           */
+          viewerSettings.pickTimeRange(newStartAndEndDate);
         }}
+        defaultTimeRange={viewerSettings.defaultTimeRange}
+        isOnDefaultTimeRange={viewerSettings.isOnDefaultTimeRange}
+        onDefaultTimeRangeSelect={viewerSettings.pickDefaultTimeRange}
         isTimeRangeZoomed={timeRangeZoom.isZoomed}
         onResetTimeRangeZoom={timeRangeZoom.resetZoom}
         onCancelEditClick={async () => {
@@ -571,32 +672,40 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         canEditDashboard={canEditDashboard}
         editDashboardDisabledReason={editGate.disabledReason}
-        onEditClick={() => {
-          // Readers get no editor. See `editGate` above.
-          if (!canEditDashboard) {
-            return;
-          }
-          setSaveError(null);
-          /*
-           * Editing hides the time-range picker and the reset button, so a
-           * board left zoomed would be stranded on a Custom window with no
-           * way out until the user leaves edit mode. Drop the zoom on the
-           * way in.
-           */
-          timeRangeZoom.resetZoom();
-          /*
-           * Heal any layout corruption (overlapping or out-of-bounds
-           * widgets saved by older builds) before editing starts, so
-           * every drag begins from a valid board.
-           */
-          setDashboardViewConfig(
-            DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
-          );
-          setDashboardMode(DashboardMode.Edit);
-        }}
+        onShareClick={props.onShareClick}
+        onEditClick={startEditing}
+        isAddWidgetModalOpen={isAddWidgetModalOpen}
+        onAddWidgetModalOpenChange={setIsAddWidgetModalOpen}
         autoRefreshInterval={autoRefreshInterval}
         onAutoRefreshIntervalChange={(interval: AutoRefreshInterval) => {
-          setAutoRefreshInterval(interval);
+          viewerSettings.pickAutoRefreshInterval(interval);
+        }}
+        defaultAutoRefreshInterval={viewerSettings.defaultAutoRefreshInterval}
+        isOnDefaultAutoRefresh={viewerSettings.isOnDefaultAutoRefresh}
+        onDefaultAutoRefreshSelect={
+          viewerSettings.pickDefaultAutoRefreshInterval
+        }
+        onDashboardDefaultsChange={(defaults: {
+          timeRange?: TimeRange | undefined;
+          refreshInterval?: AutoRefreshInterval | undefined;
+        }) => {
+          /*
+           * Set on purpose, in the config being edited: saved with Save
+           * Changes, thrown away with Discard Changes.
+           */
+          setDashboardViewConfig((previous: DashboardViewConfig) => {
+            const next: DashboardViewConfig = { ...previous };
+
+            if (defaults.timeRange) {
+              next.timeRange = defaults.timeRange;
+            }
+
+            if (defaults.refreshInterval) {
+              next.refreshInterval = defaults.refreshInterval;
+            }
+
+            return next;
+          });
         }}
         isRefreshing={isRefreshing}
         variables={dashboardVariables}
@@ -945,6 +1054,18 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardCephPoolListComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.StorageArrayVolumeList) {
+            newComponent =
+              DashboardStorageArrayVolumeListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.StorageArrayHardwareList
+          ) {
+            newComponent =
+              DashboardStorageArrayHardwareListComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.NetworkMap) {
             newComponent =
               DashboardNetworkMapComponentUtil.getDefaultComponent();
@@ -1001,9 +1122,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           variables={dashboardVariables}
           chartSyncId={props.dashboardId.toString()}
+          dashboardId={props.dashboardId.toString()}
           onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
           onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
           isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
+          onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
+          onEditWidgetClick={canEditDashboard ? editWidget : undefined}
         />
       </div>
     </div>

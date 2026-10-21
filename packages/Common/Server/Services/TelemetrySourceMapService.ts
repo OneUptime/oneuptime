@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/TelemetrySourceMap";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -10,6 +10,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SourceMapResolver, {
   MAX_FRAMES_TO_RESOLVE,
   MAX_SOURCE_MAP_SIZE_IN_BYTES,
@@ -50,7 +51,10 @@ export const SOURCE_MAP_RETENTION_DAYS: number = SourceMapRetentionInDays;
  */
 export const MAX_SOURCE_MAPS_PER_RELEASE: number = SourceMapMaxMapsPerRelease;
 
-export class Service extends DatabaseService<Model> {
+// The service's two names, ID column first: a write may use either.
+const SERVICE_KEYS: Array<string> = ["serviceId", "service"];
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     /*
@@ -65,6 +69,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const content: string | undefined = createBy.data.content;
 
     if (!content) {
@@ -88,6 +94,13 @@ export class Service extends DatabaseService<Model> {
     if (!createBy.data.serviceVersion || !createBy.data.serviceVersion.trim()) {
       throw new BadDataException("Service version is required.");
     }
+
+    // The service under either of its names, kept in the ID column for the saved row.
+    RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      SERVICE_KEYS,
+      "Service",
+    );
 
     await this.assertReleaseHasRoomFor(createBy);
 
@@ -115,10 +128,20 @@ export class Service extends DatabaseService<Model> {
   private async assertReleaseHasRoomFor(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    /*
+     * The release the map is saved in: the request's project - which
+     * DatabaseService has written on the row before the hooks, and writes
+     * again after them - else the one a write without a project on the
+     * request names, and the service under either of its names.
+     */
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId || undefined;
+      createBy.props.tenantId || createBy.data.projectId || undefined;
     const serviceId: ObjectID | undefined =
-      createBy.data.serviceId || undefined;
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        SERVICE_KEYS,
+        "Service",
+      ) || undefined;
     const serviceVersion: string | undefined = createBy.data.serviceVersion;
 
     /*

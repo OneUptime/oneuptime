@@ -14,10 +14,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -26,6 +26,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -39,7 +40,6 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
@@ -49,9 +49,15 @@ import DatabaseServerUnscopedBanner from "../../../Components/DatabaseServer/Dat
 import DatabaseCallingServicesCard from "../../../Components/DatabaseServer/DatabaseCallingServicesCard";
 import DatabaseEngineMetricsSection from "../../../Components/DatabaseServer/DatabaseEngineMetricsSection";
 import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseRuntimeSection";
-import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
+import { DatabaseRunsOnLink } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
+import { getDatabaseAgentEngine } from "../Utils/DocumentationMarkdown";
 import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
@@ -97,6 +103,11 @@ import {
   isDatabaseServerFound,
   isDatabaseServerLive,
 } from "../Utils/DatabaseServerPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -138,6 +149,7 @@ function formatMs(value: number | null): string {
 const DatabaseServerOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [databaseServer, setDatabaseServer] = useState<DatabaseServer | null>(
@@ -168,6 +180,11 @@ const DatabaseServerOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the telemetry reloads when it changes.
+  const [telemetryRefreshCount, setTelemetryRefreshCount] = useState<number>(0);
+  // Set while the telemetry for the current window is still loading.
+  const telemetryInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -263,6 +280,32 @@ const DatabaseServerOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The telemetry follows what the database is scoped by, not the model
+   * objects: fetchModel stores a new row and a new endpoint list on every
+   * refresh, and an effect keyed on them re-ran on every tick, cancelling a
+   * load still running for the same window. The entity keys, the engine's
+   * metric catalog and the runtime charts are all worked out from these
+   * fields. A refresh reloads it through telemetryRefreshCount instead.
+   */
+  const telemetryScope: string = databaseServer
+    ? JSON.stringify({
+        projectId: String(
+          databaseServer.projectId || ProjectUtil.getCurrentProjectId() || "",
+        ),
+        dbSystem: databaseServer.dbSystem || "",
+        /*
+         * The pods / containers it runs as, not when each was last seen:
+         * discovery re-stamps those times, and a time scopes no query.
+         */
+        memberEntityKeys: Object.keys(
+          databaseServer.memberEntityKeys || {},
+        ).sort(),
+        platform: getDatabaseRuntimePlatform(databaseServer),
+        endpoints: endpoints,
+      })
+    : "";
+
   useEffect(() => {
     const item: DatabaseServer | null = databaseServer;
     if (!item) {
@@ -287,6 +330,7 @@ const DatabaseServerOverview: FunctionComponent<
      * chart the whole project. Leave every section empty.
      */
     if (!isDatabaseServerScoped(allKeys)) {
+      telemetryInFlightRef.current = false;
       setQueryMetrics(EMPTY_DATABASE_QUERY_METRICS);
       setCallingServices(EMPTY_DATABASE_CALLING_SERVICES);
       setEngineMetrics([]);
@@ -310,8 +354,12 @@ const DatabaseServerOverview: FunctionComponent<
     const platform: DatabaseRuntimePlatform | null =
       getDatabaseRuntimePlatform(item);
 
-    // A slow wide-range fetch must not overwrite a newer, narrower one.
+    /*
+     * A slow wide-range fetch must not overwrite a newer one: a narrower
+     * range (a zoom, its reset, the picker) or a Refresh.
+     */
     let ignore: boolean = false;
+    telemetryInFlightRef.current = true;
 
     Promise.all([
       fetchDatabaseQueryMetrics({ projectId, keys: endpointKeys, start, end }),
@@ -361,6 +409,7 @@ const DatabaseServerOverview: FunctionComponent<
           if (ignore) {
             return;
           }
+          telemetryInFlightRef.current = false;
           setQueryMetrics(queries);
           setCallingServices(services);
           setEngineMetrics(engine);
@@ -410,20 +459,43 @@ const DatabaseServerOverview: FunctionComponent<
         },
       )
       .catch(() => {
-        if (!ignore) {
-          setTelemetryLoading(false);
+        if (ignore) {
+          return;
         }
+        telemetryInFlightRef.current = false;
+        setTelemetryLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [databaseServer, endpoints, timeRange]);
+  }, [telemetryScope, timeRange, telemetryRefreshCount]);
+
+  /*
+   * A refresh reloads the row, its endpoints and the telemetry. The
+   * auto-refresh tick lets a telemetry load that is still running land
+   * instead of replacing it with one for the same window: when the queries
+   * outlast the interval, the tiles, the charts and every section below
+   * them would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && telemetryInFlightRef.current) {
+      return;
+    }
+
+    setTelemetryRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "database-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -482,8 +554,6 @@ const DatabaseServerOverview: FunctionComponent<
     r.lastSeenAt,
   );
   const hasQueries: boolean = m.total > 0;
-  // The cluster / host page, when the database runs on one.
-  const runsOnRoute: Route | null = getDatabaseRunsOnRoute(r);
 
   const populate: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
@@ -500,7 +570,11 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       icon: IconProp.ChartBar,
-      label: `Engine metrics: ${getDatabaseEngineMetricsStatusLabel(engineStatus)}`,
+      label: translator.translateTemplate("Engine metrics: {{status}}", {
+        status: translatableTerm(
+          getDatabaseEngineMetricsStatusLabel(engineStatus),
+        ),
+      }),
     },
   ];
   if (platform) {
@@ -525,7 +599,14 @@ const DatabaseServerOverview: FunctionComponent<
       iconColor: "rose",
       loading: telemetryLoading,
       sublabel: hasQueries
-        ? `${formatDatabaseCount(m.errors)} failed queries`
+        ? translator.translatePlural(
+            {
+              one: "{{count}} failed query",
+              other: "{{count}} failed queries",
+            },
+            m.errors,
+            { count: formatDatabaseCount(m.errors) },
+          )
         : undefined,
       percent: m.errorRatePercent,
       higherIsBetter: false,
@@ -593,50 +674,6 @@ const DatabaseServerOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "The queries applications send this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Engine logs, query samples and pod / container logs",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Every engine and client metric for this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Endpoints",
-      description: "The host:port names this database is matched by",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_ENDPOINTS),
-      icon: IconProp.Link,
-    },
-    {
-      title: "Owners",
-      description: "Who is responsible for this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_OWNERS),
-      icon: IconProp.Team,
-    },
-  ];
-  if (runsOnRoute) {
-    quickLinks.unshift({
-      title: runsOn,
-      description:
-        platform === DatabaseRuntimePlatform.Kubernetes
-          ? "The Kubernetes cluster this database runs on"
-          : "The container host this database runs on",
-      to: runsOnRoute,
-      icon: IconProp.Cube,
-    });
-  }
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Engine (db.system.name)", value: r.dbSystem },
     { label: "Version", value: r.dbVersion },
@@ -649,13 +686,40 @@ const DatabaseServerOverview: FunctionComponent<
       value: formattedEndpoints.join(", ") || undefined,
       mono: true,
     },
-    { label: "Runs on", value: platform ? runsOn : undefined },
+    {
+      label: "Runs on",
+      value: platform ? runsOn : undefined,
+      // Linked to the cluster or host it runs on, as in the Runtime card.
+      element: (
+        <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" />
+      ),
+    },
     { label: "Workload", value: workload || undefined, mono: true },
     {
       label: "Engine metrics",
       value: getDatabaseEngineMetricsStatusLabel(engineStatus),
     },
-    { label: "Agent version", value: r.agentVersion },
+    {
+      label: "Agent version",
+      value: r.agentVersion,
+      /*
+       * A sign beside an outdated Database agent opens how to upgrade it:
+       * the install script, or the engine's files again with Docker Compose,
+       * or the Deployment from the setup guide in Kubernetes.
+       */
+      element: (
+        <AgentVersion
+          kind={AgentKind.DatabaseAgent}
+          version={r.agentVersion}
+          setupGuideRoute={populate(PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION)}
+          upgradeGuideContext={{
+            databaseEngine: getDatabaseAgentEngine(r.dbSystem),
+            databaseRunsInKubernetes:
+              platform === DatabaseRuntimePlatform.Kubernetes,
+          }}
+        />
+      ),
+    },
     {
       label: "Engine metrics last received",
       value: r.collectorLastSeenAt
@@ -666,7 +730,15 @@ const DatabaseServerOverview: FunctionComponent<
   ];
 
   return (
-    <Fragment>
+    /*
+     * One zoom for the whole page (issue #4105): a drag on any chart - the
+     * query charts, the runtime charts or an engine metric chart - narrows
+     * `timeRange`, and every tile, card and section below is fetched over
+     * that one range; a double-click on any chart, or "Reset zoom" beside
+     * the picker, puts the range back. The scope wraps the sections that
+     * render after ResourceOverview too, so they zoom and reset with it.
+     */
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {!isScoped || isIdOnly ? (
         <div className="mb-6">
           <DatabaseServerUnscopedBanner
@@ -697,7 +769,7 @@ const DatabaseServerOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh({ isAutoRefresh: false });
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}
@@ -711,7 +783,6 @@ const DatabaseServerOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
         labels={r.labels}
       />
@@ -775,7 +846,21 @@ const DatabaseServerOverview: FunctionComponent<
           windowEnd={chartWindow?.end ?? null}
         />
       </div>
-    </Fragment>
+
+      {/*
+       * Last on the page: the Database AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <div className="mt-6">
+        <ResourceAiAgentStatusSummaryCard
+          descriptor={getResourceAiAgentDescriptor(
+            AiResourceType.DatabaseServer,
+          )}
+          resourceId={modelId}
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+        />
+      </div>
+    </TimeRangeZoomScope>
   );
 };
 

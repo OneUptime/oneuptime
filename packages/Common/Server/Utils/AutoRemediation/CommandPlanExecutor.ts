@@ -27,6 +27,7 @@ import KubectlPolicy, {
   KubectlPolicyResult,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import {
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
   KubectlCommandTier,
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -51,8 +52,36 @@ import KubectlJobRunner, {
   KubectlTerminalJobFacts,
 } from "../AI/ClusterAccess/KubectlJobRunner";
 import RemediationCommandToolkit from "../AI/Remediation/RemediationCommandTools";
+import GitOpsInspector, {
+  GitOpsCommandInspection,
+} from "../AI/Remediation/GitOpsInspector";
+import { AiRemediationRevertWatch } from "../../../Types/AutoRemediation/AiRemediationGitOps";
+import { describeGitOpsOwner } from "../../../Utils/AiRemediation/GitOpsOwnership";
+import ResourceCommandJobRunner, {
+  ResourceCommandRunState,
+  ResourceCommandTerminalJobFacts,
+} from "../AI/ResourceAccess/ResourceCommandJobRunner";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  isAiResourceType,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
+import {
+  ResourceAiAccessGap,
+  ResourceAiAccessStatus,
+  ResourceAiRemediationMode,
+  ResourceCommandTier,
+} from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import {
+  ResourceAutoExecutionVerdict,
+  ResourceCommandPolicyResult,
+} from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import ResourceAiAccessService, {
+  describeResourceNoun,
+} from "../../Services/ResourceAiAccessService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Auto-remediation — the approved-command-plan executor and the rollback
@@ -268,6 +297,17 @@ export default class CommandPlanExecutor {
         }
 
         /*
+         * A kubectl change's object, read before it runs: who declares it
+         * now (the card showed what was read when the plan was composed),
+         * and its fields to compare with after it ran — the revert watch.
+         * Read outside the plan lock: it takes seconds and changes nothing.
+         */
+        const inspection: GitOpsCommandInspection | null =
+          command.stepType === RunbookStepType.Kubectl
+            ? await this.inspectBeforeRun({ suggestion, command })
+            : null;
+
+        /*
          * Start the command under the plan lock: the stand-down check, the
          * Pending marker, the enqueue and the write that names the job. The
          * rollback arm reads the plan under the same lock, so it either sees
@@ -326,6 +366,13 @@ export default class CommandPlanExecutor {
         const state: AiRemediationCommandExecutionState =
           await this.finishOneCommand({ command, started });
 
+        if (
+          inspection &&
+          state.status === AiRemediationCommandExecutionStatus.Succeeded
+        ) {
+          await this.recordRevertWatch({ suggestion, command, inspection });
+        }
+
         command.execution = state;
         await this.persistPlan(suggestion, plan, "executor");
 
@@ -360,14 +407,14 @@ export default class CommandPlanExecutor {
       await this.postFeedItem({
         suggestion,
         markdown: settledMidPlan
-          ? `⚠️ **Approved AI command plan finished after its verification had already concluded**${
-              firstFailure ? ` — ${firstFailure}` : ""
-            }. Commands that had not started yet were skipped; the verification and rollback notes on this suggestion say what was judged and what was undone. Review the per-command record.`
+          ? mdText`⚠️ **Approved AI command plan finished after its verification had already concluded**${
+              firstFailure ? mdText` — ${firstFailure}` : ""
+            }. Commands that had not started yet were skipped; the verification and rollback notes on this suggestion say what was judged and what was undone. Review the per-command record.`.toString()
           : failed
-            ? `⚠️ **Approved AI command plan did not complete** — ${
+            ? mdText`⚠️ **Approved AI command plan did not complete** — ${
                 firstFailure || "a command failed"
-              }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`
-            : `⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`,
+              }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`.toString()
+            : mdText`⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`.toString(),
         pingWorkspace: failed || settledMidPlan,
         displayColor: failed || settledMidPlan ? Red500 : Green500,
       });
@@ -509,6 +556,26 @@ export default class CommandPlanExecutor {
         anyFailed = true;
       }
 
+      /*
+       * The same for a resource command recorded as failed: its job is read
+       * the way every resource job is read
+       * (ResourceCommandJobRunner.getRunStateOfJobRow), and one that may
+       * have changed the resource is left for a human, never undone blind.
+       */
+      for (const command of await this.reconcileFailedResourceExecutions(
+        suggestion,
+        plan,
+      )) {
+        command.rollbackExecution = {
+          status: AiRemediationCommandExecutionStatus.Skipped,
+          errorMessage: `Rollback not run: the command reached the resource's AI agent but it did not report a finished result, so whether it changed the ${this.describeCommandResourceNoun(
+            command,
+          )} is unknown. If it did, undo it manually: ${command.rollbackCommand}`,
+        };
+        leftForHuman.push(command);
+        anyFailed = true;
+      }
+
       if (
         plan.commands.some((command: AiRemediationCommand) => {
           return (
@@ -521,13 +588,60 @@ export default class CommandPlanExecutor {
         anyFailed = true;
       }
 
+      /*
+       * A change verification saw put back on the cluster — by the GitOps
+       * controller or Helm release that declares the object, or anything
+       * else — is not undone again: its object is already back at what it
+       * was, and an undo now could re-apply the fix (the undo of a rollout
+       * undo or a set image is another rollout undo, which goes back to the
+       * fix's own revision) and start it flapping. One put back only in
+       * part is left for a human, with what is still applied.
+       */
+      for (const command of plan.commands) {
+        const watch: AiRemediationRevertWatch | undefined = command.revertWatch;
+
+        if (
+          !watch?.putBackAt ||
+          command.execution?.status !==
+            AiRemediationCommandExecutionStatus.Succeeded ||
+          !command.rollbackCommand ||
+          command.rollbackExecution
+        ) {
+          continue;
+        }
+
+        const stillApplied: Array<string> = watch.deleted
+          ? []
+          : watch.fields
+              .map((field: { path: string }): string => {
+                return field.path;
+              })
+              .filter((path: string): boolean => {
+                return !(watch.putBackFields || []).includes(path);
+              });
+
+        if (stillApplied.length > 0 || watch.moreFields) {
+          command.rollbackExecution = {
+            status: AiRemediationCommandExecutionStatus.Skipped,
+            errorMessage: `Rollback not run: ${this.describeWhoPutItBack(command)} put back part of this change, so its undo would now change more than the change did. ${
+              stillApplied.length > 0
+                ? `Still applied: ${stillApplied.slice(0, 5).join(", ")}. `
+                : ""
+            }If that should go too, undo it manually: ${command.rollbackCommand}`,
+          };
+          leftForHuman.push(command);
+          anyFailed = true;
+        }
+      }
+
       const rollbackTargets: Array<AiRemediationCommand> = plan.commands
         .filter((command: AiRemediationCommand) => {
           return (
             command.execution?.status ===
               AiRemediationCommandExecutionStatus.Succeeded &&
             Boolean(command.rollbackCommand) &&
-            !command.rollbackExecution
+            !command.rollbackExecution &&
+            !command.revertWatch?.putBackAt
           );
         })
         .reverse();
@@ -560,6 +674,7 @@ export default class CommandPlanExecutor {
         const denyReason: string | null = this.getDenyReason({
           stepType: command.stepType,
           command: rollbackCommand,
+          resourceType: command.resourceType,
         });
 
         if (denyReason) {
@@ -580,13 +695,25 @@ export default class CommandPlanExecutor {
          * stopped bypassing them; a cluster whose remediation was turned
          * off must not be changed at all. Left for a human, and said so.
          */
+        /*
+         * The same for a resource: its AI page as it is NOW, its agent, the
+         * agent's write scope, and the resource's CURRENT mode and
+         * allowlist (getResourceExecutionRefusal). Null for kubectl and
+         * Bash/SSH, which the cluster re-check above covers.
+         */
         const clusterRefusal: string | null =
-          await this.getClusterExecutionRefusal({
+          (await this.getClusterExecutionRefusal({
             suggestion,
             command,
             commandText: rollbackCommand,
             purpose: "rollback",
-          });
+          })) ||
+          (await this.getResourceExecutionRefusal({
+            suggestion,
+            command,
+            commandText: rollbackCommand,
+            purpose: "rollback",
+          }));
 
         if (clusterRefusal) {
           command.rollbackExecution = {
@@ -629,6 +756,7 @@ export default class CommandPlanExecutor {
             command.rollbackExecution,
             terminalJob,
             "Rollback",
+            command,
           );
           if (
             command.rollbackExecution.status !==
@@ -665,17 +793,24 @@ export default class CommandPlanExecutor {
         suggestion,
         markdown:
           leftForHuman.length > 0
-            ? `⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the cluster no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${leftForHuman
-                .map((command: AiRemediationCommand) => {
+            ? mdText`⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the ${
+                leftForHuman.every((command: AiRemediationCommand): boolean => {
+                  return command.stepType === RunbookStepType.ResourceCommand;
+                })
+                  ? this.describeCommandResourceNoun(leftForHuman[0]!)
+                  : "cluster"
+              } no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${FeedMarkdown.join(
+                leftForHuman.map((command: AiRemediationCommand): string => {
                   return this.capForFeed(
                     command.rollbackExecution?.errorMessage || "",
                   );
-                })
-                .join(" ")}${
+                }),
+                " ",
+              )}${
                 failedUndos > 0
-                  ? ` ${failedUndos} other rollback command(s) failed.`
+                  ? mdText` ${failedUndos} other rollback command(s) failed.`
                   : ""
-              } Review the suggestion's per-command record; manual intervention is needed.`
+              } Review the suggestion's per-command record; manual intervention is needed.`.toString()
             : anyFailed
               ? `⚠️ **Auto-remediation rollback did not fully complete** — at least one rollback command failed, or its outcome is not known. Review the suggestion's per-command record; manual intervention may be needed.`
               : `↩️ **Auto-remediation rolled back** — the executed commands' rollback commands ran after verification failed. Escalation continues as normal.`,
@@ -729,6 +864,7 @@ export default class CommandPlanExecutor {
     const denyReason: string | null = this.getDenyReason({
       stepType: command.stepType,
       command: command.command,
+      resourceType: command.resourceType,
     });
 
     if (denyReason) {
@@ -746,16 +882,23 @@ export default class CommandPlanExecutor {
      * Execution-time cluster re-check: the approve API re-checks the
      * project switches, this re-checks the cluster's own AI page. An
      * operator who turned remediation off, or bound a different Runner,
-     * after the plan was composed expects that to stop the plan too.
+     * after the plan was composed expects that to stop the plan too. A
+     * resource command gets the same re-check against its resource's AI
+     * page and agent (getResourceExecutionRefusal).
      */
-    const clusterRefusal: string | null = await this.getClusterExecutionRefusal(
-      {
+    const clusterRefusal: string | null =
+      (await this.getClusterExecutionRefusal({
         suggestion,
         command,
         commandText: command.command,
         purpose: "command",
-      },
-    );
+      })) ||
+      (await this.getResourceExecutionRefusal({
+        suggestion,
+        command,
+        commandText: command.command,
+        purpose: "command",
+      }));
 
     if (clusterRefusal) {
       return {
@@ -838,7 +981,7 @@ export default class CommandPlanExecutor {
           throw new Error("Command job did not reach a terminal state.");
         }
 
-        this.settleFromJob(state, terminalJob, "Command");
+        this.settleFromJob(state, terminalJob, "Command", command);
         facts = {
           status: terminalJob.status,
           exitCode: terminalJob.exitCode,
@@ -880,7 +1023,52 @@ export default class CommandPlanExecutor {
       });
     }
 
+    /*
+     * The same rule for a resource's "Last error": a success, or a failure
+     * about the resource's ACCESS as its program reports it
+     * (ResourceCommandJobRunner.isAccessFailure, with the program's own
+     * patterns).
+     */
+    if (
+      started.recordsClusterOutcome &&
+      command.stepType === RunbookStepType.ResourceCommand &&
+      isAiResourceType(command.resourceType) &&
+      command.resourceId &&
+      ObjectID.isValidUUID(command.resourceId)
+    ) {
+      const resourceFacts: ResourceCommandTerminalJobFacts | null = facts
+        ? { ...facts, program: this.getCommandProgram(command.command) }
+        : null;
+      const recordsResourceOutcome: boolean =
+        succeeded ||
+        (resourceFacts !== null &&
+          ResourceCommandJobRunner.isAccessFailure(resourceFacts));
+
+      if (recordsResourceOutcome) {
+        await ResourceAiAccessService.recordCommandOutcome({
+          resourceType: command.resourceType,
+          resourceId: new ObjectID(command.resourceId),
+          succeeded,
+          errorMessage: state.errorMessage,
+        });
+      }
+    }
+
     return state;
+  }
+
+  // argv[0] of a resource command, for its program's rules.
+  private static getCommandProgram(command: string): string {
+    return (command || "").trim().split(/\s+/)[0] || "";
+  }
+
+  // "Docker host", "host" — the noun of a resource command's resource.
+  private static describeCommandResourceNoun(
+    command: AiRemediationCommand,
+  ): string {
+    return isAiResourceType(command.resourceType)
+      ? describeResourceNoun(command.resourceType)
+      : "resource";
   }
 
   // Copy a terminal job's outcome onto an execution record.
@@ -888,6 +1076,8 @@ export default class CommandPlanExecutor {
     state: AiRemediationCommandExecutionState,
     job: RunnerJob,
     label: "Command" | "Rollback",
+    // The command the job ran: a resource command's output gets its program's redaction.
+    command?: AiRemediationCommand | undefined,
   ): void {
     const succeeded: boolean = job.status === RunnerJobStatus.Succeeded;
 
@@ -896,10 +1086,34 @@ export default class CommandPlanExecutor {
       : AiRemediationCommandExecutionStatus.Failed;
     state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
     state.exitCode = job.exitCode;
-    state.output = this.capOutput(job.output || "");
+    state.output = this.capCommandOutput(job.output || "", command);
     state.errorMessage = succeeded
       ? undefined
       : job.errorMessage || `${label} ended with status ${job.status}.`;
+  }
+
+  /*
+   * The stored output of a command's job: a resource command's goes through
+   * the resource redaction (its program's rules, then the generic ones) at
+   * the stored cap; everything else through capOutput, as before.
+   */
+  private static capCommandOutput(
+    output: string,
+    command?: AiRemediationCommand | undefined,
+  ): string {
+    if (
+      command?.stepType === RunbookStepType.ResourceCommand &&
+      isAiResourceType(command.resourceType)
+    ) {
+      return ResourceCommandJobRunner.redactAndCap({
+        output,
+        resourceType: command.resourceType,
+        program: this.getCommandProgram(command.command),
+        maxChars: MAX_STORED_OUTPUT_CHARS,
+      }).text;
+    }
+
+    return this.capOutput(output);
   }
 
   /*
@@ -914,6 +1128,38 @@ export default class CommandPlanExecutor {
     stepId: string;
   }): Promise<RunnerJob> {
     const { suggestion, command } = data;
+
+    /*
+     * A resource command goes through the resource chokepoint
+     * (enqueueAiResourceCommand), which re-runs the policy, the binding, the
+     * resource's fixes switch and the agent's write scope — and targets the
+     * agent the plan names, so a reset or replaced agent never receives a
+     * job composed for its predecessor.
+     */
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      if (
+        !isAiResourceType(command.resourceType) ||
+        !command.resourceId ||
+        !ObjectID.isValidUUID(command.resourceId) ||
+        !ObjectID.isValidUUID(command.runnerId)
+      ) {
+        throw new Error("The resource command names no resource.");
+      }
+
+      return RunnerJobService.enqueueAiResourceCommand({
+        projectId: suggestion.projectId!,
+        aiRunId: suggestion.aiRunId!,
+        origin: RunnerJobOrigin.AiRemediation,
+        autoRemediationSuggestionId: suggestion.id!,
+        resourceType: command.resourceType,
+        resourceId: new ObjectID(command.resourceId),
+        stepId: data.stepId,
+        targetResourceAiAgentId: new ObjectID(command.runnerId),
+        command: data.commandText,
+        timeoutInMs: command.timeoutInMs,
+        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+      });
+    }
 
     if (command.stepType === RunbookStepType.Kubectl) {
       if (
@@ -1023,7 +1269,11 @@ export default class CommandPlanExecutor {
     }
 
     if (!status.runner || status.runner.id !== command.runnerId) {
-      return `cluster "${status.clusterName}" is no longer reached through Runner "${command.runnerNameSnapshot}", which this plan was composed for`;
+      return `cluster "${status.clusterName}" is no longer reached through ${
+        command.runnerNameSnapshot === KUBERNETES_AI_AGENT_DISPLAY_NAME
+          ? "the Kubernetes AI agent"
+          : `Runner "${command.runnerNameSnapshot}"`
+      }, which this plan was composed for`;
     }
 
     if (
@@ -1069,6 +1319,118 @@ export default class CommandPlanExecutor {
   }
 
   /*
+   * Why a resource command may NOT run on its resource right now, or null
+   * — getClusterExecutionRefusal for a resource. The plan froze the
+   * resource and the AI agent it was composed for; before anything is
+   * enqueued the resource's AI page is read again: fixes must still be on
+   * and ready, the agent must still be the one on the plan (a reset or
+   * replaced agent never receives a job meant for its predecessor), and
+   * the agent's reported write scope must let the command run. A rollback
+   * must ALSO be allowed unattended under the resource's CURRENT mode and
+   * allowlist: nothing shows a rollback to a human when it fires.
+   *
+   * Fails closed: a status that cannot be read is a refusal. Other step
+   * types pass through.
+   */
+  private static async getResourceExecutionRefusal(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+    commandText: string;
+    purpose: "command" | "rollback";
+  }): Promise<string | null> {
+    const { suggestion, command } = data;
+
+    if (command.stepType !== RunbookStepType.ResourceCommand) {
+      return null;
+    }
+
+    if (
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId) ||
+      !suggestion.projectId
+    ) {
+      return "the resource command names no valid resource";
+    }
+
+    const resourceType: AiResourceType = command.resourceType;
+    const noun: string = describeResourceNoun(resourceType);
+    const label: string = `${noun} "${
+      command.resourceNameSnapshot || command.resourceId
+    }"`;
+
+    let status: ResourceAiAccessStatus | null;
+
+    try {
+      status = await ResourceAiAccessService.getStatusForResource({
+        projectId: suggestion.projectId,
+        resourceType,
+        resourceId: new ObjectID(command.resourceId),
+      });
+    } catch (error) {
+      logger.error(
+        `CommandPlanExecutor: could not read the AI access status of ${resourceType} ${command.resourceId} before a ${data.purpose}: ${error}`,
+      );
+      return `could not confirm that ${label} still allows AI remediation`;
+    }
+
+    if (!status) {
+      return `${label} no longer exists in this project`;
+    }
+
+    const liveLabel: string = `${noun} "${status.resourceName}"`;
+
+    if (!status.isRemediationReady) {
+      const gap: ResourceAiAccessGap | undefined = status.gaps.find(
+        (candidate: ResourceAiAccessGap): boolean => {
+          return candidate.blocksRemediation;
+        },
+      );
+      return `${liveLabel} no longer allows AI remediation${
+        gap ? ` (${gap.title})` : ""
+      }`;
+    }
+
+    const agentName: string =
+      AI_RESOURCE_TYPE_INFO[resourceType].agentDisplayName;
+
+    if (!status.agent || status.agent.agentId !== command.runnerId) {
+      return `${liveLabel} is no longer reached through the ${agentName} this plan was composed for (the agent was reset or replaced)`;
+    }
+
+    const scopeRefusal: string | null =
+      RemediationCommandToolkit.getResourceWriteScopeRefusal({
+        resource: status,
+        command: data.commandText,
+      });
+
+    if (scopeRefusal) {
+      // The callers end the sentence themselves.
+      return `the ${agentName} would refuse it: ${
+        scopeRefusal.endsWith(".") ? scopeRefusal.slice(0, -1) : scopeRefusal
+      }`;
+    }
+
+    if (data.purpose === "rollback") {
+      const verdict: ResourceAutoExecutionVerdict =
+        ResourceCommandPolicy.evaluateForAutoExecution({
+          resourceType,
+          command: data.commandText,
+          allowlistPatterns: status.aiCommandAllowlist,
+          bypassApproval:
+            status.aiRemediationMode ===
+            ResourceAiRemediationMode.BypassApproval,
+        });
+
+      if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
+        return `${liveLabel} no longer allows this change unattended (its AI remediation mode is now ${status.aiRemediationMode}): ${verdict.reason}`;
+      }
+    }
+
+    return null;
+  }
+
+  /*
    * The job a command's step ran under, when its record never got the job
    * id. The enqueue and the write that names the job are two steps; a pod
    * death or a failed write between them leaves a Pending record for a job
@@ -1104,6 +1466,11 @@ export default class CommandPlanExecutor {
     return jobs[0] || null;
   }
 
+  /*
+   * A command's error as the feed shows it: on one line and capped. It is
+   * whatever the resource, the cluster or the command printed - plain text,
+   * which the feed item places as text (mdText).
+   */
   private static capForFeed(text: string): string {
     const collapsed: string = text.trim().replace(/\s+/g, " ");
     return collapsed.length > MAX_FEED_REASON_CHARS
@@ -1118,7 +1485,30 @@ export default class CommandPlanExecutor {
   private static getDenyReason(data: {
     stepType: RunbookStepType;
     command: string;
+    // ResourceCommand only: which resource command policy decides.
+    resourceType?: AiResourceType | undefined;
   }): string | null {
+    /*
+     * A resource command's floor is the Denied tier of its resource's
+     * command policy — never the bash denylist, and never a step whose
+     * resource type is unknown.
+     */
+    if (data.stepType === RunbookStepType.ResourceCommand) {
+      if (!isAiResourceType(data.resourceType)) {
+        return "the resource command names no valid resource type";
+      }
+
+      const resourcePolicy: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({
+          resourceType: data.resourceType,
+          command: data.command,
+        });
+
+      return resourcePolicy.tier === ResourceCommandTier.Denied
+        ? resourcePolicy.reason
+        : null;
+    }
+
     if (data.stepType === RunbookStepType.Kubectl) {
       const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
         data.command,
@@ -1219,7 +1609,7 @@ export default class CommandPlanExecutor {
           ? AiRemediationCommandExecutionStatus.Succeeded
           : AiRemediationCommandExecutionStatus.Failed;
         execution.exitCode = job.exitCode;
-        execution.output = this.capOutput(job.output || "");
+        execution.output = this.capCommandOutput(job.output || "", command);
         execution.errorMessage = succeeded
           ? undefined
           : job.errorMessage ||
@@ -1298,7 +1688,7 @@ export default class CommandPlanExecutor {
         }
 
         if (isTerminalAgentJobStatus(job.status)) {
-          this.settleFromJob(rollback, job, "Rollback");
+          this.settleFromJob(rollback, job, "Rollback", command);
           changed = true;
         }
       } catch (error) {
@@ -1376,7 +1766,7 @@ export default class CommandPlanExecutor {
       }
 
       if (job && job.status === RunnerJobStatus.Succeeded) {
-        this.settleFromJob(execution, job, "Command");
+        this.settleFromJob(execution, job, "Command", command);
         changed = true;
         continue;
       }
@@ -1396,14 +1786,232 @@ export default class CommandPlanExecutor {
     return mayHaveRun;
   }
 
+  /*
+   * reconcileFailedKubectlExecutions for resource commands: the ones
+   * recorded as Failed that may nonetheless have changed the resource,
+   * read from their jobs the way ResourceCommandJobRunner reads every
+   * resource job. A job that Succeeded after all is settled from the job
+   * (and so rolled back like any other); one whose run is Unknown, or whose
+   * program ran without finishing (the agent killed it at its timeout), is
+   * returned — its undo is not run blind; one that certainly never ran, or
+   * whose program finished and reported a failure, owes no undo.
+   */
+  private static async reconcileFailedResourceExecutions(
+    suggestion: AutoRemediationSuggestion,
+    plan: AiRemediationCommandPlan,
+  ): Promise<Array<AiRemediationCommand>> {
+    const mayHaveRun: Array<AiRemediationCommand> = [];
+    let changed: boolean = false;
+
+    for (const command of plan.commands) {
+      const execution: AiRemediationCommandExecutionState | undefined =
+        command.execution;
+
+      if (
+        command.stepType !== RunbookStepType.ResourceCommand ||
+        !execution ||
+        execution.status !== AiRemediationCommandExecutionStatus.Failed ||
+        !execution.runnerJobId ||
+        !command.rollbackCommand ||
+        command.rollbackExecution
+      ) {
+        continue;
+      }
+
+      let runState: ResourceCommandRunState = ResourceCommandRunState.Unknown;
+      let job: RunnerJob | null = null;
+
+      try {
+        job = ObjectID.isValidUUID(execution.runnerJobId)
+          ? await RunnerJobService.findOneById({
+              id: new ObjectID(execution.runnerJobId),
+              select: RUN_STATE_JOB_SELECT,
+              props: { isRoot: true },
+            })
+          : null;
+
+        if (job) {
+          runState = ResourceCommandJobRunner.getRunStateOfJobRow(job);
+        }
+      } catch (error) {
+        logger.error(
+          `CommandPlanExecutor: could not read whether resource command ${command.sequence} of suggestion ${suggestion.id?.toString()} ran: ${error}`,
+        );
+      }
+
+      if (job && job.status === RunnerJobStatus.Succeeded) {
+        this.settleFromJob(execution, job, "Command", command);
+        changed = true;
+        continue;
+      }
+
+      const programFinished: boolean =
+        runState === ResourceCommandRunState.Ran &&
+        typeof job?.exitCode === "number";
+
+      if (runState !== ResourceCommandRunState.NotRun && !programFinished) {
+        mayHaveRun.push(command);
+      }
+    }
+
+    if (changed) {
+      await this.persistPlan(suggestion, plan, "rollback");
+    }
+
+    return mayHaveRun;
+  }
+
+  /*
+   * Records what verification's reads of watched objects found (each
+   * command's revert watch, by sequence) on the stored plan, under the plan
+   * lock: only those watches change, so neither the executor's nor the
+   * rollback arm's record is erased. Best effort.
+   */
+  public static async recordRevertChecks(data: {
+    suggestionId: ObjectID;
+    watches: Map<number, AiRemediationRevertWatch>;
+  }): Promise<void> {
+    if (data.watches.size === 0) {
+      return;
+    }
+
+    const mutex: SemaphoreMutex | null = await this.lockPlan(data.suggestionId);
+
+    try {
+      const stored: AiRemediationCommandPlan | null = await this.readStoredPlan(
+        data.suggestionId,
+      );
+
+      if (!stored) {
+        return;
+      }
+
+      for (const command of stored.commands) {
+        const watch: AiRemediationRevertWatch | undefined = data.watches.get(
+          command.sequence,
+        );
+
+        if (watch) {
+          command.revertWatch = watch;
+        }
+      }
+
+      await AutoRemediationSuggestionService.updateOneById({
+        id: data.suggestionId,
+        data: {
+          commandPlan: AiRemediationCommandPlanUtil.toJSON(stored),
+        } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `CommandPlanExecutor: could not record verification's revert checks on suggestion ${data.suggestionId.toString()}: ${error}`,
+      );
+    } finally {
+      await this.unlockPlan(mutex);
+    }
+  }
+
+  /*
+   * Who put a change back, for a note: its GitOps owner when OneUptime
+   * read one, "the cluster" otherwise.
+   */
+  private static describeWhoPutItBack(command: AiRemediationCommand): string {
+    return command.gitOps ? describeGitOpsOwner(command.gitOps) : "the cluster";
+  }
+
+  /*
+   * Before an approved kubectl command runs: who declares its object now,
+   * and the object as it is (for the revert watch). Best effort — a read
+   * that fails leaves the command exactly as it was approved.
+   */
+  private static async inspectBeforeRun(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+  }): Promise<GitOpsCommandInspection | null> {
+    const { suggestion, command } = data;
+    const aiRunId: ObjectID | undefined = suggestion.aiRunId;
+
+    if (!aiRunId || !suggestion.projectId) {
+      return null;
+    }
+
+    const projectId: ObjectID = suggestion.projectId;
+
+    const inspection: GitOpsCommandInspection | null =
+      await GitOpsInspector.safely(
+        "reading an approved kubectl change's object before it ran",
+        () => {
+          return GitOpsInspector.inspectCommandOnCluster({
+            projectId,
+            aiRunId,
+            kubernetesClusterId: command.kubernetesClusterId,
+            command: command.command,
+            stepIdPrefix: `ai-gitops-approved-${command.sequence}`,
+          });
+        },
+      );
+
+    if (inspection?.gitOps) {
+      command.gitOps = inspection.gitOps;
+    }
+
+    return inspection;
+  }
+
+  // After an approved kubectl command succeeded: what it did, to watch.
+  private static async recordRevertWatch(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+    inspection: GitOpsCommandInspection;
+  }): Promise<void> {
+    const { suggestion, command } = data;
+    const aiRunId: ObjectID | undefined = suggestion.aiRunId;
+
+    if (!aiRunId || !suggestion.projectId) {
+      return;
+    }
+
+    const projectId: ObjectID = suggestion.projectId;
+
+    const watch: AiRemediationRevertWatch | null = await GitOpsInspector.safely(
+      "reading an approved kubectl change's object after it ran",
+      () => {
+        return GitOpsInspector.captureRevertWatchOnCluster({
+          projectId,
+          aiRunId,
+          kubernetesClusterId: command.kubernetesClusterId,
+          inspection: data.inspection,
+          stepId: `ai-gitops-approved-${command.sequence}-after`,
+        });
+      },
+    );
+
+    if (watch) {
+      command.revertWatch = watch;
+    }
+  }
+
   private static describeRollbackOutcome(
     plan: AiRemediationCommandPlan | null,
   ): CommandPlanRollbackOutcome {
     let rolledBack: number = 0;
     let failed: number = 0;
     let leftForHuman: number = 0;
+    // Undos not run because the cluster had already put the change back.
+    let alreadyPutBack: number = 0;
 
     for (const command of plan?.commands || []) {
+      if (
+        command.revertWatch?.putBackAt &&
+        command.rollbackCommand &&
+        !command.rollbackExecution &&
+        command.execution?.status ===
+          AiRemediationCommandExecutionStatus.Succeeded
+      ) {
+        alreadyPutBack += 1;
+      }
+
       switch (command.rollbackExecution?.status) {
         case AiRemediationCommandExecutionStatus.Succeeded:
           rolledBack += 1;
@@ -1438,13 +2046,20 @@ export default class CommandPlanExecutor {
 
     let summary: string;
 
+    const putBackNote: string =
+      alreadyPutBack > 0
+        ? ` ${alreadyPutBack} command(s) were not undone: the cluster had already put back what they changed.`
+        : "";
+
     switch (rollbackStatus) {
       case AiRemediationRollbackStatus.Completed:
-        summary = `Rollback completed: ${rolledBack} command(s) undone.`;
+        summary = `Rollback completed: ${rolledBack} command(s) undone.${putBackNote}`;
         break;
       case AiRemediationRollbackStatus.NotApplicable:
         summary =
-          "Nothing was rolled back: no executed command carried a rollback command.";
+          alreadyPutBack > 0
+            ? `Nothing was rolled back:${putBackNote}`
+            : "Nothing was rolled back: no executed command carried a rollback command.";
         break;
       case AiRemediationRollbackStatus.Failed:
         summary = `Rollback did NOT fully complete: ${rolledBack} command(s) undone, ${failed} rollback(s) failed, ${leftForHuman} left for a human to undo — the change may still be applied.`;

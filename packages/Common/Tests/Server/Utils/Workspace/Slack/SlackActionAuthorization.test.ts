@@ -6,24 +6,30 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
+import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import AccessTokenService from "../../../../../Server/Services/AccessTokenService";
 import AlertEpisodeInternalNoteService from "../../../../../Server/Services/AlertEpisodeInternalNoteService";
-import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
+import AlertEpisodeStateTimelineService from "../../../../../Server/Services/AlertEpisodeStateTimelineService";
 import AlertInternalNoteService from "../../../../../Server/Services/AlertInternalNoteService";
-import AlertService from "../../../../../Server/Services/AlertService";
+import AlertStateTimelineService from "../../../../../Server/Services/AlertStateTimelineService";
 import IncidentEpisodePublicNoteService from "../../../../../Server/Services/IncidentEpisodePublicNoteService";
-import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpisodeService";
+import IncidentEpisodeStateTimelineService from "../../../../../Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentInternalNoteService from "../../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
-import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
+import IncidentStateService from "../../../../../Server/Services/IncidentStateService";
+import IncidentStateTimelineService from "../../../../../Server/Services/IncidentStateTimelineService";
+import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import ScheduledMaintenancePublicNoteService from "../../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateTimelineService from "../../../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
@@ -37,6 +43,7 @@ import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions
 import SlackAlertActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackAuthAction, {
+  SlackAuthRefusalReason,
   SlackRequest,
 } from "../../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Incident";
@@ -45,7 +52,10 @@ import SlackScheduledMaintenanceActions from "../../../../../Server/Utils/Worksp
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import Dictionary from "../../../../../Types/Dictionary";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -56,11 +66,14 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 
 /*
- * Slack buttons, modals and emoji reactions used to act as the linked
- * OneUptime user with root props: a read-only member could acknowledge,
- * resolve and post public status-page notes, and so could someone already
- * removed from the project. These tests drive the real handlers with the real
- * permission logic; only persistence and the Slack API are stubbed.
+ * Slack buttons, modals and emoji reactions act as the OneUptime member the
+ * Slack account is connected to: someone who may not acknowledge, resolve or
+ * post a public status-page note is told so - where they pressed, in a
+ * message only they see - and nothing is written, and so is someone who has
+ * left the project. What a permitted member's action
+ * writes is their own write (SlackMemberActions.test.ts pins each one).
+ * These tests drive the real handlers with the real permission logic; only
+ * persistence and the Slack API are stubbed.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -72,6 +85,7 @@ const projectAuthToken: string = "xoxb-project-token";
 type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
 
 function createTenantPermission(
   permissions: Array<Permission>,
@@ -151,9 +165,39 @@ function handlerArgs(
   };
 }
 
-function directMessageTexts(): Array<string> {
-  return directMessageSpy.mock.calls.map(
-    (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>): string => {
+// The project's incident states, top of the list first.
+function incidentStates(): Array<IncidentState> {
+  return [
+    { name: "Created", order: 1, isCreatedState: true },
+    { name: "Acknowledged", order: 2, isAcknowledgedState: true },
+    { name: "Resolved", order: 3, isResolvedState: true },
+  ].map(
+    (data: {
+      name: string;
+      order: number;
+      isCreatedState?: boolean;
+      isAcknowledgedState?: boolean;
+      isResolvedState?: boolean;
+    }): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state.id = ObjectID.generate();
+      state.projectId = projectId;
+      state.name = data.name;
+      state.order = data.order;
+      state.isCreatedState = Boolean(data.isCreatedState);
+      state.isAcknowledgedState = Boolean(data.isAcknowledgedState);
+      state.isResolvedState = Boolean(data.isResolvedState);
+      return state;
+    },
+  );
+}
+
+// What the person was told in the channel they pressed in, only to them.
+function channelAnswerTexts(): Array<string> {
+  return ephemeralSpy.mock.calls.map(
+    (
+      call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+    ): string => {
       const block: WorkspaceMessageBlock | undefined = call[0].messageBlocks[0];
       return (block as WorkspacePayloadMarkdown).text;
     },
@@ -161,11 +205,21 @@ function directMessageTexts(): Array<string> {
 }
 
 beforeEach((): void => {
+  // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+  // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});
   directMessageSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
+    .mockResolvedValue();
+  ephemeralSpy = jest
+    .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue();
 });
 
@@ -185,7 +239,7 @@ const writeCases: Array<WriteCase> = [
     name: "acknowledge an incident",
     refusal: "acknowledge this incident",
     mutation: (): AnySpy => {
-      return jest.spyOn(IncidentService, "acknowledgeIncident") as AnySpy;
+      return jest.spyOn(IncidentStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackIncidentActions.handleIncidentAction(
@@ -197,7 +251,7 @@ const writeCases: Array<WriteCase> = [
     name: "resolve an incident",
     refusal: "resolve this incident",
     mutation: (): AnySpy => {
-      return jest.spyOn(IncidentService, "resolveIncident") as AnySpy;
+      return jest.spyOn(IncidentStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackIncidentActions.handleIncidentAction(
@@ -239,7 +293,7 @@ const writeCases: Array<WriteCase> = [
     name: "change an incident's state",
     refusal: "change the state of this incident",
     mutation: (): AnySpy => {
-      return jest.spyOn(IncidentService, "updateOneById") as AnySpy;
+      return jest.spyOn(IncidentStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackIncidentActions.handleIncidentAction(
@@ -253,7 +307,10 @@ const writeCases: Array<WriteCase> = [
     name: "page an on-call policy for an incident",
     refusal: "execute an on-call policy for this incident",
     mutation: (): AnySpy => {
-      return jest.spyOn(OnCallDutyPolicyService, "executePolicy") as AnySpy;
+      return jest.spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "create",
+      ) as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackIncidentActions.handleIncidentAction(
@@ -267,7 +324,7 @@ const writeCases: Array<WriteCase> = [
     name: "acknowledge an alert",
     refusal: "acknowledge this alert",
     mutation: (): AnySpy => {
-      return jest.spyOn(AlertService, "acknowledgeAlert") as AnySpy;
+      return jest.spyOn(AlertStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackAlertActions.handleAlertAction(
@@ -279,7 +336,7 @@ const writeCases: Array<WriteCase> = [
     name: "resolve an alert",
     refusal: "resolve this alert",
     mutation: (): AnySpy => {
-      return jest.spyOn(AlertService, "resolveAlert") as AnySpy;
+      return jest.spyOn(AlertStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackAlertActions.handleAlertAction(
@@ -303,7 +360,7 @@ const writeCases: Array<WriteCase> = [
     name: "acknowledge an alert episode",
     refusal: "acknowledge this alert episode",
     mutation: (): AnySpy => {
-      return jest.spyOn(AlertEpisodeService, "acknowledgeEpisode") as AnySpy;
+      return jest.spyOn(AlertEpisodeStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackAlertEpisodeActions.handleAlertEpisodeAction(
@@ -315,7 +372,7 @@ const writeCases: Array<WriteCase> = [
     name: "change an alert episode's state",
     refusal: "change the state of this alert episode",
     mutation: (): AnySpy => {
-      return jest.spyOn(AlertEpisodeService, "changeEpisodeState") as AnySpy;
+      return jest.spyOn(AlertEpisodeStateTimelineService, "create") as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackAlertEpisodeActions.handleAlertEpisodeAction(
@@ -343,7 +400,10 @@ const writeCases: Array<WriteCase> = [
     name: "resolve an incident episode",
     refusal: "resolve this incident episode",
     mutation: (): AnySpy => {
-      return jest.spyOn(IncidentEpisodeService, "resolveEpisode") as AnySpy;
+      return jest.spyOn(
+        IncidentEpisodeStateTimelineService,
+        "create",
+      ) as AnySpy;
     },
     run: (id: string): Promise<void> => {
       return SlackIncidentEpisodeActions.handleIncidentEpisodeAction(
@@ -371,8 +431,8 @@ const writeCases: Array<WriteCase> = [
     refusal: "mark this scheduled maintenance event as ongoing",
     mutation: (): AnySpy => {
       return jest.spyOn(
-        ScheduledMaintenanceService,
-        "markScheduledMaintenanceAsOngoing",
+        ScheduledMaintenanceStateTimelineService,
+        "create",
       ) as AnySpy;
     },
     run: (id: string): Promise<void> => {
@@ -410,13 +470,24 @@ const writeCases: Array<WriteCase> = [
         handlerArgs(SlackActionType.SubmitNewScheduledMaintenance, id, {
           scheduledMaintenanceTitle: "Database upgrade",
           scheduledMaintenanceDescription: "Planned.",
-          startDate: new Date(),
-          endDate: new Date(),
+          // Dates the form takes: it refuses past ones itself, in the form.
+          startDate: new Date(Date.now() + 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
         }),
       );
     },
   },
 ];
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
 
 describe("Slack interactive actions refuse a read-only member", (): void => {
   test.each(writeCases)(
@@ -430,13 +501,18 @@ describe("Slack interactive actions refuse a read-only member", (): void => {
       await testCase.run(ObjectID.generate().toString());
 
       expect(mutationSpy).not.toHaveBeenCalled();
-      expect(directMessageSpy).toHaveBeenCalledTimes(1);
-      expect(directMessageSpy.mock.calls[0]![0].workspaceUserId).toBe(
-        slackUserId,
-      );
-      expect(directMessageTexts()[0]).toContain(
+      // Told in the channel they pressed in, only to them; not by DM.
+      expect(ephemeralSpy).toHaveBeenCalledTimes(1);
+      expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+        channelId: "C0CHANNEL",
+        userId: slackUserId,
+      });
+      expect(channelAnswerTexts()[0]).toContain(
         `You do not have permission to ${testCase.refusal}.`,
       );
+      // Said plainly, without an "@name," in front of it.
+      expect(channelAnswerTexts()[0]!.startsWith("You do not")).toBe(true);
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -453,9 +529,10 @@ describe("Slack interactive actions refuse a user removed from the project", ():
       await testCase.run(ObjectID.generate().toString());
 
       expect(mutationSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()[0]).toContain(
+      expect(channelAnswerTexts()).toEqual([
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-      );
+      ]);
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -464,37 +541,91 @@ describe("Slack interactive actions still work for members who hold the permissi
   test("an incident member acknowledges an incident they can read", async (): Promise<void> => {
     const incidentId: ObjectID = ObjectID.generate();
     mockMember([Permission.IncidentMember]);
+    const states: Array<IncidentState> = incidentStates();
+    const incident: Incident = new Incident();
+    incident.id = incidentId;
+    incident.currentIncidentStateId = states[0]!.id!;
     const lookupSpy: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
-      .mockResolvedValue(new Incident());
+      .mockResolvedValue(incident);
     jest
       .spyOn(IncidentService, "isIncidentAcknowledged")
       .mockResolvedValue(false);
     jest
+      .spyOn(IncidentStateService, "getAllIncidentStates")
+      .mockResolvedValue(states);
+    const logSpy: AnySpy = jest
       .spyOn(WorkspaceNotificationLogService, "logButtonPressed")
-      .mockResolvedValue(undefined as never);
-    const acknowledgeSpy: SpyInstance<
-      typeof IncidentService.acknowledgeIncident
-    > = jest
-      .spyOn(IncidentService, "acknowledgeIncident")
-      .mockResolvedValue(new Incident());
+      .mockResolvedValue(undefined as never) as AnySpy;
+    const createSpy: SpyInstance<typeof IncidentStateTimelineService.create> =
+      jest
+        .spyOn(IncidentStateTimelineService, "create")
+        .mockResolvedValue(new IncidentStateTimeline());
 
     await SlackIncidentActions.handleIncidentAction(
       handlerArgs(SlackActionType.AcknowledgeIncident, incidentId.toString()),
     );
 
-    expect(acknowledgeSpy).toHaveBeenCalledTimes(1);
-    expect(acknowledgeSpy.mock.calls[0]![0].toString()).toBe(
-      incidentId.toString(),
-    );
-    expect(acknowledgeSpy.mock.calls[0]![1]).toBe(userId);
+    /*
+     * The state change the dashboard makes for them: a timeline row into
+     * the project's acknowledged state, created with their own props.
+     */
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    const created: IncidentStateTimeline = createSpy.mock.calls[0]![0].data;
+    expect(created.incidentId?.toString()).toBe(incidentId.toString());
+    expect(created.incidentStateId?.toString()).toBe(states[1]!.id!.toString());
+    expect(created.projectId?.toString()).toBe(projectId.toString());
+    expect(createSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
+    expect(createSpy.mock.calls[0]![0].props.userId).toBe(userId);
+    expect(createSpy.mock.calls[0]![0].props.tenantId).toBe(projectId);
     // Visibility was checked as the user, inside this project.
     expect(lookupSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
     expect(lookupSpy.mock.calls[0]![0].props.userId).toBe(userId);
     expect(lookupSpy.mock.calls[0]![0].query).toMatchObject({
       projectId: projectId,
     });
+    // The button is logged as pressed once the change is made.
+    expect(logSpy).toHaveBeenCalledTimes(1);
     expect(directMessageSpy).not.toHaveBeenCalled();
+    expect(ephemeralSpy).not.toHaveBeenCalled();
+  });
+
+  test("a refusal from the state change itself is told to the member, and the button is not logged", async (): Promise<void> => {
+    const incidentId: ObjectID = ObjectID.generate();
+    mockMember([Permission.IncidentMember]);
+    const states: Array<IncidentState> = incidentStates();
+    const incident: Incident = new Incident();
+    incident.id = incidentId;
+    incident.currentIncidentStateId = states[0]!.id!;
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
+    jest
+      .spyOn(IncidentService, "isIncidentAcknowledged")
+      .mockResolvedValue(false);
+    jest
+      .spyOn(IncidentStateService, "getAllIncidentStates")
+      .mockResolvedValue(states);
+    const logSpy: AnySpy = jest
+      .spyOn(WorkspaceNotificationLogService, "logButtonPressed")
+      .mockResolvedValue(undefined as never) as AnySpy;
+    // The create's own checks refuse it - a column, a label, the plan.
+    jest
+      .spyOn(IncidentStateTimelineService, "create")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permissions to create Incident State Timeline.",
+        ),
+      );
+
+    await SlackIncidentActions.handleIncidentAction(
+      handlerArgs(SlackActionType.AcknowledgeIncident, incidentId.toString()),
+    );
+
+    expect(logSpy).not.toHaveBeenCalled();
+    expect(channelAnswerTexts()).toEqual([
+      expect.stringContaining(
+        "Could not acknowledge the incident: You do not have permissions to create Incident State Timeline.",
+      ),
+    ]);
   });
 
   test("an incident member posts a public note", async (): Promise<void> => {
@@ -517,17 +648,21 @@ describe("Slack interactive actions still work for members who hold the permissi
     expect(addNoteSpy.mock.calls[0]![0]).toMatchObject({
       note: "All clear.",
       projectId: projectId,
-      userId: userId,
     });
+    // Posted with the member's own props: the note is theirs.
+    expect(addNoteSpy.mock.calls[0]![0].props.userId).toBe(userId);
+    expect(addNoteSpy.mock.calls[0]![0].props.tenantId).toBe(projectId);
+    expect(addNoteSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
   });
 
   test("a member cannot act on an incident outside their project or scope", async (): Promise<void> => {
     mockMember([Permission.ProjectMember]);
     // The user-scoped, project-scoped lookup finds nothing.
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
-    const resolveSpy: SpyInstance<typeof IncidentService.resolveIncident> = jest
-      .spyOn(IncidentService, "resolveIncident")
-      .mockResolvedValue(new Incident());
+    const resolveSpy: SpyInstance<typeof IncidentStateTimelineService.create> =
+      jest
+        .spyOn(IncidentStateTimelineService, "create")
+        .mockResolvedValue(new IncidentStateTimeline());
 
     await SlackIncidentActions.handleIncidentAction(
       handlerArgs(
@@ -537,7 +672,7 @@ describe("Slack interactive actions still work for members who hold the permissi
     );
 
     expect(resolveSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()[0]).toContain(
+    expect(channelAnswerTexts()[0]).toContain(
       "the incident was not found in this project",
     );
   });
@@ -605,7 +740,13 @@ describe("Slack emoji reactions", (): void => {
 
       expect(addNoteSpy).not.toHaveBeenCalled();
       expect(fetchMessageSpy).not.toHaveBeenCalled();
-      expect(directMessageSpy).toHaveBeenCalledTimes(1);
+      // Told in the channel the reaction was made in, only to them.
+      expect(ephemeralSpy).toHaveBeenCalledTimes(1);
+      expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+        channelId: "C0INCIDENT",
+        userId: slackUserId,
+      });
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -658,9 +799,21 @@ describe("SlackAuthAction.isAuthorized", (): void => {
 
     expect(result.isAuthorized).toBe(false);
     expect(result.userId).toBeUndefined();
-    expect(directMessageTexts()[0]).toContain(
+    expect(result.refusal?.reason).toBe(SlackAuthRefusalReason.NotAMember);
+    // Answered once Slack has its acknowledgement (answerRefusal), not here.
+    expect(ephemeralSpy).not.toHaveBeenCalled();
+    expect(directMessageSpy).not.toHaveBeenCalled();
+
+    await SlackAuthAction.answerRefusal(result);
+
+    expect(channelAnswerTexts()).toEqual([
       WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-    );
+    ]);
+    expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+      channelId: "C0CHANNEL",
+      userId: slackUserId,
+    });
+    expect(directMessageSpy).not.toHaveBeenCalled();
   });
 
   test("a removed member keeps only what an unconnected Slack user has", async (): Promise<void> => {
@@ -686,6 +839,39 @@ describe("SlackAuthAction.isAuthorized", (): void => {
 
     expect(result.isAuthorized).toBe(true);
     expect(result.userId).toBe(userId);
+    expect(directMessageSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Join call is a link button: Slack opens the meeting itself, and the
+   * meeting decides who gets in. Someone who never linked a OneUptime
+   * account must not be told to link one for joining the incident's call.
+   */
+  test("anyone in the channel can press Join call without a linked OneUptime account", async (): Promise<void> => {
+    mockConnectedWorkspace();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+
+    const result: SlackRequest = await SlackAuthAction.isAuthorized({
+      req: buttonRequest(SlackActionType.JoinVideoCall),
+    });
+
+    expect(result.isAuthorized).toBe(true);
+    expect(result.userId).toBeUndefined();
+    expect(directMessageSpy).not.toHaveBeenCalled();
+  });
+
+  test("a removed member pressing Join call is not sent the not-a-member message", async (): Promise<void> => {
+    mockConnectedWorkspace();
+    mockRemovedMember();
+
+    const result: SlackRequest = await SlackAuthAction.isAuthorized({
+      req: buttonRequest(SlackActionType.JoinVideoCall),
+    });
+
+    expect(result.isAuthorized).toBe(true);
+    expect(result.userId).toBeUndefined();
     expect(directMessageSpy).not.toHaveBeenCalled();
   });
 });

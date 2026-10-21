@@ -3,6 +3,8 @@ import {
   SESSION_REPLAY_CUSTOM_EVENT_TAGS,
   SESSION_REPLAY_RRWEB_CUSTOM_EVENT_TYPE,
   SessionReplayCustomEventTag,
+  SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
   SessionReplayNetworkPayload,
   SessionReplayPerformanceBudgetPayload,
   SessionReplayWebVitalPayload,
@@ -17,6 +19,8 @@ import {
   isSessionReplayErrorPayload,
   isSessionReplayFrustrationPayload,
   isSessionReplayIdentifyPayload,
+  isSessionReplayIdlePausedPayload,
+  isSessionReplayIdleResumedPayload,
   isSessionReplayNetworkPayload,
   isSessionReplayPerformanceBudgetPayload,
   isSessionReplayPerformancePayload,
@@ -84,11 +88,25 @@ describe("SessionReplayCustomEventTag", () => {
     expect(SessionReplayCustomEventTag.Tags).toBe("oneuptime.tags");
   });
 
+  /*
+   * Stored payloads quote these, and the player draws its "recording
+   * paused" bands from them, so they are pinned character for character
+   * like every tag above.
+   */
+  it("names the idle-pause tags under the oneuptime. prefix", () => {
+    expect(SessionReplayCustomEventTag.IdlePaused).toBe(
+      "oneuptime.idle-paused",
+    );
+    expect(SessionReplayCustomEventTag.IdleResumed).toBe(
+      "oneuptime.idle-resumed",
+    );
+  });
+
   it("every tag is unique and prefixed", () => {
     expect(new Set(SESSION_REPLAY_CUSTOM_EVENT_TAGS).size).toBe(
       SESSION_REPLAY_CUSTOM_EVENT_TAGS.length,
     );
-    expect(SESSION_REPLAY_CUSTOM_EVENT_TAGS).toHaveLength(15);
+    expect(SESSION_REPLAY_CUSTOM_EVENT_TAGS).toHaveLength(17);
 
     for (const tag of SESSION_REPLAY_CUSTOM_EVENT_TAGS) {
       expect(tag.startsWith("oneuptime.")).toBe(true);
@@ -406,6 +424,60 @@ describe("payload guards for the engagement events", () => {
     expect(isSessionReplayTagsPayload({})).toBe(false);
   });
 
+  it("idle-paused: when the user stopped and when capture stopped", () => {
+    const paused: SessionReplayIdlePausedPayload = {
+      idleSinceUnixMs: 1757000000000,
+      pausedAtUnixMs: 1757000300000,
+    };
+
+    expect(isSessionReplayIdlePausedPayload(paused)).toBe(true);
+    expect(isSessionReplayIdlePausedPayload({ pausedAtUnixMs: 1 })).toBe(false);
+    expect(
+      isSessionReplayIdlePausedPayload({
+        idleSinceUnixMs: "1",
+        pausedAtUnixMs: 2,
+      }),
+    ).toBe(false);
+    expect(
+      isSessionReplayIdlePausedPayload({
+        idleSinceUnixMs: Number.NaN,
+        pausedAtUnixMs: 2,
+      }),
+    ).toBe(false);
+  });
+
+  it("idle-resumed: a pause start and a resume that is not before it", () => {
+    const resumed: SessionReplayIdleResumedPayload = {
+      pausedAtUnixMs: 1757000300000,
+      resumedAtUnixMs: 1757001500000,
+    };
+
+    expect(isSessionReplayIdleResumedPayload(resumed)).toBe(true);
+    expect(
+      isSessionReplayIdleResumedPayload({
+        pausedAtUnixMs: 5,
+        resumedAtUnixMs: 5,
+      }),
+    ).toBe(true);
+
+    /* A stretch that ends before it starts is no stretch at all. */
+    expect(
+      isSessionReplayIdleResumedPayload({
+        pausedAtUnixMs: 10,
+        resumedAtUnixMs: 9,
+      }),
+    ).toBe(false);
+    expect(isSessionReplayIdleResumedPayload({ resumedAtUnixMs: 9 })).toBe(
+      false,
+    );
+    expect(
+      isSessionReplayIdleResumedPayload({
+        pausedAtUnixMs: 1,
+        resumedAtUnixMs: Number.POSITIVE_INFINITY,
+      }),
+    ).toBe(false);
+  });
+
   it("every guard rejects non-objects without throwing", () => {
     const guards: Array<(value: unknown) => boolean> = [
       isSessionReplayConsolePayload,
@@ -423,6 +495,8 @@ describe("payload guards for the engagement events", () => {
       isSessionReplayCustomDroppedPayload,
       isSessionReplayIdentifyPayload,
       isSessionReplayTagsPayload,
+      isSessionReplayIdlePausedPayload,
+      isSessionReplayIdleResumedPayload,
     ];
 
     for (const guard of guards) {

@@ -4,6 +4,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -16,6 +19,11 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getCephClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -49,6 +57,8 @@ import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefres
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import React, {
   Fragment,
   FunctionComponent,
@@ -57,6 +67,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Ceph cluster overview hero (WI-8) — the Kubernetes View/Index.tsx
@@ -240,6 +252,7 @@ export const OsdStateCellView: FunctionComponent<{
 const CephClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<CephCluster | null>(null);
@@ -317,10 +330,10 @@ const CephClusterOverview: FunctionComponent<
 
     if (!item?.name) {
       /*
-       * get-item returns 200 {} (never 404) for a momentarily-missing item,
-       * so a transient blip looks like "not found". Only escalate that to a
-       * full-page error on the initial load; a background tick keeps the
-       * current view.
+       * A missing or unreadable item comes back as null (the API answers
+       * 404), and so does a momentary blip, so a transient one looks like
+       * "not found". Only escalate that to a full-page error on the initial
+       * load; a background tick keeps the current view.
        */
       if (showLoader) {
         setPageError("Cluster not found.");
@@ -835,24 +848,41 @@ const CephClusterOverview: FunctionComponent<
     if (cluster.osdCount) {
       specChips.push({
         icon: IconProp.Database,
-        label: `${cluster.osdUpCount || 0}/${cluster.osdCount} OSD${cluster.osdCount === 1 ? "" : "s"} up`,
+        label: translator.translatePlural(
+          { one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" },
+          cluster.osdCount,
+          { up: cluster.osdUpCount || 0 },
+        ),
       });
     }
     if (monsTotal !== null) {
       specChips.push({
         icon: IconProp.CheckCircle,
-        label: `${monsInQuorum || 0}/${monsTotal} mon${monsTotal === 1 ? "" : "s"} in quorum`,
+        label: translator.translatePlural(
+          {
+            one: "{{inQuorum}}/{{count}} mon in quorum",
+            other: "{{inQuorum}}/{{count}} mons in quorum",
+          },
+          monsTotal,
+          { inQuorum: monsInQuorum || 0 },
+        ),
       });
     } else if (cluster.monCount) {
       specChips.push({
         icon: IconProp.CheckCircle,
-        label: `${cluster.monCount} mon${cluster.monCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} mon", other: "{{count}} mons" },
+          cluster.monCount,
+        ),
       });
     }
     if (cluster.poolCount) {
       specChips.push({
         icon: IconProp.SquareStack,
-        label: `${cluster.poolCount} pool${cluster.poolCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} pool", other: "{{count}} pools" },
+          cluster.poolCount,
+        ),
       });
     }
     // Every chip so far is a count; the Ceph version below is metadata.
@@ -921,7 +951,9 @@ const CephClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1029,8 +1061,12 @@ const CephClusterOverview: FunctionComponent<
           ) : (
             <div className="text-sm text-gray-500">
               {healthChecksAvailable
-                ? "No active checks reported in the last 10 minutes."
-                : "Check details are unavailable — the ceph_health_detail metric is exported by the ceph-mgr prometheus module on Ceph Quincy and newer. Run `ceph health detail` on the cluster for the full breakdown."}
+                ? translator.translateText(
+                    "No active checks reported in the last 10 minutes.",
+                  )
+                : translator.translateText(
+                    "Check details are unavailable — the ceph_health_detail metric is exported by the ceph-mgr prometheus module on Ceph Quincy and newer. Run `ceph health detail` on the cluster for the full breakdown.",
+                  )}
             </div>
           )}
         </Card>
@@ -1102,7 +1138,11 @@ const CephClusterOverview: FunctionComponent<
           icon={IconProp.Database}
           iconColor="emerald"
           value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : "—"}
-          sublabel={osdTotal > 0 ? `${osdIn} in` : "object storage daemons"}
+          sublabel={
+            osdTotal > 0
+              ? translator.translateTemplate("{{in}} in", { in: osdIn })
+              : "object storage daemons"
+          }
           percent={osdTotal > 0 ? (osdUp / osdTotal) * 100 : null}
           thresholds={{ warn: 100, danger: 90 }}
           higherIsBetter={true}
@@ -1137,7 +1177,13 @@ const CephClusterOverview: FunctionComponent<
           value={formatInt(pgProblemCount)}
           sublabel={
             pgStats !== null
-              ? `${formatInt(pgStats.degraded)} degraded, ${formatInt(pgStats.undersized)} undersized`
+              ? translator.translateTemplate(
+                  "{{degraded}} degraded, {{undersized}} undersized",
+                  {
+                    degraded: formatInt(pgStats.degraded),
+                    undersized: formatInt(pgStats.undersized),
+                  },
+                )
               : "degraded + undersized"
           }
         />
@@ -1167,13 +1213,19 @@ const CephClusterOverview: FunctionComponent<
               description={CEPH_METRIC_DESCRIPTIONS.osdStates}
             />
           }
-          description={`Up/in matrix across ${osdMatrix.total} OSD${osdMatrix.total === 1 ? "" : "s"}.`}
+          description={translator.translatePlural(
+            {
+              one: "Up/in matrix across {{count}} OSD.",
+              other: "Up/in matrix across {{count}} OSDs.",
+            },
+            osdMatrix.total,
+          )}
           rightElement={
             <Link
               to={osdsRoute}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
             >
-              View OSDs
+              {translator.translateText("View OSDs")}
             </Link>
           }
         >
@@ -1230,7 +1282,14 @@ const CephClusterOverview: FunctionComponent<
               description={CEPH_METRIC_DESCRIPTIONS.pgStates}
             />
           }
-          description={`${Math.round(total)} placement groups (${formatInt(pgStats.active)} active).`}
+          description={translator.translatePlural(
+            {
+              one: "{{count}} placement group ({{active}} active).",
+              other: "{{count}} placement groups ({{active}} active).",
+            },
+            Math.round(total),
+            { active: formatInt(pgStats.active) },
+          )}
         >
           <StackedProgressBar segments={segments} totalValue={total} />
         </Card>
@@ -1315,13 +1374,23 @@ const CephClusterOverview: FunctionComponent<
           onTimeRangeChange={handleChartTimeRangeChange}
           startAndEndDate={chartDateRange}
         >
+          {/*
+           * Each rate chart's heading names the drag, revealed while the
+           * pointer is over that chart (its named group): the card's
+           * metric panels name it in their own headers, which these
+           * charts do not have.
+           */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                Client IOPS
+                {translator.translateText("Client IOPS")}
                 <InfoTooltip
                   label="Client IOPS"
                   text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <CephRateChart
@@ -1338,12 +1407,16 @@ const CephClusterOverview: FunctionComponent<
                 emptyMessage="No client I/O reported in the selected time range."
               />
             </div>
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                Client Throughput
+                {translator.translateText("Client Throughput")}
                 <InfoTooltip
                   label="Client Throughput"
                   text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <CephRateChart
@@ -1387,7 +1460,7 @@ const CephClusterOverview: FunctionComponent<
       >
         {rows.length === 0 ? (
           <div className="text-sm text-gray-500">
-            No pools in the inventory yet.
+            {translator.translateText("No pools in the inventory yet.")}
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -1464,36 +1537,52 @@ const CephClusterOverview: FunctionComponent<
             to={osdsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">OSDs</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("OSDs")}
+            </div>
             <div className="text-xs text-gray-500">
-              Object storage daemons with up / in state.
+              {translator.translateText(
+                "Object storage daemons with up / in state.",
+              )}
             </div>
           </Link>
           <Link
             to={poolsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Pools</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Pools")}
+            </div>
             <div className="text-xs text-gray-500">
-              Storage pools with stored bytes, capacity, and IOPS.
+              {translator.translateText(
+                "Storage pools with stored bytes, capacity, and IOPS.",
+              )}
             </div>
           </Link>
           <Link
             to={daemonsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Daemons</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Daemons")}
+            </div>
             <div className="text-xs text-gray-500">
-              Mon / mgr / mds / rgw daemons with quorum status.
+              {translator.translateText(
+                "Mon / mgr / mds / rgw daemons with quorum status.",
+              )}
             </div>
           </Link>
           <Link
             to={metricsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Metrics</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Metrics")}
+            </div>
             <div className="text-xs text-gray-500">
-              Explore every metric this cluster reports.
+              {translator.translateText(
+                "Explore every metric this cluster reports.",
+              )}
             </div>
           </Link>
         </div>
@@ -1510,8 +1599,37 @@ const CephClusterOverview: FunctionComponent<
   }
 
   return (
-    <Fragment>
+    /*
+     * The Golden Signals card is the page's only time series, and its range
+     * is the page's (chartTimeRange): a drag on any of its charts - the
+     * capacity and latency panels or the two rate charts - zooms that
+     * range, and a double-click on any of them, or "Reset zoom" beside the
+     * card's picker, puts it back. A zoom is a Custom range, so the
+     * auto-refresh leaves it pinned (see fetchAll) and a reset returns to
+     * the sliding preset.
+     */
+    <TimeRangeZoomScope
+      timeRange={chartTimeRange}
+      onTimeRangeChange={handleChartTimeRangeChange}
+    >
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      {cluster ? (
+        <ResourceConnectionGuideCard
+          status={cluster.otelCollectorStatus as string | undefined}
+          lastSeenAt={cluster.lastSeenAt}
+          guide={getCephClusterConnectionGuide(
+            (cluster.name as string | undefined) || "",
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      ) : (
+        <></>
+      )}
       {renderHealthChecks()}
       {renderGoldenTiles()}
       {renderOsdMatrix()}
@@ -1524,7 +1642,16 @@ const CephClusterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Ceph Cluster Details",
-          description: "Overview of this Ceph cluster.",
+          // Edited in one place: the same card on the cluster's Settings page.
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CEPH_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
         modelDetailProps={{
           modelType: CephCluster,
@@ -1596,10 +1723,17 @@ const CephClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: CephCluster): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              getElement: (item: CephCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.CephAgent}
+                    version={item.agentVersion}
+                  />
+                );
               },
             },
             {
@@ -1625,7 +1759,17 @@ const CephClusterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+
+      {/*
+       * Last on the page: the Ceph AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.CephCluster)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

@@ -30,6 +30,8 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { CustomFieldDefinition } from "Common/Types/CustomField/CustomFieldDefinition";
+import { CUSTOM_FIELD_FACET_KEY_PREFIX as SAVED_VIEW_CUSTOM_FIELD_FACET_KEY_PREFIX } from "Common/Types/CustomField/CustomFieldSavedViews";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Custom fields as chips in the facet bar.
@@ -62,9 +64,11 @@ import { CustomFieldDefinition } from "Common/Types/CustomField/CustomFieldDefin
  * Namespaces a chip's key so a custom field called "labels" cannot collide with
  * the bar's own Labels chip — and so the settle-time reconciliation in
  * useResourceOwners can recognise a selection whose definition has since been
- * renamed or deleted.
+ * renamed or deleted. Defined in Common because renaming a field on the server
+ * rewrites saved views' chips under the same prefix (CustomFieldSavedViews).
  */
-export const CUSTOM_FIELD_FACET_KEY_PREFIX: string = "customField:";
+export const CUSTOM_FIELD_FACET_KEY_PREFIX: string =
+  SAVED_VIEW_CUSTOM_FIELD_FACET_KEY_PREFIX;
 
 /** The one column every custom field chip filters on. */
 export const CUSTOM_FIELD_QUERY_FIELD: string = "customFields";
@@ -492,8 +496,8 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
             : undefined,
         searchPlaceholder:
           kind === "options"
-            ? `Search ${definition.name}...`
-            : `Enter ${definition.name}`,
+            ? translateTemplate("Search {{name}}...", { name: definition.name })
+            : translateTemplate("Enter {{name}}", { name: definition.name }),
         supportedOperators: getCustomFieldFacetOperators(definition),
         queryField: CUSTOM_FIELD_QUERY_FIELD,
         /*

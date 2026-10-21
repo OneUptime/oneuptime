@@ -18,7 +18,10 @@ import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
-import { isDataSourceQueryConfigured } from "../Utils/DataSourceWidget";
+import {
+  isDataSourceQueryConfigured,
+  sortDataSourceTableRows,
+} from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import API from "Common/UI/Utils/API/API";
@@ -26,27 +29,100 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONValue } from "Common/Types/JSON";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DASHBOARD_WIDGET_SORT_ARGUMENT,
+  DashboardWidgetSortColumnInfo,
+  DashboardWidgetSortDirection,
+  DashboardWidgetSortKind,
+  findDashboardWidgetSortColumn,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
+import useDashboardWidgetSort, {
+  DashboardWidgetSortState,
+  useReportDashboardWidgetSortColumns,
+} from "Common/UI/Utils/UseDashboardWidgetSort";
+import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceTableComponentType;
 }
 
-type SortDirection = "asc" | "desc";
+/*
+ * How a result column sorts: numbers highest first, dates newest first,
+ * everything else A to Z.
+ */
+function getColumnSortKind(
+  column: DataSourceTableColumn,
+): DashboardWidgetSortKind {
+  if (column.type === DataSourceTableColumnType.Number) {
+    return DashboardWidgetSortKind.Number;
+  }
+
+  if (column.type === DataSourceTableColumnType.Date) {
+    return DashboardWidgetSortKind.Date;
+  }
+
+  return DashboardWidgetSortKind.Text;
+}
 
 /*
  * Table renderer for widgets bound to an EXTERNAL Data Source: runs the
  * stored query through /data-source/query (Table result kind) and renders
- * the returned rows with client-side sorting. Styling mirrors the metric
- * table widget so the two modes are indistinguishable at a glance.
+ * the returned rows. Styling mirrors the metric table widget so the two
+ * modes are indistinguishable at a glance.
+ *
+ * The rows come in the query's own order. A header click sorts the rows
+ * the query returned (issue #5082): its column first one way, then the
+ * other, then back to the query's order - remembered in the viewer's
+ * browser, with the widget's own sort (arguments.sort) as the order
+ * everyone starts on. The widget's Max Rows trims AFTER sorting, so "top
+ * 10 by this column" means what it says; the connector's own row cap still
+ * applies first, as the query decides what comes back.
  */
 const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [result, setResult] = useState<DataSourceTableResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const sortColumns: Array<DashboardWidgetSortColumnInfo> = useMemo(() => {
+    return (result?.columns || []).map(
+      (column: DataSourceTableColumn): DashboardWidgetSortColumnInfo => {
+        return {
+          key: column.key,
+          title: column.title,
+          kind: getColumnSortKind(column),
+          isTitleUserText: true,
+        };
+      },
+    );
+  }, [result]);
+
+  // The query's order until a viewer or the widget's own sort says otherwise.
+  const widgetSort: DashboardWidgetSortState = useDashboardWidgetSort({
+    dashboardId: props.dashboardId,
+    componentId: props.componentId.toString(),
+    columns: sortColumns,
+    // Before the first answer the columns are not known yet.
+    areColumnsKnown: result !== null,
+    savedSort: (props.component.arguments as Record<string, unknown>)[
+      DASHBOARD_WIDGET_SORT_ARGUMENT
+    ],
+    builtInSort: null,
+    onSavedSortChange: props.onWidgetSortChange,
+  });
+
+  useReportDashboardWidgetSortColumns(props.onWidgetSortColumnsChange, {
+    columns: sortColumns,
+    builtInSort: null,
+  });
+
+  const sortKey: string | null = widgetSort.sort?.column || null;
+  const sortDirection: DashboardWidgetSortDirection =
+    widgetSort.sort?.direction || DashboardWidgetSortDirection.Ascending;
 
   const rawQueryConfig: DataSourceQueryConfig | undefined =
     props.component.arguments.query;
@@ -141,46 +217,8 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     fetchRows,
   ]);
 
-  const toggleSort: (key: string) => void = useCallback(
-    (key: string): void => {
-      if (sortKey === key) {
-        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-        return;
-      }
-      setSortKey(key);
-      setSortDirection("asc");
-    },
-    [sortKey, sortDirection],
-  );
-
   const sortedRows: Array<{ [key: string]: JSONValue }> = useMemo(() => {
-    const rows: Array<{ [key: string]: JSONValue }> = result?.rows || [];
-    if (!sortKey) {
-      return rows;
-    }
-    const direction: number = sortDirection === "asc" ? 1 : -1;
-    return [...rows].sort(
-      (
-        a: { [key: string]: JSONValue },
-        b: { [key: string]: JSONValue },
-      ): number => {
-        const aValue: JSONValue = a[sortKey] ?? null;
-        const bValue: JSONValue = b[sortKey] ?? null;
-        if (aValue === null && bValue === null) {
-          return 0;
-        }
-        if (aValue === null) {
-          return direction;
-        }
-        if (bValue === null) {
-          return -direction;
-        }
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          return (aValue - bValue) * direction;
-        }
-        return String(aValue).localeCompare(String(bValue)) * direction;
-      },
-    );
+    return sortDataSourceTableRows(result?.rows || [], sortKey, sortDirection);
   }, [result, sortKey, sortDirection]);
 
   /*
@@ -240,10 +278,10 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-xs font-medium text-gray-500">
-          {title || "Data Source Table"}
+          {title || translator.translateText("Data Source Table")}
         </p>
         <p className="text-xs text-gray-400 text-center">
-          Click to configure a query
+          {translator.translateText("Click to configure a query")}
         </p>
       </div>
     );
@@ -302,15 +340,20 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
-          {visibleRows.length} {visibleRows.length === 1 ? "row" : "rows"}
+          {translator.translatePlural(
+            { one: "{{count}} row", other: "{{count}} rows" },
+            visibleRows.length,
+          )}
           {result?.truncated || visibleRows.length < sortedRows.length
-            ? " (truncated)"
+            ? ` ${translator.translateText("(truncated)")}`
             : ""}
         </span>
       </div>
       {columns.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-xs text-gray-400">No rows returned.</p>
+          <p className="text-xs text-gray-400">
+            {translator.translateText("No rows returned.")}
+          </p>
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
@@ -318,26 +361,23 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
             <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
               <tr>
                 {columns.map((column: DataSourceTableColumn): ReactElement => {
-                  const isNumeric: boolean =
-                    column.type === DataSourceTableColumnType.Number;
                   return (
-                    <th
+                    <DashboardSortableColumnHeader
                       key={column.key}
-                      className={`px-3 py-2 font-medium tracking-wider cursor-pointer select-none hover:bg-gray-100/60 ${
-                        isNumeric ? "text-right" : ""
-                      }`}
-                      onClick={(): void => {
-                        toggleSort(column.key);
-                      }}
-                      title="Click to sort"
-                    >
-                      {column.title}
-                      {sortKey === column.key
-                        ? sortDirection === "asc"
-                          ? " ▲"
-                          : " ▼"
-                        : ""}
-                    </th>
+                      label={column.title}
+                      // The query's own column names, shown as written.
+                      isLabelUserText={true}
+                      alignRight={
+                        column.type === DataSourceTableColumnType.Number
+                      }
+                      paddingClassName="px-3 py-2"
+                      sortColumn={findDashboardWidgetSortColumn(
+                        sortColumns,
+                        column.key,
+                      )}
+                      sort={widgetSort.sort}
+                      onSortClick={widgetSort.onColumnClick}
+                    />
                   );
                 })}
               </tr>

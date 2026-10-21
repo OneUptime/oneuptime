@@ -8,6 +8,8 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -22,6 +24,22 @@ export enum InputType {
   TIME = "time",
 }
 
+/*
+ * What tells each password manager to leave a field alone: 1Password (both of
+ * its spellings), LastPass, Bitwarden and Dashlane. Browsers' own password
+ * managers go by autocomplete instead - "new-password" keeps them from
+ * filling a saved login in.
+ */
+export const PASSWORD_MANAGER_IGNORE_ATTRIBUTES: Readonly<
+  Record<string, string>
+> = {
+  "data-1p-ignore": "true",
+  "data-op-ignore": "true",
+  "data-lpignore": "true",
+  "data-bwignore": "true",
+  "data-form-type": "other",
+};
+
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
   id?: string | undefined;
@@ -30,6 +48,14 @@ export interface ComponentProps {
   ariaHasPopup?: "dialog" | "listbox" | "menu" | "grid" | "tree" | undefined;
   ariaExpanded?: boolean | undefined;
   ariaControls?: string | undefined;
+  /*
+   * A text box that drives a list of suggestions is a combobox; the option
+   * the arrow keys are on is named by ariaActiveDescendant, since focus
+   * itself never leaves the input.
+   */
+  role?: "combobox" | undefined;
+  ariaAutoComplete?: "list" | "both" | "inline" | "none" | undefined;
+  ariaActiveDescendant?: string | undefined;
   // For inputs with no visible label element to point ariaLabelledby at.
   ariaLabel?: string | undefined;
   /*
@@ -60,12 +86,68 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
+  /*
+   * A password field that holds the person's own password, on a page where
+   * they sign in, sign up or change it: password managers may fill and save
+   * it. Leave it unset everywhere else - see isStoredSecret below.
+   */
+  isOwnCredential?: boolean | undefined;
 }
+
+type GetDateDisplayValueFunction = (
+  value: string | Date,
+  type: InputType | undefined,
+) => string | undefined;
+
+/*
+ * The text a date or datetime-local input shows for a stored value, in the
+ * form the browser's picker reads. Undefined leaves the display as it is: a
+ * value holding " - " is an InBetween range, which only a range filter shows.
+ * So does anything that is neither a string nor a Date - an untyped caller's
+ * number or JSON object - which the input has never tried to parse, and which
+ * would now be parsed during render, where a throw takes the page down.
+ */
+const getDateDisplayValue: GetDateDisplayValueFunction = (
+  value: string | Date,
+  type: InputType | undefined,
+): string | undefined => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value !== "string" && !(value instanceof Date)) {
+    return undefined;
+  }
+
+  if (typeof value === "string" && value.includes(" - ")) {
+    return undefined;
+  }
+
+  const date: Date =
+    value instanceof Date ? value : OneUptimeDate.fromString(value);
+
+  try {
+    return type === InputType.DATETIME_LOCAL
+      ? OneUptimeDate.toDateTimeLocalString(date)
+      : OneUptimeDate.asDateForDatabaseQuery(date);
+  } catch (err: unknown) {
+    Logger.error(err as Error);
+    return "";
+  }
+};
 
 const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  /*
+   * Each input's error message has an id of its own for the input to point
+   * aria-describedby at. The id was fixed, so on a form with several fields
+   * in error every message had the same id, and a screen reader described
+   * each field -- "Your Email" -- with the first field's message, "Title is
+   * required.".
+   */
+  const errorId: string = `input-error-${useId()}`;
   let className: string = "";
 
   if (!props.className) {
@@ -84,61 +166,67 @@ const Input: FunctionComponent<ComponentProps> = (
     className += " bg-gray-100 text-gray-500 cursor-not-allowed";
   }
 
-  const [value, setValue] = useState<string | Date>("");
+  const isDateInput: boolean =
+    props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
+
+  /*
+   * A password field that is not the person's own holds a secret the product
+   * stores for something else: an SMTP or SNMP password, an API token, the
+   * password an admin sets for a private status page user. To a password
+   * manager every password field reads as a sign-in form, so these were
+   * offered the person's OneUptime login, saved as new logins for the site,
+   * and 1Password put its "Sign in" prompt over Dashboard pages that sign
+   * nobody in. "new-password" keeps browsers from filling a saved login in,
+   * and the attributes send the password managers away.
+   */
+  const isStoredSecret: boolean =
+    props.type === InputType.PASSWORD && !props.isOwnCredential;
+
+  /*
+   * Seeded from the props on the first render, not by an effect after it.
+   *
+   * Seeding it from an effect meant the <input> was inserted blank and only
+   * filled in a task or more later, and in between it was on screen, focusable
+   * and typeable. Anything that put the caret in it during that window had it
+   * moved to the end when the value landed, so what was typed next went AFTER
+   * the prefilled text: the SLO burn rate form's Incident Title became "SLO
+   * burn rate: {{sloName}} — {{ruleName}}Coordinate response for {{sloName}}"
+   * when a fill selected the blank field just before its default template
+   * arrived. TextArea and MarkdownEditor already start from their props.
+   *
+   * The effects further down still follow a value or initialValue that
+   * changes after mounting.
+   */
+  const [value, setValue] = useState<string | Date>((): string | Date => {
+    return props.value || props.initialValue || "";
+  });
 
   /*
    * Only dates need a display form that differs from the stored value, and
    * working it out means parsing, so it stays in state behind an effect.
-   * Text keeps no second copy - see the comment on displayValue below.
+   * Text keeps no second copy - see the comment on displayValue below. Like
+   * the value, it starts from what the input mounts with.
    */
-  const [dateDisplayValue, setDateDisplayValue] = useState<string>("");
+  const [dateDisplayValue, setDateDisplayValue] = useState<string>(
+    (): string => {
+      return isDateInput ? getDateDisplayValue(value, props.type) ?? "" : "";
+    },
+  );
   const ref: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
 
-  const isDateInput: boolean =
-    props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
-
   useEffect(() => {
-    if (
-      props.type === InputType.DATE ||
-      props.type === InputType.DATETIME_LOCAL
-    ) {
-      if (value && (value as unknown) instanceof Date) {
-        let dateString: string = "";
-        try {
-          if (props.type === InputType.DATETIME_LOCAL) {
-            dateString = OneUptimeDate.toDateTimeLocalString(value as any);
-          } else {
-            dateString = OneUptimeDate.asDateForDatabaseQuery(value);
-          }
-        } catch (e: any) {
-          Logger.error(e);
-        }
-        setDateDisplayValue(dateString);
-      } else if (
-        value &&
-        (value as any).includes &&
-        !(value as any).includes(" - ")
-      ) {
-        // " - " is for InBetween dates.
-        const date: Date = OneUptimeDate.fromString(value);
-        let dateString: string = "";
-        try {
-          if (props.type === InputType.DATETIME_LOCAL) {
-            dateString = OneUptimeDate.toDateTimeLocalString(date);
-          } else {
-            dateString = OneUptimeDate.asDateForDatabaseQuery(date);
-          }
-        } catch (err: any) {
-          Logger.error(err);
-        }
-        setDateDisplayValue(dateString);
-      } else if (
-        !value ||
-        ((value as any).includes && !(value as any).includes(" - "))
-      ) {
-        setDateDisplayValue("");
-      }
+    if (!isDateInput) {
+      return;
+    }
+
+    const nextDateDisplayValue: string | undefined = getDateDisplayValue(
+      value,
+      props.type,
+    );
+
+    if (nextDateDisplayValue !== undefined) {
+      setDateDisplayValue(nextDateDisplayValue);
     }
   }, [value]);
 
@@ -164,7 +252,14 @@ const Input: FunctionComponent<ComponentProps> = (
     ? dateDisplayValue
     : (value as string) || "";
 
-  useEffect(() => {
+  /*
+   * A layout effect, so the write lands in the same commit that rendered the
+   * value. A passive effect runs after that commit, and for one that did not
+   * come from a click or a keystroke - data arriving, a timer - that is a later
+   * task. In between, the field would be on screen blank even though this
+   * component already knows what it holds.
+   */
+  useLayoutEffect(() => {
     const input: HTMLInputElement | null = ref.current;
 
     /*
@@ -176,16 +271,6 @@ const Input: FunctionComponent<ComponentProps> = (
       input.value = displayValue;
     }
   }, [ref, displayValue]);
-
-  useEffect(() => {
-    if (props.initialValue) {
-      setValue(props.initialValue);
-    }
-
-    if (props.value) {
-      setValue(props.value);
-    }
-  }, []);
 
   useEffect(() => {
     if (props.initialValue) {
@@ -213,16 +298,20 @@ const Input: FunctionComponent<ComponentProps> = (
           onClick={props.onClick}
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
-          autoComplete={props.autoComplete}
+          autoComplete={
+            props.autoComplete || (isStoredSecret ? "new-password" : undefined)
+          }
+          {...(isStoredSecret ? PASSWORD_MANAGER_IGNORE_ATTRIBUTES : {})}
           aria-label={props.ariaLabel}
           aria-labelledby={props.ariaLabelledby}
           aria-haspopup={props.ariaHasPopup}
           aria-expanded={props.ariaExpanded}
           aria-controls={props.ariaControls}
+          role={props.role}
+          aria-autocomplete={props.ariaAutoComplete}
+          aria-activedescendant={props.ariaActiveDescendant}
           aria-invalid={props.error || props.ariaInvalid ? "true" : undefined}
-          aria-describedby={
-            props.error ? "input-error-message" : props.ariaDescribedby
-          }
+          aria-describedby={props.error ? errorId : props.ariaDescribedby}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const value: string | Date = e.target.value;
 
@@ -298,12 +387,12 @@ const Input: FunctionComponent<ComponentProps> = (
 
       {props.error && (
         <p
-          id="input-error-message"
+          id={errorId}
           data-testid="error-message"
           className="mt-1 text-sm text-red-400"
           role="alert"
         >
-          {props.error}
+          {translateString(props.error)}
         </p>
       )}
     </>

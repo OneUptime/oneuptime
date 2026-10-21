@@ -3,12 +3,16 @@ import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProject
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../Server/Services/GlobalSsoProjectService";
 import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
+import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
+import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import { GlobalProviderTrust } from "../../../Server/Utils/GlobalSsoAuthorization";
+import { ProjectSsoProviderStandingValue } from "../../../Server/Utils/ProjectSsoProviderStanding";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -67,16 +71,19 @@ const THIRTY_DAYS_IN_SECONDS: number = 30 * 24 * 60 * 60;
 const TRUSTED_AND_UNRESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 const TRUSTED_AND_RESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: true,
+  signInsEndedAtMs: null,
 };
 
 const REVOKED: GlobalProviderTrust = {
   isUsable: false,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 type TrustSpy = SpyInstance<
@@ -91,10 +98,25 @@ type OidcGovernSpy = SpyInstance<
   (data: { globalOidcId: ObjectID; projectId: ObjectID }) => Promise<boolean>
 >;
 
+type ProjectStandingSpy = SpyInstance<
+  (data: {
+    providerId: ObjectID;
+    projectId: ObjectID;
+  }) => Promise<ProjectSsoProviderStandingValue>
+>;
+
 let ssoTrustSpy: TrustSpy;
 let oidcTrustSpy: TrustSpy;
 let ssoGovernsSpy: SsoGovernSpy;
 let oidcGovernsSpy: OidcGovernSpy;
+let projectSsoStandingSpy: ProjectStandingSpy;
+let projectOidcStandingSpy: ProjectStandingSpy;
+
+// A project's own provider that is on and was never turned off.
+const PROJECT_PROVIDER_ON: ProjectSsoProviderStandingValue = {
+  isOn: true,
+  signInsEndedAtMs: null,
+};
 
 const buildUser: (userId: ObjectID) => User = (userId: ObjectID): User => {
   const user: User = new User();
@@ -141,10 +163,11 @@ const mintProjectToken: (data: {
   });
 };
 
+// An SSO sign-in's claims, read as the SSO readers read them.
 const decodeToken: (token: string) => JSONWebTokenData = (
   token: string,
 ): JSONWebTokenData => {
-  return JSONWebToken.decode(token);
+  return JSONWebToken.decode(token, JsonWebTokenPurpose.SsoSignIn);
 };
 
 interface RequestParts {
@@ -205,6 +228,18 @@ beforeEach(() => {
   oidcTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
   ssoGovernsSpy.mockResolvedValue(true);
   oidcGovernsSpy.mockResolvedValue(true);
+
+  /*
+   * A project's own SSO and OIDC providers are on. Whether one that was
+   * turned off or deleted still vouches is UserAuthorizationProjectSsoProvider
+   * .test's subject; here they only have to be there.
+   */
+  projectSsoStandingSpy = jest
+    .spyOn(ProjectSsoService, "getSignInStanding")
+    .mockResolvedValue(PROJECT_PROVIDER_ON);
+  projectOidcStandingSpy = jest
+    .spyOn(ProjectOidcService, "getSignInStanding")
+    .mockResolvedValue(PROJECT_PROVIDER_ON);
 });
 
 afterEach(() => {
@@ -258,7 +293,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     expect(ssoGovernsSpy).not.toHaveBeenCalled();
   });
 
-  test("SAML: the SAME token is allowed the moment the provider is enabled again", async () => {
+  test("SAML: the SAME token is allowed while the provider is on and was never turned off", async () => {
     ssoTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
 
     await expect(
@@ -282,7 +317,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     expect(oidcGovernsSpy).not.toHaveBeenCalled();
   });
 
-  test("OIDC: the SAME token is allowed the moment the provider is enabled again", async () => {
+  test("OIDC: the SAME token is allowed while the provider is on and was never turned off", async () => {
     oidcTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
 
     await expect(
@@ -298,6 +333,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     ssoTrustSpy.mockResolvedValue({
       isUsable: false,
       restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
     });
     ssoGovernsSpy.mockResolvedValue(true);
 
@@ -338,6 +374,141 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
 
     await expect(
       UserMiddleware.isSsoSatisfiedForProject({ req, projectId, userId }),
+    ).resolves.toBe(true);
+  });
+});
+
+/*
+ * Turning a provider off ends the sign-ins it gave, and turning it on again
+ * does not bring them back (Server/Utils/SsoSignInsEnded): the provider keeps
+ * when it was last turned off (signInsEndedAtMs), and a token counts only
+ * when its verified issue time (`iat`, whole seconds) is after then. People
+ * sign in with it again, and their new tokens count.
+ */
+describe("isGlobalSsoTokenAuthorizedForProject - a provider turned off and on again", () => {
+  const projectId: ObjectID = ObjectID.generate();
+  const userId: ObjectID = ObjectID.generate();
+  const providerId: ObjectID = ObjectID.generate();
+
+  const tokenDataOf: (providerType: SsoProviderType) => JSONWebTokenData = (
+    providerType: SsoProviderType,
+  ): JSONWebTokenData => {
+    return decodeToken(mintGlobalToken({ userId, providerId, providerType }));
+  };
+
+  const onAgainSince: (signInsEndedAtMs: number) => GlobalProviderTrust = (
+    signInsEndedAtMs: number,
+  ): GlobalProviderTrust => {
+    return {
+      isUsable: true,
+      restrictToAttachedProjects: false,
+      signInsEndedAtMs,
+    };
+  };
+
+  test.each([
+    ["SAML", SsoProviderType.GlobalSSO],
+    ["OIDC", SsoProviderType.GlobalOIDC],
+  ])(
+    "%s: a token given before it was turned off stays ended once it is on again",
+    async (_label: string, providerType: SsoProviderType) => {
+      const tokenData: JSONWebTokenData = tokenDataOf(providerType);
+      const issuedAtMs: number = tokenData.issuedAtMs!;
+      const trustSpy: TrustSpy =
+        providerType === SsoProviderType.GlobalSSO ? ssoTrustSpy : oidcTrustSpy;
+
+      expect(typeof issuedAtMs).toBe("number");
+
+      // Turned off a minute after the sign-in, and on again since.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs + 60_000));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(false);
+
+      // Turned off in the very second the token was given: ended too.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs + 400));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(false);
+
+      // Turned off before the sign-in: a sign-in given since counts.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs - 1000));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(true);
+    },
+  );
+
+  test("a token that does not say when it was given counts only for a provider never turned off", async () => {
+    const tokenData: JSONWebTokenData = {
+      ...tokenDataOf(SsoProviderType.GlobalSSO),
+      issuedAtMs: undefined,
+    };
+
+    ssoTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
+
+    await expect(
+      UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData: tokenData,
+        projectId,
+      }),
+    ).resolves.toBe(true);
+
+    ssoTrustSpy.mockResolvedValue(onAgainSince(Date.now() - 60_000));
+
+    await expect(
+      UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData: tokenData,
+        projectId,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("the whole enforcement entry point refuses the old sign-in and accepts a new one", async () => {
+    const oldToken: string = mintGlobalToken({
+      userId,
+      providerId,
+      providerType: SsoProviderType.GlobalSSO,
+    });
+    const oldIssuedAtMs: number = decodeToken(oldToken).issuedAtMs!;
+
+    ssoTrustSpy.mockResolvedValue(onAgainSince(oldIssuedAtMs + 60_000));
+
+    await expect(
+      UserMiddleware.isSsoSatisfiedForProject({
+        req: buildRequest({ globalToken: oldToken }),
+        projectId,
+        userId,
+      }),
+    ).resolves.toBe(false);
+
+    // Signing in again after it was turned on gives a token that counts.
+    ssoTrustSpy.mockResolvedValue(onAgainSince(oldIssuedAtMs - 60_000));
+
+    await expect(
+      UserMiddleware.isSsoSatisfiedForProject({
+        req: buildRequest({
+          globalToken: mintGlobalToken({
+            userId,
+            providerId,
+            providerType: SsoProviderType.GlobalSSO,
+          }),
+        }),
+        projectId,
+        userId,
+      }),
     ).resolves.toBe(true);
   });
 });
@@ -841,18 +1012,20 @@ describe("isGlobalSsoTokenAuthorizedForProject - a token with no provider id", (
   const providerId: ObjectID = ObjectID.generate();
 
   const mintProviderlessGlobalToken: () => string = (): string => {
-    return JSONWebToken.sign({
-      data: {
-        userId: userId,
-        name: new Name("Global SSO User"),
-        email: new Email("global-sso@oneuptime.com"),
+    // As an earlier release signed it: no purpose either.
+    return JSONWebToken.signJsonPayload(
+      {
+        userId: userId.toString(),
+        name: "Global SSO User",
+        email: "global-sso@oneuptime.com",
+        projectId: "",
         isMasterAdmin: false,
         isGeneralLogin: false,
         // No ssoProviderId at all - the shape a pre-discriminator token had.
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
-      expiresInSeconds: THIRTY_DAYS_IN_SECONDS,
-    });
+      THIRTY_DAYS_IN_SECONDS,
+    );
   };
 
   test("the fixture really is a Global token with no provider id", () => {
@@ -909,10 +1082,10 @@ describe("isGlobalSsoTokenAuthorizedForProject - a token with no provider id", (
 
 /*
  * A per-project SSO token is bound to one project by a login that already
- * proved the project's own provider trusts this user. It is decided
- * statelessly and short-circuits the whole stateful path - which is what
- * keeps a project-SSO-only installation from paying for Global SSO queries it
- * has no use for.
+ * proved the project's own provider trusts this user. It is decided by that
+ * provider alone - still there, on, and not turned off since it was given -
+ * and never reaches the Global path, which is what keeps a project-SSO-only
+ * installation from paying for Global SSO queries it has no use for.
  */
 describe("isSsoSatisfiedForProject - the per-project token short-circuits", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -944,6 +1117,15 @@ describe("isSsoSatisfiedForProject - the per-project token short-circuits", () =
     ).resolves.toBe(true);
 
     expectNoDatabaseLookups();
+    // Its own provider was asked, as SAML, for this project.
+    expect(projectSsoStandingSpy).toHaveBeenCalledTimes(1);
+    expect(projectOidcStandingSpy).not.toHaveBeenCalled();
+    expect(projectSsoStandingSpy.mock.calls[0]![0].providerId.toString()).toBe(
+      providerId.toString(),
+    );
+    expect(projectSsoStandingSpy.mock.calls[0]![0].projectId.toString()).toBe(
+      projectId.toString(),
+    );
   });
 
   test("a valid ProjectOIDC token for THIS project -> true, with no global lookups", async () => {
@@ -969,6 +1151,9 @@ describe("isSsoSatisfiedForProject - the per-project token short-circuits", () =
     ).resolves.toBe(true);
 
     expectNoDatabaseLookups();
+    // Its own provider was asked, as OIDC.
+    expect(projectOidcStandingSpy).toHaveBeenCalledTimes(1);
+    expect(projectSsoStandingSpy).not.toHaveBeenCalled();
   });
 
   test("a per-project token for a DIFFERENT project does not short-circuit - the global path decides", async () => {
@@ -1271,6 +1456,7 @@ describe("isSsoSatisfiedForProject - stateless gates run before the database", (
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
       expiresInSeconds: -60,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
 
     await expect(

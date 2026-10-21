@@ -23,6 +23,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type CephMetric =
   // Cluster overview (Pages/Ceph/View/Index.tsx), also the Clusters list
   | "inventoryCounts"
@@ -79,96 +81,142 @@ export type CephMetric =
   | "clusterCapacity";
 
 export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
-  inventoryCounts:
+  inventoryCounts: translationKey(
     "Counts from the cluster's latest data, not a time range: OSDs (the daemons that store data) that are up out of all OSDs, monitors in quorum out of all known monitors (only the monitor count when quorum is not reported), and pools.",
-  health:
+  ),
+  health: translationKey(
     "Ceph's own health verdict from the cluster's latest data: OK, Warning (WARN) when something needs attention, or Error (ERR) when data availability or safety is at risk. Unknown means no health data has arrived yet.",
-  activeHealthChecks:
+  ),
+  activeHealthChecks: translationKey(
     "The named problems, such as OSD_DOWN or PG_DEGRADED, that were still raised in the latest data Ceph sent in the last 10 minutes, with how serious each one is. They explain why the cluster's health is not OK.",
-  capacityUsed:
+  ),
+  capacityUsed: translationKey(
     "Share of the cluster's raw disk space in use, counting every copy of your data, from the latest readings rather than the chart time range. The subtitle projects the last 24 hours' growth to 85%, Ceph's default nearfull warning level.",
-  osdsUp:
+  ),
+  osdsUp: translationKey(
     "OSDs are the daemons that store your data, usually one per disk. This shows how many are running (up) out of all OSDs, and below it how many Ceph is placing data on (in), from the cluster's latest data.",
-  monsInQuorum:
+  ),
+  monsInQuorum: translationKey(
     "Monitors keep the cluster map and must agree as a majority (a quorum) for the cluster to work. This shows monitors in quorum out of all known monitors, or only the monitor count when quorum is not reported.",
-  pools:
+  ),
+  pools: translationKey(
     "Storage pools the cluster reported in its latest data. A pool holds data under its own replication and placement rules; block devices, file systems and object storage each keep their data in pools.",
-  problemPgs:
+  ),
+  problemPgs: translationKey(
     "Placement groups, the chunks Ceph splits each pool into, that are degraded (missing copies) or undersized (on fewer OSDs than the pool's copy count), from the last 10 minutes of data. A group in both states is counted twice.",
-  osdStates:
+  ),
+  osdStates: translationKey(
     "Every OSD (a daemon that stores data, usually one per disk) grouped by two flags: up means its daemon is running, and in means Ceph places data on it. Down + In is the risky case, because Ceph still expects data there but the OSD is not running.",
-  osdUpIn:
+  ),
+  osdUpIn: translationKey(
     "OSDs that are running and holding data. This is the normal, healthy state.",
-  osdUpOut:
+  ),
+  osdUpOut: translationKey(
     "OSDs that are running but excluded from data placement, for example while being drained or removed. Ceph moves their data to other OSDs.",
-  osdDownIn:
+  ),
+  osdDownIn: translationKey(
     "OSDs that have stopped but are still expected to hold data, so that data has fewer copies until they come back or Ceph marks them out and copies it elsewhere.",
-  osdDownOut:
+  ),
+  osdDownOut: translationKey(
     "OSDs that are stopped and excluded from data placement. Ceph has copied, or is still copying, their data to other OSDs.",
-  pgStates:
+  ),
+  pgStates: translationKey(
     "Placement groups (the chunks Ceph splits each pool into) by state from the last 10 minutes: clean groups have every copy in place, degraded and undersized ones are missing copies, and Other is the rest, such as peering. A group can be in several states at once, so the segments are approximate.",
-  clientIops:
+  ),
+  clientIops: translationKey(
     "Read and write operations per second (IOPS) from clients, added up across all pools. Worked out for each interval of the selected time range from Ceph's running per-pool operation counters.",
-  clientThroughput:
+  ),
+  clientThroughput: translationKey(
     "Bytes per second clients read from and wrote to the cluster, added up across all pools. Worked out for each interval of the selected time range from Ceph's running per-pool byte counters.",
-  largestPools:
+  ),
+  largestPools: translationKey(
     "The five pools holding the most data, by Ceph's STORED figure: what clients wrote, before replication copies. Pools that have not reported in the last 15 minutes are left out.",
-  fullestPools:
+  ),
+  fullestPools: translationKey(
     "The five pools closest to full: data stored divided by data stored plus the space still writable (Max Avail). Max Avail allows for replication and the fullest OSDs, so a pool can fill before the cluster's raw space does.",
-  osdStatusColumn:
+  ),
+  osdStatusColumn: translationKey(
     "Up means the OSD's daemon is running and answering the cluster; Down means it is not. Taken from the latest data Ceph reported for the OSD.",
-  osdInOutColumn:
+  ),
+  osdInOutColumn: translationKey(
     "In means Ceph places data on this OSD. Out means it was taken out of data placement, by an admin or automatically after being down for a while, and its data lives on other OSDs.",
-  osdUsedColumn:
+  ),
+  osdUsedColumn: translationKey(
     "Disk space used on the OSD compared with its total size, with the share used in brackets. Shows a dash if the OSD has not reported in the last 15 minutes.",
-  osdPgsColumn:
+  ),
+  osdPgsColumn: translationKey(
     "How many placement groups, the chunks Ceph splits pools into, the OSD holds; one with far more than its peers carries more data and load. Shows a dash if the OSD has not reported in the last 15 minutes.",
-  osdLatencyColumn:
+  ),
+  osdLatencyColumn: translationKey(
     "The OSD's latest apply and commit latency in milliseconds, as reported by Ceph: how long writes take to reach its disk, where values that stay high point to a slow or failing disk. Shows a dash if it has not reported in the last 15 minutes.",
-  osdAgeColumn:
+  ),
+  osdAgeColumn: translationKey(
     "How long ago OneUptime first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is. It starts again from zero if the OSD was missing from that data for more than about 15 minutes.",
-  osdStatus:
+  ),
+  osdStatus: translationKey(
     "Up means this OSD's daemon is running and responding to the cluster; Down means it has stopped or cannot be reached. From the most recent data the cluster sent.",
-  osdPlacement:
+  ),
+  osdPlacement: translationKey(
     "In means Ceph is placing data on this OSD. Out means it has been removed from data placement, by an admin or automatically after being down, and its data is served from other OSDs.",
-  osdUsed:
+  ),
+  osdUsed: translationKey(
     "Disk space used on this OSD's device compared with its total size, from its latest report. Shows a dash if the OSD has not reported in the last 15 minutes.",
-  osdPlacementGroups:
+  ),
+  osdPlacementGroups: translationKey(
     "How many placement groups, the chunks Ceph splits pools into, this OSD holds according to its latest report; more groups usually means more data and more load. Shows a dash if the OSD has not reported in the last 15 minutes.",
-  osdLatency:
+  ),
+  osdLatency: translationKey(
     "Latest apply and commit latency in milliseconds: how long this OSD takes to apply a write and to make it durable on disk, so high values mean slow writes for clients. Shows a dash if it has not reported in the last 15 minutes.",
-  poolStoredColumn:
+  ),
+  poolStoredColumn: translationKey(
     "Data stored in the pool, by Ceph's STORED figure: what clients wrote, before replication copies. Shows a dash if the pool has not reported in the last 15 minutes.",
-  poolMaxAvailColumn:
+  ),
+  poolMaxAvailColumn: translationKey(
     "How much more data Ceph estimates can be written to the pool, allowing for its replication and for the fullest OSDs it uses.",
-  poolUsedColumn:
+  ),
+  poolUsedColumn: translationKey(
     "How full the pool is: Stored divided by Stored plus Max Avail. It can reach 100% before the cluster's raw disks are full, because Max Avail is limited by the fullest OSD.",
-  poolObjectsColumn:
+  ),
+  poolObjectsColumn: translationKey(
     "Number of RADOS objects in the pool, the units Ceph stores data in. Large files and disk images are split into many objects, so this is not a count of your files.",
-  poolReadIopsColumn:
+  ),
+  poolReadIopsColumn: translationKey(
     "Average read operations per second (IOPS) on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
-  poolWriteIopsColumn:
+  ),
+  poolWriteIopsColumn: translationKey(
     "Average write operations per second (IOPS) on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
-  poolStored:
+  ),
+  poolStored: translationKey(
     "Data stored in this pool, by Ceph's STORED figure: what clients wrote, before replication copies. From the pool's latest report; a dash if that is older than 15 minutes.",
-  poolMaxAvail:
+  ),
+  poolMaxAvail: translationKey(
     "How much more data Ceph estimates can still be written to this pool, allowing for replication and the fullest OSDs, from its latest report.",
-  poolUsed:
+  ),
+  poolUsed: translationKey(
     "How full this pool is: Stored divided by Stored plus Max Available. Because Max Available is limited by the fullest OSD, a pool can reach 100% while the cluster still has raw space.",
-  poolGrowth:
+  ),
+  poolGrowth: translationKey(
     "A rough estimate of when this pool fills up, from a straight-line trend of its stored data over the last 24 hours. Shown only while the pool is growing or full, and marked low confidence with under 2 hours of history.",
-  poolObjects:
+  ),
+  poolObjects: translationKey(
     "Number of RADOS objects in this pool from its latest report. Ceph splits files and disk images into many objects, so this is not the number of your files.",
-  poolClientIops:
+  ),
+  poolClientIops: translationKey(
     "Read and write operations per second (IOPS) on this pool, worked out for each interval of the selected time range from Ceph's running operation counters.",
-  poolClientThroughput:
+  ),
+  poolClientThroughput: translationKey(
     "Bytes per second read from and written to this pool, worked out for each interval of the selected time range from Ceph's running byte counters.",
-  daemonStatus:
+  ),
+  daemonStatus: translationKey(
     "Monitors show In Quorum when they agree with the majority on the cluster map, and Out of Quorum when they do not. Other daemons show Reporting if seen in the last 15 minutes; any daemon silent for longer shows Stale.",
-  clusterOsds:
+  ),
+  clusterOsds: translationKey(
     "OSDs are the daemons that store data, usually one per disk. Shows how many are running (up), how many Ceph places data on (in) and the total, from the cluster's latest data; amber when any are down or out.",
-  clusterMons:
+  ),
+  clusterMons: translationKey(
     "Number of monitor daemons, which keep the master copy of the cluster map, from the cluster's latest data. This is a count only; open the cluster to see how many are in quorum.",
-  clusterCapacity:
+  ),
+  clusterCapacity: translationKey(
     "Share of the cluster's raw disk space in use, counting every copy of your data, from its latest data. The bar turns amber at 75% and red at 90%.",
+  ),
 };

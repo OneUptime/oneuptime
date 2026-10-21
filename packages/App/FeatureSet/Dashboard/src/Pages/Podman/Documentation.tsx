@@ -8,8 +8,8 @@ const PodmanDocumentation: FunctionComponent<
   return (
     <Fragment>
       <PodmanDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime Podman Agent to connect your Podman host. Once installed, the host will appear automatically."
+        title="Connect a Podman Host"
+        description="Run the OneUptime Podman agent on the host. Pick how you run it, then follow the steps — the host appears automatically once the agent connects."
       />
     </Fragment>
   );

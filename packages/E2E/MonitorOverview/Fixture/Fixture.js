@@ -19,7 +19,7 @@
  *
  *   ?type=     api (default) | website | ssl | incoming-request
  *              | incoming-email | server | kubernetes | network-device
- *              | manual
+ *              | manual | probe-status
  *   ?state=    comma separated. The status: operational (default) |
  *              offline | degraded. Plus any of: disabled, maintenance,
  *              no-probes, probes-off, disconnected, one-disconnected,
@@ -43,13 +43,33 @@
  *              refresh-status  every refresh-status request fails
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
+ *   ?monitorLimit=  the project's limit on active monitors, as
+ *              GET /monitor/active-monitor-limit answers it: none (default,
+ *              no limit) | under (499 of a plan's 500) | at (500 of 500) |
+ *              over (2,881 of 500: the support report's project) | free-at
+ *              (10 of the Free plan's 10) | fail (the request fails). The
+ *              Dashboard asks it only on a billed install: add ?billing=true
+ *              (handled by server.js, as BILLING_ENABLED).
+ *   ?plan=     free puts the project on the Free plan (with ?billing=true):
+ *              Create Monitor then shows its pricing card. Any other value,
+ *              or none, is no plan the page can name, as before.
  *   ?theme=    dark adds html.dark (handled by server.js).
+ *   ?probes=   which probes ProbeUtil.getAllProbes finds: custom (default,
+ *              the workspace's three probes, no global one) | self-hosted
+ *              (no custom probe, one global probe: an installation's
+ *              bundled probe) | both (the three and the global one). The
+ *              Probe Status monitor's picker starts from these.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
- * apiRequests (with headers), updates, and unhandled: anything the fixture
- * does not model (a model table, an analytics query or an API URL). The
- * spec asserts `unhandled` is empty.
+ * apiRequests (with headers), updates, creates, and unhandled: anything the
+ * fixture does not model (a model table, an analytics query or an API URL).
+ * The spec asserts `unhandled` is empty.
+ *
+ * Create Monitor (Pages/Monitor/Create) is mounted too, at its real
+ * /dashboard/:projectId/monitors/create, for CreateMonitor.spec.ts. Its
+ * create is answered with CREATED_MONITOR_ID, whose page is a stub: the
+ * monitor it made is recorded on `creates`, and nothing else reads it.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -66,6 +86,8 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
+import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
+import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -75,8 +97,10 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -89,11 +113,14 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -123,6 +150,7 @@ import {
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -164,6 +192,7 @@ const TYPE_KEYS = [
   "kubernetes",
   "network-device",
   "manual",
+  "probe-status",
 ];
 const subjectType = TYPE_KEYS.includes(params.get("type"))
   ? params.get("type")
@@ -183,6 +212,27 @@ const roleMode = ROLE_KEYS.includes(params.get("role"))
   : "owner";
 const failures = listParam("fail");
 const showNav = params.get("nav") === "1";
+const planMode = params.get("plan") === "free" ? "free" : "none";
+const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
+  ? params.get("probes")
+  : "custom";
+
+/*
+ * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
+ * as the server's JSON carries it.
+ */
+const MONITOR_LIMITS = {
+  none: { limit: null, activeMonitors: null },
+  under: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 499 },
+  at: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 500 },
+  over: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 2881 },
+  "free-at": { limit: { limit: 10, kind: "FreePlan" }, activeMonitors: 10 },
+};
+const monitorLimitMode =
+  params.get("monitorLimit") === "fail" ||
+  Object.keys(MONITOR_LIMITS).includes(params.get("monitorLimit"))
+    ? params.get("monitorLimit")
+    : "none";
 
 /*
  * What every signed-in user holds (AccessTokenService's global permissions),
@@ -244,6 +294,7 @@ const ID = {
   step: (number) => uuid("84000000", number),
   networkDevice: (number) => uuid("85000000", number),
   secret: (number) => uuid("86000000", number),
+  kubernetesCluster: (number) => uuid("87000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -266,6 +317,9 @@ const fixture = {
     history: historyMode,
     role: roleMode,
     fail: Array.from(failures),
+    monitorLimit: monitorLimitMode,
+    plan: planMode,
+    probes: probesMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -273,6 +327,7 @@ const fixture = {
   aggregateRequests: [],
   apiRequests: [],
   updates: [],
+  creates: [],
   unhandled: [],
 };
 window.__monitorOverviewFixture = fixture;
@@ -607,6 +662,28 @@ for (const definition of PROBE_DEFINITIONS) {
   });
 }
 
+/*
+ * The cluster a Kubernetes monitor's criteria step offers (its cluster
+ * picker reads the KubernetesCluster table): the one the Kubernetes monitor
+ * below watches.
+ */
+insert(KubernetesCluster, {
+  _id: ID.kubernetesCluster(1),
+  name: "Production cluster (eu-west-1)",
+  clusterIdentifier: "prod-eu-west-1",
+});
+
+/*
+ * The one global probe, served by GET /probe/global-probes with ?probes=
+ * self-hosted or both: the probe an installation run on its own servers
+ * bundles. Not a row of the project's Probe table.
+ */
+const GLOBAL_PROBE = {
+  _id: ID.probe(4),
+  name: "Self-hosted probe",
+  connectionStatus: ProbeConnectionStatus.Connected,
+};
+
 function eventStates(modelType, prefixId) {
   return {
     created: insert(modelType, {
@@ -685,6 +762,24 @@ insert(MetricType, {
 for (const modelType of [MonitorCustomField]) {
   table(modelType);
 }
+
+/*
+ * Create Monitor reads the project (whether global probes join new monitors)
+ * and, on its criteria step, the project's on-call policies, incident roles,
+ * people and telemetry services: none in this workspace.
+ */
+table(Project).push({
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  doNotAddGlobalProbesByDefaultOnNewMonitors: false,
+});
+
+for (const modelType of [OnCallDutyPolicy, IncidentRole, TeamMember, Service]) {
+  table(modelType);
+}
+
+// The id the fixture answers Create Monitor's create with (a stub page).
+const CREATED_MONITOR_ID = ID.monitor(100);
 
 /*
  * ---------------------------------------------------------------------------
@@ -785,6 +880,23 @@ const MONITOR_DEFINITIONS = {
     interval: "* * * * *",
     labels: [labels.checkout],
   },
+  /*
+   * Watches two of the workspace's probes. Offline: Singapore stopped
+   * reporting 15 minutes ago (the monitor went Offline 12 minutes ago, once
+   * the probe had been silent for three).
+   */
+  "probe-status": {
+    number: 10,
+    name: "Probe health",
+    description:
+      "Opens an incident when a probe our monitors run on goes offline.",
+    monitorType: MonitorType.ProbeStatus,
+    interval: undefined,
+    labels: [labels.platform],
+    watchedProbeNumbers: [1, 3],
+    openIncidentTitle: "Probe disconnected: Singapore (ap-southeast-1)",
+    openAlertTitle: "Probe disconnected: Singapore (ap-southeast-1)",
+  },
 };
 
 const PROBE_CHECK_TYPES = ["api", "website", "ssl"];
@@ -827,7 +939,34 @@ function criteriaInstance(data) {
 function criteriaFor(typeKey) {
   const criteria = new MonitorCriteria();
   let instances = [];
-  if (typeKey === "incoming-request" || typeKey === "incoming-email") {
+  if (typeKey === "probe-status") {
+    instances = [
+      criteriaInstance({
+        id: "criteria-offline",
+        name: "Check if a probe is disconnected",
+        status: "offline",
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+      }),
+      criteriaInstance({
+        id: "criteria-online",
+        name: "Check if every probe is connected",
+        status: "operational",
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+      }),
+    ];
+  } else if (typeKey === "incoming-request" || typeKey === "incoming-email") {
     const checkOn =
       typeKey === "incoming-email"
         ? CheckOn.EmailReceivedAt
@@ -912,7 +1051,86 @@ function stepFor(typeKey, definition, stepNumber) {
       networkDeviceId: ID.networkDevice(1),
     };
   }
+  if (typeKey === "probe-status") {
+    // ?state=no-probes: a Probe Status monitor that watches no probe.
+    step.data.probeStatusMonitor = {
+      probeIds: scenarioFor(typeKey).flags.has("no-probes")
+        ? []
+        : definition.watchedProbeNumbers.map((number) => {
+            return ID.probe(number);
+          }),
+    };
+  }
   return step;
+}
+
+/*
+ * A Probe Status evaluation, as ProbeStatusMonitorEvaluator hands it to the
+ * pipeline and MonitorLogUtil writes it (a plain JSON round trip): the
+ * watched probes, Singapore disconnected while the monitor is Offline.
+ */
+function probeStatusLogBody(data) {
+  const { monitorId, steps, current, at } = data;
+  const isDown = current.status === "offline";
+  const definition = MONITOR_DEFINITIONS["probe-status"];
+  const probes = definition.watchedProbeNumbers.map((number) => {
+    const probeDefinition = PROBE_DEFINITIONS.find((item) => {
+      return item.number === number;
+    });
+    const isConnected = !(isDown && number === 3);
+    return {
+      probeId: ID.probe(number),
+      probeName: probeDefinition.name,
+      isGlobalProbe: false,
+      isConnected,
+      lastAliveAt: (isConnected
+        ? ago(20 * SECOND)
+        : ago(15 * MINUTE)
+      ).toISOString(),
+    };
+  });
+  const connectedProbeCount = probes.filter((probe) => {
+    return probe.isConnected;
+  }).length;
+  const disconnectedProbeCount = probes.length - connectedProbeCount;
+
+  return {
+    projectId: PROJECT_ID,
+    monitorId,
+    monitorStepId: steps.data.monitorStepsInstanceArray[0].data.id,
+    probes,
+    connectedProbeCount,
+    disconnectedProbeCount,
+    missingProbeIds: [],
+    checkedAt: at.toISOString(),
+    evaluationSummary: {
+      evaluatedAt: at.toISOString(),
+      criteriaResults: [
+        {
+          criteriaId: isDown ? "criteria-offline" : "criteria-online",
+          criteriaName: isDown
+            ? "Check if a probe is disconnected"
+            : "Check if every probe is connected",
+          filterCondition: FilterCondition.Any,
+          met: true,
+          message: isDown
+            ? "Disconnected Probes is 1 which is greater than 0. Singapore (ap-southeast-1) is disconnected."
+            : "Disconnected Probes is 0 which is equal to 0. All 2 probes are connected.",
+          filters: [
+            {
+              checkOn: CheckOn.DisconnectedProbes,
+              filterType: isDown ? FilterType.GreaterThan : FilterType.EqualTo,
+              message: isDown
+                ? "1 of 2 probes disconnected: Singapore (ap-southeast-1)."
+                : "0 of 2 probes disconnected.",
+              met: true,
+            },
+          ],
+        },
+      ],
+      events: [],
+    },
+  };
 }
 
 function stepsFor(typeKey, definition) {
@@ -1327,7 +1545,14 @@ function defineMonitor(typeKey) {
 
   if (PROBE_CHECK_TYPES.includes(typeKey)) {
     defineProbes({ typeKey, definition, scenario, monitorId, steps, current });
-  } else if (!isAwaiting && typeKey !== "manual") {
+  } else if (typeKey === "incoming-email" && !isAwaiting) {
+    defineIncomingEmailLogs({ monitorId, record, current });
+  } else if (
+    !isAwaiting &&
+    typeKey !== "manual" &&
+    // A Probe Status monitor that watches no probe is never evaluated.
+    !(typeKey === "probe-status" && scenario.flags.has("no-probes"))
+  ) {
     // One evaluation per run for everything that is not a probe check.
     const at =
       typeKey === "kubernetes" && scenario.flags.has("stale")
@@ -1340,20 +1565,113 @@ function defineMonitor(typeKey) {
     insert(MonitorLog, {
       monitorId: new ObjectID(monitorId),
       time: new Date(at),
-      logBody: {
-        monitorId,
-        evaluationSummary: evaluationSummary({
-          status: current.status,
-          at: new Date(at),
-          withEvents: false,
-        }),
-      },
+      logBody:
+        typeKey === "probe-status"
+          ? probeStatusLogBody({
+              monitorId,
+              steps,
+              current,
+              at: new Date(at),
+            })
+          : {
+              monitorId,
+              evaluationSummary: evaluationSummary({
+                status: current.status,
+                at: new Date(at),
+                withEvents: false,
+              }),
+            },
     });
   }
 
   defineOwners(typeKey, monitorId);
   defineFeed(typeKey, monitorId, createdAt, segments);
   defineIncidents(typeKey, monitorId, segments);
+}
+
+/*
+ * The incoming email monitor's MonitorLog rows, shaped the way the server
+ * writes them: one per email (Telemetry's processIncomingEmailFromQueue) and
+ * one per scheduled "has an email arrived lately?" check, which carries a
+ * copy of the last email. The newest row is that check, as the overview's
+ * evaluation read expects. The recipient is masked, as ingest masks it.
+ */
+function defineIncomingEmailLogs(data) {
+  const { monitorId, record, current } = data;
+  const lastEmail = record.incomingEmailMonitorRequest;
+  const checkedAt = new Date(record.incomingEmailMonitorHeartbeatCheckedAt);
+  const receivedAt = new Date(lastEmail.emailReceivedAt);
+  const dayBefore = new Date(receivedAt.getTime() - 24 * HOUR);
+  const maskedTo = "monitor-[REDACTED]@inbound.acme-commerce.example";
+
+  const email = (subject, body, at) => {
+    return {
+      ...lastEmail,
+      emailTo: maskedTo,
+      emailSubject: subject,
+      emailBody: body,
+      emailHeaders: {
+        From: `Payroll Provider <${lastEmail.emailFrom}>`,
+        To: maskedTo,
+        Subject: subject,
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+      emailReceivedAt: at.toISOString(),
+      checkedAt: at.toISOString(),
+      onlyCheckForIncomingEmailReceivedAt: false,
+    };
+  };
+
+  const lastEmailBody = email(
+    lastEmail.emailSubject,
+    lastEmail.emailBody,
+    receivedAt,
+  );
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: checkedAt,
+    logBody: {
+      ...lastEmailBody,
+      checkedAt: checkedAt.toISOString(),
+      onlyCheckForIncomingEmailReceivedAt: true,
+      evaluationSummary: evaluationSummary({
+        status: current.status,
+        at: checkedAt,
+        withEvents: false,
+      }),
+    },
+  });
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: receivedAt,
+    logBody: {
+      ...lastEmailBody,
+      evaluationSummary: evaluationSummary({
+        status: "operational",
+        at: receivedAt,
+        withEvents: false,
+      }),
+    },
+  });
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: dayBefore,
+    logBody: {
+      ...email(
+        "Payroll run 2026-09-20 completed",
+        "The payroll run for Acme Commerce completed at 09:41 UTC.",
+        dayBefore,
+      ),
+      evaluationSummary: evaluationSummary({
+        status: "operational",
+        at: dayBefore,
+        withEvents: false,
+      }),
+    },
+  });
 }
 
 function defineProbes(data) {
@@ -1551,7 +1869,9 @@ function defineIncidents(typeKey, monitorId, segments) {
   // Offline right now: one incident and one alert are still open.
   insert(Incident, {
     _id: ID.incident(1042),
-    title: `${name} is returning 503s`,
+    title:
+      MONITOR_DEFINITIONS[typeKey].openIncidentTitle ||
+      `${name} is returning 503s`,
     declaredAt: ago(11 * MINUTE),
     createdAt: ago(11 * MINUTE),
     incidentSeverity: incidentSeverities.sev1,
@@ -1561,7 +1881,9 @@ function defineIncidents(typeKey, monitorId, segments) {
   });
   insert(Alert, {
     _id: ID.alert(311),
-    title: `${name} health check failing`,
+    title:
+      MONITOR_DEFINITIONS[typeKey].openAlertTitle ||
+      `${name} health check failing`,
     createdAt: ago(12 * MINUTE),
     alertSeverity: alertSeverities.critical,
     currentAlertState: alertStates.acknowledged,
@@ -1791,11 +2113,41 @@ UserUtil.getEmail = () => {
 PermissionUtil.getAllPermissions = () => {
   return [...rolePermissions];
 };
+/*
+ * The same permissions through the two reads getAllPermissions is built
+ * from. A model table checks every column against them
+ * (BaseModelTable.getUserPermissions); without them the Monitoring Logs
+ * table dropped all its data columns.
+ */
+PermissionUtil.getGlobalPermissions = () => {
+  return {
+    _type: "UserGlobalAccessPermission",
+    projectIds: [projectObjectId],
+    globalPermissions: [...GLOBAL_PERMISSIONS],
+  };
+};
+PermissionUtil.getProjectPermissions = () => {
+  return {
+    _type: "UserTenantAccessPermission",
+    projectId: projectObjectId,
+    permissions: rolePermissions
+      .filter((permission) => {
+        return !GLOBAL_PERMISSIONS.includes(permission);
+      })
+      .map((permission) => {
+        return { _type: "UserPermission", permission, labelIds: [] };
+      }),
+  };
+};
 ProjectUtil.getCurrentProjectId = () => {
   return new ObjectID(PROJECT_ID);
 };
 ProjectUtil.getCurrentProject = () => {
   return project;
+};
+// ?plan=free: the Free plan (isProjectOnFreePlan also needs ?billing=true).
+ProjectUtil.getCurrentPlan = () => {
+  return planMode === "free" ? PlanType.Free : null;
 };
 ModelAPI.getCommonHeaders = () => {
   return { tenantid: PROJECT_ID };
@@ -1892,6 +2244,26 @@ ModelAPI.getList = async (options) => {
     limit,
   });
   assertCanRead(options.modelType, options.select);
+  /*
+   * GET /probe/global-probes (ProbeUtil.getAllProbes' second read): this
+   * workspace runs its own three probes and no global ones.
+   */
+  if (
+    modelName === tableName(Probe) &&
+    String(options.requestOptions?.overrideRequestUrl || "").includes(
+      "/probe/global-probes",
+    )
+  ) {
+    const globalProbes =
+      probesMode === "custom"
+        ? []
+        : [projectRecord(Probe, GLOBAL_PROBE, options.select)];
+    return { data: globalProbes, count: globalProbes.length, skip, limit };
+  }
+  // ?probes=self-hosted: an installation with no probe of its own.
+  if (modelName === tableName(Probe) && probesMode === "self-hosted") {
+    return { data: [], count: 0, skip, limit };
+  }
   if (failures.has("probes") && modelName === "MonitorProbe") {
     throw fail(500, "Probe results could not be read.");
   }
@@ -1928,6 +2300,118 @@ ModelAPI.count = async (options) => {
     return matches(record, options.query);
   }).length;
 };
+
+/*
+ * Create Monitor's create: recorded, and answered the way the API answers it
+ * - the new row, with its id. Only monitors are made here.
+ */
+ModelAPI.createOrUpdate = async (options) => {
+  const modelName = tableName(options.modelType);
+  const data = serialize(
+    options.model && options.model.toJSON
+      ? options.model.toJSON()
+      : options.model,
+  );
+  fixture.creates.push({
+    modelName,
+    formType: String(options.formType),
+    data,
+    miscDataProps: serialize(options.miscDataProps),
+  });
+  if (modelName === tableName(MonitorStatusTimeline)) {
+    return createStatusEvent(options.model, data);
+  }
+  if (modelName !== tableName(Monitor)) {
+    fixture.unhandled.push({ kind: "createOrUpdate", modelName });
+    throw fail(400, `Creating a ${modelName} is not modelled.`);
+  }
+  return new HTTPResponse(200, { ...data, _id: CREATED_MONITOR_ID }, {});
+};
+
+/*
+ * A status event - a manual monitor's Change status, from the hero's ⋯ -
+ * recorded the way MonitorStatusTimelineService records one: refused for a
+ * role that may not create one, and for the status the monitor already has;
+ * otherwise the open event ends now, the new one starts now, the monitor's
+ * current status moves, and the feed says so. The uptime history and the
+ * status changes card read the same segments, so they move with it.
+ * `?fail=change-status` refuses every one as an API restart would.
+ */
+function createStatusEvent(model, data) {
+  if (
+    !PermissionGate.check(new MonitorStatusTimeline(), ModelAction.Create, {
+      permissions: rolePermissions,
+    }).isAllowed
+  ) {
+    throw fail(
+      422,
+      "You do not have permission to create this Monitor Status Event.",
+    );
+  }
+  if (failures.has("change-status")) {
+    throw fail(503, "The status could not be changed. The API is restarting.");
+  }
+
+  const monitorId = String(model.monitorId);
+  const statusId = String(model.monitorStatusId);
+  const monitorRecord = table(Monitor).find((record) => {
+    return String(record._id) === monitorId;
+  });
+  const statusKey = Object.keys(statuses).find((key) => {
+    return String(statuses[key].id) === statusId;
+  });
+
+  if (!monitorRecord || !statusKey) {
+    fixture.unhandled.push({
+      kind: "createOrUpdate",
+      modelName: tableName(MonitorStatusTimeline),
+      missing: true,
+    });
+    throw fail(400, "Monitor or monitor status not found.");
+  }
+  if (String(monitorRecord.currentMonitorStatusId) === statusId) {
+    throw fail(400, "Monitor Status cannot be same as previous status.");
+  }
+
+  const now = OneUptimeDate.getCurrentDate();
+
+  for (const row of table(MonitorStatusTimeline)) {
+    if (String(row.monitorId) === monitorId && !row.endsAt) {
+      row.endsAt = now;
+    }
+  }
+  const event = insert(MonitorStatusTimeline, {
+    monitorId: new ObjectID(monitorId),
+    monitorStatusId: statuses[statusKey].id,
+    monitorStatus: statuses[statusKey],
+    startsAt: now,
+    createdAt: now,
+    rootCause: "Monitor status created by **Maya Chen**",
+  });
+
+  monitorRecord.currentMonitorStatusId = statuses[statusKey].id;
+  monitorRecord.currentMonitorStatus = statuses[statusKey];
+
+  const segments = segmentsByMonitorId[monitorId] || [];
+  const open = segments[segments.length - 1];
+  if (open) {
+    open.end = now;
+  }
+  segments.push({ status: statusKey, start: now, end: undefined });
+
+  const definition = STATUS_DEFINITIONS[statusKey];
+  insert(MonitorFeed, {
+    monitorId: new ObjectID(monitorId),
+    monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
+    feedInfoInMarkdown: `Status changed to **${definition.name}**.`,
+    displayColor: new Color(definition.color),
+    user: people.maya,
+    postedAt: now,
+    createdAt: now,
+  });
+
+  return new HTTPResponse(200, { ...data, _id: String(event._id) }, {});
+}
 
 ModelAPI.updateById = async (options) => {
   const modelName = tableName(options.modelType);
@@ -2026,6 +2510,16 @@ async function handleApi(method, options) {
     headers: serialize(options.headers) || {},
   });
   const parsed = new window.URL(url);
+
+  if (
+    method === "GET" &&
+    parsed.pathname.endsWith("/monitor/active-monitor-limit")
+  ) {
+    if (monitorLimitMode === "fail") {
+      throw fail(500, "The monitor limit could not be read.");
+    }
+    return ok(MONITOR_LIMITS[monitorLimitMode]);
+  }
 
   if (
     method === "GET" &&
@@ -2138,11 +2632,14 @@ function StubPage(props) {
   );
 }
 
-// Every monitor sub-page and every page the overview links to.
+// Every monitor sub-page but Monitoring Logs, and every page the overview links to.
 const STUB_PAGES = [
   ...Object.values(PageMap)
     .filter((pageKey) => {
-      return String(pageKey).startsWith("MONITOR_VIEW_");
+      return (
+        String(pageKey).startsWith("MONITOR_VIEW_") &&
+        pageKey !== PageMap.MONITOR_VIEW_LOGS
+      );
     })
     .map((pageKey) => {
       return [pageKey, String(pageKey)];
@@ -2157,6 +2654,22 @@ const STUB_PAGES = [
 ].filter(([pageKey]) => {
   return Boolean(pageKey && RouteMap[pageKey]);
 });
+
+// Create Monitor, under the dashboard's own navigation hooks.
+function CreateMonitorPage() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return (
+    <main className="py-6">
+      <MonitorCreate {...pageProps(PageMap.MONITOR_CREATE)} />
+    </main>
+  );
+}
+
+const CREATED_MONITOR_PATH = RouteMap[PageMap.MONITOR_VIEW]
+  .toString()
+  .replace(":id", CREATED_MONITOR_ID);
 
 function monitorPath(typeKey) {
   return `/dashboard/${PROJECT_ID}/monitors/${monitors[typeKey]._id}`;
@@ -2209,12 +2722,28 @@ function FixtureApp() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
         <Routes>
           <Route
+            path={RouteMap[PageMap.MONITOR_CREATE].toString()}
+            element={<CreateMonitorPage />}
+          />
+          <Route
+            path={CREATED_MONITOR_PATH}
+            element={
+              <StubPage pageKey="created-monitor" title="Created monitor" />
+            }
+          />
+          <Route
             path={RouteMap[PageMap.MONITOR_VIEW].toString()}
             element={<FixtureLayout />}
           >
             <Route
               index
               element={<MonitorView {...pageProps(PageMap.MONITOR_VIEW)} />}
+            />
+            <Route
+              path="logs"
+              element={
+                <MonitorLogs {...pageProps(PageMap.MONITOR_VIEW_LOGS)} />
+              }
             />
           </Route>
           {STUB_PAGES.map(([pageKey, title]) => {

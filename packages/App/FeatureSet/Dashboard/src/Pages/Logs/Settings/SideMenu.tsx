@@ -39,6 +39,15 @@ const LogsSettingsSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ShieldCheck,
         },
+        {
+          link: {
+            title: "Recording Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.LOGS_SETTINGS_RECORDING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Calculator,
+        },
       ],
     },
   ];

@@ -19,17 +19,23 @@ import {
   shouldAttemptRead,
 } from "../../../Utils/OverviewSection";
 import { ResourceOwnerEntry } from "../../ResourceOwners/OwnerEntry";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
-export const MONITOR_OWNERS_ACCESS_REASON: string =
-  "You need permission to read this monitor's owners.";
+export const MONITOR_OWNERS_ACCESS_REASON: string = translationKey(
+  "You need permission to read this monitor's owners.",
+);
 
 // Why one half of the owners is missing while the other is shown.
 export const MONITOR_OWNERS_PARTIAL_REASONS: {
   users: string;
   teams: string;
 } = {
-  users: "You need permission to read this monitor's owner users.",
-  teams: "You need permission to read this monitor's owner teams.",
+  users: translationKey(
+    "You need permission to read this monitor's owner users.",
+  ),
+  teams: translationKey(
+    "You need permission to read this monitor's owner teams.",
+  ),
 };
 
 export interface UseMonitorOwnersResult {

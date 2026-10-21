@@ -7,7 +7,7 @@ import {
   fireEvent,
   within,
 } from "@testing-library/react-native";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import MonitorDetailScreen from "./MonitorDetailScreen";
 import {
   makeColor,
@@ -874,6 +874,190 @@ describe("The status history timeline", () => {
 
     expect(screen.getByTestId("monitor-status-history-dot")).toHaveStyle({
       backgroundColor: lightColors.textTertiary,
+    });
+  });
+});
+
+/*
+ * The status in effect right now is the newest change, and it has no end. It
+ * used to look like every other row - a name and "2m ago" - so the reader had
+ * to work out that the top row was the current one. It is now marked
+ * Currently Active, the way the web dashboard's status timeline marks it, and
+ * its duration counts up every second while the screen is open.
+ */
+describe("The status in effect now", () => {
+  const NOW: number = new Date("2026-10-02T12:45:57.000Z").getTime();
+  const SECOND: number = 1000;
+  const HOUR: number = 60 * 60 * SECOND;
+
+  const isoAgo: (milliseconds: number) => string = (
+    milliseconds: number,
+  ): string => {
+    return new Date(NOW - milliseconds).toISOString();
+  };
+
+  // Newest first, as the status timeline query returns them.
+  const ENTRIES: MonitorStatusTimelineItem[] = [
+    makeTimelineEntry({
+      _id: "t-current",
+      createdAt: isoAgo(174 * SECOND),
+      startsAt: isoAgo(174 * SECOND),
+      monitorStatus: {
+        _id: "monitor-status-1",
+        name: "Operational",
+        color: { r: 22, g: 163, b: 74 },
+      },
+    }),
+    makeTimelineEntry({
+      _id: "t-finished",
+      createdAt: isoAgo(3 * HOUR),
+      startsAt: isoAgo(3 * HOUR),
+      endsAt: isoAgo(174 * SECOND),
+    }),
+    // Never closed, but superseded: it lasted until the change after it.
+    makeTimelineEntry({
+      _id: "t-orphan",
+      createdAt: isoAgo(5 * HOUR),
+      startsAt: isoAgo(5 * HOUR),
+      monitorStatus: {
+        _id: "monitor-status-3",
+        name: "Degraded",
+        color: { r: 245, g: 158, b: 11 },
+      },
+    }),
+  ];
+
+  // The badge's mark is hidden from assistive technology by design.
+  const HIDDEN: { includeHiddenElements: boolean } = {
+    includeHiddenElements: true,
+  };
+
+  function entry(index: number): ReturnType<typeof screen.getByTestId> {
+    return screen.getAllByTestId("monitor-status-history-entry")[index]!;
+  }
+
+  function timing(index: number): ReturnType<typeof screen.getByTestId> {
+    return screen.getAllByTestId("monitor-status-history-timing")[index]!;
+  }
+
+  async function advance(milliseconds: number): Promise<void> {
+    await act(async () => {
+      jest.advanceTimersByTime(milliseconds);
+    });
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers({ now: NOW });
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: ENTRIES,
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("is marked Currently Active, and nothing else is", async () => {
+    await renderScreen();
+
+    expect(screen.getAllByTestId("currently-active-badge")).toHaveLength(1);
+    expect(within(entry(0)).getByTestId("currently-active-badge")).toBeTruthy();
+    expect(within(entry(0)).getByText("Currently Active")).toBeTruthy();
+    expect(within(entry(1)).queryByTestId("currently-active-badge")).toBeNull();
+    expect(within(entry(2)).queryByTestId("currently-active-badge")).toBeNull();
+  });
+
+  test("the marker sits beside the status name, and is read as its words", async () => {
+    await renderScreen();
+
+    const badge: ReturnType<typeof screen.getByTestId> = within(
+      entry(0),
+    ).getByTestId("currently-active-badge");
+
+    expect(badge.props.accessibilityLabel).toBe("Currently Active");
+
+    const title: ReturnType<typeof screen.getByTestId> = within(
+      entry(0),
+    ).getByTestId("monitor-status-history-title");
+
+    expect(within(title).getByText("Operational")).toBeTruthy();
+    expect(within(title).getByTestId("currently-active-badge")).toBe(badge);
+    // A long status name pushes the marker onto its own line, not off screen.
+    expect(title).toHaveStyle({ flexDirection: "row", flexWrap: "wrap" });
+  });
+
+  test("says how long it has lasted so far", async () => {
+    await renderScreen();
+
+    expect(timing(0)).toHaveTextContent("2m ago · for 2m 54s");
+    expect(
+      within(entry(0)).getByTestId("monitor-status-history-live-duration").props
+        .accessibilityRole,
+    ).toBe("timer");
+  });
+
+  test("its duration counts up every second, with no reload", async () => {
+    await renderScreen();
+
+    await advance(SECOND);
+    expect(timing(0)).toHaveTextContent(/ · for 2m 55s$/);
+
+    await advance(SECOND);
+    expect(timing(0)).toHaveTextContent(/ · for 2m 56s$/);
+
+    await advance(4 * SECOND);
+    expect(timing(0)).toHaveTextContent(/ · for 3m 0s$/);
+  });
+
+  test("the other changes say how long they lasted, and stand still", async () => {
+    await renderScreen();
+
+    expect(timing(1)).toHaveTextContent("3h ago · for 2h 57m 6s");
+    // Capped at the start of the change after it, not counted to now.
+    expect(timing(2)).toHaveTextContent("5h ago · for 2h 0m 0s");
+
+    await advance(10 * SECOND);
+
+    expect(timing(1)).toHaveTextContent("3h ago · for 2h 57m 6s");
+    expect(timing(2)).toHaveTextContent("5h ago · for 2h 0m 0s");
+  });
+
+  test("a newest change that has already ended is not marked", async () => {
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: [
+        makeTimelineEntry({
+          _id: "t-ended",
+          createdAt: isoAgo(HOUR),
+          startsAt: isoAgo(HOUR),
+          endsAt: isoAgo(10 * SECOND),
+        }),
+      ],
+    });
+
+    await renderScreen();
+
+    expect(screen.queryByTestId("currently-active-badge")).toBeNull();
+    expect(
+      screen.queryByTestId("monitor-status-history-live-duration"),
+    ).toBeNull();
+    expect(timing(0)).toHaveTextContent("1h ago · for 59m 50s");
+  });
+
+  test("the marker's dot beats only once the OS says motion is welcome", async () => {
+    await renderScreen();
+
+    // The OS answered "no reduced motion" (the default here).
+    expect(
+      within(entry(0)).getByTestId("currently-active-badge-pulse", HIDDEN),
+    ).toBeTruthy();
+  });
+
+  test("follows dark mode", async () => {
+    await renderScreen("dark");
+
+    expect(within(entry(0)).getByTestId("currently-active-badge")).toHaveStyle({
+      backgroundColor: darkColors.statusInfoBg,
     });
   });
 });

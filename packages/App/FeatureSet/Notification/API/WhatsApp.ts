@@ -12,7 +12,7 @@ import {
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
-import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import WhatsAppAuthorization from "Common/Server/Middleware/WhatsAppAuthorization";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -452,10 +452,15 @@ router.post(
   },
 );
 
+/*
+ * "Send Test WhatsApp Message" in the Admin Dashboard: tests the instance's
+ * own WhatsApp setup, so it is a master administrator's, like the Telegram
+ * bot's test. It is never billed to, charged against, recharged for or
+ * logged in a project: the message is the instance's, whoever asks.
+ */
 router.post(
   "/test",
-  UserMiddleware.getUserMiddleware,
-  UserMiddleware.requireUserAuthentication,
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -481,10 +486,8 @@ router.post(
       };
 
       try {
+        // No project: nothing in the body chooses one to bill or log in.
         await WhatsAppService.sendWhatsApp(message, {
-          projectId: body["projectId"]
-            ? new ObjectID(body["projectId"] as string)
-            : undefined,
           isSensitive: false,
         });
       } catch (err) {

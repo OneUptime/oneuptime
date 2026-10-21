@@ -1,4 +1,8 @@
-import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import UserOnCallLogService, {
+  NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+} from "../../../Server/Services/UserOnCallLogService";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import logger from "../../../Server/Utils/Logger";
 import UserNotificationRuleService, {
   FallbackNotificationOutcome,
 } from "../../../Server/Services/UserNotificationRuleService";
@@ -23,6 +27,7 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { expectUserIdWhileMember } from "../TestingUtils/MembershipCondition";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -162,7 +167,8 @@ interface TimelineUpdateCall {
 
 interface RuleQueryCall {
   query: {
-    userId: ObjectID;
+    // The membership condition (ProjectMembership.userIdWhileMember).
+    userId: unknown;
     projectId: ObjectID;
     ruleType: NotificationRuleType;
     notifyAfterMinutes?: number | undefined;
@@ -285,6 +291,7 @@ let executeRuleSpy: jest.SpyInstance;
 let fallbackSpy: jest.SpyInstance;
 let projectFindOneByIdSpy: jest.SpyInstance;
 let userFindOneByIdSpy: jest.SpyInstance;
+let membershipSpy: jest.SpyInstance;
 
 function statusUpdates(): Array<StatusUpdateCall> {
   return logUpdateSpy.mock.calls.map(
@@ -310,6 +317,11 @@ beforeEach(() => {
   timelineUpdateSpy = jest
     .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
+
+  // The responder is a member of the project unless a test says otherwise.
+  membershipSpy = jest
+    .spyOn(ProjectMembership, "isMember")
+    .mockResolvedValue(true as never);
 
   // Zero rules is the default for this file - it is the branch under test.
   countBySpy = jest
@@ -376,6 +388,88 @@ afterEach(() => {
  *     has for it.
  * -------------------------------------------------------------------------
  */
+
+describe("UserOnCallLogService.onCreateSuccess - somebody who is not a member of the project", () => {
+  /*
+   * The rules that choose what a page goes through are read only while the
+   * person is a member of the project (ProjectMembership.userIdWhileMember),
+   * so a non-member reads as having none. That is not "no rule configured":
+   * nothing is sent, and no fallback reaches for their methods.
+   */
+  beforeEach(() => {
+    membershipSpy.mockResolvedValue(false as never);
+  });
+
+  test("nothing is sent, no fallback runs, and the log is Completed and says why", async () => {
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    expect(fallbackSpy).not.toHaveBeenCalled();
+    expect(executeRuleSpy).not.toHaveBeenCalled();
+    expect(ruleFindOneBySpy).not.toHaveBeenCalled();
+
+    const updates: Array<StatusUpdateCall> = statusUpdates();
+    const last: StatusUpdateCall = updates[updates.length - 1]!;
+
+    expect(last.data.status).toBe(UserNotificationExecutionStatus.Completed);
+    expect(last.data.statusMessage).toBe(NOT_A_PROJECT_MEMBER_STATUS_MESSAGE);
+  });
+
+  test("the on-call timeline says Skipped, with the same message", async () => {
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]!.id.toString()).toBe(TIMELINE_ID.toString());
+    expect(timeline[0]!.data.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.Skipped,
+    );
+    expect(timeline[0]!.data.statusMessage).toBe(
+      NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+    );
+  });
+
+  test("membership is read for the log's own person and project", async () => {
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    expect(membershipSpy).toHaveBeenCalledTimes(1);
+    expect(membershipSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("a membership read that fails takes the no-rule path, whose fallback asks again", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    membershipSpy.mockRejectedValue(new Error("database unavailable") as never);
+
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("somebody with rules is not asked about: the rule reads carry the condition themselves", async () => {
+    countBySpy.mockResolvedValue(new PositiveNumber(1) as never);
+    ruleFindBySpy.mockResolvedValue([makeRule(RULE_A_ID)] as never);
+
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    expect(membershipSpy).not.toHaveBeenCalled();
+
+    const query: Record<string, unknown> = (
+      ruleFindBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    // The immediate rules are this person's, and only while they are a member.
+    expectUserIdWhileMember(query["userId"], {
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
+  });
+});
 
 describe("UserOnCallLogService.onCreateSuccess - zero matching notification rules", () => {
   /*
@@ -699,7 +793,11 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
       expect(countBySpy).toHaveBeenCalledTimes(1);
       const call: RuleQueryCall = countBySpy.mock.calls[0]![0] as RuleQueryCall;
 
-      expect(call.query.userId.toString()).toBe(USER_ID.toString());
+      // This person's rules, and only while they are a member of the project.
+      expectUserIdWhileMember(call.query.userId, {
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      });
       expect(call.query.projectId.toString()).toBe(PROJECT_ID.toString());
       expect(call.query.ruleType).toBe(expectedRuleType);
       expect(call.query[severityKey]!.toString()).toBe(
@@ -1171,6 +1269,11 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
       UserNotificationExecutionStatus.Started,
       OnCallDutyExecutionLogTimelineStatus.Started,
     ],
+    // The person could not take the page and passed it on (OnCallPagePassOn).
+    [
+      UserNotificationExecutionStatus.PassedOn,
+      OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    ],
   ])(
     "%s on the log becomes %s on the timeline",
     async (
@@ -1215,9 +1318,87 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
     ]);
   });
 
+  /*
+   * A step whose person passed the page on (OnCallPagePassOn) keeps saying
+   * so: the run reads who passed its page on from these steps, and the
+   * worker that sends a person's notifications may finish their log - or a
+   * log just created may reach "executing" - after they passed it on.
+   */
+  test.each<[UserNotificationExecutionStatus]>([
+    [UserNotificationExecutionStatus.Completed],
+    [UserNotificationExecutionStatus.Executing],
+    [UserNotificationExecutionStatus.Started],
+    [UserNotificationExecutionStatus.Scheduled],
+    [UserNotificationExecutionStatus.Error],
+  ])(
+    "%s on the log does not write over a step that says the page was passed on",
+    async (status: UserNotificationExecutionStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+          },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({ status: status });
+
+      expect(timelineUpdateSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each<[OnCallDutyExecutionLogTimelineStatus]>([
+    [OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged],
+    [OnCallDutyExecutionLogTimelineStatus.Skipped],
+    [OnCallDutyExecutionLogTimelineStatus.Error],
+  ])(
+    "passing a page on does not write over a step that says %s: it reached nobody to pass it on",
+    async (stepStatus: OnCallDutyExecutionLogTimelineStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: { status: stepStatus },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({
+        status: UserNotificationExecutionStatus.PassedOn,
+      });
+
+      expect(timelineUpdateSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each<[OnCallDutyExecutionLogTimelineStatus]>([
+    [OnCallDutyExecutionLogTimelineStatus.Executing],
+    [OnCallDutyExecutionLogTimelineStatus.Started],
+    [OnCallDutyExecutionLogTimelineStatus.NotificationSent],
+  ])(
+    "passing a page on marks a step that says %s, with the log's message",
+    async (stepStatus: OnCallDutyExecutionLogTimelineStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: { status: stepStatus },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({
+        status: UserNotificationExecutionStatus.PassedOn,
+        statusMessage: "Passed on: could not take this page.",
+      });
+
+      expect(timelineUpdates()[0]!.data).toEqual({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        statusMessage: "Passed on: could not take this page.",
+      });
+    },
+  );
+
   test("every member of UserNotificationExecutionStatus has a case - the default is unreachable for valid members", async () => {
     /*
-     * The enum has exactly five members and the switch has exactly five cases,
+     * The enum has exactly six members and the switch has exactly six cases,
      * so `default: throw new BadDataException("Invalid status")` cannot be hit
      * by a value that came out of the enum. It is reachable only when a caller
      * pushes a string that was never a member (an API payload, a migration, or
@@ -1231,6 +1412,7 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
       UserNotificationExecutionStatus.Completed,
       UserNotificationExecutionStatus.Error,
       UserNotificationExecutionStatus.Executing,
+      UserNotificationExecutionStatus.PassedOn,
       UserNotificationExecutionStatus.Scheduled,
       UserNotificationExecutionStatus.Started,
     ]);

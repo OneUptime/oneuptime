@@ -1,16 +1,16 @@
-import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
-import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import StateOrderGuard from "../Utils/Database/StateOrderGuard";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import Model from "../../Models/DatabaseModels/MonitorStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 /*
  * Statically imported despite the MonitorService <-> MonitorStatusService
  * cycle: both modules reference each other only from method bodies (never at
@@ -25,23 +25,22 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * A new status with no place goes just above the offline status, so an
+   * outage still shows as the worst thing on a status page
+   * (Common/Server/Utils/Database/StateOrderGuard). Where it ends up in the
+   * list is then kept by DatabaseService (@ListOrderColumn), and it can be
+   * moved like any row of a drag-ordered list.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.data.priority) {
-      throw new BadDataException("Monitor Status priority is required");
-    }
-
-    if (!createBy.data.projectId) {
-      throw new BadDataException("Monitor Status projectId is required");
-    }
-
-    await this.rearrangePriority(
-      createBy.data.priority,
-      createBy.data.projectId,
-      true,
-    );
+    await StateOrderGuard.beforeCreate({
+      service: this,
+      definition: STATE_LISTS[StateListType.MonitorStatus],
+      createBy: createBy,
+    });
 
     return {
       createBy: createBy,
@@ -60,6 +59,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * A project always keeps an operational and an offline status. Checked
+     * before anything below changes a row, so a refused delete leaves
+     * everything as it was.
+     */
+    await StateOrderGuard.beforeDelete({
+      service: this,
+      definition: STATE_LISTS[StateListType.MonitorStatus],
+      deleteBy: deleteBy,
+    });
+
+    /*
      * Clear dangling currentMonitorStatusId references held by ALREADY
      * soft-deleted monitors before the hard-delete runs. A soft-deleted
      * monitor keeps its row and its currentMonitorStatusId foreign key
@@ -68,26 +78,11 @@ export class Service extends DatabaseService<Model> {
      * "Monitor records still reference it" failure. Live monitors are left
      * untouched (see repointDeletedMonitorsAwayFromStatuses).
      */
-    await this.clearDeletedMonitorReferences(deleteBy.query);
-
-    let monitorStatus: Model | null = null;
-
-    if (!deleteBy.props.isRoot) {
-      monitorStatus = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          priority: true,
-          projectId: true,
-        },
-      });
-    }
+    await this.clearDeletedMonitorReferences(deleteBy);
 
     return {
       deleteBy,
-      carryForward: monitorStatus,
+      carryForward: null,
     };
   }
 
@@ -99,20 +94,14 @@ export class Service extends DatabaseService<Model> {
    * blocking a monitor-status delete on dead rows.
    */
   private async clearDeletedMonitorReferences(
-    query: DeleteBy<Model>["query"],
+    deleteBy: DeleteBy<Model>,
   ): Promise<void> {
-    const statusesBeingDeleted: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    // The statuses the delete removes, and the delete held to them.
+    const statusesBeingDeleted: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     // Group the statuses being deleted by project.
     const byProject: Map<
@@ -220,6 +209,55 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * The project's default operational status: the operational status with
+   * the lowest priority, the oldest one on a tie - the status a new monitor
+   * starts in, and the one the dashboard preselects as a monitor's default
+   * status. Null when the project has no operational status.
+   */
+  @CaptureSpan()
+  public async findDefaultOperationalStatusId(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const status: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isOperationalState: true,
+      },
+      select: {
+        _id: true,
+      },
+      sort: {
+        priority: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return status?.id || null;
+  }
+
+  /**
+   * findDefaultOperationalStatusId for filling in a missing default: a failed
+   * lookup leaves the default unset (and says so) rather than failing the
+   * write it was only going to complete.
+   */
+  public async findDefaultOperationalStatusIdOrNull(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    try {
+      return await this.findDefaultOperationalStatusId(projectId);
+    } catch (err) {
+      logger.warn(
+        `Could not look up the default operational monitor status of project ${projectId.toString()}; leaving the default monitor status unset.`,
+      );
+      logger.warn(err);
+      return null;
+    }
+  }
+
+  /**
    * Returns the id of the first status in `statuses` (already priority-sorted)
    * that is not in `deletedStatusIds`, or undefined when none survives.
    */
@@ -236,104 +274,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return undefined;
-  }
-
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
-  ): Promise<OnDelete<Model>> {
-    const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
-    const monitorStatus: Model | null = onDelete.carryForward;
-
-    if (!deleteBy.props.isRoot && monitorStatus) {
-      if (monitorStatus && monitorStatus.priority && monitorStatus.projectId) {
-        await this.rearrangePriority(
-          monitorStatus.priority,
-          monitorStatus.projectId,
-          false,
-        );
-      }
-    }
-
-    return {
-      deleteBy: deleteBy,
-      carryForward: null,
-    };
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.priority && !updateBy.props.isRoot) {
-      throw new BadDataException(
-        "Monitor Status priority should not be updated. Delete this monitor status and create a new state with the right priority.",
-      );
-    }
-
-    return { updateBy, carryForward: null };
-  }
-
-  private async rearrangePriority(
-    currentPriority: number,
-    projectId: ObjectID,
-    increasePriority: boolean = true,
-  ): Promise<void> {
-    // get monitor status with this priority.
-    const monitorStatuses: Array<Model> = await this.findBy({
-      query: {
-        priority: QueryHelper.greaterThanEqualTo(currentPriority),
-        projectId: projectId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        priority: true,
-      },
-      sort: {
-        priority: SortOrder.Ascending,
-      },
-    });
-
-    let newPriority: number = currentPriority;
-
-    for (const monitorStatus of monitorStatuses) {
-      if (increasePriority) {
-        newPriority = monitorStatus.priority! + 1;
-      } else {
-        newPriority = monitorStatus.priority! - 1;
-      }
-
-      /*
-       * Concurrent deletes (e.g. Terraform destroying several statuses in
-       * parallel) can soft-delete a status between the findBy above and this
-       * update. save() then treats the row as new and INSERTs with a null
-       * projectId, failing the whole delete with a 500. A status that
-       * vanished mid-rearrange needs no repositioning — skip it.
-       */
-      try {
-        await this.updateOneBy({
-          query: {
-            _id: monitorStatus._id!,
-          },
-          data: {
-            priority: newPriority,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      } catch (err) {
-        logger.warn(
-          `rearrangePriority: skipping monitor status ${monitorStatus._id?.toString()} (likely deleted concurrently): ${err}`,
-        );
-      }
-    }
   }
 }
 export default new Service();

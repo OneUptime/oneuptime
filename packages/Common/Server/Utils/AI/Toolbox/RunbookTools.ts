@@ -7,7 +7,15 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
-import { RunbookStep } from "../../../../Types/Runbook/RunbookStep";
+import {
+  RunbookStep,
+  isLegacyKubernetesStepConfig,
+  isLegacySSHStepConfig,
+} from "../../../../Types/Runbook/RunbookStep";
+import {
+  moveApprovalsBeforeTheirSteps,
+  stepRequiresApprovalBeforeRunning,
+} from "../../../../Types/Runbook/RunbookStepApproval";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import logger from "../../Logger";
@@ -77,17 +85,42 @@ function describeStepInstructions(step: RunbookStep): string {
       return `AI step with prompt: ${configString(config, "prompt")}`;
     }
     case RunbookStepType.SSH: {
-      return `Runs over SSH: ${configString(config, "command")}`;
+      // A step written before runbook variables runs one command.
+      if (isLegacySSHStepConfig(config)) {
+        return `Runs over SSH: ${configString(config, "command")}`;
+      }
+
+      /*
+       * It signs in to user@host (either may name a runbook variable) and
+       * runs a bash script there. The sign-in names a secret variable,
+       * never a value.
+       */
+      const username: string = configString(config, "username");
+      const host: string = configString(config, "host");
+      const target: string = username ? `${username}@${host}` : host;
+
+      return `Runs a bash script over SSH on ${target}: ${configString(
+        config,
+        "script",
+      )}`;
     }
     case RunbookStepType.Kubernetes: {
-      const replicas: unknown = config["replicas"];
-      return `Kubernetes ${configString(config, "action")} on ${configString(
+      // A step written before kubectl scripts restarts or scales a workload.
+      if (isLegacyKubernetesStepConfig(config)) {
+        const replicas: unknown = config["replicas"];
+        return `Kubernetes ${configString(config, "action")} on ${configString(
+          config,
+          "workloadKind",
+        )} ${configString(config, "namespace")}/${configString(
+          config,
+          "workloadName",
+        )}${typeof replicas === "number" ? ` (replicas: ${replicas})` : ""}`;
+      }
+
+      return `Runs kubectl commands on a runner: ${configString(
         config,
-        "workloadKind",
-      )} ${configString(config, "namespace")}/${configString(
-        config,
-        "workloadName",
-      )}${typeof replicas === "number" ? ` (replicas: ${replicas})` : ""}`;
+        "script",
+      )}`;
     }
     default: {
       // Unknown step type (newer schema than this build) — show the raw config.
@@ -96,15 +129,14 @@ function describeStepInstructions(step: RunbookStep): string {
   }
 }
 
-// Steps in execution order, tolerating malformed entries in the JSON column.
+/*
+ * Steps in execution order, tolerating malformed entries in the JSON column,
+ * read the way a run takes them: an approval a client still writes after a
+ * step (requireApproval) is the approval before the next step, or a Manual
+ * step at the end after the last one (RunbookStepApproval).
+ */
 function parseSteps(steps: JSONArray | undefined): Array<RunbookStep> {
-  const rawSteps: Array<RunbookStep> =
-    (steps as unknown as Array<RunbookStep>) || [];
-
-  return rawSteps
-    .filter((step: RunbookStep) => {
-      return Boolean(step) && typeof step === "object";
-    })
+  return moveApprovalsBeforeTheirSteps(steps)
     .slice()
     .sort((a: RunbookStep, b: RunbookStep) => {
       return (Number(a.order) || 0) - (Number(b.order) || 0);
@@ -114,7 +146,7 @@ function parseSteps(steps: JSONArray | undefined): Array<RunbookStep> {
 export const QueryRunbooksTool: ObservabilityTool = {
   name: "query_runbooks",
   description:
-    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type and the exact instructions/script/command it runs — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
+    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type, the exact instructions/script/command it runs, and whether the run stops for someone to approve it before it runs (requireApprovalBeforeRunning) — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
   inputSchema: {
     type: "object",
     properties: {
@@ -246,7 +278,12 @@ export const QueryRunbooksTool: ObservabilityTool = {
             type: step.type,
             description: step.description,
             instructions: describeStepInstructions(step),
-            requireApproval: step.requireApproval === true ? true : undefined,
+            // The run stops before this step until someone approves it.
+            requireApprovalBeforeRunning: stepRequiresApprovalBeforeRunning(
+              step,
+            )
+              ? true
+              : undefined,
             continueOnFailure:
               step.continueOnFailure === true ? true : undefined,
           };

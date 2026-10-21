@@ -1,0 +1,266 @@
+import SecurityCaseApi, { DeclaredIncident } from "./SecurityCaseApi";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseVerdict, {
+  SECURITY_CASE_VERDICTS,
+  SecurityCaseVerdictDescription,
+} from "Common/Types/SecurityCase/SecurityCaseVerdict";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import React, { FunctionComponent, ReactElement, useState } from "react";
+
+// The verdict cards, each with what it means: TruePositive first, the one that needs follow-up.
+export function getVerdictIcon(verdict: SecurityCaseVerdict): IconProp {
+  switch (verdict) {
+    case SecurityCaseVerdict.TruePositive:
+      return IconProp.ShieldExclamation;
+    case SecurityCaseVerdict.BenignPositive:
+      return IconProp.CheckCircle;
+    case SecurityCaseVerdict.FalsePositive:
+      return IconProp.XCircle;
+    default:
+      return IconProp.QuestionMarkCircle;
+  }
+}
+
+export const VERDICT_CARD_OPTIONS: Array<CardSelectOption> =
+  SECURITY_CASE_VERDICTS.map(
+    (item: SecurityCaseVerdictDescription): CardSelectOption => {
+      return {
+        value: item.verdict,
+        title: item.verdict,
+        description: item.description,
+        icon: getVerdictIcon(item.verdict),
+      };
+    },
+  );
+
+interface CaseModalProps {
+  securityCase: SecurityCase;
+  onClose: () => void;
+  onDone: () => void;
+}
+
+/*
+ * Closing a case asks what it turned out to be. The verdict is what the
+ * overview counts and what tunes detections: a rule whose cases keep closing
+ * as False Positive is a rule to fix.
+ */
+export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
+  props: CaseModalProps,
+): ReactElement => {
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  return (
+    <BasicFormModal<JSONObject>
+      title="Close Case"
+      description="Say what this case turned out to be. The verdict is kept on the case, and counted on the overview."
+      submitButtonText="Close Case"
+      modalWidth={ModalWidth.Medium}
+      isLoading={isLoading}
+      error={error}
+      onClose={props.onClose}
+      formProps={{
+        name: "security-case-close",
+        initialValues: {
+          verdict:
+            props.securityCase.verdict || SecurityCaseVerdict.TruePositive,
+        },
+        fields: [
+          {
+            field: { verdict: true },
+            title: "Verdict",
+            fieldType: FormFieldSchemaType.CardSelect,
+            required: true,
+            cardSelectOptions: VERDICT_CARD_OPTIONS,
+            cardSelectSingleColumn: true,
+          },
+          {
+            field: { closingNote: true },
+            title: "Closing Note",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            description:
+              "Optional. What was found and what was done - for whoever reads this case next.",
+            placeholder:
+              "e.g. Confirmed with the user; the sign-ins were theirs.",
+          },
+        ],
+      }}
+      onSubmit={async (values: FormValues<JSONObject>) => {
+        setIsLoading(true);
+        setError("");
+
+        try {
+          const closingNote: string =
+            typeof values["closingNote"] === "string"
+              ? (values["closingNote"] as string).trim()
+              : "";
+
+          await ModelAPI.updateById<SecurityCase>({
+            modelType: SecurityCase,
+            id: new ObjectID(props.securityCase._id!.toString()),
+            data: {
+              status: SecurityCaseStatus.Closed,
+              verdict:
+                (values["verdict"] as string) ||
+                SecurityCaseVerdict.Undetermined,
+              ...(closingNote ? { closingNote } : {}),
+            },
+          });
+
+          props.onDone();
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+      }}
+    />
+  );
+};
+
+/*
+ * Runs a playbook against the case by hand - any enabled playbook, whatever
+ * starts it on its own. The run appears under Playbook Runs and on the
+ * timeline, step by step.
+ */
+export const RunSecurityPlaybookModal: FunctionComponent<CaseModalProps> = (
+  props: CaseModalProps,
+): ReactElement => {
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  return (
+    <BasicFormModal<JSONObject>
+      title="Run Playbook"
+      description="Run a playbook against this case now. Steps that need approval wait for someone to approve them here."
+      submitButtonText="Run Playbook"
+      isLoading={isLoading}
+      error={error}
+      onClose={props.onClose}
+      formProps={{
+        name: "security-case-run-playbook",
+        fields: [
+          {
+            field: { securityPlaybookId: true },
+            title: "Playbook",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            placeholder: "Choose a playbook",
+            dropdownModal: {
+              type: SecurityPlaybook,
+              labelField: "name",
+              valueField: "_id",
+              sort: { name: SortOrder.Ascending },
+              query: { isEnabled: true },
+            },
+          },
+        ],
+      }}
+      onSubmit={async (values: FormValues<JSONObject>) => {
+        setIsLoading(true);
+        setError("");
+
+        try {
+          const run: SecurityPlaybookRun = new SecurityPlaybookRun();
+          run.projectId = ProjectUtil.getCurrentProjectId()!;
+          run.securityCaseId = new ObjectID(props.securityCase._id!.toString());
+          run.securityPlaybookId = new ObjectID(
+            String(values["securityPlaybookId"] || ""),
+          );
+
+          await ModelAPI.create<SecurityPlaybookRun>({
+            model: run,
+            modelType: SecurityPlaybookRun,
+          });
+
+          props.onDone();
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+      }}
+    />
+  );
+};
+
+export interface DeclareIncidentModalProps extends CaseModalProps {
+  onDeclared: (incident: DeclaredIncident) => void;
+}
+
+/*
+ * Hands the case to incident response: a OneUptime incident, linked both
+ * ways, so on-call, status pages and postmortems take over from here.
+ */
+export const DeclareIncidentFromCaseModal: FunctionComponent<
+  DeclareIncidentModalProps
+> = (props: DeclareIncidentModalProps): ReactElement => {
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  return (
+    <BasicFormModal<JSONObject>
+      title="Declare Incident"
+      description="Declare an incident linked to this case, so on-call, status pages and the postmortem take it from here."
+      submitButtonText="Declare Incident"
+      isLoading={isLoading}
+      error={error}
+      onClose={props.onClose}
+      formProps={{
+        name: "security-case-declare-incident",
+        fields: [
+          {
+            field: { incidentSeverityId: true },
+            title: "Incident Severity",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            placeholder: "Choose a severity",
+            dropdownModal: {
+              type: IncidentSeverity,
+              labelField: "name",
+              valueField: "_id",
+              sort: { order: SortOrder.Ascending },
+            },
+          },
+        ],
+      }}
+      onSubmit={async (values: FormValues<JSONObject>) => {
+        setIsLoading(true);
+        setError("");
+
+        try {
+          const incident: DeclaredIncident =
+            await SecurityCaseApi.declareIncident({
+              caseId: new ObjectID(props.securityCase._id!.toString()),
+              incidentSeverityId: new ObjectID(
+                String(values["incidentSeverityId"] || ""),
+              ),
+            });
+
+          props.onDeclared(incident);
+          props.onDone();
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+
+        setIsLoading(false);
+      }}
+    />
+  );
+};

@@ -99,3 +99,58 @@ describe("MonitorService.getMonitorDestinationInfo — IPv6 host and port", () =
     ).toBe(CUSTOMER_ADDRESS);
   });
 });
+
+/*
+ * An NTP monitor names its time server. Its port is optional and almost
+ * always the standard 123, which would only be noise on every alert, so it
+ * is added only when it is something else - bracketed for IPv6 like a Port
+ * monitor's.
+ */
+describe("MonitorService.getMonitorDestinationInfo — NTP server", () => {
+  test("a server without a port is the bare address", () => {
+    expect(
+      MonitorService.getMonitorDestinationInfo(
+        monitorWithDestination({
+          monitorType: MonitorType.NTP,
+          destination: "192.0.2.10",
+        }),
+      ).monitorDestination,
+    ).toBe("192.0.2.10");
+  });
+
+  test("the standard port is left out", () => {
+    expect(
+      MonitorService.getMonitorDestinationInfo(
+        monitorWithDestination({
+          monitorType: MonitorType.NTP,
+          destination: "192.0.2.10",
+          port: 123,
+        }),
+      ).monitorDestination,
+    ).toBe("192.0.2.10");
+  });
+
+  test("any other port is added", () => {
+    expect(
+      MonitorService.getMonitorDestinationInfo(
+        monitorWithDestination({
+          monitorType: MonitorType.NTP,
+          destination: "192.0.2.10",
+          port: 1123,
+        }),
+      ).monitorDestination,
+    ).toBe("192.0.2.10:1123");
+  });
+
+  test("an IPv6 server with a port is bracketed", () => {
+    expect(
+      MonitorService.getMonitorDestinationInfo(
+        monitorWithDestination({
+          monitorType: MonitorType.NTP,
+          destination: CUSTOMER_ADDRESS,
+          port: 1123,
+        }),
+      ).monitorDestination,
+    ).toBe(`[${CUSTOMER_ADDRESS}]:1123`);
+  });
+});

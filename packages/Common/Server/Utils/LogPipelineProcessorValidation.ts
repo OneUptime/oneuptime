@@ -2,8 +2,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import LogPipelineProcessorType, {
   GrokParserConfig,
+  KeyValueParserConfig,
 } from "../../Types/Log/LogPipelineProcessorType";
 import { compileGrokPattern } from "../../Utils/Grok/Grok";
+import { resolveKeyValueParserOptions } from "../../Utils/Log/KeyValueParser";
 
 /*
  * Save-time validation for log pipeline processors.
@@ -20,6 +22,10 @@ import { compileGrokPattern } from "../../Utils/Grok/Grok";
  * puts the error in front of the only person who can fix it. The ingest
  * path stays defensive anyway: rows saved before this validation
  * existed still fail closed to "leave the log alone".
+ *
+ * The key=value parser's delimiters are the same kind of field: a pair
+ * delimiter equal to the key-value delimiter, or an empty one, parses
+ * every line into nothing.
  */
 
 /*
@@ -60,16 +66,39 @@ function readConfiguration(
   return null;
 }
 
-export function validateLogPipelineProcessor(
-  candidate: LogPipelineProcessorCandidate,
-): void {
-  if (candidate.processorType !== LogPipelineProcessorType.GrokParser) {
+function validateTargetPrefix(targetPrefixValue: unknown): void {
+  if (targetPrefixValue === undefined || targetPrefixValue === null) {
     return;
   }
 
-  const configuration: JSONObject | null = readConfiguration(
-    candidate.configuration,
-  );
+  if (typeof targetPrefixValue !== "string") {
+    throw new BadDataException("Target prefix must be text.");
+  }
+
+  const targetPrefix: string = targetPrefixValue.trim();
+
+  if (targetPrefix && !TARGET_PREFIX_REGEX.test(targetPrefix)) {
+    throw new BadDataException(
+      `"${targetPrefixValue}" is not a valid target prefix. Use letters, digits, and . _ - : @ (starting with a letter or underscore).`,
+    );
+  }
+}
+
+function validateSource(sourceValue: unknown): void {
+  if (sourceValue === undefined || sourceValue === null) {
+    return;
+  }
+
+  if (typeof sourceValue !== "string") {
+    throw new BadDataException("Source field must be text.");
+  }
+}
+
+function validateGrokParser(
+  configurationValue: JSONObject | string | undefined | null,
+): void {
+  const configuration: JSONObject | null =
+    readConfiguration(configurationValue);
 
   if (!configuration) {
     throw new BadDataException(
@@ -90,23 +119,51 @@ export function validateLogPipelineProcessor(
   // Throws BadDataException with a message written for the person editing.
   compileGrokPattern(pattern);
 
-  if (config.targetPrefix !== undefined && config.targetPrefix !== null) {
-    if (typeof config.targetPrefix !== "string") {
-      throw new BadDataException("Target prefix must be text.");
-    }
+  validateTargetPrefix(config.targetPrefix);
+  validateSource(config.source);
+}
 
-    const targetPrefix: string = config.targetPrefix.trim();
+/*
+ * Every key=value setting has a working default - whitespace between
+ * pairs, `=` between key and value, the log body as the source - so a
+ * processor saved with no configuration at all is a working one, not a
+ * silent no-op. What is checked is what the person typed.
+ */
+function validateKeyValueParser(
+  configurationValue: JSONObject | string | undefined | null,
+): void {
+  const configuration: JSONObject = readConfiguration(configurationValue) || {};
 
-    if (targetPrefix && !TARGET_PREFIX_REGEX.test(targetPrefix)) {
-      throw new BadDataException(
-        `"${config.targetPrefix}" is not a valid target prefix. Use letters, digits, and . _ - : @ (starting with a letter or underscore).`,
-      );
-    }
+  const config: KeyValueParserConfig =
+    configuration as unknown as KeyValueParserConfig;
+
+  // Throws BadDataException with a message written for the person editing.
+  resolveKeyValueParserOptions({
+    pairDelimiter: config.pairDelimiter,
+    keyValueDelimiter: config.keyValueDelimiter,
+  });
+
+  validateTargetPrefix(config.targetPrefix);
+  validateSource(config.source);
+
+  if (
+    config.overrideOnConflict !== undefined &&
+    config.overrideOnConflict !== null &&
+    typeof config.overrideOnConflict !== "boolean"
+  ) {
+    throw new BadDataException("Override on conflict must be true or false.");
+  }
+}
+
+export function validateLogPipelineProcessor(
+  candidate: LogPipelineProcessorCandidate,
+): void {
+  if (candidate.processorType === LogPipelineProcessorType.GrokParser) {
+    validateGrokParser(candidate.configuration);
+    return;
   }
 
-  if (config.source !== undefined && config.source !== null) {
-    if (typeof config.source !== "string") {
-      throw new BadDataException("Source field must be text.");
-    }
+  if (candidate.processorType === LogPipelineProcessorType.KeyValueParser) {
+    validateKeyValueParser(candidate.configuration);
   }
 }

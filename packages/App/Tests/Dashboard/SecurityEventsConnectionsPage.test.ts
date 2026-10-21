@@ -172,10 +172,9 @@ const connectionFormSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventConnectionFormModal.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+const navigationSource: string = readDashboardSource(
+  "Utils",
+  "SecurityEventsNavigation.ts",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -498,21 +497,18 @@ describe("Security events connections page wiring", () => {
     expect(routesSource).not.toContain("GoogleSecOps");
   });
 
-  test("the page is one of the Security Events header tabs", () => {
-    expect(navTabsSource).toContain('label: "Connections"');
-    expect(navTabsSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route",
+  test("the page is is in the Security Events side menu", () => {
+    expect(navigationSource).toContain('title: "Connections",');
+    expect(navigationSource).toContain(
+      "page: PageMap.SECURITY_EVENTS_CONNECTIONS,",
     );
   });
 
-  test("the layout renders the Security Events tabs in the page header", () => {
+  test("the layout renders the Security Events side menu", () => {
     expect(layoutSource).toContain(
-      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+      'import SecurityEventsSideMenu from "./SideMenu"',
     );
-    expect(layoutSource).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
-    expect(layoutSource).not.toContain("sideMenu=");
+    expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
   test("the page has a breadcrumb trail", () => {
@@ -554,7 +550,7 @@ describe("Security events connections route shape", () => {
 });
 
 describe("Security events connections page content", () => {
-  test("the page is the reseller gate in front of the shared connections table", () => {
+  test("the page is the reseller gate in front of your logs, your security tools and your SIEM, in that order", () => {
     expect(connectionsPageSource).toContain(
       'import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable"',
     );
@@ -562,10 +558,21 @@ describe("Security events connections page content", () => {
       "props.currentProject?.reseller?.enableTelemetryFeatures === false",
     );
     expect(connectionsPageSource).toContain(RESELLER_GATE_MESSAGE);
-    expect(connectionsPageSource).toContain(
-      "return <SecurityEventConnectionsTable />;",
+
+    const logs: number = connectionsPageSource.indexOf(
+      "<SecurityLogsSourceCard />",
     );
-    // One list: no second, provider-specific table next to the shared one.
+    const tools: number = connectionsPageSource.indexOf(
+      "<SecurityEventConnectionsTable />",
+    );
+    const siem: number = connectionsPageSource.indexOf(
+      "<SecurityEventDestinationsTable />",
+    );
+
+    expect(logs).toBeGreaterThan(-1);
+    expect(tools).toBeGreaterThan(logs);
+    expect(siem).toBeGreaterThan(tools);
+    // One list of security tools: no second, provider-specific table beside it.
     expect(connectionsPageSource).not.toContain("<ModelTable");
     expect(connectionsPageSource).not.toContain("GoogleSecOps");
 
@@ -824,7 +831,14 @@ describe("Google SecOps integration docs", () => {
    * existed, so the health fields looked unreachable even in principle.
    */
   test("the docs name the nav path that actually ships", () => {
-    expect(docsSource).toContain("**Security Events → Connections**");
+    /*
+     * Opened from the Products menu, as the docs overhaul writes every
+     * product's path (the Security Events pages say "Products → Security
+     * Events").
+     */
+    expect(docsSource).toContain(
+      "**Products → Security Events → Connections**",
+    );
     expect(docsSource).not.toContain(
       "Security Events → Google SecOps Connections",
     );

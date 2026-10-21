@@ -234,6 +234,13 @@ export default class AnalyticsBaseModel extends CommonModel {
     }
   }
 
+  /*
+   * Set on the prototype by the @OperationalResource() decorator, as on the
+   * database models: the analytics models the *AllOperationalResources
+   * wildcards cover (Log, Span, Metric, ...). Not set on any other.
+   */
+  public isOperationalResource!: boolean;
+
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
   public get enableWorkflowOn(): EnableWorkflowOn | undefined {
     return this._enableWorkflowOn;

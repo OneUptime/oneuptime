@@ -142,7 +142,7 @@ export const ShellSkeleton: FunctionComponent = (): ReactElement => {
       <div className="mx-auto flex w-full max-w-5xl grow flex-col px-3 sm:px-5">
         <div className="mt-5 flex h-12 items-center justify-between">
           <Skeleton className="h-10 w-40" />
-          <div className="hidden gap-4 md:flex">
+          <div className="max-md:hidden gap-4 md:flex">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-20" />
           </div>

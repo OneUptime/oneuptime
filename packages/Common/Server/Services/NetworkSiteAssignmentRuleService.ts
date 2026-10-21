@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkSiteService from "./NetworkSiteService";
 import Model from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
@@ -6,7 +6,6 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import RuleCriteria, {
@@ -19,9 +18,14 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 /*
  * The dashboard posts the `site` relation while server-side callers write the
- * `siteId` column; read whichever is present. See RelationIdUtil.
+ * `siteId` column; read whichever is present, and refuse a write whose two
+ * disagree, so the site checked is the site stored. See RelationIdUtil.
  */
 const SITE_KEYS: Array<string> = ["siteId", "site"];
+
+// One answer for a site that is missing and a site of another project.
+export const NETWORK_SITE_NOT_IN_PROJECT_MESSAGE: string =
+  "This network site assignment rule's site is not in this project. Please pick a site from this project and try again.";
 
 const HOSTNAME_OPERATORS: ReadonlySet<RuleCriteriaOperator> = new Set([
   RuleCriteriaOperator.Equals,
@@ -35,12 +39,17 @@ const HOSTNAME_OPERATORS: ReadonlySet<RuleCriteriaOperator> = new Set([
 ]);
 
 function readSiteId(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, SITE_KEYS);
+  return RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site");
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // The site is checked by assertSiteBelongsToProject.
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["site"];
   }
 
   /*
@@ -70,17 +79,17 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if (!site) {
-      throw new BadDataException("Network site not found.");
-    }
-
+    /*
+     * Another project's site is answered exactly like a site that does not
+     * exist: which ids exist outside the project is not this project's to
+     * learn.
+     */
     if (
-      site.projectId &&
-      site.projectId.toString() !== data.projectId.toString()
+      !site ||
+      (site.projectId &&
+        site.projectId.toString() !== data.projectId.toString())
     ) {
-      throw new BadDataException(
-        "Network site must belong to the same project.",
-      );
+      throw new BadDataException(NETWORK_SITE_NOT_IN_PROJECT_MESSAGE);
     }
   }
 
@@ -92,6 +101,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.validateCriteria({
       criteria: createBy.data.criteria,
       subnetCidr: createBy.data.subnetCidr,
@@ -116,6 +128,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     const isCriteriaChange: boolean =
@@ -135,21 +150,16 @@ export class Service extends DatabaseService<Model> {
      * The update may clear one criterion while the other only exists on the
      * stored row, so validate the RESULTING state of every matched row.
      */
-    const existingRules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingRules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         subnetCidr: true,
         hostnamePattern: true,
         criteria: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const existingRule of existingRules) {
       if (isCriteriaChange) {

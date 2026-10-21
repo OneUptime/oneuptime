@@ -1,28 +1,37 @@
 import PageComponentProps from "../PageComponentProps";
-import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
-import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  getCustomFieldDefinitionColumns,
+  getCustomFieldDefinitionFilters,
+} from "../../Components/CustomFields/CustomFieldDefinitionTable";
+import {
+  CustomFieldFormCopy,
+  CustomFieldTypeOption,
+  getCustomFieldTypeOptions,
+} from "../../Components/CustomFields/CustomFieldSettingsCopy";
+import {
+  CustomFieldOptionsFormField,
+  getCustomFieldOptionsFormField,
+  useCustomFieldOptionsFormField,
+} from "../../Components/CustomFields/CustomFieldOptionsField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const isDropdownType: (value: unknown) => boolean = (
-  value: unknown,
-): boolean => {
-  return (
-    value === CustomFieldType.Dropdown ||
-    value === CustomFieldType.MultiSelectDropdown
-  );
-};
-
 const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  /*
+   * A dropdown's options, editable after the field has values, as on every
+   * other custom field settings page (#4564).
+   */
+  const optionsField: CustomFieldOptionsFormField<TeamMemberCustomField> =
+    useCustomFieldOptionsFormField<TeamMemberCustomField>({
+      modelType: TeamMemberCustomField,
+    });
+
   return (
     <Fragment>
       <ModelTable<TeamMemberCustomField>
@@ -40,6 +49,8 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        onBeforeEdit={optionsField.onBeforeEdit}
+        onBeforeUpdate={optionsField.onBeforeUpdate}
         cardProps={{
           title: "Team Member Custom Fields",
           description:
@@ -47,6 +58,12 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No custom fields found."}
         viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * One page, as on every other custom field settings page: the name,
+         * the description and the type - and a dropdown's options, under a
+         * dropdown type. Tests/UI/Components/Forms/LongFormStepsGuard lists
+         * the form, with why it is not stepped.
+         */
         formFields={[
           {
             field: {
@@ -59,6 +76,8 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -67,6 +86,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
             title: "Field Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
+            hideColumnDescription: true,
             placeholder:
               "The department or team this user belongs to (e.g., Engineering, Sales, Support)",
           },
@@ -75,103 +95,29 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               customFieldType: true,
             },
             title: "Field Type",
+            description: CustomFieldFormCopy.fieldTypeDescription,
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Please select field type.",
-            dropdownOptions: Object.keys(CustomFieldType).map(
-              (item: string) => {
+            /*
+             * The same labels as every other custom field settings page,
+             * Long text and Rich text (Markdown) included.
+             */
+            dropdownOptions: getCustomFieldTypeOptions().map(
+              (option: CustomFieldTypeOption) => {
                 return {
-                  label: item,
-                  value: item,
+                  label: option.label,
+                  value: option.value,
                 };
               },
             ),
           },
-          {
-            field: {
-              dropdownOptions: true,
-            },
-            title: "Dropdown Options",
-            description:
-              "Add the options that should appear in the dropdown and optionally choose a color for each value.",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: (item: FormValues<TeamMemberCustomField>) => {
-              return isDropdownType(item.customFieldType);
-            },
-            showIf: (item: FormValues<TeamMemberCustomField>) => {
-              return isDropdownType(item.customFieldType);
-            },
-            getCustomElement: (
-              _values: FormValues<TeamMemberCustomField>,
-              customElementProps: CustomElementProps,
-            ) => {
-              return (
-                <DropdownOptionsInput
-                  initialValue={
-                    typeof customElementProps.initialValue === "string"
-                      ? customElementProps.initialValue
-                      : ""
-                  }
-                  error={customElementProps.error}
-                  onChange={(value: string) => {
-                    customElementProps.onChange?.(value);
-                  }}
-                  onBlur={() => {
-                    customElementProps.onBlur?.();
-                  }}
-                />
-              );
-            },
-          },
+          getCustomFieldOptionsFormField(optionsField.formFieldInput),
         ]}
         showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-        ]}
+        // The same two columns as every other custom field settings table.
+        filters={getCustomFieldDefinitionFilters()}
+        columns={getCustomFieldDefinitionColumns()}
       />
     </Fragment>
   );

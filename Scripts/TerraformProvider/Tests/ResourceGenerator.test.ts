@@ -219,6 +219,84 @@ describe("select and response mapping", () => {
 });
 
 describe("update", () => {
+  function updateBody(): string {
+    return monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Update"),
+      monitorGo.indexOf("func (r *MonitorResource) Delete"),
+    );
+  }
+
+  // The part of Update that builds what is sent; the read-back follows it.
+  function updateRequestBody(): string {
+    const body: string = updateBody();
+
+    return body.substring(
+      body.indexOf("// Create API request body"),
+      body.indexOf("// Only call the API when there are changed fields"),
+    );
+  }
+
+  /*
+   * An update sends only the attributes whose planned value differs from
+   * the state, never every configured attribute. A server-side update hook
+   * that reacts to a column being present - "notify subscribers", a
+   * severity - is therefore not set off by an apply that leaves the column
+   * as it is.
+   */
+  test("an attribute is sent only when the plan changes it", () => {
+    const guard: RegExp =
+      /^ {4}if !data\.(\w+)\.IsUnknown\(\) && !state\.\1\.IsUnknown\(\) && !data\.\1\.Equal\(state\.\1\) \{$/;
+    const assignment: RegExp = /requestDataMap\["(\w+)"\] = /;
+
+    let openGuard: string | null = null;
+    const sent: Array<string> = [];
+
+    for (const line of updateRequestBody().split("\n")) {
+      const guardMatch: RegExpMatchArray | null = line.match(guard);
+
+      if (guardMatch) {
+        openGuard = guardMatch[1]!;
+        continue;
+      }
+
+      if (line === "    }") {
+        openGuard = null;
+        continue;
+      }
+
+      const assignmentMatch: RegExpMatchArray | null = line.match(assignment);
+
+      if (assignmentMatch) {
+        // Every value sent sits under the changed-value check of its own field.
+        expect({ field: assignmentMatch[1], guard: openGuard }).toEqual({
+          field: assignmentMatch[1],
+          guard: expect.stringMatching(
+            new RegExp(`^${assignmentMatch[1]}$`, "i"),
+          ),
+        });
+        sent.push(assignmentMatch[1]!);
+      }
+    }
+
+    expect(sent).toEqual(
+      expect.arrayContaining(["name", "description", "labels", "tags"]),
+    );
+  });
+
+  test("a create-only attribute is never sent on update: changing it replaces the resource", () => {
+    // immutableRegion is in the create schema and not in the update schema.
+    expect(updateRequestBody()).toContain('requestDataMap["name"]');
+    expect(updateRequestBody()).not.toContain("immutableRegion");
+    expect(updateRequestBody()).not.toContain("ImmutableRegion");
+
+    const schema: string = monitorGo.substring(
+      monitorGo.indexOf('"immutable_region": schema.StringAttribute{'),
+      monitorGo.indexOf('"project_id": schema.StringAttribute{'),
+    );
+
+    expect(schema).toContain("stringplanmodifier.RequiresReplace()");
+  });
+
   test("update never writes unverified plan values into state", () => {
     const updateBody: string = monitorGo.substring(
       monitorGo.indexOf("func (r *MonitorResource) Update"),

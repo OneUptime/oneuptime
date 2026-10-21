@@ -6,6 +6,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import OneUptimeDate from "../../../Types/Date";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -55,6 +57,7 @@ const toDate: (v?: string | Date) => Date | undefined = (
 const TimePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Start with project-level preference (works on server), then update to browser preference on mount
   const [userPrefers12h, setUserPrefers12h] = useState<boolean>(
     OneUptimeDate.getUserPrefers12HourFormat(),
@@ -165,7 +168,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           " mt-2"
         }
         role="group"
-        aria-label="Time input"
+        aria-label={translator.translateText("Time input")}
         aria-labelledby={props.ariaLabelledby}
         aria-disabled={props.disabled ? true : undefined}
         aria-describedby={props.error ? "timepicker-error" : undefined}
@@ -188,13 +191,15 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           autoFocus={props.autoFocus}
           tabIndex={props.tabIndex}
           spellCheck={false}
-          placeholder={props.placeholder || (userPrefers12h ? "hh" : "HH")}
+          placeholder={translator.translateText(
+            props.placeholder || (userPrefers12h ? "hh" : "HH"),
+          )}
           className={
             inputClass +
             " rounded-l-md pl-1 focus:ring-0 focus-visible:outline-none"
           }
           readOnly={true}
-          aria-label="Hours"
+          aria-label={translator.translateText("Hours")}
           aria-invalid={props.error ? true : undefined}
           value={display.hours}
           onFocus={props.onFocus}
@@ -212,13 +217,13 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           inputMode="numeric"
           pattern="[0-9]*"
           spellCheck={false}
-          placeholder="mm"
+          placeholder={translator.translateText("mm")}
           className={
             inputClass +
             " rounded-r-md pr-2 focus:ring-0 focus-visible:outline-none"
           }
           readOnly={true}
-          aria-label="Minutes"
+          aria-label={translator.translateText("Minutes")}
           aria-invalid={props.error ? true : undefined}
           value={display.minutes}
           onBlur={() => {
@@ -234,7 +239,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
             <div
               className="flex items-center gap-1"
               role="group"
-              aria-label="AM or PM"
+              aria-label={translator.translateText("AM or PM")}
             >
               <button
                 type="button"
@@ -246,10 +251,12 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                 }
                 disabled={!clickable}
                 aria-pressed={!display.isPM}
-                aria-label="Open time selector for AM/PM"
+                aria-label={translator.translateText(
+                  "Open time selector for AM/PM",
+                )}
                 onClick={openModal}
               >
-                AM
+                {translator.translateText("AM")}
               </button>
               <button
                 type="button"
@@ -261,10 +268,12 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                 }
                 disabled={!clickable}
                 aria-pressed={display.isPM}
-                aria-label="Open time selector for AM/PM"
+                aria-label={translator.translateText(
+                  "Open time selector for AM/PM",
+                )}
                 onClick={openModal}
               >
-                PM
+                {translator.translateText("PM")}
               </button>
             </div>
           </div>
@@ -304,7 +313,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
               <div className="flex flex-col items-center">
                 <button
                   type="button"
-                  aria-label="Increase hours"
+                  aria-label={translator.translateText("Increase hours")}
                   className="p-2 rounded hover:bg-gray-50"
                   onClick={() => {
                     return setTempHours24((h: number): number => {
@@ -318,7 +327,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  aria-label="Hours"
+                  aria-label={translator.translateText("Hours")}
                   className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
                   value={
                     userPrefers12h
@@ -342,7 +351,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                 />
                 <button
                   type="button"
-                  aria-label="Decrease hours"
+                  aria-label={translator.translateText("Decrease hours")}
                   className="p-2 rounded hover:bg-gray-50"
                   onClick={(): void => {
                     return setTempHours24((h: number): number => {
@@ -360,7 +369,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
               <div className="flex flex-col items-center">
                 <button
                   type="button"
-                  aria-label="Increase minutes"
+                  aria-label={translator.translateText("Increase minutes")}
                   className="p-2 rounded hover:bg-gray-50"
                   onClick={(): void => {
                     let m: number = tempMinutes + 1;
@@ -379,7 +388,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  aria-label="Minutes"
+                  aria-label={translator.translateText("Minutes")}
                   className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
                   value={pad2(tempMinutes)}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -390,7 +399,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                 />
                 <button
                   type="button"
-                  aria-label="Decrease minutes"
+                  aria-label={translator.translateText("Decrease minutes")}
                   className="p-2 rounded hover:bg-gray-50"
                   onClick={(): void => {
                     let m: number = tempMinutes - 1;
@@ -420,7 +429,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                       }
                     }}
                   >
-                    AM
+                    {translator.translateText("AM")}
                   </button>
                   <button
                     type="button"
@@ -432,7 +441,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                       }
                     }}
                   >
-                    PM
+                    {translator.translateText("PM")}
                   </button>
                 </div>
               )}
@@ -440,7 +449,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
 
             {/* Quick minutes */}
             <div className="mt-6">
-              <div className="text-sm text-gray-500 mb-2">Quick minutes</div>
+              <div className="text-sm text-gray-500 mb-2">
+                {translator.translateText("Quick minutes")}
+              </div>
               <div className="grid grid-cols-6 gap-2">
                 {[0, 5, 10, 15, 30, 45].map((m: number) => {
                   return (
@@ -459,7 +470,12 @@ const TimePicker: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <div className="mt-8 text-sm text-gray-500">
-              This time is in your {timezoneLabel} timezone.
+              {translator.translateTemplate(
+                "This time is in your {{timezone}} timezone.",
+                {
+                  timezone: timezoneLabel,
+                },
+              )}
             </div>
           </div>
         </Modal>

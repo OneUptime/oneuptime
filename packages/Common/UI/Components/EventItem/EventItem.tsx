@@ -167,20 +167,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
           <div key={0}>
             <div className="flex flex-wrap gap-y-4 space-x-1 active-event-box-body-reesources">
               <div className="text-sm text-gray-400 mr-3 mt-1">
-                {t("eventItem.affectedResources")}
+                {t("eventItem.affectedResources", "Affected resources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
-                return (
-                  <Pill
-                    key={i}
-                    text={item}
-                    color={VeryLightGray}
-                    style={{
-                      backgroundColor: "var(--ou-surface-tertiary, #f3f4f6)",
-                      color: "var(--ou-text-subtle, #9ca3af)",
-                    }}
-                  />
-                );
+                return <Pill key={i} text={item} color={VeryLightGray} />;
               })}
             </div>
           </div>
@@ -233,7 +223,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 <span className="font-medium text-gray-900 mr-1">
                                   {props.eventType}
                                 </span>
-                                {t("eventItem.stateChangedTo")}
+                                {t(
+                                  "eventItem.stateChangedTo",
+                                  "state changed to",
+                                )}
                               </span>
                               <span className="mr-1">
                                 <Pill
@@ -310,20 +303,27 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                     ? item.title
                                     : t("eventItem.updateTo", {
                                         eventType: props.eventType,
+                                        defaultValue:
+                                          "Update to this {{eventType}}",
                                       })}
                                 </span>
                               </div>
                               <p className="mt-0.5 text-sm text-gray-500">
-                                {t("eventItem.postedOn")}{" "}
+                                {t("eventItem.postedOn", "posted on")}{" "}
                                 {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                                   item.date,
                                 )}
                               </p>
                             </div>
                             <div className="mt-2 text-sm text-gray-700">
-                              <p>
+                              {/*
+                               * A <div>, not a <p>: the note's Markdown draws
+                               * paragraphs, quotes and callouts of its own,
+                               * and none of them may sit inside a <p>.
+                               */}
+                              <div data-testid="event-item-note">
                                 <MarkdownViewer text={item.note || ""} />
-                              </p>
+                              </div>
                               {item.attachments &&
                                 item.attachments.length > 0 && (
                                   <EventAttachmentList
@@ -364,7 +364,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="cursor-pointer text-gray-400 hover:text-gray-500 text-sm"
                 to={props.eventViewRoute}
               >
-                <>{t("eventItem.view", { eventType: props.eventType })}</>
+                <>
+                  {t("eventItem.view", {
+                    eventType: props.eventType,
+                    defaultValue: "View {{eventType}}",
+                  })}
+                </>
               </Link>
             </span>
           ) : (

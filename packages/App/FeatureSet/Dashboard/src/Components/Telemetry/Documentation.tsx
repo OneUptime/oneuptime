@@ -9,6 +9,7 @@ import React, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -25,6 +26,17 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
+import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
+import { getKubernetesAgentUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+
+/*
+ * The Kubernetes agent's own eBPF profiler (kubernetes-agent values
+ * profiling.enabled): every container on every Linux node, in any
+ * language, through the agent the cluster already runs.
+ */
+export const KUBERNETES_AGENT_PROFILING_COMMAND: string =
+  getKubernetesAgentUpgradeCommand(["--set profiling.enabled=true"]);
 
 export type TelemetryType =
   | "logs"
@@ -37,6 +49,18 @@ export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
   onClose?: (() => void) | undefined;
 }
+
+/*
+ * What a key created from each guide is called until the reader renames
+ * it: the product the guide belongs to.
+ */
+const NEW_KEY_NAME_FOR_TYPE: Record<TelemetryType, string> = {
+  logs: translationKey("Logs key"),
+  metrics: translationKey("Metrics key"),
+  traces: translationKey("Traces key"),
+  exceptions: translationKey("Exceptions key"),
+  profiles: translationKey("Profiles key"),
+};
 
 type Language =
   | "node"
@@ -75,7 +99,12 @@ const languages: Array<LanguageOption> = [
   { key: "angular", label: "Angular (Browser)", shortLabel: "Angular" },
 ];
 
-type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd" | "alloy";
+type IntegrationMethod =
+  | "opentelemetry"
+  | "fluentbit"
+  | "fluentd"
+  | "alloy"
+  | "kubernetes";
 
 interface IntegrationOption {
   key: IntegrationMethod;
@@ -777,7 +806,7 @@ function getProfileInstallSnippet(lang: Language): {
         code: `dotnet add package Pyroscope
 
 # Download the native profiler library:
-curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/v0.13.0-pyroscope/pyroscope.0.13.0-glibc-x86_64.tar.gz | tar xvz -C .`,
+curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-1.5.1/pyroscope.1.5.1-glibc-x86_64.tar.gz | tar xvz -C .`,
         language: "bash",
       };
     case "ruby":
@@ -886,10 +915,11 @@ func main() {
 # (run from the directory the profiler was extracted into):
 export PYROSCOPE_APPLICATION_NAME=my-service
 export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_PYROSCOPE_URL>
-export PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN>
-# pyroscope-dotnet 1.5 and later ignore PYROSCOPE_AUTH_TOKEN; use instead:
-# export PYROSCOPE_BASIC_AUTH_USER=oneuptime
-# export PYROSCOPE_BASIC_AUTH_PASSWORD=<YOUR_ONEUPTIME_TOKEN>
+# Both must be set, or the profiler sends no credentials:
+export PYROSCOPE_BASIC_AUTH_USER=oneuptime
+export PYROSCOPE_BASIC_AUTH_PASSWORD=<YOUR_ONEUPTIME_TOKEN>
+# pyroscope-dotnet 1.4 and earlier take the token as
+# PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN> instead.
 export PYROSCOPE_PROFILING_ENABLED=1
 export CORECLR_ENABLE_PROFILING=1
 export CORECLR_PROFILER={BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}
@@ -1248,6 +1278,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Recommended. Zero-code profiling for all languages on Linux using eBPF.",
         },
         {
+          key: "kubernetes" as IntegrationMethod,
+          label: "Kubernetes agent (eBPF)",
+          description:
+            "Already run the OneUptime Kubernetes agent? Turn on its profiler: every pod, no code changes.",
+        },
+        {
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
           description:
@@ -1297,7 +1333,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     exceptions:
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
     profiles:
-      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF) or Pyroscope language SDKs.",
+      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF), the OneUptime Kubernetes agent or Pyroscope language SDKs.",
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
@@ -1377,12 +1413,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         /*
          * On a browser guide the picker is narrowed to Browser keys so a
          * server secret is never offered for pasting into a page. Every
-         * other guide passes undefined and keeps the picker exactly as it
-         * has always behaved.
+         * other guide runs on infrastructure the customer controls, which
+         * sends no Origin header - a Browser key would be refused there -
+         * so it lists and makes Server keys.
          */
         keyTypeFilter={
-          isBrowserSdkGuide ? TelemetryIngestionKeyType.Browser : undefined
+          isBrowserSdkGuide
+            ? TelemetryIngestionKeyType.Browser
+            : TelemetryIngestionKeyType.Server
         }
+        newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
         onSelectedKeyChange={setSelectedKey}
       />
     );
@@ -1628,6 +1668,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 language={configSnippet.language}
               />
             </div>,
+            !isProfiles,
           )}
 
           {isProfiles &&
@@ -1638,42 +1679,71 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               renderProfileVerifyContent(),
               true,
             )}
-
-          {!isProfiles &&
-            renderStep(
-              4,
-              "Set Environment Variables (Alternative)",
-              "You can also configure OpenTelemetry via environment variables instead of code.",
-              <CodeBlock
-                code={replacePlaceholders(
-                  getEnvVarSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                )}
-                language="bash"
-              />,
-            )}
-
-          {!isProfiles &&
-            renderStep(
-              5,
-              "Optional — Auto-tag this service with project labels",
-              "Promote any resource attribute prefixed `oneuptime.label.` into a project label and attach it to this service. Use it to tag services with team, environment, region, or any other dimension you organize by.",
-              <CodeBlock
-                code={replacePlaceholders(
-                  getOneuptimeServiceLabelsSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                )}
-                language="bash"
-              />,
-              true,
-            )}
         </div>
+
+        {!isProfiles && (
+          <div className="mt-8">
+            <SetupGuideTopics
+              title="Advanced"
+              description="Configure with environment variables · Tag this service with project labels"
+              icon={IconProp.AdjustmentHorizontal}
+              testId="telemetry-guide-advanced"
+              topics={[
+                {
+                  title: "Configure with environment variables instead",
+                  summary:
+                    "Point any OpenTelemetry SDK at OneUptime without changing code.",
+                  content: (
+                    <div>
+                      <p className="mb-3 text-sm leading-relaxed text-gray-500">
+                        Every OpenTelemetry SDK reads these variables, so you
+                        can configure the exporter without touching code.
+                      </p>
+                      <CodeBlock
+                        code={replacePlaceholders(
+                          getEnvVarSnippet(),
+                          otlpUrlValue,
+                          otlpHostValue,
+                          tokenValue,
+                          pyroscopeUrl,
+                        )}
+                        language="bash"
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  title: "Tag this service with project labels",
+                  summary:
+                    "Attach labels such as team, environment or region to this service automatically.",
+                  content: (
+                    <div>
+                      <p className="mb-3 text-sm leading-relaxed text-gray-500">
+                        Any resource attribute prefixed{" "}
+                        <code className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">
+                          oneuptime.label.
+                        </code>{" "}
+                        becomes a project label on this service. Use it to tag
+                        services with team, environment, region, or any other
+                        dimension you organize by.
+                      </p>
+                      <CodeBlock
+                        code={replacePlaceholders(
+                          getOneuptimeServiceLabelsSnippet(),
+                          otlpUrlValue,
+                          otlpHostValue,
+                          tokenValue,
+                          pyroscopeUrl,
+                        )}
+                        language="bash"
+                      />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        )}
       </div>
     );
   };
@@ -1708,25 +1778,36 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run with Docker (Optional)",
-            "Run FluentBit as a Docker container alongside your application.",
-            <CodeBlock
-              code={replacePlaceholders(
-                getFluentBitDockerSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
-              )}
-              language="yaml"
-            />,
-          )}
-
-          {renderStep(
-            4,
             "Run FluentBit",
-            "Start FluentBit with your configuration file.",
-            <CodeBlock code="fluent-bit -c fluent-bit.conf" language="bash" />,
+            "Start FluentBit with your configuration file, on the host or as a Docker container alongside your application.",
+            <SetupGuideStepVariants
+              variants={[
+                {
+                  label: "On the host",
+                  content: (
+                    <CodeBlock
+                      code="fluent-bit -c fluent-bit.conf"
+                      language="bash"
+                    />
+                  ),
+                },
+                {
+                  label: "Docker Compose",
+                  content: (
+                    <CodeBlock
+                      code={replacePlaceholders(
+                        getFluentBitDockerSnippet(),
+                        otlpUrlValue,
+                        otlpHostValue,
+                        tokenValue,
+                        pyroscopeUrl,
+                      )}
+                      language="yaml"
+                    />
+                  ),
+                },
+              ]}
+            />,
             true,
           )}
         </div>
@@ -1764,25 +1845,33 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run with Docker (Optional)",
-            "Run Fluentd as a Docker container.",
-            <CodeBlock
-              code={replacePlaceholders(
-                getFluentdDockerSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
-              )}
-              language="yaml"
-            />,
-          )}
-
-          {renderStep(
-            4,
             "Run Fluentd",
-            "Start Fluentd with your configuration.",
-            <CodeBlock code="fluentd -c fluentd.conf" language="bash" />,
+            "Start Fluentd with your configuration, on the host or as a Docker container.",
+            <SetupGuideStepVariants
+              variants={[
+                {
+                  label: "On the host",
+                  content: (
+                    <CodeBlock code="fluentd -c fluentd.conf" language="bash" />
+                  ),
+                },
+                {
+                  label: "Docker Compose",
+                  content: (
+                    <CodeBlock
+                      code={replacePlaceholders(
+                        getFluentdDockerSnippet(),
+                        otlpUrlValue,
+                        otlpHostValue,
+                        tokenValue,
+                        pyroscopeUrl,
+                      )}
+                      language="yaml"
+                    />
+                  ),
+                },
+              ]}
+            />,
             true,
           )}
         </div>
@@ -1820,29 +1909,40 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run with Docker",
-            "Run Grafana Alloy as a privileged Docker container with access to the host PID namespace.",
-            <CodeBlock
-              code={replacePlaceholders(
-                getAlloyDockerSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
-              )}
-              language="yaml"
+            "Run Alloy",
+            "Run Grafana Alloy as a privileged Docker container with access to the host PID namespace, or directly on the host.",
+            <SetupGuideStepVariants
+              variants={[
+                {
+                  label: "Docker Compose",
+                  content: (
+                    <CodeBlock
+                      code={replacePlaceholders(
+                        getAlloyDockerSnippet(),
+                        otlpUrlValue,
+                        otlpHostValue,
+                        tokenValue,
+                        pyroscopeUrl,
+                      )}
+                      language="yaml"
+                    />
+                  ),
+                },
+                {
+                  label: "On the host",
+                  content: (
+                    <CodeBlock
+                      code="alloy run alloy-config.alloy"
+                      language="bash"
+                    />
+                  ),
+                },
+              ]}
             />,
           )}
 
           {renderStep(
             4,
-            "Run Alloy",
-            "Or run Alloy directly on the host.",
-            <CodeBlock code="alloy run alloy-config.alloy" language="bash" />,
-          )}
-
-          {renderStep(
-            5,
             "Verify It Is Working",
             "Leave this page open while Alloy starts — incoming profiles are detected automatically.",
             renderProfileVerifyContent(),
@@ -1853,6 +1953,54 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The Kubernetes agent's eBPF profiler (for profiles): two steps - turn it
+   * on, see it work. A cluster without the agent is pointed at the agent's
+   * own guide under the command, not given a numbered step of its own.
+   */
+  const renderKubernetesAgentProfilesContent: () => ReactElement =
+    (): ReactElement => {
+      return (
+        <div data-testid="profiles-setup-kubernetes-agent">
+          <div className="mt-2">
+            {renderStep(
+              1,
+              "Turn On the Agent's Profiler",
+              "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
+              <div>
+                <CodeBlock
+                  code={KUBERNETES_AGENT_PROFILING_COMMAND}
+                  language="bash"
+                />
+                <p
+                  className="mt-3 text-sm text-gray-500"
+                  data-testid="profiles-setup-kubernetes-agent-install"
+                >
+                  No agent in the cluster yet?{" "}
+                  <AppLink
+                    className="font-medium text-indigo-600 hover:text-indigo-500"
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
+                    )}
+                  >
+                    Install it with the Kubernetes setup guide
+                  </AppLink>
+                </p>
+              </div>,
+            )}
+
+            {renderStep(
+              2,
+              "Verify It Is Working",
+              "Leave this page open while the profiler pods start — incoming profiles are detected automatically.",
+              renderProfileVerifyContent(),
+              true,
+            )}
+          </div>
+        </div>
+      );
+    };
+
   const renderActiveContent: () => ReactElement = (): ReactElement => {
     switch (selectedMethod) {
       case "fluentbit":
@@ -1861,6 +2009,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         return renderFluentdContent();
       case "alloy":
         return renderAlloyContent();
+      case "kubernetes":
+        return renderKubernetesAgentProfilesContent();
       default:
         return renderOpenTelemetryContent();
     }

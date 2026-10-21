@@ -32,19 +32,10 @@
 </style>
 <link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
 <script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
-
-<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
-<!-- Google Tag Manager -->
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-<!-- End Google Tag Manager -->
-<% } %>
+<%#
+    No Google tag. These are single sign-on pages in the middle of signing in:
+    nothing to measure, and no advertising pixel belongs on them.
+-%>
 
 
 
@@ -57,6 +48,15 @@
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<%
+  var headBrandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
+  var headFaviconUrl = (typeof productFaviconUrl !== 'undefined' && productFaviconUrl) ? productFaviconUrl : '';
+%>
+<% if (headFaviconUrl) { %>
+<link rel="icon" href="<%= headFaviconUrl %>">
+<link rel="shortcut icon" href="<%= headFaviconUrl %>">
+<link rel="apple-touch-icon" href="<%= headFaviconUrl %>">
+<% } else { %>
 <link rel="shortcut icon" href="/img/favicons/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
@@ -66,7 +66,9 @@
 <link rel="apple-touch-icon-precomposed" href="/img/ou-wb.svg">
 <link rel="icon" href="/img/ou-wb.svg">
 <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
+<% } %>
 <link rel="manifest" href="/manifest.json">
+<% if (headBrandName === 'OneUptime') { %>
 <meta property="og:title" content="OneUptime - One Complete Observability platform.">
 <meta property="og:url" content="https://oneuptime.com">
 <meta property="og:type" content="website" />
@@ -77,7 +79,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#000000">
 <meta name="twitter:image" content="/img/ou-wb.svg">
-<meta name="twitter:site" content="@oneuptimeinc">
+<meta name="twitter:site" content="@OneUptimeHQ">
 <meta name="twitter:title" content="OneUptime - One Complete Observability platform.">
 <meta name="twitter:description"
     content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
@@ -93,10 +95,11 @@
     "logo": "https://oneuptime.com/img/ou-bb.svg",
     "sameAs": [
         "https://www.facebook.com/oneuptimeinc",
-        "https://twitter.com/OneUptimeInc",
+        "https://x.com/oneuptimehq",
         "https://www.linkedin.com/company/oneuptime",
         "https://njump.me/npub1kggtaw83q0mctlwvh854xdu3wjmen8tmq9cx9l030x2ylay6wk8qy2f2e6"
     ],
     "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
 }
 </script>
+<% } %>

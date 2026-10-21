@@ -290,11 +290,12 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
   /*
    * Once a run has finished the footer stops offering "Import" — re-pressing
    * it would replay the whole file against a status page that now contains
-   * half of it. Editing the CSV or previewing again re-arms it.
+   * half of it. Editing the CSV or previewing again re-arms it. What is left
+   * is one plain "Done": it used to be a primary "Done" beside a "Close",
+   * two buttons that both just closed the dialog.
    */
-  const submitButtonText: string = hasImported
-    ? "Done"
-    : rows.length > 0
+  const submitButtonText: string =
+    rows.length > 0
       ? `Import ${rows.length} Group${rows.length === 1 ? "" : "s"}`
       : "Import";
 
@@ -338,21 +339,20 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
         }
         props.onClose();
       }}
-      closeButtonText={hasImported ? "Close" : "Cancel"}
+      closeButtonText={hasImported ? "Done" : "Cancel"}
       submitButtonText={submitButtonText}
       isLoading={isImporting}
       disableSubmitButton={isImporting || (!hasImported && !canImport)}
-      onSubmit={() => {
-        if (hasImported) {
-          props.onClose();
-          return;
-        }
-
-        importGroups().catch((err: Error) => {
-          setImportError(API.getFriendlyMessage(err));
-          setIsImporting(false);
-        });
-      }}
+      onSubmit={
+        hasImported
+          ? undefined
+          : () => {
+              importGroups().catch((err: Error) => {
+                setImportError(API.getFriendlyMessage(err));
+                setIsImporting(false);
+              });
+            }
+      }
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">

@@ -3,6 +3,10 @@ x-common-variables: &common-variables
   PROVISION_SSL: ${PROVISION_SSL}
 
   HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+  # With HTTP_PROTOCOL=https, browsers are told to reach HOST over HTTPS only
+  # (Strict-Transport-Security) for this many seconds. Empty means one year;
+  # 0 makes browsers forget the rule at their next HTTPS visit.
+  HSTS_MAX_AGE_SECONDS: ${HSTS_MAX_AGE_SECONDS:-}
 
   STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
   DASHBOARD_CNAME_RECORD: ${DASHBOARD_CNAME_RECORD}
@@ -37,6 +41,11 @@ x-common-variables: &common-variables
   # per-project setting.
   ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
   PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
+  # Egress policy for everything that is not a webhook (data sources, LLM
+  # providers, SMTP, OIDC discovery, runbook HTTP steps) — see
+  # config.example.env. Defaulted so a config.env upgraded in place, which will
+  # not have the key, keeps today's self-hosted behaviour.
+  DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES: ${DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES:-false}
 
   SERVER_APP_HOSTNAME: app
   SERVER_HOME_HOSTNAME: home
@@ -47,6 +56,10 @@ x-common-variables: &common-variables
   # included in a frontend env.js response.
   OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
   OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  # Record OneUptime AI's prompts and answers in that telemetry (see
+  # config.example.env). Defaulted off so a config.env without the key keeps
+  # them out.
+  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: ${OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT:-false}
   # Browser RUM is a separate, deliberately public channel. This key must be
   # a Browser ingestion key with an origin allowlist, never a Server key.
   PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT:-}
@@ -57,9 +70,41 @@ x-common-variables: &common-variables
   MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
   MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
 
+  # Video calls: the public client ids of the apps behind the one-click
+  # Connect of Zoom, Google Meet and Microsoft Teams (see config.example.env).
+  # Defaulted so a config.env upgraded in place, without the keys, starts.
+  ZOOM_APP_CLIENT_ID: ${ZOOM_APP_CLIENT_ID:-}
+  GOOGLE_MEET_APP_CLIENT_ID: ${GOOGLE_MEET_APP_CLIENT_ID:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID:-}
+
+  # Sign in with Microsoft: the public client id (see config.example.env).
+  MICROSOFT_SIGN_IN_CLIENT_ID: ${MICROSOFT_SIGN_IN_CLIENT_ID:-}
+
+# The environment of the shared Runner (the `runner` service below). It serves
+# AI code fixes for every project that has no Runner of its own, so it holds
+# ONLY what it needs: its OneUptime URL, its key and its telemetry settings,
+# never the server's own settings and no cluster key (ONEUPTIME_SECRET). It
+# registers with ONEUPTIME_RUNNER_KEY, which the `app` service is given too,
+# and its LLM calls are mediated by the server. This is deliberately NOT a
+# merge of common-runtime-variables; the SharedRunnerMinimalEnv ops test holds
+# the list minimal.
+x-common-runner-variables: &common-runner-variables
+  LOG_LEVEL: ${LOG_LEVEL}
+  NODE_ENV: ${ENVIRONMENT}
+  BILLING_ENABLED: ${BILLING_ENABLED}
+  OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+  OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+
+  # The bundled global Runner's key and how many of it run (the global-runner
+  # service below). The app keeps the global Runner's row from them on every
+  # boot: no key, or GLOBAL_RUNNER_REPLICAS=0, and the row is removed, so no
+  # project lists a global Runner nobody runs.
+  GLOBAL_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}
+  GLOBAL_RUNNER_REPLICAS: ${GLOBAL_RUNNER_REPLICAS:-1}
 
   # Seed a Global LLM Provider from env at startup (e.g. a local Ollama or
   # vLLM server). Set GLOBAL_LLM_PROVIDER_TYPE to enable; unset it to remove
@@ -75,6 +120,7 @@ x-common-runtime-variables: &common-runtime-variables
 
   EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN}
   PUSH_NOTIFICATION_RELAY_URL: ${PUSH_NOTIFICATION_RELAY_URL}
+  PUSH_NOTIFICATION_RELAY_SERVER_ENABLED: ${PUSH_NOTIFICATION_RELAY_SERVER_ENABLED}
 
   DATABASE_PORT: ${DATABASE_PORT}
   DATABASE_USERNAME: ${DATABASE_USERNAME}
@@ -164,6 +210,12 @@ x-common-runtime-variables: &common-runtime-variables
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW:-}
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW:-}
 
+  # OAuth sign-in for the MCP server (/mcp). Defaulted so a config.env upgraded
+  # in place, which will not have these keys, neither warns nor hands the
+  # container an empty switch.
+  DISABLE_MCP_OAUTH: ${DISABLE_MCP_OAUTH:-false}
+  DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS: ${DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS:-false}
+
   # Browser source map upload / symbolication limits. Blank means "use the
   # built-in default", so a config.env upgraded in place keeps today's
   # behaviour. maxFilesPerRequest and maxFileSizeBytes can only be lowered --
@@ -198,6 +250,18 @@ x-common-runtime-variables: &common-runtime-variables
   MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
   CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
 
+  # Video calls: the secrets of the apps behind the one-click Connect of
+  # Zoom, Google Meet and Microsoft Teams (see config.example.env).
+  ZOOM_APP_CLIENT_SECRET: ${ZOOM_APP_CLIENT_SECRET:-}
+  ZOOM_APP_WEBHOOK_SECRET_TOKEN: ${ZOOM_APP_WEBHOOK_SECRET_TOKEN:-}
+  GOOGLE_MEET_APP_CLIENT_SECRET: ${GOOGLE_MEET_APP_CLIENT_SECRET:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET:-}
+
+  # Cloud > Connect: the AWS identity that signs in to customers' read-only
+  # IAM roles (see config.example.env). Unset, AWS connects with an access key.
+  CLOUD_CONNECT_AWS_ACCESS_KEY_ID: ${CLOUD_CONNECT_AWS_ACCESS_KEY_ID:-}
+  CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY: ${CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY:-}
+
   # GitHub App Configuration
   GITHUB_APP_ID: ${GITHUB_APP_ID}
   GITHUB_APP_NAME: ${GITHUB_APP_NAME}
@@ -205,6 +269,28 @@ x-common-runtime-variables: &common-runtime-variables
   GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
   GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
   GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET}
+
+  # Sign in with Microsoft: the app's secret (see config.example.env).
+  MICROSOFT_SIGN_IN_CLIENT_SECRET: ${MICROSOFT_SIGN_IN_CLIENT_SECRET:-}
+
+  # Cloud marketplaces: AWS, Microsoft, Google Cloud and Vercel Marketplace
+  # (see config.example.env). OneUptime Cloud only; empty everywhere else.
+  AWS_MARKETPLACE_ACCESS_KEY_ID: ${AWS_MARKETPLACE_ACCESS_KEY_ID:-}
+  AWS_MARKETPLACE_SECRET_ACCESS_KEY: ${AWS_MARKETPLACE_SECRET_ACCESS_KEY:-}
+  AWS_MARKETPLACE_PRODUCT_CODE: ${AWS_MARKETPLACE_PRODUCT_CODE:-}
+  AWS_MARKETPLACE_EVENTS_SECRET: ${AWS_MARKETPLACE_EVENTS_SECRET:-}
+  AZURE_MARKETPLACE_TENANT_ID: ${AZURE_MARKETPLACE_TENANT_ID:-}
+  AZURE_MARKETPLACE_CLIENT_ID: ${AZURE_MARKETPLACE_CLIENT_ID:-}
+  AZURE_MARKETPLACE_CLIENT_SECRET: ${AZURE_MARKETPLACE_CLIENT_SECRET:-}
+  GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID: ${GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID:-}
+  GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY: ${GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY:-}
+  GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME: ${GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME:-}
+  GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC: ${GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC:-}
+  GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL:-}
+  GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE:-}
+  GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE:-}
+  VERCEL_MARKETPLACE_CLIENT_ID: ${VERCEL_MARKETPLACE_CLIENT_ID:-}
+  VERCEL_MARKETPLACE_CLIENT_SECRET: ${VERCEL_MARKETPLACE_CLIENT_SECRET:-}
 
   # Inbound Email Configuration (for Incoming Email Monitor)
   INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}
@@ -345,11 +431,19 @@ services:
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_APP}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
+      # AI investigations this container runs at once — see config.example.env.
+      # Empty falls back to the code default (10).
+      AI_INVESTIGATION_CONCURRENCY: ${AI_INVESTIGATION_CONCURRENCY:-}
       # Telemetry ingestion settings (merged from telemetry service)
       TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
       # Network device polling throughput — see config.example.env for docs.
       # Empty falls back to the code default.
       NETWORK_DEVICE_POLL_FETCH_LIMIT: ${NETWORK_DEVICE_POLL_FETCH_LIMIT:-}
+      # The project's daily session replay upload limit — see
+      # config.example.env. This container enforces it and also measures the
+      # storage budget metrics against it, so the two always agree. Empty
+      # falls back to the code default (1 GiB).
+      SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: ${SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY:-}
       # Fan-in telemetry writer knobs — see config.example.env for docs.
       # Empty values fall back to the code defaults.
       TELEMETRY_FANIN_MAX_BATCH_ROWS: ${TELEMETRY_FANIN_MAX_BATCH_ROWS}
@@ -365,6 +459,9 @@ services:
       TELEMETRY_WRITER_MAX_BODY_BYTES: ${TELEMETRY_WRITER_MAX_BODY_BYTES}
       TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS: ${TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+      # The shared Runner's key (the `runner` service below): the app lets the
+      # Runner register as the installation's shared Runner with it.
+      ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       # MQTT ingest for IoT devices. MQTT-over-WebSocket rides the
       # ingress at /mqtt out of the box; the raw TCP listener stays
       # internal to the compose network unless an operator publishes
@@ -530,7 +627,13 @@ services:
     restart: always
     network_mode: host
     environment:
-      <<: *common-runtime-variables
+      # The shared Runner's own minimal environment — deliberately NOT
+      # common-runtime-variables, so the server's secrets are never in this
+      # container. See x-common-runner-variables above.
+      <<: *common-runner-variables
+      # The installation's shared Runner: it registers with its own key, which
+      # the `app` service holds too, and needs no cluster key.
+      ONEUPTIME_RUNNER_SHARED: "true"
       ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       ONEUPTIME_URL: ${ONEUPTIME_RUNNER_ONEUPTIME_URL}
       # The in-cluster Runner serves code fixes for every project; customer
@@ -540,6 +643,40 @@ services:
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
       PORT: ${ONEUPTIME_RUNNER_PORT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1000m"
+
+  # The bundled global Runner (Common/Types/Runner/BundledGlobalRunner.ts): it
+  # runs the runbook JavaScript steps of every project that uses global
+  # Runners, each in a sandbox of its own that reaches the internet only. It
+  # is the Runner image started with a fixed id and its own key, and holds
+  # nothing else - no cluster key (ONEUPTIME_SECRET), none of the server's
+  # settings - on the oneuptime network, not the host's. Set
+  # GLOBAL_RUNNER_REPLICAS=0 in config.env to turn it off.
+  # Tests/Ops/BundledGlobalRunner.test.js holds this.
+  global-runner:
+    networks:
+      - oneuptime
+    restart: always
+    deploy:
+      replicas: ${GLOBAL_RUNNER_REPLICAS:-1}
+    environment:
+      ONEUPTIME_URL: http://app:${APP_PORT}
+      ONEUPTIME_RUNNER_ID: "00000000-0000-0000-0000-000000000002"
+      ONEUPTIME_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}
+      ONEUPTIME_RUNNER_CONCURRENCY: ${GLOBAL_RUNNER_CONCURRENCY:-4}
+      # The server serves it JavaScript steps only; these say the same here.
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "false"
+      ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS: "false"
+      LOG_LEVEL: ${LOG_LEVEL}
+      NODE_ENV: ${ENVIRONMENT}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
+      ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
+      PORT: ${GLOBAL_RUNNER_PORT:-3877}
     logging:
       driver: "json-file"
       options:
@@ -586,6 +723,10 @@ services:
       E2E_TEST_REGISTERED_USER_PASSWORD: ${E2E_TEST_REGISTERED_USER_PASSWORD}
       E2E_TEST_STATUS_PAGE_URL: ${E2E_TEST_STATUS_PAGE_URL}
       E2E_TESTS_FAILED_WEBHOOK_URL: ${E2E_TESTS_FAILED_WEBHOOK_URL}
+      # "<current>/<total>" runs one shard of the default suite (see
+      # packages/E2E/Sharding/Sharding.ts). The release workflows set it per
+      # job; empty, the whole suite runs.
+      E2E_SHARD: ${E2E_SHARD:-}
     logging:
       driver: "json-file"
       options:

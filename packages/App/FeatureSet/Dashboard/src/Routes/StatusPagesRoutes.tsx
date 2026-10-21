@@ -22,11 +22,8 @@ import StatusPagesViewEmbedded from "../Pages/StatusPages/View/EmbeddedStatus";
 import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
 import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
 import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
-import StatusPagesViewAdvancedOptions from "../Pages/StatusPages/View/AdvancedOptions";
+import StatusPagesArchived from "../Pages/StatusPages/Archived";
 import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
-import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
-import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
-import StatusPagesViewNavBarStyle from "../Pages/StatusPages/View/NavBarStyle";
 import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
 import StatusPagesViewMonitorRules from "../Pages/StatusPages/View/MonitorRules";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
@@ -44,13 +41,10 @@ import StatusPageViewSettings from "../Pages/StatusPages/View/StatusPageSettings
 
 import StatusPageViewMcp from "../Pages/StatusPages/View/Mcp";
 
-import StatusPageViewLanguages from "../Pages/StatusPages/View/Languages";
-
-import StatusPagesViewOverviewPageBranding from "../Pages/StatusPages/View/OverviewPageBranding";
-
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
 
 import AnnouncementCreate from "../Pages/StatusPages/AnnouncementCreate";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 import AnnouncementView from "../Pages/StatusPages/AnnouncementView";
 
@@ -79,6 +73,39 @@ import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusP
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+
+/*
+ * Where a status page's Advanced Options page used to be, relative to the
+ * page's own URL. Spelled out because nothing in the RouteMap points here
+ * any more: no menu ever linked to it, and it repeated the Embedded Status
+ * page's badge settings (its JSON export is on Advanced Settings now). The
+ * URL is kept only so an old link still arrives somewhere.
+ */
+export const MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH: string =
+  "advanced-options";
+
+/*
+ * Where a status page's branding screens used to be, relative to the page's
+ * own URL: Header, Footer, Overview Page and Languages, four of the five
+ * screens the Branding section was split into, and navbar-style, an empty
+ * page no menu linked to. What they held is on the one Branding page now
+ * (the overall uptime % and the statuses that count as downtime, which were
+ * on Overview Page, are on Advanced Settings). Nothing in the RouteMap
+ * points here any more; the URLs are kept only so a bookmark or a link in a
+ * wiki still arrives somewhere.
+ */
+export const MOVED_STATUS_PAGE_BRANDING_PATHS: ReadonlyArray<string> = [
+  "header-style",
+  "footer-style",
+  "overview-page-branding",
+  "languages",
+  "navbar-style",
+];
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -110,6 +137,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageAnnouncements
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+            />
+          }
+        />
+
+        {/* Static `archived` outranks the status page view's `:id`. */}
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.STATUS_PAGES_ARCHIVED] || ""}
+          element={
+            <StatusPagesArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route}
             />
           }
         />
@@ -266,15 +304,24 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.STATUS_PAGES_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
         element={
-          <AnnouncementCreate
-            {...props}
-            pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
-          />
+          <RemountOnAddressChange>
+            <AnnouncementCreate
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
+            />
+          </RemountOnAddressChange>
         }
       />
 
@@ -313,6 +360,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPageAnnouncement,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -384,6 +437,20 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {MOVED_STATUS_PAGE_BRANDING_PATHS.map((path: string): ReactElement => {
+          return (
+            <PageRoute
+              key={path}
+              path={path}
+              element={
+                <MovedPageRedirect
+                  pageMap={PageMap.STATUS_PAGE_VIEW_BRANDING}
+                />
+              }
+            />
+          );
+        })}
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS,
@@ -399,16 +466,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS,
-          )}
+          path={MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH}
           element={
-            <StatusPagesViewAdvancedOptions
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route
-              }
-            />
+            <MovedPageRedirect pageMap={PageMap.STATUS_PAGE_VIEW_EMBEDDED} />
           }
         />
 
@@ -527,16 +587,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_LANGUAGES)}
-          element={
-            <StatusPageViewLanguages
-              {...props}
-              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS,
           )}
@@ -559,64 +609,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE,
-          )}
-          element={
-            <StatusPagesViewHeaderStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE,
-          )}
-          element={
-            <StatusPagesViewFooterStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING,
-          )}
-          element={
-            <StatusPagesViewOverviewPageBranding
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE,
-          )}
-          element={
-            <StatusPagesViewNavBarStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route
               }
             />
           }
@@ -748,6 +740,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

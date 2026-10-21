@@ -29,6 +29,7 @@ export const MONITOR_OVERVIEW_BASE_SELECT: Select<Monitor> = {
   monitoringInterval: true,
   monitorSteps: true,
   minimumProbeAgreement: true,
+  isArchived: true,
   disableActiveMonitoring: true,
   disableActiveMonitoringBecauseOfManualIncident: true,
   disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,

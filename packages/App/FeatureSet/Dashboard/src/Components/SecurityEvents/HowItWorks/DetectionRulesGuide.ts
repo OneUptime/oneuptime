@@ -1,6 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
   DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_FINDING_CLASS_NAME,
@@ -36,6 +37,10 @@ import {
  * table are exported so tests can put them through the real parser and
  * compiler.
  */
+
+// How far behind "now" each run's window ends, for events still on their way.
+const DETECTION_EVALUATION_DELAY_IN_MINUTES: number =
+  DETECTION_EVALUATION_DELAY_IN_SECONDS / 60;
 
 // The product name DetectionRuleEvaluator stamps on its findings.
 const DETECTIONS_PRODUCT_NAME: string = "OneUptime Detections";
@@ -376,7 +381,7 @@ OneUptime runs the boolean core of the Sigma specification. A rule is parsed and
 | --- | --- |
 | \`detection\` | **Required.** Named selections plus a \`condition\` that combines them. |
 | \`level\` | The rule's severity: ${codeList(SIGMA_LEVELS_IN_ORDER)}. Missing or unrecognized levels read as \`${SIGMA_DEFAULT_LEVEL}\`. See **Severity Levels**. |
-| \`tags\` | ATT&CK ids become the finding's MITRE fields: \`attack.t1110\` (or \`attack.t1110.001\`) is a technique, \`attack.ta0006\` a tactic. Named tags such as \`attack.credential_access\` are not mapped. |
+| \`tags\` | ATT&CK tags become the finding's MITRE fields: \`attack.t1110\` (or \`attack.t1110.001\`) is a technique, and \`attack.ta0006\` or its name, \`attack.credential_access\`, is a tactic. They also place the rule on **ATT&CK Coverage**. |
 | \`description\` | Used on alerts when the rule's own Description field is empty. |
 | \`title\` | For your reference. Alerts and findings show the rule's Name field. |
 | \`id\` | Stored on findings as \`${DETECTION_SIGMA_ID_ATTRIBUTE}\`. |
@@ -445,12 +450,12 @@ OneUptime checks every minute for enabled rules that are due. A rule is due once
 
 #### Which events each run sees
 
-Each run searches the events whose **event time** falls between the previous run and now, then moves its starting point forward:
+Each run searches the events whose **event time** falls between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes ago**, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes leave time for events still on their way - a log line read a minute after it was written, a batch a source sends late - so they are counted in the run that covers their time instead of being missed:
 
 - **Windows are back to back, not rolling.** With a 10-minute interval, events at 09:58 and 10:01 can land in different runs and are counted separately. Leave some headroom when you choose a threshold.
 - **The first run** looks back one interval.
 - **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run covers the whole gap, up to the last ${LOOKBACK_IN_HOURS} hours. For that one run, a "5 in 10 minutes" rule behaves like "5 since the last run".
-- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime with a timestamp from before the rule's last run is stored and searchable, but that rule will not evaluate it.
+- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime more than ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes after that time, once a run has covered it, is stored and searchable, but that rule will not evaluate it.
 
 #### Group By Field
 
@@ -505,7 +510,7 @@ A rule without a \`level\`, or with one not listed here, is treated as \`${SIGMA
 
 Alert severities are defined per project, so OneUptime picks one of *yours*, in this order:
 
-1. **The severity set on the rule.** *Alert Severity* on the rule's Evaluation step always wins.
+1. **The severity set on the rule.** *Alert Severity* on the rule's On Match step always wins.
 2. **A severity named after the level.** A \`high\` rule uses your alert severity named *High* (case-insensitive), if there is one.
 3. **By rank.** Otherwise ${codeList(SEVERE_LEVELS)} rules use your **most severe** alert severity, and ${codeList(OTHER_LEVELS)} rules your **least severe**.
 
@@ -517,18 +522,18 @@ Incidents follow the same order with *Incident Severity* and your incident sever
 const alertsAndFindingsMarkdown: string = `
 #### Alerts
 
-With **Create Alert on Match** on (the default), each firing group opens an alert titled \`[Detection] <rule name> — <group value>\`, or \`[Detection] <rule name>\` when the rule has no Group By Field. The alert describes the match count, the time window, a sample event message and the observables involved.
+With **Create an alert** (the default) or **Both** under **Alerts and Incidents**, each firing group opens an alert titled \`[Detection] <rule name> — <group value>\`, or \`[Detection] <rule name>\` when the rule has no Group By Field. The alert describes the match count, the time window, a sample event message and the observables involved.
 
 - **One open alert per group.** While an alert for a rule and group value is unresolved, further matches for that group do not open another one. Once you resolve it, the next match opens a fresh alert.
 - **Alerts are not resolved automatically.** A rule only sees matches — it cannot tell that an attack has stopped — so its alerts stay open until someone resolves them. For a status that recovers on its own, use a monitor (below).
 
 #### Incidents
 
-**Create Incident on Match** is off by default: incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for detections. When it is on, incidents are deduplicated per group exactly like alerts.
+**Declare an incident** and **Both** under **Alerts and Incidents** open incidents: they drive on-call escalation, SLAs and status pages, and alerts are usually enough for detections. Incidents are deduplicated per group exactly like alerts.
 
 #### Detection Findings
 
-With **Write Detection Finding on Match** on (the default), every firing group also writes a security event back into the event stream: class \`${DETECTION_FINDING_CLASS_NAME}\` (OCSF ${DETECTION_FINDING_CLASS_UID}), product \`${DETECTIONS_PRODUCT_NAME}\`, the severity from the rule's level, the rule's MITRE ATT&CK tags, and the group value first in \`observables\`. Each finding carries these attributes:
+With **Write Detection Finding on Match** on (the default, under **More fields**), every firing group also writes a security event back into the event stream: class \`${DETECTION_FINDING_CLASS_NAME}\` (OCSF ${DETECTION_FINDING_CLASS_UID}), product \`${DETECTIONS_PRODUCT_NAME}\`, the severity from the rule's level, the rule's MITRE ATT&CK tags, and the group value first in \`observables\`. Each finding carries these attributes:
 
 ${markdownTable(
   ["Attribute", "Value"],
@@ -554,7 +559,7 @@ ${markdownTable(
   ],
 )}
 
-Findings are ordinary security events: search them in **Events** and pivot on their observables in **Correlate**. Turn every action off except findings to trial a new rule quietly before it pages anyone.
+Findings are ordinary security events: search them in **Events** and pivot on their observables in **Correlate**. To trial a new rule quietly before it pages anyone, pick **Neither** under **Alerts and Incidents** and turn **Open a Case on Match** off: it only writes findings.
 
 #### Monitors on top of rules
 
@@ -589,7 +594,7 @@ The form shows the parser's reason. The usual causes:
 
 #### It matched, but no alert opened
 
-- **Create Alert on Match** is off.
+- **Alerts and Incidents** is set to **Declare an incident** or **Neither**.
 - An alert for the same rule and group value is still open — matches for that group are deduplicated into it.
 - The project has no alert severities. Rules need at least one to open alerts.
 
@@ -598,7 +603,7 @@ The form shows the parser's reason. The usual causes:
 - The Group By Field has too many values — every value gets its own alert. Group by a coarser field, or remove it for one alert per rule.
 - The threshold is too low for the traffic. Raise it, or add a Distinct Count Field.
 - Known-good activity matches. Exclude it with a filter selection: \`condition: selection and not filter_known_good\`.
-- You care about the rate, not each match. Turn **Create Alert on Match** off and put a monitor on the rule's findings instead.
+- You care about the rate, not each match. Set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings instead.
 `;
 
 const detectionRuleLevels: Array<SecurityEventsGuideLevel> =

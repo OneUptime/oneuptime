@@ -4,7 +4,8 @@ import InsightScanner from "Common/Server/Utils/AI/SRE/Insights/InsightScanner";
 
 /**
  * AI Insights watch loop: runs the deterministic telemetry detectors
- * for every project that opted in (enableAiInsights, default false)
+ * for every project with AI Insights on (enableAiInsights, on for new
+ * projects)
  * and dedupes the findings into the quiet insights inbox. Detectors are
  * statistical sensors — no LLM runs in this loop; budgeted triage/fix work
  * is enqueued per NEW finding afterwards. The 10-minute timeout is shorter

@@ -2,13 +2,15 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnUpdate, OnDelete } from "../Types/Database/Hooks";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertMeasurement";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import MeasurementDefinitionValidator from "../Utils/Measurement/MeasurementDefinitionValidator";
+import MeasurementKeyAssigner from "../Utils/Measurement/MeasurementKeyAssigner";
+import MeasurementStateReference from "../Utils/Measurement/MeasurementStateReference";
+import MeasurementDefinitionChange from "../Utils/Measurement/MeasurementDefinitionChange";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -16,8 +18,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
- * The three backfill columns onBeforeUpdate rewrites, named so they are still
- * checked against the model. Spelt out rather than reached through
+ * The three backfill columns onUpdatePermitted rewrites, named so they are
+ * still checked against the model. Spelt out rather than reached through
  * Partial<Model>: this model carries enough relations that instantiating a
  * mapped type over all of it blows tsc's instantiation depth limit.
  */
@@ -37,11 +39,20 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
   [AlertMeasurementAnchorType.ImpactStartedAt]: "impactStartedAt",
   [AlertMeasurementAnchorType.TimelineStart]: "createdAt",
   [AlertMeasurementAnchorType.CreatedAt]: "createdAt",
+  [AlertMeasurementAnchorType.FirstPagedAt]: "firstPagedAt",
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public static readonly METRIC_NAME_PREFIX: string =
     "oneuptime.alert.measurement.";
+
+  /*
+   * The updates onBeforeUpdate found to change what a measurement means, for
+   * onUpdatePermitted to ask the backfill for once they are permitted. Keyed
+   * on the update itself, so nothing outlives it.
+   */
+  private readonly updatesThatRewriteHistory: WeakSet<UpdateBy<Model>> =
+    new WeakSet<UpdateBy<Model>>();
 
   public constructor() {
     super(Model);
@@ -51,7 +62,21 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    MeasurementDefinitionValidator.validateKey(createBy.data.key);
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * Made from the name when the create leaves the key out; a key that was
+     * sent must be valid and not another measurement's.
+     */
+    createBy.data.key = await MeasurementKeyAssigner.getKeyForCreate({
+      key: createBy.data.key,
+      name: createBy.data.name,
+      getKeysInProject: async (): Promise<Array<string>> => {
+        return await this.getKeysInProject(
+          createBy.data.projectId || createBy.props.tenantId,
+        );
+      },
+    });
 
     /*
      * Derived here rather than from the slug: DatabaseService generates the
@@ -65,24 +90,27 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.data.projectId!,
       startAnchorType: createBy.data.startAnchorType,
       endAnchorType: createBy.data.endAnchorType,
-      startStateId: createBy.data.startAlertStateId,
-      endStateId: createBy.data.endAlertStateId,
+      /*
+       * The dashboard's state picker sends the state as the relation,
+       * the API usually as the id: whichever the request has.
+       */
+      startStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.startAlertStateId,
+        state: createBy.data.startAlertState,
+        stateIdKey: "startAlertStateId",
+        stateKey: "startAlertState",
+      }),
+      endStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.endAlertStateId,
+        state: createBy.data.endAlertState,
+        stateIdKey: "endAlertStateId",
+        stateKey: "endAlertState",
+      }),
       startStateRole: createBy.data.startAlertStateRole,
       endStateRole: createBy.data.endAlertStateRole,
       startOccurrence: createBy.data.startStateOccurrence,
       endOccurrence: createBy.data.endStateOccurrence,
     });
-
-    if (!createBy.data.order) {
-      const highest: Model | null = await this.findOneBy({
-        query: { projectId: createBy.data.projectId! },
-        select: { order: true },
-        sort: { order: SortOrder.Descending },
-        props: { isRoot: true },
-      });
-
-      createBy.data.order = (highest?.order || 0) + 1;
-    }
 
     /*
      * A definition created today must apply to alerts that already happened,
@@ -98,6 +126,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Read as a plain record rather than Partial<Model>: the model graph is
      * deep enough that instantiating the partial here trips the compiler's
@@ -113,11 +143,19 @@ export class Service extends DatabaseService<Model> {
       "endAnchorType",
       "startAlertStateId",
       "endAlertStateId",
+      // The picked states, as the dashboard sends them.
+      "startAlertState",
+      "endAlertState",
       "startAlertStateRole",
       "endAlertStateRole",
       "startStateOccurrence",
       "endStateOccurrence",
       "isEnabled",
+      /*
+       * The unit is the number every chart point is written in
+       * (MeasurementMetricWriter), so changing it rewrites them all.
+       */
+      "unit",
     ];
 
     const touchesDefinition: boolean = definitionKeys.some((key: string) => {
@@ -128,9 +166,9 @@ export class Service extends DatabaseService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const existingItems: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingItems: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         startAnchorType: true,
         endAnchorType: true,
@@ -140,11 +178,12 @@ export class Service extends DatabaseService<Model> {
         endAlertStateRole: true,
         startStateOccurrence: true,
         endStateOccurrence: true,
+        isEnabled: true,
+        unit: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
+
+    let changesDefinition: boolean = false;
 
     for (const existing of existingItems) {
       const merged: Record<string, unknown> = {
@@ -158,21 +197,89 @@ export class Service extends DatabaseService<Model> {
           "startAnchorType"
         ] as AlertMeasurementAnchorType,
         endAnchorType: merged["endAnchorType"] as AlertMeasurementAnchorType,
-        startStateId: merged["startAlertStateId"] as ObjectID,
-        endStateId: merged["endAlertStateId"] as ObjectID,
+        startStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "startAlertStateId",
+          stateKey: "startAlertState",
+          storedStateId: existing.startAlertStateId,
+        }),
+        endStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "endAlertStateId",
+          stateKey: "endAlertState",
+          storedStateId: existing.endAlertStateId,
+        }),
         startStateRole: merged["startAlertStateRole"] as string,
         endStateRole: merged["endAlertStateRole"] as string,
         startOccurrence: merged["startStateOccurrence"] as string,
         endOccurrence: merged["endStateOccurrence"] as string,
       });
+
+      if (
+        MeasurementDefinitionChange.isChanged({
+          update: data,
+          stored: existing as unknown as Record<string, unknown>,
+          columns: [
+            "startAnchorType",
+            "endAnchorType",
+            "startAlertStateRole",
+            "endAlertStateRole",
+            "startStateOccurrence",
+            "endStateOccurrence",
+            "isEnabled",
+            "unit",
+          ],
+          pickedStates: [
+            { stateIdKey: "startAlertStateId", stateKey: "startAlertState" },
+            { stateIdKey: "endAlertStateId", stateKey: "endAlertState" },
+          ],
+        })
+      ) {
+        changesDefinition = true;
+      }
+    }
+
+    /*
+     * The dashboard's edit form sends every column on every save, a
+     * rename included. Only a value that differs from the stored one
+     * changes what the measurement means.
+     */
+    if (!changesDefinition) {
+      return { updateBy, carryForward: null };
     }
 
     /*
      * Changing what a measurement means rewrites its history in place, under
      * the same metric point identity -- one series, one current definition.
      * Keeping the old numbers means creating a new definition instead, which
-     * the settings page says.
+     * the settings page says. The backfill is asked for once the change has
+     * passed every permission check (onUpdatePermitted).
      */
+    this.updatesThatRewriteHistory.add(updateBy);
+
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Asks the backfill worker to work the history out again, for a change of
+   * what the measurement means (onBeforeUpdate decides which). Written here,
+   * after every permission check, and never in onBeforeUpdate: the backfill
+   * columns are OneUptime's (create: [], update: []), and DatabaseService
+   * holds what onBeforeUpdate leaves to the caller's column permissions - so
+   * written there, they refused the change for everyone who may edit a
+   * measurement ("User is not allowed to update on backfillRequestedAt
+   * column").
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (!this.updatesThatRewriteHistory.delete(updateBy)) {
+      return;
+    }
+
     const backfillFields: BackfillFields =
       updateBy.data as unknown as BackfillFields;
 
@@ -180,21 +287,17 @@ export class Service extends DatabaseService<Model> {
     // Cleared, not left stale: the backfill must restart from the beginning.
     backfillFields.backfillCursorCreatedAt = null as unknown as Date;
     backfillFields.backfillCompletedAt = null as unknown as Date;
-
-    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const items: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { isSystemDefined: true, name: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    // Every measurement the delete removes, and the delete held to them.
+    const items: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { isSystemDefined: true, name: true },
+    );
 
     for (const item of items) {
       if (item.isSystemDefined) {
@@ -205,6 +308,36 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * Every key the project's alert measurements hold, enabled or not, so a
+   * new one gets a key none of them has. Read as root: a key must not clash
+   * with one the creator is not allowed to see.
+   */
+  @CaptureSpan()
+  public async getKeysInProject(
+    projectId: ObjectID | undefined,
+  ): Promise<Array<string>> {
+    if (!projectId) {
+      return [];
+    }
+
+    const measurements: Array<Model> = await this.findBy({
+      query: { projectId: projectId },
+      select: { key: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return measurements
+      .map((measurement: Model) => {
+        return measurement.key;
+      })
+      .filter((key: string | undefined) => {
+        return Boolean(key);
+      }) as Array<string>;
   }
 
   /*
@@ -240,8 +373,8 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     startAnchorType?: AlertMeasurementAnchorType | undefined;
     endAnchorType?: AlertMeasurementAnchorType | undefined;
-    startStateId?: ObjectID | undefined;
-    endStateId?: ObjectID | undefined;
+    startStateId?: string | undefined;
+    endStateId?: string | undefined;
     startStateRole?: string | undefined;
     endStateRole?: string | undefined;
     startOccurrence?: string | undefined;
@@ -253,8 +386,8 @@ export class Service extends DatabaseService<Model> {
       endAnchorType: data.endAnchorType,
       stateEnteredAnchor: AlertMeasurementAnchorType.StateEntered,
       stateRoleEnteredAnchor: AlertMeasurementAnchorType.StateRoleEntered,
-      startStateId: data.startStateId?.toString(),
-      endStateId: data.endStateId?.toString(),
+      startStateId: data.startStateId,
+      endStateId: data.endStateId,
       startStateRole: data.startStateRole,
       endStateRole: data.endStateRole,
       startOccurrence: data.startOccurrence,
@@ -280,13 +413,13 @@ export class Service extends DatabaseService<Model> {
 
     const startState: AlertState | undefined = states.find(
       (state: AlertState) => {
-        return state._id?.toString() === data.startStateId!.toString();
+        return state._id?.toString() === data.startStateId;
       },
     );
 
     const endState: AlertState | undefined = states.find(
       (state: AlertState) => {
-        return state._id?.toString() === data.endStateId!.toString();
+        return state._id?.toString() === data.endStateId;
       },
     );
 

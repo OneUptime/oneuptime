@@ -10,11 +10,16 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Hosts from "../Pages/Host/Hosts";
 import HostArchived from "../Pages/Host/Archived";
 import HostDocumentation from "../Pages/Host/Documentation";
+import HostCollectorConfigs from "../Pages/Host/CollectorConfigs";
+import HostCollectorConfigView from "../Pages/Host/CollectorConfigView";
 import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
 import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostRecommendations from "../Pages/Host/View/Recommendations";
+import HostAiInsights from "../Pages/Host/View/AI/Insights";
+import HostAiLogs from "../Pages/Host/View/AI/Logs";
+import HostAiAgent from "../Pages/Host/View/AI/Agent";
 import HostProcesses from "../Pages/Host/View/Processes";
 import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostServices from "../Pages/Host/View/Services";
@@ -32,9 +37,12 @@ import HostFeed from "../Pages/Host/View/Feed";
 import HostAuditLogs from "../Pages/Host/View/AuditLogs";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
-import HostViewDocumentation from "../Pages/Host/View/Documentation";
+import HostViewCollector from "../Pages/Host/View/Collector";
 import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
 import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
+import HostModel from "Common/Models/DatabaseModels/Host";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const HostRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -100,6 +108,24 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS] || ""}
+          element={
+            <HostCollectorConfigs
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW] || ""}
+          element={
+            <HostCollectorConfigView
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_COLLECTOR_CONFIG_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={HostRoutePath[PageMap.HOST_ARCHIVED] || ""}
           element={
             <HostArchived
@@ -108,6 +134,13 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: HostModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.HOST_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -130,6 +163,37 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostRecommendations
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_RECOMMENDATIONS] as Route}
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AI_INSIGHTS, 2)}
+          element={
+            <HostAiInsights
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AI_LOGS, 2)}
+          element={
+            <HostAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AI_AGENT, 2)}
+          element={
+            <HostAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AI_AGENT] as Route}
             />
           }
         />
@@ -325,12 +389,18 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_DOCUMENTATION)}
           element={
-            <HostViewDocumentation
+            <HostViewCollector
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route}
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: HostModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

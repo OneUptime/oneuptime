@@ -6,9 +6,24 @@ import ChatActivityFeed, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import InvestigationReportView from "./InvestigationReport/InvestigationReportView";
-import InvestigationNotStartedCard, {
+import InvestigationWaiting from "./InvestigationWaiting";
+import {
+  INVESTIGATE_NOW_FAILED,
+  INVESTIGATION_WAITING_STATUS,
+  WaitingInvestigationState,
+  parseWaitingInvestigation,
+} from "./InvestigationWaitingState";
+import InvestigationNotice, {
+  noticeDoneIcon,
+  noticeFailedIcon,
+} from "./InvestigationNotice";
+import InvestigationNotStarted, {
+  getInvestigationNotStartedStatus,
   parseInvestigationNotStartedReason,
-} from "./InvestigationNotStartedCard";
+} from "./InvestigationNotStarted";
+import InvestigationStatusBadge, {
+  InvestigationStatusIndicator,
+} from "./InvestigationStatusBadge";
 import ClusterAccessNotice, {
   ClusterAccessNoticeRow,
   getClusterAccessSignature,
@@ -43,7 +58,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -51,6 +65,10 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import useAiOffered from "../../Utils/UseAiOffered";
 import {
   ParsedInvestigationReport,
   parseInvestigationReport,
@@ -66,12 +84,25 @@ import React, {
 } from "react";
 import {
   AI_INVESTIGATION_PANEL_ID,
+  AIInvestigationStage,
+  getAIInvestigationStage,
   getAIInvestigationVerdict,
+  isFollowUpCheckRun,
 } from "./AIInvestigationStatus";
 
 export type InvestigationSubjectType = "incident" | "alert";
 
 export type InvestigationVerdict = "Confirmed" | "Rejected";
+
+// What the card tells the conversation it closes with.
+export interface InvestigationConversationSlot {
+  /*
+   * Where the automatic investigation stands, so the conversation can say
+   * "follow-up" only under a report and lead with the root-cause question
+   * when there is none to read.
+   */
+  investigationStage: AIInvestigationStage;
+}
 
 export interface ComponentProps {
   subjectType: InvestigationSubjectType;
@@ -91,6 +122,23 @@ export interface ComponentProps {
    * and it follows the rating control's optimistic value, rollback included.
    */
   onVerdictChange?: ((verdict: AIRunHumanVerdict | null) => void) | undefined;
+  /*
+   * The two-way conversation with OneUptime AI about this subject. The page
+   * supplies it (so the panel stays independent of it) and the panel closes
+   * the card with it in every state: under a report, under a run that is
+   * still going or stopped, and under the explanation of why nothing ran.
+   * There is one AI card on the page, whatever OneUptime AI did.
+   */
+  renderConversation?:
+    | ((slot: InvestigationConversationSlot) => ReactElement)
+    | undefined;
+  /*
+   * What OneUptime AI read in the transcripts of the incident's calls
+   * (issue #4875), supplied by the page like the conversation: a flat
+   * section between the report and the conversation, rendering nothing
+   * while no call's transcript has been read.
+   */
+  renderCallSummaries?: (() => ReactElement) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
@@ -143,17 +191,35 @@ function useReportToHost<T>(
 }
 
 /*
- * The AI's live "watch it think" panel, shared by the incident and alert
- * view pages. It shows the autonomous investigation narrating its steps in
- * real time (reusing ChatActivityFeed over the run's AIRunEvents) and its
- * status. When no run exists, the recorded decision or current eligibility
- * explains why this subject was not investigated. Once complete, the
- * published report becomes the primary content and the reasoning trail moves
- * into a quiet disclosure.
+ * The rating row's question, and the name of its two-answer group. An
+ * English key, translated where it is drawn.
+ */
+export const VERDICT_QUESTION: string = translationKey(
+  "Was this analysis correct?",
+);
+
+/*
+ * The AI Investigation card, shared by the incident and alert view pages:
+ * the one place on the page where OneUptime AI reports and is asked.
+ *
+ * It shows the autonomous investigation narrating its steps in real time
+ * (reusing ChatActivityFeed over the run's AIRunEvents) and its status.
+ * When no run exists, the recorded decision or current eligibility explains
+ * why this subject was not investigated. Once complete, the published
+ * report becomes the primary content and the reasoning trail moves into a
+ * quiet disclosure. Whatever the state, the same card, header and status
+ * pill frame it, and the conversation the page supplies closes it.
  */
 const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  /*
+   * "Open Fix PR from this analysis" is an AI action: with the project's AI
+   * switched off the server refuses it, so it is not offered
+   * (Common/Utils/Suggestions/AiSuggestion).
+   */
+  const isAiOffered: boolean = useAiOffered();
   const subjectType: InvestigationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
   const subjectKey: string = `${subjectType}:${subjectIdString}`;
@@ -162,6 +228,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notInvestigatedReason, setNotInvestigatedReason] =
     useState<InvestigationNotStartedReason | null>(null);
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this subject (issue #5074): until when, and whether this
+   * reader may start it now. Investigate now's progress and its refusal.
+   */
+  const [waitingInvestigation, setWaitingInvestigation] =
+    useState<WaitingInvestigationState | null>(null);
+  const [isStartingInvestigation, setIsStartingInvestigation] =
+    useState<boolean>(false);
+  const [startInvestigationError, setStartInvestigationError] = useState<
+    string | null
+  >(null);
   const [hasFetchError, setHasFetchError] = useState<boolean>(false);
   const [hasSuccessfulResponse, setHasSuccessfulResponse] =
     useState<boolean>(false);
@@ -329,6 +407,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setRunId(null);
     setErrorMessage(null);
     setNotInvestigatedReason(null);
+    setWaitingInvestigation(null);
+    setIsStartingInvestigation(false);
+    setStartInvestigationError(null);
     setHasFetchError(false);
     setHasSuccessfulResponse(false);
     setIsRefreshing(false);
@@ -401,6 +482,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         const nextNotInvestigatedReason: InvestigationNotStartedReason | null =
           !runJson
             ? parseInvestigationNotStartedReason(data["notInvestigatedReason"])
+            : null;
+        // Only while no run exists: a run, once there, is what the card shows.
+        const nextWaitingInvestigation: WaitingInvestigationState | null =
+          !runJson
+            ? parseWaitingInvestigation(data["waitingInvestigation"])
             : null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
@@ -571,6 +657,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextEvidence,
           nextReferences,
           nextNotInvestigatedReason,
+          nextWaitingInvestigation,
           /*
            * What the notice renders, not the raw rows: each row carries the
            * time it was evaluated and the Runner's latest heartbeat, which
@@ -583,6 +670,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setRunStatus(status);
           setRunId(nextRunId);
           setNotInvestigatedReason(nextNotInvestigatedReason);
+          setWaitingInvestigation(nextWaitingInvestigation);
           setCodeFixRecommendation(codeFixRecommendationFromServer);
           setErrorMessage(nextErrorMessage);
           setAnalysisMarkdown(nextAnalysisMarkdown);
@@ -1023,100 +1111,136 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     onVerdictChangeRef,
   );
 
-  if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
-    const isLoading: boolean =
-      !hasLoadedOnce || loadedSubjectKey !== subjectKey;
-    return (
-      <InvestigationNotStartedCard
-        subjectType={subjectType}
-        reason={isLoading ? null : notInvestigatedReason}
-        isLoading={isLoading}
-        hasError={!isLoading && hasFetchError}
-        hasSuccessfulResponse={!isLoading && hasSuccessfulResponse}
-        isRefreshing={isRefreshing}
-        onRefresh={() => {
-          setIsRefreshing(true);
-          const refresh: Promise<void> = fetchDataSequentially();
-          const requestId: number = latestFetchRequestRef.current;
-          refresh
-            .catch(() => {
-              // handled inside fetchData
-            })
-            .finally(() => {
-              if (
-                isMountedRef.current &&
-                activeSubjectKeyRef.current === subjectKey &&
-                latestFetchRequestRef.current === requestId
-              ) {
-                setIsRefreshing(false);
-              }
-            });
-        }}
-      />
-    );
-  }
+  // The card is still asking whether this subject has a run.
+  const isCheckingStatus: boolean =
+    !hasLoadedOnce || loadedSubjectKey !== subjectKey;
+  const hasRun: boolean = !isCheckingStatus && Boolean(runStatus);
+  // No run yet because an investigation rule waits: the card says until when.
+  const isWaiting: boolean =
+    !hasRun && !isCheckingStatus && Boolean(waitingInvestigation);
+
+  /*
+   * Investigate now: start the investigation the rule makes wait, at once.
+   * The server checks who may (the one who may change the record); the run
+   * it queues appears on the next read, and a refusal says why.
+   */
+  const startInvestigationNow: () => void = (): void => {
+    const startedForSubjectKey: string = subjectKey;
+
+    setIsStartingInvestigation(true);
+    setStartInvestigationError(null);
+
+    API.post<JSONObject>({
+      url: URL.fromString(
+        APP_API_URL.toString() + "/ai-investigation/investigate-now",
+      ),
+      data: { subjectType, subjectId: subjectIdString },
+      headers: ModelAPI.getCommonHeaders(),
+    })
+      .then((response: HTTPResponse<JSONObject> | HTTPErrorResponse) => {
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+      })
+      .catch((err: unknown) => {
+        if (
+          isMountedRef.current &&
+          activeSubjectKeyRef.current === startedForSubjectKey
+        ) {
+          setStartInvestigationError(
+            API.getFriendlyMessage(err) ||
+              translator.translateText(INVESTIGATE_NOW_FAILED) ||
+              INVESTIGATE_NOW_FAILED,
+          );
+        }
+      })
+      .finally(() => {
+        if (
+          !isMountedRef.current ||
+          activeSubjectKeyRef.current !== startedForSubjectKey
+        ) {
+          return;
+        }
+
+        setIsStartingInvestigation(false);
+        // Started or not, the card reads where it stands now.
+        fetchDataSequentially().catch(() => {
+          // handled inside fetchData
+        });
+      });
+  };
+
+  const refreshStatus: () => void = (): void => {
+    setIsRefreshing(true);
+    const refresh: Promise<void> = fetchDataSequentially();
+    const requestId: number = latestFetchRequestRef.current;
+    refresh
+      .catch(() => {
+        // handled inside fetchData
+      })
+      .finally(() => {
+        if (
+          isMountedRef.current &&
+          activeSubjectKeyRef.current === subjectKey &&
+          latestFetchRequestRef.current === requestId
+        ) {
+          setIsRefreshing(false);
+        }
+      });
+  };
 
   interface StatusMeta {
-    text: string;
     /*
-     * Pill classes for the header badge. The status used to be a bare line of
-     * coloured text at the top of the body; as a badge in the card header it
-     * reads at a glance and gives the body back to the findings.
+     * Short, because it sits beside the card's title: "AI Investigation ·
+     * Completed" says in two words what "AI Investigation · Investigation
+     * complete" said in four, and a long label pushed the description onto
+     * a second line.
      */
-    className: string;
-    icon: IconProp;
+    text: string;
+    indicator: InvestigationStatusIndicator;
   }
 
   let statusMeta: StatusMeta = {
-    text: "Investigation did not finish",
-    className: "bg-red-50 text-red-700 ring-red-200",
-    icon: IconProp.Alert,
+    text: "Did not finish",
+    indicator: "failed",
   };
   let isFailed: boolean = true;
 
-  if (runStatus === AIRunStatus.Running) {
-    statusMeta = {
-      text: "Investigating…",
-      className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-      icon: IconProp.Sparkles,
-    };
+  if (isWaiting) {
+    statusMeta = { text: INVESTIGATION_WAITING_STATUS, indicator: "waiting" };
+    isFailed = false;
+  } else if (!hasRun) {
+    statusMeta = getInvestigationNotStartedStatus({
+      isLoading: isCheckingStatus,
+      hasError: hasFetchError,
+      hasSuccessfulResponse,
+    });
+    isFailed = false;
+  } else if (runStatus === AIRunStatus.Running) {
+    statusMeta = { text: "Investigating…", indicator: "live" };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Queued) {
-    statusMeta = {
-      text: "Queued — waiting for a worker…",
-      className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-      icon: IconProp.Sparkles,
-    };
+    statusMeta = { text: "Queued", indicator: "live" };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Completed) {
     statusMeta = !supportsSettledPolling
-      ? {
-          text: "Investigation complete",
-          className: "bg-green-50 text-green-700 ring-green-200",
-          icon: IconProp.Check,
-        }
+      ? { text: "Completed", indicator: "done" }
       : isAnalysisPending
-        ? {
-            text: "Preparing investigation report…",
-            className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-            icon: IconProp.Sparkles,
-          }
+        ? { text: "Preparing report…", indicator: "live" }
         : analysisMarkdown
-          ? {
-              text: "Investigation complete",
-              className: "bg-green-50 text-green-700 ring-green-200",
-              icon: IconProp.Check,
-            }
-          : {
-              text: "Investigation completed without a report",
-              className: "bg-amber-50 text-amber-800 ring-amber-200",
-              icon: IconProp.Info,
-            };
+          ? { text: "Completed", indicator: "done" }
+          : { text: "No report", indicator: "attention" };
     isFailed = false;
   }
 
   const isCodeFixRecommended: boolean =
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
+  /*
+   * The fix row: offered while AI is on, and kept after a fix was started
+   * here so its link stays (with AI off, nothing new can start).
+   */
+  const isFixRowShown: boolean =
+    isCodeFixRecommended && (isAiOffered || Boolean(fixTaskRunId));
   /*
    * A verdict judges the report on screen, so the rating row only exists
    * beside one. While the report is still being prepared, or when the run
@@ -1129,18 +1253,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isVerdictLocked: boolean = isSavingVerdict;
   const isConfirmed: boolean = humanVerdict === "Confirmed";
   /*
-   * The framed box under a completed run holds one row per available
-   * decision, so it is only drawn when at least one row is: an empty frame
-   * would read as a control that failed to load.
+   * The actions under a completed run hold one row per available decision,
+   * so they are only drawn when at least one row is: a hairline with
+   * nothing under it would read as a control that failed to load.
    */
   const hasCompletedActions: boolean =
     runStatus === AIRunStatus.Completed &&
-    (isCodeFixRecommended || canRateInvestigation);
+    (isFixRowShown || canRateInvestigation);
   /*
    * Ask the feed whether it will draw anything rather than counting events:
    * several event types only close a step an earlier event opened, so a run
-   * can carry events yet render no steps, and a raw count would frame an
-   * empty box.
+   * can carry events yet render no steps, and a raw count would promise
+   * steps that never appear.
    */
   const hasActivity: boolean = hasRenderableActivity(events);
 
@@ -1152,24 +1276,6 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const kubectlActivity: KubectlActivitySummary =
     summarizeKubectlActivity(events);
 
-  const statusBadge: ReactElement = (
-    <span
-      aria-label="Investigation status"
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusMeta.className}`}
-    >
-      <Icon icon={statusMeta.icon} className="h-3.5 w-3.5" />
-      <span>{statusMeta.text}</span>
-      {isActive || isAnalysisPending ? (
-        <span className="relative ml-0.5 flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-indigo-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
-        </span>
-      ) : (
-        <></>
-      )}
-    </span>
-  );
-
   /*
    * The model name only comes from the report's own footer, so it is shown
    * only next to a report.
@@ -1178,49 +1284,103 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     ? parsedReport?.footer?.modelName
     : undefined;
 
+  const investigationStage: AIInvestigationStage = getAIInvestigationStage({
+    isChecking: isCheckingStatus,
+    runStatus,
+    hasReport: Boolean(analysisMarkdown),
+    isReportPending: isAnalysisPending,
+  });
+
+  /*
+   * One card for every state. With no run it used to be two: a card
+   * explaining why nothing was investigated, and the conversation in a
+   * second card under it. The explanation is now this card's body, like a
+   * report or a live run is, and the conversation closes it either way.
+   */
   return (
     <Card
+      /*
+       * The status pill is the header's right element: at the edge the
+       * card's hairlines and the composer end at, on the title's line - on a
+       * phone too, while the two fit (the default header).
+       */
       title="AI Investigation"
+      bodyClassName="mt-6"
       description={
-        runStatus === AIRunStatus.Completed
-          ? `OneUptime AI's root-cause report for this ${subjectType}.`
-          : `OneUptime AI's live root-cause investigation for this ${subjectType}.`
+        subjectType === "incident"
+          ? hasRun && runStatus === AIRunStatus.Completed
+            ? "OneUptime AI's root-cause report for this incident."
+            : hasRun && isActive
+              ? "OneUptime AI's live root-cause investigation for this incident."
+              : "OneUptime AI's root-cause investigation for this incident."
+          : hasRun && runStatus === AIRunStatus.Completed
+            ? "OneUptime AI's root-cause report for this alert."
+            : hasRun && isActive
+              ? "OneUptime AI's live root-cause investigation for this alert."
+              : "OneUptime AI's root-cause investigation for this alert."
       }
-      rightElement={statusBadge}
+      rightElement={
+        <InvestigationStatusBadge
+          text={statusMeta.text}
+          indicator={statusMeta.indicator}
+        />
+      }
     >
+      {/*
+        The card is the only frame. Everything inside it is plain content
+        with one heading style and one body style, spaced apart rather than
+        boxed: the report used to arrive as a tinted summary box, a report box
+        with an amber callout inside it, a details box and an actions box, a
+        card inside a card inside a card.
+      */}
       <div
         id={AI_INVESTIGATION_PANEL_ID}
         tabIndex={-1}
         role="region"
-        aria-label="AI Investigation"
-        className="-mt-2 scroll-mt-32 space-y-4 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        aria-label={translator.translateText("AI Investigation")}
+        aria-busy={isCheckingStatus}
+        className="scroll-mt-32 space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
       >
-        {isFailed && errorMessage ? (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-red-800">
-                The investigation stopped before it could report.
-              </p>
-              <p className="mt-1 break-words text-xs leading-5 text-red-700">
-                {errorMessage}
-              </p>
-            </div>
-          </div>
+        {/*
+          The region always holds the same four slots in the same order (a
+          failure notice, the body, the actions, the conversation), whatever
+          the state, and a slot with nothing to show renders nothing. React
+          therefore keeps the conversation mounted when the body changes (a
+          run appears, the report lands): a question someone is typing is
+          not thrown away by an investigation starting.
+        */}
+        {hasRun && isFailed && errorMessage ? (
+          <InvestigationNotice
+            testId="investigation-error"
+            indicator={noticeFailedIcon}
+            title="The investigation stopped before it could report."
+          >
+            {errorMessage}
+          </InvestigationNotice>
         ) : (
           <></>
         )}
 
-        {runStatus === AIRunStatus.Completed ? (
+        {isWaiting && waitingInvestigation ? (
+          <InvestigationWaiting
+            subjectType={subjectType}
+            waiting={waitingInvestigation}
+            onStartNow={startInvestigationNow}
+            isStarting={isStartingInvestigation}
+            startError={startInvestigationError}
+          />
+        ) : !hasRun ? (
+          <InvestigationNotStarted
+            subjectType={subjectType}
+            reason={isCheckingStatus ? null : notInvestigatedReason}
+            isLoading={isCheckingStatus}
+            hasError={!isCheckingStatus && hasFetchError}
+            hasSuccessfulResponse={!isCheckingStatus && hasSuccessfulResponse}
+            isRefreshing={isRefreshing}
+            onRefresh={refreshStatus}
+          />
+        ) : runStatus === AIRunStatus.Completed ? (
           <>
-            <ClusterAccessNotice
-              clusterAccess={clusterAccess}
-              isRunFinished={true}
-              kubectlActivity={kubectlActivity}
-            />
             {analysisMarkdown && parsedReport ? (
               <InvestigationReportView
                 analysisMarkdown={analysisMarkdown}
@@ -1232,40 +1392,48 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 onCitationActivate={focusCitation}
               />
             ) : isAnalysisPending ? (
-              <div
+              <InvestigationNotice
                 role="status"
-                className="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-5 py-4"
+                indicator={
+                  <span className="h-4 w-4 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin" />
+                }
+                title="Preparing the final report"
               >
-                <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Preparing the final report
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    The investigation is complete. OneUptime AI is organizing
-                    the findings and evidence.
-                  </p>
-                </div>
-              </div>
+                {translator.translateText(
+                  "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
+                )}
+              </InvestigationNotice>
             ) : (
-              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                <Icon
-                  icon={IconProp.Info}
-                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-                />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">
-                    No investigation report was published.
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-amber-700">
-                    The run finished without a final analysis.
-                    {hasActivity
-                      ? " Its steps are under Investigation activity below."
-                      : ""}
-                  </p>
-                </div>
-              </div>
+              <InvestigationNotice
+                indicator={
+                  <Icon
+                    icon={IconProp.Info}
+                    className="h-4 w-4 flex-shrink-0 text-amber-500"
+                  />
+                }
+                title="No investigation report was published."
+              >
+                {hasActivity
+                  ? translator.translateText(
+                      "The run finished without a final analysis. Its steps are under Investigation activity below.",
+                    )
+                  : translator.translateText(
+                      "The run finished without a final analysis.",
+                    )}
+              </InvestigationNotice>
             )}
+
+            {/*
+              How the run reached the clusters, and whether it can now. For
+              a finished run this is context for trusting the report, so it
+              follows the report instead of standing between the title and
+              the answer.
+            */}
+            <ClusterAccessNotice
+              clusterAccess={clusterAccess}
+              isRunFinished={true}
+              kubectlActivity={kubectlActivity}
+            />
 
             {/*
               Evidence, activity and usage share one collapsed section: the
@@ -1291,45 +1459,31 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           </>
         ) : (
           /*
-           *Before the report exists the reasoning trail IS the content, so it
-           *gets the same framed treatment the report gets later: a header
-           *that says what is happening in plain words, a progress hairline
-           *while the run can still move, and the steps inside. Without the
-           *frame this state read as a bare list floating under the title.
+           * Before the report exists the reasoning trail IS the content: a
+           * heading that says what is happening in plain words, the steps
+           * under it, and, once the run has stopped, what it ran. The badge
+           * in the header pulses while the run can still move, so the trail
+           * needs no frame or progress bar of its own.
            */
           <section
-            aria-label={
-              isFailed ? "Investigation activity" : "Live investigation"
-            }
-            className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
-              isFailed ? "border-gray-200" : "border-indigo-200"
-            }`}
+            aria-label={translator.translateText(
+              isFailed ? "Investigation activity" : "Live investigation",
+            )}
+            className="space-y-4"
           >
-            <div
-              className={`flex items-start gap-3 border-b px-5 py-4 ${
-                isFailed
-                  ? "border-gray-200 bg-gray-50/80"
-                  : "border-indigo-100 bg-indigo-50/60"
-              }`}
-            >
-              <div
-                className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
-                  isFailed ? "bg-gray-900" : "bg-indigo-600"
-                }`}
-              >
-                <Icon
-                  icon={isFailed ? IconProp.Activity : IconProp.Sparkles}
-                  className="h-4 w-4 text-white"
-                />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  {isFailed
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {translator.translateText(
+                  isFailed
                     ? "What the investigation got through"
-                    : "OneUptime AI is investigating"}
-                </h3>
-                <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                  {isFailed
+                    : isFollowUpCheckRun(events)
+                      ? "OneUptime AI is checking again"
+                      : "OneUptime AI is investigating",
+                )}
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-gray-500">
+                {translator.translateText(
+                  isFailed
                     ? "The steps this run completed before it stopped."
                     : isQueued
                       ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
@@ -1337,41 +1491,31 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             return status.isInvestigationReady;
                           })
                         ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
-                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
-                </p>
-              </div>
+                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
+                )}
+              </p>
             </div>
-            {isActive ? (
-              <div
-                aria-hidden="true"
-                className="h-0.5 w-full overflow-hidden bg-indigo-100"
-              >
-                <div className="h-full w-1/3 motion-safe:animate-pulse bg-indigo-500" />
-              </div>
-            ) : (
-              <></>
-            )}
-            <div className="space-y-4 px-5 py-4">
-              <ClusterAccessNotice
-                clusterAccess={clusterAccess}
-                isRunFinished={isFailed}
-                kubectlActivity={kubectlActivity}
+            <ClusterAccessNotice
+              clusterAccess={clusterAccess}
+              isRunFinished={isFailed}
+              kubectlActivity={kubectlActivity}
+            />
+            {hasActivity ? (
+              <ChatActivityFeed
+                events={events}
+                hideChrome={true}
+                showLiveIndicator={false}
+                maxVisibleSteps={10}
               />
-              {hasActivity ? (
-                <ChatActivityFeed
-                  events={events}
-                  hideChrome={true}
-                  showLiveIndicator={false}
-                  maxVisibleSteps={10}
-                />
-              ) : (
-                <p className="text-sm text-gray-500">
-                  {isActive
+            ) : (
+              <p className="text-sm text-gray-500">
+                {translator.translateText(
+                  isActive
                     ? "Starting investigation…"
-                    : "No investigation steps were recorded."}
-                </p>
-              )}
-            </div>
+                    : "No investigation steps were recorded.",
+                )}
+              </p>
+            )}
             {/*
               Gated on isActive: a queued run's counts are all zero, and a
               past-tense "ran 0 queries" under "waiting for a worker" would
@@ -1381,7 +1525,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <InvestigationUsageLine
                 usage={stats}
                 kubectlActivity={kubectlActivity}
-                className="border-t border-gray-200 bg-gray-50/70 px-5 py-3"
+                className="border-t border-gray-200 pt-4"
               />
             ) : (
               <></>
@@ -1396,30 +1540,28 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           no pull request is applicable, and it is offered whenever there is
           a report to judge.
         */}
-        {hasCompletedActions ? (
+        {hasRun && hasCompletedActions ? (
           /*
-           * One row per decision, each a question on the left and its answer
-           * on the right. The question's text gives way first, and a column
-           * too narrow for both stacks the control under it instead of
-           * pushing it past the box.
+           * One row per decision under the card's last hairline, each a
+           * question on the left and its answer on the right. The question's
+           * text gives way first, and a column too narrow for both stacks the
+           * control under it instead of pushing it past the card.
            */
           <div
             data-testid="investigation-actions"
-            className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-gray-50/70"
+            className="divide-y divide-gray-200 border-t border-gray-200"
           >
-            {isCodeFixRecommended ? (
-              <div className="px-4 py-4 sm:px-5">
+            {isFixRowShown ? (
+              <div className="py-5 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                      <Icon
-                        icon={IconProp.Code}
-                        className="h-4 w-4 text-gray-400"
-                      />
-                      Act on this investigation
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {translator.translateText("Act on this investigation")}
                     </h3>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Create a fix pull request with this report as context.
+                      {translator.translateText(
+                        "Create a fix pull request with this report as context.",
+                      )}
                     </p>
                   </div>
                   {fixTaskRunId ? (
@@ -1447,48 +1589,57 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     </div>
                   )}
                 </div>
+                {/*
+                  What came of pressing the button, said the way the card
+                  says everything else: a mark and a sentence under the row.
+                  These were green and red alert boxes, the loudest things
+                  in the card.
+                */}
                 {fixTaskRunId ? (
                   <div className="mt-3">
-                    <Alert
-                      type={AlertType.SUCCESS}
-                      strongTitle="Fix task created"
-                      title={
-                        <span>
-                          AI will open a pull request from this analysis.{" "}
-                          <Link
-                            className="underline"
-                            to={RouteUtil.populateRouteParams(
-                              RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                              { modelId: fixTaskRunId },
-                            )}
-                          >
-                            View task progress
-                          </Link>
-                          .
-                        </span>
-                      }
-                    />
+                    <InvestigationNotice
+                      role="alert"
+                      testId="investigation-fix-task-created"
+                      indicator={noticeDoneIcon}
+                      title="Fix task created"
+                    >
+                      <TranslatedSentence
+                        template="AI will open a pull request from this analysis. {{taskLink}}."
+                        slots={{
+                          taskLink: (
+                            <Link
+                              className="font-medium text-indigo-600 hover:text-indigo-800"
+                              to={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.CODE_TASK_VIEW] as Route,
+                                { modelId: fixTaskRunId },
+                              )}
+                            >
+                              {translator.translateText("View task progress")}
+                            </Link>
+                          ),
+                        }}
+                      />
+                    </InvestigationNotice>
                   </div>
                 ) : fixTaskError ? (
                   <div className="mt-3">
-                    <Alert
-                      type={AlertType.DANGER}
-                      strongTitle="Could not create the fix task"
-                      title={
-                        <span>
-                          {fixTaskError}{" "}
-                          <Link
-                            className="underline"
-                            to={RouteUtil.populateRouteParams(
-                              RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-                            )}
-                          >
-                            View AI tasks
-                          </Link>
-                          .
-                        </span>
-                      }
-                    />
+                    <InvestigationNotice
+                      role="alert"
+                      testId="investigation-fix-task-error"
+                      indicator={noticeFailedIcon}
+                      title="Could not create the fix task"
+                    >
+                      {translator.translateText(fixTaskError)}{" "}
+                      <Link
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.CODE] as Route,
+                        )}
+                      >
+                        {translator.translateText("Open Code")}
+                      </Link>
+                      .
+                    </InvestigationNotice>
                   </div>
                 ) : (
                   <></>
@@ -1509,26 +1660,24 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               row is left out rather than shown with both answers disabled.
             */}
             {canRateInvestigation ? (
-              <div className="px-4 py-4 sm:px-5">
+              <div className="py-5 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                      <Icon
-                        icon={IconProp.Star}
-                        className="h-4 w-4 text-gray-400"
-                      />
-                      Rate this investigation
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {translator.translateText(VERDICT_QUESTION)}
                     </h3>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Your verdict helps measure OneUptime AI&apos;s public
-                      accuracy.
+                      {translator.translateText(
+                        "Your verdict helps measure OneUptime AI's public accuracy.",
+                      )}
                     </p>
                   </div>
 
                   <div className="max-w-full">
                     {humanVerdict && !isChangingVerdict ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <span
+                        {/* A div, not a span: Icon renders a div. */}
+                        <div
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
                             isConfirmed
                               ? "bg-green-50 text-green-700 ring-green-200"
@@ -1540,10 +1689,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             className="h-3.5 w-3.5"
                           />
                           <span>
-                            You {isConfirmed ? "confirmed" : "rejected"} this
-                            analysis
+                            {translator.translateText(
+                              isConfirmed
+                                ? "You confirmed this analysis"
+                                : "You rejected this analysis",
+                            )}
                           </span>
-                        </span>
+                        </div>
                         <button
                           type="button"
                           className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1551,13 +1703,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             setIsChangingVerdict(true);
                           }}
                         >
-                          Change
+                          {translator.translateText("Change")}
                         </button>
                       </div>
                     ) : (
                       <div
                         role="group"
-                        aria-label="Rate this investigation"
+                        aria-label={translator.translateText(VERDICT_QUESTION)}
                         className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
                       >
                         <button
@@ -1571,7 +1723,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                           }}
                         >
                           <Icon icon={IconProp.Check} className="h-4 w-4" />
-                          Confirmed
+                          {translator.translateText("Confirmed")}
                         </button>
                         <span
                           aria-hidden="true"
@@ -1588,7 +1740,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                           }}
                         >
                           <Icon icon={IconProp.Close} className="h-4 w-4" />
-                          Rejected
+                          {translator.translateText("Rejected")}
                         </button>
                       </div>
                     )}
@@ -1597,11 +1749,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
                 {verdictError ? (
                   <div className="mt-3">
-                    <Alert
-                      type={AlertType.DANGER}
-                      strongTitle="Could not save your verdict"
-                      title={verdictError}
-                    />
+                    <InvestigationNotice
+                      role="alert"
+                      testId="investigation-verdict-error"
+                      indicator={noticeFailedIcon}
+                      title="Could not save your verdict"
+                    >
+                      {translator.translateText(verdictError)}
+                    </InvestigationNotice>
                   </div>
                 ) : (
                   <></>
@@ -1611,6 +1766,23 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+          What the incident's calls said: one more thing OneUptime AI read,
+          after its own report and before the conversation.
+        */}
+        {props.renderCallSummaries ? props.renderCallSummaries() : <></>}
+
+        {/*
+          The conversation closes the card: whatever OneUptime AI did (or
+          did not do) above is its first pass, and this is where responders
+          take it from there.
+        */}
+        {props.renderConversation ? (
+          props.renderConversation({ investigationStage })
         ) : (
           <></>
         )}

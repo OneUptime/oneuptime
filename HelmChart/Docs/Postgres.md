@@ -320,9 +320,9 @@ parameter`, the driver is sending a libpq startup parameter PgBouncer isn't
 told to accept. node-postgres sends `statement_timeout` and
 `idle_in_transaction_session_timeout`; both must be in
 `pgbouncer.ignoreStartupParameters` (they are by default). PgBouncer accepts and
-_ignores_ them (does not forward them to the backend), so set
-`statement_timeout` on the backend if you need server-side enforcement — the
-app's client-side `query_timeout` still aborts slow queries.
+_ignores_ them (does not forward them to the backend), so the backend applies no
+`statement_timeout` to the app's statements unless one is set there (see
+[Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)).
 
 **Pool mode and migrations are independent.** They did not used to be: the
 data-migration runner held a **session-level `pg_advisory_lock`** across its
@@ -340,6 +340,74 @@ on by default) does. Keep it enabled. With `migrate.enabled: false` — and unde
 docker-compose, which has no Job — every replica of every deployment runs the
 migration loop on boot, unserialized, so data migrations must be written to
 tolerate being run twice at once.
+
+#### Statement timeout behind the pooler
+
+When the app stops waiting for a statement (`DATABASE_QUERY_TIMEOUT_MS`, 35
+seconds by default) it cancels it on the database - the cancel request `psql`
+sends on Ctrl-C, which PgBouncer passes on to the server connection the
+statement runs on - and closes the connection the statement ran on instead of
+handing it to another request. A transaction the statement was part of is
+rolled back with that connection, so a write the app reported as failed is never
+committed later by the next request to borrow the connection. The app waits up
+to 5 more seconds for the database to answer the cancel; that answer (the
+statement was cancelled) tells it nothing was written.
+
+A cancel cannot reach the database once the connection to it is gone - a
+network partition, a pooler restarting. Only the backend's `statement_timeout`
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 30 seconds by default) ends such a statement,
+and the app relies on it then: a change to who can sign in with SSO whose write
+got no answer holds back every other such change until the statement timeout
+would have cancelled it (and 10 seconds more), then lets them go on. Behind
+PgBouncer - the chart's, or a managed pooled endpoint that drops startup
+parameters too - set the timeout on the role the app connects as, to the value
+of `DATABASE_STATEMENT_TIMEOUT_MS`:
+
+```sql
+-- The role and database the app connects with: postgres and oneuptimedb for
+-- the chart's own Postgres, your own for an externalPostgres.
+ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s';
+```
+
+New backend connections pick it up; PgBouncer opens them as it needs them, or
+restart PgBouncer to start over. A connection that sends its own
+`statement_timeout` keeps it: the migration Job connects directly and sends the
+app's, so the role's setting changes nothing for it. A `psql` session for long
+manual work under that role can lift it with `SET statement_timeout = 0`.
+
+#### Statements queued in the pooler
+
+PgBouncer cannot cancel a statement still waiting in its own queue for a free
+server connection: it drops a cancel for it, and the statement runs once a
+connection comes free - however long after the app stopped waiting for it. So
+the chart's PgBouncer gives up on a queued statement before the app does:
+`pgbouncer.queryWaitTimeoutSeconds` (PgBouncer's `query_wait_timeout`, 30
+seconds by default, below the app's 35) answers it with `query_wait_timeout`,
+and it never runs. PgBouncer's own default is 120 seconds. If you raise
+`DATABASE_QUERY_TIMEOUT_MS`, you may raise this with it - keep it a few seconds
+below; `0` lets a statement wait for ever. With your own PgBouncer, or a managed
+pooled endpoint, set its `query_wait_timeout` the same way.
+
+```yaml
+pgbouncer:
+  enabled: true
+  queryWaitTimeoutSeconds: 30 # below DATABASE_QUERY_TIMEOUT_MS (35 s by default)
+```
+
+#### Connection lifetime
+
+Every pod replaces each of its Postgres connections once it is 10 minutes old
+(`DATABASE_CONNECTION_MAX_LIFETIME_MS`, `600000` by default; `0` keeps them):
+right away when the connection is idle, otherwise as soon as the statement or
+transaction using it is done - never in the middle of one. Without it, the
+connections a busy pod opens at boot stay open for as long as the pod runs. A
+PgBouncer or Postgres replica added later then only ever gets the connections
+opened after it came up, and the Kubernetes agent's eBPF instrumentation - which
+ties a query to the request that ran it through the connection, and learns a
+connection only when it sees it opened - cannot place the queries of a pod that
+started before the agent attached to it, or that was running when the agent
+restarted. Replacing a connection costs one new connection, once per
+connection every 10 minutes.
 
 ### Transaction mode (real connection reduction)
 
@@ -371,25 +439,25 @@ Notes on the migration Job:
 
 - **Deploys do not block by default** (`migrate.hook: false`): the migration Job
   runs as a regular async Job for both install and upgrade, so `helm` returns
-  immediately and pods roll while migrations run in the background. The trade-off
-  is that **pods can start before migrations finish**, so keep your migrations
-  _backward-compatible_ (the new code tolerates the old schema — the
-  expand/contract pattern). Set `migrate.hook: true` to make deploys block on a
-  Helm hook instead (`post-install` on install, `pre-upgrade` on upgrade); the
-  deploy then waits and new code never hits an un-migrated schema.
-- **Fresh-install caveat with `migrate.hook: false`:** on a brand-new install the
-  app pods come up against an empty (un-migrated) database and will stay unready —
-  likely `CrashLoopBackOff` — until the async Job finishes creating the schema,
-  then self-heal. The Job's own init container waits for the database first, so a
-  slow first-time cluster bootstrap may need a longer `helm upgrade --install
---timeout`. If you want a clean first install, run it once with
-  `--set migrate.hook=true` (blocks until the schema exists), then drop back to
-  the async default for routine upgrades.
-
-More on the migration Job:
-
-- `helm upgrade --wait` waits for Jobs too, so don't pass `--wait` if you want
-  the async upgrade to stay non-blocking.
+  immediately and pods roll while migrations run in the background.
+- **New pods wait for the schema migrations their code needs.** A runtime pod
+  does not start on a schema older than its code: `PostgresDatabase.connect()`
+  reads which of the code's migrations the database has not recorded, and
+  waits until the Job has applied them before the rest of its boot (see
+  [New pods and pending schema migrations](#new-pods-and-pending-schema-migrations)).
+  The pod is not ready meanwhile, so the old pods keep serving, and it carries
+  on within five seconds of the last one committing. (In 14.0.13 the new worker
+  pods started on the old schema: every monitor query selected
+  `Monitor."isArchived"` before `AddArchiveToMoreResources` had added it, and no
+  monitor was processed until it had.) Keep migrations _backward-compatible_ all
+  the same (the expand/contract pattern): the **old** pods serve on the **new**
+  schema until they are replaced.
+- **Fresh installs with `migrate.hook: false`:** the pods likewise wait for the
+  Job to create the schema, instead of crash-looping on an empty database. They
+  can still restart a few times while the database itself is starting, since
+  they connect before they wait. The Job's own init container waits for the
+  database first, so a slow first-time cluster bootstrap may need a longer
+  `helm upgrade --install --timeout`.
 - Finished async Jobs auto-clean after `migrate.ttlSecondsAfterFinished` (default
   1 day).
 - Alternatively, run migrations as a **separate step** before the deploy (e.g.
@@ -400,4 +468,115 @@ More on the migration Job:
   boots at the same time runs the migration loop at the same time. This is the
   same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
-  session mode); the app's client-side `query_timeout` still applies.
+  session mode); the app's client-side `query_timeout` still applies, and the
+  app cancels a statement it stops waiting for - but a cancel cannot reach a
+  database it lost the connection to. Set `statement_timeout` on the app's
+  database role (see
+  [Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)).
+
+### New pods and pending schema migrations
+
+With the migrate Job owning migrations, a runtime pod (app, worker,
+telemetry-writer, nginx) waits at boot for the schema migrations its code
+needs; see the notes above for why.
+
+#### How long a new pod waits
+
+`migrate.runtimeWaitTimeoutSeconds` (default `900`, rendered as
+`DATABASE_MIGRATION_WAIT_TIMEOUT_MS`). When it runs out, the pod exits with an
+error naming the migrations still missing, is restarted, and waits again: it
+never serves on the older schema. Look at the migrate Job then
+(`kubectl logs job/<release>-migrate-<revision>`), which has failed or is still
+retrying a migration that cannot get its locks.
+
+A waiting pod has not started, so its startup probe fails until the wait ends,
+and Kubernetes runs no liveness or readiness probe before the startup probe
+passes. The startup probe kills the pod after about `startupProbe.periodSeconds
+x (startupProbe.failureThreshold - 1)`, 17 minutes by default. Keep the wait
+below that, with room for the rest of the boot, so a pod gives up by itself
+with that error instead of being killed and backed off; the install notes warn
+when it is not. With `startupProbe.enabled: false` the liveness probe kills a
+waiting pod after about two minutes. `0` turns the wait off: pods start on the
+schema as found, as they did before.
+
+#### What the wait costs during an upgrade
+
+- **Capacity.** A rolling update replaces old pods as new ones become ready,
+  but removes up to `maxUnavailable` of them (25% of the replicas, rounded
+  down) straight away. While the migrations run, that share of capacity is
+  gone. Set `deployment.updateStrategy.rollingUpdate.maxUnavailable: 0` to keep
+  every old pod until its replacement is ready.
+- **Progress deadline.** A rollout whose pods wait longer than
+  `progressDeadlineSeconds` (10 minutes) is marked `ProgressDeadlineExceeded`:
+  `kubectl rollout status` fails and Argo CD shows the application Degraded,
+  though the rollout carries on once the migrations are in.
+- **`helm upgrade --wait` / `--atomic`** wait for the new pods to be ready, so
+  they now last until the schema migrations are applied: size `--timeout` for
+  them. `--wait` does not wait for the Job itself (data migrations included)
+  unless you add `--wait-for-jobs`. An `--atomic` deploy that runs out of time
+  rolls back, and deletes the migrate Job mid-run.
+
+#### Why `migrate.hook` stays `false` by default
+
+`migrate.hook: true` runs the Job as a Helm hook (`post-install` on install,
+`pre-upgrade` on upgrade): `helm upgrade` applies every migration before it
+touches a Deployment. It complements the wait, but it is not the default:
+
+- It blocks the whole deploy on the whole Job, data migrations included (they
+  can be long backfills), within Helm's `--timeout` of 5 minutes by default.
+  One schema migration alone may retry its locks for 10 minutes, as in
+  14.0.13. A Job that outlasts the timeout fails the release, so turning it on
+  for every existing install would turn routine upgrades into failed ones.
+- It does not cover what the wait covers. A `post-install` hook runs after the
+  release's pods exist, so a fresh install is not protected. Argo CD renders the
+  chart with `helm template`, where every sync is an install, so the Job is
+  always a `post-install` hook there, which Argo CD runs as a PostSync hook,
+  after the new pods are Healthy. `helm upgrade --no-hooks`, or a rollout
+  started by anything other than Helm, skips it.
+- With the wait, the async Job gives the same guarantee (no pod serves on an
+  older schema) and the new pods are scheduled, pull their image and boot while
+  it migrates, so the rollout finishes sooner.
+
+What the hook buys: no old pod is replaced until the migrations have succeeded,
+so there is no capacity dip and no progress deadline to watch, and a failed
+migration fails the deploy before any pod rolls. Choose it, with a `--timeout`
+sized for your migrations, if that matters more to you than a non-blocking
+deploy.
+
+Because a `post-install` hook runs only after the release's pods exist (and,
+under `helm install --wait` or Argo CD, only once they are ready), pods that
+waited for it would wait for each other. So with `migrate.hook: true` the pods
+of an install do not wait (`DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0`); the pods of
+a Helm upgrade keep the wait, which finds the `pre-upgrade` hook's work done.
+
+### Schema migrations and busy tables
+
+A schema migration needs strong table locks (`ALTER TABLE` takes `ACCESS
+EXCLUSIVE`), and Postgres grants locks in queue order: a DDL statement waiting
+for one long transaction blocks every query that arrives on that table after
+it, plain `SELECT`s included. 14.0.13's `ALTER TABLE "Monitor"` did exactly
+that, and monitors stopped being processed while it waited.
+
+The migration Job (and any process with `RUN_DATABASE_MIGRATIONS_ON_BOOT`
+left on) therefore runs schema migrations on a connection of their own where
+a statement waits at most `DATABASE_MIGRATION_LOCK_TIMEOUT_MS` for a lock. A
+migration that runs out is rolled back - releasing everything it held - and
+retried, backing off from one second to thirty, until it gets through or
+`DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS` passes for that migration; then the
+Job fails, and its log names the oldest open transactions in the database and
+the tables they hold, which is usually the culprit (a report, a backup, a
+session left idle in a transaction).
+
+| Variable | Default | |
+| --- | --- | --- |
+| `DATABASE_MIGRATION_LOCK_TIMEOUT_MS` | `2000` | Longest lock wait of one migration statement. Keep it below `DATABASE_LOCK_TIMEOUT_MS` (3000), so app queries queued behind a migration are delayed, not failed. `0` waits without limit (the old behaviour). |
+| `DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS` | `600000` | How long one migration keeps being retried. `0` never retries. |
+
+Set them for the Job alone with `migrate.extraEnv`. Data migrations still run
+on the app's own pool, as before.
+
+Bounding the wait does not bound how long a migration *holds* a lock once it
+has it. Index builds and foreign keys on tables that already hold data are
+therefore written with `OnlineDdl` (`CREATE INDEX CONCURRENTLY`, and `NOT
+VALID` followed by `VALIDATE CONSTRAINT`), which do not block reads or writes;
+see `packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts`.

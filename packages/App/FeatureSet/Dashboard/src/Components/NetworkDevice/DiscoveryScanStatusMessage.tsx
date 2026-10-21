@@ -6,6 +6,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The scan's status message, beneath its identity on the Discovery Scans
@@ -99,6 +101,7 @@ export interface ComponentProps {
 const DiscoveryScanStatusMessage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const messageId: string = useId();
   const messageRef: React.RefObject<HTMLParagraphElement> =
     useRef<HTMLParagraphElement>(null);
@@ -186,8 +189,19 @@ const DiscoveryScanStatusMessage: FunctionComponent<ComponentProps> = (
             setIsExpanded(!isExpanded);
           }}
         >
-          {isExpanded ? "Hide details" : "Show details"}
-          <span className="sr-only">{` for ${props.scanLabel}`}</span>
+          <span aria-hidden="true">
+            {translator.translateText(
+              isExpanded ? "Hide details" : "Show details",
+            )}
+          </span>
+          <span className="sr-only">
+            {translator.translateTemplate(
+              isExpanded
+                ? "Hide details for {{scan}}"
+                : "Show details for {{scan}}",
+              { scan: props.scanLabel },
+            )}
+          </span>
         </button>
       )}
     </div>

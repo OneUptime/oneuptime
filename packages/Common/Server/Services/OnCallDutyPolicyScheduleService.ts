@@ -1,19 +1,26 @@
-import DatabaseService from "./DatabaseService";
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
+import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CalendarEvent from "../../Types/Calendar/CalendarEvent";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
-import LayerUtil, {
-  LayerEventsResult,
+import {
+  ExpandedLayer,
+  ExpandedLayers,
   LayerProps,
 } from "../../Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution, {
+  NextInRotation,
+} from "../../Types/OnCallDutyPolicy/ScheduleResolution";
 import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
+  OverrideEventMeta,
   UserOverrideRecord,
 } from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -58,6 +65,56 @@ import OnCallShiftChangeListeners, {
   OnCallShiftChangeEvent,
   OnCallShiftChangeReason,
 } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import CreateBy from "../Types/Database/CreateBy";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import TeamMemberService from "./TeamMemberService";
+import {
+  readScheduleFirstLayer,
+  ScheduleFirstLayer,
+} from "../../Types/OnCallDutyPolicy/ScheduleFirstLayer";
+import {
+  buildNewScheduleLayer,
+  getLayerName,
+} from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import WorkspaceUserGroupSync from "../Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
+
+/*
+ * Who is on call in a schedule at a moment (getCurrentOnCallInSchedule).
+ */
+export interface CurrentOnCallInSchedule {
+  // Who a page goes to, with any override applied.
+  userId: ObjectID;
+  /*
+   * While an override is in force, the layer user it covers - whom the
+   * rotation names. Null when nobody is covered.
+   */
+  coveredUserId: ObjectID | null;
+  /*
+   * True when the person covering has the turn because the layer user is
+   * skipped (away with nobody named to cover) and the rotation picked the
+   * next person who is not away. False for a named cover, or nobody covered.
+   */
+  isSkip?: boolean;
+  // While somebody is covered: when the time away of the person covered ends.
+  coveredUntil?: Date | null;
+}
+
+/*
+ * Who is on call in a schedule, and who is next in their rotation
+ * (getNextInRotationInSchedule): what an escalation rule's "Next in
+ * rotation" of the schedule pages.
+ */
+export interface NextInRotationInSchedule {
+  // Who is on call now: the person the next one comes after.
+  onCallUserId: ObjectID;
+  // The next person in the same rotation who is not away; null for nobody.
+  nextUserId: ObjectID | null;
+  // The rotation (layer) they were found in, by its name, when it has one.
+  layerName: string | null;
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -157,11 +214,260 @@ interface ScheduleResolutionInputs {
   attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
 }
 
-export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
-  private layerUtil = new LayerUtil();
-
+export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> {
   public constructor() {
     super(OnCallDutyPolicySchedule);
+  }
+
+  /*
+   * WHO TAKES TURNS.
+   *
+   * A schedule created with people in its misc data (the create form's "Who
+   * takes turns?", or an API caller) gets its first layer straight away:
+   * "Layer 1", on call from now, handing off once per rotation (a week
+   * unless the form picked another), around the clock, with those people
+   * taking turns in the order they were picked - what pressing Add Layer and
+   * adding them one by one on the Layers page would have made. With nobody
+   * picked, nothing changes: the schedule is created without layers, as it
+   * always was.
+   *
+   * The layer and its people are created as the caller, with the same
+   * checks, roster refresh and notifications as adding them by hand, once
+   * the schedule exists.
+   *
+   * What can be checked before anything is saved is checked first: the
+   * picks' shape, whether the caller may add layers and people to them, and
+   * whether every person is a member of this project. A refused pick refuses
+   * the create, so nobody gets a schedule that covers nobody when they asked
+   * for people to take turns. What fails after the schedule is saved is
+   * logged, and the schedule is kept: its Layers page shows what is missing.
+   */
+  @CaptureSpan()
+  public override async create(
+    createBy: CreateBy<OnCallDutyPolicySchedule>,
+  ): Promise<OnCallDutyPolicySchedule> {
+    const firstLayer: ScheduleFirstLayer | null = createBy.props.ignoreHooks
+      ? null
+      : readScheduleFirstLayer(createBy.miscDataProps);
+
+    if (firstLayer) {
+      await this.checkFirstLayerCanBeAdded({
+        firstLayer: firstLayer,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        props: createBy.props,
+      });
+    }
+
+    const createdSchedule: OnCallDutyPolicySchedule = await super.create(
+      createBy,
+    );
+
+    if (firstLayer) {
+      await this.addFirstLayer({
+        schedule: createdSchedule,
+        firstLayer: firstLayer,
+        props: createBy.props,
+      });
+    }
+
+    return createdSchedule;
+  }
+
+  /*
+   * Refuses a first layer that could not be added, before the schedule is
+   * saved. Throws; returns nothing.
+   */
+  @CaptureSpan()
+  public async checkFirstLayerCanBeAdded(data: {
+    firstLayer: ScheduleFirstLayer;
+    projectId: ObjectID | undefined | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "A project is required to add people to a new on-call schedule.",
+      );
+    }
+
+    const projectId: ObjectID = new ObjectID(data.projectId.toString());
+
+    /*
+     * The caller adds the layer and its people themselves, so they need the
+     * permissions adding them by hand needs - checked now, on rows written
+     * as they will be, so a refusal saves nothing. Root and master admin
+     * callers pass through the check itself. Any schedule id checks the same
+     * column permissions; the real one is not known yet.
+     */
+    const placeholderId: ObjectID = ObjectID.getZeroObjectID();
+
+    const layer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+      onCallDutyPolicyScheduleId: placeholderId,
+      projectId: projectId,
+      name: getLayerName(1),
+      order: 1,
+      rotation: data.firstLayer.rotation,
+    });
+
+    CreatePermission.checkCreatePermissions(
+      OnCallDutyPolicyScheduleLayer,
+      layer,
+      data.props,
+    );
+
+    const layerUser: OnCallDutyPolicyScheduleLayerUser =
+      new OnCallDutyPolicyScheduleLayerUser();
+    layerUser.projectId = projectId;
+    layerUser.onCallDutyPolicyScheduleId = placeholderId;
+    layerUser.onCallDutyPolicyScheduleLayerId = placeholderId;
+    layerUser.userId = placeholderId;
+    layerUser.order = 1;
+
+    CreatePermission.checkCreatePermissions(
+      OnCallDutyPolicyScheduleLayerUser,
+      layerUser,
+      data.props,
+    );
+
+    await this.checkFirstLayerUsersAreMembers({
+      userIds: data.firstLayer.userIds,
+      projectId: projectId,
+    });
+  }
+
+  /*
+   * People who are members of this project (a TeamMember row of it, the
+   * list the people picker offers). Anyone else - a stranger, someone of
+   * another project - refuses the create rather than be put on call here.
+   */
+  private async checkFirstLayerUsersAreMembers(data: {
+    userIds: Array<string>;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        userId: QueryHelper.any(data.userIds),
+        projectId: data.projectId,
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const members: Set<string> = new Set<string>(
+      memberships
+        .map((membership: TeamMember): string => {
+          return membership.userId?.toString().toLowerCase() || "";
+        })
+        .filter(Boolean),
+    );
+
+    const strangers: Array<string> = data.userIds.filter(
+      (userId: string): boolean => {
+        return !members.has(userId);
+      },
+    );
+
+    if (strangers.length > 0) {
+      throw new BadDataException(
+        "Some of the people picked to take turns are not members of this project.",
+      );
+    }
+  }
+
+  /*
+   * Adds the first layer of a schedule just created, with the people who
+   * take turns in it, in order. Never throws: the schedule is saved already.
+   * A person who cannot be added is logged and skipped, so the others still
+   * take their turns.
+   */
+  @CaptureSpan()
+  public async addFirstLayer(data: {
+    schedule: OnCallDutyPolicySchedule;
+    firstLayer: ScheduleFirstLayer;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const scheduleId: ObjectID | null | undefined = data.schedule.id;
+    const projectId: ObjectID | undefined = data.schedule.projectId;
+
+    const logAttributes: LogAttributes = {
+      projectId: projectId?.toString(),
+      onCallDutyPolicyScheduleId: scheduleId?.toString(),
+    } as LogAttributes;
+
+    let layerId: ObjectID;
+
+    try {
+      if (!scheduleId || !projectId) {
+        throw new BadDataException(
+          "The new on-call schedule has no id or project.",
+        );
+      }
+
+      /*
+       * No order: the layer service puts it first, as the schedule has no
+       * layers yet.
+       */
+      const createdLayer: OnCallDutyPolicyScheduleLayer =
+        await OnCallDutyPolicyScheduleLayerService.create({
+          data: buildNewScheduleLayer({
+            onCallDutyPolicyScheduleId: new ObjectID(scheduleId.toString()),
+            projectId: new ObjectID(projectId.toString()),
+            name: getLayerName(1),
+            rotation: data.firstLayer.rotation,
+            timezone: data.schedule.timezone?.toString() || undefined,
+          }),
+          props: data.props,
+        });
+
+      if (!createdLayer.id) {
+        throw new BadDataException("The new layer has no id.");
+      }
+
+      layerId = new ObjectID(createdLayer.id.toString());
+    } catch (error) {
+      logger.error(
+        `Error adding the first layer of a new on-call schedule in OnCallDutyPolicyScheduleService.addFirstLayer: ${error}`,
+        logAttributes,
+      );
+      return;
+    }
+
+    /*
+     * One at a time, in the order they take turns: with no order given, the
+     * layer user service puts each one last, so the order of these creates
+     * is the order of the rotation.
+     */
+    for (const userId of data.firstLayer.userIds) {
+      try {
+        const layerUser: OnCallDutyPolicyScheduleLayerUser =
+          new OnCallDutyPolicyScheduleLayerUser();
+        layerUser.projectId = new ObjectID(projectId.toString());
+        layerUser.onCallDutyPolicyScheduleId = new ObjectID(
+          scheduleId.toString(),
+        );
+        layerUser.onCallDutyPolicyScheduleLayerId = layerId;
+        layerUser.userId = new ObjectID(userId);
+
+        await OnCallDutyPolicyScheduleLayerUserService.create({
+          data: layerUser,
+          props: data.props,
+        });
+      } catch (error) {
+        logger.error(
+          `Error adding a person to the first layer of a new on-call schedule in OnCallDutyPolicyScheduleService.addFirstLayer: ${error}`,
+          {
+            ...logAttributes,
+            onCallDutyPolicyScheduleLayerId: layerId.toString(),
+            userId: userId,
+          } as LogAttributes,
+        );
+      }
+    }
   }
 
   protected override async onCreateSuccess(
@@ -196,18 +502,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicySchedule>,
   ): Promise<OnDelete<OnCallDutyPolicySchedule>> {
-    const callSchedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The schedules the delete removes, and the delete held to them.
+    const callSchedules: Array<OnCallDutyPolicySchedule> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const schedule of callSchedules) {
       OnCallDutyPolicyTimeLogService.endTimeForSchedule({
@@ -295,9 +595,33 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       logger.error(err);
     }
 
+    /*
+     * The on-call user groups that follow a schedule being deleted. Their
+     * links to it cascade away, so they are found now and looked at once it
+     * is gone: each keeps the people of the schedules it still follows, and
+     * one that followed only these stops being kept in step. Best-effort.
+     */
+    let workspaceUserGroupIds: Array<ObjectID> = [];
+
+    try {
+      workspaceUserGroupIds =
+        await WorkspaceUserGroupService.findIdsFollowingSchedules(
+          deletedSchedules.map(
+            (deleted: { scheduleId: ObjectID }): ObjectID => {
+              return deleted.scheduleId;
+            },
+          ),
+        );
+    } catch (err) {
+      logger.error(
+        "Error finding the on-call user groups of deleted schedules (best-effort).",
+      );
+      logger.error(err);
+    }
+
     return {
       deleteBy: deleteBy,
-      carryForward: { deletedSchedules },
+      carryForward: { deletedSchedules, workspaceUserGroupIds },
     };
   }
 
@@ -325,6 +649,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         reason: OnCallShiftChangeReason.ScheduleDeleted,
         skipVersionBump: true,
       });
+    }
+
+    const workspaceUserGroupIds: Array<ObjectID> =
+      onDelete.carryForward?.workspaceUserGroupIds || [];
+
+    if (workspaceUserGroupIds.length > 0) {
+      // In the background: the delete does not wait for Slack or Teams.
+      WorkspaceUserGroupSync.requestSync(workspaceUserGroupIds).catch(
+        (err: unknown) => {
+          logger.error(err);
+        },
+      );
     }
 
     return onDelete;
@@ -452,6 +788,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         select: {
           projectId: true,
           _id: true,
+          pageNextInRotation: true,
           onCallDutyPolicy: {
             name: true,
             _id: true,
@@ -479,6 +816,16 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     }
 
     for (const escalationRule of escalationRulesAttachedToSchedule) {
+      /*
+       * A rule that pages the next person in this schedule's rotation does
+       * not page whoever is on call in it: a hand-off does not put them on
+       * call, or take them off call, for that rule - no message, no on-call
+       * time log, no feed entry.
+       */
+      if (escalationRule.pageNextInRotation) {
+        continue;
+      }
+
       const projectId: ObjectID = escalationRule.projectId!;
 
       const onCallSchedule: OnCallDutyPolicySchedule | undefined =
@@ -571,7 +918,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -654,12 +1003,11 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `🚫 **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`🚫 **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`,
+              })}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -724,7 +1072,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -807,22 +1157,21 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`📞 **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}**.`,
+              })}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.rosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.rosterHandoffAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}**.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -862,8 +1211,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
            * When a next user is known, say when coverage resumes — that turns
            * "nobody is on call" from an alarm into an actionable window.
            */
-          const resumesClause: string = newInformation.nextUserIdOnRoster
-            ? ` Coverage resumes at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+          const resumesClause: MarkdownText = newInformation.nextUserIdOnRoster
+            ? mdText` Coverage resumes at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
                 {
                   date:
                     newInformation.nextRosterStartAt ||
@@ -875,7 +1224,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 userId: newInformation.nextUserIdOnRoster,
                 projectId: projectId!,
               })}**.`
-            : " No further shifts are scheduled, so this schedule will keep paging no one until it is fixed.";
+            : mdText` No further shifts are scheduled, so this schedule will keep paging no one until it is fixed.`;
 
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
@@ -883,7 +1232,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.CoverageGapStarted,
             displayColor: Red500,
-            feedInfoInMarkdown: `⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`,
+            feedInfoInMarkdown:
+              mdText`⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`.toString(),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: undefined,
@@ -958,7 +1308,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -1015,22 +1367,21 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `➡️ **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`➡️ **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.nextRosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.nextHandOffTimeAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}**.`,
+              })}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.nextRosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.nextHandOffTimeAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}**.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -1263,6 +1614,25 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       },
     });
 
+    /*
+     * Somebody else is on call now - a hand-off, an override or a skip
+     * starting or ending, a layer edited: the Slack user groups and
+     * Microsoft Teams tags that follow this schedule take them. In the
+     * background, so neither this refresh nor its lock waits for Slack.
+     */
+    if (
+      Service.isSameUser(
+        previousInformation.currentUserIdOnRoster,
+        newInformation.currentUserId,
+      ) === false
+    ) {
+      WorkspaceUserGroupSync.requestSyncForSchedules([scheduleId]).catch(
+        (err: unknown) => {
+          logger.error(err);
+        },
+      );
+    }
+
     logger.debug(
       "Returning new schedule information for scheduleId: " +
         scheduleId.toString(),
@@ -1438,29 +1808,43 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
    * to exactly one; otherwise undefined (audit F10). A lazy require avoids a
    * circular import — OnCallDutyPolicyEscalationRuleScheduleService imports this
    * service.
+   *
+   * Only the rules that page whoever is on call count: the roster is who is
+   * on call, and a rule that pages the next person in the rotation does not
+   * page them - adding one in another policy must not change whose overrides
+   * the roster, its hand-off messages and its time logs follow.
    */
   private async getSingleAttachedPolicyId(
     scheduleId: ObjectID,
   ): Promise<ObjectID | undefined> {
     try {
       const escalationRuleScheduleService: {
-        findBy: (
-          args: unknown,
-        ) => Promise<Array<{ onCallDutyPolicyId?: ObjectID | undefined }>>;
+        findBy: (args: unknown) => Promise<
+          Array<{
+            onCallDutyPolicyId?: ObjectID | undefined;
+            pageNextInRotation?: boolean | undefined;
+          }>
+        >;
         // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       } = require("./OnCallDutyPolicyEscalationRuleScheduleService").default;
 
-      const links: Array<{ onCallDutyPolicyId?: ObjectID | undefined }> =
-        await escalationRuleScheduleService.findBy({
-          query: { onCallDutyPolicyScheduleId: scheduleId },
-          select: { onCallDutyPolicyId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
+      const links: Array<{
+        onCallDutyPolicyId?: ObjectID | undefined;
+        pageNextInRotation?: boolean | undefined;
+      }> = await escalationRuleScheduleService.findBy({
+        query: { onCallDutyPolicyScheduleId: scheduleId },
+        select: { onCallDutyPolicyId: true, pageNextInRotation: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
 
       const distinctPolicyIds: Set<string> = new Set<string>();
       for (const link of links) {
+        if (link.pageNextInRotation) {
+          continue;
+        }
+
         const policyId: string | undefined =
           link.onCallDutyPolicyId?.toString();
         if (policyId) {
@@ -1988,6 +2372,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           onCallDutyPolicyScheduleId: true,
           onCallDutyPolicyId: true,
           onCallDutyPolicyEscalationRuleId: true,
+          pageNextInRotation: true,
           updatedAt: true,
           onCallDutyPolicy: {
             name: true,
@@ -2026,6 +2411,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     }
 
     for (const attachment of attachments) {
+      /*
+       * A rule that pages the next person in the schedule's rotation does
+       * not page whoever is on call in it: their shifts are not on call for
+       * that rule, and it gives the schedule no policy context of its own.
+       */
+      if (attachment.pageNextInRotation) {
+        continue;
+      }
+
       const entry: ScheduleResolutionInputs | undefined = byId.get(
         attachment.onCallDutyPolicyScheduleId?.toString() || "",
       );
@@ -2127,12 +2521,16 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     });
   }
 
+  /*
+   * An override row as the resolution reads it: who is away, who covers -
+   * null for a skip (UserOverrideUtil.isSkip) - when, and for which policy.
+   */
   private toUserOverrideRecord(
     override: OnCallDutyPolicyUserOverride,
   ): UserOverrideRecord {
     return {
       overrideUserId: override.overrideUserId?.toString() || "",
-      routeAlertsToUserId: override.routeAlertsToUserId?.toString() || "",
+      routeAlertsToUserId: override.routeAlertsToUserId?.toString() || null,
       startsAt: override.startsAt!,
       endsAt: override.endsAt!,
       onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
@@ -2175,26 +2573,31 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     const baseContextPolicyId: string | undefined =
       distinctPolicyIds.length === 1 ? distinctPolicyIds[0] : undefined;
 
-    // 1 + 2 + 3: one engine expansion over the widened window.
-    let baseEvents: Array<CalendarEvent> = [];
-    let truncated: boolean = false;
+    /*
+     * 1 + 2 + 3: one engine expansion over the widened window, resolved
+     * below once per policy context (ScheduleResolution): the skips of each
+     * context act on each layer before the merge, its covers after it.
+     */
+    let expansion: ExpandedLayers = { layers: [], truncated: false };
 
     if (data.layerProps.length > 0) {
-      const expansion: LayerEventsResult =
-        this.layerUtil.getMultiLayerEventsWithMeta(
-          {
-            layers: data.layerProps,
-            calendarStartDate: data.expansionStart,
-            calendarEndDate: data.expansionEnd,
-          },
-          data.maxSimulationIterations !== undefined
-            ? { maxSimulationIterations: data.maxSimulationIterations }
-            : undefined,
-        );
-
-      baseEvents = expansion.events;
-      truncated = expansion.truncated;
+      expansion = ScheduleResolution.expand(
+        {
+          layers: data.layerProps,
+          calendarStartDate: data.expansionStart,
+          calendarEndDate: data.expansionEnd,
+        },
+        data.maxSimulationIterations !== undefined
+          ? { maxSimulationIterations: data.maxSimulationIterations }
+          : undefined,
+      );
     }
+
+    const truncated: boolean = expansion.truncated;
+
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
 
     const scheduleUserIdSet: Set<string> = new Set<string>(
       data.scheduleUserIds.map((id: ObjectID) => {
@@ -2226,18 +2629,11 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       ...baseOverrides,
     ];
 
-    let segments: Array<CalendarEvent> = baseEvents;
-
-    if (baseOverrides.length > 0 && baseEvents.length > 0) {
-      segments = UserOverrideUtil.applyOverridesToEvents({
-        events: baseEvents,
+    const segments: Array<CalendarEvent> = this.filterEventsOverlappingWindow(
+      ScheduleResolution.resolveExpanded(expansion, {
         overrides: baseOverrides,
         currentOnCallDutyPolicyId: baseContextPolicyId,
-      });
-    }
-
-    segments = this.filterEventsOverlappingWindow(
-      segments,
+      }),
       data.windowStart,
       data.windowEnd,
     );
@@ -2245,7 +2641,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     // 5: policy variants.
     const policyVariants: Array<ResolvedPolicyVariant> = [];
 
-    if (distinctPolicyIds.length >= 2 && baseEvents.length > 0) {
+    if (distinctPolicyIds.length >= 2 && hasEvents) {
       for (const policyId of distinctPolicyIds) {
         const scopedRows: Array<OnCallDutyPolicyUserOverride> =
           this.selectOverridesForSchedule({
@@ -2283,8 +2679,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
         const variantSegments: Array<CalendarEvent> =
           this.filterEventsOverlappingWindow(
-            UserOverrideUtil.applyOverridesToEvents({
-              events: baseEvents,
+            ScheduleResolution.resolveExpanded(expansion, {
               overrides: variantOverrides,
               currentOnCallDutyPolicyId: policyId,
             }),
@@ -2463,6 +2858,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         event.end.getTime() > windowStart.getTime()
       );
     });
+  }
+
+  // Whether two roster users are the same person (nobody and nobody are).
+  public static isSameUser(
+    a: ObjectID | null | undefined,
+    b: ObjectID | null | undefined,
+  ): boolean {
+    return (
+      (a?.toString() || "").toLowerCase() ===
+      (b?.toString() || "").toLowerCase()
+    );
   }
 
   private static toVersionNumber(value: unknown): number {
@@ -2712,13 +3118,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         return scheduleUserIdSet.has(overrideUserId);
       })
       .map((o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-        return {
-          overrideUserId: o.overrideUserId?.toString() || "",
-          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-          startsAt: o.startsAt!,
-          endsAt: o.endsAt!,
-          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-        };
+        return this.toUserOverrideRecord(o);
       });
   }
 
@@ -2928,30 +3328,14 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       );
       const windowEnd: Date = OneUptimeDate.addRemoveSeconds(data.now, 1);
 
-      let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents({
-        layers: layerProps,
-        calendarStartDate: windowStart,
-        calendarEndDate: windowEnd,
+      const events: Array<CalendarEvent> = await this.resolveSchedule({
+        layerProps,
+        projectId,
+        scheduleUserIds,
+        windowStart,
+        windowEnd,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
       });
-
-      if (projectId && events.length > 0) {
-        const overrides: Array<UserOverrideRecord> =
-          await this.fetchOverridesForSchedule({
-            projectId,
-            scheduleUserIds,
-            windowStart,
-            windowEnd,
-            currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
-          });
-
-        if (overrides.length > 0) {
-          events = UserOverrideUtil.applyOverridesToEvents({
-            events,
-            overrides,
-            currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
-          });
-        }
-      }
 
       const currentUserIdStr: string = data.currentUserId.toString();
 
@@ -3033,35 +3417,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
     } as LogAttributes);
 
-    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
-      {
-        layers: layerProps,
-        calendarStartDate: currentStartTime,
-        calendarEndDate: currentEndTime,
-      },
-      {
-        getNumberOfEvents: numberOfEventsToGet,
-      },
-    );
-
-    if (projectId && events.length > 0) {
-      const overrides: Array<UserOverrideRecord> =
-        await this.fetchOverridesForSchedule({
-          projectId,
-          scheduleUserIds,
-          windowStart: currentStartTime,
-          windowEnd: currentEndTime,
-          currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
-        });
-
-      if (overrides.length > 0) {
-        events = UserOverrideUtil.applyOverridesToEvents({
-          events,
-          overrides,
-          currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
-        });
-      }
-    }
+    const events: Array<CalendarEvent> = await this.resolveSchedule({
+      layerProps,
+      projectId,
+      scheduleUserIds,
+      windowStart: currentStartTime,
+      windowEnd: currentEndTime,
+      onCallDutyPolicyId: data.onCallDutyPolicyId,
+      getNumberOfEvents: numberOfEventsToGet,
+    });
 
     logger.debug("Events fetched: " + JSON.stringify(events), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
@@ -3070,11 +3434,53 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     return events;
   }
 
+  /*
+   * Who is on call in the schedule right now - the person a page goes to,
+   * with any override applied once (UserOverrideUtil).
+   */
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
     options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
   ): Promise<ObjectID | null> {
+    const onCall: CurrentOnCallInSchedule | null =
+      await this.getCurrentOnCallInSchedule(scheduleId, options);
+
+    return onCall ? onCall.userId : null;
+  }
+
+  /*
+   * WHO IS ON CALL IN A SCHEDULE - THE CALL TO MAKE.
+   *
+   * Who is on call in the schedule right now (or at `at`), the way a page
+   * is routed: layers, people who are away skipped in their rotations,
+   * layer priority, then named covers (ScheduleResolution). Null when
+   * nobody is - no layers, off-hours with nothing below, or everybody who
+   * could be is away.
+   *
+   * While an override puts somebody else in a layer user's place, it also
+   * says whom they cover: a page goes to `userId`; `coveredUserId` is who
+   * the rotation names, for the escalation and the incoming call routing to
+   * fall back to when the substitute is no longer a member of the project,
+   * as they do for an override of a user named on a rule. `isSkip` says the
+   * rotation picked the substitute, and `coveredUntil` when the person
+   * covered is back.
+   *
+   * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
+   * as the global ones, as paging through that policy does; without it,
+   * only global overrides apply.
+   */
+  @CaptureSpan()
+  public async getCurrentOnCallInSchedule(
+    scheduleId: ObjectID,
+    options?:
+      | {
+          onCallDutyPolicyId?: ObjectID | undefined;
+          // The moment to answer for; now when left out.
+          at?: Date | undefined;
+        }
+      | undefined,
+  ): Promise<CurrentOnCallInSchedule | null> {
     const { layerProps, projectId, scheduleUserIds } =
       await this.getScheduleLayerProps({
         scheduleId: scheduleId,
@@ -3084,41 +3490,22 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       return null;
     }
 
-    const currentStartTime: Date = OneUptimeDate.getCurrentDate();
+    const currentStartTime: Date =
+      options?.at || OneUptimeDate.getCurrentDate();
     const currentEndTime: Date = OneUptimeDate.addRemoveSeconds(
       currentStartTime,
       1,
     );
 
-    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
-      {
-        layers: layerProps,
-        calendarStartDate: currentStartTime,
-        calendarEndDate: currentEndTime,
-      },
-      {
-        getNumberOfEvents: 1,
-      },
-    );
-
-    if (projectId && events.length > 0) {
-      const overrides: Array<UserOverrideRecord> =
-        await this.fetchOverridesForSchedule({
-          projectId,
-          scheduleUserIds,
-          windowStart: currentStartTime,
-          windowEnd: currentEndTime,
-          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
-        });
-
-      if (overrides.length > 0) {
-        events = UserOverrideUtil.applyOverridesToEvents({
-          events,
-          overrides,
-          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
-        });
-      }
-    }
+    const events: Array<CalendarEvent> = await this.resolveSchedule({
+      layerProps,
+      projectId,
+      scheduleUserIds,
+      windowStart: currentStartTime,
+      windowEnd: currentEndTime,
+      onCallDutyPolicyId: options?.onCallDutyPolicyId,
+      getNumberOfEvents: 1,
+    });
 
     const currentEvent: CalendarEvent | null = events[0] || null;
 
@@ -3132,7 +3519,146 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       return null;
     }
 
-    return new ObjectID(userId);
+    const override: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(currentEvent);
+
+    const coveredUserId: string | null =
+      override?.originalUserId && override.originalUserId !== userId
+        ? override.originalUserId
+        : null;
+
+    return {
+      userId: new ObjectID(userId),
+      coveredUserId: coveredUserId ? new ObjectID(coveredUserId) : null,
+      isSkip: Boolean(coveredUserId && UserOverrideUtil.isSkipMeta(override)),
+      coveredUntil:
+        coveredUserId && override?.overrideEndsAt
+          ? OneUptimeDate.fromString(override.overrideEndsAt)
+          : null,
+    };
+  }
+
+  /*
+   * WHO IS NEXT IN THE SCHEDULE'S ROTATION - THE CALL TO MAKE.
+   *
+   * What an escalation rule's "Next in rotation" of a schedule pages: the
+   * person after whoever is on call right now (or at `at`), in the same
+   * rotation, passing over anyone who is away and whoever is on call
+   * already (ScheduleResolution.resolveNextInRotation). Null when nobody is
+   * on call at all - a gap, as for a page to the schedule itself; a result
+   * with no nextUserId when somebody is on call but nobody is next: the
+   * rotation has nobody else in it, or everybody else in it is away.
+   *
+   * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
+   * as the global ones, as paging through that policy does.
+   */
+  @CaptureSpan()
+  public async getNextInRotationInSchedule(
+    scheduleId: ObjectID,
+    options?:
+      | {
+          onCallDutyPolicyId?: ObjectID | undefined;
+          // The moment to answer for; now when left out.
+          at?: Date | undefined;
+        }
+      | undefined,
+  ): Promise<NextInRotationInSchedule | null> {
+    const { layerProps, projectId, scheduleUserIds } =
+      await this.getScheduleLayerProps({
+        scheduleId: scheduleId,
+      });
+
+    if (layerProps.length === 0) {
+      return null;
+    }
+
+    const at: Date = options?.at || OneUptimeDate.getCurrentDate();
+
+    const expansion: ExpandedLayers = ScheduleResolution.expand({
+      layers: layerProps,
+      calendarStartDate: at,
+      calendarEndDate: OneUptimeDate.addRemoveSeconds(at, 1),
+    });
+
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
+
+    if (!hasEvents) {
+      return null;
+    }
+
+    // Everybody's time away: who is skipped, covered, or passed over as next.
+    const overrides: Array<UserOverrideRecord> = projectId
+      ? await this.fetchOverridesForSchedule({
+          projectId: projectId,
+          scheduleUserIds: scheduleUserIds,
+          windowStart: at,
+          windowEnd: OneUptimeDate.addRemoveSeconds(at, 1),
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
+        })
+      : [];
+
+    const next: NextInRotation | null =
+      ScheduleResolution.resolveNextInRotationExpanded(expansion, {
+        at: at,
+        overrides: overrides,
+        currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
+      });
+
+    if (!next) {
+      return null;
+    }
+
+    return {
+      onCallUserId: new ObjectID(next.onCallUserId),
+      nextUserId: next.nextUserId ? new ObjectID(next.nextUserId) : null,
+      layerName: next.layerName?.trim() || null,
+    };
+  }
+
+  /*
+   * Who is on call in a schedule over [windowStart, windowEnd], from its
+   * layer props: the layers expanded, then - when anybody is on call at all
+   * - the overrides of its people read and applied in the policy's context
+   * (ScheduleResolution). The overrides are read only when there is
+   * somebody to override, as they always were.
+   */
+  private async resolveSchedule(data: {
+    layerProps: Array<LayerProps>;
+    projectId: ObjectID | null;
+    scheduleUserIds: Array<ObjectID>;
+    windowStart: Date;
+    windowEnd: Date;
+    onCallDutyPolicyId?: ObjectID | undefined;
+    getNumberOfEvents?: number | undefined;
+  }): Promise<Array<CalendarEvent>> {
+    const expansion: ExpandedLayers = ScheduleResolution.expand({
+      layers: data.layerProps,
+      calendarStartDate: data.windowStart,
+      calendarEndDate: data.windowEnd,
+    });
+
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
+
+    const overrides: Array<UserOverrideRecord> =
+      data.projectId && hasEvents
+        ? await this.fetchOverridesForSchedule({
+            projectId: data.projectId,
+            scheduleUserIds: data.scheduleUserIds,
+            windowStart: data.windowStart,
+            windowEnd: data.windowEnd,
+            currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
+          })
+        : [];
+
+    return ScheduleResolution.resolveExpanded(expansion, {
+      overrides,
+      currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
+      getNumberOfEvents: data.getNumberOfEvents,
+    });
   }
 }
 

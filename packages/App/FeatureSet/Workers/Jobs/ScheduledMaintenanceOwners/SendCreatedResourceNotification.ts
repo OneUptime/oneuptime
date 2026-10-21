@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -12,14 +13,15 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
-import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
@@ -45,6 +47,7 @@ RunCron(
           },
           currentScheduledMaintenanceState: {
             name: true,
+            color: true,
           },
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
@@ -97,6 +100,10 @@ RunCron(
         projectName: scheduledMaintenance.project!.name!,
         currentState:
           scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          scheduledMaintenance.currentScheduledMaintenanceState?.color,
+        ),
         scheduledMaintenanceDescription: await Markdown.convertToHTML(
           scheduledMaintenance.description! || "",
           MarkdownContentType.Email,
@@ -128,7 +135,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New scheduled maintenance event created - ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `New scheduled maintenance event created - ${scheduledMaintenanceIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -181,17 +190,17 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-      const projectId: ObjectID = scheduledMaintenance.projectId!;
-      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
-      const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
-        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
-
-      const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
-      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
+      const scheduledMaintenanceFeedText: string =
+        OwnerNotificationFeedText.created("scheduled maintenance event");
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,

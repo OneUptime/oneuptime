@@ -26,6 +26,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
+import { getProductBrandingViewVariables } from "./ProductBrandingViewVariables";
 import { createHash } from "crypto";
 
 /*
@@ -43,15 +44,35 @@ export const CALENDAR_RESPONSE_FILE_NAME: string = "oneuptime-on-call.ics";
 /*
  * The response headers a calendar feed carries, as a shape the API and its
  * tests can share. `etag` may be passed bare or already quoted; the helper
- * emits the quoted strong form either way. `lastModified` is the newest
- * change to anything the feed was built from, and is what a client's
- * If-Modified-Since is compared against.
+ * emits the quoted strong form either way. `lastModified` is when the body
+ * was produced (rendered, or answered empty), and is what a client's
+ * If-Modified-Since is compared against: a feed's body changes without any
+ * edit to its schedules - the window rolls every day - so the schedules' last
+ * edit would answer 304 to a body the client has never seen.
  */
 export interface CalendarResponseData {
   body: string;
   etag: string;
   lastModified: Date;
+  /*
+   * The name an app or a browser saves the body under. The on-call feeds'
+   * (CALENDAR_RESPONSE_FILE_NAME) unless a feed names its own.
+   */
+  fileName?: string | undefined;
+  /*
+   * "inline" for a feed a calendar app subscribes to; "attachment" for a
+   * file a reader's browser downloads and opens (one maintenance event).
+   */
+  disposition?: CalendarResponseDisposition | undefined;
 }
+
+export enum CalendarResponseDisposition {
+  Inline = "inline",
+  Attachment = "attachment",
+}
+
+// A file name a Content-Disposition header can carry as it is.
+const CALENDAR_FILE_NAME_PATTERN: RegExp = /^[A-Za-z0-9._-]{1,100}$/;
 
 /*
  * Raster image types, which is to say the types that cannot carry script and
@@ -266,6 +287,8 @@ export default class Response {
      */
     oneUptimeResponse.render(path, {
       enableGoogleTagManager: GoogleTagManagerEnabled,
+      // How the installation names and shows itself; the page's own vars win.
+      ...getProductBrandingViewVariables(),
       ...vars,
     });
   }
@@ -451,6 +474,37 @@ export default class Response {
       .send(item);
   }
 
+  /*
+   * Send a body that is ALREADY serialized JSON, as is.
+   *
+   * For responses built once and handed out many times (the Topology maps
+   * cache their serialized payload): sendJsonObjectResponse would parse
+   * nothing but re-stringify a multi-megabyte object on every hit, and
+   * res.send would hash the whole body for an ETag nobody can use on a POST.
+   * writeHead + end skips both, the way sendHtmlResponse does.
+   *
+   * no-store: the body is one project's inventory, read under the caller's
+   * permissions. The audit log gets its size, never the payload.
+   */
+  @CaptureSpan()
+  public static sendJsonStringResponse(
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    json: string,
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    Response.setNoCacheHeaders(oneUptimeResponse);
+    oneUptimeResponse.logBody = {
+      contentType: "application/json",
+      characters: json.length,
+    };
+    oneUptimeResponse.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+    });
+    oneUptimeResponse.end(json);
+  }
+
   @CaptureSpan()
   public static sendTextResponse(
     _req: ExpressRequest,
@@ -476,13 +530,25 @@ export default class Response {
     oneUptimeResponse.end(html);
   }
 
+  /*
+   * Markdown, as Markdown. It used to go out as text/html with no charset: a
+   * browser parsed the page source as HTML - a `<project-id>` became a tag,
+   * an `<a href>` in a code sample a link a crawler followed - and read a
+   * translated page's text in the wrong encoding.
+   */
   @CaptureSpan()
   public static sendMarkdownResponse(
     _req: ExpressRequest,
     res: ExpressResponse,
-    html: string,
+    markdown: string,
   ): void {
-    return Response.sendHtmlResponse(_req, res, html);
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.logBody = { markdown: markdown };
+    oneUptimeResponse.writeHead(200, {
+      "Content-Type": "text/markdown; charset=utf-8",
+    });
+    oneUptimeResponse.end(markdown);
   }
 
   @CaptureSpan()
@@ -558,10 +624,15 @@ export default class Response {
       Date.now() + CALENDAR_RESPONSE_MAX_AGE_SECONDS * 1000,
     );
 
+    const fileName: string =
+      data.fileName && CALENDAR_FILE_NAME_PATTERN.test(data.fileName)
+        ? data.fileName
+        : CALENDAR_RESPONSE_FILE_NAME;
+
     oneUptimeResponse.set("Content-Type", CALENDAR_RESPONSE_CONTENT_TYPE);
     oneUptimeResponse.set(
       "Content-Disposition",
-      `inline; filename="${CALENDAR_RESPONSE_FILE_NAME}"`,
+      `${data.disposition || CalendarResponseDisposition.Inline}; filename="${fileName}"`,
     );
     oneUptimeResponse.set(
       "Cache-Control",

@@ -6,6 +6,8 @@ import {
   useXAxisTicks,
 } from "recharts";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
+import { Translator } from "../../../../Utils/TranslateTemplate";
+import useTranslator from "../../../../Utils/UseTranslator";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import {
   AxisTick,
@@ -127,6 +129,7 @@ function stopPress(event: React.MouseEvent): void {
 const ChartAnnotationLayer: React.FunctionComponent<
   ChartAnnotationLayerProps
 > = (props: ChartAnnotationLayerProps): React.ReactElement | null => {
+  const translator: Translator = useTranslator();
   const plotArea: ReturnType<typeof usePlotArea> = usePlotArea();
   const ticks: ReturnType<typeof useXAxisTicks> = useXAxisTicks();
   const chartWidth: number | undefined = useChartWidth();
@@ -330,7 +333,7 @@ const ChartAnnotationLayer: React.FunctionComponent<
               chartWidth: width,
               markers: [],
               region: positioned.region,
-              heading: label || "Window",
+              heading: label || translator.translateText("Window") || "",
             };
 
             const onActivate: (() => void) | undefined =
@@ -344,7 +347,13 @@ const ChartAnnotationLayer: React.FunctionComponent<
                 role={onActivate ? "button" : "img"}
                 tabIndex={0}
                 aria-label={
-                  label ? `Window: ${label}` : "Highlighted window on the chart"
+                  label
+                    ? translator.translateTemplate("Window: {{label}}", {
+                        label: label,
+                      })
+                    : translator.translateText(
+                        "Highlighted window on the chart",
+                      )
                 }
                 style={{ cursor: onActivate ? "pointer" : "default" }}
                 onMouseEnter={(): void => {
@@ -432,11 +441,23 @@ const ChartAnnotationLayer: React.FunctionComponent<
             };
 
             const firstLabel: string =
-              cluster.markers[0]?.original.label || "Event";
+              cluster.markers[0]?.original.label ||
+              translator.translateText("Event") ||
+              "";
             const ariaLabel: string =
               count > 1
-                ? `${count} events at ${cluster.formattedX}`
-                : `${firstLabel} at ${cluster.formattedX}`;
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} event at {{time}}",
+                      other: "{{count}} events at {{time}}",
+                    },
+                    count,
+                    { time: cluster.formattedX },
+                  )
+                : translator.translateTemplate("{{label}} at {{time}}", {
+                    label: firstLabel,
+                    time: cluster.formattedX,
+                  });
 
             const activate: () => void = (): void => {
               /*

@@ -18,6 +18,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * because who may take it differs per feed: a personal link needs no
  * permission, while a shared one is gated on Edit and may render a disabled
  * button or a "ask an editor" note instead.
+ *
+ * The schedule page's Slack user groups and Microsoft Teams tags cards
+ * (OnCallPolicy/UserGroups) draw the same panel when they have none, so the
+ * empty cards on that page read as one - and so does the Upcoming shifts
+ * card on the calendar feed page, with no action: nothing a reader presses
+ * there gives them a shift.
  */
 export interface FeedEmptyStatePoint {
   icon: IconProp;
@@ -33,13 +39,21 @@ export interface ComponentProps {
   description: string;
   /** Bullets under the description. Omit for a plain panel. */
   points?: Array<FeedEmptyStatePoint> | undefined;
-  /** The primary action, or whatever stands in for it. */
-  control: ReactElement;
+  /** The primary action, or whatever stands in for it. Omit for none. */
+  control?: ReactElement | undefined;
   /** The badge next to the title. */
   icon?: IconProp | undefined;
   /** Prefix for the data-testids, so two panels on one page stay distinct. */
   idPrefix: string;
 }
+
+/*
+ * The badge beside the text from sm up, and above it on a phone. Beside it
+ * on a 390px screen it took a fifth of the panel's width, so the bullets ran
+ * to three lines each and "Generate calendar link" broke over two.
+ */
+export const FEED_EMPTY_STATE_LAYOUT_CLASS_NAME: string =
+  "flex flex-col gap-3 sm:flex-row sm:gap-5";
 
 const FeedEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -53,7 +67,10 @@ const FeedEmptyState: FunctionComponent<ComponentProps> = (
       className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5 sm:px-6 sm:py-6"
       data-testid={`${props.idPrefix}-empty-state`}
     >
-      <div className="flex gap-4 sm:gap-5">
+      <div
+        className={FEED_EMPTY_STATE_LAYOUT_CLASS_NAME}
+        data-testid={`${props.idPrefix}-empty-layout`}
+      >
         <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-100">
           <Icon
             icon={props.icon || IconProp.Calendar}
@@ -104,9 +121,14 @@ const FeedEmptyState: FunctionComponent<ComponentProps> = (
             </ul>
           )}
 
-          <div className="mt-5" data-testid={`${props.idPrefix}-empty-control`}>
-            {props.control}
-          </div>
+          {props.control && (
+            <div
+              className="mt-5"
+              data-testid={`${props.idPrefix}-empty-control`}
+            >
+              {props.control}
+            </div>
+          )}
         </div>
       </div>
     </div>

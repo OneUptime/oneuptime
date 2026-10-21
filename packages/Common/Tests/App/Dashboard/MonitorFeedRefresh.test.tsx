@@ -61,7 +61,7 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
 
 import MonitorFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorFeed";
 import MonitorFeed from "../../../Models/DatabaseModels/MonitorFeed";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import ObjectID from "../../../Types/ObjectID";
 
 const MONITOR_A: string = "11111111-1111-4111-8111-111111111111";
@@ -103,7 +103,7 @@ function listResult(texts: Array<string>): ListResult<MonitorFeed> {
     data: texts.map(feedItem),
     count: texts.length,
     skip: 0,
-    limit: DEFAULT_LIMIT,
+    limit: FEED_PAGE_SIZE,
   };
 }
 
@@ -150,11 +150,11 @@ describe("MonitorFeedElement refresh", () => {
     );
 
     // The first load has nothing to show yet, so it shows the loader.
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-skeleton")).toBeInTheDocument();
     await flush();
 
     expect(screen.getByText("Monitor created")).toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("feed-skeleton")).toBeNull();
 
     view.rerender(feedElement({ monitorId: MONITOR_A, refreshToken: 1 }));
     await flush();
@@ -162,7 +162,7 @@ describe("MonitorFeedElement refresh", () => {
     // The re-read is in flight: the old items stay, with no loader over them.
     expect(getListMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText("Monitor created")).toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("feed-skeleton")).toBeNull();
 
     await act(async () => {
       refetch.resolve(
@@ -173,7 +173,7 @@ describe("MonitorFeedElement refresh", () => {
     await flush();
 
     expect(screen.getByText("Status changed to Offline")).toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("feed-skeleton")).toBeNull();
   });
 
   test("the same token does not refetch", async () => {
@@ -206,7 +206,7 @@ describe("MonitorFeedElement refresh", () => {
     await flush();
 
     expect(screen.queryByText("A happened")).toBeNull();
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       monitorB.resolve(listResult(["B happened"]));
@@ -248,8 +248,12 @@ describe("MonitorFeedElement refresh", () => {
     expect(
       screen.getByRole("heading", { name: "Monitor Feed" }),
     ).toBeInTheDocument();
+    // The overview's own sentence: one copy, one translation.
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "This is the timeline and feed for this monitor.",
+      "Everything that has happened to this monitor, newest first.",
+    );
+    expect(screen.getByTestId("card-description")).not.toHaveTextContent(
+      "This is the timeline and feed",
     );
   });
 
@@ -274,6 +278,6 @@ describe("MonitorFeedElement refresh", () => {
     expect(String(request.query["monitorId"])).toBe(MONITOR_A);
     expect(request.sort).toEqual({ postedAt: "DESC" });
     expect(request.skip).toBe(0);
-    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.limit).toBe(FEED_PAGE_SIZE);
   });
 });

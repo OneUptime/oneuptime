@@ -1,9 +1,22 @@
 import Color from "../../../Types/Color";
-import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import {
+  getPillColors,
+  getPillDotStyle,
+  getPillToneStyle,
+  PillColors,
+} from "../Pill/PillColors";
 
 export interface ComponentProps {
   label: string;
   color?: Color | string | undefined;
+  /*
+   * Classes added to the badge's own. A detail card's value sets align-top,
+   * so the badge sits on the value's 24px line rather than on its baseline,
+   * which stood it 2px lower than the values beside it and the row 2px
+   * taller.
+   */
+  className?: string | undefined;
 }
 
 const getColor: (color: Color | string | undefined) => Color | undefined = (
@@ -28,30 +41,32 @@ const DropdownValueBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const color: Color | undefined = getColor(props.color);
-  const style: CSSProperties | undefined = color
-    ? {
-        backgroundColor: color.toString(),
-        borderColor: color.toString(),
-        color: Color.shouldUseDarkText(color) ? "#111827" : "#f9fafb",
-      }
+  /*
+   * A coloured value is painted the way a Pill is (PillColors.ts): a dot in
+   * the exact colour, a pale wash and ring of it, and text in a shade of it
+   * that reads - in both themes, through Theme.css's [data-ou-pill] rules.
+   */
+  const colors: PillColors | undefined = color
+    ? getPillColors(color)
     : undefined;
 
   return (
     <span
       data-dropdown-value-badge="true"
       data-dropdown-value-color={color?.toString()}
+      data-ou-pill={colors ? "" : undefined}
       className={`inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium ${
-        color
-          ? "border border-solid"
+        colors
+          ? ""
           : "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
-      }`}
-      style={style}
+      }${props.className ? ` ${props.className}` : ""}`}
+      style={colors ? getPillToneStyle(colors) : undefined}
     >
       <span
         aria-hidden="true"
-        className={`h-1.5 w-1.5 rounded-full ${
-          color ? "bg-current" : "bg-indigo-500"
-        }`}
+        data-ou-pill-dot={colors ? "" : undefined}
+        className={`h-1.5 w-1.5 rounded-full ${colors ? "" : "bg-indigo-500"}`}
+        style={colors ? getPillDotStyle(colors) : undefined}
       ></span>
       {props.label}
     </span>

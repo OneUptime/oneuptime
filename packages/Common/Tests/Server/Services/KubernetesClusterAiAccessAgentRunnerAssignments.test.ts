@@ -1,5 +1,5 @@
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Server/Services/RunnerService";
@@ -8,12 +8,25 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
-import RunbookSecret from "../../../Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubGenericReferenceCheck();
+});
 
 /*
  * Contract under test — a kubernetes-agent Runner (a row the telemetry
@@ -24,7 +37,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   (RunnerService.getOnlineAiCommandRunnersForProject leaves it out, in
  *   the query so it cannot crowd real hosts out of the limit, and on the
  *   rows);
- * - no RunbookCredential and no RunbookSecret can be assigned to it, on
+ * - no RunbookCredential and no secret RunbookVariable can be assigned to it, on
  *   create or on any later write of the Runner list — whatever shape the
  *   Runner list arrives in (models, serialised relations, ids);
  * - ordinary Runners, including ones that live in a pod, are unaffected.
@@ -127,10 +140,12 @@ function kubernetesCredential(runners: unknown): RunbookCredential {
   return credential;
 }
 
-function secret(runners: unknown): RunbookSecret {
-  const model: RunbookSecret = new RunbookSecret();
+function secret(runners: unknown): RunbookVariable {
+  const model: RunbookVariable = new RunbookVariable();
   model.name = "PROD_PASSWORD";
   model.projectId = PROJECT_ID;
+  model.isSecret = true;
+  model.secretValue = "hunter2-hunter2";
   (model as unknown as Record<string, unknown>)["runners"] = runners;
   return model;
 }
@@ -164,6 +179,8 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           return ids.includes(runner.id!.toString());
         });
       });
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {
@@ -262,7 +279,7 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
         'Runner "kubernetes-agent/prod-us"',
       );
       expect((thrown as Error).message).toContain("never given a credential");
-      expect((thrown as Error).message).toContain("Project Settings → Runners");
+      expect((thrown as Error).message).toContain("Runbooks → Runners");
     });
 
     it("refuses to assign an existing credential to an agent Runner, whatever shape the list arrives in", async () => {
@@ -329,18 +346,28 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
     });
   });
 
-  describe("RunbookSecretService", () => {
-    const createHook: CreateHookAccess<RunbookSecret> =
-      RunbookSecretService as unknown as CreateHookAccess<RunbookSecret>;
-    const updateHook: UpdateHookAccess<RunbookSecret> =
-      RunbookSecretService as unknown as UpdateHookAccess<RunbookSecret>;
+  describe("RunbookVariableService", () => {
+    const createHook: CreateHookAccess<RunbookVariable> =
+      RunbookVariableService as unknown as CreateHookAccess<RunbookVariable>;
+    const updateHook: UpdateHookAccess<RunbookVariable> =
+      RunbookVariableService as unknown as UpdateHookAccess<RunbookVariable>;
+
+    beforeEach(() => {
+      /*
+       * An update of a variable's Runners reads the rows it writes, to know
+       * they are secrets: one secret, here.
+       */
+      jest
+        .spyOn(RunbookVariableService, "findRowsAndHoldUpdateToThem")
+        .mockResolvedValue([secret([])]);
+    });
 
     it("refuses to create or assign a secret for an agent Runner", async () => {
       await expect(
         createHook.onBeforeCreate({
           data: secret([agentRunner()]),
           props: { isRoot: true },
-        } as CreateBy<RunbookSecret>),
+        } as CreateBy<RunbookVariable>),
       ).rejects.toThrow(/never given a secret/);
 
       await expect(
@@ -348,7 +375,7 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           query: { _id: ObjectID.generate().toString() },
           data: { runners: [{ _id: AGENT_RUNNER_ID.toString() }] } as never,
           props: { isRoot: true },
-        } as unknown as UpdateBy<RunbookSecret>),
+        } as unknown as UpdateBy<RunbookVariable>),
       ).rejects.toThrow(/never given a secret/);
     });
 
@@ -357,7 +384,7 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
         createHook.onBeforeCreate({
           data: secret([hostRunner()]),
           props: { isRoot: true },
-        } as CreateBy<RunbookSecret>),
+        } as CreateBy<RunbookVariable>),
       ).resolves.toBeDefined();
 
       await expect(
@@ -365,7 +392,7 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           query: { _id: ObjectID.generate().toString() },
           data: { runners: [HOST_RUNNER_ID] } as never,
           props: { isRoot: true },
-        } as unknown as UpdateBy<RunbookSecret>),
+        } as unknown as UpdateBy<RunbookVariable>),
       ).resolves.toBeDefined();
     });
   });

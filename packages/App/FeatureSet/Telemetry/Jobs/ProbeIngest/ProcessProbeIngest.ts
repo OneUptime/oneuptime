@@ -8,14 +8,21 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import OneUptimeDate from "Common/Types/Date";
-import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import MonitorTestService, {
+  MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
+} from "Common/Server/Services/MonitorTestService";
+import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil, {
@@ -31,29 +38,54 @@ import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
+  redactGeneratedInboundAddressKeys,
   redactMonitorEmailAddress,
   redactMonitorSecret,
 } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import { toStorableJson } from "Common/Server/Utils/Database/PostgresStorableValue";
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import Select from "Common/Server/Types/Database/Select";
+import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
 
+/*
+ * One probe's check result, or one step of a monitor test it ran.
+ *
+ * The result is the probe's that sent it (ProbeReportIdentity): the route
+ * wrote that probe beside the result, as it authenticated - a job queued
+ * before the route did carries the whole request body, whose top-level
+ * probeId is the one the probe authenticated with. A result that names
+ * another probe is refused; one that names none becomes the sender's. It is
+ * then recorded only where that probe was asked to look: a monitor it checks
+ * (MonitorResource, told the reporting probe) or a test handed to it
+ * (MonitorTestService keys the write on the probe).
+ */
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
 ): Promise<void> {
+  const queuedResult: JSONObject | undefined = jobData.probeMonitorResponse;
+
+  const reportingProbeId: ObjectID = ProbeReportIdentity.readSender(
+    queuedResult?.["probeId"],
+  );
+
   const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-    jobData.probeMonitorResponse?.["probeMonitorResponse"] as JSONObject,
+    queuedResult?.["probeMonitorResponse"] as JSONObject,
   ) as unknown as ProbeMonitorResponse;
 
   if (!probeResponse) {
     throw new BadDataException("ProbeMonitorResponse not found");
   }
 
+  ProbeReportIdentity.bindResultToSender(probeResponse, reportingProbeId);
+
   // this is when the resource was ingested.
   probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
   if (jobData.jobType === "probe-response") {
     // Handle regular probe response
-    await MonitorResourceUtil.monitorResource(probeResponse);
+    await MonitorResourceUtil.monitorResource(probeResponse, {
+      reportingProbeId: reportingProbeId,
+    });
   } else if (jobData.jobType === "monitor-test" && jobData.testId) {
     // Handle monitor test response
     const testId: ObjectID = new ObjectID(jobData.testId);
@@ -64,18 +96,32 @@ export async function processProbeFromQueue(
 
     probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
-    // save the probe response to the monitor test.
+    /*
+     * save the probe response to the monitor test. A storable copy: one NUL
+     * in the response body would make Postgres refuse the jsonb merge.
+     */
     const stepResponse: MonitorStepProbeResponse = {
       [probeResponse.monitorStepId.toString()]: {
-        ...JSON.parse(JSON.stringify(probeResponse)),
+        ...toStorableJson(probeResponse),
         monitoredAt: OneUptimeDate.getCurrentDate(),
       } as ProbeMonitorResponse,
     };
 
-    await MonitorTestService.mergeStepProbeResponse({
-      testId: testId,
-      monitorStepProbeResponse: stepResponse,
-    });
+    const isRecorded: boolean = await MonitorTestService.mergeStepProbeResponse(
+      {
+        testId: testId,
+        probeId: reportingProbeId,
+        monitorStepProbeResponse: stepResponse,
+      },
+    );
+
+    if (!isRecorded) {
+      logger.warn(
+        `Probe ${reportingProbeId.toString()} sent a result for monitor test ${testId.toString()}, which was not handed to it or no longer exists. Nothing was recorded.`,
+      );
+
+      throw new BadDataException(MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE);
+    }
   } else {
     throw new BadDataException(`Invalid job type: ${jobData.jobType}`);
   }
@@ -108,19 +154,22 @@ export async function processSnmpTrapFromQueue(
     requestBody["snmpTrap"] as JSONObject,
   ) as unknown as SnmpTrap;
 
-  const probeIdAsString: string | undefined = requestBody["probeId"] as
-    | string
-    | undefined;
-
   if (!snmpTrap || !snmpTrap.sourceIpAddress || !snmpTrap.trapOid) {
     throw new BadDataException("SNMP trap is missing source or trap OID");
   }
 
-  if (!probeIdAsString) {
+  if (!requestBody["probeId"]) {
     throw new BadDataException("Probe ID not found on SNMP trap request");
   }
 
-  const probeId: ObjectID = new ObjectID(probeIdAsString);
+  /*
+   * The probe that received the trap, as it authenticated: the route writes
+   * it beside the trap (a job queued earlier carries the whole request body,
+   * whose top-level probeId is that same probe). Only its devices match.
+   */
+  const probeId: ObjectID = ProbeReportIdentity.readSender(
+    requestBody["probeId"],
+  );
 
   /*
    * Traps are matched through the NetworkDevice inventory: devices polled
@@ -214,11 +263,7 @@ export async function processSnmpTrapFromQueue(
   let matchedSteps: number = 0;
 
   for (const monitor of monitors) {
-    if (
-      monitor.disableActiveMonitoring ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-    ) {
+    if (MonitorPauseState.isPaused(monitor)) {
       continue;
     }
 
@@ -363,6 +408,13 @@ export async function processNetworkDeviceWalkFromQueue(
     pollMode: pollMode,
     pingResponse: pingResponse,
     snmpResponse: snmpResponse,
+    /*
+     * Absent from a job queued before capabilities were forwarded: read as
+     * none, the same as an older probe.
+     */
+    probeCapabilities: ProbeCapabilityUtil.parse(
+      requestBody["probeCapabilities"],
+    ),
     monitoredAt: isNaN(monitoredAt.getTime())
       ? OneUptimeDate.getCurrentDate()
       : monitoredAt,
@@ -374,9 +426,7 @@ const INCOMING_EMAIL_MONITOR_SELECT: Select<Monitor> = {
   projectId: true,
   incomingEmailSecretKey: true,
   incomingEmailCustomLocalPart: true,
-  disableActiveMonitoring: true,
-  disableActiveMonitoringBecauseOfManualIncident: true,
-  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+  ...MONITOR_PAUSE_FLAGS_SELECT,
 };
 
 /*
@@ -440,6 +490,19 @@ export async function processIncomingEmailFromQueue(
     throw new BadDataException("Incoming email data not found");
   }
 
+  /*
+   * Mail to a workflow's Incoming Email trigger. The workflow service finds
+   * the workflow and starts the run; it was received when the webhook queued
+   * it, not when this worker got to it.
+   */
+  if (emailData.workflowSecretKey) {
+    await IncomingEmailWorkflowDelivery.deliver({
+      emailData: emailData,
+      receivedAt: jobData.ingestionTimestamp,
+    });
+    return;
+  }
+
   const monitor: Monitor | null = await findIncomingEmailMonitor(emailData);
 
   if (!monitor || !monitor._id) {
@@ -470,16 +533,25 @@ export async function processIncomingEmailFromQueue(
    *
    * https://github.com/OneUptime/oneuptime/issues/3360
    */
-  const redactedEmailData: IncomingEmailJobData = redactMonitorEmailAddress(
-    redactMonitorSecret(
-      emailData,
-      monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
-    ),
-    {
-      localPart: monitor.incomingEmailCustomLocalPart,
-      domain: InboundEmailProviderFactory.getInboundDomain(),
-    },
-  );
+  const redactedEmailData: IncomingEmailJobData =
+    redactGeneratedInboundAddressKeys(
+      redactMonitorEmailAddress(
+        redactMonitorSecret(
+          emailData,
+          monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
+        ),
+        {
+          localPart: monitor.incomingEmailCustomLocalPart,
+          domain: InboundEmailProviderFactory.getInboundDomain(),
+        },
+      ),
+      /*
+       * A workflow's address on the same email (the email went to this
+       * monitor and to a workflow's Incoming Email trigger) is that
+       * workflow's credential, and must not reach the monitor's readers.
+       */
+      ["workflow"],
+    );
 
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -511,10 +583,14 @@ export async function processIncomingEmailFromQueue(
     id: new ObjectID(monitor._id.toString()),
     data: {
       incomingEmailMonitorLastEmailReceivedAt: now,
-      incomingEmailMonitorRequest: incomingEmailRequest as unknown as Record<
-        string,
-        unknown
-      >,
+      /*
+       * A storable copy: a NUL in the body or an attachment would make
+       * Postgres refuse the jsonb, and this email would be lost before it
+       * was evaluated. The email itself goes on to monitorResource as sent.
+       */
+      incomingEmailMonitorRequest: toStorableJson(
+        incomingEmailRequest,
+      ) as unknown as Record<string, unknown>,
       incomingEmailMonitorHeartbeatCheckedAt: now,
     },
   });
@@ -529,13 +605,9 @@ export async function processIncomingEmailFromQueue(
    * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
    * relying on that timestamp.
    */
-  if (
-    monitor.disableActiveMonitoring ||
-    monitor.disableActiveMonitoringBecauseOfManualIncident ||
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-  ) {
+  if (MonitorPauseState.isPaused(monitor)) {
     logger.debug(
-      `Incoming email received for disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+      `Incoming email received for archived or disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
     );
     return;
   }

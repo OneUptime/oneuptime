@@ -389,8 +389,15 @@ describe("chooseTeamCalendarLinks", () => {
     );
 
     expect(links?.https).toBe(SCHEDULE_HTTPS);
-    expect(links?.webcal).toBe(
-      SCHEDULE_HTTPS.replace("https://", "webcals://"),
+    /*
+     * Rebuilt from the server's https link: the payload's webcals:// (from a
+     * server before the Google Calendar fix) is a link iOS does not open.
+     */
+    expect(links?.webcal).toBe(SCHEDULE_HTTPS.replace("https://", "webcal://"));
+    expect(links?.googleAdd).toBe(
+      `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
+        SCHEDULE_HTTPS.replace("https://", "webcal://"),
+      )}`,
     );
     expect(links?.differsFromServer).toBe(false);
   });

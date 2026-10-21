@@ -661,6 +661,40 @@ export default class AlertEpisode extends BaseModel {
   })
   public allAlertsResolvedAt?: Date = undefined;
 
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * this episode (FirstPagedAt). Written once, by OneUptime, and never
+   * moved: no caller may write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "First Paged At",
+    description:
+      "When an on-call policy or a direct page first notified someone about this episode. Empty until someone is paged. Set by OneUptime.",
+    required: false,
+    example: "2024-01-15T09:32:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public firstPagedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1392,7 +1426,7 @@ export default class AlertEpisode extends BaseModel {
     required: false,
     title: "Grouping Key",
     description:
-      "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule.",
+      "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule. When a private alert opened the episode, its title is in the key only as a keyed hash.",
   })
   @Column({
     type: ColumnType.LongText,

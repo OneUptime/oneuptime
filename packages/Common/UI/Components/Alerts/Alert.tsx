@@ -164,7 +164,19 @@ const Alert: FunctionComponent<ComponentProps> = (
               {translatedTitle && <div>{translatedTitle}</div>}
             </div>
             {translatedTextOnRight && (
-              <div className="min-w-0 font-medium sm:ml-auto sm:text-right">
+              /*
+               * Beside the message from sm up, the right-hand text takes its
+               * own width, up to half the row, and does not shrink below it:
+               * a long message beside it used to squeeze a "Try again" into
+               * "Try / ag / ain". Text longer than that wraps inside its half,
+               * and an unbroken value (a release name) breaks there rather
+               * than widening the page. On a phone it sits under the message
+               * and wraps like it.
+               */
+              <div
+                className="min-w-0 font-medium sm:ml-auto sm:max-w-[50%] sm:shrink-0 sm:text-right"
+                data-testid="alert-text-on-right"
+              >
                 {translatedTextOnRight}
               </div>
             )}

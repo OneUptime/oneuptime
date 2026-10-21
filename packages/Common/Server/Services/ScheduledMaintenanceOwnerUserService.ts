@@ -2,7 +2,7 @@ import User from "../../Models/DatabaseModels/User";
 import ObjectID from "../../Types/ObjectID";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import UserService from "./UserService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -14,8 +14,9 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -24,19 +25,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         scheduledMaintenanceId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -82,7 +78,8 @@ export class Service extends DatabaseService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `Removed **${user.name.toString()}** (${user.email?.toString()}) from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown:
+                mdText`Removed **${user.name.toString()}** (${user.email?.toString()}) from the scheduled maintenance as the owner.`.toString(),
               userId: deleteByUserId || undefined,
             },
           );
@@ -116,12 +113,11 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`Added **${await UserService.getUserMarkdownString({
                 userId: userId,
                 projectId: projectId,
-              },
-            )}** to the scheduled maintenance as the owner.`,
+              })}** to the scheduled maintenance as the owner.`.toString(),
             userId: createdByUserId || undefined,
           },
         );
@@ -152,6 +148,9 @@ export class Service extends DatabaseService<Model> {
             },
           ),
         userIds: [userId!],
+        notificationFor: {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

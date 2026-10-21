@@ -68,6 +68,25 @@ describe("mobile replay session identity", () => {
     expect(storage.values.size).toBe(0);
   });
 
+  test("end() forgets a session that ended so a relaunch starts the next one, keeping the visitor", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+    const store: ReplaySessionStore = new ReplaySessionStore(storage, "app");
+    const ended: ReplaySessionIdentity = await store.resolve(1_000);
+    /* Its final chunk just wrote the record, so it looks recent. */
+    expect(await store.takeChunkIndex(1_100)).toBe(0);
+
+    await store.end();
+
+    expect(storage.values.has("@oneuptime/replay/app/session")).toBe(false);
+    const relaunched: ReplaySessionIdentity = await new ReplaySessionStore(
+      storage,
+      "app",
+    ).resolve(1_200);
+    expect(relaunched.sessionId).not.toBe(ended.sessionId);
+    expect(relaunched.visitorId).toBe(ended.visitorId);
+    expect(relaunched.chunkIndex).toBe(0);
+  });
+
   test("rotates a persisted session whose hard chunk cap was reached", async () => {
     const storage: MemoryStorage = new MemoryStorage();
     storage.values.set(
@@ -103,6 +122,7 @@ describe("mobile replay session identity", () => {
     await expect(store.resolve(1)).resolves.toMatchObject({
       sessionId: expect.stringMatching(/^[0-9a-f]{32}$/u),
     });
+    await expect(store.end()).resolves.toBeUndefined();
     await expect(store.clear()).resolves.toBeUndefined();
   });
 });

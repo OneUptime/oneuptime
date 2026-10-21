@@ -1,92 +1,128 @@
-# Variáveis e Filtros
+# Variáveis e filtros de painel
 
-Uma variável transforma um único painel em um template. Adicione uma variável `service` ao seu painel e os mesmos gráficos são renderizados novamente para `checkout`, `payments` ou `search` — os visualizadores escolhem em um dropdown no topo em vez de você construir três painéis quase idênticos.
+Uma variável é um seletor na barra de ferramentas do painel. Adicione uma variável `service` e os mesmos gráficos mostram `checkout`, `payments` ou `search`: as pessoas escolhem na barra de ferramentas em vez de você montar três painéis quase idênticos.
 
-## Tipos de variável
+:::cards
+- [Adicionar uma variável](#adicionar-uma-variável): Dê um nome a ela, escolha de onde vêm os valores e salve.
+- [Origens de variáveis](#origens-de-variáveis): Telemetry Attribute, Project Labels, Custom List e Text Input.
+- [Como os widgets usam uma variável](#como-os-widgets-usam-uma-variável): Quais widgets seguem quais variáveis.
+- [Links que mantêm a seleção](#links-que-mantêm-a-seleção): Envie um link que abre no mesmo serviço.
+:::
 
-Adicione variáveis em **Painel → Configurações → Variáveis**. Cada variável tem um nome (usado como `{{name}}` nos seus widgets), um rótulo opcional e um tipo.
+## Como uma variável funciona
 
-### Lista Customizada
+Você define as variáveis enquanto edita o painel, e elas são salvas com ele. No modo de leitura, cada uma é um seletor na barra de ferramentas. Quando alguém escolhe um valor, cada widget que segue a variável lê seus dados de novo, e o link da página guarda a escolha.
 
-Um dropdown estático. Você digita as opções por conta própria.
-
-Use quando: as opções são poucas e fixas. `environment` com valores `prod, staging, dev`. `region` com valores `us-east-1, eu-west-1, ap-south-1`.
-
-### Consulta
-
-As opções vêm de uma consulta aos seus dados.
-
-Use quando: as opções mudam ao longo do tempo e você quer que o dropdown acompanhe. "Todo ID de cliente visto nas últimas 24 horas." A consulta roda sobre os dados do seu projeto e os resultados se tornam o dropdown.
-
-### Campo de Texto
-
-Um campo de texto livre. O que o visualizador digitar é usado.
-
-Use quando: você quer que o painel funcione como uma ferramenta de busca. Filtrar por endereço IP, ID de requisição ou qualquer outro valor de forma livre.
-
-### Atributo de Telemetria
-
-As opções são os valores distintos de um atributo na sua telemetria dentro do intervalo de tempo do painel.
-
-Configure a **chave do atributo** (por exemplo, `service.name`, `host.name`, `k8s.cluster.name`). O dropdown se preenche com todos os valores distintos vistos nos seus logs, métricas e traces.
-
-Use quando: as opções correspondem às tags que você já envia com sua telemetria. Este é o tipo mais comum porque ele se atualiza automaticamente — quando você lança um novo serviço com a tag `service.name = inventory`, esse nome aparece no dropdown sem você editar o painel.
-
-## Seleção múltipla
-
-Cada variável pode permitir múltiplas seleções. Quando ligado, o visualizador pode escolher um ou mais valores; o painel filtra para qualquer um deles.
-
-Use seleção múltipla quando: você quer comparar "checkout e payments juntos" sem sair do painel. Evite quando a matemática não funciona entre os valores selecionados (por exemplo, fazer média de médias).
-
-## Valores padrão
-
-Toda variável pode ter um valor padrão. O painel é renderizado com o padrão até que o visualizador o altere. Para painéis públicos, o padrão é o que os visitantes veem primeiro.
-
-## Como usar uma variável em um widget
-
-Em qualquer lugar em que um widget aceite um filtro — um `WHERE` de métrica, o filtro de uma lista, a correspondência de atributo de um fluxo de logs — você pode usar `{{variable_name}}`.
-
-Por exemplo, um gráfico filtrado por serviço:
-
-```
-service.name = '{{service}}'
+```mermaid title="Da definição de uma variável à escolha de quem vê"
+flowchart TB
+    A["Edição: Variáveis,<br/>depois Adicionar<br/>variável"] --> B["Salvar variáveis,<br/>depois Salvar<br/>alterações"]
+    B --> C["Leitura: um seletor<br/>na barra de ferramentas"]
+    C --> D["Alguém escolhe<br/>um valor"]
+    D --> E["Os widgets que seguem<br/>a variável leem de novo"]
+    D --> F["O link da página<br/>guarda a escolha"]
 ```
 
-Quando o dropdown está em `checkout`, o gráfico filtra para o serviço de checkout. Quando o visualizador muda para `payments`, o gráfico é renderizado novamente para payments.
+## Adicionar uma variável
 
-Para variáveis do tipo **Atributo de Telemetria**, o OneUptime sabe a qual atributo a variável corresponde e aplica o filtro a todo widget que usa o mesmo atributo — você não precisa editar cada widget manualmente.
+:::steps
+### Abra a caixa de diálogo de variáveis
 
-## Intervalo de tempo
+Abra o painel, escolha **⋯ → Edit Dashboard** e clique em **Variáveis** na barra de ferramentas. A caixa de diálogo **Variáveis do Painel** lista as variáveis do painel; o botão na barra de ferramentas mostra quantas são.
 
-O cabeçalho do painel tem um intervalo de tempo global. Todo widget de métrica consulta dentro dessa janela. Opções:
+### Adicione uma
 
-- **Predefinições** — última hora, 24 horas, 7 dias, 30 dias, 90 dias (dependendo da retenção dos seus dados).
-- **Personalizado** — escolha uma hora de início e fim.
+Clique em **Adicionar variável**. Uma nova variável lê um atributo de telemetria; escolha outra **Origem** se precisar.
 
-O intervalo de tempo faz parte da URL do painel — compartilhar a URL compartilha a janela. Útil durante um incidente: fixe o intervalo em "10:00–10:30 UTC de hoje" e cole o link no canal do incidente.
+### Preencha-a
 
-## Intervalo de atualização
+Dê a ela um **Nome**, que os widgets e os links usam, como `service`: letras, dígitos e sublinhados, começando com uma letra ou um sublinhado, e diferente dos outros nomes do painel. Adicione um **Rótulo** para a barra de ferramentas, se quiser, um valor **Padrão** para começar, e marque **Allow multi-select** para permitir escolher vários valores.
 
-Ao lado do intervalo de tempo, escolha com que frequência os widgets reconsultam:
+### Salve-a
 
-- **Desligado** — os widgets consultam uma vez quando a página carrega.
-- **5s / 10s / 30s / 1m / 5m / 15m** — atualização automática.
+Clique em **Salvar variáveis** e depois em **Salvar alterações** na barra de ferramentas. O seletor da variável aparece na barra de ferramentas quando o painel volta ao modo de leitura.
+:::
 
-A atualização automática é boa para uma tela na parede ou uma visualização de incidente ao vivo. Deixe desligada quando estiver investigando para que a tela fique parada enquanto você analisa.
+Para alterar ou remover uma variável depois, abra a caixa de diálogo de novo: mude os campos dela, ou clique na lixeira ao lado.
 
-## Juntando tudo
+## Origens de variáveis
 
-Um painel templado por serviço geralmente tem:
+A **Origem** decide de onde vêm os valores de uma variável, e quais widgets a seguem.
 
-1. Uma variável `service` do tipo **Atributo de Telemetria** para `service.name`. Padrão: seu serviço mais observado. Seleção múltipla desligada (para que os gráficos sempre mostrem um por vez).
-2. Uma variável `environment` do tipo **Lista Customizada**. Padrão: `prod`.
-3. Uma variável `cluster` do tipo **Atributo de Telemetria** para `k8s.cluster.name`. Seleção múltipla ligada (para que você possa comparar entre clusters).
-4. Widgets que referenciam essas variáveis nos seus filtros.
+| Origem | De onde vêm os valores | Seleção múltipla |
+| --- | --- | --- |
+| Telemetry Attribute | Os valores de uma chave de atributo nas suas métricas, como `service.name` | Sim |
+| Project Labels | Os rótulos do projeto que você permite, de 1 a 1.000 | Sim |
+| Custom List | Valores que você digita, separados por vírgulas, como `prod, staging` | Sim |
+| Text Input | O que a pessoa digitar | Não |
 
-O resultado: um único painel, todos os serviços cobertos, três dropdowns no topo.
+### Telemetry Attribute
 
-## O que ler em seguida
+Defina a **Chave do atributo**, como `service.name`, `host.name` ou `k8s.namespace.name`; o campo sugere as chaves que a sua telemetria traz. O seletor oferece até 100 valores dessa chave, lidos das suas métricas do último dia, então um serviço novo aparece nele sem que você edite o painel.
 
-- [Widgets](/docs/dashboards/widgets) — como cada widget usa um filtro.
-- [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing) — variáveis e links compartilhados.
-- [Criando um Painel](/docs/dashboards/authoring) — a mecânica do canvas.
+É a origem mais comum, porque não precisa de uma lista própria: os valores são os que você já envia.
+
+### Project Labels
+
+Escolha rótulos de projeto existentes para oferecer como uma lista suspensa do painel. Por exemplo, crie uma variável chamada `UNIT`, defina a origem dela como **Project Labels** e escolha os rótulos `0660` e `0661`.
+
+O painel salva os IDs e os nomes de exibição dos rótulos escolhidos. A filtragem usa os IDs, então renomear um rótulo do projeto não quebra o vínculo dele. Os nomes de exibição são salvos com o painel; selecione de novo um rótulo renomeado no editor de variáveis para atualizar o nome exibido. Os painéis públicos mostram essas mesmas escolhas salvas.
+
+Num widget **Lista de monitores**, abra **Filtros → Label Variable** e selecione `UNIT`. Escolher `0660` passa a mostrar os monitores que têm esse rótulo. Os outros widgets não são afetados, a menos que suportem e vinculem a variável explicitamente: a **SLO List** tem a mesma configuração **Label Variable**.
+
+Os filtros fixos do widget continuam valendo. Por exemplo, com um rótulo fixo `network` e `UNIT` definido como `0660`, um monitor precisa ter os dois rótulos. Várias unidades selecionadas correspondem a qualquer uma delas. Escolher **Todos** remove só a condição da variável, mantendo os filtros fixos de rótulo, status e tipo de monitor.
+
+Uma variável ausente ou uma seleção fora das opções configuradas mostra um erro. Um rótulo escolhido sem monitores correspondentes mostra a lista vazia. Remova explicitamente o vínculo do widget quando ele não for mais necessário.
+
+### Custom List e Text Input
+
+Uma Custom List oferece os valores que você digita, separados por vírgulas. Um Text Input deixa a pessoa digitar qualquer valor, como um endereço IP ou um ID de requisição. Nenhum dos dois filtra um widget sozinho: os valores deles vão para onde você escreve `{{name}}` (veja abaixo).
+
+Uma variável Query de um painel mais antigo é mantida e mostra uma caixa de texto na barra de ferramentas: o OneUptime não carrega mais os valores dela a partir de uma consulta.
+
+## Seleção múltipla e valores padrão
+
+Com **Allow multi-select** marcado, as pessoas escolhem um ou mais valores, e os widgets mostram qualquer um deles. Uma seleção vazia significa **Todos**, e uma variável de seleção múltipla sempre começa em **Todos**, por isso o valor **Padrão** dela fica desativado.
+
+Uma variável de seleção única começa no seu valor **Padrão**, ou em **Todos** quando não tem um. **Todos** remove o filtro da variável, então os widgets mostram tudo.
+
+Use a seleção múltipla para comparar "checkout e payments juntos" sem sair do painel. Evite-a quando os números não se somam entre os valores, como numa média de médias.
+
+## Como os widgets usam uma variável
+
+Cada origem chega aos widgets do seu jeito:
+
+- As variáveis **Telemetry Attribute** filtram widgets sem nada para configurar neles: todo gráfico, valor, medidor e tabela de métricas; o **Log Chart**, o **Fluxo de registros**, o **Trace Chart** e a **Trace Table**; e as listas de infraestrutura cujos recursos têm o atributo, como `host.name` nas listas de hosts e `k8s.namespace.name` nas listas do Kubernetes. O gráfico de uma métrica sem o atributo não mostra dados enquanto um valor estiver escolhido: escolha **Todos** para vê-lo de novo. A **Lista de traços** e as listas de incidentes e de alertas não as seguem.
+- As variáveis **Project Labels** filtram uma **Lista de monitores** ou uma **SLO List** cuja **Label Variable** as nomeia.
+- **Qualquer variável** pode ser escrita em um texto como `{{name}}`: num [widget HTML](/docs/dashboards/widgets#html), na consulta de uma [fonte de dados externa](/docs/dashboards/data-sources), e no título de uma **Lista de monitores** ou de uma **SLO List**. Um título como `{{UNIT}} NETWORK` mostra `0660 NETWORK`, `0660, 0661 NETWORK` ou `All NETWORK`. Um título só controla o texto exibido; configure a **Label Variable** para filtrar a consulta de monitores.
+
+O [widget SLO](/docs/dashboards/widgets#slo) pode seguir uma variável Telemetry Attribute na chave `sloName`, para que as pessoas escolham qual SLO ele mostra.
+
+## Links que mantêm a seleção
+
+O link da página leva a escolha de cada variável como `?var-<name>=<value>`, com vários valores separados por vírgulas, então um link que você copia abre com a mesma seleção, inclusive um **Todos** explícito. Um link como este abre no serviço payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
+```
+
+O link leva também o intervalo de tempo e a atualização automática que você escolheu, como `range` e `refresh`, para que as pessoas que o recebem vejam o que você vê. [Enviar um link](/docs/dashboards/sharing#enviar-um-link) lista os valores deles.
+
+## Um exemplo: um painel para cada serviço
+
+Um painel de serviço costuma ter:
+
+1. Uma variável `service`, origem Telemetry Attribute, chave de atributo `service.name`, tendo como padrão o seu serviço mais movimentado. Deixe a seleção múltipla desligada, para que os gráficos mostrem um serviço de cada vez.
+2. Uma variável `namespace`, origem Telemetry Attribute, chave de atributo `k8s.namespace.name`, com a seleção múltipla ligada para comparar namespaces.
+3. Uma variável `environment`, origem Custom List, valores `prod, staging`, usada como `{{environment}}` na consulta de uma fonte de dados.
+4. Widgets que leem esses atributos: gráficos e valores das métricas do serviço, um fluxo de registros e uma lista de pods do Kubernetes.
+
+O resultado: um painel para cada serviço, com três seletores no topo.
+
+## Próximos passos
+
+:::cards
+- [Widgets de painel](/docs/dashboards/widgets): Quais widgets seguem quais variáveis.
+- [Fontes de dados externas](/docs/dashboards/data-sources): Coloque uma variável numa consulta PromQL ou SQL.
+- [Compartilhamento e painéis públicos](/docs/dashboards/sharing): Variáveis num painel público.
+- [Criar um painel](/docs/dashboards/authoring): O modo de edição, o salvamento e o intervalo de tempo.
+:::

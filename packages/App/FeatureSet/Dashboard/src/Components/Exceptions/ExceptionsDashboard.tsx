@@ -34,6 +34,9 @@ import TelemetryServiceUtil, {
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface ServiceExceptionSummary {
   /*
@@ -90,6 +93,7 @@ const exceptionDetailRoute: (exception: TelemetryException) => Route = (
 };
 
 const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -121,7 +125,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
         color: service.serviceColor?.toString() || "#9ca3af",
       };
     }
-    return { name: label || "Unknown", color: "#9ca3af" };
+    return {
+      name: label || (translator.translateText("Unknown") as string),
+      color: "#9ca3af",
+    };
   };
 
   const loadDashboard: () => Promise<void> = async (): Promise<void> => {
@@ -249,11 +256,12 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          No exceptions yet
+          {translator.translateText("No exceptions yet")}
         </h3>
         <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-          Once your services start reporting exceptions, you{"'"}ll see bug
-          frequency, affected services, and resolution status here.
+          {translator.translateText(
+            "Once your services start reporting exceptions, you'll see bug frequency, affected services, and resolution status here.",
+          )}
         </p>
       </div>
     );
@@ -341,19 +349,33 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
 
   const heroTitle: string =
     unresolvedCount === 0
-      ? "All bugs handled"
-      : `${unresolvedCount.toLocaleString()} unresolved ${
-          unresolvedCount === 1 ? "bug" : "bugs"
-        } need attention`;
+      ? (translator.translateText("All bugs handled") as string)
+      : translator.translatePlural(
+          {
+            one: "{{count}} unresolved bug needs attention",
+            other: "{{count}} unresolved bugs need attention",
+          },
+          unresolvedCount,
+        );
 
   const heroSubtitle: string =
     unresolvedCount === 0
-      ? `${(resolvedCount + archivedCount).toLocaleString()} ${
-          resolvedCount + archivedCount === 1 ? "bug has" : "bugs have"
-        } been resolved or archived`
+      ? translator.translatePlural(
+          {
+            one: "{{count}} bug has been resolved or archived",
+            other: "{{count}} bugs have been resolved or archived",
+          },
+          resolvedCount + archivedCount,
+        )
       : newTodayCount > 0
-        ? `${newTodayCount} new in the last 24 hours · Click to triage`
-        : "Click to view and triage";
+        ? translator.translatePlural(
+            {
+              one: "{{count}} new in the last 24 hours · Click to triage",
+              other: "{{count}} new in the last 24 hours · Click to triage",
+            },
+            newTodayCount,
+          )
+        : (translator.translateText("Click to view and triage") as string);
 
   return (
     <Fragment>
@@ -409,7 +431,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           <StatCell
             label="Unresolved"
             value={unresolvedCount}
-            sublabel={unresolvedCount === 1 ? "bug" : "bugs"}
+            sublabel={translator.translatePlural(
+              { one: "bug", other: "bugs" },
+              unresolvedCount,
+            )}
             valueClassName="text-rose-600"
             accent="bg-rose-500"
             to={RouteUtil.populateRouteParams(
@@ -419,7 +444,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           <StatCell
             label="Resolved"
             value={resolvedCount}
-            sublabel={resolvedCount === 1 ? "fix shipped" : "fixes shipped"}
+            sublabel={translator.translatePlural(
+              { one: "fix shipped", other: "fixes shipped" },
+              resolvedCount,
+            )}
             valueClassName="text-emerald-600"
             accent="bg-emerald-500"
             to={RouteUtil.populateRouteParams(
@@ -439,7 +467,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
           <div className="p-5">
             <div className="flex items-baseline justify-between">
               <span className="text-xs uppercase tracking-wider font-medium text-gray-500">
-                Resolution rate
+                {translator.translateText("Resolution rate")}
               </span>
             </div>
             <p className="text-3xl font-semibold text-gray-900 mt-3 tabular-nums">
@@ -503,7 +531,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   message={
                                     exception.message ||
                                     exception.exceptionType ||
-                                    "Unknown exception"
+                                    (translator.translateText(
+                                      "Unknown exception",
+                                    ) as string)
                                   }
                                   isResolved={exception.isResolved || false}
                                   isArchived={exception.isArchived || false}
@@ -512,7 +542,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 {isNewToday && (
                                   <span className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded-md font-semibold">
                                     <span className="h-1 w-1 rounded-full bg-sky-500" />
-                                    New
+                                    {translator.translateText("New")}
                                   </span>
                                 )}
                               </div>
@@ -562,7 +592,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 ).toLocaleString()}
                               </p>
                               <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
-                                hits
+                                {translator.translatePlural(
+                                  { one: "hit", other: "hits" },
+                                  exception.occuranceCount || 0,
+                                )}
                               </p>
                             </div>
                           </div>
@@ -589,7 +622,13 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
               <SectionHeader
                 dot="bg-amber-500"
                 title="Affected services"
-                subtitle={`${serviceSummaries.length} ${serviceSummaries.length === 1 ? "service has" : "services have"} open bugs`}
+                subtitle={translator.translatePlural(
+                  {
+                    one: "{{count}} service has open bugs",
+                    other: "{{count}} services have open bugs",
+                  },
+                  serviceSummaries.length,
+                )}
               />
               <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
                 <ul className="divide-y divide-gray-100">
@@ -620,12 +659,27 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                             </span>
                           </div>
                           <div className="shrink-0 text-right">
-                            <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                              {summary.unresolvedCount}
-                            </span>
-                            <span className="text-[10px] uppercase tracking-wide text-gray-400 ml-1">
-                              {summary.unresolvedCount === 1 ? "bug" : "bugs"}
-                            </span>
+                            <TranslatedSentence
+                              template={{
+                                one: "{{number}} bug",
+                                other: "{{number}} bugs",
+                              }}
+                              count={summary.unresolvedCount}
+                              slots={{
+                                number: (
+                                  <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                                    {summary.unresolvedCount}
+                                  </span>
+                                ),
+                              }}
+                              renderText={(text: string): ReactElement => {
+                                return (
+                                  <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                                    {text}
+                                  </span>
+                                );
+                              }}
+                            />
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -639,7 +693,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                             />
                           </div>
                           <span className="text-[11px] tabular-nums text-gray-400 shrink-0">
-                            {summary.totalOccurrences.toLocaleString()} hits
+                            {translator.translatePlural(
+                              { one: "{{count}} hit", other: "{{count}} hits" },
+                              summary.totalOccurrences,
+                            )}
                           </span>
                         </div>
                       </li>
@@ -670,7 +727,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                             <p className="text-sm text-gray-900 truncate font-medium">
                               {exception.message ||
                                 exception.exceptionType ||
-                                "Unknown"}
+                                translator.translateText("Unknown")}
                             </p>
                             <div className="flex items-center gap-1.5 mt-1 text-xs">
                               {(() => {
@@ -725,12 +782,13 @@ interface StatCellProps {
 const StatCell: FunctionComponent<StatCellProps> = (
   props: StatCellProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <AppLink className="block group" to={props.to}>
       <div className="p-5 h-full hover:bg-gray-50/60 transition-colors">
         <div className="flex items-baseline justify-between">
           <span className="text-xs uppercase tracking-wider font-medium text-gray-500">
-            {props.label}
+            {translator.translateText(props.label)}
           </span>
           <span className={`h-1.5 w-1.5 rounded-full ${props.accent}`} />
         </div>
@@ -740,7 +798,7 @@ const StatCell: FunctionComponent<StatCellProps> = (
           {props.value.toLocaleString()}
         </p>
         <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-          {props.sublabel}
+          {translator.translateText(props.sublabel)}
           <Icon
             icon={IconProp.ChevronRight}
             size={SizeProp.ExtraSmall}
@@ -763,17 +821,18 @@ interface SectionHeaderProps {
 const SectionHeader: FunctionComponent<SectionHeaderProps> = (
   props: SectionHeaderProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="flex items-end justify-between mb-3 px-0.5">
       <div className="flex items-center gap-2.5 min-w-0">
         <span className={`h-1.5 w-1.5 rounded-full ${props.dot}`} />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-900 truncate">
-            {props.title}
+            {translator.translateText(props.title)}
           </h3>
           {props.subtitle && (
             <p className="text-xs text-gray-500 mt-0.5 truncate">
-              {props.subtitle}
+              {translator.translateText(props.subtitle)}
             </p>
           )}
         </div>
@@ -783,7 +842,11 @@ const SectionHeader: FunctionComponent<SectionHeaderProps> = (
           className="text-xs font-medium text-indigo-600 hover:text-indigo-800 shrink-0"
           to={props.actionTo}
         >
-          <span>{`${props.actionLabel} →`}</span>
+          <span>
+            {translator.translateTemplate("{{action}} →", {
+              action: translator.translateText(props.actionLabel) as string,
+            })}
+          </span>
         </AppLink>
       )}
     </div>

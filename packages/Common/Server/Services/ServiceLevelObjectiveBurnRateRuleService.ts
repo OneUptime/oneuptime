@@ -24,13 +24,17 @@ import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
+import AlertStateService from "./AlertStateService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
+import IncidentStateService from "./IncidentStateService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
@@ -42,6 +46,7 @@ import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { Gray500, Green500, Red500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import {
   SLO_BURN_RATE_RULE_FEED_COLUMNS,
   SloFeedColumn,
@@ -221,9 +226,38 @@ const normalizeId: NormalizeIdFunction = (id: string): string => {
   return id.trim().toLowerCase();
 };
 
-export class Service extends DatabaseService<Model> {
+// The two severities a rule may name, as readSeverityIds reads them.
+interface SeverityIds {
+  alertSeverityId: ObjectID | undefined;
+  incidentSeverityId: ObjectID | undefined;
+}
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The SLO the rule belongs to, the severities, the on-call policies, the
+   * labels and the owners the rule copies onto what it opens are checked by
+   * this service's own hooks below, with their own words - the SLO first, on
+   * create and on update (a workflow can move a rule; a person cannot).
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["serviceLevelObjective", "alertSeverity", "incidentSeverity"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "onCallDutyPolicies",
+      "incidentOnCallDutyPolicies",
+      "alertLabels",
+      "incidentLabels",
+      "alertOwnerTeams",
+      "incidentOwnerTeams",
+      "alertOwnerUsers",
+      "incidentOwnerUsers",
+    ];
   }
 
   /*
@@ -248,6 +282,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Every numeric column can arrive as a string: the dashboard's number
      * fields hand Formik `e.target.value`, ModelForm copies it verbatim and
@@ -323,10 +359,9 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * The alert and incident options, written back explicitly for the same
-     * reason as the two output flags - and coerced for the same "false"-string
-     * reason: the worker reads autoResolve with `!== false` and the private
-     * flags with `=== true`, so an uncoerced "false" would keep auto-resolving
-     * and an uncoerced "true" would publish a record the user asked to hide.
+     * reason as the two output flags: the worker reads autoResolve with
+     * `!== false` and the private flags with `=== true`, so each holds a
+     * real boolean - the one written, or its default.
      */
     this.normalizeOptionFlags(createBy.data as unknown as Dictionary<unknown>, {
       applyDefaults: true,
@@ -369,8 +404,7 @@ export class Service extends DatabaseService<Model> {
 
     await this.validateSeverityReferences({
       projectId: projectId,
-      alertSeverityId: createBy.data.alertSeverityId,
-      incidentSeverityId: createBy.data.incidentSeverityId,
+      ...this.readSeverityIds(createBy.data as unknown as Dictionary<unknown>),
     });
 
     await this.validateRoutingReferences({
@@ -425,6 +459,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // Same string-arrival path as onBeforeCreate: coerce, validate, write back.
     const newThreshold: unknown = updateBy.data.burnRateThreshold as unknown;
 
@@ -453,6 +489,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     await this.validateOutputsOnUpdate(updateBy);
+
+    await this.validateServiceLevelObjectiveOnUpdate(updateBy);
 
     await this.validateSeverityReferencesOnUpdate(updateBy);
 
@@ -505,19 +543,12 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException(WINDOWS_NOT_NUMERIC_ERROR_MESSAGE);
         }
 
-        const rulesToUpdate: Array<Model> = await this.findBy({
-          query: updateBy.query,
-          select: {
+        const rulesToUpdate: Array<Model> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
             _id: true,
             longWindowInMinutes: true,
             shortWindowInMinutes: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+          });
 
         for (const rule of rulesToUpdate) {
           /*
@@ -585,16 +616,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
+    // The rules the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         serviceLevelObjectiveId: true,
@@ -604,10 +629,7 @@ export class Service extends DatabaseService<Model> {
         longWindowInMinutes: true,
         shortWindowInMinutes: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -759,19 +781,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        // Pinned: this hook runs before DatabaseService applies permissions.
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: this.getFeedSelect(columns),
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        this.getFeedSelect(columns),
+      );
 
       const rowsById: Dictionary<Model> = {};
 
@@ -876,7 +889,7 @@ export class Service extends DatabaseService<Model> {
             serviceLevelObjectiveFeedEventType:
               ServiceLevelObjectiveFeedEventType.BurnRateRuleChanged,
             displayColor:
-              isEnabledOnlyChange && changes[0]!.to === "On"
+              isEnabledOnlyChange && changes[0]!.to.toString() === "On"
                 ? Green500
                 : Gray500,
             feedInfoInMarkdown: markdown.feedInfoInMarkdown,
@@ -990,18 +1003,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * These three reads are strict `=== false`, and that is only sound because
-     * onBeforeUpdate ran first: validateOutputsOnUpdate coerces both output
-     * flags, so the string `"false"` a form or a raw API call can send has
-     * already become a real boolean by the time it reaches here. If a path
-     * ever reaches onUpdateSuccess without that coercion, `"false" === false`
-     * is false and the orphaned record silently stays open — so the coercion
-     * is load-bearing, not tidiness.
-     *
-     * `isEnabled` is a plain Boolean column with no coercion hook, so a
-     * literal "false" string would slip past this check. That is pre-existing
-     * across every model in the codebase and is not worked around here; the
-     * dashboard's toggle sends a real boolean.
+     * These three reads are strict `=== false`, and that is sound: DatabaseService
+     * turns every Boolean column of a write into the boolean the database
+     * stores before any hook runs (Types/Database/BooleanColumnValue), so a
+     * `"false"` a form or a raw API call sends - for the output flags and for
+     * isEnabled alike - is false by the time it reaches here, and a value the
+     * database would refuse never gets this far.
      */
     const isRuleDisabled: boolean =
       (onUpdate.updateBy.data.isEnabled as boolean | undefined) === false;
@@ -1167,19 +1174,14 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const rulesToUpdate: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const rulesToUpdate: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         shouldCreateAlert: true,
         shouldCreateIncident: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const rule of rulesToUpdate) {
       const resultingShouldCreateAlert: boolean = isShouldCreateAlertUpdated
@@ -1224,9 +1226,10 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
+        ),
       },
       select: {
         _id: true,
@@ -1316,6 +1319,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The severities a payload names. Each arrives as its id column or as the
+   * relation - the dashboard posts the relation, and TypeORM writes either to
+   * the same column - so both are read, and two that disagree are refused
+   * rather than one of them checked and the other saved.
+   */
+  private readSeverityIds(data: Dictionary<unknown>): SeverityIds {
+    return {
+      alertSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["alertSeverityId", "alertSeverity"],
+          "alert severity",
+        ) || undefined,
+      incidentSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["incidentSeverityId", "incidentSeverity"],
+          "incident severity",
+        ) || undefined,
+    };
+  }
+
+  /*
    * Both severity columns are plain foreign keys with no project scoping of
    * their own, so the public CRUD API will happily persist a severity that
    * belongs to a different project. Nothing notices until the worker fires:
@@ -1363,6 +1389,44 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The SLO is create-only for people (its column's update list is empty),
+   * but a root write skips that list, so moving a rule to another SLO is
+   * checked exactly as creating it there: pinned to each project the update
+   * touches, a foreign SLO answered like a missing one.
+   */
+  private async validateServiceLevelObjectiveOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Dictionary<unknown> = (updateBy.data ||
+      {}) as unknown as Dictionary<unknown>;
+
+    const serviceLevelObjectives: Array<unknown> = [
+      data["serviceLevelObjectiveId"],
+      data["serviceLevelObjective"],
+    ];
+
+    if (
+      SloRecordReferenceValidator.getReferencedIds(serviceLevelObjectives)
+        .length === 0
+    ) {
+      return;
+    }
+
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
+
+    for (const projectId of projectIds) {
+      await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+        {
+          projectId: projectId,
+          serviceLevelObjectives: serviceLevelObjectives,
+          subject: "SLO burn rate rule",
+        },
+      );
+    }
+  }
+
+  /*
    * The update twin. A root or API update does not always carry a tenantId, so
    * fall back to the projects of the rows the query actually matches — the
    * shape ScheduledMaintenanceService uses for the same problem.
@@ -1370,18 +1434,19 @@ export class Service extends DatabaseService<Model> {
   private async validateSeverityReferencesOnUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const alertSeverityId: ObjectID | undefined = updateBy.data
-      .alertSeverityId as ObjectID | undefined;
-    const incidentSeverityId: ObjectID | undefined = updateBy.data
-      .incidentSeverityId as ObjectID | undefined;
+    const severityIds: SeverityIds = this.readSeverityIds(
+      (updateBy.data || {}) as unknown as Dictionary<unknown>,
+    );
+    const alertSeverityId: ObjectID | undefined = severityIds.alertSeverityId;
+    const incidentSeverityId: ObjectID | undefined =
+      severityIds.incidentSeverityId;
 
     if (!alertSeverityId && !incidentSeverityId) {
       return;
     }
 
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     for (const projectId of projectIds) {
       await this.validateSeverityReferences({
@@ -1551,29 +1616,19 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: select as unknown as Select<Model>,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as unknown as Select<Model>,
+    );
 
-    const projectIds: Dictionary<ObjectID> = {};
-
-    if (updateBy.props.tenantId) {
-      projectIds[updateBy.props.tenantId.toString()] = updateBy.props.tenantId;
-    } else {
-      for (const rule of rules) {
-        if (rule.projectId) {
-          projectIds[rule.projectId.toString()] = rule.projectId;
-        }
-      }
-    }
-
-    for (const projectId of Object.values(projectIds)) {
+    /*
+     * The request's project for a teammate, whose update is kept to it; the
+     * project of each rule written for OneUptime and a master admin.
+     */
+    for (const projectId of this.getProjectsToCheckRowsIn(
+      updateBy.props,
+      rules,
+    )) {
       const storedIds: Dictionary<Set<string>> = {};
 
       for (const column of columnsInPayload) {
@@ -1778,32 +1833,6 @@ export class Service extends DatabaseService<Model> {
     ];
   }
 
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const rule of rules) {
-      if (rule.projectId) {
-        projectIds[rule.projectId.toString()] = rule.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
-  }
-
   /*
    * Forget that the rule has an output open, WITHOUT stamping a resolve.
    *
@@ -1885,9 +1914,12 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            data.projectId,
+          ),
+        ),
       },
       select: {
         _id: true,
@@ -2024,36 +2056,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Coerce an API-supplied boolean column. Toggles in the dashboard send real
-   * booleans, but the CRUD API is public and BaseModel.fromJSON does not
-   * coerce Boolean columns, so `"false"` arrives as a non-empty string — which
-   * is truthy, and would quietly turn a rule that declares nothing into a rule
-   * that declares both. An absent value means "leave it at the default", which
-   * is what a create payload that never mentions the field intends.
+   * A flag as the rule holds it: the boolean the database stores for what
+   * was written (toStoredBoolean), or the default when nothing was - absent,
+   * or null, which these NOT NULL columns cannot hold. DatabaseService
+   * already turns a write's Boolean columns into those booleans before any
+   * hook runs, and refuses a value the database would refuse - a blank, say
+   * - so `"false"` from the API arrives here as false; a row read back is
+   * read the same way. A rule that declares nothing is never mistaken for
+   * one that declares both.
    */
   private normalizeBooleanInput(
     value: unknown,
     defaultValue: boolean,
   ): boolean {
-    if (value === undefined || value === null) {
-      return defaultValue;
-    }
+    const stored: unknown = toStoredBoolean(value);
 
-    if (typeof value === "boolean") {
-      return value;
-    }
-
-    if (typeof value === "string") {
-      const normalized: string = value.trim().toLowerCase();
-
-      if (normalized === "") {
-        return defaultValue;
-      }
-
-      return normalized !== "false" && normalized !== "0";
-    }
-
-    return Boolean(value);
+    return typeof stored === "boolean" ? stored : defaultValue;
   }
 
   /*

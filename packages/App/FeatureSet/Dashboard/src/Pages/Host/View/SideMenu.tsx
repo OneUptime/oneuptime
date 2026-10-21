@@ -30,6 +30,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -162,15 +164,58 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           resourceType={MonitorRecommendationResourceType.Host}
           resourceId={props.modelId}
         />
+        {/*
+         * The host's collector: what OneUptime runs on it and how that went,
+         * or - for a collector installed by hand - how to hand it over to
+         * OneUptime, and the manual guide.
+         */}
         <SideMenuItem
           link={{
-            title: "Documentation",
+            title: "Collector",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Book}
+          icon={IconProp.Cube}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Host AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -322,6 +367,12 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: Host,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

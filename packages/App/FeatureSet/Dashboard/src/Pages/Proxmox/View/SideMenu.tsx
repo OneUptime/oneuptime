@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   nodes?: number | undefined;
@@ -124,13 +127,13 @@ const ProxmoxClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
+          icon={IconProp.ChartBar}
         />
         <RecommendationsSideMenuItem
           link={{
@@ -152,6 +155,44 @@ const ProxmoxClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Proxmox AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -283,6 +324,12 @@ const ProxmoxClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ProxmoxCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

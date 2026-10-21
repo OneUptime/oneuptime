@@ -206,6 +206,7 @@ type CapturedFormField = {
   required?: boolean | ((values: FormValuesLike) => boolean) | undefined;
   showIf?: ((values: FormValuesLike) => boolean) | undefined;
   dropdownOptions?: Array<{ label: string; value: unknown }> | undefined;
+  collapsibleSection?: { id: string; title: string } | undefined;
 };
 
 type CapturedFormStep = {
@@ -448,7 +449,7 @@ describe("the create form's Create a Ping monitor opt-in", () => {
   });
 
   describe("the fields", () => {
-    test("the checkbox is an override field on the probe-and-site step, off by default", async () => {
+    test("the checkbox is an override field under More fields, off by default", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
       const checkbox: CapturedFormField = overrideFieldFor(
         props,
@@ -469,20 +470,21 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       expect(checkbox.defaultValue).toBeUndefined();
       expect(checkbox.required).toBe(false);
 
-      const stepIds: Array<string> = (props.formSteps || []).map(
-        (step: CapturedFormStep): string => {
-          return step.id;
-        },
-      );
-      expect(checkbox.stepId).toBe("probe-and-site");
-      expect(stepIds).toContain("probe-and-site");
+      /*
+       * One page, no steps: the opt-in folds under More fields with the
+       * other things most devices never need - listed by name on the fold.
+       */
+      expect(props.formSteps).toBeUndefined();
+      expect(checkbox.stepId).toBeUndefined();
+      expect(checkbox.collapsibleSection?.title).toBe("More fields");
     });
 
     /*
      * The title carries the whole offer, because the checkbox is the one
      * field an operator decides on without reading anything else: "also"
-     * says the device is already monitored without it, "for incidents" says
-     * what it adds, and "(optional)" says it may be skipped.
+     * says the device is already monitored without it, and "for incidents"
+     * says what it adds. It sits under More fields, which says it may be
+     * skipped, so no "(optional)" rides on it any more.
      */
     test("the checkbox is worded as an addition, not as the way to get a status", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
@@ -491,9 +493,7 @@ describe("the create form's Create a Ping monitor opt-in", () => {
         CREATE_PING_MONITOR_FIELD_KEY,
       );
 
-      expect(checkbox.title).toBe(
-        "Also create a Ping monitor for incidents (optional)",
-      );
+      expect(checkbox.title).toBe("Also create a Ping monitor for incidents");
     });
 
     /*
@@ -557,7 +557,11 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       );
 
       expect(probes.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
-      expect(probes.stepId).toBe("probe-and-site");
+      // Folded right after the box it belongs to.
+      expect(probes.collapsibleSection).toBe(
+        overrideFieldFor(props, CREATE_PING_MONITOR_FIELD_KEY)
+          .collapsibleSection,
+      );
       expect(probes.required).toBe(false);
       expect(probes.showEvenIfPermissionDoesNotExist).toBe(true);
       expect(probes.dropdownOptions).toEqual([

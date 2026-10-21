@@ -13,6 +13,7 @@ import MonitorService from "./MonitorService";
 import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 import StatusPageResourceService from "./StatusPageResourceService";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /**
  * What a sync did, so callers (and tests) can assert on the outcome without
@@ -110,6 +111,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * repairs any drift it finds.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async syncResourcesForRule(data: {
     statusPageMonitorRuleId: ObjectID;
   }): Promise<StatusPageMonitorRuleSyncResult> {
@@ -180,6 +182,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * monitors the rules match.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async syncRulesForMonitor(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;
@@ -541,10 +544,17 @@ export class StatusPageMonitorRuleEngineServiceClass {
       return emptyResult();
     }
 
+    /*
+     * The page's resources in the rule's own project: a rule saved before
+     * its page was checked can still name another project's page, whose
+     * resources this must never read or remove. (Adding to it is refused by
+     * StatusPageResourceService.)
+     */
     const existingResources: Array<StatusPageResource> =
       await StatusPageResourceService.findBy({
         query: {
           statusPageId: rule.statusPageId,
+          projectId: rule.projectId,
         },
         select: {
           _id: true,

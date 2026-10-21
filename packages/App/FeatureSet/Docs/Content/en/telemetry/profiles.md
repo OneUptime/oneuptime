@@ -1,10 +1,52 @@
-# Send Continuous Profiling Data to OneUptime
+# Continuous Profiling
 
-## Overview
+Continuous profiling shows how your application spends CPU time and memory, function by function. OneUptime exposes a **Pyroscope-compatible ingest API**, so anything that can push to a Pyroscope server — the Grafana Alloy eBPF profiler or a Pyroscope language SDK — can push to OneUptime, and you read the result as flame graphs next to your logs, metrics and traces.
 
-Continuous profiling is the fourth pillar of observability alongside logs, metrics, and traces. Profiles capture how your application spends CPU time and allocates memory at the function level, and OneUptime renders them as interactive flamegraphs alongside your other telemetry.
+:::cards
+- [Send profiles](#send-profiles): Grafana Alloy with eBPF, or a Pyroscope SDK in your app.
+- [Ingest endpoint](#ingest-endpoint): The base URL and the three ways to pass the key.
+- [Verify it is working](#verify-it-is-working): Check the key, the page and the upload status.
+- [Explore profiles](#explore-profiles-in-oneuptime): The Profiler: where the time goes, what changed, and Fix with AI.
+:::
 
-OneUptime exposes a **Pyroscope-compatible ingest API**. Anything that can push to a Pyroscope server — the Grafana Alloy eBPF profiler or a Pyroscope language SDK — can push to OneUptime.
+## How it works
+
+A profiler samples your processes and uploads a profile every few seconds to OneUptime's `/pyroscope` endpoint, with your ingestion key. OneUptime stores each profile under the service it names and draws it as a flame graph under **Performance Profiles**.
+
+```mermaid title="How profiles reach OneUptime"
+flowchart TB
+    subgraph profilers["Profilers"]
+        direction LR
+        alloy["Grafana Alloy (eBPF)"]
+        sdk["Pyroscope SDK<br/>in your app"]
+    end
+    alloy -->|"push API"| endpoint["OneUptime /pyroscope"]
+    sdk -->|"ingest or push API"| endpoint
+    endpoint --> profiles["Performance Profiles"]
+    profiles -.->|"trace and span IDs"| traces["Linked traces"]
+```
+
+## Before you begin
+
+You need a **Server** telemetry ingestion key. If you do not have one yet:
+
+:::steps
+### Open the ingestion keys
+
+Go to **Products → Project Settings**, open **Telemetry & APM** in the side menu and select **Ingestion Keys**.
+
+![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+
+### Create a key
+
+Click **Create Ingestion Key**. The dialog has the key's name filled in and **Server** picked — the kind of key an application or a collector sends with — so click **Create Ingestion Key** to create it, or rename it first.
+
+### Copy the secret
+
+The new key opens on its own page. Copy its **Secret Key**: this is the ingestion token the examples below call `YOUR_ONEUPTIME_INGESTION_TOKEN`.
+
+![A telemetry ingestion key's page, showing its Secret Key](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
 ## Ingest Endpoint
 
@@ -17,11 +59,14 @@ Clients append their own path to the base URL — `/ingest` for most Pyroscope S
 
 OneUptime reads the ingestion token from any of these, so use whichever your client supports:
 
-- the `x-oneuptime-token` header (for clients that let you add custom headers);
-- `Authorization: Bearer <token>` — what SDKs with an `authToken` / `auth_token` option send;
-- HTTP basic auth with the token as the **password** (any username) — for clients that only offer a basic-auth user and password.
+| Method | When to use it |
+| --- | --- |
+| `x-oneuptime-token` header | Clients that let you add custom headers. |
+| `Authorization: Bearer <token>` | SDKs with an `authToken` / `auth_token` option — that is what they send. |
+| HTTP basic auth, with the token as the **password** (any user name) | Clients that only offer a basic-auth user and password. |
 
-**Self Hosted OneUptime:** replace `https://oneuptime.com` with your own host, e.g. `http(s)://YOUR-ONEUPTIME-HOST/pyroscope`.
+> [!NOTE]
+> Self-hosting OneUptime? Replace `https://oneuptime.com` with your own host, for example `https://YOUR-ONEUPTIME-HOST/pyroscope`.
 
 ## Supported Profile Formats
 
@@ -31,27 +76,17 @@ OneUptime reads the ingestion token from any of these, so use whichever your cli
 | Folded / collapsed text                     | Python, Ruby, and Rust Pyroscope SDKs (their default upload format) | Yes                                           |
 | JFR (Java Flight Recorder)                  | Pyroscope Java agent                                                | Not yet — use Grafana Alloy for Java services |
 
-## Step 1 - Create a Telemetry Ingestion Token
+## Send profiles
 
-After you sign up to OneUptime and create a project, click on "Products" in the navigation bar and click on "Project Settings".
+Grafana Alloy profiles every process on a host with no code changes, and is the recommended way to start. A Pyroscope SDK runs inside your application instead.
 
-On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
-
-![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
-
-Once you created a token, click on "View" to view the token.
-
-![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
-
-## Step 2 - Send Profiles
-
-### Option A: Grafana Alloy with eBPF (recommended, zero code changes)
-
+:::tabs
+@tab Grafana Alloy
 [Grafana Alloy](https://grafana.com/docs/alloy/latest/) collects CPU profiles from every process on a Linux host using eBPF — no agent inside your application and no code changes. It works for Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, and .NET.
 
-Create `alloy-config.alloy`:
+Create the Alloy configuration:
 
-```hcl
+```hcl title="alloy-config.alloy"
 discovery.process "all" {
   refresh_interval = "60s"
 }
@@ -84,10 +119,9 @@ pyroscope.write "oneuptime" {
 }
 ```
 
-Run it with Docker (eBPF needs a privileged container with the host PID namespace):
+Run it with Docker. eBPF needs a privileged container with the host PID namespace:
 
-```yaml
-# docker-compose.yml
+```yaml title="docker-compose.yml"
 services:
   alloy:
     image: grafana/alloy:latest
@@ -108,11 +142,9 @@ Or run it directly on the host:
 alloy run alloy-config.alloy
 ```
 
-### Option B: Pyroscope language SDKs (in-process profiling)
-
-Pyroscope SDKs run inside your application and continuously upload profiles. Point the SDK's server address at the OneUptime base URL and pass your ingestion token as the auth token.
-
-**Go** (uploads pprof):
+The relabel rule names each profile's service after the process executable.
+@tab Go
+The Go SDK uploads pprof. Point its server address at the OneUptime base URL and pass your ingestion token as the auth token:
 
 ```go
 import "github.com/grafana/pyroscope-go"
@@ -131,8 +163,8 @@ pyroscope.Start(pyroscope.Config{
     },
 })
 ```
-
-**Node.js** (uploads pprof):
+@tab Node.js
+The Node.js SDK uploads pprof:
 
 ```javascript
 const Pyroscope = require("@pyroscope/nodejs");
@@ -145,8 +177,8 @@ Pyroscope.init({
 
 Pyroscope.start();
 ```
-
-**Python** (uploads folded text):
+@tab Python
+The Python SDK uploads folded text:
 
 ```python
 import pyroscope
@@ -157,17 +189,13 @@ pyroscope.configure(
     auth_token="YOUR_ONEUPTIME_INGESTION_TOKEN",
 )
 ```
-
-**Ruby** and **Rust** work the same way: install the [Pyroscope SDK for your language](https://grafana.com/docs/pyroscope/latest/configure-client/) and set the server address to `https://oneuptime.com/pyroscope` with your ingestion token as the auth token (or, if your SDK version only offers basic auth, as the basic-auth password).
-
-### .NET
-
+@tab .NET
 The Pyroscope .NET profiler is a native CLR profiler: it needs no code changes and is switched on entirely through environment variables. Download the release for your image from [pyroscope-dotnet releases](https://github.com/grafana/pyroscope-dotnet/releases) — `glibc` or `musl` (Alpine), `x86_64` or `aarch64` — and load it into the runtime:
 
-```dockerfile
+```dockerfile title="Dockerfile"
 FROM alpine:3.20 AS pyroscope-profiler
-ARG PYROSCOPE_DOTNET_VERSION=0.13.0
-ADD https://github.com/grafana/pyroscope-dotnet/releases/download/v${PYROSCOPE_DOTNET_VERSION}-pyroscope/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz /tmp/pyroscope.tar.gz
+ARG PYROSCOPE_DOTNET_VERSION=1.5.1
+ADD https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-${PYROSCOPE_DOTNET_VERSION}/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz /tmp/pyroscope.tar.gz
 RUN mkdir -p /pyroscope && tar -xzf /tmp/pyroscope.tar.gz -C /pyroscope
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
@@ -186,10 +214,13 @@ Then point it at OneUptime, for example in your Kubernetes / Helm environment:
 PYROSCOPE_APPLICATION_NAME=my-service
 PYROSCOPE_PROFILING_ENABLED=1
 PYROSCOPE_SERVER_ADDRESS=https://oneuptime.com/pyroscope
-PYROSCOPE_AUTH_TOKEN=YOUR_ONEUPTIME_INGESTION_TOKEN
+PYROSCOPE_BASIC_AUTH_USER=oneuptime
+PYROSCOPE_BASIC_AUTH_PASSWORD=YOUR_ONEUPTIME_INGESTION_TOKEN
 ```
 
-How the token is passed depends on the profiler release:
+The ingestion token goes in the basic-auth password. The user name can be any non-empty value, but the profiler sends no credentials at all unless both are set. To send the token as a header instead, set `PYROSCOPE_HTTP_HEADERS={"x-oneuptime-token":"YOUR_ONEUPTIME_INGESTION_TOKEN"}`.
+
+How the token is passed depends on the profiler release. 1.5 and later ignore `PYROSCOPE_AUTH_TOKEN`, so if you upgrade from an older release and keep that setting, every upload is rejected with `401`:
 
 | pyroscope-dotnet release | Uploads to                              | Token setting                                                                                                                                                     |
 | ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -197,15 +228,16 @@ How the token is passed depends on the profiler release:
 | v0.14 to 1.4             | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_AUTH_TOKEN`                                                                                                                                            |
 | 1.5 and later            | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_BASIC_AUTH_USER=oneuptime` and `PYROSCOPE_BASIC_AUTH_PASSWORD=<token>` (both must be set), or `PYROSCOPE_HTTP_HEADERS={"x-oneuptime-token":"<token>"}` |
 
-From 1.x the release tags are named `pyroscope-<version>` (for example `https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-1.5.1/pyroscope.1.5.1-glibc-x86_64.tar.gz`); the profiler GUID and file names are unchanged.
+Releases before 1.0 are tagged `v<version>-pyroscope` instead of `pyroscope-<version>` (for example `https://github.com/grafana/pyroscope-dotnet/releases/download/v0.13.0-pyroscope/pyroscope.0.13.0-glibc-x86_64.tar.gz`); the profiler GUID and file names are the same in every release.
 
 CPU profiling is on by default. Wall-time, allocation, exception and lock-contention profiling are opt-in: set `PYROSCOPE_PROFILING_WALLTIME_ENABLED`, `PYROSCOPE_PROFILING_ALLOCATION_ENABLED`, `PYROSCOPE_PROFILING_EXCEPTION_ENABLED` or `PYROSCOPE_PROFILING_LOCK_ENABLED` to `true`. Static labels go in `PYROSCOPE_LABELS` (`key:value,key:value`).
 
 The profiler uploads every 15 seconds and does **not** compress its uploads, so a busy service can send several MB per upload. OneUptime's own ingress accepts up to 16 MB on `/pyroscope`; if another proxy sits in front of OneUptime (for example ingress-nginx, whose default `proxy-body-size` is 1 MB), raise its body-size limit for `/pyroscope` as well, or large uploads are rejected with `413` before they reach OneUptime.
+@tab Java
+The Pyroscope Java agent uploads profiles in JFR format, which OneUptime does not ingest yet. Profile Java services with Grafana Alloy (the **Grafana Alloy** tab) instead — it captures JVM CPU profiles with no agent or code changes.
+:::
 
-### Java
-
-The Pyroscope Java agent uploads profiles in JFR format, which OneUptime does not ingest yet. Profile Java services with the Grafana Alloy eBPF integration (Option A above) instead — it captures JVM CPU profiles with no agent or code changes.
+**Ruby** and **Rust** work like Go, Node.js and Python: install the [Pyroscope SDK for your language](https://grafana.com/docs/pyroscope/latest/configure-client/) and set the server address to `https://oneuptime.com/pyroscope` with your ingestion token as the auth token (or, if your SDK version only offers basic auth, as the basic-auth password).
 
 ## Supported Profile Types
 
@@ -224,45 +256,79 @@ Anything else (for example a custom sample type) appears under "Other" with its 
 
 ## Verify It Is Working
 
-1. **Check your token.** The ingest endpoints answer a missing or invalid token with `401`, but most profilers do not surface that anywhere you will see it (the .NET profiler, for one, logs HTTP responses only at debug level). Ask the validation endpoint directly:
+:::steps
+### Check your token
 
-   ```bash
-   curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
-     https://oneuptime.com/otlp/v1/validate
-   ```
+The ingest endpoints answer a missing or invalid token with `401`, but most profilers do not surface that anywhere you will see it (the .NET profiler, for one, logs HTTP responses only at debug level). Ask the validation endpoint directly:
 
-   A valid token returns `200` with `{"valid": true, ...}`; an unknown or revoked token returns `401`.
+```bash
+curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
+  https://oneuptime.com/otlp/v1/validate
+```
 
-2. **Open the Profiles page.** In the OneUptime Dashboard go to **Products > Performance Profiles**. With Alloy's default 15-second collect interval (or the SDKs' 10- to 15-second upload interval), the first profiles and their flamegraphs appear within a minute or two of the agent starting.
+A valid token returns `200` with `{"valid": true, ...}`, and its `keyType` must be `Server`: a Browser key is valid too, but cannot send profiles. An unknown, revoked, disabled or expired token returns `401`.
 
-3. **Check the service.** Profiles are attached to the telemetry service named by the SDK's `application_name` / `appName` / `PYROSCOPE_APPLICATION_NAME` (or the process executable name under Alloy's default relabel rule above).
+### Open the Profiles page
 
-4. **Still nothing? Look at the upload status.** For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: it then logs a `PyroscopePprofSink <status>` line for every upload. `200` means OneUptime accepted it; `401` is the token; `404` usually means `PYROSCOPE_SERVER_ADDRESS` is missing the `/pyroscope` suffix; `413` means a proxy in front of OneUptime rejected the upload's size (see the .NET section above). If you run OneUptime yourself, the ingress (nginx) access log records the same status for every `/pyroscope` request.
+In the OneUptime Dashboard go to **Products → Performance Profiles**. With Alloy's 15-second collect interval (or the SDKs' 10- to 15-second upload interval), the first profiles and their flame graphs appear within a minute or two of the agent starting.
 
-## Features
+### Check the service
 
-### Flamegraph Visualization
+Profiles are attached to the telemetry service named by the SDK's `application_name` / `appName` / `PYROSCOPE_APPLICATION_NAME` (or the process executable name under Alloy's relabel rule above).
 
-OneUptime renders profile data as interactive flamegraphs. Each bar represents a function in the call stack, and its width is proportional to the time or resources consumed. You can click on any function to zoom in and see its callers and callees.
+### Still nothing? Look at the upload status
 
-### Function List
+For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: it then logs a `PyroscopePprofSink <status>` line for every upload. `200` means OneUptime accepted it; `401` is the token; `404` usually means `PYROSCOPE_SERVER_ADDRESS` is missing the `/pyroscope` suffix; `413` means a proxy in front of OneUptime rejected the upload's size (see the **.NET** tab under [Send profiles](#send-profiles)). If you run OneUptime yourself, the ingress (nginx) access log records the same status for every `/pyroscope` request.
+:::
 
-View a sortable table of all functions captured in a profile, ranked by self time, total time, or allocation count. This helps you quickly identify the most expensive functions in your application.
+## Explore profiles in OneUptime
 
-### Trace Correlation
+**Products → Performance Profiles** opens the Profiler on its **Overview**. It answers in words before any chart: where the time goes ("JSON.parse takes 42% of the CPU time in checkout") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
 
-When a profile carries trace and span IDs (for example as `trace_id` / `span_id` sample labels), you can navigate directly from a slow trace span to the corresponding CPU or memory profile to understand exactly what code was executing.
+| Card | What it shows |
+| --- | --- |
+| **Where the CPU time goes** | Every profile in the window, merged into one flame graph. The wider a frame, the bigger its share. Click a frame to zoom in. |
+| **Functions** | The functions that take the most, ranked by **Self** (time in the function's own code), **Total** (with everything it calls) or **Your code** (your own functions, each with the library and runtime code it calls: the time a change to them can win back). |
+| **Services being profiled** | Every profiled service, busiest first. Kernel threads the eBPF profiler samples are folded away. |
 
-### Filtering by Profile Type
+### Compare two windows
 
-Filter profiles by category (CPU, Memory, Locks, Wall time, Goroutines) to focus on the specific resource dimension you are investigating.
+**Compare with** sets what the window is compared with: **The period before**, **The same time yesterday**, **The same time last week**, or a deploy under **Before and after a change**. Shares are compared rather than totals, so busier traffic alone moves nothing. The headline names the function whose share grew the most, and the code of your own that grew; the flame graph becomes **What changed**, where red frames take a bigger share after and green frames a smaller one; and **Functions that changed** lists each function's share before and after.
+
+### One function
+
+Click a function to open its panel: its share as **Self**, **Total** and **Your code**, **Who calls it** and **What it calls**, a link to its file and line in your repository when one is connected, and **Highlight in the flame graph**. For a library's or the runtime's function, the panel names the function of your own code that calls it, where a change can make it cheaper. A link under the shares sets up an alert on the function's share, above what it takes today: see [Profiles Monitor](/docs/monitor/profiles-monitor).
+
+When a function of your own code takes at least 5% of the profile's time or memory, or its share grew by 3 points or more since the window it is compared with, the panel offers **Fix with AI**: OneUptime AI starts a task in the repository that holds the function, with the profile as its evidence, and opens a pull request for you to review (see [Code](/docs/ai/ai-agent)). OneUptime AI reads profiles in its answers and investigations too, so you can ask it which functions use the most CPU time.
+
+### A single profile
+
+**All profiles** lists every upload. A profile's page has three views:
+
+| View | What it shows |
+| --- | --- |
+| **Flame graph** | Each bar is a function in the call stack, and its width is proportional to the time or resources it consumed. Click a function to zoom in and see its callers and callees. |
+| **Top functions** | The functions in the profile, ranked by self time or total time. **Only my code** hides library frames. |
+| **Diff vs. baseline** | The profile compared with an earlier period — **vs. 1 hour ago**, **vs. yesterday** or **vs. last week** — with the **Most regressed** and **Most improved** functions. |
+
+**Download pprof** saves the profile for local tools such as `go tool pprof`.
+
+### Trace correlation
+
+When a profile carries trace and span IDs (for example as `trace_id` / `span_id` sample labels), you can navigate directly from a slow trace span to the corresponding CPU or memory profile to understand exactly what code was executing, and **Open linked trace** goes the other way.
+
+A span's **Profile** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
+
+A trace's page also links to the Profiler on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Performance Profiles** page opens the Profiler on that service or host.
 
 ## Data Retention
 
-Profile data retention is configured per telemetry service in your OneUptime project settings. The default retention period is 15 days. Data is automatically deleted after the retention period expires.
+Profiles are kept for your project's telemetry retention: **Project Settings → Telemetry & APM → Data Retention** sets the **Default Retention (Days)**, 15 days unless you change it. Data is deleted automatically when the retention period ends. Plans that include retention overrides can also keep profiles longer or shorter than other telemetry, or set retention per service on the service's **Settings** page.
 
-To change the retention period for a service, navigate to **Products > Services > [Your Service] > Settings** and update the data retention value.
+## Next steps
 
-## Need Help?
-
-Please contact support@oneuptime.com if you need any help setting up profiling with OneUptime.
+:::cards
+- [Profiles Monitor](/docs/monitor/profiles-monitor): Alert on the profiles your services send, by count and type.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send the traces your profiles link to.
+- [Kubernetes Agent](/docs/telemetry/kubernetes-agent): Profile a whole cluster with the agent's eBPF profiler.
+:::

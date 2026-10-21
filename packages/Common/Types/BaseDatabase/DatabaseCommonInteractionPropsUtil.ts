@@ -1,6 +1,8 @@
 import Permission, { UserPermission } from "../Permission";
+import HeldPermissionsUtil from "../HeldPermissions";
 import DatabaseCommonInteractionProps from "./DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../Exception/NotAuthorizedException";
 import UserType from "../UserType";
 
 export enum PermissionType {
@@ -11,6 +13,29 @@ export enum PermissionType {
 export default class DatabaseCommonInteractionPropsUtil {
   public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
     "Authentication required. Please log in to access this resource.";
+
+  public static readonly READ_ONLY_CREDENTIAL_MESSAGE: string =
+    "This MCP client was connected with read-only access, so it cannot make changes. Connect it again and allow read and write access.";
+
+  /*
+   * Refuses a create, update or delete made with a read-only credential (see
+   * DatabaseCommonInteractionProps.isReadOnlyCredential). Asked ahead of every
+   * other permission check, because no permission the caller holds can make a
+   * read-only credential write.
+   *
+   * Root props are let through: those are the server's own writes - a hook
+   * that records something on the caller's behalf - and were never the
+   * caller's to be refused.
+   */
+  public static assertCredentialCanWrite(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isReadOnlyCredential && !props.isRoot) {
+      throw new NotAuthorizedException(
+        DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+      );
+    }
+  }
 
   /*
    * No credentials at all: no user, no project API key, no master key.
@@ -27,7 +52,23 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     return (
-      props.userType !== UserType.API && props.userType !== UserType.MasterAdmin
+      !DatabaseCommonInteractionPropsUtil.isProjectPrincipalWithoutPerson(
+        props,
+      ) && props.userType !== UserType.MasterAdmin
+    );
+  }
+
+  /*
+   * A caller that acts in a project without being a person: one of the
+   * project's API keys, or a step of one of its workflows (WorkflowPrincipal).
+   * It has no userId and is no less signed in for that - what it may do is
+   * whatever its permission rows say, read like anyone else's.
+   */
+  public static isProjectPrincipalWithoutPerson(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      props.userType === UserType.API || props.userType === UserType.Workflow
     );
   }
 
@@ -111,14 +152,18 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     if (props.tenantId && props.userTenantAccessPermission) {
-      // Include Tenant Permission in userPermissions.
+      /*
+       * Include Tenant Permission in userPermissions. A row is a block when
+       * it says so and an allow otherwise - the one reading of the flag
+       * (HeldPermissionsUtil.isBlockRow) every permission check shares.
+       */
       userPermissions = [
         ...userPermissions,
         ...(props.userTenantAccessPermission[
           props.tenantId.toString()
         ]?.permissions.filter((userPermission: UserPermission) => {
           return (
-            userPermission.isBlockPermission ===
+            HeldPermissionsUtil.isBlockRow(userPermission) ===
             (permissionType === PermissionType.Block)
           );
         }) || []),
@@ -126,5 +171,27 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     return userPermissions;
+  }
+
+  /*
+   * Every row the CRUD path weighs for a caller: the allow rows (global
+   * permissions among them, Public for everyone) and the block rows of
+   * getUserPermissions. Only ever handed to the rule (HeldPermissionsUtil
+   * .fromRows, or a column check that does): mapped to a flat list of
+   * permission names, it would count a block as a grant.
+   */
+  public static getPermissionRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<UserPermission> {
+    return [
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    ];
   }
 }

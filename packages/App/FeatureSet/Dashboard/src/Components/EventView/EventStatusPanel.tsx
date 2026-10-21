@@ -9,13 +9,21 @@ import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { StateMoveList } from "Common/Utils/StateMove";
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveDuration from "./LiveDuration";
+import { getEventStateMenuStates } from "./EventStateMenu";
 
 export interface EventStateItem {
   id: string;
   name: string;
   color: Color;
+  /*
+   * Its place in the project's list of states (1 is the top): what the
+   * server compares a move by, so the menu offers only the states the
+   * record may move into next.
+   */
+  order?: number | undefined;
 }
 
 export interface EventStateAction {
@@ -24,6 +32,40 @@ export interface EventStateAction {
   icon?: IconProp | undefined;
   buttonStyle: ButtonStyleType;
   id?: string | undefined;
+}
+
+/*
+ * A header action that is not a state change - "Declare Incident" on an
+ * alert, say. It sits in the same row as the state actions, with the same
+ * size and the neutral look, so the state action stays the one primary
+ * button. A disabled one can carry a tooltip saying why.
+ */
+export interface EventPanelAction {
+  id: string;
+  label: string;
+  icon?: IconProp | undefined;
+  onClick: () => void;
+  isDisabled?: boolean | undefined;
+  tooltip?: string | undefined;
+  /*
+   * An action that goes somewhere else - Open in Slack - is a link: it opens
+   * in a new tab, and can be copied or opened with the browser's own
+   * gestures. Its tooltip, when it has one, says where it goes.
+   */
+  href?: string | undefined;
+  /*
+   * Choices under the button instead of one action: Open in Slack for a
+   * record with two Slack channels lists both.
+   */
+  menuItems?: Array<EventPanelMenuItem> | undefined;
+}
+
+export interface EventPanelMenuItem {
+  id: string;
+  label: string;
+  // The Open channel menu marks each channel with its product's logo.
+  icon?: IconProp | undefined;
+  onClick: () => void;
 }
 
 /*
@@ -39,6 +81,13 @@ export interface EventStatusFact {
 
 export interface ComponentProps {
   states: Array<EventStateItem>; // ordered by state order.
+  /*
+   * The list of states the record walks down - incident states for an
+   * incident or an incident episode, alert states for an alert or an alert
+   * episode, scheduled maintenance states for an event - by which the menu
+   * offers its moves (getEventStateMenuStates).
+   */
+  stateList: StateMoveList;
   identifier?: string | undefined; // e.g. "INC-42", "#42" — shown at the start of the panel.
   /*
    * When set, the panel renders as a proper header: the identifier becomes a
@@ -56,6 +105,13 @@ export interface ComponentProps {
   durationEndsAt?: Date | undefined;
   actions: Array<EventStateAction>;
   onActionClick: (stateId: string) => void;
+  /*
+   * Non-state actions, shown after the state actions and before the "More
+   * actions" menu. They never change what that menu offers, and they are
+   * shown whatever the current state is - even when there is no state
+   * action left.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onStateSelect?: ((stateId: string) => void) | undefined;
   moreMenuTitle?: string | undefined;
   isDisabled?: boolean | undefined;
@@ -138,36 +194,34 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
    * have a prominent button, so repeating them under "More actions" adds noise
    * and makes the menu look useful when it contains no additional choice.
    */
-  const visibleActionStateIds: Set<string> = new Set(
-    props.actions.map((action: EventStateAction) => {
+  /*
+   * Every state timeline refuses a move back up the list, for an episode as
+   * for an incident, an alert or a maintenance event (Common/Utils/StateMove):
+   * the menu offers only the states the record may move into next, so it
+   * never offers a change the server would refuse. A record in a state that
+   * is not in the list keeps every other state on offer, rather than losing
+   * the menu it would recover with.
+   */
+  const statesForMenu: Array<EventStateItem> = getEventStateMenuStates({
+    list: props.stateList,
+    states: props.states,
+    currentStateId: props.currentStateId,
+    buttonStateIds: props.actions.map((action: EventStateAction): string => {
       return action.stateId;
     }),
-  );
-  const includedMenuStateIds: Set<string> = new Set();
+  });
 
-  const statesForMenu: Array<EventStateItem> = props.states.filter(
-    (state: EventStateItem, stateIndex: number) => {
-      /*
-       * State timeline APIs only accept forward transitions. Hiding earlier
-       * states prevents the menu from offering a change the server will reject.
-       * If the current state is not in the supplied list, keep alternatives
-       * available rather than making the recovery menu disappear entirely.
-       */
-      const isForwardState: boolean =
-        currentStateIndex < 0 || stateIndex > currentStateIndex;
-      const shouldIncludeState: boolean =
-        isForwardState &&
-        state.id !== props.currentStateId &&
-        !visibleActionStateIds.has(state.id) &&
-        !includedMenuStateIds.has(state.id);
-
-      if (shouldIncludeState) {
-        includedMenuStateIds.add(state.id);
-      }
-
-      return shouldIncludeState;
-    },
-  );
+  /*
+   * On a phone the buttons grow from their own width (flex-auto), so two
+   * that do not both fit wrap onto rows of their own instead of being cut
+   * to an even share of the row and truncating their labels.
+   */
+  const actionBaseClassName: string =
+    "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+  const primaryActionClassName: string =
+    "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
+  const neutralActionClassName: string =
+    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
 
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
@@ -175,11 +229,9 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     const isPrimary: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
-    const baseClassName: string =
-      "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
     const variantClassName: string = isPrimary
-      ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700"
-      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+      ? primaryActionClassName
+      : neutralActionClassName;
 
     return (
       <button
@@ -191,7 +243,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         onClick={() => {
           props.onActionClick(action.stateId);
         }}
-        className={`${baseClassName} ${variantClassName}`}
+        className={`${actionBaseClassName} ${variantClassName}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -201,47 +253,196 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // The action buttons + "change state" overflow menu, shared by both layouts.
-  const actionsCluster: ReactElement = (
-    <div
-      className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto"
-      role="group"
-      aria-label="Event actions"
-    >
-      {props.actions.map((action: EventStateAction) => {
-        return getActionButton(action);
-      })}
-      {props.onStateSelect && statesForMenu.length > 0 && (
-        <MoreMenu
-          text="More actions"
-          elementToBeShownInsteadOfButton={
-            <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
-          }
-          triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          isDisabled={props.isDisabled}
+  const getSecondaryActionButton: (action: EventPanelAction) => ReactElement = (
+    action: EventPanelAction,
+  ): ReactElement => {
+    const translatedActionLabel: string =
+      translateString(action.label) || action.label;
+
+    if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {
+      /*
+       * The menu's own wrapper is what the row lays out, so it grows on a
+       * phone the way the other buttons do (flex-auto), and the button
+       * fills it.
+       */
+      return (
+        <div
+          key={action.id}
+          className="flex min-w-[7rem] max-w-full flex-auto sm:max-w-64 sm:flex-none [&>div]:w-full"
         >
-          {[
-            <MoreMenuSection
-              key="states"
-              title={props.moreMenuTitle || "Change state to"}
-            >
-              {statesForMenu.map((state: EventStateItem) => {
-                return (
-                  <MoreMenuItem
-                    key={state.id}
-                    text={state.name}
-                    onClick={() => {
-                      props.onStateSelect!(state.id);
-                    }}
-                  />
-                );
-              })}
-            </MoreMenuSection>,
-          ]}
-        </MoreMenu>
-      )}
-    </div>
-  );
+          <MoreMenu
+            text={translatedActionLabel}
+            dataTestId={action.id}
+            elementToBeShownInsteadOfButton={
+              <span className="inline-flex items-center gap-2">
+                {action.icon && (
+                  <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+                )}
+                <span className="truncate">{translatedActionLabel}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                />
+              </span>
+            }
+            triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
+          >
+            {action.menuItems.map((item: EventPanelMenuItem) => {
+              return (
+                <MoreMenuItem
+                  key={item.id}
+                  text={item.label}
+                  icon={item.icon}
+                  onClick={item.onClick}
+                />
+              );
+            })}
+          </MoreMenu>
+        </div>
+      );
+    }
+
+    if (action.href && !props.isDisabled && !action.isDisabled) {
+      // Where the link goes - "#incident-42" - is a name, not text to translate.
+      const linkTooltip: string | undefined = action.tooltip || undefined;
+
+      const link: ReactElement = (
+        <a
+          key={action.id}
+          id={action.id}
+          href={action.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${actionBaseClassName} ${neutralActionClassName}`}
+        >
+          {action.icon && (
+            <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+          )}
+          <span className="truncate">{translatedActionLabel}</span>
+        </a>
+      );
+
+      if (!linkTooltip) {
+        return link;
+      }
+
+      return (
+        <Tooltip key={action.id} text={linkTooltip}>
+          {link}
+        </Tooltip>
+      );
+    }
+
+    const translatedTooltip: string | undefined = action.tooltip
+      ? translateString(action.tooltip) || action.tooltip
+      : undefined;
+    const isDisabled: boolean = Boolean(props.isDisabled || action.isDisabled);
+    /*
+     * A disabled <button> swallows the pointer, and tippy will not show a
+     * tooltip on a disabled trigger, so a disabled action with a reason hands
+     * the pointer (and keyboard focus) to a wrapper that carries the tooltip -
+     * the same arrangement as the shared Button.
+     */
+    const hasReachableTooltip: boolean =
+      isDisabled && Boolean(translatedTooltip);
+
+    const button: ReactElement = (
+      <button
+        key={action.id}
+        id={action.id}
+        type="button"
+        title={hasReachableTooltip ? undefined : translatedActionLabel}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        onClick={() => {
+          if (isDisabled) {
+            return;
+          }
+
+          action.onClick();
+        }}
+        className={`${actionBaseClassName} ${neutralActionClassName}${
+          hasReachableTooltip ? " pointer-events-none w-full" : ""
+        }`}
+      >
+        {action.icon && (
+          <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+        )}
+        <span className="truncate">{translatedActionLabel}</span>
+      </button>
+    );
+
+    if (!hasReachableTooltip) {
+      return button;
+    }
+
+    return (
+      <Tooltip key={action.id} text={translatedTooltip}>
+        <span
+          className="inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
+          tabIndex={0}
+          data-testid={`${action.id}-disabled-wrapper`}
+        >
+          {button}
+        </span>
+      </Tooltip>
+    );
+  };
+
+  /*
+   * The action buttons + "change state" overflow menu, shared by both
+   * layouts. `widthClassName` is where the cluster stops taking a full row
+   * of its own - the breakpoint at which its layout puts it beside the
+   * title or the pills.
+   */
+  const getActionsCluster: (widthClassName: string) => ReactElement = (
+    widthClassName: string,
+  ): ReactElement => {
+    return (
+      <div
+        className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}
+        role="group"
+        aria-label={translateString("Event actions")}
+      >
+        {props.actions.map((action: EventStateAction) => {
+          return getActionButton(action);
+        })}
+        {(props.secondaryActions || []).map((action: EventPanelAction) => {
+          return getSecondaryActionButton(action);
+        })}
+        {props.onStateSelect && statesForMenu.length > 0 && (
+          <MoreMenu
+            text="More actions"
+            elementToBeShownInsteadOfButton={
+              <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+            }
+            triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            isDisabled={props.isDisabled}
+          >
+            {[
+              <MoreMenuSection
+                key="states"
+                title={props.moreMenuTitle || "Change state to"}
+              >
+                {statesForMenu.map((state: EventStateItem) => {
+                  return (
+                    <MoreMenuItem
+                      key={state.id}
+                      text={state.name}
+                      color={state.color}
+                      onClick={() => {
+                        props.onStateSelect!(state.id);
+                      }}
+                    />
+                  );
+                })}
+              </MoreMenuSection>,
+            ]}
+          </MoreMenu>
+        )}
+      </div>
+    );
+  };
 
   // The state / severity / private / duration pills, shared by both layouts.
   const metaItems: ReactElement = (
@@ -274,7 +475,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
       {props.durationStartsAt && (
         <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
           <Icon icon={IconProp.Clock} className="h-4 w-4 text-gray-400" />
-          <span>{props.durationPrefix || "Ongoing for"}</span>
+          <span>{translateString(props.durationPrefix || "Ongoing for")}</span>
           <span className="font-medium text-gray-700">
             <LiveDuration
               startDate={props.durationStartsAt}
@@ -307,14 +508,20 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       {props.title ? (
-        /* Header layout: eyebrow number + prominent title, pills on the row below. */
+        /*
+         * Header layout: eyebrow number + prominent title, pills on the row
+         * below. The actions sit beside the title only from xl: next to a
+         * side menu, a narrower header squeezed the title down to a few
+         * characters and stacked the actions one per row. Beside it, the
+         * actions keep their width and a long title truncates instead.
+         */
         <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               {props.identifier && (
                 <span
                   className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-600"
-                  title="Number"
+                  title={translateString("Number")}
                 >
                   {props.identifier}
                 </span>
@@ -325,7 +532,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 </h2>
               </Tooltip>
             </div>
-            {actionsCluster}
+            {getActionsCluster("xl:w-auto xl:shrink-0")}
           </div>
           {hasMeta && (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -371,14 +578,14 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             {props.identifier && (
               <span
                 className="text-sm font-semibold text-gray-900"
-                title="Number"
+                title={translateString("Number")}
               >
                 {props.identifier}
               </span>
             )}
             {metaItems}
           </div>
-          {actionsCluster}
+          {getActionsCluster("md:w-auto")}
         </div>
       )}
       {props.states.length > 1 && (

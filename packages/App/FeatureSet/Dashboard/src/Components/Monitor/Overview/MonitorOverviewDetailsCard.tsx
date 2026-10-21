@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorType, {
   MonitorTypeHelper,
@@ -54,22 +54,11 @@ const MonitorOverviewDetailsCard: FunctionComponent<ComponentProps> = (
       }}
       editButtonText="Edit"
       isEditable={true}
-      formSteps={[
-        {
-          title: "Monitor Info",
-          id: "monitor-info",
-        },
-        {
-          title: "Labels",
-          id: "labels",
-        },
-      ]}
       formFields={[
         {
           field: {
             name: true,
           },
-          stepId: "monitor-info",
           title: "Name",
           fieldType: FormFieldSchemaType.Text,
           required: true,
@@ -82,29 +71,12 @@ const MonitorOverviewDetailsCard: FunctionComponent<ComponentProps> = (
           field: {
             description: true,
           },
-          stepId: "monitor-info",
           title: "Description",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Description",
         },
-        {
-          field: {
-            labels: true,
-          },
-          stepId: "labels",
-          title: "Labels ",
-          description:
-            "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Labels",
-        },
+        getLabelsFormField<Monitor>(),
       ]}
       refresher={props.refresher}
       onSaveSuccess={() => {

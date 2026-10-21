@@ -8,6 +8,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Dashboards from "../Pages/Dashboards/Dashboards";
+import DashboardsArchived from "../Pages/Dashboards/Archived";
 
 import DashboardView from "../Pages/Dashboards/View/Index";
 
@@ -17,7 +18,7 @@ import DashboardViewDelete from "../Pages/Dashboards/View/Delete";
 
 import DashboardViewSettings from "../Pages/Dashboards/View/Settings";
 
-import DashboardViewAuthenticationSettings from "../Pages/Dashboards/View/AuthenticationSettings";
+import DashboardViewSharing from "../Pages/Dashboards/View/Sharing";
 
 import DashboardViewBranding from "../Pages/Dashboards/View/Branding";
 
@@ -36,6 +37,9 @@ import DashboardSettingsDataSources from "../Pages/Dashboards/Settings/DataSourc
 import DashboardSettingsDataSourceView from "../Pages/Dashboards/Settings/DataSourceView";
 import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule";
 import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -49,6 +53,17 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <Dashboards
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
+            />
+          }
+        />
+
+        {/* Static `archived` outranks the dashboard view's `:id`. */}
+        <PageRoute
+          path={DashboardsRoutePath[PageMap.DASHBOARDS_ARCHIVED] || ""}
+          element={
+            <DashboardsArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route}
             />
           }
         />
@@ -139,6 +154,13 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Dashboard,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DASHBOARDS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -195,12 +217,16 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/*
+         * Sharing: who can view the dashboard. The address is the old
+         * Authentication page's, so links and bookmarks still land on it.
+         */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS,
           )}
           element={
-            <DashboardViewAuthenticationSettings
+            <DashboardViewSharing
               {...props}
               pageRoute={
                 RouteMap[
@@ -244,6 +270,12 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Dashboard,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

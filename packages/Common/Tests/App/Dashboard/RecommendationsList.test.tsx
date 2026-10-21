@@ -250,7 +250,106 @@ beforeEach(() => {
   monitorRouteRequests = [];
 });
 
+/*
+ * A recommendation of another resource type, in a catalog category: what the
+ * category headings are read from.
+ */
+type ViewModelOfFunction = (data: {
+  resourceType: MonitorRecommendationResourceType;
+  templateId: string;
+  category: string;
+}) => RecommendationViewModel;
+
+const viewModelOf: ViewModelOfFunction = (data: {
+  resourceType: MonitorRecommendationResourceType;
+  templateId: string;
+  category: string;
+}): RecommendationViewModel => {
+  return {
+    recommendation: {
+      ...buildRecommendation({
+        templateId: data.templateId,
+        name: data.templateId,
+        category: data.category,
+        severity: "Warning",
+      }),
+      recommendationId: `${data.resourceType}:${data.templateId}`,
+      resourceType: data.resourceType,
+    },
+    status: RecommendationStatus.Available,
+  };
+};
+
 describe("RecommendationsList", () => {
+  /*
+   * The catalog's own category values are identifiers ("ControlPlane", "PG",
+   * "HA"). The headings use the names the monitor form's template picker
+   * gives the same categories, so the two pages never disagree.
+   */
+  describe("category headings", () => {
+    test.each([
+      [
+        MonitorRecommendationResourceType.Kubernetes,
+        "ControlPlane",
+        "Control Plane",
+      ],
+      [MonitorRecommendationResourceType.Ceph, "PG", "Placement Groups"],
+      [MonitorRecommendationResourceType.Proxmox, "HA", "High Availability"],
+      [MonitorRecommendationResourceType.VMware, "Host", "ESXi Host"],
+    ])(
+      "a %s template in %s is listed under %s",
+      (
+        resourceType: MonitorRecommendationResourceType,
+        category: string,
+        label: string,
+      ) => {
+        renderList({
+          groups: [
+            {
+              category: category,
+              recommendations: [
+                viewModelOf({ resourceType, templateId: "t-1", category }),
+              ],
+            },
+          ],
+        });
+
+        expect(
+          screen.getByRole("heading", { level: 4, name: label }),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("heading", { level: 4, name: category }),
+        ).not.toBeInTheDocument();
+
+        // Select all still carries the catalog's own value.
+        expect(
+          screen.getByTestId(`recommendation-group-select-all-${category}`),
+        ).toBeInTheDocument();
+      },
+    );
+
+    test("a category the picker names no heading for is shown as it is", () => {
+      renderList({
+        groups: [
+          {
+            category: "Latency",
+            recommendations: [
+              viewModelOf({
+                resourceType: MonitorRecommendationResourceType.Service,
+                templateId: "svc-latency",
+                category: "Latency",
+              }),
+            ],
+          },
+        ],
+      });
+
+      expect(
+        screen.getByRole("heading", { level: 4, name: "Latency" }),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("groups and cards", () => {
     /*
      * Catalog order, not alphabetical. The template modules declare their most

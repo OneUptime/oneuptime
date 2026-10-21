@@ -1,6 +1,7 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 import MonitorMetricType from "./MonitorMetricType";
+import MonitorType from "./MonitorType";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -56,11 +57,26 @@ export enum CheckOn {
   // Trace monitors.
   SpanCount = "Span Count",
 
+  /*
+   * AI / LLM monitors (MonitorStepLlmMonitor says what makes an answer
+   * bad). Stored in monitor criteria; never rename one.
+   */
+  LlmBadAnswerPercent = "Bad AI Answers (in %)",
+  LlmBadAnswerCount = "Bad AI Answers",
+  LlmAnswerCount = "AI Answers",
+
   // Exception monitors.
   ExceptionCount = "Exception Count",
 
   // Profile monitors.
   ProfileCount = "Profile Count",
+  /*
+   * The share of the window's time (or memory) spent in code whose frame
+   * matches the monitor's function (MonitorStepProfileMonitor.functionName):
+   * a function's share of CPU that jumps after a deploy. Stored in monitor
+   * criteria; never rename it.
+   */
+  ProfileFunctionShare = "Function Share (in %)",
 
   // Metric Monitors.
   MetricValue = "Metric Value",
@@ -93,6 +109,58 @@ export enum CheckOn {
   SnmpTrapReceived = "SNMP Trap Received (Trap OID)",
   SnmpInterfaceUtilizationPercent = "SNMP Interface Utilization (in %)",
   SnmpInterfaceErrorsPerSecond = "SNMP Interface Errors (per second)",
+  /*
+   * A column of a walked SNMP table (snmpMonitorOptions.tableKey and
+   * tableColumnOid), compared row by row: met when any in-scope row
+   * matches. snmpMonitorOptions.tableRow narrows it to one row, or "*" to
+   * raise one alert per row.
+   */
+  SnmpTableValue = "SNMP Table Value",
+  // How many rows a walked SNMP table has (or how many match tableRow).
+  SnmpTableRowCount = "SNMP Table Row Count",
+  /*
+   * True when an in-scope row has a status outside its column's healthy
+   * values - the values a table definition (usually a vendor template)
+   * declares as "fine". One criteria covers a whole tunnel or fan table
+   * without anyone restating which numbers mean up.
+   */
+  SnmpTableRowIsUnhealthy = "SNMP Table Row Is Unhealthy",
+  /*
+   * The values carried inside a trap, not its OID. Vendors that send every
+   * event under one trap OID - Sophos sends all of them as sfosNotification
+   * with the event text in a varbind - can only be told apart this way.
+   * snmpMonitorOptions.oid optionally narrows it to one varbind.
+   */
+  SnmpTrapVarbindValue = "SNMP Trap Varbind Value",
+  /*
+   * Transceivers (SFP, SFP+, QSFP), judged port by port and scoped like the
+   * interface CheckOns: snmpMonitorOptions.interfaceName narrows them to one
+   * port by name or alias, and "*" raises one alert per port.
+   *
+   * Not detected: a port that had an optic no longer reports one, for two
+   * polls in a row, while the port is still enabled.
+   */
+  SnmpTransceiverNotDetected = "SNMP Transceiver Not Detected",
+  /*
+   * A reading at or past the device's own alarm threshold, or a fault the
+   * device flags (loss of signal, transmitter fault).
+   */
+  SnmpTransceiverPastAlarmThreshold = "SNMP Transceiver Past Alarm Threshold",
+  // A reading at or past the device's warning threshold (alarms included).
+  SnmpTransceiverPastWarningThreshold = "SNMP Transceiver Past Warning Threshold",
+  /*
+   * One reading (snmpMonitorOptions.transceiverReading: RX or TX power,
+   * temperature, voltage, bias current) against a value of your own - for
+   * devices that report no thresholds. Met when any lane of any optic in
+   * scope matches.
+   */
+  SnmpTransceiverReading = "SNMP Transceiver Reading",
+  /*
+   * How far the received power is below its best daily average of the last
+   * 30 days, in dB. Catches a fibre or an optic degrading over weeks, before
+   * the link goes down.
+   */
+  SnmpTransceiverRxPowerDrop = "SNMP Transceiver RX Power Drop (in dB)",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -115,6 +183,25 @@ export enum CheckOn {
   DnssecSignatureExpiresInDays = "DNSSEC Signature Expires In Days",
   DnssecResolverConsensus = "DNSSEC Resolver Consensus (AD Flag)",
   DnssecNameserverConsistent = "DNSSEC Nameservers Are Consistent",
+
+  /*
+   * NTP monitors. Online is "answered this probe's request with an NTP
+   * reply"; synchronized is "and the time it serves is usable" (stratum 1 to
+   * 15, no leap alarm). The offset is compared whichever way the clock is
+   * off, and the stratum is the effective one - a kiss-o'-death's 0 counts
+   * as 16 (NtpMonitorUtil.getEffectiveStratum).
+   */
+  NtpIsOnline = "NTP Is Online",
+  NtpIsSynchronized = "NTP Is Synchronized",
+  NtpStratum = "NTP Stratum",
+  NtpClockOffset = "NTP Clock Offset (in ms)",
+  NtpResponseTime = "NTP Response Time (in ms)",
+  /*
+   * The server's own estimate of how far its time could be from the true
+   * time. ntpd stops trusting a server once half its root delay plus this
+   * passes 1.5 seconds, however good its stratum looks.
+   */
+  NtpRootDispersion = "NTP Root Dispersion (in ms)",
 
   // SQL Query monitors.
   SqlIsOnline = "SQL Is Online",
@@ -144,6 +231,17 @@ export enum CheckOn {
   ExternalStatusPageComponentStatus = "External Status Page Component Status",
   ExternalStatusPageActiveIncidents = "External Status Page Active Incidents",
   ExternalStatusPageResponseTime = "External Status Page Response Time (in ms)",
+
+  /*
+   * Probe Status monitors: how many of the probes a monitor watches are
+   * Connected, and how many are Disconnected - nothing heard from them for
+   * three minutes (Probe:UpdateConnectionStatus). Counts rather than a
+   * yes/no, so one monitor can watch several probes and alert when any of
+   * them, or more than you can spare, is gone. Stored in monitor criteria;
+   * never rename one.
+   */
+  ConnectedProbes = "Connected Probes",
+  DisconnectedProbes = "Disconnected Probes",
 }
 
 export interface ServerMonitorOptions {
@@ -160,6 +258,21 @@ export interface SnmpMonitorOptions {
    * every monitored interface, the historical behavior.
    */
   interfaceName?: string | undefined;
+  /*
+   * For the SNMP table CheckOns: which table (its key), which column (its
+   * OID), and which rows. An empty row scope means every row, combined into
+   * one alert; "*" means every row with one alert per row; anything else is
+   * a row name or index.
+   */
+  tableKey?: string | undefined;
+  tableColumnOid?: string | undefined;
+  tableRow?: string | undefined;
+  /*
+   * For CheckOn.SnmpTransceiverReading: which reading - a
+   * TransceiverReadingKind value ("rxPower", "txPower", "temperature",
+   * "voltage", "biasCurrent").
+   */
+  transceiverReading?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -170,6 +283,19 @@ export interface DatabaseMonitorOptions {
    * met and is reported as misconfigured rather than silently ignored.
    */
   metricType?: MonitorMetricType | undefined;
+}
+
+export interface CustomCodeMonitorOptions {
+  /*
+   * For CheckOn.ResultValue (custom code / synthetic monitors): the field
+   * inside an object/array result the filter compares against. Supports dot
+   * notation and [index] array brackets (e.g. "status", "cpu_busy_percent",
+   * "data.items[0].value", "results[2].status"). Object keys containing a
+   * literal dot are not addressable - only "[index]" reaches into arrays.
+   * Empty/undefined means "compare the whole result value" - the historical
+   * behavior for primitive results, so this stays backward compatible.
+   */
+  resultValuePath?: string | undefined;
 }
 
 export enum EvaluateOverTimeType {
@@ -281,6 +407,7 @@ export interface CriteriaFilter {
   metricMonitorOptions?: MetricMonitorOptions | undefined;
   snmpMonitorOptions?: SnmpMonitorOptions | undefined;
   databaseMonitorOptions?: DatabaseMonitorOptions | undefined;
+  customCodeMonitorOptions?: CustomCodeMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
@@ -360,6 +487,10 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||
       checkOn === CheckOn.DnssecChainValid ||
@@ -367,6 +498,8 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnssecDsExists ||
       checkOn === CheckOn.DnssecResolverConsensus ||
       checkOn === CheckOn.DnssecNameserverConsistent ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
       checkOn === CheckOn.SqlIsOnline ||
       checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
@@ -429,22 +562,185 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
-      checkOn === CheckOn.DatabaseIsOnline
+      checkOn === CheckOn.DatabaseIsOnline ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
+    );
+  }
+
+  // The checks of a response a Website or an API monitor gets, alike.
+  private static readonly HTTP_MATCH_HISTORY_CHECK_ONS: ReadonlyArray<CheckOn> =
+    [
+      CheckOn.ResponseBody,
+      CheckOn.ResponseHeader,
+      CheckOn.ResponseHeaderValue,
+      CheckOn.JavaScriptExpression,
+      CheckOn.IsRequestTimeout,
+    ];
+
+  /*
+   * The checks that keep a match history, per monitor type - see
+   * hasMatchHistory. Read through getMatchHistoryCheckOns, never directly,
+   * so a copy cannot drift from it.
+   */
+  private static readonly MATCH_HISTORY_CHECK_ONS: Partial<
+    Record<MonitorType, ReadonlyArray<CheckOn>>
+  > = {
+    [MonitorType.Website]: CriteriaFilterUtil.HTTP_MATCH_HISTORY_CHECK_ONS,
+    [MonitorType.API]: CriteriaFilterUtil.HTTP_MATCH_HISTORY_CHECK_ONS,
+    [MonitorType.Ping]: [CheckOn.IsRequestTimeout],
+    [MonitorType.IP]: [CheckOn.IsRequestTimeout],
+    [MonitorType.Port]: [CheckOn.IsRequestTimeout],
+  };
+
+  /**
+   * Whether this filter, evaluated over a period of time, is judged from
+   * its match history: whether it matched, check by check.
+   *
+   * Nothing records a response body, a header or a JavaScript expression as
+   * a series, so there is no value to look back over the way Response Time
+   * has one. What can be recorded is whether the filter matched: on every
+   * check of such a filter OneUptime writes 1 or 0 for it
+   * (CriteriaFilterMatchHistory on the server), and All Values / Any Value
+   * then judge the window from that record. That is how "the body has not
+   * contained 'App Title' for 5 minutes" is told apart from a restarting
+   * app's one placeholder page (issue #4686).
+   *
+   * Per monitor type, because "every check over the last N minutes" needs a
+   * schedule to measure against: these are monitors a probe checks on their
+   * monitoring interval. The criteria form offers the checkbox from this and
+   * the evaluator decides how to judge the filter from it, so the two cannot
+   * disagree.
+   */
+  public static hasMatchHistory(data: {
+    checkOn: CheckOn | undefined;
+    monitorType: MonitorType | undefined;
+  }): boolean {
+    if (!data.checkOn) {
+      return false;
+    }
+
+    return CriteriaFilterUtil.getMatchHistoryCheckOns(
+      data.monitorType,
+    ).includes(data.checkOn);
+  }
+
+  // The checks of a monitor type that keep a match history, in form order.
+  public static getMatchHistoryCheckOns(
+    monitorType: MonitorType | undefined,
+  ): Array<CheckOn> {
+    if (!monitorType) {
+      return [];
+    }
+
+    return [...(CriteriaFilterUtil.MATCH_HISTORY_CHECK_ONS[monitorType] || [])];
+  }
+
+  /**
+   * Whether an over-time window of this check is judged one check at a
+   * time: a 1 / 0 series (isBooleanSeries), or a check judged from its
+   * match history (hasMatchHistory). Either way every check is a yes or a
+   * no, so the window is offered All Values and Any Value only - an average
+   * of "contained the text" means nothing - and an aggregate saved on it
+   * through the API or Terraform is judged as All Values
+   * (getEffectiveEvaluateOverTimeType).
+   *
+   * Pass the monitor type whenever it is known: a JavaScript Expression
+   * keeps a match history on an API monitor but not on a SQL Query monitor,
+   * whose window the server does not judge check by check. Without one, a
+   * check that keeps a match history on any monitor type counts.
+   */
+  public static isJudgedCheckByCheck(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    return (
+      CriteriaFilterUtil.isBooleanSeries(checkOn) ||
+      CriteriaFilterUtil.keepsMatchHistory(checkOn, monitorType)
+    );
+  }
+
+  /*
+   * A window's length in minutes, 0 when it has none. The dashboard has
+   * saved it as a string, the API and Terraform send a number.
+   */
+  public static getEvaluateOverTimeMinutes(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
+    const minutes: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes,
+    );
+
+    return Number.isFinite(minutes) && minutes > 0 ? minutes : 0;
+  }
+
+  /**
+   * Whether a filter is judged over a window, for everything that describes
+   * it. A check that keeps a match history (keepsMatchHistory) is judged
+   * from it only with a window of some minutes; with the box ticked and no
+   * minutes - through the API, or a cleared dropdown - it is judged on the
+   * latest check, as it always was, so nothing should describe a window for
+   * it. Every other filter is evaluated over time whenever its box is
+   * ticked.
+   */
+  public static isEvaluatedOverTime(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!criteriaFilter?.evaluateOverTime) {
+      return false;
+    }
+
+    if (
+      CriteriaFilterUtil.keepsMatchHistory(criteriaFilter.checkOn, monitorType)
+    ) {
+      return CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) > 0;
+    }
+
+    return true;
+  }
+
+  /**
+   * hasMatchHistory for a caller that may not know the monitor type: with
+   * one, whether the check keeps a match history on that monitor; without
+   * one, whether it does on any.
+   */
+  public static keepsMatchHistory(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!checkOn) {
+      return false;
+    }
+
+    if (monitorType) {
+      return CriteriaFilterUtil.hasMatchHistory({
+        checkOn: checkOn,
+        monitorType: monitorType,
+      });
+    }
+
+    return Object.values(CriteriaFilterUtil.MATCH_HISTORY_CHECK_ONS).some(
+      (checkOns: ReadonlyArray<CheckOn> | undefined): boolean => {
+        return Boolean(checkOns?.includes(checkOn));
+      },
     );
   }
 
   /**
    * The evaluation type a filter is actually judged with.
    *
-   * This only differs from the saved type on a boolean series that was saved
-   * with Average, Sum, Maximum Value or Minimum Value. The dashboard no
-   * longer offers those there, but older filters, and filters sent through
-   * the API or Terraform, can still carry them. They are judged as All
-   * Values: the stricter of the two choices, so the filter fires only when
-   * the whole window agrees rather than off a single sample.
+   * This only differs from the saved type on a check judged check by check
+   * (isJudgedCheckByCheck) that was saved with Average, Sum, Maximum Value
+   * or Minimum Value. The dashboard does not offer those there, but older
+   * filters, and filters sent through the API or Terraform, can still carry
+   * them. They are judged as All Values: the stricter of the two choices, so
+   * the filter fires only when the whole window agrees rather than off a
+   * single sample.
    */
   public static getEffectiveEvaluateOverTimeType(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): EvaluateOverTimeType | undefined {
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
       criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType;
@@ -453,7 +749,10 @@ export class CriteriaFilterUtil {
       !evaluateOverTimeType ||
       evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
       evaluateOverTimeType === EvaluateOverTimeType.AnyValue ||
-      !CriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+      !CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
     ) {
       return evaluateOverTimeType;
     }
@@ -463,12 +762,18 @@ export class CriteriaFilterUtil {
 
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): Array<EvaluateOverTimeType> {
     if (!criteriaFilter) {
       return [];
     }
 
-    if (CriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)) {
+    if (
+      CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter.checkOn,
+        monitorType,
+      )
+    ) {
       return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
     }
 
@@ -501,7 +806,55 @@ export class CriteriaFilterUtil {
     }
   }
 
-  public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
+  // The transceiver CheckOns.
+  public static isTransceiverCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    );
+  }
+
+  /*
+   * The CheckOns scoped by snmpMonitorOptions.interfaceName - a name, an
+   * alias, empty for every interface as one alert, or "*" for one alert per
+   * interface. One list, read by the criteria form and the evaluator alike.
+   */
+  public static isInterfaceScopedCheckOn(
+    checkOn: CheckOn | undefined,
+  ): boolean {
+    return (
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
+    );
+  }
+
+  /**
+   * Whether the criteria form offers "Evaluate this criteria over a period
+   * of time" for this check.
+   *
+   * Every check with a recorded series is offered it, whatever the monitor.
+   * The checks judged from their match history (hasMatchHistory) are
+   * offered it only when the monitor type is known and keeps that history,
+   * so a caller that does not pass one sees the series-backed list alone.
+   */
+  public static isEvaluateOverTimeFilter(
+    checkOn: CheckOn,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      CriteriaFilterUtil.hasMatchHistory({
+        checkOn: checkOn,
+        monitorType: monitorType,
+      })
+    ) {
+      return true;
+    }
+
     return (
       checkOn === CheckOn.ResponseStatusCode ||
       checkOn === CheckOn.ResponseTime ||
@@ -525,12 +878,30 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.ExternalStatusPageResponseTime ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
       /*
+       * Each NTP check is one sample, and a clock that is off for one check
+       * is often a slow path rather than a bad server: an offset averaged
+       * over five minutes is the steadier alert.
+       */
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
+      checkOn === CheckOn.NtpStratum ||
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion ||
+      /*
        * Over time is the most useful shape for database thresholds: a single
        * sample of "connections above 90%" is a spike, five minutes of it is
        * an incident.
        */
       checkOn === CheckOn.DatabaseIsOnline ||
-      checkOn === CheckOn.DatabaseMetric
+      checkOn === CheckOn.DatabaseMetric ||
+      /*
+       * Recorded every minute, so a window is the hold-down: "a probe has
+       * been disconnected for 5 minutes" rides out a slow restart that the
+       * three-minute connection cutoff alone would call an outage.
+       */
+      checkOn === CheckOn.ConnectedProbes ||
+      checkOn === CheckOn.DisconnectedProbes
     );
   }
 }
@@ -555,9 +926,16 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),
     interfaceName: Zod.string().optional(),
+    tableKey: Zod.string().optional(),
+    tableColumnOid: Zod.string().optional(),
+    tableRow: Zod.string().optional(),
+    transceiverReading: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),
+  }).optional(),
+  customCodeMonitorOptions: Zod.object({
+    resultValuePath: Zod.string().optional(),
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),

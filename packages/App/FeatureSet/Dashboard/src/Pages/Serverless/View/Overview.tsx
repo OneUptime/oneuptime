@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getServerlessFunctionConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -11,6 +13,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -19,6 +22,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -28,9 +32,10 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -42,6 +47,8 @@ import {
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServerlessMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -50,6 +57,7 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
 const ServerlessFunctionOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [serverlessFunction, setServerlessFunction] =
@@ -67,6 +75,11 @@ const ServerlessFunctionOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the span metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the span metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -141,6 +154,15 @@ const ServerlessFunctionOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The metrics follow the function's identity, not the model object:
+   * fetchModel stores a new object on every refresh, and an effect keyed on
+   * it re-ran on every tick, cancelling a load still running for the same
+   * window. A refresh reloads them through metricsRefreshCount instead.
+   */
+  const functionIdentifier: string =
+    (serverlessFunction?.functionIdentifier as string | undefined) || "";
+
   useEffect(() => {
     const fn: ServerlessFunction | null = serverlessFunction;
     if (!fn?.functionIdentifier) {
@@ -152,24 +174,65 @@ const ServerlessFunctionOverview: FunctionComponent<
     const start: Date = range.startValue;
     const end: Date = range.endValue;
     setChartWindow({ start, end });
+
+    /*
+     * Staleness guard: a chart zoom, its reset, the picker and Refresh can
+     * each start a fetch while another is in flight. A slow response for
+     * the window the reader just left must not land on the charts after the
+     * newer one (a double-click right after a drag is exactly that race).
+     */
+    let ignore: boolean = false;
+    metricsInFlightRef.current = true;
     fetchSpanMetrics({
       attributes: { "resource.faas.name": fn.functionIdentifier as string },
       start,
       end,
     })
       .then((m: SpanMetrics) => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
         setMetrics(m);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
         setMetricsLoading(false);
       });
-  }, [serverlessFunction, timeRange]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [functionIdentifier, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model and the span metrics. The auto-refresh tick
+   * lets a metrics load that is still running land instead of replacing it
+   * with one for the same window: when the span aggregates outlast the
+   * interval, the tiles and charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "serverless-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -224,7 +287,11 @@ const ServerlessFunctionOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      sublabel: m
+        ? translator.translateTemplate("{{errors}} errored", {
+            errors: formatCompact(m.errors),
+          })
+        : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
       description: SERVERLESS_METRIC_DESCRIPTIONS.errorRate,
@@ -291,73 +358,85 @@ const ServerlessFunctionOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "Invocation traces and spans",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Function logs",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Function metrics",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-  ];
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Function Identifier (faas.name)", value: fn.functionIdentifier },
+    { label: "Function Name (faas.name)", value: fn.functionIdentifier },
     { label: "Cloud Platform", value: fn.cloudPlatform },
     { label: "Cloud Provider", value: fn.cloudProvider },
     { label: "Cloud Region", value: fn.cloudRegion },
     { label: "Cloud Account ID", value: fn.cloudAccountId },
     { label: "Function Version (faas.version)", value: fn.functionVersion },
     { label: "Runtime", value: runtime },
-    { label: "Agent Version", value: fn.agentVersion },
+    {
+      label: "Agent Version",
+      value: fn.agentVersion,
+      element: (
+        <AgentVersion
+          kind={AgentKind.ServerlessSdk}
+          version={fn.agentVersion}
+        />
+      ),
+    },
   ];
 
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Invocations / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back.
+   */
   return (
-    <ResourceOverview
-      icon={IconProp.Bolt}
-      title={(fn.name as string) || "Serverless Function"}
-      identifier={(fn.functionIdentifier as string) || ""}
-      identifierLabel="faas.name"
-      status={fn.otelCollectorStatus}
-      lastSeenAt={fn.lastSeenAt}
-      description={fn.description as string}
-      chips={chips}
-      tiles={tiles}
-      charts={charts}
-      controls={
-        <AutoRefreshControl
-          autoRefreshInterval={autoRefreshInterval}
-          onAutoRefreshIntervalChange={setAutoRefreshInterval}
-          onManualRefresh={(): void => {
-            fetchModel(false).catch(() => {});
-          }}
-          isRefreshing={isRefreshing}
-          lastRefreshedAt={lastRefreshedAt}
-          timeRangePicker={
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={(value: RangeStartAndEndDateTime): void => {
-                setTimeRange(value);
-              }}
-            />
-          }
-        />
-      }
-      quickLinks={quickLinks}
-      detailRows={detailRows}
-      labels={fn.labels}
-    />
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      <ResourceOverview
+        icon={IconProp.Bolt}
+        title={(fn.name as string) || "Serverless Function"}
+        identifier={(fn.functionIdentifier as string) || ""}
+        identifierLabel="faas.name"
+        status={fn.otelCollectorStatus}
+        lastSeenAt={fn.lastSeenAt}
+        connectionGuide={
+          <ResourceConnectionGuideCard
+            status={fn.otelCollectorStatus as string | undefined}
+            lastSeenAt={fn.lastSeenAt}
+            guide={getServerlessFunctionConnectionGuide(
+              (fn.functionIdentifier as string | undefined) ||
+                (fn.name as string | undefined) ||
+                "",
+              fn.cloudPlatform as string | undefined,
+            )}
+            documentationRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            )}
+          />
+        }
+        description={fn.description as string}
+        chips={chips}
+        tiles={tiles}
+        charts={charts}
+        controls={
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              refresh({ isAutoRefresh: false });
+            }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
+          />
+        }
+        detailRows={detailRows}
+        settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
+        labels={fn.labels}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

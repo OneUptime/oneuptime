@@ -16,13 +16,17 @@
  *   EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
  *
  * or, for EAS, add it to the build profile's `env` in eas.json once the
- * entitlement has been granted to your Apple team.
+ * entitlement has been granted to your Apple team. This repository's
+ * production profile does exactly that, because Apple has granted it to the
+ * team that publishes the official app; a fork signing with a different Apple
+ * team has to drop that entry until Apple grants it to them too.
  *
  * Nothing else in the feature is gated. Without the entitlement the app still
- * asks for the permission, iOS still declines to grant allowsCriticalAlerts,
- * and the settings screen tells the responder the OS has not granted it -
- * which is the honest state of affairs, rather than a switch that turns on and
- * does nothing.
+ * asks for the permission, iOS silently ignores the request - no prompt, and
+ * no Critical Alerts switch in iOS Settings - and the settings screen tells
+ * the responder this version of the app cannot receive critical alerts. That
+ * is the honest state of affairs, rather than a switch that turns on and does
+ * nothing.
  *
  * Android needs none of this: Do Not Disturb access is granted by the user in
  * system settings on the device, not by the platform vendor at build time.
@@ -61,7 +65,8 @@ module.exports = ({ config }) => {
   return withCriticalAlertsEntitlement(config, process.env);
 };
 
-module.exports.IOS_CRITICAL_ALERTS_ENTITLEMENT = IOS_CRITICAL_ALERTS_ENTITLEMENT;
+module.exports.IOS_CRITICAL_ALERTS_ENTITLEMENT =
+  IOS_CRITICAL_ALERTS_ENTITLEMENT;
 module.exports.isCriticalAlertsEntitlementEnabled =
   isCriticalAlertsEntitlementEnabled;
 module.exports.withCriticalAlertsEntitlement = withCriticalAlertsEntitlement;

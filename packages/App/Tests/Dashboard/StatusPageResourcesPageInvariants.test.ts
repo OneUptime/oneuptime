@@ -60,6 +60,15 @@ const SIDE_MENU: Array<string> = [
   "SideMenu.tsx",
 ];
 
+const RESOURCE_FORM_FIELDS: Array<string> = [
+  "Components",
+  "StatusPage",
+  "StatusPageResourceFormFields.ts",
+];
+
+// The title of each <SideMenuSection> a menu writes out, in order.
+const SIDE_MENU_SECTION_TITLE: RegExp = /<SideMenuSection\s+title="([^"]+)"/g;
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -206,22 +215,56 @@ describe("groups and their monitors are one page", () => {
    * Monitor Rules writes resources onto this page, and it is how a group
    * filled from a label stays filled - the whole of #3418. It used to be filed
    * under Advanced, three sections below the screen its work shows up on, and
-   * the person who filed that issue never found it. Somebody populating a
-   * group is standing here.
+   * the person who filed that issue never found it. Then it sat inside
+   * Resources, a row on every visit for something written once. Now it has a
+   * section of its own, folded down to its title like every Rules section
+   * (the maintainer: "Create a new section for rules and have monitor rules
+   * there. The section should be collapsed by default"), right below
+   * Resources: one section from the screen its work shows up on. The Add
+   * Monitors dialog writes the rule for a group filled from a label anyway.
    */
-  test("the rules that write resources sit beside the resources", () => {
+  test("the rules that write resources have a Rules section, right below the resources", () => {
     const sideMenu: string = readCode(...SIDE_MENU);
 
-    const resourcesSection: string | undefined = sideMenu
-      .split('<SideMenuSection title="Resources">')[1]
-      ?.split("</SideMenuSection>")[0];
+    const sectionTitles: Array<string> = Array.from(
+      sideMenu.matchAll(SIDE_MENU_SECTION_TITLE),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
 
-    const advancedSection: string | undefined = sideMenu
-      .split('<SideMenuSection title="Advanced">')[1]
-      ?.split("</SideMenuSection>")[0];
+    const section: (title: string) => string | undefined = (
+      title: string,
+    ): string | undefined => {
+      return sideMenu
+        .split(`<SideMenuSection title="${title}">`)[1]
+        ?.split("</SideMenuSection>")[0];
+    };
 
-    expect(resourcesSection).toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
-    expect(advancedSection).not.toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+    expect(sectionTitles.indexOf("Rules")).toBe(
+      sectionTitles.indexOf("Resources") + 1,
+    );
+    expect(section("Rules")).toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+    expect(section("Resources")).toContain("STATUS_PAGE_VIEW_RESOURCES");
+    expect(section("Resources")).not.toContain(
+      "STATUS_PAGE_VIEW_MONITOR_RULES",
+    );
+    expect(section("Advanced")).not.toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+  });
+
+  /*
+   * Folded by its title, as every Rules section is (SideMenuSectionState):
+   * nothing on the section opens it by default.
+   */
+  test("the Rules section says nothing that would keep it open", () => {
+    const sideMenu: string = readCode(...SIDE_MENU);
+
+    expect(sideMenu).toContain('<SideMenuSection title="Rules">');
+    expect(sideMenu).not.toContain(
+      '<SideMenuSection title="Rules" defaultCollapsed={false}',
+    );
+    expect(sideMenu).not.toContain(
+      '<SideMenuSection title="Rules" collapsible={false}',
+    );
   });
 });
 
@@ -315,28 +358,34 @@ describe("permissions", () => {
    * models, separately: a viewer may well be allowed to add a monitor to a
    * status page without being allowed to restructure it.
    */
+  /*
+   * Through each model's own gate (PermissionGate.check), which reads the
+   * permission snapshot by the rule the server follows - a team's block row
+   * is no grant, and a block with no labels takes the permission away - and
+   * lets a master admin do everything, as the server does.
+   */
   test("are read from both models the same way the tables read them", () => {
     expect(code).toContain(
-      "const permissions: Array<Permission> = PermissionUtil.getAllPermissions();",
+      "return PermissionGate.check(model, action).isAllowed;",
     );
 
     for (const check of [
-      "resourceModel.hasCreatePermissions(permissions)",
-      "resourceModel.hasUpdatePermissions(permissions)",
-      "resourceModel.hasDeletePermissions(permissions)",
-      "groupModel.hasCreatePermissions(permissions)",
-      "groupModel.hasUpdatePermissions(permissions)",
-      "groupModel.hasDeletePermissions(permissions)",
+      "canDo(resourceModel, ModelAction.Create)",
+      "canDo(resourceModel, ModelAction.Update)",
+      "canDo(resourceModel, ModelAction.Delete)",
+      "canDo(groupModel, ModelAction.Create)",
+      "canDo(groupModel, ModelAction.Update)",
+      "canDo(groupModel, ModelAction.Delete)",
     ]) {
       expect(code).toContain(check);
     }
   });
 
-  test("a master admin keeps the access they had", () => {
-    expect(code).toContain(
-      "const isMasterAdmin: boolean = User.isMasterAdmin();",
-    );
-    expect(code.split("isMasterAdmin ||").length - 1).toBeGreaterThanOrEqual(6);
+  test("nothing on the page reads the permission snapshot itself", () => {
+    expect(code).not.toContain("PermissionUtil");
+    expect(code).not.toContain("hasCreatePermissions(");
+    expect(code).not.toContain("hasUpdatePermissions(");
+    expect(code).not.toContain("hasDeletePermissions(");
   });
 
   test("the tree is told what the viewer may do to a group", () => {
@@ -728,14 +777,39 @@ describe("what the operator sees while nothing is on screen", () => {
  * over verbatim: it is the whole surface of a status page group, and a field
  * quietly dropped in a merge is a setting an operator can no longer reach at
  * all.
+ *
+ * It is one page now, rather than three steps: the group's name and parent,
+ * then Layout and Advanced folded (Common/Tests/UI/Components/Forms/
+ * StatusPageResourceFormsGuard.test.ts pins which field is where). Every
+ * field is still there.
  */
 describe("the group form survived the merge intact", () => {
-  test.each([
-    ["Group Details", "group-details"],
-    ["Layout", "layout"],
-    ["Advanced", "advanced"],
-  ])("keeps the %s step", (title: string, id: string) => {
-    expect(code).toContain(squash(`{ title: "${title}", id: "${id}", },`));
+  test("is one page, with no step list", () => {
+    expect(code).not.toContain("GROUP_FORM_STEPS");
+    expect(between("fields: getGroupFormFields(),", "}}")).not.toContain(
+      "steps",
+    );
+  });
+
+  test("folds the layout into a section of its own, and the rest under Advanced", () => {
+    const groupForm: string = between(
+      "const getGroupFormFields:",
+      "const getFooterForMonitor:",
+    );
+
+    expect(groupForm).toContain(
+      "const layoutSection: FormFieldCollapsibleSection<StatusPageGroup> = getStatusPageGroupLayoutSection();",
+    );
+    expect(groupForm).toContain(
+      "const advancedSection: FormFieldCollapsibleSection<StatusPageGroup> = getAdvancedFormSection<StatusPageGroup>();",
+    );
+    expect(
+      groupForm.split("collapsibleSection: layoutSection,").length - 1,
+    ).toBe(5);
+    expect(
+      groupForm.split("collapsibleSection: advancedSection,").length - 1,
+    ).toBe(5);
+    expect(groupForm).not.toContain("stepId");
   });
 
   test.each([
@@ -768,28 +842,34 @@ describe("the group form survived the merge intact", () => {
 });
 
 /*
- * The resource form was already on this page and is unchanged, but it shares
- * the page with the group form now — and two multi step ModelForms in one file
- * is exactly the shape where one quietly ends up rendering the other's fields.
+ * The resource form shares the page with the group form - and two ModelForms
+ * in one file is exactly the shape where one quietly ends up rendering the
+ * other's fields. It is one page now, built by the shared resource form
+ * (StatusPageResourceFormFields): the monitor and its display name, which
+ * follows the monitor's name, and the rest folded under Advanced.
  */
 describe("the resource form is still its own form", () => {
-  test.each([
-    ["Monitor Details", "monitor-details"],
-    ["Advanced", "advanced"],
-  ])("keeps the %s step", (title: string, id: string) => {
-    expect(code).toContain(squash(`{ title: "${title}", id: "${id}", },`));
+  test("is built by the shared resource form, not written out on the page", () => {
+    expect(code).toContain(
+      squash(
+        "getStatusPageResourceFormFields({ addMonitorGroup: addMonitorGroup, targetFooterElement: getFooterForMonitor(), })",
+      ),
+    );
   });
 
-  test("the pane is handed the resource fields and steps, not the group's", () => {
+  test("the pane is handed the resource fields, not the group's, and no steps", () => {
     const pane: string = between("<StatusPageResourcePanel", "/>");
 
     expect(pane).toContain("baseFormFields={formFields}");
-    expect(pane).toContain("formSteps={FORM_STEPS}");
+    expect(pane).not.toContain("formSteps");
+    expect(code).not.toContain("FORM_STEPS");
   });
 
   test("a monitor group can still be published instead of a monitor", () => {
-    expect(code).toContain("field: { monitorGroup: true, },");
-    expect(code).toContain("field: { monitor: true, },");
+    const resourceForm: string = readCode(...RESOURCE_FORM_FIELDS);
+
+    expect(resourceForm).toContain("field: { monitorGroup: true, },");
+    expect(resourceForm).toContain("field: { monitor: true, },");
     expect(code).toContain(
       "props.currentProject?.isFeatureFlagMonitorGroupsEnabled",
     );

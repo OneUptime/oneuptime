@@ -146,23 +146,26 @@ function locationRegexSource(spec) {
 }
 
 /**
- * nginx picks a location for a URI by: longest matching `^~` or plain prefix
- * first, but a matching regex location (`~` / `~*`, tried in file order) wins
- * over any plain prefix match. This mirrors that well enough to assert which
- * of our own blocks a given request path lands in.
+ * nginx picks a location for a URI in this order:
+ *
+ *   1. an `=` location naming exactly the URI is chosen, and the search ends;
+ *   2. otherwise the longest matching prefix (plain or `^~`) is remembered,
+ *      and if that prefix is a `^~` location it is chosen without trying any
+ *      regex;
+ *   3. otherwise the regex locations (`~` / `~*`) are tried in file order and
+ *      the first that matches wins, over any prefix;
+ *   4. otherwise the remembered prefix is chosen.
+ *
+ * This mirrors that well enough to assert which of our own blocks a given
+ * request path lands in.
  */
 function resolveLocation(locations, uri) {
   for (const location of locations) {
-    const caseInsensitive = location.spec.startsWith("~*");
-    const caseSensitive = !caseInsensitive && location.spec.startsWith("~");
-
-    if (!caseInsensitive && !caseSensitive) {
+    if (!location.spec.startsWith("=")) {
       continue;
     }
 
-    const expression = locationRegexSource(location.spec);
-
-    if (new RegExp(expression, caseInsensitive ? "i" : "").test(uri)) {
+    if (location.spec.replace(/^=\s*/, "").trim() === uri) {
       return location;
     }
   }
@@ -171,7 +174,7 @@ function resolveLocation(locations, uri) {
   let bestPrefixLength = -1;
 
   for (const location of locations) {
-    if (location.spec.startsWith("~")) {
+    if (location.spec.startsWith("~") || location.spec.startsWith("=")) {
       continue;
     }
 
@@ -187,11 +190,76 @@ function resolveLocation(locations, uri) {
     }
   }
 
+  if (best && best.spec.startsWith("^~")) {
+    return best;
+  }
+
+  for (const location of locations) {
+    const caseInsensitive = location.spec.startsWith("~*");
+    const caseSensitive = !caseInsensitive && location.spec.startsWith("~");
+
+    if (!caseInsensitive && !caseSensitive) {
+      continue;
+    }
+
+    const expression = locationRegexSource(location.spec);
+
+    if (new RegExp(expression, caseInsensitive ? "i" : "").test(uri)) {
+      return location;
+    }
+  }
+
   return best;
 }
 
 function readTemplate() {
   return fs.readFileSync(TEMPLATE_PATH, "utf8");
+}
+
+/**
+ * The listen directives envsubst-on-templates.sh exports for a container, so
+ * a test's render listens where the container's would.
+ *
+ * Unless NGINX_LISTEN_ADDRESS names the one address to listen on, every
+ * listen on 7849 and 7850 has an IPv6 twin on [::] whenever the kernel has
+ * IPv6 (`ipv6`). With PROVISION_SSL (`provisionSsl`) the primary listens on
+ * 7850 as well, without NGINX_LISTEN_OPTIONS: nginx takes a socket's options
+ * once per address and port, on its default_server listen.
+ *
+ * IngressListensOnIpv6.test.js runs the real script and holds it to this.
+ */
+function ingressListenEnvironment({
+  listenAddress = "",
+  ipv6 = true,
+  provisionSsl = false,
+} = {}) {
+  const twins = ipv6 && listenAddress === "";
+
+  return {
+    NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE: twins
+      ? "    listen [::]:7849 default_server;"
+      : "",
+    NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE: twins
+      ? "    listen [::]:7850 ssl default_server;"
+      : "",
+    NGINX_IPV6_LISTEN_DIRECTIVE: twins ? "    listen [::]:7849;" : "",
+    PROVISION_SSL_LISTEN_DIRECTIVE: provisionSsl
+      ? `    listen ${listenAddress}7850 ssl;`
+      : "",
+    PROVISION_SSL_IPV6_LISTEN_DIRECTIVE:
+      provisionSsl && twins ? "    listen [::]:7850 ssl;" : "",
+  };
+}
+
+/**
+ * What envsubst-on-templates.sh exports to name the primary server by: HOST
+ * without its port, which is all of a Host header that nginx compares with a
+ * server name.
+ *
+ * PrimaryServerName.test.js runs the real script and holds it to this.
+ */
+function primaryServerNameEnvironment(host = "") {
+  return { HOST_WITHOUT_PORT: host.split(":")[0] };
 }
 
 function readNginxConf() {
@@ -204,6 +272,8 @@ module.exports = {
   NGINX_CONF_PATH,
   readTemplate,
   readNginxConf,
+  ingressListenEnvironment,
+  primaryServerNameEnvironment,
   stripComments,
   findBlocks,
   getServerBlocks,

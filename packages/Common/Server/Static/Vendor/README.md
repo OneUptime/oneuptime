@@ -6,6 +6,12 @@ is not guaranteed to have outbound internet access - and when it does not, a
 CDN `<script>` does not degrade, it hangs. See
 https://github.com/OneUptime/oneuptime/issues/2570.
 
+CodeQL's advanced setup skips this directory (the `paths-ignore` of
+`.github/codeql/codeql-config.yml`) because it holds third-party builds: an
+alert in one is fixed by upgrading the file, not by editing it here. So every
+file here is listed under Contents with its source - `Tests/Ops/CodeQlWorkflow.test.js`
+fails otherwise - and OneUptime's own files belong elsewhere.
+
 Every service mounts this directory read-only at `/oneuptime-assets` (see
 `packages/Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
 absolute path, never by a CDN URL -
@@ -15,11 +21,11 @@ or `packages/Home/Views`.
 
 ## Contents
 
-| Path                       | Source                                                      |
-| -------------------------- | ----------------------------------------------------------- |
-| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                              |
-| `highlight/`               | highlight.js 11.11.1, from cdnjs                             |
-| `fonts/InterVariable.woff2` | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
+| Path                         | Source                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                                                                                       |
+| `highlight/`                 | highlight.js 11.11.1, from cdnjs                                                                                    |
+| `fonts/InterVariable.woff2`  | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
 
 The Tailwind file is the **only** copy in the tree. The five frontends used to
 commit one each; `packages/Common/UI/esbuild-config.js` now copies this one into each
@@ -35,10 +41,20 @@ OneUptime's own logo and icons are not here either - they are not third-party.
 They live in `../Brand` and are mounted at `/oneuptime-assets/brand`; see that
 directory's README.
 
-Mermaid is not vendored here. It is already a dependency of `Common`, so
-`VendorAssets.ts` serves `node_modules/mermaid/dist` at
-`/oneuptime-assets/mermaid` instead - one version to keep current rather than
-two, and none of the ~8 MB of lazily-loaded diagram chunks in git.
+Mermaid is not vendored here, and its own prebuilt bundles in
+`node_modules/mermaid/dist` are not served either: each of them embeds its own
+copies of mermaid's dependencies (katex among them), which npm's overrides do
+not reach. Instead `VendorAssets.ts` serves
+`/oneuptime-assets/mermaid/mermaid.mjs` and its content-hashed chunks from
+`packages/Common/build/mermaid-browser`: a build of mermaid's ES module source,
+made with the frontends' esbuild settings by
+`packages/Common/Scripts/build-mermaid-browser.js`, which the App and Home
+images run right after Common is copied in (`packages/Common/UI/esbuild-mermaid.js`
+has the details). Upgrading mermaid or katex in `packages/Common/package.json`
+is all it takes to keep it current. To draw diagrams from a server run outside
+Docker, run that script once; without it, the docs and the blog show each
+diagram as its source under "This diagram could not be drawn." and log one
+console error.
 
 ## Refreshing highlight.js
 

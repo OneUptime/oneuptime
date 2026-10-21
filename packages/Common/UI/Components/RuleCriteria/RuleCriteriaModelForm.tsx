@@ -5,16 +5,27 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
 } from "../../../Types/Rules/RuleCriteria";
-import { getRuleCriteriaValidationError } from "../../../Utils/Rules/RuleCriteriaMatcher";
+import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  resolveRuleCriteriaSubject,
+  RuleCriteriaSubject,
+} from "../../../Types/Rules/RuleCriteriaSubject";
 import SelectFormFields from "../../Types/SelectEntityField";
 import React, { ReactElement } from "react";
 import Field, { CustomElementProps } from "../Forms/Types/Field";
 import Fields from "../Forms/Types/Fields";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
-import RuleCriteriaBuilder, {
+import { translateValidationMessage } from "../Forms/Validation";
+import RuleCriteriaBuilder from "./RuleCriteriaBuilder";
+import {
+  formatRuleCriteriaMessage,
+  getAvailableRuleCriteriaFields,
   getRuleCriteriaFieldName,
-} from "./RuleCriteriaBuilder";
+  getRuleCriteriaFormProblem,
+  RuleCriteriaCopy,
+  RuleCriteriaMessage,
+} from "./RuleCriteriaFields";
 
 export const MATCH_CRITERIA_STEP_ID: string = "match-criteria";
 export const RULE_CRITERIA_FIELD_NAME: string = "criteria";
@@ -130,9 +141,19 @@ export function applyRuleCriteriaLegacySafetyShadow<
   data.values[safetyPatternField] = RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
 }
 
+export interface RuleCriteriaFormOptions {
+  /*
+   * The records the rule is for, for a table of rules about several kinds
+   * of record (RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE). Other rules are
+   * named by their model.
+   */
+  subject?: RuleCriteriaSubject | null | undefined;
+}
+
 export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
   model: BaseModel,
   fields: Fields<TEntity>,
+  options: RuleCriteriaFormOptions = {},
 ): Fields<TEntity> {
   if (!shouldUseRuleCriteriaBuilder(model, fields)) {
     return fields;
@@ -152,16 +173,58 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
     },
   );
 
+  /*
+   * A rule kind that matches nothing without a condition (and whose API
+   * refuses one with none) says so: the field is not "(Optional)", the empty
+   * builder asks for a condition, and the form asks before it sends. Until
+   * the builder has filled in a value - a create form that never reached this
+   * step - "required" is what stops the form; a rule saved before conditions
+   * existed has none (null) and keeps working from its old columns.
+   */
+  const requiresCondition: boolean = isRuleCriteriaConditionRequired(
+    model.tableName,
+  );
+
+  const subject: RuleCriteriaSubject | null = resolveRuleCriteriaSubject({
+    modelName: model.tableName,
+    subject: options.subject,
+  });
+
+  /*
+   * Every other rule kind applies to all of its records until it has a
+   * condition, and asks which first: "Applies to" over "All incidents" /
+   * "Only incidents that match conditions". The choice draws that label
+   * itself (RuleAppliesToChoice), so the field draws none - nor the
+   * criteria column's own description, which is written for the API. It is
+   * always answered, so it is never "(Optional)".
+   */
+  const ownLabel: Partial<Field<TEntity>> = requiresCondition
+    ? {
+        title: "Conditions",
+        /*
+         * Said here so the form does not fall back to the criteria column's
+         * own description, which is written for the API.
+         */
+        description: RuleCriteriaCopy.fieldDescription,
+      }
+    : {
+        title: RuleCriteriaCopy.appliesToTitle,
+        customElementDrawsOwnLabel: true,
+        hideOptionalLabel: true,
+      };
+
   const criteriaField: Field<TEntity> = {
     field: {
       [RULE_CRITERIA_FIELD_NAME]: true,
     } as SelectFormFields<TEntity>,
-    title: "Conditions",
-    description:
-      "Add one or more conditions and choose whether every condition or any condition must match.",
+    ...ownLabel,
     stepId: MATCH_CRITERIA_STEP_ID,
     fieldType: FormFieldSchemaType.CustomComponent,
-    required: false,
+    required: requiresCondition
+      ? (values: FormValues<TEntity>): boolean => {
+          return (values as { criteria?: unknown }).criteria !== null;
+        }
+      : false,
     spanFullRow: true,
     dataTestId: "rule-criteria-field",
     customValidation: (values: FormValues<TEntity>): string | null => {
@@ -171,7 +234,18 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
         return null;
       }
 
-      return getRuleCriteriaValidationError(criteria);
+      const problem: RuleCriteriaMessage | null = getRuleCriteriaFormProblem({
+        criteria: criteria,
+        fields: getAvailableRuleCriteriaFields(
+          legacyFields,
+          values as unknown as Record<string, unknown>,
+        ),
+        requiresCondition: requiresCondition,
+      });
+
+      return problem
+        ? formatRuleCriteriaMessage(problem, translateValidationMessage)
+        : null;
     },
     getCustomElement: (
       values: FormValues<TEntity>,
@@ -183,6 +257,8 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
           legacyValues={values as unknown as Record<string, unknown>}
           value={(values as { criteria?: RuleCriteria }).criteria}
           error={customElementProps.error}
+          requiresCondition={requiresCondition}
+          subject={subject}
           onChange={(criteria: RuleCriteria): void => {
             customElementProps.onChange?.(criteria);
           }}

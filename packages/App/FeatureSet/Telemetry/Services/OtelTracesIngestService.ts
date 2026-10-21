@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -6,7 +7,13 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
+import { normalizeObiReceivingSideMessagingSpanKind } from "../Utils/ObiReceivingSideMessagingSpan";
+import {
+  collectObiNodeInspectorRequestSpans,
+  isObiNodeInspectorSpan,
+} from "../Utils/ObiNodeInspectorSpan";
 import OneUptimeDate from "Common/Types/Date";
+import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -57,6 +64,7 @@ import OtelIngestBaseService from "./OtelIngestBaseService";
 import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
+import MessagingEntityKeyResolver from "./MessagingEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
@@ -68,6 +76,7 @@ import TracePipelineService, {
 import LlmModelPriceService from "./LlmModelPriceService";
 import { LlmModelPrice } from "Common/Types/Telemetry/LlmCostCatalog";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
@@ -79,7 +88,7 @@ import TelemetryFanInWriter, {
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 };
 
 type ParsedUnixNano = {
@@ -305,6 +314,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processTracesAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The
@@ -341,6 +351,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceSpans);
 
+      /*
+       * OBI v0.14 records its own requests to a Node.js app's inspector,
+       * made while injecting its agent, as that app's SERVER spans. Found
+       * before the span loop because OBI writes their "in queue" /
+       * "processing" children ahead of them, and dropped in it. See
+       * ObiNodeInspectorSpan.
+       */
+      const obiNodeInspectorRequestSpans: Set<string> =
+        collectObiNodeInspectorRequestSpans(resourceSpans);
+      let obiNodeInspectorSpansDropped: number = 0;
+
       const dbSpans: Array<JSONObject> = [];
       const dbExceptions: Array<JSONObject> = [];
       /*
@@ -369,6 +390,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
         new DatabaseCallEntityKeyResolver(projectId);
+
+      /*
+       * Messaging spans (any kind but SERVER) get the key of the queue they
+       * publish to, consume from or settle on, on their own row. Memoized
+       * for this request only — see MessagingEntityKeys.
+       */
+      const messagingEntityKeys: MessagingEntityKeyResolver =
+        new MessagingEntityKeyResolver(projectId);
 
       // Load trace pipeline artifacts once per batch (60s cached inside services).
       let dropFilters: Array<LoadedTraceDropFilter> = [];
@@ -413,6 +442,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -717,8 +747,48 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   const spanName: string = (span["name"] as string) || "";
+                  /*
+                   * OBI v0.14 reports a Kafka / MQTT / NATS exchange it saw
+                   * on the receiving side (a broker, a subscriber handed a
+                   * delivery) as PRODUCER / CONSUMER; v0.13 and every
+                   * consumer of span kinds here treat it as SERVER, so it is
+                   * stored as SERVER, and so are a broker's spans OBI types
+                   * client-side: a NATS MSG it wrote, and an MQTT or NATS
+                   * publish to a subscriber at an ephemeral port — except
+                   * a NATS client's split delivery naming its broker, kept
+                   * CONSUMER (the cases are in
+                   * ObiReceivingSideMessagingSpan). Decided before the
+                   * evaluation row, so drop filters, scrub rules, pipelines
+                   * and the entity keys all see the stored kind.
+                   */
                   const spanKind: SpanKind =
-                    OtelTracesIngestService.mapSpanKind(span["kind"]);
+                    normalizeObiReceivingSideMessagingSpanKind({
+                      kind: OtelTracesIngestService.mapSpanKind(span["kind"]),
+                      attributes: spanAttributes,
+                    });
+
+                  /*
+                   * OBI's own Node.js inspector requests and their
+                   * sub-spans. Dropped before the evaluation row, so no drop
+                   * filter, scrub rule, pipeline or exception row sees them.
+                   */
+                  if (
+                    obiNodeInspectorRequestSpans.size > 0 &&
+                    isObiNodeInspectorSpan(
+                      {
+                        kind: spanKind,
+                        name: spanName,
+                        traceId: traceId,
+                        spanId: spanId,
+                        parentSpanId: wireParentSpanId,
+                        attributes: spanAttributes,
+                      },
+                      obiNodeInspectorRequestSpans,
+                    )
+                  ) {
+                    obiNodeInspectorSpansDropped++;
+                    continue;
+                  }
 
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;
@@ -758,6 +828,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const llmFields: LlmSpanFields = LlmSpanUtil.extract(
                     spanAttributes,
                     modelPriceOverrides,
+                    /*
+                     * The answer checks (llmIssues) also read the span's
+                     * status and events: a failed call, a choice event's
+                     * finish reason, an evaluation result.
+                     */
+                    { statusCode: statusCode, events: spanEvents },
                   );
 
                   const spanEvaluationRow: JSONObject =
@@ -829,6 +905,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   /*
+                   * An AI call is stored with the answer issues of the
+                   * status it is STORED with (a pipeline's StatusRemapper
+                   * can change it), and with a preview of the person's
+                   * message read off the attributes it is stored with - after
+                   * the scrub rules and pipelines above, so a redaction in
+                   * the prompt is a redaction in the preview.
+                   */
+                  if (spanRow["isLlmSpan"] === true) {
+                    spanRow["llmIssues"] = LlmSpanUtil.withFinalStatus({
+                      issues: llmFields.llmIssues,
+                      failedWithoutStatus: llmFields.llmFailedWithoutStatus,
+                      statusCode: spanRow["statusCode"] as number,
+                    });
+                    spanRow["llmUserMessagePreview"] =
+                      LlmSpanUtil.getUserMessagePreview({
+                        attributes: spanRow["attributes"],
+                        events: spanRow["events"],
+                      });
+                  }
+
+                  /*
                    * A CLIENT span that calls a database belongs to that
                    * database too. Keyed off the FINAL row — a scrubbed
                    * server.address never becomes an identity — and added
@@ -840,6 +937,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanRow,
                     databaseCaller,
                   );
+
+                  /*
+                   * A messaging span belongs to its queue too — same rules:
+                   * the FINAL row (a scrubbed destination names no queue),
+                   * a new array, and nothing but a kind check and a few
+                   * key lookups for spans that are not messaging.
+                   */
+                  messagingEntityKeys.appendToSpanRow(spanRow);
 
                   /*
                    * Exception rows are only built for spans that survived
@@ -965,8 +1070,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         }),
       ]);
 
+      if (obiNodeInspectorSpansDropped > 0) {
+        logger.debug(
+          `Dropped ${obiNodeInspectorSpansDropped} spans of OBI's Node.js inspector requests for project: ${projectId}`,
+        );
+      }
+
       if (totalSpansProcessed === 0) {
-        logger.warn("No valid spans were processed from the request");
+        // A request of nothing but OBI's inspector spans is not invalid.
+        if (obiNodeInspectorSpansDropped === 0) {
+          logger.warn("No valid spans were processed from the request");
+        }
         return;
       }
 
@@ -1225,10 +1339,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           (spanContext.resourceAttributes[
             "resource.service.version"
           ] as string) || "";
-        const environment: string =
-          (spanContext.resourceAttributes[
-            "resource.deployment.environment"
-          ] as string) || "";
+        const environment: string = readDeploymentEnvironment(
+          spanContext.resourceAttributes,
+          { prefix: "resource." },
+        );
 
         // Parse stack trace into structured frames
         let parsedFramesJson: string = "[]";
@@ -1492,6 +1606,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmUserId: data.llmFields.llmUserId,
       llmUserEmail: data.llmFields.llmUserEmail,
       llmTeam: data.llmFields.llmTeam,
+      // What the call did and what went wrong with its answer.
+      llmCallKind: data.llmFields.llmCallKind,
+      llmIssues: data.llmFields.llmIssues,
     };
   }
 

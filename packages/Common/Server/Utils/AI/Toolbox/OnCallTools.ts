@@ -13,6 +13,7 @@ import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
   AIChatCitationTargetType,
   AIChatWidgetColumn,
@@ -78,6 +79,14 @@ const resolveExecutionLogReadPermissions: () => Array<Permission> =
  * schedule must never render as a silent blank the model glosses over.
  */
 const NO_ONE_ON_CALL: string = "No one is on call";
+
+/*
+ * What a rule that pages the next person in a schedule's rotation pages, for
+ * the assistant: never the person on call (task oncall-escalate-next-in-
+ * rotation).
+ */
+export const NEXT_IN_ROTATION_TARGET_NOTE: string =
+  "next in rotation: the person after whoever is on call, passing over anyone away";
 const SCHEDULE_NOT_ACCESSIBLE: string =
   "Schedule not accessible (no read access or deleted)";
 
@@ -199,6 +208,8 @@ async function fetchEscalationData(
         _id: true,
         onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyScheduleId: true,
+        // Whoever is on call in it, or the next person in its rotation.
+        pageNextInRotation: true,
         onCallDutyPolicySchedule: {
           _id: true,
           name: true,
@@ -250,8 +261,13 @@ async function fetchEscalationData(
     if (!ruleKey) {
       continue;
     }
+    const scheduleName: string =
+      link.onCallDutyPolicySchedule?.name || "Unknown schedule";
+
     getOrCreateTargets(data.targetsByRuleId, ruleKey).schedules.push(
-      link.onCallDutyPolicySchedule?.name || "Unknown schedule",
+      link.pageNextInRotation
+        ? `${scheduleName} (${NEXT_IN_ROTATION_TARGET_NOTE})`
+        : scheduleName,
     );
   }
 
@@ -294,6 +310,14 @@ function formatEscalationChain(
 }
 
 /*
+ * An archived on-call policy pages no one. The list leaves archived policies
+ * out (as the On-Call Policies page does), so the model never suggests paging
+ * one; read by id, one is still returned, flagged, with this said alongside.
+ */
+export const ARCHIVED_ON_CALL_POLICY_NOTE: string =
+  "This on-call policy is archived, so it pages no one: incidents and alerts that list it notify nobody through it. Unarchive it to use it again.";
+
+/*
  * ---------------------------------------------------------------------------
  * query_on_call_policies — discover policies and their escalation chains.
  * ---------------------------------------------------------------------------
@@ -301,7 +325,7 @@ function formatEscalationChain(
 export const QueryOnCallPoliciesTool: ObservabilityTool = {
   name: "query_on_call_policies",
   description:
-    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
+    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
   inputSchema: {
     type: "object",
     properties: {
@@ -343,6 +367,7 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
             description: true,
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+            isArchived: true,
             labels: {
               name: true,
             },
@@ -390,6 +415,7 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
                 rules,
                 escalation.targetsByRuleId,
               ),
+              archived: policy.isArchived === true ? true : undefined,
             },
           ]
         : [];
@@ -413,7 +439,10 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       );
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          policy?.isArchived === true
+            ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `On-call policy '${policy?.name || onCallPolicyId.toString()}'`,
         citationTarget: {
@@ -428,15 +457,19 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
               resourceType: "On-Call Policy",
               heading: policy.name || onCallPolicyId.toString(),
               subheading: policy.description,
-              fields:
-                ruleFields.length > 0
+              fields: [
+                ...(policy.isArchived === true
+                  ? [{ label: "Archived", value: "Yes - pages no one" }]
+                  : []),
+                ...(ruleFields.length > 0
                   ? ruleFields
                   : [
                       {
                         label: "Escalation rules",
                         value: "None configured",
                       },
-                    ],
+                    ]),
+              ],
               link: {
                 type: AIChatCitationTargetType.OnCallPolicyView,
                 params: { onCallDutyPolicyId: onCallPolicyId.toString() },
@@ -457,14 +490,19 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       max: 500,
     });
 
+    /*
+     * Archived policies page no one and are hidden from the On-Call Policies
+     * list, so they are left out here too: the assistant should not suggest
+     * paging one. A single archived policy is still readable by its id above.
+     */
     const totalCount: PositiveNumber = await OnCallDutyPolicyService.countBy({
-      query: {},
+      query: { isArchived: false },
       props: ctx.props,
     });
 
     const policies: Array<OnCallDutyPolicy> =
       await OnCallDutyPolicyService.findBy({
-        query: {},
+        query: { isArchived: false },
         select: {
           _id: true,
           name: true,
@@ -755,6 +793,7 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           select: {
             _id: true,
             name: true,
+            isArchived: true,
           },
           props: ctx.props,
         });
@@ -863,7 +902,25 @@ export const GetOnCallStatusTool: ObservabilityTool = {
             "";
           const schedule: OnCallDutyPolicySchedule | undefined =
             scheduleById.get(linkedScheduleId);
-          if (schedule) {
+          if (schedule && link.pageNextInRotation) {
+            /*
+             * The rule pages the backup after whoever is on call, not them:
+             * said as such, so the row is never read as "pages the person
+             * on call".
+             */
+            const onCallName: string | undefined = nameOf(
+              schedule.currentUserOnRoster,
+            );
+
+            rows.push({
+              scheduleId: schedule.id?.toString(),
+              source: `${ruleLabel} — next in rotation of schedule '${schedule.name || ""}'`,
+              onCallNow: onCallName
+                ? `The person after ${onCallName} in the rotation`
+                : NO_ONE_ON_CALL,
+              note: `Pages the ${NEXT_IN_ROTATION_TARGET_NOTE}`,
+            });
+          } else if (schedule) {
             rows.push(
               scheduleStatusRow(
                 schedule,
@@ -882,8 +939,17 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
+      /*
+       * The rules still say who they would page, but an archived policy
+       * runs none of them - said first, so the rows are not read as "who
+       * gets paged now".
+       */
+      const isArchivedPolicy: boolean = policy.isArchived === true;
+
       return {
-        dataForLlm: serialized.text,
+        dataForLlm: isArchivedPolicy
+          ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
+          : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `On-call now for '${policy.name || onCallPolicyId.toString()}' (${respondersLabel(countResponders(rows))})`,
         citationTarget: {
@@ -896,7 +962,9 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           rows.length > 0
             ? WidgetBuilder.table({
                 title: `On-call now: ${policy.name || ""}`.trim(),
-                description: "Who each escalation rule pages, in order",
+                description: isArchivedPolicy
+                  ? ARCHIVED_ON_CALL_POLICY_NOTE
+                  : "Who each escalation rule pages, in order",
                 columns: onCallStatusColumns,
                 rows: rows,
                 link: {
@@ -957,6 +1025,18 @@ export const GetOnCallStatusTool: ObservabilityTool = {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * What a direct page's row says where another row names its policy. A
+ * workflow's Page Users, Page a Team and Page Whoever Is On Call steps, and
+ * `/oneuptime page` in Slack and Microsoft Teams, page people with no
+ * on-call policy behind the page; the page is kept as a run, so it is
+ * listed here with the runs. Without this its policy would simply be
+ * missing from the row, and "which policy paged them?" would be answered
+ * with a guess.
+ */
+export const DIRECT_PAGE_POLICY_LABEL: string =
+  "Direct page (no on-call policy)";
+
 function formatTrigger(log: OnCallDutyPolicyExecutionLog): string | undefined {
   if (log.triggeredByIncident) {
     const incidentNumber: string = log.triggeredByIncident.incidentNumber
@@ -976,7 +1056,7 @@ function formatTrigger(log: OnCallDutyPolicyExecutionLog): string | undefined {
 export const QueryOnCallPagesTool: ObservabilityTool = {
   name: "query_on_call_pages",
   description:
-    "Recent on-call pages (on-call policy executions): when a policy was triggered, by which incident or alert, how far it escalated, who was notified and whether anyone acknowledged. Defaults to the last 24 hours; pass startTime/endTime (ISO 8601) for another window. Filter by onCallPolicyId (find it with query_on_call_policies), incidentId (query_incidents) or alertId (query_alerts). Use this to answer 'was anyone paged?', 'who was notified?' and 'did anyone acknowledge?'.",
+    "Recent on-call pages (on-call policy executions, and direct pages a workflow or a person in Slack or Microsoft Teams sent with no policy): when a policy was triggered, by which incident or alert, how far it escalated, who was notified and whether anyone acknowledged. A direct page has no policy and no escalation: its policy reads 'Direct page (no on-call policy)' and startedBy names the workflow or the person who paged. Defaults to the last 24 hours; pass startTime/endTime (ISO 8601) for another window. Filter by onCallPolicyId (find it with query_on_call_policies), incidentId (query_incidents) or alertId (query_alerts). Use this to answer 'was anyone paged?', 'who was notified?' and 'did anyone acknowledge?'.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1075,6 +1155,9 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
           statusMessage: true,
           lastExecutedEscalationRuleOrder: true,
           acknowledgedAt: true,
+          // Read with every row: a row with none is a direct page.
+          onCallDutyPolicyId: true,
+          triggeredByWorkflowName: true,
           onCallDutyPolicy: {
             _id: true,
             name: true,
@@ -1171,9 +1254,20 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
         return {
           id: log.id?.toString(),
           triggeredAt: log.createdAt,
-          policy: log.onCallDutyPolicy?.name,
+          policy:
+            log.onCallDutyPolicy?.name ||
+            (isOnCallDirectPage(log) ? DIRECT_PAGE_POLICY_LABEL : undefined),
           policyId: log.onCallDutyPolicy?.id?.toString(),
           trigger: formatTrigger(log),
+          /*
+           * Who started a direct page: the workflow whose step did, or the
+           * person who paged from a chat.
+           */
+          startedBy: log.triggeredByWorkflowName
+            ? `Workflow: ${log.triggeredByWorkflowName}`
+            : isOnCallDirectPage(log) && log.triggeredByUser
+              ? `Person: ${nameOf(log.triggeredByUser) || "a user"}`
+              : undefined,
           status: log.status,
           statusMessage: log.statusMessage,
           escalatedToRuleOrder: log.lastExecutedEscalationRuleOrder,
@@ -1229,7 +1323,7 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
         rows.length > 0
           ? WidgetBuilder.table({
               title: `On-call pages (${rows.length})`,
-              description: `Policy executions in the last ${windowLabel}`,
+              description: `Policy executions and direct pages in the last ${windowLabel}`,
               columns: [
                 { key: "triggeredAt", title: "Triggered", type: "date" },
                 { key: "policy", title: "Policy", type: "text" },

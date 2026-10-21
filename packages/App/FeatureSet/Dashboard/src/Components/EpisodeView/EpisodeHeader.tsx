@@ -4,6 +4,11 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EventStatusFact } from "../EventView/EventStatusPanel";
 import RelativeTime from "./RelativeTime";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export type EpisodeMemberNoun = "incident" | "alert";
 
@@ -18,27 +23,35 @@ export interface EpisodeHeaderFactsInput {
  * The context line under an episode header: how the episode was formed, who
  * opened it and when it last grew. Facts with no value are left out here
  * rather than rendered as "-", so a brand new episode does not show an empty
- * "Last incident added".
+ * "Last incident added". The panel looks the labels up; the values that are
+ * our own words are given in the reader's language here.
  */
 export function getEpisodeHeaderFacts(
   input: EpisodeHeaderFactsInput,
+  translator: Translator = getGlobalTranslator(),
 ): Array<EventStatusFact> {
   const facts: Array<EventStatusFact> = [
     {
       label: "Grouping",
-      value: input.groupingRuleName || "Manual episode",
+      value:
+        input.groupingRuleName ||
+        (translator.translateText("Manual episode") as string),
       icon: IconProp.Layers,
     },
     {
       label: "Created by",
-      value: input.createdByName || "System",
+      value:
+        input.createdByName || (translator.translateText("System") as string),
       icon: IconProp.User,
     },
   ];
 
   if (input.lastMemberAddedAt) {
     facts.push({
-      label: `Last ${input.memberNoun} added`,
+      label:
+        input.memberNoun === "alert"
+          ? "Last alert added"
+          : "Last incident added",
       value: <RelativeTime date={input.lastMemberAddedAt} />,
       icon: IconProp.Clock,
     });
@@ -49,11 +62,13 @@ export function getEpisodeHeaderFacts(
 
 type GetEpisodeCreatorNameFunction = (
   user: User | null | undefined,
+  translator?: Translator,
 ) => string | undefined;
 
 // The name the header shows for createdByUser; undefined means "System".
 export const getEpisodeCreatorName: GetEpisodeCreatorNameFunction = (
   user: User | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | undefined => {
   if (!user) {
     return undefined;
@@ -62,7 +77,7 @@ export const getEpisodeCreatorName: GetEpisodeCreatorNameFunction = (
   return (
     user.name?.toString().trim() ||
     user.email?.toString().trim() ||
-    "Unknown user"
+    translator.translateText("Unknown user")
   );
 };
 
@@ -78,6 +93,7 @@ export interface EpisodeHeaderSkeletonProps {
 export const EpisodeHeaderSkeleton: FunctionComponent<
   EpisodeHeaderSkeletonProps
 > = (props: EpisodeHeaderSkeletonProps): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -85,7 +101,9 @@ export const EpisodeHeaderSkeleton: FunctionComponent<
       data-testid="episode-header-skeleton"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">{props.loadingText || "Loading episode"}</span>
+      <span className="sr-only">
+        {translator.translateText(props.loadingText || "Loading episode")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -148,20 +166,24 @@ export interface EpisodeHeaderRefreshErrorProps {
 export const EpisodeHeaderRefreshError: FunctionComponent<
   EpisodeHeaderRefreshErrorProps
 > = (props: EpisodeHeaderRefreshErrorProps): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="alert"
       className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
     >
       <span className="min-w-0 break-words">
-        Couldn&apos;t refresh this episode: {props.message}
+        {translator.translateTemplate(
+          "Couldn't refresh this episode: {{message}}",
+          { message: props.message },
+        )}
       </span>
       <button
         type="button"
         onClick={props.onRetry}
         className="font-medium underline underline-offset-2 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 rounded-sm"
       >
-        Try again
+        {translator.translateText("Try again")}
       </button>
     </div>
   );

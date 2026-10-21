@@ -7,9 +7,20 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
+import { EnterprisePluginComponent } from "../../Enterprise/EnterprisePlugins";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   const { t } = useTranslation();
+
+  /*
+   * The entries of the Enterprise settings pages (EnterpriseSettingsPage),
+   * read in render, never at module load. They draw themselves, and draw
+   * nothing for a page the license does not allow.
+   */
+  const EnterpriseSettingsItems: EnterprisePluginComponent | undefined =
+    getAdminDashboardPlugins().SettingsSideMenuItems;
+
   return (
     <SideMenu>
       <SideMenuSection title={t("sideMenu.basic")}>
@@ -22,9 +33,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Lock}
         />
+        {EnterpriseSettingsItems ? <EnterpriseSettingsItems /> : <></>}
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsAuthentication")}>
+      {/*
+       * Every page here is set up once and revisited rarely, so only Basic
+       * starts open, and the sections below fold down to their titles: an
+       * index of what can be configured, each opening with one click and by
+       * itself on its own pages. The shared SideMenuSection folds a section
+       * by its English title (see SideMenuSectionState.ts); these titles are
+       * already translated, so each one says it here.
+       */}
+      <SideMenuSection
+        title={t("sideMenu.settingsAuthentication")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: "Global SSO",
@@ -45,7 +68,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsNotifications")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsNotifications")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsEmails"),
@@ -84,7 +110,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsMonitoring")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsMonitoring")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalProbes"),
@@ -95,7 +124,24 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Signal}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsDataRetention")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsRunbooks")}
+        defaultCollapsed={true}
+      >
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsGlobalRunners"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_GLOBAL_RUNNERS] as Route,
+            ),
+          }}
+          icon={IconProp.Terminal}
+        />
+      </SideMenuSection>
+      <SideMenuSection
+        title={t("sideMenu.settingsDataRetention")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsDataRetention"),
@@ -106,7 +152,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Database}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsAi")}>
+      <SideMenuSection title={t("sideMenu.settingsAi")} defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalAiAgents"),
@@ -126,7 +172,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Brain}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsApiIntegrations")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsApiIntegrations")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsApiKey"),

@@ -87,6 +87,9 @@ describe("support bundle: on-call calendar feed configuration", () => {
   test("the secret-pattern carve-out is narrow: only provably non-secret keys, and each one allow-listed", () => {
     expect([...SECRET_KEY_PATTERN_EXCEPTIONS]).toEqual([
       "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+      // Booleans whose names contain "AUTH" only as part of "OAUTH".
+      "DISABLE_MCP_OAUTH",
+      "DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS",
     ]);
 
     for (const key of SECRET_KEY_PATTERN_EXCEPTIONS) {

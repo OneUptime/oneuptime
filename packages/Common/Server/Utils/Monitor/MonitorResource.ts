@@ -1,5 +1,6 @@
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
+import ProjectService from "../../Services/ProjectService";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
@@ -7,6 +8,8 @@ import MonitorStatusTimelineService, {
 import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
+import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
+import CriteriaInEffect from "./CriteriaInEffect";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
@@ -33,6 +36,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -41,6 +45,7 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import OneUptimeDate from "../../../Types/Date";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
@@ -50,7 +55,17 @@ import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
-import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import IncomingRequestIncidentGrouping, {
+  IncomingRequestRecoveries,
+} from "./IncomingRequestIncidentGrouping";
+import IncomingEmailOpenForEveryEmail, {
+  EveryEmailMatches,
+} from "./IncomingEmailOpenForEveryEmail";
+import LogGroupCriteriaFanOut, {
+  LOG_GROUP_ALERT_RESOLVED_MESSAGE,
+  LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
+  LOG_GROUP_RESOLVED_ROOT_CAUSE,
+} from "./LogGroupCriteriaFanOut";
 import MonitorMaintenanceSuppression, {
   MonitorMaintenanceSuppressionResult,
 } from "./MonitorMaintenanceSuppression";
@@ -65,7 +80,10 @@ import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { toStorableJson } from "../Database/PostgresStorableValue";
+import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 interface ProbeAgreementResult {
   hasAgreement: boolean;
   agreementCount: number;
@@ -76,11 +94,64 @@ interface ProbeAgreementResult {
   agreedProbeNames: Array<string>;
 }
 
+export interface MonitorResourceOptions {
+  /*
+   * The probe that reported this check result, as it authenticated to probe
+   * ingest (ProcessProbeIngest). Its result is its own (ProbeReportIdentity)
+   * and is taken only for a monitor probes check, from a probe assigned to
+   * it: anything else is refused before the monitor's stored probe results,
+   * metrics, logs or criteria are touched. Results OneUptime builds itself -
+   * a trap or a device poll fanned out to the monitors watching a device,
+   * a heartbeat, a telemetry evaluation - pass none.
+   */
+  reportingProbeId?: ObjectID | undefined;
+}
+
 export default class MonitorResourceUtil {
+  /*
+   * Whether this monitor's per-series incidents and alerts are resolved
+   * only when something says so, and never because a series is missing
+   * from an evaluation:
+   *
+   *   - an Incoming Request monitor, where a payload describes only the
+   *     keys it carries;
+   *   - a Logs monitor whose groups are resolved by a log
+   *     (MonitorStepLogMonitor.resolvedByAttributes), where a group with
+   *     no log in the window has said nothing.
+   */
+  public static isSeriesResolvedExplicitly(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+  }): boolean {
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      return true;
+    }
+
+    return (
+      input.monitor.monitorType === MonitorType.Logs &&
+      LogGroupCriteriaFanOut.isResolvedByLog(input.dataToProcess)
+    );
+  }
+
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
+    options?: MonitorResourceOptions | undefined,
   ): Promise<ProbeApiIngestResponse> {
+    const reportingProbeId: ObjectID | undefined = options?.reportingProbeId;
+
+    /*
+     * A probe's check result names the probe it is from, and that is the
+     * probe that reported it - checked before anything reads the id below
+     * (the MonitorProbe row it is stored under, probe agreement).
+     */
+    if (reportingProbeId) {
+      ProbeReportIdentity.bindResultToSender(
+        dataToProcess as ProbeMonitorResponse,
+        reportingProbeId,
+      );
+    }
+
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -143,9 +214,7 @@ export default class MonitorResourceUtil {
         monitorSteps: true,
         monitorType: true,
         projectId: true,
-        disableActiveMonitoring: true,
-        disableActiveMonitoringBecauseOfManualIncident: true,
-        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        ...MONITOR_PAUSE_FLAGS_SELECT,
         currentMonitorStatusId: true,
         _id: true,
         name: true,
@@ -207,6 +276,43 @@ export default class MonitorResourceUtil {
 
     dataToProcess.projectId = monitor.projectId;
 
+    /*
+     * Probes check only the monitor types probes run (isProbableMonitor),
+     * and only the monitors they are assigned to - the assignment is held
+     * below, once the monitor's probe rows are read. A probe's result for any
+     * other monitor - a heartbeat, an incoming request, a telemetry or
+     * network device monitor - is no check that probe ran, and would
+     * otherwise be judged against that monitor's criteria and stored as its
+     * last request.
+     */
+    if (
+      reportingProbeId &&
+      !(
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      )
+    ) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
+      );
+
+      throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+    }
+
+    /*
+     * Archived first: an archived monitor is out of service whatever its
+     * other flags say, and a result that still reaches it (a probe that
+     * claimed it just before it was archived, an incoming request, an email)
+     * must open nothing and change nothing.
+     */
+    if (monitor.isArchived) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
+      );
+
+      throw new BadDataException(ExceptionMessages.MonitorArchived);
+    }
+
     if (monitor.disableActiveMonitoring) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
@@ -232,6 +338,24 @@ export default class MonitorResourceUtil {
       throw new BadDataException(
         "Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.",
       );
+    }
+
+    /*
+     * A project a master admin blocked is not monitored: its monitors are no
+     * longer handed to probes or swept (getActiveProjectStatusQuery), and a
+     * result that still reaches one - a probe that claimed it just before
+     * the block, a heartbeat or an email its sender keeps sending, a trap -
+     * opens nothing and changes nothing. Returned rather than thrown: an
+     * outside sender keeps sending whatever OneUptime answers, and each of
+     * those would otherwise be a failed job. Cached per server
+     * (ProjectService.isProjectBlocked).
+     */
+    if (await ProjectService.isProjectBlocked(monitor.projectId)) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
+      );
+
+      return response;
     }
 
     /*
@@ -289,6 +413,19 @@ export default class MonitorResourceUtil {
     };
 
     try {
+      /*
+       * The monitor above was loaded BEFORE this evaluation held the lock,
+       * and whichever evaluation held it until now may have just changed
+       * the monitor's status. Deciding against the pre-lock status skips the
+       * very transition that answers it: the heartbeat cron flips a monitor
+       * Offline, the heartbeat that was already waiting on the lock then
+       * matches "Online", the status timeline sees "already Online" and
+       * writes nothing - and the monitor stays Offline until the next
+       * evaluation. Re-read the one column every status decision below
+       * keys on, now that nothing else can change it.
+       */
+      await MonitorResourceUtil.refreshCurrentMonitorStatus(monitor);
+
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
@@ -354,16 +491,24 @@ export default class MonitorResourceUtil {
             },
           });
 
+          /*
+           * The probe the result is from must be one of this monitor's own:
+           * its result is stored under that probe's row and nowhere else.
+           * Ids compared as Postgres compares uuids, whatever their case.
+           */
+          const resultProbeId: string = (dataToProcess as ProbeMonitorResponse)
+            .probeId!.toString()
+            .toLowerCase();
+
           const monitorProbe: MonitorProbe | undefined =
             monitorProbesForMonitor.find((mp: MonitorProbe) => {
-              return (
-                mp.probeId?.toString() ===
-                (dataToProcess as ProbeMonitorResponse).probeId!.toString()
-              );
+              return mp.probeId?.toString().toLowerCase() === resultProbeId;
             });
 
           if (!monitorProbe) {
-            throw new BadDataException("Probe is not assigned to this monitor");
+            throw new BadDataException(
+              ExceptionMessages.ProbeNotAssignedToMonitor,
+            );
           }
 
           probeName = monitorProbe.probe?.name || undefined;
@@ -385,13 +530,20 @@ export default class MonitorResourceUtil {
              * decorators, so those hooks were inert anyway — a single
              * UPDATE by the id we already hold is equivalent and 3x cheaper.
              * See the Monitor heartbeat writes below for the same pattern.
+             *
+             * The copy written is a storable one: a single NUL in the
+             * response body or headers made Postgres refuse the whole jsonb
+             * value, failing this job before the result was evaluated, on
+             * every retry. dataToProcess itself stays as the probe sent it,
+             * for the criteria below. The other steps' entries were read back
+             * from this column, so they are storable already.
              */
             const updatedLastMonitoringLog: MonitorStepProbeResponse = {
               ...(monitorProbe.lastMonitoringLog || {}),
               [(
                 dataToProcess as ProbeMonitorResponse
               ).monitorStepId.toString()]: {
-                ...JSON.parse(JSON.stringify(dataToProcess)),
+                ...toStorableJson(dataToProcess as ProbeMonitorResponse),
                 monitoredAt: OneUptimeDate.getCurrentDate(),
               },
             };
@@ -469,7 +621,8 @@ export default class MonitorResourceUtil {
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
-                serverMonitorResponse,
+                // A storable copy; the live response is still being evaluated.
+                serverMonitorResponse: toStorableJson(serverMonitorResponse),
               },
             });
 
@@ -501,9 +654,7 @@ export default class MonitorResourceUtil {
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              incomingMonitorRequest: JSON.parse(
-                JSON.stringify(incomingMonitorRequest),
-              ) as IncomingMonitorRequest,
+              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
             } as any,
           });
 
@@ -729,12 +880,32 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
       );
 
+      /*
+       * The match histories this result is judged with, read once for its
+       * own evaluation and the probe agreement pass below alike.
+       */
+      const matchHistoryReads: CriteriaFilterMatchHistoryReads =
+        new CriteriaFilterMatchHistoryReads();
+
       response = await MonitorCriteriaEvaluator.processMonitorStep({
         dataToProcess: dataToProcess,
         monitorStep: monitorStep,
         monitor: monitor,
         probeApiIngestResponse: response,
         evaluationSummary: evaluationSummary,
+        /*
+         * This is the check that just arrived: record its results for the
+         * filters judged from their match history. The probe agreement pass
+         * below re-reads other probes' stored checks and records nothing.
+         */
+        recordMatchHistory: true,
+        matchHistoryReads: matchHistoryReads,
+        /*
+         * What this monitor's criteria have already opened, read only if an
+         * "All Values" metric series is waiting for a full window: a series
+         * whose alert is open keeps being judged on its data points.
+         */
+        criteriaInEffect: CriteriaInEffect.forMonitor(monitor),
       });
 
       // Check probe agreement for probe-based monitors
@@ -755,6 +926,7 @@ export default class MonitorResourceUtil {
             currentRootCause: response.rootCause || null,
             currentProbeId: (dataToProcess as ProbeMonitorResponse).probeId,
             monitorProbes: monitorProbesForMonitor || undefined,
+            matchHistoryReads: matchHistoryReads,
           });
 
         // Add probe agreement event to evaluation summary
@@ -798,9 +970,10 @@ export default class MonitorResourceUtil {
           response.rootCause &&
           probeAgreementResult.agreedProbeNames.length > 0
         ) {
-          response.rootCause += `
-**Probes in Agreement**: ${probeAgreementResult.agreedProbeNames.join(", ")}
-`;
+          // Each probe's name is text, placed into the root cause's Markdown.
+          response.rootCause += mdText`
+**Probes in Agreement**: ${FeedMarkdown.join(probeAgreementResult.agreedProbeNames)}
+`.toString();
         }
       }
 
@@ -811,6 +984,13 @@ export default class MonitorResourceUtil {
        * absence. Runs regardless of whether a firing criteria matched, so a
        * pure "resolved" webhook still closes the right incident. No-op
        * unless a criteria has incidentGrouping configured.
+       *
+       * A request the matched grouped criteria reads with every item
+       * without a value recovered also resolves that criteria's incident
+       * and alert for the whole monitor - what a request with no value
+       * opened. Only the matched criteria's: a request another criteria
+       * matched says nothing of this one's, and that one's are resolved by
+       * the other criteria matching anyway.
        */
       if (
         monitor.monitorType === MonitorType.IncomingRequest &&
@@ -820,17 +1000,30 @@ export default class MonitorResourceUtil {
           );
         })
       ) {
-        const resolvedFingerprints: Array<string> =
-          IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+        const recoveries: IncomingRequestRecoveries =
+          IncomingRequestIncidentGrouping.collectRecoveries({
             dataToProcess: dataToProcess,
             criteriaInstances: criteriaInstances,
+            matchedCriteriaId: response.criteriaMetId?.toString(),
           });
 
-        if (resolvedFingerprints.length > 0) {
+        const wholeMonitor:
+          | { criteriaIds: Array<string>; rootCause: string }
+          | undefined =
+          recoveries.wholeMonitorCriteriaIds.length > 0
+            ? {
+                criteriaIds: recoveries.wholeMonitorCriteriaIds,
+                rootCause:
+                  "Incoming request with no value to group by reported recovered.",
+              }
+            : undefined;
+
+        if (recoveries.fingerprints.length > 0 || wholeMonitor) {
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
-            fingerprints: resolvedFingerprints,
+            fingerprints: recoveries.fingerprints,
             rootCause: "Incoming request reported this key as resolved.",
+            wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             evaluationSummary: evaluationSummary,
@@ -838,8 +1031,44 @@ export default class MonitorResourceUtil {
 
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
             monitor: monitor,
-            fingerprints: resolvedFingerprints,
+            fingerprints: recoveries.fingerprints,
             rootCause: "Incoming request reported this key as resolved.",
+            wholeMonitor: wholeMonitor,
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+        }
+      }
+
+      /*
+       * A Logs monitor whose groups are resolved by a log ("interface.down"
+       * per interface, resolved by "interface.up"). The worker names the
+       * groups such a log has arrived for; exactly those groups' incidents
+       * and alerts are resolved - never one that has merely gone quiet.
+       * Runs whether or not a criteria matched, so the log that brings the
+       * last interface back still closes its alert.
+       */
+      if (monitor.monitorType === MonitorType.Logs) {
+        const resolvedLogGroupFingerprints: Array<string> =
+          LogGroupCriteriaFanOut.getResolvedFingerprints(dataToProcess);
+
+        if (resolvedLogGroupFingerprints.length > 0) {
+          await MonitorIncident.resolveSeriesIncidentsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedLogGroupFingerprints,
+            rootCause: LOG_GROUP_RESOLVED_ROOT_CAUSE,
+            resolvedMessage: LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+
+          await MonitorAlert.resolveSeriesAlertsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedLogGroupFingerprints,
+            rootCause: LOG_GROUP_RESOLVED_ROOT_CAUSE,
+            resolvedMessage: LOG_GROUP_ALERT_RESOLVED_MESSAGE,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             evaluationSummary: evaluationSummary,
@@ -884,6 +1113,24 @@ export default class MonitorResourceUtil {
           };
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Security event query found.`,
+          );
+        }
+
+        /*
+         * An AI / LLM check links to the AI calls it read, in the trace
+         * explorer: they are spans.
+         */
+        if (
+          dataToProcess &&
+          (dataToProcess as LlmMonitorResponse).llmSpanQuery
+        ) {
+          telemetryQuery = {
+            telemetryQuery: (dataToProcess as LlmMonitorResponse).llmSpanQuery,
+            telemetryType: TelemetryType.Trace,
+            metricViewData: null,
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - AI call query found.`,
           );
         }
 
@@ -1104,7 +1351,10 @@ export default class MonitorResourceUtil {
          * matchesPerSeries.
          */
         const disableSeriesAbsenceResolution: boolean =
-          monitor.monitorType === MonitorType.IncomingRequest;
+          MonitorResourceUtil.isSeriesResolvedExplicitly({
+            monitor: monitor,
+            dataToProcess: dataToProcess,
+          });
 
         const breachingSeriesFingerprints: Set<string> | undefined =
           isPerSeriesEvaluation && !disableSeriesAbsenceResolution
@@ -1123,6 +1373,7 @@ export default class MonitorResourceUtil {
         const openIncidents: Array<Incident> =
           await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
             monitorId: monitor.id!,
+            projectId: monitor.projectId!,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             rootCause: response.rootCause,
             criteriaInstance: matchedCriteriaInstance,
@@ -1133,11 +1384,13 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceMap,
           });
 
         const openAlerts: Array<Alert> =
           await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
             monitorId: monitor.id!,
+            projectId: monitor.projectId!,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             rootCause: response.rootCause,
             criteriaInstance: matchedCriteriaInstance,
@@ -1148,6 +1401,7 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceAlertMap,
           });
 
         /*
@@ -1189,6 +1443,23 @@ export default class MonitorResourceUtil {
             continue;
           }
 
+          /*
+           * An Incoming Email criteria that opens an incident for every
+           * email hands the creators this email's own match - or none, for
+           * a reply, a second delivery, an automatic reply or a monitor at
+           * its hourly limit (IncomingEmailOpenForEveryEmail). Anything
+           * else gets nothing here and opens one at a time, as always.
+           */
+          const everyEmail: EveryEmailMatches = isPerSeriesEvaluation
+            ? {}
+            : await IncomingEmailOpenForEveryEmail.getMatches({
+                monitor: monitor,
+                criteriaInstance: criteriaInstance,
+                dataToProcess: dataToProcess,
+                rootCause: matched.rootCause,
+                evaluationSummary: evaluationSummary,
+              });
+
           await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus(
             {
               monitor: monitor,
@@ -1207,7 +1478,7 @@ export default class MonitorResourceUtil {
                     claimed: seriesClaimedByIncidentCriteria,
                     isClaiming: criteriaInstance.data?.createIncidents === true,
                   })
-                : undefined,
+                : everyEmail.incidents,
               openIncidents,
               suppressedSeriesFingerprints,
               dependencySuppression,
@@ -1232,7 +1503,7 @@ export default class MonitorResourceUtil {
                   claimed: seriesClaimedByAlertCriteria,
                   isClaiming: criteriaInstance.data?.createAlerts === true,
                 })
-              : undefined,
+              : everyEmail.alerts,
             openAlerts,
             suppressedSeriesFingerprints,
             dependencySuppression,
@@ -1257,6 +1528,7 @@ export default class MonitorResourceUtil {
 
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
           monitorId: monitor.id!,
+          projectId: monitor.projectId!,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary,
           rootCause: "No monitoring criteria met. Change to default status.",
           criteriaInstance: null, // no criteria met!
@@ -1270,20 +1542,31 @@ export default class MonitorResourceUtil {
            * the explicit resolution block above. Non-grouped incoming
            * incidents have no seriesFingerprint, so they still resolve
            * normally; non-incoming-request types are unaffected (flag false).
+           *
+           * A Logs monitor whose groups are resolved by a log is the same
+           * case: with no log in the window no criteria is met, and that
+           * is silence, not recovery.
            */
           disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
+            MonitorResourceUtil.isSeriesResolvedExplicitly({
+              monitor: monitor,
+              dataToProcess: dataToProcess,
+            }),
         });
 
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
           monitorId: monitor.id!,
+          projectId: monitor.projectId!,
           autoResolveCriteriaInstanceIdAlertIdsDictionary,
           rootCause: "No monitoring criteria met. Change to default status.",
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
           disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
+            MonitorResourceUtil.isSeriesResolvedExplicitly({
+              monitor: monitor,
+              dataToProcess: dataToProcess,
+            }),
         });
 
         // get last monitor status timeline.
@@ -1324,9 +1607,9 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          monitorStatusTimeline.statusChangeLog = JSON.parse(
-            JSON.stringify(dataToProcess),
-          );
+          monitorStatusTimeline.statusChangeLog = toStorableJson(
+            dataToProcess,
+          ) as unknown as JSONObject;
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
@@ -1440,6 +1723,33 @@ export default class MonitorResourceUtil {
       return response;
     } finally {
       await releaseMutex();
+    }
+  }
+
+  /*
+   * A primary-key read of a single column; kept separate from the monitor
+   * load above so that load can stay outside the lock (see the comment on
+   * the lock for why validation must come first).
+   */
+  public static async refreshCurrentMonitorStatus(
+    monitor: Monitor,
+  ): Promise<void> {
+    if (!monitor.id) {
+      return;
+    }
+
+    const latest: Monitor | null = await MonitorService.findOneById({
+      id: monitor.id,
+      select: {
+        currentMonitorStatusId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (latest?.currentMonitorStatusId) {
+      monitor.currentMonitorStatusId = latest.currentMonitorStatusId;
     }
   }
 
@@ -1592,6 +1902,12 @@ export default class MonitorResourceUtil {
      * querying.
      */
     monitorProbes?: Array<MonitorProbe> | undefined;
+    /*
+     * The match history reads of the result being handled: every other
+     * probe's check is judged by that probe's own history, read once for
+     * all of them (CriteriaFilterMatchHistoryReads).
+     */
+    matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
   }): Promise<ProbeAgreementResult> {
     const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
       input;
@@ -1725,6 +2041,7 @@ export default class MonitorResourceUtil {
             monitor: monitor,
             probeApiIngestResponse: tempResponse,
             evaluationSummary: tempEvaluationSummary,
+            matchHistoryReads: input.matchHistoryReads,
           });
 
         evaluatedCriteriaMetId = evaluatedResponse.criteriaMetId;

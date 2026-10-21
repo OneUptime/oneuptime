@@ -7,12 +7,18 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../Types/Date";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
+import { CUSTOM_FIELD_COLUMN_ID_PREFIX } from "../../../Types/CustomField/CustomFieldSavedViews";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
 } from "../../../Types/CustomField/CustomFieldDropdownOption";
 import { JSONObject } from "../../../Types/JSON";
 import React, { ReactElement } from "react";
+import { translateText } from "../../Utils/TranslateTemplate";
+import {
+  CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR,
+  CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT,
+} from "../CustomFields/CustomFieldFormFields";
 
 /*
  * ---------------------------------------------------------------------------
@@ -159,6 +165,40 @@ const badge: BadgeFunction = (data: {
   );
 };
 
+type NoLongerAnOptionBadgeFunction = (data: {
+  label: string;
+  key: string;
+}) => ReactElement;
+
+/*
+ * A value the record holds that its field no longer offers (an option
+ * taken out since, #4564): itself, in gray, saying so on hover and to a
+ * screen reader - a cell is too narrow for the whole sentence.
+ */
+const noLongerAnOptionBadge: NoLongerAnOptionBadgeFunction = (data: {
+  label: string;
+  key: string;
+}): ReactElement => {
+  const text: string =
+    translateText(CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT) ||
+    CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT;
+
+  return (
+    <span
+      key={data.key}
+      title={text}
+      className="inline-flex"
+      data-no-longer-an-option="true"
+    >
+      <DropdownValueBadge
+        label={data.label}
+        color={CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR}
+      />
+      <span className="sr-only">{` (${text})`}</span>
+    </span>
+  );
+};
+
 export type RenderCustomFieldValueFunction = (data: {
   value: unknown;
   definition: CustomFieldDefinition;
@@ -196,7 +236,7 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
             : "inline-flex items-center px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium ring-1 ring-inset ring-gray-500/10"
         }
       >
-        {isTrue ? "Yes" : "No"}
+        {translateText(isTrue ? "Yes" : "No")}
       </span>
     );
   }
@@ -287,6 +327,10 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
               },
             );
 
+          if (!option && configuredOptions.length > 0) {
+            return noLongerAnOptionBadge({ label, key: `${label}-${index}` });
+          }
+
           return badge({
             label,
             key: `${label}-${index}`,
@@ -299,11 +343,16 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
 
   if (definition.customFieldType === CustomFieldType.Dropdown) {
     const label: string = String(value);
-    const option: CustomFieldDropdownOption | undefined = parseDropdownOptions(
-      definition.dropdownOptions,
-    ).find((configuredOption: CustomFieldDropdownOption) => {
-      return configuredOption.value === label;
-    });
+    const configuredOptions: Array<CustomFieldDropdownOption> =
+      parseDropdownOptions(definition.dropdownOptions);
+    const option: CustomFieldDropdownOption | undefined =
+      configuredOptions.find((configuredOption: CustomFieldDropdownOption) => {
+        return configuredOption.value === label;
+      });
+
+    if (!option && configuredOptions.length > 0) {
+      return noLongerAnOptionBadge({ label, key: label });
+    }
 
     return badge({ label, key: label, color: option?.color });
   }
@@ -314,6 +363,14 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
 
   if (typeof value === "object") {
     return <span>{JSON.stringify(value)}</span>;
+  }
+
+  /*
+   * Long text keeps its line breaks, as the type promises and as the Custom
+   * Fields card and its email show it; runs of spaces still collapse.
+   */
+  if (definition.customFieldType === CustomFieldType.LongText) {
+    return <span className="whitespace-pre-line">{String(value)}</span>;
   }
 
   return <span>{String(value)}</span>;
@@ -343,7 +400,11 @@ export const getCustomFieldColumns: GetCustomFieldColumnsFunction = <
   return (data.definitions || []).map(
     (definition: CustomFieldDefinition): Column<TBaseModel> => {
       return {
-        id: `${CustomFieldsColumnKey}.${definition.name}`,
+        /*
+         * The prefix is shared with renaming a field, which rewrites saved
+         * views' column lists (CustomFieldSavedViews).
+         */
+        id: `${CUSTOM_FIELD_COLUMN_ID_PREFIX}${definition.name}`,
         field: {
           [CustomFieldsColumnKey]: true,
         } as Column<TBaseModel>["field"],

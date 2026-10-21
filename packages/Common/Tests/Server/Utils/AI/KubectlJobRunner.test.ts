@@ -978,8 +978,9 @@ describe("KubectlJobRunner.redactAndCap keeps kubectl's stderr", () => {
   });
 
   it("lets a long stderr use the room a short stdout leaves", () => {
+    // Twice the cap, whatever it is.
     const noise: string = "W0923 warning line about a deprecated API\n".repeat(
-      400,
+      Math.ceil((MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM * 2) / 42),
     );
     const output: string = `[stdout]\nNAME\n[stderr]\n${noise}${STDERR_REASON}\n`;
 
@@ -997,8 +998,9 @@ describe("KubectlJobRunner.redactAndCap keeps kubectl's stderr", () => {
   });
 
   it("caps a stderr-only output from its tail", () => {
+    // Twice the cap, whatever it is.
     const noise: string = "W0923 warning line about a deprecated API\n".repeat(
-      400,
+      Math.ceil((MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM * 2) / 42),
     );
 
     const result: RedactedKubectlOutput = KubectlJobRunner.redactAndCap(

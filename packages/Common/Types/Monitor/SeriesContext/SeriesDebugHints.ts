@@ -2,6 +2,13 @@ import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
+// Any run of line breaks inside one command.
+const COMMAND_LINE_BREAK_PATTERN: RegExp = /[\r\n]+/g;
+
 /*
  * The first three commands an on-call engineer would type.
  *
@@ -664,6 +671,69 @@ export default class SeriesDebugHints {
   }
 
   /*
+   * Purity//FA CLI, run over SSH on the FlashArray's management address.
+   *
+   * Only the labels that exist on FlashArray series alone are addressed:
+   * `host`, `component_name` and `local_pod`. `name` is deliberately not —
+   * it names a volume, a pod or a directory on a FlashArray and a file
+   * system, bucket or blade on a FlashBlade (a different CLI), and the
+   * series labels cannot say which.
+   */
+  private static storageArrayCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const component: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "component_name",
+    ]);
+
+    if (component) {
+      commands.push({
+        purpose: "Status and details of the hardware component",
+        command: `purehw list ${SeriesDebugHints.quoteForShell(component)}`,
+      });
+    }
+
+    const host: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "host",
+    ]);
+
+    if (host) {
+      commands.push({
+        purpose: "The volumes connected to the host",
+        command: `purehost list --connect ${SeriesDebugHints.quoteForShell(
+          host,
+        )}`,
+      });
+    }
+
+    const pod: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "local_pod",
+    ]);
+
+    if (pod) {
+      commands.push({
+        purpose: "Status and lag of every pod replica link",
+        command: `purepod replica-link list`,
+      });
+    }
+
+    /*
+     * The array's own explanation comes first once there is something to
+     * explain: the open alerts usually name the cause outright.
+     */
+    if (commands.length > 0) {
+      commands.unshift({
+        purpose: "Alerts open on the FlashArray",
+        command: `purealert list --filter "state='open'"`,
+      });
+    }
+
+    return commands;
+  }
+
+  /*
    * The read-only commands worth running first for this monitor type
    * and this series, or [] when the series carries nothing to address.
    */
@@ -709,6 +779,9 @@ export default class SeriesDebugHints {
       case MonitorType.Ceph:
         return SeriesDebugHints.cephCommands(seriesLabels);
 
+      case MonitorType.StorageArray:
+        return SeriesDebugHints.storageArrayCommands(seriesLabels);
+
       /*
        * Metrics / IoT / RUM / Traces and friends deliberately return
        * nothing: their series identify an application-level entity
@@ -725,6 +798,12 @@ export default class SeriesDebugHints {
    * The commands rendered as a markdown block for an alert/incident
    * description, or "" when there is nothing to suggest - so callers
    * can concatenate unconditionally.
+   *
+   * Each command names values from the telemetry (quoteForShell), and sits
+   * on one line of its fenced block: a line break in a value would end the
+   * list item and its block, so it becomes a space. mdText places the
+   * command as code: the fence is longer than any in it, and a chat mention
+   * or Slack link in a value is broken - Slack reads both even inside code.
    */
   public static buildMarkdownBlock(input: {
     monitorType: MonitorType | undefined;
@@ -743,12 +822,18 @@ export default class SeriesDebugHints {
 
     const maxCommands: number = input.maxCommands ?? 6;
 
-    const lines: Array<string> = commands
+    const lines: Array<MarkdownText> = commands
       .slice(0, Math.max(maxCommands, 1))
-      .map((command: SeriesDebugCommand) => {
-        return `- ${command.purpose}:\n  \`\`\`\n  ${command.command}\n  \`\`\``;
+      .map((command: SeriesDebugCommand): MarkdownText => {
+        // One line, so a label value cannot end the list item or its block.
+        const commandLine: string = command.command.replace(
+          COMMAND_LINE_BREAK_PATTERN,
+          " ",
+        );
+
+        return mdText`- ${command.purpose}:\n  \`\`\`\n  ${commandLine}\n  \`\`\``;
       });
 
-    return `**Start here**\n${lines.join("\n")}`;
+    return mdText`**Start here**\n${FeedMarkdown.join(lines, "\n")}`.toString();
   }
 }

@@ -4,14 +4,12 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
-import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
   WorkspaceDropdownBlock,
   WorkspaceModalBlock,
-  WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import AlertInternalNoteService from "../../../../Services/AlertInternalNoteService";
@@ -19,9 +17,6 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
-import AlertState from "../../../../../Models/DatabaseModels/AlertState";
-import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
@@ -30,9 +25,27 @@ import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateT
 import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SlackActionAuthorization from "./Authorization";
+import SlackActionAuthorization, {
+  SlackAuthorizedEvent,
+} from "./Authorization";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
+import SlackActionAnswer from "./Answer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 
 export default class SlackAlertActions {
+  // Changing an alert's state, as a refusal names it.
+  public static readonly CHANGE_STATE_ACTION: string =
+    "change the state of this alert";
+
+  // What a change-state form says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No alert states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isAlertAction(data: { actionType: SlackActionType }): boolean {
     const { actionType } = data;
@@ -61,7 +74,7 @@ export default class SlackAlertActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -105,46 +118,55 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      /*
+       * The alert is read once, as the member, by the check - and that read
+       * answers "already acknowledged" below and goes to the write.
+       */
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: AlertStateTimeline,
           action: "acknowledge this alert",
-          resources: [{ service: AlertService, id: alertId }],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyAcknowledged: boolean =
-        await AlertService.isAlertAcknowledged({
-          alertId: alertId,
-        });
+      const { props, event: alert } = authorized;
 
-      if (isAlreadyAcknowledged) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
-
-        // send a message to the channel visible to user, that the alert has already been acknowledged.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been acknowledged.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+      // Somebody got there first: who and when, where the press was.
+      if ((await WorkspaceMemberActions.getStanding(alert)).isAcknowledged) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: alert,
+          press: WorkspaceLatePress.Acknowledge,
         });
 
         return;
       }
 
-      await AlertService.acknowledgeAlert(alertId, userId);
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions); a refusal is told to them.
+       */
+      const isAcknowledged: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "acknowledge the alert",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.acknowledge({
+              event: alert,
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (!isAcknowledged) {
+        return;
+      }
 
       // Log the button interaction
       if (slackRequest.projectId) {
@@ -200,7 +222,7 @@ export default class SlackAlertActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -244,44 +266,43 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      // Read once, by the check; that read answers "already resolved".
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: AlertStateTimeline,
           action: "resolve this alert",
-          resources: [{ service: AlertService, id: alertId }],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
-        alertId: alertId,
+      const { props, event: alert } = authorized;
+
+      // Resolved already: who and when, where the press was.
+      if ((await WorkspaceMemberActions.getStanding(alert)).isResolved) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: alert,
+          press: WorkspaceLatePress.Resolve,
+        });
+
+        return;
+      }
+
+      // Resolved by the member, as the dashboard resolves it for them.
+      await SlackActionAuthorization.runForRequester({
+        requester: slackRequest,
+        action: "resolve the alert",
+        run: async (): Promise<void> => {
+          await WorkspaceMemberActions.resolve({
+            event: alert,
+            props: props,
+          });
+        },
       });
-
-      if (isAlreadyResolved) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
-        // send a message to the channel visible to user, that the alert has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
-        });
-
-        return;
-      }
-
-      await AlertService.resolveAlert(alertId, userId);
 
       return;
     }
@@ -321,19 +342,37 @@ export default class SlackAlertActions {
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not execute an on-call policy for this alert is told so now. The
+     * form then offers the policies they may read, with their own
+     * permissions (WorkspaceActionAuthorization.findReadable).
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this alert",
+        resources: [{ service: AlertService, id: new ObjectID(actionValue) }],
+      });
+
+    if (!props) {
+      return;
+    }
+
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: data.slackRequest.projectId!,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: LIMIT_PER_PROJECT,
-        skip: 0,
       });
 
     const dropdownOption: Array<DropdownOption> = onCallPolicies
@@ -348,33 +387,26 @@ export default class SlackAlertActions {
       });
 
     if (dropdownOption.length === 0) {
-      if (data.slackRequest.slackChannelId) {
-        await SlackUtil.sendEphemeralMessageToChannel({
-          messageBlocks: [
-            {
-              _type: "WorkspacePayloadMarkdown",
-              text: "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
-            } as WorkspacePayloadMarkdown,
-          ],
-          authToken: data.slackRequest.projectAuthToken!,
-          channelId: data.slackRequest.slackChannelId,
-          userId: data.slackRequest.slackUserId!,
-        });
-      }
+      // Said where the press was, as every other answer is.
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: SlackActionAnswer.NO_ON_CALL_POLICIES_MESSAGE,
+      });
       return;
     }
 
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "On Call Policy",
+      label: "On-Call Policy",
       blockId: "onCallPolicy",
-      placeholder: "Select On Call Policy",
+      placeholder: "Select On-Call Policy",
       options: dropdownOption,
     };
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Execute On Call Policy",
+      // At most 24 characters: Slack refuses a longer modal title.
+      title: "Execute On-Call Policy",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitExecuteAlertOnCallPolicy,
@@ -382,10 +414,9 @@ export default class SlackAlertActions {
       blocks: [onCallPolicyDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -412,36 +443,57 @@ export default class SlackAlertActions {
       response_action: "clear",
     });
 
-    // const alertId: ObjectID = new ObjectID(actionValue);
-
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
-
-    const alertStates: Array<AlertState> =
-      await AlertStateService.getAllAlertStates({
-        projectId: data.slackRequest.projectId!,
-        props: {
-          isRoot: true,
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not change the state of this alert is told so now. The alert is read
+     * as the submit reads it, with the state it is in, and the form offers
+     * the states they may read that it may move into next - by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove) - so it
+     * never offers a move the timeline would refuse.
+     */
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
+        requester: data.slackRequest,
+        modelType: AlertStateTimeline,
+        action: SlackAlertActions.CHANGE_STATE_ACTION,
+        event: {
+          type: WorkspaceEventType.Alert,
+          id: new ObjectID(actionValue),
         },
       });
 
-    logger.debug("Alert States: ", {
-      projectId: data.slackRequest.projectId?.toString(),
-    });
-    logger.debug(alertStates);
+    if (!authorized) {
+      return;
+    }
 
-    const dropdownOptions: Array<DropdownOption> = alertStates
-      .map((state: AlertState) => {
-        return {
-          label: state.name || "",
-          value: state._id?.toString() || "",
-        };
-      })
-      .filter((option: DropdownOption) => {
-        return option.label !== "" || option.value !== "";
+    const stateOptions: WorkspaceEventStateOptions =
+      await WorkspaceMemberActions.findStateOptions({
+        event: authorized.event,
+        props: authorized.props,
       });
 
-    logger.debug("Dropdown Options: ");
-    logger.debug(dropdownOptions);
+    if (stateOptions.options.length === 0) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: stateOptions.hasNoLaterState
+          ? WorkspaceMemberActions.getNoLaterStateMessage(
+              WorkspaceEventType.Alert,
+            )
+          : SlackAlertActions.NO_STATES_MESSAGE,
+      });
+      return;
+    }
+
+    const alertStates: Array<WorkspaceEventStateOption> = stateOptions.options;
+
+    const dropdownOptions: Array<DropdownOption> = alertStates.map(
+      (state: WorkspaceEventStateOption) => {
+        return {
+          label: state.name,
+          value: state.id.toString(),
+        };
+      },
+    );
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -461,10 +513,9 @@ export default class SlackAlertActions {
       blocks: [statePickerDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -512,25 +563,40 @@ export default class SlackAlertActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: AlertStateTimeline,
-        action: "change the state of this alert",
-        resources: [{ service: AlertService, id: alertId }],
+        action: SlackAlertActions.CHANGE_STATE_ACTION,
+        event: { type: WorkspaceEventType.Alert, id: alertId },
       });
 
-    if (!props) {
+    if (!authorized) {
       return;
     }
 
-    await AlertService.updateOneById({
-      id: alertId,
-      data: {
-        currentAlertStateId: stateId,
-      },
-      props: props,
-    });
+    /*
+     * The state change the dashboard makes: a row in the alert's state
+     * timeline, created by the member (WorkspaceMemberActions), from the
+     * alert as the check read it.
+     */
+    const isStateChanged: boolean | null =
+      await SlackActionAuthorization.runForRequester({
+        requester: data.slackRequest,
+        action: "change the state of the alert",
+        run: async (): Promise<boolean> => {
+          await WorkspaceMemberActions.changeState({
+            event: authorized.event,
+            stateId: stateId,
+            props: authorized.props,
+          });
+          return true;
+        },
+      });
+
+    if (!isStateChanged) {
+      return;
+    }
 
     // Log the button interaction
     if (data.slackRequest.projectId && data.slackRequest.userId) {
@@ -576,7 +642,7 @@ export default class SlackAlertActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -639,49 +705,46 @@ export default class SlackAlertActions {
       // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: OnCallDutyPolicyExecutionLog,
           action: "execute an on-call policy for this alert",
-          resources: [
-            { service: AlertService, id: alertId },
-            { service: OnCallDutyPolicyService, id: onCallPolicyId },
-          ],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+          resources: [{ service: OnCallDutyPolicyService, id: onCallPolicyId }],
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
-        alertId: alertId,
-      });
+      const { props, event: alert } = authorized;
 
-      if (isAlreadyResolved) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
-        // send a message to the channel visible to user, that the alert has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+      // Resolved already: nobody is paged, and the person is told why.
+      if ((await WorkspaceMemberActions.getStanding(alert)).isResolved) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: alert,
+          press: WorkspaceLatePress.ExecuteOnCallPolicy,
         });
 
         return;
       }
 
-      await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
-        triggeredByAlertId: alertId,
-        userNotificationEventType: UserNotificationEventType.AlertCreated,
+      /*
+       * Executed by the member, as the dashboard's Execute On-Call Policy
+       * executes it for them: an execution log triggered by the alert.
+       */
+      await SlackActionAuthorization.runForRequester({
+        requester: slackRequest,
+        action: "execute the on-call policy",
+        run: async (): Promise<void> => {
+          await WorkspaceMemberActions.executeOnCallPolicy({
+            event: alert,
+            onCallDutyPolicyId: onCallPolicyId,
+            props: props,
+          });
+        },
       });
     }
   }
@@ -735,22 +798,30 @@ export default class SlackAlertActions {
       response_action: "clear",
     });
 
-    if (
-      !(await SlackActionAuthorization.authorize({
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
         requester: data.slackRequest,
         modelType: AlertInternalNote,
         action: "add a private note to this alert",
         resources: [{ service: AlertService, id: alertId }],
-      }))
-    ) {
+      });
+
+    if (!props) {
       return;
     }
 
-    await AlertInternalNoteService.addNote({
-      alertId: alertId!,
-      note: note || "",
-      projectId: data.slackRequest.projectId!,
-      userId: data.slackRequest.userId!,
+    // Posted by the member, as the dashboard posts it for them.
+    await SlackActionAuthorization.runForRequester({
+      requester: data.slackRequest,
+      action: "add the note",
+      run: async (): Promise<void> => {
+        await AlertInternalNoteService.addNote({
+          alertId: alertId,
+          note: note,
+          projectId: data.slackRequest.projectId!,
+          props: props,
+        });
+      },
     });
   }
 
@@ -799,10 +870,9 @@ export default class SlackAlertActions {
       blocks: [noteTextArea],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 

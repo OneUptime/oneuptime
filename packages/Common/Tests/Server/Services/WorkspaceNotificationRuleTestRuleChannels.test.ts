@@ -20,6 +20,9 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
 import ObjectID from "../../../Types/ObjectID";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "../../../Utils/Workspace/WorkspaceChannelName";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -386,6 +389,38 @@ describe("testRule posts to channels it created, even when the rule posts nowher
 
     expect(mocks.createChannelsSpy).toHaveBeenCalledTimes(1);
     expect(mocks.inviteUsersSpy).toHaveBeenCalledTimes(1);
+    // The test says when the tester could not be invited.
+    expect(mocks.inviteUsersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ throwOnInviteError: true }),
+    );
+  });
+
+  test("REGRESSION: an invite the workspace refuses fails the test, saying what it answered", async () => {
+    const rule: WorkspaceNotificationRule = makeRule({
+      overrides: {
+        shouldCreateNewChannel: true,
+        teamToCreateChannelIn: TEAM_A,
+      },
+    });
+
+    const mocks: Mocks = mockDeps({
+      rule: rule,
+      createdChannels: [
+        makeCreatedChannel({
+          id: "19:new@thread.tacv2",
+          name: "oneuptime-alert-x",
+          teamId: TEAM_A,
+        }),
+      ],
+      responses: [makeSendResponse({})],
+    });
+    mocks.inviteUsersSpy.mockRejectedValue(
+      new Error("Error from Slack missing_scope"),
+    );
+
+    await expect(runTestRule(rule)).rejects.toThrow(
+      "Cannot invite users to the channel. Error from Slack missing_scope",
+    );
   });
 
   test("a failed send to a created channel fails the test instead of reporting success", async () => {
@@ -698,5 +733,102 @@ describe("testRule posting to existing channels is unchanged", () => {
       "19:new@thread.tacv2",
     ]);
     expect(payloadOfCall(mocks.postSpy, 1).channelNames).toEqual(["general"]);
+  });
+});
+
+/*
+ * The channel Test Rule creates is named as the rule names a record's
+ * channel, with five random letters for the record: the rule's prefix and
+ * the letters (prod-abcde), as before - or, for a rule without a prefix,
+ * test-abcde, rather than a channel of five random letters.
+ */
+describe("testRule names the channel it creates as the rule names channels", () => {
+  const RANDOM_LETTERS: RegExp = /^[A-Za-z]{5}$/;
+  const TEST_CHANNEL: RegExp = /^test-[a-z]{5}$/;
+  const PREFIXED_TEST_CHANNEL: RegExp = /^prod-[a-z]{5}$/;
+
+  function partsOfCreate(mocks: Mocks): WorkspaceChannelNameParts {
+    expect(mocks.createChannelsSpy).toHaveBeenCalledTimes(1);
+
+    return (
+      mocks.createChannelsSpy.mock.calls[0]![0] as {
+        channelNameParts: WorkspaceChannelNameParts;
+      }
+    ).channelNameParts;
+  }
+
+  test.each([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams])(
+    "a rule without a prefix creates test- and five letters (%s)",
+    async (workspaceType: WorkspaceType) => {
+      const rule: WorkspaceNotificationRule = makeRule({
+        workspaceType: workspaceType,
+        overrides: {
+          shouldCreateNewChannel: true,
+          shouldPostToExistingChannel: false,
+          teamToCreateChannelIn: TEAM_A,
+          newChannelTemplateName: "",
+        },
+      });
+
+      const mocks: Mocks = mockDeps({ rule: rule });
+
+      await runTestRule(rule);
+
+      const parts: WorkspaceChannelNameParts = partsOfCreate(mocks);
+
+      expect(parts.afterPrefix).toMatch(RANDOM_LETTERS);
+      expect(parts.ownName).toBe(`test-${parts.afterPrefix.toLowerCase()}`);
+      expect(
+        WorkspaceChannelName.getChannelName({
+          workspaceType: workspaceType,
+          prefix: "",
+          parts: parts,
+        }),
+      ).toMatch(TEST_CHANNEL);
+    },
+  );
+
+  test("a rule with a prefix creates the prefix and five letters, as it always did", async () => {
+    const rule: WorkspaceNotificationRule = makeRule({
+      workspaceType: WorkspaceType.Slack,
+      overrides: {
+        shouldCreateNewChannel: true,
+        shouldPostToExistingChannel: false,
+        newChannelTemplateName: "prod-",
+      },
+    });
+
+    const mocks: Mocks = mockDeps({ rule: rule });
+
+    await runTestRule(rule);
+
+    expect(
+      WorkspaceChannelName.getChannelName({
+        workspaceType: WorkspaceType.Slack,
+        prefix: "prod-",
+        parts: partsOfCreate(mocks),
+      }),
+    ).toMatch(PREFIXED_TEST_CHANNEL);
+  });
+
+  test("each test draws new letters", async () => {
+    const rule: WorkspaceNotificationRule = makeRule({
+      workspaceType: WorkspaceType.Slack,
+      overrides: {
+        shouldCreateNewChannel: true,
+        shouldPostToExistingChannel: false,
+      },
+    });
+
+    const names: Set<string> = new Set<string>();
+
+    for (let run: number = 0; run < 5; run++) {
+      jest.restoreAllMocks();
+      const mocks: Mocks = mockDeps({ rule: rule });
+      await runTestRule(rule);
+      names.add(partsOfCreate(mocks).ownName);
+    }
+
+    expect(names.size).toBeGreaterThan(1);
   });
 });

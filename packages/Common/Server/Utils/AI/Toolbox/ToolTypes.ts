@@ -2,6 +2,11 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../../Telemetry/TelemetryReadScope";
+import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
 import OneUptimeDate from "../../../../Types/Date";
 import Permission from "../../../../Types/Permission";
 import {
@@ -150,37 +155,52 @@ export class ToolArgs {
   }
 
   /*
-   * Combines the caller's optional serviceId filter with the user's owned-scope
-   * access (from ModelPermission.getAccessibleServiceIdsForAnalyticsModel) into
-   * the `serviceIds` filter to hand an aggregation service.
+   * Combines the tool's optional serviceId argument with whose telemetry the
+   * user may read (TelemetryReadAccess.getScope) into the serviceIds and
+   * excludedServiceIds to hand an aggregation service
+   * (TelemetryReadScope.toServiceFilter):
    *
-   * `allowed === null` means the user has project-wide access: pass only the
-   * caller's own filter (or undefined for no filter). Otherwise the user is
-   * label/owned-restricted: intersect with any requested service and NEVER
-   * return undefined or an empty array — an empty result is forced to a
-   * no-match sentinel, because the aggregation services treat a missing/empty
-   * serviceIds as "no filter" (which would leak the whole project).
+   *   - project-wide access: only the requested service, or no filter;
+   *   - label / Owned access with no service requested: every service the
+   *     user may read;
+   *   - a requested service the user may not read: a list that matches
+   *     nothing (the no-match sentinel) - NEVER undefined or an empty list,
+   *     which the aggregation services read as "the whole project", and
+   *     never the user's other services either;
+   *   - a block with labels: those services are left out either way.
    */
   public static scopeServiceIds(
-    allowed: Array<ObjectID> | null,
+    scope: TelemetryReadScope,
     requested: ObjectID | undefined,
-  ): Array<ObjectID> | undefined {
-    if (allowed === null) {
-      return requested ? [requested] : undefined;
+  ): TelemetryServiceFilter {
+    return TelemetryReadScopeUtil.toServiceFilter(
+      scope,
+      requested ? [requested] : undefined,
+    );
+  }
+
+  /*
+   * The scope a tool reads spans in, from the one TelemetryReadAccess gave
+   * it. A person's run (Ask AI, Slack, Teams) reads with that person's
+   * props, which the permission layer already holds to the company AI
+   * tools' privacy setting. A system run - an automatic AI investigation,
+   * which reads as OneUptime and writes what it finds onto the incident or
+   * alert - is root, which that layer leaves alone: its span reads leave
+   * out here the services whose chats only owners and admins may read
+   * (LlmConversationPrivacy).
+   */
+  public static async spanScope(
+    ctx: ToolContext,
+    scope: TelemetryReadScope,
+  ): Promise<TelemetryReadScope> {
+    if (!ctx.props.isRoot) {
+      return scope;
     }
 
-    let effective: Array<ObjectID> = allowed;
-    if (requested) {
-      effective = allowed.filter((id: ObjectID) => {
-        return id.toString() === requested.toString();
-      });
-    }
-
-    if (effective.length === 0) {
-      return [ObjectID.getZeroObjectID()];
-    }
-
-    return effective;
+    return await LlmConversationPrivacy.restrictSystemScope({
+      scope: scope,
+      projectId: ctx.projectId,
+    });
   }
 
   /*

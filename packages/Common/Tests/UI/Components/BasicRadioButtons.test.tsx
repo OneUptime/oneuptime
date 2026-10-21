@@ -333,4 +333,23 @@ describe("BasicRadioButtons", () => {
       expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
     });
   });
+
+  describe("colour", () => {
+    /*
+     * The product loads no Tailwind forms plugin, so text-indigo-600 does
+     * not colour a native radio: accent-indigo-600 does, as on the shared
+     * Radio. Without it a checked radio was the browser's blue beside the
+     * indigo buttons of its form.
+     */
+    test("every radio is the product's indigo, as the shared Radio's are", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      render(<BasicRadioButtons onChange={onChange} options={options} />);
+
+      expect(screen.getAllByRole("radio")).toHaveLength(2);
+
+      for (const radio of screen.getAllByRole("radio")) {
+        expect(radio).toHaveClass("accent-indigo-600");
+      }
+    });
+  });
 });

@@ -11,6 +11,7 @@ import {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { StatusPageSubscriberUnsubscribeSource } from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import { mockRouter } from "./Helpers";
 import {
   beforeAll,
@@ -41,18 +42,23 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const UPDATE_SUBSCRIPTION_ROUTE: string =
-  "/status-page/update-subscription/:statusPageId/:subscriberId";
+  "/status-page/update-subscription/:statusPageId/:subscriberId/:token";
 const GET_SUBSCRIPTION_ROUTE: string =
-  "/status-page/get-subscription/:statusPageId/:subscriberId";
+  "/status-page/get-subscription/:statusPageId/:subscriberId/:token";
+const SUBSCRIBE_ROUTE: string = "/status-page/subscribe/:statusPageId";
+
+// The victim subscription's own token, as its manage link carries it.
+const TOKEN: string = "5c".repeat(32);
 
 /*
  * The subscription endpoints authorize the caller against the status page named
  * in the URL, but the subscriber is addressed by its own UUID. If the lookup is
- * not also scoped to that status page, holding a subscriber UUID is enough to
+ * not also scoped to that status page, holding a subscriber's link is enough to
  * edit a subscriber belonging to any other status page — including a private
  * one the caller cannot read. These routes are reachable without
  * authentication (getUserMiddleware attaches a user but does not require one),
- * so the scope on the query is the whole access control.
+ * so the scope on the query and the subscription's token are the whole access
+ * control (StatusPageManageLinkCredential.test.ts holds the token).
  */
 
 describe("StatusPageAPI subscriber ownership", () => {
@@ -91,22 +97,33 @@ describe("StatusPageAPI subscriber ownership", () => {
       return Promise.resolve(null);
     }
 
-    return Promise.resolve(victimSubscriber);
+    // A fresh row per read, as the database hands back, token included.
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row.id = victimSubscriber.id!;
+    row.statusPageId = victimSubscriber.statusPageId!;
+    row.projectId = victimSubscriber.projectId!;
+    row.isUnsubscribed = victimSubscriber.isUnsubscribed!;
+    row.unsubscribeToken = TOKEN;
+
+    return Promise.resolve(row);
   };
 
   const callUpdateSubscription: (data: {
     statusPageId: ObjectID;
+    isUnsubscribed?: boolean;
   }) => Promise<void> = async (data: {
     statusPageId: ObjectID;
+    isUnsubscribed?: boolean;
   }): Promise<void> => {
     const request: ExpressRequest = {
       params: {
         statusPageId: data.statusPageId.toString(),
         subscriberId: subscriberId.toString(),
+        token: TOKEN,
       },
       body: {
         data: {
-          isUnsubscribed: true,
+          isUnsubscribed: data.isUnsubscribed ?? true,
           isSubscribedToAllResources: true,
         },
       },
@@ -131,6 +148,7 @@ describe("StatusPageAPI subscriber ownership", () => {
       params: {
         statusPageId: data.statusPageId.toString(),
         subscriberId: subscriberId.toString(),
+        token: TOKEN,
       },
       body: { data: {} },
       query: {},
@@ -201,9 +219,22 @@ describe("StatusPageAPI subscriber ownership", () => {
       .spyOn(StatusPageSubscriberService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
+    // A visitor's change goes through its own entry point.
+    jest
+      .spyOn(StatusPageSubscriberService, "updateFromManageSubscriptionPage")
+      .mockResolvedValue(1 as never);
+
     jest
       .spyOn(StatusPageSubscriberService, "create")
       .mockResolvedValue(victimSubscriber as never);
+
+    jest
+      .spyOn(StatusPageSubscriberService, "createFromStatusPageSignUp")
+      .mockResolvedValue(victimSubscriber as never);
+
+    jest
+      .spyOn(StatusPageSubscriberService, "unsubscribe")
+      .mockResolvedValue(true);
 
     mockResponse = {
       cookie: jest.fn(),
@@ -223,6 +254,9 @@ describe("StatusPageAPI subscriber ownership", () => {
       await callUpdateSubscription({ statusPageId: attackerStatusPageId });
 
       expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).not.toHaveBeenCalled();
       expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
     });
 
@@ -255,15 +289,49 @@ describe("StatusPageAPI subscriber ownership", () => {
       await callUpdateSubscription({ statusPageId: victimStatusPageId });
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(StatusPageSubscriberService.updateOneById).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).toHaveBeenCalledTimes(1);
+      // As the visitor's change, never as a plain update.
+      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
 
-      const updateArgs: { id: ObjectID; data: JSONObject } = (
-        StatusPageSubscriberService.updateOneById as unknown as jest.Mock
-      ).mock.calls[0]![0] as { id: ObjectID; data: JSONObject };
-      expect(updateArgs.id.toString()).toBe(subscriberId.toString());
-      expect(updateArgs.data["isUnsubscribed"]).toBe(true);
+      const updateArgs: { subscriberId: ObjectID; data: JSONObject } = (
+        StatusPageSubscriberService.updateFromManageSubscriptionPage as unknown as jest.Mock
+      ).mock.calls[0]![0] as { subscriberId: ObjectID; data: JSONObject };
+      expect(updateArgs.subscriberId.toString()).toBe(subscriberId.toString());
+
+      /*
+       * Cancelling goes through unsubscribe(), like the unsubscribe link: it
+       * records Unsubscribed At once and tells the team about a subscriber
+       * it added. The preferences update does not write the flag itself.
+       */
+      expect(updateArgs.data["isUnsubscribed"]).toBeUndefined();
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledTimes(1);
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledWith({
+        subscriberId: subscriberId,
+        source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+      });
+    });
+
+    it("subscribes again through the manage page by writing the flag off, without unsubscribe()", async () => {
+      await callUpdateSubscription({
+        statusPageId: victimStatusPageId,
+        isUnsubscribed: false,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const updateArgs: { subscriberId: ObjectID; data: JSONObject } = (
+        StatusPageSubscriberService.updateFromManageSubscriptionPage as unknown as jest.Mock
+      ).mock.calls[0]![0] as { subscriberId: ObjectID; data: JSONObject };
+      expect(updateArgs.data["isUnsubscribed"]).toBe(false);
+      expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
+    });
+
+    it("does not cancel a subscriber of another status page", async () => {
+      await callUpdateSubscription({ statusPageId: attackerStatusPageId });
+
+      expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
     });
   });
 
@@ -286,6 +354,63 @@ describe("StatusPageAPI subscriber ownership", () => {
       await callGetSubscription({ statusPageId: victimStatusPageId });
 
       expect(nextFunction).not.toHaveBeenCalled();
+    });
+  });
+  /*
+   * A visitor's sign-up on the status page is the one create that is not the
+   * team adding a subscriber: it goes through createFromStatusPageSignUp, so
+   * the subscriber is not marked Is Added By Team and the page's owners are
+   * not emailed when that visitor later unsubscribes.
+   */
+  describe("subscribe", () => {
+    it("creates a new subscriber as a sign-up, never as one the team added", async () => {
+      jest
+        .spyOn(StatusPageService, "findOneBy")
+        .mockImplementation((): Promise<StatusPage | null> => {
+          const statusPage: StatusPage = new StatusPage();
+          statusPage.id = victimStatusPageId;
+          statusPage.projectId = projectId;
+          statusPage.showSubscriberPageOnStatusPage = true;
+          statusPage.enableEmailSubscribers = true;
+          return Promise.resolve(statusPage);
+        });
+
+      const request: ExpressRequest = {
+        params: { statusPageId: victimStatusPageId.toString() },
+        body: {
+          data: {
+            subscriberEmail: "visitor@example.com",
+            isSubscribedToAllResources: true,
+          },
+        },
+        query: {},
+        cookies: {},
+        headers: {},
+        socket: {},
+        ips: [],
+      } as unknown as ExpressRequest;
+
+      await mockRouter
+        .match("post", SUBSCRIBE_ROUTE)
+        .handlerFunction(request, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(StatusPageSubscriberService.create).not.toHaveBeenCalled();
+      expect(
+        StatusPageSubscriberService.createFromStatusPageSignUp,
+      ).toHaveBeenCalledTimes(1);
+
+      const created: StatusPageSubscriber = (
+        StatusPageSubscriberService.createFromStatusPageSignUp as unknown as jest.Mock
+      ).mock.calls[0]![0] as StatusPageSubscriber;
+
+      expect(created).toBeInstanceOf(StatusPageSubscriber);
+      expect(created.subscriberEmail?.toString()).toBe("visitor@example.com");
+      expect(created.statusPageId?.toString()).toBe(
+        victimStatusPageId.toString(),
+      );
+      // Nothing the request carried marks it either way.
+      expect(created.isAddedByTeam).toBeUndefined();
     });
   });
 });

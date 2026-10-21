@@ -1,0 +1,10 @@
+{
+  "name": "agent-ebpf-e2e-app",
+  "private": true,
+  "description": "Workload of Tests/Ops/agent-ebpf-e2e: installed by the app pod's init container inside the test cluster, never by CI's npm. Versionless on purpose: Scripts/Install/SyncPackageVersions.js skips it, so a release's version bump does not rerun the e2e workflow.",
+  "dependencies": {
+    "express": "4.21.2",
+    "ioredis": "5.4.2",
+    "pg": "8.13.1"
+  }
+}

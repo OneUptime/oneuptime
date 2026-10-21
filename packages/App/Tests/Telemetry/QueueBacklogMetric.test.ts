@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * feed the KEDA metrics-api scaler for the app and worker deployments.
  *
  * Both services must aggregate the BACKLOG (waiting + delayed) across the
- * four drained queues via Queue.getQueueBacklogSize — never the
+ * five drained queues via Queue.getQueueBacklogSize — never the
  * active-inclusive Queue.getQueueSize. Counting active jobs made the scaler
  * treat telemetry jobs parked on the fan-in flush ack as demand, so every
  * new pod just parked more jobs and the fleet overscaled to
@@ -47,6 +47,7 @@ const BACKLOG_BY_QUEUE: Record<string, number> = {
   [QueueName.Workflow]: 7,
   [QueueName.Telemetry]: 11,
   [QueueName.Runbook]: 2,
+  [QueueName.AIInvestigation]: 3,
 };
 
 beforeEach(() => {
@@ -58,8 +59,8 @@ beforeEach(() => {
 });
 
 describe("AppQueueService.getQueueBacklogSize", () => {
-  test("sums the backlog of all four drained queues", async () => {
-    await expect(AppQueueService.getQueueBacklogSize()).resolves.toBe(25);
+  test("sums the backlog of all five drained queues", async () => {
+    await expect(AppQueueService.getQueueBacklogSize()).resolves.toBe(28);
   });
 
   test("reads every queue exactly once, via the backlog-only counter", async () => {
@@ -76,6 +77,7 @@ describe("AppQueueService.getQueueBacklogSize", () => {
         QueueName.Workflow,
         QueueName.Telemetry,
         QueueName.Runbook,
+        QueueName.AIInvestigation,
       ].sort(),
     );
 
@@ -85,14 +87,14 @@ describe("AppQueueService.getQueueBacklogSize", () => {
 });
 
 describe("WorkerQueueService.getQueueBacklogSize", () => {
-  test("sums the backlog of all four drained queues", async () => {
-    await expect(WorkerQueueService.getQueueBacklogSize()).resolves.toBe(25);
+  test("sums the backlog of all five drained queues", async () => {
+    await expect(WorkerQueueService.getQueueBacklogSize()).resolves.toBe(28);
   });
 
   test("never consults the active-inclusive queue size", async () => {
     await WorkerQueueService.getQueueBacklogSize();
     expect(getQueueSizeMock).not.toHaveBeenCalled();
-    expect(getQueueBacklogSizeMock).toHaveBeenCalledTimes(4);
+    expect(getQueueBacklogSizeMock).toHaveBeenCalledTimes(5);
   });
 });
 

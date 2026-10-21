@@ -26,6 +26,15 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import HashedString from "../../../Types/HashedString";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * "Accept the invitation automatically" - the checkbox a master admin gets on
@@ -194,10 +203,22 @@ beforeEach(() => {
     .spyOn(ProjectSCIMService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
 
-  // No existing membership - the duplicate-invite guard at the end of the hook.
+  // No existing membership on this team - the duplicate-invite guard.
   jest.spyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
   jest
     .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
+    .mockResolvedValue(0);
+
+  /*
+   * The invitee is not in the project through another team either. Someone
+   * who is gets the membership accepted whoever adds them - that rule has its
+   * own file, TeamMemberProjectInvitationAcceptance.test.ts.
+   */
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(false);
+  jest
+    .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
     .mockResolvedValue(0);
 
   jest
@@ -244,6 +265,7 @@ beforeEach(() => {
       "updateSubscriptionSeatsByUniqueTeamMembersInProject",
     )
     .mockResolvedValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -630,6 +652,7 @@ describe("TeamMemberService.onUpdateSuccess - accepting an invitation by hand st
     row.user = verifiedUser();
 
     jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([row]);
+    stubProjectDirectory({});
   });
 
   test("accepting adds the same defaults the auto-accept path adds", async () => {

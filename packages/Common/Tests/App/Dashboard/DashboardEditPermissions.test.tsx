@@ -301,7 +301,8 @@ describe("DashboardView - a reader cannot edit the board (issue #3550)", () => {
       const editItem: HTMLElement = screen.getByText("Edit Dashboard");
       const editButton: HTMLElement = editItem.closest("button") as HTMLElement;
 
-      expect(editButton).toBeDisabled();
+      // Locked, but still reachable from the keyboard: aria-disabled.
+      expect(editButton).toHaveAttribute("aria-disabled", "true");
     });
 
     test("is told which permission the Edit would need", async () => {
@@ -312,7 +313,7 @@ describe("DashboardView - a reader cannot edit the board (issue #3550)", () => {
         .getByText("Edit Dashboard")
         .closest("button") as HTMLElement;
 
-      fireEvent.mouseEnter(editButton.parentElement as HTMLElement);
+      fireEvent.mouseEnter(editButton);
 
       const tooltip: HTMLElement = screen.getByRole("tooltip");
 

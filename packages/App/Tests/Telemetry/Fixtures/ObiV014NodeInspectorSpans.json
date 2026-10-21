@@ -1,0 +1,1036 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "k8s.cluster.name", "value": { "stringValue": "e2e" } },
+          { "key": "service.name", "value": { "stringValue": "downstream" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          { "key": "service.namespace", "value": { "stringValue": "shop" } },
+          {
+            "key": "k8s.pod.name",
+            "value": { "stringValue": "downstream-75c4f6f88-s2tbp" }
+          },
+          { "key": "k8s.namespace.name", "value": { "stringValue": "shop" } },
+          {
+            "key": "k8s.deployment.name",
+            "value": { "stringValue": "downstream" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "d700d4a8ee9e942236077cf53aabf5bb",
+              "spanId": "6b6a5b09dec2b99b",
+              "parentSpanId": "cc59a1b46d9e2713",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791021434637050001",
+              "endTimeUnixNano": "1791021434637641418",
+              "status": {}
+            },
+            {
+              "traceId": "d700d4a8ee9e942236077cf53aabf5bb",
+              "spanId": "7d8cb605e2f119ee",
+              "parentSpanId": "cc59a1b46d9e2713",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791021434637641418",
+              "endTimeUnixNano": "1791021434638233710",
+              "status": {}
+            },
+            {
+              "traceId": "d700d4a8ee9e942236077cf53aabf5bb",
+              "spanId": "cc59a1b46d9e2713",
+              "name": "GET /json/list",
+              "kind": 2,
+              "startTimeUnixNano": "1791021434637050001",
+              "endTimeUnixNano": "1791021434638233710",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "downstream" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                { "key": "url.path", "value": { "stringValue": "/json/list" } },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/json/list" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "48486" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "c2b9e5adff3ccaa86f7cad5a90a0bb5f",
+              "spanId": "20d56ee82e630d20",
+              "name": "GET /*",
+              "kind": 2,
+              "startTimeUnixNano": "1791021434659182793",
+              "endTimeUnixNano": "1791021434697796002",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "downstream" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "101" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/06aa0bc1-f07e-4016-b228-7d687ac99626"
+                  }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                { "key": "http.route", "value": { "stringValue": "/*" } },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "48486" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    },
+    {
+      "resource": {
+        "attributes": [
+          { "key": "k8s.cluster.name", "value": { "stringValue": "e2e" } },
+          { "key": "service.name", "value": { "stringValue": "downstream" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          { "key": "service.namespace", "value": { "stringValue": "shop" } },
+          {
+            "key": "k8s.pod.name",
+            "value": { "stringValue": "downstream-75c4f6f88-s2tbp" }
+          },
+          { "key": "k8s.namespace.name", "value": { "stringValue": "shop" } },
+          {
+            "key": "k8s.deployment.name",
+            "value": { "stringValue": "downstream" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "112c1d8ede34354a2770f4fa5d3f5660",
+              "spanId": "b7dd1dcf6b063790",
+              "parentSpanId": "71eb8ebd06cb4bc5",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791021435343952835",
+              "endTimeUnixNano": "1791021435346823877",
+              "status": {}
+            },
+            {
+              "traceId": "112c1d8ede34354a2770f4fa5d3f5660",
+              "spanId": "61e19edfbf8a99ef",
+              "parentSpanId": "71eb8ebd06cb4bc5",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791021435346823877",
+              "endTimeUnixNano": "1791021435481444210",
+              "status": {}
+            },
+            {
+              "traceId": "112c1d8ede34354a2770f4fa5d3f5660",
+              "spanId": "71eb8ebd06cb4bc5",
+              "name": "GET /ping",
+              "kind": 2,
+              "startTimeUnixNano": "1791021435343952835",
+              "endTimeUnixNano": "1791021435481444210",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "8080" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "bashloop" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "downstream" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                { "key": "url.path", "value": { "stringValue": "/ping" } },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                { "key": "http.route", "value": { "stringValue": "/ping" } },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.244.1.36" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "54266" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    },
+    {
+      "resource": {
+        "attributes": [
+          { "key": "k8s.cluster.name", "value": { "stringValue": "e2e" } },
+          { "key": "service.name", "value": { "stringValue": "app26" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          { "key": "service.namespace", "value": { "stringValue": "shop" } },
+          { "key": "k8s.deployment.name", "value": { "stringValue": "app26" } },
+          { "key": "k8s.namespace.name", "value": { "stringValue": "shop" } },
+          {
+            "key": "k8s.pod.name",
+            "value": { "stringValue": "app26-6cbcff5857-pmg7c" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "13a77dcd7cef71ea2b66e868985873c6",
+              "spanId": "db3126cec00ff59f",
+              "parentSpanId": "9a7c4d6c34e013c9",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791021436822933337",
+              "endTimeUnixNano": "1791021436831201087",
+              "status": {}
+            },
+            {
+              "traceId": "13a77dcd7cef71ea2b66e868985873c6",
+              "spanId": "1916a58444e213f0",
+              "parentSpanId": "9a7c4d6c34e013c9",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791021436831201087",
+              "endTimeUnixNano": "1791021436861529503",
+              "status": {}
+            },
+            {
+              "traceId": "13a77dcd7cef71ea2b66e868985873c6",
+              "spanId": "9a7c4d6c34e013c9",
+              "name": "GET /json/list",
+              "kind": 2,
+              "startTimeUnixNano": "1791021436822933337",
+              "endTimeUnixNano": "1791021436861529503",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "app26" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                { "key": "url.path", "value": { "stringValue": "/json/list" } },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/json/list" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "48506" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "102945535f227d803fbc0c57452b1c35",
+              "spanId": "4741b135c6e4952b",
+              "name": "GET /*",
+              "kind": 2,
+              "startTimeUnixNano": "1791021436862871878",
+              "endTimeUnixNano": "1791021436884377961",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "app26" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "101" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/598a8f98-dc3e-4263-a42d-3a529121d0bb"
+                  }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                { "key": "http.route", "value": { "stringValue": "/*" } },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "48506" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    },
+    {
+      "resource": {
+        "attributes": [
+          { "key": "k8s.cluster.name", "value": { "stringValue": "e2e" } },
+          { "key": "service.name", "value": { "stringValue": "agent-e2e" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          {
+            "key": "service.namespace",
+            "value": { "stringValue": "oneuptime-agent" }
+          },
+          {
+            "key": "k8s.namespace.name",
+            "value": { "stringValue": "oneuptime-agent" }
+          },
+          {
+            "key": "k8s.pod.name",
+            "value": {
+              "stringValue": "agent-e2e-kubernetes-agent-ai-agent-599df9754d-sj8td"
+            }
+          },
+          {
+            "key": "k8s.deployment.name",
+            "value": { "stringValue": "agent-e2e-kubernetes-agent-ai-agent" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "2b05a1fdb79d6524a4cf8e3f65f06f50",
+              "spanId": "251a9ce8849e4d98",
+              "parentSpanId": "4aedf16fb6137266",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791021441955930755",
+              "endTimeUnixNano": "1791021441973823505",
+              "status": {}
+            },
+            {
+              "traceId": "2b05a1fdb79d6524a4cf8e3f65f06f50",
+              "spanId": "f21a5a10304641f8",
+              "parentSpanId": "4aedf16fb6137266",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791021441973823505",
+              "endTimeUnixNano": "1791021441978509422",
+              "status": {}
+            },
+            {
+              "traceId": "2b05a1fdb79d6524a4cf8e3f65f06f50",
+              "spanId": "4aedf16fb6137266",
+              "name": "GET /status/ready",
+              "kind": 2,
+              "startTimeUnixNano": "1791021441955930755",
+              "endTimeUnixNano": "1791021441978509422",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "3876" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "10.244.1.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "agent-e2e" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": { "stringValue": "/status/ready" }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/status/ready" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.244.1.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "52888" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                },
+                { "key": "span.metrics.skip", "value": { "boolValue": true } }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "k8s.cluster.name",
+            "value": { "stringValue": "fu-inspector" }
+          },
+          { "key": "service.name", "value": { "stringValue": "appinspect" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          { "key": "service.namespace", "value": { "stringValue": "fu" } },
+          {
+            "key": "k8s.deployment.name",
+            "value": { "stringValue": "appinspect" }
+          },
+          {
+            "key": "k8s.pod.name",
+            "value": { "stringValue": "appinspect-6f7b4fdffc-ftwld" }
+          },
+          { "key": "k8s.namespace.name", "value": { "stringValue": "fu" } }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "eba7a5c6497d229e70f62591e7b1f0af",
+              "spanId": "28e3d14ee1528b14",
+              "parentSpanId": "26cd5ddbe79fdc2f",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791060326635636044",
+              "endTimeUnixNano": "1791060326636627544",
+              "status": {}
+            },
+            {
+              "traceId": "eba7a5c6497d229e70f62591e7b1f0af",
+              "spanId": "aeac0b7cffdf88ff",
+              "parentSpanId": "26cd5ddbe79fdc2f",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791060326636627544",
+              "endTimeUnixNano": "1791060326638153544",
+              "status": {}
+            },
+            {
+              "traceId": "eba7a5c6497d229e70f62591e7b1f0af",
+              "spanId": "26cd5ddbe79fdc2f",
+              "name": "GET /json/version",
+              "kind": 2,
+              "startTimeUnixNano": "1791060326635636044",
+              "endTimeUnixNano": "1791060326638153544",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "appinspect" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": { "stringValue": "/json/version" }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/json/version" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "52682" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "60c431d69a80c8b460c39555e6d9c38e",
+              "spanId": "25092c30e2b7a499",
+              "name": "GET /json/list",
+              "kind": 2,
+              "startTimeUnixNano": "1791060326639074960",
+              "endTimeUnixNano": "1791060326640729751",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "appinspect" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                { "key": "url.path", "value": { "stringValue": "/json/list" } },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/json/list" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "52682" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "30615c1d932154884d23fcf6ec082242",
+              "spanId": "69db4226c5f5c0f2",
+              "name": "GET /*",
+              "kind": 2,
+              "startTimeUnixNano": "1791060326681073710",
+              "endTimeUnixNano": "1791060326681618294",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "9229" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "appinspect" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "101" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/3f0a9029-31a6-4712-b61e-4f0875ce73fe"
+                  }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                { "key": "http.route", "value": { "stringValue": "/*" } },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "127.0.0.1" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "52682" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "e2bdff91eca85046",
+              "parentSpanId": "260da8f4695dc4fb",
+              "name": "set",
+              "kind": 3,
+              "startTimeUnixNano": "1791060327086478376",
+              "endTimeUnixNano": "1791060327090978668",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "6379" } },
+                {
+                  "key": "db.system.name",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "service.peer.name",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "db.operation.name",
+                  "value": { "stringValue": "set" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.96.199.0" }
+                },
+                { "key": "network.peer.port", "value": { "intValue": "6379" } }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "7a9e89a5609978a7",
+              "parentSpanId": "260da8f4695dc4fb",
+              "name": "get",
+              "kind": 3,
+              "startTimeUnixNano": "1791060327091298793",
+              "endTimeUnixNano": "1791060327091510585",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "6379" } },
+                {
+                  "key": "db.system.name",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "service.peer.name",
+                  "value": { "stringValue": "redis" }
+                },
+                {
+                  "key": "db.operation.name",
+                  "value": { "stringValue": "get" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.96.199.0" }
+                },
+                { "key": "network.peer.port", "value": { "intValue": "6379" } }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "149c495e3e3bbe60",
+              "parentSpanId": "260da8f4695dc4fb",
+              "name": "SELECT",
+              "kind": 3,
+              "startTimeUnixNano": "1791060327092303044",
+              "endTimeUnixNano": "1791060327092740669",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "5432" } },
+                {
+                  "key": "db.system.name",
+                  "value": { "stringValue": "postgresql" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "postgres" }
+                },
+                {
+                  "key": "service.peer.name",
+                  "value": { "stringValue": "postgres" }
+                },
+                {
+                  "key": "db.operation.name",
+                  "value": { "stringValue": "SELECT" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.96.52.52" }
+                },
+                { "key": "network.peer.port", "value": { "intValue": "5432" } }
+              ],
+              "status": {}
+            }
+          ]
+        },
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "f58c7e1f02cf0279",
+              "parentSpanId": "70d5850d44b83102",
+              "name": "in queue",
+              "kind": 1,
+              "startTimeUnixNano": "1791060327081005460",
+              "endTimeUnixNano": "1791060327084557085",
+              "status": {}
+            },
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "260da8f4695dc4fb",
+              "parentSpanId": "70d5850d44b83102",
+              "name": "processing",
+              "kind": 1,
+              "startTimeUnixNano": "1791060327084557085",
+              "endTimeUnixNano": "1791060327096060376",
+              "status": {}
+            },
+            {
+              "traceId": "f263f6a6e905e823ddac4468d2905668",
+              "spanId": "70d5850d44b83102",
+              "name": "GET /api/items/:id",
+              "kind": 2,
+              "startTimeUnixNano": "1791060327081005460",
+              "endTimeUnixNano": "1791060327096060376",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "3000" } },
+                {
+                  "key": "client.address",
+                  "value": { "stringValue": "loadgen" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "appinspect" }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": { "intValue": "200" }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": { "stringValue": "GET" }
+                },
+                {
+                  "key": "url.path",
+                  "value": { "stringValue": "/api/items/3" }
+                },
+                { "key": "url.scheme", "value": { "stringValue": "http" } },
+                {
+                  "key": "http.route",
+                  "value": { "stringValue": "/api/items/:id" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.244.0.25" }
+                },
+                {
+                  "key": "network.peer.port",
+                  "value": { "intValue": "59010" }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": { "stringValue": "1.1" }
+                }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "k8s.cluster.name",
+            "value": { "stringValue": "fu-inspector" }
+          },
+          { "key": "service.name", "value": { "stringValue": "postgres" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "cpp" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.distro.name",
+            "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+          },
+          {
+            "key": "telemetry.distro.version",
+            "value": { "stringValue": "v0.14.0" }
+          },
+          { "key": "service.namespace", "value": { "stringValue": "fu" } },
+          { "key": "k8s.namespace.name", "value": { "stringValue": "fu" } },
+          {
+            "key": "k8s.pod.name",
+            "value": { "stringValue": "postgres-7778c657bd-lw5gk" }
+          },
+          {
+            "key": "k8s.deployment.name",
+            "value": { "stringValue": "postgres" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {},
+          "spans": [
+            {
+              "traceId": "a17637f05773f264ac1236c71b3c6a49",
+              "spanId": "b758a704172a499a",
+              "name": "SELECT",
+              "kind": 2,
+              "startTimeUnixNano": "1791060324424995375",
+              "endTimeUnixNano": "1791060324425450375",
+              "attributes": [
+                { "key": "server.port", "value": { "intValue": "5432" } },
+                {
+                  "key": "db.system.name",
+                  "value": { "stringValue": "postgresql" }
+                },
+                {
+                  "key": "server.address",
+                  "value": { "stringValue": "postgres" }
+                },
+                {
+                  "key": "db.operation.name",
+                  "value": { "stringValue": "SELECT" }
+                },
+                {
+                  "key": "network.peer.address",
+                  "value": { "stringValue": "10.244.0.26" }
+                },
+                { "key": "network.peer.port", "value": { "intValue": "37824" } }
+              ],
+              "status": {}
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://open-telemetry.github.io/opentelemetry-ebpf-instrumentation/schemas/obi/0.14.0"
+    }
+  ]
+}

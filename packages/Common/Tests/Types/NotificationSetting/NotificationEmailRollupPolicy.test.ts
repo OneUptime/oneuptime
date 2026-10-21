@@ -19,7 +19,7 @@ import {
  * these are the failures it exists to catch in review rather than in an
  * incident:
  *
- * - Somebody adds a 48th NotificationSettingEventType and does not classify
+ * - Somebody adds a 49th NotificationSettingEventType and does not classify
  *   it. Every count below breaks, so the omission cannot be merged.
  * - Somebody moves a time-critical on-call event out of
  *   NEVER_ROLLED_UP_EVENT_TYPES. "You are on call now", delayed five minutes,
@@ -36,17 +36,17 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 47 members, split 5 / 42", () => {
+  test("the enum still has exactly 48 members, split 5 / 43", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
 
-    expect(allEventTypes.length).toBe(47);
+    expect(allEventTypes.length).toBe(48);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(5);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(42);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(43);
   });
 
-  test("their union is exactly the enum, so a 48th member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 49th member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );

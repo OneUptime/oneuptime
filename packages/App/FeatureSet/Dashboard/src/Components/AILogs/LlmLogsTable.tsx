@@ -16,6 +16,16 @@ import Query from "Common/Types/BaseDatabase/Query";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import AiTokenCount, {
+  AiTokenCountBreakdown,
+} from "Common/Types/AI/AiTokenCount";
+import { getLlmLogCacheFacts } from "./LlmLogTokens";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -25,6 +35,7 @@ export interface LlmLogsTableProps {
 const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
   props: LlmLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -65,19 +76,77 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       field: { totalTokens: true },
       title: "Tokens Used",
       type: FieldType.Number,
+      /*
+       * The tokens as OneUptime counts them (AiTokenCount): what the
+       * project's daily AI limits add up and the AI credits charge. A call
+       * that used the provider's prompt cache says, under its count, how
+       * many tokens it sent in all and how many of them the cache served or
+       * took, so the count can be checked against the provider's own.
+       */
+      // The (i) beside the title translates its text as it shows it.
+      headerTooltip: translationKey(
+        "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
+      ),
+      // The line under the count wraps rather than widen the table.
+      wrapContent: true,
+      wrapMaxWidthClassName: "max-w-xs",
+      /*
+       * The rows could only be sorted by the tokens as the provider counted
+       * them (the column), which is not the count the cell shows: a call that
+       * read most of its tokens from the cache would sort above one that
+       * counts more.
+       */
+      disableSort: true,
       getElement: (item: LlmLog): ReactElement => {
-        const total: number = (item["totalTokens"] as number) || 0;
-        const cached: number = (item["cachedInputTokens"] as number) || 0;
+        const tokens: AiTokenCountBreakdown = AiTokenCount.getBreakdown(item);
+        const cacheFacts: Array<string> = getLlmLogCacheFacts(
+          translator,
+          tokens,
+        );
 
-        if (cached > 0) {
-          return (
-            <p>
-              {total} <span className="text-gray-500">({cached} cached)</span>
-            </p>
-          );
-        }
-
-        return <p>{total}</p>;
+        return (
+          <div data-testid="llm-log-tokens">
+            <p>{translator.formatNumber(tokens.countedTokens)}</p>
+            {cacheFacts.length > 0 ? (
+              /*
+               * The facts with a dot between them, wrapping between facts
+               * and never inside one. The line is pulled back by one gap in
+               * a box that clips, so a fact that starts a line - the first,
+               * or one a narrow column wrapped - has its dot clipped away
+               * (as Code's meta lines do).
+               */
+              <div
+                className="overflow-hidden"
+                data-testid="llm-log-cache-tokens"
+              >
+                <p className="-ml-3 flex flex-wrap text-xs leading-5 text-gray-500">
+                  {cacheFacts.map((fact: string, index: number) => {
+                    return (
+                      <span
+                        key={index}
+                        className="relative ml-3 whitespace-nowrap"
+                      >
+                        {index > 0 ? (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -left-2 text-gray-300"
+                          >
+                            ·
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {fact}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        );
       },
     },
     // Only show cost column if billing is enabled
@@ -166,16 +235,31 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
         selectMoreFields={{
           statusMessage: true,
           cachedInputTokens: true,
+          cacheCreationTokens: true,
         }}
         cardProps={{
           title: "AI Logs",
           description: props.singularName
-            ? `AI usage logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "AI usage logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "AI usage logs for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No AI logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No AI logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No AI logs."
         }
         showRefreshButton={true}

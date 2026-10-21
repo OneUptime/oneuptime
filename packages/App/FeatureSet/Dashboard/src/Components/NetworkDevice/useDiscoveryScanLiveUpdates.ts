@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const DISCOVERY_REFRESH_INTERVAL_MS: number = 10000;
 export const DISCOVERY_REFRESH_TIMEOUT_MS: number = 15000;
@@ -41,6 +42,8 @@ export interface DiscoveryScanLiveUpdates {
   onRowsLoaded: (rows: Array<NetworkDeviceDiscoveryScan>) => void;
   getScan: (scan: NetworkDeviceDiscoveryScan) => NetworkDeviceDiscoveryScan;
   activeCount: number;
+  // How many scans the table's page holds - none on a project with no scans.
+  loadedRowCount: number;
   isRefreshing: boolean;
   isPaused: boolean;
   error: string;
@@ -180,7 +183,9 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
           refreshableRows.some((scan: NetworkDeviceDiscoveryScan): boolean => {
             return !updates.has(scan._id!);
           })
-            ? "Some scans are no longer available. Refresh the list to see the latest scans."
+            ? translationKey(
+                "Some scans are no longer available. Refresh the list to see the latest scans.",
+              )
             : "",
         );
       } catch (err) {
@@ -250,6 +255,7 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
       );
     },
     activeCount,
+    loadedRowCount: rows.length,
     isRefreshing,
     isPaused,
     error,

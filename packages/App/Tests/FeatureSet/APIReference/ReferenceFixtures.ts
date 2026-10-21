@@ -1,5 +1,6 @@
 import { DataTypeDocumentation } from "../../../FeatureSet/APIReference/Utils/DataTypes";
 import {
+  getDocsLanguageDirection,
   makeT,
   TranslateFn,
 } from "../../../FeatureSet/APIReference/Utils/I18n";
@@ -294,6 +295,11 @@ export const PAGE_FIXTURES: Record<string, PageFixture> = {
 
 export interface RenderOptions {
   lang?: string;
+  /*
+   * The language's direction unless given. Given as undefined, the page is
+   * rendered without one, as a view the services forgot to pass it to would be.
+   */
+  dir?: string | undefined;
   showMasterAdminApis?: boolean;
   enableGoogleTagManager?: boolean;
 }
@@ -321,6 +327,10 @@ export async function renderPage(
       enableGoogleTagManager: options?.enableGoogleTagManager ?? false,
       pageData: fixture.pageData,
       lang: lang,
+      dir:
+        options && "dir" in options
+          ? options.dir
+          : getDocsLanguageDirection(lang),
       t: t,
       supportedLanguages: [
         { code: "en", nativeName: "English" },

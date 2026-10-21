@@ -18,6 +18,10 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import * as SnmpCredentialUtil from "../../../Utils/NetworkDevice/SnmpCredentialUtil";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * NetworkDeviceService and NetworkSiteService each import the complete
@@ -99,6 +103,12 @@ function buildService(): {
     new NetworkSnmpCredentialProfileServiceType();
 
   const internals: ServiceInternals = service as unknown as ServiceInternals;
+
+  /*
+   * The profiles a member may delete: those the service's own read answers,
+   * whatever a test sets it to answer.
+   */
+  stubRowsCallerMayDeleteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
   return { service, internals };
 }
@@ -628,20 +638,32 @@ describe("onBeforeDelete - a profile still in use cannot be deleted", () => {
 
 describe("onBeforeDelete - the counts come from tenant-scoped queries", () => {
   /*
-   * The hook runs BEFORE DatabaseService applies the caller's tenant to the
-   * delete query, and it reads as root so that it sees every profile the
-   * delete would touch. Root plus the caller's raw query would hand back
-   * other tenants' profiles - and then count other tenants' devices against
-   * them. The caller's tenant is re-applied by hand.
+   * A member's delete counts the profiles it removes: the ones the member may
+   * delete - read with the member's own delete permission, so in the
+   * member's project - that the delete's query names, read as root with the
+   * delete held to them. Other tenants' profiles, and their devices, never
+   * come into it.
    */
-  test("the profiles are read as root, with the caller's tenant re-applied to the query", async () => {
+  test("the profiles are those the member may delete in their project, read as root and held to", async () => {
     const { service, internals } = buildService();
     const findBySpy: jest.SpyInstance = jest
       .spyOn(service, "findBy")
-      .mockResolvedValue([]);
+      .mockResolvedValue([
+        profileRow({ id: PROFILE_ID, projectId: PROJECT_ID }),
+      ]);
+    stubCounts({ devices: 0, sites: 0 });
 
-    await internals.onBeforeDelete(deleteBy(MEMBER_PROPS));
+    const input: DeleteBy<NetworkSnmpCredentialProfile> =
+      deleteBy(MEMBER_PROPS);
+    await internals.onBeforeDelete(input);
 
+    // The profiles the member may delete, read in the member's project.
+    const callerMayDelete: Record<string, unknown> =
+      readsOfRowsCallerMayWrite(service)[0]!.query;
+    expect(callerMayDelete["_id"]).toBe(PROFILE_ID.toString());
+    expect(callerMayDelete["projectId"]).toBe(PROJECT_ID);
+
+    // The delete's profiles among them, read as root.
     expect(findBySpy).toHaveBeenCalledTimes(1);
 
     const call: {
@@ -653,8 +675,10 @@ describe("onBeforeDelete - the counts come from tenant-scoped queries", () => {
     };
 
     expect(call.props.isRoot).toBe(true);
-    expect(call.query["_id"]).toBe(PROFILE_ID.toString());
-    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    expect(call.query).toEqual({ _id: PROFILE_ID.toString() });
+
+    // The delete removes exactly the profile counted.
+    expect(input.query).toEqual({ _id: PROFILE_ID.toString() });
   });
 
   test("a root caller's query is passed through untouched", async () => {

@@ -33,6 +33,7 @@ import {
   getKubernetesAlertTemplateById,
   buildKubernetesMonitorConfig,
 } from "Common/Types/Monitor/KubernetesAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -221,6 +222,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: KubernetesAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     /*
      * Build the kubernetes monitor config from the template's getMonitorStep
@@ -270,6 +273,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: KubernetesMetricDefinition,
   ) => void = (metric: KubernetesMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
     setCustomResourceScope(metric.defaultResourceScope);
 
@@ -309,11 +314,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Kubernetes Cluster"
-          description={"Select the Kubernetes cluster to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="Kubernetes Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {
@@ -338,11 +339,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       <>
         {showNamespaceFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Namespace"
-              description={"Filter by namespace (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Namespace" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.namespace || ""
@@ -363,11 +360,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Workload Name"
-              description={"Filter by workload name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Workload Name" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.workloadName || ""
@@ -388,11 +381,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showNodeFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Node Name"
-              description={"Filter by node name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Node Name" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.nodeName || ""
@@ -413,11 +402,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showPodFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Pod Name"
-              description={"Filter by pod name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Pod Name" required={false} />
             <Input
               value={monitorStepKubernetesMonitor.resourceFilters.podName || ""}
               onChange={(value: string) => {
@@ -445,38 +430,17 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: KubernetesAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepKubernetesMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepKubernetesMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepKubernetesMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepKubernetesMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepKubernetesMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </KubernetesTemplatePicker>
       </div>
     );
   };
@@ -485,13 +449,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Kubernetes Metric"
-            description={
-              "Select a Kubernetes metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Kubernetes Metric" required={true} />
           <KubernetesMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: KubernetesMetricDefinition) => {
@@ -505,7 +463,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Resource Scope"
-                description={"Select the scope of resources to monitor."}
+                description={
+                  "The level the metric is watched at. It decides which filters you see."
+                }
                 required={true}
               />
               <Dropdown
@@ -536,7 +496,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -591,9 +551,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={
-                  "Select the time range for the Kubernetes monitor."
-                }
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -622,7 +580,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Resource Scope"
-            description={"Select the scope of resources to monitor."}
+            description={
+              "The level the metric is watched at. It decides which filters you see."
+            }
             required={true}
           />
           <Dropdown
@@ -650,7 +610,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the Kubernetes monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -669,13 +629,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Kubernetes metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
@@ -691,8 +645,13 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepKubernetesMonitor,

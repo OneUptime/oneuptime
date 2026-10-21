@@ -1,7 +1,11 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Linking, Platform } from "react-native";
-import { NotificationChannelId } from "./channels";
+import { CRITICAL_CHANNELS } from "./channels";
+import {
+  getCriticalAlertSoundOption,
+  type CriticalAlertSoundIdValue,
+} from "./criticalAlertSounds";
 import logger from "../utils/logger";
 
 /*
@@ -17,24 +21,41 @@ import logger from "../utils/logger";
  *
  *   iOS     - needs Apple's critical-alert entitlement on the build AND the
  *             user's consent, reported back as
- *             permissions.ios.allowsCriticalAlerts.
+ *             permissions.ios.allowsCriticalAlerts - which is null, not
+ *             false, until an entitled build has asked for it.
  *   Android - needs the notification channel to actually carry bypassDnd,
  *             which the OS grants only after the user gives this app
- *             Notification Policy Access in system settings. Writing
- *             bypassDnd: true without it succeeds and produces a channel with
- *             bypassDnd: false.
+ *             Notification Policy Access in system settings - and only to a
+ *             channel the app writes after that. Writing bypassDnd: true
+ *             without the access succeeds and produces a channel with
+ *             bypassDnd: false, which stays false until the app writes the
+ *             channel again (isCriticalChannelBypassingDnd).
  */
 
 export enum CriticalAlertAvailability {
   // The OS will let critical alerts through. Safe to turn the setting on.
   Granted = "granted",
   /*
-   * The platform supports it, but the user has not granted it yet.
-   * requestCriticalAlertPermission() knows where to send them.
+   * Not granted yet. requestCriticalAlertPermission() asks where it can, and
+   * the reason says what is still missing.
+   *
+   * An iOS build without Apple's entitlement lands here too, not in
+   * Unsupported: iOS reports it exactly as it reports an entitled build that
+   * has not asked yet, so the only way to tell them apart is to ask - which
+   * is what turning the setting on does.
    */
   Denied = "denied",
-  // Simulator, web, or an iOS build without the entitlement.
+  // Simulator or web: there is no ringer for the OS to override.
   Unsupported = "unsupported",
+}
+
+export interface CriticalAlertStatusOptions {
+  /*
+   * The alarm sound the responder chose. On Android each sound pages on a
+   * channel of its own, and the chosen sound's channel is the one that has to
+   * bypass Do Not Disturb. Left out, the system sound's channel.
+   */
+  sound?: CriticalAlertSoundIdValue | undefined;
 }
 
 export interface CriticalAlertStatus {
@@ -44,10 +65,23 @@ export interface CriticalAlertStatus {
    * "denied" means two very different chores on the two platforms.
    */
   reason: string;
+  /*
+   * Set when the OS could not be asked at all. The availability is then the
+   * cautious answer for the screen to show (denied), not a reading anything
+   * may act on: the server is never told that a phone stopped ringing
+   * through over a failed read (notifications/criticalAlertsReport.ts).
+   */
+  isUncertain?: boolean | undefined;
 }
 
 const IOS_DENIED_REASON: string =
   "iOS has not granted critical alerts to this app. Allow Critical Alerts for OneUptime On-Call in iOS Settings > Notifications.";
+
+const IOS_NOT_OFFERED_REASON: string =
+  "iOS does not offer critical alerts to this version of the app, so there is no Critical Alerts switch for it in iOS Settings. Update OneUptime On-Call from the App Store, then try again.";
+
+const IOS_NOTIFICATIONS_OFF_REASON: string =
+  "Notifications are turned off for this app. Turn on Allow Notifications for OneUptime On-Call in iOS Settings > Notifications, then try again.";
 
 const ANDROID_DENIED_REASON: string =
   "Android has not granted Do Not Disturb access to this app. Allow it in Settings > Notifications > Do Not Disturb access, then try again.";
@@ -59,56 +93,155 @@ const GRANTED_REASON: string =
   "On-call pages will play a sound even when this device is silenced or in Do Not Disturb.";
 
 /*
- * Read the critical channel back from Android and report whether it really
- * bypasses Do Not Disturb.
+ * Write the critical channels again, then report whether Android really lets
+ * the chosen sound's channel bypass Do Not Disturb.
  *
- * setNotificationChannelAsync returns the channel as the OS actually stored
- * it, so the returned bypassDnd is the OS's answer and not an echo of the
- * request. The channel is (re)written here rather than only read because a
- * fresh install may not have created it yet, and creating it is harmless when
- * it already exists - Android ignores every field but name and description on
- * an existing channel.
+ * Android settles a channel's bypass when the app WRITES the channel, not when
+ * the user grants access. The app writes its channels when it starts, which on
+ * a fresh install is before anybody has granted Do Not Disturb access, so the
+ * critical channels are stored with bypassDnd false. Granting the access later
+ * changes nothing on a stored channel: Android raises bypassDnd on an existing
+ * channel only when an app that holds the access writes it again, and only
+ * while the user has not changed any of that channel's settings themselves.
+ * Reading the channel without writing it first therefore went on reporting
+ * the old false after the responder had granted the access - the settings
+ * screen told them to grant it again, and the switch would not stay on until
+ * the app was restarted.
+ *
+ * So the channels are written here, every time the status is read: on
+ * returning from the Do Not Disturb access screen, that write is what turns
+ * the bypass on. Every critical channel is written, not only the chosen
+ * sound's, so a responder who picks another alarm later finds it already
+ * bypassing. It is harmless otherwise - on an existing channel Android keeps
+ * every setting the user changed, and never lets the app undo a bypass the
+ * user switched off. setNotificationChannelAsync returns the channel as
+ * Android stored it, so the returned bypassDnd is Android's answer, not an
+ * echo of the request.
+ *
+ * A channel the user changed before granting the access stays without the
+ * bypass whatever the app writes; that phone is reported as denied, which is
+ * true, and the responder can let the channel override Do Not Disturb in the
+ * phone's own settings.
  */
-export async function isCriticalChannelBypassingDnd(): Promise<boolean> {
+export async function isCriticalChannelBypassingDnd(
+  sound?: CriticalAlertSoundIdValue,
+): Promise<boolean> {
+  return Boolean(await readCriticalChannelBypass(sound));
+}
+
+/*
+ * isCriticalChannelBypassingDnd's answer, or null when Android could not be
+ * asked at all: writing the channels failed and reading the chosen one
+ * failed too. A channel that is not there is an answer (false); a read that
+ * threw is not one.
+ */
+async function readCriticalChannelBypass(
+  sound?: CriticalAlertSoundIdValue,
+): Promise<boolean | null> {
   if (Platform.OS !== "android") {
     return false;
   }
 
+  const chosenChannelId: string = getCriticalAlertSoundOption(sound).channelId;
+
+  let chosenChannel: Notifications.NotificationChannel | null = null;
+  let isChosenChannelWritten: boolean = false;
+
+  for (const { id, channel } of CRITICAL_CHANNELS) {
+    try {
+      const stored: Notifications.NotificationChannel | null =
+        await Notifications.setNotificationChannelAsync(id, channel);
+
+      if (id === chosenChannelId) {
+        chosenChannel = stored;
+        isChosenChannelWritten = true;
+      }
+    } catch (error: unknown) {
+      logger.warn(
+        `[CriticalAlerts] Could not write the critical notification channel ${id}:`,
+        error,
+      );
+    }
+  }
+
+  if (isChosenChannelWritten) {
+    return Boolean(chosenChannel?.bypassDnd);
+  }
+
+  /*
+   * The write failed, but the channel may still be there from when the app
+   * started: what Android stored is still the truest answer available, and a
+   * channel that already bypasses Do Not Disturb should not be reported as
+   * one that does not.
+   */
   try {
     const channel: Notifications.NotificationChannel | null =
-      await Notifications.getNotificationChannelAsync(
-        NotificationChannelId.CRITICAL,
-      );
+      await Notifications.getNotificationChannelAsync(chosenChannelId);
 
     return Boolean(channel?.bypassDnd);
   } catch (error: unknown) {
     logger.warn(
-      "[CriticalAlerts] Could not read the critical notification channel:",
+      `[CriticalAlerts] Could not read the critical notification channel ${chosenChannelId}:`,
       error,
     );
-    return false;
+    return null;
   }
 }
 
+/*
+ * allowsCriticalAlerts has three answers, and the two that are not `true` need
+ * different instructions:
+ *
+ *   false - iOS Settings has a Critical Alerts switch for this app and it is
+ *           off: the responder declined the prompt or switched it off later.
+ *           Settings is the place to send them.
+ *   null  - iOS reports critical alerts as not supported, and Settings has no
+ *           such switch at all. iOS adds it only once a build carrying Apple's
+ *           entitlement has asked, so this is also an entitled build that has
+ *           not asked yet - turning the setting on asks first. If it is still
+ *           null after that, the build lacks the entitlement, as every App
+ *           Store build up to 1.4.0 did. Pointing the responder at a Settings
+ *           switch that does not exist is a dead end, so the reason names the
+ *           app version instead.
+ *
+ * Notifications turned off for the app altogether outrank both: that is the
+ * first switch the responder needs, and while it is off the app does not even
+ * register this device for pushes.
+ */
 async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
   const permissions: Notifications.NotificationPermissionsStatus =
     await Notifications.getPermissionsAsync();
 
-  if (permissions.ios?.allowsCriticalAlerts) {
+  const allowsCriticalAlerts: boolean | null | undefined =
+    permissions.ios?.allowsCriticalAlerts;
+
+  if (allowsCriticalAlerts) {
     return {
       availability: CriticalAlertAvailability.Granted,
       reason: GRANTED_REASON,
     };
   }
 
+  if (permissions.status === "denied") {
+    return {
+      availability: CriticalAlertAvailability.Denied,
+      reason: IOS_NOTIFICATIONS_OFF_REASON,
+    };
+  }
+
   return {
     availability: CriticalAlertAvailability.Denied,
-    reason: IOS_DENIED_REASON,
+    reason:
+      allowsCriticalAlerts === false
+        ? IOS_DENIED_REASON
+        : IOS_NOT_OFFERED_REASON,
   };
 }
 
-async function getAndroidCriticalAlertStatus(): Promise<CriticalAlertStatus> {
-  const bypassesDnd: boolean = await isCriticalChannelBypassingDnd();
+async function getAndroidCriticalAlertStatus(
+  sound: CriticalAlertSoundIdValue | undefined,
+): Promise<CriticalAlertStatus> {
+  const bypassesDnd: boolean | null = await readCriticalChannelBypass(sound);
 
   if (bypassesDnd) {
     return {
@@ -120,10 +253,13 @@ async function getAndroidCriticalAlertStatus(): Promise<CriticalAlertStatus> {
   return {
     availability: CriticalAlertAvailability.Denied,
     reason: ANDROID_DENIED_REASON,
+    ...(bypassesDnd === null ? { isUncertain: true } : {}),
   };
 }
 
-export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
+export async function getCriticalAlertStatus(
+  options: CriticalAlertStatusOptions = {},
+): Promise<CriticalAlertStatus> {
   /*
    * Simulators report permissions that a real handset would not honour, and
    * there is no ringer to override on web.
@@ -143,7 +279,7 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
       return await getIosCriticalAlertStatus();
     }
 
-    return await getAndroidCriticalAlertStatus();
+    return await getAndroidCriticalAlertStatus(options.sound);
   } catch (error: unknown) {
     logger.warn(
       "[CriticalAlerts] Could not determine critical alert status:",
@@ -153,11 +289,14 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
      * Report "denied" rather than "granted" when the answer is unknown. The
      * cost of being wrong in this direction is a responder who is told to
      * check a setting that was already fine; the other direction is a
-     * responder told their phone will wake them when it will not.
+     * responder told their phone will wake them when it will not. Marked
+     * uncertain, so nothing tells the server pages should stop ringing
+     * through on the strength of it.
      */
     return {
       availability: CriticalAlertAvailability.Denied,
       reason: Platform.OS === "ios" ? IOS_DENIED_REASON : ANDROID_DENIED_REASON,
+      isUncertain: true,
     };
   }
 }
@@ -168,14 +307,18 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
  * iOS can be asked in-app: requesting the critical-alert permission shows the
  * system prompt (once - after that the request resolves immediately with
  * whatever the user chose the first time, which is why the caller is sent to
- * Settings on a denial).
+ * Settings on a denial). A build without Apple's entitlement gets no prompt at
+ * all: iOS drops the option from the request without an error, and the status
+ * read back afterwards says the app version is what is missing.
  *
  * Android cannot be asked in-app at all. Do Not Disturb access is granted only
  * from a system settings screen, so the best available move is to open that
  * screen; the return value here is the state BEFORE the user acts on it, and
  * the caller re-checks when the app comes back to the foreground.
  */
-export async function requestCriticalAlertPermission(): Promise<CriticalAlertStatus> {
+export async function requestCriticalAlertPermission(
+  options: CriticalAlertStatusOptions = {},
+): Promise<CriticalAlertStatus> {
   if (
     !Device.isDevice ||
     (Platform.OS !== "ios" && Platform.OS !== "android")
@@ -203,12 +346,12 @@ export async function requestCriticalAlertPermission(): Promise<CriticalAlertSta
       );
     }
 
-    return getCriticalAlertStatus();
+    return getCriticalAlertStatus(options);
   }
 
   await openAndroidDoNotDisturbAccessSettings();
 
-  return getCriticalAlertStatus();
+  return getCriticalAlertStatus(options);
 }
 
 /*

@@ -1,7 +1,8 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import Model, {
@@ -36,8 +37,12 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -141,9 +146,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
+
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "an AI agent");
 
     if (!createBy.data.aiAgentVersion) {
       createBy.data.aiAgentVersion = new Version("1.0.0");
@@ -154,38 +164,40 @@ export class Service extends DatabaseService<Model> {
       createBy.data.isDefault = true;
     }
 
-    // If this agent is being set as default, unset other defaults in the same project
-    if (createBy.data.isDefault && createBy.data.projectId) {
-      await this.updateBy({
-        query: {
-          projectId: createBy.data.projectId,
-          isDefault: true,
-        },
-        data: {
-          isDefault: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-    }
-
     return { createBy: createBy, carryForward: [] };
   }
 
   /*
    * An AI agent icon is rendered by the id-based image route, which
    * serves only public files. The file picker uploads it private, so
-   * attaching it to an agent is the point at which it becomes public.
+   * attaching it to an agent is the point at which it becomes public - when
+   * it is a file of the agent's own project (FileService.makeRecordFilePublic).
+   *
+   * An agent saved as its project's default takes the default from the
+   * project's other agents - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    /*
+     * The icon is read back from the saved row, like an update's: whichever
+     * name the create sent it under, that is the one stored.
+     */
+    if (createdItem.id) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: [createdItem.id],
+      });
+    }
+
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isDefault",
+      createdItem: createdItem,
+    });
 
     return createdItem;
   }
@@ -268,23 +280,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    // A key it writes is never a value this repository ships (ComponentKeyWrite).
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "an AI agent");
+
     const carryForward: any = {
       aiAgentsToNotifyOwners: [],
     };
 
-    if (updateBy.data.connectionStatus && updateBy.query._id) {
-      const aiAgents: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+    if (updateBy.data.connectionStatus) {
+      const aiAgents: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           connectionStatus: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
-      });
+      );
 
       const aiAgentsToNotifyOwners: Array<Model> = aiAgents.filter(
         (aiAgent: Model) => {
@@ -298,74 +310,52 @@ export class Service extends DatabaseService<Model> {
       carryForward.aiAgentsToNotifyOwners = aiAgentsToNotifyOwners;
     }
 
-    // If setting isDefault to true, we need to unset other defaults in the same project
-    if (updateBy.data.isDefault === true) {
-      // Get the items being updated to find their project IDs
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-
-      // Collect unique project IDs
-      const projectIds: Set<string> = new Set();
-      const itemIds: Set<string> = new Set();
-      for (const item of itemsToUpdate) {
-        if (item.projectId) {
-          projectIds.add(item.projectId.toString());
-        }
-        if (item._id) {
-          itemIds.add(item._id);
-        }
-      }
-
-      // For each project, unset the default on other agents
-      for (const projectIdStr of projectIds) {
-        const projectId: ObjectID = new ObjectID(projectIdStr);
-        await this.updateBy({
-          query: {
-            projectId: projectId,
-            isDefault: true,
-            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
-          },
-          data: {
-            isDefault: false,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-        });
-      }
-    }
-
     return { updateBy: updateBy, carryForward };
   }
 
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
+    }
+
+    // An agent this update made the default takes it from the others.
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
     if (
       onUpdate.carryForward &&
       onUpdate.carryForward.aiAgentsToNotifyOwners.length > 0
     ) {
+      const updatedIds: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      // Only agents the update actually changed have a new status to tell.
       for (const aiAgent of onUpdate.carryForward.aiAgentsToNotifyOwners) {
+        if (!aiAgent.id || !updatedIds.has(aiAgent.id.toString())) {
+          continue;
+        }
+
         await this.notifyOwnersOnStatusChange({
-          aiAgentId: aiAgent.id!,
+          aiAgentId: aiAgent.id,
         });
       }
     }
@@ -442,7 +432,7 @@ export class Service extends DatabaseService<Model> {
             timezones: user.timezone ? [user.timezone] : [],
           }),
           viewAIAgentsLink: (
-            await this.getLinkInDashboard(aiAgent.projectId!, aiAgent.id!)
+            await this.getLinkInDashboard(aiAgent.projectId!)
           ).toString(),
         };
 
@@ -458,7 +448,9 @@ export class Service extends DatabaseService<Model> {
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. AI Agent ${aiAgent.name} is ${connectionStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `AI Agent ${aiAgent.name} is ${connectionStatus}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -524,16 +516,153 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Where an AI agent's emails, pushes and messages send its owners: the
+   * project's Code page, where a repository's request box says whether an
+   * agent is online.
+   * They linked to an AI Agents page under Project Settings, which was
+   * retired when Runners replaced the agent container, so the link opened
+   * nothing.
+   */
   @CaptureSpan()
-  public async getLinkInDashboard(
-    projectId: ObjectID,
-    aiAgentId: ObjectID,
-  ): Promise<URL> {
+  public async getLinkInDashboard(projectId: ObjectID): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/settings/ai-agents/${aiAgentId.toString()}`,
+      `/${projectId.toString()}/code`,
     );
+  }
+
+  /*
+   * Whether an AI agent with this id exists. Asked only for a key that did
+   * not match it, so that a wrong key is counted only for an agent there is
+   * (WrongComponentKeyLimit): an id no agent has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasAIAgentWithId(aiAgentId: ObjectID): Promise<boolean> {
+    const aiAgent: Model | null = await this.findOneBy({
+      query: {
+        _id: aiAgentId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(aiAgent);
+  }
+
+  /*
+   * The global Runners for code: the global AI agents, which take the AI
+   * work of every repository that picks no Runner of its own while its
+   * project uses global Runners (Types/Runner/CodeRepositoryRunner) - the
+   * installation's bundled Runner, OneUptime Cloud's fleet. Read as
+   * OneUptime, with what tells whether each is alive and nothing else: no
+   * key, no project.
+   */
+  @CaptureSpan()
+  public async findGlobalCodeRunners(): Promise<Array<Model>> {
+    return await this.findBy({
+      query: {
+        isGlobalAIAgent: true,
+        projectId: QueryHelper.isNull(),
+      },
+      select: {
+        _id: true,
+        name: true,
+        lastAlive: true,
+        connectionStatus: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // Whether a global Runner for code is alive now (findGlobalCodeRunners).
+  @CaptureSpan()
+  public async hasOnlineGlobalCodeRunner(): Promise<boolean> {
+    const globalRunners: Array<Model> = await this.findGlobalCodeRunners();
+
+    return globalRunners.some((agent: Model): boolean => {
+      return this.isAgentAlive(agent);
+    });
+  }
+
+  /*
+   * An AI agent of the project's own - from before Runners, when a project
+   * created its agent itself - that is alive now, or null. It serves the
+   * project's repositories that pick no Runner, as it always did.
+   */
+  @CaptureSpan()
+  public async getOnlineProjectAIAgent(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const agents: Array<Model> = await this.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        lastAlive: true,
+        connectionStatus: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      agents.find((agent: Model): boolean => {
+        return this.isAgentAlive(agent);
+      }) || null
+    );
+  }
+
+  /*
+   * The global AI agent the in-cluster Runner registering under a key no
+   * global agent holds takes over (API/AIAgentAPI, /register), or null: the
+   * global agent that already holds the key, else the one whose key is a
+   * value this repository ships (ShippedKeyTakeover). That is the agent of a
+   * Runner that ran on the config.example.env ONEUPTIME_RUNNER_KEY and came
+   * back under the random key npm start gave it: it stays the one global
+   * agent, rather than a second one appearing beside an agent that can never
+   * report in again. A global agent whose key is the installation's own is
+   * never taken over.
+   */
+  @CaptureSpan()
+  public async findGlobalAIAgentToTakeOver(data: {
+    presentedKey: string;
+  }): Promise<Model | null> {
+    const globalAIAgents: Array<Model> = await this.findBy({
+      query: {
+        isGlobalAIAgent: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+        lastAlive: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ShippedKeyTakeover.pickRowToTakeOver({
+      rows: globalAIAgents,
+      presentedKey: data.presentedKey,
+    });
   }
 
   @CaptureSpan()

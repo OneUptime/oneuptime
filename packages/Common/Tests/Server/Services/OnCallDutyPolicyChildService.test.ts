@@ -16,6 +16,7 @@ import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -340,6 +341,12 @@ describe.each(CHILDREN)(
           expect(createSpy).toHaveBeenCalledTimes(1);
         } else {
           await expect(operation).rejects.toThrow(NotAuthorizedException);
+          /*
+           * A policy the caller reads but their create grant does not reach:
+           * a refusal of the create's scope (CreateScopeException), which
+           * nothing writes around.
+           */
+          await expect(operation).rejects.toBeInstanceOf(CreateScopeException);
           expect(createSpy).not.toHaveBeenCalled();
           expect(reads).toHaveLength(2);
         }

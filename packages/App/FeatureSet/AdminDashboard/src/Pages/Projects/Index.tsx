@@ -10,152 +10,43 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Field from "Common/UI/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
-import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateProjectFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
-import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Project from "Common/Models/DatabaseModels/Project";
-import User from "Common/Models/DatabaseModels/User";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Navigation from "Common/UI/Utils/Navigation";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
-  const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
-    useState<boolean>(true);
 
-  useEffect(() => {
-    refreshFields();
-  }, [isSubscriptionPlanYearly]);
-
-  const refreshFields: VoidFunction = (): void => {
-    let formFields: Array<Field<Project>> = [
-      {
-        field: {
-          name: true,
-        },
-        validation: {
-          minLength: 4,
-        },
-        fieldType: FormFieldSchemaType.Text,
-        placeholder: "My Project",
-        description: "Pick a friendly name.",
-        title: "Project Name",
-        required: true,
-        stepId: BILLING_ENABLED ? "basic" : undefined,
-      },
-      {
-        field: {
-          createdByUser: true,
-        },
-        title: "Owner",
-        description:
-          "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project",
-        fieldType: FormFieldSchemaType.Dropdown,
-        stepId: BILLING_ENABLED ? "basic" : undefined,
-        dropdownModal: {
-          type: User,
-          labelField: "email",
-          valueField: "_id",
-        },
-      },
-    ];
-
-    if (BILLING_ENABLED) {
-      formFields = [
-        ...formFields,
-        {
-          field: {
-            paymentProviderPlanId: true,
-          },
-          stepId: "plan",
-          validation: {
-            minLength: 6,
-          },
-          footerElement: getFooter(),
-          fieldType: FormFieldSchemaType.OptionChooserButton,
-          radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
-            getAllEnvVars(),
-          ).map((plan: SubscriptionPlan): RadioButton => {
-            let description: string = plan.isCustomPricing()
-              ? `Our sales team will contact you soon.`
-              : `Billed ${isSubscriptionPlanYearly ? "yearly" : "monthly"}. ${
-                  plan.getTrialPeriod() > 0
-                    ? `Free ${plan.getTrialPeriod()} days trial.`
-                    : ""
-                }`;
-
-            if (
-              isSubscriptionPlanYearly &&
-              plan.getYearlySubscriptionAmountInUSD() === 0
-            ) {
-              description = t("pages.projects.freeForeverDescription");
-            }
-
-            if (
-              !isSubscriptionPlanYearly &&
-              plan.getMonthlySubscriptionAmountInUSD() === 0
-            ) {
-              description = t("pages.projects.freeForeverDescription");
-            }
-
-            return {
-              value: isSubscriptionPlanYearly
-                ? plan.getYearlyPlanId()
-                : plan.getMonthlyPlanId(),
-              title: plan.getName(),
-              description: description,
-              sideTitle: plan.isCustomPricing()
-                ? "Custom Price"
-                : isSubscriptionPlanYearly
-                  ? "$" +
-                    plan.getYearlySubscriptionAmountInUSD().toString() +
-                    "/mo billed yearly"
-                  : "$" + plan.getMonthlySubscriptionAmountInUSD().toString(),
-              sideDescription: plan.isCustomPricing()
-                ? ""
-                : isSubscriptionPlanYearly
-                  ? `~ $${
-                      plan.getYearlySubscriptionAmountInUSD() * 12
-                    } per user / year`
-                  : `/month per user`,
-            };
-          }),
-          title: "Please select a plan.",
-          required: true,
-        },
-        {
-          field: {
-            paymentProviderPromoCode: true,
-          },
-          fieldType: FormFieldSchemaType.Text,
-          placeholder: "Promo Code (Optional)",
-          description: "If you have a coupon code, enter it here.",
-          title: "Promo Code",
-          required: false,
-          stepId: "plan",
-          disabled: false,
-        },
-      ];
-    }
-
-    setFields(formFields);
-  };
-
-  const [fields, setFields] = useState<Array<Field<Project>>>([]);
+  /*
+   * The same one-page form the Dashboard's Create New Project dialog shows
+   * (CreateProjectFormFields): the name and, with billing on, the plan and a
+   * promo code folded under More fields.
+   *
+   * No Owner field: a project is created by the admin who makes it, as
+   * OneUptime decides every record's creator, and the creator is its first
+   * owner. Add the customer to the project's Owners team from the project's
+   * Users page afterwards.
+   */
+  const fields: Array<Field<Project>> = useMemo(() => {
+    return getCreateProjectFormFields({
+      isBillingEnabled: BILLING_ENABLED,
+      plans: BILLING_ENABLED
+        ? SubscriptionPlan.getSubscriptionPlans(getAllEnvVars())
+        : [],
+    });
+  }, []);
 
   const getBulkSetBlockedAction: (
     isBlocked: boolean,
@@ -173,8 +64,8 @@ const Projects: FunctionComponent = (): ReactElement => {
       },
       confirmMessage: (items: Array<Project>): string => {
         return isBlocked
-          ? `Are you sure you want to block ${items.length} project(s)? Blocked projects and their members will lose access until unblocked.`
-          : `Are you sure you want to unblock ${items.length} project(s)? They will regain access.`;
+          ? `Are you sure you want to block ${items.length} project(s)? Until they are unblocked, their members, API keys and MCP clients lose access; their monitors, workflows, telemetry ingest and notifications stop; and their status pages and public dashboards go offline. Master admins keep access.`
+          : `Are you sure you want to unblock ${items.length} project(s)? Their members, API keys and MCP clients regain access, and their monitors, workflows, telemetry ingest, notifications, status pages and public dashboards start again.`;
       },
       onClick: async (
         onClickProps: BulkActionOnClickProps<Project>,
@@ -239,6 +130,17 @@ const Projects: FunctionComponent = (): ReactElement => {
         confirmMessage: (items: Array<Project>): string => {
           return `Are you sure you want to permanently delete ${items.length} project(s)? This will remove all of their data (monitors, incidents, telemetry, and more) and cannot be undone.`;
         },
+        // Which projects: a count alone cannot show the one picked by mistake.
+        confirmDetails: (items: Array<Project>): ReactElement => {
+          return (
+            <DeleteItemNames
+              names={items.map((project: Project) => {
+                return getRecordDisplayName(project, { column: "name" });
+              })}
+              totalCount={items.length}
+            />
+          );
+        },
         onClick: async (
           onClickProps: BulkActionOnClickProps<Project>,
         ): Promise<void> => {
@@ -286,23 +188,6 @@ const Projects: FunctionComponent = (): ReactElement => {
       };
     };
 
-  const getFooter: GetReactElementFunction = (): ReactElement => {
-    if (!BILLING_ENABLED) {
-      return <></>;
-    }
-
-    return (
-      <Toggle
-        title={t("pages.projects.yearlyPlanTitle")}
-        value={isSubscriptionPlanYearly}
-        description={t("pages.projects.yearlyPlanDescription")}
-        onChange={(value: boolean) => {
-          setIsSubscriptionPlanYearly(value);
-        }}
-      />
-    );
-  };
-
   return (
     <Page
       title={t("pages.projects.title")}
@@ -326,6 +211,10 @@ const Projects: FunctionComponent = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        // Room for each plan's price beside it, as in the Dashboard's dialog.
+        createEditModalWidth={
+          BILLING_ENABLED ? ModalWidth.Medium : ModalWidth.Normal
+        }
         name="Projects"
         isViewable={true}
         cardProps={{
@@ -333,20 +222,6 @@ const Projects: FunctionComponent = (): ReactElement => {
           description: t("pages.projects.cardDescription"),
         }}
         showViewIdButton={true}
-        formSteps={
-          BILLING_ENABLED
-            ? [
-                {
-                  title: t("pages.projects.stepBasic"),
-                  id: "basic",
-                },
-                {
-                  title: t("pages.projects.stepSelectPlan"),
-                  id: "plan",
-                },
-              ]
-            : undefined
-        }
         noItemsMessage={t("pages.projects.noItems")}
         searchableFields={["name"]}
         bulkActions={{

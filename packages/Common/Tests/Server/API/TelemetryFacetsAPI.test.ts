@@ -25,6 +25,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../Types/Telemetry/ResourceFacetCatalog";
 import {
   afterEach,
@@ -119,7 +120,16 @@ type CallResult = {
   thrownToNext: unknown;
   reachedHandler: boolean;
   facets: FacetsBody | undefined;
+  // The facets the endpoint could not count in time (issue #4707).
+  timedOutFacets: Array<string> | undefined;
 };
+
+// What a facet count stopped at the query time limit rejects with.
+function stoppedAtLimit(): QueryTimeoutException {
+  return new QueryTimeoutException(
+    "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+  );
+}
 
 function findRoute(uri: string): RecordedRoute {
   const route: RecordedRoute | undefined = recordedRoutes.find(
@@ -212,6 +222,9 @@ async function callRoute(data: {
     reachedHandler: outcome.reachedHandler,
     facets: jsonBody
       ? (jsonBody["facets"] as unknown as FacetsBody)
+      : undefined,
+    timedOutFacets: jsonBody
+      ? (jsonBody["timedOutFacets"] as unknown as Array<string>)
       : undefined,
   };
 }
@@ -323,12 +336,14 @@ describe("telemetry facet endpoints (list first)", () => {
 
   /*
    * Stubs a per-facet getFacetValues and records the keys it was asked to
-   * count. Keys listed in `failing` reject.
+   * count. Keys listed in `failing` reject; keys in `stopped` reject the way
+   * a count stopped at the query time limit does.
    */
   function stubPerFacetCounts(
     service: { getFacetValues: unknown },
     values: Record<string, Array<{ value: string; count: number }>>,
     failing: Array<string> = [],
+    stopped: Array<string> = [],
   ): { counted: Array<string>; requests: Array<JSONObject> } {
     const recorded: { counted: Array<string>; requests: Array<JSONObject> } = {
       counted: [],
@@ -345,6 +360,10 @@ describe("telemetry facet endpoints (list first)", () => {
 
         if (failing.includes(facetKey)) {
           throw new Error(`ClickHouse timeout for ${facetKey}`);
+        }
+
+        if (stopped.includes(facetKey)) {
+          throw stoppedAtLimit();
         }
 
         return values[facetKey] || [];
@@ -425,9 +444,20 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls).toHaveLength(1);
+      // A project-wide reader lists every resource: nothing narrowed, nothing taken away.
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "hostId", searchText: "web", limit: 200 },
-        { facetKey: "iotFleetId", searchText: undefined, limit: 200 },
+        {
+          facetKey: "hostId",
+          searchText: "web",
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
+        {
+          facetKey: "iotFleetId",
+          searchText: undefined,
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 
@@ -466,6 +496,54 @@ describe("telemetry facet endpoints (list first)", () => {
         severityText: [],
         hostId: [{ value: "h1", count: 0, displayName: "web-1" }],
       });
+    });
+
+    /*
+     * A count the time limit stopped used to look exactly like a facet with
+     * nothing in it, or a resource list with every count at 0 (issue
+     * #4707). It still degrades the same way — the sidebar keeps the rest —
+     * and the response now names it, so the sidebar can say so.
+     */
+    test("a count stopped at the time limit is named in timedOutFacets; the rest still answer", async () => {
+      listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
+      stubPerFacetCounts(
+        LogAggregationService,
+        { primaryEntityId: [] },
+        ["primaryEntityId"],
+        ["severityText", "hostId"],
+      );
+
+      const result: CallResult = await callRoute({
+        uri: LOGS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["severityText", "hostId", "primaryEntityId"] },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        severityText: [],
+        hostId: [{ value: "h1", count: 0, displayName: "web-1" }],
+        primaryEntityId: [],
+      });
+      // A failure that is not the time limit is not called one.
+      expect([...(result.timedOutFacets || [])].sort()).toEqual([
+        "hostId",
+        "severityText",
+      ]);
+    });
+
+    test("a request that counted everything in time names no facet", async () => {
+      stubPerFacetCounts(LogAggregationService, {
+        severityText: [{ value: "Error", count: 4 }],
+      });
+
+      const result: CallResult = await callRoute({
+        uri: LOGS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["severityText"] },
+      });
+
+      expect(result.timedOutFacets).toEqual([]);
     });
 
     test("a selection on a newly filterable type reaches the count queries as a resource scope", async () => {
@@ -549,6 +627,46 @@ describe("telemetry facet endpoints (list first)", () => {
     });
   });
 
+  describe("timedOutFacets on the exception and metric facets", () => {
+    test("POST /telemetry/exceptions/facets names a count stopped at the time limit", async () => {
+      stubPerFacetCounts(
+        ExceptionAggregationService,
+        { environment: [{ value: "prod", count: 1 }] },
+        [],
+        ["exceptionType"],
+      );
+
+      const result: CallResult = await callRoute({
+        uri: EXCEPTIONS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["exceptionType", "environment"] },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        exceptionType: [],
+        environment: [{ value: "prod", count: 1 }],
+      });
+      expect(result.timedOutFacets).toEqual(["exceptionType"]);
+    });
+
+    test("POST /telemetry/metrics/facets names a count stopped at the time limit", async () => {
+      listedRows = { primaryEntityId: [{ id: "svc-1", displayName: "api" }] };
+      stubPerFacetCounts(MetricAggregationService, {}, [], ["primaryEntityId"]);
+
+      const result: CallResult = await callRoute({
+        uri: METRICS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["primaryEntityId"] },
+      });
+
+      expect(result.facets).toEqual({
+        primaryEntityId: [{ value: "svc-1", count: 0, displayName: "api" }],
+      });
+      expect(result.timedOutFacets).toEqual(["primaryEntityId"]);
+    });
+  });
+
   describe("POST /telemetry/metrics/facets", () => {
     test("the default facet list is Services plus every catalog type; nothing listed means no count query at all", async () => {
       const counts: { counted: Array<string> } = stubPerFacetCounts(
@@ -595,6 +713,32 @@ describe("telemetry facet endpoints (list first)", () => {
         proxmoxClusterId: [],
       });
     });
+
+    test("a storage array with rows is counted and merged under its own facet key", async () => {
+      listedRows = {
+        storageArrayId: [{ id: "sa-1", displayName: "pure-prod-01" }],
+      };
+      const counts: { counted: Array<string> } = stubPerFacetCounts(
+        MetricAggregationService,
+        { storageArrayId: [{ value: "sa-1", count: 7 }] },
+      );
+
+      const result: CallResult = await callRoute({
+        uri: METRICS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["storageArrayId", "cephClusterId"] },
+      });
+
+      expect(listedFacetKeys()).toEqual(["storageArrayId", "cephClusterId"]);
+      // The Ceph facet listed no rows, so only the storage array is counted.
+      expect(counts.counted).toEqual(["storageArrayId"]);
+      expect(result.facets).toEqual({
+        storageArrayId: [
+          { value: "sa-1", count: 7, displayName: "pure-prod-01" },
+        ],
+        cephClusterId: [],
+      });
+    });
   });
 
   describe("POST /telemetry/traces/facets", () => {
@@ -609,13 +753,27 @@ describe("telemetry facet endpoints (list first)", () => {
       serviceCounts?: Array<[string, number]>;
       statusCounts?: Array<[string, number]>;
       failResourceCounts?: boolean;
+      // Which count sources the time limit stops (issue #4707).
+      stop?: Array<"sample" | "resourceCounts" | "rootSpan" | "hasException">;
     }): TraceSpies {
+      const stops: (
+        source: "sample" | "resourceCounts" | "rootSpan" | "hasException",
+      ) => void = (
+        source: "sample" | "resourceCounts" | "rootSpan" | "hasException",
+      ): void => {
+        if ((data.stop || []).includes(source)) {
+          throw stoppedAtLimit();
+        }
+      };
+
       const sample: Spy = spyOn(
         TraceAggregationService,
         "getFacetValuesFromSample",
       );
       sample.mockImplementation(
         async (request: JSONObject): Promise<JSONObject> => {
+          stops("sample");
+
           return Object.fromEntries(
             (request["facetKeys"] as Array<string>).map(
               (facetKey: string): [string, Array<JSONObject>] => {
@@ -639,6 +797,8 @@ describe("telemetry facet endpoints (list first)", () => {
             throw new Error("projection query timed out");
           }
 
+          stops("resourceCounts");
+
           return {
             serviceCounts: new Map<string, number>(data.serviceCounts || []),
             statusCounts: new Map<string, number>(data.statusCounts || []),
@@ -649,6 +809,8 @@ describe("telemetry facet endpoints (list first)", () => {
       const rootSpan: Spy = spyOn(TraceAggregationService, "getRootSpanCounts");
       rootSpan.mockImplementation(
         async (): Promise<{ rootCount: number; nonRootCount: number }> => {
+          stops("rootSpan");
+
           return { rootCount: 2, nonRootCount: 5 };
         },
       );
@@ -662,6 +824,8 @@ describe("telemetry facet endpoints (list first)", () => {
           withExceptionCount: number;
           withoutExceptionCount: number;
         }> => {
+          stops("hasException");
+
           return { withExceptionCount: 1, withoutExceptionCount: 6 };
         },
       );
@@ -769,6 +933,120 @@ describe("telemetry facet endpoints (list first)", () => {
       });
     });
 
+    test("a failing count that is not the time limit names no facet", async () => {
+      listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
+      stubTraceCounts({ failResourceCounts: true });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["hostId", "statusCode"] },
+      });
+
+      expect(result.timedOutFacets).toEqual([]);
+    });
+
+    /*
+     * The shared resource count serves statusCode and every resource facet
+     * that listed rows: when the time limit stops it, each of them is named —
+     * a listed host at 0 would otherwise read as "no spans from this host".
+     */
+    test("the shared resource count stopped at the limit names statusCode and every resource facet it counts", async () => {
+      listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
+      stubTraceCounts({ stop: ["resourceCounts"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["hostId", "statusCode", "kind"] },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        hostId: [{ value: "h1", count: 0, displayName: "web-1" }],
+        statusCode: [],
+        kind: [{ value: "kind-v", count: 1 }],
+      });
+      expect([...(result.timedOutFacets || [])].sort()).toEqual([
+        "hostId",
+        "statusCode",
+      ]);
+    });
+
+    /*
+     * A resource facet that listed nothing answers [] whether the shared
+     * count finished or not: the project has none of that resource. Named
+     * as stopped, the sidebar would keep an empty type on screen as "Not
+     * counted" instead of folding it into "N empty filters hidden".
+     */
+    test("REGRESSION: a stop does not name a resource facet that listed nothing", async () => {
+      listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
+      stubTraceCounts({ stop: ["resourceCounts"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: {
+          facetKeys: [
+            "hostId",
+            "dockerHostId",
+            "kubernetesClusterId",
+            "statusCode",
+          ],
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        hostId: [{ value: "h1", count: 0, displayName: "web-1" }],
+        dockerHostId: [],
+        kubernetesClusterId: [],
+        statusCode: [],
+      });
+      expect([...(result.timedOutFacets || [])].sort()).toEqual([
+        "hostId",
+        "statusCode",
+      ]);
+    });
+
+    test("a stop with only statusCode asked for names statusCode alone", async () => {
+      stubTraceCounts({ stop: ["resourceCounts"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["dockerHostId", "statusCode"] },
+      });
+
+      expect(result.timedOutFacets).toEqual(["statusCode"]);
+    });
+
+    test("the sample, root-span and exception counts each name their own facets", async () => {
+      stubTraceCounts({ stop: ["sample", "rootSpan", "hasException"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: {
+          facetKeys: ["kind", "name", "isRootSpan", "hasException"],
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        kind: [],
+        name: [],
+        isRootSpan: [],
+        hasException: [],
+      });
+      expect([...(result.timedOutFacets || [])].sort()).toEqual([
+        "hasException",
+        "isRootSpan",
+        "kind",
+        "name",
+      ]);
+    });
+
     test("passes facet search text and limit to the listing", async () => {
       stubTraceCounts({});
 
@@ -783,7 +1061,12 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "dockerSwarmClusterId", searchText: "swarm", limit: 50 },
+        {
+          facetKey: "dockerSwarmClusterId",
+          searchText: "swarm",
+          limit: 50,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 

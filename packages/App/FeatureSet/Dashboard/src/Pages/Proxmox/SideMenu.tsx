@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ProxmoxSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -20,15 +23,6 @@ const ProxmoxSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.List,
-        },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.PROXMOX_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
         },
         {
           link: {
@@ -65,7 +59,31 @@ const ProxmoxSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived Proxmox clusters, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROXMOX_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: ProxmoxCluster,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

@@ -1,4 +1,8 @@
 import Pagination from "../../Pagination/Pagination";
+import {
+  TelemetryItemLabels,
+  getTelemetryItemLabels,
+} from "./TelemetryItemLabel";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface TelemetryPaginationProps {
@@ -9,7 +13,23 @@ export interface TelemetryPaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   isDisabled?: boolean;
+  /*
+   * Set while the list loads with nothing on screen yet - the first page,
+   * or an explorer that holds its reads until it knows its scope (issue
+   * #4709). The summary then says "Loading..." rather than "No traces",
+   * which would contradict the loader where the rows go. Rows already on
+   * screen keep their range while the next page loads.
+   */
+  isLoading?: boolean | undefined;
   itemLabel?: string | undefined;
+  /*
+   * Set when `totalItems` is not a total but the lower bound an analytics
+   * list endpoint answers with: the footer then pages forward while more
+   * rows follow, and prints no "of N" and no page numbers it cannot know.
+   */
+  hasMore?: boolean | undefined;
+  // Rows this page rendered, so the printed range never runs past them.
+  itemsOnCurrentPage?: number | undefined;
 }
 
 /**
@@ -20,28 +40,22 @@ export interface TelemetryPaginationProps {
 const TelemetryPagination: FunctionComponent<TelemetryPaginationProps> = (
   props: TelemetryPaginationProps,
 ): ReactElement => {
-  /*
-   * Callers pass a plural label ("traces", "spans"). The singular is only
-   * used for a one-row result set, where trimming a trailing "s" is right
-   * for every label these views pass.
-   */
-  const pluralLabel: string = props.itemLabel || "results";
-  const singularLabel: string = pluralLabel.endsWith("s")
-    ? pluralLabel.slice(0, -1)
-    : pluralLabel;
+  const labels: TelemetryItemLabels = getTelemetryItemLabels(props.itemLabel);
 
   return (
     <Pagination
       dataTestId="telemetry-pagination"
-      singularLabel={singularLabel}
-      pluralLabel={pluralLabel}
+      singularLabel={labels.singular}
+      pluralLabel={labels.plural}
       currentPageNumber={props.currentPage}
       totalItemsCount={props.totalItems}
       itemsOnPage={props.pageSize}
       itemsOnPageOptions={props.pageSizeOptions}
+      hasMore={props.hasMore}
+      itemsOnCurrentPage={props.itemsOnCurrentPage}
       isCompact={true}
       className="bg-gray-50/50"
-      isLoading={false}
+      isLoading={Boolean(props.isLoading)}
       isError={false}
       isDisabled={Boolean(props.isDisabled)}
       onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {

@@ -20,31 +20,19 @@ export function getUserSettingsBreadcrumbs(
       PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS,
       ["Project", "User Settings", "Notification Settings"],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
-      ["Project", "User Settings", "Incident On-Call Rules"],
-    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ON_CALL_RULES, [
+      "Project",
+      "User Settings",
+      "On-Call Rules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "User Settings",
-      "Slack Integration",
+      "Slack",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
-      ["Project", "User Settings", "Microsoft Teams Integration"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES, [
-      "Project",
-      "User Settings",
-      "Alert On-Call Rules",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES,
-      ["Project", "User Settings", "Alert Episode On-Call Rules"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES,
-      ["Project", "User Settings", "Incident Episode On-Call Rules"],
+      ["Project", "User Settings", "Microsoft Teams"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ON_CALL_LOGS, [
       "Project",

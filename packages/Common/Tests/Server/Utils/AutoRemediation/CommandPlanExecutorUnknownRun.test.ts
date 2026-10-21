@@ -22,6 +22,21 @@ import {
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+
+/*
+ * An approved kubectl change's object is read through the cluster before
+ * and after it runs (GitOpsInspector: CommandPlanExecutorGitOps.test.ts
+ * covers it); these tests count only the changes themselves.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(GitOpsInspector, "inspectCommandOnCluster")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GitOpsInspector, "captureRevertWatchOnCluster")
+    .mockResolvedValue(null);
+});
 
 /*
  * Contract under test — the rollback arm and a kubectl command recorded as
@@ -133,6 +148,8 @@ function clusterStatus(): KubernetesClusterAiAccessStatus {
       posture: { inCluster: true, allowWrites: true },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,

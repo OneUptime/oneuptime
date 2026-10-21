@@ -500,7 +500,7 @@ describe.each([
 
       expect(tile).toContain("description?: string | undefined;");
       expect(tile).toContain(
-        "{props.title} </span> <InfoTooltip label={props.title} text={props.description} />",
+        "{translator.translateText(props.title)} </span> <InfoTooltip label={props.title} text={props.description} />",
       );
     });
 
@@ -515,7 +515,11 @@ describe.each([
     });
 
     test("the timeline heading (the chart has no card title) carries its (i)", () => {
-      const heading: string = between(code, `${timeline} </h2>`, "/>");
+      const heading: string = between(
+        code,
+        `{translator.translateText("${timeline}")} </h2>`,
+        "/>",
+      );
 
       expect(heading).toContain(`<InfoTooltip label="${timeline}"`);
       expect(heading).toContain(
@@ -631,7 +635,9 @@ describe("Hosts list (Pages/Host/Hosts.tsx)", () => {
       "memoryBytes: item.totalMemoryBytes ?? undefined,",
     );
     expect(resources).toContain("processes: item.processCount ?? undefined,");
-    expect(resources).toContain("{summary.processes} processes");
+    expect(resources).toContain(
+      'other: "{{count}} processes", }, summary.processes,',
+    );
     for (const field of ["cpuCores", "totalMemoryBytes", "processCount"]) {
       expect(selectMore).toContain(`${field}: true,`);
     }

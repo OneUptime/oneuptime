@@ -27,9 +27,13 @@ import WorkspaceMessagePayload, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Dictionary from "../../../Types/Dictionary";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import ObjectID from "../../../Types/ObjectID";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import { Token, Tokens, marked } from "marked";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 /*
  * Tests for WorkspaceNotificationRuleService.sendTestNotificationToDestination,
  * the service behind the "Send Test" button beside every Slack channel,
@@ -78,6 +82,7 @@ const TEAMS_CHAT_ID: string = "19:chat-7f3a91@thread.v2";
 const TEAMS_CHAT_NAME: string = "Ops War Room";
 
 const PROJECT_NAME: string = "Acme Production";
+
 const USER_MARKDOWN: string =
   "[Alice Admin](https://oneuptime.example.com/dashboard/p1/settings/users/u1)";
 
@@ -440,7 +445,11 @@ function mockDeps(options: MockOptions): Mocks {
     userMarkdownSpy.mockRejectedValue(new Error("user lookup exploded"));
   } else {
     userMarkdownSpy.mockResolvedValue(
-      options.userMarkdown === undefined ? USER_MARKDOWN : options.userMarkdown,
+      FeedMarkdown.asMarkdown(
+        options.userMarkdown === undefined
+          ? USER_MARKDOWN
+          : options.userMarkdown,
+      ),
     );
   }
 
@@ -3475,6 +3484,76 @@ describe("sendTestNotificationToDestination: project / user lookups are best-eff
     const text: string = markdownOf(onlyPayload(mocks));
     expect(text).not.toContain("****");
     expect(text).toBe(NO_PROJECT_CHANNEL_MARKDOWN);
+  });
+
+  test("a project name holding Markdown, HTML and a mention is text in the message", async () => {
+    const mocks: Mocks = mockDeps({
+      workspaceType: WorkspaceType.Slack,
+      projectName:
+        "[Open the console](https://example.test/console) <b>Ops</b> <!channel>",
+      userMarkdown: "",
+    });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Slack,
+      channelId: SLACK_CHANNEL_ID,
+    });
+
+    const text: string = markdownOf(onlyPayload(mocks));
+
+    // Written out: the brackets and the "<" escaped, the mention broken.
+    expect(text).toBe(
+      "**Test notification from OneUptime**\n\n" +
+        `This is a test notification sent from the OneUptime project **\\[Open the console\\](https://example.test/console) \\<b>Ops\\</b> \\<${WORD_JOINER}!channel>**. ` +
+        "If you can see this message, OneUptime can post notifications to this channel. No action is needed.",
+    );
+
+    /*
+     * Read as Markdown: no HTML, and no link whose words hide where it goes
+     * (the address may still show as itself), and the name reads as typed.
+     */
+    const tokens: Array<Token> = [];
+    marked.walkTokens(marked.lexer(text), (token: Token): void => {
+      tokens.push(token);
+    });
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "html" ||
+            (token.type === "link" &&
+              (token as Tokens.Link).text !== (token as Tokens.Link).href)
+          );
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+    expect(
+      removeHtmlMarkup(marked.parse(text, { async: false }) as string)
+        .split(WORD_JOINER)
+        .join(""),
+    ).toContain(
+      "[Open the console](https://example.test/console) &lt;b&gt;Ops&lt;/b&gt; &lt;!channel&gt;",
+    );
+    expect(loggedEntries(mocks)[0]!.message).toBe(text);
+  });
+
+  test("an ordinary project name reads exactly as typed", async () => {
+    const mocks: Mocks = mockDeps({
+      workspaceType: WorkspaceType.Slack,
+      projectName: "Payments (EU) - Site 03",
+      userMarkdown: "",
+    });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Slack,
+      channelId: SLACK_CHANNEL_ID,
+    });
+
+    expect(markdownOf(onlyPayload(mocks))).toContain(
+      "from the OneUptime project **Payments (EU) - Site 03**.",
+    );
   });
 
   test("a user lookup that throws omits the 'by' fragment and still sends", async () => {

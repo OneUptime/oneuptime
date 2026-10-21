@@ -25,6 +25,10 @@ import {
   SLO_UNARCHIVE_CARD_DESCRIPTION,
   SLO_UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
+import { getTurnOffSloEvaluationConfirmation } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationCard";
+import SloEvaluationSwitchCopy, {
+  SLO_EVALUATION_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import { SLO_MULTI_MONITOR_MODE_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
 import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -44,6 +48,7 @@ import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -531,9 +536,9 @@ describe("saving an SLO settings card", () => {
   }
 
   /*
-   * The banner says "This SLO is disabled" right above the Evaluation card;
-   * saving that card must make the banner re-read the SLO, or the page
-   * contradicts itself until a reload.
+   * A card's save can change what the banner says (a target out of range,
+   * fixed on the Objective card); the banner must read the SLO again, or
+   * the page contradicts itself until a reload.
    */
   test("re-reads the notice banner after a card saves", async () => {
     const createOrUpdate: ReturnType<typeof jest.spyOn> = jest
@@ -549,7 +554,7 @@ describe("saving an SLO settings card", () => {
     await findText("This SLO is disabled");
     expect(bannerFetchCount()).toBe(1);
 
-    await userEvent.click(await findText("Edit Evaluation"));
+    await userEvent.click(await findText("Edit Objective"));
     await userEvent.click(await findText("Save Changes"));
 
     await waitFor(
@@ -629,5 +634,421 @@ describe("saving an SLO settings card", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Edit Period and Edit Downtime Calculation asked with dropdowns whose one
+ * description explained both modes ("Rolling suits ... Calendar Month suits
+ * ..."), with each mode's meaning hidden in the closed list. The modes are
+ * answers on the dialog now, each with one line, and the stored values are
+ * the enum values they always were.
+ */
+describe("the period and the downtime as plain choices", () => {
+  let createOrUpdate: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    createOrUpdate = jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockResolvedValue({ data: {} } as unknown as Awaited<
+        ReturnType<typeof ModelAPI.createOrUpdate>
+      >);
+  });
+
+  async function openCardEdit(buttonName: string): Promise<HTMLElement> {
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: buttonName },
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
+
+    return await screen.findByTestId("modal", {}, { timeout: WAIT_TIMEOUT });
+  }
+
+  function lineOf(radio: HTMLElement): string {
+    const id: string | null = radio.getAttribute("aria-describedby");
+
+    return (document.getElementById(id || "")?.textContent || "").trim();
+  }
+
+  function savedModel(): Record<string, unknown> {
+    return (
+      createOrUpdate.mock.calls[0]![0] as { model: Record<string, unknown> }
+    ).model;
+  }
+
+  test.each(["Edit Objective", "Edit Period", "Edit Downtime Calculation"])(
+    "%s opens a dialog titled like its button, not 'Edit Service Level Objective'",
+    async (buttonName: string) => {
+      openSettings();
+      const modal: HTMLElement = await openCardEdit(buttonName);
+
+      expect(
+        (within(modal).getByTestId("modal-title").textContent || "").trim(),
+      ).toBe(buttonName);
+      expect(
+        within(modal).queryByText("Edit Service Level Objective"),
+      ).toBeNull();
+    },
+  );
+
+  test("Edit Period asks the window type as two answers, each with its line", async () => {
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Period");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Window Type/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+    const rolling: HTMLElement = within(question).getByRole("radio", {
+      name: "Rolling",
+    });
+    const calendar: HTMLElement = within(question).getByRole("radio", {
+      name: "Calendar Month",
+    });
+
+    expect(rolling).toBeChecked();
+    expect(calendar).not.toBeChecked();
+    expect(lineOf(rolling)).toBe(
+      "The last N days, always up to date. Suits services that must be reliable at every moment.",
+    );
+    expect(lineOf(calendar)).toBe(
+      "Each month on its own, reset on the 1st. Suits targets reported or promised per month.",
+    );
+    expect(within(modal).queryByText(/Rolling suits services/)).toBeNull();
+    expect(
+      within(modal).queryByRole("combobox", { name: /^Window Type/ }),
+    ).toBeNull();
+  });
+
+  test("picking Calendar Month swaps the days for the timezone, and saves the month", async () => {
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Period");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Window Type/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(within(modal).getByText("Window (Days)")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(question).getByRole("radio", { name: "Calendar Month" }),
+    );
+
+    await waitFor(
+      () => {
+        expect(within(modal).queryByText("Window (Days)")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(within(modal).getByText("Timezone")).toBeInTheDocument();
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(createOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(savedModel()["windowType"]).toBe(SloWindowType.CalendarMonth);
+  });
+
+  test("Edit Downtime Calculation asks the multi-monitor mode as two answers, each with its line", async () => {
+    serveSlo({ multiMonitorMode: SloMultiMonitorMode.AnyDown });
+
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Downtime Calculation");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Multi Monitor Mode/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+    const anyDown: HTMLElement = within(question).getByRole("radio", {
+      name: SloMultiMonitorMode.AnyDown,
+    });
+    const average: HTMLElement = within(question).getByRole("radio", {
+      name: SloMultiMonitorMode.MonitorSecondsAverage,
+    });
+
+    expect(anyDown).toBeChecked();
+    expect(lineOf(anyDown)).toBe(
+      "Down whenever any monitor is down. For monitors that must all be up.",
+    );
+    expect(lineOf(average)).toBe(
+      "Downtime averaged across monitors. For replicas, where one down is a partial outage.",
+    );
+    expect(
+      within(modal).getByText(
+        "Only matters when this SLO measures more than one monitor.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(average);
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(createOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(savedModel()["multiMonitorMode"]).toBe(
+      SloMultiMonitorMode.MonitorSecondsAverage,
+    );
+  });
+});
+
+/*
+ * Evaluation is one switch, "Evaluate this SLO", saving the moment it is
+ * flipped, with when the SLO was last evaluated as a line under it. It used
+ * to be Edit Evaluation, flip "Enabled", Save. Turning it off asks first,
+ * because it also resolves the SLO's open burn rate alerts and incidents;
+ * the banner above it follows the switch, and its own "Turn evaluation on"
+ * moves the switch.
+ */
+describe("the Evaluation switch", () => {
+  function bannerFetchCount(): number {
+    return getItemRequests().filter((request: GetItemRequest): boolean => {
+      return (
+        request.select?.["sloStatus"] === true &&
+        request.select?.["isArchived"] === true
+      );
+    }).length;
+  }
+
+  async function findSwitch(): Promise<HTMLElement> {
+    return await screen.findByTestId(
+      SLO_EVALUATION_SWITCH_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+  }
+
+  function evaluationCard(): HTMLElement {
+    return cardOf(screen.getByTestId(SLO_EVALUATION_SWITCH_TEST_ID));
+  }
+
+  function saveSucceeds(): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+  }
+
+  test("is one switch with no Edit button, and Last Evaluated under it", async () => {
+    openSettings();
+
+    const control: HTMLElement = await findSwitch();
+
+    expect(
+      screen.getByRole("switch", {
+        name: SloEvaluationSwitchCopy.switchTitle,
+      }),
+    ).toBe(control);
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Edit Evaluation")).toBeNull();
+
+    const card: HTMLElement = evaluationCard();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.cardDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.switchOnDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.lastEvaluatedTitle),
+    ).toBeInTheDocument();
+    expect(within(card).getByText(/ago$/)).toBeInTheDocument();
+  });
+
+  test("an SLO never evaluated says so under the switch", async () => {
+    serveSlo({ lastEvaluatedAt: null });
+
+    openSettings();
+    await findSwitch();
+
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.notEvaluatedYet,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.notEvaluatedYetDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("turning evaluation off asks first, and says it resolves what the burn rate rules have open", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    openSettings();
+    const control: HTMLElement = await findSwitch();
+
+    fireEvent.click(control);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    expect(dialog).toHaveAccessibleName(
+      SloEvaluationSwitchCopy.turnOffConfirmTitle,
+    );
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(SloEvaluationSwitchCopy.turnOffConfirmDescription);
+    expect(update).not.toHaveBeenCalled();
+
+    // From here on the server has the SLO disabled.
+    serveSlo({ isEnabled: false });
+
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: SloEvaluationSwitchCopy.turnOffConfirmButton,
+      }),
+    );
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: false },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // The banner above hears the switch and says so, without a reload.
+    expect(await findText("This SLO is disabled")).toBeInTheDocument();
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.switchOffDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("cancelled, evaluation stays on and nothing is saved", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    openSettings();
+    const control: HTMLElement = await findSwitch();
+
+    fireEvent.click(control);
+
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Cancel",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(control).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("turning a disabled SLO back on saves at once, and the banner goes", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    serveSlo({ isEnabled: false });
+
+    openSettings();
+
+    await findText("This SLO is disabled");
+    expect(bannerFetchCount()).toBe(1);
+
+    const control: HTMLElement = await findSwitch();
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    // From here on the server has the SLO live again.
+    serveSlo({});
+
+    fireEvent.click(control);
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: true },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await waitFor(
+      () => {
+        expect(bannerFetchCount()).toBe(2);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByText("This SLO is disabled")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("the banner's Turn evaluation on moves the switch below it", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    serveSlo({ isEnabled: false });
+
+    openSettings();
+
+    const control: HTMLElement = await findSwitch();
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    serveSlo({});
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: SloEvaluationSwitchCopy.turnOnButton },
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: true },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(control).toHaveAttribute("aria-checked", "true");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByText("This SLO is disabled")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("the confirmation is for turning evaluation off only, as a danger", () => {
+    expect(getTurnOffSloEvaluationConfirmation(true)).toBeUndefined();
+    expect(getTurnOffSloEvaluationConfirmation(false)).toEqual({
+      title: SloEvaluationSwitchCopy.turnOffConfirmTitle,
+      description: SloEvaluationSwitchCopy.turnOffConfirmDescription,
+      submitButtonText: SloEvaluationSwitchCopy.turnOffConfirmButton,
+      submitButtonType: ButtonStyleType.DANGER,
+    });
   });
 });

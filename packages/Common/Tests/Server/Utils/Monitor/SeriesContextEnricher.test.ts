@@ -1,6 +1,8 @@
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeUntrustedValue } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * The regression this enricher exists for:
@@ -331,6 +333,29 @@ describe("SeriesContextEnricher", () => {
       });
 
       expect(twice).toBe(once);
+    });
+
+    /*
+     * A description template places a label's value as text, with
+     * invisible word joiners that keep a tag, a mention or a link in it
+     * from acting (MonitorTemplateUtil.buildMarkdownStorageMap). It names
+     * the value all the same, so the resource block is not added again.
+     */
+    test("a value the description placed as text counts as mentioned", () => {
+      const description: string = `${neutralizeUntrustedValue("Cache<Key>.load")} in ${neutralizeUntrustedValue("checkout-api")} is slow.`;
+
+      expect(description).toContain(WORD_JOINER);
+
+      const enriched: string = SeriesContextEnricher.enrichDescription({
+        description,
+        seriesLabels: {
+          "service.name": "checkout-api",
+          "code.function": "Cache<Key>.load",
+        },
+        monitorType: MonitorType.Metrics,
+      });
+
+      expect(enriched).toBe(description);
     });
 
     test("an empty description becomes the blocks alone, with no leading blank lines", () => {

@@ -1,0 +1,20 @@
+{{!--
+  An incident's custom fields marked "Include in Subscriber Notifications",
+  in the fields' order, one DetailBoxField row each. Rows come from
+  Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder (the
+  customFieldRows variable), which leaves out fields with no value.
+
+  `title` (the field's name) and `plainText` are plain text a project member
+  typed, and are escaped here. `renderedHtml` goes into the raw slot: the
+  builder fills it only with HTML it produced itself - a Rich text field's
+  Markdown rendered by Markdown.convertToHTML (raw HTML escaped, only
+  http, https and mailto links kept), a Long text field's escaped lines
+  joined with <br/>, or a date and time in the status page's time zones.
+--}}
+{{#each customFieldRows}}
+{{#if renderedHtml}}
+{{> DetailBoxField title=title blockText=renderedHtml }}
+{{else}}
+{{> DetailBoxField title=title plainText=plainText }}
+{{/if}}
+{{/each}}

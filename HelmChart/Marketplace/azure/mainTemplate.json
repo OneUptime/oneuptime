@@ -1,0 +1,175 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "extensionResourceName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the OneUptime cluster extension."
+            }
+        },
+        "clusterResourceName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the AKS cluster."
+            }
+        },
+        "createNewCluster": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "true creates a new AKS cluster; false installs on an existing one."
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of a new AKS cluster."
+            }
+        },
+        "app-host": {
+            "type": "string",
+            "metadata": {
+                "description": "The domain name people open OneUptime at."
+            }
+        },
+        "app-httpProtocol": {
+            "type": "string",
+            "defaultValue": "https",
+            "allowedValues": [
+                "http",
+                "https"
+            ],
+            "metadata": {
+                "description": "The protocol of that domain name."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D4s_v5",
+            "metadata": {
+                "description": "The node size of a new cluster."
+            }
+        },
+        "vmEnableAutoScale": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Whether a new cluster scales its nodes."
+            }
+        },
+        "vmCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "How many nodes a new cluster starts with."
+            }
+        },
+        "dnsPrefix": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('clusterResourceName'), '-dns')]",
+            "metadata": {
+                "description": "The DNS prefix of a new cluster's API server."
+            }
+        },
+        "kubernetesVersion": {
+            "type": "string",
+            "defaultValue": "1.33",
+            "metadata": {
+                "description": "The Kubernetes version of a new cluster."
+            }
+        },
+        "osSKU": {
+            "type": "string",
+            "defaultValue": "AzureLinux",
+            "allowedValues": [
+                "AzureLinux",
+                "Ubuntu"
+            ],
+            "metadata": {
+                "description": "The Linux SKU of a new cluster's nodes."
+            }
+        }
+    },
+    "variables": {
+        "plan-name": "DONOTMODIFY",
+        "plan-publisher": "DONOTMODIFY",
+        "plan-offerID": "DONOTMODIFY",
+        "releaseTrain": "DONOTMODIFY",
+        "clusterExtensionTypeName": "DONOTMODIFY"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ContainerService/managedClusters",
+            "condition": "[parameters('createNewCluster')]",
+            "apiVersion": "2025-04-01",
+            "name": "[parameters('clusterResourceName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "tags": {},
+            "sku": {
+                "name": "Base",
+                "tier": "Free"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "kubernetesVersion": "[parameters('kubernetesVersion')]",
+                "enableRBAC": true,
+                "dnsPrefix": "[parameters('dnsPrefix')]",
+                "autoUpgradeProfile": {
+                    "upgradeChannel": "patch",
+                    "nodeOSUpgradeChannel": "NodeImage"
+                },
+                "agentPoolProfiles": [
+                    {
+                        "name": "agentpool",
+                        "count": "[parameters('vmCount')]",
+                        "enableAutoScaling": "[parameters('vmEnableAutoScale')]",
+                        "minCount": "[if(parameters('vmEnableAutoScale'), 1, json('null'))]",
+                        "maxCount": "[if(parameters('vmEnableAutoScale'), 10, json('null'))]",
+                        "vmSize": "[parameters('vmSize')]",
+                        "osType": "Linux",
+                        "osSKU": "[parameters('osSKU')]",
+                        "type": "VirtualMachineScaleSets",
+                        "mode": "System",
+                        "maxPods": 110,
+                        "availabilityZones": [],
+                        "enableNodePublicIP": false,
+                        "tags": {}
+                    }
+                ],
+                "networkProfile": {
+                    "loadBalancerSku": "standard",
+                    "networkPlugin": "azure"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KubernetesConfiguration/extensions",
+            "apiVersion": "2024-11-01",
+            "name": "[parameters('extensionResourceName')]",
+            "properties": {
+                "extensionType": "[variables('clusterExtensionTypeName')]",
+                "autoUpgradeMinorVersion": true,
+                "releaseTrain": "[variables('releaseTrain')]",
+                "configurationSettings": {
+                    "host": "[parameters('app-host')]",
+                    "httpProtocol": "[parameters('app-httpProtocol')]"
+                },
+                "configurationProtectedSettings": {}
+            },
+            "plan": {
+                "name": "[variables('plan-name')]",
+                "publisher": "[variables('plan-publisher')]",
+                "product": "[variables('plan-offerID')]"
+            },
+            "scope": "[concat('Microsoft.ContainerService/managedClusters/', parameters('clusterResourceName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters/', parameters('clusterResourceName'))]"
+            ]
+        }
+    ],
+    "outputs": {}
+}

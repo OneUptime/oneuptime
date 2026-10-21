@@ -8,19 +8,33 @@ import {
   LlmAttributeNamespacePrefixes,
   LlmConversationIdAttributeKeys,
   LlmCostAttributeKeys,
-  LlmInputTokenAttributeKeys,
   LlmOperationAttributeKeys,
-  LlmOutputTokenAttributeKeys,
   LlmRequestModelAttributeKeys,
   LlmResponseModelAttributeKeys,
   LlmSystemAttributeKeys,
   LlmTeamAttributeKeys,
   LlmToolNameAttributeKeys,
-  LlmTotalTokenAttributeKeys,
   LlmUserEmailAttributeKeys,
   LlmUserIdAttributeKeys,
 } from "../../../Types/Telemetry/LlmConventions";
+import LlmTokenUsageUtil, {
+  LlmTokenUsage,
+} from "../../../Types/Telemetry/LlmTokenUsage";
 import { AttributeType } from "./Telemetry";
+import {
+  LlmCallKind,
+  LlmCallKindUtil,
+} from "../../../Types/Telemetry/LlmCallKind";
+import {
+  LlmAnswerIssue,
+  LlmAnswerIssueUtil,
+} from "../../../Types/Telemetry/LlmAnswerIssue";
+import LlmMessageParser, {
+  LlmAnswerReading,
+  LlmMessage,
+  LlmMessagePartType,
+} from "../../../Utils/Telemetry/LlmMessageParser";
+import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 
 /*
  * First-class detection of LLM / GenAI / AI-agent spans.
@@ -34,7 +48,18 @@ import { AttributeType } from "./Telemetry";
  *
  * Prompt/completion CONTENT is intentionally NOT denormalized here — it stays
  * in the span's attributes/events map (already captured + scrubbed) and is
- * rendered by the LLM span panel in the dashboard.
+ * rendered by the LLM span panel in the dashboard. Two things are read off
+ * it all the same:
+ *
+ *   - the ANSWER, to decide what went wrong with it (llmIssues - see
+ *     LlmAnswerIssue). Only labels are stored, never the text, and only the
+ *     answer is parsed (LlmMessageParser.readAnswer), so a long prompt
+ *     history costs this path nothing;
+ *   - the newest message the person sent, cut to a short preview
+ *     (getUserMessagePreview) - read by the ingest pipeline AFTER the
+ *     project's scrub rules and pipelines ran, so the preview carries their
+ *     redactions, and conversations can be listed under and searched by
+ *     what was asked.
  */
 
 export interface LlmSpanFields {
@@ -48,7 +73,12 @@ export interface LlmSpanFields {
   llmRequestModel: string;
   // Model the provider actually served (often the resolved/pinned model).
   llmResponseModel: string;
-  // Token usage. 0 when the instrumentation did not report it.
+  /*
+   * Token usage, as the GenAI conventions count it: the input count holds
+   * the tokens read from and written to the prompt cache too (see
+   * LlmTokenUsage, which also reads Claude Code's traces beta). 0 when the
+   * instrumentation did not report it.
+   */
   llmInputTokens: number;
   llmOutputTokens: number;
   llmTotalTokens: number;
@@ -78,9 +108,44 @@ export interface LlmSpanFields {
   llmUserEmail: string;
   // Team / cost centre the spend charges to (team.id, cost_center, ...).
   llmTeam: string;
+  /*
+   * What the call did (answer, agent, tool, embedding, retrieval, other) -
+   * see LlmCallKind. "" for a span that is not an LLM span.
+   */
+  llmCallKind: string;
+  // What went wrong with the answer - see LlmAnswerIssue. [] when nothing.
+  llmIssues: Array<string>;
+  /*
+   * Whether the call failed by its own account (error.type, a finish reason
+   * of "error") whatever its status says. Not a column: it lets ingest
+   * re-decide "failed" when a pipeline remaps the span's status
+   * (withFinalStatus).
+   */
+  llmFailedWithoutStatus: boolean;
 }
 
+/*
+ * What ingest knows about a span besides its attributes, for the answer
+ * checks: its status (a failed call), its events (choice events, evaluation
+ * results) and the output token count as REPORTED (null when absent - an
+ * absent count is not a zero).
+ */
+export interface LlmSpanContext {
+  statusCode?: number | undefined;
+  events?: Array<unknown> | undefined;
+}
+
+// Longest user-message preview stored on a span.
+export const LLM_USER_MESSAGE_PREVIEW_LENGTH: number = 300;
+
 type SpanAttributes = Dictionary<AttributeType | Array<AttributeType>>;
+
+/*
+ * The preview reads the prompt history, which can be long; a history above
+ * this many characters of JSON is skipped rather than parsed on the ingest
+ * path (the conversation view still reads it on demand).
+ */
+const LLM_USER_MESSAGE_PREVIEW_JSON_LIMIT: number = 512 * 1024;
 
 export default class LlmSpanUtil {
   /**
@@ -103,6 +168,9 @@ export default class LlmSpanUtil {
       llmUserId: "",
       llmUserEmail: "",
       llmTeam: "",
+      llmCallKind: "",
+      llmIssues: [],
+      llmFailedWithoutStatus: false,
     };
   }
 
@@ -117,6 +185,7 @@ export default class LlmSpanUtil {
   public static extract(
     attributes: SpanAttributes,
     projectPriceOverrides?: Array<LlmModelPrice>,
+    context?: LlmSpanContext,
   ): LlmSpanFields {
     const fields: LlmSpanFields = this.empty();
 
@@ -150,29 +219,21 @@ export default class LlmSpanUtil {
     }
 
     /*
-     * Token columns are ClickHouse Int32 — truncate any fractional value a
-     * malformed SDK might report, otherwise the JSONEachRow insert would
-     * reject the row and fail the whole span batch.
+     * Token columns are ClickHouse Int32 — LlmTokenUsage truncates (and
+     * caps) any value a malformed SDK might report, otherwise the
+     * JSONEachRow insert would reject the row and fail the whole span batch.
+     * It derives the total when only the parts were reported.
      */
-    fields.llmInputTokens = Math.trunc(
-      this.getNumber(attributes, LlmInputTokenAttributeKeys),
+    const usage: LlmTokenUsage = this.readTokenUsage(
+      attributes,
+      Boolean(
+        fields.llmSystem || fields.llmRequestModel || fields.llmResponseModel,
+      ),
     );
 
-    fields.llmOutputTokens = Math.trunc(
-      this.getNumber(attributes, LlmOutputTokenAttributeKeys),
-    );
-
-    fields.llmTotalTokens = Math.trunc(
-      this.getNumber(attributes, LlmTotalTokenAttributeKeys),
-    );
-
-    // Derive total when only the parts were reported.
-    if (
-      fields.llmTotalTokens === 0 &&
-      (fields.llmInputTokens > 0 || fields.llmOutputTokens > 0)
-    ) {
-      fields.llmTotalTokens = fields.llmInputTokens + fields.llmOutputTokens;
-    }
+    fields.llmInputTokens = usage.inputTokens;
+    fields.llmOutputTokens = usage.outputTokens;
+    fields.llmTotalTokens = usage.totalTokens;
 
     /*
      * Cost must distinguish "reported as 0" from "not reported at all": a
@@ -241,12 +302,16 @@ export default class LlmSpanUtil {
      * budgets without per-SDK pricing math. The response model is priced in
      * preference to the request model — it names what the provider actually
      * served (e.g. an alias like "gpt-4o" resolved to a dated snapshot).
+     * Tokens read from and written to the prompt cache pay the model's cache
+     * prices where the catalog has them.
      */
     if (fields.isLlmSpan && reportedCost === null) {
       const computedCost: number | null = LlmCostCatalogUtil.computeCostInUSD({
         model: fields.llmResponseModel || fields.llmRequestModel,
-        inputTokens: fields.llmInputTokens,
-        outputTokens: fields.llmOutputTokens,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        cacheReadTokens: usage.cacheReadTokens,
+        cacheWriteTokens: usage.cacheWriteTokens,
         projectPriceOverrides: projectPriceOverrides,
       });
 
@@ -255,7 +320,206 @@ export default class LlmSpanUtil {
       }
     }
 
+    if (fields.isLlmSpan) {
+      const kind: LlmCallKind = LlmCallKindUtil.getKind({
+        operation: fields.llmOperation,
+        model: fields.llmRequestModel || fields.llmResponseModel,
+        toolName: fields.llmToolName,
+        agentName: fields.llmAgentName,
+      });
+
+      fields.llmCallKind = kind;
+      fields.llmIssues = this.getIssues({
+        attributes: attributes,
+        kind: kind,
+        context: context,
+        reportedOutputTokens: usage.reportedOutputTokens,
+      });
+
+      /*
+       * The same checks with the status left out say whether the call
+       * failed on its own account - what withFinalStatus keeps when a
+       * pipeline remaps the status.
+       */
+      fields.llmFailedWithoutStatus =
+        context?.statusCode === SpanStatus.Error
+          ? this.getIssues({
+              attributes: attributes,
+              kind: kind,
+              context: { ...context, statusCode: SpanStatus.Unset },
+              reportedOutputTokens: usage.reportedOutputTokens,
+            }).includes(LlmAnswerIssue.Failed)
+          : fields.llmIssues.includes(LlmAnswerIssue.Failed);
+    }
+
     return fields;
+  }
+
+  /*
+   * The answer issues of a call stored with `statusCode`: "failed" when that
+   * status is Error or the call failed on its own account, never otherwise.
+   * A project's StatusRemapper pipeline runs after extract(), so a span it
+   * turns from Error to Ok stops counting as a failed call, and one it turns
+   * to Error starts to - the same as its exception rows.
+   */
+  public static withFinalStatus(data: {
+    issues: Array<string>;
+    failedWithoutStatus: boolean;
+    statusCode: number | undefined;
+  }): Array<string> {
+    const failed: boolean =
+      data.statusCode === SpanStatus.Error || data.failedWithoutStatus;
+    const others: Array<string> = data.issues.filter(
+      (issue: string): boolean => {
+        return issue !== LlmAnswerIssue.Failed;
+      },
+    );
+
+    return LlmAnswerIssueUtil.fromValues(
+      failed ? [LlmAnswerIssue.Failed, ...others] : others,
+    );
+  }
+
+  /*
+   * What went wrong with the call's answer. Never throws: a span whose
+   * content this cannot read is judged on its status and finish reasons
+   * alone, and an unreadable span is not worth failing a batch over.
+   */
+  public static getIssues(data: {
+    attributes: SpanAttributes;
+    kind: LlmCallKind;
+    context?: LlmSpanContext | undefined;
+    // The output count as the span reported it: LlmTokenUsage's reading.
+    reportedOutputTokens: number | null;
+  }): Array<LlmAnswerIssue> {
+    let answer: LlmAnswerReading;
+
+    try {
+      answer = LlmMessageParser.readAnswer({
+        attributes: data.attributes,
+        events: data.context?.events,
+      });
+    } catch {
+      answer = {
+        output: [],
+        finishReasons: [],
+        evaluations: [],
+        errorType: "",
+        summary: {
+          recorded: false,
+          hasText: false,
+          hasToolCall: false,
+          hasMedia: false,
+          hasRefusal: false,
+          leadingText: "",
+        },
+      };
+    }
+
+    return LlmAnswerIssueUtil.getIssues({
+      kind: data.kind,
+      statusIsError: data.context?.statusCode === SpanStatus.Error,
+      errorType: answer.errorType,
+      finishReasons: answer.finishReasons,
+      outputTokens: data.reportedOutputTokens,
+      answer: answer.summary,
+      evaluations: answer.evaluations,
+    });
+  }
+
+  /*
+   * The newest message the person sent in this call, cut to
+   * LLM_USER_MESSAGE_PREVIEW_LENGTH: what the conversation list shows as a
+   * conversation's title and searches. Call it on the attributes the span is
+   * STORED with (after scrub rules and pipelines), so a redaction in the
+   * prompt is a redaction in the preview. "" when the prompt was not
+   * recorded or holds no text from the person.
+   */
+  public static getUserMessagePreview(data: {
+    attributes: unknown;
+    events?: unknown;
+  }): string {
+    try {
+      const input: Array<LlmMessage> = LlmMessageParser.readCallContent({
+        attributes: data.attributes,
+        events: data.events,
+        options: { maxJsonLength: LLM_USER_MESSAGE_PREVIEW_JSON_LIMIT },
+      }).input;
+
+      for (let index: number = input.length - 1; index >= 0; index--) {
+        const message: LlmMessage = input[index] as LlmMessage;
+
+        if (message.role !== "user") {
+          continue;
+        }
+
+        const text: string = message.parts
+          .filter((part: { type: LlmMessagePartType; text: string }) => {
+            return part.type === LlmMessagePartType.Text;
+          })
+          .map((part: { text: string }) => {
+            return part.text;
+          })
+          .join(" ");
+
+        const preview: string = this.toPreview(text);
+
+        if (preview) {
+          return preview;
+        }
+      }
+    } catch {
+      // An unreadable prompt has no preview.
+    }
+
+    return "";
+  }
+
+  // Whitespace collapsed, cut on a character boundary.
+  public static toPreview(text: string): string {
+    let preview: string = "";
+    let lastWasSpace: boolean = true;
+
+    for (const character of text) {
+      if (preview.length >= LLM_USER_MESSAGE_PREVIEW_LENGTH) {
+        break;
+      }
+
+      const isSpace: boolean =
+        character === " " ||
+        character === "\n" ||
+        character === "\t" ||
+        character === "\r";
+
+      if (isSpace) {
+        if (!lastWasSpace) {
+          preview += " ";
+        }
+        lastWasSpace = true;
+        continue;
+      }
+
+      preview += character;
+      lastWasSpace = false;
+    }
+
+    return preview.trim();
+  }
+
+  /*
+   * The span's token usage (LlmTokenUsage). Claude Code's bare usage keys are
+   * read only on a span that names its model or provider.
+   */
+  private static readTokenUsage(
+    attributes: SpanAttributes,
+    namesModelOrProvider: boolean,
+  ): LlmTokenUsage {
+    return LlmTokenUsageUtil.read({
+      numberOf: (key: string): number | null => {
+        return this.getNumberOrNull(attributes, [key]);
+      },
+      namesModelOrProvider: namesModelOrProvider,
+    });
   }
 
   private static detectIsLlmSpan(
@@ -308,17 +572,10 @@ export default class LlmSpanUtil {
     return "";
   }
 
-  private static getNumber(
-    attributes: SpanAttributes,
-    candidateKeys: Array<string>,
-  ): number {
-    return this.getNumberOrNull(attributes, candidateKeys) ?? 0;
-  }
-
   /**
-   * Like getNumber but null when no candidate key carries a parseable number
-   * — callers that must distinguish "reported as 0" from "absent" (cost) use
-   * this directly.
+   * The first candidate key's number, or null when no candidate key carries
+   * a parseable number — so "reported as 0" stays apart from "absent" (cost,
+   * and the answer checks' output count).
    */
   private static getNumberOrNull(
     attributes: SpanAttributes,

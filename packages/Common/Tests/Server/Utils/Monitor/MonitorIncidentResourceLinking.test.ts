@@ -23,6 +23,7 @@ import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDe
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
@@ -43,6 +44,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The incident half of the series-resource-linking contract, driven
@@ -146,6 +148,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
     databaseServerIds: [],
+    storageArrayIds: [],
   };
 }
 
@@ -160,6 +163,7 @@ describe("Incidents link the resources their series identifies", () => {
   let proxmoxClusterRows: Array<{ _id: string }> = [];
   let vmwareVCenterRows: Array<{ _id: string }> = [];
   let cephClusterRows: Array<{ _id: string }> = [];
+  let storageArrayRows: Array<{ _id: string }> = [];
   let dockerSwarmClusterRows: Array<{ _id: string }> = [];
   let iotFleetRows: Array<{ _id: string }> = [];
   let databaseServerRows: Array<{ _id: string }> = [];
@@ -167,6 +171,11 @@ describe("Incidents link the resources their series identifies", () => {
   let resourceContext: SeriesResolvedResourceIds;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
 
     hostRows = [];
@@ -177,6 +186,7 @@ describe("Incidents link the resources their series identifies", () => {
     proxmoxClusterRows = [];
     vmwareVCenterRows = [];
     cephClusterRows = [];
+    storageArrayRows = [];
     dockerSwarmClusterRows = [];
     iotFleetRows = [];
     databaseServerRows = [];
@@ -195,6 +205,11 @@ describe("Incidents link the resources their series identifies", () => {
       .mockImplementation(async () => {
         return resourceContext;
       });
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
 
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
@@ -225,6 +240,9 @@ describe("Incidents link the resources their series identifies", () => {
     });
     jest.spyOn(CephClusterService, "findBy").mockImplementation(async () => {
       return cephClusterRows as never;
+    });
+    jest.spyOn(StorageArrayService, "findBy").mockImplementation(async () => {
+      return storageArrayRows as never;
     });
     jest
       .spyOn(DockerSwarmClusterService, "findBy")
@@ -371,6 +389,7 @@ describe("Incidents link the resources their series identifies", () => {
     proxmoxClusterRows = [{ _id: "pve-1" }];
     vmwareVCenterRows = [{ _id: "vcsa-1" }];
     cephClusterRows = [{ _id: "ceph-1" }];
+    storageArrayRows = [{ _id: "array-1" }];
     dockerSwarmClusterRows = [{ _id: "swarm-1" }];
     iotFleetRows = [{ _id: "fleet-1" }];
     databaseServerRows = [{ _id: "d0000000-0000-4000-8000-000000000001" }];
@@ -392,6 +411,7 @@ describe("Incidents link the resources their series identifies", () => {
             "proxmox.cluster.name": "pve",
             "vmware.vcenter.name": "vcsa",
             "ceph.cluster.name": "ceph",
+            "storage.array.name": "pure-prod-01",
             "docker.swarm.cluster.name": "swarm",
             "iot.fleet.name": "fleet",
             "oneuptime.database.server.id":
@@ -413,6 +433,7 @@ describe("Incidents link the resources their series identifies", () => {
     expect(idsOn(incident.proxmoxClusters)).toEqual(["pve-1"]);
     expect(idsOn(incident.vmwareVCenters)).toEqual(["vcsa-1"]);
     expect(idsOn(incident.cephClusters)).toEqual(["ceph-1"]);
+    expect(idsOn(incident.storageArrays)).toEqual(["array-1"]);
     expect(idsOn(incident.dockerSwarmClusters)).toEqual(["swarm-1"]);
     expect(idsOn(incident.iotFleets)).toEqual(["fleet-1"]);
     expect(idsOn(incident.databaseServers)).toEqual([
@@ -773,6 +794,25 @@ describe("Incidents link the resources their series identifies", () => {
     });
 
     expect(idsOn(createdIncidents[0]!.cephClusters)).toEqual(["ceph-1"]);
+  });
+
+  it("still attaches the step-config storage array to an ungrouped incident", async () => {
+    resourceContext = {
+      ...emptyResourceContext(),
+      storageArrayIds: ["array-1"],
+    };
+
+    await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Array capacity is above 90%",
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(idsOn(createdIncidents[0]!.storageArrays)).toEqual(["array-1"]);
+    expect(StorageArrayService.findBy).not.toHaveBeenCalled();
   });
 
   it("leaves the incident unlinked when the resource is not in this project", async () => {

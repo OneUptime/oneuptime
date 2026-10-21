@@ -2,6 +2,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 
 /**
  * The "tell subscribers about this edit" checkbox on the announcement and
@@ -18,15 +19,21 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
  * permission check has no column to look at; the edit button that opens the
  * form is already gated on edit permission. Create forms leave it out, since
  * posting something already has its own "notify subscribers" choice.
+ *
+ * `collapsibleSection` folds it with the fields it sits beside: the
+ * announcement's Edit keeps it in Schedule & Notifications, whose line says
+ * whether this edit is sent (Components/Announcement/AnnouncementForm).
  */
 export const getNotifySubscribersOfUpdateFormField: <
   TBaseModel extends BaseModel,
 >(data: {
   description: string;
   stepId?: string | undefined;
+  collapsibleSection?: FormFieldCollapsibleSection<TBaseModel> | undefined;
 }) => ModelField<TBaseModel> = <TBaseModel extends BaseModel>(data: {
   description: string;
   stepId?: string | undefined;
+  collapsibleSection?: FormFieldCollapsibleSection<TBaseModel> | undefined;
 }): ModelField<TBaseModel> => {
   const field: ModelField<TBaseModel> = {
     overrideField: {
@@ -44,6 +51,10 @@ export const getNotifySubscribersOfUpdateFormField: <
 
   if (data.stepId) {
     field.stepId = data.stepId;
+  }
+
+  if (data.collapsibleSection) {
+    field.collapsibleSection = data.collapsibleSection;
   }
 
   return field;

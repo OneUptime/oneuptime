@@ -75,6 +75,7 @@ interface SidebarOptions {
 function sidebarElement(options: SidebarOptions): ReactElement {
   return (
     <TelemetryFacetSidebar
+      onRemoveFilter={() => {}}
       facetData={options.facetData}
       facetConfigs={options.facetConfigs || makeConfigs()}
       isLoading={options.isLoading || false}
@@ -211,9 +212,9 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     }
     view.rerender(sidebarElement({ facetData: allEmpty }));
 
-    // One per catalog type (thirteen, Databases included).
+    // One per catalog type (fourteen, Databases and Storage Arrays included).
     const count: number = RESOURCE_FACET_CATALOG.length;
-    expect(count).toBe(13);
+    expect(count).toBe(14);
     expect(footer()).toHaveTextContent(`${count} empty filters hidden`);
   });
 
@@ -323,19 +324,35 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     );
   });
 
-  test("a selected resource keeps its section even before its values load", () => {
-    render(
+  test("a selected resource keeps its section even when its values come back empty", () => {
+    const selection: Array<ActiveFilter> = [
+      {
+        facetKey: "cephClusterId",
+        value: "c-1",
+        displayKey: "Ceph Cluster",
+        displayValue: "c-1",
+      },
+    ];
+    const view: RenderResult = render(
       sidebarElement({
         facetData: {},
         isLoading: true,
-        activeFilters: [
-          {
-            facetKey: "cephClusterId",
-            value: "c-1",
-            displayKey: "Ceph Cluster",
-            displayValue: "c-1",
-          },
-        ],
+        activeFilters: selection,
+      }),
+    );
+
+    /*
+     * Nothing has been read yet (issue #4709): the loader stands alone, and
+     * the selection shows as its chip above the list meanwhile.
+     */
+    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(sectionTitles()).toEqual([]);
+
+    view.rerender(
+      sidebarElement({
+        facetData: {},
+        isLoading: false,
+        activeFilters: selection,
       }),
     );
 
@@ -343,11 +360,12 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     expect(footer()).toBeNull();
   });
 
-  test("the first load ({}) shows the loader, no resource sections and no footer", () => {
+  test("the first load ({}) shows the loader alone: no sections that say they are empty, no footer", () => {
     render(sidebarElement({ facetData: {}, isLoading: true }));
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
-    expect(sectionTitles()).toEqual(["Service", "Status"]);
+    expect(sectionTitles()).toEqual([]);
+    expect(screen.queryByText("No values in this time range")).toBeNull();
     expect(footer()).toBeNull();
   });
 

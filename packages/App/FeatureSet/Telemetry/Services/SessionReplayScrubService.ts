@@ -1,3 +1,4 @@
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
@@ -6,6 +7,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
 import LogScrubRuleService from "./LogScrubRuleService";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -45,7 +47,7 @@ import LogScrubRuleService from "./LogScrubRuleService";
  */
 export interface CompiledScrubRule {
   rule: LogScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 /*
@@ -464,8 +466,6 @@ export default class SessionReplayScrubService {
         continue;
       }
 
-      compiled.regex.lastIndex = 0;
-
       if (compiled.regex.test(key)) {
         state.stringsScrubbed++;
 
@@ -496,6 +496,13 @@ export default class SessionReplayScrubService {
       return value;
     }
 
+    /*
+     * The text adds its share to the batch's work allowance when the first
+     * rule is asked about it (Common/Server/Utils/PatternWorkScope.ts); the
+     * rules after it read what the ones before left, which adds nothing.
+     */
+    PatternWorkScope.handOverRecord(value);
+
     let result: string = value;
 
     for (const compiled of compiledRules) {
@@ -509,15 +516,8 @@ export default class SessionReplayScrubService {
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
 
-      /*
-       * The compiled patterns are global, so lastIndex must be reset before
-       * every use or a second string is scanned from wherever the previous
-       * match ended.
-       */
-      compiled.regex.lastIndex = 0;
-
-      const replaced: string = result.replace(
-        compiled.regex,
+      const replaced: string = compiled.regex.replace(
+        result,
         (match: string): string => {
           return this.applyScrubAction(match, action, patternType);
         },

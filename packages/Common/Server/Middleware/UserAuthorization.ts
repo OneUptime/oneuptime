@@ -14,18 +14,21 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
+import McpDelegationAuthorization from "./McpDelegationAuthorization";
 import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../Types/Exception/TenantNotFoundException";
 import HashedString from "../../Types/HashedString";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import GlobalSsoService from "../Services/GlobalSsoService";
@@ -33,16 +36,45 @@ import { GlobalProviderTrust } from "../Utils/GlobalSsoAuthorization";
 import GlobalOidcService from "../Services/GlobalOidcService";
 import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
 import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
+import ProjectOidcService from "../Services/ProjectOidcService";
+import ProjectSsoService from "../Services/ProjectSsoService";
+import ProjectSsoProviderStanding, {
+  ProjectSsoProviderStandingValue,
+  isProjectSsoProviderType,
+} from "../Utils/ProjectSsoProviderStanding";
+import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
-  PermissionHelper,
   UserGlobalAccessPermission,
-  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
-import EditionEnforcement from "../Utils/EditionEnforcement";
+import CallerPermission, {
+  PermissionListModel,
+} from "../Utils/Permission/CallerPermission";
+import { PermissionOperation } from "../../Types/HeldPermissions";
+
+/*
+ * What a request's session is, as every route reads it (readRequestSession):
+ * no session at all, a token that does not verify or has expired, a blocked
+ * user's, or a user's - a master admin's only while they still are one.
+ */
+export type RequestSession =
+  | { kind: "none" }
+  | { kind: "invalid"; error: unknown }
+  | { kind: "blocked"; session: JSONWebTokenData }
+  | { kind: "user"; session: JSONWebTokenData };
+
+/*
+ * A project's own SSO sign-in on a request (a Project SSO/OIDC login): the
+ * token it left, and when it was given (its `iat`, in milliseconds), or null
+ * when the token does not say.
+ */
+export interface ProjectScopedSsoSignIn {
+  tokenData: JSONWebTokenData;
+  issuedAtMs: number | null;
+}
 
 export default class UserMiddleware {
   /*
@@ -93,6 +125,98 @@ export default class UserMiddleware {
     return undefined;
   }
 
+  /**
+   * The session a request carries, read the one way every route reads it:
+   * the access token (cookie or bearer), verified, of a user who is not
+   * blocked, and a master admin's only while their account still is one.
+   * resolveRequestUser answers each kind for the API, the master-admin gates
+   * (MasterAdminAuthorization, the Admin Dashboard's page) ask it too, and
+   * routes that only need to know who is asking use getSessionUser. Throws
+   * when whether the user is blocked, or still a master admin, cannot be
+   * looked up: a lookup that fails is an error, not a pass.
+   *
+   * Only a session's own access token is a session
+   * (JsonWebTokenPurpose.UserSession). Any other token OneUptime signed is
+   * "invalid" here, as one that does not verify: an SSO sign-in, which is
+   * read only next to a session (getSsoTokens, getGlobalSsoTokenData), or a
+   * status page private user's session.
+   */
+  @CaptureSpan()
+  public static async readRequestSession(
+    req: ExpressRequest,
+  ): Promise<RequestSession> {
+    const accessToken: string | undefined =
+      UserMiddleware.getAccessTokenFromExpressRequest(req);
+
+    if (!accessToken) {
+      return { kind: "none" };
+    }
+
+    let session: JSONWebTokenData;
+
+    try {
+      session = JSONWebToken.decode(
+        accessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
+    } catch (error) {
+      return { kind: "invalid", error: error };
+    }
+
+    /*
+     * The access token is a stateless JWT that lives for 15 minutes, and
+     * blocking a user revokes their sessions but cannot recall a token already
+     * issued. Without this check a blocked user keeps full access until it
+     * expires. The answer is cached per node (UserService.isUserBlocked), so
+     * this is one primary-key lookup per user per minute, not per request.
+     */
+    if (await UserService.isUserBlocked(session.userId)) {
+      return { kind: "blocked", session: session };
+    }
+
+    /*
+     * The token says whether its person was a master admin when it was
+     * signed, up to 15 minutes ago. Another master admin may have removed
+     * the access since (Admin Dashboard > Users > Master Admin Access), and
+     * from then on the session is the member's they are: the master-admin
+     * routes refuse it, so do the projects they are not a member of, the
+     * server's Require SSO holds it - and it cannot give the access back.
+     * Nobody is signed out. Read with whether they are blocked, by the same
+     * row read and from the same cache (UserService.isUserMasterAdmin).
+     *
+     * Only ever taken away here: a token that does not say master admin is
+     * never made one, so someone made a master admin is one from their next
+     * sign-in, or from the session's next renewal.
+     */
+    if (
+      session.isMasterAdmin &&
+      !(await UserService.isUserMasterAdmin(session.userId))
+    ) {
+      return { kind: "user", session: { ...session, isMasterAdmin: false } };
+    }
+
+    return { kind: "user", session: session };
+  }
+
+  /**
+   * The signed-in user a request's session belongs to, decided exactly as
+   * the API decides it (readRequestSession), or null: no session, one that
+   * does not verify or has expired, or a blocked user's. For routes that
+   * answer someone who is not signed in the same way as someone who may not
+   * see what they asked for - the image routes (FileViewerAccess) - so an
+   * expired session is no one, rather than a 401. Throws when the
+   * blocked-user lookup fails.
+   */
+  @CaptureSpan()
+  public static async getSessionUser(
+    req: ExpressRequest,
+  ): Promise<JSONWebTokenData | null> {
+    const requestSession: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    return requestSession.kind === "user" ? requestSession.session : null;
+  }
+
   @CaptureSpan()
   public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
     const ssoTokens: Dictionary<string> = {};
@@ -109,6 +233,7 @@ export default class UserMiddleware {
         try {
           projectId = JSONWebToken.decode(
             value as string,
+            JsonWebTokenPurpose.SsoSignIn,
           ).projectId?.toString();
         } catch (err) {
           logger.error(
@@ -150,7 +275,10 @@ export default class UserMiddleware {
           }
 
           try {
-            const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+            const decoded: JSONWebTokenData = JSONWebToken.decode(
+              token,
+              JsonWebTokenPurpose.SsoSignIn,
+            );
 
             if (decoded.projectId?.toString() === projectId) {
               ssoTokens[projectId] = token;
@@ -225,7 +353,10 @@ export default class UserMiddleware {
     }
 
     try {
-      const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
+      const decodedData: JSONWebTokenData = JSONWebToken.decode(
+        rawToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
 
       if (
         decodedData.ssoProviderType === SsoProviderType.GlobalSSO ||
@@ -242,26 +373,37 @@ export default class UserMiddleware {
   }
 
   /**
-   * Per-project SSO token check (Project SSO/OIDC login). Bound to one project,
-   * entirely stateless: signature, expiry, project, user, and the optional
+   * The per-project SSO sign-in on this request (Project SSO/OIDC login), if
+   * it is stateless-valid for this project and user, or null: signature,
+   * expiry, project, user, a project provider type, and the optional
    * pinned-provider discriminator.
+   *
+   * "Stateless-valid" says nothing about whether the provider that gave it
+   * still vouches for it - whether the provider is still there, still the
+   * project's and still on, and whether the sign-in came after it was last
+   * turned off. That needs the database, and lives in
+   * `isProjectScopedSsoSignInAuthorizedForProject`.
    */
   @CaptureSpan()
-  public static doesProjectScopedSsoTokenExist(
+  public static getStatelessValidProjectScopedSsoSignIn(
     req: ExpressRequest,
     projectId: ObjectID,
     userId: ObjectID,
     requiredSsoProviderId?: ObjectID | undefined,
-  ): boolean {
+  ): ProjectScopedSsoSignIn | null {
     const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
+    const rawToken: string | undefined = ssoTokens
+      ? ssoTokens[projectId.toString()]
+      : undefined;
 
-    if (!ssoTokens || !ssoTokens[projectId.toString()]) {
-      return false;
+    if (!rawToken) {
+      return null;
     }
 
     try {
       const decodedData: JSONWebTokenData = JSONWebToken.decode(
-        ssoTokens[projectId.toString()] as string,
+        rawToken,
+        JsonWebTokenPurpose.SsoSignIn,
       );
 
       /*
@@ -279,14 +421,22 @@ export default class UserMiddleware {
         decodedData.ssoProviderType === SsoProviderType.GlobalSSO ||
         decodedData.ssoProviderType === SsoProviderType.GlobalOIDC
       ) {
-        return false;
+        return null;
       }
 
-      return (
-        decodedData.projectId?.toString() === projectId.toString() &&
-        decodedData.userId.toString() === userId.toString() &&
-        this.isSsoProviderSatisfied(decodedData, requiredSsoProviderId)
-      );
+      if (
+        decodedData.projectId?.toString() !== projectId.toString() ||
+        decodedData.userId.toString() !== userId.toString() ||
+        !this.isSsoProviderSatisfied(decodedData, requiredSsoProviderId)
+      ) {
+        return null;
+      }
+
+      return {
+        tokenData: decodedData,
+        // When it was given, read by the signature check above.
+        issuedAtMs: decodedData.issuedAtMs ?? null,
+      };
     } catch {
       /*
        * A token that expires between `getSsoTokens` decoding it and this call
@@ -294,8 +444,91 @@ export default class UserMiddleware {
        * through to the Global SSO token instead of 500-ing, which is what a
        * user with both kinds would expect.
        */
+      return null;
+    }
+  }
+
+  /**
+   * The stateless half of the per-project SSO check, as a yes or no: is
+   * there a per-project SSO sign-in on this request that is stateless-valid
+   * for this project and user (getStatelessValidProjectScopedSsoSignIn).
+   *
+   * NOTE: this is NOT the enforcement entry point - the provider that gave
+   * the sign-in may have been turned off or deleted since. Enforcement calls
+   * `isSsoSatisfiedForProject`.
+   */
+  @CaptureSpan()
+  public static doesProjectScopedSsoTokenExist(
+    req: ExpressRequest,
+    projectId: ObjectID,
+    userId: ObjectID,
+    requiredSsoProviderId?: ObjectID | undefined,
+  ): boolean {
+    return Boolean(
+      this.getStatelessValidProjectScopedSsoSignIn(
+        req,
+        projectId,
+        userId,
+        requiredSsoProviderId,
+      ),
+    );
+  }
+
+  /**
+   * Whether the project's own SSO provider that gave a sign-in still vouches
+   * for it: the provider the sign-in names, by kind and id, is still there,
+   * is still this project's and is on, and the sign-in was given after the
+   * provider was last turned off (ProjectSsoProviderStanding). So turning a
+   * provider off, or deleting it, ends every sign-in it gave at the next
+   * request - and turning it on again does not bring them back - while a
+   * new certificate or client secret changes nothing for anyone signed in.
+   *
+   * A sign-in that does not name its provider cannot be checked, so it does
+   * not count: every project SSO sign-in names it, and one that does not was
+   * made by an old version and is answered like an expired one - signing in
+   * again gives one that does.
+   *
+   * Answers are cached per server for a minute, and forgotten on every
+   * server when a provider is turned off or on or deleted
+   * (ProjectSsoProviderChanges).
+   *
+   * THROWS rather than refusing when the lookup itself fails, for the reason
+   * isGlobalSsoTokenAuthorizedForProject does: "this provider no longer
+   * vouches for you" and "we could not find out" are different answers.
+   */
+  @CaptureSpan()
+  public static async isProjectScopedSsoSignInAuthorizedForProject(data: {
+    ssoProviderType?: SsoProviderType | string | null | undefined;
+    ssoProviderId?: ObjectID | string | null | undefined;
+    issuedAtMs: number | null;
+    projectId: ObjectID;
+  }): Promise<boolean> {
+    const providerIdValue: string | undefined = data.ssoProviderId
+      ? data.ssoProviderId.toString()
+      : undefined;
+
+    if (!providerIdValue || !ObjectID.isValidUUID(providerIdValue)) {
       return false;
     }
+
+    if (!isProjectSsoProviderType(data.ssoProviderType)) {
+      return false;
+    }
+
+    const providerId: ObjectID = new ObjectID(providerIdValue);
+
+    const standing: ProjectSsoProviderStandingValue =
+      data.ssoProviderType === SsoProviderType.ProjectOIDC
+        ? await ProjectOidcService.getSignInStanding({
+            providerId: providerId,
+            projectId: data.projectId,
+          })
+        : await ProjectSsoService.getSignInStanding({
+            providerId: providerId,
+            projectId: data.projectId,
+          });
+
+    return ProjectSsoProviderStanding.doesVouchFor(standing, data.issuedAtMs);
   }
 
   /**
@@ -378,7 +611,11 @@ export default class UserMiddleware {
    *   1. IS THE PROVIDER STILL TRUSTED? Always checked. A Global SSO token
    *      lives for 30 days and carries no revocation, so without this an admin
    *      turning a provider off - or deleting it outright - changes nothing
-   *      for anyone already signed in, for up to a month.
+   *      for anyone already signed in, for up to a month. Nor does a sign-in
+   *      the provider gave before it was last turned off count once it is on
+   *      again (signInsEndedAt, Utils/SsoSignInsEnded): the token's issue
+   *      time comes from its verified `iat` (issuedAtMs), and a token that
+   *      does not carry one only counts for a provider never turned off.
    *
    *   2. DOES THE PROVIDER GOVERN THIS PROJECT? Only checked when the admin
    *      turned on `restrictToAttachedProjects` for that provider. The
@@ -429,6 +666,16 @@ export default class UserMiddleware {
       return false;
     }
 
+    // Given before the provider was last turned off: ended with it.
+    if (
+      !SsoSignInsEnded.doesProviderVouchFor(
+        { isOn: true, signInsEndedAtMs: trust.signInsEndedAtMs },
+        globalSsoTokenData.issuedAtMs ?? null,
+      )
+    ) {
+      return false;
+    }
+
     if (!trust.restrictToAttachedProjects) {
       /*
        * The default, and what every existing installation gets: a global login
@@ -452,8 +699,10 @@ export default class UserMiddleware {
    * THE enforcement entry point: is this request's SSO requirement satisfied
    * for this project?
    *
-   * A per-project token is decided statelessly. A Global SSO token additionally
-   * has to survive the provider-trust and project-governance checks above.
+   * A per-project sign-in has to be stateless-valid and still vouched for by
+   * the provider that gave it (isProjectScopedSsoSignInAuthorizedForProject).
+   * A Global SSO token has to survive the provider-trust and
+   * project-governance checks above. Either one satisfies the requirement.
    */
   @CaptureSpan()
   public static async isSsoSatisfiedForProject(data: {
@@ -464,15 +713,36 @@ export default class UserMiddleware {
   }): Promise<boolean> {
     const { req, projectId, userId, requiredSsoProviderId } = data;
 
-    if (
-      this.doesProjectScopedSsoTokenExist(
+    const projectSsoSignIn: ProjectScopedSsoSignIn | null =
+      this.getStatelessValidProjectScopedSsoSignIn(
         req,
         projectId,
         userId,
         requiredSsoProviderId,
-      )
-    ) {
-      return true;
+      );
+
+    /*
+     * A lookup of the project's provider that fails is an error, not a
+     * refusal - unless a Global SSO sign-in, asked next, satisfies the
+     * requirement on its own.
+     */
+    let projectSignInLookup: { error: unknown } | null = null;
+
+    if (projectSsoSignIn) {
+      try {
+        if (
+          await this.isProjectScopedSsoSignInAuthorizedForProject({
+            ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
+            ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
+            issuedAtMs: projectSsoSignIn.issuedAtMs,
+            projectId,
+          })
+        ) {
+          return true;
+        }
+      } catch (err) {
+        projectSignInLookup = { error: err };
+      }
     }
 
     const globalSsoTokenData: JSONWebTokenData | null =
@@ -482,14 +752,21 @@ export default class UserMiddleware {
         requiredSsoProviderId,
       );
 
-    if (!globalSsoTokenData) {
-      return false;
+    if (
+      globalSsoTokenData &&
+      (await this.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData,
+        projectId,
+      }))
+    ) {
+      return true;
     }
 
-    return this.isGlobalSsoTokenAuthorizedForProject({
-      globalSsoTokenData,
-      projectId,
-    });
+    if (projectSignInLookup) {
+      throw projectSignInLookup.error;
+    }
+
+    return false;
   }
 
   @CaptureSpan()
@@ -541,6 +818,17 @@ export default class UserMiddleware {
     next: NextFunction,
     options: { treatInvalidAccessTokenAsAnonymous: boolean },
   ): Promise<void> {
+    /*
+     * A request the MCP server makes for a member who connected a client with
+     * OAuth. Claimed before anything else is read: its project comes from the
+     * credential, so not even the tenant header below is to be trusted, and a
+     * request that presents this credential must be answered as that - never
+     * quietly authenticated some other way, or as nobody.
+     */
+    if (McpDelegationAuthorization.hasDelegationToken(req)) {
+      return await McpDelegationAuthorization.authorize(req, res, next);
+    }
+
     const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -563,17 +851,21 @@ export default class UserMiddleware {
       );
     }
 
-    const accessToken: string | undefined =
-      UserMiddleware.getAccessTokenFromExpressRequest(req);
+    // The session, read as every route reads it. A failed lookup is an error.
+    let requestSession: RequestSession;
 
-    if (!accessToken) {
+    try {
+      requestSession = await UserMiddleware.readRequestSession(req);
+    } catch (err) {
+      return Response.sendErrorResponse(req, res, err as Exception);
+    }
+
+    if (requestSession.kind === "none") {
       oneuptimeRequest.userType = UserType.Public;
       return next();
     }
 
-    try {
-      oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
-    } catch (err) {
+    if (requestSession.kind === "invalid") {
       if (options.treatInvalidAccessTokenAsAnonymous) {
         // decode() has already logged why the token was refused.
         oneuptimeRequest.userType = UserType.Public;
@@ -581,7 +873,10 @@ export default class UserMiddleware {
       }
 
       // if the token is invalid or expired, return 401 so clients can refresh the token.
-      logger.error(err, getLogAttributesFromRequest(oneuptimeRequest));
+      logger.error(
+        requestSession.error,
+        getLogAttributesFromRequest(oneuptimeRequest),
+      );
       return Response.sendErrorResponse(
         req,
         res,
@@ -592,30 +887,13 @@ export default class UserMiddleware {
     }
 
     /*
-     * The access token is a stateless JWT that lives for 15 minutes, and
-     * blocking a user revokes their sessions but cannot recall a token already
-     * issued. Without this check a blocked user keeps full access until it
-     * expires. The answer is cached per node (UserService.isUserBlocked), so
-     * this is one primary-key lookup per user per minute, not per request.
-     *
-     * A 401, like an expired token: the client asks /refresh-token for a new
-     * one, which is refused for a blocked user, and signs them out. A lookup
-     * that fails is an error, not a pass.
+     * A blocked user's token: a 401, like an expired token. The client asks
+     * /refresh-token for a new one, which is refused for a blocked user, and
+     * signs them out.
      */
-    let isUserBlocked: boolean;
-
-    try {
-      isUserBlocked = await UserService.isUserBlocked(
-        oneuptimeRequest.userAuthorization.userId,
-      );
-    } catch (err) {
-      return Response.sendErrorResponse(req, res, err as Exception);
-    }
-
-    if (isUserBlocked) {
+    if (requestSession.kind === "blocked") {
       if (options.treatInvalidAccessTokenAsAnonymous) {
         // As for a token that does not decode: the public routes never read who is asking.
-        delete oneuptimeRequest.userAuthorization;
         oneuptimeRequest.userType = UserType.Public;
         return next();
       }
@@ -626,6 +904,8 @@ export default class UserMiddleware {
         new NotAuthenticatedException(ExceptionMessages.UserBlocked),
       );
     }
+
+    oneuptimeRequest.userAuthorization = requestSession.session;
 
     if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
       oneuptimeRequest.userType = UserType.MasterAdmin;
@@ -722,13 +1002,26 @@ export default class UserMiddleware {
         userGlobalAccessPermission.projectIds &&
         userGlobalAccessPermission.projectIds.length > 0
       ) {
-        const userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
-          await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
-            req,
-            new ObjectID(userId),
-            userGlobalAccessPermission.projectIds,
-            userGlobalAccessPermission,
-          );
+        /*
+         * A lookup that fails here (whether a project is blocked, its
+         * sign-in rules) answers as an error. Express 4 does not catch a
+         * rejection from an async middleware: uncaught, the request would
+         * hang until it timed out.
+         */
+        let userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
+          null;
+
+        try {
+          userTenantAccessPermission =
+            await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+              req,
+              new ObjectID(userId),
+              userGlobalAccessPermission.projectIds,
+              userGlobalAccessPermission,
+            );
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
+        }
 
         if (userTenantAccessPermission) {
           oneuptimeRequest.userTenantAccessPermission =
@@ -827,8 +1120,97 @@ export default class UserMiddleware {
     return !req.userType || req.userType === UserType.Public;
   }
 
+  /*
+   * A route guard: the caller must hold one of `permissions` in the project
+   * the request is for, by the rule every permission check follows
+   * (CallerPermission): only an allow row grants, and a block with no labels
+   * on any of them refuses. Pass `wildcard` when the list is an operational
+   * resource's own list for the operation, as the model-backed API accepts
+   * the *AllOperationalResources wildcard for it too.
+   */
   public static requirePermission(data: {
     permissions: Array<Permission>;
+    wildcard?: Permission | undefined;
+  }): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return UserMiddleware.requireCallerTo({
+      holds: (request: OneUptimeRequest, projectId: ObjectID): boolean => {
+        return CallerPermission.holdsAnyOf(request, data.permissions, {
+          projectId: projectId,
+          wildcard: data.wildcard,
+        });
+      },
+      refusal: UserMiddleware.MISSING_PERMISSION_MESSAGE,
+    });
+  }
+
+  public static readonly MISSING_PERMISSION_MESSAGE: string =
+    "You do not have the required permission to perform this action.";
+
+  /*
+   * A route guard for a route that stands in for operations on models - a
+   * custom route that reads or changes what a model's CRUD API would: the
+   * caller must hold, for every one of `operations`, one of that model's own
+   * permissions for it (its *AllOperationalResources wildcard included, for
+   * an operational resource), with no block with no labels on any of them
+   * (CallerPermission.holdsModelPermission). That is the table half of what
+   * the CRUD path asks before the same operation, read from the model, so
+   * the route takes exactly the model's roles and keeps them when they
+   * change. Labels and owners are about records: the route weighs them when
+   * it reads or writes the records, with the caller's props. A caller who
+   * lacks one is told `refusal`.
+   */
+  public static requireModelPermission(data: {
+    operations: ReadonlyArray<{
+      model: PermissionListModel;
+      operation: PermissionOperation;
+    }>;
+    refusal?: string | undefined;
+  }): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return UserMiddleware.requireCallerTo({
+      holds: (request: OneUptimeRequest, projectId: ObjectID): boolean => {
+        return (
+          data.operations.length > 0 &&
+          data.operations.every(
+            (operation: {
+              model: PermissionListModel;
+              operation: PermissionOperation;
+            }): boolean => {
+              return CallerPermission.holdsModelPermission(
+                request,
+                {
+                  model: operation.model,
+                  operation: operation.operation,
+                },
+                {
+                  projectId: projectId,
+                },
+              );
+            },
+          )
+        );
+      },
+      refusal: data.refusal || UserMiddleware.MISSING_PERMISSION_MESSAGE,
+    });
+  }
+
+  /*
+   * What every permission route guard asks, in this order: someone signed
+   * in (an anonymous caller is asked who it is, so that the browser client
+   * can refresh an expired session), a master admin let through, a project
+   * named, the caller authorized for it, and then `holds` - read from the
+   * caller's rows by the one rule (CallerPermission).
+   */
+  private static requireCallerTo(data: {
+    holds: (request: OneUptimeRequest, projectId: ObjectID) => boolean;
+    refusal: string;
   }): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -886,23 +1268,18 @@ export default class UserMiddleware {
         );
       }
 
-      const userPermissions: Array<Permission> =
-        userTenantPermission.permissions.map((p: UserPermission) => {
-          return p.permission;
-        });
-
-      if (
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          data.permissions,
-        )
-      ) {
+      /*
+       * Only allow rows grant: a block row names a permission in order to
+       * deny it, so holding one never counts as holding the permission. A
+       * block with no labels on any of these takes the route away, whatever
+       * else the caller holds, as it takes away the tables these routes
+       * stand in for.
+       */
+      if (!data.holds(oneuptimeRequest, tenantId)) {
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthorizedException(
-            "You do not have the required permission to perform this action.",
-          ),
+          new NotAuthorizedException(data.refusal),
         );
       }
 
@@ -910,6 +1287,49 @@ export default class UserMiddleware {
     };
   }
 
+  /*
+   * Whether the project is blocked for this caller: a master admin blocked it
+   * (Admin Dashboard > Projects), and the caller is not a master admin, who
+   * keeps full access to it - to look into it, clean it up, unblock or
+   * delete it. Read through ProjectService.isProjectBlocked, cached per
+   * server and forgotten on every server when a block changes
+   * (RealtimeAccessChanges). Throws when the lookup fails: "blocked" and "we
+   * could not find out" are different answers, as for a blocked user.
+   */
+  public static async isProjectBlockedFor(data: {
+    projectId: ObjectID;
+    isMasterAdmin: boolean;
+  }): Promise<boolean> {
+    if (data.isMasterAdmin) {
+      return false;
+    }
+
+    return await ProjectService.isProjectBlocked(data.projectId);
+  }
+
+  /*
+   * Whether reading a project's sign-in rules failed because the project
+   * does not exist (ProjectService.getRequireSsoForLogin): an answer about
+   * the project, where any other failure is a read that did not happen.
+   */
+  private static isUnknownProject(err: unknown): boolean {
+    return err instanceof Error && err.message === "Project not found";
+  }
+
+  /*
+   * THE SIGN-IN RULES OF A PROJECT ARE READ, OR THE REQUEST IS REFUSED.
+   *
+   * Whether a person must have signed in with SSO to open a project is read
+   * from the project's own Require SSO for Login, the provider it pins, and
+   * the server's Require SSO for Login (GlobalConfig). Each is kept for a
+   * minute per server, and read from the database when that minute has run
+   * out. A read that fails - the database restarting, the pool of
+   * connections full, a statement out of time - answers nothing about the
+   * person: it is never "SSO is not required", nor "any provider will do".
+   * It throws, and the request is refused with it, as it is when whether
+   * the project is blocked cannot be read. The next request reads again;
+   * nothing about the failure is kept.
+   */
   @CaptureSpan()
   public static async getUserTenantAccessPermissionWithTenantId(data: {
     req: ExpressRequest;
@@ -932,31 +1352,22 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * SSO requirements are enforced while SSO is active: the Enterprise
-     * Edition is loaded and its license covers SSO (or billing is on). The
-     * Community Edition, which has no SSO login routes, and an Enterprise
-     * install whose license lapsed, where those routes refuse, relax them.
-     * Errors and an unknown license state answer "enforce".
+     * Resolve the SSO requirement, the tenant permission and whether the
+     * project is blocked in parallel. `getRequireSsoForLogin` and
+     * `isProjectBlocked` are cached in-process for 60s, so they are usually
+     * free; the tenant permission lookup is the expensive call.
      */
-    const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
-
-    /*
-     * Resolve the SSO requirement and the tenant permission in parallel.
-     * `getRequireSsoForLogin` is cached in-process for 60s, so this is
-     * usually free; the tenant permission lookup is the expensive call. It
-     * runs on the Community Edition too: it is also what turns an unknown
-     * project into TenantNotFoundException.
-     */
-    const [projectRequireSsoForLogin, tenantPermission]: [
+    const [projectRequireSsoForLogin, tenantPermission, isProjectBlocked]: [
       boolean,
       UserTenantAccessPermission | null,
+      boolean,
     ] = await Promise.all([
       ProjectService.getRequireSsoForLogin(tenantId).catch((err: Error) => {
         /*
          * Preserve the original behavior of throwing a TenantNotFoundException
          * for an unknown project. Any other error re-throws.
          */
-        if (err.message === "Project not found") {
+        if (UserMiddleware.isUnknownProject(err)) {
           throw new TenantNotFoundException("Invalid tenantId");
         }
         throw err;
@@ -964,34 +1375,44 @@ export default class UserMiddleware {
       AccessTokenService.getUserTenantAccessPermission(userId, tenantId, {
         userGlobalAccessPermission,
       }),
+      UserMiddleware.isProjectBlockedFor({
+        projectId: tenantId,
+        isMasterAdmin,
+      }),
     ]);
+
+    /*
+     * A blocked project refuses its members - everyone but a master admin
+     * who may open it - before its sign-in rules are asked: signing in with
+     * SSO would not let them in. Someone who is not a member is answered as
+     * they always are, and is not told the project exists, let alone that it
+     * is blocked.
+     */
+    if (isProjectBlocked && tenantPermission) {
+      throw new ProjectBlockedException();
+    }
 
     /*
      * The instance-wide "Require SSO for Login" flag (GlobalConfig) forces SSO
      * on every project. Master admins are exempt so a misconfigured global SSO
      * can't lock them out — a project's own requireSsoForLogin still applies to
-     * them. Only checked when the project doesn't already enforce SSO.
+     * them. Only checked when the project doesn't already enforce SSO. A read
+     * of it that fails throws, and refuses the request: read as "not
+     * required", it would let in every session that never signed in with SSO.
      */
-    let requireSsoForLogin: boolean =
-      isSsoEnforced && projectRequireSsoForLogin;
-    if (isSsoEnforced && !requireSsoForLogin && !isMasterAdmin) {
-      requireSsoForLogin =
-        await GlobalConfigService.getRequireSsoForLogin().catch(() => {
-          return false;
-        });
+    let requireSsoForLogin: boolean = projectRequireSsoForLogin;
+    if (!requireSsoForLogin && !isMasterAdmin) {
+      requireSsoForLogin = await GlobalConfigService.getRequireSsoForLogin();
     }
 
     if (requireSsoForLogin) {
       /*
-       * Only resolve the specific-provider requirement when SSO is enforced.
-       * The provider-id cache is already warm from getRequireSsoForLogin above.
+       * Only resolve the specific-provider requirement when SSO is enforced:
+       * read with the project's rule above, by the same query. A read that
+       * fails throws - it is never "any provider will do".
        */
       const requiredSsoProviderId: ObjectID | null =
-        await ProjectService.getRequireSsoWithSsoProviderId(tenantId).catch(
-          () => {
-            return null;
-          },
-        );
+        await ProjectService.getRequireSsoWithSsoProviderId(tenantId);
 
       if (
         !(await UserMiddleware.isSsoSatisfiedForProject({
@@ -1024,22 +1445,14 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * Same rule as the single-tenant path: SSO requirements are enforced
-     * while SSO is active and relaxed on the Community Edition and while the
-     * license does not cover SSO. Decided once for the whole fan-out.
-     */
-    const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
-
-    /*
      * Instance-wide "Require SSO for Login" forces SSO on every project. Master
-     * admins are exempt. Resolved once (cached) rather than per project.
+     * admins are exempt. Resolved once (cached) rather than per project. A
+     * read that fails throws, and the whole request is refused with it
+     * (getUserTenantAccessPermissionWithTenantId says why).
      */
-    const globalRequireSsoForLogin: boolean =
-      isMasterAdmin || !isSsoEnforced
-        ? false
-        : await GlobalConfigService.getRequireSsoForLogin().catch(() => {
-            return false;
-          });
+    const globalRequireSsoForLogin: boolean = isMasterAdmin
+      ? false
+      : await GlobalConfigService.getRequireSsoForLogin();
 
     /*
      * Resolve permissions for every project in parallel. A project's own
@@ -1051,26 +1464,43 @@ export default class UserMiddleware {
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        const projectRequireSsoForLogin: boolean = !isSsoEnforced
-          ? false
-          : await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
-              /*
-               * Unknown/inaccessible project: do not enforce SSO here. Actual
-               * access is still gated by AccessTokenService below.
-               */
-              return false;
-            });
+        // Blocked: left out, as a project the person may not open is.
+        if (
+          await UserMiddleware.isProjectBlockedFor({
+            projectId,
+            isMasterAdmin,
+          })
+        ) {
+          return { projectId, permission: null };
+        }
+
+        /*
+         * A project that no longer exists is left out, as one the person may
+         * not open is: the list of their projects can be a minute behind its
+         * deletion. Any other failure to read its rule throws, and the whole
+         * request is refused with it, as it is when whether a project is
+         * blocked cannot be read.
+         */
+        let projectRequireSsoForLogin: boolean;
+
+        try {
+          projectRequireSsoForLogin =
+            await ProjectService.getRequireSsoForLogin(projectId);
+        } catch (err) {
+          if (UserMiddleware.isUnknownProject(err)) {
+            return { projectId, permission: null };
+          }
+
+          throw err;
+        }
 
         const requireSsoForLogin: boolean =
           projectRequireSsoForLogin || globalRequireSsoForLogin;
 
         if (requireSsoForLogin) {
+          // Read with the project's rule; a read that fails throws.
           const requiredSsoProviderId: ObjectID | null =
-            await ProjectService.getRequireSsoWithSsoProviderId(
-              projectId,
-            ).catch(() => {
-              return null;
-            });
+            await ProjectService.getRequireSsoWithSsoProviderId(projectId);
 
           if (
             !(await UserMiddleware.isSsoSatisfiedForProject({

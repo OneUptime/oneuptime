@@ -27,6 +27,8 @@ import {
   sortBreadcrumbEvents,
 } from "../../Utils/BreadcrumbTimelinePresentation";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export { BreadcrumbCategory };
 
@@ -113,13 +115,14 @@ interface CategoryFilterProps {
 const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
   props: CategoryFilterProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const hasFilters: boolean = props.activeFilters.size > 0;
 
   return (
     <div
       className="flex flex-wrap items-center gap-1.5"
       role="group"
-      aria-label="Filter breadcrumbs by category"
+      aria-label={translator.translateText("Filter breadcrumbs by category")}
       data-testid="breadcrumb-filters"
     >
       <button
@@ -133,7 +136,7 @@ const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
             : "bg-gray-900 text-white ring-gray-900"
         }`}
       >
-        All
+        {translator.translateText("All")}
         <span className="tabular-nums opacity-70">{props.total}</span>
       </button>
       {BREADCRUMB_CATEGORY_ORDER.filter((category: BreadcrumbCategory) => {
@@ -158,7 +161,7 @@ const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
             }`}
           >
             <Icon icon={style.icon} className="h-3.5 w-3.5" />
-            {BREADCRUMB_CATEGORY_LABELS[category]}
+            {translator.translateText(BREADCRUMB_CATEGORY_LABELS[category])}
             <span className="tabular-nums opacity-70">
               {props.counts.get(category)}
             </span>
@@ -184,10 +187,11 @@ interface AttributeListProps {
 const AttributeList: FunctionComponent<AttributeListProps> = (
   props: AttributeListProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.attributes.length === 0) {
     return (
       <p className="text-xs italic text-gray-500">
-        This event carried no attributes.
+        {translator.translateText("This event carried no attributes.")}
       </p>
     );
   }
@@ -196,7 +200,7 @@ const AttributeList: FunctionComponent<AttributeListProps> = (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-          Attributes
+          {translator.translateText("Attributes")}
         </span>
         <CopyAttributesAsJSONButton
           attributes={props.rawAttributes}
@@ -230,7 +234,9 @@ const AttributeList: FunctionComponent<AttributeListProps> = (
                       textToBeCopied={attribute.value}
                       iconOnly={true}
                       size="xs"
-                      title={`Copy ${attribute.key}`}
+                      title={translator.translateTemplate("Copy {{name}}", {
+                        name: attribute.key,
+                      })}
                     />
                   </span>
                 </dd>
@@ -257,6 +263,7 @@ interface TimelineRowProps {
 const TimelineRow: FunctionComponent<TimelineRowProps> = (
   props: TimelineRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { group } = props;
   const style: CategoryStyle = BREADCRUMB_CATEGORY_STYLES[group.category];
   const isException: boolean = group.category === BreadcrumbCategory.Exception;
@@ -389,7 +396,9 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
                 className={`font-semibold uppercase tracking-wide ${style.labelClassName}`}
                 data-testid="breadcrumb-category"
               >
-                {BREADCRUMB_CATEGORY_LABELS[group.category]}
+                {translator.translateText(
+                  BREADCRUMB_CATEGORY_LABELS[group.category],
+                )}
               </span>
               {group.count > 1 && (
                 <span
@@ -422,7 +431,13 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
               {group.count > 1 && (
                 <div>
                   <p className="mb-1.5 text-xs font-medium text-gray-500">
-                    {group.count} identical events
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} identical event",
+                        other: "{{count}} identical events",
+                      },
+                      group.count,
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {group.events.map(
@@ -461,6 +476,7 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
 const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const maxEvents: number = props.maxEvents || 50;
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -529,10 +545,12 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.QueueList} className="h-5 w-5 text-gray-400" />
           </div>
           <p className="mt-3 text-sm font-medium text-gray-700">
-            No breadcrumbs
+            {translator.translateText("No breadcrumbs")}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            The trace recorded no events leading up to this exception.
+            {translator.translateText(
+              "The trace recorded no events leading up to this exception.",
+            )}
           </p>
         </div>
       </Card>
@@ -584,7 +602,7 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
         {groups.length > 0 ? (
           <ol
             className="-mx-5 divide-y divide-gray-100 border-y border-gray-100 md:-mx-6"
-            aria-label="Breadcrumb events"
+            aria-label={translator.translateText("Breadcrumb events")}
             data-testid="breadcrumb-timeline"
           >
             {groups.map(
@@ -611,14 +629,16 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
         ) : (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 px-4 py-8">
             <p className="text-sm text-gray-500">
-              No events match the selected categories.
+              {translator.translateText(
+                "No events match the selected categories.",
+              )}
             </p>
             <button
               type="button"
               onClick={clearFilters}
               className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
-              Show all events
+              {translator.translateText("Show all events")}
             </button>
           </div>
         )}

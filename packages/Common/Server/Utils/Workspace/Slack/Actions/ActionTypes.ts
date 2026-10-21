@@ -14,8 +14,35 @@ enum SlackActionType {
   ViewExecuteIncidentOnCallPolicy = "ViewExecuteIncidentOnCallPolicy",
   SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
   ViewIncident = "ViewIncident",
-  NewIncident = "/incident", // new incident slash command
+  /*
+   * Opens the New Incident form: `/oneuptime incident [title]`, the Create
+   * New Incident shortcut (whose callback id this is), and the /incident
+   * command apps created from an older manifest still have
+   * (SlackCommandParser).
+   */
+  NewIncident = "/incident",
   SubmitNewIncident = "SubmitNewIncident",
+
+  /*
+   * The incident's menu (⋯) - the actions fewer people need on every press
+   * (WorkspaceIncidentActions) - each a form and its submission. Microsoft
+   * Teams' card of the same message presses them by the same ids.
+   */
+  ViewChangeIncidentSeverity = "ViewChangeIncidentSeverity",
+  SubmitChangeIncidentSeverity = "SubmitChangeIncidentSeverity",
+  ViewAssignIncidentRole = "ViewAssignIncidentRole",
+  SubmitAssignIncidentRole = "SubmitAssignIncidentRole",
+  ViewPageAboutIncident = "ViewPageAboutIncident",
+  SubmitPageAboutIncident = "SubmitPageAboutIncident",
+  ViewEditIncidentCustomFields = "ViewEditIncidentCustomFields",
+  SubmitEditIncidentCustomFields = "SubmitEditIncidentCustomFields",
+
+  /*
+   * `/oneuptime incident 42` (or #42, INC-42): the incident of that number,
+   * with its buttons and menu, only to the person who ran it. Its value is
+   * the number as typed.
+   */
+  ShowIncident = "ShowIncident",
 
   // Emoji Reaction Actions
   EmojiReactionAdded = "EmojiReactionAdded",
@@ -61,7 +88,12 @@ enum SlackActionType {
   ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
   SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
   ViewScheduledMaintenance = "ViewScheduledMaintenance",
-  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
+  /*
+   * Opens the New Scheduled Maintenance form: `/oneuptime maintenance
+   * [title]`, the Create Scheduled Event shortcut (whose callback id this
+   * is), and an older app's /maintenance.
+   */
+  NewScheduledMaintenance = "/maintenance",
   SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
 
   // Monitor Actions
@@ -69,6 +101,40 @@ enum SlackActionType {
 
   // View on call policy.
   ViewOnCallPolicy = "ViewOnCallPolicy",
+
+  // `/oneuptime oncall`: who is on call right now (SlackCommandActions).
+  ShowOnCall = "ShowOnCall",
+
+  /*
+   * `/oneuptime page [who] [message]`: pages the people @mentioned at
+   * once, or opens the Page someone form with what was typed filled in
+   * (SlackPageActions). Its value is the command's text as Slack sent it,
+   * people's ids and all.
+   */
+  PageSomeone = "PageSomeone",
+  // The Page someone form, submitted.
+  SubmitPageSomeone = "SubmitPageSomeone",
+
+  /*
+   * The Join call button of an incident or alert video call. It is a link
+   * button - Slack opens the meeting itself - but Slack still reports the
+   * click, which only has to be acknowledged.
+   */
+  JoinVideoCall = "JoinVideoCall",
+
+  /*
+   * The Connect button of an answer to somebody whose Slack account is not
+   * connected yet (SlackConnectPrompt). A link button too: it opens their
+   * settings page to connect, and the click Slack reports is acknowledged.
+   */
+  ConnectSlackAccount = "ConnectSlackAccount",
+
+  /*
+   * A link button to a page in OneUptime - the welcome's Set up
+   * notifications. Slack opens the link and reports the click, which only
+   * has to be acknowledged.
+   */
+  OpenInOneUptime = "OpenInOneUptime",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

@@ -16,8 +16,16 @@ export interface ComponentProps {
 const RecurringFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A copy of the value it starts from, never the value itself: the inputs
+   * below change the interval they hold in place, and the value handed in
+   * may be shared - a form's default, such as a workspace summary's "every
+   * week", must still read "every week" after one form changed it.
+   */
   const [recurring, setRecurring] = useState<Recurring | undefined>(
-    props.initialValue ? Recurring.fromJSON(props.initialValue) : undefined,
+    props.initialValue
+      ? Recurring.fromJSON(Recurring.fromJSON(props.initialValue).toJSON())
+      : undefined,
   );
 
   type UpdateRecurringFunction = (restrictionTimes: Recurring) => void;

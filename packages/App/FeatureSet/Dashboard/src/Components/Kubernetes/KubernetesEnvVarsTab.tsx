@@ -14,6 +14,8 @@ import type Columns from "Common/UI/Components/Table/Types/Columns";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input from "Common/UI/Components/Input/Input";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
@@ -30,6 +32,7 @@ interface EnvVarRow {
 const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [search, setSearch] = useState<string>("");
 
   const getStatus: (
@@ -99,7 +102,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
   if (allContainers.length === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        No container information available.
+        {translator.translateText("No container information available.")}
       </div>
     );
   }
@@ -114,7 +117,9 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
   if (totalEnvCount === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        No environment variables defined for any container.
+        {translator.translateText(
+          "No environment variables defined for any container.",
+        )}
       </div>
     );
   }
@@ -174,7 +179,11 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
 
         return (
           <span className="font-mono text-gray-600">
-            {item.value || <span className="text-gray-400 italic">empty</span>}
+            {item.value || (
+              <span className="text-gray-400 italic">
+                {translator.translateText("empty")}
+              </span>
+            )}
           </span>
         );
       },
@@ -186,17 +195,21 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
       {/* Search bar */}
       <Card
         title="Environment Variables"
-        description={`${totalEnvCount} variable${totalEnvCount !== 1 ? "s" : ""} across ${
-          allContainers.filter((c: KubernetesContainerSpec) => {
-            return c.env.length > 0;
-          }).length
-        } container${
-          allContainers.filter((c: KubernetesContainerSpec) => {
-            return c.env.length > 0;
-          }).length !== 1
-            ? "s"
-            : ""
-        }`}
+        description={translator.translateTemplate(
+          "{{items}} across {{containers}}",
+          {
+            items: translator.translatePlural(
+              { one: "{{count}} variable", other: "{{count}} variables" },
+              totalEnvCount,
+            ),
+            containers: translator.translatePlural(
+              { one: "{{count}} container", other: "{{count}} containers" },
+              allContainers.filter((c: KubernetesContainerSpec) => {
+                return c.env.length > 0;
+              }).length,
+            ),
+          },
+        )}
       >
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
@@ -215,7 +228,10 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
           {search && (
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-sm text-gray-500 tabular-nums">
-                {totalMatchCount} of {totalEnvCount}
+                {translator.translateTemplate("{{shown}} of {{total}}", {
+                  shown: totalMatchCount,
+                  total: totalEnvCount,
+                })}
               </span>
               <button
                 onClick={() => {
@@ -264,8 +280,20 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
           return (
             <Card
               key={containerIdx}
-              title={`${item.isInit ? "Init Container: " : ""}${item.container.name}`}
-              description={`${filteredEnv.length} environment variable${filteredEnv.length !== 1 ? "s" : ""}`}
+              title={
+                item.isInit
+                  ? translator.translateTemplate("Init Container: {{name}}", {
+                      name: item.container.name,
+                    })
+                  : item.container.name
+              }
+              description={translator.translatePlural(
+                {
+                  one: "{{count}} environment variable",
+                  other: "{{count}} environment variables",
+                },
+                filteredEnv.length,
+              )}
             >
               <LocalTable
                 id={`env-vars-${containerIdx}`}

@@ -28,6 +28,8 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import Dictionary from "Common/Types/Dictionary";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import { getLookupWindowBody } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
@@ -920,6 +922,11 @@ export default class MetricUtil {
     attributeKey: string;
     metricName?: string | undefined;
     searchText?: string | undefined;
+    /*
+     * The time range on screen: the values offered are those of the data
+     * points in it (issue #4708). Without it, the last day.
+     */
+    timeRange?: RangeStartAndEndDateTime | undefined;
   }): Promise<Array<string>> {
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
@@ -932,6 +939,7 @@ export default class MetricUtil {
           ...(data.searchText && data.searchText.trim().length > 0
             ? { searchText: data.searchText.trim() }
             : {}),
+          ...getLookupWindowBody(data.timeRange),
         },
         headers: {
           ...AnalyticsModelAPI.getCommonHeaders(),

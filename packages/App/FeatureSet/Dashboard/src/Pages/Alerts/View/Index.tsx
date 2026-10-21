@@ -1,4 +1,8 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
@@ -12,6 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -23,7 +28,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,
@@ -36,6 +41,7 @@ import React, {
 } from "react";
 import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -46,6 +52,7 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -57,23 +64,53 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Service from "Common/Models/DatabaseModels/Service";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
 import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
+import useTelemetrySnapshotZoom, {
+  TelemetrySnapshotBadge,
+  TelemetrySnapshotZoom,
+} from "../../../Components/Telemetry/TelemetrySnapshotZoom";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
-import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
+import InvestigationPanel, {
+  InvestigationConversationSlot,
+} from "../../../Components/AI/InvestigationPanel";
+import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
-import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import {
+  EventPanelAction,
+  EventStatusFact,
+} from "../../../Components/EventView/EventStatusPanel";
+import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import useEventVideoCalls, {
+  EventVideoCallsState,
+  VideoCallEventKind,
+} from "../../../Components/VideoCall/useEventVideoCalls";
+import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
@@ -90,13 +127,24 @@ import {
 } from "../../../Utils/EventDuration";
 import {
   EventResponseTimes,
+  getAcknowledgedAfterPagingText,
   getEventResponseTimes,
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  ALERT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -133,7 +181,16 @@ interface FetchDataOptions {
   isBackgroundRefresh: boolean;
 }
 
+/*
+ * The Alert Details card's Edit asks for the title and the severity, and
+ * folds the labels and Private Alert under Advanced, in the order Create
+ * Alert folds them. Three rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<Alert> =
+  getAdvancedFormSection<Alert>();
+
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -188,6 +245,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
+  /*
+   * A drag on the snapshot's primary chart (the metric chart, or a logs,
+   * traces or exceptions explorer's histogram) zooms the whole snapshot,
+   * every tab of it; see TelemetrySnapshotZoom. Held by the page, above the
+   * tabs, so it outlives a switch to another tab and back, and the
+   * background refresh (which re-reads an equal window) keeps it.
+   */
+  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
+    snapshotWindow: telemetrySnapshotWindow,
+    metricViewData: telemetryQuery?.metricViewData,
+    telemetryType: telemetryQuery?.telemetryType,
+    explorerQuery: telemetryQuery?.telemetryQuery,
+    subjectKey: modelIdString,
+  });
 
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
@@ -196,6 +267,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [alertTitle, setAlertTitle] = useState<string | undefined>(undefined);
   const [alertStartedAt, setAlertStartedAt] = useState<Date | undefined>(
+    undefined,
+  );
+  // When somebody was first paged about the alert, if anybody was.
+  const [alertFirstPagedAt, setAlertFirstPagedAt] = useState<Date | undefined>(
     undefined,
   );
   /*
@@ -217,6 +292,25 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     alertEpisodeState?.subjectId === modelIdString
       ? alertEpisodeState.value
       : undefined;
+  /*
+   * Toggled to make the details card read its row again: its Monitor row,
+   * and through it the header's Monitor fact, after the Affected Resources
+   * card changed or cleared the monitor.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
+  /*
+   * An alert raised automatically keeps the monitor it was raised with: the
+   * server refuses to set, change or clear it (AlertService.onBeforeUpdate).
+   * With a monitor, the Affected Resources card shows it locked and says why.
+   * Without one (an SLO burn-rate or security-event alert, or one whose
+   * monitor was deleted), the card leaves the Monitor field out: there is
+   * nothing to show and nothing that may be picked. Read with the page's own
+   * row, which lands before any card renders, so the Edit modal never offers
+   * the monitor even for a moment.
+   */
+  const [isCreatedAutomatically, setIsCreatedAutomatically] =
+    useState<boolean>(false);
+  const [hasMonitor, setHasMonitor] = useState<boolean>(false);
 
   const [aiInvestigationStatus, setAIInvestigationStatus] =
     useState<AIInvestigationStatusState>({
@@ -333,6 +427,34 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const refreshFeedAfterAnalysisAvailable: () => void = refreshFeed;
 
+  /*
+   * The alert's video calls: the card in the right column, and the Join
+   * call button in the header for the newest one.
+   */
+  const videoCalls: EventVideoCallsState = useEventVideoCalls({
+    kind: VideoCallEventKind.Alert,
+    eventId: modelId,
+    // A rule's call arrives a moment after a new alert is created.
+    eventStartedAt: alertStartedAt,
+  });
+  // The alert's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.Alert,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new alert is created.
+    recordStartedAt: alertStartedAt,
+  });
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.Alert,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: refreshFeed,
+  });
+  const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
+    videoCalls.calls,
+  );
+
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
     options: FetchDataOptions,
   ): Promise<void> => {
@@ -385,8 +507,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Alert>({
           id: modelId,
@@ -397,12 +522,17 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             isPrivate: true,
             title: true,
             createdAt: true,
+            // "Acknowledged in" also says how long after paging.
+            firstPagedAt: true,
             alertNumber: true,
             alertNumberWithPrefix: true,
             alertSeverity: {
               name: true,
               color: true,
             },
+            // Whether the Affected Resources card may edit the monitor.
+            isCreatedAutomatically: true,
+            monitorId: true,
           },
         }),
       ]);
@@ -478,8 +608,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setIsPrivate(alert?.isPrivate || false);
 
+      setIsCreatedAutomatically(Boolean(alert?.isCreatedAutomatically));
+      setHasMonitor(Boolean(alert?.monitorId));
+
       setAlertTitle(alert?.title || undefined);
       setAlertStartedAt(alert?.createdAt || undefined);
+      setAlertFirstPagedAt(alert?.firstPagedAt || undefined);
 
       setEventNumber(
         alert?.alertNumberWithPrefix ||
@@ -560,21 +694,53 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   type GetAlertStateFunction = () => AlertState | undefined;
 
+  /*
+   * The project's acknowledged state, by name, and every state that counts
+   * as acknowledged short of resolved: it and any state placed after it, up
+   * to the resolved one (Common/Utils/AcknowledgedState).
+   */
   const getAcknowledgeState: GetAlertStateFunction = ():
     | AlertState
     | undefined => {
-    return alertStates.find((state: AlertState) => {
-      return state.isAcknowledgedState;
-    });
+    return (
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      }) || undefined
+    );
   };
 
+  const acknowledgedStateIds: Array<string> =
+    AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }).map((stateId: ObjectID) => {
+      return stateId.toString();
+    });
+
+  /*
+   * The project's resolved state, by name, and every state that counts as
+   * resolved: it and any state placed after it (Common/Utils/ResolvedState).
+   */
   const getResolvedState: GetAlertStateFunction = ():
     | AlertState
     | undefined => {
-    return alertStates.find((state: AlertState) => {
-      return state.isResolvedState;
-    });
+    return (
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      }) || undefined
+    );
   };
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const acknowledgeState: AlertState | undefined = getAcknowledgeState();
   const resolvedState: AlertState | undefined = getResolvedState();
@@ -597,14 +763,14 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const responseTimes: EventResponseTimes = getEventResponseTimes({
     timelines: timelineDates,
     startedAt: alertStartedAt,
-    acknowledgedStateId: acknowledgeState?._id?.toString(),
-    resolvedStateId: resolvedState?._id?.toString(),
+    acknowledgedStateIds: acknowledgedStateIds,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
     timelineDates,
-    resolvedState?._id?.toString(),
+    resolvedStateIds,
   );
 
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
@@ -652,7 +818,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const snapshotWindowAlert: ReactElement | undefined =
     telemetrySnapshotWindow ? (
-      <TelemetrySnapshotWindowAlert window={telemetrySnapshotWindow} />
+      <TelemetrySnapshotBadge
+        window={telemetrySnapshotWindow}
+        zoom={snapshotZoom.zoom}
+      />
     ) : undefined;
 
   return (
@@ -663,7 +832,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {`Could not refresh this alert. ${refreshError}`}
+            {translator.translateTemplate(
+              "Could not refresh this alert. {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -671,7 +843,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onClick={refreshData}
               className="rounded-md text-sm font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Try again
+              {translator.translateText("Try again")}
             </button>
             <button
               type="button"
@@ -680,7 +852,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
               className="rounded-md text-sm font-medium text-red-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Dismiss
+              {translator.translateText("Dismiss")}
             </button>
           </div>
         </div>
@@ -697,6 +869,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           severity={severity}
           isPrivate={isPrivate}
           facts={headerFacts}
+          secondaryActions={[
+            ...passOn.actions,
+            ...(joinVideoCallAction ? [joinVideoCallAction] : []),
+            ...getOpenInChatActions(channelLinks),
+          ]}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
@@ -704,8 +881,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refreshData();
             // The state change is a new feed entry.
             refreshFeed();
+            // Acknowledging it ends the reader's own page, if they had one.
+            passOn.refresh();
           }}
         />
+        {passOn.dialog}
       </div>
 
       <EventStatBar
@@ -715,7 +895,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       >
         <EventStatTile
           variant="segment"
-          label={`${acknowledgeState?.name || "Acknowledged"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName:
+              acknowledgeState?.name || translatableTerm("Acknowledged"),
+          })}
           icon={IconProp.Check}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -723,11 +906,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stateName: acknowledgeState?.name,
             fallbackStateName: "acknowledged",
           })}
+          note={getAcknowledgedAfterPagingText(
+            {
+              firstPagedAt: alertFirstPagedAt,
+              acknowledgedAt: responseTimes.acknowledgedAt,
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.acknowledgedAt)}
         />
         <EventStatTile
           variant="segment"
-          label={`${resolvedState?.name || "Resolved"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: resolvedState?.name || translatableTerm("Resolved"),
+          })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -752,7 +944,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )
           }
           description={
-            durationEndDate ? `Ended ${formatDate(durationEndDate)}` : undefined
+            durationEndDate
+              ? translator.translateTemplate("Ended {{date}}", {
+                  date: formatDate(durationEndDate) || "",
+                })
+              : undefined
           }
         />
       </EventStatBar>
@@ -770,12 +966,23 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+            renderConversation={(slot: InvestigationConversationSlot) => {
+              return (
+                <InvestigationConversation
+                  subjectType="alert"
+                  subjectId={modelId}
+                  investigationStage={slot.investigationStage}
+                />
+              );
+            }}
           />
 
           {telemetryQuery && (
             <TelemetryCompanionSignalTabs
               telemetryQuery={telemetryQuery}
-              snapshotWindow={telemetrySnapshotWindow}
+              // The companion tabs follow the zoom: they show the slice too.
+              snapshotWindow={snapshotZoom.window}
+              isSnapshotZoomed={snapshotZoom.isZoomed}
               snapshotWindowAlert={snapshotWindowAlert}
               eventNoun="alert"
               primarySignalElement={
@@ -788,14 +995,23 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           description={"Logs for this alert."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <DashboardLogsViewer
-                            id="logs-preview"
-                            logQuery={
-                              telemetryQuery.telemetryQuery as Query<Log>
-                            }
-                            limit={10}
-                            noLogsMessage="No logs found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows: a drag
+                           * on the log volume chart zooms every tab, and a
+                           * double-click or the badge's Reset zoom
+                           * returns them all. See TelemetrySnapshotZoom.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <DashboardLogsViewer
+                              id="logs-preview"
+                              logQuery={
+                                snapshotZoom.explorerQuery as Query<Log>
+                              }
+                              limit={10}
+                              noLogsMessage="No logs found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
@@ -808,41 +1024,61 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           description={"Spans for this alert."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <TracesViewer
-                            spanQuery={
-                              telemetryQuery.telemetryQuery as Query<Span>
-                            }
-                            limit={10}
-                            /*
-                             * Pinned to the snapshot: this page owns the URL,
-                             * so the viewer neither reads a filter out of it
-                             * nor writes its own state back into it.
-                             */
-                            disableUrlSync={true}
-                            emptyMessage="No spans found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows; see the
+                           * logs above.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <TracesViewer
+                              spanQuery={
+                                snapshotZoom.explorerQuery as Query<Span>
+                              }
+                              limit={10}
+                              /*
+                               * Pinned to the snapshot: this page owns the URL,
+                               * so the viewer neither reads a filter out of it
+                               * nor writes its own state back into it.
+                               */
+                              disableUrlSync={true}
+                              emptyMessage="No spans found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
 
                   {telemetryQuery.telemetryType === TelemetryType.Metric &&
-                    telemetryQuery.metricViewData && (
+                    snapshotZoom.metricViewData && (
                       <Card
                         title={"Metrics"}
                         description={
                           seriesSummary
-                            ? `Metrics for this alert, scoped to the affected series (${seriesSummary}).`
+                            ? translator.translateTemplate(
+                                "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
+                                { seriesSummary: seriesSummary },
+                              )
                             : "Metrics for this alert."
                         }
                         rightElement={snapshotWindowAlert}
                       >
                         <MetricView
-                          data={telemetryQuery.metricViewData}
+                          data={snapshotZoom.metricViewData}
                           hideQueryElements={true}
                           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                           hideStartAndEndDate={true}
-                          // Read-only host: onChange is a no-op, so zoom can't apply.
-                          disableChartZoom={true}
+                          /*
+                           * A drag zooms the whole snapshot, and a
+                           * double-click (or Reset zoom beside the badge)
+                           * returns it to the snapshot window. The window
+                           * itself is a record, nobody's to change
+                           * (onChange is a no-op). A snapshot that stored
+                           * no window has nothing to hand the other tabs:
+                           * its chart zooms itself alone.
+                           */
+                          onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
+                          onTimeRangeReset={snapshotZoom.onTimeRangeReset}
+                          localChartZoom={true}
                           onChange={(_data: MetricViewData) => {
                             // do nothing!
                           }}
@@ -857,24 +1093,31 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         description={"Exceptions for this alert."}
                         rightElement={snapshotWindowAlert}
                       >
-                        <ExceptionsViewer
-                          exceptionInstanceQuery={
-                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                          }
-                          /*
-                           * An event shows the exceptions it fired on,
-                           * whoever has since resolved them and whatever the
-                           * classifier made of them — the explorer's
-                           * "unresolved issues" defaults would hide exactly
-                           * those.
-                           */
-                          defaultStatus="all"
-                          defaultClassScope="all"
-                          limit={10}
-                          // Pinned to the snapshot; this page owns the URL.
-                          disableUrlSync={true}
-                          emptyMessage="No exceptions found"
-                        />
+                        {/*
+                         * On the window the snapshot shows and inside its
+                         * zoom, which the explorer follows; see the logs
+                         * above.
+                         */}
+                        <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                          <ExceptionsViewer
+                            exceptionInstanceQuery={
+                              snapshotZoom.explorerQuery as Query<ExceptionInstance>
+                            }
+                            /*
+                             * An event shows the exceptions it fired on,
+                             * whoever has since resolved them and whatever the
+                             * classifier made of them — the explorer's
+                             * "unresolved issues" defaults would hide exactly
+                             * those.
+                             */
+                            defaultStatus="all"
+                            defaultClassScope="all"
+                            limit={10}
+                            // Pinned to the snapshot; this page owns the URL.
+                            disableUrlSync={true}
+                            emptyMessage="No exceptions found"
+                          />
+                        </TimeRangeZoomProvider>
                       </Card>
                     )}
                 </Fragment>
@@ -897,6 +1140,29 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          <EventVideoCallsCard
+            kind={VideoCallEventKind.Alert}
+            eventId={modelId}
+            calls={videoCalls.calls}
+            hasLoaded={videoCalls.hasLoaded}
+            error={videoCalls.error}
+            onRetry={videoCalls.refresh}
+            onChanged={() => {
+              videoCalls.refresh();
+              // A started call is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
+          {/* Who is in the alert's own channel, beside its call. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Alert}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
+          />
+
           {/* Alert View  */}
           <CardModelDetail<Alert>
             name="Alert Details"
@@ -905,6 +1171,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: "Key facts about this alert.",
               headerLayout: "stacked",
             }}
+            refresher={detailsRefresher}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
@@ -912,23 +1179,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Alert Details",
-                id: "alert-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Alert Title",
-                stepId: "alert-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Alert Title",
@@ -944,42 +1200,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Alert Severity",
                 description: "What type of alert is this?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "alert-details",
                 dropdownModal: {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Alert Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Alert>({
+                collapsibleSection: advancedSection,
+              }),
               {
                 field: {
                   isPrivate: true,
                 },
                 title: "Private Alert",
-                stepId: "alert-details",
                 description:
-                  "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
+                  "Only the alert's owners, project admins and project owners can see it.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
+                collapsibleSection: advancedSection,
               },
             ]}
             modelDetailProps={{
@@ -1034,13 +1278,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span className="text-gray-500">Unknown</span>;
+                    return (
+                      <span className="text-gray-500">
+                        {translator.translateText("Unknown")}
+                      </span>
+                    );
                   },
                 },
                 {
                   /*
-                   * Alert.monitor is a singular relation set at creation, so it
-                   * gets its own row separate from the multi-resource picker.
+                   * Alert.monitor is a single relation, edited with its own
+                   * dropdown on the Affected Resources card, so it gets its
+                   * own row here too.
                    */
                   field: {
                     monitor: {
@@ -1052,7 +1301,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     if (!item.monitor) {
-                      return <span className="text-gray-500">No monitor</span>;
+                      return (
+                        <span className="text-gray-500">
+                          {translator.translateText("No monitor")}
+                        </span>
+                      );
                     }
 
                     return <MonitorElement monitor={item.monitor} />;
@@ -1075,7 +1328,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
                     return (
                       <span className="text-gray-500">
-                        Not part of an episode
+                        {translator.translateText("Not part of an episode")}
                       </span>
                     );
                   },
@@ -1141,29 +1394,90 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           />
 
+          {/*
+           * The project's own measurements worked out for this alert, under
+           * its other facts. Drawn only when the project shows some on alert
+           * pages.
+           */}
+          <EventMeasurementsCard
+            source={ALERT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: alertStateTimeline,
+            })}
+            headerLayout="stacked"
+          />
+
           <CardModelDetail<Alert>
             name="Affected Resources"
             cardProps={{
               title: "Affected Resources",
               description:
-                "Services, infrastructure and SLOs this alert affects.",
+                "Monitors, services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
+              /*
+               * The save can have set, moved or cleared a manual alert's
+               * monitor. This card reads its row again by itself, but the
+               * details card's Monitor row (which also feeds the header's
+               * Monitor fact) and the page's own row, which decides how the
+               * Monitor field is offered, are read elsewhere, so both read
+               * again; and the change is a new feed entry.
+               */
+              setDetailsRefresher((current: boolean): boolean => {
+                return !current;
+              });
+              refreshData();
               refreshFeed();
             }}
             formFields={[
               {
                 /*
-                 * Alert.monitor is singular and set at creation; this picker
-                 * edits only the ManyToMany affected resources.
+                 * Alert.monitor is a single relation, so it gets a dropdown of
+                 * its own rather than a place in the picker below, as on the
+                 * Create page. ModelForm loads it as an id and saves it back
+                 * as a relation; clearing the dropdown saves null, which
+                 * removes the monitor.
+                 */
+                field: { monitor: true },
+                title: "Monitor",
+                description: isCreatedAutomatically
+                  ? "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed."
+                  : "Select the monitor affected by this alert.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: Monitor,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                // The Create page's wording, which every locale translates.
+                placeholder: "Select Monitor",
+                disabled: isCreatedAutomatically,
+                /*
+                 * Hidden, not locked, on an automatic alert with no monitor.
+                 * ModelForm still loads the field and submits the null it
+                 * holds, which the server reads as no change.
+                 */
+                showIf: (): boolean => {
+                  return !isCreatedAutomatically || hasMonitor;
+                },
+              },
+              {
+                /*
+                 * The picker edits the ManyToMany affected resources. It is
+                 * anchored on `hosts`; its payload is split back into each
+                 * relation by the onChange below.
                  */
                 field: { hosts: true },
-                title: "",
+                title: "Other Affected Resources",
                 description:
-                  "Search and attach hosts, clusters, container hosts, or services affected by this alert.",
+                  "Search and attach hosts, clusters, container hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -1185,6 +1499,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.vmwareVCenters as Array<VMwareVCenter>
                       }
                       cephClusters={values.cephClusters as Array<CephCluster>}
+                      storageArrays={
+                        values.storageArrays as Array<StorageArray>
+                      }
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
                       }
@@ -1201,6 +1518,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "ProxmoxCluster",
                         "VMwareVCenter",
                         "CephCluster",
+                        "StorageArray",
                         "DockerSwarmCluster",
                         "IoTFleet",
                         "DatabaseServer",
@@ -1229,6 +1547,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters: payload.proxmoxClusters,
                         vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
+                        storageArrays: payload.storageArrays,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
                         databaseServers: payload.databaseServers,
@@ -1297,6 +1616,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
               },
               {
+                field: { storageArrays: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
                 field: { dockerSwarmClusters: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
@@ -1341,6 +1669,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fields: [
                 {
                   field: {
+                    /*
+                     * Edited with the Monitor dropdown above. The alert's
+                     * "created" feed item names its monitor under Resources
+                     * Affected; left out here, a monitor's alert read "No
+                     * resources affected" right beside that feed item.
+                     */
+                    monitor: {
+                      name: true,
+                      _id: true,
+                    },
                     hosts: {
                       name: true,
                       _id: true,
@@ -1366,6 +1704,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                     },
                     cephClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    storageArrays: {
                       name: true,
                       _id: true,
                     },
@@ -1402,6 +1744,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   getElement: (item: Alert): ReactElement => {
                     return (
                       <AffectedResourcesDisplay
+                        monitors={item.monitor ? [item.monitor] : []}
                         hosts={item.hosts || []}
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
@@ -1409,6 +1752,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}
@@ -1416,7 +1760,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         serviceLevelObjectives={
                           item.serviceLevelObjectives || []
                         }
-                        hideMonitors={true}
                         columns={1}
                       />
                     );

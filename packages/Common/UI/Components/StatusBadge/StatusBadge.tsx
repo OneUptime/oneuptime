@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export enum StatusBadgeType {
   Success = "success",
@@ -31,12 +32,13 @@ const StatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const type: StatusBadgeType = props.type || StatusBadgeType.Neutral;
+  const { translateString } = useTranslateValue();
 
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
     >
-      {props.text}
+      {translateString(props.text) ?? props.text}
     </span>
   );
 };

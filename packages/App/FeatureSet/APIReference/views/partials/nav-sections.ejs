@@ -4,6 +4,11 @@
    palette read, so the three cannot drift apart.
 
    Locals: navSections, lang, currentPage, idPrefix.
+
+   Resource and data type names are English in every language, so they are
+   laid out left to right: on a right-to-left page a long one is still cut
+   short at its end rather than its start. Guide names are translated and
+   follow the page.
 -%>
 <ul role="list" class="space-y-7">
    <% navSections.forEach(function(section){ %>
@@ -13,21 +18,21 @@
          <%= section.title %>
       </h2>
       <div class="relative mt-3">
-         <div class="absolute inset-y-0 left-[0.3125rem] w-px bg-line" aria-hidden="true"></div>
+         <div class="absolute inset-y-0 start-[0.3125rem] w-px bg-line" aria-hidden="true"></div>
          <% section.groups.forEach(function(group){ %>
             <% if (group.title) { %>
-            <p class="mb-1 mt-4 pl-5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+            <p class="mb-1 mt-4 ps-5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
                <%= group.title %>
             </p>
             <% } %>
             <ul role="list" aria-labelledby="<%= idPrefix %>-<%= section.id %>-heading">
                <% group.items.forEach(function(item){ %>
                <li>
-                  <a class="nav-link group flex items-center gap-2 rounded-r-md py-1.5 pl-5 pr-3 text-sm transition-colors"
+                  <a class="nav-link group flex items-center gap-2 rounded-e-md py-1.5 ps-5 pe-3 text-sm transition-colors"
                      href="/reference/<%= lang %>/<%= item.slug %>"
                      data-nav-slug="<%= item.slug %>"
                      aria-current="<%= item.slug === currentPage ? 'page' : 'false' %>">
-                     <span class="truncate"><%= item.name %></span>
+                     <span class="truncate"<% if (item.isEnglishName) { %> dir="ltr"<% } %>><%= item.name %></span>
                   </a>
                </li>
                <% }); %>

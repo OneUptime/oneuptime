@@ -273,28 +273,28 @@ describe("the derivation itself is sound", () => {
       }),
     );
 
-    expect([...contributing].sort()).toEqual(
-      [...DERIVED.featureSets].sort().filter((featureSet: string): boolean => {
-        return featureSet !== "Runbook";
-      }),
-    );
+    expect([...contributing].sort()).toEqual([...DERIVED.featureSets].sort());
   });
 
-  test("Runbook is in scope but genuinely registers no GET route", () => {
+  test("Runbook registers one GET route: its webhook URL, which refuses GET", () => {
     /*
      * Pinned rather than ignored: Runbook mounts /runbook, /runner-ingest and
-     * /runbook-agent-ingest, none of which is on either skip list. That is
-     * only safe while those routers stay POST-only. The moment one grows a
-     * GET, the test above starts requiring it here and the reservation
-     * assertions below start demanding the prefix.
+     * /runbook-agent-ingest. Its one GET is a runbook's webhook URL, which
+     * answers a GET with 405 and how to call it - so /runbook is reserved on
+     * both lists, and the assertions below hold it there. /runner-ingest and
+     * /runbook-agent-ingest are on neither list, which is only safe while
+     * their routers stay POST-only: the moment one grows a GET, this test
+     * names it and the reservation assertions below demand its prefix.
      */
-    const runbookRoutes: Array<DerivedRoute> = DERIVED.routes.filter(
-      (route: DerivedRoute): boolean => {
+    const runbookRoutes: Array<string> = DERIVED.routes
+      .filter((route: DerivedRoute): boolean => {
         return route.featureSet === "Runbook";
-      },
-    );
+      })
+      .map((route: DerivedRoute): string => {
+        return route.requestPath;
+      });
 
-    expect(runbookRoutes).toEqual([]);
+    expect(runbookRoutes).toEqual(["/runbook/webhook/:runbookId/:secretKey"]);
   });
 
   test("it found the specific routes this guard exists for", () => {
@@ -313,7 +313,7 @@ describe("the derivation itself is sound", () => {
      * a template literal - both invisible to the regex scanner this replaced.
      */
     expect(paths).toContain(
-      "/server-monitor-ingest/server-monitor/queue/stats",
+      "/server-monitor-ingest/server-monitor/secret-key/verify/:secretkey",
     );
     expect(paths).toContain("/workflow/model-schema/:tableName");
 

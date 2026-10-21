@@ -1,10 +1,14 @@
 import { FeedStatus, FeedUrls } from "./CalendarFeedTypes";
+import CalendarSubscriptionLinks, {
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX,
+} from "Common/Types/Calendar/CalendarSubscriptionLinks";
 import OneUptimeDate from "Common/Types/Date";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
 import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
 } from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure helpers for the calendar-feed surfaces. Nothing here touches React, the
@@ -44,9 +48,12 @@ export const getScheduleFeedRotatePath: SchedulePathFunction = (
   return `${ON_CALL_CALENDAR_API_PATH}/schedule-feed/${scheduleId}/rotate`;
 };
 
-/** Google Calendar's "add by URL" entry point (recommendation §3.5). */
+/*
+ * Google Calendar's "add by URL" entry point. Its `cid` takes the feed's
+ * webcal:// address (CalendarSubscriptionLinks explains why not https://).
+ */
 export const GOOGLE_CALENDAR_ADD_URL_PREFIX: string =
-  "https://calendar.google.com/calendar/r?cid=";
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX;
 
 /** Docs page describing per-client subscribe steps and troubleshooting. */
 export const CALENDAR_FEED_DOCS_PATH: string = "/on-call/calendar-feeds";
@@ -55,11 +62,36 @@ export const CALENDAR_FEED_DOCS_PATH: string = "/on-call/calendar-feeds";
 export const UPCOMING_SHIFTS_DAYS: number = 30;
 
 /*
- * Static rather than composed from UPCOMING_SHIFTS_DAYS so that the whole
- * sentence is one translation key; a test pins the number to the constant.
+ * The Upcoming shifts card's words. The title names the card the way the
+ * docs and the schedule page's layer summary do; how far ahead it looks
+ * and which zone its times are in are the description's, said once for
+ * the whole card rather than on every row. Sentences that say "30 days"
+ * are static rather than composed from UPCOMING_SHIFTS_DAYS so that each
+ * is one translation key; a test pins the number to the constant.
  */
 export const UPCOMING_SHIFTS_CARD_TITLE: string =
-  "Upcoming shifts (next 30 days)";
+  translationKey("Upcoming shifts");
+
+export const UPCOMING_SHIFTS_DESCRIPTION: string = translationKey(
+  "Your shifts over the next 30 days. Times are in {{timezone}}.",
+);
+
+export const UPCOMING_SHIFTS_EMPTY_TITLE: string = translationKey(
+  "No shifts in the next 30 days",
+);
+
+export const UPCOMING_SHIFTS_EMPTY_DESCRIPTION: string = translationKey(
+  "When a schedule puts you on call, your shifts show up here.",
+);
+
+export const UPCOMING_SHIFTS_TRUNCATED_COPY: string = translationKey(
+  "One of your schedules is too complex to compute fully; some shifts may be missing.",
+);
+
+// Said instead of the empty panel when that incomplete answer has no shifts.
+export const UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY: string = translationKey(
+  "No shifts could be listed for the next 30 days.",
+);
 
 /**
  * A link nobody has fetched for this long after it was minted is probably
@@ -68,24 +100,70 @@ export const UPCOMING_SHIFTS_CARD_TITLE: string =
 export const NOTHING_FETCHED_HINT_AFTER_HOURS: number = 48;
 
 /*
- * Copy that the UI and the docs must state identically, taken verbatim from
- * the design. Kept as constants so the shared component, the schedule card
- * and the tests all read the same sentence.
+ * The note under the subscribe buttons: two short sentences, not a table of
+ * every app's refresh interval (the docs page has that). The first is the one
+ * thing people subscribing in Google Calendar need to know before they decide
+ * it is broken; the second only shows on a self-hosted install, where it is
+ * the usual reason a Google Calendar stays empty. Kept as constants so the
+ * component, the schedule card and the tests read the same sentence.
  */
-export const REFRESH_CADENCE_COPY: string =
-  "Calendar apps refresh subscribed calendars on their own schedule: Google Calendar every 8-24 hours, Outlook on the web every 3-6 hours, Apple Calendar as often as every 5 minutes (hourly by default), Thunderbird every 1-60 minutes. Same-day changes may not reach every calendar before the shift starts - shift reminders and pager notifications still come from OneUptime.";
+export const REFRESH_CADENCE_COPY: string = translationKey(
+  "Google Calendar refreshes subscribed calendars on its own schedule, every few hours (sometimes only once a day), so changes take a while to show up there. Reminders and pages still come from OneUptime on time.",
+);
 
-export const REACHABILITY_COPY: string =
-  "Google Calendar and Outlook on the web fetch this link from their servers; it must be reachable from the internet. Apple Calendar, Thunderbird and Outlook desktop fetch from your computer.";
+export const REACHABILITY_COPY: string = translationKey(
+  "Google Calendar reads this link from Google's servers, so this OneUptime server must be reachable from the internet.",
+);
 
-export const STANDING_ASSIGNMENTS_COPY: string =
-  "Direct and team assignments on escalation policies are standing and are not shown.";
+/*
+ * Said when HOST is a private address (FeedStatus.privateHost): the one case
+ * where Google Calendar is known to stay empty however the link is added.
+ */
+export const PRIVATE_HOST_COPY: string = translationKey(
+  "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
+);
+
+/*
+ * Under the Upcoming shifts list. An escalation rule that names a person or a
+ * team pages them whenever it runs: there is no start or end to list, so a
+ * reader who is on a policy that way sees no row - and is told why, and what
+ * it means for them, in words that need no on-call vocabulary.
+ */
+export const STANDING_ASSIGNMENTS_COPY: string = translationKey(
+  "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+);
 
 export const SHARED_LINK_OWNERSHIP_COPY: string =
   "The shared link belongs to the project, not to whoever copied it - treat it like a password and regenerate it when someone leaves.";
 
 export const PLANNING_NOT_AUDIT_COPY: string =
   "This calendar is for planning. For hours on call and fairness, use the On-Call Time Log report.";
+
+/*
+ * What a link's status panel says before any calendar app has read the
+ * link, in its first two days: nothing is wrong yet, and the one app that
+ * can take hours is named, so a reader who subscribed in Google Calendar a
+ * minute ago does not conclude the link is broken.
+ */
+export const WAITING_FOR_FIRST_SYNC_COPY: string = translationKey(
+  "No calendar app has fetched this link yet. Most apps do within minutes of subscribing; Google Calendar can take a few hours.",
+);
+
+/*
+ * Two days on, still never read. The same question the status line has
+ * always asked, now the status itself.
+ */
+export const NOTHING_FETCHED_COPY: string = translationKey(
+  "Nothing has fetched this link yet. Is this server reachable from where your calendar app runs?",
+);
+
+export const PERSONAL_NEEDS_REGENERATION_COPY: string = translationKey(
+  "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until you regenerate it.",
+);
+
+export const SHARED_NEEDS_REGENERATION_COPY: string = translationKey(
+  "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until an editor regenerates it.",
+);
 
 /*
  * What regeneration actually does, stated the way the server behaves: a fetch
@@ -96,7 +174,7 @@ export const PLANNING_NOT_AUDIT_COPY: string =
  * would contradict the sentence before it.
  */
 export const REGENERATE_WARNING_COPY: string =
-  "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.";
+  "Apps subscribed to the current link stop getting shifts and show an empty calendar. Paste the new link into every app you subscribed with.";
 
 /** Placeholder is the date the grace ends. */
 export const PERSONAL_PREVIOUS_LINK_COPY: string =
@@ -137,7 +215,7 @@ export const PERSONAL_FEED_EMPTY_POINT_PRIVATE: string =
 export const SHARED_FEED_EMPTY_TITLE: string = "No shared link yet";
 
 export const COVERAGE_GAPS_DESCRIPTION: string =
-  "Adds an event for every stretch where the schedule intends coverage but nobody is on call. Off-hours outside every layer's active time are never counted as a gap.";
+  "Adds an event for every stretch where the schedule should be covered but nobody is on call.";
 
 /*
  * i18n interpolation.
@@ -205,10 +283,15 @@ export const translateInterpolated: TranslateAndInterpolateFunction = (
 
 type BuildGoogleAddUrlFunction = (httpsUrl: string) => string;
 
+/*
+ * Google Calendar's add-by-URL link for a feed: its webcal:// address in
+ * `cid`. Given the https:// address there, Google answers "Unable to add
+ * calendar. Check the URL." - which is what this used to build.
+ */
 export const buildGoogleAddUrl: BuildGoogleAddUrlFunction = (
   httpsUrl: string,
 ): string => {
-  return `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(httpsUrl)}`;
+  return CalendarSubscriptionLinks.buildGoogleCalendarUrl(httpsUrl);
 };
 
 type AddScheduleFilterFunction = (url: string, scheduleId: string) => string;
@@ -231,6 +314,11 @@ type ApplyScheduleFilterFunction = (
   scheduleId: string | null | undefined,
 ) => FeedUrls;
 
+/*
+ * The links of a feed, narrowed to one schedule. All three come from the
+ * narrowed https address, so the filter reaches the webcal link and Google's
+ * `cid` exactly as it reaches the address itself.
+ */
 export const applyScheduleFilter: ApplyScheduleFilterFunction = (
   urls: FeedUrls,
   scheduleId: string | null | undefined,
@@ -239,13 +327,9 @@ export const applyScheduleFilter: ApplyScheduleFilterFunction = (
     return urls;
   }
 
-  const https: string = addScheduleFilter(urls.https, scheduleId);
-
-  return {
-    https: https,
-    webcal: addScheduleFilter(urls.webcal, scheduleId),
-    googleAdd: buildGoogleAddUrl(https),
-  };
+  return CalendarSubscriptionLinks.build(
+    addScheduleFilter(urls.https, scheduleId),
+  );
 };
 
 type GetRotatedDaysAgoFunction = (
@@ -310,6 +394,145 @@ export const shouldShowNothingFetchedHint: ShouldShowNothingFetchedHintFunction 
 
     return hours >= NOTHING_FETCHED_HINT_AFTER_HOURS;
   };
+
+/*
+ * Where a link stands, as the status panel's pill names it. One value per
+ * question a reader comes back with - is it on, has my calendar app read it,
+ * can it still be shown - in the order the panel asks them: a link that
+ * cannot be read or is off says so before anything about fetches.
+ *
+ * The labels are the mobile app's, where the two say the same thing
+ * (OnCallCalendarFeedScreen's status pill): "Active", "Waiting for first
+ * sync", "Needs regeneration". A disabled link is "Disabled", as the web's
+ * own Disable / Enable say.
+ */
+export enum FeedHealth {
+  // Read by a calendar app at least once, and on.
+  Active = "active",
+  // On, and not read yet: made less than two days ago.
+  WaitingForFirstSync = "waiting-for-first-sync",
+  // On, and not read in the two days since it was made.
+  NotFetched = "not-fetched",
+  // Off: subscribers are served an empty calendar.
+  Disabled = "disabled",
+  // The stored link cannot be decrypted, so it cannot be shown.
+  NeedsRegeneration = "needs-regeneration",
+}
+
+export const FEED_HEALTH_LABELS: Record<FeedHealth, string> = {
+  [FeedHealth.Active]: translationKey("Active"),
+  [FeedHealth.WaitingForFirstSync]: translationKey("Waiting for first sync"),
+  [FeedHealth.NotFetched]: translationKey("Not fetched yet"),
+  [FeedHealth.Disabled]: translationKey("Disabled"),
+  [FeedHealth.NeedsRegeneration]: translationKey("Needs regeneration"),
+};
+
+type GetFeedHealthFunction = (status: FeedStatus, now: Date) => FeedHealth;
+
+export const getFeedHealth: GetFeedHealthFunction = (
+  status: FeedStatus,
+  now: Date,
+): FeedHealth => {
+  if (status.needsRegeneration) {
+    return FeedHealth.NeedsRegeneration;
+  }
+
+  if (!status.isEnabled) {
+    return FeedHealth.Disabled;
+  }
+
+  if (status.lastFetchedAt || status.fetchCount > 0) {
+    return FeedHealth.Active;
+  }
+
+  if (shouldShowNothingFetchedHint(status, now)) {
+    return FeedHealth.NotFetched;
+  }
+
+  return FeedHealth.WaitingForFirstSync;
+};
+
+/*
+ * The client the server names when it cannot tell which app fetched the link
+ * (classifyCalendarClient). "Last fetched 5 minutes ago by Other" says
+ * nothing a plain "Last fetched 5 minutes ago" does not.
+ */
+export const UNKNOWN_CALENDAR_CLIENT: string = "Other";
+
+// The app the server says last read the link, or null when it cannot say.
+export const getFeedClientName: (
+  client: string | null | undefined,
+) => string | null = (client: string | null | undefined): string | null => {
+  const name: string = (client || "").trim();
+
+  if (!name || name === UNKNOWN_CALENDAR_CLIENT) {
+    return null;
+  }
+
+  return name;
+};
+
+// Google Calendar, as classifyCalendarClient names it.
+export const GOOGLE_CALENDAR_CLIENT: string = "Google Calendar";
+
+/*
+ * The refresh note is for people whose link Google Calendar reads: it is the
+ * one app that takes hours, and the one people decide is broken. A reader on
+ * Apple Calendar is not told about Google's schedule.
+ */
+export const isFetchedByGoogleCalendar: (status: FeedStatus) => boolean = (
+  status: FeedStatus,
+): boolean => {
+  return getFeedClientName(status.lastFetchedClient) === GOOGLE_CALENDAR_CLIENT;
+};
+
+/*
+ * The link as the page shows it while it is hidden: the host it lives on,
+ * then dots where the secret is, ending in the same four characters the
+ * status names ("link ending in …k3Qx"). The host is not the secret - the
+ * token is - and showing it lets a self-hosted reader see at a glance which
+ * server their calendar app will be pointed at. Nothing of the token but
+ * those four characters, which the page already shows, is ever in it, and
+ * the scheme is left off so more of the host fits.
+ */
+const MASK_LENGTH: number = 10;
+export const MASK_CHARACTER: string = "•";
+
+/*
+ * The two halves are drawn apart: the address may be cut short on a narrow
+ * screen, the dots and the four characters never are - they are what tells
+ * one link from another.
+ */
+export interface MaskedFeedLink {
+  // "oneuptime.example.com/", or "" when the link cannot be parsed.
+  address: string;
+  // "••••••••••k3Qx".
+  secret: string;
+}
+
+export const maskFeedLink: (
+  httpsUrl: string,
+  tokenHint: string | null | undefined,
+) => MaskedFeedLink = (
+  httpsUrl: string,
+  tokenHint: string | null | undefined,
+): MaskedFeedLink => {
+  const dots: string = MASK_CHARACTER.repeat(MASK_LENGTH);
+  const hint: string = (tokenHint || "").trim();
+  const secret: string = `${dots}${hint}`;
+
+  try {
+    const host: string = new URL(httpsUrl).host;
+
+    if (!host) {
+      return { address: "", secret: secret };
+    }
+
+    return { address: `${host}/`, secret: secret };
+  } catch {
+    return { address: "", secret: secret };
+  }
+};
 
 export interface ReminderPreset {
   minutes: number;
@@ -427,66 +650,6 @@ export const validateCustomLeadMinutes: ValidateCustomLeadMinutesFunction = (
   }
 
   return { minutes: minutes, error: null };
-};
-
-export interface ShiftDayGroup {
-  /** Stable key for React and for tests: the local calendar date. */
-  dayKey: string;
-  /** The first shift's start, for rendering the heading. */
-  day: Date;
-  shifts: Array<MaterializedShiftJson>;
-}
-
-type GroupShiftsByDayFunction = (
-  shifts: Array<MaterializedShiftJson>,
-) => Array<ShiftDayGroup>;
-
-type LocalDayKeyFunction = (date: Date) => string;
-
-const localDayKey: LocalDayKeyFunction = (date: Date): string => {
-  const month: string = String(date.getMonth() + 1).padStart(2, "0");
-  const day: string = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-};
-
-/*
- * Groups shifts by the LOCAL day they start on, in start order. A shift that
- * runs across midnight is listed once, under the day it begins - the row shows
- * its end time, so nothing is lost, and listing it twice would double-count it
- * in the eye of somebody scanning for how many nights they have.
- */
-export const groupShiftsByDay: GroupShiftsByDayFunction = (
-  shifts: Array<MaterializedShiftJson>,
-): Array<ShiftDayGroup> => {
-  const sorted: Array<MaterializedShiftJson> = [...shifts].sort(
-    (a: MaterializedShiftJson, b: MaterializedShiftJson): number => {
-      const byStart: number =
-        OneUptimeDate.fromString(a.start).getTime() -
-        OneUptimeDate.fromString(b.start).getTime();
-
-      if (byStart !== 0) {
-        return byStart;
-      }
-
-      return a.shiftKey.localeCompare(b.shiftKey);
-    },
-  );
-
-  const groups: Array<ShiftDayGroup> = [];
-
-  for (const shift of sorted) {
-    const start: Date = OneUptimeDate.fromString(shift.start);
-    const dayKey: string = localDayKey(start);
-    const last: ShiftDayGroup | undefined = groups[groups.length - 1];
-
-    if (last && last.dayKey === dayKey) {
-      last.shifts.push(shift);
-    } else {
-      groups.push({ dayKey: dayKey, day: start, shifts: [shift] });
-    }
-  }
-
-  return groups;
 };
 
 type IsCoveringShiftFunction = (shift: MaterializedShiftJson) => boolean;

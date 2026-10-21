@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -14,9 +14,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
-} from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import StatusPageMonitorRulePatternValidator from "../Utils/StatusPage/MonitorRulePatternValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import {
@@ -24,16 +23,54 @@ import {
   isValidRuleCriteria,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
 
-export class Service extends DatabaseService<Model> {
+/*
+ * The two names of a rule's page and of its group, ID column first. A write
+ * may name each under either, and the two must agree
+ * (RelationIdUtil.readConsistent), so the page and the group checked are the
+ * ones stored.
+ */
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+const STATUS_PAGE_GROUP_KEYS: Array<string> = [
+  "statusPageGroupId",
+  "statusPageGroup",
+];
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The page and its group are checked by assertReferencesAreInScope, which
+   * also holds the group to the page. The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["statusPage", "statusPageGroup"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.data.statusPageId) {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    const statusPageGroupId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
+    );
+
+    if (!statusPageId) {
       throw new BadDataException(
         "Status Page ID is required to create a status page monitor rule.",
       );
@@ -53,12 +90,8 @@ export class Service extends DatabaseService<Model> {
 
     await this.assertReferencesAreInScope({
       projectId: createBy.props.tenantId || createBy.data.projectId,
-      statusPageId: resolveReferenceId(
-        createBy.data.statusPageId || createBy.data.statusPage,
-      ),
-      statusPageGroupId: resolveReferenceId(
-        createBy.data.statusPageGroupId || createBy.data.statusPageGroup,
-      ),
+      statusPageId: statusPageId,
+      statusPageGroupId: statusPageGroupId || undefined,
     });
 
     return {
@@ -87,6 +120,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     StatusPageMonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as
@@ -108,15 +144,19 @@ export class Service extends DatabaseService<Model> {
      * scope checks the create path makes apply here. statusPageId is
      * create-only in the column ACL, so only the group can move.
      */
-    const nextGroupId: ObjectID | string | undefined = resolveReferenceId(
-      (updateBy.data as Record<string, unknown>)["statusPageGroupId"] ||
-        (updateBy.data as Record<string, unknown>)["statusPageGroup"],
+    const nextGroupId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
     );
 
     if (nextGroupId) {
       for (const rule of await this.findRulesForQuery(updateBy)) {
         await this.assertReferencesAreInScope({
-          projectId: updateBy.props.tenantId || rule.projectId,
+          projectId: Service.getProjectToCheckRowIn(
+            updateBy.props,
+            rule.projectId,
+          ),
           statusPageId: rule.statusPageId,
           statusPageGroupId: nextGroupId,
         });
@@ -223,11 +263,10 @@ export class Service extends DatabaseService<Model> {
    * StatusPageMonitorRule foreign key is ON DELETE CASCADE: by the time the
    * rule row is gone, so are the resources that named the monitors.
    *
-   * It is READ ONLY, and reads through the caller's own props rather than as
-   * root. onBeforeDelete runs before checkDeleteQueryPermission, so anything
-   * here sees the caller's raw query — a root-privileged write from this hook
-   * would let a caller destroy another project's status page resources by
-   * naming that project's rule id.
+   * It is READ ONLY: it reads the rules the delete removes - for a teammate,
+   * among the ones they may delete - and holds the delete to them, so the
+   * monitors noted down are those of the rules that go. Nothing here writes:
+   * a delete that is refused leaves every status page as it was.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -235,17 +274,15 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     const monitorIdsByRuleId: Record<string, Array<string>> = {};
 
-    try {
-      const rules: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: deleteBy.props,
-      });
+    // The rules the delete removes, and the delete held to them.
+    const rules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+      },
+    );
 
+    try {
       for (const rule of rules) {
         if (!rule.id) {
           continue;
@@ -398,42 +435,24 @@ export class Service extends DatabaseService<Model> {
   /**
    * The rules an update actually touches, read for validation.
    *
-   * onBeforeUpdate runs before DatabaseService applies the update query's
-   * permission check, so the query here is still the caller's raw one. The
-   * tenant is pinned onto it when the caller has one, so a validation read can
-   * never reach across projects and answer questions about another tenant's
-   * rules. Genuinely root callers (the engines, migrations) have no tenantId
-   * and are trusted.
+   * They are the rows the update writes - for a teammate, the rules they may
+   * write - and the update is held to them (findRowsAndHoldUpdateToThem), so
+   * a validation read never answers questions about another project's rules,
+   * and no rule is written that was not validated.
    */
   private async findRulesForQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    return await this.findRowsAndHoldUpdateToThem(updateBy, {
+      _id: true,
+      projectId: true,
+      statusPageId: true,
+      monitorLabels: {
         _id: true,
-        projectId: true,
-        statusPageId: true,
-        monitorLabels: {
-          _id: true,
-        },
-        monitorNamePattern: true,
-        monitorDescriptionPattern: true,
-        criteria: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+      monitorNamePattern: true,
+      monitorDescriptionPattern: true,
+      criteria: true,
     });
   }
 

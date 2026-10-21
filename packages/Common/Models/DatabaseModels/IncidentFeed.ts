@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import Incident from "./Incident";
 import Project from "./Project";
 import User from "./User";
@@ -48,6 +49,13 @@ export enum IncidentFeedEventType {
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
   AutoRemediation = "AutoRemediation",
+  VideoCallStarted = "VideoCallStarted",
+  VideoCallFailed = "VideoCallFailed",
+  // A call's transcript added, or read from its provider (IncidentVideoCallAPI).
+  VideoCallTranscriptAdded = "VideoCallTranscriptAdded",
+  // What OneUptime AI read in a call's transcript (IncidentCallSummaryFeed).
+  VideoCallSummary = "VideoCallSummary",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()
@@ -284,6 +292,74 @@ export default class IncidentFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiRunId?: ObjectID = undefined;
+
+  /*
+   * The project API key that made the change this item is about, when one
+   * did rather than a person: the incident created, edited, its state
+   * changed, a note posted, through POST or PUT /api/... with an API key
+   * (Server/Utils/Feed/FeedApiKeyActor). Kept as a bare id with no foreign
+   * key, so revoking or deleting the key keeps the incident's history whole,
+   * and written only by the server: an item can never be made to look like
+   * a key's.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "API Key ID",
+    description:
+      "The project API key that made this change, when an API key did rather than a person. Kept when the key is revoked or deleted.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public apiKeyId?: ObjectID = undefined;
+
+  // The name that API key had when it made the change.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "API Key Name",
+    description:
+      "The name the API key that made this change had at the time, shown as the item's author.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public apiKeyName?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -563,7 +639,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -573,7 +649,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -607,7 +683,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -617,7 +693,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -642,7 +718,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -652,7 +728,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -668,4 +744,36 @@ export default class IncidentFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "For a note saved from a Slack or Microsoft Teams message: the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). The feed item's user is whoever saved it. Written by OneUptime.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

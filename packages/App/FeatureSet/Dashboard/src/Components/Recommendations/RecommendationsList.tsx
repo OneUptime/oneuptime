@@ -8,6 +8,9 @@ import {
   RecommendationStatus,
   RecommendationViewModel,
 } from "./RecommendationViewModel";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getAlertTemplateCategoryLabel } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 
 export interface ComponentProps {
   groups: Array<RecommendationCategoryGroup>;
@@ -31,6 +34,8 @@ export interface ComponentProps {
 const RecommendationsList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type ToggleOneFunction = (
     recommendationId: string,
     isChecked: boolean,
@@ -72,6 +77,19 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
             );
           });
 
+        /*
+         * The heading the monitor form's template picker gives this
+         * category ("Control Plane", not the catalog's "ControlPlane"), in
+         * the reader's language; a category it names no heading for shows
+         * as it is.
+         */
+        const categoryLabel: string | undefined = group.recommendations[0]
+          ? getAlertTemplateCategoryLabel(
+              group.recommendations[0].recommendation.resourceType,
+              group.category,
+            )
+          : undefined;
+
         return (
           <div key={group.category}>
             {/*
@@ -85,20 +103,26 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
             <div className="mb-3 flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
               <div className="flex min-w-0 items-center gap-2.5">
                 <h4 className="truncate text-sm font-semibold text-gray-900">
-                  {group.category}
+                  {categoryLabel
+                    ? translator.translateText(categoryLabel)
+                    : group.category}
                 </h4>
                 {availableInGroup.length > 0 ? (
                   <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200/80">
-                    {availableInGroup.length} to set up
+                    {translator.translateTemplate("{{count}} to set up", {
+                      count: translator.formatNumber(availableInGroup.length),
+                    })}
                   </span>
                 ) : (
                   <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/80">
-                    All handled
+                    {translator.translateText("All handled")}
                   </span>
                 )}
                 {handledInGroup > 0 && availableInGroup.length > 0 ? (
-                  <span className="hidden text-xs text-gray-400 sm:inline">
-                    {handledInGroup} handled
+                  <span className="max-sm:hidden text-xs text-gray-400 sm:inline">
+                    {translator.translateTemplate("{{count}} handled", {
+                      count: translator.formatNumber(handledInGroup),
+                    })}
                   </span>
                 ) : (
                   <></>
@@ -121,8 +145,10 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   {areAllSelected
-                    ? "Clear all"
-                    : `Select all ${availableInGroup.length}`}
+                    ? translator.translateText("Clear all")
+                    : translator.translateTemplate("Select all {{count}}", {
+                        count: translator.formatNumber(availableInGroup.length),
+                      })}
                 </button>
               ) : (
                 <></>

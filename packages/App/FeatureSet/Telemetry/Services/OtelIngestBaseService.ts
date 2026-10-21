@@ -16,6 +16,9 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
@@ -23,7 +26,9 @@ import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
-import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResourceService, {
+  CloudMonitoredResourceFindOrCreateResult,
+} from "Common/Server/Services/CloudResourceService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
@@ -75,6 +80,8 @@ import InventoryItem, {
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
+import TelemetryChangeDetector from "Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector";
+import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   canonicalizeEntityValue,
   keyForDatabaseEndpoint,
@@ -91,6 +98,11 @@ import {
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import {
+  CloudMonitoredResource,
+  buildCloudMonitoredResourceIdentifier,
+} from "Common/Types/Cloud/CloudMonitoredResource";
+import EventLoop from "Common/Server/Utils/EventLoop";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -123,6 +135,24 @@ export type DatabaseServerResourceResolution = {
   endpointIsStable: boolean;
   // Whether the endpoint may create a row by itself (stable + creatable engine).
   allowCreate: boolean;
+};
+
+/*
+ * Which Serverless Function one resource batch belongs to, as
+ * OtelIngestBaseService.resolveServerlessFunctionIdentity decides it — the
+ * single rule behind both the ServerlessFunction row's functionIdentifier
+ * and the `resource.faas.name` the batch's rows store.
+ */
+export type ServerlessFunctionIdentity = {
+  // Trimmed; what findOrCreateByFunctionIdentifier keys the row on.
+  functionIdentifier: string;
+  /*
+   * Where it came from: the resource's own faas.name, or — on a FaaS
+   * cloud.platform whose detector sets no faas.name — its service.name.
+   */
+  source: "faas.name" | "service.name";
+  // Canonical cloud.platform (normalizeCloudPlatform), or null when absent.
+  cloudPlatform: string | null;
 };
 
 export default abstract class OtelIngestBaseService {
@@ -414,6 +444,7 @@ export default abstract class OtelIngestBaseService {
     this.containerNameL1Memo.clear();
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
+    this.unresolvedCloudMonitoredResourceMemo.clear();
   }
 
   /*
@@ -585,11 +616,20 @@ export default abstract class OtelIngestBaseService {
    *      service.instance.id in their resource processor and stamp only
    *      `proxmox.cluster.name` / `ceph.cluster.name`, so their batches
    *      land here instead of registering a phantom Service via #1.
-   *      Caveat: sources that keep a service.name (e.g. the PVE 9+
-   *      native OTLP push, which stamps service.name="proxmox-ve")
-   *      still route via #1 — cluster discovery and the
+   *      The PVE 9+ native OTLP push stamps service.name="proxmox-ve";
+   *      the metrics ingest drops it (and fills proxmox.cluster.name
+   *      from PVE's own proxmox.cluster) before routing — see
+   *      ProxmoxNativePush.normalizeProxmoxNativePushInPlace — so it
+   *      lands here too. Any other source that keeps a service.name
+   *      still routes via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
+   *   4b'. Else if a StorageArray was discovered → ServiceType.StorageArray,
+   *      primaryEntityId = array row id, serviceName `storage-array/<name>`.
+   *      Same reason as Ceph: the shipped Storage Array Agent configs use the
+   *      prometheus receiver, which synthesizes service.name, so they DELETE
+   *      service.name / service.instance.id and stamp only
+   *      `storage.array.name` (+ `storage.system`).
    *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
    *      primaryEntityId = vCenter row id, serviceName `vmware/<name>`.
    *      The OTel `vcenter` receiver does not synthesize a service.name,
@@ -617,6 +657,7 @@ export default abstract class OtelIngestBaseService {
     proxmoxClusterId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    storageArrayId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -737,6 +778,20 @@ export default abstract class OtelIngestBaseService {
       retiredEntities: extraction.retiredEntities,
     });
 
+    /*
+     * A new service.version, or a Deployment's new ReplicaSet, is a change
+     * worth recording (TelemetryChangeDetector). Fire-and-forget like the
+     * registry above: it answers from an in-process memo in the steady
+     * state and never fails or delays ingest.
+     */
+    TelemetryChangeDetector.observeResource({
+      projectId: data.projectId,
+      metadata,
+      attributes: data.attributes,
+      kubernetesClusterId: data.kubernetesClusterId,
+      observedAt: (data.req as TelemetryRequest).receivedAt,
+    });
+
     return metadata;
   }
 
@@ -793,6 +848,7 @@ export default abstract class OtelIngestBaseService {
     proxmoxClusterId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    storageArrayId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -894,6 +950,18 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `ceph/${clusterName}` : "Ceph Cluster",
         resourceId: data.cephClusterId,
         primaryEntityType: ServiceType.CephCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.storageArrayId) {
+      const arrayName: string | null = this.getStorageArrayNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: arrayName ? `storage-array/${arrayName}` : "Storage Array",
+        resourceId: data.storageArrayId,
+        primaryEntityType: ServiceType.StorageArray,
         projectId: data.projectId,
       });
     }
@@ -2097,6 +2165,165 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  /*
+   * `storage.array.name` is the storage array join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the Storage
+   * Array Agent collector config from the STORAGE_ARRAY_NAME env.
+   */
+  protected static getStorageArrayNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "storage.array.name");
+  }
+
+  /*
+   * The platform the agent declares in `storage.system` (STORAGE_SYSTEM in
+   * its .env), normalized; null when absent or malformed. Only a fallback
+   * for the platform the metric names imply — see
+   * OtelMetricsIngestService.flushStorageArraySnapshotBuffers.
+   */
+  protected static getDeclaredStorageSystemFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return StorageSystemUtil.normalize(
+      this.getStringAttribute(attributes, "storage.system"),
+    );
+  }
+
+  private static readonly STORAGE_ARRAY_ID_CACHE_NAMESPACE: string =
+    "storage-array-id";
+  private static readonly STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverStorageArray(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const arrayName: string | null = this.getStorageArrayNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!arrayName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${arrayName}`;
+      let arrayIdStr: string | null = await this.getEntityIdFromCaches(
+        this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!arrayIdStr) {
+        const array: StorageArray =
+          await StorageArrayService.findOrCreateByName({
+            projectId: data.projectId,
+            name: arrayName,
+          });
+
+        if (array._id) {
+          arrayIdStr = array._id.toString();
+          await this.setEntityIdInCaches(
+            this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
+            cacheKey,
+            arrayIdStr,
+            this.STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+      }
+
+      if (arrayIdStr) {
+        const arrayId: ObjectID = new ObjectID(arrayIdStr);
+        /*
+         * Same fence rationale as the Ceph path — skip the per-batch
+         * maintenance UPDATE + label upsert when we already ran it within
+         * the fence window.
+         */
+        if (await this.shouldRunMaintenance("storage-array", arrayIdStr)) {
+          armedFences.push({ scope: "storage-array", id: arrayIdStr });
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          /*
+           * The platform is deliberately not written here. The metrics
+           * snapshot derives it from the metric names (purefa_ / purefb_),
+           * which a collector config cannot get wrong, and takes the
+           * declared `storage.system` only for a platform it has no
+           * catalog for (OtelMetricsIngestService.
+           * flushStorageArraySnapshotBuffers). Writing it from both made
+           * the column flip whenever the two disagreed: a FlashBlade .env
+           * without STORAGE_SYSTEM gets the compose default,
+           * purestorage.flasharray.
+           */
+          await StorageArrayService.updateLastSeen(arrayId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToStorageArray({
+            projectId: data.projectId,
+            storageArrayId: arrayId,
+            attributes: data.attributes,
+          });
+        }
+        return arrayId;
+      }
+
+      return null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering storage array: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into project
+   * labels and attach them to the discovered storage array. Mirrors the
+   * Ceph cluster label promotion. Throttled per-array inside `attachLabels`
+   * so steady-state ingest with unchanged labels costs one in-memory cache
+   * lookup.
+   */
+  protected static async promoteOneuptimeLabelsToStorageArray(data: {
+    projectId: ObjectID;
+    storageArrayId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await StorageArrayService.attachLabels({
+        storageArrayId: data.storageArrayId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Storage array label promotion failed for ${data.storageArrayId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   private static readonly SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE: string =
     "serverless-function-id";
   private static readonly SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS: number =
@@ -2112,11 +2339,173 @@ export default abstract class OtelIngestBaseService {
    */
 
   /*
+   * getStringAttribute's reading rule — the first `key` entry whose
+   * stringValue is a string with non-whitespace content, trimmed — without
+   * its one hazard: a null or non-object entry is skipped instead of
+   * throwing. Serverless reads every attribute through this: the identity,
+   * which stampServerlessFunctionNameAttribute applies in the ingest
+   * pre-pass, outside every discovery try/catch (the reason
+   * normalizeCloudPlatformAttribute is null-safe too), and everything
+   * autoDiscoverServerless reads after it, so the stamp and discovery read
+   * each attribute the same way.
+   */
+  private static readTrimmedStringAttribute(
+    attributes: JSONArray | null | undefined,
+    key: string,
+  ): string | null {
+    if (!Array.isArray(attributes)) {
+      return null;
+    }
+    for (const attribute of attributes) {
+      if (
+        !attribute ||
+        typeof attribute !== "object" ||
+        attribute["key"] !== key
+      ) {
+        continue;
+      }
+      const value: JSONValue | undefined = (
+        attribute["value"] as JSONObject | null | undefined
+      )?.["stringValue"];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  /*
+   * The one rule that says which Serverless Function a resource batch
+   * belongs to. autoDiscoverServerless keys the ServerlessFunction row on
+   * it (functionIdentifier) and stampServerlessFunctionNameAttribute writes
+   * it onto the batch as faas.name, which every span, log, metric and
+   * profile row stores as `resource.faas.name` — the attribute the
+   * Serverless pages, the resource facet and the AI resource tools filter
+   * on. Two copies of this rule would let those two values drift apart and
+   * leave a function's pages empty again, so there is only this one:
+   *
+   *   1. a usable faas.name is the identity, on any platform;
+   *   2. otherwise, on a FaaS cloud.platform (after alias normalisation, so
+   *      the Node detector's dotted "azure.functions" counts), the
+   *      service.name ATTRIBUTE is — never the x-oneuptime-service-name
+   *      header, which names a Service rather than describing a function;
+   *   3. otherwise the batch is not a function's (null).
+   *
+   * Pure, synchronous and null-safe.
+   */
+  protected static resolveServerlessFunctionIdentity(
+    attributes: JSONArray | null | undefined,
+  ): ServerlessFunctionIdentity | null {
+    const cloudPlatform: string | null = normalizeCloudPlatform(
+      this.readTrimmedStringAttribute(attributes, "cloud.platform"),
+    );
+
+    const faasName: string | null = this.readTrimmedStringAttribute(
+      attributes,
+      "faas.name",
+    );
+    if (faasName) {
+      return {
+        functionIdentifier: faasName,
+        source: "faas.name",
+        cloudPlatform,
+      };
+    }
+
+    if (!cloudPlatform || !FAAS_CLOUD_PLATFORM_VALUES.has(cloudPlatform)) {
+      return null;
+    }
+
+    const serviceName: string | null = this.readTrimmedStringAttribute(
+      attributes,
+      "service.name",
+    );
+    if (!serviceName) {
+      return null;
+    }
+
+    return {
+      functionIdentifier: serviceName,
+      source: "service.name",
+      cloudPlatform,
+    };
+  }
+
+  /*
+   * Give a FaaS resource the faas.name its Serverless Function is keyed on
+   * when the platform's own resource detector sets none. The Azure
+   * Functions host, the .NET isolated worker
+   * (Microsoft.Azure.Functions.Worker.OpenTelemetry) and the Node detector
+   * (@opentelemetry/resource-detector-azure) all describe a Function App by
+   * service.name (by default the app's name, WEBSITE_SITE_NAME) and
+   * cloud.platform, never faas.name, so discovery keys the function on
+   * service.name — and every row of its telemetry was stored without
+   * `resource.faas.name`, the attribute its pages filter by, so they showed
+   * nothing. Stamping the identity onto the wire-shaped list, before the
+   * discovery gates read it and before each signal's flatten stores it,
+   * puts the same value on the function row and on the rows.
+   *
+   * Acts only when resolveServerlessFunctionIdentity fell back to
+   * service.name, so a usable faas.name — even one that differs from
+   * service.name — is never touched. Any faas.name entries present are then
+   * all unusable (empty, whitespace, not a string), and each is rewritten in
+   * place instead of a second entry being appended: the flatten keeps the
+   * LAST entry for a key while the identity reads the FIRST usable one, so a
+   * leftover unusable entry would still win on the rows.
+   *
+   * Runs right after normalizeCloudPlatformAttribute in the four signal
+   * services, deliberately not inside autoDiscoverServerless: the ingest
+   * test harnesses stub that method, and it gives up when a cache or
+   * Postgres call throws, but the rows need the attribute either way.
+   * Routing does not change — selectPrimaryEntity still makes the Function
+   * App an OpenTelemetry Service by its service.name — and entity extraction
+   * never reads faas.*. Rows ingested before this existed keep no
+   * faas.name; there is no backfill. Not named autoDiscover*: the fence and
+   * L1-memo coverage suites enumerate that prefix.
+   */
+  protected static stampServerlessFunctionNameAttribute(
+    attributes: JSONArray,
+  ): void {
+    if (!Array.isArray(attributes)) {
+      return;
+    }
+
+    const identity: ServerlessFunctionIdentity | null =
+      this.resolveServerlessFunctionIdentity(attributes);
+    if (!identity || identity.source !== "service.name") {
+      return;
+    }
+
+    let rewroteExistingEntry: boolean = false;
+    for (const attribute of attributes) {
+      if (
+        !attribute ||
+        typeof attribute !== "object" ||
+        attribute["key"] !== "faas.name"
+      ) {
+        continue;
+      }
+      attribute["value"] = { stringValue: identity.functionIdentifier };
+      rewroteExistingEntry = true;
+    }
+
+    if (!rewroteExistingEntry) {
+      attributes.push({
+        key: "faas.name",
+        value: { stringValue: identity.functionIdentifier },
+      });
+    }
+  }
+
+  /*
    * Auto-discover a Serverless / FaaS function from OTel resource
-   * attributes. Gated on an explicit faas.name, or a cloud.platform in the
-   * FaaS set (falling back to service.name as the function identity). Runs
-   * on every ingest path so the function's telemetry tabs (which filter by
-   * resource.faas.name) work even when service.name is also set — the
+   * attributes. The identity — an explicit faas.name, else service.name on a
+   * FaaS cloud.platform — is resolveServerlessFunctionIdentity's, the same
+   * rule stampServerlessFunctionNameAttribute used to write it onto the
+   * batch as faas.name before this runs. Runs on every ingest path, so the
+   * function's telemetry tabs (which filter by resource.faas.name) work
+   * whether the function was named by faas.name or by service.name, and
+   * even when service.name also makes the batch a Service's — the
    * discriminator choice happens in resolveTelemetryResource.
    */
   @CaptureSpan()
@@ -2130,30 +2519,16 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const faasName: string | null = this.getStringAttribute(
-        data.attributes,
-        "faas.name",
-      );
-      const cloudPlatform: string | null = normalizeCloudPlatform(
-        this.getStringAttribute(data.attributes, "cloud.platform"),
-      );
-      const isFaasPlatform: boolean = cloudPlatform
-        ? FAAS_CLOUD_PLATFORM_VALUES.has(cloudPlatform)
-        : false;
+      const identity: ServerlessFunctionIdentity | null =
+        this.resolveServerlessFunctionIdentity(data.attributes);
 
-      // Identity: prefer faas.name; on a FaaS platform fall back to service.name.
-      let functionIdentifier: string | null = faasName;
-      if (!functionIdentifier && isFaasPlatform) {
-        functionIdentifier = this.getStringAttribute(
-          data.attributes,
-          "service.name",
-        );
-      }
-
-      // Gate: need a function identity AND a FaaS signal (faas.name or platform).
-      if (!functionIdentifier || (!faasName && !isFaasPlatform)) {
+      // Gate: no function identity, no function.
+      if (!identity) {
         return null;
       }
+
+      const functionIdentifier: string = identity.functionIdentifier;
+      const cloudPlatform: string | null = identity.cloudPlatform;
 
       const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
       let functionIdStr: string | null = await this.getEntityIdFromCaches(
@@ -2188,7 +2563,12 @@ export default abstract class OtelIngestBaseService {
             scope: "serverless-function",
             id: functionIdStr,
           });
-          const agentVersion: string | null = this.getStringAttribute(
+          /*
+           * Read through the same null-safe reader as the identity, so a
+           * malformed entry cannot stop discovery half-way — the row found
+           * or created above, its heartbeat never written.
+           */
+          const agentVersion: string | null = this.readTrimmedStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
@@ -2196,24 +2576,32 @@ export default abstract class OtelIngestBaseService {
             agentVersion: agentVersion || undefined,
             cloudPlatform: cloudPlatform || undefined,
             cloudProvider:
-              this.getStringAttribute(data.attributes, "cloud.provider") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.provider",
+              ) || undefined,
             cloudRegion:
-              this.getStringAttribute(data.attributes, "cloud.region") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.region",
+              ) || undefined,
             cloudAccountId:
-              this.getStringAttribute(data.attributes, "cloud.account.id") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.account.id",
+              ) || undefined,
             functionVersion:
-              this.getStringAttribute(data.attributes, "faas.version") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "faas.version",
+              ) || undefined,
             runtimeName:
-              this.getStringAttribute(
+              this.readTrimmedStringAttribute(
                 data.attributes,
                 "process.runtime.name",
               ) || undefined,
             runtimeVersion:
-              this.getStringAttribute(
+              this.readTrimmedStringAttribute(
                 data.attributes,
                 "process.runtime.version",
               ) || undefined,
@@ -2226,7 +2614,7 @@ export default abstract class OtelIngestBaseService {
         }
 
         // Live inventory: record this function instance (faas.instance).
-        const faasInstance: string | null = this.getStringAttribute(
+        const faasInstance: string | null = this.readTrimmedStringAttribute(
           data.attributes,
           "faas.instance",
         );
@@ -2500,6 +2888,149 @@ export default abstract class OtelIngestBaseService {
         }`,
       );
     }
+  }
+
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE: string =
+    "cloud-monitored-resource-id";
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * How many resources one request may look up in Postgres - the ones no
+   * cache knows yet. A collector's first poll of a large subscription names
+   * thousands of resources; the rest are found by the next polls, each a
+   * minute or five apart, instead of one request holding a worker for all
+   * of them.
+   */
+  public static readonly CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST: number = 200;
+
+  /*
+   * L1 for resources that could not be resolved to a row - in practice, a
+   * project at its auto-create budget. Without it every poll would look up
+   * every such resource again. One minute: a budget freed by the archive
+   * sweep is picked up on the next poll after that.
+   */
+  private static readonly unresolvedCloudMonitoredResourceMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * Cloud resources from cloud monitoring: the distinct resources one
+   * request's metric rows named (CloudMonitoredResourceCollector), each
+   * found or created as a Cloud Resource and sighted.
+   *
+   * Unlike the other autoDiscover* methods this is not about the request's
+   * OTel resource. A cloud-monitoring receiver sends a whole account's or
+   * subscription's resources under one OTel resource, and names each
+   * datapoint's own resource on the datapoint - so the work is per
+   * resource the rows named, after the rows are written:
+   *
+   *   - the row id goes through the same L1 memo / Redis cache as every
+   *     discovered entity; only a miss reaches Postgres, and at most
+   *     CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST of those per request;
+   *   - the sighting (lastSeenAt, status, what the provider reports) runs
+   *     behind the same maintenance fence, once per resource per window;
+   *   - a failure costs that resource its sighting this time, never the
+   *     request: the fences it armed are released, and it is logged once.
+   *
+   * Returns how many resources were sighted or already known.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverCloudMonitoredResources(data: {
+    projectId: ObjectID;
+    resources: Array<CloudMonitoredResource>;
+  }): Promise<number> {
+    let lookups: number = 0;
+    let resolved: number = 0;
+    let failures: number = 0;
+    let firstFailure: string = "";
+
+    for (let index: number = 0; index < data.resources.length; index++) {
+      if (index > 0 && index % 25 === 0) {
+        await EventLoop.yieldToEventLoop();
+      }
+
+      const resource: CloudMonitoredResource = data.resources[index]!;
+      const armedFences: Array<MaintenanceFence> = [];
+
+      try {
+        const resourceIdentifier: string =
+          buildCloudMonitoredResourceIdentifier(resource);
+        const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+
+        if (this.unresolvedCloudMonitoredResourceMemo.get(cacheKey)) {
+          continue;
+        }
+
+        let cloudResourceIdStr: string | null =
+          await this.getEntityIdFromCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+          );
+
+        if (!cloudResourceIdStr) {
+          if (
+            lookups >= this.CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST
+          ) {
+            continue;
+          }
+          lookups++;
+
+          const found: CloudMonitoredResourceFindOrCreateResult =
+            await CloudResourceService.findOrCreateMonitoredResource({
+              projectId: data.projectId,
+              resource: resource,
+            });
+
+          if (!found.cloudResource?._id) {
+            this.unresolvedCloudMonitoredResourceMemo.set(cacheKey, true);
+            continue;
+          }
+
+          cloudResourceIdStr = found.cloudResource._id.toString();
+          await this.setEntityIdInCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+            cloudResourceIdStr,
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+
+        resolved++;
+
+        if (
+          await this.shouldRunMaintenance(
+            "cloud-monitored-resource",
+            cloudResourceIdStr,
+          )
+        ) {
+          armedFences.push({
+            scope: "cloud-monitored-resource",
+            id: cloudResourceIdStr,
+          });
+          await CloudResourceService.recordMonitoredResourceSighting({
+            cloudResourceId: new ObjectID(cloudResourceIdStr),
+            resource: resource,
+          });
+        }
+      } catch (err) {
+        await this.releaseMaintenanceFences(armedFences);
+        failures++;
+        if (!firstFailure) {
+          firstFailure = err instanceof Error ? err.message : String(err);
+        }
+      }
+    }
+
+    if (failures > 0) {
+      logger.error(
+        `Cloud resource discovery failed for ${failures} of ${data.resources.length} resource(s) in project ${data.projectId.toString()}; they are retried on the next request. First error: ${firstFailure}`,
+      );
+    }
+
+    return resolved;
   }
 
   /*

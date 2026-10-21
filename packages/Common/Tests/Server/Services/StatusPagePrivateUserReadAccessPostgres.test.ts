@@ -9,6 +9,7 @@ import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import Email from "../../../Types/Email";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -49,9 +50,16 @@ describePostgres("private status page authorization against Postgres", () => {
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
+    /*
+     * The session is read with the page's SAML and OIDC providers joined in
+     * (StatusPagePrivateUserSessionService.addSignInRule): they are cloned
+     * too, and stay empty - these sessions name no provider.
+     */
     for (const table of [
       "StatusPagePrivateUser",
       "StatusPagePrivateUserSession",
+      "StatusPageSSO",
+      "StatusPageOIDC",
     ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
@@ -73,6 +81,7 @@ describePostgres("private status page authorization against Postgres", () => {
             email: new Email("synthetic@example.com"),
           },
           expiresInSeconds: 900,
+          purpose: JsonWebTokenPurpose.StatusPageSession,
         }),
       },
     } as ExpressRequest;
@@ -133,8 +142,14 @@ describePostgres("private status page authorization against Postgres", () => {
       'UPDATE "StatusPagePrivateUserSession" SET "isRevoked" = true',
     ],
     [
+      /*
+       * A second in the past, as the login-code case below does. Postgres
+       * NOW() keeps microseconds and the access check compares against the
+       * app's millisecond clock, so an expiry of exactly NOW() can still read
+       * as later than "now" when the next check lands in the same millisecond.
+       */
       "expired refresh token",
-      'UPDATE "StatusPagePrivateUserSession" SET "refreshTokenExpiresAt" = NOW()',
+      'UPDATE "StatusPagePrivateUserSession" SET "refreshTokenExpiresAt" = NOW() - INTERVAL \'1 second\'',
     ],
     [
       "soft-deleted session",

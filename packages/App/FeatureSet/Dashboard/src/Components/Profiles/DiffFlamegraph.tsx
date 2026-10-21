@@ -20,6 +20,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ProfileUtil from "../../Utils/ProfileUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface DiffFlamegraphProps {
   baselineStartTime: Date;
@@ -28,6 +30,13 @@ export interface DiffFlamegraphProps {
   comparisonEndTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
   profileType?: string | undefined;
+  /*
+   * The raw types to read, when the page already knows them (one unit);
+   * left out, they are worked out from profileType.
+   */
+  profileTypes?: Array<string> | undefined;
+  // The unit those types are in; left out, worked out from them.
+  unit?: string | undefined;
   /**
    * Invoked after each successful load with the merged diff tree (the
    * same line-agnostic merge this graph renders — analysing the raw
@@ -163,6 +172,7 @@ function remergeDiffTree(root: DiffFlamegraphNode): DiffFlamegraphNode {
 const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   props: DiffFlamegraphProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rootNode, setRootNode] = useState<DiffFlamegraphNode | null>(null);
   const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -183,7 +193,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
    * that would miss rows.
    */
   const queryProfileTypes: Array<string> | undefined =
-    ProfileUtil.getQueryProfileTypes(props.profileType);
+    props.profileTypes && props.profileTypes.length > 0
+      ? props.profileTypes
+      : ProfileUtil.getQueryProfileTypes(props.profileType);
+  const queryProfileTypesKey: string = (queryProfileTypes || []).join(",");
 
   /*
    * Values are not always nanoseconds — memory profiles are bytes,
@@ -191,9 +204,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
    * queried so the tooltip doesn't mislabel a 4 GB allocation as time.
    */
   const unit: string =
-    queryProfileTypes && queryProfileTypes.length > 0
+    props.unit ||
+    (queryProfileTypes && queryProfileTypes.length > 0
       ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
-      : "nanoseconds";
+      : "nanoseconds");
 
   const loadDiffFlamegraph: (
     isCancelled: () => boolean,
@@ -289,6 +303,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
           .join(",")
       : "all",
     props.profileType,
+    queryProfileTypesKey,
   ]);
 
   const mergedRoot: DiffFlamegraphNode | null = useMemo(() => {
@@ -487,7 +502,13 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
               handleMouseEnter(node, e);
             }}
             onMouseLeave={handleMouseLeave}
-            title={`${node.functionName} (${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}% of total)`}
+            title={translator.translateTemplate(
+              "{{name}} ({{delta}}% of total)",
+              {
+                name: node.functionName,
+                delta: `${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}`,
+              },
+            )}
           >
             {widthFraction > 0.03 ? node.functionName : ""}
           </div>
@@ -514,6 +535,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       handleClickNode,
       handleMouseEnter,
       handleMouseLeave,
+      translator.language,
     ],
   );
 
@@ -569,8 +591,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   ) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No performance data found in the selected time ranges. Try adjusting the
-        time periods.
+        {translator.translateText(
+          "No performance data found in the selected time ranges. Try adjusting the time periods.",
+        )}
       </div>
     );
   }
@@ -589,33 +612,41 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300"
             onClick={handleZoomOut}
           >
-            Zoom Out
+            {translator.translateText("Zoom Out")}
           </button>
           <button
             className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300"
             onClick={handleResetZoom}
           >
-            Reset Zoom
+            {translator.translateText("Reset Zoom")}
           </button>
           <span className="text-sm text-gray-500">
-            Zoomed into: {activeRoot.functionName}
+            {translator.translateTemplate("Zoomed into: {{name}}", {
+              name: activeRoot.functionName,
+            })}
           </span>
         </div>
       )}
 
       <div className="mb-3 flex flex-wrap items-center space-x-4 text-xs text-gray-600">
-        <span className="font-medium">What the colors mean:</span>
+        <span className="font-medium">
+          {translator.translateText("What the colors mean:")}
+        </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-red-500" />
-          <span>Bigger share of total (worse)</span>
+          <span>
+            {translator.translateText("Bigger share of total (worse)")}
+          </span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-green-500" />
-          <span>Smaller share of total (better)</span>
+          <span>
+            {translator.translateText("Smaller share of total (better)")}
+          </span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-gray-400" />
-          <span>No meaningful change</span>
+          <span>{translator.translateText("No meaningful change")}</span>
         </span>
       </div>
 
@@ -626,16 +657,19 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
           />
           <span>
-            Data is truncated to the largest stacks — the sample limit was hit.
-            Percentages are of the sampled subset, not the full comparison
-            windows.
+            {translator.translateText(
+              "Data is truncated to the largest stacks — the sample limit was hit. Percentages are of the sampled subset, not the full comparison windows.",
+            )}
           </span>
         </div>
       )}
 
+      {/* Code, laid out from the left in every language (FlamegraphView). */}
       <div
+        dir="ltr"
         className="relative w-full overflow-x-auto border border-gray-200 rounded bg-white"
         style={{ height: `${height}px` }}
+        data-testid="diff-flamegraph-frames"
       >
         {treeElements}
       </div>
@@ -656,14 +690,28 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             </div>
           )}
           <div className="mt-1">
-            Before:{" "}
-            {ProfileUtil.formatProfileValue(tooltip.baselineValue, unit)} (
-            {tooltip.baselineShare.toFixed(1)}% of total)
+            {translator.translateTemplate(
+              "Before: {{value}} ({{share}}% of total)",
+              {
+                value: ProfileUtil.formatProfileValue(
+                  tooltip.baselineValue,
+                  unit,
+                ),
+                share: tooltip.baselineShare.toFixed(1),
+              },
+            )}
           </div>
           <div>
-            After:{" "}
-            {ProfileUtil.formatProfileValue(tooltip.comparisonValue, unit)} (
-            {tooltip.comparisonShare.toFixed(1)}% of total)
+            {translator.translateTemplate(
+              "After: {{value}} ({{share}}% of total)",
+              {
+                value: ProfileUtil.formatProfileValue(
+                  tooltip.comparisonValue,
+                  unit,
+                ),
+                share: tooltip.comparisonShare.toFixed(1),
+              },
+            )}
           </div>
           <div
             className={
@@ -674,12 +722,16 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
                   : "text-green-300"
             }
           >
-            Change: {tooltip.delta >= 0 ? "+" : "-"}
-            {ProfileUtil.formatProfileValue(
-              Math.abs(tooltip.delta),
-              unit,
-            )} · {tooltipShareDelta >= 0 ? "+" : ""}
-            {tooltipShareDelta.toFixed(1)}% of total
+            {translator.translateTemplate(
+              "Change: {{delta}} · {{shareDelta}}% of total",
+              {
+                delta: `${tooltip.delta >= 0 ? "+" : "-"}${ProfileUtil.formatProfileValue(
+                  Math.abs(tooltip.delta),
+                  unit,
+                )}`,
+                shareDelta: `${tooltipShareDelta >= 0 ? "+" : ""}${tooltipShareDelta.toFixed(1)}`,
+              },
+            )}
           </div>
         </div>
       )}

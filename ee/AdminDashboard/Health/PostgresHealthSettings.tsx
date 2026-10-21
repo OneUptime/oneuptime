@@ -42,12 +42,19 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
       }}
       isEditable={true}
       editButtonText="Edit PostgreSQL policy"
+      formSteps={[
+        { title: "Storage", id: "storage" },
+        { title: "Connections", id: "connections" },
+        { title: "Transaction-ID Wraparound", id: "wraparound" },
+        { title: "Replication Slots", id: "replication-slots" },
+      ]}
       formFields={[
         {
           field: {
             postgresStorageNotificationEnabled: true,
           },
           title: "Notify on high storage usage",
+          stepId: "storage",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -66,6 +73,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresStorageLimitInGb: true,
           },
           title: "Storage limit (GB)",
+          stepId: "storage",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isStorageNotificationEnabled,
           showIf: isStorageNotificationEnabled,
@@ -81,6 +89,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresStorageNotificationThresholdPercent: true,
           },
           title: "Storage threshold (%)",
+          stepId: "storage",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isStorageNotificationEnabled,
           showIf: isStorageNotificationEnabled,
@@ -97,6 +106,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresConnectionNotificationEnabled: true,
           },
           title: "Notify on connection saturation",
+          stepId: "connections",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -107,6 +117,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresConnectionNotificationThresholdPercent: true,
           },
           title: "Connection threshold (%)",
+          stepId: "connections",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isConnectionNotificationEnabled,
           showIf: isConnectionNotificationEnabled,
@@ -123,6 +134,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresWraparoundNotificationEnabled: true,
           },
           title: "Notify on transaction-ID wraparound risk",
+          stepId: "wraparound",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -133,6 +145,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresWraparoundNotificationThresholdPercent: true,
           },
           title: "Wraparound threshold (%)",
+          stepId: "wraparound",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isWraparoundNotificationEnabled,
           showIf: isWraparoundNotificationEnabled,
@@ -142,13 +155,14 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
           },
           placeholder: "50",
           description:
-            "Send a notification when transaction-ID age reaches this percentage of the wraparound ceiling. Recovering from wraparound needs the instance offline, so this warns much earlier than a capacity check.",
+            "Notify when transaction-ID age reaches this share of the wraparound limit. Set it low: recovering from wraparound takes the instance offline.",
         },
         {
           field: {
             postgresReplicationSlotNotificationEnabled: true,
           },
           title: "Notify on replication slot WAL retention",
+          stepId: "replication-slots",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -159,6 +173,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
             postgresRetainedWalLimitInGb: true,
           },
           title: "Retained WAL limit (GB)",
+          stepId: "replication-slots",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isReplicationSlotNotificationEnabled,
           showIf: isReplicationSlotNotificationEnabled,
@@ -167,7 +182,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
           },
           placeholder: "10",
           description:
-            "Send a notification when a single replication slot retains more than this many gigabytes of WAL. An abandoned slot retains WAL forever and will eventually fill the volume.",
+            "Notify when one replication slot holds more than this many GB of WAL. An abandoned slot keeps WAL forever and fills the disk.",
         },
       ]}
       modelDetailProps={{

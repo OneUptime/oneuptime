@@ -1,4 +1,3 @@
-import ProjectUser from "../../../Utils/ProjectUser";
 import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
@@ -11,36 +10,57 @@ import {
   RuleReadinessDetails,
   RuleReadinessLabel,
   RuleReadinessReport,
+  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_TOOLTIP,
   SetupReminderController,
   buildRuleReadinessReport,
+  getResponderGroupKey,
+  isNobodyEverNextInRotation,
   useResponderGroups,
   useSetupReminders,
 } from "./EscalationRuleReadiness";
+import {
+  ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
+  ESCALATION_RULE_SCHEDULES_KEY,
+  ESCALATION_RULE_TEAMS_KEY,
+  ESCALATION_RULE_USERS_KEY,
+  EscalationRuleResponderIds,
+  getEscalationRuleFormFields,
+  readEscalationRuleResponderIds,
+  resolveEscalationRuleName,
+} from "./EscalationRuleForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  EscalationRuleNameEntry,
+  getEscalationRuleDisplayName,
+  getEscalationRuleOrderAfterSwap,
+  getEscalationRuleRenames,
+} from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -74,6 +94,13 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import {
+  translatePlural,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
@@ -84,6 +111,10 @@ export interface ComponentProps {
  * The join rows for a single escalation rule. We keep the whole join row (not
  * just the entity) so we have both the entity to render AND the join-row id,
  * which is what we delete when a responder is removed during an edit.
+ *
+ * A schedule row pages whoever is on call in the schedule, or - with
+ * pageNextInRotation - the next person in its rotation, the backup after
+ * them. Both kinds are in scheduleJoins; isNextInRotationJoin tells them apart.
  */
 export interface RuleMembers {
   userJoins: Array<OnCallDutyPolicyEscalationRuleUser>;
@@ -93,90 +124,62 @@ export interface RuleMembers {
 
 export type MembersByRuleId = Record<string, RuleMembers>;
 
-/*
- * The selected responder ids captured live from the edit form, keyed by the
- * override-field name used in the form.
- */
-interface SelectedMembers {
-  users: Array<string>;
-  teams: Array<string>;
-  onCallSchedules: Array<string>;
-}
-
-// Prefill values for the edit form's member multi-selects.
-interface MemberDefaults {
-  users: Array<DropdownOption>;
-  teams: Array<DropdownOption>;
-  onCallSchedules: Array<DropdownOption>;
-}
-
 export const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
   return { userJoins: [], teamJoins: [], scheduleJoins: [] };
 };
 
-/*
- * One entry of a form multi-select value, flattened.
- *
- * `label` is only ever populated when the form handed us option envelopes
- * rather than bare ids, so it is optional on purpose: it is a nicety for the
- * warning copy (naming the person the admin just picked before their readiness
- * row has arrived), never the identity of anything.
- */
-export interface SelectedOption {
-  id: string;
-  label: string;
-}
-
-/*
- * Normalizes a form multi-select value (which may be an array of ids, or an
- * array of { value, label } option envelopes when seeded as a default) into
- * id/label pairs.
- */
-export const toSelectedOptions: (value: unknown) => Array<SelectedOption> = (
-  value: unknown,
-): Array<SelectedOption> => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const options: Array<SelectedOption> = [];
-  for (const item of value) {
-    if (item === null || item === undefined) {
-      continue;
-    }
-    if (
-      typeof item === "object" &&
-      "value" in (item as Record<string, unknown>)
-    ) {
-      const envelope: Record<string, unknown> = item as Record<string, unknown>;
-      const inner: unknown = envelope["value"];
-      if (inner !== null && inner !== undefined) {
-        const label: unknown = envelope["label"];
-        options.push({
-          id: String(inner),
-          label:
-            label === null || label === undefined ? "" : String(label).trim(),
-        });
-      }
-    } else {
-      options.push({ id: String(item), label: "" });
-    }
-  }
-  return options;
+// Whether a rule's schedule row pages the next person in its rotation.
+export const isNextInRotationJoin: (
+  join: OnCallDutyPolicyEscalationRuleSchedule,
+) => boolean = (join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+  return Boolean(join.pageNextInRotation);
 };
 
 /*
- * The ids alone, for the join-row reconciliation that does not care about copy.
- * The form's onChange keeps the id/label pairs as well now - the warning needs
- * the label to name a team - so this reduces a selection that has already been
- * flattened rather than re-reading the raw form value.
+ * Who a rule notifies today, as the ids the Notify picker holds: what the edit
+ * dialog opens with, and what a save is reconciled against.
  */
-const toIds: (options: Array<SelectedOption>) => Array<string> = (
-  options: Array<SelectedOption>,
-): Array<string> => {
-  return options.map((option: SelectedOption): string => {
-    return option.id;
-  });
+export const getRuleResponderIds: (
+  members: RuleMembers,
+) => EscalationRuleResponderIds = (
+  members: RuleMembers,
+): EscalationRuleResponderIds => {
+  const present: (id: string | undefined) => id is string = (
+    id: string | undefined,
+  ): id is string => {
+    return Boolean(id);
+  };
+
+  // The schedules of the rows that page one way or the other.
+  const scheduleIdsOf: (pagesNextInRotation: boolean) => Array<string> = (
+    pagesNextInRotation: boolean,
+  ): Array<string> => {
+    return members.scheduleJoins
+      .filter((join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+        return isNextInRotationJoin(join) === pagesNextInRotation;
+      })
+      .map(
+        (join: OnCallDutyPolicyEscalationRuleSchedule): string | undefined => {
+          return join.onCallDutyPolicySchedule?.id?.toString();
+        },
+      )
+      .filter(present);
+  };
+
+  return {
+    onCallSchedules: scheduleIdsOf(false),
+    nextInRotationSchedules: scheduleIdsOf(true),
+    teams: members.teamJoins
+      .map((join: OnCallDutyPolicyEscalationRuleTeam): string | undefined => {
+        return join.team?.id?.toString();
+      })
+      .filter(present),
+    users: members.userJoins
+      .map((join: OnCallDutyPolicyEscalationRuleUser): string | undefined => {
+        return join.user?.id?.toString();
+      })
+      .filter(present),
+  };
 };
 
 // Turns a raw minutes value into a compact human-readable string, e.g. "1 hr 30 min".
@@ -184,28 +187,28 @@ const formatMinutes: (minutes: number | undefined | null) => string = (
   minutes: number | undefined | null,
 ): string => {
   if (!minutes || minutes <= 0) {
-    return "immediately";
+    return translateTemplate("immediately");
   }
 
   if (minutes < 60) {
-    return `${minutes} min`;
+    return translateTemplate("{{minutes}} min", { minutes: minutes });
   }
 
   const hours: number = Math.floor(minutes / 60);
   const remainingMinutes: number = minutes % 60;
 
   if (remainingMinutes === 0) {
-    return hours === 1 ? "1 hr" : `${hours} hrs`;
+    return translatePlural(
+      { one: "{{count}} hr", other: "{{count}} hrs" },
+      hours,
+    );
   }
 
-  return `${hours} hr ${remainingMinutes} min`;
+  return translateTemplate("{{hours}} hr {{minutes}} min", {
+    hours: hours,
+    minutes: remainingMinutes,
+  });
 };
-
-const RULE_FORM_STEPS: Array<{ title: string; id: string }> = [
-  { title: "Overview", id: "overview" },
-  { title: "Notify", id: "notification" },
-  { title: "Escalation", id: "escalation" },
-];
 
 /*
  * ESCALATION-RULE DELETION IMPACT.
@@ -270,14 +273,32 @@ export const getEscalationRuleDeletionImpact: (params: {
     }
 
     usersNamedNowhereElse.push(
-      join.user?.name?.toString() || join.user?.email?.toString() || "A user",
+      join.user?.name?.toString() ||
+        join.user?.email?.toString() ||
+        translateTemplate("A user"),
     );
   }
+
+  /*
+   * Each schedule once: a level that pages a schedule's on-call person and
+   * the next person in its rotation notifies one schedule.
+   */
+  const scheduleIds: Set<string> = new Set<string>(
+    members.scheduleJoins.map(
+      (join: OnCallDutyPolicyEscalationRuleSchedule, index: number): string => {
+        return (
+          join.onCallDutyPolicySchedule?.id?.toString() ||
+          join.id?.toString() ||
+          `row-${index}`
+        );
+      },
+    ),
+  );
 
   return {
     userCount: members.userJoins.length,
     teamCount: members.teamJoins.length,
-    scheduleCount: members.scheduleJoins.length,
+    scheduleCount: scheduleIds.size,
     usersNamedNowhereElse: usersNamedNowhereElse,
     isLastRule: params.ruleIds.length <= 1,
   };
@@ -291,21 +312,31 @@ const describeResponderCounts: (
 
   if (impact.userCount > 0) {
     parts.push(
-      `${impact.userCount} ${impact.userCount === 1 ? "user" : "users"}`,
+      translatePlural(
+        { one: "{{count}} user", other: "{{count}} users" },
+        impact.userCount,
+      ),
     );
   }
 
   if (impact.teamCount > 0) {
     parts.push(
-      `${impact.teamCount} ${impact.teamCount === 1 ? "team" : "teams"}`,
+      translatePlural(
+        { one: "{{count}} team", other: "{{count}} teams" },
+        impact.teamCount,
+      ),
     );
   }
 
   if (impact.scheduleCount > 0) {
     parts.push(
-      `${impact.scheduleCount} on-call ${
-        impact.scheduleCount === 1 ? "schedule" : "schedules"
-      }`,
+      translatePlural(
+        {
+          one: "{{count}} on-call schedule",
+          other: "{{count}} on-call schedules",
+        },
+        impact.scheduleCount,
+      ),
     );
   }
 
@@ -317,7 +348,10 @@ const describeResponderCounts: (
     return parts[0]!;
   }
 
-  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return translateTemplate("{{items}} and {{last}}", {
+    items: parts.slice(0, -1).join(", "),
+    last: parts[parts.length - 1]!,
+  });
 };
 
 /*
@@ -336,151 +370,51 @@ export const describeEscalationRuleDeletion: (
   const responderSummary: string = describeResponderCounts(impact);
 
   if (responderSummary) {
-    sentences.push(`"${ruleName}" notifies ${responderSummary}.`);
+    sentences.push(
+      translateTemplate('"{{name}}" notifies {{responders}}.', {
+        name: ruleName,
+        responders: responderSummary,
+      }),
+    );
   } else {
-    sentences.push(`"${ruleName}" currently notifies no one.`);
+    sentences.push(
+      translateTemplate('"{{name}}" currently notifies no one.', {
+        name: ruleName,
+      }),
+    );
   }
 
   if (impact.isLastRule) {
     sentences.push(
-      "This is the only escalation level on this policy. Deleting it leaves the policy with nobody to notify, so an incident routed here would page no one.",
+      translateTemplate(
+        "This is the only escalation level on this policy. Deleting it leaves the policy with nobody to notify, so an incident routed here would page no one.",
+      ),
     );
   }
 
   if (impact.usersNamedNowhereElse.length > 0) {
-    const names: string = impact.usersNamedNowhereElse.join(", ");
-    const isSingle: boolean = impact.usersNamedNowhereElse.length === 1;
-
     sentences.push(
-      `${names} ${
-        isSingle ? "is" : "are"
-      } not named on any other level of this policy.`,
+      translatePlural(
+        {
+          one: "{{names}} is not named on any other level of this policy.",
+          other: "{{names}} are not named on any other level of this policy.",
+        },
+        impact.usersNamedNowhereElse.length,
+        { names: impact.usersNamedNowhereElse.join(", ") },
+      ),
     );
   }
 
-  sentences.push("This action cannot be undone.");
+  sentences.push(translateTemplate("This action cannot be undone."));
 
   return sentences.join(" ");
 };
 
 /*
- * getDefaultValue is typed to return a scalar, but a multi-select form value is
- * an array of option envelopes. The form assigns whatever we return verbatim,
- * so we cast to satisfy the type while returning the option array at runtime.
- */
-const memberFieldDefault: (
-  options: Array<DropdownOption>,
-) => (item: FormValues<OnCallDutyEscalationRule>) => string = (
-  options: Array<DropdownOption>,
-): ((item: FormValues<OnCallDutyEscalationRule>) => string) => {
-  return (() => {
-    return options;
-  }) as unknown as (item: FormValues<OnCallDutyEscalationRule>) => string;
-};
-
-/*
- * Builds the create/edit form fields. When memberDefaults is provided (edit
- * mode), the member multi-selects are pre-populated with the rule's current
- * responders via getDefaultValue.
- */
-const buildRuleFormFields: (
-  memberDefaults?: MemberDefaults,
-) => Array<ModelField<OnCallDutyEscalationRule>> = (
-  memberDefaults?: MemberDefaults,
-): Array<ModelField<OnCallDutyEscalationRule>> => {
-  return [
-    {
-      field: { name: true },
-      stepId: "overview",
-      title: "Name",
-      fieldType: FormFieldSchemaType.Text,
-      required: true,
-      placeholder: "First Responders",
-      description: "A short name to identify this escalation rule.",
-    },
-    {
-      field: { description: true },
-      stepId: "overview",
-      title: "Description",
-      fieldType: FormFieldSchemaType.LongText,
-      required: false,
-      placeholder: "Describe who this level notifies and why.",
-      description: "An optional description for this escalation rule.",
-    },
-    {
-      overrideField: { onCallSchedules: true },
-      showEvenIfPermissionDoesNotExist: true,
-      title: "On-Call Schedules",
-      stepId: "notification",
-      description:
-        "On-call schedules to notify. The person currently on-call will be contacted.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: OnCallDutyPolicySchedule,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select on-call schedules",
-      overrideFieldKey: "onCallSchedules",
-      getDefaultValue: memberDefaults
-        ? memberFieldDefault(memberDefaults.onCallSchedules)
-        : undefined,
-    },
-    {
-      overrideField: { teams: true },
-      showEvenIfPermissionDoesNotExist: true,
-      title: "Teams",
-      stepId: "notification",
-      description: "Every member of the selected teams will be notified.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Team,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select teams",
-      overrideFieldKey: "teams",
-      getDefaultValue: memberDefaults
-        ? memberFieldDefault(memberDefaults.teams)
-        : undefined,
-    },
-    {
-      overrideField: { users: true },
-      showEvenIfPermissionDoesNotExist: true,
-      title: "Users",
-      stepId: "notification",
-      description: "Specific users to notify directly.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      fetchDropdownOptions: async () => {
-        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-          ProjectUtil.getCurrentProjectId()!,
-        );
-      },
-      required: false,
-      placeholder: "Select users",
-      overrideFieldKey: "users",
-      getDefaultValue: memberDefaults
-        ? memberFieldDefault(memberDefaults.users)
-        : undefined,
-    },
-    {
-      field: { escalateAfterInMinutes: true },
-      stepId: "escalation",
-      title: "Escalate after (in minutes)",
-      fieldType: FormFieldSchemaType.Number,
-      placeholder: "30",
-      required: true,
-      description:
-        "How long to wait for an acknowledgement before escalating to the next rule.",
-    },
-  ];
-};
-
-/*
  * Reconciles one join-table (users/teams/schedules) for a rule: creates rows
- * for newly-added responders and deletes rows for removed ones.
+ * for newly-added responders and deletes rows for removed ones. Ids are
+ * compared without case, as the Notify picker compares them: a pick and the
+ * join row it already has are the same responder however each is spelled.
  */
 const syncJoinType: <TJoin extends BaseModel>(config: {
   latestIds: Array<string>;
@@ -498,23 +432,29 @@ const syncJoinType: <TJoin extends BaseModel>(config: {
   const originalIds: Set<string> = new Set(
     config.joins
       .map((join: TJoin) => {
-        return config.getEntityId(join);
+        return config.getEntityId(join)?.toLowerCase();
       })
       .filter((id: string | undefined): id is string => {
         return Boolean(id);
       }),
   );
-  const latestIdSet: Set<string> = new Set(config.latestIds);
+  const latestIdSet: Set<string> = new Set(
+    config.latestIds.map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
 
   for (const id of config.latestIds) {
-    if (!originalIds.has(id)) {
+    if (!originalIds.has(id.toLowerCase())) {
       await config.createOne(id);
+      // Picked twice is still added once.
+      originalIds.add(id.toLowerCase());
     }
   }
 
   for (const join of config.joins) {
     const entityId: string | undefined = config.getEntityId(join);
-    if (entityId && !latestIdSet.has(entityId) && join.id) {
+    if (entityId && !latestIdSet.has(entityId.toLowerCase()) && join.id) {
       await ModelAPI.deleteItem({ modelType: config.modelType, id: join.id });
     }
   }
@@ -523,6 +463,7 @@ const syncJoinType: <TJoin extends BaseModel>(config: {
 const EscalationRules: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rules, setRules] = useState<Array<OnCallDutyEscalationRule>>([]);
   const [membersByRuleId, setMembersByRuleId] = useState<MembersByRuleId>({});
 
@@ -543,11 +484,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const [reorderingRuleId, setReorderingRuleId] = useState<string | null>(null);
 
   /*
-   * The live responder selection captured from the edit form. Seeded to the
-   * rule's current responders when the edit modal opens.
+   * Who the edited rule should notify, as the Notify picker held it when the
+   * edit was saved. Seeded to the rule's current responders when the edit
+   * dialog opens, so an untouched save changes no join rows.
    */
-  const editedMembersRef: React.MutableRefObject<SelectedMembers> =
-    useRef<SelectedMembers>({ users: [], teams: [], onCallSchedules: [] });
+  const editedMembersRef: React.MutableRefObject<EscalationRuleResponderIds> =
+    useRef<EscalationRuleResponderIds>({
+      users: [],
+      teams: [],
+      onCallSchedules: [],
+      nextInRotationSchedules: [],
+    });
 
   /*
    * The level whose readiness detail is open, by rule id. The label on the card
@@ -653,6 +600,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             onCallDutyPolicyEscalationRuleId: true,
+            // Whoever is on call in it, or the next person in its rotation.
+            pageNextInRotation: true,
             onCallDutyPolicySchedule: {
               _id: true,
               name: true,
@@ -850,6 +799,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * Whether nobody is ever next in a schedule's rotation, from the roster
+   * the expansion above has read: every layer has one person in it. Until
+   * the roster is read, it is not said.
+   */
+  const isNobodyNextInRotation: (scheduleId: string) => boolean = (
+    scheduleId: string,
+  ): boolean => {
+    return (
+      Boolean(scheduleId) &&
+      isNobodyEverNextInRotation(
+        groupResolutions[getResponderGroupKey("schedule", scheduleId)],
+      )
+    );
+  };
+
+  /*
    * What is wrong on each level, keyed by rule id. Recomputed when the rules,
    * the group expansions or the readiness answer change - all three are inputs
    * to the same sentence, and a card that is a render behind any of them is a
@@ -898,9 +863,24 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               };
             },
           ),
-        ].filter((group: ResponderGroupRef): boolean => {
-          return Boolean(group.id);
-        });
+        ].filter(
+          (
+            group: ResponderGroupRef,
+            index: number,
+            all: Array<ResponderGroupRef>,
+          ): boolean => {
+            /*
+             * Each group once: a level that pages a schedule's on-call person
+             * and the next person in its rotation reaches the same roster.
+             */
+            return (
+              Boolean(group.id) &&
+              all.findIndex((other: ResponderGroupRef): boolean => {
+                return other.kind === group.kind && other.id === group.id;
+              }) === index
+            );
+          },
+        );
 
         reports[ruleId] = buildRuleReadinessReport({
           directUsers: directUsers,
@@ -925,12 +905,55 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     return reportsByRuleId[ruleId] || EMPTY_RULE_READINESS_REPORT;
   };
 
+  // The rules' ids, in level order.
+  const getRuleIds: () => Array<string> = (): Array<string> => {
+    return rules.map((rule: OnCallDutyEscalationRule): string => {
+      return rule.id?.toString() || "";
+    });
+  };
+
+  /*
+   * A level nobody named is called after its place ("Level 2"), so when levels
+   * move or one is deleted, those names move with them: the ladder never reads
+   * "Level 2" above "Level 1". A name somebody chose ("Managers") stays. Asked
+   * of the rules on screen before the change, and the order they take after it.
+   */
+  const renameRulesNamedAfterTheirLevel: (
+    levelOrderAfter: Array<string>,
+  ) => Promise<void> = async (
+    levelOrderAfter: Array<string>,
+  ): Promise<void> => {
+    const renames: Array<EscalationRuleNameEntry> = getEscalationRuleRenames({
+      before: rules.map(
+        (rule: OnCallDutyEscalationRule): EscalationRuleNameEntry => {
+          return {
+            id: rule.id?.toString() || "",
+            name: rule.name?.toString() || "",
+          };
+        },
+      ),
+      after: levelOrderAfter,
+    });
+
+    for (const rename of renames) {
+      await ModelAPI.updateById({
+        modelType: OnCallDutyEscalationRule,
+        id: new ObjectID(rename.id),
+        data: {
+          name: rename.name,
+        } as JSONObject,
+      });
+    }
+  };
+
   const moveRule: (
     rule: OnCallDutyEscalationRule,
     targetOrder: number,
+    levelOrderAfter: Array<string>,
   ) => Promise<void> = async (
     rule: OnCallDutyEscalationRule,
     targetOrder: number,
+    levelOrderAfter: Array<string>,
   ): Promise<void> => {
     if (!rule.id) {
       return;
@@ -945,6 +968,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           order: targetOrder,
         } as JSONObject,
       });
+      await renameRulesNamedAfterTheirLevel(levelOrderAfter);
       await loadData();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -958,12 +982,19 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    const deletedRuleId: string = ruleToDelete.id.toString();
+
     try {
       setIsDeleting(true);
       await ModelAPI.deleteItem({
         modelType: OnCallDutyEscalationRule,
         id: ruleToDelete.id,
       });
+      await renameRulesNamedAfterTheirLevel(
+        getRuleIds().filter((id: string): boolean => {
+          return id !== deletedRuleId;
+        }),
+      );
       setRuleToDelete(null);
       await loadData();
     } catch (err) {
@@ -983,29 +1014,46 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     const original: RuleMembers =
       membersByRuleId[ruleId.toString()] || emptyRuleMembers();
-    const latest: SelectedMembers = editedMembersRef.current;
+    const latest: EscalationRuleResponderIds = editedMembersRef.current;
 
-    // On-call schedules
-    await syncJoinType<OnCallDutyPolicyEscalationRuleSchedule>({
-      latestIds: latest.onCallSchedules,
-      joins: original.scheduleJoins,
-      getEntityId: (join: OnCallDutyPolicyEscalationRuleSchedule) => {
-        return join.onCallDutyPolicySchedule?.id?.toString();
-      },
-      modelType: OnCallDutyPolicyEscalationRuleSchedule,
-      createOne: async (scheduleId: string) => {
-        const model: OnCallDutyPolicyEscalationRuleSchedule =
-          new OnCallDutyPolicyEscalationRuleSchedule();
-        model.projectId = props.projectId;
-        model.onCallDutyPolicyId = props.onCallDutyPolicyId;
-        model.onCallDutyPolicyEscalationRuleId = ruleId;
-        model.onCallDutyPolicyScheduleId = new ObjectID(scheduleId);
-        await ModelAPI.create({
-          modelType: OnCallDutyPolicyEscalationRuleSchedule,
-          model: model,
-        });
-      },
-    });
+    /*
+     * On-call schedules, and the schedules whose next person in the rotation
+     * is paged: two kinds of row in one table, each reconciled against its
+     * own list, so moving a schedule from one to the other replaces its row.
+     */
+    for (const pagesNextInRotation of [false, true]) {
+      await syncJoinType<OnCallDutyPolicyEscalationRuleSchedule>({
+        latestIds: pagesNextInRotation
+          ? latest.nextInRotationSchedules
+          : latest.onCallSchedules,
+        joins: original.scheduleJoins.filter(
+          (join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+            return isNextInRotationJoin(join) === pagesNextInRotation;
+          },
+        ),
+        getEntityId: (join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return join.onCallDutyPolicySchedule?.id?.toString();
+        },
+        modelType: OnCallDutyPolicyEscalationRuleSchedule,
+        createOne: async (scheduleId: string) => {
+          const model: OnCallDutyPolicyEscalationRuleSchedule =
+            new OnCallDutyPolicyEscalationRuleSchedule();
+          model.projectId = props.projectId;
+          model.onCallDutyPolicyId = props.onCallDutyPolicyId;
+          model.onCallDutyPolicyEscalationRuleId = ruleId;
+          model.onCallDutyPolicyScheduleId = new ObjectID(scheduleId);
+
+          if (pagesNextInRotation) {
+            model.pageNextInRotation = true;
+          }
+
+          await ModelAPI.create({
+            modelType: OnCallDutyPolicyEscalationRuleSchedule,
+            model: model,
+          });
+        },
+      });
+    }
 
     // Teams
     await syncJoinType<OnCallDutyPolicyEscalationRuleTeam>({
@@ -1135,46 +1183,108 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
   const getScheduleChip: (
     schedule: OnCallDutyPolicySchedule,
-  ) => ReactElement = (schedule: OnCallDutyPolicySchedule): ReactElement => {
+    isNextInRotation?: boolean,
+  ) => ReactElement = (
+    schedule: OnCallDutyPolicySchedule,
+    isNextInRotation?: boolean,
+  ): ReactElement => {
     /*
      * A schedule with nobody on call right now is listed as a responder but
      * would page no one. Rendering it identically to a healthy schedule makes
-     * a broken escalation level look correctly configured.
+     * a broken escalation level look correctly configured. With nobody on
+     * call, nobody is next in its rotation either.
      */
     const isUncovered: boolean = !schedule.currentUserIdOnRoster;
 
+    /*
+     * Somebody is on call, but nobody is ever next in the schedule's
+     * rotation: each of its layers has one person in it. A level that pages
+     * its Next in rotation pages nobody there, so it is drawn as a level that
+     * would page no one - amber, saying why - not as a working backup.
+     */
+    const isNobodyNext: boolean =
+      Boolean(isNextInRotation) &&
+      !isUncovered &&
+      isNobodyNextInRotation(schedule.id?.toString() || "");
+
+    const isWarning: boolean = isUncovered || isNobodyNext;
+
+    /*
+     * The next person in the schedule's rotation - the backup after whoever
+     * is on call - is the schedule's name with "Next in rotation" beside it
+     * and a fast-forward mark, so it never reads as the schedule's own page.
+     */
+    const title: string | undefined = isUncovered
+      ? translator.translateText(
+          "No one is currently on call in this schedule - this level would not notify anyone right now.",
+        )
+      : isNobodyNext
+        ? translator.translateText(NO_ONE_NEXT_TOOLTIP)
+        : isNextInRotation
+          ? translator.translateText(
+              "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+            )
+          : undefined;
+
     return (
       <span
-        key={`schedule-${schedule.id?.toString()}`}
-        title={
-          isUncovered
-            ? "No one is currently on call in this schedule - this level would not notify anyone right now."
-            : undefined
+        key={`schedule-${isNextInRotation ? "next-" : ""}${schedule.id?.toString()}`}
+        data-testid={
+          isNextInRotation
+            ? "escalation-rule-next-in-rotation-chip"
+            : "escalation-rule-schedule-chip"
         }
-        className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
-          isUncovered ? "ring-amber-300" : "ring-gray-200"
+        title={title}
+        className={`inline-flex max-w-full items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
+          isWarning ? "ring-amber-300" : "ring-gray-200"
         }`}
       >
         <span
-          className={`flex h-6 w-6 items-center justify-center rounded-full ${
-            isUncovered ? "bg-amber-100" : "bg-indigo-100"
+          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
+            isWarning ? "bg-amber-100" : "bg-indigo-100"
           }`}
         >
           <Icon
-            icon={isUncovered ? IconProp.Alert : IconProp.Calendar}
+            icon={
+              isWarning
+                ? IconProp.Alert
+                : isNextInRotation
+                  ? IconProp.Forward
+                  : IconProp.Calendar
+            }
             className={`h-3.5 w-3.5 ${
-              isUncovered ? "text-amber-600" : "text-indigo-600"
+              isWarning ? "text-amber-600" : "text-indigo-600"
             }`}
           />
         </span>
-        <span className="text-sm font-medium text-gray-700">
-          {schedule.name?.toString()}
-        </span>
-        {isUncovered && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-            No one on call
+        {/*
+         * The name, then what it pages and whether anybody is on call - or
+         * next: each phrase kept whole, and moved under the name where the
+         * card is too narrow for one line.
+         */}
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium text-gray-700">
+            {schedule.name?.toString()}
           </span>
-        )}
+          {isNextInRotation && (
+            <span className="whitespace-nowrap text-xs text-gray-500">
+              {translator.translateText("Next in rotation")}
+            </span>
+          )}
+          {isUncovered && (
+            <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              {translator.translateText("No one on call")}
+            </span>
+          )}
+          {isNobodyNext && (
+            <span
+              data-testid="escalation-rule-no-one-next"
+              className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+            >
+              {translator.translateText(NO_ONE_NEXT_LABEL)}
+            </span>
+          )}
+        </span>
       </span>
     );
   };
@@ -1182,17 +1292,31 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getNotifiesSection: (members: RuleMembers) => ReactElement = (
     members: RuleMembers,
   ): ReactElement => {
-    const schedules: Array<OnCallDutyPolicySchedule> = members.scheduleJoins
-      .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-        return join.onCallDutyPolicySchedule;
-      })
-      .filter(
-        (
-          schedule: OnCallDutyPolicySchedule | undefined,
-        ): schedule is OnCallDutyPolicySchedule => {
-          return Boolean(schedule);
-        },
-      );
+    // The schedules of the rows that page one way or the other.
+    const schedulesOf: (
+      pagesNextInRotation: boolean,
+    ) => Array<OnCallDutyPolicySchedule> = (
+      pagesNextInRotation: boolean,
+    ): Array<OnCallDutyPolicySchedule> => {
+      return members.scheduleJoins
+        .filter((join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+          return isNextInRotationJoin(join) === pagesNextInRotation;
+        })
+        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return join.onCallDutyPolicySchedule;
+        })
+        .filter(
+          (
+            schedule: OnCallDutyPolicySchedule | undefined,
+          ): schedule is OnCallDutyPolicySchedule => {
+            return Boolean(schedule);
+          },
+        );
+    };
+
+    const schedules: Array<OnCallDutyPolicySchedule> = schedulesOf(false);
+    const nextInRotationSchedules: Array<OnCallDutyPolicySchedule> =
+      schedulesOf(true);
     const teams: Array<Team> = members.teamJoins
       .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
         return join.team;
@@ -1208,7 +1332,11 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         return Boolean(user);
       });
 
-    const totalCount: number = users.length + teams.length + schedules.length;
+    const totalCount: number =
+      users.length +
+      teams.length +
+      schedules.length +
+      nextInRotationSchedules.length;
 
     if (totalCount === 0) {
       return (
@@ -1218,8 +1346,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-amber-500 mt-0.5 shrink-0"
           />
           <span>
-            No responders assigned. No one will be notified at this level — edit
-            this rule to add responders.
+            {translator.translateText(
+              "No responders assigned. No one will be notified at this level — edit this rule to add responders.",
+            )}
           </span>
         </div>
       );
@@ -1229,6 +1358,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       <div className="flex flex-wrap gap-2">
         {schedules.map((schedule: OnCallDutyPolicySchedule) => {
           return getScheduleChip(schedule);
+        })}
+        {nextInRotationSchedules.map((schedule: OnCallDutyPolicySchedule) => {
+          return getScheduleChip(schedule, true);
         })}
         {teams.map((team: Team) => {
           return getTeamChip(team);
@@ -1240,77 +1372,151 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type IconButtonProps = {
-    icon: IconProp;
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-  };
-
-  const getIconButton: (buttonProps: IconButtonProps) => ReactElement = (
-    buttonProps: IconButtonProps,
-  ): ReactElement => {
-    return (
-      <Tooltip text={buttonProps.label}>
-        <button
-          type="button"
-          aria-label={buttonProps.label}
-          disabled={buttonProps.disabled}
-          onClick={buttonProps.onClick}
-          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none ${
-            buttonProps.danger
-              ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
-              : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-          }`}
-        >
-          <Icon icon={buttonProps.icon} className="h-4 w-4" />
-        </button>
-      </Tooltip>
-    );
-  };
-
+  /*
+   * The responders of a new rule travel with the create request (as misc
+   * data, which the server turns into join rows), so there is nothing to seed.
+   */
   const openCreateModal: () => void = (): void => {
-    editedMembersRef.current = { users: [], teams: [], onCallSchedules: [] };
     setShowCreateModal(true);
   };
 
   /*
-   * Opens the edit modal, seeding the live responder ref with the rule's
-   * current responders so an untouched save is a no-op.
+   * Opens the edit modal, seeding the responder ref with the rule's current
+   * responders so an untouched save is a no-op.
    */
-
   const openEditModal: (rule: OnCallDutyEscalationRule) => void = (
     rule: OnCallDutyEscalationRule,
   ): void => {
-    const members: RuleMembers =
-      membersByRuleId[rule.id?.toString() || ""] || emptyRuleMembers();
-
-    editedMembersRef.current = {
-      onCallSchedules: members.scheduleJoins
-        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-          return join.onCallDutyPolicySchedule?.id?.toString();
-        })
-        .filter((id: string | undefined): id is string => {
-          return Boolean(id);
-        }),
-      teams: members.teamJoins
-        .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
-          return join.team?.id?.toString();
-        })
-        .filter((id: string | undefined): id is string => {
-          return Boolean(id);
-        }),
-      users: members.userJoins
-        .map((join: OnCallDutyPolicyEscalationRuleUser) => {
-          return join.user?.id?.toString();
-        })
-        .filter((id: string | undefined): id is string => {
-          return Boolean(id);
-        }),
-    };
+    editedMembersRef.current = getRuleResponderIds(
+      membersByRuleId[rule.id?.toString() || ""] || emptyRuleMembers(),
+    );
 
     setRuleToEdit(rule);
+  };
+
+  /*
+   * A level's actions: Edit on the card, and a ⋯ menu holding the rest. It used
+   * to be four bare icons in a row - two arrows, a pencil and a bin - which read
+   * as equally important and left the bin one slip of the pointer from the
+   * pencil. Editing is what somebody opens a level for; reordering is rarer,
+   * and deleting rarer still, so those wait in the menu, with Delete last and
+   * red (RowActions sinks destructive actions to the bottom on its own).
+   *
+   * The arrows stay listed at the ends of the ladder, disabled, rather than
+   * vanishing: a menu that grows and shrinks from level to level is harder to
+   * learn than one that always says the same thing.
+   */
+  const getRuleActionButtons: (
+    rule: OnCallDutyEscalationRule,
+    index: number,
+  ) => Array<ActionButtonSchema<OnCallDutyEscalationRule>> = (
+    rule: OnCallDutyEscalationRule,
+    index: number,
+  ): Array<ActionButtonSchema<OnCallDutyEscalationRule>> => {
+    type MoveToFunction = (
+      neighbourIndex: number,
+      onCompleteAction: VoidFunction,
+    ) => void;
+
+    /*
+     * Held until the reorder has landed, so RowActions sees the action as in
+     * flight for as long as it really is. The card itself is what stops a
+     * second move meanwhile - it goes translucent and ignores the pointer while
+     * reorderingRuleId names it, exactly as it did before.
+     *
+     * The rule takes its neighbour's place and the neighbour takes its own
+     * (the server shifts the rules in between), so the levels after the move
+     * are the two swapped.
+     */
+    const moveTo: MoveToFunction = (
+      neighbourIndex: number,
+      onCompleteAction: VoidFunction,
+    ): void => {
+      const neighbour: OnCallDutyEscalationRule | undefined =
+        rules[neighbourIndex];
+
+      if (!neighbour || neighbour.order === undefined) {
+        onCompleteAction();
+        return;
+      }
+
+      moveRule(
+        rule,
+        neighbour.order,
+        getEscalationRuleOrderAfterSwap({
+          ids: getRuleIds(),
+          index: index,
+          neighbourIndex: neighbourIndex,
+        }),
+      )
+        .catch(() => {})
+        .finally(() => {
+          onCompleteAction();
+        });
+    };
+
+    return [
+      {
+        title: "Move up",
+        icon: IconProp.ArrowUp,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: index === 0,
+        onClick: (
+          _item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          moveTo(index - 1, onCompleteAction);
+        },
+      },
+      {
+        title: "Move down",
+        icon: IconProp.ArrowDown,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: index === rules.length - 1,
+        onClick: (
+          _item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          moveTo(index + 1, onCompleteAction);
+        },
+      },
+      {
+        title: "Edit rule",
+        icon: IconProp.Edit,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * Said outright rather than left to the authored order: the arrows are
+         * listed first so the menu reads top to bottom, and without this the
+         * first of them would take the card's button.
+         */
+        placement: ActionButtonPlacement.Primary,
+        onClick: (
+          item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            openEditModal(item);
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      },
+      {
+        title: "Delete rule",
+        icon: IconProp.Trash,
+        buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+        onClick: (
+          item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          // The confirmation modal, with its counted impact, does the asking.
+          setRuleToDelete(item);
+          onCompleteAction();
+        },
+      },
+    ];
   };
 
   const getRuleCard: (
@@ -1322,13 +1528,12 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const ruleId: string = rule.id?.toString() || "";
     const members: RuleMembers = membersByRuleId[ruleId] || emptyRuleMembers();
-    const isFirst: boolean = index === 0;
-    const isLast: boolean = index === rules.length - 1;
     const isReordering: boolean = reorderingRuleId === ruleId;
 
     return (
       <div
         key={ruleId}
+        data-testid="escalation-rule-card"
         className={`group rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:border-indigo-300 hover:shadow-md ${
           isReordering ? "opacity-60 pointer-events-none" : ""
         }`}
@@ -1341,80 +1546,64 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             </div>
 
             <div className="min-w-0 flex-1">
-              {/* Header: name + escalation timing + actions */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              {/*
+               * Header: name + escalation timing, and the actions at the
+               * right edge on the same line. Where the card is too narrow for
+               * both - a phone, a long name, a longer language - the actions
+               * move under the name, still at the right edge, rather than
+               * squeezing the name to a word per line beside "Edit rule".
+               */}
+              <div
+                data-testid="escalation-rule-card-header"
+                className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2"
+              >
+                <div className="min-w-0 flex-1 basis-48">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-semibold text-gray-900">
-                      {rule.name?.toString() || `Escalation Level ${index + 1}`}
+                      {getEscalationRuleDisplayName(
+                        rule.name?.toString(),
+                        index + 1,
+                      )}
                     </h3>
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
                       <Icon
                         icon={IconProp.Clock}
                         className="h-3 w-3 text-gray-400"
                       />
-                      Escalates after{" "}
-                      {formatMinutes(rule.escalateAfterInMinutes)}
+                      {translator.translateTemplate(
+                        "Escalates after {{duration}}",
+                        {
+                          duration: formatMinutes(rule.escalateAfterInMinutes),
+                        },
+                      )}
                     </span>
                   </div>
-                  {rule.description?.toString() ? (
-                    <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                      {rule.description.toString()}
-                    </p>
-                  ) : (
-                    <></>
-                  )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {getIconButton({
-                    icon: IconProp.ArrowUp,
-                    label: "Move up",
-                    disabled: isFirst,
-                    onClick: () => {
-                      const previous: OnCallDutyEscalationRule | undefined =
-                        rules[index - 1];
-                      if (previous && previous.order !== undefined) {
-                        moveRule(rule, previous.order).catch(() => {});
-                      }
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.ArrowDown,
-                    label: "Move down",
-                    disabled: isLast,
-                    onClick: () => {
-                      const next: OnCallDutyEscalationRule | undefined =
-                        rules[index + 1];
-                      if (next && next.order !== undefined) {
-                        moveRule(rule, next.order).catch(() => {});
-                      }
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.Edit,
-                    label: "Edit rule",
-                    onClick: () => {
-                      return openEditModal(rule);
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.Trash,
-                    label: "Delete rule",
-                    danger: true,
-                    onClick: () => {
-                      return setRuleToDelete(rule);
-                    },
-                  })}
-                </div>
+                <RowActions<OnCallDutyEscalationRule>
+                  item={rule}
+                  actionButtons={getRuleActionButtons(rule, index)}
+                  className="ml-auto shrink-0 justify-end"
+                />
               </div>
+              {/*
+               * Under the whole header line, so actions that wrap sit under
+               * the name, never under the description.
+               */}
+              {rule.description?.toString() ? (
+                <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                  {rule.description.toString()}
+                </p>
+              ) : (
+                <></>
+              )}
 
               {/* Notifies */}
               <div className="mt-4">
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                    Notifies
+                    {translator.translateText("Notifies")}
                   </div>
                   {/*
                    * The warning, where the thing it is about lives. It used to
@@ -1426,9 +1615,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                   <RuleReadinessLabel
                     report={getRuleReport(ruleId)}
                     delivery={delivery}
-                    ruleName={
-                      rule.name?.toString() || `Escalation Level ${index + 1}`
-                    }
+                    ruleName={getEscalationRuleDisplayName(
+                      rule.name?.toString(),
+                      index + 1,
+                    )}
                     onClick={() => {
                       setRuleIdToInspect(ruleId);
                     }}
@@ -1452,11 +1642,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
           <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />
           <span>
-            If unacknowledged after{" "}
-            <span className="font-semibold text-gray-900">
-              {formatMinutes(rule.escalateAfterInMinutes)}
-            </span>
-            , escalate to the next level
+            <TranslatedSentence
+              template="If unacknowledged after {{duration}}, escalate to the next level"
+              slots={{
+                duration: (
+                  <span className="font-semibold text-gray-900">
+                    {formatMinutes(rule.escalateAfterInMinutes)}
+                  </span>
+                ),
+              }}
+            />
           </span>
         </div>
         <Icon icon={IconProp.ChevronDown} className="h-4 w-4 text-gray-300" />
@@ -1487,11 +1682,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             description={
               "Escalation rules decide who gets paged and how quickly the alert climbs the ladder when no one responds. Add your first rule to get started."
             }
+            /*
+             * The header's "Add Escalation Rule" is the page's primary
+             * button. This repeats it where an empty list leaves the eye,
+             * drawn plain the way an empty table repeats its Create button,
+             * so the page still has one.
+             */
             footer={
               <Button
                 title="Add Escalation Rule"
                 icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   return openCreateModal();
                 }}
@@ -1517,115 +1718,106 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Prefill options for the edit modal's member multi-selects.
+   * The add and edit forms: who to notify and how long to wait, with the name
+   * and the description folded under Advanced (EscalationRuleForm.ts).
    *
    * MEMOISED, and that is load bearing rather than tidiness. ModelForm rebuilds
-   * its whole field set - including re-running fetchDropdownOptions, which is a
-   * network call for the project's user list - whenever the `fields` array it is
-   * handed changes identity. This component now re-renders while the modal is
-   * open (a responder is picked, a readiness lookup returns, a reminder is
-   * sent), so a freshly-built array on every render would refetch the user
-   * dropdown several times per selection and flicker the field the admin is
-   * using. Both this and the two field arrays below are therefore keyed on the
-   * things that genuinely change them.
+   * its whole field set whenever the `fields` array it is handed changes
+   * identity, and this component re-renders while a modal is open (a readiness
+   * lookup returns, a reminder is sent). So each array is keyed on the one
+   * thing that changes it: the level the rule is, or will be, which names it
+   * ("Level 3") when it has no name of its own.
    */
   const editRuleId: string = ruleToEdit?.id?.toString() || "";
 
-  const editMemberDefaults: MemberDefaults | undefined = useMemo(():
-    | MemberDefaults
-    | undefined => {
-    if (!editRuleId) {
-      return undefined;
-    }
-
-    const members: RuleMembers =
-      membersByRuleId[editRuleId] || emptyRuleMembers();
-
-    return {
-      onCallSchedules: members.scheduleJoins
-        .filter((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-          return Boolean(join.onCallDutyPolicySchedule);
-        })
-        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-          return {
-            value: join.onCallDutyPolicySchedule!.id!.toString(),
-            label:
-              join.onCallDutyPolicySchedule!.name?.toString() ||
-              "On-call schedule",
-          };
-        }),
-      teams: members.teamJoins
-        .filter((join: OnCallDutyPolicyEscalationRuleTeam) => {
-          return Boolean(join.team);
-        })
-        .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
-          return {
-            value: join.team!.id!.toString(),
-            label: join.team!.name?.toString() || "Team",
-          };
-        }),
-      users: members.userJoins
-        .filter((join: OnCallDutyPolicyEscalationRuleUser) => {
-          return Boolean(join.user);
-        })
-        .map((join: OnCallDutyPolicyEscalationRuleUser) => {
-          return {
-            value: join.user!.id!.toString(),
-            label:
-              join.user!.name?.toString() ||
-              join.user!.email?.toString() ||
-              "User",
-          };
-        }),
-    };
-  }, [editRuleId, membersByRuleId]);
+  const editRuleLevel: number =
+    rules.findIndex((rule: OnCallDutyEscalationRule): boolean => {
+      return Boolean(editRuleId) && rule.id?.toString() === editRuleId;
+    }) + 1 || 1;
 
   const createFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
-      return buildRuleFormFields();
-    }, []);
+      return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
+        level: rules.length + 1,
+      });
+    }, [rules.length]);
 
   const editFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
-      return buildRuleFormFields(editMemberDefaults);
-    }, [editMemberDefaults]);
+      return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
+        level: editRuleLevel,
+        isEditing: true,
+      });
+    }, [editRuleLevel]);
 
   /*
-   * The one onChange both modals share: it keeps editedMembersRef in step with
-   * the form so an untouched save stays a no-op, and so the save path can read
-   * the selection synchronously inside onSuccess.
-   *
-   * It publishes nothing into state on purpose. It used to, so that a readiness
-   * warning could re-render inside the modal on every pick - and since onChange
-   * fires for every keystroke in every field, that re-rendered the whole form
-   * (and re-fetched its dropdowns) while somebody was typing a rule name. The
-   * warning lives on the page now, where it is derived from saved rows.
+   * What the edit dialog opens with: the rule as this page loaded it, and its
+   * responders in the three lists the Notify picker writes. The dialog does
+   * not fetch the rule again - the responders, which are not columns of it,
+   * could not come back with it, and they are already here.
    */
-  const onRuleFormChange: (
-    values: FormValues<OnCallDutyEscalationRule>,
-  ) => void = (values: FormValues<OnCallDutyEscalationRule>): void => {
-    const currentValues: Record<string, unknown> = values as unknown as Record<
-      string,
-      unknown
-    >;
+  const editInitialValues: FormValues<OnCallDutyEscalationRule> | undefined =
+    useMemo((): FormValues<OnCallDutyEscalationRule> | undefined => {
+      if (!ruleToEdit || !editRuleId) {
+        return undefined;
+      }
 
-    if (currentValues["onCallSchedules"] !== undefined) {
-      editedMembersRef.current.onCallSchedules = toIds(
-        toSelectedOptions(currentValues["onCallSchedules"]),
+      const responders: EscalationRuleResponderIds = getRuleResponderIds(
+        membersByRuleId[editRuleId] || emptyRuleMembers(),
       );
+
+      const values: Record<string, unknown> = {
+        name: ruleToEdit.name?.toString() || "",
+        /*
+         * A rule saved without a wait escalates at once (the worker reads it
+         * as 0), so that is what the form shows.
+         */
+        escalateAfterInMinutes: ruleToEdit.escalateAfterInMinutes ?? 0,
+        [ESCALATION_RULE_SCHEDULES_KEY]: responders.onCallSchedules,
+        [ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY]:
+          responders.nextInRotationSchedules,
+        [ESCALATION_RULE_TEAMS_KEY]: responders.teams,
+        [ESCALATION_RULE_USERS_KEY]: responders.users,
+      };
+
+      if (ruleToEdit.description) {
+        values["description"] = ruleToEdit.description.toString();
+      }
+
+      return values as FormValues<OnCallDutyEscalationRule>;
+    }, [ruleToEdit, editRuleId]);
+
+  /*
+   * The edit is saved in two parts: the rule's own columns by the form, then
+   * its responders, reconciled against the join rows in onSuccess. This runs
+   * first, as the form saves: it keeps what the Notify picker holds for that
+   * second part (the picker's lists are not columns of the rule, so the update
+   * itself does not carry them), and a name cleared in the dialog becomes the
+   * level's name again, as its placeholder said.
+   */
+  const onBeforeEditSave: (
+    item: OnCallDutyEscalationRule,
+    miscDataProps: JSONObject,
+    formValues: JSONObject,
+  ) => Promise<OnCallDutyEscalationRule> = (
+    item: OnCallDutyEscalationRule,
+    miscDataProps: JSONObject,
+    formValues: JSONObject,
+  ): Promise<OnCallDutyEscalationRule> => {
+    editedMembersRef.current = readEscalationRuleResponderIds(formValues);
+
+    for (const key of [
+      ESCALATION_RULE_SCHEDULES_KEY,
+      ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
+      ESCALATION_RULE_TEAMS_KEY,
+      ESCALATION_RULE_USERS_KEY,
+    ]) {
+      delete miscDataProps[key];
     }
 
-    if (currentValues["teams"] !== undefined) {
-      editedMembersRef.current.teams = toIds(
-        toSelectedOptions(currentValues["teams"]),
-      );
-    }
+    item.name = resolveEscalationRuleName(item.name?.toString(), editRuleLevel);
 
-    if (currentValues["users"] !== undefined) {
-      editedMembersRef.current.users = toIds(
-        toSelectedOptions(currentValues["users"]),
-      );
-    }
+    return Promise.resolve(item);
   };
 
   /*
@@ -1654,14 +1846,34 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
       const responders: Array<EscalationResponder> = [];
 
-      for (const join of members.scheduleJoins) {
-        if (join.onCallDutyPolicySchedule) {
+      // The schedules' on-call people first, then the next in their rotations.
+      for (const pagesNextInRotation of [false, true]) {
+        for (const join of members.scheduleJoins) {
+          if (
+            !join.onCallDutyPolicySchedule ||
+            isNextInRotationJoin(join) !== pagesNextInRotation
+          ) {
+            continue;
+          }
+
+          const isUncovered: boolean =
+            !join.onCallDutyPolicySchedule.currentUserIdOnRoster;
+
           responders.push({
             type: "schedule",
             label:
               join.onCallDutyPolicySchedule.name?.toString() ||
               "On-call schedule",
-            isUncovered: !join.onCallDutyPolicySchedule.currentUserIdOnRoster,
+            isUncovered: isUncovered,
+            ...(pagesNextInRotation ? { isNextInRotation: true } : {}),
+            // Somebody on call, but nobody ever next: see getScheduleChip.
+            ...(pagesNextInRotation &&
+            !isUncovered &&
+            isNobodyNextInRotation(
+              join.onCallDutyPolicySchedule.id?.toString() || "",
+            )
+              ? { isNobodyNext: true }
+              : {}),
           });
         }
       }
@@ -1696,7 +1908,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       }
 
       return {
-        name: rule.name?.toString() || `Escalation Level ${index + 1}`,
+        name: getEscalationRuleDisplayName(rule.name?.toString(), index + 1),
         escalateAfterInMinutes: rule.escalateAfterInMinutes || 0,
         responders,
       };
@@ -1730,14 +1942,19 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Escalation Rules
+              {translator.translateText("Escalation Rules")}
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-              Who gets notified when an incident is triggered, and how it climbs
-              the ladder if no one responds.
+              {translator.translateText(
+                "Who gets notified when an incident is triggered, and how it climbs the ladder if no one responds.",
+              )}
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:shrink-0">
+          {/*
+            Under the description on a phone, at the right edge, as a card
+            header's actions always are; beside the title from sm up.
+          */}
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:shrink-0 sm:self-auto">
             <Button
               title="Refresh"
               icon={IconProp.Refresh}
@@ -1763,13 +1980,13 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="p-6">{getBody()}</div>
       </div>
 
-      {/* Create modal */}
+      {/* Create modal: one short step - who to notify, how long to wait. */}
       {showCreateModal ? (
         <ModelFormModal<OnCallDutyEscalationRule>
           title="Add Escalation Rule"
           name="Create Escalation Rule"
-          description="Escalation rules determine who to contact, and when, once an incident is triggered."
-          modalWidth={ModalWidth.Medium}
+          description="Who gets paged at this level, and how long to wait for an acknowledgement before escalating."
+          modalWidth={ModalWidth.Normal}
           modelType={OnCallDutyEscalationRule}
           submitButtonText="Create Rule"
           onClose={() => {
@@ -1784,6 +2001,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           ): Promise<OnCallDutyEscalationRule> => {
             item.onCallDutyPolicyId = props.onCallDutyPolicyId;
             item.projectId = props.projectId;
+
+            /*
+             * A name left empty is left out of the request: the server calls
+             * the rule after its level ("Level 3"), as the placeholder said.
+             * The responders the Notify picker holds go with the request as
+             * misc data, and the server adds them once the rule exists.
+             */
+            if (!item.name?.toString().trim()) {
+              delete item.name;
+            }
+
             return Promise.resolve(item);
           }}
           formProps={{
@@ -1791,25 +2019,25 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             modelType: OnCallDutyEscalationRule,
             id: "create-escalation-rule-form",
             formType: FormType.Create,
-            steps: RULE_FORM_STEPS,
             fields: createFormFields,
-            onChange: onRuleFormChange,
           }}
         />
       ) : (
         <></>
       )}
 
-      {/* Edit modal */}
+      {/* Edit modal: the same one step, filled in with the rule as it is. */}
       {ruleToEdit ? (
         <ModelFormModal<OnCallDutyEscalationRule>
           title="Edit Escalation Rule"
           name="Edit Escalation Rule"
-          description="Update the rule's details and change who it notifies."
-          modalWidth={ModalWidth.Medium}
+          description="Who gets paged at this level, and how long to wait for an acknowledgement before escalating."
+          modalWidth={ModalWidth.Normal}
           modelType={OnCallDutyEscalationRule}
           modelIdToEdit={ruleToEdit.id!}
           submitButtonText="Save Changes"
+          initialValues={editInitialValues}
+          onBeforeUpdate={onBeforeEditSave}
           onClose={() => {
             return setRuleToEdit(null);
           }}
@@ -1835,9 +2063,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             modelType: OnCallDutyEscalationRule,
             id: "edit-escalation-rule-form",
             formType: FormType.Update,
-            steps: RULE_FORM_STEPS,
             fields: editFormFields,
-            onChange: onRuleFormChange,
+            doNotFetchExistingModel: true,
           }}
         />
       ) : (
@@ -1858,7 +2085,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
            * specific.
            */
           description={describeEscalationRuleDeletion(
-            ruleToDelete.name?.toString() || "this escalation rule",
+            getEscalationRuleDisplayName(
+              ruleToDelete.name?.toString(),
+              getRuleIds().indexOf(ruleToDelete.id?.toString() || "") + 1,
+            ),
             getEscalationRuleDeletionImpact({
               ruleIdToDelete: ruleToDelete.id?.toString() || "",
               ruleIds: rules.map((rule: OnCallDutyEscalationRule): string => {
@@ -1890,7 +2120,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
        */}
       {ruleToInspect ? (
         <RuleReadinessDetails
-          ruleName={ruleToInspect.name?.toString() || "This escalation level"}
+          ruleName={getEscalationRuleDisplayName(
+            ruleToInspect.name?.toString(),
+            getRuleIds().indexOf(ruleIdToInspect) + 1,
+          )}
           report={getRuleReport(ruleIdToInspect)}
           delivery={delivery}
           reminders={reminders.statuses}

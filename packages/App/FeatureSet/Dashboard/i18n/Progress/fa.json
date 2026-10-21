@@ -1,0 +1,15 @@
+{
+  "baseline": {
+    "keys": 32062,
+    "untranslated": 16523
+  },
+  "sameAsEnglish": [
+    "CloudWatch Metric Streams",
+    "ICMP (ping)",
+    "Runner",
+    "SNMP trap",
+    "VMware vCenter",
+    "kubectl set image deployment/web * -n web",
+    "syslog"
+  ]
+}

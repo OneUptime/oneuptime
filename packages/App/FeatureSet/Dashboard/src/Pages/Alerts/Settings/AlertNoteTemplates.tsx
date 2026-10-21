@@ -6,6 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
@@ -21,7 +22,7 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         saveFilterProps={{
           tableId: "alert-note-templates-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -29,23 +30,17 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Private Note Templates for Alerts",
           description:
-            "Here is a list of all the private note templates for alerts.",
+            "Ready-made text for alert updates. Pick one when writing a private note on an alert or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -53,7 +48,6 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -66,7 +60,6 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -77,9 +70,9 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             field: {
               note: true,
             },
-            title: "Public or Private note template.",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "note-details",
             required: true,
             validation: {
               minLength: 2,

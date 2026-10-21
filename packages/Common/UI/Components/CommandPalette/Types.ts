@@ -16,8 +16,44 @@ export interface PaletteCommand {
   iconColor?: string | undefined;
   /** Section the command is grouped under when browsing (e.g. "Essentials"). */
   category: string;
-  /** Extra match terms the user might type that are not in the title. */
+  /**
+   * Other names for the command that are not in its title ("pager" for
+   * On-Call, "delete project" for the Danger Zone). Matched like a weaker
+   * title.
+   */
   keywords?: Array<string> | undefined;
+  /**
+   * The title itself in other words, matched exactly as the title is: the
+   * English title behind a translated one, so "api keys" still opens
+   * "API-Schlüssel" first in German. Never shown.
+   */
+  titleAliases?: Array<string> | undefined;
+  /**
+   * Where the command lives, outermost first: ["Project Settings",
+   * "Advanced"] for API Keys. Shown under the title instead of the
+   * description, so two pages that are both called "Custom Fields" can be
+   * told apart, and searched as context: "incident custom fields" finds the
+   * Incidents one. A command with a breadcrumb is not searched by its
+   * category.
+   */
+  breadcrumb?: Array<string> | undefined;
+  /**
+   * More words for the breadcrumb that are searched but never shown, such as
+   * the English names behind a translated breadcrumb.
+   */
+  breadcrumbKeywords?: Array<string> | undefined;
+  /**
+   * Offered only to someone searching. Browsing lists the catalog without
+   * it (it would be hundreds of rows), but it can still show under Recent.
+   */
+  isSearchOnly?: boolean | undefined;
+  /**
+   * Breaks a tie between two commands that match a search equally well:
+   * the higher goes first (0 when left out). The Dashboard puts its products
+   * above its pages, and pages above actions and quick links, so "pager"
+   * opens On-Call Duty, then On-Call Policies.
+   */
+  searchPriority?: number | undefined;
   /** Optional shortcut hint rendered as keycaps on the row. */
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   onSelect: () => void;

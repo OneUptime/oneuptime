@@ -11,11 +11,11 @@ import React, { FunctionComponent, ReactElement, Suspense } from "react";
  * plugin when this is the Enterprise Edition AND this build includes it, the
  * upsell card otherwise.
  *
- *   const SettingsGlobalSSO: FunctionComponent = (): ReactElement => {
+ *   const HealthRedis: FunctionComponent = (): ReactElement => {
  *     return (
  *       <EnterprisePluginPage
- *         plugin={getAdminDashboardPlugins().GlobalSSOList}
- *         upsell={{ title: "...", description: "...", featureName: "...", benefits: [...] }}
+ *         plugin={getAdminDashboardPlugins().HealthRedis}
+ *         renderUpsell={() => <EnterpriseHealthUpgrade featureName="..." />}
  *       />
  *     );
  *   };
@@ -24,10 +24,8 @@ import React, { FunctionComponent, ReactElement, Suspense } from "react";
  * the default rule is the effective edition the server writes into env.js
  * (true only when the ee code is loaded). A lapsed license does not change it:
  * the ee screens stay reachable and explain the license themselves - the
- * Global SSO / OIDC screens with a banner above their configuration (sign-in
- * through global providers is off and the configuration is read-only until a
- * license is activated), the Health screens with a license-required notice in
- * place of the data their API refuses (402).
+ * Health screens with a license-required notice in place of the data their
+ * API refuses (402).
  *
  * The plugin is usually React.lazy, so it renders inside Suspense and the ee
  * chunk downloads the first time the screen opens.

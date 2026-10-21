@@ -7,6 +7,7 @@ const esbuild = require("esbuild");
 const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
+const { createMermaidSourcePlugin } = require("./esbuild-mermaid");
 
 function createRefractorCompatibilityPlugin() {
   const candidateRoots = [
@@ -45,59 +46,6 @@ function createRefractorCompatibilityPlugin() {
         const candidatePath = path.join(refractorRoot, "lang", filename);
         return { path: candidatePath };
       });
-    },
-  };
-}
-
-// Plugin to force mermaid to use its pre-bundled CJS build (no dynamic imports)
-function createMermaidPlugin() {
-  const candidateRoots = [
-    path.resolve(__dirname, "../node_modules/mermaid"),
-    path.resolve(__dirname, "../../../node_modules/mermaid"),
-  ];
-  const mermaidRoot = candidateRoots.find((p) => fs.existsSync(p));
-
-  return {
-    name: "mermaid-prebundled",
-    setup(build) {
-      if (!mermaidRoot) return;
-      const bundlePath = path.join(mermaidRoot, "dist", "mermaid.min.js");
-
-      // Intercept bare "mermaid" imports and serve the pre-bundled CJS file
-      // with an ESM export appended. The CJS file declares a local var
-      // __esbuild_esm_mermaid_nm and assigns .mermaid on it, so we inline
-      // the file contents and export from the same scope.
-      build.onResolve({ filter: /^mermaid$/ }, () => {
-        return { path: "mermaid-wrapper", namespace: "mermaid-ns" };
-      });
-
-      build.onLoad(
-        { filter: /^mermaid-wrapper$/, namespace: "mermaid-ns" },
-        () => {
-          let cjsSource = fs.readFileSync(bundlePath, "utf8");
-          // The CJS bundle ends with a line that tries globalThis.__esbuild_esm_mermaid_nm
-          // which fails because the var is local-scoped when bundled. Strip it and
-          // expose the local var on globalThis ourselves before that line.
-          cjsSource = cjsSource.replace(
-            /globalThis\["mermaid"\]\s*=\s*globalThis\.__esbuild_esm_mermaid_nm\["mermaid"\]\.default;?\s*$/,
-            "",
-          );
-          const contents =
-            cjsSource +
-            `
-;globalThis.__esbuild_esm_mermaid_nm = typeof __esbuild_esm_mermaid_nm !== "undefined" ? __esbuild_esm_mermaid_nm : {};
-var _mermaid_export = __esbuild_esm_mermaid_nm.mermaid;
-if (_mermaid_export && _mermaid_export.default) { _mermaid_export = _mermaid_export.default; }
-export default _mermaid_export;
-export { _mermaid_export as mermaid };
-`;
-          return {
-            contents,
-            loader: "js",
-            resolveDir: path.dirname(bundlePath),
-          };
-        },
-      );
     },
   };
 }
@@ -182,26 +130,7 @@ function createFileLoaderPlugin() {
   };
 }
 
-// Copy Monaco's runtime next to the bundle so the editor loads from this
-// install instead of cdn.jsdelivr.net, which is unreachable when self-hosted
-// offline. Only min/vs is copied - the rest of the package is sources and
-// type definitions the browser never asks for.
-//
-// Every frontend gets a copy. Forms/Fields/FormField.tsx imports CodeEditor
-// directly, so every service that renders a form pulls the editor into its
-// bundle - there is no service to skip. Gating this on the built output only
-// looked selective; it matched all five services and risked a silent offline
-// 404 the moment a code field showed up somewhere unexpected.
-function copyMonacoAssets(outdir) {
-  const source = path.join(resolvePackageRoot("monaco-editor"), "min", "vs");
-  const destination = path.resolve(path.dirname(outdir), "assets/monaco/vs");
-
-  fs.rmSync(destination, { recursive: true, force: true });
-  fs.mkdirSync(path.dirname(destination), { recursive: true });
-  fs.cpSync(source, destination, { recursive: true });
-}
-
-// Tailwind's Play CDN build, copied out of Common the same way.
+// Tailwind's Play CDN build, copied out of Common next to the bundle.
 //
 // It used to be committed once per frontend - five byte-identical copies of a
 // 684 KB minified file, each one its own set of code-scanning alerts to
@@ -324,6 +253,7 @@ function resolvePackageSubpath(packageName, subpath) {
  * @param {Object} [options.additionalDefines] - Additional define variables
  * @param {Array} [options.additionalExternal] - Additional external modules
  * @param {Object} [options.additionalAlias] - Additional aliases
+ * @param {Array} [options.additionalPlugins] - Additional esbuild plugins, run after the shared ones
  */
 function createConfig(options) {
   const {
@@ -334,6 +264,7 @@ function createConfig(options) {
     additionalDefines = {},
     additionalExternal = [],
     additionalAlias = {},
+    additionalPlugins = [],
   } = options;
 
   const isDev = process.env.NODE_ENV !== "production";
@@ -380,11 +311,6 @@ function createConfig(options) {
     splitting: true,
     publicPath,
     define: {
-      // Monaco resolves its runtime against this at load time. import.meta is
-      // empty at the es2017 target, so the path has to come from the build.
-      "process.env.MONACO_ASSET_PATH": JSON.stringify(
-        `${publicPath.replace(/dist\/$/, "")}assets/monaco/vs`,
-      ),
       "process.env.NODE_ENV": JSON.stringify(
         isDev ? "development" : "production",
       ),
@@ -421,10 +347,15 @@ function createConfig(options) {
       ...additionalAlias,
     },
     plugins: [
-      createMermaidPlugin(),
+      /*
+       * mermaid from its ES module source, so katex and its other
+       * dependencies come from node_modules (see esbuild-mermaid.js).
+       */
+      createMermaidSourcePlugin(),
       createRefractorCompatibilityPlugin(),
       createCSSPlugin(),
       createFileLoaderPlugin(),
+      ...additionalPlugins,
     ],
     loader: {
       ".tsx": "tsx",
@@ -456,9 +387,6 @@ async function build(config, serviceName) {
   try {
     const result = await esbuild.build(config);
 
-    copyMonacoAssets(config.outdir);
-    console.log(`📦 Copied Monaco assets for ${serviceName}`);
-
     copyTailwindAsset(config.outdir);
     console.log(`📦 Copied Tailwind for ${serviceName}`);
 
@@ -489,12 +417,9 @@ async function watch(config, serviceName) {
   try {
     const context = await esbuild.context(config);
 
-    // The copy no longer reads the built output, so it can run before the
+    // The copy does not read the built output, so it can run before the
     // first build instead of forcing an extra one just to have something to
     // inspect. context.watch() does the initial build on its own.
-    copyMonacoAssets(config.outdir);
-    console.log(`📦 Copied Monaco assets for ${serviceName}`);
-
     copyTailwindAsset(config.outdir);
     console.log(`📦 Copied Tailwind for ${serviceName}`);
 

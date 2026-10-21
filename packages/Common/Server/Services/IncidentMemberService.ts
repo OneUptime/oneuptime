@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -19,8 +19,10 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -29,6 +31,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.incidentId) {
       throw new BadDataException("incidentId is required");
     }
@@ -89,20 +93,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    // The members the delete removes, and the delete held to them.
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         incidentId: true,
         projectId: true,
         userId: true,
         incidentRoleId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -173,8 +173,10 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.IncidentMemberRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            feedInfoInMarkdown:
+              mdText`👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
             userId: deleteByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -234,13 +236,13 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👤 Added **${await UserService.getUserMarkdownString(
-            {
+          feedInfoInMarkdown:
+            mdText`👤 Added **${await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
-            },
-          )}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            })}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
           userId: createdByUserId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,
@@ -249,9 +251,14 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    // get notification rule where inviteOwners is true.
+    /*
+     * The rules whose channels somebody given a role joins: the Incident
+     * Commander - often assigned as they acknowledge - and the others. This
+     * read the owners' switch, so a rule that added the people paged but
+     * not the owners never added the commander to its channel.
+     */
     const notificationRules: Array<WorkspaceNotificationRule> =
-      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteRolesIsTrue(
         {
           projectId: projectId!,
           notificationFor: {
@@ -271,6 +278,9 @@ export class Service extends DatabaseService<Model> {
           },
         ),
         userIds: [userId!],
+        notificationFor: {
+          incidentId: incidentId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

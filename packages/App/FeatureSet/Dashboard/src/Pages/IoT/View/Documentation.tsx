@@ -15,10 +15,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IoTDocumentationCard from "../../../Components/IoT/DocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const IoTFleetDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [fleet, setFleet] = useState<IoTFleet | null>(null);
@@ -64,7 +67,10 @@ const IoTFleetDocumentation: FunctionComponent<
     <Fragment>
       <IoTDocumentationCard
         title="Connect Your IoT Fleet"
-        description="Follow these steps to push OpenTelemetry (OTLP) telemetry from your devices or gateway to this fleet."
+        description={translator.translateTemplate(
+          "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
+          { fleetName: fleet.name || "" },
+        )}
       />
     </Fragment>
   );

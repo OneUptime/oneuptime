@@ -12,11 +12,7 @@
         <main class="mx-auto max-w-3xl pb-10 lg:py-12 lg:px-8">
 
             <div class="sm:mx-auto sm:w-full sm:max-w-md flex justify-center mt-10 mb-10">
-                <img
-                    class="mx-auto h-12 w-auto"
-                    src="/oneuptime-assets/brand/oneuptime-logo.svg"
-                    alt="OneUptime"
-                />
+                <%- include('./Partials/ProductLogo.ejs') -%>
             </div>
 
 
@@ -30,6 +26,10 @@
                                         <h2 id="message-heading"
                                             class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
                                         <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                        <%# A page passed on with nobody left to page (OnCallPassOnWarning). -%>
+                                        <% if (typeof warning !== 'undefined' && warning) { %>
+                                        <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
+                                        <% } %>
                                     </div>
 
                                     <%- include('./Partials/OnCallNotificationDetails.ejs') -%>

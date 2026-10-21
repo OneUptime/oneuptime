@@ -10,8 +10,11 @@ import {
   SessionReplayVisibilityState,
   SessionReplayWebVitalMetric,
   SessionReplayWebVitalRating,
+  SessionReplayInteractionType,
+  SessionReplayNavigationType,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
+import { formatReplayDuration } from "../ReplayTimeFormat";
 import {
   alignTelemetryOffsetMs,
   alignmentLabelFor,
@@ -176,6 +179,13 @@ export type ReplayPerformanceSignalDetail = {
   rating: SessionReplayWebVitalRating | null;
   url: string | null;
   atUnixMs: number | null;
+  /* INP only, and only from recorders that attribute it. */
+  navigationType: SessionReplayNavigationType | null;
+  interactionType: SessionReplayInteractionType | null;
+  interactionTarget: string | null;
+  inputDelayMs: number | null;
+  processingDurationMs: number | null;
+  presentationDelayMs: number | null;
 };
 
 export type ReplayCustomSignalDetail = {
@@ -190,7 +200,8 @@ export type ReplayMarkerKind =
   | "identify"
   | "tags"
   | "click-dropped"
-  | "custom-dropped";
+  | "custom-dropped"
+  | "idle-pause";
 
 export type ReplayMarkerSignalDetail = {
   markerKind: ReplayMarkerKind;
@@ -199,6 +210,16 @@ export type ReplayMarkerSignalDetail = {
   tags: Record<string, string> | null;
   droppedCount: number | null;
   atUnixMs: number | null;
+  /*
+   * idle-pause only, null on every other marker. Which edge the row is;
+   * on a paused row, how long nobody had touched the page when capture
+   * stopped; on a resumed row, how long the stretch that was never
+   * recorded lasted. Each length is null when the payload did not carry
+   * a valid pair of stamps.
+   */
+  idlePauseEdge: "paused" | "resumed" | null;
+  idleForMs: number | null;
+  pausedForMs: number | null;
 };
 
 export type ReplayLogSignalDetail = {
@@ -993,6 +1014,12 @@ function performanceSignal(
     rating: event.rating || null,
     url: stringOrNull(event.url),
     atUnixMs: atUnixMs,
+    navigationType: event.navigationType || null,
+    interactionType: event.interactionType || null,
+    interactionTarget: stringOrNull(event.interactionTarget),
+    inputDelayMs: numberOrNull(event.inputDelayMs),
+    processingDurationMs: numberOrNull(event.processingDurationMs),
+    presentationDelayMs: numberOrNull(event.presentationDelayMs),
   };
 
   signal.detail = detail;
@@ -1031,6 +1058,18 @@ function customSignal(
   return signal;
 }
 
+/* to - from, when both are numbers and the stretch has any length. */
+function positiveSpanMs(
+  fromMs: number | undefined,
+  toMs: number | undefined,
+): number | null {
+  if (!isFiniteNumber(fromMs) || !isFiniteNumber(toMs) || toMs <= fromMs) {
+    return null;
+  }
+
+  return toMs - fromMs;
+}
+
 function markerSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
@@ -1040,6 +1079,18 @@ function markerSignal(
   let severity: ReplaySignalSeverity = "info";
   let subtitle: string | undefined;
   const droppedCount: number | null = numberOrNull(event.droppedCount);
+  const isIdlePause: boolean = event.kind === "idle-pause";
+  const idlePauseEdge: "paused" | "resumed" | null = isIdlePause
+    ? event.idlePauseEdge || "paused"
+    : null;
+  const idleForMs: number | null =
+    idlePauseEdge === "paused"
+      ? positiveSpanMs(event.idleSinceUnixMs, event.pausedAtUnixMs)
+      : null;
+  const pausedForMs: number | null =
+    idlePauseEdge === "resumed"
+      ? positiveSpanMs(event.pausedAtUnixMs, event.resumedAtUnixMs)
+      : null;
 
   switch (event.kind) {
     case "visibility":
@@ -1072,6 +1123,27 @@ function markerSignal(
           ? `${droppedCount} clicks not labelled (recorder cap)`
           : "Some clicks not labelled (recorder cap)";
       break;
+    case "idle-pause":
+      /*
+       * Where the footage stops and where it starts again. Without these
+       * two rows the rail would run straight from the last thing before
+       * the pause to the first thing after it, with nothing to say why
+       * minutes of the session left no trace.
+       */
+      markerKind = "idle-pause";
+
+      if (idlePauseEdge === "resumed") {
+        title =
+          pausedForMs !== null
+            ? `Recording resumed after ${formatReplayDuration(pausedForMs)} idle`
+            : "Recording resumed after an idle pause";
+      } else {
+        title =
+          idleForMs !== null
+            ? `Recording paused: no input for ${formatReplayDuration(idleForMs)}`
+            : "Recording paused: nobody touched the page";
+      }
+      break;
     default:
       markerKind = "custom-dropped";
       severity = "warn";
@@ -1095,6 +1167,9 @@ function markerSignal(
     tags: event.tags || null,
     droppedCount: droppedCount,
     atUnixMs: wallClockFor(event, ctx),
+    idlePauseEdge: idlePauseEdge,
+    idleForMs: idleForMs,
+    pausedForMs: pausedForMs,
   };
 
   signal.detail = detail;
@@ -1134,6 +1209,7 @@ export function fromTimelineEvent(
     case "tags":
     case "click-dropped":
     case "custom-dropped":
+    case "idle-pause":
     default:
       return markerSignal(event, ctx);
   }

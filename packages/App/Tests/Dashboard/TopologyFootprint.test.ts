@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyDeviceRole,
   NetworkTopologyNode,
@@ -81,19 +82,6 @@ const makeEndpoint: MakeNodeFunction = (
  * fifty is worse than no test at all.
  */
 type NextRandomFunction = () => number;
-type MakeSeededRandomFunction = (seed: number) => NextRandomFunction;
-
-const makeSeededRandom: MakeSeededRandomFunction = (
-  seed: number,
-): NextRandomFunction => {
-  let state: number = seed | 0 || 1;
-  return (): number => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return Math.abs(state % 100000) / 100000;
-  };
-};
 
 /* Names built from real hostname characters plus spaces and hyphens. */
 const NAME_ALPHABET: string = "abcdefghijklmnopqrstuvwxyz0123456789-. ";
@@ -104,7 +92,7 @@ const makeHostileNames: MakeHostileNamesFunction = (
   count: number,
   seed: number,
 ): Array<string> => {
-  const next: NextRandomFunction = makeSeededRandom(seed);
+  const next: NextRandomFunction = seededRandom(seed);
   const names: Array<string> = [];
   for (let i: number = 0; i < count; i++) {
     const length: number = 1 + Math.floor(next() * 60);
@@ -127,7 +115,7 @@ const LONG_HOSTNAME: string = "h".repeat(200);
 describe("hostile name fixture", () => {
   /*
    * The property tests below are only worth anything if the generated
-   * corpus is actually varied. A silently degenerate xorshift (every name
+   * corpus is actually varied. A silently degenerate generator (every name
    * "aaa") would make six tests pass while asserting nothing.
    */
   test("the seeded corpus is varied and long enough to exercise wrapping", () => {

@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { describe, expect, test } from "@jest/globals";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 
 const PARTIALS_DIR: string = Path.resolve(
   __dirname,
@@ -121,13 +122,13 @@ describe("optional email navigation", () => {
 
       expect(html).not.toMatch(/<a\b/i);
       expect(html).toContain(
-        "OneUptime Dashboard &gt; More &gt; User Settings &gt; Notification Settings",
+        "OneUptime Dashboard &gt; User Settings &gt; Notification Settings",
       );
     },
   );
 
   test.each([
-    ["UnsubscribeBlock", "unsubscribeUrl", "Manage subscription"],
+    ["UnsubscribeBlock", "unsubscribeUrl", "Unsubscribe"],
     [
       "UnsubscribeOwnerEmail",
       "notificationPreferencesUrl",
@@ -192,7 +193,11 @@ describe("brand identity with incomplete optional settings", () => {
   ])(
     "OneUptime branding resolves its destination from %j",
     (variables: Record<string, unknown>, destination: string | undefined) => {
-      const html: string = render("Logo", variables);
+      // OneUptime's logo, as MailService.render hands it to every email.
+      const html: string = render("Logo", {
+        ...variables,
+        oneUptimeLogoUrl: EmailLogo.getDataUrl(),
+      });
 
       expect(html).toContain('alt="OneUptime"');
       expect(html).toContain(">OneUptime</td>");
@@ -295,12 +300,31 @@ describe("independent rich-content slots", () => {
     }
   });
 
-  test("a title-only field does not create empty value containers", () => {
-    const html: string = render("DetailBoxField", { title: "Deployment" });
+  /*
+   * A label over empty space reads as something missing, and at the end of a
+   * card it is the last thing above the card's bottom border. A field with
+   * no value is left out, label and all.
+   */
+  test.each([
+    ["no value at all", {}],
+    ["an empty text", { text: "" }],
+    ["an empty blockText", { blockText: "" }],
+    ["an empty plainText", { plainText: "" }],
+    ["every value empty", { text: "", blockText: "", plainText: "" }],
+    ["values a sender left unset", { text: undefined, plainText: null }],
+  ])(
+    "a title-only field draws nothing - %s",
+    (_name: string, values: Record<string, unknown>) => {
+      const html: string = render("DetailBoxField", {
+        title: "Deployment",
+        ...values,
+      });
 
-    expect(html).toContain("Deployment");
-    expect(html).not.toContain("st-DetailCard-value");
-  });
+      expect(html).not.toContain("Deployment");
+      expect(html).not.toContain("st-DetailCard");
+      expect(html.trim()).toBe("");
+    },
+  );
 
   test("plain and rich information can coexist", () => {
     const html: string = render("InfoBlock", {

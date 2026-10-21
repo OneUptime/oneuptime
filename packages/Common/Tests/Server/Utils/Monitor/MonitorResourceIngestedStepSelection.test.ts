@@ -132,6 +132,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 const processMonitorStepMock: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
@@ -235,6 +236,8 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lockMock.mockResolvedValue({});
 
@@ -289,6 +292,8 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
     let probeId: ObjectID;
 
     beforeEach(() => {
+      // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+      jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
       stepOne = makeStep("Step one criteria");
       stepTwo = makeStep("Step two criteria");
       stepThree = makeStep("Step three criteria");

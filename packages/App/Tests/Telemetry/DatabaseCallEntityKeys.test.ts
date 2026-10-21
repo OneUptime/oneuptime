@@ -134,6 +134,9 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "llmUserId",
   "llmUserEmail",
   "llmTeam",
+  // What the AI call did and what went wrong with its answer.
+  "llmCallKind",
+  "llmIssues",
   "retentionDate",
 ];
 
@@ -1224,6 +1227,7 @@ const METRIC_AUTO_DISCOVERY_METHODS: Array<string> = [
   "autoDiscoverProxmoxCluster",
   "autoDiscoverVMwareVCenter",
   "autoDiscoverCephCluster",
+  "autoDiscoverStorageArray",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverIoTFleet",
   "autoDiscoverHost",

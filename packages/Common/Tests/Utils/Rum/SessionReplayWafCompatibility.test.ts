@@ -5,6 +5,7 @@ import {
   SESSION_REPLAY_WIRE_VERSION,
 } from "../../../Types/Rum/SessionReplay";
 import SessionReplayWireEncoding from "../../../Utils/Rum/SessionReplayWireEncoding";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Would a web application firewall let a session-replay chunk through?
@@ -180,19 +181,6 @@ function matches921110(body: Uint8Array): string | null {
   }
 
   return null;
-}
-
-/* A seeded PRNG, so the fuzzing below is the same on every run. */
-function mulberry32(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 function buildEnvelope(
@@ -681,7 +669,8 @@ describe("session replay chunks and a CRS-based web application firewall", () =>
         "😀",
       ];
 
-      const random: () => number = mulberry32(0x0a11ce);
+      // Seeded, so the fuzzing is the same on every run.
+      const random: () => number = seededRandom(0x0a11ce);
 
       const pick: () => string = (): string => {
         let value: string = "";
@@ -746,7 +735,7 @@ describe("session replay chunks and a CRS-based web application firewall", () =>
         "/",
       ];
 
-      const random: () => number = mulberry32(0xbeef);
+      const random: () => number = seededRandom(0xbeef);
 
       const sentence: () => string = (): string => {
         const parts: Array<string> = [];
@@ -791,7 +780,7 @@ describe("session replay chunks and a CRS-based web application firewall", () =>
     });
 
     test("a gzip payload is opaque: compressed realistic chunks and random bytes do not match", () => {
-      const random: () => number = mulberry32(0x5eed);
+      const random: () => number = seededRandom(0x5eed);
 
       for (let iteration: number = 0; iteration < 60; iteration++) {
         const events: Array<unknown> = [];

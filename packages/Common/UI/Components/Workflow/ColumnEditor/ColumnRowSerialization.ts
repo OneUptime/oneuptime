@@ -19,7 +19,7 @@ import LessThan from "../../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../../Types/BaseDatabase/LessThanOrEqual";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
-import { getTemplateExpressionRegex } from "../../../../Types/Workflow/TemplateSyntax";
+import { hasTemplatePlaceholder } from "../../../../Utils/TemplatePlaceholders";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -38,6 +38,7 @@ import {
   requiredWritableColumns,
 } from "../ModelSchema";
 import { controlForColumn, literalFitsControl } from "./ColumnControl";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 import {
   ColumnValueMode,
   ModelColumnControl,
@@ -50,13 +51,13 @@ export type ContainsTemplateExpressionFunction = (value: string) => boolean;
 /**
  * Does this text hold a {{ }} reference?
  *
- * Uses the runtime's own matcher rather than a hand-rolled `/{{/`, so a value
+ * Uses the runtime's own reading rather than a hand-rolled `/{{/`, so a value
  * this editor calls a reference is one the runner will actually substitute.
  */
 export const containsTemplateExpression: ContainsTemplateExpressionFunction = (
   value: string,
 ): boolean => {
-  return getTemplateExpressionRegex().test(value);
+  return hasTemplatePlaceholder(value);
 };
 
 type UnwrapOperatorValueFunction = (value: unknown) => unknown;
@@ -506,11 +507,11 @@ export const rowIssue: RowIssueFunction = (
   const control: ModelColumnControl = controlForColumn(column);
 
   if (control === ModelColumnControl.Number && isNaN(Number(row.text))) {
-    return "This column takes a number.";
+    return translationKey("This column takes a number.");
   }
 
   if (control === ModelColumnControl.Date && isNaN(Date.parse(row.text))) {
-    return "This column takes a date and time.";
+    return translationKey("This column takes a date and time.");
   }
 
   return null;

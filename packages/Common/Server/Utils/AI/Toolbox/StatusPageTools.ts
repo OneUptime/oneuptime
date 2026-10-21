@@ -1,12 +1,15 @@
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageResource";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import MonitorService from "../../../Services/MonitorService";
 import StatusPageService from "../../../Services/StatusPageService";
 import StatusPageAnnouncementService from "../../../Services/StatusPageAnnouncementService";
 import StatusPageResourceService from "../../../Services/StatusPageResourceService";
@@ -14,6 +17,7 @@ import StatusPageSubscriberService from "../../../Services/StatusPageSubscriberS
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
+import ArchivedMonitorResources from "../../../../Utils/StatusPage/ArchivedMonitorResources";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -49,6 +53,15 @@ const resolveAnnouncementReadPermissions: () => Array<Permission> =
     return cachedAnnouncementReadPermissions;
   };
 
+/*
+ * An archived status page is offline: its public page is not served and its
+ * subscribers are sent nothing. The list leaves archived pages out (as the
+ * Status Pages page does), so the model never plans a post around one; read
+ * by id, one is still returned, flagged, with this said alongside.
+ */
+export const ARCHIVED_STATUS_PAGE_NOTE: string =
+  "This status page is archived: its public page is not served and its subscribers are sent nothing, so an update reaches no one through it. Unarchive it to publish it again.";
+
 // Resources a detail view lists — enough for any real page, still bounded.
 const MAX_RESOURCES_PER_PAGE: number = 50;
 
@@ -76,6 +89,72 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
       return value.length > 0;
     })
     .join(", ");
+}
+
+/*
+ * The resources a page shows: an archived monitor's are left off the public
+ * page (ArchivedMonitorResources). Whether a resource's monitor is archived
+ * is read here as OneUptime, for the monitors of the resources the caller
+ * read and only those, in their project. A relation read never reads it
+ * (Monitor.isArchived is not readable on a relation query): asking for it
+ * along with the resources refused every member's read of a page by id -
+ * "Column isArchived on Monitor does not support read on relation query."
+ */
+async function withoutArchivedMonitors(
+  ctx: ToolContext,
+  resources: Array<StatusPageResource>,
+): Promise<Array<StatusPageResource>> {
+  const monitorIds: Array<string> = Array.from(
+    new Set(
+      resources
+        .map((resource: StatusPageResource): string => {
+          return resource.monitorId?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    ),
+  );
+
+  if (monitorIds.length === 0) {
+    return resources;
+  }
+
+  const archivedMonitors: Array<Monitor> = await MonitorService.findBy({
+    query: {
+      _id: QueryHelper.any(monitorIds),
+      projectId: ctx.projectId,
+      isArchived: true,
+    },
+    select: {
+      _id: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const archivedIds: Set<string> = new Set(
+    archivedMonitors.map((monitor: Monitor): string => {
+      return monitor.id?.toString() || "";
+    }),
+  );
+
+  for (const resource of resources) {
+    const monitorId: string | undefined = resource.monitorId?.toString();
+
+    if (!monitorId) {
+      continue;
+    }
+
+    const monitor: Monitor = resource.monitor || new Monitor();
+    monitor.isArchived = archivedIds.has(monitorId);
+    resource.monitor = monitor;
+  }
+
+  return ArchivedMonitorResources.withoutArchivedMonitors(resources);
 }
 
 /*
@@ -120,7 +199,7 @@ function buildPagingPrefix(data: {
 export const QueryStatusPagesTool: ObservabilityTool = {
   name: "query_status_pages",
   description:
-    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. Use query_status_page_announcements to see what has already been announced.",
+    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL; archived status pages are left out, as they are offline. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. Use query_status_page_announcements to see what has already been announced.",
   inputSchema: {
     type: "object",
     properties: {
@@ -163,6 +242,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
             pageTitle: true,
             pageDescription: true,
             isPublicStatusPage: true,
+            isArchived: true,
           },
           props: ctx.props,
         },
@@ -205,6 +285,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           select: {
             _id: true,
             displayName: true,
+            monitorId: true,
             monitor: {
               name: true,
             },
@@ -231,7 +312,14 @@ export const QueryStatusPagesTool: ObservabilityTool = {
         resolvePublicUrl(statusPageId),
       ]);
 
-      const resourceSummaries: string = resources
+      /*
+       * An archived monitor is left off the public page, so it is not
+       * among the resources the page shows.
+       */
+      const shownResources: Array<StatusPageResource> =
+        await withoutArchivedMonitors(ctx, resources);
+
+      const resourceSummaries: string = shownResources
         .map((resource: StatusPageResource) => {
           return describeResource(resource);
         })
@@ -253,8 +341,9 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           visibility: visibility,
           publicUrl: publicUrl,
           resourcesShown: resourceSummaries || undefined,
-          resourceCount: resources.length,
+          resourceCount: shownResources.length,
           activeSubscriberCount: activeSubscribers.toNumber(),
+          archived: statusPage.isArchived === true ? true : undefined,
         },
       ];
 
@@ -264,13 +353,19 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       const cardFields: Array<{ label: string; value: string }> = [
         { label: "Visibility", value: visibility },
       ];
+      if (statusPage.isArchived === true) {
+        cardFields.push({
+          label: "Archived",
+          value: "Yes - offline, sends nothing",
+        });
+      }
       if (publicUrl) {
         cardFields.push({ label: "Public URL", value: publicUrl });
       }
       cardFields.push({
         label: "Resources shown",
         value: resourceSummaries
-          ? `${resources.length}: ${resourceSummaries}`
+          ? `${shownResources.length}: ${resourceSummaries}`
           : "0",
       });
       cardFields.push({
@@ -279,7 +374,10 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       });
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          statusPage.isArchived === true
+            ? `${ARCHIVED_STATUS_PAGE_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `Status page "${statusPage.name || statusPageId.toString()}"`,
         citationTarget: {
@@ -316,7 +414,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
     const [statusPages, totalCount]: [Array<StatusPage>, PositiveNumber] =
       await Promise.all([
         StatusPageService.findBy({
-          query: {},
+          query: { isArchived: false },
           select: {
             _id: true,
             name: true,
@@ -331,7 +429,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           props: ctx.props,
         }),
         StatusPageService.countBy({
-          query: {},
+          query: { isArchived: false },
           props: ctx.props,
         }),
       ]);

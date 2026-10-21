@@ -109,7 +109,7 @@ export const SECURITY_EVENT_NUMERIC_FIELDS: ReadonlySet<string> =
  * `message` is a sentence — `message:refused` means "mentions refused".
  * `observables`, `mitreTactics` and `mitreTechniques` are arrays, where the
  * analytics compiler's substring match over the joined array is how "this
- * event mentions X" is asked (the same predicate the Correlate tab pivots
+ * event mentions X" is asked (the same predicate the Correlate page pivots
  * on). An explicit operator the user typed (`!`, `~`, `>`, a glob, a list)
  * always wins over this default.
  */

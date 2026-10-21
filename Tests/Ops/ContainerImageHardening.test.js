@@ -128,8 +128,10 @@ describe("which templates build Node images", () => {
     // it exists so a detection bug cannot make every check below vacuous.
     expect(nodeTemplates()).toEqual([
       "Tests/Dockerfile.tpl",
+      "agents/KubernetesAIAgent/Dockerfile.tpl",
       "agents/KubernetesCostAgent/Dockerfile.tpl",
       "agents/KubernetesLogTailer/Dockerfile.tpl",
+      "agents/ResourceAIAgent/Dockerfile.tpl",
       "packages/App/Dockerfile.tpl",
       "packages/E2E/Dockerfile.tpl",
       "packages/Home/Dockerfile.tpl",
@@ -500,6 +502,202 @@ describe("Runner", () => {
   });
 });
 
+/*
+ * The Kubernetes AI agent runs in every cluster that installs the
+ * kubernetes-agent chart, by default, with a ServiceAccount that can read the
+ * whole cluster. So it ships as little as it can: node, tini, the CA store and
+ * one kubectl binary that was checked against a pinned digest in a stage of
+ * its own. (KubernetesAiAccessDocsKubectlPin.test.ts holds that pin equal to
+ * the Runner's.)
+ */
+describe("Kubernetes AI agent", () => {
+  const template = "agents/KubernetesAIAgent/Dockerfile.tpl";
+  const KUBECTL_COPY =
+    /^COPY --from=(\S+) \/usr\/local\/bin\/kubectl \/usr\/local\/bin\/kubectl$/;
+
+  function shippedLines(environment) {
+    const stages = stagesOf(template, environment);
+    const [chain] = shippedStages(stages);
+    return {
+      stages,
+      chain,
+      lines: [...chain].reverse().flatMap((stage) => {
+        return stage.instructions;
+      }),
+    };
+  }
+
+  test("is a template the repository builds", () => {
+    expect(TEMPLATES).toContain(template);
+  });
+
+  test("copies kubectl in from a stage that does not ship", () => {
+    const { stages, chain, lines } = shippedLines("production");
+    const copies = lines.filter((line) => {
+      return KUBECTL_COPY.test(line);
+    });
+    expect(copies).toHaveLength(1);
+
+    const donorName = KUBECTL_COPY.exec(copies[0])[1].toLowerCase();
+    const donor = stages.find((stage) => {
+      return stage.name === donorName;
+    });
+    expect(donor).toBeDefined();
+    expect(
+      chain.map((stage) => {
+        return stage.name;
+      }),
+    ).not.toContain(donorName);
+  });
+
+  test("the download stage checks the binary against its pinned sha256 before installing it", () => {
+    const { stages, lines } = shippedLines("production");
+    const donorName = KUBECTL_COPY.exec(
+      lines.find((line) => {
+        return KUBECTL_COPY.test(line);
+      }),
+    )[1].toLowerCase();
+    const donor = stages.find((stage) => {
+      return stage.name === donorName;
+    });
+
+    // One instruction downloads, verifies and installs, so a failed check
+    // fails the build before anything reaches /usr/local/bin.
+    const download = donor.instructions.filter((line) => {
+      return /https:\/\/dl\.k8s\.io\/release\//.test(line);
+    });
+    expect(download).toHaveLength(1);
+    const verify = download[0].search(/\bsha256sum -c\b/);
+    const install = download[0].search(
+      /\binstall\b[^&|;]*\s\/usr\/local\/bin\/kubectl\b/,
+    );
+    expect(verify).toBeGreaterThan(-1);
+    expect(install).toBeGreaterThan(verify);
+
+    // Both architectures are pinned, in this stage, to a full digest.
+    for (const arch of ["AMD64", "ARM64"]) {
+      expect(donor.instructions).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            new RegExp(`^ARG KUBECTL_SHA256_${arch}=[0-9a-f]{64}$`),
+          ),
+        ]),
+      );
+    }
+  });
+
+  test.each(ENVIRONMENTS)(
+    "%s: installs nothing from the OS beyond the CA store and tini (no download tool ships)",
+    (environment) => {
+      const { lines } = shippedLines(environment);
+      expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
+        "ca-certificates",
+        "tini",
+      ]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: runs as the image's non-root node user (UID 1000, what the chart's securityContext asks for)",
+    (environment) => {
+      const users = shippedLines(environment).lines.filter((line) => {
+        return /^USER /.test(line);
+      });
+      expect(users[users.length - 1]).toBe("USER node");
+    },
+  );
+
+  test("production starts the compiled agent under tini, not ts-node", () => {
+    const { lines } = shippedLines("production");
+    const commands = lines.filter((line) => {
+      return /^CMD /.test(line);
+    });
+    expect(commands[commands.length - 1]).toMatch(
+      /^CMD \[ ?"node", "build\/dist\/Index\.js" ?\]$/,
+    );
+    expect(lines).toContain('ENTRYPOINT ["/sbin/tini", "--"]');
+    expect(lines).toContain("RUN npm run compile");
+  });
+});
+
+/*
+ * The resource AI agent runs next to the collector of every Docker, Podman,
+ * Swarm, Proxmox, VMware, Ceph, database and host agent, and for the socket
+ * and host kinds as root, with the engine socket or the host's namespaces.
+ * So it ships only node, tini, the CA store and the programs its executors
+ * spawn, each from Alpine's own signed packages: the docker CLI, govc, the
+ * ceph CLI and nsenter. No download stage and no download tool; Proxmox and
+ * the databases are reached from Node itself.
+ */
+describe("Resource AI agent", () => {
+  const template = "agents/ResourceAIAgent/Dockerfile.tpl";
+
+  function shippedLines(environment) {
+    const stages = stagesOf(template, environment);
+    const [chain] = shippedStages(stages);
+    return {
+      stages,
+      lines: [...chain].reverse().flatMap((stage) => {
+        return stage.instructions;
+      }),
+    };
+  }
+
+  test("is a template the repository builds", () => {
+    expect(TEMPLATES).toContain(template);
+  });
+
+  test.each(ENVIRONMENTS)(
+    "%s: installs nothing from the OS beyond the CA store, tini and the four programs its executors run",
+    (environment) => {
+      const { lines } = shippedLines(environment);
+      expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
+        "ca-certificates",
+        "ceph19-common",
+        "docker-cli",
+        "govc",
+        "tini",
+        "util-linux-misc",
+      ]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: is one stage, and copies nothing in from another image",
+    (environment) => {
+      const { stages, lines } = shippedLines(environment);
+      expect(stages).toHaveLength(1);
+      expect(
+        lines.filter((line) => {
+          return /^COPY --from=/.test(line);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: runs as the image's non-root node user by default (UID 1000; the compose files run the socket and host kinds as root)",
+    (environment) => {
+      const users = shippedLines(environment).lines.filter((line) => {
+        return /^USER /.test(line);
+      });
+      expect(users[users.length - 1]).toBe("USER node");
+    },
+  );
+
+  test("production starts the compiled agent under tini, not ts-node", () => {
+    const { lines } = shippedLines("production");
+    const commands = lines.filter((line) => {
+      return /^CMD /.test(line);
+    });
+    expect(commands[commands.length - 1]).toMatch(
+      /^CMD \[ ?"node", "build\/dist\/Index\.js" ?\]$/,
+    );
+    expect(lines).toContain('ENTRYPOINT ["/sbin/tini", "--"]');
+    expect(lines).toContain("RUN npm run compile");
+  });
+});
+
 describe("E2E", () => {
   const template = "packages/E2E/Dockerfile.tpl";
   const lines = stagesOf(template, "production").flatMap((stage) => {
@@ -675,6 +873,22 @@ describe("Nginx", () => {
       expect.arrayContaining(["nginx-module-njs", "libstdc++"]),
     );
   });
+
+  /*
+   * node is copied from the official node image, not installed with apk, so
+   * nothing pulls in the libraries it links against. Node 26.11's x86-64
+   * build links libatomic: when the node:26-alpine tag moved to it, every
+   * build of this image stopped at "libatomic.so.1: No such file or
+   * directory (needed by /usr/local/bin/node)".
+   */
+  test("installs the libraries the copied node binary links against", () => {
+    const install = final.instructions.find((line) => {
+      return /\bapk add\b/.test(line);
+    });
+    expect(installedPackagesIn(install)).toEqual(
+      expect.arrayContaining(["libstdc++", "libatomic"]),
+    );
+  });
 });
 
 describe("the OpenTelemetry collector pin", () => {
@@ -692,6 +906,13 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/DockerSwarmAgent/docker-compose.yml",
     "agents/VMwareAgent/docker-compose.yml",
     "agents/DatabaseAgent/docker-compose.yml",
+    "agents/StorageArrayAgent/docker-compose.yml",
+    // Pinned since the agents report their version (they ran :latest).
+    "agents/ProxmoxAgent/docker-compose.yml",
+    "agents/CephAgent/docker-compose.yml",
+    // The journald wrapper image the Proxmox README and guide build.
+    "agents/ProxmoxAgent/README.md",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
     "Tests/Ops/validate-collector-configs.sh",
     "Tests/Ops/ContainerAgentDockerApiVersionRuntime.test.js",
     "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown.ts",
@@ -709,6 +930,24 @@ describe("the OpenTelemetry collector pin", () => {
     expect([...versions]).toHaveLength(1);
   });
 
+  /*
+   * validate-collector-configs.sh checks the Kubernetes agent chart's
+   * collector configs against this pin, so the chart runs it too (its
+   * values.yaml names repository and tag apart, which the pattern above
+   * does not see).
+   */
+  test("the Kubernetes agent chart runs it", () => {
+    const values = yaml.load(
+      read("HelmChart/Public/kubernetes-agent/values.yaml"),
+    );
+    expect(values.image).toEqual(
+      expect.objectContaining({
+        repository: "otel/opentelemetry-collector-contrib",
+        tag: pinsIn("agents/DockerAgent/Dockerfile.tpl")[0],
+      }),
+    );
+  });
+
   test("the Swarm agent's APP_VERSION default and the severity model follow it", () => {
     const [version] = pinsIn("agents/DockerAgent/Dockerfile.tpl");
     expect(read("agents/DockerSwarmAgent/docker-compose.yml")).toContain(
@@ -719,11 +958,14 @@ describe("the OpenTelemetry collector pin", () => {
     );
   });
 
-  test("the Swarm, VMware and Database compose files run the pinned collector", () => {
+  test("the Swarm, VMware, Database, Proxmox, Ceph and Storage Array compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
       "agents/DatabaseAgent/docker-compose.yml",
+      "agents/ProxmoxAgent/docker-compose.yml",
+      "agents/CephAgent/docker-compose.yml",
+      "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
       const images = Object.values(compose.services)
@@ -738,4 +980,41 @@ describe("the OpenTelemetry collector pin", () => {
       ]);
     }
   });
+
+  /*
+   * These agents are the stock collector plus a config, so the config is
+   * what tells OneUptime the agent's version: it must stamp exactly the pin
+   * the compose file beside it runs, or the version sign on the resource's
+   * page compares the wrong number. The Storage Array agent runs one of
+   * three configs (the kind of array decides which), so each stamps it.
+   */
+  test.each([
+    ["ProxmoxAgent", "otel-collector-config.yaml"],
+    ["CephAgent", "otel-collector-config.yaml"],
+    ["VMwareAgent", "otel-collector-config.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.flashblade.yaml"],
+  ])(
+    "agents/%s/%s stamps the pin as oneuptime.agent.version",
+    (agent, file) => {
+      const config = yaml.load(read(`agents/${agent}/${file}`));
+      const stamps = config.processors.resource.attributes.filter(
+        (attribute) => {
+          return attribute.key === "oneuptime.agent.version";
+        },
+      );
+      expect(stamps).toEqual([
+        {
+          key: "oneuptime.agent.version",
+          value: pinsIn(`agents/${agent}/docker-compose.yml`)[0],
+          action: "upsert",
+        },
+      ]);
+      // Every pipeline runs the processor that stamps it.
+      for (const pipeline of Object.values(config.service.pipelines)) {
+        expect(pipeline.processors).toContain("resource");
+      }
+    },
+  );
 });

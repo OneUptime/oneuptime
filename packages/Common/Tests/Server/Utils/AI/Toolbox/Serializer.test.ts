@@ -1,4 +1,7 @@
 import ToolResultSerializer, {
+  MAX_FIELD_LENGTH,
+  MAX_PAYLOAD_BYTES,
+  MAX_ROWS,
   SerializedResult,
 } from "../../../../../Server/Utils/AI/Toolbox/Serializer";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -18,9 +21,17 @@ import { describe, expect, test } from "@jest/globals";
  * has to say so, or the model reports a slice as the whole picture.
  */
 
-const MAX_ROWS: number = 50;
-const MAX_FIELD_LENGTH: number = 500;
-const MAX_PAYLOAD_BYTES: number = 16 * 1024;
+describe("the caps", () => {
+  test("keep a whole stack trace or long log line in one field", () => {
+    // It used to be 500 characters — the frame that mattered was cut off.
+    expect(MAX_FIELD_LENGTH).toBeGreaterThanOrEqual(4000);
+  });
+
+  test("keep a large result whole, and summarize rows past the cap", () => {
+    expect(MAX_PAYLOAD_BYTES).toBeGreaterThanOrEqual(64 * 1024);
+    expect(MAX_ROWS).toBe(50);
+  });
+});
 
 function redactionOf(text: string): string {
   return ToolResultSerializer.redact(text).text;
@@ -183,6 +194,51 @@ describe("ToolResultSerializer.redact - counting", () => {
 
   test("matches from different rules add up", () => {
     expect(countOf("a@b.com from 10.0.0.1")).toBe(2);
+  });
+
+  test("each private key block counts once, however many lines it spans", () => {
+    const key: string = [
+      "-----BEGIN OPENSSH PRIVATE KEY-----",
+      "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ",
+      "QyNTUxOQAAACDtDLd4XyzQ5wTfR1bB0gK2PlPvUQe",
+      "-----END OPENSSH PRIVATE KEY-----",
+    ].join("\n");
+
+    expect(ToolResultSerializer.redact(`${key}\nand\n${key}`)).toEqual({
+      text: "[redacted-private-key]\nand\n[redacted-private-key]",
+      count: 2,
+    });
+  });
+});
+
+/*
+ * A tool result is text from outside - a log line, a span attribute,
+ * whatever an instrumented service wrote - so a private key block is found
+ * in it in time in line with its length, however many BEGIN lines it holds
+ * with no END after them: a million characters of each worst case, each in
+ * well under 2 seconds (one pattern with a lazy body took about two
+ * seconds for 400,000 characters, and four times as long for twice that).
+ */
+describe("ToolResultSerializer.redact - private key blocks in a long text", () => {
+  test.each([
+    [
+      "BEGIN lines with no END",
+      "-----BEGIN RSA PRIVATE KEY-----".repeat(1000000 / 31),
+    ],
+    [
+      "BEGIN lines with END lines that never close",
+      "-----BEGIN RSA PRIVATE KEY----------END RSA ".repeat(1000000 / 45),
+    ],
+    [
+      "BEGIN lines on lines of their own",
+      "-----BEGIN PRIVATE KEY-----\n".repeat(1000000 / 28),
+    ],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    expect(ToolResultSerializer.redact(text).count).toBe(0);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 });
 

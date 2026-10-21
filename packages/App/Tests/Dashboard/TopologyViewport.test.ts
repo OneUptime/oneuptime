@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   ElementBox,
   FIT_PADDING_FRACTION,
@@ -73,20 +74,8 @@ const view: MakeViewFunction = (
   return { scale: scale, tx: tx, ty: ty };
 };
 
-/* Deterministic xorshift32 in [0, 1) — no Math.random anywhere in here. */
+/* Deterministic draws in [0, 1), from a seeded generator — no Math.random anywhere in here. */
 type NextRandomFunction = () => number;
-
-const makeRandom: (seed: number) => NextRandomFunction = (
-  seed: number,
-): NextRandomFunction => {
-  let state: number = seed | 0;
-  return (): number => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return ((state >>> 0) % 1000003) / 1000003;
-  };
-};
 
 /* The world point currently sitting under a viewBox-space anchor. */
 type WorldUnderAnchorFunction = (
@@ -447,7 +436,7 @@ describe("screenToWorld and worldToScreen are exact inverses", () => {
   });
 
   test("the round trip survives pseudo-random boxes, views and points", () => {
-    const random: NextRandomFunction = makeRandom(0x5eed1234);
+    const random: NextRandomFunction = seededRandom(0x5eed1234);
     for (let i: number = 0; i < 200; i++) {
       const shape: ElementBox = box(
         random() * 2000 - 1000,
@@ -750,7 +739,7 @@ describe("applyZoomAtPoint — the point under the cursor stays put", () => {
   });
 
   test("the scale never escapes the zoom range under any factor", () => {
-    const random: NextRandomFunction = makeRandom(0x13579bdf);
+    const random: NextRandomFunction = seededRandom(0x13579bdf);
     let current: ViewTransform = view(1, 0, 0);
     for (let i: number = 0; i < 300; i++) {
       current = applyZoomAtPoint(
@@ -1223,7 +1212,7 @@ describe("dragThresholdExceeded — a click must survive a shaky hand", () => {
    * node. Distance is measured from the ORIGIN, so jitter never accumulates.
    */
   test("jitter around the press point never accumulates into a drag", () => {
-    const random: NextRandomFunction = makeRandom(0x2468ace0);
+    const random: NextRandomFunction = seededRandom(0x2468ace0);
     for (let i: number = 0; i < 100; i++) {
       const jittered: ScreenPoint = {
         x: origin.x + (random() * 2 - 1),
@@ -1422,7 +1411,7 @@ describe("snapToGrid", () => {
   });
 
   test("every snapped coordinate is a whole multiple of the grid size", () => {
-    const random: NextRandomFunction = makeRandom(0x0bade1f5);
+    const random: NextRandomFunction = seededRandom(0x0bade1f5);
     for (let i: number = 0; i < 100; i++) {
       const snapped: WorldPoint = snapToGrid(
         { x: random() * 4000 - 2000, y: random() * 4000 - 2000 },

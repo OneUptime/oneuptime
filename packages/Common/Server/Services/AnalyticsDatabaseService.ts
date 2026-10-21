@@ -5,7 +5,6 @@ import ClickhouseDatabase, {
   ClickhouseIngestInstance,
   ClickhouseMigrationInstance,
 } from "../Infrastructure/ClickhouseDatabase";
-import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
@@ -33,6 +32,7 @@ import {
   getQuerySettings,
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import ClickhouseReadResult from "../Utils/AnalyticsDatabase/ClickhouseReadResult";
 import {
   getDistributedDdlTaskTimeoutSeconds,
   getStorageTableName,
@@ -40,6 +40,17 @@ import {
 } from "../Utils/AnalyticsDatabase/ClusterConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
+import {
+  RealtimeReadAccess,
+  RealtimeReader,
+  normalizeRealtimeId,
+} from "../Utils/Realtime/RealtimeReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import Query from "../Types/AnalyticsDatabase/Query";
+import { OwnedThroughMetadata } from "../../Types/Database/AccessControl/OwnedThrough";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
 import {
@@ -56,11 +67,16 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import ServerException from "../../Types/Exception/ServerException";
+import QueryTimeoutException from "../../Types/Exception/QueryTimeoutException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -77,6 +93,9 @@ import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
+import CallerPlan from "../Utils/Billing/CallerPlan";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import PlanGates from "../Types/Database/Permissions/PlanGates";
 
 export type Results = ResultSet<"JSON">;
 export type DbJSONResponse = ResponseJSON<{
@@ -209,6 +228,34 @@ export function shouldWaitForAsyncInsert(): boolean {
   const raw: string | undefined =
     process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"];
   return raw === "true" || raw === "1";
+}
+
+/*
+ * How long a count may run. Below the ClickHouse client's 58s
+ * request_timeout, so the server answers (or refuses) before the client
+ * gives up on it.
+ */
+const COUNT_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
+
+/*
+ * The names a paged find's statement gives its page bound
+ * (AnalyticsDatabaseService.toSortKeyPageBound): the page's own sort-key
+ * values with their in-page offset, and the sorted first `skip + limit`
+ * values they are cut from. Two underscores, so no model column can ever
+ * be shadowed by them (AnalyticsSortKeyPageBoundScope pins that).
+ */
+export const SORT_KEY_PAGE_BOUND_ALIAS: string = "__sortKeyPage";
+export const SORT_KEY_PAGE_VALUES_ALIAS: string = "__sortKeyTopValues";
+
+/*
+ * What a paged find adds to its statement to read only the rows its page
+ * can hold: a WITH clause in front of the SELECT, a condition on the
+ * WHERE, and the OFFSET that replaces `skip`.
+ */
+export interface SortKeyPageBound {
+  withClause: Statement;
+  whereCondition: Statement;
+  offset: Statement;
 }
 
 export default class AnalyticsDatabaseService<
@@ -418,6 +465,17 @@ export default class AnalyticsDatabaseService<
   @CaptureSpan()
   public async countBy(countBy: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
+      /*
+       * The same rewrite a findBy gets, and before the permission check for
+       * the same reason: it turns client-only keys (a telemetry explorer's
+       * `resourceFilters`) into the ones the statement compiler reads, and
+       * the check refuses any key that is not a column. Without it, counting
+       * the rows of a list narrowed by a resource facet failed outright.
+       */
+      if (!countBy.props?.ignoreHooks) {
+        countBy = await this.onBeforeCount(countBy);
+      }
+
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -430,8 +488,13 @@ export default class AnalyticsDatabaseService<
 
       const countStatement: Statement = this.toCountStatement(countBy);
 
-      const dbResult: ResultSet<"JSON"> =
-        await this.executeQuery(countStatement);
+      let dbResult: ResultSet<"JSON">;
+
+      try {
+        dbResult = await this.executeQuery(countStatement);
+      } catch (error) {
+        throw this.toCountException(countBy, error);
+      }
 
       logger.debug(`${this.model.tableName} Count Statement executed`, {
         tableName: this.model.tableName,
@@ -441,6 +504,7 @@ export default class AnalyticsDatabaseService<
       } as LogAttributes);
 
       let countPositive: PositiveNumber = new PositiveNumber(0);
+      let hasCount: boolean = false;
 
       try {
         const resultInJSON: ResponseJSON<JSONObject> =
@@ -463,18 +527,43 @@ export default class AnalyticsDatabaseService<
 
         if (typeof rawCount === "string" || typeof rawCount === "number") {
           countPositive = new PositiveNumber(rawCount);
+          hasCount = true;
         }
-      } catch {
+      } catch (error) {
         /*
-         * When max_execution_time fires with timeout_overflow_mode='break',
-         * ClickHouse may return a truncated response for count() queries
-         * (the aggregation has no partial row to emit). Treat this as
-         * "count unavailable" rather than a fatal error — the list query
-         * itself still succeeds.
+         * An exact count is a total a person reads, and one the time limit
+         * stopped says so (see toCountException) — never "0". Any other
+         * failure to read it fails below, as a count without a number.
          */
-        logger.warn(
-          `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
-          { tableName: this.model.tableName } as LogAttributes,
+        if (
+          countBy.exact &&
+          AnalyticsDatabaseService.isQueryTimeoutError(error)
+        ) {
+          throw this.toCountException(countBy, error);
+        }
+
+        /*
+         * The default count runs with timeout_overflow_mode='break', and
+         * ClickHouse answers a count it broke off at max_execution_time with
+         * an empty body (the aggregation has no partial row to emit). Its
+         * callers — telemetry monitors' thresholds, the AI spike detector —
+         * read that as "count unavailable", 0, as they always have.
+         */
+        if (!countBy.exact) {
+          logger.warn(
+            `${this.model.tableName} count query stopped before it finished, defaulting to 0`,
+            { tableName: this.model.tableName } as LogAttributes,
+          );
+        }
+      }
+
+      /*
+       * A 0 that stands for "no answer" is fine for a threshold, and wrong
+       * for a total a person reads: "0 spans" over a list of spans.
+       */
+      if (countBy.exact && !hasCount) {
+        throw new ServerException(
+          `The ${this.model.singularName.toLowerCase()} count came back without a number.`,
         );
       }
 
@@ -685,6 +774,16 @@ export default class AnalyticsDatabaseService<
     timestampColumnName: keyof TBaseModel | string;
     startDate: Date;
     endDate: Date;
+    /*
+     * Row names left out of the scan entirely, for a table where OneUptime
+     * writes its own rows under the same (primaryEntityId, primaryEntityType)
+     * as the customer's, so the grouping cannot tell them apart and the
+     * caller's entity-type exclusion cannot either - the session replay
+     * budget series sit next to a RUM application's web vitals (see
+     * TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES). Empty or absent leaves the
+     * statement exactly as it was.
+     */
+    excludeNames?: Array<string> | undefined;
   }): Promise<
     Array<{
       primaryEntityId: string;
@@ -698,6 +797,24 @@ export default class AnalyticsDatabaseService<
     if (!this.model.getTableColumn(timestampColumnName)) {
       throw new BadDataException(
         `Invalid timestampColumnName: ${timestampColumnName}`,
+      );
+    }
+
+    const excludeNames: Array<string> = data.excludeNames || [];
+
+    /*
+     * Names can only be excluded from a table whose `name` is a required
+     * column. Without one ClickHouse fails on the unknown column mid-billing
+     * run; with a Nullable one (Span's), `NULL NOT IN (...)` is not true, so
+     * every unnamed row would silently drop out of the bill. Either way the
+     * caller has a bug, so refuse before the scan.
+     */
+    if (
+      excludeNames.length > 0 &&
+      !this.model.getTableColumn("name")?.required
+    ) {
+      throw new BadDataException(
+        `excludeNames needs a required name column, and ${this.model.tableName} has none`,
       );
     }
 
@@ -716,7 +833,23 @@ export default class AnalyticsDatabaseService<
     }} AND ${timestampColumnName} <= ${{
       type: TableColumnType.DateTime64,
       value: data.endDate,
-    }} GROUP BY primaryEntityId, primaryEntityType`;
+    }}`;
+
+    /*
+     * Inside the WHERE, before the grouping, so an excluded row is never
+     * counted or sized. The names travel as one Array(String) parameter,
+     * never as SQL text.
+     */
+    if (excludeNames.length > 0) {
+      statement.append(
+        SQL` AND name NOT IN ${{
+          type: TableColumnType.ArrayText,
+          value: excludeNames,
+        }}`,
+      );
+    }
+
+    statement.append(SQL` GROUP BY primaryEntityId, primaryEntityType`);
 
     /*
      * Billing scan: deliberately NO timeout_overflow_mode='break'. A
@@ -1155,14 +1288,58 @@ export default class AnalyticsDatabaseService<
     return Promise.resolve({ findBy, carryForward: null });
   }
 
+  /*
+   * A place holder method used for overriding. A service whose onBeforeFind
+   * rewrites the query must rewrite a count's query the same way, or the
+   * count describes different rows than the list it is shown beside.
+   */
+  protected async onBeforeCount(
+    countBy: CountBy<TBaseModel>,
+  ): Promise<CountBy<TBaseModel>> {
+    return Promise.resolve(countBy);
+  }
+
+  /*
+   * Whether ClickHouse refused to finish a query in the time it was given:
+   * TIMEOUT_EXCEEDED (159) once max_execution_time passes with
+   * timeout_overflow_mode 'throw', TOO_SLOW (160) when the server estimates
+   * up front that it would, or the QueryTimeoutException executeQuery turns
+   * either into (see ClickhouseReadResult).
+   */
+  public static isQueryTimeoutError(error: unknown): boolean {
+    return ClickhouseReadResult.isTimeLimitError(error);
+  }
+
+  /*
+   * What a failed count query is rethrown as. An exact count that ran out of
+   * time says so, and says what to do about it, rather than surfacing as an
+   * unexplained database error: the explorers that show the total tell the
+   * reader to narrow the window.
+   */
+  private toCountException(
+    countBy: CountBy<TBaseModel>,
+    error: unknown,
+  ): unknown {
+    if (countBy.exact && AnalyticsDatabaseService.isQueryTimeoutError(error)) {
+      return new QueryTimeoutException(
+        `Counting every matching ${this.model.singularName.toLowerCase()} took longer than ${COUNT_MAX_EXECUTION_TIME_IN_SECONDS} seconds. Narrow the time range or add a filter to get an exact total.`,
+      );
+    }
+
+    return error;
+  }
+
   /**
-   * Read-side retention filter. TTL is `retentionDate DELETE` with
-   * ttl_only_drop_parts=1, so a part survives until EVERY row in it has
-   * expired — rows past their per-service retention stay on disk (and
-   * were queryable) for up to a partition's worth of extra time. For
+   * Read-side retention filter. TTL deletes rows by `retentionDate`, and
+   * ClickHouse applies it only when it merges: on a table with
+   * ttl_only_drop_parts=1 a part survives until EVERY row in it has
+   * expired, and on the metric and log tables, whose TTL is rounded up
+   * to the midnight after retentionDate (RetentionTtl), an expired row
+   * survives until that midnight - up to a day. Either way rows past
+   * their retention stay on disk (and were queryable) for a while. For
    * models that carry a retentionDate column, every centrally generated
    * read appends this predicate so expired rows become invisible the
-   * moment they expire rather than when their part finally drops.
+   * moment they expire rather than when they are finally removed.
    *
    * Returns the raw SQL fragment (server-evaluated now(), no parameter)
    * or "" when the model has no retentionDate column.
@@ -1229,12 +1406,14 @@ export default class AnalyticsDatabaseService<
      * can scan billions of rows; without a cap the query runs until the
      * HTTP client disconnects, wasting ClickHouse resources. With 'break'
      * mode ClickHouse returns a partial (lower-bound) count rather than
-     * throwing, which is acceptable for pagination display.
+     * throwing, which is acceptable for a threshold. It is not for an exact
+     * count: a partial count printed as a total is a wrong total, so that
+     * one fails instead (see countBy).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
+        timeoutOverflowMode: countBy.exact ? "throw" : "break",
       }),
     );
 
@@ -1293,21 +1472,28 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * The timeout_overflow_mode an aggregate statement should carry.
-   * Callers that render charts keep the 'break' default (partial
-   * buckets are acceptable there); callers that ALERT on the result —
-   * the metric-monitor worker — pass 'throw' so a timed-out evaluation
-   * fails loudly instead of silently scoring partial data.
+   * The timeout_overflow_mode an aggregate statement carries: always
+   * 'throw' (issue #4707).
    *
-   * Allow-listed, never passed through: aggregateBy is deserialized
-   * wholesale from API clients and this setting is emitted into SQL as
-   * a trusted literal (see QuerySettingsHelper), so anything other than
-   * the exact string "throw" degrades to the 'break' default.
+   * Charts used to keep a 'break' default on the understanding that it
+   * returns the buckets counted so far. It does not: ClickHouse answers a
+   * grouped read it breaks off at max_execution_time with an EMPTY body
+   * (measured on 24.8 and 26.7), which failed the chart with a bare "Server
+   * Error". Partial buckets that look complete would be no better — a
+   * chart missing one end of its window draws a drop that never happened.
+   * A chart that runs out of time now says so, the way the alerting callers
+   * (the metric-monitor worker) already asked for with
+   * `aggregateBy.timeoutOverflowMode = "throw"`.
+   *
+   * The field is still accepted and no longer needed. It is never passed
+   * through: aggregateBy is deserialized wholesale from API clients and this
+   * setting is emitted into SQL as a trusted literal (see
+   * QuerySettingsHelper).
    */
   protected getTimeoutOverflowMode(
-    aggregateBy: AggregateBy<TBaseModel>,
+    _aggregateBy: AggregateBy<TBaseModel>,
   ): TimeoutOverflowMode {
-    return aggregateBy.timeoutOverflowMode === "throw" ? "throw" : "break";
+    return "throw";
   }
 
   public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
@@ -1433,10 +1619,9 @@ export default class AnalyticsDatabaseService<
      * - max_execution_time=45: cap aggregate runtime below the
      *   ClickHouse client's 58s request_timeout, same as the count/find
      *   statements — a wide-window aggregate over a large table would
-     *   otherwise run until the HTTP client disconnects. The overflow
-     *   mode defaults to 'break' (partial buckets are acceptable for
-     *   chart rendering) but alerting callers opt into 'throw' via
-     *   aggregateBy.timeoutOverflowMode — see getTimeoutOverflowMode.
+     *   otherwise run until the HTTP client disconnects. It stops with
+     *   'throw', so a chart that runs out of time is told so — see
+     *   getTimeoutOverflowMode.
      * - optimize_aggregation_in_order: when GROUP BY is a prefix of the
      *   sort key (we always group by a time bucket and the time column
      *   is at the tail of every analytics primary key), ClickHouse can
@@ -1543,44 +1728,67 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * Bounds the rows an `ORDER BY ... , _id` find has to sort, without
-   * changing which rows it returns.
+   * Finds a sorted page without sorting every matching row, and without
+   * reading the time range twice (issue #4710). Returns null where it cannot
+   * help or cannot be proven exact; the find is then sent as written.
    *
-   * ClickHouse can read in sorting-key order — and stop early — only when the
+   * ClickHouse reads in sorting-key order — and stops early — only when the
    * ORDER BY lines up with the table's physical key. The `_id` tiebreaker
    * appended by `toPaginationStableSort` is deliberately NOT a sorting-key
    * column, so it denies that plan: the engine reads every row matching the
    * WHERE, sorts the lot in memory, then discards all but one page. On the
    * Logs viewer that turned a 100-row page into a full-window scan and tripped
-   * the 3 GiB `max_memory_usage` ceiling (Code 241, surfacing as
-   * "Server Error").
+   * the 3 GiB `max_memory_usage` ceiling (Code 241, "Server Error").
+   * Weakening the tiebreaker would bring back the skip/repeat paging bug it
+   * fixes, so the find is split in two, inside one statement:
    *
-   * Weakening the tiebreaker would reintroduce the skip/repeat paging bug it
-   * was added to fix, so bound the input instead. `min(k)` over the top
-   * `skip + limit` values of the leading sort key `k` is a rank statistic of
-   * k's MULTISET: it does not depend on which of several tied rows the inner
-   * LIMIT happened to keep. Every row that could reach position `skip + limit`
-   * satisfies `k >= min(k)`, and every row tied at the boundary value is
-   * admitted — so the page is exactly the page the unbounded query returns.
-   * That is what makes this a pure cost change: every gate below is a
-   * performance gate, and getting one wrong can only make a query slower,
-   * never lose or repeat a row.
+   * 1. A narrow read of the leading sort key `k` alone, in key order, that
+   *    stops after `skip + limit` matching rows. Sorted, those are the first
+   *    `skip + limit` values of k with their repeats — a rank statistic of
+   *    k's multiset, the same whichever of several tied rows the read kept.
+   *    The scalar subquery hands on only what the page needs: its own
+   *    values (positions skip + 1 onwards) and how many of the rows tied
+   *    with its first value belong to earlier pages.
+   * 2. The wide read, of the rows whose k is one of the page's values —
+   *    the primary index skips every granule that holds none of them —
+   *    sorted with the tiebreaker, skipping those earlier-page ties.
    *
-   * The inner pass reads one narrow key column in physical order and stops at
-   * `skip + limit` rows, so it costs far less than the wide outer read it
-   * saves.
+   * Exact, ties included: in the unbounded order the rows at positions
+   * skip + 1 .. skip + limit carry exactly the page's values, every row
+   * whose k lies between the page's first and last value carries one of
+   * them, and every row before the page that ties with its first value
+   * sorts ahead of the page. So the rows step 2 reads, in tiebreaker
+   * order, are a stretch of the unbounded order that starts with those
+   * earlier-page ties and holds the whole page right after them.
    *
-   * `min()` is nested over a subquery rather than taken as the N-th value via
-   * `ORDER BY k DESC LIMIT 1 OFFSET n - 1` on purpose: on a final page with
-   * fewer than `skip + limit` matching rows the latter returns no row, the
-   * scalar is NULL, `k >= NULL` is NULL, and the page comes back empty.
-   * `min()` over the available rows degrades to the smallest matching value.
+   * It reads no more than the unbounded find, plus the granules that hold
+   * the page's own key values (their ties included). The bound it replaces
+   * (`k >= min(top values)`) read the whole range a second time when a
+   * filter matched few rows spread over it, and when nothing matched at
+   * all — min() of no rows is the column default, 1970. Here a page past
+   * the last match reads no granule in step 2. Those granules are the one
+   * cost left: when a skip index narrows a rare filter to the few granules
+   * that hold its matches, step 1 and step 2 both read them — no more than
+   * the bound before #4710 read.
+   *
+   * Measured on ClickHouse 26.7, 16M rows shaped like LogItemV3, a 30-day
+   * range, one page of 101: no match 32.0M rows read -> 16.0M (the
+   * unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1% filter 10,000
+   * rows deep 25.9M -> 16.2M; no filter 0.38M either way (unbounded:
+   * 10.7M). The same on 24.8, through a Distributed table over two shards,
+   * and with the older analyzer a server can still switch to
+   * (enable_analyzer = 0). The real-ClickHouse suite (App
+   * Tests/Telemetry/PagedFindBoundClickhouse) holds these.
+   *
+   * Two of the gates below keep it exact: no GROUP BY, whose input it would
+   * cut, and no Nullable leading key, because a NULL is never IN a set and
+   * the row would be dropped. The rest only decide where it pays.
    */
-  private toSortKeyBoundaryFilter(
+  private toSortKeyPageBound(
     findBy: FindBy<TBaseModel>,
     sort: Sort<TBaseModel>,
     options: { hasGroupBy: boolean; databaseName: string },
-  ): Statement | null {
+  ): SortKeyPageBound | null {
     /*
      * Under GROUP BY the predicate would restrict the aggregation INPUT
      * rather than the page, so it would change results. Mirrors the
@@ -1623,9 +1831,10 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * A non-required column is `Nullable(...)` in the DDL, and `k >= NULL`
-     * is NULL — the predicate would DROP those rows rather than just
-     * narrowing the scan. Fail safe to today's behavior.
+     * A non-required column is `Nullable(...)` in the DDL. A NULL key is
+     * never IN the page's values (and groupArray leaves it out of them),
+     * so the bound would DROP those rows rather than narrow the scan.
+     * Fail safe to the unbounded find.
      */
     const leadingSortColumn: AnalyticsTableColumn | null =
       this.model.getTableColumn(leadingSortKey);
@@ -1644,20 +1853,21 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * The predicate is valid only BECAUSE of LIMIT/OFFSET: it admits the
-     * rows that can reach position `skip + limit` and no more. Guards the
-     * `new PositiveNumber(undefined)` -> NaN path that exists upstream.
+     * The bound is built from LIMIT and OFFSET themselves: it reads the
+     * first `skip + limit` key values and keeps positions skip + 1 onwards.
+     * A page that is not a whole, positive number of rows from a whole,
+     * non-negative offset (NaN from `new PositiveNumber(undefined)`,
+     * Infinity, a fraction, LIMIT 0) is sent unbounded.
      */
     const limit: number = Number(findBy.limit);
     const skip: number = Number(findBy.skip);
 
-    if (!Number.isFinite(limit) || !Number.isFinite(skip)) {
-      return null;
-    }
-
-    const boundaryRowCount: number = skip + limit;
-
-    if (boundaryRowCount <= 0) {
+    if (
+      !Number.isSafeInteger(limit) ||
+      !Number.isSafeInteger(skip) ||
+      limit < 1 ||
+      skip < 0
+    ) {
       return null;
     }
 
@@ -1666,33 +1876,82 @@ export default class AnalyticsDatabaseService<
       SortOrder.Ascending;
 
     /*
-     * The bound must be computed over the same row set the outer query
-     * filters on, so the WHERE is regenerated rather than shared: appending
-     * one Statement into two places would bind its parameters twice.
+     * The narrow read must see the same rows the wide one filters, so the
+     * WHERE is regenerated rather than shared: appending one Statement in
+     * two places would bind its parameters twice.
      */
-    const boundaryWhereStatement: Statement =
+    const narrowWhereStatement: Statement =
       this.statementGenerator.toWhereStatement(findBy.query);
 
-    const boundaryStatement: Statement = SQL` AND ${leadingSortKey} `;
-
-    boundaryStatement.append(isDescending ? SQL`>=` : SQL`<=`);
-    boundaryStatement.append(
-      isDescending
-        ? SQL` (SELECT min(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `
-        : SQL` (SELECT max(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
+    /*
+     * One scalar subquery, named once, so the narrow read runs once though
+     * both the WHERE and the OFFSET use it. The page's values and its
+     * offset are worked out inside it, so the OFFSET is a plain number:
+     * OFFSET takes only a constant, and ClickHouse does not fold a function
+     * whose result is a constant over about 1 MiB into one — counting the
+     * ties in a slice of 131,073 DateTime64 values outside the subquery
+     * fails with "OFFSET expression must be constant".
+     */
+    const withClause: Statement = SQL`WITH (SELECT (arraySlice(`;
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`, ${{ value: skip + 1, type: TableColumnType.Number }}), countEqual(arraySlice(`,
     );
-    boundaryStatement.append(boundaryWhereStatement);
-    boundaryStatement.append(this.getRetentionReadFilter());
-    boundaryStatement.append(SQL` ORDER BY ${leadingSortKey} `);
-    boundaryStatement.append(isDescending ? SQL`DESC` : SQL`ASC`);
-    boundaryStatement.append(
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`, 1, ${{ value: skip, type: TableColumnType.Number }}), `,
+    );
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`[${{ value: skip + 1, type: TableColumnType.Number }}])) FROM (SELECT `,
+    );
+    // Sorted in the page's own direction, so position 1 leads the page.
+    withClause.append(isDescending ? "arrayReverseSort" : "arraySort");
+    withClause.append(SQL`(groupArray(${leadingSortKey})) AS `);
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL` FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    withClause.append(narrowWhereStatement);
+    withClause.append(this.getRetentionReadFilter());
+    withClause.append(SQL` ORDER BY ${leadingSortKey} `);
+    withClause.append(isDescending ? SQL`DESC` : SQL`ASC`);
+    withClause.append(
       SQL` LIMIT ${{
-        value: boundaryRowCount,
+        value: skip + limit,
         type: TableColumnType.Number,
-      }}))`,
+      }}))) AS `,
     );
+    withClause.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    withClause.append(" ");
 
-    return boundaryStatement;
+    /*
+     * GLOBAL IN, not IN, and not has(): the table is Distributed, and
+     * GLOBAL builds the set once, where the find was sent, and hands it to
+     * every shard as a table, so no shard works the page out over its own
+     * rows. A set is what the primary index can use on every supported
+     * ClickHouse; has() over an array constant prunes on 26.7 but not on
+     * 24.8. An empty set (a page past the last match) selects no granule
+     * at all.
+     */
+    const whereCondition: Statement = SQL` AND ${leadingSortKey} GLOBAL IN (SELECT arrayJoin(tupleElement(`;
+    whereCondition.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    whereCondition.append(", 1)))");
+
+    /*
+     * ifNull, though the subquery always answers its one row: ClickHouse
+     * types a scalar subquery Nullable (it could answer none), and OFFSET
+     * takes no Nullable type. The analyzer ClickHouse uses by default
+     * folds the value all the same; the older one, still chosen by a
+     * server or profile that sets enable_analyzer = 0, refuses it on 26.7
+     * ("Illegal type Nullable(UInt64) of OFFSET expression") and every
+     * list would fail. The 0 is never used.
+     */
+    const offset: Statement = SQL`ifNull(tupleElement(`;
+    offset.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    offset.append(", 2), 0)");
+
+    return { withClause, whereCondition, offset };
   }
 
   public toFindStatement(findBy: FindBy<TBaseModel>): {
@@ -1731,18 +1990,25 @@ export default class AnalyticsDatabaseService<
     );
 
     /*
-     * Keeps the `_id` tiebreaker affordable. Result-preserving by
-     * construction, so it is appended to the WHERE without touching the
-     * ORDER BY above. Null whenever the bound cannot help or cannot be
-     * proven safe.
+     * Keeps the `_id` tiebreaker affordable: the page's rows are found by
+     * their leading sort key first, and only those are read whole. Exact
+     * by construction, so the ORDER BY above is untouched. Null whenever
+     * the bound cannot help or cannot be proven exact (issue #4710).
      */
-    const sortKeyBoundaryStatement: Statement | null =
-      this.toSortKeyBoundaryFilter(findBy, findBy.sort!, {
+    const pageBound: SortKeyPageBound | null = this.toSortKeyPageBound(
+      findBy,
+      findBy.sort!,
+      {
         hasGroupBy: Boolean(groupByStatement),
         databaseName: databaseName,
-      });
+      },
+    );
 
     const statement: Statement = SQL``;
+
+    if (pageBound) {
+      statement.append(pageBound.withClause);
+    }
 
     statement.append(SQL`SELECT `.append(select.statement));
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
@@ -1751,8 +2017,8 @@ export default class AnalyticsDatabaseService<
       .append(whereStatement)
       .append(this.getRetentionReadFilter());
 
-    if (sortKeyBoundaryStatement) {
-      statement.append(sortKeyBoundaryStatement);
+    if (pageBound) {
+      statement.append(pageBound.whereCondition);
     }
 
     if (groupByStatement) {
@@ -1768,23 +2034,40 @@ export default class AnalyticsDatabaseService<
       }}`,
     );
 
-    statement.append(SQL` OFFSET ${{
-      value: Number(findBy.skip),
-      type: TableColumnType.Number,
-    }}
+    /*
+     * A bounded page skips only the rows of earlier pages that tie with
+     * its first sort-key value: the bound already left out every row
+     * ahead of those.
+     */
+    if (pageBound) {
+      statement.append(SQL` OFFSET `).append(pageBound.offset).append(`
         `);
+    } else {
+      statement.append(SQL` OFFSET ${{
+        value: Number(findBy.skip),
+        type: TableColumnType.Number,
+      }}
+        `);
+    }
 
     /*
      * Defense in depth: cap find-query runtime below the ClickHouse
      * client's 58s request_timeout. The LIMIT clause keeps most queries
      * fast, but complex WHERE filters (e.g. parentSpanId IS NULL) on
-     * wide time ranges can still cause long scans. 'break' mode returns
-     * partial results rather than throwing.
+     * wide time ranges can still cause long scans.
+     *
+     * 'throw', so a find that runs out of time is reported as exactly that
+     * (a QueryTimeoutException, see executeQuery). 'break' was meant to
+     * return the rows found so far, but ClickHouse answers a read it breaks
+     * off with an empty or cut-off body (measured on 24.8 and 26.7): the
+     * explorers' lists failed with a bare "Server Error" (issue #4707). And
+     * the rows found so far would not have been the page asked for — a
+     * newest-first list missing its newest rows still looks complete.
      */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: "throw",
       }),
     );
 
@@ -1860,6 +2143,11 @@ export default class AnalyticsDatabaseService<
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
     try {
+      // Refused before any hook runs; see assertCredentialCanWrite.
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
+        deleteBy.props,
+      );
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -1919,8 +2207,163 @@ export default class AnalyticsDatabaseService<
     await this._updateBy(updateBy);
   }
 
+  /*
+   * Deletes the one row `id` names, when the delete reaches it, and answers
+   * how many rows it reached: 1, or 0 for a row that is missing or not one
+   * the caller may delete - the rows of resources their delete and read
+   * grants both reach (ModelPermission.checkDeletePermission). A ClickHouse
+   * delete does not say how many rows it removed, so the row is looked up
+   * under the delete's own scope first (isReachedByWrite).
+   */
+  @CaptureSpan()
+  public async deleteOneById(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    if (
+      !(await this.isReachedByWrite({
+        id: data.id,
+        props: data.props,
+        type: DatabaseRequestType.Delete,
+      }))
+    ) {
+      return 0;
+    }
+
+    await this.deleteBy({
+      query: { _id: data.id.toString() } as Query<TBaseModel>,
+      props: data.props,
+    });
+
+    return 1;
+  }
+
+  /*
+   * Updates the one row `id` names, when the update reaches it, and answers
+   * how many rows it reached: 1, or 0 for a row that is missing or not one
+   * the caller may change (ModelPermission.checkUpdatePermissions), as
+   * deleteOneById does.
+   */
+  @CaptureSpan()
+  public async updateOneById(data: {
+    id: ObjectID;
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    if (
+      !(await this.isReachedByWrite({
+        id: data.id,
+        props: data.props,
+        type: DatabaseRequestType.Update,
+        data: data.data,
+      }))
+    ) {
+      return 0;
+    }
+
+    await this.updateBy({
+      query: { _id: data.id.toString() } as Query<TBaseModel>,
+      data: data.data,
+      props: data.props,
+    });
+
+    return 1;
+  }
+
+  /*
+   * Whether an update or a delete by `props` reaches the row `id` names:
+   * the row looked up under the scope the write itself runs with - the
+   * caller's project, and the resources both the write's grants and the
+   * read's reach. Refuses as the write would when the caller may not make
+   * it on this table at all.
+   */
+  private async isReachedByWrite(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+    data?: TBaseModel | undefined;
+  }): Promise<boolean> {
+    const query: Query<TBaseModel> = {
+      _id: data.id.toString(),
+    } as Query<TBaseModel>;
+
+    const scopedQuery: Query<TBaseModel> =
+      data.type === DatabaseRequestType.Delete
+        ? await ModelPermission.checkDeletePermission(
+            this.modelType,
+            query,
+            data.props,
+          )
+        : await ModelPermission.checkUpdatePermissions(
+            this.modelType,
+            query,
+            data.data || new this.modelType(),
+            data.props,
+          );
+
+    return await this.existsBy({
+      query: scopedQuery,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Why an update or a delete by id reached nothing (deleteOneById,
+   * updateOneById), for a caller that asked for one row: a row the caller
+   * may not read is answered as missing, with no word on whether it exists
+   * (NotFoundException, 404); one they may read but not change or delete is
+   * refused (NotAuthorizedException, 422) - as the database models answer
+   * (DatabaseService.getUnwrittenByIdError).
+   */
+  public async getUnwrittenByIdError(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<Exception> {
+    const name: string = this.model.singularName || "Record";
+
+    let isReadable: boolean = false;
+
+    try {
+      isReadable = Boolean(
+        await this.findOneById({
+          id: data.id,
+          select: { _id: true } as Select<TBaseModel>,
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      /*
+       * A read the caller may not make finds nothing for them either. Any
+       * other failure is not an answer about the row, and is raised as it
+       * is: a 404 would tell a client the row is gone.
+       */
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        throw error;
+      }
+
+      isReadable = false;
+    }
+
+    if (isReadable) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+      );
+    }
+
+    return new NotFoundException(`${name} not found.`);
+  }
+
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
     try {
+      // Refused before any hook runs; see assertCredentialCanWrite.
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
+        updateBy.props,
+      );
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -2005,6 +2448,14 @@ export default class AnalyticsDatabaseService<
     })) as ExecResult<Stream>;
   }
 
+  /*
+   * Runs a read and hands back its answer, whose json() only ever returns a
+   * whole document (issue #4707, see ClickhouseReadResult). A read stopped at
+   * its time limit throws a QueryTimeoutException — the API answers 504 with
+   * "This query took longer than 45 seconds and was stopped before it
+   * finished. Try a shorter time range or more specific filters." — instead
+   * of a SyntaxError on an empty or cut-off body.
+   */
   @CaptureSpan()
   public async executeQuery(
     statement: Statement | string,
@@ -2019,15 +2470,67 @@ export default class AnalyticsDatabaseService<
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return await client.query({
-      query: query,
-      format: "JSON",
-      query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
-      ...(options?.clickhouseSettings
-        ? { clickhouse_settings: options.clickhouseSettings }
-        : {}),
-      ...(options?.queryId ? { query_id: options.queryId } : {}),
+    const timeLimitInSeconds: number | undefined =
+      ClickhouseReadResult.getTimeLimitInSeconds(
+        query,
+        options?.clickhouseSettings,
+      );
+
+    const clickhouseSettings: ClickHouseSettings | undefined =
+      AnalyticsDatabaseService.getReadSettings({
+        clickhouseSettings: options?.clickhouseSettings,
+        hasTimeLimit: timeLimitInSeconds !== undefined,
+        useMigrationConnection: Boolean(options?.useMigrationConnection),
+      });
+
+    let resultSet: ResultSet<"JSON">;
+
+    try {
+      resultSet = await client.query({
+        query: query,
+        format: "JSON",
+        query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+        ...(clickhouseSettings
+          ? { clickhouse_settings: clickhouseSettings }
+          : {}),
+        ...(options?.queryId ? { query_id: options.queryId } : {}),
+      });
+    } catch (error) {
+      throw ClickhouseReadResult.toReadError(error, {
+        timeLimitInSeconds: timeLimitInSeconds,
+      });
+    }
+
+    return ClickhouseReadResult.guard(resultSet, {
+      timeLimitInSeconds: timeLimitInSeconds,
     });
+  }
+
+  /*
+   * The per-call settings a read is sent with. A read with a time limit also
+   * asks ClickHouse to hold its answer until the query is done
+   * (http_wait_end_of_query): a read stopped part-way through then answers
+   * with the error itself (408, TIMEOUT_EXCEEDED) instead of a 200 whose
+   * rows end in a dropped connection, which the client can only report as
+   * "aborted". It costs nothing a reader would notice — json() waits for the
+   * whole body anyway — and ClickHouse keeps an answer over 1 MiB on disk
+   * until it is sent. A read with no time limit streams as before, so a long
+   * one keeps the client's 58 s idle timer fed, and a migration's statements
+   * are left exactly as their caller sends them.
+   */
+  public static getReadSettings(data: {
+    clickhouseSettings?: ClickHouseSettings | undefined;
+    hasTimeLimit: boolean;
+    useMigrationConnection: boolean;
+  }): ClickHouseSettings | undefined {
+    if (data.useMigrationConnection || !data.hasTimeLimit) {
+      return data.clickhouseSettings;
+    }
+
+    return {
+      http_wait_end_of_query: 1,
+      ...(data.clickhouseSettings || {}),
+    };
   }
 
   private getDatabaseClient(): ClickhouseClient {
@@ -2178,6 +2681,30 @@ export default class AnalyticsDatabaseService<
   public async createMany(
     createBy: CreateManyBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
+    // Refused before any hook runs; see assertCredentialCanWrite.
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
+
+    /*
+     * The project's plan, read once when the props act in it without one and
+     * a plan decides the create of any row of the batch (CallerPlan).
+     */
+    if (CallerPlan.isPlanMissing(createBy.props)) {
+      if (
+        createBy.items.some((item: TBaseModel): boolean => {
+          return PlanGates.isAnalyticsPlanAtStake(
+            this.model,
+            DatabaseRequestType.Create,
+            item,
+          );
+        })
+      ) {
+        createBy = {
+          ...createBy,
+          props: await CallerPlan.withPlan(createBy.props),
+        };
+      }
+    }
+
     // add tenantId if present.
     const tenantColumnName: string | null =
       this.model.getTenantColumn()?.key || null;
@@ -2220,6 +2747,25 @@ export default class AnalyticsDatabaseService<
       }
 
       // check total items by
+
+      /*
+       * What the hooks and the defaults wrote is held to the plan too: read
+       * now if nothing the caller sent needed it (CallerPlan) - never refused
+       * as a plan nobody could confirm.
+       */
+      if (
+        CallerPlan.isPlanMissing(createBy.props) &&
+        PlanGates.isAnalyticsPlanAtStake(
+          this.model,
+          DatabaseRequestType.Create,
+          data,
+        )
+      ) {
+        createBy = {
+          ...createBy,
+          props: await CallerPlan.withPlan(createBy.props),
+        };
+      }
 
       ModelPermission.checkCreatePermissions(
         this.modelType,
@@ -2295,12 +2841,18 @@ export default class AnalyticsDatabaseService<
               continue;
             }
 
+            /*
+             * Who may hear about the row: see getRealtimeReadAccess, which
+             * answers from the resource the row belongs to, sent with it.
+             */
             promises.push(
               Realtime.emitModelEvent({
                 modelId: item.id!,
                 tenantId: tenantId,
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,
+                access: this.getRealtimeReadAccess(),
+                ownerId: this.getRealtimeOwnerId(item),
               }),
             );
           }
@@ -2384,6 +2936,11 @@ export default class AnalyticsDatabaseService<
     triggerType: DatabaseTriggerType,
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
+      /*
+       * No route takes an analytics record's trigger yet, so nothing here
+       * presents the cluster key: a route that takes it is one of the
+       * cluster-key routes, and its caller presents the key to it alone.
+       */
       API.post({
         url: new URL(
           Protocol.HTTP,
@@ -2396,9 +2953,6 @@ export default class AnalyticsDatabaseService<
         ),
         data: {
           _id: id.toString(),
-        },
-        headers: {
-          ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
       }).catch((error: Error) => {
         logger.error(error, {
@@ -2447,5 +3001,165 @@ export default class AnalyticsDatabaseService<
 
   public getModel(): TBaseModel {
     return this.model;
+  }
+
+  private realtimeReadAccess: RealtimeReadAccess | null = null;
+
+  /*
+   * The resource a row belongs to (@OwnedThrough), sent with its live
+   * update for getRealtimeReadAccess to answer by. Undefined for a row that
+   * names none, or a model with no owning resource.
+   */
+  public getRealtimeOwnerId(item: TBaseModel): string | undefined {
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      this.getOwnedThrough();
+
+    if (!ownedThrough) {
+      return undefined;
+    }
+
+    const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
+
+    return resourceId ? String(resourceId) : undefined;
+  }
+
+  /*
+   * Who may hear about rows of this table (Realtime): whoever their read
+   * lets read them. A telemetry row cannot be looked up by id cheaply, so
+   * the read is asked the way a telemetry read applies it: the read check
+   * itself (ModelPermission.checkReadPermission - the table, a block with
+   * no labels, the plan), then the caller's read scope (getReadScope -
+   * their label and Owned grants, less what a block with labels takes
+   * away), against the resource each row belongs to (@OwnedThrough, sent
+   * with the row's event: getRealtimeOwnerId). Both are worked out once
+   * per reader and kept with them (RealtimeReader.remember), so the answer
+   * needs no read of its own. One access per service, so the events of
+   * every insert into the table merge into one delivery.
+   *
+   * A service that narrows its reads further on its own (onBeforeFind, or a
+   * findBy of its own) is not modelled here, so nobody hears about its rows
+   * rather than everybody.
+   */
+  public getRealtimeReadAccess(): RealtimeReadAccess {
+    if (this.realtimeReadAccess) {
+      return this.realtimeReadAccess;
+    }
+
+    const model: TBaseModel = this.getModel();
+    const narrowsReadsOnItsOwn: boolean =
+      !this.readsThroughThePermissionCheck();
+
+    const getScope: (
+      reader: RealtimeReader,
+    ) => Promise<TelemetryReadScope | null> = (
+      reader: RealtimeReader,
+    ): Promise<TelemetryReadScope | null> => {
+      return reader.remember(
+        `analytics-read-scope:${model.tableName}`,
+        (): Promise<TelemetryReadScope | null> => {
+          return this.getRealtimeReadScope(reader.props);
+        },
+      );
+    };
+
+    this.realtimeReadAccess = {
+      answersWithoutReading: true,
+      readsEveryRecord: async (reader: RealtimeReader): Promise<boolean> => {
+        if (narrowsReadsOnItsOwn) {
+          return false;
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        return Boolean(scope && TelemetryReadScopeUtil.isProjectWide(scope));
+      },
+      getReadableIds: async (
+        reader: RealtimeReader,
+        modelIds: Array<ObjectID>,
+        ownerIds?: ReadonlyMap<string, string> | undefined,
+      ): Promise<Array<string>> => {
+        if (narrowsReadsOnItsOwn) {
+          return [];
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        if (!scope) {
+          return [];
+        }
+
+        return modelIds
+          .map((modelId: ObjectID): string => {
+            return normalizeRealtimeId(modelId);
+          })
+          .filter((modelId: string): boolean => {
+            /*
+             * A row of a model with no owning resource is read with the
+             * table, and one whose resource is empty (or not sent) matches
+             * only a scope that reaches every resource - as the read's own
+             * condition on the resource column does.
+             */
+            return TelemetryReadScopeUtil.isReadable(
+              scope,
+              ownerIds?.get(modelId) || "",
+            );
+          });
+      },
+    };
+
+    return this.realtimeReadAccess;
+  }
+
+  private getOwnedThrough(): OwnedThroughMetadata | undefined {
+    return (
+      this.getModel() as unknown as { ownedThrough?: OwnedThroughMetadata }
+    ).ownedThrough;
+  }
+
+  /*
+   * The reader's telemetry read scope for this model, or null when their
+   * read of it is refused.
+   */
+  private async getRealtimeReadScope(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<TelemetryReadScope | null> {
+    try {
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        {} as Query<TBaseModel>,
+        null,
+        props,
+      );
+
+      return await ModelPermission.getReadScope(this.modelType, props);
+    } catch (err) {
+      logger.debug(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+      return null;
+    }
+  }
+
+  /*
+   * Whether this service's reads are narrowed by the permission check
+   * alone: it adds nothing in onBeforeFind and replaces no read.
+   */
+  private readsThroughThePermissionCheck(): boolean {
+    const service: Record<string, unknown> = this as unknown as Record<
+      string,
+      unknown
+    >;
+    const base: Record<string, unknown> =
+      AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+
+    return [
+      "findBy",
+      "findOneBy",
+      "findOneById",
+      "onBeforeFind",
+      "onFindSuccess",
+    ].every((method: string): boolean => {
+      return service[method] === base[method];
+    });
   }
 }

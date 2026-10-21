@@ -1,0 +1,33 @@
+# Values for the agent eBPF end-to-end test. Everything not set here is the
+# chart default -- that is the point: OBI's image, its config file, its env,
+# the collector's trace filters and the profiler wiring are exactly what a
+# customer installs. Only what has to differ in a throwaway test cluster with
+# no OneUptime is changed.
+clusterName: agent-ebpf-e2e
+oneuptime:
+  # The sink (manifests/sink.yaml) serves OneUptime's ingest paths.
+  url: http://sink.sink.svc.cluster.local:4318
+  apiKey: e2e-not-a-secret
+namespaceFilters:
+  rules:
+    # The default rule, kept.
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    # The sink and the load generator are test plumbing: their traffic must
+    # not become spans (the sink's would feed back into itself). Also checks
+    # that an ebpfDiscovery exclusion keeps a namespace un-instrumented.
+    - action: exclude
+      namespaces: [sink, loadgen]
+      scopes: [ebpfDiscovery]
+# Components that pull images the test has no use for (the AI agent and the
+# log tailer track a moving `release` tag).
+aiAgent:
+  enabled: false
+logs:
+  enabled: false
+profiling:
+  enabled: true
+  # Default 19 Hz; more samples per request make the trace-context match
+  # statistically solid in a 90 s load window.
+  samplesPerSecond: 97

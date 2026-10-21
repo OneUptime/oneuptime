@@ -3,6 +3,16 @@ import {
   DeviceAttachmentLookupResult,
   getDeviceAttachment,
 } from "./DeviceAttachmentLookupUtil";
+import {
+  DeviceNeighbourNames,
+  getDeviceNeighbourNames,
+} from "./DeviceNeighbourLookupUtil";
+import {
+  DeviceNeighbour,
+  NEIGHBOURS_SHOWN,
+  getDeviceNeighbours,
+  isPortNamedAsPort,
+} from "./DeviceNeighbours";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -14,6 +24,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,12 +52,42 @@ export interface ComponentProps {
 const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [attachment, setAttachment] = useState<DeviceAttachment | undefined>(
     undefined,
   );
   const [isLookupPossible, setIsLookupPossible] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // What the device reports it is cabled to, over LLDP or CDP.
+  const [neighbours, setNeighbours] = useState<Array<DeviceNeighbour>>([]);
+  // This device's port names, by interface index.
+  const [portNames, setPortNames] = useState<Map<number, string>>(new Map());
+  // The neighbours that are devices here, by name (lower case) to their id.
+  const [neighbourDeviceIds, setNeighbourDeviceIds] = useState<
+    Map<string, string>
+  >(new Map());
+
+  /*
+   * The names a neighbour list needs: this device's ports, and which
+   * neighbours are devices in this project (to link them). Best effort: a
+   * failed read leaves the ports as their numbers and the names unlinked.
+   */
+  const fetchNeighbourNames: (
+    found: Array<DeviceNeighbour>,
+  ) => Promise<void> = async (found: Array<DeviceNeighbour>): Promise<void> => {
+    try {
+      const names: DeviceNeighbourNames = await getDeviceNeighbourNames(
+        props.modelId,
+        found,
+      );
+
+      setPortNames(names.portNames);
+      setNeighbourDeviceIds(names.neighbourDeviceIds);
+    } catch {
+      // The list still reads well with port numbers and plain names.
+    }
+  };
 
   const fetchAttachment: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -53,9 +95,19 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
         props.modelId,
       );
 
+      const found: Array<DeviceNeighbour> = getDeviceNeighbours({
+        lldpNeighbors: result.device.lldpNeighbors,
+        cdpNeighbors: result.device.cdpNeighbors,
+      });
+
       setAttachment(result.attachment);
       setIsLookupPossible(result.isLookupPossible);
+      setNeighbours(found);
       setError("");
+
+      if (found.length > 0) {
+        await fetchNeighbourNames(found);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -85,7 +137,8 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   const getSwitchElement: GetSwitchElementFunction = (
     found: DeviceAttachment,
   ): ReactElement => {
-    const switchName: string = found.switchName || "Unnamed switch";
+    const switchName: string =
+      found.switchName || translator.translateTemplate("Unnamed switch");
 
     if (!found.switchDeviceId) {
       return <span className="text-gray-900">{switchName}</span>;
@@ -118,7 +171,9 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
     }
 
     if (found.interfaceIndex !== undefined && found.interfaceIndex !== null) {
-      return `ifIndex ${found.interfaceIndex}`;
+      return translator.translateTemplate("ifIndex {{index}}", {
+        index: found.interfaceIndex,
+      });
     }
 
     return "—";
@@ -130,18 +185,117 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
     return (
       <div data-testid="device-attachment-empty" className="py-6 text-center">
         <p className="text-sm text-gray-500">
-          {isLookupPossible
-            ? "No switch at this site has reported this device yet. The port appears once a switch with Collect Connected Endpoints turned on sees this device's MAC address in its forwarding table — or, for a device known by its IP address, once a router at the same site that collects endpoints has that address in its ARP table."
-            : "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it."}
+          {translator.translateText(
+            isLookupPossible
+              ? "No switch at this site has reported this device yet. Its port appears here once a switch or router at the site with Collect Connected Endpoints turned on sees it."
+              : "There is nothing to look this device up by yet. Give it a MAC address, or an IP address as its hostname, and its switch port appears here once a switch at its site with Collect Connected Endpoints turned on sees it.",
+          )}
         </p>
         <div className="mt-3">
           <AppLink
             to={settingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Edit this device in Settings →
+            {translator.translateText("Edit this device in Settings →") || ""}
           </AppLink>
         </div>
+      </div>
+    );
+  };
+
+  type GetNeighboursFunction = () => ReactElement;
+
+  /*
+   * The device's neighbours, each on its own line: this device's port, then
+   * the neighbour (a link when it is a device here) and the port at its end.
+   */
+  const getNeighbours: GetNeighboursFunction = (): ReactElement => {
+    const shown: Array<DeviceNeighbour> = neighbours.slice(0, NEIGHBOURS_SHOWN);
+    const hidden: number = neighbours.length - shown.length;
+
+    return (
+      <div data-testid="device-neighbours">
+        <ul className="divide-y divide-gray-100">
+          {shown.map((neighbour: DeviceNeighbour, index: number) => {
+            const localPort: string | undefined =
+              neighbour.localInterfaceIndex !== undefined
+                ? portNames.get(neighbour.localInterfaceIndex) ||
+                  translator.translateTemplate("ifIndex {{index}}", {
+                    index: neighbour.localInterfaceIndex,
+                  })
+                : undefined;
+            const neighbourId: string | undefined = neighbour.hasAdvertisedName
+              ? neighbourDeviceIds.get(neighbour.name.toLowerCase())
+              : undefined;
+
+            /*
+             * One cable a row: this device's port, then the neighbour and
+             * its port. On a phone the two halves stack, every row the
+             * same way; a wrapping row put short rows on one line and long
+             * ones on two, with the neighbour jumping from right to left.
+             */
+            return (
+              <li
+                key={`${neighbour.name}-${index}`}
+                className="flex flex-col gap-0.5 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                data-testid="device-neighbour"
+              >
+                <span className="min-w-0 break-words text-gray-500">
+                  {localPort || "—"}
+                </span>
+                <span className="min-w-0 break-words sm:text-right">
+                  {neighbourId ? (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+                        { modelId: new ObjectID(neighbourId) },
+                      )}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {neighbour.name}
+                    </AppLink>
+                  ) : (
+                    <span className="font-medium text-gray-900">
+                      {neighbour.name}
+                    </span>
+                  )}
+                  {neighbour.remotePort ? (
+                    <span className="text-gray-500">
+                      {" · "}
+                      {isPortNamedAsPort(neighbour.remotePort)
+                        ? neighbour.remotePort
+                        : translator.translateTemplate("port {{port}}", {
+                            port: neighbour.remotePort,
+                          })}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-xs text-gray-500">
+          {hidden > 0
+            ? translator.translatePlural(
+                {
+                  one: "Reported over LLDP or CDP, and {{count}} more on the map.",
+                  other:
+                    "Reported over LLDP or CDP, and {{count}} more on the map.",
+                },
+                hidden,
+              )
+            : translator.translateText("Reported over LLDP or CDP.")}{" "}
+          <AppLink
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
+            )}
+            className="font-medium text-indigo-600 hover:underline"
+          >
+            {translator.translateText("Open the map") || ""}
+          </AppLink>
+        </p>
       </div>
     );
   };
@@ -157,6 +311,15 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
       return <ErrorMessage message={error} />;
     }
 
+    /*
+     * A switch, router or firewall that reports its neighbours: those are
+     * what it is connected to. (The switch-port lookup below is for devices
+     * that report none - a printer, a register, a phone.)
+     */
+    if (!attachment && neighbours.length > 0) {
+      return getNeighbours();
+    }
+
     if (!attachment) {
       return getEmptyState();
     }
@@ -166,13 +329,13 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Switch
+              {translator.translateText("Switch")}
             </dt>
             <dd className="mt-0.5">{getSwitchElement(attachment)}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Port
+              {translator.translateText("Port")}
             </dt>
             <dd
               className="mt-0.5 text-gray-900"
@@ -183,7 +346,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              VLAN
+              {translator.translateText("VLAN")}
             </dt>
             <dd
               className="mt-0.5 text-gray-900"
@@ -196,7 +359,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              MAC Address
+              {translator.translateText("MAC Address")}
             </dt>
             <dd className="mt-0.5 font-mono text-gray-900">
               {attachment.macAddress}
@@ -204,12 +367,18 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
         </dl>
         <p className="mt-4 text-xs text-gray-500">
-          {attachment.matchedBy === "mac"
-            ? "Matched by MAC address"
-            : "Matched by IP address"}
           {attachment.lastSeenAt
-            ? ` · Last seen ${OneUptimeDate.fromNow(attachment.lastSeenAt)}`
-            : ""}
+            ? translator.translateTemplate(
+                attachment.matchedBy === "mac"
+                  ? "Matched by MAC address · Last seen {{time}}"
+                  : "Matched by IP address · Last seen {{time}}",
+                { time: OneUptimeDate.fromNow(attachment.lastSeenAt) },
+              )
+            : translator.translateText(
+                attachment.matchedBy === "mac"
+                  ? "Matched by MAC address"
+                  : "Matched by IP address",
+              )}
         </p>
       </div>
     );
@@ -218,7 +387,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Connected to"
-      description="Where this device is plugged in, learned from the forwarding and ARP tables of the switches and routers at its site."
+      description="What this device is cabled to: the neighbours it reports, or the switch port a switch at its site sees it on."
     >
       <div data-testid="device-attachment-card">{getContent()}</div>
     </Card>

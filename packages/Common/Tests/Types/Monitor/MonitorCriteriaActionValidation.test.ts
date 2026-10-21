@@ -365,13 +365,19 @@ describe("MonitorCriteriaInstance.getValidationError - per-action gating", () =>
   });
 
   describe("checks that are not action-gated still run", () => {
-    test("the criteria's own name and description are still required", () => {
+    test("the criteria's own name is still required", () => {
       expect(validate(buildCriteria({ name: "" }))).toContain(
         "Name is required",
       );
-      expect(validate(buildCriteria({ description: "" }))).toContain(
-        "Description is required",
-      );
+    });
+
+    test("the criteria's description is not required", () => {
+      /*
+       * The criteria form used to stop at an empty "Criteria Description"
+       * on every new criteria. Nothing but the dashboard reads it, and
+       * Terraform has always left it optional.
+       */
+      expect(validate(buildCriteria({ description: "" }))).toBeNull();
     });
 
     test("filters are still required and still type-checked", () => {

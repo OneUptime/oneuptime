@@ -7,11 +7,20 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
 }
 
+/*
+ * A device's own menu. Open: what most visits are for - is it OK
+ * (Overview), its ports, its numbers, its traffic and logs, and what alerts
+ * on it. Folded: the vendor tables some devices report (More), managing it
+ * from code (Developer), and its owners, settings and delete (Manage).
+ */
 const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -60,6 +69,16 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Events",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_EVENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
+        />
+        <SideMenuItem
+          link={{
             title: "Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route,
@@ -79,6 +98,40 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.AltGlobe}
         />
       </SideMenuSection>
+
+      {/*
+       * The vendor tables a walk reads - IPsec tunnels, fans, power
+       * supplies, an access point's radios and SSIDs. Most devices have
+       * none, so they wait folded, and open by themselves on their pages.
+       */}
+      <SideMenuSection title="More" defaultCollapsed={true}>
+        <SideMenuItem
+          link={{
+            title: "SNMP Tables",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_TABLES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.TableCells}
+        />
+        <SideMenuItem
+          link={{
+            title: "Wi-Fi",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_WIFI] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wifi}
+        />
+      </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: NetworkDevice,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Manage">
         <SideMenuItem

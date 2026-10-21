@@ -1,158 +1,322 @@
-# Runbook-agents
+# Runbook-agenten
 
-Een **Runbook-agent** is een klein, zelf-gehost proces dat de Bash- _en_ JavaScript-stappen van je runbooks **binnen je eigen infrastructuur** uitvoert. De OneUptime Worker voert je scripts nooit zelf uit — hij zet ze in de wachtrij, en de Runbook-agent die de stapauteur heeft uitgekozen, haalt ze op, voert ze uit en stuurt het resultaat terug.
+Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf gehost proces dat de JavaScript-, Bash-, SSH- en kubectl-stappen van uw runbooks **in uw eigen infrastructuur** uitvoert. De OneUptime Worker voert uw scripts nooit uit: hij zet ze in de wachtrij, en de Runner die de schrijver van de stap koos, pakt elk script op, voert het uit en meldt het resultaat terug. Deze pagina is voor wie Runners installeert en beheert. Een JavaScript-stap die geen Runner kiest, loopt in plaats daarvan op een [globale Runner](#globale-runners), een van de Runners die OneUptime voor elk project draait.
 
-JavaScript draait nog steeds in een `isolated-vm`-sandbox; het verschil is dat die sandbox op jouw agent-host leeft in plaats van op de onze.
-
-Deze pagina legt uit hoe je een agent installeert, Bash- en JavaScript-stappen ernaartoe richt, en hem dagelijks bedient.
-
-## Waarom agents bestaan
-
-Eerdere OneUptime-versies draaiden Bash- en JavaScript-stappen op de Worker. JavaScript zat in een sandbox (`isolated-vm`), Bash niet. Beide gaven problemen voor alles buiten een single-tenant self-hosted setup:
-
-- **Vertrouwensgrens.** Wie een runbook kon opstellen, kon code uitvoeren op de Worker, met toegang tot alle environment variables en het filesystem dat de Worker had. De JavaScript-sandbox blokkeerde voor de hand liggende dingen, maar kon een vastberaden gebruiker niet beletten om te onderzoeken wat vanuit ons netwerk bereikbaar was.
-- **Bereik.** De meeste nuttige stappen willen op de infrastructuur van de _klant_ opereren ("herstart deze service", "kubectl op ons cluster", "een record opzoeken in onze interne DB") — niet op die van OneUptime.
-
-Runbook-agents draaien dat om. Bash- en JavaScript-stappen draaien niet bij ons. Ze draaien op een host die jij beheert, en jij bepaalt wat die host mag.
+:::cards
+- [Een Runner installeren](#een-runner-installeren): Van het dashboard naar een verbonden container, in vijf stappen.
+- [Een stap op een Runner richten](#een-stap-op-een-runner-richten): Een stap koppelen aan de Runner die hem moet uitvoeren.
+- [Globale Runners](#globale-runners): De Runners die OneUptime voor elk project draait, en wat ze uitvoeren.
+- [Time-outs](#time-outs): Claim- en uitvoeringstime-outs, en hoe ze samenwerken.
+- [Omgevingsvariabelen](#omgevingsvariabelen): Wat de container bij het starten leest.
+:::
 
 ## Hoe het werkt
 
-1. Je maakt een Runbook-agent aan in OneUptime. OneUptime genereert een ID en een geheime sleutel.
-2. Je start de agent-container op een host binnen je infrastructuur met die ID/sleutel plus je OneUptime-URL.
-3. De agent vraagt OneUptime elke paar seconden: "werk voor mij?"
-4. Wanneer je een Bash- of JavaScript-stap schrijft, kies je de agent uit een dropdown — de stap is aan precies die agent gebonden.
-5. Zodra de stap draait, voegt de Worker een job-rij toe met `targetAgentId` gezet op die agent. Alleen die agent kan hem claimen.
-6. De agent voert het script lokaal uit — `bash -c <script>` voor Bash, een `isolated-vm`-sandbox voor JavaScript — vangt het resultaat op en stuurt het terug. De Worker hervat het runbook met het resultaat.
+```mermaid title="Wat er over het netwerk gaat tussen een Runner en OneUptime"
+flowchart TB
+    subgraph cloud["OneUptime"]
+        direction LR
+        worker["Worker zet de stap in de wachtrij"]
+        ingest["Runner-API"]
+    end
+    subgraph yours["Uw infrastructuur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Hosts, clusters, interne diensten"]
+    end
+    worker --> ingest
+    runner -->|"Uitgaand HTTPS, Runner-ID en sleutel"| ingest
+    ingest -->|"Opgepakte taak, met zijn geheimen of inloggegeven"| runner
+    runner -->|"Script, SSH of Kubernetes-API"| targets
+```
 
-De agent heeft alleen **uitgaande HTTPS** naar je OneUptime-instantie nodig. Hij accepteert geen inkomende verbindingen.
+1. U maakt een Runner in OneUptime. OneUptime genereert er een ID en een geheime sleutel voor.
+2. U draait de Runner-container op een host in uw infrastructuur, met dat ID, die sleutel en uw OneUptime-URL.
+3. De Runner vraagt OneUptime elke 5 seconden om werk en meldt elke 60 seconden dat hij leeft.
+4. Wanneer u een JavaScript-, Bash-, SSH- of kubectl-stap schrijft, kiest u de Runner uit een vervolgkeuzelijst. De stap is aan die Runner gekoppeld. Een JavaScript-stap kan **Globale Runner** houden, die de vervolgkeuzelijst voor hem kiest.
+5. Wanneer de stap loopt, zet de Worker een taak in de wachtrij waarvan `targetAgentId` naar die Runner wijst. Alleen die Runner kan hem oppakken.
+6. De Runner voert de job lokaal uit — `bash -c <script>` voor Bash en kubectl, een `isolated-vm`-sandbox voor JavaScript, een SSH-verbinding die het script met bash op de machine uitvoert —, legt het resultaat vast, verbergt daarin de geheimen van de stap en stuurt het terug. De Worker hervat het runbook met het resultaat.
 
-## Een agent installeren
+De Runner heeft alleen **uitgaand HTTPS** naar uw OneUptime-instantie nodig. Hij accepteert geen inkomende verbindingen.
 
-### 1. Het agent-record aanmaken
+Een Runner bewaart alleen zijn ID en sleutel. Al het andere krijgt hij met de job die hij oppakt: een script met de [runbookvariabelen](/docs/runbooks/variables) die het noemt ingevuld, en de sleutel of het wachtwoord van een SSH-stap of de kubeconfig van een kubectl-stap. Een geheim krijgt hij alleen als dat geheim het hem toestaat. Daarom kan iedereen met de sleutel van een Runner als die Runner optreden: behandel de sleutel zoals de geheimen die hij mag gebruiken.
 
-Ga naar **Instellingen → Runbook-agenten** en maak een nieuwe agent aan. Vul in:
+## Waarom scripts op een Runner lopen
 
-| Veld             | Opmerkingen                                                                                                                                              |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Naam**         | Een sprekende naam — meestal `waar-hij-draait-en-wat-hij-kan`, bv. `prod-eu-west-1`. Dit is wat in het dropdown verschijnt wanneer je een stap schrijft. |
-| **Beschrijving** | Optioneel. Een zin over wat deze host kan bereiken. Je toekomstige zelf zal je dankbaar zijn.                                                            |
+Scripts op de OneUptime Worker uitvoeren gaf twee problemen:
 
-### 2. Het installatiecommando kopiëren
+- **Vertrouwensgrens.** Iedereen die een runbook kon schrijven, kon code op de Worker uitvoeren, met toegang tot alles wat de Worker kon bereiken.
+- **Bereik.** De meeste nuttige stappen werken op _uw_ infrastructuur ("herstart deze dienst", "zoek een record op in onze interne database"), niet op die van OneUptime.
 
-Klik na het aanmaken van de agent op **Installatie-instructies weergeven** in zijn rij. Je ziet een `docker run`-commando met de ID en sleutel van deze agent al vooringevuld. **Bewaar de sleutel nu** — je kunt hem later resetten, maar dezelfde sleutelwaarde kun je na het sluiten van de modal niet opnieuw bekijken.
+Met Runners lopen die stappen op een host die u beheert, en bepaalt u wat die host mag doen. HTTP-verzoek- en AI-stappen lopen nog steeds op de Worker, omdat ze niets uit uw netwerk nodig hebben.
 
-### 3. Hem draaien op een host binnen je infrastructuur
+## Globale Runners
 
-Voer het Docker-commando uit op elke host in je omgeving die:
+Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaScript-stap die geen eigen Runner kiest, loopt op een daarvan, zodat u hem kunt schrijven voordat u iets installeert. **Runbooks → Runbook-agenten** toont ze onder **Globale Runners**, boven uw eigen Runners, en de vervolgkeuzelijst **Runner** van een JavaScript-stap biedt **Globale Runner** als eerste aan.
 
-- je OneUptime-instantie via HTTPS kan bereiken, en
-- de dingen kan doen die je Bash-/JavaScript-stappen moeten doen (bv. SSH naar andere hosts, `kubectl`, met een database praten).
+| | Globale Runner | Uw eigen Runner |
+| --- | --- | --- |
+| Stappen die hij uitvoert | JavaScript | JavaScript, Bash, SSH en kubectl |
+| Wat een stap kan bereiken | Openbare internetadressen | Wat zijn host kan bereiken |
+| Langste looptijd van een stap | 5 minuten | 1 uur |
+| Geheime variabelen | Die u globale Runners laat gebruiken | Die hem vermelden |
+| Credentials | Geen | Die u eraan toewijst |
+
+Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
+
+- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
+- Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
+- Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele. Hij krijgt nooit een inloggegeven.
+- Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
+
+Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, mislukt dan met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
+
+### Waar globale Runners vandaan komen
+
+Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale probes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
+
+Een hoofdbeheerder kan er meer toevoegen, om stappen vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
+
+Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiest elke JavaScript-stap een daarvan.
+
+## Voordat u begint
+
+- **Een host met Docker** in uw infrastructuur, die uw OneUptime-URL via HTTPS bereikt en de systemen waarop uw stappen werken.
+- **Een rol die Runners maakt.** Project Owner, Project Admin, Project Member en Runbook Admin kunnen er een maken. Alleen een Project Owner, Project Admin of Runbook Admin ziet de sleutel van een Runner, die in de installatieopdracht staat.
+
+## Een Runner installeren
+
+### 1. Het agentrecord maken
+
+Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Runner aanmaken** en vul de velden in, allemaal op één pagina:
+
+| Veld | Waar | Opmerkingen |
+| --- | --- | --- |
+| **Naam** | Op de pagina | Een duidelijke naam, meestal waar hij draait en wat hij bereikt, zoals `prod-eu-west-1`. Dit kiest u wanneer u een stap schrijft. |
+| **Beschrijving** | Op de pagina | Optioneel. Een zin over wat deze host bereikt. |
+| **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
+| **Labels** | Onder **Meer velden** | Optioneel. |
+
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert, en de AI-instellingen van een Kubernetes-cluster de Runner waarop zijn kubectl draait: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien. Een Runner kiezen met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren).
+
+### 2. De installatieopdracht kopiëren
+
+Klik in de rij van de Runner op **Installatie-instructies weergeven**. Het dialoogvenster **Configuratie van runbook-agent** toont een `docker run`-opdracht met het ID en de sleutel van deze Runner al ingevuld. Dezelfde opdracht staat op de eigen pagina van de Runner, onder **Installatie-instructies**.
+
+Alleen een Project Owner, Project Admin of Runbook Admin kan de sleutel lezen. Anderen zien "U hebt geen toestemming om de sleutel van deze runbook-agent te bekijken" in plaats van de opdracht.
+
+### 3. Hem draaien op een host in uw infrastructuur
+
+Voer de opdracht uit op een host in uw omgeving die:
+
+- uw OneUptime-instantie via HTTPS bereikt, en
+- kan doen wat uw stappen nodig hebben, zoals andere hosts via SSH bereiken, de API-server van een cluster aanroepen of met een database praten.
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
-  -e ONEUPTIME_RUNNER_ID=<agent-id> \
-  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
+  -e ONEUPTIME_RUNNER_ID=<runner-id> \
+  -e ONEUPTIME_RUNNER_KEY=<runner-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
   -d oneuptime/runner:release
 ```
 
-### 4. Verifiëren dat de agent verbonden is
+### 4. Controleren dat de agent verbonden is
 
-Ga terug naar **Instellingen → Runbook-agenten**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
+Ga terug naar **Runbooks → Runbook-agenten**. Binnen een minuut na het starten van de container moet de **Status** van de Runner **Verbonden** tonen, met een recente **Laatst gezien**. Op de eigen pagina van de Runner toont de kaart **Status van runbook-agent** zijn **Versie van runbook-agent** en **Host**. Blijft hij op **Nooit verbonden** of **Verbinding verbroken** staan, zie dan [Problemen oplossen](#problemen-oplossen).
 
-- Controleer de container-logs (`docker logs oneuptime-runner`) op auth-fouten of netwerkproblemen.
-- Verifieer dat de host je OneUptime-URL met `curl` kan bereiken.
-- Verifieer dat de ID en sleutel zonder whitespace gekopieerd zijn.
+### 5. De agent bijwerken
 
-## Een stap op een agent richten
+Draait een agent een oudere versie dan uw OneUptime, dan verschijnt op zijn pagina een waarschuwingsteken naast zijn **Versie van runbook-agent**. Kies het om te zien hoe u bijwerkt: haal de nieuwe image op en verwijder de container, en voer dan de installatieopdracht uit stap 2 opnieuw uit. Een agent die de Kubernetes-agentchart installeerde, wordt in plaats daarvan met de chart bijgewerkt.
 
-Voeg in je runbook een Bash- of JavaScript-stap toe. Het formulier heeft een **Runbook-agent**-dropdown die elke agent in het huidige project oplijst (met een connected/disconnected-indicator):
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
 
-- Kies de agent die deze stap moet uitvoeren.
-- Schrijf je script in de editor eronder.
+## Een stap op een Runner richten
 
-Wanneer het runbook draait en de stap bereikt, zet de Worker een job in de wachtrij gericht op de ID van die agent. Alleen die agent kan hem claimen. Bash wordt uitgevoerd via `bash -c`; JavaScript draait in een `isolated-vm`-sandbox op de agent (geen filesystem, geen netwerk, geen `Function`/`eval`).
+:::steps
+### Een stap toevoegen die op een Runner loopt
 
-Meer dan één agent nodig? Maak ze aan, en richt individuele stappen op de agent die past. Wil je redundantie, dan kun je twee runbooks schrijven (één per agent) of stappen over agents verdelen.
+Voeg in de **Stappen** van uw runbook een JavaScript-, Bash-, SSH- of kubectl-stap toe.
 
-## Operationele notities
+### De Runner kiezen
 
-### Timeouts
+De vervolgkeuzelijst **Runner** van de stap toont elke Runner in het project, en of hij verbonden is. Heeft het project er nog geen, dan zegt de stap dat en verwijst hij u naar **Runbooks › Runners**. De vervolgkeuzelijst van een JavaScript-stap biedt ook **Globale Runner** aan, als eerste, en kiest die totdat u een van uw eigen Runners kiest.
 
-Twee timeouts gelden voor elke Bash- of JavaScript-stap:
+### De stappen opslaan
 
-| Timeout             | Standaard   | Wat het regelt                                                                                                                                                                                                 |
-| ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claim-timeout**   | 2 minuten   | Hoe lang de Worker wacht tot de gekozen agent de job claimt. Pakt de agent hem niet op tijd op, dan faalt de stap met `TimedOut` en gaat het runbook verder (of stopt, afhankelijk van **Doorgaan bij fout**). |
-| **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.)                                                                         |
+Klik op **Save Steps**. Wanneer een uitvoering de stap bereikt, zet de Worker een taak in de wachtrij voor het ID van die Runner, en alleen die Runner kan hem oppakken. Een stap op **Globale Runner** wacht op de globale Runner die vrij is.
+:::
 
-Beide zijn per stap configureerbaar. Open **Runbooks &rsaquo; je runbook &rsaquo; Stappen**, klap een Bash- of JavaScript-stap uit en stel onder het script **Uitvoer-timeout** en **Claim-timeout** (in seconden) in. Laat een veld leeg om de standaardwaarde te gebruiken. Elk veld accepteert 1 seconde tot 1 uur; waarden daarbuiten worden bij het draaien van de stap tot dat bereik begrensd.
+Bash wordt uitgevoerd met `bash -c`. JavaScript loopt in een `isolated-vm`-sandbox op de Runner, zonder toegang tot het bestandssysteem of processen; het kan openbare HTTP-API's aanroepen met `axios`, maar geen adressen in een privénetwerk. Een SSH- of kubectl-stap meldt zich aan met een geheime [runbookvariabele](/docs/runbooks/variables), die de Runner van de stap moet vermelden onder **Je Runners die het mogen gebruiken**.
 
-Het totale wachtvenster van de Worker is `claim-timeout + uitvoer-timeout + een paar seconden`. Kies waarden die bij de stap passen.
+Meer dan één Runner nodig? Maak ze en richt elke stap op de juiste. Voor redundantie draait u een tweede Runner en verdeelt u de stappen over beide, of houdt u een reserve-runbook bij waarvan de stappen op de andere Runner zijn gericht.
 
-Twee dingen om in gedachten te houden wanneer je de claim-timeout verlaagt:
+## Beheernotities
 
-- De agent vraagt volgens een pollcyclus om werk (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, standaard 5 seconden). Een claim-timeout die korter is dan één pollcyclus kan verstrijken voordat een volkomen gezonde agent de job zelfs maar gezien heeft, en de stap faalt dan met dezelfde "geen agent heeft de job geclaimd"-melding die je van een offline agent zou krijgen.
-- Een agent voert standaard één job tegelijk uit (`ONEUPTIME_RUNNER_CONCURRENCY`). Terwijl een lange stap hem bezet houdt, zitten andere stappen die op dezelfde agent gericht zijn hun eigen claim-timeout uit. Verhoog je een uitvoer-timeout naar minuten, verhoog dan ook de claim-timeout van de stappen die dezelfde agent delen — of geef ze een andere agent.
+### Time-outs
+
+Voor elke stap die op een Runner loopt, gelden twee time-outs:
+
+| Time-out | Standaard | Wat het regelt |
+| --- | --- | --- |
+| **Time-out voor oppakken** | 2 minuten | Hoe lang de Worker wacht tot de gekozen Runner de taak oppakt. Pakt de Runner hem niet op tijd op, dan mislukt de stap door een time-out en gaat het runbook verder (of stopt het, afhankelijk van **Doorgaan bij fout**). |
+| **Uitvoeringstime-out** | 30 seconden | Hoe lang de Runner de stap laat lopen voordat hij hem stopt. Bash krijgt `SIGKILL`; de sandbox van JavaScript wordt afgebroken. |
+
+Beide zijn per stap in te stellen. Open **Runbooks › uw runbook › Stappen**, klap de stap uit en stel **Uitvoeringstime-out** en **Time-out voor oppakken** (in seconden) in onder **Meer velden**. Laat een veld leeg om de standaard te gebruiken. Elk accepteert 1 seconde tot 1 uur; waarden buiten dat bereik worden bij het uitvoeren van de stap begrensd.
+
+Het totale wachtvenster van de Worker is `claim timeout + execution timeout + a few seconds`. Kies waarden die bij de stap passen.
+
+Twee dingen om op te letten als u de claim timeout verlaagt:
+
+- De Runner vraagt om werk in een pollingcyclus (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, standaard 5 seconden). Een claim timeout korter dan één cyclus kan verlopen voordat een volkomen gezonde Runner de taak zelfs maar heeft gezien, en de stap mislukt dan met dezelfde melding als bij een offline Runner.
+- Een Runner voert standaard één taak tegelijk uit (`ONEUPTIME_RUNNER_CONCURRENCY`). Terwijl een lange stap hem bezighoudt, wachten andere stappen die op dezelfde Runner zijn gericht hun eigen claim timeouts af. Verhoogt u een execution timeout tot minuten, verhoog dan ook de claim timeout van de stappen die die Runner delen, of geef ze een andere Runner.
 
 ### Lease en heartbeat
 
-Wanneer een agent een job claimt, krijgt hij een korte lease (standaard 30 seconden). Terwijl het script draait, vernieuwt de agent de lease elke 10 seconden. Sterft de agent of verliest hij het netwerk midden in het script, dan loopt de lease af en markeert de Worker de job als `TimedOut` in plaats van eeuwig te wachten.
+```mermaid title="Een taak tussen OneUptime en zijn Runner"
+sequenceDiagram
+    participant O as OneUptime
+    participant R as Runner
+    O->>O: Een taak voor deze Runner in de wachtrij zetten
+    R->>O: De volgende taak oppakken
+    O-->>R: De taak, met een lease van 30 seconden
+    loop Elke 10 seconden zolang hij loopt
+        R->>O: De lease verlengen
+    end
+    R->>O: Het resultaat melden
+    O->>O: De uitvoer vastleggen en de uitvoering voortzetten
+```
 
-Bash-child-processen worden **niet** automatisch afgebroken wanneer de lease afloopt (een JavaScript-isolate mag ook gewoon afmaken, als het ooit afloopt) — maar de Worker stopt met wachten, en de agent kan geen resultaat meer indienen zodra een andere claim het heeft overgenomen. Ontwerp scripts zo dat ze veilig opnieuw kunnen draaien als exact-één belangrijk is.
+Wanneer een Runner een taak oppakt, krijgt hij een korte lease (standaard 30 seconden). Terwijl de stap loopt, verlengt de Runner de lease elke 10 seconden. Valt de Runner uit of verliest hij midden in een script zijn netwerk, dan verloopt de lease en markeert de Worker de taak als `TimedOut` in plaats van eeuwig te wachten.
+
+Kindprocessen van Bash worden **niet** automatisch geannuleerd wanneer de lease verloopt (een JavaScript-sandbox mag ook afmaken, als hij ooit klaar is), maar de Worker wacht er niet meer op, en de Runner kan geen resultaat meer indienen zodra een andere claim het heeft overgenomen. Ontwerp scripts zo dat ze veilig opnieuw kunnen lopen als exact één keer uitvoeren voor u belangrijk is.
+
+### Als de OneUptime Worker midden in een stap herstart
+
+Een runbook-uitvoering loopt van begin tot eind op één Worker, dus een deploy of een crash kan haar onderbreken terwijl een stap bezig is. Wat daarna gebeurt, hangt ervan af of de uitvoering weer wordt opgepakt:
+
+- **Ze wordt hervat.** De Worker die haar oppakt, vindt de taak die uw stap al had gemaakt en **koppelt zich er opnieuw aan**. Hij wacht op die taak in plaats van uw Runner een tweede kopie van het script te sturen. Was de Runner al klaar, dan wordt het vastgelegde resultaat ongewijzigd gebruikt. Een stap wordt per uitvoering hooguit één keer naar een Runner gestuurd.
+- **Ze wordt niet hervat.** Wordt de uitvoering nooit meer opgepakt, dan markeert een opruimronde haar als `Failed` zodra ze het claim- en uitvoeringsvenster van haar huidige stap heeft overschreden, met een melding die die stap noemt. Een uitvoering blijft nooit in `Running` hangen.
+
+Het enige wat dit u niet kan vertellen, is hoe ver een script kwam voordat de Worker verdween. Een stap die halverwege was, wordt als mislukt gemeld met een notitie dat hij mogelijk deels is uitgevoerd: controleer het doelsysteem voordat u het runbook opnieuw uitvoert.
 
 ### Geen agent online
 
-Als de gekozen agent offline is op het moment dat de stap draait, blijft de job `Pending` tot de claim-timeout verstreken is en faalt dan met een duidelijke "geen agent heeft de job geclaimd"-melding. Op de agents-pagina bevestig je dekking voordat je een runbook serieus draait.
+Is de gekozen Runner offline wanneer de stap loopt, dan wacht de taak als `Pending` tot de claim timeout verstrijkt, en mislukt de stap vervolgens met "No runbook agent picked up this step before the wait window expired." Op de pagina **Runbook-agenten** controleert u de dekking voordat u een runbook in een echte situatie uitvoert. Een stap op een globale Runner mislukt in plaats daarvan met "No global Runner picked up this step before the wait window expired."
 
-### Outputlimiet
+### Uitvoerlimiet
 
-Gecombineerde stdout + stderr is beperkt tot **50&nbsp;KB** per stap. Grotere output wordt afgekapt met een marker. Heb je een volledig log nodig, schrijf het dan in het script naar S3 of je log-store en `echo` de URL.
+stdout en stderr samen zijn per stap beperkt tot **50 KB**. Langere uitvoer wordt afgekapt met een markering. Hebt u een volledig log nodig, schrijf het dan vanuit het script naar uw logopslag of objectopslag en geef de URL weer met `echo`.
 
-### Annuleren
+### Annulering
 
-Een runbook-uitvoering annuleren (vanuit de uitvoeringsweergave of de API) markeert al zijn Bash- en JavaScript-jobs in `Pending`/`Claimed`/`Running` onmiddellijk als `Cancelled`. Een agent die al midden in een script zit, maakt zijn werk af, maar zijn resultaat wordt niet meer door de server geaccepteerd.
+Een runbook-uitvoering annuleren, vanaf de uitvoeringspagina of via de API, markeert meteen al haar taken in `Pending`, `Claimed` en `Running` als `Cancelled`. Een Runner die al midden in een script zit, maakt zijn werk af, maar de server accepteert het resultaat niet, en geen latere stap van het runbook wordt verstuurd.
 
-### Concurrency
+### Gelijktijdigheid
 
-Elke agent voert standaard één job tegelijk uit. Wil je meer toestaan, zet dan `ONEUPTIME_RUNNER_CONCURRENCY` op de agent-container — maar onthoud dat de agent de host deelt met wat er verder ook leeft.
+Elke Runner voert standaard één taak tegelijk uit. Stel `ONEUPTIME_RUNNER_CONCURRENCY` in op de container om er meer toe te staan, maar bedenk dat de Runner de host deelt met al het andere dat er draait.
 
-## Environment variables
+## Omgevingsvariabelen
 
-De agent leest deze bij het opstarten:
+De Runner leest deze variabelen bij het starten:
 
-| Variabele                                 | Verplicht | Standaard | Opmerkingen                                                                   |
-| ----------------------------------------- | --------- | --------- | ----------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`                           | ja        | —         | Basis-URL van je OneUptime-instantie, bv. `https://oneuptime.yourdomain.com`. |
-| `ONEUPTIME_RUNNER_ID`                        | ja        | —         | De UUID die in de installatiemodal van de agent wordt getoond.                |
-| `ONEUPTIME_RUNNER_KEY`                       | ja        | —         | Het secret dat in de installatiemodal van de agent wordt getoond.             |
-| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nee       | `5000`    | Hoe vaak de agent polls voor nieuwe jobs.                                     |
-| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nee       | `60000`   | Hoe vaak de agent zijn levensteken rapporteert.                               |
-| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nee       | `10000`   | Hoe vaak de agent de lease van een draaiende job vernieuwt.                   |
-| `ONEUPTIME_RUNNER_CONCURRENCY`               | nee       | `1`       | Maximaal aantal gelijktijdige jobs op deze agent.                             |
+| Variabele | Verplicht | Standaard | Opmerkingen |
+| --- | --- | --- | --- |
+| `ONEUPTIME_URL` | ja | — | Basis-URL van uw OneUptime-instantie, zoals `https://oneuptime.yourdomain.com`. |
+| `ONEUPTIME_RUNNER_ID` | ja | — | Het ID van de Runner, uit de installatieopdracht. |
+| `ONEUPTIME_RUNNER_KEY` | ja | — | De geheime sleutel van de Runner, uit de installatieopdracht. |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` | nee | `5000` | Hoe vaak de Runner om nieuwe taken vraagt. Een waarde onder `1000` valt terug op de standaard. |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` | nee | `60000` | Hoe vaak de Runner meldt dat hij leeft. Een waarde onder `5000` valt terug op de standaard. |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nee | `10000` | Hoe vaak de Runner de lease van een lopende taak verlengt. Een waarde onder `1000` valt terug op de standaard. |
+| `ONEUPTIME_RUNNER_CONCURRENCY` | nee | `1` | Maximaal aantal gelijktijdige taken op deze Runner. |
+| `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nee | — | Zet op `false` zodat deze Runner geen runbook-stappen meer oppakt, wat het dashboard ook zegt. Kan de mogelijkheid alleen uitzetten. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nee | — | Zet op `false` zodat deze Runner geen AI-codecorrecties meer oppakt, ook niet voor een code-repository die hem kiest. |
+| `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nee | — | Zet op `false` zodat deze Runner geen AI-herstelopdrachten meer uitvoert, wat het dashboard ook zegt. |
 
-## Een agent-sleutel roteren
+## Een agentsleutel vervangen
 
-Als een sleutel lekt, open de agent in OneUptime en reset zijn sleutel. De oude sleutel stopt onmiddellijk met werken. Update de agent-container met de nieuwe sleutel en herstart hem.
+Lekt een sleutel uit, stel hem dan opnieuw in. De oude sleutel werkt meteen niet meer.
 
-## Rechten
+:::steps
+### De sleutel opnieuw instellen
 
-Het beheren van agents valt onder de bestaande Runbooks-rechtengroep:
+Open de Runner via **Runbooks → Runbook-agenten**, klik op **Runbook-agentsleutel opnieuw instellen** en bevestig. De Runner maakt geen verbinding meer tot hij de nieuwe sleutel heeft.
 
-- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agent-records beheren.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
+### De container met de nieuwe sleutel draaien
 
-Rechten om een runbook te _triggeren_ (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.
+Kopieer de nieuwe opdracht uit de **Installatie-instructies** van de Runner, verwijder de oude container en voer de nieuwe opdracht uit op dezelfde host:
 
-## Agent-side API
+```bash
+docker rm -f oneuptime-runner
+```
 
-Voor de nieuwsgierigen — de agent gebruikt deze endpoints, gemount onder `/runner-ingest`. Ze worden geauthenticeerd via de ID + sleutel van de agent in de JSON-body (of de headers `x-agent-id` / `x-agent-key`).
+### Controleren dat hij opnieuw verbindt
 
-| Endpoint                     | Doel                                                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `POST /heartbeat`            | Levensteken; werkt `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion` bij.                                                  |
-| `POST /claim-next-job`       | Atomair de oudste `Pending`-job claimen die op de ID van deze agent gericht is. Geeft `{ job: null }` terug als er niets te doen is. |
-| `POST /job/:jobId/heartbeat` | De lease van de job verversen. Geeft 404 zodra de lease verlopen is of de job terminal is.                                           |
-| `POST /job/:jobId/result`    | De eindstand indienen. Genegeerd als de lease al verder is.                                                                          |
+Onder **Runbooks → Runbook-agenten** springt de **Status** van de Runner binnen een minuut terug naar **Verbonden**.
+:::
 
-Je zou deze niet met de hand hoeven aanroepen — de meegeleverde agent doet dat. Ze zijn hier gedocumenteerd zodat je je eigen agent kunt bouwen als je een beperking hebt waar de onze niet bij past.
+## Machtigingen
+
+Het beheer van agenten valt onder de bestaande machtigingsgroep Runbooks:
+
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agentrecords beheren.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — `RunbookAdmin` bouwt runbooks, hun regels en de Runners waarop ze lopen, en voert ze uit. `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit — start een uitvoering, voltooit of slaat stappen over en annuleert haar — maar maakt, wijzigt en verwijdert geen runbook of Runner. `RunbookViewer` leest runbooks en hun uitvoeringen en voert niets uit. `RunbookAdmin` bundelt alle gedetailleerde machtigingen hierboven.
+- Globale Runners horen bij geen enkel project: alleen een hoofdbeheerder voegt er een toe, wijzigt of verwijdert er een, in het beheerdashboard. Iedereen die de Runners van een project mag lezen, ziet ze, en **Globale Runners gebruiken** uitzetten vraagt de machtiging om het project te bewerken.
+
+Een runbook starten (en zo zijn stappen naar Runners sturen) vereist een rol die runbooks uitvoert — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` of `RunbookMember` — of `CreateRunbookExecution`; een uitvoering voltooien, overslaan of annuleren accepteert ook `EditRunbookExecution`. Een rol voert alleen de runbooks uit die binnen zijn bereik vallen.
+
+De sleutel van een Runner is alleen leesbaar voor Project Owners, Project Admins en Runbook Admins.
+
+## API voor agenten
+
+Voor wie het wil weten: de Runner gebruikt deze endpoints, gekoppeld onder `/runner-ingest`. Het pad van vóór de samenvoeging, `/runbook-agent-ingest`, wordt nog steeds bediend voor agenten die nog niet opnieuw zijn uitgerold, zodat een serverupgrade ze niet breekt. Ze worden geauthenticeerd met het ID en de sleutel van de Runner in de JSON-body (`agentId` en `agentKey`), of in de headers `x-agent-id` en `x-agent-key`.
+
+| Endpoint | Doel |
+| --- | --- |
+| `POST /heartbeat` | Levensteken. Werkt de laatst-gezien-tijd, versie en hostinformatie van de Runner bij en geeft de mogelijkheden terug die het project hem gaf. |
+| `POST /claim-next-job` | Atomair de oudste taak in `Pending` oppakken die op het ID van deze Runner is gericht. Geeft `{ job: null }` terug als er niets te doen is. Een globale Runner pakt in plaats daarvan de oudste stap op die op een willekeurige globale Runner wacht. |
+| `POST /job/:jobId/heartbeat` | De lease van de taak vernieuwen. Geeft 404 terug zodra de lease is verlopen of de taak klaar is. |
+| `POST /job/:jobId/result` | Het eindresultaat indienen. Wordt genegeerd als de lease al is doorgegaan. |
+| `POST /disconnect` | Afmelden bij een nette afsluiting. |
+
+U zou ze niet met de hand hoeven aan te roepen: de meegeleverde Runner doet dat. Ze staan hier zodat u uw eigen agent kunt bouwen als u een beperking hebt waar de onze niet in past.
+
+## Problemen oplossen
+
+:::details De Runner blijft op Nooit verbonden of Verbinding verbroken staan
+- Controleer de containerlogs met `docker logs oneuptime-runner` op authenticatie- of netwerkfouten.
+- Controleer dat de host uw OneUptime-URL bereikt, bijvoorbeeld met `curl`.
+- Controleer dat het ID en de sleutel zonder spaties zijn gekopieerd, en dat `ONEUPTIME_URL` het adres is waarop u OneUptime opent.
+
+**Nooit verbonden** betekent dat de Runner zich nooit heeft gemeld. **Verbinding verbroken** betekent dat hij dat wel deed, maar niet in de laatste 5 minuten.
+:::
+
+:::details Stappen mislukken met "No runbook agent picked up this step before the wait window expired."
+De Runner van de stap pakte de taak niet op binnen zijn claim timeout. Controleer dat de Runner **Verbonden** is, dat **Voert Runbooks uit** voor hem aan staat en dat hij niet bezig is met een lange stap: hij voert één taak tegelijk uit, tenzij u `ONEUPTIME_RUNNER_CONCURRENCY` verhoogt. Een claim timeout korter dan het pollinginterval mislukt op dezelfde manier.
+:::
+
+:::details Stappen mislukken met "The runbook agent stopped responding while this step was running."
+De Runner pakte de taak op en stopte toen met het verlengen van zijn lease: hij crashte, herstartte of verloor zijn netwerk. Controleer dat hij online is en controleer dan het doelsysteem voordat u het runbook opnieuw uitvoert.
+:::
+
+:::details De Runner logt "No capability is enabled"
+Elke mogelijkheid staat uit voor deze Runner. Zet **Voert Runbooks uit** aan op de pagina van de Runner in OneUptime. Hij neemt de wijziging over bij zijn volgende heartbeat.
+:::
+
+:::details Een stap mislukt omdat zijn Runner een geheime variabele niet mag gebruiken
+De stap noemt een geheime variabele die zijn Runner niet toestaat, dus de Runner kreeg haar niet en de stap werd niet uitgevoerd. De fout noemt het geheim en wat er moet veranderen. Voeg onder **Runbooks → Instellingen → Globale variabelen**, of onder **Instellingen → Variabelen** van het runbook, de Runner toe onder **Je Runners die het mogen gebruiken**, of zet **Globale Runners mogen het gebruiken** aan voor een stap op een globale Runner. Of kies een Runner die het geheim toestaat.
+:::
+
+:::details Een kubectl-stap mislukt omdat zijn Runner te oud is
+De stap mislukte met "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Een Runner die ouder is dan kubectl-scripts, kan er geen uitvoeren. Een Kubernetes-stap die bij de upgrade in een kubectl-script is omgezet, draait er nog steeds op als de actie waarmee hij is geschreven, totdat zijn script of kubeconfig wordt gewijzigd. Werk de Runner bij, zoals [De agent bijwerken](#5-de-agent-bijwerken) laat zien, en voer het runbook dan opnieuw uit.
+:::
+
+## Volgende stappen
+
+:::cards
+- [Een runbook schrijven](/docs/runbooks/authoring): De stappen schrijven die op uw Runner lopen.
+- [Runbook-variabelen](/docs/runbooks/variables): De waarden en geheimen die uw stappen gebruiken, en de Runners die ze krijgen.
+- [Runbook-configuratie & veiligheid](/docs/runbooks/configuration): Limieten, machtigingen en beveiliging.
+:::

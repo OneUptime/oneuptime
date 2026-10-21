@@ -3,6 +3,9 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "../../Types/Workspace/SavedChatMessage";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -11,23 +14,39 @@ import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentFeed, {
   IncidentFeedEventType,
 } from "../../Models/DatabaseModels/IncidentFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelToSkip,
 } from "./WorkspaceNotificationRuleService";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  FeedApiKeyActor,
+  UNNAMED_API_KEY_NAME,
+} from "../Utils/Feed/FeedApiKeyActor";
 
-export class Service extends DatabaseService<IncidentFeed> {
+export class Service extends ProjectReferencesService<IncidentFeed> {
   public constructor() {
     super(IncidentFeed);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * Feed items are mostly written by OneUptime itself as things happen, naming
+   * the record they are about and crediting whoever did it - someone who may
+   * have left the project since, or an admin from outside it. Refusing one of
+   * those would only lose the item. A feed item written by an API call or a
+   * workflow is checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   @CaptureSpan()
@@ -56,6 +75,8 @@ export class Service extends DatabaseService<IncidentFeed> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentFeed>,
   ): Promise<OnUpdate<IncidentFeed>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -84,13 +105,32 @@ export class Service extends DatabaseService<IncidentFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    /*
+     * A note saved from a Slack or Microsoft Teams message: who wrote it,
+     * in which chat, and when (SavedChatMessage). The row's user is
+     * whoever saved it.
+     */
+    savedFromChatMessage?: SavedChatMessage | undefined;
     aiRunId?: ObjectID | undefined;
+    /*
+     * The project API key that made the change, when no person did
+     * (Utils/Feed/FeedApiKeyActor.fromProps of the write's props): the item
+     * names it as its author. Ignored when the item has a user.
+     */
+    apiKeyActor?: FeedApiKeyActor | undefined;
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?:
       | {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
           appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+          // Not posted in this channel: the note came from a message there.
+          exceptChannel?: WorkspaceChannelToSkip | undefined;
+          /*
+           * What the post's phone or desktop notification says, when the
+           * start of the post does not say enough (WorkspacePayload text).
+           */
+          notificationText?: string | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -136,16 +176,25 @@ export class Service extends DatabaseService<IncidentFeed> {
         incidentFeed.aiRunId = data.aiRunId;
       }
 
-      if (!data.postedAt) {
-        incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
-      }
+      // When it happened: the time the caller gives, or now.
+      incidentFeed.postedAt = data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.userId) {
         incidentFeed.userId = data.userId;
+      } else if (data.apiKeyActor?.apiKeyId) {
+        incidentFeed.apiKeyId = data.apiKeyActor.apiKeyId;
+        incidentFeed.apiKeyName =
+          data.apiKeyActor.apiKeyName || UNNAMED_API_KEY_NAME;
       }
 
       if (data.moreInformationInMarkdown) {
         incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
+      }
+
+      if (data.savedFromChatMessage) {
+        incidentFeed.savedFromChatMessage = SavedChatMessageUtil.toJSON(
+          data.savedFromChatMessage,
+        );
       }
 
       const createdIncidentFeed: IncidentFeed = await this.create({
@@ -212,6 +261,10 @@ export class Service extends DatabaseService<IncidentFeed> {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      // Not posted in this channel: the note came from a message there.
+      exceptChannel?: WorkspaceChannelToSkip | undefined;
+      // What the post's notification says, when the caller words it.
+      notificationText?: string | undefined;
     };
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
@@ -221,6 +274,7 @@ export class Service extends DatabaseService<IncidentFeed> {
           incidentId: data.incidentId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
+        notificationText: data.workspaceNotification.notificationText,
         workspaceNotification: data.workspaceNotification,
       },
     );

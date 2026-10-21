@@ -121,7 +121,7 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
  * beside it - because a token is better than nothing and the daily sync may
  * complete it (LicenseClient.validateWithLicenseServer refuses only a license
  * this installation cannot use at all). But such an install is on the
- * unlicensed trial, and past that trial single sign-on, SCIM and audit logging
+ * unlicensed trial, and past that trial SCIM provisioning and audit logging
  * are OFF. A green "License validated successfully." there tells the admin who
  * came to fix exactly that lapse that they have fixed it.
  *
@@ -251,6 +251,14 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
   const payload: JSONObject = useMemo(() => {
     return license.payload || {};
   }, [license.payload]);
+
+  /*
+   * A license that is a cloud marketplace subscription has no key to refresh:
+   * it renews itself with every usage report the marketplace accepts.
+   */
+  const isMarketplaceLicense: boolean =
+    typeof payload["marketplace"] === "string" &&
+    payload["marketplace"].length > 0;
 
   const licenseInstances: Array<EnterpriseLicenseInstanceSummary> =
     useMemo(() => {
@@ -774,7 +782,7 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
          * An installation activated offline has no key to refresh with; a new
          * token replaces the license instead.
          */}
-        {activationMode !== "offline" && (
+        {activationMode !== "offline" && !isMarketplaceLicense && (
           <Button
             title="Refresh license"
             icon={IconProp.Refresh}

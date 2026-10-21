@@ -27,6 +27,8 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
@@ -54,6 +56,7 @@ interface LabelChoicesProps {
 const LabelChoices: FunctionComponent<LabelChoicesProps> = (
   props: LabelChoicesProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DashboardVariableOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>();
@@ -120,7 +123,9 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
   return (
     <div>
       {isLoading ? (
-        <p className="text-xs text-gray-500">Loading project labels…</p>
+        <p className="text-xs text-gray-500">
+          {translator.translateText("Loading project labels…")}
+        </p>
       ) : error ? (
         <p role="alert" className="text-xs text-red-600">
           {error}
@@ -163,9 +168,9 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
         />
       )}
       <p className="text-[11px] text-gray-500 mt-1">
-        Choose up to 1,000 labels. Their names appear in the toolbar and on
-        shared dashboards. Bind this variable in a Monitor List widget’s Label
-        Variable setting.
+        {translator.translateText(
+          "Choose up to 1,000 labels. Their names appear in the toolbar and on shared dashboards. Bind this variable in a Monitor List widget’s Label Variable setting.",
+        )}
       </p>
     </div>
   );
@@ -174,6 +179,7 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
 const VariableRow: FunctionComponent<VariableRowProps> = (
   props: VariableRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { variable } = props;
 
   return (
@@ -181,32 +187,34 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
       <div className="grid grid-cols-12 gap-3 items-start">
         <div className="col-span-4">
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-            Name
+            {translator.translateText("Name")}
           </label>
           <input
             type="text"
             className={`w-full text-sm border rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               props.nameError ? "border-red-300" : "border-gray-200"
             }`}
-            placeholder="cluster"
+            placeholder={translator.translateText("cluster")}
             value={variable.name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               props.onChange({ ...variable, name: e.target.value });
             }}
           />
           {props.nameError && (
-            <p className="text-[11px] text-red-500 mt-1">{props.nameError}</p>
+            <p className="text-[11px] text-red-500 mt-1">
+              {translator.translateText(props.nameError)}
+            </p>
           )}
         </div>
 
         <div className="col-span-4">
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-            Label
+            {translator.translateText("Label")}
           </label>
           <input
             type="text"
             className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            placeholder="Cluster"
+            placeholder={translator.translateText("Cluster")}
             value={variable.label || ""}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               props.onChange({ ...variable, label: e.target.value });
@@ -216,7 +224,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
 
         <div className="col-span-3">
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-            Default
+            {translator.translateText("Default")}
           </label>
           {/*
            * Defaults are a single-select concept: a multi-select starts on
@@ -228,7 +236,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
            */}
           {variable.type === DashboardVariableType.ProjectLabel ? (
             <select
-              aria-label="Default label"
+              aria-label={translator.translateText("Default label")}
               className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 disabled:bg-gray-50"
               value={variable.defaultValue || ""}
               disabled={Boolean(variable.isMultiSelect)}
@@ -239,7 +247,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                 });
               }}
             >
-              <option value="">All</option>
+              <option value="">{translator.translateText("All")}</option>
               {variable.defaultValue &&
                 !variable.labelOptions?.some(
                   (option: DashboardVariableOption) => {
@@ -247,7 +255,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                   },
                 ) && (
                   <option value={variable.defaultValue}>
-                    Unavailable label
+                    {translator.translateText("Unavailable label")}
                   </option>
                 )}
               {(variable.labelOptions || []).map(
@@ -264,12 +272,16 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
             <input
               type="text"
               className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
-              placeholder={variable.isMultiSelect ? "All" : "(none)"}
+              placeholder={translator.translateText(
+                variable.isMultiSelect ? "All" : "(none)",
+              )}
               value={variable.defaultValue || ""}
               disabled={Boolean(variable.isMultiSelect)}
               title={
                 variable.isMultiSelect
-                  ? "Multi-select variables start on All and do not use a default."
+                  ? translator.translateText(
+                      "Multi-select variables start on All and do not use a default.",
+                    )
                   : undefined
               }
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,7 +305,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                 });
               }}
             />
-            Allow multi-select
+            {translator.translateText("Allow multi-select")}
           </label>
         </div>
 
@@ -302,7 +314,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
             type="button"
             className="text-gray-400 hover:text-red-500 transition-colors p-1"
             onClick={props.onDelete}
-            title="Remove variable"
+            title={translator.translateText("Remove variable")}
           >
             <Icon icon={IconProp.Trash} className="w-4 h-4" />
           </button>
@@ -310,7 +322,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
 
         <div className="col-span-12">
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-            Source
+            {translator.translateText("Source")}
           </label>
           <Dropdown
             ariaLabel="Variable source"
@@ -366,7 +378,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           {variable.type === DashboardVariableType.TelemetryAttribute ? (
             <>
               <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-                Attribute Key
+                {translator.translateText("Attribute Key")}
               </label>
               <AutocompleteTextInput
                 value={variable.attributeKey || ""}
@@ -379,35 +391,34 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                 }}
               />
               <p className="text-[11px] text-gray-400 mt-1">
-                Widgets that support this attribute will be scoped to the
-                selected value. Choosing &quot;All&quot; removes this attribute
-                filter
-                {variable.isMultiSelect
-                  ? " — a multi-select with nothing picked is All."
-                  : "."}
+                {translator.translateText(
+                  variable.isMultiSelect
+                    ? 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter — a multi-select with nothing picked is All.'
+                    : 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter.',
+                )}
               </p>
             </>
           ) : variable.type === DashboardVariableType.ProjectLabel ? (
             <>
               <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-                Allowed Labels
+                {translator.translateText("Allowed Labels")}
               </label>
               <LabelChoices variable={variable} onChange={props.onChange} />
               {props.labelError && (
                 <p role="alert" className="text-xs text-red-600 mt-1">
-                  {props.labelError}
+                  {translator.translateText(props.labelError)}
                 </p>
               )}
             </>
           ) : variable.type === DashboardVariableType.CustomList ? (
             <>
               <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-                Values
+                {translator.translateText("Values")}
               </label>
               <input
-                aria-label="Custom list values"
+                aria-label={translator.translateText("Custom list values")}
                 className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5"
-                placeholder="prod, staging"
+                placeholder={translator.translateText("prod, staging")}
                 value={variable.customListValues || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   return props.onChange({
@@ -417,15 +428,18 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                 }}
               />
               <p className="text-[11px] text-gray-500 mt-1">
-                Comma-separated values for text and query placeholders. Use
-                Project Labels to filter Monitor Lists.
+                {translator.translateText(
+                  "Comma-separated values for text and query placeholders. Use Project Labels to filter Monitor Lists.",
+                )}
               </p>
             </>
           ) : (
             <p className="text-[11px] text-gray-500">
-              {variable.type === DashboardVariableType.Query
-                ? "This legacy query variable is preserved. Query option loading is not supported."
-                : "Viewers enter a value for text and query placeholders. Use Project Labels to filter Monitor Lists."}
+              {translator.translateText(
+                variable.type === DashboardVariableType.Query
+                  ? "This legacy query variable is preserved. Query option loading is not supported."
+                  : "Viewers enter a value for text and query placeholders. Use Project Labels to filter Monitor Lists.",
+              )}
             </p>
           )}
         </div>
@@ -437,6 +451,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
 const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [variables, setVariables] = useState<Array<DashboardVariable>>(
     props.variables.map((v: DashboardVariable) => {
       return { ...v };
@@ -449,16 +464,16 @@ const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
     for (const v of variables) {
       const trimmed: string = (v.name || "").trim();
       if (!trimmed) {
-        errors[v.id] = "Required";
+        errors[v.id] = translationKey("Required");
         continue;
       }
       if (!RESERVED_NAME_PATTERN.test(trimmed)) {
-        errors[v.id] = "Letters, digits and underscore only";
+        errors[v.id] = translationKey("Letters, digits and underscore only");
         continue;
       }
       const lower: string = trimmed.toLowerCase();
       if (seen.has(lower)) {
-        errors[v.id] = "Duplicate name";
+        errors[v.id] = translationKey("Duplicate name");
         continue;
       }
       seen.add(lower);
@@ -471,15 +486,18 @@ const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
     if (variable.type === DashboardVariableType.ProjectLabel) {
       const count: number = variable.labelOptions?.length || 0;
       if (count === 0 || count > 1000) {
-        labelErrors[variable.id] = "Choose between 1 and 1,000 allowed labels.";
+        labelErrors[variable.id] = translationKey(
+          "Choose between 1 and 1,000 allowed labels.",
+        );
       } else if (
         variable.defaultValue &&
         !variable.labelOptions?.some((option: DashboardVariableOption) => {
           return option.value === variable.defaultValue;
         })
       ) {
-        labelErrors[variable.id] =
-          "Choose a default from the allowed labels or select All.";
+        labelErrors[variable.id] = translationKey(
+          "Choose a default from the allowed labels or select All.",
+        );
       }
     }
   }
@@ -551,9 +569,13 @@ const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
               icon={IconProp.Variable}
               className="w-6 h-6 text-gray-300 mx-auto mb-2"
             />
-            <p className="text-sm text-gray-500 mb-1">No variables yet</p>
+            <p className="text-sm text-gray-500 mb-1">
+              {translator.translateText("No variables yet")}
+            </p>
             <p className="text-xs text-gray-400">
-              Add a variable, then configure the widgets it should filter.
+              {translator.translateText(
+                "Add a variable, then configure the widgets it should filter.",
+              )}
             </p>
           </div>
         ) : (

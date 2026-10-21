@@ -9,11 +9,16 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { matchPath, Outlet, useLocation } from "react-router-dom";
+import {
+  DeveloperDocsChildPage,
+  getDeveloperDocsChildPages,
+} from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
-const monitorPageMaps: Array<PageMap> = [
+const monitorPageMaps: Array<string> = [
   PageMap.MONITORS,
   PageMap.MONITORS_INOPERATIONAL,
   PageMap.MONITORS_DISABLED,
+  PageMap.MONITORS_ARCHIVED,
   PageMap.MONITORS_PROBE_DISCONNECTED,
   PageMap.MONITORS_PROBE_DISABLED,
   PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
@@ -28,10 +33,16 @@ const monitorPageMaps: Array<PageMap> = [
   PageMap.MONITORS_SETTINGS_LABEL_RULES,
   PageMap.MONITORS_SETTINGS_PROBES,
   PageMap.MONITORS_SETTINGS_PROBE_VIEW,
+  // The menu's Developer pages (Terraform, API, AI Assistants).
+  ...getDeveloperDocsChildPages(PageMap.MONITORS).map(
+    (child: DeveloperDocsChildPage): string => {
+      return child.key;
+    },
+  ),
 ];
 
-const isRouteMatch: (pageMap: PageMap, pathname: string) => boolean = (
-  pageMap: PageMap,
+const isRouteMatch: (pageMap: string, pathname: string) => boolean = (
+  pageMap: string,
   pathname: string,
 ): boolean => {
   const route: Route | undefined = RouteMap[pageMap];
@@ -52,8 +63,8 @@ const MonitorLayout: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const location: ReturnType<typeof useLocation> = useLocation();
-  const matchedMonitorPage: PageMap | undefined = monitorPageMaps.find(
-    (pageMap: PageMap): boolean => {
+  const matchedMonitorPage: string | undefined = monitorPageMaps.find(
+    (pageMap: string): boolean => {
       return isRouteMatch(pageMap, location.pathname);
     },
   );
@@ -77,7 +88,7 @@ const MonitorLayout: FunctionComponent<PageComponentProps> = (
 
   const routePath: string = isMonitorGroupList
     ? (RouteMap[PageMap.MONITOR_GROUPS] as Route).toString()
-    : (RouteMap[matchedMonitorPage as PageMap] as Route).toString();
+    : (RouteMap[matchedMonitorPage as string] as Route).toString();
   const monitorGroupBreadcrumbs: Array<Link> = [
     {
       title: "Project",

@@ -1,11 +1,11 @@
 /*
  * Perf contract for MarkdownViewer's mermaid integration (linear-polish):
- * mermaid's pre-bundled build is ~4.5MB — it used to be statically imported
- * and initialized at module scope, which dragged it into the Dashboard's
- * eager first-load graph through every markdown call site. The contract now
- * is: importing MarkdownViewer and rendering plain markdown must NEVER load
- * mermaid; only a rendered mermaid diagram may trigger the dynamic import,
- * and theme initialization must happen after that load.
+ * mermaid is the viewer's heaviest dependency by far — it used to be
+ * statically imported and initialized at module scope, which dragged it into
+ * the Dashboard's eager first-load graph through every markdown call site.
+ * The contract now is: importing MarkdownViewer and rendering plain markdown
+ * must NEVER load mermaid; only a rendered mermaid diagram may trigger the
+ * dynamic import, and theme initialization must happen after that load.
  *
  * The jest module registry is the probe: the "mermaid" factory below flips a
  * sentinel when the module is actually required, which under ts-jest's

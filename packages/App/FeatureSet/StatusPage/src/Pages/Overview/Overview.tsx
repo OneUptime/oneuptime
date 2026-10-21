@@ -39,6 +39,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -49,6 +50,7 @@ import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTota
 import MonitorGroupMergedDowntimeUtil from "Common/Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
@@ -86,6 +88,7 @@ import StatusPageResourceSearchUtil, {
 import StatusPageLiveRefreshUtil from "../../Utils/LiveRefresh";
 import LastUpdated from "../../Components/LiveStatus/LastUpdated";
 import ResourceSearchBox from "../../Components/Search/ResourceSearchBox";
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 
 const parseAxisValues: (raw?: string) => Array<string> = (
   raw?: string,
@@ -180,6 +183,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
     Array<IncidentEpisodeStateTimeline>
   >([]);
+  // The project's incident states: which timeline rows show the resolved check.
+  const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+    [],
+  );
   const [monitorStatusTimelines, setMonitorStatusTimelines] = useState<
     Array<MonitorStatusTimeline>
   >([]);
@@ -221,6 +228,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
+  // The project's states, in their order: what places a state of its own.
+  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
+    Array<ScheduledMaintenanceState>
+  >([]);
   /*
    * Clamped to [1, 90] to mirror the server (StatusPageAPI clamps before fetching the
    * timeline). showUptimeHistoryInDays has no server-side validation, so an out-of-range
@@ -414,6 +425,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
           IncidentEpisodeStateTimeline,
         );
 
+      const incidentStates: Array<IncidentState> = BaseModel.fromJSONArray(
+        (data["incidentStates"] as JSONArray) || [],
+        IncidentState,
+      );
+
       const monitorStatusTimelines: Array<MonitorStatusTimeline> =
         BaseModel.fromJSONArray(
           (data["monitorStatusTimelines"] as JSONArray) || [],
@@ -456,6 +472,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         BaseModel.fromJSONArray(
           (data["scheduledMaintenanceStateTimelines"] as JSONArray) || [],
           ScheduledMaintenanceStateTimeline,
+        );
+
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+        BaseModel.fromJSONArray(
+          (data["scheduledMaintenanceStates"] as JSONArray) || [],
+          ScheduledMaintenanceState,
         );
 
       const monitorsInGroup: Dictionary<Array<ObjectID>> =
@@ -519,6 +541,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setActiveEpisodes(activeEpisodes);
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
+      setIncidentStates(incidentStates);
       setMonitorStatusTimelines(monitorStatusTimelines);
       setUptimeDailyAggregate(uptimeDailyAggregate);
       setMonitorGroupMergedDowntime(monitorGroupMergedDowntime);
@@ -528,6 +551,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setStatusPageResources(statusPageResources);
       setIncidentStateTimelines(incidentStateTimelines);
       setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
+      setScheduledMaintenanceStates(scheduledMaintenanceStates);
 
       const overallStatus: MonitorStatus | null = data["overallStatus"]
         ? BaseModel.fromJSONObject(
@@ -1397,7 +1421,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
           <div
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-transform group-hover:scale-[1.03]"
             style={{
-              backgroundColor: "rgba(255,255,255,0.85)",
+              /*
+               * The card's own surface, nearly opaque, over the cell's tint:
+               * white on the light page, the dark card on the dark one.
+               */
+              backgroundColor:
+                "color-mix(in srgb, var(--ou-surface-primary, #ffffff) 85%, transparent)",
               boxShadow: `inset 0 0 0 1px ${tintFromHex(color, 0.25)}`,
             }}
           >
@@ -1413,14 +1442,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             </span>
             <span
               className="text-[11px] font-semibold tracking-tight"
-              style={{ color: color }}
+              {...getStatusTextProps(color)}
             >
               {meta.statusName}
             </span>
             {meta.resourceCount > 1 && (
               <span
                 className="text-[10px] font-medium tabular-nums opacity-60"
-                style={{ color: color }}
+                {...getStatusTextProps(color)}
               >
                 ×{meta.resourceCount}
               </span>
@@ -2029,6 +2058,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         incidentPublicNotes: incidentGroup.publicNotes || [],
                         incidentStateTimelines:
                           incidentGroup.incidentStateTimelines,
+                        incidentStates: incidentStates,
                         statusPageResources: incidentGroup.incidentResources,
                         monitorsInGroup: incidentGroup.monitorsInGroup,
                         isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -2049,6 +2079,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         episodePublicNotes: episodeGroup.publicNotes || [],
                         episodeStateTimelines:
                           episodeGroup.episodeStateTimelines,
+                        incidentStates: incidentStates,
                         statusPageResources: episodeGroup.episodeResources,
                         monitorsInGroup: episodeGroup.monitorsInGroup,
                         isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -2090,6 +2121,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           monitorsInGroup: scheduledEventGroup.monitorsInGroup,
                           isPreviewPage: StatusPageUtil.isPreviewPage(),
                           isSummary: true,
+                          scheduledMaintenanceStates:
+                            scheduledMaintenanceStates,
                         })}
                         isDetailItem={false}
                       />

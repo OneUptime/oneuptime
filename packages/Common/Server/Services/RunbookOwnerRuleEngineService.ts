@@ -23,6 +23,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class RunbookOwnerRuleEngineServiceClass
   implements RuleRunEngine<Runbook, RunbookOwnerRule>
@@ -117,6 +119,7 @@ class RunbookOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     runbook: Runbook;
     rules: Array<RunbookOwnerRule>;
@@ -357,8 +360,7 @@ class RunbookOwnerRuleEngineServiceClass
     rule: RunbookOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in runbook owner rule ${rule.id}: ${pattern}`);
       return false;

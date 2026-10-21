@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -14,8 +14,9 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -24,19 +25,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         onCallDutyPolicyId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -85,7 +81,8 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -126,12 +123,11 @@ export class Service extends DatabaseService<Model> {
           onCallDutyPolicyFeedEventType:
             OnCallDutyPolicyFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-            {
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
-            },
-          )}** to the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`,
+            })}** to the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -162,6 +158,9 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyId: onCallDutyPolicyId!,
           }),
         userIds: [userId!],
+        notificationFor: {
+          onCallDutyPolicyId: onCallDutyPolicyId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

@@ -14,8 +14,9 @@ const DisabledMonitors: FunctionComponent<
       }}
       disableCreate={true}
       noItemsMessage="No disabled monitors. All monitors in active state."
+      emptyState={{ isAllClear: true }}
       title="Disabled Monitors"
-      description="Here is a list of all the monitors which are in disabled state."
+      description="Monitors that are switched off. They run no checks and open no incidents or alerts until you enable them again."
     />
   );
 };

@@ -22,9 +22,11 @@ import logger from "Common/Server/Utils/Logger";
  */
 
 /*
- * Must comfortably exceed the runner's 5-minute wall-clock budget plus the
- * longest single un-heartbeated gap (one LLM call, up to 5 minutes on slow
- * self-hosted providers) so healthy runs are never falsely marked stale.
+ * Runs have no wall-clock budget by default, so staleness is judged by the
+ * heartbeat alone: every agent step touches it, and so does every command
+ * wait (every 15s). This must comfortably exceed the longest single
+ * un-heartbeated gap — one LLM call, up to 5 minutes on slow self-hosted
+ * providers — so healthy runs, however long, are never falsely marked stale.
  */
 const RUN_HEARTBEAT_TIMEOUT_MINUTES: number = 12;
 
@@ -49,10 +51,13 @@ RunCron(
         conversationId: true,
         runType: true,
         attemptCount: true,
+        handedBackCount: true,
         lastHeartbeatAt: true,
         projectId: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        followUpForAlertId: true,
+        ruleWaitMinutes: true,
       },
       limit: 100,
       skip: 0,
@@ -98,11 +103,20 @@ RunCron(
             await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
               attemptCount: run.attemptCount || 0,
+              // Claims a shutting-down server handed back do not count.
+              handedBackCount: run.handedBackCount || 0,
               lastHeartbeatAt: run.lastHeartbeatAt,
               runType: run.runType,
               projectId: run.projectId,
               triggeredByIncidentId: run.triggeredByIncidentId,
               triggeredByAlertId: run.triggeredByAlertId,
+              // A follow-up check never releases remediation a second time.
+              followUpForAlertId: run.followUpForAlertId,
+              /*
+               * Nor does a run an investigation rule made wait: remediation
+               * started when its incident or alert did.
+               */
+              ruleWaitMinutes: run.ruleWaitMinutes,
             });
 
           logger.info(

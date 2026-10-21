@@ -19,6 +19,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -34,6 +35,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @EnableMCP()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -560,7 +562,6 @@ export default class IncidentState extends BaseModel {
   })
   public isResolvedState?: boolean = undefined;
 
-  @UniqueColumnBy("projectId")
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -590,7 +591,9 @@ export default class IncidentState extends BaseModel {
     type: TableColumnType.SmallNumber,
     canReadOnRelationQuery: true,
     title: "Order",
-    description: "Order / Priority of this resource",
+    required: false,
+    description:
+      "Where this state sits in the project's list of incident states: 1 is the top. Incidents only ever move down the list, and an incident in a state at or below the acknowledged (or resolved) state counts as acknowledged (or resolved), so the created, acknowledged and resolved states have to stay in that order. A new state without a number goes just above the resolved state. Setting a number moves the state to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

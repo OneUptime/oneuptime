@@ -7,12 +7,10 @@ import DashboardService, {
 } from "../Services/DashboardService";
 import DashboardDomainService from "../Services/DashboardDomainService";
 import CookieUtil from "../Utils/Cookie";
-import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -22,11 +20,28 @@ import ObjectID from "../../Types/ObjectID";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
+import {
+  DashboardAccessState,
+  isDashboardLockedWithoutPassword,
+  isDashboardMasterPasswordRequired,
+} from "../../Types/Dashboard/DashboardAccess";
+import {
+  PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+  PUBLIC_DASHBOARD_DEFAULT_TITLE,
+  PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE,
+  PublicDashboardAccess,
+  PublicDashboardAccessResult,
+} from "../Utils/Dashboard/PublicDashboardAccess";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import {
+  DASHBOARD_THEME_COLUMN,
+  parseDashboardTheme,
+} from "../../Types/Dashboard/DashboardTheme";
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
+import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../Types/JSON";
@@ -53,6 +68,7 @@ import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import VMwareResource from "../../Models/DatabaseModels/VMwareResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
+import StorageArrayResource from "../../Models/DatabaseModels/StorageArrayResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -61,6 +77,9 @@ import Log from "../../Models/AnalyticsModels/Log";
 import SloHistory from "../../Models/AnalyticsModels/SloHistory";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
+import IncidentStateService from "../Services/IncidentStateService";
+import AlertStateService from "../Services/AlertStateService";
+import Includes from "../../Types/BaseDatabase/Includes";
 import MonitorService from "../Services/MonitorService";
 import HostService from "../Services/HostService";
 import KubernetesResourceService from "../Services/KubernetesResourceService";
@@ -71,6 +90,7 @@ import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import VMwareResourceService from "../Services/VMwareResourceService";
 import CephResourceService from "../Services/CephResourceService";
+import StorageArrayResourceService from "../Services/StorageArrayResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import NetworkSiteService from "../Services/NetworkSiteService";
 import ServiceLevelObjectiveService from "../Services/ServiceLevelObjectiveService";
@@ -82,6 +102,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../Types/Dashboard/DashboardVariable";
 import PublicDashboardResourceListPolicy, {
+  PublicDashboardResolvedStateFilter,
   PublicDashboardResourceListPolicyResult,
 } from "../Utils/Dashboard/PublicDashboardResourceListPolicy";
 import PublicDashboardSloHistoryPolicy, {
@@ -96,16 +117,40 @@ import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import { STORAGE_ARRAY_HARDWARE_WIDGET_KINDS } from "../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+import { DASHBOARD_WIDGET_SORT_REQUEST_FIELD } from "../../Types/Dashboard/DashboardWidgetSort";
+import {
+  DashboardWidgetListReadStep,
+  getDashboardWidgetListReadSteps,
+  readDashboardWidgetListInSteps,
+} from "../../Utils/Dashboard/DashboardWidgetSorts";
+import FileOwnership from "../Utils/File/FileOwnership";
+
+/*
+ * How a public dashboard's logo and favicon are read: their bytes and type,
+ * and the project each was uploaded in - a dashboard shows only files of its
+ * own project (FileOwnership.keepProjectFile).
+ */
+const SERVED_IMAGE_SELECT: {
+  file: true;
+  fileType: true;
+  projectId: true;
+} = {
+  file: true,
+  fileType: true,
+  projectId: true,
+};
 
 /*
  * Registry of the non-metric widgets a public dashboard may render.
  *
  * - `widgets` lists the dashboard widgets that render this resource, mapped
- *   to the `kind` each one shows (null when the model is not partitioned by
- *   kind). The dashboard must actually contain one of these widgets before
- *   the endpoint will serve the resource at all, and the query is pinned to
- *   the kinds those widgets render. Adding a widget to a public dashboard is
- *   therefore the owner's explicit — and only — opt-in to exposing this data.
+ *   to the `kind` each one shows (the kinds, for a widget that lists several;
+ *   null when the model is not partitioned by kind). The dashboard must
+ *   actually contain one of these widgets before the endpoint will serve the
+ *   resource at all, and the query is pinned to the kinds those widgets
+ *   render. Adding a widget to a public dashboard is therefore the owner's
+ *   explicit — and only — opt-in to exposing this data.
  * Query, select, sort and pagination policy are rebuilt from the exact stored
  * widget by PublicDashboardResourceListPolicy. Client copies of those fields
  * are never authoritative on this unauthenticated route.
@@ -115,7 +160,9 @@ interface PublicDashboardResourceConfig {
   service: {
     findBy: (findBy: any) => Promise<Array<BaseModel | AnalyticsDataModel>>;
   };
-  widgets: Partial<Record<DashboardComponentType, string | null>>;
+  widgets: Partial<
+    Record<DashboardComponentType, string | ReadonlyArray<string> | null>
+  >;
 }
 
 /*
@@ -278,6 +325,15 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.CephPoolList]: "Pool",
     },
   },
+  "storage-array-resource": {
+    modelType: StorageArrayResource,
+    service: StorageArrayResourceService,
+    widgets: {
+      [DashboardComponentType.StorageArrayVolumeList]: "Volume",
+      [DashboardComponentType.StorageArrayHardwareList]:
+        STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
+    },
+  },
   "docker-swarm-resource": {
     modelType: DockerSwarmResource,
     service: DockerSwarmResourceService,
@@ -317,27 +373,35 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   },
 };
 
-type ResolveDashboardIdOrThrowFunction = (
-  dashboardIdOrDomain: string,
-) => Promise<ObjectID>;
+type GetPublicDashboardIdOrThrowFunction = (
+  dashboardId: string | undefined,
+) => ObjectID;
 
 /*
- * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
- * either a dashboard ID (UUID) or a verified custom dashboard domain —
- * same contract as the status page overview endpoint.
+ * A public route's :dashboardId. A value that is not a dashboard id at all
+ * gets the answer an id no dashboard has gets.
  */
-const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
-  dashboardIdOrDomain: string,
-): Promise<ObjectID> => {
-  if (!dashboardIdOrDomain) {
-    throw new NotFoundException("Dashboard not found");
+const getPublicDashboardIdOrThrow: GetPublicDashboardIdOrThrowFunction = (
+  dashboardId: string | undefined,
+): ObjectID => {
+  if (!dashboardId || !ObjectID.isValidUUID(dashboardId)) {
+    throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
   }
 
-  if (dashboardIdOrDomain.includes(".")) {
+  return new ObjectID(dashboardId);
+};
+
+type FindVerifiedDomainDashboardIdFunction = (
+  domain: string,
+) => Promise<ObjectID | null>;
+
+// The dashboard a verified custom domain is attached to, if any.
+const findVerifiedDomainDashboardId: FindVerifiedDomainDashboardIdFunction =
+  async (domain: string): Promise<ObjectID | null> => {
     const dashboardDomain: DashboardDomain | null =
       await DashboardDomainService.findOneBy({
         query: {
-          fullDomain: dashboardIdOrDomain,
+          fullDomain: domain,
           domain: {
             isVerified: true,
           } as any,
@@ -350,23 +414,33 @@ const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
         },
       });
 
-    if (!dashboardDomain || !dashboardDomain.dashboardId) {
-      throw new NotFoundException("Dashboard not found");
+    return dashboardDomain?.dashboardId || null;
+  };
+
+type ResolveDashboardIdOrThrowFunction = (
+  dashboardIdOrDomain: string,
+) => Promise<ObjectID>;
+
+/*
+ * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
+ * either a dashboard ID (UUID) or a verified custom dashboard domain —
+ * same contract as the status page overview endpoint.
+ */
+const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
+  dashboardIdOrDomain: string,
+): Promise<ObjectID> => {
+  if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
+    const dashboardId: ObjectID | null =
+      await findVerifiedDomainDashboardId(dashboardIdOrDomain);
+
+    if (!dashboardId) {
+      throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
     }
 
-    return dashboardDomain.dashboardId;
+    return dashboardId;
   }
 
-  try {
-    ObjectID.validateUUID(dashboardIdOrDomain);
-    return new ObjectID(dashboardIdOrDomain);
-  } catch (err) {
-    logger.error(
-      `Error converting dashboardIdOrDomain to ObjectID: ${dashboardIdOrDomain}`,
-    );
-    logger.error(err);
-    throw new NotFoundException("Dashboard not found");
-  }
+  return getPublicDashboardIdOrThrow(dashboardIdOrDomain);
 };
 
 export default class DashboardAPI extends BaseAPI<
@@ -409,7 +483,27 @@ export default class DashboardAPI extends BaseAPI<
       PublicDashboardRateLimitBucket.MasterPassword,
     );
 
-    // SEO endpoint - resolve dashboard by ID or domain
+    /*
+     * The page head of a dashboard's public link: its title and description,
+     * resolved by dashboard ID or custom domain. The public dashboard's own
+     * server asks for it once per page and renders it for whoever loads the
+     * page, so it holds only what the link shows EVERY visitor - decided for
+     * a visitor nothing is known about, never for whoever happens to ask:
+     *
+     *   anyone with the link     the title, the description and the
+     *                            theme
+     *   ... and a password       the title and the theme (its password
+     *                            prompt shows them)
+     *   an IP allowlist          the generic title and description: a
+     *                            visitor outside the list sees nothing of the
+     *                            dashboard, but the link still answers, so
+     *                            its llms.txt can point an allowed agent at
+     *                            the overview, which checks the address
+     *   anything else            nothing: not found, like a missing dashboard
+     *
+     * "Anything else" is a dashboard shared only with its project, an
+     * archived one, and one that does not exist.
+     */
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
@@ -418,85 +512,77 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const dashboardIdOrDomain: string = req.params[
-            "dashboardIdOrDomain"
-          ] as string;
+          const dashboardId: ObjectID = await resolveDashboardIdOrThrow(
+            req.params["dashboardIdOrDomain"] as string,
+          );
 
-          let dashboardId: ObjectID | null = null;
+          const access: PublicDashboardAccessResult =
+            await DashboardService.getPublicAccessForEveryone({
+              dashboardId,
+            });
 
-          if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
-            // This is a domain - resolve to dashboard ID
-            const dashboardDomain: DashboardDomain | null =
-              await DashboardDomainService.findOneBy({
-                query: {
-                  fullDomain: dashboardIdOrDomain,
-                  domain: {
-                    isVerified: true,
-                  } as any,
-                },
-                select: {
-                  dashboardId: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-            if (!dashboardDomain || !dashboardDomain.dashboardId) {
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new NotFoundException("Dashboard not found"),
-              );
-            }
-
-            dashboardId = dashboardDomain.dashboardId;
-          } else {
-            try {
-              dashboardId = new ObjectID(dashboardIdOrDomain);
-            } catch (err) {
-              logger.error(
-                err,
-                getLogAttributesFromRequest(req as OneUptimeRequest),
-              );
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new BadDataException("Invalid dashboard ID"),
-              );
-            }
+          if (access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            return Response.sendJsonObjectResponse(req, res, {
+              _id: dashboardId.toString(),
+              title: PUBLIC_DASHBOARD_DEFAULT_TITLE,
+              description: PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+            });
+          }
+
+          const isOpenToEveryone: boolean =
+            access.access === PublicDashboardAccess.Granted;
 
           const dashboard: Dashboard | null =
             await DashboardService.findOneById({
               id: dashboardId,
-              select: {
-                _id: true,
-                name: true,
-                description: true,
-                pageTitle: true,
-                pageDescription: true,
-              },
+              select: isOpenToEveryone
+                ? {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    description: true,
+                    pageDescription: true,
+                    theme: true,
+                  }
+                : {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    theme: true,
+                  },
               props: {
                 isRoot: true,
               },
             });
 
           if (!dashboard) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Dashboard not found"),
-            );
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
-            title: dashboard.pageTitle || dashboard.name || "Dashboard",
+            title:
+              dashboard.pageTitle ||
+              dashboard.name ||
+              PUBLIC_DASHBOARD_DEFAULT_TITLE,
             description:
-              dashboard.pageDescription ||
-              dashboard.description ||
-              "View dashboard metrics and insights.",
+              (isOpenToEveryone
+                ? dashboard.pageDescription || dashboard.description
+                : "") || PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+            /*
+             * Light, Dark or System, for the theme the page's HTML is sent
+             * with, so a dark dashboard - and its password prompt - is dark
+             * before the first paint. Read here the way the app reads it,
+             * so the two servers that render the page never decide what an
+             * empty column means. An IP allowlist's refusal above names
+             * none: Access Denied shows nothing of the dashboard, and
+             * follows the visitor.
+             */
+            [DASHBOARD_THEME_COLUMN]: parseDashboardTheme(dashboard.theme),
           });
         } catch (err) {
           next(err);
@@ -612,7 +698,14 @@ export default class DashboardAPI extends BaseAPI<
       overviewHandler,
     );
 
-    // Domain resolution endpoint
+    /*
+     * The dashboard a verified custom domain shows, for the public app on
+     * that domain. It answers only for a dashboard whose public link
+     * answers: a domain whose dashboard is shared only with its project, or
+     * archived, reads like a domain no dashboard has. Whether the link
+     * answers at all is the same for every visitor; the address and the
+     * password are for the routes the app calls next.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       publicDashboardRateLimit,
@@ -623,32 +716,19 @@ export default class DashboardAPI extends BaseAPI<
             throw new BadDataException("domain is required in request body");
           }
 
-          const domain: string = req.body["domain"] as string;
+          const dashboardId: ObjectID | null =
+            await findVerifiedDomainDashboardId(req.body["domain"] as string);
 
-          const dashboardDomain: DashboardDomain | null =
-            await DashboardDomainService.findOneBy({
-              query: {
-                fullDomain: domain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                dashboardId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!dashboardDomain) {
-            throw new BadDataException("No dashboard found with this domain");
+          if (
+            !dashboardId ||
+            (await DashboardService.getPublicAccessForEveryone({ dashboardId }))
+              .access === PublicDashboardAccess.NotFound
+          ) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
-          const objectId: ObjectID = dashboardDomain.dashboardId!;
-
           return Response.sendJsonObjectResponse(req, res, {
-            dashboardId: objectId.toString(),
+            dashboardId: dashboardId.toString(),
           });
         } catch (err) {
           next(err);
@@ -656,7 +736,24 @@ export default class DashboardAPI extends BaseAPI<
       },
     );
 
-    // Metadata endpoint - returns dashboard info for the public viewer
+    /*
+     * What the public dashboard app loads first: the dashboard's name, page
+     * title, favicon, theme and whether its link asks for the password -
+     * and, once the visitor may view it, its description, page description
+     * and logo.
+     *
+     * Decided before anything is read, for the visitor asking (their address
+     * and unlock cookie), by the rule every public route keeps
+     * (DashboardService.getPublicAccess):
+     *
+     *   Granted           the whole answer
+     *   PasswordRequired  only what the password prompt shows: the name, the
+     *                     page title, the favicon and the theme
+     *   Forbidden         403, the IP allowlist's refusal
+     *   NotFound          404 "Dashboard not found", word for word what an id
+     *                     no dashboard has gets: a dashboard shared only with
+     *                     its project, or archived, says nothing about itself
+     */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
@@ -665,53 +762,99 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const dashboardId: ObjectID = new ObjectID(
-            req.params["dashboardId"] as string,
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
           );
+
+          const access: PublicDashboardAccessResult =
+            await DashboardService.getPublicAccess({
+              dashboardId,
+              req,
+            });
+
+          if (access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            throw access.error;
+          }
+
+          const isUnlocked: boolean =
+            access.access === PublicDashboardAccess.Granted;
 
           const dashboard: Dashboard | null =
             await DashboardService.findOneById({
               id: dashboardId,
-              select: {
-                _id: true,
-                name: true,
-                description: true,
-                isPublicDashboard: true,
-                enableMasterPassword: true,
-                pageTitle: true,
-                pageDescription: true,
-                logoFile: {
-                  file: true,
-                  fileType: true,
-                },
-                faviconFile: {
-                  file: true,
-                  fileType: true,
-                },
-              },
+              select: isUnlocked
+                ? {
+                    _id: true,
+                    // Only to hold its images to its project; never sent.
+                    projectId: true,
+                    name: true,
+                    pageTitle: true,
+                    faviconFile: SERVED_IMAGE_SELECT,
+                    theme: true,
+                    description: true,
+                    pageDescription: true,
+                    logoFile: SERVED_IMAGE_SELECT,
+                  }
+                : {
+                    _id: true,
+                    projectId: true,
+                    name: true,
+                    pageTitle: true,
+                    faviconFile: SERVED_IMAGE_SELECT,
+                    theme: true,
+                  },
               props: {
                 isRoot: true,
               },
             });
 
           if (!dashboard) {
-            throw new NotFoundException("Dashboard not found");
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
-            description: dashboard.description || "",
-            isPublicDashboard: dashboard.isPublicDashboard || false,
-            enableMasterPassword: dashboard.enableMasterPassword || false,
+            // Only a public dashboard's link answers at all.
+            isPublicDashboard: true,
+            /*
+             * Whether the public link asks for the password, by the rule the
+             * server enforces (Types/Dashboard/DashboardAccess) - still true
+             * once this visitor has entered it.
+             */
+            enableMasterPassword: access.isMasterPasswordRequired,
             pageTitle: dashboard.pageTitle || "",
-            pageDescription: dashboard.pageDescription || "",
-            logoFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.logoFile,
-            ),
+            // Its images only when they are files of its own project.
             faviconFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.faviconFile,
+              FileOwnership.keepProjectFile(
+                dashboard.faviconFile,
+                dashboard.projectId,
+              ),
             ),
+            /*
+             * Light, Dark or System: how the dashboard looks to visitors,
+             * its password prompt included, read the way the page's HTML
+             * was sent it (/seo).
+             */
+            [DASHBOARD_THEME_COLUMN]: parseDashboardTheme(dashboard.theme),
+            /*
+             * The rest stays behind the password: the keys are always
+             * there, empty until this visitor may view the dashboard.
+             */
+            description: isUnlocked ? dashboard.description || "" : "",
+            pageDescription: isUnlocked ? dashboard.pageDescription || "" : "",
+            logoFile: isUnlocked
+              ? DashboardAPI.getFileAsBase64JSONObject(
+                  FileOwnership.keepProjectFile(
+                    dashboard.logoFile,
+                    dashboard.projectId,
+                  ),
+                )
+              : null,
           });
         } catch (err) {
           next(err);
@@ -753,15 +896,14 @@ export default class DashboardAPI extends BaseAPI<
               id: dashboardId,
               select: {
                 _id: true,
+                // Only to hold its logo to its project; never sent.
+                projectId: true,
                 name: true,
                 description: true,
                 dashboardViewConfig: true,
                 pageTitle: true,
                 pageDescription: true,
-                logoFile: {
-                  file: true,
-                  fileType: true,
-                },
+                logoFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
@@ -781,8 +923,12 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
+            // Its logo only when it is a file of its own project.
             logoFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.logoFile,
+              FileOwnership.keepProjectFile(
+                dashboard.logoFile,
+                dashboard.projectId,
+              ),
             ),
             /*
              * External Data Source widgets are stripped: they cannot render
@@ -900,7 +1046,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const allowedAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardVariableAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           if (!allowedAttributeKeys.has(requestedAttributeKey)) {
@@ -987,7 +1133,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           if (allowedMetricNames.size === 0) {
@@ -1116,7 +1262,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           /*
@@ -1159,7 +1305,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedGroupByAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardGroupByAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
           const requestedGroupByAttributeKeys: unknown =
             aggregateBy.groupByAttributeKeys;
@@ -1193,7 +1339,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const allowedGroupByColumns: Set<string> =
             DashboardAPI.collectDashboardGroupByColumns(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
           const requestedGroupBy: unknown = aggregateBy.groupBy;
 
@@ -1262,7 +1408,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedFilterAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardFilterAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           const sanitizedAttributes: Record<string, unknown> = {};
@@ -1412,7 +1558,7 @@ export default class DashboardAPI extends BaseAPI<
           }
 
           const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-            dashboardViewConfig: dashboard.dashboardViewConfig,
+            dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
             config: PUBLIC_DASHBOARD_SLO_RESOURCE,
             requestedComponentId: req.body["componentId"],
           });
@@ -1426,7 +1572,8 @@ export default class DashboardAPI extends BaseAPI<
           const variables: Array<DashboardVariable> =
             PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
               {
-                dashboardViewConfig: dashboard.dashboardViewConfig,
+                dashboardViewConfig:
+                  DashboardAPI.getStoredViewConfig(dashboard),
                 requestedVariables: req.body["variables"],
               },
             );
@@ -1509,12 +1656,8 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          if (!req.params["dashboardId"]) {
-            throw new BadDataException("Dashboard ID not found");
-          }
-
-          const dashboardId: ObjectID = new ObjectID(
-            req.params["dashboardId"] as string,
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
           );
 
           const password: unknown = req.body && req.body["password"];
@@ -1533,23 +1676,47 @@ export default class DashboardAPI extends BaseAPI<
                 masterPassword: true,
                 masterPasswordSalt: true,
                 isPublicDashboard: true,
+                isArchived: true,
+                ipWhitelist: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard) {
-            throw new NotFoundException("Dashboard not found");
+          /*
+           * The public link's answer comes first (Utils/Dashboard/
+           * PublicDashboardAccess): a dashboard it answers nobody for - one
+           * shared only with its project, an archived one, one that does not
+           * exist - has nothing to unlock and reads the same either way, and
+           * a visitor its IP allowlist refuses tries no password.
+           */
+          const access: PublicDashboardAccessResult =
+            await DashboardService.decidePublicAccess({
+              dashboard,
+              dashboardId,
+              req,
+            });
+
+          if (!dashboard || access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
-          if (!dashboard.isPublicDashboard) {
-            throw new BadDataException(
-              "This dashboard is not publicly accessible.",
-            );
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            throw access.error;
           }
 
-          if (!dashboard.enableMasterPassword || !dashboard.masterPassword) {
+          // Who can view it, by the rule the Sharing page shows and writes.
+          const accessState: DashboardAccessState = {
+            isPublicDashboard: dashboard.isPublicDashboard,
+            enableMasterPassword: dashboard.enableMasterPassword,
+            hasMasterPassword: Boolean(dashboard.masterPassword),
+          };
+
+          if (
+            !isDashboardMasterPasswordRequired(accessState) ||
+            isDashboardLockedWithoutPassword(accessState)
+          ) {
             throw new BadDataException(
               "Master password has not been configured for this dashboard.",
             );
@@ -1918,33 +2085,44 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
+   * A dashboard's stored config as every public route reads it: the object
+   * its widgets are on, wherever it was stored. A config written as the API
+   * reference's `{_type: "DashboardViewConfig", value: {...}}` envelope or
+   * as JSON text has them one level down; the dashboard draws them, so the
+   * routes that serve their data must find them too (issue #4571).
+   */
+  private static getStoredViewConfig(dashboard: Dashboard): JSONObject {
+    return StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig);
+  }
+
+  /*
    * Read only the real, top-level dashboard components. Recursively scanning
    * arbitrary widget arguments would let a nested object carrying a
    * `componentType` masquerade as a widget and become an authorization input.
+   *
+   * The list is the one the public page draws - what /view-config serves
+   * (PublicDashboardViewConfig.sanitize) - with each widget under the id the
+   * page draws it under (StoredDashboardViewConfig.withComponentIds). A
+   * widget stored without an id, or with one an earlier widget already has,
+   * is then found by the id the page asks with, and two widgets that share
+   * a stored id are no longer both answered from the first one's settings.
    */
   private static collectDashboardWidgets(
     dashboardViewConfig: unknown,
   ): Array<JSONObject> {
-    if (
-      !dashboardViewConfig ||
-      typeof dashboardViewConfig !== "object" ||
-      Array.isArray(dashboardViewConfig)
-    ) {
-      return [];
-    }
-
-    const components: unknown = (
-      dashboardViewConfig as Record<string, unknown>
-    )["components"];
-
-    if (!Array.isArray(components)) {
-      return [];
-    }
-
-    return components.filter((component: unknown): component is JSONObject => {
-      return Boolean(
-        component && typeof component === "object" && !Array.isArray(component),
+    const servedConfig: DashboardViewConfig | null =
+      PublicDashboardViewConfig.sanitize(
+        dashboardViewConfig as DashboardViewConfig | null | undefined,
       );
+
+    if (!servedConfig) {
+      return [];
+    }
+
+    return StoredDashboardViewConfig.withComponentIds(
+      servedConfig.components,
+    ).filter((component: unknown): component is JSONObject => {
+      return StoredDashboardViewConfig.isWidgetEntry(component);
     });
   }
 
@@ -2143,7 +2321,7 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-      dashboardViewConfig: dashboard.dashboardViewConfig,
+      dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
       config,
       requestedComponentId: req.body ? req.body["componentId"] : undefined,
     });
@@ -2158,9 +2336,16 @@ export default class DashboardAPI extends BaseAPI<
     const policy: PublicDashboardResourceListPolicyResult =
       PublicDashboardResourceListPolicy.build({
         widget,
-        dashboardViewConfig: dashboard.dashboardViewConfig,
+        dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
         requestedVariables: req.body ? req.body["variables"] : undefined,
         requestedQuery,
+        /*
+         * A viewer's sort from a header click: the policy takes it only
+         * when it names one of the widget's own sortable columns.
+         */
+        requestedSort: req.body
+          ? req.body[DASHBOARD_WIDGET_SORT_REQUEST_FIELD]
+          : undefined,
       });
 
     const requestedResourceType: string = req.params["resourceType"] as string;
@@ -2188,6 +2373,27 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     /*
+     * An incident or alert list kept to Unresolved, Resolved or
+     * Acknowledged: the project's own states say which those are
+     * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState) - a state
+     * placed after Resolved is resolved too, one placed between Acknowledged
+     * and Resolved acknowledged. Within any states the list already names.
+     */
+    if (
+      policy.resolvedStateFilter &&
+      dashboard.projectId &&
+      (requestedResourceType === "incident" ||
+        requestedResourceType === "alert")
+    ) {
+      query = await DashboardAPI.applyResolvedStateFilter({
+        query: query,
+        resourceType: requestedResourceType,
+        filter: policy.resolvedStateFilter,
+        projectId: dashboard.projectId,
+      });
+    }
+
+    /*
      * Project scope is the final query invariant. Neither the request nor a
      * future policy builder may redirect this root read to another project.
      * Resource kind, where applicable, comes solely from the selected
@@ -2195,15 +2401,39 @@ export default class DashboardAPI extends BaseAPI<
      */
     query["projectId"] = dashboard.projectId;
 
+    /*
+     * One read for most orders. A status the database cannot order by its
+     * meaning (a pod's phase, a storage component's status) is read rank by
+     * rank, worst first, each read the same query narrowed to its rank,
+     * until the list has its rows (DashboardWidgetSorts). Every read keeps
+     * the project scope set above.
+     */
+    const steps: Array<DashboardWidgetListReadStep> = policy.sortChoice
+      ? getDashboardWidgetListReadSteps({
+          componentType: widget["componentType"],
+          choice: policy.sortChoice,
+          query,
+        })
+      : [{ query, sort: policy.sort }];
+
     const list: Array<BaseModel | AnalyticsDataModel> =
-      await config.service.findBy({
-        query: query,
-        select: policy.select,
-        sort: policy.sort,
+      await readDashboardWidgetListInSteps<BaseModel | AnalyticsDataModel>({
+        steps,
         limit: policy.limit,
-        skip: 0,
-        props: {
-          isRoot: true,
+        read: (
+          step: DashboardWidgetListReadStep,
+          limit: number,
+        ): Promise<Array<BaseModel | AnalyticsDataModel>> => {
+          return config.service.findBy({
+            query: { ...step.query, projectId: dashboard.projectId },
+            select: policy.select,
+            sort: step.sort,
+            limit: limit,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
         },
       });
 
@@ -2214,6 +2444,75 @@ export default class DashboardAPI extends BaseAPI<
       new PositiveNumber(list.length),
       config.modelType,
     );
+  }
+
+  /*
+   * Keeps an incident or alert list to the project's unresolved, resolved or
+   * acknowledged (but not resolved) states: its current state id among them
+   * - and among the states the list names already, when it names some.
+   */
+  private static async applyResolvedStateFilter(data: {
+    query: JSONObject;
+    resourceType: "incident" | "alert";
+    filter: PublicDashboardResolvedStateFilter;
+    projectId: ObjectID;
+  }): Promise<JSONObject> {
+    const stateColumn: string =
+      data.resourceType === "incident"
+        ? "currentIncidentStateId"
+        : "currentAlertStateId";
+
+    let stateIds: Array<ObjectID> = [];
+
+    if (data.resourceType === "incident") {
+      if (data.filter === "acknowledged") {
+        stateIds =
+          await IncidentStateService.getAcknowledgedUnresolvedIncidentStateIds(
+            data.projectId,
+          );
+      } else {
+        stateIds =
+          data.filter === "unresolved"
+            ? await IncidentStateService.getUnresolvedIncidentStateIds(
+                data.projectId,
+              )
+            : await IncidentStateService.getResolvedIncidentStateIds(
+                data.projectId,
+              );
+      }
+    } else if (data.filter === "acknowledged") {
+      stateIds = await AlertStateService.getAcknowledgedUnresolvedAlertStateIds(
+        data.projectId,
+      );
+    } else {
+      stateIds =
+        data.filter === "unresolved"
+          ? await AlertStateService.getUnresolvedAlertStateIds(data.projectId)
+          : await AlertStateService.getResolvedAlertStateIds(data.projectId);
+    }
+
+    let allowed: Array<string> = stateIds.map((stateId: ObjectID): string => {
+      return stateId.toString();
+    });
+
+    const named: unknown = data.query[stateColumn];
+
+    if (named instanceof Includes) {
+      const namedIds: Array<string> = named.values.map(
+        (value: unknown): string => {
+          return String(value).toLowerCase();
+        },
+      );
+
+      allowed = allowed.filter((stateId: string): boolean => {
+        return namedIds.includes(stateId.toLowerCase());
+      });
+    }
+
+    return {
+      ...data.query,
+      [stateColumn]: new Includes(allowed),
+    };
   }
 
   private static getFileAsBase64JSONObject(

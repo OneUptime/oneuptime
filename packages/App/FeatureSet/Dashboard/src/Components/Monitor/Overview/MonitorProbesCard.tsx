@@ -16,6 +16,12 @@ import {
   MonitorOverviewProbeSummary,
 } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -95,12 +101,18 @@ export const getProbeAgreementText: (data: {
   }
 
   if (requiredCount < activeCount) {
-    return `A status change needs ${requiredCount} of ${activeCount} connected probes to agree.`;
+    return translateTemplate(
+      "A status change needs {{required}} of {{count}} connected probes to agree.",
+      { required: requiredCount, count: activeCount },
+    );
   }
 
   return activeCount === 2
-    ? "A status change needs both connected probes to agree."
-    : `A status change needs all ${activeCount} connected probes to agree.`;
+    ? translateTemplate("A status change needs both connected probes to agree.")
+    : translateTemplate(
+        "A status change needs all {{count}} connected probes to agree.",
+        { count: activeCount },
+      );
 };
 
 const toProbeModel: (row: MonitorOverviewProbeRow) => Probe = (
@@ -127,6 +139,7 @@ const toProbeModel: (row: MonitorOverviewProbeRow) => Probe = (
 const MonitorProbesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const probesRoute: Route = getMonitorPageRoute({
     pageMap: PageMap.MONITOR_VIEW_PROBES,
     monitorId: props.monitorId,
@@ -161,21 +174,26 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
         <div className="min-w-0">
           <ProbeElement probe={toProbeModel(row)} />
           <p className="mt-1 text-xs text-gray-500">
-            {monitoredAt ? (
-              <>
-                {"Checked "}
-                <RelativeTime date={monitoredAt} />
-              </>
+            {monitoredAt && isNextInFuture && row.nextPingAt ? (
+              <TranslatedSentence
+                template="Checked {{time}} · next {{next}}"
+                slots={{
+                  time: <RelativeTime date={monitoredAt} />,
+                  next: <RelativeTime date={row.nextPingAt} />,
+                }}
+              />
+            ) : monitoredAt ? (
+              <TranslatedSentence
+                template="Checked {{time}}"
+                slots={{ time: <RelativeTime date={monitoredAt} /> }}
+              />
+            ) : isNextInFuture && row.nextPingAt ? (
+              <TranslatedSentence
+                template="No result yet · next {{next}}"
+                slots={{ next: <RelativeTime date={row.nextPingAt} /> }}
+              />
             ) : (
-              <>No result yet</>
-            )}
-            {isNextInFuture && row.nextPingAt ? (
-              <>
-                {" · next "}
-                <RelativeTime date={row.nextPingAt} />
-              </>
-            ) : (
-              <></>
+              <>{translator.translateText("No result yet")}</>
             )}
           </p>
           {failureCause ? (
@@ -208,9 +226,9 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       if (props.probes.status === "forbidden") {
         return (
           <p className="text-sm text-gray-500">
-            {
-              "Probes are hidden: you need permission to read this monitor's probes."
-            }
+            {translator.translateText(
+              "Probes are hidden: you need permission to read this monitor's probes.",
+            )}
           </p>
         );
       }
@@ -218,7 +236,9 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       if (props.probes.status === "error") {
         return (
           <p className="text-sm text-red-700">
-            {`Couldn't load probes. ${props.probes.error}`}
+            {translator.translateTemplate("Couldn't load probes. {{error}}", {
+              error: props.probes.error || "",
+            })}
           </p>
         );
       }
@@ -226,7 +246,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       return (
         <div
           role="status"
-          aria-label="Loading probes"
+          aria-label={translator.translateText("Loading probes")}
           className="space-y-2 animate-pulse"
         >
           <div className="h-4 w-5/6 rounded bg-gray-100"></div>
@@ -240,7 +260,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
     if (rows.length === 0) {
       return (
         <div className="text-sm text-gray-500">
-          <p>No probes attached.</p>
+          <p>{translator.translateText("No probes attached.")}</p>
           <div className="mt-2">
             <SloOverviewActionLink
               variant="text"
@@ -260,7 +280,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        <ul aria-label="Probes" className="divide-y divide-gray-100">
+        <ul
+          aria-label={translator.translateText("Probes")}
+          className="divide-y divide-gray-100"
+        >
           {rows.map((row: MonitorOverviewProbeRow) => {
             return getRow(row, now);
           })}
@@ -277,7 +300,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
         )}
         {props.probes.refreshError ? (
           <p className="mt-2 text-xs text-gray-500">
-            {`Couldn't refresh probes. ${props.probes.refreshError}`}
+            {translator.translateTemplate(
+              "Couldn't refresh probes. {{error}}",
+              { error: props.probes.refreshError || "" },
+            )}
           </p>
         ) : (
           <></>

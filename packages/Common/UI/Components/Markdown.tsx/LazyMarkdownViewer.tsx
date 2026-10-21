@@ -4,6 +4,8 @@
  * of every eager bundle that imports this wrapper.
  */
 import type { ComponentProps } from "./MarkdownViewer";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   LazyExoticComponent,
@@ -19,6 +21,8 @@ const MarkdownViewer: LazyExoticComponent<FunctionComponent<ComponentProps>> =
 const LazyMarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): JSX.Element => {
+  const translator: Translator = useTranslator();
+
   return (
     <Suspense
       fallback={
@@ -33,7 +37,9 @@ const LazyMarkdownViewer: FunctionComponent<ComponentProps> = (
         <span role="status" aria-live="polite" className="block space-y-2">
           <span className="block h-4 w-3/4 animate-pulse rounded bg-gray-100" />
           <span className="block h-4 w-1/2 animate-pulse rounded bg-gray-100" />
-          <span className="sr-only">Loading content</span>
+          <span className="sr-only">
+            {translator.translateText("Loading content")}
+          </span>
         </span>
       }
     >

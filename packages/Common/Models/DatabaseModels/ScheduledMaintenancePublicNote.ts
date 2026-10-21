@@ -1,5 +1,7 @@
+import { JSONObject } from "../../Types/JSON";
 import Project from "./Project";
 import ScheduledMaintenance from "./ScheduledMaintenance";
+import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import User from "./User";
 import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -785,4 +787,115 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     nullable: true,
   })
   public postedFromSlackMessageId?: string = undefined;
+
+  /*
+   * The state the scheduled maintenance event moved to when this note was posted with that
+   * state change: the public note of the state change dialogs, the Change
+   * State bulk action, or `miscDataProps.publicNote` on a state timeline
+   * create. The note's subscriber messages name it ("Status: Resolved").
+   * Empty for a note posted on its own. OneUptime sets it on the note a
+   * state change posts, and on no other (StateChangePublicNote): no create
+   * or update can write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenancePublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "postedWithScheduledMaintenanceStateId",
+    type: TableColumnType.Entity,
+    modelType: ScheduledMaintenanceState,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Posted With State Change To",
+    description:
+      "The state the scheduled maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+  })
+  @ManyToOne(
+    () => {
+      return ScheduledMaintenanceState;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "postedWithScheduledMaintenanceStateId" })
+  public postedWithScheduledMaintenanceState?: ScheduledMaintenanceState =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenancePublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    title: "Posted With State Change To ID",
+    description:
+      "The state the scheduled maintenance event moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public postedWithScheduledMaintenanceStateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenancePublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "When this note was saved from a Slack or Microsoft Teams message - pinned, or given a note emoji - the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). Written by OneUptime; the note's creator is whoever saved it.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      authorUserId: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

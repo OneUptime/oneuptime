@@ -367,6 +367,17 @@ export const UNASSIGNED_DEVICES_FACET_SELECTION: FacetTileSelection = {
  * every unbound device is in it, and each one wears its "No monitor" pill so
  * the operator can pick them out and switch them to probe polling.
  */
+/**
+ * "Devices with a port down" - the Interfaces chip on Some down. The Devices
+ * page's Total Interfaces Down tile sets it, and the Network Overview's
+ * Interfaces Down tile links here with it set.
+ */
+export const DEVICES_WITH_INTERFACES_DOWN_SELECTION: FacetTileSelection = {
+  facetKey: DEVICE_INTERFACES_FACET_KEY,
+  values: [DeviceInterfacesFacetValue.SomeDown],
+  operator: "is",
+};
+
 export const PENDING_DEVICES_FACET_SELECTION: FacetTileSelection = {
   facetKey: DEVICE_STATUS_FACET_KEY,
   values: [DeviceStatusFacetValue.Pending],

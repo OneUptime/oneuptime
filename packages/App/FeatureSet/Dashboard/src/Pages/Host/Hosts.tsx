@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -16,7 +17,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -24,26 +24,48 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import HostDocumentationCard from "../../Components/Host/DocumentationCard";
+import AddHostGuide from "../../Components/HostCollector/AddHostGuide";
+import AddHostModal from "../../Components/HostCollector/AddHostModal";
+import HostCollectorStatePill from "../../Components/HostCollector/HostCollectorStatePill";
+import {
+  getHostCollectorConfigLabel,
+  isHostCollectorManaged,
+} from "../../Components/HostCollector/HostCollectorStatus";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Blue, Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceSummary {
   cores: number | undefined;
   memoryBytes: number | undefined;
   processes: number | undefined;
 }
+
+/*
+ * The config a host runs, under its collector's state: as wide as the
+ * state's pill and no wider (w-0 + min-w-full adds nothing to the column's
+ * width), so a long config name ends in "…" with the full name on hover
+ * instead of pushing the Collector column under the row's actions.
+ */
+const HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME: string =
+  "w-0 min-w-full truncate text-xs text-gray-500";
 
 const formatMemory: (bytes: number | undefined) => string = (
   bytes: number | undefined,
@@ -112,6 +134,7 @@ const parseIpString: (ipString: string) => Array<string> = (
 const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   ipString: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!props.ipString) {
@@ -143,7 +166,10 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
           }}
           className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
         >
-          +{rest.length} more
+          {translator.translatePlural(
+            { one: "+{{count}} more", other: "+{{count}} more" },
+            rest.length,
+          )}
         </button>
       )}
       {rest.length > 0 && isExpanded && (
@@ -163,7 +189,7 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
             }}
             className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
           >
-            Show less
+            {translator.translateText("Show less")}
           </button>
         </div>
       )}
@@ -172,9 +198,13 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
 };
 
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [hostCount, setHostCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<Host>({
+    modelType: Host,
+  });
+  const [isAddHostOpen, setIsAddHostOpen] = useState<boolean>(false);
+  // Hosts connected from the Add Host dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Host>({ modelType: Host });
@@ -250,6 +280,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -262,59 +293,54 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: hostExtraFacets,
   });
 
-  const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: Host,
-        query: {},
-      });
-      setHostCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchHostCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
+  /*
+   * A host is added by running one command on it (Add Host): the command
+   * installs the collector OneUptime configures, and the host registers
+   * itself when it connects - named after its hostname, with the labels the
+   * command gave it. There is no form: a host typed in by hand would only
+   * wait for telemetry that nothing sends.
+   */
   return (
     <Fragment>
       <ModelTable<Host>
         modelType={Host}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="hosts-table"
         userPreferencesKey="hosts-table"
         saveFilterProps={{
           tableId: "hosts-table",
         }}
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Host>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: Host): Promise<Host> => {
-          setHostCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
-          return Promise.resolve(item);
-        }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         bulkActions={{
@@ -335,60 +361,32 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           totalMemoryBytes: true,
           processCount: true,
           containerRuntime: true,
+          lastSeenAt: true,
+          collectorInstanceUid: true,
+          collectorLastContactAt: true,
+          collectorConfigStatus: true,
+          isCollectorHealthy: true,
+          collectorConfig: {
+            name: true,
+          },
         }}
         cardProps={{
           title: "Hosts",
           description:
-            "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
+            "Hosts being monitored in this project. Add one with a single command on the host.",
+          buttons: [
+            {
+              title: "Add Host",
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddHostOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-host-1",
-          },
-          {
-            field: {
-              hostIdentifier: true,
-            },
-            title: "Host Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "host-prod-1",
-            description:
-              "This should match the host.name attribute reported by the OTel collector.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production host running in US East",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        formFields={[]}
         filters={[
           {
             field: {
@@ -401,7 +399,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {
@@ -475,7 +473,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="capitalize">{osType || "unknown"}</span>
+                  <span className="capitalize">
+                    {osType || translator.translateText("unknown")}
+                  </span>
                   {arch && (
                     <span className="ml-1.5 text-xs font-mono text-gray-500">
                       {arch}
@@ -535,7 +535,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <div>{parts.join(" · ") || "—"}</div>
                   {summary.processes !== undefined && (
                     <div className="text-xs text-gray-500">
-                      {summary.processes} processes
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} process",
+                          other: "{{count}} processes",
+                        },
+                        summary.processes,
+                      )}
                     </div>
                   )}
                 </div>
@@ -551,11 +557,62 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getElement: (item: Host): ReactElement => {
               const isConnected: boolean =
                 item.otelCollectorStatus === "connected";
+              /*
+               * A host whose collector OneUptime manages registers before
+               * its first metrics: it is starting, not disconnected.
+               */
+              if (
+                !isConnected &&
+                !item.lastSeenAt &&
+                isHostCollectorManaged(item)
+              ) {
+                return <Pill text="Starting" color={Blue} isPulsing={true} />;
+              }
               return (
                 <Pill
                   text={isConnected ? "Connected" : "Disconnected"}
                   color={isConnected ? Green : Red}
                 />
+              );
+            },
+          },
+          {
+            field: {
+              collectorConfigStatus: true,
+            },
+            title: "Collector",
+            type: FieldType.Element,
+            /*
+             * Shown on phones too: a config that failed on a host is the
+             * one thing in this row that asks for action.
+             */
+            getElement: (item: Host): ReactElement => {
+              // A collector installed by hand: nothing OneUptime manages.
+              if (!isHostCollectorManaged(item)) {
+                return <TableEmptyValue screenReaderText="Installed by hand" />;
+              }
+              /*
+               * "OneUptime default" without its system: the OS column
+               * beside it says that, and the host's Collector page names
+               * the default in full.
+               */
+              const configLabel: string = getHostCollectorConfigLabel(
+                {
+                  configName: item.collectorConfig?.name,
+                },
+                translator,
+              );
+              return (
+                <div className="flex min-w-0 flex-col items-start gap-1">
+                  <HostCollectorStatePill host={item} />
+                  <div
+                    className={HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME}
+                    title={configLabel}
+                    data-testid="host-collector-config-label"
+                  >
+                    {configLabel}
+                  </div>
+                </div>
               );
             },
           },
@@ -610,10 +667,29 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {hostCount === 0 && (
-        <HostDocumentationCard
-          title="Getting Started with Host Monitoring"
-          description="No hosts connected yet. Wire up an OpenTelemetry Collector with the hostmetrics receiver using the guide below — your host will appear here automatically once the first metric batch arrives."
+      {firstRecordWatch.count === 0 && (
+        <AddHostGuide
+          title="Add your first host"
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onHostConnected={() => {
+            // The guide gives way, and the table reads the new host.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddHostOpen && (
+        <AddHostModal
+          onClose={() => {
+            setIsAddHostOpen(false);
+          }}
+          onHostConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

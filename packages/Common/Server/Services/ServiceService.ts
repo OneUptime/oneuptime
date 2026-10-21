@@ -6,18 +6,12 @@ import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ProjectService from "./ProjectService";
 import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
 import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
-import ArrayUtil from "../../Utils/Array";
-import {
-  Blue500,
-  BrightColors,
-  Gray500,
-  Green500,
-  Yellow500,
-} from "../../Types/BrandColors";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { pickRandomDistinctColor } from "../../Utils/DistinctColor";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -27,8 +21,14 @@ import Project from "../../Models/DatabaseModels/Project";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import SingleFlight from "../Utils/SingleFlight";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 
@@ -52,22 +52,48 @@ const METADATA_WRITE_THROTTLE_SECONDS: number = 5 * 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "service-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A service is matched to its telemetry by its name (service.name),
+ * so a rename is held to the rules a new service is: no spaces around
+ * it, never blank, and never another service's name
+ * (DiscoveredResourceUpdate).
+ */
+const SERVICE_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "service",
+});
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: SERVICE_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Select a random color when the caller did not provide one. API
      * clients (e.g. Terraform) may set an explicit color; overwriting it
-     * made the field impossible to manage declaratively.
+     * made the field impossible to manage declaratively. From the palette
+     * OneUptime picks new records' colours from (Utils/DistinctColor), not
+     * BrightColors, which holds black and grey: a black service vanished in
+     * the dark theme and a grey one looked switched off.
      */
     if (!createBy.data.serviceColor) {
-      createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+      createBy.data.serviceColor = pickRandomDistinctColor();
     }
 
     return {
@@ -623,14 +649,14 @@ export class Service extends DatabaseService<Model> {
   public async getServiceMarkdownLink(
     projectId: ObjectID,
     serviceId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getServiceName({ serviceId: serviceId });
     const link: URL = await this.getServiceLinkInDashboard(
       projectId,
       serviceId,
     );
 
-    return `[Service ${name}](${link.toString()})`;
+    return mdText`[Service ${name}](${link.toString()})`;
   }
 
   private async writeServiceCreatedFeed(
@@ -741,10 +767,8 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getServiceMarkdownLink(
-        projectId,
-        serviceId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getServiceMarkdownLink(projectId, serviceId);
 
       if (isArchiveChange) {
         await ServiceFeedService.createServiceFeedItem({
@@ -755,8 +779,8 @@ export class Service extends DatabaseService<Model> {
             : ServiceFeedEventType.ServiceRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

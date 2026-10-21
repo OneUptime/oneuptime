@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface SavedViewsSearchInputProps {
   value: string;
@@ -8,7 +10,7 @@ export interface SavedViewsSearchInputProps {
   className?: string | undefined;
 }
 
-const DEFAULT_LABEL: string = "Search saved views...";
+const DEFAULT_LABEL: string = translationKey("Search saved views...");
 
 /*
  * One search box, shared by every saved-views surface, so the logs sidebar,
@@ -19,7 +21,9 @@ const DEFAULT_LABEL: string = "Search saved views...";
 const SavedViewsSearchInput: FunctionComponent<SavedViewsSearchInputProps> = (
   props: SavedViewsSearchInputProps,
 ): ReactElement => {
-  const label: string = props.label || DEFAULT_LABEL;
+  const translator: Translator = useTranslator();
+  const label: string =
+    translator.translateText(props.label || DEFAULT_LABEL) || DEFAULT_LABEL;
 
   return (
     <input

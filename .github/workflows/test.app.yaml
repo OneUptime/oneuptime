@@ -13,6 +13,7 @@ on:
 
 jobs:
   test:
+    name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     # This job stopped finishing altogether: it ran into the 6h runner ceiling
     # and was killed there, so master had no App test signal at all. The suite
@@ -23,14 +24,26 @@ jobs:
     # (App/jest.config.json sets isolatedModules) and runs on jest's worker
     # pool, which took the whole suite to under three minutes of test time.
     #
-    # Nothing goes unchecked: the compile-app job in the Compile workflow has
-    # every App test file as a tsc program root, and checks the whole program
-    # once in about a minute rather than 338 times over.
+    # Nothing goes unchecked: the Compile workflow's Compile App step (in its
+    # compile-services job) has every App test file as a tsc program root, and
+    # checks the whole program once in about a minute rather than 338 times
+    # over.
     #
-    # This cap is the tripwire. The suite has room to grow several times over
-    # before it comes close, so if the job ever hits it something has regressed
-    # and it should fail here rather than quietly block the queue for a workday.
+    # This cap is the tripwire: if a shard ever hits it something has
+    # regressed, and it should fail here rather than quietly block the queue
+    # for a workday.
     timeout-minutes: 30
+    strategy:
+      # One slow or broken shard should not hide the results of the others.
+      fail-fast: false
+      # Three shards. In one job the suite had grown to ~1,800 files and 26 of
+      # the job's 30 minutes (jest's own time 1,541 s on master, 2026-10-17),
+      # so the cap was about to fail runs with nothing wrong in them. Setup
+      # takes a minute and a half, so three bring each shard to about ten
+      # minutes for much the same runner time in all. When a shard passes
+      # about 20 minutes, add one here rather than raise the cap.
+      matrix:
+        shard: [1, 2, 3]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -40,10 +53,17 @@ jobs:
       # stopped RUM sessions finalizing. Each suite creates and drops its own
       # database, and fails this job if the URL goes missing rather than skip.
       TEST_CLICKHOUSE_URL: http://default:test@localhost:18123
+      # The cluster of two shards the step below gives that server, so
+      # Tests/Telemetry/PagedFindBoundClickhouse also pages through a
+      # Distributed table over two shards, as a sharded install reads one.
+      TEST_CLICKHOUSE_TWO_SHARD_CLUSTER: paged_find_bound_two_shards
     services:
       clickhouse:
-        # Match the version docker-compose.base.yml ships.
-        image: clickhouse/clickhouse-server:26.7
+        # Match the version docker-compose.base.yml ships. Docker Hub's
+        # clickhouse/clickhouse-server, from mirror.gcr.io: the runner starts
+        # service containers before any step, so the daemon's mirror
+        # (.github/actions/docker-hub-mirror) is not set yet.
+        image: mirror.gcr.io/clickhouse/clickhouse-server:26.7
         env:
           CLICKHOUSE_PASSWORD: test
         ports:
@@ -55,6 +75,14 @@ jobs:
           --health-retries 20
     steps:
       - uses: actions/checkout@v4
+      # Two shards, each a database of its own on the one ClickHouse service
+      # (Tests/Telemetry/Fixtures/ClickhouseTwoShardCluster.xml). The server
+      # reads config.d again a moment after it changes, long before the
+      # tests start; the suite waits for the cluster all the same.
+      - name: Give the ClickHouse service a cluster of two shards
+        env:
+          CLICKHOUSE_CONTAINER: ${{ job.services.clickhouse.id }}
+        run: docker cp packages/App/Tests/Telemetry/Fixtures/ClickhouseTwoShardCluster.xml "$CLICKHOUSE_CONTAINER:/etc/clickhouse-server/config.d/paged-find-bound-two-shards.xml"
       # Core is the Community Edition by construction: it must build and pass
       # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
       - name: Remove the Enterprise Edition (core runs without ee/)
@@ -66,11 +94,21 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # Before test-setup.sh pulls postgres and valkey: through mirror.gcr.io,
+      # not anonymously from Docker Hub (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - run: cd packages/Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
-      - run: cd packages/Common && npm install
-      - run: cd packages/App && npm install && npm run test
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install App dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - run: cd packages/App && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   session-replay-ui:
     name: Session Replay UI
@@ -92,15 +130,19 @@ jobs:
       # These browser tests render Dashboard sources with fixture API data.
       # They need the frontend dependencies, but no test database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
+          args: --ignore-scripts
       - name: Install Chromium
         working-directory: packages/E2E
         run: npx playwright install --with-deps chromium
@@ -124,12 +166,204 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
+  # Browser suites that each bundle real Dashboard or Status Page sources with
+  # esbuild and serve them against fixture data: no database or Docker stack.
+  # They used to run one after another in a single 41-minute job, the longest
+  # of every pull request's checks. They are independent - each starts its
+  # own fixture server on its own port - so they run here in seven groups
+  # balanced by measured duration. Event Overview and the Workflow Builder
+  # suite fill a group each on their own (20.4 and 19.4 minutes on
+  # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
+  # suites. Setup adds a minute and a half. Each suite still runs exactly as
+  # before: same config, same browsers, one worker.
+  #
+  # The same group has taken a third longer on one run than on the next with
+  # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
+  # each group near 20 minutes on a slow runner, well under the job's 30. When
+  # one passes about 22, move a suite or add a group. When Event Overview or
+  # the Workflow Builder suite passes it alone, split that suite across two
+  # groups with Playwright's --shard.
+  #
+  # A suite added to packages/E2E needs a place in one group's `suites`, and
+  # its output paths in the upload step below.
   dashboard-offline-ui:
-    name: Dashboard Offline UI
+    name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      # Every group reports its own suites, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        include:
+          # Event Overview on its own. With the thirteen shorter suites that
+          # once shared its group and the setup, the group passed the job's 30
+          # minutes. Status Page Theme moved to group 6 when this group took
+          # 24.3 minutes.
+          - group: 1
+            browsers: chromium
+            suites: >-
+              test-event-overview-ui
+          # The Alerts suite also runs in Firefox, and so do Code Editor (the
+          # editor's text layers must line up in both) and Diagrams. Diagrams
+          # and Navigation Search (about 8 minutes together) moved here from
+          # group 3 when the Probe Status specs in Monitor Overview and the
+          # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
+          # Runbook Steps (about 35 seconds locally with its bundle, Chromium
+          # only: a runbook's Steps page and a run's execution page) joined it
+          # on 2026-10-20, when it took 17.6 to 19.2 minutes: group 3, beside
+          # Runbook Variables, had reached 25 and group 7 about 18.
+          - group: 2
+            browsers: chromium firefox
+            suites: >-
+              test-chart-time-zoom-ui
+              test-code-editor-ui
+              test-exception-detail-ui
+              test-alerts-ui
+              test-pencil-button-ui
+              test-color-picker-ui
+              test-diagrams-ui
+              test-navigation-search-ui
+              test-runbook-steps-ui
+          # Value Picker also runs in Firefox (the chip editor's caret handling
+          # differs in each). Discovery (about 5 minutes) moved to group 6
+          # when this group took 23.5 minutes. Global Runners (about a
+          # minute, Chromium only) joined it at 15.4 minutes, the lightest
+          # group on 2026-10-18's run, and Runbook Variables (about a minute
+          # and a half with its bundle, Chromium only) beside it. Rules Menu
+          # Section (about half a minute with its bundle, Chromium only: the
+          # status page's and an SLO's side menus) joined it on 2026-10-20.
+          - group: 3
+            browsers: chromium firefox
+            suites: >-
+              test-monitor-overview-ui
+              test-value-picker-ui
+              test-event-notes-ui
+              test-trace-detail-ui
+              test-security-events-empty-states-ui
+              test-status-page-search-ui
+              test-label-rule-transfer-ui
+              test-list-delete-ui
+              test-global-runners-ui
+              test-runbook-variables-ui
+              test-rules-menu-section-ui
+          # The Workflow Builder suite on its own: it sat in group 2 near the
+          # job's 30 minutes, and its On Create or Update spec would take that
+          # group past them. Its two projects, a laptop and a phone, are both
+          # Chromium. Calendar Feed moved to group 6 when this group took 23.6
+          # minutes.
+          - group: 4
+            browsers: chromium
+            suites: >-
+              test-workflow-builder-ui
+          # The Chromium-only suites that ran after Event Overview in group 1.
+          # Topology is one of them (about 2.5 minutes) since the Workflow
+          # Builder suite grew again with its UI review: group 2 had reached
+          # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
+          # Status Page Theme moved to groups 4 and 1 when this group reached
+          # 28.5 minutes, and its last five suites to group 6 when it took
+          # 25.5. Code (about 5 minutes: a laptop and a phone) joined it at
+          # 14.2 to 16.4 minutes, the most room of the six. Public Addresses
+          # (about a minute, Chromium only: a status page's Overview and a
+          # dashboard's Sharing page) joined it on 2026-10-19.
+          - group: 5
+            browsers: chromium
+            suites: >-
+              test-slo-burn-rate-ui
+              test-incoming-call-policies-ui
+              test-push-registration-ui
+              test-packet-capture-ui
+              test-llm-provider-test-ui
+              test-custom-field-options-ui
+              test-pagination-ui
+              test-topology-ui
+              test-home-overview-ui
+              test-security-operations-ui
+              test-status-timeline-ui
+              test-episode-bulk-add-ui
+              test-runbook-triggers-ui
+              test-network-first-run-ui
+              test-code-ui
+              test-public-addresses-ui
+          # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
+          # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
+          # Discovery from group 3, Status Page Theme from group 1 and Calendar
+          # Feed from group 4. All Chromium. Postmortem Rules (about 2
+          # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
+          # the lightest of the groups that hold several suites. Maintenance
+          # Calendar grew by 22 specs on 2026-10-20 (the calendar's own page,
+          # its external calendars and Calendar Settings): about 45 seconds
+          # more locally, 2 minutes 10 with its bundle, after Custom Roles
+          # (about 3 minutes) had left for group 7 the same day.
+          - group: 6
+            browsers: chromium
+            suites: >-
+              test-discovery-ui
+              test-status-page-theme-ui
+              test-calendar-feed-ui
+              test-sign-in-options-ui
+              test-maintenance-calendar-ui
+              test-detail-cards-ui
+              test-model-tables-ui
+              test-infrastructure-first-run-ui
+              test-postmortem-rules-ui
+          # The Profiler (about 2 minutes with its bundle: a laptop and a
+          # phone) and LLM Connect (about 2 minutes with its bundle: AI /
+          # LLM's Connect and Usage at desktop and phone width), both
+          # Chromium only. Both joined group 6 on 2026-10-20, when it already
+          # took 16 to 23 minutes and every other group 15 to 27: together
+          # they would have taken it to 27. Auto Remediation Rules (about two
+          # minutes with its bundle locally, Chromium only) joined them the
+          # same day: the lightest group by far. Custom Roles (about 3
+          # minutes with its bundle, Chromium only) moved here from group 6
+          # the same day too, when its Add a Role spec added about a minute
+          # to a group already at 16 to 23 minutes. Public Dashboard Theme
+          # (about five minutes with its bundle locally: a laptop and a
+          # phone, both Chromium) joined them on 2026-10-20 as well: about
+          # 14 minutes for the five, the group still the lightest. Dashboard
+          # Templates (about 2.5 minutes with its bundle locally: Create a
+          # dashboard beside Create a workflow, at a laptop's and a phone's
+          # width, both read in all 17 languages, Chromium only) joined them
+          # the same day: about 17 minutes for the six, still under the 22 the
+          # groups are kept to. External MCP Servers (about a minute with its
+          # bundle locally, Chromium only: Project Settings > AI > External
+          # MCP Servers and a server's page) joined them too: about 18.
+          - group: 7
+            browsers: chromium
+            suites: >-
+              test-profiles-ui
+              test-llm-connect-ui
+              test-auto-remediation-rules-ui
+              test-custom-roles-ui
+              test-public-dashboard-theme-ui
+              test-dashboard-templates-ui
+              test-external-mcp-servers-ui
+          # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
+          # dashboard's default time range and auto-refresh inside OneUptime
+          # and on its public page, at a laptop's width and, for what a phone
+          # changes, a phone's, Chromium only) would have taken group 7 to
+          # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
+          # with room for the next suites. Dashboard Widget Sort (about a
+          # minute with its bundle locally: click-to-sort on the list and table
+          # widgets inside OneUptime and on the public page, at a laptop's and
+          # a phone's width, Chromium only) joined it the same day: about 4.5
+          # minutes for the two. Cloud Connect (Cloud > Connect: the clouds'
+          # tiles, a cloud connected from its tile with a test, the list's
+          # status and actions, at a laptop's and a phone's width, in the dark
+          # theme and in Japanese, Chromium only) joined them on 2026-10-21,
+          # the lightest group by far, and Host Collectors (about 2 minutes
+          # with its bundle locally: Add Host's one command and the host
+          # connecting, Collector Configs and their versions, a host's
+          # Collector page, at a laptop's and a phone's width, dark and
+          # German, Chromium only) the same day.
+          - group: 8
+            browsers: chromium
+            suites: >-
+              test-dashboard-time-range-ui
+              test-dashboard-widget-sort-ui
+              test-cloud-connect-ui
+              test-host-collectors-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -141,90 +375,75 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      # Each suite bundles real Dashboard / Status Page sources with esbuild and
-      # serves them against fixture data on 127.0.0.1: no database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install Status Page dependencies
-        working-directory: packages/App/FeatureSet/StatusPage
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/StatusPage
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser.
+          args: --ignore-scripts
       - name: Install browsers
         working-directory: packages/E2E
-        # The Alerts suite also runs in Firefox; every other suite is Chromium only.
-        run: npx playwright install --with-deps chromium firefox
-      # Every suite runs even if an earlier one failed, so one run reports them all.
-      - name: Run Incoming Call Policies UI regressions
-        if: ${{ !cancelled() }}
+        env:
+          BROWSERS: ${{ matrix.browsers }}
+        run: npx playwright install --with-deps $BROWSERS
+      # Every suite in the group runs even if an earlier one failed, so one run
+      # reports them all, and the step fails at the end if any did. A name that
+      # is not a script in packages/E2E/package.json fails before anything
+      # runs, rather than quietly running nothing.
+      - name: Run this group's UI regressions
         working-directory: packages/E2E
-        run: npm run test-incoming-call-policies-ui
-      - name: Run SLO Burn Rate UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-slo-burn-rate-ui
-      - name: Run Exception Detail UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-exception-detail-ui
-      - name: Run Trace Detail UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-trace-detail-ui
-      - name: Run Event Overview UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-event-overview-ui
-      - name: Run Event Notes UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-event-notes-ui
-      - name: Run Monitor Overview UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-monitor-overview-ui
-      - name: Run Security Events Empty States UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-security-events-empty-states-ui
-      - name: Run Status Page Search UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-status-page-search-ui
-      - name: Run Pencil Button UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-pencil-button-ui
-      - name: Run Alerts UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-alerts-ui
-      - name: Run Label Rules UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-label-rule-transfer-ui
-      - name: Run Discovery UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-discovery-ui
-      - name: Run Topology UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-topology-ui
+        env:
+          SUITES: ${{ matrix.suites }}
+        run: |
+          set -uo pipefail
+          read -ra suites <<<"$SUITES"
+          for suite in "${suites[@]}"; do
+            if ! node -e 'process.exit(require("./package.json").scripts[process.argv[1]] ? 0 : 1)' "$suite"; then
+              echo "::error title=Unknown UI suite::\"${suite}\" is not a script in packages/E2E/package.json."
+              exit 1
+            fi
+          done
+          failed=()
+          {
+            echo "| Suite | Result |"
+            echo "| --- | --- |"
+          } >>"$GITHUB_STEP_SUMMARY"
+          for suite in "${suites[@]}"; do
+            echo ""
+            echo "▶ npm run ${suite}"
+            if npm run "$suite"; then
+              echo "| ${suite} | passed |" >>"$GITHUB_STEP_SUMMARY"
+            else
+              failed+=("$suite")
+              echo "| ${suite} | **failed** |" >>"$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          if ((${#failed[@]} > 0)); then
+            echo "::error title=UI regressions failed::${failed[*]}"
+            exit 1
+          fi
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          name: test-results-${{ github.job }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: |
             output/playwright/incoming-call-policies/*.png
             output/playwright/incoming-call-policies/test-results
+            output/playwright/push-registration-ui/*.png
+            output/playwright/push-registration-ui/test-results
             output/playwright/slo-burn-rate/*.png
             output/playwright/slo-burn-rate/test-results
             output/playwright/exception-detail-ui/*.png
@@ -237,10 +456,21 @@ jobs:
             output/playwright/event-notes-ui/test-results
             output/playwright/monitor-overview-ui/*.png
             output/playwright/monitor-overview-ui/test-results
+            output/playwright/chart-time-zoom-ui/*.png
+            output/playwright/chart-time-zoom-ui/test-results
+            output/playwright/color-picker-ui/*.png
+            output/playwright/color-picker-ui/test-results
+            output/playwright/custom-field-options-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
+            output/playwright/security-operations-ui/*.png
+            output/playwright/security-operations-ui/test-results
             output/playwright/status-page-search/test-results
+            output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results
+            output/playwright/code-editor-ui/*.png
+            output/playwright/code-editor-ui/test-results
+            output/playwright/value-picker-ui/test-results
             output/playwright/alerts/*.png
             output/playwright/alerts/test-results
             output/playwright/label-rule-import-export/*.png
@@ -249,4 +479,71 @@ jobs:
             output/playwright/discovery/test-results
             output/playwright/topology/*.png
             output/playwright/topology/test-results
+            output/playwright/workflow-builder-ui/test-results
+            output/playwright/diagrams-ui/test-results
+            output/playwright/packet-capture-ui/test-results
+            output/playwright/llm-provider-test-ui/*.png
+            output/playwright/llm-provider-test-ui/test-results
+            output/playwright/pagination-ui/test-results
+            output/playwright/calendar-feed-ui/*.png
+            output/playwright/calendar-feed-ui/test-results
+            output/playwright/home-overview-ui/*.png
+            output/playwright/home-overview-ui/test-results
+            output/playwright/list-delete-ui/*.png
+            output/playwright/list-delete-ui/test-results
+            output/playwright/status-timeline-ui/*.png
+            output/playwright/status-timeline-ui/test-results
+            output/playwright/episode-bulk-add-ui/*.png
+            output/playwright/episode-bulk-add-ui/test-results
+            output/playwright/runbook-triggers-ui/*.png
+            output/playwright/runbook-triggers-ui/test-results
+            output/playwright/global-runners-ui/*.png
+            output/playwright/global-runners-ui/test-results
+            output/playwright/auto-remediation-rules-ui/*.png
+            output/playwright/auto-remediation-rules-ui/test-results
+            output/playwright/external-mcp-servers-ui/*.png
+            output/playwright/external-mcp-servers-ui/test-results
+            output/playwright/runbook-variables-ui/*.png
+            output/playwright/runbook-variables-ui/test-results
+            output/playwright/runbook-steps-ui/*.png
+            output/playwright/runbook-steps-ui/test-results
+            output/playwright/network-first-run-ui/*.png
+            output/playwright/network-first-run-ui/test-results
+            output/playwright/code-ui/*.png
+            output/playwright/code-ui/test-results
+            output/playwright/infrastructure-first-run-ui/*.png
+            output/playwright/infrastructure-first-run-ui/test-results
+            output/playwright/custom-roles-ui/*.png
+            output/playwright/custom-roles-ui/test-results
+            output/playwright/sign-in-options-ui/test-results
+            output/playwright/status-page-theme-ui/*.png
+            output/playwright/status-page-theme-ui/test-results
+            output/playwright/maintenance-calendar-ui/*.png
+            output/playwright/maintenance-calendar-ui/test-results
+            output/playwright/detail-cards-ui/*.png
+            output/playwright/detail-cards-ui/test-results
+            output/playwright/model-tables-ui/*.png
+            output/playwright/model-tables-ui/test-results
+            output/playwright/postmortem-rules-ui/*.png
+            output/playwright/postmortem-rules-ui/test-results
+            output/playwright/public-addresses-ui/*.png
+            output/playwright/public-addresses-ui/test-results
+            output/playwright/rules-menu-section-ui/*.png
+            output/playwright/rules-menu-section-ui/test-results
+            output/playwright/llm-connect-ui/*.png
+            output/playwright/llm-connect-ui/test-results
+            output/playwright/public-dashboard-theme-ui/*.png
+            output/playwright/public-dashboard-theme-ui/test-results
+            output/playwright/profiles-ui/*.png
+            output/playwright/profiles-ui/test-results
+            output/playwright/dashboard-templates-ui/*.png
+            output/playwright/dashboard-templates-ui/test-results
+            output/playwright/dashboard-time-range-ui/*.png
+            output/playwright/dashboard-time-range-ui/test-results
+            output/playwright/dashboard-widget-sort-ui/*.png
+            output/playwright/dashboard-widget-sort-ui/test-results
+            output/playwright/cloud-connect-ui/*.png
+            output/playwright/cloud-connect-ui/test-results
+            output/playwright/host-collectors-ui/*.png
+            output/playwright/host-collectors-ui/test-results
           retention-days: 7

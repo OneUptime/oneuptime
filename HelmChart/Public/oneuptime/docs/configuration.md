@@ -12,9 +12,9 @@ up-to-date list see [`values.yaml`](../values.yaml).
 |--------------------|-------------------------------------------------------------------------------------------------|-----------------|:------:|
 | `global.storageClass` | Storage class used for all persistent volumes.                                               | `nil`           | 🚨 |
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
-| `httpProtocol`     | Set to `https` when the server has an SSL/TLS certificate, otherwise `http`.                     | `http`          | 🚨 |
+| `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
-| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`. Set to a long random string in production.                    | `nil`           |    |
+| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services and the in-cluster Runner present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused, and the Runner does not register with it. | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |
 | `global.clusterDomain` | Kubernetes cluster domain.                                                                   | `cluster.local` |    |
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
@@ -104,11 +104,18 @@ the same three-way precedence:
 | `probes.<key>.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
 | `runner.existingSecret.name`                 | Name of an existing Secret holding `ONEUPTIME_RUNNER_KEY`.          | `nil`   |
 | `runner.existingSecret.passwordKey`          | Key inside that Secret.                                             | `nil`   |
+| `globalRunner.existingSecret.name`           | Name of an existing Secret holding the bundled global Runner's key (`GLOBAL_RUNNER_KEY`). | `nil`   |
+| `globalRunner.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
 
-An inline `probes.<key>.key` / `runner.key` still wins; with neither set, the
-chart generates the value into `<release>-secrets` as before. As with
-`externalSecrets`, a key you serve yourself is not written into the chart-managed
-Secret at all.
+An inline `probes.<key>.key` / `runner.key` / `globalRunner.key` still wins;
+with neither set, the chart generates the value into `<release>-secrets` as
+before. As with `externalSecrets`, a key you serve yourself is not written into
+the chart-managed Secret at all.
+
+The global Runner's key is the one exception to the orphaning below: the server
+keeps the global Runner under a fixed id and takes its key from the same value
+the global Runner gets, so a regenerated key rotates it rather than leaving a
+second one behind.
 
 **Why this matters for GitOps.** `helm template` — what Argo CD and Flux render
 with — always takes the chart's install branch, so a chart-generated key is a new
@@ -136,6 +143,9 @@ runner:
 |------------------------------|----------------------------------------------------------------------|----------------|
 | `nginx.service.type`         | Service type for the bundled OneUptime ingress gateway.              | `LoadBalancer` |
 | `nginx.service.loadBalancerIP` | Load balancer IP for the nginx service.                            | `nil`          |
+| `nginx.service.externalTrafficPolicy` | `Local` keeps each visitor's own address on the way to the gateway. Empty keeps Kubernetes' default, `Cluster`. See [Visitor addresses](#visitor-addresses). | `""` |
+| `nginx.listenAddress`        | The one address the gateway listens on inside its pod, such as `0.0.0.0:` (IPv4 only). Empty: every IPv4 and IPv6 address it has. | `""` |
+| `nginx.listenOptions`        | Options of the gateway's listening socket, such as `backlog=4096`.  | `""`           |
 | `statusPage.cnameRecord`     | CNAME record for the status page. See [Custom domains](custom-domains.md). | `nil`    |
 
 ## Images
@@ -146,8 +156,9 @@ runner:
 | `image.repository`    | Docker image repository.                                                                 | `oneuptime`          |
 | `image.tag`           | Docker image tag. Pin this in production (see [Production checklist](production-checklist.md)). | `release`     |
 | `image.pullPolicy`    | Image pull policy.                                                                        | `IfNotPresent`       |
-| `image.type`          | `community-edition` (the Apache-2.0 images) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license, or one holding a license whose expiry was never recorded, runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; core monitoring is never affected. | `community-edition`  |
+| `image.type`          | `community-edition` (the Apache-2.0 images, SAML and OIDC single sign-on included) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features (SCIM, audit logs, team compliance, instance health dashboards) under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license, or one holding a license whose expiry was never recorded, runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; single sign-on does not depend on the license, and core monitoring is never affected. | `community-edition`  |
 | `image.restartPolicy` | Image restart policy.                                                                     | `Always`             |
+| `imagePullSecrets`    | Pull secrets (a list of `name:` entries) for every pod the chart defines, the bundled PostgreSQL, ClickHouse and Valkey and the operator-run databases included. Set it for a registry that asks for credentials, such as an air-gapped install's mirror. | `nil` |
 
 ## Autoscaling & availability
 
@@ -165,6 +176,7 @@ runner:
 | `podDisruptionBudget.minAvailable`              | Minimum pods that must stay available. Integer or percentage (e.g. `"50%"`). Takes precedence over `maxUnavailable`. Leave empty to use `maxUnavailable`. | `""` |
 | `podDisruptionBudget.maxUnavailable`            | Maximum pods that may be unavailable during a voluntary disruption. Integer or percentage.    | `1`     |
 | `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/runner/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
+| `deployment.spreadReplicasAcrossNodes`          | Give each stateless service a soft rule that puts its replicas on different nodes, so one node drain or node failure cannot take every replica down. Never blocks scheduling. Any `topologySpreadConstraints` you set replace it. See [Spreading replicas across nodes](#spreading-replicas-across-nodes). | `true` |
 
 ## Probes
 
@@ -183,7 +195,7 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes register as global probes, so this opens those targets to monitors from **every project** on the instance. Loopback, link-local and cloud metadata addresses stay blocked either way. Ignored, with a startup warning, when `billing.enabled` is `true`; deploy a private probe there instead. | `false` |
 | `probes.<key>.syntheticMonitorScriptTimeoutInMs`  | Timeout for synthetic monitor scripts in milliseconds (`1`–`2147363647`). The upper bound reserves 120 seconds for browser and worker startup within Node.js's safe timer range. | `60000` |
 | `probes.<key>.syntheticMonitorMaxConcurrency`     | Maximum isolated synthetic browser processes per Probe; extra executions queue FIFO. | `4` |
-| `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Aggregate RSS ceiling for each isolated worker and all browser descendants. | `1610612736` |
+| `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Memory ceiling for each isolated worker and all browser descendants together, measured as their proportional set size (pages the browser's processes share count once). | `1610612736` |
 | `probes.<key>.syntheticMonitorMaxDiskBytes` | Writable disk ceiling for each isolated execution, including browser profiles, caches, IndexedDB, and OPFS. | `268435456` |
 | `probes.<key>.syntheticMonitorTempStorageSizeLimit` | Pod-level `emptyDir` ceiling for `/tmp`, providing a backstop across all concurrent synthetic executions. Increase this when raising concurrency or the per-run disk ceiling. | `2Gi` |
 | `probes.<key>.syntheticMonitorChromiumSandboxEnabled` | Require Chromium's OS sandbox. Enable only after installing a Playwright-compatible Localhost seccomp profile on every Probe node; launch fails closed when the sandbox is unavailable. | `false` |
@@ -228,6 +240,38 @@ probes:
 
 > **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
 
+> **IPv6 targets.** Chart probes run on the cluster's pod network, so they can reach IPv6 destinations only on a dual-stack or IPv6-only cluster. On an IPv4-only cluster, checks of IPv6 destinations fail on these probes (a Ping monitor's failure reason then says the probe cannot send IPv6 traffic). To check a probe, run `kubectl exec -n <namespace> deploy/<release>-probe-<key> -- ping -6 -c 1 2001:4860:4860::8888`: `1 received` means it has IPv6, and `Network is unreachable` means the pod has no IPv6 route. To monitor IPv6 destinations from an IPv4-only cluster, use a [custom probe](https://oneuptime.com/docs/probe/custom-probe#monitoring-ipv6-destinations) on a machine that has IPv6.
+
+## Global Runner
+
+Every install runs one global Runner of its own, on by default, as it runs its
+own global probes. It runs the runbook JavaScript steps of every project that
+uses global Runners (every project does, unless it turns them off under
+**Runbooks > Runners**), each in an isolated-vm sandbox of its own that can
+reach public internet addresses but no private, loopback, link-local or cloud
+metadata address. Bash, SSH and Kubernetes steps never run on it: they run on a
+Runner a project installs in its own network. See
+[Global Runners](https://oneuptime.com/docs/runbooks/agents#global-runners).
+
+It is the Runner image started with a fixed id and its own key, and it holds
+nothing else: no cluster key (`ONEUPTIME_SECRET`), none of the server's
+settings, no ServiceAccount token, and never the chart-wide `extraEnv`,
+`extraVolumes` or `extraVolumeMounts` (those are written for the server's pods,
+and this one runs every project's steps). The app, worker and migrate Job get
+the same key as `GLOBAL_RUNNER_KEY` and keep the global Runner's row from it on
+every boot.
+
+| Parameter                              | Description                                                                 | Default |
+|----------------------------------------|-----------------------------------------------------------------------------|---------|
+| `globalRunner.enabled`                 | Run the bundled global Runner. Set to `false` to turn it off: the server then removes it, and projects use the global Runners a master admin adds (Admin Dashboard > Settings > Global Runners) and their own Runners. | `true` |
+| `globalRunner.replicaCount`            | How many global Runners run. `0` turns it off, as `enabled: false` does.    | `1`     |
+| `globalRunner.concurrency`             | How many steps each global Runner runs at the same time. A project runs at most three of its steps on global Runners at once, whatever this says. | `4` |
+| `globalRunner.key`                     | The global Runner's key. Leave empty to have the chart generate one.        | `nil`   |
+| `globalRunner.existingSecret.name`     | Read the key from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil` |
+| `globalRunner.existingSecret.passwordKey` | Key inside that Secret.                                                  | `nil`   |
+| `globalRunner.resources`               | Pod resources (limits, requests).                                           | `nil`   |
+| `globalRunner.extraEnv`, `globalRunner.extraVolumes`, `globalRunner.extraVolumeMounts` | Extra environment variables and volumes for the global Runner alone, for example `HTTPS_PROXY` when it reaches the internet through a proxy. | `[]` |
+
 ## Incidents & alerts
 
 | Parameter                            | Description                                                                          | Default |
@@ -255,6 +299,75 @@ Bitnami charts — you will need to set the security context for those as well.
 | `nodeSelector`             | Node selector.             | `{}`    |
 | `tolerations`              | Tolerations.               | `[]`    |
 | `affinity`                 | Affinity.                  | `{}`    |
+| `topologySpreadConstraints` | Topology spread constraints for the stateless services. A constraint without a `labelSelector` is scoped to each service's own pods. | `[]` |
+| `<service>.affinity`       | Affinity for one service. Replaces the chart-wide `affinity`. | `{}` |
+| `<service>.topologySpreadConstraints` | Topology spread constraints for one service. Replaces the chart-wide list. | `[]` |
+
+`<service>` is any of `app`, `home`, `nginx`, `worker`, `runner`,
+`telemetryWriter`, `probes.<name>` or `testServer`. `pgbouncer` takes
+`pgbouncer.topologySpreadConstraints` too, but like its `affinity`, `tolerations`
+and `nodeSelector` it never inherits the chart-wide value. A service's value
+replaces the chart-wide one; the two are not merged.
+
+### Spreading replicas across nodes
+
+Kubernetes only weakly prefers to spread a Deployment's pods across nodes, and
+"this node already has the image" usually outweighs it. Two replicas of a
+service can end up on one node, and draining that node in a node-pool upgrade,
+or losing it, then takes the service down.
+
+`deployment.spreadReplicasAcrossNodes` (on by default) gives every stateless
+service a soft rule that spreads its replicas across nodes. For `app` it
+renders:
+
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: oneuptime-app
+    matchLabelKeys:
+      - pod-template-hash
+```
+
+- `whenUnsatisfiable: ScheduleAnyway` makes it a strong preference, not a
+  requirement. Pods still schedule on a single-node cluster, or when only one
+  node has room, so it never blocks a rollout.
+- `matchLabelKeys: [pod-template-hash]` counts each rollout's pods on their own.
+  Counted together with the old pods, the second new pod could join the first
+  on the node that already pulled the new image. It is added on Kubernetes 1.27
+  and later only.
+- There is no zone rule by default. A pod that declares spread constraints
+  replaces the scheduler's built-in ones, and the scheduler then ignores every
+  node that lacks one of the constraints' labels, so a zone rule would turn the
+  spreading off on clusters whose nodes have no zone label.
+
+Which rule a service gets: its own `<service>.topologySpreadConstraints`, else
+the chart-wide `topologySpreadConstraints` (except for `pgbouncer`), else the
+default above. Set `deployment.spreadReplicasAcrossNodes: false` to render no
+default. Any of these changes the pod template, so the pods roll once.
+
+A constraint you write without a `labelSelector` gets the service's own one,
+and on Kubernetes 1.27 and later also `matchLabelKeys: [pod-template-hash]`
+unless it lists `matchLabelKeys` of its own. So one chart-wide entry spreads
+every service separately. On a multi-zone cluster, spread across zones as well
+(the list replaces the default, so keep the node rule):
+
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+```
+
+Spreading only protects a service that runs more than one replica. Pair it with
+`podDisruptionBudget.enabled: true`, which stops a node drain from evicting
+every replica at once.
 
 ## Extra environment variables and volumes
 
@@ -278,7 +391,8 @@ to apply to just that one:
 
 `<service>` is any of `app`, `worker`, `probes.<name>`, `runner`, `home`,
 `telemetryWriter`, `nginx`, `pgbouncer`, `testServer`, `migrate`, `vllm` or
-`cronJobs.e2e`.
+`cronJobs.e2e`. The bundled global Runner (`globalRunner`) takes only its own
+lists, never the chart-wide ones: see [Global Runner](#global-runner).
 
 A service's list **replaces** the chart-wide one — the two are not merged. That
 is the precedence the chart already uses for `hostAliases`, `nodeSelector` and
@@ -400,6 +514,25 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
 | `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
 
+## Private network access
+
+Two instance-wide gates decide whether outbound requests a project member
+configures may reach private ranges (RFC-1918, CGNAT, IPv6 unique-local).
+Loopback, link-local and the cloud metadata endpoint stay blocked under both.
+They point in opposite directions: webhooks are refused private targets unless
+you open them, while data sources, LLM providers, SMTP, OAuth token URLs, OIDC
+discovery and runbook HTTP steps are allowed them unless you close them. Probe
+monitors have their own per-probe switch, `probes.<key>.allowPrivateNetworkMonitors`
+(see [Probes](#probes)). See
+[Private Network Access](https://oneuptime.com/docs/self-hosted/private-network-access)
+for the full picture.
+
+| Parameter                                 | Description                                                                                                                         | Default |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges. Status page subscriber webhooks are never covered.   | `false` |
+| `webhooks.privateNetworkAllowlist`        | Comma-separated hosts, wildcards, IPs and CIDRs webhooks may reach regardless of range. Never list `169.254.169.254`.                | `""`    |
+| `outboundConnections.blockPrivateNetwork` | Refuse private ranges for everything that is not a webhook, too (`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`). Always on when `billing.enabled` is `true`. With it on, a refused host name, webhooks included, is reported without saying what it resolved to. | `false` |
+
 ## Update check
 
 Once a day the worker asks GitHub which OneUptime version is the latest
@@ -425,7 +558,9 @@ allowlists — and IP rate limits — actually check.
 
 The default of `1` is correct for a stock install: the chart's own nginx
 gateway is the only thing that touches the header, and the `LoadBalancer`
-Service in front of it is L4 and does not.
+Service in front of it is L4 and does not. Whether the address the gateway
+writes is the visitor's own is up to that Service: see
+[Visitor addresses](#visitor-addresses).
 
 **Raise it if you put your own HTTP proxy in front.** A CDN or WAF that appends
 to `X-Forwarded-For` — Cloudflare, an AWS ALB, an ingress-nginx of your own —
@@ -438,11 +573,140 @@ they like and the allowlist stops meaning anything.
 
 Note that the allowlists assume the app is reachable only *through* those
 proxies. Keep the app Service internal; a caller who can open a connection to
-it directly is the peer, and no header setting compensates for that.
+it directly is the peer, and no header setting compensates for that. With a
+proxy of your own in front (`trustedProxyHops: 2`), keep the gateway's Service
+internal as well (`nginx.service.type: ClusterIP`): a visitor who reaches the
+gateway around your proxy writes the entry OneUptime would read.
+
+IP rate limits count each client address, and for an IPv6 client its whole
+`/64` as well, with room for ten addresses: one host can send from every
+address of its `/64`, and an office or a hosting provider can put many people
+or servers in one. Both are read from the address `trustedProxyHops` picks.
 
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
+
+## Visitor addresses
+
+OneUptime counts each visitor by the address its gateway accepted the
+connection from: the sign-in limits, the other limits per address, and the IP
+allowlists of status pages and dashboards all read it. With the chart's
+gateway behind a `LoadBalancer` or `NodePort` Service, Kubernetes decides
+whether that address is the visitor's own:
+
+| `nginx.service.externalTrafficPolicy` | What OneUptime sees |
+|---------------------------------------|---------------------|
+| empty (the default), or `Cluster` | The address of the node a visitor came through. kube-proxy hands the gateway every visitor from it, so everyone who comes through one node is one visitor to OneUptime: one person's failed sign-ins can lock out the others. |
+| `Local` | Each visitor's own address, when your load balancer passes it through. |
+
+While the value is empty, `helm install` and `helm upgrade` say so. Set it to
+`Cluster` to keep Kubernetes' default and stop the note.
+
+**Load balancers that pass the visitor's address through** - MetalLB, and the
+network load balancers of Google Cloud, Azure and AWS (a Network Load
+Balancer) - keep it with `Local`:
+
+```yaml
+nginx:
+  service:
+    externalTrafficPolicy: Local
+```
+
+Under `Local`, Kubernetes sends visitors only to nodes that run a gateway pod,
+and gives the Service a `healthCheckNodePort` that tells the load balancer
+which nodes those are. When you switch a live install, a node without a gateway
+pod refuses visitors until the load balancer's health check catches up, from
+seconds to about a minute depending on its interval, so switch at a quiet time.
+Spreading the gateway's replicas across nodes
+(`nginx.topologySpreadConstraints`) keeps more nodes serving.
+
+**Load balancers that end the connection themselves** - an AWS Classic Load
+Balancer, and the load balancers of DigitalOcean, Hetzner and Linode, among
+others - show the gateway their own address whatever the policy. There, put an
+ingress controller of your own in front that takes the visitor's address from
+the load balancer (most read the PROXY protocol, which these load balancers
+can send), make the gateway's Service internal (`nginx.service.type:
+ClusterIP`), and set `trustedProxyHops: 2`.
+
+Do not raise `trustedProxyHops` to make up for a shared address: past the
+proxies a visitor really passes through, it reads an entry the visitor writes.
+
+The Admin Dashboard's **OneUptime Health** page says when several people sign
+in from one private network address, which is what a hidden visitor address
+looks like.
+
+## HTTPS
+
+Set `httpProtocol: https` once people reach OneUptime over HTTPS, whether TLS
+ends at the chart's nginx (`ssl.provision: true`) or at a proxy, load balancer
+or CDN in front of it. Besides building `https://` links, OneUptime then:
+
+- keeps sign-in cookies on HTTPS (`Secure`), so a browser never sends a
+  session over plain HTTP;
+- sends `Strict-Transport-Security: max-age=31536000` for `host`, so a browser
+  that has been there reaches that name over HTTPS only, on every port, for a
+  year. Status pages and dashboards on custom domains never get this header,
+  and neither does a `host` that is `localhost` (or a name under it) or an IP
+  address.
+
+Cookies are also `Secure` whenever a visitor's own connection is HTTPS, on any
+domain: the chart's nginx tells the app so when it ends TLS itself, or when the
+proxy in front of it sends `X-Forwarded-Proto: https`. Make sure yours does, or
+the sign-in cookies of status pages and dashboards on custom domains it serves
+are not kept on HTTPS. A plain-HTTP install (`httpProtocol: http`, no TLS in
+front) sets its cookies as before, so people can still sign in.
+
+To change how long browsers keep to HTTPS, set `HSTS_MAX_AGE_SECONDS` through
+`extraEnv`. `0` makes browsers forget the rule at their next HTTPS visit: set it
+a while before `host` has to answer over plain HTTP again.
+
+```yaml
+extraEnv:
+  - name: HSTS_MAX_AGE_SECONDS
+    value: "0"
+```
+
+## Web push notifications
+
+Browsers receive OneUptime's notifications through Web Push, signed with a
+VAPID key pair. Generate one once with `npx web-push generate-vapid-keys` and
+keep it: browsers that subscribed with one key pair stop receiving pushes when
+it changes. See
+[Push Notifications](https://oneuptime.com/docs/self-hosted/push-notifications).
+
+| Parameter                            | Description                                                                      | Default                        |
+|--------------------------------------|----------------------------------------------------------------------------------|--------------------------------|
+| `vapid.publicKey`                    | The public half of the key pair (`VAPID_PUBLIC_KEY`). Every browser is given it. | `nil`                          |
+| `vapid.privateKey`                   | The private half (`VAPID_PRIVATE_KEY`), which signs every web push. Leave it empty when you use `vapid.existingSecret`. | `nil` |
+| `vapid.subject`                      | A contact address the browser push services can reach you on (`VAPID_SUBJECT`).  | `mailto:support@oneuptime.com` |
+| `vapid.existingSecret.name`          | Read the private key from a Secret you manage instead of `vapid.privateKey`.     | `nil`                          |
+| `vapid.existingSecret.privateKeyKey` | The key of that Secret that holds the private key.                               | `privateKey`                   |
+
+`vapid.privateKey` keeps the key in the release's values, which Helm stores with
+every revision. To keep it out of them, put the key in a Secret in the
+release's namespace and name that Secret instead:
+
+```console
+kubectl create secret generic oneuptime-vapid -n oneuptime --from-literal=privateKey=<private key>
+```
+
+```yaml
+vapid:
+  publicKey: <public key>
+  existingSecret:
+    name: oneuptime-vapid
+```
+
+Every pod that is given `VAPID_PRIVATE_KEY` (app, worker, telemetry writer,
+nginx, home, test server and the migrate Job) then reads it from that Secret,
+and the chart writes no copy of it. Set `vapid.privateKey` or
+`vapid.existingSecret.name`, not both: the chart refuses the two together and
+says which to clear. The public key stays in `vapid.publicKey`.
+
+Pods read the private key when they start: after you change it in the Secret,
+restart them (`kubectl rollout restart deployment -n oneuptime` restarts every
+Deployment in the namespace).
 
 ## On-call calendar feeds
 

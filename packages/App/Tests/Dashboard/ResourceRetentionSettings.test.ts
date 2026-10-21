@@ -8,6 +8,13 @@ import path from "path";
  * not break ingest or compilation: the model and API keep supporting the
  * columns while that particular resource silently has no control for them.
  *
+ * Retention overrides are an Enterprise feature: the cards live in
+ * ee/Dashboard/TelemetryRetention and every page reaches them through the
+ * shared core shell (Components/TelemetryResource/
+ * TelemetryResourceRetentionSettings), which renders the upsell card on the
+ * Community Edition. ee/ is deleted in this package's CI job, so the cards'
+ * own behaviour is tested in ee/Tests/UI/TelemetryRetention.
+ *
  * Keep this source-level suite independent of React. App's test install does
  * not contain the Dashboard's browser dependency tree, and these invariants
  * are wiring contracts rather than component-library behaviour (the shared
@@ -110,10 +117,11 @@ interface RetentionSettingsSource {
 }
 
 /*
- * Existing pages declare their two CardModelDetail instances inline. The new
- * pages may use that pattern or factor the duplicated cards into the shared
- * component named above. Resolve either shape so this test protects the
- * customer-visible contract instead of freezing an implementation choice.
+ * Retention overrides are an Enterprise feature. Every page renders them
+ * through the shared core shell, which renders the Enterprise plugin (or the
+ * upsell card); the cards themselves live in ee/, which the Community image
+ * and this package's CI job do not have. So the shell is the one way a page
+ * may reach them.
  */
 function retentionSettingsSource(
   spec: ResourceSettingsSpec,
@@ -125,16 +133,12 @@ function retentionSettingsSource(
   );
   const importMatch: RegExpMatchArray | null = page.match(importPattern);
 
-  if (!importMatch) {
-    return {
-      page,
-      implementation: page,
-      combined: page,
-      sharedInvocation: null,
-    };
-  }
+  expect({ resource: spec.resource, imports: Boolean(importMatch) }).toEqual({
+    resource: spec.resource,
+    imports: true,
+  });
 
-  const sharedFilename: string = resolveImport(filename, importMatch[1]!);
+  const sharedFilename: string = resolveImport(filename, importMatch![1]!);
   const implementation: string = readFile(sharedFilename);
   const invocationPattern: RegExp = new RegExp(
     `<${SHARED_RETENTION_COMPONENT}\\b[\\s\\S]*?\\/>`,
@@ -178,21 +182,30 @@ function modelDetailIds(source: string): Array<string> {
   });
 }
 
+function invocationPrefix(invocation: string): string {
+  const prefix: RegExpMatchArray | null = invocation.match(
+    new RegExp('modelDetailIdPrefix\\s*=\\s*"([^"]+)"'),
+  );
+
+  expect(prefix).not.toBeNull();
+
+  return prefix![1]!;
+}
+
 function assertOwnModelAndId(
   spec: ResourceSettingsSpec,
   source: RetentionSettingsSource,
 ): void {
-  if (source.sharedInvocation) {
-    expect(source.sharedInvocation).toContain(`modelType={${spec.model}}`);
-    expect(source.sharedInvocation).toMatch(
-      new RegExp("modelId\\s*=\\s*\\{\\s*modelId\\s*\\}"),
-    );
-  } else {
-    expect(source.implementation).toContain(`modelType: ${spec.model}`);
-    expect(source.implementation).toMatch(
-      new RegExp("modelId\\s*:\\s*modelId"),
-    );
-  }
+  expect(source.sharedInvocation).toContain(
+    `<${SHARED_RETENTION_COMPONENT}<${spec.model}>`,
+  );
+  expect(source.sharedInvocation).toContain(`modelType={${spec.model}}`);
+  expect(source.sharedInvocation).toMatch(
+    new RegExp("modelId\\s*=\\s*\\{\\s*modelId\\s*\\}"),
+  );
+  expect(source.sharedInvocation).toMatch(
+    new RegExp('resourceName\\s*=\\s*"[^"]+"'),
+  );
 
   /* The archive card is a second, independent proof of the page's identity. */
   expect(source.page).toContain(`<ArchiveResourceCard<${spec.model}>`);
@@ -208,36 +221,111 @@ describe("standard telemetry resource retention Settings", () => {
   });
 
   test.each(STANDARD_TELEMETRY_RESOURCES)(
-    "$resource binds both retention columns in editable and read views",
+    "$resource renders the retention overrides through the shared Enterprise shell",
     (spec: ResourceSettingsSpec): void => {
       const source: RetentionSettingsSource = retentionSettingsSource(spec);
 
       assertOwnModelAndId(spec, source);
 
-      /* Once in formFields and once in the read-view fields. */
-      expect(
-        fieldBindingCount(source.implementation, "retainTelemetryDataForDays"),
-      ).toBeGreaterThanOrEqual(2);
-      expect(
-        fieldBindingCount(source.implementation, "telemetryRetentionConfig"),
-      ).toBeGreaterThanOrEqual(2);
-
-      expect(source.combined).toContain("TelemetryRetentionConfigForm");
-      expect(source.combined).toContain("TelemetryRetentionConfigSummary");
+      /*
+       * The page binds neither override column itself: a card of its own
+       * would put an editor for an Enterprise feature in the Community
+       * bundle.
+       */
+      expect(fieldBindingCount(source.page, "retainTelemetryDataForDays")).toBe(
+        0,
+      );
+      expect(fieldBindingCount(source.page, "telemetryRetentionConfig")).toBe(
+        0,
+      );
+      expect(source.page).not.toContain("TelemetryRetentionConfigForm");
+      expect(source.page).not.toContain("TelemetryRetentionConfigSummary");
     },
   );
 
+  test("the shared shell renders the Enterprise plugin on the Scale plan, never the cards themselves", () => {
+    const shell: string = readFile(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/TelemetryResource/TelemetryResourceRetentionSettings.tsx",
+      ),
+    );
+
+    expect(shell).toContain("<EnterprisePluginPage");
+    expect(shell).toContain(
+      "plugin={getDashboardPlugins().TelemetryResourceRetentionSettings}",
+    );
+    expect(shell).toContain("requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}");
+    expect(fieldBindingCount(shell, "retainTelemetryDataForDays")).toBe(0);
+    expect(fieldBindingCount(shell, "telemetryRetentionConfig")).toBe(0);
+    expect(shell).not.toContain("CardModelDetail");
+  });
+
+  test("no Dashboard file outside ee/ still edits a retention override", () => {
+    /*
+     * Usage History lists TelemetryUsageBilling rows, whose
+     * retainTelemetryDataForDays is the retention a day's usage was billed
+     * at: a read-only record, not a setting.
+     */
+    const readOnlyRecords: Array<string> = ["Pages/Settings/UsageHistory.tsx"];
+    const offenders: Array<string> = [];
+    const walk: (directory: string) => void = (directory: string): void => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const fullPath: string = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          walk(fullPath);
+          continue;
+        }
+
+        if (
+          !new RegExp("\\.tsx?$").test(entry.name) ||
+          readOnlyRecords.includes(path.relative(DASHBOARD_SRC, fullPath))
+        ) {
+          continue;
+        }
+
+        const source: string = readFile(fullPath);
+
+        if (
+          fieldBindingCount(source, "retainTelemetryDataForDays") > 0 ||
+          fieldBindingCount(source, "telemetryRetentionConfig") > 0
+        ) {
+          offenders.push(path.relative(DASHBOARD_SRC, fullPath));
+        }
+      }
+    };
+
+    walk(DASHBOARD_SRC);
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("every page gives the retention cards its own DOM id prefix", () => {
+    const prefixes: Array<string> = STANDARD_TELEMETRY_RESOURCES.map(
+      (spec: ResourceSettingsSpec): string => {
+        return invocationPrefix(
+          retentionSettingsSource(spec).sharedInvocation || "",
+        );
+      },
+    );
+
+    expect(new Set(prefixes).size).toBe(prefixes.length);
+  });
+
   test.each(STANDARD_TELEMETRY_RESOURCES)(
-    "$resource gives every retention detail card a unique DOM id",
+    "$resource keeps its own detail card ids clear of the retention card ids",
     (spec: ResourceSettingsSpec): void => {
       const source: RetentionSettingsSource = retentionSettingsSource(spec);
+      const prefix: string = invocationPrefix(source.sharedInvocation || "");
       const replaySource: string =
         spec.resource === "Rum" ? rumReplaySettingsSource().combined : "";
-      const ids: Array<string> = modelDetailIds(
-        `${source.implementation}\n${replaySource}`,
-      );
+      const ids: Array<string> = [
+        ...modelDetailIds(`${source.page}\n${replaySource}`),
+        `"${prefix}-telemetry-retention"`,
+        `"${prefix}-telemetry-retention-overrides"`,
+      ];
 
-      expect(ids.length).toBeGreaterThanOrEqual(2);
       expect(new Set(ids).size).toBe(ids.length);
     },
   );
@@ -249,9 +337,9 @@ describe("standard telemetry resource retention Settings", () => {
       const archivePosition: number = source.page.indexOf(
         "<ArchiveResourceCard",
       );
-      const retentionPosition: number = source.sharedInvocation
-        ? source.page.indexOf(source.sharedInvocation)
-        : source.page.lastIndexOf("telemetryRetentionConfig: true");
+      const retentionPosition: number = source.page.indexOf(
+        source.sharedInvocation || "<missing>",
+      );
 
       expect(retentionPosition).toBeGreaterThanOrEqual(0);
       expect(archivePosition).toBeGreaterThan(retentionPosition);
@@ -299,10 +387,10 @@ function importSpecifierFor(
 }
 
 /*
- * Replay retention has a small card of its own and may import its closed-set
- * options from a sibling helper. Follow both imports so the assertion reaches
- * the actual field and the shared allowed-day constant, while still accepting
- * a future implementation that puts the card directly in the page.
+ * Replay retention is shown on the Settings page by a small read-only card
+ * of its own. Follow its import (and an options helper, if it ever imports
+ * one) so the assertions reach what the card actually does, while still
+ * accepting a future implementation that puts the line directly in the page.
  */
 function rumReplaySettingsSource(): ReplaySettingsSource {
   const pageFilename: string = settingsFilename("Rum");
@@ -336,25 +424,62 @@ function rumReplaySettingsSource(): ReplaySettingsSource {
   };
 }
 
+const REPLAY_POLICY_FILENAME: string = path.join(
+  DASHBOARD_SRC,
+  "Pages/Rum/View/SessionReplaySettings.tsx",
+);
+
 describe("RUM session replay retention Settings", () => {
-  test("RUM exposes the dedicated replay field with the closed-set dropdown", () => {
+  /*
+   * Replay retention is edited in one place: the application's Replay
+   * Policy (Edit Policy > Limits). The Settings page used to be a second
+   * editor for the same column; it now shows the value, read-only, next to
+   * the other retention controls, and links to the policy.
+   */
+  test("RUM Settings shows replay retention read-only and links to the Replay Policy", () => {
     const source: ReplaySettingsSource = rumReplaySettingsSource();
 
     expect(source.controlPosition).toBeGreaterThanOrEqual(0);
     expect(
       fieldBindingCount(source.combined, "sessionReplayRetentionInDays"),
-    ).toBeGreaterThanOrEqual(2);
-    expect(source.combined).toContain("SESSION_REPLAY_ALLOWED_RETENTION_DAYS");
+    ).toBe(0);
     expect(source.combined).toMatch(
+      new RegExp(
+        "select\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true",
+      ),
+    );
+    expect(source.combined).toContain(
+      "PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+    );
+    expect(source.combined).not.toContain("FormFieldSchemaType");
+
+    const archivePosition: number = source.page.indexOf("<ArchiveResourceCard");
+
+    expect(archivePosition).toBeGreaterThan(source.controlPosition);
+  });
+
+  test("the Replay Policy edits it with the closed-set dropdown", () => {
+    const policy: string = readFile(REPLAY_POLICY_FILENAME);
+    const optionsImport: string | null = importSpecifierFor(
+      policy,
+      "SESSION_REPLAY_RETENTION_OPTIONS",
+    );
+
+    expect(optionsImport).not.toBeNull();
+
+    const options: string = readFile(
+      resolveImport(REPLAY_POLICY_FILENAME, optionsImport || ""),
+    );
+
+    // The Limits step's field and the read view's row.
+    expect(fieldBindingCount(policy, "sessionReplayRetentionInDays")).toBe(2);
+    expect(options).toContain("SESSION_REPLAY_ALLOWED_RETENTION_DAYS");
+    expect(policy).toMatch(
       new RegExp(
         "sessionReplayRetentionInDays\\s*:\\s*true\\s*\\}[\\s\\S]{0,800}" +
           "fieldType\\s*:\\s*FormFieldSchemaType\\.Dropdown",
       ),
     );
-
-    const archivePosition: number = source.page.indexOf("<ArchiveResourceCard");
-
-    expect(archivePosition).toBeGreaterThan(source.controlPosition);
   });
 
   test.each([

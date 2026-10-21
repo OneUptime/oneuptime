@@ -18,6 +18,7 @@ import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProj
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import Model from "../../Models/DatabaseModels/UserSlack";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -28,18 +29,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The methods the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const item of itemsToDelete) {
       await UserNotificationRuleService.deleteBy({
@@ -139,7 +136,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!projectAuth || !projectAuth.authToken) {
       throw new BadDataException(
-        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Slack Integration.",
+        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.",
       );
     }
 
@@ -152,7 +149,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Slack account is not connected to OneUptime for this project. Please go to User Settings > Slack Integration and connect your Slack account first.",
+        `Your Slack account is not connected to ${ProductBrandingText.getProductName()} in this project yet. Connect it under User Settings > Workspace > Slack, then add it here.`,
       );
     }
 

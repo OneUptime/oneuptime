@@ -1,6 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
 import { DailyUptimeEntry } from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   entries: Array<DailyUptimeEntry>;
@@ -29,6 +31,7 @@ const DEFAULT_GOOD_THRESHOLD_PERCENT: number = 99.9;
 const SiteDailyUptimeStrip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const goodThreshold: number =
     props.goodThresholdPercent ?? DEFAULT_GOOD_THRESHOLD_PERCENT;
 
@@ -63,19 +66,33 @@ const SiteDailyUptimeStrip: FunctionComponent<ComponentProps> = (
     );
 
     if (entry.isFullyMaintained) {
-      return `${day} — entirely inside a scheduled maintenance window; not counted.`;
+      return translator.translateTemplate(
+        "{{day}} — entirely inside a scheduled maintenance window; not counted.",
+        { day: day },
+      );
     }
 
     if (!entry.hasTimelineCoverage || entry.uptimePercent === null) {
-      return `${day} — no rollup history yet.`;
+      return translator.translateTemplate("{{day}} — no rollup history yet.", {
+        day: day,
+      });
     }
 
-    const maintenanceNote: string =
-      entry.maintenanceInMs > 0
-        ? ` (${Math.round(entry.maintenanceInMs / 60000)} min of maintenance excluded)`
-        : "";
+    const uptime: string = entry.uptimePercent.toFixed(2);
 
-    return `${day} — ${entry.uptimePercent.toFixed(2)}% uptime${maintenanceNote}`;
+    return entry.maintenanceInMs > 0
+      ? translator.translateTemplate(
+          "{{day}} — {{uptime}}% uptime ({{minutes}} min of maintenance excluded)",
+          {
+            day: day,
+            uptime: uptime,
+            minutes: Math.round(entry.maintenanceInMs / 60000),
+          },
+        )
+      : translator.translateTemplate("{{day}} — {{uptime}}% uptime", {
+          day: day,
+          uptime: uptime,
+        });
   };
 
   return (
@@ -100,7 +117,7 @@ const SiteDailyUptimeStrip: FunctionComponent<ComponentProps> = (
             true,
           )}
         </span>
-        <span>Today</span>
+        <span>{translator.translateText("Today")}</span>
       </div>
     </div>
   );

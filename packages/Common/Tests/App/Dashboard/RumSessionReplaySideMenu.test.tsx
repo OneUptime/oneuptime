@@ -72,6 +72,7 @@ describe("RUM application Session Replay navigation", () => {
       "Observability",
       "Session Replay",
       "Settings",
+      "Developer",
       "Advanced",
     ]);
     expect(isExpanded("Session Replay")).toBe(true);
@@ -144,6 +145,14 @@ describe("RUM application Session Replay navigation", () => {
       setViewportWidth(MOBILE_WIDTH);
       goTo(`${APPLICATION_PATH}/${path}`);
       await renderApplicationMenu();
+
+      // A page named like its section (Session Replay) is named once.
+      if (label === "Session Replay") {
+        expect(mobileSummaryText()).toContain(label);
+        expect(mobileSummaryText()).not.toContain(`Session Replay / ${label}`);
+        return;
+      }
+
       expect(mobileSummaryText()).toContain(`Session Replay / ${label}`);
     },
   );

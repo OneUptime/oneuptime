@@ -7,9 +7,13 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
+  NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
   notOptOutRuleQuery,
 } from "Common/Server/Services/UserOnCallLogService";
 import logger from "Common/Server/Utils/Logger";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "Common/Server/Utils/TeamMember/ProjectMembership";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
@@ -21,6 +25,10 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import {
+  getDueRuleExecution,
+  isRuleFullyExecuted,
+} from "Common/Types/NotificationRule/NotificationRepeat";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -57,10 +65,59 @@ RunCron(
         },
       });
 
+    /*
+     * A log keeps running its later rules ("call me after 10 minutes") for as
+     * long as the incident is not acknowledged, so the person it pages may
+     * have left the project since it started. Whether each one is still a
+     * member is read once for the whole tick (ProjectMembership).
+     *
+     * If membership cannot be read, the tick runs every log as it did before
+     * this check rather than none of them: a page lost to a failed read is
+     * worse than one more read next minute. That cannot reach somebody who
+     * is not a member: the read of the rules a log runs carries the
+     * membership condition itself.
+     */
+    let memberKeys: Set<string> | null = null;
+
+    try {
+      memberKeys = await ProjectMembership.getMemberKeys(
+        pendingNotificationLogs
+          .filter((log: UserOnCallLog): boolean => {
+            return Boolean(log.projectId && log.userId);
+          })
+          .map((log: UserOnCallLog): ProjectUserPair => {
+            return {
+              projectId: log.projectId!,
+              userId: log.userId!,
+            };
+          }),
+      );
+    } catch (err) {
+      logger.error(
+        "Could not read project membership for pending on-call logs; running them without the membership check.",
+      );
+      logger.error(err as Error);
+    }
+
     const promises: Array<Promise<void>> = [];
 
     for (const pendingNotificationLog of pendingNotificationLogs) {
-      promises.push(executePendingNotificationLog(pendingNotificationLog));
+      promises.push(
+        executePendingNotificationLog(pendingNotificationLog, {
+          isProjectMember:
+            memberKeys === null ||
+            Boolean(
+              pendingNotificationLog.projectId &&
+                pendingNotificationLog.userId &&
+                memberKeys.has(
+                  ProjectMembership.getKey(
+                    pendingNotificationLog.projectId,
+                    pendingNotificationLog.userId,
+                  ),
+                ),
+            ),
+        }),
+      );
     }
 
     await Promise.allSettled(promises);
@@ -69,11 +126,37 @@ RunCron(
 
 type ExecutePendingNotificationLogFunction = (
   pendingNotificationLog: UserOnCallLog,
+  membership: {
+    // Whether the person this log pages is a member of its project now.
+    isProjectMember: boolean;
+  },
 ) => Promise<void>;
 
 const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
-  async (pendingNotificationLog: UserOnCallLog): Promise<void> => {
+  async (
+    pendingNotificationLog: UserOnCallLog,
+    membership: { isProjectMember: boolean },
+  ): Promise<void> => {
     try {
+      if (!membership.isProjectMember) {
+        /*
+         * Somebody who has left is not paged again on the project's behalf:
+         * the log ends here and the rules still due for them are not run.
+         */
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
+            statusMessage: NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+
       const ruleType: NotificationRuleType =
         UserOnCallLogService.getNotificationRuleType(
           pendingNotificationLog.userNotificationEventType!,
@@ -236,7 +319,16 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         await UserNotificationRuleService.findBy({
           query: {
             projectId: pendingNotificationLog.projectId!,
-            userId: pendingNotificationLog.userId!,
+            /*
+             * The person's rules, and only while they are a member of the
+             * project: the condition rides on this read, so a log run
+             * without the tick's membership check (it could not be read)
+             * still reaches nobody who is not a member (ProjectMembership).
+             */
+            userId: ProjectMembership.userIdWhileMember({
+              userId: pendingNotificationLog.userId!,
+              projectId: pendingNotificationLog.projectId!,
+            }),
             ruleType: ruleType,
             incidentSeverityId:
               incident?.incidentSeverityId ||
@@ -264,6 +356,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           select: {
             _id: true,
             notifyAfterMinutes: true,
+            // Whether the rule's push repeats until acknowledged.
+            repeatEveryMinutes: true,
           },
           props: {
             isRoot: true,
@@ -280,21 +374,44 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           OneUptimeDate.getCurrentDate(),
         );
 
-      for (const notificationRule of notificationRules) {
-        // check if this rule is already executed.
-        const isAlreadyExecuted: boolean = Object.keys(
-          pendingNotificationLog.executedNotificationRules! || {},
-        ).includes(notificationRule.id?.toString() || "");
+      /*
+       * Every delivery already sent on this log: each rule's first push under
+       * the rule's id, each repeat under a key of its own (NotificationRepeat).
+       */
+      const executedClaimKeys: Array<string> = Object.keys(
+        pendingNotificationLog.executedNotificationRules! || {},
+      );
 
-        if (isAlreadyExecuted) {
+      for (const notificationRule of notificationRules) {
+        const ruleId: string = notificationRule.id?.toString() || "";
+
+        // Its first push, and every repeat it has, already sent.
+        if (
+          isRuleFullyExecuted({
+            executedClaimKeys: executedClaimKeys,
+            ruleId: ruleId,
+            repeatEveryMinutes: notificationRule.repeatEveryMinutes,
+          })
+        ) {
           continue;
         }
 
         isAllExecuted = false;
 
-        if (
-          notificationRule.notifyAfterMinutes! > minutesSinceExecutionStarted
-        ) {
+        /*
+         * The first push once it is due, then - for a rule that repeats until
+         * acknowledged - the latest repeat due. Acknowledging ends the log
+         * above, which is what stops the repeats.
+         */
+        const dueExecution: number | null = getDueRuleExecution({
+          executedClaimKeys: executedClaimKeys,
+          ruleId: ruleId,
+          notifyAfterMinutes: notificationRule.notifyAfterMinutes || 0,
+          repeatEveryMinutes: notificationRule.repeatEveryMinutes,
+          minutesSinceStart: minutesSinceExecutionStarted,
+        });
+
+        if (dueExecution === null) {
           continue;
         }
 
@@ -322,6 +439,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             onCallDutyPolicyExecutionLogTimelineId:
               pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: pendingNotificationLog.onCallDutyScheduleId,
+            ...(dueExecution > 0 ? { repeatNumber: dueExecution } : {}),
           },
         );
       }
@@ -354,9 +472,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
        * steps, including the loud last-resort "call at N minutes" page (audit
        * H3). For a transient/unknown error we LEAVE the log Executing (only log
        * it) so the next EVERY_MINUTE tick retries. Retries are idempotent: the
-       * loop above skips rules already in executedNotificationRules, so no rule
-       * is re-sent. Mirrors the F16 rationale that a delayed retry beats a
-       * dropped page for an on-call system.
+       * loop above skips deliveries already in executedNotificationRules - a
+       * rule's first push and each repeat - so none is re-sent. Mirrors the
+       * F16 rationale that a delayed retry beats a dropped page for an on-call
+       * system.
        */
       if (err instanceof BadDataException) {
         await UserOnCallLogService.updateOneById({

@@ -1,5 +1,6 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncidentsTable from "../../../Components/Incident/IncidentsTable";
+import { CreateFromRecordKind } from "../../../Components/CreateFromRecord/CreateFromRecord";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageComponentProps from "../../PageComponentProps";
@@ -27,7 +28,10 @@ const MonitorIncidents: FunctionComponent<
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       <DependencySuppressionWarning monitorId={modelId} />
-      <IncidentsTable query={query} />
+      <IncidentsTable
+        query={query}
+        createFrom={{ kind: CreateFromRecordKind.Monitor, id: modelId }}
+      />
     </Fragment>
   );
 };

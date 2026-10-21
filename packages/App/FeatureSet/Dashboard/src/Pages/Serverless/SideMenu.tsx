@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -20,15 +23,6 @@ const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.List,
-        },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
         },
       ],
     },
@@ -56,7 +50,31 @@ const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived functions, which the list leaves out. Few visits
+     * need it, so it waits in Advanced: folded away until opened, and open by
+     * itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: ServerlessFunction,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

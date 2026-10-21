@@ -5,8 +5,8 @@ import {
 import InvestigationEligibility from "./InvestigationEligibility";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import { Blue500 } from "../../../../Types/BrandColors";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
@@ -38,11 +38,34 @@ import {
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
-import KubectlInvestigationToolkit, {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
-} from "../ClusterAccess/KubectlInvestigationToolkit";
+import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
+import ToolOutputPager from "../Chat/ToolOutputPager";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
+import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import NetworkTransceiverContext from "./NetworkTransceiverContext";
+import LinkedInfrastructureContext, {
+  LinkedInfrastructure,
+} from "./LinkedInfrastructureContext";
+import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
+import InvestigationRuleWait from "./InvestigationRuleWait";
+import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
+import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
+import McpInvestigationTools from "../Mcp/McpInvestigationTools";
+import McpRunToolkit from "../Mcp/McpRunToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import InvestigationRules, {
+  InvestigationRuleScope,
+} from "./InvestigationRules";
+import PromptText from "../../../../Utils/AI/PromptText";
+import {
+  AIPromptOmissions,
+  AIRunEventResultSummary,
+} from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — alert investigation.
@@ -52,19 +75,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * the alert timeline + Slack/Teams. Symmetric to incident investigation and
  * built on the same shared AIInvestigationEngine.
  *
- * Gated by the same per-project opt-in as incidents, PLUS alert-specific cost
- * gates (alert volume can be far higher than incidents):
+ * Gated by the same per-project opt-in as incidents, PLUS two cost gates a
+ * project may set for alerts (alert volume can be far higher than
+ * incidents). Both are off until a project sets them, so by default every
+ * alert is investigated:
  *   - severity floor: only alerts at or above the project's configured minimum
- *     severity are investigated; when unset, the top two severity tiers
- *     (lowest two `order` values) are the default.
- *   - per-monitor dedupe window: a monitor that already triggered an
- *     investigation recently is not re-investigated — the first RCA stands.
+ *     severity are investigated; unset means every severity.
+ *   - per-monitor cooldown: a monitor that already triggered an investigation
+ *     within the window is not re-investigated — the first RCA stands; unset
+ *     means no cooldown.
  */
-
-// Per-project override lives in Project.alertInvestigationDedupeWindowMinutes.
-export const DEFAULT_DEDUPE_WINDOW_MINUTES: number = 30;
-// Clamp: an RCA older than a day is a new episode by any reading.
-const MAX_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface AlertGateDecision {
   investigate: boolean;
@@ -74,6 +94,13 @@ export interface AlertGateDecision {
   reason: string;
   // Passed through to the AIRun as the dedupe key for future windows.
   monitorId?: ObjectID | undefined;
+  /*
+   * To investigate, and every investigation rule it matches waits: the
+   * shortest wait, in minutes, from when the alert was created.
+   */
+  waitMinutes?: number | undefined;
+  // When the alert was created: a wait counts from it.
+  createdAt?: Date | undefined;
 }
 
 export default class AIAlertInvestigationRunner {
@@ -87,19 +114,80 @@ export default class AIAlertInvestigationRunner {
    * remediation is released by RemediationHandoff when the run settles) and
    * applies the rules immediately when none was, so remediation never
    * silently depends on the AI lane.
+   *
+   * Why an investigation does not start is recorded on the alert's AI card
+   * in one order: what stops OneUptime AI for the whole project first (AI
+   * off, no provider, no credits...), then what is true of this alert -
+   * created already resolved, then the cost gates.
+   *
+   * An alert whose investigation rules all wait is not queued: it waits
+   * (InvestigationRuleWait), and this returns false, so auto remediation
+   * does not wait for an investigation that may never happen. When the wait
+   * ends, the rule-wait job sends a still-open alert down this path again
+   * (afterWaitMinutes), and everything is decided as of then.
    */
   @CaptureSpan()
   public static async investigateNewAlert(data: {
     alertId: ObjectID;
     projectId: ObjectID;
+    /*
+     * Created already resolved (Common/Utils/StartingStage): over before it
+     * was recorded, so there is nothing to investigate.
+     */
+    createdResolved?: boolean | undefined;
+    /*
+     * Set when an investigation rule's wait ended (InvestigationRuleWait):
+     * the wait, in minutes. Whatever stops the investigation now is recorded
+     * as decided after the wait, and the run it queues says it waited.
+     */
+    afterWaitMinutes?: number | undefined;
   }): Promise<boolean> {
     const { alertId, projectId } = data;
+    const subject: { alertId: ObjectID; projectId: ObjectID } = {
+      alertId,
+      projectId,
+    };
+    const afterWaitMinutes: number | undefined =
+      data.afterWaitMinutes && data.afterWaitMinutes > 0
+        ? data.afterWaitMinutes
+        : undefined;
+
+    // Why not, on the alert's AI card - decided after its wait, if it waited.
+    const recordSkipped: (
+      code: InvestigationNotStartedCode,
+      ...rest: [
+        budget?: AutonomousBudgetStatus | undefined,
+        details?: InvestigationGateDetails | undefined,
+      ]
+    ) => Promise<void> = async (
+      code: InvestigationNotStartedCode,
+      ...rest: [
+        budget?: AutonomousBudgetStatus | undefined,
+        details?: InvestigationGateDetails | undefined,
+      ]
+    ): Promise<void> => {
+      if (afterWaitMinutes) {
+        await InvestigationEligibility.recordSkipped(subject, code, rest[0], {
+          ...(rest[1] || {}),
+          waitMinutes: afterWaitMinutes,
+        });
+        return;
+      }
+
+      // Recorded exactly as each step always recorded it.
+      await InvestigationEligibility.recordSkipped(subject, code, ...rest);
+    };
 
     try {
       const disabled: InvestigationNotStartedCode | null =
         await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
       if (disabled) {
-        await InvestigationEligibility.recordSkipped(data, disabled);
+        await recordSkipped(disabled);
+        return false;
+      }
+
+      if (data.createdResolved) {
+        await recordSkipped("created_resolved");
         return false;
       }
 
@@ -109,8 +197,7 @@ export default class AIAlertInvestigationRunner {
       });
 
       if (!gate.investigate) {
-        await InvestigationEligibility.recordSkipped(
-          data,
+        await recordSkipped(
           gate.notStartedCode || "eligibility_check_failed",
           undefined,
           gate.notStartedDetails,
@@ -121,6 +208,50 @@ export default class AIAlertInvestigationRunner {
         return false;
       }
 
+      /*
+       * Every investigation rule it matches waits: it waits until the
+       * shortest wait has passed since it was created, unless that time has
+       * come already (the wait ended, or it was caught up late). When the
+       * wait cannot be written, it is investigated right away rather than
+       * never - as a run its auto remediation waits for, like any alert
+       * that does not wait.
+       */
+      let isWaitOver: boolean = false;
+
+      if (gate.waitMinutes && gate.waitMinutes > 0) {
+        const waitUntil: Date = getInvestigationWaitUntil(
+          gate.createdAt || OneUptimeDate.getCurrentDate(),
+          gate.waitMinutes,
+        );
+
+        if (waitUntil.getTime() <= OneUptimeDate.getCurrentDate().getTime()) {
+          isWaitOver = true;
+        } else if (
+          await InvestigationRuleWait.startWaiting({
+            lane: "Alert",
+            projectId,
+            subjectId: alertId,
+            waitUntil,
+          })
+        ) {
+          logger.debug(
+            `AI: alert ${alertId.toString()} waits ${gate.waitMinutes} minutes, until ${waitUntil.toISOString()}, before it is investigated.`,
+          );
+          return false;
+        }
+      }
+
+      /*
+       * A run after a wait (or whose rule's wait had passed already, caught
+       * up late): the alert's auto remediation did not wait for it -
+       * nothing was queued when the alert was created - so it says so
+       * (ruleWaitMinutes), and it is the alert's one investigation: the
+       * job, Investigate now and Ask AI may all try to start it at once.
+       */
+      const ruleWaitMinutes: number | undefined =
+        afterWaitMinutes ||
+        (isWaitOver && gate.waitMinutes ? gate.waitMinutes : undefined);
+
       const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue(
         {
           projectId,
@@ -130,17 +261,26 @@ export default class AIAlertInvestigationRunner {
             code: InvestigationNotStartedCode,
             budget?: AutonomousBudgetStatus,
           ): Promise<void> => {
-            await InvestigationEligibility.recordSkipped(data, code, budget);
+            await recordSkipped(code, budget);
           },
+          ...(ruleWaitMinutes
+            ? {
+                ruleWaitMinutes,
+                admitInsideSubjectLock: async (): Promise<boolean> => {
+                  return !(await InvestigationRuleWait.hasInvestigationRun({
+                    lane: "Alert",
+                    projectId,
+                    subjectId: alertId,
+                  }));
+                },
+              }
+            : {}),
         },
       );
 
       return enqueuedRunId !== null;
     } catch (error) {
-      await InvestigationEligibility.recordSkipped(
-        data,
-        "eligibility_check_failed",
-      );
+      await recordSkipped("eligibility_check_failed");
       logger.error(
         `AI: unexpected error enqueueing investigation for alert ${alertId.toString()}: ${error}`,
       );
@@ -160,18 +300,89 @@ export default class AIAlertInvestigationRunner {
     projectId: ObjectID;
     alertId: ObjectID;
     attemptCount: number;
+    /*
+     * Set on an investigation an investigation rule made wait
+     * (InvestigationRuleWait): the alert's auto remediation did not wait
+     * for it, so it never releases remediation when it settles.
+     */
+    ruleWaitMinutes?: number | undefined;
   }): Promise<void> {
     const { aiRunId, projectId, alertId, attemptCount } = data;
+    // Remediation never waited for a run an investigation rule made wait.
+    const isRemediationReleased: boolean = Boolean(
+      data.ruleWaitMinutes && data.ruleWaitMinutes > 0,
+    );
 
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
+    let resourceStatuses: Array<ResourceAiAccessStatus> = [];
+    // What the summary left out of the alert's text, for the run to say.
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
+    // What the starting context read, for the run's activity.
+    const contextNotes: Array<AIRunEventResultSummary> = [];
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
         });
 
-      contextSummary = this.buildAlertSummary(contextData);
+      contextSummary = this.buildAlertSummary(contextData, promptOmissions);
+
+      /*
+       * The infrastructure the alert is linked to - hosts, container hosts,
+       * clusters, databases, services - and the other alerts on it.
+       * Enrichment only: a read that fails leaves the context as it was.
+       */
+      let linked: LinkedInfrastructure | null = null;
+
+      try {
+        linked = await LinkedInfrastructureContext.readForAlert({
+          projectId,
+          alertId,
+        });
+        const linkedNote: AIRunEventResultSummary | null =
+          LinkedInfrastructureContext.buildActivityNote(linked);
+
+        contextSummary +=
+          LinkedInfrastructureContext.buildContextSection(linked);
+
+        if (linkedNote) {
+          contextNotes.push(linkedNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the linked infrastructure of alert ${alertId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * The changes recorded before the alert - deploys, rollouts, config
+       * changes, OneUptime's own fixes - and which of them its services'
+       * telemetry makes suspects (RecentChangesContext). Enrichment only: a
+       * read that fails leaves the context as it was.
+       */
+      try {
+        const recentChanges: RecentChanges | null =
+          await RecentChangesContext.read({
+            projectId,
+            subjectKind: "alert",
+            subjectId: alertId,
+            linked,
+          });
+        const changesNote: AIRunEventResultSummary | null =
+          RecentChangesContext.buildActivityNote(recentChanges);
+
+        contextSummary +=
+          RecentChangesContext.buildContextSection(recentChanges);
+
+        if (changesNote) {
+          contextNotes.push(changesNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the recent changes of alert ${alertId.toString()}; investigating it without them: ${error}`,
+        );
+      }
 
       /*
        * Direct cluster access. Never a prerequisite: an access lookup that
@@ -192,6 +403,49 @@ export default class AIAlertInvestigationRunner {
 
       contextSummary +=
         ClusterAccessContext.buildContextSection(clusterStatuses);
+
+      /*
+       * Direct infrastructure access (Docker, Podman, Swarm, Proxmox,
+       * VMware, Ceph, databases, hosts) through their resource AI agents.
+       * Enrichment only, like cluster access, and on its own: losing it
+       * never fails the investigation nor takes the cluster access away.
+       */
+      try {
+        const statuses: Array<ResourceAiAccessStatus> =
+          await ResourceAiAccessService.getStatusesForSubject({
+            projectId,
+            alertId,
+          });
+        const section: string =
+          ResourceAccessContext.buildContextSection(statuses);
+
+        resourceStatuses = statuses;
+        contextSummary += section;
+      } catch (error) {
+        logger.error(
+          `AI: could not resolve infrastructure access for alert ${alertId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
+
+      /*
+       * The optics of the network device the alert is about, when it is:
+       * still detected or not, readings against the device's thresholds,
+       * and received power over the last weeks. Enrichment only.
+       */
+      try {
+        contextSummary += await NetworkTransceiverContext.buildContextSection({
+          projectId,
+          monitorIds: contextData.alert.monitorId
+            ? [contextData.alert.monitorId]
+            : [],
+          focusText: `${contextData.alert.title || ""}\n${contextData.alert.rootCause || ""}`,
+          seriesLabels: contextData.alert.seriesLabels,
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read transceivers for alert ${alertId.toString()}; investigating it without them: ${error}`,
+        );
+      }
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -210,7 +464,7 @@ export default class AIAlertInvestigationRunner {
           isPermanent: false,
         });
 
-      if (outcome === "finalized") {
+      if (outcome === "finalized" && !isRemediationReleased) {
         await RemediationHandoff.runForSettledInvestigation({
           projectId,
           alertId,
@@ -220,13 +474,19 @@ export default class AIAlertInvestigationRunner {
     }
 
     /*
-     * The run's wall clock, stated once: the engine enforces it between
-     * tool calls and the kubectl toolkit plans every command's wait to end
-     * before it, so a run_kubectl issued late in the run cannot outlive the
-     * budget (the loop cannot interrupt a tool once it is running).
+     * How far the run may go, stated once: no time limit unless the project
+     * configured one. When it did, the engine enforces it between tool
+     * calls and the command toolkits plan every command's wait to end
+     * before it, so a command issued late in the run cannot outlive it (the
+     * loop cannot interrupt a tool once it is running).
      */
-    const runDeadlineAtMs: number =
-      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+    const runLimits: AIAgentRunLimits =
+      await AIInvestigationEngine.getRunLimitsForProject(projectId, "Alert");
+    const runDeadlineAtMs: number | undefined =
+      AIAgentRunLimitsHelper.getDeadlineAtMs(runLimits, Date.now());
+
+    // One pager for the run, so read_tool_output reads every toolkit's output.
+    const outputPager: ToolOutputPager = new ToolOutputPager();
 
     const kubectlToolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
@@ -234,9 +494,130 @@ export default class AIAlertInvestigationRunner {
         aiRunId,
         clusters: clusterStatuses,
         runDeadlineAtMs,
+        outputPager,
       });
     const extraTools: Array<ObservabilityAssistantExtraTool> =
       kubectlToolkit.buildTools();
+
+    /*
+     * The infrastructure tools, bound to the same run and deadline. Built
+     * on their own so a failure here leaves the kubectl tools (and the
+     * run) as they are.
+     */
+    let resourceAddendum: string = "";
+
+    try {
+      const infrastructureToolkit: InfrastructureInvestigationToolkit =
+        new InfrastructureInvestigationToolkit({
+          projectId,
+          aiRunId,
+          resources: resourceStatuses,
+          runDeadlineAtMs,
+          outputPager,
+        });
+      const infrastructureTools: Array<ObservabilityAssistantExtraTool> =
+        infrastructureToolkit.buildTools();
+
+      resourceAddendum =
+        resourceStatuses.length > 0
+          ? ResourceAccessContext.buildPersonaAddendum(resourceStatuses)
+          : "";
+      extraTools.push(...infrastructureTools);
+    } catch (error) {
+      logger.error(
+        `AI: could not offer infrastructure access for alert ${alertId.toString()}; investigating it with OneUptime data only: ${error}`,
+      );
+    }
+
+    /*
+     * The project's external MCP servers the investigation rules allow for
+     * this alert - their tools that read only. Built on their own: a
+     * failure leaves the run with every other tool (null).
+     */
+    const mcpToolkit: McpRunToolkit | null =
+      await McpInvestigationTools.forAlert({
+        projectId,
+        alertId,
+        aiRunId,
+        outputPager,
+        runDeadlineAtMs,
+      });
+
+    if (mcpToolkit) {
+      extraTools.push(...mcpToolkit.buildTools());
+    }
+
+    // Long command output is paged, never cut: offer the reader with the commands.
+    if (extraTools.length > 0) {
+      extraTools.push(outputPager.buildReadTool());
+    }
+
+    // The cluster rules first, exactly as before; the infrastructure rules after.
+    const additionalInstructions: Array<string> = [];
+
+    if (clusterStatuses.length > 0) {
+      additionalInstructions.push(
+        ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
+      );
+    }
+
+    if (resourceAddendum) {
+      additionalInstructions.push(resourceAddendum);
+    }
+
+    // The external MCP servers last: what the run may do with them.
+    if (mcpToolkit) {
+      additionalInstructions.push(mcpToolkit.buildPersonaAddendum());
+    }
+
+    try {
+      await this.runInvestigationEngine({
+        aiRunId,
+        projectId,
+        alertId,
+        attemptCount,
+        isRemediationReleased,
+        contextSummary,
+        promptOmissions,
+        contextNotes,
+        runLimits,
+        additionalInstructions,
+        extraTools,
+      });
+    } finally {
+      // Every session the run opened ends with it.
+      await mcpToolkit?.close();
+    }
+  }
+
+  // The engine run itself, with what executeInvestigation assembled.
+  private static async runInvestigationEngine(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    alertId: ObjectID;
+    attemptCount: number;
+    // Nothing to release when it settles: a run a rule made wait.
+    isRemediationReleased: boolean;
+    contextSummary: string;
+    promptOmissions: AIPromptOmissions;
+    contextNotes: Array<AIRunEventResultSummary>;
+    runLimits: AIAgentRunLimits;
+    additionalInstructions: Array<string>;
+    extraTools: Array<ObservabilityAssistantExtraTool>;
+  }): Promise<void> {
+    const {
+      aiRunId,
+      projectId,
+      alertId,
+      attemptCount,
+      isRemediationReleased,
+      contextSummary,
+      promptOmissions,
+      contextNotes,
+      runLimits,
+      additionalInstructions,
+      extraTools,
+    } = data;
 
     await AIInvestigationEngine.executeRun({
       aiRunId,
@@ -247,12 +628,13 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
-        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
-        ...(clusterStatuses.length > 0
-          ? {
-              additionalInstructions:
-                ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
-            }
+        promptOmissions,
+        ...(contextNotes.length > 0 ? { contextNotes } : {}),
+        maxLlmCalls: runLimits.maxLlmCalls,
+        maxToolCalls: runLimits.maxToolCalls,
+        maxWallClockMs: runLimits.maxWallClockMs,
+        ...(additionalInstructions.length > 0
+          ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
         persistCodeFixRecommendation: true,
@@ -285,9 +667,10 @@ export default class AIAlertInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * opted-in projects (the alert instrumentation-fix setting,
-           * default false), queue an ImproveInstrumentation fix task that
-           * opens a PR adding the missing observability. Runs strictly
+           * projects with the alert instrumentation-fix setting on, under
+           * "Fix new alerts automatically" (Types/AI/AutomaticFixSwitches),
+           * queue an ImproveInstrumentation fix task that opens a PR adding
+           * the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
            * Fail direction (G6): only a POSITIVE inconclusive verdict
@@ -311,8 +694,9 @@ export default class AIAlertInvestigationRunner {
          * The engine calls this only after it atomically persists Recommended
          * with the exact posted analysis snapshot. That durable decision is
          * the prerequisite for the optional automatic FixFromIncident task;
-         * the trigger then applies the alert lane's independent opt-in and
-         * remaining repository, budget and dedupe gates.
+         * the trigger then applies the alert lane's opt-in - its code-fix
+         * switch, under its fixing switch - and the remaining repository,
+         * budget and dedupe gates.
          */
         onCodeFixRecommended: async (data: {
           analysisMarkdown: string;
@@ -329,9 +713,15 @@ export default class AIAlertInvestigationRunner {
         /*
          * RCA-first ordering: auto-remediation for this alert was deferred
          * at creation because this investigation was enqueued — release it
-         * now that the run has settled (any terminal outcome).
+         * now that the run has settled (any terminal outcome). A run an
+         * investigation rule made wait releases nothing: remediation did
+         * not wait for it.
          */
         onSettled: async (): Promise<void> => {
+          if (isRemediationReleased) {
+            return;
+          }
+
           await RemediationHandoff.runForSettledInvestigation({
             projectId,
             alertId,
@@ -357,6 +747,15 @@ export default class AIAlertInvestigationRunner {
     const alert: Alert | null = await AlertService.findOneById({
       id: alertId,
       select: {
+        // When it was created: a rule's wait counts from it.
+        createdAt: true,
+        // What an investigation rule matches on, and the severity floor.
+        title: true,
+        description: true,
+        alertSeverityId: true,
+        labels: {
+          _id: true,
+        },
         monitorId: true,
         alertSeverity: {
           order: true,
@@ -374,6 +773,24 @@ export default class AIAlertInvestigationRunner {
       };
     }
 
+    /*
+     * Investigation rules, when the project has any: only the alerts that
+     * match one are investigated. Checked first - an alert outside every
+     * rule is out whatever its severity.
+     */
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getAlertScope({ projectId, alert });
+
+    if (!scope.isInScope) {
+      return {
+        investigate: false,
+        notStartedCode: "no_investigation_rule_matched",
+        notStartedDetails: { rulesChecked: scope.rulesChecked },
+        reason: `none of the ${scope.rulesChecked} investigation rules matched`,
+        monitorId: alert.monitorId,
+      };
+    }
+
     // One project read serves both the severity floor and the dedupe window.
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -384,9 +801,12 @@ export default class AIAlertInvestigationRunner {
       props: { isRoot: true },
     });
 
-    // Severity floor.
+    /*
+     * Severity floor. Only filters KNOWN-low-severity alerts: an alert whose
+     * severity order cannot be determined passes, as does every alert when
+     * no floor is configured.
+     */
     const floorSeverity: AlertSeverity | null = await this.getSeverityFloor(
-      projectId,
       project?.alertInvestigationMinimumSeverityId,
     );
     const floorOrder: number | undefined = floorSeverity?.order;
@@ -410,17 +830,12 @@ export default class AIAlertInvestigationRunner {
     }
 
     /*
-     * Per-monitor dedupe window: per-project override, defaulting to 30
-     * minutes, clamped to at most a day; 0 disables the cooldown. Alerts
-     * without a monitor have no dedupe key.
+     * Per-monitor cooldown: off unless the project sets one, clamped to at
+     * most a day (see AIWorkloadLimits). Alerts without a monitor have no
+     * dedupe key.
      */
-    const dedupeWindowMinutes: number = Math.min(
-      MAX_DEDUPE_WINDOW_MINUTES,
-      Math.max(
-        0,
-        project?.alertInvestigationDedupeWindowMinutes ??
-          DEFAULT_DEDUPE_WINDOW_MINUTES,
-      ),
+    const dedupeWindowMinutes: number = AIWorkloadLimits.getCooldownInMinutes(
+      project?.alertInvestigationDedupeWindowMinutes,
     );
 
     if (alert.monitorId && dedupeWindowMinutes > 0) {
@@ -456,53 +871,53 @@ export default class AIAlertInvestigationRunner {
       investigate: true,
       reason: "passed severity and dedupe gates",
       monitorId: alert.monitorId,
+      ...(scope.waitMinutes && scope.waitMinutes > 0
+        ? { waitMinutes: scope.waitMinutes, createdAt: alert.createdAt }
+        : {}),
     };
   }
 
   /*
    * The severity `order` value that still qualifies for investigation (lower
    * order = higher severity; an alert qualifies when its order <= floor).
-   * An explicitly configured minimum severity wins; when unset — or when the
-   * configured severity has been deleted — the default is the project's top
-   * two tiers. Returns null when no floor applies (no severities configured).
+   * Returns null when no floor applies — the default: no configured minimum
+   * means every alert is investigated, whatever its severity.
    */
   private static async getSeverityFloor(
-    projectId: ObjectID,
     minimumSeverityId: ObjectID | undefined,
   ): Promise<AlertSeverity | null> {
-    if (minimumSeverityId) {
-      const floorSeverity: AlertSeverity | null =
-        await AlertSeverityService.findOneById({
-          id: minimumSeverityId,
-          select: { order: true, name: true },
-          props: { isRoot: true },
-        });
-
-      if (floorSeverity && floorSeverity.order !== undefined) {
-        return floorSeverity;
-      }
-    }
-
-    // Default: the top two severity tiers (the two lowest order values).
-    const topTiers: Array<AlertSeverity> = await AlertSeverityService.findBy({
-      query: { projectId },
-      select: { order: true, name: true },
-      sort: { order: SortOrder.Ascending },
-      limit: 2,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    if (topTiers.length === 0) {
+    if (!minimumSeverityId) {
       return null;
     }
 
-    const lastTier: AlertSeverity = topTiers[topTiers.length - 1]!;
-    return lastTier.order !== undefined ? lastTier : null;
+    const floorSeverity: AlertSeverity | null =
+      await AlertSeverityService.findOneById({
+        id: minimumSeverityId,
+        select: { order: true, name: true },
+        props: { isRoot: true },
+      });
+
+    /*
+     * A configured severity that has since been deleted must not silently
+     * become "investigate nothing" — fall back to no floor.
+     */
+    if (!floorSeverity || floorSeverity.order === undefined) {
+      return null;
+    }
+
+    return floorSeverity;
   }
 
-  // Build a compact alert record to seed the investigation.
-  private static buildAlertSummary(contextData: AlertContextData): string {
+  /*
+   * Build a compact alert record to seed the investigation. It is sent with
+   * every call to the model, so each free-text field goes in through
+   * PromptText.field: embedded images left out, held to a length, and what
+   * was left out added to `omissions`.
+   */
+  public static buildAlertSummary(
+    contextData: AlertContextData,
+    omissions?: AIPromptOmissions | undefined,
+  ): string {
     const { alert, internalNotes } = contextData;
 
     const lines: Array<string> = [];
@@ -510,7 +925,9 @@ export default class AIAlertInvestigationRunner {
     lines.push(`Title: ${alert.title || "N/A"}`);
 
     if (alert.description) {
-      lines.push(`Description: ${alert.description}`);
+      lines.push(
+        `Description: ${PromptText.field(alert.description, { omissions })}`,
+      );
     }
 
     lines.push(`Severity: ${alert.alertSeverity?.name || "N/A"}`);
@@ -539,13 +956,17 @@ export default class AIAlertInvestigationRunner {
     }
 
     if (alert.rootCause) {
-      lines.push(`Root cause (as recorded so far): ${alert.rootCause}`);
+      lines.push(
+        `Root cause (as recorded so far): ${PromptText.field(alert.rootCause, { omissions })}`,
+      );
     }
 
     const recentNotes: Array<string> = (internalNotes || [])
       .slice(-5)
       .map((note: { note?: string }) => {
-        return note.note ? `- ${note.note}` : "";
+        return note.note
+          ? `- ${PromptText.field(note.note, { omissions })}`
+          : "";
       })
       .filter(Boolean);
 

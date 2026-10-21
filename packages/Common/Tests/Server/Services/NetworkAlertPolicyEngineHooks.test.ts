@@ -71,8 +71,20 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import {
+  answerRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -572,7 +584,11 @@ describe("deleting a policy removes its monitors first", () => {
           return query;
         },
       );
-    jest.spyOn(NetworkAlertPolicyService, "findBy").mockResolvedValue([policy]);
+    const findSpy: SpyInstance<typeof NetworkAlertPolicyService.findBy> = jest
+      .spyOn(NetworkAlertPolicyService, "findBy")
+      .mockResolvedValue([policy]);
+    // The policies the caller may delete: those the same read reaches.
+    answerRowsCallerMayWriteLikeFindBy(NetworkAlertPolicyService, findSpy);
 
     await (NetworkAlertPolicyService as any).onBeforeDelete({
       query: { _id: POLICY_ID.toString() },
@@ -594,10 +610,10 @@ describe("deleting a policy removes its monitors first", () => {
   });
 
   /*
-   * Only policies the caller may actually delete. The hook runs before
-   * DatabaseService permission-checks the query, so it re-applies the same
-   * check first; otherwise a bulk delete the permission layer will trim could
-   * still take another project's monitors with it on the way through.
+   * Only policies the caller may actually delete: the hook reads the
+   * policies the delete removes among those the caller's delete permission
+   * reaches, and holds the delete to them, so a bulk delete the permission
+   * layer trims takes no other policy's monitors with it.
    */
   it("cleans up only the rows the caller is authorized to delete", async () => {
     const permissionSpy: SpyInstance<
@@ -608,6 +624,8 @@ describe("deleting a policy removes its monitors first", () => {
     const findSpy: SpyInstance<typeof NetworkAlertPolicyService.findBy> = jest
       .spyOn(NetworkAlertPolicyService, "findBy")
       .mockResolvedValue([]);
+    // The policies the caller may delete: those the same read reaches.
+    answerRowsCallerMayWriteLikeFindBy(NetworkAlertPolicyService, findSpy);
 
     await (NetworkAlertPolicyService as any).onBeforeDelete({
       query: { projectId: PROJECT_ID },
@@ -617,11 +635,11 @@ describe("deleting a policy removes its monitors first", () => {
     });
 
     expect(permissionSpy).toHaveBeenCalled();
-    expect(findSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: { _id: POLICY_ID.toString() },
-      }),
-    );
+    // The read the caller's permission narrowed: no policy it may delete.
+    expect(
+      readsOfRowsCallerMayWrite(NetworkAlertPolicyService)[0]!.query,
+    ).toEqual({ _id: POLICY_ID.toString() });
+    expect(findSpy).not.toHaveBeenCalled();
     expect(deletePolicyMonitorsMock).not.toHaveBeenCalled();
   });
 });
@@ -634,6 +652,14 @@ describe("deleting a policy removes its monitors first", () => {
  * been alerted on.
  */
 describe("MonitorTemplateService refuses to delete a template in use", () => {
+  beforeEach(() => {
+    // The templates the caller may delete: those the service's read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(
+      MonitorTemplateService,
+      jest.spyOn(MonitorTemplateService, "findBy"),
+    );
+  });
+
   function templateRow(): MonitorTemplate {
     const template: MonitorTemplate = new MonitorTemplate();
     template.id = TEMPLATE_ID;
@@ -732,21 +758,17 @@ describe("MonitorTemplateService refuses to delete a template in use", () => {
   });
 
   /*
-   * The hook runs before DatabaseService permission-checks the query, so its
-   * root read is re-scoped to the caller's tenant by hand. Without that, the
-   * refusal message could name another project's policies.
+   * The templates are those the caller may delete, read with the caller's
+   * own delete permission: in the caller's project. A refusal never names
+   * another project's policies.
    */
   it("reads the templates it is about to delete within the caller's tenant", async () => {
-    const findSpy: SpyInstance<typeof MonitorTemplateService.findBy> = jest
-      .spyOn(MonitorTemplateService, "findBy")
-      .mockResolvedValue([]);
+    jest.spyOn(MonitorTemplateService, "findBy").mockResolvedValue([]);
 
     await runDelete();
 
-    expect(findSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({ projectId: PROJECT_ID }),
-      }),
+    expect(readsOfRowsCallerMayWrite(MonitorTemplateService)[0]!.query).toEqual(
+      expect.objectContaining({ projectId: PROJECT_ID }),
     );
   });
 });

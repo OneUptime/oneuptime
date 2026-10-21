@@ -1,12 +1,20 @@
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import {
+  PLACEMENT_RELATIONSHIP_TYPES,
+  SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS,
+} from "Common/Types/Topology/TopologyTypeRules";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
 import { ServiceOperationalStatus } from "./OperationalOverlay";
 import { isEntityActive } from "./TopologyActivity";
+import {
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyRunsOnCount,
+  TopologyRunsOnCounts,
+} from "./TopologyData";
 import {
   SERVICE_MAP_TOLERATED_ERROR_RATE,
   TrafficHealth,
@@ -23,6 +31,10 @@ import {
  * databases, remote APIs, brokers and manually registered external services.
  * A service map without its datastores hides exactly the dependency most
  * incidents are about.
+ *
+ * The page feeds it the Service Map payload of the Topology API: every
+ * service, what services call, their depends-on rows and how many resources
+ * of each type every service runs on — never the pods and hosts themselves.
  */
 
 export type ServiceMapNodeKind = "service" | "database" | "remote" | "external";
@@ -54,8 +66,14 @@ export interface TrafficTotals {
   avgDurationMs: number | null;
 }
 
+/** How many resources of one type a service runs on. */
+export interface ServiceMapRunsOn {
+  entityType: string;
+  count: number;
+}
+
 export interface ServiceMapEntry {
-  entity: InventoryItem;
+  entity: TopologyEntity;
   key: string;
   label: string;
   kind: ServiceMapNodeKind;
@@ -63,6 +81,14 @@ export interface ServiceMapEntry {
   typeLabel: string;
   /** Language, database engine or protocol when known: "Node.js", "PostgreSQL". */
   detailLabel: string | null;
+  /*
+   * The attribute value detailLabel was resolved from, as reported
+   * ("eventhubs", "aws.sns", "nodejs"). Search matches it as well as the
+   * label: a broker node is named after its host, so once "eventhubs" reads
+   * as "Azure Event Hubs" this is the only place the value its telemetry
+   * carries is left to be found by.
+   */
+  detailValue: string | null;
   inbound: TrafficTotals;
   outbound: TrafficTotals;
   callers: number;
@@ -75,15 +101,19 @@ export interface ServiceMapEntry {
   alertCount: number;
   alertColor: string | null;
   needsAttention: boolean;
-  /** Keys of the active infrastructure this service runs on. */
-  runsOn: Array<string>;
+  /*
+   * What this service runs on, by type, most first (empty for anything that
+   * is not a service). Counts only resources that reported in the range
+   * unless inactive resources are shown.
+   */
+  runsOn: Array<ServiceMapRunsOn>;
 }
 
 export interface ServiceMapEdge {
   id: string;
   from: string;
   to: string;
-  relationship: InventoryItemRelationship;
+  relationship: TopologyRelationship;
   calls: number;
   errors: number;
   avgDurationMs: number | null;
@@ -95,7 +125,7 @@ export interface ServiceMapModel {
   entryByKey: Map<string, ServiceMapEntry>;
   edges: Array<ServiceMapEdge>;
   /** The `depends-on` rows the edges were built from. */
-  relationships: Array<InventoryItemRelationship>;
+  relationships: Array<TopologyRelationship>;
   /** Services left out because they did not report in the selected range. */
   inactiveServiceCount: number;
 }
@@ -112,6 +142,13 @@ export interface BuildServiceMapOptions {
   /** Start of the selected time range; omit to treat everything as active. */
   rangeStart?: Date | undefined;
   includeInactive?: boolean | undefined;
+  /*
+   * What each service runs on, counted by the server over the whole
+   * inventory. The Service Map payload carries no pods or hosts, so when
+   * given this is the only source of `runsOn`; without it `runsOn` is
+   * counted from the runs-on / hosted-on rows in `relationships`.
+   */
+  runsOnCounts?: TopologyRunsOnCounts | undefined;
 }
 
 const DEPENDENCY_KIND_BY_TYPE: Partial<Record<string, ServiceMapNodeKind>> = {
@@ -122,11 +159,6 @@ const DEPENDENCY_KIND_BY_TYPE: Partial<Record<string, ServiceMapNodeKind>> = {
   [EntityType.ServerlessFunction]: "remote",
   [EntityType.ExternalService]: "external",
 };
-
-const RUNS_ON_RELATIONSHIPS: Set<string> = new Set<string>([
-  EntityRelationshipType.RunsOn,
-  EntityRelationshipType.HostedOn,
-]);
 
 /* Friendly names for the values semconv puts in these attributes. */
 const DETAIL_LABELS: Record<string, string> = {
@@ -159,17 +191,77 @@ const DETAIL_LABELS: Record<string, string> = {
   dynamodb: "DynamoDB",
   "aws.dynamodb": "DynamoDB",
   sqlite: "SQLite",
+  /*
+   * Messaging systems. A broker node carries its messaging.system twice —
+   * as messaging.system and as network.protocol.name (see
+   * ServiceDependencyDiscovery) — lowercased on the server, so only
+   * lowercase keys can ever match. Every value the semantic conventions
+   * name is here, plus the spellings instrumentations really send: the
+   * azure_* values of semconv 1.24 (renamed in 1.25), AmazonSQS from older
+   * Java agents and Go otelaws, aws.sqs from Python (and older JS),
+   * aws_sns from Go otelaws, nats from the Java agent, bullmq from BullMQ
+   * queues (OneUptime's own included), and the other aliases the Queues
+   * catalog folds into the same systems.
+   */
   kafka: "Kafka",
   rabbitmq: "RabbitMQ",
   activemq: "ActiveMQ",
+  artemis: "ActiveMQ",
+  activemq_artemis: "ActiveMQ",
+  jms: "JMS",
   "aws.sqs": "Amazon SQS",
   aws_sqs: "Amazon SQS",
+  amazonsqs: "Amazon SQS",
+  sqs: "Amazon SQS",
+  "aws.sns": "Amazon SNS",
+  aws_sns: "Amazon SNS",
+  amazonsns: "Amazon SNS",
+  sns: "Amazon SNS",
   gcp_pubsub: "Pub/Sub",
+  "gcp.pubsub": "Pub/Sub",
+  google_pubsub: "Pub/Sub",
+  pubsub: "Pub/Sub",
+  servicebus: "Azure Service Bus",
+  azure_servicebus: "Azure Service Bus",
+  "azure.servicebus": "Azure Service Bus",
+  "microsoft.servicebus": "Azure Service Bus",
+  eventhubs: "Azure Event Hubs",
+  azure_eventhubs: "Azure Event Hubs",
+  "azure.eventhubs": "Azure Event Hubs",
+  "microsoft.eventhub": "Azure Event Hubs",
+  eventgrid: "Azure Event Grid",
+  azure_eventgrid: "Azure Event Grid",
+  "azure.eventgrid": "Azure Event Grid",
+  "microsoft.eventgrid": "Azure Event Grid",
+  pulsar: "Pulsar",
+  apache_pulsar: "Pulsar",
+  rocketmq: "RocketMQ",
+  nats: "NATS",
+  jetstream: "NATS",
+  bullmq: "BullMQ",
   http: "HTTP",
   grpc: "gRPC",
 };
 
-function readAttribute(entity: InventoryItem, key: string): string | null {
+/*
+ * The friendly name for a raw attribute value, or the value as reported when
+ * there is none. Own keys only: the value comes off the wire, and a plain
+ * lookup hands back Object.prototype members for "constructor",
+ * "__proto__" or "toString" — a function or an object, which the map would
+ * then print as the node's subtitle and search.
+ */
+function friendlyDetailLabel(raw: string): string {
+  const key: string = raw.toLowerCase();
+  const label: string | undefined = Object.prototype.hasOwnProperty.call(
+    DETAIL_LABELS,
+    key,
+  )
+    ? DETAIL_LABELS[key]
+    : undefined;
+  return typeof label === "string" && label ? label : raw;
+}
+
+function readAttribute(entity: TopologyEntity, key: string): string | null {
   const bags: Array<unknown> = [
     entity.descriptiveAttributes,
     entity.identifyingAttributes,
@@ -183,16 +275,35 @@ function readAttribute(entity: InventoryItem, key: string): string | null {
   return null;
 }
 
-export function detailLabelForEntity(entity: InventoryItem): string | null {
-  const raw: string | null =
-    readAttribute(entity, "telemetry.sdk.language") ||
-    readAttribute(entity, "db.system.name") ||
-    readAttribute(entity, "network.protocol.name") ||
-    readAttribute(entity, "messaging.system");
-  if (!raw) {
-    return null;
+/*
+ * The first of SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS the entity has (the
+ * descriptive value before the identifying one), trimmed but otherwise as
+ * reported. The server ships exactly those keys, so the list is shared
+ * rather than repeated here.
+ */
+export function detailValueForEntity(entity: TopologyEntity): string | null {
+  for (const key of SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS) {
+    const raw: string | null = readAttribute(entity, key);
+    if (raw) {
+      return raw;
+    }
   }
-  return DETAIL_LABELS[raw.toLowerCase()] || raw;
+  return null;
+}
+
+/*
+ * The label a node shows for its detail value: the value's friendly name,
+ * the value as reported when it has none, and null when there is no value.
+ * buildServiceMapModel and detailLabelForEntity both label through here, so
+ * the map shows exactly what detailLabelForEntity returns.
+ */
+function detailLabelForValue(value: string | null): string | null {
+  return value ? friendlyDetailLabel(value) : null;
+}
+
+/* detailValueForEntity's value under its friendly name, when it has one. */
+export function detailLabelForEntity(entity: TopologyEntity): string | null {
+  return detailLabelForValue(detailValueForEntity(entity));
 }
 
 export function kindForEntityType(
@@ -207,7 +318,7 @@ function emptyTotals(): TrafficTotals {
 
 function addTraffic(
   totals: TrafficTotals,
-  relationship: InventoryItemRelationship,
+  relationship: TopologyRelationship,
 ): void {
   const calls: number = Math.max(0, relationship.callCount || 0);
   if (calls <= 0) {
@@ -241,27 +352,71 @@ function statusFor(entry: ServiceMapEntry): ServiceMapStatus {
   return "isolated";
 }
 
+/*
+ * Most first, then by type so equal counts always read in the same order:
+ * "12 pods · 3 hosts".
+ */
+function sortRunsOn(runsOn: Array<ServiceMapRunsOn>): Array<ServiceMapRunsOn> {
+  return runsOn.sort((a: ServiceMapRunsOn, b: ServiceMapRunsOn): number => {
+    return b.count - a.count || a.entityType.localeCompare(b.entityType);
+  });
+}
+
+function runsOnFromTypeCounts(
+  byType: Map<string, number>,
+): Array<ServiceMapRunsOn> {
+  return sortRunsOn(
+    Array.from(byType.entries()).map(
+      ([entityType, count]: [string, number]): ServiceMapRunsOn => {
+        return { entityType, count };
+      },
+    ),
+  );
+}
+
+/*
+ * The server's per-type counts for one service: resources that reported in
+ * the range, or all of them when inactive resources are shown. This mirrors
+ * `isActive` below — without a range start everything counts as active, so
+ * the total is the active count. Types it counted nothing for are dropped.
+ */
+function runsOnFromCounts(
+  counts: Array<TopologyRunsOnCount> | undefined,
+  countEverything: boolean,
+): Array<ServiceMapRunsOn> {
+  const byType: Map<string, number> = new Map<string, number>();
+  for (const count of counts || []) {
+    const value: number = Math.max(
+      0,
+      (countEverything ? count.total : count.active) || 0,
+    );
+    if (value > 0) {
+      const type: string = count.entityType || "unknown";
+      byType.set(type, (byType.get(type) || 0) + value);
+    }
+  }
+  return runsOnFromTypeCounts(byType);
+}
+
 /** Build traffic totals before filtering so searching never changes health. */
 export function buildServiceMapModel(
-  entities: Array<InventoryItem>,
-  relationships: Array<InventoryItemRelationship>,
+  entities: Array<TopologyEntity>,
+  relationships: Array<TopologyRelationship>,
   options: BuildServiceMapOptions = {},
 ): ServiceMapModel {
   const statuses: Map<string, ServiceOperationalStatus> =
     options.statuses || new Map<string, ServiceOperationalStatus>();
-  const isActive: (entity: InventoryItem) => boolean = (
-    entity: InventoryItem,
+  const countEverything: boolean =
+    options.includeInactive === true || !options.rangeStart;
+  const isActive: (entity: TopologyEntity) => boolean = (
+    entity: TopologyEntity,
   ): boolean => {
-    return (
-      options.includeInactive === true ||
-      !options.rangeStart ||
-      isEntityActive(entity, options.rangeStart)
-    );
+    return countEverything || isEntityActive(entity, options.rangeStart!);
   };
 
-  const entityByKey: Map<string, InventoryItem> = new Map<
+  const entityByKey: Map<string, TopologyEntity> = new Map<
     string,
-    InventoryItem
+    TopologyEntity
   >();
   for (const entity of entities) {
     if (entity.entityKey) {
@@ -273,10 +428,16 @@ export function buildServiceMapModel(
     string,
     ServiceMapEntry
   >();
+  /*
+   * The services drawn in their own right. Only they may be callers: an
+   * entry added as a callee (a database, a remote API) is never the `from` of
+   * an edge, whatever order the rows arrive in.
+   */
+  const activeServiceKeys: Set<string> = new Set<string>();
   let inactiveServiceCount: number = 0;
 
-  const ensureEntry: (entity: InventoryItem) => ServiceMapEntry = (
-    entity: InventoryItem,
+  const ensureEntry: (entity: TopologyEntity) => ServiceMapEntry = (
+    entity: TopologyEntity,
   ): ServiceMapEntry => {
     const key: string = entity.entityKey!;
     const existing: ServiceMapEntry | undefined = entryByKey.get(key);
@@ -289,13 +450,15 @@ export function buildServiceMapModel(
       (kind === "service" ? "Unnamed service" : "Unnamed dependency");
     const status: ServiceOperationalStatus | undefined =
       kind === "service" ? statuses.get(label.toLowerCase()) : undefined;
+    const detailValue: string | null = detailValueForEntity(entity);
     const entry: ServiceMapEntry = {
       entity,
       key,
       label,
       kind,
       typeLabel: metaForEntityType(entity.entityType).label,
-      detailLabel: detailLabelForEntity(entity),
+      detailLabel: detailLabelForValue(detailValue),
+      detailValue,
       inbound: emptyTotals(),
       outbound: emptyTotals(),
       callers: 0,
@@ -322,10 +485,11 @@ export function buildServiceMapModel(
       continue;
     }
     ensureEntry(entity);
+    activeServiceKeys.add(entity.entityKey);
   }
 
   const edges: Array<ServiceMapEdge> = [];
-  const validRelationships: Array<InventoryItemRelationship> = [];
+  const validRelationships: Array<TopologyRelationship> = [];
   const seenEdges: Set<string> = new Set<string>();
 
   for (const relationship of relationships) {
@@ -338,12 +502,14 @@ export function buildServiceMapModel(
     if (!fromKey || !toKey || fromKey === toKey || seenEdges.has(id)) {
       continue;
     }
-    const from: ServiceMapEntry | undefined = entryByKey.get(fromKey);
-    const toEntity: InventoryItem | undefined = entityByKey.get(toKey);
+    const from: ServiceMapEntry | undefined = activeServiceKeys.has(fromKey)
+      ? entryByKey.get(fromKey)
+      : undefined;
+    const toEntity: TopologyEntity | undefined = entityByKey.get(toKey);
     /*
-     * Callers are always services on this map. A callee can be a service
-     * or anything a service calls — but a callee that is itself a service
-     * must be an active one, or the edge would resurrect it.
+     * Callers are always active services on this map. A callee can be a
+     * service or anything a service calls — but a callee that is itself a
+     * service must be an active one, or the edge would resurrect it.
      */
     if (!from || !toEntity) {
       continue;
@@ -379,26 +545,50 @@ export function buildServiceMapModel(
     });
   }
 
-  for (const relationship of relationships) {
-    if (!RUNS_ON_RELATIONSHIPS.has(relationship.relationshipType || "")) {
-      continue;
+  if (options.runsOnCounts) {
+    for (const key of activeServiceKeys) {
+      entryByKey.get(key)!.runsOn = runsOnFromCounts(
+        options.runsOnCounts.get(key),
+        countEverything,
+      );
     }
-    const service: ServiceMapEntry | undefined = entryByKey.get(
-      relationship.fromEntityKey || "",
-    );
-    const target: InventoryItem | undefined = entityByKey.get(
-      relationship.toEntityKey || "",
-    );
-    if (
-      !service ||
-      service.kind !== "service" ||
-      !target ||
-      !isActive(target) ||
-      service.runsOn.includes(target.entityKey!)
-    ) {
-      continue;
+  } else {
+    /*
+     * Without server counts, count the distinct targets of each service's
+     * runs-on / hosted-on rows by type. Only targets present in `entities`
+     * can be typed, as before.
+     */
+    const targetsByService: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+    for (const relationship of relationships) {
+      if (
+        !PLACEMENT_RELATIONSHIP_TYPES.has(relationship.relationshipType || "")
+      ) {
+        continue;
+      }
+      const serviceKey: string = relationship.fromEntityKey || "";
+      const target: TopologyEntity | undefined = entityByKey.get(
+        relationship.toEntityKey || "",
+      );
+      if (!activeServiceKeys.has(serviceKey) || !target || !isActive(target)) {
+        continue;
+      }
+      const targets: Set<string> =
+        targetsByService.get(serviceKey) || new Set<string>();
+      targets.add(target.entityKey!);
+      targetsByService.set(serviceKey, targets);
     }
-    service.runsOn.push(target.entityKey!);
+    for (const [serviceKey, targets] of targetsByService) {
+      const byType: Map<string, number> = new Map<string, number>();
+      for (const targetKey of targets) {
+        const type: string =
+          entityByKey.get(targetKey)?.entityType || "unknown";
+        byType.set(type, (byType.get(type) || 0) + 1);
+      }
+      entryByKey.get(serviceKey)!.runsOn = runsOnFromTypeCounts(byType);
+    }
   }
 
   for (const entry of entryByKey.values()) {
@@ -482,7 +672,7 @@ export function resolveServiceMapVisibility(options: {
   const matchedKeys: Set<string> = new Set<string>();
   for (const entry of model.entries) {
     const searchable: string =
-      `${entry.label} ${entry.typeLabel} ${entry.detailLabel || ""} ${entry.key}`.toLowerCase();
+      `${entry.label} ${entry.typeLabel} ${entry.detailLabel || ""} ${entry.detailValue || ""} ${entry.key}`.toLowerCase();
     if (
       scope.has(entry.key) &&
       (!options.attentionOnly || entry.needsAttention) &&
@@ -565,23 +755,19 @@ export function layoutServiceMap(options: {
 
 /** "12 pods · 3 hosts" for the infrastructure a service runs on. */
 export function summarizeRunsOn(
-  keys: Array<string>,
-  entityByKey: Map<string, InventoryItem>,
+  runsOn: Array<ServiceMapRunsOn>,
 ): string | null {
-  if (keys.length === 0) {
+  const counted: Array<ServiceMapRunsOn> = sortRunsOn(
+    runsOn.filter((item: ServiceMapRunsOn): boolean => {
+      return item.count > 0;
+    }),
+  );
+  if (counted.length === 0) {
     return null;
   }
-  const counts: Map<string, number> = new Map<string, number>();
-  for (const key of keys) {
-    const type: string = entityByKey.get(key)?.entityType || "unknown";
-    counts.set(type, (counts.get(type) || 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .sort((a: [string, number], b: [string, number]): number => {
-      return b[1] - a[1] || a[0].localeCompare(b[0]);
-    })
-    .map(([type, count]: [string, number]): string => {
-      return `${count} ${nounForType(type, count)}`;
+  return counted
+    .map((item: ServiceMapRunsOn): string => {
+      return `${item.count} ${nounForType(item.entityType, item.count)}`;
     })
     .join(" · ");
 }

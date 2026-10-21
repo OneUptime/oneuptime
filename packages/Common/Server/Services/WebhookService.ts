@@ -12,6 +12,7 @@ import ObjectID from "../../Types/ObjectID";
 import WebhookMessage from "../../Types/Webhook/WebhookMessage";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class WebhookService extends BaseService {
   public constructor() {
@@ -38,6 +39,18 @@ export class WebhookService extends BaseService {
       teamId?: ObjectID | undefined;
     } = {},
   ): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Webhook",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       url: message.url,
       eventType: message.eventType,
@@ -118,6 +131,9 @@ export class WebhookService extends BaseService {
       data: body,
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        sameServerRedirectsOnly: true,
       },
     });
   }

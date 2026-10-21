@@ -46,6 +46,7 @@ import {
   formatUptimePercent,
   groupedMarkerRadius,
   isUnitLevelFor,
+  opensDeviceTopology,
   layoutMapMarkers,
   mapPinFingerprint,
   pluralizeSiteType,
@@ -4090,5 +4091,70 @@ describe("link lines survive every zoom level", () => {
       );
     }
     expect(Array.from(drawn)).toEqual(["l1,l2"]);
+  });
+});
+
+/*
+ * Drilling into a site on the Map opens either a map of the sites under it
+ * or the site's own devices. A unit-level site always opens its devices.
+ * Before, every other site opened on its child sites - so an office or a
+ * data center modelled with a type that is not unit level, with devices and
+ * no sites under it, opened on "No child sites here yet" with its devices
+ * nowhere on the page.
+ */
+describe("opensDeviceTopology", () => {
+  test("a unit-level site opens its devices", () => {
+    expect(
+      opensDeviceTopology({
+        isUnitLevel: true,
+        childSiteCount: 0,
+        ownDeviceCount: 0,
+      }),
+    ).toBe(true);
+  });
+
+  test("a unit-level site opens its devices even if sites were put under it", () => {
+    expect(
+      opensDeviceTopology({
+        isUnitLevel: true,
+        childSiteCount: 3,
+        ownDeviceCount: 12,
+      }),
+    ).toBe(true);
+  });
+
+  test("a site with devices and no sites under it opens its devices, whatever its type", () => {
+    expect(
+      opensDeviceTopology({
+        isUnitLevel: false,
+        childSiteCount: 0,
+        ownDeviceCount: 4,
+      }),
+    ).toBe(true);
+  });
+
+  test("a site with sites under it opens on them, even with devices of its own", () => {
+    expect(
+      opensDeviceTopology({
+        isUnitLevel: false,
+        childSiteCount: 2,
+        ownDeviceCount: 4,
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * An empty site keeps the container view: its empty state says that
+   * sites and devices added under it will appear there, which is the right
+   * thing to read about an empty region.
+   */
+  test("an empty site that is not unit level keeps the view of its sites", () => {
+    expect(
+      opensDeviceTopology({
+        isUnitLevel: false,
+        childSiteCount: 0,
+        ownDeviceCount: 0,
+      }),
+    ).toBe(false);
   });
 });

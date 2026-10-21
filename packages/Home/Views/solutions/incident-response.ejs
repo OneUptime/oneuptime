@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Incident Response | Faster Detection, Faster Resolution</title>
-    <meta name="description"
-        content="Streamline your incident response with automated detection, intelligent routing, and collaborative tools. Reduce MTTR and keep your services running.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -33,7 +33,7 @@
 
           <!-- Main Headline -->
           <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Detect faster. <br class="hidden sm:block" />
+            Detect faster. <br class="max-sm:hidden sm:block" />
             <span class="text-rose-600">Resolve faster.</span>
           </h1>
 

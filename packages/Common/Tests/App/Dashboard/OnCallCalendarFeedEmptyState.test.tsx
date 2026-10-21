@@ -155,6 +155,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Permission from "../../../Types/Permission";
 import { JSONObject } from "../../../Types/JSON";
 import FeedEmptyState, {
+  FEED_EMPTY_STATE_LAYOUT_CLASS_NAME,
   FeedEmptyStatePoint,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedEmptyState";
 import {
@@ -199,6 +200,7 @@ const EMPTY_STATUS_JSON: JSONObject = {
   urls: null,
   hostWarning: null,
   protocolWarning: null,
+  privateHost: null,
 };
 
 const ACTIVE_STATUS_JSON: JSONObject = {
@@ -284,6 +286,34 @@ describe("FeedEmptyState", () => {
       within(screen.getByTestId("feed-empty-control")).getByTestId(
         "panel-action",
       ),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * On a phone the badge sits above the text, which then has the panel's
+   * whole width: beside it, the bullets ran to three lines each and
+   * "Generate calendar link" broke over two. From sm up it is beside it.
+   */
+  test("the badge sits above the text on a phone and beside it from sm up", () => {
+    render(
+      <FeedEmptyState
+        idPrefix="feed"
+        title="No calendar link yet"
+        description="Generate one, then subscribe from your calendar app."
+        control={action("Generate")}
+      />,
+    );
+
+    const layout: HTMLElement = screen.getByTestId("feed-empty-layout");
+
+    expect(layout.className).toBe(FEED_EMPTY_STATE_LAYOUT_CLASS_NAME);
+    expect(FEED_EMPTY_STATE_LAYOUT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "sm:flex-row"]),
+    );
+    // The badge first, then the text with the action in it.
+    expect(layout.children).toHaveLength(2);
+    expect(
+      within(layout.children[1] as HTMLElement).getByTestId("feed-empty-title"),
     ).toBeInTheDocument();
   });
 
@@ -650,6 +680,48 @@ describe("PersonalCalendarFeedCard empty state (settings page)", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * A private HOST does not break the link for apps on the same network, but
+   * Google Calendar never fills from it. Said before the link is minted, so
+   * nobody pastes it into Google and waits a day for nothing.
+   */
+  test("a private HOST is named above the panel before any link exists", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        ...EMPTY_STATUS_JSON,
+        privateHost: "oneuptime.internal",
+      }),
+    );
+
+    render(
+      <PersonalCalendarFeedCard
+        variant={PersonalCalendarFeedVariant.Full}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("personal-calendar-feed-empty-state"),
+      ).toBeInTheDocument();
+    });
+
+    const panel: HTMLElement = screen.getByTestId(
+      "personal-calendar-feed-empty-state",
+    );
+    const privateHost: HTMLElement = screen.getByTestId(
+      "personal-calendar-feed-private-host-warning",
+    );
+
+    expect(privateHost).toHaveTextContent(
+      "Google Calendar and Outlook on the web can't reach this link: oneuptime.internal is a private address",
+    );
+    expect(isBefore(privateHost, panel)).toBe(true);
+    expect(
+      screen.getByTestId("personal-calendar-feed-generate"),
+    ).toBeInTheDocument();
+  });
+
   test("a failed Generate leaves the panel standing and shows the reason", async () => {
     getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
     postMock.mockRejectedValue(new Error("Feeds are disabled on this server."));
@@ -804,7 +876,7 @@ describe("SharedCalendarFeedCard empty state", () => {
     ).toHaveTextContent(SHARED_FEED_EMPTY_TITLE);
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-empty-description"),
-    ).toHaveTextContent("anyone with the link sees everyone's shifts on it");
+    ).toHaveTextContent("Anyone with the link sees everyone's shifts");
 
     expect(
       within(
@@ -907,7 +979,7 @@ describe("SharedCalendarFeedCard empty state", () => {
     // The panel still explains the feature; only the action is withheld.
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-empty-description"),
-    ).toHaveTextContent("anyone with the link sees everyone's shifts on it");
+    ).toHaveTextContent("Anyone with the link sees everyone's shifts");
   });
 
   test("a reader with no permissions at all gets the 'ask an editor' note there instead", async () => {
@@ -971,5 +1043,32 @@ describe("SharedCalendarFeedCard empty state", () => {
 
     expect(isBefore(host, panel)).toBe(true);
     expect(panel).not.toContainElement(host);
+  });
+
+  test("the shared panel names a private HOST too", async () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+    getMock.mockResolvedValue(
+      ok({
+        ...EMPTY_STATUS_JSON,
+        privateHost: "10.20.0.15",
+      }),
+    );
+
+    render(
+      <SharedCalendarFeedCard
+        kind={SharedCalendarFeedKind.Project}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("project-shared-calendar-feed-private-host-warning"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("project-shared-calendar-feed-private-host-warning"),
+    ).toHaveTextContent("10.20.0.15 is a private address");
   });
 });

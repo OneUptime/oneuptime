@@ -7,6 +7,7 @@ import { record } from "rrweb";
 import { RecorderInitOptions } from "../src/Config";
 import Masking from "../src/Masking";
 import Recorder from "../src/Recorder";
+import { withoutJsonNumbers } from "./PayloadText";
 
 /*
  * THE test for this package.
@@ -174,27 +175,37 @@ describe("no unmasked page text reaches the wire", (): void => {
   };
 
   /*
-   * The upload envelope carries ids the recorder minted rather than anything
-   * the page said: 32 random hex characters each for the session, the tab and
-   * the visitor. A fragment that is itself all hex digits can land inside one
-   * of them by chance - "4111" turns up in about one in 2,200 such ids, and a
-   * sessionId of 4111abd3... is exactly what failed this file on master - so a
-   * short card fragment is looked for everywhere EXCEPT those three values.
-   * Nothing from the page can hide there instead: envelopeIdsAreHex() holds
-   * every one of them to [0-9a-f], so page text reaching an id fails that check
-   * rather than slipping past this one.
+   * An upload also carries values the recorder made rather than anything the
+   * page said, and a short card fragment that is all digits can land inside
+   * one of them by chance:
+   *
+   *  - the envelope's ids, 32 random hex characters each for the session, the
+   *    tab and the visitor - "4111" turns up in about one in 2,200 such ids,
+   *    and a sessionId of 4111abd3... failed this file on master;
+   *  - every number: the clocks (timestamp, atUnixMs, clientSendUnixMs,
+   *    sessionStartUnixMs), payloadBytes, the viewport - a 13-digit
+   *    millisecond clock holds any four digits now and then, and an atUnixMs
+   *    of 1791398424111 failed it again.
+   *
+   * So a short fragment is looked for everywhere EXCEPT those values. Nothing
+   * from the page can hide there instead: page text only ever travels inside
+   * a JSON string (see PayloadText), and envelopeIdsAreHex() holds every id to
+   * [0-9a-f], so page text reaching an id fails that check rather than
+   * slipping past this one.
    */
   const ENVELOPE_ID_PATTERN: RegExp =
     /"(sessionId|tabId|visitorId)":"([^"]*)"/g;
 
   const HEX_ID_PATTERN: RegExp = /^[0-9a-f]+$/;
 
-  const postedWithoutEnvelopeIds: () => string = (): string => {
-    return allPostedBytes().replace(
-      ENVELOPE_ID_PATTERN,
-      (_match: string, field: string): string => {
-        return `"${field}":"<id>"`;
-      },
+  const postedWithoutRecorderValues: () => string = (): string => {
+    return withoutJsonNumbers(
+      allPostedBytes().replace(
+        ENVELOPE_ID_PATTERN,
+        (_match: string, field: string): string => {
+          return `"${field}":"<id>"`;
+        },
+      ),
     );
   };
 
@@ -475,8 +486,12 @@ describe("no unmasked page text reaches the wire", (): void => {
       expect(`${name}:${after}`).not.toContain(secret);
     }
 
+    /*
+     * The event's own timestamp is a millisecond clock, which holds "4417"
+     * now and then; page text only travels in strings (withoutJsonNumbers).
+     */
     for (const fragment of ["Hartwell", "Whitcombe", "Marlborough", "4417"]) {
-      expect(after).not.toContain(fragment);
+      expect(withoutJsonNumbers(after)).not.toContain(fragment);
     }
 
     /* What playback needs is untouched. */
@@ -546,7 +561,7 @@ describe("no unmasked page text reaches the wire", (): void => {
     expect(posted).not.toContain("sertraline");
     expect(posted).not.toContain(cardSecret);
     expect(envelopeIdsAreHex()).toBe(true);
-    expect(postedWithoutEnvelopeIds()).not.toContain("4111");
+    expect(postedWithoutRecorderValues()).not.toContain("4111");
   });
 
   /*

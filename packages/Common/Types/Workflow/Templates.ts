@@ -23,9 +23,23 @@
 
 import { JSONObject } from "../JSON";
 import IconProp from "../Icon/IconProp";
+import HuntressSeverity from "../Huntress/HuntressSeverity";
 import ComponentID from "./ComponentID";
 import { ComponentType, NodeType } from "./Component";
 import { ConditionOperator, ConditionValueType } from "./Components/Condition";
+import { MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN } from "./Components/Mattermost";
+import {
+  PAGE_ARGUMENT_IDS,
+  PAGE_ERROR_PORT_ID,
+  PAGE_SUCCESS_PORT_ID,
+  PageAbout,
+} from "./Components/OnCallPageSettings";
+import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
+import { HuntressTriggerEvent, HuntressTriggerValue } from "./HuntressTrigger";
+import {
+  OAuth2ClientAuthenticationMethod,
+  OAuth2GrantType,
+} from "./WorkflowVariableOAuth";
 
 export enum WorkflowTemplateCategory {
   Basics = "Basics",
@@ -37,6 +51,9 @@ export enum WorkflowTemplateCategory {
   OnCall = "On-Call",
   Scheduled = "On a Schedule",
   Jira = "Jira",
+  Dynamics365 = "Dynamics 365",
+  Huntress = "Huntress",
+  Zabbix = "Zabbix",
   Integrations = "Integrations",
 }
 
@@ -51,8 +68,140 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
   WorkflowTemplateCategory.ScheduledMaintenance,
   WorkflowTemplateCategory.Scheduled,
   WorkflowTemplateCategory.Jira,
+  WorkflowTemplateCategory.Dynamics365,
+  WorkflowTemplateCategory.Huntress,
+  WorkflowTemplateCategory.Zabbix,
   WorkflowTemplateCategory.Integrations,
 ];
+
+/*
+ * How the picker shows a category: an icon in its list of categories, and a
+ * line under its heading saying what the templates in it are for. The icons
+ * are the ones the product's own navigation uses for the same area, so
+ * Incidents looks the same here as it does in the menu.
+ */
+export interface WorkflowTemplateCategoryInfo {
+  category: WorkflowTemplateCategory;
+  /**
+   * The name the picker shows. Mostly the category itself; shorter where the
+   * full name does not fit beside its count in the list of categories.
+   */
+  label: string;
+  /** One line, said as what someone wants to get done. */
+  description: string;
+  icon: IconProp;
+}
+
+/*
+ * A Record rather than a list, so a new category that is not described here
+ * fails to compile instead of showing up in the picker without an icon.
+ */
+const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
+  WorkflowTemplateCategory,
+  WorkflowTemplateCategoryInfo
+> = {
+  [WorkflowTemplateCategory.Basics]: {
+    category: WorkflowTemplateCategory.Basics,
+    /*
+     * Not "Basics": that key is a form step's in the Dashboard's locales,
+     * where it reads "basic information", and these are first workflows.
+     */
+    label: "Learn the basics",
+    description:
+      "Small workflows that show how a trigger, its steps and their values fit together.",
+    icon: IconProp.BookOpen,
+  },
+  [WorkflowTemplateCategory.Incidents]: {
+    category: WorkflowTemplateCategory.Incidents,
+    label: "Incidents",
+    description:
+      "Tell your team and your other tools the moment an incident opens or changes.",
+    icon: IconProp.Alert,
+  },
+  [WorkflowTemplateCategory.Alerts]: {
+    category: WorkflowTemplateCategory.Alerts,
+    label: "Alerts",
+    description: "Send new alerts to the chat your team already watches.",
+    icon: IconProp.ExclaimationCircle,
+  },
+  [WorkflowTemplateCategory.Monitors]: {
+    category: WorkflowTemplateCategory.Monitors,
+    label: "Monitors",
+    description:
+      "Act when a monitor goes down, comes back up or changes status.",
+    icon: IconProp.AltGlobe,
+  },
+  [WorkflowTemplateCategory.OnCall]: {
+    category: WorkflowTemplateCategory.OnCall,
+    label: "On-Call",
+    description:
+      "Page the right people, and follow an on-call escalation from start to finish.",
+    icon: IconProp.Call,
+  },
+  [WorkflowTemplateCategory.StatusPage]: {
+    category: WorkflowTemplateCategory.StatusPage,
+    label: "Status Pages",
+    description:
+      "Pass new status page subscribers on once they have confirmed.",
+    icon: IconProp.CheckCircle,
+  },
+  [WorkflowTemplateCategory.ScheduledMaintenance]: {
+    category: WorkflowTemplateCategory.ScheduledMaintenance,
+    label: "Maintenance",
+    description: "Let people know as soon as maintenance is scheduled.",
+    icon: IconProp.Clock,
+  },
+  [WorkflowTemplateCategory.Scheduled]: {
+    category: WorkflowTemplateCategory.Scheduled,
+    label: "On a Schedule",
+    description: "Run checks, heartbeats and emails at set times.",
+    icon: IconProp.Calendar,
+  },
+  [WorkflowTemplateCategory.Jira]: {
+    category: WorkflowTemplateCategory.Jira,
+    label: "Jira",
+    description:
+      "Keep Jira issues in step with your incidents and alerts, both ways.",
+    icon: IconProp.Ticket,
+  },
+  [WorkflowTemplateCategory.Dynamics365]: {
+    category: WorkflowTemplateCategory.Dynamics365,
+    label: "Dynamics 365",
+    description:
+      "Keep Dynamics 365 cases in step with your incidents and alerts, both ways.",
+    icon: IconProp.Lifebuoy,
+  },
+  [WorkflowTemplateCategory.Huntress]: {
+    category: WorkflowTemplateCategory.Huntress,
+    label: "Huntress",
+    description:
+      "Open incidents for Huntress incident reports, and page on-call for them.",
+    icon: IconProp.ShieldCheck,
+  },
+  [WorkflowTemplateCategory.Zabbix]: {
+    category: WorkflowTemplateCategory.Zabbix,
+    label: "Zabbix",
+    description:
+      "Open incidents or alerts for Zabbix problems, and keep both sides in step.",
+    icon: IconProp.ServerStack,
+  },
+  [WorkflowTemplateCategory.Integrations]: {
+    category: WorkflowTemplateCategory.Integrations,
+    label: "Integrations",
+    description:
+      "Use a workflow's own webhook URL to join two other systems together.",
+    icon: IconProp.Integrations,
+  },
+};
+
+export type GetWorkflowTemplateCategoryInfoFunction = (
+  category: WorkflowTemplateCategory,
+) => WorkflowTemplateCategoryInfo;
+
+export const getWorkflowTemplateCategoryInfo: GetWorkflowTemplateCategoryInfoFunction =
+  (category: WorkflowTemplateCategory): WorkflowTemplateCategoryInfo => {
+    return WORKFLOW_TEMPLATE_CATEGORY_INFO[category];
+  };
 
 /*
  * A variable name becomes two things that must match exactly: the `name` column
@@ -63,6 +212,20 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
  * nothing, silently, and the workflow posts literal braces to Slack.
  */
 export const WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX: RegExp = /^[A-Za-z0-9_-]+$/;
+
+/*
+ * What a value typed into the wizard has to look like. A value of the wrong
+ * shape is not an error anywhere later — a Dynamics 365 URL pasted with its
+ * /api/data/v9.2 tail still makes requests, to addresses that answer 404 —
+ * so the wizard checks it before anything is created, and says what to type
+ * instead.
+ */
+export interface WorkflowTemplateVariableFormat {
+  /** Tested against the value as it will be saved: trimmed. */
+  pattern: RegExp;
+  /** Shown under the field when the value does not match. Says what to type instead. */
+  message: string;
+}
 
 export interface WorkflowTemplateVariable {
   /** Referenced as {{local.variables.<name>}} and used verbatim as the WorkflowVariable name. */
@@ -76,9 +239,56 @@ export interface WorkflowTemplateVariable {
   /**
    * Marks the stored row secret, which masks it in the create wizard and
    * redacts it from run logs and traces. It does NOT encrypt it at rest —
-   * nothing on WorkflowVariable is.
+   * nothing on a static WorkflowVariable is.
    */
   isSecret: boolean;
+  /** What the value must look like, when that can be told. Absent: anything goes. */
+  format?: WorkflowTemplateVariableFormat | undefined;
+  /**
+   * Set on a value that is only ever a setting of the template's OAuth 2.0
+   * variables (WorkflowTemplate.oauth2Variables) — a tenant, a client ID, a
+   * client secret. No variable of its own is written for it, so the graph
+   * cannot refer to it: a client secret is kept once, encrypted, inside the
+   * OAuth 2.0 variable, and never as a static variable's plain content.
+   */
+  isOAuth2SettingOnly?: boolean | undefined;
+  /**
+   * The name of a setting the template asks for before this one, and that
+   * is not filled in from another itself. While this field is empty or has
+   * not been typed into, the wizard fills it in with what is typed there,
+   * without the slashes it may end with (a setting filled in this way is an
+   * address the workflow appends paths to), so a value that is usually the
+   * same is typed once. Emptying the field lets it follow again. Inert in a
+   * template that does not ask for that setting.
+   */
+  prefilledFrom?: string | undefined;
+}
+
+/*
+ * An OAuth 2.0 workflow variable the wizard creates beside the static ones,
+ * from the values typed into the template's fields. OneUptime fetches its
+ * access token, fetches a new one whenever a step is about to use an expired
+ * one, and redacts it from every run log — which is what a bearer token
+ * needs, and what a template could not give it on its own: a token fetched
+ * by a step of the workflow lands in that step's response body, and the run
+ * log keeps response bodies in plain sight.
+ *
+ * Each setting is text in which {name} stands for the value typed into the
+ * template field of that name, trimmed. Every field a setting names has to be
+ * required, so a filled-in wizard always fills in every setting.
+ */
+export interface WorkflowTemplateOAuth2Variable {
+  /** Referenced as {{local.variables.<name>}}, like any other variable, and the name it is saved under. */
+  name: string;
+  /** Saved as the variable's description. */
+  description: string;
+  grantType: OAuth2GrantType;
+  clientAuthenticationMethod: OAuth2ClientAuthenticationMethod;
+  /** "https://login.microsoftonline.com/{dynamicsTenantId}/oauth2/v2.0/token" */
+  tokenUrl: string;
+  clientId: string;
+  clientSecret: string;
+  scope: string;
 }
 
 export interface WorkflowTemplate {
@@ -90,13 +300,77 @@ export interface WorkflowTemplate {
   /** What the builder should look at once it opens. */
   teaches: string;
   category: WorkflowTemplateCategory;
+  /**
+   * Splits a large category into parts the picker shows under headings of
+   * their own: the Jira templates come in an incident and an alert version,
+   * and seventeen of them in one run read as one long list. Absent on the
+   * categories that are short enough to read at a glance.
+   */
+  subcategory?: string | undefined;
   icon: IconProp;
   /** Suggested name for the created workflow. */
   workflowName: string;
   workflowDescription: string;
-  /** Configuration the wizard collects before creating. Empty means it runs as-is. */
+  /** Configuration the wizard collects before creating. Empty means it asks for nothing. */
   variables: Array<WorkflowTemplateVariable>;
+  /**
+   * What the created workflow still needs that the wizard cannot ask for,
+   * because it is picked from the project's own records in the Builder: who
+   * a Page step pages. A short sentence or two, shown under "What you'll
+   * need" where a template that runs as it is created says "Nothing to fill
+   * in.". Absent on the templates that leave nothing to set up.
+   */
+  setUpInBuilder?: string | undefined;
+  /**
+   * OAuth 2.0 variables the wizard writes beside the static ones, built from
+   * the values typed into `variables`. Absent on templates that need none.
+   */
+  oauth2Variables?: Array<WorkflowTemplateOAuth2Variable> | undefined;
 }
+
+/*
+ * The {name} placeholders of an OAuth 2.0 variable's settings. Single braces,
+ * so a setting can never be mistaken for a {{...}} reference — and settings
+ * are filled in by the wizard, not substituted at run time.
+ */
+const WORKFLOW_TEMPLATE_SETTING_PLACEHOLDER_REGEX: RegExp =
+  /\{([A-Za-z0-9_-]+)\}/g;
+
+export type GetWorkflowTemplateSettingFieldNamesFunction = (
+  setting: string,
+) => Array<string>;
+
+/** The template fields an OAuth 2.0 setting is filled in from, in the order it names them. */
+export const getWorkflowTemplateSettingFieldNames: GetWorkflowTemplateSettingFieldNamesFunction =
+  (setting: string): Array<string> => {
+    return Array.from(
+      setting.matchAll(WORKFLOW_TEMPLATE_SETTING_PLACEHOLDER_REGEX),
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+  };
+
+export type FillWorkflowTemplateSettingFunction = (
+  setting: string,
+  values: Record<string, string | undefined>,
+) => string;
+
+/*
+ * An OAuth 2.0 setting with each {name} replaced by the trimmed value typed
+ * into that field. A field with no value fills in nothing; the wizard's
+ * validation is what keeps that from happening, since every field a setting
+ * names is required.
+ */
+export const fillWorkflowTemplateSetting: FillWorkflowTemplateSettingFunction =
+  (setting: string, values: Record<string, string | undefined>): string => {
+    return setting.replace(
+      WORKFLOW_TEMPLATE_SETTING_PLACEHOLDER_REGEX,
+      (_placeholder: string, name: string): string => {
+        return (values[name] || "").trim();
+      },
+    );
+  };
 
 interface TemplateNodeSpec {
   componentId: string;
@@ -217,6 +491,87 @@ const DISCORD_WEBHOOK_URL: WorkflowTemplateVariable = {
   isSecret: true,
 };
 
+/*
+ * IRC has no webhook URL to paste: the step connects to a server and joins a
+ * channel. Neither is secret. The formats catch the two mistakes people make
+ * most - a URL or a port in the server, a channel without its "#" - and the
+ * step itself checks the rest when it runs.
+ */
+const IRC_SERVER: WorkflowTemplateVariable = {
+  name: "ircServer",
+  title: "IRC Server",
+  description:
+    "The host name of the IRC server, such as irc.libera.chat. The step connects over TLS, on port 6697.",
+  placeholder: "irc.libera.chat",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+    message:
+      "Enter only the server's host name, such as irc.libera.chat, without irc:// or a port.",
+  },
+};
+
+const IRC_CHANNEL: WorkflowTemplateVariable = {
+  name: "ircChannel",
+  title: "IRC Channel",
+  description:
+    "The channel to post in. The step joins it, posts the message and leaves.",
+  placeholder: "#ops",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^[#&][^\s,]+$/,
+    message: "Enter a channel that starts with #, such as #ops.",
+  },
+};
+
+/*
+ * Mattermost is usually self-hosted, so its webhook URL is on the team's own
+ * server rather than one vendor's host. The format catches what people paste
+ * by mistake - the server's address alone, a page of its System Console -
+ * before the first incident does; the step checks the rest when it runs.
+ */
+const MATTERMOST_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "mattermostWebhookUrl",
+  title: "Mattermost Incoming Webhook URL",
+  description:
+    "In Mattermost, open Integrations, then Incoming Webhooks, add one for the channel the message should land in, and copy its URL.",
+  placeholder:
+    "https://mattermost.example.com/hooks/xxxxxxxxxxxxxxxxxxxxxxxxxx",
+  required: true,
+  isSecret: true,
+  format: {
+    pattern: MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN,
+    message:
+      "Enter the webhook's whole URL as Mattermost shows it: the server's address, then /hooks/ and the webhook's ID.",
+  },
+};
+
+/*
+ * The two Slack channels the severity template posts to. Each is a webhook
+ * of its own, since a Slack webhook posts to the one channel it was made for.
+ */
+const SLACK_CRITICAL_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "slackCriticalWebhookUrl",
+  title: "Slack Webhook URL for critical incidents",
+  description:
+    "The channel critical incidents go to, such as #incidents-urgent. Create a webhook for it at api.slack.com/messaging/webhooks.",
+  placeholder: "https://hooks.slack.com/services/T000/B000/XXXX",
+  required: true,
+  isSecret: true,
+};
+
+const SLACK_MAJOR_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "slackMajorWebhookUrl",
+  title: "Slack Webhook URL for major incidents",
+  description:
+    "The channel major incidents go to, such as #incidents. It can be the same webhook as the one for critical incidents.",
+  placeholder: "https://hooks.slack.com/services/T000/B000/YYYY",
+  required: true,
+  isSecret: true,
+};
+
 /** The select every incident trigger uses. Anything referenced below must be in here. */
 const INCIDENT_SELECT: JSONObject = {
   _id: true,
@@ -271,7 +626,7 @@ const MONITOR_STATUS_TIMELINE_SELECT: JSONObject = {
  * record only ever moves forward.
  *
  * The incident and alert versions are built from one set of builders, so the
- * two cannot drift apart. JiraRecordKind below is everything that differs.
+ * two cannot drift apart. TemplateRecordKind below is everything that differs.
  * Everything else the templates share lives in the scripts' helper block.
  */
 
@@ -293,12 +648,13 @@ export const JIRA_ALERT_LABEL_PREFIX: string = "oneuptime-alert-";
 
 /*
  * Everything that differs between the incident and the alert version of a
- * Jira template. The two records are alike in every way the templates rely
- * on — the same kinds of states and severities, private notes, a Private
- * flag, custom fields, a numbered prefix — and differ in names, in whether
- * they reach a status page, and in the words used for making one.
+ * Jira or Dynamics 365 template. The two records are alike in every way the
+ * templates rely on — the same kinds of states and severities, private
+ * notes, a Private flag, custom fields, a numbered prefix — and differ in
+ * names, in whether they reach a status page, and in the words used for
+ * making one.
  */
-interface JiraRecordKind {
+interface TemplateRecordKind {
   /** "incident" or "alert": the record's name in ids, arguments and text. */
   noun: string;
   Noun: string;
@@ -307,7 +663,10 @@ interface JiraRecordKind {
   /** Upper case, for the constants in the scripts: INCIDENT_LABEL_PREFIX. */
   upper: string;
   pluralUpper: string;
-  /** Carried by a linked issue, followed by the record's id. */
+  /**
+   * Followed by the record's id: the label a linked Jira issue carries, and
+   * the value a linked Dynamics 365 case holds in its link column.
+   */
   labelPrefix: string;
   numberField: string;
   severityRelation: string;
@@ -347,7 +706,7 @@ interface JiraRecordKind {
   otherPlural: string;
 }
 
-const INCIDENT_KIND: JiraRecordKind = {
+const INCIDENT_KIND: TemplateRecordKind = {
   noun: "incident",
   Noun: "Incident",
   plural: "incidents",
@@ -387,7 +746,7 @@ const INCIDENT_KIND: JiraRecordKind = {
   otherPlural: "alerts",
 };
 
-const ALERT_KIND: JiraRecordKind = {
+const ALERT_KIND: TemplateRecordKind = {
   noun: "alert",
   Noun: "Alert",
   plural: "alerts",
@@ -426,14 +785,96 @@ const ALERT_KIND: JiraRecordKind = {
   otherPlural: "incidents",
 };
 
+/*
+ * Where the templates send their Jira requests. With a classic API token
+ * that is the Jira Cloud site itself, but a scoped token is only taken at
+ * Atlassian's API gateway, https://api.atlassian.com/ex/jira/<cloud id>,
+ * which no browser opens. So it is the API's address, not the site's, and
+ * the templates that link to an issue ask for the site on its own
+ * (JIRA_SITE_URL).
+ */
 const JIRA_BASE_URL: WorkflowTemplateVariable = {
   name: "jiraBaseUrl",
-  title: "Jira Site URL",
+  title: "Jira API URL",
   description:
-    "Your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
+    "Where the workflow sends its Jira requests: your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
   placeholder: "https://your-company.atlassian.net",
   required: true,
   isSecret: false,
+  // With a classic token, and on Data Center, the requests go to the site itself.
+  prefilledFrom: "jiraSiteUrl",
+};
+
+/*
+ * A site's address as the scripts read one: a host - letters, marks and
+ * decimal digits in any script, ".", "-", "_" and "~", or an IPv6 address in
+ * brackets - and a port of up to five digits. SITE, in the scripts' helper
+ * block, reads an event's REST URL with exactly these, as #4676 wrote it, and
+ * the Jira Site URL is built on the same two, so a change to either changes
+ * both. The setting asks one thing more of a host: a letter or a digit.
+ */
+const SITE_HOST_SOURCE: string = String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])`;
+
+const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
+
+/*
+ * What a Jira Site URL can be: http or https, its letters in either case,
+ * then a host and a port as above, with a letter or a digit in the host
+ * ("." or "-" alone is no site), then, for Jira Data Center under a context
+ * path, that one path segment, and perhaps the slash an address bar ends a
+ * site with. At most 300 characters, as SITE takes. Nothing else fits, so a
+ * link built on it goes to that site, and no page, query, user name or
+ * markup can ride along.
+ *
+ * The scheme's two cases are spelled out rather than taken with the "i"
+ * flag: beside "u", that flag folds case the Unicode way, and the long s
+ * ("ſ") and the Kelvin sign would pass for "s" and "k", in the scheme and in
+ * the path's ASCII letters alike.
+ *
+ * One path segment, not more: Data Center runs under one, such as
+ * https://example.com/jira, while the address of a page - what gets pasted
+ * from a browser's address bar, https://acme.atlassian.net/jira/your-work or
+ * .../browse/OPS-17 - has two or more. Links built on a page's address would
+ * go nowhere, so it is refused.
+ *
+ * The create wizard checks a typed value with JIRA_SITE_URL_PATTERN, and the
+ * scripts read the setting with the same source (SITE_SETTING), so a value
+ * the wizard took is one the scripts link to.
+ */
+const JIRA_SITE_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9._~-]+)?\/?$`,
+].join("");
+
+export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
+  JIRA_SITE_URL_PATTERN_SOURCE,
+  "u",
+);
+
+/*
+ * The Jira site an issue's link goes to: the address people open Jira at.
+ * The templates that bring Jira into OneUptime link the issue in the
+ * description or note they write, and the event's own REST URL, which they
+ * used to take the site from, comes with the request rather than from the
+ * workflow. The workflow names its site here instead, and the scripts link
+ * to that site whatever the event says (issueLink in their helper block).
+ */
+const JIRA_SITE_URL: WorkflowTemplateVariable = {
+  name: "jiraSiteUrl",
+  title: "Jira Site URL",
+  description:
+    "The address you open Jira at, such as https://your-company.atlassian.net, or the base URL of Jira Data Center. Links to Jira issues in OneUptime go to this site.",
+  placeholder: "https://your-company.atlassian.net",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: JIRA_SITE_URL_PATTERN,
+    message:
+      "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.",
+  },
 };
 
 /*
@@ -475,20 +916,24 @@ const JIRA_ISSUE_TYPE: WorkflowTemplateVariable = {
 };
 
 type OneUptimeUrlVariableFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
+  /** What links back to the record: "the Jira issue", "the Dynamics 365 case". */
+  linkedFrom: string,
 ) => WorkflowTemplateVariable;
 
 /*
- * Only the wording differs between the two kinds. The name, and with it
- * whether the value is required or secret, is the same everywhere.
+ * Only the wording differs between the two kinds, and between the systems
+ * that link back. The name, and with it whether the value is required or
+ * secret, is the same everywhere.
  */
 const oneUptimeUrlVariable: OneUptimeUrlVariableFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
+  linkedFrom: string,
 ): WorkflowTemplateVariable => {
   return {
     name: "oneuptimeUrl",
     title: "OneUptime URL",
-    description: `The address you open OneUptime at, used to link the Jira issue back to the ${kind.noun} — https://oneuptime.com, or your own host.`,
+    description: `The address you open OneUptime at, used to link ${linkedFrom} back to the ${kind.noun} — https://oneuptime.com, or your own host.`,
     placeholder: "https://oneuptime.com",
     required: true,
     isSecret: false,
@@ -559,7 +1004,7 @@ const adfParagraph: AdfParagraphFunction = (
 };
 
 type JiraSearchBodyFunction = (props: {
-  kind: JiraRecordKind;
+  kind: TemplateRecordKind;
   idReference: string;
   fields: Array<string>;
   expandTransitions?: boolean | undefined;
@@ -573,7 +1018,7 @@ type JiraSearchBodyFunction = (props: {
  * without `fields` it returns ids only — not even the key.
  */
 const jiraSearchBody: JiraSearchBodyFunction = (props: {
-  kind: JiraRecordKind;
+  kind: TemplateRecordKind;
   idReference: string;
   fields: Array<string>;
   expandTransitions?: boolean | undefined;
@@ -597,11 +1042,115 @@ const jiraSearchBody: JiraSearchBodyFunction = (props: {
   return jsonText(body);
 };
 
-type JiraScriptFunction = (kind: JiraRecordKind, body: string) => string;
+/*
+ * TEXT WRITTEN OUTSIDE ONEUPTIME, PLACED IN ITS MARKDOWN.
+ *
+ * The templates that bring Jira and Dynamics 365 into OneUptime write what
+ * people wrote there - an issue's summary and description, a comment, a
+ * case's title and description, a note, the names of statuses, priorities,
+ * customers and people - into Markdown: a record's title and description,
+ * a private note, the cause of a state change. The dashboard renders that
+ * Markdown, and it is posted as feed items to the project's Slack and
+ * Microsoft Teams channels. So every such part goes in through asWritten,
+ * which places it exactly as FeedMarkdown.reportedValue places text from
+ * outside everywhere else: it reads exactly as written, and no image,
+ * link, HTML, diagram or chat mention in it acts. Links the template writes
+ * itself - to the issue, to the case - are its own, built from what was
+ * checked (an issue key, a case id) on the address the workflow's own
+ * settings name (its Jira Site URL, its Dynamics 365 URL).
+ *
+ * A script runs in the workflow sandbox, which can import nothing, so each
+ * carries this copy of reportedValue. It is part of the helper block every
+ * Jira and Dynamics 365 script starts with, like the other helpers, so any
+ * script can be edited on its own. TemplateOutsideText.test.ts holds the
+ * copy to reportedValue, and every script that writes OneUptime text to
+ * placing each part of it that came from outside.
+ */
+const OUTSIDE_TEXT_HELPERS: string = String.raw`// ---- Placing text written outside OneUptime ----
+// Titles, descriptions, notes and the causes of state changes are Markdown in OneUptime: the
+// dashboard renders them, and they are posted as feed items to the project's Slack and Microsoft
+// Teams channels. What people wrote in the other system, and the names they chose there, are
+// text: asWritten places them the way OneUptime places text from outside everywhere else
+// (FeedMarkdown.reportedValue), so they read exactly as written and nothing in them acts - no
+// image is fetched, no link hides where it goes, no HTML is read, no diagram is drawn and nobody
+// is mentioned. An invisible word joiner (U+2060) goes after each "<" with no whitespace after
+// it (a tag, a comment, an address, a chat mention), after each "!" before "[" (an image), after
+// each "]" that a link goes on from or that ends the text, and before each "mermaid" in what
+// follows the first run of three backticks or tildes on a line (a diagram). Words, line breaks,
+// lists, code and characters such as "&", "*" or "a < b" stay exactly as they were.
+const JOINER = '\u2060';
+const NUMERIC_REFERENCE = /^&#(?:[xX]([0-9a-fA-F]{1,32})|([0-9]{1,32}));/;
+// Where the first run of three or more backticks or tildes on a line ends, or -1 when it has none.
+const fenceRunEndOf = (line) => {
+  const backticks = line.indexOf('\x60\x60\x60');
+  const tildes = line.indexOf('~~~');
+  const start = backticks === -1 ? tildes : tildes === -1 ? backticks : Math.min(backticks, tildes);
+  if (start === -1) return -1;
+  let end = start;
+  while (line.charAt(end) === line.charAt(start)) end++;
+  return end;
+};
+// Where each "mermaid" after a line's first fence run starts, read as the dashboard reads a fence's
+// language: numeric character references decoded, in any letter case. One right after a joiner is
+// already broken.
+const mermaidWordsOf = (line) => {
+  let at = fenceRunEndOf(line);
+  if (at === -1) return [];
+  while (line.charAt(at) === ' ' || line.charAt(at) === '\t') at++;
+  const characters = [];
+  const starts = [];
+  while (at < line.length) {
+    const reference = line.charAt(at) === '&' ? NUMERIC_REFERENCE.exec(line.slice(at, at + 36)) : null;
+    if (reference) {
+      const code = reference[1] ? parseInt(reference[1], 16) : parseInt(reference[2], 10);
+      const isCharacter = code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
+      characters.push(isCharacter ? String.fromCodePoint(code) : '\ufffd');
+      starts.push(at);
+      at += reference[0].length;
+    } else {
+      characters.push(line.charAt(at));
+      starts.push(at);
+      at++;
+    }
+  }
+  const words = [];
+  let index = 0;
+  while (index + 7 <= characters.length) {
+    let length = 0;
+    while (length < 7 && characters[index + length].toLowerCase() === 'mermaid'.charAt(length)) length++;
+    if (length < 7) {
+      index++;
+    } else {
+      if (index === 0 || characters[index - 1] !== JOINER) words.push(starts[index]);
+      index += 7;
+    }
+  }
+  return words;
+};
+const asWritten = (value) => {
+  const text = asText(value)
+    .replace(/!(?=\[)/g, '!' + JOINER)
+    .replace(/\](?=[([:])/g, ']' + JOINER)
+    .split('\n')
+    .map((line) => {
+      let placed = '';
+      let cursor = 0;
+      for (const word of mermaidWordsOf(line)) {
+        placed += line.slice(cursor, word) + JOINER;
+        cursor = word;
+      }
+      return placed + line.slice(cursor);
+    })
+    .join('\n');
+  return text.replace(/<(?![\s\u2060])/g, '<' + JOINER).replace(/\]$/, ']' + JOINER);
+};
+`;
+
+type JiraScriptFunction = (kind: TemplateRecordKind, body: string) => string;
 
 /*
  * Every Jira script starts with the same helper block, so each one can be read
- * and edited on its own. Two rules hold for all of them:
+ * and edited on its own. Three rules hold for all of them:
  *
  *   - No double braces anywhere in the source. The script is an argument like
  *     any other, so a {{...}} in it would be substituted before it runs. Where
@@ -610,6 +1159,10 @@ type JiraScriptFunction = (kind: JiraRecordKind, body: string) => string;
  *     returned. A later step quotes these return values into its own
  *     arguments, and text that still held a {{...}} would be substituted there
  *     — a Jira comment could name a secret variable and have it filled in.
+ *   - Text that came from the other system and goes into OneUptime — a
+ *     record's title or description, a note, the cause of a state change — is
+ *     placed with asWritten() (OUTSIDE_TEXT_HELPERS): it reads exactly as
+ *     written, and no image, link, HTML, diagram or chat mention in it acts.
  *
  * isLinked recognises both kinds of link label, so an issue that is already
  * linked when its event arrives — one OneUptime filed for an incident, say —
@@ -619,7 +1172,7 @@ type JiraScriptFunction = (kind: JiraRecordKind, body: string) => string;
  * and their descriptions say so.
  */
 const jiraScript: JiraScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
   body: string,
 ): string => {
   const helpers: string = String.raw`// ---- Shared by the Jira templates ----
@@ -678,13 +1231,44 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
   const text = asText(label).toLowerCase();
   return text === LINK_LABEL || LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0);
 });
-// https://your-company.atlassian.net, read off an issue's own REST URL.
+// The site a link to an issue goes to is the one the workflow names in its Jira Site URL setting:
+// the address people open Jira at, such as https://your-company.atlassian.net, or the base URL of
+// Jira Data Center, with its port and the one-segment path it may run under. The create wizard
+// only takes a site's address there, checked with this same pattern, so a link built on it goes to
+// that site and nothing else can ride along. The setting decides whatever the event says: an event
+// from that site links exactly as before, and one that names another site still links the issue,
+// by its key (which matched ISSUE_KEY), on the site the setting names. A setting that is not a
+// site's address - a value edited in later, an emptied variable or one that is gone - links
+// nothing.
+const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/u;
+// A script handed no setting at all - a workflow whose arguments no longer name it - reads the site
+// off the issue's own REST URL: the scheme, the host and a port, and nothing else. The URL comes with
+// the event, so an issue's link can only ever go to a site, and nothing else written into the
+// address can act. A host is letters, marks and decimal digits in any script, ".", "-", "_" and
+// "~", or an IPv6 address in brackets. Only what comes before the URL's path is read, and only when
+// it is no longer than a site's address can be, so a long URL is never matched against a pattern.
+const SITE = /^https?:\/\/${SITE_HOST_SOURCE}${SITE_PORT_SOURCE}$/u;
+const LONGEST_SITE = 300;
 const siteOf = (self) => {
-  const match = asText(self).match(/^https?:\/\/[^/]+/);
-  return match ? match[0] : '';
+  const text = asText(self);
+  const hostStart = text.indexOf('://');
+  if (hostStart === -1) return '';
+  const pathStart = text.indexOf('/', hostStart + 3);
+  const site = pathStart === -1 ? text : text.slice(0, pathStart);
+  return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
-const issueLink = (self, issueKey) => {
-  const site = siteOf(self);
+// The site a Jira Site URL setting names, without the slash it may end with and with its scheme in
+// lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE characters, and a
+// character is at most two UTF-16 units, so a longer value is refused before any pattern reads it.
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+const issueLink = (self, issueKey, setting) => {
+  const site = setting === undefined || setting === null ? siteOf(self) : siteOfSetting(setting);
   return site ? '[' + issueKey + '](' + site + '/browse/' + issueKey + ')' : issueKey;
 };
 // A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
@@ -709,10 +1293,10 @@ const linkedIssue = (search, ${kind.noun}Id) => {
 };
 `;
 
-  return `${helpers}\n// ---- What this step does ----\n${body.trim()}\n`;
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
 };
 
-type JiraKindScriptFunction = (kind: JiraRecordKind) => string;
+type JiraKindScriptFunction = (kind: TemplateRecordKind) => string;
 
 /*
  * OneUptime -> Jira: shapes a new record into an issue's summary and
@@ -720,7 +1304,7 @@ type JiraKindScriptFunction = (kind: JiraRecordKind) => string;
  * are easiest to extend.
  */
 const jiraPrepareIssueScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -782,7 +1366,7 @@ return {
  * the transitions the search returned for the linked issue.
  */
 const jiraPlanTransitionScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -891,7 +1475,7 @@ return {
 };
 
 type JiraNoteCommentScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
   noteKind: string,
 ) => string;
 
@@ -900,7 +1484,7 @@ type JiraNoteCommentScriptFunction = (
  * templates differ only in the trigger and in what they call the note.
  */
 const jiraNoteCommentScript: JiraNoteCommentScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
   noteKind: string,
 ): string => {
   const r: string = kind.noun;
@@ -949,7 +1533,7 @@ return {
  * the comment is a snapshot of the fields worth knowing about.
  */
 const jiraUpdateCommentScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -998,7 +1582,7 @@ return {
  * new record, choosing a severity from the issue's priority.
  */
 const jiraPrepareRecordScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -1038,19 +1622,22 @@ const rankValue = PRIORITY_RANK[priority.toLowerCase()];
 const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
 const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
-const reporter = displayName(fields.reporter) || displayName(payload.user);
-const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey) + '.'];
-if (priority) lines.push('Priority: ' + priority);
-if (reporter) lines.push('Reported by: ' + reporter);
+// What Jira users wrote - the summary, the priority's and the reporter's names, the description -
+// is placed as written (asWritten). The link to the issue is the template's own, on the site the
+// workflow's Jira Site URL names.
+const reporter = oneLine(displayName(fields.reporter) || displayName(payload.user));
+const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.'];
+if (priority) lines.push('Priority: ' + asWritten(priority));
+if (reporter) lines.push('Reported by: ' + asWritten(reporter));
 const description = clean(plainText(fields.description)).trim();
-if (description) lines.push('', description);
+if (description) lines.push('', asWritten(description));
 
 return {
   proceed: true,
   issueKey: issueKey,
   severityName: oneLine(severity.name),
   ${kind.severityIdColumn}: asText(severity._id),
-  title: limit(defuse(oneLine(fields.summary) || 'Jira issue ' + issueKey), 500),
+  title: limit(defuse(asWritten(oneLine(fields.summary)) || 'Jira issue ' + issueKey), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
 `,
@@ -1062,7 +1649,7 @@ return {
  * time as Jira has it rather than as the webhook described it.
  */
 const jiraConfirmUnlinkedScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   return jiraScript(
     kind,
@@ -1086,7 +1673,7 @@ return { proceed: true, issueKey: issueKey };
  * status moved and the issue is linked to a record of this kind.
  */
 const jiraReadStatusChangeScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -1134,7 +1721,7 @@ return {
  * only ever moves the record forward.
  */
 const jiraDecideStateScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -1175,12 +1762,16 @@ if (Number(target.order) <= Number(current.order)) {
   return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Jira issue ' + asText(event.issueKey) + ' moving to ' + jiraStatus + ' changes nothing.');
 }
 
+// The status's name and the name of whoever moved the issue are Jira's text, placed as written
+// (asWritten). The issue key matched ISSUE_KEY when the event was read; it is placed here too, so
+// this step stays safe if that check is ever changed.
+const changedBy = oneLine(event.changedBy);
 return {
   proceed: true,
   ${r}Id: asText(${r}._id),
   stateId: asText(target._id),
   stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asText(event.issueKey) + ' moved to ' + jiraStatus + (event.changedBy ? ' by ' + oneLine(event.changedBy) : '') + '.'), 1000),
+  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asWritten(asText(event.issueKey)) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -1191,7 +1782,7 @@ return {
  * private note.
  */
 const jiraReadCommentScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   return jiraScript(
     kind,
@@ -1200,7 +1791,7 @@ const jiraReadCommentScript: JiraKindScriptFunction = (
 // Add 'comment_updated' to also copy edits; each edit then becomes a new note.
 const EVENTS = ['comment_created'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const comment = payload.comment || {};
 const issue = payload.issue || {};
@@ -1219,11 +1810,13 @@ if (body.indexOf(FROM_ONEUPTIME) !== -1) {
   return skip('This comment was posted by OneUptime, so it was not copied back.');
 }
 
-const author = oneLine(displayName(comment.author)) || 'Someone';
+// The author's name and the comment are Jira users' text, placed as written (asWritten). The link
+// to the issue is the template's own, on the site the workflow's Jira Site URL names.
+const author = asWritten(oneLine(displayName(comment.author))) || 'Someone';
 return {
   proceed: true,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey) + '.\n\n' + body), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + asWritten(body)), 30000),
 };
 `,
   );
@@ -1235,7 +1828,7 @@ return {
  * link from the response.
  */
 const jiraFindLinkedRecordScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -1259,7 +1852,7 @@ return { proceed: true, ${r}Id: ${r}Id };
  * note. Status is left to the status template.
  */
 const jiraReadIssueChangesScript: JiraKindScriptFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
 
@@ -1270,7 +1863,7 @@ const jiraReadIssueChangesScript: JiraKindScriptFunction = (
 // Fields whose changes are not worth a note. Status is left to the status template.
 const IGNORED_FIELDS = ['status', 'resolution', 'resolutiondate', 'rank', 'timespent', 'timeestimate', 'aggregatetimespent', 'aggregatetimeestimate', 'worklogid', 'lastviewed'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const issue = payload.issue || {};
 const fields = issue.fields || {};
@@ -1306,18 +1899,21 @@ const changes = items.filter((item) => {
 });
 if (!changes.length) return skip('Nothing that changed on Jira issue ' + issueKey + ' is worth a note.');
 
+// The fields' names, their values and the name of whoever changed them are Jira's text, placed as
+// written (asWritten). The link to the issue is the template's own, on the site the workflow's
+// Jira Site URL names.
 const show = (value) => {
   const text = oneLine(value);
-  return text ? limit(text, 300) : '(empty)';
+  return text ? asWritten(limit(text, 300)) : '(empty)';
 };
-const lines = changes.map((item) => '- ' + (oneLine(item.field) || oneLine(item.fieldId)) + ': ' + show(item.fromString) + ' → ' + show(item.toString));
-const who = oneLine(displayName(payload.user)) || 'Someone';
+const lines = changes.map((item) => '- ' + asWritten(oneLine(item.field) || oneLine(item.fieldId)) + ': ' + show(item.fromString) + ' → ' + show(item.toString));
+const who = asWritten(oneLine(displayName(payload.user))) || 'Someone';
 
 return {
   proceed: true,
   ${r}Id: ${r}Id,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey) + '.\n\n' + lines.join('\n')), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + lines.join('\n')), 30000),
 };
 `,
   );
@@ -1338,12 +1934,31 @@ const proceedCondition: ProceedConditionFunction = (
   };
 };
 
-type JiraTemplateFunction = (kind: JiraRecordKind) => TemplateDefinition;
+type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
+
+/*
+ * The arguments of a script that reads a Jira event and links its issue:
+ * whatever else the script needs, then the workflow's Jira Site URL, the
+ * site the link goes to, then the request body. The body goes last, as
+ * everywhere text Jira users wrote is quoted into an argument, and it
+ * arrives as JSON text the script reads.
+ */
+const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction = (
+  before?: JSONObject,
+): string => {
+  return jsonText({
+    ...(before || {}),
+    jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
+    payload: "{{local.components.webhook-1.returnValues.request-body}}",
+  });
+};
+
+type JiraTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
 
 /* ----------------------- OneUptime -> Jira ----------------------- */
 
 const jiraCreateIssueTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const trigger: string = `${r}-on-create-1`;
@@ -1362,7 +1977,7 @@ const jiraCreateIssueTemplate: JiraTemplateFunction = (
       JIRA_BASIC_AUTH_TOKEN,
       JIRA_PROJECT_KEY,
       JIRA_ISSUE_TYPE,
-      oneUptimeUrlVariable(kind),
+      oneUptimeUrlVariable(kind, "the Jira issue"),
     ],
     graph: {
       nodes: [
@@ -1520,7 +2135,7 @@ const jiraCreateIssueTemplate: JiraTemplateFunction = (
 };
 
 const jiraTransitionIssueTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const trigger: string = `${r}-on-update-1`;
@@ -1715,7 +2330,7 @@ const jiraTransitionIssueTemplate: JiraTemplateFunction = (
 };
 
 type JiraNoteToCommentTemplateFunction = (props: {
-  kind: JiraRecordKind;
+  kind: TemplateRecordKind;
   /** "private" or "public", as the dashboard names the note. */
   visibility: string;
   description: string;
@@ -1730,7 +2345,7 @@ type JiraNoteToCommentTemplateFunction = (props: {
  * wording and the comment's visibility differ.
  */
 const jiraNoteToCommentTemplate: JiraNoteToCommentTemplateFunction = (props: {
-  kind: JiraRecordKind;
+  kind: TemplateRecordKind;
   visibility: string;
   description: string;
   icon: IconProp;
@@ -1738,7 +2353,7 @@ const jiraNoteToCommentTemplate: JiraNoteToCommentTemplateFunction = (props: {
   triggerMetadataId: string;
   commentProperties?: Array<JSONObject> | undefined;
 }): TemplateDefinition => {
-  const kind: JiraRecordKind = props.kind;
+  const kind: TemplateRecordKind = props.kind;
   const r: string = kind.noun;
   const noteKind: string = `${props.visibility} note`;
 
@@ -1931,7 +2546,7 @@ const jiraNoteToCommentTemplate: JiraNoteToCommentTemplateFunction = (props: {
 };
 
 const jiraPrivateNoteToCommentTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   return jiraNoteToCommentTemplate({
     kind: kind,
@@ -1946,7 +2561,7 @@ const jiraPrivateNoteToCommentTemplate: JiraTemplateFunction = (
 };
 
 const jiraPublicNoteToCommentTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   return jiraNoteToCommentTemplate({
     kind: kind,
@@ -1959,7 +2574,7 @@ const jiraPublicNoteToCommentTemplate: JiraTemplateFunction = (
 };
 
 const jiraUpdateCommentTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const trigger: string = `${r}-on-update-1`;
@@ -2160,7 +2775,7 @@ const jiraUpdateCommentTemplate: JiraTemplateFunction = (
 /* ----------------------- Jira -> OneUptime ----------------------- */
 
 const jiraCreateRecordTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const prepare: string = `prepare-${r}-1`;
@@ -2186,7 +2801,7 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
     icon: IconProp.Bug,
     workflowName: `${kind.Create} ${r} from Jira issue`,
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Jira issue created. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue created event. If you also create ${kind.otherPlural} from Jira, give the two webhooks JQL filters that never match the same issue, or each issue becomes both.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -2227,11 +2842,9 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
              * The Jira payload goes last. Text Jira users wrote is only
              * ever substituted after everything else in an argument.
              */
-            arguments: jsonText({
+            arguments: jiraLinkingEventArguments({
               severities:
                 "{{local.components.find-severities-1.returnValues.models}}",
-              payload:
-                "{{local.components.webhook-1.returnValues.request-body}}",
             }),
           },
         },
@@ -2478,7 +3091,7 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
 };
 
 const jiraStatusToStateTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const find: string = `find-${r}-1`;
@@ -2758,7 +3371,7 @@ const jiraStatusToStateTemplate: JiraTemplateFunction = (
 };
 
 const jiraCommentToNoteTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const find: string = `find-${r}-1`;
@@ -2773,7 +3386,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     workflowName: `Copy Jira comments to ${r}`,
     workflowDescription: `Adds each comment on a linked Jira issue to the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Comment created event.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -2789,8 +3402,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadCommentScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
@@ -3054,7 +3666,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
 };
 
 const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): TemplateDefinition => {
   const r: string = kind.noun;
   const find: string = `find-${r}-1`;
@@ -3069,7 +3681,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.DocumentText,
     workflowName: `Copy Jira issue changes to ${r}`,
     workflowDescription: `Notes each change to a linked Jira issue on the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue updated event.`,
-    variables: [],
+    variables: [JIRA_SITE_URL],
     graph: {
       nodes: [
         {
@@ -3085,8 +3697,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadIssueChangesScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
@@ -3253,12 +3864,16 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
 };
 
 type JiraTemplatesForKindFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ) => Array<TemplateDefinition>;
 
-/** One kind's set, OneUptime -> Jira first. Public notes exist only on incidents. */
+/*
+ * One kind's set, OneUptime -> Jira first. Public notes exist only on
+ * incidents. Each is filed under its kind ("Incidents" or "Alerts"), which is
+ * how the picker splits the seventeen into two lists.
+ */
 const jiraTemplatesForKind: JiraTemplatesForKindFunction = (
-  kind: JiraRecordKind,
+  kind: TemplateRecordKind,
 ): Array<TemplateDefinition> => {
   return [
     jiraCreateIssueTemplate(kind),
@@ -3270,13 +3885,5786 @@ const jiraTemplatesForKind: JiraTemplatesForKindFunction = (
     jiraStatusToStateTemplate(kind),
     jiraCommentToNoteTemplate(kind),
     jiraIssueChangesToNoteTemplate(kind),
-  ];
+  ].map((definition: TemplateDefinition): TemplateDefinition => {
+    return { ...definition, subcategory: kind.Plural };
+  });
 };
 
 const JIRA_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   ...jiraTemplatesForKind(INCIDENT_KIND),
   ...jiraTemplatesForKind(ALERT_KIND),
 ];
+
+/* --------------------------- Dynamics 365 --------------------------- */
+
+/*
+ * The Dynamics 365 templates keep Dynamics 365 Customer Service cases — the
+ * Dataverse `incident` table — in step with OneUptime incidents and alerts,
+ * in both directions. They are built the way the Jira ones are: small
+ * workflows a team takes only the parts of, one set of builders for both
+ * kinds of record (TemplateRecordKind), and scripts that make every decision
+ * and say why in the run log.
+ *
+ * How they sign in. Dataverse takes a Microsoft Entra ID access token from
+ * the client credentials flow, and it lasts about an hour. A step that
+ * fetched one itself would leave the token in its response body, which the
+ * run log keeps in plain sight, because only variables are redacted. So
+ * every Dynamics 365 template asks for an OAuth 2.0 variable instead,
+ * dynamicsAccessToken: OneUptime fetches its token, fetches a new one before
+ * a step would use an expired one, and redacts it everywhere. The tenant,
+ * client ID and client secret typed into the wizard only ever become that
+ * variable's settings, and the secret is stored once, encrypted.
+ *
+ * How a record and a case find each other. Dataverse has no labels, so the
+ * link is a text column the team adds to the Case table. A linked case holds
+ * oneuptime-incident-<id> or oneuptime-alert-<id> in it — the same words the
+ * Jira templates label issues with — and every template looks the other
+ * side up by it. A record created from a case also keeps the case's id in
+ * customFields.dynamicsCaseId, written when the record is created, when
+ * there is nothing for it to replace.
+ *
+ * How they avoid echoing each other. A note written in one direction starts
+ * with a marker the template going the other way skips. A case OneUptime
+ * opened holds its link from its first save, so the template that declares
+ * incidents from new cases leaves it alone. And states only move forward,
+ * on both sides.
+ *
+ * What they take on trust: nothing a webhook says beyond which row changed.
+ * Every Dynamics 365 -> OneUptime template reads that row back from the Web
+ * API before it acts, so a request to the workflow's URL can only make it
+ * look at a real case, and the parts Dataverse strips from a webhook body
+ * over 256 KB are never needed.
+ */
+
+/** Starts the title of every note, and the subject of every resolution, OneUptime writes on a case. */
+export const DYNAMICS_SYNCED_FROM_ONEUPTIME_MARKER: string =
+  "Synced from OneUptime";
+
+/** Starts every note, and every state change's cause, OneUptime writes from a Dynamics 365 event. */
+export const ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER: string =
+  "Synced from Dynamics 365";
+
+/** The OAuth 2.0 variable every Dynamics 365 template calls the Web API with. */
+export const DYNAMICS_ACCESS_TOKEN_VARIABLE_NAME: string =
+  "dynamicsAccessToken";
+
+/** The Web API every Dynamics 365 template calls: the environment URL, then this. */
+export const DYNAMICS_WEB_API_ROOT: string =
+  "{{local.variables.dynamicsUrl}}/api/data/v9.2";
+
+const GUID_PATTERN: string =
+  "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
+const DYNAMICS_URL: WorkflowTemplateVariable = {
+  name: "dynamicsUrl",
+  title: "Dynamics 365 Environment URL",
+  description:
+    "Your environment's address, from the Power Platform admin center under Environments, your environment, Environment URL. Start it with https:// and stop after the host.",
+  placeholder: "https://yourorg.crm.dynamics.com",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^https:\/\/[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/,
+    message:
+      "Enter only the environment's address, such as https://yourorg.crm.dynamics.com: with https://, and without /api/data/v9.2 or a slash at the end.",
+  },
+};
+
+const DYNAMICS_TENANT_ID: WorkflowTemplateVariable = {
+  name: "dynamicsTenantId",
+  title: "Directory (Tenant) ID",
+  description:
+    "The Directory (tenant) ID on the Overview page of the Microsoft Entra ID app registration OneUptime signs in as.",
+  placeholder: "72f988bf-86f1-41af-91ab-2d7cd011db47",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: new RegExp(`^(${GUID_PATTERN}|[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+)$`),
+    message:
+      "Enter the Directory (tenant) ID from the app registration's Overview page: a GUID such as 72f988bf-86f1-41af-91ab-2d7cd011db47, or your tenant's domain.",
+  },
+  isOAuth2SettingOnly: true,
+};
+
+const DYNAMICS_CLIENT_ID: WorkflowTemplateVariable = {
+  name: "dynamicsClientId",
+  title: "Application (Client) ID",
+  description:
+    "The Application (client) ID on the same Overview page. Dynamics 365 needs an application user for this app, with a security role that covers cases and notes.",
+  placeholder: "00000000-0000-0000-0000-000000000000",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: new RegExp(`^${GUID_PATTERN}$`),
+    message:
+      "Enter the Application (client) ID from the app registration's Overview page: a GUID such as 9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f.",
+  },
+  isOAuth2SettingOnly: true,
+};
+
+const DYNAMICS_CLIENT_SECRET: WorkflowTemplateVariable = {
+  name: "dynamicsClientSecret",
+  title: "Client Secret Value",
+  description:
+    "Under Certificates & secrets in the app registration: the client secret's Value, which is shown once, when the secret is created. Not its Secret ID.",
+  placeholder: "Abc8Q~xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  required: true,
+  isSecret: true,
+  format: {
+    // A Secret ID is a GUID. A secret's Value never is.
+    pattern: new RegExp(`^(?!${GUID_PATTERN}$).+$`),
+    message:
+      "That is the secret's ID. Paste the secret's Value instead, from the Value column under Certificates & secrets.",
+  },
+  isOAuth2SettingOnly: true,
+};
+
+const DYNAMICS_LINK_COLUMN: WorkflowTemplateVariable = {
+  name: "dynamicsLinkColumn",
+  title: "Case Link Column",
+  description:
+    "The logical name of the text column you added to the Case table for the link to OneUptime, such as new_oneuptimelink. It is under Tables, Case, Columns in make.powerapps.com.",
+  placeholder: "new_oneuptimelink",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^[a-z][a-z0-9]*_[a-z0-9_]+$/,
+    message:
+      "Enter the column's logical name, in lower case and with its prefix, such as new_oneuptimelink. Its display name will not work.",
+  },
+};
+
+const DYNAMICS_CUSTOMER: WorkflowTemplateVariable = {
+  name: "dynamicsCustomer",
+  title: "Customer for New Cases",
+  description:
+    "Every case needs a customer. Paste the id of the account new cases are filed against, or contacts(<id>) for a contact. A record's id is the part after id= in its address in Dynamics 365.",
+  placeholder: "4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: new RegExp(
+      `^(/?(accounts|contacts)\\(${GUID_PATTERN}\\)|${GUID_PATTERN})$`,
+    ),
+    message:
+      "Enter the account's id, such as 4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b, or contacts(<id>) to file new cases against a contact.",
+  },
+};
+
+/*
+ * Microsoft Entra ID's client credentials flow. The secret goes in the
+ * request body, the way Microsoft documents the flow; Entra ID takes it in a
+ * Basic header too. The scope is the environment's own: Dataverse refuses a
+ * token issued for any other resource.
+ */
+const DYNAMICS_ACCESS_TOKEN: WorkflowTemplateOAuth2Variable = {
+  name: DYNAMICS_ACCESS_TOKEN_VARIABLE_NAME,
+  description:
+    "The Microsoft Entra ID access token this workflow calls Dynamics 365 with. OneUptime fetches it with the client credentials below and fetches a new one before it expires.",
+  grantType: OAuth2GrantType.ClientCredentials,
+  clientAuthenticationMethod: OAuth2ClientAuthenticationMethod.RequestBody,
+  tokenUrl:
+    "https://login.microsoftonline.com/{dynamicsTenantId}/oauth2/v2.0/token",
+  clientId: "{dynamicsClientId}",
+  clientSecret: "{dynamicsClientSecret}",
+  scope: "{dynamicsUrl}/.default",
+};
+
+/** What every Dynamics 365 template asks for: where the environment is, how to sign in, and the link column. */
+const DYNAMICS_VARIABLES: Array<WorkflowTemplateVariable> = [
+  DYNAMICS_URL,
+  DYNAMICS_TENANT_ID,
+  DYNAMICS_CLIENT_ID,
+  DYNAMICS_CLIENT_SECRET,
+  DYNAMICS_LINK_COLUMN,
+];
+
+/** Asks Dataverse to send each choice's and lookup's display text beside its value. */
+const DYNAMICS_FORMATTED_VALUES_PREFERENCE: string =
+  'odata.include-annotations="OData.Community.Display.V1.FormattedValue"';
+
+type DynamicsHeadersFunction = (options?: {
+  prefer?: string | undefined;
+  ifMatch?: string | undefined;
+}) => JSONObject;
+
+/*
+ * An object rather than JSON text, as the Jira headers are: the argument is
+ * marked sensitive, so the whole header set is kept out of the run log, and
+ * the token itself is an OAuth 2.0 variable's, redacted wherever it lands.
+ */
+const dynamicsHeaders: DynamicsHeadersFunction = (options?: {
+  prefer?: string | undefined;
+  ifMatch?: string | undefined;
+}): JSONObject => {
+  const headers: JSONObject = {
+    Authorization: `Bearer {{local.variables.${DYNAMICS_ACCESS_TOKEN_VARIABLE_NAME}}}`,
+    Accept: "application/json",
+    "OData-MaxVersion": "4.0",
+    "OData-Version": "4.0",
+  };
+
+  if (options?.prefer) {
+    headers["Prefer"] = options.prefer;
+  }
+
+  if (options?.ifMatch) {
+    headers["If-Match"] = options.ifMatch;
+  }
+
+  return headers;
+};
+
+type DynamicsLinkedCaseUrlFunction = (props: {
+  kind: TemplateRecordKind;
+  idReference: string;
+}) => string;
+
+/*
+ * Finds the case linked to a record by the value its link column holds. Two
+ * rows, not one, so the script can see a second match and refuse it, as the
+ * Jira search does: the column is an ordinary one, and anyone who can edit a
+ * case can copy a link into it. The spaces in the filter are written
+ * percent-encoded, because nothing between here and the wire encodes a URL.
+ */
+const dynamicsLinkedCaseUrl: DynamicsLinkedCaseUrlFunction = (props: {
+  kind: TemplateRecordKind;
+  idReference: string;
+}): string => {
+  return `${DYNAMICS_WEB_API_ROOT}/incidents?$select=incidentid,ticketnumber,title,statecode,statuscode&$filter={{local.variables.dynamicsLinkColumn}}%20eq%20'${props.kind.labelPrefix}${props.idReference}'&$top=2`;
+};
+
+type DynamicsScriptFunction = (
+  kind: TemplateRecordKind,
+  body: string,
+) => string;
+
+/*
+ * Every Dynamics 365 script starts with the same helper block, so each one
+ * can be read and edited on its own. The rules the Jira scripts keep hold
+ * here too: no double braces anywhere in the source, because a script is an
+ * argument and would be substituted before it runs; text that came from
+ * Dynamics 365 goes through defuse() before it is returned, so a later step
+ * quoting it can never read a {{...}} reference out of it; and text that came
+ * from Dynamics 365 and goes into OneUptime - a record's title or
+ * description, a note, the cause of a state change - is placed with
+ * asWritten() (OUTSIDE_TEXT_HELPERS), so it reads exactly as written and
+ * nothing in it acts.
+ *
+ * isLinked takes any value in the link column as a link — not only the
+ * prefixes OneUptime writes — so a case someone linked by hand, or one linked
+ * to the other kind of record, is never also made a new incident or alert.
+ */
+const dynamicsScript: DynamicsScriptFunction = (
+  kind: TemplateRecordKind,
+  body: string,
+): string => {
+  const helpers: string = String.raw`// ---- Shared by the Dynamics 365 templates ----
+const FROM_ONEUPTIME = ${JSON.stringify(DYNAMICS_SYNCED_FROM_ONEUPTIME_MARKER)};
+const FROM_DYNAMICS = ${JSON.stringify(ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER)};
+const ${kind.upper}_LINK_PREFIX = ${JSON.stringify(kind.labelPrefix)};
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// A column's logical name: its publisher prefix, an underscore and the rest, in lower case.
+const COLUMN = /^[a-z][a-z0-9]*_[a-z0-9_]+$/;
+// Dataverse sends the display text of a choice or a lookup beside its value, under this suffix.
+const FORMATTED = '@OData.Community.Display.V1.FormattedValue';
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+const asText = (value) => (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '');
+// OneUptime ids, names and dates are serialized as { _type, value }.
+const valueOf = (value) => (value && typeof value === 'object' ? asText(value.value) : asText(value));
+// Drops the control characters JSON and Dataverse reject, keeping tabs and line breaks.
+const clean = (value) => Array.from(asText(value)).filter((c) => {
+  const code = c.charCodeAt(0);
+  return code === 9 || code === 10 || (code >= 32 && code !== 127);
+}).join('');
+const oneLine = (value) => clean(value).replace(/\s+/g, ' ').trim();
+const limit = (value, max) => (value.length > max ? value.slice(0, max - 1) + '…' : value);
+// Breaks up double braces so a later step cannot read the text as a reference.
+const defuse = (value) => {
+  let text = value;
+  while (text.indexOf('{' + '{') !== -1) text = text.split('{' + '{').join('{ {');
+  while (text.indexOf('}' + '}') !== -1) text = text.split('}' + '}').join('} }');
+  return text;
+};
+const displayName = (user) => (user && typeof user === 'object' ? asText(user.displayName) || valueOf(user.name) : '');
+// A Dataverse id in lower case, without the braces the SDK can write around one. Empty when the
+// value is not an id, or is the empty id of all zeros.
+const guidOf = (value) => {
+  const text = asText(value).trim().toLowerCase().replace(/^\{/, '').replace(/\}$/, '');
+  return GUID.test(text) && text !== '00000000-0000-0000-0000-000000000000' ? text : '';
+};
+const formatted = (row, column) => (row && typeof row === 'object' ? oneLine(row[column + FORMATTED]) : '');
+// A case is named by its case number, or by its id when it has none.
+const caseNumberOf = (row) => oneLine(row && row.ticketnumber) || guidOf(row && row.incidentid) || 'with no number';
+// The ${kind.noun} id in a case's link column: ${kind.labelPrefix}<id>.
+const ${kind.noun}IdFromLink = (value) => {
+  const text = asText(value).trim().toLowerCase();
+  const id = text.slice(${kind.upper}_LINK_PREFIX.length);
+  return text.indexOf(${kind.upper}_LINK_PREFIX) === 0 && GUID.test(id) ? id : '';
+};
+const isLinked = (value) => oneLine(value) !== '';
+// Where the case is in Dynamics 365, for a person to open.
+const caseUrlOf = (dynamicsUrl, caseId) => oneLine(dynamicsUrl).replace(/\/+$/, '') + '/main.aspx?pagetype=entityrecord&etn=incident&id=' + caseId;
+// A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
+const numbered = (value) => {
+  const text = asText(value);
+  return text.charAt(0) === '#' ? ${JSON.stringify(kind.Noun)} + ' ' + text : text;
+};
+// Reasons can quote Dynamics 365's text, so they are defused like everything else.
+const skip = (reason) => ({ proceed: false, reason: defuse(asText(reason)) });
+// The one case a link search found for an ${kind.noun}. More than one means the link was copied
+// into another case, and guessing would write to the wrong one, so the step stops and says which.
+const linkedCase = (search, ${kind.noun}Id) => {
+  const link = ${kind.upper}_LINK_PREFIX + ${kind.noun}Id;
+  const rows = (search && Array.isArray(search.value) ? search.value : [])
+    .filter((row) => row && guidOf(row.incidentid));
+  if (!rows.length) return { reason: 'No Dynamics 365 case holds the link ' + link + ', or the Dynamics 365 credentials cannot see it.' };
+  if (rows.length > 1) {
+    return { reason: 'More than one Dynamics 365 case holds the link ' + link + ' (' + rows.map((row) => caseNumberOf(row)).join(', ') + '). Clear it on every case except the one opened for the ${kind.noun}.' };
+  }
+  return { row: rows[0], caseId: guidOf(rows[0].incidentid), caseNumber: defuse(caseNumberOf(rows[0])) };
+};
+// What a Dataverse webhook or a Power Automate flow says happened, and to which row. A webhook
+// posts the plug-in execution context: MessageName names the event, and PrimaryEntityName and
+// PrimaryEntityId the row - or, for the Close message, the IncidentResolution it carries. A flow
+// posts whatever its HTTP action says: the row's own id column, and SdkMessage if it passes it on.
+const parameterOf = (list, key) => {
+  const found = (Array.isArray(list) ? list : []).find((item) => item && asText(item.key) === key);
+  return found ? found.value : undefined;
+};
+const eventOf = (payload, table, idColumn) => {
+  const body = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  const message = oneLine(body.MessageName || body.SdkMessage);
+  const primaryTable = oneLine(body.PrimaryEntityName).toLowerCase();
+  let id = primaryTable === table ? guidOf(body.PrimaryEntityId) : '';
+  const target = parameterOf(body.InputParameters, 'Target');
+  if (!id && target && typeof target === 'object' && oneLine(target.LogicalName).toLowerCase() === table) id = guidOf(target.Id);
+  const resolution = parameterOf(body.InputParameters, 'IncidentResolution');
+  const resolved = resolution && typeof resolution === 'object' ? parameterOf(resolution.Attributes, 'incidentid') : null;
+  if (!id && table === 'incident' && resolved && typeof resolved === 'object') id = guidOf(resolved.Id);
+  if (!id && !primaryTable) id = guidOf(body[idColumn]);
+  return { message: message, id: id, table: primaryTable || (id ? table : '') };
+};
+`;
+
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
+};
+
+type DynamicsKindScriptFunction = (kind: TemplateRecordKind) => string;
+
+/*
+ * OneUptime -> Dynamics 365: shapes a new record into the columns of a case.
+ * The columns are built here rather than in the API step, because two of
+ * their names depend on the settings (the customer's binding, the link
+ * column) and the priority, origin and type are numbers.
+ */
+const dynamicsPrepareCaseScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Turns the new ${r} into the columns of a Dynamics 365 case.
+// Edit the wording here, and add any other column the case needs to CASE below, under its
+// logical name: for example CASE.casetypecode = 3 files every case as a Request.
+// Private ${kind.plural} stay in OneUptime. Set this to true to open cases for them anyway.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+// OneUptime severity to case priority. The project's severities are spread across the three
+// priorities by their order: the most severe opens a High case (1), the least severe a Low one
+// (3), and the ones between Normal cases (2). To choose a priority by name instead, list the
+// severity here in lower case, for example { 'major incident': 1 }.
+const SEVERITY_TO_PRIORITY = {};
+// For a severity that is not in the project's list, or a project with only one severity.
+const DEFAULT_PRIORITY = 2;
+// How the case says it arrived (caseorigincode: 3 is Web) and what it is (casetypecode: 2 is Problem).
+const CASE_ORIGIN = 3;
+const CASE_TYPE = 2;
+// The Case table's own limits on a title and a description. Raise them if yours allows more.
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 2000;
+
+const ${r} = readJson(args.${r}) || {};
+const customFields = ${r}.customFields || {};
+const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
+const ${r}Id = guidOf(${r}._id);
+
+// The link column holds the ${r}'s id, so there is no case without one.
+if (!${r}Id) return skip('The trigger did not hand over an ${r} id.');
+
+if (${r}.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip(number + ' is a private ${r}, so no Dynamics 365 case was opened.');
+}
+
+// ${kind.Created} from a Dynamics 365 case: it already has one, and opening another would loop.
+if (asText(customFields.dynamicsCaseId)) {
+  return skip(number + ' was ${kind.created} from Dynamics 365 case ' + (oneLine(customFields.dynamicsCaseNumber) || asText(customFields.dynamicsCaseId)) + ', so no new case was opened.');
+}
+
+const linkColumn = oneLine(args.linkColumn);
+if (!COLUMN.test(linkColumn)) {
+  return skip('The Case Link Column setting, ' + (linkColumn || 'which is empty') + ', is not the logical name of a column, such as new_oneuptimelink, so no case was opened.');
+}
+
+// The customer every new case is filed against: an account's id, or contacts(<id>) for a contact.
+const customerText = oneLine(args.customer).replace(/^\//, '');
+const customerMatch = customerText.match(/^(accounts|contacts)\((.*)\)$/i);
+const customerTable = customerMatch ? customerMatch[1].toLowerCase() : 'accounts';
+const customerId = guidOf(customerMatch ? customerMatch[2] : customerText);
+if (!customerId) {
+  return skip('The Customer for New Cases setting is not an account id or contacts(<id>), so no case was opened.');
+}
+
+let oneUptimeUrl = oneLine(args.oneuptimeUrl).replace(/\/+$/, '');
+if (!/^https?:\/\//i.test(oneUptimeUrl)) oneUptimeUrl = 'https://' + oneUptimeUrl;
+const ${r}Url = oneUptimeUrl + '/dashboard/' + valueOf(${r}.projectId) + '/${kind.dashboardPath}/' + ${r}Id;
+
+const severity = ${r}.${kind.severityRelation} ? oneLine(${r}.${kind.severityRelation}.name) : '';
+const state = ${r}.${kind.stateRelation} ? oneLine(${r}.${kind.stateRelation}.name) : '';
+// The link back goes second, so the description's limit never cuts it off.
+const lines = [number + ' was ${kind.created} in OneUptime.', 'Open it in OneUptime: ' + ${r}Url];
+if (severity) lines.push('Severity: ' + severity);
+if (state) lines.push('State: ' + state);
+const description = clean(${r}.description).trim();
+if (description) lines.push('', description);
+// A monitor fills these in when it raises the ${r}; often they say more than the description.
+const rootCause = clean(${r}.rootCause).trim();
+if (rootCause) lines.push('', 'Root cause:', rootCause);
+const remediation = clean(${r}.remediationNotes).trim();
+if (remediation) lines.push('', 'Remediation:', remediation);
+
+const found = readJson(args.severities);
+const severities = (Array.isArray(found) ? found : [])
+  .filter((candidate) => candidate && asText(candidate._id))
+  .sort((a, b) => Number(a.order) - Number(b.order));
+const current = ${r}.${kind.severityRelation} || {};
+const position = severities.findIndex((candidate) => asText(candidate._id) === asText(current._id) || (Boolean(severity) && oneLine(candidate.name) === severity));
+const named = SEVERITY_TO_PRIORITY[severity.toLowerCase()];
+const priority = typeof named === 'number'
+  ? named
+  : position === -1 || severities.length < 2
+    ? DEFAULT_PRIORITY
+    : 1 + Math.round((position / (severities.length - 1)) * 2);
+
+const CASE = {
+  title: limit(defuse(oneLine('[OneUptime] ' + number + ': ' + (oneLine(${r}.title) || 'Untitled ${r}'))), MAX_TITLE_LENGTH),
+  description: limit(defuse(lines.join('\n')), MAX_DESCRIPTION_LENGTH),
+  prioritycode: priority,
+  caseorigincode: CASE_ORIGIN,
+  casetypecode: CASE_TYPE,
+};
+// Dataverse takes the customer as a link to an account or a contact row, and requires one.
+CASE['customerid_' + (customerTable === 'contacts' ? 'contact' : 'account') + '@odata.bind'] = '/' + customerTable + '(' + customerId + ')';
+// What the other Dynamics 365 templates find the case by.
+CASE[linkColumn] = ${kind.upper}_LINK_PREFIX + ${r}Id;
+
+return { proceed: true, caseColumns: CASE, link: CASE[linkColumn] };
+`,
+  );
+};
+
+/*
+ * OneUptime -> Dynamics 365: what the record's new state means for its case.
+ * A resolved record closes the case, which Dataverse does with the
+ * CloseIncident action: it records a case resolution, as resolving by hand
+ * does, where writing statecode would not. Any other state moves the case to
+ * an active status only when STATE_TO_CASE_STATUS names one.
+ */
+const dynamicsPlanCaseScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Decides what the ${r}'s new state means for its Dynamics 365 case.
+// A resolved ${r} closes its case with RESOLVED_CASE_STATUS: 5 is Problem Solved and
+// 1000 Information Provided, or a resolved status of your own.
+const RESOLVED_CASE_STATUS = 5;
+// To move the case to another status when the ${r} reaches a state, list the state here by
+// name, with the status's value: for example { Acknowledged: 4 } for Researching. Dynamics 365's
+// own active statuses are 1 In Progress, 2 On Hold, 3 Waiting for Details and 4 Researching.
+// A resolved state listed here closes the case with the status it names.
+const STATE_TO_CASE_STATUS = {};
+// Private ${kind.plural} stay in OneUptime. Set this to true to sync them anyway.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+// The Case Resolution's own limit on its subject.
+const MAX_SUBJECT_LENGTH = 200;
+
+const ${r} = readJson(args.${r}) || {};
+const search = readJson(args.search) || {};
+const state = ${r}.${kind.stateRelation} || {};
+const stateName = oneLine(state.name);
+const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
+const nothing = (reason) => Object.assign(skip(reason), { action: 'skip' });
+
+if (${r}.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return nothing(number + ' is a private ${r}, so its Dynamics 365 case was not changed.');
+}
+
+const named = STATE_TO_CASE_STATUS[stateName];
+const isResolved = state.isResolvedState === true;
+if (!isResolved && typeof named !== 'number') {
+  return nothing(number + ' moved to ' + (stateName || 'a new state') + ', which has no case status mapped to it.');
+}
+
+const found = linkedCase(search, guidOf(${r}._id));
+if (!found.row) return nothing(found.reason);
+const caseNumber = found.caseNumber;
+
+// Like the ${r}, the case only moves forward: a case that is already resolved or cancelled is
+// left as it is, and is not reopened to be moved.
+if (Number(found.row.statecode) !== 0) {
+  return nothing('Dynamics 365 case ' + caseNumber + ' is already ' + (formatted(found.row, 'statecode') || 'closed') + ', so it was left as it is.');
+}
+
+const status = typeof named === 'number' ? named : RESOLVED_CASE_STATUS;
+if (Number(found.row.statuscode) === status && !isResolved) {
+  return nothing('Dynamics 365 case ' + caseNumber + ' is already ' + (formatted(found.row, 'statuscode') || 'in that status') + '.');
+}
+
+if (isResolved) {
+  return {
+    proceed: true,
+    action: 'close',
+    caseId: found.caseId,
+    caseNumber: caseNumber,
+    closeBody: {
+      IncidentResolution: {
+        subject: limit(defuse(oneLine(FROM_ONEUPTIME + ': ' + number + ' was resolved')), MAX_SUBJECT_LENGTH),
+        description: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
+        'incidentid@odata.bind': '/incidents(' + found.caseId + ')',
+      },
+      Status: status,
+    },
+    reason: defuse(number + ' is ' + (stateName || 'resolved') + ' in OneUptime.'),
+  };
+}
+
+return {
+  proceed: true,
+  action: 'status',
+  caseId: found.caseId,
+  caseNumber: caseNumber,
+  // statecode beside statuscode, so Dataverse never falls back to the state's default status.
+  statusBody: { statecode: 0, statuscode: status },
+  status: status,
+  reason: defuse(number + ' is ' + stateName + ' in OneUptime.'),
+};
+`,
+  );
+};
+
+type DynamicsNoteScriptFunction = (
+  kind: TemplateRecordKind,
+  noteKind: string,
+) => string;
+
+/*
+ * OneUptime -> Dynamics 365: the case note for a new private or public note.
+ * The templates differ only in the trigger and in what they call the note.
+ */
+const dynamicsNoteToCaseScript: DynamicsNoteScriptFunction = (
+  kind: TemplateRecordKind,
+  noteKind: string,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Writes the Dynamics 365 case note for a new ${noteKind}.
+const NOTE_KIND = ${JSON.stringify(noteKind)};
+// Notes on private ${kind.plural} stay in OneUptime. Set this to true to post them anyway.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+// A note's own limits on its title and its text.
+const MAX_SUBJECT_LENGTH = 500;
+const MAX_NOTE_LENGTH = 100000;
+
+const note = readJson(args.note) || {};
+const search = readJson(args.search) || {};
+const text = clean(note.note).trim();
+const number = (note.${r} && numbered(note.${r}.${kind.numberField})) || 'the ${r}';
+if (note.${r} && note.${r}.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip('The note is on ' + number + ', a private ${r}, so it was not posted to Dynamics 365.');
+}
+if (!text) return skip('The note is empty, so there is nothing to post.');
+
+// Notes copied in from Dynamics 365 carry this marker. Posting them back would loop.
+if (text.indexOf(FROM_DYNAMICS) !== -1) {
+  return skip('This note came from Dynamics 365, so it was not posted back.');
+}
+
+const found = linkedCase(search, guidOf(valueOf(note.${kind.idColumn})));
+if (!found.row) return skip(found.reason);
+
+const author = oneLine(displayName(note.createdByUser));
+return {
+  proceed: true,
+  caseId: found.caseId,
+  caseNumber: found.caseNumber,
+  subject: limit(defuse(FROM_ONEUPTIME + ': ' + NOTE_KIND + ' on ' + number + (author ? ' by ' + author : '')), MAX_SUBJECT_LENGTH),
+  text: limit(defuse(text), MAX_NOTE_LENGTH),
+};
+`,
+  );
+};
+
+type DynamicsReadCaseEventScriptFunction = (
+  kind: TemplateRecordKind,
+  props: {
+    /** The messages the template acts on, in the order its comment lists them. */
+    messages: Array<string>;
+    comment: string;
+  },
+) => string;
+
+/*
+ * Dynamics 365 -> OneUptime: which case a webhook names. Shared by the
+ * templates that act on a case; each one lists the events it acts on.
+ */
+const dynamicsReadCaseEventScript: DynamicsReadCaseEventScriptFunction = (
+  kind: TemplateRecordKind,
+  props: { messages: Array<string>; comment: string },
+): string => {
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Reads which Dynamics 365 case a Dataverse webhook or a Power Automate flow names.
+// The case itself is read from Dynamics 365 by the next step, not taken from the request.
+// ${props.comment}
+const MESSAGES = ${JSON.stringify(props.messages)};
+
+const event = eventOf(readJson(args), 'incident', 'incidentid');
+if (event.message && MESSAGES.indexOf(event.message) === -1) {
+  return skip('Ignored the ' + event.message + ' event: this workflow only handles ' + MESSAGES.join(', ') + '.');
+}
+if (!event.id) {
+  return skip(event.table && event.table !== 'incident' ? 'The request is about the ' + event.table + ' table, not cases, so it was ignored.' : 'The request did not name a Dynamics 365 case, so it was ignored.');
+}
+return { proceed: true, caseId: event.id, message: defuse(event.message || 'a change') };
+`,
+  );
+};
+
+/*
+ * Text written in Dynamics 365's rich-text editor, read as the text it shows.
+ * Dynamics 365 keeps it as HTML: a note, and a case's description where the
+ * case form has the editor - or that an email became, when a rule turns
+ * incoming email into cases. The case-note scripts read notes with it, and
+ * the create-from-case scripts read descriptions with it, so both carry this
+ * section byte for byte. A script runs in the workflow sandbox, which can
+ * import nothing, so it carries its own copy of the walk OneUptime's code
+ * reads HTML with (replaceHtmlMarkup in Common/Types/HtmlMarkup, reading "<"
+ * as a browser does), which DynamicsNoteMarkup.test.ts holds to the original
+ * and DynamicsCaseDescription.test.ts holds the create-from-case copies to.
+ */
+const DYNAMICS_RICH_TEXT_READING: string = String.raw`// ---- Reading rich text ----
+// Dynamics 365 keeps text written in its rich-text editor as HTML: a note, and a case's description
+// where the case form has the editor. A case made from an email keeps the email's HTML as its
+// description. It is read as the text it shows: every tag and comment comes out whole - a line
+// break, and the end of a block, as a new line; anything else as nothing - and only then are
+// entities read, once, so text that was "&lt;b&gt;" stays text and is never a tag. A tag ends at the
+// first ">" outside a quoted value, a comment at its "-->", and a "<" is read as a browser reads it:
+// it starts markup only before a letter, "/", "!" or "?", and is text anywhere else ("latency <
+// 200ms"); markup that never ends loses only its "<", and a run of "<" before markup starts it at
+// its last "<". A script or a style - the rules an email carries, such as Outlook's
+// "P {margin-top:0;margin-bottom:0;}" - is never shown, and comes out whole with what it holds. It
+// is the reading OneUptime's own code uses (replaceHtmlMarkup, reading "<" as text where a browser
+// does, and script and style elements whole), so no tag is left in the text and none can form from
+// what is left. Text with no tag at all is plain text - a note written through the API, or by the
+// older editor - and only its entities are read.
+const LINE_BREAK = /^<\s*br\s*\/?>$/i;
+const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
+// Longer than a line break or the end of a block is ever written. A longer tag is neither.
+const LONGEST_BREAK_TAG = 256;
+const TAG_START = /<[a-z!\/]/i;
+const WHITESPACE = /\s/;
+// Where a pre element starts and ends: what it holds shows the indentation of its lines.
+const PRE_START = /^<pre[\s\/>]/i;
+const PRE_END = /^<\/pre\s*>$/i;
+// Marks of where a pre element starts and ends, in the text read out of HTML until withoutIndent
+// takes them out: control characters, which clean() drops from every note and description. One a
+// note holds before that only changes which of its lines keep their indentation.
+const PRE_START_MARK = '\u0002';
+const PRE_END_MARK = '\u0003';
+// What a tag or comment becomes in the text: a new line for a line break or the end of a block, and
+// a mark where a pre element starts or ends.
+const markupAsText = (markup) => {
+  if (PRE_START.test(markup.slice(0, 5))) return PRE_START_MARK;
+  if (markup.length > LONGEST_BREAK_TAG) return '';
+  if (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) return '\n';
+  return PRE_END.test(markup) ? PRE_END_MARK : '';
+};
+// Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
+const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
+// The elements whose content a browser never reads as markup, by name. What the first five hold is
+// never shown: each comes out whole, from its start tag to the ">" of the first end tag of the same
+// name after it. Title, textarea and xmp hold text, read on its own up to that end tag, so nothing
+// in it runs past it. A start tag that no such end tag follows is an ordinary tag. A name is read
+// as a browser reads one, in any letter case, and ends at whitespace, "/" or ">".
+const NAMED_ELEMENTS = ['script', 'style', 'iframe', 'noembed', 'noframes', 'title', 'textarea', 'xmp'];
+const HIDDEN_ELEMENTS = 5;
+const ENDS_TAG_NAME = /[\t\n\f\r />]/;
+const END_TAGS = NAMED_ELEMENTS.map((name) => new RegExp('</' + name + '(?=[\\t\\n\\f\\r />])', 'gi'));
+// Which of NAMED_ELEMENTS the start tag at "open" starts, or -1.
+const namedElementOf = (html, open) => {
+  for (let element = 0; element < NAMED_ELEMENTS.length; element++) {
+    const name = NAMED_ELEMENTS[element];
+    let at = 0;
+    // A letter matches its lower case or its upper case, and nothing else.
+    while (at < name.length && (html.charCodeAt(open + 1 + at) | 32) === name.charCodeAt(at)) at++;
+    if (at === name.length && ENDS_TAG_NAME.test(html.charAt(open + 1 + at))) return element;
+  }
+  return -1;
+};
+// Where the tag whose name starts at body ends: just past its first ">" outside a quoted value, or
+// -1 when it never ends. A quote opens a value only after an "=" and any whitespace.
+const scanTagEnd = (html, body) => {
+  let quote = '';
+  let valueNext = false;
+  for (let at = body; at < html.length; at++) {
+    const character = html.charAt(at);
+    if (quote) {
+      if (character === quote) quote = '';
+    } else if (character === '>') {
+      return at + 1;
+    } else if (valueNext && (character === '"' || character === "'")) {
+      quote = character;
+      valueNext = false;
+    } else if (character === '=') {
+      valueNext = true;
+    } else if (!WHITESPACE.test(character)) {
+      valueNext = false;
+    }
+  }
+  return -1;
+};
+// scanTagEnd for every position from "from" on, worked out once from the end of the text. Once one
+// tag is found never to end, every later tag's end is looked up here, so a text full of "<" that
+// never close takes no longer to read than any other.
+const tagEndsFrom = (html, from) => {
+  const size = html.length - from;
+  const ends = new Int32Array(size + 1);
+  // The same, read from just after an "=", where a quote opens a value.
+  const valueEnds = new Int32Array(size + 1);
+  let nextDoubleQuote = -1;
+  let nextSingleQuote = -1;
+  ends[size] = -1;
+  valueEnds[size] = -1;
+  for (let entry = size - 1; entry >= 0; entry--) {
+    const at = from + entry;
+    const character = html.charAt(at);
+    if (character === '>') {
+      ends[entry] = at + 1;
+      valueEnds[entry] = at + 1;
+    } else if (character === '=') {
+      ends[entry] = valueEnds[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else if (character === '"' || character === "'") {
+      const close = character === '"' ? nextDoubleQuote : nextSingleQuote;
+      ends[entry] = ends[entry + 1];
+      // A quoted value runs to the next quote of its kind; the tag goes on after it.
+      valueEnds[entry] = close === -1 ? -1 : ends[close - from + 1];
+      if (character === '"') nextDoubleQuote = at;
+      else nextSingleQuote = at;
+    } else if (WHITESPACE.test(character)) {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = ends[entry + 1];
+    }
+  }
+  return ends;
+};
+// The text of the HTML with every tag and comment replaced by what replace(markup) returns: a script
+// or a style element whole. The text a title, a textarea or an xmp holds is read with isElementText,
+// which finds no element in it.
+const replaceMarkup = (html, replace, isElementText) => {
+  let ends = null;
+  let endsFrom = 0;
+  // Where the first "-->" at or after the last comment looked for one is: -2 before the first.
+  let commentClose = -2;
+  // Where the run of "<" the last "<" read is part of ends, so a run is measured once.
+  let runEnd = -1;
+  // For each of NAMED_ELEMENTS, whether a start tag was found that no end tag follows: then none
+  // follows a later one either, and the text after it is not searched again.
+  const noEndTag = [];
+  let text = '';
+  let at = 0;
+  for (;;) {
+    const open = html.indexOf('<', at);
+    if (open === -1) return text + html.slice(at);
+    text += html.slice(at, open);
+    // A run of "<" goes with what follows its last one: it is text unless that starts markup.
+    if (open >= runEnd) {
+      runEnd = open + 1;
+      while (html.charAt(runEnd) === '<') runEnd++;
+    }
+    if (!startsMarkup(html.charCodeAt(runEnd))) {
+      text += html.slice(open, runEnd);
+      at = runEnd;
+      continue;
+    }
+    // The markup starts at the run's last "<"; the ones before it go.
+    if (open < runEnd - 1) {
+      at = runEnd - 1;
+      continue;
+    }
+    let end = -1;
+    if (html.startsWith('<!--', open)) {
+      // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
+      if (commentClose === -2 || (commentClose !== -1 && commentClose < open + 2)) {
+        commentClose = html.indexOf('-->', open + 2);
+      }
+      end = commentClose === -1 ? -1 : commentClose + 3;
+    } else {
+      if (ends) {
+        end = ends[open + 1 - endsFrom];
+      } else {
+        end = scanTagEnd(html, open + 1);
+        if (end === -1) {
+          ends = tagEndsFrom(html, open + 1);
+          endsFrom = open + 1;
+        }
+      }
+      const element = !isElementText && end !== -1 ? namedElementOf(html, open) : -1;
+      if (element !== -1) {
+        let endTagAt = -1;
+        if (!noEndTag[element]) {
+          END_TAGS[element].lastIndex = end;
+          const found = END_TAGS[element].exec(html);
+          endTagAt = found ? found.index : -1;
+        }
+        const hidden = element < HIDDEN_ELEMENTS;
+        // A hidden element runs to the ">" of its end tag.
+        const elementEnd = hidden && endTagAt !== -1 ? html.indexOf('>', endTagAt + 2 + NAMED_ELEMENTS[element].length) : -1;
+        if (endTagAt === -1 || (hidden && elementEnd === -1)) {
+          noEndTag[element] = true;
+        } else if (hidden) {
+          end = elementEnd + 1;
+        } else {
+          // A run of "<" that ends the element's text goes, as a run before any markup does.
+          let textEnd = endTagAt;
+          while (textEnd > end && html.charAt(textEnd - 1) === '<') textEnd--;
+          text += replace(html.slice(open, end)) + replaceMarkup(html.slice(end, textEnd), replace, true);
+          at = endTagAt;
+          continue;
+        }
+      }
+    }
+    if (end === -1) {
+      at = open + 1;
+    } else {
+      text += replace(html.slice(open, end));
+      at = end;
+    }
+  }
+};
+// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
+// "<?" alone - a PHP or XML snippet written through the API - does not make the text HTML.
+const hasTag = (text) => {
+  const start = text.search(TAG_START);
+  return start !== -1 && text.indexOf('>', start + 2) !== -1;
+};
+// What a character reference reads as, as a browser reads it. By name: the five every editor writes,
+// in any letter case as always, and by their exact names the Latin-1 characters (the names of 160 to
+// 255, in order) and the typographic ones an email writes. By number: Windows-1252's characters for
+// 128 to 159, as a browser reads them. A no-break space is a space, as &nbsp; always was, and a
+// number that is no character is the replacement character. Any other name stays as it was written.
+const BASIC_NAMES = { nbsp: ' ', lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
+const LATIN_1_NAMES = [
+  'nbsp', 'iexcl', 'cent', 'pound', 'curren', 'yen', 'brvbar', 'sect', 'uml', 'copy', 'ordf', 'laquo', 'not', 'shy', 'reg', 'macr',
+  'deg', 'plusmn', 'sup2', 'sup3', 'acute', 'micro', 'para', 'middot', 'cedil', 'sup1', 'ordm', 'raquo', 'frac14', 'frac12', 'frac34',
+  'iquest', 'Agrave', 'Aacute', 'Acirc', 'Atilde', 'Auml', 'Aring', 'AElig', 'Ccedil', 'Egrave', 'Eacute', 'Ecirc', 'Euml', 'Igrave',
+  'Iacute', 'Icirc', 'Iuml', 'ETH', 'Ntilde', 'Ograve', 'Oacute', 'Ocirc', 'Otilde', 'Ouml', 'times', 'Oslash', 'Ugrave', 'Uacute',
+  'Ucirc', 'Uuml', 'Yacute', 'THORN', 'szlig', 'agrave', 'aacute', 'acirc', 'atilde', 'auml', 'aring', 'aelig', 'ccedil', 'egrave',
+  'eacute', 'ecirc', 'euml', 'igrave', 'iacute', 'icirc', 'iuml', 'eth', 'ntilde', 'ograve', 'oacute', 'ocirc', 'otilde', 'ouml',
+  'divide', 'oslash', 'ugrave', 'uacute', 'ucirc', 'uuml', 'yacute', 'thorn', 'yuml',
+];
+const NAMED_CODES = {
+  OElig: 338, oelig: 339, Scaron: 352, scaron: 353, Yuml: 376, fnof: 402, circ: 710, tilde: 732, ensp: 8194, emsp: 8195,
+  thinsp: 8201, zwnj: 8204, zwj: 8205, lrm: 8206, rlm: 8207, ndash: 8211, mdash: 8212, lsquo: 8216, rsquo: 8217, sbquo: 8218,
+  ldquo: 8220, rdquo: 8221, bdquo: 8222, dagger: 8224, Dagger: 8225, bull: 8226, hellip: 8230, permil: 8240, prime: 8242,
+  Prime: 8243, lsaquo: 8249, rsaquo: 8250, oline: 8254, frasl: 8260, euro: 8364, trade: 8482, larr: 8592, uarr: 8593,
+  rarr: 8594, darr: 8595, harr: 8596, minus: 8722, le: 8804, ge: 8805, ne: 8800, asymp: 8776, infin: 8734,
+};
+const WINDOWS_1252 = [
+  0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0,
+  0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178,
+];
+const characterOf = (number) => {
+  const code = number >= 128 && number <= 159 ? WINDOWS_1252[number - 128] : number;
+  if (code === 160) return ' ';
+  return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd';
+};
+// One reference at the start of a slice: by number in hexadecimal or decimal, or by name.
+const REFERENCE = /^&(?:#[xX]([0-9a-fA-F]{1,32})|#([0-9]{1,32})|([A-Za-z][A-Za-z0-9]{1,31}));/;
+const referenceText = (reference) => {
+  if (reference[1] !== undefined) return characterOf(parseInt(reference[1], 16));
+  if (reference[2] !== undefined) return characterOf(parseInt(reference[2], 10));
+  const name = reference[3];
+  const lower = name.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(BASIC_NAMES, lower)) return BASIC_NAMES[lower];
+  const latin1 = LATIN_1_NAMES.indexOf(name);
+  if (latin1 !== -1) return characterOf(160 + latin1);
+  return Object.prototype.hasOwnProperty.call(NAMED_CODES, name) ? characterOf(NAMED_CODES[name]) : null;
+};
+// Every reference is read once, in one walk from each "&" to the next: what one reads as is never
+// read again, so "&#38;lt;" and "&amp;lt;" are the text "&lt;". Each is read off a short slice, as a
+// long text is read with no pattern that runs over all of it.
+const readEntities = (text) => {
+  let read = '';
+  let copiedUpTo = 0;
+  for (let at = text.indexOf('&'); at !== -1; at = text.indexOf('&', at + 1)) {
+    const reference = REFERENCE.exec(text.slice(at, at + 72));
+    const character = reference ? referenceText(reference) : null;
+    if (character === null) continue;
+    read += text.slice(copiedUpTo, at) + character;
+    copiedUpTo = at + reference[0].length;
+    at = copiedUpTo - 1;
+  }
+  return read + text.slice(copiedUpTo);
+};
+// The spaces and tabs the HTML's own source starts a line with, which a browser never shows - but in
+// a pre element, which shows them. Email HTML is often indented, and four spaces start a code block in
+// Markdown. Taken out before entities are read, so a space written as &nbsp; stays; the marks of
+// where a pre element starts and ends go with them.
+const withoutIndent = (text) => {
+  let preDepth = 0;
+  return text.split('\n').map((line) => {
+    let start = 0;
+    if (preDepth === 0) {
+      while (start < line.length && (line.charAt(start) === ' ' || line.charAt(start) === '\t')) start++;
+    }
+    const rest = line.slice(start);
+    if (rest.indexOf(PRE_START_MARK) === -1 && rest.indexOf(PRE_END_MARK) === -1) return rest;
+    let kept = '';
+    for (const character of rest) {
+      if (character === PRE_START_MARK) preDepth++;
+      else if (character === PRE_END_MARK) preDepth = Math.max(0, preDepth - 1);
+      else kept += character;
+    }
+    return kept;
+  }).join('\n');
+};
+// The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
+// and indexOf rather than patterns with quantifiers, which a long text is not read with.
+const tidyLines = (text) => {
+  const lines = text.split('\n');
+  for (let index = 0; index < lines.length - 1; index++) {
+    const line = lines[index];
+    let end = line.length;
+    while (end > 0 && (line.charAt(end - 1) === ' ' || line.charAt(end - 1) === '\t')) end--;
+    lines[index] = line.slice(0, end);
+  }
+  const tidy = lines.join('\n');
+  let result = '';
+  let at = 0;
+  for (;;) {
+    const run = tidy.indexOf('\n\n\n', at);
+    if (run === -1) return result + tidy.slice(at);
+    let end = run + 3;
+    while (tidy.charAt(end) === '\n') end++;
+    result += tidy.slice(at, run) + '\n\n';
+    at = end;
+  }
+};
+const htmlToText = (value) => {
+  const text = asText(value);
+  // Plain text: nothing in it is markup, and only its entities are read.
+  if (!hasTag(text)) return readEntities(text);
+  return tidyLines(readEntities(withoutIndent(replaceMarkup(text, markupAsText))));
+};
+`;
+
+/*
+ * Dynamics 365 -> OneUptime: turns a new case, as Dynamics 365 has it, into
+ * the fields of a new record, choosing a severity from the case's priority.
+ * A description written in the rich-text editor, or that an email became, is
+ * HTML: it is read as the text it shows (DYNAMICS_RICH_TEXT_READING), as a
+ * note is. Any other description is plain text, kept exactly as written.
+ */
+const dynamicsPrepareRecordScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Turns a new Dynamics 365 case into a OneUptime ${r}.
+// Case priority to OneUptime severity: 0 is your most severe severity and 2 your least, with
+// the ones in between spread across the range. Case priorities are 1 High, 2 Normal and 3 Low,
+// and a priority that is not listed lands in the middle.
+const PRIORITY_RANK = { 1: 0, 2: 1, 3: 2 };
+// Only cases with one of these priorities become ${kind.plural}: for example [1] for High alone.
+// Leave it empty to take every case the webhook sends.
+const ONLY_PRIORITIES = [];
+
+${DYNAMICS_RICH_TEXT_READING}
+// ---- Reading the case ----
+const row = readJson(args.case) || {};
+const caseId = guidOf(row.incidentid);
+if (!caseId) return skip('Dynamics 365 did not return the case, so no ${r} was ${kind.created}.');
+const caseNumber = caseNumberOf(row);
+const linkColumn = oneLine(args.linkColumn);
+if (!COLUMN.test(linkColumn)) {
+  return skip('The Case Link Column setting, ' + (linkColumn || 'which is empty') + ', is not the logical name of a column, such as new_oneuptimelink, so no ${r} was ${kind.created}.');
+}
+
+// Cases OneUptime opened, and cases already linked, hold a link. ${kind.creating} an ${r} for one would loop.
+if (isLinked(row[linkColumn])) {
+  return skip('Dynamics 365 case ' + caseNumber + ' is already linked to OneUptime (' + oneLine(row[linkColumn]) + '), so no ${r} was ${kind.created}.');
+}
+if (Number(row.statecode) !== 0) {
+  return skip('Dynamics 365 case ' + caseNumber + ' is ' + (formatted(row, 'statecode') || 'no longer active') + ', so no ${r} was ${kind.created}.');
+}
+
+const priority = Number(row.prioritycode);
+const priorityName = formatted(row, 'prioritycode');
+if (ONLY_PRIORITIES.length && ONLY_PRIORITIES.indexOf(priority) === -1) {
+  return skip('Dynamics 365 case ' + caseNumber + ' has ' + (priorityName || 'no') + ' priority, which ONLY_PRIORITIES leaves out, so no ${r} was ${kind.created}.');
+}
+
+const found = readJson(args.severities);
+const severities = (Array.isArray(found) ? found : [])
+  .filter((severity) => severity && asText(severity._id))
+  .sort((a, b) => Number(a.order) - Number(b.order));
+if (!severities.length) return skip('This project has no ${r} severities to choose from.');
+
+const rankValue = PRIORITY_RANK[priority];
+const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
+const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
+
+// What Dynamics 365 users wrote - the case number, the title, the priority's and the customer's
+// names, the description - is placed as written (asWritten). The link to the case is the template's
+// own.
+const lines = ['${kind.Created} from Dynamics 365 case [' + asWritten(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, caseId) + ').'];
+if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
+const customer = formatted(row, '_customerid_value');
+if (customer) lines.push('Customer: ' + asWritten(customer));
+// A description written in the rich-text editor, or that an email became, is HTML: it starts with a
+// comment, a document type, an XML declaration or a tag, and one that starts with a tag closes an
+// element somewhere ("</p>", "</div>"), as everything an editor or an email writes does. It is read
+// as the text it shows (htmlToText). Any other description is plain text, kept exactly as it was
+// written, a "<" in it too: "From: Jane Doe <jane@contoso.com>", "<none> found", "<header> overlaps
+// the menu".
+const DECLARATION_START = /^<(?:!--|!doctype[\s>]|\?xml\s)/i;
+const TAG_NAME_START = /^<[a-z]/i;
+// Whether the text holds an end tag: "</" and a letter.
+const holdsEndTag = (text) => {
+  for (let at = text.indexOf('</'); at !== -1; at = text.indexOf('</', at + 2)) {
+    const code = text.charCodeAt(at + 2);
+    if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) return true;
+  }
+  return false;
+};
+const writtenDescription = clean(row.description);
+const descriptionStart = writtenDescription.trimStart().slice(0, 16);
+const isRichText = hasTag(writtenDescription) && (DECLARATION_START.test(descriptionStart) || (TAG_NAME_START.test(descriptionStart) && holdsEndTag(writtenDescription)));
+const description = (isRichText ? clean(htmlToText(writtenDescription)) : writtenDescription).trim();
+if (description) lines.push('', asWritten(description));
+
+return {
+  proceed: true,
+  caseId: caseId,
+  caseNumber: defuse(caseNumber),
+  severityName: oneLine(severity.name),
+  ${kind.severityIdColumn}: asText(severity._id),
+  title: limit(defuse(asWritten(oneLine(row.title)) || 'Dynamics 365 case ' + asWritten(caseNumber)), 500),
+  description: limit(defuse(lines.join('\n')), 20000),
+};
+`,
+  );
+};
+
+/*
+ * Dynamics 365 -> OneUptime: the record a case is linked to, read off the
+ * case as Dynamics 365 has it.
+ */
+const dynamicsFindLinkedRecordScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Finds the ${r} a Dynamics 365 case is linked to, from its link column.
+const row = readJson(args.case) || {};
+const caseId = guidOf(row.incidentid);
+if (!caseId) return skip('Dynamics 365 did not return the case.');
+const caseNumber = caseNumberOf(row);
+const linkColumn = oneLine(args.linkColumn);
+if (!COLUMN.test(linkColumn)) {
+  return skip('The Case Link Column setting, ' + (linkColumn || 'which is empty') + ', is not the logical name of a column, such as new_oneuptimelink.');
+}
+const ${r}Id = ${r}IdFromLink(row[linkColumn]);
+if (!${r}Id) {
+  return skip('Dynamics 365 case ' + caseNumber + ' is not linked to an ${r}: its ' + linkColumn + ' column does not hold ' + ${kind.upper}_LINK_PREFIX + '<id>.');
+}
+
+return {
+  proceed: true,
+  ${r}Id: ${r}Id,
+  caseId: caseId,
+  // Text from Dynamics 365. The next script receives these quoted into its arguments.
+  caseNumber: defuse(caseNumber),
+  caseState: Number(row.statecode),
+  caseStateName: defuse(formatted(row, 'statecode')),
+  caseStatus: Number(row.statuscode),
+  // The status's name, which CASE_STATUS_TO_STATE is keyed by, and the words a log line uses.
+  caseStatusName: defuse(formatted(row, 'statuscode')),
+  caseStatusText: defuse(formatted(row, 'statuscode') || formatted(row, 'statecode') || 'in status ' + asText(row.statuscode)),
+  changedBy: defuse(formatted(row, '_modifiedby_value')),
+};
+`,
+  );
+};
+
+/*
+ * Dynamics 365 -> OneUptime: maps the case's state onto a record state, and
+ * only ever moves the record forward.
+ */
+const dynamicsDecideStateScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Maps the Dynamics 365 case's state onto a OneUptime ${r} state.
+// To map one case status to one state by name, list it here, for example
+// { Researching: 'Acknowledged' }. Statuses listed here win over CASE_STATE_TO_STATE_FLAG.
+const CASE_STATUS_TO_STATE = {};
+// Otherwise the case's state decides: a Resolved case (1) resolves the ${r}. An Active case maps
+// to nothing, because an ${r} never moves backwards. Add 2: 'isResolvedState' to resolve the
+// ${r} when its case is cancelled too.
+const CASE_STATE_TO_STATE_FLAG = { 1: 'isResolvedState' };
+
+const link = readJson(args.link) || {};
+const ${r} = readJson(args.${r});
+const states = readJson(args.states);
+if (!${r} || !asText(${r}._id)) {
+  return skip('No ${r} with id ' + asText(link.${r}Id) + ' exists in this project.');
+}
+
+const number = numbered(${r}.${kind.numberField}) || 'The ${r}';
+const caseNumber = oneLine(link.caseNumber) || 'with no number';
+const caseStatus = oneLine(link.caseStatusText) || 'in a new status';
+const list = Array.isArray(states) ? states : [];
+const wantedName = oneLine(CASE_STATUS_TO_STATE[oneLine(link.caseStatusName)]).toLowerCase();
+const flag = asText(CASE_STATE_TO_STATE_FLAG[Number(link.caseState)]);
+const target = wantedName
+  ? list.find((state) => state && oneLine(state.name).toLowerCase() === wantedName)
+  : flag ? list.find((state) => state && state[flag] === true) : null;
+if (!target) {
+  return skip('Dynamics 365 case ' + caseNumber + ' is ' + caseStatus + ', which does not map to a OneUptime state.');
+}
+
+// An ${r} only moves forward, so an earlier or equal state changes nothing. This is also what
+// settles the echo after the OneUptime to Dynamics 365 template closed the case.
+const current = ${r}.${kind.stateRelation} || {};
+if (Number(target.order) <= Number(current.order)) {
+  return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Dynamics 365 case ' + caseNumber + ' being ' + caseStatus + ' changes nothing.');
+}
+
+// The case number, its status and the name of whoever changed it came from Dynamics 365, so they
+// are placed as written (asWritten).
+const changedBy = oneLine(link.changedBy);
+return {
+  proceed: true,
+  ${r}Id: asText(${r}._id),
+  stateId: asText(target._id),
+  stateName: oneLine(target.name),
+  rootCause: limit(defuse(FROM_DYNAMICS + ': case ' + asWritten(caseNumber) + ' is ' + asWritten(caseStatus) + (changedBy ? ', changed by ' + asWritten(changedBy) : '') + '.'), 1000),
+};
+`,
+  );
+};
+
+/*
+ * Dynamics 365 -> OneUptime: which note a webhook names.
+ */
+const dynamicsReadNoteEventScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Reads which Dynamics 365 note a Dataverse webhook or a Power Automate flow names.
+// The note itself is read from Dynamics 365 by the next step, not taken from the request.
+// Add 'Update' to also copy edits; each edit then becomes a new note.
+const MESSAGES = ['Create'];
+
+const event = eventOf(readJson(args), 'annotation', 'annotationid');
+if (event.message && MESSAGES.indexOf(event.message) === -1) {
+  return skip('Ignored the ' + event.message + ' event: this workflow only handles ' + MESSAGES.join(', ') + '.');
+}
+if (!event.id) {
+  return skip(event.table && event.table !== 'annotation' ? 'The request is about the ' + event.table + ' table, not notes, so it was ignored.' : 'The request did not name a Dynamics 365 note, so it was ignored.');
+}
+return { proceed: true, noteId: event.id };
+`,
+  );
+};
+
+/*
+ * Dynamics 365 -> OneUptime: turns a note on a linked case into the text of
+ * a private note, and names the record it belongs on.
+ *
+ * A note written in Dynamics 365's rich-text editor is HTML, and the person
+ * who wrote it - an agent, or a customer through a portal - saw it as text.
+ * The private note it becomes is Markdown, which the dashboard renders and
+ * which is posted, as a feed item, to the project's Slack and Microsoft
+ * Teams channels. So the script reads the HTML the way OneUptime's own code
+ * reads HTML (removeHtmlMarkup / replaceHtmlMarkup in Common/Types/
+ * HtmlMarkup), reads entities only after that, and places what Dynamics 365
+ * users wrote with asWritten, the way OneUptime places any text from outside
+ * (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in
+ * it acts. A script runs in the workflow sandbox, which can import nothing,
+ * so it carries its own copy of the walk (DYNAMICS_RICH_TEXT_READING, which
+ * the create-from-case scripts carry too), which DynamicsNoteMarkup.test.ts
+ * holds to the original; asWritten is in the helper block every script
+ * starts with (OUTSIDE_TEXT_HELPERS).
+ */
+const dynamicsReadCaseNoteScript: DynamicsKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return dynamicsScript(
+    kind,
+    String.raw`
+// Turns a Dynamics 365 note on a linked case into the text of a OneUptime private note.
+// The longest note this writes. Longer notes are cut, and end in an ellipsis.
+const MAX_NOTE_LENGTH = 30000;
+
+${DYNAMICS_RICH_TEXT_READING}
+// ---- Reading the note ----
+const note = readJson(args.note) || {};
+if (!guidOf(note.annotationid)) return skip('Dynamics 365 did not return the note.');
+
+// A note can belong to any row: an account, an email, a case.
+const caseRow = note.objectid_incident;
+if (!caseRow || typeof caseRow !== 'object' || !guidOf(caseRow.incidentid)) {
+  return skip('The note belongs to ' + (oneLine(note.objecttypecode) ? 'the ' + oneLine(note.objecttypecode) + ' table' : 'another table') + ', not to a case, so it was not copied.');
+}
+const caseNumber = caseNumberOf(caseRow);
+
+const linkColumn = oneLine(args.linkColumn);
+if (!COLUMN.test(linkColumn)) {
+  return skip('The Case Link Column setting, ' + (linkColumn || 'which is empty') + ', is not the logical name of a column, such as new_oneuptimelink.');
+}
+const ${r}Id = ${r}IdFromLink(caseRow[linkColumn]);
+if (!${r}Id) {
+  return skip('Dynamics 365 case ' + caseNumber + ' is not linked to an ${r}: its ' + linkColumn + ' column does not hold ' + ${kind.upper}_LINK_PREFIX + '<id>.');
+}
+
+const subject = oneLine(htmlToText(note.subject));
+const text = clean(htmlToText(note.notetext)).trim();
+// Notes OneUptime wrote carry this marker. Copying them back would loop.
+if ((subject + '\n' + text).indexOf(FROM_ONEUPTIME) !== -1) {
+  return skip('This note was written by OneUptime, so it was not copied back.');
+}
+
+const attachment = note.isdocument === true ? oneLine(note.filename) : '';
+if (!subject && !text) {
+  return skip('The note on Dynamics 365 case ' + caseNumber + (attachment ? ' is the attachment ' + attachment + ', with no text to copy.' : ' is empty.'));
+}
+
+// Everything that came from Dynamics 365 - the author's name, the case number, the title, the text
+// and the attachment's name - is placed as written (asWritten); the link to the case is the template's.
+const author = formatted(note, '_createdby_value') || 'Someone';
+const lines = [FROM_DYNAMICS + ': ' + asWritten(author) + ' added a note to case [' + asWritten(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, guidOf(caseRow.incidentid)) + ').'];
+if (subject) lines.push('', asWritten(subject));
+if (text) lines.push('', asWritten(text));
+if (attachment) lines.push('', 'Attachment, left in Dynamics 365: ' + asWritten(attachment));
+
+return {
+  proceed: true,
+  ${r}Id: ${r}Id,
+  caseNumber: defuse(caseNumber),
+  note: limit(defuse(lines.join('\n')), MAX_NOTE_LENGTH),
+};
+`,
+  );
+};
+
+type DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+) => TemplateDefinition;
+
+/* -------------------- OneUptime -> Dynamics 365 -------------------- */
+
+const dynamicsCreateCaseTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const trigger: string = `${r}-on-create-1`;
+
+  return {
+    id: `dynamics-create-case-for-${r}`,
+    name: `Create a Dynamics 365 case when an ${r} is ${kind.created}`,
+    description: `Opens a Dynamics 365 case for every new ${r}, linked so the other Dynamics 365 templates can find it again.`,
+    teaches:
+      "How an OAuth 2.0 variable signs a workflow in to Microsoft Entra ID, and how a column on the case becomes the link back.",
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: IconProp.Lifebuoy,
+    workflowName: `Create Dynamics 365 case for new ${r}`,
+    workflowDescription: `Opens a Dynamics 365 case whenever an ${r} is ${kind.created}, with ${kind.labelPrefix}<id> in its link column. Private ${kind.plural}, and ${kind.plural} that were ${kind.created} from a case, are skipped.`,
+    variables: [
+      ...DYNAMICS_VARIABLES,
+      DYNAMICS_CUSTOMER,
+      oneUptimeUrlVariable(kind, "the Dynamics 365 case"),
+    ],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: trigger,
+          metadataId: `${r}-on-create`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              projectId: true,
+              title: true,
+              description: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              customFields: true,
+              rootCause: true,
+              remediationNotes: true,
+              [kind.severityRelation]: { _id: true, name: true },
+              [kind.stateRelation]: { name: true },
+            },
+          },
+        },
+        {
+          componentId: "find-severities-1",
+          metadataId: `${r}-severity-find-many`,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            // Every row. Query cannot be left empty, so it asks for any id.
+            query: { _id: { _type: "NotNull", value: null } },
+            select: { _id: true, name: true, order: true },
+            limit: 50,
+          },
+        },
+        {
+          componentId: "log-severities-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value: `❌ Could not read this project's ${r} severities, so no Dynamics 365 case was opened. The database error is in the run log above.`,
+          },
+        },
+        {
+          componentId: "prepare-case-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: {
+            code: dynamicsPrepareCaseScript(kind),
+            arguments: jsonText({
+              oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
+              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+              customer: "{{local.variables.dynamicsCustomer}}",
+              severities:
+                "{{local.components.find-severities-1.returnValues.models}}",
+              [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            }),
+          },
+        },
+        {
+          componentId: "log-prepare-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 500 },
+          args: {
+            value:
+              "❌ Could not prepare the Dynamics 365 case: {{local.components.prepare-case-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-create-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: proceedCondition("prepare-case-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 900 },
+          args: {
+            value:
+              "ℹ️ {{local.components.prepare-case-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          /*
+           * Prefer return=representation makes the create answer with the
+           * new case, number and all, instead of an empty 204 and a URL in a
+           * header.
+           */
+          componentId: "create-case-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/incidents?$select=incidentid,ticketnumber,title`,
+            "request-headers": dynamicsHeaders({
+              prefer: "return=representation",
+            }),
+            "request-body":
+              "{{local.components.prepare-case-1.returnValues.returnValue.caseColumns}}",
+          },
+        },
+        {
+          componentId: "log-created",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: {
+            value: `✅ Opened Dynamics 365 case {{local.components.create-case-1.returnValues.response-body.ticketnumber}} for {{local.components.${trigger}.returnValues.model.${kind.numberField}}}, linked as {{local.components.prepare-case-1.returnValues.returnValue.link}}.`,
+          },
+        },
+        {
+          componentId: "log-create-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value:
+              "❌ Dynamics 365 did not open the case: {{local.components.create-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.create-case-1.returnValues.response-body}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: trigger,
+          toComponentId: "find-severities-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-severities-1",
+          toComponentId: "prepare-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-severities-1",
+          toComponentId: "log-severities-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "prepare-case-1",
+          toComponentId: "if-create-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "prepare-case-1",
+          toComponentId: "log-prepare-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-create-1",
+          toComponentId: "create-case-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-create-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "create-case-1",
+          toComponentId: "log-created",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "create-case-1",
+          toComponentId: "log-create-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+type ActionConditionFunction = (
+  componentId: string,
+  action: string,
+) => JSONObject;
+
+/** An If / Else that takes the Yes path when a script chose this action. */
+const actionCondition: ActionConditionFunction = (
+  componentId: string,
+  action: string,
+): JSONObject => {
+  return {
+    "input-1-type": ConditionValueType.Text,
+    "input-1": `{{local.components.${componentId}.returnValues.returnValue.action}}`,
+    operator: ConditionOperator.EqualTo,
+    "input-2-type": ConditionValueType.Text,
+    "input-2": action,
+  };
+};
+
+const dynamicsUpdateCaseTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const trigger: string = `${r}-on-update-1`;
+
+  return {
+    id: `dynamics-update-case-on-${r}-state`,
+    name: `Resolve the Dynamics 365 case when the ${r} is resolved`,
+    description: `Closes the linked Dynamics 365 case as Problem Solved when the ${r} is resolved, and can move it to another status at any other state.`,
+    teaches:
+      "How to look a row up in Dataverse, then choose between two calls from what comes back.",
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: IconProp.CheckBadge,
+    workflowName: `Sync ${r} state to Dynamics 365`,
+    workflowDescription: `Resolves the linked Dynamics 365 case when the ${r} is resolved. Edit the script to move the case to other statuses as the ${r} changes state.`,
+    variables: [...DYNAMICS_VARIABLES],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: trigger,
+          metadataId: `${r}-on-update`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": { [kind.stateIdColumn]: true },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              [kind.stateRelation]: {
+                name: true,
+                isAcknowledgedState: true,
+                isResolvedState: true,
+              },
+            },
+          },
+        },
+        {
+          componentId: "find-case-1",
+          metadataId: ComponentID.ApiGet,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            url: dynamicsLinkedCaseUrl({
+              kind: kind,
+              idReference: `{{local.components.${trigger}.returnValues.model._id}}`,
+            }),
+            "request-headers": dynamicsHeaders({
+              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+            }),
+          },
+        },
+        {
+          componentId: "log-find-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value: `❌ Could not look up the ${r}'s Dynamics 365 case: {{local.components.find-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.find-case-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "plan-case-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: {
+            code: dynamicsPlanCaseScript(kind),
+            arguments: jsonText({
+              [r]: `{{local.components.${trigger}.returnValues.model}}`,
+              search:
+                "{{local.components.find-case-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-plan-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 500 },
+          args: {
+            value:
+              "❌ Could not decide what to do with the Dynamics 365 case: {{local.components.plan-case-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-close-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: actionCondition("plan-case-1", "close"),
+        },
+        {
+          /*
+           * CloseIncident, not a PATCH of statecode: resolving a case by
+           * hand records a Case Resolution, and this does the same.
+           */
+          componentId: "close-case-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/CloseIncident`,
+            "request-headers": dynamicsHeaders(),
+            "request-body":
+              "{{local.components.plan-case-1.returnValues.returnValue.closeBody}}",
+          },
+        },
+        {
+          componentId: "log-closed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: {
+            value:
+              "✅ Resolved Dynamics 365 case {{local.components.plan-case-1.returnValues.returnValue.caseNumber}}. {{local.components.plan-case-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: "log-close-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value:
+              "❌ Dynamics 365 did not resolve the case: {{local.components.close-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.close-case-1.returnValues.response-body}}",
+          },
+        },
+        {
+          componentId: "if-status-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 900 },
+          args: actionCondition("plan-case-1", "status"),
+        },
+        {
+          /*
+           * If-Match: * makes the PATCH an update and never an upsert, so
+           * a case deleted meanwhile is not created again.
+           */
+          componentId: "set-status-1",
+          metadataId: ComponentID.ApiPatch,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 1100 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.plan-case-1.returnValues.returnValue.caseId}})`,
+            "request-headers": dynamicsHeaders({ ifMatch: "*" }),
+            "request-body":
+              "{{local.components.plan-case-1.returnValues.returnValue.statusBody}}",
+          },
+        },
+        {
+          componentId: "log-status-set",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 1300 },
+          args: {
+            value:
+              "✅ Moved Dynamics 365 case {{local.components.plan-case-1.returnValues.returnValue.caseNumber}} to status {{local.components.plan-case-1.returnValues.returnValue.status}}. {{local.components.plan-case-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: "log-status-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 1300 },
+          args: {
+            value:
+              "❌ Dynamics 365 did not change the case's status: {{local.components.set-status-1.returnValues.error}}\nDynamics 365 said: {{local.components.set-status-1.returnValues.response-body}}",
+          },
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 1100 },
+          args: {
+            value:
+              "ℹ️ {{local.components.plan-case-1.returnValues.returnValue.reason}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: trigger,
+          toComponentId: "find-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-case-1",
+          toComponentId: "plan-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-case-1",
+          toComponentId: "log-find-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "plan-case-1",
+          toComponentId: "if-close-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "plan-case-1",
+          toComponentId: "log-plan-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-close-1",
+          toComponentId: "close-case-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-close-1",
+          toComponentId: "if-status-1",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "close-case-1",
+          toComponentId: "log-closed",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "close-case-1",
+          toComponentId: "log-close-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-status-1",
+          toComponentId: "set-status-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-status-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "set-status-1",
+          toComponentId: "log-status-set",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "set-status-1",
+          toComponentId: "log-status-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+type DynamicsNoteToCaseTemplateFunction = (props: {
+  kind: TemplateRecordKind;
+  /** "private" or "public", as the dashboard names the note. */
+  visibility: string;
+  description: string;
+  icon: IconProp;
+  workflowDescription: string;
+  triggerMetadataId: string;
+}) => TemplateDefinition;
+
+/*
+ * Private and public notes go to the case the same way; only the trigger and
+ * the wording differ. A case note is internal to Dynamics 365 either way:
+ * customers see a case through a portal, and a portal shows a note only when
+ * it is written for one.
+ */
+const dynamicsNoteToCaseTemplate: DynamicsNoteToCaseTemplateFunction = (props: {
+  kind: TemplateRecordKind;
+  visibility: string;
+  description: string;
+  icon: IconProp;
+  workflowDescription: string;
+  triggerMetadataId: string;
+}): TemplateDefinition => {
+  const kind: TemplateRecordKind = props.kind;
+  const r: string = kind.noun;
+  const noteKind: string = `${props.visibility} note`;
+
+  return {
+    id: `dynamics-note-from-${r}-${props.visibility}-note`,
+    name: `Copy ${r} ${props.visibility} notes to the Dynamics 365 case`,
+    description: props.description,
+    teaches:
+      "How to find a row in Dataverse by a column of your own, and how a marker in the text stops two systems echoing each other.",
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: props.icon,
+    workflowName: `Copy ${r} ${props.visibility} notes to Dynamics 365`,
+    workflowDescription: props.workflowDescription,
+    variables: [...DYNAMICS_VARIABLES],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: "note-on-create-1",
+          metadataId: props.triggerMetadataId,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              note: true,
+              [kind.idColumn]: true,
+              [r]: { [kind.numberField]: true, isPrivate: true },
+              createdByUser: { name: true },
+            },
+          },
+        },
+        {
+          componentId: "find-case-1",
+          metadataId: ComponentID.ApiGet,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            url: dynamicsLinkedCaseUrl({
+              kind: kind,
+              idReference: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+            }),
+            "request-headers": dynamicsHeaders({
+              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+            }),
+          },
+        },
+        {
+          componentId: "log-find-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value: `❌ Could not look up the ${r}'s Dynamics 365 case: {{local.components.find-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.find-case-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "build-note-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: {
+            code: dynamicsNoteToCaseScript(kind, noteKind),
+            arguments: jsonText({
+              note: "{{local.components.note-on-create-1.returnValues.model}}",
+              search:
+                "{{local.components.find-case-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-build-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 500 },
+          args: {
+            value:
+              "❌ Could not write the Dynamics 365 note: {{local.components.build-note-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-post-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: proceedCondition("build-note-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 900 },
+          args: {
+            value:
+              "ℹ️ {{local.components.build-note-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: "post-note-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/annotations`,
+            "request-headers": dynamicsHeaders(),
+            "request-body": jsonText({
+              subject:
+                "{{local.components.build-note-1.returnValues.returnValue.subject}}",
+              notetext:
+                "{{local.components.build-note-1.returnValues.returnValue.text}}",
+              "objectid_incident@odata.bind":
+                "/incidents({{local.components.build-note-1.returnValues.returnValue.caseId}})",
+            }),
+          },
+        },
+        {
+          componentId: "log-posted",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: {
+            value:
+              "✅ Added the note to Dynamics 365 case {{local.components.build-note-1.returnValues.returnValue.caseNumber}}.",
+          },
+        },
+        {
+          componentId: "log-post-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value:
+              "❌ Dynamics 365 did not accept the note: {{local.components.post-note-1.returnValues.error}}\nDynamics 365 said: {{local.components.post-note-1.returnValues.response-body}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "note-on-create-1",
+          toComponentId: "find-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-case-1",
+          toComponentId: "build-note-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-case-1",
+          toComponentId: "log-find-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "build-note-1",
+          toComponentId: "if-post-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "build-note-1",
+          toComponentId: "log-build-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "post-note-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "post-note-1",
+          toComponentId: "log-posted",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "post-note-1",
+          toComponentId: "log-post-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+const dynamicsPrivateNoteToCaseTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  return dynamicsNoteToCaseTemplate({
+    kind: kind,
+    visibility: "private",
+    description: `Adds every new private note on an ${kind.noun} to its Dynamics 365 case as a note, so agents see what responders are saying.`,
+    icon: IconProp.ChatBubbleLeftRight,
+    workflowDescription: `Adds each new private note on the ${kind.noun} to its linked Dynamics 365 case as a case note. Notes that came from Dynamics 365 are not sent back.`,
+    triggerMetadataId: `${kind.noun}-internal-note-on-create`,
+  });
+};
+
+const dynamicsPublicNoteToCaseTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  return dynamicsNoteToCaseTemplate({
+    kind: kind,
+    visibility: "public",
+    description: `Adds every new public note on an ${kind.noun} to its Dynamics 365 case, so agents can tell customers what the status page says.`,
+    icon: IconProp.ChatBubbleLeft,
+    workflowDescription: `Adds each new public note on the ${kind.noun} to its linked Dynamics 365 case as a case note.`,
+    triggerMetadataId: `${kind.noun}-public-note-on-create`,
+  });
+};
+
+/* -------------------- Dynamics 365 -> OneUptime -------------------- */
+
+/** Where to send each Dynamics 365 -> OneUptime template's events from, said once for every description. */
+const DYNAMICS_WEBHOOK_SETUP: string =
+  "Enable it, copy the URL from the Webhook trigger, and post to it from a Power Automate flow or a Dataverse webhook";
+
+const dynamicsCreateRecordTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const prepare: string = `prepare-${r}-1`;
+  const create: string = `create-${r}-1`;
+
+  const createJson: JSONObject = {
+    [kind.severityIdColumn]: `{{local.components.${prepare}.returnValues.returnValue.${kind.severityIdColumn}}}`,
+    customFields: {
+      dynamicsCaseId: `{{local.components.${prepare}.returnValues.returnValue.caseId}}`,
+      dynamicsCaseNumber: `{{local.components.${prepare}.returnValues.returnValue.caseNumber}}`,
+    },
+    ...kind.quietCreateFields,
+    title: `{{local.components.${prepare}.returnValues.returnValue.title}}`,
+    description: `{{local.components.${prepare}.returnValues.returnValue.description}}`,
+  };
+
+  return {
+    id: `dynamics-${kind.create}-${r}-from-case`,
+    name: `${kind.Create} an ${r} when a Dynamics 365 case is created`,
+    description: `Turns each new Dynamics 365 case into an ${r}, with its severity chosen from the case's priority, and links the case back to it.`,
+    teaches:
+      "How to read a row back from Dataverse instead of trusting a webhook, and write back to it once you have an id.",
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: IconProp.InboxArrowDown,
+    workflowName: `${kind.Create} ${r} from Dynamics 365 case`,
+    workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each new Dynamics 365 case, then writes ${kind.labelPrefix}<id> into the case's link column. ${DYNAMICS_WEBHOOK_SETUP} for new cases. If you also create ${kind.otherPlural} from cases, send the two workflows different cases, or each case becomes both.`,
+    variables: [...DYNAMICS_VARIABLES],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "read-event-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            code: dynamicsReadCaseEventScript(kind, {
+              messages: ["Create"],
+              comment:
+                "Only new cases. Taking an Update too would declare an incident for an old case the first time anyone edits it.",
+            }),
+            arguments:
+              "{{local.components.webhook-1.returnValues.request-body}}",
+          },
+        },
+        {
+          componentId: "log-read-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value:
+              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-case-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: proceedCondition("read-event-1"),
+        },
+        {
+          componentId: "log-ignored",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 700 },
+          args: {
+            value:
+              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          /*
+           * The webhook only says which case. Everything the record is made
+           * of is read here, from Dynamics 365 itself.
+           */
+          componentId: "get-case-1",
+          metadataId: ComponentID.ApiGet,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 700 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,title,description,prioritycode,statecode,_customerid_value,{{local.variables.dynamicsLinkColumn}}`,
+            "request-headers": dynamicsHeaders({
+              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+            }),
+          },
+        },
+        {
+          componentId: "log-get-case-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 900 },
+          args: {
+            value: `❌ Could not read Dynamics 365 case {{local.components.read-event-1.returnValues.returnValue.caseId}}, so no ${r} was ${kind.created}: {{local.components.get-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-case-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "find-severities-1",
+          metadataId: `${r}-severity-find-many`,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            // Every row. Query cannot be left empty, so it asks for any id.
+            query: { _id: { _type: "NotNull", value: null } },
+            select: { _id: true, name: true, order: true },
+            limit: 50,
+          },
+        },
+        {
+          componentId: "log-severities-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value: `❌ Could not read this project's ${r} severities. The database error is in the run log above.`,
+          },
+        },
+        {
+          componentId: prepare,
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: {
+            code: dynamicsPrepareRecordScript(kind),
+            /*
+             * The case goes last. Text Dynamics 365 users wrote is only ever
+             * substituted after everything else in an argument.
+             */
+            arguments: jsonText({
+              severities:
+                "{{local.components.find-severities-1.returnValues.models}}",
+              dynamicsUrl: "{{local.variables.dynamicsUrl}}",
+              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+              case: "{{local.components.get-case-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-prepare-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1300 },
+          args: {
+            value: `❌ Could not read the Dynamics 365 case: {{local.components.${prepare}.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: `if-${kind.create}-1`,
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1300 },
+          args: proceedCondition(prepare),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1500 },
+          args: {
+            value: `ℹ️ {{local.components.${prepare}.returnValues.returnValue.reason}}`,
+          },
+        },
+        {
+          componentId: create,
+          metadataId: `${r}-create-one`,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1500 },
+          args: {
+            /*
+             * customFields.dynamicsCaseId is what stops the create-case
+             * template filing this record back into Dynamics 365 as a
+             * second case.
+             */
+            json: jsonText(createJson),
+          },
+        },
+        {
+          componentId: "log-create-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1700 },
+          args: {
+            value: `❌ Could not ${kind.create} the ${r} for Dynamics 365 case {{local.components.${prepare}.returnValues.returnValue.caseNumber}}. The database error is in the run log above.`,
+          },
+        },
+        {
+          /*
+           * The link column's name is a setting, so it is the key here.
+           * If-Match: * makes this an update, never an upsert.
+           */
+          componentId: "link-case-1",
+          metadataId: ComponentID.ApiPatch,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1700 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.${prepare}.returnValues.returnValue.caseId}})`,
+            "request-headers": dynamicsHeaders({ ifMatch: "*" }),
+            "request-body": jsonText({
+              "{{local.variables.dynamicsLinkColumn}}": `${kind.labelPrefix}{{local.components.${create}.returnValues.model._id}}`,
+            }),
+          },
+        },
+        {
+          componentId: "log-linked",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1900 },
+          args: {
+            value: `✅ ${kind.Created} an ${r} with severity {{local.components.${prepare}.returnValues.returnValue.severityName}} for Dynamics 365 case {{local.components.${prepare}.returnValues.returnValue.caseNumber}}, and linked the case to it.`,
+          },
+        },
+        {
+          componentId: "log-link-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1900 },
+          args: {
+            value: `⚠️ The ${r} was ${kind.created}, but Dynamics 365 did not accept the link, so the other Dynamics 365 templates cannot find it: {{local.components.link-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.link-case-1.returnValues.response-body}}`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "read-event-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "if-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "log-read-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-case-1",
+          toComponentId: "get-case-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-case-1",
+          toComponentId: "log-ignored",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "get-case-1",
+          toComponentId: "find-severities-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "get-case-1",
+          toComponentId: "log-get-case-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "find-severities-1",
+          toComponentId: prepare,
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-severities-1",
+          toComponentId: "log-severities-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: prepare,
+          toComponentId: `if-${kind.create}-1`,
+          fromPort: "success",
+        },
+        {
+          fromComponentId: prepare,
+          toComponentId: "log-prepare-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: `if-${kind.create}-1`,
+          toComponentId: create,
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: `if-${kind.create}-1`,
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: create,
+          toComponentId: "link-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: create,
+          toComponentId: "log-create-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "link-case-1",
+          toComponentId: "log-linked",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "link-case-1",
+          toComponentId: "log-link-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+const dynamicsCaseStatusToStateTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const find: string = `find-${r}-1`;
+
+  return {
+    id: `dynamics-case-status-to-${r}-state`,
+    name: `Resolve the ${r} when its Dynamics 365 case is resolved`,
+    description: `When the linked Dynamics 365 case is resolved, the ${r} is resolved too. Other case statuses can be mapped to other states.`,
+    teaches: `How to read a row's state from Dataverse, and why an ${r}'s state only ever moves forward.`,
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: IconProp.ClipboardDocumentCheck,
+    workflowName: `Sync Dynamics 365 case state to ${r}`,
+    workflowDescription: `Resolves the ${r} when its linked Dynamics 365 case is resolved. ${DYNAMICS_WEBHOOK_SETUP} when a case's status changes.`,
+    variables: [...DYNAMICS_VARIABLES],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "read-event-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            code: dynamicsReadCaseEventScript(kind, {
+              messages: [
+                "Update",
+                "Close",
+                "SetState",
+                "SetStateDynamicEntity",
+              ],
+              comment:
+                "Resolving a case is a Close; other status changes arrive as an Update.",
+            }),
+            arguments:
+              "{{local.components.webhook-1.returnValues.request-body}}",
+          },
+        },
+        {
+          componentId: "log-read-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value:
+              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-case-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: proceedCondition("read-event-1"),
+        },
+        {
+          componentId: "log-ignored",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 700 },
+          args: {
+            value:
+              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: "get-case-1",
+          metadataId: ComponentID.ApiGet,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 700 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/incidents({{local.components.read-event-1.returnValues.returnValue.caseId}})?$select=incidentid,ticketnumber,statecode,statuscode,_modifiedby_value,{{local.variables.dynamicsLinkColumn}}`,
+            "request-headers": dynamicsHeaders({
+              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+            }),
+          },
+        },
+        {
+          componentId: "log-get-case-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 900 },
+          args: {
+            value:
+              "❌ Could not read Dynamics 365 case {{local.components.read-event-1.returnValues.returnValue.caseId}}: {{local.components.get-case-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-case-1.returnValues.response-body}}",
+          },
+        },
+        {
+          componentId: "find-link-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            code: dynamicsFindLinkedRecordScript(kind),
+            arguments: jsonText({
+              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+              case: "{{local.components.get-case-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-find-link-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value:
+              "❌ Could not read the case's link: {{local.components.find-link-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-linked-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: proceedCondition("find-link-1"),
+        },
+        {
+          componentId: "log-not-linked",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1300 },
+          args: {
+            value:
+              "ℹ️ {{local.components.find-link-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: find,
+          metadataId: `${r}-find-one`,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1300 },
+          args: {
+            query: {
+              _id: `{{local.components.find-link-1.returnValues.returnValue.${r}Id}}`,
+            },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              [kind.stateRelation]: { _id: true, name: true, order: true },
+            },
+          },
+        },
+        {
+          componentId: `log-find-${r}-failed`,
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1500 },
+          args: {
+            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
+          },
+        },
+        {
+          componentId: "find-states-1",
+          metadataId: `${r}-state-find-many`,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1500 },
+          args: {
+            // Every row. Query cannot be left empty, so it asks for any id.
+            query: { _id: { _type: "NotNull", value: null } },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              isAcknowledgedState: true,
+              isResolvedState: true,
+            },
+            limit: 50,
+          },
+        },
+        {
+          componentId: "log-find-states-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1700 },
+          args: {
+            value: `❌ Could not read this project's ${r} states. The database error is in the run log above.`,
+          },
+        },
+        {
+          componentId: "decide-state-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1700 },
+          args: {
+            code: dynamicsDecideStateScript(kind),
+            /*
+             * The link goes last: its case number, status and user names are
+             * Dynamics 365's text, only ever substituted after the rest.
+             */
+            arguments: jsonText({
+              [r]: `{{local.components.${find}.returnValues.model}}`,
+              states: "{{local.components.find-states-1.returnValues.models}}",
+              link: "{{local.components.find-link-1.returnValues.returnValue}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-decide-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1900 },
+          args: {
+            value: `❌ Could not map the case's status to an ${r} state: {{local.components.decide-state-1.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: "if-change-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1900 },
+          args: proceedCondition("decide-state-1"),
+        },
+        {
+          componentId: "log-unchanged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 2100 },
+          args: {
+            value:
+              "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          /*
+           * A state change is a new timeline row, not an edit to the
+           * record: the timeline is what records it, notifies, and refuses
+           * to move a record backwards.
+           */
+          componentId: "change-state-1",
+          metadataId: `${r}-state-timeline-create-one`,
+          componentType: ComponentType.Component,
+          position: { x: -650, y: 2100 },
+          args: {
+            json: jsonText({
+              [kind.idColumn]: `{{local.components.decide-state-1.returnValues.returnValue.${r}Id}}`,
+              [kind.timelineStateColumn]:
+                "{{local.components.decide-state-1.returnValues.returnValue.stateId}}",
+              rootCause:
+                "{{local.components.decide-state-1.returnValues.returnValue.rootCause}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-changed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -650, y: 2300 },
+          args: {
+            value: `✅ Moved {{local.components.${find}.returnValues.model.${kind.numberField}}} to {{local.components.decide-state-1.returnValues.returnValue.stateName}} because Dynamics 365 case {{local.components.find-link-1.returnValues.returnValue.caseNumber}} is {{local.components.find-link-1.returnValues.returnValue.caseStatusText}}.`,
+          },
+        },
+        {
+          componentId: "log-change-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 2300 },
+          args: {
+            value: `❌ Could not change the ${r}'s state. The reason is in the run log above — an ${r} cannot move back to an earlier state.`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "read-event-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "if-case-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "log-read-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-case-1",
+          toComponentId: "get-case-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-case-1",
+          toComponentId: "log-ignored",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "get-case-1",
+          toComponentId: "find-link-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "get-case-1",
+          toComponentId: "log-get-case-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "find-link-1",
+          toComponentId: "if-linked-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-link-1",
+          toComponentId: "log-find-link-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: find,
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "log-not-linked",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: find,
+          toComponentId: "find-states-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: find,
+          toComponentId: `log-find-${r}-failed`,
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "find-states-1",
+          toComponentId: "decide-state-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "find-states-1",
+          toComponentId: "log-find-states-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "decide-state-1",
+          toComponentId: "if-change-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "decide-state-1",
+          toComponentId: "log-decide-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-change-1",
+          toComponentId: "change-state-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-change-1",
+          toComponentId: "log-unchanged",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "change-state-1",
+          toComponentId: "log-changed",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "change-state-1",
+          toComponentId: "log-change-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+const dynamicsCaseNoteToRecordTemplate: DynamicsTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const find: string = `find-${r}-1`;
+
+  return {
+    id: `dynamics-case-note-to-${r}-private-note`,
+    name: `Add Dynamics 365 case notes to the ${r} as private notes`,
+    description: `Copies each note an agent adds to the linked Dynamics 365 case onto the ${r} as a private note, so responders see the whole conversation in one place.`,
+    teaches:
+      "How one call can fetch a row and the row it belongs to, with $expand.",
+    category: WorkflowTemplateCategory.Dynamics365,
+    icon: IconProp.ChatBubbleOvalLeftEllipsis,
+    workflowName: `Copy Dynamics 365 case notes to ${r}`,
+    workflowDescription: `Adds each note on a linked Dynamics 365 case to the ${r} as a private note. ${DYNAMICS_WEBHOOK_SETUP} when a note is added.`,
+    variables: [...DYNAMICS_VARIABLES],
+    oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "read-event-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            code: dynamicsReadNoteEventScript(kind),
+            arguments:
+              "{{local.components.webhook-1.returnValues.request-body}}",
+          },
+        },
+        {
+          componentId: "log-read-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 600, y: 300 },
+          args: {
+            value:
+              "❌ Could not read the Dynamics 365 event: {{local.components.read-event-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-note-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: proceedCondition("read-event-1"),
+        },
+        {
+          componentId: "log-ignored",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 350, y: 700 },
+          args: {
+            value:
+              "ℹ️ {{local.components.read-event-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          /*
+           * The note, and through $expand the case it is on, link column
+           * and all, in one call.
+           */
+          componentId: "get-note-1",
+          metadataId: ComponentID.ApiGet,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 700 },
+          args: {
+            url: `${DYNAMICS_WEB_API_ROOT}/annotations({{local.components.read-event-1.returnValues.returnValue.noteId}})?$select=annotationid,subject,notetext,isdocument,filename,objecttypecode,_createdby_value&$expand=objectid_incident($select=incidentid,ticketnumber,{{local.variables.dynamicsLinkColumn}})`,
+            "request-headers": dynamicsHeaders({
+              prefer: DYNAMICS_FORMATTED_VALUES_PREFERENCE,
+            }),
+          },
+        },
+        {
+          componentId: "log-get-note-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 900 },
+          args: {
+            value:
+              "❌ Could not read Dynamics 365 note {{local.components.read-event-1.returnValues.returnValue.noteId}}: {{local.components.get-note-1.returnValues.error}}\nDynamics 365 said: {{local.components.get-note-1.returnValues.response-body}}",
+          },
+        },
+        {
+          componentId: "read-note-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 900 },
+          args: {
+            code: dynamicsReadCaseNoteScript(kind),
+            arguments: jsonText({
+              dynamicsUrl: "{{local.variables.dynamicsUrl}}",
+              linkColumn: "{{local.variables.dynamicsLinkColumn}}",
+              note: "{{local.components.get-note-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-read-note-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value:
+              "❌ Could not read the Dynamics 365 note: {{local.components.read-note-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-linked-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1100 },
+          args: proceedCondition("read-note-1"),
+        },
+        {
+          componentId: "log-not-copied",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1300 },
+          args: {
+            value:
+              "ℹ️ {{local.components.read-note-1.returnValues.returnValue.reason}}",
+          },
+        },
+        {
+          componentId: find,
+          metadataId: `${r}-find-one`,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1300 },
+          args: {
+            query: {
+              _id: `{{local.components.read-note-1.returnValues.returnValue.${r}Id}}`,
+            },
+            select: { _id: true, [kind.numberField]: true },
+          },
+        },
+        {
+          componentId: `log-find-${r}-failed`,
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1500 },
+          args: {
+            value: `❌ Could not look up the ${r}. The database error is in the run log above.`,
+          },
+        },
+        {
+          /*
+           * Find One answers "nothing matched" on its Success port, so this
+           * is what stops a link naming a record in another project — the
+           * lookup is scoped to this one — from being written to.
+           */
+          componentId: "if-found-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1500 },
+          args: {
+            "input-1-type": ConditionValueType.Text,
+            "input-1": `{{local.components.${find}.returnValues.model._id}}`,
+            operator: ConditionOperator.EqualTo,
+            "input-2-type": ConditionValueType.Text,
+            "input-2": `{{local.components.read-note-1.returnValues.returnValue.${r}Id}}`,
+          },
+        },
+        {
+          componentId: "log-not-found",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -150, y: 1700 },
+          args: {
+            value: `ℹ️ Dynamics 365 case {{local.components.read-note-1.returnValues.returnValue.caseNumber}} names ${r} {{local.components.read-note-1.returnValues.returnValue.${r}Id}}, which is not in this project.`,
+          },
+        },
+        {
+          componentId: "create-note-1",
+          metadataId: `${r}-internal-note-create-one`,
+          componentType: ComponentType.Component,
+          position: { x: -650, y: 1700 },
+          args: {
+            json: jsonText({
+              [kind.idColumn]: `{{local.components.${find}.returnValues.model._id}}`,
+              note: "{{local.components.read-note-1.returnValues.returnValue.note}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-noted",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -650, y: 1900 },
+          args: {
+            value: `✅ Added the note on Dynamics 365 case {{local.components.read-note-1.returnValues.returnValue.caseNumber}} to {{local.components.${find}.returnValues.model.${kind.numberField}}} as a private note.`,
+          },
+        },
+        {
+          componentId: "log-note-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 1900 },
+          args: {
+            value:
+              "❌ Could not add the private note. The database error is in the run log above.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "read-event-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "if-note-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "read-event-1",
+          toComponentId: "log-read-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-note-1",
+          toComponentId: "get-note-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-note-1",
+          toComponentId: "log-ignored",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "get-note-1",
+          toComponentId: "read-note-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "get-note-1",
+          toComponentId: "log-get-note-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "read-note-1",
+          toComponentId: "if-linked-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "read-note-1",
+          toComponentId: "log-read-note-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: find,
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "log-not-copied",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: find,
+          toComponentId: "if-found-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: find,
+          toComponentId: `log-find-${r}-failed`,
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-found-1",
+          toComponentId: "create-note-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-found-1",
+          toComponentId: "log-not-found",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "create-note-1",
+          toComponentId: "log-noted",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "create-note-1",
+          toComponentId: "log-note-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+type DynamicsTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+) => Array<TemplateDefinition>;
+
+/*
+ * One kind's set, OneUptime -> Dynamics 365 first, filed under its kind as
+ * the Jira templates are. Public notes exist only on incidents.
+ */
+const dynamicsTemplatesForKind: DynamicsTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+): Array<TemplateDefinition> => {
+  return [
+    dynamicsCreateCaseTemplate(kind),
+    dynamicsUpdateCaseTemplate(kind),
+    dynamicsPrivateNoteToCaseTemplate(kind),
+    ...(kind.hasPublicNotes ? [dynamicsPublicNoteToCaseTemplate(kind)] : []),
+    dynamicsCreateRecordTemplate(kind),
+    dynamicsCaseStatusToStateTemplate(kind),
+    dynamicsCaseNoteToRecordTemplate(kind),
+  ].map((definition: TemplateDefinition): TemplateDefinition => {
+    return { ...definition, subcategory: kind.Plural };
+  });
+};
+
+const DYNAMICS_365_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  ...dynamicsTemplatesForKind(INCIDENT_KIND),
+  ...dynamicsTemplatesForKind(ALERT_KIND),
+];
+
+/* ------------------------------ Huntress ------------------------------ */
+
+/*
+ * HUNTRESS INCIDENT REPORTS, AS A WORKFLOW.
+ *
+ * Huntress sends an event when its SOC sends an incident report, when
+ * someone comments on it, and when it is closed. One workflow follows a
+ * report from start to end, so Huntress needs one endpoint: the Huntress
+ * Incident Report trigger starts it for every event, and a Switch / Case
+ * takes a path for each.
+ *
+ *   created        open an incident - titled after the report, at the
+ *                  incident severity the trigger works out, labelled with
+ *                  the report's organization, kept off status pages - and
+ *                  page on-call for high and critical reports; unless the
+ *                  report has an incident already, so one report never
+ *                  opens two;
+ *   comment-added  add the comment to the report's incident, as a private
+ *                  note;
+ *   closed         resolve the report's incident, saying why.
+ *
+ * The incident keeps the report's number in its custom fields
+ * (HUNTRESS_REPORT_ID_CUSTOM_FIELD), which is how a later event finds it:
+ * nothing is written back to Huntress, so the link is kept on OneUptime's
+ * side, as a Jira issue key is (customFields.jiraIssueKey).
+ *
+ * The same graph, with a connection's settings in it, is what each Huntress
+ * connection made before Huntress became a workflow trigger turned into
+ * (Workers' MoveHuntressConnectionsToWorkflows): who it paged and for which
+ * reports, its labels, and whether closing a report resolved its incident
+ * or only noted it.
+ */
+
+/** The custom field an incident opened for a Huntress report keeps its number in. */
+export const HUNTRESS_REPORT_ID_CUSTOM_FIELD: string = "huntressReportId";
+
+/** The component id of the Huntress trigger, which every reference reads from. */
+export const HUNTRESS_TRIGGER_COMPONENT_ID: string = "huntress-1";
+
+export interface HuntressIncidentWorkflowOptions {
+  /*
+   * The trigger's settings: Only These Organizations and the incident
+   * severity each Huntress severity opens at. None in the template.
+   */
+  triggerSettings?: JSONObject | undefined;
+  /*
+   * Whether a report pages anyone. The template pages the on-call policy
+   * picked in the Builder; a connection that paged nobody did not.
+   */
+  pages: boolean;
+  // The on-call policies paged. None in the template: picked in the Builder.
+  onCallPolicyIds?: Array<string> | undefined;
+  // The lowest Huntress severity that pages.
+  pageOnCallFor: HuntressSeverity;
+  // Labels every incident gets, besides the organization's.
+  labelIds?: Array<string> | undefined;
+  // Resolve the incident when Huntress closes the report, or only note it.
+  resolveWhenClosed: boolean;
+}
+
+// What the Huntress template does: page for high and critical reports, and resolve on close.
+export const HUNTRESS_TEMPLATE_OPTIONS: HuntressIncidentWorkflowOptions = {
+  pages: true,
+  pageOnCallFor: HuntressSeverity.High,
+  resolveWhenClosed: true,
+};
+
+type HuntressValueReferenceFunction = (id: HuntressTriggerValue) => string;
+
+const huntressValue: HuntressValueReferenceFunction = (
+  id: HuntressTriggerValue,
+): string => {
+  return `{{local.components.${HUNTRESS_TRIGGER_COMPONENT_ID}.returnValues.${id}}}`;
+};
+
+const HUNTRESS_REPORT: string = `Huntress incident report ${huntressValue(HuntressTriggerValue.ReportId)}`;
+
+/*
+ * The If / Else in front of the Page step: which reports page. None when
+ * every report does.
+ */
+type HuntressPageConditionFunction = (
+  pageOnCallFor: HuntressSeverity,
+) => JSONObject | null;
+
+const huntressPageCondition: HuntressPageConditionFunction = (
+  pageOnCallFor: HuntressSeverity,
+): JSONObject | null => {
+  if (pageOnCallFor === HuntressSeverity.Low) {
+    return null;
+  }
+
+  return {
+    "input-1-type": ConditionValueType.Text,
+    "input-1": huntressValue(HuntressTriggerValue.Severity),
+    operator:
+      pageOnCallFor === HuntressSeverity.Critical
+        ? ConditionOperator.EqualTo
+        : ConditionOperator.NotEqualTo,
+    "input-2-type": ConditionValueType.Text,
+    "input-2":
+      pageOnCallFor === HuntressSeverity.Critical
+        ? HuntressSeverity.Critical
+        : HuntressSeverity.Low,
+  };
+};
+
+// What a Find One Incident step asks for, to name the incident and tell whether it is resolved.
+const HUNTRESS_FIND_INCIDENT_SELECT: JSONObject = {
+  _id: true,
+  incidentNumberWithPrefix: true,
+  currentIncidentState: { name: true, order: true, isResolvedState: true },
+};
+
+/*
+ * Whether Huntress closing a report resolves its incident, and into which
+ * state, by the one rule OneUptime resolves by (Utils/ResolvedState): the
+ * project's resolved state is the first one from the top flagged resolved,
+ * and an incident at it or past it - a "Closed" of the project's own, say -
+ * is resolved already. An incident never moves back. All it reads is
+ * OneUptime's own: the incident and the project's states.
+ */
+const HUNTRESS_DECIDE_RESOLVE_SCRIPT: string = String.raw`// Whether to resolve the incident Huntress closed the report of, and into which state.
+// The project's resolved state is the first one from the top flagged resolved. An
+// incident at it or past it ("Closed", say) is resolved already: it never moves back.
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+// OneUptime ids are serialized as { _type, value }.
+const idOf = (value) => (value && typeof value === 'object' ? String(value.value || '') : String(value || ''));
+
+const incident = readJson(args.incident) || {};
+const list = readJson(args.states);
+const states = Array.isArray(list) ? list.filter((state) => state && typeof state === 'object') : [];
+const resolved = states
+  .slice()
+  .sort((a, b) => Number(a.order) - Number(b.order))
+  .find((state) => state.isResolvedState === true);
+
+if (!resolved) {
+  throw new Error('This project has no resolved incident state.');
+}
+
+const current = incident.currentIncidentState || {};
+const isResolved = current.isResolvedState === true || Number(current.order) >= Number(resolved.order);
+
+return { proceed: !isResolved, stateId: idOf(resolved._id) };
+`;
+
+type HuntressFindIncidentArgsFunction = () => JSONObject;
+
+const huntressFindIncidentArgs: HuntressFindIncidentArgsFunction =
+  (): JSONObject => {
+    return {
+      query: {
+        customFields: {
+          [HUNTRESS_REPORT_ID_CUSTOM_FIELD]: huntressValue(
+            HuntressTriggerValue.ReportId,
+          ),
+        },
+      },
+      select: HUNTRESS_FIND_INCIDENT_SELECT,
+    };
+  };
+
+// Whether a Find One found its record: its model is null when nothing matched.
+type HuntressFoundConditionFunction = (findComponentId: string) => JSONObject;
+
+const huntressFoundCondition: HuntressFoundConditionFunction = (
+  findComponentId: string,
+): JSONObject => {
+  return {
+    "input-1-type": ConditionValueType.Text,
+    "input-1": `{{local.components.${findComponentId}.returnValues.model}}`,
+    operator: ConditionOperator.IsNotEmpty,
+  };
+};
+
+type HuntressIncidentWorkflowGraphSpecFunction = (
+  options: HuntressIncidentWorkflowOptions,
+) => TemplateGraphSpec;
+
+/*
+ * The graph of a Huntress workflow: the template's, or a connection's when
+ * its settings are passed in. Laid out in three columns under the Switch /
+ * Case - created, comment-added, closed - with each step's failure beside it.
+ */
+export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraphSpecFunction =
+  (options: HuntressIncidentWorkflowOptions): TemplateGraphSpec => {
+    const nodes: Array<TemplateNodeSpec> = [];
+    const edges: Array<TemplateEdgeSpec> = [];
+
+    type AddNodeFunction = (node: TemplateNodeSpec) => void;
+
+    const addNode: AddNodeFunction = (node: TemplateNodeSpec): void => {
+      nodes.push(node);
+    };
+
+    type ConnectFunction = (from: string, port: string, to: string) => void;
+
+    const connect: ConnectFunction = (
+      from: string,
+      port: string,
+      to: string,
+    ): void => {
+      edges.push({ fromComponentId: from, toComponentId: to, fromPort: port });
+    };
+
+    type LogFunction = (
+      componentId: string,
+      position: { x: number; y: number },
+      value: string,
+    ) => void;
+
+    const log: LogFunction = (
+      componentId: string,
+      position: { x: number; y: number },
+      value: string,
+    ): void => {
+      addNode({
+        componentId: componentId,
+        metadataId: ComponentID.Log,
+        componentType: ComponentType.Component,
+        position: position,
+        args: { value: value },
+      });
+    };
+
+    const triggerSettings: JSONObject = options.triggerSettings || {};
+
+    addNode({
+      componentId: HUNTRESS_TRIGGER_COMPONENT_ID,
+      metadataId: ComponentID.HuntressIncidentReport,
+      componentType: ComponentType.Trigger,
+      position: { x: 100, y: 100 },
+      ...(Object.keys(triggerSettings).length > 0
+        ? { args: triggerSettings }
+        : {}),
+    });
+
+    addNode({
+      componentId: "switch-1",
+      metadataId: ComponentID.Switch,
+      componentType: ComponentType.Component,
+      /*
+       * Wider than the trigger above it, as its cases' names make it
+       * (Workflow/PortLayout): 420px, so it starts 82px further left and
+       * sits centred under the trigger.
+       */
+      position: { x: 18, y: 300 },
+      args: {
+        value: huntressValue(HuntressTriggerValue.Event),
+        cases: [
+          {
+            id: "case-1",
+            comparison: ConditionOperator.EqualTo,
+            value: HuntressTriggerEvent.Created,
+            compareAs: ConditionValueType.Text,
+          },
+          {
+            id: "case-2",
+            comparison: ConditionOperator.EqualTo,
+            value: HuntressTriggerEvent.CommentAdded,
+            compareAs: ConditionValueType.Text,
+          },
+          {
+            id: "case-3",
+            comparison: ConditionOperator.EqualTo,
+            value: HuntressTriggerEvent.Closed,
+            compareAs: ConditionValueType.Text,
+          },
+        ],
+      },
+    });
+
+    connect(HUNTRESS_TRIGGER_COMPONENT_ID, "out", "switch-1");
+
+    /* ---- created: open the incident, unless the report has one, and page ---- */
+
+    const labelIds: Array<string> = options.labelIds || [];
+
+    /*
+     * One incident per report: a report that already has one - a created
+     * event sent again after Huntress stopped retrying it, or the same
+     * Report ID typed twice into Run Workflow - opens no other.
+     */
+    addNode({
+      componentId: "find-incident-0",
+      metadataId: "incident-find-one",
+      componentType: ComponentType.Component,
+      position: { x: -1050, y: 540 },
+      args: huntressFindIncidentArgs(),
+    });
+    connect("switch-1", "case-1", "find-incident-0");
+
+    addNode({
+      componentId: "if-found-0",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: -1050, y: 740 },
+      args: huntressFoundCondition("find-incident-0"),
+    });
+    connect("find-incident-0", "success", "if-found-0");
+
+    // Yes is the If / Else's left output, so the step it leads to is on the left.
+    log(
+      "log-already-open",
+      { x: -1350, y: 940 },
+      `ℹ️ ${HUNTRESS_REPORT} has an incident already, {{local.components.find-incident-0.returnValues.model.incidentNumberWithPrefix}}, so no other was opened.`,
+    );
+    connect("if-found-0", "yes", "log-already-open");
+
+    addNode({
+      componentId: "create-incident-1",
+      metadataId: "incident-create-one",
+      componentType: ComponentType.Component,
+      position: { x: -1050, y: 940 },
+      args: {
+        /*
+         * The report's number in customFields is what the comment-added
+         * and closed paths find the incident by.
+         */
+        json: jsonText({
+          title: huntressValue(HuntressTriggerValue.IncidentTitle),
+          description: huntressValue(HuntressTriggerValue.IncidentDescription),
+          incidentSeverityId: huntressValue(
+            HuntressTriggerValue.IncidentSeverityId,
+          ),
+          labels: [
+            { _id: huntressValue(HuntressTriggerValue.OrganizationLabelId) },
+            ...labelIds.map((labelId: string): JSONObject => {
+              return { _id: labelId };
+            }),
+          ],
+          // A security incident is never news for a status page.
+          ...INCIDENT_KIND.quietCreateFields,
+          customFields: {
+            [HUNTRESS_REPORT_ID_CUSTOM_FIELD]: huntressValue(
+              HuntressTriggerValue.ReportId,
+            ),
+          },
+        }),
+      },
+    });
+
+    connect("if-found-0", "no", "create-incident-1");
+
+    /*
+     * A lookup that fails still opens the incident: a report that pages
+     * nobody is worse than a report with two incidents. The log says so,
+     * for whoever finds two, and keeps the line around the If / Else
+     * instead of under it.
+     */
+    log(
+      "log-lookup-failed",
+      { x: -750, y: 740 },
+      `⚠️ Could not check whether ${HUNTRESS_REPORT} has an incident already, so a new one is opened. Why the check failed is in the run log above.`,
+    );
+    connect("find-incident-0", "error", "log-lookup-failed");
+    connect("log-lookup-failed", "out", "create-incident-1");
+
+    log(
+      "log-create-failed",
+      { x: -750, y: 1140 },
+      `❌ Could not open an incident for ${HUNTRESS_REPORT}. Why is in the run log above.`,
+    );
+    connect("create-incident-1", "error", "log-create-failed");
+
+    if (!options.pages) {
+      log(
+        "log-opened",
+        { x: -1050, y: 1140 },
+        `✅ Opened an incident for ${HUNTRESS_REPORT}.`,
+      );
+      connect("create-incident-1", "success", "log-opened");
+    } else {
+      const condition: JSONObject | null = huntressPageCondition(
+        options.pageOnCallFor,
+      );
+      const pageY: number = condition ? 1340 : 1140;
+
+      addNode({
+        componentId: "page-on-call-policy-1",
+        metadataId: ComponentID.PageOnCallPolicy,
+        componentType: ComponentType.Component,
+        position: { x: condition ? -1200 : -1050, y: pageY },
+        args: {
+          ...(options.onCallPolicyIds && options.onCallPolicyIds.length > 0
+            ? { [PAGE_ARGUMENT_IDS.onCallPolicies]: options.onCallPolicyIds }
+            : {}),
+          [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+          [PAGE_ARGUMENT_IDS.incidentId]:
+            "{{local.components.create-incident-1.returnValues.model._id}}",
+        },
+      });
+
+      if (condition) {
+        addNode({
+          componentId: "if-page-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -1050, y: 1140 },
+          args: condition,
+        });
+        connect("create-incident-1", "success", "if-page-1");
+        connect("if-page-1", "yes", "page-on-call-policy-1");
+
+        log(
+          "log-not-paged",
+          { x: -900, y: 1340 },
+          `ℹ️ Opened an incident for ${HUNTRESS_REPORT}. It is ${huntressValue(HuntressTriggerValue.Severity)}, so nobody was paged.`,
+        );
+        connect("if-page-1", "no", "log-not-paged");
+      } else {
+        connect("create-incident-1", "success", "page-on-call-policy-1");
+      }
+
+      log(
+        "log-paged",
+        { x: condition ? -1350 : -1200, y: pageY + 200 },
+        `📟 Opened an incident for ${HUNTRESS_REPORT}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
+      );
+      connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
+
+      log(
+        "log-nobody-paged",
+        { x: condition ? -1050 : -900, y: pageY + 200 },
+        `❌ Opened an incident for ${HUNTRESS_REPORT}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
+      );
+      connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
+    }
+
+    /* ---- comment-added: a private note on the report's incident ---- */
+
+    addNode({
+      componentId: "find-incident-1",
+      metadataId: "incident-find-one",
+      componentType: ComponentType.Component,
+      position: { x: -100, y: 540 },
+      args: huntressFindIncidentArgs(),
+    });
+    connect("switch-1", "case-2", "find-incident-1");
+
+    log(
+      "log-find-failed",
+      { x: 200, y: 740 },
+      `❌ Could not look for the incident of ${HUNTRESS_REPORT}. Why is in the run log above.`,
+    );
+    connect("find-incident-1", "error", "log-find-failed");
+
+    addNode({
+      componentId: "if-found-1",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: -100, y: 740 },
+      args: huntressFoundCondition("find-incident-1"),
+    });
+    connect("find-incident-1", "success", "if-found-1");
+
+    log(
+      "log-no-incident",
+      { x: 50, y: 940 },
+      `ℹ️ ${HUNTRESS_REPORT} has no incident, so its comment was not added.`,
+    );
+    connect("if-found-1", "no", "log-no-incident");
+
+    addNode({
+      componentId: "add-note-1",
+      metadataId: "incident-internal-note-create-one",
+      componentType: ComponentType.Component,
+      position: { x: -250, y: 940 },
+      args: {
+        json: jsonText({
+          incidentId:
+            "{{local.components.find-incident-1.returnValues.model._id}}",
+          note: huntressValue(HuntressTriggerValue.Note),
+        }),
+      },
+    });
+    connect("if-found-1", "yes", "add-note-1");
+
+    log(
+      "log-note-added",
+      { x: -400, y: 1140 },
+      `✅ Added the comment on ${HUNTRESS_REPORT} to {{local.components.find-incident-1.returnValues.model.incidentNumberWithPrefix}} as a private note.`,
+    );
+    connect("add-note-1", "success", "log-note-added");
+
+    log(
+      "log-note-failed",
+      { x: -100, y: 1140 },
+      `❌ Could not add the comment on ${HUNTRESS_REPORT} to its incident. Why is in the run log above.`,
+    );
+    connect("add-note-1", "error", "log-note-failed");
+
+    /* ---- closed: resolve the report's incident ---- */
+
+    addNode({
+      componentId: "find-incident-2",
+      metadataId: "incident-find-one",
+      componentType: ComponentType.Component,
+      position: { x: 550, y: 540 },
+      args: huntressFindIncidentArgs(),
+    });
+    connect("switch-1", "case-3", "find-incident-2");
+
+    log(
+      "log-find-closed-failed",
+      { x: 850, y: 740 },
+      `❌ Could not look for the incident of ${HUNTRESS_REPORT}. Why is in the run log above.`,
+    );
+    connect("find-incident-2", "error", "log-find-closed-failed");
+
+    addNode({
+      componentId: "if-found-2",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: 550, y: 740 },
+      args: huntressFoundCondition("find-incident-2"),
+    });
+    connect("find-incident-2", "success", "if-found-2");
+
+    log(
+      "log-nothing-to-close",
+      { x: 700, y: 940 },
+      `ℹ️ ${HUNTRESS_REPORT} has no incident, so there was nothing to ${options.resolveWhenClosed ? "resolve" : "note"} when Huntress closed it.`,
+    );
+    connect("if-found-2", "no", "log-nothing-to-close");
+
+    const closedIncident: string =
+      "{{local.components.find-incident-2.returnValues.model.incidentNumberWithPrefix}}";
+
+    if (!options.resolveWhenClosed) {
+      addNode({
+        componentId: "add-note-2",
+        metadataId: "incident-internal-note-create-one",
+        componentType: ComponentType.Component,
+        position: { x: 400, y: 940 },
+        args: {
+          json: jsonText({
+            incidentId:
+              "{{local.components.find-incident-2.returnValues.model._id}}",
+            note: huntressValue(HuntressTriggerValue.Note),
+          }),
+        },
+      });
+      connect("if-found-2", "yes", "add-note-2");
+
+      log(
+        "log-closed-noted",
+        { x: 250, y: 1140 },
+        `✅ Noted on ${closedIncident} that Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
+      );
+      connect("add-note-2", "success", "log-closed-noted");
+
+      log(
+        "log-closed-note-failed",
+        { x: 550, y: 1140 },
+        `❌ Could not note on its incident that Huntress closed ${HUNTRESS_REPORT}. Why is in the run log above.`,
+      );
+      connect("add-note-2", "error", "log-closed-note-failed");
+
+      return { nodes: nodes, edges: edges };
+    }
+
+    /*
+     * The project's states, so the decision below finds its resolved one by
+     * the rule, and never by asking for records by the flag.
+     */
+    addNode({
+      componentId: "find-states-1",
+      metadataId: "incident-state-find-many",
+      componentType: ComponentType.Component,
+      position: { x: 400, y: 940 },
+      args: {
+        // Every row. Query cannot be left empty, so it asks for any id.
+        query: { _id: { _type: "NotNull", value: null } },
+        select: { _id: true, name: true, order: true, isResolvedState: true },
+        limit: 50,
+      },
+    });
+    connect("if-found-2", "yes", "find-states-1");
+
+    log(
+      "log-states-failed",
+      { x: 700, y: 1140 },
+      `❌ Could not read this project's incident states, so ${closedIncident} was not resolved. Why is in the run log above.`,
+    );
+    connect("find-states-1", "error", "log-states-failed");
+
+    addNode({
+      componentId: "decide-resolve-1",
+      metadataId: ComponentID.JavaScriptCode,
+      componentType: ComponentType.Component,
+      position: { x: 400, y: 1140 },
+      args: {
+        code: HUNTRESS_DECIDE_RESOLVE_SCRIPT,
+        arguments: jsonText({
+          incident: "{{local.components.find-incident-2.returnValues.model}}",
+          states: "{{local.components.find-states-1.returnValues.models}}",
+        }),
+      },
+    });
+    connect("find-states-1", "success", "decide-resolve-1");
+
+    log(
+      "log-decide-failed",
+      { x: 700, y: 1340 },
+      `❌ Could not tell whether ${closedIncident} is resolved, so it was not resolved: {{local.components.decide-resolve-1.returnValues.error}}`,
+    );
+    connect("decide-resolve-1", "error", "log-decide-failed");
+
+    addNode({
+      componentId: "if-resolve-1",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: 400, y: 1340 },
+      args: proceedCondition("decide-resolve-1"),
+    });
+    connect("decide-resolve-1", "success", "if-resolve-1");
+
+    log(
+      "log-already-resolved",
+      { x: 550, y: 1540 },
+      `ℹ️ ${closedIncident} was already resolved when Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
+    );
+    connect("if-resolve-1", "no", "log-already-resolved");
+
+    addNode({
+      /*
+       * Resolving is a new state timeline row, not an edit of the incident:
+       * the timeline is what records it, notifies, and says why.
+       */
+      componentId: "resolve-incident-1",
+      metadataId: "incident-state-timeline-create-one",
+      componentType: ComponentType.Component,
+      position: { x: 250, y: 1540 },
+      args: {
+        json: jsonText({
+          incidentId:
+            "{{local.components.find-incident-2.returnValues.model._id}}",
+          incidentStateId:
+            "{{local.components.decide-resolve-1.returnValues.returnValue.stateId}}",
+          rootCause: huntressValue(HuntressTriggerValue.Note),
+        }),
+      },
+    });
+    connect("if-resolve-1", "yes", "resolve-incident-1");
+
+    log(
+      "log-resolved",
+      { x: 100, y: 1740 },
+      `✅ Resolved ${closedIncident}: Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
+    );
+    connect("resolve-incident-1", "success", "log-resolved");
+
+    log(
+      "log-resolve-failed",
+      { x: 400, y: 1740 },
+      `❌ Could not resolve ${closedIncident} for ${HUNTRESS_REPORT}. Why is in the run log above.`,
+    );
+    connect("resolve-incident-1", "error", "log-resolve-failed");
+
+    return { nodes: nodes, edges: edges };
+  };
+
+export type BuildHuntressIncidentWorkflowGraphFunction = (
+  options: HuntressIncidentWorkflowOptions,
+  generateId: () => string,
+) => JSONObject;
+
+// A Huntress workflow's graph, ready to save: fresh node and edge ids each time.
+export const buildHuntressIncidentWorkflowGraph: BuildHuntressIncidentWorkflowGraphFunction =
+  (
+    options: HuntressIncidentWorkflowOptions,
+    generateId: () => string,
+  ): JSONObject => {
+    return buildTemplateGraph(
+      getHuntressIncidentWorkflowGraphSpec(options),
+      generateId,
+    );
+  };
+
+export const HUNTRESS_INCIDENT_TEMPLATE_ID: string =
+  "huntress-incident-report-to-incident";
+
+const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  {
+    id: HUNTRESS_INCIDENT_TEMPLATE_ID,
+    name: "Open an incident for each Huntress incident report",
+    description:
+      "Pages on-call for high and critical reports, adds comments from Huntress as notes, and resolves the incident when Huntress closes the report.",
+    teaches:
+      "How one workflow follows a report from start to end: a Switch / Case takes a path for each Huntress event. Open the trigger for its URL, and the Page step to pick who to page.",
+    setUpInBuilder:
+      "An on-call policy and Huntress's signing secret. You add both in the Builder.",
+    category: WorkflowTemplateCategory.Huntress,
+    icon: IconProp.ShieldCheck,
+    workflowName: "Huntress incident reports",
+    /*
+     * What the workflow does, for as long as it exists: how to set it up is
+     * said where it is done (the trigger's panel, and teaches above).
+     */
+    workflowDescription:
+      "Opens an incident for each Huntress incident report and pages the on-call policy you pick for high and critical ones. Comments made in Huntress become private notes, and closing the report in Huntress resolves the incident.",
+    variables: [],
+    graph: getHuntressIncidentWorkflowGraphSpec(HUNTRESS_TEMPLATE_OPTIONS),
+  },
+];
+
+/* ------------------------------- Zabbix ------------------------------- */
+
+/*
+ * ZABBIX PROBLEMS, BOTH WAYS.
+ *
+ * Zabbix tells a user about a problem through the user's media. The
+ * OneUptime media type (integrations/zabbix in the docs) is a webhook
+ * whose script posts each event to a workflow's URL as JSON: a new
+ * problem, its recovery, and every update someone makes to it in Zabbix -
+ * an acknowledgment, a comment, a new severity, a close. One action sends
+ * all three to one user's media, so one URL, and one workflow, follows a
+ * problem from start to end: a Switch / Case takes a path for each event.
+ *
+ *   problem   declare an incident (or create an alert) at the severity the
+ *             Zabbix severity maps to, kept off status pages, and page
+ *             on-call for High and Disaster problems; unless the problem
+ *             has one already, so a problem Zabbix sends again (a retry,
+ *             an escalation step of the action) never opens a second;
+ *   recovery  resolve that record, saying why on its timeline;
+ *   update    add what was done in Zabbix to the record as a private note,
+ *             and acknowledge the record when the update acknowledged the
+ *             problem - which stops on-call escalating it.
+ *
+ * The other way, two small templates call Zabbix's JSON-RPC API with an
+ * API token: one acknowledges the problem when the record is acknowledged
+ * and closes it when the record is resolved (or acknowledges it with a
+ * message, where its trigger does not allow closing problems by hand), and
+ * one copies private notes to the problem as messages.
+ *
+ * How a record and a problem find each other: the record keeps the
+ * problem's event ID in its custom fields (ZABBIX_EVENT_ID_CUSTOM_FIELD),
+ * written when it is created, as a Huntress report's number is. Every
+ * event Zabbix sends names the problem's event ID - a recovery and an
+ * update name the problem they belong to, not an ID of their own - and so
+ * does the record, so neither side needs a lookup table.
+ *
+ * How they avoid echoing each other. Messages OneUptime adds to a problem
+ * start with ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER, and the workflow that
+ * reads Zabbix's updates skips them (Zabbix does not even send a user its
+ * own updates, so with the token of the user the media belongs to, they
+ * never arrive). Notes and state causes OneUptime writes from Zabbix start
+ * with ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER, and the note template skips
+ * those. State changes settle on their own: a record only moves forward,
+ * and the API template reads the problem first, so one Zabbix already
+ * acknowledged or resolved is left as it is.
+ *
+ * The incident and alert versions are built from one set of builders
+ * (TemplateRecordKind), as the Jira and Dynamics 365 ones are.
+ */
+
+/** The custom field an incident or alert opened for a Zabbix problem keeps the problem's event ID in. */
+export const ZABBIX_EVENT_ID_CUSTOM_FIELD: string = "zabbixEventId";
+
+/** Starts every note, and every state change's cause, that OneUptime writes from a Zabbix event. */
+export const ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER: string = "Synced from Zabbix";
+
+/** Starts every message OneUptime adds to a Zabbix problem. */
+export const ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER: string =
+  "Synced from OneUptime";
+
+/** What the OneUptime media type says each event is, in its `event`: the Switch / Case's cases. */
+export enum ZabbixEventKind {
+  Problem = "problem",
+  Recovery = "recovery",
+  Update = "update",
+}
+
+/*
+ * Zabbix's six severities, by their number: 0 Not classified to 5 Disaster.
+ * The names are Zabbix's own unless an administrator renamed them, so the
+ * workflow reads the number, and the name only from a media type that does
+ * not send the number.
+ */
+export const ZABBIX_SEVERITY_NAMES: ReadonlyArray<string> = [
+  "Not classified",
+  "Information",
+  "Warning",
+  "Average",
+  "High",
+  "Disaster",
+];
+
+/** The lowest Zabbix severity whose problems page on-call: High. Disaster pages too. */
+export const ZABBIX_PAGE_FROM_SEVERITY: number = 4;
+
+/*
+ * The flags of event.acknowledge's action, a bitmask: the templates close,
+ * acknowledge and add a message.
+ */
+export const ZABBIX_ACTION_CLOSE: number = 1;
+export const ZABBIX_ACTION_ACKNOWLEDGE: number = 2;
+export const ZABBIX_ACTION_MESSAGE: number = 4;
+
+/** The longest message Zabbix keeps on a problem: its column holds 2,048 characters. */
+export const ZABBIX_MESSAGE_MAX_LENGTH: number = 2048;
+
+/** The component id of the Zabbix templates' Webhook trigger, which the problem's values are read from. */
+export const ZABBIX_WEBHOOK_COMPONENT_ID: string = "webhook-1";
+
+/*
+ * What a Zabbix URL can be: the address people open Zabbix at. http or
+ * https, its letters in either case (spelled out for the reason the Jira
+ * Site URL spells them out), then a host and a port as SITE_HOST_SOURCE and
+ * SITE_PORT_SOURCE read them, with a letter or a digit in the host, then up
+ * to five path segments for a Zabbix served under a path, such as
+ * https://example.com/zabbix, and perhaps the slash an address bar ends it
+ * with. A segment holds no dot, so the address of a page in Zabbix -
+ * zabbix.php, tr_events.php - is refused, and no query, user name or
+ * markup can ride along. At most 300 characters: the lookahead at its start
+ * refuses a longer value at once, and nothing in it can match the same
+ * text two ways (a segment's characters are never a "/", a host's never a
+ * ":" or a "/"), so it reads a value in time in line with its length.
+ *
+ * The create wizard checks a typed value with ZABBIX_URL_PATTERN, and the
+ * script that links to a problem reads the setting with the same source,
+ * so a value the wizard took is one the script links to. The API steps
+ * call <Zabbix URL>/api_jsonrpc.php; a slash the address ends with makes
+ * a double slash there, which the web servers Zabbix runs on read as one.
+ */
+const ZABBIX_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9_~-]+){0,5}\/?$`,
+].join("");
+
+export const ZABBIX_URL_PATTERN: RegExp = new RegExp(
+  ZABBIX_URL_PATTERN_SOURCE,
+  "u",
+);
+
+/** A Zabbix API token: the 64 hexadecimal characters Zabbix shows once, when the token is created. */
+export const ZABBIX_API_TOKEN_PATTERN: RegExp = /^[0-9A-Fa-f]{64}$/;
+
+type ZabbixUrlVariableFunction = (usedFor: string) => WorkflowTemplateVariable;
+
+/*
+ * The name, and with it whether the value is required or secret, is the
+ * same in every Zabbix template; only what the template does with it is
+ * said differently.
+ */
+const zabbixUrlVariable: ZabbixUrlVariableFunction = (
+  usedFor: string,
+): WorkflowTemplateVariable => {
+  return {
+    name: "zabbixUrl",
+    title: "Zabbix URL",
+    description: `The address you open Zabbix at, such as https://zabbix.example.com or https://example.com/zabbix. ${usedFor}`,
+    placeholder: "https://zabbix.example.com",
+    required: true,
+    isSecret: false,
+    format: {
+      pattern: ZABBIX_URL_PATTERN,
+      message:
+        "Enter only the address you open Zabbix at, such as https://zabbix.example.com, not a page in it.",
+    },
+  };
+};
+
+/*
+ * Zabbix takes an API token as a bearer token, from Zabbix 6.4 on. The
+ * variable is secret: redacted from run logs, and only ever sent in the
+ * Authorization header of the API steps.
+ */
+const ZABBIX_API_TOKEN: WorkflowTemplateVariable = {
+  name: "zabbixApiToken",
+  title: "Zabbix API Token",
+  description:
+    "Create one in Zabbix under Users → API tokens, for a user whose role has API access and may acknowledge, comment on and close problems.",
+  placeholder:
+    "0424bd59b807674191e7d77572075f33a3f1c0d2b4e6f8091a2b3c4d5e6f7a8b",
+  required: true,
+  isSecret: true,
+  format: {
+    pattern: ZABBIX_API_TOKEN_PATTERN,
+    message:
+      "Paste the 64-character API token Zabbix showed when you created it.",
+  },
+};
+
+type ZabbixHeadersFunction = () => JSONObject;
+
+/*
+ * An object rather than JSON text, as the Jira steps' headers are: the
+ * argument is marked sensitive, so the whole header set is kept out of
+ * the run log.
+ */
+const zabbixHeaders: ZabbixHeadersFunction = (): JSONObject => {
+  return {
+    Authorization: "Bearer {{local.variables.zabbixApiToken}}",
+  };
+};
+
+// Where every API step sends its request: Zabbix's one JSON-RPC endpoint.
+const ZABBIX_API_URL: string = "{{local.variables.zabbixUrl}}/api_jsonrpc.php";
+
+type ZabbixRequestBodyFunction = (method: string, params: JSONObject) => string;
+
+/*
+ * A JSON-RPC 2.0 request, as Zabbix's API takes one. Zabbix reads a number
+ * sent as text ("6") as the number, so the action a script chooses can be
+ * quoted into the body like any other value.
+ */
+const zabbixRequestBody: ZabbixRequestBodyFunction = (
+  method: string,
+  params: JSONObject,
+): string => {
+  return jsonText({ jsonrpc: "2.0", method: method, params: params, id: 1 });
+};
+
+type ZabbixScriptFunction = (kind: TemplateRecordKind, body: string) => string;
+
+/*
+ * Every Zabbix script starts with the same helper block, so each one can
+ * be read and edited on its own, and keeps the rules of the Jira ones (see
+ * jiraScript): no double braces anywhere in the source; text that came
+ * from Zabbix is defused before it is returned; and text from Zabbix that
+ * goes into OneUptime - a title, a description, a note, a state change's
+ * cause - is placed with asWritten() (OUTSIDE_TEXT_HELPERS).
+ */
+const zabbixScript: ZabbixScriptFunction = (
+  kind: TemplateRecordKind,
+  body: string,
+): string => {
+  const helpers: string = String.raw`// ---- Shared by the Zabbix templates ----
+const FROM_ONEUPTIME = ${JSON.stringify(ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER)};
+const FROM_ZABBIX = ${JSON.stringify(ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER)};
+// The custom field an ${kind.noun} ${kind.created} for a Zabbix problem keeps the problem's event ID in.
+const EVENT_ID_FIELD = ${JSON.stringify(ZABBIX_EVENT_ID_CUSTOM_FIELD)};
+// Zabbix numbers its events and its triggers.
+const ZABBIX_ID = /^[0-9]{1,20}$/;
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+const asText = (value) => (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '');
+// OneUptime ids, names and dates are serialized as { _type, value }.
+const valueOf = (value) => (value && typeof value === 'object' ? asText(value.value) : asText(value));
+// Drops the control characters JSON rejects, keeping tabs and line breaks.
+const clean = (value) => Array.from(asText(value)).filter((c) => {
+  const code = c.charCodeAt(0);
+  return code === 9 || code === 10 || (code >= 32 && code !== 127);
+}).join('');
+const oneLine = (value) => clean(value).replace(/\s+/g, ' ').trim();
+const limit = (value, max) => (value.length > max ? value.slice(0, max - 1) + '…' : value);
+// Breaks up double braces so a later step cannot read the text as a reference.
+const defuse = (value) => {
+  let text = value;
+  while (text.indexOf('{' + '{') !== -1) text = text.split('{' + '{').join('{ {');
+  while (text.indexOf('}' + '}') !== -1) text = text.split('}' + '}').join('} }');
+  return text;
+};
+const displayName = (user) => (user && typeof user === 'object' ? oneLine(valueOf(user.name)) : '');
+// A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
+const numbered = (value) => {
+  const text = oneLine(valueOf(value));
+  return text.charAt(0) === '#' ? ${JSON.stringify(kind.Noun)} + ' ' + text : text;
+};
+// Reasons can quote Zabbix's text, so they are defused like everything else.
+const skip = (reason) => ({ proceed: false, reason: defuse(asText(reason)) });
+// The Zabbix problem an ${kind.noun} was ${kind.created} for: the event ID its custom fields keep, or ''.
+const eventIdOf = (record) => {
+  const fields = record && record.customFields && typeof record.customFields === 'object' ? record.customFields : {};
+  const id = oneLine(asText(fields[EVENT_ID_FIELD]));
+  return ZABBIX_ID.test(id) ? id : '';
+};
+// What Zabbix's API said when it refused a request: its message, and the detail in its data.
+const zabbixError = (error) => {
+  const parts = [oneLine(error && error.message), oneLine(error && error.data)].filter((part) => part !== '');
+  return limit(defuse(parts.join(' ')), 500) || 'an error with no message';
+};
+// The address the workflow's Zabbix URL setting names, without the slash it may end with and with
+// its scheme in lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE
+// characters, and a character is at most two UTF-16 units, so a longer value is refused before
+// any pattern reads it.
+const SITE_SETTING = /${ZABBIX_URL_PATTERN_SOURCE}/u;
+const LONGEST_SITE = 300;
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+// The problem, linked to its page in Zabbix on the site the workflow's Zabbix URL names, whatever a
+// request says: the trigger's and the event's IDs are numbers, so nothing else can ride along. A
+// problem with no trigger ID, or a setting that names no site, is named without a link.
+const problemLinkOf = (setting, triggerId, eventId) => {
+  const problem = 'problem ' + asText(eventId);
+  const site = siteOfSetting(setting);
+  const trigger = oneLine(triggerId);
+  return site && ZABBIX_ID.test(trigger) && ZABBIX_ID.test(asText(eventId))
+    ? '[' + problem + '](' + site + '/tr_events.php?triggerid=' + trigger + '&eventid=' + asText(eventId) + ')'
+    : problem;
+};
+// Zabbix's API answers with HTTP 200 even when it refuses a request, and says why in the body.
+const readAnswer = (value) => {
+  const answer = readJson(value);
+  if (!answer || typeof answer !== 'object' || (!('result' in answer) && !answer.error)) {
+    throw new Error('The answer did not come from Zabbix\'s API. Check that the Zabbix URL is the address you open Zabbix at.');
+  }
+  if (answer.error) throw new Error('Zabbix said: ' + zabbixError(answer.error));
+  return answer.result;
+};
+`;
+
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
+};
+
+type ZabbixKindScriptFunction = (kind: TemplateRecordKind) => string;
+
+/*
+ * Zabbix -> OneUptime: reads what the OneUptime media type posted, works
+ * out which event it is, and shapes what each path writes: a new record's
+ * title, description and severity, a note's text, a state change's cause.
+ */
+const zabbixReadEventScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads an event the OneUptime media type posted: a new Zabbix problem, its recovery, or an
+// update someone made to it in Zabbix.
+// Zabbix numbers its severities 0 to 5, and names them as below unless an administrator
+// renamed them. A media type that sends no number is read by these names.
+const ZABBIX_SEVERITIES = ${JSON.stringify(ZABBIX_SEVERITY_NAMES)};
+// Zabbix severity to OneUptime severity: 0 is your most severe ${r} severity and 2 your
+// least, with the ones in between spread across the range. Disaster and High go to the
+// most severe, Average and Warning to the middle, Information and Not classified to the
+// least.
+const SEVERITY_RANK = { 5: 0, 4: 0, 3: 1, 2: 1, 1: 2, 0: 2 };
+// To open one Zabbix severity at one of your severities by name, list it here, for example
+// { 2: 'Minor Incident' }. Names listed here win over the ranks above.
+const SEVERITY_BY_NAME = {};
+const KINDS = ${JSON.stringify([
+      ZabbixEventKind.Problem,
+      ZabbixEventKind.Recovery,
+      ZabbixEventKind.Update,
+    ])};
+
+const ignore = (reason) => ({ kind: 'ignored', reason: defuse(asText(reason)) });
+
+const payload = readJson(args.payload) || {};
+if (oneLine(payload.source).toLowerCase() !== 'zabbix') {
+  return ignore('The request did not come from the OneUptime media type in Zabbix, so it was ignored.');
+}
+
+const eventId = oneLine(payload.event_id);
+if (!ZABBIX_ID.test(eventId)) return ignore('The Zabbix event named no event ID, so it was ignored.');
+
+// The media type says which event it is. One that does not (as this guide's first media type
+// did not) is a problem when its status is 1, and its recovery when the status is 0.
+const event = oneLine(payload.event).toLowerCase();
+const status = oneLine(payload.status);
+const kind = KINDS.indexOf(event) !== -1 ? event : status === '1' ? 'problem' : status === '0' ? 'recovery' : '';
+if (!kind) {
+  return ignore('Zabbix event ' + eventId + ' is not a problem, a recovery or an update, so it was ignored.');
+}
+
+const triggerId = ZABBIX_ID.test(oneLine(payload.trigger_id)) ? oneLine(payload.trigger_id) : '';
+const problem = 'problem ' + eventId;
+const problemLink = problemLinkOf(args.zabbixUrl, triggerId, eventId);
+
+// A recovery resolves the problem's record (decide-state-1 says why on its timeline).
+if (kind === 'recovery') return { kind: kind, eventId: eventId, triggerId: triggerId, target: 'resolved' };
+
+if (kind === 'update') {
+  const update = payload.update && typeof payload.update === 'object' ? payload.update : {};
+  const action = oneLine(update.action);
+  const message = clean(update.message).trim();
+  // Messages OneUptime added to the problem carry this marker. Copying them back would loop.
+  if (message.indexOf(FROM_ONEUPTIME) !== -1) {
+    return ignore('This update to Zabbix ' + problem + ' came from OneUptime, so it was not copied back.');
+  }
+  if (!action && !message) return ignore('The update to Zabbix ' + problem + ' said nothing, so no note was added.');
+  // What the person did, and their name, are Zabbix's text, placed as written (asWritten).
+  const user = oneLine(update.user);
+  // Zabbix says what an update did in words: acknowledged, commented, closed and the like.
+  const words = ' ' + action.toLowerCase().replace(/[^a-z]+/g, ' ') + ' ';
+  const acknowledged = words.indexOf(' acknowledged ') !== -1;
+  return {
+    kind: kind,
+    eventId: eventId,
+    triggerId: triggerId,
+    note: limit(defuse(FROM_ZABBIX + ': ' + (asWritten(user) || 'Someone') + ' updated Zabbix ' + problemLink + (action ? ': ' + asWritten(action) : '') + '.' + (message ? '\n\n' + asWritten(message) : '')), 30000),
+    // An update that acknowledged the problem acknowledges its record (decide-state-2).
+    target: acknowledged ? 'acknowledged' : '',
+    // The name of whoever did it, which decide-state-2 places in the cause it writes.
+    user: defuse(limit(user, 300)),
+  };
+}
+
+// A new problem: the ${r}'s severity, title and description.
+const found = readJson(args.severities);
+const severities = (Array.isArray(found) ? found : [])
+  .filter((severity) => severity && asText(severity._id))
+  .sort((a, b) => Number(a.order) - Number(b.order));
+if (!severities.length) throw new Error('This project has no ${r} severities to ${kind.create} the ${r} at.');
+
+const givenNumber = oneLine(payload.severity_number);
+const namedNumber = ZABBIX_SEVERITIES.map((name) => name.toLowerCase()).indexOf(oneLine(payload.severity).toLowerCase());
+// A severity Zabbix does not name is Not classified, as Zabbix itself calls an unknown one.
+const severityNumber = /^[0-5]$/.test(givenNumber) ? Number(givenNumber) : namedNumber !== -1 ? namedNumber : 0;
+const zabbixSeverity = oneLine(payload.severity) || ZABBIX_SEVERITIES[severityNumber];
+const wantedName = oneLine(SEVERITY_BY_NAME[severityNumber]).toLowerCase();
+const named = wantedName ? severities.find((severity) => oneLine(severity.name).toLowerCase() === wantedName) : null;
+const rankValue = SEVERITY_RANK[severityNumber];
+const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
+const severity = named || severities[Math.round((rank / 2) * (severities.length - 1))];
+
+// The problem's name, its host's, its operational data and its tags are Zabbix's text, placed as
+// written (asWritten). The link to the problem is the template's own.
+const name = oneLine(payload.name);
+const host = oneLine(payload.host);
+const lines = ['${kind.Created} from Zabbix ' + problemLink + '.', ''];
+lines.push('- Host: ' + (host ? asWritten(host) : 'not named'));
+lines.push('- Severity in Zabbix: ' + asWritten(zabbixSeverity));
+const started = oneLine(oneLine(payload.date) + ' ' + oneLine(payload.time));
+if (started) lines.push('- Started: ' + asWritten(started));
+const opdata = oneLine(payload.opdata);
+if (opdata) lines.push('- Operational data: ' + asWritten(limit(opdata, 1000)));
+const tags = (Array.isArray(payload.tags) ? payload.tags : [])
+  .filter((tag) => tag && typeof tag === 'object' && oneLine(tag.tag))
+  .slice(0, 50)
+  .map((tag) => oneLine(tag.tag) + (oneLine(tag.value) ? ': ' + oneLine(tag.value) : ''));
+if (tags.length) lines.push('- Tags: ' + asWritten(limit(tags.join(', '), 2000)));
+
+return {
+  kind: kind,
+  eventId: eventId,
+  title: limit(defuse('Zabbix: ' + asWritten(name || 'Problem ' + eventId) + (host ? ' on ' + asWritten(host) : '')), 500),
+  description: limit(defuse(lines.join('\n')), 20000),
+  ${kind.severityIdColumn}: asText(severity._id),
+  severityName: defuse(oneLine(severity.name)),
+  zabbixSeverity: defuse(zabbixSeverity),
+  severityNumber: severityNumber,
+};
+`,
+  );
+};
+
+/*
+ * Zabbix -> OneUptime: moves the record forward to the state the event
+ * asks for - resolved on a recovery, acknowledged when an update
+ * acknowledged the problem - by the one rule OneUptime moves records by
+ * (the Huntress template's): the state is the first one from the top
+ * flagged so, and a record at it or past it is left as it is.
+ */
+const zabbixDecideStateScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Moves the ${r} forward to the state Zabbix asks for: resolved when its problem recovered,
+// acknowledged when someone acknowledged the problem in Zabbix. The project's resolved state is
+// the first one from the top flagged resolved, and its acknowledged state the first one flagged
+// acknowledged. An ${r} at that state or past it is left as it is: it never moves back.
+const record = readJson(args.${r}) || {};
+const event = readJson(args.event) || {};
+const list = readJson(args.states);
+const states = (Array.isArray(list) ? list : [])
+  .filter((state) => state && typeof state === 'object')
+  .sort((a, b) => Number(a.order) - Number(b.order));
+const number = numbered(record.${kind.numberField}) || 'The ${r}';
+const target = asText(event.target);
+const flag = target === 'resolved' ? 'isResolvedState' : target === 'acknowledged' ? 'isAcknowledgedState' : '';
+if (!flag) return skip(number + ' was left as it is: Zabbix asked for no other state.');
+
+const wanted = states.find((state) => state[flag] === true);
+if (!wanted) throw new Error('This project has no ' + target + ' ${r} state.');
+
+const current = record.${kind.stateRelation} || {};
+if (current.isResolvedState === true || Number(current.order) >= Number(wanted.order)) {
+  return skip(number + ' is already ' + (oneLine(current.name) || 'past ' + oneLine(wanted.name)) + ', so it was left as it is.');
+}
+
+// Why, on the ${r}'s timeline. The name of whoever acknowledged the problem is Zabbix's text,
+// placed as written (asWritten); the link to the problem is the template's own.
+const link = problemLinkOf(args.zabbixUrl, event.triggerId, asText(event.eventId));
+const cause = target === 'resolved'
+  ? FROM_ZABBIX + ': ' + link + ' recovered.'
+  : FROM_ZABBIX + ': ' + (asWritten(oneLine(event.user)) || 'Someone') + ' acknowledged ' + link + '.';
+
+return {
+  proceed: true,
+  ${r}Id: asText(record._id),
+  stateId: valueOf(wanted._id),
+  stateName: defuse(oneLine(wanted.name)),
+  number: defuse(number),
+  rootCause: limit(defuse(cause), 1000),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: whether the record's new state means anything in
+ * Zabbix, before a request is sent: only a record opened for a Zabbix
+ * problem, and only when it is acknowledged or resolved.
+ */
+const zabbixPlanStateScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Plans what the ${r}'s new state means in Zabbix: an acknowledged ${r} acknowledges its
+// problem, and a resolved one closes it.
+// Private ${kind.plural} stay in OneUptime. Set this to true to update Zabbix for them too.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+
+const record = readJson(args.${r}) || {};
+const number = numbered(record.${kind.numberField}) || 'The ${r}';
+if (record.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip(number + ' is a private ${r}, so Zabbix was not updated.');
+}
+
+const eventId = eventIdOf(record);
+if (!eventId) return skip(number + ' was not ${kind.created} for a Zabbix problem, so there is nothing to update in Zabbix.');
+
+const state = record.${kind.stateRelation} || {};
+const wanted = state.isResolvedState === true ? 'close' : state.isAcknowledgedState === true ? 'acknowledge' : '';
+if (!wanted) {
+  return skip(number + ' moved to ' + (oneLine(state.name) || 'a new state') + ': only acknowledging or resolving the ${r} updates Zabbix.');
+}
+
+return { proceed: true, eventId: eventId, wanted: wanted, number: defuse(number) };
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: reads the problem as Zabbix has it, then chooses
+ * what to send. A problem Zabbix already acknowledged or resolved is left
+ * as it is - which is also what settles the echo of a change that came
+ * from Zabbix - and one whose trigger does not allow closing problems by
+ * hand is acknowledged, with a message, instead of closed: Zabbix refuses
+ * a close for those, and nothing would reach Zabbix at all.
+ */
+const zabbixChooseActionScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads the problem as Zabbix has it now, and chooses what to send: acknowledge it, close it, or
+// add a message. The flags of event.acknowledge's action add up.
+const CLOSE = ${ZABBIX_ACTION_CLOSE};
+const ACKNOWLEDGE = ${ZABBIX_ACTION_ACKNOWLEDGE};
+const MESSAGE = ${ZABBIX_ACTION_MESSAGE};
+
+const plan = readJson(args.plan) || {};
+const eventId = asText(plan.eventId);
+const number = asText(plan.number) || 'The ${r}';
+const result = readAnswer(args.answer);
+const events = Array.isArray(result) ? result : [];
+const problem = events.find((candidate) => candidate && asText(candidate.eventid) === eventId);
+if (!problem) {
+  return skip('Zabbix has no problem with event ID ' + eventId + ', or the API token\'s user cannot see it, so Zabbix was not updated.');
+}
+
+const resolved = ZABBIX_ID.test(asText(problem.r_eventid)) && asText(problem.r_eventid) !== '0';
+const acknowledged = asText(problem.acknowledged) === '1';
+const trigger = problem.relatedObject && typeof problem.relatedObject === 'object' ? problem.relatedObject : {};
+const canClose = asText(trigger.manual_close) === '1';
+
+if (resolved) return skip('Zabbix problem ' + eventId + ' is already resolved in Zabbix, so it was left as it is.');
+
+if (asText(plan.wanted) === 'acknowledge') {
+  if (acknowledged) return skip('Zabbix problem ' + eventId + ' is already acknowledged in Zabbix, so it was left as it is.');
+  return {
+    proceed: true,
+    eventId: eventId,
+    action: ACKNOWLEDGE + MESSAGE,
+    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was acknowledged in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+    done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was acknowledged.'),
+  };
+}
+
+if (canClose) {
+  return {
+    proceed: true,
+    eventId: eventId,
+    action: CLOSE + ACKNOWLEDGE + MESSAGE,
+    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+    done: defuse('Closed Zabbix problem ' + eventId + ': ' + number + ' was resolved.'),
+  };
+}
+
+// Zabbix refuses to close a problem whose trigger does not allow closing problems by hand, so the
+// problem is acknowledged, and says why it stays open.
+return {
+  proceed: true,
+  eventId: eventId,
+  action: ACKNOWLEDGE + MESSAGE,
+  message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime. Its trigger does not allow closing problems by hand, so the problem stays open until Zabbix sees it recover.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+  done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was resolved, and its trigger does not allow closing problems by hand.'),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: the message for a new private note.
+ */
+const zabbixNoteMessageScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Writes the Zabbix message for a new private note on an ${r} ${kind.created} for a Zabbix problem.
+// Notes on private ${kind.plural} stay in OneUptime. Set this to true to post them anyway.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+// Zabbix keeps at most this many characters of a message.
+const MESSAGE_LENGTH = ${ZABBIX_MESSAGE_MAX_LENGTH};
+
+const note = readJson(args.note) || {};
+const record = readJson(args.${r}) || {};
+const number = numbered(record.${kind.numberField}) || 'the ${r}';
+if (record.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip('The note is on ' + number + ', a private ${r}, so it was not posted to Zabbix.');
+}
+
+const eventId = eventIdOf(record);
+if (!eventId) return skip('The note is on ' + number + ', which was not ${kind.created} for a Zabbix problem, so it was not posted to Zabbix.');
+
+const text = clean(note.note).trim();
+if (!text) return skip('The note is empty, so there is nothing to post.');
+
+// Notes copied in from Zabbix carry this marker. Posting them back would loop.
+if (text.indexOf(FROM_ZABBIX) !== -1) return skip('This note came from Zabbix, so it was not posted back.');
+
+const author = displayName(note.createdByUser);
+const heading = FROM_ONEUPTIME + ': private note on ' + number + (author ? ' by ' + author : '') + '.';
+
+return {
+  proceed: true,
+  eventId: eventId,
+  message: limit(defuse(heading + '\n\n' + text), MESSAGE_LENGTH),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: reads Zabbix's answer to event.acknowledge. Zabbix
+ * answers a refused request with HTTP 200 and the reason in the body, so
+ * the API step's own Error output only covers a request that never got an
+ * answer; this step's covers Zabbix saying no.
+ */
+const zabbixCheckAnswerScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads Zabbix's answer to event.acknowledge: the IDs of the events it updated, or why it did not.
+const result = readAnswer(args.answer);
+const updated = result && Array.isArray(result.eventids) ? result.eventids.map(asText) : [];
+if (!updated.length) throw new Error('Zabbix answered, but did not say it updated the problem.');
+return { eventIds: updated };
+`,
+  );
+};
+
+type ZabbixTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
+
+type ZabbixPageArgsFunction = (
+  kind: TemplateRecordKind,
+  recordIdReference: string,
+) => JSONObject;
+
+// A Page step about the record a problem opened: the incident, or the alert.
+const zabbixPageArgs: ZabbixPageArgsFunction = (
+  kind: TemplateRecordKind,
+  recordIdReference: string,
+): JSONObject => {
+  if (kind.noun === ALERT_KIND.noun) {
+    return {
+      [PAGE_ARGUMENT_IDS.about]: PageAbout.Alert,
+      [PAGE_ARGUMENT_IDS.alertId]: recordIdReference,
+    };
+  }
+
+  return {
+    [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+    [PAGE_ARGUMENT_IDS.incidentId]: recordIdReference,
+  };
+};
+
+/*
+ * WHERE THE ZABBIX STEPS SIT ON THE CANVAS.
+ *
+ * On a grid, so that no card lies on another and every connection has room
+ * to turn between two cards. Rows are ZABBIX_CANVAS_ROW apart: the tallest
+ * card these steps draw is 192 px (a title on two lines), and a connection
+ * turns 20 px under the card it leaves. A Page step is drawn taller, 218 px,
+ * until someone picks who it pages - which is how the template leaves it -
+ * so what follows it is ZABBIX_CANVAS_PAGE_ROW further down. A path's steps
+ * run straight down one column; what ends a path early - a failure, a skip,
+ * the No of an If / Else - sits one slot (ZABBIX_CANVAS_SLOT) to the right,
+ * a row below the step it comes from, which is where that step's right-hand
+ * output leads.
+ */
+const ZABBIX_CANVAS_ROW: number = 220;
+const ZABBIX_CANVAS_PAGE_ROW: number = 260;
+const ZABBIX_CANVAS_SLOT: number = 300;
+
+type ZabbixCanvasRowFunction = (row: number) => number;
+
+// The top of a row: the trigger's is 100, as in every template.
+const zabbixCanvasRow: ZabbixCanvasRowFunction = (row: number): number => {
+  return 100 + row * ZABBIX_CANVAS_ROW;
+};
+
+/* ----------------------- Zabbix -> OneUptime ----------------------- */
+
+type ZabbixRecordReferenceFunction = (componentId: string) => string;
+
+type ZabbixEventValueFunction = (key: string) => string;
+
+// A value read-event-1 returns: the event's kind, its ID, a new record's title, a note.
+const zabbixEventValue: ZabbixEventValueFunction = (key: string): string => {
+  return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
+};
+
+const ZABBIX_PROBLEM: string = `Zabbix problem ${zabbixEventValue("eventId")}`;
+
+const zabbixProblemTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const nodes: Array<TemplateNodeSpec> = [];
+  const edges: Array<TemplateEdgeSpec> = [];
+
+  type AddNodeFunction = (node: TemplateNodeSpec) => void;
+
+  const addNode: AddNodeFunction = (node: TemplateNodeSpec): void => {
+    nodes.push(node);
+  };
+
+  type ConnectFunction = (from: string, port: string, to: string) => void;
+
+  const connect: ConnectFunction = (
+    from: string,
+    port: string,
+    to: string,
+  ): void => {
+    edges.push({ fromComponentId: from, toComponentId: to, fromPort: port });
+  };
+
+  type LogFunction = (
+    componentId: string,
+    position: { x: number; y: number },
+    value: string,
+  ) => void;
+
+  const log: LogFunction = (
+    componentId: string,
+    position: { x: number; y: number },
+    value: string,
+  ): void => {
+    addNode({
+      componentId: componentId,
+      metadataId: ComponentID.Log,
+      componentType: ComponentType.Component,
+      position: position,
+      args: { value: value },
+    });
+  };
+
+  /*
+   * Where each step sits (ZABBIX_CANVAS_ROW): the trigger, the read and the
+   * Switch / Case in one column at the top, then a column per path under
+   * the Switch / Case's outputs, left to right as they are - problem,
+   * recovery, update - with what is ignored at the top right.
+   *
+   * The recovery and update columns start a row lower than the problem
+   * column, so that no two of the Switch / Case's connections run along the
+   * same line: the recovery's runs straight down from its output, the
+   * problem's and what is ignored turn above the first row, and the
+   * update's turns below it, where nothing is in its way.
+   */
+  const P: number = -640;
+  const R: number = 0;
+  const U: number = 640;
+
+  const numberOf: ZabbixRecordReferenceFunction = (
+    componentId: string,
+  ): string => {
+    return `{{local.components.${componentId}.returnValues.model.${kind.numberField}}}`;
+  };
+
+  // How each path finds the record a problem opened: by the event ID its custom fields keep.
+  const findRecordArgs: JSONObject = {
+    query: {
+      customFields: {
+        [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
+      },
+    },
+    select: {
+      _id: true,
+      [kind.numberField]: true,
+      [kind.stateRelation]: {
+        name: true,
+        order: true,
+        isAcknowledgedState: true,
+        isResolvedState: true,
+      },
+    },
+  };
+
+  const foundCondition: (findComponentId: string) => JSONObject = (
+    findComponentId: string,
+  ): JSONObject => {
+    return {
+      "input-1-type": ConditionValueType.Text,
+      "input-1": `{{local.components.${findComponentId}.returnValues.model}}`,
+      operator: ConditionOperator.IsNotEmpty,
+    };
+  };
+
+  // Every row of the project's states, for a decision made by the rule above.
+  const findStatesArgs: JSONObject = {
+    query: { _id: { _type: "NotNull", value: null } },
+    select: {
+      _id: true,
+      name: true,
+      order: true,
+      isAcknowledgedState: true,
+      isResolvedState: true,
+    },
+    limit: 50,
+  };
+
+  type DecideStateArgsFunction = (
+    findComponentId: string,
+    statesComponentId: string,
+  ) => JSONObject;
+
+  const decideStateArgs: DecideStateArgsFunction = (
+    findComponentId: string,
+    statesComponentId: string,
+  ): JSONObject => {
+    return {
+      code: zabbixDecideStateScript(kind),
+      /*
+       * What read-event-1 read goes last: the name of whoever acknowledged
+       * the problem came from outside.
+       */
+      arguments: jsonText({
+        [r]: `{{local.components.${findComponentId}.returnValues.model}}`,
+        states: `{{local.components.${statesComponentId}.returnValues.models}}`,
+        zabbixUrl: "{{local.variables.zabbixUrl}}",
+        event: "{{local.components.read-event-1.returnValues.returnValue}}",
+      }),
+    };
+  };
+
+  type ChangeStateArgsFunction = (decideComponentId: string) => JSONObject;
+
+  /*
+   * A state change is a new timeline row, not an edit of the record: the
+   * timeline is what records it, notifies, and says why.
+   */
+  const changeStateArgs: ChangeStateArgsFunction = (
+    decideComponentId: string,
+  ): JSONObject => {
+    const decided: (key: string) => string = (key: string): string => {
+      return `{{local.components.${decideComponentId}.returnValues.returnValue.${key}}}`;
+    };
+
+    return {
+      json: jsonText({
+        [kind.idColumn]: decided(`${r}Id`),
+        [kind.timelineStateColumn]: decided("stateId"),
+        rootCause: decided("rootCause"),
+      }),
+    };
+  };
+
+  /* ---- The trigger, the project's severities, and which event it is ---- */
+
+  addNode({
+    componentId: ZABBIX_WEBHOOK_COMPONENT_ID,
+    metadataId: ComponentID.Webhook,
+    componentType: ComponentType.Trigger,
+    position: { x: 100, y: 100 },
+  });
+
+  addNode({
+    componentId: "find-severities-1",
+    metadataId: `${r}-severity-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: 100, y: zabbixCanvasRow(1) },
+    args: {
+      // Every row. Query cannot be left empty, so it asks for any id.
+      query: { _id: { _type: "NotNull", value: null } },
+      select: { _id: true, name: true, order: true },
+      limit: 50,
+    },
+  });
+  connect(ZABBIX_WEBHOOK_COMPONENT_ID, "out", "find-severities-1");
+
+  log(
+    "log-severities-failed",
+    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
+    `❌ Could not read this project's ${r} severities, so nothing Zabbix sent was read. Why is in the run log above.`,
+  );
+  connect("find-severities-1", "error", "log-severities-failed");
+
+  addNode({
+    componentId: "read-event-1",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: 100, y: zabbixCanvasRow(2) },
+    args: {
+      code: zabbixReadEventScript(kind),
+      /*
+       * The request goes last: what it says came from outside, and text
+       * from outside is only ever substituted after everything else in an
+       * argument.
+       */
+      arguments: jsonText({
+        severities:
+          "{{local.components.find-severities-1.returnValues.models}}",
+        zabbixUrl: "{{local.variables.zabbixUrl}}",
+        payload: `{{local.components.${ZABBIX_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
+      }),
+    },
+  });
+  connect("find-severities-1", "success", "read-event-1");
+
+  log(
+    "log-read-failed",
+    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
+    "❌ Could not read what Zabbix sent: {{local.components.read-event-1.returnValues.error}}",
+  );
+  connect("read-event-1", "error", "log-read-failed");
+
+  addNode({
+    componentId: "switch-1",
+    metadataId: ComponentID.Switch,
+    componentType: ComponentType.Component,
+    /*
+     * Wider than the step above it, as its cases' names make it
+     * (Workflow/PortLayout): 288px. read-event-1 leads into it from its
+     * Success output, a quarter across that card (x 164), so it starts at
+     * 20 and the connection runs straight down into the middle of it.
+     * Its recovery output is then right above the recovery column.
+     */
+    position: { x: 20, y: zabbixCanvasRow(3) },
+    args: {
+      value: zabbixEventValue("kind"),
+      cases: [
+        {
+          id: "case-1",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Problem,
+          compareAs: ConditionValueType.Text,
+        },
+        {
+          id: "case-2",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Recovery,
+          compareAs: ConditionValueType.Text,
+        },
+        {
+          id: "case-3",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Update,
+          compareAs: ConditionValueType.Text,
+        },
+      ],
+    },
+  });
+  connect("read-event-1", "success", "switch-1");
+
+  /*
+   * Default: a request that is not a Zabbix event, or not one of the three.
+   * Above the update column and to the right of where its connection comes
+   * down, so the two never share a line.
+   */
+  log(
+    "log-ignored",
+    { x: U + 160, y: zabbixCanvasRow(4) },
+    `ℹ️ ${zabbixEventValue("reason")}`,
+  );
+  connect("switch-1", SWITCH_DEFAULT_PORT_ID, "log-ignored");
+
+  /* ---- problem: declare the record, unless the problem has one, and page ---- */
+
+  addNode({
+    componentId: `find-${r}-0`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: P, y: zabbixCanvasRow(4) },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-1", `find-${r}-0`);
+
+  /*
+   * A lookup that fails still declares the record: a problem that pages
+   * nobody is worse than a problem with two records. The log says so, for
+   * whoever finds two.
+   */
+  log(
+    "log-lookup-failed",
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
+    `⚠️ Could not check whether ${ZABBIX_PROBLEM} has an ${r} already, so a new one is ${kind.created}. Why the check failed is in the run log above.`,
+  );
+  connect(`find-${r}-0`, "error", "log-lookup-failed");
+
+  addNode({
+    componentId: "if-found-0",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: P, y: zabbixCanvasRow(5) },
+    args: foundCondition(`find-${r}-0`),
+  });
+  connect(`find-${r}-0`, "success", "if-found-0");
+
+  // Yes is the If / Else's left output, so the step it leads to is on the left.
+  log(
+    "log-already-open",
+    { x: P - ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
+    `ℹ️ ${ZABBIX_PROBLEM} has an ${r} already, ${numberOf(`find-${r}-0`)}, so no other was ${kind.created}.`,
+  );
+  connect("if-found-0", "yes", "log-already-open");
+
+  addNode({
+    componentId: `create-${r}-1`,
+    metadataId: `${r}-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: P, y: zabbixCanvasRow(6) },
+    args: {
+      /*
+       * The problem's event ID in customFields is what the recovery and
+       * update paths, and the templates that write to Zabbix, find the
+       * record by.
+       */
+      json: jsonText({
+        [kind.severityIdColumn]: zabbixEventValue(kind.severityIdColumn),
+        customFields: {
+          [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
+        },
+        // A Zabbix problem's name was written for the people who run the host, not for customers.
+        ...kind.quietCreateFields,
+        title: zabbixEventValue("title"),
+        description: zabbixEventValue("description"),
+      }),
+    },
+  });
+  connect("if-found-0", "no", `create-${r}-1`);
+  connect("log-lookup-failed", "out", `create-${r}-1`);
+
+  log(
+    "log-create-failed",
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
+    `❌ Could not ${kind.create} an ${r} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
+  );
+  connect(`create-${r}-1`, "error", "log-create-failed");
+
+  addNode({
+    componentId: "if-page-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: P, y: zabbixCanvasRow(7) },
+    args: {
+      "input-1-type": ConditionValueType.Number,
+      "input-1": zabbixEventValue("severityNumber"),
+      operator: ConditionOperator.GreaterThanOrEqualTo,
+      "input-2-type": ConditionValueType.Number,
+      "input-2": String(ZABBIX_PAGE_FROM_SEVERITY),
+    },
+  });
+  connect(`create-${r}-1`, "success", "if-page-1");
+
+  addNode({
+    componentId: "page-on-call-policy-1",
+    metadataId: ComponentID.PageOnCallPolicy,
+    componentType: ComponentType.Component,
+    position: { x: P, y: zabbixCanvasRow(8) },
+    args: zabbixPageArgs(
+      kind,
+      `{{local.components.create-${r}-1.returnValues.model._id}}`,
+    ),
+  });
+  connect("if-page-1", "yes", "page-on-call-policy-1");
+
+  log(
+    "log-not-paged",
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
+    `ℹ️ ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. It is ${zabbixEventValue("zabbixSeverity")} in Zabbix, so nobody was paged.`,
+  );
+  connect("if-page-1", "no", "log-not-paged");
+
+  log(
+    "log-paged",
+    { x: P, y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW },
+    `📟 ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
+  );
+  connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
+
+  log(
+    "log-nobody-paged",
+    {
+      x: P + ZABBIX_CANVAS_SLOT,
+      y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW,
+    },
+    `❌ ${kind.Created} an ${r} for ${ZABBIX_PROBLEM}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
+  );
+  connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
+
+  /* ---- recovery: resolve the problem's record ---- */
+
+  addNode({
+    componentId: `find-${r}-1`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(5) },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-2", `find-${r}-1`);
+
+  log(
+    "log-find-failed-1",
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
+    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so it was not resolved. Why is in the run log above.`,
+  );
+  connect(`find-${r}-1`, "error", "log-find-failed-1");
+
+  addNode({
+    componentId: "if-found-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(6) },
+    args: foundCondition(`find-${r}-1`),
+  });
+  connect(`find-${r}-1`, "success", "if-found-1");
+
+  addNode({
+    componentId: "find-states-1",
+    metadataId: `${r}-state-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(7) },
+    args: findStatesArgs,
+  });
+  connect("if-found-1", "yes", "find-states-1");
+
+  log(
+    `log-no-${r}-1`,
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
+    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so its recovery changed nothing.`,
+  );
+  connect("if-found-1", "no", `log-no-${r}-1`);
+
+  log(
+    "log-states-failed-1",
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
+    `❌ Could not read this project's ${r} states, so ${numberOf(`find-${r}-1`)} was not resolved. Why is in the run log above.`,
+  );
+  connect("find-states-1", "error", "log-states-failed-1");
+
+  addNode({
+    componentId: "decide-state-1",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(8) },
+    args: decideStateArgs(`find-${r}-1`, "find-states-1"),
+  });
+  connect("find-states-1", "success", "decide-state-1");
+
+  log(
+    "log-decide-failed-1",
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
+    `❌ Could not tell whether ${numberOf(`find-${r}-1`)} is resolved, so it was not resolved: {{local.components.decide-state-1.returnValues.error}}`,
+  );
+  connect("decide-state-1", "error", "log-decide-failed-1");
+
+  addNode({
+    componentId: "if-change-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(9) },
+    args: proceedCondition("decide-state-1"),
+  });
+  connect("decide-state-1", "success", "if-change-1");
+
+  addNode({
+    componentId: "change-state-1",
+    metadataId: `${r}-state-timeline-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: R, y: zabbixCanvasRow(10) },
+    args: changeStateArgs("decide-state-1"),
+  });
+  connect("if-change-1", "yes", "change-state-1");
+
+  log(
+    "log-unchanged-1",
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
+    "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
+  );
+  connect("if-change-1", "no", "log-unchanged-1");
+
+  log(
+    "log-resolved",
+    { x: R, y: zabbixCanvasRow(11) },
+    `✅ Resolved ${numberOf(`find-${r}-1`)}: ${ZABBIX_PROBLEM} recovered.`,
+  );
+  connect("change-state-1", "success", "log-resolved");
+
+  log(
+    "log-resolve-failed",
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
+    `❌ Could not resolve ${numberOf(`find-${r}-1`)} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
+  );
+  connect("change-state-1", "error", "log-resolve-failed");
+
+  /* ---- update: a private note, and an acknowledgment ---- */
+
+  addNode({
+    componentId: `find-${r}-2`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(5) },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-3", `find-${r}-2`);
+
+  log(
+    "log-find-failed-2",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
+    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so the update was not noted. Why is in the run log above.`,
+  );
+  connect(`find-${r}-2`, "error", "log-find-failed-2");
+
+  addNode({
+    componentId: "if-found-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(6) },
+    args: foundCondition(`find-${r}-2`),
+  });
+  connect(`find-${r}-2`, "success", "if-found-2");
+
+  addNode({
+    componentId: "add-note-2",
+    metadataId: `${r}-internal-note-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(7) },
+    args: {
+      json: jsonText({
+        [kind.idColumn]: `{{local.components.find-${r}-2.returnValues.model._id}}`,
+        note: zabbixEventValue("note"),
+      }),
+    },
+  });
+  connect("if-found-2", "yes", "add-note-2");
+
+  log(
+    `log-no-${r}-2`,
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
+    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so the update was not noted.`,
+  );
+  connect("if-found-2", "no", `log-no-${r}-2`);
+
+  log(
+    "log-note-failed",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
+    `❌ Could not add the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)}. Why is in the run log above.`,
+  );
+  connect("add-note-2", "error", "log-note-failed");
+
+  addNode({
+    componentId: "if-acknowledged-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(8) },
+    args: {
+      "input-1-type": ConditionValueType.Text,
+      "input-1": zabbixEventValue("target"),
+      operator: ConditionOperator.EqualTo,
+      "input-2-type": ConditionValueType.Text,
+      "input-2": "acknowledged",
+    },
+  });
+  connect("add-note-2", "success", "if-acknowledged-2");
+
+  addNode({
+    componentId: "find-states-2",
+    metadataId: `${r}-state-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(9) },
+    args: findStatesArgs,
+  });
+  connect("if-acknowledged-2", "yes", "find-states-2");
+
+  log(
+    "log-noted",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
+    `✅ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note.`,
+  );
+  connect("if-acknowledged-2", "no", "log-noted");
+
+  log(
+    "log-states-failed-2",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not read this project's ${r} states, so it was not acknowledged. Why is in the run log above.`,
+  );
+  connect("find-states-2", "error", "log-states-failed-2");
+
+  addNode({
+    componentId: "decide-state-2",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(10) },
+    args: decideStateArgs(`find-${r}-2`, "find-states-2"),
+  });
+  connect("find-states-2", "success", "decide-state-2");
+
+  log(
+    "log-decide-failed-2",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not tell whether it is acknowledged, so it was not acknowledged: {{local.components.decide-state-2.returnValues.error}}`,
+  );
+  connect("decide-state-2", "error", "log-decide-failed-2");
+
+  addNode({
+    componentId: "if-change-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(11) },
+    args: proceedCondition("decide-state-2"),
+  });
+  connect("decide-state-2", "success", "if-change-2");
+
+  addNode({
+    componentId: "change-state-2",
+    metadataId: `${r}-state-timeline-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: U, y: zabbixCanvasRow(12) },
+    args: changeStateArgs("decide-state-2"),
+  });
+  connect("if-change-2", "yes", "change-state-2");
+
+  log(
+    "log-unchanged-2",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(12) },
+    `ℹ️ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note. {{local.components.decide-state-2.returnValues.returnValue.reason}}`,
+  );
+  connect("if-change-2", "no", "log-unchanged-2");
+
+  log(
+    "log-acknowledged",
+    { x: U, y: zabbixCanvasRow(13) },
+    `✅ Acknowledged ${numberOf(`find-${r}-2`)}, and added the update to ${ZABBIX_PROBLEM} to it as a private note: the problem was acknowledged in Zabbix.`,
+  );
+  connect("change-state-2", "success", "log-acknowledged");
+
+  log(
+    "log-acknowledge-failed",
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(13) },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not acknowledge it. Why is in the run log above.`,
+  );
+  connect("change-state-2", "error", "log-acknowledge-failed");
+
+  return {
+    id: `zabbix-${kind.create}-${r}-from-problem`,
+    name: `${kind.Create} an ${r} for each Zabbix problem`,
+    description: `Pages on-call for High and Disaster problems, adds updates made in Zabbix as private notes, and resolves the ${r} when the problem recovers.`,
+    teaches:
+      "How one workflow follows a Zabbix problem from start to end: a Switch / Case takes a path for each event. Open the trigger for its URL, and the Page step to pick who to page.",
+    setUpInBuilder: "An on-call policy to page. You pick it in the Builder.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.ServerStack,
+    workflowName: `Zabbix problems to ${kind.plural}`,
+    /*
+     * What the workflow does, for as long as it exists: how to set it up
+     * is said where it is done (the trigger, and the Zabbix guide).
+     */
+    workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Zabbix problem sent to this workflow's URL, and pages the on-call policy you pick for High and Disaster problems. Updates made in Zabbix become private notes, acknowledging the problem in Zabbix acknowledges the ${r}, and the problem's recovery resolves it.`,
+    variables: [zabbixUrlVariable("Links to problems go there.")],
+    graph: { nodes: nodes, edges: edges },
+  };
+};
+
+/* ----------------------- OneUptime -> Zabbix ----------------------- */
+
+const zabbixStateTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const trigger: string = `${r}-on-update-1`;
+  const planned: (key: string) => string = (key: string): string => {
+    return `{{local.components.plan-state-1.returnValues.returnValue.${key}}}`;
+  };
+  const chosen: (key: string) => string = (key: string): string => {
+    return `{{local.components.choose-action-1.returnValues.returnValue.${key}}}`;
+  };
+
+  return {
+    id: `zabbix-update-problem-on-${r}-state`,
+    name: `Acknowledge or close the Zabbix problem with the ${r}`,
+    description: `Acknowledges the Zabbix problem when the ${r} is acknowledged, and closes it when the ${r} is resolved.`,
+    teaches:
+      "How to call a JSON-RPC API with a token, and read an answer that reports errors in its body.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.CheckCircle,
+    workflowName: `Sync ${r} state to Zabbix`,
+    workflowDescription: `Acknowledges an ${r}'s Zabbix problem when the ${r} is acknowledged, and closes it when the ${r} is resolved. A problem whose trigger does not allow closing it by hand is acknowledged, with a message, instead.`,
+    variables: [
+      zabbixUrlVariable("The workflow calls Zabbix's API there."),
+      ZABBIX_API_TOKEN,
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: trigger,
+          metadataId: `${r}-on-update`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": { [kind.stateIdColumn]: true },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              customFields: true,
+              [kind.stateRelation]: {
+                name: true,
+                isAcknowledgedState: true,
+                isResolvedState: true,
+              },
+            },
+          },
+        },
+        {
+          componentId: "plan-state-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(1) },
+          args: {
+            code: zabbixPlanStateScript(kind),
+            arguments: jsonText({
+              [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            }),
+          },
+        },
+        {
+          componentId: "log-plan-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
+          args: {
+            value: `❌ Could not tell what the ${r}'s new state means in Zabbix: {{local.components.plan-state-1.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: "if-linked-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(2) },
+          args: proceedCondition("plan-state-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
+          args: { value: `ℹ️ ${planned("reason")}` },
+        },
+        {
+          /*
+           * Zabbix is asked first: a problem it already acknowledged or
+           * resolved is left as it is, and a close is only sent where the
+           * problem's trigger allows closing it by hand.
+           */
+          componentId: "get-problem-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(3) },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.get", {
+              eventids: [planned("eventId")],
+              output: ["eventid", "r_eventid", "acknowledged"],
+              selectRelatedObject: ["triggerid", "manual_close"],
+            }),
+          },
+        },
+        {
+          componentId: "log-get-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
+          args: {
+            value: `❌ Could not reach Zabbix to read problem ${planned("eventId")}: {{local.components.get-problem-1.returnValues.error}}\nZabbix said: {{local.components.get-problem-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "choose-action-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(4) },
+          args: {
+            code: zabbixChooseActionScript(kind),
+            // Zabbix's answer goes last: it came from outside.
+            arguments: jsonText({
+              plan: "{{local.components.plan-state-1.returnValues.returnValue}}",
+              answer:
+                "{{local.components.get-problem-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-choose-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
+          args: {
+            value: `❌ Could not read Zabbix problem ${planned("eventId")}, so Zabbix was not updated: {{local.components.choose-action-1.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: "if-update-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(5) },
+          args: proceedCondition("choose-action-1"),
+        },
+        {
+          componentId: "log-unchanged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
+          args: { value: `ℹ️ ${chosen("reason")}` },
+        },
+        {
+          componentId: "update-problem-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(6) },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.acknowledge", {
+              eventids: [chosen("eventId")],
+              action: chosen("action"),
+              message: chosen("message"),
+            }),
+          },
+        },
+        {
+          componentId: "log-update-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
+          args: {
+            value: `❌ Could not reach Zabbix to update problem ${chosen("eventId")}: {{local.components.update-problem-1.returnValues.error}}\nZabbix said: {{local.components.update-problem-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "check-answer-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(7) },
+          args: {
+            code: zabbixCheckAnswerScript(kind),
+            arguments: jsonText({
+              answer:
+                "{{local.components.update-problem-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-updated",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(8) },
+          args: { value: `✅ ${chosen("done")}` },
+        },
+        {
+          componentId: "log-refused",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
+          args: {
+            value: `❌ Zabbix did not update problem ${chosen("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: trigger,
+          toComponentId: "plan-state-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "plan-state-1",
+          toComponentId: "if-linked-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "plan-state-1",
+          toComponentId: "log-plan-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "get-problem-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "get-problem-1",
+          toComponentId: "choose-action-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "get-problem-1",
+          toComponentId: "log-get-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "choose-action-1",
+          toComponentId: "if-update-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "choose-action-1",
+          toComponentId: "log-choose-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-update-1",
+          toComponentId: "update-problem-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-update-1",
+          toComponentId: "log-unchanged",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "update-problem-1",
+          toComponentId: "check-answer-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "update-problem-1",
+          toComponentId: "log-update-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-updated",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-refused",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+const zabbixNoteTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const built: (key: string) => string = (key: string): string => {
+    return `{{local.components.build-message-1.returnValues.returnValue.${key}}}`;
+  };
+
+  return {
+    id: `zabbix-message-from-${r}-private-note`,
+    name: `Copy ${r} private notes to the Zabbix problem`,
+    description: `Adds every new private note on an ${r} to its Zabbix problem as a message, so the people working in Zabbix see it too.`,
+    teaches:
+      "How a marker in the text stops two systems echoing each other's messages back.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.ChatBubbleLeftRight,
+    workflowName: `Copy ${r} private notes to Zabbix`,
+    workflowDescription: `Adds every new private note on an ${r} ${kind.created} for a Zabbix problem to that problem as a message. Notes that came from Zabbix are not sent back.`,
+    variables: [
+      zabbixUrlVariable("The workflow calls Zabbix's API there."),
+      ZABBIX_API_TOKEN,
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "note-on-create-1",
+          metadataId: `${r}-internal-note-on-create`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              note: true,
+              [kind.idColumn]: true,
+              createdByUser: { name: true },
+            },
+          },
+        },
+        {
+          /*
+           * The record, read by itself: whether it is private, and the
+           * event ID its custom fields keep, are not read through the
+           * note's relation, which a step - reading as a Project Admin of
+           * the project - is not allowed to read them through.
+           */
+          componentId: `find-${r}-1`,
+          metadataId: `${r}-find-one`,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(1) },
+          args: {
+            query: {
+              _id: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+            },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              customFields: true,
+            },
+          },
+        },
+        {
+          componentId: `log-find-${r}-failed`,
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
+          args: {
+            value: `❌ Could not read the ${r} the note is on, so it was not posted to Zabbix. Why is in the run log above.`,
+          },
+        },
+        {
+          componentId: "build-message-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(2) },
+          args: {
+            code: zabbixNoteMessageScript(kind),
+            arguments: jsonText({
+              [r]: `{{local.components.find-${r}-1.returnValues.model}}`,
+              note: "{{local.components.note-on-create-1.returnValues.model}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-build-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
+          args: {
+            value:
+              "❌ Could not write the Zabbix message: {{local.components.build-message-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-post-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(3) },
+          args: proceedCondition("build-message-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
+          args: { value: `ℹ️ ${built("reason")}` },
+        },
+        {
+          componentId: "post-message-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(4) },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.acknowledge", {
+              eventids: [built("eventId")],
+              action: String(ZABBIX_ACTION_MESSAGE),
+              message: built("message"),
+            }),
+          },
+        },
+        {
+          componentId: "log-post-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
+          args: {
+            value: `❌ Could not reach Zabbix to add the note to problem ${built("eventId")}: {{local.components.post-message-1.returnValues.error}}\nZabbix said: {{local.components.post-message-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "check-answer-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(5) },
+          args: {
+            code: zabbixCheckAnswerScript(kind),
+            arguments: jsonText({
+              answer:
+                "{{local.components.post-message-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-posted",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: zabbixCanvasRow(6) },
+          args: {
+            value: `✅ Added the note to Zabbix problem ${built("eventId")} as a message.`,
+          },
+        },
+        {
+          componentId: "log-refused",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
+          args: {
+            value: `❌ Zabbix did not add the note to problem ${built("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "note-on-create-1",
+          toComponentId: `find-${r}-1`,
+          fromPort: "success",
+        },
+        {
+          fromComponentId: `find-${r}-1`,
+          toComponentId: "build-message-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: `find-${r}-1`,
+          toComponentId: `log-find-${r}-failed`,
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "build-message-1",
+          toComponentId: "if-post-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "build-message-1",
+          toComponentId: "log-build-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "post-message-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "post-message-1",
+          toComponentId: "check-answer-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "post-message-1",
+          toComponentId: "log-post-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-posted",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-refused",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+type ZabbixTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+) => Array<TemplateDefinition>;
+
+/*
+ * One kind's set, the workflow Zabbix sends its problems to first: the
+ * one to start with, and the one the two that write to Zabbix build on.
+ * Each is filed under its kind ("Incidents" or "Alerts"), which is how the
+ * picker splits the six into two lists.
+ */
+const zabbixTemplatesForKind: ZabbixTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+): Array<TemplateDefinition> => {
+  return [
+    zabbixProblemTemplate(kind),
+    zabbixStateTemplate(kind),
+    zabbixNoteTemplate(kind),
+  ].map((definition: TemplateDefinition): TemplateDefinition => {
+    return { ...definition, subcategory: kind.Plural };
+  });
+};
+
+const ZABBIX_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  ...zabbixTemplatesForKind(INCIDENT_KIND),
+  ...zabbixTemplatesForKind(ALERT_KIND),
+];
+
+/*
+ * WHAT IS POSTED TO A WEBHOOK, SHOWN IN SLACK.
+ *
+ * The webhook-to-slack template posts whatever its webhook receives into a
+ * Slack channel, inside a code block. Whoever has the webhook's address
+ * chooses what it receives. Slack treats "&", "<" and ">" as control
+ * characters everywhere in a message, a code block included - they start
+ * mentions such as "<!channel>", links such as "<https://...|words>" whose
+ * words hide where they go, and dates - and the script left them as they
+ * came. Three backticks in a row would end the code block and post the
+ * rest as an ordinary message; the script turned them into three quotes,
+ * so a payload with a fence in it did not read as it was sent, and one
+ * that started or ended with a backtick still ran into a fence.
+ *
+ * Now it writes "&", "<" and ">" as Slack's own apps write them (SlackUtil.
+ * escapeSlackText): "&amp;", "&lt;", "&gt;", which Slack shows as the
+ * characters themselves. And it puts the invisible word joiner FeedMarkdown
+ * uses (U+2060) between two backticks side by side and between a backtick
+ * and either fence, so the only backticks side by side in the message are
+ * its fences'. The payload reads exactly as it was sent, and nothing in it
+ * acts. A payload with none of those characters is posted exactly as
+ * before. A script runs in the workflow sandbox, which can import nothing,
+ * so it carries its own copy of the escaping, which
+ * WebhookPayloadInSlack.test.ts holds to escapeSlackText.
+ */
+const WEBHOOK_PAYLOAD_FOR_SLACK_SCRIPT: string = String.raw`// Writes what was POSTed to this workflow's webhook for the code block of the Slack message, which
+// puts what this returns between its two fences of three backticks.
+// The longest payload the message shows, counted as written here. A longer one is cut, and says so.
+const MAX_LENGTH = 2800;
+const BACKTICK = '\x60';
+const JOINER = '\u2060';
+
+const payload = typeof args === 'string' ? args : JSON.stringify(args || {}, null, 2);
+
+// Slack treats "&", "<" and ">" as control characters everywhere in a message, a code block too:
+// they start mentions such as <!channel>, links such as <https://...|words>, and dates. So each is
+// written the way Slack's own apps write it - &amp;, &lt; and &gt; - which Slack shows as the
+// character itself. Three backticks in a row would end the code block and post the rest as an
+// ordinary message: so an invisible word joiner (U+2060) goes between two backticks side by side,
+// and between a backtick and either fence. Everything else is written as it came, so the payload
+// reads as it was sent.
+let written = '';
+// The code block opens with a backtick.
+let last = BACKTICK;
+for (const character of payload) {
+  const escaped = character === '&' ? '&amp;' : character === '<' ? '&lt;' : character === '>' ? '&gt;' : character;
+  const piece = character === BACKTICK && last === BACKTICK ? JOINER + escaped : escaped;
+  if (written.length + piece.length > MAX_LENGTH) return written + '\n… payload truncated';
+  written += piece;
+  last = character;
+}
+// And it closes with one.
+return last === BACKTICK ? written + JOINER : written;
+`;
 
 const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   /* ----------------------------- Basics ----------------------------- */
@@ -3434,6 +9822,105 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "if-else-1",
           toComponentId: "log-other",
           fromPort: "no",
+        },
+      ],
+    },
+  },
+  {
+    id: "webhook-switch",
+    name: "Take one of several paths",
+    description:
+      "Reads a field out of the webhook body and logs a different line for each value it can have, and another for anything else.",
+    teaches:
+      "How Switch / Case sends one value down the first case it matches, or down Default.",
+    category: WorkflowTemplateCategory.Basics,
+    icon: IconProp.Switch,
+    workflowName: "Route webhook by environment",
+    workflowDescription:
+      "Posts to this workflow's webhook take one path for production, another for staging, and a third for anything else.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            value:
+              "{{local.components.webhook-1.returnValues.request-body.environment}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "production",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "staging",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "log-production",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -220, y: 540 },
+          args: {
+            value: "🚨 Production webhook received. Treating it as urgent.",
+          },
+        },
+        {
+          componentId: "log-staging",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 540 },
+          args: {
+            value:
+              "🧪 Staging webhook received. Logged for the team to look at.",
+          },
+        },
+        {
+          componentId: "log-other",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 420, y: 540 },
+          args: {
+            value:
+              "ℹ️ Webhook from another environment: {{local.components.webhook-1.returnValues.request-body.environment}}. Logged without alerting.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "switch-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-production",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-staging",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
         },
       ],
     },
@@ -3705,6 +10192,275 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     },
   },
   {
+    id: "incident-created-irc",
+    name: "Tell IRC when an incident opens",
+    description:
+      "Posts a short incident summary to an IRC channel the moment the incident is declared.",
+    teaches:
+      "How a message of several lines reaches a chat that takes one line at a time.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Chat,
+    workflowName: "Notify IRC on new incident",
+    workflowDescription:
+      "Posts to an IRC channel whenever an incident is created in this project.",
+    variables: [IRC_SERVER, IRC_CHANNEL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "irc-1",
+          metadataId: ComponentID.IRCSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            server: "{{local.variables.ircServer}}",
+            channel: "{{local.variables.ircChannel}}",
+            // Each line is an IRC message of its own.
+            text: [
+              "🚨 Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared: {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "Severity: {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}} | State: {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ IRC could not deliver the incident notification: {{local.components.irc-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "irc-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "irc-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-created-mattermost",
+    name: "Tell Mattermost when an incident opens",
+    description:
+      "Posts a clear incident summary to a Mattermost channel the moment the incident is declared.",
+    teaches:
+      "How a database trigger feeds a chat on a server of your own, through its incoming webhook.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Chat,
+    workflowName: "Notify Mattermost on new incident",
+    workflowDescription:
+      "Posts to Mattermost whenever an incident is created in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":rotating_light: **Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared**",
+              "**Title:** {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "**Severity:** {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+              "**State:** {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the incident notification: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-severity-slack",
+    name: "Send each new incident to the right Slack channel by severity",
+    description:
+      "Posts critical incidents to one Slack channel and major ones to another, and only logs the rest.",
+    teaches:
+      "How Switch / Case sends one value - the incident's severity - down a different path for each case, and the rest down Default.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Switch,
+    workflowName: "Route new incidents to Slack by severity",
+    workflowDescription:
+      "Critical incidents go to the urgent Slack channel, major ones to the team's, and every other severity is logged. If your severities have other names, change the cases to match them.",
+    variables: [SLACK_CRITICAL_WEBHOOK_URL, SLACK_MAJOR_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          /*
+           * Its cases' names make the card wider than the trigger above it
+           * (Workflow/PortLayout), so it starts further left: centred under
+           * the trigger, the connection into it runs straight down, and so
+           * does the one from its middle case to slack-major.
+           */
+          position: { x: 32, y: 300 },
+          args: {
+            value:
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "Critical Incident",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "Major Incident",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "slack-critical",
+          metadataId: ComponentID.SlackSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 560 },
+          args: {
+            "webhook-url": "{{local.variables.slackCriticalWebhookUrl}}",
+            text: [
+              ":rotating_light: *Critical incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared*",
+              "*Title:* {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "*State:* {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "slack-major",
+          metadataId: ComponentID.SlackSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 560 },
+          args: {
+            "webhook-url": "{{local.variables.slackMajorWebhookUrl}}",
+            text: [
+              ":warning: *Major incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared*",
+              "*Title:* {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "*State:* {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-other-severity",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 460, y: 560 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so it was not posted to Slack.",
+          },
+        },
+        {
+          componentId: "log-critical-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 800 },
+          args: {
+            value:
+              "❌ Slack could not deliver the critical incident: {{local.components.slack-critical.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "log-major-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 800 },
+          args: {
+            value:
+              "❌ Slack could not deliver the major incident: {{local.components.slack-major.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "switch-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "slack-critical",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "slack-major",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other-severity",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
+        },
+        {
+          fromComponentId: "slack-critical",
+          toComponentId: "log-critical-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "slack-major",
+          toComponentId: "log-major-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
     id: "incident-state-changed-slack",
     name: "Tell Slack when an incident changes state",
     description:
@@ -3762,6 +10518,70 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "slack-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-state-changed-mattermost",
+    name: "Tell Mattermost when an incident changes state",
+    description:
+      "Posts to a Mattermost channel each time an incident moves to a new state: acknowledged, resolved, and anything else.",
+    teaches:
+      "How Listen On keeps an update trigger to the one field a channel wants to hear about.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.ArrowPath,
+    workflowName: "Notify Mattermost on incident state change",
+    workflowDescription:
+      "Posts to Mattermost whenever an incident's state changes. Edit Listen On to watch other fields.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-update-1",
+          metadataId: "incident-on-update",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": { currentIncidentStateId: true },
+            select: INCIDENT_SELECT,
+          },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":arrows_counterclockwise: **Incident {{local.components.incident-on-update-1.returnValues.model.incidentNumberWithPrefix}} changed state**",
+              "**Title:** {{local.components.incident-on-update-1.returnValues.model.title}}",
+              "**New state:** {{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the incident state update: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-update-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },
@@ -3832,6 +10652,97 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       edges: [
         {
           fromComponentId: "incident-on-create-1",
+          toComponentId: "api-post-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "api-post-1",
+          toComponentId: "log-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  /*
+   * One workflow for a new incident and a changed one: On Create or Update
+   * (Types/Workflow/CreateOrUpdateTrigger). The body says which it was, so
+   * the system on the other end creates its copy once and updates it after.
+   * It watches only what that copy shows, so OneUptime's own bookkeeping on
+   * the incident sends nothing.
+   */
+  {
+    id: "incident-created-or-updated-forward",
+    name: "Keep another system up to date with your incidents",
+    description:
+      "POSTs each new incident, and each change to its title, description, state or severity, to a URL of yours, marked created or updated.",
+    teaches:
+      "How one trigger covers a new record and a change to one, and how What Happened tells the two apart.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Refresh,
+    workflowName: "Keep incidents in step with another system",
+    workflowDescription:
+      "POSTs each new or changed incident to an endpoint you control, saying whether it was created or updated.",
+    variables: [
+      {
+        name: "forwardUrl",
+        title: "Destination URL",
+        description:
+          "The endpoint that should receive the POST. It will get a JSON body with the incident's fields, and whether the incident was created or updated.",
+        placeholder: "https://example.com/hooks/oneuptime-incidents",
+        required: true,
+        isSecret: true,
+      },
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-or-update-1",
+          metadataId: "incident-on-create-or-update",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": {
+              title: true,
+              description: true,
+              currentIncidentStateId: true,
+              incidentSeverityId: true,
+            },
+            select: INCIDENT_SELECT,
+          },
+        },
+        {
+          componentId: "api-post-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            url: "{{local.variables.forwardUrl}}",
+            "request-body": [
+              "{",
+              '  "event": "{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}",',
+              '  "id": "{{local.components.incident-on-create-or-update-1.returnValues.model._id}}",',
+              '  "number": "{{local.components.incident-on-create-or-update-1.returnValues.model.incidentNumber}}",',
+              '  "title": "{{local.components.incident-on-create-or-update-1.returnValues.model.title}}",',
+              '  "severity": "{{local.components.incident-on-create-or-update-1.returnValues.model.incidentSeverity.name}}",',
+              '  "state": "{{local.components.incident-on-create-or-update-1.returnValues.model.currentIncidentState.name}}"',
+              "}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Could not send the incident: {{local.components.api-post-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-or-update-1",
           toComponentId: "api-post-1",
           fromPort: "success",
         },
@@ -4082,6 +10993,68 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       ],
     },
   },
+  {
+    id: "alert-created-mattermost",
+    name: "Tell Mattermost when an alert fires",
+    description:
+      "Posts the alert's title, severity and state to a Mattermost channel as soon as it is raised.",
+    teaches:
+      "How one secret setting, kept as a variable, serves the whole workflow.",
+    category: WorkflowTemplateCategory.Alerts,
+    icon: IconProp.Chat,
+    workflowName: "Notify Mattermost on new alert",
+    workflowDescription:
+      "Posts to Mattermost whenever an alert is created in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "alert-on-create-1",
+          metadataId: "alert-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: ALERT_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":warning: **Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired**",
+              "**Title:** {{local.components.alert-on-create-1.returnValues.model.title}}",
+              "**Severity:** {{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}",
+              "**State:** {{local.components.alert-on-create-1.returnValues.model.currentAlertState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the alert notification: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "alert-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
 
   /* ----------------------------- Monitors ----------------------------- */
   {
@@ -4241,6 +11214,67 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     },
   },
   {
+    id: "monitor-status-changed-mattermost",
+    name: "Tell Mattermost when a monitor changes status",
+    description:
+      "Posts to a Mattermost channel every time a monitor goes down, comes back, or changes status in any way.",
+    teaches:
+      "How a status change is a record of its own, which names the monitor and its new status.",
+    category: WorkflowTemplateCategory.Monitors,
+    icon: IconProp.Heartbeat,
+    workflowName: "Notify Mattermost on monitor status change",
+    workflowDescription:
+      "Posts to Mattermost whenever a monitor's status changes in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "monitor-status-timeline-on-create-1",
+          metadataId: "monitor-status-timeline-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: MONITOR_STATUS_TIMELINE_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":satellite: **Monitor status changed**",
+              "**Monitor:** {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitor.name}}",
+              "**New status:** {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the monitor status update: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "monitor-status-timeline-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
     id: "monitor-status-changed-forward",
     name: "Forward monitor status changes to another system",
     description:
@@ -4379,6 +11413,337 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "slack-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
+        },
+      ],
+    },
+  },
+
+  /*
+   * PAGING. Each of these leaves one setting for whoever creates the
+   * workflow: who to page. That is a person, a team, a schedule or a policy
+   * of their own project, picked by name, which no template can know and no
+   * wizard field can ask for. The workflow is created switched off and opens
+   * in the builder, where the Page step says "Click to set up"; everything
+   * else about the page is filled in.
+   */
+  {
+    id: "incident-critical-page-on-call",
+    name: "Page whoever is on call when a critical incident is created",
+    description:
+      "Checks each new incident's severity and, when it is critical, pages the person on call in a schedule you pick.",
+    teaches:
+      "How an If / Else in front of a Page step makes paging conditional. Open the Page step and pick the schedule.",
+    setUpInBuilder: "An on-call schedule to page. You pick it in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.Call,
+    workflowName: "Page on-call for critical incidents",
+    workflowDescription:
+      "Pages whoever is on call in the schedule you pick when a critical incident is created, about that incident. If your most severe incidents are called something else, change what the If / Else compares with.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "if-else-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "input-1-type": ConditionValueType.Text,
+            "input-1":
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            operator: ConditionOperator.EqualTo,
+            "input-2-type": ConditionValueType.Text,
+            "input-2": "Critical Incident",
+          },
+        },
+        {
+          componentId: "page-on-call-1",
+          metadataId: ComponentID.PageOnCall,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 500 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "log-not-critical",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
+          },
+        },
+        {
+          componentId: "log-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -300, y: 720 },
+          args: {
+            value:
+              "📟 {{local.components.page-on-call-1.returnValues.summary}}",
+          },
+        },
+        {
+          componentId: "log-nobody-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 20, y: 720 },
+          args: {
+            value:
+              "❌ Nobody was paged for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}: {{local.components.page-on-call-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "if-else-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "if-else-1",
+          toComponentId: "page-on-call-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-else-1",
+          toComponentId: "log-not-critical",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "page-on-call-1",
+          toComponentId: "log-paged",
+          fromPort: PAGE_SUCCESS_PORT_ID,
+        },
+        {
+          fromComponentId: "page-on-call-1",
+          toComponentId: "log-nobody-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-severity-page",
+    name: "Page different people for each incident severity",
+    description:
+      "Starts an on-call policy you pick for critical incidents, pages a team you pick for major ones, and only logs the rest.",
+    teaches:
+      "How Switch / Case makes paging depend on a value, with a different Page step on each path. Open each Page step and pick who it pages.",
+    setUpInBuilder:
+      "An on-call policy and a team to page. You pick them in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.Switch,
+    workflowName: "Page by incident severity",
+    workflowDescription:
+      "Critical incidents start the on-call policy you pick, with its escalation rules. Major ones page every member of the team you pick. Every other severity is logged. If your severities have other names, change the cases to match them.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          /*
+           * Wider than the trigger above it, as its cases' names make it
+           * (Workflow/PortLayout), so it starts further left: centred under
+           * the trigger, and its middle case straight above page-team-1.
+           */
+          position: { x: 32, y: 300 },
+          args: {
+            value:
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "Critical Incident",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "Major Incident",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "page-on-call-policy-1",
+          metadataId: ComponentID.PageOnCallPolicy,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 560 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "page-team-1",
+          metadataId: ComponentID.PageTeam,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 560 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "log-other-severity",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 460, y: 560 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
+          },
+        },
+        {
+          componentId: "log-policy-not-started",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 800 },
+          args: {
+            value:
+              "❌ No on-call policy was started for the critical incident: {{local.components.page-on-call-policy-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "log-team-not-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 800 },
+          args: {
+            value:
+              "❌ Nobody was paged for the major incident: {{local.components.page-team-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "switch-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "page-on-call-policy-1",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "page-team-1",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other-severity",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
+        },
+        {
+          fromComponentId: "page-on-call-policy-1",
+          toComponentId: "log-policy-not-started",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+        {
+          fromComponentId: "page-team-1",
+          toComponentId: "log-team-not-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+      ],
+    },
+  },
+  {
+    id: "webhook-page-users",
+    name: "Page someone when another tool calls a webhook",
+    description:
+      "Gives you a URL. A POST to it pages the people you pick, with the title and message it sent, and opens an alert they can acknowledge.",
+    teaches:
+      "How paging works with no incident behind it: the Page step's title and message become a new alert. Open the Page step and pick who to page.",
+    setUpInBuilder: "People to page. You pick them in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.User,
+    workflowName: "Page people from a webhook",
+    workflowDescription:
+      "Anything that can send a POST with a title and a message to this workflow's webhook pages the people you pick. OneUptime creates an alert from the title and the message, and acknowledging the page acknowledges it.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "page-users-1",
+          metadataId: ComponentID.PageUsers,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.NewAlert,
+            [PAGE_ARGUMENT_IDS.title]:
+              "{{local.components.webhook-1.returnValues.request-body.title}}",
+            [PAGE_ARGUMENT_IDS.message]:
+              "{{local.components.webhook-1.returnValues.request-body.message}}",
+          },
+        },
+        {
+          componentId: "log-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 520 },
+          args: {
+            value: "📟 {{local.components.page-users-1.returnValues.summary}}",
+          },
+        },
+        {
+          componentId: "log-nobody-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 520 },
+          args: {
+            value:
+              "❌ Nobody was paged: {{local.components.page-users-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "page-users-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "page-users-1",
+          toComponentId: "log-paged",
+          fromPort: PAGE_SUCCESS_PORT_ID,
+        },
+        {
+          fromComponentId: "page-users-1",
+          toComponentId: "log-nobody-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
         },
       ],
     },
@@ -4747,6 +12112,76 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "slack-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "maintenance-scheduled-mattermost",
+    name: "Announce scheduled maintenance in Mattermost",
+    description:
+      "Posts the title and window to a Mattermost channel as soon as a maintenance event is scheduled.",
+    teaches:
+      "How a record's dates come out of a trigger, as the times they hold.",
+    category: WorkflowTemplateCategory.ScheduledMaintenance,
+    icon: IconProp.Calendar,
+    workflowName: "Announce maintenance in Mattermost",
+    workflowDescription:
+      "Posts to Mattermost whenever a scheduled maintenance event is created.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "maintenance-on-create-1",
+          metadataId: "scheduled-maintenance-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              title: true,
+              scheduledMaintenanceNumberWithPrefix: true,
+              startsAt: true,
+              endsAt: true,
+            },
+          },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":calendar: **Scheduled maintenance {{local.components.maintenance-on-create-1.returnValues.model.scheduledMaintenanceNumberWithPrefix}}**",
+              "**Title:** {{local.components.maintenance-on-create-1.returnValues.model.title}}",
+              "**Starts (UTC):** {{local.components.maintenance-on-create-1.returnValues.model.startsAt.value}}",
+              "**Ends (UTC):** {{local.components.maintenance-on-create-1.returnValues.model.endsAt.value}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the maintenance announcement: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "maintenance-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },
@@ -5137,6 +12572,15 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   /* ------------------------------- Jira ------------------------------- */
   ...JIRA_TEMPLATE_DEFINITIONS,
 
+  /* --------------------------- Dynamics 365 --------------------------- */
+  ...DYNAMICS_365_TEMPLATE_DEFINITIONS,
+
+  /* ----------------------------- Huntress ----------------------------- */
+  ...HUNTRESS_TEMPLATE_DEFINITIONS,
+
+  /* ------------------------------- Zabbix ------------------------------- */
+  ...ZABBIX_TEMPLATE_DEFINITIONS,
+
   /* --------------------------- Integrations --------------------------- */
   {
     id: "webhook-to-slack",
@@ -5164,15 +12608,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           componentType: ComponentType.Component,
           position: { x: 100, y: 300 },
           args: {
-            code: [
-              "const payload = typeof args === 'string' ? args : JSON.stringify(args || {}, null, 2);",
-              "const safePayload = payload.replace(/```/g, \"'''\");",
-              "const maxLength = 2800;",
-              "",
-              "return safePayload.length > maxLength",
-              "  ? `${safePayload.slice(0, maxLength)}\\n… payload truncated`",
-              "  : safePayload;",
-            ].join("\n"),
+            code: WEBHOOK_PAYLOAD_FOR_SLACK_SCRIPT,
             arguments:
               "{{local.components.webhook-1.returnValues.request-body}}",
           },
@@ -5402,6 +12838,168 @@ export const buildGraphForTemplate: BuildGraphForTemplateFunction = (
   }
 
   return buildTemplateGraph(spec, generateId);
+};
+
+/*
+ * The handful the picker opens on. Forty-odd templates shown at once, each as
+ * large as the next, is a wall nobody can choose from, so the picker starts
+ * on these and leaves the rest to the categories and the search. They cover
+ * the jobs people most often come to workflows for: tell the team's chat
+ * about a new incident (in Slack or in Teams), hear about a monitor only when
+ * it is down, open a Jira issue, send each incident to another system, and
+ * watch an endpoint on a schedule. Each works with nothing more than the
+ * settings it asks for - no AI provider, no Jira webhook to register first.
+ * In the order the picker lists them.
+ */
+export const RECOMMENDED_WORKFLOW_TEMPLATE_IDS: ReadonlyArray<string> = [
+  "incident-created-slack",
+  "incident-created-teams",
+  "monitor-offline-only-slack",
+  "jira-create-issue-for-incident",
+  "incident-created-forward",
+  "scheduled-check-alert-slack",
+];
+
+export type GetRecommendedWorkflowTemplatesFunction =
+  () => Array<WorkflowTemplate>;
+
+export const getRecommendedWorkflowTemplates: GetRecommendedWorkflowTemplatesFunction =
+  (): Array<WorkflowTemplate> => {
+    return RECOMMENDED_WORKFLOW_TEMPLATE_IDS.map(
+      (templateId: string): WorkflowTemplate | null => {
+        return getWorkflowTemplate(templateId);
+      },
+    ).filter(
+      (template: WorkflowTemplate | null): template is WorkflowTemplate => {
+        return template !== null;
+      },
+    );
+  };
+
+/*
+ * What a template is made of, for the picker's preview: its trigger, then
+ * every other kind of block in it.
+ */
+export interface WorkflowTemplateOutline {
+  /** The trigger's component id, such as "incident-on-create". */
+  triggerComponentId: string;
+  /**
+   * Every other kind of block, once each. In the order a run can reach them
+   * from the trigger, the way things go when they work before the ways they
+   * fail, so the part the template is about comes first. Log goes last:
+   * nearly every path in a template ends in one, and it would otherwise lead
+   * the list.
+   */
+  stepComponentIds: Array<string>;
+  /** How many blocks the created workflow has, the trigger included. */
+  blockCount: number;
+}
+
+/*
+ * Ports a run leaves by when things go wrong, or when a check says no. Their
+ * blocks are listed after the ones on the way that works. Not a reason to
+ * leave them out: "Check an API and notify Slack if it fails" posts to Slack
+ * from its Error port, and that is the whole point of it.
+ */
+const SIDE_PORTS: ReadonlyArray<string> = [
+  "no",
+  "error",
+  // A Switch / Case's Default: where everything no case matched goes.
+  SWITCH_DEFAULT_PORT_ID,
+];
+
+export type GetWorkflowTemplateOutlineFunction = (
+  templateId: string,
+) => WorkflowTemplateOutline | null;
+
+export const getWorkflowTemplateOutline: GetWorkflowTemplateOutlineFunction = (
+  templateId: string,
+): WorkflowTemplateOutline | null => {
+  const spec: TemplateGraphSpec | null = getTemplateGraphSpec(templateId);
+
+  if (!spec) {
+    return null;
+  }
+
+  const trigger: TemplateNodeSpec | undefined = spec.nodes.find(
+    (node: TemplateNodeSpec) => {
+      return node.componentType === ComponentType.Trigger;
+    },
+  );
+
+  if (!trigger) {
+    return null;
+  }
+
+  const nodeByComponentId: Map<string, TemplateNodeSpec> = new Map();
+
+  for (const node of spec.nodes) {
+    nodeByComponentId.set(node.componentId, node);
+  }
+
+  type PortRankFunction = (edge: TemplateEdgeSpec) => number;
+
+  const portRank: PortRankFunction = (edge: TemplateEdgeSpec): number => {
+    return SIDE_PORTS.includes(edge.fromPort) ? 1 : 0;
+  };
+
+  // Breadth first from the trigger, so blocks near the start come first.
+  const visitOrder: Array<TemplateNodeSpec> = [];
+  const visited: Set<string> = new Set([trigger.componentId]);
+  const queue: Array<string> = [trigger.componentId];
+
+  while (queue.length > 0) {
+    const componentId: string = queue.shift() as string;
+
+    const outgoing: Array<TemplateEdgeSpec> = spec.edges
+      .filter((edge: TemplateEdgeSpec) => {
+        return edge.fromComponentId === componentId;
+      })
+      .sort((a: TemplateEdgeSpec, b: TemplateEdgeSpec): number => {
+        return portRank(a) - portRank(b);
+      });
+
+    for (const edge of outgoing) {
+      const next: TemplateNodeSpec | undefined = nodeByComponentId.get(
+        edge.toComponentId,
+      );
+
+      if (next && !visited.has(next.componentId)) {
+        visited.add(next.componentId);
+        visitOrder.push(next);
+        queue.push(next.componentId);
+      }
+    }
+  }
+
+  // Anything no edge reaches still exists in the workflow, so it is listed too.
+  for (const node of spec.nodes) {
+    if (!visited.has(node.componentId)) {
+      visited.add(node.componentId);
+      visitOrder.push(node);
+    }
+  }
+
+  const stepComponentIds: Array<string> = [];
+
+  for (const node of visitOrder) {
+    if (!stepComponentIds.includes(node.metadataId)) {
+      stepComponentIds.push(node.metadataId);
+    }
+  }
+
+  const logIndex: number = stepComponentIds.indexOf(ComponentID.Log);
+
+  if (logIndex !== -1) {
+    stepComponentIds.splice(logIndex, 1);
+    stepComponentIds.push(ComponentID.Log);
+  }
+
+  return {
+    triggerComponentId: trigger.metadataId,
+    stepComponentIds: stepComponentIds,
+    blockCount: spec.nodes.length,
+  };
 };
 
 export default getWorkflowTemplates;

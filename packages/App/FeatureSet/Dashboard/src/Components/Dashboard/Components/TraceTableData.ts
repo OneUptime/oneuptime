@@ -1,5 +1,6 @@
 import { JSONObject } from "Common/Types/JSON";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
+import { DashboardWidgetSortChoice } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { getResourceFacetLabelMap } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
@@ -9,6 +10,7 @@ import {
   formatDurationMs,
   resolveTraceAttributeFilters,
 } from "./TraceChartData";
+import { getSpanStatusDisplayLabelMap } from "../../../Utils/SpanStatusPresentation";
 
 /*
  * Pure, React-free data helpers for the trace table widget. Kept out of the
@@ -46,6 +48,30 @@ export interface BuildTraceTableRequestParams {
   startTime: Date;
   endTime: Date;
   variables?: Array<DashboardVariable> | undefined;
+  /*
+   * The table's order (issue #5082): the server ranks the groups by it
+   * before the top limit, so the table shows the top groups of the whole
+   * window by that column. Left out, the busiest groups come first.
+   */
+  sort?: DashboardWidgetSortChoice | null | undefined;
+}
+
+/*
+ * Whether a table grouped by this dimension can sort by its group column.
+ * A resource dimension (a host, a cluster) is grouped by an id the server
+ * names only after it has ranked the rows, so ordering by it would order
+ * by ids, not by the names shown.
+ */
+export function isTraceTableGroupSortable(
+  groupByAttribute: string | undefined,
+): boolean {
+  const key: string = (groupByAttribute || "").trim();
+
+  if (!key) {
+    return false;
+  }
+
+  return !Object.prototype.hasOwnProperty.call(getResourceFacetLabelMap(), key);
 }
 
 /*
@@ -99,6 +125,17 @@ export function buildTraceTableRequest(
     requestData["groupBy"] = [groupByAttribute];
   }
 
+  if (
+    params.sort &&
+    (params.sort.column !== "group" ||
+      isTraceTableGroupSortable(groupByAttribute))
+  ) {
+    requestData["tableSort"] = {
+      column: params.sort.column,
+      direction: params.sort.direction,
+    };
+  }
+
   return requestData;
 }
 
@@ -129,11 +166,7 @@ export function dimensionLabel(key: string): string {
   return DIMENSION_LABELS[key] || key;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  "0": "Unset",
-  "1": "Ok",
-  "2": "Error",
-};
+const STATUS_LABELS: Record<string, string> = getSpanStatusDisplayLabelMap();
 
 const KIND_LABELS: Record<string, string> = {
   "0": "Unspecified",

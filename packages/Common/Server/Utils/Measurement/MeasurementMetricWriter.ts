@@ -7,6 +7,10 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import {
+  convertMeasurementValueFromSeconds,
+  getMeasurementUnit,
+} from "../../../Types/Measurement/MeasurementUnit";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import { JSONObject } from "../../../Types/JSON";
 import logger from "../Logger";
@@ -17,6 +21,10 @@ export interface MeasurementMetricPoint {
   measurementKey: string;
   measurementName: string;
   description?: string | undefined;
+  /*
+   * The measurement's unit, as stored: the value is written in it and the
+   * metric is registered with it (Types/Measurement/MeasurementUnit).
+   */
   unit?: string | undefined;
   valueInSeconds: number;
   time: Date;
@@ -73,7 +81,15 @@ export default class MeasurementMetricWriter {
        * definitions would make each refresh overwrite the others.
        */
       metric.metricPointId = `measurement:${point.measurementId}`;
-      metric.value = point.valueInSeconds;
+      /*
+       * In the measurement's unit, which is what the metric is registered
+       * with below: a chart labels the number with the unit, so the number
+       * has to be in it. Seconds - the default - stay as they are.
+       */
+      metric.value = convertMeasurementValueFromSeconds({
+        valueInSeconds: point.valueInSeconds,
+        unit: point.unit,
+      });
       metric.time = point.time;
       metric.timeUnixNano = OneUptimeDate.toUnixNano(point.time);
       metric.metricPointType = MetricPointType.Sum;
@@ -99,7 +115,11 @@ export default class MeasurementMetricWriter {
       metricType.description =
         point.description ||
         `${point.measurementName}, a measurement defined for this project`;
-      metricType.unit = point.unit || "seconds";
+      /*
+       * The unit the value above was written in - "seconds", "minutes",
+       * "hours" or "days" - never a spelling a chart cannot read as one.
+       */
+      metricType.unit = getMeasurementUnit(point.unit);
       metricTypesMap[point.metricName] = metricType;
     }
 

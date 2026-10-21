@@ -1,4 +1,6 @@
 import Skeleton from "../Skeleton/Skeleton";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -17,6 +19,7 @@ export interface ComponentProps {
 const ListSkeleton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Enough cards to look like a page without painting offscreen ones.
   const cardCount: number = Math.max(1, Math.min(props.itemsOnPage || 0, 6));
   const cardIndexes: Array<number> = Array.from(Array(cardCount).keys());
@@ -31,7 +34,7 @@ const ListSkeleton: FunctionComponent<ComponentProps> = (
       aria-live="polite"
       className="space-y-6 p-6 border-t border-gray-200"
     >
-      <span className="sr-only">Loading...</span>
+      <span className="sr-only">{translator.translateText("Loading...")}</span>
       {cardIndexes.map((cardIndex: number) => {
         return (
           <div key={cardIndex} className="space-y-3">

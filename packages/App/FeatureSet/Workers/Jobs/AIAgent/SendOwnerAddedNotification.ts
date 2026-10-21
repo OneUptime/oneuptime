@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -169,10 +170,7 @@ RunCron(
         aiAgentDescription: aiAgent.description || "No description provided",
         projectName: aiAgent.project!.name!,
         viewAIAgentLink: (
-          await AIAgentService.getLinkInDashboard(
-            aiAgent.projectId!,
-            aiAgent.id!,
-          )
+          await AIAgentService.getLinkInDashboard(aiAgent.projectId!)
         ).toString(),
       };
 
@@ -185,7 +183,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the AI agent: ${aiAgent.name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the AI agent: ${aiAgent.name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -201,10 +201,7 @@ RunCron(
             title: "Added as AI Agent Owner",
             body: `You have been added as the owner of the AI agent: ${aiAgent.name!}. Click to view details.`,
             clickAction: (
-              await AIAgentService.getLinkInDashboard(
-                aiAgent.projectId!,
-                aiAgent.id!,
-              )
+              await AIAgentService.getLinkInDashboard(aiAgent.projectId!)
             ).toString(),
             tag: "ai-agent-owner-added",
             requireInteraction: false,

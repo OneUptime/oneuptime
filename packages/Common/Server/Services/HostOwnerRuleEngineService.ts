@@ -26,6 +26,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class HostOwnerRuleEngineServiceClass
   implements RuleRunEngine<Host, HostOwnerRule>
@@ -119,6 +123,7 @@ class HostOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     host: Host;
     rules: Array<HostOwnerRule>;
@@ -287,15 +292,17 @@ class HostOwnerRuleEngineServiceClass
       projectId: host.projectId,
       hostFeedEventType: HostFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await HostService.getHostMarkdownLink(
-        host.projectId,
-        host.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: HostOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await HostService.getHostMarkdownLink(
+          host.projectId,
+          host.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: HostOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -356,8 +363,7 @@ class HostOwnerRuleEngineServiceClass
     rule: HostOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in host owner rule ${rule.id}: ${pattern}`);
       return false;

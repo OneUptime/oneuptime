@@ -17,6 +17,10 @@ import Button, {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionCheckableModel,
+} from "Common/UI/Utils/PermissionGate";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -33,6 +37,8 @@ import React, {
 
 export interface ComponentProps {
   projectId: ObjectID;
+  // Passed to the card, e.g. to drop its margin inside a spaced layout.
+  className?: string | undefined;
 }
 
 interface GettingStartedTask {
@@ -42,8 +48,36 @@ interface GettingStartedTask {
   icon: IconProp;
   iconBackgroundClassName: string;
   pageMap: PageMap;
+  /*
+   * A page of its own that creates what the step asks for. Only someone who
+   * may create that model is sent there: a create form they cannot submit
+   * would only fail at the end (issue #3306). Everyone else lands on
+   * `pageMap`, whose create button is shown disabled, with the reason.
+   */
+  createPage?:
+    | {
+        pageMap: PageMap;
+        modelType: { new (): PermissionCheckableModel };
+      }
+    | undefined;
   isComplete: (projectId: ObjectID) => Promise<boolean>;
 }
+
+type GetTaskPageMapFunction = (task: GettingStartedTask) => PageMap;
+
+const getTaskPageMap: GetTaskPageMapFunction = (
+  task: GettingStartedTask,
+): PageMap => {
+  if (
+    task.createPage &&
+    PermissionGate.check(new task.createPage.modelType(), ModelAction.Create)
+      .isAllowed
+  ) {
+    return task.createPage.pageMap;
+  }
+
+  return task.pageMap;
+};
 
 const gettingStartedTasks: Array<GettingStartedTask> = [
   {
@@ -54,6 +88,11 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
     icon: IconProp.AltGlobe,
     iconBackgroundClassName: "bg-indigo-500",
     pageMap: PageMap.MONITORS,
+    // The step says "create", so it opens the form, not the (empty) list.
+    createPage: {
+      pageMap: PageMap.MONITOR_CREATE,
+      modelType: Monitor,
+    },
     isComplete: async (projectId: ObjectID): Promise<boolean> => {
       return (
         (await ModelAPI.count<Monitor>({
@@ -87,7 +126,12 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
       "Bring teammates on board so the right people can respond when something breaks.",
     icon: IconProp.Team,
     iconBackgroundClassName: "bg-amber-500",
-    pageMap: PageMap.TEAMS,
+    /*
+     * Users, not Teams: the Teams page lists the three built-in teams and
+     * offers "Create Team", with no way to invite anyone. "Invite User" is on
+     * the Users page.
+     */
+    pageMap: PageMap.USERS,
     isComplete: async (projectId: ObjectID): Promise<boolean> => {
       // every project starts with its creator as the first team member.
       return (
@@ -147,38 +191,52 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     useState<Dictionary<boolean> | null>(null);
 
   const fetchTaskCompletion: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      const results: Array<boolean> = await Promise.all(
+    /*
+     * Each step is checked on its own. One count that failed - a role that
+     * may not read on-call policies, a request that did not come back - used
+     * to hide the whole checklist, and every step that could be checked with
+     * it. A step whose check failed is left out of this visit (it would only
+     * lead somewhere the user may not go), and the checklist is a
+     * progressive enhancement: it goes only when no step could be checked.
+     */
+    const results: Array<PromiseSettledResult<boolean>> =
+      await Promise.allSettled(
         gettingStartedTasks.map((task: GettingStartedTask) => {
           return task.isComplete(props.projectId);
         }),
       );
 
-      const completion: Dictionary<boolean> = {};
+    const completion: Dictionary<boolean> = {};
 
-      gettingStartedTasks.forEach((task: GettingStartedTask, i: number) => {
-        completion[task.key] = results[i] || false;
-      });
+    gettingStartedTasks.forEach((task: GettingStartedTask, i: number) => {
+      const result: PromiseSettledResult<boolean> | undefined = results[i];
 
-      const isEveryTaskComplete: boolean = gettingStartedTasks.every(
-        (task: GettingStartedTask) => {
-          return completion[task.key];
-        },
-      );
-
-      if (isEveryTaskComplete) {
-        /*
-         * A finished checklist never renders again — remember that, so
-         * future Home visits skip these count requests entirely.
-         */
-        LocalStorage.setItem(getCompleteKey(props.projectId), true);
+      if (result && result.status === "fulfilled") {
+        completion[task.key] = Boolean(result.value);
       }
+    });
 
-      setTaskCompletion(completion);
-    } catch {
-      // the checklist is a progressive enhancement — hide it if we cannot load it.
+    if (Object.keys(completion).length === 0) {
       setTaskCompletion(null);
+      return;
     }
+
+    const isEveryTaskComplete: boolean = gettingStartedTasks.every(
+      (task: GettingStartedTask) => {
+        return completion[task.key] === true;
+      },
+    );
+
+    if (isEveryTaskComplete) {
+      /*
+       * A finished checklist never renders again — remember that, so
+       * future Home visits skip these count requests entirely. Only when
+       * every step was checked: a step that could not be is not done.
+       */
+      LocalStorage.setItem(getCompleteKey(props.projectId), true);
+    }
+
+    setTaskCompletion(completion);
   };
 
   useEffect(() => {
@@ -214,13 +272,20 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const completedCount: number = gettingStartedTasks.filter(
+  // The steps that could be checked this visit (fetchTaskCompletion).
+  const shownTasks: Array<GettingStartedTask> = gettingStartedTasks.filter(
+    (task: GettingStartedTask) => {
+      return task.key in taskCompletion;
+    },
+  );
+
+  const completedCount: number = shownTasks.filter(
     (task: GettingStartedTask) => {
       return taskCompletion[task.key];
     },
   ).length;
 
-  if (completedCount === gettingStartedTasks.length) {
+  if (completedCount === shownTasks.length) {
     return <></>;
   }
 
@@ -234,6 +299,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
+      className={props.className}
       title="Welcome to OneUptime 👋"
       description="A few quick steps and your project will be up and running. Pick up where you left off anytime."
       rightElement={
@@ -250,41 +316,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         <div className="mb-6 max-w-md">
           <ProgressBar
             count={completedCount}
-            totalCount={gettingStartedTasks.length}
+            totalCount={shownTasks.length}
             suffix={tx("steps completed")}
             size={ProgressBarSize.Small}
           />
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {gettingStartedTasks.map((task: GettingStartedTask) => {
+          {shownTasks.map((task: GettingStartedTask) => {
             const isComplete: boolean = taskCompletion[task.key] || false;
 
-            const goToTask: () => void = (): void => {
-              if (isComplete) {
-                return;
-              }
-              UiAnalytics.capture("dashboard/home/getting-started-task", {
-                projectId: props.projectId.toString(),
-                task: task.key,
-              });
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(RouteMap[task.pageMap] as Route),
-              );
-            };
-
-            return (
-              <div
-                key={task.key}
-                onClick={goToTask}
-                role={isComplete ? undefined : "button"}
-                data-testid={`getting-started-task-${task.key}`}
-                className={`group flex items-start gap-4 rounded-lg border p-4 transition ${
-                  isComplete
-                    ? "border-gray-200 bg-gray-50"
-                    : "cursor-pointer border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md"
-                }`}
-              >
-                <div
+            // Spans, not divs: a button may only hold phrasing content.
+            const tileContent: ReactElement = (
+              <>
+                <span
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
                     isComplete ? "bg-emerald-100" : task.iconBackgroundClassName
                   }`}
@@ -295,30 +339,85 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                       isComplete ? "text-emerald-600" : "text-white"
                     }`}
                   />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={`text-sm font-medium ${
+                </span>
+                <span className="block min-w-0 flex-1">
+                  <span
+                    className={`block text-sm font-medium ${
                       isComplete ? "text-gray-500" : "text-gray-900"
                     }`}
                   >
                     {tx(task.title)}
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500">
+                  </span>
+                  <span className="mt-1 block text-sm text-gray-500">
                     {tx(task.description)}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 {isComplete ? (
                   <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
                     {tx("Done")}
                   </span>
                 ) : (
-                  <Icon
-                    icon={IconProp.ChevronRight}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400 transition group-hover:text-indigo-500"
-                  />
+                  /*
+                   * Grey at rest, indigo on hover - on two elements: the dark
+                   * theme paints any hovered group child that carries a
+                   * text-gray-* class near-white, which would outrank the
+                   * indigo on one element.
+                   */
+                  <span className="mt-0.5 flex-shrink-0 text-gray-400">
+                    <Icon
+                      icon={IconProp.ChevronRight}
+                      className="h-5 w-5 transition group-hover:text-indigo-500"
+                    />
+                  </span>
                 )}
-              </div>
+              </>
+            );
+
+            // A done step is a record, not a way anywhere.
+            if (isComplete) {
+              return (
+                <div
+                  key={task.key}
+                  data-testid={`getting-started-task-${task.key}`}
+                  className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 transition"
+                >
+                  {tileContent}
+                </div>
+              );
+            }
+
+            const goToTask: () => void = (): void => {
+              UiAnalytics.capture("dashboard/home/getting-started-task", {
+                projectId: props.projectId.toString(),
+                task: task.key,
+              });
+              /*
+               * Where to go is decided at the click, not at the first paint:
+               * the permission snapshot that says whether the create form is
+               * open to this user can arrive after it (getTaskPageMap).
+               */
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[getTaskPageMap(task)] as Route,
+                ),
+              );
+            };
+
+            /*
+             * A step to do is a button: Tab reaches it, and Enter or Space
+             * opens it. It was a clickable box with role="button" that the
+             * keyboard could neither reach nor press.
+             */
+            return (
+              <button
+                key={task.key}
+                type="button"
+                onClick={goToTask}
+                data-testid={`getting-started-task-${task.key}`}
+                className="group flex w-full items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {tileContent}
+              </button>
             );
           })}
         </div>

@@ -5,6 +5,7 @@ import ProxyConfig from "./ProxyConfig";
 import URL from "Common/Types/API/URL";
 import { RequestOptions, RequestOutcome } from "Common/Utils/API";
 import { JSONObject } from "Common/Types/JSON";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 
 /*
  * What this probe build can do, declared on every control-plane request so
@@ -16,10 +17,21 @@ import { JSONObject } from "Common/Types/JSON";
  * capability would receive such a device as an SNMP config with no
  * community, default it to "public", fail the walk, and report the device
  * Down — so the server drops ping-mode devices from an old probe's batch
- * instead. Add to this list only when the code that honours the new
- * capability ships in the same build.
+ * instead.
+ *
+ * "snmpTables": a device's walk covers the SNMP tables its config lists,
+ * and the walk's response always carries `tableResults` for them
+ * (SnmpMonitor.walkTables). The server reads a walk without them from a
+ * probe that does not declare this as a probe that cannot walk tables, and
+ * says so on the device's Wi-Fi and SNMP Tables pages.
+ *
+ * Add to this list only when the code that honours the new capability
+ * ships in the same build.
  */
-export const PROBE_CAPABILITIES: Array<string> = ["networkDevicePing"];
+export const PROBE_CAPABILITIES: Array<string> = [
+  ProbeCapability.NetworkDevicePing,
+  ProbeCapability.SnmpTables,
+];
 
 export default class ProbeAPIRequest {
   public static getDefaultRequestBody(): JSONObject {
@@ -42,6 +54,11 @@ export default class ProbeAPIRequest {
    * sites: whatever route is added next gets the same failure reporting for
    * free. `timeout` may be overridden by callers with their own deadline
    * (the syslog/NetFlow/SNMP-trap forwarders flush on a much shorter one).
+   *
+   * Every one of those requests carries the probe's key, so a redirect is
+   * followed only while it stays on the server it was sent to
+   * (sameServerRedirectsOnly): an HTTP client hands a redirected request's
+   * headers, and a 307 or 308's body, to wherever the redirect points.
    */
   public static getDefaultRequestOptions(
     url: URL,
@@ -51,6 +68,7 @@ export default class ProbeAPIRequest {
 
     return {
       ...ProxyConfig.getRequestProxyAgents(url),
+      sameServerRedirectsOnly: true,
       timeout: options?.timeout ?? PROBE_API_REQUEST_TIMEOUT_IN_MS,
       onRequestComplete: (outcome: RequestOutcome): void => {
         ProbeApiDiagnostics.onRequestComplete(inFlightRequestId, outcome);

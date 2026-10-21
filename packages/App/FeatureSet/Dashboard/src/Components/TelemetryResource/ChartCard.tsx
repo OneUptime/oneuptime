@@ -14,6 +14,11 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export type ChartCardColor =
   | "blue"
@@ -70,30 +75,54 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 ): ReactElement => {
   const colors: { bg: string; ring: string; text: string } =
     colorClasses[props.iconColor];
+  // The page's drag-to-zoom (TimeRangeZoomScope), which the chart takes.
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+
+  const hasData: boolean = props.series.some((s: SeriesPoint): boolean => {
+    return s.data.length > 0;
+  });
+
+  const isSkeletonShown: boolean = Boolean(
+    props.loading || !props.windowStart || !props.windowEnd,
+  );
+
+  // A reset the empty box below takes, set only while the page is zoomed.
+  const emptyStateReset: (() => void) | undefined = pageZoom?.onTimeRangeReset;
+
+  /*
+   * Name a gesture only where the body takes one: the chart takes the drag
+   * (and the double-click while zoomed), and the empty box takes the
+   * double-click while zoomed. The skeleton takes neither, and nor does the
+   * empty box with nothing to reset. The icon beside the hint sets the
+   * header's height, so the hint can come and go without moving anything.
+   */
+  const isZoomHintShown: boolean =
+    !isSkeletonShown && (hasData || Boolean(emptyStateReset));
 
   const header: ReactElement = (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between gap-2 mb-3">
       <div className="flex min-w-0 items-center gap-1">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           {props.title}
         </span>
         <InfoTooltip label={props.title} text={props.description} />
       </div>
-      <div
-        className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-      >
-        <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+      <div className="flex shrink-0 items-center gap-2">
+        {isZoomHintShown ? <TimeRangeZoomHint revealOnHover={true} /> : <></>}
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
       </div>
     </div>
   );
 
-  const hasData: boolean = props.series.some((s: SeriesPoint): boolean => {
-    return s.data.length > 0;
-  });
-
-  if (props.loading || !props.windowStart || !props.windowEnd) {
+  // The window checks repeat isSkeletonShown's so the axis below gets dates.
+  if (isSkeletonShown || !props.windowStart || !props.windowEnd) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-44 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -101,10 +130,24 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   }
 
   if (!hasData) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart to
+     * double-click. The empty plot area takes the double-click instead, so
+     * the way back is where the reader's pointer already is. While it does,
+     * its text is not selectable: a double-click on text also selects a
+     * word, and the hosts keep this very box on screen through the refetch
+     * a reset starts (and for good if the page's own range is quiet too),
+     * so the word stayed highlighted.
+     */
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
-        <div className="flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400">
+        <div
+          className={`flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400${
+            emptyStateReset ? " select-none" : ""
+          }`}
+          onDoubleClick={emptyStateReset}
+        >
           No data in this time range
         </div>
       </div>
@@ -139,7 +182,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.series}

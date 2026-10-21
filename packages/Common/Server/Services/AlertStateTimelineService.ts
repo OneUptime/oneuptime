@@ -4,66 +4,97 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  ONLY_STATE_DELETE_MESSAGES,
+  StateTimelineRecord,
+} from "../../Utils/StateTimeline/StateTimelineRowDelete";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
+import StateChangeNote from "../Utils/StateChangeNote";
+import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
-export class Service extends DatabaseService<AlertStateTimeline> {
+export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
     super(AlertStateTimeline);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge,
+     * the purge above - never takes an alert's current state. One entry
+     * deleted by its id is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("AlertStateTimeline"),
+    );
   }
 
+  /*
+   * The project's resolved state, which resolving an alert moves it into:
+   * the first from the top flagged resolved.
+   */
   @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
+    let resolvedState: AlertState | null = null;
 
-    if (!resolvedState) {
+    try {
+      resolvedState = await AlertStateService.getResolvedAlertState({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch {
+      resolvedState = null;
+    }
+
+    if (!resolvedState || !resolvedState.id) {
       throw new BadDataException("No resolved state found for the project");
     }
 
-    return resolvedState.id!;
+    return resolvedState.id;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<AlertStateTimeline>,
   ): Promise<OnCreate<AlertStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.alertId) {
       throw new BadDataException("alertId is null");
     }
@@ -75,46 +106,62 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.alertId.toString(),
-          namespace: "AlertStateTimeline.create",
+      /*
+       * The private note that comes with the change, if any - under
+       * `privateNote`, or the older `internalNote` (a blank one is none). It
+       * is posted once the change is saved (onCreateSuccess), as the person
+       * changing the state, so that it comes after the change in the alert's
+       * feed and a change that fails leaves no note behind. Whether they may
+       * post it is asked now, before the change takes its lock or reads the
+       * timeline, with the check the note's own create runs: a change whose
+       * note they may not post is refused whole, with one plain message,
+       * rather than saved and then answered with an error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<AlertInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: AlertInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "alertId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+          noteKeys: [
+            StateChangeNote.legacyAlertInternalNoteKey,
+            StateChangeNote.privateNoteKey,
+          ],
         });
-      } catch (err) {
-        logger.error(err, {
+
+      // The alert's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "AlertStateTimeline.create",
+        eventId: createBy.data.alertId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           alertId: createBy.data.alertId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
-      if (
-        (createBy.data.createdByUserId ||
-          createBy.data.createdByUser ||
-          createBy.props.userId) &&
-        !createBy.data.rootCause
-      ) {
-        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+      // Who made the change, under either name of it: see CreatedByUser.
+      const changedByUserId: ObjectID | null = CreatedByUser.getId(
+        createBy.data,
+        createBy.props,
+      );
 
-        if (createBy.props.userId) {
-          userId = createBy.props.userId;
-        }
-
-        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-          userId = createBy.data.createdByUser.id;
-        }
-
-        if (userId) {
-          createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
+      if (changedByUserId && !createBy.data.rootCause) {
+        createBy.data.rootCause =
+          mdText`Alert state created by ${await UserService.getUserMarkdownString(
             {
-              userId: userId!,
+              userId: changedByUserId,
               projectId: createBy.data.projectId || createBy.props.tenantId!,
             },
-          )}`;
-        }
+          )}`.toString();
       }
 
-      const alertStateId: ObjectID | undefined | null =
-        createBy.data.alertStateId || createBy.data.alertState?.id;
+      // Under either of its names; the two must agree.
+      const alertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["alertStateId", "alertState"],
+        "Alert State",
+      );
 
       if (!alertStateId) {
         throw new BadDataException("alertStateId is null");
@@ -170,51 +217,6 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         createBy.data.isOwnerNotified = true;
       }
 
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateBeforeThis && stateBeforeThis.alertStateId && alertStateId) {
-        if (
-          stateBeforeThis.alertStateId.toString() === alertStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Alert state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.alertState?.order) {
-        const newAlertState: AlertState | null =
-          await AlertStateService.findOneBy({
-            query: {
-              _id: alertStateId,
-            },
-            select: {
-              order: true,
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (newAlertState && newAlertState.order) {
-          // check if the new alert state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.alertState &&
-            stateBeforeThis.alertState.order &&
-            newAlertState.order <= stateBeforeThis.alertState.order
-          ) {
-            throw new BadDataException(
-              `Alert cannot transition to ${newAlertState.name} state from ${stateBeforeThis.alertState.name} state because ${newAlertState.name} is before ${stateBeforeThis.alertState.name} in the order of alert states.`,
-            );
-          }
-        }
-      }
-
       const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
         query: {
           alertId: createBy.data.alertId,
@@ -233,71 +235,65 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         },
       });
 
+      /*
+       * Where the alert may move, by the one rule every state timeline asks
+       * (Common/Utils/StateMove): not into the state it is in, not back up
+       * the project's list of states, and not into the state of the row
+       * after a back-dated one.
+       */
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.Alert,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.alertStateId,
+              name: stateBeforeThis.alertState?.name,
+              order: stateBeforeThis.alertState?.order,
+            }
+          : null,
+        newStateId: alertStateId,
+        nextStateId: stateAfterThis?.alertStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await AlertStateService.findOneBy({
+            query: {
+              _id: alertStateId,
+            },
+            select: {
+              order: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        },
+      });
+
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
       }
 
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateAfterThis && stateAfterThis.alertStateId && alertStateId) {
-        if (
-          stateAfterThis.alertStateId.toString() === alertStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Alert state cannot be same as next state.",
-          );
-        }
-      }
-
       logger.debug("State After this");
       logger.debug(stateAfterThis);
-
-      const internalNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["internalNote"] as string | undefined;
-
-      if (internalNote) {
-        const alertNote: AlertInternalNote = new AlertInternalNote();
-        alertNote.alertId = createBy.data.alertId;
-        alertNote.note = internalNote;
-        alertNote.createdAt = createBy.data.startsAt;
-        alertNote.projectId = createBy.data.projectId!;
-
-        await AlertInternalNoteService.create({
-          data: alertNote,
-          props: createBy.props,
-        });
-      }
-
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
 
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            alertId: createBy.data.alertId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        alertId: createBy.data.alertId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -311,8 +307,6 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     if (!createdItem.alertId) {
       throw new BadDataException("alertId is null");
     }
-
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
 
     if (!createdItem.alertStateId) {
       throw new BadDataException("alertStateId is null");
@@ -377,6 +371,11 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       logger.debug("This status is in the middle.");
     }
 
+    /*
+     * The alert's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the alert's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await AlertService.updateOneBy({
         query: {
@@ -385,20 +384,14 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         data: {
           currentAlertStateId: createdItem.alertStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          alertId: createdItem.alertId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      alertId: createdItem.alertId?.toString(),
+    } as LogAttributes);
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -409,27 +402,39 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       },
       select: {
         _id: true,
-        isResolvedState: true,
-        isAcknowledgedState: true,
         isCreatedState: true,
         color: true,
         name: true,
       },
     });
 
+    // Resolved by the one rule (Common/Utils/ResolvedState).
+    const isResolvedState: boolean =
+      await AlertStateService.isResolvedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
+    /*
+     * Acknowledged by the one rule (Common/Utils/AcknowledgedState): the
+     * acknowledged state, a state placed after it, or a resolved one.
+     */
+    const isAcknowledged: boolean =
+      await AlertStateService.isAcknowledgedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
+     */
     const stateName: string = alertState?.name || "";
-    let stateEmoji: string = "➡️";
-
-    // if resolved state then change emoji to ✅.
-
-    if (alertState?.isResolvedState) {
-      stateEmoji = "✅";
-    } else if (alertState?.isAcknowledgedState) {
-      // eyes emoji for acknowledged state.
-      stateEmoji = "👀";
-    } else if (alertState?.isCreatedState) {
-      stateEmoji = "🔴";
-    }
+    const stateEmoji: string = StateChangeFeedEmoji.get({
+      isResolved: isResolvedState,
+      isAcknowledged: isAcknowledged,
+      isCreatedState: Boolean(alertState?.isCreatedState),
+    });
 
     const alertNumberResult: {
       number: number | null;
@@ -447,34 +452,45 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       alertFeedEventType: AlertFeedEventType.AlertStateChanged,
       displayColor: alertState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:** 
-${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **${stateName}**`.toString(),
+      /*
+       * The cause, when one was given. Without one the entry has no details:
+       * a "Cause:" with nothing after it opened an empty box in the feed.
+       */
+      moreInformationInMarkdown: createdItem.rootCause
+        ? mdText`**Cause:**
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
+        : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+        /*
+         * Not posted to Slack and Microsoft Teams for the record's first
+         * state: the message that announced the record names it already
+         * (WorkspaceStateChangePosting). The feed keeps the entry.
+         */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace(
+          {
+            stateBeforeThis:
+              onCreate.carryForward.statusTimelineBeforeThisStatus,
+            stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+          },
+        ),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const alertInternalNote: AlertInternalNote = new AlertInternalNote();
-      alertInternalNote.alertId = createdItem.alertId;
-      alertInternalNote.note = privateNote;
-      alertInternalNote.createdAt = createdItem.startsAt!;
-      alertInternalNote.projectId = createdItem.projectId!;
-
-      await AlertInternalNoteService.create({
-        data: alertInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    /*
+     * The private notes that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: AlertInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     AlertService.refreshAlertMetrics({
       alertId: createdItem.alertId,
@@ -520,12 +536,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
+          text: mdText`**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
             await AlertService.getAlertLinkInDashboard(
               createdItem.projectId!,
               createdItem.alertId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {
@@ -542,10 +558,32 @@ ${createdItem.rootCause}`,
     return createdItem;
   }
 
+  /*
+   * A change refused or failed once onBeforeCreate took the alert's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the alert
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<AlertStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      alertId: onCreate?.createBy.data.alertId?.toString(),
+    } as LogAttributes);
+
+    return error;
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<AlertStateTimeline>,
   ): Promise<OnUpdate<AlertStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     const alertIds: Array<ObjectID> =
       await this.getAlertIdsForTimelineQuery(updateBy);
 
@@ -594,18 +632,10 @@ ${createdItem.rootCause}`,
   private async getAlertIdsForTimelineQuery(
     updateBy: UpdateBy<AlertStateTimeline>,
   ): Promise<Array<ObjectID>> {
-    const timelines: Array<AlertStateTimeline> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const timelines: Array<AlertStateTimeline> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         alertId: true,
-      },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
     return this.getAlertIdsFromTimelines(timelines);
   }
@@ -727,19 +757,36 @@ ${createdItem.rootCause}`,
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<AlertStateTimeline>,
   ): Promise<OnDelete<AlertStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves. A delete of several entries - a
+     * workflow's delete of many, say - has no one gap to close: it is left
+     * as it is, and moves no neighbour.
+     */
+    const toBeDeleted: {
+      row: AlertStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      alertId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      return { deleteBy, carryForward: null };
+    }
+
+    if (toBeDeleted.row) {
       const alertStateTimelineToBeDeleted: AlertStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            alertId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const alertId: ObjectID | undefined =
         alertStateTimelineToBeDeleted?.alertId;
@@ -760,7 +807,7 @@ ${createdItem.rootCause}`,
 
         if (alertStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Alert should have at least one state in its timeline.",
+            ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Alert],
           );
         }
 
@@ -774,7 +821,9 @@ ${createdItem.rootCause}`,
         const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy(
           {
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                alertStateTimelineToBeDeleted.id!.toString(),
+              ),
               alertId: alertId,
               startsAt: QueryHelper.lessThanEqualTo(
                 alertStateTimelineToBeDeleted.startsAt!,
@@ -847,16 +896,11 @@ ${createdItem.rootCause}`,
             },
           });
 
-          // Update the next state to start at the start of this state.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: alertStateTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * The state after it keeps its start: it is when that state really
+           * began. Moving it back to this one's start as well made the two
+           * cover this state's time twice (StateTimelineRowDelete).
+           */
           logger.debug("This state is in the middle.");
         }
       }

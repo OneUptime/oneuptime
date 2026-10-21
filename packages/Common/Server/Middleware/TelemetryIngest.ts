@@ -14,6 +14,7 @@ import TelemetryIngestionKeyPolicy, {
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  IDENTITY_REGISTRATION_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../Types/Telemetry/TelemetryIngestSurface";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
@@ -53,6 +54,16 @@ export interface TelemetryRequest extends ExpressRequest {
    * replay this is a synthesized, normalized app:// origin.
    */
   resolvedClientOrigin?: string;
+
+  /*
+   * When the ingest endpoint accepted this request: set on the copy a queue
+   * worker processes, from the job's ingestionTimestamp (a string once it
+   * has been through the queue). Processing can run minutes behind arrival
+   * while the queue drains; anything that must be placed on the timeline the
+   * data arrived on - the synthetic host heartbeat - reads this instead of
+   * the worker's clock (issue #2825).
+   */
+  receivedAt?: Date | string | undefined;
 }
 
 /*
@@ -72,14 +83,41 @@ const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
 const UNNAMED_SURFACE_READABLE_NAME: string = "this ingest endpoint";
 
 /*
- * The ceiling a server key gets on the Kubernetes agent Runner registration
- * surface when its policy names none. Registration is a handful of calls
- * per agent pod lifetime (start-up, then heartbeats through the Runner's
- * own credential), so a leaked ingestion key hammering it is abuse, not
+ * The ceiling a server key gets on an identity registration surface
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents) when its policy names
+ * none. Registration is a handful
+ * of calls per pod lifetime (start-up, then heartbeats through the minted
+ * identity's own key), so a leaked ingestion key hammering it is abuse, not
  * traffic - unlike OTLP ingest, where "no limit" is the historical contract
  * and must stay that way. An explicit per-key limit still wins.
  */
-export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number = 30;
+export const DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE: number = 30;
+
+// The name this ceiling shipped under, when only the Runner registered.
+export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number =
+  DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
+
+/*
+ * The refusal a service-pinned key gets on an identity registration surface.
+ * Worded for whichever identity the surface mints, and it never names the
+ * key, its pinned service or anything else about it. The Kubernetes
+ * surfaces keep their wording exactly; a resource AI agent (Docker, Proxmox,
+ * a database, a host, ...) is told about infrastructure instead.
+ */
+export const getPinnedKeyRegistrationRefusalMessage: (
+  surface: TelemetryIngestSurface,
+) => string = (surface: TelemetryIngestSurface): string => {
+  if (surface === TelemetryIngestSurface.ResourceAiAgent) {
+    return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
+      surface,
+    )}: that grants access to your infrastructure, not to one service's telemetry. Use an unpinned server ingestion key for the AI agent.`;
+  }
+
+  return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
+    surface,
+  )}: that grants access to a Kubernetes cluster, not to one service's telemetry. Use an unpinned server ingestion key for the Kubernetes agent.`;
+};
 
 type GetEffectiveRequestsPerMinuteLimitFunction = (
   policy: TelemetryIngestionKeyPolicy,
@@ -101,11 +139,14 @@ type GetEffectiveRequestsPerMinuteLimitFunction = (
  * with no ceiling is the thing we are trying to stop shipping: "the customer
  * did not configure a limit" cannot be allowed to mean "unlimited" there.
  *
- * The one surface-dependent case is Kubernetes agent Runner registration:
- * a server key with no configured limit is held to a conservative default
- * there (see DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE), because
- * that endpoint mints Runner identities rather than accepting telemetry.
- * Every other surface keeps the server-key contract above untouched.
+ * The one surface-dependent case is identity registration
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents): a server key with no
+ * configured limit is held to a
+ * conservative default there (see
+ * DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE), because those
+ * endpoints mint identities rather than accepting telemetry. Every other
+ * surface keeps the server-key contract above untouched.
  */
 export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLimitFunction =
   (
@@ -129,8 +170,8 @@ export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLi
       return DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;
     }
 
-    if (surface === TelemetryIngestSurface.KubernetesAgentRunner) {
-      return DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE;
+    if (surface && IDENTITY_REGISTRATION_SURFACES.has(surface)) {
+      return DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
     }
 
     return null;
@@ -313,6 +354,11 @@ export default class TelemetryIngest {
          * error in their own logs instead of retry-storming. A silent
          * 200 here would make the client believe the data landed and
          * leave the user staring at empty dashboards with no clue why.
+         *
+         * The gRPC OTLP server sends this sentence and the invalid-token
+         * one below word for word (GrpcServer keeps copies, and
+         * GrpcServerAuthStatusLive.test.ts fails if they drift), so
+         * reword them together.
          */
         return Response.sendErrorResponse(
           req,
@@ -365,10 +411,11 @@ export default class TelemetryIngest {
        * turning a leaked key off is the one action guaranteed to stop it
        * regardless of which surface it is hitting or what its allowlist says.
        *
-       * 403 rather than 401: the credential was recognised, it is simply not
-       * permitted to write. That distinction is what lets a customer tell
-       * "I pasted the wrong key" apart from "someone switched my key off",
-       * which are very different Tuesday afternoons.
+       * 422 (NotAuthorizedException) rather than 401: the credential was
+       * recognised, it is simply not permitted to write. That distinction is
+       * what lets a customer tell "I pasted the wrong key" apart from
+       * "someone switched my key off", which are very different Tuesday
+       * afternoons. Like 401, 422 is non-retryable under the OTLP spec.
        */
       if (policy.isEnabled === false) {
         return Response.sendErrorResponse(
@@ -381,10 +428,11 @@ export default class TelemetryIngest {
       }
 
       /*
-       * Expiry. 401 here rather than 403 for the same reason as the branches
-       * above: OTLP treats 401 as non-retryable, so a collector holding an
-       * expired key logs the failure once instead of retry-storming an
-       * endpoint that will never accept it again.
+       * Expiry. 401, like the missing- and invalid-token branches above,
+       * rather than the kill switch's 422: an expired key no longer
+       * authenticates anyone. OTLP treats 401 as non-retryable, so a
+       * collector holding an expired key logs the failure instead of
+       * retry-storming an endpoint that will never accept it again.
        *
        * The exact expiry timestamp is deliberately kept out of the response.
        * The caller has failed to authenticate; the key's configuration is
@@ -453,22 +501,24 @@ export default class TelemetryIngest {
       }
 
       /*
-       * Kubernetes agent Runner registration mints a Runner identity — the
-       * one every kubectl job for a cluster is targeted at — so it takes a
-       * project-wide server key. A key pinned to one service's name was
-       * scoped by its owner to that service's telemetry; it is refused here
+       * An identity registration surface (the Kubernetes agent Runner, the
+       * Kubernetes AI agent) mints the identity every kubectl job for a
+       * cluster is targeted at, so it takes a project-wide server key. A key
+       * pinned to one service's name was scoped by its owner to that
+       * service's telemetry; it is refused here, before the rate limiter,
        * rather than letting it stand up cluster access it was never meant
        * to reach.
        */
       if (
-        surface === TelemetryIngestSurface.KubernetesAgentRunner &&
+        surface &&
+        IDENTITY_REGISTRATION_SURFACES.has(surface) &&
         policy.pinnedServiceName
       ) {
         return Response.sendErrorResponse(
           req,
           res,
           new NotAuthorizedException(
-            "This telemetry ingestion key is pinned to a single service, so it cannot register the Kubernetes agent's in-cluster Runner. Use an unpinned server ingestion key for the Kubernetes agent.",
+            getPinnedKeyRegistrationRefusalMessage(surface),
           ),
         );
       }

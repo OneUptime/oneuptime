@@ -1,10 +1,10 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -22,14 +22,16 @@ import {
 import Model from "../../Models/DatabaseModels/WorkflowVariable";
 
 /*
- * isSecret is declared `string` over a genuinely boolean column, so the value
- * that comes back is `true` from Postgres and can be the string "true" from a
- * request body. Read exactly the way RunWorkflow.getSecretWorkflowVariableValues
- * reads it, so what this service calls secret and what the run logs redact can
- * never disagree.
+ * Whether a value of isSecret marks a variable secret. What comes back from
+ * Postgres is a boolean, and a write's value is one too by the time a hook
+ * reads it (DatabaseService turns every Boolean column of a write into the
+ * boolean the database stores, Types/Database/BooleanColumnValue), so a
+ * request's "true" or "yes" is true here. Read exactly the way the run logs'
+ * redaction reads it (getSecretWorkflowVariableValues), so what this service
+ * calls secret and what the run logs redact can never disagree.
  */
 function isSecretValue(value: unknown): boolean {
-  return value === true || value === "true";
+  return toStoredBoolean(value) === true;
 }
 
 /*
@@ -153,7 +155,7 @@ function normalizeSettingForComparison(
   return String(value).trim();
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -176,6 +178,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Model = createBy.data;
     const record: Record<string, unknown> = data as unknown as Record<
       string,
@@ -295,11 +299,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    /*
-     * isSecret is declared `string` over a boolean column (see isSecretValue);
-     * write the boolean the column holds.
-     */
-    data.isSecret = true as unknown as string;
+    data.isSecret = true;
     data.content = "";
 
     return { createBy, carryForward: null };
@@ -601,6 +601,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Read through a plain JSON view: the typed partial of a model with a JSON
      * column (oauthAdditionalParameters) is recursive enough that TypeScript
@@ -663,29 +665,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Read the rows this update will actually touch. Two things about this
-     * query matter.
+     * Read the rows this update will actually touch, with the update held to
+     * them (findRowsAndHoldUpdateToThem). Two things about this read matter.
      *
-     * It is scoped to the caller's tenant here rather than relying on the
-     * permission layer, because _updateBy runs this hook BEFORE
-     * ModelPermission.checkUpdateQueryPermissions - which is what appends the
-     * project clause. Reading unscoped-as-root would make this hook answer
-     * questions about another project's rows, and its refusal messages say
-     * whether a variable is global and whether a name is taken. A caller
-     * holding a variable id from a project they cannot see would get an oracle
-     * before any authorization ran.
+     * They are the rows the caller may write, never another project's: this
+     * hook's refusal messages say whether a variable is global and whether a
+     * name is taken, and a caller holding a variable id from a project they
+     * cannot see must learn neither.
      *
      * isRoot inside that scope is still right: the conflicting row may be one
      * this caller cannot read - read access is label-gated - and a count that
      * cannot see it reports zero and waves the duplicate through.
      */
-    const tenantId: ObjectID | undefined = updateBy.props.tenantId;
-
-    const itemsBeingUpdated: Array<Model> = await this.findBy({
-      query: tenantId
-        ? { ...updateBy.query, projectId: tenantId }
-        : updateBy.query,
-      select: {
+    const itemsBeingUpdated: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         name: true,
         isSecret: true,
@@ -700,13 +693,7 @@ export class Service extends DatabaseService<Model> {
         oauthScope: true,
         oauthAdditionalParameters: true,
         oauthClientAuthenticationMethod: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     if (isDeclassifying) {
       for (const item of itemsBeingUpdated) {

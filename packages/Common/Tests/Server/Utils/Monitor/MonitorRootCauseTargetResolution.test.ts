@@ -25,6 +25,12 @@ import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * THE ROOT CAUSE A CUSTOMER ACTUALLY READS WHEN A TARGET CANNOT BE RESOLVED.
  *
@@ -62,7 +68,7 @@ type EvaluatorPrivate = {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }) => Promise<string | null>;
+  }) => Promise<MarkdownText | null>;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -123,11 +129,13 @@ function makeProbeResponse(
 async function renderRootCause(
   probeResponse: ProbeMonitorResponse,
 ): Promise<string> {
-  const context: string | null = await Evaluator.buildRootCauseContext({
-    dataToProcess: probeResponse,
-    monitorStep: makeMonitorStep(),
-    monitor: makeMonitor(),
-  });
+  const context: string | null = textOf(
+    await Evaluator.buildRootCauseContext({
+      dataToProcess: probeResponse,
+      monitorStep: makeMonitorStep(),
+      monitor: makeMonitor(),
+    }),
+  );
 
   expect(context).not.toBeNull();
   return context as string;

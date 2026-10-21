@@ -1,0 +1,518 @@
+import InvestigationRules, {
+  InvestigationRuleScope,
+} from "../../../../Server/Utils/AI/SRE/InvestigationRules";
+import AIInvestigationRuleService from "../../../../Server/Services/AIInvestigationRuleService";
+import logger from "../../../../Server/Utils/Logger";
+import IncidentAlertRuleMatcher from "../../../../Server/Utils/Rules/IncidentAlertRuleMatcher";
+import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import AIInvestigationRuleTriggerEntity from "../../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import ObjectID from "../../../../Types/ObjectID";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+
+/*
+ * Investigation rules: which new incidents (or alerts) OneUptime AI
+ * investigates on its own, once "Investigate new incidents" is on. No
+ * enabled rule: every one is in scope. Enabled rules: only those that match
+ * at least one are. Investigating only reads, so rules that cannot be read
+ * leave the signal in scope.
+ */
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const MONITOR_A: ObjectID = new ObjectID(
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+);
+const MONITOR_B: ObjectID = new ObjectID(
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
+);
+const SEVERITY_HIGH: ObjectID = new ObjectID(
+  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+);
+const SEVERITY_LOW: ObjectID = new ObjectID(
+  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+);
+
+function ref<T extends { _id?: string | undefined }>(
+  type: { new (): T },
+  id: ObjectID,
+): T {
+  const model: T = new type();
+  model._id = id.toString();
+  return model;
+}
+
+function rule(values: Partial<AIInvestigationRule>): AIInvestigationRule {
+  return Object.assign(new AIInvestigationRule(), {
+    _id: ObjectID.generate().toString(),
+    name: "Production",
+    ...values,
+  });
+}
+
+function incident(): Incident {
+  return Object.assign(new Incident(), {
+    title: "Checkout is down",
+    incidentSeverityId: SEVERITY_HIGH,
+    monitors: [ref(Monitor, MONITOR_A)],
+    labels: [],
+  });
+}
+
+function alert(): Alert {
+  return Object.assign(new Alert(), {
+    title: "Checkout is down",
+    alertSeverityId: SEVERITY_LOW,
+    monitorId: MONITOR_A,
+    labels: [],
+  });
+}
+
+function mockRules(
+  rules: Array<AIInvestigationRule> | Error,
+): SpyInstance<typeof AIInvestigationRuleService.findBy> {
+  return jest
+    .spyOn(AIInvestigationRuleService, "findBy")
+    .mockImplementation(async () => {
+      if (rules instanceof Error) {
+        throw rules;
+      }
+
+      return rules;
+    });
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+describe("InvestigationRules.getIncidentScope", () => {
+  test("with no enabled rule, every incident is in scope", async () => {
+    mockRules([]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 0 });
+  });
+
+  test("reads only the project's enabled incident rules, with what they match on, as root", async () => {
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+      mockRules([]);
+
+    await InvestigationRules.getIncidentScope({
+      projectId: PROJECT_ID,
+      incident: incident(),
+    });
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      query: {
+        projectId: PROJECT_ID,
+        isEnabled: true,
+        triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+      },
+      select: {
+        criteria: true,
+        titlePattern: true,
+        descriptionPattern: true,
+        monitors: { _id: true },
+        incidentSeverities: { _id: true },
+        alertSeverities: { _id: true },
+        labels: { _id: true },
+        monitorLabels: { _id: true },
+      },
+      limit: MAX_RULES_EVALUATED_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  });
+
+  test("an incident that matches one rule is in scope, and says how many were checked", async () => {
+    mockRules([
+      rule({ monitors: [ref(Monitor, MONITOR_B)] }),
+      rule({ monitors: [ref(Monitor, MONITOR_A)] }),
+    ]);
+
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      });
+
+    expect(scope).toEqual({ isInScope: true, rulesChecked: 2 });
+  });
+
+  test("an incident that matches none is out of scope", async () => {
+    mockRules([
+      rule({ monitors: [ref(Monitor, MONITOR_B)] }),
+      rule({
+        incidentSeverities: [ref(IncidentSeverity, SEVERITY_LOW)],
+      }),
+      rule({ titlePattern: "^payments" }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: false, rulesChecked: 3 });
+  });
+
+  test("a rule with no condition matches every incident", async () => {
+    mockRules([rule({})]);
+
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      ).isInScope,
+    ).toBe(true);
+  });
+
+  test("rules that cannot be read leave the incident in scope, and say so in the log", async () => {
+    mockRules(new Error("database is down"));
+    const error: SpyInstance<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 0 });
+    expect(String(error.mock.calls[0]![0])).toContain(
+      "could not read the investigation rules",
+    );
+  });
+});
+
+describe("InvestigationRules.getAlertScope", () => {
+  test("reads the alert rules, not the incident ones", async () => {
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+      mockRules([]);
+
+    expect(
+      await InvestigationRules.getAlertScope({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 0 });
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      query: {
+        projectId: PROJECT_ID,
+        isEnabled: true,
+        triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+      },
+    });
+  });
+
+  test("an alert is matched on its own severity and monitor", async () => {
+    mockRules([rule({ alertSeverities: [ref(AlertSeverity, SEVERITY_LOW)] })]);
+
+    expect(
+      await InvestigationRules.getAlertScope({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 1 });
+
+    jest.restoreAllMocks();
+    mockRules([
+      rule({ alertSeverities: [ref(AlertSeverity, SEVERITY_HIGH)] }),
+      rule({ monitors: [ref(Monitor, MONITOR_B)] }),
+    ]);
+
+    expect(
+      await InvestigationRules.getAlertScope({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toEqual({ isInScope: false, rulesChecked: 2 });
+  });
+
+  test("rules that cannot be read leave the alert in scope", async () => {
+    mockRules(new Error("database is down"));
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    expect(
+      (
+        await InvestigationRules.getAlertScope({
+          projectId: PROJECT_ID,
+          alert: alert(),
+        })
+      ).isInScope,
+    ).toBe(true);
+  });
+});
+
+/*
+ * A rule may make OneUptime AI wait (issue #5074): "only if the incident is
+ * still open after N minutes" (onlyIfOpenAfterMinutes). Rules widen what is
+ * investigated, so the rule that lets OneUptime AI start soonest decides:
+ * the shortest wait of the rules a signal matches, and none when one of
+ * them has none. Nothing waits unless a rule says so.
+ */
+describe("InvestigationRules - a rule's wait", () => {
+  test("reads each rule's wait with its conditions", async () => {
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+      mockRules([]);
+
+    await InvestigationRules.getIncidentScope({
+      projectId: PROJECT_ID,
+      incident: incident(),
+    });
+
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      select: { onlyIfOpenAfterMinutes: true },
+    });
+  });
+
+  test("with no rule there is no wait", async () => {
+    mockRules([]);
+
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      });
+
+    expect(scope.waitMinutes).toBeUndefined();
+  });
+
+  test("a matching rule with no wait investigates right away, as every rule did before", async () => {
+    mockRules([rule({ monitors: [ref(Monitor, MONITOR_A)] })]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 1 });
+  });
+
+  test("a matching rule that waits makes the incident wait", async () => {
+    mockRules([
+      rule({ monitors: [ref(Monitor, MONITOR_A)], onlyIfOpenAfterMinutes: 10 }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 1, waitMinutes: 10 });
+  });
+
+  test("of several matching rules that wait, the shortest wait decides", async () => {
+    mockRules([
+      rule({ onlyIfOpenAfterMinutes: 30 }),
+      rule({ onlyIfOpenAfterMinutes: 10 }),
+      rule({ onlyIfOpenAfterMinutes: 60 }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 3, waitMinutes: 10 });
+  });
+
+  test("one matching rule with no wait means no wait, wherever it is in the list", async () => {
+    for (const waits of [
+      [30, 0],
+      [0, 30],
+      [30, null],
+      [10, undefined, 60],
+    ]) {
+      jest.restoreAllMocks();
+      mockRules(
+        waits.map((wait: number | null | undefined) => {
+          return rule({
+            ...(wait === undefined ? {} : { onlyIfOpenAfterMinutes: wait! }),
+          });
+        }),
+      );
+
+      const scope: InvestigationRuleScope =
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        });
+
+      expect(scope.isInScope).toBe(true);
+      expect(scope.waitMinutes).toBeUndefined();
+    }
+  });
+
+  test("a rule the incident does not match lends it no wait, short or none", async () => {
+    mockRules([
+      // Not matched: another monitor, and no wait.
+      rule({ monitors: [ref(Monitor, MONITOR_B)] }),
+      // Not matched: another monitor, and a short wait.
+      rule({ monitors: [ref(Monitor, MONITOR_B)], onlyIfOpenAfterMinutes: 5 }),
+      // Matched: waits 30 minutes.
+      rule({ monitors: [ref(Monitor, MONITOR_A)], onlyIfOpenAfterMinutes: 30 }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 3, waitMinutes: 30 });
+  });
+
+  test("an incident no rule matches is out of scope, whatever the rules' waits", async () => {
+    mockRules([
+      rule({ monitors: [ref(Monitor, MONITOR_B)], onlyIfOpenAfterMinutes: 10 }),
+      rule({ titlePattern: "^payments", onlyIfOpenAfterMinutes: 30 }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: false, rulesChecked: 2 });
+  });
+
+  test("the severity decides which rule's wait applies (Critical waits 10, Major 30)", async () => {
+    const rules: Array<AIInvestigationRule> = [
+      rule({
+        name: "Critical",
+        incidentSeverities: [ref(IncidentSeverity, SEVERITY_HIGH)],
+        onlyIfOpenAfterMinutes: 10,
+      }),
+      rule({
+        name: "Major",
+        incidentSeverities: [ref(IncidentSeverity, SEVERITY_LOW)],
+        onlyIfOpenAfterMinutes: 30,
+      }),
+    ];
+
+    mockRules(rules);
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      ).waitMinutes,
+    ).toBe(10);
+
+    jest.restoreAllMocks();
+    mockRules(rules);
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: Object.assign(incident(), {
+            incidentSeverityId: SEVERITY_LOW,
+          }),
+        })
+      ).waitMinutes,
+    ).toBe(30);
+  });
+
+  test("a rule that cannot shorten the wait found so far is not matched at all", async () => {
+    const matcher: SpyInstance<
+      typeof IncidentAlertRuleMatcher.doesIncidentMatch
+    > = jest.spyOn(IncidentAlertRuleMatcher, "doesIncidentMatch");
+
+    mockRules([
+      rule({ name: "ten", onlyIfOpenAfterMinutes: 10 }),
+      rule({ name: "thirty", onlyIfOpenAfterMinutes: 30 }),
+      rule({ name: "ten again", onlyIfOpenAfterMinutes: 10 }),
+      rule({ name: "five", onlyIfOpenAfterMinutes: 5 }),
+    ]);
+
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      ).waitMinutes,
+    ).toBe(5);
+    expect(
+      matcher.mock.calls.map(
+        (
+          call: Parameters<typeof IncidentAlertRuleMatcher.doesIncidentMatch>,
+        ) => {
+          return (call[1] as AIInvestigationRule).name;
+        },
+      ),
+    ).toEqual(["ten", "five"]);
+  });
+
+  test("the first matching rule with no wait ends the reading, as before rules could wait", async () => {
+    const matcher: SpyInstance<
+      typeof IncidentAlertRuleMatcher.doesIncidentMatch
+    > = jest.spyOn(IncidentAlertRuleMatcher, "doesIncidentMatch");
+
+    mockRules([
+      rule({ name: "now" }),
+      rule({ name: "later", onlyIfOpenAfterMinutes: 10 }),
+    ]);
+
+    await InvestigationRules.getIncidentScope({
+      projectId: PROJECT_ID,
+      incident: incident(),
+    });
+
+    expect(matcher).toHaveBeenCalledTimes(1);
+  });
+
+  test("rules that cannot be read leave the incident in scope with no wait", async () => {
+    mockRules(new Error("database is down"));
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 0 });
+  });
+
+  test("an alert waits by its own rules the same way", async () => {
+    mockRules([
+      rule({
+        alertSeverities: [ref(AlertSeverity, SEVERITY_LOW)],
+        onlyIfOpenAfterMinutes: 15,
+      }),
+      rule({
+        alertSeverities: [ref(AlertSeverity, SEVERITY_HIGH)],
+        onlyIfOpenAfterMinutes: 5,
+      }),
+    ]);
+
+    expect(
+      await InvestigationRules.getAlertScope({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 2, waitMinutes: 15 });
+  });
+});

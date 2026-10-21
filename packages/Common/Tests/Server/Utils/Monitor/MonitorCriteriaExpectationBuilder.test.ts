@@ -4,7 +4,9 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -253,8 +255,12 @@ describe("MonitorCriteriaExpectationBuilder", () => {
       ).toBe("over the last 30 minutes");
     });
 
-    test("ignores the time span when evaluateOverTime is off", () => {
-      // The span is only surfaced when evaluateOverTime is true.
+    /*
+     * The criteria form keeps a window when its box is unticked, so ticking
+     * it again brings the window back. Unticked, the filter is judged on the
+     * latest check, and nothing of the kept window describes it.
+     */
+    test("says nothing of a kept window when evaluateOverTime is off", () => {
       expect(
         MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
           makeFilter({
@@ -265,7 +271,97 @@ describe("MonitorCriteriaExpectationBuilder", () => {
             },
           }),
         ),
-      ).toBe("using sum");
+      ).toBeNull();
+    });
+
+    test("keeps the metric aggregation of a filter evaluated on the latest check", () => {
+      expect(
+        MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+          makeFilter({
+            evaluateOverTime: false,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 30,
+              evaluateOverTimeType: EvaluateOverTimeType.Sum,
+            },
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.MaximumValue,
+            },
+          }),
+        ),
+      ).toBe("using maximum value");
+    });
+
+    test("describes a body filter's window, judged check by check, as all values", () => {
+      expect(
+        MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+          makeFilter({
+            checkOn: CheckOn.ResponseBody,
+            filterType: FilterType.NotContains,
+            value: "App Title",
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.Average,
+            },
+          }),
+          MonitorType.Website,
+        ),
+      ).toBe("over the last 5 minutes using all values");
+    });
+
+    /*
+     * A body filter with the box ticked and no minutes is judged on the
+     * latest check (CriteriaFilterMatchHistory.isJudgedFromHistory), so it
+     * names no window.
+     */
+    test("says nothing of a window without minutes on a filter that keeps a match history", () => {
+      expect(
+        MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+          makeFilter({
+            checkOn: CheckOn.ResponseBody,
+            filterType: FilterType.NotContains,
+            value: "App Title",
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: undefined,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+              onNoDataPolicy: NoDataPolicy.Trigger,
+            },
+          }),
+          MonitorType.Website,
+        ),
+      ).toBeNull();
+    });
+
+    /*
+     * The dashboard reads the same filter with the monitor's type, so the
+     * incident must too: a JavaScript Expression keeps a match history on an
+     * API monitor, not on a SQL Query monitor.
+     */
+    test("follows the monitor type for a JavaScript expression saved with an aggregate", () => {
+      const expression: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.JavaScriptExpression,
+        filterType: FilterType.EvaluatesToTrue,
+        value: "{{rowCount}} > 0",
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.Average,
+        },
+      });
+
+      expect(
+        MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
+          expression,
+          { monitorType: MonitorType.SQLQuery },
+        ),
+      ).toBe("to evaluate to true over the last 5 minutes using average");
+      expect(
+        MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
+          expression,
+          { monitorType: MonitorType.API },
+        ),
+      ).toBe("to evaluate to true over the last 5 minutes using all values");
     });
 
     test("falls back to the metric aggregation type when no over-time type is set", () => {

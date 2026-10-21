@@ -39,6 +39,14 @@ import LlmMetricQuery, {
   LlmMetricScope,
 } from "Common/Utils/Telemetry/LlmMetricQuery";
 import ServiceElement from "../Service/ServiceElement";
+import LlmUsageTotalsTiles from "./LlmUsageTotals";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const DEFAULT_WINDOW_DAYS: number = 7;
 
@@ -50,17 +58,17 @@ const DEFAULT_WINDOW_DAYS: number = 7;
 const TOP_K_GROUPS: number = 25;
 
 /*
- * Row cap for the aggregate reads themselves, matching LlmOverview. This is
+ * Row cap for the aggregate reads themselves. This is
  * deliberately far larger than TOP_K_GROUPS: the ranking and the
  * share-of-total denominator are computed over EVERY group, so trimming at
  * the query would make the percentages lie.
  */
 const AGGREGATE_ROW_LIMIT: number = 10000;
 
-// Same wording LlmOverview uses, so one label means one thing product-wide.
-const METRIC_SOURCE_HINT: string = "from GenAI metrics";
+// One label for a metric-sourced figure, wherever the product shows one.
+const METRIC_SOURCE_HINT: string = translationKey("from GenAI metrics");
 
-const UNATTRIBUTED_LABEL: string = "Unattributed";
+const UNATTRIBUTED_LABEL: string = translationKey("Unattributed");
 
 const ATTRIBUTION_DOCS_URL: string = "/docs/telemetry/ai-coding-assistants";
 
@@ -177,7 +185,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
   {
     key: "employee",
     label: "Employee",
-    columnTitle: "Employee",
+    columnTitle: translationKey("Employee"),
     /*
      * Both identity columns are group keys, and the LABEL prefers the email.
      * Emitters populate one or the other (Claude Code, Gemini CLI and Codex
@@ -214,7 +222,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
   {
     key: "team",
     label: "Team",
-    columnTitle: "Team / cost centre",
+    columnTitle: translationKey("Team / cost centre"),
     groupBy: {
       llmTeam: true,
     },
@@ -232,7 +240,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
   {
     key: "model",
     label: "Model",
-    columnTitle: "Model",
+    columnTitle: translationKey("Model"),
     groupBy: {
       llmRequestModel: true,
     },
@@ -250,7 +258,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
   {
     key: "provider",
     label: "Provider",
-    columnTitle: "Provider",
+    columnTitle: translationKey("Provider"),
     groupBy: {
       llmSystem: true,
     },
@@ -263,13 +271,14 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
      * Cursor and Claude Code route to several providers behind one
      * subscription and never say which, so there is nothing to group on.
      */
-    noMetricSignalNote:
+    noMetricSignalNote: translationKey(
       "Coding-agent metric streams (Claude Code, Cursor, Codex) do not report a provider, so this breakdown only covers services that emit GenAI spans.",
+    ),
   },
   {
     key: "service",
     label: "Application / Service",
-    columnTitle: "Application / Service",
+    columnTitle: translationKey("Application / Service"),
     groupBy: {
       primaryEntityId: true,
     },
@@ -281,8 +290,9 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
      * at span ingest. A vendor cost counter has no notion of which of your
      * applications it belongs to.
      */
-    noMetricSignalNote:
+    noMetricSignalNote: translationKey(
       "Coding-agent metric streams (Claude Code, Cursor, Codex) are not attached to a OneUptime service, so this breakdown only covers services that emit GenAI spans.",
+    ),
   },
 ];
 
@@ -440,6 +450,7 @@ const formatCost: FormatCostFunction = (value: number | null): string => {
 };
 
 const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [dimensionKey, setDimensionKey] =
     useState<LlmUsageDimensionKey>("employee");
 
@@ -532,8 +543,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * The `startTime` predicate has to live in the QUERY.
        * startTimestamp/endTimestamp only choose the bucket grid — without this
-       * the aggregate scans the span table's whole retention. Same trap
-       * LlmOverview documents.
+       * the aggregate scans the span table's whole retention.
        */
       const spanQuery: Query<Span> = {
         projectId: projectId,
@@ -732,7 +742,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * so a span-only leaderboard shows an empty table for an entire fleet
        * of coding agents that is very much spending money.
        *
-       * The rule is LlmOverview's, exactly: spans are authoritative, metrics
+       * The rule, exactly: spans are authoritative, metrics
        * are consulted ONLY when the span stream reported nothing, and the two
        * are NEVER summed — an emitter producing both signals would otherwise
        * have every dollar counted twice. A failed span aggregate never
@@ -865,8 +875,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * The share denominator is the sum over EVERY group, including the
        * Unattributed one and the groups that fall outside the visible top-K.
        * Dropping unattributed spend from the total is the specific mistake
-       * that would make this page disagree with the Overview KPIs, which
-       * count every LLM span whether or not it carries an identity.
+       * that would make this page disagree with the conversation tiles and
+       * the budgets, which count every LLM span whether or not it carries an
+       * identity.
        */
       const totalCost: number = allRows.reduce(
         (accumulator: number, row: LlmUsageRow): number => {
@@ -908,14 +919,14 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * Never silently dropped. An unattributed row is a real bucket of
        * spend; hiding it would make this page's totals disagree with the
-       * Overview KPIs and quietly understate the bill.
+       * conversation tiles and the budgets, and quietly understate the bill.
        */
       return (
         <span
           className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
           data-testid="llm-usage-unattributed"
         >
-          {UNATTRIBUTED_LABEL}
+          {translator.translateText(UNATTRIBUTED_LABEL)}
         </span>
       );
     }
@@ -974,12 +985,12 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
           />
           <div>
             <div className="text-sm font-semibold text-gray-900">
-              Who is spending what
+              {translator.translateText("Who is spending what")}
             </div>
             <div className="mt-0.5 text-sm text-gray-600">
-              LLM spend and token usage for the selected time range, ranked by
-              cost. Switch the dimension to see it broken down by employee,
-              team, model, provider, or the application that made the call.
+              {translator.translateText(
+                "LLM spend and token usage for the selected time range, ranked by cost. Switch the dimension to see it broken down by employee, team, model, provider, or the application that made the call.",
+              )}
             </div>
           </div>
         </div>
@@ -989,7 +1000,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         <div
           className="flex flex-wrap gap-2"
           role="group"
-          aria-label="Usage dimension"
+          aria-label={translator.translateText("Usage dimension")}
         >
           {DIMENSIONS.map((option: LlmUsageDimension): ReactElement => {
             const isActive: boolean = option.key === dimension.key;
@@ -1008,7 +1019,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                     : "rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:bg-gray-50"
                 }
               >
-                {option.label}
+                {translator.translateText(option.label)}
               </button>
             );
           })}
@@ -1025,15 +1036,30 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         />
       </div>
 
+      {/*
+       * The range's totals: what a coding-assistant fleet, which has no
+       * conversations, reads its token and cost totals from.
+       */}
+      <LlmUsageTotalsTiles range={range} />
+
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-col gap-1 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-base font-medium text-gray-900">
-              Usage by {dimension.label.toLowerCase()}
+              {translator.translateTemplate("Usage by {{dimension}}", {
+                dimension: translatableTerm(dimension.label, {
+                  inSentence: true,
+                }),
+              })}
             </div>
             <div className="text-sm text-gray-500">
-              Top {TOP_K_GROUPS} of {usage.totalGroups.toLocaleString()} by cost
-              over the selected range.
+              {translator.translateTemplate(
+                "Top {{top}} of {{total}} by cost over the selected range.",
+                {
+                  top: translator.formatNumber(TOP_K_GROUPS),
+                  total: translator.formatNumber(usage.totalGroups),
+                },
+              )}
             </div>
           </div>
           {usage.source === "metrics" ? (
@@ -1041,7 +1067,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
               className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
               data-testid="llm-usage-source-hint"
             >
-              {METRIC_SOURCE_HINT}
+              {translator.translateText(METRIC_SOURCE_HINT)}
             </span>
           ) : null}
         </div>
@@ -1052,17 +1078,27 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
          * Unattributed row and filing a bug about it.
          */}
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
-          Calls appear under {UNATTRIBUTED_LABEL} when the emitter did not send
-          an identity attribute (for example <code>user.email</code> or{" "}
-          <code>team.id</code>). They are still counted here, so these totals
-          match the Overview page.{" "}
+          <TranslatedSentence
+            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call."
+            values={{
+              unattributed: translator.translateText(
+                UNATTRIBUTED_LABEL,
+              ) as string,
+            }}
+            slots={{
+              userEmail: <code>user.email</code>,
+              teamId: <code>team.id</code>,
+            }}
+          />{" "}
           <a
             className="font-medium text-violet-700 hover:underline"
             href={ATTRIBUTION_DOCS_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
-            How to attribute AI coding assistant usage
+            {translator.translateText(
+              "How to attribute AI coding assistant usage",
+            )}
           </a>
         </div>
 
@@ -1074,25 +1110,25 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                   #
                 </th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500">
-                  {dimension.columnTitle}
+                  {translator.translateText(dimension.columnTitle)}
                 </th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  Calls
+                  {translator.translateText("Calls")}
                 </th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  Input tokens
+                  {translator.translateText("Input tokens")}
                 </th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  Output tokens
+                  {translator.translateText("Output tokens")}
                 </th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  Total tokens
+                  {translator.translateText("Total tokens")}
                 </th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  Cost (USD)
+                  {translator.translateText("Cost (USD)")}
                 </th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500">
-                  Share
+                  {translator.translateText("Share")}
                 </th>
               </tr>
             </thead>
@@ -1100,7 +1136,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
               {usage.isLoading ? (
                 <tr>
                   <td className="px-4 py-6 text-gray-500" colSpan={8}>
-                    Loading usage…
+                    {translator.translateText("Loading usage…")}
                   </td>
                 </tr>
               ) : null}
@@ -1108,8 +1144,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
               {!usage.isLoading && usage.hasError ? (
                 <tr>
                   <td className="px-4 py-6 text-gray-500" colSpan={8}>
-                    Usage could not be loaded for this time range. Try a
-                    narrower range or refresh the page.
+                    {translator.translateText(
+                      "Usage could not be loaded for this time range. Try a narrower range or refresh the page.",
+                    )}
                   </td>
                 </tr>
               ) : null}
@@ -1119,7 +1156,11 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
               usage.rows.length === 0 ? (
                 <tr>
                   <td className="px-4 py-6 text-gray-500" colSpan={8}>
-                    <div>No LLM usage found in this time range.</div>
+                    <div>
+                      {translator.translateText(
+                        "No LLM usage found in this time range.",
+                      )}
+                    </div>
                     {/*
                      * For the two dimensions with no metric fallback, say why
                      * rather than leaving a manager to conclude OneUptime
@@ -1132,7 +1173,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                         className="mt-1 text-xs text-gray-500"
                         data-testid="llm-usage-no-metric-signal"
                       >
-                        {dimension.noMetricSignalNote}
+                        {translator.translateText(dimension.noMetricSignalNote)}
                       </div>
                     ) : null}
                   </td>

@@ -6,6 +6,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Query from "../../../../Types/BaseDatabase/Query";
 import OneUptimeDate from "../../../../Types/Date";
@@ -22,7 +23,11 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import PostedRootCause from "../SRE/PostedRootCause";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
-import { DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES } from "../SRE/IncidentInvestigationRunner";
+import InvestigationRuleWait, {
+  RuleWaitSubject,
+  StartNowResult,
+  WaitingInvestigation,
+} from "../SRE/InvestigationRuleWait";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -49,6 +54,14 @@ import {
 
 // How many investigation runs one get_ai_investigation call returns at most.
 const MAX_INVESTIGATION_RUNS_RETURNED: number = 5;
+
+/*
+ * How recent a run on the exact same subject must be for start_investigation
+ * to point the model at it instead of starting another. This is the chat's
+ * duplicate guard, not the automatic lanes' per-monitor cooldown — that one
+ * is a project setting and off by default.
+ */
+const RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES: number = 30;
 
 /*
  * Detects the analysis' own "the evidence was inconclusive" verdict in the
@@ -119,6 +132,45 @@ interface AIInvestigationSubject {
   // First affected monitor — the dedupe key the automatic investigation lanes record.
   monitorId: ObjectID | undefined;
 }
+
+/*
+ * Starting an investigation posts its findings to the subject's timeline,
+ * so the person asking must be one who may change that incident or alert:
+ * the gate's update permission, held to this record - their labels, owners
+ * and team's blocks - as an update of it is held (findOneUpdatableById).
+ * The run itself is OneUptime's, as the automatic investigations are.
+ */
+const assertMayChangeInvestigationSubject: (
+  incidentId: ObjectID | undefined,
+  alertId: ObjectID | undefined,
+  ctx: ToolContext,
+  subject: AIInvestigationSubject,
+) => Promise<void> = async (
+  incidentId: ObjectID | undefined,
+  alertId: ObjectID | undefined,
+  ctx: ToolContext,
+  subject: AIInvestigationSubject,
+): Promise<void> => {
+  const changeable: Incident | Alert | null = incidentId
+    ? await IncidentService.findOneUpdatableById({
+        id: incidentId,
+        select: { _id: true },
+        props: ctx.props,
+      })
+    : alertId
+      ? await AlertService.findOneUpdatableById({
+          id: alertId,
+          select: { _id: true },
+          props: ctx.props,
+        })
+      : null;
+
+  if (!changeable) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change ${subject.label}, so you cannot start an AI investigation of it.`,
+    );
+  }
+};
 
 const fetchInvestigationSubject: (
   incidentId: ObjectID | undefined,
@@ -328,8 +380,22 @@ export const GetAIInvestigationTool: ObservabilityTool = {
     });
 
     if (runs.length === 0) {
+      /*
+       * An investigation rule makes OneUptime AI wait before it
+       * investigates this subject (issue #5074): say until when, so the
+       * model neither calls it skipped nor starts one unasked.
+       */
+      const waiting: WaitingInvestigation | null =
+        await InvestigationRuleWait.getWaiting({
+          lane: incidentId ? "Incident" : "Alert",
+          projectId: ctx.projectId,
+          subjectId: (incidentId || alertId)!,
+        });
+
       return {
-        dataForLlm: `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation opt-in, or the daily AI budget). You can offer to start one with start_investigation.`,
+        dataForLlm: waiting
+          ? `No AI investigation has started for ${subject.label} yet: an investigation rule makes OneUptime AI wait ${waiting.waitMinutes} ${waiting.waitMinutes === 1 ? "minute" : "minutes"} after it was created, and investigate it at ${waiting.waitUntil.toISOString()} only if it is still open then. If the user wants the investigation now, offer to start it with start_investigation, which starts it at once.`
+          : `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
         rowCount: 0,
         citationLabel: `AI investigation for ${subject.label} (none found)`,
         citationTarget: {
@@ -721,6 +787,13 @@ export const StartInvestigationTool: ObservabilityTool = {
       );
     }
 
+    await assertMayChangeInvestigationSubject(
+      incidentId,
+      alertId,
+      ctx,
+      subject,
+    );
+
     const subjectRunQuery: Query<AIRun> = buildSubjectRunQuery(
       incidentId,
       alertId,
@@ -765,13 +838,12 @@ export const StartInvestigationTool: ObservabilityTool = {
     }
 
     /*
-     * Cooldown: reuse the automatic lane's default dedupe window (30
-     * minutes). A run that recently settled for this exact subject already
-     * answered — or errored on — the same question; point the model at it
-     * instead of double-spending the budget.
+     * A run that recently settled for this exact subject already answered —
+     * or errored on — the same question; point the model at it instead of
+     * double-spending the budget.
      */
     const cooldownStart: Date = OneUptimeDate.getSomeMinutesAgo(
-      DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
+      RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES,
     );
     const recentRunCount: number = (
       await AIRunService.countBy({
@@ -786,7 +858,7 @@ export const StartInvestigationTool: ObservabilityTool = {
 
     if (recentRunCount > 0) {
       return {
-        dataForLlm: `A recent AI investigation already exists for ${subject.label} (started within the last ${DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES} minutes) — not starting a duplicate. Read it with get_ai_investigation.`,
+        dataForLlm: `A recent AI investigation already exists for ${subject.label} (started within the last ${RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES} minutes) — not starting a duplicate. Read it with get_ai_investigation.`,
         rowCount: 0,
         citationLabel: `Recent investigation exists for ${subject.label}`,
         citationTarget: {
@@ -799,22 +871,46 @@ export const StartInvestigationTool: ObservabilityTool = {
     }
 
     /*
+     * An investigation rule makes OneUptime AI wait before it investigates
+     * this incident or alert (issue #5074): asking for it starts it now, as
+     * the AI card's Investigate now does - one run, which says it waited,
+     * and the wait ends with it (InvestigationRuleWait.startNow).
+     */
+    const waitSubject: RuleWaitSubject = {
+      lane: incidentId ? "Incident" : "Alert",
+      projectId: ctx.projectId,
+      subjectId: (incidentId || alertId)!,
+    };
+    let startedAfterWait: StartNowResult | null = null;
+
+    if (await InvestigationRuleWait.getWaiting(waitSubject)) {
+      startedAfterWait = await InvestigationRuleWait.startNow(waitSubject);
+    }
+
+    /*
      * The SAME durable enqueue path the automatic lanes use: an AIRun in
      * status Queued that the worker poller claims (with an inline kick for
      * happy-path latency). projectId comes from ctx — never from an
      * argument. enqueue never throws; null means the daily autonomous AI
      * budget quiet-skipped it or the enqueue failed.
      */
-    const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
-      projectId: ctx.projectId,
-      subjectIncidentId: incidentId,
-      subjectAlertId: alertId,
-      subjectMonitorId: subject.monitorId,
-    });
+    const enqueuedRunId: ObjectID | null = startedAfterWait
+      ? startedAfterWait.isStarted
+        ? startedAfterWait.runId
+        : null
+      : await AIInvestigationQueue.enqueue({
+          projectId: ctx.projectId,
+          subjectIncidentId: incidentId,
+          subjectAlertId: alertId,
+          subjectMonitorId: subject.monitorId,
+        });
 
     if (!enqueuedRunId) {
       return {
-        dataForLlm: `The investigation for ${subject.label} could not be enqueued — the project's daily autonomous AI token budget may be exhausted, or the enqueue failed. Try again later.`,
+        dataForLlm:
+          startedAfterWait && !startedAfterWait.isStarted
+            ? `The investigation for ${subject.label} could not be started: ${startedAfterWait.message}`
+            : `The investigation for ${subject.label} could not be enqueued — the project's daily autonomous AI token budget may be exhausted, or the enqueue failed. Try again later.`,
         rowCount: 0,
         citationLabel: `Investigation not enqueued for ${subject.label}`,
         citationTarget: {

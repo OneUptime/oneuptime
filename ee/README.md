@@ -34,20 +34,26 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 
 | Path | What it is |
 | --- | --- |
-| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
-| `Server/Identity/` | SAML SSO, OIDC and SCIM for projects, status pages and the whole instance (global SSO). Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`), so it refuses while its feature is not active. |
+| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel, Marketplace. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
+| `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
-| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
+| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). The license of an installation bought on a cloud marketplace is `MarketplaceLicense.ts`. Only the `SeatUsage` type stays in core. |
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The live OneUptime Health dashboards (overview, queues, Valkey, logs, ClickHouse cluster, telemetry ingestion, Postgres cluster and activity) and the query console, served by one router mounted ahead of core's. Core keeps the every-edition routes, the probes they share (`App/API/AdminHealthProbes.ts`) and a 402 fallback for each enterprise path. |
+| `Server/WhiteLabel/` | White-labelling: whether the license allows it, the settings, their routes and the branding handed to core. See [White-labelling](#white-labelling). |
+| `Server/Marketplace/` | Billing of installations bought on a cloud marketplace: the `EnterpriseMarketplace:ReportUsage` job (`Jobs/`), the hourly billing state machine (`MarketplaceBilling.ts`), the run that drives it (`MarketplaceUsageRun.ts`) and its store. See [Cloud marketplace installations](#cloud-marketplace-installations). |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. Two areas are shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard) and the read-only incident actions (`Dashboard/SSO/TightenOnly/`, also used by the Admin Dashboard). |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
 Models, migrations, CRUD services, the audit-log table, the license columns
-and every enforcement site stay in core (Apache-2.0). `ee/` holds behaviour,
+and every enforcement site stay in core (Apache-2.0). That includes the
+retention overrides: the columns stay on core models, the write gate is core's
+`EditionPermissions.checkEnterpriseColumnPermissions`, and ingest drops the
+overrides in `OpenTelemetryIngestService.applyRetentionOverrideEdition` while
+the feature is not active. `ee/` holds behaviour,
 not schema, so switching editions never needs a migration.
 
 ## How core finds `ee/`
@@ -92,9 +98,9 @@ The enterprise module must never take core monitoring down.
 
 The boot also stops when `IS_ENTERPRISE_EDITION=true` asks for the Enterprise
 Edition but `ee/` did not load, for example an old Enterprise `config.env` on
-the Community image (`APP_TAG=release`). Running on would silently stop
-enforcing "Require SSO", SSO, SCIM and audit logging. The error says what to
-set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+the Community image (`APP_TAG=release`). Running on would silently stop SCIM
+provisioning (deprovisioning included) and audit logging. The error says what
+to set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
 `IS_ENTERPRISE_EDITION=false` for the Community Edition. An explicit
 `ONEUPTIME_EDITION=community` only logs a warning. Both the guard and the
 admin UI's "requested but not loaded" notice use `isEnterpriseEditionRequested`
@@ -144,17 +150,22 @@ load creates an import cycle that crashes the Enterprise bundle.
   process? It says nothing about the license. It decides which enterprise
   routers and jobs exist and which edition operators are told they run.
 - `EnterpriseEdition.isFeatureActive(feature)`: does the feature's runtime
-  behaviour run right now? This governs SSO sign-in (SAML and OIDC, for
-  projects, status pages and the whole instance, including the mobile flows),
-  "Require SSO for login" enforcement and the SSO provider listings (`SSO`),
-  SCIM provisioning and the SCIM Push Groups team locks (`SCIM`), and
-  audit-log recording (`AuditLogs`). Core reads the first two through
+  behaviour run right now? This governs SCIM provisioning and the SCIM Push
+  Groups team locks (`SCIM`), audit-log recording (`AuditLogs`) and whether
+  ingest applies retention overrides (`TelemetryRetention`). Core reads
+  the SCIM team locks through
   `packages/Common/Server/Utils/EditionEnforcement.ts`.
 - `EnterpriseEdition.isFeatureAvailable(feature)` and
   `isFeatureAvailableSync(feature)`: may enterprise configuration be created
   or changed now? This governs enterprise configuration writes (including the
-  tighten-only updates allowed without a license), the enterprise admin Health
-  dashboards and the query console. It fails closed.
+  one tighten-only update allowed without a license, a SCIM bearer-token
+  rotation), the enterprise admin Health dashboards and the query console. It
+  fails closed.
+
+Single sign-on asks none of these questions. SAML and OIDC sign-in (projects,
+status pages, the whole instance and the mobile flows), the provider listings
+and "Require SSO for login" (project, instance-wide and status page) are core,
+so they behave the same in every edition and every license state.
 
 With billing on (OneUptime Cloud) both license questions answer yes whenever
 `ee/` is loaded, and plan tiers gate the features. Self-hosted, a feature is
@@ -172,51 +183,59 @@ license is installed, when the license expired more than 30 days ago, when it
 is invalid, or when its feature list leaves the feature out. That is exactly
 what `isFeatureAvailableSync` treats as unavailable. Then:
 
-- **SSO stops**, the same as on the Community Edition. Every SSO route
-  refuses per request: browser flows show the Identity message page, logins
-  the mobile app started end on its failure deep link, and the JSON discovery
-  routes answer 402. Provider listings are empty, and "Require SSO for login"
-  (project, instance-wide and status page) is no longer enforced, because
-  enforcing it with SSO switched off would lock every user out. Users sign in
-  with their password; users who only ever signed in with SSO use password
-  reset. Reads made for a caller report a project's or status page's
-  requirement as off, and a caller's write can neither switch the stored
-  requirement off nor set one (`EditionEnforcement.guardSsoRequirementWrite`:
-  a write of the masked value is dropped, anything else is refused with a
-  402), so a settings form saved while SSO is stopped never loses the
-  requirement.
 - **SCIM stops.** Every SCIM endpoint (project and status page) answers 403
   with a SCIM error body naming the lapsed license, and the SCIM Push Groups
   team locks relax so teams can be managed in OneUptime.
 - **Audit logging stops recording.**
-- Enterprise configuration becomes read-only (`isFeatureAvailable`). The
+- **Retention overrides stop applying.** New telemetry gets the project's
+  default retention; rows already written keep theirs.
+- Enterprise configuration becomes read-only (`isFeatureAvailable`). For the
+  retention overrides, which are columns of core models
+  (`EnterpriseEdition.getEnterpriseColumnsForTableName`), that means a write
+  that sets one is refused, and one that clears it is not. The
   Health dashboards and team compliance keep their own rules.
+
+Single sign-on is not affected: its routes have no license gate, and "Require
+SSO for login" stays enforced whatever the license state.
 
 Nothing is deleted or changed. When a license is activated, everything resumes
 without a restart. `isFeatureActive` logs a warning once when features stop
-and an info line when they resume, and the relaxed SSO requirements and SCIM
-locks are listed by `packages/Common/Server/Utils/CommunityEditionSsoReport.ts`.
+and an info line when they resume, and the relaxed SCIM team locks are listed
+by `packages/Common/Server/Utils/RelaxedScimTeamLocksReport.ts`.
 
-An **unknown** license state never locks anyone out or relaxes SSO: before the
-first license snapshot has loaded, when reading the cached snapshot throws, or
-when no license is installed and the start of the trial has not been recorded
-yet (the first-run stamp could not be written, or the GlobalConfig row does
-not exist yet, so nobody can tell whether the trial is over),
-`isFeatureActive` answers "active" (keep enforcing, serving and recording) and
-warns once per process. The loader waits, bounded, for the first snapshot
-before any router is mounted, so this window is small. `isFeatureAvailable`
-fails closed instead.
+An **unknown** license state never stops SCIM or audit logging or relaxes the
+SCIM team locks: before the first license snapshot has loaded, when reading
+the cached snapshot throws, or when no license is installed and the start of
+the trial has not been recorded yet (the first-run stamp could not be
+written, or the GlobalConfig row does not exist yet, so nobody can tell
+whether the trial is over), `isFeatureActive` answers "active" (keep serving,
+enforcing and recording) and warns once per process. The loader waits,
+bounded, for the first snapshot before any router is mounted, so this window
+is small. `isFeatureAvailable` fails closed instead.
 
-The identity routers are mounted once at boot, but the license changes at
-runtime, and an ee router may not have `router.use()` layers. So every
-identity route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
+The SCIM routers are mounted once at boot, but the license changes at
+runtime, and an ee router may not have `router.use()` layers. So every SCIM
+route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
 that asks per request. `Tests/Server/Identity/IdentityLicenseGates.test.ts`
-checks every route has the gate for its feature. Because the license is asked
-on every such request, the license provider reuses a computed snapshot for at
-most a second (`LICENSE_SNAPSHOT_REUSE_IN_MS`), and never past an expiry, grace
-or trial boundary, so it does not verify a signed license on every request.
+checks every route has the gate, and that no core single sign-on route carries
+one; `Tests/Server/Identity/RoutePathsUnchanged.test.ts` pins the SCIM route
+paths. Core pins and probes the single sign-on routes itself, in
+`packages/App/Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts` and
+`SsoRoutesServedInEveryEdition.test.ts`. Because the license is asked on every such
+request, the license provider reuses a computed snapshot for at most a second
+(`LICENSE_SNAPSHOT_REUSE_IN_MS`), and never past an expiry, grace or trial
+boundary, so it does not verify a signed license on every request.
 
 The model-to-feature map lives in `EnterpriseEdition.getModelFeature()`.
+
+A license names the features it entitles with the `EnterpriseFeature` values
+(`packages/Common/Server/Enterprise/EnterpriseFeature.ts`), or `*` for all of
+them. `sso` is retired (`RETIRED_ENTERPRISE_FEATURE_VALUES`): single sign-on
+moved to core, and a license that still lists `sso` parses as before, but the
+name grants nothing and must never name another feature. The license server
+(`Server/LicenseServer/LicenseSigner.ts`) keeps issuing `*`, because releases
+up to 14.0.10 gate single sign-on on the `sso` claim (or `*`); a narrower
+feature list must keep `sso` while those releases are supported.
 
 ## Working on `ee/`
 
@@ -242,6 +261,13 @@ npm run compile           # tsc for the server, then the Dashboard and Admin Das
   (or `--selectProjects ui`). Never use the repository root's jest 30.
 - Core CI jobs run with `ee/` deleted, so core tests must never depend on it.
   Tests for code in `ee/` live in `ee/Tests`.
+- For the same reason a core guard that scans the repository's files never
+  sees `ee/` in CI. To hold `ee/` to one, share its detector from
+  `packages/Common/Tests/Helpers/` and run it over `ee/` from an ee suite, as
+  `Tests/Server/TestTagStripGuard.test.ts` (`TagStripScan.ts`) and
+  `Tests/Server/FrontendRequestsUseRefreshAwareApi.test.ts`
+  (`RefreshAwareApiScan.ts`) do, or run the core guard with `ee/` present from
+  a step of `.github/workflows/test.ee.yaml`.
 - Tests that touch edition-dependent code must pin both the billing flag and the
   edition state. CI's `config.env` sets `BILLING_ENABLED=true`, and without the
   pin every test exercises the OneUptime Cloud path. The helpers are in
@@ -258,7 +284,7 @@ frontend builds at another directory.
 
 An unlicensed Enterprise install gets a 14-day trial, counted from the first
 time it ran the Enterprise Edition (`GlobalConfig.enterpriseEditionFirstSeenAt`).
-After that, enterprise configuration becomes read-only and SSO, SCIM and audit
+After that, enterprise configuration becomes read-only and SCIM and audit
 logging stop until a license is activated (see
 [When the license lapses](#when-the-license-lapses)). The trial is for
 evaluation. Production use needs a subscription.
@@ -273,8 +299,8 @@ self-hosted Enterprise Edition:
 | job (`test-release.yaml` on master, `release.yml` on a release) | App tag | billing | what it is |
 | --- | --- | --- | --- |
 | `test-e2e-{test,release}-saas` | `enterprise-<version>` | on | OneUptime Cloud. `EnterpriseEdition` answers "cloud" to every check, so the license decides nothing. |
-| `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route 404s. |
-| `test-e2e-{test,release}-enterprise` | `enterprise-<version>` | off | Self-hosted Enterprise. The **license** decides whether SSO, SCIM and audit logging run. |
+| `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route (SCIM included) 404s, while the single sign-on routes, which are core, answer as on every other stack. |
+| `test-e2e-{test,release}-enterprise` | `enterprise-<version>` | off | Self-hosted Enterprise. The **license** decides whether SCIM and audit logging run. |
 
 The enterprise job runs the suite twice against one booted stack:
 
@@ -283,14 +309,14 @@ The enterprise job runs the suite twice against one booted stack:
   a booted stack can prove: the identity routes answer **through nginx** (jest
   mounts Express directly and never exercises `location /identity` or its
   rewrite), the **shipped UI bundles** really carry the ee plugins so the
-  dashboard renders the SSO/OIDC/SCIM and audit-log screens instead of the
-  upsell, and the audit recorder in the real image writes a real row to
-  ClickHouse.
+  dashboard renders the SCIM and audit-log screens instead of the upsell, and
+  the audit recorder in the real image writes a real row to ClickHouse.
 - **Phase B, lapsed** (`npm run test-enterprise-lapsed`). Same stack, same data,
-  lapsed license: the gates refuse with 402/403 rather than 404 — the routes are
-  still mounted, which is what tells "no `ee/`" apart from "`ee/` with a dead
-  license" — enterprise configuration becomes read-only, and password sign-in
-  still works.
+  lapsed license: the SCIM gates refuse with 403 rather than 404 — the routes
+  are still mounted, which is what tells "no `ee/`" apart from "`ee/` with a
+  dead license" — while the single sign-on routes answer exactly as in phase A,
+  enterprise configuration becomes read-only, and password sign-in still
+  works.
 
 Between the phases the job makes the license lapse. There is deliberately **no
 test hook, env var or API** for faking a license state: a switch that could say
@@ -384,7 +410,7 @@ Turn it off only in a separate, announced release, after:
 
 Once it is off, an unverified license classifies as invalid, with no grace
 period. On any install still holding one, enterprise configuration becomes
-read-only and SSO, SCIM and audit logging stop (see
+read-only and SCIM and audit logging stop (see
 [When the license lapses](#when-the-license-lapses)) until a signed license is
 activated. The upgrade notes must say so.
 
@@ -392,8 +418,8 @@ activated. The upgrade notes must say so.
 
 OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
 
-- The Community image has no SSO, SCIM or audit logging, and no license server,
-  so every self-hosted activation would fail.
+- The Community image has no SCIM or audit logging, and no license server, so
+  every self-hosted activation would fail.
 - The boot therefore refuses billing without `ee/`.
   `ALLOW_BILLING_WITHOUT_ENTERPRISE=true` overrides this, but only for local
   development.
@@ -401,6 +427,156 @@ OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
   reason.
 - With billing on, the license server routes (`/api/enterprise-license/...`)
   are mounted, and plan checks (not the license) gate enterprise features.
+
+## Cloud marketplace installations
+
+Self-hosted OneUptime Enterprise is also sold on AWS Marketplace (Amazon EKS),
+Microsoft Marketplace (AKS) and Google Cloud Marketplace (GKE), billed per
+user-hour through the marketplace, with no license key. The marketplace
+editions of the Helm chart set `ENTERPRISE_MARKETPLACE` (`aws`, `azure` or
+`google-cloud`) and what that marketplace needs. The listings, the packaging
+and the release steps are in
+[the self-hosted marketplace guide](../packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+
+- **Billing (`Server/Marketplace/`).** The job
+  `EnterpriseMarketplace:ReportUsage` is registered only on a self-hosted
+  installation that names a marketplace. It runs every 15 minutes and at
+  startup, under a Valkey lock: it notes the installation's user count and
+  reports each clock hour once, at the most users seen, through the reporters
+  in `packages/Common/Server/Utils/Marketplace/SelfHosted`. Its state is the
+  root-only license column `GlobalConfig.enterpriseMarketplaceBilling`. Each
+  report is claimed before it is sent and carries an idempotency key derived
+  from the installation and the hour, so no hour is billed twice.
+- **Licensing (`Server/License/MarketplaceLicense.ts`).** An accepted report
+  is the marketplace's word that the buyer is subscribed. It classifies as a
+  valid license for 72 hours (`MARKETPLACE_LICENSE_RENEWAL_IN_MS`), with every
+  feature and no seat limit, then as the usual grace period, then as expired.
+  A refusal (the buyer is not subscribed) classifies as expired at once.
+  Nothing in the environment grants it: `ENTERPRISE_MARKETPLACE` only says
+  which marketplace to ask. The license provider runs on whichever of a
+  license key and the marketplace license classifies better
+  (`LicenseRanking`), so a refused purchase never takes away a valid key.
+  White-labelling still needs a verified key that grants it.
+- **What operators see.** The edition label names the marketplace ("Licensed
+  through AWS Marketplace", "Marketplace Reports Failing", "Marketplace
+  Subscription Ended"), master admins get `marketplaceBilling` from
+  `GET /api/global-config/license`, and the license manager has no **Refresh
+  license** button for a marketplace license, which has no key to refresh.
+
+## White-labelling
+
+A license can let the customer white-label their own installation: replace
+OneUptime's name and logo with theirs. It is for resellers, and it is not
+advertised anywhere - no public docs, no Home site, no release notes, no
+mention in the product of an installation whose license does not allow it.
+This section is the documentation. `Tests/Server/WhiteLabel/WhiteLabelStaysInEnterprise.test.ts`
+keeps it that way: outside `ee/`, the words for it appear only in the schema
+of the license switch.
+
+### On oneuptime.com (the license server)
+
+**Can be white-labelled** on the license form (Admin Dashboard > Enterprise
+Licenses, create or edit) is `EnterpriseLicense.canBeWhiteLabelled`, off by
+default. The license list shows a **White-label** badge beside the license
+type.
+
+The switch travels in the signed license token only, as the claim
+`canBeWhiteLabelled: true`: the token `/validate` and `/report-user-count`
+return, and the offline token. A license without the switch gets exactly the
+token it got before the switch existed - no claim at all, not even `false` -
+and the JSON answers never name it, on or off. So an installation learns it
+only by verifying a token signed for a license that has it, and nobody can
+grant it without the signing key.
+
+That means it needs EdDSA signing (see the key ceremony below): a license
+server still issuing legacy HS256 tokens cannot give anyone white-labelling,
+because no installation can verify those. The switch reaches a customer's
+installation at its next license refresh: the daily usage report, or
+**Refresh license** in its edition dialog. An offline installation needs a new
+offline token.
+
+### On the customer's installation
+
+`Server/WhiteLabel/WhiteLabelEntitlement.ts` decides, synchronously and on
+every ask, from the license this process holds. Allowed only when ALL hold:
+
+- self-hosted (billing off): OneUptime Cloud is never white-labelled;
+- the license token is **verified** - signed by a key this build trusts.
+  An unverified legacy license, a token signed by an unknown key, a tampered
+  or malformed token, a token bound to another instance and the unlicensed
+  trial never allow it;
+- the license is usable: valid, or expired and inside its 30-day grace
+  period (nothing changes until grace ends, as for every enterprise feature);
+- the token carries `canBeWhiteLabelled: true`.
+
+Everything else is no, and an unknown license state (not read yet) is no.
+
+While it is allowed, **Admin Dashboard > Settings > White Label** (master
+admins) sets:
+
+| Setting | What it changes |
+| --- | --- |
+| Product name (up to 50 characters, no line breaks or `< > { }`) | Every place the product names itself: page titles, the sign-in pages, the product's own sentences in every language (the Dashboard, Accounts and status pages replace "OneUptime" as a word in every translated string, interpolated values included), emails (header, footer, sign-off, subjects, the templates' own sentences), SMS, voice calls and push notifications, "Powered by" on status pages and public dashboards, `llms.txt`, server-rendered pages, the web app manifest. With a name set, the Dashboard footer and the sign-in page also drop OneUptime's support and legal links and the edition pill. |
+| Website (optional, http or https) | Where "Powered by <name>" links, in emails and on status pages and public dashboards. Without it the line has no link. |
+| Logo for light backgrounds (PNG, JPEG, GIF, WebP or SVG, up to 512 KB) | The Dashboard and Admin Dashboard headers, the sign-in pages, form pages without a logo of their own, server-rendered pages, and the top of emails when it is a PNG, JPEG or GIF (many mail clients draw neither SVG nor WebP; the product name stands in). |
+| Logo for dark backgrounds (optional, same rules) | The headers in dark mode; without it the light-background logo is used. |
+| Browser tab icon (PNG, JPEG, GIF, WebP, SVG or ICO, up to 128 KB) | The favicon of every frontend and server-rendered page, the web app manifest's icon, and web push notifications' icon. |
+
+Uploads are typed from their own bytes, never from the browser's claim; an SVG
+with scripts, event handlers, embedded HTML, `javascript:` or entity
+declarations is refused. Stored values are read back under the same rules, so
+a value that would not pass today is never served.
+
+What deliberately stays OneUptime: the Admin Dashboard's own sentences and its
+edition dialog (where the installation's operators manage the OneUptime
+license - a license notice names its licensor), the public docs and the API
+reference served at `/docs` and `/reference`, the license emails oneuptime.com
+sends, the mobile app, Slack, Microsoft Teams and other workspace messages,
+WhatsApp messages (their templates are approved with Meta under the operator's
+own account), and every command, package, image and URL (`oneuptime`,
+`ONEUPTIME_*`, `oneuptime.com`).
+
+### How it is wired
+
+- **Schema (core):** `EnterpriseLicense.canBeWhiteLabelled`, and
+  `GlobalConfig.branding*` (name, website, the three images as `data:` URLs,
+  the time of the last change). `GlobalConfigService` refuses writes to the
+  branding columns from anyone but OneUptime itself and drops them from every
+  read that is not, so a value stored while white-labelling was allowed is
+  never served by the generic API once it is not.
+- **The routes (`Server/WhiteLabel/API/WhiteLabelAPI.ts`):**
+  `GET`/`PUT /api/branding/settings` (master admins) and the public image
+  routes `/api/branding/logo`, `/dark-logo` and `/favicon`. Every route starts
+  with the license gate, which passes a request on (`next("route")`) before
+  anything else looks at it, so an installation whose license does not allow
+  white-labelling answers exactly what it answers for a path that does not
+  exist. An image that is not set answers the same.
+- **What core shows:** the module's `getProductBranding()` hands core a
+  neutral `ProductBranding` (`packages/Common/Types/Branding/ProductBranding.ts`),
+  or `null` while it is not allowed. Core puts it in env.js
+  (`PRODUCT_BRANDING`, absent while `null`), in the index pages and
+  server-rendered pages (`ProductBrandingViewVariables`), in emails
+  (`EmailBranding.ts`, the `brandName` helpers) and in paging messages
+  (`ProductBrandingText`). Core never says what the branding is for.
+- **The settings page (`AdminDashboard/WhiteLabel/`):** an Enterprise settings
+  page (`SettingsPages`, `SettingsSideMenuItems`). It knows whether white-labelling
+  is allowed from env.js alone, so an installation whose license does not
+  allow it never sends a request that names it. Its text is English only: it
+  stays out of the shared locale files, which ship to every installation.
+- **Caching:** the settings are read at boot and cached for 30 seconds per
+  process (`WhiteLabelProvider.ts`); a save refreshes the process that served
+  it at once, and every other process within 30 seconds. Pages pick changes up
+  on their next load.
+
+### When the license changes
+
+Turning the switch off on oneuptime.com takes effect at the installation's
+next license refresh: the new token has no claim, so white-labelling stops,
+and the product shows OneUptime's name and logo again at once - pages on
+their next load, emails and messages from the next one sent. The settings are
+kept, not deleted, and come back as they were if the license gets the switch
+again. The same happens when the license lapses past its grace period, and
+comes back when it is renewed.
 
 ## Contributing
 

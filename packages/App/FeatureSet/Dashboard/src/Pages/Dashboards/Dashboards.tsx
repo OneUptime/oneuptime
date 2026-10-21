@@ -1,9 +1,13 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  DASHBOARD_ARCHIVE_COPY,
+  ARCHIVE_INSTEAD_OF_DELETE,
+} from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -13,28 +17,23 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useCallback,
   useState,
 } from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
-import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import CreateDashboardModal from "../../Components/Dashboard/CreateDashboardModal";
+import { getDashboardViewRoute } from "../../Components/Dashboard/DashboardCreateForm";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
-import {
-  DashboardTemplateType,
-  DashboardTemplate,
-  DashboardTemplateCategories,
-  DashboardTemplateCategory,
-  getDashboardTemplatesByCategory,
-} from "Common/Types/Dashboard/DashboardTemplates";
-import { JSONObject } from "Common/Types/JSON";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ObjectID from "Common/Types/ObjectID";
 
+/*
+ * Create Dashboard opens Create a dashboard (Components/Dashboard/
+ * CreateDashboardModal): how to start - from scratch, or from a template
+ * picked the way Create a workflow picks one - then a name, filled in from
+ * the template. Create opens the new dashboard.
+ */
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<DashboardTemplateType | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
-  const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Dashboard>({ modelType: Dashboard });
@@ -46,11 +45,21 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "dashboardId",
     });
 
+  // Archived dashboards leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<Dashboard>({
+    modelType: Dashboard,
+    singularName: DASHBOARD_ARCHIVE_COPY.singularName,
+    pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
+
   const {
     getOwnersForResource,
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -62,62 +71,28 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     showLabelsFacet: true,
   });
 
-  const handleTemplateClick: (type: DashboardTemplateType) => void =
-    useCallback((type: DashboardTemplateType): void => {
-      setSelectedTemplate(type);
-      setShowTemplateModal(false);
-      setShowCreateForm(true);
-    }, []);
-
   return (
     <Fragment>
-      {showTemplateModal ? (
-        <Modal
-          title="Create from Template"
-          description="Choose a template to quickly get started with a pre-configured dashboard."
+      {showCreateModal ? (
+        <CreateDashboardModal
           onClose={() => {
-            setShowTemplateModal(false);
+            setShowCreateModal(false);
           }}
-          modalWidth={ModalWidth.Large}
-        >
-          <div className="space-y-6">
-            {DashboardTemplateCategories.map(
-              (category: DashboardTemplateCategory): ReactElement => {
-                const templates: Array<DashboardTemplate> =
-                  getDashboardTemplatesByCategory(category);
+          onCreated={(dashboard: Dashboard) => {
+            setShowCreateModal(false);
 
-                if (templates.length === 0) {
-                  return <Fragment key={category}></Fragment>;
-                }
-
-                return (
-                  <div key={category}>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                      {category}
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {templates.map(
-                        (template: DashboardTemplate): ReactElement => {
-                          return (
-                            <DashboardTemplateCard
-                              key={template.type}
-                              title={template.name}
-                              description={template.description}
-                              icon={template.icon}
-                              onClick={() => {
-                                handleTemplateClick(template.type);
-                              }}
-                            />
-                          );
-                        },
-                      )}
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </Modal>
+            /*
+             * The new dashboard opens: what the template built, or a blank
+             * canvas with its Add Widget button - rather than leaving the
+             * user on this list to find the new row.
+             */
+            if (dashboard._id) {
+              Navigation.navigate(
+                getDashboardViewRoute(new ObjectID(dashboard._id.toString())),
+              );
+            }
+          }}
+        />
       ) : (
         <></>
       )}
@@ -128,70 +103,46 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Dashboard>) => {
           onResourcesFetched(data);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
+        /*
+         * The built-in create form is replaced by Create a dashboard, which
+         * starts with the template picker, as Workflows does. Going through
+         * onCreateClick rather than a cardProps button keeps the permission
+         * gating on the create button: cardProps buttons are not gated.
+         */
         onCreateClick={() => {
-          setShowTemplateModal(true);
-        }}
-        onCreateEditModalClose={() => {
-          setShowCreateForm(false);
+          setShowCreateModal(true);
         }}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Dashboards"
         isViewable={true}
-        showCreateForm={showCreateForm}
         cardProps={{
           title: "Dashboards",
-          description: "Here is a list of dashboards for this project.",
+          description:
+            "Your own views of metrics, logs, traces, monitors and incidents, arranged the way your team wants them. Start from a template or an empty dashboard.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No dashboards found."}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Dashboard Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        onBeforeCreate={async (
-          item: Dashboard,
-          miscDataProps: JSONObject,
-        ): Promise<Dashboard> => {
-          if (
-            selectedTemplate &&
-            selectedTemplate !== DashboardTemplateType.Blank
-          ) {
-            miscDataProps["dashboardTemplateType"] = selectedTemplate;
-          }
-          setSelectedTemplate(null);
-          setShowCreateForm(false);
-          return item;
-        }}
+        /*
+         * No formFields: this table never draws its own form. Creating goes
+         * through Create a dashboard above, and a dashboard's name and
+         * description are edited on its own Overview.
+         */
         saveFilterProps={{
           tableId: "all-dashboards-table",
         }}

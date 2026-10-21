@@ -1,10 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
+  MAX_SESSION_REPLAY_READ_BYTES,
   SessionReplayChunkManifestEntry,
 } from "../../../Types/Rum/SessionReplay";
 import { MAX_PREFETCH_PAGES_AHEAD } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 import ChunkLoader, {
+  ChunkExtraction,
   ChunkLoadError,
   DECODE_YIELD_BUDGET_BYTES,
   DEFAULT_CHUNK_FETCH_MAX_TIMEOUT_MS,
@@ -19,9 +21,12 @@ import ChunkLoader, {
   SessionReplayRecordedEvent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ChunkLoader";
 import {
+  REPLAY_TIMELINE_EVENT_KINDS,
   REPLAY_TIMELINE_EXTRACTION_CAPS,
   ReplayTimelineEvent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineTypes";
+import InactivityMap from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/InactivityMap";
+import { ReplayIdleBand } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 
 /*
  * ChunkLoader lives in the Dashboard but is tested from Common, because it is
@@ -184,6 +189,206 @@ function makeLoader(
 }
 
 describe("ChunkLoader frame decoding", () => {
+  /*
+   * github.com/OneUptime/oneuptime/issues/4119: the replay now loads the
+   * recorded page's images, so what the page itself says about referrers,
+   * relative addresses and tracking pixels has to be taken out before any
+   * Replayer builds from a chunk - decoding is the one place every chunk
+   * passes through, once.
+   */
+  it("hands over every chunk prepared for playback", () => {
+    const page: Array<unknown> = [
+      {
+        type: 4,
+        timestamp: 1,
+        data: {
+          href: "https://shop.example.com/checkout",
+          width: 1200,
+          height: 760,
+        },
+      },
+      {
+        type: 2,
+        timestamp: 2,
+        data: {
+          node: {
+            type: 0,
+            id: 1,
+            childNodes: [
+              {
+                type: 2,
+                id: 2,
+                tagName: "html",
+                attributes: {},
+                childNodes: [
+                  {
+                    type: 2,
+                    id: 3,
+                    tagName: "head",
+                    attributes: {},
+                    childNodes: [
+                      {
+                        type: 2,
+                        id: 4,
+                        tagName: "meta",
+                        attributes: { name: "referrer", content: "unsafe-url" },
+                        childNodes: [],
+                      },
+                    ],
+                  },
+                  {
+                    type: 2,
+                    id: 5,
+                    tagName: "body",
+                    attributes: {},
+                    childNodes: [
+                      {
+                        type: 2,
+                        id: 6,
+                        tagName: "img",
+                        attributes: {
+                          src: "https://cdn.shop.example.com/logo.png",
+                          referrerpolicy: "no-referrer-when-downgrade",
+                        },
+                        childNodes: [],
+                      },
+                      {
+                        type: 2,
+                        id: 7,
+                        tagName: "video",
+                        attributes: { poster: "/media/poster.jpg" },
+                        childNodes: [],
+                      },
+                      {
+                        type: 2,
+                        id: 8,
+                        tagName: "img",
+                        attributes: {
+                          width: "1",
+                          height: "1",
+                          src: "https://tracker.example/sale.png?order=1001",
+                        },
+                        childNodes: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          initialOffset: { top: 0, left: 0 },
+        },
+      },
+    ];
+
+    const frames: Array<{
+      chunkIndex: number;
+      events: Array<SessionReplayRecordedEvent>;
+    }> = ChunkLoader.decodeFrames(
+      encodeFrames([{ chunkIndex: 0, body: JSON.stringify(page) }]),
+    );
+    const decoded: string = JSON.stringify(frames[0]!.events);
+
+    expect(decoded).not.toContain("referrerpolicy");
+    expect(decoded).not.toContain('"name":"referrer"');
+    expect(decoded).toContain('"data-oneuptime-recorded-name":"referrer"');
+    expect(decoded).toContain(
+      '"poster":"https://shop.example.com/media/poster.jpg"',
+    );
+    expect(decoded).not.toContain("tracker.example/sale.png");
+    expect(decoded).toContain('"src":"https://cdn.shop.example.com/logo.png"');
+  });
+
+  it("resolves a relative poster in a chunk with no Meta of its own against the tab's page, across responses", async () => {
+    /*
+     * A Meta comes only with a full snapshot (a checkout a minute) while a
+     * chunk is cut every 15 seconds, so most chunks have no page address of
+     * their own. The loader keeps the last one it decoded for the tab.
+     */
+    const withMeta: string = JSON.stringify([
+      {
+        type: 4,
+        timestamp: 1,
+        data: {
+          href: "https://shop.example.com/checkout",
+          width: 1200,
+          height: 760,
+        },
+      },
+      {
+        type: 2,
+        timestamp: 2,
+        data: {
+          node: { type: 0, id: 1, childNodes: [] },
+          initialOffset: { top: 0, left: 0 },
+        },
+      },
+    ]);
+    const withoutMeta: string = JSON.stringify([
+      {
+        type: 3,
+        timestamp: 3,
+        data: {
+          source: 0,
+          texts: [],
+          attributes: [],
+          removes: [],
+          adds: [
+            {
+              parentId: 1,
+              nextId: null,
+              node: {
+                type: 2,
+                id: 9,
+                tagName: "video",
+                attributes: { poster: "/media/poster.jpg" },
+                childNodes: [],
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        return chunkIndex === 0 ? withMeta : withoutMeta;
+      },
+    });
+    /* A first chunk as big as a read, so each chunk is its own response. */
+    const loader: ChunkLoader = makeLoader(
+      [
+        makeEntry(0, {
+          hasFullSnapshot: true,
+          payloadBytes: MAX_SESSION_REPLAY_READ_BYTES,
+        }),
+        makeEntry(1),
+      ],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+    await loader.loadPage(1);
+
+    expect(fetcher.requests).toEqual([[0], [1]]);
+    expect(JSON.stringify(loader.getDecodedChunk(1))).toContain(
+      '"poster":"https://shop.example.com/media/poster.jpg"',
+    );
+
+    /* A loader that never saw a Meta drops it rather than guess. */
+    const alone: ChunkLoader = makeLoader(
+      [makeEntry(1)],
+      makeFetcher({
+        payloadFor: (): string => {
+          return withoutMeta;
+        },
+      }),
+    );
+
+    await alone.loadPage(1);
+
+    expect(JSON.stringify(alone.getDecodedChunk(1))).not.toContain("poster");
+  });
+
   it("decodes concatenated frames in wire order", () => {
     const buffer: ArrayBuffer = encodeFrames([
       { chunkIndex: 3, body: bodyFor(3) },
@@ -1845,6 +2050,82 @@ describe("ChunkLoader signal extraction", () => {
     expect(longTask?.offsetMs).toBe(9000);
   });
 
+  /*
+   * Issue #3975: an INP is now reported per single-page-app view, with
+   * the view's url and the slow interaction's attribution. Each field is
+   * read on its own, so one a newer or buggier recorder got wrong costs
+   * only that field.
+   */
+  it("carries an INP's view and attribution, dropping only the fields that are malformed", () => {
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(0),
+      [
+        { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+        custom(
+          "oneuptime.performance",
+          {
+            kind: "web-vital",
+            metric: "INP",
+            value: 480,
+            rating: "needs-improvement",
+            url: "https://shop.example.com/products",
+            navigationType: "soft",
+            interactionType: "pointer",
+            interactionTarget: "nav > a.product-link",
+            inputDelayMs: 5,
+            processingDurationMs: 305,
+            presentationDelayMs: 170,
+          },
+          CUSTOM_BASE_TS + 100,
+        ),
+        custom(
+          "oneuptime.performance",
+          {
+            kind: "web-vital",
+            metric: "INP",
+            value: 90,
+            rating: "good",
+            navigationType: "sideways",
+            interactionType: 7,
+            interactionTarget: "",
+            inputDelayMs: -3,
+            processingDurationMs: "12",
+            presentationDelayMs: 40,
+          },
+          CUSTOM_BASE_TS + 200,
+        ),
+      ],
+    );
+
+    const [attributed, malformed] = rows.filter(
+      (row: ReplayTimelineEvent): boolean => {
+        return row.metric === "INP";
+      },
+    );
+
+    expect(attributed).toEqual(
+      expect.objectContaining({
+        value: 480,
+        url: "https://shop.example.com/products",
+        navigationType: "soft",
+        interactionType: "pointer",
+        interactionTarget: "nav > a.product-link",
+        inputDelayMs: 5,
+        processingDurationMs: 305,
+        presentationDelayMs: 170,
+      }),
+    );
+
+    /* The row itself survives; only the bad fields are gone. */
+    expect(malformed?.value).toBe(90);
+    expect(malformed?.presentationDelayMs).toBe(40);
+    expect(malformed?.navigationType).toBeUndefined();
+    expect(malformed?.interactionType).toBeUndefined();
+    expect(malformed?.interactionTarget).toBeUndefined();
+    expect(malformed?.inputDelayMs).toBeUndefined();
+    expect(malformed?.processingDurationMs).toBeUndefined();
+  });
+
   it("turns rrweb Meta events into navigation rows carrying the viewport", () => {
     const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
       makeEntry(0),
@@ -2221,5 +2502,442 @@ describe("ChunkLoader incremental page decode", () => {
       }),
     ).toEqual([0, 3]);
     expect(lazy).toEqual(eager);
+  });
+});
+
+/*
+ * The idle pause (issue #4208). After five minutes without input the
+ * recorder closes its chunk on an oneuptime.idle-paused marker and records
+ * nothing at all; the next input opens the next chunk of the same tab on
+ * Meta + FullSnapshot, followed by an oneuptime.idle-resumed marker that
+ * names both ends of the stretch nobody recorded. The loader lifts both as
+ * "idle-pause" rows for the rail, and the resumed row carries where the
+ * pause began on the session clock - outside its own chunk, by the whole
+ * length of the pause - which is what the inactivity map draws the
+ * "paused" band from.
+ */
+describe("ChunkLoader idle-pause markers", () => {
+  const PAUSED_AT_MS: number = 2 * CHUNK_MS;
+  const RESUMED_AT_MS: number = 90_000;
+
+  /* The chunk that resumed: a minute after the pause, on a snapshot. */
+  function resumeEntry(chunkIndex: number): SessionReplayChunkManifestEntry {
+    return {
+      ...makeEntry(chunkIndex, { hasFullSnapshot: true }),
+      chunkStartOffsetMs: RESUMED_AT_MS,
+      chunkEndOffsetMs: RESUMED_AT_MS + CHUNK_MS,
+    };
+  }
+
+  /* Meta + FullSnapshot at the resume, the marker right behind them. */
+  function resumeEvents(
+    payload: Record<string, unknown> | null,
+  ): Array<SessionReplayRecordedEvent> {
+    const marker: SessionReplayRecordedEvent =
+      payload === null
+        ? {
+            type: 5,
+            timestamp: CUSTOM_BASE_TS + RESUMED_AT_MS + 2,
+            data: { tag: "oneuptime.idle-resumed" },
+          }
+        : custom(
+            "oneuptime.idle-resumed",
+            payload,
+            CUSTOM_BASE_TS + RESUMED_AT_MS + 2,
+          );
+
+    return [
+      {
+        type: RRWEB_EVENT_TYPE_META,
+        timestamp: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        data: { href: "https://app.example.com/", width: 1440, height: 900 },
+      },
+      { type: 2, timestamp: CUSTOM_BASE_TS + RESUMED_AT_MS + 1, data: {} },
+      marker,
+      incremental(
+        { source: RRWEB_SOURCE_MOUSE_MOVE },
+        CUSTOM_BASE_TS + RESUMED_AT_MS + 500,
+      ),
+    ];
+  }
+
+  function idlePauseRows(
+    rows: Array<ReplayTimelineEvent>,
+  ): Array<ReplayTimelineEvent> {
+    return rows.filter((row: ReplayTimelineEvent): boolean => {
+      return row.kind === "idle-pause";
+    });
+  }
+
+  it("lifts the idle-paused marker as a row where capture stopped, with the last input", () => {
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(1),
+      [
+        incremental(
+          { source: RRWEB_SOURCE_MOUSE_MOVE },
+          CUSTOM_BASE_TS + CHUNK_MS,
+        ),
+        custom(
+          "oneuptime.idle-paused",
+          {
+            idleSinceUnixMs: CUSTOM_BASE_TS + CHUNK_MS,
+            pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+          },
+          CUSTOM_BASE_TS + PAUSED_AT_MS,
+        ),
+      ],
+    );
+
+    expect(rows).toEqual([
+      {
+        id: "rec:1:0",
+        kind: "idle-pause",
+        chunkIndex: 1,
+        offsetMs: PAUSED_AT_MS,
+        idlePauseEdge: "paused",
+        idleSinceUnixMs: CUSTOM_BASE_TS + CHUNK_MS,
+        pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+        atUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+      },
+    ]);
+    /* A paused row never claims a band: only a resume names one. */
+    expect(rows[0]?.pausedAtOffsetMs).toBeUndefined();
+  });
+
+  it("lifts the idle-resumed marker at the resume, with the pause start outside its own chunk", () => {
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      resumeEntry(2),
+      resumeEvents({
+        pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+        resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+      }),
+    );
+
+    /* The Meta is still a navigation row; the marker is the second row. */
+    expect(
+      rows.map((row: ReplayTimelineEvent): string => {
+        return row.kind;
+      }),
+    ).toEqual(["navigation", "idle-pause"]);
+    expect(idlePauseRows(rows)).toEqual([
+      {
+        id: "rec:2:1",
+        kind: "idle-pause",
+        chunkIndex: 2,
+        offsetMs: RESUMED_AT_MS,
+        idlePauseEdge: "resumed",
+        pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+        resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        atUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        /*
+         * 30s, before this chunk's 90s start: the window clamp every other
+         * stamp gets would have pinned it to 90s and drawn nothing.
+         */
+        pausedAtOffsetMs: PAUSED_AT_MS,
+      },
+    ]);
+  });
+
+  it("holds the pause start at or after zero and at or before the resume", () => {
+    const beforeZero: ReplayTimelineEvent | undefined = idlePauseRows(
+      ChunkLoader.extractTimelineEvents(
+        resumeEntry(2),
+        resumeEvents({
+          pausedAtUnixMs: CUSTOM_BASE_TS - 60 * 60 * 1000,
+          resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        }),
+      ),
+    )[0];
+
+    expect(beforeZero?.pausedAtOffsetMs).toBe(0);
+    expect(beforeZero?.offsetMs).toBe(RESUMED_AT_MS);
+
+    /*
+     * Both stamps skewed far past the chunk: the resume is clamped into
+     * the window like any stamp, and the pause is held at the resume, so
+     * the "band" has no length rather than an end before its start.
+     */
+    const skewed: ReplayTimelineEvent | undefined = idlePauseRows(
+      ChunkLoader.extractTimelineEvents(
+        resumeEntry(2),
+        resumeEvents({
+          pausedAtUnixMs: CUSTOM_BASE_TS + 400_000,
+          resumedAtUnixMs: CUSTOM_BASE_TS + 500_000,
+        }),
+      ),
+    )[0];
+
+    expect(skewed?.offsetMs).toBe(RESUMED_AT_MS + CHUNK_MS);
+    expect(skewed?.pausedAtOffsetMs).toBe(RESUMED_AT_MS + CHUNK_MS);
+  });
+
+  it("keeps a malformed marker's row but gives it no stamps", () => {
+    const malformedResumes: Array<Record<string, unknown> | null> = [
+      /* A resume before its own pause describes no stretch at all. */
+      {
+        pausedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        resumedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+      },
+      { pausedAtUnixMs: "30000", resumedAtUnixMs: CUSTOM_BASE_TS + 90_000 },
+      { pausedAtUnixMs: Number.NaN, resumedAtUnixMs: CUSTOM_BASE_TS + 90_000 },
+      { resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS },
+      null,
+    ];
+
+    for (const payload of malformedResumes) {
+      const rows: Array<ReplayTimelineEvent> = idlePauseRows(
+        ChunkLoader.extractTimelineEvents(
+          resumeEntry(2),
+          resumeEvents(payload),
+        ),
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.idlePauseEdge).toBe("resumed");
+      /* Where the marker itself sat: 2ms into the resuming chunk. */
+      expect(rows[0]?.offsetMs).toBe(RESUMED_AT_MS + 2);
+      expect(rows[0]?.pausedAtOffsetMs).toBeUndefined();
+      expect(rows[0]?.pausedAtUnixMs).toBeUndefined();
+      expect(rows[0]?.resumedAtUnixMs).toBeUndefined();
+      expect(rows[0]?.atUnixMs).toBeUndefined();
+    }
+
+    const pausedWithoutIdleSince: Array<ReplayTimelineEvent> =
+      ChunkLoader.extractTimelineEvents(makeEntry(1), [
+        incremental(
+          { source: RRWEB_SOURCE_MOUSE_MOVE },
+          CUSTOM_BASE_TS + CHUNK_MS,
+        ),
+        custom(
+          "oneuptime.idle-paused",
+          { pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS },
+          CUSTOM_BASE_TS + CHUNK_MS + 9000,
+        ),
+      ]);
+
+    expect(pausedWithoutIdleSince).toEqual([
+      {
+        id: "rec:1:0",
+        kind: "idle-pause",
+        chunkIndex: 1,
+        offsetMs: CHUNK_MS + 9000,
+        idlePauseEdge: "paused",
+      },
+    ]);
+  });
+
+  it("draws no band from a malformed resume, and the right one from a valid one", () => {
+    /*
+     * End to end through the inactivity map, the way the engine admits a
+     * decoded chunk: its rows go in as evidence, and only a valid resume
+     * becomes a paused band.
+     */
+    const entries: Array<SessionReplayChunkManifestEntry> = [
+      makeEntry(0, { hasFullSnapshot: true }),
+      makeEntry(1),
+      resumeEntry(2),
+    ];
+    const bandsFor: (
+      payload: Record<string, unknown> | null,
+    ) => Array<ReplayIdleBand> = (
+      payload: Record<string, unknown> | null,
+    ): Array<ReplayIdleBand> => {
+      const extraction: ChunkExtraction = ChunkLoader.extractChunk(
+        resumeEntry(2),
+        resumeEvents(payload),
+      );
+      const map: InactivityMap = new InactivityMap(entries);
+
+      map.admitChunk(2, {
+        activityIntervals: extraction.activityIntervals,
+        visibilityEvents: extraction.events,
+        idlePauseEvents: extraction.events,
+      });
+
+      return map.getBands().filter((band: ReplayIdleBand): boolean => {
+        return band.kind === "paused";
+      });
+    };
+
+    expect(
+      bandsFor({
+        pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+        resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+      }),
+    ).toEqual([
+      {
+        startMs: PAUSED_AT_MS,
+        endMs: RESUMED_AT_MS,
+        kind: "paused",
+        fidelity: "exact",
+      },
+    ]);
+    expect(
+      bandsFor({
+        pausedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        resumedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+      }),
+    ).toEqual([]);
+    expect(bandsFor({ pausedAtUnixMs: "x", resumedAtUnixMs: "y" })).toEqual([]);
+    expect(bandsFor(null)).toEqual([]);
+  });
+
+  it("does not count either marker as user activity", () => {
+    /*
+     * The resume says capture started again, not what the user did; a
+     * page that resumed and was then left alone is still idle after it.
+     */
+    expect(
+      ChunkLoader.extractChunk(resumeEntry(2), [
+        ...resumeEvents({
+          pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+          resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+        }).slice(0, 3),
+      ]).activityIntervals,
+    ).toEqual([]);
+
+    expect(
+      ChunkLoader.extractChunk(makeEntry(1), [
+        incremental(
+          { source: RRWEB_SOURCE_MOUSE_MOVE },
+          CUSTOM_BASE_TS + CHUNK_MS,
+        ),
+        custom(
+          "oneuptime.idle-paused",
+          {
+            idleSinceUnixMs: CUSTOM_BASE_TS + CHUNK_MS,
+            pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+          },
+          CUSTOM_BASE_TS + PAUSED_AT_MS,
+        ),
+      ]).activityIntervals,
+    ).toEqual([{ startMs: CHUNK_MS, endMs: CHUNK_MS, chunkIndex: 1 }]);
+  });
+
+  it("caps every timeline kind, the idle-pause markers included", async () => {
+    expect(REPLAY_TIMELINE_EVENT_KINDS).toContain("idle-pause");
+
+    for (const kind of REPLAY_TIMELINE_EVENT_KINDS) {
+      const cap: number = REPLAY_TIMELINE_EXTRACTION_CAPS[kind];
+
+      expect(Number.isInteger(cap)).toBe(true);
+      expect(cap).toBeGreaterThan(0);
+    }
+
+    const cap: number = REPLAY_TIMELINE_EXTRACTION_CAPS["idle-pause"];
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (): string => {
+        return JSON.stringify([
+          { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+          ...Array.from(
+            { length: cap + 10 },
+            (_unused: unknown, index: number): SessionReplayRecordedEvent => {
+              return custom(
+                "oneuptime.idle-paused",
+                {
+                  idleSinceUnixMs: CUSTOM_BASE_TS,
+                  pausedAtUnixMs: CUSTOM_BASE_TS + index,
+                },
+                CUSTOM_BASE_TS + index,
+              );
+            },
+          ),
+        ]);
+      },
+    });
+    const loader: ChunkLoader = makeLoader(
+      [makeEntry(0, { hasFullSnapshot: true })],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+
+    expect(loader.getExtractionStats().countsByKind["idle-pause"]).toBe(cap);
+    expect(loader.getExtractionStats().truncatedKinds).toEqual(["idle-pause"]);
+  });
+
+  it("keeps the rows in the loader's timeline, where the engine reads its evidence", async () => {
+    const entries: Array<SessionReplayChunkManifestEntry> = [
+      makeEntry(0, { hasFullSnapshot: true }),
+      makeEntry(1),
+      resumeEntry(2),
+    ];
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        if (chunkIndex === 1) {
+          return JSON.stringify([
+            incremental(
+              { source: RRWEB_SOURCE_MOUSE_MOVE },
+              CUSTOM_BASE_TS + CHUNK_MS,
+            ),
+            custom(
+              "oneuptime.idle-paused",
+              {
+                idleSinceUnixMs: CUSTOM_BASE_TS + CHUNK_MS,
+                pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+              },
+              CUSTOM_BASE_TS + PAUSED_AT_MS,
+            ),
+          ]);
+        }
+
+        if (chunkIndex === 2) {
+          return JSON.stringify(
+            resumeEvents({
+              pausedAtUnixMs: CUSTOM_BASE_TS + PAUSED_AT_MS,
+              resumedAtUnixMs: CUSTOM_BASE_TS + RESUMED_AT_MS,
+            }),
+          );
+        }
+
+        return JSON.stringify([
+          { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+          incremental(
+            { source: RRWEB_SOURCE_MOUSE_MOVE },
+            CUSTOM_BASE_TS + 500,
+          ),
+        ]);
+      },
+    });
+    const loader: ChunkLoader = makeLoader(entries, fetcher);
+
+    await loader.loadPage(0);
+
+    const map: InactivityMap = new InactivityMap(loader.getPlayableEntries());
+
+    for (const chunkIndex of loader.getExtractedChunkIndexes()) {
+      const rows: Array<ReplayTimelineEvent> =
+        loader.getTimelineEventsForChunk(chunkIndex) ?? [];
+
+      map.admitChunk(chunkIndex, {
+        activityIntervals:
+          loader.getActivityIntervalsForChunk(chunkIndex) ?? [],
+        visibilityEvents: rows,
+        idlePauseEvents: rows,
+      });
+    }
+
+    expect(
+      idlePauseRows(loader.getTimelineEvents()).map(
+        (row: ReplayTimelineEvent): [string | undefined, number] => {
+          return [row.idlePauseEdge, row.offsetMs];
+        },
+      ),
+    ).toEqual([
+      ["paused", PAUSED_AT_MS],
+      ["resumed", RESUMED_AT_MS],
+    ]);
+    expect(
+      map.getBands().filter((band: ReplayIdleBand): boolean => {
+        return band.kind === "paused";
+      }),
+    ).toEqual([
+      {
+        startMs: PAUSED_AT_MS,
+        endMs: RESUMED_AT_MS,
+        kind: "paused",
+        fidelity: "exact",
+      },
+    ]);
   });
 });

@@ -61,9 +61,59 @@ export const AGGREGATION_SCAN_PREFERRED_BLOCK_SIZE_IN_BYTES: number = 1048576;
  * The Logs sidebar fans out one aggregation per facet key concurrently, so
  * per-query thread caps also bound how much of the server a single page load
  * can claim. Latency is barely affected — these queries are already bounded
- * by max_execution_time with 'break'.
+ * by max_execution_time.
  */
 export const AGGREGATION_SCAN_MAX_THREADS: number = 4;
+
+/*
+ * How long a read a person waits on may run — the telemetry explorers'
+ * lists, charts, filter counts, totals and exports — and how it stops
+ * (issue #4707).
+ *
+ * 45 s, under the ClickHouse client's 58 s request_timeout, so the server
+ * answers before the client gives up on it. 'throw', so a read that runs out
+ * of time is reported as exactly that: executeQuery turns it into a
+ * QueryTimeoutException, the API answers 504 "This query took longer than 45
+ * seconds and was stopped before it finished. Try a shorter time range or
+ * more specific filters.", and the explorers say so where the results go.
+ *
+ * Not 'break'. It was chosen for these reads on the understanding that it
+ * returns what was found so far, and it does not: ClickHouse answers a
+ * grouped or sorted read it breaks off with an EMPTY body, and a read that
+ * was streaming rows with the document cut off (measured on 24.8 and 26.7).
+ * Every such search failed with a bare "Server Error" — or, where a caller
+ * swallowed the error, showed nothing at all. And a partial answer that did
+ * arrive would look complete: a list missing its newest rows, a chart with a
+ * drop that never happened, counts too low to notice.
+ */
+export const INTERACTIVE_READ_TIME_LIMIT: Readonly<{
+  maxExecutionTimeInSeconds: number;
+  timeoutOverflowMode: TimeoutOverflowMode;
+}> = {
+  maxExecutionTimeInSeconds: 45,
+  timeoutOverflowMode: "throw",
+};
+
+/*
+ * How long a suggestion lookup may run — the values offered under `@key:` in
+ * the search bars, the chart editors' value boxes, a dashboard's variable
+ * dropdowns (issue #4708) — and how it stops.
+ *
+ * A suggestion is a convenience next to the reader's typing, not the answer
+ * they are waiting for, so it gets far less than a search: a lookup reads a
+ * bounded sample (TelemetryAttributeService) and finishes in well under a
+ * second, and one that has not finished in 10 seconds is stopped with
+ * 'throw', for the same reasons as above. The search bar then says it could
+ * not load the values and the reader types one; the database is not held for
+ * a list nobody is waiting on.
+ */
+export const SUGGESTION_READ_TIME_LIMIT: Readonly<{
+  maxExecutionTimeInSeconds: number;
+  timeoutOverflowMode: TimeoutOverflowMode;
+}> = {
+  maxExecutionTimeInSeconds: 10,
+  timeoutOverflowMode: "throw",
+};
 
 export interface QuerySettingsOptions {
   /**
@@ -72,9 +122,11 @@ export interface QuerySettingsOptions {
    */
   maxExecutionTimeInSeconds?: number | undefined;
   /**
-   * What ClickHouse does when max_execution_time fires: 'break' returns
-   * partial results, 'throw' fails the query (the server default).
-   * Omitted from the clause when undefined.
+   * What ClickHouse does when max_execution_time fires: 'throw' fails the
+   * query (the server default). 'break' is documented to return partial
+   * results, but over HTTP it answers with an empty or cut-off body — see
+   * INTERACTIVE_READ_TIME_LIMIT before reaching for it. Omitted from the
+   * clause when undefined.
    */
   timeoutOverflowMode?: TimeoutOverflowMode | undefined;
   maxMemoryUsageInBytes?: number | undefined;

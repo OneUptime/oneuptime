@@ -23,12 +23,11 @@ import { getJestSpyOn } from "../../Spy";
 
 /*
  * Status page > "Log in with SSO". It lists the page's SAML and OIDC
- * providers. On the Community Edition status page SSO does not exist and the
- * server lists none (design v2 section 0), and a page can also simply have no
- * enabled provider. When BOTH lists come back empty the page says single
- * sign-on is not available and links back to the password sign-in - and that
- * is the only message it shows: not also the SAML list's "No items found."
- * and the OIDC list's "No SSO Providers Configured or Enabled".
+ * providers, in every edition. A page can have no enabled provider: when BOTH
+ * lists come back empty the page says single sign-on is not available for
+ * this status page and links back to the password sign-in - and that is the
+ * only message it shows: not also the SAML list's "No items found." and the
+ * OIDC list's "No SSO Providers Configured or Enabled".
  *
  * The lists are the real ModelList, fetching through a stubbed API.post, so
  * what is asserted is what a visitor would see.
@@ -36,7 +35,36 @@ import { getJestSpyOn } from "../../Spy";
  * Translations resolve against the StatusPage's real en.json and NEVER fall
  * back to a call's defaultValue: a key missing from the locales renders as
  * the bare key, so these tests fail instead of passing on the fallback text.
+ *
+ * The edition and billing flags are pinned per test (CI's config.env sets
+ * BILLING_ENABLED=true): the page reads neither, so it behaves the same on
+ * every edition.
  */
+
+let billingEnabledForTest: boolean = false;
+let enterpriseEditionForTest: boolean = false;
+
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return billingEnabledForTest;
+    },
+  });
+
+  Object.defineProperty(mocked, "IS_ENTERPRISE_EDITION", {
+    get: (): boolean => {
+      return enterpriseEditionForTest;
+    },
+  });
+
+  return mocked;
+});
 
 jest.mock("react-i18next", () => {
   const english: Record<string, unknown> = jest.requireActual(
@@ -147,6 +175,8 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
     samlProviders = [];
     oidcProviders = [];
     lookedUp = [];
+    billingEnabledForTest = false;
+    enterpriseEditionForTest = false;
 
     getJestSpyOn(StatusPageUtil, "getStatusPageId").mockReturnValue(
       STATUS_PAGE_ID,
@@ -193,7 +223,7 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
     jest.restoreAllMocks();
   });
 
-  test("both lists empty (the Community Edition): explains and links back to sign-in", async () => {
+  test("both lists empty (no provider enabled): explains and links back to sign-in", async () => {
     await renderPage();
 
     const notice: HTMLElement = await screen.findByTestId(
@@ -316,4 +346,54 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
       screen.queryByTestId("status-page-sso-unavailable"),
     ).not.toBeInTheDocument();
   });
+
+  /*
+   * Status page SSO is part of every edition: what the page shows depends
+   * only on the providers the server lists, never on the edition or billing.
+   */
+  describe.each([
+    { name: "Community Edition", enterprise: false, billing: false },
+    {
+      name: "Community Edition image, billing on",
+      enterprise: false,
+      billing: true,
+    },
+    { name: "Enterprise Edition", enterprise: true, billing: false },
+    { name: "OneUptime Cloud", enterprise: true, billing: true },
+  ])(
+    "$name",
+    (edition: { name: string; enterprise: boolean; billing: boolean }) => {
+      beforeEach(() => {
+        enterpriseEditionForTest = edition.enterprise;
+        billingEnabledForTest = edition.billing;
+      });
+
+      test("lists the page's SAML and OIDC providers", async () => {
+        samlProviders = [OKTA];
+        oidcProviders = [
+          { _id: "33333333-3333-4333-8333-333333333333", name: "Entra ID" },
+        ];
+
+        await renderPage();
+
+        expect(await screen.findByText("Okta")).toBeVisible();
+        expect(await screen.findByText("Entra ID")).toBeVisible();
+        expect(
+          screen.queryByTestId("status-page-sso-unavailable"),
+        ).not.toBeInTheDocument();
+        expect(lookedUp).toHaveLength(2);
+      });
+
+      test("with no provider enabled: the same notice, and nothing about an edition or a license", async () => {
+        await renderPage();
+
+        expect(
+          await screen.findByTestId("status-page-sso-unavailable"),
+        ).toHaveTextContent(NOT_AVAILABLE);
+        expect(document.body.textContent || "").not.toMatch(
+          /Enterprise|Community Edition|licen[cs]e/i,
+        );
+      });
+    },
+  );
 });

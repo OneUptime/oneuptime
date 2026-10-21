@@ -46,9 +46,12 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { StartingStage } from "../../../Utils/StartingStage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Declaring an incident from alerts, and carrying incident state changes over
  * to linked alerts, at the two places they hook into existing services:
@@ -83,6 +86,17 @@ const ACKNOWLEDGED_STATE_ID: string = "0194c3a9-0000-4000-8000-0000000000d2";
 const SEVERITY_ID: ObjectID = new ObjectID(
   "0194c3a9-0000-4000-8000-0000000000e1",
 );
+
+/*
+ * What onBeforeCreate hands onCreateSuccess for an incident declared in the
+ * created state from no alerts: only where it starts (StartingStage).
+ */
+const NOTHING_CARRIED: Record<string, unknown> = {
+  startingStage: StartingStage.Open,
+  alertIdsToLink: [],
+  acknowledgedAlertStateId: null,
+  alertIdsToAcknowledge: [],
+};
 
 type HookFunction = (...args: Array<unknown>) => Promise<unknown>;
 
@@ -159,6 +173,11 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
   let validate: jest.SpyInstance;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     const createdState: IncidentState = new IncidentState();
     createdState._id = CREATED_STATE_ID;
 
@@ -182,7 +201,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("**A responder**" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("**A responder**") as never);
 
     counter = jest
       .spyOn(ProjectService, "incrementAndGetIncidentCounter")
@@ -236,7 +255,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     const result: OnCreate<Incident> = await onBeforeCreate(undefined);
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
     expect(counter).toHaveBeenCalledTimes(1);
   });
 
@@ -246,7 +265,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     });
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
   });
 
   test("a null list is treated as no list", async () => {
@@ -255,7 +274,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     });
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
   });
 
   test.each([
@@ -619,6 +638,8 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         incidentId: INCIDENT_ID,
         alertIds: alertIds,
         actorUserId: USER_ID,
+        // Declared by no project API key: no key to name.
+        apiKeyActor: {},
       });
 
       const summaryOrder: number = summary.mock.invocationCallOrder[0]!;
@@ -631,6 +652,28 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       expect(summaryOrder).toBeLessThan(
         order("handleIncidentStateChangeAsync"),
       );
+    });
+
+    /*
+     * Declared through POST /api/incident with a project API key (Jira
+     * Automation, a script): the announcement names the key, as the
+     * incident's own feed items do (Utils/Feed/FeedApiKeyActor).
+     */
+    test("declared with a project API key, the announcement names the key", async () => {
+      const keyId: ObjectID = ObjectID.generate();
+
+      await onCreateSuccess({ alertIdsToLink: alertIds }, createdIncident(), {
+        isRoot: true,
+        tenantId: PROJECT_ID,
+        apiKeyId: keyId,
+        apiKeyName: "Jira Automation",
+      });
+      await settle();
+
+      expect(summary).toHaveBeenCalledTimes(1);
+      expect(
+        (summary.mock.calls[0]![0] as { apiKeyActor: unknown }).apiKeyActor,
+      ).toEqual({ apiKeyId: keyId, apiKeyName: "Jira Automation" });
     });
 
     test("the links themselves are written without incident-side entries", async () => {
@@ -1122,6 +1165,9 @@ describe("IncidentStateTimelineService.onCreateSuccess hands the new state to th
   let stateFeed: jest.SpyInstance;
 
   beforeEach(() => {
+    // Whether the new state resolves the incident is the project's to say.
+    mockProjectStates();
+
     const state: IncidentState = new IncidentState();
     state._id = ACKNOWLEDGED_STATE_ID;
     state.name = "Acknowledged";

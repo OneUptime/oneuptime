@@ -188,7 +188,7 @@ describe("UserSlackService", () => {
       getProjectAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Slack Integration.",
+        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.",
       );
     });
 
@@ -196,7 +196,7 @@ describe("UserSlackService", () => {
       getUserAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "Your Slack account is not connected to OneUptime for this project. Please go to User Settings > Slack Integration and connect your Slack account first.",
+        "Your Slack account is not connected to OneUptime in this project yet. Connect it under User Settings > Workspace > Slack, then add it here.",
       );
     });
 

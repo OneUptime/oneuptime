@@ -8,6 +8,9 @@ import React, {
 } from "react";
 import DashboardSecurityEventsListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardSecurityEventsListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import DashboardResourceListBase, {
+  ResourceListColumn,
+} from "./DashboardResourceListBase";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -18,11 +21,11 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Sort from "Common/Types/BaseDatabase/Sort";
 import Query from "Common/Types/BaseDatabase/Query";
+import IconProp from "Common/Types/Icon/IconProp";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import {
   DashboardDateTime,
   getDashboardDateTime,
@@ -31,10 +34,36 @@ import {
   getSecurityEventSeverityColor,
   resolveSecurityEventsListLimit,
 } from "./SecurityEventsWidgetData";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSecurityEventsListComponent;
 }
+
+/*
+ * The events in the dashboard's time range, newest first unless a viewer
+ * clicks a column (issue #5082): Severity sorts the most severe first, by
+ * the OCSF severity id. The message is free text, so it does not sort.
+ *
+ * One line per event, as the list always had: the time and the severity
+ * are as wide as they need, and the class, the message and the host share
+ * the rest - the message the most - each cut short with an ellipsis and
+ * whole on hover.
+ */
+const COLUMNS: Array<ResourceListColumn> = [
+  { label: "Time", widthPct: "22%", fitContent: true, sortKey: "time" },
+  {
+    label: "Severity",
+    widthPct: "12%",
+    fitContent: true,
+    sortKey: "severity",
+  },
+  { label: "Class", widthPct: "18%", sortKey: "class" },
+  { label: "Message", widthPct: "34%" },
+  { label: "Host", widthPct: "14%", sortKey: "host" },
+];
 
 const DashboardSecurityEventsListComponentElement: FunctionComponent<
   ComponentProps
@@ -45,6 +74,10 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.SecurityEventsList,
+  );
 
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -118,9 +151,8 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
               message: true,
               principalHost: true,
             },
-            sort: {
-              time: SortOrder.Descending,
-            },
+            // The viewer's pick, else the widget's own sort, else newest first.
+            sort: widgetSort.modelSort as Sort<SecurityEvent>,
           });
 
         if (isStale()) {
@@ -146,108 +178,92 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
       props.component.arguments.classNameFilters,
       props.component.arguments.messageContains,
       props.component.arguments.limit,
+      widgetSort.sortKey,
     ]);
 
   useEffect(() => {
     void fetchData();
   }, [fetchData, props.refreshTick]);
 
+  const rows: Array<ReactElement> = securityEvents.map(
+    (securityEvent: SecurityEvent, index: number): ReactElement => {
+      const severity: string =
+        (securityEvent.severityName as string) || "Unknown";
+      const severityColor: string = getSecurityEventSeverityColor(severity);
+      const time: DashboardDateTime | null = securityEvent.time
+        ? getDashboardDateTime(
+            securityEvent.time as unknown as string,
+            // Events arrive seconds apart; minutes cannot order them.
+            { showSeconds: true },
+          )
+        : null;
+      const className: string = (securityEvent.className as string) || "";
+      const message: string = (securityEvent.message as string) || "";
+      const host: string = (securityEvent.principalHost as string) || "";
+
+      return (
+        <tr
+          key={index}
+          className="hover:bg-gray-50/50 transition-colors duration-100"
+        >
+          <td
+            className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-500 tabular-nums"
+            title={time?.title}
+          >
+            {time ? time.label : "—"}
+          </td>
+          <td className="whitespace-nowrap px-3 py-1.5" title={severity}>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: severityColor }}
+              />
+              <span
+                className="text-xs font-medium"
+                style={{ fontSize: "10px", color: severityColor }}
+              >
+                {severity}
+              </span>
+            </span>
+          </td>
+          <td
+            className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-500"
+            title={className}
+          >
+            {className || "—"}
+          </td>
+          <td
+            className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-600"
+            title={message}
+          >
+            {message || "—"}
+          </td>
+          <td
+            className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-400"
+            title={host}
+          >
+            {host || "—"}
+          </td>
+        </tr>
+      );
+    },
+  );
+
   return (
-    <div className="flex h-full w-full flex-col">
-      {props.component.arguments.title && (
-        <div className="mb-1 px-1 text-sm font-medium text-gray-700">
-          {props.component.arguments.title}
-        </div>
-      )}
-
-      <div className="min-h-0 flex-1 overflow-auto">
-        {isLoading && securityEvents.length === 0 && (
-          <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
-          </div>
-        )}
-        {!isLoading && error && <ErrorMessage message={error} />}
-        {!isLoading && !error && securityEvents.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            No security events for the selected time range and filters
-          </div>
-        )}
-        {!error && securityEvents.length > 0 && (
-          <div className="rounded-md border border-gray-100">
-            <div className="divide-y divide-gray-50">
-              {securityEvents.map(
-                (securityEvent: SecurityEvent, index: number) => {
-                  const severity: string =
-                    (securityEvent.severityName as string) || "Unknown";
-                  const severityColor: string =
-                    getSecurityEventSeverityColor(severity);
-                  const time: DashboardDateTime | null = securityEvent.time
-                    ? getDashboardDateTime(
-                        securityEvent.time as unknown as string,
-                        // Events arrive seconds apart; minutes cannot order them.
-                        { showSeconds: true },
-                      )
-                    : null;
-
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-start gap-2 px-3 py-1.5 hover:bg-gray-50/50 transition-colors duration-100"
-                    >
-                      {time && (
-                        <span
-                          className="text-xs text-gray-400 shrink-0 tabular-nums whitespace-nowrap"
-                          style={{ fontSize: "11px" }}
-                          title={time.title}
-                        >
-                          {time.label}
-                        </span>
-                      )}
-                      <span
-                        className="flex items-center gap-1 shrink-0"
-                        title={severity}
-                      >
-                        <span
-                          className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: severityColor }}
-                        />
-                        <span
-                          className="text-xs font-medium"
-                          style={{ fontSize: "10px", color: severityColor }}
-                        >
-                          {severity}
-                        </span>
-                      </span>
-                      <span
-                        className="text-xs text-gray-500 shrink-0 truncate max-w-[10rem]"
-                        style={{ fontSize: "11px" }}
-                        title={(securityEvent.className as string) || ""}
-                      >
-                        {(securityEvent.className as string) || "-"}
-                      </span>
-                      <span
-                        className="text-xs text-gray-600 truncate flex-1"
-                        style={{ fontSize: "11px" }}
-                        title={(securityEvent.message as string) || ""}
-                      >
-                        {(securityEvent.message as string) || "-"}
-                      </span>
-                      <span
-                        className="text-xs text-gray-400 shrink-0 truncate max-w-[8rem]"
-                        style={{ fontSize: "11px" }}
-                        title={(securityEvent.principalHost as string) || ""}
-                      >
-                        {(securityEvent.principalHost as string) || ""}
-                      </span>
-                    </div>
-                  );
-                },
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <DashboardResourceListBase
+      title={props.component.arguments.title}
+      pluralLabel="events"
+      columns={COLUMNS}
+      count={securityEvents.length}
+      isLoading={isLoading}
+      error={error}
+      isEmpty={securityEvents.length === 0}
+      emptyMessage="No security events for the selected time range and filters"
+      emptyIcon={IconProp.ShieldExclamation}
+      sort={widgetSort.listSort}
+    >
+      {rows}
+    </DashboardResourceListBase>
   );
 };
 

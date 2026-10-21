@@ -1,146 +1,174 @@
-# Prometheus Alertmanager-integratie
+# Prometheus Alertmanager
 
-Zet meldingen van [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) om in OneUptime-incidenten. Prometheus evalueert je alertingregels, Alertmanager routeert ze, en OneUptime legt ze vast en escaleert ze.
+Stuur waarschuwingen van [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) naar OneUptime, zodat elke afgaande waarschuwing een incident wordt dat je team met dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Alertmanager post zijn meldingen naar een webhook-ontvanger, dus aan geen van beide kanten hoef je iets te installeren.
 
-Deze integratie is **inbound**, en er zijn twee manieren om hem te bouwen:
+:::cards
+- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een Incoming Request-monitor of een eigen workflow.
+- [Waarschuwingen ontvangen met een monitor](#waarschuwingen-ontvangen-met-een-monitor): Eén incident per waarschuwing, opgelost bij herstel.
+- [Alertmanager configureren](#alertmanager-configureren): Een webhook-ontvanger en de route die hem gebruikt.
+- [Problemen oplossen](#problemen-oplossen): Wanneer waarschuwingen niet aankomen of incidenten open blijven.
+:::
 
-| Aanpak                                                                              | Gebruik dit wanneer                                                                                                                                             |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Inkomend verzoek-monitor](/docs/monitor/incoming-request-monitor)** (aanbevolen) | Je wilt dat alerts incidenten worden met wachtdienst-escalatie, één incident per alert en automatische oplossing bij herstel. Geen eigen logica te onderhouden. |
-| **[Workflow](/docs/workflows/index) met een Webhook trigger**                       | Je hebt routeringslogica nodig die OneUptime niet standaard biedt — andere systemen aanroepen, payloads omvormen, voorwaardelijk vertakken.                     |
+## Hoe het werkt
 
-```text
-Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="Van een afgaande waarschuwing naar een incident"
+flowchart TB
+    rule["Een Prometheus-<br/>regel gaat af"] --> group["Alertmanager<br/>groepeert de<br/>waarschuwingen"]
+    group --> post["De ontvanger post<br/>ze naar OneUptime"]
+    post --> status{"De status van<br/>elke waarschuwing"}
+    status -->|"firing"| open["Incident geopend,<br/>dienst opgeroepen"]
+    status -->|"resolved"| resolve["Incident opgelost"]
 ```
 
-## Vereisten
+Prometheus evalueert je waarschuwingsregels en stuurt de waarschuwingen die afgaan naar Alertmanager. Alertmanager groepeert ze op de labels in de `group_by` van je route en post elke groep als één JSON-melding naar de webhook-ontvanger. De lijst `alerts` van de melding bevat elke waarschuwing van de groep, elk met een eigen `status`, `firing` of `resolved`, eigen labels en annotaties, en een `fingerprint` die haar identificeert.
 
-- Een Prometheus + Alertmanager-opzet waarin je `alertmanager.yml` kunt bewerken.
-- Alertmanager moet je OneUptime-instantie via HTTPS kunnen bereiken.
-- Een OneUptime-project waarin je monitors (of workflows) kunt aanmaken.
+## Voordat je begint
 
-## Optie 1 — Inkomend verzoek-monitor
+- Een Alertmanager waarvan je `alertmanager.yml` kunt bewerken en die je OneUptime via HTTPS kan bereiken.
+- In OneUptime het recht om monitoren aan te maken, of workflows als je die weg kiest.
 
-### Stap 1 — Maak de monitor aan
+## Kiezen hoe OneUptime waarschuwingen ontvangt
 
-1. Ga naar **Monitors → Monitor maken** en kies **Inkomend verzoek**.
-2. Open de monitor en klik op **Documentation** in het linkermenu. Kopieer de URL:
+Stel eerst OneUptime in: dat geeft je de URL waar Alertmanager naartoe stuurt.
 
-   ```
-   https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
-   ```
+| Weg | Gebruik hem als |
+| --- | --- |
+| Een Incoming Request-monitor (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Er valt niets te bouwen. |
+| Een workflow met een Webhook-trigger | Je hebt eigen logica nodig: waarschuwingen filteren, ze omvormen of eerst andere systemen aanroepen. Een workflow opent één incident per melding, niet per waarschuwing, en lost het niet op bij herstel. |
 
-   Gebruik je eigen host als je zelf host. De geheime sleutel in het pad is de enige credential.
+Beide krijgen dezelfde JSON van dezelfde ontvanger, dus je kunt met de ene beginnen en later overstappen door één URL in `alertmanager.yml` te wijzigen.
 
-### Stap 2 — Richt Alertmanager erop
+## Waarschuwingen ontvangen met een monitor
 
-In `alertmanager.yml`:
+Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke melding doet.
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+:::steps
+### De monitor maken
 
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Alertmanager` en klik op **Volgende**.
+
+### Een incident declareren voor elke afgaande waarschuwing
+
+Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor offline zet. Zet het filter op **Verzoeklichaam**, **Bevat**, `"status":"firing"`. Dit criterium declareert al een incident wanneer het filter overeenkomt. Vul het incident in:
+
+- **Incidenttitel**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
+- **Ernst**: de incidenternst die deze waarschuwingen moeten krijgen.
+- **Bereikbaarheidsbeleid**, onder **Bereikbaarheid**: het beleid dat moet worden opgeroepen.
+- **Incident automatisch oplossen**, onder **Meer velden**: laat het aan, zoals het begint. Zonder dit worden herstelmeldingen genegeerd en blijven incidenten open.
+
+### Eén incident per waarschuwing openen
+
+Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
+
+| Veld | Waarde |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
+
+### De monitor weer online brengen
+
+Open het tweede criterium, het criterium dat de monitor online zet, en zet het filter op **Verzoeklichaam**, **Bevat**, `"status":"resolved"`.
+
+### De URL kopiëren
+
+Klik op **Monitor maken**. De pagina **Overzicht** van de monitor toont zijn **Heartbeat URL**. Kopieer die voor Alertmanager:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
+:::
+
+`[*]` leest elke waarschuwing van een melding, dus een melding met drie waarschuwingen kan drie incidenten openen, tot **Max incidents per request** (`100`, tenzij je het wijzigt). De eigen `status` van elke waarschuwing bepaalt wat er met haar incident gebeurt: wanneer één waarschuwing van een melding is opgelost en er nog twee afgaan, wordt alleen het incident van de opgeloste waarschuwing gesloten. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
+
+> [!WARNING]
+> Groepeer op een waarde die binnen één melding per waarschuwing verschilt. De `fingerprint` van Alertmanager is een hash van de hele labelset van een waarschuwing, dus die verschilt altijd. Een label in de `group_by` van je route verschilt nooit: dat is juist wat de waarschuwingen in één melding zet. Groeperen op `requestBody.alerts[*].labels.alertname` met de route hieronder vouwt elke waarschuwing van een melding samen tot één incident, dat de status van de eerste waarschuwing krijgt.
+
+## De incidenten een naam geven
+
+De titel hierboven leest labels die alle waarschuwingen van de melding delen: `commonLabels` bevat die labels, en `commonAnnotations` de annotaties die ze delen. Met de route hieronder, die groepeert op `alertname` en `instance`, zijn beide aanwezig. Geef het incident onder **Beschrijving** een **Incidentbeschrijving** zoals:
+
+```text
+{{requestBody.commonAnnotations.summary}}
+
+{{requestBody.commonAnnotations.description}}
+Severity: {{requestBody.commonLabels.severity}}
+Alertmanager: {{requestBody.externalURL}}
+```
+
+- De groeperingssleutel is ook een variabele, genoemd naar het laatste segment van zijn pad: `{{fingerprint}}`. Het is een hash, dus een responder heeft er niets aan.
+- `{{requestBody.alerts[0].annotations.summary}}` leest de eerste waarschuwing van de melding, en dat is niet altijd de waarschuwing waarvoor het incident is geopend.
+- Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze geschreven is, accolades en al, in plaats van leeg te worden.
+
+Zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating) voor elke variabele die je kunt gebruiken.
+
+## Alertmanager configureren
+
+:::steps
+### Een webhook-ontvanger toevoegen
+
+Voeg in `alertmanager.yml` een ontvanger toe die naar de gekopieerde URL stuurt, en maak hem de ontvanger van de route:
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
 ```
 
-`send_resolved: true` is verplicht — het is wat OneUptime vertelt dat een alert hersteld is. Herlaad Alertmanager met `curl -X POST http://localhost:9093/-/reload`, of herstart hem.
+`send_resolved: true` is de standaard van Alertmanager, uitgeschreven zodat het aan blijft: zonder dit hoort OneUptime nooit dat een waarschuwing is hersteld. Alertmanager stuurt `Content-Type: application/json`, wat de monitor nodig heeft om de velden van een melding te lezen.
 
-Alertmanager stuurt `Content-Type: application/json`, wat OneUptime nodig heeft om velden uit de payload te lezen.
+### Alertmanager herladen
 
-### Stap 3 — Configureer de criteria
-
-Open de **Criteria** van de monitor en bewerk het eerste criterium.
-
-**Filter**
-
-- **Filter Type**: `JavaScript Expression`
-- **Filter Condition**: `Evaluates To True`
-- **Value**: `"{{requestBody.status}}" === "firing"`
-
-  De aanhalingstekens rond de placeholder zijn nodig voor een stringvergelijking. Een filter `Request Body` / `Contains` / `"status":"firing"` werkt ook als je liever geen expressie gebruikt.
-
-**Acties**
-
-- Zet _When filters match, change monitor status_ aan en stel het in op **Offline** (of Degraded).
-- Zet _When filters match, declare an incident_ aan. Stel de **Title**, de **Severity** en de **On-Call Policies** in die opgeroepen moeten worden.
-- Zet onder **Advanced Options** van dat incident **Auto Resolve Incident** aan. Zonder dit worden herstelmeldingen genegeerd en blijven incidenten voor altijd openstaan.
-
-**Settings → Group incidents and alerts by a payload field**
-
-Zet dit aan zodat één endpoint meerdere gelijktijdige incidenten kan dragen — één per alert — in plaats van één incident per melding.
-
-| Veld                               | Waarde                              |
-| ---------------------------------- | ----------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-| Field that signals recovery        | `requestBody.alerts[*].status`      |
-| Value that means recovered         | `resolved`                          |
-| Max incidents per request          | `100`                               |
-
-`[*]` waaiert uit over de `alerts`-array van Alertmanager en opent één incident per **unieke** uitgelezen waarde. Omdat beide paden `[*]` gebruiken, wordt herstel per alert beoordeeld: in een payload waarin één alert is opgelost en er twee nog actief zijn, sluit alleen de opgeloste.
-
-> **Warning:** Groepeer op iets dat echt uniek is per alert. De `fingerprint` van Alertmanager is een hash van de volledige labelset van de alert, dus dat is hij altijd. Een label werkt alleen als het **binnen** een melding varieert — en elk label dat in de `group_by` van je route staat doet dat nooit, want dat is precies wat de aggregatiegroep definieert. Met de `group_by: ["alertname", "instance"]` hierboven haalt groeperen op `requestBody.alerts[*].labels.alertname` dezelfde waarde uit elke alert in de payload, zodat ze allemaal samenvallen tot één incident. Erger nog: van dubbele waarden blijft alleen het **eerste** voorkomen over, dus een payload waarvan de eerste alert `resolved` is sluit dat incident terwijl de rest nog actief is.
-
-### Stap 4 — Schrijf de titel en beschrijving van het incident
-
-De groeperingssleutel is beschikbaar als een variabele met de naam van het laatste segment van het pad, dus `requestBody.alerts[*].fingerprint` geeft je `{{fingerprint}}`. Dat is een hash, niet iets om aan een responder te tonen — geef het incident in plaats daarvan een titel op basis van de labels die de melding deelt. `commonLabels` bevat elk label uit de `group_by` van je route, dus met de configuratie hierboven zijn `alertname` en `instance` allebei beschikbaar:
-
-- **Title**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`
-- **Description**:
-
-  ```
-  {{requestBody.commonAnnotations.summary}}
-
-  {{requestBody.commonAnnotations.description}}
-  Severity: {{requestBody.commonLabels.severity}}
-  Alertmanager: {{requestBody.externalURL}}
-  ```
-
-`commonLabels` en `commonAnnotations` bevatten de velden die de melding deelt. Een pad per alert zoals `requestBody.alerts[0].annotations.summary` leest altijd de _eerste_ alert in de payload, niet die waarvoor dit specifieke incident is geopend — houd `group_by` dus strak als je wilt dat elk incident zijn eigen annotatietekst draagt. Een pad dat niet oplost wordt letterlijk afgedrukt, accolades en al, in plaats van leeg gelaten. Zie [Dynamische incident- en alerttemplates](/docs/monitor/incident-alert-templating) voor de volledige variabelenlijst.
-
-### Stap 5 — Zet de monitor terug op Operational (optioneel)
-
-Criteria handelen alleen wanneer ze matchen, dus voeg een tweede criterium toe zodat de monitor niet Offline blijft nadat alles is opgelost:
-
-- **Filter Type**: `JavaScript Expression`, **Value**: `"{{requestBody.status}}" === "resolved"`
-- _Change monitor status to_ **Operational**, en maak geen incident aan.
-
-### Stap 6 — Test het
+Herlaad de configuratie, of herstart Alertmanager:
 
 ```bash
-curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+curl -X POST http://localhost:9093/-/reload
+```
+:::
+
+De route houdt de standaardtijden van Alertmanager aan. Ze wacht `30s` voordat ze een nieuwe groep stuurt (`group_wait`), `5m` voordat ze een groep met nieuwe waarschuwingen opnieuw stuurt (`group_interval`) en `4h` voordat ze een ongewijzigde melding herhaalt (`repeat_interval`).
+
+## Testen
+
+Stuur OneUptime een melding met twee afgaande waarschuwingen, zoals Alertmanager dat zou doen:
+
+```bash
+curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   -H "Content-Type: application/json" \
   -d '{
     "version": "4",
     "status": "firing",
-    "commonLabels": { "alertname": "HighCPU", "severity": "critical" },
-    "commonAnnotations": { "summary": "CPU above 90% for 5m" },
+    "receiver": "oneuptime",
+    "groupLabels": { "alertname": "DiskFull", "instance": "web-1" },
+    "commonLabels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical" },
+    "commonAnnotations": { "summary": "Disk almost full on web-1" },
     "externalURL": "http://alertmanager:9093",
     "alerts": [
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-1" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sda1" },
         "fingerprint": "a1b2c3d4e5f60001"
       },
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-2" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sdb1" },
         "fingerprint": "a1b2c3d4e5f60002"
       }
     ]
   }'
 ```
 
-Je zou twee incidenten moeten krijgen — één per `fingerprint`. Stuur het opnieuw met de `status` van beide alerts op `resolved` en beide zouden moeten sluiten.
+Er gaan twee incidenten open, één per `fingerprint`, elk met de titel `DiskFull on web-1`. Stuur hetzelfde verzoek met elke `status` op `resolved`, en beide worden opgelost.
 
-Je kunt ook een echte alert afvuren met `amtool`:
+Om het hele pad vanaf Alertmanager te testen, laat je een waarschuwing afgaan met `amtool`. Alertmanager stuurt haar na `group_wait` en stuurt daarna haar herstel wanneer de waarschuwing een paar minuten later verloopt:
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -148,49 +176,60 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## Optie 2 — Workflow
+## Waarschuwingen ontvangen met een workflow
 
-Gebruik dit wanneer je logica nodig hebt die verder gaat dan "een alert wordt een incident".
+Gebruik een [workflow](/docs/workflows/index) wanneer je eigen stappen nodig hebt tussen Alertmanager en het incident.
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Alertmanager → Incidents`, en open de **Bouwer**.
-2. Voeg een **Webhook**-trigger toe en **kopieer de URL**. Hernoem het blok naar `Alertmanager`.
-3. Voeg een **Voorwaarden**-blok toe verbonden met de trigger:
-   - **Left**: `{{Alertmanager.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. Voeg vanuit **Ja** een **Incident maken**-blok toe:
-   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Beschrijving**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Ernst**: kies er een (of vertak eerst op `{{Alertmanager.Request Body.commonLabels.severity}}`).
-5. **Opslaan**, en richt daarna de `webhook_configs`-URL uit Stap 2 hierboven op de URL van de workflow.
+:::steps
+### De workflow maken
 
-Voor één incident per alert voeg je een [Custom Code](/docs/workflows/components#custom-code)-blok toe dat over `Request Body.alerts` loopt. Met `send_resolved: true` voeg je een tweede **Voorwaarden**-tak toe op `status == resolved` die het bijbehorende incident opzoekt en het met **Update Incident** naar je opgeloste status verplaatst.
+Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Noem hem `Alertmanager alerts` en klik op **Workflow maken**.
 
-## Dodemansknop
+### De Webhook-trigger toevoegen
 
-Geen van beide opties vertelt je wanneer Prometheus zelf stopt met werken — geen binnenkomende alerts ziet er precies zo uit als "er is niets aan de hand". Het gebruikelijke antwoord is een altijd-actieve alert die naar een monitor wordt gerouteerd die hem volgens een schema verwacht. [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) levert er een met de naam `Watchdog`; op een kale Prometheus voeg je een alertingregel toe met een expressie die altijd waar is (`vector(1)`).
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **Webhook**. Klik op de trigger, daarna op **URL kopiëren**, en gebruik die URL in de ontvanger in `alertmanager.yml`.
 
-Maak een **tweede** Inkomend verzoek-monitor aan, routeer `Watchdog` ernaartoe met een kort `repeat_interval`, en geef die monitor een criterium **Filter Type: Incoming Request** / **Filter Condition: Not Recieved In Minutes**. Dat is het enige geval waarin een criterium voor een ontbrekend verzoek thuishoort op een alertontvanger.
+### Controleren dat de melding afgaat
 
-Dit is de configuratie uit Stap 2 met de watchdog-route en -receiver erin verwerkt — een subroute wordt vóór de eigen receiver van de bovenliggende route beoordeeld, dus `Watchdog` gaat naar de tweede monitor en al het andere gaat nog steeds naar de eerste:
+Klik op **Component toevoegen**, voeg een blok **If / Else** toe en verbind de punt **Out** van de trigger ermee. Zet **Value to check** op `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** op **is equal to** en **Compare with** op `firing`.
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+### Het incident declareren
 
-  - name: oneuptime-watchdog
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/WATCHDOG_SECRET_KEY"
+Voeg een blok **Create One Incident** toe en verbind de kant **Yes** van het blok **If / Else** ermee. Kies onder **Incident Template** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON Object** in wat van Alertmanager komt:
 
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.commonLabels.alertname}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.commonAnnotations.summary}}\nAlertmanager: {{local.components.webhook-1.returnValues.request-body.externalURL}}"
+}
+```
+
+Zonder sjabloon moet **JSON Object** ook `incidentSeverityId` bevatten, de ID van een van de incidenternstniveaus van het project.
+
+### De workflow inschakelen
+
+Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een uitgeschakelde workflow antwoordt Alertmanager met `400`.
+:::
+
+Eén run verwerkt één melding, dus hij declareert één incident, hoeveel waarschuwingen de melding ook bevat. Een melding die `resolved` is, neemt de kant **No** van het blok **If / Else**, waar niets is verbonden, dus daar stopt de run. Gebruik de monitor voor één incident per waarschuwing dat bij herstel wordt opgelost.
+
+## Alertmanager zelf bewaken
+
+Geen van beide wegen merkt het wanneer Prometheus of Alertmanager stopt met werken: geen waarschuwingen ontvangen ziet er precies zo uit als alles in orde. Stuur daarom een waarschuwing die altijd afgaat naar een tweede monitor, die een incident declareert wanneer die waarschuwing niet meer aankomt. [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) levert zo'n waarschuwing mee, met de naam `Watchdog`. Voeg op een gewone Prometheus een waarschuwingsregel met de naam `Watchdog` toe waarvan de expressie altijd waar is, zoals `vector(1)`.
+
+:::steps
+### De watchdog-monitor maken
+
+Maak een tweede Incoming Request-monitor, met de naam `Alertmanager watchdog`. Zet het filter van het eerste criterium, het criterium dat de monitor offline zet, op **Incoming Request**, **Not Recieved In Minutes**, `10`, en het filter van het tweede criterium op **Incoming Request**, **Recieved In Minutes**, `10`. Het dashboard spelt beide zo. Kopieer de **Heartbeat URL** van de nieuwe monitor.
+
+### De watchdog-waarschuwing ernaartoe sturen
+
+Voeg een ontvanger toe voor de URL van de watchdog-monitor, en een route die `Watchdog` er elke vijf minuten naartoe stuurt. Een onderliggende route wordt gecontroleerd vóór de ontvanger van zijn bovenliggende route, dus `Watchdog` gaat naar de watchdog-monitor en alle andere waarschuwingen gaan nog steeds naar de eerste:
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
   routes:
     - receiver: oneuptime-watchdog
       matchers:
@@ -198,21 +237,66 @@ route:
       group_wait: 0s
       group_interval: 5m
       repeat_interval: 5m
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
+  - name: oneuptime-watchdog
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<watchdog secret key>"
 ```
+:::
 
-## Probleemoplossing
+Wanneer de watchdog-waarschuwing tien minuten niet is aangekomen, gaat de watchdog-monitor offline en declareert hij een incident. De volgende watchdog-melding brengt de monitor weer online en lost het incident op.
 
-- **Er komt niets binnen** — bevestig dat Alertmanager de URL kan bereiken; controleer zijn logs op afleverfouten. OneUptime beantwoordt elk verzoek met een lege `200` voordat er iets gevalideerd wordt, dus een `200` bevestigt niet dat de payload is geaccepteerd. Kijk in plaats daarvan naar de tijdlijn van de monitor.
-- **Incidenten gaan open maar sluiten nooit** — controleer `send_resolved: true` in Alertmanager, het herstelveld en de waarde op het criterium (de vergelijking is hoofdlettergevoelig), en **Auto Resolve Incident** onder de **Advanced Options** van het incident. Twee subtielere oorzaken: een payload met meer unieke sleutels dan **Max incidents per request** verbergt de sleutels voorbij de limiet ook voor herstel; en als juist de `resolved`-melding degene is die door het samenvoegen bij ingest (hieronder) wordt weggelaten, blijft het incident permanent hangen, omdat Alertmanager firing-meldingen herhaalt maar resolved-meldingen niet. Sluit die met de hand.
-- **Helemaal geen incidenten, monitorstatus ongewijzigd** — het groeperingspad moet beginnen met het letterlijke `requestBody.`, en alleen de eerste `[*]` in een pad is een jokerteken. Beide fouten mislukken stilzwijgend.
-- **De incidenttekst toont ruwe `{{...}}`-placeholders** — het pad is niet omgezet, en OneUptime laat niet-omgezette placeholders staan in plaats van ze leeg te maken. Verschillende regels zetten verschillende annotaties, dus verwijs naar velden die voor jouw regels ook echt bestaan (`commonAnnotations` versus de `annotations` per alert).
-- **Slechts één incident voor een payload vol alerts** — je hebt gegroepeerd op een label dat binnen een melding niet varieert, meestal een label dat ook in de `group_by` van je route staat. Groepeer in plaats daarvan op `requestBody.alerts[*].fingerprint`.
-- **Te veel incidenten** — verbreed `group_by` / `group_interval` zodat Alertmanager verwante alerts bundelt. **Max incidents per request** verlagen begrenst ze, maar verbergt de sleutels voorbij de limiet ook voor herstel.
-- **Sommige meldingen lijken bij zware pieken overgeslagen te worden** — verzoeken naar dezelfde monitor worden bij ingest samengevoegd zodat één verzender een monitor niet kan overspoelen, wat een tussenliggende payload kan laten vallen wanneer meldingen kort na elkaar binnenkomen. `group_wait` en `group_interval` verhogen spreidt ze uit. Het samenvoegen wordt geregeld door de omgevingsvariabele `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` van de app-container, die standaard aan staat; zelfhostende beheerders die elke payload beoordeeld willen hebben kunnen hem op die container op `false` zetten.
+## Problemen oplossen
 
-## Waar verder lezen
+:::details Er komt niets aan in OneUptime
+- Zoek in het log van Alertmanager naar fouten bij het afleveren aan de ontvanger.
+- De monitor antwoordt meteen `200`, voordat hij iets controleert, ook bij een verkeerde geheime sleutel. Kijk in de tijdlijn van de monitor of meldingen aankomen.
+- Een uitgeschakelde workflow antwoordt `400`. Zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
+:::
 
-- [Inkomend verzoek-monitor](/docs/monitor/incoming-request-monitor) — het monitortype, zijn criteria en incidentgroepering in volle breedte.
-- [Overzicht van integraties](/docs/integrations/index) — de inbound- en outbound-patronen.
-- [Grafana](/docs/integrations/grafana) — hetzelfde idee, Grafana-alerting.
-- [Webhook trigger](/docs/workflows/triggers#webhook) — hoe de ontvangende URL van de workflow werkt.
+:::details Incidenten gaan open maar worden nooit opgelost
+- Controleer dat geen enkele ontvanger `send_resolved: false` instelt: dan stuurt Alertmanager nooit een herstel.
+- Het incident van het criterium heeft **Incident automatisch oplossen** nodig, onder **Meer velden**.
+- **Field that signals recovery** moet `requestBody.alerts[*].status` zijn, en **Value that means recovered** precies `resolved`. De vergelijking is hoofdlettergevoelig.
+- Waarschuwingen van een melding boven **Max incidents per request** worden helemaal niet gelezen, dus hun herstel gaat ook verloren.
+- Een herstel dat in een uitbarsting is overgeslagen (zie hieronder) laat zijn incident voorgoed open: Alertmanager herhaalt afgaande waarschuwingen, maar nooit een herstel. Los zo'n incident met de hand op.
+:::
+
+:::details Er gaat geen incident open
+De groeperingspaden moeten met `requestBody.` beginnen, en alleen de eerste `[*]` in een pad leest een lijst. Een pad dat een van beide regels breekt, komt nergens mee overeen, zonder foutmelding.
+:::
+
+:::details Eén incident voor een melding vol waarschuwingen
+Je hebt gegroepeerd op een label dat voor elke waarschuwing van een melding hetzelfde is, meestal een label uit de `group_by` van je route. Groepeer in plaats daarvan op `requestBody.alerts[*].fingerprint`.
+:::
+
+:::details Het incident toont een verwijzing in plaats van een waarde
+Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze geschreven is, accolades en al. Regels zetten verschillende annotaties, dus gebruik de velden die jouw regels zetten: in `commonAnnotations`, of in de `annotations` van elke waarschuwing.
+:::
+
+:::details Te veel incidenten
+Groepeer je route op minder labels, of verhoog `group_interval`, zodat Alertmanager samenhangende waarschuwingen samen stuurt. Een lagere **Max incidents per request** beperkt de incidenten van één melding, maar waarschuwingen boven de grens worden niet gelezen, dus hun herstel gaat ook verloren.
+:::
+
+:::details Meldingen worden tijdens een uitbarsting overgeslagen
+Wanneer een nieuwer verzoek een monitor bereikt voordat een eerder verzoek is geëvalueerd, evalueert OneUptime alleen het nieuwste, zodat één afzender een monitor niet kan overspoelen. De laatste melding van een uitbarsting wordt altijd geëvalueerd, maar een eerdere over andere waarschuwingen kan worden overgeslagen, omdat Alertmanager elke groep naar dezelfde URL stuurt. Verhoog `group_wait` en `group_interval` om de meldingen te spreiden. Zet op een zelf gehoste installatie `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in de omgeving van de OneUptime-app om elk verzoek te evalueren.
+:::
+
+## Beveiliging
+
+- **Behandel de URL als een wachtwoord.** Iedereen die hem heeft, kan incidenten openen. Lekt hij uit, stel hem dan opnieuw in: **Geheime sleutel voor inkomende aanvraag opnieuw instellen** op de pagina **Instellingen** van de monitor, of **URL opnieuw instellen** in de **Webhook**-trigger van de workflow. Werk daarna de `url` van de ontvanger in `alertmanager.yml` bij.
+- **Zelf gehost?** Laat Alertmanager je OneUptime via HTTPS door je firewall bereiken.
+
+## Volgende stappen
+
+:::cards
+- [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor): Elke instelling van de monitor die je waarschuwingen ontvangt.
+- [Grafana](/docs/integrations/grafana): Dezelfde opzet, voor Grafana-waarschuwingen.
+- [Escalatieregels](/docs/on-call/escalation-rules): Bepaal wie een bereikbaarheidsbeleid oproept, en wanneer.
+- [Overzicht van integraties](/docs/integrations/index): De andere tools die je kunt koppelen.
+:::

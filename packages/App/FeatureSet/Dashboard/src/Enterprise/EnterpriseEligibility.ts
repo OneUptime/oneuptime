@@ -26,22 +26,41 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * A lapsed license does NOT make a self-hosted feature ineligible: the ee
  * screens stay reachable and show their own banner, because admins must
  * still see what is configured (read-only), read the audit logs recorded so
- * far, disable a compromised provider or replace a leaked SCIM token, and be
- * told that SSO sign-in, SCIM and audit logging are off until a license is
- * activated.
+ * far or replace a leaked SCIM token, and be told that SCIM and audit
+ * logging are off until a license is activated.
+ *
+ * Features every edition includes, but OneUptime Cloud sells on a plan
+ * (single sign-on), ask the plan question only: see isPlanFeatureEligible.
  */
 
 // The plans an enterprise feature can be sold at on OneUptime Cloud.
 export type EnterpriseRequiredPlan = PlanType.Scale | PlanType.Enterprise;
 
 /*
- * SSO, OIDC, SCIM and team compliance: @TableBillingAccessControl on
- * ProjectSso, ProjectOidc, ProjectSCIM, StatusPageSso, StatusPageOidc,
+ * SCIM and team compliance: @TableBillingAccessControl on ProjectSCIM,
  * StatusPageSCIM and TeamComplianceSetting all say Scale. The upsell used to
  * demand Enterprise, which walled Scale customers off from features their
  * plan includes.
  */
 export const IDENTITY_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
+
+/*
+ * Single sign-on (SAML and OIDC, for projects and status pages) is part of
+ * every edition. OneUptime Cloud sells it on Scale: @TableBillingAccessControl
+ * on ProjectSso, ProjectOidc, StatusPageSso and StatusPageOidc says Scale, and
+ * so do the rules on Project.requireSsoForLogin and
+ * StatusPage.requireSsoForLogin (@ColumnBillingAccessControl: turning it on
+ * needs Scale, turning it off works on every plan).
+ */
+export const SSO_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
+
+/*
+ * Retention overrides (retention by telemetry type, and per-service and
+ * per-resource retention): @ColumnBillingAccessControl on those columns says
+ * Scale.
+ */
+export const TELEMETRY_RETENTION_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
 
 // Audit logs are recorded for Enterprise-plan projects only.
 export const AUDIT_LOGS_REQUIRED_PLAN: EnterpriseRequiredPlan =
@@ -104,4 +123,51 @@ export const isEnterpriseFeatureEligible: (
   }
 
   return IS_ENTERPRISE_EDITION;
+};
+
+/*
+ * Whether the current project is KNOWN to be on a plan below `requiredPlan`,
+ * on OneUptime Cloud: its plan has loaded and does not reach it. Not while
+ * the plan is unknown (not loaded yet, or one the Dashboard cannot read),
+ * and never with billing off. What a page draws under its upsell for a
+ * project below the plan - the switches a trial left on, which can always
+ * be switched off - waits for this, so a project on the plan never sees
+ * them flash, or reads anything for them, while its plan loads.
+ */
+export const isKnownToBeBelowPlan: (requiredPlan: PlanType) => boolean = (
+  requiredPlan: PlanType,
+): boolean => {
+  if (!BILLING_ENABLED) {
+    return false;
+  }
+
+  const currentPlan: PlanType | null = getCurrentPlanOrNull();
+
+  if (!currentPlan) {
+    return false;
+  }
+
+  return !isPlanAtLeast(requiredPlan, currentPlan);
+};
+
+/*
+ * Whether the current project may use a feature that every edition includes
+ * but OneUptime Cloud sells on a plan, such as single sign-on. Only the PLAN
+ * decides, and only on the Cloud (billing on), where an unknown plan fails
+ * closed exactly like isEnterpriseFeatureEligible. Every self-hosted install
+ * is eligible, whatever its edition or license: the edition flag is never
+ * consulted, because isEnterpriseFeatureEligible would read a Community
+ * install as "not eligible".
+ *
+ * Billing is checked first: ProjectUtil.getCurrentPlan() is null when billing
+ * is off, and isPlanAtLeast reads no plan as "not eligible".
+ */
+export const isPlanFeatureEligible: (requiredPlan: PlanType) => boolean = (
+  requiredPlan: PlanType,
+): boolean => {
+  if (!BILLING_ENABLED) {
+    return true;
+  }
+
+  return isPlanAtLeast(requiredPlan, getCurrentPlanOrNull());
 };

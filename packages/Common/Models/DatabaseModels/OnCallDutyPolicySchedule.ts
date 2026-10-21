@@ -38,6 +38,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Pages people after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @EnableWorkflow({
   create: true,
@@ -530,14 +532,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.OnCallAdmin,
-      Permission.OnCallMember,
-      Permission.CreateProjectOnCallDutyPolicySchedule,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -614,14 +609,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public currentUserIdOnRoster?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.OnCallAdmin,
-      Permission.OnCallMember,
-      Permission.CreateProjectOnCallDutyPolicySchedule,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

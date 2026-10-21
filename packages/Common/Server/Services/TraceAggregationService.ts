@@ -3,17 +3,21 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import { ExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -59,6 +63,8 @@ export type TraceAttributeFilters = Record<string, TraceAttributeFilterValue>;
 
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -143,6 +149,67 @@ export interface TraceAnalyticsRequest extends TraceFilters {
    */
   groupBy?: Array<string> | undefined;
   limit?: number | undefined;
+  /*
+   * The table's order: which column, and which way. The rows are ranked
+   * by it before the limit, so "the slowest ten by p99" is the slowest ten
+   * of the whole window, not the slowest of the busiest ten. Unset, the
+   * busiest groups come first, as the table always ranked them.
+   */
+  tableSort?: TraceAnalyticsTableSort | undefined;
+}
+
+/*
+ * The columns a trace table can be ordered by - the dashboard Trace Table
+ * widget's sortable headers (Common/Utils/Dashboard/DashboardWidgetSorts) -
+ * each mapped to the aggregate it orders by. A fixed list: a request names
+ * a key, never SQL. `group` is the table's first group-by dimension.
+ */
+export const TRACE_ANALYTICS_TABLE_SORT_ALIASES: Readonly<
+  Record<string, string>
+> = {
+  count: "cnt",
+  errorCount: "err_cnt",
+  avg: "avg_ms",
+  p50: "p50_ms",
+  p90: "p90_ms",
+  p95: "p95_ms",
+  p99: "p99_ms",
+  min: "min_ms",
+  max: "max_ms",
+};
+
+export const TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY: string = "group";
+
+export interface TraceAnalyticsTableSort {
+  // A key of TRACE_ANALYTICS_TABLE_SORT_ALIASES, or the group dimension.
+  column: string;
+  direction: "asc" | "desc";
+}
+
+/*
+ * A table sort a request names, or null when it names none this table can
+ * be ordered by: then the table keeps its own order, busiest first.
+ */
+export function parseTraceAnalyticsTableSort(
+  column: unknown,
+  direction: unknown,
+): TraceAnalyticsTableSort | null {
+  if (
+    typeof column !== "string" ||
+    (column !== TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY &&
+      !Object.prototype.hasOwnProperty.call(
+        TRACE_ANALYTICS_TABLE_SORT_ALIASES,
+        column,
+      ))
+  ) {
+    return null;
+  }
+
+  if (direction !== "asc" && direction !== "desc") {
+    return null;
+  }
+
+  return { column, direction };
 }
 
 export interface TraceAnalyticsTimeseriesRow {
@@ -183,6 +250,11 @@ export interface ServiceLatencyProfileRequest {
   endTime: Date;
   // Services returned, ranked by span volume (busiest first).
   limit: number;
+  /*
+   * Only these services. primaryEntityId is a key of the projection, so
+   * the narrowed query is still served by it.
+   */
+  serviceIds?: Array<ObjectID> | undefined;
 }
 
 export interface ServiceLatencyProfileRow {
@@ -271,24 +343,17 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildHistogramStatement(request);
 
+    /*
+     * A histogram stopped at its time limit throws a QueryTimeoutException:
+     * the chart says it was stopped rather than draw an empty window that
+     * reads as "no spans" (issue #4707).
+     */
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      /*
-       * When max_execution_time fires with timeout_overflow_mode='break',
-       * ClickHouse may return a truncated JSON response. Return an empty
-       * histogram rather than failing — the user still sees the span list.
-       */
-      logger.warn(
-        "Histogram query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     return rows.map((row: JSONObject): HistogramBucket => {
       return {
@@ -330,8 +395,8 @@ export class TraceAggregationService {
   /*
    * Sample-based facet computation. Runs a single sort-key aligned query
    * (ORDER BY startTime DESC LIMIT sampleSize) and computes top-K per facet
-   * in Node.js. This avoids ClickHouse GROUP BY aggregations that can't
-   * return partial results under max_execution_time 'break' mode, and
+   * in Node.js. This avoids ClickHouse GROUP BY aggregations over the
+   * whole window, which a wide window cannot finish in time, and
    * leverages the (projectId, startTime, ...) primary key for efficient
    * backwards scans. Facet values reflect the most recent N root spans in
    * the window — the most actionable view for filtering.
@@ -431,8 +496,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -599,8 +663,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -608,25 +671,17 @@ export class TraceAggregationService {
     const serviceCounts: Map<string, number> = new Map<string, number>();
     const statusCounts: Map<string, number> = new Map<string, number>();
 
+    /*
+     * Counts stopped at the time limit throw (a QueryTimeoutException); the
+     * facets endpoint names the facets they leave uncounted instead of
+     * showing every resource at 0 (issue #4707).
+     */
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      /*
-       * 'break' mode can return truncated JSON on timeout. Degrade to empty
-       * counts — the Postgres resolver still lists every resource (count 0),
-       * which is no worse than the prior transient-failure behavior.
-       */
-      logger.warn(
-        "Resource facet count query returned unparseable response, returning empty counts",
-      );
-      return { serviceCounts, statusCounts };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -699,8 +754,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -708,21 +762,13 @@ export class TraceAggregationService {
     let rootCount: number = 0;
     let nonRootCount: number = 0;
 
+    // Stopped at the time limit: throws, see getResourceFacetCounts.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      // 'break' mode can truncate JSON on timeout — degrade to zero counts.
-      logger.warn(
-        "Root span count query returned unparseable response, returning zero counts",
-      );
-      return { rootCount, nonRootCount };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -744,9 +790,9 @@ export class TraceAggregationService {
    * Exact has-exception vs no-exception counts over the window, backing the
    * "Has Exception" sidebar facet. Unlike getResourceFacetCounts /
    * getRootSpanCounts, hasException is not a proj_hist_by_minute key, so this
-   * is a base-table GROUP BY (still bounded by max_execution_time / 'break').
-   * It is a single low-cardinality column read, so it is cheap for typical
-   * windows and degrades gracefully on very wide ones.
+   * is a base-table GROUP BY (still bounded by max_execution_time). It is a
+   * single low-cardinality column read, so it is cheap for typical windows;
+   * on one too wide to count in time the facet says so.
    *
    * Exactness matters specifically here: exception spans are usually rare, so
    * the recent-N sample (getFacetValuesFromSample) can miss them entirely and
@@ -786,29 +832,20 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
     let withExceptionCount: number = 0;
     let withoutExceptionCount: number = 0;
 
+    // Stopped at the time limit: throws, see getResourceFacetCounts.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      // 'break' mode can truncate JSON on timeout — degrade to zero counts.
-      logger.warn(
-        "Has-exception count query returned unparseable response, returning zero counts",
-      );
-      return { withExceptionCount, withoutExceptionCount };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -904,14 +941,13 @@ export class TraceAggregationService {
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. ClickHouse returns partial aggregated results
-     * with 'break' mode rather than throwing, which is acceptable for
-     * a density visualization. Explicitly enable projection use.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete. Explicitly enable projection use.
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -1009,8 +1045,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -1072,18 +1107,7 @@ export class TraceAggregationService {
 
     TraceAggregationService.appendExceptionScopeFilter(statement, request);
 
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.entityKeys && request.entityKeys.length > 0) {
       statement.append(
@@ -1248,79 +1272,21 @@ export class TraceAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        TraceAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — see the matching note in
-         * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
-         */
-        if (Array.isArray(attrValue)) {
-          /*
-           * Multi-value selection (a multi-select dashboard variable) — an
-           * empty array means "no selection", which must widen to everything
-           * rather than compile to `IN ()` and match nothing.
-           */
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-          continue;
-        }
-
-        if (typeof attrValue === "object" && attrValue !== null) {
-          /*
-           * An operator row (`@k:api-*`, `@k:~web`, `@k:>5`, ...). The span
-           * list compiles these through StatementGenerator, so without this
-           * branch the object bound as "[object Object]" and the histogram
-           * beside a narrowed list showed either nothing or everything.
-           */
-          TraceAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            attrValue as unknown as Record<string, unknown>,
-          );
-          continue;
-        }
-
-        if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": the list query compares `attributes['k'] = ''`, and a Map
-           * subscript returns the type default for a key the row does not
-           * carry, so rows without the attribute match too. Routed through the
-           * operator builder so a bare "" and an explicit EqualTo("") — the
-           * same filter written two ways — cannot disagree.
-           */
-          TraceAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            { _type: ObjectType.IsNull },
-          );
-          continue;
-        }
-
-        statement.append(
-          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-            type: TableColumnType.Text,
-            value: attrKey,
-          }}) AND v = ${{
-            type: TableColumnType.Text,
-            value: attrValue,
-          }}, mapKeys(attributes), mapValues(attributes))`,
-        );
-      }
-    }
+    /*
+     * Attribute filters - a value, a list (a multi-select dashboard
+     * variable; empty means "no selection"), a blank ("is empty") or an
+     * operator row (`@k:api-*`, `@k:~web`, `@k:>5`, ...) - compiled exactly
+     * as the log and metric charts compile them, keys matched
+     * case-insensitively and an exact value looked up in the attribute value
+     * index first (#4706). See AttributeFilterStatement.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        TraceAggregationService.validateFacetKey(attributeKey);
+      },
+    });
 
     if (
       request.attributeSearches &&
@@ -1354,30 +1320,6 @@ export class TraceAggregationService {
         );
       }
     }
-  }
-
-  /*
-   * Attribute filter rows carry an operator (`contains`, `matches`,
-   * `is any of`, `is empty`, ...) as well as a value, and the operator
-   * travels over the wire as the serialized `{_type, value}` shape every
-   * QueryOperator's toJSON() produces. The span list compiles those through
-   * StatementGenerator; the histogram, facets and analytics used to treat
-   * anything non-array as a plain string, so a wildcard filter narrowed the
-   * list and left the chart above it unfiltered.
-   *
-   * The compilation itself lives in AttributeFilterStatement so the log and
-   * metric builders answer identically — see the comment there.
-   */
-  private static appendAttributeOperatorFilter(
-    statement: Statement,
-    attrKey: string,
-    attrValue: Record<string, unknown>,
-  ): void {
-    appendAttributeOperatorFilter({
-      statement,
-      attributeKey: attrKey,
-      operator: attrValue,
-    });
   }
 
   private static readonly DEFAULT_ANALYTICS_LIMIT: number = 10;
@@ -1571,19 +1513,13 @@ export class TraceAggregationService {
         topValues,
       );
 
+    // Stopped at the time limit: throws, rather than chart an empty window.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics timeseries query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     const timeseriesRows: Array<TraceAnalyticsTimeseriesRow> = rows.map(
       (row: JSONObject): TraceAnalyticsTimeseriesRow => {
@@ -1625,19 +1561,13 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildAnalyticsTopListStatement(request);
 
+    // Stopped at the time limit: throws, rather than list nothing.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics top list query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     return rows
       .map((row: JSONObject): TraceAnalyticsTopItem => {
@@ -1665,19 +1595,13 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildAnalyticsTableStatement(request);
 
+    // Stopped at the time limit: throws, rather than list nothing.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics table query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     const groupByKeys: Array<string> = request.groupBy;
 
@@ -1795,6 +1719,10 @@ export class TraceAggregationService {
         value: request.endTime,
       }})`,
     );
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, {
+      serviceIds: request.serviceIds,
+    });
 
     // Ranked by volume: a p99 regression on the busiest services is the one that hurts.
     statement.append(
@@ -2071,8 +1999,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -2165,8 +2092,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -2226,7 +2152,14 @@ export class TraceAggregationService {
     }
 
     statement.append(
-      SQL` ORDER BY cnt DESC LIMIT ${{
+      ` ORDER BY ${TraceAggregationService.getAnalyticsTableOrderBy(
+        request.tableSort,
+        TraceAggregationService.groupByAlias(groupByKeys[0] as string, 0),
+      )}`,
+    );
+
+    statement.append(
+      SQL` LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,
@@ -2234,12 +2167,44 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
     return statement;
+  }
+
+  /*
+   * The trace table's ORDER BY: the busiest groups first, as it always
+   * ranked them, or the column a request names from the fixed list
+   * (TRACE_ANALYTICS_TABLE_SORT_ALIASES), busiest first among ties. Built
+   * from that list and the group's own alias only - never from text a
+   * request sends.
+   */
+  private static getAnalyticsTableOrderBy(
+    tableSort: TraceAnalyticsTableSort | undefined,
+    groupAlias: string,
+  ): string {
+    const sort: TraceAnalyticsTableSort | null = tableSort
+      ? parseTraceAnalyticsTableSort(tableSort.column, tableSort.direction)
+      : null;
+
+    if (!sort) {
+      return "cnt DESC";
+    }
+
+    const direction: string = sort.direction === "asc" ? "ASC" : "DESC";
+
+    const alias: string =
+      sort.column === TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY
+        ? groupAlias
+        : (TRACE_ANALYTICS_TABLE_SORT_ALIASES[sort.column] as string);
+
+    if (alias === "cnt") {
+      return `cnt ${direction}`;
+    }
+
+    return `${alias} ${direction}, cnt DESC`;
   }
 
   private static isTopLevelColumn(key: string): boolean {

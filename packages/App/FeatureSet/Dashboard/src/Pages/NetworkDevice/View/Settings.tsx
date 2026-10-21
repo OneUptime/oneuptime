@@ -8,6 +8,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   HOSTNAME_FIELD_DESCRIPTION,
@@ -34,16 +38,31 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import DeviceHealthOidsFormField from "../../../Components/NetworkDevice/DeviceHealthOidsFormField";
+import SnmpTableEditor from "../../../Components/NetworkDevice/SnmpTableEditor";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  MAX_DEVICE_SPECIFIC_TABLES,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import { getDevicePollingFormFields } from "../DevicePollingFormFields";
 import { getMacAddressFormField } from "../MacAddressFormField";
+import { getOtherAddressesFormField } from "../OtherAddressesFormField";
 import ProbeUtil from "../../../Utils/Probe";
+import {
+  ADD_PROBE_LINK_TEXT,
+  getGroupedProbeDropdownOptions,
+} from "../../../Components/NetworkDevice/ProbeOptions";
+import useRefreshProbesOnFocus from "../../../Components/NetworkDevice/useRefreshProbesOnFocus";
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../../../Components/Network/NetworkQuickActions";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -59,6 +78,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The "Ping only" checkbox on the SNMP step is not a column: it blanks the
@@ -70,6 +91,7 @@ export const PING_ONLY_FIELD_KEY: string = "pingOnly";
 const NetworkDeviceSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
@@ -80,6 +102,10 @@ const NetworkDeviceSettings: FunctionComponent<
    * are all global.
    */
   const [probes, setProbes] = useState<Array<Probe>>([]);
+
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
+
   /*
    * The project's OID Collection Templates, WITH their OID lists.
    *
@@ -255,7 +281,7 @@ const NetworkDeviceSettings: FunctionComponent<
         cardProps={{
           title: "Device Settings",
           description:
-            "Identity, monitoring method and SNMP credentials for this device. A probe-polled device is pinged whether or not it has credentials; add them to walk it over SNMP as well.",
+            "Identity, monitoring method and SNMP credentials. Without credentials the device is only pinged.",
         }}
         isEditable={true}
         editButtonText="Edit Settings"
@@ -267,10 +293,25 @@ const NetworkDeviceSettings: FunctionComponent<
             // handled inside.
           });
         }}
+        /*
+         * What the device is, where it is, and how it is watched: one step
+         * of seven fields before. Device Details and Address are the
+         * Overview card's own steps, so a field sits under the same step
+         * name on both cards. Monitoring comes last, right before the SNMP
+         * step its method shows or hides - never on that step itself.
+         */
         formSteps={[
           {
             title: "Device Details",
             id: "device-details",
+          },
+          {
+            title: "Address",
+            id: "address",
+          },
+          {
+            title: "Monitoring",
+            id: "monitoring",
           },
           {
             /*
@@ -299,7 +340,7 @@ const NetworkDeviceSettings: FunctionComponent<
               monitoringMethod: true,
             },
             title: "Monitoring Method",
-            stepId: "device-details",
+            stepId: "monitoring",
             description: MONITORING_METHOD_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: MONITORING_METHOD_OPTIONS,
@@ -311,7 +352,7 @@ const NetworkDeviceSettings: FunctionComponent<
               monitor: true,
             },
             title: "Monitor",
-            stepId: "device-details",
+            stepId: "monitoring",
             showIf: isMonitorBackedDevice,
             description: MONITOR_BINDING_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
@@ -347,12 +388,38 @@ const NetworkDeviceSettings: FunctionComponent<
             required: false,
             placeholder: "Core switch in the US East datacenter",
           },
+          /*
+           * The site and the labels are edited here too, now that this is
+           * the one place a device's details are edited: the Overview's
+           * Device Details card is read-only, with a link here. The labels
+           * fold under Advanced, last on the step.
+           */
+          {
+            field: {
+              site: true,
+            },
+            title: "Site",
+            stepId: "device-details",
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Site (optional)",
+          },
+          getLabelsFormField<NetworkDevice>({
+            stepId: "device-details",
+          }),
           {
             field: {
               hostname: true,
             },
             title: "Hostname",
-            stepId: "device-details",
+            stepId: "address",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
@@ -364,7 +431,13 @@ const NetworkDeviceSettings: FunctionComponent<
            * operator corrects one the router got wrong or types one no
            * router will ever learn.
            */
-          getMacAddressFormField({ stepId: "device-details" }),
+          getMacAddressFormField({ stepId: "address" }),
+          /*
+           * The addresses besides the hostname that the device's flow
+           * records, traps and syslog come from. The Traffic page's "It is
+           * one of my devices" adds to it as well.
+           */
+          getOtherAddressesFormField({ stepId: "address" }),
           {
             field: {
               snmpCredentialProfile: true,
@@ -374,7 +447,7 @@ const NetworkDeviceSettings: FunctionComponent<
             sectionTitle: "SNMP",
             sectionDescription: SNMP_STEP_DESCRIPTION,
             description:
-              "A reusable credential set shared by devices of one kind. The device's own credentials below win when both are set; leave those empty to use the profile. The device's site can carry a default profile too, which applies when neither of these is set.",
+              "A saved set of credentials. The device's own credentials below win; its site can carry a default.",
             sideLink: {
               text: "Manage credential profiles",
               url: RouteUtil.populateRouteParams(
@@ -409,7 +482,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Ping only — clear this device's own SNMP credentials",
             stepId: "snmp",
             description:
-              "Removes the community string and v3 username from this device. It keeps being pinged and keeps its status; interfaces and inventory stop refreshing unless a credential profile (here or on the site) still provides credentials.",
+              "Removes this device's own community string and v3 username. It is still pinged.",
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             onChange: (
@@ -452,6 +525,29 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Description",
               fieldType: FieldType.Text,
+              // Hidden while empty, like the Overview's Description row.
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.description);
+              },
+            },
+            {
+              field: {
+                site: {
+                  name: true,
+                },
+              },
+              title: "Site",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.site?.name) {
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
+                  );
+                }
+                return <span>{item.site.name}</span>;
+              },
             },
             {
               field: {
@@ -478,6 +574,17 @@ const NetworkDeviceSettings: FunctionComponent<
             },
             {
               field: {
+                otherAddresses: true,
+              },
+              title: "Other Addresses",
+              fieldType: FieldType.Text,
+              // Hidden while empty, like the MAC Address row above.
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.otherAddresses);
+              },
+            },
+            {
+              field: {
                 monitoringMethod: true,
               },
               title: "Monitoring Method",
@@ -488,8 +595,12 @@ const NetworkDeviceSettings: FunctionComponent<
                     {NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
                       item.monitoringMethod,
                     )
-                      ? "Bound monitor — the bound monitor's status is this device's status"
-                      : "Probe — pinged by the assigned probe; walked over SNMP when credentials are set"}
+                      ? translator.translateText(
+                          "Bound monitor — the bound monitor's status is this device's status",
+                        )
+                      : translator.translateText(
+                          "Probe — pinged by the assigned probe; walked over SNMP when credentials are set",
+                        )}
                   </span>
                 );
               },
@@ -506,8 +617,9 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.snmpCredentialProfile?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — this device&apos;s own credentials, or its
-                      site&apos;s profile
+                      {translator.translateText(
+                        "None — this device's own credentials, or its site's profile",
+                      )}
                     </span>
                   );
                 }
@@ -522,6 +634,20 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Monitor",
               fieldType: FieldType.Text,
+              /*
+               * Shown when a monitor is bound, or when the device is on the
+               * bound-monitor override (where an empty row says nothing is
+               * bound yet). A probe-polled device with no monitor - most of
+               * them - has no blank Monitor row to wonder about.
+               */
+              showIf: (item: NetworkDevice): boolean => {
+                return (
+                  Boolean(item.monitor?.name) ||
+                  NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                    item.monitoringMethod,
+                  )
+                );
+              },
             },
             {
               /*
@@ -540,7 +666,7 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.networkDeviceRole?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      Worked out from SNMP
+                      {translator.translateText("Worked out from SNMP")}
                     </span>
                   );
                 }
@@ -548,6 +674,23 @@ const NetworkDeviceSettings: FunctionComponent<
                   <span className="text-sm text-gray-900">
                     {item.networkDeviceRole.name}
                   </span>
+                );
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <LabelsElement
+                    labels={(item.labels as Array<Label> | undefined) || []}
+                  />
                 );
               },
             },
@@ -559,8 +702,8 @@ const NetworkDeviceSettings: FunctionComponent<
         cardProps={{
           title: "Polling & Data Collection",
           description: isDeviceMonitorBacked
-            ? "This device is a bound-monitor override: nothing polls it, and the monitor bound to it decides its status. Switch its monitoring method to Probe above to have a probe ping it (and walk it over SNMP once it has credentials)."
-            : "The assigned probe pings this device on its own schedule and, when it has SNMP credentials, walks it too — inventory, interfaces, topology neighbors, endpoints, and health OIDs. Monitors are only needed to alert on what these polls report.",
+            ? "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it."
+            : "The probe pings this device and, with SNMP credentials, walks it for inventory, interfaces and health.",
         }}
         isEditable={!isDeviceMonitorBacked}
         refresher={pollingCardRefresher}
@@ -574,6 +717,10 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Health OIDs",
             id: "health-oids",
           },
+          {
+            title: "SNMP Tables",
+            id: "snmp-tables",
+          },
         ]}
         formFields={[
           {
@@ -583,16 +730,20 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Probe",
             stepId: "polling",
             description: PROBE_FIELD_DESCRIPTION,
+            /*
+             * The same list as Add Device's: the project's own probes under
+             * their heading, OneUptime's apart, and a way to add one without
+             * losing this form. A probe row with no name is listed by its id
+             * (the page used to throw on one, blanking the whole page).
+             */
+            sideLink: {
+              text: ADD_PROBE_LINK_TEXT,
+              url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
+            dropdownOptions: getGroupedProbeDropdownOptions(probes, {
+              isOneUptimeCloud: BILLING_ENABLED,
             }),
             required: true,
             placeholder: "Probe",
@@ -605,7 +756,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "OID Collection Template",
             stepId: "health-oids",
             description:
-              "The shared OID list this device collects, on top of any device-specific OIDs below. The link is live and nothing is copied here: editing the template changes what every device linked to it collects on the next poll. Interfaces need no OIDs — bits in/out, errors, utilization and up/down are walked for every port automatically.",
+              "A shared list of health OIDs. Editing the template changes what every linked device collects.",
             sideLink: {
               text: "Manage templates",
               url: RouteUtil.populateRouteParams(
@@ -631,7 +782,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Device-Specific Health OIDs",
             stepId: "health-oids",
             description:
-              "Extra OIDs only this device collects, on top of whatever its template contributes. If more than one device needs the same OID it belongs on a template instead — one edit there reaches every device linked to it. Values are recorded as device metrics and can be alerted on through monitor criteria.",
+              "Extra OIDs only this device collects, on top of its template's. Recorded as device metrics.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -688,7 +839,38 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. A device linked to an OID Collection Template is never seeded either, whatever this is set to, because its list comes from the template. Auto-imported devices have this on by default.",
+              "Fills an empty Health OID list with the vendor's template on the next poll. A list you set is never touched.",
+          },
+          {
+            field: {
+              snmpTables: true,
+            },
+            title: "Device-Specific SNMP Tables",
+            stepId: "snmp-tables",
+            description: translator.translateTemplate(
+              "Extra tables only this device walks, on top of its template's. Up to {{max}}.",
+              { max: MAX_DEVICE_SPECIFIC_TABLES },
+            ),
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              value: FormValues<NetworkDevice>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <SnmpTableEditor
+                  showVendorPrefill={true}
+                  value={
+                    (value.snmpTables as
+                      | Array<SnmpTableDefinition>
+                      | undefined) || []
+                  }
+                  onChange={(tables: Array<SnmpTableDefinition>): void => {
+                    customElementProps.onChange?.(tables);
+                  }}
+                />
+              );
+            },
           },
         ]}
         modelDetailProps={{
@@ -707,7 +889,9 @@ const NetworkDeviceSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.probe) {
-                  return <p>No probe assigned.</p>;
+                  return (
+                    <p>{translator.translateText("No probe assigned.")}</p>
+                  );
                 }
                 return <ProbeElement probe={item.probe} />;
               },
@@ -783,8 +967,13 @@ const NetworkDeviceSettings: FunctionComponent<
                   return (
                     <span>
                       {templateName
-                        ? `No health OIDs collected — ${templateName} is empty and this device adds none of its own.`
-                        : "No health OIDs configured."}
+                        ? translator.translateTemplate(
+                            "No health OIDs collected — {{templateName}} is empty and this device adds none of its own.",
+                            { templateName: templateName },
+                          )
+                        : translator.translateText(
+                            "No health OIDs configured.",
+                          )}
                     </span>
                   );
                 }
@@ -841,8 +1030,10 @@ const NetworkDeviceSettings: FunctionComponent<
                             {isFromTemplate ? (
                               <span className="text-gray-500">
                                 {overriddenByDevice.has(oid.oid)
-                                  ? "from template, overridden by this device"
-                                  : "from template"}
+                                  ? translator.translateText(
+                                      "from template, overridden by this device",
+                                    )
+                                  : translator.translateText("from template")}
                               </span>
                             ) : (
                               <></>
@@ -852,6 +1043,83 @@ const NetworkDeviceSettings: FunctionComponent<
                       })}
                     </ul>
                   </div>
+                );
+              },
+            },
+            {
+              field: {
+                snmpTables: true,
+                oidTemplateId: true,
+                oidTemplate: {
+                  name: true,
+                  tables: true,
+                },
+              },
+              title: "SNMP Tables",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                const templateTables: Array<SnmpTableDefinition> =
+                  item.oidTemplate?.tables || [];
+                const templateKeys: Set<string> = new Set(
+                  templateTables.map((table: SnmpTableDefinition): string => {
+                    return SnmpTableListUtil.normalizeKey(
+                      table.key || table.name,
+                    );
+                  }),
+                );
+
+                const effectiveTables: Array<SnmpTableDefinition> =
+                  SnmpTableListUtil.resolveEffectiveTables({
+                    templateTables: templateTables,
+                    deviceTables: item.snmpTables,
+                  }).tables;
+
+                if (effectiveTables.length === 0) {
+                  return (
+                    <span>
+                      {translator.translateText(
+                        "No SNMP tables collected. Add them here or on the device's OID Collection Template.",
+                      )}
+                    </span>
+                  );
+                }
+
+                return (
+                  <ul
+                    className="space-y-1 text-sm text-gray-700"
+                    data-testid="network-device-effective-snmp-tables"
+                  >
+                    {effectiveTables.map(
+                      (table: SnmpTableDefinition): ReactElement => {
+                        return (
+                          <li
+                            key={table.key}
+                            className="flex flex-wrap items-baseline gap-x-2"
+                          >
+                            <span className="font-medium text-gray-900">
+                              {table.name}
+                            </span>
+                            <span className="text-gray-500">
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} column",
+                                  other: "{{count}} columns",
+                                },
+                                table.columns.length,
+                              )}
+                            </span>
+                            {templateKeys.has(table.key) ? (
+                              <span className="text-gray-500">
+                                {translator.translateText("from template")}
+                              </span>
+                            ) : (
+                              <></>
+                            )}
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
                 );
               },
             },

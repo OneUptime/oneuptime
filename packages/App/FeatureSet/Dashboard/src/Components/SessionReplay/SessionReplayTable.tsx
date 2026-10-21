@@ -36,16 +36,34 @@ import {
   parseSessionReplayListCursor,
   SessionReplaySortedListCursorDto,
 } from "Common/Types/Rum/SessionReplayApi";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import Card from "Common/UI/Components/Card/Card";
+import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
+import AppliedFilters from "Common/UI/Components/Filters/AppliedFilters";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
 import Table from "Common/UI/Components/Table/Table";
+import {
+  TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
+  TableHeaderSearchSlot,
+  TableHeaderToolbar,
+  renderTableHeaderMoreMenu,
+  useTableHeaderSearchShortcut,
+} from "Common/UI/Components/Table/TableHeaderControls";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import SessionReplayFacets, {
-  SESSION_REPLAY_FACETS,
-  SessionReplayFacet,
-} from "./SessionReplayFacets";
+import SessionReplayFacets from "./SessionReplayFacets";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -62,7 +80,6 @@ import SessionReplayFilterModal from "./SessionReplayFilterModal";
 import SessionReplaySearchBar from "./SessionReplaySearchBar";
 import SessionReplayEmptyState, {
   describeSessionReplayListError,
-  SessionReplayFilterChipList,
   SessionReplayListErrorCopy,
 } from "./SessionReplayEmptyState";
 import {
@@ -84,10 +101,16 @@ import {
   resolveHandedOffUserFilter,
   serializeCursorMemory,
   SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS,
+  SESSION_REPLAY_SORT_OPTIONS,
   SessionReplayAdvancedFilters,
   SessionReplayCursorMemory,
   SessionReplayListUrlState,
+  SessionReplaySortOption,
 } from "./SessionReplayListFilters";
+import {
+  SEARCH_BOX_CHIP_FIELDS,
+  stringifySessionReplaySearchBox,
+} from "./SessionReplaySearchQuery";
 import {
   describeTriggerReason,
   formatIdleShare,
@@ -271,7 +294,98 @@ export const SESSION_REPLAY_LIST_URL_STORAGE_KEY: string =
 export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
   "oneuptime.replay.listCursors:";
 
-const MAX_ROUTE_PILLS: number = 3;
+/*
+ * The pages a row writes out after the one the session entered on; the rest
+ * are counted ("+2").
+ */
+export const MAX_ROUTE_TRAIL_PAGES: number = 3;
+
+export interface SessionReplayRouteTrail {
+  shown: Array<string>;
+  // The pages after the shown ones, counted rather than written out.
+  hiddenCount: number;
+}
+
+/*
+ * The pages a session went to after the page it entered on, for the line
+ * under the row's title ("→ /cart → /checkout"). The entry page IS the
+ * title, so a trail that starts with it does not say it again - the row
+ * used to: "/collections" over "/collections > /cart > /checkout".
+ */
+export function getSessionReplayRouteTrail(
+  entryPath: string,
+  routePaths: Array<string>,
+): SessionReplayRouteTrail {
+  const afterEntry: Array<string> =
+    routePaths.length > 0 && routePaths[0] === entryPath
+      ? routePaths.slice(1)
+      : routePaths;
+
+  return {
+    shown: afterEntry.slice(0, MAX_ROUTE_TRAIL_PAGES),
+    hiddenCount: Math.max(0, afterEntry.length - MAX_ROUTE_TRAIL_PAGES),
+  };
+}
+
+/*
+ * A line of a cell that says one thing: it stays on one line and ends in
+ * "..." where its column does, the whole of it under the pointer. A cell is
+ * a stack of these - the way every table's rows read, one fact per line -
+ * so a narrow column never breaks a phrase in two ("On / error",
+ * "Always- / on") or wraps a row of pills over three lines.
+ */
+export const SESSION_REPLAY_CELL_LINE_CLASS_NAME: string =
+  "min-w-0 truncate whitespace-nowrap";
+
+/*
+ * The Session cell's last line: when the session started, then its short
+ * id. One line tall (h-4, the text's own line) and clipped below it, and
+ * its pieces wrap whole: a piece that does not fit beside the start goes to
+ * the clipped second line - out of sight rather than cut to "aaa...".
+ */
+export const SESSION_REPLAY_WHEN_LINE_CLASS_NAME: string =
+  "mt-0.5 flex h-4 min-w-0 flex-wrap items-center gap-x-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500";
+
+/*
+ * The device types a row draws a phone for: a browser's mobile and tablet,
+ * and the mobile SDK's own - it writes the platform, "ios" or "android" -
+ * whose recordings were drawn with a desktop's monitor.
+ */
+export const SESSION_REPLAY_HANDHELD_DEVICE_TYPES: ReadonlyArray<string> = [
+  "mobile",
+  "tablet",
+  "ios",
+  "android",
+];
+
+export function isSessionReplayHandheldDevice(deviceType: string): boolean {
+  return SESSION_REPLAY_HANDHELD_DEVICE_TYPES.includes(
+    (deviceType || "").toLowerCase(),
+  );
+}
+
+/*
+ * The floors of the list's columns (see SESSION_REPLAY_COLUMNS), below the
+ * table's 10rem: the six of them fit a laptop's card at 1280px, so no
+ * column goes under the sticky Actions column.
+ */
+export const SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[7rem]";
+
+export const SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[8rem]";
+
+/*
+ * The applied filters neither the search box nor the chips can show: an
+ * exact page (set in the filter form) and the pseudonymous user key (set by
+ * clicking a person whose name your role cannot read). They are listed in
+ * the box every table shows over a filtered list (AppliedFilters). Every
+ * other filter is shown once, where it is changed: free text, user:,
+ * visitor:, url: and tag: in the search box, the rest in the chips.
+ */
+export const SESSION_REPLAY_APPLIED_BOX_FIELDS: ReadonlyArray<
+  keyof SessionReplayAdvancedFilters
+> = ["route", "identifiedUserKey"];
 
 /*
  * Signal badges shown on a row before the rest fold into "+N". Three is
@@ -739,10 +853,9 @@ function getSessionReplayCells(
     return Boolean(part);
   });
 
-  const deviceIcon: IconProp =
-    row.deviceType === "mobile" || row.deviceType === "tablet"
-      ? IconProp.DevicePhoneMobile
-      : IconProp.ComputerDesktop;
+  const deviceIcon: IconProp = isSessionReplayHandheldDevice(row.deviceType)
+    ? IconProp.DevicePhoneMobile
+    : IconProp.ComputerDesktop;
 
   const signalEntries: Array<{ text: string; element: ReactElement }> =
     SESSION_REPLAY_SIGNAL_BADGES.flatMap(
@@ -846,15 +959,13 @@ function getSessionReplayCells(
     activityParts.push(`${row.clickCount} ${plural(row.clickCount, "click")}`);
   }
 
-  const firstErrorRoute: Route | null =
-    row.errorCount > 0
-      ? buildReplayMomentRoute({
-          rumApplicationId: props.rumApplicationId,
-          sessionId: row.sessionId,
-          t: row.firstErrorOffsetMs ?? 0,
-          rail: "errors",
-        })
-      : null;
+  // "3 pages · 9 clicks", or why there is nothing to count yet.
+  const activityText: string =
+    activityParts.length > 0
+      ? activityParts.join(" · ")
+      : row.isFinalized
+        ? "no pages counted"
+        : "counting";
 
   /*
    * Who this session belongs to, ranked the one way every cell ranks it
@@ -937,10 +1048,33 @@ function getSessionReplayCells(
     row.samplePercentageAtCapture,
   );
 
+  /*
+   * Every cell is a one-column grid (a minmax(0, 1fr) track adds nothing to
+   * the column's minimum width) holding a stack of one-line facts
+   * (SESSION_REPLAY_CELL_LINE_CLASS_NAME): a line ends in "..." where its
+   * column does rather than widening the table - the Recording column went
+   * under the sticky Actions column from a laptop up to 1600px - or
+   * wrapping onto the next. A row reads in three short lines, as a table's
+   * rows do, where it used to run to six at 1280.
+   */
+  const trail: SessionReplayRouteTrail = getSessionReplayRouteTrail(
+    entryPath,
+    routePaths,
+  );
+  // The whole journey, entry page first, for the trail's title.
+  const journeyTitle: string = (
+    routePaths[0] === entryPath ? routePaths : [entryPath, ...routePaths]
+  )
+    .filter((path: string): boolean => {
+      return path.length > 0;
+    })
+    .join(" → ");
+  const sessionIdText: string = row.sessionId.slice(0, 8) || "—";
+
   return [
-    <div key="0">
+    <div key="0" className="grid grid-cols-1">
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/*
            * Only a session that may still receive footage pulses. An
            * ended one is waiting on the finalizer, not on the end user.
@@ -968,60 +1102,81 @@ function getSessionReplayCells(
             </span>
           )}
         </div>
-        {routePaths.length > 1 && (
+        {/*
+         * Where the session went next, on one line under the page it
+         * entered on: "→ /cart → /checkout", then "+2" for the pages not
+         * written out. The whole journey is on the line's title.
+         */}
+        {trail.shown.length > 0 && (
           <div
-            className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500"
+            className="mt-0.5 flex min-w-0 items-center text-xs text-gray-500"
             data-testid="session-row-routes"
+            title={journeyTitle}
           >
-            {routePaths
-              .slice(0, MAX_ROUTE_PILLS)
-              .map((path: string, index: number): ReactElement => {
+            <span className={SESSION_REPLAY_CELL_LINE_CLASS_NAME}>
+              {trail.shown.map((path: string, index: number): ReactElement => {
                 return (
                   <Fragment key={`${path}-${index}`}>
-                    {index > 0 && <span aria-hidden="true">&gt;</span>}
-                    <span
-                      className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
-                      title={row.routes?.[index]}
-                    >
-                      {path}
+                    <span aria-hidden="true" className="text-gray-400">
+                      {index > 0 ? " → " : "→ "}
                     </span>
+                    <span className="font-medium text-gray-600">{path}</span>
                   </Fragment>
                 );
               })}
-            {row.pageCount > MAX_ROUTE_PILLS && (
-              <span>({row.pageCount} pages)</span>
+            </span>
+            {trail.hiddenCount > 0 && (
+              <span
+                className="ml-1 flex-none text-gray-400"
+                data-testid="session-row-routes-more"
+              >
+                +{trail.hiddenCount}
+              </span>
             )}
           </div>
         )}
         {/*
-         * One line, never two. The absolute timestamp is what pushes it
-         * over, so it appears only where the column has room; it is on
-         * the element's title at every width.
+         * When it started, then the short id, on one line. The start is
+         * kept whole - never "7 minute..." - and the id is shown whole or
+         * not at all: where the column is too narrow for both, it wraps
+         * onto a second line the row clips (SESSION_REPLAY_WHEN_LINE_CLASS_NAME)
+         * rather than reading "aaa...". The whole id is on its title and in
+         * the row's ⋯ (Show ID), and the exact start on the start's title.
          */}
-        <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
-          <span
-            className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
-            title={row.sessionId}
-          >
-            {row.sessionId.slice(0, 8) || "—"}
-          </span>
+        <div
+          className={SESSION_REPLAY_WHEN_LINE_CLASS_NAME}
+          data-testid="session-row-when"
+        >
           {hasStart && (
             <time
+              className="flex-none"
               dateTime={(startedAt as Date).toISOString()}
               title={absoluteStart}
               data-testid="session-row-start"
             >
               {OneUptimeDate.fromNow(startedAt as Date)}
-              <span className="hidden text-gray-400 2xl:inline">
-                {" "}
-                · {absoluteStart}
-              </span>
             </time>
           )}
+          <span
+            className="inline-flex flex-none items-center gap-1.5"
+            data-testid="session-row-id"
+          >
+            {hasStart && (
+              <span aria-hidden="true" className="text-gray-400">
+                ·
+              </span>
+            )}
+            <span
+              className="font-mono text-[11px] text-gray-500"
+              title={row.sessionId}
+            >
+              {sessionIdText}
+            </span>
+          </span>
         </div>
       </div>
     </div>,
-    <div key="1">
+    <div key="1" className="grid grid-cols-1">
       <div className="flex min-w-0 items-center gap-2">
         <SessionReplayUserAvatar
           initials={user.initials}
@@ -1044,28 +1199,43 @@ function getSessionReplayCells(
         </div>
       </div>
     </div>,
-    <div key="2">
+    <div key="2" className="grid grid-cols-1">
       <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
         {formatSessionDuration(row.durationMs)}
       </div>
-      <div className="text-xs text-gray-500" data-testid="session-row-activity">
-        {activityParts.length > 0
-          ? activityParts.join(" · ")
-          : row.isFinalized
-            ? "no pages counted"
-            : "counting"}
-        {idleShare ? ` · ${idleShare}` : ""}
+      <div
+        className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        title={activityText}
+        data-testid="session-row-activity"
+      >
+        {activityText}
       </div>
-      {activePercent !== null && (
-        <div
-          className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-gray-100"
-          title={`active ${activePercent}% · idle ${100 - activePercent}%`}
-          data-testid="session-row-activity-bar"
-        >
-          <div
-            className="h-full rounded-full bg-indigo-400"
-            style={{ width: `${activePercent}%` }}
-          />
+      {/*
+       * How much of it somebody was doing something: the active share as a
+       * bar, and the idle share beside it in words.
+       */}
+      {(activePercent !== null || idleShare) && (
+        <div className="mt-1 flex min-w-0 items-center gap-2">
+          {activePercent !== null && (
+            <div
+              className="h-1 w-12 flex-none overflow-hidden rounded-full bg-gray-100"
+              title={`active ${activePercent}% · idle ${100 - activePercent}%`}
+              data-testid="session-row-activity-bar"
+            >
+              <div
+                className="h-full rounded-full bg-indigo-400"
+                style={{ width: `${activePercent}%` }}
+              />
+            </div>
+          )}
+          {idleShare && (
+            <span
+              className={`text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+              data-testid="session-row-idle"
+            >
+              {idleShare}
+            </span>
+          )}
         </div>
       )}
     </div>,
@@ -1083,7 +1253,7 @@ function getSessionReplayCells(
         <span className="text-sm text-gray-400">Not counted yet</span>
       )}
     </div>,
-    <div key="4">
+    <div key="4" className="grid grid-cols-1">
       <div className="flex items-center gap-1.5">
         <Tooltip text={playability.tooltip}>
           <span
@@ -1100,53 +1270,99 @@ function getSessionReplayCells(
           </span>
         </Tooltip>
       </div>
-      <div className="mt-0.5 text-xs text-gray-500">
-        {playability.detail ? `${playability.detail} · ` : ""}
-        <span title={`Why this session was uploaded: ${triggerLabel}`}>
-          {triggerLabel}
-        </span>
+      {/*
+       * Under the badge, a line each: its facts ("about 15s missing",
+       * "expires in 28d", "live") and why the session was uploaded ("On
+       * error", "Always-on").
+       */}
+      {playability.detailLines.map((line: string): ReactElement => {
+        return (
+          <div
+            key={line}
+            className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+            title={line}
+            data-testid="session-row-playability-detail"
+          >
+            {line}
+          </div>
+        );
+      })}
+      <div
+        className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        title={`Why this session was uploaded: ${triggerLabel}`}
+        data-testid="session-row-trigger"
+      >
+        {triggerLabel}
       </div>
       {row.fidelityNotices.length > 0 && (
-        <div className="mt-0.5 text-xs text-amber-700">
+        <div
+          className={`mt-0.5 text-xs text-amber-700 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        >
           {row.fidelityNotices.length} fidelity{" "}
           {plural(row.fidelityNotices.length, "notice")}
         </div>
       )}
     </div>,
+    /*
+     * The row's one button. It stays a real link rather than becoming an
+     * action button, so Cmd-click and middle-click still open the player in
+     * a new tab. Everything else the row can do sits in the ⋯ menu that the
+     * Table draws beside it - see getSessionReplayRowActions.
+     */
     <div key="5">
-      {route && (
-        <div className="flex flex-col items-end gap-1">
-          {playability.isWatchable ? (
-            <Link
-              to={route}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-              title={`Watch session ${row.sessionId.slice(0, 8)}`}
-            >
-              <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
-              <span data-testid="session-row-watch">Watch</span>
-            </Link>
-          ) : (
-            <Link
-              to={route}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
-              title={`${playability.text}: open the session's signals without footage`}
-            >
-              <span data-testid="session-row-signals-only">Signals only</span>
-            </Link>
-          )}
-          {playability.isWatchable && firstErrorRoute && (
-            <Link
-              to={firstErrorRoute}
-              className="text-[11px] font-medium text-indigo-600 hover:underline"
-              title="Open the player one second before the first error"
-            >
-              <span data-testid="session-row-first-error">from 1st error</span>
-            </Link>
-          )}
-        </div>
-      )}
+      {route &&
+        (playability.isWatchable ? (
+          <Link
+            to={route}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+            title={`Watch session ${row.sessionId.slice(0, 8)}`}
+          >
+            <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+            <span data-testid="session-row-watch">Watch</span>
+          </Link>
+        ) : (
+          <Link
+            to={route}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
+            title={`${playability.text}: open the session's signals without footage`}
+          >
+            <span data-testid="session-row-signals-only">Signals only</span>
+          </Link>
+        ))}
     </div>,
   ];
+}
+
+/*
+ * Where "Watch from first error" opens this row: the player one second
+ * before the first error, on the errors rail. Null whenever the row has no
+ * such moment to offer - no session route, footage that will not play, or
+ * no error - and then the action is not on the row at all, exactly as the
+ * old "from 1st error" link was not.
+ */
+export function getSessionReplayFirstErrorRoute(
+  props: Pick<SessionReplayRowProps, "row" | "rumApplicationId" | "nowUnixMs">,
+): Route | null {
+  const { row } = props;
+
+  if (!routeForSession(props.rumApplicationId, row.sessionId)) {
+    return null;
+  }
+
+  if (!getSessionReplayPlayability(row, props.nowUnixMs).isWatchable) {
+    return null;
+  }
+
+  if (row.errorCount <= 0) {
+    return null;
+  }
+
+  return buildReplayMomentRoute({
+    rumApplicationId: props.rumApplicationId,
+    sessionId: row.sessionId,
+    t: row.firstErrorOffsetMs ?? 0,
+    rail: "errors",
+  });
 }
 
 function getSessionReplayRowProps(
@@ -1165,6 +1381,20 @@ function getSessionReplayRowProps(
     }
 
     const target: HTMLElement | null = event.target as HTMLElement | null;
+
+    /*
+     * The row's ⋯ menu is portalled to document.body, but React still
+     * bubbles its clicks up the component tree to this row. A click that
+     * landed outside the row's own elements - on the menu's padding, say -
+     * is not a click on the row.
+     */
+    if (
+      target instanceof Node &&
+      event.currentTarget instanceof Node &&
+      !event.currentTarget.contains(target)
+    ) {
+      return;
+    }
 
     /* A click on a link or button inside the row is that control's, not the row's. */
     if (
@@ -1206,6 +1436,76 @@ function getSessionReplayRowProps(
 
 interface SessionReplayTableRow extends SessionReplaySummary {
   cells: Array<ReactElement>;
+  /* See getSessionReplayFirstErrorRoute; null keeps the action off the row. */
+  firstErrorRoute: Route | null;
+}
+
+/*
+ * The row's ⋯ menu. Watch (or Signals only) is the row's button and stays
+ * a link in the Actions cell; what used to hang under it as a small "from
+ * 1st error" link is a menu item now, so a row reads as one control rather
+ * than two stacked ones. It is pinned to the menu because it is never the
+ * first thing to reach for - Watch is - and with no other action beside it
+ * the split would otherwise promote it to a second button.
+ *
+ * Every row's menu also has Show ID - the session's whole ID, to copy into a
+ * ticket or the search box's id: - as every model table's rows have. So every
+ * row carries a ⋯, and the rows' Watch buttons line up in one column: a row
+ * without one used to draw its Watch where the others' ⋯ was.
+ *
+ * The one thing given up: menu items are buttons, and a row action never sees
+ * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
+ * a new tab the way the old inline link could. Watch - the row's link - still
+ * can, and the player it opens has the errors rail one click away.
+ */
+function getSessionReplayRowActions(
+  openSession: (route: Route, openInNewTab: boolean) => void,
+  showSessionId: (sessionId: string) => void,
+): Array<ActionButtonSchema<SessionReplayTableRow>> {
+  return [
+    {
+      title: "Watch from first error",
+      icon: IconProp.Play,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      tooltip: "Open the player one second before the first error",
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.firstErrorRoute);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        /*
+         * The way the row itself opens a session, so the player's back
+         * link is re-stamped with the list exactly as the viewer left it.
+         */
+        if (row.firstErrorRoute) {
+          openSession(row.firstErrorRoute, false);
+        }
+
+        onCompleteAction();
+      },
+    },
+    {
+      title: "Show ID",
+      // The ID card "Show ID" wears in every menu.
+      icon: IconProp.Identification,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      // Never offered on a row with no ID to show.
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.sessionId);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        showSessionId(row.sessionId);
+        onCompleteAction();
+      },
+    },
+  ];
 }
 
 const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
@@ -1214,6 +1514,7 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     key: "startTime",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-xs",
+    contentClassName: SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "User & device",
@@ -1221,23 +1522,30 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-xs",
   },
+  /*
+   * Three short columns - a duration over its activity, a few badges, a
+   * badge over a line - whose words wrap, on a lower floor than the table's.
+   */
   {
     title: "Duration",
     key: "durationMs",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "Signals",
     key: "errorCount",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "Recording",
     key: "isFinalized",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   { title: "Actions", key: "sessionId", type: FieldType.Actions },
 ].map(
@@ -1248,6 +1556,7 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
       type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
+      contentClassName?: string;
     },
     index: number,
   ) => {
@@ -1306,6 +1615,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
   );
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+  // The session whose whole ID a row's Show ID put on screen.
+  const [shownSessionId, setShownSessionId] = useState<string | null>(null);
+  /*
+   * Whether the reader opened the header's search (its pill, "/", or the
+   * box taking focus). It also stays open while it holds text.
+   */
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
+  const translator: Translator = useTranslator();
   const [isIdentityFilterIgnored, setIsIdentityFilterIgnored] =
     useState<boolean>(false);
   const [nowUnixMs, setNowUnixMs] = useState<number>((): number => {
@@ -1660,6 +1979,21 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       const region: HTMLDivElement | null = tableRegionRef.current;
       const focused: Element | null = document.activeElement;
 
+      /*
+       * A row's ⋯ menu is portalled to document.body: the focus it holds
+       * is outside the region, and it stays open after the pointer has
+       * left. Its trigger is inside, and says whether the menu is open.
+       * Rows are keyed by position, so a read that reordered them under an
+       * open menu would leave it acting on whichever session moved into
+       * that slot.
+       */
+      if (
+        region &&
+        region.querySelector('[aria-haspopup="menu"][aria-expanded="true"]')
+      ) {
+        return true;
+      }
+
       return Boolean(
         region && focused && focused !== region && region.contains(focused),
       );
@@ -1844,6 +2178,52 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
   }, []);
 
+  /*
+   * The chip row's "Clear all": the Signal chip and every facet chip, and
+   * nothing the search box or the filter form holds.
+   */
+  const clearChipFilters: VoidFunction = useCallback((): void => {
+    setPageNumber(1);
+    setSignal("all");
+    setAdvancedFilters(
+      (
+        existing: SessionReplayAdvancedFilters,
+      ): SessionReplayAdvancedFilters => {
+        const next: SessionReplayAdvancedFilters = { ...existing };
+
+        for (const field of SEARCH_BOX_CHIP_FIELDS) {
+          next[field] = "";
+        }
+
+        return next;
+      },
+    );
+  }, []);
+
+  // A sort is one of the ⋯'s ticked choices; a new one starts at page one.
+  const changeSort: (value: SessionReplaySortBy) => void = useCallback(
+    (value: SessionReplaySortBy): void => {
+      if (value === sortBy) {
+        return;
+      }
+
+      setPageNumber(1);
+      setSortBy(value);
+    },
+    [sortBy],
+  );
+
+  const openSearch: VoidFunction = useCallback((): void => {
+    setIsSearchOpen(true);
+    // Wait one frame so the box is shown before it takes the focus.
+    requestAnimationFrame((): void => {
+      searchInputRef.current?.focus();
+    });
+  }, []);
+
+  // "/" opens the search, as it does on every table.
+  useTableHeaderSearchShortcut(true, openSearch);
+
   const tableRows: Array<SessionReplayTableRow> =
     useMemo((): Array<SessionReplayTableRow> => {
       return rows.map((row: SessionReplaySummary): SessionReplayTableRow => {
@@ -1856,30 +2236,131 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             onOpen: openSession,
             onFilterByUser: filterByUser,
           }),
+          firstErrorRoute: getSessionReplayFirstErrorRoute({
+            row,
+            rumApplicationId: rumApplicationIdString,
+            nowUnixMs,
+          }),
         };
       });
     }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
 
+  const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
+    useMemo((): Array<ActionButtonSchema<SessionReplayTableRow>> => {
+      return getSessionReplayRowActions(openSession, setShownSessionId);
+    }, [openSession]);
+
   const showIdentityNudge: boolean =
     !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
-  const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
+  const appliedBoxChips: Array<SessionReplayFilterChip> = chips.filter(
     (chip: SessionReplayFilterChip): boolean => {
-      return !SESSION_REPLAY_FACETS.some(
-        (facet: SessionReplayFacet): boolean => {
-          return facet.field === chip.field;
-        },
-      );
+      return SESSION_REPLAY_APPLIED_BOX_FIELDS.includes(chip.field);
     },
   );
 
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      ...getRefreshButton(),
-      tooltip: "Refresh sessions",
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: reload,
-    },
-  ];
+  /*
+   * Open while the reader has it open, and while it holds anything: a list
+   * narrowed by the box says so in the box.
+   */
+  const isSearchShown: boolean =
+    isSearchOpen ||
+    stringifySessionReplaySearchBox(advancedFilters).trim().length > 0;
+
+  /*
+   * The ⋯: the order of the rows (a ticked choice, as a feed's sort order
+   * is), then Refresh and the filter form - what every table keeps behind
+   * it, in a model table's order (Refresh, Filter, Columns).
+   */
+  const moreMenu: ReactElement | null = renderTableHeaderMoreMenu([], {
+    dataTestId: "session-replay-more",
+    sections: [
+      <MoreMenuSection key="sort" title="Sort">
+        {SESSION_REPLAY_SORT_OPTIONS.map(
+          (option: SessionReplaySortOption): ReactElement => {
+            const isSelected: boolean = option.value === sortBy;
+
+            return (
+              <MoreMenuItem
+                key={option.value}
+                text={option.label}
+                icon={isSelected ? IconProp.Check : undefined}
+                isIconSpaceReserved={true}
+                isChecked={isSelected}
+                dataTestId={`session-sort-${option.value}`}
+                onClick={(): void => {
+                  changeSort(option.value);
+                }}
+              />
+            );
+          },
+        )}
+      </MoreMenuSection>,
+      <MoreMenuItem
+        key="refresh"
+        text="Refresh"
+        icon={IconProp.Refresh}
+        dataTestId="session-refresh"
+        onClick={reload}
+      />,
+      <MoreMenuItem
+        key="filter"
+        text="Filter"
+        icon={IconProp.Filter}
+        dataTestId="session-open-filters"
+        onClick={(): void => {
+          setIsFilterModalOpen(true);
+        }}
+      />,
+    ],
+  });
+
+  /*
+   * The header's controls, as every table's: the search, then - because a
+   * recording list is read over a window - the time range, then the ⋯. All
+   * one height. They stay beside an opened search: the window is what a
+   * search for one person's sessions is most often widened by.
+   */
+  const headerToolbar: ReactElement = (
+    <TableHeaderToolbar
+      key="session-replay-header"
+      dataTestId="session-replay-header-toolbar"
+      isSearchOpen={isSearchShown}
+      keepButtonsWhileSearching={true}
+      search={
+        <TableHeaderSearchSlot
+          isOpen={isSearchShown}
+          onOpen={openSearch}
+          openClassName={TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME}
+          dataTestId="session-search-slot"
+        >
+          <SessionReplaySearchBar
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            onNavigateToSession={navigateToSessionId}
+            isIdentityFilterIgnored={isIdentityFilterIgnored}
+            isOpen={isSearchShown}
+            inputRef={searchInputRef}
+            onFocus={(): void => {
+              setIsSearchOpen(true);
+            }}
+            onClose={(): void => {
+              setIsSearchOpen(false);
+            }}
+          />
+        </TableHeaderSearchSlot>
+      }
+    >
+      <TelemetryTimeRangePicker
+        value={timeRange}
+        size={TimeRangePickerSize.Header}
+        onChange={(value: RangeStartAndEndDateTime): void => {
+          setPageNumber(1);
+          setTimeRange(value);
+        }}
+      />
+      {moreMenu}
+    </TableHeaderToolbar>
+  );
 
   return (
     <Fragment>
@@ -1889,29 +2370,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           props.description ||
           "Explore recorded sessions, understand user journeys, and investigate errors."
         }
-        buttons={cardButtons}
+        /*
+         * The header every table has: the title and its controls share the
+         * first line, and the description runs under both.
+         */
+        headerLayout="toolbar"
+        buttons={[headerToolbar]}
       >
         <div>
-          <SessionReplaySearchBar
-            filters={advancedFilters}
-            onFiltersChange={applyFilters}
-            onNavigateToSession={navigateToSessionId}
-            sortBy={sortBy}
-            onSortChange={(value: SessionReplaySortBy): void => {
-              setPageNumber(1);
-              setSortBy(value);
-            }}
-            timeRange={timeRange}
-            onTimeRangeChange={(value: RangeStartAndEndDateTime): void => {
-              setPageNumber(1);
-              setTimeRange(value);
-            }}
-            onOpenAdvancedFilters={(): void => {
-              setIsFilterModalOpen(true);
-            }}
-            isIdentityFilterIgnored={isIdentityFilterIgnored}
-          />
-
           <SessionReplayFacets
             rows={rows}
             filters={advancedFilters}
@@ -1921,6 +2387,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               setPageNumber(1);
               setSignal(value);
             }}
+            onClearAll={clearChipFilters}
           />
 
           {showIdentityNudge && (
@@ -1942,26 +2409,61 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               />
             )}
 
-          {(chips.length > 0 || signal !== "all") && (
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <SessionReplayFilterChipList
-                chips={additionalChips}
-                onRemoveChip={removeChip}
-              />
-              <Button
-                title="Edit filters"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                onClick={(): void => {
-                  setIsFilterModalOpen(true);
-                }}
-              />
-              <Button
-                title="Clear filters"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                dataTestId="session-clear-filters"
-                onClick={clearFilters}
-              />
-            </div>
+          {appliedBoxChips.length > 0 && (
+            <AppliedFilters
+              dataTestId="session-applied-filters"
+              title={translator.translateTemplate(
+                "Showing {{itemsName}} that match",
+                { itemsName: translatableTerm("Sessions") },
+              )}
+              chips={appliedBoxChips.map(
+                (chip: SessionReplayFilterChip): ReactElement => {
+                  return (
+                    <span
+                      key={chip.field}
+                      data-testid="session-filter-chip"
+                      data-field={chip.field}
+                    >
+                      <TranslatedSentence
+                        template="{{field}} is {{value}}"
+                        slots={{
+                          field: (
+                            <span className="font-medium">
+                              {translator.translateText(chip.label)}
+                            </span>
+                          ),
+                          /*
+                           * A page's address as it was given; the key's
+                           * stand-in is a phrase of ours.
+                           */
+                          value: (
+                            <span className="font-medium">
+                              {chip.field === "identifiedUserKey"
+                                ? translator.translateText(chip.text)
+                                : chip.text}
+                            </span>
+                          ),
+                        }}
+                      />
+                    </span>
+                  );
+                },
+              )}
+              onEditFilters={(): void => {
+                setIsFilterModalOpen(true);
+              }}
+              onClearFilters={(): void => {
+                const next: SessionReplayAdvancedFilters = {
+                  ...advancedFilters,
+                };
+
+                for (const field of SESSION_REPLAY_APPLIED_BOX_FIELDS) {
+                  next[field] = "";
+                }
+
+                applyFilters(next);
+              }}
+            />
           )}
 
           {error ? (
@@ -1975,7 +2477,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 {error.title}
               </p>
               <p className="mt-1 text-sm text-red-700">{error.detail}</p>
-              <div className="mt-3 flex gap-2">
+              {/*
+               * Button's own left margin (md:ml-3, a dialog footer's) put
+               * Retry 12px right of the words above it.
+               */}
+              <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
                 <Button
                   title="Retry"
                   icon={IconProp.Refresh}
@@ -2009,6 +2515,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 id="session-replay-table"
                 data={tableRows}
                 columns={SESSION_REPLAY_COLUMNS}
+                actionButtons={rowActions}
                 getRowProps={(
                   row: SessionReplayTableRow,
                 ): React.HTMLAttributes<HTMLElement> => {
@@ -2079,6 +2586,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           )}
         </div>
       </Card>
+
+      {shownSessionId !== null && (
+        <RecordIdModal
+          recordId={shownSessionId}
+          itemName="Session"
+          onClose={(): void => {
+            setShownSessionId(null);
+          }}
+        />
+      )}
 
       {isFilterModalOpen && (
         <SessionReplayFilterModal

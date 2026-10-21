@@ -1,10 +1,10 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import ServiceLevelObjectiveLabelRule from "../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -21,6 +21,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelRuleService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ServiceLevelObjectiveLabelRuleEngineServiceClass
   implements
@@ -116,6 +119,7 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     serviceLevelObjective: ServiceLevelObjective;
     rules: Array<ServiceLevelObjectiveLabelRule>;
@@ -184,11 +188,23 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: serviceLevelObjective.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of SLO label rules",
+      logAttributes: {
+        projectId: serviceLevelObjective.projectId.toString(),
+        serviceLevelObjectiveId: serviceLevelObjective.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -247,7 +263,7 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
     matchedRuleNames: Array<string>;
   }): Promise<void> {
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: data.projectId,
           sloId: data.serviceLevelObjectiveId,
@@ -261,13 +277,13 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.LabelRuleExecuted,
           displayColor: Purple500,
-          feedInfoInMarkdown: `🏷️ ${data.labelsAdded} label(s) were attached to ${sloLink} by label ${data.matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-          moreInformationInMarkdown: `**Label rules that matched**: ${data.matchedRuleNames
-            .map((name: string): string => {
-              // Rule names are user-controlled and the feed renders markdown.
-              return `**${escapeMarkdownInline(name)}**`;
-            })
-            .join(", ")}`,
+          feedInfoInMarkdown:
+            mdText`🏷️ ${data.labelsAdded} label(s) were attached to ${sloLink} by label ${data.matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+          moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+            ruleKind: "Label",
+            ruleNames: data.matchedRuleNames,
+            namesInBold: true,
+          }).toString(),
         },
       );
     } catch (error) {

@@ -6,6 +6,17 @@ import Link from "Common/Types/Link";
 export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.HOSTS, ["Project", "Hosts"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_COLLECTOR_CONFIGS, [
+      "Project",
+      "Hosts",
+      "Collector Configs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_COLLECTOR_CONFIG_VIEW, [
+      "Project",
+      "Hosts",
+      "Collector Configs",
+      "View Config",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW, [
       "Project",
       "Hosts",
@@ -16,6 +27,27 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Hosts",
       "View Host",
       "Recommendations",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_AI_INSIGHTS, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_AI_LOGS, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_AI_AGENT, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "AI",
+      "AI agent",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_METRICS, [
       "Project",
@@ -80,6 +112,12 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Scheduled Maintenance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_OWNERS, [
       "Project",
       "Hosts",
@@ -102,7 +140,7 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Hosts",
       "View Host",
-      "Documentation",
+      "Collector",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_DOCUMENTATION, [
       "Project",

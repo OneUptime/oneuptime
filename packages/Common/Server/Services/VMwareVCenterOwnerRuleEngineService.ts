@@ -26,6 +26,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class VMwareVCenterOwnerRuleEngineServiceClass
   implements RuleRunEngine<VMwareVCenter, VMwareVCenterOwnerRule>
@@ -125,6 +129,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     vmwareVCenter: VMwareVCenter;
     rules: Array<VMwareVCenterOwnerRule>;
@@ -300,15 +305,17 @@ class VMwareVCenterOwnerRuleEngineServiceClass
       projectId: vmwareVCenter.projectId,
       vmwareVCenterFeedEventType: VMwareVCenterFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await VMwareVCenterService.getVMwareVCenterMarkdownLink(
-        vmwareVCenter.projectId,
-        vmwareVCenter.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: VMwareVCenterOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await VMwareVCenterService.getVMwareVCenterMarkdownLink(
+          vmwareVCenter.projectId,
+          vmwareVCenter.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: VMwareVCenterOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -395,8 +402,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
     rule: VMwareVCenterOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in vCenter owner rule ${rule.id}: ${pattern}`);
       return false;

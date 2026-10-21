@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -18,6 +19,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
@@ -146,6 +148,7 @@ RunCron(
           },
           currentMonitorStatus: {
             name: true,
+            color: true,
           },
           monitorType: true,
           monitorSteps: true,
@@ -180,6 +183,10 @@ RunCron(
         monitorName: monitor.name!,
         projectName: monitor.project!.name!,
         currentStatus: monitor.currentMonitorStatus!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentStatus",
+          monitor.currentMonitorStatus?.color,
+        ),
         monitorDescription: await Markdown.convertToHTML(
           monitor.description! || "",
           MarkdownContentType.Email,
@@ -204,7 +211,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the monitor - ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been added as the owner of the monitor - ${monitor.name}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

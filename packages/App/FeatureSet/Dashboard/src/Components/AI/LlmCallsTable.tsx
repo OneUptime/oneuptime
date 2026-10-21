@@ -23,6 +23,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import SpanStatusElement from "../Span/SpanStatusElement";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).
@@ -35,6 +37,7 @@ export interface ComponentProps {
 const LlmCallsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
 
   useEffect(() => {
@@ -89,7 +92,9 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     );
 
     if (!telemetryService) {
-      return <p className="text-gray-400">Unknown</p>;
+      return (
+        <p className="text-gray-400">{translator.translateText("Unknown")}</p>
+      );
     }
 
     return <ServiceElement service={telemetryService} />;

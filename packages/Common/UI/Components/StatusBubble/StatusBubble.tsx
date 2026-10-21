@@ -1,5 +1,7 @@
 import Color from "../../../Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   text: string;
@@ -11,6 +13,8 @@ export interface ComponentProps {
 const Statusbubble: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const text: string = translator.translateText(props.text) || props.text;
   const backgroundColor: string = props.color
     ? props.color.toString()
     : "var(--ou-text-subtle, #9ca3af)";
@@ -20,7 +24,9 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
       className="flex"
       style={props.style}
       role="status"
-      aria-label={`Status: ${props.text}`}
+      aria-label={translator.translateTemplate("Status: {{status}}", {
+        status: text,
+      })}
     >
       <div className="-mr-2 ml-5" aria-hidden="true">
         <span className="relative -left-1 -translate-x-full top-1/2 -translate-y-1/2 flex h-3.5 w-3.5">
@@ -41,13 +47,18 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
           ></span>
         </span>
       </div>
+      {/*
+       * On a value's 24px line (leading-6), as a table's cell and a detail
+       * card's value are: text-sm alone set a 20px one, which drew the
+       * status 2px above the values beside it in a row.
+       */}
       <div
-        className="text-sm font-medium"
+        className="text-sm font-medium leading-6"
         style={{
           color: "var(--ou-text-secondary, #4b5563)",
         }}
       >
-        {props.text}
+        {text}
       </div>
     </div>
   );

@@ -1,114 +1,182 @@
-# Usa Fluentd para enviar datos de telemetría a OneUptime
+# Fluentd
 
-## Información general
+[Fluentd](https://www.fluentd.org/) recopila registros de archivos, contenedores, syslog, aplicaciones y [muchas otras fuentes](https://www.fluentd.org/datasources). Su [salida HTTP](https://docs.fluentd.org/output/http) integrada los envía al endpoint de Fluentd de OneUptime, donde se pueden buscar en **Productos → Registros**.
 
-Puedes usar el complemento [Fluentd](https://www.fluentd.org/) para recopilar registros y datos de telemetría de tus aplicaciones y servicios. El complemento envía los datos de telemetría a la Fuente HTTP de OneUptime. Puedes usar el complemento de salida http de fluentd para enviar los datos de telemetría a la Fuente HTTP de OneUptime. Este complemento se puede encontrar aquí: https://docs.fluentd.org/output/http
+:::cards
+- [Configurar Fluentd](#configurar-fluentd): Añade una salida HTTP que apunte a OneUptime.
+- [Cómo se leen los registros](#cómo-se-leen-los-registros): Qué campos se convierten en el mensaje, la severidad y los atributos.
+- [OneUptime autoalojado](#oneuptime-autoalojado): Apunta Fluentd a tu propia instancia.
+:::
 
-## Primeros pasos
+## Cómo funciona
 
-Fluentd admite cientos de fuentes de datos y puedes ingestar registros de cualquiera de estas fuentes en OneUptime. Algunas de las fuentes populares incluyen:
+```mermaid title="De Fluentd a OneUptime"
+flowchart TB
+    sources["Archivos, contenedores, syslog, aplicaciones"] --> fluentd["Fluentd"]
+    fluentd -->|"Salida HTTP, JSON + clave de ingesta"| ingest["OneUptime /fluentd/logs"]
+    ingest --> service["Servicio indicado en la solicitud"]
+    service --> logs["Registros"]
+```
 
-- Docker
-- Syslog
-- Apache
-- Nginx
-- MySQL
-- PostgreSQL
-- MongoDB
-- NodeJS
-- Ruby
-- Python
-- Java
-- PHP
-- Go
-- Rust
+Fluentd envía los registros por lotes en JSON, con tu clave de ingesta en la cabecera `x-oneuptime-token` y el nombre del servicio en `x-oneuptime-service-name`. OneUptime convierte cada registro en un registro de ese servicio y crea el servicio la primera vez que envía.
 
-y muchas más.
+## Antes de empezar
 
-Puedes encontrar la lista completa de fuentes compatibles [aquí](https://www.fluentd.org/datasources)
+- **Instalar Fluentd**: consulta la [guía de instalación](https://docs.fluentd.org/installation).
+- **Un proyecto de OneUptime.** En OneUptime Cloud, la telemetría se factura por GB ingerido —consulta los [precios](https://oneuptime.com/pricing)— y un proyecto del plan Free necesita un método de pago antes de poder enviar telemetría.
+- **Una clave de ingesta de telemetría.** Si no tienes una:
 
-## Prerrequisitos
+:::steps
+### Abrir las claves de ingesta
 
-- **Paso 1: Instala Fluentd en tu sistema**: Puedes instalar Fluentd usando las instrucciones proporcionadas [aquí](https://docs.fluentd.org/installation)
-- **Paso 2: Regístrate en una cuenta de OneUptime**: Puedes registrarte para obtener una cuenta gratuita [aquí](https://oneuptime.com). Ten en cuenta que aunque la cuenta es gratuita, la ingesta de registros es una función de pago. Puedes encontrar más detalles sobre los precios [aquí](https://oneuptime.com/pricing).
-- **Paso 3: Crea un proyecto de OneUptime**: Una vez que tengas la cuenta, puedes crear un proyecto desde el panel de OneUptime. Si necesitas ayuda para crear un proyecto o tienes alguna pregunta, comunícate con nosotros en support@oneuptime.com
-- **Paso 4: Crea un token de ingesta de telemetría**: Una vez que hayas creado una cuenta de OneUptime, puedes crear un token de ingesta de telemetría para ingestar registros, métricas y trazas desde tu aplicación.
+Ve a **Productos → Ajustes del proyecto**, abre **Telemetría y APM** en el menú lateral y selecciona **Claves de ingesta**.
 
-Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Productos" en la barra de navegación y haz clic en "Ajustes del proyecto".
+![La página de claves de ingesta de telemetría en los ajustes del proyecto](/docs/static/images/TelemetryIngestionKeys.png)
 
-En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token.
+### Crear una clave
 
-![Crear servicio](/docs/static/images/TelemetryIngestionKeys.png)
+Haz clic en **Crear clave de ingesta**. El diálogo ya tiene rellenado el nombre de la clave y elegido **Servidor** —el tipo de clave con el que envía una aplicación o un collector—, así que haz clic en **Crear clave de ingesta** para crearla, o cámbiale antes el nombre.
 
-Una vez que hayas creado un token, haz clic en "Ver" para verlo.
+### Copiar el secreto
 
-![Ver servicio](/docs/static/images/TelemetryIngestionKeyView.png)
+La nueva clave se abre en su propia página. Copia su **Clave secreta**: es el `YOUR_SERVICE_TOKEN` de la configuración de abajo.
 
-## Configuración
+![La página de una clave de ingesta de telemetría, con su clave secreta](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
-Puedes usar la siguiente configuración para enviar los datos de telemetría a la Fuente HTTP de OneUptime. Puedes agregar esta configuración al archivo de configuración de fluentd. El archivo de configuración generalmente se encuentra en `/etc/fluentd/fluent.conf` o `/etc/td-agent/td-agent.conf`.
+## Configurar Fluentd
 
-Necesitas reemplazar `YOUR_SERVICE_TOKEN` con el token que creaste en el paso anterior. También necesitas reemplazar `YOUR_SERVICE_NAME` con el nombre de tu servicio. El nombre del servicio puede ser cualquier nombre que desees. Si el servicio no existe en OneUptime, se creará automáticamente.
+El archivo de configuración de Fluentd suele ser `/etc/fluent/fluentd.conf`, o `/etc/td-agent/td-agent.conf` en el antiguo paquete td-agent.
 
-```yaml
-# Coincide con todos los patrones
+:::steps
+### Añadir una salida HTTP
+
+Añade una sección `<match>` que envíe los registros a OneUptime. Sustituye `YOUR_SERVICE_TOKEN` por tu clave de ingesta y `YOUR_SERVICE_NAME` por el nombre con el que deben aparecer los registros (el que quieras):
+
+```text title="fluentd.conf"
+# Match all patterns
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+    chunk_limit_size 900k
+  </buffer>
 </match>
 ```
 
-Un ejemplo de archivo de configuración completo se muestra a continuación:
+`json_array true` envía cada fragmento del búfer como un único array JSON, y `flush_interval 10s` envía el búfer cada 10 segundos. `chunk_limit_size 900k` mantiene cada solicitud por debajo de 1 MB, lo máximo que OneUptime acepta en este endpoint.
 
-```yaml
+### Reiniciar Fluentd
+
+Reinicia el servicio de Fluentd para que cargue la nueva salida.
+
+### Comprobar que llegan los registros
+
+Pocos segundos después del siguiente vaciado, los registros aparecen en **Productos → Registros**. El servicio aparece en **Productos → Servicios**; si todavía no existía, OneUptime lo crea.
+:::
+
+## Ejemplo completo
+
+Esta configuración recibe registros por el protocolo forward de Fluentd en el puerto `24224` y los envía todos a OneUptime:
+
+```text title="fluentd.conf"
 ####
-## Descripciones de fuente:
+## Source descriptions:
 ##
 
-## Entrada TCP integrada
+## built-in TCP input
 ## @see https://docs.fluentd.org/input/forward
 <source>
-@type forward
-port 24224
-bind 0.0.0.0
+  @type forward
+  port 24224
+  bind 0.0.0.0
 </source>
 
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+    chunk_limit_size 900k
+  </buffer>
 </match>
 ```
 
-**Si te auto-alojas en OneUptime**: Si te auto-alojas en OneUptime, puedes reemplazar el `endpoint_url` con la URL de tu instancia de OneUptime. `http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`
+Para enviar distintas fuentes como distintos servicios, usa una sección `<match>` por etiqueta, cada una con su propio `x-oneuptime-service-name`.
 
-## Uso
+## Cómo se leen los registros
 
-Una vez que hayas agregado la configuración al archivo de configuración de fluentd, puedes reiniciar el servicio fluentd. Una vez que el servicio se reinicie, los datos de telemetría se enviarán a la Fuente HTTP de OneUptime. Ahora puedes empezar a ver los datos de telemetría en el panel de OneUptime. Si tienes alguna pregunta o necesitas ayuda con la configuración, comunícate con nosotros en support@oneuptime.com.
+OneUptime lee estos campos de cada registro:
+
+| Campo del registro | Se lee del primer campo presente entre | Notas |
+| --- | --- | --- |
+| Cuerpo | `message`, `log`, `msg`, `body`, `text` | La línea de registro. Un registro sin ninguno de ellos se guarda completo, como JSON. |
+| Severidad | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Nombres como `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` y `fatal`, en mayúsculas o minúsculas. Cualquier otro valor se guarda como `Unspecified`. |
+| ID de traza | `trace_id`, `traceId`, `traceid` | Enlaza el registro con su traza. |
+| ID de span | `span_id`, `spanId`, `spanid` | Enlaza el registro con su span. |
+| Servicio | la cabecera `x-oneuptime-service-name` | `Fluentd` cuando la cabecera no está definida. |
+| Hora | — | La hora a la que OneUptime recibe el registro. |
+
+Cualquier otro campo se convierte en un atributo llamado `fluentd.` seguido del nombre del campo, por el que puedes buscar y filtrar: un campo `container_name` es `@fluentd.container_name` en el explorador de registros. Un objeto anidado se aplana con puntos, como `fluentd.kubernetes.pod_name`, y una lista se guarda como JSON.
+
+Los registros de Fluentd pasan por tus [canalizaciones de registros](/docs/telemetry/log-pipelines), filtros de descarte y reglas de enmascaramiento como cualquier otro registro.
+
+## OneUptime autoalojado
+
+Sustituye `https://oneuptime.com` en `endpoint` por la URL de tu instancia de OneUptime: `http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`.
+
+## Solución de problemas
+
+:::details Fluentd registra `401` desde la salida HTTP
+Falta la clave de ingesta, es desconocida o ha caducado. Revisa el valor de `x-oneuptime-token` en `headers`.
+:::
+
+:::details Fluentd registra `402` o `422`
+`402`: en OneUptime Cloud, el proyecto está en el plan Free y no tiene método de pago. Añade uno en **Ajustes del proyecto → Facturación y facturas → Facturación**. `422`: la clave está deshabilitada, o es una clave de navegador. Vuelve a activar **Habilitado** en los ajustes de la clave, o crea una clave de **Servidor**.
+:::
+
+:::details Fluentd registra `413`
+La solicitud supera 1 MB, lo máximo que OneUptime acepta en este endpoint. Pon `chunk_limit_size 900k` en la sección `<buffer>`, como en la configuración de arriba.
+:::
+
+:::details Los registros llegan al servicio `Fluentd`
+Falta la cabecera `x-oneuptime-service-name`. Añádela a `headers` en cada sección `<match>`.
+:::
+
+:::details El cuerpo del registro muestra todo el registro como JSON
+OneUptime toma el cuerpo del primer campo presente entre `message`, `log`, `msg`, `body` o `text`, y guarda el registro completo cuando no tiene ninguno. Cambia el nombre del campo que contiene tu línea de registro a uno de esos, por ejemplo con el filtro `record_transformer` de Fluentd.
+:::
+
+Si tienes alguna pregunta o necesitas ayuda con la configuración, escríbenos a support@oneuptime.com.
+
+## Próximos pasos
+
+:::cards
+- [Canalizaciones de registros](/docs/telemetry/log-pipelines): Analiza y enriquece los registros que envía Fluentd.
+- [Sintaxis de búsqueda](/docs/telemetry/search-syntax): Encuentra los registros en el explorador de registros.
+- [Fluent Bit](/docs/telemetry/fluentbit): Un agente más ligero que envía por OpenTelemetry.
+- [Monitor de registros](/docs/monitor/logs-monitor): Alerta cuando aparezcan registros que coincidan.
+:::

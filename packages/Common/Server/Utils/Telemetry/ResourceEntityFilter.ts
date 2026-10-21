@@ -9,6 +9,7 @@ import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService"
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
@@ -20,6 +21,7 @@ import {
   keyForHost,
   keyForKubernetesCluster,
   keyForProxmoxCluster,
+  keyForStorageArray,
   keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
@@ -256,8 +258,8 @@ async function resolveDatabaseServerEntityKeys(data: {
  * DockerHost / PodmanHost are inventory-mirrored types that no resource
  * ever declares (see EntityType).
  *
- * Docker Swarm / Proxmox / vCenter / Ceph clusters are root entities whose
- * identity is their name alone (`<type>.name`, see the root identities in
+ * Docker Swarm / Proxmox / vCenter / Ceph clusters and storage arrays are
+ * root entities whose identity is their name alone (`<type>.name`, see the root identities in
  * Utils/Telemetry/TelemetryEntity.ts), and
  * that name is the Postgres row's `name` — the join key ingest writes with
  * `findOrCreateByName`. Keys canonicalize (trim + lowercase) on both sides,
@@ -272,7 +274,10 @@ async function resolveDatabaseServerEntityKeys(data: {
  * get the id + attribute branches only — the same `resource.faas.name` /
  * `resource.iot.fleet.name` scope their detail pages use. The function
  * identifier is `faas.name` (or `service.name` on a FaaS platform without
- * one, which the attribute branch then simply does not match).
+ * one, which ingest writes onto the resource as `faas.name` —
+ * OtelIngestBaseService.stampServerlessFunctionNameAttribute — so the
+ * attribute branch matches every row ingested since; rows ingested before
+ * carry no `resource.faas.name`, as there is no backfill).
  *
  * Databases resolve straight to their entity-key set (see
  * resolveDatabaseServerEntityKeys above): no attribute branch, because no
@@ -352,6 +357,11 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
       attributeKey: "resource.ceph.cluster.name",
       entityKeyFor: keyForCephCluster,
       findIdentifiers: findIdentifierColumn(CephClusterService, "name"),
+    },
+    storageArrayId: {
+      attributeKey: "resource.storage.array.name",
+      entityKeyFor: keyForStorageArray,
+      findIdentifiers: findIdentifierColumn(StorageArrayService, "name"),
     },
     serverlessFunctionId: {
       attributeKey: "resource.faas.name",

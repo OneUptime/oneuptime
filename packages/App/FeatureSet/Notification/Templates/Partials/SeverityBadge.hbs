@@ -7,7 +7,11 @@
 
   `badgeColor` is a double stash inside a style attribute on purpose:
   Handlebars.escapeExpression escapes quotes and "=", so a value cannot break
-  out of the attribute, and the value itself comes from a colour picker.
+  out of the attribute. It does not escape CSS, so the value is the #rrggbb
+  that Common/Utils/Email/EmailColorUtil writes, never a colour as a project
+  typed it. It paints the dot and the outline; `badgeTextColor`, the nearest
+  shade of it that reads on white, paints the name - and without one the name
+  takes `badgeColor` itself, as it did before text colours existed.
 --}}
 <table role="presentation"
   class="st-Copy st-Width st-Width--mobile"
@@ -28,8 +32,8 @@
       </td>
       <td style="border: 0; margin: 0; padding: 0;">
         <span
-          style="display:inline-block;padding:6px 14px;border-radius:9999px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background-color:#ffffff;color:{{badgeColor}};border:1px solid {{badgeColor}};font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;"
-        >{{badgeText}}</span>
+          style="display:inline-block;padding:6px 14px;border-radius:9999px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background-color:#ffffff;color:{{#if badgeTextColor}}{{badgeTextColor}}{{else}}{{badgeColor}}{{/if}};border:1px solid {{badgeColor}};font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;"
+        ><span class="st-ColorDot" aria-hidden="true" style="display:inline-block;width:8px;height:8px;margin:0 6px 0 0;border-radius:9999px;background-color:{{badgeColor}};vertical-align:middle;"></span><span style="vertical-align:middle;">{{badgeText}}</span></span>
       </td>
       <td
         class="st-Spacer st-Spacer--gutter"

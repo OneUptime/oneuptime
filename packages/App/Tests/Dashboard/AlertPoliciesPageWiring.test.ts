@@ -34,6 +34,10 @@ function readSource(relativePath: string): string {
   );
 }
 
+// The confirmation's count goes through the plural template, however wrapped.
+const COUNTED_CONFIRMATION_CALL: RegExp =
+  /translator\.translatePlural\( ?RECOMMENDED_POLICY_CONFIRM_COUNTED, ?deviceCount,? ?\)/;
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -186,23 +190,19 @@ describe("the policies page is where policies are managed", () => {
   });
 
   /*
-   * The template column is CONDITIONAL, and that is the design rather than an
-   * accident, so this pins both halves of it.
+   * The template column is asked for only when its column may be read.
+   * `monitorTemplate` is read with the policy's own read list, so every
+   * policy reader sees which template a policy uses; selecting a relation
+   * the caller cannot read would fail the WHOLE list request rather than
+   * blank one cell, so the column still hangs off PermissionGate rather than
+   * being asked for unconditionally - the same gate the auto-import rules
+   * page puts its template column behind (getReadableMonitorTemplateColumn).
    *
-   * `monitorTemplate` carries the MonitorTemplate read permissions, not the
-   * policy's own: a granular reader can hold ReadNetworkAlertPolicy and not
-   * ReadMonitorTemplate. Selecting a relation such a caller cannot read fails
-   * the WHOLE list request rather than blanking one cell, so asking for the
-   * column unconditionally would turn their Alert Policies page into an error
-   * — which is exactly why the auto-import rules page gates its own template
-   * column the same way, in getReadableMonitorTemplateColumn.
-   *
-   * The failure mode this guards is therefore not "the column is optional",
-   * it is "the column quietly stopped existing for anyone": hence the
-   * assertions on the permitted shape, on the gate it hangs off, and on the
-   * spread that actually puts it in the table.
+   * The failure mode this guards is "the column quietly stopped existing for
+   * anyone": hence the assertions on the permitted shape, on the gate it
+   * hangs off, and on the spread that actually puts it in the table.
    */
-  test("the template column exists for a reader who may read templates, and is spread into the table", () => {
+  test("the template column exists for a reader who may read it, and is spread into the table", () => {
     const gate: string = between(
       page,
       "const canReadMonitorTemplate",
@@ -250,17 +250,30 @@ describe("the policies page is where policies are managed", () => {
   });
 
   /*
-   * The template FIELD is gated on the same permission as the template
-   * column, for the same reason — the create form would otherwise select a
-   * relation the caller cannot read. The server still requires a template, so
-   * a caller without the field is refused on save with a sentence, which is a
-   * far better outcome than a form that appears to work and silently drops
-   * the one column that decides what every provisioned monitor watches.
+   * The template FIELD is a picker that lists the project's Network Device
+   * templates, so it is offered to somebody who may read the column AND list
+   * templates; offered to anybody else, its list request would be refused.
+   * The server still requires a template, so a caller without the field is
+   * refused on save with a sentence, which is a far better outcome than a
+   * form that appears to work and silently drops the one column that decides
+   * what every provisioned monitor watches.
    */
-  test("the template field is required, and behind the same permission as the column", () => {
+  test("the template field is offered to who may read the column and list templates", () => {
+    const gate: string = between(
+      page,
+      "const canPickMonitorTemplate",
+      "const monitorTemplateColumn",
+    );
+
+    expect(gate).toContain(
+      'PermissionGate.canPickRelation( new NetworkAlertPolicy(), "monitorTemplate", new MonitorTemplate(), )',
+    );
+  });
+
+  test("the template field is required, and behind the template picker's gate", () => {
     const templateField: string = between(
       formFields,
-      "canReadMonitorTemplate",
+      "canPickMonitorTemplate",
       "field: { scope: true }",
     );
 
@@ -287,7 +300,7 @@ describe("the policies page is where policies are managed", () => {
     const editor: string = between(
       page,
       "const AlertPolicyScopeEditor",
-      "async function findOrCreateRecommendedTemplate",
+      "export interface RecommendedPolicyEmptyStateProps",
     );
 
     expect(editor).toContain("modelType={NetworkSite}");
@@ -299,16 +312,26 @@ describe("the policies page is where policies are managed", () => {
   /*
    * THE point of the empty state: alerting on a whole estate is one click.
    * It resolves the project's seed ids the way every Ping-monitor surface
-   * does, finds or creates the template by marker through the shared util,
-   * creates the policy, and refreshes the table.
+   * does - saying, when one is missing, that it is the recommended template
+   * that needs it - finds or creates the template by marker through the
+   * shared module the discovery import uses too, creates the policy, and
+   * refreshes the table.
    */
   test("the empty state creates the recommended policy through the shared bootstrap util", () => {
     expect(page).toContain("noItemsMessage={ <RecommendedPolicyEmptyState");
-    expect(page).toContain("PingMonitorSeedIds.resolve()");
     expect(page).toContain(
+      "PingMonitorSeedIds.resolve(SeedIdsPurpose.RecommendedTemplate)",
+    );
+    expect(page).toContain("await findOrCreateRecommendedTemplate({");
+
+    const recommended: string = readCode(
+      "Components/NetworkDevice/RecommendedMonitorTemplate.ts",
+    );
+
+    expect(recommended).toContain(
       "NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(",
     );
-    expect(page).toContain(
+    expect(recommended).toContain(
       "NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(",
     );
     expect(page).toContain(
@@ -332,7 +355,8 @@ describe("the policies page is where policies are managed", () => {
    * The ping-only device: four of the pack's five items read an SNMP walk,
    * and a device with no credentials is pinged rather than walked, so those
    * four are never evaluated on it. Copy that lists interface alerting
-   * without that caveat promises alerting the device cannot produce.
+   * without that caveat promises alerting the device cannot produce, so the
+   * page's help says it (the empty state stays one short sentence).
    *
    * The delete: it takes the policy's provisioned monitors with it, and the
    * row's delete confirmation is the table's generic one — it cannot be given
@@ -342,11 +366,25 @@ describe("the policies page is where policies are managed", () => {
   test("the copy is honest about the bill, a ping-only device and the delete", () => {
     const source: string = squash(readSource(PAGE_SOURCE));
 
-    expect(source).toContain("one Network Device monitor per matching device");
-    expect(source).toContain("counts towards your plan");
-    expect(source).toContain("which is the most this can provision");
-    expect(source).toContain("only the reachability item can fire");
-    expect(source).toContain("deleting one deletes them");
+    // The bill: one monitor per device, each on the plan.
+    expect(source).toContain("adds one monitor to every device it covers");
+    expect(source).toContain("each monitor counts towards your plan");
+    expect(source).toContain(
+      "one monitor per device, each counted towards your plan",
+    );
+    // The reach, as an upper bound, in a sentence a language can word whole.
+    expect(source).toContain(
+      "up to {{count}} monitors today, one per device, each counted towards your plan",
+    );
+    expect(source).toContain("up to {{count}} monitor today");
+    expect(source).toMatch(COUNTED_CONFIRMATION_CALL);
+    expect(source).not.toContain("which is the most this can provision");
+    // The ping-only device, in the page's help.
+    expect(source).toContain(
+      "On a device with no SNMP credentials only the reachability item can ever fire.",
+    );
+    // The delete.
+    expect(source).toContain("Deleting a policy deletes its monitors.");
   });
 });
 

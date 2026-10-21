@@ -20,6 +20,12 @@ import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import type Columns from "Common/UI/Components/Table/Types/Columns";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   clusterIdentifier: string;
@@ -65,6 +71,7 @@ function formatRelativeTime(timestamp: string): string {
 const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -106,8 +113,10 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
   if (events.length === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        No events found for this {props.resourceKind.toLowerCase()} in the last
-        24 hours.
+        {translator.translateTemplate(
+          "No events found for this {{kind}} in the last 24 hours.",
+          { kind: translatableTerm(props.resourceKind, { inSentence: true }) },
+        )}
       </div>
     );
   }
@@ -190,19 +199,35 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
       {/* Summary and Filters */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="text-sm text-gray-600">
-          <span className="font-medium">{events.length}</span> events
+          <TranslatedSentence
+            template={{ one: "{{number}} event", other: "{{number}} events" }}
+            count={events.length}
+            slots={{
+              number: <span className="font-medium">{events.length}</span>,
+            }}
+          />
           {warningCount > 0 && (
             <span>
               {" "}
-              (
-              <span className="text-amber-700 font-medium">
-                {warningCount}
-              </span>{" "}
-              warning{warningCount !== 1 ? "s" : ""},{" "}
-              <span className="text-emerald-700 font-medium">
-                {normalCount}
-              </span>{" "}
-              normal)
+              <TranslatedSentence
+                template={{
+                  one: "({{warnings}} warning, {{normal}} normal)",
+                  other: "({{warnings}} warnings, {{normal}} normal)",
+                }}
+                count={warningCount}
+                slots={{
+                  warnings: (
+                    <span className="text-amber-700 font-medium">
+                      {warningCount}
+                    </span>
+                  ),
+                  normal: (
+                    <span className="text-emerald-700 font-medium">
+                      {normalCount}
+                    </span>
+                  ),
+                }}
+              />
             </span>
           )}
         </div>

@@ -1,4 +1,11 @@
-import { FacetData } from "./types";
+import { ActiveFilter, FacetData } from "./types";
+import {
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  translateText,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 
 /*
  * Which facet sections a telemetry sidebar (Logs, Traces, Metrics,
@@ -31,6 +38,13 @@ export interface FacetVisibilityOptions {
   showHidden: boolean;
   // Section title per key, for the footer's tooltip. Defaults to the key.
   getTitle?: ((facetKey: string) => string) | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit (issue
+   * #4707). Not counted is not empty: such a facet is never folded into the
+   * "N empty filters hidden" footer, which would say something untrue about
+   * it. It stays in its place, where its section says it was not counted.
+   */
+  stoppedKeys?: ReadonlySet<string> | undefined;
 }
 
 export interface FacetVisibility {
@@ -46,8 +60,9 @@ export interface FacetVisibility {
   hiddenCount: number;
 }
 
-export const DEFAULT_FACET_EMPTY_STATE_TEXT: string =
-  "No values in this time range";
+export const DEFAULT_FACET_EMPTY_STATE_TEXT: string = translationKey(
+  "No values in this time range",
+);
 
 const hasActiveValues: (activeValues: Set<string> | undefined) => boolean = (
   activeValues: Set<string> | undefined,
@@ -67,9 +82,16 @@ export const computeFacetVisibility: (
       continue;
     }
 
-    const isInUse: boolean =
+    /*
+     * Kept on screen whatever its values: a facet the user is working with
+     * (a selection, a search box), and a facet the time limit stopped, whose
+     * section says it was not counted — folding that one into "N empty
+     * filters hidden" would call it empty, which nobody knows.
+     */
+    const mustStay: boolean =
       hasActiveValues(options.activeValuesByKey[key]) ||
-      options.searchExemptKeys.has(key);
+      options.searchExemptKeys.has(key) ||
+      Boolean(options.stoppedKeys?.has(key));
 
     const values: FacetData[string] | undefined = options.facetData[key];
 
@@ -78,16 +100,16 @@ export const computeFacetVisibility: (
        * Not loaded yet (or not returned). Rendering it would flash a dozen
        * empty resource sections — and a bogus "12 hidden" count — on every
        * first load, so it is neither shown nor counted. The exception is a
-       * facet the user is working with: a selection or a search box must not
-       * vanish because a refetch failed.
+       * facet that must stay: a selection or a search box must not vanish
+       * because a refetch failed.
        */
-      if (isInUse) {
+      if (mustStay) {
         visibleKeys.push(key);
       }
       continue;
     }
 
-    if (values.length > 0 || isInUse) {
+    if (values.length > 0 || mustStay) {
       visibleKeys.push(key);
       continue;
     }
@@ -113,6 +135,97 @@ export const computeFacetVisibility: (
     }),
     hiddenCount: hiddenKeys.length,
   };
+};
+
+/*
+ * A locked chip is the viewer's host saying "this page is about one slice" —
+ * a database, a service, a trace, a stored query — so its sidebar lists only
+ * what is in that slice (getFacetValuesInScope).
+ */
+export const hasLockedTelemetryScope: (
+  activeFilters: ReadonlyArray<ActiveFilter> | null | undefined,
+) => boolean = (
+  activeFilters: ReadonlyArray<ActiveFilter> | null | undefined,
+): boolean => {
+  if (!Array.isArray(activeFilters)) {
+    return false;
+  }
+
+  return activeFilters.some((filter: ActiveFilter): boolean => {
+    return Boolean(filter && filter.readOnly);
+  });
+};
+
+export interface FacetValuesInScopeOptions {
+  facetData: FacetData;
+  // Selected values per facet key: kept whatever their count, so they can be cleared.
+  activeValuesByKey: Readonly<Record<string, Set<string> | undefined>>;
+}
+
+/*
+ * The sidebar of a viewer pinned to one scope — a database's Logs tab, a
+ * service's Traces tab, an incident's stored query — lists only values that
+ * occur in that scope.
+ *
+ * Resource facets (Service, Database, Kubernetes Cluster, Host, ...) arrive
+ * as the project's whole Postgres list, with count 0 for every resource with
+ * no rows in range. On the main explorer that is the point: any resource can
+ * be picked, even a quiet one. Under a locked scope it is noise that reads
+ * as wrong — a PostgreSQL database's Logs tab listed fifty other databases
+ * and thirty services, all at 0, as if they were part of it, and picking one
+ * could only ever empty the list. A count of 0 never comes from a GROUP BY,
+ * so dropping the zero-count values drops exactly the catalog padding.
+ *
+ * A selected value survives at 0 (the reader must be able to clear it). A
+ * facet left with no values keeps its key with an empty list, so the
+ * sidebar's own empty-facet rules decide whether to fold it away. Facets
+ * with nothing to drop keep their very array.
+ */
+export const getFacetValuesInScope: (
+  options: FacetValuesInScopeOptions,
+) => FacetData = (options: FacetValuesInScopeOptions): FacetData => {
+  const result: FacetData = {};
+
+  for (const [key, values] of Object.entries(options.facetData)) {
+    if (!Array.isArray(values)) {
+      result[key] = values;
+      continue;
+    }
+
+    const activeValues: Set<string> | undefined =
+      options.activeValuesByKey[key];
+
+    const kept: FacetData[string] = values.filter(
+      (value: FacetData[string][number]): boolean => {
+        const count: number = Number(value?.count);
+        return (
+          (Number.isFinite(count) && count > 0) ||
+          Boolean(activeValues?.has(String(value?.value)))
+        );
+      },
+    );
+
+    result[key] = kept.length === values.length ? values : kept;
+  }
+
+  return result;
+};
+
+/*
+ * The empty state of a resource facet under a locked scope. The project may
+ * well have such resources; none of them has rows in this scope and window,
+ * so "in this project" would be false.
+ */
+export const getScopedHiddenFacetEmptyStateText: (
+  pluralNoun: string | undefined,
+) => string = (pluralNoun: string | undefined): string => {
+  const noun: string = (pluralNoun || "").trim();
+  return noun
+    ? translateTemplate("No {{itemsName}} in this time range", {
+        itemsName: translatableTerm(noun),
+      })
+    : translateText(DEFAULT_FACET_EMPTY_STATE_TEXT) ||
+        DEFAULT_FACET_EMPTY_STATE_TEXT;
 };
 
 // Keeps only entries with non-blank text, trimmed.
@@ -154,24 +267,40 @@ export const getFacetSearchExemptKeys: (
   ]);
 };
 
+/*
+ * The sentences below are in the reader's language: they are built where a
+ * sidebar renders, so a language switch re-renders them.
+ */
+
 // "1 empty filter", "3 empty filters".
 export const formatEmptyFacetCount: (count: number) => string = (
   count: number,
 ): string => {
-  return `${count} empty ${count === 1 ? "filter" : "filters"}`;
+  return translatePlural(
+    { one: "{{count}} empty filter", other: "{{count}} empty filters" },
+    count,
+  );
 };
 
 // "1 empty filter hidden", "3 empty filters hidden".
 export const formatHiddenFacetCount: (hiddenCount: number) => string = (
   hiddenCount: number,
 ): string => {
-  return `${formatEmptyFacetCount(hiddenCount)} hidden`;
+  return translatePlural(
+    {
+      one: "{{count}} empty filter hidden",
+      other: "{{count}} empty filters hidden",
+    },
+    hiddenCount,
+  );
 };
 
 export const getFacetNoMatchesText: (searchText: string) => string = (
   searchText: string,
 ): string => {
-  return `No matches for “${searchText.trim()}”`;
+  return translateTemplate("No matches for “{{search}}”", {
+    search: searchText.trim(),
+  });
 };
 
 // Empty state of a resource facet: the project has none of that resource.
@@ -179,7 +308,11 @@ export const getHiddenFacetEmptyStateText: (
   pluralNoun: string | undefined,
 ) => string = (pluralNoun: string | undefined): string => {
   const noun: string = (pluralNoun || "").trim();
-  return noun ? `No ${noun} in this project` : "No values in this project";
+  return noun
+    ? translateTemplate("No {{itemsName}} in this project", {
+        itemsName: translatableTerm(noun),
+      })
+    : translateText("No values in this project") || "No values in this project";
 };
 
 export interface FacetEmptyStateTextOptions {
@@ -195,7 +328,11 @@ export const getFacetEmptyStateText: (
   if (options.searchText.trim()) {
     return getFacetNoMatchesText(options.searchText);
   }
-  return options.emptyStateText || DEFAULT_FACET_EMPTY_STATE_TEXT;
+  return (
+    options.emptyStateText ||
+    translateText(DEFAULT_FACET_EMPTY_STATE_TEXT) ||
+    DEFAULT_FACET_EMPTY_STATE_TEXT
+  );
 };
 
 export interface SidebarFacetEmptyStateOptions {
@@ -208,6 +345,11 @@ export interface SidebarFacetEmptyStateOptions {
    * even though the box has since been cleared.
    */
   searchedAtArrivalText?: string | undefined;
+  /*
+   * The sidebar lists only values in a locked scope (getFacetValuesInScope),
+   * so an empty resource facet means none in scope, not none in the project.
+   */
+  isScoped?: boolean | undefined;
 }
 
 /*
@@ -223,7 +365,9 @@ export const getSidebarFacetEmptyStateText: (
     return getFacetNoMatchesText(options.searchedAtArrivalText);
   }
   if (options.isHideable) {
-    return getHiddenFacetEmptyStateText(options.emptyStateNoun);
+    return options.isScoped
+      ? getScopedHiddenFacetEmptyStateText(options.emptyStateNoun)
+      : getHiddenFacetEmptyStateText(options.emptyStateNoun);
   }
   return undefined;
 };

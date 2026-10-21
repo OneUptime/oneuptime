@@ -5,7 +5,7 @@ import {
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
-} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+} from "../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import CommandPolicy from "./CommandPolicy";
 
 /*
@@ -289,6 +289,28 @@ export interface KubectlAutoExecutionVerdict {
    * that the cluster "only runs safe changes". Absent otherwise.
    */
   requiresHuman?: boolean | undefined;
+}
+
+/*
+ * The ONE object a command names (getNamedObject), read from its
+ * positionals exactly as the tiers read them.
+ */
+export interface KubectlNamedObject {
+  // The verb kubectl runs, lowercased: "rollout", "scale", "set", "delete".
+  verb: string;
+  // rollout's and set's subcommand ("undo", "image"), lowercased; "" otherwise.
+  subcommand: string;
+  // The kind as the command writes it ("deploy", "deployments.apps").
+  rawKind: string;
+  // That kind lowercased and un-aliased ("deployment"), custom resources too.
+  kind: string;
+  /*
+   * The built-in kind, in its own API group, when it is one the tiers know
+   * (a pod, the workload kinds and the cluster-scoped kinds); undefined for
+   * any other kind, and for a custom resource that borrows a built-in name.
+   */
+  builtinKind?: string | undefined;
+  name: string;
 }
 
 export interface KubectlTokenizeResult {
@@ -3593,6 +3615,73 @@ export default class KubectlPolicy {
    * the allowlist section of the header. Tier-blind on purpose: callers
    * (evaluateForAutoExecution) decide which tiers the allowlist may promote.
    */
+  /*
+   * The ONE object a command names — "rollout undo deployment/web", "scale
+   * deployment web --replicas=3", "set image deployment/web app=x" — read
+   * from its positionals the way the tiers read them (commandTargets), so
+   * the two never disagree about what a command acts on. Null when it names
+   * no object, several, only a bare kind, or selects them (a selector,
+   * --all, -A), and when its flags are not ones kubectl would parse. For
+   * whatever reads the object around a change (the GitOps ownership check);
+   * no tier depends on it.
+   */
+  public static getNamedObject(
+    rawArgs: Array<string>,
+  ): KubectlNamedObject | null {
+    const parsed: ParsedArgs = KubectlPolicy.parseArgs(
+      (rawArgs || []).filter((arg: unknown) => {
+        return typeof arg === "string";
+      }),
+    );
+
+    if (parsed.violation) {
+      return null;
+    }
+
+    const verb: string = (parsed.positionals[0] || "").toLowerCase();
+
+    if (!verb) {
+      return null;
+    }
+
+    for (const flag of [
+      "l",
+      "selector",
+      "field-selector",
+      "all",
+      "A",
+      "all-namespaces",
+    ]) {
+      if (parsed.flags.has(flag)) {
+        return null;
+      }
+    }
+
+    const targets: NamedKinds = commandTargets(verb, parsed.positionals);
+
+    if (!isOneNamedObject(targets)) {
+      return null;
+    }
+
+    const rawKind: string = targets.rawKinds[0] || "";
+    const name: string = targets.names[0] || "";
+
+    if (!rawKind || !name) {
+      return null;
+    }
+
+    return {
+      verb,
+      subcommand: SUBCOMMAND_VERBS.has(verb)
+        ? (parsed.positionals[1] || "").toLowerCase()
+        : "",
+      rawKind,
+      kind: normalizeKind(rawKind),
+      builtinKind: builtinKind(rawKind),
+      name,
+    };
+  }
+
   public static matchesAllowlist(data: {
     args: Array<string>;
     allowlistPatterns: Array<string>;

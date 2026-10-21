@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   nodes?: number | undefined;
@@ -129,13 +132,13 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
+          icon={IconProp.ChartBar}
         />
         <RecommendationsSideMenuItem
           link={{
@@ -149,6 +152,44 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           resourceType={MonitorRecommendationResourceType.DockerSwarm}
           resourceId={props.modelId}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Docker Swarm AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 
@@ -224,7 +265,12 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Config">
+      {/*
+       * The cluster's secrets and configs are looked up now and then, not on
+       * most visits, so they fold down to the section's title until opened
+       * (and open by themselves on their own pages).
+       */}
+      <SideMenuSection title="Config" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Secrets",
@@ -341,6 +387,12 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: DockerSwarmCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

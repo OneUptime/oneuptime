@@ -11,6 +11,11 @@ import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import { EnterpriseLicenseSnapshot } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import PostgresSchemaMigrations from "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index";
+import {
+  getSharedVisitorAddresses,
+  SharedVisitorAddress,
+  SharedVisitorAddressesReport,
+} from "Common/Server/Utils/InstanceHealth/SharedVisitorAddresses";
 import DataMigrationsList from "../FeatureSet/Workers/DataMigrations/Index";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import Express, {
@@ -542,6 +547,14 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY_INGESTION",
   "DISABLE_UPDATE_CHECK",
   "DISABLE_QUEUE_WORKERS",
+  /*
+   * Whether this process records that OneUptime is receiving data. The first
+   * thing to check when hosts or monitors went down during a OneUptime
+   * outage on a deployment with separate workers: a worker no ingress
+   * reaches that still records it hides every outage of the ingress tier
+   * from the receiving ledger (issue #2825). A boolean.
+   */
+  "RECEIVES_INGRESS_TRAFFIC",
   "DISABLE_AUTOMATIC_INCIDENT_CREATION",
   "DISABLE_AUTOMATIC_ALERT_CREATION",
   /*
@@ -554,6 +567,13 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS",
   "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
   "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
+  /*
+   * OAuth sign-in for the MCP server: the first two things to check when MCP
+   * clients cannot sign in at all, or can register but cannot be recognised
+   * by their metadata document. Both are booleans.
+   */
+  "DISABLE_MCP_OAUTH",
+  "DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS",
   "DATABASE_HOST",
   "DATABASE_PORT",
   "DATABASE_NAME",
@@ -564,6 +584,7 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS",
   "DATABASE_CONNECTION_TIMEOUT_MS",
   "DATABASE_IDLE_TIMEOUT_MS",
+  "DATABASE_CONNECTION_MAX_LIFETIME_MS",
   "DATABASE_IDLE_SESSION_TIMEOUT_MS",
   "DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS",
   "CLICKHOUSE_HOST",
@@ -603,11 +624,16 @@ const SECRET_KEY_PATTERN: RegExp =
  * Allow-listed keys that trip SECRET_KEY_PATTERN on a substring but are not
  * credentials. ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW contains
  * "TOKEN" only because the limit is counted PER feed token — the value itself
- * is a small integer (requests per window), never a token. Add a key here
- * only when its VALUE is provably non-secret.
+ * is a small integer (requests per window), never a token. The two
+ * DISABLE_MCP_OAUTH switches match "AUTH" inside "OAUTH"; each is a boolean
+ * that says whether MCP clients can sign in at all, which is the first thing
+ * support needs to read when they cannot. Add a key here only when its VALUE
+ * is provably non-secret.
  */
 export const SECRET_KEY_PATTERN_EXCEPTIONS: Set<string> = new Set<string>([
   "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+  "DISABLE_MCP_OAUTH",
+  "DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS",
 ]);
 
 export function getRedactedConfig(): JSONObject {
@@ -840,6 +866,49 @@ router.get(
     try {
       const data: JSONObject = await getMigrationStatus();
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Whether OneUptime tells the people who sign in apart: the private network
+ * addresses several different people signed in from in the last 30 days
+ * (Common/Server/Utils/InstanceHealth/SharedVisitorAddresses). The Health
+ * page shows them when there are any, with what the operator can change -
+ * every per-address limit and IP allowlist counts those people as one.
+ * Available on every edition. A master admin's session only, like the
+ * query console: it lists addresses inside the operator's network.
+ */
+router.get(
+  "/visitor-addresses",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const report: SharedVisitorAddressesReport =
+        await getSharedVisitorAddresses();
+
+      return Response.sendJsonObjectResponse(req, res, {
+        checked: report.checked,
+        windowDays: report.windowDays,
+        minimumPeople: report.minimumPeople,
+        trustedProxyHops: report.trustedProxyHops,
+        addressCount: report.addressCount,
+        addresses: report.addresses.map(
+          (shared: SharedVisitorAddress): JSONObject => {
+            return {
+              address: shared.address,
+              people: shared.people,
+              lastSeenAt: shared.lastSeenAt,
+            };
+          },
+        ),
+      });
     } catch (err) {
       return next(err);
     }

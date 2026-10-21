@@ -5,12 +5,18 @@ import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
+import UserUtil from "../../Utils/User";
 import SubscribeSideMenu from "./SideMenu";
-import { SubscribePageProps } from "./SubscribePageUtils";
+import {
+  SubscribePageProps,
+  getSubscribePreferenceFields,
+  isSubscribeChannelMenuShown,
+} from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import Email from "Common/Types/Email";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -21,7 +27,6 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
@@ -108,6 +113,18 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
+  /*
+   * A page that takes only its private users as subscribers: a reader
+   * subscribes the address they signed in with, shown and not editable
+   * (the server holds a sign-up to it too). Nobody is signed in on a page
+   * with no sign-in - a public one - so there it can only say so.
+   */
+  const signInEmail: Email | null = props.subscribeWithSignInEmail
+    ? UserUtil.getEmail(id)
+    : null;
+  const mustSignInToSubscribe: boolean =
+    Boolean(props.subscribeWithSignInEmail) && !signInEmail;
+
   const fields: Array<ModelField<StatusPageSubscriber>> = [
     {
       field: {
@@ -115,73 +132,49 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       title: t("subscribe.email.yourEmail"),
       /*
-       * Explicit localized description; otherwise the model's hardcoded English
-       * column description ("Email address of the subscriber.") leaks through.
+       * The card above says where updates go; the field says more only for
+       * a signed-in reader, whose address it fills in. The model's English
+       * column description ("Email address of the subscriber.") never shows.
        */
-      description: t("subscribe.email.description"),
+      description: signInEmail
+        ? t("subscribe.email.signedInEmailDescription")
+        : "",
+      hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Email,
       required: true,
       placeholder: t("subscribe.email.placeholder"),
       disableSpellCheck: true,
+      disabled: Boolean(signInEmail),
     },
+    // On a page that lets subscribers choose: Preferences, folded.
+    ...getSubscribePreferenceFields({
+      allowSubscribersToChooseResources: Boolean(
+        props.allowSubscribersToChooseResources,
+      ),
+      allowSubscribersToChooseEventTypes: Boolean(
+        props.allowSubscribersToChooseEventTypes,
+      ),
+      translate: (key: string): string => {
+        return t(key);
+      },
+      resourceOptions: categoryCheckboxOptionsAndCategories,
+      eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+    }),
   ];
-
-  if (props.allowSubscribersToChooseResources) {
-    fields.push({
-      field: {
-        isSubscribedToAllResources: true,
-      },
-      title: t("subscribe.resources.all"),
-      description: t("subscribe.resources.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageResources: true,
-      },
-      title: t("subscribe.resources.select"),
-      description: t("subscribe.resources.selectDescription"),
-      fieldType: FormFieldSchemaType.CategoryCheckbox,
-      required: false,
-      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllResources;
-      },
-    });
-  }
-
-  if (props.allowSubscribersToChooseEventTypes) {
-    fields.push({
-      field: {
-        isSubscribedToAllEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.all"),
-      description: t("subscribe.eventTypes.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.select"),
-      description: t("subscribe.eventTypes.selectDescription"),
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllEventTypes;
-      },
-    });
-  }
 
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
+      if (mustSignInToSubscribe) {
+        return (
+          <p
+            className="text-center text-gray-500 my-10"
+            data-testid="email-subscribe-sign-in-required"
+          >
+            {t("subscribe.email.signInToSubscribe")}
+          </p>
+        );
+      }
+
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
@@ -189,6 +182,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           id="email-form"
           name="Status Page > Email Subscribe"
           fields={fields}
+          initialValues={
+            signInEmail ? { subscriberEmail: signInEmail } : undefined
+          }
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),
           ).addRoute(`/subscribe/${id.toString()}`)}
@@ -204,6 +200,11 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             }
 
             item.statusPageId = id;
+
+            if (signInEmail) {
+              item.subscriberEmail = signInEmail;
+            }
+
             return item;
           }}
           onSuccess={() => {
@@ -282,16 +283,22 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         },
       ]}
       sideMenu={
-        <SubscribeSideMenu
-          isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableEmailSubscribers={props.enableEmailSubscribers}
-          enableSMSSubscribers={props.enableSMSSubscribers}
-          enableSlackSubscribers={props.enableSlackSubscribers}
-          enableMicrosoftTeamsSubscribers={
-            props.enableMicrosoftTeamsSubscribers
-          }
-          enableWebhookSubscribers={props.enableWebhookSubscribers}
-        />
+        /*
+         * The channels, only when there is more than one to pick
+         * from (isSubscribeChannelMenuShown).
+         */
+        isSubscribeChannelMenuShown(props) ? (
+          <SubscribeSideMenu
+            isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+            enableEmailSubscribers={props.enableEmailSubscribers}
+            enableSMSSubscribers={props.enableSMSSubscribers}
+            enableSlackSubscribers={props.enableSlackSubscribers}
+            enableMicrosoftTeamsSubscribers={
+              props.enableMicrosoftTeamsSubscribers
+            }
+            enableWebhookSubscribers={props.enableWebhookSubscribers}
+          />
+        ) : undefined
       }
     >
       {isLaoding ? <FormSkeleton /> : <></>}

@@ -8,12 +8,17 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
+import LlmBudgetSpendSource from "Common/Types/LlmObservability/LlmBudgetSpendSource";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const disableTelemetryForThisProject: boolean =
     props.currentProject?.reseller?.enableTelemetryFeatures === false;
 
@@ -42,7 +47,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: "LLM Cost Budgets",
         description:
-          "Daily USD budgets for LLM spend. Every 15 minutes a worker sums the UTC day's LLM span cost and publishes the oneuptime.llm.budget.spend.usd and oneuptime.llm.budget.percent.used metrics. Alert with a Metrics monitor (e.g. percent used >= 80) filtered by the oneuptime.llm.budget.id attribute, with a 30-minute rolling window.",
+          "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them from a Metrics monitor with a 30-minute rolling window.",
       }}
       noItemsMessage={"No LLM cost budgets found."}
       formSteps={[
@@ -84,13 +89,41 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           fieldType: FormFieldSchemaType.Number,
           required: true,
           placeholder: "100",
-          description:
-            "Daily budget in USD, evaluated over the UTC day. Spend and percent-used are published as metrics every 15 minutes — alert on them with a Metrics monitor.",
+          description: "The daily budget in USD, over the UTC day.",
+        },
+        /*
+         * Two answers, both in view with what each counts: the same two
+         * sources, in the same words, as Usage's switch.
+         */
+        {
+          field: { spendSource: true },
+          title: "Count spend from",
+          stepId: "scope",
+          description: "One or the other, never both, so nothing counts twice.",
+          fieldType: FormFieldSchemaType.RadioButton,
+          required: true,
+          defaultValue: LlmBudgetSpendSource.Calls,
+          radioButtonOptions: [
+            {
+              title: "Your AI calls",
+              description: "What your apps and coding tools send",
+              value: LlmBudgetSpendSource.Calls,
+            },
+            {
+              title: "Provider accounts",
+              description: "What your connected accounts were billed",
+              value: LlmBudgetSpendSource.Providers,
+            },
+          ],
         },
         {
           field: { service: true },
           title: "Service (optional)",
           stepId: "scope",
+          // A provider's bill names no service.
+          showIf: (values: FormValues<LlmCostBudget>): boolean => {
+            return values.spendSource !== LlmBudgetSpendSource.Providers;
+          },
           description:
             "Scope this budget to a single telemetry service. Leave empty for a project-wide budget.",
           fieldType: FormFieldSchemaType.Dropdown,
@@ -109,7 +142,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           required: false,
           placeholder: "openai",
           description:
-            "Only count spend from this provider (matches the span's gen_ai provider). Leave empty to count every provider.",
+            "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.",
         },
         {
           field: { llmModel: true },
@@ -119,7 +152,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           required: false,
           placeholder: "gpt-4o",
           description:
-            "Only count spend from this model (matches the span's requested model exactly). Leave empty to count every model.",
+            "Only count spend from this model, exactly as the provider names it. Leave empty to count every model.",
         },
       ]}
       filters={[
@@ -137,6 +170,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       selectMoreFields={{
         llmSystem: true,
         llmModel: true,
+        spendSource: true,
         currentDaySpendInUSD: true,
         dailyBudgetInUSD: true,
       }}
@@ -149,7 +183,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">
@@ -214,15 +248,34 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
               filters.push(`Model: ${item.llmModel}`);
             }
 
+            if (item.spendSource === LlmBudgetSpendSource.Providers) {
+              return (
+                <div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {translator.translateText("Provider accounts")}
+                  </span>
+                  {filters.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {filters.join(" · ")}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <div>
                 {item.service?.name ? (
                   <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                    <span className="text-gray-400 mr-1">Service:</span>
+                    <span className="text-gray-400 mr-1">
+                      {translator.translateText("Service:")}
+                    </span>
                     {item.service.name}
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-500">Project-wide</span>
+                  <span className="text-sm text-gray-500">
+                    {translator.translateText("Project-wide")}
+                  </span>
                 )}
                 {filters.length > 0 && (
                   <div className="text-xs text-gray-500 mt-0.5">

@@ -135,8 +135,11 @@ Alles wat je nodig hebt op één server (Debian / Ubuntu / RHEL, Docker + Docker
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 - **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Storage-arrays** — Pure Storage FlashArray en FlashBlade: capaciteit, latentie, volumes, hosts, replicatie, hardwaregezondheid, bestandssystemen en buckets. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **Databases** — PostgreSQL, MySQL, Redis, MongoDB en meer, automatisch gedetecteerd uit applicatietraces, Kubernetes en Docker, met engine-metrics, querysamples en logs van een collector-agent die alleen uit configuratie bestaat. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 | **Ideaal voor** | Zelf-hosters en kleine teams | Gereguleerde teams die premium ondersteuning nodig hebben |
 | **Kosten** | Gratis en open source | [Neem contact op met sales](mailto:sales@oneuptime.com) |
 | **Licentie** | Apache 2.0 | Apache 2.0, plus de [OneUptime Enterprise License](/ee/LICENSE) voor de map `ee/` |
-| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI | Alles uit Community + SAML- en OIDC-single sign-on, SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
+| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI — plus SAML- en OIDC-single sign-on | Alles uit Community + SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
 
 De Enterprise-functies staan in de map [`ee/`](/ee) en zitten alleen in de Enterprise-image. Zie [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) voor de volledige vergelijking.
 

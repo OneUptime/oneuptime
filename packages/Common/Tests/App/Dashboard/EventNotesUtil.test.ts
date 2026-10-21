@@ -22,13 +22,17 @@ import {
   getRelativeTimeLabel,
   getNotesCopy,
   getPostedNotificationSummary,
+  getRouteWithComposerOpen,
   getUpdateNotificationSummary,
   getUserId,
   groupNotesByDay,
   hasNotificationInFlight,
+  isComposerOpenRequested,
   isNoteBlank,
+  NOTE_COMPOSER_OPEN_QUERY_PARAM,
   toDateTimeInputValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil";
+import Route from "../../../Types/API/Route";
 import { getTemplatePreview } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteTemplateMenu";
 import { getInitialsColor } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteAvatar";
 import { getAttachmentDownloadUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteAttachments";
@@ -37,10 +41,12 @@ import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNot
 import User from "../../../Models/DatabaseModels/User";
 import Search from "../../../Types/BaseDatabase/Search";
 import IconProp from "../../../Types/Icon/IconProp";
+import { SubscriberNotificationResendAction } from "../../../Types/StatusPage/SubscriberNotificationResend";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 /*
@@ -89,15 +95,21 @@ describe("getNoteTimestamp", () => {
     );
   });
 
-  test("files a private note under when it was written, ignoring any posting time", () => {
+  test("files a private note under when it was posted: a chat message saved as a note, when it was written there", () => {
     const note: NoteRecord = {
       createdAt: ago(HOUR),
       postedAt: ago(5 * HOUR),
     };
 
     expect(getNoteTimestamp(note, "private")?.toISOString()).toBe(
-      ago(HOUR).toISOString(),
+      ago(5 * HOUR).toISOString(),
     );
+  });
+
+  test("a private note with no posting time is filed under when it was written", () => {
+    expect(
+      getNoteTimestamp({ createdAt: ago(HOUR) }, "private")?.toISOString(),
+    ).toBe(ago(HOUR).toISOString());
   });
 
   test("reads dates that arrive as strings", () => {
@@ -346,6 +358,49 @@ describe("applyTemplateToDraft", () => {
       "We saw errors.\n\nInvestigating.",
     );
   });
+
+  describe("with values for the template's placeholders", () => {
+    const TEMPLATE: string =
+      "**Incident**: {{incident.title}} ({{incident.severity}})\n**Impact**: {{incident.customFields.impact}}\n**Owner**: {{incident.owner}}";
+
+    const VARIABLES: Record<string, string> = {
+      "incident.title": "Payments are failing",
+      "incident.severity": "Critical",
+      "incident.customFields.impact": "High",
+    };
+
+    test("fills the known placeholders and leaves the unknown ones as written", () => {
+      expect(applyTemplateToDraft("", TEMPLATE, VARIABLES)).toBe(
+        "**Incident**: Payments are failing (Critical)\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+
+    test("fills only the template, never what was already typed", () => {
+      expect(
+        applyTemplateToDraft(
+          "Seen as {{incident.title}} in the logs.",
+          "Update: {{incident.title}}",
+          VARIABLES,
+        ),
+      ).toBe(
+        "Seen as {{incident.title}} in the logs.\n\nUpdate: Payments are failing",
+      );
+    });
+
+    test("a placeholder whose value is empty is filled with nothing", () => {
+      expect(
+        applyTemplateToDraft("", "Labels: {{incident.labels}}.", {
+          "incident.labels": "",
+        }),
+      ).toBe("Labels: .");
+    });
+
+    test("no values, or none at all, leave the template as written", () => {
+      expect(applyTemplateToDraft("", TEMPLATE, {})).toBe(TEMPLATE);
+      expect(applyTemplateToDraft("", TEMPLATE, undefined)).toBe(TEMPLATE);
+      expect(applyTemplateToDraft("", TEMPLATE, null)).toBe(TEMPLATE);
+    });
+  });
 });
 
 describe("buildNotesQuery", () => {
@@ -407,42 +462,42 @@ describe("getPostedNotificationSummary", () => {
       "Subscribers notified",
       NoteNotificationTone.Success,
       IconProp.CheckCircle,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.Pending,
       "Notifying subscribers soon",
       NoteNotificationTone.Pending,
       IconProp.Clock,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.InProgress,
       "Notifying subscribers",
       NoteNotificationTone.Progress,
       IconProp.ArrowPath,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.Failed,
       "Notification failed",
       NoteNotificationTone.Danger,
       IconProp.Error,
-      true,
+      SubscriberNotificationResendAction.Retry,
     ],
     [
       StatusPageSubscriberNotificationStatus.Skipped,
       "Subscribers not notified",
       NoteNotificationTone.Neutral,
       IconProp.BellSlash,
-      false,
+      null,
     ],
     [
       undefined,
       "Subscribers not notified",
       NoteNotificationTone.Neutral,
       IconProp.BellSlash,
-      false,
+      null,
     ],
   ])(
     "%s reads as %s",
@@ -451,7 +506,7 @@ describe("getPostedNotificationSummary", () => {
       label: string,
       tone: NoteNotificationTone,
       icon: IconProp,
-      isRetryable: boolean,
+      resendAction: SubscriberNotificationResendAction | null,
     ) => {
       const summary: NoteNotificationSummary = getPostedNotificationSummary(
         status,
@@ -462,7 +517,7 @@ describe("getPostedNotificationSummary", () => {
         label,
         tone,
         icon,
-        isRetryable,
+        resendAction,
         detail: null,
       });
     },
@@ -485,6 +540,61 @@ describe("getPostedNotificationSummary", () => {
       ).detail,
     ).toBeNull();
   });
+
+  describe("where Resend is offered (the incident's public notes)", () => {
+    test.each([
+      [
+        StatusPageSubscriberNotificationStatus.Success,
+        SubscriberNotificationResendAction.Resend,
+      ],
+      [
+        StatusPageSubscriberNotificationStatus.Failed,
+        SubscriberNotificationResendAction.Retry,
+      ],
+      [StatusPageSubscriberNotificationStatus.Skipped, null],
+      [StatusPageSubscriberNotificationStatus.Pending, null],
+      [StatusPageSubscriberNotificationStatus.InProgress, null],
+      [undefined, null],
+    ])(
+      "%s offers %s",
+      (
+        status: StatusPageSubscriberNotificationStatus | undefined,
+        resendAction: SubscriberNotificationResendAction | null,
+      ) => {
+        expect(
+          getPostedNotificationSummary(status, "message", {
+            isResendAfterSuccessOffered: true,
+          }).resendAction,
+        ).toBe(resendAction);
+      },
+    );
+
+    test("the label stays what happened, not what can be done about it", () => {
+      expect(
+        getPostedNotificationSummary(
+          StatusPageSubscriberNotificationStatus.Success,
+          undefined,
+          { isResendAfterSuccessOffered: true },
+        ).label,
+      ).toBe("Subscribers notified");
+    });
+
+    test("left off, a notification that went out cannot be sent again", () => {
+      for (const options of [
+        undefined,
+        {},
+        { isResendAfterSuccessOffered: false },
+      ]) {
+        expect(
+          getPostedNotificationSummary(
+            StatusPageSubscriberNotificationStatus.Success,
+            undefined,
+            options,
+          ).resendAction,
+        ).toBeNull();
+      }
+    });
+  });
 });
 
 describe("getUpdateNotificationSummary", () => {
@@ -494,27 +604,27 @@ describe("getUpdateNotificationSummary", () => {
   });
 
   test.each([
-    [StatusPageSubscriberNotificationStatus.Success, "Update sent", false],
-    [StatusPageSubscriberNotificationStatus.Pending, "Update queued", false],
+    [StatusPageSubscriberNotificationStatus.Success, "Update sent", null],
+    [StatusPageSubscriberNotificationStatus.Pending, "Update queued", null],
+    [StatusPageSubscriberNotificationStatus.InProgress, "Sending update", null],
     [
-      StatusPageSubscriberNotificationStatus.InProgress,
-      "Sending update",
-      false,
+      StatusPageSubscriberNotificationStatus.Failed,
+      "Update failed",
+      SubscriberNotificationResendAction.Retry,
     ],
-    [StatusPageSubscriberNotificationStatus.Failed, "Update failed", true],
-    [StatusPageSubscriberNotificationStatus.Skipped, "Update not sent", false],
+    [StatusPageSubscriberNotificationStatus.Skipped, "Update not sent", null],
   ])(
     "%s reads as %s",
     (
       status: StatusPageSubscriberNotificationStatus,
       label: string,
-      isRetryable: boolean,
+      resendAction: SubscriberNotificationResendAction | null,
     ) => {
       const summary: NoteNotificationSummary | null =
         getUpdateNotificationSummary(status, "message");
 
       expect(summary?.label).toBe(label);
-      expect(summary?.isRetryable).toBe(isRetryable);
+      expect(summary?.resendAction).toBe(resendAction);
       expect(summary?.detail).toBe("message");
     },
   );
@@ -612,7 +722,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "postedAt",
         action: "create",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: true,
       }),
     ).toBe(true);
@@ -627,7 +737,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column,
         action,
-        userPermissions: [Permission.ProjectMember],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectMember]),
         isMasterAdmin: false,
       });
     };
@@ -650,7 +760,9 @@ describe("canWriteNoteColumn", () => {
         model,
         column,
         action,
-        userPermissions: [Permission.CreateIncidentPublicNote],
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.CreateIncidentPublicNote,
+        ]),
         isMasterAdmin: false,
       });
     };
@@ -667,7 +779,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "note",
         action: "create",
-        userPermissions: [Permission.Viewer],
+        held: HeldPermissionsUtil.fromPermissions([Permission.Viewer]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -679,7 +791,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "postedFromSlackMessageId",
         action: "update",
-        userPermissions: [Permission.ProjectOwner],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -687,7 +799,7 @@ describe("canWriteNoteColumn", () => {
 });
 
 describe("canReadNoteColumn and buildNotesSelect", () => {
-  test("a column without a read rule is readable", () => {
+  test("a column that declares no read rule is closed, as the server's select check closes it", () => {
     const unguardedModel: IncidentPublicNote = new IncidentPublicNote();
     unguardedModel.getColumnAccessControlForAllColumns = () => {
       return {};
@@ -697,7 +809,17 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: unguardedModel,
         column: "note",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+
+    // The columns the server never checks stay readable.
+    expect(
+      canReadNoteColumn({
+        model: unguardedModel,
+        column: "createdAt",
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -708,7 +830,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: true,
       }),
     ).toBe(true);
@@ -719,7 +841,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [Permission.Viewer],
+        held: HeldPermissionsUtil.fromPermissions([Permission.Viewer]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -727,7 +849,9 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [Permission.ReadAlertInternalNote],
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.ReadAlertInternalNote,
+        ]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -738,7 +862,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ProjectOwner],
+      held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,
     });
 
@@ -751,6 +875,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
         "note",
         "postedAt",
         "postedFromSlackMessageId",
+        "savedFromChatMessage",
         "subscriberNotificationStatusMessage",
         "subscriberNotificationStatusMessageOnNoteUpdated",
         "subscriberNotificationStatusOnNoteCreated",
@@ -769,16 +894,17 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
     });
   });
 
-  test("a private feed asks for none of the public columns", () => {
+  test("a private feed asks for when each note was posted and where it came from, and no subscriber columns", () => {
     const select: Record<string, unknown> = buildNotesSelect({
       model: new IncidentInternalNote(),
       visibility: "private",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ProjectOwner],
+      held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,
     });
 
-    expect(select["postedAt"]).toBeUndefined();
+    expect(select["postedAt"]).toBe(true);
+    expect(select["savedFromChatMessage"]).toBe(true);
     expect(select["subscriberNotificationStatusOnNoteCreated"]).toBeUndefined();
     expect(select["note"]).toBe(true);
     expect(select["attachments"]).toBeDefined();
@@ -790,7 +916,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
         model: new IncidentInternalNote(),
         visibility: "private",
         isAttachmentsEnabled: false,
-        userPermissions: [Permission.ProjectOwner],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
         isMasterAdmin: false,
       })["attachments"],
     ).toBeUndefined();
@@ -801,7 +927,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: false,
-      userPermissions: [],
+      held: HeldPermissionsUtil.fromPermissions([]),
       isMasterAdmin: false,
     });
 
@@ -815,7 +941,9 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ReadAlertInternalNote],
+      held: HeldPermissionsUtil.fromPermissions([
+        Permission.ReadAlertInternalNote,
+      ]),
       isMasterAdmin: false,
     });
 
@@ -897,6 +1025,34 @@ describe("getTemplatePreview", () => {
     ["", ""],
   ])("%p -> %p", (note: string, preview: string) => {
     expect(getTemplatePreview(note)).toBe(preview);
+  });
+});
+
+/*
+ * A notes page opened to write a note: "Add Private Note" on a private
+ * incident's public notes leads to its private notes with ?compose=1, and
+ * the page starts with its composer open.
+ */
+describe("a notes page opened with its composer open", () => {
+  const PRIVATE_NOTES: string = "/dashboard/p/incidents/i/internal-notes";
+
+  test("the link asks for the composer, and leaves the page's own route as it was", () => {
+    const route: Route = new Route(PRIVATE_NOTES);
+
+    expect(getRouteWithComposerOpen(route).toString()).toBe(
+      `${PRIVATE_NOTES}?${NOTE_COMPOSER_OPEN_QUERY_PARAM}=1`,
+    );
+    // The kind's sibling route is shared: never changed in place.
+    expect(route.toString()).toBe(PRIVATE_NOTES);
+  });
+
+  test("only ?compose=1 opens it", () => {
+    expect(isComposerOpenRequested("?compose=1")).toBe(true);
+    expect(isComposerOpenRequested("?tab=notes&compose=1")).toBe(true);
+    expect(isComposerOpenRequested("")).toBe(false);
+    expect(isComposerOpenRequested("?compose=0")).toBe(false);
+    expect(isComposerOpenRequested("?compose=")).toBe(false);
+    expect(isComposerOpenRequested("?composer=1")).toBe(false);
   });
 });
 

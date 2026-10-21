@@ -14,6 +14,11 @@
  */
 
 import Dictionary from "../../../Types/Dictionary";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+} from "../../Utils/TranslateTemplate";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   Argument,
@@ -21,9 +26,27 @@ import {
   ComponentType,
   NodeDataProp,
   NodeType,
+  Port,
   ReturnValue,
+  getArgumentChoice,
+  isArgumentRequired,
+  isArgumentShown,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import { SWITCH_ARGUMENT_IDS } from "../../../Types/Workflow/Components/Switch";
+import {
+  ShadowedSwitchCase,
+  SwitchCase,
+  SwitchCasesReading,
+  findShadowedSwitchCases,
+  getSwitchCaseComparison,
+  getSwitchCaseLabel,
+  isSwitchCaseSetUp,
+  parseSwitchCases,
+} from "../../../Types/Workflow/Components/SwitchCases";
+import { ConditionComparison } from "../../../Types/Workflow/Components/ConditionComparison";
 import {
   ParsedReferencePath,
   ReferenceRootType,
@@ -56,6 +79,21 @@ export enum WorkflowLintRule {
   ComponentIdContainsDot = "ComponentIdContainsDot",
   UnreachableComponent = "UnreachableComponent",
   NoTrigger = "NoTrigger",
+  /*
+   * A connection leaves a step from an output the step does not have - a
+   * Switch / Case case that was taken out - so it never carries a run.
+   */
+  ConnectionFromMissingOutput = "ConnectionFromMissingOutput",
+  // Switch / Case: what is wrong with one of its cases.
+  SwitchCasesUnreadable = "SwitchCasesUnreadable",
+  SwitchCaseUnknownComparison = "SwitchCaseUnknownComparison",
+  SwitchCaseNeverTaken = "SwitchCaseNeverTaken",
+  SwitchCaseNotConnected = "SwitchCaseNotConnected",
+  /*
+   * A setting that is a choice of a few holds something that is none of its
+   * choices: a workflow written by hand. The step would stop the run.
+   */
+  UnknownChoice = "UnknownChoice",
 }
 
 export interface WorkflowLintIssue {
@@ -93,6 +131,11 @@ export interface LintGraphNode {
 export interface LintGraphEdge {
   source: string;
   target: string;
+  /*
+   * The output of the source step the connection leaves from. Absent on a
+   * connection that does not say, which is then taken to leave from one.
+   */
+  sourceHandle?: string | null | undefined;
 }
 
 /*
@@ -291,13 +334,66 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
     }
   }
 
+  /*
+   * Each step's outputs as it is set up now, by react-flow id: a Switch /
+   * Case's change with its cases.
+   */
+  const outputIdsByNodeId: Dictionary<Set<string>> = {};
+
+  for (const node of nodes) {
+    outputIdsByNodeId[node.id] = new Set<string>(
+      getComponentOutPorts({
+        metadata: node.data.metadata,
+        arguments: node.data.arguments as JSONObject | undefined,
+      }).map((port: Port): string => {
+        return port.id;
+      }),
+    );
+  }
+
+  type IsFromMissingOutputFunction = (edge: LintGraphEdge) => boolean;
+
+  /*
+   * A connection that says which output it leaves from, from a step that
+   * does not have that output: the runner never follows it.
+   */
+  const isFromMissingOutput: IsFromMissingOutputFunction = (
+    edge: LintGraphEdge,
+  ): boolean => {
+    const outputs: Set<string> | undefined = outputIdsByNodeId[edge.source];
+
+    return Boolean(
+      outputs && edge.sourceHandle && !outputs.has(edge.sourceHandle),
+    );
+  };
+
   const adjacency: Dictionary<Array<string>> = {};
 
   for (const edge of edges) {
+    // It never carries a run, so it does not make anything reachable.
+    if (isFromMissingOutput(edge)) {
+      continue;
+    }
+
     if (!adjacency[edge.source]) {
       adjacency[edge.source] = [];
     }
     adjacency[edge.source]?.push(edge.target);
+  }
+
+  // The steps each output is connected to, by react-flow id and output id.
+  const connectedOutputsByNodeId: Dictionary<Set<string>> = {};
+
+  for (const edge of edges) {
+    if (!edge.sourceHandle) {
+      continue;
+    }
+
+    if (!connectedOutputsByNodeId[edge.source]) {
+      connectedOutputsByNodeId[edge.source] = new Set<string>();
+    }
+
+    connectedOutputsByNodeId[edge.source]?.add(edge.sourceHandle);
   }
 
   const triggerNodes: Array<LintGraphNode> = nodes.filter(
@@ -345,7 +441,9 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       componentId: null,
       argumentId: null,
       message:
-        "This workflow has no trigger, so it can never start. Add a trigger and connect it to the first step.",
+        translateText(
+          "This workflow has no trigger, so it can never start. Add a trigger and connect it to the first step.",
+        ) || "",
     });
   }
 
@@ -385,7 +483,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       addNodeIssue({
         rule: WorkflowLintRule.DuplicateComponentId,
         severity: WorkflowLintSeverity.Error,
-        message: `More than one step has the id "${componentId}". Ids must be unique — otherwise the steps overwrite each other's results and any reference to "${componentId}" is ambiguous.`,
+        message: translateTemplate(
+          'More than one step has the id "{{id}}". Ids must be unique — otherwise the steps overwrite each other\'s results and any reference to "{{id}}" is ambiguous.',
+          { id: componentId },
+        ),
       });
     }
 
@@ -393,7 +494,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       addNodeIssue({
         rule: WorkflowLintRule.ComponentIdContainsDot,
         severity: WorkflowLintSeverity.Error,
-        message: `The id "${componentId}" contains a dot. References are split on dots, so no other step can read this one's results. Use dashes instead.`,
+        message: translateTemplate(
+          'The id "{{id}}" contains a dot. References are split on dots, so no other step can read this one\'s results. Use dashes instead.',
+          { id: componentId },
+        ),
       });
     }
 
@@ -408,7 +512,35 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
         rule: WorkflowLintRule.UnreachableComponent,
         severity: WorkflowLintSeverity.Warning,
         message:
-          "Nothing connects to this step from the trigger, so it will never run.",
+          translateText(
+            "Nothing connects to this step from the trigger, so it will never run.",
+          ) || "",
+      });
+    }
+
+    // -- outputs -----------------------------------------------------------
+
+    for (const edge of edges) {
+      if (edge.source !== node.id || !isFromMissingOutput(edge)) {
+        continue;
+      }
+
+      const target: LintGraphNode | undefined = nodes.find(
+        (candidate: LintGraphNode): boolean => {
+          return candidate.id === edge.target;
+        },
+      );
+
+      addNodeIssue({
+        rule: WorkflowLintRule.ConnectionFromMissingOutput,
+        severity: WorkflowLintSeverity.Warning,
+        message: translateTemplate(
+          'A connection to "{{step}}" leaves this step from an output it no longer has, so it never runs from here. Connect "{{step}}" to one of the outputs this step has.',
+          {
+            step:
+              target?.data.id || target?.data.metadata?.title || edge.target,
+          },
+        ),
       });
     }
 
@@ -419,17 +551,68 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
     for (const argument of argumentMetadata) {
       const value: JSONValue | undefined = argumentValues[argument.id];
 
-      if (argument.required && isEmptyArgumentValue(value, argument.type)) {
+      /*
+       * A setting that is not part of the step as it is set up now - a Page
+       * step's Title while it pages about an incident - is not read when the
+       * step runs, and is not on its form to be put right. Whatever it still
+       * holds from before is not checked.
+       */
+      if (!isArgumentShown(argument, argumentValues)) {
+        continue;
+      }
+
+      /*
+       * Required as the step is set up now: If / Else's Compare with is not
+       * needed for "is empty".
+       */
+      if (
+        isArgumentRequired(argument, argumentValues) &&
+        isEmptyArgumentValue(value, argument.type)
+      ) {
         addNodeIssue({
           rule: WorkflowLintRule.MissingRequiredArgument,
           severity: WorkflowLintSeverity.Error,
           argumentId: argument.id,
-          message: `"${argument.name}" is required but empty.`,
+          message: translateTemplate('"{{argument}}" is required but empty.', {
+            argument: translatableTerm(argument.name),
+          }),
         });
         continue;
       }
 
       if (isEmptyArgumentValue(value, argument.type)) {
+        continue;
+      }
+
+      /*
+       * A choice saved as a value from an earlier step is whatever that
+       * comes to when the step runs, and is checked below as the reference
+       * it is. Anything else has to be one of the choices.
+       */
+      if (
+        argument.type === ComponentInputType.Choice &&
+        (argument.choices || []).length > 0 &&
+        !(
+          typeof value === "string" &&
+          parseTemplateExpressions(value).length > 0
+        ) &&
+        !getArgumentChoice(argument, value)
+      ) {
+        const stored: string =
+          typeof value === "string" ? value : JSON.stringify(value);
+
+        addNodeIssue({
+          rule: WorkflowLintRule.UnknownChoice,
+          severity: WorkflowLintSeverity.Error,
+          argumentId: argument.id,
+          message: translateTemplate(
+            '"{{argument}}" is set to "{{value}}", which is not one of its choices. Open the step and pick one.',
+            {
+              argument: translatableTerm(argument.name),
+              value: stored.length > 60 ? `${stored.slice(0, 60)}…` : stored,
+            },
+          ),
+        });
         continue;
       }
 
@@ -446,7 +629,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
             rule: WorkflowLintRule.InvalidJSON,
             severity: WorkflowLintSeverity.Error,
             argumentId: argument.id,
-            message: `"${argument.name}" is not valid JSON. ${jsonCheck.errorMessage}`,
+            message: translateTemplate(
+              '"{{argument}}" is not valid JSON. {{parserMessage}}',
+              {
+                argument: translatableTerm(argument.name),
+                parserMessage: jsonCheck.errorMessage || "",
+              },
+            ),
           });
         }
       }
@@ -494,7 +683,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ReferenceHasWhitespace,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" contains ${expression.raw}, which has a space inside the braces. Spaces are not trimmed here, so this resolves to nothing — write it as {{${expression.inner}}}.`,
+              message: translateTemplate(
+                '"{{argument}}" contains {{expression}}, which has a space inside the braces. Spaces are not trimmed here, so this resolves to nothing — write it as {{fixed}}.',
+                {
+                  argument: translatableTerm(argument.name),
+                  expression: expression.raw,
+                  fixed: `{{${expression.inner}}}`,
+                },
+              ),
             });
             continue;
           }
@@ -508,7 +704,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferenceRoot,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to ${expression.raw}, but ${parsed.reason}. Nothing will be substituted and the text will be sent as-is.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to {{expression}}, but {{reason}}. Nothing will be substituted and the text will be sent as-is.',
+                {
+                  argument: translatableTerm(argument.name),
+                  expression: expression.raw,
+                  reason: parsed.reason || "",
+                },
+              ),
             });
             continue;
           }
@@ -527,7 +730,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferencedComponent,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to a step called "${referencedComponentId}", but no step in this workflow has that id.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to a step called "{{step}}", but no step in this workflow has that id.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -547,7 +756,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferencedReturnValue,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" reads "${returnValueId}" from step "${referencedComponentId}", but that step does not return anything by that name.`,
+              message: translateTemplate(
+                '"{{argument}}" reads "{{value}}" from step "{{step}}", but that step does not return anything by that name.',
+                {
+                  argument: translatableTerm(argument.name),
+                  value: returnValueId,
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -557,7 +773,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.SelfReference,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to this step's own results, which do not exist yet while its settings are being read.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to this step\'s own results, which do not exist yet while its settings are being read.',
+                { argument: translatableTerm(argument.name) },
+              ),
             });
             continue;
           }
@@ -574,7 +793,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ForwardReference,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" reads results from "${referencedComponentId}", but that step runs after this one, so it has no results yet.`,
+              message: translateTemplate(
+                '"{{argument}}" reads results from "{{step}}", but that step runs after this one, so it has no results yet.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -587,11 +812,124 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ReferenceToUnreachableComponent,
               severity: WorkflowLintSeverity.Warning,
               argumentId: argument.id,
-              message: `"${argument.name}" reads results from "${referencedComponentId}", which is not connected to the trigger and so never runs.`,
+              message: translateTemplate(
+                '"{{argument}}" reads results from "{{step}}", which is not connected to the trigger and so never runs.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
           }
         }
       }
+    }
+
+    // -- Switch / Case -----------------------------------------------------
+
+    /*
+     * After the settings' own checks, so a new step's issues read in the
+     * order of its settings - the value to check, then its cases - and each
+     * case's issues come together, case by case.
+     */
+    if (data.metadata.id === ComponentID.Switch) {
+      const reading: SwitchCasesReading = parseSwitchCases(
+        argumentValues[SWITCH_ARGUMENT_IDS.cases],
+      );
+
+      if (!reading.isReadable) {
+        addNodeIssue({
+          rule: WorkflowLintRule.SwitchCasesUnreadable,
+          severity: WorkflowLintSeverity.Error,
+          argumentId: SWITCH_ARGUMENT_IDS.cases,
+          message:
+            translateText(
+              "This step's cases could not be read, so every run stops here. Open the step and add its cases again.",
+            ) || "",
+        });
+      }
+
+      const connected: Set<string> =
+        connectedOutputsByNodeId[node.id] || new Set<string>();
+
+      // The earlier case each repeat asks the same as, by the repeat's place.
+      const repeatedCases: Map<number, number> = new Map<number, number>(
+        findShadowedSwitchCases(reading.cases).map(
+          (shadowed: ShadowedSwitchCase): [number, number] => {
+            return [shadowed.index, shadowed.sameAsIndex];
+          },
+        ),
+      );
+
+      reading.cases.forEach((switchCase: SwitchCase, index: number) => {
+        const comparison: ConditionComparison | null =
+          getSwitchCaseComparison(switchCase);
+
+        if (!comparison) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseUnknownComparison,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} has a comparison this step does not know, so every run stops here. Choose one, such as is equal to.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        /*
+         * A case with nothing to compare with is not set up yet: the step
+         * says "Click to set up", as it does for an empty setting.
+         */
+        if (!isSwitchCaseSetUp(switchCase)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.MissingRequiredArgument,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} needs a value to compare with.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        const sameAsIndex: number | undefined = repeatedCases.get(index);
+
+        if (sameAsIndex !== undefined) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseNeverTaken,
+            severity: WorkflowLintSeverity.Warning,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} asks the same as case {{earlier}}, which is checked first, so case {{number}} is never taken. Change it or remove it.",
+              {
+                number: index + 1,
+                earlier: sameAsIndex + 1,
+              },
+            ),
+          });
+
+          // Never taken, so what it leads to does not matter.
+          return;
+        }
+
+        if (!connected.has(switchCase.id)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseNotConnected,
+            severity: WorkflowLintSeverity.Warning,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              'Nothing is connected to case {{number}}, "{{case}}", so a run that matches it stops at this step.',
+              {
+                number: index + 1,
+                case: getSwitchCaseLabel(switchCase, index),
+              },
+            ),
+          });
+        }
+      });
     }
   }
 

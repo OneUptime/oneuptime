@@ -1113,13 +1113,13 @@ describe("applyLogsFacetFiltersToQuery", () => {
 });
 
 /*
- * Proxmox, vCenter, Ceph, Docker Swarm, serverless, cloud, RUM and IoT
- * facets are on screen now, so their chips have to behave exactly like a
- * host or Kubernetes chip at every hop: compiled into `resourceFilters`
- * (never a column predicate on a column Log does not have), carried by the
- * traces / logs pivots, and named — not shown as a raw key — when a target
- * cannot carry them. Walked over the catalog so a new type is covered here
- * the moment it is added.
+ * Proxmox, vCenter, Ceph, storage array, Docker Swarm, serverless, cloud, RUM
+ * and IoT facets are on screen now, so their chips have to behave exactly
+ * like a host or Kubernetes chip at every hop: compiled into
+ * `resourceFilters` (never a column predicate on a column Log does not
+ * have), carried by the traces / logs pivots, and named — not shown as a raw
+ * key — when a target cannot carry them. Walked over the catalog so a new
+ * type is covered here the moment it is added.
  */
 describe("every catalog resource facet (pivot and query compilation)", () => {
   const RESOURCE_ID: string = "0195d6c1-0000-7000-8000-0000000000c9";
@@ -1290,8 +1290,8 @@ describe("every catalog resource facet (pivot and query compilation)", () => {
     expect(Pivot.formatDroppedScopeHint([...RESOURCE_FACET_CATALOG_KEYS])).toBe(
       "Not carried over: hosts, Docker hosts, Podman hosts, Kubernetes clusters, " +
         "Docker Swarm clusters, Proxmox clusters, vCenters, Ceph clusters, " +
-        "serverless functions, cloud resources, RUM applications, IoT fleets, " +
-        "databases",
+        "storage arrays, serverless functions, cloud resources, " +
+        "RUM applications, IoT fleets, databases",
     );
   });
 

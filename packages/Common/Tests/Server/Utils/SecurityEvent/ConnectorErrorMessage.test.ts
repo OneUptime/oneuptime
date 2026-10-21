@@ -39,7 +39,7 @@ import {
  * the customer saw was a connector that never polled whose row still read
  * lastPolledAt = null AND lastError = null — the two columns meant to
  * explain the outage were exactly the ones the outage prevented from
- * being written. DetectionRuleEvaluator.evaluateAllDueRules had the same
+ * being written. DetectionRuleEvaluator's rule loop had the same
  * unguarded write against DetectionRule.lastError, and ClickHouse errors
  * echo the whole compiled query, so it was likelier still to trip.
  *

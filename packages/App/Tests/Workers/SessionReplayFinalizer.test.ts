@@ -7,6 +7,7 @@ import {
   SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
   SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
   SESSION_REPLAY_IDLE_FINALIZE_MS as SHARED_SESSION_REPLAY_IDLE_FINALIZE_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
@@ -328,6 +329,7 @@ import {
   parseTabAggregateRow,
   PROJECT_INDEX_SCAN_CURSOR_KEY,
   ProvisionalSessionHeader,
+  resolveTabRecordingEndUnixMs,
   reconcileActiveProjectIndex,
   removeActivityMembersIfNotNewer,
   resolveSealedReason,
@@ -438,6 +440,8 @@ function makeChunkRow(data: {
    */
   chunkStartUnixMs?: number;
   chunkEndUnixMs?: number;
+  /* "dom" for the browser recorder, "rn-view-tree" for React Native. */
+  recorderKind?: string;
 }): RawChunkRow {
   const chunkIndex: number = data.chunkIndex;
 
@@ -475,12 +479,29 @@ function makeChunkRow(data: {
     chunkStartOffsetMs: chunkIndex * CHUNK_DURATION_MS,
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
-    recorderKind: "dom",
+    recorderKind: data.recorderKind ?? "dom",
     rumApplicationId: data.rumApplicationId ?? "6600000000000000000000b2",
     primaryEntityId: data.rumApplicationId ?? "6600000000000000000000b2",
     primaryEntityType: "RealUserMonitor",
     retentionDate: "2026-08-05",
   };
+}
+
+/*
+ * The inner query's hasFootage: a chunk with something to play, which no
+ * seal has - neither an empty one nor the instant, snapshot-less final chunk
+ * an older React Native recorder closed an idle session with.
+ */
+function hasFootage(row: RawChunkRow): boolean {
+  return (
+    row.eventCount > 0 &&
+    !(
+      row.recorderKind === "rn-view-tree" &&
+      row.isFinal &&
+      !row.hasFullSnapshot &&
+      row.chunkStartUnixMs === row.chunkEndUnixMs
+    )
+  );
 }
 
 /*
@@ -776,13 +797,25 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
           return row.chunkEndUnixMs;
         }),
       ),
+      /*
+       * toUnixTimestamp64Milli(maxIf(chunkEndTime, hasFootage)): the epoch
+       * (0) when no chunk held footage, guarded by the countIf.
+       */
+      lastFootageEndUnixMs: String(
+        tabRows
+          .filter(hasFootage)
+          .reduce((latest: number, row: RawChunkRow): number => {
+            return Math.max(latest, row.chunkEndUnixMs);
+          }, 0),
+      ),
+      footageChunkCount: String(tabRows.filter(hasFootage).length),
       maxChunkEndOffsetMs: max((row: RawChunkRow): number => {
         return row.chunkEndOffsetMs;
       }),
       schemaVersion: max((row: RawChunkRow): number => {
         return row.schemaVersion;
       }),
-      recorderKind: "dom",
+      recorderKind: tabRows[0]!.recorderKind,
       rumApplicationId: tabRows[0]!.rumApplicationId,
       primaryEntityId: tabRows[0]!.primaryEntityId,
       primaryEntityType: "RealUserMonitor",
@@ -967,6 +1000,417 @@ describe("Rum:FinalizeSessions aggregate derivation", () => {
     expect(aggregate.missingChunkCount).toBe(0);
     expect(aggregate.fullSnapshotChunkIndexes).toEqual([]);
     expect(aggregate.hasFinalChunk).toBe(false);
+  });
+});
+
+/*
+ * #4207: "Session shows recording duration but replay has no recording".
+ *
+ * A browser recorder learned the user had left only once the idle window
+ * ran out, and dated its empty seal THEN. The finalizer took the latest
+ * chunk end as the session's end, so every tab left open with nobody at it
+ * was listed as "30m 00s" while the player - which plays footage, never a
+ * seal - ended after under a second. Fixed recorders date the seal at the
+ * last activity; these pin that the finalizer also refuses the old seal,
+ * from a tab still running an older recorder or a session finalized again
+ * after it arrived.
+ */
+describe("Rum:FinalizeSessions recording end after an idle seal (#4207)", () => {
+  const MINUTE: number = 60 * 1000;
+  const writtenAt: Date = new Date("2026-07-29T12:00:00.000Z");
+
+  function durationOf(rows: Array<RawChunkRow>): number {
+    return buildFinalizedSessionRow({
+      projectId: projectId,
+      sessionId: sessionId,
+      aggregate: aggregateOf(rows),
+      header: makeProvisionalHeader(),
+      traceIds: [],
+      exceptionFingerprints: [],
+      writtenAt: writtenAt,
+    })["durationMs"] as number;
+  }
+
+  /* A footage chunk ending `endMs` into the session. */
+  function footage(
+    chunkIndex: number,
+    endMs: number,
+    extra?: { tabId?: string; startMs?: number },
+  ): RawChunkRow {
+    return makeChunkRow({
+      chunkIndex: chunkIndex,
+      tabId: extra?.tabId ?? "tab-a",
+      eventCount: 4,
+      hasFullSnapshot: chunkIndex === 0,
+      chunkStartUnixMs:
+        sessionStartUnixMs + (extra?.startMs ?? Math.max(0, endMs - 1000)),
+      chunkEndUnixMs: sessionStartUnixMs + endMs,
+    });
+  }
+
+  /* The empty seal: payload "[]", start and end at one instant. */
+  function seal(
+    chunkIndex: number,
+    atMs: number,
+    extra?: { tabId?: string },
+  ): RawChunkRow {
+    return makeChunkRow({
+      chunkIndex: chunkIndex,
+      tabId: extra?.tabId ?? "tab-a",
+      eventCount: 0,
+      payloadBytes: 2,
+      hasFullSnapshot: false,
+      isFinal: true,
+      chunkStartUnixMs: sessionStartUnixMs + atMs,
+      chunkEndUnixMs: sessionStartUnixMs + atMs,
+    });
+  }
+
+  describe("resolveTabRecordingEndUnixMs", () => {
+    const footageEnd: number = 1_700_000_000_000;
+
+    test("ends at the footage when the empty seal came a whole idle window later", () => {
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS,
+          lastFootageEndUnixMs: footageEnd,
+          footageChunkCount: 1,
+        }),
+      ).toBe(footageEnd);
+    });
+
+    test("ends at the footage however late the seal came", () => {
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: footageEnd + 9 * 60 * MINUTE,
+          lastFootageEndUnixMs: footageEnd,
+          footageChunkCount: 3,
+        }),
+      ).toBe(footageEnd);
+    });
+
+    test("keeps a seal one millisecond inside the idle window", () => {
+      const sealAt: number = footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS - 1;
+
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: sealAt,
+          lastFootageEndUnixMs: footageEnd,
+          footageChunkCount: 1,
+        }),
+      ).toBe(sealAt);
+    });
+
+    test("keeps the chunk end when the last chunk is footage", () => {
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: footageEnd,
+          lastFootageEndUnixMs: footageEnd,
+          footageChunkCount: 5,
+        }),
+      ).toBe(footageEnd);
+    });
+
+    test("keeps the chunk end of a tab that recorded no footage at all", () => {
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS,
+          lastFootageEndUnixMs: 0,
+          footageChunkCount: 0,
+        }),
+      ).toBe(footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS);
+    });
+
+    test("keeps the chunk end when the footage facts are missing", () => {
+      expect(
+        resolveTabRecordingEndUnixMs({
+          lastChunkEndUnixMs: footageEnd,
+          lastFootageEndUnixMs: 0,
+          footageChunkCount: 2,
+        }),
+      ).toBe(footageEnd);
+    });
+  });
+
+  test("the reporter's session: a snapshot, then a seal 30 minutes on, lasts as long as the snapshot", () => {
+    const rows: Array<RawChunkRow> = [
+      footage(0, 400, { startMs: 0 }),
+      seal(1, 30 * MINUTE + 400),
+    ];
+
+    expect(aggregateOf(rows).lastChunkEndUnixMs).toBe(sessionStartUnixMs + 400);
+    expect(durationOf(rows)).toBe(400);
+  });
+
+  test("a minute of use and then a seal 30 minutes on lasts a minute", () => {
+    /* The "31m 00s" row. */
+    const rows: Array<RawChunkRow> = [
+      footage(0, 15_000, { startMs: 0 }),
+      footage(1, 30_000),
+      footage(2, 45_000),
+      footage(3, MINUTE),
+      seal(4, 31 * MINUTE),
+    ];
+
+    expect(durationOf(rows)).toBe(MINUTE);
+  });
+
+  test("keeps the end of a page someone read without touching, closed inside the idle window", () => {
+    const rows: Array<RawChunkRow> = [
+      footage(0, 2_000, { startMs: 0 }),
+      seal(1, 12 * MINUTE),
+    ];
+
+    expect(durationOf(rows)).toBe(12 * MINUTE);
+  });
+
+  test("is idempotent: finalizing the same rows again gives the same duration", () => {
+    const rows: Array<RawChunkRow> = [
+      footage(0, 400, { startMs: 0 }),
+      seal(1, 30 * MINUTE + 400),
+    ];
+
+    expect(durationOf(rows)).toBe(durationOf(rows));
+  });
+
+  test("measures each tab on its own: a late seal on one tab cannot outlast another tab's footage", () => {
+    const rows: Array<RawChunkRow> = [
+      /* Tab A: two minutes, then left open and sealed 30 minutes later. */
+      footage(0, 2 * MINUTE, { tabId: "tab-a", startMs: 0 }),
+      seal(1, 32 * MINUTE, { tabId: "tab-a" }),
+      /* Tab B: in use until the ten-minute mark, closed then. */
+      footage(0, 5 * MINUTE, { tabId: "tab-b", startMs: MINUTE }),
+      footage(1, 10 * MINUTE, { tabId: "tab-b" }),
+      seal(2, 10 * MINUTE, { tabId: "tab-b" }),
+    ];
+
+    expect(durationOf(rows)).toBe(10 * MINUTE);
+  });
+
+  test("a tab still in use keeps the session going past another tab's late seal", () => {
+    const rows: Array<RawChunkRow> = [
+      footage(0, MINUTE, { tabId: "tab-a", startMs: 0 }),
+      seal(1, 31 * MINUTE, { tabId: "tab-a" }),
+      footage(0, 20 * MINUTE, { tabId: "tab-b", startMs: MINUTE }),
+      footage(1, 40 * MINUTE, { tabId: "tab-b" }),
+    ];
+
+    expect(durationOf(rows)).toBe(40 * MINUTE);
+  });
+
+  test("changes nothing about whether the tab has ended", () => {
+    const rows: Array<RawChunkRow> = [
+      footage(0, 400, { startMs: 0 }),
+      seal(1, 30 * MINUTE + 400),
+    ];
+
+    const tab: ReturnType<typeof parseTabAggregateRow> = parseTabAggregateRow(
+      runGroupByOverChunkRows(rows)[0] as JSONObject,
+    );
+
+    /* The seal is still the tab's final chunk, at its own time. */
+    expect(tab.hasFinalChunk).toBe(true);
+    expect(tab.finalChunkEndUnixMs).toBe(
+      sessionStartUnixMs + 30 * MINUTE + 400,
+    );
+    expect(tab.lastChunkStartUnixMs).toBe(
+      sessionStartUnixMs + 30 * MINUTE + 400,
+    );
+    expect(tab.chunkCount).toBe(2);
+  });
+
+  test("a row from before the footage columns existed keeps its chunk end", () => {
+    const row: JSONObject = runGroupByOverChunkRows([
+      footage(0, 400, { startMs: 0 }),
+      seal(1, 30 * MINUTE + 400),
+    ])[0] as JSONObject;
+
+    delete row["lastFootageEndUnixMs"];
+    delete row["footageChunkCount"];
+
+    expect(parseTabAggregateRow(row).lastChunkEndUnixMs).toBe(
+      sessionStartUnixMs + 30 * MINUTE + 400,
+    );
+  });
+
+  /*
+   * A React Native recorder before the mobile fix sealed an idle session
+   * when the app came back to the foreground - hours later, as like as not
+   * - with a final chunk holding only its rotation marker. One event, so
+   * not an empty seal, and the session was listed as long as the app had
+   * been away. Those recorders stay in customers' apps until the apps are
+   * updated, so the finalizer recognises their seal too.
+   */
+  describe("an older React Native recorder's late marker", () => {
+    const HOUR: number = 60 * MINUTE;
+
+    /* A React Native chunk with footage, ending `endMs` into the session. */
+    function appFootage(
+      chunkIndex: number,
+      endMs: number,
+      extra?: { startMs?: number },
+    ): RawChunkRow {
+      return makeChunkRow({
+        chunkIndex: chunkIndex,
+        tabId: "app-launch",
+        recorderKind: "rn-view-tree",
+        eventCount: 6,
+        hasFullSnapshot: chunkIndex === 0,
+        chunkStartUnixMs:
+          sessionStartUnixMs + (extra?.startMs ?? Math.max(0, endMs - 1000)),
+        chunkEndUnixMs: sessionStartUnixMs + endMs,
+      });
+    }
+
+    /*
+     * The marker chunk: final, no snapshot, one event, one instant long.
+     * The overrides are the near misses that must stay footage.
+     */
+    function appMarker(
+      chunkIndex: number,
+      atMs: number,
+      extra?: {
+        recorderKind?: string;
+        isFinal?: boolean;
+        hasFullSnapshot?: boolean;
+      },
+    ): RawChunkRow {
+      return makeChunkRow({
+        chunkIndex: chunkIndex,
+        tabId: "app-launch",
+        recorderKind: extra?.recorderKind ?? "rn-view-tree",
+        eventCount: 1,
+        isFinal: extra?.isFinal ?? true,
+        hasFullSnapshot: extra?.hasFullSnapshot ?? false,
+        chunkStartUnixMs: sessionStartUnixMs + atMs,
+        chunkEndUnixMs: sessionStartUnixMs + atMs,
+      });
+    }
+
+    test("the reporter's session: twenty seconds of use, the app away for two hours, lasts twenty seconds", () => {
+      const rows: Array<RawChunkRow> = [
+        appFootage(0, 20_000, { startMs: 0 }),
+        appMarker(1, 2 * HOUR + 20_000),
+      ];
+
+      expect(aggregateOf(rows).lastChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 20_000,
+      );
+      expect(durationOf(rows)).toBe(20_000);
+    });
+
+    test("ends at the footage once the marker is a whole idle window late", () => {
+      const footageEnd: number = 5 * MINUTE;
+
+      expect(
+        durationOf([
+          appFootage(0, MINUTE, { startMs: 0 }),
+          appFootage(1, footageEnd),
+          appMarker(2, footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS),
+        ]),
+      ).toBe(footageEnd);
+    });
+
+    test("keeps a marker inside the idle window: a rotation the user was active through ended there", () => {
+      /* The duration cap, or a change of user, fifteen seconds on. */
+      const markerAt: number = 10 * MINUTE + 15_000;
+
+      expect(
+        durationOf([
+          appFootage(0, 5 * MINUTE, { startMs: 0 }),
+          appFootage(1, 10 * MINUTE),
+          appMarker(2, markerAt),
+        ]),
+      ).toBe(markerAt);
+    });
+
+    test("keeps a marker one millisecond inside the idle window", () => {
+      const markerAt: number = MINUTE + SESSION_REPLAY_IDLE_ROLLOVER_MS - 1;
+
+      expect(
+        durationOf([
+          appFootage(0, MINUTE, { startMs: 0 }),
+          appMarker(1, markerAt),
+        ]),
+      ).toBe(markerAt);
+    });
+
+    test.each([
+      ["a browser recorder's", { recorderKind: "dom" }],
+      ["a non-final", { isFinal: false }],
+      ["a snapshot-bearing", { hasFullSnapshot: true }],
+    ])(
+      "treats %s instant chunk as footage, however late",
+      (
+        _label: string,
+        nearMiss: {
+          recorderKind?: string;
+          isFinal?: boolean;
+          hasFullSnapshot?: boolean;
+        },
+      ) => {
+        const lateAt: number = 2 * HOUR;
+
+        expect(
+          durationOf([
+            appFootage(0, MINUTE, { startMs: 0 }),
+            appMarker(1, lateAt, nearMiss),
+          ]),
+        ).toBe(lateAt);
+      },
+    );
+
+    test("a chunk that spans time is footage: its events date it", () => {
+      const rows: Array<RawChunkRow> = [
+        appFootage(0, MINUTE, { startMs: 0 }),
+        {
+          ...appMarker(1, 2 * HOUR),
+          chunkStartUnixMs: sessionStartUnixMs + 2 * HOUR - 5_000,
+          eventCount: 3,
+        },
+      ];
+
+      expect(durationOf(rows)).toBe(2 * HOUR);
+    });
+
+    test("a session that is only the marker keeps its end: there is no footage to move it to", () => {
+      expect(aggregateOf([appMarker(0, 2 * HOUR)]).lastChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 2 * HOUR,
+      );
+    });
+
+    test("measures each app launch on its own: the session ends with the last launch's footage", () => {
+      /*
+       * The app was killed after a minute and opened again within the idle
+       * window, which resumes the session under a new tab id. That launch
+       * was used for ten minutes, put away, and sealed two hours later.
+       */
+      const rows: Array<RawChunkRow> = [
+        { ...appFootage(0, MINUTE, { startMs: 0 }), tabId: "first-launch" },
+        appFootage(0, 15 * MINUTE, { startMs: 5 * MINUTE }),
+        appMarker(1, 15 * MINUTE + 2 * HOUR),
+      ];
+
+      expect(durationOf(rows)).toBe(15 * MINUTE);
+    });
+
+    test("changes nothing about whether the tab has ended", () => {
+      const tab: ReturnType<typeof parseTabAggregateRow> = parseTabAggregateRow(
+        runGroupByOverChunkRows([
+          appFootage(0, 20_000, { startMs: 0 }),
+          appMarker(1, 2 * HOUR + 20_000),
+        ])[0] as JSONObject,
+      );
+
+      expect(tab.lastChunkEndUnixMs).toBe(sessionStartUnixMs + 20_000);
+      /* The marker is still the tab's final chunk, at its own time. */
+      expect(tab.hasFinalChunk).toBe(true);
+      expect(tab.finalChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 2 * HOUR + 20_000,
+      );
+      expect(tab.recorderKind).toBe("rn-view-tree");
+      expect(tab.chunkCount).toBe(2);
+    });
   });
 });
 
@@ -1655,6 +2099,26 @@ describe("Rum:FinalizeSessions queries", () => {
     );
     expect(query).toContain("countIf(url != '')");
     expect(query).toContain("min(chunkStartTime)");
+
+    /*
+     * Where the FOOTAGE ended, beside where the last chunk did (#4207): the
+     * in-test model reimplements both, so the text is pinned here too.
+     */
+    expect(query).toContain(
+      "toUnixTimestamp64Milli(maxIf(chunkEndTime, hasFootage)) AS lastFootageEndUnixMs",
+    );
+    expect(query).toContain("countIf(hasFootage) AS footageChunkCount");
+    /*
+     * And which chunks are footage - worked out in the INNER query, on the
+     * raw columns: the outer SELECT aliases recorderKind to any(), so an
+     * aggregate there would read the alias and nest one aggregate in
+     * another.
+     */
+    const flattened: string = query.replace(/\s+/g, " ");
+    expect(flattened).toMatch(
+      /eventCount > 0 AND NOT \( recorderKind = \{p\d+:String\} AND isFinal AND NOT hasFullSnapshot AND chunkStartTime = chunkEndTime \) AS hasFootage FROM /,
+    );
+    expect(Object.values(statement.query_params)).toContain("rn-view-tree");
 
     /* Sorted in SQL: the route union is a set, and must be deterministic. */
     expect(query).toContain(
@@ -2422,10 +2886,29 @@ function stubClickhouse(data: {
   return { inserted, statements };
 }
 
+/*
+ * A header as buildProvisionalHeaderStatement returns it: every column
+ * under its own name, except the identity and the tags, which come back
+ * under the latest* aliases of the "newest version that has them" read.
+ */
 function headerRowOf(
   overrides?: Partial<ProvisionalSessionHeader>,
 ): JSONObject {
-  return makeProvisionalHeader(overrides) as unknown as JSONObject;
+  const {
+    identifiedUserKey,
+    identifiedUserLabel,
+    identifiedUserTraits,
+    tags,
+    ...rest
+  }: ProvisionalSessionHeader = makeProvisionalHeader(overrides);
+
+  return {
+    ...rest,
+    latestIdentifiedUserKey: identifiedUserKey,
+    latestIdentifiedUserLabel: identifiedUserLabel,
+    latestIdentifiedUserTraits: identifiedUserTraits,
+    latestTags: tags,
+  } as unknown as JSONObject;
 }
 
 describe("Rum:FinalizeSessions project index reconcile cursor", () => {

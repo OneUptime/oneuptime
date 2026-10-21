@@ -218,8 +218,8 @@
          var link = document.createElement('a');
          var isSubHeading = heading.tagName.toLowerCase() === 'h3';
 
-         link.className = 'toc-link -ml-px block border-l border-transparent py-1 text-ink-subtle transition-colors hover:text-ink '
-            + (isSubHeading ? 'pl-7' : 'pl-4');
+         link.className = 'toc-link -ms-px block border-s border-transparent py-1 text-ink-subtle transition-colors hover:text-ink '
+            + (isSubHeading ? 'ps-7' : 'ps-4');
          link.href = '#' + heading.id;
          link.textContent = (heading.textContent || '').replace(/#$/, '').trim();
 
@@ -448,13 +448,23 @@
             return;
          }
 
-         var strip = Array.prototype.slice.call(tab.closest('[role="tablist"]').querySelectorAll('.code-tab'));
+         var tablist = tab.closest('[role="tablist"]');
+         var strip = Array.prototype.slice.call(tablist.querySelectorAll('.code-tab'));
          var index = strip.indexOf(tab);
          var next = null;
 
-         if (event.key === 'ArrowRight') {
+         /*
+          * The strip runs in the reading direction, so on a right-to-left
+          * page the next tab is the one to the left: the arrow keys move the
+          * way the tabs are drawn.
+          */
+         var isRightToLeft = window.getComputedStyle(tablist).direction === 'rtl';
+         var forwardKey = isRightToLeft ? 'ArrowLeft' : 'ArrowRight';
+         var backwardKey = isRightToLeft ? 'ArrowRight' : 'ArrowLeft';
+
+         if (event.key === forwardKey) {
             next = strip[(index + 1) % strip.length];
-         } else if (event.key === 'ArrowLeft') {
+         } else if (event.key === backwardKey) {
             next = strip[(index - 1 + strip.length) % strip.length];
          } else if (event.key === 'Home') {
             next = strip[0];

@@ -27,7 +27,7 @@
 
         <!-- Main headline -->
         <h2 class="text-2xl font-medium tracking-tight text-gray-900 sm:text-3xl lg:text-4xl lg:leading-[1.15]">
-          OneUptime is the Open-Source <br class="hidden sm:block" />Observability Platform
+          OneUptime is the Open-Source <br class="max-sm:hidden sm:block" />Observability Platform
         </h2>
 
         <!-- Subheadline -->
@@ -52,7 +52,7 @@
           <!-- Status Page - Emerald -->
           <a href="/product/status-page" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 hover:shadow-[0_0_0_2px_rgb(16_185_129/0.3),0_4px_12px_-4px_rgb(16_185_129/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
-              <%- include('../../Partials/icons/status-page') %>
+              <%- include('../../Partials/icons/status-page', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Status Page</div>
             <div class="mt-1 text-xs text-gray-500">Real-time status updates</div>
@@ -61,7 +61,7 @@
           <!-- Incidents - Rose -->
           <a href="/product/incident-management" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 hover:shadow-[0_0_0_2px_rgb(244_63_94/0.3),0_4px_12px_-4px_rgb(244_63_94/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
-              <%- include('../../Partials/icons/incidents') %>
+              <%- include('../../Partials/icons/incidents', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Incidents</div>
             <div class="mt-1 text-xs text-gray-500">Detect and resolve fast</div>
@@ -70,7 +70,7 @@
           <!-- Monitoring - Blue -->
           <a href="/product/monitoring" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 hover:shadow-[0_0_0_2px_rgb(59_130_246/0.3),0_4px_12px_-4px_rgb(59_130_246/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
-              <%- include('../../Partials/icons/monitoring') %>
+              <%- include('../../Partials/icons/monitoring', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Monitoring</div>
             <div class="mt-1 text-xs text-gray-500">Monitor any resource</div>
@@ -79,7 +79,7 @@
           <!-- On-Call - Stone -->
           <a href="/product/on-call" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 hover:shadow-[0_0_0_2px_rgb(120_113_108/0.3),0_4px_12px_-4px_rgb(120_113_108/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-stone-50 ring-1 ring-stone-200">
-              <%- include('../../Partials/icons/on-call') %>
+              <%- include('../../Partials/icons/on-call', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">On-Call</div>
             <div class="mt-1 text-xs text-gray-500">Smart alert routing</div>
@@ -88,7 +88,7 @@
           <!-- Scheduled Maintenance - Teal -->
           <a href="/product/scheduled-maintenance" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-teal-300 hover:shadow-[0_0_0_2px_rgb(20_184_166/0.3),0_4px_12px_-4px_rgb(20_184_166/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
-              <%- include('../../Partials/icons/scheduled-maintenance') %>
+              <%- include('../../Partials/icons/scheduled-maintenance', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Maintenance</div>
             <div class="mt-1 text-xs text-gray-500">Plan &amp; communicate downtime</div>
@@ -97,7 +97,7 @@
           <!-- Logs - Amber -->
           <a href="/product/logs-management" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 hover:shadow-[0_0_0_2px_rgb(245_158_11/0.3),0_4px_12px_-4px_rgb(245_158_11/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
-              <%- include('../../Partials/icons/logs') %>
+              <%- include('../../Partials/icons/logs', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Logs</div>
             <div class="mt-1 text-xs text-gray-500">Fastest log ingest and search</div>
@@ -106,7 +106,7 @@
           <!-- Metrics - Purple -->
           <a href="/product/metrics" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 hover:shadow-[0_0_0_2px_rgb(168_85_247/0.3),0_4px_12px_-4px_rgb(168_85_247/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200">
-              <%- include('../../Partials/icons/metrics') %>
+              <%- include('../../Partials/icons/metrics', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Metrics</div>
             <div class="mt-1 text-xs text-gray-500">Performance insights</div>
@@ -115,7 +115,7 @@
           <!-- Traces - Yellow -->
           <a href="/product/traces" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 hover:shadow-[0_0_0_2px_rgb(234_179_8/0.3),0_4px_12px_-4px_rgb(234_179_8/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
-              <%- include('../../Partials/icons/traces') %>
+              <%- include('../../Partials/icons/traces', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Traces</div>
             <div class="mt-1 text-xs text-gray-500">End-to-end distributed tracing</div>
@@ -124,7 +124,7 @@
           <!-- Exceptions - Orange -->
           <a href="/product/exceptions" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 hover:shadow-[0_0_0_2px_rgb(244_63_94/0.3),0_4px_12px_-4px_rgb(244_63_94/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
-              <%- include('../../Partials/icons/exceptions') %>
+              <%- include('../../Partials/icons/exceptions', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Exceptions</div>
             <div class="mt-1 text-xs text-gray-500">Catch and fix bugs early</div>
@@ -133,7 +133,7 @@
           <!-- Workflows - Sky -->
           <a href="/product/workflows" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-sky-300 hover:shadow-[0_0_0_2px_rgb(14_165_233/0.3),0_4px_12px_-4px_rgb(14_165_233/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
-              <%- include('../../Partials/icons/workflows') %>
+              <%- include('../../Partials/icons/workflows', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Workflows</div>
             <div class="mt-1 text-xs text-gray-500">Automate any process</div>
@@ -142,7 +142,7 @@
           <!-- Dashboards - Indigo -->
           <a href="/product/dashboards" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-indigo-300 hover:shadow-[0_0_0_2px_rgb(99_102_241/0.3),0_4px_12px_-4px_rgb(99_102_241/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
-              <%- include('../../Partials/icons/dashboards') %>
+              <%- include('../../Partials/icons/dashboards', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Dashboards</div>
             <div class="mt-1 text-xs text-gray-500">Visualize all your data</div>
@@ -151,7 +151,7 @@
           <!-- Kubernetes - Cyan -->
           <a href="/product/kubernetes" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-cyan-300 hover:shadow-[0_0_0_2px_rgb(6_182_212/0.3),0_4px_12px_-4px_rgb(6_182_212/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
-              <%- include('../../Partials/icons/kubernetes') %>
+              <%- include('../../Partials/icons/kubernetes', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Kubernetes</div>
             <div class="mt-1 text-xs text-gray-500">Monitor K8s clusters</div>
@@ -160,7 +160,7 @@
           <!-- Profiles - Rose -->
           <a href="/product/profiles" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 hover:shadow-[0_0_0_2px_rgb(244_63_94/0.3),0_4px_12px_-4px_rgb(244_63_94/0.15)] h-full">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
-              <%- include('../../Partials/icons/profiles') %>
+              <%- include('../../Partials/icons/profiles', { useIconSprite: true }) %>
             </div>
             <div class="mt-3 text-sm font-medium text-gray-900">Profiles</div>
             <div class="mt-1 text-xs text-gray-500">CPU &amp; memory profiling</div>
@@ -171,7 +171,7 @@
         <div class="mt-5">
           <a href="/product/ai-agent" class="blog-cta-card group flex items-center gap-5 rounded-2xl bg-white px-6 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300 hover:shadow-[0_0_0_2px_rgb(139_92_246/0.3),0_4px_12px_-4px_rgb(139_92_246/0.15)]">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
-              <%- include('../../Partials/icons/ai-agent') %>
+              <%- include('../../Partials/icons/ai-agent', { useIconSprite: true }) %>
             </div>
             <div class="flex-1 text-left">
               <div class="flex items-center gap-2">

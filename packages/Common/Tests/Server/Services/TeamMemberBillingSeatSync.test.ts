@@ -10,7 +10,10 @@ import AuditLogService from "../../../Server/Services/AuditLogService";
 import BillingService from "../../../Server/Services/BillingService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMemberService, {
+  MEMBERSHIPS_OF_PERSON_STATEMENT,
+  PEOPLE_IN_PROJECT_STATEMENT,
+} from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -29,6 +32,19 @@ import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  LimitTransactions,
+  useInMemoryLimitTransactions,
+} from "../TestingUtils/LimitTransactionsInMemory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const config: Record<string, unknown> = {
@@ -152,6 +168,7 @@ beforeEach(() => {
     .mockReturnValue(
       new SubscriptionPlan(PLAN_ID, "price_yearly", "Growth", 20, 200, 1, 14),
     );
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -559,6 +576,7 @@ describe("completed membership writes during a billing outage", () => {
     jest
       .spyOn(UserNotificationRuleService, "addDefaultNotificationRuleForUser")
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   test("returns the saved pending invitation even when the provider returns 429", async () => {
@@ -687,6 +705,19 @@ describe("completed membership writes during a billing outage", () => {
     jest
       .spyOn(TeamMemberService, "getRepository")
       .mockReturnValue({ save } as never);
+
+    /*
+     * The project has a seat limit, so the INSERT is made in the limit's own
+     * transaction, which counts the four people the seat sync counts.
+     */
+    const limitTransactions: LimitTransactions = useInMemoryLimitTransactions({
+      count: (statement: string): number => {
+        return statement === PEOPLE_IN_PROJECT_STATEMENT ? 4 : persisted.length;
+      },
+      save: async (_tableName: string, row: unknown): Promise<unknown> => {
+        return await save(row as TeamMember);
+      },
+    });
     jest
       .spyOn(TeamMemberService, "onTriggerRealtime")
       .mockResolvedValue(undefined);
@@ -704,6 +735,12 @@ describe("completed membership writes during a billing outage", () => {
 
     const saved: TeamMember = await TeamMemberService.create(invitation());
 
+    expect(limitTransactions.events).toEqual([
+      "lock",
+      MEMBERSHIPS_OF_PERSON_STATEMENT,
+      PEOPLE_IN_PROJECT_STATEMENT,
+      "save TeamMember",
+    ]);
     expect(saved).toBe(persisted[0]);
     expect(saved.id?.toString()).toBe(MEMBER_ID.toString());
     expect(saved.userId?.toString()).toBe(USER_ID.toString());

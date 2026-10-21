@@ -43,6 +43,11 @@ import UserService from "./UserService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -61,6 +66,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -216,6 +223,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     scheduledMaintenance: ScheduledMaintenance;
     rules: Array<ScheduledMaintenanceOwnerRule>;
@@ -815,15 +823,6 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
           : Promise.resolve([] as Array<Team>),
       ]);
 
-      const userLines: Array<string> = users.map((u: User) => {
-        const display: string =
-          u.name?.toString() || u.email?.toString() || "Unknown User";
-        return `\n- 👤 ${display}`;
-      });
-      const teamLines: Array<string> = teams.map((t: Team) => {
-        return `\n- 👥 ${t.name?.toString() || "Unnamed Team"}`;
-      });
-
       const ruleNames: Array<string> = matchedRules
         .map((r: ScheduledMaintenanceOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -831,20 +830,6 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
         .filter((n: string) => {
           return n !== "";
         });
-
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
-
-      const ownersPart: string =
-        userLines.length + teamLines.length > 0
-          ? userLines.concat(teamLines).join("")
-          : "\n- (no named owners)";
 
       const inheritedSources: Array<string> = [];
       if (inheritedFromMonitors) {
@@ -865,16 +850,20 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
       if (inheritedFromServices) {
         inheritedSources.push("services");
       }
-      const inheritedNote: string =
+      const inheritedNote: MarkdownText =
         inheritedSources.length > 0
-          ? `\n\n_Some owners were inherited from the event's ${inheritedSources.join(", ")}._`
-          : "";
+          ? mdText`\n\n_Some owners were inherited from the event's ${FeedMarkdown.join(inheritedSources)}._`
+          : FeedMarkdown.empty();
 
-      const feedInfoInMarkdown: string = `🛡️ **Scheduled Maintenance Owner Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAssigned the following owner${
-        userLines.length + teamLines.length === 1 ? "" : "s"
-      } to the event:${ownersPart}${inheritedNote}`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🛡️",
+          ruleKind: "Scheduled Maintenance Owner Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAssigned the following owner${
+        users.length + teams.length === 1 ? "" : "s"
+      } to the event:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id,
@@ -882,7 +871,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -1124,8 +1113,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
     rule: ScheduledMaintenanceOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in scheduled maintenance owner rule ${rule.id}: ${pattern}`,

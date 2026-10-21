@@ -1,69 +1,150 @@
-# Crear un Panel
+# Crear un panel
 
-Para crear un panel, abre **Paneles → Crear Panel**, dale un nombre y ábrelo. El lienzo se abre en modo **Edición**, listo para que empieces a añadir widgets.
+Para crear un panel, abre **Productos → Paneles** y haz clic en **Crear panel**. El cuadro de diálogo **Crear un panel** te pregunta cómo quieres empezar y después un nombre. **Empezar desde cero** te da un panel vacío; una plantilla crea sus widgets, y a menudo sus variables, por ti, y rellena su nombre (numerado, como "Kubernetes Dashboard 2", si el proyecto ya tiene uno). Haz clic en **Crear panel** y se abre el nuevo panel. Uno vacío se abre en su lienzo, con un botón **Añadir widget** para su primer widget.
 
-## El lienzo
+:::cards
+- [Crear el panel](#crear-el-panel): Empezar desde cero o desde una plantilla.
+- [Editar y guardar](#editar-y-guardar): Nada cambia para nadie hasta que haces clic en Guardar cambios.
+- [Añadir un widget](#añadir-un-widget): Elegirlo en el catálogo, configurarlo y colocarlo.
+- [Hacer zoom en un pico](#hacer-zoom-en-un-pico): Arrastra sobre un gráfico para leer todo el panel en ese momento.
+:::
 
-Un panel es una cuadrícula. Los widgets encajan en su lugar: tú decides dónde se sitúa cada uno y qué tamaño tiene. Puedes hacer crecer la página hacia abajo a medida que añades más filas. Cada widget mantiene sus proporciones en pantallas más grandes o más pequeñas.
+## Antes de empezar
 
-## Edición y Vista
+Los propietarios y administradores del proyecto pueden crear y editar todos los paneles. Los demás necesitan un permiso de equipo: `CreateDashboard` para crear paneles y `EditDashboard` para cambiarlos. Los miembros y observadores del proyecto pueden leer los paneles sin ninguno de los dos. Quien no puede editar un panel sigue abriendo su menú **⋯**, donde **Editar panel** está bloqueado e indica qué permiso necesita.
 
-El interruptor en el encabezado alterna entre dos modos:
+## Crear el panel
 
-- **Edición** — la paleta de widgets está abierta, puedes arrastrar widgets, cambiar su tamaño y hacer clic en cualquier widget para cambiar su configuración.
-- **Vista** — el panel es de solo lectura, exactamente como lo ven los visitantes y otros miembros del equipo. Usa esto para comprobar el resultado antes de compartir.
+:::steps
+### Elegir cómo empezar
 
-Es el mismo panel en ambos modos. No hay un paso separado de "publicar"; cada edición está en vivo en el momento en que se guarda.
+Abre **Productos → Paneles** y haz clic en **Crear panel**. El cuadro de diálogo **Crear un panel** se abre en **Empezar desde cero**, un panel vacío para tus propios widgets. Debajo, **O empieza con una plantilla** muestra seis plantillas **Recomendadas**.
+
+### Elegir una plantilla
+
+Haz clic en una plantilla para ver lo que añade: sus widgets, con los nombres de **Añadir widget**, y las variables con las que lo acotas en su barra de herramientas. Para las demás, elige una categoría junto al cuadro de búsqueda, o **Todas las plantillas**, o escribe en **Buscar plantillas…**: cada palabra que escribes tiene que coincidir. Después haz clic en **Usar esta plantilla**, o haz doble clic en la plantilla. En el cuadro de búsqueda, las flechas eligen una plantilla e **Intro** la usa.
+
+### Poner nombre al panel
+
+El nombre de una plantilla viene rellenado, numerado después de los nombres que el proyecto ya tiene. **Empezar desde cero** lo deja vacío: escribe uno. La descripción es opcional, está plegada en **Más campos**, y puedes añadirla más tarde en la página **Vista general** del panel. **Atrás** te lleva a las plantillas tal como las dejaste.
+
+### Crearlo
+
+Haz clic en **Crear panel**. Se abre el nuevo panel: los widgets de una plantilla de inmediato, o un lienzo vacío con **Añadir widget** encima.
+:::
+
+Las plantillas, según la categoría en la que las muestra el selector:
+
+| Categoría | Plantillas |
+| --- | --- |
+| Monitoreo y APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Respuesta a incidentes | Incident Dashboard, Alert Dashboard |
+| Infraestructura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+
+**Recomendadas** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard y Metrics Dashboard. Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, cámbialo como quieras. La plantilla no vuelve a actualizarlo después.
+
+## Editar y guardar
+
+Un panel se abre en modo de lectura. Para cambiarlo, abre el menú **⋯** de su barra de herramientas y elige **Editar panel**. La barra de herramientas muestra **Editando** junto al nombre, y sustituye el intervalo de tiempo y sus otros controles por **Añadir widget**, **Variables**, **Cancelar** y **Guardar cambios**, con una fila debajo para el **Intervalo de tiempo predeterminado** y la **Actualización automática predeterminada** del panel.
+
+```mermaid title="De leer un panel a cambiarlo, y vuelta"
+flowchart TB
+    view["Modo de lectura: el<br/>panel se abre aquí"] -->|"⋯ → Editar panel"| edit["Edición: añadir,<br/>cambiar, mover y<br/>redimensionar widgets"]
+    edit -->|"Guardar cambios"| saved["Todos ven<br/>los cambios"]
+    edit -->|"Cancelar, luego<br/>Descartar cambios"| dropped["Nada cambia"]
+    saved --> back["De vuelta al<br/>modo de lectura"]
+    dropped --> back
+```
+
+Tus cambios son solo tuyos hasta que los guardas. Nada se guarda mientras editas, así que los demás siguen viendo el panel tal como estaba.
+
+- **Guardar cambios** guarda los widgets, sus posiciones y tamaños, las variables, y el intervalo de tiempo y la actualización automática predeterminados, todo a la vez, y vuelve al modo de lectura. Si el guardado se rechaza, por ejemplo porque has perdido el permiso entretanto, sigues en modo de edición con tus cambios, y el motivo aparece encima de la cuadrícula.
+- **Cancelar** pregunta primero, porque descarta tus cambios: **Descartar cambios** vuelve al panel tal como se guardó, y **Seguir editando** te devuelve a tu trabajo.
+
+Mientras editas, la actualización automática se pausa, y un intervalo de tiempo con zoom vuelve al intervalo que elegiste.
 
 ## Añadir un widget
 
-1. Haz clic en el botón **+** para abrir la paleta de widgets.
-2. Elige el tipo de widget. Consulta [Widgets](/docs/dashboards/widgets) para el catálogo.
-3. El widget aparece en el lienzo.
-4. Haz clic en el icono de engranaje en el widget para abrir su configuración.
-5. Elige la fuente de datos (una métrica, un filtro de lista, un párrafo de texto, etc.) y cualquier opción de visualización.
-6. Arrastra el widget para moverlo. Arrastra una esquina para cambiar su tamaño.
+:::steps
+### Abrir el catálogo de widgets
 
-## De dónde provienen los datos
+Haz clic en **Añadir widget**: en la barra de herramientas mientras editas, o en el lienzo de un panel vacío. El catálogo agrupa sus widgets según lo que muestran. Escribe en su cuadro de búsqueda para encontrar uno por su nombre o su finalidad ("error budget", "pods"), y pulsa Intro para añadir el primer resultado.
 
-La mayoría de los widgets leen desde uno de tres lugares:
+### Elegir un widget
 
-- **Métricas** — elige una métrica y una agregación (promedio, máximo, conteo, percentil). Añade filtros. Elige cómo agrupar el resultado. Este es el mismo constructor de consultas que ves en otras partes de OneUptime.
-- **Listas en vivo** — incidentes, alertas, monitores, pods de Kubernetes, contenedores de Docker, hosts. Cada widget de lista toma un filtro y muestra los elementos que coinciden, actualizados en vivo.
-- **Contenido estático** — el widget **Texto** toma un bloque de Markdown. Úsalo para encabezados, contexto, enlaces a runbooks o notas temporales durante un incidente.
+Haz clic en él. El widget se coloca en el primer hueco libre de la cuadrícula en el que cabe, y se abren sus ajustes.
 
-## Umbrales y formato
+### Definir lo que muestra
 
-Los widgets de un solo valor (**Valor**, **Indicador**) te permiten configurar:
+El cuadro de diálogo de ajustes muestra una **Vista previa en vivo** del widget encima de sus ajustes, y la vista previa sigue cada cambio que haces. Elige lo que lee el widget (una consulta de métricas, un filtro, un texto) y su aspecto, y haz clic en **Hecho**.
 
-- Un **umbral de advertencia** — el color se vuelve amarillo cuando el valor lo supera.
-- Un **umbral crítico** — el color se vuelve rojo cuando el valor lo supera.
+### Colocarlo
 
-Los gráficos te permiten configurar la unidad del eje Y, elegir dónde va la leyenda y decidir si las series se apilan unas sobre otras o se superponen. Las tablas te permiten elegir las columnas a mostrar y cuántas filas.
+Arrastra el widget para moverlo, y arrastra sus bordes o esquinas para cambiar su tamaño. Consulta [Los widgets en la cuadrícula](#los-widgets-en-la-cuadrícula).
+:::
 
-## Rango de tiempo y actualización
+[Widgets del panel](/docs/dashboards/widgets) enumera cada widget y sus ajustes.
 
-En la parte superior del panel, dos controles afectan a cada widget de métrica:
+## Los widgets en la cuadrícula
 
-- **Rango de tiempo** — un preajuste (última hora, 24 horas, 7 días, 30 días) o un rango personalizado. Cada gráfico y número usa esta ventana.
-- **Actualización** — con qué frecuencia los widgets vuelven a consultar. Apagado, 5s, 10s, 30s, 1m, 5m, 15m. Las listas en vivo se actualizan por su cuenta independientemente de este ajuste.
+El lienzo es una cuadrícula de doce columnas de ancho. Los widgets se ajustan a ella, y la página crece hacia abajo a medida que añades filas. Mientras arrastras un widget, un contorno discontinuo muestra dónde va a quedar, con su columna y su fila; mientras cambias el tamaño de uno, el contorno muestra su tamaño en unidades de la cuadrícula. Los widgets que estorban se apartan, así que dos widgets nunca se solapan.
 
-Los widgets que no usan el rango de tiempo (como un widget de Texto) ignoran ambos controles.
+Cada tipo de widget tiene un tamaño mínimo, para que lo que dibuja siga siendo legible: un gráfico mide al menos seis columnas de ancho y tres filas de alto, mientras que un solo número cabe en una celda.
 
-## Guardar
+Para cambiar un widget más tarde, haz clic en él mientras editas. Sus ajustes se abren de nuevo, con dos botones más en la parte inferior:
 
-El lienzo se guarda por su cuenta mientras trabajas. Un pequeño indicador en el encabezado te dice cuándo se guardó el último cambio. Si vas a hacer un cambio grande, duplica primero el panel para tener una copia segura.
+- **Duplicar widget** añade una copia, con los mismos ajustes, en el primer hueco libre.
+- **Eliminar widget** lo quita, una vez que lo confirmas.
+
+## Intervalo de tiempo y actualización automática
+
+En modo de lectura, el selector de intervalo de tiempo de la barra de herramientas fija la ventana que leen todos los widgets de gráficos, números, registros y trazas. Elige un preajuste, desde los últimos 5 minutos hasta los últimos 3 meses, o un inicio y un fin personalizados. El panel se abre en su intervalo de tiempo predeterminado: la última hora, salvo que alguien que lo edite elija otro.
+
+Las listas de incidentes, alertas, monitores y recursos muestran su estado actual, sea cual sea el intervalo de tiempo.
+
+Junto al intervalo de tiempo, el menú de actualización automática vuelve a leer cada widget cada 5 segundos, 10 segundos, 30 segundos, 1 minuto, 5 minutos o 15 minutos, con una cuenta atrás hasta la siguiente actualización. Déjala desactivada mientras investigas, para que la vista se quede quieta. El panel se abre con su actualización automática predeterminada: desactivada, salvo que alguien que lo edite elija otra.
+
+El selector de intervalo de tiempo, las variables y la actualización automática aparecen en cuanto el panel tiene un widget.
+
+### Los valores predeterminados del panel
+
+Mientras editas el panel, la fila bajo los botones de la barra de herramientas fija con qué lo abre todo el mundo: **Intervalo de tiempo predeterminado**, un preajuste desde los últimos 5 minutos hasta los últimos 3 meses, y **Actualización automática predeterminada**. **Guardar cambios** los guarda con el resto del panel, tanto para tu equipo como para los visitantes de su enlace público. Un inicio y un fin personalizados no pueden ser un valor predeterminado: el panel se quedaría en ese momento para siempre. La fila aparece en cuanto el panel tiene un widget.
+
+Los paneles guardados antes de estos ajustes se abren en la última hora, con la actualización automática que tenían. Mediante la API y Terraform, ambos están en el `dashboardViewConfig` del panel: `timeRange`, un preajuste escrito como en la referencia de la API, por ejemplo `Past 1 Day`, y `refreshInterval`, por ejemplo `1m`. Cualquier otro valor se rechaza.
+
+### Tus propias elecciones
+
+El intervalo de tiempo y la actualización automática que eliges en modo de lectura son solo tuyos, y tu navegador los recuerda para cada panel: una recarga, un reinicio del navegador o el de una pantalla mural abren el panel tal como lo dejaste. Solo se recuerda un preajuste. Un intervalo personalizado o un zoom dura hasta que sales de la página, para que el panel nunca se quede fijo en un momento pasado.
+
+La primera opción de cada selector nombra el valor predeterminado del panel, como en Predeterminado (Último día). Elígela para volver al valor predeterminado: tu navegador olvida tu elección, y el panel vuelve a seguir su valor predeterminado, incluso cuando alguien lo cambia más tarde. Cuando guardas tú mismo nuevos valores predeterminados, los ves al instante.
+
+### Hacer zoom en un pico
+
+No hace falta recurrir al selector de intervalo de tiempo para examinar un pico. Arrastra sobre el tramo interesante de cualquier gráfico de líneas o de áreas y **todo el panel** pasa a esa ventana, igual que si la hubieras elegido en el selector de intervalo de tiempo: cada widget que usa el intervalo de tiempo vuelve a consultar a la vez, así que lees un mismo momento en todo el panel en lugar de un gráfico a una escala distinta de sus vecinos. Las listas en vivo siguen mostrando lo que ocurre ahora, como siempre.
+
+**Haz doble clic en cualquier gráfico** para deshacerlo: el panel vuelve al intervalo que tenía antes de que empezaras a hacer zoom, por muchas veces que hayas profundizado. Mientras hay un zoom activo, aparece un botón **Restablecer zoom** junto al selector de intervalo de tiempo, y hacer doble clic en un panel sin zoom no hace nada.
+
+Una ventana con zoom es fija, así que deja de avanzar mientras la actualización automática está activa; es deliberado, porque una ventana que se desplazara en plena investigación sería peor. Restablece el zoom para que vuelva a avanzar.
+
+El zoom solo funciona en modo de lectura; en modo de edición, arrastrar mueve y redimensiona los widgets. Los gráficos de barras hacen zoom igual (arrastra sobre las barras), y hacer doble clic en uno restablece el panel como cualquier otro gráfico. Solo un arrastre hace zoom: un clic simple en un gráfico nunca cambia el intervalo del panel. Los mismos gestos funcionan en los gráficos de todo OneUptime; consulta [Hacer zoom en un intervalo de tiempo](/docs/telemetry/charts-and-time-ranges).
+
+## Pantalla completa
+
+**⋯ → Pantalla completa** muestra los widgets del panel en toda la pantalla, para una pantalla mural o una reunión. Pulsa Esc para salir.
 
 ## Consejos para paneles que envejecen bien
 
-- **Un tema por panel.** Resiste poner "todo lo que monitorizamos" en una sola página. Unos cuantos paneles enfocados superan a una página gigante.
-- **Pon el widget más importante en la parte superior.** La gente escanea de arriba a abajo: haz que lo primero que vean sea la respuesta a "¿está sano este sistema?".
-- **Etiqueta las secciones con widgets de Texto.** Un breve encabezado cada pocas filas ("Latencia", "Errores", "Capacidad") hace que la página sea legible desde el otro lado de la sala.
-- **Usa variables en lugar de duplicar.** Si estás a punto de construir el mismo panel para un segundo servicio, en su lugar construye un panel con una variable `service`. Consulta [Variables y Filtros](/docs/dashboards/variables).
+- **Un tema por panel.** Unos pocos paneles centrados valen más que una página con todo lo que vigilas.
+- **Pon el widget más importante arriba.** La gente lee de arriba abajo, así que haz que lo primero que vea responda a "¿está todo sano?"
+- **Nombra las secciones con widgets de Texto.** Un encabezado corto cada pocas filas ("Latencia", "Errores", "Capacidad") hace que la página se pueda recorrer de un vistazo desde el otro lado de la sala.
+- **Usa variables en lugar de copias.** Si estás a punto de crear el mismo panel para un segundo servicio, añade en su lugar una variable `service`. Consulta [Variables y filtros del panel](/docs/dashboards/variables).
+- **Haz una copia antes de un cambio grande.** **Duplicar Panel**, en la página **Ajustes** del panel, crea una copia segura en la que probar tus ideas.
 
-## Dónde seguir leyendo
+## Próximos pasos
 
-- [Widgets](/docs/dashboards/widgets) — el catálogo.
-- [Variables y Filtros](/docs/dashboards/variables) — variables, filtros y el rango de tiempo.
-- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — compartir fuera de tu equipo.
-- [Configuración y Permisos](/docs/dashboards/configuration) — propietarios y control de acceso.
+:::cards
+- [Widgets del panel](/docs/dashboards/widgets): Cada widget, sus ajustes y cuál elegir.
+- [Variables y filtros del panel](/docs/dashboards/variables): Un panel para cada servicio, host o cliente.
+- [Compartir y paneles públicos](/docs/dashboards/sharing): Comparte el panel fuera de tu equipo.
+- [Configuración y permisos del panel](/docs/dashboards/configuration): Propietarios, etiquetas, archivado y quién puede hacer qué.
+:::

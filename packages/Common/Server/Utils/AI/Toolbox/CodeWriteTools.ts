@@ -1,12 +1,14 @@
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import URL from "../../../../Types/API/URL";
 import PullRequest from "../../../../Types/CodeRepository/PullRequest";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
+import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import GitHubUtil, {
   GitHubBranchInfo,
   GitHubCommitResult,
@@ -22,6 +24,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { resolveTargetRepository } from "./CodeTools";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
@@ -138,6 +141,20 @@ function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
       );
     }
 
+    /*
+     * The model reads files with their embedded data left out - a data: URL
+     * in a stylesheet reads as "[image omitted: PNG, 2 KB]" (PromptText). A
+     * file written back whole with that note in it would lose the image in
+     * the pull request, so it is refused, with why.
+     */
+    const omittedNote: string | null = PromptText.findNote(content);
+
+    if (omittedNote) {
+      throw new BadDataException(
+        `The new contents of "${filePath}" contain "${omittedNote}". You were shown that note in place of an image or other data embedded in the file, which you cannot read, and writing it would replace the data. Leave this file to a person, or change only files without embedded data.`,
+      );
+    }
+
     // A leading slash or traversal is a path the model invented, not a repo path.
     const normalized: string = filePath.replace(/^\/+/, "");
 
@@ -158,6 +175,32 @@ function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
   }
 
   return changes;
+}
+
+/*
+ * The repository a change is written to must be one the person asking may
+ * change in OneUptime: the gate's CodeRepository update permission, held to
+ * this repository - their labels and their team's blocks - as an update of
+ * it is held (findOneUpdatableById). Reading a repository is not enough to
+ * write to it. The branch, the commit and the pull request are then made by
+ * OneUptime's GitHub app, as every code change OneUptime makes is.
+ */
+async function assertMayChangeRepository(data: {
+  ctx: ToolContext;
+  repository: CodeRepository;
+}): Promise<void> {
+  const changeable: CodeRepository | null =
+    await CodeRepositoryService.findOneUpdatableById({
+      id: data.repository.id!,
+      select: { _id: true },
+      props: data.ctx.props,
+    });
+
+  if (!changeable) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change the repository ${data.repository.organizationName}/${data.repository.repositoryName} in OneUptime, so chat cannot write code to it for you.`,
+    );
+  }
 }
 
 /*
@@ -297,6 +340,7 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
     const changes: Array<GitHubFileChange> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
+    await assertMayChangeRepository({ ctx, repository });
     await assertBranchIsWritable({ repository, branchName });
 
     const commit: GitHubCommitResult = await GitHubUtil.commitFilesToBranch({
@@ -382,6 +426,8 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
 
     const changes: Array<GitHubFileChange> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
+
+    await assertMayChangeRepository({ ctx, repository });
 
     /*
      * The same per-repository open-PR cap the autonomous fix agent obeys. Chat
@@ -470,8 +516,9 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
      * emitting run events, so a null agent is safe there.
      *
      * isRoot because AIAgentTaskPullRequest has no create ACL for a normal
-     * user; the authorization already happened at the tool's permission gate
-     * and at resolveTargetRepository, both under ctx.props.
+     * user: it is OneUptime's own record of the pull request it opened. The
+     * authorization already happened at the tool's permission gate and at
+     * assertMayChangeRepository, both under ctx.props.
      */
     const record: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
     record.projectId = ctx.projectId;

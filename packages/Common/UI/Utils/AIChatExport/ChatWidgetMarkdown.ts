@@ -8,6 +8,7 @@ import {
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
+import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import {
   ExportChartPoint,
   ExportChartSeries,
@@ -39,9 +40,12 @@ import {
  * Values are formatted through ChatWidgetData so the text matches the chat.
  */
 
-// A cell is escaped so a stray pipe or newline cannot break the table shape.
+/*
+ * A cell is placed with markdownTableCell, so a stray pipe - whatever
+ * backslashes come before it - or a line break cannot break the table shape.
+ */
 function escapeTableCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  return markdownTableCell(value);
 }
 
 function markdownTable(

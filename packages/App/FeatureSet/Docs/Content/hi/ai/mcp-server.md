@@ -1,73 +1,166 @@
-# MCP Server
+# MCP सर्वर
 
-OneUptime Model Context Protocol (MCP) Server, LLMs को आपके OneUptime instance तक सीधी पहुंच प्रदान करता है, जिससे AI-संचालित monitoring, incident management और observability operations सक्षम होते हैं।
+OneUptime का MCP सर्वर किसी AI सहायक को आपके OneUptime प्रोजेक्ट के साथ सीधे काम करने देता है। Claude, Cursor, GitHub Copilot वाला VS Code या Model Context Protocol (MCP) का कोई भी दूसरा क्लाइंट कनेक्ट करें, और उससे किसी घटना की पड़ताल करने, लॉग और ट्रेस क्वेरी करने, किसी अलर्ट को स्वीकार करने या कोई मॉनिटर सेट करने को कहें: वह आपकी अनुमतियों से, या किसी API कुंजी की अनुमतियों से, OneUptime के टूल कॉल करता है।
 
-## OneUptime MCP Server क्या है?
-
-OneUptime MCP Server, Large Language Models (LLMs) और आपके OneUptime instance के बीच एक bridge है। यह Model Context Protocol (MCP) को implement करता है, जिससे Claude जैसे AI assistants आपके monitoring infrastructure के साथ सीधे interact कर सकते हैं।
+:::cards
+- [क्लाइंट कनेक्ट करें](#क्लाइंट-कनेक्ट-करें): अपने क्लाइंट को सर्वर का पता दें और साइन इन करें।
+- [OneUptime से साइन इन करना](#oneuptime-से-साइन-इन-करना): कनेक्टेड क्लाइंट क्या कर सकता है, और उसे डिस्कनेक्ट कैसे करें।
+- [अपनी API कुंजी पाना](#अपनी-api-कुंजी-पाना): ऐसे एजेंट के लिए जो बिना निगरानी चलता है।
+- [समस्या निवारण](#समस्या-निवारण): साइन-इन, अनुमति और कनेक्शन की समस्याएं।
+:::
 
 ## यह कैसे काम करता है
 
-MCP server आपके OneUptime instance के साथ hosted है और Streamable HTTP transport के माध्यम से accessible है। कोई local installation आवश्यक नहीं है।
+MCP सर्वर हर OneUptime इंस्टेंस का हिस्सा है, डैशबोर्ड वाले पते पर ही `/mcp` पर, और streamable HTTP ट्रांसपोर्ट इस्तेमाल करता है। कुछ इंस्टॉल नहीं करना है।
 
-**Cloud उपयोगकर्ता**: `https://oneuptime.com/mcp`
-**Self-Hosted उपयोगकर्ता**: `https://your-oneuptime-domain.com/mcp`
+- **OneUptime Cloud**: `https://oneuptime.com/mcp`
+- **सेल्फ-होस्टेड**: `https://your-oneuptime-domain.com/mcp`
 
-## मुख्य विशेषताएं
+```mermaid title="क्लाइंट आपके प्रोजेक्ट तक कैसे पहुंचता है"
+flowchart TB
+    C["आपका MCP क्लाइंट:<br/>Claude, Cursor,<br/>VS Code"] -->|"/mcp पर HTTP"| M["OneUptime का<br/>MCP सर्वर"]
+    M --> W{"क्लाइंट अपनी पहचान<br/>कैसे देता है?"}
+    W -->|"उसने साइन<br/>इन किया"| P["आपके रूप में,<br/>चुने गए<br/>प्रोजेक्ट में"]
+    W -->|"एक API कुंजी"| K["कुंजी के रूप में,<br/>कुंजी के<br/>प्रोजेक्ट में"]
+    W -->|"दोनों में<br/>से कोई नहीं"| U["सिर्फ़ सार्वजनिक<br/>स्टेटस पेज के टूल"]
+    P --> A["OneUptime का API,<br/>ठीक उन्हीं<br/>अनुमतियों के साथ"]
+    K --> A
+```
 
-- **~155 Tools**: 22 resource types (incidents, alerts, monitors, status pages, on-call और अधिक) के लिए पूर्ण CRUD tools, read-only telemetry tools, साथ ही workflow और helper tools
-- **Real-time Operations**: real-time में resources बनाएं, पढ़ें, अपडेट करें और हटाएं
-- **Type-safe Interface**: व्यापक input validation के साथ पूरी तरह typed
-- **सुरक्षित Authentication**: उचित error handling के साथ per-request API key authentication
-- **Safety Annotations**: read-only tools पर `readOnlyHint` और delete tools पर `destructiveHint` लगे होते हैं, जिससे MCP clients सुरक्षित calls को स्वतः approve कर सकते हैं और destructive calls से पहले पूछ सकते हैं
-- **आसान Integration**: Claude Desktop और अन्य MCP-compatible clients के साथ काम करता है
-- **Design से ही Stateless**: कोई session IDs नहीं — हर request self-contained है, इसलिए server load balancers और multi-replica deployments के पीछे भी काम करता है
+सर्वर स्टेटलेस है: वह कोई सेशन id जारी नहीं करता, और हर अनुरोध अपने आप में पूरा होता है, इसलिए वह लोड बैलेंसर के पीछे और कई रेप्लिका के साथ काम करता है।
 
-## आप क्या कर सकते हैं
+## टूल क्या-क्या करते हैं
 
-OneUptime MCP Server के साथ, AI assistants आपकी मदद कर सकते हैं:
+- **मॉनिटर**: मॉनिटर बनाएं और कॉन्फ़िगर करें, उनकी स्थिति जांचें और उनका इतिहास देखें।
+- **घटना प्रतिक्रिया**: घटनाएं बनाएं, स्वीकार करें और सुलझाएं, आंतरिक या सार्वजनिक नोट जोड़ें, और समाधान तक उनका पीछा करें।
+- **अलर्ट**: अलर्ट स्वीकार करें और सुलझाएं, नोट जोड़ें, और अलर्ट की स्थितियां और गंभीरताएं प्रबंधित करें।
+- **टीमें और ऑन-कॉल**: टीमें और ऑन-कॉल नीतियां प्रबंधित करें।
+- **स्टेटस पेज**: स्टेटस पेज प्रबंधित करें और घोषणाएं पोस्ट करें।
+- **निर्धारित रखरखाव**: रखरखाव इवेंट बनाएं और प्रबंधित करें।
+- **टेलीमेट्री**: लॉग, मेट्रिक्स, ट्रेस, अपवाद, मॉनिटर लॉग, सुरक्षा इवेंट और भी बहुत कुछ क्वेरी करें, सिर्फ़ पढ़ने के लिए।
 
-- **Monitor Management**: monitors बनाएं और configure करें, उनकी status जांचें और status history की समीक्षा करें
-- **Incident Response**: incidents बनाएं, acknowledge और resolve करें, internal या public notes जोड़ें और resolution track करें
-- **Team Operations**: teams और on-call policies प्रबंधित करें
-- **स्थिति पृष्ठ**: status pages प्रबंधित करें और announcements बनाएं
-- **Alerting**: alerts को acknowledge और resolve करें, alert notes जोड़ें और alert states तथा severities प्रबंधित करें
-- **अनुसूचित रखरखाव**: scheduled maintenance events बनाएं और प्रबंधित करें
-- **टेलीमेट्री**: logs, metrics, traces, exceptions और monitor logs query करें (read-only)
+27 तरह के रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं, 9 तरह की टेलीमेट्री के लिए सूचीबद्ध करने और गिनने के टूल हैं, और घटना प्रतिक्रिया के लिए बने टूल हैं। सिर्फ़ पढ़ने वाले टूल पर `readOnlyHint` होता है, कुछ भी बदलने वाले हर टूल पर `destructiveHint` होता है, और सिर्फ़ सार्वजनिक स्टेटस पेज के टूल पर `openWorldHint` होता है, ताकि क्लाइंट सिर्फ़ पढ़ने वाली कॉल खुद चला सके और कोई भी बदलाव करने से पहले आपसे पूछे। विफल टूल कॉल MCP प्रोटोकॉल त्रुटि के रूप में नहीं, बल्कि टूल नतीजे (`isError: true`) के रूप में `statusCode`, विवरण और एक सुझाव के साथ लौटती है, ताकि एजेंट विफलता पढ़कर खुद को सुधार सके।
 
-## आवश्यकताएं
+## शुरू करने से पहले
 
-- OneUptime instance (cloud या self-hosted)
-- MCP-compatible client (Claude Desktop, VS Code with GitHub Copilot, आदि)
-- Valid OneUptime API key (केवल authenticated operations के लिए आवश्यक - public tools इसके बिना काम करते हैं)
+- एक OneUptime इंस्टेंस: OneUptime Cloud या सेल्फ-होस्टेड।
+- एक MCP क्लाइंट, जैसे Claude Code, Claude, GitHub Copilot वाला VS Code या Cursor।
+- साइन इन करने के लिए एक OneUptime खाता, या बिना निगरानी चलने वाले एजेंट के लिए एक OneUptime API कुंजी। सार्वजनिक स्टेटस पेज के टूल को इनमें से कुछ नहीं चाहिए।
+- OneUptime Cloud पर Growth प्लान या उससे ऊपर: MCP क्लाइंट कनेक्ट करना उन्हीं प्लान पर उपलब्ध है जिन पर API कुंजियां हैं।
 
-## अपनी API Key प्राप्त करना
+## क्लाइंट कनेक्ट करें
 
-1. अपने OneUptime instance में लॉग इन करें
-2. **सेटिंग्स** → **API कुंजियाँ** पर जाएं
-3. **Create API Key** पर क्लिक करें
-4. एक नाम दें (जैसे "MCP Server")
-5. अपने use case के लिए उचित permissions चुनें
-6. generated API key copy करें
+क्लाइंट को सर्वर का पता दें और कुछ नहीं। जब उसे पहली बार आपके डेटा की ज़रूरत होती है, तो वह साइन इन के लिए आपके ब्राउज़र में OneUptime खोलता है (देखें [OneUptime से साइन इन करना](#oneuptime-से-साइन-इन-करना))। सेल्फ-होस्टेड इंस्टेंस पर `https://oneuptime.com/mcp` की जगह `https://your-oneuptime-domain.com/mcp` इस्तेमाल करें।
 
-API keys project-scoped होती हैं: MCP server आपकी key से आपका project स्वयं पहचान लेता है, इसलिए create tools को कभी भी `projectId` argument की आवश्यकता नहीं होती।
+:::tabs
+@tab Claude Code
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+फिर Claude Code के अंदर `/mcp` चलाएं और साइन इन के लिए **oneuptime** चुनें।
+@tab Claude
+Claude में **Customize → Connectors** खोलें, **Add custom connector** चुनें, और `https://oneuptime.com/mcp` डालें। जब Claude को पहली बार आपके डेटा की ज़रूरत होती है, तो वह आपसे OneUptime में साइन इन करने को कहता है।
+@tab VS Code
+इसे अपने MCP कॉन्फ़िगरेशन में जोड़ें (यह कहां रहता है, यह [GitHub Copilot के साथ VS Code](#github-copilot-के-साथ-vs-code) में देखें)। सर्वर शुरू करने पर VS Code साइन इन के लिए OneUptime खोलता है:
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+:::
 
-> **चेतावनी — किसी AI agent को कभी master key न दें।** OneUptime की *master* API key भी इस header पर स्वीकार की जाती है और यह instance-व्यापी admin access प्रदान करती है। हमेशा उस project API key का उपयोग करें जिसमें agent के लिए आवश्यक न्यूनतम privilege हो (सभी `get_`/`list_`/`count_` tools के लिए एक read-only key पर्याप्त है)।
+MCP ऑथराइज़ेशन का समर्थन करने वाला कोई भी दूसरा क्लाइंट इसी तरह काम करता है: उसे पता दें और बाकी सब वह खुद खोज लेता है। प्रोटोकॉल के लिए [साइन इन करना (OAuth 2.1)](#साइन-इन-करना-oauth-21) देखें।
 
-## Configuration
+डैशबोर्ड में भी ये चरण हैं, आपके इंस्टेंस का पता पहले से भरा हुआ: **प्रोजेक्ट सेटिंग्स → एआई → MCP सर्वर**। और किसी भी संसाधन (मॉनिटर, घटना, स्टेटस पेज वगैरह) से, उसके साइड मेन्यू में **डेवलपर** खोलें और **AI सहायक** चुनें: वह पेज ऐसे प्रॉम्प्ट भी सुझाता है जिनमें संसाधन और उसकी ID का नाम होता है, ताकि सहायक उसे तुरंत ढूंढ ले। जिस संसाधन के लिए MCP सर्वर में अभी कोई टूल नहीं है, जैसे वर्कफ़्लो, उसके लिए पेज दिखाता है कि कमांड चला सकने वाला सहायक इसके बजाय REST API के ज़रिए उसके साथ कैसे काम कर सकता है।
 
-### Claude Desktop Configuration
+## OneUptime से साइन इन करना
 
-अपनी Claude Desktop configuration फ़ाइल खोजें:
+कनेक्ट करने का सबसे आसान तरीका है अपने MCP क्लाइंट को सर्वर का पता देना और कुछ नहीं। जब क्लाइंट को पहली बार आपके डेटा की ज़रूरत होती है, तो वह आपके ब्राउज़र में एक OneUptime पेज खोलता है:
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-**Linux**: `~/.config/Claude/claude_desktop_config.json`
+:::steps
+1. अगर आप पहले से साइन इन नहीं हैं, तो OneUptime में साइन इन करें।
+2. वह प्रोजेक्ट चुनें जिसमें क्लाइंट को काम करना है।
+3. **पढ़ना और लिखना** या **केवल पढ़ना** चुनें।
+4. **अधिकृत करें** पर क्लिक करें।
+:::
 
-### OneUptime Cloud के लिए
+इसके बाद क्लाइंट उस प्रोजेक्ट में आपके रूप में काम करता है। कोई API कुंजी बनाने, कॉपी करने या बदलने की ज़रूरत नहीं है, और कोई भी गुप्त चीज़ कॉन्फ़िगरेशन फ़ाइल में नहीं रखी जाती।
 
-निम्नलिखित configuration जोड़ें:
+कनेक्टेड क्लाइंट क्या कर सकता है:
 
+- **उसके पास आपकी अनुमतियां हैं, इससे ज़्यादा कभी नहीं।** प्रोजेक्ट में आपकी टीमें आपको जो करने देती हैं, वही क्लाइंट कर सकता है। अगर आपकी भूमिका बदलती है या आप प्रोजेक्ट छोड़ते हैं, तो यह क्लाइंट के अगले ही अनुरोध से लागू होता है। प्रोजेक्ट छोड़ने पर क्लाइंट भी डिस्कनेक्ट हो जाता है: उसका ऑथराइज़ेशन हटा दिया जाता है, और प्रोजेक्ट में लौटने पर आप उसे फिर से कनेक्ट करते हैं।
+- **केवल पढ़ने का मतलब है केवल पढ़ना।** केवल पढ़ने के लिए अधिकृत क्लाइंट `get_`, `list_` और `count_` टूल इस्तेमाल कर सकता है। बनाने, अपडेट करने, हटाने, स्वीकार करने या सुलझाने वाले टूल अस्वीकार किए जाते हैं, MCP सर्वर द्वारा भी और उसके पीछे के OneUptime API द्वारा भी। आप किसी क्लाइंट को उसके मांगे से ज़्यादा एक्सेस कभी नहीं दे सकते।
+- **यह एक प्रोजेक्ट के लिए है।** दूसरे प्रोजेक्ट को इस्तेमाल करने के लिए, क्लाइंट को फिर से कनेक्ट करें और वह प्रोजेक्ट चुनें।
+- **यह सिर्फ़ MCP सर्वर के ज़रिए काम करता है।** क्लाइंट का एक्सेस टोकन MCP एंडपॉइंट स्वीकार करता है और कहीं और नहीं। इसका इस्तेमाल OneUptime REST API को सीधे कॉल करने के लिए नहीं किया जा सकता।
+- **इंस्टेंस एडमिनिस्ट्रेटर को कोई खास बर्ताव नहीं मिलता।** मास्टर एडमिन द्वारा कनेक्ट किए गए क्लाइंट के पास वही होता है जो उस व्यक्ति की टीमें प्रोजेक्ट में देती हैं, पूरे इंस्टेंस का एक्सेस नहीं।
+
+### कनेक्टेड क्लाइंट प्रबंधित करना
+
+साइन इन करके कनेक्ट किया गया हर क्लाइंट **प्रोजेक्ट सेटिंग्स → एआई → MCP सर्वर** पर, **कनेक्ट किए गए MCP क्लाइंट** के तहत सूचीबद्ध होता है, इस जानकारी के साथ कि उसे किसने कनेक्ट किया, वह क्या कर सकता है और आखिरी बार कब इस्तेमाल हुआ। आप वे क्लाइंट देखते हैं जिन्हें आपने कनेक्ट किया; प्रोजेक्ट के ओनर और एडमिन सबके क्लाइंट देखते हैं।
+
+किसी क्लाइंट को साइन आउट करने के लिए **Disconnect** पर क्लिक करें। वह तुरंत काम करना बंद कर देता है।
+
+क्लाइंट तब तक कनेक्टेड रहता है जब तक उसका इस्तेमाल होता रहे। जिसका 30 दिनों से इस्तेमाल नहीं हुआ, उसे फिर से साइन इन करना होगा।
+
+### कौन क्लाइंट कनेक्ट कर सकता है, यह तय करना
+
+डिफ़ॉल्ट रूप से प्रोजेक्ट का हर सदस्य MCP क्लाइंट कनेक्ट कर सकता है। किसी टीम के सदस्यों को ऐसा करने से रोकने के लिए, टीम का **अनुमतियाँ** पेज खोलें, सबसे नीचे **और सेटिंग्स** खोलें, और **अनुमतियां अवरुद्ध करें** के तहत **Authorize MCP Client** अनुमति जोड़ें। उन सदस्यों के पहले से कनेक्ट किए क्लाइंट तुरंत काम करना बंद कर देते हैं।
+
+अगर प्रोजेक्ट को सिंगल साइन-ऑन चाहिए, तो किसी क्लाइंट को अधिकृत करने से पहले अपने ब्राउज़र में SSO से प्रोजेक्ट में साइन इन करें। क्लाइंट का कनेक्शन उतनी ही देर चलता है जितना वह SSO साइन-इन; जब वह खत्म हो जाए, या जिस SSO प्रदाता से आपने साइन इन किया था वह बंद या हटा दिया जाए, तो क्लाइंट को फिर से कनेक्ट करें।
+
+OneUptime Cloud पर MCP क्लाइंट कनेक्ट करना उन्हीं प्लान पर उपलब्ध है जिन पर API कुंजियां हैं (Growth और उससे ऊपर)।
+
+Enterprise Edition में, कनेक्टेड क्लाइंट का किया हर बदलाव ऑडिट लॉग में उसे कनेक्ट करने वाले व्यक्ति के नाम से, क्लाइंट के नाम के साथ दर्ज होता है। API कुंजी से किए गए बदलाव कुंजी का नाम दिखाते हैं।
+
+## अपनी API कुंजी पाना
+
+बिना निगरानी चलने वाले एजेंट के लिए API कुंजी इस्तेमाल करें, जैसे कोई निर्धारित जॉब या CI पाइपलाइन, जहां साइन इन करने के लिए कोई मौजूद नहीं होता।
+
+:::steps
+### कुंजी बनाएं
+
+**प्रोजेक्ट सेटिंग्स → उन्नत → API कुंजियाँ** पर जाएं और **API कुंजी बनाएँ** पर क्लिक करें। उसे एक नाम दें, जैसे "MCP Server"।
+
+### चुनें कि वह क्या कर सकती है
+
+**एक्सेस** के तहत, सिर्फ़ पढ़ने वाले एजेंट के लिए **Viewer** चुनें, या बनाने, अपडेट करने और हटाने वाले एजेंट के लिए **Project Admin** (देखें [API कुंजी की अनुमतियां](#api-कुंजी-की-अनुमतियां))।
+
+### कुंजी कॉपी करें
+
+**API कुंजी बनाएँ** पर क्लिक करें: कुंजी का पेज खुलता है। वहां से कुंजी कॉपी करें।
+:::
+
+API कुंजियां एक प्रोजेक्ट की होती हैं: MCP सर्वर प्रोजेक्ट को कुंजी से लेता है, इसलिए बनाने वाले टूल को कभी `projectId` आर्ग्युमेंट की ज़रूरत नहीं पड़ती।
+
+> [!WARNING]
+> किसी AI एजेंट को कभी मास्टर कुंजी न दें। OneUptime की मास्टर API कुंजी भी इस हेडर पर स्वीकार की जाती है और पूरे इंस्टेंस का एडमिन एक्सेस देती है। हमेशा प्रोजेक्ट API कुंजी इस्तेमाल करें, उतनी ही अनुमति के साथ जितनी एजेंट को चाहिए: हर `get_`, `list_` और `count_` टूल के लिए सिर्फ़ पढ़ने वाली कुंजी काफ़ी है।
+
+## API कुंजी से कनेक्ट करना
+
+कुंजी `x-api-key` हेडर में भेजें। API कुंजी वाले अनुरोध से कभी साइन इन करने को नहीं कहा जाता। सेल्फ-होस्टेड इंस्टेंस पर `oneuptime.com` की जगह अपना डोमेन इस्तेमाल करें।
+
+:::tabs
+@tab Claude Code
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-api-key: your-api-key-here"
+```
+@tab Claude Desktop
+इसे `claude_desktop_config.json` में जोड़ें, जो macOS पर `~/Library/Application Support/Claude/` में, Windows पर `%APPDATA%\Claude\` में या Linux पर `~/.config/Claude/` में है:
 ```json
 {
   "mcpServers": {
@@ -81,17 +174,35 @@ API keys project-scoped होती हैं: MCP server आपकी key स�
   }
 }
 ```
-
-### Self-Hosted OneUptime के लिए
-
-`oneuptime.com` को अपने OneUptime domain से बदलें:
-
+@tab VS Code
+`"password": true` वाला इनपुट वेरिएबल कुंजी को सादे टेक्स्ट में रखने के बजाय सर्वर शुरू होने पर उसे मांगता है:
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "${input:oneuptime-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "oneuptime-api-key",
+      "description": "OneUptime API Key",
+      "password": true
+    }
+  ]
+}
+```
+@tab Cursor
 ```json
 {
   "mcpServers": {
     "oneuptime": {
-      "transport": "streamable-http",
-      "url": "https://your-oneuptime-domain.com/mcp",
+      "url": "https://oneuptime.com/mcp",
       "headers": {
         "x-api-key": "your-api-key-here"
       }
@@ -99,10 +210,50 @@ API keys project-scoped होती हैं: MCP server आपकी key स�
   }
 }
 ```
+:::
 
-### Public Access (API Key के बिना)
+## GitHub Copilot के साथ VS Code
 
-केवल public tools (status page जानकारी, help) का उपयोग करने के लिए, आप API key के बिना connect कर सकते हैं:
+VS Code 1.99 और उसके बाद के संस्करण GitHub Copilot Chat में MCP सर्वर को सीधे सपोर्ट करते हैं।
+
+:::steps
+### जांचें कि आपको क्या चाहिए
+
+VS Code 1.99 या उसके बाद का संस्करण, GitHub Copilot एक्सटेंशन इंस्टॉल और साइन इन के साथ, और GitHub Copilot Chat चालू।
+
+### MCP कॉन्फ़िगरेशन खोलें
+
+`Ctrl+Shift+P` (macOS पर `Cmd+Shift+P`) दबाएं, "MCP: Open User Configuration" टाइप करें और Enter दबाएं। इससे `mcp.json` फ़ाइल खुलती है, या बनती है। सिर्फ़ एक वर्कस्पेस के लिए, उसके अंदर इसके बजाय `.vscode/mcp.json` बनाएं।
+
+### OneUptime जोड़ें
+
+ऊपर वाला VS Code कॉन्फ़िगरेशन पेस्ट करें: साइन इन के लिए बिना कुंजी वाला, या API कुंजी वाला।
+
+### सर्वर शुरू करें
+
+`Ctrl+Shift+P` (macOS पर `Cmd+Shift+P`) दबाएं, "MCP: List Servers" टाइप करें, और उसे शुरू करने के लिए **oneuptime** चुनें। VS Code पहली बार सर्वर पर भरोसा करने को कहता है, फिर साइन इन करने या अपनी API कुंजी डालने को।
+
+### Copilot से पूछें
+
+GitHub Copilot Chat को एजेंट मोड में खोलें और पूछें, उदाहरण के लिए "OneUptime में मेरे कौन-से मॉनिटर हैं?", "हाल की घटनाएं दिखाओ" या "https://example.com के लिए एक नया मॉनिटर बनाओ"।
+:::
+
+## ऑथेंटिकेशन
+
+MCP सर्वर तीन तरीकों से काम करता है।
+
+### सार्वजनिक टूल (ऑथेंटिकेशन की ज़रूरत नहीं)
+
+API कुंजी या साइन-इन के बिना, क्लाइंट सार्वजनिक टूल इस्तेमाल कर सकता है:
+
+- **`oneuptime_help`**: OneUptime के MCP टूल के बारे में मदद और मार्गदर्शन
+- **`oneuptime_list_resources`**: संसाधन, और हर एक के साथ आप क्या कर सकते हैं
+- **`get_public_status_page_overview`**: किसी सार्वजनिक स्टेटस पेज का अवलोकन
+- **`get_public_status_page_incidents`**: किसी सार्वजनिक स्टेटस पेज की घटनाएं
+- **`get_public_status_page_scheduled_maintenance`**: उसके निर्धारित रखरखाव इवेंट
+- **`get_public_status_page_announcements`**: उसकी घोषणाएं
+
+सार्वजनिक स्टेटस पेज के टूल किसी स्टेटस पेज की ID (एक UUID) या उसका डोमेन नाम लेते हैं। सिर्फ़ इन्हें इस्तेमाल करने के लिए, पते के साथ और बिना क्रेडेंशियल के कनेक्ट करें:
 
 ```json
 {
@@ -115,151 +266,79 @@ API keys project-scoped होती हैं: MCP server आपकी key स�
 }
 ```
 
-यह configuration authentication की आवश्यकता के बिना public status page tools और help resources तक पहुंच की अनुमति देती है।
+किसी स्टेटस पेज के ओनर उस पेज के लिए MCP एक्सेस बंद कर सकते हैं: स्टेटस पेज पर, उसके साइड मेन्यू के **एआई** सेक्शन में **MCP** खोलें और **MCP सर्वर सक्षम करें** बंद करें। स्विच बदलते ही सहेज लिया जाता है। MCP एक्सेस डिफ़ॉल्ट रूप से चालू है। जब तक यह बंद है, चारों `get_public_status_page_*` टूल उस स्टेटस पेज के लिए त्रुटि लौटाते हैं; स्टेटस पेज की वेबसाइट, उसकी RSS फ़ीड और उसका सार्वजनिक JSON API प्रभावित नहीं होते, और साइन-इन मांगने वाले स्टेटस पेज टूल (`get_status_page`, `list_status_pages` वगैरह) पेज के अपने प्रोजेक्ट के लिए काम करते रहते हैं।
 
-### VS Code with GitHub Copilot
+### साइन इन करना (OAuth 2.1)
 
-VS Code, GitHub Copilot (version 1.99+) के साथ MCP servers को natively support करता है। इससे Copilot सीधे OneUptime डेटा तक पहुंच सकता है।
+हर दूसरे टूल को यह जानना होता है कि कौन कॉल कर रहा है। जो क्लाइंट कोई क्रेडेंशियल नहीं भेजता और इनमें से किसी को कॉल करता है, उसे `401 Unauthorized` मिलता है, एक `WWW-Authenticate` हेडर के साथ जो सर्वर के सुरक्षित संसाधन मेटाडेटा की ओर इशारा करता है। यही वह संकेत है जिस पर MCP क्लाइंट आपको साइन इन कराता है; `initialize`, `tools/list` और सार्वजनिक टूल इसे कभी नहीं मांगते।
 
-#### चरण 1: आवश्यकताएं
+सर्वर [MCP ऑथराइज़ेशन विनिर्देश](https://modelcontextprotocol.io/specification/latest/basic/authorization) लागू करता है:
 
-- VS Code version 1.99 या बाद का
-- GitHub Copilot extension इंस्टॉल और activated
-- GitHub Copilot Chat सक्षम
+- **फ़्लो**: PKCE (सिर्फ़ `S256`) के साथ OAuth 2.1 authorization code। एक्सेस टोकन `Authorization: Bearer` के रूप में भेजे जाते हैं।
+- **खोज**: सुरक्षित संसाधन मेटाडेटा (RFC 9728) और ऑथराइज़ेशन सर्वर मेटाडेटा (RFC 8414)। जारीकर्ता और संसाधन दोनों `https://<host>/mcp` हैं।
+- **क्लाइंट पहचान**: एक Client ID Metadata Document (क्लाइंट ID एक `https` URL है जिसे सर्वर फ़ेच करता है), या डायनैमिक क्लाइंट रजिस्ट्रेशन (RFC 7591)। किसी क्लाइंट को एडमिनिस्ट्रेटर द्वारा रजिस्टर करने की ज़रूरत नहीं है।
+- **दायरे**: `get_`, `list_` और `count_` टूल के लिए `mcp:read`; `mcp:write` कुछ भी बदलने वाले हर टूल को जोड़ता है, और उसमें `mcp:read` शामिल है। लिखने वाला टूल कॉल करने वाले सिर्फ़ पढ़ने वाले टोकन को `error="insufficient_scope"` के साथ `403` मिलता है।
+- **टोकन की अवधि**: एक्सेस टोकन एक घंटा चलता है। रिफ़्रेश टोकन 30 दिन चलता है और हर इस्तेमाल पर बदल दिया जाता है; पहले से बदला हुआ रिफ़्रेश टोकन इस्तेमाल करने पर कनेक्शन खत्म हो जाता है।
+- **संसाधन संकेतक** (RFC 8707): टोकन `https://<host>/mcp` के लिए जारी होता है और कहीं और स्वीकार नहीं किया जाता।
+- **रद्दीकरण** (RFC 7009): दोनों में से किसी भी टोकन को रद्द करने पर कनेक्शन खत्म हो जाता है।
 
-#### चरण 2: MCP Configuration खोलें
+### API कुंजी
 
-1. `Ctrl+Shift+P` (Windows/Linux) या `Cmd+Shift+P` (macOS) दबाएं
-2. "MCP: Open User Configuration" टाइप करें और Enter दबाएं
-3. यह `mcp.json` configuration फ़ाइल खोलता या बनाता है
+बिना निगरानी चलने वाला एजेंट इनमें से किसी एक हेडर में OneUptime API कुंजी भेजता है:
 
-वैकल्पिक रूप से, project-specific configuration के लिए अपने workspace में `.vscode/mcp.json` बनाएं।
+- `x-api-key`: आपकी OneUptime API कुंजी
+- `Authorization`: आपकी API कुंजी वाला bearer टोकन (जैसे `Bearer your-api-key-here`)
 
-#### OneUptime Cloud के लिए
+`Bearer` स्कीम केस-संवेदनशील नहीं है। API कुंजी वाले अनुरोध से कभी साइन इन करने को नहीं कहा जाता।
 
-```json
-{
-  "servers": {
-    "oneuptime": {
-      "type": "http",
-      "url": "https://oneuptime.com/mcp",
-      "headers": {
-        "x-api-key": "${input:oneuptime-api-key}"
-      }
-    }
-  },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "oneuptime-api-key",
-      "description": "OneUptime API Key",
-      "password": true
-    }
-  ]
-}
+OneUptime Cloud पर API कुंजियां तभी तक काम करती हैं जब तक प्रोजेक्ट **Growth** या उससे ऊपर हो। उससे नीचे, कुंजी की ज़रूरत वाला हर टूल प्लान का नाम बताने वाले संदेश के साथ `402` लौटाता है, और एजेंट से दोबारा कोशिश न करने को कहा जाता है। कुछ भी हटाया नहीं जाता: प्रोजेक्ट के वापस Growth पर आते ही कुंजी जैसी है वैसी फिर से काम करने लगती है, कुछ भी दोबारा कनेक्ट किए बिना। साइन इन करके कनेक्ट किया गया क्लाइंट एक व्यक्ति के रूप में काम करता है और चलता रहता है ([अपने प्लान से नीचे API कुंजियां और SCIM](/docs/api-reference/api-reference#अपने-प्लान-से-नीचे-api-कुंजियाँ-और-scim))।
+
+## उपलब्ध एंडपॉइंट
+
+| एंडपॉइंट | मेथड | विवरण |
+| --- | --- | --- |
+| `/mcp` | POST | टूल कॉल और दूसरे ऑपरेशन के लिए JSON-RPC अनुरोध |
+| `/mcp` | GET | SSE `Accept` हेडर के बिना: सर्वर का एक छोटा JSON विवरण। उसके साथ: `405`, क्योंकि स्टेटलेस सर्वर कोई अलग SSE स्ट्रीम नहीं देता (विनिर्देश मानने वाले क्लाइंट उसके बिना आगे बढ़ते हैं) |
+| `/mcp` | DELETE | कुछ नहीं करता: सर्वर स्टेटलेस है, इसलिए खत्म करने को कोई सेशन नहीं है |
+| `/mcp/health` | GET | हेल्थ चेक |
+| `/mcp/tools` | GET | टूल की सूची, सादे REST के रूप में |
+
+साइन इन करने वाले MCP क्लाइंट नीचे के OAuth एंडपॉइंट भी इस्तेमाल करते हैं। क्लाइंट उन्हें खुद ढूंढ लेता है; वे क्लाइंट लिखने वालों या प्रॉक्सी सेट करने वालों के लिए सूचीबद्ध हैं।
+
+| एंडपॉइंट | मेथड | विवरण |
+| --- | --- | --- |
+| `/mcp/.well-known/oauth-protected-resource` | GET | सुरक्षित संसाधन मेटाडेटा (RFC 9728)। `/.well-known/oauth-protected-resource/mcp` पर भी |
+| `/.well-known/oauth-authorization-server/mcp` | GET | ऑथराइज़ेशन सर्वर मेटाडेटा (RFC 8414)। `/mcp/.well-known/oauth-authorization-server` पर भी |
+| `/mcp/oauth/authorize` | GET | ऑथराइज़ेशन एंडपॉइंट: जहां क्लाइंट साइन इन के लिए आपके ब्राउज़र को भेजता है |
+| `/mcp/oauth/token` | POST | टोकन एंडपॉइंट: ऑथराइज़ेशन कोड या रिफ़्रेश टोकन बदलता है |
+| `/mcp/oauth/register` | POST | डायनैमिक क्लाइंट रजिस्ट्रेशन (RFC 7591) |
+| `/mcp/oauth/revoke` | POST | टोकन रद्दीकरण (RFC 7009) |
+
+यह जांचने के लिए कि सर्वर चल रहा है, और उसके टूल सूचीबद्ध करने के लिए:
+
+```bash
+curl https://oneuptime.com/mcp/health
+curl https://oneuptime.com/mcp/tools
 ```
 
-#### Self-Hosted OneUptime के लिए
+## घटना प्रतिक्रिया के टूल
 
-```json
-{
-  "servers": {
-    "oneuptime": {
-      "type": "http",
-      "url": "https://your-oneuptime-domain.com/mcp",
-      "headers": {
-        "x-api-key": "${input:oneuptime-api-key}"
-      }
-    }
-  },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "oneuptime-api-key",
-      "description": "OneUptime API Key",
-      "password": true
-    }
-  ]
-}
-```
+हर तरह के रिकॉर्ड के टूल के अलावा, सर्वर में घटनाओं और अलर्ट पर प्रतिक्रिया के लिए बने टूल हैं:
 
-#### चरण 3: MCP Server शुरू करें
+- **`acknowledge_incident`** / **`resolve_incident`**: किसी घटना को प्रोजेक्ट की Acknowledged या Resolved स्थिति में ले जाएं, जैसा डैशबोर्ड का बटन करता है
+- **`acknowledge_alert`** / **`resolve_alert`**: अलर्ट के लिए वही
+- **`add_incident_note`**: किसी घटना में `visibility: "internal"` (सिर्फ़ टीम, डिफ़ॉल्ट) या `visibility: "public"` (स्टेटस पेज पर पोस्ट) के साथ नोट जोड़ें। Markdown समर्थित है
+- **`add_alert_note`**: किसी अलर्ट में आंतरिक नोट जोड़ें
 
-1. `Ctrl+Shift+P` / `Cmd+Shift+P` दबाएं
-2. उपलब्ध servers देखने के लिए "MCP: List Servers" टाइप करें
-3. server शुरू करने के लिए "oneuptime" पर क्लिक करें
-4. जब पूछा जाए, अपनी OneUptime API key दर्ज करें
+एक सामान्य क्रम: `list_incidents` → `acknowledge_incident` → `list_logs` से जांच → `add_incident_note` (सार्वजनिक) → `resolve_incident`।
 
-#### चरण 4: Copilot Chat के साथ उपयोग करें
+**`oneuptime_whoami`** टूल वह प्रोजेक्ट लौटाता है जिसके आपके क्रेडेंशियल हैं (उसकी ID और नाम)। साइन इन किए क्लाइंट के लिए यह यह भी बताता है कि वह किसके रूप में साइन इन है और क्या वह बदलाव कर सकता है। एजेंट के लिए दिशा पाने का यह एक अच्छा पहला कॉल है, और चूंकि बनाने वाले टूल `projectId` क्रेडेंशियल से लेते हैं, एजेंट को कभी प्रोजेक्ट ID नहीं देनी पड़ती।
 
-GitHub Copilot Chat खोलें और Agent mode (`@workspace` या सीधे पूछें) का उपयोग करें:
+## टेलीमेट्री क्वेरी करना
 
-```
-"What monitors do I have in OneUptime?"
-"Show me recent incidents"
-"Create a new monitor for https://example.com"
-```
+लॉग, मेट्रिक्स, ट्रेस (span), अपवाद, मॉनिटर लॉग और दूसरी तरह की टेलीमेट्री सिर्फ़ पढ़ने वाले `list_` और `count_` टूल के रूप में आती है (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` और उनके `count_` जोड़ीदार)। टेलीमेट्री OpenTelemetry से आती है, इसलिए बनाने वाले टूल नहीं हैं।
 
-#### सुरक्षा नोट
-
-उपरोक्त configuration आपकी API key को plain text में संग्रहीत करने के बजाय सुरक्षित रूप से prompt करने के लिए `"password": true` के साथ input variables का उपयोग करती है। पहली बार MCP server शुरू करते समय VS Code आपसे trust confirm करने के लिए कहेगा।
-
-## उपलब्ध Endpoints
-
-| Endpoint      | Method | विवरण                                                                                                                    |
-| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `/mcp`        | POST   | tool calls और अन्य operations के लिए JSON-RPC requests                                                                            |
-| `/mcp`        | GET    | SSE `Accept` header के बिना: friendly JSON discovery payload। इसके साथ: `405` — stateless server कोई standalone SSE stream प्रदान नहीं करता (compliant clients इसके बिना आगे बढ़ते हैं) |
-| `/mcp`        | DELETE | No-op (server stateless है, इसलिए terminate करने के लिए कोई session नहीं है)                                                             |
-| `/mcp/health` | GET    | Health check endpoint                                                                                                            |
-| `/mcp/tools`  | GET    | उपलब्ध tools सूचीबद्ध करने के लिए REST API                                                                                                 |
-
-## Authentication
-
-MCP server दो modes में काम करता है:
-
-### Public Tools (Authentication आवश्यक नहीं)
-
-आप public tools तक पहुंचने के लिए API key के बिना MCP server से connect कर सकते हैं:
-
-- **`oneuptime_help`**: OneUptime MCP capabilities के बारे में help और मार्गदर्शन प्राप्त करें
-- **`oneuptime_list_resources`**: उपलब्ध resources और उनके operations सूचीबद्ध करें
-- **`get_public_status_page_overview`**: एक public status page का overview प्राप्त करें
-- **`get_public_status_page_incidents`**: एक public status page से incidents प्राप्त करें
-- **`get_public_status_page_scheduled_maintenance`**: scheduled maintenance events प्राप्त करें
-- **`get_public_status_page_announcements`**: एक public status page से announcements प्राप्त करें
-
-Public status page tools status page ID (UUID) या status page domain name दोनों स्वीकार करते हैं।
-
-### Authenticated Tools (API Key आवश्यक)
-
-अन्य सभी operations के लिए (monitors, incidents, teams, आदि प्रबंधित करना), निम्नलिखित headers में से किसी एक के माध्यम से authentication आवश्यक है:
-
-- `x-api-key`: आपकी OneUptime API key
-- `Authorization`: आपकी API key के साथ Bearer token (जैसे `Bearer your-api-key-here`)
-
-`Bearer` scheme case-insensitive है। Tool errors, in-band tool results (`isError: true`) के रूप में लौटाई जाती हैं — जिनमें `statusCode`, विवरण और एक सुझाव शामिल होता है — MCP protocol errors के रूप में नहीं, ताकि agents विफलता को पढ़कर स्वयं को सुधार सकें।
-
-## Workflow Tools
-
-per-resource CRUD tools के अलावा, server incident और alert response के लिए विशेष रूप से बनाए गए workflow tools भी प्रदान करता है:
-
-- **`acknowledge_incident`** / **`resolve_incident`**: incident को project की Acknowledged या Resolved state में ले जाएं — dashboard में बटन दबाने के समतुल्य
-- **`acknowledge_alert`** / **`resolve_alert`**: alerts के लिए वही कार्य
-- **`add_incident_note`**: incident में note जोड़ें, `visibility: "internal"` (केवल team के लिए, default) या `visibility: "public"` (status page पर प्रकाशित) के साथ। Markdown समर्थित है
-- **`add_alert_note`**: alert में एक internal note जोड़ें
-
-एक सामान्य loop: `list_incidents` → `acknowledge_incident` → `list_logs` से जांच → `add_incident_note` (public) → `resolve_incident`।
-
-## Who Am I
-
-**`oneuptime_whoami`** tool वह project लौटाता है जिससे आपकी API key संबंधित है (ID और नाम)। किसी agent के लिए स्वयं को orient करने हेतु यह एक उपयोगी पहली call है — और चूंकि create tools API key से `projectId` स्वयं पहचान लेते हैं, agent को कभी project ID pass करने की आवश्यकता नहीं होती।
-
-## Telemetry Query करना
-
-Logs, metrics, traces (spans), exceptions और monitor logs read-only `list_` और `count_` tools के रूप में उपलब्ध हैं (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` और उनके `count_` समकक्ष)। Telemetry OpenTelemetry के माध्यम से ingest होती है, इसलिए कोई create tools नहीं हैं।
-
-Telemetry को हमेशा time-range filter के साथ query करें। Query fields या तो सीधा value या एक operator object स्वीकार करती हैं:
+टेलीमेट्री को हमेशा समय सीमा के साथ क्वेरी करें। क्वेरी फ़ील्ड कोई मान या ऑपरेटर ऑब्जेक्ट लेता है:
 
 ```json
 {
@@ -271,13 +350,13 @@ Telemetry को हमेशा time-range filter के साथ query कर
 }
 ```
 
-समर्थित operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`। Sort values `"ASC"` या `"DESC"` हैं।
+ऑपरेटर हैं `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` और `Includes`। सॉर्ट मान `"ASC"` या `"DESC"` हैं।
 
-## Field Selection और Pagination
+## फ़ील्ड चयन और पेजिनेशन
 
-`get_` और `list_` tools field names का एक वैकल्पिक `select` array स्वीकार करते हैं। Default रूप से सभी readable fields लौटाई जाती हैं, सिवाय भारी fields के (JSON, very-long-text और HTML columns), जिन्हें `select` में स्पष्ट रूप से मांगना आवश्यक है।
+`get_` और `list_` टूल फ़ील्ड नामों की एक वैकल्पिक `select` ऐरे लेते हैं। डिफ़ॉल्ट रूप से हर पढ़ने योग्य फ़ील्ड लौटता है, सिवाय भारी फ़ील्ड के (JSON, बहुत लंबे टेक्स्ट और HTML कॉलम), जिन्हें `select` में मांगना होता है।
 
-List tools `limit` (default 10, अधिकतम 100) और `skip` के साथ paginate करते हैं, और हर list response ठीक-ठीक बताता है कि उसने क्या लौटाया:
+सूची टूल `limit` (डिफ़ॉल्ट 10, अधिकतम 100) और `skip` से पेज करते हैं, और हर सूची जवाब ठीक-ठीक बताता है कि उसने क्या लौटाया:
 
 ```json
 {
@@ -290,146 +369,128 @@ List tools `limit` (default 10, अधिकतम 100) और `skip` के स
 }
 ```
 
-## सत्यापन
+## उपयोग के उदाहरण
 
-सत्यापित करें कि MCP server चल रहा है:
+### रोज़ के सवाल
 
-```bash
-# For OneUptime Cloud
-curl https://oneuptime.com/mcp/health
-
-# For Self-Hosted
-curl https://your-oneuptime-domain.com/mcp/health
-```
-
-उपलब्ध tools सूचीबद्ध करें:
-
-```bash
-# For OneUptime Cloud
-curl https://oneuptime.com/mcp/tools
-
-# For Self-Hosted
-curl https://your-oneuptime-domain.com/mcp/tools
-```
-
-## उपयोग उदाहरण
-
-### बुनियादी जानकारी queries
-
-```
+```text
 "What's the current status of all my monitors?"
 "Show me incidents from the last 24 hours"
-```
-
-### Monitor Management
-
-```
-"Create a new website monitor for https://example.com that checks every 5 minutes"
-"Set up an API monitor for https://api.example.com/health with a 30-second timeout"
-"Change the monitoring interval for my website monitor to every 2 minutes"
-"Disable the monitor for staging.example.com while we're doing maintenance"
-```
-
-### Incident Management
-
-```
-"Create a high-priority incident for the database outage affecting user authentication"
-"Add a note to incident #123 saying 'Database connection restored, monitoring for stability'"
-"Mark incident #456 as resolved"
-"Assign the current payment gateway incident to the infrastructure team"
-```
-
-### Team और On-Call
-
-```
 "List the teams in this project"
 "Show me our on-call policies"
 ```
 
-### Status Page Management
+### मॉनिटर और घटनाएं
 
+```text
+"Create a new website monitor for https://example.com that checks every 5 minutes"
+"Set up an API monitor for https://api.example.com/health with a 30-second timeout"
+"Disable the monitor for staging.example.com while we're doing maintenance"
+"Create a high-priority incident for the database outage affecting user authentication"
+"Add a note to incident #123 saying 'Database connection restored, monitoring for stability'"
+"Mark incident #456 as resolved"
 ```
+
+### स्टेटस पेज
+
+```text
 "Update our status page to show 'Investigating Payment Issues' for the payment service"
 "Create a status page announcement about scheduled maintenance this weekend"
 ```
 
-### Public Status Page Queries (API Key के बिना)
+### सार्वजनिक स्टेटस पेज क्वेरी (API कुंजी की ज़रूरत नहीं)
 
-ये queries authentication के बिना काम करती हैं, केवल public status page tools का उपयोग करती हैं:
+ये क्रेडेंशियल के बिना, सिर्फ़ सार्वजनिक स्टेटस पेज के टूल से काम करते हैं:
 
-```
+```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
 "Are there any scheduled maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
-### उन्नत Operations
+### एक साथ कई चरण
 
-```
+```text
 "Create a scheduled maintenance window for Saturday 2-4 AM, disable all monitors for api.example.com during that time, and update the status page"
 "Show me all monitors that have been down in the last hour, create incidents for any that don't already have one"
 ```
 
-## API Key Permissions
+## API कुंजी की अनुमतियां
 
-### Read-Only Access
+| एजेंट क्या करता है | **एक्सेस** के तहत चुनें |
+| --- | --- |
+| सिर्फ़ पढ़ता है | **Viewer**, या कुंजी के पेज पर पढ़ने की अनुमतियां जोड़ें |
+| बनाता, अपडेट करता और हटाता भी है | **Project Admin**, या कुंजी के पेज पर Project Admin भूमिका जोड़ें |
 
-केवल डेटा देखने के लिए, अपनी API key के लिए read permissions जोड़ें।
+हर कुंजी को उतना ही दें जितना उसे चाहिए, कुंजियां नियमित रूप से बदलें, हर परिवेश के लिए अलग कुंजी रखें, और OneUptime में देखते रहें कि हर कुंजी क्या करती है।
 
-### Full Access
+## सेल्फ-होस्टेड कॉन्फ़िगरेशन
 
-resources बनाने, अपडेट करने और हटाने के लिए पूर्ण पहुंच हेतु, सुनिश्चित करें कि आपकी API key में Project Admin permissions हों।
+सेल्फ-होस्टेड इंस्टेंस पर साइन-इन बिना किसी सेटअप के काम करता है। दो सेटिंग्स इसे बदलती हैं:
 
-### सर्वोत्तम प्रथाएं
+| एनवायरनमेंट वेरिएबल | Helm वैल्यू | यह क्या करता है |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | साइन-इन बंद करने के लिए `true` पर सेट करें। OAuth एंडपॉइंट परोसे जाना बंद हो जाते हैं और MCP सर्वर सिर्फ़ API कुंजियां स्वीकार करता है। कुछ भी हटाया नहीं जाता; इसे फिर से चालू करने पर कनेक्टेड क्लाइंट फिर काम करने लगते हैं। |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | ऐसे इंस्टेंस पर `true` पर सेट करें जो इंटरनेट तक नहीं पहुंच सकता। क्लाइंट अपनी पहचान ऐसे URL से दे सकता है जिसे OneUptime फ़ेच करता है; इस सेटिंग के साथ क्लाइंट इसके बजाय सीधे आपके इंस्टेंस में रजिस्टर होते हैं, जिसके लिए किसी बाहरी अनुरोध की ज़रूरत नहीं होती। |
 
-- Specific Permissions उपयोग करें: केवल न्यूनतम आवश्यक permissions grant करें
-- API Keys rotate करें: अपनी API keys नियमित रूप से rotate करें
-- उपयोग Monitor करें: OneUptime में API key उपयोग पर नज़र रखें
-- अलग Keys: विभिन्न environments के लिए अलग-अलग API keys उपयोग करें
+अगर आप OneUptime के आगे अपना रिवर्स प्रॉक्सी चलाते हैं, तो `/mcp` के साथ `/.well-known/oauth-protected-resource` और `/.well-known/oauth-authorization-server` (और उनके नीचे का सब कुछ) OneUptime तक फ़ॉरवर्ड करें। साथ आने वाला ingress यह पहले से करता है।
+
+सर्वर हर OAuth URL को `HOST` और `HTTP_PROTOCOL` सेटिंग्स से बनाता है, इसलिए उन्हें उस पते से मेल खाना चाहिए जिससे लोग आपके इंस्टेंस तक पहुंचते हैं।
 
 ## समस्या निवारण
 
-### Permission Errors
+### साइन-इन की समस्याएं
 
-सुनिश्चित करें कि आपकी API key में आवश्यक permissions हैं:
+- **क्लाइंट मुझसे कभी साइन इन करने को नहीं कहता**: हो सकता है क्लाइंट MCP ऑथराइज़ेशन का समर्थन न करता हो, या वह API कुंजी हेडर के साथ कॉन्फ़िगर हो, जिसकी प्राथमिकता होती है। इसके बजाय साइन इन करने के लिए हेडर हटाएं।
+- **ऑथराइज़ेशन पेज पर मेरा प्रोजेक्ट धूसर है**: पेज प्रोजेक्ट के नाम के पास कारण बताता है: प्रोजेक्ट के प्लान में MCP क्लाइंट कनेक्ट करना शामिल नहीं है, प्रोजेक्ट को SSO चाहिए और इस ब्राउज़र ने उसमें SSO से साइन इन नहीं किया, या आपकी टीम को क्लाइंट कनेक्ट करने से रोका गया है।
+- **कोई टूल "read-only" कहकर अस्वीकार होता है**: क्लाइंट को केवल पढ़ने के लिए अधिकृत किया गया था। उसे फिर से कनेक्ट करें और **पढ़ना और लिखना** चुनें।
+- **क्लाइंट ने काम करना बंद कर दिया**: वह डिस्कनेक्ट कर दिया गया, 30 दिनों तक इस्तेमाल नहीं हुआ, आपको प्रोजेक्ट से हटा दिया गया, या प्रोजेक्ट का SSO साइन-इन खत्म हो गया या उसका प्रदाता बंद कर दिया गया। उसे फिर से कनेक्ट करें।
+- **सेल्फ-होस्टेड - क्लाइंट कहता है कि उसे ऑथराइज़ेशन सर्वर नहीं मिल रहा**: जांचें कि `HOST` और `HTTP_PROTOCOL` आपके सार्वजनिक पते से मेल खाते हैं, और आपका प्रॉक्सी `/.well-known/oauth-*` पाथ फ़ॉरवर्ड करता है।
 
-- resources सूचीबद्ध करने के लिए Read access
-- resources बनाने/अपडेट करने के लिए Write access
-- resources हटाने के लिए Delete access
+### अनुमति त्रुटियां
 
-### Connection संबंधी समस्याएं
+API कुंजी को, या साइन इन किए क्लाइंट के मामले में आपके अपने खाते को, सही अनुमतियां चाहिए: रिकॉर्ड सूचीबद्ध करने के लिए पढ़ने का एक्सेस, उन्हें बनाने और अपडेट करने के लिए लिखने का एक्सेस, और उन्हें हटाने के लिए हटाने का एक्सेस।
 
-1. सत्यापित करें कि आपका OneUptime URL सही है
-2. जांचें कि आपकी API key valid है
-3. सुनिश्चित करें कि आपका OneUptime instance accessible है
-4. health endpoint परीक्षण करें
+### कनेक्शन की समस्याएं
 
-### Invalid API Key
+जांचें कि OneUptime का पता सही है और पहुंच योग्य है, API कुंजी मान्य है, और हेल्थ एंडपॉइंट जवाब देता है (देखें [उपलब्ध एंडपॉइंट](#उपलब्ध-एंडपॉइंट))।
 
-- अपने OneUptime settings में API key सत्यापित करें
-- अतिरिक्त spaces या characters जांचें
-- सुनिश्चित करें कि key expired नहीं हुई है
+### अमान्य API कुंजी
 
-### Session Errors
+- अपनी OneUptime सेटिंग्स में API कुंजी जांचें, बिना अतिरिक्त स्पेस या अक्षरों के
+- जांचें कि कुंजी की अवधि खत्म नहीं हुई है
+- OneUptime Cloud पर, ऐसा `402` जो कहता है कि API कुंजियों को Growth प्लान चाहिए, बताता है कि प्रोजेक्ट उससे नीचे है: **प्रोजेक्ट सेटिंग्स → बिलिंग और चालान → बिलिंग** में प्रोजेक्ट को अपग्रेड करें, और वही कुंजी फिर से काम करने लगती है
 
-यदि आपको session-संबंधित त्रुटियां मिलती हैं:
+### सेशन त्रुटियां
 
-- MCP server stateless है — यह session IDs जारी या track नहीं करता, इसलिए हर request किसी भी server replica पर काम करती है
-- जो clients किसी पुराने server version का `mcp-session-id` header भेजते हैं, वे इसे बस छोड़ सकते हैं; इसे अनदेखा किया जाता है
-- ऐसे पुराने MCP client configurations अपडेट करें जो server से session ID लौटाए जाने की अपेक्षा करते हैं
+MCP सर्वर स्टेटलेस है: वह न सेशन id जारी करता है न उन्हें ट्रैक करता है, इसलिए हर अनुरोध किसी भी रेप्लिका पर काम करता है। जो क्लाइंट पुराने सर्वर संस्करण से `mcp-session-id` हेडर भेजता है, वह उसे छोड़ सकता है; उसे अनदेखा किया जाता है। ऐसे पुराने क्लाइंट कॉन्फ़िगरेशन को अपडेट करें जो सर्वर से सेशन id लौटाने की उम्मीद करता है।
 
-## उपलब्ध Resources
+## उपलब्ध संसाधन
 
-MCP server निम्नलिखित resources के लिए tools प्रदान करता है:
+| क्षेत्र | बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल वाले रिकॉर्ड |
+| --- | --- |
+| मॉनिटरिंग | Monitor, Monitor Status, Monitor Status Event |
+| घटनाएं | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| अलर्ट | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
+| स्टेटस पेज | Status Page, Status Page Announcement |
+| निर्धारित रखरखाव | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| टीमें और ऑन-कॉल | Team, On-Call Policy |
+| लेबल | Label |
+| सुरक्षा | Security Case, Security Case Note, Security Detection, Security Playbook |
 
-**Monitoring**: Monitor, Monitor Status, Monitor Status Event
-**Incidents**: Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note
-**Alerts**: Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note
-**Status Pages**: Status Page, Status Page Announcement
-**Scheduled Maintenance**: Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
-**Teams और On-Call**: Team, On-Call Policy
-**Labels**: Label
-**Telemetry (read-only)**: Log, Metric, Span, Exception Instance, Monitor Log
+| क्षेत्र | सिर्फ़ सूचीबद्ध करने और गिनने के टूल वाली टेलीमेट्री |
+| --- | --- |
+| अवलोकनीयता | Log, Metric, Span, Exception Instance, Monitor Log |
+| सुरक्षा | Security Event, Threat Intel Indicator |
+| बदलाव और लागत | Change Event, Kubernetes Cost Allocation |
 
-प्रत्येक database resource snake_case tools के माध्यम से Create, Get, List, Update, Delete और Count का समर्थन करता है — उदाहरण के लिए `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`। Telemetry resources केवल `list_` और `count_` tools प्रदान करते हैं (उदाहरण के लिए `list_logs`, `count_spans`)।
+टूल के नाम snake case में हैं: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` और `count_incidents`, या टेलीमेट्री के लिए `list_logs` और `count_spans`।
+
+## अगले कदम
+
+:::cards
+- [AI से पूछें](/docs/ai/ask-ai): इसके बजाय OneUptime के अंदर ही अपने प्रोजेक्ट के बारे में पूछें।
+- [OneUptime API संदर्भ](/docs/api-reference/api-reference): हर टूल के पीछे का REST API।
+- [अनुमतियां](/docs/permissions/index): कोई भूमिका, टीम या API कुंजी क्या कर सकती है।
+:::

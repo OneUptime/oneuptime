@@ -7,8 +7,10 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { Green, Red } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -114,6 +116,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
+            // The column's description only said "Probe Icon".
+            hideColumnDescription: true,
           },
         ]}
         selectMoreFields={{
@@ -123,7 +127,10 @@ const Settings: FunctionComponent = (): ReactElement => {
         actionButtons={[
           {
             title: t("pages.settings.probes.showIdKey"),
+            icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.NORMAL,
+            // Reveals the ID and key for copying - a utility, never the row button.
+            placement: ActionButtonPlacement.MoreMenu,
             onClick: async (
               item: Probe,
               onCompleteAction: VoidFunction,

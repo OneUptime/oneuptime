@@ -22,6 +22,48 @@ import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+
+/*
+ * These tests count this service's own lookups. The generic reference check
+ * every service runs first (ProjectReferencesService) is held to by
+ * ProjectScopedReferencesEverywhere, so it is stubbed out here.
+ */
+function stubDirectoryAndGenericCheck(): void {
+  stubProjectDirectory({});
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
+}
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubDirectoryAndGenericCheck();
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
+});
 
 /*
  * Contract under test for ServiceLevelObjectiveBurnRateRuleService:
@@ -61,6 +103,10 @@ const ALERT_SEVERITY_ID: ObjectID = new ObjectID(
 );
 const INCIDENT_SEVERITY_ID: ObjectID = new ObjectID(
   "88888888-8888-4888-8888-888888888888",
+);
+// Another severity, for an id column and a relation that disagree.
+const SECOND_SEVERITY_ID: ObjectID = new ObjectID(
+  "5ec0d000-0000-4000-8000-0000000000e2",
 );
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
@@ -277,6 +323,7 @@ beforeEach(() => {
       "validateServiceLevelObjectivesBelongToProject",
     )
     .mockResolvedValue(undefined);
+  stubDirectoryAndGenericCheck();
 });
 
 describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate", () => {
@@ -668,6 +715,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -752,6 +800,51 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
     },
   );
 
+  /*
+   * The dashboard posts a severity as the relation, and TypeORM writes it to
+   * the same column as the id: both spellings are what gets checked.
+   */
+  it("validates severities sent as the relation, exactly like their id columns", async () => {
+    await expect(
+      callHook(
+        "onBeforeCreate",
+        makeValidCreateBy({
+          alertSeverity: { _id: ALERT_SEVERITY_ID.toString() },
+          incidentSeverity: { _id: INCIDENT_SEVERITY_ID.toString() },
+        } as unknown as RuleFields),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+
+    const validated: ValidatedReferences = validatedReferencesAt(
+      validatorSpy,
+      0,
+    );
+
+    expect(validated.references[0]!.id?.toString()).toBe(
+      ALERT_SEVERITY_ID.toString(),
+    );
+    expect(validated.references[1]!.id?.toString()).toBe(
+      INCIDENT_SEVERITY_ID.toString(),
+    );
+  });
+
+  it("refuses a severity whose id column and relation name different rows, before any lookup", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeValidCreateBy({
+          alertSeverityId: ALERT_SEVERITY_ID,
+          alertSeverity: { _id: SECOND_SEVERITY_ID.toString() },
+        } as unknown as RuleFields),
+      ),
+      "Conflicting alert severity references",
+    );
+
+    expect(validatorSpy).not.toHaveBeenCalled();
+  });
+
   it("falls back to the caller's tenant when the payload itself carries no project", async () => {
     await expect(
       callHook(
@@ -795,7 +888,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
   it("lets a cross-project severity rejection abort the create", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        "This SLO burn rate rule references records that belong to a different project.",
+        "This SLO burn rate rule references records that are not in this project.",
       ),
     );
 
@@ -804,7 +897,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
         "onBeforeCreate",
         makeValidCreateBy({ incidentSeverityId: INCIDENT_SEVERITY_ID }),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 });
@@ -814,6 +907,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate", () => {
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -916,7 +1010,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate", () => {
       longWindowInMinutes: true,
       shortWindowInMinutes: true,
     });
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("rejects a long-window-only update that would sink below the persisted short window", async () => {
@@ -1052,6 +1146,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - what the rul
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1170,7 +1265,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - what the rul
       shouldCreateAlert: true,
       shouldCreateIncident: true,
     });
-    expect(findByArguments.props).toEqual({ isRoot: true });
+    expect(findByArguments.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   const acceptedAgainstSibling: Array<{
@@ -1386,10 +1481,20 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
   let findBySpy: jest.SpyInstance;
   let validatorSpy: jest.SpyInstance;
 
+  // A teammate of the project, whose update is kept to it.
+  function teammateProps(): Record<string, unknown> {
+    return { tenantId: PROJECT_ID, userId: ObjectID.generate() };
+  }
+
   beforeEach(() => {
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    // The rules a teammate's update may write: those the same read reaches.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveBurnRateRuleService,
+      findBySpy,
+    );
 
     validatorSpy = jest
       .spyOn(
@@ -1397,6 +1502,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1448,18 +1554,15 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
       expectedAlertSeverityId: ObjectID | undefined;
       expectedIncidentSeverityId: ObjectID | undefined;
     }): void => {
-      it(`validates ${updatedSeverity.label} against the caller's tenant, without reading any row`, async () => {
+      it(`validates ${updatedSeverity.label} against a teammate's project, without reading any row`, async () => {
         await expect(
           callHook(
             "onBeforeUpdate",
-            makeUpdateBy(updatedSeverity.fields, {
-              isRoot: true,
-              tenantId: PROJECT_ID,
-            }),
+            makeUpdateBy(updatedSeverity.fields, teammateProps()),
           ),
         ).resolves.toBeDefined();
 
-        // A known tenant makes the row read unnecessary.
+        // A teammate's update is kept to their project: no row needs reading.
         expect(findBySpy).not.toHaveBeenCalled();
         expect(validatorSpy).toHaveBeenCalledTimes(1);
 
@@ -1479,6 +1582,99 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
       });
     },
   );
+
+  it("validates a severity an update of OneUptime sends in the project of the rule it writes, not the request's", async () => {
+    findBySpy.mockResolvedValue([
+      makeRule({
+        _id: RULE_ID.toString(),
+        id: RULE_ID,
+        projectId: PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          { alertSeverityId: ALERT_SEVERITY_ID },
+          { isRoot: true, tenantId: OTHER_PROJECT_ID },
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    // The rule's own project, read as the update writes it.
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(validatedReferencesAt(validatorSpy, 0).projectId).toEqual(
+      PROJECT_ID,
+    );
+  });
+
+  it("validates a severity a master admin's update sends in the project of the rule it writes", async () => {
+    findBySpy.mockResolvedValue([
+      makeRule({
+        _id: RULE_ID.toString(),
+        id: RULE_ID,
+        projectId: OTHER_PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          { incidentSeverityId: INCIDENT_SEVERITY_ID },
+          {
+            isMasterAdmin: true,
+            userId: ObjectID.generate(),
+            tenantId: PROJECT_ID,
+          },
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(validatedReferencesAt(validatorSpy, 0).projectId).toEqual(
+      OTHER_PROJECT_ID,
+    );
+  });
+
+  it("validates a severity an update sends as the relation", async () => {
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          {
+            incidentSeverity: { _id: INCIDENT_SEVERITY_ID.toString() },
+          } as unknown as RuleFields,
+          teammateProps(),
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(
+      validatedReferencesAt(validatorSpy, 0).references[1]!.id?.toString(),
+    ).toBe(INCIDENT_SEVERITY_ID.toString());
+  });
+
+  it("refuses an update whose severity spellings disagree", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          {
+            incidentSeverityId: INCIDENT_SEVERITY_ID,
+            incidentSeverity: { _id: SECOND_SEVERITY_ID.toString() },
+          } as unknown as RuleFields,
+          { isRoot: true, tenantId: PROJECT_ID },
+        ),
+      ),
+      "Conflicting incident severity references",
+    );
+
+    expect(validatorSpy).not.toHaveBeenCalled();
+  });
 
   it("falls back to the projects of the matched rows, deduplicated, when the update carries no tenant", async () => {
     findBySpy.mockResolvedValue([
@@ -1503,9 +1699,13 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
     expect(findByArgumentsAt(findBySpy, 0).select).toEqual({
+      _id: true,
       projectId: true,
     });
-    expect(findByArgumentsAt(findBySpy, 0).props).toEqual({ isRoot: true });
+    expect(findByArgumentsAt(findBySpy, 0).props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
 
     // Two rules, one project: the lookup must not run per rule.
     expect(validatorSpy).toHaveBeenCalledTimes(1);
@@ -1562,19 +1762,16 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
   it("lets a cross-project severity rejection abort the update", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        "This SLO burn rate rule references records that belong to a different project.",
+        "This SLO burn rate rule references records that are not in this project.",
       ),
     );
 
     await expectBadData(
       callHook(
         "onBeforeUpdate",
-        makeUpdateBy(
-          { alertSeverityId: ALERT_SEVERITY_ID },
-          { isRoot: true, tenantId: PROJECT_ID },
-        ),
+        makeUpdateBy({ alertSeverityId: ALERT_SEVERITY_ID }, teammateProps()),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 });
@@ -1600,6 +1797,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService - numeric columns supplied as
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2056,6 +2254,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule", ()
     timelineCreateSpy = jest
       .spyOn(AlertStateTimelineService, "create")
       .mockResolvedValue(new AlertStateTimeline());
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2085,11 +2284,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule", ()
       props: Record<string, unknown>;
     };
 
-    expect(findByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
-      currentAlertState: { isResolvedState: false },
-    });
+    expect(findByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(findByArg.query["seriesFingerprint"]).toBe(
+      `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(findByArg.query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(Object.keys(findByArg.query).sort()).toEqual(
+      ["currentAlertStateId", "projectId", "seriesFingerprint"].sort(),
+    );
     // projectId is needed on each row to stamp the timeline entry.
     expect(findByArg.select).toEqual({ _id: true, projectId: true });
     expect(findByArg.props).toEqual({ isRoot: true });
@@ -2342,6 +2547,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule",
     timelineCreateSpy = jest
       .spyOn(IncidentStateTimelineService, "create")
       .mockResolvedValue(new IncidentStateTimeline());
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2366,11 +2572,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule",
       0,
     );
 
-    expect(findByArguments.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
-      currentIncidentState: { isResolvedState: false },
-    });
+    expect(findByArguments.query["projectId"]).toEqual(PROJECT_ID);
+    expect(findByArguments.query["seriesFingerprint"]).toBe(
+      `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(
+      idsOfAnyFilter(findByArguments.query["currentIncidentStateId"]),
+    ).toEqual(openStateIds(INCIDENT_STATE_IDS));
+    expect(Object.keys(findByArguments.query).sort()).toEqual(
+      ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+    );
     // projectId is needed on each row to stamp the timeline entry.
     expect(findByArguments.select).toEqual({ _id: true, projectId: true });
     expect(findByArguments.props).toEqual({ isRoot: true });
@@ -2650,6 +2862,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsAndIncidents
         "resolveOpenIncidentsForRule",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2763,6 +2976,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess", () => {
     loggerErrorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -3075,6 +3289,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess forgets what 
     jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -3187,6 +3402,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
         "resolveOpenAlertsAndIncidentsForRule",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -3220,7 +3436,18 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
     ).toEqual([first, second]);
   });
 
-  it("reads the doomed rows as root, through the caller's query pinned to the caller's project, on the widest page", async () => {
+  it("reads the rules the caller may delete in the caller's project, in the delete's own window, and holds the delete to the ones its query names", async () => {
+    // The rule the caller may delete, in the caller's project.
+    stubRowsCallerMayDelete(ServiceLevelObjectiveBurnRateRuleService, () => {
+      return [
+        makeRule({
+          _id: RULE_ID.toString(),
+          id: RULE_ID,
+          projectId: PROJECT_ID,
+        }),
+      ];
+    });
+    // The delete's query names another project: no rule it may delete.
     findBySpy.mockResolvedValue([]);
 
     const deleteBy: DeleteBy<ServiceLevelObjectiveBurnRateRule> = {
@@ -3230,14 +3457,25 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
       skip: 5,
     } as unknown as DeleteBy<ServiceLevelObjectiveBurnRateRule>;
 
-    await callHook("onBeforeDelete", deleteBy);
+    const result: unknown = await callHook("onBeforeDelete", deleteBy);
 
+    // The rules the caller may delete: in the caller's project, in its window.
+    const callerMayDelete: {
+      query: Record<string, unknown>;
+      skip: number;
+      limit: number;
+    } = readsOfRowsCallerMayWrite(ServiceLevelObjectiveBurnRateRuleService)[0]!;
+    expect(callerMayDelete.query["projectId"]).toBe(PROJECT_ID);
+    expect(callerMayDelete.skip).toBe(5);
+    expect(callerMayDelete.limit).toBe(makeDeleteBy().limit);
+
+    // The delete's rules among them, both asked in the same read.
     const findByArg: FindByArguments = findByArgumentsAt(findBySpy, 0);
 
-    // A query naming another project is overridden, never trusted.
     expect(findByArg.query).toEqual({
       serviceLevelObjectiveId: SLO_ID,
-      projectId: PROJECT_ID,
+      projectId: OTHER_PROJECT_ID,
+      _id: RULE_ID.toString(),
     });
     expect(findByArg.select).toEqual({
       _id: true,
@@ -3249,15 +3487,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
       longWindowInMinutes: true,
       shortWindowInMinutes: true,
     });
-    /*
-     * Wider than the caller's page, and from the start: the permission-checked
-     * query can page a narrower set differently, and a removed rule this read
-     * missed would keep its records open.
-     */
-    expect(findByArg.limit).toBeGreaterThan(makeDeleteBy().limit as number);
     expect(findByArg.skip).toBe(0);
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
 
+    // None read: the delete removes none, and carries none forward.
+    expect(
+      (result as { carryForward: { itemsToDelete: Array<unknown> } })
+        .carryForward.itemsToDelete,
+    ).toEqual([]);
+    expect(String((deleteBy.query as Record<string, unknown>)["_id"])).not.toBe(
+      RULE_ID.toString(),
+    );
     expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 

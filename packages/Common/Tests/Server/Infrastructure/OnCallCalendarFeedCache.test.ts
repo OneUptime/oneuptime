@@ -41,6 +41,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import Redis from "../../../Server/Infrastructure/Redis";
+import CacheGenerations from "../../../Server/Infrastructure/CacheGenerations";
 import logger from "../../../Server/Utils/Logger";
 import OnCallCalendarFeedCache, {
   CachedCalendarBody,
@@ -980,35 +981,134 @@ describe("OnCallCalendarFeedCache", () => {
       );
     });
 
-    it("purges are visible to another process reading the same Redis", async () => {
+    it("purges are visible to another process reading the same Redis, within SHARED_READ_TTL_MS", async () => {
       /*
        * The in-process generation memo must never mask a purge another
-       * process made: simulate that by writing the generation straight into
-       * Redis, bypassing this process's memory.
+       * process made for longer than CacheGenerations.SHARED_READ_TTL_MS:
+       * simulate that by writing the generation straight into Redis,
+       * bypassing this process's memory.
        */
+      const realNow: () => number = Date.now;
+      const startedAt: number = realNow();
+
+      try {
+        Date.now = (): number => {
+          return startedAt;
+        };
+
+        await fillAll();
+
+        const [genKey] = redis.keysWithPrefix("gen:");
+        expect(genKey).toBeUndefined();
+
+        redis.store.set(
+          `${ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE}-gen:user:${PROJECT_A}:${USER_1}`,
+          { value: "other-process-bump", ttl: 100 },
+        );
+
+        Date.now = (): number => {
+          return startedAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+        };
+
+        expect(
+          await OnCallCalendarFeedCache.getBody({
+            key: "user1-token",
+            scope: personalFeedOfUser1,
+          }),
+        ).toBeNull();
+      } finally {
+        Date.now = realNow;
+      }
+    });
+
+    /*
+     * Regression: generations were read from Redis first and from this
+     * process's memory only while Redis failed. A purge whose write did not
+     * reach Redis was kept in memory - and ignored as soon as Redis answered
+     * again, with the generation from before the purge, so the very process
+     * that made the purge served the feed from before it.
+     */
+    it("a purge Redis did not take still holds in this process once Redis answers again", async () => {
       await fillAll();
 
-      const [genKey] = redis.keysWithPrefix("gen:");
-      expect(genKey).toBeUndefined();
+      // Reads work; the purge's write does not.
+      redis.failWrites = true;
+      await OnCallCalendarFeedCache.purgeForUser(PROJECT_A, USER_1);
 
-      await OnCallCalendarFeedCache.setBody({
-        key: "user1-token",
-        scope: personalFeedOfUser1,
-        value: body("user1"),
-        ttlSeconds: 300,
+      expect(redis.keysWithPrefix("gen:")).toHaveLength(0);
+      expect(await survivors()).toEqual([
+        "user2",
+        "scheduleY",
+        "projectA",
+        "projectB",
+      ]);
+    });
+
+    it("a schedule purge Redis did not take still makes this process render the segments again", async () => {
+      const renderFn: MockedFn = jest.fn(async () => {
+        return ["seg"];
       });
 
-      redis.store.set(
-        `${ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE}-gen:user:${PROJECT_A}:${USER_1}`,
-        { value: "other-process-bump", ttl: 100 },
-      );
+      const read: () => Promise<unknown> = () => {
+        return OnCallCalendarFeedCache.getOrRenderScheduleSegments({
+          scheduleId: SCHEDULE_X,
+          key: "v1",
+          ttlSeconds: 3600,
+          render: renderFn as unknown as () => Promise<unknown>,
+        });
+      };
 
-      expect(
-        await OnCallCalendarFeedCache.getBody({
-          key: "user1-token",
-          scope: personalFeedOfUser1,
-        }),
-      ).toBeNull();
+      await read();
+
+      redis.failWrites = true;
+      await OnCallCalendarFeedCache.purgeForSchedule(SCHEDULE_X);
+      redis.failWrites = false;
+
+      await read();
+
+      expect(renderFn).toHaveBeenCalledTimes(2);
+    });
+
+    it("a purge Redis did not take reaches every process once Redis takes writes again", async () => {
+      const realNow: () => number = Date.now;
+      const startedAt: number = realNow();
+
+      try {
+        Date.now = (): number => {
+          return startedAt;
+        };
+
+        await fillAll();
+
+        redis.failWrites = true;
+        await OnCallCalendarFeedCache.purgeForUser(PROJECT_A, USER_1);
+        redis.failWrites = false;
+
+        // This process reads the generation again, and sends the purge.
+        Date.now = (): number => {
+          return startedAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+        };
+
+        expect(
+          await OnCallCalendarFeedCache.getBody({
+            key: "user1-token",
+            scope: personalFeedOfUser1,
+          }),
+        ).toBeNull();
+        expect(redis.keysWithPrefix("gen:user:")).toHaveLength(1);
+
+        // A process that never heard of the purge reads it from Redis.
+        OnCallCalendarFeedCache.clearInProcessState();
+
+        expect(await survivors()).toEqual([
+          "user2",
+          "scheduleY",
+          "projectA",
+          "projectB",
+        ]);
+      } finally {
+        Date.now = realNow;
+      }
     });
   });
 

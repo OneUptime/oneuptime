@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getLabelRuleActionFields,
+  getLabelRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -87,7 +91,11 @@ const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         {
           field: { isEnabled: true },
           title: "Status",
-          type: FieldType.Boolean,
+          /*
+           * An element, not a Boolean: a phone's card leaves out a Boolean
+           * that is off, so a disabled rule showed no status at all.
+           */
+          type: FieldType.Element,
           getElement: (item: StatusPageLabelRule): ReactElement => {
             return item.isEnabled ? (
               <Pill color={Green} text="Enabled" />
@@ -97,36 +105,8 @@ const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels", columns: 2 },
-      ]}
+      formSteps={getLabelRuleFormSteps<StatusPageLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Tag public status pages with external-label",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { statusPageLabels: true },
           title: "Status Page Labels",
@@ -145,7 +125,7 @@ const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageNamePattern: true },
-          title: "Status Page Name Pattern",
+          title: "Status Page Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -156,28 +136,13 @@ const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageDescriptionPattern: true },
-          title: "Status Page Description Pattern",
+          title: "Status Page Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "customer|external",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the status page. Already-attached labels are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
+        ...getLabelRuleActionFields<StatusPageLabelRule>(),
       ]}
       showRefreshButton={true}
     />

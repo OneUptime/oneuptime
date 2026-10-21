@@ -50,7 +50,7 @@ export function getNumericValues(
  * the RUM template read as a flawless site ("AVG LCP 0", "AVG CLS 0"). Callers
  * must render a no-data state rather than substituting a number.
  *
- * - Percentiles (P50/P90/P95/P99) are computed per bucket server-side, so —
+ * - Percentiles (P50/P75/P90/P95/P99) are computed per bucket server-side, so —
  *   like Avg — we take the mean across the window.
  * - Count sums the per-bucket counts the server already returned
  *   (`count(value) as value`) rather than counting time buckets.

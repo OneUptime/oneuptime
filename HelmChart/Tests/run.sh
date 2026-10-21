@@ -18,26 +18,33 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUITES_DIR="${TESTS_DIR}/suites"
 
-# Ordered cheapest-first. Every file in ./suites has to appear here, which is
-# checked below: a new suite cannot be added and then silently never run.
-ALL_SUITES=(lint unit extra-values secrets-lifecycle keda-bootstrap)
+# Ordered cheapest-first. Every file in ./suites has to appear here or in
+# OPT_IN_SUITES, which is checked below: a new suite cannot be added and then
+# silently never run.
+ALL_SUITES=(lint unit extra-values vapid-existing-secret air-gapped marketplace secrets-lifecycle keda-bootstrap)
+
+# Run only when named, never by default (so not in the helm-test job): they
+# pull third-party images and wait out reconcile intervals, measuring how other
+# tools behave rather than checking this repository's charts.
+OPT_IN_SUITES=(gitops-revert)
 
 usage() {
     echo "usage: $(basename "${BASH_SOURCE[0]}") [suite ...]"
     echo "suites: ${ALL_SUITES[*]}"
+    echo "opt-in suites (run only when named): ${OPT_IN_SUITES[*]}"
 }
 
 for file in "${SUITES_DIR}"/*.sh; do
     name="$(basename "$file" .sh)"
     listed=false
-    for suite in "${ALL_SUITES[@]}"; do
+    for suite in "${ALL_SUITES[@]}" "${OPT_IN_SUITES[@]}"; do
         if [ "$suite" = "$name" ]; then
             listed=true
             break
         fi
     done
     if [ "$listed" != "true" ]; then
-        echo "Suite '${name}' is missing from ALL_SUITES in $(basename "${BASH_SOURCE[0]}"); add it there so it runs." >&2
+        echo "Suite '${name}' is missing from ALL_SUITES (or OPT_IN_SUITES) in $(basename "${BASH_SOURCE[0]}"); add it there so it runs." >&2
         exit 1
     fi
 done
@@ -103,17 +110,17 @@ for suite in "${SELECTED[@]}"; do
     if [ ! -f "${RESULTS_DIR}/${suite}" ]; then
         # The suite died before it could report -- a helm install that failed, a
         # cluster that never came up.
-        SUMMARY+=("$(printf '  %-6s %-20s did not finish (exit %s)' "FAIL" "$suite" "$status")")
+        SUMMARY+=("$(printf '  %-6s %-22s did not finish (exit %s)' "FAIL" "$suite" "$status")")
         FAILED=$((FAILED + 1))
         continue
     fi
 
     read -r passed failed <"${RESULTS_DIR}/${suite}"
     if [ "$status" -ne 0 ] || [ "$failed" -ne 0 ]; then
-        SUMMARY+=("$(printf '  %-6s %-20s %s passed, %s failed' "FAIL" "$suite" "$passed" "$failed")")
+        SUMMARY+=("$(printf '  %-6s %-22s %s passed, %s failed' "FAIL" "$suite" "$passed" "$failed")")
         FAILED=$((FAILED + 1))
     else
-        SUMMARY+=("$(printf '  %-6s %-20s %s passed' "PASS" "$suite" "$passed")")
+        SUMMARY+=("$(printf '  %-6s %-22s %s passed' "PASS" "$suite" "$passed")")
     fi
 done
 

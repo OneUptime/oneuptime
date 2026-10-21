@@ -31,6 +31,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -52,6 +55,7 @@ export interface ComponentProps {
 const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [dataSources, setDataSources] = useState<Array<DataSourceModel>>([]);
   const [loadError, setLoadError] = useState<string>("");
 
@@ -197,7 +201,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
       >
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-medium text-gray-600">
-            {isChart ? `Query ${index + 1}` : "Query"}
+            {isChart
+              ? translator.translateTemplate("Query {{number}}", {
+                  number: index + 1,
+                })
+              : translator.translateText("Query")}
           </p>
           <Button
             title="Remove"
@@ -215,7 +223,9 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
           />
         </div>
 
-        <p className="text-xs text-gray-500 mb-1">Data Source</p>
+        <p className="text-xs text-gray-500 mb-1">
+          {translator.translateText("Data Source")}
+        </p>
         <Dropdown
           value={dropdownOptions.find((option: DropdownOption) => {
             return option.value === config.dataSourceId;
@@ -230,7 +240,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         />
 
         <p className="text-xs text-gray-500 mt-3 mb-1">
-          Query{typeProps ? ` (${typeProps.queryLanguageTitle})` : ""}
+          {typeProps
+            ? translator.translateTemplate("Query ({{language}})", {
+                language: typeProps.queryLanguageTitle,
+              })
+            : translator.translateText("Query")}
         </p>
         <TextArea
           initialValue={config.query || ""}
@@ -241,22 +255,42 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         />
         {selectedType && DataSourceTypeUtil.isDatabaseType(selectedType) && (
           <p className="mt-1 text-xs text-gray-400">
-            {isTable
-              ? "Any read-only query works — rows render as-is."
-              : "Return a time column (time/timestamp) and a numeric value column; extra columns become series labels."}{" "}
-            Time macros: $__startTime, $__endTime, $__startTimeMs, $__endTimeMs,
-            $__rangeSeconds (UTC). Dashboard variables: {"{{variableName}}"}.
+            {translator.translateText(
+              isTable
+                ? "Any read-only query works — rows render as-is."
+                : "Return a time column (time/timestamp) and a numeric value column; extra columns become series labels.",
+            )}{" "}
+            {/* The macros and the variable syntax are code, the same in every language. */}
+            <TranslatedSentence
+              template="Time macros: {{macros}} (UTC). Dashboard variables: {{variableSyntax}}."
+              slots={{
+                macros: (
+                  <code>
+                    $__startTime, $__endTime, $__startTimeMs, $__endTimeMs,
+                    $__rangeSeconds
+                  </code>
+                ),
+                variableSyntax: <code>{"{{variableName}}"}</code>,
+              }}
+            />
           </p>
         )}
         {selectedType && !DataSourceTypeUtil.isDatabaseType(selectedType) && (
           <p className="mt-1 text-xs text-gray-400">
-            Dashboard variables interpolate with {"{{variableName}}"}.
+            <TranslatedSentence
+              template="Dashboard variables interpolate with {{variableSyntax}}."
+              slots={{
+                variableSyntax: <code>{"{{variableName}}"}</code>,
+              }}
+            />
           </p>
         )}
 
         {!isTable && (
           <>
-            <p className="text-xs text-gray-500 mt-3 mb-1">Legend (optional)</p>
+            <p className="text-xs text-gray-500 mt-3 mb-1">
+              {translator.translateText("Legend (optional)")}
+            </p>
             <Input
               value={config.legend || ""}
               placeholder="e.g. {{instance}} — errors"
@@ -291,8 +325,9 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
           {loadError && <p className="text-xs text-red-500">{loadError}</p>}
           {!loadError && dataSources.length === 0 && (
             <p className="text-xs text-gray-400">
-              No data sources connected yet. Add one under Dashboards → Settings
-              → Data Sources.
+              {translator.translateText(
+                "No data sources connected yet. Add one under Dashboards → Settings → Data Sources.",
+              )}
             </p>
           )}
           {queryConfigs.map(

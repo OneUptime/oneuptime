@@ -14,17 +14,20 @@ x-common-depends-on: &common-depends-on
     condition: service_healthy
 
 services:
+  # The datastores are published on this machine's loopback address only:
+  # tools on this machine reach them at localhost, and no other machine on the
+  # network reaches them at all.
   valkey:
     ports:
-      - "6310:6379"
+      - "127.0.0.1:6310:6379"
     extends:
       file: ./docker-compose.base.yml
       service: valkey
 
   clickhouse:
     ports:
-      - "9034:9000"
-      - "8189:8123"
+      - "127.0.0.1:9034:9000"
+      - "127.0.0.1:8189:8123"
     extends:
       file: ./docker-compose.base.yml
       service: clickhouse
@@ -33,7 +36,7 @@ services:
 
   postgres:
     ports:
-      - "5400:5432"
+      - "127.0.0.1:5400:5432"
     extends:
       file: ./docker-compose.base.yml
       service: postgres
@@ -72,7 +75,6 @@ services:
       - "9141:9229" # Debugging port.
       - "3800:3800"
     build:
-      network: host
       context: .
       dockerfile: ./packages/TestServer/Dockerfile
 
@@ -104,7 +106,6 @@ services:
     ports:
       - "9212:9229" # Debugging port.
     build:
-      network: host
       context: .
       dockerfile: ./packages/Home/Dockerfile
 
@@ -162,7 +163,6 @@ services:
     ports:
       - "9232:9229" # Debugging port.
     build:
-      network: host
       context: .
       dockerfile: ./packages/App/Dockerfile
 
@@ -193,7 +193,6 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
       context: .
       dockerfile: ./packages/Probe/Dockerfile
 
@@ -224,7 +223,6 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
       context: .
       dockerfile: ./packages/Probe/Dockerfile
 
@@ -255,7 +253,35 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
+      context: .
+      dockerfile: ./packages/Runner/Dockerfile
+
+  global-runner:
+    volumes:
+      - ./packages/Runner:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: global-runner
+    depends_on:
+      <<: *common-depends-on
+    build:
       context: .
       dockerfile: ./packages/Runner/Dockerfile
 
@@ -274,7 +300,6 @@ services:
     volumes:
       - ./Examples/log-collectors/fluentd/fluent.conf:/fluentd/etc/fluent.conf
     build:
-      network: host
       context: ./Examples/log-collectors/fluentd
       dockerfile: ./Dockerfile
 
@@ -290,13 +315,11 @@ services:
     volumes:
       - ./Examples/log-collectors/fluent-bit/etc:/fluent-bit/etc/
     build:
-      network: host
       context: .
       dockerfile: ./Examples/log-collectors/fluent-bit/Dockerfile
 
   ingress:
     build:
-      network: host
       context: .
       dockerfile: ./packages/Nginx/Dockerfile
     extends:
@@ -314,7 +337,6 @@ services:
       - ./packages/E2E/playwright-report:/usr/src/app/playwright-report
       - ./packages/E2E/test-results:/usr/src/app/test-results
     build:
-      network: host
       context: .
       dockerfile: ./packages/E2E/Dockerfile
 

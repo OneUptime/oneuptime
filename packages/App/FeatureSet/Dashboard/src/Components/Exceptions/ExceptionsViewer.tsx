@@ -8,6 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ActiveFilter,
   FacetConfig,
@@ -73,6 +76,7 @@ import {
   resolveExceptionServiceChipId,
   resolveExceptionServiceIds,
   splitExceptionFieldPredicates,
+  EXCEPTION_KNOWN_FIELD_KEYS,
 } from "../../Utils/ExceptionsSearchQuery";
 import { ERROR_CLASS_DISPLAY_NAMES } from "../../Utils/ExceptionErrorClassLabels";
 import {
@@ -89,6 +93,14 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+} from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
+import useStableValue from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -109,6 +121,12 @@ import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlStat
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import useProjectHasExceptions from "./useProjectHasExceptions";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   ExceptionEntityChipRef,
   ExceptionKnownChipIds,
@@ -121,6 +139,8 @@ import {
   resolveExceptionChipDisplay,
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -455,6 +475,15 @@ export interface ExceptionsViewerProps {
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
   /*
+   * The Exceptions pages' explorer: while its list is empty and nothing the
+   * reader set narrows it, it asks once whether the project has any
+   * exception at all - in any state, at any time. None, and the empty list
+   * offers exception tracking's setup guide (Telemetry/TelemetryFirstSteps);
+   * some, and an empty list is the good news it looks like, with its own
+   * message. Embeds leave it unset.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
+  /*
    * Embedded hosts own the page URL: when true the viewer neither seeds from
    * nor mirrors state to the query string. Same polarity as TracesViewer's
    * prop of this name.
@@ -465,14 +494,31 @@ export interface ExceptionsViewerProps {
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The host's scope, by value (issue #4709). Pages hand it over as new
+   * objects on every render - an ObjectID read from the URL in the render,
+   * `entityKeysFilter={[key]}`, the stored query an incident page re-reads
+   * on every background refresh - and every read below is keyed on it, so
+   * each such render read the list, the chart and the facets again.
+   */
+  const primaryEntityId: ObjectID | undefined = useStableValue(
+    props.primaryEntityId,
+  );
+  const entityKeysFilter: Array<string> | undefined = useStableValue(
+    props.entityKeysFilter,
+  );
+  const exceptionInstanceQuery: Query<ExceptionInstance> | undefined =
+    useStableValue(props.exceptionInstanceQuery);
   /*
    * The host's stored exception-instance query, read once into the instance
    * scope this viewer resolves fingerprints from. See
    * Utils/ExceptionQueryScope.
    */
   const hostScope: ExceptionQueryScope = useMemo(() => {
-    return buildExceptionQueryScope(props.exceptionInstanceQuery);
-  }, [props.exceptionInstanceQuery]);
+    return buildExceptionQueryScope(exceptionInstanceQuery);
+  }, [exceptionInstanceQuery]);
 
   /*
    * The window the monitor evaluated over, as a picker value. Always CUSTOM,
@@ -490,7 +536,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * hanging off the incident.
    */
   const hostOwnsView: boolean = Boolean(
-    props.disableUrlSync || props.exceptionInstanceQuery,
+    props.disableUrlSync || exceptionInstanceQuery,
   );
 
   /*
@@ -537,6 +583,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * Whether a list read has come back. Before the first one, `exceptions` is
+   * empty and nothing is loading - the first render, ahead of the effect that
+   * sends the read - which is not a list that came back empty.
+   */
+  const [hasListAnswered, setHasListAnswered] = useState<boolean>(false);
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
@@ -580,13 +632,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     [],
   );
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
     initialUrlState.timeRange,
@@ -602,8 +649,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     number | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  /*
+   * Why the occurrences chart did not load, the facets the time limit
+   * stopped, and why the facets did not load at all (issue #4707): each says
+   * so in its own place instead of an empty chart or "No values".
+   */
+  const [histogramError, setHistogramError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   /*
    * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * Updates trigger a backend refetch so the result includes resources from
@@ -612,6 +671,34 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [facetSearchText, setFacetSearchText] = useState<
     Record<string, string>
   >({});
+
+  /*
+   * A new pinned window is the host describing a different moment - the
+   * investigation drawer zooming its window (issue #4105), an incident page
+   * re-reading its snapshot - so follow it, as the logs and traces viewers
+   * do; the fingerprints, the list and the chart all read `timeRange`. Only
+   * a pin that differs by value from the one it replaces counts: a host
+   * rebuilding an equal query neither refetches nor undoes a zoom the reader
+   * made inside this view.
+   */
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
+  useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    if (
+      !pinnedTimeRange ||
+      TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin)
+    ) {
+      return;
+    }
+
+    setTimeRange(pinnedTimeRange);
+    setPage(1);
+  }, [pinnedTimeRange]);
 
   /*
    * Mirror filter state to the URL so refresh and back-from-exception-detail
@@ -786,7 +873,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           (response.data["attributes"] || []) as Array<string>,
         );
       } catch {
-        // non-critical
+        // Non-critical: the bar still takes a typed key.
+        setAttributesFailed(true);
       } finally {
         setAttributesLoading(false);
       }
@@ -795,53 +883,29 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, []);
 
   /*
-   * Lazily fetch values for the attribute the user is currently typing
-   * (e.g. `@service:`) so the dropdown can populate suggestions.
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's exceptions have, once per key
+   * and time range (issue #4708). `@type:`, `@service:`, `@env:` and
+   * `@class:` are this explorer's fields, not attributes: never looked up.
    */
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (!attrKey || attrKey === lastValueSuggestionKeyRef.current) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async () => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/exceptions/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: ModelAPI.getCommonHeaders(),
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
-      } catch {
-        // non-critical
-      } finally {
-        setAttributeValuesLoading(false);
-      }
-    };
-    void loadValues();
-  }, [searchValue]);
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: telemetryAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return EXCEPTION_KNOWN_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `exceptions|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "exceptions",
+          attributeKey: attributeKey,
+          timeRange: timeRange,
+        });
+      },
+    });
 
   const serviceById: Record<string, Service> = useMemo(() => {
     const map: Record<string, Service> = {};
@@ -888,12 +952,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * straight to the column, as it was, `@service:api` asked for an exception
    * whose service id is the literal string "api", which no row has.
    */
-  const resolvedServices: ResolvedExceptionServices = useMemo(() => {
+  const resolvedServicesNow: ResolvedExceptionServices = useMemo(() => {
     return resolveExceptionServiceIds({
       predicates: parsedSearch.fieldPredicates["primaryEntityId"] || [],
       services: serviceOptions,
     });
   }, [parsedSearch, serviceOptions]);
+
+  /*
+   * By value: the service list lands a moment after mount, and with no
+   * `@service:` token it changes nothing here. Keyed on the object, its
+   * landing rebuilt the list query, the chart and the facet requests, and
+   * every one of them was read twice on every page load (issue #4709).
+   */
+  const resolvedServices: ResolvedExceptionServices =
+    useStableValue(resolvedServicesNow);
+
+  /*
+   * A `@service:` token names services, and the names resolve against that
+   * list: until it is in, the token resolves to no service at all. Reading
+   * then would query "no such service" and read everything again a moment
+   * later with the real ids, so the reads wait for the list instead.
+   */
+  const isWaitingForServiceNames: boolean =
+    (parsedSearch.fieldPredicates["primaryEntityId"] || []).length > 0 &&
+    !areResourceListsLoaded;
 
   const facetGroups: Record<string, Array<string>> = useMemo(() => {
     const groups: Record<string, Array<string>> = {};
@@ -1097,7 +1180,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         attributePredicates,
         columnPredicates,
       },
-      buildExceptionEntityKeyScope(props.entityKeysFilter),
+      buildExceptionEntityKeyScope(entityKeysFilter),
     );
 
     /*
@@ -1116,7 +1199,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     searchFieldFilters,
     resolvedServices,
     hostScope,
-    props.entityKeysFilter,
+    entityKeysFilter,
   ]);
 
   const instanceScopeKey: string | null = useMemo(() => {
@@ -1148,6 +1231,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   useEffect(() => {
     if (!instanceScopeKey) {
       setScopeResolution(null);
+      return;
+    }
+
+    // A negated `@service:` is part of the scope: resolve it with the names.
+    if (isWaitingForServiceNames) {
       return;
     }
 
@@ -1218,7 +1306,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [instanceScopeKey, instanceScope, timeRange]);
+  }, [instanceScopeKey, instanceScope, timeRange, isWaitingForServiceNames]);
 
   /*
    * Fingerprints to carry into the histogram/facets payloads — only once
@@ -1231,13 +1319,45 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   /*
    * While the fingerprints for the CURRENT scope are still in flight the list
-   * query carries the no-match sentinel, so it comes back empty by design —
-   * showing more would be a lie. But rendering that as the empty STATE is a
-   * different lie: an incident card would flash "No exceptions found" and
-   * then fill in. Report it as loading instead.
+   * query carries the no-match sentinel, so it would come back empty by
+   * design — showing more would be a lie. But rendering that as the empty
+   * STATE is a different lie: an incident card would flash "No exceptions
+   * found" and then fill in. Report it as loading instead.
    */
   const isResolvingScope: boolean = Boolean(
     instanceScopeKey && scopeResolution?.key !== instanceScopeKey,
+  );
+
+  /*
+   * Whether the reads below wait (issue #4709): for the service names a
+   * `@service:` token resolves against, or for the fingerprints of the
+   * instance scope. Read before, the list, the chart, the facets and the
+   * error-class counts each went out once with a stand-in (every service,
+   * the no-match sentinel) and once more a moment later with the answer.
+   * Now each goes out once, with it.
+   */
+  const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
+
+  /*
+   * The Exceptions pages' first steps: shown while the list is empty, nothing
+   * the reader set narrows it, and the project has no exception at all
+   * (asked once, useProjectHasExceptions). Empty means a read came back with
+   * no rows: judged before the first one, every page load asked, rows or not.
+   */
+  const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty:
+      hasListAnswered &&
+      !isLoading &&
+      !holdsReads &&
+      !error &&
+      exceptions.length === 0,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  const projectHasExceptions: boolean | null = useProjectHasExceptions(
+    isUnnarrowedEmptyList,
   );
 
   const query: Query<TelemetryException> = useMemo(() => {
@@ -1247,8 +1367,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.projectId = projectId;
     }
 
-    if (props.primaryEntityId) {
-      q.primaryEntityId = props.primaryEntityId;
+    if (primaryEntityId) {
+      q.primaryEntityId = primaryEntityId;
     }
 
     if (status === "unresolved") {
@@ -1353,7 +1473,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return q;
   }, [
-    props.primaryEntityId,
+    primaryEntityId,
     status,
     columnLiterals,
     errorClassClause,
@@ -1393,6 +1513,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         });
       setExceptions(result.data || []);
       setTotalCount(result.count);
+      setHasListAnswered(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -1401,8 +1522,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [query, page, pageSize]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchExceptions();
-  }, [fetchExceptions]);
+  }, [fetchExceptions, holdsReads]);
 
   // Fetch histogram (occurrences over time, split by handled/unhandled)
   const fetchHistogram: () => Promise<void> = useCallback(async () => {
@@ -1429,10 +1554,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     const histogramResourceIds: Array<string> = [...resourceIds];
     if (
-      props.primaryEntityId &&
-      !histogramResourceIds.includes(props.primaryEntityId.toString())
+      primaryEntityId &&
+      !histogramResourceIds.includes(primaryEntityId.toString())
     ) {
-      histogramResourceIds.push(props.primaryEntityId.toString());
+      histogramResourceIds.push(primaryEntityId.toString());
     }
     if (resolvedServices.matchedNothing) {
       payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
@@ -1485,10 +1610,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         []) as unknown as Array<HistogramBucket>;
       setHistogramBuckets(buckets);
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
-    } catch {
-      // non-critical
+      setHistogramError(undefined);
+    } catch (err) {
+      // Non-critical: the chart's own card says why it has no bars.
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setHistogramLoading(false);
     }
@@ -1498,14 +1625,18 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resourceIds,
     resolvedServices,
     parsedSearch,
-    props.primaryEntityId,
+    primaryEntityId,
     instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchHistogram();
-  }, [fetchHistogram]);
+  }, [fetchHistogram, holdsReads]);
 
   // Histogram series (handled/unhandled) — colored per level
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -1664,10 +1795,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     const facetResourceIds: Array<string> = [...resourceIds];
     if (
-      props.primaryEntityId &&
-      !facetResourceIds.includes(props.primaryEntityId.toString())
+      primaryEntityId &&
+      !facetResourceIds.includes(primaryEntityId.toString())
     ) {
-      facetResourceIds.push(props.primaryEntityId.toString());
+      facetResourceIds.push(primaryEntityId.toString());
     }
     if (resolvedServices.matchedNothing) {
       payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
@@ -1709,9 +1840,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       const facets: FacetData = (response.data["facets"] ||
         {}) as unknown as FacetData;
       setFacetData(facets);
-    } catch {
-      // Facets are non-critical; silently degrade
+      setTimedOutFacets(
+        Array.isArray(response.data["timedOutFacets"])
+          ? (response.data["timedOutFacets"] as Array<string>)
+          : [],
+      );
+      setFacetError(undefined);
+    } catch (err) {
+      // Non-critical: the sidebar says why the facets are missing.
       setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setFacetLoading(false);
     }
@@ -1721,15 +1860,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resourceIds,
     resolvedServices,
     parsedSearch,
-    props.primaryEntityId,
+    primaryEntityId,
     facetSearchText,
     instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchFacets();
-  }, [fetchFacets]);
+  }, [fetchFacets, holdsReads]);
 
   const [errorClassFacetValues, setErrorClassFacetValues] = useState<
     Array<FacetValue>
@@ -1762,6 +1905,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * same cadence as the list fetch beside them.
    */
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     let isCancelled: boolean = false;
 
     const loadErrorClassCounts: () => Promise<void> =
@@ -1817,19 +1964,30 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [errorClassFacetQuery]);
+  }, [errorClassFacetQuery, holdsReads]);
 
   /*
    * The backend facets plus the one this component counts itself. Merged
    * here rather than into `facetData` state so a facet refetch cannot drop
    * the class counts, and a class recount cannot drop the rest.
+   *
+   * Nothing at all while the backend's first answer is still to come (the
+   * reads held for a `@service:` token's names or the instance scope's
+   * fingerprints, issue #4709, or a facet read retried after it failed).
+   * The sidebar reads a facet key as an answer: the class key handed over
+   * on its own made it list every facet as "No values in this time range"
+   * while the explorer was still loading, where it now shows its loader.
    */
   const mergedFacetData: FacetData = useMemo(() => {
+    if (Object.keys(facetData).length === 0 && (facetLoading || holdsReads)) {
+      return {};
+    }
+
     return {
       ...facetData,
       [EXCEPTION_ERROR_CLASS_COLUMN]: errorClassFacetValues,
     };
-  }, [facetData, errorClassFacetValues]);
+  }, [facetData, errorClassFacetValues, facetLoading, holdsReads]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
@@ -1887,7 +2045,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * projectId "Unknown Service" bucket; without this those chips read
    * "Service: 84858d6c-…".
    */
-  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+  const scopeEntityId: string | undefined = primaryEntityId?.toString();
 
   const entityChipRefs: Array<ExceptionEntityChipRef> = useMemo(() => {
     return [...hostScope.chips, ...activeFilters].map(
@@ -1969,13 +2127,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
 
     const base: Array<ActiveFilter> = [];
-    if (props.primaryEntityId) {
+    if (primaryEntityId) {
       base.push(
         resolveDisplay({
           facetKey: "primaryEntityId",
-          value: props.primaryEntityId.toString(),
+          value: primaryEntityId.toString(),
           displayKey: "Service",
-          displayValue: props.primaryEntityId.toString(),
+          displayValue: primaryEntityId.toString(),
           readOnly: true,
         }),
       );
@@ -1992,7 +2150,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     base.push(
       ...buildExceptionLockedEntityKeyChips({
-        entityKeysFilter: props.entityKeysFilter,
+        entityKeysFilter: entityKeysFilter,
         entityKeyDisplays: props.entityKeyDisplays,
         storedScopeChips: hostScope.chips,
       }),
@@ -2015,9 +2173,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
     return [...base, ...activeFilters.map(resolveDisplay)];
   }, [
-    props.primaryEntityId,
+    primaryEntityId,
     props.scopeEntityType,
-    props.entityKeysFilter,
+    entityKeysFilter,
     props.entityKeyDisplays,
     scopeEntityId,
     hostScope,
@@ -2046,10 +2204,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
       {(
         [
-          ["unresolved", "Unresolved"],
-          ["resolved", "Resolved"],
-          ["archived", "Archived"],
-          ["all", "All"],
+          ["unresolved", translationKey("Unresolved")],
+          ["resolved", translationKey("Resolved")],
+          ["archived", translationKey("Archived")],
+          ["all", translationKey("All")],
         ] as Array<[ExceptionStatus, string]>
       ).map(([key, label]: [ExceptionStatus, string]): ReactElement => {
         const isActive: boolean = status === key;
@@ -2067,7 +2225,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
               setPage(1);
             }}
           >
-            {label}
+            {translator.translateText(label)}
           </button>
         );
       })}
@@ -2089,13 +2247,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
       {(
         [
-          ["issues", "Issues", "Hide user errors and expected denials"],
+          [
+            "issues",
+            translationKey("Issues"),
+            translationKey("Hide user errors and expected denials"),
+          ],
           [
             "user-errors",
-            "User errors",
-            "Only user errors and expected denials — the classes the Issues lens hides",
+            translationKey("User errors"),
+            translationKey(
+              "Only user errors and expected denials — the classes the Issues lens hides",
+            ),
           ],
-          ["all", "All", "Every exception, whatever its fault class"],
+          [
+            "all",
+            translationKey("All"),
+            translationKey("Every exception, whatever its fault class"),
+          ],
         ] as Array<[ExceptionClassScope, string, string]>
       ).map(
         ([key, label, description]: [
@@ -2108,7 +2276,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             <button
               key={key}
               type="button"
-              title={description}
+              title={translator.translateText(description)}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                 isActive
                   ? "bg-indigo-50 text-indigo-700"
@@ -2119,7 +2287,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
                 setPage(1);
               }}
             >
-              {label}
+              {translator.translateText(label)}
             </button>
           );
         },
@@ -2141,13 +2309,26 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
-      isLoading={isLoading || isResolvingScope}
+      isLoading={isLoading || holdsReads}
       error={error || undefined}
       onRefresh={() => {
+        // A held read goes out by itself once what it waits for is in.
+        if (holdsReads) {
+          return;
+        }
+
         void fetchExceptions();
         void fetchHistogram();
       }}
       emptyMessage={props.emptyMessage || "No exceptions found"}
+      emptyContent={
+        isUnnarrowedEmptyList && projectHasExceptions === false ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Exceptions}
+            timeRange={timeRange}
+          />
+        ) : undefined
+      }
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId
@@ -2198,9 +2379,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           );
         }),
       ]}
-      searchValueSuggestions={attributeValueSuggestions}
+      searchValueSuggestions={attributeValues.valueSuggestions}
       searchAttributesLoading={attributesLoading}
-      searchValuesLoading={attributeValuesLoading}
+      searchValuesLoading={attributeValues.isLoading}
+      searchValuesError={attributeValues.error}
+      onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Enter turns `key:value` into a chip. A chip stores its value
@@ -2294,7 +2478,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       showFacetSidebar={true}
       facetData={mergedFacetData}
       facetConfigs={facetConfigs}
-      facetLoading={facetLoading}
+      facetLoading={facetLoading || holdsReads}
+      timedOutFacets={timedOutFacets}
+      facetError={facetError}
+      onRetryFacets={() => {
+        // A held read goes out by itself once what it waits for is in.
+        if (!holdsReads) {
+          void fetchFacets();
+        }
+      }}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
@@ -2320,7 +2512,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
       histogramTitle="Exceptions over time"
-      histogramLoading={histogramLoading}
+      histogramLoading={histogramLoading || holdsReads}
+      histogramError={histogramError}
+      onRetryHistogram={() => {
+        if (!holdsReads) {
+          void fetchHistogram();
+        }
+      }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination

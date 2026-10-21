@@ -10,6 +10,9 @@ set -e
 # Variables
 OUTPUT_DIR="./dist"
 APP_NAME="oneuptime-infrastructure-agent"
+# windows/oneuptime-infrastructure-agent.wxs says how the installer upgrades
+# and handles the agent's service.
+WXS_FILE="./windows/$APP_NAME.wxs"
 # Take version from --version argument
 
 APP_VERSION=$1
@@ -26,6 +29,15 @@ BINARIES=(
 # Architecture mappings
 ARCHES=("amd64" "arm64")
 
+# The Windows Installer platform of each MSI. wixl cannot build an ARM64
+# package, so the arm64 MSI is an x64 one carrying the arm64 program, which
+# Windows 11 on Arm installs. Not x86: Windows Installer maps a 32-bit
+# package's ProgramFiles64Folder to the 32-bit Program Files, so the native
+# ARM64 program missed C:\Program Files\OneUptimeInfrastructureAgent, where
+# the docs say it is (Windows 10 on Arm, which has no x64 emulation, has been
+# out of support since October 2025).
+WIXL_ARCHES=("x64" "x64")
+
 # Ensure output directory exists
 mkdir -p "$OUTPUT_DIR"
 
@@ -39,21 +51,17 @@ fi
 for i in "${!BINARIES[@]}"; do
   BINARY="${BINARIES[$i]}"
   ARCH="${ARCHES[$i]}"
-  WXS_INPUT_FILE="./windows/app-$ARCH-template.wxs"
-  WXS_OUTPUT_FILE="./windows/app-$ARCH.wxs"
   MSI_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi"
 
   # log binary and arch
   echo "Building MSI for binary: $BINARY and arch: $ARCH"
 
-  # Update the WXS file with the correct binary
-  sed "s|binary_placeholder|$BINARY|g" $WXS_INPUT_FILE > "$WXS_OUTPUT_FILE"
-
-  # Update version in WXS file
-  sed -i "s|version_placeholder|$APP_VERSION|g" "$WXS_OUTPUT_FILE"
-
   echo "Packaging $BINARY into $MSI_FILE..."
-  wixl -o "$MSI_FILE" "$WXS_OUTPUT_FILE"
+  wixl -a "${WIXL_ARCHES[$i]}" \
+    -D "Arch=$ARCH" \
+    -D "Version=$APP_VERSION" \
+    -D "Binary=$BINARY" \
+    -o "$MSI_FILE" "$WXS_FILE"
 
   if [ $? -eq 0 ]; then
     echo "MSI successfully created: $MSI_FILE"

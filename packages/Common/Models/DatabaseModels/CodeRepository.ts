@@ -1,5 +1,6 @@
 import Label from "./Label";
 import Project from "./Project";
+import Runner from "./Runner";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -571,6 +572,115 @@ export default class CodeRepository extends BaseModel {
   })
   public testCommand?: string = undefined;
 
+  /*
+   * The Runner AI works in this repository on (Types/Runner/
+   * CodeRepositoryRunner): it clones the repository, makes the change, runs
+   * the setup, build and test commands above and opens the pull request.
+   * Only that Runner is handed the repository's AI work and a token for it.
+   * Empty means a global Runner - the one OneUptime runs for every project -
+   * while the project uses global Runners (Project.useGlobalRunners).
+   *
+   * Only one of the project's own Runners may be picked
+   * (ProjectReferencesService refuses another project's Runner and a global
+   * one; CodeRepositoryService refuses an in-cluster Runner the Kubernetes
+   * agent chart installed, which never clones a repository). A Runner that
+   * is deleted leaves the repository on a global Runner (SET NULL), as one
+   * that picks none.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runnerId",
+    type: TableColumnType.Entity,
+    modelType: Runner,
+    title: "Runner",
+    description:
+      "The Runner AI works in this repository on. Empty means a global Runner, one OneUptime runs for every project.",
+  })
+  @ManyToOne(
+    () => {
+      return Runner;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runnerId" })
+  public runner?: Runner = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Runner ID",
+    description:
+      "ID of the Runner AI works in this repository on: one of the project's own Runners. Empty means a global Runner, one OneUptime runs for every project.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runnerId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -604,7 +714,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.Number,
     title: "Max Open Fix Pull Requests",
     description:
-      "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs are refused a repository token, so they cannot push branches or open pull requests. Unset means the default of 5; 0 blocks AI fix pull requests for this repository entirely.",
+      "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs are refused a repository token, so they cannot push branches or open pull requests. Unset means no cap; 0 blocks AI fix pull requests for this repository entirely.",
     example: 5,
   })
   @Column({

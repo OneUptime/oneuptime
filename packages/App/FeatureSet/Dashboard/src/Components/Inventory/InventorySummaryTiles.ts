@@ -1,28 +1,20 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import { InventoryScope } from "./InventoryScope";
-import {
-  InventoryLiveness,
-  getInventoryLiveness,
-  isStaleLiveness,
-} from "./InventoryLiveness";
 
 /*
- * The strip of numbers at the top of the Inventory Overview, and the fold
- * that produces them.
+ * The strip of numbers at the top of the Inventory Overview.
  *
  * Every tile is a drill-down: its `scope` is exactly the narrowing that
  * produces the rows it counted, so the number on the tile and the list you
- * land on after clicking it can never describe different things. The tests
- * walk each tile's scope back through the same fold to prove that — a tile
- * whose scope did not match its count would be the quiet kind of wrong, where
- * everything renders and the numbers just lie.
+ * land on after clicking it can never describe different things. A tile
+ * whose scope did not match its count would be the quiet kind of wrong,
+ * where everything renders and the numbers just lie.
  *
- * The fold is a client-side pass over the project's rows rather than five
- * server-side counts. That is a deliberate trade: staleness is derived from
- * `lastSeenAt` against a source-dependent rule (see InventoryLiveness), which
- * is not something the count endpoint can express, and doing it in two places
- * is how the tile and the badge drift apart. The list this reads is already
- * bounded by LIMIT_PER_PROJECT at the call site.
+ * The counts themselves are made in Postgres over the whole estate (see
+ * InventoryItemService.getOverviewCounts), with the same filters the Items
+ * list applies for each scope — the Stale one included, since the count and
+ * the status facet share getInventoryLivenessSql. InventoryOverviewPostgres
+ * checks every tile's count against the rows its drill-down lists.
  */
 
 export interface InventorySummaryCounts {
@@ -39,59 +31,6 @@ export const EMPTY_INVENTORY_SUMMARY_COUNTS: InventorySummaryCounts = {
   mirrored: 0,
   manual: 0,
   stale: 0,
-};
-
-export interface InventorySummaryRow {
-  source?: string | undefined;
-  lastSeenAt?: Date | string | undefined | null;
-}
-
-export type SummarizeInventoryFunction = (
-  rows: Array<InventorySummaryRow>,
-  now: Date,
-) => InventorySummaryCounts;
-
-/**
- * Fold the project's rows into the five numbers the strip shows.
- *
- * `total` counts every row, including ones whose source this build does not
- * recognise — the total has to be the whole estate, or the tile understates
- * what the user owns. Such rows simply land in none of the three source
- * buckets, which is why the buckets are not asserted to sum to the total.
- */
-export const summarizeInventory: SummarizeInventoryFunction = (
-  rows: Array<InventorySummaryRow>,
-  now: Date,
-): InventorySummaryCounts => {
-  const counts: InventorySummaryCounts = { ...EMPTY_INVENTORY_SUMMARY_COUNTS };
-
-  for (const row of rows) {
-    counts.total++;
-
-    if (row.source === EntitySource.Discovered) {
-      counts.discovered++;
-    } else if (row.source === EntitySource.Inventory) {
-      counts.mirrored++;
-    } else if (row.source === EntitySource.Manual) {
-      counts.manual++;
-    }
-
-    /*
-     * Staleness is asked of the liveness rule, not of `lastSeenAt` directly,
-     * so rows nothing bumps (mirrored, manual) can never be counted stale.
-     */
-    const liveness: InventoryLiveness = getInventoryLiveness({
-      source: row.source,
-      lastSeenAt: row.lastSeenAt,
-      now,
-    }).liveness;
-
-    if (isStaleLiveness(liveness)) {
-      counts.stale++;
-    }
-  }
-
-  return counts;
 };
 
 export interface InventorySummaryTile {
@@ -159,43 +98,4 @@ export const getInventoryTileCount: GetInventoryTileCountFunction = (
   counts: InventorySummaryCounts | null,
 ): number => {
   return counts ? counts[tile.countField] : 0;
-};
-
-export type RowMatchesScopeFunction = (
-  row: InventorySummaryRow,
-  scope: InventoryScope,
-  now: Date,
-) => boolean;
-
-/**
- * Whether a row is one of the ones a scope selects.
- *
- * The Items page does this narrowing server-side (it is a model query), so
- * this is not on the render path. It exists so the tests can check that each
- * tile's scope selects exactly the rows its count counted, using one shared
- * definition of what a scope means rather than a second copy written into the
- * test.
- */
-export const rowMatchesScope: RowMatchesScopeFunction = (
-  row: InventorySummaryRow,
-  scope: InventoryScope,
-  now: Date,
-): boolean => {
-  if (scope.source && row.source !== scope.source) {
-    return false;
-  }
-
-  if (scope.staleOnly) {
-    const liveness: InventoryLiveness = getInventoryLiveness({
-      source: row.source,
-      lastSeenAt: row.lastSeenAt,
-      now,
-    }).liveness;
-
-    if (!isStaleLiveness(liveness)) {
-      return false;
-    }
-  }
-
-  return true;
 };

@@ -265,8 +265,18 @@ describe("the logs viewer seeds its time range from the query's window", () => {
   });
 
   test("the props-sync effect follows a new pinned window instead of overwriting it", () => {
+    /*
+     * Only a NEW pin (by value, against the last one followed) is stamped
+     * onto the list; otherwise the window the reader is on stays, a zoom
+     * made inside included (issue #4105). Rendered for real in
+     * Common/Tests/App/Dashboard/SnapshotViewerPinnedWindow.test.tsx and
+     * LogsViewerPinnedWindowZoom.test.tsx.
+     */
     expect(LOGS_VIEWER).toContain(
-      "const nextTimeRange: RangeStartAndEndDateTime = pinnedTimeRange || timeRange;",
+      "const isNewPin: boolean = Boolean(pinnedTimeRange) && !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin);",
+    );
+    expect(LOGS_VIEWER).toContain(
+      "const nextTimeRange: RangeStartAndEndDateTime = isNewPin && pinnedTimeRange ? pinnedTimeRange : timeRange;",
     );
     expect(LOGS_VIEWER).toContain(
       "RangeStartAndEndDateTimeUtil.getStartAndEndDate(nextTimeRange)",
@@ -276,6 +286,11 @@ describe("the logs viewer seeds its time range from the query's window", () => {
   test("the effect compares windows by value, so an equal-but-new query cannot loop", () => {
     expect(LOGS_VIEWER).toContain(
       "!TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, timeRange)",
+    );
+    // It runs when the scope or the pin changes by value, not by identity.
+    expect(LOGS_VIEWER).toContain("}, [scopeKey, pinnedTimeRangeKey]);");
+    expect(LOGS_VIEWER).toContain(
+      "const pinnedTimeRangeKey: string = getPinnedTimeRangeKey(pinnedTimeRange);",
     );
   });
 
@@ -326,11 +341,14 @@ describe("the logs viewer seeds its time range from the query's window", () => {
      * shared resolver when the Viewer and Insights tabs started handing each
      * other a scope. The guarantee is unchanged and, if anything, wider:
      * every embedded viewer (`!syncUrlState`) is covered now, not only the
-     * ones a host pinned a window on.
+     * ones a host pinned a window on. The flag is computed once, and also
+     * decides that a pinned preview never waits for saved views before its
+     * first reads (issue #4709).
      */
     expect(LOGS_VIEWER).toContain(
-      "hostOwnsView: Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, )",
+      "const hostOwnsView: boolean = Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, );",
     );
+    expect(LOGS_VIEWER).toContain("hostOwnsView: hostOwnsView, });");
     expect(LOGS_VIEWER).toContain("if (resolution.savedView) {");
   });
 });

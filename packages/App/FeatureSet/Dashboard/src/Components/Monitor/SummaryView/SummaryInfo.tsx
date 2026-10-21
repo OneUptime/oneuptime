@@ -13,7 +13,11 @@ import SqlMonitorView from "./SqlMonitorView";
 import DatabaseMonitorView from "./DatabaseMonitorView";
 import DomainMonitorView from "./DomainMonitorView";
 import DnssecMonitorView from "./DnssecMonitorView";
+import NtpMonitorView from "./NtpMonitorView";
 import ExternalStatusPageMonitorView from "./ExternalStatusPageMonitorView";
+import ProbeStatusMonitorView from "./ProbeStatusMonitorView";
+import ProbeStatusMonitorResponse from "Common/Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType, {
@@ -28,6 +32,8 @@ import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import EvaluationLogList from "./EvaluationLogList";
 import { MonitorSummaryProbeState } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -39,6 +45,12 @@ export interface ComponentProps {
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  /*
+   * A Probe Status monitor's evaluation: the probes it watched as it found
+   * them. Read from JSON (the evaluation log, a stored snapshot), so it is
+   * parsed before it is drawn.
+   */
+  probeStatusMonitorResponse?: ProbeStatusMonitorResponse | undefined;
   probeName?: string | undefined;
   /*
    * Optional so the callers that render one probe's log in isolation (the
@@ -54,6 +66,18 @@ export interface ComponentProps {
 const SummaryInfo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  // "This probe has not reported...", naming the probe when it has a name.
+  const notReportedMessage: string = props.probeName
+    ? translator.translateTemplate(
+        "{{probe}} has not reported a result yet. Results usually appear within a few minutes of its next check.",
+        { probe: props.probeName },
+      )
+    : translator.translateTemplate(
+        "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.",
+      );
+
   type GetProbeableMonitorSummarysInfo = (
     probeMonitorResponse: ProbeMonitorResponse,
     key: number,
@@ -66,11 +90,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (!probeMonitorResponse) {
       return (
         <div key={key} className="space-y-6">
-          <ErrorMessage
-            message={`${
-              props.probeName || "This probe"
-            } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
-          />
+          <ErrorMessage message={notReportedMessage} />
         </div>
       );
     }
@@ -173,6 +193,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (props.monitorType === MonitorType.NTP) {
+      summaryComponent = (
+        <NtpMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
     if (props.monitorType === MonitorType.SQLQuery) {
       summaryComponent = (
         <SqlMonitorView
@@ -244,20 +273,21 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     ) {
       return (
         <ErrorMessage
-          message={`${
-            props.probeName || "This probe"
-          } is disabled for this monitor, so it is not collecting any data. Enable it under Probes.`}
+          message={
+            props.probeName
+              ? translator.translateTemplate(
+                  "{{probe}} is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
+                  { probe: props.probeName },
+                )
+              : translator.translateTemplate(
+                  "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
+                )
+          }
         />
       );
     }
 
-    return (
-      <ErrorMessage
-        message={`${
-          props.probeName || "This probe"
-        } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
-      />
-    );
+    return <ErrorMessage message={notReportedMessage} />;
   }
 
   /*
@@ -277,6 +307,34 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
           "This monitor alerts on a registered Network Device. Live polling data — reachability, interfaces, inventory, and health charts — lives on the device's page under Network Devices. Criteria on this monitor are evaluated every time the device is polled and every time it sends a matching trap."
         }
       />
+    );
+  }
+
+  /*
+   * A Probe Status monitor is evaluated centrally every minute: the summary
+   * is the probes it watches, as its evaluation found them.
+   */
+  if (props.monitorType === MonitorType.ProbeStatus) {
+    const probeStatusMonitorResponse: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorUtil.parseResponse(props.probeStatusMonitorResponse);
+
+    if (!probeStatusMonitorResponse) {
+      return (
+        <ErrorMessage
+          message={
+            "No evaluation yet. This monitor checks the probes it watches every minute."
+          }
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <ProbeStatusMonitorView
+          probeStatusMonitorResponse={probeStatusMonitorResponse}
+        />
+        {renderEvaluationLogs(props.evaluationSummary)}
+      </div>
     );
   }
 

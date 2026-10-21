@@ -150,6 +150,8 @@ import {
   SECURITY_EVENT_SOURCE_FACET_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { TELEMETRY_VIEWER_LIST_TEST_ID } from "../../../UI/Components/TelemetryViewer/TelemetryViewer";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
@@ -625,7 +627,19 @@ describe("one query behind everything", () => {
       expect(rows()).toHaveLength(2);
     });
 
-    expect(screen.queryByText(/boom/)).toBeNull();
+    /*
+     * The chart and the filter counts each say they could not load, in
+     * their own place (issue #4707); the list is untouched.
+     */
+    expect(
+      await screen.findByText("This chart could not load"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Filter counts could not load"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(TELEMETRY_VIEWER_LIST_TEST_ID),
+    ).not.toHaveTextContent("boom");
   });
 
   test("a failed list is reported, and the rows are cleared", async () => {
@@ -741,6 +755,213 @@ describe("the facet sidebar", () => {
     expect(JSON.parse(urlParams().get("filters") as string)).toEqual([
       [`!severityName`, OcsfSeverity.Low],
     ]);
+  });
+
+  /*
+   * The shared sidebar reads the `!` key: the excluded value is drawn as
+   * excluded (the checkbox's mixed state, struck through in red) rather than
+   * as a value nobody picked, and a click on it - row or pressed button -
+   * takes the exclusion off, as a click on a checked value takes the include
+   * off.
+   */
+  test("an excluded value reads as excluded, and a click on its row takes the exclusion off", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+
+    const excluded: HTMLElement = within(facetSection("Severity")).getByRole(
+      "checkbox",
+      { name: new RegExp(`^${OcsfSeverity.Low}`) },
+    );
+    expect(excluded).toHaveAttribute("aria-checked", "mixed");
+    expect(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(excluded);
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+    expect(urlParams().get("filters")).toBeNull();
+    expect(
+      within(facetSection("Severity")).getByRole("checkbox", {
+        name: OcsfSeverity.Low,
+      }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("the pressed exclude button takes the exclusion off too", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    const exclude: () => HTMLElement = (): HTMLElement => {
+      return within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      });
+    };
+
+    fireEvent.click(exclude());
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+
+    fireEvent.click(exclude());
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+    expect(exclude()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("excluding a checked value swaps the include for the exclusion", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Critical");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByText(OcsfSeverity.Critical),
+    );
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBe(OcsfSeverity.Critical);
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Critical}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+    expect(JSON.parse(urlParams().get("filters") as string)).toEqual([
+      [`!severityName`, OcsfSeverity.Critical],
+    ]);
+  });
+
+  test("an excluded value the counts leave out keeps its row, so it can be cleared there", async () => {
+    // Counted the way the server counts: an excluded severity has no rows.
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        const groupBy: Record<string, boolean> =
+          (data.aggregateBy.groupBy as unknown as Record<string, boolean>) ||
+          {};
+        const facetKey: string | undefined = Object.keys(groupBy)[0];
+        const query: Record<string, unknown> = data.aggregateBy
+          .query as unknown as Record<string, unknown>;
+        const excludesLow: boolean = query["severityName"] instanceof NotEqual;
+
+        if (
+          data.aggregateBy.aggregationInterval === "Total" &&
+          facetKey === "severityName"
+        ) {
+          return {
+            data: [
+              { timestamp: NOW, value: 4, severityName: OcsfSeverity.Critical },
+              ...(excludesLow
+                ? []
+                : [
+                    {
+                      timestamp: NOW,
+                      value: 9,
+                      severityName: OcsfSeverity.Low,
+                    },
+                  ]),
+            ],
+          } as unknown as AggregatedResult;
+        }
+
+        return { data: [] } as unknown as AggregatedResult;
+      },
+    );
+
+    renderViewer();
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+    await waitFor(() => {
+      expect(
+        within(facetSection("Severity")).getByRole("checkbox", {
+          name: new RegExp(`^${OcsfSeverity.Low}`),
+        }),
+      ).toHaveAttribute("aria-checked", "mixed");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("checkbox", {
+        name: new RegExp(`^${OcsfSeverity.Low}`),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+  });
+
+  test("REGRESSION: a checked value unchecks from its row and the chip goes with it", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Critical");
+    });
+
+    const critical: () => HTMLElement = (): HTMLElement => {
+      return within(facetSection("Severity")).getByRole("checkbox", {
+        name: OcsfSeverity.Critical,
+      });
+    };
+
+    fireEvent.click(critical());
+    await waitFor(() => {
+      expect(critical()).toHaveAttribute("aria-checked", "true");
+    });
+    expect(
+      screen.getByTitle(`Remove Severity: ${OcsfSeverity.Critical}`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(critical());
+    await waitFor(() => {
+      expect(critical()).toHaveAttribute("aria-checked", "false");
+    });
+    expect(listQuery()["severityName"]).toBeUndefined();
+    expect(
+      screen.queryByTitle(`Remove Severity: ${OcsfSeverity.Critical}`),
+    ).toBeNull();
   });
 });
 
@@ -1008,6 +1229,110 @@ describe("pagination", () => {
   });
 });
 
+/*
+ * The list endpoint skips COUNT(*) and answers `skip + rows + 1` with
+ * `hasMore` (issue #4202). The footer used to print that as the total —
+ * "Showing 1-50 of 51 security events" — beside a volume chart whose
+ * header states the real total. It pages on hasMore instead now.
+ */
+describe("the footer and the list endpoint's lower bound (#4202)", () => {
+  function stubFullPages(): void {
+    getListMock.mockImplementation(
+      async (data: {
+        limit: number;
+        skip?: number;
+      }): Promise<ListResult<SecurityEvent>> => {
+        if (data.limit === 1) {
+          return { data: [EVENTS[0]!], count: 1, skip: 0, limit: 1 };
+        }
+
+        const skip: number = Number(data.skip || 0);
+
+        return {
+          data: Array.from(
+            { length: data.limit },
+            (_: unknown, index: number): SecurityEvent => {
+              return event({ eventUid: `uid-page-${skip + index}` });
+            },
+          ),
+          count: skip + data.limit + 1,
+          skip: skip,
+          limit: data.limit,
+          hasMore: true,
+        };
+      },
+    );
+  }
+
+  const footerSummary: () => string = (): string => {
+    return screen.getByTestId("pagination-summary").textContent || "";
+  };
+
+  test("a full page with more to come pages forward and never prints 'of 51'", async () => {
+    stubFullPages();
+
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 1-50+ security events");
+    });
+    expect(screen.getByTestId("telemetry-pagination").textContent).not.toMatch(
+      /of 51/,
+    );
+    expect(screen.queryAllByTestId(/^pagination-page-\d+$/)).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: "Go to next page" }),
+    ).not.toBeDisabled();
+
+    // The window's total is still the chart's, as it was.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+  });
+
+  test("page 2's lower bound of 101 is not a total either", async () => {
+    stubFullPages();
+
+    renderViewer();
+    await waitForLoad();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 51-100+ security events");
+    });
+  });
+
+  test("a list that ends on its page proves its total, and the footer says it", async () => {
+    getListMock.mockImplementation(
+      async (data: { limit: number }): Promise<ListResult<SecurityEvent>> => {
+        return {
+          data: EVENTS.map((listed: SecurityEvent): SecurityEvent => {
+            return Object.assign(new SecurityEvent(), listed);
+          }),
+          count: EVENTS.length,
+          skip: 0,
+          limit: data.limit,
+          hasMore: false,
+        };
+      },
+    );
+
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 1-2 of 2 security events");
+    });
+    expect(
+      screen.getByRole("button", { name: "Go to next page" }),
+    ).toBeDisabled();
+  });
+});
+
 describe("opening an event", () => {
   test("clicking a row opens the drawer on that event", async () => {
     renderViewer();
@@ -1033,6 +1358,40 @@ describe("opening an event", () => {
     await waitFor(() => {
       expect(listQuery()["className"]).toBe("Authentication");
     });
+  });
+
+  /*
+   * "Filter by" is an add. It went through the sidebar's old toggle, so a
+   * second press on a value already applied took the filter off again.
+   */
+  test("REGRESSION: pressing the drawer's Filter by again keeps the filter", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    fireEvent.click(rows()[0]!);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by Event Class" }),
+    );
+    await waitFor(() => {
+      expect(listQuery()["className"]).toBe("Authentication");
+    });
+
+    const before: number = listCalls().length;
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by Event Class" }),
+    );
+
+    // Nothing changed, so nothing is read again, and the filter is still on.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(listCalls().length).toBe(before);
+    expect(listQuery()["className"]).toBe("Authentication");
+    expect(JSON.parse(urlParams().get("filters") as string)).toEqual([
+      ["className", "Authentication"],
+    ]);
   });
 
   test("the highlight follows the event across a refresh, not the row object", async () => {
@@ -1472,5 +1831,243 @@ describe("attribute columns", () => {
     await waitForLoad();
 
     expect(chipsOn(rows()[0]!)).toEqual([]);
+  });
+});
+
+/*
+ * A read stopped at the query time limit (issue #4707), as the security
+ * events explorer shows it. Found in the UI review of #4824:
+ *
+ *   - the volume card said "Counting events..." beside its own "This chart
+ *     took too long to load", for ever: the total is read from the volume's
+ *     answer, which was not coming;
+ *   - every facet count the limit stopped came back empty, and the sidebar
+ *     folded them into "N empty filters hidden" (all eleven, when the whole
+ *     search ran long), calling empty what nobody had counted.
+ */
+describe("reads stopped at the query time limit", () => {
+  function stoppedAtTimeLimit(): HTTPErrorResponse {
+    return new HTTPErrorResponse(
+      504,
+      {
+        error:
+          "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+      },
+      {},
+    );
+  }
+
+  function emptyFiltersFooter(): HTMLElement | null {
+    return screen.queryByText(/empty filters? hidden/);
+  }
+
+  test("REGRESSION: a volume chart that took too long says so, with no 'Counting events...' beside it", async () => {
+    let stopped: boolean = true;
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        if (
+          stopped &&
+          String(data.aggregateBy.aggregationInterval) !== "Total"
+        ) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("This chart took too long to load"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    expect(
+      screen.queryByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Counting events/)).not.toBeInTheDocument();
+
+    // Try again counts the window again, and its total comes back with it.
+    stopped = false;
+    const chartMessage: HTMLElement = screen
+      .getByText("This chart took too long to load")
+      .closest('[data-testid="telemetry-load-error"]') as HTMLElement;
+
+    await act(async () => {
+      fireEvent.click(
+        within(chartMessage).getByTestId("telemetry-load-error-retry"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+    expect(
+      screen.queryByText("This chart took too long to load"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("while Try again counts the volume, the chart shows it is working, not the old message", async () => {
+    let calls: number = 0;
+    let release: (() => void) | undefined = undefined;
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        if (String(data.aggregateBy.aggregationInterval) !== "Total") {
+          calls++;
+
+          if (calls === 1) {
+            throw stoppedAtTimeLimit();
+          }
+
+          await new Promise<void>((resolve: () => void) => {
+            release = resolve;
+          });
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    const chartMessage: HTMLElement = (
+      await screen.findByText("This chart took too long to load")
+    ).closest('[data-testid="telemetry-load-error"]') as HTMLElement;
+
+    await act(async () => {
+      fireEvent.click(
+        within(chartMessage).getByTestId("telemetry-load-error-retry"),
+      );
+    });
+
+    // The read is running again: the message that it stopped is gone.
+    await waitFor(() => {
+      expect(release).toBeDefined();
+    });
+    expect(
+      screen.queryByText("This chart took too long to load"),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      release?.();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+  });
+
+  test("REGRESSION: facets the time limit stopped say 'Not counted' and are never folded away as empty", async () => {
+    const STOPPED_KEYS: Array<string> = ["severityName", "className"];
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        const facetKey: string | undefined = Object.keys(
+          (data.aggregateBy.groupBy as unknown as Record<string, boolean>) ||
+            {},
+        )[0];
+
+        if (
+          String(data.aggregateBy.aggregationInterval) === "Total" &&
+          facetKey &&
+          STOPPED_KEYS.includes(facetKey)
+        ) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("Filter counts took too long"),
+    ).toBeInTheDocument();
+
+    for (const title of ["Severity", "Event Class"]) {
+      const line: HTMLElement | null = within(
+        facetSection(title),
+      ).queryByTestId("facet-count-stopped");
+      expect(line?.textContent).toBe("Not counted");
+    }
+
+    // Source was counted: it keeps its value, and says nothing.
+    expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    expect(
+      within(facetSection("Source")).queryByTestId("facet-count-stopped"),
+    ).not.toBeInTheDocument();
+
+    /*
+     * The footer counts only the facets that were counted and came back
+     * empty: every facet but Source and the two that were stopped.
+     */
+    const counted: number = SECURITY_EVENT_FACET_KEYS.length - 1 - 2;
+    expect(emptyFiltersFooter()).toHaveTextContent(
+      `${counted} empty filters hidden`,
+    );
+  });
+
+  test("the whole search stopped: one message, and no 'empty filters hidden' for facets nobody counted", async () => {
+    getListMock.mockImplementation(async (data: { limit: number }) => {
+      if (data.limit === 1) {
+        return { data: [event()], count: 1, skip: 0, limit: 1 };
+      }
+
+      throw stoppedAtTimeLimit();
+    });
+    aggregateMock.mockImplementation(async () => {
+      throw stoppedAtTimeLimit();
+    });
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("This search took too long"),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("facet-count-stopped")).toHaveLength(
+        SECURITY_EVENT_FACET_KEYS.length,
+      );
+    });
+
+    expect(emptyFiltersFooter()).not.toBeInTheDocument();
+    // One message for the search: the chart and the counts step aside.
+    expect(screen.getAllByTestId("telemetry-load-error")).toHaveLength(1);
+    expect(screen.queryByText(/Counting events/)).not.toBeInTheDocument();
   });
 });

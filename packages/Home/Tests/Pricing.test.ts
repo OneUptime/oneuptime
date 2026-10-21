@@ -4,6 +4,8 @@ import Pricing, {
   PricingPlan,
   PricingPlans,
 } from "../Utils/Pricing";
+import fs from "fs";
+import path from "path";
 
 /*
  * The pricing matrix is the single source for the /pricing page and every
@@ -108,6 +110,19 @@ describe("Pricing feature matrix", () => {
     }
   });
 
+  test("the data retention rows are spelled correctly", () => {
+    const names: Array<string> = Pricing.flatMap(
+      (category: PricingCategory): Array<string> => {
+        return category.data.map((feature: PricingFeature): string => {
+          return feature.name;
+        });
+      },
+    );
+
+    expect(names).toContain("Data Retention");
+    expect(names).not.toContain("Data Rentention");
+  });
+
   test("feature names are unique within a category", () => {
     for (const category of Pricing as Array<PricingCategory>) {
       const names: Array<string> = category.data.map(
@@ -146,6 +161,98 @@ describe("Notification pricing", () => {
       expect(feature).toBeDefined();
       for (const planKey of planKeys) {
         expect(feature?.plans[planKey]).toBe(rate);
+      }
+    },
+  );
+});
+
+describe("Service SLA", () => {
+  /*
+   * /legal/sla (Views/sla.ejs) is the document that binds us. The pricing
+   * table used to promise 99.99% on Enterprise, 99.95% on Scale, and a 99.00%
+   * SLA on Free, none of which the SLA commits to.
+   */
+  const slaPage: string = fs.readFileSync(
+    path.join(__dirname, "..", "Views", "sla.ejs"),
+    "utf-8",
+  );
+
+  const serviceSla: PricingFeature | undefined = Pricing.find(
+    (category: PricingCategory) => {
+      return category.name === "Support and More";
+    },
+  )?.data.find((feature: PricingFeature) => {
+    return feature.name === "Service SLA";
+  });
+
+  test("the pricing table quotes the SLA's monthly uptime targets", () => {
+    expect(serviceSla?.plans).toEqual({
+      free: "No SLA (best effort)",
+      growth: "99.9%",
+      scale: "99.9%",
+      enterprise: "99.95%",
+    });
+  });
+
+  test.each(["No SLA (best effort)", "99.9%", "99.95%"])(
+    "the SLA page lists %s as a target",
+    (target: string) => {
+      expect(slaPage).toContain(`<td>${target}</td>`);
+    },
+  );
+});
+
+describe("Bring Your Own LLM", () => {
+  /*
+   * A project brings its own model by creating an LLM provider, and talks to
+   * it in AI conversations. OneUptime Cloud creates neither on a plan below
+   * the one their TableBillingAccessControl names; with billing off, as on a
+   * self-hosted install, there is no plan to check. The table used to tick
+   * Free, which no Free project could set up.
+   */
+  const plansInOrder: Array<string> = ["Free", "Growth", "Scale", "Enterprise"];
+
+  const createPlanOf: (model: string) => string = (model: string): string => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "Common",
+        "Models",
+        "DatabaseModels",
+        `${model}.ts`,
+      ),
+      "utf-8",
+    );
+
+    return (
+      source.match(
+        /@TableBillingAccessControl\(\{\s*create:\s*PlanType\.(\w+)/,
+      )?.[1] || ""
+    );
+  };
+
+  const bringYourOwnLlm: PricingFeature | undefined = Pricing.find(
+    (category: PricingCategory) => {
+      return category.name === "AI";
+    },
+  )?.data.find((feature: PricingFeature) => {
+    return feature.name === "Bring Your Own LLM";
+  });
+
+  test.each(["LlmProvider", "AIConversation"])(
+    "the table ticks exactly the plans that can create an %s",
+    (model: string) => {
+      const requiredPlan: number = plansInOrder.indexOf(createPlanOf(model));
+
+      expect(requiredPlan).toBeGreaterThanOrEqual(0);
+
+      for (const plan of PricingPlans) {
+        expect([plan.key, bringYourOwnLlm?.plans[plan.key]]).toEqual([
+          plan.key,
+          plansInOrder.indexOf(plan.name) >= requiredPlan,
+        ]);
       }
     },
   );

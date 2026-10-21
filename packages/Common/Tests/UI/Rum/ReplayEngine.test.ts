@@ -14,9 +14,11 @@ import {
   REPLAY_PAUSED_TICK_MS,
   ReplayEngine,
   ReplayEngineSnapshot,
+  ReplayIdleBand,
   ReplayScheduleHandle,
   ReplayerLike,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
+import { IDLE_SKIP_PREROLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 
 /*
  * The engine is the piece whose failure mode is a lie rather than a crash:
@@ -3896,5 +3898,436 @@ describe("ReplayEngine long playthroughs", () => {
     }
 
     expect(harness.engine.getDiagnostics().replayersCreated).toBe(1);
+  });
+});
+
+/*
+ * The idle pause (issue #4208). A recorder that saw no input for five
+ * minutes stops capturing, and the next input resumes the same tab in the
+ * next chunk on a fresh snapshot. Between the two there is no footage at
+ * all - only the last frame before the pause - so the engine skips a
+ * paused band the moment playback runs into it, whatever Skip idle says,
+ * through the same seek path and toast as any skip. Ordinary idle bands
+ * still follow the toggle.
+ */
+describe("ReplayEngine paused bands", () => {
+  const PAUSE_START_MS: number = 30_000;
+  const PAUSE_END_MS: number = 90_000;
+
+  function timedEntry(
+    chunkIndex: number,
+    startMs: number,
+    hasFullSnapshot: boolean,
+  ): SessionReplayChunkManifestEntry {
+    return {
+      ...makeEntry(chunkIndex, { hasFullSnapshot: hasFullSnapshot }),
+      chunkStartOffsetMs: startMs,
+      chunkEndOffsetMs: startMs + CHUNK_MS,
+    };
+  }
+
+  /*
+   * 0-15s and 15-30s, the pause, then 90-105s (opening on a snapshot) and
+   * 105-120s. Consecutive indexes, a minute apart on the clock.
+   */
+  const pausedEntries: Array<SessionReplayChunkManifestEntry> = [
+    timedEntry(0, 0, true),
+    timedEntry(1, CHUNK_MS, false),
+    timedEntry(2, PAUSE_END_MS, true),
+    timedEntry(3, PAUSE_END_MS + CHUNK_MS, false),
+  ];
+
+  function at(offsetMs: number): number {
+    return CLIENT_CLOCK_BASE_MS + offsetMs;
+  }
+
+  function mouseMove(offsetMs: number): SessionReplayRecordedEvent {
+    return {
+      type: RRWEB_EVENT_TYPE_INCREMENTAL,
+      timestamp: at(offsetMs),
+      data: { source: 1 },
+    };
+  }
+
+  function snapshotAt(offsetMs: number): Array<SessionReplayRecordedEvent> {
+    return [
+      {
+        type: RRWEB_EVENT_TYPE_META,
+        timestamp: at(offsetMs),
+        data: { href: "https://app.example.com/", width: 1440, height: 900 },
+      },
+      {
+        type: RRWEB_EVENT_TYPE_FULL_SNAPSHOT,
+        timestamp: at(offsetMs + 1),
+        data: {},
+      },
+    ];
+  }
+
+  /*
+   * Input until 15s, the idle-paused marker closing chunk 1 at 30s, and
+   * the resume at 90s: snapshot, idle-resumed marker, then input again.
+   */
+  function pausedEventsFor(
+    chunkIndex: number,
+  ): Array<SessionReplayRecordedEvent> {
+    switch (chunkIndex) {
+      case 0:
+        return [
+          ...snapshotAt(0),
+          mouseMove(2000),
+          mouseMove(6000),
+          mouseMove(10_000),
+          mouseMove(14_000),
+        ];
+      case 1:
+        return [
+          mouseMove(CHUNK_MS),
+          {
+            type: 5,
+            timestamp: at(PAUSE_START_MS),
+            data: {
+              tag: "oneuptime.idle-paused",
+              payload: {
+                idleSinceUnixMs: at(CHUNK_MS),
+                pausedAtUnixMs: at(PAUSE_START_MS),
+              },
+            },
+          },
+        ];
+      case 2:
+        return [
+          ...snapshotAt(PAUSE_END_MS),
+          {
+            type: 5,
+            timestamp: at(PAUSE_END_MS + 2),
+            data: {
+              tag: "oneuptime.idle-resumed",
+              payload: {
+                pausedAtUnixMs: at(PAUSE_START_MS),
+                resumedAtUnixMs: at(PAUSE_END_MS),
+              },
+            },
+          },
+          mouseMove(PAUSE_END_MS + 500),
+          mouseMove(PAUSE_END_MS + 4000),
+          mouseMove(PAUSE_END_MS + 8000),
+          mouseMove(PAUSE_END_MS + 12_000),
+        ];
+      default: {
+        /* Chunks 3 and on follow the resume back to back. */
+        const startMs: number = PAUSE_END_MS + (chunkIndex - 2) * CHUNK_MS;
+
+        return [
+          ...(chunkIndex === 4 ? snapshotAt(startMs) : []),
+          mouseMove(startMs + (chunkIndex === 4 ? 2 : 0)),
+          mouseMove(startMs + 4000),
+          mouseMove(startMs + 8000),
+          mouseMove(startMs + 12_000),
+        ];
+      }
+    }
+  }
+
+  const IDLE_BAND: ReplayIdleBand = {
+    startMs: CHUNK_MS,
+    endMs: PAUSE_START_MS,
+    kind: "idle",
+    fidelity: "exact",
+  };
+
+  const PAUSED_BAND: ReplayIdleBand = {
+    startMs: PAUSE_START_MS,
+    endMs: PAUSE_END_MS,
+    kind: "paused",
+    fidelity: "exact",
+  };
+
+  /* Where a skip over the pause lands: its preroll before the resume. */
+  const PAUSE_LANDING_MS: number = PAUSE_END_MS - IDLE_SKIP_PREROLL_MS;
+
+  function makePausedHarness(options?: Partial<HarnessOptions>): Harness {
+    return makeHarness({
+      entries: pausedEntries,
+      eventsForChunk: pausedEventsFor,
+      ...options,
+    });
+  }
+
+  /*
+   * Load, then let one tick hand rrweb the chunk that resumed. The tick
+   * also publishes the bands the decodes refined: a chunk decoding
+   * updates the map at once, but reaches the snapshot with the next
+   * publish.
+   */
+  async function loadPastThePause(harness: Harness): Promise<void> {
+    await loadAndFlush(harness, 0, 0);
+    await harness.tick(16);
+
+    expect(harness.snapshot().fedRange?.toMs).toBeGreaterThanOrEqual(
+      PAUSE_END_MS,
+    );
+  }
+
+  it("publishes the paused band, and the recorded idleness before it, from the decoded markers", async () => {
+    const harness: Harness = makePausedHarness();
+
+    await loadPastThePause(harness);
+
+    expect(harness.snapshot().idleBands).toEqual([IDLE_BAND, PAUSED_BAND]);
+  });
+
+  it("skips a paused band on its own with Skip idle off, landing just before the resume", async () => {
+    const harness: Harness = makePausedHarness();
+
+    await loadPastThePause(harness);
+    expect(harness.snapshot().skipInactive).toBe(false);
+
+    harness.engine.dispatch({ type: "PLAY" });
+
+    /*
+     * Recorded idleness first: with the toggle off, it plays out. (Ticks
+     * that only move the clock publish at most every 33ms, so the ones
+     * whose published clock is read are spaced wider than that.)
+     */
+    harness.live().currentTimeMs = 20_000;
+    await harness.tick(50);
+
+    expect(harness.snapshot().lastIdleSkip).toBeNull();
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThanOrEqual(20_000);
+    expect(harness.snapshot().currentTimeMs).toBeLessThan(21_000);
+
+    /* Then into the pause: nothing to watch, so it is jumped. */
+    harness.live().currentTimeMs = PAUSE_START_MS + 1000;
+    await harness.tick(16);
+
+    const skip: ReplayEngineSnapshot = harness.snapshot();
+
+    expect(skip.lastIdleSkip).toEqual(PAUSED_BAND);
+    expect(skip.currentTimeMs).toBe(PAUSE_LANDING_MS);
+    expect(skip.phase).toBe("playing");
+    expect(skip.error).toBeNull();
+    /* The resume was already fed: the same Replayer, no rebuild. */
+    expect(harness.replayers).toHaveLength(1);
+    expect(harness.replayers[0]!.playOffsets).toContain(PAUSE_LANDING_MS);
+
+    /* The landing is inside the band, but too close to its end to re-skip. */
+    const playsAfterSkip: number = harness.replayers[0]!.playOffsets.length;
+
+    for (let step: number = 0; step < 3; step++) {
+      await harness.tick(16);
+    }
+
+    expect(harness.replayers[0]!.playOffsets).toHaveLength(playsAfterSkip);
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThan(PAUSE_LANDING_MS);
+    expect(harness.snapshot().lastIdleSkip).toBe(skip.lastIdleSkip);
+
+    /* (f) holds: the skip is the engine's, never rrweb's. */
+    expect(harness.replayers[0]!.constructorConfig["skipInactive"]).toBe(false);
+    for (const config of harness.replayers[0]!.configs) {
+      expect(config["skipInactive"]).not.toBe(true);
+    }
+  });
+
+  it("skips the idle run on the toggle and then the pause on its own, with Skip idle on", async () => {
+    const harness: Harness = makePausedHarness();
+
+    harness.engine.dispatch({ type: "SET_SKIP_INACTIVE", enabled: true });
+    await loadPastThePause(harness);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    harness.live().currentTimeMs = CHUNK_MS + 1000;
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip).toEqual(IDLE_BAND);
+    expect(harness.snapshot().currentTimeMs).toBe(
+      PAUSE_START_MS - IDLE_SKIP_PREROLL_MS,
+    );
+
+    /* Play the preroll out into the pause. */
+    harness.live().currentTimeMs = PAUSE_START_MS + 200;
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip).toEqual(PAUSED_BAND);
+    expect(harness.snapshot().currentTimeMs).toBe(PAUSE_LANDING_MS);
+    expect(harness.replayers).toHaveLength(1);
+  });
+
+  it("never skips an ordinary idle band with Skip idle off", async () => {
+    const harness: Harness = makePausedHarness();
+
+    await loadPastThePause(harness);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    for (const offsetMs of [CHUNK_MS + 500, 22_000, PAUSE_START_MS - 2500]) {
+      harness.live().currentTimeMs = offsetMs;
+      await harness.tick(50);
+
+      expect(harness.snapshot().lastIdleSkip).toBeNull();
+      expect(harness.snapshot().currentTimeMs).toBeGreaterThanOrEqual(offsetMs);
+      expect(harness.snapshot().currentTimeMs).toBeLessThan(offsetMs + 1000);
+    }
+  });
+
+  it("leaves a viewer who seeks into a pause while paused where they asked, and skips once Play runs", async () => {
+    const harness: Harness = makePausedHarness();
+
+    await loadPastThePause(harness);
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 60_000, token: 1 });
+    await flush();
+
+    for (let step: number = 0; step < 5; step++) {
+      await harness.tick(250);
+    }
+
+    expect(harness.snapshot().phase).toBe("paused");
+    expect(harness.snapshot().currentTimeMs).toBe(60_000);
+    expect(harness.snapshot().lastIdleSkip).toBeNull();
+
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip).toEqual(PAUSED_BAND);
+    expect(harness.snapshot().currentTimeMs).toBe(PAUSE_LANDING_MS);
+    expect(harness.snapshot().phase).toBe("playing");
+  });
+
+  it("does not jump the last second and a half of a pause", async () => {
+    const harness: Harness = makePausedHarness();
+
+    await loadPastThePause(harness);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    harness.live().currentTimeMs = PAUSE_END_MS - 1200;
+    await harness.tick(50);
+
+    expect(harness.snapshot().lastIdleSkip).toBeNull();
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThanOrEqual(
+      PAUSE_END_MS - 1200,
+    );
+  });
+
+  it("still skips a pause while a hole further on is queued", async () => {
+    /*
+     * Chunk 3 is lost, so once the feed-ahead reaches past the resume the
+     * engine queues a gap jump ("gap-pending"). An idle skip waits for
+     * clean playback; a pause must not, or the viewer would sit on the
+     * last frame before it for the whole stretch before the gap jump.
+     */
+    const harness: Harness = makeHarness({
+      entries: [
+        pausedEntries[0]!,
+        pausedEntries[1]!,
+        pausedEntries[2]!,
+        timedEntry(4, PAUSE_END_MS + 2 * CHUNK_MS, true),
+      ],
+      eventsForChunk: pausedEventsFor,
+    });
+
+    await loadPastThePause(harness);
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 80_000, token: 1 });
+    await flush();
+    await harness.tick(16);
+
+    expect(harness.snapshot().buffer).toBe("gap-pending");
+
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip).toEqual(PAUSED_BAND);
+    expect(harness.snapshot().currentTimeMs).toBe(PAUSE_LANDING_MS);
+    /* The hole is still ahead of the landing, and still queued. */
+    expect(harness.snapshot().buffer).toBe("gap-pending");
+    expect(harness.snapshot().lastGap).toBeNull();
+  });
+
+  it("keeps an ordinary idle skip waiting for clean playback while a hole is queued, as before", async () => {
+    /*
+     * Only a pause skips during "gap-pending". Chunk 4 is lost and the
+     * default fixture carries no input anywhere, so 0-60s is one exact
+     * idle band ending at the hole; with Skip idle on, a playhead inside
+     * it while the gap jump is queued stays where it is.
+     */
+    const harness: Harness = makeHarness({
+      entries: [0, 1, 2, 3, 5].map(
+        (chunkIndex: number): SessionReplayChunkManifestEntry => {
+          return makeEntry(chunkIndex, {
+            hasFullSnapshot: chunkIndex === 0 || chunkIndex === 5,
+          });
+        },
+      ),
+    });
+
+    harness.engine.dispatch({ type: "SET_SKIP_INACTIVE", enabled: true });
+    await loadAndFlush(harness, 0, 0);
+    await harness.tick(50);
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 40_000, token: 1 });
+    await flush();
+    await harness.tick(50);
+
+    expect(harness.snapshot().buffer).toBe("gap-pending");
+    expect(harness.snapshot().idleBands).toContainEqual({
+      startMs: 0,
+      endMs: 4 * CHUNK_MS,
+      kind: "idle",
+      fidelity: "exact",
+    });
+
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(50);
+
+    expect(harness.snapshot().lastIdleSkip).toBeNull();
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThanOrEqual(40_000);
+    expect(harness.snapshot().currentTimeMs).toBeLessThan(41_000);
+  });
+
+  it("stops a guessed idle skip at a pause it learns about on the way, then skips the pause on its own", async () => {
+    /*
+     * Only the anchor pair has arrived, so the resuming chunk is a guess:
+     * an undecoded chunk with plenty of events, which closes one coarse
+     * idle band from the last input at 15s to its start at 90s - right
+     * through the pause the map does not know about yet. Skip idle aims
+     * at its end; the chunk decodes on the way; the band the skip started
+     * in now ends where the pause begins, so the skip lands there, and
+     * the next tick, playing into the pause, jumps it.
+     */
+    const harness: Harness = makePausedHarness({ deferFetch: true });
+
+    harness.engine.dispatch({ type: "SET_SKIP_INACTIVE", enabled: true });
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    await flush();
+    harness.releaseFetch(0);
+    await flush();
+
+    expect(harness.snapshot().idleBands).toEqual([
+      {
+        startMs: CHUNK_MS,
+        endMs: PAUSE_END_MS,
+        kind: "idle",
+        fidelity: "coarse",
+      },
+    ]);
+
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.live().currentTimeMs = CHUNK_MS + 1000;
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip?.endMs).toBe(PAUSE_END_MS);
+
+    harness.releaseFetch(2);
+    await flush();
+
+    const landed: ReplayEngineSnapshot = harness.snapshot();
+
+    expect(landed.idleBands).toEqual([IDLE_BAND, PAUSED_BAND]);
+    expect(landed.lastIdleSkip).toEqual(IDLE_BAND);
+    expect(landed.currentTimeMs).toBe(PAUSE_START_MS - IDLE_SKIP_PREROLL_MS);
+    expect(landed.error).toBeNull();
+
+    harness.live().currentTimeMs = PAUSE_START_MS + 500;
+    await harness.tick(16);
+
+    expect(harness.snapshot().lastIdleSkip).toEqual(PAUSED_BAND);
+    expect(harness.snapshot().currentTimeMs).toBe(PAUSE_LANDING_MS);
   });
 });

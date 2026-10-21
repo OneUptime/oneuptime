@@ -15,12 +15,15 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import LabelService from "../../Services/LabelService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
@@ -37,6 +40,7 @@ import SeriesResourceLinker, {
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -48,6 +52,11 @@ export default class MonitorAlert {
   @CaptureSpan()
   public static async checkOpenAlertsAndCloseIfResolved(input: {
     monitorId: ObjectID;
+    /*
+     * The monitor's project: its alert states say which of the monitor's
+     * alerts are still open (Common/Utils/ResolvedState).
+     */
+    projectId: ObjectID;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     rootCause: string;
     criteriaInstance: MonitorCriteriaInstance | null;
@@ -76,14 +85,25 @@ export default class MonitorAlert {
      * code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Every criteria on the monitor, keyed by id. Used to name the
+     * criteria a recovered series no longer satisfies when its alert is
+     * resolved per series; without it the resolution text falls back to
+     * "the criteria that raised it".
+     */
+    criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Alert>> {
-    // check active alerts and if there are open alerts, do not create another alert.
+    /*
+     * check active alerts and if there are open alerts, do not create another
+     * alert. Open: in a state above the project's resolved state - an alert
+     * in a state placed after Resolved is over, and a new one is raised.
+     */
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitorId!,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(input.projectId),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -123,16 +143,36 @@ export default class MonitorAlert {
       if (shouldClose) {
         resolvedAlertIds.add(openAlert.id!.toString());
 
+        /*
+         * A series resolved per series closes on a tick where other series
+         * may still breach, and input.rootCause describes those. Record why
+         * THIS series resolved instead. Whole-monitor resolves keep the
+         * caller's root cause.
+         */
+        const isPerSeriesResolution: boolean =
+          input.breachingSeriesFingerprints !== undefined &&
+          Boolean(openAlert.seriesFingerprint);
+
+        const rootCause: string = isPerSeriesResolution
+          ? PerSeriesResolutionRootCause.build({
+              seriesLabels: openAlert.seriesLabels,
+              createdCriteriaId:
+                openAlert.createdCriteriaId?.toString() || undefined,
+              criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openAlert.seriesFingerprint || undefined,
+            })
+          : input.rootCause;
+
         // then resolve alert.
         await this.resolveOpenAlert({
           openAlert: openAlert,
-          rootCause: input.rootCause,
+          rootCause: rootCause,
           dataToProcess: input.dataToProcess,
         });
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
-          title: `Alert resolved: ${openAlert.id?.toString()}`,
+          title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
           message:
             "Alert auto-resolved because autoresolve is enabled for this criteria.",
           relatedAlertId: openAlert.id?.toString(),
@@ -165,29 +205,46 @@ export default class MonitorAlert {
    * alerts for the given payload-derived fingerprints — and only those —
    * when the criteria that created them has auto-resolve enabled. Mirrors
    * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
-   * absence (a webhook describes only the keys in its payload).
+   * absence (a webhook describes only the keys in its payload), and
+   * `wholeMonitor` resolves a grouped criteria's alert for the whole
+   * monitor in the same pass.
    */
   @CaptureSpan()
   public static async resolveSeriesAlertsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
     rootCause: string;
+    // What the evaluation summary says of each alert resolved here.
+    resolvedMessage?: string | undefined;
+    wholeMonitor?:
+      | {
+          criteriaIds: Array<string>;
+          rootCause: string;
+        }
+      | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<void> {
-    if (!input.fingerprints || input.fingerprints.length === 0) {
+    const fingerprintSet: Set<string> = new Set<string>(
+      input.fingerprints || [],
+    );
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>(
+      input.wholeMonitor?.criteriaIds || [],
+    );
+
+    if (fingerprintSet.size === 0 && wholeMonitorCriteriaIds.size === 0) {
       return;
     }
-
-    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
 
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitor.id!,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -209,10 +266,6 @@ export default class MonitorAlert {
       const fingerprint: string | undefined =
         openAlert.seriesFingerprint || undefined;
 
-      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
-        continue;
-      }
-
       const createdCriteriaId: string | undefined =
         openAlert.createdCriteriaId?.toString();
 
@@ -220,27 +273,44 @@ export default class MonitorAlert {
         continue;
       }
 
-      // Only auto-resolve when the creating criteria opted into it.
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
-          createdCriteriaId
-        ];
+      const isRecoveredValue: boolean = Boolean(
+        fingerprint && fingerprintSet.has(fingerprint),
+      );
+      const isRecoveredWholeMonitor: boolean =
+        !fingerprint && wholeMonitorCriteriaIds.has(createdCriteriaId);
 
-      if (!autoResolveTemplates || autoResolveTemplates.length === 0) {
+      if (!isRecoveredValue && !isRecoveredWholeMonitor) {
+        continue;
+      }
+
+      // Only auto-resolve when the creating criteria opted into it.
+      if (
+        !this.isAutoResolveConfiguredForAlert({
+          openAlert: openAlert,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        })
+      ) {
         continue;
       }
 
       await this.resolveOpenAlert({
         openAlert: openAlert,
-        rootCause: input.rootCause,
+        rootCause:
+          isRecoveredValue || !input.wholeMonitor
+            ? input.rootCause
+            : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
       });
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
-        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
         message:
-          "Alert auto-resolved because the incoming payload reported this key as resolved.",
+          isRecoveredValue || !input.wholeMonitor
+            ? input.resolvedMessage ||
+              "Alert auto-resolved because the incoming payload reported this key as resolved."
+            : "Alert auto-resolved because a request with no value to group by reported recovered.",
         relatedAlertId: openAlert.id?.toString(),
         relatedAlertNumber: openAlert.alertNumber,
         relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
@@ -339,6 +409,7 @@ export default class MonitorAlert {
         ? input.openAlerts
         : await this.checkOpenAlertsAndCloseIfResolved({
             monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
             autoResolveCriteriaInstanceIdAlertIdsDictionary:
               input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
             rootCause: input.rootCause,
@@ -419,11 +490,30 @@ export default class MonitorAlert {
       });
 
     /*
+     * What someone linked the monitor to by hand (Monitor > Overview >
+     * Linked Resources). Read only once an alert is really being created,
+     * and at most once per evaluation: a monitor that stays down keeps
+     * evaluating with its alert already open.
+     */
+    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
+    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
+      (): Promise<SeriesResolvedResourceIds> => {
+        if (!linkedResources) {
+          linkedResources =
+            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
+              monitor: input.monitor,
+            });
+        }
+        return linkedResources;
+      };
+
+    /*
      * `undefined` matchesPerSeries → legacy single-alert path. A defined
      * (even empty) array → per-series mode: iterate exactly the matches.
-     * An empty array therefore creates nothing — used by grouped
-     * incoming-request criteria on a payload with no firing key so they
-     * don't fall back to a single whole-monitor alert.
+     * An empty array therefore creates nothing — used by a grouped
+     * incoming-request criteria on a request whose values all recovered, or
+     * that the background check re-read (IncomingRequestIncidentGrouping).
+     * One with nothing to group by acts for the whole monitor instead.
      */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries !== undefined
@@ -541,6 +631,13 @@ export default class MonitorAlert {
               seriesLabels,
             });
 
+          // A title is one bounded line; see buildTitleStorageMap.
+          const titleStorageMap: JSONObject =
+            MonitorTemplateUtil.buildTitleStorageMap({
+              monitorType: input.monitor.monitorType!,
+              storageMap,
+            });
+
           /*
            * Render the criteria's template, then make it say WHICH
            * series it is about.
@@ -559,12 +656,17 @@ export default class MonitorAlert {
           alert.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.title,
-              storageMap,
+              storageMap: titleStorageMap,
             }),
             seriesLabels,
           });
+          /*
+           * The description and remediation notes are Markdown: what the
+           * monitored system sent goes into them as text
+           * (processMarkdownTemplateString).
+           */
           alert.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processTemplateString({
+            description: MonitorTemplateUtil.processMarkdownTemplateString({
               value: criteriaAlert.description,
               storageMap,
             }),
@@ -651,16 +753,25 @@ export default class MonitorAlert {
           alert.monitor = input.monitor;
           alert.projectId = input.monitor.projectId!;
           alert.rootCause = seriesRootCause;
-          alert.createdStateLog = JSON.parse(
-            JSON.stringify(input.dataToProcess, null, 2),
-          );
+          /*
+           * The jsonb columns below get storable copies: one NUL in the
+           * check's payload (a binary response body, a webhook field) would
+           * otherwise make Postgres refuse the insert, and the alert would
+           * never open. Inputs stay as they are - they are still being read
+           * for this and the next alert.
+           */
+          alert.createdStateLog = toStorableJson(
+            input.dataToProcess,
+          ) as unknown as JSONObject;
 
           /*
            * Same capture on every alert this evaluation opens - they all
-           * came from the one check.
+           * came from the one check. Made storable after serialize(), which
+           * is what keeps its Dates as Dates when the page reads it back.
            */
-          const serializedMonitorSummary: JSONObject | null =
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+          const serializedMonitorSummary: JSONObject | null = toStorableJson(
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+          );
 
           if (serializedMonitorSummary) {
             alert.monitorSummary = serializedMonitorSummary;
@@ -674,12 +785,13 @@ export default class MonitorAlert {
             alert.seriesFingerprint = seriesFingerprint;
           }
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-            alert.seriesLabels = seriesLabels;
+            alert.seriesLabels = toStorableJson(seriesLabels);
 
             /*
              * Attach every resource this series identifies — host, docker
-             * host, podman host, k8s cluster, service, and the Proxmox /
-             * VMware vCenter / Ceph / Swarm / IoT clusters — resolved from the shared label
+             * host, podman host, k8s cluster, service, storage array, and
+             * the Proxmox / VMware vCenter / Ceph / Swarm / IoT clusters —
+             * resolved from the shared label
              * key map. Same call the incident path makes, so the two can't
              * drift apart again.
              */
@@ -703,6 +815,12 @@ export default class MonitorAlert {
           SeriesResourceLinker.attachResolvedResources({
             model: alert,
             resolved: resourceContext,
+          });
+
+          // And what the monitor was linked to by hand, merged the same way.
+          SeriesResourceLinker.attachResolvedResources({
+            model: alert,
+            resolved: await getLinkedResources(),
           });
 
           /*
@@ -765,10 +883,11 @@ export default class MonitorAlert {
           }
 
           if (criteriaAlert.remediationNotes) {
-            alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
-              value: criteriaAlert.remediationNotes,
-              storageMap,
-            });
+            alert.remediationNotes =
+              MonitorTemplateUtil.processMarkdownTemplateString({
+                value: criteriaAlert.remediationNotes,
+                storageMap,
+              });
           }
 
           const createdAlert: Alert = await AlertService.create({
@@ -963,9 +1082,10 @@ export default class MonitorAlert {
     }
 
     if (input.dataToProcess) {
-      alertStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      // Storable copy, for the same reason as createdStateLog above.
+      alertStateTimeline.stateChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
     }
 
     try {

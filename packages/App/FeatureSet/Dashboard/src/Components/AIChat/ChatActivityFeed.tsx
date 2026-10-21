@@ -2,13 +2,36 @@ import {
   describeClusterToolOutcome,
   ClusterToolOutcome,
   isClusterToolName,
+  isInfrastructureResultUnknownMessage,
+  isInfrastructureToolName,
   isKubectlResultUnknownMessage,
 } from "../AI/ClusterToolFormat";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import {
+  AIPromptOmissions,
+  FollowUpCheckActivity,
+  LinkedInfrastructureActivity,
+  RecentChangesActivity,
+} from "Common/Types/AI/AIChatTypes";
+import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  CALL_MCP_TOOL_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+} from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  composedValue,
+  getGlobalTranslator,
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -42,8 +65,32 @@ export interface KubectlActivitySummary {
   /*
    * Every cluster tool call started (run_kubectl and list_cluster_access),
    * which the run's toolCallCount includes and "telemetry queries" must not.
+   * The infrastructure tools' calls (run_infrastructure_command and
+   * list_infrastructure_access) are counted here too, for the same reason.
    */
   clusterToolCalls: number;
+  /*
+   * What the run's infrastructure commands did, counted the same way as
+   * its kubectl calls. Absent when the run made no infrastructure call.
+   */
+  infrastructure?: InfrastructureActivitySummary | undefined;
+}
+
+/*
+ * What an investigation's commands on infrastructure resources (through
+ * their AI agents) did, read from the run's events like its kubectl calls:
+ * ran (and whether the command succeeded), never ran, or taken by an agent
+ * that never reported back (result unknown).
+ */
+export interface InfrastructureActivitySummary {
+  // run_infrastructure_command calls that ran on a resource.
+  executed: number;
+  // Of those, the ones that completed without an error.
+  succeeded: number;
+  // run_infrastructure_command calls that did not run at all.
+  notRun: number;
+  // Calls an agent took but never reported back on: they may have run.
+  unknown: number;
 }
 
 /*
@@ -69,6 +116,14 @@ export function summarizeKubectlActivity(
     clusterToolCalls: 0,
   };
 
+  const infrastructure: InfrastructureActivitySummary = {
+    executed: 0,
+    succeeded: 0,
+    notRun: 0,
+    unknown: 0,
+  };
+  let hasInfrastructureActivity: boolean = false;
+
   events.forEach((event: AIRunEvent, index: number): void => {
     if (index < latestRunStartedIndex) {
       return;
@@ -79,6 +134,12 @@ export function summarizeKubectlActivity(
       isClusterToolName(event.toolName)
     ) {
       summary.clusterToolCalls++;
+      return;
+    }
+
+    if (isInfrastructureToolName(event.toolName)) {
+      hasInfrastructureActivity = true;
+      countInfrastructureEvent(event, summary, infrastructure);
       return;
     }
 
@@ -103,14 +164,56 @@ export function summarizeKubectlActivity(
     }
   });
 
+  if (hasInfrastructureActivity) {
+    summary.infrastructure = infrastructure;
+  }
+
   return summary;
+}
+
+/*
+ * One infrastructure tool event: a started call is a non-telemetry call;
+ * a command's completion or failure says whether it ran.
+ */
+function countInfrastructureEvent(
+  event: AIRunEvent,
+  summary: KubectlActivitySummary,
+  infrastructure: InfrastructureActivitySummary,
+): void {
+  if (event.eventType === AIRunEventType.ToolCallStarted) {
+    summary.clusterToolCalls++;
+    return;
+  }
+
+  if (event.toolName !== RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return;
+  }
+
+  if (event.eventType === AIRunEventType.ToolCallCompleted) {
+    infrastructure.executed++;
+    if ((event.resultSummary?.rowCount ?? 0) > 0) {
+      infrastructure.succeeded++;
+    }
+    return;
+  }
+
+  if (event.eventType === AIRunEventType.ToolCallFailed) {
+    if (
+      isInfrastructureResultUnknownMessage(event.resultSummary?.errorMessage)
+    ) {
+      infrastructure.unknown++;
+    } else {
+      infrastructure.notRun++;
+    }
+  }
 }
 
 export interface ComponentProps {
   events: Array<AIRunEvent>;
   /*
-   * Header text above the steps. Defaults to the live "Investigating…"
-   * wording used by chat and the AI investigation panel.
+   * Header text above the steps, in English (translated here). Defaults to
+   * the live "Investigating…" wording used by chat and the AI investigation
+   * panel.
    */
   title?: string | undefined;
   // Show the pulsing "live" dot next to the title. Defaults to true.
@@ -141,31 +244,64 @@ interface ActivityStep {
   severity?: string | undefined;
 }
 
+// English keys, translated as the steps are built.
 const friendlyToolNames: { [key: string]: string } = {
-  query_incidents: "Checking incidents",
-  query_alerts: "Checking alerts",
-  query_monitors: "Checking monitors",
-  top_exceptions: "Ranking exceptions",
-  search_logs: "Searching logs",
-  log_histogram: "Charting log volume",
-  query_metrics: "Aggregating metrics",
-  query_traces: "Analyzing traces",
-  get_trace: "Reading trace",
-  lookup_context: "Resolving names",
-  create_incident: "Creating incident",
-  acknowledge_incident: "Acknowledging incident",
-  resolve_incident: "Resolving incident",
-  acknowledge_alert: "Acknowledging alert",
-  resolve_alert: "Resolving alert",
-  run_kubectl: "Running kubectl on the cluster",
-  list_cluster_access: "Checking cluster access",
-  list_command_targets: "Listing where commands may run",
-  execute_remediation_command: "Applying a fix",
-  propose_remediation_commands: "Proposing a fix for approval",
+  query_incidents: translationKey("Checking incidents"),
+  query_alerts: translationKey("Checking alerts"),
+  query_monitors: translationKey("Checking monitors"),
+  top_exceptions: translationKey("Ranking exceptions"),
+  search_logs: translationKey("Searching logs"),
+  log_histogram: translationKey("Charting log volume"),
+  query_metrics: translationKey("Aggregating metrics"),
+  baseline_anomaly: translationKey("Comparing a metric with its baseline"),
+  query_telemetry_resources: translationKey("Listing infrastructure resources"),
+  query_resource_telemetry: translationKey("Reading a resource's telemetry"),
+  query_containers: translationKey("Checking the host's containers"),
+  /*
+   * What every investigation reads besides telemetry: past incidents like
+   * this one, what changed just before it, and its own timeline.
+   */
+  search_incidents: translationKey("Searching past incidents"),
+  recent_changes: translationKey("Checking recent changes"),
+  get_incident_timeline: translationKey("Reading the incident timeline"),
+  get_alert_timeline: translationKey("Reading the alert timeline"),
+  query_traces: translationKey("Analyzing traces"),
+  get_trace: translationKey("Reading trace"),
+  lookup_context: translationKey("Resolving names"),
+  create_incident: translationKey("Creating incident"),
+  acknowledge_incident: translationKey("Acknowledging incident"),
+  resolve_incident: translationKey("Resolving incident"),
+  acknowledge_alert: translationKey("Acknowledging alert"),
+  resolve_alert: translationKey("Resolving alert"),
+  run_kubectl: translationKey("Running kubectl on the cluster"),
+  list_cluster_access: translationKey("Checking cluster access"),
+  run_infrastructure_command: translationKey(
+    "Running a command on the infrastructure",
+  ),
+  list_infrastructure_access: translationKey("Checking infrastructure access"),
+  list_command_targets: translationKey("Listing where commands may run"),
+  execute_remediation_command: translationKey("Applying a fix"),
+  propose_remediation_commands: translationKey("Proposing a fix for approval"),
+  // The project's external MCP servers (Settings → AI → External MCP Servers).
+  [LIST_MCP_TOOLS_TOOL_NAME]: translationKey(
+    "Listing the tools of your MCP servers",
+  ),
+  [CALL_MCP_TOOL_TOOL_NAME]: translationKey("Using a tool of an MCP server"),
 };
 
-function friendlyToolName(toolName: string | undefined): string {
-  return friendlyToolNames[toolName || ""] || `Running ${toolName || "query"}`;
+function friendlyToolName(
+  toolName: string | undefined,
+  translator: Translator,
+): string {
+  const friendlyName: string | undefined = friendlyToolNames[toolName || ""];
+
+  if (friendlyName) {
+    return translator.translateText(friendlyName) as string;
+  }
+
+  return toolName
+    ? translator.translateTemplate("Running {{tool}}", { tool: toolName })
+    : (translator.translateText("Running query") as string);
 }
 
 /*
@@ -174,18 +310,287 @@ function friendlyToolName(toolName: string | undefined): string {
  * reported back, in which case it may have run. Say which rather than
  * implying it ran and will be retried.
  */
-function describeFailedToolCall(event: AIRunEvent): string {
-  if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
-    return "did not succeed — retrying differently";
+function describeFailedToolCall(
+  event: AIRunEvent,
+  translator: Translator,
+): string {
+  // The same three outcomes for a command on an infrastructure resource.
+  if (event.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return translator.translateText(
+      isInfrastructureResultUnknownMessage(event.resultSummary?.errorMessage)
+        ? "no result came back — it may have run"
+        : "did not run on the infrastructure",
+    ) as string;
   }
 
-  return isKubectlResultUnknownMessage(event.resultSummary?.errorMessage)
-    ? "no result came back — it may have run"
-    : "did not run on the cluster";
+  if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
+    return translator.translateText(
+      "did not succeed — retrying differently",
+    ) as string;
+  }
+
+  return translator.translateText(
+    isKubectlResultUnknownMessage(event.resultSummary?.errorMessage)
+      ? "no result came back — it may have run"
+      : "did not run on the cluster",
+  ) as string;
 }
 
-function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
+/*
+ * What an investigation left out of the incident's or alert's text before
+ * the model read it (Common/Utils/AI/PromptText), one line per kind: the
+ * images embedded in it - a synthetic monitor's screenshot - and the end of
+ * a text too long for its field. Responders see why OneUptime AI says
+ * nothing about a screenshot they can see.
+ */
+export function describePromptOmissions(
+  omissions: AIPromptOmissions,
+  translator: Translator = getGlobalTranslator(),
+): Array<string> {
+  const lines: Array<string> = [];
+
+  if (omissions.imageCount > 0) {
+    lines.push(
+      translator.translatePlural(
+        {
+          one: "Left out {{count}} embedded image ({{size}}): AI reads text, not images",
+          other:
+            "Left out {{count}} embedded images ({{size}}): AI reads text, not images",
+        },
+        omissions.imageCount,
+        { size: formatSize(omissions.imageBytes) },
+      ),
+    );
+  }
+
+  if (omissions.encodedDataCount > 0) {
+    lines.push(
+      translator.translateTemplate(
+        "Left out {{size}} of encoded data: AI reads text only",
+        { size: formatSize(omissions.encodedDataBytes) },
+      ),
+    );
+  }
+
+  if (omissions.shortenedTextCount > 0) {
+    lines.push(
+      translator.translatePlural(
+        {
+          one: "Shortened {{count}} long text: {{characters}} characters left out",
+          other:
+            "Shortened {{count}} long texts: {{characters}} characters left out",
+        },
+        omissions.shortenedTextCount,
+        {
+          characters: translator.formatNumber(omissions.omittedCharacterCount),
+        },
+      ),
+    );
+  }
+
+  return lines;
+}
+
+/*
+ * What a kind of linked resource is called (LinkedAffectedResourceType, as
+ * the server records it in an investigation's activity).
+ */
+const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
+  Host: translationKey("Host"),
+  DockerHost: translationKey("Docker host"),
+  PodmanHost: translationKey("Podman host"),
+  KubernetesCluster: translationKey("Kubernetes cluster"),
+  DockerSwarmCluster: translationKey("Docker Swarm cluster"),
+  ProxmoxCluster: translationKey("Proxmox cluster"),
+  VMwareVCenter: translationKey("VMware vCenter"),
+  CephCluster: translationKey("Ceph cluster"),
+  StorageArray: translationKey("Storage array"),
+  IoTFleet: translationKey("IoT fleet"),
+  DatabaseServer: translationKey("Database"),
+  Service: translationKey("Service"),
+};
+
+// How many linked resources a line names before "and N more".
+const NAMED_LINKED_RESOURCES: number = 3;
+
+// "Host web-1", in the reader's language.
+function describeLinkedResource(
+  resource: { kind: string; name: string },
+  translator: Translator,
+): string {
+  const noun: string = translator.translateText(
+    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || translationKey("Resource"),
+  ) as string;
+
+  return resource.name
+    ? translator.translateTemplate("{{kind}} {{name}}", {
+        kind: noun,
+        name: resource.name,
+      })
+    : noun;
+}
+
+/*
+ * The linked resources a line names, in the language of the sentence they go
+ * into: "Host web-1 and Docker host web-1", "Host a, Docker host b and
+ * Kubernetes cluster c", or the first NAMED_LINKED_RESOURCES and "and 2
+ * more". A composed value, so a sentence that is still English names them in
+ * English too.
+ */
+function linkedResourceList(
+  resources: Array<{ kind: string; name: string }>,
+): TemplateValue {
+  return composedValue((sentence: Translator): string => {
+    const named: Array<string> = resources
+      .slice(0, NAMED_LINKED_RESOURCES)
+      .map((resource: { kind: string; name: string }): string => {
+        return describeLinkedResource(resource, sentence);
+      });
+    const moreCount: number = resources.length - named.length;
+
+    if (moreCount <= 0) {
+      return formatNameList(named, "and", sentence);
+    }
+
+    return sentence.translatePlural(
+      {
+        one: "{{names}} and {{count}} more",
+        other: "{{names}} and {{count}} more",
+      },
+      moreCount,
+      // Listed the way their script lists: "a, b", "a、b", "a، b".
+      { names: named.join(getListSeparator(named)) },
+    );
+  });
+}
+
+/*
+ * What an investigation read about the infrastructure its incident or alert
+ * is linked to - the hosts, container hosts, clusters, databases and
+ * services its monitors watch - and the alerts on it (issue #4786): one
+ * line, in the reader's language.
+ */
+export function describeLinkedInfrastructure(
+  activity: LinkedInfrastructureActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const resources: TemplateValue = linkedResourceList(activity.resources || []);
+
+  if (!activity.alertCount) {
+    return translator.translateTemplate(
+      "No open or recent alerts on {{resources}}",
+      { resources },
+    );
+  }
+
+  if (activity.hasMoreAlerts) {
+    return translator.translateTemplate(
+      "Read the {{count}} newest open or recent alerts on {{resources}}",
+      {
+        count: translator.formatNumber(activity.alertCount),
+        resources,
+      },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: "Read {{count}} open or recent alert on {{resources}}",
+      other: "Read {{count}} open or recent alerts on {{resources}}",
+    },
+    activity.alertCount,
+    { resources },
+  );
+}
+
+/*
+ * What the starting context read about the changes recorded before the
+ * subject, and how many of them its services' telemetry made suspects
+ * (RecentChangesContext on the server, which writes the same in English).
+ */
+export function describeRecentChanges(
+  activity: RecentChangesActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (activity.suspectCount > 0) {
+    return translator.translatePlural(
+      {
+        one: "Found {{count}} suspect among the recent changes",
+        other: "Found {{count}} suspects among the recent changes",
+      },
+      activity.suspectCount,
+    );
+  }
+
+  if (activity.changeCount > 0) {
+    return translator.translatePlural(
+      {
+        one: "Read {{count}} recent change; no suspect",
+        other: "Read {{count}} recent changes; no suspect",
+      },
+      activity.changeCount,
+    );
+  }
+
+  return translator.translateText("No recent changes recorded") as string;
+}
+
+/*
+ * Why an investigation checked its incident again (issue #4787): the alert
+ * that opened on the incident's infrastructure after the first analysis.
+ */
+export function describeFollowUpCheck(
+  activity: FollowUpCheckActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const alert: string = activity.alertNumberWithPrefix
+    ? activity.alertNumberWithPrefix
+    : activity.alertNumber !== undefined
+      ? `#${activity.alertNumber}`
+      : "";
+
+  if (!activity.resourceKind) {
+    return alert
+      ? translator.translateTemplate(
+          "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis",
+          { alert },
+        )
+      : (translator.translateText(
+          "Checking again: an alert opened on this incident's infrastructure after the first analysis",
+        ) as string);
+  }
+
+  // Built in the sentence's language, like the linked resources above.
+  const resource: TemplateValue = composedValue(
+    (sentence: Translator): string => {
+      return describeLinkedResource(
+        { kind: activity.resourceKind, name: activity.resourceName },
+        sentence,
+      );
+    },
+  );
+
+  return alert
+    ? translator.translateTemplate(
+        "Checking again: alert {{alert}} opened on {{resource}} after the first analysis",
+        { alert, resource },
+      )
+    : translator.translateTemplate(
+        "Checking again: an alert opened on {{resource}} after the first analysis",
+        { resource },
+      );
+}
+
+/*
+ * The steps the events draw, in the reader's language. A step is completed
+ * by matching its text, which is always produced by the same translator.
+ */
+function buildSteps(
+  events: Array<AIRunEvent>,
+  translator: Translator = getGlobalTranslator(),
+): Array<ActivityStep> {
   const steps: Array<ActivityStep> = [];
+  const thinking: string = translator.translateText("Thinking") as string;
 
   const completeLastRunning: (
     text: string | undefined,
@@ -211,18 +616,22 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
 
     switch (event.eventType) {
       case AIRunEventType.RunStarted:
-        steps.push({ key, text: "Starting investigation", status: "done" });
+        steps.push({
+          key,
+          text: translator.translateText("Starting investigation") as string,
+          status: "done",
+        });
         break;
       case AIRunEventType.LlmCallStarted:
-        steps.push({ key, text: "Thinking", status: "running" });
+        steps.push({ key, text: thinking, status: "running" });
         break;
       case AIRunEventType.LlmCallCompleted:
-        completeLastRunning("Thinking", undefined, false);
+        completeLastRunning(thinking, undefined, false);
         break;
       case AIRunEventType.ToolCallStarted:
         steps.push({
           key,
-          text: friendlyToolName(event.toolName),
+          text: friendlyToolName(event.toolName, translator),
           status: "running",
         });
         break;
@@ -237,17 +646,22 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
          * (0), and a cluster listing's is how many clusters it listed.
          */
         const clusterOutcome: ClusterToolOutcome | null =
-          describeClusterToolOutcome(event.toolName, rowCount);
+          describeClusterToolOutcome(event.toolName, rowCount, translator);
         if (clusterOutcome) {
           parts.push(clusterOutcome.detail);
         } else if (rowCount !== undefined) {
-          parts.push(`${rowCount} ${rowCount === 1 ? "row" : "rows"}`);
+          parts.push(
+            translator.translatePlural(
+              { one: "{{count}} row", other: "{{count}} rows" },
+              rowCount,
+            ),
+          );
         }
         if (durationInMs !== undefined) {
           parts.push(`${(durationInMs / 1000).toFixed(1)}s`);
         }
         completeLastRunning(
-          friendlyToolName(event.toolName),
+          friendlyToolName(event.toolName, translator),
           parts.join(" · ") || undefined,
           clusterOutcome?.isError === true,
         );
@@ -255,8 +669,8 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
       }
       case AIRunEventType.ToolCallFailed:
         completeLastRunning(
-          friendlyToolName(event.toolName),
-          describeFailedToolCall(event),
+          friendlyToolName(event.toolName, translator),
+          describeFailedToolCall(event, translator),
           true,
         );
         break;
@@ -265,6 +679,74 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
        * agent container). The display text lives in resultSummary.message.
        */
       case AIRunEventType.ProgressLog: {
+        /*
+         * What an investigation left out of what the model read: drawn from
+         * the counts, in the reader's language, not from the English line.
+         */
+        const omissions: AIPromptOmissions | undefined =
+          event.resultSummary?.promptOmissions;
+
+        if (omissions) {
+          describePromptOmissions(omissions, translator).forEach(
+            (text: string, index: number): void => {
+              steps.push({
+                key: `${key}-${index}`,
+                text,
+                status: "done",
+                kind: "log",
+              });
+            },
+          );
+          break;
+        }
+
+        /*
+         * What the starting context read about the linked infrastructure,
+         * and why a follow-up check runs: drawn from the data, in the
+         * reader's language, not from the English line.
+         */
+        const followUpCheck: FollowUpCheckActivity | undefined =
+          event.resultSummary?.followUpCheck;
+
+        if (followUpCheck) {
+          steps.push({
+            key,
+            text: describeFollowUpCheck(followUpCheck, translator),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
+        const linkedInfrastructure: LinkedInfrastructureActivity | undefined =
+          event.resultSummary?.linkedInfrastructure;
+
+        if (linkedInfrastructure) {
+          steps.push({
+            key,
+            text: describeLinkedInfrastructure(
+              linkedInfrastructure,
+              translator,
+            ),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
+        const recentChanges: RecentChangesActivity | undefined =
+          event.resultSummary?.recentChanges;
+
+        if (recentChanges) {
+          steps.push({
+            key,
+            text: describeRecentChanges(recentChanges, translator),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
         const message: string | undefined = event.resultSummary?.message;
         if (message) {
           steps.push({
@@ -280,9 +762,19 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
       // A mutating action was executed — e.g. "Opened pull request: … — <url>".
       case AIRunEventType.ActionExecuted: {
         const message: string | undefined = event.resultSummary?.message;
+        let text: string | undefined = message;
+
+        if (!text) {
+          text = event.toolName
+            ? translator.translateTemplate("Executed {{tool}}", {
+                tool: event.toolName,
+              })
+            : (translator.translateText("Executed action") as string);
+        }
+
         steps.push({
           key,
-          text: message || `Executed ${event.toolName || "action"}`,
+          text: text,
           status: "done",
           kind: "action",
         });
@@ -325,7 +817,8 @@ export function countActivitySteps(events: Array<AIRunEvent>): number {
 const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const steps: Array<ActivityStep> = buildSteps(props.events);
+  const translator: Translator = useTranslator();
+  const steps: Array<ActivityStep> = buildSteps(props.events, translator);
   const maxVisibleSteps: number = props.maxVisibleSteps ?? 7;
   const hiddenStepCount: number = Math.max(0, steps.length - maxVisibleSteps);
   const visibleSteps: Array<ActivityStep> = steps.slice(-1 * maxVisibleSteps);
@@ -392,6 +885,24 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A step's mark, centred on the step's first line: a long step (the
+   * linked infrastructure an investigation read, say) wraps, and its mark
+   * stays beside the line it starts, as a list's bullet does.
+   */
+  const renderStepMark: RenderStepIconFunction = (
+    step: ActivityStep,
+  ): ReactElement => {
+    return (
+      <div
+        className="flex h-4 flex-shrink-0 items-center"
+        data-testid="activity-step-mark"
+      >
+        {renderStepIcon(step)}
+      </div>
+    );
+  };
+
   type RenderStepTextFunction = (step: ActivityStep) => ReactElement;
 
   const renderStepText: RenderStepTextFunction = (
@@ -453,18 +964,39 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       <div className="space-y-1.5">
         {hiddenStepCount > 0 && (
           <div className="text-[11px] text-gray-400">
-            + {hiddenStepCount} earlier{" "}
-            {hiddenStepCount === 1 ? "step" : "steps"}
+            {translator.translatePlural(
+              {
+                one: "+ {{count}} earlier step",
+                other: "+ {{count}} earlier steps",
+              },
+              hiddenStepCount,
+            )}
           </div>
         )}
         {visibleSteps.map((step: ActivityStep) => {
           return (
-            <div key={step.key} className="flex items-center gap-2 text-xs">
-              {renderStepIcon(step)}
-              {renderStepText(step)}
-              {step.detail && (
-                <span className="text-gray-400">· {step.detail}</span>
-              )}
+            <div
+              key={step.key}
+              className="flex items-start gap-2 text-xs leading-4"
+            >
+              {renderStepMark(step)}
+              {/*
+                The words and their detail ("· 3 rows · 0.4s") flow as one
+                line of text: a long step wraps, and its detail follows its
+                last word - whole, or on the next line when it does not fit
+                - instead of standing in a narrow column of its own.
+              */}
+              <div className="min-w-0" data-testid="activity-step-text">
+                {renderStepText(step)}
+                {step.detail && (
+                  <>
+                    {" "}
+                    <span className="inline-block max-w-full text-gray-400">
+                      · {step.detail}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           );
         })}
@@ -495,7 +1027,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               <></>
             )}
             <span className="text-sm font-medium text-gray-700">
-              {props.title || "Investigating…"}
+              {translator.translateText(props.title || "Investigating…")}
             </span>
           </div>
 

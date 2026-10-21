@@ -10,7 +10,21 @@ import {
   DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
   getTableCellClassName,
   getTableCellContentClassName,
+  isFillingNameColumn,
 } from "../../../UI/Components/Table/CellClassName";
+import {
+  TABLE_BODY_CELL_CLASS_NAME,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_TEXT_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_ACTIONS_CONTENT_CLASS_NAME,
+  TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
+  TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+  TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+} from "../../../UI/Components/Table/TableLayout";
+import { TABLE_NAME_ATTRIBUTE } from "../../../UI/Components/Table/useTableScrollState";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
@@ -25,21 +39,27 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
  * whatever classes its own element carried. The cell also carried `max-w-md`,
  * which capped the BOX the unbreakable line then overflowed out of - so the
  * sentence was painted straight across the Recurrence and Started cells rather
- * than merely widening the table. A width cap on a nowrap cell is the overlap
- * generator, not the fix.
+ * than merely widening the table. A width cap on a nowrap cell, WITHOUT a clip,
+ * is the overlap generator, not the fix.
  *
  * The fix routes both class strings through
  * Common/UI/Components/Table/CellClassName.ts and adds two column options,
- * `wrapContent` and `wrapMaxWidthClassName`, such that a width cap can only
- * ever be emitted together with a wrapping mode.
+ * `wrapContent` and `wrapMaxWidthClassName`.
+ *
+ * The table redesign (model-table-ui) caps every one-line value too - a long
+ * name or title used to widen its column to the whole value and push the
+ * Actions column off the card - and keeps #3585's rule by construction: a
+ * width cap on a line that does not wrap is only ever written together with
+ * the clip and the ellipsis that keep it inside its box
+ * (TABLE_CELL_TRUNCATE_CLASS_NAMES). The tests below hold that pairing.
  *
  * IMPORTANT, and the reason every assertion below is a class / attribute /
  * DOM-structure / text assertion: jsdom performs NO layout. There is no
  * getBoundingClientRect worth reading, no computed line breaking, no overflow
  * and no column widths. Where a reader would reasonably expect "assert the text
  * did not overlap its neighbour", what is asserted instead is the exact class
- * contract the browser would have applied - which is the whole of what the fix
- * changes.
+ * contract the browser would have applied. The browser half is measured in
+ * Chromium by the ModelTables offline suite (packages/E2E/ModelTables).
  */
 
 jest.mock("react-i18next", () => {
@@ -77,17 +97,39 @@ const LONG_TEXT: string =
   )}`.slice(0, 400);
 
 /*
- * The two strings the cell renderers hard-coded before CellClassName.ts
- * existed. They are spelled out here, in full, on purpose: the point of the
- * refactor is that roughly two hundred column declarations across the product
- * - dates, counts, badges, ids, none of which have layout coverage of their
- * own - keep byte-for-byte the classes they had. Anything that shifts a single
- * utility in these strings has changed every table in OneUptime.
+ * The cell strings of a one-row table of two columns, spelled out in full on
+ * purpose: roughly two hundred column declarations across the product -
+ * dates, counts, badges, ids, none of which have layout coverage of their own
+ * - get exactly these classes. Anything that shifts a single utility in them
+ * has changed every table in OneUptime.
+ *
+ * The first cell starts where the card's text does (pl-6) and is the row's
+ * name (medium, gray-900); the last one ends as far in (pr-6). A one-row
+ * table's only row is its last, so it draws no rule under itself.
  */
-const DEFAULT_CELL_CLASS_NAME: string =
-  "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-const DEFAULT_LAST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+const FIRST_CELL_CLASS_NAME: string =
+  "whitespace-nowrap pl-6 pr-3 py-3 align-top text-sm leading-6 font-medium text-gray-900";
+const LAST_CELL_CLASS_NAME: string =
+  "whitespace-nowrap pl-3 pr-6 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+
+// A one-line value's wrapper: the cap, always with its clip and its ellipsis.
+const ONE_LINE_CONTENT_CLASS_NAME: string = [
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+].join(" ");
+
+/*
+ * The row's name - its first column - has the same wrapper, and lifts the
+ * cap while its table fits its card (TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+ * written right after the cap it lifts). Its clip and ellipsis stay.
+ */
+const NAME_ONE_LINE_CONTENT_CLASS_NAME: string = [
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+].join(" ");
 
 const data: Array<Row> = [
   { _id: "1", name: "10.0.0.0/24", message: STATUS_MESSAGE },
@@ -141,7 +183,7 @@ const getBodyCells: GetBodyCellsFunction = (
 
 /*
  * The <div> TableRow puts directly inside the <td> around a cell's content.
- * The width cap of a wrapping column has to live here rather than on the <td>,
+ * The width cap of a column has to live here rather than on the <td>,
  * because `max-width` on a `display: table-cell` box is ignored outright.
  */
 type GetContentWrapperFunction = (cell: HTMLElement) => HTMLElement;
@@ -158,6 +200,24 @@ const getContentWrapper: GetContentWrapperFunction = (
   return wrapper;
 };
 
+/*
+ * Whether a class string writes a max-width without the clip that keeps a
+ * line that does not wrap inside it - the #3585 pairing.
+ */
+const writesUnclippedCap: (className: string) => boolean = (
+  className: string,
+): boolean => {
+  const tokens: Array<string> = className.split(" ");
+  const hasCap: boolean = tokens.some((token: string): boolean => {
+    return token.slice(token.lastIndexOf(":") + 1).startsWith("max-w-");
+  });
+
+  return (
+    hasCap &&
+    !(tokens.includes("overflow-x-clip") && tokens.includes("text-ellipsis"))
+  );
+};
+
 afterEach(() => {
   cleanup();
   setViewportWidth(1024);
@@ -165,26 +225,41 @@ afterEach(() => {
 
 /*
  * The helpers on their own, with hand-built column objects. Cheap, exact, and
- * they pin the two strings without paying for a render - so a failure here
- * says "the class contract moved" rather than "some table broke".
+ * they pin the strings without paying for a render - so a failure here says
+ * "the class contract moved" rather than "some table broke".
  */
 describe("CellClassName helpers", () => {
-  test("a column that declares nothing keeps the pre-#3585 cell classes", () => {
+  test("a column that declares nothing gets the row's one-line cell classes", () => {
     const column: Column<Row> = { title: "Name", type: FieldType.Text };
 
     expect(
       getTableCellClassName<Row>({
         column: column,
         isLastRenderedColumn: false,
+        isFirstRenderedCell: true,
+        isLastRow: true,
+        isPrimaryColumn: true,
       }),
-    ).toBe(DEFAULT_CELL_CLASS_NAME);
+    ).toBe(FIRST_CELL_CLASS_NAME);
 
     expect(
       getTableCellClassName<Row>({
         column: column,
         isLastRenderedColumn: true,
+        isLastRow: true,
       }),
-    ).toBe(DEFAULT_LAST_CELL_CLASS_NAME);
+    ).toBe(LAST_CELL_CLASS_NAME);
+  });
+
+  test("a row that is not the last draws the hairline under itself", () => {
+    const className: string = getTableCellClassName<Row>({
+      column: { title: "Name", type: FieldType.Text },
+      isLastRenderedColumn: false,
+    });
+
+    expect(className).toBe(
+      `whitespace-nowrap pl-3 pr-3 ${TABLE_BODY_CELL_CLASS_NAME} ${TABLE_CELL_TEXT_CLASS_NAME} ${TABLE_ROW_RULE_CLASS_NAME}`,
+    );
   });
 
   test("wrapContent swaps nowrap for whitespace-normal break-words, and nothing else", () => {
@@ -198,22 +273,25 @@ describe("CellClassName helpers", () => {
       getTableCellClassName<Row>({
         column: column,
         isLastRenderedColumn: false,
+        isFirstRenderedCell: true,
+        isLastRow: true,
+        isPrimaryColumn: true,
       }),
     ).toBe(
-      DEFAULT_CELL_CLASS_NAME.replace(
+      FIRST_CELL_CLASS_NAME.replace(
         "whitespace-nowrap",
         "whitespace-normal break-words",
       ),
     );
   });
 
-  test("the content wrapper is empty unless the column asked for something", () => {
+  test("a one-line column's wrapper is capped, clipped and ellipsized", () => {
     expect(
       getTableCellContentClassName<Row>({
         title: "Name",
         type: FieldType.Text,
       }),
-    ).toBe("");
+    ).toBe(ONE_LINE_CONTENT_CLASS_NAME);
   });
 
   test("a wrapping column gets the default width cap, and a named one replaces it", () => {
@@ -223,7 +301,9 @@ describe("CellClassName helpers", () => {
         type: FieldType.Text,
         wrapContent: true,
       }),
-    ).toBe(DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME);
+    ).toBe(
+      `${DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME} ${TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME} ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME}`,
+    );
 
     /*
      * Replaced, not appended: two max-w-* utilities on one element are resolved
@@ -237,16 +317,18 @@ describe("CellClassName helpers", () => {
         wrapContent: true,
         wrapMaxWidthClassName: "max-w-3xl",
       }),
-    ).toBe("max-w-3xl");
+    ).toBe(
+      `max-w-3xl ${TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME} ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME}`,
+    );
   });
 
-  test("a width cap alone emits nothing - the #3585 pairing is unspellable", () => {
+  test("a width cap is never written without its clip - the #3585 pairing is unspellable", () => {
     /*
      * This is the assertion that matters most. `max-w-md` on a cell that is
-     * still `whitespace-nowrap` is precisely the combination that painted the
-     * status sentence over the Recurrence and Started columns. Through the new
-     * API it cannot be expressed: the width is only ever emitted alongside the
-     * wrapping mode that makes it safe.
+     * still `whitespace-nowrap`, with nothing clipping it, is precisely the
+     * combination that painted the status sentence over the Recurrence and
+     * Started columns. A width named without wrapContent is not used at all;
+     * the one-line cap the table writes always comes with its clip.
      */
     const column: Column<Row> = {
       title: "Message",
@@ -254,13 +336,55 @@ describe("CellClassName helpers", () => {
       wrapMaxWidthClassName: "max-w-md",
     };
 
-    expect(getTableCellContentClassName<Row>(column)).toBe("");
+    const contentClassName: string = getTableCellContentClassName<Row>(column);
+
+    expect(contentClassName).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+    expect(contentClassName).not.toContain("max-w-md");
+    expect(writesUnclippedCap(contentClassName)).toBe(false);
     expect(
       getTableCellClassName<Row>({
         column: column,
         isLastRenderedColumn: false,
+        isFirstRenderedCell: true,
+        isLastRow: true,
+        isPrimaryColumn: true,
       }),
-    ).toBe(DEFAULT_CELL_CLASS_NAME);
+    ).toBe(FIRST_CELL_CLASS_NAME);
+  });
+
+  test("a column of prose that names its own floor keeps it, and the table's 10rem one is left off", () => {
+    /*
+     * The On-Call logs' Triggered By title (min-w-[12rem]): two min-w-*
+     * utilities on one element are resolved by the stylesheet's order, so
+     * the page's floor could have lost to the table's.
+     */
+    const contentClassName: string = getTableCellContentClassName<Row>({
+      title: "Triggered By",
+      type: FieldType.Element,
+      wrapContent: true,
+      wrapMaxWidthClassName: "max-w-sm",
+      contentClassName: "min-w-[12rem]",
+    });
+
+    expect(contentClassName).toBe(
+      `max-w-sm ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME} min-w-[12rem]`,
+    );
+    expect(contentClassName).not.toContain(
+      TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+    );
+  });
+
+  test("a page's own cap in contentClassName is kept, clipped the same way, and the table's left off", () => {
+    const contentClassName: string = getTableCellContentClassName<Row>({
+      title: "Client",
+      type: FieldType.Element,
+      contentClassName: "max-w-[10rem] 2xl:max-w-[18rem]",
+    });
+
+    expect(contentClassName).not.toContain(TABLE_CELL_MAX_WIDTH_CLASS_NAME);
+    expect(contentClassName).toContain("max-w-[10rem]");
+    expect(contentClassName).toContain("2xl:max-w-[18rem]");
+    expect(writesUnclippedCap(contentClassName)).toBe(false);
   });
 
   test("contentClassName still reaches the wrapper, alone and alongside a wrap", () => {
@@ -270,7 +394,7 @@ describe("CellClassName helpers", () => {
         type: FieldType.Text,
         contentClassName: "text-sm text-gray-900",
       }),
-    ).toBe("text-sm text-gray-900");
+    ).toBe(`${ONE_LINE_CONTENT_CLASS_NAME} text-sm text-gray-900`);
 
     expect(
       getTableCellContentClassName<Row>({
@@ -279,16 +403,137 @@ describe("CellClassName helpers", () => {
         wrapContent: true,
         contentClassName: "text-sm text-gray-900",
       }),
-    ).toBe(`${DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME} text-sm text-gray-900`);
+    ).toBe(
+      `${DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME} ${TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME} ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME} text-sm text-gray-900`,
+    );
   });
+
+  test("an Actions column is never capped: its wrapper is the column's own classes or nothing", () => {
+    expect(
+      getTableCellContentClassName<Row>({
+        title: "Actions",
+        type: FieldType.Actions,
+      }),
+    ).toBe("");
+  });
+
+  test("the row's name lifts its cap while its table fits, after the cap it lifts and with its clip", () => {
+    const contentClassName: string = getTableCellContentClassName<Row>(
+      { title: "Name", type: FieldType.Text },
+      { isPrimaryColumn: true },
+    );
+
+    expect(contentClassName).toBe(NAME_ONE_LINE_CONTENT_CLASS_NAME);
+    expect(writesUnclippedCap(contentClassName)).toBe(false);
+
+    // Any other column keeps the plain one-line wrapper.
+    expect(
+      getTableCellContentClassName<Row>(
+        { title: "Name", type: FieldType.Text },
+        { isPrimaryColumn: false },
+      ),
+    ).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+  });
+
+  test("a first column of prose, one with a page's own cap, or the Actions column never lifts a cap", () => {
+    const prose: string = getTableCellContentClassName<Row>(
+      { title: "Message", type: FieldType.Text, wrapContent: true },
+      { isPrimaryColumn: true },
+    );
+    const measured: string = getTableCellContentClassName<Row>(
+      {
+        title: "Client",
+        type: FieldType.Element,
+        contentClassName: "max-w-[10rem] 2xl:max-w-[18rem]",
+      },
+      { isPrimaryColumn: true },
+    );
+    const actions: string = getTableCellContentClassName<Row>(
+      { title: "Actions", type: FieldType.Actions },
+      { isPrimaryColumn: true },
+    );
+
+    for (const className of [prose, measured, actions]) {
+      expect(className).not.toContain(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
+      expect(className).not.toContain("data-[fill=true]");
+    }
+  });
+
+  /*
+   * Whether a page draws the name itself (an Element) does not matter here:
+   * whether it is a line of text is read off the page, where it is drawn
+   * (useTableScrollState's isLineOfText).
+   */
+  const FILLING_CASES: Array<
+    [string, Column<Row>, boolean | undefined, boolean]
+  > = [
+    ["a name", { title: "Name", type: FieldType.Text }, true, true],
+    [
+      "a name drawn by its page",
+      { title: "Name", type: FieldType.Element },
+      true,
+      true,
+    ],
+    [
+      "not the first column",
+      { title: "Name", type: FieldType.Text },
+      false,
+      false,
+    ],
+    [
+      "no position given",
+      { title: "Name", type: FieldType.Text },
+      undefined,
+      false,
+    ],
+    [
+      "prose",
+      { title: "Note", type: FieldType.Text, wrapContent: true },
+      true,
+      false,
+    ],
+    [
+      "a page's own cap",
+      { title: "Client", type: FieldType.Text, contentClassName: "max-w-xs" },
+      true,
+      false,
+    ],
+    [
+      "the Actions column",
+      { title: "Actions", type: FieldType.Actions },
+      true,
+      false,
+    ],
+    [
+      "a page's own floor",
+      {
+        title: "Name",
+        type: FieldType.Text,
+        contentClassName: "min-w-[14rem]",
+      },
+      true,
+      false,
+    ],
+  ];
+
+  test.each(FILLING_CASES)(
+    "isFillingNameColumn: %s",
+    (
+      _label: string,
+      column: Column<Row>,
+      isPrimaryColumn: boolean | undefined,
+      expected: boolean,
+    ) => {
+      expect(isFillingNameColumn<Row>(column, isPrimaryColumn)).toBe(expected);
+    },
+  );
 });
 
 /*
  * The rendered table, which is what the ~200 existing column declarations
- * actually go through. A column that says nothing about wrapping must come out
- * of the refactor with not one class moved, in either the <td> or the wrapper.
+ * actually go through.
  */
-describe("columns that declare no wrapping are untouched", () => {
+describe("columns that declare no wrapping", () => {
   const columns: Columns<Row> = [
     { title: "Network", type: FieldType.Text, key: "name" },
     {
@@ -314,26 +559,43 @@ describe("columns that declare no wrapping are untouched", () => {
     }
   });
 
-  test("the cell class string is byte-for-byte what it was before the fix", () => {
+  test("the cell class strings are exactly the row's", () => {
     const { container } = renderTable(columns);
     const cells: Array<HTMLElement> = getBodyCells(container);
 
-    // Non-last cell: pr-3. Last rendered cell: pr-6.
-    expect(cells[0]!.getAttribute("class")).toBe(DEFAULT_CELL_CLASS_NAME);
-    expect(cells[1]!.getAttribute("class")).toBe(DEFAULT_LAST_CELL_CLASS_NAME);
+    // First cell: pl-6, the row's name. Last rendered cell: pr-6.
+    expect(cells[0]!.getAttribute("class")).toBe(FIRST_CELL_CLASS_NAME);
+    expect(cells[1]!.getAttribute("class")).toBe(LAST_CELL_CLASS_NAME);
   });
 
-  test("the content wrapper carries an empty class, not a stray space or a width", () => {
+  test("the content wrapper caps a long value only with its clip and ellipsis", () => {
     /*
-     * Exactly "" - no separator left behind by the join, and above all no
-     * injected max-w-*. A width silently added here would recreate #3585 on
-     * every table in the product at once.
+     * The 156-character sentence of #3585, in a column that never asked to
+     * wrap: cut short at the cap, inside its own column, never painted over
+     * the next one.
      */
     const { container } = renderTable(columns);
     const cells: Array<HTMLElement> = getBodyCells(container);
 
-    expect(getContentWrapper(cells[0]!).getAttribute("class")).toBe("");
-    expect(getContentWrapper(cells[1]!).getAttribute("class")).toBe("");
+    cells.forEach((cell: HTMLElement, index: number) => {
+      const wrapper: HTMLElement = getContentWrapper(cell);
+
+      /*
+       * The first column is the row's name: the same wrapper, which lifts
+       * its cap while the table fits, marked for useTableScrollState.
+       */
+      expect(wrapper.getAttribute("class")).toBe(
+        index === 0
+          ? NAME_ONE_LINE_CONTENT_CLASS_NAME
+          : ONE_LINE_CONTENT_CLASS_NAME,
+      );
+      expect(wrapper.hasAttribute(TABLE_NAME_ATTRIBUTE)).toBe(index === 0);
+      expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(
+        false,
+      );
+    });
+
+    expect(cells[1]!.textContent).toBe(STATUS_MESSAGE);
   });
 });
 
@@ -378,15 +640,19 @@ describe("columns that opt into wrapping", () => {
     expect(cell).not.toHaveClass("whitespace-nowrap");
   });
 
-  test("with no width named, the wrapper takes the exported default cap", () => {
+  test("with no width named, the wrapper takes the exported default cap and the floor", () => {
     const { container } = renderTable(buildColumns(messageColumn));
     const wrapper: HTMLElement = getContentWrapper(getBodyCells(container)[1]!);
 
-    // Asserted against the exported constant, so the two cannot drift apart.
+    // Asserted against the exported constants, so the two cannot drift apart.
     expect(wrapper).toHaveClass(DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME);
+    expect(wrapper).toHaveClass(TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME);
     expect(wrapper.getAttribute("class")).toBe(
-      DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
+      `${DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME} ${TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME} ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME}`,
     );
+    // A wrapping value is never cut short: no clip, no ellipsis.
+    expect(wrapper).not.toHaveClass("overflow-x-clip");
+    expect(wrapper).not.toHaveClass("text-ellipsis");
   });
 
   test("a named width replaces the default rather than joining it", () => {
@@ -421,7 +687,7 @@ describe("columns that opt into wrapping", () => {
     expect(wrapper).toHaveClass("text-gray-900");
   });
 
-  test("the row's padding and vertical rhythm survive the refactor", () => {
+  test("the row's padding and vertical rhythm hold for a wrapping cell", () => {
     /*
      * A wrapping cell must still line up with the nowrap cells beside it -
      * same padding, same type scale, same top alignment. Only the white-space
@@ -432,28 +698,28 @@ describe("columns that opt into wrapping", () => {
     const wrappingCell: HTMLElement = cells[1]!;
 
     for (const className of [
-      "py-4",
-      "pl-4",
-      "sm:pl-6",
+      "py-3",
+      "pl-3",
       "align-top",
       "text-sm",
-      "font-medium",
-      "text-gray-500",
+      "leading-6",
+      "font-normal",
+      "text-gray-700",
     ]) {
       expect(wrappingCell).toHaveClass(className);
     }
 
     expect(cells[0]).toHaveClass("pr-3");
+    expect(cells[0]).toHaveClass("pl-6");
     expect(wrappingCell).toHaveClass("pr-6");
     expect(wrappingCell).not.toHaveClass("pr-3");
   });
 
-  test("a width cap without wrapContent changes nothing at all", () => {
+  test("a width cap without wrapContent is not used: the cell is a one-line one", () => {
     /*
      * The rendered proof of the helper-level assertion above: this is the
-     * exact declaration #3585 was, and through the new API it produces a plain
-     * nowrap cell with an empty wrapper - no capped box for an unbreakable
-     * line to overflow out of.
+     * exact declaration #3585 was, and it produces a plain nowrap cell whose
+     * wrapper caps the line only together with its clip.
      */
     const { container } = renderTable(
       buildColumns({
@@ -469,8 +735,10 @@ describe("columns that opt into wrapping", () => {
     const cell: HTMLElement = getBodyCells(container)[1]!;
 
     expect(cell).toHaveClass("whitespace-nowrap");
-    expect(cell.getAttribute("class")).toBe(DEFAULT_LAST_CELL_CLASS_NAME);
-    expect(getContentWrapper(cell).getAttribute("class")).toBe("");
+    expect(cell.getAttribute("class")).toBe(LAST_CELL_CLASS_NAME);
+    expect(getContentWrapper(cell).getAttribute("class")).toBe(
+      ONE_LINE_CONTENT_CLASS_NAME,
+    );
   });
 
   test("a plain text column with no getElement can wrap too", () => {
@@ -538,7 +806,7 @@ describe("columns that opt into wrapping", () => {
 });
 
 /*
- * Two things the refactor could have broken quietly, because neither is what
+ * Two things the shared helper could break quietly, because neither is what
  * the issue was about.
  */
 describe("what the shared helper must not disturb", () => {
@@ -572,25 +840,40 @@ describe("what the shared helper must not disturb", () => {
     expect(cells[1]).toHaveClass("pr-3");
     expect(cells[2]).toHaveClass("pr-6");
     expect(cells[2]).not.toHaveClass("pr-3");
-    expect(getContentWrapper(cells[2]!).getAttribute("class")).toBe("max-w-xs");
+    expect(getContentWrapper(cells[2]!)).toHaveClass("max-w-xs");
   });
 
-  test("an actions column still gets a bare right-aligned button row", () => {
+  test("an actions column gets a right-aligned button row with no width cap", () => {
     /*
-     * The actions container now composes onto the same string the content
-     * wrapper uses. A column that declares nothing must still produce exactly
-     * "flex justify-end": a width cap leaking in here would squeeze the Edit
-     * and Delete buttons of every table in the product.
+     * A width cap leaking in here would squeeze the row button and ⋯ menu of
+     * every table in the product.
      */
     const { container } = renderTable([
       { title: "Network", type: FieldType.Text, key: "name" },
       { title: "Actions", type: FieldType.Actions, key: null },
     ]);
     const cell: HTMLElement = getBodyCells(container)[1]!;
+    const wrapper: HTMLElement = getContentWrapper(cell);
 
-    expect(getContentWrapper(cell).getAttribute("class")).toBe(
-      "flex justify-end",
+    expect(wrapper.getAttribute("class")).toBe(
+      `flex items-center justify-end gap-2 ${TABLE_ACTIONS_CONTENT_CLASS_NAME}`,
     );
+    expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(false);
+    expect(wrapper.getAttribute("class")).not.toContain("max-w-");
+    expect(cell).toHaveClass("text-end");
+  });
+
+  test("the name column is the row's first one, and only that one", () => {
+    const { container } = renderTable([
+      { title: "Network", type: FieldType.Text, key: "name" },
+      { title: "Message", type: FieldType.Text, key: "message" },
+    ]);
+    const cells: Array<HTMLElement> = getBodyCells(container);
+
+    for (const className of TABLE_PRIMARY_CELL_TEXT_CLASS_NAME.split(" ")) {
+      expect(cells[0]).toHaveClass(className);
+      expect(cells[1]).not.toHaveClass(className);
+    }
   });
 });
 

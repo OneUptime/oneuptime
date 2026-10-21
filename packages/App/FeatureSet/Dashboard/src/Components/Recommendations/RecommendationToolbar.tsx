@@ -12,6 +12,8 @@ import {
   RecommendationSeverityFilter,
   RecommendationStatusFilter,
 } from "./RecommendationViewModel";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   counts: RecommendationCounts;
@@ -44,6 +46,8 @@ interface StatTileDefinition {
 const RecommendationToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type SetStatusFunction = (status: RecommendationStatusFilter) => void;
 
   const setStatus: SetStatusFunction = (
@@ -86,50 +90,58 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
    * to be the whole sentence, and a count of one is common on these tiles — a
    * hardcoded plural announces "Show the 1 dismissed recommendations".
    */
-  type RecommendationWordFunction = (count: number) => string;
-
-  const recommendationWord: RecommendationWordFunction = (
-    count: number,
-  ): string => {
-    return count === 1 ? "recommendation" : "recommendations";
-  };
-
   const tiles: Array<StatTileDefinition> = [
     {
       label: "Recommended",
       count: props.counts.total,
       status: RecommendationStatusFilter.All,
       dotClassName: "bg-gray-300",
-      ariaLabel: `Show all ${props.counts.total} ${recommendationWord(
+      ariaLabel: translator.translatePlural(
+        {
+          one: "Show all {{count}} recommendation",
+          other: "Show all {{count}} recommendations",
+        },
         props.counts.total,
-      )}`,
+      ),
     },
     {
       label: "Not set up yet",
       count: props.counts.available,
       status: RecommendationStatusFilter.Available,
       dotClassName: "bg-amber-400",
-      ariaLabel: `Show the ${props.counts.available} ${recommendationWord(
+      ariaLabel: translator.translatePlural(
+        {
+          one: "Show the {{count}} recommendation that is not set up yet",
+          other: "Show the {{count}} recommendations that are not set up yet",
+        },
         props.counts.available,
-      )} that ${props.counts.available === 1 ? "is" : "are"} not set up yet`,
+      ),
     },
     {
       label: "Already created",
       count: props.counts.created,
       status: RecommendationStatusFilter.Created,
       dotClassName: "bg-green-500",
-      ariaLabel: `Show the ${props.counts.created} ${recommendationWord(
+      ariaLabel: translator.translatePlural(
+        {
+          one: "Show the {{count}} recommendation that is already created",
+          other: "Show the {{count}} recommendations that are already created",
+        },
         props.counts.created,
-      )} that ${props.counts.created === 1 ? "is" : "are"} already created`,
+      ),
     },
     {
       label: "Dismissed",
       count: props.counts.dismissed,
       status: RecommendationStatusFilter.Dismissed,
       dotClassName: "bg-gray-400",
-      ariaLabel: `Show the ${props.counts.dismissed} dismissed ${recommendationWord(
+      ariaLabel: translator.translatePlural(
+        {
+          one: "Show the {{count}} dismissed recommendation",
+          other: "Show the {{count}} dismissed recommendations",
+        },
         props.counts.dismissed,
-      )}`,
+      ),
     },
   ];
 
@@ -189,7 +201,7 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
                     isSelected ? "text-indigo-700" : "text-gray-500"
                   }`}
                 >
-                  {tile.label}
+                  {translator.translateText(tile.label)}
                 </span>
               </div>
               <p

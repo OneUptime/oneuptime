@@ -1,14 +1,16 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { StateListType } from "Common/Utils/StateOrder";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -25,13 +27,14 @@ import { Black } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
 } from "../EventView/EventStatusPanel";
 import useNoteTemplates from "../EventView/useNoteTemplates";
-import { BulkStateChangeNoteTemplate } from "../../Utils/BulkStateChange";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import { BulkStateChangeNoteType } from "../../Utils/BulkStateChange";
 import {
   EpisodeHeaderError,
   EpisodeHeaderRefreshError,
@@ -45,9 +48,21 @@ import {
   getLatestTimelineStateId,
 } from "../EpisodeView/EpisodeTiming";
 import { EventStateTimelineDate } from "../../Utils/EventDuration";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   episodeId: ObjectID;
+  /*
+   * Header actions that are not state changes - Open in Slack / Teams -
+   * shown beside the state actions.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onActionComplete: () => void | Promise<void>;
   /*
    * Bump to reload the header after the episode changed somewhere else on
@@ -60,6 +75,7 @@ export interface ComponentProps {
 const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const episodeIdString: string = props.episodeId.toString();
 
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -151,6 +167,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             isCreatedState: true,
             name: true,
             color: true,
+            order: true,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -278,39 +295,39 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const ackState: IncidentState | undefined = incidentStates.find(
-    (state: IncidentState) => {
-      return state.isAcknowledgedState;
-    },
-  );
+  /*
+   * The project's acknowledged state - where Acknowledge moves the episode:
+   * the first from the top flagged acknowledged - and whether a state counts
+   * as acknowledged: it, any state placed after it, or a resolved one
+   * (Common/Utils/AcknowledgedState). Acknowledge is offered only while the
+   * episode is not.
+   */
+  const ackState: IncidentState | undefined =
+    AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }) || undefined;
 
-  const resolvedState: IncidentState | undefined = incidentStates.find(
-    (state: IncidentState) => {
-      return state.isResolvedState;
-    },
-  );
-
-  type GetStateIndexFunction = (state: IncidentState | undefined) => number;
-
-  const getStateIndex: GetStateIndexFunction = (
-    state: IncidentState | undefined,
-  ): number => {
-    if (!state) {
-      return -1;
-    }
-
-    return incidentStates.findIndex((incidentState: IncidentState) => {
-      return incidentState.id?.toString() === state.id?.toString();
+  const isAcknowledgedStateId: (stateId: string | undefined) => boolean = (
+    stateId: string | undefined,
+  ): boolean => {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: stateId,
     });
   };
 
-  const currentStateIndex: number = getStateIndex(currentIncidentState);
-  const ackStateIndex: number = getStateIndex(ackState);
-  const resolvedStateIndex: number = getStateIndex(resolvedState);
+  // Where Resolve moves the episode: the project's resolved state.
+  const resolvedState: IncidentState | undefined =
+    ResolvedStateUtil.getResolvedState({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }) || undefined;
 
   const actions: Array<EventStateAction> = [];
 
-  if (ackState && currentStateIndex < ackStateIndex) {
+  if (ackState && !isAcknowledgedStateId(currentStateId)) {
     actions.push({
       stateId: ackState.id?.toString() || "",
       label: "Acknowledge",
@@ -328,7 +345,14 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         id: "episode-resolve-btn",
       });
     }
-  } else if (resolvedState && currentStateIndex < resolvedStateIndex) {
+  } else if (
+    resolvedState &&
+    !ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: currentStateId,
+    })
+  ) {
     actions.push({
       stateId: resolvedState.id?.toString() || "",
       label: "Resolve",
@@ -342,10 +366,12 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     // Older episodes predate declaredAt; they started when they were created.
     startedAt: episode?.declaredAt || episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.IncidentState,
     states: incidentStates.map((state: IncidentState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };
@@ -366,25 +392,69 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
-  let modalTitle: string =
-    "Mark Episode as " + (selectedIncidentState?.name || "");
-  let modalSubmitButtonText: string =
-    "Mark as " + (selectedIncidentState?.name || "");
-  let modalDescription: string =
-    "You are about to mark this episode as " +
-    (selectedIncidentState?.name || "") +
-    ". This will also update all incidents in this episode.";
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedIncidentState?.name || "",
+  );
 
-  if (selectedIncidentState?.isAcknowledgedState) {
-    modalTitle = "Acknowledge Episode";
-    modalSubmitButtonText = "Acknowledge";
-    modalDescription =
-      "This records an acknowledgement on the episode timeline and also updates all incidents in this episode. You can add an optional private note.";
-  } else if (selectedIncidentState?.isResolvedState) {
-    modalTitle = "Resolve Episode";
-    modalSubmitButtonText = "Resolve";
-    modalDescription =
-      "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode. You can add an optional private note.";
+  let modalTitle: string = translator.translateTemplate(
+    "Mark Episode as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalSubmitButtonText: string = translator.translateTemplate(
+    "Mark as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalDescription: string = translator.translateTemplate(
+    "You are about to mark this episode as {{state}}. This will also update all incidents in this episode.",
+    { state: selectedStateName },
+  );
+
+  /*
+   * Acknowledging it: a move into the project's acknowledged state while it
+   * is not acknowledged yet. Picking a state placed after Acknowledged
+   * ("Investigating") names that state; the acknowledged state picked for a
+   * record already acknowledged - in a state after it - is no
+   * acknowledgement, only a move back up the list.
+   */
+  const isAcknowledgeTarget: boolean = Boolean(
+    ackState?.id &&
+      selectedIncidentState?.id?.toString() === ackState.id.toString() &&
+      !isAcknowledgedStateId(currentStateId),
+  );
+
+  // A move that resolves it: into a resolved state, from one that is not.
+  const isResolveTarget: boolean = Boolean(
+    selectedIncidentState &&
+      ResolvedStateUtil.isResolved({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+        stateId: selectedIncidentState.id,
+      }) &&
+      !timing.isResolved,
+  );
+
+  /*
+   * What the change does, in a sentence or two; the optional note is the
+   * folded "Add a private note" line under it. Acknowledging stops the on-call
+   * escalation of the episode and - as it acknowledges its incidents too -
+   * of theirs, so the confirm says so.
+   */
+  if (isAcknowledgeTarget) {
+    modalTitle = translationKey("Acknowledge Episode");
+    modalSubmitButtonText = translationKey("Acknowledge");
+    modalDescription = translationKey(
+      "This records an acknowledgement on the episode timeline and also updates all incidents in this episode. Any on-call escalation for the episode and its incidents stops.",
+    );
+  } else if (isResolveTarget) {
+    modalTitle = translationKey("Resolve Episode");
+    modalSubmitButtonText = translationKey("Resolve");
+    modalDescription = translationKey(
+      "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.",
+    );
   }
 
   return (
@@ -395,13 +465,15 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             id: state.id?.toString() || "",
             name: state.name || "",
             color: state.color || Black,
+            order: state.order,
           };
         })}
+        stateList={StateListType.IncidentState}
         identifier={
           episode?.episodeNumberWithPrefix ||
           (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)
         }
-        title={episode?.title || "Untitled episode"}
+        title={episode?.title || translator.translateText("Untitled episode")}
         currentStateId={currentIncidentState?.id?.toString()}
         severity={
           episode?.incidentSeverity
@@ -421,8 +493,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         durationPrefix={
           timing.durationStartsAt
             ? timing.isResolved
-              ? "Lasted"
-              : "Ongoing for"
+              ? translationKey("Lasted")
+              : translationKey("Ongoing for")
             : undefined
         }
         durationStartsAt={timing.durationStartsAt}
@@ -430,13 +502,20 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
-        moreMenuTitle="Move episode to"
-        facts={getEpisodeHeaderFacts({
-          groupingRuleName: episode?.incidentGroupingRule?.name,
-          createdByName: getEpisodeCreatorName(episode?.createdByUser),
-          lastMemberAddedAt: episode?.lastIncidentAddedAt || undefined,
-          memberNoun: "incident",
-        })}
+        secondaryActions={props.secondaryActions}
+        moreMenuTitle={translationKey("Move episode to")}
+        facts={getEpisodeHeaderFacts(
+          {
+            groupingRuleName: episode?.incidentGroupingRule?.name,
+            createdByName: getEpisodeCreatorName(
+              episode?.createdByUser,
+              translator,
+            ),
+            lastMemberAddedAt: episode?.lastIncidentAddedAt || undefined,
+            memberNoun: "incident",
+          },
+          translator,
+        )}
         headerNotice={
           refreshError ? (
             <EpisodeHeaderRefreshError
@@ -449,7 +528,6 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={IncidentEpisodeStateTimeline}
           name={"create-episode-state-timeline"}
           title={modalTitle}
@@ -484,66 +562,20 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             name: "create-episode-state-timeline",
             modelType: IncidentEpisodeStateTimeline,
             id: "create-episode-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<IncidentNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<IncidentEpisodeStateTimeline>,
-                  ) => void,
-                ) => {
-                  const selectedTemplate:
-                    | BulkStateChangeNoteTemplate
-                    | undefined = noteTemplates.find(
-                    (template: BulkStateChangeNoteTemplate) => {
-                      return template.id === value;
-                    },
-                  );
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: noteTemplates.map(
-                  (template: BulkStateChangeNoteTemplate) => {
-                    return {
-                      value: template.id,
-                      label: template.templateName,
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return noteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description: "Post a private note about this state change.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an episode's state change: just the
+             * private note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<IncidentEpisodeStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Post a private note about this state change.",
+              ),
+              noteTemplates: noteTemplates,
+              // Offered only to someone who may post a private note.
+              noteModel: new IncidentEpisodeInternalNote(),
+            }),
             formType: FormType.Create,
           }}
         />

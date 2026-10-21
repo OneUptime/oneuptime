@@ -167,7 +167,7 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 flex-1 items-start gap-4">
             <div
-              className={`hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${statusPresentation.className}`}
+              className={`max-sm:hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${statusPresentation.className}`}
             >
               <Icon icon={statusPresentation.icon} className="h-6 w-6" />
             </div>

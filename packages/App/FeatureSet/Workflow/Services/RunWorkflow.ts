@@ -25,12 +25,29 @@ import {
   WorkflowStepStatus,
   WorkflowStepTrace,
   WorkflowStepTraceEntry,
+  WorkflowStepTraceFieldName,
+  WorkflowStepTraceNextStep,
+  WorkflowStepTraceWarning,
   appendTraceStep,
   emptyTrace,
   parseTrace,
+  sampleTraceValues,
+  truncateTraceValue,
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { isOutPortFromSettings } from "Common/Types/Workflow/ComponentOutPorts";
+import {
+  WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE,
+  WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
+  getChildWorkflowArchivedMessage,
+} from "Common/Types/Workflow/WorkflowArchive";
+import { WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowProjectBlocked";
+import {
+  getChildWorkflowTurnedOffMessage,
+  getWorkflowTestRunLogLine,
+} from "Common/Types/Workflow/WorkflowEnabled";
+import ProjectService from "Common/Server/Services/ProjectService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -192,6 +209,39 @@ const redactSecretValues: RedactSecretValuesFunction = (
   }
 };
 
+type RedactTraceWarningFunction = (
+  warning: WorkflowStepTraceWarning,
+  secrets: Array<string>,
+) => WorkflowStepTraceWarning;
+
+/*
+ * A warning quotes what the step was configured with - the references that
+ * did not resolve, the variable whose token could not be refreshed - so it is
+ * scrubbed like any other text the run persists.
+ */
+const redactTraceWarning: RedactTraceWarningFunction = (
+  warning: WorkflowStepTraceWarning,
+  secrets: Array<string>,
+): WorkflowStepTraceWarning => {
+  const redacted: WorkflowStepTraceWarning = {
+    message: redactSecretsFromString(String(warning.message || ""), secrets),
+  };
+
+  if (warning.argumentId) {
+    redacted.argumentId = warning.argumentId;
+  }
+
+  if (Array.isArray(warning.unresolvedReferences)) {
+    redacted.unresolvedReferences = warning.unresolvedReferences.map(
+      (reference: string): string => {
+        return redactSecretsFromString(String(reference), secrets);
+      },
+    );
+  }
+
+  return redacted;
+};
+
 type RedactWorkflowStepTraceFunction = (
   trace: WorkflowStepTrace,
   secrets: Array<string>,
@@ -209,10 +259,10 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
   trace: WorkflowStepTrace,
   secrets: Array<string>,
 ): WorkflowStepTrace => {
-  return {
+  const redacted: WorkflowStepTrace = {
     ...trace,
     steps: trace.steps.map((entry: WorkflowStepTraceEntry) => {
-      return {
+      const redactedEntry: WorkflowStepTraceEntry = {
         ...entry,
         argumentValues: redactSecretValues(
           entry.argumentValues,
@@ -226,8 +276,48 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
           ? redactSecretsFromString(entry.errorMessage, secrets)
           : undefined,
       };
+
+      if (entry.executedPortReason) {
+        redactedEntry.executedPortReason = redactSecretsFromString(
+          String(entry.executedPortReason),
+          secrets,
+        );
+      }
+
+      if (entry.argumentTemplates) {
+        redactedEntry.argumentTemplates = redactSecretValues(
+          entry.argumentTemplates,
+          secrets,
+        ) as JSONObject;
+      }
+
+      if (entry.returnValueSamples) {
+        redactedEntry.returnValueSamples = redactSecretValues(
+          entry.returnValueSamples,
+          secrets,
+        ) as JSONObject;
+      }
+
+      if (Array.isArray(entry.warnings)) {
+        redactedEntry.warnings = entry.warnings.map(
+          (warning: WorkflowStepTraceWarning): WorkflowStepTraceWarning => {
+            return redactTraceWarning(warning, secrets);
+          },
+        );
+      }
+
+      return redactedEntry;
     }),
   };
+
+  if (trace.runErrorMessage) {
+    redacted.runErrorMessage = redactSecretsFromString(
+      trace.runErrorMessage,
+      secrets,
+    );
+  }
+
+  return redacted;
 };
 
 export function getRemainingWorkflowTimeInMs(
@@ -303,11 +393,32 @@ export interface RunStack {
 export default class RunWorkflow {
   private logs: Array<string> = [];
   private workflowId: ObjectID | null = null;
+  // For the audit trail of what the run's steps change (WorkflowPrincipal).
+  private workflowName: string | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
   private workflowDeadlineAtInMs: number = 0;
   private stepTrace: WorkflowStepTrace = emptyTrace();
+  /*
+   * The run stack as the graph draws it, before any narrowing to a single
+   * step. Only read to name the steps a port is wired to.
+   */
+  private graphRunStack: RunStack | null = null;
+  /*
+   * What the runner noticed about the step now running that did not stop it,
+   * such as a {{...}} that resolved to nothing. Gathered while the step is
+   * prepared, written to the run log as it happens, and handed to the step's
+   * trace entry by recordStep, which starts the next step afresh.
+   */
+  private currentStepWarnings: Array<WorkflowStepTraceWarning> = [];
+  /*
+   * Whether the failure that ends the run is already on a step's trace entry.
+   * When it is not - a timeout between steps, a cycle, a failure before the
+   * first step - the trace carries the reason itself, or the Steps view would
+   * show a run that stopped for no reason it could see.
+   */
+  private isRunFailureOnAStep: boolean = false;
   /*
    * An OAuth token whose expiry is unknown is fetched once per run: a token
    * fetched at or after this moment is reused by later steps, one fetched
@@ -327,6 +438,101 @@ export default class RunWorkflow {
     } as LogAttributes;
   }
 
+  /*
+   * A queued run of a workflow that has since been archived. One that has a
+   * log (queued from the Run button, a webhook, ...) is closed with a line
+   * saying why it did not run. A scheduled firing has no log yet: it gets
+   * none - a skipped tick is not a run - and the schedule it came from is
+   * removed, so it does not fire again.
+   */
+  private async stopRunOfArchivedWorkflow(runProps: RunProps): Promise<void> {
+    if (runProps.workflowLogId) {
+      const existingLog: WorkflowLog | null =
+        await WorkflowLogService.findOneById({
+          id: runProps.workflowLogId,
+          select: {
+            logs: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (existingLog?.logs) {
+        this.logs = [existingLog.logs as string];
+      }
+
+      this.log(WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE);
+
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
+        id: runProps.workflowLogId,
+        data: {
+          workflowStatus: WorkflowStatus.Error,
+          logs: this.logs.join("\n"),
+          completedAt: OneUptimeDate.getCurrentDate(),
+        },
+      });
+
+      return;
+    }
+
+    logger.debug(
+      "A scheduled run of an archived workflow came due. Skipping it and removing its schedule.",
+      this.getLogAttributes(),
+    );
+
+    try {
+      await QueueWorkflow.removeWorkflow(runProps.workflowId);
+    } catch (err) {
+      logger.error(err, this.getLogAttributes());
+    }
+  }
+
+  /*
+   * A run of a blocked project's workflow does not start, or carry on after
+   * a Sleep step. A run with a log has it closed as cancelled; a schedule's
+   * firing has none and is skipped, and the schedule is kept, so it fires
+   * again once the project is unblocked.
+   */
+  private async stopRunOfBlockedProject(runProps: RunProps): Promise<void> {
+    if (!runProps.workflowLogId) {
+      logger.debug(
+        "A scheduled run of a workflow whose project is blocked came due. Skipping it.",
+        this.getLogAttributes(),
+      );
+      return;
+    }
+
+    const existingLog: WorkflowLog | null =
+      await WorkflowLogService.findOneById({
+        id: runProps.workflowLogId,
+        select: {
+          logs: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (existingLog?.logs) {
+      this.logs = [existingLog.logs as string];
+    }
+
+    this.log(WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE);
+
+    // A run asleep in a Sleep step is not woken again.
+    await WorkflowLogService.updateColumnsByIdWithoutHooks({
+      id: runProps.workflowLogId,
+      data: {
+        workflowStatus: WorkflowStatus.Error,
+        logs: this.logs.join("\n"),
+        completedAt: OneUptimeDate.getCurrentDate(),
+        resumeData: null!,
+        resumeAt: null!,
+      },
+    });
+  }
+
   public async runWorkflow(runProps: RunProps): Promise<void> {
     // get nodes and edges.
 
@@ -338,6 +544,19 @@ export default class RunWorkflow {
       this.callChain = runProps.callChain || [];
       this.runStartedAt = new Date();
 
+      /*
+       * A test run - a person ran the workflow from its Builder while it was
+       * turned off - opens its log by saying so, and who started it. The row
+       * QueueWorkflow wrote says it too, but this run's log replaces that
+       * when it is saved, so it is said again, first, before anything that
+       * could fail. A resumed run keeps the log it had.
+       */
+      if (runProps.isTestRun && !runProps.isResume) {
+        this.log(
+          getWorkflowTestRunLogLine({ startedBy: runProps.testRunStartedBy }),
+        );
+      }
+
       let didWorkflowErrorOut: boolean = false;
       this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
 
@@ -347,6 +566,8 @@ export default class RunWorkflow {
           graph: true,
           projectId: true,
           isEnabled: true,
+          isArchived: true,
+          name: true,
         },
         props: {
           isRoot: true,
@@ -356,6 +577,8 @@ export default class RunWorkflow {
       if (!workflow) {
         throw new BadDataException("Workflow not found");
       }
+
+      this.workflowName = workflow.name || null;
 
       if (!workflow.graph) {
         throw new BadDataException("Workflow graph not found");
@@ -388,6 +611,7 @@ export default class RunWorkflow {
               resumeData: true,
               logs: true,
               stepTrace: true,
+              isTestRun: true,
             },
             props: {
               isRoot: true,
@@ -407,11 +631,16 @@ export default class RunWorkflow {
 
         /*
          * And the trace, so a run that slept reads as one continuous list of
-         * steps rather than restarting at whatever ran after it woke up.
+         * steps rather than restarting at whatever ran after it woke up. It
+         * is not sleeping any more, so it no longer says when it carries on.
          */
-        this.stepTrace = parseTrace(
+        const restoredTrace: WorkflowStepTrace = parseTrace(
           (existingLog.stepTrace as JSONValue) || null,
         );
+
+        delete restoredTrace.resumesAt;
+
+        this.stepTrace = restoredTrace;
 
         const persisted: JSONObject = existingLog.resumeData as JSONObject;
 
@@ -424,7 +653,8 @@ export default class RunWorkflow {
         };
 
         /*
-         * If the workflow was disabled while it was waiting, cancel the run.
+         * If the workflow was archived or disabled while it was waiting,
+         * cancel the run.
          *
          * All WorkflowLog status stamps in this file use the hookless
          * fast-path: WorkflowLog has no workflow/audit/realtime decorators
@@ -432,7 +662,29 @@ export default class RunWorkflow {
          * overhead for these per-run bookkeeping writes (the dashboard log
          * viewer polls; it does not rely on realtime events).
          */
-        if (!workflow.isEnabled) {
+        if (workflow.isArchived) {
+          this.log(WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE);
+          await WorkflowLogService.updateColumnsByIdWithoutHooks({
+            id: runProps.workflowLogId,
+            data: {
+              workflowStatus: WorkflowStatus.Error,
+              logs: this.logs.join("\n"),
+              completedAt: OneUptimeDate.getCurrentDate(),
+              resumeData: null!,
+              resumeAt: null!,
+            },
+          });
+          return;
+        }
+
+        /*
+         * Turning a workflow off is how a live one is paused, so a run its
+         * trigger started, asleep when that happened, is cancelled. A test
+         * run was started while the workflow was off: the switch is no reason
+         * to stop it now, and it carries on as it would have without the
+         * Sleep, or a workflow with a Sleep step could never be tested.
+         */
+        if (!workflow.isEnabled && !existingLog.isTestRun) {
           this.log(
             "Workflow was disabled while it was waiting. Cancelling the run.",
           );
@@ -448,6 +700,32 @@ export default class RunWorkflow {
           });
           return;
         }
+      }
+
+      /*
+       * The queue refuses to start a run of an archived workflow, but a run
+       * can be in the queue already when the workflow is archived - queued a
+       * moment before, or the next firing of a schedule whose job was not yet
+       * removed. It does not start.
+       */
+      if (workflow.isArchived && !runProps.isResume) {
+        await this.stopRunOfArchivedWorkflow(runProps);
+        return;
+      }
+
+      /*
+       * A project a master admin blocked runs nothing until it is unblocked.
+       * The queue refuses new runs (QueueWorkflow.addWorkflowToQueue); these
+       * got past it before the block - a run already queued, the next firing
+       * of a schedule, a run waking from a Sleep step - and are stopped here,
+       * after an archived or turned-off workflow has given its own answer.
+       */
+      if (
+        workflow.projectId &&
+        (await ProjectService.isProjectBlocked(workflow.projectId))
+      ) {
+        await this.stopRunOfBlockedProject(runProps);
+        return;
       }
 
       if (!runProps.workflowLogId) {
@@ -491,6 +769,13 @@ export default class RunWorkflow {
       let runStack: RunStack = await this.makeRunStack(workflow.graph);
 
       /*
+       * The graph as drawn, kept even when the run is narrowed below: a step's
+       * trace entry names the steps its port is wired to, and a test of one
+       * step should still say what would have run next.
+       */
+      this.graphRunStack = runStack;
+
+      /*
        * "Run just this step": narrow the stack to the one component and start
        * there. Its out ports are dropped so nothing downstream follows, and
        * because this happens after makeRunStack the component still gets its
@@ -499,13 +784,19 @@ export default class RunWorkflow {
        * Any {{...}} the step reads from another component resolves to nothing,
        * since nothing else ran — the runner already logs a warning naming each
        * reference that did not resolve, which is the honest outcome rather
-       * than a silent empty value.
+       * than a silent empty value. The trace is marked as a test of one step,
+       * so the Steps view can say why.
        */
       if (runProps.runOnlyComponentId) {
         runStack = this.narrowRunStackToSingleComponent(
           runStack,
           runProps.runOnlyComponentId,
         );
+
+        this.stepTrace = {
+          ...this.stepTrace,
+          singleStepComponentId: runProps.runOnlyComponentId,
+        };
       }
 
       /*
@@ -599,6 +890,9 @@ export default class RunWorkflow {
           );
         }
 
+        // A new step: nothing has been noticed about it yet.
+        this.currentStepWarnings = [];
+
         /*
          * Make sure every OAuth 2.0 variable this step refers to holds a
          * token that has not expired, before its arguments are resolved. A
@@ -616,7 +910,7 @@ export default class RunWorkflow {
             node: stackItem.node,
             args: {},
             returnValues: {},
-            executedPort: null,
+            port: null,
             startedAt: OneUptimeDate.getCurrentDate(),
             variables: variables,
             errorMessage:
@@ -630,10 +924,32 @@ export default class RunWorkflow {
 
         // now actually run this component.
 
-        let args: JSONObject = this.getComponentArguments(
-          storageMap,
-          stackItem.node,
-        );
+        let args: JSONObject;
+
+        try {
+          args = this.getComponentArguments(storageMap, stackItem.node);
+        } catch (argumentsError: unknown) {
+          /*
+           * An argument that cannot be read (JSON that does not parse) stops
+           * the run before the component starts. That is still this step
+           * failing, so the trace ends on it rather than on the step before,
+           * which worked.
+           */
+          this.recordStep({
+            node: stackItem.node,
+            args: {},
+            returnValues: {},
+            port: null,
+            startedAt: OneUptimeDate.getCurrentDate(),
+            variables: variables,
+            errorMessage:
+              argumentsError instanceof Exception
+                ? argumentsError.getMessage()
+                : String(argumentsError),
+          });
+
+          throw argumentsError;
+        }
 
         if (stackItem.node.componentType === ComponentType.Trigger) {
           // If this is the trigger. Then pass workflow argument to this component as args to execute.
@@ -652,6 +968,17 @@ export default class RunWorkflow {
         );
         this.log("Component Logs: " + executeComponentId);
 
+        /*
+         * What the step received, kept as it was handed over. Components work
+         * on their arguments in place - If / Else wraps its inputs in quotes,
+         * the database steps parse their queries and add the project - so a
+         * trace read from `args` after the run recorded the component's
+         * working copy rather than its input. Every one of them replaces a
+         * whole argument rather than editing inside one, so a shallow copy is
+         * enough.
+         */
+        const receivedArgs: JSONObject = { ...args };
+
         const stepStartedAt: Date = OneUptimeDate.getCurrentDate();
         let result: RunReturnType;
 
@@ -669,9 +996,9 @@ export default class RunWorkflow {
            */
           this.recordStep({
             node: stackItem.node,
-            args: args,
+            args: receivedArgs,
             returnValues: {},
-            executedPort: null,
+            port: null,
             startedAt: stepStartedAt,
             variables: variables,
             errorMessage:
@@ -689,9 +1016,10 @@ export default class RunWorkflow {
          */
         this.recordStep({
           node: stackItem.node,
-          args: args,
+          args: receivedArgs,
           returnValues: result.returnValues,
-          executedPort: result.executePort?.id || null,
+          port: result.executePort || null,
+          portReason: result.executePortReason,
           startedAt: stepStartedAt,
           variables: variables,
           errorMessage: didWorkflowErrorOut
@@ -797,6 +1125,7 @@ export default class RunWorkflow {
         return;
       }
 
+      this.recordRunFailure(err);
       this.cleanLogs(variables);
 
       if (err instanceof TimeoutException) {
@@ -859,6 +1188,15 @@ export default class RunWorkflow {
         "ms. It will resume automatically.",
     );
 
+    /*
+     * The Steps view of a sleeping run says when it carries on, and that the
+     * steps after the Sleep have not run yet rather than not at all.
+     */
+    this.stepTrace = {
+      ...this.stepTrace,
+      resumesAt: resumeAt.toISOString(),
+    };
+
     // Scrub secrets from logs before persisting.
     this.cleanLogs(params.variables);
 
@@ -908,6 +1246,29 @@ export default class RunWorkflow {
     });
   }
 
+  /*
+   * Put the reason a run stopped on the trace itself, unless a step's entry
+   * already carries it. Called before cleanLogs, which redacts it with the
+   * rest of the trace.
+   */
+  private recordRunFailure(err: unknown): void {
+    if (this.isRunFailureOnAStep) {
+      return;
+    }
+
+    const message: string =
+      err instanceof Error ? err.message : String(err || "");
+
+    if (!message) {
+      return;
+    }
+
+    this.stepTrace = {
+      ...this.stepTrace,
+      runErrorMessage: truncateTraceValue(message) as string,
+    };
+  }
+
   public cleanLogs(variables: Array<WorkflowVariable>): void {
     const secrets: Array<string> = getSecretWorkflowVariableValues(variables);
 
@@ -924,31 +1285,24 @@ export default class RunWorkflow {
   }
 
   /**
-   * Note in the run log every {{...}} reference that went in and came back out
-   * unchanged.
-   *
-   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
-   * the literal text in place, so a mistyped path — {{local.componets.x}} for
-   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
-   * run still reports Success. Whoever reads the log afterwards has no way to
-   * tell that from a value that was genuinely meant to be that text. This says
-   * so out loud.
-   *
-   * Compares against the input rather than just scanning the output, so a
-   * resolved value that happens to contain braces of its own is not reported.
-   */
-  /**
    * Add one step to the run's trace.
    *
    * Redaction goes through exactly the same helper the text log uses, so a
    * value hidden in `logs` cannot reappear here — the trace is readable by
    * anyone who can read the log, and these are the same secrets.
+   *
+   * Besides the values, the entry carries what the Steps view needs to read on
+   * its own: the port taken by name and the steps it is wired to, the names
+   * of the arguments and return values in order, the {{...}} each argument was
+   * configured with, and the warnings gathered while the step was prepared.
    */
   private recordStep(params: {
     node: NodeDataProp;
     args: JSONObject;
     returnValues: JSONObject;
-    executedPort: string | null;
+    port: Port | null;
+    // Why the step took that port, when it says (a Switch / Case).
+    portReason?: string | undefined;
     startedAt: Date;
     variables: Array<WorkflowVariable>;
     errorMessage?: string | undefined;
@@ -957,6 +1311,15 @@ export default class RunWorkflow {
     const secrets: Array<string> = getSecretWorkflowVariableValues(
       params.variables,
     );
+
+    // What the log may show of the returned values, before any is cut short.
+    const loggableReturnValues: JSONObject = redactSecretValues(
+      redactSensitiveComponentValuesForLogs(
+        params.returnValues,
+        params.node.metadata?.returnValues || [],
+      ),
+      secrets,
+    ) as JSONObject;
 
     /*
      * Leaving by the error port is a failure, whether or not anything was
@@ -970,8 +1333,16 @@ export default class RunWorkflow {
      * trace recorded them green, collapsed under a check mark.
      */
     const failed: boolean = Boolean(
-      params.errorMessage || params.executedPort === "error",
+      params.errorMessage || params.port?.id === "error",
     );
+
+    /*
+     * Every caller that passes a message stops the run straight after, so a
+     * message here means the run's failure has a step to show it on.
+     */
+    if (params.errorMessage) {
+      this.isRunFailureOnAStep = true;
+    }
 
     const entry: WorkflowStepTraceEntry = {
       componentId: params.node.id,
@@ -990,38 +1361,205 @@ export default class RunWorkflow {
           secrets,
         ) as JSONObject,
       ),
-      returnValues: truncateTraceValues(
-        redactSecretValues(
-          redactSensitiveComponentValuesForLogs(
-            params.returnValues,
-            params.node.metadata?.returnValues || [],
-          ),
-          secrets,
-        ) as JSONObject,
-      ),
-      executedPort: params.executedPort,
+      returnValues: truncateTraceValues(loggableReturnValues),
+      executedPort: params.port?.id || null,
       errorMessage: params.errorMessage
         ? redactSecretsFromString(params.errorMessage, secrets)
         : undefined,
+      argumentNames: this.getFieldNames(params.node.metadata?.arguments),
+      returnValueNames: this.getFieldNames(params.node.metadata?.returnValues),
     };
+
+    if (params.port?.id) {
+      entry.executedPortTitle = params.port.title || params.port.id;
+
+      if (params.port.description) {
+        entry.executedPortDescription = params.port.description;
+      }
+
+      /*
+       * A Switch / Case names each case's output after the case: the
+       * person's own words, which the Steps view shows as written.
+       */
+      if (
+        isOutPortFromSettings({
+          metadata: params.node.metadata,
+          portId: params.port.id,
+        })
+      ) {
+        entry.executedPortTitleIsFromSettings = true;
+      }
+
+      if (params.portReason) {
+        entry.executedPortReason = truncateTraceValue(
+          redactSecretsFromString(String(params.portReason), secrets),
+        ) as string;
+      }
+
+      entry.nextSteps = this.getStepsWiredToPort(
+        params.node.id,
+        params.port.id,
+      );
+    }
+
+    /*
+     * A value too big to keep whole is kept above as cut-off text. Its
+     * cut-down copy keeps the shape, so the builder can still suggest the
+     * fields inside it - the keys of a large webhook body, say.
+     */
+    const returnValueSamples: JSONObject =
+      sampleTraceValues(loggableReturnValues);
+
+    if (Object.keys(returnValueSamples).length > 0) {
+      entry.returnValueSamples = returnValueSamples;
+    }
+
+    const argumentTemplates: JSONObject = this.getArgumentTemplates(
+      params.node,
+    );
+
+    if (Object.keys(argumentTemplates).length > 0) {
+      entry.argumentTemplates = truncateTraceValues(
+        redactSecretValues(argumentTemplates, secrets) as JSONObject,
+      );
+    }
+
+    if (this.currentStepWarnings.length > 0) {
+      entry.warnings = this.currentStepWarnings.map(
+        (warning: WorkflowStepTraceWarning): WorkflowStepTraceWarning => {
+          return redactTraceWarning(warning, secrets);
+        },
+      );
+    }
+
+    // The next step starts with nothing noticed about it.
+    this.currentStepWarnings = [];
 
     this.stepTrace = appendTraceStep(this.stepTrace, entry);
   }
 
+  /*
+   * The ids and names of a component's arguments or return values, in the
+   * order its metadata lists them.
+   */
+  private getFieldNames(
+    fields: Array<Argument> | Array<ReturnValue> | undefined,
+  ): Array<WorkflowStepTraceFieldName> {
+    return (fields || []).map(
+      (field: Argument | ReturnValue): WorkflowStepTraceFieldName => {
+        return { id: field.id, name: field.name || field.id };
+      },
+    );
+  }
+
+  /**
+   * The steps a component's port is wired to on the canvas, in the order the
+   * graph connects them - read from the graph as drawn, so a test of a single
+   * step still names what would have run after it.
+   */
+  public getStepsWiredToPort(
+    componentId: string,
+    portId: string,
+  ): Array<WorkflowStepTraceNextStep> {
+    const stack: Dictionary<RunStackItem> = this.graphRunStack?.stack || {};
+    const connected: Array<string> = stack[componentId]?.outPorts[portId] || [];
+
+    return Array.from(new Set(connected)).map(
+      (nextComponentId: string): WorkflowStepTraceNextStep => {
+        const nextNode: NodeDataProp | undefined = stack[nextComponentId]?.node;
+
+        return {
+          componentId: nextComponentId,
+          title:
+            nextNode?.metadata?.title ||
+            nextNode?.metadataId ||
+            nextComponentId,
+        };
+      },
+    );
+  }
+
+  /**
+   * Each argument as it was configured, for the arguments that refer to
+   * another step or a variable: the value a reader wants to see next to what
+   * it resolved to.
+   *
+   * A sensitive argument is left out whatever it holds. Its configured value
+   * may be a literal secret with a reference beside it, and the trace must not
+   * show what the log hides.
+   */
+  public getArgumentTemplates(node: NodeDataProp): JSONObject {
+    const templates: JSONObject = {};
+
+    for (const argument of node.metadata?.arguments || []) {
+      if (argument.isSensitive) {
+        continue;
+      }
+
+      const configured: JSONValue | undefined = node.arguments?.[argument.id];
+
+      if (configured === undefined || configured === null) {
+        continue;
+      }
+
+      let text: string = "";
+
+      if (typeof configured === "string") {
+        text = configured;
+      } else if (typeof configured === "object") {
+        try {
+          text = JSON.stringify(configured);
+        } catch {
+          continue;
+        }
+      }
+
+      if (parseTemplateExpressions(text).length === 0) {
+        continue;
+      }
+
+      templates[argument.id] = configured;
+    }
+
+    return templates;
+  }
+
+  /**
+   * Note in the run log every {{...}} reference that went in and came back out
+   * unchanged, and keep the same note for the step's trace entry.
+   *
+   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
+   * the literal text in place, so a mistyped path — {{local.componets.x}} for
+   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
+   * run still reports Success. Whoever reads the log afterwards has no way to
+   * tell that from a value that was genuinely meant to be that text. This says
+   * so out loud.
+   *
+   * Compares against the input rather than just scanning the output, so a
+   * resolved value that happens to contain braces of its own is not reported.
+   */
   private logUnresolvedReferences(params: {
     argument: Argument;
     before: JSONValue;
     after: JSONValue;
   }): void {
-    if (typeof params.before !== "string" || typeof params.after !== "string") {
+    /*
+     * A setting kept as a list or an object - a Switch / Case's cases, a
+     * request's headers - is compared as its JSON, where a {{...}} stands as
+     * it was written: it holds no character JSON would escape.
+     */
+    const before: string | null = this.getTextForReferenceCheck(params.before);
+    const after: string | null = this.getTextForReferenceCheck(params.after);
+
+    if (before === null || after === null) {
       return;
     }
 
-    const unresolved: Array<string> = parseTemplateExpressions(params.before)
+    const unresolved: Array<string> = parseTemplateExpressions(before)
       .filter((expression: TemplateExpression) => {
         return (
           expression.kind === TemplateExpressionKind.Reference &&
-          (params.after as string).includes(expression.raw)
+          after.includes(expression.raw)
         );
       })
       .map((expression: TemplateExpression) => {
@@ -1034,11 +1572,48 @@ export default class RunWorkflow {
 
     const distinct: Array<string> = Array.from(new Set(unresolved));
 
-    this.log(
-      `Warning: ${distinct.join(", ")} in "${
-        params.argument.name
-      }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+    this.logStepWarning(
+      {
+        message: `${distinct.join(", ")} in "${
+          params.argument.name
+        }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+        argumentId: params.argument.id,
+        unresolvedReferences: distinct,
+      },
+      "Warning: ",
     );
+  }
+
+  // A setting's value as text to look for {{...}} in, or null for neither.
+  private getTextForReferenceCheck(value: JSONValue): string | null {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * A warning about the step being prepared: written to the run log as it
+   * happens, in the same words as before, and kept for the step's trace entry
+   * so the Steps view can show it on the step rather than only in the full
+   * log. The trace keeps the sentence without the log's "Warning:" label,
+   * since the view marks it as a warning already.
+   */
+  private logStepWarning(
+    warning: WorkflowStepTraceWarning,
+    logPrefix: string = "",
+  ): void {
+    this.log(logPrefix + warning.message);
+    this.currentStepWarnings.push(warning);
   }
 
   /**
@@ -1132,9 +1707,9 @@ export default class RunWorkflow {
           cachedExpiresAt &&
           cachedExpiresAt.getTime() > Date.now()
         ) {
-          this.log(
-            `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
-          );
+          this.logStepWarning({
+            message: `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
+          });
           continue;
         }
 
@@ -1232,10 +1807,21 @@ export default class RunWorkflow {
 
       const contentBeforeSubstitution: JSONValue = argumentContent;
 
+      /*
+       * Parsed as JSON below, so substituted as JSON: a value inside a string
+       * is escaped, and one on its own is the value itself. Query and Select
+       * used to take every value raw, so a quote in a matched title broke
+       * the query or rewrote it.
+       */
+      const isJSONDocument: boolean =
+        argument.type === ComponentInputType.JSON ||
+        argument.type === ComponentInputType.Query ||
+        argument.type === ComponentInputType.Select;
+
       argumentContent = VMAPI.replaceValueInPlace(
         storageMap as any,
         argumentContent as string,
-        argument.type === ComponentInputType.JSON,
+        isJSONDocument,
       );
 
       this.logUnresolvedReferences({
@@ -1244,12 +1830,7 @@ export default class RunWorkflow {
         after: argumentContent,
       });
 
-      if (
-        typeof argumentContent === "string" &&
-        (argument.type === ComponentInputType.JSON ||
-          argument.type === ComponentInputType.Query ||
-          argument.type === ComponentInputType.Select)
-      ) {
+      if (typeof argumentContent === "string" && isJSONDocument) {
         try {
           argumentContent = JSON.parse(argumentContent);
         } catch (err: any) {
@@ -1294,7 +1875,10 @@ export default class RunWorkflow {
         log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
           this.log(data);
         },
+        // What the canvas shows: a Switch / Case names its outputs from it.
+        configuredArguments: node.arguments || {},
         workflowId: this.workflowId!,
+        workflowName: this.workflowName || undefined,
         workflowLogId: this.workflowLogId!,
         projectId: callingProjectId,
         getRemainingExecutionTimeInMs: (): number => {
@@ -1349,6 +1933,9 @@ export default class RunWorkflow {
               id: child.workflowId,
               select: {
                 projectId: true,
+                isEnabled: true,
+                isArchived: true,
+                name: true,
               },
               props: {
                 isRoot: true,
@@ -1367,6 +1954,34 @@ export default class RunWorkflow {
           ) {
             throw new BadDataException(
               "Target workflow does not belong to this project.",
+            );
+          }
+
+          /*
+           * QueueWorkflow refuses a workflow that is archived or turned off
+           * too, but in words written for the workflow being run: "This
+           * workflow is archived" / "turned off". In this run's log that
+           * reads as the workflow doing the calling, which is plainly
+           * running. Name the one it called instead. Checked after the
+           * project, so a workflow in another project is never named.
+           * Archived first, as QueueWorkflow does: turning an archived
+           * workflow on would not make it run.
+           */
+          if (targetWorkflow.isArchived) {
+            throw new BadDataException(
+              getChildWorkflowArchivedMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
+            );
+          }
+
+          if (!targetWorkflow.isEnabled) {
+            throw new BadDataException(
+              getChildWorkflowTurnedOffMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
             );
           }
 

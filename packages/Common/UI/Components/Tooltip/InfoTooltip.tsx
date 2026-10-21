@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "./Tooltip";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * A small (i) beside a label that explains it on hover or keyboard focus -
@@ -36,6 +38,7 @@ export interface ComponentProps {
 const InfoTooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const text: string = (props.text || "").trim();
 
   if (!text) {
@@ -46,7 +49,9 @@ const InfoTooltip: FunctionComponent<ComponentProps> = (
     <Tooltip text={text} lazy={true}>
       <button
         type="button"
-        aria-label={`About ${props.label}`}
+        aria-label={translator.translateTemplate("About {{label}}", {
+          label: translatableTerm(props.label),
+        })}
         data-testid={props.dataTestId}
         className={`inline-flex flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
           props.className || ""

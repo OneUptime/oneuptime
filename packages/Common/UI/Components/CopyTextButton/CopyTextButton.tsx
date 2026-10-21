@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   textToBeCopied: string;
@@ -25,8 +26,15 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
 
   const size: "xs" | "sm" | "md" = props.size || "xs";
   const variant: "ghost" | "soft" | "solid" = props.variant || "ghost";
-  const label: string = props.label || "Copy";
-  const copiedLabel: string = props.copiedLabel || "Copied!";
+  const { translateString } = useTranslateValue();
+  const label: string =
+    translateString(props.label || "Copy") || props.label || "Copy";
+  const title: string | undefined = translateString(props.title);
+  // Said in the reader's language, like the label it stands in for.
+  const copiedLabel: string =
+    translateString(props.copiedLabel || "Copied!") ||
+    props.copiedLabel ||
+    "Copied!";
 
   const handleCopy: MouseEventHandler<HTMLButtonElement> = async (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -52,10 +60,14 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
     md: "text-sm px-2.5 py-1.5 rounded-md",
   } as const;
 
+  /*
+   * md is 18px written out: Tailwind's spacing scale has no 4.5, so
+   * "w-4.5 h-4.5" matched no rule and the icon was never drawn.
+   */
   const iconSizes: Record<typeof size, string> = {
     xs: "w-3.5 h-3.5",
     sm: "w-4 h-4",
-    md: "w-4.5 h-4.5",
+    md: "w-[1.125rem] h-[1.125rem]",
   } as const;
 
   const variantClasses: Record<typeof variant, string> = {
@@ -81,8 +93,8 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
           handleCopy(e as unknown as React.MouseEvent<HTMLButtonElement>);
         }
       }}
-      title={props.title || label}
-      aria-label={props.title || label}
+      title={title || label}
+      aria-label={title || label}
     >
       {/* Icon */}
       <span aria-hidden="true" className="flex items-center justify-center">

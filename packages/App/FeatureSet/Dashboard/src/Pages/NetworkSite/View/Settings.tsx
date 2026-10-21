@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import {
   fetchAllNetworkSiteTypeOptions,
@@ -16,8 +17,14 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
+  SITE_MORE_FIELDS,
+  SITE_TYPE_FIELD_DESCRIPTION,
+} from "../SiteFormSections";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Site settings: identity, hierarchy placement, and map position. The
@@ -27,6 +34,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -40,6 +48,11 @@ const NetworkSiteSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        /*
+         * The Add Site form's three steps, so a field sits under the same
+         * step on both: the description and location fold under More fields
+         * on Site Details rather than walking a step of their own.
+         */
         formSteps={[
           {
             title: "Site Details",
@@ -48,10 +61,6 @@ const NetworkSiteSettings: FunctionComponent<
           {
             title: "Hierarchy",
             id: "hierarchy",
-          },
-          {
-            title: "Location",
-            id: "location",
           },
           {
             title: "Monitoring Defaults",
@@ -65,8 +74,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Site Type",
             stepId: "site-details",
-            description:
-              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
+            description: SITE_TYPE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
             onChange: (
@@ -92,7 +100,7 @@ const NetworkSiteSettings: FunctionComponent<
             stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Unit 1042 - Springfield",
+            placeholder: "London office",
           },
           {
             field: {
@@ -100,34 +108,18 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Description",
             stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
-              parentSite: true,
-            },
-            title: "Parent Site",
-            stepId: "hierarchy",
-            sectionTitle: "Place This Site",
-            sectionDescription:
-              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
-            description:
-              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
-              return fetchParentNetworkSiteOptions(values, modelId);
-            },
-            required: false,
-            placeholder: "No parent site (top level)",
-          },
-          {
-            field: {
               address: true,
             },
             title: "Address",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -137,7 +129,8 @@ const NetworkSiteSettings: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -90 and 90. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -149,7 +142,8 @@ const NetworkSiteSettings: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -180 and 180. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -158,15 +152,31 @@ const NetworkSiteSettings: FunctionComponent<
           },
           {
             field: {
+              parentSite: true,
+            },
+            title: "Parent Site",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
+            description: "Leave it empty to keep the site at the top level.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
+              return fetchParentNetworkSiteOptions(values, modelId);
+            },
+            required: false,
+            placeholder: "No parent site (top level)",
+          },
+          {
+            field: {
               probe: true,
             },
             title: "Default Probe",
             stepId: "monitoring-defaults",
             sectionTitle: "Monitoring Defaults",
-            sectionDescription:
-              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            sectionDescription: "What a device added to this site starts with.",
             description:
-              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+              "A device added here without a probe inherits it. A probe on the public internet cannot reach a private network.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Probe,
@@ -183,7 +193,7 @@ const NetworkSiteSettings: FunctionComponent<
             title: "Default SNMP Credential Profile",
             stepId: "monitoring-defaults",
             description:
-              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+              "Used by devices here that have no credentials of their own. A device with none anywhere is pinged only.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSnmpCredentialProfile,
@@ -226,7 +236,11 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.networkSiteType?.name) {
-                  return <span className="text-gray-400">Not set</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Not set")}
+                    </span>
+                  );
                 }
                 return <span>{item.networkSiteType.name}</span>;
               },
@@ -241,7 +255,11 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.parentSite?.name) {
-                  return <span className="text-gray-400">Root site</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Top level")}
+                    </span>
+                  );
                 }
                 return <span>{item.parentSite.name}</span>;
               },
@@ -258,7 +276,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.probe?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — devices name their own probe
+                      {translator.translateText(
+                        "None — devices name their own probe",
+                      )}
                     </span>
                   );
                 }
@@ -277,7 +297,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.snmpCredentialProfile?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — devices without credentials are pinged only
+                      {translator.translateText(
+                        "None — devices without credentials are pinged only",
+                      )}
                     </span>
                   );
                 }
@@ -314,7 +336,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Alert When Unhealthy",
             description:
-              "When enabled, an alert opens the moment this site's rollup transitions to a non-operational status, and auto-resolves on recovery.",
+              "Opens an alert when the site turns unhealthy, and resolves it when the site recovers.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -330,6 +352,9 @@ const NetworkSiteSettings: FunctionComponent<
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Alert Severity (optional)",
@@ -359,7 +384,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.alertSeverity?.name) {
                   return (
                     <span className="text-gray-400">
-                      Project default (most severe)
+                      {translator.translateText(
+                        "Project default (most severe)",
+                      )}
                     </span>
                   );
                 }
@@ -386,7 +413,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Rollup Policy",
             description:
-              "Worst status: any offline device makes this site offline — right for a single unit, where four switches in one building are not independent. Percentage of devices down: the share decides — right for a region, where one dark switch in one store should not paint four hundred of them red.",
+              "Worst status: one offline device makes the site offline. Percentage of devices down: the share decides.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: [
               {
@@ -411,7 +438,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Offline Threshold (%)",
             description:
-              "Only used by the percentage policy. At or above this share of reporting devices down, the site is offline. Below it, but above zero, the site is degraded.",
+              "For the percentage policy: the share of devices down at which the site is offline.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "50",
@@ -457,7 +484,7 @@ const NetworkSiteSettings: FunctionComponent<
                 ) {
                   return (
                     <span className="text-gray-400">
-                      Not used by this policy
+                      {translator.translateText("Not used by this policy")}
                     </span>
                   );
                 }

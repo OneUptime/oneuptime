@@ -588,7 +588,14 @@ describe("an entity-key scope has a locked chip", () => {
     );
 
     expect(keys).toContain('(props.logQuery as any)["entityKeys"]');
-    expect(dependencyList(keys)).toContain("props.logQuery");
+    /*
+     * Re-read whenever the pinned query changes by value (an equal query
+     * handed over again must not reload the chart and the facet counts).
+     */
+    expect(dependencyList(keys)).toContain("logQueryScopeKey");
+    expect(LOGS_VIEWER).toContain(
+      "const logQueryScopeKey: string = useMemo((): string => { return getLogQueryScopeKey(props.logQuery); }, [props.logQuery]);",
+    );
 
     const histogram: string = blockAfter(
       LOGS_VIEWER,

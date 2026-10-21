@@ -1,9 +1,17 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DockerSwarmClusterLabelRuleEngineService from "./DockerSwarmClusterLabelRuleEngineService";
 import DockerSwarmClusterOwnerRuleEngineService from "./DockerSwarmClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerSwarmCluster";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -12,6 +20,11 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -20,6 +33,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "docker-swarm-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -28,9 +42,30 @@ const LABELS_APPLIED_CACHE_NAMESPACE: string =
   "docker-swarm-cluster-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A Docker Swarm cluster is matched to its telemetry by its name (docker.swarm.cluster.name),
+ * so a rename is held to the rules a new Docker Swarm cluster is: no spaces around
+ * it, never blank, and never another Docker Swarm cluster's name
+ * (DiscoveredResourceUpdate).
+ */
+const DOCKER_SWARM_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "Docker Swarm cluster",
+});
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: DOCKER_SWARM_CLUSTER_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()
@@ -174,10 +209,10 @@ export class Service extends DatabaseService<Model> {
    * read per batch and at most one Postgres UPDATE per minute.
    *
    * Two callers share this throttle with DISJOINT extras shapes: the
-   * metrics snapshot flush (pveVersion + counts, every batch) and the
-   * fenced autoDiscoverDockerSwarmCluster maintenance path (agentVersion
-   * only — and usually an all-null fingerprint, since the shipped
-   * agent config does not stamp oneuptime.agent.version). The single
+   * inventory snapshot flush (counts, every batch) and the fenced
+   * autoDiscoverDockerSwarmCluster maintenance path (agentVersion only —
+   * the oneuptime.agent.version the shipped agent config stamps from
+   * APP_VERSION). The single
    * fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra
    * Postgres UPDATE per maintenance-fence window (~5 min), which is
@@ -371,15 +406,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedClusters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -448,7 +488,7 @@ export class Service extends DatabaseService<Model> {
   public async getDockerSwarmClusterMarkdownLink(
     projectId: ObjectID,
     dockerSwarmClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getDockerSwarmClusterName({
       dockerSwarmClusterId: dockerSwarmClusterId,
     });
@@ -457,7 +497,7 @@ export class Service extends DatabaseService<Model> {
       dockerSwarmClusterId,
     );
 
-    return `[Docker Swarm Cluster ${name}](${link.toString()})`;
+    return mdText`[Docker Swarm Cluster ${name}](${link.toString()})`;
   }
 
   private async writeDockerSwarmClusterCreatedFeed(
@@ -508,6 +548,83 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a Docker Swarm cluster settles its in-flight AI remediation rounds
+   * and removes its resource AI agent — read before the delete, done after it
+   * for the Docker Swarm clusters actually deleted (ResourceAiDeleteCleanup,
+   * shared by every resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.DockerSwarmCluster,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.DockerSwarmCluster,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new Docker Swarm cluster starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.DockerSwarmCluster,
+      createBy,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this Docker Swarm cluster — the rules every
+   * resource AI agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.DockerSwarmCluster,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -518,6 +635,37 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the Docker Swarm
+     * cluster marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        dockerSwarmClusterId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getDockerSwarmClusterMarkdownLink(
+          projectId,
+          dockerSwarmClusterId,
+        );
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await DockerSwarmClusterFeedService.createDockerSwarmClusterFeedItem({
+          dockerSwarmClusterId: item.resourceId,
+          projectId: item.projectId,
+          dockerSwarmClusterFeedEventType:
+            DockerSwarmClusterFeedEventType.DockerSwarmClusterUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -570,7 +718,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getDockerSwarmClusterMarkdownLink(
           projectId,
           dockerSwarmClusterId,
@@ -585,8 +733,8 @@ export class Service extends DatabaseService<Model> {
             : DockerSwarmClusterFeedEventType.DockerSwarmClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

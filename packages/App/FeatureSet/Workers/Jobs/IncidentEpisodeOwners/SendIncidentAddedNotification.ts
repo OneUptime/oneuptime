@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -30,6 +31,9 @@ import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFe
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 /*
  * Cap the number of incidents we list inline in the email body. Anything
@@ -142,9 +146,11 @@ RunCron(
             } as Select<Project>,
             currentIncidentState: {
               name: true,
+              color: true,
             } as Select<IncidentState>,
             incidentSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -180,10 +186,12 @@ RunCron(
         select: {
           _id: true,
           title: true,
+          isPrivate: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -260,8 +268,10 @@ RunCron(
         )
       ).toString();
 
-      const episodeFeedText: string = `🔔 **Owner Incidents Added to Episode Notification Sent**:
-      Notification sent to owners because ${incidentCountInBatch} incident(s) were added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
+      const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        memberNoun: "incident",
+        count: incidentCountInBatch,
+      });
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
@@ -286,11 +296,14 @@ RunCron(
                     ? `#${incident.incidentNumber}`
                     : "");
 
-                return {
-                  incidentTitle: incident.title || "",
+                const incidentForTemplate: JSONObject = {
                   incidentNumber: incidentNumberStr,
                   incidentSeverity:
                     incident.incidentSeverity?.name || "Not Set",
+                  ...EmailColorUtil.getTemplateVariables(
+                    "incidentSeverity",
+                    incident.incidentSeverity?.color,
+                  ),
                   addedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                       date:
@@ -300,6 +313,25 @@ RunCron(
                     }),
                   incidentViewLink: incidentLink,
                 };
+
+                /*
+                 * A private incident is seen only by its own owners and the
+                 * project's owners and admins, and the episode's owners are
+                 * often none of those - the grouping engine adds private
+                 * incidents to episodes by itself. So its title never goes
+                 * into this email, whoever receives it, as IncidentAlertService
+                 * keeps a private end's title out of the other side's feed
+                 * entry. Its number and link are kept (opening the link is
+                 * subject to the incident's own privacy), and the template
+                 * names it "Private incident" where the title would be.
+                 */
+                if (incident.isPrivate === true) {
+                  incidentForTemplate["isPrivate"] = "true";
+                } else {
+                  incidentForTemplate["incidentTitle"] = incident.title || "";
+                }
+
+                return incidentForTemplate;
               },
             ),
           );
@@ -309,7 +341,15 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentIncidentState?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentIncidentState?.color,
+            ),
             episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.incidentSeverity?.color,
+            ),
             incidentCount: incidentCountInBatch.toString(),
             incidentCountLabel:
               incidentCountInBatch === 1 ? "incident" : "incidents",
@@ -341,7 +381,7 @@ RunCron(
               : `${incidentCountInBatch} new incidents were added to incident episode ${episodeNumberStr} (${episode.title}).`;
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(summaryLine),
           };
 
           const callMessage: CallRequestMessage = {
@@ -387,7 +427,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email}) — ${incidentCountInBatch} incident(s)\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              mdText`${OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              })}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident-added-to-episode batch notification",

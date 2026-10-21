@@ -34,31 +34,6 @@ jest.mock("Common/UI/Utils/API/API", () => {
   };
 });
 
-/*
- * Monaco cannot run in jsdom; the query console's editor is replaced by a
- * plain element so the rest of the console renders.
- */
-jest.mock("@monaco-editor/react", () => {
-  const react: { createElement: (...args: Array<unknown>) => unknown } =
-    jest.requireActual("react") as {
-      createElement: (...args: Array<unknown>) => unknown;
-    };
-
-  return {
-    __esModule: true,
-    default: (): unknown => {
-      return react.createElement("textarea", {
-        "data-testid": "monaco-editor",
-      });
-    },
-    loader: {
-      config: (): void => {
-        // nothing to configure without a real editor
-      },
-    },
-  };
-});
-
 type ReactModule = {
   createElement: (...args: Array<unknown>) => unknown;
   Suspense: unknown;
@@ -120,6 +95,12 @@ const FALLBACK_TEXT: string = "plugin-loading";
  */
 const FIRST_LOAD_TIMEOUT_IN_MS: number = 90000;
 
+/*
+ * The query console's editor renders for real in jsdom (a textarea over a
+ * highlighted layer); this is how the test knows it did.
+ */
+const QUERY_CONSOLE_EDITOR: string = '[data-testid="code-editor-input"]';
+
 afterEach(() => {
   TestingLibraryModule.cleanup();
 });
@@ -173,6 +154,13 @@ describe("the enterprise Health plugins", () => {
       );
 
       expect(container.textContent).not.toContain(FALLBACK_TEXT);
+
+      if (key === "HealthQueryConsole") {
+        expect(container.querySelector(QUERY_CONSOLE_EDITOR)).not.toBeNull();
+        expect(
+          container.querySelector('[data-code-type="sql"]'),
+        ).not.toBeNull();
+      }
     },
     FIRST_LOAD_TIMEOUT_IN_MS + 10000,
   );

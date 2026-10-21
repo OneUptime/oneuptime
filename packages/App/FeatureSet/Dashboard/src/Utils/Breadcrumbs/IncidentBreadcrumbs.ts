@@ -23,6 +23,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Incidents", "Workspace Microsoft Teams Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "Incidents",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_CREATE, [
       "Project",
       "Incidents",
@@ -257,12 +262,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Audit Logs",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_DOCS, [
-      "Project",
-      "Incidents",
-      "Episodes",
-      "Documentation",
-    ]),
 
     // Incident Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_ROLES, [
@@ -271,11 +270,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident Roles",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_MORE, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NUMBERING, [
       "Project",
       "Incidents",
       "Settings",
-      "More Settings",
+      "Numbering",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
       "Project",
@@ -338,22 +337,41 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Measurements",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Linked Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+      ["Project", "Incidents", "Settings", "Episode Membership"],
+    ),
 
     /*
-     * AI and Rules are their own side-menu sections, not lines under Settings,
-     * so the trail has to name the section the page actually lives in —
-     * otherwise the header says "Settings" while the menu highlights "Rules".
+     * The trail names the side-menu section a page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "AI".
+     * The AI settings and the auto-remediation rules are pages of the AI
+     * section.
      */
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_AI_INSIGHTS, [
+      "Project",
+      "Incidents",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_AI_LOGS, [
+      "Project",
+      "Incidents",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_AI, [
       "Project",
       "Incidents",
       "AI",
-      "Investigation",
+      "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Incidents", "AI", "Remediation"],
-    ),
 
     // Incident Rules
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_GROUPING_RULES, [

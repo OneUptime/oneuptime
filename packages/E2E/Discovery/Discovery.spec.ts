@@ -606,3 +606,505 @@ test("live updates keep an open status message open and drop a toggle that is no
 
   await expectTogglesOnlyWhereCutShort(page);
 });
+
+/*
+ * Starting a scan, in a real browser.
+ *
+ * "Discover Devices" on the Network Overview (and on an empty device list)
+ * links here with ?open=discover-devices, and the page opens Start New Scan
+ * as soon as its table is drawn - then takes the action off the address so
+ * a refresh does not open it again. A scan picks its method from two cards,
+ * ICMP (ping) or SNMP, and a new one starts on ICMP: there are no
+ * credentials to ask for, so Start Scan is on the first page. Picking SNMP
+ * adds the credentials as a second step.
+ */
+type ScanMethodCard = "icmp" | "snmp";
+
+function methodCard(modal: Locator, method: ScanMethodCard): Locator {
+  return modal.getByTestId(`card-select-option-${method}`);
+}
+
+interface ScanWrite {
+  formType: string;
+  cidr: string | null;
+  isSnmpEnabled: boolean | null;
+  snmpConfigCount: number | null;
+}
+
+async function scanWrites(page: Page): Promise<Array<ScanWrite>> {
+  return page.evaluate((): Array<ScanWrite> => {
+    return (
+      window as unknown as {
+        __discoveryFixture: { scanWrites: Array<ScanWrite> };
+      }
+    ).__discoveryFixture.scanWrites;
+  });
+}
+
+test("Discover Devices from elsewhere opens Start New Scan at once, and leaves the address clean", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const errors: Array<string> = [];
+  page.on("pageerror", (error: Error): void => {
+    errors.push(error.message);
+  });
+
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(modal).toBeVisible();
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
+
+  await expect
+    .poll((): string => {
+      return new URL(page.url()).search;
+    })
+    .toBe("");
+  expect(new URL(page.url()).pathname).toBe(route);
+
+  // The project's only custom probe is already picked.
+  await expect(modal.getByText("London datacenter")).toBeVisible();
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan.png"),
+    fullPage: false,
+  });
+  expect(errors).toEqual([]);
+});
+
+test("a new scan starts on ICMP, one page, and SNMP adds the credentials step", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  await page.getByRole("button", { name: "Start Scan" }).first().click();
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
+
+  // The method is two cards, one group named by its label: ICMP is picked.
+  const method: Locator = modal.getByRole("radiogroup", {
+    name: "Scan method",
+  });
+  await expect(method.getByRole("radio")).toHaveCount(2);
+  await expect(methodCard(modal, "icmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(methodCard(modal, "icmp")).toContainText(
+    "Finds the devices that answer ping. No credentials needed.",
+  );
+  await expect(methodCard(modal, "snmp")).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+  await expect(methodCard(modal, "snmp")).toContainText(
+    "Also reads each device's name and vendor. Needs SNMP credentials.",
+  );
+  await expect(
+    modal.getByText("You can change this at any time.", { exact: true }),
+  ).toBeVisible();
+  // The switch the cards replaced is gone, and its five lines of help.
+  await expect(modal.getByRole("switch", { name: /SNMP/ })).toHaveCount(0);
+
+  // ICMP asks for no credentials: one page, and Start Scan on it.
+  const progress: Locator = modal.getByRole("navigation", {
+    name: "Progress",
+  });
+  await expect(progress).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Start Scan",
+  );
+
+  // The name, the naming rules and the schedule wait under More fields.
+  const moreFields: Locator = modal.getByRole("button", {
+    name: /More fields/,
+  });
+  await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    modal.getByPlaceholder("Router Discovery - Region 1100"),
+  ).toBeHidden();
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan-icmp.png"),
+    fullPage: false,
+  });
+
+  // SNMP brings the credentials, as a second step.
+  await methodCard(modal, "snmp").click();
+  await expect(methodCard(modal, "snmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(progress.getByRole("listitem")).toHaveText([
+    "Scan Target",
+    "SNMP Credentials",
+  ]);
+  await expect(page.getByTestId("modal-footer-next-button")).toBeVisible();
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveCount(0);
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan-snmp.png"),
+    fullPage: false,
+  });
+
+  // And ICMP takes it away again.
+  await methodCard(modal, "icmp").click();
+  await expect(progress).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Start Scan",
+  );
+});
+
+test("the cards answer to the keyboard", async ({ page }: { page: Page }) => {
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(methodCard(modal, "icmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+
+  await methodCard(modal, "snmp").focus();
+  await page.keyboard.press("Enter");
+  await expect(methodCard(modal, "snmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+
+  await methodCard(modal, "icmp").focus();
+  await page.keyboard.press("Space");
+  await expect(methodCard(modal, "icmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
+
+test("an untouched Start New Scan sends an ICMP scan, with no credentials", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await modal.getByPlaceholder("192.168.1.0/24").fill("10.20.0.0/24");
+  await page.getByTestId("modal-footer-submit-button").click();
+
+  await expect
+    .poll(async () => {
+      return (await scanWrites(page)).length;
+    })
+    .toBe(1);
+
+  expect((await scanWrites(page))[0]).toMatchObject({
+    cidr: "10.20.0.0/24",
+    // Sent, not left out: the column itself defaults to SNMP.
+    isSnmpEnabled: false,
+    snmpConfigCount: null,
+  });
+});
+
+test("an SNMP scan sends its method and the credentials it was given", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await methodCard(modal, "snmp").click();
+  await modal.getByPlaceholder("192.168.1.0/24").fill("10.20.0.0/24");
+  await page.getByTestId("modal-footer-next-button").click();
+
+  await page
+    .getByTestId("snmp-config-card-0")
+    .getByLabel("SNMP Community String")
+    .fill("campus-ro");
+  await page.getByTestId("modal-footer-submit-button").click();
+
+  await expect
+    .poll(async () => {
+      return (await scanWrites(page)).length;
+    })
+    .toBe(1);
+
+  expect((await scanWrites(page))[0]).toMatchObject({
+    cidr: "10.20.0.0/24",
+    isSnmpEnabled: true,
+    snmpConfigCount: 1,
+  });
+});
+
+test("the scan list names each scan's method", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  const sweep: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Branch offices — Ping sweep" });
+  const snmp: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Datacenter routers" });
+
+  await expect(sweep.getByTestId("discovery-scan-method-badge")).toHaveText(
+    "ICMP",
+  );
+  // The tooltip names the method the way the form does.
+  await expect(
+    sweep.getByTestId("discovery-scan-method-badge"),
+  ).toHaveAttribute("title", "Scan method: ICMP (ping)");
+  await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveText(
+    "SNMP",
+  );
+  await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveAttribute(
+    "title",
+    "Scan method: SNMP",
+  );
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-scan-method-badges.png"),
+    fullPage: false,
+  });
+});
+
+/*
+ * A long name wraps beside its badge. The badge used to wrap instead, onto a
+ * line of its own under the name, whenever the two did not fit side by side.
+ */
+test("a scan's method badge stays on its name's first line", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  interface BadgeLine {
+    name: string;
+    // The badge's top less the name's: 0 when they share a line.
+    topOffset: number;
+    // The badge's left less the name's right: never below 0.
+    gapAfterName: number;
+    nameLineCount: number;
+  }
+
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width: width, height: 1000 });
+
+    /*
+     * Every row at once, in one read: the list redraws its rows as the
+     * live progress refreshes, so a row measured a step at a time can be
+     * replaced mid-measure.
+     */
+    const lines: Array<BadgeLine> = await page.evaluate(
+      (): Array<BadgeLine> => {
+        return Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="discovery-scan-method-badge"]',
+          ),
+        )
+          .filter((badge: HTMLElement): boolean => {
+            return badge.getBoundingClientRect().width > 0;
+          })
+          .map((badge: HTMLElement): BadgeLine => {
+            const name: HTMLElement =
+              badge.previousElementSibling as HTMLElement;
+            const nameBox: DOMRect = name.getBoundingClientRect();
+            const badgeBox: DOMRect = badge.getBoundingClientRect();
+            const lineHeight: number = Number.parseFloat(
+              window.getComputedStyle(name).lineHeight,
+            );
+
+            return {
+              name: name.textContent || "",
+              topOffset: Math.round(badgeBox.top - nameBox.top),
+              gapAfterName: Math.round(badgeBox.left - nameBox.right),
+              nameLineCount: Math.round(nameBox.height / lineHeight),
+            };
+          });
+      },
+    );
+
+    // Every scan in the fixture has its badge on screen.
+    expect(lines.length).toBeGreaterThanOrEqual(10);
+
+    for (const line of lines) {
+      // Level with the name's first line, and after it, never under it.
+      expect(Math.abs(line.topOffset)).toBeLessThanOrEqual(2);
+      expect(line.gapAfterName).toBeGreaterThanOrEqual(0);
+    }
+
+    // The long names do wrap: beside the badge, not under it.
+    expect(
+      lines.some((line: BadgeLine): boolean => {
+        return line.nameLineCount > 1;
+      }),
+    ).toBe(true);
+  }
+});
+
+/*
+ * A scan's Edit dialog opens on the method the scan has, and says what
+ * changing it does in a note set apart from the form above it.
+ */
+test("Edit opens on the scan's method, with its note apart from the form", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  const sweep: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Branch offices — Ping sweep" });
+  await sweep.getByRole("button", { name: "Edit", exact: true }).click();
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Edit Discovery Scan", { exact: true }),
+  ).toBeVisible();
+  await expect(methodCard(modal, "icmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(modal.getByRole("navigation", { name: "Progress" })).toHaveCount(
+    0,
+  );
+
+  const note: Locator = modal.getByTestId("discovery-scan-edit-rerun-note");
+  await expect(note).toContainText(
+    "Changing the target, probe, scan method or credentials runs the scan again",
+  );
+
+  const fold: { y: number; height: number } | null = await modal
+    .getByTestId("folded-section")
+    .first()
+    .boundingBox();
+  const noteBox: { y: number } | null = await note.boundingBox();
+
+  expect(fold).not.toBeNull();
+  expect(noteBox).not.toBeNull();
+  // A field's gap, not a hairline: the note used to touch More fields.
+  expect(noteBox!.y - (fold!.y + fold!.height)).toBeGreaterThanOrEqual(16);
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-edit-icmp-scan.png"),
+    fullPage: false,
+  });
+
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(modal).toHaveCount(0);
+
+  // An SNMP scan opens on SNMP, with its credentials as the second step.
+  const guest: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Guest network" });
+  await guest.getByRole("button", { name: "Edit", exact: true }).click();
+
+  await expect(methodCard(modal, "snmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(
+    modal.getByRole("navigation", { name: "Progress" }).getByRole("listitem"),
+  ).toHaveText(["Scan Target", "SNMP Credentials"]);
+});
+
+/*
+ * The scan's second step: the credential sets it tries, in order. Its
+ * heading used to read "SNMP Configs" twice (the field and the editor), and
+ * its inputs had no labels a screen reader or getByLabel could find.
+ */
+test("the credentials step says what the list is, and every input has its label", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
+
+  // Credentials are SNMP's: the step is there once SNMP is picked.
+  await methodCard(modal, "snmp").click();
+  await modal.getByPlaceholder("192.168.1.0/24").fill("10.20.0.0/24");
+  await page.getByTestId("modal-footer-next-button").click();
+
+  await expect(
+    modal.getByText("Credentials to try", { exact: true }),
+  ).toHaveCount(1);
+  await expect(modal.getByText("SNMP Configs")).toHaveCount(0);
+  await expect(
+    modal.getByText(
+      "Tried in order on each host that answers ping. The first set that works is used.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+
+  // The first set, named by its number and version until it is given a name.
+  const first: Locator = page.getByTestId("snmp-config-card-0");
+  await expect(first).toContainText("Credentials 1 (V2c)");
+
+  // Every input answers to its label.
+  await expect(first.getByLabel("Name")).toBeVisible();
+  await expect(first.getByLabel("SNMP Community String")).toBeVisible();
+  await expect(first.getByLabel("SNMP Port")).toBeVisible();
+  await expect(first.getByLabel("SNMP Version")).toBeVisible();
+
+  await first.getByLabel("SNMP Community String").fill("campus-ro");
+
+  const addMore: Locator = page.getByTestId("add-snmp-config");
+  await expect(addMore).toHaveText("Add more credentials");
+  await addMore.click();
+
+  const second: Locator = page.getByTestId("snmp-config-card-1");
+  await expect(second).toContainText("Credentials 2 (V2c)");
+  await expect(second.getByLabel("SNMP Community String")).toHaveValue("");
+
+  // A named set is called by its name.
+  await second.getByLabel("Name").fill("Core switches");
+  await expect(second).toContainText("Core switches");
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-credentials-to-try.png"),
+    fullPage: false,
+  });
+});
+
+test("Start New Scan fits a narrow screen", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
+
+  const scrollWidth: number = await page.evaluate((): number => {
+    return document.documentElement.scrollWidth;
+  });
+  expect(scrollWidth).toBeLessThanOrEqual(390);
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan-mobile.png"),
+    fullPage: false,
+  });
+});

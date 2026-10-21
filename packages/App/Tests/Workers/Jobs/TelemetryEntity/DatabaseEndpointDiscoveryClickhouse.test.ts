@@ -157,6 +157,17 @@ function db(
   return { "db.system.name": system, "server.address": address, ...extra };
 }
 
+// Source ports of the worker's connections, from the bug report's list.
+const SWAPPED_REDIS_PORTS: Array<string> = [
+  "46600",
+  "46482",
+  "60538",
+  "49114",
+  "41892",
+  "38616",
+  "45986",
+];
+
 const SPANS: Array<SpanFixture> = [
   // One public endpoint from many callers: one group.
   {
@@ -380,6 +391,40 @@ const SPANS: Array<SpanFixture> = [
     attributes: db("postgresql", "unnamed.example.com"),
     caller: VM,
     name: null,
+  },
+  /*
+   * The bug report, as the Kubernetes agent's eBPF instrumentation (OBI
+   * v0.9.0) sent it: it joined the worker's long-lived Redis connections
+   * mid-stream on the Redis pod, took a reply for a command and swapped the
+   * connection's ends. So the Redis server's CLIENT spans name the worker
+   * (its pod's owner, resolved from the IP) and the worker's ephemeral
+   * source port as the server. One group per connection.
+   */
+  ...SWAPPED_REDIS_PORTS.map((port: string): SpanFixture => {
+    return {
+      attributes: db("redis", "oneuptime-worker", {
+        "server.port": port,
+        "db.operation.name": "bull:jobs:marker",
+        "peer.service": "oneuptime-worker",
+      }),
+      caller: {
+        ...pod("default", "gke-test-cluster"),
+        "resource.service.name": "oneuptime-redis",
+        "resource.telemetry.sdk.name": "opentelemetry-ebpf-instrumentation",
+      },
+      name: "bull:jobs:marker",
+      count: 40,
+    };
+  }),
+  // …while the worker's own spans name the Redis it really calls.
+  {
+    attributes: db("redis", "oneuptime-redis-master", {
+      "server.port": "6379",
+      "db.operation.name": "EVALSHA",
+    }),
+    caller: pod("default", "gke-test-cluster"),
+    name: "EVALSHA",
+    count: 60,
   },
   /*
    * Never counted: a SERVER span, a span without a system, another
@@ -820,6 +865,71 @@ integration("Client-span database discovery SQL against ClickHouse", () => {
     expect(atlas?.callCount).toBe(10);
     expect(atlas?.siblings).toHaveLength(2);
     expect(atlas?.displayName).toBe("MongoDB c0.abcd.mongodb.net:27017");
+  });
+
+  test("eBPF-swapped spans group per connection, and not one of them creates a database", () => {
+    const discovered: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows(rows);
+    const byEndpoint: Map<string, DiscoveredDatabaseEndpoint> = new Map<
+      string,
+      DiscoveredDatabaseEndpoint
+    >(
+      discovered.map(
+        (
+          entry: DiscoveredDatabaseEndpoint,
+        ): [string, DiscoveredDatabaseEndpoint] => {
+          return [formatDatabaseEndpoint(entry.endpoint), entry];
+        },
+      ),
+    );
+
+    for (const port of SWAPPED_REDIS_PORTS) {
+      const swapped: DiscoveredDatabaseEndpoint | undefined = byEndpoint.get(
+        `oneuptime-worker.default.svc.cluster.local:${port}@gke-test-cluster`,
+      );
+
+      // The SQL reads it as a busy, global, host-named Redis endpoint…
+      expect(swapped?.system).toBe("redis");
+      expect(swapped?.scope).toBe("global");
+      expect(swapped?.callCount).toBe(40);
+      // …and only its port keeps it from becoming a database.
+      expect(
+        isDatabaseEndpointAutoCreateCandidate({
+          discovered: swapped!,
+          minCalls: DEFAULT_DATABASE_SERVER_MIN_CALLS,
+        }),
+      ).toBe(false);
+    }
+
+    const real: DiscoveredDatabaseEndpoint | undefined = byEndpoint.get(
+      "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+    );
+    expect(real?.callCount).toBe(60);
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: real!,
+        minCalls: DEFAULT_DATABASE_SERVER_MIN_CALLS,
+      }),
+    ).toBe(true);
+
+    // Of the worker's names, only the real Redis would be created.
+    expect(
+      discovered
+        .filter((entry: DiscoveredDatabaseEndpoint): boolean => {
+          return (
+            entry.endpoint.host.startsWith("oneuptime-") &&
+            isDatabaseEndpointAutoCreateCandidate({
+              discovered: entry,
+              minCalls: DEFAULT_DATABASE_SERVER_MIN_CALLS,
+            })
+          );
+        })
+        .map((entry: DiscoveredDatabaseEndpoint): string => {
+          return formatDatabaseEndpoint(entry.endpoint);
+        }),
+    ).toEqual([
+      "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+    ]);
   });
 
   test("rows naming an IP address come after every host-named row", () => {

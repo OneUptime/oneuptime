@@ -1,253 +1,118 @@
-# Guida all'Installazione su macOS
+# Installazione macOS
 
-Installa OneUptime come applicazione desktop nativa su macOS per un monitoraggio e una gestione degli incidenti fluidi.
+La dashboard di OneUptime si installa su un Mac come app: aggiungila al Dock da Safari, o installala da Google Chrome o Microsoft Edge. Si apre in una finestra tutta sua, con la sua icona nel Dock e in Launchpad, e può mostrare notifiche. Non c'è niente da scaricare: l'app è la dashboard del tuo OneUptime, ed è aggiornata non appena lo è il tuo OneUptime.
 
-## Metodi di Installazione
+:::cards
+- [Installare l'app](#installare-lapp): Da Safari, Chrome o Edge.
+- [Tenerla nel Dock](#tenerla-nel-dock): Aprirla con un clic, o al login.
+- [Ricevere notifiche su questo Mac](#ricevere-notifiche-su-questo-mac): Registrare l'app per le notifiche push.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Nessun Aggiungi al Dock, nessuna notifica, nuovo accesso.
+:::
 
-### Metodo 1: Safari (Consigliato per macOS)
+## Come funziona l'app desktop
 
-Safari offre un'eccellente integrazione PWA con le funzionalità native di macOS.
-
-1. **Apri OneUptime in Safari**
-
-   - Avvia il browser Safari
-   - Naviga all'URL della tua istanza OneUptime
-   - Accedi al tuo account OneUptime
-   - Attendi il caricamento completo della pagina
-
-2. **Installa la PWA**
-
-   - Clicca su **File** nella barra dei menu
-   - Seleziona **"Aggiungi al Dock"** (macOS Sonoma+)
-   - Oppure cerca l'**icona di installazione** nella barra degli indirizzi
-   - In alternativa: **File** → **"Aggiungi alla schermata Home"** (macOS precedenti)
-
-3. **Personalizza l'Installazione**
-
-   - **Nome App**: Modifica se desiderato (predefinito: OneUptime)
-   - **Dock**: Scegli di aggiungere al Dock
-   - **Launchpad**: Aggiungi al Launchpad per un accesso facile
-
-4. **Avvia l'App**
-   - Trova OneUptime nel Dock, nel Launchpad o nella cartella Applicazioni
-   - Clicca per avviare in una finestra dedicata
-   - L'app si esegue indipendentemente dal browser Safari
-
-### Metodo 2: Google Chrome
-
-Chrome offre un robusto supporto PWA con un'eccellente integrazione desktop.
-
-1. **Apri OneUptime in Chrome**
-
-   - Avvia Google Chrome
-   - Vai alla tua istanza OneUptime
-   - Assicurati di aver effettuato l'accesso
-   - Consenti il caricamento completo della pagina
-
-2. **Installa tramite Menu**
-
-   - Cerca l'**icona di installazione** (⊞) nella barra degli indirizzi
-   - Clicca su **"Installa OneUptime"**
-   - Oppure usa il **menu Chrome** → **Altri strumenti** → **Crea scorciatoia**
-
-3. **Opzioni di Installazione**
-
-   - Seleziona **"Apri come finestra"** per un'esperienza app nativa
-   - Personalizza il nome dell'app se necessario
-   - Clicca su **"Installa"** o **"Crea"**
-
-4. **Accedi all'App**
-   - Trova OneUptime nella cartella Applicazioni
-   - Oppure accedi tramite la ricerca Spotlight
-   - Aggiungi al Dock per un accesso rapido
-
-### Metodo 3: Microsoft Edge
-
-Edge fornisce un solido supporto PWA con una buona integrazione macOS.
-
-1. **Apri OneUptime in Edge**
-
-   - Avvia Microsoft Edge
-   - Naviga all'URL di OneUptime
-   - Completa il processo di accesso
-
-2. **Installa l'App**
-   - Clicca sul **menu a tre punti** → **App** → **Installa questo sito come app**
-   - Oppure cerca il prompt di installazione nella barra degli indirizzi
-   - Personalizza il nome dell'app se desiderato
-   - Clicca su **"Installa"**
-
-### Opzioni di Personalizzazione
-
-### Dock e Launchpad
-
-1. **Posizione nel Dock**: Trascina OneUptime nella posizione preferita nel Dock
-2. **Dimensione nel Dock**: Ridimensiona l'icona nelle preferenze del Dock
-3. **Organizzazione nel Launchpad**: Crea una cartella per le app di monitoraggio
-4. **Notifiche Badge**: Mostra il conteggio degli incidenti sull'icona nel Dock
-
-### Barra dei Menu e Notifiche
-
-1. **Centro Notifiche**
-
-   - Preferenze di Sistema → Notifiche → OneUptime
-   - Configura gli stili degli avvisi e la consegna
-   - Imposta i livelli di priorità per diversi tipi di incidenti
-
-2. **Integrazione con la Barra dei Menu**
-   - Barra dei menu nativa per le PWA Safari
-   - Voci di menu personalizzate per le azioni frequenti
-   - Scorciatoie da tastiera per le attività comuni
-
-## Risoluzione dei Problemi
-
-### Problemi di Installazione
-
-**"Aggiungi al Dock" non disponibile in Safari:**
-
-```
-Soluzioni:
-1. Assicurati di avere macOS Sonoma (14.0) o successivo
-2. Aggiorna Safari all'ultima versione
-3. Prova l'alternativa: File → Aggiungi alla schermata Home
-4. Svuota la cache di Safari e riprova
-5. Usa Chrome o Edge come alternativa
+```mermaid title="Cosa ti dà installare la dashboard"
+flowchart TB
+    Browser["Safari, Chrome o Edge<br/>apre la tua dashboard"]
+    Install["La aggiungi al Dock o<br/>la installi come app"]
+    App["OneUptime in una<br/>finestra sua, nel<br/>Dock e in Launchpad"]
+    OneUptime["Il tuo OneUptime serve<br/>la dashboard"]
+    Browser --> Install --> App
+    App -->|"carica la dashboard<br/>a ogni apertura"| OneUptime
 ```
 
-**La PWA non si installa o va in crash:**
+Un'app web di Safari ha un suo accesso, suoi cookie e sue impostazioni, separati da Safari. Un'app installata da Chrome o Edge li condivide con quel browser.
 
-```
-Soluzioni:
-1. Controlla la compatibilità della versione macOS
-2. Assicurati di avere spazio sufficiente su disco (100MB+)
-3. Aggiorna il browser all'ultima versione
-4. Svuota la cache e i cookie del browser
-5. Disabilita temporaneamente le estensioni del browser
-6. Riavvia il Mac e riprova l'installazione
-```
+## Prima di iniziare
 
-**L'app non appare in Applicazioni:**
+- macOS Sonoma 14 o successivo per Safari. Chrome ed Edge installano app su qualsiasi macOS su cui funzionano.
+- L'indirizzo del tuo OneUptime, in HTTPS: `https://oneuptime.com` su OneUptime Cloud, o il tuo, ad esempio `https://oneuptime.example.com`.
+- Un account con cui accedere alla dashboard.
 
-```
-Soluzioni:
-1. Controlla il Launchpad per l'icona di OneUptime
-2. Cerca con Spotlight (⌘+Spazio)
-3. Cerca nella sezione di gestione PWA del browser
-4. Prova a reinstallare con un browser diverso
-5. Controlla se installata con un nome diverso
-```
+## Installare l'app
 
-### Problemi con le Notifiche
+:::tabs
+@tab Safari
+1. Apri il tuo OneUptime in Safari e accedi.
+2. In qualsiasi pagina della dashboard, scegli **Archivio → Aggiungi al Dock**, oppure fai clic sul pulsante Condividi nella barra degli strumenti e poi su **Aggiungi al Dock**.
+3. Mantieni il nome o modificalo, e fai clic su **Aggiungi**.
+4. Apri OneUptime dal Dock e accedi ancora una volta: l'app web non condivide l'accesso di Safari.
+@tab Chrome
+1. Apri il tuo OneUptime in Chrome e accedi.
+2. In qualsiasi pagina della dashboard, fai clic sull'icona di installazione a destra della barra degli indirizzi, poi su **Installa**. Oppure apri **⋮ → Trasmetti, salva e condividi → Installa pagina come app…**.
+3. Chrome apre OneUptime in una finestra sua e lo aggiunge a Launchpad.
+@tab Edge
+1. Apri il tuo OneUptime in Edge e accedi.
+2. In qualsiasi pagina della dashboard, fai clic sull'icona di installazione a destra della barra degli indirizzi, poi su **Installa**. Oppure apri **Impostazioni e altro (…) → Altri strumenti → App → Installa questo sito come app**.
+3. Edge apre OneUptime in una finestra sua e lo aggiunge a Launchpad.
+:::
 
-**Le notifiche macOS non funzionano:**
+Installa da una pagina della dashboard, dopo aver effettuato l'accesso: la pagina di accesso non è l'app. Safari salva l'app web nella cartella Applicazioni della tua cartella Inizio.
 
-```
-Soluzioni:
-1. Preferenze di Sistema → Notifiche → OneUptime
-2. Abilita "Consenti notifiche"
-3. Imposta lo stile degli avvisi appropriato (banner/avvisi)
-4. Controlla le impostazioni Non Disturbare
-5. Verifica le impostazioni di notifica di OneUptime
-6. Concedi i permessi di notifica quando richiesto
-```
+## Tenerla nel Dock
 
-## Disinstallazione
+- **Dock.** Con l'app aperta, fai clic sulla sua icona nel Dock tenendo premuto Ctrl e scegli **Opzioni → Mantieni nel Dock**. Un'app web di Safari è già nel Dock.
+- **Apertura al login.** Fai clic sull'icona nel Dock tenendo premuto Ctrl e scegli **Opzioni → Apri al login**.
+- **Spotlight.** Premi Comando-Spazio e digita OneUptime.
 
-### Rimozione Completa
+## Ricevere notifiche su questo Mac
 
-1. **Metodo Cartella Applicazioni**
+L'app mostra notifiche una volta che l'hai registrata per le notifiche push, in ogni progetto da cui vuoi riceverle. Registra l'app web di Safari dall'interno dell'app web: è un browser a sé. Un'app installata da Chrome o Edge si registra con il suo browser.
 
-   - Apri la cartella Applicazioni
-   - Trova OneUptime
-   - Trascina nel Cestino o clic destro → Sposta nel Cestino
+:::steps
+### Aprire i tuoi dispositivi push
+Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Push Notifications**.
 
-2. **Metodo Dock**
+### Registrare questa app
+Fai clic su **Registra dispositivo**, mantieni il valore proposto in **Nome del dispositivo**, ad esempio `Safari on macOS`, o modificalo, e fai di nuovo clic su **Registra dispositivo**. Quando macOS o il browser chiede se OneUptime può inviare notifiche, scegli **Consenti**.
 
-   - Clic destro su OneUptime nel Dock
-   - Seleziona "Opzioni" → "Rimuovi dal Dock"
-   - Poi elimina dalla cartella Applicazioni
+### Inviare un test
+Nella finestra di dialogo **Browser Registered**, fai clic su **Send Test Notification**. Se non compare nulla, guarda le impostazioni di notifica del Mac: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
+:::
 
-3. **Gestione PWA del Browser**
-   - **Chrome**: chrome://apps/ → Trova OneUptime → Rimuovi
-   - **Edge**: edge://apps/ → Trova OneUptime → Disinstalla
-   - **Safari**: Nessuna pagina di gestione dedicata
+Un browser non può suonare nonostante una modalità Full immersion come Non disturbare. Per gli avvisi che devono svegliarti, usa l'app mobile con gli avvisi critici: vedi [Installazione iOS](/docs/mobile-desktop-apps/ios-installation#suonare-in-modalità-silenziosa).
 
-### Disinstallazione Completa
+Su un OneUptime self-hosted, le notifiche del browser richiedono le chiavi VAPID del server: vedi [Notifiche push](/docs/self-hosted/push-notifications#configurazione-self-hosted).
 
-Rimuovi tutti i dati associati:
+## Aggiornamenti
 
-```bash
-# Svuota i dati PWA Safari (dati generali del sito web)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
+Non c'è niente da aggiornare. L'app carica la dashboard dal tuo OneUptime a ogni apertura, quindi cambia quando il tuo OneUptime viene aggiornato. Se una finestra è aperta dall'aggiornamento, ricaricala con Comando-R.
 
-# Svuota i dati PWA Chrome
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
+## Disinstallare
 
-# Svuota i dati PWA Edge
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
+:::tabs
+@tab Safari
+Nel Finder, apri la tua cartella Inizio, poi la sua cartella Applicazioni, e trascina OneUptime nel Cestino.
+@tab Chrome
+Nella finestra dell'app, apri il menu **⋮**, scegli la voce che disinstalla l'app, poi **Rimuovi**.
+@tab Edge
+Apri `edge://apps` in Edge, scegli **Dettagli** su OneUptime, poi **Disinstalla**.
+:::
 
-## Aggiornamenti e Manutenzione
+Disinstallare l'app non ne annulla la registrazione: il suo browser continua a ricevere notifiche. Per fermarle, eliminala in **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**, con **Elimina**.
 
-### Aggiornamenti Automatici
+## Risoluzione dei problemi
 
-- La PWA di OneUptime si aggiorna automaticamente quando online
-- Non sono richiesti aggiornamenti dall'App Store
-- Nuove funzionalità disponibili immediatamente
-- Aggiornamenti critici applicati istantaneamente
+:::details Nessun Aggiungi al Dock in Safari
+Safari aggiunge app web al Dock a partire da macOS Sonoma 14. Aggiorna macOS, oppure installa l'app da Chrome o Edge.
+:::
 
-### Programma di Manutenzione
+:::details Non compare nessuna notifica
+- In **Impostazioni utente → Metodi di notifica**, scheda **Push Notifications**, controlla che l'app o il suo browser sia elencato, e inviagli una **Notifica di test**.
+- Sul Mac, apri **Impostazioni di Sistema → Notifiche** e controlla che OneUptime, o il browser da cui è stato installato, possa inviare notifiche, e che nessuna modalità Full immersion le trattenga.
+- Se il browser blocca le notifiche per OneUptime, consentile nelle sue impostazioni per il sito e registra di nuovo.
+- Su un OneUptime self-hosted, la finestra di dialogo **Registra dispositivo** indica quando il server non ha le chiavi VAPID.
+:::
 
-Manutenzione regolare per prestazioni ottimali:
+:::details L'app ti chiede di accedere di nuovo
+Un'app web di Safari ha un suo accesso: accedi dentro l'app. Un'app installata da Chrome o Edge condivide l'accesso del suo browser, quindi uscire nel browser, o cancellarne i cookie, disconnette anche lei.
+:::
 
-**Settimanale:**
+## Passi successivi
 
-- Riavvia l'app OneUptime
-- Svuota la cache del browser in caso di problemi
-- Controlla gli aggiornamenti macOS
-
-**Mensile:**
-
-- Esamina l'utilizzo dello spazio e pulisci se necessario
-- Aggiorna i browser se non si aggiornano automaticamente
-- Verifica che le impostazioni delle notifiche funzionino ancora
-
-## Integrazione con le Funzionalità macOS
-
-### Integrazione con l'App Shortcuts
-
-Crea scorciatoie personalizzate per OneUptime:
-
-1. Apri l'app **Shortcuts**
-2. Crea **Nuova Scorciatoia**
-3. Aggiungi l'azione **"Apri app"**
-4. Seleziona **OneUptime**
-5. Aggiungi a Siri per l'attivazione vocale
-
-### Integrazione con Terminal
-
-Gestisci OneUptime tramite Terminal:
-
-```bash
-# Crea un alias per avviare rapidamente OneUptime
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# Funzione per verificare se OneUptime è in esecuzione
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## Sicurezza e Privacy
-
-### Best Practice
-
-1. **Aggiornamenti Regolari**: Mantieni macOS e i browser aggiornati
-2. **Autenticazione Robusta**: Usa Touch ID/Face ID quando disponibile
-3. **Sicurezza di Rete**: Usa la VPN per l'accesso remoto al monitoraggio
-4. **Revisione dei Permessi**: Esamina regolarmente i permessi concessi
+:::cards
+- [Installazione iOS](/docs/mobile-desktop-apps/ios-installation): Ricevere gli avvisi sull'iPhone, con gli avvisi critici.
+- [Installazione Windows](/docs/mobile-desktop-apps/windows-installation): La stessa app su Windows.
+- [FAQ e risoluzione dei problemi](/docs/mobile-desktop-apps/faq-troubleshooting): Risposte su entrambe le app.
+- [Il tuo account](/docs/introduction/your-account): Come OneUptime ti raggiunge in ogni progetto.
+:::

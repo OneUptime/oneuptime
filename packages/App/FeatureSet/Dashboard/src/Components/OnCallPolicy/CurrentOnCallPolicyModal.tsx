@@ -7,6 +7,7 @@ import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -45,20 +46,27 @@ const CurrentOnCallPolicyModal: FunctionComponent<ComponentProps> = (
             ) => {
               return (
                 <div>
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicyUser.onCallDutyPolicy
-                        ?.name
-                    }
-                  </span>
-                  : You are added to escalation rule{" "}
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicyUser
-                        .onCallDutyPolicyEscalationRule?.name
-                    }
-                  </span>{" "}
-                  for this policy.
+                  <TranslatedSentence
+                    template="{{policy}}: You are added to escalation rule {{rule}} for this policy."
+                    slots={{
+                      policy: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicyUser
+                              .onCallDutyPolicy?.name
+                          }
+                        </span>
+                      ),
+                      rule: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicyUser
+                              .onCallDutyPolicyEscalationRule?.name
+                          }
+                        </span>
+                      ),
+                    }}
+                  />
                 </div>
               );
             },
@@ -70,24 +78,32 @@ const CurrentOnCallPolicyModal: FunctionComponent<ComponentProps> = (
             ) => {
               return (
                 <div>
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicyTeam.onCallDutyPolicy
-                        ?.name
-                    }
-                  </span>
-                  : Team{" "}
-                  <span className="font-semibold">
-                    {currentOnCallDutyEscalationPolicyTeam.team?.name}
-                  </span>{" "}
-                  is added to escalation rule{" "}
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicyTeam
-                        .onCallDutyPolicyEscalationRule?.name
-                    }
-                  </span>{" "}
-                  for this policy and you belong to this team.
+                  <TranslatedSentence
+                    template="{{policy}}: Team {{team}} is added to escalation rule {{rule}} for this policy and you belong to this team."
+                    slots={{
+                      policy: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicyTeam
+                              .onCallDutyPolicy?.name
+                          }
+                        </span>
+                      ),
+                      team: (
+                        <span className="font-semibold">
+                          {currentOnCallDutyEscalationPolicyTeam.team?.name}
+                        </span>
+                      ),
+                      rule: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicyTeam
+                              .onCallDutyPolicyEscalationRule?.name
+                          }
+                        </span>
+                      ),
+                    }}
+                  />
                 </div>
               );
             },
@@ -99,28 +115,35 @@ const CurrentOnCallPolicyModal: FunctionComponent<ComponentProps> = (
             ) => {
               return (
                 <div>
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicySchedule.onCallDutyPolicy
-                        ?.name
-                    }
-                  </span>
-                  : Schedule{" "}
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicySchedule
-                        .onCallDutyPolicySchedule?.name
-                    }
-                  </span>{" "}
-                  is added to escalation rule{" "}
-                  <span className="font-semibold">
-                    {
-                      currentOnCallDutyEscalationPolicySchedule
-                        .onCallDutyPolicyEscalationRule?.name
-                    }
-                  </span>{" "}
-                  for this policy and you are currently on roster for this
-                  schedule.
+                  <TranslatedSentence
+                    template="{{policy}}: Schedule {{schedule}} is added to escalation rule {{rule}} for this policy and you are currently on roster for this schedule."
+                    slots={{
+                      policy: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicySchedule
+                              .onCallDutyPolicy?.name
+                          }
+                        </span>
+                      ),
+                      schedule: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicySchedule
+                              .onCallDutyPolicySchedule?.name
+                          }
+                        </span>
+                      ),
+                      rule: (
+                        <span className="font-semibold">
+                          {
+                            currentOnCallDutyEscalationPolicySchedule
+                              .onCallDutyPolicyEscalationRule?.name
+                          }
+                        </span>
+                      ),
+                    }}
+                  />
                 </div>
               );
             },

@@ -9,6 +9,7 @@ import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFe
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
@@ -25,9 +26,11 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import { getFeedEventTypeLabel } from "../../../UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
+import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
@@ -282,17 +285,24 @@ describe("IncidentAlert table permissions", () => {
     }).toThrow();
   });
 
-  test("nobody can set who deleted a link", () => {
-    const link: IncidentAlert = linkPayload();
-    link.deletedByUserId = ObjectID.generate();
+  /*
+   * Who linked or deleted a link is OneUptime's to say (UserAttribution):
+   * no request may write either, DatabaseService takes them out of every
+   * write it does not make itself, and the column check skips them as
+   * computed, so a client that still sends one is not refused for it.
+   */
+  test.each([
+    "createdByUser",
+    "createdByUserId",
+    "deletedByUser",
+    "deletedByUserId",
+  ])("nobody can set %s", (column: string) => {
+    const model: IncidentAlert = new IncidentAlert();
 
-    expect(() => {
-      ModelPermission.checkCreatePermissions(
-        IncidentAlert,
-        link,
-        propsWith(Permission.ProjectAdmin),
-      );
-    }).toThrow("deletedByUserId");
+    expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
+    expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
+    expect(model.getTableColumnMetadata(column).computed).toBe(true);
+    expect(UserAttribution.getColumns(model)).toContain(column);
   });
 });
 
@@ -467,8 +477,24 @@ describe("IncidentAlert uniqueness and scope", () => {
     );
   });
 
-  test("reads follow the incident's labels", () => {
+  /*
+   * A link is read through its incident - a caller who may read incidents
+   * reads the links of the incidents they may read - but reading the
+   * incident is optional: an alert responder who may read no incident still
+   * sees which incidents their alerts are linked to. A grant or a block
+   * limited to labels also follows the labels of both records it names.
+   */
+  test("reads follow the incident's labels, and alert responders read without incidents", () => {
     expect(model().canAccessIfCanReadOn).toBe("incident");
+    expect(model().isParentReadOptional).toBe(true);
+
+    const keys: Array<string> = ReadPermission.getLabelledReferences(
+      IncidentAlert,
+    ).keys.map((key: { column: string }): string => {
+      return key.column;
+    });
+
+    expect(keys).toEqual(expect.arrayContaining(["incidentId", "alertId"]));
   });
 
   test("owners see the links of the incidents they own", () => {
@@ -481,11 +507,29 @@ describe("IncidentAlert uniqueness and scope", () => {
 });
 
 describe("the project switches for linked alerts", () => {
-  test.each([
+  const SWITCHES: Array<string> = [
     "acknowledgeLinkedAlertsWhenIncidentAcknowledged",
     "resolveLinkedAlertsWhenIncidentResolved",
-  ])(
-    "%s is an off-by-default boolean only owners and admins may change",
+  ];
+
+  // The @Column a switch is stored with: what the database itself defaults to.
+  function storedColumn(column: string): ColumnMetadataArgs | undefined {
+    return getMetadataArgsStorage().columns.find(
+      (candidate: ColumnMetadataArgs) => {
+        return (
+          candidate.target === Project && candidate.propertyName === column
+        );
+      },
+    );
+  }
+
+  /*
+   * On by default: a new project's linked alerts follow their incident. The
+   * API reference, the Terraform provider and the database all read this
+   * default, so the model's two declarations must agree.
+   */
+  test.each(SWITCHES)(
+    "%s is an on-by-default boolean only owners and admins may change",
     (column: string) => {
       const project: Project = new Project();
       const metadata: TableColumnMetadata =
@@ -495,7 +539,7 @@ describe("the project switches for linked alerts", () => {
 
       expect(metadata.type).toBe(TableColumnType.Boolean);
       expect(metadata.required).toBe(true);
-      expect(metadata.defaultValue).toBe(false);
+      expect(metadata.defaultValue).toBe(true);
       expect(project.isDefaultValueColumn(column)).toBe(true);
       expect(access!.create).toEqual([]);
       expect(access!.update).toEqual([
@@ -503,6 +547,58 @@ describe("the project switches for linked alerts", () => {
         Permission.ProjectAdmin,
       ]);
       expect(access!.read).toContain(Permission.ProjectMember);
+    },
+  );
+
+  test.each(SWITCHES)(
+    "%s defaults to true in the database too, and is never null",
+    (column: string) => {
+      const stored: ColumnMetadataArgs | undefined = storedColumn(column);
+
+      expect(stored).toBeDefined();
+      expect(stored!.options.default).toBe(true);
+      expect(stored!.options.nullable).toBe(false);
+      expect(stored!.options.default).toBe(
+        new Project().getTableColumnMetadata(column).defaultValue,
+      );
+    },
+  );
+
+  /*
+   * Nobody may set a switch on create (create: []), and a new model leaves
+   * both unset, so every project - from the dashboard, the API or a test
+   * fixture - starts from the database default rather than an explicit
+   * false some create path happened to send.
+   */
+  test.each(SWITCHES)(
+    "%s is never written on create, so a new project gets the default",
+    (column: string) => {
+      const project: Project = new Project();
+
+      expect((project as unknown as Record<string, unknown>)[column]).toBe(
+        undefined,
+      );
+      expect(project.getColumnAccessControlFor(column)!.create).toEqual([]);
+    },
+  );
+
+  /*
+   * The description is published in the API reference and the Terraform
+   * docs, where "default: true" alone would suggest an upgrade switches
+   * every project on. It does not: the migration only changes the column
+   * default.
+   */
+  test.each(SWITCHES)(
+    "%s tells API readers existing projects keep their setting",
+    (column: string) => {
+      const description: string =
+        new Project().getTableColumnMetadata(column).description || "";
+
+      expect(description).toContain(
+        "On for new projects created in OneUptime; projects that existed before keep their setting.",
+      );
+      expect(description).not.toMatch(/off by default/i);
+      expect(description).not.toMatch(/opt[- ]in/i);
     },
   );
 
@@ -519,7 +615,7 @@ describe("the project switches for linked alerts", () => {
       ).description || "";
 
     expect(description).toBe(
-      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
     );
     expect(description).not.toContain("escalations and reminders");
 

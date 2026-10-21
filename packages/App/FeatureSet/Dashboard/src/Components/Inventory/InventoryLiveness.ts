@@ -3,6 +3,10 @@ import {
   InventoryLivenessInput,
   getInventoryLivenessState,
 } from "Common/Types/Telemetry/InventoryLiveness";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export {
   InventoryLiveness,
@@ -129,7 +133,10 @@ export const getInventoryLiveness: GetInventoryLivenessFunction = (
   };
 };
 
-export type FormatMinutesAgoFunction = (minutes: number) => string;
+export type FormatMinutesAgoFunction = (
+  minutes: number,
+  translator?: Translator,
+) => string;
 
 /**
  * "4m ago" / "3h ago" / "6d ago". Coarse on purpose — the exact timestamp is
@@ -137,34 +144,37 @@ export type FormatMinutesAgoFunction = (minutes: number) => string;
  */
 export const formatMinutesAgo: FormatMinutesAgoFunction = (
   minutes: number,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
   if (minutes < 1) {
-    return "just now";
+    return translator.translateText("just now") as string;
   }
 
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return translator.translateTemplate("{{count}}m ago", { count: minutes });
   }
 
   const hours: number = Math.floor(minutes / 60);
 
   if (hours < 24) {
-    return `${hours}h ago`;
+    return translator.translateTemplate("{{count}}h ago", { count: hours });
   }
 
   const days: number = Math.floor(hours / 24);
 
   if (days < 30) {
-    return `${days}d ago`;
+    return translator.translateTemplate("{{count}}d ago", { count: days });
   }
 
   const months: number = Math.floor(days / 30);
 
   if (months < 12) {
-    return `${months}mo ago`;
+    return translator.translateTemplate("{{count}}mo ago", { count: months });
   }
 
-  return `${Math.floor(months / 12)}y ago`;
+  return translator.translateTemplate("{{count}}y ago", {
+    count: Math.floor(months / 12),
+  });
 };
 
 export type IsStaleLivenessFunction = (liveness: InventoryLiveness) => boolean;

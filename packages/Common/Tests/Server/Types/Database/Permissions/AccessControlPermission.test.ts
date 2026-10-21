@@ -130,16 +130,78 @@ describe("AccessControlPermission.addAccessControlIdsToQuery", () => {
     expect(result._id.value[1].type).toBe("raw");
   });
 
-  it("fails closed to the permitted set when join metadata is unavailable", async () => {
+  /*
+   * Without the join table's metadata the two conditions cannot both be
+   * asked, so the list already there keeps only the labels on both: it never
+   * widens to labels it did not hold (the labels of another grant asked
+   * first, a write's own beside its read's), and with none on both nothing
+   * matches.
+   */
+  it("fails closed to the labels on both when join metadata is unavailable", async () => {
     jest
       .spyOn(QueryUtil, "getManyToManyRelationMetadata")
       .mockReturnValue(null);
-    const query: any = { projectId, labels: [ObjectID.generate()] };
+    const otherLabel: ObjectID = ObjectID.generate();
+    const query: any = { projectId, labels: [otherLabel, permittedLabelB] };
 
     const result: any =
       await AccessControlPermission.addAccessControlIdsToQuery(
         Monitor,
         query,
+        null,
+        makeLabelRestrictedProps(),
+        DatabaseRequestType.Read,
+      );
+
+    expect(
+      (result.labels as Array<ObjectID>).map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([permittedLabelB.toString()]);
+    expect(result._id).toBeUndefined();
+  });
+
+  it("matches nothing when no label is on both and join metadata is unavailable", async () => {
+    jest
+      .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+      .mockReturnValue(null);
+    const otherLabel: ObjectID = ObjectID.generate();
+    const query: any = { projectId, labels: [otherLabel] };
+
+    const result: any =
+      await AccessControlPermission.addAccessControlIdsToQuery(
+        Monitor,
+        query,
+        null,
+        makeLabelRestrictedProps(),
+        DatabaseRequestType.Read,
+      );
+
+    expect(
+      (result.labels as Array<ObjectID>).map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([otherLabel.toString()]);
+    expect(
+      Object.values(
+        (
+          result._id as unknown as {
+            objectLiteralParameters: Record<string, string>;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toEqual([ObjectID.getZeroObjectID().toString()]);
+  });
+
+  it("narrows to the permitted set when join metadata is unavailable and nothing else filters the labels", async () => {
+    jest
+      .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+      .mockReturnValue(null);
+
+    const result: any =
+      await AccessControlPermission.addAccessControlIdsToQuery(
+        Monitor,
+        { projectId } as any,
         null,
         makeLabelRestrictedProps(),
         DatabaseRequestType.Read,
@@ -308,12 +370,27 @@ describe("AccessControlPermission.getAccessControlIdsForQuery", () => {
     /*
      * Perf regression guard: the old code rebuilt the full user-permission
      * set once per access-controlled column plus once for the model-level
-     * check. The context must be built exactly once per query.
+     * check. The context must be built exactly once per query: the allow
+     * rows the labels are read from, then what the table check holds the
+     * caller to (TablePermission.getHeldPermissions: the allow rows and the
+     * block rows) - a block with no labels on the wildcard takes the
+     * wildcard's grant away.
      */
-    expect(getUserPermissionsSpy).toHaveBeenCalledTimes(1);
-    expect(getUserPermissionsSpy).toHaveBeenCalledWith(
+    expect(getUserPermissionsSpy).toHaveBeenCalledTimes(3);
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      1,
       props,
       PermissionType.Allow,
+    );
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      2,
+      props,
+      PermissionType.Allow,
+    );
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      3,
+      props,
+      PermissionType.Block,
     );
   });
 

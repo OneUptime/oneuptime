@@ -80,6 +80,7 @@ enum PayloadKind {
   IncomingRequest = "IncomingRequest",
   IncomingEmail = "IncomingEmail",
   Telemetry = "Telemetry",
+  ProbeStatus = "ProbeStatus",
   None = "None",
 }
 
@@ -100,12 +101,18 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.SQLQuery]: PayloadKind.Probe,
   [MonitorType.Database]: PayloadKind.Probe,
   [MonitorType.ExternalStatusPage]: PayloadKind.Probe,
+  [MonitorType.NTP]: PayloadKind.Probe,
   /*
    * Not a "probeable" monitor - the device owns its polling schedule - but
    * its walks and traps still arrive as a ProbeMonitorResponse, and
    * SummaryInfo renders it with SnmpMonitorView.
    */
   [MonitorType.NetworkDevice]: PayloadKind.Probe,
+  /*
+   * Scoped to a step like a probe check, but no probe ran it: the probes it
+   * watched, as they were, have a slot of their own.
+   */
+  [MonitorType.ProbeStatus]: PayloadKind.ProbeStatus,
 
   [MonitorType.Server]: PayloadKind.Server,
   [MonitorType.IncomingRequest]: PayloadKind.IncomingRequest,
@@ -113,6 +120,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
 
   [MonitorType.Logs]: PayloadKind.Telemetry,
   [MonitorType.SecurityEvents]: PayloadKind.Telemetry,
+  [MonitorType.Llm]: PayloadKind.Telemetry,
   [MonitorType.Metrics]: PayloadKind.Telemetry,
   [MonitorType.Traces]: PayloadKind.Telemetry,
   [MonitorType.Exceptions]: PayloadKind.Telemetry,
@@ -125,6 +133,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.Proxmox]: PayloadKind.Telemetry,
   [MonitorType.VMware]: PayloadKind.Telemetry,
   [MonitorType.Ceph]: PayloadKind.Telemetry,
+  [MonitorType.StorageArray]: PayloadKind.Telemetry,
   [MonitorType.IoTDevice]: PayloadKind.Telemetry,
 };
 
@@ -207,6 +216,14 @@ function telemetryResponse(
       profileCount: 11,
     } as unknown as MonitorSummaryDataToProcess;
   }
+  if (monitorType === MonitorType.Llm) {
+    return {
+      ...base,
+      llmAnswerCount: 120,
+      llmBadAnswerCount: 9,
+      llmBadAnswerPercent: 7.5,
+    } as unknown as MonitorSummaryDataToProcess;
+  }
 
   // Metrics and every infrastructure type built on it.
   return {
@@ -216,12 +233,43 @@ function telemetryResponse(
   } as unknown as MonitorSummaryDataToProcess;
 }
 
+// What a Probe Status monitor's evaluation ran on: the probes it watches.
+function probeStatusResponse(): MonitorSummaryDataToProcess {
+  return {
+    projectId: PROJECT_ID,
+    monitorId: MONITOR_ID,
+    monitorStepId: MONITOR_STEP_ID,
+    probes: [
+      {
+        probeId: "44444444-4444-4444-8444-444444444445",
+        probeName: "Frankfurt",
+        isGlobalProbe: false,
+        isConnected: true,
+        lastAliveAt: CAPTURED_AT,
+      },
+      {
+        probeId: PROBE_ID.toString(),
+        probeName: "Singapore",
+        isGlobalProbe: true,
+        isConnected: false,
+        lastAliveAt: OneUptimeDate.addRemoveMinutes(CAPTURED_AT, -5),
+      },
+    ],
+    connectedProbeCount: 1,
+    disconnectedProbeCount: 1,
+    missingProbeIds: [],
+    checkedAt: CAPTURED_AT,
+  } as unknown as MonitorSummaryDataToProcess;
+}
+
 function payloadFor(
   monitorType: MonitorType,
 ): MonitorSummaryDataToProcess | undefined {
   switch (EXPECTED_PAYLOAD_KIND[monitorType]) {
     case PayloadKind.Probe:
       return probeResponse();
+    case PayloadKind.ProbeStatus:
+      return probeStatusResponse();
     case PayloadKind.Server:
       return serverResponse();
     case PayloadKind.IncomingRequest:
@@ -343,6 +391,9 @@ describe("MonitorSummarySnapshotUtil - every monitor type is covered", () => {
       expect(Boolean(snapshot.telemetryMonitorSummary)).toBe(
         kind === PayloadKind.Telemetry,
       );
+      expect(Boolean(snapshot.probeStatusMonitorResponse)).toBe(
+        kind === PayloadKind.ProbeStatus,
+      );
     }
   });
 
@@ -436,7 +487,71 @@ describe("MonitorSummarySnapshotUtil - every monitor type is covered", () => {
          */
         expect(props.telemetryMonitorSummary?.nextCheckAt).toBeUndefined();
       }
+
+      if (kind === PayloadKind.ProbeStatus) {
+        expect(props.probeStatusMonitorResponse?.probes).toHaveLength(2);
+        // No probe ran it, so it is not shown as one probe's check.
+        expect(props.probeMonitorResponses).toBeUndefined();
+      }
     }
+  });
+});
+
+describe("MonitorSummarySnapshotUtil - a Probe Status monitor's incident", () => {
+  it("freezes the probes it watched, as they were when the incident opened", () => {
+    const snapshot: MonitorSummarySnapshot = build(MonitorType.ProbeStatus)!;
+
+    expect(snapshot.probeStatusMonitorResponse).toEqual(
+      expect.objectContaining({
+        connectedProbeCount: 1,
+        disconnectedProbeCount: 1,
+      }),
+    );
+    expect(
+      snapshot.probeStatusMonitorResponse!.probes.map(
+        (probe: { probeName: string; isConnected: boolean }) => {
+          return [probe.probeName, probe.isConnected];
+        },
+      ),
+    ).toEqual([
+      ["Frankfurt", true],
+      ["Singapore", false],
+    ]);
+    expect(snapshot.probeMonitorResponse).toBeUndefined();
+  });
+
+  it("keeps the times of each probe through the stored column and back", () => {
+    const readBack: MonitorSummarySnapshot | null =
+      MonitorSummarySnapshotUtil.deserialize(
+        JSON.parse(
+          JSON.stringify(
+            MonitorSummarySnapshotUtil.serialize(
+              build(MonitorType.ProbeStatus),
+            ),
+          ),
+        ) as JSONObject,
+      );
+
+    expect(readBack!.probeStatusMonitorResponse!.checkedAt).toEqual(
+      CAPTURED_AT,
+    );
+    expect(
+      readBack!.probeStatusMonitorResponse!.probes[1]!.lastAliveAt,
+    ).toEqual(OneUptimeDate.addRemoveMinutes(CAPTURED_AT, -5));
+  });
+
+  it("stores only the evaluation for a payload that is not a Probe Status one", () => {
+    const snapshot: MonitorSummarySnapshot | null = build(
+      MonitorType.ProbeStatus,
+      { dataToProcess: probeResponse() },
+    );
+
+    expect(snapshot!.probeStatusMonitorResponse).toBeUndefined();
+    // Never shown as a probe's check: no probe checks this monitor.
+    expect(snapshot!.probeMonitorResponse).toBeUndefined();
+    expect(snapshot!.evaluationSummary?.criteriaResults[0]?.criteriaName).toBe(
+      "Is Offline",
+    );
   });
 });
 

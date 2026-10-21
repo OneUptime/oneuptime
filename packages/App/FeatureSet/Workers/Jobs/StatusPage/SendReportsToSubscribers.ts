@@ -5,6 +5,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageReportPeriodUtil from "Common/Utils/StatusPage/ReportPeriod";
 
@@ -16,10 +17,12 @@ RunCron(
   },
   async () => {
     // get all scheduled events of all the projects.
-    const statusPageToSendReports: Array<StatusPage> =
+    const statusPagesWithReportDue: Array<StatusPage> =
       await StatusPageService.findAllBy({
         query: {
           isReportEnabled: true,
+          // An archived page sends nothing; its next report goes out once it is unarchived.
+          isArchived: false,
           sendNextReportBy: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
           ),
@@ -30,11 +33,23 @@ RunCron(
         skip: 0,
         select: {
           _id: true,
+          projectId: true,
           sendNextReportBy: true,
           reportRecurringInterval: true,
           reportTimezone: true,
         },
       });
+
+    /*
+     * Nor does a page of a blocked project, and it is left as an archived
+     * one is: its next report goes out once the project is unblocked. Moving
+     * its report on would only fail the send every period, since
+     * sendEmailReport finds no page to send from.
+     */
+    const statusPageToSendReports: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects(
+        statusPagesWithReportDue,
+      );
 
     for (const statusPageToSendReport of statusPageToSendReports) {
       /*

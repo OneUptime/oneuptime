@@ -111,6 +111,7 @@ describe("LOGS_SCOPE_FACET_ENTITY_TYPES", () => {
       proxmoxClusterId: ServiceType.ProxmoxCluster,
       vmwareVCenterId: ServiceType.VMwareVCenter,
       cephClusterId: ServiceType.CephCluster,
+      storageArrayId: ServiceType.StorageArray,
       serverlessFunctionId: ServiceType.ServerlessFunction,
       cloudResourceId: ServiceType.CloudResource,
       rumApplicationId: ServiceType.RealUserMonitor,

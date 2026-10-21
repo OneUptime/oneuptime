@@ -20,10 +20,17 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import Column from "Common/UI/Components/ModelTable/Column";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  ARCHIVE_INSTEAD_OF_DELETE,
+  MONITOR_ARCHIVE_COPY,
+} from "../Archive/ResourceArchiveCopy";
+import { getArchivedColumns } from "../Archive/ArchivedColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -77,10 +84,17 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ObjectID from "Common/Types/ObjectID";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProbeUtil from "../../Utils/Probe";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -89,11 +103,29 @@ export interface ComponentProps {
   saveFilterProps?: SaveFilterProps | undefined;
   videoLink?: Route | URL | undefined;
   refreshToggle?: string | undefined;
+  /*
+   * The Archived page. Lists archived monitors only, offers Unarchive as its
+   * bulk action, and ends with when and by whom each was archived. Every
+   * other mount lists live monitors only: archived ones are not checked, so
+   * their frozen status would otherwise sit in "Not Operational", "Disabled"
+   * and every other list as if it were current.
+   */
+  isArchivedView?: boolean | undefined;
+  /*
+   * Whether a monitor can be deleted from this list - in each row's ⋯ menu
+   * and in Bulk Actions. On by default: every list of monitors is one of the
+   * places a monitor is deleted from. Off where the list is another
+   * resource's members (a monitor group's monitors, whose row action is
+   * Remove): deleting there would take the monitor out of every group,
+   * status page and SLO it is on, not only out of this one.
+   */
+  isDeleteable?: boolean | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [showAddProbesModal, setShowAddProbesModal] = useState<boolean>(false);
   const [showRemoveProbesModal, setShowRemoveProbesModal] =
@@ -111,6 +143,26 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const isScopedToTemplate: boolean = isQueryScopedToMonitorTemplate(
     props.query,
   );
+
+  const isArchivedView: boolean = Boolean(props.isArchivedView);
+
+  /*
+   * The archive state is part of every mount's scope, set here rather than by
+   * each page, so a new page built on this table cannot forget it.
+   */
+  const scopedQuery: Query<Monitor> = {
+    ...(props.query || {}),
+    isArchived: isArchivedView,
+  } as Query<Monitor>;
+
+  const { archiveBulkActions, unarchiveBulkActions } =
+    useBulkArchiveActions<Monitor>({
+      modelType: Monitor,
+      singularName: MONITOR_ARCHIVE_COPY.singularName,
+      pluralName: MONITOR_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   const monitorTemplateFacet: ResourceFacet = {
     key: MONITOR_TEMPLATE_FACET_KEY,
@@ -354,6 +406,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -423,7 +476,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage: "This monitor type does not support probes",
+            failedMessage: translator.translateTemplate(
+              "This monitor type does not support probes",
+            ),
           });
 
           onProgressInfo({
@@ -456,7 +511,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         if (existingProbes.data.length > 0) {
           failedItems.push({
             item: monitor,
-            failedMessage: "Probe is already assigned to this monitor",
+            failedMessage: translator.translateTemplate(
+              "Probe is already assigned to this monitor",
+            ),
           });
         } else {
           const monitorProbe: MonitorProbe = new MonitorProbe();
@@ -525,7 +582,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage: "This monitor type does not support probes",
+            failedMessage: translator.translateTemplate(
+              "This monitor type does not support probes",
+            ),
           });
 
           onProgressInfo({
@@ -558,7 +617,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         if (existingProbes.data.length === 0) {
           failedItems.push({
             item: monitor,
-            failedMessage: "Probe is not assigned to this monitor",
+            failedMessage: translator.translateTemplate(
+              "Probe is not assigned to this monitor",
+            ),
           });
         } else {
           await ModelAPI.deleteItem<MonitorProbe>({
@@ -622,7 +683,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     ? [...props.cardButtons]
     : [];
 
-  if (!props.disableCreate) {
+  if (!props.disableCreate && !isArchivedView) {
     /*
      * A card button that routes to the monitor create page rather than the
      * table's built in create modal - which means ModelTable's own permission
@@ -658,8 +719,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     <div>
       <ModelTable<Monitor>
         modelType={Monitor}
-        enableJsonImportExport={!props.disableCreate}
-        name="Monitors"
+        enableJsonImportExport={!props.disableCreate && !isArchivedView}
+        name={
+          isArchivedView ? MONITOR_ARCHIVE_COPY.archivedPageTitle : "Monitors"
+        }
         /*
          * Two keys, because the two mounts declare two different column sets:
          * the template page's Linked Monitors card drops the Template column
@@ -675,146 +738,188 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
          * arrangement once, and the card returns to its declared columns.
          */
         userPreferencesKey={
-          isScopedToTemplate
-            ? "monitor-template-monitors-table"
-            : "monitors-table"
+          isArchivedView
+            ? "monitors-archived-table"
+            : isScopedToTemplate
+              ? "monitor-template-monitors-table"
+              : "monitors-table"
         }
         customFieldsModelType={MonitorCustomField}
-        id="Monitors-table"
+        id={isArchivedView ? "monitors-archived-table" : "Monitors-table"}
         saveFilterProps={props.saveFilterProps}
         urlStateKey={tableUrlStateKey}
         bulkActions={{
-          buttons: [
-            {
-              title: "Disable Monitor",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<Monitor>) => {
-                const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
-                const totalItems: Array<Monitor> = [...props.items]; // total items
-                const successItems: Array<Monitor> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
+          buttons: isArchivedView
+            ? [...unarchiveBulkActions, ModalTableBulkDefaultActions.Delete]
+            : [
+                {
+                  title: "Disable Monitor",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  onClick: async (props: BulkActionOnClickProps<Monitor>) => {
+                    const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
+                    const totalItems: Array<Monitor> = [...props.items]; // total items
+                    const successItems: Array<Monitor> = []; // items that are disabled
+                    const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
 
-                props.onBulkActionStart();
+                    props.onBulkActionStart();
 
-                for (const monitor of totalItems) {
-                  // remove this item from inProgressItems
+                    for (const monitor of totalItems) {
+                      // remove this item from inProgressItems
 
-                  inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
+                      inProgressItems.splice(
+                        inProgressItems.indexOf(monitor),
+                        1,
+                      );
 
-                  try {
-                    if (!monitor.id) {
-                      throw new BadDataException("Monitor ID not found");
+                      try {
+                        if (!monitor.id) {
+                          throw new BadDataException("Monitor ID not found");
+                        }
+
+                        await ModelAPI.updateById<Monitor>({
+                          id: monitor.id,
+                          modelType: Monitor,
+                          data: {
+                            disableActiveMonitoring: true,
+                          },
+                        });
+
+                        successItems.push(monitor);
+                      } catch (err) {
+                        failedItems.push({
+                          item: monitor,
+                          failedMessage: API.getFriendlyMessage(err),
+                        });
+                      }
+
+                      props.onProgressInfo({
+                        totalItems: totalItems,
+                        failed: failedItems,
+                        successItems: successItems,
+                        inProgressItems: inProgressItems,
+                      });
                     }
 
-                    await ModelAPI.updateById<Monitor>({
-                      id: monitor.id,
-                      modelType: Monitor,
-                      data: {
-                        disableActiveMonitoring: true,
+                    props.onBulkActionEnd();
+                  },
+
+                  icon: IconProp.Stop,
+                  confirmTitle: (items: Array<Monitor>) => {
+                    return translator.translatePlural(
+                      {
+                        one: "Disable {{count}} Monitor",
+                        other: "Disable {{count}} Monitors",
                       },
-                    });
+                      items.length,
+                    );
+                  },
+                  confirmMessage: (items: Array<Monitor>) => {
+                    return translator.translatePlural(
+                      {
+                        one: "Are you sure you want to disable {{count}} monitor?",
+                        other:
+                          "Are you sure you want to disable {{count}} monitors?",
+                      },
+                      items.length,
+                    );
+                  },
+                },
+                {
+                  title: "Enable Monitor",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  onClick: async (props: BulkActionOnClickProps<Monitor>) => {
+                    const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
+                    const totalItems: Array<Monitor> = [...props.items]; // total items
+                    const successItems: Array<Monitor> = []; // items that are disabled
+                    const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
 
-                    successItems.push(monitor);
-                  } catch (err) {
-                    failedItems.push({
-                      item: monitor,
-                      failedMessage: API.getFriendlyMessage(err),
-                    });
-                  }
+                    props.onBulkActionStart();
 
-                  props.onProgressInfo({
-                    totalItems: totalItems,
-                    failed: failedItems,
-                    successItems: successItems,
-                    inProgressItems: inProgressItems,
-                  });
-                }
+                    for (const monitor of totalItems) {
+                      // remove this item from inProgressItems
 
-                props.onBulkActionEnd();
-              },
+                      inProgressItems.splice(
+                        inProgressItems.indexOf(monitor),
+                        1,
+                      );
 
-              icon: IconProp.Stop,
-              confirmTitle: (items: Array<Monitor>) => {
-                return `Disable ${items.length} Monitor(s)`;
-              },
-              confirmMessage: (items: Array<Monitor>) => {
-                return `Are you sure you want to disable ${items.length} monitor(s)?`;
-              },
-            },
-            {
-              title: "Enable Monitor",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<Monitor>) => {
-                const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
-                const totalItems: Array<Monitor> = [...props.items]; // total items
-                const successItems: Array<Monitor> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
+                      try {
+                        if (!monitor.id) {
+                          throw new BadDataException("Monitor ID not found");
+                        }
 
-                props.onBulkActionStart();
+                        await ModelAPI.updateById<Monitor>({
+                          id: monitor.id,
+                          modelType: Monitor,
+                          data: {
+                            disableActiveMonitoring: false,
+                          },
+                        });
 
-                for (const monitor of totalItems) {
-                  // remove this item from inProgressItems
+                        successItems.push(monitor);
+                      } catch (err) {
+                        failedItems.push({
+                          item: monitor,
+                          failedMessage: API.getFriendlyMessage(err),
+                        });
+                      }
 
-                  inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
-
-                  try {
-                    if (!monitor.id) {
-                      throw new BadDataException("Monitor ID not found");
+                      props.onProgressInfo({
+                        totalItems: totalItems,
+                        failed: failedItems,
+                        successItems: successItems,
+                        inProgressItems: inProgressItems,
+                      });
                     }
 
-                    await ModelAPI.updateById<Monitor>({
-                      id: monitor.id,
-                      modelType: Monitor,
-                      data: {
-                        disableActiveMonitoring: false,
+                    props.onBulkActionEnd();
+                  },
+
+                  icon: IconProp.Play,
+                  confirmTitle: (items: Array<Monitor>) => {
+                    return translator.translatePlural(
+                      {
+                        one: "Enable {{count}} Monitor",
+                        other: "Enable {{count}} Monitors",
                       },
-                    });
-
-                    successItems.push(monitor);
-                  } catch (err) {
-                    failedItems.push({
-                      item: monitor,
-                      failedMessage: API.getFriendlyMessage(err),
-                    });
-                  }
-
-                  props.onProgressInfo({
-                    totalItems: totalItems,
-                    failed: failedItems,
-                    successItems: successItems,
-                    inProgressItems: inProgressItems,
-                  });
-                }
-
-                props.onBulkActionEnd();
-              },
-
-              icon: IconProp.Play,
-              confirmTitle: (items: Array<Monitor>) => {
-                return `Enable ${items.length} Monitor(s)`;
-              },
-              confirmMessage: (items: Array<Monitor>) => {
-                return `Are you sure you want to enable ${items.length} monitor(s) for active monitoring?`;
-              },
-            },
-            getBulkAddProbesAction(),
-            getBulkRemoveProbesAction(),
-            ...labelBulkActions,
-            ...ownerBulkActions,
-            ModalTableBulkDefaultActions.Delete,
-          ],
+                      items.length,
+                    );
+                  },
+                  confirmMessage: (items: Array<Monitor>) => {
+                    return translator.translatePlural(
+                      {
+                        one: "Are you sure you want to enable {{count}} monitor for active monitoring?",
+                        other:
+                          "Are you sure you want to enable {{count}} monitors for active monitoring?",
+                      },
+                      items.length,
+                    );
+                  },
+                },
+                getBulkAddProbesAction(),
+                getBulkRemoveProbesAction(),
+                ...labelBulkActions,
+                ...ownerBulkActions,
+                ...archiveBulkActions,
+                ModalTableBulkDefaultActions.Delete,
+              ],
         }}
         actionButtons={props.actionButtons}
-        isDeleteable={false}
+        isDeleteable={props.isDeleteable !== false}
+        // An archived monitor is off the main list already.
+        deleteConfirmationWarning={
+          isArchivedView ? undefined : ARCHIVE_INSTEAD_OF_DELETE
+        }
         showViewIdButton={true}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
         refreshToggle={props.refreshToggle}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(props.query)}
+        query={mergeFiltersIntoQuery(scopedQuery)}
         onFetchSuccess={(data: Array<Monitor>) => {
           onResourcesFetched(data);
         }}
@@ -832,8 +937,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
           monitorType: true,
+          isArchived: true,
         }}
-        noItemsMessage={props.noItemsMessage || "No monitors found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -895,6 +1001,20 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: Monitor): ReactElement => {
               if (!item["currentMonitorStatus"]) {
                 throw new BadDataException("Monitor Status not found");
+              }
+
+              /*
+               * An archived monitor is not checked, so its last status is
+               * frozen: say why instead of showing it as if it were live.
+               */
+              if (item && item.isArchived) {
+                return (
+                  <Statusbubble
+                    shouldAnimate={false}
+                    color={Gray500}
+                    text={"Archived"}
+                  />
+                );
               }
 
               if (item && item["disableActiveMonitoring"]) {
@@ -968,6 +1088,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          ...(isArchivedView ? getArchivedColumns<Monitor>() : []),
         ]}
       />
 
@@ -1016,6 +1137,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             setBulkActionProps(null);
           }}
           submitButtonText="Remove Probe"
+          submitButtonStyleType={ButtonStyleType.DANGER}
           onSubmit={async (formData: { probeId: ObjectID }) => {
             await handleBulkRemoveProbes(formData.probeId);
           }}

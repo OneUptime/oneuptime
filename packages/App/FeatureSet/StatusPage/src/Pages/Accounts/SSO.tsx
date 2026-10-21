@@ -1,3 +1,4 @@
+import LogoPlate from "../../Components/Logo/LogoPlate";
 import {
   STATUS_PAGE_API_URL,
   STATUS_PAGE_OIDC_API_URL,
@@ -30,9 +31,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /*
    * How many providers each list loaded (null until it has). When both are
-   * empty there is nothing to sign in with - no provider is enabled, or this
-   * is a Community Edition server, where status page SSO is not available and
-   * the server lists none - so the page says so and links back to sign-in.
+   * empty there is nothing to sign in with - no SAML or OIDC provider is
+   * enabled for this status page - so the page says so and links back to
+   * sign-in.
    *
    * That notice is the ONLY message then: neither list shows an empty state of
    * its own (hideEmptyState), and both stay mounted but hidden, so they keep
@@ -103,7 +104,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {logoUrl ? (
-          <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          <LogoPlate className="mx-auto w-fit">
+            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          </LogoPlate>
         ) : (
           <></>
         )}

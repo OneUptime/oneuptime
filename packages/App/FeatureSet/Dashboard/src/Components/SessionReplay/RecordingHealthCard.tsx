@@ -23,6 +23,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { RecommendationStatusFilter } from "../Recommendations/RecommendationViewModel";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
   SessionReplayHealthSnapshot,
@@ -131,6 +132,29 @@ export function getReplayPolicyPageRoute(
     RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS] as Route,
     { modelId: new ObjectID(rumApplicationId.toString()) },
   );
+}
+
+/*
+ * One application's Recommendations page, opened on its session replay
+ * storage budget alerts. `search` pre-fills that page's search box
+ * (MonitorRecommendations), and "budget" matches those alerts' names and no
+ * other RUM recommendation. `status=All` shows them whether they are still
+ * to set up or already created - the page otherwise opens on the ones still
+ * available, which is an empty list once they exist. Route.addQueryParams
+ * appends values verbatim, which single plain words survive unencoded;
+ * populateRouteParams returns a fresh Route, so the shared RouteMap entry is
+ * never appended to.
+ */
+export function getBudgetAlertRecommendationsRoute(
+  rumApplicationId: ObjectID | string,
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route,
+    { modelId: new ObjectID(rumApplicationId.toString()) },
+  ).addQueryParams({
+    search: "budget",
+    status: RecommendationStatusFilter.All,
+  });
 }
 
 export interface SeverityStyle {

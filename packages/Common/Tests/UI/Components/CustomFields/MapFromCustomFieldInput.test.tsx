@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
@@ -59,7 +65,16 @@ const resolveSourceFields: ResolveSourceFieldsFunction = (
 interface RenderOptions {
   targetFieldType?: CustomFieldType | undefined;
   initialValue?: string | undefined;
+  offerEveryType?: boolean | undefined;
+  onChange?: ((value: string) => void) | undefined;
 }
+
+// The names the settings pages give the types, as the page hands them in.
+const TYPE_NAMES: Partial<Record<CustomFieldType, string>> = {
+  [CustomFieldType.Text]: "Text",
+  [CustomFieldType.Number]: "Number",
+  [CustomFieldType.Dropdown]: "Dropdown (single select)",
+};
 
 type RenderPickerFunction = (options?: RenderOptions) => void;
 
@@ -71,8 +86,39 @@ const renderPicker: RenderPickerFunction = (options?: RenderOptions): void => {
       sourceTitle="Monitor"
       targetFieldType={options?.targetFieldType}
       initialValue={options?.initialValue}
+      offerEveryType={options?.offerEveryType}
+      describeFieldType={(type: CustomFieldType | undefined) => {
+        return type ? TYPE_NAMES[type] : undefined;
+      }}
+      placeholder={
+        options?.offerEveryType ? "Select a monitor custom field" : undefined
+      }
+      noSourceFieldsMessage={
+        options?.offerEveryType
+          ? "There are no monitor custom fields to copy yet."
+          : undefined
+      }
+      onChange={options?.onChange}
     />,
   );
+};
+
+type OpenPickerFunction = () => Promise<void>;
+
+// react-select opens on ArrowDown; its options are portalled to the body.
+const openPicker: OpenPickerFunction = async (): Promise<void> => {
+  fireEvent.keyDown(await screen.findByRole("combobox"), {
+    key: "ArrowDown",
+  });
+};
+
+type PickFunction = (name: string) => Promise<void>;
+
+const pick: PickFunction = async (name: string): Promise<void> => {
+  await openPicker();
+  const option: HTMLElement = screen.getByText(name);
+  fireEvent.mouseDown(option);
+  fireEvent.click(option);
 };
 
 afterEach(() => {
@@ -166,11 +212,156 @@ describe("MapFromCustomFieldInput", () => {
     expect(args["select"]["customFieldType"]).toBe(true);
   });
 
+  test("offers only the fields of the target's type, without naming their type", async () => {
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+      { name: "Rack Units", customFieldType: CustomFieldType.Number },
+    ]);
+
+    renderPicker({ targetFieldType: CustomFieldType.Text });
+
+    await openPicker();
+
+    expect(screen.getByText("Vendor")).toBeInTheDocument();
+    expect(screen.queryByText("Rack Units")).not.toBeInTheDocument();
+    // Every one of them is a Text field: nothing to tell them apart by.
+    expect(screen.queryByText("Text")).not.toBeInTheDocument();
+  });
+
   test("reports a failed read instead of rendering an empty picker", async () => {
     getListMock.mockRejectedValue(new Error("Not authorized") as never);
 
     renderPicker({ targetFieldType: CustomFieldType.Text });
 
     expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
+  });
+});
+
+/*
+ * A NEW mapped field ("Create Mapped Custom Field") has no type yet: it
+ * takes the type - and a dropdown's options - of the field it copies. So the
+ * picker offers every field of the source, each with its type under its
+ * name, and says which type the new field will have once one is picked.
+ */
+describe("MapFromCustomFieldInput for a new mapped field", () => {
+  test("offers every field of the source, whatever its type, each with its type", async () => {
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+      { name: "Rack Units", customFieldType: CustomFieldType.Number },
+      { name: "Region", customFieldType: CustomFieldType.Dropdown },
+    ]);
+
+    renderPicker({ offerEveryType: true });
+
+    expect(
+      await screen.findByText("Select a monitor custom field"),
+    ).toBeInTheDocument();
+
+    await openPicker();
+
+    for (const [name, type] of [
+      ["Vendor", "Text"],
+      ["Rack Units", "Number"],
+      ["Region", "Dropdown (single select)"],
+    ]) {
+      expect(screen.getByText(name!)).toBeInTheDocument();
+      expect(screen.getByText(type!)).toBeInTheDocument();
+    }
+  });
+
+  test("never asks for a type first: the new field takes the copied one's", async () => {
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+    ]);
+
+    renderPicker({ offerEveryType: true });
+
+    expect(
+      await screen.findByText("Select a monitor custom field"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Choose a field type above/i)).toBeNull();
+  });
+
+  test("ignores a target type it is handed", async () => {
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+      { name: "Rack Units", customFieldType: CustomFieldType.Number },
+    ]);
+
+    renderPicker({
+      offerEveryType: true,
+      targetFieldType: CustomFieldType.Text,
+    });
+
+    await openPicker();
+
+    expect(screen.getByText("Rack Units")).toBeInTheDocument();
+  });
+
+  test("says which type the new field will have once one is picked", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+      { name: "Region", customFieldType: CustomFieldType.Dropdown },
+    ]);
+
+    renderPicker({ offerEveryType: true, onChange: onChange });
+
+    expect(
+      await screen.findByText("Select a monitor custom field"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("map-from-selected-field-type")).toBeNull();
+
+    await pick("Region");
+
+    expect(onChange).toHaveBeenCalledWith("Region");
+    expect(screen.getByTestId("map-from-selected-field-type").textContent).toBe(
+      "Field Type: Dropdown (single select)",
+    );
+  });
+
+  test("shows the type of a field that is already picked", async () => {
+    resolveSourceFields([
+      { name: "Vendor", customFieldType: CustomFieldType.Text },
+    ]);
+
+    renderPicker({ offerEveryType: true, initialValue: "Vendor" });
+
+    expect(
+      (await screen.findByTestId("map-from-selected-field-type")).textContent,
+    ).toBe("Field Type: Text");
+  });
+
+  test("says how to get a field to copy when the source has none", async () => {
+    resolveSourceFields([]);
+
+    renderPicker({ offerEveryType: true });
+
+    expect(
+      await screen.findByText(
+        "There are no monitor custom fields to copy yet.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  test("has a sentence of its own when the page gives none", async () => {
+    resolveSourceFields([]);
+
+    render(
+      <MapFromCustomFieldInput
+        projectId={PROJECT_ID}
+        sourceDefinitionModelType={MonitorCustomField}
+        sourceTitle="Monitor"
+        offerEveryType={true}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "No Monitor custom field exists in this project yet. Create one first.",
+      ),
+    ).toBeInTheDocument();
   });
 });

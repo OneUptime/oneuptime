@@ -660,6 +660,40 @@ export default class IncidentEpisode extends BaseModel {
   })
   public allIncidentsResolvedAt?: Date = undefined;
 
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * this episode (FirstPagedAt). Written once, by OneUptime, and never
+   * moved: no caller may write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentEpisode,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "First Paged At",
+    description:
+      "When an on-call policy or a direct page first notified someone about this episode. Empty until someone is paged. Set by OneUptime.",
+    required: false,
+    example: "2024-01-15T09:32:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public firstPagedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1299,7 +1333,7 @@ export default class IncidentEpisode extends BaseModel {
     required: false,
     title: "Grouping Key",
     description:
-      "Key used for grouping incidents into this episode. Generated from groupByFields of the matching rule.",
+      "Key used for grouping incidents into this episode. Generated from groupByFields of the matching rule. When a private incident opened the episode, its title is in the key only as a keyed hash.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -1692,6 +1726,36 @@ export default class IncidentEpisode extends BaseModel {
     nullable: true,
   })
   public subscriberNotificationStatusMessage?: string = undefined;
+
+  /*
+   * When a subscriber job last claimed the 'episode created' notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row all
+   * the time while it is open - incidents joining it, its severity and
+   * state, edits - so updatedAt could keep an interrupted send from ever
+   * looking stuck, and Retry waits for it to settle. Written by the claim
+   * only; nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Episode Created",
+    description:
+      "When a subscriber notification job last started sending the notification that this episode was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnEpisodeCreated?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

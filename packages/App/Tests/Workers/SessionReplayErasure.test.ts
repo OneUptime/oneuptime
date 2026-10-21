@@ -796,9 +796,13 @@ describe("Rum:FinalizeSessions does not resurrect erased sessions", () => {
     recorderVersion: "1.0.0",
     rrwebVersion: "2.0.0",
     countryCode: "DE",
-    /* The identifying payload an erasure exists to destroy. */
-    identifiedUserKey: "user-42",
-    identifiedUserLabel: "erasure.subject@example.com",
+    /*
+     * The identifying payload an erasure exists to destroy, under the
+     * aliases the header read selects it as (the newest version that names
+     * a person).
+     */
+    latestIdentifiedUserKey: "user-42",
+    latestIdentifiedUserLabel: "erasure.subject@example.com",
     traceIds: [],
     exceptionFingerprints: [],
     fidelityNotices: [],

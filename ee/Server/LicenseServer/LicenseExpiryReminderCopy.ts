@@ -9,13 +9,28 @@ import OneUptimeDate from "Common/Types/Date";
  * It has to say what actually happens. A lapsed license never stops a
  * self-hosted OneUptime instance: the instances keep running. What stops, at
  * the end of the grace period (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS after
- * the expiry, the same period the customer's installation applies), is single
- * sign-on, SCIM provisioning and audit logging, and enterprise configuration
- * becomes read-only - until a renewed license is activated.
+ * the expiry, the same period the customer's installation applies), is SCIM
+ * provisioning and audit logging, and enterprise configuration becomes
+ * read-only - until a renewed license is activated.
+ *
+ * oneuptime.com sends this email to every self-hosted version that uses the
+ * license, so it also says what the older releases stop (see
+ * LAST_RELEASE_WHERE_SSO_STOPS_WITH_THE_LICENSE).
  *
  * The grace period is inclusive of its last moment, like the license
  * classifier's (ee/Server/License/LicenseToken.ts judgeExpiry).
  */
+
+/*
+ * The last OneUptime release where single sign-on stops with the license.
+ * From 14.0.0 up to this release, single sign-on stops (and "Require SSO for
+ * login" is no longer enforced) when the grace period ends; later releases
+ * ship SAML and OIDC single sign-on in the Community Edition, so a lapse
+ * leaves it alone. Releases before 14 never checked the license while
+ * running, so "and earlier" can only over-warn them.
+ * EnterpriseLicenseExpiryReminder.hbs names the same release.
+ */
+export const LAST_RELEASE_WHERE_SSO_STOPS_WITH_THE_LICENSE: string = "14.0.10";
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
@@ -58,6 +73,7 @@ export const getLicenseExpiryReminderCopy: (data: {
     },
   );
   const gracePeriod: string = `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`;
+  const olderReleases: string = `On OneUptime ${LAST_RELEASE_WHERE_SSO_STOPS_WITH_THE_LICENSE} and earlier`;
 
   if (isExpired) {
     const daysAgo: number = Math.abs(daysUntilExpiry);
@@ -71,8 +87,8 @@ export const getLicenseExpiryReminderCopy: (data: {
       emailTitle: "Your OneUptime Enterprise license has expired",
       expiryStatus: `Expired ${daysAgoText}`,
       expiryStatusMessage: isInGracePeriod
-        ? `Your OneUptime Enterprise license expired ${daysAgoText}. Your self-hosted OneUptime instances keep running, and every enterprise feature stays on until its ${gracePeriod} ends on ${graceEndsOn}. Please renew it before then: when the grace period ends, single sign-on, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only until a renewed license is activated. Here are the details:`
-        : `Your OneUptime Enterprise license expired ${daysAgoText}, and its ${gracePeriod} ended on ${graceEndsOn}. Your self-hosted OneUptime instances keep running, but single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only. Please renew the license: everything resumes as soon as the renewed license is activated. Here are the details:`,
+        ? `Your OneUptime Enterprise license expired ${daysAgoText}. Your self-hosted OneUptime instances keep running, and every enterprise feature stays on until its ${gracePeriod} ends on ${graceEndsOn}. Please renew it before then: when the grace period ends, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only until a renewed license is activated. ${olderReleases}, single sign-on (SSO) stops then too. Here are the details:`
+        : `Your OneUptime Enterprise license expired ${daysAgoText}, and its ${gracePeriod} ended on ${graceEndsOn}. Your self-hosted OneUptime instances keep running, but SCIM provisioning and audit logging have stopped and enterprise configuration is read-only. ${olderReleases}, single sign-on (SSO) has stopped too. Please renew the license: everything resumes as soon as the renewed license is activated. Here are the details:`,
     };
   }
 
@@ -85,6 +101,6 @@ export const getLicenseExpiryReminderCopy: (data: {
     subject: `[Reminder] OneUptime Enterprise license for ${data.companyName} expires ${daysLeftText}`,
     emailTitle: `Your OneUptime Enterprise license expires ${daysLeftText}`,
     expiryStatus: `Expires ${daysLeftText}`,
-    expiryStatusMessage: `Your OneUptime Enterprise license expires ${daysLeftText}. Please renew it before then. Your self-hosted OneUptime instances keep running either way, but without a renewal, single sign-on, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only when the ${gracePeriod} after the expiry ends, on ${graceEndsOn}. Here are the details:`,
+    expiryStatusMessage: `Your OneUptime Enterprise license expires ${daysLeftText}. Please renew it before then. Your self-hosted OneUptime instances keep running either way, but without a renewal, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only when the ${gracePeriod} after the expiry ends, on ${graceEndsOn}. ${olderReleases}, single sign-on (SSO) stops then too. Here are the details:`,
   };
 };

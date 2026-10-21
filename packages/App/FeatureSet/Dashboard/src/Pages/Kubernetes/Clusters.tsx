@@ -1,4 +1,7 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -12,36 +15,44 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<KubernetesCluster>({
+      modelType: KubernetesCluster,
+    });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
@@ -81,6 +92,7 @@ const KubernetesClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -93,41 +105,44 @@ const KubernetesClusters: FunctionComponent<
     extraFacets: kubernetesExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: KubernetesCluster,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
+
+  /*
+   * The create form asks for the one thing a cluster cannot be created
+   * without: the clusterName its kubernetes-agent reports. The display name
+   * follows it - a cluster added here is named like a discovered one - and
+   * folds under Advanced with the description and the labels, so the form
+   * is two rows (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
+    getAdvancedFormSection<KubernetesCluster>();
 
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -137,12 +152,11 @@ const KubernetesClusters: FunctionComponent<
         onCreateSuccess={(
           item: KubernetesCluster,
         ): Promise<KubernetesCluster> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
@@ -164,26 +178,23 @@ const KubernetesClusters: FunctionComponent<
         }}
         showViewIdButton={true}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
+          getIdentityFormField<KubernetesCluster>({
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Cluster Name (clusterName)",
             placeholder: "production-us-east-1",
             description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
+              "The clusterName you installed the kubernetes-agent Helm chart with, exactly. Telemetry is matched to this cluster by it.",
+          }),
+          getDisplayNameFormField<KubernetesCluster>({
+            getDefaultName:
+              getNameFromIdentityField<KubernetesCluster>("clusterIdentifier"),
+            placeholder: "Production US East",
+            description:
+              "Starts as the cluster name. Type your own name to show instead; telemetry is still matched by the cluster name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -192,23 +203,11 @@ const KubernetesClusters: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production cluster running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<KubernetesCluster>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {
@@ -238,7 +237,7 @@ const KubernetesClusters: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
+            title: "Cluster Name (clusterName)",
             type: FieldType.Text,
           },
           {
@@ -262,7 +261,9 @@ const KubernetesClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -319,11 +320,10 @@ const KubernetesClusters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <KubernetesDocumentationCard
-          clusterName="my-cluster"
           title="Getting Started with Kubernetes Monitoring"
-          description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

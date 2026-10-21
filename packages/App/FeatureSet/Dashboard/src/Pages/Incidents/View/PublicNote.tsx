@@ -1,16 +1,12 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
-import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
+import { getIncidentPublicNoteKind } from "../../../Components/EventNotes/NoteKinds/IncidentNoteKinds";
 import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import { PUBLIC_NOTE_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -21,18 +17,27 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const { isNotifyingByDefault, error } = useParentNotifyDefault<Incident>({
-    modelType: Incident,
-    id: modelId,
-    select: {
-      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-    },
-    resolve: (incident: Incident | null): boolean => {
-      return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
-        incident,
-      );
-    },
-  });
+  const { isNotifyingByDefault, isPrivate, error } =
+    useParentNotifyDefault<Incident>({
+      modelType: Incident,
+      id: modelId,
+      select: {
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        isPrivate: true,
+      },
+      resolve: (incident: Incident | null): boolean => {
+        return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+          incident,
+        );
+      },
+      /*
+       * A private incident takes no public notes: the page keeps the ones
+       * it has and says why there are no new ones.
+       */
+      resolveIsPrivate: (incident: Incident | null): boolean => {
+        return !PrivateRecordPublicNotes.takesPublicNotes(incident);
+      },
+    });
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -49,39 +54,12 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
        * on one incident must never be posted on the next.
        */
       key={modelId.toString()}
-      modelType={IncidentPublicNote}
-      visibility="public"
-      eventNoun="incident"
-      parentIdField="incidentId"
-      parentId={modelId}
-      currentProject={props.currentProject}
-      attachmentApiPath="/incident-public-note/attachment"
-      subscriberNotifications={{
+      {...getIncidentPublicNoteKind({
+        incidentId: modelId,
         isNotifyingByDefault,
-        quietDescription:
-          PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-      }}
-      templates={{
-        modelType: IncidentNoteTemplate,
-        settingsRoute: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
-        ),
-      }}
-      ai={{
-        title: "Generate Public Note with AI",
-        description:
-          "AI will analyze the incident data and generate a customer-facing public note.",
-        templates: PUBLIC_NOTE_TEMPLATES,
-        generate: getNoteGenerator({
-          apiPath: "/incident/generate-note-from-ai",
-          eventId: modelId,
-          noteType: "public",
-        }),
-      }}
-      siblingRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route,
-        { modelId },
-      )}
+        isPrivate,
+      })}
+      currentProject={props.currentProject}
     />
   );
 };

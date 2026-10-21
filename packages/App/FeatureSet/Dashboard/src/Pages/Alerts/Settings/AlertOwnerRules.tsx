@@ -1,6 +1,11 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingOwnerRuleActionFields,
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,9 +22,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const alertOwnerDocumentation: string = `
 ### How Alert Owner Rules Work
@@ -126,44 +128,8 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<AlertOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign infra team to disk-pressure alerts",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -189,6 +155,9 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -221,7 +190,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertTitlePattern: true },
-          title: "Alert Title Pattern",
+          title: "Alert Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -232,7 +201,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertDescriptionPattern: true },
-          title: "Alert Description Pattern",
+          title: "Alert Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -240,7 +209,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -248,98 +217,13 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
-        {
-          field: { inheritOwnersFromMonitors: true },
-          title: "Inherit Owners From Monitors",
-          stepId: "owners",
-          sectionTitle: "Inherit Owners",
-          sectionDescription:
-            "Optionally assign owners from related entities to the alert.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's monitor as an owner of the alert.",
-        },
-        {
-          field: { inheritOwnersFromHosts: true },
-          title: "Inherit Owners From Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's affected hosts as an owner of the alert.",
-        },
-        {
-          field: { inheritOwnersFromKubernetesClusters: true },
-          title: "Inherit Owners From Kubernetes Clusters",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's affected Kubernetes clusters as an owner of the alert.",
-        },
-        {
-          field: { inheritOwnersFromDockerHosts: true },
-          title: "Inherit Owners From Docker Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's affected Docker hosts as an owner of the alert.",
-        },
-        {
-          field: { inheritOwnersFromPodmanHosts: true },
-          title: "Inherit Owners From Podman Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's affected Podman hosts as an owner of the alert.",
-        },
-        {
-          field: { inheritOwnersFromServices: true },
-          title: "Inherit Owners From Services",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the alert's affected services as an owner of the alert.",
-        },
+        ...getInheritingOwnerRuleActionFields<AlertOwnerRule>("alert"),
       ]}
       showRefreshButton={true}
     />
@@ -413,42 +297,8 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<AlertEpisodeOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Notify owners when they are added by this rule.",
-        },
         {
           field: { alertSeverities: true },
           title: "Alert Severities",
@@ -461,6 +311,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -480,7 +333,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -491,41 +344,13 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+        ...getOwnerRuleActionFields<AlertEpisodeOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

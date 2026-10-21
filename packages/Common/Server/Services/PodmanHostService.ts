@@ -1,9 +1,17 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import PodmanHostLabelRuleEngineService from "./PodmanHostLabelRuleEngineService";
 import PodmanHostOwnerRuleEngineService from "./PodmanHostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/PodmanHost";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -12,6 +20,16 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  NamedAfterIdentityOptions,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnIdentifier,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -20,6 +38,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "podman-host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -27,7 +46,24 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "podman-host-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A Podman host is matched to its telemetry by host.name, and named after it
+ * unless somebody gives it a display name of their own
+ * (DiscoveredResourceCreate).
+ */
+const PODMAN_HOST_IDENTITY: NamedAfterIdentityOptions = {
+  identityColumn: "hostIdentifier",
+  resourceName: "Podman host",
+  identityName: "host name",
+};
+
+const PODMAN_HOST_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>(PODMAN_HOST_IDENTITY);
+
+const PODMAN_HOST_MATCH_COLUMN: MatchColumn =
+  matchedOnIdentifier(PODMAN_HOST_IDENTITY);
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -335,15 +371,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedHosts: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -412,7 +453,7 @@ export class Service extends DatabaseService<Model> {
   public async getPodmanHostMarkdownLink(
     projectId: ObjectID,
     podmanHostId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getPodmanHostName({
       podmanHostId: podmanHostId,
     });
@@ -421,7 +462,7 @@ export class Service extends DatabaseService<Model> {
       podmanHostId,
     );
 
-    return `[Podman Host ${name}](${link.toString()})`;
+    return mdText`[Podman Host ${name}](${link.toString()})`;
   }
 
   private async writePodmanHostCreatedFeed(
@@ -472,6 +513,117 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a Podman host settles its in-flight AI remediation rounds and
+   * removes its resource AI agent — read before the delete, done after it for
+   * the Podman hosts actually deleted (ResourceAiDeleteCleanup, shared by every
+   * resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.PodmanHost,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.PodmanHost,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new Podman host starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.PodmanHost,
+      createBy,
+    });
+
+    // Named after its host name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({ createBy, naming: PODMAN_HOST_NAMING });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * A Podman host that is already there - discovered from its telemetry or
+   * added before - is refused by its host name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: PODMAN_HOST_NAMING,
+    });
+  }
+
+  /*
+   * A Podman host's host name - edited from the details card on its Settings page - is stored
+   * without the spaces around it, and refused when another one of the
+   * project already has it (DiscoveredResourceUpdate).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: PODMAN_HOST_MATCH_COLUMN,
+    });
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this Podman host — the rules every resource AI
+   * agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.PodmanHost,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -482,6 +634,33 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the Podman host
+     * marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        podmanHostId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getPodmanHostMarkdownLink(projectId, podmanHostId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await PodmanHostFeedService.createPodmanHostFeedItem({
+          podmanHostId: item.resourceId,
+          projectId: item.projectId,
+          podmanHostFeedEventType: PodmanHostFeedEventType.PodmanHostUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -534,10 +713,8 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getPodmanHostMarkdownLink(
-        projectId,
-        podmanHostId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getPodmanHostMarkdownLink(projectId, podmanHostId);
 
       if (isArchiveChange) {
         await PodmanHostFeedService.createPodmanHostFeedItem({
@@ -548,8 +725,8 @@ export class Service extends DatabaseService<Model> {
             : PodmanHostFeedEventType.PodmanHostRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

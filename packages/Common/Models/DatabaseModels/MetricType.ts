@@ -128,7 +128,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectMember,
       Permission.TelemetryAdmin,
       Permission.TelemetryMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateTelemetryServiceMetrics,
     ],
     read: [
       Permission.ProjectOwner,
@@ -138,7 +138,7 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryAdmin,
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
-      Permission.ReadProjectIncident,
+      Permission.ReadTelemetryServiceMetrics,
     ],
     update: [
       Permission.ProjectOwner,
@@ -146,7 +146,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectMember,
       Permission.TelemetryAdmin,
       Permission.TelemetryMember,
-      Permission.EditProjectIncident,
+      Permission.EditTelemetryServiceMetrics,
     ],
   })
   @TableColumn({

@@ -93,8 +93,13 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
         hideCardInQueryElements={true}
         hideCardInCharts={true}
         chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-        // onChange below drops startAndEndDate, so drag-zoom can't apply.
-        disableChartZoom={true}
+        /*
+         * The preview charts the monitor's rolling window, which the
+         * form saves with the monitor. A drag zooms the preview alone
+         * and never reaches the form; a double-click (or Reset zoom)
+         * brings the rolling window back.
+         */
+        localChartZoom={true}
         onChange={(data: MetricViewData) => {
           // we dont care about start and end time here because it is not editable in metric view but editable in rolling time picker.
           props.onChange({

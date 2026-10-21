@@ -148,6 +148,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
                 traceId={exceptionInstance.traceId?.toString()}
                 spanStatusCode={exceptionInstance.spanStatusCode || 0}
                 title={exceptionInstance.spanId?.toString()}
+                plainLabel={true}
               />
             );
           },

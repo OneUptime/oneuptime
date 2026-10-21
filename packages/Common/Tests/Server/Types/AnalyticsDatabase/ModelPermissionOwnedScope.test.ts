@@ -52,7 +52,7 @@ describe("Analytics ModelPermission owned scope", () => {
   });
 
   async function addOwnedScope(query: any): Promise<any> {
-    return await (ModelPermission as any).addOwnedScopeToQuery(
+    return await (ModelPermission as any).addReadScopeToQuery(
       Log,
       query,
       makeOwnedScopedMemberProps(),

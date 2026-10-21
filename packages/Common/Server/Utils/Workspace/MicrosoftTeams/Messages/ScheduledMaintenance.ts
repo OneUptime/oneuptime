@@ -34,11 +34,10 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
 
     /*
      * now add buttons.
-     * View data.
-     * Execute On Call
-     * Acknowledge scheduledMaintenance
-     * Resolve data.
-     * Change ScheduledMaintenance State.
+     * View the event.
+     * Mark as Ongoing.
+     * Mark as Completed.
+     * Change Scheduled Maintenance State.
      * Add Note.
      */
 

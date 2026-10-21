@@ -4,6 +4,7 @@ import {
   PageFixture,
   renderPage,
 } from "./ReferenceFixtures";
+import { removeHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -101,10 +102,9 @@ describe.each(ALL_PAGES)("%s", (_name: string, fixture: PageFixture) => {
         }
 
         /* Otherwise it needs visible text, not just an icon. */
-        const text: string = inner
-          .replace(/<svg[\s\S]*?<\/svg>/g, "")
-          .replace(/<[^>]+>/g, "")
-          .trim();
+        const text: string = removeHtmlMarkup(
+          inner.replace(/<svg[\s\S]*?<\/svg>/g, ""),
+        ).trim();
 
         return text.length === 0;
       })

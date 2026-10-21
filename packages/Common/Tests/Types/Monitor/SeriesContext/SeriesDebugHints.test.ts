@@ -1,8 +1,11 @@
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { JSONObject } from "../../../../Types/JSON";
+import { marked, Token, Tokens } from "marked";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import SeriesDebugHints, {
   SeriesDebugCommand,
 } from "../../../../Types/Monitor/SeriesContext/SeriesDebugHints";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 
 /*
  * These commands are printed into an alert description and rendered on
@@ -585,6 +588,93 @@ describe("SeriesDebugHints", () => {
     });
   });
 
+  describe("storage arrays (Purity//FA CLI)", () => {
+    test("a hardware component gets the open alerts first, then the component", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { component_name: "CT0.FAN0" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purehw list CT0.FAN0",
+      ]);
+    });
+
+    test("a host gets the volumes connected to it", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { host: "esx-01" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purehost list --connect esx-01",
+      ]);
+    });
+
+    test("a pod's replica link gets the replica link list", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { local_pod: "pod-a" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purepod replica-link list",
+      ]);
+    });
+
+    test("the open alerts command appears once however many objects the series names", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.StorageArray,
+        seriesLabels: {
+          component_name: "CH0.BAY3",
+          host: "esx-01",
+          local_pod: "pod-a",
+        },
+      });
+
+      expect(
+        commands.filter((command: string) => {
+          return command === "purealert list --filter \"state='open'\"";
+        }),
+      ).toHaveLength(1);
+      expect(commands).toHaveLength(4);
+    });
+
+    test.each([
+      [{ name: "vol-db-01" }],
+      [{ name: "fs-home" }],
+      [{ summary: "Controller failed" }],
+      [{ "resource.storage.array.name": "pure-prod-01" }],
+    ])(
+      "%j names no FlashArray-only object, so it gets no command",
+      (seriesLabels: JSONObject) => {
+        /*
+         * `name` is a volume on a FlashArray and a file system or bucket
+         * on a FlashBlade — a different CLI — and the labels cannot say
+         * which.
+         */
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.StorageArray,
+            seriesLabels: seriesLabels,
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    test("a hostile host name is quoted into an inert argument", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { host: "esx-01; rm -rf /" },
+        }),
+      ).toContain("purehost list --connect 'esx-01; rm -rf /'");
+    });
+  });
+
   describe("types with no universally safe command", () => {
     test.each([
       MonitorType.Metrics,
@@ -692,6 +782,14 @@ describe("SeriesDebugHints", () => {
         monitorType: MonitorType.Ceph,
         seriesLabels: { ceph_daemon: "osd.12", pool_id: "3" },
       },
+      {
+        monitorType: MonitorType.StorageArray,
+        seriesLabels: {
+          component_name: "CT0.FAN0",
+          host: "esx-01",
+          local_pod: "pod-a",
+        },
+      },
     ];
 
     /*
@@ -787,6 +885,83 @@ describe("SeriesDebugHints", () => {
           seriesLabels: { "service.name": "api" },
         }),
       ).toBe("");
+    });
+
+    /*
+     * A pod name is whatever the telemetry carried. A line break in it
+     * would end the command's code block and spill the rest into the
+     * description as Markdown; a Slack mention would reach Slack, which
+     * passes code through untouched.
+     */
+    test("a value with line breaks, a fence and a mention stays inside its command's one code line", () => {
+      const seriesLabels: JSONObject = {
+        ...KUBERNETES_POD_LABELS,
+        "resource.k8s.pod.name":
+          "web-1\n```\n<!channel> [Verify](https://evil.example/login)\n",
+      };
+
+      const block: string = SeriesDebugHints.buildMarkdownBlock({
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels,
+      });
+
+      const tokens: Array<Token> = [];
+      marked.walkTokens(marked.lexer(block), (token: Token): void => {
+        tokens.push(token);
+      });
+
+      const codeBlocks: Array<Tokens.Code> = tokens.filter(
+        (token: Token): boolean => {
+          return token.type === "code";
+        },
+      ) as Array<Tokens.Code>;
+
+      // One code block per command, each a single line.
+      expect(codeBlocks).toHaveLength(
+        Math.min(
+          SeriesDebugHints.getDebugCommands({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels,
+          }).length,
+          6,
+        ),
+      );
+      for (const codeBlock of codeBlocks) {
+        expect(codeBlock.text).not.toContain("\n");
+      }
+
+      // Nothing of the value reached the Markdown around the code.
+      expect(
+        tokens.filter((token: Token): boolean => {
+          return token.type === "link" || token.type === "html";
+        }),
+      ).toEqual([]);
+      expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
+        /<[!@#][A-Za-z0-9]/,
+      );
+    });
+
+    /*
+     * Slack also reads "<https://...|words>" in code as a link labelled
+     * with the words. A value's link is broken by an invisible word joiner;
+     * a "<" that starts no address - a heredoc, a redirect - is untouched.
+     */
+    test("a Slack link in a value is no link in its command, and the command reads as before", () => {
+      const value: string = "<https://evil.example/login|Open the runbook>";
+
+      const block: string = SeriesDebugHints.buildMarkdownBlock({
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: {
+          ...KUBERNETES_POD_LABELS,
+          "resource.k8s.pod.name": value,
+        },
+      });
+
+      expect(block).toContain(`<${WORD_JOINER}https://evil.example/login|`);
+      expect(block.split(WORD_JOINER).join("")).toContain(value);
+      expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
+        /<https?:\/\/[^>|]*\|/,
+      );
     });
   });
 });

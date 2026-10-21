@@ -8,7 +8,13 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import LabelsElement from "../Label/Labels";
 import Field from "../ModelDetail/Field";
-import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaBuilder";
+import { PeopleList } from "../PeoplePicker/PeopleList";
+import {
+  getPeoplePickerKindDefinition,
+  getPeoplePickerOptionsFromModels,
+} from "../PeoplePicker/PeoplePickerKinds";
+import { PeoplePickerFieldKind } from "../PeoplePicker/PeoplePickerTypes";
+import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaFields";
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,
@@ -16,6 +22,7 @@ import {
 import RuleCriteriaSummary from "../RuleCriteria/RuleCriteriaSummary";
 import FieldType from "../Types/FieldType";
 import React, { ReactElement } from "react";
+import { translateText } from "../../Utils/TranslateTemplate";
 
 /*
  * The fields a rule's view page shows, derived from the form that edits it.
@@ -37,7 +44,7 @@ export interface RuleDetailFields<TBaseModel extends BaseModel> {
 }
 
 function noneElement(): ReactElement {
-  return <span className="text-sm text-gray-500">None</span>;
+  return <span className="text-sm text-gray-500">{translateText("None")}</span>;
 }
 
 function flattenOptions(
@@ -155,6 +162,67 @@ function getRelationField<TBaseModel extends BaseModel>(data: {
           <span className="text-sm text-gray-900">{names.join(", ")}</span>
         ) : (
           noneElement()
+        );
+      },
+    },
+  };
+}
+
+/*
+ * A people picker (a rule's Owners: people and teams) is one field in the
+ * form, so it is one field here too: every pick, of every kind, as one list
+ * of avatars and names - not a list per kind. Each kind's column is selected
+ * with what its chip shows.
+ */
+function getPeoplePickerDetailField<TBaseModel extends BaseModel>(data: {
+  model: TBaseModel;
+  formField: ModelField<TBaseModel>;
+}): { field: Field<TBaseModel>; select: Record<string, unknown> } | null {
+  const kinds: Array<PeoplePickerFieldKind> = (
+    data.formField.peoplePicker?.kinds || []
+  ).filter((entry: PeoplePickerFieldKind): boolean => {
+    return data.model.hasColumn(entry.valueKey);
+  });
+
+  if (kinds.length === 0) {
+    return null;
+  }
+
+  const select: Record<string, unknown> = {};
+
+  for (const entry of kinds) {
+    select[entry.valueKey] = {
+      ...getPeoplePickerKindDefinition(entry.kind).relationSelect,
+    };
+  }
+
+  return {
+    select: select,
+    field: {
+      field: select as Select<TBaseModel>,
+      title: data.formField.title || "",
+      fieldType: FieldType.Element,
+      ...(data.formField.showIf
+        ? {
+            showIf: (item: TBaseModel): boolean => {
+              return data.formField.showIf!(
+                item as unknown as FormValues<TBaseModel>,
+              );
+            },
+          }
+        : {}),
+      getElement: (item: TBaseModel): ReactElement => {
+        return (
+          <PeopleList
+            options={getPeoplePickerOptionsFromModels(
+              kinds.map((entry: PeoplePickerFieldKind) => {
+                return {
+                  kind: entry.kind,
+                  models: readValue(item, entry.valueKey),
+                };
+              }),
+            )}
+          />
         );
       },
     },
@@ -293,6 +361,26 @@ export function getRuleDetailFields<TBaseModel extends BaseModel>(data: {
   let criteriaSummaryAdded: boolean = false;
 
   for (const formField of data.formFields) {
+    if (
+      formField.fieldType === FormFieldSchemaType.PeoplePicker &&
+      formField.peoplePicker
+    ) {
+      const people: {
+        field: Field<TBaseModel>;
+        select: Record<string, unknown>;
+      } | null = getPeoplePickerDetailField({
+        model: data.model,
+        formField: formField,
+      });
+
+      if (people) {
+        Object.assign(select, people.select);
+        fields.push(people.field);
+      }
+
+      continue;
+    }
+
     const fieldName: string | undefined = Object.keys(formField.field || {})[0];
 
     if (!fieldName) {

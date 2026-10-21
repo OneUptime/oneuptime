@@ -21,6 +21,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class StatusPageOwnerRuleEngineServiceClass
   implements RuleRunEngine<StatusPage, StatusPageOwnerRule>
@@ -115,6 +117,7 @@ class StatusPageOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     statusPage: StatusPage;
     rules: Array<StatusPageOwnerRule>;
@@ -344,8 +347,7 @@ class StatusPageOwnerRuleEngineServiceClass
     rule: StatusPageOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in status page owner rule ${rule.id}: ${pattern}`,

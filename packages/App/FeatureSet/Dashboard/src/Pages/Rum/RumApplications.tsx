@@ -1,4 +1,7 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -14,7 +17,12 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -24,8 +32,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getRumDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
+import RumDocumentationCard from "../../Components/Rum/RumDocumentationCard";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
@@ -56,6 +63,16 @@ const RumApplications: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The create form asks for the one thing an application cannot be created
+   * without: the service.name its SDK reports. The display name follows it
+   * - an application added here is named like a discovered one - and folds
+   * under Advanced with the description and the labels, so the form is two
+   * rows (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<RumApplication> =
+    getAdvancedFormSection<RumApplication>();
+
   return (
     <Fragment>
       <ModelTable<RumApplication>
@@ -71,7 +88,8 @@ const RumApplications: FunctionComponent<
           });
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -86,32 +104,33 @@ const RumApplications: FunctionComponent<
           appIdentifier: true,
           clientType: true,
         }}
+        /*
+         * Also what the empty list says: in plain words, not the resource
+         * attributes ingest matches on ("browser.* / device.*").
+         */
         cardProps={{
           title: "RUM Applications",
           description:
-            "Browser & mobile applications auto-discovered from OpenTelemetry RUM telemetry (browser.* / device.* resource attributes). One row per application.",
+            "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.",
         }}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "storefront-web",
-          },
-          {
+          getIdentityFormField<RumApplication>({
             field: {
               appIdentifier: true,
             },
-            title: "App Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "App Name (service.name)",
             placeholder: "storefront-web",
             description:
-              "This should match the service.name attribute reported by the browser / mobile OTel SDK.",
-          },
+              "The service.name your browser or mobile OpenTelemetry SDK reports, exactly. Telemetry is matched to this application by it.",
+          }),
+          getDisplayNameFormField<RumApplication>({
+            getDefaultName:
+              getNameFromIdentityField<RumApplication>("appIdentifier"),
+            placeholder: "Storefront",
+            description:
+              "Starts as the app name. Type your own name to show instead; telemetry is still matched by the app name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -120,23 +139,11 @@ const RumApplications: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Customer-facing storefront web app",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<RumApplication>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -150,7 +157,7 @@ const RumApplications: FunctionComponent<
             field: {
               appIdentifier: true,
             },
-            title: "App Identifier",
+            title: "App Name (service.name)",
             type: FieldType.Text,
           },
           {
@@ -274,10 +281,9 @@ const RumApplications: FunctionComponent<
         }}
       />
       {count === 0 && (
-        <ResourceDocumentationCard
+        <RumDocumentationCard
           title="Getting Started with Real User Monitoring"
-          description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getRumDocMarkdown}
+          description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
         />
       )}
     </Fragment>

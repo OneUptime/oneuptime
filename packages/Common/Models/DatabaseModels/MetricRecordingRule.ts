@@ -234,13 +234,18 @@ export default class MetricRecordingRule extends BaseModel {
       Permission.EditProjectMetricRecordingRule,
     ],
   })
+  /*
+   * Not required: a create without one gets a name made from the rule's
+   * name (MetricRecordingRuleService.getOutputMetricNameForCreate). The
+   * column itself is never empty.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Output Metric Name",
     description:
-      "Name of the new metric this rule writes (e.g. http.error_rate). Must be unique per project.",
+      "Name of the new metric this rule writes (e.g. http.error_rate). Leave it out and it is made from the rule's name - HTTP error rate becomes http_error_rate, with _2, _3 and so on added when another recording rule of the project already writes it. Keep it unique per project.",
   })
   @Column({
     nullable: false,
@@ -349,7 +354,8 @@ export default class MetricRecordingRule extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
-    description: "Evaluation order when multiple rules exist.",
+    description:
+      "Not read when rules are evaluated: every enabled rule is evaluated each minute, on its own, whatever this holds. The dashboard lists rules by name.",
     defaultValue: 0,
   })
   @Column({

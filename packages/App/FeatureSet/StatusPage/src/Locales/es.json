@@ -22,6 +22,10 @@
     "label": "Idioma",
     "switchLanguage": "Cambiar idioma"
   },
+  "theme": {
+    "switchToDark": "Cambiar al tema oscuro",
+    "switchToLight": "Cambiar al tema claro"
+  },
   "nav": {
     "overview": "Resumen",
     "incidents": "Incidencias",
@@ -125,7 +129,27 @@
     "noneDescription": "No se han publicado eventos programados para esta página de estado.",
     "scheduledAt": "Programado para ",
     "report": "Informe de evento programado",
-    "notFound": "No se encontraron eventos programados para esta página de estado."
+    "notFound": "No se encontraron eventos programados para esta página de estado.",
+    "calendar": {
+      "subscribe": "Suscribirse al calendario",
+      "subscribeTitle": "Suscribirse al mantenimiento programado",
+      "subscribeDescription": "Recibe el mantenimiento programado de esta página en tu aplicación de calendario. Se mantiene actualizado solo.",
+      "eventTitle": "Añadir al calendario",
+      "eventDescription": "Añade este mantenimiento a tu aplicación de calendario.",
+      "addToCalendar": "Añadir al calendario",
+      "addHeading": "Añadir a tu calendario",
+      "google": "Google Calendar",
+      "googleHint": "Abre Google Calendar en una pestaña nueva",
+      "device": "Calendario de Apple / Outlook",
+      "deviceHint": "Abre la aplicación de calendario de este dispositivo",
+      "deviceFileHint": "Descarga el mantenimiento para la aplicación de calendario de este dispositivo",
+      "copyHeading": "O copia el enlace",
+      "copyHint": "Pégalo en cualquier aplicación de calendario que pueda suscribirse a un calendario por URL.",
+      "copy": "Copiar enlace",
+      "copied": "¡Copiado!",
+      "done": "Hecho",
+      "refreshNote": "Las aplicaciones de calendario buscan cambios según su propio horario, así que una actualización puede tardar unas horas en aparecer."
+    }
   },
   "subscribe": {
     "title": "Suscribirse",
@@ -151,7 +175,9 @@
       "placeholder": "suscriptor@empresa.es",
       "managePrompt": "Introduzca el correo electrónico con el que se suscribió",
       "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este correo electrónico.",
-      "managePlaceholder": "email@suempresa.es"
+      "managePlaceholder": "email@suempresa.es",
+      "signedInEmailDescription": "Te suscribes con la dirección de correo electrónico con la que inicias sesión.",
+      "signInToSubscribe": "Inicia sesión en esta página de estado para suscribirte."
     },
     "sms": {
       "title": "Suscribirse por SMS",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "Su número de teléfono",
       "placeholder": "+34612345678",
       "managePrompt": "Introduzca el número de teléfono con el que se suscribió",
-      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este número de teléfono."
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este número de teléfono.",
+      "confirmationSent": "Hemos enviado un SMS a este número de teléfono. Abra el enlace que contiene para confirmar su suscripción."
     },
     "slack": {
       "title": "Suscribirse vía Slack",
@@ -210,11 +237,48 @@
       "saved": "Sus cambios se han guardado.",
       "submit": "Actualizar suscripción",
       "unsubscribe": "Cancelar suscripción",
-      "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos."
+      "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos.",
+      "linkNotValid": "Este enlace para gestionar su suscripción ha caducado o no es válido. Para obtener uno nuevo, use «Gestionar suscripción existente» en la página «Suscribirse».",
+      "getNewLink": "Obtener un enlace nuevo",
+      "loadFailed": "No se pudo cargar este enlace. Inténtelo de nuevo más tarde."
     },
     "confirm": {
       "title": "Confirmar suscripción",
-      "success": "Suscripción confirmada con éxito"
+      "success": "Suscripción confirmada con éxito",
+      "linkNotValid": "Este enlace para confirmar su suscripción ha caducado o no es válido. Un enlace funciona durante 24 horas después de enviarse. Para obtener uno nuevo, vuelva a suscribirse.",
+      "subscribeAgain": "Volver a suscribirse"
+    },
+    "unsubscribe": {
+      "title": "Cancelar suscripción",
+      "titleWithName": "Cancelar la suscripción a {{statusPageName}}",
+      "confirmPrompt": "¿Quiere dejar de recibir notificaciones de esta página de estado?",
+      "channelEmail": "Dirección de correo electrónico",
+      "channelSms": "Número de teléfono",
+      "channelSlack": "Espacio de trabajo de Slack",
+      "channelMicrosoftTeams": "Espacio de trabajo de Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Esta suscripción la añadió el equipo que gestiona esta página de estado. Si es una dirección compartida, como una lista de correo, al cancelarla dejarán de recibir estas notificaciones todas las personas que las reciben, y se avisará al equipo.",
+      "confirmButton": "Cancelar suscripción",
+      "manageInstead": "Elegir en su lugar qué notificaciones recibe",
+      "manageSubscription": "Gestionar su suscripción",
+      "success": "Se ha cancelado su suscripción. No recibirá más notificaciones de esta página de estado.",
+      "alreadyUnsubscribed": "Esta suscripción ya estaba cancelada. No recibe notificaciones de esta página de estado.",
+      "outOfDateLink": "Este enlace para cancelar la suscripción está desactualizado. Para cancelarla, use el enlace de un mensaje reciente de esta página de estado.",
+      "invalidLink": "Este enlace para cancelar la suscripción no es válido. Puede estar incompleto o la suscripción puede haberse eliminado. Para cancelarla, use el enlace de un mensaje reciente de esta página de estado.",
+      "failed": "No se pudo cancelar la suscripción. Inténtelo de nuevo.",
+      "loadFailed": "No se pudo cargar este enlace para cancelar la suscripción. Inténtelo de nuevo más tarde."
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Elija sobre qué desea recibir actualizaciones.",
+      "summary": {
+        "everything": "Recibirá todas las actualizaciones de esta página de estado.",
+        "pickedResources": "Solo recibirá actualizaciones de los recursos que eligió.",
+        "pickedEventTypes": "Solo recibirá actualizaciones de los tipos de eventos que eligió.",
+        "pickedResourcesAndEventTypes": "Solo recibirá actualizaciones de los recursos y tipos de eventos que eligió.",
+        "noResources": "Todavía no ha elegido ningún recurso.",
+        "noEventTypes": "Todavía no ha elegido ningún tipo de evento."
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
       "forgotPassword": "¿Olvidó su contraseña?",
       "submit": "Iniciar sesión",
-      "useSSO": "Usar inicio de sesión único (SSO) en su lugar"
+      "or": "o",
+      "logInWithSso": "Iniciar sesión con SSO"
     },
     "sso": {
       "title": "Iniciar sesión con SSO",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} no debe ser menor que {{minValue}}.",
   "{{field}} is required.": "{{field}} es obligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} debe coincidir con {{matchField}}",
-  "Email is not valid.": "El correo electrónico no es válido."
+  "Email is not valid.": "El correo electrónico no es válido.",
+  "Next": "Siguiente",
+  "Opens in a new tab": "Se abre en una pestaña nueva",
+  "Note": "Nota",
+  "Tip": "Consejo",
+  "Info": "Información",
+  "Important": "Importante",
+  "Warning": "Advertencia",
+  "Caution": "Precaución",
+  "Danger": "Peligro"
 }

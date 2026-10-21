@@ -63,6 +63,10 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 #   - Runtime tools: bash, curl, iputils-ping, net-tools, dnsutils (dig is
 #     used in DNSSEC validation), traceroute (NetworkPathMonitor execs it on
 #     Linux; it was missing from the old full image too)
+#   - tcpdump: packet captures started from the dashboard
+#     (Utils/PacketCapture). Installed in every image, run only by a probe
+#     whose operator set PROBE_PACKET_CAPTURE_ENABLED=true; it writes the
+#     capture to the probe's memory, never to disk.
 #   - tini: a tiny init for containers to properly reap zombie processes
 #   - ca-certificates: required by update-ca-certificates (intermediate certs
 #     copied above)
@@ -77,7 +81,7 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 RUN apt-get update \
     && apt-get upgrade -y \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        bash curl iputils-ping net-tools dnsutils traceroute tini ca-certificates \
+        bash curl iputils-ping net-tools dnsutils traceroute tcpdump tini ca-certificates \
         python3 make g++ unixodbc-dev krb5-user \
         libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
         libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
@@ -179,6 +183,23 @@ RUN mkdir -p /usr/lib/oneuptime-probe \
     && chmod 0755 /usr/lib/oneuptime-probe \
     && chmod 0644 /usr/lib/oneuptime-probe/libsynthetic-no-sync.so
 
+# The synthetic runtime holds each check to the memory its browser actually
+# holds, its proportional set size (PSS). The kernel shows a process's PSS only
+# to a reader with that process's identity, and every check runs under a uid
+# of its own, so the root supervisor reads it through this helper, which takes
+# on the check's effective ids to do so (ProcessTreeMemory.ts,
+# PROCESS_MEMORY_HELPER_PATH). Root-owned and 0700: only the supervisor runs
+# it, and the synthetic worker UIDs can neither replace nor run it. Without it
+# checks are held to the sum of their processes' RSS, which counts the
+# browser's shared pages once per process and fails ordinary checks.
+# Probe/Tests/Build/ProbeProcessMemoryHelper.test.ts pins this step.
+COPY ./packages/Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-process-memory.c /tmp/synthetic-process-memory.c
+RUN gcc -O2 -Wall -Wextra -Werror \
+        -o /usr/lib/oneuptime-probe/synthetic-process-memory /tmp/synthetic-process-memory.c \
+    && rm /tmp/synthetic-process-memory.c \
+    && chown root:root /usr/lib/oneuptime-probe/synthetic-process-memory \
+    && chmod 0700 /usr/lib/oneuptime-probe/synthetic-process-memory
+
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
@@ -194,19 +215,22 @@ RUN npm run compile
 # readable by the arbitrary, per-execution synthetic worker UIDs as well.
 RUN chmod -R a+rX /usr/src/Common /usr/src/app /ms-playwright-browsers
 # Remove the build toolchain (python3, make, g++ and the unixODBC headers) now
-# that the native modules and the no-sync library are built. The running probe
-# needs none of it, and it was ~80% of the OS-package CVEs scanners reported
-# for this image (the kernel headers g++ pulls in, linux-libc-dev, alone were
-# ~1,900 of them). Production only: Start.dev.sh reinstalls and rebuilds native
-# modules in the development image. The native pieces are loaded again after
-# the purge, so if it ever takes a runtime library with it the build fails
-# here rather than the first SQL Server or custom-code check in production.
+# that the native modules, the no-sync library and the process-memory helper
+# are built. The running probe needs none of it, and it was ~80% of the
+# OS-package CVEs scanners reported for this image (the kernel headers g++
+# pulls in, linux-libc-dev, alone were ~1,900 of them). Production only:
+# Start.dev.sh reinstalls and rebuilds native modules in the development image.
+# The native pieces are loaded again after the purge -- the helper run without
+# arguments exits 2 with its usage -- so if it ever takes a runtime library
+# with it the build fails here rather than the first SQL Server, custom-code or
+# synthetic check in production.
 RUN apt-get purge -y --auto-remove python3 make g++ unixodbc-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* \
     && node -e "require('mssql/msnodesqlv8')" \
     && odbcinst -q -d -n "ODBC Driver 18 for SQL Server" \
-    && node -e "require('/usr/src/Common/node_modules/isolated-vm')"
+    && node -e "require('/usr/src/Common/node_modules/isolated-vm')" \
+    && { /usr/lib/oneuptime-probe/synthetic-process-memory 2>/dev/null; test $? -eq 2; }
 # IS_ENTERPRISE_EDITION only changes ENV metadata and is read by no build step,
 # so declaring it last lets the community + enterprise passes share the heavy
 # cached layers above. (/tmp/npm is already world-writable from the base setup,
@@ -217,6 +241,8 @@ ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 # above). Without this, ts-node/register redoes it on every container start
 # before the probe comes up. See App/Dockerfile.tpl for the full rationale.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm, so npm
+# is not a second Node.js process beside the probe. tini stays PID 1 and reaps
+# Chromium's children. See App/Dockerfile.tpl for why.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}

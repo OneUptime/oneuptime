@@ -24,10 +24,16 @@ import DatabaseServerFeed from "../Pages/Database/View/Feed";
 import DatabaseServerOwners from "../Pages/Database/View/Owners";
 import DatabaseServerEndpoints from "../Pages/Database/View/Endpoints";
 import DatabaseServerRecommendations from "../Pages/Database/View/Recommendations";
+import DatabaseServerAiInsights from "../Pages/Database/View/AI/Insights";
+import DatabaseServerAiLogs from "../Pages/Database/View/AI/Logs";
+import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DatabaseRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -112,6 +118,13 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DatabaseServer,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DATABASE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -270,6 +283,52 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* AI: Insights, Logs, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <DatabaseServerAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <DatabaseServerAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <DatabaseServerAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_AGENT] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION,
@@ -295,6 +354,12 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DatabaseServer,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

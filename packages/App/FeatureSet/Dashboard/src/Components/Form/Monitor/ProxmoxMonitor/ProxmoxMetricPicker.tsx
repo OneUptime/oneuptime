@@ -10,6 +10,9 @@ import {
   ProxmoxMetricDefinition,
   ProxmoxMetricCategory,
 } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   selectedMetricId?: string | undefined;
@@ -19,6 +22,7 @@ export interface ComponentProps {
 const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const allMetrics: Array<ProxmoxMetricDefinition> = getAllProxmoxMetrics();
   const allCategories: Array<ProxmoxMetricCategory> =
     getAllProxmoxMetricCategories();
@@ -35,7 +39,7 @@ const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
         label: category,
         options: categoryMetrics.map((m: ProxmoxMetricDefinition) => {
           return {
-            label: `${m.friendlyName}${m.unit ? ` (${m.unit})` : ""}`,
+            label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
             value: m.id,
           };
         }),
@@ -52,7 +56,7 @@ const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
 
   const selectedOption: DropdownOption | undefined = selectedMetric
     ? {
-        label: `${selectedMetric.friendlyName}${selectedMetric.unit ? ` (${selectedMetric.unit})` : ""}`,
+        label: `${translator.translateText(selectedMetric.friendlyName)}${selectedMetric.unit ? ` (${selectedMetric.unit})` : ""}`,
         value: selectedMetric.id,
       }
     : undefined;
@@ -83,10 +87,21 @@ const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
 
       {selectedMetric && (
         <p className="mt-2 text-xs text-gray-500">
-          {selectedMetric.description} — Metric:{" "}
-          <code className="bg-gray-100 px-1 rounded text-xs">
-            {selectedMetric.metricName}
-          </code>
+          <TranslatedSentence
+            template="{{description}} — Metric: {{metric}}"
+            values={{
+              description: translator.translateText(
+                selectedMetric.description,
+              ) as string,
+            }}
+            slots={{
+              metric: (
+                <code className="bg-gray-100 px-1 rounded text-xs">
+                  {selectedMetric.metricName}
+                </code>
+              ),
+            }}
+          />
         </p>
       )}
     </div>

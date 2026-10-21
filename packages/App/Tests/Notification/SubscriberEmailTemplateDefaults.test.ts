@@ -1,5 +1,6 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import Handlebars from "handlebars";
+import { removeHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { Service as SubscriberTemplateService } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -7,6 +8,7 @@ import {
   DefaultSubscriberNotificationTemplate,
   getDefaultSubscriberNotificationTemplate,
 } from "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Exercise the same substitution method that subscriber workers use for custom
@@ -307,10 +309,6 @@ function render(
   };
 }
 
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function expectAction(html: string, label: string, destination: string): void {
   expect(html).toMatch(
     new RegExp(
@@ -499,7 +497,7 @@ function reportCells(html: string): Array<Array<string>> {
       return Array.from(
         row[1]!.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/g),
         (cell: RegExpMatchArray): string => {
-          return cell[1]!.replace(/<[^>]*>/g, "").trim();
+          return removeHtmlMarkup(cell[1]!).trim();
         },
       );
     },

@@ -57,9 +57,9 @@ describe("Icon chevrons", () => {
 });
 
 /*
- * The feed's Filter & Sort control shows Newest first / Oldest first with
- * these two, and the right-sizing card shows over- and under-provisioned
- * containers with them. BarsArrowUp used to be a copy of BarsArrowDown's path,
+ * The right-sizing card shows over- and under-provisioned containers with
+ * these two (and the feed's old Filter & Sort button showed Newest first /
+ * Oldest first with them). BarsArrowUp used to be a copy of BarsArrowDown's path,
  * so both pairs read as the same thing.
  */
 describe("Icon bars-and-arrow sort glyphs", () => {
@@ -79,5 +79,181 @@ describe("Icon bars-and-arrow sort glyphs", () => {
     expect(getIconPath(IconProp.BarsArrowUp)).not.toBe(
       getIconPath(IconProp.BarsArrowDown),
     );
+  });
+});
+
+/*
+ * The markdown editor's Indent and Outdent buttons show nothing but these
+ * glyphs, so each has to draw its own arrow -- in for Indent, out for
+ * Outdent -- and neither may fall through to an empty icon.
+ */
+describe("Icon indent and outdent", () => {
+  it("draws lines of text with an arrow pointing in for Indent", () => {
+    expect(getIconPath(IconProp.Indent)).toBe(
+      "M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M3.75 9l3 3-3 3",
+    );
+  });
+
+  it("draws the same lines with the arrow pointing out for Outdent", () => {
+    expect(getIconPath(IconProp.Outdent)).toBe(
+      "M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M6.75 9l-3 3 3 3",
+    );
+  });
+
+  it("draws two glyphs that differ from each other and from the list icons", () => {
+    const paths: Array<string> = [
+      getIconPath(IconProp.Indent),
+      getIconPath(IconProp.Outdent),
+      getIconPath(IconProp.ListBullet),
+      getIconPath(IconProp.List),
+    ];
+
+    expect(paths[0]).not.toBe(paths[1]);
+    expect(paths.slice(2)).not.toContain(paths[0]);
+    expect(paths.slice(2)).not.toContain(paths[1]);
+  });
+});
+
+/*
+ * A stopped AI answer is marked with StopCircle (the Ask AI panel and the AI
+ * Investigation card's conversation). It used to draw the circle alone: an
+ * empty ring, which reads as an unticked radio button.
+ */
+describe("Icon stop circle", () => {
+  it("draws the square inside the circle", () => {
+    const path: string = getIconPath(IconProp.StopCircle);
+
+    // The circle...
+    expect(path.startsWith("M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z")).toBe(true);
+    // ...and a second, closed shape inside it, from (9,9) to (15,15).
+    expect(path).toContain("M9 9.563");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+
+  it("is not the bare circle PauseCircle and friends are built on", () => {
+    expect(getIconPath(IconProp.StopCircle)).not.toBe(
+      "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+    );
+    expect(getIconPath(IconProp.StopCircle)).not.toBe(
+      getIconPath(IconProp.PauseCircle),
+    );
+  });
+});
+
+/*
+ * Eye marks "read-only" and "viewer" (the AI permission picker, the team
+ * permission table, show/hide toggles). It used to draw the outline of the
+ * eye without its pupil: an empty almond next to EyeSlash's full glyph.
+ */
+describe("Icon eye", () => {
+  it("draws the pupil inside the outline", () => {
+    const path: string = getIconPath(IconProp.Eye);
+
+    // The outline...
+    expect(path.startsWith("M2.036 12.322")).toBe(true);
+    // ...and the pupil, a circle of radius 3 around the centre.
+    expect(path).toContain("M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+});
+
+/*
+ * MapPin marks a place: the site map's pins, a session replay's location, the
+ * part of a cluster behind most of the trouble on an AI Insights page. It
+ * used to draw the pin's inner dot alone, a small empty ring.
+ */
+describe("Icon map pin", () => {
+  it("draws the pin around the dot", () => {
+    const path: string = getIconPath(IconProp.MapPin);
+
+    // The dot...
+    expect(path.startsWith("M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z")).toBe(true);
+    // ...and the pin's outline, from its round head down to its point.
+    expect(path).toContain("M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+
+  it("is not the bare dot", () => {
+    expect(getIconPath(IconProp.MapPin)).not.toBe(
+      "M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+    );
+  });
+});
+
+/*
+ * BellAlert says "this rings": a critical alert's pill on On-Call Rules, the
+ * "On" of a phone's critical alerts on the push devices card, the alert roles
+ * and alert feed items. It used to draw Heroicons' bell-snooze - the bell with
+ * a "Z" inside it - so all of them showed a snoozed bell.
+ */
+describe("Icon bell alert", () => {
+  const BELL: string =
+    "M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0";
+
+  it("draws the bell ringing: the two strokes at its shoulders", () => {
+    expect(getIconPath(IconProp.BellAlert)).toBe(
+      `${BELL}M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5`,
+    );
+  });
+
+  it("is not the snoozed bell, with a Z drawn inside it", () => {
+    expect(getIconPath(IconProp.BellAlert)).not.toBe(
+      `${BELL}M10.5 8.25h3l-3 4.5h3`,
+    );
+  });
+
+  it("is neither the plain bell nor the silenced one", () => {
+    const alert: string = getIconPath(IconProp.BellAlert);
+
+    expect(alert).not.toBe(getIconPath(IconProp.Bell));
+    expect(alert).not.toBe(getIconPath(IconProp.BellSlash));
+  });
+});
+
+/*
+ * Every item in a menu of the product has an icon, and an item names its
+ * icon with an IconProp - so an IconProp that Icon does not draw would put an
+ * empty slot back in the menu, the very gap that was closed. ClockIcon,
+ * CubeTransparent, TableCellsIcon and UserIcon used to draw nothing at all;
+ * they are older names for Clock, TransparentCube, TableCells and User.
+ */
+describe("Icon draws every IconProp", () => {
+  const getGlyph: (icon: IconProp) => string = (icon: IconProp): string => {
+    const { container } = render(<Icon icon={icon} />);
+    const svg: SVGElement | null = container.querySelector("svg");
+
+    if (!svg) {
+      return "";
+    }
+
+    return Array.from(svg.querySelectorAll("*"))
+      .map((shape: Element) => {
+        return `${shape.tagName}:${shape.getAttribute("d") || ""}`;
+      })
+      .join("|");
+  };
+
+  it("draws a glyph for every value", () => {
+    const blank: Array<string> = Object.values(IconProp).filter(
+      (icon: IconProp) => {
+        const { container } = render(<Icon icon={icon} />);
+        const svg: SVGElement | null = container.querySelector("svg");
+
+        return !svg || svg.querySelectorAll("*").length === 0;
+      },
+    );
+
+    expect(blank).toEqual([]);
+  });
+
+  it("draws each older name as the name it duplicates", () => {
+    expect(getGlyph(IconProp.ClockIcon)).toBe(getGlyph(IconProp.Clock));
+    expect(getGlyph(IconProp.CubeTransparent)).toBe(
+      getGlyph(IconProp.TransparentCube),
+    );
+    expect(getGlyph(IconProp.TableCellsIcon)).toBe(
+      getGlyph(IconProp.TableCells),
+    );
+    expect(getGlyph(IconProp.UserIcon)).toBe(getGlyph(IconProp.User));
   });
 });

@@ -6,6 +6,23 @@ import ModelPermission from "../../../../Server/Types/AnalyticsDatabase/ModelPer
 import ObjectID from "../../../../Types/ObjectID";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { TelemetryReadScope } from "../../../../Server/Utils/Telemetry/TelemetryReadScope";
+
+/*
+ * The read scope a caller's grants give, as the analytics permission layer
+ * hands it to the tools (ModelPermission.getReadScope): null reads every
+ * service, a list only those.
+ */
+function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
+  return {
+    readableIds: ids
+      ? ids.map((id: ObjectID): string => {
+          return id.toString();
+        })
+      : null,
+    blockedIds: [],
+  };
+}
 
 /*
  * baseline_anomaly judges a metric's recent average against its learned
@@ -62,8 +79,8 @@ describe("BaselineAnomalyTool", () => {
   beforeEach(() => {
     // Default: project-wide telemetry access (null = unrestricted).
     jest
-      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-      .mockResolvedValue(null);
+      .spyOn(ModelPermission, "getReadScope")
+      .mockResolvedValue(readScopeOf(null));
   });
 
   afterEach(() => {
@@ -205,8 +222,8 @@ describe("BaselineAnomalyTool", () => {
 
   test("a label-scoped user without entityId is refused (baseline SQL skips the owned-scope filter)", async () => {
     jest
-      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-      .mockResolvedValue([ObjectID.generate()]);
+      .spyOn(ModelPermission, "getReadScope")
+      .mockResolvedValue(readScopeOf([ObjectID.generate()]));
     const getBaseline: jest.SpyInstance = jest.spyOn(
       MetricBaselineService,
       "getBaseline",
@@ -220,8 +237,8 @@ describe("BaselineAnomalyTool", () => {
 
   test("a label-scoped user asking about another service's entity is refused", async () => {
     jest
-      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-      .mockResolvedValue([ObjectID.generate()]);
+      .spyOn(ModelPermission, "getReadScope")
+      .mockResolvedValue(readScopeOf([ObjectID.generate()]));
 
     await expect(
       BaselineAnomalyTool.execute(
@@ -237,8 +254,8 @@ describe("BaselineAnomalyTool", () => {
   test("a label-scoped user pinned to their own service proceeds", async () => {
     const ownServiceId: ObjectID = ObjectID.generate();
     jest
-      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-      .mockResolvedValue([ownServiceId]);
+      .spyOn(ModelPermission, "getReadScope")
+      .mockResolvedValue(readScopeOf([ownServiceId]));
     mockBaseline({ mean: 100, stddev: 10 });
     mockCurrentValues([120]);
     mockEmptyBand();

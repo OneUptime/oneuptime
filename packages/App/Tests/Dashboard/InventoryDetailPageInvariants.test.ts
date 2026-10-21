@@ -14,7 +14,8 @@ import path from "path";
  *   - Telemetry read through the signal's primary owner instead of
  *     `entityKeys` membership returns nothing at all for a pod, which looks
  *     like "this pod has no telemetry" rather than like a bug.
- *   - Relationships queried in one direction only silently halve the graph.
+ *   - Relationships capped client-side silently truncate a hub's graph, and
+ *     relationships filtered to a range hide edges drawn by hand.
  *   - A delete page with no source caveat promises a permanence it cannot
  *     deliver for two of the three sources.
  *   - An edit form offering `entityType` or `entityKey` re-identifies the row
@@ -92,6 +93,42 @@ describe("the item overview", () => {
   test("renders the attribute inspector rather than a raw list", () => {
     expect(overview).toContain("<InventoryAttributes");
   });
+
+  /*
+   * Issue #4569: a host or a network device is described by its asset facts
+   * before its raw attributes - the same facts for both, named, with the
+   * unknown ones said to be unknown.
+   */
+  test("shows a machine's asset details before its raw attributes", () => {
+    const assets: number = overview.indexOf(
+      "<InventoryAssetDetailsCard item={entity} />",
+    );
+    expect(assets).toBeGreaterThan(-1);
+    expect(assets).toBeLessThan(overview.indexOf("<InventoryAttributes"));
+  });
+});
+
+describe("the asset details card", () => {
+  const card: string = readCode(
+    "Components",
+    "Inventory",
+    "InventoryAssetDetailsCard.tsx",
+  );
+
+  test("reads the one shared asset model, not a vocabulary of its own", () => {
+    expect(card).toContain("getInventoryAssetDetails(");
+    expect(card).toContain("INVENTORY_ASSET_FIELD_LABELS[detail.field]");
+  });
+
+  test("shows an unknown fact as Unknown rather than leaving it out", () => {
+    expect(card).toContain(
+      "<PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />",
+    );
+  });
+
+  test("renders nothing for a type that is not a machine", () => {
+    expect(card).toContain("if (!details) { return <></>; }");
+  });
 });
 
 describe("the attribute inspector", () => {
@@ -146,29 +183,44 @@ describe("the relationships view", () => {
     "InventoryRelationships.tsx",
   );
 
-  test("queries edges from both ends", () => {
-    // One direction silently halves the graph.
-    expect(relationships).toContain("fromEntityKey: props.entityKey");
-    expect(relationships).toContain("toEntityKey: props.entityKey");
+  test("reads the server's all-time sections, not capped lists of its own", () => {
+    /*
+     * The server scans both directions, names the far ends and counts every
+     * edge. Two 10,000-row lists and a 10,000-key IN list silently cut a
+     * cluster, namespace or node short.
+     */
+    expect(relationships).toContain("fetchEntityAllTime(");
+    expect(relationships).toContain("fetchEntityAllTimeConnections(");
+    expect(relationships).not.toContain("LIMIT_PER_PROJECT");
+    expect(relationships).not.toContain("ModelAPI.getList");
+    expect(relationships).not.toContain("new Includes(");
   });
 
-  test("resolves the far end of each edge in one batched read", () => {
+  test("is never filtered to a time range", () => {
     /*
-     * Per-row lookups would be N requests; without any lookup the rows read
-     * as pairs of 16-hex hashes.
+     * This page has no time picker; edges drawn by hand are never re-bumped,
+     * and an archived item is still viewable here.
      */
-    expect(relationships).toContain("new Includes(otherKeys)");
+    expect(relationships).not.toContain("rangeStart");
+    expect(relationships).not.toContain("fetchEntityDetail(");
+    expect(relationships).not.toContain("fetchEntityConnections(");
+  });
+
+  test("shows exact totals and pages with Show more", () => {
+    expect(relationships).toContain("formatConnectionTotal(");
+    expect(relationships).toContain("Show more");
+    expect(relationships).toContain("appendConnectionsPage(");
   });
 
   test("phrases each edge from this item's end", () => {
     expect(relationships).toContain(
-      "getRelationshipPhrase(row.relationshipType, row.direction)",
+      "getRelationshipPhrase(row.relationshipType, directionOf(row))",
     );
   });
 
   test("an edge whose far end has no row still renders", () => {
     // The connection is real even when we can no longer name what it points at.
-    expect(relationships).toContain("row.otherEntityKey.substring(0, 16)");
+    expect(relationships).toContain("row.otherKey.substring(0, 16)");
   });
 
   test("offers the existing full topology map from the item", () => {
@@ -183,6 +235,8 @@ describe("the relationships view", () => {
     );
     expect(page).toContain("buildInventoryTopologyRoute");
     expect(page).toContain("RouteMap[PageMap.TOPOLOGY]");
+    // The type narrows the lookup when two items share a key.
+    expect(page).toContain("entityType={item.entityType}");
   });
 });
 
@@ -245,9 +299,7 @@ describe("addressable telemetry pages", () => {
 
     expect(exceptions).toContain("<ExceptionsViewer");
     expect(exceptions).toContain("entityKeysFilter={[signal.entityKey]}");
-    expect(viewer).toContain(
-      "buildExceptionEntityKeyScope(props.entityKeysFilter)",
-    );
+    expect(viewer).toContain("buildExceptionEntityKeyScope(entityKeysFilter)");
     expect(viewer).toContain("applyExceptionGroupQueryScope({");
     expect(exceptions).toContain(
       'emptyMessage="No exceptions found for this inventory item."',

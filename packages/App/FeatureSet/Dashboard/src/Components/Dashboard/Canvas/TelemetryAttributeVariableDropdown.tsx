@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   variables?: Array<DashboardVariable> | undefined;
@@ -24,6 +26,7 @@ export interface ComponentProps {
 const TelemetryAttributeVariableDropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const variables: Array<DashboardVariable> = (props.variables || []).filter(
     (variable: DashboardVariable): boolean => {
       return variable.type === DashboardVariableType.TelemetryAttribute;
@@ -52,16 +55,18 @@ const TelemetryAttributeVariableDropdown: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <select
-        aria-label="Follow Variable"
+        aria-label={translator.translateText("Follow Variable")}
         className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700"
         value={props.value || ""}
         onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => {
           props.onChange(event.target.value);
         }}
       >
-        <option value="">None</option>
+        <option value="">{translator.translateText("None")}</option>
         {isMissing ? (
-          <option value={props.value}>Unavailable variable</option>
+          <option value={props.value}>
+            {translator.translateText("Unavailable variable")}
+          </option>
         ) : (
           <></>
         )}
@@ -75,18 +80,21 @@ const TelemetryAttributeVariableDropdown: FunctionComponent<ComponentProps> = (
       </select>
       {isMissing ? (
         <p role="alert" className="text-xs text-red-600 mt-1">
-          This variable was removed or is no longer a Telemetry Attribute
-          variable. Choose another variable or clear the binding.
+          {translator.translateText(
+            "This variable was removed or is no longer a Telemetry Attribute variable. Choose another variable or clear the binding.",
+          )}
         </p>
       ) : selected && selected.isMultiSelect ? (
         <p className="text-xs text-gray-500 mt-1">
-          This variable allows several picks. The widget shows an SLO only while
-          exactly one is picked.
+          {translator.translateText(
+            "This variable allows several picks. The widget shows an SLO only while exactly one is picked.",
+          )}
         </p>
       ) : variables.length === 0 ? (
         <p className="text-xs text-gray-500 mt-1">
-          Add a Telemetry Attribute variable from the dashboard toolbar to use
-          it here.
+          {translator.translateText(
+            "Add a Telemetry Attribute variable from the dashboard toolbar to use it here.",
+          )}
         </p>
       ) : (
         <></>

@@ -7,6 +7,8 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Route from "Common/Types/API/Route";
 import UILink from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   RecommendationStatus,
   RecommendationViewModel,
@@ -51,6 +53,7 @@ export const DESCRIPTION_CLAMP_CHARACTER_COUNT: number = 170;
 const RecommendationCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const status: RecommendationStatus = props.viewModel.status;
   const isAvailable: boolean = status === RecommendationStatus.Available;
   const isCreated: boolean = status === RecommendationStatus.Created;
@@ -63,8 +66,23 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
 
   const description: string = props.viewModel.recommendation.description || "";
 
+  /*
+   * A recommendation with a one-line summary (every infrastructure template
+   * has one) shows that line; its full description - how the value is
+   * computed, which metric it reads, its caveats - waits behind Show more.
+   * Without one, the description is the card's line, clamped when long.
+   */
+  const summary: string = props.viewModel.recommendation.summary?.trim() || "";
+
+  const hasSummary: boolean =
+    summary.length > 0 && description.length > 0 && summary !== description;
+
   const isDescriptionClampable: boolean =
-    description.length > DESCRIPTION_CLAMP_CHARACTER_COUNT;
+    !hasSummary && description.length > DESCRIPTION_CLAMP_CHARACTER_COUNT;
+
+  const isDescriptionToggleable: boolean = hasSummary || isDescriptionClampable;
+
+  const descriptionId: string = `recommendation-description-${props.viewModel.recommendation.recommendationId}`;
 
   const isSelectable: boolean = isAvailable && !props.isDisabled;
 
@@ -143,7 +161,9 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
           type="button"
           className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           aria-pressed={props.isSelected}
-          aria-label={`Select ${props.viewModel.recommendation.name}`}
+          aria-label={translator.translateTemplate("Select {{name}}", {
+            name: props.viewModel.recommendation.name,
+          })}
           data-testid={`recommendation-card-select-${props.viewModel.recommendation.recommendationId}`}
           onClick={toggleSelection}
         />
@@ -209,20 +229,38 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          <p
-            className={`mt-1.5 text-xs leading-relaxed ${
-              isDismissed ? "text-gray-400" : "text-gray-500"
-            } ${
-              isDescriptionClampable && !isDescriptionExpanded
-                ? "line-clamp-3"
-                : ""
-            }`}
-            data-testid={`recommendation-description-${props.viewModel.recommendation.recommendationId}`}
-          >
-            {description}
-          </p>
+          {hasSummary ? (
+            <p
+              className={`mt-1.5 text-xs leading-relaxed ${
+                isDismissed ? "text-gray-400" : "text-gray-500"
+              }`}
+              data-testid={`recommendation-summary-${props.viewModel.recommendation.recommendationId}`}
+            >
+              {summary}
+            </p>
+          ) : (
+            <></>
+          )}
 
-          {isDescriptionClampable ? (
+          {!hasSummary || isDescriptionExpanded ? (
+            <p
+              id={descriptionId}
+              className={`mt-1.5 text-xs leading-relaxed ${
+                isDismissed ? "text-gray-400" : "text-gray-500"
+              } ${
+                isDescriptionClampable && !isDescriptionExpanded
+                  ? "line-clamp-3"
+                  : ""
+              }`}
+              data-testid={`recommendation-description-${props.viewModel.recommendation.recommendationId}`}
+            >
+              {description}
+            </p>
+          ) : (
+            <></>
+          )}
+
+          {isDescriptionToggleable ? (
             <button
               type="button"
               /*
@@ -233,12 +271,17 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
                */
               className="pointer-events-auto relative z-20 mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               aria-expanded={isDescriptionExpanded}
+              aria-controls={
+                hasSummary && !isDescriptionExpanded ? undefined : descriptionId
+              }
               data-testid={`recommendation-description-toggle-${props.viewModel.recommendation.recommendationId}`}
               onClick={() => {
                 setIsDescriptionExpanded(!isDescriptionExpanded);
               }}
             >
-              {isDescriptionExpanded ? "Show less" : "Show more"}
+              {translator.translateText(
+                isDescriptionExpanded ? "Show less" : "Show more",
+              )}
             </button>
           ) : (
             <></>
@@ -263,8 +306,10 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
         {isAvailable && !props.isDisabled ? (
           <button
             type="button"
-            aria-label={`Dismiss ${props.viewModel.recommendation.name}`}
-            title="Dismiss this recommendation"
+            aria-label={translator.translateTemplate("Dismiss {{name}}", {
+              name: props.viewModel.recommendation.name,
+            })}
+            title={translator.translateText("Dismiss this recommendation")}
             className="pointer-events-auto relative z-20 ml-2 flex-shrink-0 rounded p-1 text-gray-300 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 group-hover:opacity-100"
             onClick={() => {
               props.onDismiss();
@@ -283,7 +328,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
             to={props.monitorRoute}
             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-500"
           >
-            <span>View monitor</span>
+            <span>{translator.translateText("View monitor")}</span>
           </UILink>
         </div>
       ) : (
@@ -299,7 +344,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
               props.onRestore();
             }}
           >
-            Restore
+            {translator.translateText("Restore")}
           </button>
         </div>
       ) : (

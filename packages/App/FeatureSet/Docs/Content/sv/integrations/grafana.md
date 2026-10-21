@@ -1,101 +1,186 @@
-# Grafana-integration
+# Grafana
 
-Gör [Grafana](https://grafana.com)-larm till OneUptime-incidenter. Grafana utvärderar larmreglerna på dina dashboards; OneUptime registrerar, eskalerar och följer upp dem.
+Skicka larm från [Grafana](https://grafana.com) till OneUptime, så att varje larm som utlöses blir en incident som larmar ditt jourteam och löses när larmet har återhämtat sig. Grafana skickar sina larm genom en webhook-kontaktpunkt, så det finns inget att installera på någon av sidorna.
 
-Den här integrationen är **inkommande**: en Grafana-**Webhook contact point** POSTar till OneUptime. Det finns två sätt att ta emot det.
+:::cards
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En Incoming Request-monitor eller ett eget arbetsflöde.
+- [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
+- [Konfigurera Grafana](#konfigurera-grafana): En webhook-kontaktpunkt och den policy som använder den.
+- [Felsökning](#felsökning): När larm inte kommer fram eller incidenter förblir öppna.
+:::
 
-| Tillvägagångssätt                                                                                  | Använd det när                                                                                                              |
-| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **[Monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor)** (rekommenderas) | Du vill att larm ska bli incidenter med jour-eskalering, en incident per larm och automatisk lösning vid återhämtning.      |
-| **[Workflow](/docs/workflows/index) med en Webhook-utlösare**                                      | Du behöver dirigeringslogik som OneUptime inte gör inbyggt — anropa andra system, forma om payloads, villkorlig förgrening. |
+## Så fungerar det
 
-```text
-Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="Från ett Grafana-larm till en incident"
+flowchart TB
+    rule["En Grafana-<br/>larmregel utlöses"] --> policy["En aviserings-<br/>policy grupperar<br/>larmen"]
+    policy --> post["Kontaktpunkten<br/>postar dem till<br/>OneUptime"]
+    post --> status{"Varje larms<br/>status"}
+    status -->|"firing"| open["Incident öppnad,<br/>jouren larmad"]
+    status -->|"resolved"| resolve["Incident löst"]
 ```
 
-Grafanas webhook-payload följer Alertmanager-formen — `status`, en `alerts`-array, `commonLabels` och `commonAnnotations`, plus praktiska toppnivåfält `title` och `message`.
+Grafanas aviseringspolicyer grupperar de larm som utlöses, och en webhook-kontaktpunkt postar varje grupp som en JSON-avisering. Den har samma form som en avisering från [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): en `status`, en lista `alerts` där varje larm har sin egen `status` och sitt eget `fingerprint`, och de `commonLabels` och `commonAnnotations` som dess larm delar. Grafana lägger till en `title` och en `message` som är skrivna för människor.
 
-## Förutsättningar
+## Innan du börjar
 
-- Grafana 9+ med [unified alerting](https://grafana.com/docs/grafana/latest/alerting/) aktiverat (standard i modernt Grafana).
-- Grafana måste kunna nå din OneUptime-instans över HTTPS.
-- Ett OneUptime-projekt där du kan skapa monitorer (eller arbetsflöden).
+- Grafana 9 eller senare, med Grafana Alerting, standard sedan Grafana 9. Den måste kunna nå din OneUptime över HTTPS.
+- I OneUptime behörighet att skapa monitorer, eller arbetsflöden om du väljer den vägen.
 
-## Alternativ 1 — Monitor för inkommande förfrågningar
+## Välj hur OneUptime tar emot larm
 
-1. Gå till **Monitorer → Skapa monitor** och välj **Inkommande förfrågan**. Öppna den och klicka på **Documentation** i vänstermenyn för att kopiera URL:en.
-2. Öppna monitorns **Criteria** och sätt **Filter Type** till `JavaScript Expression` och **Value** till `"{{requestBody.status}}" === "firing"`.
-3. Skapa en incident vid träff, välj de **On-Call Policies** som ska larmas, och slå på **Auto Resolve Incident** under **Advanced Options**.
-4. Slå på **Group incidents and alerts by a payload field** under **Settings** och sätt:
+Konfigurera OneUptime först: det ger dig den URL som Grafana skickar till.
 
-   | Fält                               | Värde                               |
-   | ---------------------------------- | ----------------------------------- |
-   | Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-   | Field that signals recovery        | `requestBody.alerts[*].status`      |
-   | Value that means recovered         | `resolved`                          |
+| Väg | Använd den när |
+| --- | --- |
+| En Incoming Request-monitor (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
+| Ett arbetsflöde med en Webhook-utlösare | Du behöver egen logik: filtrera larm, forma om dem eller anropa andra system först. Ett arbetsflöde öppnar en incident per avisering, inte per larm, och löser den inte vid återhämtning. |
 
-5. Ge incidenten titeln `{{requestBody.commonLabels.alertname}}` och beskriv den med `{{requestBody.message}}` eller `{{requestBody.commonAnnotations.summary}}`. (`{{fingerprint}}` innehåller själva grupperingsnyckeln, men det är en hash — inget att visa för en jourhavande.)
-6. Peka Grafanas contact point mot monitorns URL (se stegen för contact point nedan).
+Båda får samma JSON från samma kontaktpunkt, så du kan börja med det ena och byta senare genom att ändra en URL i Grafana.
 
-Varje **unikt** grupperingsvärde blir en egen incident, och var och en stängs när Grafana rapporterar den som löst. Grafanas `fingerprint` per larm är unik för ett larms etikettuppsättning, och det är därför den är grupperingssökvägen ovan. Sidan [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) går igenom samma uppsättning mer i detalj — payloadformen är densamma, så varje steg där gäller även här.
+## Ta emot larm med en monitor
 
-> **Warning:** Gruppera inte på en etikett som är konstant genom en notifiering. Grafanas standardnotifieringspolicy grupperar på `grafana_folder` och `alertname`, så varje larm i en webhook delar samma alertname — att gruppera på `requestBody.alerts[*].labels.alertname` skulle få hela payloaden att falla samman till en enda incident. Grupperingssökvägarna måste dessutom börja med det bokstavliga `requestBody.`, och bara det första `[*]` i en sökväg är ett jokertecken. Allt detta misslyckas tyst.
+En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
 
-## Alternativ 2 — Workflow
+:::steps
+### Skapa monitorn
 
-Använd detta när du behöver logik utöver "ett larm blir en incident".
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Grafana` och klicka på **Nästa**.
 
-### Steg 1 — Bygg OneUptime-arbetsflödet
+### Deklarera en incident för varje utlöst larm
 
-1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Grafana → Incidents` och öppna **Byggare**.
-2. Lägg till en **Webhook**-utlösare och **kopiera dess URL**. Byt namn på blocket till `Grafana`.
-3. Lägg till ett **Villkor**-block kopplat till utlösaren:
-   - **Left**: `{{Grafana.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. Från **Ja**, lägg till ett **Skapa incident**-block:
-   - **Titel**: `{{Grafana.Request Body.title}}`
-   - **Beskrivning**: `{{Grafana.Request Body.message}}`
-   - **Allvarlighetsgrad**: välj en (eller förgrena på `{{Grafana.Request Body.commonLabels.severity}}`).
-5. **Spara** (lämna inaktiverat tills det testats).
+Öppna det första kriteriet i steget **Kriterier**, det som markerar monitorn som offline. Ställ in dess filter på **Begärandekropp**, **Innehåller**, `"status":"firing"`. Det här kriteriet deklarerar redan en incident när filtret matchar. Fyll i incidenten:
 
-## Konfigurera Grafana contact point
+- **Incidenttitel**: `{{requestBody.commonLabels.alertname}}`.
+- **Incidentbeskrivning**, under **Beskrivning**: `{{requestBody.message}}`, den text som Grafana skriver för aviseringen.
+- **Allvarlighetsgrad**: den incidentallvarlighetsgrad som de här larmen ska ha.
+- **Jourpolicyer**, under **Jour**: de policyer som ska larmas.
+- **Lös incident automatiskt**, under **Fler fält**: låt den vara påslagen, som den börjar. Utan den ignoreras återhämtningar och incidenter förblir öppna.
 
-1. Gå i Grafana till **Alerting → Contact points → Add contact point**.
-2. **Name**: `OneUptime`. **Integration**: **Webhook**.
-3. **URL**: klistra in monitor-URL:en från Alternativ 1, eller arbetsflödets webhook-URL från Alternativ 2. **HTTP Method**: `POST`.
-4. Spara contact pointen.
-5. Gå till **Alerting → Notification policies** och dirigera de larm du vill (eller standardpolicyn) till contact pointen **OneUptime**.
+### Öppna en incident per larm
+
+Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
+
+| Fält | Värde |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
+
+### Få monitorn online igen
+
+Öppna det andra kriteriet, det som markerar monitorn som online, och ställ in dess filter på **Begärandekropp**, **Innehåller**, `"status":"resolved"`.
+
+### Kopiera URL:en
+
+Klicka på **Skapa monitor**. Monitorns sida **Översikt** visar dess **Heartbeat URL**. Kopiera den till Grafana:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+En egenvärdad installation har sin egen värd i stället för `oneuptime.com`.
+:::
+
+Varje larm i en avisering öppnar sin egen incident, upp till **Max incidents per request** (`100` om du inte ändrar det), och varje larms egen `status` avgör när dess incident löses. Grafanas `fingerprint` identifierar ett larm utifrån dess etiketter, så det är värdet att gruppera efter. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
+
+> [!WARNING]
+> Gruppera inte efter en etikett som alla larm i en avisering delar. Grafanas standardpolicy för aviseringar grupperar larm efter `grafana_folder` och `alertname`, så alla larm i en avisering har samma `alertname`: att gruppera efter `requestBody.alerts[*].labels.alertname` slår ihop hela aviseringen till en incident.
+
+`{{requestBody.commonLabels.alertname}}` och `{{requestBody.message}}` beskriver hela aviseringen, som under standardpolicyn är en larmregel. Grupperingsnyckeln är också en variabel, `{{fingerprint}}`, men den är en hash som inte säger något till den som svarar. Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
+
+## Konfigurera Grafana
+
+:::steps
+### Lägg till en webhook-kontaktpunkt
+
+Gå till **Alerting → Contact points** i Grafana och klicka på **+ Add contact point**. I Grafana 11 och senare finns **Alerting** under **Alerts & IRM**, och **Contact points** är en flik i **Notification configuration**.
+
+Ge kontaktpunkten namnet `OneUptime`, välj **Webhook** under **Integration** och klistra in den URL som du kopierade i **URL**. Låt **HTTP Method** stå på `POST` och klicka på **Save contact point**.
+
+### Skicka larm dit
+
+Gå till **Alerting → Notification policies**. Ställ in standardpolicyns kontaktpunkt på `OneUptime`, eller lägg till en underordnad policy som matchar de larm som OneUptime ska få, med `OneUptime` som kontaktpunkt.
+:::
+
+Grafana skickar `Content-Type: application/json`, som monitorn behöver för att läsa fälten i en avisering. Kontaktpunktens inställning **Max Alerts** begränsar larmen i en avisering: håll den på `0`, ingen gräns, eller högst på monitorns **Max incidents per request**.
 
 ## Testa det
 
-1. Aktivera arbetsflödet, om du byggde ett.
-2. Använd **Test** på contact point-skärmen för att skicka en exempelnotifiering, eller låt en riktig larmregel utlösas.
-3. Kontrollera din **Incidenter**-lista — och arbetsflödets flik **Loggar** om du använde Alternativ 2.
+1. Öppna kontaktpunkten `OneUptime` i Grafana och klicka på **Test**. Grafana skickar ett utlöst testlarm, och en incident öppnas i OneUptime. Ett testlarm återhämtar sig aldrig, så lös den incidenten manuellt.
+2. Låt en riktig larmregel utlösas, till exempel genom att sänka dess tröskel en stund, och se hur dess incident öppnas och sedan löses när du sätter tillbaka tröskeln.
 
-## Lösning vid återhämtning
+## Ta emot larm med ett arbetsflöde
 
-När larmet lugnar sig skickar Grafana ytterligare en notifiering med `status: resolved`.
+Använd ett [arbetsflöde](/docs/workflows/index) när du behöver egna steg mellan Grafana och incidenten.
 
-Med **Alternativ 1** stänger återhämtningsfältet och värdet som konfigurerades ovan den matchande incidenten automatiskt — förutsatt att **Auto Resolve Incident** är påslaget.
+:::steps
+### Skapa arbetsflödet
 
-Med **Alternativ 2** lägger du till en andra **Villkor**-gren (`status == resolved`), hittar den matchande incidenten och flyttar den till ditt lösta tillstånd med **Update Incident**.
+Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Ge det namnet `Grafana alerts` och klicka på **Skapa arbetsflöde**.
 
-## Noteringar
+### Lägg till Webhook-utlösaren
 
-- **Äldre larmhantering (Grafana 8 och tidigare)** skickar en annan payload (`ruleName`, `state`, `evalMatches`). Använder du äldre larmhantering, referera i stället till `{{Grafana.Request Body.ruleName}}` och `{{Grafana.Request Body.state}}`, och förgrena på `state == alerting`.
-- Du kan också hoppa över Grafanas larmhantering helt och låta OneUptime övervaka samma mätvärden direkt — se [Metrikövervakning](/docs/monitor/metrics-monitor).
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i kontaktpunkten i Grafana.
+
+### Kontrollera att aviseringen är utlöst
+
+Klicka på **Lägg till komponent**, lägg till ett block **If / Else** och anslut utlösarens punkt **Out** till det. Ställ in **Value to check** på `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** på **is equal to** och **Compare with** på `firing`.
+
+### Deklarera incidenten
+
+Lägg till ett block **Create One Incident** och anslut sidan **Yes** av blocket **If / Else** till det. Välj under **Incident Template** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON Object** vad som kommer från Grafana:
+
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.message}}"
+}
+```
+
+Utan en mall måste **JSON Object** också innehålla `incidentSeverityId`, ID:t för en av projektets incidentallvarlighetsgrader.
+
+### Slå på arbetsflödet
+
+Slå på **Aktiverad** överst i **Byggare**. Ett arbetsflöde som är avstängt svarar Grafana med `400`.
+:::
+
+En körning hanterar en avisering, så den deklarerar en incident oavsett hur många larm aviseringen innehåller. En avisering som är `resolved` tar sidan **No** av blocket **If / Else**, där ingenting är anslutet, så körningen slutar där. Använd monitorn för en incident per larm som löses vid återhämtning.
 
 ## Felsökning
 
-- **Ingenting kommer fram** — bekräfta att Grafana kan nå URL:en (kolla Grafanas serverloggar) och, för Alternativ 2, att arbetsflödet är **Aktiverat**. OneUptime svarar på varje inkommande förfrågan med en tom `200` innan den valideras, så en `200` i Grafanas loggar bekräftar inte att payloaden accepterades.
-- **Incidenter öppnas men stängs aldrig** — kontrollera återhämtningsfältet och värdet på kriteriet, och att **Auto Resolve Incident** är påslaget under incidentens **Advanced Options**. Jämförelsen skiljer på gemener och versaler.
-- **Bara en incident för en payload full av larm** — du grupperade på en etikett som inte varierar inom en notifiering. Gruppera på `requestBody.alerts[*].fingerprint` i stället.
-- **Incidenttexten visar råa `{{...}}`-platshållare** — sökvägen löstes inte upp, och olösta platshållare lämnas kvar i stället för att tömmas. Referera till fält som finns i din version av larmhanteringen; granska utlösarens utdata i fliken **Loggar** om du använde Alternativ 2.
+:::details Inget kommer fram till OneUptime
+- Klicka på **Test** på kontaktpunkten: Grafana visar ett fel när den inte kan nå URL:en. Grafanas serverlogg har detaljerna.
+- Monitorn svarar `200` direkt, innan den kontrollerar något, även för en felaktig hemlig nyckel. Titta på monitorns tidslinje för att se om aviseringar kommer fram.
+- Ett arbetsflöde som är avstängt svarar `400`. Slå på **Aktiverad** överst i dess **Byggare**.
+:::
 
-## Läs vidare
+:::details Incidenter skapas men löses aldrig
+- Kriteriets incident behöver **Lös incident automatiskt**, under **Fler fält**.
+- **Field that signals recovery** måste vara `requestBody.alerts[*].status`, och **Value that means recovered** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
+- Grupperingssökvägarna måste börja med `requestBody.`, och bara den första `[*]` i en sökväg läser en lista. En sökväg som bryter mot någon av reglerna matchar ingenting, utan något fel.
+:::
 
-- [Monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) — monitortypen, dess kriterier och incidentgruppering i sin helhet.
-- [Översikt över integrationer](/docs/integrations/index) — det inkommande mönstret.
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) — nära besläktad payload.
-- [Metrikövervakning](/docs/monitor/metrics-monitor) — övervaka mätvärden direkt i OneUptime.
+:::details En incident för en avisering full av larm
+Du har grupperat efter en etikett som är densamma för varje larm i en avisering, som `alertname` under standardpolicyn. Gruppera i stället efter `requestBody.alerts[*].fingerprint`.
+:::
+
+:::details Incidenten visar en referens i stället för ett värde
+En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt. Jämför fältets namn med det som Grafana skickade: för ett arbetsflöde öppnar du körningen i **Loggar → Körningar** och jämför med det som utlösaren tog emot.
+:::
+
+Guiden för [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#felsökning) täcker fler fall, och de gäller även Grafanas aviseringar.
+
+## Säkerhet
+
+- **Behandla URL:en som ett lösenord.** Alla som har den kan öppna incidenter. Om den läcker återställer du den: **Återställ hemlig nyckel för inkommande begäran** på monitorns sida **Inställningar**, eller **Återställ URL** i arbetsflödets **Webhook**-utlösare. Uppdatera sedan kontaktpunktens **URL** i Grafana.
+- **Egenvärdad?** Låt Grafana nå din OneUptime över HTTPS genom din brandvägg.
+
+## Nästa steg
+
+:::cards
+- [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Varje inställning för den monitor som tar emot dina larm.
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Samma konfiguration, med ett dödmansgrepp för din larmning.
+- [Metrikövervakning](/docs/monitor/metrics-monitor): Larma på samma mätvärden i själva OneUptime.
+- [Översikt över integrationer](/docs/integrations/index): De andra verktyg som du kan ansluta.
+:::

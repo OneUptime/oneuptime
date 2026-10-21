@@ -1,90 +1,190 @@
-# FluentBit zum Senden von Telemetriedaten an OneUptime verwenden
+# Fluent Bit
 
-## Übersicht
+[Fluent Bit](https://docs.fluentbit.io/manual) ist ein schlanker Agent, der Logs aus Dateien, systemd, Containern, Syslog, HTTP und vielen weiteren Quellen sammelt. Sein [OpenTelemetry-Output](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry) sendet das Gesammelte an den OpenTelemetry-Endpunkt (OTLP) von OneUptime, wo die Logs unter **Produkte → Protokolle** durchsuchbar werden.
 
-Sie können das [FluentBit](https://docs.fluentbit.io/manual)-Plugin verwenden, um Logs und Telemetriedaten aus Ihren Anwendungen und Diensten zu sammeln. Das Plugin sendet die Telemetriedaten an den OneUptime OpenTelemetry HTTP Collector. Sie können das OpenTelemetry-Output-Plugin von FluentBit verwenden, um die Telemetriedaten an den OneUptime OpenTelemetry HTTP Collector zu senden. Dieses Plugin finden Sie hier: https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry
+:::cards
+- [Fluent Bit konfigurieren](#fluent-bit-konfigurieren): Den OpenTelemetry-Output hinzufügen und Ihren Dienst benennen.
+- [Vollständiges Beispiel](#vollständiges-beispiel): Eine ganze Konfigurationsdatei als Ausgangspunkt.
+- [Selbst gehostetes OneUptime](#selbst-gehostetes-oneuptime): Fluent Bit auf Ihre eigene Instanz richten.
+:::
 
-## Erste Schritte
+## So funktioniert es
 
-FluentBit unterstützt hunderte von Datenquellen und Sie können Logs und Telemetrie aus jeder dieser Quellen in OneUptime importieren. Zu den beliebten Quellen gehören:
-
-- Docker
-- Syslog
-- Apache
-- Nginx
-- MySQL
-- PostgreSQL
-- MongoDB
-- NodeJS
-- Ruby
-- Python
-- Java
-- PHP
-- Go
-- Rust
-
-und viele mehr.
-
-Die vollständige Liste der unterstützten Quellen finden Sie [hier](https://docs.fluentbit.io/manual)
-
-## Voraussetzungen
-
-- **Schritt 1: FluentBit auf Ihrem System installieren** - Sie können FluentBit gemäß den [hier](https://docs.fluentbit.io/manual/installation/getting-started-with-fluent-bit) bereitgestellten Anweisungen installieren
-- **Schritt 2: Für OneUptime-Konto anmelden** - Sie können sich [hier](https://oneuptime.com) für ein kostenloses Konto anmelden. Beachten Sie, dass das Konto zwar kostenlos ist, die Log-Aufnahme jedoch eine kostenpflichtige Funktion ist.
-- **Schritt 3: OneUptime-Projekt erstellen** - Sobald Sie das Konto haben, können Sie ein Projekt über das OneUptime-Dashboard erstellen.
-- **Schritt 4: Telemetrie-Ingestion-Token erstellen** - Sobald Sie ein OneUptime-Konto erstellt haben, können Sie ein Telemetrie-Ingestion-Token erstellen.
-
-Nachdem Sie sich bei OneUptime angemeldet und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf „Produkte" und dann auf „Projekteinstellungen".
-
-Klicken Sie auf der Seite Telemetrie Aufnahme Key auf „Aufnahmeschlüssel erstellen", um ein Token zu erstellen.
-
-![Service erstellen](/docs/static/images/TelemetryIngestionKeys.png)
-
-Sobald Sie ein Token erstellt haben, klicken Sie auf „Ansehen", um das Token einzusehen.
-
-![Service anzeigen](/docs/static/images/TelemetryIngestionKeyView.png)
-
-## Konfiguration
-
-Sie können die folgende Konfiguration verwenden, um die Telemetriedaten an den OneUptime OpenTelemetry HTTP Collector zu senden. Fügen Sie diese Konfiguration zur FluentBit-Konfigurationsdatei hinzu. Die Konfigurationsdatei befindet sich normalerweise unter `/etc/fluent-bit/fluent-bit.yaml`. So würde ein Outputs-Abschnitt der Konfigurationsdatei aussehen:
-
-```yaml
-outputs:
-  - name: stdout
-    match: "*"
-  - name: opentelemetry
-    match: "*"
-    host: "oneuptime.com"
-    port: 443
-    metrics_uri: "/otlp/v1/metrics"
-    logs_uri: "/otlp/v1/logs"
-    traces_uri: "/otlp/v1/traces"
-    tls: On
-    header:
-      - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```mermaid title="Von Fluent Bit zu OneUptime"
+flowchart TB
+    sources["Dateien, Container, Syslog, HTTP"] --> inputs["Fluent-Bit-Inputs"]
+    inputs --> envelope["Prozessor opentelemetry_envelope"]
+    envelope --> name["content_modifier setzt service.name"]
+    name --> output["Output opentelemetry"]
+    output -->|"OTLP/HTTP + Ingestion-Schlüssel"| oneuptime["OneUptime /otlp/v1/logs"]
+    oneuptime --> logs["Logs"]
 ```
 
-Stellen Sie sicher, dass Sie `opentelemetry_envelope` in Ihrem Inputs-Abschnitt haben. Hier ist ein Beispiel für den Inputs-Abschnitt:
+Fluent Bit verpackt jeden Datensatz in einen OpenTelemetry-Umschlag, damit er Ressourcenattribute wie `service.name` tragen kann. Der OpenTelemetry-Output sendet die Datensätze dann an OneUptime, mit Ihrem Ingestion-Schlüssel im Header `x-oneuptime-token`. OneUptime legt sie unter dem Dienst ab, den `service.name` nennt, und legt diesen Dienst beim ersten Senden an.
 
-```yaml
+## Bevor Sie beginnen
+
+- **Fluent Bit installieren** – siehe die [Installationsanleitung](https://docs.fluentbit.io/manual/installation/getting-started-with-fluent-bit). Die Konfiguration auf dieser Seite verwendet das YAML-Format von Fluent Bit und den Prozessor `opentelemetry_envelope`; nutzen Sie also eine aktuelle Version.
+- **Ein OneUptime-Projekt.** In OneUptime Cloud wird Telemetrie pro aufgenommenem GB abgerechnet – siehe [Preise](https://oneuptime.com/pricing) –, und ein Projekt im Free-Plan braucht eine Zahlungsmethode, bevor es Telemetrie senden kann.
+- **Ein Telemetrie-Ingestion-Schlüssel.** Falls Sie noch keinen haben:
+
+:::steps
+### Die Ingestion-Schlüssel öffnen
+
+Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
+
+![Die Seite Telemetrie-Aufnahmeschlüssel in den Projekteinstellungen](/docs/static/images/TelemetryIngestionKeys.png)
+
+### Einen Schlüssel erstellen
+
+Klicken Sie auf **Aufnahmeschlüssel erstellen**. Im Dialog ist der Name des Schlüssels schon ausgefüllt und **Server** gewählt – die Art von Schlüssel, mit der eine Anwendung oder ein Collector sendet. Klicken Sie also auf **Aufnahmeschlüssel erstellen**, um ihn zu erstellen, oder benennen Sie ihn vorher um.
+
+### Das Geheimnis kopieren
+
+Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie seinen **Geheimer Schlüssel**: Das ist das `YOUR_TELEMETRY_INGESTION_TOKEN` in der Konfiguration unten.
+
+![Die Seite eines Telemetrie-Aufnahmeschlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
+
+## Fluent Bit konfigurieren
+
+Fluent Bit liest seine YAML-Konfiguration aus einer Datei wie `/etc/fluent-bit/fluent-bit.yaml`.
+
+:::steps
+### Den OpenTelemetry-Output hinzufügen
+
+Fügen Sie einen `opentelemetry`-Output hinzu, der an OneUptime sendet. Behalten Sie beim Testen den `stdout`-Output, wenn Sie die Datensätze lokal sehen möchten:
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: stdout
+      match: "*"
+    - name: opentelemetry
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+### Logs in einen OpenTelemetry-Umschlag verpacken und den Dienst benennen
+
+Fügen Sie jedem Input den Prozessor `opentelemetry_envelope` hinzu, gefolgt von einem `content_modifier`, der `service.name` setzt. Ersetzen Sie `YOUR_SERVICE_NAME` durch den Namen, unter dem die Logs in OneUptime erscheinen sollen:
+
+```yaml title="fluent-bit.yaml"
 pipeline:
   inputs:
-    # Ihre Inputs
+    - name: tail # or any other input
+      path: /var/log/my-app/*.log
 
-    processors:
-      logs:
-        - name: opentelemetry_envelope
+      processors:
+        logs:
+          - name: opentelemetry_envelope
 
-        - name: content_modifier
-          context: otel_resource_attributes
-          action: upsert
-          key: service.name
-          # Ersetzen Sie YOUR_SERVICE_NAME durch den Namen Ihres Dienstes
-          value: YOUR_SERVICE_NAME
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            value: YOUR_SERVICE_NAME
 ```
 
-**Wenn Sie OneUptime selbst hosten**: Wenn Sie OneUptime selbst hosten, können Sie `host` durch den Host Ihrer OneUptime-Instanz ersetzen. Wenn Sie auf einem HTTP-Server (nicht HTTPS) hosten, können Sie `port` durch den Port Ihrer OneUptime-Instanz ersetzen (wahrscheinlich Port 80).
+### Fluent Bit neu starten
 
-## Verwendung
+Starten Sie den Fluent-Bit-Dienst neu, oder starten Sie ihn mit `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`. Nach wenigen Sekunden erscheinen die Logs unter **Produkte → Protokolle**, und der Dienst wird unter **Produkte → Dienste** aufgeführt.
+:::
 
-Sobald Sie die Konfiguration zur FluentBit-Konfigurationsdatei hinzugefügt haben, können Sie den FluentBit-Dienst neu starten. Sobald der Dienst neu gestartet wurde, werden die Telemetriedaten an die OneUptime HTTP-Quelle gesendet. Sie können die Telemetriedaten jetzt im OneUptime-Dashboard sehen. Bei Fragen oder wenn Sie Hilfe bei der Konfiguration benötigen, wenden Sie sich bitte an support@oneuptime.com
+## Vollständiges Beispiel
+
+Diese Konfiguration empfängt Logs per HTTP auf Port `8888` und leitet sie an OneUptime weiter:
+
+```yaml title="fluent-bit.yaml"
+service:
+  flush: 1
+  log_level: info
+
+pipeline:
+  inputs:
+    - name: http
+      listen: 0.0.0.0
+      port: 8888
+
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            value: YOUR_SERVICE_NAME
+
+  outputs:
+    - name: stdout
+      match: "*"
+    - name: opentelemetry
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+Ersetzen Sie den `http`-Input durch die Inputs, die Sie brauchen – zum Beispiel `tail` für Logdateien oder `systemd` für das Journal –, und behalten Sie an jedem davon die beiden Prozessoren.
+
+## Selbst gehostetes OneUptime
+
+Setzen Sie `host` auf den Host Ihrer OneUptime-Instanz. Wird sie über einfaches HTTP statt HTTPS ausgeliefert, setzen Sie außerdem `port` auf den Port, auf dem sie lauscht (meist `80`), und entfernen Sie `tls`:
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: stdout
+      match: "*"
+    - name: opentelemetry
+      match: "*"
+      host: "your-oneuptime-instance.com"
+      port: 80
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+## Fehlerbehebung
+
+:::details Fluent Bit protokolliert `401` vom OpenTelemetry-Output
+Der Ingestion-Schlüssel fehlt, ist unbekannt oder abgelaufen. Prüfen Sie die `header`-Zeile: Sie lautet `x-oneuptime-token`, ein Leerzeichen, dann der **Geheimer Schlüssel** des Schlüssels.
+:::
+
+:::details Fluent Bit protokolliert `402` oder `422`
+`402`: In OneUptime Cloud ist das Projekt im Free-Plan und hat keine Zahlungsmethode. Fügen Sie eine unter **Projekteinstellungen → Abrechnung und Rechnungen → Abrechnung** hinzu. `422`: Der Schlüssel ist deaktiviert, oder es ist ein Browser-Schlüssel. Schalten Sie **Aktiviert** in den Einstellungen des Schlüssels wieder ein, oder erstellen Sie einen **Server**-Schlüssel.
+:::
+
+:::details Logs kommen unter einem unerwarteten Dienst an
+Der Dienst kommt aus `service.name`. Prüfen Sie, dass jeder Input den Prozessor `opentelemetry_envelope` hat, gefolgt von dem `content_modifier`, der ihn setzt.
+:::
+
+:::details Nichts kommt an, und Fluent Bit protokolliert Verbindungsfehler
+Prüfen Sie, dass für einen HTTPS-Endpunkt `tls: On` und `port: 443` gesetzt sind und dass der Host, auf dem Fluent Bit läuft, Ihren OneUptime-Host auf diesem Port erreicht.
+:::
+
+Wenn Sie Fragen haben oder Hilfe bei der Konfiguration brauchen, schreiben Sie uns an support@oneuptime.com.
+
+## Nächste Schritte
+
+:::cards
+- [Protokoll-Pipelines](/docs/telemetry/log-pipelines): Die Logs, die Fluent Bit sendet, parsen und anreichern.
+- [Suchsyntax](/docs/telemetry/search-syntax): Die Logs im Protokoll-Explorer finden.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Endpunkte, Schlüssel und Grenzen für alle Telemetrie.
+- [Fluentd](/docs/telemetry/fluentd): Stattdessen Fluentd verwenden.
+:::

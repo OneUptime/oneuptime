@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import dns from "dns";
+import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
 /*
  * The private-network webhook exception (issue #3424).
@@ -43,6 +44,9 @@ type LookupSpy = jest.SpiedFunction<
 const OPTED_IN: { allowPrivateNetworkTargets: boolean } = {
   allowPrivateNetworkTargets: true,
 };
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("SSRFProtection — private network opt-in", () => {
   let lookupSpy: LookupSpy;

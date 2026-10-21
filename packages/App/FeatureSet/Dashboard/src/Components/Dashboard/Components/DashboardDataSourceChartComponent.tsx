@@ -29,6 +29,11 @@ import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import { getConfiguredDataSourceQueries } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceChartComponentType;
@@ -51,6 +56,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [results, setResults] = useState<Array<AggregatedResult>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -204,7 +210,9 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
                 ? legendTemplate
                 : legendTemplate
                   ? undefined
-                  : `Query ${index + 1}`,
+                  : translator.translateTemplate("Query {{number}}", {
+                      number: index + 1,
+                    }),
             legendUnit: undefined,
           },
           metricQueryData: {
@@ -240,6 +248,15 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
     };
   }, [queryConfigs, results, startAndEndDate, getMetricChartType]);
 
+  /*
+   * Drag-to-zoom retimes the whole board, exactly as the metric chart
+   * widget does: the window goes up to the dashboard shell and comes back
+   * down as dashboardStartAndEndDate, so every panel re-queries it. No
+   * gesture in edit mode, and the reset only while there is a zoom to undo.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.ChartBar} />;
   }
@@ -259,10 +276,11 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-xs font-medium text-gray-500">
-          {props.component.arguments.chartTitle?.trim() || "Data Source Chart"}
+          {props.component.arguments.chartTitle?.trim() ||
+            translator.translateText("Data Source Chart")}
         </p>
         <p className="text-xs text-gray-400 text-center">
-          Click to configure a query
+          {translator.translateText("Click to configure a query")}
         </p>
       </div>
     );
@@ -344,6 +362,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
            */
           enableSeriesActions={false}
           chartSyncId={props.chartSyncId}
+          onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+          onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
         />
       </div>
     </div>
@@ -356,6 +376,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

@@ -21,6 +21,12 @@ import {
   CorrelationOperator,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/SecurityEventCorrelation";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  isVisibleAtWidth,
+} from "../../ResponsiveVisibility";
 
 /*
  * The correlate filter builder rows (issue #3395): field + operator + value
@@ -474,8 +480,27 @@ describe("CorrelateFilterBuilder layout", () => {
     expect(lead).toHaveTextContent("Where");
     // Stacked rows on small screens: the cell collapses instead of a gap.
     expect(classTokens(lead)).toEqual(
-      expect.arrayContaining(["hidden", "md:block", "md:w-14", "shrink-0"]),
+      expect.arrayContaining([
+        "max-md:hidden",
+        "md:block",
+        "md:w-14",
+        "shrink-0",
+      ]),
     );
+    expect(isVisibleAtWidth(lead, PHONE_WIDTH_IN_PX)).toBe(false);
+    expect(isVisibleAtWidth(lead, TABLET_WIDTH_IN_PX)).toBe(true);
+    /*
+     * `max-md:hidden`, never the bare `hidden`: a foreign
+     * `.hidden { display: none !important }` rule on the page would beat
+     * `md:block` and drop the label from every width, leaving the first row
+     * without its "Where" and the dropdowns out of line with the rows below.
+     */
+    expect(classTokens(lead)).not.toContain("hidden");
+    expect(
+      isVisibleAtWidth(lead, LAPTOP_WIDTH_IN_PX, {
+        withForeignHiddenRule: true,
+      }),
+    ).toBe(true);
     // The first row never carries a connector badge.
     expect(
       elementsWithOwnText(

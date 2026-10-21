@@ -10,8 +10,10 @@ import Email from "../../Types/Email/EmailMessage";
 import EmailServer from "../../Types/Email/EmailServer";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class MailService extends BaseService {
   @CaptureSpan()
@@ -36,8 +38,26 @@ export class MailService extends BaseService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * How long to wait for the mail service to take the email. None by
+       * default; a caller that must not hang - a run that waits for each
+       * email in turn - sets one.
+       */
+      timeoutInMs?: number | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Email",
+        projectId: options?.projectId,
+        userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       ...mail,
       toEmail: mail.toEmail.toString(),
@@ -151,6 +171,10 @@ export class MailService extends BaseService {
       data: body,
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        ...(options?.timeoutInMs ? { timeout: options.timeoutInMs } : {}),
+        sameServerRedirectsOnly: true,
       },
     });
   }

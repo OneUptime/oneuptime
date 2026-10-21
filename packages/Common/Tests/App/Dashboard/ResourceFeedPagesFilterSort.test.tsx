@@ -67,6 +67,7 @@ import DockerSwarmClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src
 import PodmanHostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Feed";
 import ProxmoxClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Feed";
 import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Feed";
+import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
@@ -74,9 +75,17 @@ import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
 import SloFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Feed";
 import SloFeed from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed";
-import { getSloFeedEventIcon } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
+import SecurityCaseFeed from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFeed";
+import { getSecurityCaseFeedKind } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFeedKind";
+import SecurityCaseFeedModel, {
+  SecurityCaseFeedEventType,
+} from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import {
-  GetResourceFeedIconFunction,
+  getSloFeedEventIcon,
+  getSloFeedEventKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
+import {
+  GetResourceFeedKindFunction,
   ResourceFeedModel,
   getIconForEventType,
   resolveResourceFeedIcon,
@@ -103,6 +112,9 @@ import ProxmoxClusterFeed, {
 import CephClusterFeed, {
   CephClusterFeedEventType,
 } from "../../../Models/DatabaseModels/CephClusterFeed";
+import StorageArrayFeed, {
+  StorageArrayFeedEventType,
+} from "../../../Models/DatabaseModels/StorageArrayFeed";
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
@@ -124,16 +136,13 @@ import ServiceLevelObjectiveFeed, {
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
-  DEFAULT_FEED_OPTIONS,
   FEED_OPTIONS_TEXT,
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
-  FeedOptions,
   getFeedEventTypeLabel,
-  getFeedOptionsSummary,
 } from "../../../UI/Components/Feed/FeedOptions";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
@@ -148,9 +157,9 @@ import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptio
  * every other product's feed.
  *
  * So every real page is rendered at its real route with only the network
- * stubbed, and driven through the real Filter & Sort button - plus the SLO
- * feed embedded on the SLO overview, which renders the same ResourceFeed from
- * a component instead of a page.
+ * stubbed, and driven through the real ⋯ More menu and filter dialog - plus
+ * the SLO feed embedded on the SLO overview, which renders the same
+ * ResourceFeed from a component instead of a page.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -188,8 +197,8 @@ interface ResourceFeedSurface {
   resourceIdColumn: string;
   eventTypeColumn: string;
   enumObject: Record<string, string>;
-  // The feed's own icons, for the event types the shared rules do not know.
-  getIcon?: GetResourceFeedIconFunction | undefined;
+  // The feed's own kinds, for the event types the shared rules do not know.
+  getKind?: GetResourceFeedKindFunction | undefined;
   /*
    * Puts the resource id where this surface reads it, and returns the element.
    * Re-rendering a mounted surface with a new one's element is the dashboard
@@ -207,7 +216,7 @@ interface FeedPageSpec {
   resourceIdColumn: string;
   eventTypeColumn: string;
   enumObject: Record<string, string>;
-  getIcon?: GetResourceFeedIconFunction | undefined;
+  getKind?: GetResourceFeedKindFunction | undefined;
 }
 
 const FEED_PAGES: Array<FeedPageSpec> = [
@@ -272,6 +281,16 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     enumObject: CephClusterFeedEventType,
   },
   {
+    product: "Storage Arrays",
+    file: "Pages/StorageArray/View/Feed.tsx",
+    Page: StorageArrayFeedPage,
+    route: RouteMap[PageMap.STORAGE_ARRAY_VIEW_FEED] as Route,
+    modelType: StorageArrayFeed,
+    resourceIdColumn: "storageArrayId",
+    eventTypeColumn: "storageArrayFeedEventType",
+    enumObject: StorageArrayFeedEventType,
+  },
+  {
     product: "VMware",
     file: "Pages/VMware/View/Feed.tsx",
     Page: VMwareVCenterFeedPage,
@@ -330,7 +349,7 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "serviceLevelObjectiveId",
     eventTypeColumn: "serviceLevelObjectiveFeedEventType",
     enumObject: ServiceLevelObjectiveFeedEventType,
-    getIcon: getSloFeedEventIcon,
+    getKind: getSloFeedEventKind,
   },
 ];
 
@@ -367,7 +386,7 @@ const toSurface: ToSurface = (spec: FeedPageSpec): ResourceFeedSurface => {
     resourceIdColumn: spec.resourceIdColumn,
     eventTypeColumn: spec.eventTypeColumn,
     enumObject: spec.enumObject,
-    getIcon: spec.getIcon,
+    getKind: spec.getKind,
     mount: (resourceId: ObjectID): React.ReactElement => {
       window.history.pushState({}, "", getFeedPageUrl(spec, resourceId));
 
@@ -400,7 +419,7 @@ const EMBEDDED_SLO_FEED: ResourceFeedSurface = {
   resourceIdColumn: "serviceLevelObjectiveId",
   eventTypeColumn: "serviceLevelObjectiveFeedEventType",
   enumObject: ServiceLevelObjectiveFeedEventType,
-  getIcon: getSloFeedEventIcon,
+  getKind: getSloFeedEventKind,
   mount: (resourceId: ObjectID): React.ReactElement => {
     window.history.pushState(
       {},
@@ -414,9 +433,36 @@ const EMBEDDED_SLO_FEED: ResourceFeedSurface = {
 
 const SLO_FEED_PAGE_SURFACE: ResourceFeedSurface = toSurface(SLO_FEED_PAGE);
 
+/*
+ * A security case's timeline, on the case's own page. The page hands it the
+ * case it shows, so - like the embedded SLO feed - the case comes from the
+ * prop, and the address bar points at another case.
+ */
+const SECURITY_CASE_TIMELINE: ResourceFeedSurface = {
+  product: "Security case timeline",
+  feedProduct: "Security Case",
+  file: "Components/SecurityCase/SecurityCaseFeed.tsx",
+  component: SecurityCaseFeed,
+  modelType: SecurityCaseFeedModel,
+  resourceIdColumn: "securityCaseId",
+  eventTypeColumn: "securityCaseFeedEventType",
+  enumObject: SecurityCaseFeedEventType,
+  getKind: getSecurityCaseFeedKind,
+  mount: (resourceId: ObjectID): React.ReactElement => {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/security-events/cases/${ObjectID.generate().toString()}`,
+    );
+
+    return <SecurityCaseFeed securityCaseId={resourceId} />;
+  },
+};
+
 const SURFACES: Array<ResourceFeedSurface> = [
   ...FEED_PAGES.map(toSurface),
   EMBEDDED_SLO_FEED,
+  SECURITY_CASE_TIMELINE,
 ];
 
 type GetEventTypes = (surface: ResourceFeedSurface) => Array<string>;
@@ -443,65 +489,103 @@ const waitForFeed: WaitForFeed = async (
 ): Promise<void> => {
   await waitFor(() => {
     expect(mockGetListCalls).toHaveLength(requestCount);
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("feed-skeleton")).not.toBeInTheDocument();
   });
 };
 
-type GetFilterAndSortButton = () => HTMLElement;
+type GetMoreButton = () => HTMLElement;
 
 /*
- * The feed's header has exactly one Filter & Sort button, found the way a
- * screen reader finds it: by its name. What the feed is showing is the
- * button's description, not part of its name, so the name stays the label
- * whatever the reader has chosen.
+ * The feed's header has exactly one ⋯ More button - the card-header button a
+ * table has - found the way a screen reader finds it: by its name.
  */
-const getFilterAndSortButton: GetFilterAndSortButton = (): HTMLElement => {
-  const triggers: Array<HTMLElement> = screen.getAllByRole("button", {
-    name: FEED_OPTIONS_TEXT.triggerLabel,
-  });
+const getMoreButton: GetMoreButton = (): HTMLElement => {
+  const triggers: Array<HTMLElement> = within(
+    screen.getByTestId("feed-more-menu"),
+  ).getAllByRole("button", { name: "More options" });
 
   expect(triggers).toHaveLength(1);
 
   return triggers[0]!;
 };
 
-type OpenFeedOptions = () => HTMLElement;
+type PickFromMoreMenu = (name: string, role?: string) => void;
 
-// Presses Filter & Sort and returns the panel it opens.
-const openFeedOptions: OpenFeedOptions = (): HTMLElement => {
-  fireEvent.click(getFilterAndSortButton());
-
-  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel });
+const pickFromMoreMenu: PickFromMoreMenu = (
+  name: string,
+  role: string = "menuitem",
+): void => {
+  fireEvent.click(getMoreButton());
+  fireEvent.click(within(screen.getByRole("menu")).getByRole(role, { name }));
 };
 
-type CloseFeedOptions = () => void;
+type OpenFilterDialog = () => HTMLElement;
 
-// A press anywhere outside the panel - on a link to another resource, say.
-const closeFeedOptions: CloseFeedOptions = (): void => {
-  fireEvent.mouseDown(document.body);
+// The ⋯ menu's "Filter by event type", and the dialog it opens.
+const openFilterDialog: OpenFilterDialog = (): HTMLElement => {
+  pickFromMoreMenu(FEED_OPTIONS_TEXT.filter);
+
+  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter });
+};
+
+type ApplyFilterDialog = () => void;
+
+const applyFilterDialog: ApplyFilterDialog = (): void => {
+  fireEvent.click(
+    within(
+      screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter }),
+    ).getByRole("button", { name: "Apply Filters" }),
+  );
 
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 };
 
-type GetExpectedSummary = (
-  surface: ResourceFeedSurface,
-  options: FeedOptions,
-) => string;
+type CancelFilterDialog = () => void;
+
+const cancelFilterDialog: CancelFilterDialog = (): void => {
+  fireEvent.click(
+    within(
+      screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter }),
+    ).getByRole("button", { name: "Cancel" }),
+  );
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+};
+
+type GetCheckedSortOrder = () => string;
+
+// The order the ⋯ menu ticks, as a screen reader hears it; the menu is closed again after.
+const getCheckedSortOrder: GetCheckedSortOrder = (): string => {
+  fireEvent.click(getMoreButton());
+
+  const checked: Array<string> = within(screen.getByRole("menu"))
+    .getAllByRole("menuitemradio")
+    .filter((radio: HTMLElement): boolean => {
+      return radio.getAttribute("aria-checked") === "true";
+    })
+    .map((radio: HTMLElement): string => {
+      return (radio.textContent || "").trim();
+    });
+
+  fireEvent.click(getMoreButton());
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(checked).toHaveLength(1);
+
+  return checked[0]!;
+};
+
+type GetFilterBoxTitle = () => string | null;
 
 /*
- * The sentence the trigger is described by, counted over this surface's own
- * event types. Built by the same function the button uses, so the wording can
- * change without this suite noticing - what is pinned is that the description
- * follows the feed's live order and filter, over the right product's enum.
+ * The title of the box over a filtered feed, or null while it shows every
+ * event type and has no box.
  */
-const getExpectedSummary: GetExpectedSummary = (
-  surface: ResourceFeedSurface,
-  options: FeedOptions,
-): string => {
-  return getFeedOptionsSummary({
-    options: options,
-    eventTypeCount: getEventTypes(surface).length,
-  });
+const getFilterBoxTitle: GetFilterBoxTitle = (): string | null => {
+  const box: HTMLElement | null = screen.queryByTestId("feed-filter-summary");
+
+  return box
+    ? within(box).getByText(/^Showing \d+ of \d+ event types$/).textContent
+    : null;
 };
 
 interface ChecklistEntry {
@@ -571,9 +655,7 @@ const getStoredSortOrderKeys: GetStoredSortOrderKeys = (): Array<string> => {
 type ChooseSortOrder = (label: string) => void;
 
 const chooseSortOrder: ChooseSortOrder = (label: string): void => {
-  const panel: HTMLElement = openFeedOptions();
-
-  fireEvent.click(within(panel).getByRole("radio", { name: label }));
+  pickFromMoreMenu(label, "menuitemradio");
 };
 
 beforeEach(() => {
@@ -587,7 +669,7 @@ afterEach(() => {
   cleanup();
 });
 
-describe("Resource feed pages - Filter & Sort on the real pages", () => {
+describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages", () => {
   test.each(SURFACES)(
     "$product asks the API for this resource's own feed, newest first",
     async (surface: ResourceFeedSurface) => {
@@ -602,7 +684,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       expect(request["modelType"]).toBe(surface.modelType);
 
       /*
-       * Exactly the resource and nothing else: an untouched Filter & Sort adds
+       * Exactly the resource and nothing else: an untouched sort and filter add
        * nothing to the query, and the id is the one in the address (or, for
        * the embedded feed, the prop) - not the project id one segment over.
        */
@@ -614,7 +696,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
 
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       // The icon is chosen from the event type, so it has to be selected.
       expect(
@@ -622,14 +704,22 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       ).toBe(true);
 
       /*
-       * The button says what the feed is showing without being opened, as
-       * its description and its tooltip.
+       * Sort, filter and Refresh are behind the ⋯ alone: no button of their
+       * own, newest first ticked, and no filter box over an unfiltered feed.
        */
-      const summary: string = getExpectedSummary(surface, DEFAULT_FEED_OPTIONS);
-      const trigger: HTMLElement = getFilterAndSortButton();
+      const card: HTMLElement = screen.getByTestId("card");
 
-      expect(trigger).toHaveAccessibleDescription(summary);
-      expect(trigger).toHaveAttribute("title", summary);
+      expect(
+        Array.from(card.querySelectorAll('[aria-haspopup="menu"]')),
+      ).toEqual([getMoreButton()]);
+      expect(
+        within(card).queryByRole("button", { name: "Refresh" }),
+      ).toBeNull();
+      expect(
+        within(card).queryByRole("button", { name: /Filter|Sort/ }),
+      ).toBeNull();
+      expect(getCheckedSortOrder()).toBe("Newest first");
+      expect(getFilterBoxTitle()).toBeNull();
     },
   );
 
@@ -640,7 +730,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       await waitForFeed(1);
 
       const eventTypes: Array<string> = getEventTypes(surface);
-      const entries: Array<ChecklistEntry> = readChecklist(openFeedOptions());
+      const entries: Array<ChecklistEntry> = readChecklist(openFilterDialog());
 
       expect(eventTypes.length).toBeGreaterThan(0);
       expect(entries).toHaveLength(eventTypes.length);
@@ -657,7 +747,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
             label: getFeedEventTypeLabel(eventType),
             icon: resolveResourceFeedIcon({
               eventType: eventType,
-              getIcon: surface.getIcon,
+              getKind: surface.getKind,
             }),
           };
         })
@@ -688,7 +778,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       render(surface.mount(resourceId));
       await waitForFeed(1);
 
-      const entries: Array<ChecklistEntry> = readChecklist(openFeedOptions());
+      const entries: Array<ChecklistEntry> = readChecklist(openFilterDialog());
       const firstEntry: ChecklistEntry | undefined = entries[0];
 
       expect(firstEntry).toBeDefined();
@@ -702,6 +792,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       expect(tickedEventType).toBeDefined();
 
       fireEvent.click(firstEntry!.checkbox);
+      applyFilterDialog();
       await waitForFeed(2);
 
       const request: GetListRequest = mockGetListCalls[1]!;
@@ -722,7 +813,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       // A new filter reads the newest window again, not the rows on screen.
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       // Nothing matched, and the feed says the filter is why.
       expect(
@@ -730,15 +821,15 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       ).toBeInTheDocument();
 
       /*
-       * The button's description now says the feed is narrowed - to one of
-       * this product's event types, not one of some other enum's.
+       * The box over the feed says it is narrowed - to one of this product's
+       * event types, counted over this product's enum, not some other one's.
        */
-      expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-        getExpectedSummary(surface, {
-          sortOrder: SortOrder.Descending,
-          eventTypes: [tickedEventType!],
-        }),
+      expect(getFilterBoxTitle()).toBe(
+        `Showing 1 of ${getEventTypes(surface).length} event types`,
       );
+      expect(
+        screen.getByTestId(`feed-filter-chip-${tickedEventType}`),
+      ).toHaveTextContent(firstEntry!.label);
 
       /*
        * The filter narrows one look at one resource. It is not remembered,
@@ -776,7 +867,8 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       const view: RenderResult = render(surface.mount(firstResourceId));
       await waitForFeed(1);
 
-      fireEvent.click(readChecklist(openFeedOptions())[0]!.checkbox);
+      fireEvent.click(readChecklist(openFilterDialog())[0]!.checkbox);
+      applyFilterDialog();
       await waitForFeed(2);
 
       // The first resource's feed really was narrowed.
@@ -793,7 +885,6 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       ).toBeInTheDocument();
 
       // The reader follows a link to another resource of the same product.
-      closeFeedOptions();
       view.rerender(surface.mount(nextResourceId));
       await waitForFeed(3);
 
@@ -810,26 +901,23 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       );
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       /*
        * The page agrees with the request: an empty feed is the resource's
-       * own empty state, not "nothing matches", and the button no longer
-       * says the feed is narrowed.
+       * own empty state, not "nothing matches", and there is no box saying
+       * the feed is narrowed.
        */
       expect(
         screen.queryByText(FILTERED_FEED_NO_ITEMS_MESSAGE),
       ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("feed-options-count"),
-      ).not.toBeInTheDocument();
-      expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-        getExpectedSummary(surface, DEFAULT_FEED_OPTIONS),
-      );
+      expect(getFilterBoxTitle()).toBeNull();
 
-      for (const entry of readChecklist(openFeedOptions())) {
+      for (const entry of readChecklist(openFilterDialog())) {
         expect(entry.checkbox).not.toBeChecked();
       }
+
+      cancelFilterDialog();
 
       // And nothing asked for the old filter afterwards either.
       expect(mockGetListCalls).toHaveLength(3);
@@ -855,17 +943,14 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       // Reversing the loaded rows would show the newest ten upside down.
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Ascending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
       expect(Object.keys(getQuery(request))).toEqual([
         surface.resourceIdColumn,
       ]);
 
-      expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-        getExpectedSummary(surface, {
-          sortOrder: SortOrder.Ascending,
-          eventTypes: [],
-        }),
-      );
+      // The ⋯ menu ticks the new order; a reversed feed is not a filtered one.
+      expect(getCheckedSortOrder()).toBe("Oldest first");
+      expect(getFilterBoxTitle()).toBeNull();
 
       /*
        * One key written, holding the new order. Which key it is does not
@@ -889,9 +974,7 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
       expect(mockGetListCalls[0]?.["sort"]).toEqual({
         postedAt: SortOrder.Ascending,
       });
-      expect(
-        within(openFeedOptions()).getByRole("radio", { name: "Oldest first" }),
-      ).toHaveAttribute("aria-checked", "true");
+      expect(getCheckedSortOrder()).toBe("Oldest first");
     },
   );
 
@@ -981,9 +1064,17 @@ describe("Resource feed pages - Filter & Sort on the real pages", () => {
         })
         .sort(byName),
     ).toEqual(
-      FEED_PAGES.map((spec: FeedPageSpec): Array<string> => {
-        return [spec.product];
-      }).sort(byName),
+      Array.from(
+        new Set<string>(
+          SURFACES.map((surface: ResourceFeedSurface): string => {
+            return surface.feedProduct;
+          }),
+        ),
+      )
+        .map((product: string): Array<string> => {
+          return [product];
+        })
+        .sort(byName),
     );
 
     // Spelled out for the one product shown twice.
@@ -1022,7 +1113,7 @@ describe("SLO feed - page and embedded feed", () => {
     await waitForFeed(1);
 
     const rows: Array<ChecklistRow> = toChecklistRows(
-      readChecklist(openFeedOptions()),
+      readChecklist(openFilterDialog()),
     );
 
     cleanup();
@@ -1104,7 +1195,7 @@ describe("SLO feed - page and embedded feed", () => {
       expect(
         resolveResourceFeedIcon({
           eventType: eventType,
-          getIcon: getSloFeedEventIcon,
+          getKind: getSloFeedEventKind,
         }),
       ).toBe(ownIcon);
       expect(ownIcon).not.toBe(getIconForEventType(eventType));

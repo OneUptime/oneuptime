@@ -1,6 +1,6 @@
 import Team from "../../Models/DatabaseModels/Team";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import TeamService from "./TeamService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -14,8 +14,9 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -24,19 +25,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         scheduledMaintenanceId: true,
         projectId: true,
         teamId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -81,7 +77,8 @@ export class Service extends DatabaseService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `Removed team **${team.name}** from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown:
+                mdText`Removed team **${team.name}** from the scheduled maintenance as the owner.`.toString(),
               userId: deleteByUserId || undefined,
             },
           );
@@ -125,7 +122,8 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added team **${team.name}** to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown:
+              mdText`Added team **${team.name}** to the scheduled maintenance as the owner.`.toString(),
             userId: createdByUserId || undefined,
           },
         );
@@ -159,6 +157,9 @@ export class Service extends DatabaseService<Model> {
             },
           ),
         teamIds: [teamId!],
+        notificationFor: {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

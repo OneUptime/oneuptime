@@ -1,4 +1,5 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
+import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
 import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
@@ -7,8 +8,10 @@ import ProjectService, {
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -16,6 +19,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -29,17 +33,38 @@ import Reseller from "../../Models/DatabaseModels/Reseller";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../Types/Date";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
+import {
+  NUMBERED_RECORD_KINDS,
+  NumberedRecordKind,
+  RecordNumbering,
+} from "../../Utils/Project/NextNumber";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 /*
  * The reason is free text a customer types into the delete confirmation. The
  * column is unbounded text, so the cap is here.
  */
 export const MAX_DELETION_REASON_LENGTH: number = 5000;
+
+/*
+ * Who may read where a project's numbers stand (GET /project/:id/numbering):
+ * those who may read where they start - the read list of the columns that
+ * hold it, one list for all five kinds (ProjectNumberingApi.test holds them
+ * to it) - so the route tells no one more than the model API would.
+ */
+export function getNumberingReadPermissions(): Array<Permission> {
+  return (
+    new Project().getColumnAccessControlFor(
+      NUMBERED_RECORD_KINDS[0]!.startsAtColumn,
+    )?.read || []
+  );
+}
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
@@ -89,6 +114,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             id: projectId,
             select: {
               paymentProviderCustomerId: true,
+              billingMarketplace: true,
             },
             props: {
               isRoot: true,
@@ -99,33 +125,45 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             throw new BadDataException("Project not found");
           }
 
-          if (!project.paymentProviderCustomerId) {
-            throw new BadDataException("Payment Provider customer not found");
-          }
-
-          const hasPaymentMethods: boolean =
-            await BillingService.hasPaymentMethods(
-              project.paymentProviderCustomerId,
-            );
-
-          if (!hasPaymentMethods) {
-            throw new BadDataException(
-              Errors.BillingService.NO_PAYMENTS_METHODS,
-            );
-          }
-
-          const permissions: Array<UserPermission> =
-            await this.getPermissionsForTenant(req);
-
-          const hasBillingPermission: boolean =
-            permissions.filter((permission: UserPermission) => {
-              return (
-                permission.permission.toString() ===
-                  Permission.ProjectOwner.toString() ||
-                permission.permission.toString() ===
-                  Permission.ManageProjectBilling.toString()
+          if (project.billingMarketplace) {
+            /*
+             * A cloud marketplace pays for this project, so no card is
+             * needed. A custom-priced plan (Enterprise) is agreed with
+             * OneUptime's sales team as a private offer on the marketplace,
+             * and set by OneUptime once it is - never picked here.
+             */
+            if (
+              SubscriptionPlan.isCustomPricingPlan(
+                paymentProviderPlanId,
+                getAllEnvVars(),
+              ) &&
+              !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+            ) {
+              throw new BadDataException(
+                "This plan is arranged with OneUptime's sales team. Please contact sales to move to it.",
               );
-            }).length > 0;
+            }
+          } else {
+            if (!project.paymentProviderCustomerId) {
+              throw new BadDataException("Payment Provider customer not found");
+            }
+
+            const hasPaymentMethods: boolean =
+              await BillingService.hasPaymentMethods(
+                project.paymentProviderCustomerId,
+              );
+
+            if (!hasPaymentMethods) {
+              throw new BadDataException(
+                Errors.BillingService.NO_PAYMENTS_METHODS,
+              );
+            }
+          }
+
+          const hasBillingPermission: boolean = CallerPermission.holdsAnyOf(
+            req as OneUptimeRequest,
+            [Permission.ProjectOwner, Permission.ManageProjectBilling],
+          );
 
           if (
             !hasBillingPermission &&
@@ -142,6 +180,74 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           });
 
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Where each kind of number stands in the project - its prefix, the
+     * highest number given out so far and the number the next record gets
+     * (Utils/Project/NextNumber) - for the Numbering pages' Next Number
+     * card, and for anyone automating a move from another tool.
+     *
+     * The counters behind it are no caller's to read through the model API,
+     * so the answer is read as OneUptime and this route checks its caller
+     * itself, on every request: credentials (401 without - an expired
+     * session is refreshed and sent again), a member or API key of the
+     * project the URL names (getUserMiddleware takes the project from the
+     * caller's own tenantid header, so the two must match), and a
+     * permission that reads the project's numbering settings - the read list
+     * of the columns that hold where numbers start, so the route says no
+     * more than the model API would.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/numbering`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const idParam: string = String(req.params["id"] || "");
+
+          if (
+            !ObjectID.isValidUUID(idParam) ||
+            idParam.toLowerCase() !== projectId.toString().toLowerCase()
+          ) {
+            throw new NotAuthorizedException(
+              "You are not authorized to access this project's data.",
+            );
+          }
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: getNumberingReadPermissions(),
+            errorMessage:
+              "You do not have permission to read this project's numbering.",
+          });
+
+          const numbering: Array<RecordNumbering> =
+            await ProjectService.getNumbering(projectId);
+
+          // Every record created moves it on: never answered from a cache.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            numbering: numbering.map((entry: RecordNumbering): JSONObject => {
+              return {
+                kind: entry.kind as NumberedRecordKind,
+                prefix: entry.prefix,
+                highestNumber: entry.highestNumber,
+                nextNumber: entry.nextNumber,
+                numbersStartAt: entry.numbersStartAt,
+              };
+            }) as JSONArray,
+          });
         } catch (err) {
           next(err);
         }
@@ -205,11 +311,23 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             }
           }
 
-          await ProjectService.deleteOneById({
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectsDeleted: number = await ProjectService.deleteOneById({
             id: projectId,
             deletionReason: deletionReason,
-            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+            props: props,
           });
+
+          // A delete that removed nothing says so, as the plain route does.
+          if (projectsDeleted === 0) {
+            throw await ProjectService.getUnwrittenByIdError({
+              id: projectId,
+              props: props,
+              type: DatabaseRequestType.Delete,
+            });
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
@@ -274,7 +392,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               UserMiddleware.getAccessTokenFromExpressRequest(req);
 
             if (accessToken) {
-              extendedByUserId = JSONWebToken.decode(accessToken).userId;
+              extendedByUserId = JSONWebToken.decode(
+                accessToken,
+                JsonWebTokenPurpose.UserSession,
+              ).userId;
             }
           } catch {
             // Only used for the log line - never block the extension on it.
@@ -401,7 +522,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               UserMiddleware.getAccessTokenFromExpressRequest(req);
 
             if (accessToken) {
-              adjustedByUserId = JSONWebToken.decode(accessToken).userId;
+              adjustedByUserId = JSONWebToken.decode(
+                accessToken,
+                JsonWebTokenPurpose.UserSession,
+              ).userId;
             }
           } catch {
             // Only used for the log line - never block the adjustment on it.
@@ -450,9 +574,24 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             trialEndsAt: true,
             paymentProviderPlanId: true,
             resellerId: true,
+            // A marketplace-billed project has no card to ask for (Header).
+            billingMarketplace: true,
             isFeatureFlagMonitorGroupsEnabled: true,
+            /*
+             * The project's one AI switch: with AI off, the Dashboard draws
+             * no AI action at all (Common/Utils/Suggestions/AiSuggestion),
+             * instead of offering one the server would refuse.
+             */
+            enableAi: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
+            /*
+             * A project a master admin blocked stays in the list, marked: the
+             * Dashboard shows it as blocked rather than as a project that
+             * vanished, and its picker still switches to the others. Its own
+             * members are told only that their project is blocked.
+             */
+            isBlocked: true,
           };
 
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(

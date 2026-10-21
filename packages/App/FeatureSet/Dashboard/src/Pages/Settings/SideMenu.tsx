@@ -6,9 +6,23 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  const externalMcpServerViewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW] as Route,
+  );
+
+  /*
+   * Every page here is set up once and revisited rarely, so only Basic (the
+   * project itself and its labels) starts open. The other sections fold down
+   * to their titles, which read as an index of what can be configured, and
+   * each opens by itself on its own pages. Most of them fold by their title
+   * (Workspace, Notifications, AI, Advanced, Security, Audit Logs, Danger
+   * Zone: see SideMenuSectionState.ts); Telemetry & APM and Billing say so
+   * here.
+   */
   const sections: SideMenuSectionProps[] = [
     {
       title: "Basic",
@@ -54,10 +68,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.MicrosoftTeams,
         },
+        {
+          link: {
+            title: "Video Calls",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_VIDEO_CALLS] as Route,
+            ),
+          },
+          icon: IconProp.VideoCamera,
+        },
       ],
     },
     {
       title: "Telemetry & APM",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -115,6 +139,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     {
       title: "AI",
       items: [
+        /*
+         * First, and outside the billing-only items below: the project's AI
+         * switches must be reachable on every install.
+         */
+        {
+          link: {
+            title: "AI Features",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
         {
           link: {
             title: "LLM Providers",
@@ -126,12 +163,16 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
-            title: "AI Guardrails",
+            title: "External MCP Servers",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route,
+              RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          // A server's own page keeps it marked: the server is one of these.
+          activeRoute: Navigation.isOnThisPage(externalMcpServerViewRoute)
+            ? externalMcpServerViewRoute
+            : undefined,
+          icon: IconProp.PuzzlePiece,
         },
         ...(BILLING_ENABLED
           ? [
@@ -166,34 +207,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
       ],
     },
-    /*
-     * Runners execute runbook steps AND AI code fixes, so they sit on their
-     * own rather than under either — they used to live under Runbook settings,
-     * which stopped being true when the AI agent merged into them.
-     */
-    {
-      title: "Runners",
-      items: [
-        {
-          link: {
-            title: "Runners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
-            ),
-          },
-          icon: IconProp.Terminal,
-        },
-        {
-          link: {
-            title: "Credentials",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route,
-            ),
-          },
-          icon: IconProp.Key,
-        },
-      ],
-    },
     {
       title: "Advanced",
       items: [
@@ -224,6 +237,22 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Flag,
         },
+        /*
+         * "This should be in the advanced section in the side menu." (the
+         * maintainer): a project brings its team over from another tool
+         * once, when it starts, so the import waits here, last, after the
+         * settings people come back to. Search (Cmd+K) finds it by "import"
+         * and by each tool's name, and Advanced opens by itself on its page.
+         */
+        {
+          link: {
+            title: "Import from another tool",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route,
+            ),
+          },
+          icon: IconProp.InboxArrowDown,
+        },
       ],
     },
     {
@@ -234,15 +263,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             title: "SSO",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SSO] as Route,
-            ),
-          },
-          icon: IconProp.Lock,
-        },
-        {
-          link: {
-            title: "OIDC",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_OIDC] as Route,
             ),
           },
           icon: IconProp.Lock,
@@ -303,6 +323,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     // Insert Billing section before Security (second to last)
     sections.splice(-2, 0, {
       title: "Billing and Invoices",
+      defaultCollapsed: true,
       items: [
         {
           link: {

@@ -1,0 +1,150 @@
+# What the notes say about eBPF and profiling on each preset.
+#
+# On gke-autopilot and eks-fargate the chart leaves both out
+# (presets-privileged_test.yaml), whatever ebpf.enabled and profiling.enabled
+# say. The notes must not list them among what the agent collects, nor offer
+# the command that turns eBPF off, and must say why they are off, so nobody
+# goes looking for traces that cannot arrive. The standard preset's notes are
+# as they were.
+suite: the notes say why the GKE Autopilot and EKS Fargate presets run no eBPF
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: says eBPF and profiling are off on GKE Autopilot, and why
+    set:
+      preset: gke-autopilot
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nPreset: gke-autopilot\\neBPF auto-instrumentation and continuous CPU profiling are off on this preset,\\nwhatever ebpf\\.enabled and profiling\\.enabled say: both need a privileged pod\\non every node, and GKE Autopilot refuses privileged pods\\. To trace your\\nservices, send traces from them with an OpenTelemetry SDK\\.\\n"
+
+  - it: says eBPF and profiling are off on EKS Fargate, and why
+    set:
+      preset: eks-fargate
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nPreset: eks-fargate\\neBPF auto-instrumentation and continuous CPU profiling are off on this preset,\\nwhatever ebpf\\.enabled and profiling\\.enabled say: both need a privileged pod\\non every node, and EKS Fargate runs neither privileged pods nor DaemonSets\\.\\nTo trace your services, send traces from them with an OpenTelemetry SDK\\.\\n"
+
+  - it: lists neither eBPF traces nor flame graphs among what the agent collects on GKE Autopilot
+    set:
+      preset: gke-autopilot
+      profiling.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Application traces & HTTP request metrics"
+      - notMatchRegexRaw:
+          pattern: "Continuous CPU flame graphs"
+
+  - it: lists neither eBPF traces nor flame graphs among what the agent collects on EKS Fargate
+    set:
+      preset: eks-fargate
+      profiling.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Application traces & HTTP request metrics"
+      - notMatchRegexRaw:
+          pattern: "Continuous CPU flame graphs"
+
+  - it: offers no eBPF log command or off switch where eBPF cannot run
+    set:
+      preset: eks-fargate
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "component=ebpf-instrument"
+      - notMatchRegexRaw:
+          pattern: "To turn eBPF auto-instrumentation off"
+
+  - it: says the same with an explicit ebpf.enabled=false, as the docs used to tell people
+    set:
+      preset: gke-autopilot
+      ebpf.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\neBPF auto-instrumentation and continuous CPU profiling are off on this preset,\\n"
+
+  - it: warns about no older OBI tag on a preset that runs no OBI
+    release:
+      upgrade: true
+    set:
+      preset: gke-autopilot
+      chartDefaultsVersion: "0.6.0"
+      ebpf.image.tag: v0.9.0
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+
+  - it: lists eBPF traces and offers the off switch on the standard preset
+    set:
+      preset: standard
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation \\(DaemonSet, no code changes\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\nTo turn eBPF auto-instrumentation off:\\n"
+      - notMatchRegexRaw:
+          pattern: "are off on this preset"
+
+  - it: lists flame graphs on the standard preset when profiling is on
+    set:
+      profiling.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Continuous CPU flame graphs from every process on every node"
+      - notMatchRegexRaw:
+          pattern: "are off on this preset"
+
+  - it: says nothing about privileged pods with no preset set
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "privileged"
+      - notMatchRegexRaw:
+          pattern: "\\nPreset:"
+
+  # The collecting list names what the chart rendered: on EKS Fargate no
+  # DaemonSet runs, so no kubelet or cAdvisor metrics; on GKE Autopilot the
+  # node collector runs without hostPath, so no OS metrics.
+  - it: lists no node collector metrics on EKS Fargate, which runs no DaemonSet
+    set:
+      preset: eks-fargate
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "\\(kubeletstats\\)"
+      - notMatchRegexRaw:
+          pattern: "cAdvisor: CFS throttling"
+      - notMatchRegexRaw:
+          pattern: "Per-node OS metrics"
+      - matchRegexRaw:
+          pattern: "\\nThe agent is now collecting:\\n  - Cluster-level metrics: deployments, replicas, pod phases \\(k8s_cluster\\)\\n"
+
+  - it: lists kubelet and cAdvisor metrics but no OS metrics on GKE Autopilot
+    set:
+      preset: gke-autopilot
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
+      - notMatchRegexRaw:
+          pattern: "Per-node OS metrics"
+
+  - it: lists every node collector metric on the standard preset
+    set:
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe agent is now collecting:\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
+      - matchRegexRaw:
+          pattern: "\\n  - Per-node OS metrics \\(disk I/O, filesystem inodes, NIC errors, paging, load average\\)\\n"

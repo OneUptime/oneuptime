@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeLabelRule from "../../Models/DatabaseModels/AlertEpisodeLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -9,6 +10,11 @@ import LabelService from "./LabelService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -23,6 +29,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertEpisodeLabelRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodeLabelRule>
@@ -118,6 +126,7 @@ class AlertEpisodeLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     episode: AlertEpisode;
     rules: Array<AlertEpisodeLabelRule>;
@@ -172,11 +181,23 @@ class AlertEpisodeLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: episode.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of alert episode label rules",
+      logAttributes: {
+        projectId: episode.projectId.toString(),
+        episodeId: episode.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -250,36 +271,24 @@ class AlertEpisodeLabelRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
-
-      const labelsPart: string =
-        labelNames.length > 0
-          ? labelNames
-              .map((n: string) => {
-                return `\n- ${n}`;
-              })
-              .join("")
-          : "\n- (no named labels)";
-
-      const feedInfoInMarkdown: string = `🏷️ **Alert Episode Label Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAdded the following label${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🏷️",
+          ruleKind: "Alert Episode Label Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAdded the following label${
         labelNames.length === 1 ? "" : "s"
-      } to the episode:${labelsPart}`;
+      } to the episode:\n${FeedMarkdown.bulletList(labelNames, {
+        whenEmpty: "(no named labels)",
+      })}`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,
         projectId: episode.projectId,
         alertEpisodeFeedEventType: AlertEpisodeFeedEventType.LabelRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -379,8 +388,7 @@ class AlertEpisodeLabelRuleEngineServiceClass
     rule: AlertEpisodeLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in alert episode label rule ${rule.id}: ${pattern}`,

@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -81,7 +83,10 @@ const toneClassNames: Record<StatTileTone, ToneClassNames> = {
 const StatTile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const tone: ToneClassNames = toneClassNames[props.tone || "neutral"];
+  // Callers hand over English labels; the tile shows them in the reader's language.
+  const label: string = translator.translateText(props.label) || props.label;
 
   const body: ReactElement = (
     <>
@@ -96,7 +101,7 @@ const StatTile: FunctionComponent<ComponentProps> = (
         >
           {props.value}
         </div>
-        <div className="truncate text-xs text-gray-500">{props.label}</div>
+        <div className="truncate text-xs text-gray-500">{label}</div>
       </div>
     </>
   );
@@ -111,7 +116,7 @@ const StatTile: FunctionComponent<ComponentProps> = (
   return (
     <button
       type="button"
-      aria-label={props.ariaLabel || props.label}
+      aria-label={translator.translateText(props.ariaLabel) || label}
       aria-pressed={Boolean(props.isActive)}
       onClick={props.onClick}
       className={`${baseClassName} text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${

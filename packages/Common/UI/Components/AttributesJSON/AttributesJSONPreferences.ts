@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import {
   ATTRIBUTES_JSON_FORMATS,
   AttributesJSONFormat,
@@ -163,13 +164,13 @@ export function useAttributesView(): [
 export const ATTRIBUTES_JSON_FORMAT_LABELS: Readonly<
   Record<AttributesJSONFormat, string>
 > = {
-  flat: "Flat",
-  nested: "Nested",
+  flat: translationKey("Flat"),
+  nested: translationKey("Nested"),
 };
 
 export const ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS: Readonly<
   Record<AttributesJSONFormat, string>
 > = {
-  flat: "Dotted keys, exactly as recorded",
-  nested: "Dots expanded into objects",
+  flat: translationKey("Dotted keys, exactly as recorded"),
+  nested: translationKey("Dots expanded into objects"),
 };

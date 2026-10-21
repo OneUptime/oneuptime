@@ -55,7 +55,12 @@ const ActiveIncidentEpisodes: FunctionComponent<
         isDeleteable={false}
         query={{
           currentIncidentState: {
-            order: 1,
+            /*
+             * In the state new ones start in - not "the state numbered
+             * 1": states are dragged into any order, and the first one
+             * need not be where new ones start.
+             */
+            isCreatedState: true,
           },
         }}
         fetchRequestOptions={
@@ -78,9 +83,10 @@ const ActiveIncidentEpisodes: FunctionComponent<
         cardProps={{
           title: "Active Incident Episodes",
           description:
-            "Here is a list of active incident episodes for all of the projects you are a part of.",
+            "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
-        noItemsMessage={"No active incident episodes found."}
+        noItemsMessage="No active episodes. All episodes are resolved."
+        emptyState={{ isAllClear: true }}
         singularName="Active Incident Episode"
         pluralName="Active Incident Episodes"
         onViewPage={(item: IncidentEpisode): Promise<Route> => {

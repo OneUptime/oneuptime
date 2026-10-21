@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
 import Dictionary from "Common/Types/Dictionary";
 
 export interface DataTypeDocumentation {
@@ -389,9 +390,10 @@ export default class DataTypeUtil {
    *        "HashedString" → "Hashed String", "IP" → "IP"
    */
   private static pascalCaseToDisplayString(name: string): string {
-    return name
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+    return splitCapitalRunsBeforeWords(
+      name.replace(/([a-z])([A-Z])/g, "$1 $2"),
+      " ",
+    );
   }
 
   /*

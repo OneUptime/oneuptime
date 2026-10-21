@@ -7,17 +7,11 @@ import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAut
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 
-export interface MicrosoftTeamsAction {
-  actionType: string;
-  actionValue?: string;
-}
-
 export interface MicrosoftTeamsRequest {
   isAuthorized: boolean;
   projectId: ObjectID;
   authToken: string;
   payloadType: string;
-  actions?: Array<MicrosoftTeamsAction>;
   userId?: string;
   teamId?: string;
   tenantId?: string;
@@ -25,6 +19,14 @@ export interface MicrosoftTeamsRequest {
   messageId?: string;
   payload?: JSONObject;
 }
+
+/*
+ * The Teams user has not connected their Microsoft Teams account to a
+ * OneUptime user in this project. Still a BadDataException, as before, but a
+ * type of its own, so the bot can tell the user where to connect the account
+ * instead of answering with a generic failure.
+ */
+export class MicrosoftTeamsAccountNotLinkedException extends BadDataException {}
 
 export default class MicrosoftTeamsAuthAction {
   @CaptureSpan()
@@ -65,10 +67,22 @@ export default class MicrosoftTeamsAuthAction {
         return workspaceUserAuthToken.userId;
       }
 
-      throw new BadDataException(
+      throw new MicrosoftTeamsAccountNotLinkedException(
         "No OneUptime user linked to this Microsoft Teams user. Please authenticate with Microsoft Teams.",
       );
     } catch (error) {
+      // An account nobody has connected yet is expected, not a server error.
+      if (error instanceof MicrosoftTeamsAccountNotLinkedException) {
+        logger.debug(
+          "No OneUptime user linked to Teams user: " + data.teamsUserId,
+          {
+            projectId: data.projectId.toString(),
+            workspaceUserId: data.teamsUserId,
+          },
+        );
+        throw error;
+      }
+
       logger.error(
         "Error finding OneUptime user for Teams user: " + data.teamsUserId,
         {

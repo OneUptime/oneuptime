@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -30,6 +31,9 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 /*
  * Cap the number of alerts we list inline in the email body. Anything beyond
@@ -142,9 +146,11 @@ RunCron(
             } as Select<Project>,
             currentAlertState: {
               name: true,
+              color: true,
             } as Select<AlertState>,
             alertSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -180,10 +186,12 @@ RunCron(
         select: {
           _id: true,
           title: true,
+          isPrivate: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -258,8 +266,10 @@ RunCron(
         )
       ).toString();
 
-      const episodeFeedText: string = `🔔 **Owner Alerts Added to Episode Notification Sent**:
-      Notification sent to owners because ${alertCountInBatch} alert(s) were added to [Alert Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
+      const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        memberNoun: "alert",
+        count: alertCountInBatch,
+      });
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
@@ -278,10 +288,13 @@ RunCron(
                 alert.alertNumberWithPrefix ||
                 (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
-              return {
-                alertTitle: alert.title || "",
+              const alertForTemplate: JSONObject = {
                 alertNumber: alertNumberStr,
                 alertSeverity: alert.alertSeverity?.name || "Not Set",
+                ...EmailColorUtil.getTemplateVariables(
+                  "alertSeverity",
+                  alert.alertSeverity?.color,
+                ),
                 addedAt:
                   OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                     date:
@@ -291,6 +304,25 @@ RunCron(
                   }),
                 alertViewLink: alertLink,
               };
+
+              /*
+               * A private alert is seen only by its own owners and the
+               * project's owners and admins, and the episode's owners are
+               * often none of those - the grouping engine adds private alerts
+               * to episodes by itself. So its title never goes into this
+               * email, whoever receives it, as IncidentAlertService keeps a
+               * private end's title out of the other side's feed entry. Its
+               * number and link are kept (opening the link is subject to the
+               * alert's own privacy), and the template names it "Private
+               * alert" where the title would be.
+               */
+              if (alert.isPrivate === true) {
+                alertForTemplate["isPrivate"] = "true";
+              } else {
+                alertForTemplate["alertTitle"] = alert.title || "";
+              }
+
+              return alertForTemplate;
             }),
           );
 
@@ -299,7 +331,15 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentAlertState?.color,
+            ),
             episodeSeverity: episode.alertSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.alertSeverity?.color,
+            ),
             alertCount: alertCountInBatch.toString(),
             alertCountLabel: alertCountInBatch === 1 ? "alert" : "alerts",
             remainingCount: remainingCount.toString(),
@@ -330,7 +370,7 @@ RunCron(
               : `${alertCountInBatch} new alerts were added to alert episode ${episodeNumberStr} (${episode.title}).`;
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(summaryLine),
           };
 
           const callMessage: CallRequestMessage = {
@@ -376,7 +416,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email}) — ${alertCountInBatch} alert(s)\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              mdText`${OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              })}, told of ${alertCountInBatch === 1 ? "1 alert" : `${alertCountInBatch} alerts`}`,
+            );
         } catch (e) {
           logger.error(
             "Error in sending alert-added-to-episode batch notification",

@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../Models/DatabaseModels/MonitorLabelRule";
@@ -8,6 +9,11 @@ import MonitorService from "./MonitorService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -22,6 +28,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class MonitorLabelRuleEngineServiceClass
   implements RuleRunEngine<Monitor, MonitorLabelRule>
@@ -108,6 +116,7 @@ class MonitorLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     monitor: Monitor;
     rules: Array<MonitorLabelRule>;
@@ -171,11 +180,23 @@ class MonitorLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: monitor.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of monitor label rules",
+      logAttributes: {
+        projectId: monitor.projectId.toString(),
+        monitorId: monitor.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -262,36 +283,24 @@ class MonitorLabelRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
-
-      const labelsPart: string =
-        labelNames.length > 0
-          ? labelNames
-              .map((n: string) => {
-                return `\n- ${n}`;
-              })
-              .join("")
-          : "\n- (no named labels)";
-
-      const feedInfoInMarkdown: string = `🏷️ **Monitor Label Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAdded the following label${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🏷️",
+          ruleKind: "Monitor Label Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAdded the following label${
         labelNames.length === 1 ? "" : "s"
-      } to the monitor:${labelsPart}`;
+      } to the monitor:\n${FeedMarkdown.bulletList(labelNames, {
+        whenEmpty: "(no named labels)",
+      })}`;
 
       await MonitorFeedService.createMonitorFeedItem({
         monitorId: monitor.id,
         projectId: monitor.projectId,
         monitorFeedEventType: MonitorFeedEventType.LabelRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -376,8 +385,7 @@ class MonitorLabelRuleEngineServiceClass
     rule: MonitorLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in monitor label rule ${rule.id}: ${pattern}`);
       return false;

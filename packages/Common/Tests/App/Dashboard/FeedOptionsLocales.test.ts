@@ -14,13 +14,16 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The "Filter & Sort" control on every dashboard activity feed looks each of
- * its strings up in the Dashboard locale files by its English text - its own
- * sentences, the two sort choices, the filtered empty state, and the label of
- * every event type in the checklist. A string with no entry silently stays
- * English, and a translation that drops or renames a {{placeholder}} shows a
- * raw brace or a missing number. This pins the English keys to what the code
- * renders and every other language to having a usable translation of each.
+ * Every dashboard activity feed keeps its sort order, its event type filter
+ * and Refresh behind the ⋯ More button of its header, and shows a box over a
+ * filtered feed. Each of their strings is looked up in the Dashboard locale
+ * files by its English text - the menu's items, the two sort choices, the
+ * filter dialog's sentences, the box's title and buttons, the filtered empty
+ * state, and the label of every event type in the checklist. A string with no
+ * entry silently stays English, and a translation that drops or renames a
+ * {{placeholder}} shows a raw brace or a missing number. This pins the English
+ * keys to what the code renders and every other language to having a usable
+ * translation of each.
  *
  * The event types are discovered from the feed models on disk, not listed
  * here, so a feed model or event type added later needs its label translated
@@ -45,8 +48,19 @@ const DASHBOARD_LOCALES: string = path.join(
   "Locales",
 );
 
-// The sentence the trigger used as its accessible name before it was retired.
-const RETIRED_KEY: string = "Filter and sort feed: {{summary}}";
+/*
+ * Sentences of the retired "Filter & Sort" button: its accessible name before
+ * that was retired, then its label, its panel's name and the summary of the
+ * view it described. Nothing renders them now, so no locale may keep them.
+ */
+const RETIRED_KEYS: Array<string> = [
+  "Filter and sort feed: {{summary}}",
+  "Filter & Sort",
+  "Filter and sort feed",
+  "{{sortOrder}}, all event types",
+  "{{sortOrder}}, {{selected}} of {{total}} event types",
+  "{{sortOrder}}, {{selected}} of {{total}} event type",
+];
 
 const FEED_EVENT_TYPE_ENUM_PATTERN: RegExp =
   /export enum (\w+FeedEventType)\b/g;
@@ -144,13 +158,20 @@ const unique: Unique = (values: Array<string>): Array<string> => {
 const FEED_EVENT_TYPE_ENUMS: Array<FeedEventTypeEnum> =
   findFeedEventTypeEnums();
 
-// The control's own words, exactly as it passes them to the translator.
+/*
+ * The controls' own words, exactly as they pass them to the translator, and
+ * the shared ones they draw: the ⋯ button's name, and the filter box's Edit
+ * Filters and Clear Filters.
+ */
 const CONTROL_KEYS: Array<string> = unique([
   ...Object.values(FEED_OPTIONS_TEXT),
   ...FEED_SORT_ORDER_OPTIONS.map((option: FeedSortOrderOption): string => {
     return option.label;
   }),
   FILTERED_FEED_NO_ITEMS_MESSAGE,
+  "More options",
+  "Edit Filters",
+  "Clear Filters",
 ]);
 
 // The checklist's labels, which are translated by their English text too.
@@ -172,7 +193,7 @@ const OTHER_LANGUAGES: Array<string> =
     return code !== DEFAULT_DASHBOARD_LANGUAGE;
   });
 
-describe("Filter & Sort translations in the Dashboard locales", () => {
+describe("feed menu, filter and filter box translations in the Dashboard locales", () => {
   test("the feed models on disk were found and loaded", () => {
     // An empty or unloaded scan would make every check below vacuous.
     expect(FEED_EVENT_TYPE_ENUMS.length).toBeGreaterThan(0);
@@ -227,7 +248,7 @@ describe("Filter & Sort translations in the Dashboard locales", () => {
     },
   );
 
-  test("the retired accessible-name sentence is in no locale file", () => {
+  test("the retired Filter & Sort sentences are in no locale file", () => {
     const localeFiles: Array<string> = fs
       .readdirSync(DASHBOARD_LOCALES)
       .filter((fileName: string): boolean => {
@@ -236,15 +257,26 @@ describe("Filter & Sort translations in the Dashboard locales", () => {
 
     expect(localeFiles.length).toBeGreaterThan(1);
 
-    const stillThere: Array<string> = localeFiles.filter(
-      (fileName: string): boolean => {
-        return Object.prototype.hasOwnProperty.call(
-          readLocale(fileName),
-          RETIRED_KEY,
-        );
+    const stillThere: Array<string> = localeFiles.flatMap(
+      (fileName: string): Array<string> => {
+        const locale: Record<string, unknown> = readLocale(fileName);
+
+        return RETIRED_KEYS.filter((key: string): boolean => {
+          return Object.prototype.hasOwnProperty.call(locale, key);
+        }).map((key: string): string => {
+          return `${fileName}: ${key}`;
+        });
       },
     );
 
     expect(stillThere).toEqual([]);
+  });
+
+  test("no retired sentence is still a control key", () => {
+    expect(
+      CONTROL_KEYS.filter((key: string): boolean => {
+        return RETIRED_KEYS.includes(key);
+      }),
+    ).toEqual([]);
   });
 });

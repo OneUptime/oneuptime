@@ -1,3 +1,4 @@
+import Color from "../../Color";
 import ObjectID from "../../ObjectID";
 import {
   MonitorRecommendationSeverity,
@@ -17,6 +18,8 @@ export interface MonitorRecommendationSeverityOption {
   name: string;
   // Project-defined rank. 1 is the most severe. May be absent on legacy rows.
   order?: number | undefined;
+  // The severity's colour, for the dot a picker of it shows before its name.
+  color?: Color | undefined;
 }
 
 /*
@@ -133,9 +136,9 @@ export default class MonitorRecommendationSeverityMapper {
    * no `order` column.
    *
    * The monitor form builds its severity dropdowns from an API list sorted
-   * `{ order: SortOrder.Ascending }` and keeps only `{ value, label }` (see
-   * App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx), so
-   * position IS the rank by the time it reaches a template picker.
+   * `{ order: SortOrder.Ascending }` and keeps only `{ value, label, color }`
+   * (see App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx),
+   * so position IS the rank by the time it reaches a template picker.
    * Synthesising `order` from the index rather than adding a second ranking
    * rule keeps `getDefaultSeverityMapping` the only place that decides what
    * Critical and Warning mean.

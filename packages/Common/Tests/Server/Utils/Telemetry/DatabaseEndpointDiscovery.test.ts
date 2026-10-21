@@ -1893,3 +1893,265 @@ describe("isDatabaseEndpointAutoCreateCandidate — per-network names", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * The bug report: the Databases list filled with "Redis
+ * oneuptime-worker.default.svc.cluster.local:46600", ":46482", ":60538", …
+ * — one row per connection the worker opened to Redis. The Kubernetes
+ * agent's eBPF instrumentation (OBI) joined those long-lived connections
+ * mid-stream, read a Redis reply (a pub/sub push, a BullMQ blocking pop's
+ * array) as a command, and swapped the connection's two ends: the CLIENT
+ * span's `server.address` named the worker (resolved from its pod IP) and
+ * `server.port` the worker's ephemeral source port. Every other rule of the
+ * create policy let them through.
+ */
+describe("eBPF-swapped client spans name the client's own socket", () => {
+  const SWAPPED_PORTS: Array<string> = [
+    "46600",
+    "46482",
+    "60538",
+    "49114",
+    "41892",
+    "38616",
+    "45986",
+  ];
+
+  function swappedRows(): Array<DatabaseEndpointRow> {
+    return SWAPPED_PORTS.map((port: string): DatabaseEndpointRow => {
+      return row({
+        dbSystem: "redis",
+        serverAddress: "oneuptime-worker",
+        serverPort: port,
+        callerNamespace: "default",
+        callerCluster: "gke-test-cluster",
+        callCount: "120",
+      });
+    });
+  }
+
+  test("each connection resolves to an endpoint of its own — as the list showed", () => {
+    const endpoints: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows(swappedRows());
+
+    expect(formatted(endpoints).sort()).toEqual(
+      SWAPPED_PORTS.map((port: string): string => {
+        return `oneuptime-worker.default.svc.cluster.local:${port}@gke-test-cluster`;
+      }).sort(),
+    );
+  });
+
+  test("every other rule of the policy would let them through: only the port refuses them", () => {
+    for (const endpoint of resolveDatabaseEndpointRows(swappedRows())) {
+      expect(endpoint.system).toBe("redis");
+      expect(endpoint.scope).toBe("global");
+      expect(endpoint.callCount).toBeGreaterThanOrEqual(10);
+
+      expect(
+        isDatabaseEndpointAutoCreateCandidate({
+          discovered: endpoint,
+          minCalls: 10,
+        }),
+      ).toBe(false);
+
+      // The same endpoint on the server's own port is a database.
+      expect(
+        isDatabaseEndpointAutoCreateCandidate({
+          discovered: {
+            ...endpoint,
+            endpoint: { ...endpoint.endpoint, port: 6379 },
+          },
+          minCalls: 10,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("the real Redis the worker calls, in the same window, is still created", () => {
+    const endpoints: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows([
+        ...swappedRows(),
+        row({
+          dbSystem: "redis",
+          serverAddress: "oneuptime-redis-master",
+          serverPort: "6379",
+          callerNamespace: "default",
+          callerCluster: "gke-test-cluster",
+          callCount: "5000",
+        }),
+      ]);
+
+    const candidates: Array<string> = formatted(
+      endpoints.filter((endpoint: DiscoveredDatabaseEndpoint): boolean => {
+        return isDatabaseEndpointAutoCreateCandidate({
+          discovered: endpoint,
+          minCalls: 10,
+        });
+      }),
+    );
+
+    expect(candidates).toEqual([
+      "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+    ]);
+  });
+
+  test("however busy, a client socket never creates", () => {
+    const [endpoint] = resolveDatabaseEndpointRows([
+      row({
+        dbSystem: "redis",
+        serverAddress: "oneuptime-worker",
+        serverPort: "46600",
+        callerNamespace: "default",
+        callerCluster: "gke-test-cluster",
+        callCount: "100000000",
+      }),
+    ]);
+
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: endpoint!,
+        minCalls: 1,
+      }),
+    ).toBe(false);
+  });
+
+  test("it is not only Redis: any engine's span naming an ephemeral port never creates", () => {
+    for (const [system, address] of [
+      ["postgresql", "orders-api.shop.svc.cluster.local"],
+      ["mysql", "billing.example.com"],
+      ["mongodb", "catalog.example.com"],
+      ["memcached", "web.example.com"],
+    ] as Array<[string, string]>) {
+      const [endpoint] = resolveDatabaseEndpointRows([
+        row({
+          dbSystem: system,
+          serverAddress: address,
+          serverPort: "51234",
+          callerNamespace: "shop",
+          callerCluster: "prod",
+        }),
+      ]);
+
+      expect(endpoint).toBeDefined();
+      expect(
+        isDatabaseEndpointAutoCreateCandidate({
+          discovered: endpoint!,
+          minCalls: 10,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a client's socket is refused whichever attribute named the port", () => {
+    // Legacy semconv carries the port in net.peer.port; it lands in the same column.
+    const target: ReturnType<typeof resolveDatabaseCallTarget> =
+      resolveDatabaseCallTarget({
+        getAttribute: (key: string): unknown => {
+          return (
+            {
+              "db.system": "redis",
+              "net.peer.name": "oneuptime-worker",
+              "net.peer.port": 46600,
+            } as Record<string, unknown>
+          )[key];
+        },
+        caller: {
+          kubernetesNamespace: "default",
+          kubernetesClusterName: "gke-test-cluster",
+          isEphemeral: true,
+        },
+      });
+
+    expect(target).not.toBeNull();
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: {
+          system: target!.system,
+          endpoint: target!.endpoint,
+          scope: target!.scope,
+          callCount: 500,
+        },
+        minCalls: 10,
+      }),
+    ).toBe(false);
+  });
+
+  test("the ingest resolver still keys such a span: only creation is refused", () => {
+    /*
+     * A database a person added by hand on an ephemeral port (a Docker
+     * random host port, say) must still collect the spans that call it,
+     * so the endpoint itself is unchanged.
+     */
+    const [endpoint] = resolveDatabaseEndpointRows([
+      row({
+        dbSystem: "redis",
+        serverAddress: "cache.example.com",
+        serverPort: "32771",
+      }),
+    ]);
+
+    expect(formatted([endpoint!])).toEqual(["cache.example.com:32771"]);
+  });
+});
+
+describe("isDatabaseEndpointAutoCreateCandidate — ports", () => {
+  test("ports up to the ephemeral range create; the range itself does not", () => {
+    for (const [port, expected] of [
+      [5432, true],
+      [6380, true],
+      [25060, true],
+      [30015, true],
+      [32767, true],
+      [32768, false],
+      [49152, false],
+      [60999, false],
+      [65535, false],
+    ] as Array<[number, boolean]>) {
+      expect(
+        isDatabaseEndpointAutoCreateCandidate({
+          discovered: discovered({
+            endpoint: { host: "orders.example.com", port },
+          }),
+          minCalls: 10,
+        }),
+      ).toBe(expected);
+    }
+  });
+
+  test("an engine that listens in the ephemeral range by default still creates there (Db2)", () => {
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: discovered({
+          system: "ibm.db2",
+          endpoint: { host: "ledger.example.com", port: 50000 },
+        }),
+        minCalls: 10,
+      }),
+    ).toBe(true);
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: discovered({
+          system: "ibm.db2",
+          endpoint: { host: "ledger.example.com", port: 50001 },
+        }),
+        minCalls: 10,
+      }),
+    ).toBe(false);
+  });
+
+  test("a managed cluster recorded under an ephemeral port does not create either", () => {
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: discovered({
+          system: "redis",
+          endpoint: {
+            host: "shop.abc123.ng.0001.euw1.cache.amazonaws.com",
+            port: 47000,
+          },
+          displayName: "Redis shop",
+          callCount: 1000,
+        }),
+        minCalls: 10,
+      }),
+    ).toBe(false);
+  });
+});

@@ -92,3 +92,71 @@ export const VERIFY_EMAIL_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const RESET_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/reset-password"),
 );
+
+/*
+ * The public form routes: GET <this>/<shareKey> reads a form's questions and
+ * POST <this>/<shareKey>/submit creates what the form is for from the
+ * answers. Both are anonymous, and on APP_API_URL like the form's other
+ * routes -- a signed-in visitor's session rides along, and the server ignores
+ * it. Only the page's own client (FormAPI) may call them.
+ */
+export const FORM_PUBLIC_API_URL: URL = URL.fromURL(APP_API_URL).addRoute(
+  new Route("/form/public"),
+);
+
+/*
+ * Mails a fresh verification link to an account that signed up but has not
+ * verified its address yet. There is no session at that point, so the request
+ * is authorized by a credential instead: the short-lived resend token /signup
+ * handed back, or a verification token from a link that stopped working. It
+ * never takes an email address -- the link only ever goes to the address the
+ * account already holds.
+ */
+export const RESEND_VERIFICATION_EMAIL_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/resend-verification-email"));
+
+/*
+ * The MCP consent screen's own calls (Pages/McpAuthorize): what an MCP client
+ * is asking for, and the member's answer. They sit under /mcp/oauth beside
+ * the rest of the MCP authorization server rather than under /api, and are
+ * authenticated by the session cookie - which is why they are only ever
+ * called from this page, on this origin. The origin is the API's own: the
+ * same app serves both.
+ */
+const MCP_OAUTH_CONSENT_URL: URL = new URL(
+  APP_API_URL.protocol,
+  APP_API_URL.hostname,
+  new Route("/mcp/oauth/consent"),
+);
+
+export const MCP_OAUTH_CONSENT_DETAILS_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/details"));
+
+export const MCP_OAUTH_CONSENT_APPROVE_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/approve"));
+
+export const MCP_OAUTH_CONSENT_DENY_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/deny"));
+
+/*
+ * The marketplace purchase page's own calls (Pages/MarketplacePurchase): what
+ * a purchase made on AWS, Microsoft or Google Cloud Marketplace is, and the
+ * buyer's choice of project for it. The purchase's claim token travels in an
+ * HttpOnly cookie that is sent with these calls and nothing else - its path is
+ * /api/marketplace, so these must stay under the API's own route.
+ */
+export const MARKETPLACE_PURCHASE_DETAILS_API_URL: URL = URL.fromURL(
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/details"));
+
+export const MARKETPLACE_PURCHASE_COMPLETE_API_URL: URL = URL.fromURL(
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/complete"));
+
+export const MARKETPLACE_PURCHASE_DISMISS_API_URL: URL = URL.fromURL(
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/dismiss"));

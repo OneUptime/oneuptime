@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -73,8 +74,11 @@ const AlertViewIncidents: FunctionComponent<
               _id: true,
               name: true,
               color: true,
+              order: true,
             },
-            sort: {},
+            sort: {
+              order: SortOrder.Ascending,
+            },
           });
         setIncidentStates(result.data);
       } catch {
@@ -220,6 +224,7 @@ const AlertViewIncidents: FunctionComponent<
         actionButtons={[
           {
             title: "View Incident",
+            icon: IconProp.Eye,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: (item: IncidentAlert, onCompleteAction: () => void) => {
               if (item.incident?._id) {

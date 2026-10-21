@@ -24,7 +24,10 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Query from "../../../Server/Types/Database/Query";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
-import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -53,6 +56,25 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
+import { idsNamedBy } from "../TestingUtils/QueryConditions";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService). And the
+ * incident a link is created under is one its creator may read: a member
+ * who is no project admin is looked up with the rule for private incidents
+ * (CreatePermission.checkParentPermission), answered here as found.
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubReadableParents();
+});
 
 /*
  * IncidentAlertService owns the alert <-> incident link. Every refusal and
@@ -178,12 +200,24 @@ beforeEach(() => {
   validator = jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
     .mockResolvedValue(undefined as never);
+  /*
+   * These tests count the service's own lookups. The generic check every
+   * service runs first (ProjectReferencesService) is held to by
+   * ProjectScopedReferencesEverywhere.
+   */
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
   jest.spyOn(logger, "error").mockImplementation((() => {
     // quiet
   }) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {
     // quiet
   }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -292,7 +326,7 @@ describe("onBeforeCreate: what a link must reference", () => {
   test("a root link to another project's record is refused by the project check", async () => {
     validator.mockRejectedValue(
       new BadDataException(
-        "This incident alert link references records that belong to a different project",
+        "This incident alert link references records that are not in this project",
       ) as never,
     );
 
@@ -302,7 +336,7 @@ describe("onBeforeCreate: what a link must reference", () => {
         incidentId: INCIDENT_ID,
         alertId: ALERT_ID,
       }),
-    ).rejects.toThrow("belong to a different project");
+    ).rejects.toThrow("not in this project");
   });
 
   test("a root link does not read the ends as a user", async () => {
@@ -348,6 +382,7 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
     alertRead = jest
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(buildAlert() as never);
+    stubProjectDirectory({});
   });
 
   function create(
@@ -451,8 +486,44 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
     await expect(create()).rejects.toThrow("connection reset");
   });
 
-  test("the user who made the request is recorded as the one who linked it", async () => {
-    const result: OnCreate<IncidentAlert> = await create(
+  /*
+   * Who linked it is the link's creator, which DatabaseService decides for
+   * every record (UserAttribution): it takes whatever creator the request
+   * names out of the write before this hook runs, and stamps the person
+   * making the request after the permission check. These run the real
+   * create path, hook included, and stop right after the hooks.
+   */
+  async function reachedPastTheHooks(
+    props: DatabaseCommonInteractionProps,
+    data: Partial<IncidentAlert>,
+  ): Promise<Record<string, unknown>> {
+    let reached: Record<string, unknown> = {};
+
+    jest
+      .spyOn(
+        IncidentAlertService as unknown as {
+          generateSlug: (createBy: CreateBy<IncidentAlert>) => unknown;
+        },
+        "generateSlug",
+      )
+      .mockImplementation((createBy: CreateBy<IncidentAlert>) => {
+        reached = {
+          ...(createBy.data as unknown as Record<string, unknown>),
+        };
+        throw new Error("past the hooks");
+      });
+
+    await expect(
+      IncidentAlertService.create({ data: buildLink(data), props: props }),
+    ).rejects.toThrow("past the hooks");
+
+    expect(incidentRead).toHaveBeenCalled();
+
+    return reached;
+  }
+
+  test("a user cannot name somebody else as the one who linked it, under either name", async () => {
+    const reached: Record<string, unknown> = await reachedPastTheHooks(
       userProps(Permission.ProjectMember),
       {
         createdByUserId: OTHER_USER_ID,
@@ -460,19 +531,27 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
       },
     );
 
-    expect(result.createBy.data.createdByUserId?.toString()).toBe(
-      USER_ID.toString(),
-    );
-    expect(result.createBy.data.createdByUser).toBeUndefined();
+    expect(reached["createdByUserId"]).toBeUndefined();
+    expect(reached["createdByUser"]).toBeUndefined();
   });
 
   test("an API key cannot name somebody else as the one who linked it", async () => {
-    const result: OnCreate<IncidentAlert> = await create(
+    const reached: Record<string, unknown> = await reachedPastTheHooks(
       userProps(Permission.ProjectMember, null),
       { createdByUserId: OTHER_USER_ID },
     );
 
+    expect(reached["createdByUserId"]).toBeUndefined();
+    expect(reached["createdByUser"]).toBeUndefined();
+  });
+
+  test("the hook itself names nobody as the one who linked it", async () => {
+    const result: OnCreate<IncidentAlert> = await create(
+      userProps(Permission.ProjectMember),
+    );
+
     expect(result.createBy.data.createdByUserId).toBeUndefined();
+    expect(result.createBy.data.createdByUser).toBeUndefined();
   });
 
   test.each([
@@ -495,6 +574,118 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
       }).not.toThrow();
     },
   );
+});
+
+/*
+ * The project check every service runs (ProjectReferencesService) leaves the
+ * two ends to this service's own hook, so the answer a member gets for an
+ * alert of another project, or one that does not exist, is the one a hidden
+ * alert gets - never a different sentence. Here the checks run for real
+ * against a project directory: the project has INCIDENT_ID and ALERT_ID,
+ * ALERT_ID_2 is another project's, and ALERT_ID_3 is nobody's.
+ */
+describe("the project check and the service's own answer agree", () => {
+  const HIDDEN: string =
+    "The alert to link does not exist in this project, or you do not have access to it.";
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      // quiet
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation((() => {
+      // quiet
+    }) as never);
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: {
+        Incident: [INCIDENT_ID.toString()],
+        Alert: [ALERT_ID.toString()],
+      },
+      elsewhere: [ALERT_ID_2.toString()],
+    });
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+  });
+
+  test.each([
+    ["another project's alert", ALERT_ID_2, OTHER_PROJECT_ID],
+    ["an alert that does not exist", ALERT_ID_3, null],
+  ])(
+    "a member linking %s hears what a hidden alert gets",
+    async (_case: string, alertId: ObjectID, alertProject: ObjectID | null) => {
+      jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(
+          (alertProject ? buildAlert(alertProject) : null) as never,
+        );
+
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: userProps(Permission.ProjectMember),
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(HIDDEN);
+    },
+  );
+
+  test("a link written as root may name only the project's incident and alert", async () => {
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: { isRoot: true },
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(
+        `This incident alert link references records that are not in this project: Alert "${alertId.toString()}". Please pick values from this project and try again.`,
+      );
+    }
+
+    await expect(
+      callHook("onBeforeCreate", {
+        data: buildLink(),
+        props: { isRoot: true },
+      } as CreateBy<IncidentAlert>),
+    ).resolves.toBeDefined();
+  });
+
+  test("a workflow may not point a link at another project's alert", async () => {
+    /*
+     * The link the update writes, of the project: OneUptime's update is
+     * checked in the project of the link it writes. It holds nothing the
+     * update names.
+     */
+    jest.spyOn(IncidentAlertService, "findBy").mockResolvedValue([
+      {
+        _id: "0194a1e7-0000-4000-8000-0000000000d1",
+        projectId: PROJECT_ID,
+      },
+    ] as never);
+
+    const update: (alertId: ObjectID) => Promise<unknown> = (
+      alertId: ObjectID,
+    ): Promise<unknown> => {
+      return callHook("onBeforeUpdate", {
+        query: { _id: "0194a1e7-0000-4000-8000-0000000000d1" },
+        data: { alertId: alertId },
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<IncidentAlert>);
+    };
+
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(update(alertId)).rejects.toThrow(
+        `Alert "${alertId.toString()}"`,
+      );
+      await expect(update(alertId)).rejects.toBeInstanceOf(
+        ProjectScopedReferenceException,
+      );
+    }
+
+    await expect(update(ALERT_ID)).resolves.toBeDefined();
+  });
 });
 
 describe("feed entries", () => {
@@ -532,6 +723,7 @@ describe("feed entries", () => {
     sync = jest
       .spyOn(IncidentAlertService, "syncAlertWithLinkedIncidentState")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function created(data: Partial<IncidentAlert> = {}): IncidentAlert {
@@ -1134,7 +1326,7 @@ describe("feed entries", () => {
 });
 
 describe("onBeforeDelete carries the rows it may delete", () => {
-  test("reads the matching rows as root, pinned to the caller's project", async () => {
+  test("reads the rows the caller may delete in the caller's project, then the delete's own among them as root", async () => {
     const row: IncidentAlert = buildLink();
     row._id = ObjectID.generate().toString();
     const incomplete: IncidentAlert = new IncidentAlert();
@@ -1143,15 +1335,24 @@ describe("onBeforeDelete carries the rows it may delete", () => {
     const findBy: jest.SpyInstance = jest
       .spyOn(IncidentAlertService, "findBy")
       .mockResolvedValue([row, incomplete] as never);
+    // The links the caller may delete.
+    stubRowsCallerMayDelete(IncidentAlertService, () => {
+      return [row, incomplete];
+    });
 
     const result: OnDelete<IncidentAlert> = await callHook<
       OnDelete<IncidentAlert>
     >("onBeforeDelete", {
-      query: { _id: row._id },
+      query: {},
       props: userProps(Permission.ProjectAdmin),
-      limit: 1,
+      limit: 2,
       skip: 0,
     } as DeleteBy<IncidentAlert>);
+
+    // The links the caller may delete are read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query["projectId"],
+    ).toBe(PROJECT_ID);
 
     const args: {
       query: Query<IncidentAlert>;
@@ -1159,15 +1360,16 @@ describe("onBeforeDelete carries the rows it may delete", () => {
       props: DatabaseCommonInteractionProps;
     } = findBy.mock.calls[0]![0];
 
-    expect(args.props).toEqual({ isRoot: true });
+    expect(args.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(args.select).toEqual({
       _id: true,
       incidentId: true,
       alertId: true,
       projectId: true,
     });
-    expect(args.query._id).toBe(row._id);
-    expect(args.query.projectId).toBe(PROJECT_ID);
+    expect(idsNamedBy(args.query._id).sort()).toEqual(
+      [row._id, incomplete._id].sort(),
+    );
 
     expect(result.carryForward).toEqual([
       {
@@ -1258,9 +1460,15 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
   });
 
   test("delete, including the rows it carries forward", async () => {
+    const link: IncidentAlert = buildLink();
+    link._id = ObjectID.generate().toString();
     const findBy: jest.SpyInstance = jest
       .spyOn(IncidentAlertService, "findBy")
-      .mockResolvedValue([] as never);
+      .mockResolvedValue([link] as never);
+    // The link the caller may delete.
+    stubRowsCallerMayDelete(IncidentAlertService, () => {
+      return [link];
+    });
 
     const result: OnDelete<IncidentAlert> = await callHook<
       OnDelete<IncidentAlert>
@@ -1272,6 +1480,9 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
     } as DeleteBy<IncidentAlert>);
 
     expectBothFilters(result.deleteBy.query);
+    expectBothFilters(
+      readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query,
+    );
     expectBothFilters(findBy.mock.calls[0]![0].query);
   });
 
@@ -1311,6 +1522,7 @@ describe("validateAlertIdsForNewIncident", () => {
           return alertRow(new ObjectID(id));
         });
       }) as never);
+    stubProjectDirectory({});
   });
 
   function validate(
@@ -1627,6 +1839,7 @@ describe("linkAlertsToIncident while an incident is declared", () => {
       }): Promise<IncidentAlert> => {
         return args.data;
       }) as never);
+    stubProjectDirectory({});
   });
 
   test("marks every link as declared with the incident", async () => {
@@ -1751,6 +1964,7 @@ describe("the one incident entry for an incident declared from alerts", () => {
       incidentFeed = jest
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
+      stubProjectDirectory({});
     });
 
     test("reads the alerts as root, pinned to the project, with their privacy", async () => {
@@ -1923,6 +2137,7 @@ describe("copyAlertOwnersToIncident", () => {
     addOwners = jest
       .spyOn(IncidentService, "addOwners")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function copy(
@@ -2158,6 +2373,7 @@ describe("a duplicate caught by the unique index answers like the unique-togethe
       countBy = jest
         .spyOn(IncidentAlertService, "countBy")
         .mockResolvedValue(new PositiveNumber(0) as never);
+      stubProjectDirectory({});
     });
 
     function createLink(): Promise<IncidentAlert> {

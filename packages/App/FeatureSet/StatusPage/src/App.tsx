@@ -1,7 +1,8 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import PageMap from "./Utils/PageMap";
-import RouteMap from "./Utils/RouteMap";
+import RouteMap, { RouteUtil } from "./Utils/RouteMap";
 import StatusPageUtil from "./Utils/StatusPage";
+import { ManageLinkChannels } from "./Pages/Subscribe/ManageLinkRequestPage";
 import {
   executeStatusPageCustomJavaScript,
   getPermittedStatusPageCustomization,
@@ -162,6 +163,12 @@ const ConfirmSubscription: React.LazyExoticComponent<
     };
   });
 });
+const Unsubscribe: React.LazyExoticComponent<AllPagesModule["Unsubscribe"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.Unsubscribe };
+    });
+  });
 const SlackSubscribe: React.LazyExoticComponent<
   AllPagesModule["SlackSubscribe"]
 > = lazy(() => {
@@ -197,19 +204,11 @@ const PageForbidden: React.LazyExoticComponent<
   });
 });
 
-/*
- * The token-free form of a token-bearing route.
- *
- * Common/Server/Views/Partials/SensitiveUrlToken.ejs takes the reset token out
- * of the path in <head>, before any third-party tag can report the URL, so by
- * the time the router runs the visitor is on /reset-password rather than
- * /reset-password/<token>. Both forms have to resolve to the same page: the
- * :token form is what remains when that bootstrap could not run.
- */
+// The token-free form of a token-bearing route (see RouteUtil.tokenFreeRoute).
 type TokenFreeRouteFunction = (route: string) => string;
 
 const tokenFreeRoute: TokenFreeRouteFunction = (route: string): string => {
-  return route.replace(/\/:token$/, "");
+  return RouteUtil.tokenFreeRoute(route);
 };
 
 const App: () => JSX.Element = () => {
@@ -239,10 +238,30 @@ const App: () => JSX.Element = () => {
     useState<boolean>(false);
   const [enableWebhookSubscribers, setenableWebhookSubscribers] =
     useState<boolean>(false);
+  /*
+   * The page takes only its private users as subscribers: a reader
+   * subscribes by email, with the address they sign in with
+   * (Common/Types/StatusPage/SubscriberRestrictions).
+   */
+  const [subscribeWithSignInEmail, setSubscribeWithSignInEmail] =
+    useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
   const [isPrivateStatusPage, setIsPrivateStatusPage] =
     useState<boolean>(false);
+
+  /*
+   * The channels whose Subscribe page has a Manage Existing Subscription tab,
+   * for the unsubscribe page's way to a new link - and, of them, email and
+   * SMS for the Confirm Subscription page's, when a link to confirm has
+   * expired.
+   */
+  const manageLinkChannels: ManageLinkChannels = {
+    enableEmailSubscribers: enableEmailSubscribers,
+    enableSMSSubscribers: enableSMSSubscribers,
+    enableSlackSubscribers: enableSlackSubscribers,
+    enableMicrosoftTeamsSubscribers: enableMicrosoftTeamsSubscribers,
+  };
 
   const [hasEnabledSSO, setHasEnabledSSO] = useState<boolean>(false);
   const [forceSSO, setForceSSO] = useState<boolean>(false);
@@ -363,10 +382,26 @@ const App: () => JSX.Element = () => {
           allowSubscribersToChooseEventTypes,
         );
 
-        setenableSMSSubscribers(enableSMSSubscribers);
-        setenableSlackSubscribers(enableSlackSubscribers);
-        setenableMicrosoftTeamsSubscribers(enableMicrosoftTeamsSubscribers);
-        setenableWebhookSubscribers(enableWebhookSubscribers);
+        const limitSubscribersToPrivateUsers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.limitSubscribersToPrivateUsers",
+          ) === true;
+
+        // A page that takes only its private users takes only their email.
+        setSubscribeWithSignInEmail(limitSubscribersToPrivateUsers);
+        setenableSMSSubscribers(
+          enableSMSSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableSlackSubscribers(
+          enableSlackSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableMicrosoftTeamsSubscribers(
+          enableMicrosoftTeamsSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableWebhookSubscribers(
+          enableWebhookSubscribers && !limitSubscribersToPrivateUsers,
+        );
         setenableEmailSubscribers(enableEmailSubscribers);
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
@@ -577,6 +612,7 @@ const App: () => JSX.Element = () => {
             element={
               <EmailSubscribe
                 pageRoute={RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route}
+                subscribeWithSignInEmail={subscribeWithSignInEmail}
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
                 }
@@ -602,6 +638,40 @@ const App: () => JSX.Element = () => {
             element={
               <SMSSubscribe
                 pageRoute={RouteMap[PageMap.SUBSCRIBE_SMS] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          {/*
+           * The subscriber's manage page, in both the form its link arrives in
+           * and the token-free form SensitiveUrlToken leaves in the address
+           * bar - which is also where the unsubscribe page's "manage instead"
+           * link goes. The page reads the link's credential from the session,
+           * not from the route.
+           */}
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || "",
+            )}
+            element={
+              <UpdateSubscription
+                pageRoute={RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route}
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
@@ -655,6 +725,36 @@ const App: () => JSX.Element = () => {
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
+                signUpChannels={manageLinkChannels}
+              />
+            }
+          />
+
+          {/*
+           * The unsubscribe page, in both the form its link arrives in and the
+           * token-free form SensitiveUrlToken leaves in the address bar. Like
+           * the sign-in pages it runs none of the page's custom JavaScript.
+           */}
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.UNSUBSCRIBE]?.toString() || "",
+            )}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                manageLinkChannels={manageLinkChannels}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.UNSUBSCRIBE]?.toString() || ""}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                manageLinkChannels={manageLinkChannels}
               />
             }
           />
@@ -756,6 +856,36 @@ const App: () => JSX.Element = () => {
                   onPageLoadComplete();
                 }}
                 pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route}
+                subscribeWithSignInEmail={subscribeWithSignInEmail}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION]?.toString() || "",
+            )}
+            element={
+              <UpdateSubscription
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION] as Route
+                }
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
                 }
@@ -1096,6 +1226,31 @@ const App: () => JSX.Element = () => {
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
                 }
+                signUpChannels={manageLinkChannels}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() || "",
+            )}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                manageLinkChannels={manageLinkChannels}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() || ""}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                manageLinkChannels={manageLinkChannels}
               />
             }
           />

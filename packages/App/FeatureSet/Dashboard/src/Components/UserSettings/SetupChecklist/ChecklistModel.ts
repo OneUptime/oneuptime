@@ -5,15 +5,18 @@ import {
   ReadinessDeliveryContext,
   ReadinessMethodWire,
   ResponderSourceValue,
+  SettingsPageLink,
   UserReadinessWire,
   getCoverageGaps,
-  getPageForRuleType,
   getRuleTypeLabel,
   getSelfAddressedConsequence,
+  getSettingsPageForRuleType,
   getVerifiedMethods,
 } from "../../OnCallPolicy/Readiness/ReadinessTypes";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What a person still has to do in User Settings, in the order that decides
@@ -56,10 +59,10 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
  *
  *   Complete      - nothing to do.
  *   Incomplete    - the reader can fix this, here, now. The only actionable one.
- *   Blocked       - genuinely wrong, and NOT the reader's to fix. A project
- *                   admin has to move first. Rendering this as a task the
- *                   reader has failed to do is how a checklist loses its
- *                   audience.
+ *   Blocked       - genuinely wrong, and NOT the reader's to fix. Somebody
+ *                   else has to move first, and the step names exactly who.
+ *                   Rendering this as a task the reader has failed to do is
+ *                   how a checklist loses its audience.
  *   NotApplicable - does not apply to this person or this project at all (no
  *                   alert severities exist; the project has no Slack). Shown
  *                   greyed rather than hidden ONLY where its absence would
@@ -111,6 +114,11 @@ export interface SetupStep {
    * worse than no link.
    */
   pageMap?: PageMap | undefined;
+  /**
+   * The query that opens `pageMap` the right way: the On-Call Rules page on
+   * the tab this step is about (`{ type: "alerts" }`).
+   */
+  pageQuery?: Dictionary<string> | undefined;
   /** The affordance line, e.g. "Add a notification method". */
   actionTitle: string;
 }
@@ -142,8 +150,8 @@ export interface SetupChecklist {
   completedCount: number;
   totalCount: number;
   /**
-   * Steps that are genuinely wrong but are an admin's to fix, and so are NOT in
-   * the counts above.
+   * Steps that are genuinely wrong but are somebody else's to fix, and so are
+   * NOT in the counts above.
    *
    * Surfaced separately because the alternative is a page that can read "4 of 4
    * steps done" directly beneath "Nothing can reach you yet" with no visible
@@ -246,7 +254,49 @@ export interface SetupChecklistInput {
    * existed keep working; absent reads as unknown, which produces no step.
    */
   calendarFeed?: CalendarFeedProbe | undefined;
+  /**
+   * Whether the reader may turn the project's SMS, call, WhatsApp and
+   * Telegram channels on themselves: only a project owner, a Billing Admin
+   * or someone with Manage Billing may (the columns' own update
+   * permissions). Decides whether a verified method on a channel that is
+   * off is the reader's own step, linking to the switches, or somebody
+   * else's, naming who.
+   *
+   * Absent reads as no: the step then names who can, which is true for
+   * everyone, rather than linking a reader to a switch they may be refused.
+   */
+  canTurnOnProjectChannels?: boolean | undefined;
 }
+
+/*
+ * The "is one of your channels usable" step's words for each reader.
+ *
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * switch a channel on - not a project admin. The step once said "Ask a
+ * project admin", who could not do it either. Now someone who may flip the switch is sent
+ * straight to it, and everyone else is told exactly who can.
+ */
+export const ChannelStepCopy: {
+  // For a reader who may turn the channel on.
+  canTurnOnDetail: string;
+  canTurnOnAction: string;
+  // For everyone else.
+  whoCanTurnOnDetail: string;
+  whoCanTurnOnAction: string;
+} = {
+  canTurnOnDetail: translationKey(
+    "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notifications → Notification Settings, or add an email or push device instead.",
+  ),
+  canTurnOnAction: translationKey(
+    "Go to Project Settings → Notifications → Notification Settings",
+  ),
+  whoCanTurnOnDetail: translationKey(
+    "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings, or you can add an email or push device instead.",
+  ),
+  whoCanTurnOnAction: translationKey(
+    "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on",
+  ),
+};
 
 /*
  * The four severity-scoped rule types, in the order a reader meets them, with
@@ -445,16 +495,19 @@ const buildReachabilitySteps: BuildStepsFunction = (
   }
 
   /*
-   * The channel trap, and the one step on this page whose fix belongs to
-   * somebody else.
+   * The channel trap, and the one step on this page whose fix usually
+   * belongs to somebody else.
    *
    * A verified method on a channel the project has switched off is worth
    * nothing, and readiness reports exactly that shape: NotReachable while
-   * verified methods exist. The reader cannot switch a project channel on, so
-   * this carries no link - it names what to ask for instead.
+   * verified methods exist. Only a project owner or someone with Manage
+   * Billing may switch a project channel on. For one of them it is their own
+   * step, linking to the switches; for everyone else it is Blocked, carries
+   * no link, and names who can.
    */
   if (verifiedMethods.length > 0) {
-    const isChannelBlocked: boolean = isNotReachable;
+    const isChannelOff: boolean = isNotReachable;
+    const canTurnOn: boolean = input.canTurnOnProjectChannels === true;
 
     /*
      * The claim is deliberately "at least one", not "all of them".
@@ -472,26 +525,35 @@ const buildReachabilitySteps: BuildStepsFunction = (
       title: "At least one of your channels is usable here",
       description:
         "A project can switch off SMS, calls, WhatsApp and Telegram. A verified method on a channel that is off cannot be used.",
-      detail: isChannelBlocked
-        ? "Every method you have verified is on a channel this project has switched off. Ask a project admin to enable it, or add an email or push device instead."
-        : "",
-      status: isChannelBlocked
-        ? SetupStepStatus.Blocked
-        : SetupStepStatus.Complete,
+      detail: !isChannelOff
+        ? ""
+        : canTurnOn
+          ? ChannelStepCopy.canTurnOnDetail
+          : ChannelStepCopy.whoCanTurnOnDetail,
+      status: !isChannelOff
+        ? SetupStepStatus.Complete
+        : canTurnOn
+          ? SetupStepStatus.Incomplete
+          : SetupStepStatus.Blocked,
       importance: SetupStepImportance.Required,
       icon: IconProp.Settings,
       /*
-       * Undefined on purpose. Project notification settings are an admin
-       * screen; linking a reader who will be refused there is worse than
-       * telling them who to ask.
+       * Straight to the switches (the Notification Channels card) for a
+       * reader who may flip them. Undefined on purpose for everyone else:
+       * linking a reader who will be refused there is worse than telling
+       * them who can.
        */
-      pageMap: isChannelBlocked
-        ? undefined
-        : PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+      pageMap: !isChannelOff
+        ? PageMap.USER_SETTINGS_NOTIFICATION_METHODS
+        : canTurnOn
+          ? PageMap.SETTINGS_NOTIFICATION_SETTINGS
+          : undefined,
       iconBackgroundClassName: "bg-slate-500",
-      actionTitle: isChannelBlocked
-        ? "Ask a project admin to enable this channel"
-        : "Review your methods",
+      actionTitle: !isChannelOff
+        ? "Review your methods"
+        : canTurnOn
+          ? ChannelStepCopy.canTurnOnAction
+          : ChannelStepCopy.whoCanTurnOnAction,
     });
   }
 
@@ -499,11 +561,12 @@ const buildReachabilitySteps: BuildStepsFunction = (
 };
 
 /*
- * Section 2 - one step per rule type, which is also one step per confusing page
- * in the side menu.
+ * Section 2 - one step per rule type, which is also one step per tab of the
+ * On-Call Rules page.
  *
- * These four pages are the ones people cannot tell apart, so each step says in
- * a sentence what its page is FOR before it says what is missing from it.
+ * These four kinds are the ones people cannot tell apart, so each step says in
+ * a sentence what its tab is FOR before it says what is missing from it, and
+ * opens the page on that tab.
  */
 const buildRuleSteps: BuildStepsFunction = (
   input: SetupChecklistInput,
@@ -549,6 +612,10 @@ const buildRuleSteps: BuildStepsFunction = (
             ? describeGapSeverities(gapsForType)
             : "";
 
+      const fixPage: SettingsPageLink = getSettingsPageForRuleType(
+        definition.ruleType,
+      );
+
       return {
         key: definition.key,
         title: definition.title,
@@ -558,7 +625,8 @@ const buildRuleSteps: BuildStepsFunction = (
         importance: SetupStepImportance.Required,
         icon: definition.icon,
         iconBackgroundClassName: definition.iconBackgroundClassName,
-        pageMap: getPageForRuleType(definition.ruleType),
+        pageMap: fixPage.page,
+        pageQuery: fixPage.query,
         actionTitle: "Set up these rules",
       };
     },
@@ -1002,14 +1070,18 @@ type GetHeadlineFunction = (status: SetupHeadlineStatus) => string;
 const getHeadline: GetHeadlineFunction = (
   status: SetupHeadlineStatus,
 ): string => {
+  /*
+   * Keys, so the page draws them in the reader's language, as it does every
+   * section and step around them.
+   */
   switch (status) {
     case SetupHeadlineStatus.NotReachable:
-      return "Nothing can reach you yet";
+      return translationKey("Nothing can reach you yet");
     case SetupHeadlineStatus.NeedsSetup:
-      return "A few things still need setting up";
+      return translationKey("A few things still need setting up");
     case SetupHeadlineStatus.NotOnCall:
-      return "You are set up, and not on call right now";
+      return translationKey("You are set up, and not on call right now");
     default:
-      return "You are all set";
+      return translationKey("You are all set");
   }
 };

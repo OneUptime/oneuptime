@@ -13,20 +13,27 @@ import DeleteOneBaseModel from "./BaseModel/DeleteOneBaseModel";
 import FindManyBaseModel from "./BaseModel/FindManyBaseModel";
 import FindOneBaseModel from "./BaseModel/FindOneBaseModel";
 import OnCreateBaseModel from "./BaseModel/OnCreateBaseModel";
+import OnCreateOrUpdateBaseModel from "./BaseModel/OnCreateOrUpdateBaseModel";
 import OnDeleteBaseModel from "./BaseModel/OnDeleteBaseModel";
 import OnUpdateBaseModel from "./BaseModel/OnUpdateBaseModel";
 import UpdateManyBaseModel from "./BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "./BaseModel/UpdateOneBaseModel";
 import IfElse from "./Conditions/IfElse";
+import Switch from "./Conditions/Switch";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
+import HuntressWorkflowTrigger from "./Huntress";
+import IncomingEmailWorkflowTrigger from "./IncomingEmail";
+import IRCSendMessageToChannel from "./IRC/SendMessageToChannel";
 import JsonToText from "./JSON/JsonToText";
 import MergeJSON from "./JSON/MergeJson";
 import TextToJSON from "./JSON/TextToJson";
 import JavaScriptCode from "./JavaScript";
 import Log from "./Log";
+import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
 import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToChannel";
+import Page from "./OnCall/Page";
 import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
 import Sleep from "./Sleep";
@@ -37,16 +44,25 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import Dictionary from "../../../../Types/Dictionary";
 import Text from "../../../../Types/Text";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
+import {
+  getCreateOrUpdateTriggerId,
+  hasCreateOrUpdateTrigger,
+} from "../../../../Types/Workflow/CreateOrUpdateTrigger";
 import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {
   [ComponentID.AIGenerateText]: new GenerateText(),
   [ComponentID.Webhook]: new WebhookTrigger(),
+  [ComponentID.IncomingEmail]: new IncomingEmailWorkflowTrigger(),
+  [ComponentID.HuntressIncidentReport]: new HuntressWorkflowTrigger(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
   [ComponentID.DiscordSendMessageToChannel]: new DiscordSendMessageToChannel(),
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:
     new MicrosoftTeamsSendMessageToChannel(),
   [ComponentID.TelegramSendMessageToChat]: new TelegramSendMessageToChat(),
+  [ComponentID.IRCSendMessageToChannel]: new IRCSendMessageToChannel(),
+  [ComponentID.MattermostSendMessageToChannel]:
+    new MattermostSendMessageToChannel(),
   [ComponentID.Log]: new Log(),
   [ComponentID.Schedule]: new Schedule(),
   [ComponentID.JavaScriptCode]: new JavaScriptCode(),
@@ -61,8 +77,14 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.SendEmail]: new Email(),
   [ComponentID.IfElse]: new IfElse(),
+  [ComponentID.Switch]: new Switch(),
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
   [ComponentID.Sleep]: new Sleep(),
+  // The Page steps: one runtime, told which of the four it is.
+  [ComponentID.PageUsers]: new Page(ComponentID.PageUsers),
+  [ComponentID.PageTeam]: new Page(ComponentID.PageTeam),
+  [ComponentID.PageOnCall]: new Page(ComponentID.PageOnCall),
+  [ComponentID.PageOnCallPolicy]: new Page(ComponentID.PageOnCallPolicy),
 };
 
 for (const baseModelService of Services) {
@@ -78,16 +100,22 @@ for (const baseModelService of Services) {
 
   const modelId: string = `${Text.pascalCaseToDashes(model.tableName!)}`;
 
+  // Mirrors BaseModelComponent.getComponents: see EnableWorkflowOn.writeSteps.
+  const offersWriteSteps: boolean = model.enableWorkflowOn.writeSteps !== false;
+
   if (model.enableWorkflowOn.create) {
     Components[`${modelId}-on-create`] = new OnCreateBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-create-one`] = new CreateOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-create-many`] = new CreateManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-create-one`] = new CreateOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-create-many`] = new CreateManyBaseModel(
+        baseModelService as any,
+      );
+    }
   }
 
   if (model.enableWorkflowOn.read) {
@@ -103,24 +131,36 @@ for (const baseModelService of Services) {
     Components[`${modelId}-on-update`] = new OnUpdateBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-update-one`] = new UpdateOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-update-many`] = new UpdateManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-update-one`] = new UpdateOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-update-many`] = new UpdateManyBaseModel(
+        baseModelService as any,
+      );
+    }
+  }
+
+  // Mirrors BaseModelComponent.getComponents: both triggers it stands for.
+  if (hasCreateOrUpdateTrigger(model.enableWorkflowOn)) {
+    Components[getCreateOrUpdateTriggerId(model.tableName!)] =
+      new OnCreateOrUpdateBaseModel(baseModelService as any);
   }
 
   if (model.enableWorkflowOn.delete) {
     Components[`${modelId}-on-delete`] = new OnDeleteBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(
+        baseModelService as any,
+      );
+    }
   }
 }
 

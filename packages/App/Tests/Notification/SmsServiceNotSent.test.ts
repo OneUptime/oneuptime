@@ -1,0 +1,434 @@
+import SmsService from "../../FeatureSet/Notification/Services/SmsService";
+import Project from "Common/Models/DatabaseModels/Project";
+import SmsLog from "Common/Models/DatabaseModels/SmsLog";
+import NotificationService from "Common/Server/Services/NotificationService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import SmsLogService from "Common/Server/Services/SmsLogService";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
+import { getProjectBalanceMessageNotSentReason } from "Common/Utils/Project/ProjectBalance";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import Phone from "Common/Types/Phone";
+import SmsStatus from "Common/Types/SmsStatus";
+import ErrorClass, {
+  declaredErrorClass,
+} from "Common/Types/Telemetry/ErrorClass";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { Mock } from "jest-mock";
+import Twilio from "twilio";
+
+/*
+ * The Notification service does not send an SMS when the project has SMS
+ * notifications turned off (the default), or has too little SMS balance. It
+ * writes the SMS log and emails the owners, and used to return as if the SMS
+ * had gone out. The status page subscriber jobs count every message sent or
+ * failed from the answer they get, so every such SMS was counted as sent -
+ * and for the incident-created notification, a page reached only by SMS was
+ * recorded as told, so neither Retry nor adding pages reached it again once
+ * SMS was turned on.
+ *
+ * A caller that counts what it delivered now asks, with failIfNotSent, for
+ * such an SMS to fail. Everyone else keeps the quiet return.
+ */
+
+jest.mock("twilio", () => {
+  return {
+    __esModule: true,
+    default: jest.fn(),
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: { debug: jest.fn(), error: jest.fn(), warn: jest.fn() },
+    EXTERNAL_FAULT: {},
+  };
+});
+
+/*
+ * Billing on, so a send on the global Twilio account is charged and checked
+ * against the project's balance; the global Twilio account is configured.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("Common/Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
+  ).default;
+
+  return {
+    __esModule: true,
+    ...actual,
+    IsBillingEnabled: true,
+    // Where the owners' email links to the switch.
+    DashboardClientUrl: URLType.fromString(
+      "https://oneuptime.example.com/dashboard",
+    ),
+  };
+});
+
+jest.mock("../../FeatureSet/Notification/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../FeatureSet/Notification/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    __esModule: true,
+    ...actual,
+    // An SMS costs 10 cents on the global account.
+    SMSDefaultCostInCents: 10,
+    SMSHighRiskCostInCents: 10,
+    getTwilioConfig: jest.fn(),
+  };
+});
+
+import { getTwilioConfig } from "../../FeatureSet/Notification/Config";
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "10000000-0000-4000-8000-000000000001",
+);
+const STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "20000000-0000-4000-8000-000000000002",
+);
+
+const TWILIO_CONFIG: TwilioConfig = {
+  accountSid: "AC-account",
+  authToken: "auth-token",
+  primaryPhoneNumber: new Phone("+14155550100"),
+  secondaryPhoneNumbers: [],
+};
+
+const TO: Phone = new Phone("+15555550123");
+const MESSAGE: string = "Incident Checkout down (Critical) on Site 03.";
+
+type AsyncMock = Mock<(...args: Array<unknown>) => Promise<unknown>>;
+
+let createMessage: AsyncMock;
+let project: Project | null;
+
+function loggedRows(): Array<SmsLog> {
+  return (SmsLogService.create as unknown as jest.Mock).mock.calls.map(
+    (call: Array<unknown>): SmsLog => {
+      return (call[0] as { data: SmsLog }).data;
+    },
+  );
+}
+
+function send(options: {
+  failIfNotSent?: boolean | undefined;
+  onGlobalTwilioAccount?: boolean | undefined;
+}): Promise<void> {
+  return SmsService.sendSms(TO, MESSAGE, {
+    projectId: PROJECT_ID,
+    statusPageId: STATUS_PAGE_ID,
+    ...(options.onGlobalTwilioAccount
+      ? {}
+      : { customTwilioConfig: TWILIO_CONFIG }),
+    ...(options.failIfNotSent !== undefined
+      ? { failIfNotSent: options.failIfNotSent }
+      : {}),
+  });
+}
+
+async function rejectionOf(promise: Promise<void>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (err) {
+    return err;
+  }
+
+  throw new Error("Expected the send to be rejected, but it resolved.");
+}
+
+describe("an SMS the Notification service does not send", () => {
+  beforeEach(() => {
+    createMessage = jest.fn<(...args: Array<unknown>) => Promise<unknown>>();
+    createMessage.mockResolvedValue({
+      status: "queued",
+      sid: "SM-1",
+    } as never);
+
+    (Twilio as unknown as jest.Mock).mockImplementation(() => {
+      return { messages: { create: createMessage } };
+    });
+
+    (getTwilioConfig as unknown as jest.Mock).mockResolvedValue(
+      TWILIO_CONFIG as never,
+    );
+
+    project = new Project();
+    project._id = PROJECT_ID.toString();
+    project.name = "Acme";
+    project.enableSmsNotifications = true;
+    project.smsOrCallCurrentBalanceInUSDCents = 10000;
+    project.lowCallAndSMSBalanceNotificationSentToOwners = true;
+    project.notEnabledSmsOrCallNotificationSentToOwners = true;
+
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((() => {
+      return Promise.resolve(project);
+    }) as never);
+    jest.spyOn(ProjectService, "updateOneById").mockResolvedValue(1 as never);
+    jest
+      .spyOn(ProjectService, "sendEmailToProjectOwners")
+      .mockResolvedValue(undefined as never);
+    /*
+     * The owners' low-balance email is claimed in one statement
+     * (ProjectService.claimSmsOrCallLowBalanceNotice): the first message to
+     * find the balance used up wins it. A message's cost is taken in one
+     * statement too (deductSmsOrCallBalanceInUSDCents). Both act on the
+     * project row here.
+     */
+    jest
+      .spyOn(ProjectService, "claimSmsOrCallLowBalanceNotice")
+      .mockImplementation((() => {
+        if (project!.lowCallAndSMSBalanceNotificationSentToOwners) {
+          return Promise.resolve(false);
+        }
+
+        project!.lowCallAndSMSBalanceNotificationSentToOwners = true;
+        return Promise.resolve(true);
+      }) as never);
+    jest
+      .spyOn(ProjectService, "deductSmsOrCallBalanceInUSDCents")
+      .mockImplementation(((data: { amountInUSDCents: number }) => {
+        project!.smsOrCallCurrentBalanceInUSDCents =
+          (project!.smsOrCallCurrentBalanceInUSDCents || 0) -
+          data.amountInUSDCents;
+        return Promise.resolve(project!.smsOrCallCurrentBalanceInUSDCents);
+      }) as never);
+    jest
+      .spyOn(NotificationService, "rechargeIfBalanceIsLow")
+      .mockImplementation((() => {
+        return Promise.resolve(project?.smsOrCallCurrentBalanceInUSDCents);
+      }) as never);
+
+    jest.spyOn(SmsLogService, "create").mockImplementation(((data: {
+      data: SmsLog;
+    }) => {
+      const row: SmsLog = data.data;
+      row._id = ObjectID.generate().toString();
+      return Promise.resolve(row);
+    }) as never);
+    jest
+      .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("with SMS notifications turned off for the project", () => {
+    beforeEach(() => {
+      project!.enableSmsNotifications = false;
+    });
+
+    test("returns quietly, as it always has, when the caller does not ask", async () => {
+      await expect(send({})).resolves.toBeUndefined();
+
+      expect(createMessage).not.toHaveBeenCalled();
+      expect(loggedRows()).toHaveLength(1);
+      expect(loggedRows()[0]!.status).toBe(SmsStatus.Error);
+    });
+
+    test("fails with the reason when the caller asks, after logging it once", async () => {
+      const error: unknown = await rejectionOf(send({ failIfNotSent: true }));
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as BadDataException).message).toBe(
+        `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
+      );
+      // The tenant's setting, not a defect.
+      expect(declaredErrorClass(error)).toEqual({
+        errorClass: ErrorClass.UserError,
+        authoritative: true,
+      });
+
+      expect(createMessage).not.toHaveBeenCalled();
+      // One log row: failing does not write a second, generic one.
+      expect(loggedRows()).toHaveLength(1);
+      expect(loggedRows()[0]!.status).toBe(SmsStatus.Error);
+      expect(
+        SmsLogService.updateColumnsByIdWithoutHooks,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("still emails the owners the first time, when the caller asks it to fail", async () => {
+      project!.notEnabledSmsOrCallNotificationSentToOwners = false;
+
+      await rejectionOf(send({ failIfNotSent: true }));
+
+      expect(ProjectService.sendEmailToProjectOwners).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The log is read by anyone who may read the project's SMS logs, most of
+     * whom may not turn SMS on: it says who can, and where.
+     */
+    test("the SMS log says SMS is off and who can turn it on", async () => {
+      await send({});
+
+      expect(loggedRows()[0]!.statusMessage).toBe(
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
+      );
+      expect(loggedRows()[0]!.statusMessage).toContain(
+        "A project owner, a Billing Admin or someone with Manage Billing",
+      );
+    });
+
+    /*
+     * The owners may turn SMS on, so their email tells them to, if it should
+     * be on, and links straight to the switch.
+     */
+    test("the owners' email links straight to the switch on Notification Settings", async () => {
+      project!.notEnabledSmsOrCallNotificationSentToOwners = false;
+
+      await send({});
+
+      const call: Array<unknown> = (
+        ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+      ).mock.calls[0]!;
+      const body: string = call[2] as string;
+      const link: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`;
+
+      expect(call[0]).toEqual(PROJECT_ID);
+      expect(body).toContain(
+        "This SMS was not sent. SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notifications &gt; Notification Settings.",
+      );
+      expect(body).toContain(`<a href="${link}">${link}</a>`);
+      expect(body).not.toContain("Please enable");
+    });
+
+    test("failIfNotSent: false is the quiet return", async () => {
+      await expect(send({ failIfNotSent: false })).resolves.toBeUndefined();
+    });
+  });
+
+  describe("with too little SMS balance on the global Twilio account", () => {
+    test("no balance at all fails when the caller asks", async () => {
+      project!.smsOrCallCurrentBalanceInUSDCents = 0;
+
+      const error: unknown = await rejectionOf(
+        send({ failIfNotSent: true, onGlobalTwilioAccount: true }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as BadDataException).message).toBe(
+        `SMS not sent: ${getProjectBalanceMessageNotSentReason({
+          channel: ProjectNotificationChannel.SMS,
+          balanceInUSDCents: 0,
+          costInUSDCents: 10,
+        })}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      );
+      expect(createMessage).not.toHaveBeenCalled();
+      expect(loggedRows()).toHaveLength(1);
+      expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);
+    });
+
+    test("a balance below the SMS's cost fails when the caller asks", async () => {
+      project!.smsOrCallCurrentBalanceInUSDCents = 1;
+
+      const error: unknown = await rejectionOf(
+        send({ failIfNotSent: true, onGlobalTwilioAccount: true }),
+      );
+
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      );
+      expect(createMessage).not.toHaveBeenCalled();
+      expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);
+    });
+
+    test("returns quietly when the caller does not ask", async () => {
+      project!.smsOrCallCurrentBalanceInUSDCents = 0;
+
+      await expect(
+        send({ onGlobalTwilioAccount: true }),
+      ).resolves.toBeUndefined();
+      expect(createMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  test("a project that no longer exists fails when the caller asks", async () => {
+    project = null;
+
+    const error: unknown = await rejectionOf(send({ failIfNotSent: true }));
+
+    expect((error as BadDataException).message).toBe(
+      `SMS not sent: Project ${PROJECT_ID.toString()} not found.`,
+    );
+    expect(createMessage).not.toHaveBeenCalled();
+  });
+
+  test("an SMS that is sent resolves, whether or not the caller asked", async () => {
+    await expect(send({ failIfNotSent: true })).resolves.toBeUndefined();
+    await expect(send({})).resolves.toBeUndefined();
+
+    expect(createMessage).toHaveBeenCalledTimes(2);
+  });
+
+  test("an SMS Twilio refuses still fails as it did", async () => {
+    createMessage.mockRejectedValue(new Error("Invalid 'To' number") as never);
+
+    const error: unknown = await rejectionOf(send({ failIfNotSent: true }));
+
+    expect((error as Error).message).toBe("Invalid 'To' number");
+  });
+
+  /*
+   * The owners' email about an SMS the project could not afford places the
+   * SMS text as HTML; the text is plain (incident titles, resource names,
+   * custom field values), so markup in it is shown, not rendered.
+   */
+  test("the owners' low balance email shows markup in the SMS text as text", async () => {
+    project!.smsOrCallCurrentBalanceInUSDCents = 0;
+    project!.lowCallAndSMSBalanceNotificationSentToOwners = false;
+
+    await SmsService.sendSms(
+      TO,
+      'Incident <a href="https://evil.example">Verify billing</a> on Site 03.',
+      {
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+      },
+    );
+
+    expect(createMessage).not.toHaveBeenCalled();
+
+    const body: string = (
+      ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+    ).mock.calls[0]![2] as string;
+
+    expect(body).not.toContain('<a href="https://evil.example"');
+    expect(body).toContain(
+      "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; on Site 03.",
+    );
+    // The one link is OneUptime's own: the page to add balance on.
+    expect(body.match(/<a href=/g)).toHaveLength(1);
+    expect(body).toContain(
+      `<a href="https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings">`,
+    );
+  });
+});

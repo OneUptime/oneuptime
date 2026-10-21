@@ -7,6 +7,7 @@ import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmClu
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
@@ -28,7 +29,6 @@ import {
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
-import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -43,6 +43,7 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
   keyForCephCluster,
+  keyForStorageArray,
 } from "../../../../Utils/Telemetry/EntityKey";
 import HostService from "../../../Services/HostService";
 import DockerHostService from "../../../Services/DockerHostService";
@@ -52,8 +53,10 @@ import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterServi
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import CephClusterService from "../../../Services/CephClusterService";
+import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
+import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
@@ -66,8 +69,11 @@ import TraceAggregationService, {
 } from "../../../Services/TraceAggregationService";
 import FindBy from "../../../Types/Database/FindBy";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
+import {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../../Telemetry/TelemetryReadScope";
 import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../../Telemetry/ResourceEntityFilter";
@@ -80,8 +86,21 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
+import {
+  METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
+  MetricReadPlan,
+  chooseTrendInterval,
+  describeMetricReadPlan,
+  planMetricRead,
+  readAttributeFilter,
+  readGroupBy,
+} from "./MetricAttributeQuery";
+import GroupedMetricSeries, {
+  GroupedMetricRead,
+  MetricSeries,
+} from "./GroupedMetricSeries";
 
-type ResourceSignal = "metrics" | "logs" | "traces";
+export type ResourceSignal = "metrics" | "logs" | "traces";
 
 interface ResourceDescriptor {
   model: new () => BaseModel;
@@ -237,6 +256,28 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     attributeKey: "resource.ceph.cluster.name",
     keyFor: keyForCephCluster,
   },
+  [AIResourceType.StorageArray]: {
+    model: StorageArray,
+    findBy: (data: FindBy<BaseModel>) => {
+      return StorageArrayService.findBy(data as never);
+    },
+    fields: [
+      "storageSystem",
+      "osVersion",
+      "healthStatus",
+      "capacityUsedPercent",
+      "openAlertCount",
+      "criticalAlertCount",
+      "volumeCount",
+      "hostCount",
+      "fileSystemCount",
+      "bucketCount",
+      "unhealthyHardwareCount",
+    ],
+    identifier: "name",
+    attributeKey: "resource.storage.array.name",
+    keyFor: keyForStorageArray,
+  },
   [AIResourceType.ServerlessFunction]: {
     model: ServerlessFunction,
     findBy: (data: FindBy<BaseModel>) => {
@@ -259,10 +300,15 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     },
     fields: [
       "resourceIdentifier",
+      "cloudResourceKind",
+      "cloudResourceType",
+      "providerResourceId",
       "cloudPlatform",
       "cloudProvider",
       "cloudAccountId",
       "cloudRegion",
+      "cloudResourceGroup",
+      "telemetryAttributes",
       "runtimeName",
     ],
   },
@@ -570,6 +616,38 @@ export function buildAIResourceTelemetryScope(data: {
     };
   }
   if (data.type === AIResourceType.CloudResource) {
+    /*
+     * A resource discovered from cloud monitoring (Azure Monitor,
+     * CloudWatch, Cloud Monitoring) is scoped by the exact metric
+     * attributes ingest recorded for it - never by cloud.* resource
+     * attributes, which every resource of its account shares.
+     */
+    if (data.resource["cloudResourceKind"] === CloudResourceKind.Resource) {
+      const telemetryAttributes: unknown = data.resource["telemetryAttributes"];
+      const attributes: Record<string, string> = {};
+      if (
+        telemetryAttributes &&
+        typeof telemetryAttributes === "object" &&
+        !Array.isArray(telemetryAttributes)
+      ) {
+        for (const [key, value] of Object.entries(
+          telemetryAttributes as Record<string, unknown>,
+        )) {
+          if (typeof value === "string" && value) {
+            attributes[key] = value;
+          }
+        }
+      }
+      if (Object.keys(attributes).length === 0) {
+        throw new BadDataException(
+          "This cloud resource has no recorded metric attributes yet; its telemetry cannot be scoped safely.",
+        );
+      }
+      return {
+        attributes,
+        note: `${note} A cloud resource discovered from cloud monitoring has the metrics its provider publishes about it (Azure Monitor, CloudWatch, Cloud Monitoring) - no logs or traces of its own.`,
+      };
+    }
     const attributes: Record<string, string> = {};
     for (const [column, key] of [
       ["cloudPlatform", "resource.cloud.platform"],
@@ -630,50 +708,122 @@ export function buildAIResourceTelemetryScope(data: {
   };
 }
 
-function metricInterval(startTime: Date, endTime: Date): AggregationInterval {
-  /*
-   * Keep the full window under the serializer's 50-row budget, including
-   * partial first/last buckets. Never truncate the tail of a trend chart.
-   */
-  const intervals: Array<AggregationInterval> = [
-    AggregationInterval.Minute,
-    AggregationInterval.FiveMinutes,
-    AggregationInterval.FifteenMinutes,
-    AggregationInterval.ThirtyMinutes,
-    AggregationInterval.Hour,
-    AggregationInterval.Day,
-  ];
-  return (
-    intervals.find((interval: AggregationInterval): boolean => {
-      return (
-        Math.ceil(
-          (endTime.getTime() - startTime.getTime()) /
-            AggregationIntervalUtil.getAggregationIntervalMs(interval),
-        ) +
-          1 <=
-        49
+export interface ScopedResource {
+  // The resource's allowlisted fields (getFields), as read.
+  resource: JSONObject;
+  scope: AIResourceTelemetryScope;
+}
+
+/*
+ * One resource, read under the caller's props and pinned to the project,
+ * and the telemetry scope built from it: a resource the caller may not
+ * read - or that is not in the project - reads as not found, and no
+ * telemetry is read for it.
+ */
+export async function readScopedResource(data: {
+  type: AIResourceType;
+  id: ObjectID;
+  signal: ResourceSignal;
+  ctx: ToolContext;
+}): Promise<ScopedResource> {
+  const descriptor: ResourceDescriptor = RESOURCE_DESCRIPTORS[data.type];
+  const resources: Array<BaseModel> = await descriptor.findBy({
+    query: { projectId: data.ctx.projectId, _id: data.id.toString() } as never,
+    select: Object.fromEntries(
+      getFields(data.type).map((field: string): [string, boolean] => {
+        return [field, true];
+      }),
+    ),
+    limit: 1,
+    skip: 0,
+    props: data.ctx.props,
+  });
+  if (!resources[0]) {
+    throw new BadDataException(
+      "Resource not found or you do not have access to it.",
+    );
+  }
+  const resource: JSONObject = resources[0] as unknown as JSONObject;
+  const scope: AIResourceTelemetryScope = buildAIResourceTelemetryScope({
+    type: data.type,
+    id: data.id,
+    resource,
+    projectId: data.ctx.projectId,
+    signal: data.signal,
+    resolvedScopes: descriptor.resolveResourceScopes
+      ? await descriptor.resolveResourceScopes({
+          projectId: data.ctx.projectId,
+          id: data.id,
+        })
+      : undefined,
+  });
+
+  return { resource, scope };
+}
+
+// The citation target of one resource, or of the list of its kind.
+export function getResourceCitationTarget(
+  type: AIResourceType,
+  id?: ObjectID,
+): AIChatCitationTarget {
+  return resourceTarget(type, id);
+}
+
+/*
+ * The resource's own attribute scope with the caller's filter added. The
+ * scope always wins: a filter may narrow a resource's telemetry, never point
+ * it somewhere else (a Docker host's metrics stay its Docker metrics).
+ */
+export function mergeScopeAttributes(
+  scopeAttributes: Record<string, string> | undefined,
+  callerAttributes: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  if (!callerAttributes) {
+    return scopeAttributes;
+  }
+
+  for (const [key, value] of Object.entries(callerAttributes)) {
+    const scoped: string | undefined = scopeAttributes?.[key];
+
+    if (scoped !== undefined && scoped !== value) {
+      throw new BadDataException(
+        `${key} is part of this resource's scope (${scoped}) and cannot be filtered to another value.`,
       );
-    }) || AggregationInterval.Day
-  );
+    }
+  }
+
+  return { ...callerAttributes, ...(scopeAttributes || {}) };
 }
 
 export const QueryResourceTelemetryTool: ObservabilityTool = {
   name: "query_resource_telemetry",
   description:
-    "Query metrics, log severity volume or trace operation/error/latency summaries for one accessible infrastructure resource. Safely includes secondary resource membership. Metrics without metricName discover names seen in this resource/time window; with a name return a bounded trend (default) or whole-window summary. No child/pod/container rankings or raw log messages. Missing data cannot establish health.",
+    "Query metrics, log severity volume or trace operation/error/latency summaries for one accessible infrastructure resource. Safely includes secondary resource membership. Metrics without metricName discover names seen in this resource/time window; with a name return a bounded trend (default) or whole-window summary. Filter metrics by attribute with attributes, and read one series per attribute value with groupBy. Host metrics split by an attribute — system.cpu.utilization and system.memory.* by state, system.filesystem.* by mountpoint — are read one series per value automatically, because one average across them is meaningless. For the containers of a Docker or Podman host (the busiest, and the ones that stopped reporting), use query_containers. No raw log messages. Missing data cannot establish health.",
   inputSchema: {
     type: "object",
     properties: {
       ...RESOURCE_SCHEMA_PROPERTIES,
       ...TimeRangeSchemaProperties,
       signal: { type: "string", enum: ["metrics", "logs", "traces"] },
+      ...METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
       metricName: {
         type: "string",
         description: "Exact metric name; omit to discover scoped metric names.",
       },
       aggregationType: {
         type: "string",
-        enum: ["Avg", "Min", "Max", "Sum", "Count", "P50", "P90", "P95", "P99"],
+        enum: [
+          "Avg",
+          "Min",
+          "Max",
+          "Sum",
+          "Count",
+          "P50",
+          "P75",
+          "P90",
+          "P95",
+          "P99",
+        ],
         description:
           "Metric aggregation (defaultAvg); counter sums are exported values, not derived rates.",
       },
@@ -746,39 +896,16 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       min: 1,
       max: 50,
     });
-    const descriptor: ResourceDescriptor = RESOURCE_DESCRIPTORS[type];
-    const resources: Array<BaseModel> = await descriptor.findBy({
-      query: { projectId: ctx.projectId, _id: id.toString() } as never,
-      select: Object.fromEntries(
-        getFields(type).map((field: string): [string, boolean] => {
-          return [field, true];
-        }),
-      ),
-      limit: 1,
-      skip: 0,
-      props: ctx.props,
-    });
-    if (!resources[0]) {
-      throw new BadDataException(
-        "Resource not found or you do not have access to it.",
-      );
-    }
-    const scope: AIResourceTelemetryScope = buildAIResourceTelemetryScope({
+    const { scope }: ScopedResource = await readScopedResource({
       type,
       id,
-      resource: resources[0] as unknown as JSONObject,
-      projectId: ctx.projectId,
       signal,
-      resolvedScopes: descriptor.resolveResourceScopes
-        ? await descriptor.resolveResourceScopes({
-            projectId: ctx.projectId,
-            id,
-          })
-        : undefined,
+      ctx,
     });
     const target: AIChatCitationTarget = resourceTarget(type, id);
-    const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${startTime.toISOString()} – ${endTime.toISOString()}`;
-    const note: string = `${scope.note} Requested window: ${startTime.toISOString()} – ${endTime.toISOString()}.`;
+    const window: string = `${startTime.toISOString()} – ${endTime.toISOString()}`;
+    const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${window}`;
+    const note: string = `${scope.note} Requested window: ${window}.`;
     if (signal === "metrics") {
       const name: string | undefined = ToolArgs.getString(args, "metricName");
       const aggregation: string =
@@ -792,10 +919,28 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       if (mode !== "trend" && mode !== "summary") {
         throw new BadDataException("mode must be trend or summary.");
       }
+      const callerAttributes: Record<string, string> | undefined =
+        readAttributeFilter(args);
+      const callerGroupBy: Array<string> | undefined = readGroupBy(args);
+      if (callerGroupBy && !name) {
+        throw new BadDataException(
+          "groupBy needs a metricName. Omit both first to discover the metric names this resource reports.",
+        );
+      }
+      const attributes: Record<string, string> | undefined =
+        mergeScopeAttributes(scope.attributes, callerAttributes);
+      const plan: MetricReadPlan | undefined = name
+        ? planMetricRead({
+            metricName: name,
+            attributeFilter: callerAttributes,
+            groupBy: callerGroupBy,
+          })
+        : undefined;
+      const planNote: string = plan ? describeMetricReadPlan(plan) : "";
       const interval: AggregationInterval =
         !name || mode === "summary"
           ? AggregationInterval.Total
-          : metricInterval(startTime, endTime);
+          : chooseTrendInterval(startTime, endTime);
       const query: JSONObject = {
         projectId: ctx.projectId,
         time: new InBetween(startTime, endTime),
@@ -806,8 +951,62 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
                 scope.resourceScopes as unknown as JSONValue,
             }
           : {}),
-        ...(scope.attributes ? { attributes: scope.attributes } : {}),
+        ...(attributes ? { attributes } : {}),
       };
+      if (name && plan && plan.groupBy.length > 0) {
+        const read: GroupedMetricRead = await GroupedMetricSeries.read({
+          query,
+          aggregationType: aggregation as AggregationType,
+          groupBy: plan.groupBy,
+          interval,
+          startTime,
+          endTime,
+          props: ctx.props,
+        });
+        // The keys the series differ in: "state", not "state, cpu.mode".
+        const by: string = GroupedMetricSeries.getShownGroupBy(
+          read.series,
+          plan.groupBy,
+        ).join(", ");
+        return resultForRows({
+          rows: read.series.map((series: MetricSeries): JSONObject => {
+            return GroupedMetricSeries.toLlmRow(series);
+          }),
+          label: `${getAIResourceDefinition(type).label} ${signal} by ${by}, ${window}`,
+          target,
+          truncated: read.isTruncated,
+          widget:
+            mode === "trend" && read.series.length > 0
+              ? WidgetBuilder.timeSeries({
+                  /*
+                   * For people: what was read and over which window. The
+                   * scope note is the model's; it stays in the result.
+                   */
+                  title: `${aggregation} of ${name} by ${by}`,
+                  description: window,
+                  series: GroupedMetricSeries.toWidgetSeries(
+                    read.series,
+                    plan.groupBy,
+                  ),
+                  link: target,
+                })
+              : undefined,
+          note: [
+            note,
+            `Metric ${aggregation}; ${mode}.`,
+            planNote,
+            GroupedMetricSeries.describeRead({
+              read,
+              groupBy: plan.groupBy,
+              interval,
+              startTime,
+            }),
+            "Counter Sum is a sum of exported samples, not a rate or increase.",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        });
+      }
       const aggregate: (
         aggregationType: AggregationType,
       ) => Promise<AggregatedResult> = async (
@@ -873,8 +1072,9 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       const widget: AIChatWidget | undefined =
         name && mode === "trend" && rows.length > 0
           ? WidgetBuilder.timeSeries({
-              title: `${aggregation}(${name})`,
-              description: note,
+              // Titled and dated like the grouped chart above.
+              title: `${aggregation} of ${name}`,
+              description: window,
               series: [
                 {
                   name,
@@ -898,27 +1098,24 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         target,
         widget,
         truncated,
-        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}. Counter Sum is a sum of exported samples, not a rate or increase.` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
+        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}. Counter Sum is a sum of exported samples, not a rate or increase.${planNote ? ` ${planNote}` : ""}` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
       });
     }
     /*
-     * These aggregators bypass the model query layer. Intersect their parent
-     * resource scope with the same allowed primary-entity IDs as that layer.
+     * These aggregators bypass the model query layer. Narrow them to the
+     * services this user may read, as that layer does (TelemetryReadAccess);
+     * a system run's span reads also leave out the company AI tools' private
+     * chats (ToolArgs.spanScope).
      */
-    const allowedIds: Array<ObjectID> | null =
+    const telemetryScope: TelemetryReadScope =
       signal === "logs"
-        ? await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Log,
-            ctx.props,
-            DatabaseRequestType.Read,
-          )
-        : await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Span,
-            ctx.props,
-            DatabaseRequestType.Read,
+        ? await TelemetryReadAccess.getScope(Log, ctx.props)
+        : await ToolArgs.spanScope(
+            ctx,
+            await TelemetryReadAccess.getScope(Span, ctx.props),
           );
-    const serviceIds: Array<ObjectID> | undefined = ToolArgs.scopeServiceIds(
-      allowedIds,
+    const serviceFilter: TelemetryServiceFilter = ToolArgs.scopeServiceIds(
+      telemetryScope,
       undefined,
     );
     if (signal === "logs") {
@@ -947,7 +1144,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
             1,
             Math.ceil((endTime.getTime() - startTime.getTime()) / 60000 / 48),
           ),
-          serviceIds,
+          ...serviceFilter,
           resourceScopes: scope.resourceScopes,
           attributes: scope.attributes,
           severityTexts: severity ? [severity] : undefined,
@@ -993,7 +1190,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         metric: "count",
         groupBy: ["name"],
         limit,
-        serviceIds,
+        ...serviceFilter,
         resourceScopes: scope.resourceScopes,
         attributes: scope.attributes,
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),

@@ -10,20 +10,15 @@ import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
   generateCompareSitemapXml,
-  generateTagsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
-  getTagsSitemapPageCount,
+  sendRetiredSitemap,
 } from "./Utils/Sitemap";
-import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
+import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 // Removed unused imports after dynamic sitemap refactor
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -45,12 +40,31 @@ import {
   generateCompareMarkdown,
   generateProductsJson,
   generateCompareIndexJson,
+  generateResellersMarkdown,
+  generateAirGappedMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
+import {
+  generateMicrosoftIdentityAssociation,
+  MicrosoftIdentityAssociationPaths,
+} from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
+import { getAirGappedContent } from "./Utils/AirGapped";
+import { getDatabasesPageContent } from "./Utils/Databases";
+import { getQueuesPageContent } from "./Utils/Queues";
+import { getCliPageContent } from "./Utils/CliPage";
+import { getResellersPageContent } from "./Utils/Resellers";
+import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
+import {
+  ResellerInquiryHandlerOptions,
+  createDefaultResellerInquiryOptions,
+  registerResellerInquiryRoute,
+} from "./API/ResellerInquiryAPI";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
+import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -62,6 +76,19 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "./Utils/Claims";
+import {
+  TailwindStylesheet,
+  TailwindStylesheetRoutePattern,
+  findTailwindStylesheet,
+  serveTailwindStylesheet,
+} from "./Utils/TailwindStylesheet";
+import {
+  ProductIconSprite,
+  ProductIconSpriteRoutePattern,
+  buildProductIconSprite,
+  serveProductIconSprite,
+} from "./Utils/ProductIconSprite";
+import logger from "Common/Server/Utils/Logger";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -71,7 +98,11 @@ import {
   getGitHubCommitsCount,
   formatCount,
 } from "./Jobs/FetchGitHubStats";
-import { Host, GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  DisableMcpOAuth,
+  Host,
+  GoogleTagManagerEnabled,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 // Helper to get SEO data and merge with homeUrl for templates
@@ -93,6 +124,63 @@ const getSEOForPath: (
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    // Where the Resellers page's form sends, and its limits (/resellers).
+    const resellerInquiry: ResellerInquiryHandlerOptions =
+      createDefaultResellerInquiryOptions();
+
+    /*
+     * The compiled Tailwind stylesheet the image build wrote
+     * (Utils/TailwindStylesheet.ts). Every page reads its URL from
+     * app.locals - not res.locals, which the blog's routes (API/BlogAPI.ts,
+     * registered before this middleware) never get. With no build the URL
+     * is null and head-basic.ejs loads the Play CDN runtime instead.
+     */
+    const tailwindStylesheet: TailwindStylesheet | null =
+      findTailwindStylesheet();
+
+    app.locals["tailwindStylesheetHref"] = tailwindStylesheet
+      ? tailwindStylesheet.href
+      : null;
+
+    if (tailwindStylesheet) {
+      logger.info(`Serving compiled Tailwind CSS: ${tailwindStylesheet.href}`);
+    } else {
+      logger.warn(
+        "No compiled Tailwind CSS (npm run build:css); pages load the Tailwind Play CDN runtime instead.",
+      );
+    }
+
+    app.get(
+      TailwindStylesheetRoutePattern,
+      serveTailwindStylesheet(tailwindStylesheet),
+    );
+
+    /*
+     * The product icons as one cached sprite (Utils/ProductIconSprite.ts),
+     * which the nav's menus and the sections below the fold draw from. If it
+     * cannot be made, productIconSpriteHref is null and every icon is drawn
+     * inline, as before.
+     */
+    let productIconSprite: ProductIconSprite | null = null;
+
+    try {
+      productIconSprite = await buildProductIconSprite();
+    } catch (err) {
+      logger.error(
+        "Could not build the product icon sprite; icons are inline.",
+      );
+      logger.error(err);
+    }
+
+    app.locals["productIconSpriteHref"] = productIconSprite
+      ? productIconSprite.href
+      : null;
+
+    app.get(
+      ProductIconSpriteRoutePattern,
+      serveProductIconSprite(productIconSprite),
+    );
 
     /*
      * Routes
@@ -205,7 +293,11 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader("Cache-Control", "public, max-age=600");
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+        res.json(
+          generateMcpManifest(res.locals["homeUrl"] as string, {
+            isOAuthEnabled: !DisableMcpOAuth,
+          }),
+        );
       },
     );
 
@@ -230,6 +322,19 @@ const HomeFeatureSet: FeatureSet = {
             requestedName: requestedName,
           }),
         );
+      },
+    );
+
+    /*
+     * Microsoft Entra fetches this to let OneUptime's app registrations name
+     * oneuptime.com as their publisher domain. Off the canonical host it
+     * lists no apps - see Home/Utils/MicrosoftIdentityAssociation.ts.
+     */
+    app.get(
+      MicrosoftIdentityAssociationPaths,
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.json(generateMicrosoftIdentityAssociation({ host: Host }));
       },
     );
 
@@ -316,9 +421,12 @@ const HomeFeatureSet: FeatureSet = {
     /*
      * Markdown variants of marketing pages: append `.md` to a page path
      * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
-     * Generated from the same structured data as the HTML pages.
+     * Generated from the same structured data as the HTML pages. A variant
+     * is the page again, for tools and AI assistants, so it is never a
+     * search result of its own: every answer here is noindex.
      */
     app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("X-Robots-Tag", "noindex");
       const homeUrl: string = res.locals["homeUrl"] as string;
       const pagePath: string = req.path.replace(/\.md$/, "");
 
@@ -326,6 +434,15 @@ const HomeFeatureSet: FeatureSet = {
 
       if (pagePath === "/pricing") {
         markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath === "/resellers") {
+        markdown = generateResellersMarkdown(
+          homeUrl,
+          getResellersPageContent({
+            inquiryInbox: resellerInquiry.inbox.toString(),
+          }),
+        );
+      } else if (pagePath === "/enterprise/air-gapped") {
+        markdown = generateAirGappedMarkdown(homeUrl, getAirGappedContent());
       } else if (pagePath.startsWith("/compare/")) {
         markdown = generateCompareMarkdown(
           pagePath.replace("/compare/", ""),
@@ -468,6 +585,8 @@ const HomeFeatureSet: FeatureSet = {
         pricing,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        // The line under the plans naming OneUptime Cloud's marketplace listings.
+        cloudMarketplaces: getCloudMarketplacesContent(),
       });
     });
 
@@ -493,6 +612,29 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    /*
+     * Resellers: the companies that sell OneUptime by region, and the form
+     * other companies send to become one (Utils/Resellers.ts). The form
+     * posts to RESELLER_INQUIRY_PATH, which emails the one inbox inquiries
+     * go to (API/ResellerInquiryAPI.ts); the page names that inbox for
+     * people who would rather write.
+     */
+    app.get("/resellers", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/resellers",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/resellers`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+        resellers: getResellersPageContent({
+          inquiryInbox: resellerInquiry.inbox.toString(),
+        }),
+      });
+    });
+
+    registerResellerInquiryRoute(app, resellerInquiry);
 
     app.get(
       "/product/status-page",
@@ -523,78 +665,23 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
+      redirectPreservingQuery(req, res, "/product/status-page", 301);
     });
 
     app.get("/logs-management", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/logs-management");
+      redirectPreservingQuery(req, res, "/product/logs-management", 301);
     });
 
     let gitHubContributors: Array<JSONObject> = [];
-    let gitHubBasicInfo: JSONObject | null = null;
-    let gitHubCommits: string = "-";
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
-        let contributors: Array<JSONObject> = [];
-
-        let hasMoreContributors: boolean = true;
-
-        let pageNumber: number = 1;
-
-        while (hasMoreContributors) {
-          const response: HTTPResponse<Array<JSONObject>> | HTTPErrorResponse =
-            await API.get<Array<JSONObject>>({
-              url: URL.fromString(
-                "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
-                  pageNumber,
-              ),
-            });
-          pageNumber++;
-          if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false;
-          }
-
-          contributors = contributors.concat(
-            response.data as Array<JSONObject>,
-          );
-        }
-
-        //cache it.
-        gitHubContributors = [...contributors];
-      }
-
-      const response: HTTPResponse<JSONObject> = await API.get({
-        url: URL.fromString(
-          "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1",
-        ),
-      });
-
-      if (gitHubCommits === "-") {
-        // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
-        const link: string | undefined = response.headers["link"];
-        const urlString: string | undefined = link
-          ?.split(",")[1]
-          ?.split(";")[0]
-          ?.replace("<", "")
-          .replace(">", "")
-          .trim();
-        const url: URL = URL.fromString(urlString!);
-        const commits: string = Number.parseInt(
-          url.getQueryParam("page") as string,
-        ).toLocaleString();
-
-        if (!gitHubBasicInfo) {
-          const basicInfo: HTTPResponse<JSONObject> = await API.get({
-            url: URL.fromString(
-              "https://api.github.com/repos/oneuptime/oneuptime",
-            ),
-          });
-
-          gitHubBasicInfo = basicInfo.data as JSONObject;
-        }
-
-        gitHubCommits = commits;
+        /*
+         * Bounded and never throws (Utils/GitHubContributors.ts): when GitHub
+         * refuses, the page renders with what arrived, or with none, and the
+         * next visit asks again. A list that arrived is kept.
+         */
+        gitHubContributors = await fetchGitHubContributors();
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -602,44 +689,27 @@ const HomeFeatureSet: FeatureSet = {
         res.locals["homeUrl"] as string,
       );
       res.render(`${ViewsPath}/about`, {
+        /*
+         * Only the contributors: the page shows nothing else of GitHub's (the
+         * commit count it used to ask GitHub for on every visit, and the
+         * repository's details, were never on it).
+         */
         contributors: gitHubContributors,
-        basicInfo: gitHubBasicInfo,
-        commits: gitHubCommits,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
       });
     });
 
-    app.get(
-      "/product/status-page",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/status-page`, {
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          footerCards: true,
-          cta: true,
-          blackLogo: false,
-          requestDemoCta: false,
-          footerCtaText:
-            "Start with Status Pages, expand into everything else. Sign up today.",
-        });
-      },
-    );
-
-    app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
-    });
-
     app.get("/workflows", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/workflows");
+      redirectPreservingQuery(req, res, "/product/workflows", 301);
     });
 
     app.get("/runbooks", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/runbooks");
+      redirectPreservingQuery(req, res, "/product/runbooks", 301);
     });
 
     app.get("/on-call", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/on-call");
+      redirectPreservingQuery(req, res, "/product/on-call", 301);
     });
 
     app.get(
@@ -933,6 +1003,33 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/databases",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/databases",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/databases`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          databases: getDatabasesPageContent(),
+        });
+      },
+    );
+
+    app.get("/product/queues", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/queues",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/queues`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+        queues: getQueuesPageContent(),
+      });
+    });
+
+    app.get(
       "/product/profiles",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -963,7 +1060,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/scheduled-maintenance",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/scheduled-maintenance");
+        redirectPreservingQuery(
+          req,
+          res,
+          "/product/scheduled-maintenance",
+          301,
+        );
       },
     );
 
@@ -1045,12 +1147,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/incident-management",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/incident-management");
+        redirectPreservingQuery(req, res, "/product/incident-management", 301);
       },
     );
 
     app.get("/ai-agent", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/ai-agent");
+      redirectPreservingQuery(req, res, "/product/ai-agent", 301);
     });
 
     app.get(
@@ -1075,6 +1177,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/cli`, {
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        cli: getCliPageContent(),
       });
     });
 
@@ -1135,6 +1238,35 @@ const HomeFeatureSet: FeatureSet = {
 
     app.get("/on-premise", (req: ExpressRequest, res: ExpressResponse) => {
       redirectPreservingQuery(req, res, "/enterprise/self-hosted", 301);
+    });
+
+    /*
+     * Air-gapped installs: running OneUptime on a network with no route to
+     * the internet (Utils/AirGapped.ts holds every fact the page states).
+     * The short addresses are what buyers type, kept alive the way the
+     * self-hosted ones are.
+     */
+    app.get(
+      "/enterprise/air-gapped",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGapped: getAirGappedContent(),
+        });
+      },
+    );
+
+    app.get("/air-gapped", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);
+    });
+
+    app.get("/airgapped", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);
     });
 
     // Solutions pages
@@ -1332,16 +1464,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/legal.ejs`, {
-        support: false,
-        enableGoogleTagManager: GoogleTagManagerEnabled,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: "terms",
-        requestDemoCta: false,
-      });
+    /*
+     * /legal always rendered the Terms of Service: the same page as
+     * /legal/terms, under a second URL, so search engines saw two copies of
+     * one document. It redirects there permanently, which keeps what every
+     * link to /legal (the footer, the trust center, the product's own
+     * footers) has always shown, and leaves one URL to rank. The Legal Center
+     * header and sidebar on every legal page still list every document.
+     */
+    app.get("/legal", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/legal/terms", 301);
     });
 
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1353,6 +1485,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "terms",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/terms", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1365,6 +1498,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "privacy",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/privacy", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1379,6 +1513,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "code-of-conduct",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/code-of-conduct",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1392,6 +1530,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "contact",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/contact", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1406,6 +1545,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "subprocessors",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/subprocessors",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1419,6 +1562,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1431,6 +1575,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "ccpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/ccpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1443,6 +1588,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "cookies",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/cookies", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1455,6 +1601,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "hipaa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/hipaa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1467,6 +1614,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dmca",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dmca", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1479,6 +1627,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "pci",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/pci", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1493,6 +1642,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27001",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27001",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1508,6 +1661,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27017",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27017",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1523,36 +1680,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27018",
           requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27017",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27017",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27018",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27018",
-          requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27018",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1566,6 +1697,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-2",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-2", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1578,6 +1710,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-3",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-3", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1590,6 +1723,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "vpat",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/vpat", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1604,6 +1738,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "data-residency",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/data-residency",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1617,6 +1755,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gdpr",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gdpr", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1631,6 +1770,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "21-cfr-part-11",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/21-cfr-part-11",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1644,6 +1787,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gamp-5",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gamp-5", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1656,6 +1800,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "annex-11",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/annex-11", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1668,6 +1813,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "iso-9001",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/iso-9001", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1682,6 +1828,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "gxp-cloud",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/gxp-cloud",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1695,6 +1845,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "csa-star",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/csa-star", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1707,6 +1858,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "fedramp",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/fedramp", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1719,6 +1871,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "sla",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/sla", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1731,6 +1884,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "security",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/security", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1745,6 +1899,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "deprecation-policy",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/deprecation-policy",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -2021,30 +2179,14 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog tags sitemap (paginated)
+    /*
+     * Blog tags sitemaps, retired: tag pages are noindex, and the index no
+     * longer lists these. Gone (410), so crawlers drop the addresses.
+     */
     app.get(
       "/sitemap-tags-:page.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const page: number = parseInt(req.params["page"] as string, 10);
-
-          if (isNaN(page) || page < 1) {
-            return res.status(404).send("Invalid sitemap page");
-          }
-
-          // Check if page exists
-          const totalPages: number = await getTagsSitemapPageCount();
-          if (page > totalPages) {
-            return res.status(404).send("Sitemap page not found");
-          }
-
-          const xml: string = await generateTagsSitemapXml(page);
-          res.setHeader("Content-Type", "text/xml");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating sitemap");
-        }
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return sendRetiredSitemap(res);
       },
     );
 
@@ -2090,26 +2232,10 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog RSS feed for a specific tag
-    app.get(
-      "/blog/tag/:tagName/rss.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const tagName: string = req.params["tagName"] as string;
-
-          if (!tagName) {
-            return res.status(404).send("Tag not found");
-          }
-
-          const xml: string = await generateTagRssFeed(tagName);
-          res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating RSS feed");
-        }
-      },
-    );
+    /*
+     * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
+     * with the tag's page, ahead of its route for the tags' old addresses.
+     */
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -2174,6 +2300,14 @@ const HomeFeatureSet: FeatureSet = {
         },
       }),
     );
+
+    /*
+     * Addresses earlier versions of the site published move permanently to
+     * the pages that replaced them (Utils/LegacyRedirects.ts). Here, after
+     * every route and the static files, so a retired address can never
+     * shadow anything the site still serves.
+     */
+    app.use(redirectLegacyUrl);
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
       return NotFoundUtil.renderNotFound(res);

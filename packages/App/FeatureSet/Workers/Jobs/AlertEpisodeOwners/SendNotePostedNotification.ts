@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
@@ -16,6 +17,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import User from "Common/Models/DatabaseModels/User";
@@ -23,6 +25,7 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertEpisodeOwner:SendsNotePostedEmail",
@@ -85,9 +88,11 @@ RunCron(
             },
             currentAlertState: {
               name: true,
+              color: true,
             },
             alertSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -130,11 +135,19 @@ RunCron(
         episodeNumber: episodeNumberStr,
         projectName: episode.project!.name!,
         currentState: episode.currentAlertState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          episode.currentAlertState?.color,
+        ),
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
         episodeSeverity: episode.alertSeverity?.name || "Not Set",
+        ...EmailColorUtil.getTemplateVariables(
+          "episodeSeverity",
+          episode.alertSeverity?.color,
+        ),
         episodeViewLink: (
           await AlertEpisodeService.getEpisodeLinkInDashboard(
             episode.projectId!,
@@ -162,7 +175,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on alert episode ${episodeIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `New note posted on alert episode ${episodeIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -216,15 +231,18 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreEpisodeFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-      const projectId: ObjectID = episode.projectId!;
-      const episodeId: ObjectID = episode.id!;
-      const episodeDisplayNumber: string =
-        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
-
-      const episodeFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`;
+      const episodeFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: true,
+      });
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,

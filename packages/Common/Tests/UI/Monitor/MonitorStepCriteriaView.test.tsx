@@ -9,7 +9,15 @@ import HTTPMethod from "../../../Types/API/HTTPMethod";
 import URL from "../../../Types/API/URL";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import DnsRecordType from "../../../Types/Monitor/DnsMonitor/DnsRecordType";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  CheckOn,
+  CriteriaFilter,
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import Port from "../../../Types/Port";
 import MonitorStep, {
@@ -20,6 +28,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import Service from "../../../Models/DatabaseModels/Service";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import Probe from "../../../Models/DatabaseModels/Probe";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -397,6 +406,107 @@ describe("Monitor criteria page — resolved references", () => {
   });
 });
 
+/*
+ * A Probe Status monitor watches probes; no probe runs it. Its Criteria page
+ * names the probes it watches - the project's own and the global ones, read
+ * as the picker reads them - and its Monitor Details section does not claim
+ * that "the probes check this resource".
+ */
+describe("Monitor criteria page — Probe Status monitors", () => {
+  const FRANKFURT_ID: string = "7c000000-0000-4000-8000-000000000001";
+  const GLOBAL_ID: string = "7c000000-0000-4000-8000-000000000002";
+  const DELETED_ID: string = "7c000000-0000-4000-8000-000000000099";
+
+  beforeEach(() => {
+    getListMock.mockImplementation(
+      (options: {
+        requestOptions?: { overrideRequestUrl?: URL } | undefined;
+      }) => {
+        const isGlobalList: boolean = String(
+          options.requestOptions?.overrideRequestUrl || "",
+        ).includes("/probe/global-probes");
+        const probe: Probe = new Probe();
+
+        probe._id = isGlobalList ? GLOBAL_ID : FRANKFURT_ID;
+        probe.name = isGlobalList
+          ? "Bundled probe"
+          : "Frankfurt (eu-central-1)";
+
+        return Promise.resolve({ data: [probe], count: 1, skip: 0, limit: 1 });
+      },
+    );
+  });
+
+  it("names each probe it watches, the global ones too", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({
+        probeStatusMonitor: { probeIds: [FRANKFURT_ID, GLOBAL_ID] },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Probes to Watch")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+      "Frankfurt (eu-central-1), Bundled probe",
+    );
+  });
+
+  it("a watched probe that was deleted reads as such, not as an id", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({
+        probeStatusMonitor: { probeIds: [FRANKFURT_ID, DELETED_ID] },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "Frankfurt (eu-central-1), Deleted probe",
+      );
+    });
+
+    expect(
+      screen.getByTestId("monitor-step-details").textContent,
+    ).not.toContain(DELETED_ID);
+  });
+
+  it("says what Monitor Details holds without claiming the probes check it", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({ probeStatusMonitor: { probeIds: [FRANKFURT_ID] } }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "What this monitor watches, and the settings it uses.",
+      );
+    });
+
+    expect(screen.getByTestId("monitor-step-details")).not.toHaveTextContent(
+      "How the probes check this resource",
+    );
+  });
+
+  it("a probe-run monitor still says how its probes check it", async () => {
+    renderStep(
+      MonitorType.API,
+      buildStep({
+        monitorDestination: URL.fromString("https://api.example.com/health"),
+        requestType: HTTPMethod.GET,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "How the probes check this resource: what they connect to and the settings they use.",
+      );
+    });
+  });
+});
+
 describe("Monitor criteria page — types without step configuration", () => {
   it("hides the Monitor Details section for incoming request monitors but still shows criteria", async () => {
     renderStep(MonitorType.IncomingRequest, buildStep({}));
@@ -428,5 +538,86 @@ describe("Monitor criteria page — types without step configuration", () => {
     });
 
     expect(screen.getByTestId("monitor-step-details")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A window on a JavaScript expression is judged check by check where the
+ * expression keeps a match history - an API or Website monitor - and not on
+ * a SQL Query monitor, whose window the server does not judge that way. The
+ * criteria list reads each as the monitor it is on judges it.
+ */
+describe("Monitor criteria page — a filter's window reads as its monitor judges it", () => {
+  function criteriaWith(criteriaFilter: CriteriaFilter): MonitorCriteria {
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      id: "starting",
+      monitorStatusId: undefined,
+      filterCondition: FilterCondition.All,
+      filters: [criteriaFilter],
+      incidents: [],
+      alerts: [],
+      name: "Starting",
+      description: "",
+      isEnabled: true,
+    };
+
+    const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+    monitorCriteria.data = { monitorCriteriaInstanceArray: [instance] };
+    return monitorCriteria;
+  }
+
+  function expressionWithWindow(expression: string): CriteriaFilter {
+    return {
+      checkOn: CheckOn.JavaScriptExpression,
+      filterType: FilterType.EvaluatesToTrue,
+      value: expression,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        timeValueInMinutes: 5,
+        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+      },
+    };
+  }
+
+  it("on an API monitor, says the expression must be true on every check of the window", async () => {
+    renderStep(
+      MonitorType.API,
+      buildStep({
+        monitorDestination: URL.fromString("https://example.com/health"),
+        requestType: HTTPMethod.GET,
+        monitorCriteria: criteriaWith(
+          expressionWithWindow("'{{responseBody.status}}' === 'starting'"),
+        ),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("on a SQL Query monitor, claims no check-by-check wait", async () => {
+    renderStep(
+      MonitorType.SQLQuery,
+      buildStep({
+        monitorCriteria: criteriaWith(expressionWithWindow("{{rowCount}} > 0")),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(CRITERIA_SECTION_DESCRIPTION),
+      ).toBeInTheDocument();
+    });
+
+    expect(document.body.textContent).toContain(
+      "{{rowCount}} > 0 - evaluates to true",
+    );
+    expect(document.body.textContent).not.toContain("on every check");
   });
 });

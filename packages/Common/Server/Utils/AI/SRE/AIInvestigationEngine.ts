@@ -4,20 +4,35 @@ import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   AIChatCitation,
+  AIPromptOmissions,
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
+import PromptText, { PromptTextResult } from "../../../../Utils/AI/PromptText";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import AIAgentRunLimitsHelper, {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+  isInfrastructureToolName,
+} from "../ResourceAccess/ResourceAccessToolNames";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
+import AIService, {
+  PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN,
+} from "../../../Services/AIService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
@@ -30,7 +45,12 @@ import ObservabilityAssistant, {
   ObservabilityAssistantStepType,
 } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
+import LLMService from "../../LLM/LLMService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -50,17 +70,20 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * Enablement + provider gating is shared via isEnabledForProject().
  */
 
-// Budgets — larger than an interactive chat-ops answer, small enough to stay cheap.
-const MAX_LLM_CALLS: number = 8;
-const MAX_TOOL_CALLS: number = 12;
 /*
- * The wall clock an investigation run gets by default. Exported because the
- * kubectl read toolkit plans every command's wait against this same budget
- * (the runners hand it to the engine AND to the toolkit as an absolute
- * deadline), and one definition is how the two can never disagree.
+ * Budgets. An investigation runs until it is done: no wall clock, and step
+ * counts that only guard against a runaway loop (see AIAgentRunLimits). A
+ * project that wants a hard time limit configures one per lane, and the
+ * runners pass it in as maxWallClockMs — and to the command toolkits as a
+ * deadline — so the loop and every command wait agree on one number.
  */
-export const MAX_WALL_CLOCK_MS: number = 150 * 1000;
-const MAX_OUTPUT_TOKENS: number = 2000;
+const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
+const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
+/*
+ * Room for a full report. An answer that still reaches the limit is
+ * finished with continuation calls, never published half-written.
+ */
+const MAX_OUTPUT_TOKENS: number = 4096;
 
 /*
  * Conditional recommendation persistence is idempotent, so transient
@@ -71,10 +94,24 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
 /*
  * Failures a retry cannot fix within the run's usefulness window: missing/
  * broken provider configuration and budget exhaustion (both messages minted
- * by our own gating in AIService/LLMService, so they are stable to match).
+ * by our own gating in AIService/LLMService, so they are stable to match),
+ * the project's own daily AI limits, which hold until midnight UTC, and a
+ * model context window too small for the run, which a retry would only fill
+ * again until the operator raises it.
  */
 const PERMANENT_FAILURE_RE: RegExp =
   /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
+
+// Whether a run's failure is one no retry can get past (see above).
+export const isPermanentInvestigationFailure: (message: string) => boolean = (
+  message: string,
+): boolean => {
+  return (
+    PERMANENT_FAILURE_RE.test(message) ||
+    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message) ||
+    message.includes(LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR)
+  );
+};
 
 /*
  * The tools that reach a Kubernetes cluster rather than the project's
@@ -97,11 +134,13 @@ const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
     tool_failed: AIRunEventType.ToolCallFailed,
   };
 
-const INVESTIGATION_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer. You have been woken automatically because a NEW signal (an incident or alert) was just declared in this project — no human has asked you a question yet. Investigate it proactively and produce a first-pass root cause analysis that the on-call engineer will read the moment they are paged.
+export const INVESTIGATION_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer. You have been woken automatically because a NEW signal (an incident or alert) was just declared in this project — no human has asked you a question yet. Investigate it proactively and produce a first-pass root cause analysis that the on-call engineer will read the moment they are paged.
 
 Investigate like a senior on-call engineer:
-- Start from the affected monitors/services named in the signal.
+- Start from the affected monitors/services named in the signal, and from the infrastructure the context lists them linked to (hosts, Docker hosts, clusters) — read the alerts on it first.
 - Use your read tools to inspect the telemetry AROUND the signal's creation time: recent exceptions and their trends, error/latency metrics versus their normal range (use baseline_anomaly to judge a metric against its learned hour-of-week baseline quantitatively instead of eyeballing), failing traces, relevant logs, and recent changes / deploys.
+- When a service is slow, burns CPU or memory, or times out, and it is profiled, read where its time goes with get_profile_hotspots, and what got slower with compare_profiles (changeTime = a deploy's time, or the signal's start). A function whose share of the time grew is the code to name; get_profile_function shows who calls it and what it calls.
+- If the context lists recent changes and marks one SUSPECT, check it first: confirm its timing and impact with recent_changes, and see what it shipped with get_change_details. When a change caused the signal, name it in the root cause - with the commit or pull request that broke it when get_change_details lists them, so a fix pull request can revert exactly that - and say in the next steps whether rolling it back is the fastest safe fix.
 - Form the single most likely root-cause hypothesis. If the evidence is inconclusive, say so plainly and list what you checked — do NOT guess a cause the data does not support.
 - If the context lists past resolved incidents, check whether this is a RECURRENCE. If the current signal matches one, say so explicitly, reference that incident number, and note how it was resolved before — but still verify against the current telemetry.
 
@@ -125,8 +164,19 @@ export interface InvestigationRequest {
    */
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
-  // A compact markdown summary of the subject that seeds the investigation.
+  /*
+   * A compact markdown summary of the subject that seeds the investigation.
+   * It is sent with every call to the model, so its free-text fields go in
+   * through PromptText.field (Utils/AI/PromptText); anything still embedded
+   * in it is left out here before the model reads it.
+   */
   contextSummary: string;
+  /*
+   * What the runner left out of the subject's text while building the
+   * summary - embedded images, the end of a long description. The run's
+   * activity says so, so responders know what OneUptime AI did not read.
+   */
+  promptOmissions?: AIPromptOmissions | undefined;
   /*
    * Called with the finished, branded, cited analysis so the caller can post
    * it to the subject's timeline. `confidence` is the structured,
@@ -192,6 +242,19 @@ export interface InvestigationRequest {
   // Replaces the "A new signal has just been declared..." user preamble.
   questionOverride?: string | undefined;
   /*
+   * What the runner's starting context read, for people: each one is
+   * recorded in the run's activity as a ProgressLog event before the model
+   * starts (the linked infrastructure and its alerts, why an incident is
+   * checked again). Deterministic, never model output.
+   */
+  contextNotes?: Array<AIRunEventResultSummary> | undefined;
+  /*
+   * A line placed between the report's heading and the model's analysis,
+   * written by the runner from its own data - why this report exists, for a
+   * follow-up check. Never model output.
+   */
+  reportLead?: MarkdownText | undefined;
+  /*
    * Run-scoped tools grafted onto the loop (see
    * ObservabilityAssistantExtraTool). The read-only toolbox is always
    * present; extras are additive and own their own authorization.
@@ -199,16 +262,18 @@ export interface InvestigationRequest {
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
   maxLlmCalls?: number | undefined;
   maxToolCalls?: number | undefined;
+  // Undefined means no time limit.
   maxWallClockMs?: number | undefined;
   maxOutputTokens?: number | undefined;
 }
 
 export default class AIInvestigationEngine {
   /*
-   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, and an
-   * LLM provider configured. Incidents and alerts each have their own opt-in so
-   * they can be enabled independently. Runs before any (subject-specific)
-   * context assembly.
+   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, an
+   * LLM provider configured, AI credits to pay for it, and room left under
+   * the project's own daily AI limits. Incidents and alerts each have their
+   * own opt-in so they can be enabled independently. Runs before any
+   * (subject-specific) context assembly.
    */
   @CaptureSpan()
   public static async isEnabledForProject(
@@ -228,6 +293,12 @@ export default class AIInvestigationEngine {
         enableAi: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
+        // The project's own daily AI limits, checked last on this same row.
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        // When each last stopped AI: telling the owners costs no read then.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
@@ -249,14 +320,117 @@ export default class AIInvestigationEngine {
       return "automatic_investigation_disabled";
     }
 
+    const providerOrBalance:
+      | "provider_missing"
+      | "insufficient_ai_balance"
+      | null = await this.getProviderOrBalanceReason(projectId);
+
+    if (providerOrBalance) {
+      return providerOrBalance;
+    }
+
+    /*
+     * The project's own daily AI limits (Project Settings → AI → AI
+     * Features → More settings): once one is reached, every model call is refused
+     * until midnight UTC, so a run started now would only fail. Fails open
+     * like the balance check - the model call still enforces the limits.
+     */
+    if (
+      await AIService.getReachedProjectDailyLimit({
+        projectId,
+        project,
+      })
+    ) {
+      logger.debug(
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — it has reached its own daily AI limit.`,
+      );
+      return "project_daily_limit_reached";
+    }
+
+    return null;
+  }
+
+  /*
+   * How far an investigation of this lane may run: no time limit unless the
+   * project configured one in its Incident / Alert AI settings. Fails open —
+   * a project that cannot be read runs unbounded rather than being cut
+   * short, since the time limit is an opt-in.
+   */
+  public static async getRunLimitsForProject(
+    projectId: ObjectID,
+    subjectType: AISubjectType,
+  ): Promise<AIAgentRunLimits> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          incidentAiInvestigationTimeLimitInMinutes: true,
+          alertAiInvestigationTimeLimitInMinutes: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
+        subjectType === "Alert"
+          ? project?.alertAiInvestigationTimeLimitInMinutes
+          : project?.incidentAiInvestigationTimeLimitInMinutes,
+      );
+    } catch (error) {
+      logger.error(
+        `AI: could not read the investigation time limit for project ${projectId.toString()}; running without one: ${error}`,
+      );
+      return AIAgentRunLimitsHelper.getDefault();
+    }
+  }
+
+  /*
+   * The half of the gate that is not a switch: a model to call, and AI
+   * credits to pay for it. Shared with the other autonomous AI work that
+   * has its own switch (the postmortem draft on resolve), so the two can
+   * never disagree about whether AI can run at all.
+   *
+   * The balance check is the same predicate as the Kubernetes cluster's
+   * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
+   * OneUptime's own billed provider, with no credits left and nothing to
+   * refill them first (Auto Recharge off, or its last charge failed), every
+   * model call would be refused as out of AI credits —
+   * so a run started now would only fail, be retried, and fail again, and
+   * nobody would see why. It fails OPEN: a balance that cannot be read
+   * never blocks, because the model call itself still enforces the balance.
+   */
+  public static async getProviderOrBalanceReason(
+    projectId: ObjectID,
+  ): Promise<"provider_missing" | "insufficient_ai_balance" | null> {
     const llmProvider: LlmProvider | null =
       await LlmProviderService.getLLMProviderForProject(projectId);
 
     if (!llmProvider) {
       logger.debug(
-        `AI: skipping investigation for project ${projectId.toString()} — no LLM provider configured.`,
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — no LLM provider configured.`,
       );
       return "provider_missing";
+    }
+
+    let balanceBlocker: string | null = null;
+
+    try {
+      balanceBlocker = await AIService.getAiBalanceBlocker({
+        projectId,
+        // Already resolved above — spares the predicate a second lookup.
+        llmProvider,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not check the AI balance for project ${projectId.toString()}; not blocking on it: ${error}`,
+      );
+      balanceBlocker = null;
+    }
+
+    if (balanceBlocker) {
+      logger.debug(
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — ${balanceBlocker}`,
+      );
+      return "insufficient_ai_balance";
     }
 
     return null;
@@ -303,11 +477,64 @@ export default class AIInvestigationEngine {
     });
 
     /*
+     * The model reads text: an image embedded in the subject's text - a
+     * synthetic monitor's screenshot is hundreds of kilobytes of base64 -
+     * would only be billed, on every call of the run (issue #4587). The
+     * runner held each field to its length; whatever is still embedded in
+     * the summary (a section quoting another record) is left out here. When
+     * anything was, the run's activity says so first, in the reader's
+     * language, so responders know what OneUptime AI did not read.
+     */
+    const seed: PromptTextResult = PromptText.omitEmbeddedData(
+      request.contextSummary,
+    );
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
+
+    if (request.promptOmissions) {
+      PromptText.addOmissions(promptOmissions, request.promptOmissions);
+    }
+
+    PromptText.addOmissions(promptOmissions, seed.omissions);
+
+    if (PromptText.hasOmissions(promptOmissions)) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: {
+          message: PromptText.describeOmissions(promptOmissions) || undefined,
+          severity: "Info",
+          promptOmissions,
+        },
+      });
+    }
+
+    // What the starting context read, in the run's activity before anything else.
+    for (const contextNote of request.contextNotes || []) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: contextNote,
+      });
+    }
+
+    /*
      * Cluster tool calls this attempt started. The run's toolCallCount
      * includes them, and the posted report must not call them telemetry
      * queries.
      */
     let clusterToolCallCount: number = 0;
+
+    /*
+     * The same for the tools that reach an infrastructure resource through
+     * its AI agent (run_infrastructure_command, list_infrastructure_access):
+     * commands on a host, a container engine, a hypervisor, a storage
+     * cluster or a database — never telemetry queries either.
+     */
+    let infrastructureToolCallCount: number = 0;
 
     /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
@@ -321,6 +548,13 @@ export default class AIInvestigationEngine {
         CLUSTER_TOOL_NAMES.includes(step.toolName || "")
       ) {
         clusterToolCallCount++;
+      }
+
+      if (
+        step.type === "tool_started" &&
+        isInfrastructureToolName(step.toolName)
+      ) {
+        infrastructureToolCallCount++;
       }
 
       /*
@@ -382,8 +616,14 @@ export default class AIInvestigationEngine {
           incidentId: request.incidentId,
           alertId: request.alertId,
           aiRunId,
-          // System run — full read access to the project's telemetry.
-          props: { isRoot: true },
+          /*
+           * System run — full read access to the project's telemetry, and
+           * to this project only. The tenant is what holds a root read to
+           * one project: the model layer adds it to every query of a model
+           * with a project column, so a tool that does not name the project
+           * itself still reads only this one.
+           */
+          props: { isRoot: true, tenantId: projectId },
           feature: request.feature,
           systemInstructions: `${request.personaOverride ?? INVESTIGATION_PERSONA}${
             request.additionalInstructions
@@ -393,10 +633,11 @@ export default class AIInvestigationEngine {
           question: `${
             request.questionOverride ??
             "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
-          }\n\n${request.contextSummary}`,
+          }\n\n${seed.text}`,
           maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
           maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
-          maxWallClockMs: request.maxWallClockMs ?? MAX_WALL_CLOCK_MS,
+          // Null tells the loop "no time limit" (undefined = its chat default).
+          maxWallClockMs: request.maxWallClockMs ?? null,
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,
@@ -556,6 +797,8 @@ export default class AIInvestigationEngine {
         result,
         analysis,
         clusterToolCallCount,
+        infrastructureToolCallCount,
+        request.reportLead,
       );
 
       await request.postAnalysis({
@@ -649,7 +892,7 @@ export default class AIInvestigationEngine {
           aiRunId,
           attemptCount: data.attemptCount,
           errorMessage: message,
-          isPermanent: PERMANENT_FAILURE_RE.test(message),
+          isPermanent: isPermanentInvestigationFailure(message),
         });
 
       /*
@@ -820,13 +1063,38 @@ export default class AIInvestigationEngine {
    * model's). So a run that made no cluster call posts exactly what it
    * always has, and a run that did writes its telemetry count only when it
    * is not zero.
+   *
+   * Commands on infrastructure resources (run_infrastructure_command) are
+   * counted the same way, as their own "N infrastructure commands run"
+   * part appended only when a run used those tools — so every footer of a
+   * run that did not stays byte-for-byte what it was.
+   *
+   * The analysis is written from telemetry, which can carry text meant to
+   * steer the model, and this is what the subject's feed, its internal note
+   * and its Slack and Teams channels show. It stays the Markdown the model
+   * wrote, but nothing in it acts on its own (FeedMarkdown.aiWritten):
+   * no chat mention, no image or diagram, no link whose words hide where it
+   * goes, no HTML tag. A citation's label and the model's name are text.
    */
   public static buildBrandedMarkdown(
     result: ObservabilityAssistantResult,
     analysisMarkdown: string,
     clusterToolCallCount: number = 0,
+    infrastructureToolCallCount: number = 0,
+    // The runner's own line under the heading (a follow-up check's why).
+    reportLead?: MarkdownText | undefined,
   ): string {
-    let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${analysisMarkdown}`;
+    let markdown: string =
+      mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+
+    /*
+     * The runner's own lead goes between the heading and the analysis, so
+     * the report parser reads it as the report's preamble.
+     */
+    if (reportLead && reportLead.toString().trim()) {
+      markdown =
+        mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+    }
 
     const citations: Array<AIChatCitation> = result.citations || [];
 
@@ -837,16 +1105,16 @@ export default class AIInvestigationEngine {
           AIInvestigationEngine.describeClusterCitationOutcome(citation);
 
         if (clusterOutcome !== null) {
-          markdown += `\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+          markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;
           continue;
         }
 
-        markdown += `\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
+        markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;
       }
     }
 
-    if (clusterToolCallCount <= 0) {
-      markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
+    if (clusterToolCallCount <= 0 && infrastructureToolCallCount <= 0) {
+      markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
         result.modelName ? ` using ${result.modelName}` : ""
@@ -857,7 +1125,9 @@ export default class AIInvestigationEngine {
 
     const telemetryQueryCount: number = Math.max(
       0,
-      result.toolCallCount - clusterToolCallCount,
+      result.toolCallCount -
+        Math.max(0, clusterToolCallCount) -
+        Math.max(0, infrastructureToolCallCount),
     );
     // Only commands that reached kubectl are cited, so only they are "run".
     const kubectlCommandCount: number = citations.filter(
@@ -883,11 +1153,40 @@ export default class AIInvestigationEngine {
       );
     }
 
+    // Only commands that reached a resource are cited, so only they are "run".
+    const infrastructureCommandCount: number = citations.filter(
+      (citation: AIChatCitation): boolean => {
+        return citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME;
+      },
+    ).length;
+
+    if (infrastructureCommandCount > 0) {
+      counts.push(
+        `${infrastructureCommandCount} infrastructure ${
+          infrastructureCommandCount === 1 ? "command" : "commands"
+        } run on your infrastructure`,
+      );
+    }
+
+    if (counts.length === 0 && infrastructureToolCallCount > 0) {
+      counts.push(
+        clusterToolCallCount > 0
+          ? "no telemetry queries, kubectl commands or infrastructure commands run"
+          : "no telemetry queries or infrastructure commands run",
+      );
+    }
+
     if (counts.length === 0) {
       counts.push("no telemetry queries or kubectl commands run");
     }
 
-    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+    // Three parts read "A, B and C"; one or two read exactly as they always have.
+    if (counts.length > 2) {
+      counts.splice(0, counts.length - 1, counts.slice(0, -1).join(", "));
+    }
+
+    markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(
+      counts,
       " and ",
     )}${
       result.modelName ? ` using ${result.modelName}` : ""
@@ -911,6 +1210,19 @@ export default class AIInvestigationEngine {
 
     if (citation.toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
       return `${citation.rowCount} cluster(s)`;
+    }
+
+    /*
+     * A command on an infrastructure resource: 1 when it completed, 0 when
+     * it ran and the program returned an error; a listing of resources is
+     * the number it listed.
+     */
+    if (citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+      return citation.rowCount > 0 ? "succeeded" : "command returned an error";
+    }
+
+    if (citation.toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
+      return `${citation.rowCount} resource(s)`;
     }
 
     return null;

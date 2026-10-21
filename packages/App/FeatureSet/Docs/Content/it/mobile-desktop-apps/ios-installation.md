@@ -1,88 +1,158 @@
-# Guida all'installazione su iOS
+# Installazione iOS
 
-Installa l'app iOS nativa **OneUptime On-Call** dall'Apple App Store sul tuo iPhone o iPad.
+Installa **OneUptime On-Call** dall'App Store su un iPhone o iPad, collegalo al tuo OneUptime e accedi. Poi inviati una notifica di test, e lascia che gli avvisi di reperibilità urgenti suonino nonostante la modalità silenziosa e le modalità Full immersion.
 
-## Requisiti
+:::cards
+- [Installare l'app](#installare-lapp): Dall'App Store.
+- [Accedere](#accedere): L'indirizzo del tuo OneUptime, poi il tuo account.
+- [Controllare che gli avvisi arrivino al dispositivo](#controllare-che-gli-avvisi-arrivino-al-dispositivo): Trovarlo nella dashboard e provarlo.
+- [Suonare in modalità silenziosa](#suonare-in-modalità-silenziosa): Gli avvisi critici, il suono di allarme e il suo volume.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Problemi di accesso, notifiche e avvisi critici.
+:::
 
-- iPhone o iPad con **iOS 15.0 o successivo**
-- Un account OneUptime attivo (o l'URL della tua istanza self-hosted di OneUptime)
-- Connessione Internet per l'accesso e per ricevere le notifiche push
+## Prima di iniziare
 
-## Installazione dall'App Store
+- Un iPhone o iPad con iOS 16.4 o successivo, o iPadOS 16.4 o successivo.
+- Un account in un progetto OneUptime. Per ricevere avvisi devi anche essere reperibile: vedi [Regole di escalation](/docs/on-call/escalation-rules).
+- L'indirizzo del tuo OneUptime: `https://oneuptime.com` su OneUptime Cloud, o il tuo, ad esempio `https://oneuptime.example.com`. L'app si connette solo in HTTPS.
 
-1. **Apri l'App Store** sul tuo iPhone o iPad.
-2. Tocca la scheda **Cerca** e cerca **"OneUptime On-Call"**, oppure apri questo link sul tuo dispositivo:
-   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
-3. Tocca **Ottieni**, quindi autenticati con Face ID, Touch ID o la password del tuo Apple ID.
-4. Una volta installata, tocca **Apri** o avvia **OneUptime On-Call** dalla schermata Home.
+## Installare l'app
 
-## Primo avvio e accesso
+1. Sull'iPhone o iPad, apri [OneUptime On-Call nell'App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391), o cerca OneUptime On-Call nell'App Store.
+2. Tocca **Ottieni** e conferma con Face ID, Touch ID o la password del tuo account Apple.
+3. Tocca **Apri**, oppure apri OneUptime On-Call dalla schermata Home.
 
-1. **URL del server**
-   - Se utilizzi OneUptime Cloud, lascia il valore predefinito `https://oneuptime.com`.
-   - Se sei in self-hosting, inserisci l'URL della tua istanza OneUptime (ad esempio `https://oneuptime.example.com`).
-   - L'app verifica che il server sia raggiungibile prima di proseguire.
-2. **Accedi**
-   - Inserisci l'email e la password del tuo account OneUptime.
-   - Facoltativamente, attiva **Face ID** o **Touch ID** per sbloccare più rapidamente l'app ai successivi avvii.
-3. **Consenti le notifiche**
-   - Quando richiesto, tocca **Consenti** in modo che l'app possa recapitare avvisi di reperibilità, allerte di incidenti e prese in carico.
+L'App Store mantiene l'app aggiornata finché **Aggiornamenti app** è attivo, in **Impostazioni → App Store**.
 
-## Notifiche push
+## Accedere
 
-Le notifiche push vengono recapitate tramite Apple Push Notification service (APNs) tramite Expo Push. Per assicurarti che gli avvisi ti raggiungano in modo affidabile:
+```mermaid title="Cosa fa l'app quando accedi"
+flowchart TB
+    Address["Inserisci l'indirizzo<br/>del tuo OneUptime"]
+    Check["L'app controlla che<br/>il tuo OneUptime risponda"]
+    SignIn["Accedi: password,<br/>passkey o SSO"]
+    Allow["Consenti le notifiche"]
+    Register["L'app registra il<br/>dispositivo in ciascuno<br/>dei tuoi progetti"]
+    Rules["Ogni progetto elenca il<br/>dispositivo, con le regole<br/>di reperibilità predefinite"]
+    Address --> Check --> SignIn --> Allow --> Register --> Rules
+```
 
-1. Vai su **Impostazioni → Notifiche → OneUptime On-Call**.
-2. Attiva **Consenti notifiche**, **Suoni**, **Badge** e la consegna su **Schermata di blocco / Banner / Centro Notifiche**.
-3. Imposta **Raggruppamento notifiche** su **Automatico**.
-4. Se sei in reperibilità, disattiva la **Modalità a basso consumo** durante il tuo turno ed evita di forzare la chiusura dell'app — iOS potrebbe ritardare la consegna in background se l'app viene forzatamente chiusa.
-5. Aggiungi **OneUptime On-Call** a tutte le modalità **Full Immersion** in cui desideri comunque ricevere gli avvisi.
+:::steps
+### Inserire l'indirizzo del tuo OneUptime
+Apri l'app. Su **Connect your workspace**, lascia `https://oneuptime.com` per OneUptime Cloud, o inserisci l'indirizzo del tuo OneUptime, e tocca **Connect**. L'app prosegue appena `https://<your-oneuptime>/api/status` risponde.
 
-## Aggiornamenti
+### Accedere al tuo account
+Usa il modo in cui accede il tuo account:
 
-L'app viene aggiornata tramite l'App Store:
+- Email e password, poi **Sign In**. **Forgot password?** ti invia per email un link per impostarne una nuova.
+- **Sign in with SSO**, se la tua organizzazione usa il single sign-on. Scegli il tuo provider, o inserisci l'email di lavoro e tocca **Continue**. Si apre un browser sicuro, e torni nell'app appena hai effettuato l'accesso.
+- **Sign in with a passkey**, dopo averne aggiunta una nella dashboard: vedi [Aggiungere una passkey](/docs/introduction/your-account#aggiungere-una-passkey). Si apre un riquadro del browser per confermarla, poi ti riporta nell'app.
 
-- Apri l'**App Store**, tocca la tua foto profilo, scorri fino a **OneUptime On-Call** e tocca **Aggiorna**.
-- Oppure attiva **Impostazioni → App Store → Aggiornamenti app** per installare gli aggiornamenti automaticamente.
+Con l'autenticazione a due fattori attiva, inserisci il codice a sei cifre della tua app di autenticazione, o uno dei tuoi codici di backup. Una chiave di sicurezza non si può usare nell'app. Se l'amministratore richiede l'autenticazione a due fattori e non l'hai ancora configurata, l'app configura prima con te un'app di autenticazione.
 
-## Disinstallazione
+### Consentire le notifiche
+Quando iOS chiede se OneUptime On-Call può inviarti notifiche, tocca **Consenti**.
 
-1. **Tieni premuta** l'icona di **OneUptime On-Call** nella schermata Home.
-2. Tocca **Rimuovi app → Elimina app**.
-3. Conferma toccando **Elimina**.
+L'app registra poi l'iPhone o iPad in ciascuno dei tuoi progetti. Ogni progetto lo elenca tra i tuoi dispositivi push, con le regole di reperibilità predefinite, così da ora i tuoi avvisi gli arrivano.
+:::
 
-Il tuo account OneUptime e i turni di reperibilità sono memorizzati lato server e non vengono rimossi quando disinstalli l'app.
+L'app mostra un progetto alla volta: tocca il nome del progetto in cima a una schermata per cambiarlo. Un progetto che richiede il single sign-on risulta **SSO Required** in **Settings → Manage Projects** finché non tocchi lì **Authenticate with SSO**.
+
+## Controllare che gli avvisi arrivino al dispositivo
+
+:::steps
+### Trovare il dispositivo nella dashboard
+Nella dashboard, apri **Impostazioni utente → Metodi di notifica** e la scheda **Push Notifications**. L'iPhone o iPad compare in **Dispositivi per notifiche push** con il nome del modello. Ogni progetto tiene un suo elenco.
+
+### Inviare un test
+Fai clic su **Notifica di test** sulla riga del dispositivo. Sul dispositivo arriva una notifica; toccala per aprire l'app.
+:::
+
+Le tue regole di reperibilità decidono quali avvisi vanno al dispositivo, e con quale rapidità: vedi **Impostazioni utente → Regole di reperibilità**. Un nuovo dispositivo riceve le stesse regole predefinite di qualsiasi altro metodo che aggiungi.
+
+## Suonare in modalità silenziosa
+
+Per impostazione predefinita un avviso di reperibilità segue le impostazioni audio del dispositivo: la modalità silenziosa lo tiene muto, e una modalità Full immersion come Non disturbare lo trattiene. Gli avvisi critici fanno suonare gli avvisi di reperibilità nonostante entrambi. Sono disattivati finché non li attivi, dispositivo per dispositivo.
+
+```mermaid title="Se un avviso di reperibilità suona comunque su un iPhone o iPad"
+flowchart TB
+    Page["Un avviso di reperibilità<br/>per questo dispositivo"]
+    Rule{"Regola su<br/>Avviso critico?"}
+    Device{"Critical On-Call<br/>Alerts attivo?"}
+    Quiet["Segue il suono e<br/>la Full immersion<br/>del dispositivo"]
+    Loud["Riproduce l'allarme,<br/>al tuo volume,<br/>nonostante silenzioso<br/>e Full immersion"]
+    Page --> Rule
+    Rule -->|"no: Standard"| Quiet
+    Rule -->|"sì"| Device
+    Device -->|"no"| Quiet
+    Device -->|"sì"| Loud
+```
+
+:::steps
+### Attivare Critical On-Call Alerts
+Nell'app, apri **Settings** e attiva **Critical On-Call Alerts** sotto **Notifications**.
+
+### Consentire gli avvisi critici
+Quando iOS chiede se OneUptime On-Call può inviare avvisi critici, tocca **Consenti**. iOS aggiunge allora un interruttore **Avvisi critici** per l'app in **Impostazioni → Notifiche → OneUptime On-Call**, dove potrai cambiare idea in seguito. La riga sotto l'interruttore dell'app dice se gli avvisi suoneranno.
+
+### Scegliere un suono di allarme e il suo volume
+Tocca **Alarm sound** sotto l'interruttore. Oltre al suono di avviso critico del dispositivo, offre Klaxon, Siren, Digital alarm, Smoke alarm e Rising alarm, che parte piano e cresce. Tocca riproduci accanto a un suono per ascoltarlo. Poi scegli il volume a cui suona un avviso: 25%, 50%, 75% o 100%, il valore predefinito.
+:::
+
+Suonano comunque solo gli avvisi di reperibilità, e solo quelli delle regole di reperibilità impostate su **Avviso critico**, il valore predefinito. Una regola su **Standard** segue le impostazioni del dispositivo qualunque cosa dica l'interruttore, così puoi essere svegliato per un incidente critico e avvisato in silenzio per uno minore. Invia una **Notifica di test** con il dispositivo in silenzioso per sentire cosa farà un avviso. L'anteprima della schermata **Alarm sound** suona al volume della suoneria, e per niente in silenzioso; un avviso vero suona nonostante la modalità silenziosa al volume che hai scelto.
+
+> [!NOTE]
+> Gli avvisi critici richiedono OneUptime On-Call 1.5.0 o successivo dall'App Store. Le versioni precedenti sono state compilate senza il permesso di Apple per gli avvisi critici, quindi iOS non ha mai offerto loro l'interruttore.
+
+## Evitare che gli avvisi vengano trattenuti
+
+Senza avvisi critici, una modalità Full immersion o un riepilogo possono trattenere gli avvisi:
+
+- **Full immersion.** Aggiungi OneUptime On-Call alle app consentite da ogni modalità, in **Impostazioni → Full immersion**.
+- **Riepilogo programmato.** Lascia fuori OneUptime On-Call, in **Impostazioni → Notifiche → Riepilogo programmato**: una notifica nel riepilogo aspetta il prossimo orario del riepilogo.
+- **Notifiche.** Tieni attivo **Consenti notifiche**, in **Impostazioni → Notifiche → OneUptime On-Call**.
+
+## Bloccare l'app
+
+Attiva **Biometrics Login** in **Settings** nell'app, e a ogni avvio ti chiederà Face ID, Touch ID o il codice. L'interruttore compare quando Face ID o Touch ID è configurato sul dispositivo. **Appearance**, nella stessa schermata, sceglie l'aspetto chiaro o scuro, o segue il dispositivo.
+
+## Aggiornare, uscire o eliminare l'app
+
+- **Aggiornare.** L'App Store aggiorna l'app; puoi anche aggiornarla dal tuo account nell'App Store. La versione dell'app è in fondo alla sua schermata **Settings**.
+- **Uscire.** **Settings → Log Out** ti disconnette e rimuove il dispositivo dai tuoi dispositivi push in ogni progetto, insieme alle sue regole di reperibilità. Se accedi di nuovo, torna con le regole predefinite.
+- **Eliminare.** Tocca e tieni premuta l'icona dell'app, poi tocca **Rimuovi app** e **Elimina app**. Se eri ancora connesso, il dispositivo resta nel tuo elenco finché un push verso di esso non fallisce: OneUptime lo segna allora come **Non riceve notifiche**. Se reinstalli l'app e accedi, quella voce di solito torna, con le sue regole; se non usi più il dispositivo, elimina la voce con **Elimina**.
 
 ## Risoluzione dei problemi
 
-**L'App Store indica che l'app è "Non disponibile nella tua regione":**
+:::details «Could not connect to the server»
+L'app non è riuscita a raggiungere `https://<your-oneuptime>/api/status`. Controlla l'indirizzo, compreso `https://`. Se il tuo OneUptime è su una rete privata, collega prima il dispositivo a quella rete, ad esempio tramite la VPN. Apri quell'indirizzo in Safari sul dispositivo: mostra `{"status":"ok"}` quando il dispositivo raggiunge OneUptime.
+:::
 
-- L'app è pubblicata sull'App Store globale. Se non appare nella tua regione, contatta il [supporto](mailto:support@oneuptime.com).
+:::details Non arriva nessuna notifica
+- Controlla che **Consenti notifiche** sia attivo in **Impostazioni → Notifiche → OneUptime On-Call**, e che nessuna modalità Full immersion trattenga gli avvisi.
+- Controlla che il dispositivo compaia in **Push Notifications** in **Impostazioni utente → Metodi di notifica**, e inviagli una **Notifica di test**.
+- Se il dispositivo è segnato **Non riceve notifiche**, apri l'app da connesso. Registra di nuovo il dispositivo; vedi [Quando un telefono deve registrarsi di nuovo](/docs/mobile-desktop-apps/faq-troubleshooting#quando-un-telefono-deve-registrarsi-di-nuovo).
+- Controlla le tue regole di reperibilità in **Impostazioni utente → Regole di reperibilità**.
+- Su un OneUptime self-hosted, controlla che il server raggiunga il suo relay push: vedi [Notifiche push](/docs/self-hosted/push-notifications#accesso-di-rete).
+:::
 
-**"Errore di rete" durante l'accesso:**
+:::details Nessun interruttore Avvisi critici nelle Impostazioni di iOS
+Attiva prima **Critical On-Call Alerts** nell'app: iOS aggiunge il suo interruttore solo dopo che l'app ha chiesto gli avvisi critici. Se l'app dice che questa versione non può ricevere avvisi critici, aggiorna OneUptime On-Call dall'App Store.
+:::
 
-- Verifica che l'**URL del server** sia corretto e raggiungibile dal tuo dispositivo.
-- Se sei su una rete aziendale o VPN, assicurati che l'istanza OneUptime sia accessibile.
-- Verifica che il server sia servito tramite HTTPS con un certificato valido.
+:::details Gli avvisi critici restano muti
+Apri **Settings** nell'app: la riga sotto **Critical On-Call Alerts** dice cosa manca. Controlla che **Avvisi critici** sia attivo in **Impostazioni → Notifiche → OneUptime On-Call**, e che il volume nella schermata **Alarm sound** dell'app non sia basso.
+:::
 
-**Non si ricevono notifiche push:**
+:::details Manca l'interruttore Biometrics Login
+L'interruttore compare quando Face ID o Touch ID è configurato in **Impostazioni → Face ID e codice** o **Impostazioni → Touch ID e codice**.
+:::
 
-- Apri **Impostazioni → Notifiche → OneUptime On-Call** e verifica che le notifiche siano consentite.
-- Disattiva **Non disturbare** o aggiungi OneUptime On-Call all'elenco delle eccezioni della modalità Full Immersion attiva.
-- Esci e accedi nuovamente per aggiornare il token push registrato con il server.
-- Utenti self-hosted: verifica che le notifiche push siano configurate sulla tua istanza OneUptime (consulta la guida self-hosted [Push Notifications](/docs/self-hosted/push-notifications)).
+## Passi successivi
 
-**Face ID / Touch ID non funzionano:**
-
-- Assicurati che la biometria sia registrata in **Impostazioni → Face ID e codice** o **Impostazioni → Touch ID e codice**.
-- Riattiva lo sblocco biometrico dalla schermata **Impostazioni** all'interno dell'app OneUptime On-Call.
-
-**L'app si blocca all'avvio:**
-
-- Aggiorna all'ultima versione dall'App Store.
-- Riavvia il dispositivo.
-- Se il problema persiste, elimina e reinstalla l'app, quindi accedi nuovamente.
-
-## Supporto
-
-Se hai ancora bisogno di aiuto, contattaci tramite la dashboard di OneUptime o apri una segnalazione sul nostro [repository GitHub](https://github.com/OneUptime/oneuptime).
+:::cards
+- [FAQ e risoluzione dei problemi](/docs/mobile-desktop-apps/faq-troubleshooting): Cosa fare quando un telefono smette di ricevere avvisi.
+- [Installazione Android](/docs/mobile-desktop-apps/android-installation): La stessa app su Android.
+- [Regole di escalation](/docs/on-call/escalation-rules): Decidere chi viene avvisato, e quando.
+- [Notifiche push](/docs/self-hosted/push-notifications): Come un OneUptime self-hosted invia gli avvisi ai telefoni.
+:::

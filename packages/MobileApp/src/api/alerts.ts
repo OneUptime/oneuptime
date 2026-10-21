@@ -1,5 +1,6 @@
 import type { AxiosResponse } from "axios";
 import apiClient from "./client";
+import { getUnresolvedStateIds, toStateIdsQuery } from "../utils/resolvedState";
 import type {
   ListResponse,
   AlertItem,
@@ -16,7 +17,14 @@ export async function fetchAlerts(
 
   const query: Record<string, unknown> = {};
   if (unresolvedOnly) {
-    query.currentAlertState = { isResolvedState: false };
+    /*
+     * Open alerts: in a state that is not resolved by the project's
+     * rule (utils/resolvedState). A state placed after Resolved is not
+     * open, flagged or not, so the project's states are read first.
+     */
+    query.currentAlertStateId = toStateIdsQuery(
+      getUnresolvedStateIds(await fetchAlertStates(projectId)),
+    );
   }
 
   const response: AxiosResponse = await apiClient.post(
@@ -44,15 +52,17 @@ export async function fetchAlerts(
   return response.data;
 }
 
+/*
+ * Every project's alerts, newest first. Open ones only is a
+ * per-project question - which states count as resolved is each project's
+ * own (utils/resolvedState) - so it is fetchAlerts's unresolvedOnly.
+ */
 export async function fetchAllAlerts(
-  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+  options: { skip?: number; limit?: number } = {},
 ): Promise<ListResponse<AlertItem>> {
-  const { skip = 0, limit = 100, unresolvedOnly = false } = options;
+  const { skip = 0, limit = 100 } = options;
 
   const query: Record<string, unknown> = {};
-  if (unresolvedOnly) {
-    query.currentAlertState = { isResolvedState: false };
-  }
 
   const response: AxiosResponse = await apiClient.post(
     `/api/alert/get-list?skip=${skip}&limit=${limit}`,

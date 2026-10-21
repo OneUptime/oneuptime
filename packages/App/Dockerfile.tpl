@@ -92,6 +92,13 @@ WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./packages/Common /usr/src/Common
+# mermaid for the docs, built from mermaid's ES module source with the
+# packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
+# served at /oneuptime-assets/mermaid. A build that fails stops the image here
+# rather than leaving a page without its diagrams. It runs after the COPY
+# above so that it replaces any Common/build/mermaid-browser the build
+# context brought along (a build made on a developer's machine).
+RUN node /usr/src/Common/Scripts/build-mermaid-browser.js
 
 ENV PRODUCTION=true
 
@@ -262,8 +269,18 @@ USER node
 # recovery from a node failure just as slow. transpile-only strips types without
 # re-checking them; type errors are caught at build and in CI, not at boot.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm.
+# `npm start` stays running as node's parent, a second Node.js process in the
+# container. The Kubernetes agent's eBPF instrumentation (OBI) installs its
+# Node.js agent through the inspector that SIGUSR1 opens on 127.0.0.1:9229, a
+# port every process in the pod shares, so with npm there the agent can land in
+# npm twice and never in the app. Then none of the app's Postgres, Redis or
+# outgoing HTTP calls join the trace of the request that made them, and which
+# way it goes is decided again at every pod start. sh execs node, so node is
+# this container's only process (PID 1) and gets SIGTERM itself, which
+# GracefulShutdown handles. Tests/Ops/NodeImageStartCommand.test.js keeps this
+# CMD the same as the start script.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 
 # ---------------------------------------------------------------------------
 # community: the Community Edition image (--target community, and the default
@@ -285,6 +302,7 @@ ENV IS_ENTERPRISE_EDITION=false
 USER node
 # Types were checked at build time; see the enterprise stage above.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app through sh, not npm, so node is the container's only process;
+# see the enterprise stage above.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}

@@ -38,8 +38,8 @@ const RENAMED_FROM = {
  * a Docker Compose Enterprise install was APP_TAG=release plus
  * IS_ENTERPRISE_EDITION=true, and APP_TAG=release is now the Community image:
  * `npm run update` would pull it, and the App refuses to start with
- * IS_ENTERPRISE_EDITION=true rather than silently stop enforcing "Require SSO",
- * SSO, SCIM and audit logging (packages/App/Utils/EnterpriseLoader.ts).
+ * IS_ENTERPRISE_EDITION=true rather than silently stop SCIM provisioning and
+ * audit logging (packages/App/Utils/EnterpriseLoader.ts).
  *
  * So while config.env still asks for the Enterprise Edition, the merge moves
  * APP_TAG to the Enterprise image of the same release (release ->
@@ -145,7 +145,7 @@ const describeEnterpriseImageTagChanges = (changes) => {
   return (
     `IS_ENTERPRISE_EDITION=true in config.env, so APP_TAG was changed from ${changed} to keep the Enterprise Edition. ` +
     "The image APP_TAG pulls now decides the edition, and the Community image (APP_TAG=release) refuses to start with " +
-    "IS_ENTERPRISE_EDITION=true rather than silently stop enforcing SSO, SCIM and audit logging. " +
+    "IS_ENTERPRISE_EDITION=true rather than silently stop SCIM provisioning and audit logging. " +
     "The Enterprise Edition is licensed under the OneUptime Enterprise License (ee/LICENSE): production use requires " +
     "a subscription, and an unlicensed install runs a 14-day trial for evaluation. " +
     "To run the Community Edition instead, set IS_ENTERPRISE_EDITION=false and APP_TAG=release in config.env."

@@ -4,8 +4,9 @@ import path from "path";
 
 /*
  * Perf contract (linear-polish): the Dashboard's eager first-load graph must
- * never reach MarkdownViewer or mermaid. mermaid's pre-bundled build is
- * ~4.5MB, and one static import chain used to pull it into the entry bundle:
+ * never reach MarkdownViewer or mermaid. mermaid is hundreds of KB even
+ * split into chunks, and one static import chain used to pull it into the
+ * entry bundle:
  *
  *   App.tsx (eager) -> AIChatPanel -> ChatMessageList -> SafeChatMarkdown
  *     -> Common/UI/Components/Markdown.tsx/MarkdownViewer -> mermaid

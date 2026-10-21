@@ -8,6 +8,10 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   let subItemMenuLink: Link | undefined = undefined;
@@ -22,6 +26,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       to: Navigation.getCurrentRoute(),
     };
   }
+
+  /*
+   * Only the chat workspaces this project has connected, or one entry to
+   * connect one when it has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
+    });
 
   const sections: SideMenuSectionProps[] = [
     {
@@ -78,7 +93,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route,
             ),
           },
-          icon: IconProp.ViewColumns,
+          icon: IconProp.Timeline,
         },
         /*
          * Next to the schedules it exports: the project-wide feed and the
@@ -132,6 +147,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           subItemIcon: IconProp.Clock,
           subItemLink: subItemMenuLink,
         },
+        /*
+         * The way back to archived on-call policies, which the policy list
+         * leaves out. Named for what it holds: out of the Policies section,
+         * a bare "Archived" would not say which of this menu's things it
+         * lists.
+         */
+        {
+          link: {
+            title: "Archived Policies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {
@@ -148,33 +178,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
       ],
     },
-    {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
+    ...(workspaceSection ? [workspaceSection] : []),
     {
       title: "Settings",
       defaultCollapsed: true,
@@ -209,6 +213,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: OnCallDutyPolicy,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

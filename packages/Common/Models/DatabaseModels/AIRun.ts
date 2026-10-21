@@ -1,4 +1,5 @@
 import AIConversation from "./AIConversation";
+import CodeRepository from "./CodeRepository";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -30,6 +31,7 @@ import {
   AIRunPausedState,
 } from "../../Types/AI/AIChatTypes";
 import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
+import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
 
 /*
  * One AI agent execution (a chat turn today; an investigation later). Runs
@@ -71,6 +73,15 @@ import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
   ],
   delete: [],
   update: [],
+})
+/*
+ * The investigations an investigation rule made wait (ruleWaitMinutes), by
+ * when they finished: every alert that opens reads the ones of its project
+ * that finished in the last half hour (IncidentFollowUpCheck). Partial, so a
+ * project with none - and every other run - costs nothing.
+ */
+@Index(["projectId", "completedAt"], {
+  where: '"ruleWaitMinutes" IS NOT NULL AND "deletedAt" IS NULL',
 })
 export default class AIRun extends BaseModel {
   @ColumnAccessControl({
@@ -448,6 +459,70 @@ export default class AIRun extends BaseModel {
   })
   public triggeredByAlertId?: ObjectID = undefined;
 
+  /*
+   * Set on the one follow-up check of an incident: the alert that opened on
+   * the incident's linked infrastructure after its first investigation, and
+   * made OneUptime AI check the incident again with that alert in hand
+   * (IncidentFollowUpCheck). Null on every other run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Follow-up For Alert ID",
+    description:
+      "For a follow-up check of an incident: the alert that opened on the incident's linked infrastructure after its first investigation and made OneUptime AI check it again.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public followUpForAlertId?: ObjectID = undefined;
+
+  /*
+   * Set on an incident or alert investigation an investigation rule made
+   * wait (issue #5074): the minutes the rule waited to see whether the
+   * incident or alert would still be open - also when someone started it
+   * before the wait ended. Such a run was not waited for by auto
+   * remediation (it started when the incident was declared), so it never
+   * hands the incident to remediation when it settles, and an incident's
+   * follow-up check counts its window from when it finished
+   * (InvestigationRuleWait, IncidentFollowUpCheck). Null on every other run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Rule Wait (Minutes)",
+    description:
+      "For an investigation an investigation rule made wait: the minutes the rule waited to see whether the incident or alert would still be open. Empty when it started right away.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ruleWaitMinutes?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -602,7 +677,7 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.Number,
     title: "Attempt Count",
     description:
-      "How many times a worker has claimed this run for execution. Incremented on each claim; the queue stops retrying after the maximum.",
+      "How many times a worker has claimed this run for execution. Incremented on each claim; the queue stops retrying after the maximum, not counting the claims a server shutting down handed back (Handed Back Count).",
     isDefaultValueColumn: true,
     defaultValue: 0,
   })
@@ -612,6 +687,32 @@ export default class AIRun extends BaseModel {
     type: ColumnType.Number,
   })
   public attemptCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Handed Back Count",
+    description:
+      "How many times a server shutting down handed this run back to the queue for another server to run. Those claims are not counted as failed attempts.",
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    default: 0,
+    type: ColumnType.Number,
+  })
+  public handedBackCount?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -847,6 +948,208 @@ export default class AIRun extends BaseModel {
     type: ColumnType.JSON,
   })
   public taskContext?: CodeFixTaskContext = undefined;
+
+  /*
+   * The repository a code task works in - what puts the task on that
+   * repository's page in Code. Set when the run is created for a request
+   * from Code and for a GitHub command; set for the other recipes once the
+   * run is handed a token for a repository or records a pull request in one
+   * (they find their repository while they work). Null for a run that never
+   * got that far, and for one whose repository was removed from the project:
+   * Code lists those under Other tasks.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Entity,
+    required: false,
+    modelType: CodeRepository,
+    manyToOneRelationColumn: "codeRepositoryId",
+    title: "Code Repository",
+    description: "The repository this code task works in.",
+  })
+  @ManyToOne(
+    () => {
+      return CodeRepository;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "codeRepositoryId" })
+  public codeRepository?: CodeRepository = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Code Repository ID",
+    description: "ID of the repository this code task works in.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public codeRepositoryId?: ObjectID = undefined;
+
+  /*
+   * For a reply in a task's conversation: the task it continues, which is
+   * the id of the task's first run. Null on that first run - a task is its
+   * first run, and its later runs point back at it, so a task's turns are
+   * that run and every run whose codeTaskId is its id.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Code Task ID",
+    description:
+      "For a reply in a code task's conversation: the task it continues (the id of the task's first run).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public codeTaskId?: ObjectID = undefined;
+
+  /*
+   * A request's title: the first line of what the person asked (CodeTask
+   * Title). Server-only like taskContext (empty read ACL): it is their words,
+   * and who may read a repository's tasks is decided by the repository -
+   * the Code API reads it once it has checked that.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Title",
+    description: "Internal: a request's title, from the first line of it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public title?: string = undefined;
+
+  /*
+   * The run ended by asking the person a question (the code agent's
+   * ask_question tool): the task waits for their answer. Only ever true on a
+   * Completed run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Needs User Input",
+    description:
+      "True when the run ended by asking the person who started it a question, and waits for their answer.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public needsUserInput?: boolean = undefined;
+
+  /*
+   * What a code task's turn ended with: the AI's reply, the files it
+   * changed, the branch and pull request it pushed to (CodeTaskOutcome).
+   * Server-only (empty read ACL): the reply quotes the repository's code,
+   * and the Code API decides who reads it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Task Outcome",
+    description:
+      "Internal: what a code task's turn ended with - the AI's reply, the files it changed and the pull request it pushed to.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public taskOutcome?: CodeTaskOutcome = undefined;
+
+  /*
+   * The diff of what a code task's turn committed (CodeTaskChanges), capped.
+   * Server-only (empty read ACL): it is the repository's source code, and
+   * the Code API shows it only to people who may ask AI to change that code.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Code Changes",
+    description:
+      "Internal: the diff of what a code task's turn committed, capped.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public codeChanges?: CodeTaskChanges = undefined;
 
   @ColumnAccessControl({
     create: [],

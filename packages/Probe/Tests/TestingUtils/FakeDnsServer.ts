@@ -375,29 +375,85 @@ export async function startFakeDnsServer(
   };
 }
 
+export interface RefusingUdpPort {
+  port: number;
+  // "127.0.0.1:<port>", the spelling Resolver#setServers takes.
+  address: string;
+  close: () => Promise<void>;
+}
+
 /*
- * A loopback UDP port with nothing listening on it: bound, read and closed
- * again. A query sent there draws an ICMP port-unreachable, which c-ares
- * reports as ECONNREFUSED — the "resolv.conf names a host that runs no DNS
- * server" case. The kernel could in principle hand the port to someone else
- * in between; on loopback, within one test, it does not in practice.
+ * A loopback UDP port that refuses every query: each datagram sent there
+ * draws an ICMP port-unreachable, which c-ares reports as ECONNREFUSED — the
+ * "resolv.conf names a host that runs no DNS server" case, and a cluster DNS
+ * service with no ready endpoints.
+ *
+ * HELD for as long as the test needs it, never merely closed. This used to
+ * be a port bound, read and closed again, and a closed port is a FREE one:
+ * the kernel hands free ephemeral ports out as the local end of every socket
+ * that connects without binding first — every c-ares query socket included —
+ * and a socket that connects to 127.0.0.1:P from local port P is connected
+ * to ITSELF. Its query comes straight back to it, c-ares (which does not
+ * check that a reply is a response) reads its own question as NOERROR with
+ * no answers, and the lookup rejects with ENODATA: "no PTR record", from a
+ * server that is not there. About one lookup in 28,000 — the size of the
+ * default ephemeral range — did, and Probe Test failed with one host of a
+ * refused nameserver filed as "no-record" (a pull request on 2026-09-27,
+ * master on 2026-10-05).
+ * A fake server another suite started could have been handed the port too.
+ *
+ * So the socket keeps the port bound, connected to itself. A connected UDP
+ * socket is delivered datagrams from its peer alone, so a query from any
+ * other socket finds nobody to take it and is refused exactly as at a closed
+ * port — and a bound port is never handed to anyone else. Close it with the
+ * servers. Tests/Utils/Discovery/FakeDnsRefusingPort.test.ts pins each step.
  */
-export async function reserveClosedUdpPort(): Promise<number> {
+export async function startRefusingUdpPort(): Promise<RefusingUdpPort> {
   const socket: dgram.Socket = dgram.createSocket("udp4");
 
-  await new Promise<void>((resolve: () => void) => {
-    socket.bind(0, "127.0.0.1", () => {
-      resolve();
-    });
-  });
+  await new Promise<void>(
+    (resolve: () => void, reject: (error: Error) => void) => {
+      socket.once("error", reject);
+      socket.bind(0, "127.0.0.1", () => {
+        socket.off("error", reject);
+        resolve();
+      });
+    },
+  );
 
   const port: number = (socket.address() as AddressInfo).port;
 
-  await new Promise<void>((resolve: () => void) => {
-    socket.close(() => {
-      resolve();
-    });
-  });
+  await new Promise<void>(
+    (resolve: () => void, reject: (error: Error) => void) => {
+      socket.connect(port, "127.0.0.1", (error?: Error) => {
+        if (error) {
+          socket.close();
+          reject(error);
+          return;
+        }
 
-  return port;
+        resolve();
+      });
+    },
+  );
+
+  const lifecycle: { isClosed: boolean } = { isClosed: false };
+
+  return {
+    port: port,
+    address: `127.0.0.1:${port}`,
+    close: async (): Promise<void> => {
+      if (lifecycle.isClosed) {
+        return;
+      }
+
+      lifecycle.isClosed = true;
+
+      await new Promise<void>((resolve: () => void) => {
+        socket.close(() => {
+          resolve();
+        });
+      });
+    },
+  };
 }

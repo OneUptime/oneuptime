@@ -45,6 +45,7 @@ export enum EntityFilterModelType {
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   NetworkSiteType = "NetworkSiteType",
 }

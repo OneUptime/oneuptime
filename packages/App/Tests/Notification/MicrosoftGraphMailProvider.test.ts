@@ -586,4 +586,108 @@ describe("MicrosoftGraphMailProvider", () => {
     // Deadline already passed → no retries beyond the first attempt.
     expect(fetchMock.mock.calls.length).toBeLessThan(MAX_RETRIES);
   });
+
+  /*
+   * A screenshot in an incident description is sent as an inline attachment
+   * the HTML points at by Content-ID (see EmailInlineImages), as it is over
+   * SMTP and SendGrid.
+   */
+  test("attaches inline images with their Content-IDs", async () => {
+    fetchMock.mockResolvedValue(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+    const mail: EmailMessage = {
+      ...makeMail(),
+      body: '<p>Timeout</p><img src="cid:0f8e6f5c-1d1b-4a5e-9c4f-3b2a1c0d9e8f@oneuptime" alt="">',
+    };
+
+    await provider.send(mail, makeEmailServer(), {
+      inlineImages: [
+        {
+          contentId: "0f8e6f5c-1d1b-4a5e-9c4f-3b2a1c0d9e8f@oneuptime",
+          fileName: "image-1.png",
+          mimeType: "image/png",
+          base64:
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          byteLength: 70,
+        },
+      ],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const payload: {
+      message: {
+        body: { contentType: string; content: string };
+        attachments?: Array<Record<string, unknown>>;
+      };
+    } = JSON.parse(init.body as string);
+
+    expect(payload.message.body).toEqual({
+      contentType: "HTML",
+      content: mail.body,
+    });
+    expect(payload.message.attachments).toEqual([
+      {
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        name: "image-1.png",
+        contentType: "image/png",
+        contentBytes:
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        contentId: "0f8e6f5c-1d1b-4a5e-9c4f-3b2a1c0d9e8f@oneuptime",
+        isInline: true,
+      },
+    ]);
+  });
+
+  test("sends no attachments when there are no inline images", async () => {
+    fetchMock.mockResolvedValue(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer(), { inlineImages: [] });
+    await provider.send(makeMail(), makeEmailServer());
+
+    for (const call of fetchMock.mock.calls) {
+      const payload: { message: Record<string, unknown> } = JSON.parse(
+        (call as [string, RequestInit])[1].body as string,
+      );
+
+      expect(Object.keys(payload.message)).not.toContain("attachments");
+    }
+  });
+
+  test("sends the inline images again on every retry", async () => {
+    installInstantTimersRecordingDelays();
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(503))
+      .mockResolvedValueOnce(makeResponse(202));
+
+    const provider: MicrosoftGraphMailProvider =
+      new MicrosoftGraphMailProvider();
+
+    await provider.send(makeMail(), makeEmailServer(), {
+      inlineImages: [
+        {
+          contentId: "a@oneuptime",
+          fileName: "image-1.gif",
+          mimeType: "image/gif",
+          base64: "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+          byteLength: 42,
+        },
+      ],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    for (const call of fetchMock.mock.calls) {
+      const payload: {
+        message: { attachments: Array<{ contentId: string }> };
+      } = JSON.parse((call as [string, RequestInit])[1].body as string);
+
+      expect(payload.message.attachments).toHaveLength(1);
+      expect(payload.message.attachments[0]!.contentId).toBe("a@oneuptime");
+    }
+  });
 });

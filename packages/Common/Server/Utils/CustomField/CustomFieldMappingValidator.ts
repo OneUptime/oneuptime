@@ -5,7 +5,6 @@ import {
   getCustomFieldMappingSources,
 } from "../../../Types/CustomField/CustomFieldMappingCatalog";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CreateBy from "../../Types/Database/CreateBy";
@@ -242,6 +241,10 @@ export type ValidateCustomFieldMappingOnUpdateFunction = (data: {
   definitionModelType: { new (): BaseModel };
   definitionService: {
     findBy: (input: any) => Promise<Array<any>>;
+    findRowsAndHoldUpdateToThem: (
+      updateBy: UpdateBy<any>,
+      select: any,
+    ) => Promise<Array<any>>;
   };
   updateBy: UpdateBy<any>;
 }) => Promise<void>;
@@ -251,6 +254,10 @@ export const validateCustomFieldMappingOnUpdate: ValidateCustomFieldMappingOnUpd
     definitionModelType: { new (): BaseModel };
     definitionService: {
       findBy: (input: any) => Promise<Array<any>>;
+      findRowsAndHoldUpdateToThem: (
+        updateBy: UpdateBy<any>,
+        select: any,
+      ) => Promise<Array<any>>;
     };
     updateBy: UpdateBy<any>;
   }): Promise<void> => {
@@ -293,21 +300,14 @@ export const validateCustomFieldMappingOnUpdate: ValidateCustomFieldMappingOnUpd
      * narrowing the target's dropdown options must be checked against a
      * mapping that was valid when it was saved.
      */
-    const existingRows: Array<BaseModel> = await data.definitionService.findBy({
-      query: data.updateBy.query,
-      select: {
+    const existingRows: Array<BaseModel> =
+      await data.definitionService.findRowsAndHoldUpdateToThem(data.updateBy, {
         projectId: true,
         customFieldType: true,
         dropdownOptions: true,
         mapFromResourceType: true,
         mapFromCustomFieldName: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const row of existingRows) {
       const merged: CustomFieldMappingDefinitionState = {

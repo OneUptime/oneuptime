@@ -13,6 +13,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the IncidentOwner:SendStateChangeEmail cron's per-row
@@ -102,6 +103,7 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
     },
@@ -178,6 +180,7 @@ import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendStateChangeNotifi
 
 interface IncidentServiceMock {
   findOneById: jest.Mock;
+  findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getIncidentLinkInDashboard: jest.Mock;
 }
@@ -285,8 +288,10 @@ function makeIncident(data: {
   incident.monitors = (
     data.monitorNames || ["web-server-1", "api-server-1"]
   ).map((name: string) => {
-    const monitor: Monitor = new Monitor();
+    // With an id and the project, or the affected-resource read leaves it out.
+    const monitor: Monitor = new Monitor(new ObjectID(`monitor-${name}`));
     monitor.name = name;
+    monitor.projectId = PROJECT_ID;
     return monitor;
   });
 
@@ -310,6 +315,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
   return user;
 }
 
+/*
+ * The job reads the incident's affected resources back through
+ * IncidentService.findAllBy, right after its own findOneById for the row; answer
+ * those reads with the incident that findOneById just returned.
+ */
+function answerRelationReadsWithFetchedIncident(): void {
+  incidentService.findAllBy.mockImplementation(async () => {
+    const results: Array<{ value: unknown }> =
+      incidentService.findOneById.mock.results;
+    const incident: unknown =
+      results.length > 0 ? await results[results.length - 1]!.value : null;
+
+    return incident ? [incident] : [];
+  });
+}
+
 function stubIncidents(incidents: Array<Incident>): void {
   const incidentsById: Record<string, Incident> = {};
 
@@ -320,6 +341,8 @@ function stubIncidents(incidents: Array<Incident>): void {
   incidentService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(incidentsById[args.id.toString()] || null);
   });
+
+  answerRelationReadsWithFetchedIncident();
 }
 
 interface FindOneByIdArgs {
@@ -455,8 +478,14 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(fetch.id.toString()).toBe(INCIDENT_1_ID.toString());
     expect(fetch.props).toEqual({ isRoot: true });
 
-    // The single select now carries the severity relation...
-    expect(fetch.select["incidentSeverity"]).toEqual({ name: true });
+    /*
+     * The single select now carries the severity relation - its name and the
+     * colour the email paints it in...
+     */
+    expect(fetch.select["incidentSeverity"]).toEqual({
+      name: true,
+      color: true,
+    });
 
     // ...alongside every field the old first query selected.
     expect(fetch.select).toMatchObject({
@@ -464,10 +493,16 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
       title: true,
       description: true,
       projectId: true,
-      monitors: { name: true },
       incidentNumber: true,
       incidentNumberWithPrefix: true,
     });
+
+    /*
+     * The monitors are no longer joined here: the affected resources,
+     * monitors included, are read one relation at a time by
+     * LinkedAffectedResources.
+     */
+    expect(fetch.select["monitors"]).toBeUndefined();
 
     // The row still completes end to end off the merged fetch.
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
@@ -585,8 +620,11 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
         projectName: "Prod Project",
         currentState: "Acknowledged",
         currentStateColor: Blue500.toString(),
+        // The readable shade of each state colour, for its name.
+        currentStateTextColor: EmailColorUtil.getColorPair(Blue500)!.textColor,
         previousState: "Identified",
         previousStateColor: Red500.toString(),
+        previousStateTextColor: EmailColorUtil.getColorPair(Red500)!.textColor,
         previousStateDurationText: `Was Identified for ${expectedDuration}`,
         incidentDescription: convertedHtmlOf("**Database** is unreachable"),
         resourcesAffected: "web-server-1, api-server-1",
@@ -624,7 +662,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
         "[Acknowledged Incident INC-7] - Database is down",
       );
       expect(call.smsMessage.message).toBe(
-        "This is a message from OneUptime. Incident INC-7 (Database is down) - state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.",
+        "OneUptime: Incident INC-7 (Database is down) - state changed from Identified to Acknowledged. Turn off in User Settings > Notification Settings.",
       );
       expect(call.callRequestMessage.data[0]!.sayMessage).toBe(
         "This is a message from OneUptime. Incident INC-7 (Database is down) state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.",
@@ -645,14 +683,24 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
 
-    // The feed item is unchanged, one entry per notified owner.
+    // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident INC-7](${INCIDENT_LINK}).**: Owners have been notified about the state change of the incident because the incident state changed to **Acknowledged**.`,
-        moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        feedInfoInMarkdown:
+          "Owners were notified that this incident is now **Acknowledged**.",
+        // Who was notified: a list, one per line.
+        moreInformationInMarkdown: `- @${USER_1_ID.toString()}\n- @${USER_2_ID.toString()}\n- @${USER_3_ID.toString()}\n`,
+        /*
+         * The feed only: the incident's Slack and Microsoft Teams channels
+         * were told of the state change itself, and used to get this right
+         * under it as well.
+         */
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       }),
     );
   });

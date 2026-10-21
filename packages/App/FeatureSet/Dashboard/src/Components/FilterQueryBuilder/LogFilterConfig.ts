@@ -2,6 +2,7 @@ import { FilterBuilderConfig, FilterFieldValueOption } from "./Types";
 import LogSeverity, {
   normalizeLogSeverity,
 } from "Common/Types/Log/LogSeverity";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_PILL_CLASS: string = "bg-gray-50 text-gray-600 ring-gray-500/10";
 
@@ -48,11 +49,13 @@ const severityValueOptions: Array<FilterFieldValueOption> = [
 });
 
 const LogFilterConfig: FilterBuilderConfig = {
-  entityNameSingular: "log",
-  entityNamePlural: "logs",
+  entityNameSingular: translationKey("log"),
+  entityNamePlural: translationKey("logs"),
   supportCustomAttributes: true,
-  customAttributeLabel: "Custom Attribute...",
-  customAttributeDescription: "Filter on a custom log attribute",
+  customAttributeLabel: translationKey("Custom Attribute..."),
+  customAttributeDescription: translationKey(
+    "Filter on a custom log attribute",
+  ),
   defaultCondition: { field: "severityText", operator: "=", value: "" },
   fields: [
     {
@@ -60,7 +63,7 @@ const LogFilterConfig: FilterBuilderConfig = {
       label: "Severity",
       description: "Log severity level (e.g. Error, Warning, Information)",
       valueType: "dropdown",
-      valuePlaceholder: "Select severity...",
+      valuePlaceholder: translationKey("Select severity..."),
       valueOptions: severityValueOptions,
       getValuePillClass: getSeverityPillClass,
     },
@@ -69,14 +72,14 @@ const LogFilterConfig: FilterBuilderConfig = {
       label: "Log Body",
       description: "The log message content",
       valueType: "text",
-      valuePlaceholder: "Enter text to match...",
+      valuePlaceholder: translationKey("Enter text to match..."),
     },
     {
       key: "primaryEntityId",
       label: "Service ID",
       description: "The service that produced the log",
       valueType: "text",
-      valuePlaceholder: "Service ID",
+      valuePlaceholder: translationKey("Service ID"),
     },
   ],
 };

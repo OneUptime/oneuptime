@@ -71,6 +71,17 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.PortDnsLookupTime:
       case MonitorMetricType.PortTcpConnectTime:
         return AggregationType.Avg;
+      /*
+       * A time server is judged by its worst moment: the largest offset and
+       * the highest stratum in a bucket, and synchronized only when every
+       * check in it was (Min, like IsOnline).
+       */
+      case MonitorMetricType.NtpClockOffset:
+      case MonitorMetricType.NtpStratum:
+      case MonitorMetricType.NtpRootDispersion:
+        return AggregationType.Max;
+      case MonitorMetricType.NtpIsSynchronized:
+        return AggregationType.Min;
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return AggregationType.Min;
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
@@ -114,6 +125,16 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.HostUptimeSeconds:
         return AggregationType.Max;
 
+      /*
+       * A probe that dropped out for part of a bucket counts as gone: the
+       * fewest connected and the most disconnected, never an average that
+       * reads as "2.5 probes".
+       */
+      case MonitorMetricType.ConnectedProbes:
+        return AggregationType.Min;
+      case MonitorMetricType.DisconnectedProbes:
+        return AggregationType.Max;
+
       default:
         throw new Error("Invalid MonitorMetricType value");
     }
@@ -142,10 +163,12 @@ class MonitorMetricTypeUtil {
       case CheckOn.DnsIsOnline:
       case CheckOn.SnmpIsOnline:
       case CheckOn.ExternalStatusPageIsOnline:
+      case CheckOn.NtpIsOnline:
         return MonitorMetricType.IsOnline;
       case CheckOn.DnsResponseTime:
       case CheckOn.SnmpResponseTime:
       case CheckOn.ExternalStatusPageResponseTime:
+      case CheckOn.NtpResponseTime:
         return MonitorMetricType.ResponseTime;
       default:
         break;
@@ -173,6 +196,14 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.PortDnsLookupTime;
       case CheckOn.PortTcpConnectTime:
         return MonitorMetricType.PortTcpConnectTime;
+      case CheckOn.NtpClockOffset:
+        return MonitorMetricType.NtpClockOffset;
+      case CheckOn.NtpStratum:
+        return MonitorMetricType.NtpStratum;
+      case CheckOn.NtpIsSynchronized:
+        return MonitorMetricType.NtpIsSynchronized;
+      case CheckOn.NtpRootDispersion:
+        return MonitorMetricType.NtpRootDispersion;
       case CheckOn.ResponseStatusCode:
         return MonitorMetricType.ResponseStatusCode;
       case CheckOn.IsOnline:
@@ -195,6 +226,10 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.SwapUsagePercent;
       case CheckOn.CPUIoWaitPercent:
         return MonitorMetricType.CPUTimeIoWaitPercent;
+      case CheckOn.ConnectedProbes:
+        return MonitorMetricType.ConnectedProbes;
+      case CheckOn.DisconnectedProbes:
+        return MonitorMetricType.DisconnectedProbes;
       default:
         throw new Error("Invalid CheckOn value");
     }
@@ -287,6 +322,17 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.NTP) {
+      return [
+        MonitorMetricType.IsOnline,
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.NtpClockOffset,
+        MonitorMetricType.NtpStratum,
+        MonitorMetricType.NtpIsSynchronized,
+        MonitorMetricType.NtpRootDispersion,
+      ];
+    }
+
     if (monitorType === MonitorType.NetworkDevice) {
       return [
         MonitorMetricType.IsOnline,
@@ -296,6 +342,13 @@ class MonitorMetricTypeUtil {
         MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
         MonitorMetricType.SnmpInterfaceUtilizationPercent,
         MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+      ];
+    }
+
+    if (monitorType === MonitorType.ProbeStatus) {
+      return [
+        MonitorMetricType.ConnectedProbes,
+        MonitorMetricType.DisconnectedProbes,
       ];
     }
 
@@ -427,6 +480,27 @@ class MonitorMetricTypeUtil {
       return this.getDatabaseMetricCategories(databaseType);
     }
 
+    if (monitorType === MonitorType.NTP) {
+      return [
+        {
+          title: "Availability",
+          description: "Whether the time server answered, and how fast.",
+          metrics: [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime],
+        },
+        {
+          title: "Time",
+          description:
+            "How far the server's clock is from the probe's, its stratum, whether it is synchronized, and its own error bound.",
+          metrics: [
+            MonitorMetricType.NtpClockOffset,
+            MonitorMetricType.NtpStratum,
+            MonitorMetricType.NtpIsSynchronized,
+            MonitorMetricType.NtpRootDispersion,
+          ],
+        },
+      ];
+    }
+
     if (monitorType === MonitorType.NetworkDevice) {
       return [
         {
@@ -444,6 +518,20 @@ class MonitorMetricTypeUtil {
             MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
             MonitorMetricType.SnmpInterfaceUtilizationPercent,
             MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+          ],
+        },
+      ];
+    }
+
+    if (monitorType === MonitorType.ProbeStatus) {
+      return [
+        {
+          title: "Probes",
+          description:
+            "How many of the probes this monitor watches were connected and disconnected, minute by minute.",
+          metrics: [
+            MonitorMetricType.ConnectedProbes,
+            MonitorMetricType.DisconnectedProbes,
           ],
         },
       ];
@@ -515,6 +603,14 @@ class MonitorMetricTypeUtil {
         return "Port DNS Lookup Time";
       case MonitorMetricType.PortTcpConnectTime:
         return "Port TCP Connect Time";
+      case MonitorMetricType.NtpClockOffset:
+        return "Clock Offset";
+      case MonitorMetricType.NtpStratum:
+        return "Stratum";
+      case MonitorMetricType.NtpIsSynchronized:
+        return "Is Synchronized";
+      case MonitorMetricType.NtpRootDispersion:
+        return "Root Dispersion";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "Interface Status";
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
@@ -573,6 +669,10 @@ class MonitorMetricTypeUtil {
         return "Host Uptime";
       case MonitorMetricType.ProcessCountTotal:
         return "Running Processes";
+      case MonitorMetricType.ConnectedProbes:
+        return "Connected Probes";
+      case MonitorMetricType.DisconnectedProbes:
+        return "Disconnected Probes";
       default:
         return "";
     }
@@ -627,6 +727,12 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.PortDnsLookupTime:
       case MonitorMetricType.PortTcpConnectTime:
         return "ms";
+      case MonitorMetricType.NtpClockOffset:
+      case MonitorMetricType.NtpRootDispersion:
+        return "ms";
+      case MonitorMetricType.NtpStratum:
+      case MonitorMetricType.NtpIsSynchronized:
+        return "";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "";
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
@@ -669,6 +775,9 @@ class MonitorMetricTypeUtil {
         return "seconds";
       case MonitorMetricType.ProcessCountTotal:
         return "processes";
+      case MonitorMetricType.ConnectedProbes:
+      case MonitorMetricType.DisconnectedProbes:
+        return "probes";
       default:
         return "";
     }
@@ -725,6 +834,14 @@ class MonitorMetricTypeUtil {
         return "Time from starting a Port check until its first TCP connection attempt. It is absent when the destination is already an IP address.";
       case MonitorMetricType.PortTcpConnectTime:
         return "Time from the first TCP connection attempt until a connection succeeds, including any automatic IPv6/IPv4 fallback attempts.";
+      case MonitorMetricType.NtpClockOffset:
+        return "How far the time server's clock is from the probe's clock, in either direction. A healthy server is within a few milliseconds; the offset is measured against the probe's clock, so check that probe's own time if every server it watches drifts together.";
+      case MonitorMetricType.NtpStratum:
+        return "How many hops the server is from a reference clock: 1 for a server with its own GPS or atomic source, 2 for one that syncs to a stratum 1 server, and so on. 16 means not synchronized, which is also how a kiss-o'-death reply is counted.";
+      case MonitorMetricType.NtpIsSynchronized:
+        return "1 when the server answered at stratum 1 to 15 without the leap indicator's alarm, 0 when it answered but is not synchronized. A check with no answer records nothing.";
+      case MonitorMetricType.NtpRootDispersion:
+        return "The server's own estimate of how far its time could be from the true time. It grows while the server cannot reach its source; ntpd stops trusting a server once half its root delay plus this passes 1.5 seconds.";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "Operational status of each interface: 1 when up, 0 when down. Interfaces that are administratively disabled also report 0.";
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
@@ -783,6 +900,10 @@ class MonitorMetricTypeUtil {
         return "Seconds since the host was last booted.";
       case MonitorMetricType.ProcessCountTotal:
         return "Number of running processes reported by the agent.";
+      case MonitorMetricType.ConnectedProbes:
+        return "Probes with a heartbeat in the last three minutes, at each evaluation.";
+      case MonitorMetricType.DisconnectedProbes:
+        return "Probes with no heartbeat for three minutes, at each evaluation.";
       default:
         return "";
     }

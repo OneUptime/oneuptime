@@ -6,6 +6,8 @@ import React, {
   useId,
   useRef,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface TelemetryDetailPanelTab {
   id: string;
@@ -35,6 +37,7 @@ export interface TelemetryDetailPanelProps {
 const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
   props: TelemetryDetailPanelProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const panelId: string = useId();
   const titleId: string = `${panelId}-title`;
   const panelRef: React.MutableRefObject<HTMLDivElement | null> =
@@ -233,8 +236,8 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
             type="button"
             className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             onClick={props.onClose}
-            title="Close (Esc)"
-            aria-label="Close details panel"
+            title={translator.translateText("Close (Esc)")}
+            aria-label={translator.translateText("Close details panel")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -260,7 +263,7 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
         <div
           className="flex items-center gap-1 border-b border-gray-100 px-2 pt-1.5"
           role="tablist"
-          aria-label="Detail sections"
+          aria-label={translator.translateText("Detail sections")}
         >
           {props.tabs.map((tab: TelemetryDetailPanelTab, index: number) => {
             const isActive: boolean = tab.id === props.activeTabId;

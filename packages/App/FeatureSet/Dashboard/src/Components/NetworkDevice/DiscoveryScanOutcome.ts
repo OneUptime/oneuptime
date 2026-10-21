@@ -5,6 +5,7 @@ import { isPingOnlyDiscoveredHost } from "./DiscoveredHostFilter";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { isDiscoveryScanInProgress } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure, react-free reading of "what did this discovery scan actually find".
@@ -160,9 +161,12 @@ function buildProgressSummary(
     return null;
   }
 
-  return (
-    `Scanning - ${sweptHostCount.toLocaleString("en-US")} of ` +
-    `${totalHostCount.toLocaleString("en-US")} addresses swept so far`
+  return translateTemplate(
+    "Scanning - {{swept}} of {{total}} addresses swept so far",
+    {
+      swept: sweptHostCount.toLocaleString("en-US"),
+      total: totalHostCount.toLocaleString("en-US"),
+    },
   );
 }
 
@@ -200,8 +204,17 @@ export function summarizeDiscoveryScan(
      */
     respondedHostSummary: hasReported
       ? isIcmpOnly
-        ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts answered ping`
-        : `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
+        ? translateTemplate(
+            "{{responded}} of {{scanned}} hosts answered ping",
+            {
+              responded: respondedHostCount ?? 0,
+              scanned: scan?.scannedHostCount ?? "?",
+            },
+          )
+        : translateTemplate("{{responded}} of {{scanned}} hosts", {
+            responded: respondedHostCount ?? 0,
+            scanned: scan?.scannedHostCount ?? "?",
+          })
       : null,
     progressSummary: buildProgressSummary(scan, hasReported, isInProgress),
     isInProgress: isInProgress,

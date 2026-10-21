@@ -1,4 +1,5 @@
 import MailService from "../Services/MailService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
@@ -23,7 +24,9 @@ import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TestSendAccess, {
+  TestSendCaller,
+} from "Common/Server/API/TestSendAccess";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -40,20 +43,24 @@ router.post(
       );
 
       /*
-       * The lookup below runs as root so it can read the SMTP secrets, which
-       * means the id in the body is otherwise honoured whoever it belongs to:
-       * any authenticated user could name another project's config id and have
-       * the server connect to that project's mail server (and, with a
-       * hostile-but-valid config, learn whether it works). Establish which
-       * project the caller is authorized for first, then confirm the config
-       * they named is actually in it.
+       * "Send Test Email" sends through the project's own mail server, so it
+       * asks what every test send asks (TestSendAccess), before anything is
+       * read: a signed-in member, on a credential that may make changes, on
+       * the plan custom SMTP is sold on, who could add an SMTP config - team
+       * blocks counted - and a config they may read, in their own project.
+       * One of another project and one that does not exist are answered
+       * alike.
        */
-      const props: DatabaseCommonInteractionProps =
-        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const caller: TestSendCaller = await TestSendAccess.assertMaySendTest({
+        req: req,
+        modelType: ProjectSmtpConfig,
+        record: {
+          service: ProjectSMTPConfigService,
+          id: smtpConfigId,
+        },
+      });
 
-      const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
-
+      // Read as OneUptime only now, for the secrets the send needs.
       const config: ProjectSmtpConfig | null =
         await ProjectSMTPConfigService.findOneById({
           id: smtpConfigId,
@@ -92,7 +99,7 @@ router.post(
 
       CommonAPI.assertResourceBelongsToProject({
         resourceProjectId: config.projectId,
-        projectId: projectId,
+        projectId: caller.projectId,
       });
 
       const toEmail: Email = new Email(body["toEmail"] as string);
@@ -108,7 +115,7 @@ router.post(
       const mail: EmailMessage = {
         templateType: EmailTemplateType.SMTPTest,
         toEmail: new Email(body["toEmail"] as string),
-        subject: "Test Email from OneUptime",
+        subject: `Test Email from ${ProductBrandingText.getProductName()}`,
         isSubjectLiteral: true,
         vars: {},
         body: "",

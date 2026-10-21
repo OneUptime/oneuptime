@@ -11,6 +11,10 @@ import {
 } from "../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
+import {
+  SITE_MORE_FIELDS,
+  SITE_TYPE_FIELD_DESCRIPTION,
+} from "./SiteFormSections";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
 import {
   SiteSummaryTile,
@@ -63,6 +67,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -77,6 +83,7 @@ const FACET_PICKER_PAGE_SIZE: number = 50;
 const NetworkSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Bumped when sites change — a create from the table, or a CSV import — so
    * the table, the summary cards and the hierarchy tree all refetch without a
@@ -327,8 +334,8 @@ const NetworkSites: FunctionComponent<
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSelections,
     facetOperators,
     setFacetSelection,
@@ -396,19 +403,11 @@ const NetworkSites: FunctionComponent<
         onFacetStateRestored={restoreFacetState}
         topContent={filterBar}
         /*
-         * "No network site" under a chip that matched nothing reads as an empty
-         * project. This says the hierarchy is there and the bar is what is hiding
-         * it.
-         *
-         * Only the chips — `hasActiveFilters` is the bar's own state, so a search
-         * term or a popup filter that matches nothing still falls through to the
-         * table's default copy.
+         * "No network sites yet" under a chip that matched nothing reads as an
+         * empty project. The chips are the bar's own state, so the table is
+         * told about them: it says nothing matches and offers to clear them.
          */
-        noItemsMessage={
-          hasActiveFilters
-            ? "No network site matches the filters above."
-            : undefined
-        }
+        emptyState={facetEmptyState}
         onCreateSuccess={(item: NetworkSite): Promise<NetworkSite> => {
           setRefreshToggle(Date.now().toString());
           return Promise.resolve(item);
@@ -417,16 +416,25 @@ const NetworkSites: FunctionComponent<
         id={NETWORK_SITES_TABLE_ID}
         userPreferencesKey={NETWORK_SITES_TABLE_ID}
         isDeleteable={true}
-        isEditable={true}
+        /*
+         * No Edit on the rows: a site is edited in one place, the Site
+         * Settings card on its Settings page (open the site, then
+         * Settings). These steps are the Create form's.
+         */
+        isEditable={false}
         isCreateable={true}
         isViewable={true}
+        // "Add Site": inside Network, a site needs no "Network" in front of it.
+        createVerb="Add"
+        singularName="Site"
+        pluralName="Sites"
         showRefreshButton={true}
         name="Network Sites"
         searchableFields={["name", "description"]}
         cardProps={{
-          title: "Network Sites",
+          title: "Sites",
           description:
-            "Group your network devices into a drill-down hierarchy — regions, franchisees, markets, units. Each site rolls up the health of everything below it.",
+            "The places your devices are in, such as offices and stores. Each site shows the health of everything in it.",
           buttons: [
             /*
              * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first
@@ -478,10 +486,16 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Date,
           },
         ]}
+        /*
+         * Three steps, down from four: what the site is (its type and name,
+         * with the description and location folded under More fields),
+         * where it sits, and what the devices added to it start with. The
+         * hierarchy keeps a step of its own because the parents it offers
+         * are worked out from the type picked on the step before.
+         */
         formSteps={[
           { title: "Site Details", id: "site-details" },
           { title: "Hierarchy", id: "hierarchy" },
-          { title: "Location", id: "location" },
           { title: "Monitoring Defaults", id: "monitoring-defaults" },
         ]}
         formFields={[
@@ -491,8 +505,7 @@ const NetworkSites: FunctionComponent<
             },
             title: "Site Type",
             stepId: "site-details",
-            description:
-              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
+            description: SITE_TYPE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
             onChange: (
@@ -518,7 +531,7 @@ const NetworkSites: FunctionComponent<
             stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Unit 1042 - Springfield",
+            placeholder: "London office",
           },
           {
             field: {
@@ -526,32 +539,18 @@ const NetworkSites: FunctionComponent<
             },
             title: "Description",
             stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
-              parentSite: true,
-            },
-            title: "Parent Site",
-            stepId: "hierarchy",
-            sectionTitle: "Place This Site",
-            sectionDescription:
-              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
-            description:
-              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: fetchParentNetworkSiteOptions,
-            required: false,
-            placeholder: "No parent site (top level)",
-          },
-          {
-            field: {
               address: true,
             },
             title: "Address",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -561,7 +560,8 @@ const NetworkSites: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -90 and 90. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -573,7 +573,8 @@ const NetworkSites: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
-            stepId: "location",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -180 and 180. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -582,15 +583,29 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
+              parentSite: true,
+            },
+            title: "Parent Site",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
+            description: "Leave it empty to keep the site at the top level.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchParentNetworkSiteOptions,
+            required: false,
+            placeholder: "No parent site (top level)",
+          },
+          {
+            field: {
               probe: true,
             },
             title: "Default Probe",
             stepId: "monitoring-defaults",
             sectionTitle: "Monitoring Defaults",
-            sectionDescription:
-              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            sectionDescription: "What a device added to this site starts with.",
             description:
-              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+              "A device added here without a probe inherits it. A probe on the public internet cannot reach a private network.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Probe,
@@ -607,7 +622,7 @@ const NetworkSites: FunctionComponent<
             title: "Default SNMP Credential Profile",
             stepId: "monitoring-defaults",
             description:
-              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+              "Used by devices here that have no credentials of their own. A device with none anywhere is pinged only.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSnmpCredentialProfile,
@@ -652,7 +667,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
-                return <span className="text-sm text-gray-400">Not set</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not set")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -672,7 +691,11 @@ const NetworkSites: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.parentSite?.name) {
-                return <span className="text-sm text-gray-400">Root</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Top level")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -693,7 +716,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No Data")}
+                  </span>
+                );
               }
               return (
                 <MonitorStatusElement
@@ -718,7 +745,9 @@ const NetworkSites: FunctionComponent<
                 item.longitude === null
               ) {
                 return (
-                  <span className="text-sm text-gray-400">Not pinned</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not pinned")}
+                  </span>
                 );
               }
               return (

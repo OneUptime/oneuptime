@@ -1,6 +1,7 @@
 import NetworkSiteMaintenanceSuppression from "../../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "../../../../Types/ObjectID";
 import { MaintenanceEventWindow } from "../../../../Utils/NetworkSite/SiteMaintenanceUtil";
@@ -27,6 +28,25 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const REGION_ID: string = "11111111-1111-4111-8111-111111111111";
 const UNIT_ID: string = "33333333-3333-4333-8333-333333333333";
 
+/*
+ * The project's states an event is in progress in (the ongoing state, and
+ * a state of its own between Ongoing and Ended): what the events are asked
+ * for by. The stubbed event reads below stand for the events in them.
+ */
+const IN_PROGRESS_STATE_IDS: Array<ObjectID> = [
+  new ObjectID("44444444-4444-4444-8444-444444444441"),
+  new ObjectID("44444444-4444-4444-8444-444444444442"),
+];
+
+function stubInProgressStates(): void {
+  jest
+    .spyOn(
+      ScheduledMaintenanceStateService,
+      "getInProgressScheduledMaintenanceStateIds",
+    )
+    .mockResolvedValue(IN_PROGRESS_STATE_IDS);
+}
+
 function ongoingEvent(siteIds: Array<string>): ScheduledMaintenance {
   return {
     networkSites: siteIds.map((id: string) => {
@@ -38,6 +58,7 @@ function ongoingEvent(siteIds: Array<string>): ScheduledMaintenance {
 describe("NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance", () => {
   beforeEach(() => {
     NetworkSiteMaintenanceSuppression.invalidateCache();
+    stubInProgressStates();
   });
 
   afterEach(() => {
@@ -218,6 +239,7 @@ describe("NetworkSiteMaintenanceSuppression.toEventWindows", () => {
  */
 describe("NetworkSiteMaintenanceSuppression cache coherence", () => {
   beforeEach(() => {
+    stubInProgressStates();
     NetworkSiteMaintenanceSuppression.invalidateCache();
   });
 

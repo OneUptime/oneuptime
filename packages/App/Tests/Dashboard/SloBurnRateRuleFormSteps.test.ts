@@ -2,13 +2,15 @@ import { describe, expect, test } from "@jest/globals";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
-  BURN_RATE_RULE_OWNER_USER_COLUMNS,
-  FetchBurnRateRuleOwnerUserOptionsFunction,
+  BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
   validateBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
+import {
+  BURN_RATE_DECLARES_FIELD_KEY,
+  BurnRateDeclares,
+} from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateDeclares";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
@@ -21,12 +23,23 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import {
+  getPeoplePickerValueKeys,
+  PeoplePickerKind,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+  SLO_BURN_RATE_TEMPLATE_VARIABLES,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
+  SloBurnRateTemplateVariableDefinition,
   isSloBurnRateTemplateVariable,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
+import {
+  TemplateVariable,
+  TemplateVariableGroup,
+} from "Common/Types/Template/TemplateVariable";
 
 /*
  * The create form is a wizard now, and every way of getting a wizard wrong is
@@ -79,6 +92,15 @@ function stepById(id: string): StepOf {
  * field" without depending on array positions that a reorder would shuffle.
  */
 function columnOf(field: FieldOf): string {
+  /*
+   * The one form-only field, When it fires: named by the form value it keeps
+   * (BURN_RATE_DECLARES_FIELD_KEY). It writes the two output columns, which
+   * are registered as fields of their own.
+   */
+  if (field.formOnly && field.overrideFieldKey) {
+    return field.overrideFieldKey;
+  }
+
   const keys: Array<string> = Object.keys(
     field.field as unknown as Record<string, unknown>,
   );
@@ -92,10 +114,22 @@ function columnOf(field: FieldOf): string {
   return keys[0]!;
 }
 
+/*
+ * The columns a field writes: its one column, or - for an owners people
+ * picker, one field for people and teams - the column each kind is kept in.
+ */
+function columnsOf(field: FieldOf): Array<string> {
+  if (field.peoplePicker) {
+    return getPeoplePickerValueKeys(field.peoplePicker);
+  }
+
+  return [columnOf(field)];
+}
+
 function fieldFor(column: string): FieldOf {
   const field: FieldOf | undefined = BURN_RATE_RULE_FORM_FIELDS.find(
     (candidate: FieldOf): boolean => {
-      return columnOf(candidate) === column;
+      return columnsOf(candidate).includes(column);
     },
   );
 
@@ -109,7 +143,7 @@ function fieldFor(column: string): FieldOf {
 function columnsOnStep(stepId: string): Array<string> {
   return BURN_RATE_RULE_FORM_FIELDS.filter((field: FieldOf): boolean => {
     return field.stepId === stepId;
-  }).map(columnOf);
+  }).flatMap(columnsOf);
 }
 
 function columnMetadata(column: string): TableColumnMetadata {
@@ -184,6 +218,8 @@ describe("the burn rate rule form steps", () => {
     ]);
 
     expect(columnsOnStep("declares")).toEqual([
+      // When it fires, then the two columns it writes, never drawn.
+      BURN_RATE_DECLARES_FIELD_KEY,
       "shouldCreateAlert",
       "shouldCreateIncident",
       "addSloOwnersAsOwners",
@@ -193,8 +229,9 @@ describe("the burn rate rule form steps", () => {
       "alertTitleTemplate",
       "alertSeverity",
       "alertDescriptionTemplate",
-      "alertOwnerTeams",
+      // One Alert Owners picker: people, then teams.
       "alertOwnerUsers",
+      "alertOwnerTeams",
       "alertLabels",
       "onCallDutyPolicies",
       "autoResolveAlert",
@@ -206,8 +243,8 @@ describe("the burn rate rule form steps", () => {
       "incidentTitleTemplate",
       "incidentSeverity",
       "incidentDescriptionTemplate",
-      "incidentOwnerTeams",
       "incidentOwnerUsers",
+      "incidentOwnerTeams",
       "incidentLabels",
       "incidentOnCallDutyPolicies",
       "autoResolveIncident",
@@ -223,7 +260,7 @@ describe("the burn rate rule form steps", () => {
    */
   test("offers every user-editable rule column except the deliberate omissions", () => {
     const onForm: Set<string> = new Set(
-      BURN_RATE_RULE_FORM_FIELDS.map(columnOf),
+      BURN_RATE_RULE_FORM_FIELDS.flatMap(columnsOf),
     );
 
     const deliberatelyAbsent: Set<string> = new Set([
@@ -281,12 +318,29 @@ describe("the burn rate rule form steps", () => {
    * the way out of the first step — before the user can reach the toggle that
    * would have made the rule legal.
    */
-  test("both output toggles live on one step", () => {
-    const alertToggle: FieldOf = fieldFor("shouldCreateAlert");
-    const incidentToggle: FieldOf = fieldFor("shouldCreateIncident");
+  test("the choice and the two columns it writes live on one step", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
 
-    expect(alertToggle.stepId).toBe("declares");
-    expect(incidentToggle.stepId).toBe(alertToggle.stepId);
+    expect(choice.stepId).toBe("declares");
+    expect(fieldFor("shouldCreateAlert").stepId).toBe(choice.stepId);
+    expect(fieldFor("shouldCreateIncident").stepId).toBe(choice.stepId);
+  });
+
+  /*
+   * The two output switches are registered so the form loads and saves
+   * their columns, and are never drawn: the choice above them is how a
+   * person answers.
+   */
+  test("the two output columns are never drawn as switches", () => {
+    for (const column of ["shouldCreateAlert", "shouldCreateIncident"]) {
+      const field: FieldOf = fieldFor(column);
+
+      expect({ column, shown: field.showIf!({}) }).toEqual({
+        column,
+        shown: false,
+      });
+      expect(field.hideColumnDescription).toBe(true);
+    }
   });
 
   /*
@@ -308,17 +362,23 @@ describe("the burn rate rule form steps", () => {
    * untouched incident toggle validates nothing: move the attachment there and
    * "turn the alert off and submit" stops being caught in the browser at all.
    */
-  test("the no-output validator hangs off the toggle that always has a value", () => {
-    expect(fieldFor("shouldCreateAlert").customValidation).toBe(
-      validateBurnRateOutputs,
-    );
+  test("the no-output validator hangs off the choice, which always has an answer", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
+
+    expect(choice.customValidation).toBe(validateBurnRateOutputs);
+    expect(choice.required).toBe(true);
+    expect(fieldFor("shouldCreateAlert").customValidation).toBeUndefined();
     expect(fieldFor("shouldCreateIncident").customValidation).toBeUndefined();
 
-    /*
-     * And that toggle's default is what guarantees it is in the values at all —
-     * the two facts are one mechanism, so they are asserted together.
-     */
+    // The alert column's default still writes a new rule's alert.
     expect(fieldFor("shouldCreateAlert").defaultValue).toBe(true);
+  });
+
+  test("Enabled is on the Edit form only: a new rule starts on", () => {
+    const enabled: FieldOf = fieldFor("isEnabled");
+
+    expect(enabled.doNotShowWhenCreating).toBe(true);
+    expect(columnMetadata("isEnabled").defaultValue).toBe(true);
   });
 
   /*
@@ -490,19 +550,60 @@ describe("the template fields", () => {
     }
   });
 
-  test("every template field tells the user about the variables, naming only real ones", () => {
+  /*
+   * The variables used to be three names run into every description, with
+   * "see How Burn Rate Rules Work for the full list". Each template field now
+   * offers every variable itself - collapsed under it, behind the Markdown
+   * editor's Insert variable, and when "{{" is typed - with its example.
+   */
+  test("every template field offers every variable the worker fills, with its example", () => {
+    for (const column of [...TITLE_COLUMNS, ...MARKDOWN_COLUMNS]) {
+      const field: FieldOf = fieldFor(column);
+
+      expect({ column, groups: field.templateVariables }).toEqual({
+        column,
+        groups: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+      });
+      expect(field.templateVariablesDescription).toBe(
+        BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
+      );
+    }
+
+    const offered: Array<string> =
+      SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS.flatMap(
+        (group: TemplateVariableGroup): Array<string> => {
+          return group.variables.map((variable: TemplateVariable): string => {
+            return variable.name;
+          });
+        },
+      );
+
+    expect(offered).toEqual(
+      SLO_BURN_RATE_TEMPLATE_VARIABLES.map(
+        (definition: SloBurnRateTemplateVariableDefinition): string => {
+          return definition.key;
+        },
+      ),
+    );
+
+    for (const group of SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS) {
+      for (const variable of group.variables) {
+        expect(variable.example).toBeTruthy();
+      }
+    }
+  });
+
+  test("no description sends the user to a list somewhere else, and any variable it names is real", () => {
     for (const column of [...TITLE_COLUMNS, ...MARKDOWN_COLUMNS]) {
       const description: string = descriptionOf(fieldFor(column));
+
+      expect(description).not.toMatch(/Supports template variables/);
+      expect(description).not.toMatch(/for the full list/);
 
       const named: Array<string> = [
         ...description.matchAll(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g),
       ].map((match: RegExpMatchArray): string => {
         return match[1]!;
-      });
-
-      expect({ column, namesVariables: named.length > 0 }).toEqual({
-        column,
-        namesVariables: true,
       });
 
       for (const name of named) {
@@ -532,8 +633,6 @@ describe("the relation pickers", () => {
   }> = [
     { column: "onCallDutyPolicies", modelType: OnCallDutyPolicy },
     { column: "incidentOnCallDutyPolicies", modelType: OnCallDutyPolicy },
-    { column: "alertOwnerTeams", modelType: Team },
-    { column: "incidentOwnerTeams", modelType: Team },
     { column: "alertLabels", modelType: Label },
     { column: "incidentLabels", modelType: Label },
   ];
@@ -552,94 +651,63 @@ describe("the relation pickers", () => {
     }
   });
 
-  test("the owner-user pickers join to User and carry no loader of their own", () => {
-    expect([...BURN_RATE_RULE_OWNER_USER_COLUMNS]).toEqual([
-      "alertOwnerUsers",
-      "incidentOwnerUsers",
-    ]);
+  /*
+   * "Instead of having two different dropdowns ..." - each output's owners
+   * are one people picker, which still saves people and teams in their own
+   * columns, each joined to its own model.
+   */
+  test.each([
+    ["alert", "Alert Owners"],
+    ["incident", "Incident Owners"],
+  ])(
+    "the %s's owners are one people picker over its user and team columns",
+    (output: string, title: string) => {
+      const users: string = `${output}OwnerUsers`;
+      const teams: string = `${output}OwnerTeams`;
+      const field: FieldOf = fieldFor(users);
 
-    for (const column of BURN_RATE_RULE_OWNER_USER_COLUMNS) {
-      const field: FieldOf = fieldFor(column);
+      // People and teams are the same field.
+      expect(fieldFor(teams)).toBe(field);
+      expect(field.title).toBe(title);
+      expect(field.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+      expect(field.peoplePicker?.kinds).toEqual([
+        { kind: PeoplePickerKind.User, valueKey: users },
+        { kind: PeoplePickerKind.Team, valueKey: teams },
+      ]);
+      expect(field.formOnly).toBe(true);
+      expect(field.stepId).toBe(`${output}-details`);
 
-      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
-      expect(columnMetadata(column).modelType).toBe(User);
+      expect(columnMetadata(users).type).toBe(TableColumnType.EntityArray);
+      expect(columnMetadata(users).modelType).toBe(User);
+      expect(columnMetadata(teams).type).toBe(TableColumnType.EntityArray);
+      expect(columnMetadata(teams).modelType).toBe(Team);
+    },
+  );
 
-      /*
-       * User is not project-listable, so a dropdownModal would list nothing.
-       * The loader needs ProjectUser, which reads `window` at module load, so
-       * this React-free module must leave it to the page.
-       */
-      expect(field.dropdownModal).toBeUndefined();
-      expect(field.fetchDropdownOptions).toBeUndefined();
-    }
+  test("the two owners pickers name themselves apart in the form", () => {
+    const pickers: Array<string> = BURN_RATE_RULE_FORM_FIELDS.filter(
+      (field: FieldOf): boolean => {
+        return Boolean(field.peoplePicker);
+      },
+    ).map(columnOf);
+
+    expect(pickers).toEqual(["alertOwners", "incidentOwners"]);
   });
 });
 
-describe("withOwnerUserDropdownOptions", () => {
-  const loader: FetchBurnRateRuleOwnerUserOptionsFunction = async () => {
-    return [{ value: "user-1", label: "Jane Doe" }];
-  };
-
-  test("gives exactly the two owner-user pickers the loader", () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    expect(wired).toHaveLength(BURN_RATE_RULE_FORM_FIELDS.length);
-
-    const withLoader: Array<string> = wired
-      .filter((field: FieldOf): boolean => {
-        return field.fetchDropdownOptions === loader;
-      })
-      .map(columnOf);
-
-    expect(withLoader).toEqual(["alertOwnerUsers", "incidentOwnerUsers"]);
-  });
-
-  test("leaves every other field as the very same object, in the same order", () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    BURN_RATE_RULE_FORM_FIELDS.forEach((field: FieldOf, index: number) => {
-      if (BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(columnOf(field))) {
-        // A copy with everything else intact.
-        expect(wired[index]).not.toBe(field);
-        expect({ ...wired[index], fetchDropdownOptions: undefined }).toEqual({
-          ...field,
-          fetchDropdownOptions: undefined,
-        });
-        return;
-      }
-
-      expect(wired[index]).toBe(field);
-    });
-  });
-
-  test("never mutates the shared field array it was given", () => {
-    withOwnerUserDropdownOptions(BURN_RATE_RULE_FORM_FIELDS, loader);
-
-    expect(fieldFor("alertOwnerUsers").fetchDropdownOptions).toBeUndefined();
-    expect(fieldFor("incidentOwnerUsers").fetchDropdownOptions).toBeUndefined();
-  });
-
-  test("hands the loader through untouched, so it runs with the form's values", async () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    const ownerField: FieldOf | undefined = wired.find(
-      (field: FieldOf): boolean => {
-        return columnOf(field) === "alertOwnerUsers";
-      },
-    );
-
-    await expect(ownerField!.fetchDropdownOptions!({})).resolves.toEqual([
-      { value: "user-1", label: "Jane Doe" },
-    ]);
+/*
+ * The module stays plain data: the people picker searches the project's
+ * people and teams itself, so nothing here fetches and the page hands
+ * nothing in - the owner-user loader it used to inject is gone.
+ */
+describe("the form fields fetch nothing", () => {
+  test("no field carries an option loader", () => {
+    for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+      expect({
+        field: columnOf(field),
+        loads: Boolean(field.fetchDropdownOptions),
+      }).toEqual({ field: columnOf(field), loads: false });
+    }
   });
 });
 
@@ -675,6 +743,33 @@ describe("the per-output steps appear only for the output they configure", () =>
 
     for (const id of INCIDENT_STEPS) {
       expect(isVisible(id, {})).toBe(false);
+    }
+  });
+
+  test("each answer of When it fires shows exactly the steps it opens", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
+    const answers: Array<[BurnRateDeclares, boolean, boolean]> = [
+      [BurnRateDeclares.Alert, true, false],
+      [BurnRateDeclares.Incident, false, true],
+      [BurnRateDeclares.Both, true, true],
+    ];
+
+    for (const [answer, showsAlert, showsIncident] of answers) {
+      let values: FormValues<ServiceLevelObjectiveBurnRateRule> = {};
+
+      choice.onChange!(
+        answer,
+        values,
+        (next: FormValues<ServiceLevelObjectiveBurnRateRule>): void => {
+          values = next;
+        },
+      );
+
+      expect({
+        answer,
+        alert: stepById("alert-details").showIf!(values),
+        incident: stepById("incident-details").showIf!(values),
+      }).toEqual({ answer, alert: showsAlert, incident: showsIncident });
     }
   });
 
@@ -793,8 +888,8 @@ describe("the output sections", () => {
         output + "TitleTemplate",
         output + "Severity",
         output + "DescriptionTemplate",
-        output + "OwnerTeams",
         output + "OwnerUsers",
+        output + "OwnerTeams",
         output + "Labels",
         output === "alert"
           ? "onCallDutyPolicies"
@@ -817,9 +912,9 @@ describe("the output sections", () => {
         "Ownership & Labels",
         "Ownership & Labels",
         "On-Call",
-        "Advanced Options",
-        "Advanced Options",
-        "Advanced Options",
+        "More fields",
+        "More fields",
+        "More fields",
       ]);
     },
   );
@@ -827,9 +922,9 @@ describe("the output sections", () => {
   test("values without templates keep optional sections collapsed, including auto-resolve defaults", () => {
     for (const field of BURN_RATE_RULE_FORM_FIELDS) {
       if (field.collapsibleSection) {
-        expect(field.collapsibleSection.isConfigured({})).toBe(false);
+        expect(field.collapsibleSection.isConfigured!({})).toBe(false);
         expect(
-          field.collapsibleSection.isConfigured({
+          field.collapsibleSection.isConfigured!({
             autoResolveAlert: true,
             autoResolveIncident: true,
           }),
@@ -850,7 +945,7 @@ describe("the output sections", () => {
 
     for (const field of BURN_RATE_RULE_FORM_FIELDS) {
       if (field.collapsibleSection) {
-        expect(field.collapsibleSection.isConfigured(defaults)).toBe(
+        expect(field.collapsibleSection.isConfigured!(defaults)).toBe(
           field.collapsibleSection.title === "Description",
         );
       }
@@ -882,10 +977,10 @@ describe("the output sections", () => {
       };
       const section: NonNullable<FieldOf["collapsibleSection"]> =
         fieldFor(column).collapsibleSection!;
-      expect(section.isConfigured(configuredValues)).toBe(true);
+      expect(section.isConfigured!(configuredValues)).toBe(true);
       for (const field of BURN_RATE_RULE_FORM_FIELDS) {
         if (field.collapsibleSection) {
-          expect(field.collapsibleSection.isConfigured(configuredValues)).toBe(
+          expect(field.collapsibleSection.isConfigured!(configuredValues)).toBe(
             field.collapsibleSection.id === section.id,
           );
         }
@@ -905,7 +1000,7 @@ describe("the output sections", () => {
       "incidentOnCallDutyPolicies",
     ]) {
       expect(
-        fieldFor(column).collapsibleSection!.isConfigured({ [column]: [] }),
+        fieldFor(column).collapsibleSection!.isConfigured!({ [column]: [] }),
       ).toBe(false);
     }
   });

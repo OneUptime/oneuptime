@@ -1,60 +1,108 @@
-# Registry Usage
+# レジストリの使用
 
-The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
+OneUptime プロバイダーは [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) と [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) で公開されています。`terraform init` と `tofu init` がそこからダウンロードするので、手でインストールするものはありません。このページでは、何が公開されているか、バージョンの番号の付け方、新しいバージョンへの移り方を説明します。
 
-## What's on the registry
+:::cards
+- [公開されているもの](#公開されているもの): 各プラットフォーム向けのプロバイダー、そのリファレンス、そのバージョン。
+- [バージョンの番号の付け方](#バージョンの番号の付け方): プロバイダーのバージョンは、それを公開した OneUptime のリリースです。
+- [ロックファイル](#ロックファイル): すべてのマシンがインストールするバージョンとチェックサム。
+- [新しいバージョンに移る](#新しいバージョンに移る): 変更点を読み、ダウンロードして、プランを実行します。
+:::
 
-- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
-- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
-- **The version history**, one entry per published release.
+## 公開されているもの
 
-Declare the provider like any registry provider:
+OneUptime の各リリースは、OneUptime 自身の API からプロバイダーを生成します。プロバイダーが変わった場合、そのリリースは、Terraform と OpenTofu のエンドツーエンドテストに合格した後で、リリースのバージョンでプロバイダーを公開します。
 
-```hcl
+```mermaid title="OneUptime のリリースから terraform init まで"
+flowchart TB
+    R["OneUptime のリリース"] --> G["OneUptime の API から<br/>プロバイダーを生成"]
+    G --> C{"プロバイダーは<br/>変わったか"}
+    C -->|"はい"| P["Terraform と<br/>OpenTofu でテストし、<br/>リリースのバージョンで<br/>公開"]
+    C -->|"いいえ"| N["このリリースの<br/>プロバイダーの<br/>バージョンはなし"]
+    P --> I["terraform init と<br/>tofu init が<br/>ダウンロード"]
+```
+
+| 何を | どこで |
+| --- | --- |
+| Linux、macOS、Windows、FreeBSD、OpenBSD、Solaris 向けのプロバイダー | `terraform init` と `tofu init` がダウンロードし、OneUptime が署名したチェックサムが付きます |
+| すべてのリソースとデータソースのリファレンスと、そのすべての属性 | レジストリのドキュメント。モニター、ステータスページ、インシデント、オンコールなど、製品ごとにまとめられています |
+| OpenTofu でプロバイダーを使うためのガイド | レジストリのガイド |
+| すべてのバージョン (新しい順) | レジストリのバージョン一覧 |
+
+リファレンスには、各属性が何かが載っています。このドキュメントでは、それらを組み合わせて使う方法を説明します。[Terraform 概要](/docs/terraform/index) から始めてください。
+
+## バージョンの番号の付け方
+
+プロバイダーのバージョンは、それを公開した OneUptime のリリースのバージョンです。プロバイダー {{TERRAFORM_PROVIDER_MAJOR}}.0.20 は OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.20 とともに公開されました。プロバイダーが変わらなかったリリースは何も公開しないため、バージョンには抜けがあり、正確なバージョンを 1 つだけ指定する制約は、存在しないバージョンを指すことがあります。代わりに範囲を書いてください。
+
+| 使っているもの | 制約 | Terraform がインストールするもの |
+| --- | --- | --- |
+| OneUptime Cloud | `{{TERRAFORM_PROVIDER_VERSION}}` | 最新の {{TERRAFORM_PROVIDER_MAJOR}}.x のプロバイダー |
+| セルフホストの OneUptime | 自分の OneUptime のバージョンで終わる範囲。たとえば `>= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40` | 自分の OneUptime より新しくない最新のプロバイダー |
+
+セルフホストの OneUptime では、自分の OneUptime より新しいプロバイダーが、その OneUptime にまだない設定を送ることがあります。範囲の書き方は [セルフホスト セットアップ](/docs/terraform/self-hosted#プロバイダーのバージョンを選ぶ) で説明しています。
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 ```
 
-`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
+ソースアドレスはレジストリを指定しません。Terraform は Terraform Registry から、OpenTofu は OpenTofu Registry から読み取り、どちらも同じバージョンを公開しています。
 
-## How versioning works
+## ロックファイル
 
-Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
+`terraform init` は、選んだバージョンとダウンロードのチェックサムを `.terraform.lock.hcl` に記録します。このファイルをコミットしてください。そうすれば、別のバージョンを選ぶまで、すべてのマシンと CI の実行が正確にそのバージョンをインストールします。チェックサムはレジストリが公開するすべてのプラットフォームを対象とするので、1 つのロックファイルで Linux、macOS、Windows のマシンに対応できます。
 
-1. **Cloud users** always run the latest platform, so the newest provider is always correct:
-
-```hcl
-version = "~> 11.0"
+```hcl title=".terraform.lock.hcl"
+provider "registry.terraform.io/oneuptime/oneuptime" {
+  version     = "{{TERRAFORM_PROVIDER_MAJOR}}.0.20"
+  constraints = "{{TERRAFORM_PROVIDER_VERSION}}"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
 ```
 
-2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
+ロックファイルにはレジストリが書かれます。OpenTofu は `registry.opentofu.org/oneuptime/oneuptime` と書き、Terraform は同じところに `registry.terraform.io/oneuptime/oneuptime` と書きます。そのため、エンジンを切り替えるとロックファイルが変わります。`init` はエントリを置き換え、その変更をコミットするよう求めます。
 
-**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## 新しいバージョンに移る
 
-## Checking versions and release notes
+:::steps
+### 変更点を読む
 
-- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
-- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
-- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+[OneUptime のリリース](https://github.com/OneUptime/oneuptime/releases) には、プロバイダーを含め、各リリースで何が変わったかが書かれています。[プロバイダーのリリース](https://github.com/OneUptime/terraform-provider-oneuptime/releases) は、前のリリースからの変更へのリンクを示します。
 
-To move to a newer version within your constraint:
+### ダウンロードする
 
 ```bash
 terraform init -upgrade
 ```
 
-This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
+`init -upgrade` は、制約が許す最新のバージョンを選んで表示し、`.terraform.lock.hcl` を更新します。制約 `{{TERRAFORM_PROVIDER_VERSION}}` は {{TERRAFORM_PROVIDER_MAJOR}}.x のすべてのリリースを受け入れます。新しいメジャーバージョンには新しい制約が必要です。
 
-## Where the code lives
+### 適用する前にプランを実行する
 
-The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
+`terraform plan` を実行し、プランが空か、予想どおりの変更だけを示すときに限って適用します。更新されたロックファイルをコミットしてください。
+:::
 
-## Air-gapped environments
+セルフホストの OneUptime では、まず OneUptime をアップグレードし、その後でプロバイダーの範囲の上限を上げます。
 
-If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).
+## コードの場所
+
+プロバイダーは、[OneUptime のメインリポジトリ](https://github.com/OneUptime/oneuptime) で OneUptime の API から生成され、各バージョンはそれを公開したリリースからビルドされます。プロバイダー自身のリポジトリ [OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime) には生成器が書いたものが入っているので、変更はメインリポジトリで行います。問題は、ドキュメントの問題も含めて [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues) に報告してください。
+
+## 次のステップ
+
+:::cards
+- [セルフホスト セットアップ](/docs/terraform/self-hosted): 自分の OneUptime 向けのバージョンの範囲と、オフラインのマシン向けのミラー。
+- [OpenTofu](/docs/terraform/opentofu): 同じプロバイダーと構成を `tofu` で。
+- [完全ガイド](/docs/terraform/complete-guide): 認証、プロジェクトの構成、データソース、state、アップグレード。
+- [トラブルシューティング](/docs/terraform/troubleshooting): よくあるエラーとその直し方。
+:::

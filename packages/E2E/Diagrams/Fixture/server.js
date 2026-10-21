@@ -1,0 +1,599 @@
+/*
+ * Diagrams in a real browser, drawn the three ways OneUptime draws them, with
+ * no backend:
+ *
+ *   /dashboard  the production MarkdownViewer (Common/UI), bundled with the
+ *               frontends' own esbuild config - and so with mermaid built
+ *               from its ES module source (Common/UI/esbuild-mermaid.js).
+ *   /docs       the docs' real <head> (App/FeatureSet/Docs/Views/Partials/
+ *               Head.ejs, rendered with ejs) above diagrams written the way
+ *               the docs' Markdown renderer writes them.
+ *   /blog       a post body under the blog's real scripts and stylesheet,
+ *               taken out of Home/Views/Blog/Post.ejs.
+ *
+ * /oneuptime-assets/mermaid/ serves what Common/Scripts/
+ * build-mermaid-browser.js writes - run here exactly as the App and Home
+ * images run it - and the rest of /oneuptime-assets the vendored files.
+ */
+const childProcess = require("child_process");
+const fs = require("fs");
+const http = require("http");
+const path = require("path");
+
+// The frontends' production build: minified, no sourcemap.
+process.env.NODE_ENV = "production";
+
+const { createConfig } = require("../../../Common/UI/esbuild-config.js");
+const esbuild = require("../../../Common/node_modules/esbuild");
+const ejs = require("../../../Common/node_modules/ejs");
+
+const repository = path.resolve(__dirname, "../../../..");
+const output = path.join(repository, "output/playwright/diagrams-ui/fixture");
+const mermaidDirectory = path.join(
+  repository,
+  "output/playwright/diagrams-ui/mermaid-browser",
+);
+const mermaidBuildScript = path.join(
+  repository,
+  "packages/Common/Scripts/build-mermaid-browser.js",
+);
+const port = Number(process.env["DIAGRAMS_FIXTURE_PORT"] || 4271);
+
+const vendorDirectory = path.join(
+  repository,
+  "packages/Common/Server/Static/Vendor",
+);
+const docsStaticDirectory = path.join(
+  repository,
+  "packages/App/FeatureSet/Docs/Static",
+);
+const docsHead = path.join(
+  repository,
+  "packages/App/FeatureSet/Docs/Views/Partials/Head.ejs",
+);
+// The docs' strings in a language, so the page says what a reader would read.
+function docsStrings(lang) {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repository,
+        "packages/App/FeatureSet/Docs/Locales",
+        `${lang}.json`,
+      ),
+      "utf8",
+    ),
+  );
+}
+
+// The docs languages written right to left (Common/Types/Docs/DocsLanguage.ts).
+const RIGHT_TO_LEFT_DOCS_LANGUAGES = ["fa"];
+const blogPost = path.join(repository, "packages/Home/Views/Blog/Post.ejs");
+
+const config = createConfig({
+  serviceName: "diagrams-fixture",
+  publicPath: "/dist/",
+  entryPoint: path.join(__dirname, "Fixture.js"),
+  outdir: output,
+  additionalAlias: {
+    Common: path.join(repository, "packages/Common"),
+    react: path.join(repository, "packages/Common/node_modules/react"),
+    "react-dom": path.join(
+      repository,
+      "packages/Common/node_modules/react-dom",
+    ),
+  },
+});
+config.loader[".js"] = "jsx";
+config.logLevel = "warning";
+
+const FLOWCHART = 'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]';
+const SEQUENCE =
+  "sequenceDiagram\n  Alice->>Bob: Hello Bob\n  Bob-->>Alice: Hello Alice";
+// Does not parse.
+const BROKEN = "graph LR\n  A -->";
+/*
+ * What securityLevel 'loose' would allow and 'strict' does not: a click that
+ * calls a page function, and a javascript: link. Its labels also carry the
+ * HTML mermaid allows either way (bold text, a line break).
+ */
+const INTERACTIVE = [
+  "graph LR",
+  '  A["<b>Bold</b> start"] --> B[Plain label]',
+  '  B --> C["Line one<br/>Line two"]',
+  '  click A diagramCallback "Calls a page function"',
+  '  click B "javascript:window.diagramLinkRan=true" "A javascript link"',
+].join("\n");
+
+/*
+ * ?diagrams=persian (docs only): diagrams as the Persian docs write them,
+ * each titled, so the page draws its caption: lines that open with a Latin
+ * word, end in a Persian comma, or hold Latin words only, in a flowchart's
+ * node and link labels, a sequence diagram's message and note (SVG text),
+ * a state diagram's transition label, and the captions.
+ */
+const PERSIAN_DIAGRAMS = [
+  {
+    title: "OneUptime چگونه حساب شما را می‌خواند",
+    code: [
+      "flowchart LR",
+      '  key["OneUptime حساب<br/>را می‌خواند،"] -->|"OTLP به<br/>localhost:4318"| col["کالکتور"]',
+    ].join("\n"),
+  },
+  {
+    title: "ورود با SAML، گام به گام",
+    code: [
+      "sequenceDiagram",
+      "  participant P as شخص",
+      "  participant O as OneUptime",
+      "  P->>O: OTLP به OneUptime",
+      "  Note over P,O: امضا را بررسی می‌کند،",
+    ].join("\n"),
+  },
+  {
+    title: "وضعیت یک منبع ابری",
+    code: [
+      "stateDiagram-v2",
+      '  state "گزارش‌دهی" as Reporting',
+      "  [*] --> Reporting",
+      "  Reporting --> Archived: OTLP نیست",
+    ].join("\n"),
+  },
+];
+
+/*
+ * ?diagrams=rules (docs only): an English diagram whose lines end in a
+ * colon, which a line laid out right to left draws first (":Rule 1").
+ */
+const RULE_DIAGRAMS = [
+  {
+    title: "Rule 1: the first match",
+    code: [
+      "flowchart LR",
+      '  first["Rule 1:<br/>first match"] --> second["Rule 2:"]',
+    ].join("\n"),
+  },
+];
+
+/*
+ * ?diagrams=sizes (docs only): three flowcharts in a 590px column, the width
+ * the docs' article gives a diagram at 1280px: one narrower than the
+ * column, one a little wider - it fits once drawn at 3/4 of its size - and
+ * one too wide to fit even then.
+ */
+const SIZE_DIAGRAMS = [
+  {
+    title: "Narrow",
+    code: 'flowchart TB\n  start["Start"] --> finish["Finish"]',
+  },
+  {
+    title: "A little wider than the column",
+    code: [
+      "flowchart LR",
+      '  one["First step"] --> two["Second step"]',
+      '  two --> three["Third step"]',
+      '  three --> four["Fourth"]',
+    ].join("\n"),
+  },
+  {
+    title: "Far wider than the column",
+    code: [
+      "flowchart LR",
+      '  one["First step"] --> two["Second step"]',
+      '  two --> three["Third step"]',
+      '  three --> four["Fourth step"]',
+      '  four --> five["Fifth step"]',
+      '  five --> six["Sixth step"]',
+      '  six --> seven["Seventh step"]',
+    ].join("\n"),
+  },
+];
+
+// Where the docs pages are, by language: Content/<lang>/<category>/<page>.md.
+const docsContentDirectory = path.join(
+  repository,
+  "packages/App/FeatureSet/Docs/Content",
+);
+
+// The languages the docs are written in: Content's folders.
+function docsLanguages() {
+  return fs
+    .readdirSync(docsContentDirectory, { withFileTypes: true })
+    .filter((entry) => {
+      return entry.isDirectory();
+    })
+    .map((entry) => {
+      return entry.name;
+    });
+}
+
+/*
+ * ?source=<lang> (docs only): every diagram of every docs page in that
+ * language, in page order, each marked with the page and its place on it
+ * (data-source="monitor/api-monitor#1"), captioned as the page captions it.
+ */
+function docsSourceDiagrams(lang) {
+  const root = path.join(docsContentDirectory, lang);
+  const pages = [];
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".md")) {
+        pages.push(full);
+      }
+    }
+  };
+  walk(root);
+  pages.sort();
+
+  const diagrams = [];
+  for (const file of pages) {
+    const page = path
+      .relative(root, file)
+      .split(path.sep)
+      .join("/")
+      .replace(/\.md$/, "");
+    const lines = fs.readFileSync(file, "utf8").split("\n");
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].startsWith("```mermaid")) {
+        continue;
+      }
+      const title = lines[i].match(/title="([^"]*)"/);
+      const body = [];
+      let j = i + 1;
+      while (j < lines.length && !lines[j].startsWith("```")) {
+        body.push(lines[j]);
+        j++;
+      }
+      count++;
+      diagrams.push({
+        title: title ? title[1] : null,
+        code: body.join("\n"),
+        source: `${page}#${count}`,
+      });
+      i = j;
+    }
+  }
+  return diagrams;
+}
+
+// The same five characters the docs' and the blog's renderers escape.
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/*
+ * ?diagrams= picks the docs page's and the blog post's diagrams: both kinds
+ * (the default), none, broken - one that does not parse, ahead of both - or
+ * interactive, with a click callback, a javascript: link and HTML labels.
+ */
+function diagramsFor(url) {
+  switch (url.searchParams.get("diagrams")) {
+    case "none":
+      return [];
+    case "broken":
+      return [BROKEN, FLOWCHART, SEQUENCE];
+    case "interactive":
+      return [INTERACTIVE];
+    default:
+      return [FLOWCHART, SEQUENCE];
+  }
+}
+
+// The docs page's diagrams, with the title each is captioned with.
+function docsDiagramsFor(url) {
+  const source = url.searchParams.get("source");
+  if (source) {
+    return docsSourceDiagrams(source);
+  }
+  switch (url.searchParams.get("diagrams")) {
+    case "persian":
+      return PERSIAN_DIAGRAMS;
+    case "rules":
+      return RULE_DIAGRAMS;
+    case "sizes":
+      return SIZE_DIAGRAMS;
+    default:
+      return diagramsFor(url).map((code) => {
+        return { title: null, code: code };
+      });
+  }
+}
+
+// The docs' t() in a language: "ui.x" is that language's string.
+function docsT(lang) {
+  const strings = docsStrings(lang);
+
+  return (key) => {
+    const [section, name] = key.split(".");
+    const value = strings[section] && strings[section][name];
+    return typeof value === "string" ? value : key;
+  };
+}
+
+/*
+ * What Common/Server/Types/Markdown.ts writes for a ```mermaid fence on a
+ * docs page, a titled one with its caption under it. ?lang= picks the
+ * page's language (English by default; fa is right to left), and
+ * &content=en serves its article as the English copy of an untranslated
+ * page, marked English and left to right as Partials/Content.ejs marks it.
+ */
+function docsPage(url) {
+  const source = url.searchParams.get("source");
+  const lang = source || (url.searchParams.get("lang") === "fa" ? "fa" : "en");
+  const dir = RIGHT_TO_LEFT_DOCS_LANGUAGES.includes(lang) ? "rtl" : "ltr";
+  /*
+   * The width the docs' article gives a diagram's box at 1280px: 590px
+   * inside its padding and border, as the sizes and every page's diagrams
+   * are checked in.
+   */
+  const column =
+    source || url.searchParams.get("diagrams") === "sizes"
+      ? ' style="width: 632px"'
+      : "";
+  const head = ejs.render(
+    fs.readFileSync(docsHead, "utf8"),
+    {
+      t: docsT(lang),
+      lang: lang,
+      enableGoogleTagManager: false,
+    },
+    { filename: docsHead },
+  );
+  const diagrams = docsDiagramsFor(url)
+    .map((diagram) => {
+      const caption = diagram.title
+        ? `<p class="docs-diagram__caption">${escapeHtml(diagram.title)}</p>`
+        : "";
+      const from = diagram.source
+        ? ` data-source="${escapeHtml(diagram.source)}"`
+        : "";
+      return `<div class="docs-diagram"${from}><div class="mermaid">${escapeHtml(diagram.code)}</div>${caption}</div>`;
+    })
+    .join("\n");
+  const englishCopy =
+    lang !== "en" && url.searchParams.get("content") === "en"
+      ? ' lang="en" dir="ltr"'
+      : "";
+
+  /*
+   * The request handler serves only a known ?source= language, but the page
+   * escapes it all the same: it comes from the address.
+   */
+  return `<!doctype html><html lang="${escapeHtml(lang)}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"${column}><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
+}
+
+/*
+ * The blog's scripts and stylesheet, taken out of Post.ejs rather than
+ * copied, so a change there is what this tests: the highlight.js loader in
+ * its head (it strips the language-mermaid class at DOMContentLoaded), the
+ * page script (copy buttons, table of contents...), the diagrams module, and
+ * the stylesheet that sets out what they show.
+ */
+function blogScripts() {
+  const source = fs.readFileSync(blogPost, "utf8");
+  const scripts = source.match(/<script\b[^>]*>[\s\S]*?<\/script>/g) || [];
+  const styles = source.match(/<style\b[^>]*>[\s\S]*?<\/style>/g) || [];
+
+  const pickFrom = (blocks, kind, label, predicate) => {
+    const found = blocks.filter(predicate);
+
+    if (found.length !== 1) {
+      throw new Error(
+        `Post.ejs has ${found.length} ${label} ${kind} blocks, expected one`,
+      );
+    }
+
+    if (found[0].includes("<%")) {
+      throw new Error(`Post.ejs's ${label} ${kind} block now holds EJS tags`);
+    }
+
+    return found[0];
+  };
+
+  const pick = (label, predicate) => {
+    return pickFrom(scripts, "script", label, predicate);
+  };
+
+  return {
+    style: pickFrom(styles, "style", "post", (style) => {
+      return style.includes(".blog-diagram-note");
+    }),
+    highlightCore: pick("highlight.js", (script) => {
+      return script.includes(
+        'src="/oneuptime-assets/highlight/highlight.min.js"',
+      );
+    }),
+    highlightLoader: pick("highlight.js loader", (script) => {
+      return script.includes("langMap");
+    }),
+    page: pick("page", (script) => {
+      return script.includes("Language name mapping for display");
+    }),
+    diagrams: pick("diagrams", (script) => {
+      return (
+        script.includes('type="module"') &&
+        script.includes("/oneuptime-assets/mermaid/")
+      );
+    }),
+  };
+}
+
+// A 4x3 image, inline so nothing has to be served for it.
+const BLOG_IMAGE =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#888"/></svg>',
+  );
+
+/*
+ * A post with no h2 heading, so with no table of contents: the page script
+ * used to return from its table of contents section on one, and skip
+ * everything after it. It has a smaller heading and an image, for two of
+ * the features after it: heading links and image hints.
+ */
+function blogPage(url) {
+  const scripts = blogScripts();
+  const blocks = diagramsFor(url)
+    .map((code) => {
+      return `<pre><code class="language-mermaid">${escapeHtml(code)}</code></pre>`;
+    })
+    .join("\n");
+  /*
+   * ?html=broken adds a diagram the post writes as HTML rather than as a
+   * fenced block, one that does not parse.
+   */
+  const htmlDiagram =
+    url.searchParams.get("html") === "broken"
+      ? `<div class="mermaid">${escapeHtml(BROKEN)}</div>`
+      : "";
+
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blog fixture</title><link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">${scripts.highlightCore}${scripts.highlightLoader}${scripts.style}</head><body><article class="blog-body"><p>A post with a diagram in it.</p><h3>How it is drawn</h3>${htmlDiagram}${blocks}<pre><code class="language-javascript">const answer = 42;</code></pre><img src="${BLOG_IMAGE}" alt="A grey box"><p>The end.</p></article>${scripts.page}${scripts.diagrams}</body></html>`;
+}
+
+const tailwind = path.join(vendorDirectory, "tailwind/tailwind-3.4.5.js");
+
+/*
+ * Every frontend's index.ejs gives every element Inter with a universal `*`
+ * rule; the fixture carries the real rule.
+ */
+const dashboardIndex = fs.readFileSync(
+  path.join(repository, "packages/App/FeatureSet/Dashboard/views/index.ejs"),
+  "utf8",
+);
+const universalRule = dashboardIndex.match(/^\s*\*\s*\{[^}]*\}/m);
+
+if (!universalRule) {
+  throw new Error(
+    "Dashboard index.ejs no longer has its universal `*` font rule",
+  );
+}
+
+const dashboardPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diagrams fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"production"}};window.global=window;</script><script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script><style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/oneuptime-assets/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+
+const CONTENT_TYPES = {
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".woff2": "font/woff2",
+  ".svg": "image/svg+xml",
+};
+
+function serveFile(response, root, relative) {
+  const file = path.resolve(root, relative);
+
+  if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) {
+    response.writeHead(404).end();
+    return;
+  }
+
+  if (fs.statSync(file).isDirectory()) {
+    response.writeHead(404).end();
+    return;
+  }
+
+  response.setHeader(
+    "Content-Type",
+    CONTENT_TYPES[path.extname(file)] || "application/octet-stream",
+  );
+  fs.createReadStream(file).pipe(response);
+}
+
+async function main() {
+  fs.rmSync(output, { recursive: true, force: true });
+  fs.mkdirSync(output, { recursive: true });
+  await esbuild.build(config);
+
+  childProcess.execFileSync(
+    process.execPath,
+    [mermaidBuildScript, mermaidDirectory],
+    { stdio: "inherit" },
+  );
+
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url, `http://127.0.0.1:${port}`);
+    response.setHeader("Cache-Control", "no-store");
+
+    if (url.pathname.startsWith("/oneuptime-assets/mermaid/")) {
+      serveFile(
+        response,
+        mermaidDirectory,
+        url.pathname.slice("/oneuptime-assets/mermaid/".length),
+      );
+      return;
+    }
+
+    if (url.pathname.startsWith("/oneuptime-assets/")) {
+      serveFile(
+        response,
+        vendorDirectory,
+        url.pathname.slice("/oneuptime-assets/".length),
+      );
+      return;
+    }
+
+    if (url.pathname.startsWith("/docs/static/")) {
+      serveFile(
+        response,
+        docsStaticDirectory,
+        url.pathname.slice("/docs/static/".length),
+      );
+      return;
+    }
+
+    if (url.pathname.startsWith("/dist/")) {
+      serveFile(response, output, url.pathname.slice("/dist/".length));
+      return;
+    }
+
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+
+    if (url.pathname === "/docs") {
+      // ?source= names a docs language, never a path.
+      const source = url.searchParams.get("source");
+      if (source !== null && !docsLanguages().includes(source)) {
+        response.writeHead(404).end();
+        return;
+      }
+      response.end(docsPage(url));
+      return;
+    }
+
+    if (url.pathname === "/blog") {
+      response.end(blogPage(url));
+      return;
+    }
+
+    if (url.pathname === "/dashboard" || url.pathname === "/") {
+      response.end(dashboardPage);
+      return;
+    }
+
+    response.writeHead(404).end();
+  });
+
+  // Unused, but keeps tailwind's path checked at startup.
+  if (!fs.existsSync(tailwind)) {
+    throw new Error(`Tailwind is missing at ${tailwind}`);
+  }
+
+  server.listen(port, "127.0.0.1");
+  process.on("SIGTERM", () => {
+    return server.close();
+  });
+  process.on("SIGINT", () => {
+    return server.close();
+  });
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

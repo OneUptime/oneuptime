@@ -143,7 +143,7 @@ function positionerStyle(): string {
 function autoRefreshPanelStyle(): string {
   return anchor(
     TOOLBAR,
-    /className="absolute right-0 mt-2 w-56 origin-top-right[^"]*"\s*style=\{\{([^}]*)\}\}/,
+    /className="absolute end-0 mt-2 w-max[^"]*"\s*style=\{\{([^}]*)\}\}/,
     "the auto-refresh menu's panel",
   );
 }
@@ -317,7 +317,7 @@ describe("the dashboard canvas cannot paint over the page (issue #3660)", () => 
        */
       const panel: string = anchor(
         TOOLBAR,
-        /className="(absolute right-0 mt-2 w-56 origin-top-right[^"]*)"/,
+        /className="(absolute end-0 mt-2 w-max[^"]*)"/,
         "the auto-refresh menu's class list",
       );
 

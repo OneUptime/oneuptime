@@ -3,6 +3,10 @@
   "type": "object",
   "required": ["oneuptime", "clusterName"],
   "properties": {
+    "chartDefaultsVersion": {
+      "type": "string",
+      "description": "The version of the chart this values.yaml comes with, stamped by the release pipeline. Do not set it: the chart compares it with its own version to warn when a release renders with an older chart's defaults (helm upgrade --reuse-values)."
+    },
     "global": {
       "type": "object",
       "description": "Reserved for platform-injected globals (e.g. Rancher's global.cattle.*, ArgoCD, Flux). Not consumed by this chart."
@@ -10,7 +14,7 @@
     "preset": {
       "type": "string",
       "enum": ["", "standard", "gke-autopilot", "eks-fargate"],
-      "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context."
+      "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context, and leave out the privileged eBPF and profiling DaemonSets, which those platforms refuse."
     },
     "nameOverride": {
       "type": "string",
@@ -31,7 +35,11 @@
         },
         "apiKey": {
           "type": "string",
-          "description": "Project API key from OneUptime (Settings > API Keys)"
+          "description": "Telemetry ingestion key from OneUptime (Project Settings > Telemetry & APM > Ingestion Keys), sent as the x-oneuptime-token header. A project API key (Settings > API Keys) does not work here."
+        },
+        "existingSecretName": {
+          "type": "string",
+          "description": "Name of a Secret in the release's namespace that holds the ingestion key under `api-key`. Set it instead of apiKey to keep the key out of the values: every workload reads the key from it, and the chart creates no Secret of its own."
         },
         "labels": {
           "type": "object",
@@ -502,7 +510,7 @@
         },
         "endpoint": {
           "type": "string",
-          "description": "URL to scrape when mode == 'external'. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
+          "description": "URL to scrape when mode == 'external' (required there), scraped where it points: https:// over TLS (http:// or no scheme in plain HTTP), and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. An https endpoint needs a certificate from a public CA; there is no setting yet to trust a private CA, skip verification or send credentials. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
         },
         "scrapeInterval": { "type": "string" },
         "collectResources": {
@@ -553,7 +561,7 @@
           "properties": {
             "url": {
               "type": "string",
-              "description": "Base URL of an EXISTING cost engine. Empty (default) bundles OpenCost + a minimal Prometheus. Example: http://opencost.opencost.svc.cluster.local:9003"
+              "description": "Base URL of an EXISTING cost engine, http:// or https://. Empty (default) bundles OpenCost + a minimal Prometheus. The poller and the metrics scrape both follow the scheme, and verify an https engine's certificate against public CAs only. Example: http://opencost.opencost.svc.cluster.local:9003"
             },
             "prometheusUrl": {
               "type": "string",
@@ -710,7 +718,7 @@
             "enabled": { "type": "boolean" },
             "endpoint": {
               "type": "string",
-              "description": "Metrics endpoint. Empty defaults to <cost.engine.url>/metrics."
+              "description": "Metrics endpoint URL. Empty defaults to <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused."
             },
             "scrapeInterval": { "type": "string" },
             "metricsAllowlist": {
@@ -729,7 +737,7 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true."
+          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true. The gke-autopilot and eks-fargate presets leave it out whatever this says: they refuse privileged pods."
         },
         "image": {
           "type": "object",
@@ -783,11 +791,11 @@
         },
         "autoTargetExe": {
           "type": "string",
-          "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."
+          "description": "Comma-separated globs of executable paths to auto-instrument (e.g. '*' for all, '*/python,*/java' to scope). Each entry becomes one OBI discovery.instrument selector; `*` matches across `/`."
         },
         "excludeExePaths": {
           "type": "string",
-          "description": "Comma-separated glob list of executable paths to skip."
+          "description": "Comma-separated globs of executable paths to skip. Each entry becomes one OBI discovery.exclude_instrument selector, next to OBI's built-in exclusions."
         },
         "logLevel": {
           "type": "string",
@@ -807,7 +815,7 @@
             },
             "spanMetrics": {
               "type": "boolean",
-              "description": "Per-span metrics keyed on span attributes (OBI `application_span`)."
+              "description": "Span call counter and duration histogram per service, span name, kind and status: `traces.span.metrics.calls`, `traces.span.metrics.duration` (OBI `application_span_otel`; earlier charts used the deprecated `application_span`, which names them `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`)."
             },
             "serviceGraph": {
               "type": "boolean",
@@ -815,7 +823,7 @@
             },
             "hostMetrics": {
               "type": "boolean",
-              "description": "Per-host / per-process CPU and memory (OBI `application_host`)."
+              "description": "Deprecated, no effect. Mapped to OBI's `application_host` (a host-info gauge), which OBI v0.14 removed; OBI refuses to start on an unknown feature, so the chart no longer passes it. Kept so values files that set it still install."
             },
             "networkMetrics": {
               "type": "boolean",
@@ -827,14 +835,14 @@
             },
             "tcpStats": {
               "type": "boolean",
-              "description": "Node-level TCP stats (RTT, failed connections, retransmits) (OBI `stats`)."
+              "description": "Node-level TCP stats (RTT, failed connections, retransmits): OBI `stats_tcp_rtt`, `stats_tcp_failed_connections`, `stats_tcp_retransmits` (not `stats`, which also adds the per-send/receive `stats_tcp_io`)."
             }
           },
           "additionalProperties": false
         },
         "contextPropagation": {
           "type": "boolean",
-          "description": "Inject a W3C `traceparent` into outbound traffic so traces span services without SDK changes. **Off by default** — this matches OBI's own default, and it is off because every mode rewrites in-flight traffic: plaintext HTTP is widened in place via `bpf_probe_write_user`, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. A bad rewrite desynchronizes the connection instead of just losing a span — the reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past ~64KB. There is no kernel version at which enabling this is inert — below 5.17 OBI falls back to bounded-scan program variants and keeps rewriting traffic, so do not use kernel age to rule the agent out as a suspect. Injection is gated on CAP_SYS_ADMIN and the absence of kernel lockdown, and this DaemonSet runs privileged, so that gate is always open. Opt in on a non-production cluster first."
+          "description": "Inject a W3C `traceparent` into outbound traffic so traces span services without SDK changes. **On by default** (OBI's own default is off): without it, a call to a pod on another node starts a trace of its own, and OBI reads no `traceparent` at all. Every mode rewrites in-flight traffic: plaintext HTTP is widened in place via `bpf_probe_write_user`, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. A bad rewrite desynchronizes the connection instead of just losing a span — the reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past ~64KB. Turn it off if you see that, or if a service mesh or eBPF CNI starts failing pods. There is no kernel version at which this is inert — below 5.17 OBI falls back to bounded-scan program variants and keeps rewriting traffic, so do not use kernel age to rule the agent out as a suspect. Injection is gated on CAP_SYS_ADMIN and the absence of kernel lockdown, and this DaemonSet runs privileged, so that gate is always open. A values file without the key counts as off."
         },
         "contextPropagationMode": {
           "type": "string",
@@ -844,6 +852,80 @@
         "trackRequestHeaders": {
           "type": "boolean",
           "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
+        },
+        "nodejs": {
+          "type": "object",
+          "description": "OBI's Node.js support: linking a request's outgoing calls to it, through an agent injected via the Node inspector (SIGUSR1; loopback 127.0.0.1:9229). Route templates do not depend on it: OBI reads them from the app's files.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "OTEL_EBPF_NODEJS_ENABLED. When false there is no SIGUSR1/inspector injection, and Node.js spans are not linked to the request that made them."
+            }
+          },
+          "additionalProperties": false
+        },
+        "excludeOtelInstrumentedServices": {
+          "type": "boolean",
+          "description": "OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES. When true (OBI's default) OBI stops exporting its own telemetry for a process once it sees that process export OTLP itself. Set false when those SDKs report to a different project or backend."
+        },
+        "routes": {
+          "type": "object",
+          "description": "How OBI names HTTP spans (OBI `routes` config).",
+          "properties": {
+            "patterns": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Route templates matched against URL paths, e.g. '/api/items/{id}'. A matching path gets that route, and span name, verbatim."
+            },
+            "unmatched": {
+              "type": "string",
+              "enum": ["", "heuristic", "low-cardinality", "wildcard", "path", "unset"],
+              "description": "Route for a path no pattern matches. '' keeps OBI's default (heuristic)."
+            },
+            "disabledHarvesters": {
+              "type": ["array", "null"],
+              "items": { "type": "string", "enum": ["", "dotnet", "go", "java", "nodejs", "php", "python", "ruby"] },
+              "uniqueItems": true,
+              "description": "Languages OBI does not harvest route templates for (OBI's discovery.disabled_route_harvesters). Harvesting holds up tracing each new process, one process at a time, for up to harvestTimeout; the Node.js harvester regex-scans every source file of the app and runs out of time on large apps, so it is skipped by default. [] harvests every language, as does `--set ebpf.routes.disabledHarvesters={}` (blank entries are dropped) and null (a values file from before this key)."
+            },
+            "harvestTimeout": {
+              "type": ["string", "null"],
+              "pattern": "^$|^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|0\\.[0-9]*[1-9][0-9]*)(ns|us|ms|s|m|h)$",
+              "description": "How long OBI waits for one process's routes before it traces the process without them (OBI's discovery.route_harvester_timeout): a positive duration such as '2s' or '500ms'. '' keeps OBI's 10s. OBI refuses to start on 0."
+            }
+          },
+          "additionalProperties": false
+        },
+        "extraSpanAttributes": {
+          "type": ["array", "null"],
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
+        },
+        "bufferSizes": {
+          "type": ["object", "null"],
+          "properties": {
+            "postgres": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mysql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mssql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 }
+          },
+          "additionalProperties": false,
+          "description": "Bytes of each PostgreSQL, MySQL or SQL Server request (and, separately, each response) OBI copies to read it: OBI's ebpf.buffer_sizes. 0 keeps OBI's small fixed capture, which stops db.query.text at about 250 characters and can miss a long statement sent with bound parameters. 4096 covers most ORM statements; a buffer costs agent CPU and memory in proportion to database traffic. At most 65535. null (a values file from before this key) means 0."
+        },
+        "dropDatabaseServerSpans": {
+          "type": "boolean",
+          "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER), linked or not. It duplicates the caller's client span: a one-span trace when the caller runs on another node, a doubled database call inside the request trace when it runs on the same node. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+        },
+        "dropUnlinkedDatabaseCalls": {
+          "type": "boolean",
+          "description": "Drop an application's eBPF database call (db.system.name set, not SERVER) that has no parent: background work such as queue workers polling Redis, pool pings, cron jobs. Trade-off: a database that only such work talks to is no longer discovered from traces and shows on the service map as a remote endpoint. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+        },
+        "dropUnlinkedClientCalls": {
+          "type": "boolean",
+          "description": "Drop an application's eBPF client call (kind CLIENT, no parent) that is not a database, messaging, GenAI or MCP call: HTTP, gRPC and other calls made by background work, and calls OBI could not place in their request's trace. Off by default; only true turns it on. Trade-offs: a call that OBI linked a request under (on the same node; on any node with ebpf.contextPropagation, SDK-instrumented services included) is the root of that trace, which then loses its root; the service map draws a dependency only background work calls from OBI's service graph metrics alone, and counts only in-request calls on an edge also seen inside requests; a service's overview counts only the spans left. Spans pushed by application SDKs are never dropped, and OBI's metrics are unaffected."
+        },
+        "dropNodeInspectorMetrics": {
+          "type": "boolean",
+          "description": "Drop the http.server.* datapoints OBI v0.14 records for its own Node.js agent injection: GET on port 9229 with route /json/list, /json/version, or /* answered 101 (OBI's default route naming; nothing is dropped with ebpf.nodejs.enabled false). A datapoint has no client address, so an app's own GET /json/list or /json/version on port 9229, and its own WebSocket upgrades there that OBI names /*, are dropped too. Only OBI's http.server.* datapoints are considered: its span metrics still count the injection. OneUptime drops the injection's spans on ingest."
         },
         "logToTraceCorrelation": {
           "type": "boolean",
@@ -868,7 +950,7 @@
     },
     "profiling": {
       "type": "object",
-      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: enabled.",
+      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: off. The gke-autopilot and eks-fargate presets leave it off whatever profiling.enabled says: they refuse privileged pods.",
       "properties": {
         "enabled": { "type": "boolean" },
         "image": {
@@ -995,24 +1077,34 @@
       },
       "additionalProperties": false
     },
-    "aiAccess": {
+    "aiAgent": {
       "type": "object",
-      "description": "OneUptime AI access: deploys an in-cluster OneUptime Runner that lets OneUptime AI run read-only kubectl during investigations and, with remediation.enabled, policy-tiered kubectl fixes.",
+      "description": "Kubernetes AI agent: one small pod that lets OneUptime AI run read-only kubectl on this cluster while it investigates incidents and alerts and, with fixes, policy-checked kubectl fixes. On by default.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Deploy the in-cluster Runner with read-only RBAC (get/list/watch, pod logs and the access reviews kubectl auth can-i needs), bound cluster-wide. It registers itself with oneuptime.apiKey (a key with a Pinned Service Name cannot register it) and binds to clusterName."
+          "description": "Deploy the Kubernetes AI agent (default true) with read-only RBAC (get/list/watch, pod logs and the access reviews kubectl auth can-i needs), bound cluster-wide. It connects with oneuptime.apiKey (a key with a Pinned Service Name cannot register it) and clusterName, and needs a OneUptime server of this chart's version or newer. Set false to turn it off; the deprecated aiAccess.enabled is not read."
+        },
+        "investigation": {
+          "type": "boolean",
+          "description": "Whether OneUptime AI runs read-only kubectl (get, describe, logs, events, top) on this cluster while it investigates an incident or alert; false: it investigates with the data OneUptime already has. The cluster's AI → Agent page shows it and offers no way to change it there. Unset by default: a release that sets neither investigation nor fixes lets the agent use its defaults (investigation on), which OneUptime applies only to a cluster whose settings nobody chose on its AI → Agent page."
+        },
+        "fixes": {
+          "type": ["string", "boolean"],
+          "enum": ["", "off", "ask-for-approval", "automatic", "bypass-approval", false],
+          "description": "What OneUptime AI does when it finds a fix: off (never proposes or runs a change; the agent stays read-only), ask-for-approval (a person approves the exact kubectl plan before it runs), automatic (safe changes run on their own, riskier ones ask) or bypass-approval (every change the policy allows runs on its own; a write in kube-system, kube-public or kube-node-lease, a drain, a taint and a patch of a node still wait for a person). Every level but off grants the write RBAC remediation.enabled describes, bound where remediation.namespaces says, and off grants none, whatever remediation.enabled says. The cluster's AI → Agent page shows it and offers no way to change it there. A bare YAML off is the boolean false and reads as off. Unset by default: then remediation.enabled decides the write RBAC, and the agent's default is ask-for-approval with it and off without, which OneUptime applies only to a cluster whose settings nobody chose on its AI → Agent page."
         },
         "remediation": {
           "type": "object",
+          "description": "Write access for OneUptime AI's fixes. Leave a key unset to keep the matching stored aiAccess.remediation value; a value set here wins.",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount, create deployment/cronjob/job --image, expose --overrides and patch bodies that are not JSON, while set image stays a riskier change a human approves unless the cluster bypasses approvals or its allowlist names it; in every mode it never runs a write in kube-system, kube-public or kube-node-lease, a drain, a taint or a patch of a node without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The Runner refuses writes locally when this is off. A cluster registering for the first time with this on starts in ask-for-approval, unless AI settings were already picked on its AI page before the install (they are kept as chosen); a cluster that was already registered keeps the AI remediation mode chosen on its AI page."
+              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount, create deployment/cronjob/job --image, expose --overrides and patch bodies that are not JSON, while set image stays a riskier change a human approves unless the cluster bypasses approvals or its allowlist names it; in every mode it never runs a write in kube-system, kube-public or kube-node-lease, a drain, a taint or a patch of a node without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The agent refuses writes locally when this is off. Deprecated by aiAgent.fixes, and read only while aiAgent.fixes is unset: then the agent's default fixes are ask-for-approval with this on and off without. Unset: a stored aiAccess.enabled plus aiAccess.remediation.enabled carries over, else false."
             },
             "namespaces": {
               "type": "array",
-              "description": "Namespaces to bind the remediation write role in, one RoleBinding each. Empty (the default) binds it cluster-wide with a ClusterRoleBinding, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or this release's namespace: there the policy (never without a human in the three system namespaces) and the Runner (never its own namespace) hold the line. The Runner refuses writes outside the list before spawning kubectl. This release's own namespace may not be listed. Every listed namespace must already exist: the chart creates a RoleBinding in each and never a namespace, so a missing one fails the install or upgrade with namespaces \"<name>\" not found. Take a namespace off the list before deleting it. To go back to cluster-wide on a release that stores a list, pass --set-json 'aiAccess.remediation.namespaces=[]' (Helm 3.10+), not {} (Helm reads that as one empty name, which is refused). --set aiAccess.remediation.namespaces=null does not reset a stored list under --reuse-values (Helm keeps the stored list, and on a release installed before aiAccess existed the null fails this schema); it only works with --reset-then-reuse-values (Helm 3.14+) in place of --reuse-values.",
+              "description": "Namespaces to bind the remediation write role in, one RoleBinding each. Empty binds it cluster-wide with a ClusterRoleBinding, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or this release's namespace: there the policy (never without a human in the three system namespaces) and the agent (never its own namespace) hold the line. The agent refuses writes outside the list before spawning kubectl. This release's own namespace may not be listed. Every listed namespace must already exist: the chart creates a RoleBinding in each and never a namespace, so a missing one fails the install or upgrade with namespaces \"<name>\" not found. Take a namespace off the list before deleting it. To go back to cluster-wide on a release that stores a list, pass --set-json 'aiAgent.remediation.namespaces=[]' (Helm 3.10+), not {} (Helm reads that as one empty name, which is refused). Unset: a stored aiAccess.remediation.namespaces carries over when the stored write access was on.",
               "items": {
                 "type": "string",
                 "minLength": 1,
@@ -1022,7 +1114,7 @@
             },
             "nodeOperations": {
               "type": "boolean",
-              "description": "With remediation.enabled, also grant cordon/uncordon/taint (patch on nodes) and drain (create on pods/eviction), cluster-wide since nodes are cluster-scoped, in a ClusterRole of their own. A drain, a taint or a patch of a node always waits for a human, in every mode. Default true; set false to keep OneUptime AI's fixes off nodes: no node RBAC is granted and ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false tells the Runner to refuse cordon, uncordon, drain, taint and label/annotate/patch on a node before it spawns kubectl."
+              "description": "With remediation.enabled, also grant cordon/uncordon/taint (patch on nodes) and drain (create on pods/eviction), cluster-wide since nodes are cluster-scoped, in a ClusterRole of their own. A drain, a taint or a patch of a node always waits for a human, in every mode. Default true (or a stored aiAccess.remediation.nodeOperations); set false to keep OneUptime AI's fixes off nodes: no node RBAC is granted and ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false tells the agent to refuse cordon, uncordon, drain, taint and label/annotate/patch on a node before it spawns kubectl."
             }
           },
           "additionalProperties": false
@@ -1030,7 +1122,10 @@
         "image": {
           "type": "object",
           "properties": {
-            "repository": { "type": "string" },
+            "repository": {
+              "type": "string",
+              "description": "Default oneuptime/kubernetes-ai-agent. Point it at a mirror when the cluster cannot pull from Docker Hub."
+            },
             "tag": {
               "type": "string",
               "description": "Empty tracks the moving release tag. Pin a OneUptime version to hold it."
@@ -1038,10 +1133,27 @@
             "pullPolicy": {
               "type": "string",
               "description": "Empty means Always for a moving tag (release, the default) and IfNotPresent for a pinned tag.",
-              "enum": ["", "Always", "IfNotPresent", "Never"]
+              "enum": [
+                "",
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
             }
           },
           "additionalProperties": false
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Image pull secrets (existing Secrets in this release's namespace) for a private registry or mirror of the agent image.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
         },
         "resources": {
           "type": "object",
@@ -1049,16 +1161,24 @@
             "requests": {
               "type": "object",
               "properties": {
-                "cpu": { "type": "string" },
-                "memory": { "type": "string" }
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             },
             "limits": {
               "type": "object",
               "properties": {
-                "cpu": { "type": "string" },
-                "memory": { "type": "string" }
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             }
@@ -1067,7 +1187,110 @@
         },
         "extraEnv": {
           "type": "array",
-          "description": "Extra environment variables for the Runner container, as Kubernetes EnvVar objects (use --set-string for values). Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_INGESTION_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_RUNNER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_RUNNER_POD_NAMESPACE, ONEUPTIME_RUNNER_ENABLE_RUNBOOKS, ONEUPTIME_RUNNER_ENABLE_CODE_FIXES, HOME, KUBECACHEDIR, PORT) and ONEUPTIME_RUNNER_ID / ONEUPTIME_RUNNER_KEY fail the render.",
+          "description": "Extra environment variables for the agent container, as Kubernetes EnvVar objects (use --set-string for values), e.g. HTTPS_PROXY and NO_PROXY for an egress proxy. Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_API_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_AI_AGENT_POD_NAMESPACE, ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES, HOME, KUBECACHEDIR, PORT) fail the render. Unset: a stored aiAccess.extraEnv carries over; clear it with --set-json 'aiAgent.extraEnv=[]' (--set passes [] as a string, which is refused).",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "value": { "type": "string" },
+              "valueFrom": { "type": "object" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiAccess": {
+      "type": "object",
+      "description": "Deprecated: use aiAgent. Kept so releases that stored these values (charts 14.0.2 to 14.0.8) still upgrade. remediation.* and extraEnv carry over to the Kubernetes AI agent while the matching aiAgent key is unset; enabled, image and resources are ignored.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deprecated and ignored: the Kubernetes AI agent is on by default; turn it off with aiAgent.enabled=false. Carries aiAccess.remediation.enabled over only when both are true."
+        },
+        "remediation": {
+          "type": "object",
+          "description": "Deprecated: use aiAgent.remediation.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Deprecated: use aiAgent.remediation.enabled."
+            },
+            "namespaces": {
+              "type": "array",
+              "description": "Deprecated: use aiAgent.remediation.namespaces.",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              }
+            },
+            "nodeOperations": {
+              "type": "boolean",
+              "description": "Deprecated: use aiAgent.remediation.nodeOperations."
+            }
+          },
+          "additionalProperties": false
+        },
+        "image": {
+          "type": "object",
+          "description": "Deprecated and ignored: use aiAgent.image.",
+          "properties": {
+            "repository": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": [
+                "",
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "description": "Deprecated and ignored: use aiAgent.resources.",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "extraEnv": {
+          "type": "array",
+          "description": "Deprecated: use aiAgent.extraEnv. Carried over while aiAgent.extraEnv is unset, with the same reserved names refused.",
           "items": {
             "type": "object",
             "required": ["name"],

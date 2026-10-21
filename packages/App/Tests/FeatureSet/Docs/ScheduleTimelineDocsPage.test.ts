@@ -8,6 +8,7 @@ import {
   TIMELINE_MAX_PAST_DAYS,
   TIMELINE_MAX_SCHEDULES,
 } from "Common/Types/OnCallDutyPolicy/ScheduleTimeline";
+import { toLatinDigits } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -68,10 +69,19 @@ function onCallGroup(): NavGroup {
 
 describe("Schedule Timeline docs page", () => {
   describe("navigation", () => {
-    it("is linked from the On Call group, first", () => {
+    it("is linked from the On Call group, right after the schedules it draws", () => {
       const links: Array<NavLink> = onCallGroup().links;
+      const index: number = links.findIndex((link: NavLink): boolean => {
+        return link.url === PAGE_URL;
+      });
 
-      expect(links[0]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      expect(links[index]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      expect(links[index - 1]?.title).toBe("On-Call Schedules");
+      expect(
+        links.filter((link: NavLink): boolean => {
+          return link.url === PAGE_URL;
+        }),
+      ).toHaveLength(1);
     });
 
     it("has a nav title in every docs language", () => {
@@ -125,7 +135,8 @@ describe("Schedule Timeline docs page", () => {
   describe("facts that live in code", () => {
     it("quotes the look-back, look-ahead and schedule limits in every language", () => {
       for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
-        const page: string = readPage(lang);
+        // In the language's digits: Persian writes 180 as ۱۸۰.
+        const page: string = toLatinDigits(readPage(lang));
 
         for (const value of [
           TIMELINE_MAX_PAST_DAYS,

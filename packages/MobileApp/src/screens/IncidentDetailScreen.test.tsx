@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -8,6 +9,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as passOnApi from "../api/onCallPassOn";
+import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import IncidentDetailScreen from "./IncidentDetailScreen";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
@@ -137,6 +140,31 @@ jest.mock("../api/incidentNotes", () => {
   };
 });
 
+/*
+ * Whether the signed-in person is being paged about it, for Pass it on
+ * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
+ * the answer never comes: the screen renders as it always did, and nothing
+ * updates it after a test has looked.
+ */
+const mockPassOnPages: { current: OnCallPassOnPage[] | null } = {
+  current: null,
+};
+
+jest.mock("../api/onCallPassOn", () => {
+  return {
+    fetchOnCallPassOnPages: jest.fn(() => {
+      return mockPassOnPages.current
+        ? Promise.resolve(mockPassOnPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    passOnOnCallPages: jest.fn(async () => {
+      return [];
+    }),
+  };
+});
+
 jest.mock("../hooks/useHaptics", () => {
   return {
     useHaptics: () => {
@@ -174,6 +202,16 @@ const RESOLVED_STATE: IncidentState = makeIncidentState({
   isCreatedState: false,
   isResolvedState: true,
   order: 3,
+});
+/*
+ * A state the project placed after Resolved, without the resolved flag: by
+ * the one resolved rule (utils/resolvedState) a record in it is resolved.
+ */
+const CLOSED_STATE: IncidentState = makeIncidentState({
+  _id: "incident-state-closed",
+  name: "Closed",
+  isCreatedState: false,
+  order: 4,
 });
 
 /**
@@ -601,6 +639,37 @@ describe("The controls a responder is offered", () => {
     expect(screen.queryByText("Actions")).toBeNull();
   });
 
+  test("a incident in a state placed after Resolved is offered nothing to press either", async () => {
+    /*
+     * "Closed" comes after Resolved and does not carry the resolved flag. The
+     * incident is resolved all the same, so there is nothing to acknowledge -
+     * and no Resolve, which could only move it back up the list.
+     */
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE, CLOSED_STATE],
+    });
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: CLOSED_STATE._id,
+          name: CLOSED_STATE.name,
+        }),
+      }),
+    });
+    const client: QueryClient = createTestQueryClient();
+
+    await renderScreen(client);
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Resolve incident" }),
+    ).toBeNull();
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(screen.getByText("Response complete")).toBeTruthy();
+  });
+
   test("a project with no acknowledged state offers only the state it does have", async () => {
     /*
      * Incident states are configured per project, and a project can perfectly
@@ -700,6 +769,40 @@ describe("Acknowledging and resolving", () => {
         PROJECT_ID,
         INCIDENT_ID,
         ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+
+  test("Resolve sends the project's resolved state - the first flagged from the top - whatever order the states arrive in", async () => {
+    /*
+     * A project may flag a second state resolved further down. Resolve means
+     * the first one from the top (utils/resolvedState), so a list that
+     * arrives with the lower one first still resolves into Resolved.
+     */
+    const autoClosedState: IncidentState = makeIncidentState({
+      _id: "incident-state-auto-closed",
+      name: "Auto-closed",
+      isCreatedState: false,
+      isResolvedState: true,
+      order: 5,
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [autoClosedState, TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(INCIDENT_QUERY_KEY, incidentFixture);
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    );
+
+    await waitFor(() => {
+      expect(changeIncidentStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        INCIDENT_ID,
+        RESOLVED_STATE._id,
       );
     });
   });
@@ -1237,6 +1340,347 @@ describe("The incident in dark mode", () => {
     });
     expect(screen.getByTestId("feed-entry-time")).toHaveStyle({
       color: darkColors.textTertiary,
+    });
+  });
+});
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved -
+   * "Investigating", "Mitigated" - without the acknowledged flag. An incident
+   * in it has been acknowledged: on-call stopped paging when it got there, and
+   * the server refuses a move back up the list. The screen used to offer
+   * Acknowledge here because the current state was not the acknowledged state
+   * itself, and pressing it could only fail.
+   */
+  const INVESTIGATING_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const LATER_RESOLVED_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-resolved",
+    name: "Resolved",
+    isCreatedState: false,
+    isResolvedState: true,
+    order: 4,
+  });
+  const SECOND_ACKNOWLEDGED_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-second-acknowledged",
+    name: "Escalated",
+    isCreatedState: false,
+    isAcknowledgedState: true,
+    order: 3,
+  });
+
+  beforeEach(() => {
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        INVESTIGATING_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+    changeIncidentStateMock.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function loadInState(state: IncidentState): void {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an incident in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+  });
+
+  test("it reads as a response in progress, as an acknowledged incident does", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this incident. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a state before Acknowledged still asks for one", async () => {
+    loadInState(TRIAGE_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Needs a responder")).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    loadInState(SECOND_ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    ).toBeTruthy();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    /*
+     * A list that arrives with a lower flagged state first must still move
+     * the incident into Acknowledged: the state the server's own Acknowledge
+     * moves it into.
+     */
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+      ],
+    });
+    loadInState(TRIAGE_STATE);
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(
+      INCIDENT_QUERY_KEY,
+      mockIncidentDetail.current.data as IncidentItem,
+    );
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    );
+
+    await waitFor(() => {
+      expect(changeIncidentStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        INCIDENT_ID,
+        ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+});
+
+describe("Passing the page on", () => {
+  /*
+   * The person an on-call policy is paging about the incident, who cannot
+   * take it, passes it on from here: the policy pages its next escalation
+   * rule now instead of waiting. Only they are offered it, and only while
+   * the incident still waits for somebody to take it.
+   */
+  let alertSpy: jest.SpyInstance;
+  let refetchTimeline: jest.Mock;
+  let refetchFeed: jest.Mock;
+
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+  const passOnMock: jest.Mock =
+    passOnApi.passOnOnCallPages as unknown as jest.Mock;
+
+  const PASS_ON_PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+  };
+
+  function lastAlert(): [
+    string,
+    string | undefined,
+    Array<{ text?: string; onPress?: () => void }> | undefined,
+  ] {
+    const calls: Array<Array<unknown>> = alertSpy.mock.calls;
+    return calls[calls.length - 1] as [
+      string,
+      string | undefined,
+      Array<{ text?: string; onPress?: () => void }> | undefined,
+    ];
+  }
+
+  beforeEach(() => {
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
+      return undefined;
+    });
+    refetchTimeline = jest.fn(async () => {
+      return undefined;
+    });
+    refetchFeed = jest.fn(async () => {
+      return undefined;
+    });
+    fetchPassOnMock.mockClear();
+    passOnMock.mockClear();
+
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident(),
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>({
+      refetch: refetchTimeline as unknown as IncidentTimelineState["refetch"],
+    });
+    mockIncidentFeed.current = queryState<FeedItem[]>({
+      data: [],
+      refetch: refetchFeed as unknown as IncidentFeedState["refetch"],
+    });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
+    mockPassOnPages.current = null;
+  });
+
+  test("somebody the policy is not paging is offered no Pass it on", async () => {
+    mockPassOnPages.current = [];
+
+    await renderScreen(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(fetchPassOnMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "incident",
+        INCIDENT_ID,
+      );
+    });
+    expect(
+      screen.queryByRole("button", { name: "Pass this incident page on" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toBeTruthy();
+  });
+
+  test("the person being paged is offered it, after Acknowledge and Resolve", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+
+    await renderScreen(createTestQueryClient());
+
+    const passOn: unknown = await screen.findByRole("button", {
+      name: "Pass this incident page on",
+    });
+    const buttons: Array<unknown> = within(
+      screen.getByTestId("response-actions"),
+    ).getAllByRole("button");
+
+    expect(buttons).toHaveLength(3);
+    expect(buttons[2]).toBe(passOn);
+    expect(screen.getByText("Pass it on")).toBeTruthy();
+  });
+
+  test("an incident somebody acknowledged is not offered it, whatever the server last said", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: ACKNOWLEDGED_STATE._id,
+          name: ACKNOWLEDGED_STATE.name,
+        }),
+      }),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(fetchPassOnMock).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Pass this incident page on" }),
+    ).toBeNull();
+  });
+
+  test("it asks first, passes it on, says what it did, and reads the feed and timeline again", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+    passOnMock.mockResolvedValueOnce([
+      {
+        passedOn: true,
+        policyName: "Payments",
+        sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+      },
+    ]);
+
+    await renderScreen(createTestQueryClient());
+
+    fireEvent.press(
+      await screen.findByRole("button", { name: "Pass this incident page on" }),
+    );
+
+    const [title, message, choices] = lastAlert();
+
+    expect(title).toBe("Pass it on?");
+    expect(message).toBe(
+      `You won't be paged about it again.\n\n${PASS_ON_PAGE.sentence}`,
+    );
+    // Nothing is passed on until they say so.
+    expect(passOnMock).not.toHaveBeenCalled();
+
+    // Read again after passing on: no longer paged.
+    mockPassOnPages.current = [];
+
+    await act(async () => {
+      choices!.find((choice: { text?: string }) => {
+        return choice.text === "Pass it on";
+      })!.onPress!();
+    });
+
+    await waitFor(() => {
+      return expect(lastAlert()[0]).toBe("You passed it on");
+    });
+    expect(lastAlert()[1]).toBe(
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.\n\nYou won't be paged about it again.",
+    );
+    expect(passOnMock).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "incident",
+      INCIDENT_ID,
+    );
+
+    await waitFor(() => {
+      return expect(refetchFeed).toHaveBeenCalled();
+    });
+    expect(refetchTimeline).toHaveBeenCalled();
+    await waitFor(() => {
+      return expect(
+        screen.queryByRole("button", { name: "Pass this incident page on" }),
+      ).toBeNull();
     });
   });
 });

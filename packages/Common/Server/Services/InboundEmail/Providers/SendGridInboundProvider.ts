@@ -1,8 +1,11 @@
 import InboundEmailProvider, {
+  InboundEmailDelivery,
   InboundEmailProviderConfig,
   ParsedInboundEmail,
 } from "../InboundEmailProvider";
-import { JSONObject } from "../../../../Types/JSON";
+import SecretKeyComparison from "../../../Utils/SecretKeyComparison";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import EmailAddressList from "../../../../Utils/Email/EmailAddressList";
 import IncomingEmailMonitorAddress, {
   IncomingEmailRecipient,
   IncomingEmailRecipientKind,
@@ -11,6 +14,15 @@ import IncomingEmailMonitorAddress, {
 // SendGrid uses the base config - add SendGrid-specific options here if needed in the future
 export type SendGridInboundConfig = InboundEmailProviderConfig;
 
+/*
+ * The address of "Name <address>". What is between the brackets holds no "<"
+ * either, so a match tried from each "<" of a header reads only up to the
+ * next one: a From or To header, which whoever sends the email writes, is
+ * read in time in line with its length. Where several "<" open before a ">",
+ * the address is what follows the last of them.
+ */
+const ANGLE_BRACKETED_ADDRESS: RegExp = /<([^<>]+)>/;
+
 /**
  * SendGrid Inbound Parse provider implementation
  *
@@ -18,6 +30,7 @@ export type SendGridInboundConfig = InboundEmailProviderConfig;
  * SendGrid sends emails to the webhook as multipart/form-data with the following fields:
  * - from: Email sender
  * - to: Email recipient(s)
+ * - cc: Copied recipient(s)
  * - subject: Email subject
  * - text: Plain text body
  * - html: HTML body
@@ -45,6 +58,15 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     const to: string = this.extractEmailAddress(
       rawData["to"]?.toString() || "",
     );
+    const toAddresses: Array<string> = EmailAddressList.parse(
+      rawData["to"]?.toString(),
+    );
+    const ccAddresses: Array<string> = EmailAddressList.parse(
+      rawData["cc"]?.toString(),
+    );
+    const envelopeRecipients: Array<string> = this.parseEnvelopeRecipients(
+      rawData["envelope"],
+    );
     const subject: string = rawData["subject"]?.toString() || "";
     const body: string = rawData["text"]?.toString() || "";
     const bodyHtml: string | undefined = rawData["html"]?.toString();
@@ -58,6 +80,9 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     return {
       from,
       to,
+      toAddresses,
+      ccAddresses,
+      envelopeRecipients,
       subject,
       body,
       bodyHtml,
@@ -66,25 +91,62 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     };
   }
 
-  public async validateWebhook(data: {
-    headers: Record<string, string>;
-    body: JSONObject | string;
-    pathSecret: string;
-  }): Promise<boolean> {
-    /*
-     * SendGrid Inbound Parse doesn't provide webhook signature verification by default
-     * We validate using a secret in the URL path
-     * URL format: /incoming-email/sendgrid/{webhookSecret}
-     */
-    if (this.config.webhookSecret) {
-      return data.pathSecret === this.config.webhookSecret;
+  /*
+   * SendGrid's `envelope` field is JSON: {"to": ["rcpt@inbound..."], "from":
+   * "bounce@sender..."}. `to` holds the address this POST was delivered for.
+   * Anything that is not that shape is no envelope at all, and the router
+   * falls back to the To and Cc headers.
+   */
+  private parseEnvelopeRecipients(
+    rawEnvelope: JSONValue | undefined,
+  ): Array<string> {
+    let envelope: JSONValue | undefined = rawEnvelope;
+
+    if (typeof envelope === "string") {
+      try {
+        envelope = JSON.parse(envelope) as JSONValue;
+      } catch {
+        return [];
+      }
     }
 
-    /*
-     * If no webhook secret is configured, accept all requests
-     * This is acceptable for SendGrid as the webhook URL itself is a secret
-     */
-    return true;
+    if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+      return [];
+    }
+
+    const recipients: JSONValue | undefined = (envelope as JSONObject)["to"];
+
+    if (typeof recipients === "string") {
+      return EmailAddressList.parse(recipients);
+    }
+
+    if (!Array.isArray(recipients)) {
+      return [];
+    }
+
+    return EmailAddressList.merge(
+      recipients.flatMap((recipient: JSONValue): Array<string> => {
+        return typeof recipient === "string"
+          ? EmailAddressList.parse(recipient)
+          : [];
+      }),
+    );
+  }
+
+  /*
+   * SendGrid posts to the Destination URL the operator gave Inbound Parse,
+   * https://<host>/incoming-email/sendgrid/<secret>, so a delivery is
+   * SendGrid's when the last part of the address it was posted to is the
+   * installation's secret. Compared in constant time: how long a wrong guess
+   * takes to refuse says nothing about how much of it was right.
+   */
+  protected async isFromProvider(
+    data: InboundEmailDelivery & { webhookSecret: string },
+  ): Promise<boolean> {
+    return SecretKeyComparison.timingSafeEqual(
+      data.pathSecret,
+      data.webhookSecret,
+    );
   }
 
   public extractSecretKeyFromEmail(email: string): string | null {
@@ -116,7 +178,7 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
    * - "<user@domain.com>" -> "user@domain.com"
    */
   private extractEmailAddress(email: string): string {
-    const match: RegExpMatchArray | null = email.match(/<([^>]+)>/);
+    const match: RegExpMatchArray | null = email.match(ANGLE_BRACKETED_ADDRESS);
 
     if (match && match[1]) {
       return match[1].toLowerCase().trim();
@@ -128,6 +190,14 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
   /**
    * Parse SendGrid headers string into a key-value object
    * SendGrid sends headers as a string with each header on a new line
+   *
+   * A long header is folded over several lines, each line after the first
+   * starting with a space or a tab (RFC 5322 section 2.2.3): a References
+   * header of a long thread, a Message-ID some mail programs start on the
+   * line after its name, a Received header. Those lines are joined back onto
+   * their header, one space between them. Read alone, they were lost - or,
+   * when one held a colon (a Received header's time), read as a header of
+   * their own.
    */
   private parseHeaders(
     headersString?: string,
@@ -138,8 +208,29 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
 
     const headers: Record<string, string> = {};
     const lines: string[] = headersString.split("\n");
+    // The header a folded line continues, until a line that is not one.
+    let foldingInto: string | null = null;
 
     for (const line of lines) {
+      const firstCharacter: string = line.charAt(0);
+
+      if (
+        foldingInto !== null &&
+        (firstCharacter === " " || firstCharacter === "\t")
+      ) {
+        const continuation: string = line.trim();
+
+        if (continuation) {
+          const soFar: string = headers[foldingInto] || "";
+
+          headers[foldingInto] = soFar
+            ? `${soFar} ${continuation}`
+            : continuation;
+        }
+
+        continue;
+      }
+
       const colonIndex: number = line.indexOf(":");
 
       if (colonIndex > 0) {
@@ -147,6 +238,9 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
         const value: string = line.substring(colonIndex + 1).trim();
 
         headers[key] = value;
+        foldingInto = key;
+      } else {
+        foldingInto = null;
       }
     }
 

@@ -1,0 +1,1642 @@
+import { describe, expect, test } from "@jest/globals";
+import path from "path";
+import {
+  listScanRoots,
+  listSourceFiles,
+} from "../../../ForeignHiddenRuleGuard";
+import {
+  FormFacts,
+  FormFieldFacts,
+  FormStepProblem,
+  LONG_FORM_FIELD_LIMIT,
+  MIN_SCANNED_FORMS,
+  SHORT_FORM_ROW_LIMIT,
+  ShortFormWithSteps,
+  SourceFileSystem,
+  countFieldRows,
+  countFormRows,
+  describeForm,
+  describeShortFormWithSteps,
+  findLongFormsWithoutSteps,
+  findShortFormsWithSteps,
+  findStepProblems,
+  findUncountableForms,
+  scanFormFiles,
+} from "../../../Helpers/FormStepsScan";
+
+/*
+ * "Please have formsteps in this form, and for any long forms in the project
+ * (anything > 3 fields)." - the maintainer, on the Create Workflow Variable
+ * form, whose four fields with a paragraph of help each made one long
+ * scrolling page.
+ *
+ * Every create and edit form in the product was given steps when it had more
+ * than three fields the user can see. This guard keeps it that way: it reads
+ * every form host in the frontends (Tests/Helpers/FormStepsScan.ts says how)
+ * and fails on a long form without steps, unless the form is listed below
+ * with the reason it is better left as one page. It also fails on the three
+ * ways a stepped form silently loses a field (no stepId, a stepId no step
+ * declares, a step no field is on), because the sweep put a stepId on
+ * hundreds of fields and each of those mistakes renders without an error.
+ *
+ * The detector is pinned on inline snippets first - every shape it must
+ * follow and every shape it must leave alone - and only then run over the
+ * real tree, with checks that the scan really read it, so a broken walk
+ * cannot pass by finding nothing.
+ *
+ * And the other way round. "The idea is to make software as simple as
+ * possible to use and reduce decision paralysis" - the maintainer, asking
+ * for the same fix wherever the same problem is. A form of three rows or
+ * fewer is one page: a stepper there only adds a step list and a Next
+ * between a name and the one editor it names (the note and postmortem
+ * template forms walked "Template Info" then "Note Details" for three
+ * fields, and SLO create three steps when only its target had no default).
+ * A folded section is one row, as above. So a short form that walks steps
+ * fails too, unless it is listed in SHORT_FORMS_WITH_STEPS with the reason.
+ * Together the two rules leave no gap: more than three rows walk steps,
+ * three or fewer do not.
+ */
+
+// packages/Common/Tests/UI/Components/Forms -> the repository root.
+const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
+
+interface ListedForm {
+  // Repository-relative, with "/".
+  file: string;
+  // The form's label: see getFormLabel in FormStepsScan.ts.
+  form: string;
+  reason: string;
+}
+
+const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
+
+/*
+ * Long forms that stay one page, and why. Each one was looked at and left on
+ * purpose; a form that gains steps must leave this list (the guard says so).
+ */
+export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
+  {
+    file: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
+    form: "ModelForm: Register",
+    reason:
+      "The sign-up page, the product's front door: every field is needed to create the account, and whether sign-up becomes a two-step flow is a conversion decision for the maintainer, not a side effect of this sweep.",
+  },
+  ...[
+    ["ExceptionMonitor/ExceptionMonitorStepForm.tsx", "exception-monitor-form"],
+    ["LogMonitor/LogMonitorStepFrom.tsx", "logs-filter"],
+    [
+      "SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",
+      "security-events-filter",
+    ],
+    ["TraceMonitor/TraceMonitorStepForm.tsx", "Traces-filter"],
+  ].map(([file, id]: Array<string>): ListedForm => {
+    return {
+      file: `${DASHBOARD}/Components/Form/Monitor/${file}`,
+      form: `BasicForm: ${id}`,
+      reason:
+        "A filter embedded in one step of the monitor form, which walks its own steps; a stepper inside a step would nest one wizard in another. Only the filters most monitors use are on screen (text, time window, and severity, span status, event class or exception type); the ones that scope it to a service, an entity or attributes fold under More fields.",
+    };
+  }),
+  {
+    file: `${DASHBOARD}/Components/Form/Monitor/ProfileMonitor/ProfileMonitorStepForm.tsx`,
+    form: "BasicForm: profile-monitor-form",
+    reason:
+      "The Profiles monitor's settings, embedded in one step of the monitor form like the other monitors' filters; a stepper inside a step would nest one wizard in another. On screen are the three questions a profile alert answers (which function, which kind of profile, how far back); the service and entity filters fold under More fields, and the preview of what the monitor reads now sits under them.",
+  },
+  {
+    file: `${DASHBOARD}/Components/Form/Monitor/LlmMonitor/LlmMonitorStepForm.tsx`,
+    form: "BasicForm: llm-monitor-filter",
+    reason:
+      "The AI / LLM monitor's settings, embedded in one step of the monitor form like the other monitors' filters; a stepper inside a step would nest one wizard in another. On screen are the questions every AI alert answers (which problems make an answer bad, how slow is too slow, how far back to look, which apps); the model folds under More fields, and the preview of what the monitor would count sits under them.",
+  },
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx`,
+    form: "ModelForm: Layer Configuration",
+    reason:
+      "Not a dialog: the inline editor at the bottom of an expanded layer card, already split into three titled sections (Layer details, Rotation schedule, Active hours) with one Save, under the rotation preview it updates.",
+  },
+  {
+    file: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
+    form: "BasicForm #1",
+    reason:
+      "One half of a workspace notification rule, drawn as one field on a step of the rule's own wizard (WorkspaceNotificationRulesTable): its Conditions step, or its Destination step, which is the long one. A stepper inside a step would nest one wizard in another. At rest the Destination step is two or three switches (an existing channel, a Microsoft Teams chat, a new channel), and each one's own options appear only when it is switched on.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
+    form: "BasicFormModal: Security Events > Update Threat Intel Feed Credentials",
+    reason:
+      "Never more than three fields at once: the authentication mode, then either the API token or the basic auth username and password - the two are alternatives.",
+  },
+  /*
+   * The maintainer, on the Create Custom Field form: "The only thing I
+   * should see by default is: field name, field description, type. That's
+   * basically it." Those three are the whole page; a step between them
+   * would only add a Next.
+   */
+  ...[
+    [
+      `${DASHBOARD}/Pages/Settings/Base/CustomFieldsPageBase.tsx`,
+      "ModelTable: custom-fields-table",
+      "The custom field settings pages of eight resources (incidents, alerts, monitors and the rest): a field's name, description and type, which is all the maintainer asked to see when creating one. The fourth row, Dropdown Options, appears only under a dropdown type, right below the type it belongs to; everything else a field can have (an incident field's Show on Create and subscriber settings, and on Edit where its value is copied from and its template variable) is folded into one collapsed Advanced section, and a field that copies its value from a monitor is created from the card's More menu instead.",
+    ],
+    [
+      `${DASHBOARD}/Pages/Users/CustomFields.tsx`,
+      "ModelTable: Settings > Team Member Custom Fields",
+      "The team member custom field form, one page like the other eight custom field settings pages: a field's name, description and type, with Dropdown Options appearing only under a dropdown type, right below the type it belongs to.",
+    ],
+  ].map(([file, form, reason]: Array<string>): ListedForm => {
+    return { file: file!, form: form!, reason: reason! };
+  }),
+  {
+    file: `${DASHBOARD}/Components/NotificationRule/OnCallRulesTable.tsx`,
+    form: "ModelTable: notification-rules",
+    reason:
+      "Adding an on-call rule: how to notify (the notification method) and when (notify after). Picking a phone adds its two push settings - critical or standard, and whether to repeat until acknowledged - right below the method they belong to, both already answered; a browser adds only the repeat, and every other method neither. Two rows for most methods and four for a phone, all about the one notification being added: a step between them would only put Add behind a Next.",
+  },
+  {
+    file: "packages/App/FeatureSet/StatusPage/src/Pages/Subscribe/UpdateSubscription.tsx",
+    form: "ModelForm: Status Page > Update Subscription",
+    reason:
+      "A subscriber managing a subscription from an email link: the contact field is read-only and only one of the three ever shows, the pickers open only when an 'all' box is unticked, and Unsubscribe must not be hidden behind a Next.",
+  },
+  /*
+   * The maintainer, on the Network product: "make it as simple as possible
+   * to use ... natural to use ... it should basically wow users." Adding a
+   * device was a three-step wizard of fourteen fields; it asks four things
+   * now, on one page, and folds the rest.
+   */
+  {
+    file: `${DASHBOARD}/Pages/NetworkDevice/Devices.tsx`,
+    form: "ModelTable: Network Devices",
+    reason:
+      "Add Device: the four things only the person adding a device can answer - its hostname, a name (optional, it defaults to the hostname), its site and the probe that reaches it (filled in whenever there is one answer) - then two folded headers that say what they hold: SNMP (a sentence saying the device is pinged without it) and More fields (description, role, MAC address, the per-device Ping monitor). A step between them would put Add Device behind a Next for a form whose every other question is optional.",
+  },
+  /*
+   * Adding monitors to a status page asks only for the monitors; what is
+   * shown beside them is folded under Advanced at its defaults. The status
+   * page resource forms were three and four steps before that.
+   */
+  {
+    file: `${DASHBOARD}/Pages/StatusPages/View/Resources.tsx`,
+    form: "ModelFormModal #1",
+    reason:
+      "The status page group form: the group's name and its parent group (filled in by 'Add a sub group'), then two folded headers that say what they hold - Layout ('List', or 'Grid', which opens by itself to show the axes a grid needs) and Advanced. Two rows to fill in and two to open if wanted; a step between them would only add a Next.",
+  },
+  {
+    file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
+    form: "BasicForm: Status Page > Add Multiple Monitors",
+    reason:
+      "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
+  },
+  /*
+   * A discovered resource's create form asks for what its telemetry is
+   * matched on, with the display name following it under Advanced
+   * (DiscoveredResourceCreateFormsGuard).
+   */
+  {
+    file: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+    form: "ModelTable: Cloud Environments",
+    reason:
+      "Adding a cloud environment by hand: the three values ingest matches an environment on - its platform, account and region, joined into the key - and one folded Advanced header with the display name (it follows the three, as a discovered environment is named), the description and the labels. The three must match the telemetry together, so they stay side by side on one page; the Details step that held only the optional name went away.",
+  },
+  /*
+   * Small wizards whose steps did not earn their place: each split a short
+   * form of things filled in together across a Next. One page now, with
+   * what is rarely changed folded under Advanced.
+   */
+  {
+    file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/CallSMS/Index.tsx",
+    form: "CardModelDetail: Call and SMS Settings",
+    reason:
+      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the numbers few installations need: the numbers SMS go out from when the others can only make calls, and the extra numbers bought for other countries. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
+  },
+  {
+    file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
+    form: "ModelFormModal: Invite New User",
+    reason:
+      "Inviting someone to a project, one page as the Dashboard's Invite User is: the email, the name only when the address has no account yet, the team - its members team to start with, named in the team's description - and the master admin's auto-accept box, as on the Admin Dashboard's other add-to-project forms. Three rows for a known address. As two steps (User, Team) Invite could be pressed on the first without ever seeing which team the invitation was for.",
+  },
+  /*
+   * "Adding an on-call override asks who is away and who covers, in plain
+   * words, starting now" (UserOverrideFormGuard).
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx`,
+    form: "ModelTable: On-Call Policy > User Overrides",
+    reason:
+      "Adding a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
+  },
+  /*
+   * "Skip until..." on a person in a schedule layer opens the same form
+   * (task oncall-skip-user-until).
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx`,
+    form: "ModelFormModal: Skip in the rotation",
+    reason:
+      "Skipping somebody in the rotation until a date: the Add User Override form, opened from their row with three of its four short rows filled in - them as who is away, the rotation as who covers, now as the start. Only when they are back is left, and the whole of it is read back on one page before it is saved.",
+  },
+  /*
+   * "Log and trace drop filters, scrub rules and pipelines start from what
+   * the rule does": a scrub rule starts from the pattern type it scrubs
+   * (Components/Telemetry/ScrubRuleForm).
+   */
+  ...[
+    [
+      `${DASHBOARD}/Pages/Logs/Settings/ScrubRules.tsx`,
+      "ModelTable: Logs > Settings > Scrub Rules",
+    ],
+    [
+      `${DASHBOARD}/Pages/Traces/Settings/ScrubRules.tsx`,
+      "ModelTable: Traces > Settings > Scrub Rules",
+    ],
+  ].map(([file, form]: Array<string>): ListedForm => {
+    return {
+      file: file!,
+      form: form!,
+      reason:
+        "A log or trace scrub rule: what it scrubs (the pattern type), the name - filled in from the type - and one folded Advanced header that says what the defaults do (the description, the action, the fields and Enabled, at the server's defaults). The fourth row, Custom Regex Pattern, appears only under a Custom Regex type, right below the type it belongs to. It walked Basic Info, Pattern Configuration and Scrub Settings, which asked for a name before anyone had said what the rule was for.",
+    };
+  }),
+  /*
+   * "Metric pipeline rules and recording rules lose their Basic Info
+   * steps": a recording rule is its name and its definition, on one page
+   * (Components/Metrics/RecordingRule/RecordingRuleForm).
+   */
+  ...[
+    [
+      `${DASHBOARD}/Pages/Metrics/Settings/RecordingRules.tsx`,
+      "ModelTable: Metrics > Settings > Recording Rules",
+    ],
+    [
+      `${DASHBOARD}/Pages/Traces/Settings/RecordingRules.tsx`,
+      "ModelTable: Traces > Settings > Recording Rules",
+    ],
+    [
+      `${DASHBOARD}/Pages/Logs/Settings/RecordingRules.tsx`,
+      "ModelTable: Logs > Settings > Recording Rules",
+    ],
+  ].map(([file, form]: Array<string>): ListedForm => {
+    return {
+      file: file!,
+      form: form!,
+      reason:
+        "A metric, trace or log recording rule: its name, with the output metric line drawn under it (made from the name and only typed over by choice; on Edit an ordinary field there instead), the definition - one editor holding what it computes (sources and the expression over them, or for a log rule its log filter and aggregation) and the group by - and one folded More fields header (the description, and Enabled at its default, on). Two questions, the name and what it computes: it walked Basic Info then Definition, which split the rule from its name across a Next and left a first step of only optional fields besides the name. The log recording rule page was made to the same shape. MetricAndRecordingRuleFormsGuard pins the shape.",
+    };
+  }),
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/CalendarFeed/SharedCalendarFeedCard.tsx`,
+    form: "CardModelDetail: Shared Calendar Feed > Settings",
+    reason:
+      "The edit dialog of a shared calendar link's settings card, one page as the personal link's is: two switches and two day counts that the card lists, plus the minimum gap, which shows only while coverage gaps are switched on. Someone who opens Edit came to change one of them; as three steps (one of them a single switch) they first had to find which.",
+  },
+];
+
+/*
+ * Forms whose fields cannot be counted from the source - built from data or
+ * handed in by a caller - with why they need no steps, or where the steps
+ * live instead.
+ */
+export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
+  ...[
+    `${DASHBOARD}/Pages/Logs/Settings/DropFilterView.tsx`,
+    `${DASHBOARD}/Pages/Traces/Settings/DropFilterView.tsx`,
+  ].map((file: string): ListedForm => {
+    return {
+      file: file,
+      form: "CardModelDetail: Drop Filter Action",
+      reason:
+        "Edit Action asks what the create form's Action step asks (getLogDropFilterActionFields / getTraceDropFilterActionFields, DropFilterForm): two fields, Drop or Sample as two plain choices, and the Sample Percentage, which shows for Sample only.",
+    };
+  }),
+  {
+    file: "packages/App/FeatureSet/Accounts/src/Pages/Form.tsx",
+    form: "BasicForm: public-form",
+    reason:
+      "A public form whose questions are the customer's own design in Forms (an incident report or a maintenance request: title, description, their custom fields, the submitter's details, a CAPTCHA). Someone reporting an outage fills it in one go, in two columns on a wide screen; a Next before the submitter's details and the CAPTCHA would only slow that down.",
+  },
+  {
+    file: `${DASHBOARD}/Components/FormBuilder/Builder/FormPreviewModal.tsx`,
+    form: "BasicForm: form-preview-form",
+    reason:
+      "The form builder's preview of the public form above: the same questions drawn the way the public page draws them, in one page, so what the builder shows is what a submitter will see.",
+  },
+  {
+    file: `${DASHBOARD}/Components/FormBuilder/Templates/FormTemplates.tsx`,
+    form: "BasicFormModal: form-template",
+    reason:
+      "A form template's editor: its name and the Default switch, then two sections built from the form's own questions - Questions, one compact row per question saying how the template asks it (Form default, Required, Optional, Hidden), and Answers, every question, hidden ones too, drawn the way the public page draws them (buildPublicFormFields): as many as the form's author made, none of them required. One page like the public form and the builder's preview, so a template reads as the form it fills in; a Next between how it asks a question and what it answers would split the two.",
+  },
+  {
+    file: `${DASHBOARD}/Components/Dashboard/Canvas/ArgumentsForm.tsx`,
+    form: "BasicForm #1",
+    reason:
+      "A dashboard widget's settings, built from the widget's own argument list and already drawn as one small form per argument section in the side panel, not as one long dialog.",
+  },
+  {
+    file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
+    form: "CardModelDetail #1",
+    reason:
+      "The Numbering pages' Number Prefix card builds one prefix field per kind of number from the page's rows (NumberPrefixSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
+  },
+  {
+    file: `${DASHBOARD}/Components/NextNumber/NextNumberCard.tsx`,
+    form: "BasicFormModal #1",
+    reason:
+      "The Numbering pages' Next Number card builds one next number field per kind of number from the page's rows (NextNumberSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/Slo/View/Index.tsx`,
+    form: "CardModelDetail: SLO Details",
+    reason:
+      "Picks the create form's name and description fields by column (pickSloFormFields), with the labels folded under an Advanced section of their own as on every form: three rows.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
+    form: "CardModelDetail: SLO Objective",
+    reason:
+      "Picks the create form's target and at-risk threshold fields by column (pickSloFormFields): two fields.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
+    form: "CardModelDetail: SLO Compliance Period",
+    reason:
+      "Picks the create form's window type, window days and timezone fields by column (pickSloFormFields): three fields, and only one of the last two shows for a window type.",
+  },
+  {
+    file: "packages/Common/UI/Components/CustomFields/CustomFieldsDetail.tsx",
+    form: "BasicFormModal #1",
+    reason:
+      "Edits a record's custom field values: its fields are the project's custom field definitions, as many as the customer made, with no grouping between them to make steps of.",
+  },
+  {
+    file: "packages/Common/UI/Components/Workflow/ArgumentsForm.tsx",
+    form: "BasicForm #1",
+    reason:
+      "A workflow component's arguments, built from the component's metadata inside its settings dialog, whose layout the component settings tasks own.",
+  },
+  {
+    file: "packages/Common/UI/Components/Workflow/RunForm.tsx",
+    form: "BasicForm #1",
+    reason:
+      "The arguments a workflow's manual trigger declares, built from its metadata: one question per argument the workflow author added.",
+  },
+];
+
+/*
+ * Forms of three rows or fewer that walk steps anyway, and why. Each one was
+ * looked at; a form that loses its steps must leave this list (the guard
+ * says so).
+ */
+export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
+  /*
+   * A rule's conditions are a builder, not a field: RuleCriteriaModelForm
+   * draws it on the step with id "match-criteria", in place of the fields
+   * listed there.
+   */
+  {
+    file: `${DASHBOARD}/Pages/NetworkSite/AssignmentRules.tsx`,
+    form: "ModelTable: Network Site Assignment Rules",
+    reason:
+      "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
+  },
+];
+
+const VIRTUAL_ROOT: string = "/repo";
+
+function virtualFileSystem(files: Record<string, string>): SourceFileSystem {
+  return {
+    readFile: (filePath: string): string | null => {
+      const relative: string = path
+        .relative(VIRTUAL_ROOT, filePath)
+        .split(path.sep)
+        .join("/");
+
+      return Object.prototype.hasOwnProperty.call(files, relative)
+        ? (files[relative] as string)
+        : null;
+    },
+  };
+}
+
+// Scans `Page.tsx` (and whatever it imports from the other files given).
+function scan(files: Record<string, string>): Array<FormFacts> {
+  return scanFormFiles({
+    repositoryRoot: VIRTUAL_ROOT,
+    files: [path.join(VIRTUAL_ROOT, "Page.tsx")],
+    fileSystem: virtualFileSystem(files),
+  });
+}
+
+function only(files: Record<string, string>): FormFacts {
+  const forms: Array<FormFacts> = scan(files);
+
+  expect(forms).toHaveLength(1);
+
+  return forms[0]!;
+}
+
+function field(key: string, extra: string = ""): string {
+  return `{ field: { ${key}: true }, title: "${key}", fieldType: FormFieldSchemaType.Text, ${extra} }`;
+}
+
+function fields(count: number, extra: string = ""): string {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return field(`field${index + 1}`, extra);
+  }).join(",\n");
+}
+
+describe("the long form detector", () => {
+  test("counts an inline field list", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${fields(4)}]} />;`,
+    });
+
+    expect(form.host).toBe("ModelTable");
+    expect(form.label).toBe("ModelTable: Things");
+    expect(form.visibleFieldCount).toBe(4);
+    expect(form.hasSteps).toBe(false);
+    expect(findLongFormsWithoutSteps([form])).toEqual([form]);
+  });
+
+  test("reads every text a field's title can be, and none of a computed one", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[
+          { field: { a: true }, title: "Incident Title", fieldType: FormFieldSchemaType.Text },
+          { field: { b: true }, title: isIncident ? "Incident Labels" : ("Alert Labels"), fieldType: FormFieldSchemaType.Text },
+          { field: { c: true }, title: copy.descriptionTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { d: true }, title: \`\${subject} Title\`, fieldType: FormFieldSchemaType.Text },
+          { field: { e: true }, title: isIncident ? "Incident Name" : copy.nameTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { f: true }, fieldType: FormFieldSchemaType.Text },
+        ]} />;`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.title, candidate.titleTexts];
+      }),
+    ).toEqual([
+      ["a", "Incident Title", ["Incident Title"]],
+      [
+        "b",
+        'isIncident ? "Incident Labels" : ("Alert Labels")',
+        ["Incident Labels", "Alert Labels"],
+      ],
+      ["c", "copy.descriptionTitle", null],
+      ["d", "`${subject} Title`", null],
+      ["e", 'isIncident ? "Incident Name" : copy.nameTitle', null],
+      ["f", "", []],
+    ]);
+  });
+
+  test(`leaves a form of ${LONG_FORM_FIELD_LIMIT} fields alone`, () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(3)}]} />;`,
+    });
+
+    expect(form.visibleFieldCount).toBe(3);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+  });
+
+  test("sees steps, and then does not ask for them", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Things" formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("a", 'stepId: "two",')}, ${field("b", 'stepId: "two",')}]} />;`,
+    });
+
+    expect(form.hasSteps).toBe(true);
+    expect(
+      form.steps?.map((step: { id: string | null }) => {
+        return step.id;
+      }),
+    ).toEqual(["one", "two"]);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  test("counts a turned-on summary as steps", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelFormModal title="Note" formProps={{ summary: { enabled: true }, fields: [${fields(4)}] }} />;`,
+    });
+
+    expect(form.hasSteps).toBe(true);
+    expect(form.hasSummaryOnly).toBe(true);
+    // BasicForm puts every field on the default step itself.
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  test("reads formProps on a modal, and its title as the label", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <BasicFormModal title="Add Things" formProps={{ fields: [${fields(5)}] }} />;`,
+    });
+
+    expect(form.label).toBe("BasicFormModal: Add Things");
+    expect(form.visibleFieldCount).toBe(5);
+  });
+
+  test("follows a constant, a function's returned list and its pushes", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const BASE = [${fields(2)}];
+        function getFields() {
+          const list = [...BASE];
+          list.push(${field("pushed")});
+          if (flag) { list.push(${field("conditional")}); }
+          return list;
+        }
+        const Page = () => <ModelForm id="form" fields={getFields()} />;`,
+    });
+
+    expect(form.visibleFieldCount).toBe(4);
+    expect(form.uncountableReasons).toEqual([]);
+  });
+
+  test("follows useMemo, spreads and the larger branch of a ternary", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => {
+          const extra = isAdmin ? [${fields(2)}] : [];
+          const all = useMemo(() => {
+            if (!loaded) { return []; }
+            return [${field("a")}, ...extra, ...(wide ? [${field("b")}] : [])];
+          }, []);
+          return <BasicForm id="form" fields={all} />;
+        };`,
+    });
+
+    expect(form.visibleFieldCount).toBe(4);
+  });
+
+  test("follows a field list imported from another file", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getVariableFields, STEPS } from "./Fields";
+        const Page = () => <ModelTable name="Variables" formSteps={STEPS} formFields={getVariableFields({ isGlobal: true })} />;`,
+      "Fields.ts": `
+        export const STEPS = [{ title: "Variable", id: "variable" }, { title: "Value", id: "value" }];
+        export function getVariableFields(data) {
+          return [${field("name", 'stepId: "variable",')}, ${field("description", 'stepId: "variable",')}, ${field("content", 'stepId: "value",')}, ${field("isSecret", 'stepId: "value",')}];
+        }`,
+    });
+
+    expect(form.visibleFieldCount).toBe(4);
+    expect(form.hasSteps).toBe(true);
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  test("does not count a registration that is never shown", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(2)}, ${field("hidden1", "showIf: () => { return false; },")}, ${field("hidden2", "showIf: () => false,")}]} />;`,
+    });
+
+    expect(form.visibleFieldCount).toBe(2);
+  });
+
+  test("counts a field shown under a condition", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(3)}, ${field("sometimes", "showIf: (values) => Boolean(values.on),")}]} />;`,
+    });
+
+    expect(form.visibleFieldCount).toBe(4);
+  });
+
+  test("judges a table by the longer of its Create and Edit forms", () => {
+    const createOnly: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Secrets" isEditable={true} formFields={[${fields(3)}, ${field("secretValue", "doNotShowWhenEditing: true,")}]} />;`,
+    });
+
+    expect(createOnly.visibleFieldCount).toBe(4);
+
+    const editOnly: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Secrets" isEditable={true} formFields={[${fields(3)}, ${field("a", "doNotShowWhenCreating: true,")}, ${field("b", "doNotShowWhenEditing: true,")}]} />;`,
+    });
+
+    expect(editOnly.visibleFieldCount).toBe(4);
+  });
+
+  /*
+   * A folded section (an Advanced section, getAdvancedFormSection) is one
+   * header on the page until the user opens it, so it is one row of the
+   * form - however many options it holds.
+   */
+  test("counts a folded section once", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const advanced = getAdvancedFormSection();
+        const Page = () => <ModelTable name="Things" isEditable={true} formFields={[${fields(2)}, ${field("a", "collapsibleSection: advanced,")}, ${field("b", "collapsibleSection: advanced, showIf: (values) => Boolean(values.a),")}, ${field("c", "collapsibleSection: advanced,")}]} />;`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.collapsibleSection;
+      }),
+    ).toEqual([undefined, undefined, "advanced", "advanced", "advanced"]);
+    expect(form.visibleFieldCount).toBe(3);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+  });
+
+  test("still asks a long form with a folded section for steps", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Things" formFields={[${fields(3)}, ${field("a", "collapsibleSection: advanced,")}, ${field("b", "collapsibleSection: advanced,")}]} />;`,
+    });
+
+    expect(form.visibleFieldCount).toBe(4);
+    expect(findLongFormsWithoutSteps([form])).toEqual([form]);
+    expect(describeForm(form)).toContain("a (folded), b (folded)");
+  });
+
+  test("counts two different sections, or one split in two, as the rows BasicForm draws", () => {
+    const twoSections: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${field("a", "collapsibleSection: routing,")}, ${field("b", "collapsibleSection: advanced,")}, ${field("c", "collapsibleSection: advanced,")}]} />;`,
+    });
+
+    expect(twoSections.visibleFieldCount).toBe(2);
+
+    // BasicForm folds only fields next to each other into one section.
+    const split: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${field("a", "collapsibleSection: advanced,")}, ${field("plain")}, ${field("b", "collapsibleSection: advanced,")}]} />;`,
+    });
+
+    expect(split.visibleFieldCount).toBe(3);
+  });
+
+  test("reads a helper's section from what its call writes down", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./Owners";
+        const Page = () => <CardModelDetail name="Card" formFields={[${fields(3)}, getOwnersFormField({ collapsibleSection: advanced }), ${field("a", "collapsibleSection: advanced,")}]} />;`,
+      "Owners.ts": `
+        export const getOwnersFormField = (options) => {
+          return { title: "Owners", ...options, field: { owners: true }, fieldType: FormFieldSchemaType.PeoplePicker, formOnly: true };
+        };
+        export default getOwnersFormField;`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.collapsibleSection;
+      }),
+    ).toEqual([undefined, undefined, undefined, "advanced", "advanced"]);
+    expect(form.visibleFieldCount).toBe(4);
+  });
+
+  test("judges a table's folded section on its Create and Edit forms apart", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Things" isEditable={true} formFields={[${fields(2)}, ${field("editOnly", "collapsibleSection: advanced, doNotShowWhenCreating: true,")}, ${field("plain")}, ${field("a", "collapsibleSection: advanced,")}]} />;`,
+    });
+
+    // Create: two fields, Plain, Advanced. Edit: two fields, Advanced, Plain, Advanced.
+    expect(form.visibleFieldCount).toBe(5);
+  });
+
+  test("counts rows: a run of fields in one section is one", () => {
+    const facts: (section: string | undefined) => FormFieldFacts = (
+      section: string | undefined,
+    ): FormFieldFacts => {
+      return {
+        key: "k",
+        title: "t",
+        titleTexts: ["t"],
+        fieldType: "",
+        stepId: undefined,
+        isPlainLiteral: true,
+        isNeverShown: false,
+        isConditional: false,
+        isCreateOnly: false,
+        isEditOnly: false,
+        defaultValue: undefined,
+        hasDefault: false,
+        hasSpread: false,
+        collapsibleSection: section,
+        customElementComponents: [],
+        file: "Page.tsx",
+        line: 1,
+      };
+    };
+
+    expect(countFieldRows([])).toBe(0);
+    expect(countFieldRows([facts(undefined), facts(undefined)])).toBe(2);
+    expect(
+      countFieldRows([facts("advanced"), facts("advanced"), facts("advanced")]),
+    ).toBe(1);
+    expect(
+      countFieldRows([
+        facts(undefined),
+        facts("advanced"),
+        facts("advanced"),
+        facts("routing"),
+        facts(undefined),
+        facts("advanced"),
+      ]),
+    ).toBe(5);
+  });
+
+  test("marks fields handed in by the caller as a pass-through, not a long form", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Wrapper = (props) => <ModelTable name="Rules" formFields={props.formFields} />;`,
+    });
+
+    expect(form.isPassThrough).toBe(true);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+    expect(findUncountableForms([form])).toEqual([]);
+  });
+
+  test("calls a list it cannot follow uncountable, with the reason", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <BasicForm id="args" fields={component.metadata.arguments.map(toField)} />;`,
+    });
+
+    expect(findUncountableForms([form])).toEqual([form]);
+    expect(form.uncountableReasons.join(" ")).toContain("cannot follow");
+  });
+
+  test("calls a list filled in a loop uncountable", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        function pick(columns) {
+          const picked = [];
+          for (const column of columns) { picked.push({ ...byColumn(column) }); }
+          return picked;
+        }
+        const Page = () => <CardModelDetail name="Details" formFields={pick(["a", "b"])} />;`,
+    });
+
+    expect(form.uncountableReasons.join(" ")).toContain("filled in a loop");
+  });
+
+  test("tells two forms of one host with one name apart", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `const Page = () => <>
+        <CardModelDetail name="Settings" formFields={[${fields(1)}]} />
+        <CardModelDetail name="Settings" formFields={[${fields(1)}]} />
+        <ModelForm fields={[${fields(1)}]} />
+      </>;`,
+    });
+
+    expect(
+      forms.map((form: FormFacts): string => {
+        return form.label;
+      }),
+    ).toEqual([
+      "CardModelDetail: Settings",
+      "CardModelDetail: Settings #2",
+      "ModelForm #1",
+    ]);
+  });
+});
+
+describe("the short form detector", () => {
+  function messagesOf(forms: Array<FormFacts>): Array<string> {
+    return findShortFormsWithSteps(forms).map(
+      (found: ShortFormWithSteps): string => {
+        return `${found.form.label}: ${found.message}`;
+      },
+    );
+  }
+
+  test(`finds a stepper on a form of ${SHORT_FORM_ROW_LIMIT} rows`, () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Templates" isCreateable={true} formSteps={[{ title: "Template Info", id: "template-info" }, { title: "Note Details", id: "note-details" }]} formFields={[${fields(2, 'stepId: "template-info",')}, ${field("note", 'stepId: "note-details",')}]} />;`,
+    });
+
+    expect(countFormRows(form)).toBe(3);
+    expect(messagesOf([form])).toEqual([
+      "ModelTable: Templates: 3 rows walk steps (template-info, note-details). Three rows fit on one page: drop the steps.",
+    ]);
+    expect(
+      describeShortFormWithSteps(findShortFormsWithSteps([form])[0]!),
+    ).toBe(
+      "Page.tsx:1 ModelTable: Templates - 3 rows walk steps (template-info, note-details). Three rows fit on one page: drop the steps. Fields: field1, field2, note",
+    );
+  });
+
+  test("finds one of a single row or two as well", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `const Page = () => <>
+        <BasicForm id="one" steps={[{ title: "One", id: "one" }]} fields={[${field("a", 'stepId: "one",')}]} />
+        <BasicForm id="two" steps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} fields={[${field("a", 'stepId: "one",')}, ${field("b", 'stepId: "two",')}]} />
+      </>;`,
+    });
+
+    expect(
+      findShortFormsWithSteps(forms).map(
+        (found: ShortFormWithSteps): number => {
+          return found.rows;
+        },
+      ),
+    ).toEqual([1, 2]);
+  });
+
+  test("leaves a stepped form of four rows alone, and a one-page form of three", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `const Page = () => <>
+        <ModelTable name="Long" isCreateable={true} formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("a", 'stepId: "two",')}, ${field("b", 'stepId: "two",')}]} />
+        <ModelTable name="Short" isCreateable={true} formFields={[${fields(3)}]} />
+      </>;`,
+    });
+
+    expect(forms).toHaveLength(2);
+    expect(countFormRows(forms[0]!)).toBe(4);
+    expect(countFormRows(forms[1]!)).toBe(3);
+    expect(findShortFormsWithSteps(forms)).toEqual([]);
+  });
+
+  /*
+   * BasicForm walks a form with a Summary step turned on as two steps: its
+   * fields, then the summary of them. Three rows need no read-back.
+   */
+  test("counts a turned-on Summary step as steps", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelFormModal title="Add Note" formProps={{ summary: { enabled: true }, fields: [${fields(2)}] }} />;`,
+    });
+
+    expect(form.hasSummaryOnly).toBe(true);
+    expect(messagesOf([form])).toEqual([
+      "ModelFormModal: Add Note: 2 rows walk steps (a Summary step). Three rows fit on one page: drop the steps.",
+    ]);
+  });
+
+  test("counts a folded section once", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `
+        const advanced = getAdvancedFormSection();
+        const Page = () => <>
+          <ModelTable name="Folded" isCreateable={true} formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${field("name", 'stepId: "one",')}, ${field("target", 'stepId: "two",')}, ${field("a", 'stepId: "two", collapsibleSection: advanced,')}, ${field("b", 'stepId: "two", collapsibleSection: advanced,')}, ${field("c", 'stepId: "two", collapsibleSection: advanced,')}]} />
+          <ModelTable name="Open" isCreateable={true} formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${field("name", 'stepId: "one",')}, ${field("target", 'stepId: "two",')}, ${field("a", 'stepId: "two",')}, ${field("b", 'stepId: "two", collapsibleSection: advanced,')}, ${field("c", 'stepId: "two", collapsibleSection: advanced,')}]} />
+        </>;`,
+    });
+
+    expect(
+      forms.map((form: FormFacts): number | null => {
+        return countFormRows(form);
+      }),
+    ).toEqual([3, 4]);
+    expect(messagesOf(forms)).toEqual([
+      "ModelTable: Folded: 3 rows walk steps (one, two). Three rows fit on one page: drop the steps.",
+    ]);
+  });
+
+  test("judges a table by the longer of the forms it offers", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `const Page = () => <>
+        <ModelTable name="Edited" isCreateable={true} isEditable={true} formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("a", 'stepId: "two",')}, ${field("isEnabled", 'stepId: "two", doNotShowWhenCreating: true,')}]} />
+        <ModelTable name="Created" isCreateable={true} isEditable={false} formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("a", 'stepId: "two",')}, ${field("isEnabled", 'stepId: "two", doNotShowWhenCreating: true,')}]} />
+      </>;`,
+    });
+
+    // The Edit form shows the switch the Create form leaves off: four rows.
+    expect(countFormRows(forms[0]!)).toBe(4);
+    // No Edit form is offered, so only the Create form's three count.
+    expect(countFormRows(forms[1]!)).toBe(3);
+    expect(messagesOf(forms)).toEqual([
+      "ModelTable: Created: 3 rows walk steps (one, two). Three rows fit on one page: drop the steps.",
+    ]);
+  });
+
+  /*
+   * On a rule model ModelForm draws the Match Criteria step as one
+   * conditions builder, whatever fields are listed on it.
+   */
+  test("counts a rule's Match Criteria step as one row, the conditions builder", () => {
+    const steps: string = `[{ title: "Rule", id: "rule-info" }, { title: "Match", id: "match-criteria" }]`;
+    const ruleFields: string = `[${field("name", 'stepId: "rule-info",')}, ${field("monitors", 'stepId: "match-criteria",')}, ${field("labels", 'stepId: "match-criteria",')}, ${field("titlePattern", 'stepId: "match-criteria",')}]`;
+
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `
+        import Rule from "./Rule";
+        import Plain from "./Plain";
+        const Page = () => <>
+          <ModelTable name="Rules" modelType={Rule} isCreateable={true} formSteps={${steps}} formFields={${ruleFields}} />
+          <ModelTable name="Plain" modelType={Plain} isCreateable={true} formSteps={${steps}} formFields={${ruleFields}} />
+        </>;`,
+      "Rule.ts": "export default class Rule extends RuleBaseModel {}",
+      "Plain.ts": "export default class Plain extends BaseModel {}",
+    });
+
+    expect(
+      forms.map((form: FormFacts): [boolean, number | null] => {
+        return [form.isRuleModel, countFormRows(form)];
+      }),
+    ).toEqual([
+      [true, 2],
+      [false, 4],
+    ]);
+    expect(messagesOf(forms)).toEqual([
+      "ModelTable: Rules: 2 rows walk steps (rule-info, match-criteria). Three rows fit on one page: drop the steps.",
+    ]);
+  });
+
+  test("leaves to other checks a pass-through, an uncountable form and a table that draws no form", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `const Page = (props) => <>
+        <ModelTable name="Wrapper" formSteps={[{ title: "One", id: "one" }]} formFields={props.formFields} />
+        <BasicForm id="args" steps={[{ title: "One", id: "one" }]} fields={component.arguments.map(toField)} />
+        <ModelTable name="Dead" isCreateable={false} isEditable={false} formSteps={[{ title: "One", id: "one" }]} formFields={[${field("a", 'stepId: "one",')}]} />
+      </>;`,
+    });
+
+    expect(forms).toHaveLength(3);
+    expect(forms[0]!.isPassThrough).toBe(true);
+    expect(forms[1]!.uncountableReasons.length).toBeGreaterThan(0);
+    expect(countFormRows(forms[2]!)).toBeNull();
+    expect(findShortFormsWithSteps(forms)).toEqual([]);
+  });
+
+  test("leaves a form without steps or a summary alone, however short", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelFormModal title="Add" formProps={{ summary: { enabled: false }, fields: [${fields(1)}] }} />;`,
+    });
+
+    expect(form.hasSteps).toBe(false);
+    expect(findShortFormsWithSteps([form])).toEqual([]);
+  });
+});
+
+describe("the stepped form checks", () => {
+  test("flag a field written without a stepId, which is never shown", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Things" formSteps={[{ title: "One", id: "one" }]} formFields={[${field("a", 'stepId: "one",')}, ${field("forgotten")}]} />;`,
+    });
+
+    const problems: Array<FormStepProblem> = findStepProblems([form]);
+
+    expect(
+      problems.map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["field-without-step"]);
+    expect(problems[0]?.message).toContain('"forgotten"');
+  });
+
+  test("leave a field from a helper, or with a spread, to the helper's own tests", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getSnmpFields } from "./Snmp";
+        const Page = () => <ModelTable name="Devices" formSteps={[{ title: "One", id: "one" }]} formFields={[${field("a", 'stepId: "one",')}, ...getSnmpFields({ stepId: "one" }), { ...base, title: "Spread" }]} />;`,
+      "Snmp.ts": `export function getSnmpFields(data) { return [${field("snmpVersion")}]; }`,
+    });
+
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  /*
+   * The owners field is a helper's (getOwnersFormField), written on some
+   * forty forms with the step in the call. That step is the field's: a typo
+   * in it, or a step left with nothing but it, is found like any other.
+   */
+  test("place a helper's field on the step its call names", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./Owners";
+        const Page = () => <ModelTable name="Rules" formSteps={[{ title: "One", id: "one" }, { title: "Owners", id: "owners" }]} formFields={[${field("a", 'stepId: "one",')}, getOwnersFormField({ stepId: "owners", description: "Who owns it." })]} />;`,
+      "Owners.ts": `
+        export const OWNERS_KEY = "owners";
+        export const getOwnersFormField = (options) => {
+          const { fieldKey, ...rest } = options;
+          return { title: "Owners", ...rest, field: { [fieldKey || OWNERS_KEY]: true }, fieldType: FormFieldSchemaType.PeoplePicker, formOnly: true };
+        };
+        export default getOwnersFormField;`,
+    });
+
+    const owners: FormFieldFacts | undefined = form.fields.find(
+      (candidate: FormFieldFacts): boolean => {
+        return candidate.title === "Owners";
+      },
+    );
+
+    expect(owners?.stepId).toBe("owners");
+    expect(owners?.isPlainLiteral).toBe(false);
+    // Reported where it is called, not inside the helper.
+    expect(owners?.file).toBe("Page.tsx");
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  test("flag a helper's field on a step the form does not declare", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./Owners";
+        const Page = () => <ModelTable name="Rules" formSteps={[{ title: "One", id: "one" }, { title: "Owners", id: "owners" }]} formFields={[${field("a", 'stepId: "one",')}, getOwnersFormField({ stepId: "ownres" })]} />;`,
+      "Owners.ts": `
+        export const OWNERS_KEY = "owners";
+        export const getOwnersFormField = (options) => {
+          const { fieldKey, ...rest } = options;
+          return { title: "Owners", ...rest, field: { [fieldKey || OWNERS_KEY]: true }, fieldType: FormFieldSchemaType.PeoplePicker, formOnly: true };
+        };
+        export default getOwnersFormField;`,
+    });
+
+    expect(
+      findStepProblems([form]).map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["field-on-undeclared-step", "empty-step"]);
+  });
+
+  test("flag a field on a step the form does not declare", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formSteps={[{ title: "One", id: "one" }, { title: "Two", id: "two" }]} formFields={[${field("a", 'stepId: "one",')}, ${field("b", 'stepId: "two",')}, ${field("typo", 'stepId: "tow",')}]} />;`,
+    });
+
+    expect(
+      findStepProblems([form]).map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["field-on-undeclared-step"]);
+  });
+
+  test("flag a declared step no field is on", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <CardModelDetail name="Card" formSteps={[{ title: "One", id: "one" }, { title: "Empty", id: "empty" }]} formFields={[${fields(2, 'stepId: "one",')}]} />;`,
+    });
+
+    expect(
+      findStepProblems([form]).map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["empty-step"]);
+  });
+
+  test("flag a step the Edit form would walk through empty", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Secrets" isEditable={true} formSteps={[{ title: "One", id: "one" }, { title: "Value", id: "value" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("secretValue", 'stepId: "value", doNotShowWhenEditing: true,')}]} />;`,
+    });
+
+    expect(
+      findStepProblems([form]).map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["empty-step-on-edit"]);
+
+    // A table with no Edit form never walks it.
+    const createOnlyTable: FormFacts = only({
+      "Page.tsx": `const Page = () => <ModelTable name="Secrets" isEditable={false} formSteps={[{ title: "One", id: "one" }, { title: "Value", id: "value" }]} formFields={[${fields(2, 'stepId: "one",')}, ${field("secretValue", 'stepId: "value", doNotShowWhenEditing: true,')}]} />;`,
+    });
+
+    expect(findStepProblems([createOnlyTable])).toEqual([]);
+  });
+});
+
+function key(form: { file: string; form?: string; label?: string }): string {
+  return `${form.file} :: ${form.form ?? form.label}`;
+}
+
+describe("the project's forms", () => {
+  const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
+    (root: string): Array<string> => {
+      return listSourceFiles(root);
+    },
+  );
+
+  const forms: Array<FormFacts> = scanFormFiles({
+    repositoryRoot: REPOSITORY_ROOT,
+    files,
+  });
+
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
+  test("are really read", () => {
+    expect(files.length).toBeGreaterThan(2000);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
+    /*
+     * 214 in CI on 2026-10-03, and falling as forms come down to one page
+     * (labels-not-a-step alone took some 25 forms off their second step).
+     */
+    expect(
+      forms.filter((form: FormFacts): boolean => {
+        return form.hasSteps;
+      }).length,
+    ).toBeGreaterThan(100);
+  });
+
+  // The form the maintainer pointed at, found and stepped.
+  test("include the Create Workflow Variable form, with its two steps", () => {
+    const variableForm: FormFacts | undefined = forms.find(
+      (form: FormFacts): boolean => {
+        return (
+          form.file ===
+            "packages/App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariablesTable.tsx" &&
+          form.host === "ModelTable"
+        );
+      },
+    );
+
+    expect(variableForm).toBeDefined();
+    expect(variableForm?.visibleFieldCount).toBe(4);
+    expect(variableForm?.hasSteps).toBe(true);
+    expect(
+      variableForm?.steps?.map((step: { id: string | null }) => {
+        return step.id;
+      }),
+    ).toEqual(["variable", "value"]);
+  });
+
+  /*
+   * "The only thing I should see by default is: field name, field
+   * description, type. That's basically it." - the custom field form is one
+   * page, with everything else folded under one Advanced section, and the
+   * mapped field dialog asks three things.
+   */
+  test("include the custom field form: one page, the rest folded under Advanced", () => {
+    const customFieldForm: FormFacts | undefined = forms.find(
+      (form: FormFacts): boolean => {
+        return (
+          form.file ===
+            `${DASHBOARD}/Pages/Settings/Base/CustomFieldsPageBase.tsx` &&
+          form.host === "ModelTable"
+        );
+      },
+    );
+
+    expect(customFieldForm).toBeDefined();
+    expect(customFieldForm?.hasSteps).toBe(false);
+    expect(
+      customFieldForm?.fields
+        .filter((candidate: FormFieldFacts): boolean => {
+          return candidate.collapsibleSection === undefined;
+        })
+        .map((candidate: FormFieldFacts): string => {
+          return candidate.key;
+        }),
+    ).toEqual(["name", "description", "customFieldType", "dropdownOptions"]);
+    // Folded: one section, holding every other field.
+    expect(
+      new Set(
+        customFieldForm?.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection !== undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.collapsibleSection!;
+          }),
+      ).size,
+    ).toBe(1);
+    expect(customFieldForm?.visibleFieldCount).toBe(5);
+
+    const mappedFieldForm: FormFacts | undefined = forms.find(
+      (form: FormFacts): boolean => {
+        return (
+          form.file ===
+            `${DASHBOARD}/Components/CustomFields/CreateMappedCustomFieldModal.tsx` &&
+          form.host === "ModelFormModal"
+        );
+      },
+    );
+
+    expect(mappedFieldForm).toBeDefined();
+    expect(
+      mappedFieldForm?.fields.map((candidate: FormFieldFacts): string => {
+        return candidate.key;
+      }),
+    ).toEqual(["mapFromCustomFieldName", "name", "description"]);
+    expect(mappedFieldForm?.visibleFieldCount).toBe(3);
+    expect(findLongFormsWithoutSteps([mappedFieldForm!])).toEqual([]);
+  });
+
+  test("of more than three fields walk steps, or are listed with the reason they do not", () => {
+    const listed: Set<string> = new Set<string>(
+      LONG_FORMS_WITHOUT_STEPS.map(key),
+    );
+
+    const unlisted: Array<string> = findLongFormsWithoutSteps(forms)
+      .filter((form: FormFacts): boolean => {
+        return !listed.has(key(form));
+      })
+      .map(describeForm);
+
+    expect(unlisted).toEqual([]);
+  });
+
+  test("that cannot be counted are listed, with the reason", () => {
+    const listed: Set<string> = new Set<string>(UNCOUNTABLE_FORMS.map(key));
+
+    const unlisted: Array<string> = findUncountableForms(forms)
+      .filter((form: FormFacts): boolean => {
+        return !listed.has(key(form));
+      })
+      .map((form: FormFacts): string => {
+        return `${form.file}:${form.line} ${form.label} - ${form.uncountableReasons.join("; ")}`;
+      });
+
+    expect(unlisted).toEqual([]);
+  });
+
+  test("listed as one page are still long forms without steps, so the lists never go stale", () => {
+    const longWithoutSteps: Set<string> = new Set<string>(
+      findLongFormsWithoutSteps(forms).map(key),
+    );
+    const uncountable: Set<string> = new Set<string>(
+      findUncountableForms(forms).map(key),
+    );
+
+    expect(
+      LONG_FORMS_WITHOUT_STEPS.filter((entry: ListedForm): boolean => {
+        return !longWithoutSteps.has(key(entry));
+      }),
+    ).toEqual([]);
+    expect(
+      UNCOUNTABLE_FORMS.filter((entry: ListedForm): boolean => {
+        return !uncountable.has(key(entry));
+      }),
+    ).toEqual([]);
+  });
+
+  test("give every listed form a reason", () => {
+    for (const entry of [
+      ...LONG_FORMS_WITHOUT_STEPS,
+      ...UNCOUNTABLE_FORMS,
+      ...SHORT_FORMS_WITH_STEPS,
+    ]) {
+      expect(entry.reason.length).toBeGreaterThan(40);
+    }
+  });
+
+  test("of three rows or fewer fit on one page, or are listed with the reason they walk steps", () => {
+    const listed: Set<string> = new Set<string>(
+      SHORT_FORMS_WITH_STEPS.map(key),
+    );
+
+    const unlisted: Array<string> = findShortFormsWithSteps(forms)
+      .filter((found: ShortFormWithSteps): boolean => {
+        return !listed.has(key(found.form));
+      })
+      .map(describeShortFormWithSteps);
+
+    expect(unlisted).toEqual([]);
+  });
+
+  test("listed as short forms with steps still are, so the list never goes stale", () => {
+    const shortWithSteps: Set<string> = new Set<string>(
+      findShortFormsWithSteps(forms).map((found: ShortFormWithSteps) => {
+        return key(found.form);
+      }),
+    );
+
+    expect(
+      SHORT_FORMS_WITH_STEPS.filter((entry: ListedForm): boolean => {
+        return !shortWithSteps.has(key(entry));
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * The forms this rule was written for: each walked steps for three rows
+   * and is one page now. Their fields are pinned in the order they show.
+   */
+  test.each([
+    [
+      `${DASHBOARD}/Pages/Incidents/Settings/IncidentNoteTemplates.tsx`,
+      ["templateName", "templateDescription", "note"],
+    ],
+    [
+      `${DASHBOARD}/Pages/Alerts/Settings/AlertNoteTemplates.tsx`,
+      ["templateName", "templateDescription", "note"],
+    ],
+    [
+      `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates.tsx`,
+      ["templateName", "templateDescription", "note"],
+    ],
+    [
+      `${DASHBOARD}/Pages/Incidents/Settings/IncidentPostmortemTemplates.tsx`,
+      ["templateName", "templateDescription", "postmortemNote"],
+    ],
+  ])(
+    "include %s: one page of its three fields",
+    (file: string, keys: Array<string>) => {
+      const found: Array<FormFacts> = forms.filter(
+        (form: FormFacts): boolean => {
+          return form.file === file && form.host === "ModelTable";
+        },
+      );
+
+      expect(found).toHaveLength(1);
+
+      const form: FormFacts = found[0]!;
+
+      expect(form.hasSteps).toBe(false);
+      expect(form.uncountableReasons).toEqual([]);
+      expect(countFormRows(form)).toBe(3);
+      expect(
+        form.fields.map((candidate: FormFieldFacts): string => {
+          return candidate.key;
+        }),
+      ).toEqual(keys);
+      // No field is left naming a step the form no longer has.
+      expect(
+        form.fields.filter((candidate: FormFieldFacts): boolean => {
+          return candidate.stepId !== undefined;
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * SLO create: the name and the target open, everything with a default
+   * folded under one Advanced section - three rows, no steps.
+   */
+  test("include SLO create: the name and the target, the rest folded under Advanced", () => {
+    const found: Array<FormFacts> = forms.filter((form: FormFacts): boolean => {
+      return (
+        form.file === `${DASHBOARD}/Pages/Slo/Slos.tsx` &&
+        form.host === "ModelTable"
+      );
+    });
+
+    expect(found).toHaveLength(1);
+
+    const sloForm: FormFacts = found[0]!;
+
+    expect(sloForm.hasSteps).toBe(false);
+    expect(sloForm.uncountableReasons).toEqual([]);
+    expect(countFormRows(sloForm)).toBe(3);
+    expect(
+      sloForm.fields
+        .filter((candidate: FormFieldFacts): boolean => {
+          return candidate.collapsibleSection === undefined;
+        })
+        .map((candidate: FormFieldFacts): string => {
+          return candidate.key;
+        }),
+    ).toEqual(["name", "targetPercentage"]);
+    expect(
+      sloForm.fields
+        .filter((candidate: FormFieldFacts): boolean => {
+          return candidate.collapsibleSection !== undefined;
+        })
+        .map((candidate: FormFieldFacts): string => {
+          return candidate.key;
+        }),
+    ).toEqual([
+      "description",
+      "atRiskThresholdPercentage",
+      "windowType",
+      "windowDays",
+      "timezone",
+      "labels",
+    ]);
+    // One section between them.
+    expect(
+      new Set(
+        sloForm.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection !== undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.collapsibleSection!;
+          }),
+      ).size,
+    ).toBe(1);
+  });
+
+  /*
+   * Subscribing on a status page: where to send updates, then Preferences
+   * folded to one line that says what the visitor will get, and Subscribe -
+   * one page for every channel. It walked two steps for a while (the
+   * address, then the preferences), which made a visitor who wanted
+   * everything press Next before Subscribe. The preference fields come from
+   * one helper (getSubscribePreferenceFields), followed into its file.
+   */
+  test.each([
+    [
+      "EmailSubscribe.tsx",
+      "Status Page > Email Subscribe",
+      ["subscriberEmail"],
+    ],
+    ["SmsSubscribe.tsx", "Status Page > SMS Subscribe", ["subscriberPhone"]],
+    [
+      "SlackSubscribe.tsx",
+      "Status Page > Slack Subscribe",
+      ["slackWorkspaceName", "slackIncomingWebhookUrl"],
+    ],
+    [
+      "MicrosoftTeamsSubscribe.tsx",
+      "Status Page > Microsoft Teams Subscribe",
+      ["microsoftTeamsWorkspaceName", "microsoftTeamsIncomingWebhookUrl"],
+    ],
+    [
+      "WebhookSubscribe.tsx",
+      "Status Page > Webhook Subscribe",
+      ["subscriberWebhook"],
+    ],
+  ])(
+    "include the status page's %s: one page, the preferences folded",
+    (file: string, name: string, contactKeys: Array<string>) => {
+      const found: Array<FormFacts> = forms.filter(
+        (form: FormFacts): boolean => {
+          return (
+            form.file ===
+              `packages/App/FeatureSet/StatusPage/src/Pages/Subscribe/${file}` &&
+            form.label === `ModelForm: ${name}`
+          );
+        },
+      );
+
+      expect(found).toHaveLength(1);
+
+      const form: FormFacts = found[0]!;
+
+      expect(form.hasSteps).toBe(false);
+      expect(form.uncountableReasons).toEqual([]);
+      // Where updates go, and the one folded Preferences header.
+      expect(countFormRows(form)).toBe(contactKeys.length + 1);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection === undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual(contactKeys);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection !== undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual([
+        "isSubscribedToAllResources",
+        "statusPageResources",
+        "isSubscribedToAllEventTypes",
+        "statusPageEventTypes",
+      ]);
+      // One section between them, and no field naming a step.
+      expect(
+        new Set(
+          form.fields
+            .filter((candidate: FormFieldFacts): boolean => {
+              return candidate.collapsibleSection !== undefined;
+            })
+            .map((candidate: FormFieldFacts): string => {
+              return candidate.collapsibleSection!;
+            }),
+        ).size,
+      ).toBe(1);
+      expect(
+        form.fields.filter((candidate: FormFieldFacts): boolean => {
+          return candidate.stepId !== undefined;
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test("with steps never lose a field to a missing or mistyped step", () => {
+    expect(
+      findStepProblems(forms).map((problem: FormStepProblem): string => {
+        return `${problem.form.file}:${problem.form.line} ${problem.form.label}: ${problem.message}`;
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * A list helper - a function that returns several fields, spread into a
+ * form - can be handed the folded section its fields go in:
+ * `...getSnmpConfigFormFields({ collapsibleSection: SNMP })` puts all nine
+ * SNMP fields under one SNMP header on the Add Device form. The detector
+ * has to see them folded, or that form reads as fifteen rows instead of
+ * the six it draws.
+ */
+describe("the long form detector and list helpers", () => {
+  const HELPER: string = `
+    export function getThings(options) {
+      const fields = [${field("a")}, ${field("b")}, ${field("c")}];
+      if (!options) { return fields; }
+      return fields.map((item) => { return { ...item, collapsibleSection: options.collapsibleSection }; });
+    }`;
+
+  test("folds every field a list helper returns when its call names a folded section", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ collapsibleSection: FOLD })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["hostname", undefined],
+      ["a", "FOLD"],
+      ["b", "FOLD"],
+      ["c", "FOLD"],
+    ]);
+    expect(countFormRows(form)).toBe(2);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+  });
+
+  test("a list helper called without a folded section leaves its fields open", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ stepId: "one" })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.collapsibleSection;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+    expect(countFormRows(form)).toBe(4);
+  });
+
+  /*
+   * Only the fold is read from a list helper's call: a step written there
+   * stays the helper's own business, as it always was (the helper's own
+   * tests pin that every field it returns carries the step it was handed).
+   */
+  test("reads no step from a list helper's call", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ stepId: "one", collapsibleSection: FOLD })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.stepId;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  test("a section a returned field names itself wins over the call's", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getMixed } from "./Mixed";
+        const FOLD = { id: "fold", title: "Fold" };
+        const Page = () => <ModelTable name="Mixed" isCreateable={true} formFields={[...getMixed({ collapsibleSection: FOLD })]} />;`,
+      "Mixed.ts": `
+        const OWN = { id: "own", title: "Own" };
+        export function getMixed(options) {
+          return [${field("a")}, ${field("b", "collapsibleSection: OWN,")}];
+        }`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["a", "FOLD"],
+      ["b", "OWN"],
+    ]);
+  });
+
+  test("two calls of one helper do not share a fold", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <>
+          <ModelTable name="Folded" isCreateable={true} formFields={[...getThings({ collapsibleSection: FOLD })]} />
+          <ModelTable name="Open" isCreateable={true} formFields={[...getThings({ stepId: "one" })]} />
+        </>;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(forms).toHaveLength(2);
+    expect(countFormRows(forms[0]!)).toBe(1);
+    expect(countFormRows(forms[1]!)).toBe(3);
+  });
+
+  test("a single-field helper's fold is still read from its call", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getOne } from "./One";
+        const FOLD = { id: "fold", title: "Fold" };
+        const Page = () => <ModelTable name="One" isCreateable={true} formFields={[${field("hostname")}, getOne({ collapsibleSection: FOLD }), ${field("x", "collapsibleSection: FOLD,")}]} />;`,
+      "One.ts": `
+        export function getOne(options) {
+          return ${field("mac")};
+        }`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["hostname", undefined],
+      ["mac", "FOLD"],
+      ["x", "FOLD"],
+    ]);
+    expect(countFormRows(form)).toBe(2);
+  });
+});

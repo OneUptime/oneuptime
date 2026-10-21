@@ -8,9 +8,11 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import TelegramMessage from "../../Types/Telegram/TelegramMessage";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class TelegramService extends BaseService {
   public constructor() {
@@ -40,6 +42,18 @@ export class TelegramService extends BaseService {
       teamId?: ObjectID | undefined;
     } = {},
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Telegram message",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       to: message.to,
       body: message.body,
@@ -131,6 +145,9 @@ export class TelegramService extends BaseService {
       data: body,
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        sameServerRedirectsOnly: true,
       },
     });
   }

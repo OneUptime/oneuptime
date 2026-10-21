@@ -438,7 +438,13 @@ describe("OnCallCalendarFeedScreen", () => {
     }
   });
 
-  test("iOS: 'Open in Calendar' opens the webcals link", async (): Promise<void> => {
+  /*
+   * webcal://, not webcals://: iOS does not open webcals:// at all, so the
+   * button used to end in "Could not open the Calendar app" on every https
+   * server. The server's payload here still says webcals:// - what a server
+   * from before the fix sends - and the app opens webcal:// anyway.
+   */
+  test("iOS: 'Open in Calendar' opens the webcal:// link", async (): Promise<void> => {
     if (Platform.OS !== "ios") {
       return;
     }
@@ -450,9 +456,12 @@ describe("OnCallCalendarFeedScreen", () => {
 
     await waitFor(() => {
       expect(openUrlSpy()).toHaveBeenCalledWith(
-        SERVER_HTTPS.replace("https://", "webcals://"),
+        SERVER_HTTPS.replace("https://", "webcal://"),
       );
     });
+    expect(openUrlSpy()).not.toHaveBeenCalledWith(
+      SERVER_HTTPS.replace("https://", "webcals://"),
+    );
     expect(screen.queryByTestId("feed-notice-error")).toBeNull();
   });
 

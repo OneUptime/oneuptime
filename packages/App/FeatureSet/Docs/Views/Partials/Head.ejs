@@ -7,6 +7,11 @@
      * with no stored choice we follow the operating system.
      */
     (function () {
+        /*
+         * Scripting is on: tab sets show one panel at a time from the first
+         * paint (see "Tabs" in style.css) instead of every panel at once.
+         */
+        document.documentElement.classList.add('docs-js');
         try {
             var stored = window.localStorage.getItem('oneuptime-docs-theme');
             var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -20,6 +25,8 @@
 </script>
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a0d14" media="(prefers-color-scheme: dark)">
+<!-- Shown above a diagram the page could not draw; read by the diagram script below. -->
+<meta name="oneuptime-docs-diagram-not-drawn" content="<%= t('ui.diagramNotDrawn') %>">
 <link rel="preload" href="/docs/static/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/docs/static/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -102,16 +109,39 @@
 </script>
 <!-- Compiled CSS: Tailwind build plus the hand-written docs design layer -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
+<%
+/*
+ * A page's own description - its first paragraph (Utils/SearchIndex.ts) -
+ * is what a search engine or a link preview shows under its title; the
+ * site-wide one is the fallback.
+ */
+var metaDescription = typeof pageDescription !== 'undefined' && pageDescription ? pageDescription : t('ui.metaDescription');
+%>
 <title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - ' + t('ui.metaTitleSuffix') : t('ui.metaTitleDefault') %></title>
-<meta name="description" content="<%= t('ui.metaDescription') %>">
+<meta name="description" content="<%= metaDescription %>">
+<%
+/*
+ * The page's own address, and the languages it is written in
+ * (Utils/Seo.ts). A page served in English under another language's prefix
+ * names the English page, and lists no alternates.
+ */
+%>
+<% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
+<link rel="canonical" href="<%= canonicalUrl %>">
+<% } %>
+<% if (typeof alternateLinks !== 'undefined' && alternateLinks) { %>
+<% alternateLinks.forEach(function (alternate) { %>
+<link rel="alternate" hreflang="<%= alternate.hreflang %>" href="<%= alternate.href %>">
+<% }); %>
+<% } %>
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="<%= t('ui.metaTitleSuffix') %>">
 <meta property="og:title" content="<%= typeof link !== 'undefined' && link && link.title ? link.title : t('ui.metaTitleDefault') %>">
-<meta property="og:description" content="<%= t('ui.metaDescription') %>">
+<meta property="og:description" content="<%= metaDescription %>">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="<%= typeof link !== 'undefined' && link && link.title ? link.title : t('ui.metaTitleDefault') %>">
-<meta name="twitter:description" content="<%= t('ui.metaDescription') %>">
+<meta name="twitter:description" content="<%= metaDescription %>">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">
 <script src="/oneuptime-assets/highlight/highlight.min.js" defer></script>
@@ -183,8 +213,15 @@
 </script>
 <script type="module">
     /*
-     * Mermaid is ~1MB across two dozen chunks. Fetch it only on the handful of
-     * pages that actually draw a diagram.
+     * Mermaid is ~750KB before its first diagram, plus a chunk per diagram type
+     * (and KaTeX for a $$...$$ label). Fetch it only on the handful of pages
+     * that actually draw a diagram. The image builds it from mermaid's source
+     * with the dependencies npm installed - see Common/Scripts/
+     * build-mermaid-browser.js.
+     *
+     * A diagram that cannot be drawn - it does not parse, or this server has
+     * no mermaid build - keeps its source, laid out as it was written, under
+     * a short note saying so, and the rest of the page is drawn as usual.
      */
     const diagrams = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
     if (diagrams.length > 0) {
@@ -195,14 +232,103 @@
         const definitions = diagrams.map((node) => {
             return node.textContent;
         });
-        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.esm.min.mjs')).default;
+        const noteMeta = document.querySelector('meta[name="oneuptime-docs-diagram-not-drawn"]');
+        const notDrawnText = (noteMeta && noteMeta.getAttribute('content')) || 'This diagram could not be drawn.';
+
+        // Its source, and the note above it - once, however often it is redrawn.
+        const showSource = (index) => {
+            const node = diagrams[index];
+            node.textContent = definitions[index];
+            node.setAttribute('data-diagram', 'source');
+            const previous = node.previousElementSibling;
+            if (!previous || !previous.classList.contains('docs-diagram__note')) {
+                const note = document.createElement('p');
+                note.className = 'docs-diagram__note';
+                // The diagram's box is always left to right; the note reads the way its language does.
+                note.setAttribute('dir', 'auto');
+                note.textContent = notDrawnText;
+                node.before(note);
+            }
+        };
+
+        let mermaid = null;
+        try {
+            mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
+        } catch (error) {
+            console.error('Mermaid could not be loaded, so the diagrams on this page are shown as text', error);
+            diagrams.forEach((node, index) => {
+                showSource(index);
+            });
+        }
+
+        /*
+         * mermaid draws in a working element of its own and measures every
+         * label with the page's layout, so that element must be in the page
+         * while it draws. Given no container it appends it to the end of the
+         * body - where, without suppressErrorRendering below, it left its
+         * "Syntax error in text" graphic for a diagram that did not parse - and
+         * first removes the diagram on the page that has the same id, which on
+         * a theme switch is the one the reader is looking at. So each diagram
+         * is drawn in a container of its own, laid out but never seen: the
+         * diagram on the page stays until the new one replaces it, and the
+         * container goes when the drawing is done, whatever happened.
+         */
+        const renderInOwnContainer = async (id, definition) => {
+            const container = document.createElement('div');
+            container.setAttribute('aria-hidden', 'true');
+            container.style.cssText = 'position:absolute;top:0;width:100%;height:0;overflow:hidden;visibility:hidden;pointer-events:none;';
+            document.body.appendChild(container);
+            try {
+                return await mermaid.render(id, definition, container);
+            } finally {
+                container.remove();
+            }
+        };
+
+        /*
+         * Each draw gives its diagrams ids of their own: mermaid finds the
+         * diagram it is drawing by id, and on a redraw the one on the page
+         * still has the last draw's. A draw that a newer one has overtaken (the
+         * theme switched twice in a row) stops where it is.
+         */
+        let latestDraw = 0;
+
+        /*
+         * How much smaller than mermaid laid it out a diagram may be drawn
+         * to fit the column: its 16px labels down to 12px, the size of a
+         * callout's label and a code sample's file name. A diagram up to
+         * 786px wide fits the 590px column whole.
+         */
+        const MIN_DIAGRAM_SCALE = 3 / 4;
 
         const draw = async () => {
+            const thisDraw = ++latestDraw;
             mermaid.initialize({
                 startOnLoad: false,
+                // The page says a diagram could not be drawn; mermaid draws no graphic for it.
+                suppressErrorRendering: true,
                 theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                /*
+                 * Sequence diagrams laid out to fit the article's 590px column.
+                 * mermaid's own spacing - a 50px margin on each side, 50px
+                 * between participants and boxes at least 150px wide - made
+                 * three participants 650px wide before a word of their
+                 * messages, so every such diagram scrolled sideways. With
+                 * these, four participants and their messages, broken into
+                 * short lines, fit; the margins match a flowchart's, and a
+                 * box still grows to fit its name.
+                 */
+                sequence: {
+                    diagramMarginX: 8,
+                    actorMargin: 20,
+                    width: 100,
+                },
             });
             for (let index = 0; index < diagrams.length; index++) {
+                // One that did not parse will not on a redraw either; it stays as it is.
+                if (diagrams[index].getAttribute('data-diagram') === 'source') {
+                    continue;
+                }
                 try {
                     /*
                      * render() rather than run(): run() walks the DOM itself and
@@ -211,53 +337,67 @@
                      * ourselves is the same work with a visible failure mode —
                      * and one bad diagram cannot take the others with it.
                      */
-                    const result = await mermaid.render(
-                        'docs-diagram-' + index,
+                    const result = await renderInOwnContainer(
+                        'docs-diagram-' + thisDraw + '-' + index,
                         definitions[index],
                     );
+                    if (thisDraw !== latestDraw) {
+                        return;
+                    }
                     diagrams[index].innerHTML = result.svg;
+                    diagrams[index].setAttribute('data-diagram', 'drawn');
 
                     /*
-                     * Fill the column, but never below the layout Mermaid
-                     * computed: its own width="100%" scales a wide flowchart
-                     * down until the labels are unreadable. The wrapper
-                     * scrolls instead.
+                     * The size mermaid laid the diagram out at, centred in its
+                     * box. One wider than the column is drawn smaller to fit
+                     * it, but never below MIN_DIAGRAM_SCALE of that size;
+                     * wider still, it keeps that size and the box scrolls.
+                     * Filling the column instead blew a narrow top-to-bottom
+                     * diagram up to twice its size, and mermaid's own
+                     * width="100%" shrinks a wide one until its labels cannot
+                     * be read.
                      */
                     const svg = diagrams[index].querySelector('svg');
                     const naturalWidth = svg
                         ? Number((svg.getAttribute('viewBox') || '').split(/\s+/)[2])
                         : 0;
                     if (svg && naturalWidth > 0) {
-                        svg.style.maxWidth = 'none';
-                        svg.style.width = '100%';
-                        svg.style.minWidth = Math.ceil(naturalWidth) + 'px';
+                        svg.style.width = Math.ceil(naturalWidth) + 'px';
+                        svg.style.maxWidth = '100%';
+                        svg.style.minWidth = Math.ceil(naturalWidth * MIN_DIAGRAM_SCALE) + 'px';
                     }
                 } catch (error) {
+                    if (thisDraw !== latestDraw) {
+                        return;
+                    }
+                    // One already drawn keeps its last drawing; one never drawn shows its source.
+                    if (diagrams[index].getAttribute('data-diagram') !== 'drawn') {
+                        showSource(index);
+                    }
                     console.error('Mermaid could not render a diagram on this page', error);
                 }
             }
         };
 
-        /*
-         * `startOnLoad` is no use here: the dynamic import above resolves after
-         * DOMContentLoaded has already fired, so rendering is triggered by hand.
-         */
-        await draw();
-        window.addEventListener('docs:themechange', () => {
-            draw();
-        });
+        if (mermaid) {
+            /*
+             * `startOnLoad` is no use here: the dynamic import above resolves
+             * after DOMContentLoaded has already fired, so rendering is
+             * triggered by hand.
+             */
+            await draw();
+            window.addEventListener('docs:themechange', () => {
+                draw();
+            });
+        }
     }
 </script>
 
-<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
-    <!-- Google Tag Manager -->
-    <script>(function (w, d, s, l, i) {
-            w[l] = w[l] || []; w[l].push({
-                'gtm.start':
-                    new Date().getTime(), event: 'gtm.js'
-            }); var f = d.getElementsByTagName(s)[0],
-                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-        })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-    <!-- End Google Tag Manager -->
-    <% } %>
+<%#
+    The Google Tag Manager container, through the consent partial the
+    marketing site uses: it loads once consent allows, and the answer given on
+    the marketing site's banner is the answer here.
+-%>
+<%- include('../../../../../Common/Server/Views/Partials/AnalyticsConsent', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>

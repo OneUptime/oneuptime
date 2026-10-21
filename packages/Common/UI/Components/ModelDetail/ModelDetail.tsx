@@ -1,23 +1,29 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
 import Detail, { DetailStyle } from "../Detail/Detail";
+import { isRecordIdField } from "../Detail/DetailRecordId";
+import { isRecordTimeField } from "../Detail/DetailRecordTime";
+import DetailSkeleton from "../Detail/DetailSkeleton";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import Loader, { LoaderType } from "../Loader/Loader";
 import Field from "./Field";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
-import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { PermissionHelper } from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import PermissionGate from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -41,6 +47,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [item, setItem] = useState<TBaseModel | null>(null);
@@ -72,23 +79,16 @@ const ModelDetail: <TBaseModel extends BaseModel>(
    * from the render, so the fetch has to drop them too - the same thing
    * BaseModelTable does for its selectMoreFields.
    */
+  // What the user holds, read once per draw: every field is weighed against it.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     fieldName: string,
   ): boolean => {
-    if (User.isMasterAdmin()) {
-      return true;
-    }
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      new props.modelType().getColumnAccessControlForAllColumns() || {};
-
-    const fieldPermissions: Array<Permission> =
-      accessControl[fieldName]?.read || [];
-
-    return PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      fieldPermissions,
-    );
+    // The one rule for what a select may name (PermissionGate.canReadColumn).
+    return PermissionGate.canReadColumn(new props.modelType(), fieldName, {
+      held: heldPermissions,
+    });
   };
 
   type GetSelectFields = () => Select<TBaseModel>;
@@ -175,13 +175,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const getDetailFields: GetDetailFieldsFunction = (): Array<
     DetailField<TBaseModel>
   > => {
-    const userPermissions: Array<Permission> =
-      PermissionUtil.getAllPermissions();
-
     const model: BaseModel = new props.modelType();
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns() || {};
 
     const fieldsToSet: Array<DetailField<TBaseModel>> = [];
 
@@ -191,16 +185,12 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       if (keys.length > 0) {
         const key: keyof TBaseModel = keys[0] as keyof TBaseModel;
 
-        let fieldPermissions: Array<Permission> = [];
-
-        fieldPermissions = accessControl[key]?.read || [];
-
-        const hasPermissions: boolean =
-          fieldPermissions &&
-          PermissionHelper.doesPermissionsIntersect(
-            userPermissions,
-            fieldPermissions,
-          );
+        // Shown when it may be read, by the rule the select follows.
+        const hasPermissions: boolean = PermissionGate.canReadColumn(
+          model,
+          key as string,
+          { held: heldPermissions },
+        );
 
         if (hasPermissions || User.isMasterAdmin()) {
           fieldsToSet.push({
@@ -227,6 +217,46 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     }
 
     return fieldsToSet;
+  };
+
+  type GetSkeletonSpansFunction = () => Array<number | undefined>;
+
+  /*
+   * One skeleton cell for each field the grid will draw: not a field without
+   * a column (it draws nothing), nor one its reader may not read (the grid
+   * leaves it out), nor the record's ID or its created and updated times
+   * (they go on the line under the fields).
+   */
+  const getSkeletonSpans: GetSkeletonSpansFunction = (): Array<
+    number | undefined
+  > => {
+    const spans: Array<number | undefined> = [];
+
+    for (const field of props.fields) {
+      const key: string | undefined = Object.keys(field.field || {})[0];
+
+      if (!key) {
+        continue;
+      }
+
+      if (!hasPermissionToReadField(key) && !User.isMasterAdmin()) {
+        continue;
+      }
+
+      // The field as Detail will see it: keyed on its column.
+      const detailField: Field<TBaseModel> & { key: string } = {
+        ...field,
+        key: key,
+      };
+
+      if (isRecordIdField(detailField) || isRecordTimeField(detailField)) {
+        continue;
+      }
+
+      spans.push(field.colSpan);
+    }
+
+    return spans;
   };
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
@@ -271,11 +301,15 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
       if (!item) {
         setError(
-          `Cannot load ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}.`,
+          translator.translateTemplate(
+            "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.",
+            {
+              itemName: translatableTerm(
+                new props.modelType()?.singularName || translationKey("Item"),
+                { inSentence: true },
+              ),
+            },
+          ),
         );
       }
 
@@ -310,39 +344,40 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     }
   }, [props.modelId?.toString(), props.refresher, props.modelType]);
 
-  if (isLoading) {
+  /*
+   * A read of the record already on screen - after a save, or a field's own
+   * action asking for it - keeps it there until the new one lands, instead
+   * of blanking the card behind a loader and redrawing it. A first read, or
+   * a read of another record, shows the skeleton: the fields' rows in the
+   * shape they will fill, so the card does not jump when they arrive.
+   */
+  const isShowingThisRecord: boolean = Boolean(
+    item &&
+      props.modelId &&
+      item.id?.toString().toLowerCase() ===
+        props.modelId.toString().toLowerCase(),
+  );
+
+  if (error) {
     return (
-      <div
-        className="row text-center flex justify-center"
-        style={{
-          marginTop: "50px",
-          marginBottom: "50px",
-        }}
-      >
-        <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
+      <div data-testid="model-detail-error">
+        <ErrorMessage
+          message={error}
+          onRefreshClick={async () => {
+            await fetchItem();
+          }}
+        />
       </div>
     );
   }
 
-  if (error) {
+  if (isLoading && !isShowingThisRecord) {
     return (
-      <p
-        className="text-center color-light-Gray500"
-        style={{
-          marginTop: "50px",
-          marginBottom: "50px",
-        }}
-      >
-        {error} <br />{" "}
-        <span
-          onClick={async () => {
-            await fetchItem();
-          }}
-          className="underline primary-on-hover"
-        >
-          Refresh?
-        </span>
-      </p>
+      <DetailSkeleton
+        spans={getSkeletonSpans()}
+        columns={props.showDetailsInNumberOfColumns}
+        isCompact={props.style === DetailStyle.Compact}
+      />
     );
   }
 

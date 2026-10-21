@@ -24,6 +24,10 @@ import SloMetricTypeUtil, {
   SLO_METRIC_SLO_NAME_ATTRIBUTE,
 } from "../../Utils/Slo/SloMetricType";
 import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../Utils/Slo/SloListWidgetFormat";
+import {
+  getStorageArrayMetricById,
+  StorageArrayMetricDefinition,
+} from "../Monitor/StorageArrayMetricCatalog";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -48,6 +52,7 @@ export enum DashboardTemplateType {
   Proxmox = "Proxmox",
   VMware = "VMware",
   Ceph = "Ceph",
+  StorageArray = "StorageArray",
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
   Rum = "Rum",
@@ -56,10 +61,11 @@ export enum DashboardTemplateType {
 }
 
 /*
- * Templates are grouped into categories so the "Create from Template"
- * modal can render them under labelled sections instead of one flat
- * grid. The enum values double as the section headings, and
- * DashboardTemplateCategories below fixes the display order.
+ * Templates are grouped into categories: the category select of Create a
+ * dashboard lists them, and All templates groups its rows under them. The
+ * enum values double as their names, and DashboardTemplateCategories below
+ * fixes the display order. Get Started holds only Blank, which the picker
+ * draws as its Start from scratch card rather than as a template.
  */
 export enum DashboardTemplateCategory {
   GetStarted = "Get Started",
@@ -81,6 +87,12 @@ export interface DashboardTemplate {
   description: string;
   icon: IconProp;
   category: DashboardTemplateCategory;
+  /*
+   * Words people search for this template by that its name and description
+   * do not say: "k8s" for Kubernetes, "servers" for Hosts. Searched, never
+   * shown.
+   */
+  keywords?: Array<string> | undefined;
 }
 
 export const DashboardTemplates: Array<DashboardTemplate> = [
@@ -98,6 +110,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Response time, uptime, status codes, CPU/memory health gauges, and breakdown table for synthetic and server monitors.",
     icon: IconProp.Heartbeat,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["website", "api", "probes", "checks"],
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -106,6 +119,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["opentelemetry", "otel", "services"],
   },
   {
     type: DashboardTemplateType.Rum,
@@ -114,6 +128,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Core Web Vitals gauges and trends (LCP, INP, CLS, FCP, TTFB), page-load volume and duration, browser errors, and breakdowns by application, route and platform.",
     icon: IconProp.Globe,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["rum", "frontend"],
   },
   {
     type: DashboardTemplateType.Slo,
@@ -122,6 +137,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Every SLO's status, SLI, error budget and burn rate in one list, fleet-wide budget and burn-rate trends, and live tiles and history for the SLO you pick in the toolbar.",
     icon: IconProp.Percent,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["service", "level", "objectives", "reliability"],
   },
   {
     type: DashboardTemplateType.Incident,
@@ -130,6 +146,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Incident count, MTTR/MTTA gauges, duration trends, severity breakdown, time-in-state, and longest-incident tables.",
     icon: IconProp.Alert,
     category: DashboardTemplateCategory.IncidentResponse,
+    keywords: ["outages", "postmortems"],
   },
   {
     type: DashboardTemplateType.Alert,
@@ -146,6 +163,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
     icon: IconProp.Kubernetes,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["k8s", "containers", "workloads"],
   },
   {
     type: DashboardTemplateType.KubernetesCost,
@@ -154,6 +172,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Node hourly cost trends, CPU/RAM unit costs, persistent volume and load balancer spend from your in-cluster cost engine (OpenCost / Kubecost).",
     icon: IconProp.Billing,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["k8s", "finops", "billing"],
   },
   {
     type: DashboardTemplateType.Host,
@@ -162,6 +181,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
     icon: IconProp.Server,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["servers", "machines"],
   },
   {
     type: DashboardTemplateType.Proxmox,
@@ -170,6 +190,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
     icon: IconProp.ServerStack,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["pve", "virtualization", "vms"],
   },
   {
     type: DashboardTemplateType.VMware,
@@ -178,6 +199,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Live ESXi host and virtual machine inventories, host CPU/memory utilization, datastore capacity, CPU ready and memory ballooning trends, and vCenter logs.",
     icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["vsphere", "virtualization", "vms"],
   },
   {
     type: DashboardTemplateType.Ceph,
@@ -186,6 +208,16 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
     icon: IconProp.Database,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["storage", "rados"],
+  },
+  {
+    type: DashboardTemplateType.StorageArray,
+    name: "Storage Array Dashboard",
+    description:
+      "Volume and hardware inventories, capacity used and data reduction, read and write latency, IOPS and bandwidth, open alerts, and array logs for Pure Storage FlashArray.",
+    icon: IconProp.StorageArray,
+    category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["san"],
   },
   {
     type: DashboardTemplateType.DockerSwarm,
@@ -202,8 +234,29 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Your sites on the world map, SNMP interface throughput, utilization and errors, device reachability and round-trip latency, and the monitors watching them.",
     icon: IconProp.Map,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["switches", "routers", "bandwidth"],
   },
 ];
+
+/*
+ * The handful Create a dashboard opens on, in the order it lists them.
+ * Fifteen templates as equally large cards, each with three or four lines
+ * of description, was a wall to read before choosing; the dialog now starts
+ * on these, as Create a workflow does, and leaves the rest to its category
+ * select and its search. First the ones that show what every project
+ * already has - its monitors, incidents and alerts - then the
+ * infrastructure and telemetry most projects send: Kubernetes, hosts and
+ * OpenTelemetry metrics.
+ */
+export const RECOMMENDED_DASHBOARD_TEMPLATE_TYPES: ReadonlyArray<DashboardTemplateType> =
+  [
+    DashboardTemplateType.Monitor,
+    DashboardTemplateType.Incident,
+    DashboardTemplateType.Alert,
+    DashboardTemplateType.Kubernetes,
+    DashboardTemplateType.Host,
+    DashboardTemplateType.Metrics,
+  ];
 
 /*
  * Templates for a category in their declared order. The modal uses this
@@ -215,6 +268,57 @@ export function getDashboardTemplatesByCategory(
   return DashboardTemplates.filter((template: DashboardTemplate): boolean => {
     return template.category === category;
   });
+}
+
+/*
+ * Where a create request names the template a new dashboard starts from:
+ * the key of the request's miscDataProps that DashboardService reads, with
+ * a DashboardTemplateType value. Left out (or Blank), the dashboard starts
+ * empty.
+ */
+export const DASHBOARD_TEMPLATE_MISC_DATA_KEY: string = "dashboardTemplateType";
+
+/*
+ * The recommended templates, as their catalog entries, in the order Create
+ * a dashboard lists them.
+ */
+export function getRecommendedDashboardTemplates(): Array<DashboardTemplate> {
+  return RECOMMENDED_DASHBOARD_TEMPLATE_TYPES.map(
+    (type: DashboardTemplateType): DashboardTemplate | undefined => {
+      return getDashboardTemplate(type);
+    },
+  ).filter(
+    (
+      template: DashboardTemplate | undefined,
+    ): template is DashboardTemplate => {
+      return Boolean(template);
+    },
+  );
+}
+
+// The catalog entry of a template type (every type has one).
+export function getDashboardTemplate(
+  type: DashboardTemplateType,
+): DashboardTemplate | undefined {
+  return DashboardTemplates.find((template: DashboardTemplate): boolean => {
+    return template.type === type;
+  });
+}
+
+/*
+ * The name a dashboard made from a template starts with: the template's
+ * own, as its card says it ("Kubernetes Dashboard"). None for Blank: an
+ * empty dashboard is named by whoever knows what it is going to show, and
+ * "Blank Dashboard" would only describe how it started.
+ */
+export function getDashboardTemplateStartingName(
+  type: DashboardTemplateType,
+): string {
+  if (type === DashboardTemplateType.Blank) {
+    return "";
+  }
+
+  return getDashboardTemplate(type)?.name || "";
 }
 
 // -- Metric query config helpers --
@@ -237,22 +341,48 @@ interface MetricConfig {
    * rather than bytes-since-boot.
    */
   transformAsRate?: boolean;
+  /*
+   * Datapoint attribute filters that make the series mean what the widget
+   * title says. Pure Storage puts read, write and queue latency (and read
+   * and write IOPS / bandwidth) on ONE metric name, told apart only by the
+   * `dimension` label, so a storage array widget pins one dimension rather
+   * than averaging a 200µs read with a 4ms queue figure. Left out, the
+   * query matches every series of the metric, as before.
+   */
+  attributes?: Record<string, string>;
 }
 
-function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
+/*
+ * The metric variable of each query on a multi-query chart: "a" for the
+ * primary query, then "b", "c", ... for the additional ones, as the metric
+ * explorer names them.
+ */
+function getMetricVariable(queryIndex: number): string {
+  return String.fromCharCode("a".charCodeAt(0) + queryIndex);
+}
+
+function buildMetricFilterData(config: MetricConfig): Record<string, unknown> {
+  return {
+    metricName: config.metricName,
+    aggegationType: config.aggregationType,
+    ...(config.attributes ? { attributes: { ...config.attributes } } : {}),
+  };
+}
+
+function buildMetricQueryConfig(
+  config: MetricConfig,
+  metricVariable: string = getMetricVariable(0),
+): Record<string, unknown> {
   return {
     metricAliasData: {
-      metricVariable: "a",
+      metricVariable: metricVariable,
       title: undefined,
       description: undefined,
       legend: config.legend ?? undefined,
       legendUnit: config.legendUnit ?? undefined,
     },
     metricQueryData: {
-      filterData: {
-        metricName: config.metricName,
-        aggegationType: config.aggregationType,
-      },
+      filterData: buildMetricFilterData(config),
       /*
        * groupByAttributeKeys alone drives per-series grouping — the
        * fetch layer compiles it to `GROUP BY attributes['<key>']`.
@@ -271,10 +401,7 @@ function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
 function buildMetricQueryData(config: MetricConfig): Record<string, unknown> {
   return {
     metricQueryData: {
-      filterData: {
-        metricName: config.metricName,
-        aggegationType: config.aggregationType,
-      },
+      filterData: buildMetricFilterData(config),
       groupBy: undefined,
     },
   };
@@ -357,6 +484,12 @@ function createChartComponent(data: {
   width: number;
   height: number;
   metricConfig?: MetricConfig;
+  /*
+   * Further series drawn on the same chart (queries "b", "c", ...), for a
+   * chart that compares two sides of one measure — read against write
+   * latency — on one set of axes.
+   */
+  additionalMetricConfigs?: Array<MetricConfig>;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -386,6 +519,22 @@ function createChartComponent(data: {
               groupBy: undefined,
             },
           },
+      ...(data.additionalMetricConfigs &&
+      data.additionalMetricConfigs.length > 0
+        ? {
+            metricQueryConfigs: data.additionalMetricConfigs.map(
+              (
+                config: MetricConfig,
+                index: number,
+              ): Record<string, unknown> => {
+                return buildMetricQueryConfig(
+                  config,
+                  getMetricVariable(index + 1),
+                );
+              },
+            ),
+          }
+        : {}),
     },
   };
 }
@@ -557,6 +706,13 @@ function createTraceTableComponent(data: {
   };
 }
 
+/*
+ * The sort a template's list ships with (issue #5082): what a wall screen
+ * wants on top - the rows that need someone, worst first. A widget the
+ * template adds without one lists in its built-in order (by name).
+ */
+const WORST_STATUS_FIRST: string = "status:desc";
+
 function createKubernetesPodListComponent(data: {
   title: string;
   top: number;
@@ -565,6 +721,7 @@ function createKubernetesPodListComponent(data: {
   height: number;
   maxRows?: number;
   podPhases?: Array<string>;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -580,6 +737,7 @@ function createKubernetesPodListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       podPhases: data.podPhases,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -592,6 +750,7 @@ function createKubernetesNodeListComponent(data: {
   height: number;
   maxRows?: number;
   readinessFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -607,6 +766,7 @@ function createKubernetesNodeListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       readinessFilter: data.readinessFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -645,6 +805,7 @@ function createHostListComponent(data: {
   maxRows?: number;
   statusFilter?: string;
   osTypeFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -661,6 +822,7 @@ function createHostListComponent(data: {
       maxRows: data.maxRows ?? 25,
       statusFilter: data.statusFilter,
       osTypeFilter: data.osTypeFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -673,6 +835,7 @@ function createProxmoxNodeListComponent(data: {
   height: number;
   maxRows?: number;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -688,6 +851,7 @@ function createProxmoxNodeListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -784,6 +948,7 @@ function createDockerSwarmNodeListComponent(data: {
   maxRows?: number;
   roleFilter?: string;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -800,6 +965,7 @@ function createDockerSwarmNodeListComponent(data: {
       maxRows: data.maxRows ?? 20,
       roleFilter: data.roleFilter,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -813,6 +979,7 @@ function createDockerSwarmServiceListComponent(data: {
   maxRows?: number;
   serviceModeFilter?: string;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -829,6 +996,7 @@ function createDockerSwarmServiceListComponent(data: {
       maxRows: data.maxRows ?? 20,
       serviceModeFilter: data.serviceModeFilter,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -884,6 +1052,63 @@ function createCephPoolListComponent(data: {
     arguments: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createStorageArrayVolumeListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.StorageArrayVolumeList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createStorageArrayHardwareListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  viewMode?: string;
+  kindFilter?: string;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 50,
+      // The hardware wall — honeycomb is the view operators scan.
+      viewMode: data.viewMode ?? "honeycomb",
+      kindFilter: data.kindFilter,
+      statusFilter: data.statusFilter,
     },
   };
 }
@@ -1027,6 +1252,7 @@ function createMonitorListComponent(data: {
   maxRows?: number;
   monitorTypes?: Array<string>;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -1044,6 +1270,7 @@ function createMonitorListComponent(data: {
       viewMode: "list",
       monitorTypes: data.monitorTypes,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -1421,6 +1648,14 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: IncidentMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header
@@ -1667,6 +1902,14 @@ function createAlertDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: AlertMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header
@@ -1742,6 +1985,18 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
    *   metrics and label them in cores ("2.3 cores"). The Kubernetes
    *   cluster overview page — which fetches `k8s.node.allocatable_cpu` —
    *   is where CPU is shown as a real "% of capacity".
+   *
+   * - "Cluster CPU (cores in use)" used to be a Value widget over
+   *   k8s.node.cpu.usage with `Sum` — the same trap as Pod Count. The
+   *   server sums every node's reading in each bucket and the Value widget
+   *   then sums the buckets, so a one-hour window of minute buckets and
+   *   30s kubelet scrapes read 540 for three nodes on 1.5 cores each,
+   *   instead of 4.5. A Value widget can't express "sum across nodes at one
+   *   instant", so the tile is now the busiest node's peak (`Max`), which
+   *   is honest at any window and complements the per-node average in
+   *   row 1. Cluster-wide CPU against capacity lives on the cluster
+   *   overview page. Dashboards already created from this template are
+   *   repaired by the RepairKubernetesDashboardClusterCpuTile migration.
    */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -1854,6 +2109,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Failed, unknown and pending pods on top.
+      sort: "phase:desc",
     }),
     createKubernetesNodeListComponent({
       title: "Nodes",
@@ -1862,6 +2119,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Not-ready nodes on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 10: Section header
@@ -1875,22 +2134,23 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
 
     /*
-     * Row 11-13: cluster CPU cores tile and the network throughput
-     * chart. This was a 0-100 CPU gauge, but the cores-valued
+     * Row 11-13: busiest-node CPU tile and the network throughput chart.
+     * This was a 0-100 CPU gauge, but the cores-valued
      * `k8s.node.cpu.utilization` pinned it to nonsense (e.g. 711%) and
      * the templated renderer can't divide by allocatable CPU to make a
-     * real percentage — so we show total cores in use instead. The old
-     * "Memory Utilization" gauge over raw bytes is gone — see
-     * top-of-function comment.
+     * real percentage. It then became a `Sum` of cores, which multiplied
+     * by the scrape count — see top-of-function comment. `Max` is the
+     * highest reading any single node reported in the window. The old
+     * "Memory Utilization" gauge over raw bytes is gone too.
      */
     createValueComponent({
-      title: "Cluster CPU (cores in use)",
+      title: "Busiest Node CPU (cores, peak)",
       top: 11,
       left: 0,
       width: 4,
       metricConfig: {
         metricName: "k8s.node.cpu.usage",
-        aggregationType: MetricsAggregationType.Sum,
+        aggregationType: MetricsAggregationType.Max,
       },
       trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
@@ -1939,7 +2199,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 3,
       metricConfig: {
-        metricName: "k8s.deployment.available_replicas",
+        // The k8s_cluster receiver's name — there is no `_replicas` suffix.
+        metricName: "k8s.deployment.available",
         aggregationType: MetricsAggregationType.Min,
       },
     }),
@@ -3422,6 +3683,8 @@ function createHostDashboardConfig(): DashboardViewConfig {
       width: 12,
       height: 4,
       maxRows: 25,
+      // Disconnected hosts on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 10: Section header
@@ -3604,6 +3867,8 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Offline nodes on top.
+      sort: WORST_STATUS_FIRST,
     }),
     createProxmoxGuestListComponent({
       title: "Guests",
@@ -3972,7 +4237,9 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
    *   NO docker_swarm_* / pve_* metrics, so the charts average those
    *   per-container metrics across every task that reports them — a
    *   useful temperature signal for a wall dashboard. container.cpu
-   *   .utilization is a ratio (0..1 per core); the chart leaves it raw.
+   *   .utilization is a percent of one core (100% is one full core, the
+   *   CPU used over each 30-second interval) recorded with the unit "%",
+   *   so the chart draws it as stored.
    *
    * - The cluster variable scopes telemetry by the only resource
    *   attribute the agent stamps: resource.docker.swarm.cluster.name.
@@ -3996,6 +4263,8 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Nodes that are not ready on top.
+      sort: WORST_STATUS_FIRST,
     }),
     createDockerSwarmServiceListComponent({
       title: "Services",
@@ -4004,6 +4273,8 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Services short of their replicas on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 5: Section header
@@ -4251,6 +4522,270 @@ function createCephDashboardConfig(): DashboardViewConfig {
     components,
     variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 16),
+  };
+}
+
+/*
+ * A metric widget's query, taken from the Storage Array metric catalog by id
+ * so the template reads exactly the series — metric name, dimension filter
+ * and aggregation — that the monitor picker and the alert templates read.
+ * An unknown id throws: a renamed catalog entry must fail the template's
+ * tests rather than ship a widget that silently queries nothing.
+ */
+function storageArrayMetricConfig(
+  catalogId: string,
+  overrides?: Partial<MetricConfig>,
+): MetricConfig {
+  const definition: StorageArrayMetricDefinition | undefined =
+    getStorageArrayMetricById(catalogId);
+
+  if (!definition) {
+    throw new Error(`Unknown storage array metric: ${catalogId}`);
+  }
+
+  return {
+    metricName: definition.metricName,
+    aggregationType: definition.defaultAggregation,
+    ...(definition.attributes
+      ? { attributes: { ...definition.attributes } }
+      : {}),
+    ...overrides,
+  };
+}
+
+function createStorageArrayDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout and metric notes:
+   *
+   * - The volume list and the hardware wall read the Postgres inventory
+   *   (StorageArrayResource), so their headers show true current counts —
+   *   the same reasoning the Ceph / Kubernetes templates use for their
+   *   inventory widgets.
+   *
+   * - Every metric widget reads a FlashArray series (purefa_*) built by
+   *   storageArrayMetricConfig from the catalog. Pure puts read, write and
+   *   queue figures on ONE metric name, told apart only by the `dimension`
+   *   label, so every query pins its dimension, and read and write share a
+   *   chart as two queries rather than being two charts of one series.
+   *
+   * - Every series is a gauge the array computes itself — latency in µs per
+   *   operation, IOPS and bandwidth per second, capacity in bytes — so
+   *   nothing is transformAsRate'd (unlike the Ceph template's cumulative
+   *   ceph_pool_*_bytes counters) and nothing Sums a gauge.
+   *
+   * - purefa_alerts_open is one series per open alert, valued 1, so a Sum
+   *   would count each alert once per scrape in the bucket. The alerts
+   *   chart takes the Max per severity instead: 1 while at least one alert
+   *   of that severity is open — the reading the critical and warning alert
+   *   templates fire on.
+   *
+   * - purefa_array_space_utilization is already a percent (0-100), not a
+   *   [0, 1] fraction, and the data reduction ratio is the N of "N:1".
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Storage Array Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createStorageArrayVolumeListComponent({
+      title: "Volumes",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createStorageArrayHardwareListComponent({
+      title: "Hardware",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 100,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Capacity",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6: Capacity stats
+    createValueComponent({
+      title: "Capacity Used (%)",
+      top: 6,
+      left: 0,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-utilization"),
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Data Reduction Ratio",
+      top: 6,
+      left: 3,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-data-reduction"),
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Usable Capacity",
+      top: 6,
+      left: 6,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-capacity"),
+    }),
+    createValueComponent({
+      title: "Free Capacity",
+      top: 6,
+      left: 9,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-empty"),
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+
+    // Rows 7-9: Capacity trends
+    createChartComponent({
+      title: "Capacity Used Over Time",
+      chartType: DashboardChartType.Area,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-utilization", {
+        legend: "Capacity used",
+        legendUnit: "%",
+      }),
+    }),
+    createChartComponent({
+      title: "Data Reduction Over Time",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-data-reduction", {
+        legend: "Data reduction",
+      }),
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Performance & Alerts",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 11-16: Read against write, then the array's own open alerts
+    createChartComponent({
+      title: "Read & Write Latency",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-latency", {
+        legend: "Read",
+        legendUnit: "µs",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-latency", {
+          legend: "Write",
+          legendUnit: "µs",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Read & Write IOPS",
+      chartType: DashboardChartType.Area,
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-iops", {
+        legend: "Read",
+        legendUnit: "ops/s",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-iops", {
+          legend: "Write",
+          legendUnit: "ops/s",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Read & Write Bandwidth",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-bandwidth", {
+        legend: "Read",
+        legendUnit: "bytes/s",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-bandwidth", {
+          legend: "Write",
+          legendUnit: "bytes/s",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Open Alerts",
+      chartType: DashboardChartType.Line,
+      top: 14,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-alerts-open", {
+        attributes: { severity: "critical" },
+        legend: "Critical",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-alerts-open", {
+          attributes: { severity: "warning" },
+          legend: "Warning",
+        }),
+      ],
+    }),
+
+    // Rows 17-19: Logs (arrays forward syslog to the agent)
+    createLogStreamComponent({
+      title: "Array Logs",
+      top: 17,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "array",
+      label: "Storage Array",
+      attributeKey: "resource.storage.array.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
   };
 }
 
@@ -4541,6 +5076,8 @@ function createNetworkDashboardConfig(): DashboardViewConfig {
       height: 4,
       maxRows: 25,
       monitorTypes: [MonitorType.NetworkDevice],
+      // Devices that are down on top.
+      sort: WORST_STATUS_FIRST,
     }),
   ];
 
@@ -4596,6 +5133,8 @@ export function getTemplateConfig(
       return createVMwareDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
+    case DashboardTemplateType.StorageArray:
+      return createStorageArrayDashboardConfig();
     case DashboardTemplateType.DockerSwarm:
       return createDockerSwarmDashboardConfig();
     case DashboardTemplateType.Metrics:

@@ -1,7 +1,15 @@
 import { Command } from "commander";
 import * as ConfigManager from "../Core/ConfigManager";
-import { CLIContext } from "../Types/CLITypes";
-import { printSuccess, printError, printInfo } from "../Core/OutputFormatter";
+import { CLIContext, OutputFormat } from "../Types/CLITypes";
+import {
+  createOutputOption,
+  formatOutput,
+  printSuccess,
+  printError,
+  printInfo,
+  resolveOutputFormat,
+} from "../Core/OutputFormatter";
+import { JSONObject } from "Common/Types/JSON";
 import Table from "cli-table3";
 import chalk from "chalk";
 
@@ -55,9 +63,28 @@ export function registerConfigCommands(program: Command): void {
   contextCmd
     .command("list")
     .description("List all configured contexts")
-    .action(() => {
+    .addOption(createOutputOption())
+    .action((_options: unknown, cmd: Command) => {
       const contexts: Array<CLIContext & { isCurrent: boolean }> =
         ConfigManager.listContexts();
+
+      const outputFormat: OutputFormat = resolveOutputFormat(cmd);
+
+      if (outputFormat === OutputFormat.JSON) {
+        // Same fields as the table; API keys are never printed.
+        const rows: Array<JSONObject> = contexts.map(
+          (ctx: CLIContext & { isCurrent: boolean }): JSONObject => {
+            return {
+              name: ctx.name,
+              apiUrl: ctx.apiUrl,
+              isCurrent: ctx.isCurrent,
+            };
+          },
+        );
+        // eslint-disable-next-line no-console
+        console.log(formatOutput(rows, outputFormat));
+        return;
+      }
 
       if (contexts.length === 0) {
         printInfo(

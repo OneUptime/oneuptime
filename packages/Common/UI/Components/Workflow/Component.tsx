@@ -1,19 +1,123 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import { summarizeCondition } from "./Condition/ConditionModel";
+import {
+  WorkflowLintTone,
+  WorkflowNodeIssuePresentation,
+  WorkflowNodeRenderData,
+  getWorkflowNodeIssuePresentation,
+} from "./GraphLintSummary";
+import { describeReference } from "./ValuePicker/ReferenceDescription";
+import { summarizePageStep } from "./OnCall/PageStepSummary";
+import { OutputLayout, getOutputLayout } from "./PortLayout";
+import { summarizeSwitch } from "./Switch/SwitchModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
-  NodeDataProp,
   NodeType,
   Port,
 } from "../../../Types/Workflow/Component";
-import React, { FunctionComponent, useState } from "react";
-import { Connection, Handle, Position } from "reactflow";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import React, { FunctionComponent, useEffect, useRef, useState } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import {
+  Connection,
+  Handle,
+  Position,
+  UpdateNodeInternals,
+  useNodeId,
+  useUpdateNodeInternals,
+} from "reactflow";
 
 export interface ComponentProps {
-  data: NodeDataProp;
+  data: WorkflowNodeRenderData;
   selected: boolean;
 }
+
+/** Said on a step whose required settings are still empty. */
+export const WORKFLOW_NODE_SETUP_TEXT: string =
+  translationKey("Click to set up");
+
+/*
+ * The most lines a step's name takes on its card: enough for nearly every
+ * step there is, "On Create or Update Incident Episode" included.
+ */
+export const WORKFLOW_NODE_TITLE_MAX_LINES: number = 2;
+
+type StepSummaryFunction = (data: WorkflowNodeRenderData) => string | null;
+
+/*
+ * What a set-up step does, in its own words, in place of the description
+ * every step of its kind shares. An If / Else step says its condition - "If
+ * environment is equal to “production”" - so a workflow can be read from the
+ * canvas without opening each check. Null keeps the description.
+ */
+export const getStepSummary: StepSummaryFunction = (
+  data: WorkflowNodeRenderData,
+): string | null => {
+  if (data.isPreview) {
+    return null;
+  }
+
+  /*
+   * A Switch / Case says what it checks and against how many cases -
+   * "Checks incidentSeverity.name against 2 cases" - and its outputs below
+   * are named after the cases.
+   */
+  if (data.metadata.id === ComponentID.Switch) {
+    return summarizeSwitch(data.arguments);
+  }
+
+  /*
+   * A Page step says who it pages and what about - "2 users · New alert" -
+   * so a workflow that pages different people on different paths can be
+   * told apart on the canvas. Null for any other step.
+   */
+  const pageSummary: string | null = summarizePageStep(
+    data.metadata.id,
+    data.arguments,
+  );
+
+  if (pageSummary) {
+    return pageSummary;
+  }
+
+  if (data.metadata.id !== ComponentID.IfElse) {
+    return null;
+  }
+
+  const condition: string | null = summarizeCondition({
+    args: data.arguments,
+    // The canvas has no list of steps: a value is named by its last part.
+    describeReference: (reference: string) => {
+      return describeReference(reference, {});
+    },
+  });
+
+  return condition ? `If ${condition}` : null;
+};
+
+type BadgeColorScheme = {
+  background: string;
+  border: string;
+  icon: string;
+};
+
+const ERROR_BADGE_COLORS: BadgeColorScheme = {
+  background:
+    "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
+  border: "1px solid rgb(248 113 113 / 45%)",
+  icon: "#ef4444",
+};
+
+const WARNING_BADGE_COLORS: BadgeColorScheme = {
+  background:
+    "color-mix(in srgb, #f59e0b 18%, var(--ou-surface-primary, #ffffff))",
+  border: "1px solid rgb(245 158 11 / 50%)",
+  icon: "#d97706",
+};
 
 type CategoryColorScheme = {
   bg: string;
@@ -86,6 +190,9 @@ const getCategoryColors: (
     lowerCategory.includes("discord") ||
     lowerCategory.includes("teams") ||
     lowerCategory.includes("telegram") ||
+    // Exactly: "irc" is inside other words, such as "circuit".
+    lowerCategory === "irc" ||
+    lowerCategory.includes("mattermost") ||
     lowerCategory.includes("email") ||
     lowerCategory.includes("notification")
   ) {
@@ -156,6 +263,26 @@ const getCategoryColors: (
     };
   }
 
+  /*
+   * The Page steps: the one colour on the canvas that means a phone rings.
+   * Exactly "on-call": the on-call resources' own steps ("On-Call Policy")
+   * are database steps like any other.
+   */
+  if (lowerCategory === "on-call") {
+    return {
+      bg: "color-mix(in srgb, #ec4899 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #ec4899 38%, var(--ou-border-default, #e5e7eb))",
+      headerBg: "linear-gradient(135deg, #ec4899, #db2777)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#ec4899",
+      selectedShadow: "0 0 0 3px rgba(236, 72, 153, 0.2)",
+      handleBg: "#ec4899",
+      handleBorder: "#db2777",
+    };
+  }
+
   // Default / database models
   return {
     bg: "var(--ou-surface-secondary, #f8fafc)",
@@ -209,7 +336,53 @@ const getPortPosition: GetPortPositionFunction = (
 };
 
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+  const translator: Translator = useTranslator();
   const [isHovering, setIsHovering] = useState<boolean>(false);
+  const updateNodeInternals: UpdateNodeInternals = useUpdateNodeInternals();
+  // The card's react-flow id, which react-flow tells every card it draws.
+  const nodeId: string | null = useNodeId();
+
+  /*
+   * The outputs as the step is set up now: a Switch / Case has one per case,
+   * named after it, and Default.
+   */
+  const outPorts: Array<Port> = getComponentOutPorts({
+    metadata: props.data.metadata,
+    arguments: props.data.arguments,
+  });
+
+  const outputLayout: OutputLayout = getOutputLayout(
+    outPorts.map((port: Port): string => {
+      return port.title || "";
+    }),
+  );
+
+  /*
+   * React Flow measures where a card's dots are when it first draws the
+   * card, and again only when the card changes size. A case added, removed
+   * or moved changes the dots without always changing the size, and a
+   * connection drawn from a dot it has not measured goes nowhere. So it is
+   * told to measure again whenever the outputs change.
+   */
+  const outputsSignature: string = `${outPorts
+    .map((port: Port): string => {
+      return port.id;
+    })
+    .join("|")}#${outputLayout.widerCardWidth || 0}`;
+  const measuredOutputsRef: React.MutableRefObject<string> =
+    useRef<string>(outputsSignature);
+
+  useEffect(() => {
+    if (measuredOutputsRef.current === outputsSignature) {
+      return;
+    }
+
+    measuredOutputsRef.current = outputsSignature;
+
+    if (nodeId) {
+      updateNodeInternals(nodeId);
+    }
+  }, [outputsSignature]);
 
   const colors: CategoryColorScheme = getCategoryColors(
     props.data.metadata.category || "",
@@ -291,14 +464,28 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             transition: "all 0.2s ease",
           }}
         >
-          {props.data.metadata.description || "Click to add trigger"}
+          {translator.translateText(props.data.metadata.description) ||
+            translator.translateText("Click to add trigger")}
         </p>
       </div>
     );
   }
 
   // Regular node
-  const hasError: boolean = Boolean(props.data.error);
+  const issues: WorkflowNodeIssuePresentation =
+    getWorkflowNodeIssuePresentation({
+      issueSummary: props.data.issueSummary,
+      error: props.data.error,
+    });
+
+  const hasError: boolean = issues.badgeTone === WorkflowLintTone.Error;
+  const badgeColors: BadgeColorScheme = hasError
+    ? ERROR_BADGE_COLORS
+    : WARNING_BADGE_COLORS;
+  const showsIssueBadge: boolean =
+    !props.data.isPreview && issues.badgeTone !== WorkflowLintTone.Clean;
+
+  const stepSummary: string | null = getStepSummary(props.data);
 
   return (
     <div
@@ -310,7 +497,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         setIsHovering(false);
       }}
       style={{
-        width: "16rem",
+        width: outputLayout.widerCardWidth
+          ? `${outputLayout.widerCardWidth}px`
+          : "16rem",
         borderRadius: "12px",
         border: `2px solid ${
           hasError
@@ -372,10 +561,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-      {/* Error indicator — hover it to read what is actually wrong. */}
-      {!props.data.isPreview && hasError && (
-        <Tooltip text={props.data.error}>
+      {/*
+        Problem indicator: red for an error, amber for a warning, as the
+        toolbar and the issues panel colour them. Hover it to read what is
+        actually wrong. Empty required settings are not on it: those are the
+        "Click to set up" prompt below.
+      */}
+      {showsIssueBadge && (
+        <Tooltip text={issues.badgeText}>
           <div
+            data-testid="workflow-node-issue-badge"
+            data-tone={issues.badgeTone}
             style={{
               position: "absolute",
               top: "8px",
@@ -384,18 +580,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               width: "22px",
               height: "22px",
               borderRadius: "50%",
-              backgroundColor:
-                "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
+              backgroundColor: badgeColors.background,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px solid rgb(248 113 113 / 45%)",
+              border: badgeColors.border,
             }}
           >
             <Icon
               icon={IconProp.Alert}
               style={{
-                color: "#ef4444",
+                color: badgeColors.icon,
                 width: "0.75rem",
                 height: "0.75rem",
               }}
@@ -405,11 +600,16 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         </Tooltip>
       )}
 
-      {/* Header bar with gradient */}
+      {/*
+        Header bar with gradient. With the problem indicator in its corner,
+        the name stops short of it rather than running under it.
+      */}
       <div
         style={{
           background: colors.headerBg,
-          padding: "0.625rem 0.875rem",
+          padding: showsIssueBadge
+            ? "0.625rem 1.875rem 0.625rem 0.875rem"
+            : "0.625rem 0.875rem",
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
@@ -439,15 +639,28 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             />
           </div>
         )}
+        {/*
+          The step's name, on up to two lines. On one line, "On Create or
+          Update Incident" and "On Create or Update Incident Episode" were
+          both "On Create or Update Incid…", and so were most of the steps of
+          a model with a long name. A name longer still ends in "…", and is
+          said whole on hover.
+        */}
         <span
+          data-testid="workflow-node-title"
+          title={props.data.metadata.title}
           style={{
             color: colors.headerText,
             fontSize: "0.8125rem",
             fontWeight: 600,
             letterSpacing: "0.01em",
+            lineHeight: "1.125rem",
+            minWidth: 0,
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            overflowWrap: "anywhere",
+            display: "-webkit-box",
+            WebkitLineClamp: WORKFLOW_NODE_TITLE_MAX_LINES,
+            WebkitBoxOrient: "vertical",
           }}
         >
           {props.data.metadata.title}
@@ -460,11 +673,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           padding: "0.75rem 0.875rem",
           backgroundColor: colors.bg,
           minHeight: "3rem",
-          borderRadius:
-            !props.data.metadata.outPorts ||
-            props.data.metadata.outPorts.length === 0
-              ? "0 0 10px 10px"
-              : undefined,
+          borderRadius: outPorts.length === 0 ? "0 0 10px 10px" : undefined,
         }}
       >
         {/* Component ID badge */}
@@ -494,8 +703,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-        {/* Description */}
+        {/* Description, or what this step does when it can say */}
         <p
+          data-testid={
+            stepSummary ? "workflow-node-summary" : "workflow-node-description"
+          }
+          title={stepSummary || undefined}
           style={{
             color: "var(--ou-text-muted, #64748b)",
             fontSize: "0.75rem",
@@ -507,34 +720,88 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             overflow: "hidden",
           }}
         >
-          {props.data.metadata.description}
+          {stepSummary || props.data.metadata.description}
         </p>
-      </div>
 
-      {/* Out ports section */}
-      {!props.data.isPreview &&
-        props.data.metadata.outPorts &&
-        props.data.metadata.outPorts.length > 0 && (
-          <>
-            {/* Port labels */}
+        {/*
+          Settings no longer open by themselves when a step is added, so a
+          step that cannot run until it is set up says how to get there.
+          Hover it for which settings are still empty.
+        */}
+        {!props.data.isPreview && issues.needsSetup && (
+          <Tooltip text={issues.setupHint}>
             <div
+              data-testid="workflow-node-setup-hint"
               style={{
-                borderTop: `1px solid ${colors.border}`,
-                padding: "0.375rem 0.875rem",
-                display: "flex",
-                justifyContent:
-                  props.data.metadata.outPorts.length === 1
-                    ? "center"
-                    : "space-between",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                marginTop: "0.625rem",
+                padding: "0.1875rem 0.5rem 0.1875rem 0.375rem",
+                borderRadius: "9999px",
+                border: `1px dashed ${colors.selectedBorder}`,
                 backgroundColor: "var(--ou-surface-primary, #ffffff)",
-                borderRadius: "0 0 10px 10px",
+                color: "var(--ou-text-secondary, #475569)",
+                fontSize: "0.6875rem",
+                fontWeight: 600,
+                lineHeight: "1rem",
+                whiteSpace: "nowrap",
               }}
             >
-              {props.data.metadata.outPorts.map((port: Port, i: number) => {
-                return (
-                  <Tooltip key={i} text={port.description || ""}>
+              <Icon
+                icon={IconProp.Settings}
+                style={{
+                  color: colors.selectedBorder,
+                  width: "0.75rem",
+                  height: "0.75rem",
+                  flexShrink: 0,
+                }}
+              />
+              <span>{translator.translateText(WORKFLOW_NODE_SETUP_TEXT)}</span>
+            </div>
+          </Tooltip>
+        )}
+      </div>
+
+      {/*
+        Out ports: the names in equal columns along the bottom, each right
+        above its dot.
+      */}
+      {!props.data.isPreview && outPorts.length > 0 && (
+        <>
+          {/* Port labels */}
+          <div
+            data-testid="workflow-node-outputs"
+            style={{
+              borderTop: `1px solid ${colors.border}`,
+              padding: "0.375rem 0",
+              display: "flex",
+              backgroundColor: "var(--ou-surface-primary, #ffffff)",
+              borderRadius: "0 0 10px 10px",
+            }}
+          >
+            {outPorts.map((port: Port) => {
+              return (
+                <div
+                  key={port.id}
+                  style={{
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    padding: "0 0.375rem",
+                    textAlign: "center",
+                  }}
+                >
+                  <Tooltip text={port.description || ""}>
                     <span
+                      data-testid="workflow-node-output"
+                      data-port-id={port.id}
                       style={{
+                        display: "inline-block",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        verticalAlign: "bottom",
                         color: "var(--ou-text-subtle, #94a3b8)",
                         fontSize: "0.6875rem",
                         fontWeight: 500,
@@ -543,40 +810,45 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       {port.title}
                     </span>
                   </Tooltip>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
 
-            {/* Bottom handles */}
-            <div>
-              {props.data.metadata.outPorts.map((port: Port, i: number) => {
-                return (
-                  <Handle
-                    key={i}
-                    type="source"
-                    id={port.id}
-                    onConnect={(_params: Connection) => {}}
-                    isConnectable={true}
-                    position={Position.Bottom}
-                    style={{
-                      background: colors.handleBg,
-                      height: "10px",
-                      width: "10px",
-                      border: `2px solid ${colors.handleBorder}`,
-                      bottom: "-5px",
-                      transition: "all 0.15s ease",
-                      ...getPortPosition(
-                        i + 1,
-                        props.data.metadata.outPorts.length,
-                        false,
-                      ),
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </>
-        )}
+          {/* Bottom handles, each in the middle of its name's column */}
+          <div>
+            {outPorts.map((port: Port, i: number) => {
+              return (
+                <Handle
+                  key={port.id}
+                  type="source"
+                  id={port.id}
+                  onConnect={(_params: Connection) => {}}
+                  isConnectable={true}
+                  position={Position.Bottom}
+                  style={{
+                    background: colors.handleBg,
+                    height: "10px",
+                    width: "10px",
+                    border: `2px solid ${colors.handleBorder}`,
+                    bottom: "-5px",
+                    /*
+                     * Only the hover grows smoothly. A dot that moves - a
+                     * case added, removed or dragged elsewhere - jumps to
+                     * its place at once: React Flow measures where the dots
+                     * are as soon as they change, and a dot measured half
+                     * way through a glide sent its connections out of where
+                     * it had been.
+                     */
+                    transition: "transform 0.15s ease",
+                    left: `${outputLayout.dotLeftPercents[i]}%`,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };

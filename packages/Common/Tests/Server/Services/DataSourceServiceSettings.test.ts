@@ -7,6 +7,19 @@ import ObjectID from "../../../Types/ObjectID";
 import FindOneByID from "../../../Server/Types/Database/FindOneByID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    DataSourceService,
+    jest.spyOn(DataSourceService, "findBy"),
+  );
+});
 
 describe("DataSourceService.getConnectionSettingsById", () => {
   afterEach(() => {
@@ -183,12 +196,15 @@ describe("DataSourceService.onBeforeUpdate", () => {
     } as unknown as UpdateBy<DataSource>;
   }
 
+  // The source the update writes, as the read of the rows it writes answers.
   function mockStoredRow(
     row: Record<string, unknown>,
-  ): jest.SpiedFunction<typeof DataSourceService.findOneBy> {
+  ): jest.SpiedFunction<typeof DataSourceService.findBy> {
     return jest
-      .spyOn(DataSourceService, "findOneBy")
-      .mockResolvedValue(row as unknown as DataSource);
+      .spyOn(DataSourceService, "findBy")
+      .mockResolvedValue([
+        { _id: ObjectID.generate().toString(), ...row },
+      ] as unknown as Array<DataSource>);
   }
 
   test("rejects clearing the url of a stored http source with null", async () => {
@@ -219,7 +235,7 @@ describe("DataSourceService.onBeforeUpdate", () => {
   });
 
   test("does not read the stored row when no shape field is present", async () => {
-    const spy: jest.SpiedFunction<typeof DataSourceService.findOneBy> =
+    const spy: jest.SpiedFunction<typeof DataSourceService.findBy> =
       mockStoredRow({
         dataSourceType: DataSourceType.Prometheus,
         url: "https://prometheus.example.com",

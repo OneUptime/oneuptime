@@ -214,6 +214,34 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     return { viewStart: traceStart, viewEnd: traceEnd };
   }, [focusedSpanId, rootNodes, traceStart, traceEnd]);
 
+  /*
+   * Above the "No spans" return, like every other hook here. A search or
+   * filter in the trace view that matches no span empties `spans` under the
+   * mounted graph; with this hook below that return the graph called one
+   * hook fewer, React threw "Rendered fewer hooks than expected", and the
+   * page fell back to the error screen.
+   */
+  const hoveredNode: FlameGraphNode | null = React.useMemo(() => {
+    if (!hoveredSpanId) {
+      return null;
+    }
+    const findNode: (nodes: FlameGraphNode[]) => FlameGraphNode | null = (
+      nodes: FlameGraphNode[],
+    ): FlameGraphNode | null => {
+      for (const node of nodes) {
+        if (node.span.spanId === hoveredSpanId) {
+          return node;
+        }
+        const found: FlameGraphNode | null = findNode(node.children);
+        if (found) {
+          return found;
+        }
+      }
+      return null;
+    };
+    return findNode(rootNodes);
+  }, [hoveredSpanId, rootNodes]);
+
   const totalDuration: number = viewEnd - viewStart;
   const rowHeight: number = 24;
   const chartHeight: number = (maxDepth + 1) * rowHeight + 8;
@@ -311,27 +339,6 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       </React.Fragment>
     );
   };
-
-  const hoveredNode: FlameGraphNode | null = React.useMemo(() => {
-    if (!hoveredSpanId) {
-      return null;
-    }
-    const findNode: (nodes: FlameGraphNode[]) => FlameGraphNode | null = (
-      nodes: FlameGraphNode[],
-    ): FlameGraphNode | null => {
-      for (const node of nodes) {
-        if (node.span.spanId === hoveredSpanId) {
-          return node;
-        }
-        const found: FlameGraphNode | null = findNode(node.children);
-        if (found) {
-          return found;
-        }
-      }
-      return null;
-    };
-    return findNode(rootNodes);
-  }, [hoveredSpanId, rootNodes]);
 
   return (
     <div className="flame-graph" ref={containerRef}>

@@ -14,7 +14,7 @@ import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
 import EnterpriseLoader from "./Utils/EnterpriseLoader";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
-import CommunityEditionSsoReport from "Common/Server/Utils/CommunityEditionSsoReport";
+import RelaxedScimTeamLocksReport from "Common/Server/Utils/RelaxedScimTeamLocksReport";
 import Express, {
   ExpressApplication,
   ExpressRouter,
@@ -26,6 +26,7 @@ import {
   ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import InstanceTokenSigningKeyService from "Common/Server/Services/InstanceTokenSigningKeyService";
 import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
@@ -34,7 +35,15 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
-import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
+import StartupGate from "Common/Server/Utils/StartupGate";
+import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
+import {
+  ClusterKeyWarning,
+  DatastorePasswordWarning,
+  InboundEmailWebhookSecretWarning,
+  RegisterProbeKeyWarning,
+  RunDatabaseMigrationsOnBoot,
+} from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 /*
@@ -59,8 +68,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      // Check the status of infrastructure components
+    const readyCheck: PromiseVoidFunction = async (): Promise<void> => {
+      /*
+       * Not ready until every route is mounted (StartupGate), so an
+       * orchestrator does not route traffic here that would only get
+       * "starting" back.
+       */
+      StartupGate.assertOpen();
+
+      // Ready only while Postgres, Valkey and ClickHouse are all reachable.
       return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
@@ -103,6 +119,50 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Connect to Postgres database
     await PostgresAppInstance.connect();
 
+    /*
+     * Before anything signs or checks a token: an installation whose
+     * ENCRYPTION_SECRET is unset or a placeholder the repository ships signs
+     * with a key of its own, kept in Postgres and shared by every app and
+     * worker process (TokenSigningKey). It never signs with the public value,
+     * and it refuses a token signed with it.
+     */
+    await InstanceTokenSigningKeyService.loadTokenSigningKey();
+
+    /*
+     * An installation whose ONEUPTIME_SECRET is unset or a value the
+     * repository ships has its services call each other with a cluster key
+     * derived from the key just loaded (ClusterKeyAuthorization), and refuses
+     * the public value from any caller. Said once, with what the in-cluster
+     * Runner needs.
+     */
+    if (ClusterKeyWarning) {
+      logger.warn(ClusterKeyWarning);
+    }
+
+    /*
+     * The other secrets an installation may still hold at a value the
+     * repository ships, said once each: REGISTER_PROBE_KEY, without which
+     * every global probe's registration is refused, and the datastore
+     * passwords, which the app cannot change for a datastore.
+     */
+    if (RegisterProbeKeyWarning) {
+      logger.warn(RegisterProbeKeyWarning);
+    }
+
+    if (DatastorePasswordWarning) {
+      logger.warn(DatastorePasswordWarning);
+    }
+
+    /*
+     * Incoming email turned on (INBOUND_EMAIL_DOMAIN) with no webhook secret
+     * of the installation's own: every email the provider delivers is
+     * refused until there is one, and the provider tells no one. Said once,
+     * with what to set.
+     */
+    if (InboundEmailWebhookSecretWarning) {
+      logger.warn(InboundEmailWebhookSecretWarning);
+    }
+
     // Connect to Redis
     await Redis.connect();
 
@@ -143,9 +203,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Initialize the app with service name and status checks
     await App.init({
       appName: APP_NAME,
+      /*
+       * The routes below take a while to mount. Until they all are, they
+       * answer 503 with Retry-After - which collectors and probes retry -
+       * instead of a 404 that a collector drops its data on (issue #2825).
+       */
+      useStartupGate: true,
       statusOptions: {
-        liveCheck: statusCheck,
-        readyCheck: statusCheck,
+        // Liveness must not depend on a datastore: see StatusAPIOptions.
+        liveCheck: async () => {},
+        readyCheck: readyCheck,
         globalCacheCheck: globalCacheCheck,
         analyticsDatabaseCheck: analyticsDatabaseCheck,
         databaseCheck: databaseCheck,
@@ -165,13 +232,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await EnterpriseLoader.load();
 
     /*
-     * Community Edition: log once which SSO requirements and SCIM team locks
-     * left over from an Enterprise install are not enforced (the SSO login
-     * routes are part of ee/). Enterprise Edition: start watching the license,
-     * and log the same list whenever SSO or SCIM stops because the license
-     * lapsed. Fire-and-forget.
+     * Community Edition: log once which SCIM Push Groups team locks left over
+     * from an Enterprise install are not enforced (the SCIM endpoints are part
+     * of ee/). Enterprise Edition: start watching the license, and log the
+     * same list whenever SCIM stops because the license lapsed.
+     * Fire-and-forget.
      */
-    void CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+    void RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
 
     // Initialize real-time functionalities
     await Realtime.init();
@@ -213,6 +280,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Generate OpenAPI spec (this automatically saves it to cache)
     OpenAPIUtil.generateOpenAPISpec();
+
+    // Every route is mounted: serve requests, and say so to readiness.
+    StartupGate.open();
+
+    /*
+     * Record, from now on, that OneUptime is receiving: the time between the
+     * last such record and this one is time it was not, and no host or
+     * monitor is marked down for it (issue #2825).
+     */
+    InstanceReceivingHeartbeat.start();
   } catch (err) {
     logger.error("App Init Failed:", { service: "api" });
     logger.error(err, { service: "api" });

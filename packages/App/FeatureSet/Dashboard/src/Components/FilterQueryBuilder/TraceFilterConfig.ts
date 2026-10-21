@@ -1,4 +1,9 @@
 import { FilterBuilderConfig } from "./Types";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 function getSpanKindPillClass(value: string): string {
   const v: string = value.toUpperCase();
@@ -20,25 +25,22 @@ function getSpanKindPillClass(value: string): string {
   return "bg-gray-50 text-gray-600 ring-gray-500/10";
 }
 
-function getStatusCodePillClass(value: string): string {
-  if (value === "2") {
-    return "bg-red-50 text-red-700 ring-red-600/10";
-  }
-  if (value === "1") {
-    return "bg-green-50 text-green-700 ring-green-600/10";
-  }
-  if (value === "0") {
+export function getStatusCodePillClass(value: string): string {
+  if (value !== "0" && value !== "1" && value !== "2") {
     return "bg-gray-50 text-gray-600 ring-gray-500/10";
   }
-  return "bg-gray-50 text-gray-600 ring-gray-500/10";
+  const status: SpanStatusPresentation = getSpanStatusPresentation(value);
+  return `${status.pillClassName} ${status.pillRingClassName}`;
 }
 
 const TraceFilterConfig: FilterBuilderConfig = {
-  entityNameSingular: "span",
-  entityNamePlural: "spans",
+  entityNameSingular: translationKey("span"),
+  entityNamePlural: translationKey("spans"),
   supportCustomAttributes: true,
-  customAttributeLabel: "Custom Attribute...",
-  customAttributeDescription: "Filter on a custom span attribute",
+  customAttributeLabel: translationKey("Custom Attribute..."),
+  customAttributeDescription: translationKey(
+    "Filter on a custom span attribute",
+  ),
   defaultCondition: { field: "kind", operator: "=", value: "" },
   fields: [
     {
@@ -46,14 +48,14 @@ const TraceFilterConfig: FilterBuilderConfig = {
       label: "Span Name",
       description: "The operation name on the span (e.g. GET /api/users)",
       valueType: "text",
-      valuePlaceholder: "e.g. GET /api/users",
+      valuePlaceholder: translationKey("e.g. GET /api/users"),
     },
     {
       key: "kind",
       label: "Span Kind",
       description: "The role of the span in a trace",
       valueType: "dropdown",
-      valuePlaceholder: "Select span kind...",
+      valuePlaceholder: translationKey("Select span kind..."),
       valueOptions: [
         {
           value: "SPAN_KIND_SERVER",
@@ -88,10 +90,18 @@ const TraceFilterConfig: FilterBuilderConfig = {
       label: "Status",
       description: "OpenTelemetry span status",
       valueType: "dropdown",
-      valuePlaceholder: "Select status...",
+      valuePlaceholder: translationKey("Select status..."),
       valueOptions: [
-        { value: "0", label: "Unset", description: "No status set" },
-        { value: "1", label: "Ok", description: "Span completed successfully" },
+        {
+          value: "0",
+          label: "Unset",
+          description: "No error status set (OpenTelemetry default)",
+        },
+        {
+          value: "1",
+          label: "Ok",
+          description: "Explicitly marked successful",
+        },
         { value: "2", label: "Error", description: "Span ended in error" },
       ],
       getValuePillClass: getStatusCodePillClass,
@@ -101,21 +111,21 @@ const TraceFilterConfig: FilterBuilderConfig = {
       label: "Status Message",
       description: "Optional text describing the span status",
       valueType: "text",
-      valuePlaceholder: "e.g. Internal Error",
+      valuePlaceholder: translationKey("e.g. Internal Error"),
     },
     {
       key: "primaryEntityId",
       label: "Service ID",
       description: "The telemetry service that produced the span",
       valueType: "text",
-      valuePlaceholder: "Service ID",
+      valuePlaceholder: translationKey("Service ID"),
     },
     {
       key: "hasException",
       label: "Has Exception",
       description: "Whether the span recorded an exception event",
       valueType: "dropdown",
-      valuePlaceholder: "Select...",
+      valuePlaceholder: translationKey("Select..."),
       valueOptions: [
         { value: "true", label: "Yes", description: "Has an exception event" },
         {
@@ -130,7 +140,7 @@ const TraceFilterConfig: FilterBuilderConfig = {
       label: "Is Root Span",
       description: "Whether this is the top-level span of a trace",
       valueType: "dropdown",
-      valuePlaceholder: "Select...",
+      valuePlaceholder: translationKey("Select..."),
       valueOptions: [
         { value: "true", label: "Yes", description: "Root of the trace" },
         { value: "false", label: "No", description: "Child span" },

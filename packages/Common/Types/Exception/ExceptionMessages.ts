@@ -1,7 +1,10 @@
 enum ExceptionMessages {
   MonitorNotFound = "Monitor not found.",
   MonitorDisabled = "Monitor is disabled. Please enable it to start monitoring again.",
+  MonitorArchived = "Monitor is archived. Unarchive it to start monitoring again.",
+  ProbeNotAssignedToMonitor = "Probe is not assigned to this monitor",
   UserBlocked = "Your account has been blocked. Please contact your administrator.",
+  ProjectBlocked = "This project has been blocked. Please contact your administrator.",
 }
 
 export default ExceptionMessages;

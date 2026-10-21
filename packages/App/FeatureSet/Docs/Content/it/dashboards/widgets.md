@@ -1,247 +1,252 @@
-# Widget
-
-Un widget e un tassello su una dashboard. Questa pagina elenca ogni widget che puoi aggiungere, cosa mostra e quando ricorrervi.
-
-Per sapere come trascinare i widget sul canvas, vedi [Creazione di una dashboard](/docs/dashboards/authoring).
-
-## Grafici e numeri
-
-### Chart
-
-Un grafico a linee, a barre o ad area di una o piu serie metriche sull'intervallo temporale della dashboard.
-
-**Impostazioni**:
-
-- Una o piu query di metrica.
-- Una formula opzionale che combina due query (per esempio, `errors / total * 100` per ottenere un tasso di errore).
-- Un'opzione "show as rate" per i contatori cumulativi che crescono senza essere azzerati.
-- Opzioni di visualizzazione: impilato o sovrapposto, unita dell'asse Y, posizione della legenda, tipo di grafico.
-
-Usalo quando: i trend contano. Latenza nel tempo, conteggio errori, profondita della coda, qualsiasi cosa in cui la forma della linea racconti la storia.
-
-### Value
-
-Un singolo grande numero con soglie colorate opzionali.
-
-**Impostazioni**:
-
-- Una query di metrica che restituisce un singolo numero (ultimo valore, media o massimo sull'intervallo temporale).
-- Una soglia **warning** opzionale (giallo sopra).
-- Una soglia **critical** opzionale (rosso sopra).
-- Formato del numero e unita.
-
-Usalo quando: un solo numero risponde alla domanda. Tasso di errore corrente, latenza P95 in questo momento, conteggio degli incidenti aperti.
-
-### Gauge
-
-Un indicatore circolare con minimo, massimo, banda warning e banda critical.
-
-**Impostazioni**: una query di metrica e i quattro confini.
-
-Usalo quando: il valore rientra in un intervallo noto. Percentuale CPU (0–100%), utilizzo del disco, capacita della coda.
-
-### Table
-
-Una tabella di risultati di metriche, una riga per gruppo.
-
-**Impostazioni**: una query di metrica (tipicamente raggruppata per un'etichetta come host o servizio), le colonne da mostrare e un limite di righe.
-
-Usalo quando: vuoi una scomposizione invece di un trend. Top 10 degli host piu rumorosi, conteggio errori per servizio, richieste per endpoint.
-
-## Text
-
-Un blocco statico di Markdown.
-
-**Impostazioni**: il corpo Markdown. Vengono renderizzati intestazioni, elenchi, link, enfasi e blocchi di codice.
-
-Usalo quando: vuoi un'intestazione di sezione, un paragrafo di contesto, un elenco di link ai runbook o un banner temporaneo durante un incidente.
-
-## HTML
-
-Il tuo HTML, CSS e JavaScript, renderizzati come widget.
-
-**Impostazioni**: il corpo HTML, un foglio di stile opzionale, uno script opzionale e tre interruttori di permesso.
-
-Usalo quando: ti serve qualcosa che nessun widget integrato copre — un badge di terze parti incorporato, una tabella estratta da un'API interna, una legenda personalizzata, un insieme di link con stile verso i tuoi strumenti.
-
-### Cosa puo e cosa non puo fare
-
-Il widget viene renderizzato in un frame in sandbox su una propria origine isolata. Dentro quel frame il tuo codice puo fare piu o meno qualsiasi cosa: costruire il DOM, eseguire timer, fare fetch da qualsiasi URL, disegnare su un canvas.
-
-Cio che non puo fare e raggiungere la pagina OneUptime attorno a lui. Non ha accesso al DOM della dashboard, ai cookie, al local storage o alla sessione API, e non puo far navigare altrove la scheda del browser. Questo vale sia che la dashboard sia privata sia che sia condivisa pubblicamente.
-
-Due conseguenze da conoscere prima di incollarci dentro qualcosa:
-
-- Un `fetch` dal widget e una richiesta cross-origin da un'origine opaca, quindi il server che chiami deve consentirla con CORS. Chiamare l'API di OneUptime da qui non e supportato.
-- Il widget parte trasparente. Imposta uno sfondo su `body` nel tuo CSS se vuoi che riempia il riquadro.
-
-### Usare le variabili della dashboard
-
-Scrivi `{{variableName}}` in qualsiasi punto dell'HTML, del CSS o del JavaScript e viene sostituito con il valore corrente di quella variabile prima che il widget venga renderizzato. Scegliere un nuovo valore ri-renderizza il widget. Un segnaposto che nomina una variabile inesistente viene lasciato invariato.
-
-Gli script ricevono gli stessi valori, piu l'intervallo temporale della dashboard, su `window.ONEUPTIME`:
-
-```javascript
-window.ONEUPTIME.variables.environment; // valore corrente, o "" se non impostato
-window.ONEUPTIME.startDate; // stringa ISO 8601, inizio dell'intervallo temporale della dashboard
-window.ONEUPTIME.endDate; // stringa ISO 8601, fine dello stesso intervallo
-```
-
-Il widget viene ricaricato ogni volta che la dashboard si aggiorna, cosi un widget che recupera i propri dati resta al passo con l'intervallo di refresh.
-
-### Permessi
-
-**Run JavaScript** (esegui JavaScript, attivo per impostazione predefinita) esegue il tuo script. Disattivalo per renderizzare solo markup e stili — lo script viene allora escluso del tutto dal widget invece di essere semplicemente bloccato.
-
-**Open links in a new tab** (apri i link in una nuova scheda, attivo per impostazione predefinita) permette a link e `window.open` di aprire una scheda del browser. I link si aprono sempre in una nuova scheda; il widget non puo mai far navigare altrove la dashboard stessa.
-
-**Allow forms to submit** (consenti l'invio dei form, disattivo per impostazione predefinita) permette a un `<form>` dentro il widget di inviare i dati.
-
-Chiunque possa modificare la dashboard decide cosa esegue questo widget, e chiunque visualizzi la dashboard lo esegue — su una dashboard pubblica, questo include i visitatori anonimi. Tratta l'accesso in modifica a una dashboard che contiene un widget HTML come tratteresti l'accesso a qualsiasi altro codice che rilasci.
-
-## Log e trace
-
-### Log Chart
-
-Un grafico a serie temporali del volume di log sull'intervallo temporale della dashboard. Ogni serie rappresenta una severità, così i picchi di errore risaltano rispetto al traffico normale.
-
-**Impostazioni**:
-
-- Visualizzazione a barre, linee o aree. I grafici a barre e ad aree impilano le serie di severità.
-- Filtri di severità opzionali.
-- Ricerca testuale opzionale nel corpo del log.
-- Filtri esatti sugli attributi OpenTelemetry tramite righe chiave/valore ricercabili. I nomi degli attributi e i valori noti vengono suggeriti mentre digiti, e i valori personalizzati restano supportati.
-- Un titolo opzionale.
-
-I controlli di intervallo temporale e di aggiornamento della dashboard rieseguono automaticamente la query del grafico. Anche le variabili di attributo telemetrico della dashboard si applicano al widget, comprese quelle a selezione multipla.
-
-Log Chart richiede per ora una dashboard autenticata. Le dashboard pubbliche mostrano il widget come non disponibile anziché esporre in modo anonimo gli aggregati di log del progetto.
-
-Usalo quando: vuoi cogliere i cambiamenti nel volume di log oppure confrontare errori, avvisi e messaggi informativi senza uscire dalla dashboard.
-
-### Log Stream
-
-Una coda live delle righe di log che corrispondono a un filtro.
-
-**Impostazioni**: filtri sui log (servizio, severita, attributi) e le colonne da mostrare.
-
-Usalo quando: vuoi vedere cosa sta dicendo l'applicazione in questo momento, senza uscire dalla dashboard.
-
-### Trace List
-
-Un elenco di trace recenti che corrispondono a un filtro, con durata, stato e servizio.
-
-**Impostazioni**: filtri sui trace (servizio, stato, attributi).
-
-Usalo quando: vuoi un elenco di attivita recenti invece di un grafico. Un pattern comune e un grafico di latenza in alto con un elenco di trace lenti sotto.
-
-## Elenchi live
-
-### Incident List
-
-Un elenco live di incidenti che corrispondono a un filtro.
-
-**Impostazioni**: filtri per stato, severita, etichette, monitor o team.
-
-Usalo quando: la dashboard risponde alla domanda "cosa e rotto in questo momento?"
-
-### Alert List
-
-Un elenco live di allarmi che corrispondono a un filtro.
-
-**Impostazioni**: filtri per stato, severita, etichette.
-
-Usalo quando: una dashboard di team traccia gli allarmi sui propri servizi.
-
-### Monitor List
-
-Un elenco live di monitor con il loro stato corrente.
-
-**Impostazioni**: filtri per tipo di monitor, etichette o stato corrente.
-
-Usalo quando: vuoi una vista di flotta — "tutti i siti sono su?"
-
-## Obiettivi di livello di servizio
-
-### SLO
-
-Un singolo obiettivo di livello di servizio, disegnato come numero singolo oppure come linea nel tempo.
-
-**Impostazioni**: quale SLO, quale dei suoi tre numeri (SLI, Error Budget Remaining o Burn Rate), visualizzazione Tile o Chart e un titolo opzionale.
-
-- **Tile** stampa il numero corrente e, dove c'è, una seconda riga: il target sotto lo SLI, i minuti rimasti sotto l'error budget. Una pillola di stato colora il tutto.
-- **Chart** disegna lo stesso numero sull'intervallo temporale della dashboard, con il target segnato come linea tratteggiata sulla serie dello SLI. Lo storico viene scritto ogni pochi minuti dal worker di valutazione, quindi uno SLO appena creato appare vuoto finché non viene valutato per la prima volta.
-
-Usalo quando: la dashboard risponde a "stiamo rispettando quello che abbiamo promesso?" piuttosto che a "cosa sta succedendo in questo momento?"
-
-Il widget SLO funziona sulle [dashboard pubbliche](/docs/dashboards/sharing). Ciò che viene pubblicato sono i numeri principali dello SLO — nome, target, SLI corrente, error budget rimanente, burn rate e stato — indipendentemente da quale di essi il widget disegni. La sua definizione resta privata: i monitor che osserva, le sue etichette, la sua descrizione, la sua query e la sua pianificazione di valutazione non vengono mai inviati a un visitatore pubblico. Un widget Tile pubblica solo quei numeri correnti; un widget Chart pubblica anche lo storico dell'unica serie che disegna, e nulla di più.
-
-## Elenchi di risorse Kubernetes
-
-Per progetti con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) installato. Ognuno accetta filtri opzionali per cluster, namespace ed etichette.
-
-- **Kubernetes Pod List** — pod con la loro fase, riavvii e nodo.
-- **Kubernetes Node List** — nodi con le loro condizioni e capacita.
-- **Kubernetes Namespace List** — namespace e conteggi dei workload.
-- **Kubernetes Deployment List** — deployment con repliche desiderate vs. pronte.
-- **Kubernetes StatefulSet List** — stateful set con repliche pronte.
-- **Kubernetes DaemonSet List** — daemon set con desiderati vs. pronti.
-- **Kubernetes Job List** — job e il loro stato di completamento.
-- **Kubernetes CronJob List** — cron job con pianificazione e ultima esecuzione.
-
-Usali quando: vuoi un'unica dashboard che combini stato Kubernetes con la telemetria di quei workload.
-
-## Elenchi di risorse Docker
-
-Per progetti con il monitoraggio Docker configurato.
-
-- **Docker Host List** — host che eseguono Docker, con conteggi dei container.
-- **Docker Container List** — container con stato, immagine, host, uptime.
-- **Docker Image List** — immagini e le loro dimensioni.
-- **Docker Network List** — reti Docker e container connessi.
-- **Docker Volume List** — volumi Docker e il loro utilizzo.
-
-## Infrastruttura
-
-### Host List
-
-Host monitorati dal monitor server di OneUptime, con stato, CPU, memoria e uptime.
-
-**Impostazioni**: filtri per etichette o stato corrente.
-
-## Rete
-
-### Network Map
-
-I tuoi siti di rete disegnati sulla mappa del mondo, ciascuno fissato alla propria latitudine e longitudine e colorato in base allo stato dei monitor aggregato su di esso. I siti vicini tra loro condividono un indicatore con il conteggio scritto all'interno; un indicatore che rappresenta esattamente un sito apre quel sito quando lo si clicca.
-
-La mappa si inquadra sui siti che ha disegnato — un parco all'interno di un solo paese riempie l'inquadratura con quel paese, uno distribuito tra continenti si apre sul mondo. Non ci sono controlli di zoom o di spostamento: una tile della dashboard è un'immagine, e la pagina Network Map sotto Network è il posto dove percorrere la gerarchia.
-
-Sopra la mappa viene stampato quanti siti sono giù, perché un punto rosso di due pixel tra duecento verdi non è qualcosa che si legga a distanza di dashboard. Sotto, una riga di copertura dice cosa la mappa _non_ sta mostrando — i siti senza coordinate, e se è stato raggiunto il limite di righe.
-
-**Impostazioni**: titolo, vista mappa o elenco, numero massimo di siti disegnati, se stampare i nomi dei siti, e filtri per tipo di sito e per stato. I nomi dei siti scompaiono automaticamente quando la mappa diventa troppo affollata perché siano leggibili; il tooltip continua a nominare ogni indicatore.
-
-Un sito appare solo se ha le coordinate. Aggiungi latitudine e longitudine sul sito (o importale da CSV) per fissarlo.
+# Widget della dashboard
+
+Un widget è un riquadro di una dashboard. Questa pagina elenca ogni widget del catalogo **Aggiungi widget**, che cosa mostra e le impostazioni che contano, negli stessi gruppi del catalogo. Per posizionare i widget sulla griglia e salvarli, vedi [Creare una dashboard](/docs/dashboards/authoring).
+
+:::cards
+- [Quale widget usare?](#quale-widget-usare): Scegli in base alla domanda a cui risponde il riquadro.
+- [Grafici e numeri](#grafici-e-numeri): Grafico, Valore, Indicatore e Tabella, da una query di metriche.
+- [Log, tracce e sicurezza](#log-tracce-e-sicurezza): Grafici dei volumi, flussi in tempo reale ed elenchi.
+- [Ordinare elenchi e tabelle](#ordinare-elenchi-e-tabelle): Ordina per una colonna e scegli l'ordine che vedono tutti.
+- [Quando un widget non può essere mostrato](#quando-un-widget-non-può-essere-mostrato): Che cosa mostra un widget rotto, e come sistemarlo.
+:::
 
 ## Quale widget usare?
 
-Alcune regole rapide:
+Parti dalla domanda a cui deve rispondere il riquadro:
 
-- **Trend nel tempo?** Chart.
-- **Volume di log o picchi di errore nel tempo?** Log Chart.
-- **Un solo numero che conta in questo momento?** Value (o Gauge se ha un chiaro min/max).
-- **Scomposizione su molte cose?** Table.
-- **Cosa sta succedendo nel sistema in questo momento?** Log Stream, Trace List, Incident List.
-- **Lo stato di uno specifico gruppo di risorse?** Il widget di elenco corrispondente.
-- **Stiamo rispettando l'affidabilità promessa?** SLO.
-- **Dove si trova la tua rete nel mondo e cosa è rosso?** Network Map.
-- **Un'intestazione, un paragrafo o un link?** Text.
-- **Qualcosa che nessuno dei precedenti copre?** HTML — ma solo dopo aver verificato che un widget integrato davvero non sia in grado di farlo.
+| La domanda | Il widget |
+| --- | --- |
+| Come è cambiata una metrica nel tempo? | **Grafico** |
+| Quanti log, di quale gravità, nel tempo? | **Log Chart** |
+| Quanto sono veloci le richieste, e quante falliscono, nel tempo? | **Trace Chart** |
+| Qual è un certo numero in questo momento? | **Valore**, oppure **Indicatore** quando ha un intervallo noto |
+| Quali host, servizi o endpoint si distinguono? | **Tabella** o **Trace Table** |
+| Che cosa sta succedendo in questo momento? | **Flusso di log**, **Elenco delle tracce**, **Elenco incidenti** o **Elenco avvisi** |
+| I nostri siti sono tutti attivi? | **Elenco monitor** |
+| Stiamo mantenendo l'affidabilità che abbiamo promesso? | **SLO** o **SLO List** |
+| In che stato sono i nostri cluster e i nostri host? | Un widget del gruppo Infrastruttura |
+| Dove si trova nel mondo la nostra rete, e che cosa è inattivo? | **Network Map** |
+| Un titolo, una nota, l'ora in un altro ufficio? | **Testo** o **Orologio** |
+| Dati conservati fuori da OneUptime? | Un widget del gruppo Fonti di dati esterne |
+| Qualcosa che nessun widget copre? | **HTML**, una volta sicuro che nessun altro widget lo faccia |
 
-La maggior parte delle dashboard mescola alcuni di essi — un grafico in alto, uno o due valori a fianco, un divisore di testo e uno o due elenchi sotto.
+```mermaid title="Scegliere un widget, una domanda alla volta"
+flowchart TB
+    q1("La risposta cambia<br/>nel tempo?") -->|"Sì"| w1["Grafico, Log Chart<br/>o Trace Chart"]
+    q1 -->|"No"| q2("È un solo numero?")
+    q2 -->|"No"| q3("Sono cose e<br/>il loro stato?")
+    q2 -->|"Sì"| w2["Valore, o Indicatore<br/>se l'intervallo è noto"]
+    q3 -->|"Sì"| w3["Un widget di elenco,<br/>o una tabella"]
+    q3 -->|"No"| w4["Testo, Orologio<br/>o HTML"]
+```
 
-## Letture successive
+La maggior parte delle dashboard ne combina alcuni: un grafico in alto, uno o due valori accanto, un titolo di testo e uno o due elenchi sotto.
 
-- [Variabili e filtri](/docs/dashboards/variables) — rendere i widget riutilizzabili per molti servizi o clienti.
-- [Creazione di una dashboard](/docs/dashboards/authoring) — la meccanica del canvas.
-- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — condividere fuori dal tuo team.
+## Grafici e numeri
+
+Questi quattro widget leggono una query di metriche, costruita come la costruisce l'esploratore delle metriche: scegli una metrica e un'aggregazione, aggiungi filtri sugli attributi, e raggruppa per un attributo per ottenere una serie per valore.
+
+### Grafico
+
+Una serie temporale di una o più query di metriche nell'intervallo di tempo della dashboard. **Chart Type** la disegna come grafico a linee, a barre, ad aree, ad aree sovrapposte o a torta. **Additional Queries** sovrappone altre metriche sugli stessi assi, e **Formulas** le combina con `+`, `-`, `*`, `/`, `%`, `^` e parentesi, come in `(1 - a) * 100`. Le impostazioni di visualizzazione di ogni query aggiungono una legenda e un'unità, un colore, linee di avviso e critiche, e una frequenza al secondo per i contatori che crescono soltanto.
+
+Usalo quando è la forma della linea a raccontare la storia: latenza, errori, throughput o profondità di una coda.
+
+### Valore
+
+Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. **Warning Threshold** rende lo sfondo giallo e **Critical Threshold** rosso quando il valore li raggiunge.
+
+Usalo quando un numero risponde alla domanda: il tasso di errori, la latenza P95 o le richieste servite oggi.
+
+### Indicatore
+
+Un quadrante tra un minimo e un massimo, 0 e 100 se non li imposti, con una zona gialla a partire da **Warning Threshold** e una zona rossa a partire da **Critical Threshold**.
+
+Usalo quando il valore vive in un intervallo noto: l'uso di CPU o disco in percentuale, o la capacità di una coda.
+
+### Tabella
+
+Valori di metriche come righe. **Group By Attributes** dà una riga per valore, per esempio una per `host.name`; senza, ogni riga è un intervallo di tempo. **Metrics & Columns** imposta le colonne: metriche, e formule su di esse, come la disponibilità in percentuale. Quando raggruppi, **Reduce across time** trasforma la serie di ogni riga in un solo valore: l'ultimo valore, la media, la somma, il minimo o il massimo.
+
+Usala per una suddivisione invece che per un andamento: gli host più rumorosi, gli errori per servizio, le richieste per endpoint.
+
+## Testo, orologio e HTML
+
+Questi widget non hanno bisogno di una fonte di dati.
+
+### Testo
+
+Una riga o un blocco di testo, per un titolo, una nota o i link ai tuoi runbook. Attiva **Markdown** per disegnare titoli, link, elenchi, codice e tabelle; altrimenti il testo appare come l'hai scritto, in grassetto, corsivo o sottolineato se vuoi.
+
+### Orologio
+
+L'ora attuale in qualsiasi fuso orario, in cifre o con un quadrante analogico, con un'etichetta come "Ufficio di Sydney". Senza fuso orario, mostra quello di ciascun visualizzatore. Aggiungine uno per ufficio per vedere chi è sveglio.
+
+### HTML
+
+Il tuo HTML, CSS e JavaScript, disegnato come widget. Le sue impostazioni sono il corpo HTML, un foglio di stile facoltativo, uno script facoltativo e tre interruttori di autorizzazione.
+
+Usalo quando ti serve qualcosa che nessun widget integrato copre: un badge di terze parti incorporato, una tabella presa da un'API interna, una legenda personalizzata o una serie di link con stile verso i tuoi strumenti.
+
+#### Che cosa può e non può fare
+
+Il widget viene reso in un frame isolato (sandbox) sulla propria origine isolata. Dentro quel frame il tuo codice può fare più o meno qualsiasi cosa: costruire il DOM, eseguire timer, fare richieste a qualsiasi URL, disegnare su un canvas.
+
+Quello che non può fare è raggiungere la pagina di OneUptime che lo circonda. Non ha accesso al DOM della dashboard, ai cookie, allo storage locale né alla sessione dell'API, e non può far navigare altrove la scheda del browser. Questo vale sia che la dashboard sia privata sia che sia condivisa pubblicamente.
+
+Due conseguenze da conoscere prima di incollare qualcosa:
+
+- Un `fetch` dal widget è una richiesta cross-origin da un'origine opaca, quindi il server che chiami deve consentirla con CORS. Chiamare l'API di OneUptime da qui non è supportato.
+- Il widget parte trasparente. Imposta uno sfondo su `body` nel tuo CSS se vuoi che riempia la scheda. Nel tema scuro il suo testo parte chiaro e il suo elemento `<html>` ha la classe `dark`: inizia una regola CSS con `html.dark` per dare uno stile solo al tema scuro.
+
+#### Usare le variabili della dashboard
+
+Scrivi `{{variableName}}` in qualsiasi punto dell'HTML, del CSS o del JavaScript e viene sostituito con il valore attuale di quella variabile prima che il widget venga reso. Scegliere un nuovo valore rende di nuovo il widget. Un segnaposto che nomina una variabile inesistente resta com'è.
+
+Gli script ricevono gli stessi valori, più l'intervallo di tempo della dashboard, in `window.ONEUPTIME`:
+
+```javascript title="window.ONEUPTIME"
+window.ONEUPTIME.variables.environment; // current value, or "" if unset
+window.ONEUPTIME.startDate; // ISO 8601 string, start of the dashboard's time range
+window.ONEUPTIME.endDate; // ISO 8601 string, end of it
+```
+
+Il widget si ricarica ogni volta che la dashboard si aggiorna, quindi un widget che recupera i propri dati tiene il passo con l'intervallo di aggiornamento.
+
+#### Autorizzazioni
+
+**Run JavaScript** (attivo per impostazione predefinita) esegue il tuo script. Disattivalo per rendere solo markup e stili: lo script viene allora escluso del tutto dal widget, anziché essere semplicemente bloccato.
+
+**Open links in a new tab** (attivo per impostazione predefinita) permette ai link e a `window.open` di aprire una scheda del browser. I link si aprono sempre in una nuova scheda; il widget non può mai far navigare la dashboard stessa.
+
+**Allow forms to submit** (disattivato per impostazione predefinita) permette a un `<form>` dentro il widget di essere inviato.
+
+Chi può modificare la dashboard decide che cosa esegue questo widget, e tutti quelli che visualizzano la dashboard lo eseguono: su una dashboard pubblica, questo include i visitatori anonimi. Tratta l'accesso in modifica a una dashboard con un widget HTML come tratteresti l'accesso a qualsiasi altro codice che rilasci.
+
+## Log, tracce e sicurezza
+
+| Widget | Che cosa mostra | Impostazioni che contano |
+| --- | --- | --- |
+| **Log Chart** | Il volume dei log nel tempo, una serie per gravità, come barre, linee o aree. | Gravità, testo contenuto nel corpo, filtri sugli attributi. |
+| **Flusso di log** | Le ultime righe di log che corrispondono a un filtro. | Gravità, testo contenuto nel corpo, filtri sugli attributi come `@service.name:checkout`, quante righe. |
+| **Trace Chart** | Numero di richieste, numero di errori o tempo di risposta (medio, minimo, massimo, da P50 a P99) nel tempo. | La metrica, quali span contare, e un attributo per cui dividere le serie. |
+| **Elenco delle tracce** | Le ultime tracce, con la loro durata e il loro stato. | Stato, quante righe. |
+| **Trace Table** | I principali nomi di span, stati o valori di attributo per numero di richieste, con i tempi di risposta mediano, medio, minimo e massimo. | Per che cosa raggruppare le righe, e quali span contare. |
+| **Security Events** | Gli ultimi eventi di sicurezza, con gravità, classe di evento e host. | Gravità, classi di evento, testo contenuto nel messaggio. |
+| **Security Events Flow** | Un flusso di eventi di sicurezza dalla loro origine, attraverso la classe di evento, fino alla gravità. | Gravità, quanti eventi. |
+
+I widget delle tracce contano solo gli span radice, come fa l'esploratore delle tracce, a meno che tu non includa gli span figli nelle loro impostazioni. Uno schema comune è un grafico della latenza in alto con un elenco di tracce lente sotto.
+
+## Incidenti, avvisi e monitor
+
+| Widget | Che cosa mostra | Filtri |
+| --- | --- | --- |
+| **Elenco incidenti** | Gli incidenti con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
+| **Elenco avvisi** | Gli avvisi con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
+| **Elenco monitor** | I monitor con il loro stato attuale. | Operativi o no, stato, tipo di monitor ed etichette, oppure una **Label Variable** che i visualizzatori scelgono nella barra degli strumenti. |
+
+Come la maggior parte dei widget di elenco, questi tre possono disegnare un alveare di celle colorate per stato al posto di una tabella: sceglilo in **Modalità di visualizzazione**. Mostrano lo stato attuale, qualunque sia l'intervallo di tempo della dashboard.
+
+## Obiettivi del livello di servizio
+
+### SLO
+
+Un singolo obiettivo del livello di servizio, disegnato come un solo numero o come una linea nel tempo.
+
+**Impostazioni**: quale SLO, oppure lo SLO scelto in una variabile della dashboard; quale dei suoi tre numeri (SLI, Error Budget Remaining o Burn Rate); la visualizzazione Tile o Grafico; e un titolo facoltativo.
+
+- **Tile** mostra il numero attuale, più una seconda riga quando c'è: l'obiettivo sotto lo SLI, i minuti rimanenti sotto l'error budget. Un'etichetta di stato colora l'insieme.
+- **Grafico** disegna lo stesso numero sull'intervallo di tempo della dashboard, con l'obiettivo segnato da una linea tratteggiata sulla serie dello SLI. Lo storico viene scritto ogni pochi minuti dal worker di valutazione, quindi uno SLO appena creato appare vuoto nel grafico finché non viene valutato per la prima volta.
+
+Usalo quando la dashboard risponde a "stiamo rispettando ciò che abbiamo promesso?" piuttosto che a "che cosa sta succedendo adesso?".
+
+Il widget SLO funziona sulle [dashboard pubbliche](/docs/dashboards/sharing). Ciò che viene pubblicato sono i numeri principali dello SLO (nome, obiettivo, SLI attuale, error budget rimanente, burn rate e stato), qualunque sia quello che il widget disegna. La sua definizione resta privata: i monitor che osserva, le sue etichette, la descrizione, la query e la pianificazione della valutazione non vengono mai inviati a un visitatore pubblico. Un widget Tile pubblica solo quei numeri attuali; un widget Grafico pubblica anche lo storico dell'unica serie che disegna, e nient'altro.
+
+### SLO List
+
+Ogni SLO con il suo stato, lo SLI, l'error budget e il burn rate, a partire da quello con meno budget rimasto. Filtralo per stato o etichette, oppure con una **Label Variable** che i visualizzatori scelgono nella barra degli strumenti. [Metriche e dashboard degli SLO](/docs/slo/metrics) mostra entrambi i widget SLO all'opera.
+
+## Infrastruttura
+
+Ognuno di questi widget elenca le risorse che un agent o un collector comunica a OneUptime. Restringili per cluster, host o namespace nei loro filtri, e mostrali come elenco o come alveare.
+
+| Gruppo | Widget | Alimentato da |
+| --- | --- | --- |
+| **Host** | **Host**, con il loro stato di connessione, sistema operativo, CPU e memoria | Qualsiasi collector OpenTelemetry che invii `host.name` |
+| **Kubernetes** | **Pod**, **Nodi**, **Spazi dei nomi**, **Distribuzioni**, **StatefulSets**, **DaemonSets**, **Lavori**, **CronJobs** | L'[Agent Kubernetes](/docs/monitor/kubernetes-agent) |
+| **Docker** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Docker |
+| **Docker Swarm** | **Nodi**, **Servizi** | L'agent Docker Swarm |
+| **Podman** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Podman |
+| **Proxmox** | **Nodi**, **Guests** | L'agent Proxmox |
+| **VMware** | **Host**, **Virtual Machines** | L'agent VMware, o un vCenter che colleghi |
+| **Ceph** | **OSDs**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
+| **Array di storage** | **Volumi**, e **Hardware** come un muro colorato per stato | L'agent per array di storage |
+
+Usali per una pagina che unisca lo stato della tua infrastruttura alla telemetria dei carichi di lavoro che ci girano sopra.
+
+### Network Map
+
+I tuoi siti di rete disegnati sulla mappa del mondo, ciascuno fissato alla propria latitudine e longitudine e colorato in base allo stato dei monitor aggregato su di esso. I siti vicini condividono un indicatore con il conteggio stampato all'interno; un indicatore che rappresenta esattamente un sito apre quel sito quando ci fai clic.
+
+La mappa si inquadra sui siti che ha disegnato: una rete dentro un solo paese riempie l'inquadratura con quel paese, una distribuita su più continenti si apre sul mondo. Non ci sono controlli di zoom o di spostamento: un riquadro di dashboard è un'immagine, e la pagina Network Map sotto Network è il posto dove percorrere la gerarchia.
+
+Sopra la mappa indica quanti siti sono inattivi, perché un puntino rosso di due pixel tra duecento verdi non è qualcosa che si legga alla distanza da cui si guarda una dashboard. Sotto, una riga di copertura dice che cosa la mappa non mostra: i siti senza coordinate, e se è stato raggiunto il limite di righe.
+
+**Impostazioni**: titolo, vista mappa o elenco, numero massimo di siti disegnati, se stampare i nomi dei siti, e filtri per tipo di sito e per stato. I nomi dei siti si nascondono automaticamente quando la mappa diventa troppo affollata per leggerli; il tooltip continua a nominare ogni indicatore.
+
+Un sito compare solo se ha delle coordinate. Aggiungi latitudine e longitudine sul sito (o importale da un CSV) per fissarlo.
+
+## Fonti di dati esterne
+
+Il gruppo Fonti di dati esterne disegna un **Grafico**, un **Valore**, un **Indicatore** o una **Tabella** da un sistema che non appartiene a OneUptime: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch o qualsiasi API REST. Colleghi il sistema una volta, poi scrivi la query di ogni widget nel linguaggio di quel sistema. [Fonti di dati esterne](/docs/dashboards/data-sources) spiega come.
+
+## Ordinare elenchi e tabelle
+
+Fai clic sull'intestazione di una colonna per ordinare un elenco o una tabella in base a essa: un primo clic ordina come indica la tabella qui sotto, il clic successivo al contrario, e quello dopo riporta il widget al suo ordine. Sulla colonna in base a cui il widget è già ordinato, un clic inverte l'ordine. Una freccia indica la colonna in base a cui sono ordinate le righe.
+
+| Colonna | Primo clic | Clic successivo |
+| --- | --- | --- |
+| Uno stato o una gravità | Prima i peggiori | Prima i migliori |
+| Un orario | Prima i più recenti | Prima i meno recenti |
+| Un numero | Prima i più alti | Prima i più bassi |
+| Testo | Dalla A alla Z | Dalla Z alla A |
+
+Il peggiore segue l'ordine del tuo progetto: lo stato di un monitor in base alla sua priorità, la gravità e lo stato di un incidente o di un avviso in base all'ordine in cui li tieni, e una risorsa inattiva, non pronta o spenta prima di una sana. La fase di un pod ordina Failed, poi Unknown, poi Pending, poi Running e Succeeded. Lo SLI e il budget di errore di uno SLO, e il VMID di un guest Proxmox, ordinano prima i più bassi.
+
+Viene ordinato l'intero elenco, non solo le righe sullo schermo: un elenco che mostra 25 righe, ordinato con i peggiori prima, mostra i 25 peggiori di tutti. Le righe a pari merito mantengono l'ordine del widget. Una colonna in base a cui un elenco non può essere ordinato per intero, come il messaggio di un evento di sicurezza, non ordina.
+
+### Il tuo ordinamento
+
+Il tuo ordinamento è solo tuo: il tuo browser lo ricorda per quel widget su quella dashboard, così un ricaricamento o il riavvio di uno schermo a parete lo mantengono, e nessun altro lo vede. Il clic che riporta il widget al suo ordine dimentica il tuo ordinamento, e il widget segue poi il suo ordine, anche quando un editor lo cambia in seguito.
+
+### L'ordine che vedono tutti
+
+Per scegliere l'ordine in cui un widget si apre per tutti, modificalo e scegli l'ordine in **Ordina**, oppure fai clic sull'intestazione di una colonna nella sua **Live Preview**, poi fai clic su **Salva modifiche**. Vedi subito il nuovo ordine; chi ha ordinato il widget a modo suo mantiene il proprio ordinamento.
+
+I modelli di dashboard aprono i loro elenchi di host, nodi, pod, servizi Swarm e dispositivi di rete con i peggiori prima.
+
+Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonna e una direzione, per esempio `status:desc`. Un widget elenco rifiuta una colonna che non ha, e l'errore elenca gli ordinamenti che ha.
+
+## Su una dashboard pubblica
+
+Una [dashboard pubblica](/docs/dashboards/sharing) disegna la maggior parte dei widget per i suoi visitatori, e ciascuno mostra solo ciò per cui è stato configurato. Alcuni non possono essere mostrati senza una sessione con accesso:
+
+- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** e **Security Events Flow** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
+- I widget di Fonti di dati esterne vengono esclusi del tutto da una dashboard pubblica, perché le loro impostazioni sono la query stessa.
+
+## Quando un widget non può essere mostrato
+
+Un widget che non può essere disegnato mostra **Impossibile mostrare questo widget** al suo posto, e il resto della dashboard continua a funzionare. Succede quando OneUptime non ha alcun widget del suo tipo (uno che è stato rimosso, scritto in modo errato quando la dashboard è stata creata tramite l'API, o aggiunto da una versione più recente), oppure quando il widget fallisce mentre viene disegnato, per esempio perché le sue impostazioni salvate sono incomplete.
+
+Se puoi modificare la dashboard, fai clic su **Modifica widget** sul widget. La dashboard passa in modalità di modifica con le impostazioni di quel widget aperte: correggile, oppure fai clic su **Elimina widget**, poi su **Salva modifiche**. Un widget che è fallito mentre veniva disegnato offre anche **Riprova**, e viene disegnato di nuovo al prossimo aggiornamento automatico o quando cambi l'intervallo di tempo.
+
+Ai visitatori di una dashboard pubblica viene detto solo che il widget non può essere mostrato.
+
+## Passaggi successivi
+
+:::cards
+- [Variabili e filtri della dashboard](/docs/dashboards/variables): Lascia che i visualizzatori puntino i widget su un servizio, un host o un cliente.
+- [Fonti di dati esterne](/docs/dashboards/data-sources): Rappresenta Prometheus, SQL, Loki e altro accanto ai tuoi dati.
+- [Creare una dashboard](/docs/dashboards/authoring): Aggiungi, disponi e salva i widget.
+- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing): Condividi la dashboard fuori dal tuo team.
+:::

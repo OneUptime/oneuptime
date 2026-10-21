@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/KubernetesClusterOwnerUser";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
@@ -10,8 +10,9 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import KubernetesClusterService from "./KubernetesClusterService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -22,21 +23,17 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here.
+     * to be built from what was read here: the rows the delete removes, and
+     * the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         kubernetesClusterId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -87,10 +84,11 @@ export class Service extends DatabaseService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -117,15 +115,14 @@ export class Service extends DatabaseService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}.`,
+          })}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}.`.toString(),
         userId: createdByUserId || undefined,
       });
     }

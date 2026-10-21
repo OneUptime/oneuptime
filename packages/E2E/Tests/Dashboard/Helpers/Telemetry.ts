@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { getCardButton } from "../../Helpers/CardButton";
 import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
@@ -22,9 +23,11 @@ const secretKeyRegex: RegExp = /^[0-9a-fA-F-]{36}$/;
 
 /*
  * Registers-nothing: assumes the caller already created a project. Navigates
- * to Settings > Telemetry Ingestion Keys, creates a key from the ModelTable
- * create modal, opens the key detail page, reveals the secret, and returns it
- * so the caller can use it as the OTLP ingestion token.
+ * to Settings > Telemetry Ingestion Keys and creates a key from the table's
+ * create dialog - one page for a Server key: the name (filled in as "Server
+ * key", replaced here), Server already picked - after which the new key
+ * opens on its own page. Reveals the secret there and returns it so the
+ * caller can use it as the OTLP ingestion token.
  */
 type CreateTelemetryIngestionKeyFunction = (data: {
   page: Page;
@@ -46,65 +49,60 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       )
       .toString();
 
+    /*
+     * The card's own Create button: a project's first key is created from an
+     * empty list, which offers the same button again under its message.
+     */
+    const createButton: Locator = getCardButton(page, "Create Ingestion Key");
+
     await gotoProjectPage({
       page,
       projectId: data.projectId,
       url: ingestionKeysUrl,
-      ready: page.getByRole("button", { name: "Create Ingestion Key" }),
+      ready: createButton,
     });
 
-    // Open the create modal and fill in the key name.
-    await page.getByRole("button", { name: "Create Ingestion Key" }).click();
-    await page.getByTestId("modal").waitFor({ state: "visible" });
-    await page
-      .locator("input[placeholder='Ingestion Key Name']")
-      .first()
-      .fill(data.keyName);
+    // Open the create dialog and name the key.
+    await createButton.click();
     const modal: Locator = page.getByTestId("modal");
-    const submitButton: Locator = modal.getByTestId(
-      "modal-footer-submit-button",
-    );
-    await expect(submitButton).toHaveText("Next");
-    await submitButton.click();
+    await modal.waitFor({ state: "visible" });
+    const nameInput: Locator = modal.getByPlaceholder("Ingestion Key Name", {
+      exact: true,
+    });
+    await expect(nameInput).toHaveValue("Server key");
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
-    await submitButton.click();
+    await nameInput.fill(data.keyName);
 
+    const submitButton: Locator = modal.getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    /*
+     * On the Free plan the dialog walks on to a Billing step, the last one,
+     * whose pricing is shown before the key can be created: until then the
+     * footer has a plain Next and no Create. Everywhere else the first page
+     * is the only one, and creates the key.
+     */
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
+      await expect(submitButton).toHaveCount(0);
+      await modal.getByTestId("modal-footer-next-button").click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
-      await expect(submitButton).toHaveText("Next");
-      await submitButton.click();
     }
 
     await expect(submitButton).toHaveText("Create Ingestion Key");
     await submitButton.click();
-    await page.getByTestId("modal").waitFor({ state: "hidden" });
 
-    /*
-     * The ModelTable stays on the list after create; the row exposes its
-     * detail page through a "View Ingestion Key" action button (singularName
-     * "Ingestion Key"). Scope to the row for our key, then open it.
-     */
+    // A new key opens on its own page, where its secret is.
     const keyDetailUrlRegex: RegExp = new RegExp(
       `/dashboard/${data.projectId}/settings/telemetry-ingestion-keys/[a-f0-9-]+`,
     );
-
-    if (!keyDetailUrlRegex.test(page.url())) {
-      const keyRow: Locator = page
-        .getByRole("row")
-        .filter({ hasText: data.keyName });
-      await keyRow
-        .getByRole("button", { name: "View Ingestion Key" })
-        .first()
-        .click();
-    }
-
     await expect(page).toHaveURL(keyDetailUrlRegex, { timeout: 60000 });
 
     // Reveal the secret key (HiddenText renders "Click to reveal" first).
@@ -270,6 +268,278 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
 
   expect(response.ok()).toBe(true);
 };
+
+/*
+ * One LLM call, as an app instrumented with the OpenTelemetry GenAI
+ * conventions sends it: a span carrying gen_ai.* attributes. Ingest marks it
+ * an LLM span (isLlmSpan), so it is listed on AI / LLM > Overview under
+ * Recent LLM Calls, with `model` in its Model column.
+ */
+/*
+ * What a person said and what the AI answered, sent the way the current
+ * OpenTelemetry GenAI conventions record them, with the conversation the
+ * call belongs to - enough for the call to show as a conversation.
+ */
+export interface LlmCallConversation {
+  conversationId: string;
+  question: string;
+  answer: string;
+  userEmail?: string | undefined;
+}
+
+type PostOtlpLlmCallFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  conversation?: LlmCallConversation | undefined;
+}) => Promise<void>;
+
+function conversationAttributes(
+  conversation: LlmCallConversation | undefined,
+): Array<{ key: string; value: { stringValue: string } }> {
+  if (!conversation) {
+    return [];
+  }
+
+  return [
+    {
+      key: "gen_ai.conversation.id",
+      value: { stringValue: conversation.conversationId },
+    },
+    {
+      key: "gen_ai.input.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "user",
+            parts: [{ type: "text", content: conversation.question }],
+          },
+        ]),
+      },
+    },
+    {
+      key: "gen_ai.output.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "assistant",
+            parts: [{ type: "text", content: conversation.answer }],
+            finish_reason: "stop",
+          },
+        ]),
+      },
+    },
+    ...(conversation.userEmail
+      ? [
+          {
+            key: "user.email",
+            value: { stringValue: conversation.userEmail },
+          },
+        ]
+      : []),
+  ];
+}
+
+export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  conversation?: LlmCallConversation | undefined;
+}): Promise<void> => {
+  const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+    .addRoute("/otlp/v1/traces")
+    .toString();
+
+  const startNano: string = nowUnixNano();
+  // 5ms after start so the call has a non-zero duration.
+  const endNano: string = `${Date.now() + 5}000000`;
+
+  const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+    headers: {
+      "content-type": "application/json",
+      "x-oneuptime-token": data.ingestionKey,
+    },
+    data: {
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              {
+                key: "service.name",
+                value: { stringValue: data.serviceName },
+              },
+            ],
+          },
+          scopeSpans: [
+            {
+              scope: { name: "e2e-llm-fixture" },
+              spans: [
+                {
+                  traceId: randomHex(16),
+                  spanId: randomHex(8),
+                  name: `chat ${data.model}`,
+                  kind: 3,
+                  startTimeUnixNano: startNano,
+                  endTimeUnixNano: endNano,
+                  attributes: [
+                    {
+                      key: "gen_ai.system",
+                      value: { stringValue: "openai" },
+                    },
+                    {
+                      key: "gen_ai.operation.name",
+                      value: { stringValue: "chat" },
+                    },
+                    {
+                      key: "gen_ai.request.model",
+                      value: { stringValue: data.model },
+                    },
+                    {
+                      key: "gen_ai.usage.input_tokens",
+                      value: { intValue: "12" },
+                    },
+                    {
+                      key: "gen_ai.usage.output_tokens",
+                      value: { intValue: "3" },
+                    },
+                    ...conversationAttributes(data.conversation),
+                  ],
+                  status: { code: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  expect(response.ok()).toBe(true);
+};
+
+/*
+ * A claude_code.llm_request span as Claude Code's traces beta exports it
+ * (code.claude.com/docs/en/monitoring-usage): the model under gen_ai.system
+ * and gen_ai.request.model, and its usage under Claude Code's own keys -
+ * input_tokens (which leaves the cache out), output_tokens,
+ * cache_read_tokens and cache_creation_tokens - with no gen_ai.usage.* key.
+ */
+export interface ClaudeCodeLlmRequestUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
+type PostOtlpClaudeCodeLlmRequestFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  sessionId: string;
+  usage: ClaudeCodeLlmRequestUsage;
+}) => Promise<void>;
+
+export const postOtlpClaudeCodeLlmRequest: PostOtlpClaudeCodeLlmRequestFunction =
+  async (data: {
+    page: Page;
+    ingestionKey: string;
+    serviceName: string;
+    model: string;
+    sessionId: string;
+    usage: ClaudeCodeLlmRequestUsage;
+  }): Promise<void> => {
+    const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/otlp/v1/traces")
+      .toString();
+
+    const startNano: string = nowUnixNano();
+    const endNano: string = `${Date.now() + 5}000000`;
+
+    const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+      headers: {
+        "content-type": "application/json",
+        "x-oneuptime-token": data.ingestionKey,
+      },
+      data: {
+        resourceSpans: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: "service.name",
+                  value: { stringValue: data.serviceName },
+                },
+              ],
+            },
+            scopeSpans: [
+              {
+                scope: { name: "com.anthropic.claude_code" },
+                spans: [
+                  {
+                    traceId: randomHex(16),
+                    spanId: randomHex(8),
+                    name: "claude_code.llm_request",
+                    kind: 3,
+                    startTimeUnixNano: startNano,
+                    endTimeUnixNano: endNano,
+                    attributes: [
+                      {
+                        key: "span.type",
+                        value: { stringValue: "llm_request" },
+                      },
+                      {
+                        key: "session.id",
+                        value: { stringValue: data.sessionId },
+                      },
+                      { key: "model", value: { stringValue: data.model } },
+                      {
+                        key: "gen_ai.system",
+                        value: { stringValue: "anthropic" },
+                      },
+                      {
+                        key: "gen_ai.request.model",
+                        value: { stringValue: data.model },
+                      },
+                      {
+                        key: "input_tokens",
+                        value: { intValue: String(data.usage.inputTokens) },
+                      },
+                      {
+                        key: "output_tokens",
+                        value: { intValue: String(data.usage.outputTokens) },
+                      },
+                      {
+                        key: "cache_read_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheReadTokens),
+                        },
+                      },
+                      {
+                        key: "cache_creation_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheCreationTokens),
+                        },
+                      },
+                      {
+                        key: "stop_reason",
+                        value: { stringValue: "end_turn" },
+                      },
+                    ],
+                    status: { code: 0 },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(response.ok()).toBe(true);
+  };
 
 type PostOtlpMetricsFunction = (data: {
   page: Page;

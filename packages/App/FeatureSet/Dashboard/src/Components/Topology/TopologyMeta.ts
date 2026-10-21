@@ -52,6 +52,7 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
     color: "#7dd3fc",
   },
   [EntityType.CephCluster]: { label: "Ceph Cluster", color: "#dc2626" },
+  [EntityType.StorageArray]: { label: "Storage Array", color: "#ea580c" },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     color: "#0e7490",
@@ -78,6 +79,11 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
     label: "Database Endpoint",
     color: "#8b5cf6",
   },
+  /*
+   * Membership-only as well (the Queues product's key); a darker teal than
+   * the Remote Service a queue's broker becomes on the service map.
+   */
+  [EntityType.MessageQueue]: { label: "Message Queue", color: "#115e59" },
   /*
    * Inventory-mirrored types. Greens, to read as one family distinct from the
    * telemetry-derived types above — on the graph these are things OneUptime

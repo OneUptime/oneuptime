@@ -24,6 +24,22 @@ import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus"
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
+import {
+  decideRunbookStepAction,
+  getStepAwaitingUser,
+  RunbookStepAction,
+} from "Common/Types/Runbook/RunbookStepAction";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import {
+  APPROVED_BY_LABEL,
+  APPROVE_TO_RUN_NOTE,
+  getRunWaitingTemplate,
+  getWaitingStepButtonTitle,
+  getWaitingStepStatusLabel,
+} from "../../../Components/Runbook/RunbookExecutionWaitCopy";
 import User from "Common/Models/DatabaseModels/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -45,6 +61,15 @@ import React, {
   useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RUNBOOK_EXECUTION_TRIGGER_SELECT,
+  UnattendedTriggerText,
+  getRunInputs,
+  getUnattendedTriggerText,
+} from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
+import RunbookRunInputs from "../../../Components/Runbook/Triggers/RunbookRunInputs";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -149,6 +174,8 @@ const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
   [RunbookStepType.AI]: IconProp.Sparkles,
   // Composed by OneUptime AI only, never authored in a runbook; keeps the map total.
   [RunbookStepType.Kubectl]: IconProp.Cube,
+  // Same: one command for an infrastructure resource's AI agent.
+  [RunbookStepType.ResourceCommand]: IconProp.Server,
 };
 
 const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
@@ -157,9 +184,11 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.HttpRequest]: "HTTP",
   [RunbookStepType.Bash]: "Bash",
   [RunbookStepType.SSH]: "SSH",
-  [RunbookStepType.Kubernetes]: "Kubernetes",
+  // The kubectl script step, whose stored type kept its old name.
+  [RunbookStepType.Kubernetes]: "kubectl",
   [RunbookStepType.AI]: "AI",
   [RunbookStepType.Kubectl]: "kubectl",
+  [RunbookStepType.ResourceCommand]: "AI agent command",
 };
 
 function isTerminal(status?: RunbookExecutionStatus): boolean {
@@ -178,17 +207,52 @@ function StatusBadge({ visual }: { visual: StatusVisual }): ReactElement {
       <span
         className={`inline-block w-1.5 h-1.5 rounded-full ${visual.dot}`}
       ></span>
-      {visual.label}
+      {translateText(visual.label)}
     </span>
   );
 }
 
-function renderTrigger(execution: RunbookExecution): ReactElement | null {
+function renderTrigger(
+  execution: RunbookExecution,
+  translator: Translator,
+): ReactElement | null {
+  // Its schedule, when it was due, or its webhook, and who called it.
+  const unattended: UnattendedTriggerText | null = getUnattendedTriggerText(
+    translator,
+    execution,
+  );
+
+  if (unattended) {
+    return (
+      <div
+        className="flex flex-wrap items-baseline gap-x-2 gap-y-1"
+        data-testid="runbook-run-trigger"
+        data-trigger={execution.triggerType}
+      >
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {unattended.label}
+        </span>
+        {unattended.details.map((line: string, index: number) => {
+          return (
+            <span
+              key={index}
+              className={
+                index === 0 ? "text-sm text-gray-900" : "text-sm text-gray-500"
+              }
+            >
+              {line}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (execution.incident) {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Incident
+          {translateText("Incident")}
         </span>
         <span className="text-sm text-gray-900">
           <IncidentElement incident={execution.incident as Incident} />
@@ -200,7 +264,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Alert
+          {translateText("Alert")}
         </span>
         <span className="text-sm text-gray-900">
           <AlertElement alert={execution.alert as Alert} />
@@ -214,7 +278,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Scheduled Maintenance
+          {translateText("Scheduled Maintenance")}
         </span>
         <span className="text-sm text-gray-900">
           {sm._id ? (
@@ -225,7 +289,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
                 { modelId: new ObjectID(sm._id as string) },
               )}
             >
-              <span>{sm.title || "View"}</span>
+              <span>{sm.title || translateText("View")}</span>
             </AppLink>
           ) : (
             <span>{sm.title || "—"}</span>
@@ -238,7 +302,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Manual run by
+          {translateText("Manual run by")}
         </span>
         <span className="text-sm text-gray-900">
           <UserElement user={execution.triggeredByUser as User} />
@@ -252,6 +316,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
 const ExecutionView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const params: Readonly<Record<string, string | undefined>> = useParams();
   const navigate: ReturnType<typeof useNavigate> = useNavigate();
   const executionId: ObjectID = new ObjectID(params["subModelId"] || "");
@@ -275,6 +340,9 @@ const ExecutionView: FunctionComponent<
     for (const s of steps) {
       if (s.completedByUserId) {
         userIdsToFetch.add(s.completedByUserId);
+      }
+      if (s.approvedByUserId) {
+        userIdsToFetch.add(s.approvedByUserId);
       }
     }
     if (userIdsToFetch.size === 0) {
@@ -345,6 +413,8 @@ const ExecutionView: FunctionComponent<
                 email: true,
                 profilePictureId: true,
               },
+              ...RUNBOOK_EXECUTION_TRIGGER_SELECT,
+              inputs: true,
             },
             requestOptions: {},
           });
@@ -515,7 +585,9 @@ const ExecutionView: FunctionComponent<
     return (
       <Card title="Runbook Execution" description="Not found.">
         <p className="text-sm text-gray-500">
-          This runbook execution could not be loaded. It may have been deleted.
+          {translator.translateText(
+            "This runbook execution could not be loaded. It may have been deleted.",
+          )}
         </p>
       </Card>
     );
@@ -542,18 +614,42 @@ const ExecutionView: FunctionComponent<
     isTerminal(execStatus) && Boolean(execution.runbookId);
 
   const pollSeconds: number = Math.round(POLL_INTERVAL_MS / 1000);
+
+  /*
+   * The step the run waits on, and why: the card names it - the step a
+   * person ticks off, the step that runs once someone approves it, or (in
+   * a run started before approvals moved) the step that ran and waits.
+   */
+  const awaitingStep: RunbookStepExecutionState | undefined =
+    getStepAwaitingUser({
+      executionStatus: execStatus,
+      stepExecutions: steps,
+    });
+  const awaitingWait: RunbookStepWait | undefined =
+    getRunbookStepWait(awaitingStep);
+
+  // Before the person who approved a step that waited for approval.
+  const approvedByLabel: string | undefined =
+    translator.translateText(APPROVED_BY_LABEL);
+
   const cardDescription: string =
-    execStatus === RunbookExecutionStatus.WaitingForManualStep
-      ? "Waiting on a manual step. Tick it off below to continue."
-      : execStatus === RunbookExecutionStatus.Running
-        ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
-        : execStatus === RunbookExecutionStatus.Completed
-          ? "All steps completed successfully."
-          : execStatus === RunbookExecutionStatus.Failed
-            ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
-            : execStatus === RunbookExecutionStatus.Cancelled
-              ? "This execution was cancelled."
-              : "Scheduled — waiting to start.";
+    awaitingStep && awaitingWait
+      ? translator.translateTemplate(getRunWaitingTemplate(awaitingWait), {
+          title: awaitingStep.step.title || "",
+        })
+      : execStatus === RunbookExecutionStatus.WaitingForManualStep
+        ? "Waiting on a manual step. Tick it off below to continue."
+        : execStatus === RunbookExecutionStatus.Running
+          ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
+          : execStatus === RunbookExecutionStatus.Completed
+            ? "All steps completed successfully."
+            : execStatus === RunbookExecutionStatus.Failed
+              ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
+              : execStatus === RunbookExecutionStatus.Cancelled
+                ? "This execution was cancelled."
+                : execution.startedAt
+                  ? "Continuing — queued to pick up where it paused."
+                  : "Scheduled — waiting to start.";
 
   const cardButtons: Array<CardButtonSchema> = [];
 
@@ -593,25 +689,47 @@ const ExecutionView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Stacked: the run's name and its buttons share the first line, and
+       * what the run waits on runs under both, across the card - beside two
+       * buttons in the narrower card a tablet or the side menu leaves, it was
+       * squeezed into a column a word wide.
+       */}
       <Card
         title={execution.runbookNameSnapshot || "Runbook Execution"}
         description={cardDescription}
         buttons={cardButtons}
+        headerLayout="stacked"
       >
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          {/*
+           * Four tiles across where the card is wide enough for a date on
+           * one line, two by two below that, and one above another on a
+           * phone, where two side by side cut a status or a date in pieces.
+           */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
+            data-testid="runbook-execution-tiles"
+          >
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Status
+                {translator.translateText("Status")}
               </div>
               <StatusBadge visual={execVisual} />
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Progress
+                {translator.translateText("Progress")}
               </div>
               <div className="text-sm font-medium text-gray-900">
-                {completedSteps} of {totalSteps} steps
+                {translator.translatePlural(
+                  {
+                    one: "{{completed}} of {{count}} step",
+                    other: "{{completed}} of {{count}} steps",
+                  },
+                  totalSteps,
+                  { completed: completedSteps },
+                )}
               </div>
               {totalSteps > 0 && (
                 <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -626,7 +744,7 @@ const ExecutionView: FunctionComponent<
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Started
+                {translator.translateText("Started")}
               </div>
               <div className="text-sm text-gray-900">
                 {execution.startedAt
@@ -638,7 +756,9 @@ const ExecutionView: FunctionComponent<
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                {execution.completedAt ? "Completed" : "Elapsed"}
+                {execution.completedAt
+                  ? translator.translateText("Completed")
+                  : translator.translateText("Elapsed")}
               </div>
               <div className="text-sm text-gray-900">
                 {execution.completedAt
@@ -646,25 +766,34 @@ const ExecutionView: FunctionComponent<
                       execution.completedAt,
                     )
                   : execution.startedAt
-                    ? "Running..."
+                    ? translator.translateText("Running...")
                     : "—"}
               </div>
             </div>
           </div>
 
           {(() => {
-            const trigger: ReactElement | null = renderTrigger(execution);
+            const trigger: ReactElement | null = renderTrigger(
+              execution,
+              translator,
+            );
             if (!trigger) {
               return null;
             }
             return (
               <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 mb-6">
                 <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Triggered by
+                  {translator.translateText("Triggered by")}
                 </div>
                 {trigger}
               </div>
             );
+          })()}
+
+          {(() => {
+            const inputs: JSONObject | null = getRunInputs(execution);
+
+            return inputs ? <RunbookRunInputs inputs={inputs} /> : null;
           })()}
 
           {execution.failureReason ? (
@@ -675,7 +804,9 @@ const ExecutionView: FunctionComponent<
                 className="text-rose-500 mt-0.5 shrink-0"
               />
               <div>
-                <div className="font-medium">Run failed</div>
+                <div className="font-medium">
+                  {translator.translateText("Run failed")}
+                </div>
                 <div className="mt-0.5 text-rose-700 whitespace-pre-wrap leading-relaxed">
                   {execution.failureReason}
                 </div>
@@ -691,18 +822,29 @@ const ExecutionView: FunctionComponent<
                 }`}
               ></span>
               {isRefreshing
-                ? "Refreshing now..."
+                ? translator.translateText("Refreshing now...")
                 : lastRefreshedAt
-                  ? `Live — last refreshed ${OneUptimeDate.getDateAsLocalFormattedString(
-                      lastRefreshedAt,
-                    )}. Auto-refreshing every ${pollSeconds} seconds.`
-                  : `Live — auto-refreshing every ${pollSeconds} seconds.`}
+                  ? translator.translateTemplate(
+                      "Live — last refreshed {{time}}. Auto-refreshing every {{seconds}} seconds.",
+                      {
+                        time: OneUptimeDate.getDateAsLocalFormattedString(
+                          lastRefreshedAt,
+                        ),
+                        seconds: pollSeconds,
+                      },
+                    )
+                  : translator.translateTemplate(
+                      "Live — auto-refreshing every {{seconds}} seconds.",
+                      { seconds: pollSeconds },
+                    )}
             </div>
           )}
 
           {steps.length === 0 ? (
             <p className="text-sm text-gray-500">
-              This runbook had no steps when it ran.
+              {translator.translateText(
+                "This runbook had no steps when it ran.",
+              )}
             </p>
           ) : (
             <div className="relative">
@@ -715,18 +857,44 @@ const ExecutionView: FunctionComponent<
               <ul className="space-y-3">
                 {steps.map(
                   (stepExec: RunbookStepExecutionState, idx: number) => {
-                    const stepVisual: StatusVisual =
-                      STEP_STATUS_VISUAL[stepExec.status];
-                    const isWaiting: boolean =
-                      stepExec.status ===
-                      RunbookStepExecutionStatus.WaitingForUser;
-                    const isWaitingForApproval: boolean =
-                      isWaiting &&
-                      stepExec.step.type !== RunbookStepType.Manual;
-                    const canSkip: boolean =
-                      stepExec.status ===
-                        RunbookStepExecutionStatus.WaitingForUser ||
-                      stepExec.status === RunbookStepExecutionStatus.Pending;
+                    /*
+                     * Why the run waits on this step, if it does: a Manual
+                     * step is "Waiting for you", a step that asks for
+                     * approval "Waiting for approval" - before it runs, or
+                     * (a run started before approvals moved) after it ran.
+                     */
+                    const wait: RunbookStepWait | undefined =
+                      getRunbookStepWait(stepExec);
+                    const stepVisual: StatusVisual = wait
+                      ? {
+                          ...STEP_STATUS_VISUAL[stepExec.status],
+                          label: getWaitingStepStatusLabel(wait),
+                        }
+                      : STEP_STATUS_VISUAL[stepExec.status];
+                    const isWaiting: boolean = wait !== undefined;
+                    /*
+                     * Offer only what the API accepts: completing the step
+                     * the run is paused on, skipping it, or skipping a later
+                     * automated step ahead of time while the run is paused.
+                     */
+                    const canComplete: boolean = decideRunbookStepAction({
+                      action: RunbookStepAction.Complete,
+                      executionStatus: execStatus,
+                      stepExecutions: steps,
+                      stepId: stepExec.step.id,
+                    }).allowed;
+                    const canSkip: boolean = decideRunbookStepAction({
+                      action: RunbookStepAction.Skip,
+                      executionStatus: execStatus,
+                      stepExecutions: steps,
+                      stepId: stepExec.step.id,
+                    }).allowed;
+                    /*
+                     * What moves the run on from the step it waits on: Mark
+                     * complete, Approve and run, or Approve & continue.
+                     */
+                    const waitingStepButtonTitle: string =
+                      getWaitingStepButtonTitle(wait || RunbookStepWait.Manual);
                     return (
                       <li key={stepExec.step.id} className="relative pl-12">
                         {/* Timeline dot */}
@@ -755,11 +923,28 @@ const ExecutionView: FunctionComponent<
                               : "border-gray-200"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
+                          {/*
+                           * The step, and the buttons that move the run on:
+                           * beside its words where the card has room for
+                           * both, and under them, at the card's right edge,
+                           * where it has not - decided by the card's own
+                           * width, not the screen's, so a narrow card (a
+                           * tablet, the side menu open, a long label in the
+                           * reader's language) never squeezes the words into
+                           * a column a word wide. The words keep at least
+                           * 16rem; the buttons wrap under them first.
+                           */}
+                          <div className="flex flex-wrap items-start gap-3">
+                            <div
+                              className="min-w-0 grow basis-64"
+                              data-testid={`runbook-execution-step-${idx}-words`}
+                            >
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span className="text-xs text-gray-400 font-medium">
-                                  Step {idx + 1}
+                                  {translator.translateTemplate(
+                                    "Step {{number}}",
+                                    { number: idx + 1 },
+                                  )}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
                                   <Icon
@@ -781,18 +966,152 @@ const ExecutionView: FunctionComponent<
                                   />
                                 </div>
                               )}
+                              {wait === RunbookStepWait.ApprovalToRun && (
+                                // A div: the icon draws a div of its own.
+                                <div
+                                  className="mt-2 flex items-center gap-1.5 text-sm text-amber-800"
+                                  data-testid={`runbook-execution-step-${idx}-approve-to-run`}
+                                >
+                                  <Icon
+                                    icon={IconProp.Lock}
+                                    size={SizeProp.Smaller}
+                                    className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                                  />
+                                  <span>
+                                    {translator.translateText(
+                                      APPROVE_TO_RUN_NOTE,
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {/*
+                               * When the step ran, and who approved it or
+                               * ticked it off - with its words, so where the
+                               * buttons wrap under the words they come last,
+                               * after everything there is to read.
+                               */}
+                              {(stepExec.startedAt ||
+                                stepExec.completedAt ||
+                                stepExec.completedByUserId ||
+                                stepExec.approvedByUserId) && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
+                                  {/*
+                                   * Who approved a step that asked for approval
+                                   * before it ran, first: it is why the step ran.
+                                   */}
+                                  {stepExec.approvedByUserId && (
+                                    <span
+                                      className="inline-flex items-center gap-1"
+                                      data-testid={`runbook-execution-step-${idx}-approved-by`}
+                                    >
+                                      {/* Kept on one line beside the person, as a phone narrows it. */}
+                                      <span className="whitespace-nowrap">
+                                        {approvedByLabel}
+                                      </span>
+                                      {stepUsers.get(
+                                        stepExec.approvedByUserId,
+                                      ) ? (
+                                        <UserElement
+                                          user={
+                                            stepUsers.get(
+                                              stepExec.approvedByUserId,
+                                            ) as User
+                                          }
+                                        />
+                                      ) : (
+                                        <span className="font-mono text-gray-400">
+                                          {stepExec.approvedByUserId.slice(
+                                            0,
+                                            8,
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.startedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Started {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.startedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Finished {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.completedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedByUserId &&
+                                    (stepExec.status ===
+                                      RunbookStepExecutionStatus.Completed ||
+                                      stepExec.status ===
+                                        RunbookStepExecutionStatus.Skipped) && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span className="whitespace-nowrap">
+                                          {stepExec.status ===
+                                          RunbookStepExecutionStatus.Skipped
+                                            ? translator.translateText(
+                                                "Skipped by",
+                                              )
+                                            : translator.translateText(
+                                                "Completed by",
+                                              )}
+                                        </span>
+                                        {stepUsers.get(
+                                          stepExec.completedByUserId,
+                                        ) ? (
+                                          <UserElement
+                                            user={
+                                              stepUsers.get(
+                                                stepExec.completedByUserId,
+                                              ) as User
+                                            }
+                                          />
+                                        ) : (
+                                          <span className="font-mono text-gray-400">
+                                            {stepExec.completedByUserId.slice(
+                                              0,
+                                              8,
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                    )}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
-                              {isWaiting && (
+                            {/*
+                             * On a phone the waiting step's buttons take the
+                             * card's width, as a dialog's do: the one that
+                             * moves the run on fills a line of its own, and
+                             * Skip sits centred under it - so however long
+                             * their words are in the reader's language, they
+                             * stay inside the card. A later step's lone Skip
+                             * keeps to the card's right edge.
+                             */}
+                            <div
+                              className="ml-auto flex flex-wrap items-center justify-end gap-2 empty:hidden max-sm:w-full"
+                              data-testid={`runbook-execution-step-${idx}-actions`}
+                            >
+                              {canComplete && (
                                 <Button
-                                  title={
-                                    isWaitingForApproval
-                                      ? "Approve & continue"
-                                      : "Mark complete"
-                                  }
+                                  title={waitingStepButtonTitle}
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
+                                  // Full width on a phone (Button's own), its own width beside the step.
+                                  className="sm:w-auto"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -805,6 +1124,11 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.OUTLINE}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.ChevronRight}
+                                  className={
+                                    canComplete
+                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center"
+                                      : undefined
+                                  }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);
                                   }}
@@ -814,56 +1138,6 @@ const ExecutionView: FunctionComponent<
                             </div>
                           </div>
 
-                          {(stepExec.startedAt ||
-                            stepExec.completedAt ||
-                            stepExec.completedByUserId) && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
-                              {stepExec.startedAt && (
-                                <span>
-                                  Started{" "}
-                                  {OneUptimeDate.getDateAsLocalFormattedString(
-                                    new Date(stepExec.startedAt),
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedAt && (
-                                <span>
-                                  Finished{" "}
-                                  {OneUptimeDate.getDateAsLocalFormattedString(
-                                    new Date(stepExec.completedAt),
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedByUserId &&
-                                (stepExec.status ===
-                                  RunbookStepExecutionStatus.Completed ||
-                                  stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped) && (
-                                  <span className="inline-flex items-center gap-1">
-                                    {stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped
-                                      ? "Skipped by"
-                                      : "Completed by"}
-                                    {stepUsers.get(
-                                      stepExec.completedByUserId,
-                                    ) ? (
-                                      <UserElement
-                                        user={
-                                          stepUsers.get(
-                                            stepExec.completedByUserId,
-                                          ) as User
-                                        }
-                                      />
-                                    ) : (
-                                      <span className="font-mono text-gray-400">
-                                        {stepExec.completedByUserId.slice(0, 8)}
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                            </div>
-                          )}
-
                           {stepExec.errorMessage && (
                             <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs flex items-start gap-2">
                               <Icon
@@ -872,7 +1146,9 @@ const ExecutionView: FunctionComponent<
                                 className="text-rose-500 mt-0.5 shrink-0"
                               />
                               <div>
-                                <div className="font-medium">Step failed</div>
+                                <div className="font-medium">
+                                  {translator.translateText("Step failed")}
+                                </div>
                                 <div className="mt-0.5 whitespace-pre-wrap leading-relaxed">
                                   {stepExec.errorMessage}
                                 </div>
@@ -902,13 +1178,21 @@ const ExecutionView: FunctionComponent<
                                 />
                                 <span className="group-open:hidden">
                                   {stepExec.step.type === RunbookStepType.AI
-                                    ? "Show AI response"
-                                    : "Show output / logs"}
+                                    ? translator.translateText(
+                                        "Show AI response",
+                                      )
+                                    : translator.translateText(
+                                        "Show output / logs",
+                                      )}
                                 </span>
-                                <span className="hidden group-open:inline">
+                                <span className="inline [details:not([open])>summary>&]:hidden">
                                   {stepExec.step.type === RunbookStepType.AI
-                                    ? "Hide AI response"
-                                    : "Hide output / logs"}
+                                    ? translator.translateText(
+                                        "Hide AI response",
+                                      )
+                                    : translator.translateText(
+                                        "Hide output / logs",
+                                      )}
                                 </span>
                               </summary>
                               {stepExec.step.type === RunbookStepType.AI ? (

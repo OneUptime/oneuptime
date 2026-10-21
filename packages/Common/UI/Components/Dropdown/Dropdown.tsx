@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
+import { createTranslator } from "../../Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -47,6 +48,13 @@ export interface DropdownOption {
    * Choosing the option emits `value`, never an alias.
    */
   aliases?: Array<DropdownValue>;
+  /*
+   * The label is something a person named - a variable, a record - drawn as
+   * it is, never looked up as a translation key: a variable named
+   * "Password" stays "Password" in German, never "Passwort". Left out, the
+   * label is English to look up.
+   */
+  isUserContent?: boolean | undefined;
 }
 
 export interface DropdownOptionGroup {
@@ -116,6 +124,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   };
   const uniqueId: string = useId();
   const errorId: string = `dropdown-error-${uniqueId}`;
+
+  // An option's label as drawn: as written when a person named it.
+  const getOptionLabelText: (option: DropdownOption) => string = (
+    option: DropdownOption,
+  ): string => {
+    if (option.isUserContent) {
+      return option.label;
+    }
+
+    return tx(option.label) ?? option.label;
+  };
 
   const isDropdownOptionGroup: (
     item: DropdownOption | DropdownOptionGroup,
@@ -527,7 +546,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           <div className="flex items-center gap-2">
             {renderOptionColorIndicator(option.color)}
             <span className="text-sm font-medium text-gray-900">
-              {tx(option.label) ?? option.label}
+              {getOptionLabelText(option)}
             </span>
           </div>
           {renderAssociatedLabels(
@@ -544,7 +563,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-2">
           {renderOptionColorIndicator(option.color)}
           <span className="text-sm font-medium text-gray-900">
-            {tx(option.label) ?? option.label}
+            {getOptionLabelText(option)}
           </span>
         </div>
         {option.description ? (
@@ -591,16 +610,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         GroupBase<DropdownOption>
       >,
     ): ReactElement => {
-      const optionLabel: string =
-        translateStringRef.current(removeProps.data.label) ??
-        removeProps.data.label;
+      const optionLabel: string = removeProps.data.isUserContent
+        ? removeProps.data.label
+        : translateStringRef.current(removeProps.data.label) ??
+          removeProps.data.label;
 
       return (
         <ReactSelectComponents.MultiValueRemove
           {...removeProps}
           innerProps={{
             ...removeProps.innerProps,
-            "aria-label": `Remove ${optionLabel}`,
+            "aria-label": createTranslator(
+              translateStringRef.current,
+            ).translateTemplate("Remove {{option}}", { option: optionLabel }),
           }}
         />
       );
@@ -661,7 +683,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onFocus={() => {
           props.onFocus?.();
         }}
-        aria-label={props.ariaLabel}
+        aria-label={tx(props.ariaLabel)}
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         aria-describedby={props.error ? errorId : undefined}
@@ -887,7 +909,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           className="mt-1 text-sm text-red-400"
           role="alert"
         >
-          {props.error}
+          {tx(props.error) ?? props.error}
         </p>
       )}
     </div>

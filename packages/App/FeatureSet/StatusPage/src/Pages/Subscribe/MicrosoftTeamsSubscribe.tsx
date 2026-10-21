@@ -6,7 +6,11 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
-import { SubscribePageProps } from "./SubscribePageUtils";
+import {
+  SubscribePageProps,
+  getSubscribePreferenceFields,
+  isSubscribeChannelMenuShown,
+} from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import URL from "Common/Types/API/URL";
@@ -33,7 +37,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export type ComponentProps = SubscribePageProps;
 
@@ -132,61 +135,21 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       required: true,
       placeholder: t("subscribe.microsoftTeams.webhookUrlPlaceholder"),
     },
+    // On a page that lets subscribers choose: Preferences, folded.
+    ...getSubscribePreferenceFields({
+      allowSubscribersToChooseResources: Boolean(
+        props.allowSubscribersToChooseResources,
+      ),
+      allowSubscribersToChooseEventTypes: Boolean(
+        props.allowSubscribersToChooseEventTypes,
+      ),
+      translate: (key: string): string => {
+        return t(key);
+      },
+      resourceOptions: categoryCheckboxOptionsAndCategories,
+      eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+    }),
   ];
-
-  if (props.allowSubscribersToChooseResources) {
-    fields.push({
-      field: {
-        isSubscribedToAllResources: true,
-      },
-      title: t("subscribe.resources.all"),
-      description: t("subscribe.resources.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageResources: true,
-      },
-      title: t("subscribe.resources.select"),
-      description: t("subscribe.resources.selectDescription"),
-      fieldType: FormFieldSchemaType.CategoryCheckbox,
-      required: false,
-      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllResources;
-      },
-    });
-  }
-
-  if (props.allowSubscribersToChooseEventTypes) {
-    fields.push({
-      field: {
-        isSubscribedToAllEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.all"),
-      description: t("subscribe.eventTypes.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.select"),
-      description: t("subscribe.eventTypes.selectDescription"),
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllEventTypes;
-      },
-    });
-  }
 
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
@@ -291,16 +254,22 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         },
       ]}
       sideMenu={
-        <SubscribeSideMenu
-          isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableSlackSubscribers={props.enableSlackSubscribers}
-          enableEmailSubscribers={props.enableEmailSubscribers}
-          enableSMSSubscribers={props.enableSMSSubscribers}
-          enableMicrosoftTeamsSubscribers={
-            props.enableMicrosoftTeamsSubscribers
-          }
-          enableWebhookSubscribers={props.enableWebhookSubscribers}
-        />
+        /*
+         * The channels, only when there is more than one to pick
+         * from (isSubscribeChannelMenuShown).
+         */
+        isSubscribeChannelMenuShown(props) ? (
+          <SubscribeSideMenu
+            isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+            enableSlackSubscribers={props.enableSlackSubscribers}
+            enableEmailSubscribers={props.enableEmailSubscribers}
+            enableSMSSubscribers={props.enableSMSSubscribers}
+            enableMicrosoftTeamsSubscribers={
+              props.enableMicrosoftTeamsSubscribers
+            }
+            enableWebhookSubscribers={props.enableWebhookSubscribers}
+          />
+        ) : undefined
       }
     >
       {isLaoding ? <FormSkeleton /> : <></>}

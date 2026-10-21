@@ -2,8 +2,11 @@ import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
+  CAN_BE_WHITE_LABELLED_DESCRIPTION,
+  CAN_BE_WHITE_LABELLED_TITLE,
   LicenseStatusPill,
   SeatUsageMeter,
+  WhiteLabelBadge,
   getLicenseLifecycle,
   isOverUserLimit,
 } from "../Components/LicenseUtil";
@@ -237,12 +240,17 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
            * left blank gets one from the server's CSPRNG
            * (EnterpriseLicenseService.onBeforeCreate).
            */
+          formSteps={[
+            { title: "Customer", id: "customer" },
+            { title: "License", id: "license" },
+          ]}
           formFields={[
             {
               field: {
                 companyName: true,
               },
               title: "Company Name",
+              stepId: "customer",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
@@ -252,6 +260,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 email: true,
               },
               title: "Email",
+              stepId: "customer",
               description:
                 "The address the customer booked their meeting with. Joins this licence to the conversion that produced it.",
               fieldType: FormFieldSchemaType.Email,
@@ -260,9 +269,20 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                annualContractValue: true,
+              },
+              title: "Annual Contract Value (USD)",
+              stepId: "customer",
+              fieldType: FormFieldSchemaType.PositiveNumber,
+              required: false,
+              placeholder: "0",
+            },
+            {
+              field: {
                 licenseKey: true,
               },
               title: "License Key",
+              stepId: "license",
               description: "Leave blank to auto-generate a key.",
               fieldType: FormFieldSchemaType.Text,
               required: false,
@@ -274,6 +294,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 expiresAt: true,
               },
               title: "Expires At",
+              stepId: "license",
               fieldType: FormFieldSchemaType.Date,
               required: true,
             },
@@ -282,6 +303,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 isEvaluationLicense: true,
               },
               title: "Evaluation License",
+              stepId: "license",
               description:
                 "Turn on for an evaluation/testing key. The customer's installation shows an evaluation notice and it is not meant for production use.",
               fieldType: FormFieldSchemaType.Toggle,
@@ -292,6 +314,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 userLimit: true,
               },
               title: "User Limit",
+              stepId: "license",
               description:
                 "Maximum number of users allowed under this license. Leave blank for no limit.",
               fieldType: FormFieldSchemaType.PositiveNumber,
@@ -300,17 +323,19 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
-                annualContractValue: true,
+                canBeWhiteLabelled: true,
               },
-              title: "Annual Contract Value (USD)",
-              fieldType: FormFieldSchemaType.PositiveNumber,
+              title: CAN_BE_WHITE_LABELLED_TITLE,
+              stepId: "license",
+              description: CAN_BE_WHITE_LABELLED_DESCRIPTION,
+              fieldType: FormFieldSchemaType.Toggle,
               required: false,
-              placeholder: "0",
             },
           ]}
           selectMoreFields={{
             userLimit: true,
             currentUserCount: true,
+            canBeWhiteLabelled: true,
           }}
           filters={[
             {
@@ -387,17 +412,18 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               title: "Type",
               type: FieldType.Element,
               getElement: (item: EnterpriseLicense): ReactElement => {
-                if (item.isEvaluationLicense) {
-                  return (
-                    <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
-                      Evaluation
-                    </span>
-                  );
-                }
-
                 return (
-                  <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                    Production
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    {item.isEvaluationLicense ? (
+                      <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+                        Evaluation
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                        Production
+                      </span>
+                    )}
+                    {item.canBeWhiteLabelled ? <WhiteLabelBadge /> : <></>}
                   </span>
                 );
               },

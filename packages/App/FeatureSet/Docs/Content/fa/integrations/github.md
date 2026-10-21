@@ -1,83 +1,130 @@
-# یکپارچه‌سازی GitHub
+# GitHub
 
-هنگام ساخت یک حادثه در OneUptime، به‌صورت خودکار یک issue در [GitHub](https://github.com) باز کنید — تا پیگیری مهندسی در همان مخزنی دنبال شود که مالک سرویس تحت تأثیر است.
+OneUptime به دو روش با [GitHub](https://github.com) کار می‌کند. مخزن‌هایتان را از طریق OneUptime GitHub App وصل کنید، تا OneUptime AI درخواست‌های ادغامی باز کند که آنچه را می‌یابد اصلاح می‌کنند، و وقتی در یک issue یا یک درخواست ادغام به آن اشاره می‌کنید پاسخ دهد. یا گردش کاری‌ای بسازید که برای هر حادثه یک issue در GitHub باز کند، تا کار پیگیری در مخزنی که مالک سرویس است دنبال شود.
 
-این یکپارچه‌سازی **خروجی** است: OneUptime [REST API مربوط به GitHub](https://docs.github.com/en/rest/issues/issues) را فراخوانی می‌کند. از یک **[گردش کاری](/docs/workflows/index)** در OneUptime با تریگر **Incident → On Create** و یک **مؤلفه API** استفاده می‌کند.
+:::cards
+- [انتخاب روش اتصال](#انتخاب-روش-اتصال): GitHub App یا یک گردش کاری، و اینکه هر کدام چه می‌کند.
+- [وصل کردن مخزن‌هایتان](#وصل-کردن-مخزنهایتان): GitHub App، برای درخواست‌های ادغام اصلاحی.
+- [باز کردن یک issue برای هر حادثه](#باز-کردن-یک-issue-در-github-برای-هر-حادثه): یک گردش کاری، دو بلوک.
+- [عیب‌یابی](#عیبیابی): وقتی GitHub یک درخواست را رد می‌کند.
+:::
 
-> **دنبال اتصال عمیق‌تر GitHub هستید؟** OneUptime یک یکپارچه‌سازی بومی **GitHub App** هم برای وصل کردن مخازن کد دارد (که عامل هوش مصنوعی و قابلیت‌های کد از آن استفاده می‌کنند). می‌توانید در خودِ مخزنتان با آن برنامه حرف بزنید — روی یک issue یا درخواست ادغام نامش را ببرید و پیاده‌سازی، بازنگری یا بازبینی می‌کند؛ [کار با OneUptime از درون GitHub](/docs/ai/github-app) را ببینید، و برای نصبش [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) را. این صفحه به‌طور مشخص درباره _ثبت issue از روی حادثه_ است.
+## چگونه کار می‌کند
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
+```mermaid title="دو روش کار OneUptime با GitHub"
+flowchart TB
+    app["GitHub App"] --> repos["مخزن‌های شما،<br/>واردشده"]
+    repos --> pr["درخواست‌های ادغام<br/>اصلاحی از<br/>OneUptime AI"]
+    declared["حادثه اعلام شد"] --> workflow["گردش کاری:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["issue در GitHub"]
 ```
 
-## پیش‌نیازها
+این دو جدا از هم‌اند، و می‌توانید از یکی یا هر دو استفاده کنید. GitHub App در مخزن‌هایی کار می‌کند که آن را رویشان نصب می‌کنید. گردش کاری فقط به یک توکن نیاز دارد، و [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) در GitHub را مانند هر API دیگری فرا می‌خواند.
 
-- یک مخزن GitHub که می‌خواهید issueها در آن ثبت شوند.
-- توکنی که بتواند issue بسازد:
+## انتخاب روش اتصال
 
-  - یک **PAT دقیق (fine-grained)** محدود به آن مخزن با دسترسی **Issues: Read and write**، یا
-  - یک **PAT کلاسیک** با دامنه `repo`.
+| روش | چه می‌کند | به چه نیاز دارد |
+| --- | --- | --- |
+| GitHub App | مخزن‌هایتان را وارد می‌کند. OneUptime AI در آن‌ها درخواست‌های ادغامی باز می‌کند که استثناها، ترِیس‌های کند و علت‌هایی را که بررسی‌هایش می‌یابند اصلاح می‌کنند، و به اشاره‌ها در issueها و درخواست‌های ادغام پاسخ می‌دهد. | یک سازمان یا حساب برای نصب برنامه روی آن. در OneUptime Cloud، طرح **Growth**. |
+| یک گردش کاری | برای هر حادثه، در مخزنی که برمی‌گزینید، یک issue در GitHub باز می‌کند. | یک توکن GitHub که بتواند issue بسازد، و یک گردش کاری با دو بلوک. |
 
-  یکی را در [github.com/settings/tokens](https://github.com/settings/tokens) بسازید.
+## وصل کردن مخزن‌هایتان
 
-- یک پروژه OneUptime که در آن بتوانید گردش کاری بسازید.
+**محصولات** > **کد** را باز کنید و روی **اتصال GitHub** کلیک کنید. GitHub می‌پرسد برنامه کجا نصب شود و از کدام مخزن‌ها می‌تواند استفاده کند. هر مخزن در این نصب وارد می‌شود، و وقتی مخزن‌هایی به نصب می‌افزایید یا از آن برمی‌دارید هماهنگ می‌ماند.
 
-## گام ۱ — ذخیره توکن
+اگر برنامه از پیش روی حساب نصب شده است، برای پروژه‌ای دیگر یا مستقیم از GitHub، به‌جای نصب دوباره، زیر **اتصال GitHub** روی **اتصال یک نصب موجود** کلیک کنید. این کار به یک حساب GitHub نیاز دارد که آن نصب را مدیریت کند: مالک یک حساب شخصی، یا کسی که روی همهٔ مخزن‌هایی که نصب به آن‌ها دسترسی دارد دسترسی admin دارد، همان‌طور که مالک سازمان دارد.
 
-1. به **Workflows → Global Variables → Create** بروید.
-2. نام آن را `GITHUB_TOKEN` بگذارید، توکن را در آن بگذارید و **Is Secret** را روشن کنید.
+یک نمونهٔ خودمیزبان ابتدا به یک GitHub App از آنِ خودش نیاز دارد: [یکپارچه‌سازی GitHub](/docs/self-hosted/github-integration) نشان می‌دهد چگونه آن را بسازید. از آن پس، هوش مصنوعی از [کد](/docs/ai/ai-agent) در مخزن‌هایتان درخواست‌های ادغام باز می‌کند، و صفحهٔ [GitHub App](/docs/ai/github-app) نشان می‌دهد وقتی در یک issue یا یک درخواست ادغام به آن اشاره می‌کنید چه می‌کند.
 
-## گام ۲ — ساخت گردش کاری
+## پیش از شروع
 
-1. **Workflows → Create Workflow** را باز کنید، نامش را `Incidents → GitHub Issues` بگذارید و **Builder** را باز کنید.
-2. یک تریگر **Incident** با تنظیم **On Create** اضافه کنید. نامش را به `Incident` تغییر دهید.
-3. یک بلوک **API** متصل به تریگر اضافه کنید:
+بقیهٔ این صفحه گردش کاری را می‌سازد. به این‌ها نیاز دارد:
 
-   - **Method**: `POST`
-   - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
-   - **Headers**:
+- یک توکن GitHub که بتواند در مخزن issue بسازد: یک توکن دسترسی شخصی fine-grained برای آن مخزن، با مجوز **Issues** روی **Read and write**، یا یک توکن classic با دامنهٔ `repo`. یکی را در [تنظیمات توکن](https://github.com/settings/tokens) در GitHub بسازید.
+- در OneUptime، اجازه ساختن گردش کاری و متغیر سراسری. در OneUptime Cloud، گردش‌های کاری به طرح **Growth** یا بالاتر نیاز دارند.
 
-     ```text
-     Authorization: Bearer {{variable.GITHUB_TOKEN}}
-     Accept: application/vnd.github+json
-     X-GitHub-Api-Version: 2022-11-28
-     User-Agent: OneUptime
-     ```
+## ذخیره کردن توکن
 
-   - **Body**:
+:::steps
+1. به **گردش‌های کاری** > **متغیرهای سراسری** بروید و روی **ساخت متغیر گردش کاری** کلیک کنید.
+2. نامش را `GITHUB_TOKEN` بگذارید و روی **بعدی** کلیک کنید.
+3. توکن را در **محتوا** بچسبانید، **راز** را روشن کنید، و روی **ساخت متغیر گردش کاری** کلیک کنید.
+:::
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "body": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": ["incident", "oneuptime"]
-     }
-     ```
+یک متغیر راز در لاگ‌های اجرا با `[REDACTED]` جایگزین می‌شود، پس توکن هرگز در یک اجرا دیده نمی‌شود.
 
-4. **Save** بزنید، فعالش کنید و یک حادثه آزمایشی بسازید. دیدن `201 Created` در گزارش‌های گردش کاری یعنی issue ساخته شده است؛ بدنه پاسخ شامل `number` و `html_url` آن است.
+## باز کردن یک issue در GitHub برای هر حادثه
+
+:::steps
+### ساختن گردش کاری
+
+به **گردش‌های کاری** بروید، روی **ساخت گردش کاری** و سپس **شروع از صفر** کلیک کنید. نامش را `Incidents to GitHub` بگذارید و روی **ساخت گردش کاری** کلیک کنید.
+
+### افزودن تریگر
+
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید: **Fields to pass on** آن از پیش **عنوان** را دارد، پس روی **افزودن فیلد** کلیک کنید و **توضیحات** و **Incident Number With Prefix** را برگزینید.
+
+### باز کردن issue
+
+روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **URL** آن را روی `https://api.github.com/repos/your-org/your-repo/issues` بگذارید، با مالک و نام مخزن خودتان. زیر **فیلدهای بیشتر**، **Request Headers** آن را روی این بگذارید:
+
+```json
+{
+  "Authorization": "Bearer {{global.variables.GITHUB_TOKEN}}",
+  "Accept": "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+}
+```
+
+و **Request Body** آن را روی این:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "body": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": ["incident"]
+}
+```
+
+### آزمایش، سپس روشن کردن
+
+روی **اجرای گردش کاری** کلیک کنید، زیر **حادثه** یک حادثهٔ آزمایشی را برگزینید و اجرا کنید. گام **API Post (JSON)** یک پاسخ `201` نشان می‌دهد که issue تازه را همراه با `number` و `html_url` آن در خود دارد. سپس در بالای **سازنده** گزینه **فعال** را روشن کنید.
+:::
+
+وقتی حادثه رفع می‌شود issue باز می‌ماند، چون کار پیگیری معمولاً بیش از خود حادثه طول می‌کشد. برای تیکت‌هایی که در هر دو سو با حادثه هماهنگ می‌مانند، [Jira](/docs/integrations/jira) را ببینید.
 
 ## نکته‌ها
 
-- **GitHub Enterprise Server**: از `https://your-host/api/v3/repos/{owner}/{repo}/issues` استفاده کنید.
-- **مسئولان / نقطه عطف**: `"assignees": ["octocat"]` یا `"milestone": 3` را به بدنه اضافه کنید.
-- **پیوند برگشتی**: مقدار `{{CreateIssue.response-body.html_url}}` را بخوانید و با یک بلوک **Update Incident** روی حادثه ذخیره کنید.
+- **GitHub Enterprise Server.** درخواست را به جای آن به سرور خودتان بفرستید: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. سروری با نشانی شبکهٔ خصوصی به یک OneUptime خودمیزبان نیاز دارد که مدیرش آن را مجاز کرده باشد: [دسترسی شبکه خروجی](/docs/workflows/configuration#دسترسی-شبکه-خروجی) را ببینید.
+- **واگذاری آن.** `"assignees": ["octocat"]` یا `"milestone": 3` را به بدنه بیفزایید. وقتی توکن نمی‌تواند به مخزن push کند، GitHub برچسب‌ها، واگذارشدگان و نقاط عطف را بی‌صدا کنار می‌گذارد.
+- **فقط برخی حادثه‌ها.** یک بلوک **If / Else** میان تریگر و بلوک API بگذارید، و issueها را فقط در سمت **Yes** آن باز کنید، برای نمونه برای یک شدت.
 
-## رفع اشکال
+## عیب‌یابی
 
-- **`401`** — توکن نادرست یا منقضی است. توکن‌های دقیق باید صریحاً به مخزن و دسترسی **Issues** اجازه بدهند.
-- **`403` / محدودیت نرخ** — هدر `User-Agent` را بگنجانید (GitHub درخواست‌های بدون آن را رد می‌کند) و بررسی کنید که به محدودیت نرخ نخورده باشید.
-- **`404`** — مسیر `owner/repo` نادرست است، یا توکن یک مخزن خصوصی را نمی‌بیند.
-- **`422`** — برچسبی که وجود ندارد اشکالی ندارد (GitHub برچسب‌های ارجاع‌شده را می‌سازد)، اما بدنه بدشکل مشکل‌ساز است — JSON خود را بررسی کنید.
+وقتی GitHub درخواست را رد می‌کند، گام **API Post (JSON)** به **Error** می‌رود. **Response Status** و **Response Body** آن در اجرا دلیل را می‌گویند.
 
-## در ادامه چه بخوانیم
+:::details GitHub با 401 پاسخ می‌دهد
+توکن نادرست، منقضی یا باطل است. یک توکن تازه بسازید، و محتوای `GITHUB_TOKEN` را جایگزین کنید.
+:::
 
-- [نمای کلی یکپارچه‌سازی‌ها](/docs/integrations/index) — الگوها و راهنمای سریع احراز هویت.
-- [GitLab](/docs/integrations/gitlab) — همین ایده برای GitLab.
-- [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) — اتصال بومی GitHub App.
-- [کار با OneUptime از درون GitHub](/docs/ai/github-app) — فرمان دادن به GitHub App از دل یک issue یا درخواست ادغام.
+:::details GitHub با 403 پاسخ می‌دهد
+توکن نمی‌تواند آنجا issue بسازد: یک توکن fine-grained بدون **Issues** روی **Read and write** برای این مخزن، توکنی که سازمانتان آن را تأیید نکرده، یا یک توکن classic که برای ورود یکپارچهٔ سازمانتان مجاز نشده است. یک 403 که بدنه‌اش از محدودیت نرخ می‌گوید یعنی توکن درخواست‌های بیش از حدی فرستاده است: صبر کنید، یا برای حادثه‌های کمتری issue باز کنید.
+:::
 
-## دسترسی شبکه برای استقرارهای خودمیزبان
+:::details GitHub با 404 پاسخ می‌دهد
+مالک یا مخزن در **URL** نادرست است، یا توکن نمی‌تواند مخزن را ببیند. GitHub برای مخزن خصوصی‌ای که توکن نمی‌تواند ببیند با 404 پاسخ می‌دهد، نه 403.
+:::
 
-گردش کار ایجاد مسئله در این صفحه به تفکیک نام DNS و HTTPS خروجی (TCP 443) از OneUptime به `api.github.com` نیاز دارد. این گردش کار به فراخوانی ورودی از GitHub نیاز ندارد. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+:::details GitHub با 410 یا 422 پاسخ می‌دهد
+- `410`: issueها در تنظیمات مخزن خاموش‌اند.
+- `422`: GitHub نمی‌تواند بدنه را بخواند. بررسی کنید که JSON معتبر باشد، که `title` تنظیم شده باشد، و که `labels` و `assignees` فهرست باشند.
+:::
 
-برای اطلاعات دربارهٔ اتصال‌های خروجی، فراخوانی‌های ورودی و استقرارهای خصوصی، بخش دسترسی شبکه در [یکپارچه‌سازی GitHub](/docs/self-hosted/github-integration) را ببینید.
+## گام‌های بعدی
+
+:::cards
+- [GitHub App](/docs/ai/github-app): از خود GitHub از OneUptime AI یک تغییر، یک بازنگری یا یک بازبینی بخواهید.
+- [GitLab](/docs/integrations/gitlab): همین گردش کاری، برای issueهای GitLab.
+- [اجزای گردش کاری](/docs/workflows/components#api): همه تنظیمات بلوک‌های API.
+- [نمای کلی یکپارچه‌سازی‌ها](/docs/integrations/index): الگوهایی که پشت هر یکپارچه‌سازی هستند.
+:::

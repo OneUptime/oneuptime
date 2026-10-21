@@ -1,5 +1,5 @@
 import { REDIRECT_PATHS, isRedirectPath } from "../Utils/Sitemap";
-import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import fs from "fs";
 import path from "path";
 
@@ -135,6 +135,89 @@ describe("Trust center routes", () => {
   });
 });
 
+describe("Legal routes", () => {
+  /*
+   * /legal rendered the Terms of Service under a second URL, so search
+   * engines saw two copies of one document. It redirects to /legal/terms
+   * permanently, which is still what every link to /legal shows. Each
+   * document hands legal.ejs its own SEO entry rather than leaving the
+   * request middleware to derive one from the path, so /Legal/DPA and
+   * /legal/dpa/ still name /legal/dpa as canonical.
+   */
+  const legalPaths: Array<string> = [
+    ...new Set<string>(
+      [...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ];
+
+  test("/legal permanently redirects to the terms it always showed", () => {
+    expect(hasGetRoute("/legal")).toBe(true);
+    expect(redirectTargetOf("/legal")).toBe("/legal/terms");
+    expect(redirectsPermanently("/legal")).toBe(true);
+    expect(bodyOfGetRoute("/legal")).not.toContain("res.render(");
+  });
+
+  test("the terms are still a page of their own", () => {
+    expect(redirectTargetOf("/legal/terms")).toBeNull();
+    expect(bodyOfGetRoute("/legal/terms")).toContain('section: "terms"');
+  });
+
+  test("nothing describes /legal as a page, or leads a breadcrumb trail through it", () => {
+    // A redirect has no title or description of its own to give a search.
+    expect(PageSEOConfig["/legal"]).toBeUndefined();
+
+    const trails: Array<[string, Array<string>]> = [
+      ...Object.values(PageSEOConfig),
+      getPageSEO("/legal/a-document-nobody-wrote"),
+    ].map((seo: PageSEOData): [string, Array<string>] => {
+      return [
+        seo.canonicalPath,
+        seo.breadcrumbs.map((crumb: { url: string }): string => {
+          return crumb.url;
+        }),
+      ];
+    });
+
+    for (const [pagePath, urls] of trails) {
+      expect([pagePath, urls.includes("/legal")]).toEqual([pagePath, false]);
+    }
+  });
+
+  test("every legal document is registered once", () => {
+    const declarations: Array<string> = [
+      ...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(legalPaths.length).toBe(29);
+    expect(declarations.length).toBe(legalPaths.length);
+  });
+
+  test.each(legalPaths)(
+    "%s renders its own section with its own SEO entry",
+    (legalPath: string) => {
+      const body: string = bodyOfGetRoute(legalPath)!;
+      const section: string = legalPath.replace("/legal/", "");
+
+      expect(body).toContain(`${"${ViewsPath}"}/legal.ejs`);
+      expect(body).toContain(`section: "${section}"`);
+      expect(body).toMatch(
+        new RegExp(`getSEOForPath\\(\\s*"${legalPath}",\\s*res\\.locals`),
+      );
+
+      const seo: PageSEOData | undefined = PageSEOConfig[legalPath];
+
+      expect(seo).toBeDefined();
+      expect(seo!.canonicalPath).toBe(legalPath);
+    },
+  );
+});
+
 describe("Nostr identity route", () => {
   /*
    * NIP-05 clients fetch this document from the browser, so it is only usable
@@ -148,6 +231,51 @@ describe("Nostr identity route", () => {
 
     expect(body).toContain('res.setHeader("Access-Control-Allow-Origin", "*")');
     expect(body).toContain("generateNostrWellKnown");
+  });
+});
+
+describe("MCP manifest route", () => {
+  /*
+   * What the manifest says is covered by AIDiscovery.test.ts. The route's own
+   * job is to exist, to answer cross-origin, and to tell the generator
+   * whether this instance has OAuth sign-in for the MCP server switched off:
+   * without that last part an instance running with DISABLE_MCP_OAUTH=true
+   * would still advertise a sign-in its MCP server refuses to offer.
+   */
+  test("the manifest is registered and served cross-origin", () => {
+    expect(hasGetRoute("/.well-known/mcp.json")).toBe(true);
+
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.setHeader("Access-Control-Allow-Origin", "*")');
+    expect(body).toContain("generateMcpManifest(");
+  });
+
+  test("the manifest is told whether OAuth sign-in is switched off on this instance", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    // Enabled unless the kill switch says otherwise - never the other way round.
+    expect(body).toContain("isOAuthEnabled: !DisableMcpOAuth");
+    expect(body).not.toContain("isOAuthEnabled: DisableMcpOAuth");
+  });
+
+  test("the kill switch is the instance's own setting, read from the environment config", () => {
+    const environmentImport: RegExpMatchArray | null = routesSource.match(
+      /import\s*\{([^}]*)\}\s*from\s*"Common\/Server\/EnvironmentConfig";/,
+    );
+
+    expect(environmentImport).not.toBeNull();
+    expect(
+      environmentImport![1]!.split(",").map((name: string): string => {
+        return name.trim();
+      }),
+    ).toContain("DisableMcpOAuth");
+  });
+
+  test("the manifest is still built for the URL the visitor asked on", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.locals["homeUrl"] as string');
   });
 });
 
@@ -186,6 +314,59 @@ describe("Sitemap hygiene", () => {
     for (const routePath of Array.from(REDIRECT_PATHS)) {
       expect(redirectTargetOf(routePath)).not.toBeNull();
     }
+  });
+
+  test("the short product addresses and /legal are excluded, and the pages they redirect to are routes", () => {
+    for (const [routePath, target] of [
+      ["/incident-management", "/product/incident-management"],
+      ["/ai-agent", "/product/ai-agent"],
+      ["/legal", "/legal/terms"],
+    ] as Array<[string, string]>) {
+      expect(redirectTargetOf(routePath)).toBe(target);
+      expect(isRedirectPath(routePath)).toBe(true);
+      expect(hasGetRoute(target)).toBe(true);
+      expect(isRedirectPath(target)).toBe(false);
+    }
+  });
+
+  test("/docs and /reference are excluded as redirects, though they are the app's, not routes here", () => {
+    for (const routePath of ["/docs", "/reference"]) {
+      expect(isRedirectPath(routePath)).toBe(true);
+      // The ingress sends them to the app: a route here would never be reached.
+      expect(hasGetRoute(routePath)).toBe(false);
+      // Kept apart from REDIRECT_PATHS, whose every path is a redirect route here.
+      expect(REDIRECT_PATHS.has(routePath)).toBe(false);
+    }
+
+    // Only the two addresses themselves: every page under them is a page.
+    expect(isRedirectPath("/docs/en/introduction/getting-started")).toBe(false);
+    expect(isRedirectPath("/reference/en/introduction")).toBe(false);
+  });
+
+  test("the retired tag sitemaps answer 410 Gone rather than a sitemap", () => {
+    const body: string | null = bodyOfGetRoute("/sitemap-tags-:page.xml");
+
+    expect(body).not.toBeNull();
+    expect(body).toContain("sendRetiredSitemap(res)");
+    expect(body).not.toContain("generateTagsSitemapXml");
+    expect(body).not.toContain("res.send(xml)");
+  });
+
+  test("a page's .md variant is never indexed, whether it is found or not", () => {
+    const start: number = routesSource.indexOf("app.get(/^\\/.+\\.md$/");
+
+    expect(start).toBeGreaterThan(-1);
+
+    const next: number = routesSource.indexOf("app.get(", start + 1);
+    const body: string = routesSource.slice(start, next);
+    const noindex: number = body.indexOf(
+      'res.setHeader("X-Robots-Tag", "noindex")',
+    );
+
+    expect(noindex).toBeGreaterThan(-1);
+    // Set before the handler answers, so the 404 carries it as well.
+    expect(noindex).toBeLessThan(body.indexOf("res.status(404)"));
+    expect(noindex).toBeLessThan(body.indexOf("sendAITextResponse("));
   });
 
   test("the self-hosted page is prioritised in the sitemap config", () => {
@@ -287,6 +468,99 @@ describe("VMware product page", () => {
   });
 });
 
+describe("Databases product page", () => {
+  /*
+   * The same three-way agreement - route, SEO entry, sitemap priority - plus
+   * the one thing this page needs that the others do not: the route hands
+   * the template the content its engine and monitor lists render from.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/databases")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/databases`);
+  });
+
+  test("it hands the template the product's catalogs", () => {
+    const body: string | null = bodyOfGetRoute("/product/databases");
+
+    expect(body).toContain("getSEOForPath(");
+    expect(body).toContain('"/product/databases"');
+    expect(body).toContain("databases: getDatabasesPageContent()");
+    expect(routesSource).toContain(
+      'import { getDatabasesPageContent } from "./Utils/Databases";',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/databases")).toBeNull();
+    expect(isRedirectPath("/product/databases")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/databases"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/databases");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/databases": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
+describe("Queues product page", () => {
+  /*
+   * Route, SEO entry and sitemap priority, plus the content its system and
+   * threshold lists render from, the way the Databases page is wired.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/queues")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/queues`);
+  });
+
+  test("it hands the template the product's catalogs", () => {
+    const body: string | null = bodyOfGetRoute("/product/queues");
+
+    expect(body).toContain("getSEOForPath(");
+    expect(body).toContain('"/product/queues"');
+    expect(body).toContain("queues: getQueuesPageContent()");
+    expect(routesSource).toContain(
+      'import { getQueuesPageContent } from "./Utils/Queues";',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/queues")).toBeNull();
+    expect(isRedirectPath("/product/queues")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/queues"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/queues");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/queues": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("SEO registration", () => {
   test("both new canonical pages resolve their own SEO data", () => {
     for (const pagePath of ["/enterprise/self-hosted", "/trust"]) {
@@ -313,5 +587,156 @@ describe("SEO registration", () => {
     );
 
     expect(new Set(canonicalPaths).size).toBe(canonicalPaths.length);
+  });
+});
+
+describe("One handler per path", () => {
+  /*
+   * Express answers a request with the first route that matches it, so a
+   * second registration of the same path never runs. Four paths had one:
+   * /product/status-page, /status-page, /legal/iso-27017 and
+   * /legal/iso-27018. Three were exact copies; the dead /product/status-page
+   * differed from the live one - it passed no SEO data, so the page would
+   * have lost its canonical URL had it been the copy that ran - which is how
+   * an edit made to whichever copy a reader finds first can quietly do
+   * nothing.
+   */
+  const blogApiSource: string = fs.readFileSync(
+    path.join(__dirname, "..", "API", "BlogAPI.ts"),
+    "utf-8",
+  );
+
+  function registeredGetPaths(source: string): Array<string> {
+    return Array.from(
+      source.matchAll(/app\.get\(\s*"([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+  }
+
+  test("no GET path is registered twice, in the route table or the blog", () => {
+    const paths: Array<string> = [
+      ...registeredGetPaths(routesSource),
+      ...registeredGetPaths(blogApiSource),
+    ];
+    const counts: Map<string, number> = new Map<string, number>();
+
+    // Express matches a path whatever its letter case, so compare them that way.
+    for (const routePath of paths) {
+      const key: string = routePath.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+
+    expect(paths.length).toBeGreaterThan(100);
+    expect(
+      Array.from(counts.entries())
+        .filter(([, count]: [string, number]): boolean => {
+          return count > 1;
+        })
+        .map(([routePath]: [string, number]): string => {
+          return routePath;
+        }),
+    ).toEqual([]);
+  });
+
+  test.each([
+    ["/product/status-page"],
+    ["/status-page"],
+    ["/legal/iso-27017"],
+    ["/legal/iso-27018"],
+  ])("%s is still served, by one handler", (routePath: string) => {
+    expect(
+      registeredGetPaths(routesSource).filter((registered: string) => {
+        return registered === routePath;
+      }),
+    ).toEqual([routePath]);
+  });
+
+  test("the /product/status-page that answers is the one that hands the page its SEO data", () => {
+    const body: string = bodyOfGetRoute("/product/status-page")!;
+
+    expect(body).toMatch(/getSEOForPath\(\s*"\/product\/status-page"/);
+    expect(body).toContain("`${ViewsPath}/status-page`");
+    expect(body).toMatch(/seo,\s*\}\)/);
+    expect(body).not.toContain("footerCtaText");
+  });
+
+  test.each([["/legal/iso-27017"], ["/legal/iso-27018"]])(
+    "%s renders its own section of the legal center",
+    (routePath: string) => {
+      const body: string = bodyOfGetRoute(routePath)!;
+
+      expect(body).toContain("`${ViewsPath}/legal.ejs`");
+      expect(body).toContain(`section: "${routePath.replace("/legal/", "")}"`);
+    },
+  );
+
+  test("/status-page still redirects permanently to the product page", () => {
+    expect(redirectTargetOf("/status-page")).toBe("/product/status-page");
+    expect(redirectsPermanently("/status-page")).toBe(true);
+  });
+});
+
+describe("Resellers routes", () => {
+  test("/resellers renders its page with its SEO entry and the resellers", () => {
+    const body: string | null = bodyOfGetRoute("/resellers");
+
+    expect(body).not.toBeNull();
+    expect(body).toMatch(/getSEOForPath\(\s*"\/resellers"/);
+    expect(body).toContain("`${ViewsPath}/resellers`");
+    expect(body).toContain("resellers: getResellersPageContent(");
+  });
+
+  test("the page names the inbox the form's route sends to", () => {
+    expect(bodyOfGetRoute("/resellers")).toContain(
+      "inquiryInbox: resellerInquiry.inbox.toString()",
+    );
+  });
+
+  test("the form's route is registered once, with the production settings", () => {
+    expect(
+      routesSource.split("registerResellerInquiryRoute(app, resellerInquiry)")
+        .length - 1,
+    ).toBe(1);
+    expect(
+      routesSource.split("createDefaultResellerInquiryOptions()").length - 1,
+    ).toBe(1);
+  });
+
+  test("/resellers.md lists the resellers rather than the page's description alone", () => {
+    expect(routesSource).toContain('pagePath === "/resellers"');
+    expect(routesSource).toContain("generateResellersMarkdown(");
+  });
+
+  test("/resellers is a page, not a redirect", () => {
+    expect(redirectTargetOf("/resellers")).toBeNull();
+    expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
+
+describe("Cloud marketplace routes", () => {
+  test("/pricing hands its page OneUptime Cloud's marketplace listings, from the one list", () => {
+    const body: string | null = bodyOfGetRoute("/pricing");
+
+    expect(body).not.toBeNull();
+    expect(body).toContain("`${ViewsPath}/pricing`");
+    expect(body).toContain("cloudMarketplaces: getCloudMarketplacesContent()");
+    expect(routesSource).toContain(
+      'import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";',
+    );
+  });
+
+  test("the Resellers and self-hosted pages get theirs inside their own content", () => {
+    // getResellersPageContent and getSelfHostedContent carry them.
+    expect(bodyOfGetRoute("/resellers")).toContain(
+      "resellers: getResellersPageContent(",
+    );
+    expect(routesSource).toContain("selfHosted: getSelfHostedContent()");
+  });
+
+  test("no route gives the section an address of its own: it is part of /resellers", () => {
+    expect(routesSource).not.toContain('"/cloud-marketplaces"');
+    expect(routesSource).not.toContain('"/marketplaces"');
   });
 });

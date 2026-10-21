@@ -204,9 +204,29 @@ describe("the list uses OneUptime facet chips", () => {
     expect(filters).toContain("firstSeenAt: true");
   });
 
+  /*
+   * The facet chips filter outside the table's own search and filters: the
+   * hook's emptyState tells the table about them, so a chip that matched
+   * nothing reads "nothing matches" with Clear Filters - not "Nothing here
+   * yet" and the setup guide.
+   */
   test("an empty facet result is not presented as an empty project", () => {
-    expect(code).toContain("hasActiveFilters ?");
-    expect(code).toContain("No inventory item matches the facets above.");
+    expect(code).toContain("emptyState: facetEmptyState,");
+    expect(code).toContain("...facetEmptyState,");
+    expect(code).not.toContain("No inventory item matches the facets above.");
+  });
+
+  test("an empty inventory says how items arrive, and links the setup guide", () => {
+    expect(code).toContain('title: "Nothing here yet."');
+    expect(code).toContain("icon: IconProp.Cube,");
+    expect(code).toContain(
+      "Items appear here on their own as you send OpenTelemetry data",
+    );
+    expect(code).toContain('title: "Read the setup guide"');
+    expect(code).toContain("style: TableEmptyStateActionStyle.Link,");
+    expect(code).toContain("PageMap.INVENTORY_DOCUMENTATION");
+    // The old full-page EmptyState (13rem of padding) no longer sits in the table.
+    expect(code).not.toContain("<EmptyState");
   });
 });
 
@@ -272,12 +292,17 @@ describe("the list is usable at estate scale", () => {
     expect(code).toContain('"entityKey"');
   });
 
-  test("the row action is View only", () => {
+  test("a row opens with View and is deleted from its ⋯ menu, never edited in place", () => {
     expect(code).toContain("isViewable={true}");
     expect(code).toContain("isEditable={false}");
-    expect(code).toContain("isDeleteable={false}");
+    // Delete in each row's ⋯ menu and in Bulk Actions, on both views.
+    expect(code).toContain("isDeleteable={true}");
     expect(code).not.toContain("isEditable={!isArchivedView}");
     expect(code).not.toContain("isDeleteable={!isArchivedView}");
+    // Archive is the reversible way off the live list only.
+    expect(code).toContain(
+      "isArchivedView ? undefined : ARCHIVE_INSTEAD_OF_DELETE",
+    );
   });
 
   test("the name column cannot be customized away", () => {
@@ -305,8 +330,29 @@ describe("the list is usable at estate scale", () => {
   });
 
   test("the empty state offers a way forward rather than a bare sentence", () => {
-    expect(code).toContain("<EmptyState");
-    expect(code).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
+    /*
+     * The shared table empty state, with the setup guide as a way forward -
+     * on the main list. The archive has its own ("No archived items"):
+     * nothing the setup guide does puts an item in it.
+     */
+    const liveStart: number = code.indexOf(
+      ': { ...facetEmptyState, title: "Nothing here yet."',
+    );
+    const liveEnd: number = code.indexOf(
+      "return ( <Fragment> <ModelTable<InventoryItem>",
+    );
+
+    expect(liveStart).toBeGreaterThan(-1);
+    expect(liveEnd).toBeGreaterThan(liveStart);
+
+    const live: string = code.slice(liveStart, liveEnd);
+
+    expect(code).toContain("emptyState={emptyState}");
+    expect(code).toContain(
+      "const emptyState: EmptyStateOptions = isArchivedView ? {",
+    );
+    expect(live).toContain("actions: [");
+    expect(live).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
   });
 
   test("rows open the inventory detail page", () => {
@@ -393,17 +439,34 @@ describe("the pages that mount the table", () => {
     expect(items).not.toContain("buildInventoryScopeQuery");
   });
 
-  test("the Overview folds one snapshot into both the tiles and the breakdown", () => {
+  test("the Overview renders one server snapshot into both the tiles and the breakdown", () => {
     /*
-     * Two fetches would let the strip and the breakdown be snapshots of
-     * different instants, and a per-tile count endpoint cannot express
-     * staleness at all.
+     * Two requests would let the strip and the breakdown be snapshots of
+     * different instants. Both come from one grouped count on the server.
      */
     const overview: string = readPage("Overview.tsx");
 
-    expect(overview).toContain("summarizeInventory");
-    expect(overview).toContain("buildInventoryBreakdown");
-    expect((overview.match(/ModelAPI\.getList/g) || []).length).toBe(1);
+    expect(overview).toContain(
+      "const overview: InventoryOverviewData = await fetchInventoryOverview();",
+    );
+    expect(overview).toContain("setCounts(overview.counts);");
+    expect(overview).toContain(
+      "setBreakdown(buildInventoryBreakdown(overview.countsByType));",
+    );
+    expect(overview).toContain("setRecent(overview.recentlyAdded);");
+  });
+
+  test("the Overview never counts a capped row list in the browser", () => {
+    /*
+     * It used to fetch up to LIMIT_PER_PROJECT rows and fold them here, and
+     * past that cap every number on the page described only part of the
+     * estate.
+     */
+    const overview: string = readPage("Overview.tsx");
+
+    expect(overview).not.toContain("ModelAPI");
+    expect(overview).not.toContain("LIMIT_PER_PROJECT");
+    expect(overview).not.toContain("summarizeInventory");
   });
 
   test("the Overview offers a way forward when the estate is empty", () => {

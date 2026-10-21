@@ -17,6 +17,12 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "Policies",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED, [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_READINESS, [
       "Project",
       "On-Call Duty",
@@ -42,6 +48,11 @@ export function getOnCallDutyBreadcrumbs(
       PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "On-Call Duty", "Microsoft Teams"],
     ),
+    // which chat workspaces are connected, and how to connect one
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
+      ["Project", "On-Call Duty", "Workspace"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULES, [
       "Project",
       "On-Call Duty",
@@ -63,12 +74,19 @@ export function getOnCallDutyBreadcrumbs(
 
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES,
-      ["Project", "On-Call Duty", "View On-Call Policy", "User Overrides"],
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "User Overrides",
+      ],
     ),
 
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS, [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
       "Owners",
     ]),
@@ -80,63 +98,135 @@ export function getOnCallDutyBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW, [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
-      ["Project", "On-Call Duty", "View On-Call Policy", "Escalation Rules"],
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Escalation Rules",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS,
-      ["Project", "On-Call Duty", "View On-Call Policy", "Logs"],
+      ["Project", "On-Call Duty", "Policies", "View On-Call Policy", "Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW,
-      ["Project", "On-Call Duty", "View On-Call Policy", "Timeline"],
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Logs",
+        "Timeline",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS,
-      ["Project", "On-Call Duty", "View On-Call Policy", "Custom Fields"],
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Custom Fields",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE, [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
       "Delete On-Call Policy",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS, [
       "Project",
       "On-Call Duty",
+      "Policies",
       "View On-Call Policy",
-      "Delete On-Call Policy",
+      "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Notification Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Audit Logs",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW, [
       "Project",
       "On-Call Duty",
+      "Schedules",
       "View On-Call Schedule",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS, [
       "Project",
       "On-Call Duty",
+      "Schedules",
       "View On-Call Schedule",
       "Layers",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS, [
       "Project",
       "On-Call Duty",
+      "Schedules",
       "View On-Call Schedule",
       "Owners",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
-      ["Project", "On-Call Duty", "View On-Call Schedule", "Settings"],
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Settings",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE, [
       "Project",
       "On-Call Duty",
+      "Schedules",
       "View On-Call Schedule",
       "Delete On-Call Schedule",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Notification Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Audit Logs",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALLDUTY_USER_TIME_LOGS, [
       "Project",
       "On-Call Duty",
@@ -290,6 +380,16 @@ export function getIncomingCallPolicyBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Audit Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE,
       [
         "Project",
@@ -297,16 +397,6 @@ export function getIncomingCallPolicyBreadcrumbs(
         "Incoming Call Policies",
         "View Policy",
         "Delete",
-      ],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS,
-      [
-        "Project",
-        "On-Call Duty",
-        "Incoming Call Policies",
-        "View Policy",
-        "Documentation",
       ],
     ),
   };

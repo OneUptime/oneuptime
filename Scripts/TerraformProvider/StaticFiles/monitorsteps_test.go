@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -172,6 +175,18 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 			"metric_monitor_options": types.StringValue(`{"metricAlias":"m1"}`),
 			"snmp_monitor_options":   types.StringValue(`{"oid":"1.3.6.1"}`),
 		}),
+		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+			"check_on":                 types.StringValue("Database Metric"),
+			"filter_type":              types.StringValue("Greater Than"),
+			"value":                    types.StringValue("90"),
+			"database_monitor_options": types.StringValue(`{"metricType":"oneuptime.monitor.database.connections.used.percent"}`),
+		}),
+		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+			"check_on":                    types.StringValue("Result Value"),
+			"filter_type":                 types.StringValue("Not Equal To"),
+			"value":                       types.StringValue("UP"),
+			"custom_code_monitor_options": types.StringValue(`{"resultValuePath":"data.items[0].status"}`),
+		}),
 	)
 
 	incident := monitorStepsTestObj(t, monitorStepsIncidentAttrTypes(), map[string]attr.Value{
@@ -222,6 +237,7 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 		"create_incidents":      types.BoolValue(true),
 		"create_alerts":         types.BoolValue(true),
 		"is_enabled":            types.BoolValue(true),
+		"open_for_every_email":  types.BoolValue(true),
 		"incident_grouping":     types.StringValue(`{"groupByJSONPath":"requestBody.alerts[*].labels.alertname"}`),
 		"filters":               offlineFilters,
 		"incidents":             monitorStepsTestObjList(t, monitorStepsIncidentAttrTypes(), incident),
@@ -397,6 +413,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    "createIncidents": true,
 	                    "createAlerts": true,
 	                    "isEnabled": true,
+	                    "openForEveryEmail": true,
 	                    "incidentGrouping": {"groupByJSONPath": "requestBody.alerts[*].labels.alertname"},
 	                    "filters": [
 	                      {"checkOn": "Is Online", "filterType": "False"},
@@ -407,6 +424,18 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                        "serverMonitorOptions": {"diskPath": "/"},
 	                        "metricMonitorOptions": {"metricAlias": "m1"},
 	                        "snmpMonitorOptions": {"oid": "1.3.6.1"}
+	                      },
+	                      {
+	                        "checkOn": "Database Metric",
+	                        "filterType": "Greater Than",
+	                        "value": "90",
+	                        "databaseMonitorOptions": {"metricType": "oneuptime.monitor.database.connections.used.percent"}
+	                      },
+	                      {
+	                        "checkOn": "Result Value",
+	                        "filterType": "Not Equal To",
+	                        "value": "UP",
+	                        "customCodeMonitorOptions": {"resultValuePath": "data.items[0].status"}
 	                      }
 	                    ],
 	                    "incidents": [
@@ -559,14 +588,14 @@ func TestMonitorStepsRoundTripMinimal(t *testing.T) {
 		}
 	}
 	criteriaAttrs := stepAttrs["criteria"].(types.List).Elements()[0].(types.Object).Attributes()
-	for _, name := range []string{"description", "monitor_status_id", "change_monitor_status", "create_incidents", "create_alerts", "is_enabled", "incidents", "alerts", "incident_grouping"} {
+	for _, name := range []string{"description", "monitor_status_id", "change_monitor_status", "create_incidents", "create_alerts", "is_enabled", "open_for_every_email", "incidents", "alerts", "incident_grouping"} {
 		v := criteriaAttrs[name]
 		if !v.IsNull() {
 			t.Fatalf("criteria attribute %q should be null after round trip, got %s", name, v)
 		}
 	}
 	filterAttrs := criteriaAttrs["filters"].(types.List).Elements()[0].(types.Object).Attributes()
-	for _, name := range []string{"value", "evaluate_over_time", "evaluate_over_time_minutes", "evaluate_over_time_type", "evaluate_over_time_no_data_policy", "disk_path", "metric_monitor_options", "snmp_monitor_options"} {
+	for _, name := range []string{"value", "evaluate_over_time", "evaluate_over_time_minutes", "evaluate_over_time_type", "evaluate_over_time_no_data_policy", "disk_path", "metric_monitor_options", "snmp_monitor_options", "database_monitor_options", "custom_code_monitor_options"} {
 		v := filterAttrs[name]
 		if !v.IsNull() {
 			t.Fatalf("filter attribute %q should be null after round trip, got %s", name, v)
@@ -621,9 +650,9 @@ func TestMonitorStepsFromAPIDropsServerExtras(t *testing.T) {
 	}
 }
 
-// A monitor created without monitor_steps gets server-default steps whose
-// telemetry sub-configs (logMonitor & co.) are populated. Importing such a
-// monitor maps them into the matching escape hatches.
+// A telemetry monitor made in the dashboard has steps whose telemetry
+// sub-configs (logMonitor & co.) are populated. Importing such a monitor maps
+// them into the matching escape hatches.
 func TestMonitorStepsFromAPIMapsInjectedSubConfigs(t *testing.T) {
 	ctx := context.Background()
 
@@ -1342,4 +1371,657 @@ func TestMonitorStepsSemanticEquals_URLSlashNormalization(t *testing.T) {
 	if equal {
 		t.Fatal("different URLs must stay unequal")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Fixture coverage
+// ---------------------------------------------------------------------------
+
+// The fully populated round trip only proves what its fixture sets. Every
+// attribute of every level must be set somewhere in monitorStepsFullUserList,
+// so an attribute added to the schema without a round trip fails here (as
+// database_monitor_options would have).
+func TestMonitorStepsFullUserListSetsEveryAttribute(t *testing.T) {
+	set := map[string]map[string]bool{}
+	mark := func(level string, obj types.Object) map[string]attr.Value {
+		if set[level] == nil {
+			set[level] = map[string]bool{}
+		}
+		attrs := obj.Attributes()
+		for name, v := range attrs {
+			if !v.IsNull() && !v.IsUnknown() {
+				set[level][name] = true
+			}
+		}
+		return attrs
+	}
+	objects := func(v attr.Value) []types.Object {
+		l, ok := v.(types.List)
+		if !ok || l.IsNull() || l.IsUnknown() {
+			return nil
+		}
+		out := make([]types.Object, 0, len(l.Elements()))
+		for _, el := range l.Elements() {
+			out = append(out, el.(types.Object))
+		}
+		return out
+	}
+
+	for _, step := range objects(monitorStepsFullUserList(t)) {
+		stepAttrs := mark("step", step)
+		for _, criteria := range objects(stepAttrs["criteria"]) {
+			criteriaAttrs := mark("criteria", criteria)
+			for _, filter := range objects(criteriaAttrs["filters"]) {
+				mark("filter", filter)
+			}
+			for _, incident := range objects(criteriaAttrs["incidents"]) {
+				mark("incident", incident)
+			}
+			for _, alert := range objects(criteriaAttrs["alerts"]) {
+				mark("alert", alert)
+			}
+		}
+	}
+
+	levels := []struct {
+		name      string
+		attrTypes map[string]attr.Type
+	}{
+		{"step", monitorStepsStepAttrTypes()},
+		{"criteria", monitorStepsCriteriaAttrTypes()},
+		{"filter", monitorStepsFilterAttrTypes()},
+		{"incident", monitorStepsIncidentAttrTypes()},
+		{"alert", monitorStepsAlertAttrTypes()},
+	}
+	for _, level := range levels {
+		names := make([]string, 0, len(level.attrTypes))
+		for name := range level.attrTypes {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			if !set[level.name][name] {
+				t.Errorf("monitorStepsFullUserList never sets the %s attribute %q, so no round trip covers it", level.name, name)
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Raw-JSON filter options: metric_monitor_options, snmp_monitor_options,
+// database_monitor_options and custom_code_monitor_options
+// ---------------------------------------------------------------------------
+
+// Every raw-JSON option a filter can carry: its attribute, the CriteriaFilter
+// key it is sent under, and a value as jsonencode() writes it (compact, keys
+// sorted) - which is also how FromAPI renders the server's object back.
+var monitorStepsFilterJSONOptionCases = []struct {
+	tfName string
+	apiKey string
+	json   string
+}{
+	{"metric_monitor_options", "metricMonitorOptions", `{"metricAggregationType":"Average","metricAlias":"m1"}`},
+	{"snmp_monitor_options", "snmpMonitorOptions", `{"interfaceName":"Gi0/1","oid":"1.3.6.1.2.1.2.2.1.8"}`},
+	{"database_monitor_options", "databaseMonitorOptions", `{"metricType":"oneuptime.monitor.database.connections.used.percent"}`},
+	{"custom_code_monitor_options", "customCodeMonitorOptions", `{"resultValuePath":"data.items[0].value"}`},
+}
+
+// monitorStepsCustomCodeList is a Custom Code monitor's steps: its script and
+// one criteria holding the given filters.
+func monitorStepsCustomCodeList(t *testing.T, filters ...types.Object) types.List {
+	t.Helper()
+	criteriaObj := monitorStepsTestObj(t, monitorStepsCriteriaAttrTypes(), map[string]attr.Value{
+		"name":             types.StringValue("Unhealthy"),
+		"filter_condition": types.StringValue("Any"),
+		"filters":          monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(), filters...),
+	})
+	stepObj := monitorStepsTestObj(t, monitorStepsStepAttrTypes(), map[string]attr.Value{
+		"custom_code": types.StringValue("return { data: { status: 'UP' } };"),
+		"criteria":    monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), criteriaObj),
+	})
+	return monitorStepsTestList(t, stepObj)
+}
+
+// monitorStepsResultValueFilter is a Result Value filter with the given
+// custom_code_monitor_options (none when options is empty).
+func monitorStepsResultValueFilter(t *testing.T, filterType string, value string, options string) types.Object {
+	t.Helper()
+	overrides := map[string]attr.Value{
+		"check_on":    types.StringValue("Result Value"),
+		"filter_type": types.StringValue(filterType),
+		"value":       types.StringValue(value),
+	}
+	if options != "" {
+		overrides["custom_code_monitor_options"] = types.StringValue(options)
+	}
+	return monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), overrides)
+}
+
+// monitorStepsWireFilters digs the first criteria's filters out of a wire
+// envelope, after a JSON round trip - as the server receives them.
+func monitorStepsWireFilters(t *testing.T, wire interface{}) []map[string]interface{} {
+	t.Helper()
+	envelope := monitorStepsTestJSONCopy(t, wire)
+	steps := envelope["value"].(map[string]interface{})["monitorStepsInstanceArray"].([]interface{})
+	step := steps[0].(map[string]interface{})["value"].(map[string]interface{})
+	instances := step["monitorCriteria"].(map[string]interface{})["value"].(map[string]interface{})["monitorCriteriaInstanceArray"].([]interface{})
+	raw := instances[0].(map[string]interface{})["value"].(map[string]interface{})["filters"].([]interface{})
+	out := make([]map[string]interface{}, 0, len(raw))
+	for _, f := range raw {
+		out = append(out, f.(map[string]interface{}))
+	}
+	return out
+}
+
+// monitorStepsListFilterAttrs returns the attributes of every filter of the
+// first criteria of the first step.
+func monitorStepsListFilterAttrs(t *testing.T, list types.List) []map[string]attr.Value {
+	t.Helper()
+	step := list.Elements()[0].(types.Object)
+	criteria := step.Attributes()["criteria"].(types.List).Elements()[0].(types.Object)
+	filters := criteria.Attributes()["filters"].(types.List).Elements()
+	out := make([]map[string]attr.Value, 0, len(filters))
+	for _, f := range filters {
+		out = append(out, f.(types.Object).Attributes())
+	}
+	return out
+}
+
+// Each option goes out under its own CriteriaFilter key - and only there - and
+// comes back into its own attribute unchanged.
+func TestMonitorStepsFilterJSONOptionsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	for _, tc := range monitorStepsFilterJSONOptionCases {
+		t.Run(tc.tfName, func(t *testing.T) {
+			filter := monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+				"check_on":    types.StringValue("Result Value"),
+				"filter_type": types.StringValue("Equal To"),
+				"value":       types.StringValue("UP"),
+				tc.tfName:     types.StringValue(tc.json),
+			})
+			original := monitorStepsCustomCodeList(t, filter)
+
+			wire, diags := MonitorStepsToAPI(ctx, original)
+			monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+			var options interface{}
+			if err := json.Unmarshal([]byte(tc.json), &options); err != nil {
+				t.Fatalf("test JSON does not parse: %v", err)
+			}
+			want := map[string]interface{}{
+				"checkOn":    "Result Value",
+				"filterType": "Equal To",
+				"value":      "UP",
+				tc.apiKey:    options,
+			}
+			if got := monitorStepsWireFilters(t, wire)[0]; !reflect.DeepEqual(got, want) {
+				t.Fatalf("%s went out as %#v, want %#v", tc.tfName, got, want)
+			}
+
+			back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
+			monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+			if !back.Equal(original) {
+				t.Fatalf("round trip mismatch.\noriginal: %s\nback:     %s", original, back)
+			}
+
+			filterAttrs := monitorStepsListFilterAttrs(t, back)[0]
+			for _, other := range monitorStepsFilterJSONOptionCases {
+				v := filterAttrs[other.tfName].(types.String)
+				if other.tfName == tc.tfName {
+					if v.ValueString() != tc.json {
+						t.Fatalf("%s came back as %s, want %s", tc.tfName, v, tc.json)
+					}
+					continue
+				}
+				if !v.IsNull() {
+					t.Fatalf("%s came back in %s too: %s", tc.tfName, other.tfName, v)
+				}
+			}
+		})
+	}
+}
+
+// The case table above must name every raw-JSON option the filter schema has,
+// so an option added to the schema is round-tripped too.
+func TestMonitorStepsFilterJSONOptionCasesCoverTheSchema(t *testing.T) {
+	attributes := monitorStepsFilterSchema().Attributes
+	inTable := map[string]bool{}
+	for _, tc := range monitorStepsFilterJSONOptionCases {
+		inTable[tc.tfName] = true
+		if _, ok := attributes[tc.tfName]; !ok {
+			t.Errorf("monitorStepsFilterJSONOptionCases names %s, which the filter schema does not have", tc.tfName)
+		}
+	}
+	for name, attribute := range attributes {
+		if !strings.HasSuffix(name, "_monitor_options") {
+			continue
+		}
+		if _, ok := attribute.(schema.StringAttribute); !ok {
+			t.Errorf("%s is a %T, want a raw-JSON string attribute", name, attribute)
+		}
+		if !inTable[name] {
+			t.Errorf("filter option %s has no case in monitorStepsFilterJSONOptionCases", name)
+		}
+	}
+}
+
+func TestMonitorStepsCustomCodeMonitorOptionsSchema(t *testing.T) {
+	raw, ok := monitorStepsFilterSchema().Attributes["custom_code_monitor_options"]
+	if !ok {
+		t.Fatal("the filter schema has no custom_code_monitor_options")
+	}
+	attribute, ok := raw.(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("custom_code_monitor_options is a %T, want a string attribute", raw)
+	}
+	if !attribute.Optional || attribute.Required || attribute.Computed || attribute.Sensitive {
+		t.Fatalf("custom_code_monitor_options must be optional only: optional=%t required=%t computed=%t sensitive=%t",
+			attribute.Optional, attribute.Required, attribute.Computed, attribute.Sensitive)
+	}
+	if got, ok := monitorStepsFilterAttrTypes()["custom_code_monitor_options"]; !ok || !got.Equal(types.StringType) {
+		t.Fatalf("custom_code_monitor_options attr type = %v, want types.StringType", got)
+	}
+
+	// The registry docs are rendered from this description.
+	for _, phrase := range []string{"Custom Code and Synthetic", "resultValuePath", "`Result Value`", "`data.items[0].value`", "`jsonencode()`"} {
+		if !strings.Contains(attribute.MarkdownDescription, phrase) {
+			t.Errorf("description %q does not mention %s", attribute.MarkdownDescription, phrase)
+		}
+	}
+
+	// Validated like every other escape hatch: an empty string is refused at
+	// plan time; the JSON itself is checked when it is sent.
+	cases := []struct {
+		value string
+		ok    bool
+	}{
+		{"", false},
+		{"{}", true},
+		{`{"resultValuePath":"status"}`, true},
+	}
+	for _, tc := range cases {
+		resp := &validator.StringResponse{}
+		for _, v := range attribute.Validators {
+			v.ValidateString(context.Background(), validator.StringRequest{
+				Path:        path.Root("custom_code_monitor_options"),
+				ConfigValue: types.StringValue(tc.value),
+			}, resp)
+		}
+		if got := !resp.Diagnostics.HasError(); got != tc.ok {
+			t.Errorf("validating %q: accepted=%t, want %t", tc.value, got, tc.ok)
+		}
+	}
+}
+
+// A Custom Code monitor set up in the dashboard: its Result Value filters'
+// field paths come back into custom_code_monitor_options - so an imported
+// monitor keeps them in state - and go out again unchanged, so an apply over
+// it no longer drops them.
+func TestMonitorStepsFromAPICustomCodeMonitorOptions(t *testing.T) {
+	ctx := context.Background()
+
+	filters := []interface{}{
+		// A field of the returned object.
+		map[string]interface{}{
+			"checkOn": "Result Value", "filterType": "Not Equal To", "value": "UP",
+			"customCodeMonitorOptions": map[string]interface{}{"resultValuePath": "status"},
+		},
+		// An array item's field, compared as a number.
+		map[string]interface{}{
+			"checkOn": "Result Value", "filterType": "Greater Than", "value": float64(500),
+			"customCodeMonitorOptions": map[string]interface{}{"resultValuePath": "checks[0].latency"},
+		},
+		// A path typed and then cleared in the dashboard leaves an empty object.
+		map[string]interface{}{
+			"checkOn": "Result Value", "filterType": "Equal To", "value": "DOWN",
+			"customCodeMonitorOptions": map[string]interface{}{},
+		},
+		// No path: the whole result is compared.
+		map[string]interface{}{
+			"checkOn": "Result Value", "filterType": "Equal To", "value": "DOWN",
+		},
+		// Not an object: nothing the attribute could hold, so it is dropped.
+		map[string]interface{}{
+			"checkOn": "Error", "filterType": "Is Not Empty",
+			"customCodeMonitorOptions": "status",
+		},
+		// A key this provider does not know yet rides along in the raw JSON.
+		map[string]interface{}{
+			"checkOn": "Result Value", "filterType": "True",
+			"customCodeMonitorOptions": map[string]interface{}{"resultValuePath": "healthy", "someFutureOption": true},
+		},
+	}
+	response := map[string]interface{}{
+		"_type": "MonitorSteps",
+		"value": map[string]interface{}{
+			"defaultMonitorStatusId": "status-operational",
+			"monitorStepsInstanceArray": []interface{}{
+				map[string]interface{}{
+					"_type": "MonitorStep",
+					"value": map[string]interface{}{
+						"id":         "server-step-id",
+						"customCode": "return { data: { status: 'UP', checks: [{ latency: 12 }], healthy: true } };",
+						"monitorCriteria": map[string]interface{}{
+							"_type": "MonitorCriteria",
+							"value": map[string]interface{}{
+								"monitorCriteriaInstanceArray": []interface{}{
+									map[string]interface{}{
+										"_type": "MonitorCriteriaInstance",
+										"value": map[string]interface{}{
+											"id":              "server-criteria-id",
+											"name":            "Unhealthy",
+											"filterCondition": "Any",
+											"incidents":       []interface{}{},
+											"alerts":          []interface{}{},
+											"filters":         filters,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	list, diags := MonitorStepsFromAPI(ctx, response)
+	monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+
+	// "" stands for null.
+	wantAttr := []string{
+		`{"resultValuePath":"status"}`,
+		`{"resultValuePath":"checks[0].latency"}`,
+		`{}`,
+		"",
+		"",
+		`{"resultValuePath":"healthy","someFutureOption":true}`,
+	}
+	filterAttrs := monitorStepsListFilterAttrs(t, list)
+	if len(filterAttrs) != len(wantAttr) {
+		t.Fatalf("read %d filters, want %d", len(filterAttrs), len(wantAttr))
+	}
+	for i, want := range wantAttr {
+		got := filterAttrs[i]["custom_code_monitor_options"].(types.String)
+		if want == "" {
+			if !got.IsNull() {
+				t.Fatalf("filter[%d].custom_code_monitor_options = %s, want null", i, got)
+			}
+			continue
+		}
+		if got.IsNull() || got.ValueString() != want {
+			t.Fatalf("filter[%d].custom_code_monitor_options = %s, want %s", i, got, want)
+		}
+	}
+
+	// What was read goes back out as it came in.
+	wire, diags := MonitorStepsToAPI(ctx, list)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+	wantWire := []interface{}{
+		map[string]interface{}{"resultValuePath": "status"},
+		map[string]interface{}{"resultValuePath": "checks[0].latency"},
+		map[string]interface{}{},
+		nil,
+		nil,
+		map[string]interface{}{"resultValuePath": "healthy", "someFutureOption": true},
+	}
+	wireFilters := monitorStepsWireFilters(t, wire)
+	for i, want := range wantWire {
+		got, present := wireFilters[i]["customCodeMonitorOptions"]
+		if want == nil {
+			if present {
+				t.Fatalf("filter[%d] sent customCodeMonitorOptions %#v, want none", i, got)
+			}
+			continue
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("filter[%d] sent customCodeMonitorOptions %#v, want %#v", i, got, want)
+		}
+	}
+}
+
+func TestMonitorStepsToAPIInvalidCustomCodeMonitorOptions(t *testing.T) {
+	ctx := context.Background()
+	cases := []struct {
+		name string
+		raw  string
+	}{
+		{"not JSON", `resultValuePath = "status"`},
+		{"a JSON string", `"status"`},
+		{"a JSON array", `["status"]`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			list := monitorStepsCustomCodeList(t, monitorStepsResultValueFilter(t, "Equal To", "UP", tc.raw))
+
+			_, diags := MonitorStepsToAPI(ctx, list)
+			if !diags.HasError() {
+				t.Fatalf("expected an error for custom_code_monitor_options = %s", tc.raw)
+			}
+			// The error names the attribute, so the reader can find it.
+			named := false
+			for _, d := range diags.Errors() {
+				if strings.Contains(d.Detail(), "monitor_steps[0].criteria[0].filters[0].custom_code_monitor_options") {
+					named = true
+				}
+			}
+			if !named {
+				t.Fatalf("no diagnostic names the attribute: %v", diags)
+			}
+		})
+	}
+}
+
+// The framework compares an apply's result (the receiver) with the plan.
+func TestMonitorStepsSemanticEquals_CustomCodeMonitorOptions(t *testing.T) {
+	ctx := context.Background()
+	planned := MonitorStepsValue{ListValue: monitorStepsCustomCodeList(t,
+		monitorStepsResultValueFilter(t, "Not Equal To", "UP", `{"resultValuePath":"status"}`),
+	)}
+
+	// The server's echo of those steps: ids and defaults filled in, and the
+	// filter's options as given (nil leaves them out).
+	echo := func(options interface{}) MonitorStepsValue {
+		filter := map[string]interface{}{"checkOn": "Result Value", "filterType": "Not Equal To", "value": "UP"}
+		if options != nil {
+			filter["customCodeMonitorOptions"] = options
+		}
+		response := map[string]interface{}{
+			"_type": "MonitorSteps",
+			"value": map[string]interface{}{
+				"defaultMonitorStatusId": "status-operational",
+				"monitorStepsInstanceArray": []interface{}{
+					map[string]interface{}{
+						"_type": "MonitorStep",
+						"value": map[string]interface{}{
+							"id":          "server-step-id",
+							"customCode":  "return { data: { status: 'UP' } };",
+							"requestType": "GET",
+							"monitorCriteria": map[string]interface{}{
+								"_type": "MonitorCriteria",
+								"value": map[string]interface{}{
+									"monitorCriteriaInstanceArray": []interface{}{
+										map[string]interface{}{
+											"_type": "MonitorCriteriaInstance",
+											"value": map[string]interface{}{
+												"id":              "server-criteria-id",
+												"name":            "Unhealthy",
+												"filterCondition": "Any",
+												"createIncidents": false,
+												"createAlerts":    false,
+												"isEnabled":       true,
+												"filters":         []interface{}{filter},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		list, diags := MonitorStepsFromAPI(ctx, response)
+		monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+		return MonitorStepsValue{ListValue: list}
+	}
+
+	t.Run("the path echoed beside the server's ids and defaults is no change", func(t *testing.T) {
+		equal, diags := echo(map[string]interface{}{"resultValuePath": "status"}).ListSemanticEquals(ctx, planned)
+		monitorStepsTestFatalOnDiagError(t, "ListSemanticEquals", diags)
+		if !equal {
+			t.Fatal("the server's echo of the planned path must semantically equal the plan")
+		}
+	})
+
+	t.Run("a different path is a change", func(t *testing.T) {
+		equal, _ := echo(map[string]interface{}{"resultValuePath": "state"}).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("a different resultValuePath must not compare equal")
+		}
+	})
+
+	t.Run("a path the server did not keep is a change, not silently lost", func(t *testing.T) {
+		equal, _ := echo(nil).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("steps without the planned custom_code_monitor_options must not compare equal")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// open_for_every_email
+// ---------------------------------------------------------------------------
+
+// monitorStepsTestFirstCriteriaWire is the first criteria's value map on the
+// wire: monitorStepsInstanceArray[0] -> monitorCriteria ->
+// monitorCriteriaInstanceArray[0].
+func monitorStepsTestFirstCriteriaWire(t *testing.T, wire map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	value := wire["value"].(map[string]interface{})
+	step := value["monitorStepsInstanceArray"].([]interface{})[0].(map[string]interface{})
+	stepValue := step["value"].(map[string]interface{})
+	criteria := stepValue["monitorCriteria"].(map[string]interface{})["value"].(map[string]interface{})
+	instance := criteria["monitorCriteriaInstanceArray"].([]interface{})[0].(map[string]interface{})
+	return instance["value"].(map[string]interface{})
+}
+
+// monitorStepsTestEmailSteps is one Incoming Email step whose criteria
+// declares an incident, with open_for_every_email set to the value given
+// (left unset for nil).
+func monitorStepsTestEmailSteps(t *testing.T, openForEveryEmail attr.Value) types.List {
+	t.Helper()
+	filterObj := monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+		"check_on":    types.StringValue("Email From Address"),
+		"filter_type": types.StringValue("Ends With"),
+		"value":       types.StringValue("@acme.example"),
+	})
+	overrides := map[string]attr.Value{
+		"name":             types.StringValue("Reported by email"),
+		"filter_condition": types.StringValue("All"),
+		"create_incidents": types.BoolValue(true),
+		"filters":          monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(), filterObj),
+	}
+	if openForEveryEmail != nil {
+		overrides["open_for_every_email"] = openForEveryEmail
+	}
+	criteriaObj := monitorStepsTestObj(t, monitorStepsCriteriaAttrTypes(), overrides)
+	stepObj := monitorStepsTestObj(t, monitorStepsStepAttrTypes(), map[string]attr.Value{
+		"criteria": monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), criteriaObj),
+	})
+	return monitorStepsTestList(t, stepObj)
+}
+
+// An Incoming Email monitor's criteria that opens an incident for every
+// email: open_for_every_email is sent as openForEveryEmail and read back the
+// same, true and false alike. The server keeps a false it is sent, so a
+// configuration that says false reads back false instead of drifting to
+// null; unset, nothing is sent and it stays null.
+func TestMonitorStepsOpenForEveryEmailRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	for _, value := range []bool{true, false} {
+		original := monitorStepsTestEmailSteps(t, types.BoolValue(value))
+
+		wire, diags := MonitorStepsToAPI(ctx, original)
+		monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+		criteria := monitorStepsTestFirstCriteriaWire(t, monitorStepsTestJSONCopy(t, wire))
+		if criteria["openForEveryEmail"] != value {
+			t.Fatalf("openForEveryEmail on the wire = %v, want %v", criteria["openForEveryEmail"], value)
+		}
+
+		back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
+		monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+		if !back.Equal(original) {
+			t.Fatalf("open_for_every_email = %v did not round trip.\noriginal: %s\nback:     %s", value, original, back)
+		}
+	}
+
+	unset := monitorStepsTestEmailSteps(t, nil)
+
+	wire, diags := MonitorStepsToAPI(ctx, unset)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+	criteria := monitorStepsTestFirstCriteriaWire(t, monitorStepsTestJSONCopy(t, wire))
+	if _, sent := criteria["openForEveryEmail"]; sent {
+		t.Fatal("an unset open_for_every_email must not be sent")
+	}
+
+	back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
+	monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+	if !back.Equal(unset) {
+		t.Fatalf("unset open_for_every_email did not round trip.\noriginal: %s\nback:     %s", unset, back)
+	}
+}
+
+// The framework compares the newer value (an apply result or a refresh) with
+// the prior one (the plan or the state): newer.ListSemanticEquals(prior).
+func TestMonitorStepsSemanticEquals_OpenForEveryEmail(t *testing.T) {
+	ctx := context.Background()
+
+	planned := MonitorStepsValue{ListValue: monitorStepsTestEmailSteps(t, types.BoolValue(true))}
+
+	wire, diags := MonitorStepsToAPI(ctx, planned.ListValue)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+	echo := func(mutate func(criteria map[string]interface{})) MonitorStepsValue {
+		response := monitorStepsTestJSONCopy(t, wire)
+		criteria := monitorStepsTestFirstCriteriaWire(t, response)
+		criteria["id"] = "server-generated"
+		criteria["isEnabled"] = true
+		criteria["createAlerts"] = false
+		mutate(criteria)
+		list, diags := MonitorStepsFromAPI(ctx, response)
+		monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+		return MonitorStepsValue{ListValue: list}
+	}
+
+	t.Run("the server's echo of a planned true, beside its ids and defaults, is no change", func(t *testing.T) {
+		equal, diags := echo(func(map[string]interface{}) {}).ListSemanticEquals(ctx, planned)
+		monitorStepsTestFatalOnDiagError(t, "ListSemanticEquals", diags)
+		if !equal {
+			t.Fatal("the echo of the planned open_for_every_email must semantically equal the plan")
+		}
+	})
+
+	t.Run("a planned true the server did not keep is a change, not silently lost", func(t *testing.T) {
+		equal, _ := echo(func(criteria map[string]interface{}) {
+			delete(criteria, "openForEveryEmail")
+		}).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("steps without the planned open_for_every_email must not compare equal")
+		}
+	})
+
+	t.Run("a planned true that came back false is a change", func(t *testing.T) {
+		equal, _ := echo(func(criteria map[string]interface{}) {
+			criteria["openForEveryEmail"] = false
+		}).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("open_for_every_email true and false must not compare equal")
+		}
+	})
 }

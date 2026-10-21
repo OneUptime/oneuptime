@@ -1,12 +1,13 @@
 {
   "preset": "ts-jest",
-  "testPathIgnorePatterns": ["node_modules", "dist", "<rootDir>/build/"],
+  "testPathIgnorePatterns": ["/node_modules/", "/dist/", "<rootDir>/build/"],
   "modulePathIgnorePatterns": ["<rootDir>/build/"],
   "verbose": true,
   "globals": {
     "ts-jest": {
       "tsconfig": "tsconfig.json",
-      "babelConfig": false
+      "babelConfig": false,
+      "isolatedModules": true
     }
   },
   "moduleFileExtensions": ["ts", "js", "json"],

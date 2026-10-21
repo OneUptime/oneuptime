@@ -192,7 +192,14 @@ jest.mock("Common/Server/Services/AlertEpisodeService", () => {
 jest.mock("Common/Server/Services/AlertService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), getAlertLinkInDashboard: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      // The affected-resource reads: nothing linked.
+      findAllBy: jest.fn(async () => {
+        return [];
+      }),
+      getAlertLinkInDashboard: jest.fn(),
+    },
   };
 });
 
@@ -206,7 +213,14 @@ jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
 jest.mock("Common/Server/Services/IncidentService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), getIncidentLinkInDashboard: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      // The affected-resource reads: nothing linked.
+      findAllBy: jest.fn(async () => {
+        return [];
+      }),
+      getIncidentLinkInDashboard: jest.fn(),
+    },
   };
 });
 

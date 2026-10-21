@@ -476,5 +476,176 @@ describe("PublicDashboardViewConfig", () => {
       expect(serialized).toContain("Public CPU");
       expect(serialized).toContain(DashboardComponentType.Chart);
     });
+
+    /*
+     * Issue #4571. A config is stored as it is sent, and the API reference
+     * documented it wrapped in `{"_type": "DashboardViewConfig", "value":
+     * {...}}` (and one widget in `{"_type": "DashboardComponent", "value":
+     * {...}}`). The dashboard now reads those shapes and draws their
+     * widgets (StoredDashboardViewConfig) - and before this, the sanitizer
+     * looked only at a top-level `components`, found none, and served the
+     * whole stored value, queries included. Every shape the dashboard reads
+     * is stripped the same way.
+     */
+    type StoredShape = (stored: DashboardViewConfig) => unknown;
+
+    function wrapEachWidget(
+      wrap: (component: unknown) => unknown,
+    ): StoredShape {
+      return (stored: DashboardViewConfig): unknown => {
+        return {
+          ...stored,
+          components: stored.components.map((component: unknown) => {
+            return wrap(component);
+          }),
+        };
+      };
+    }
+
+    const STORED_SHAPES: Array<[string, StoredShape]> = [
+      [
+        "the DashboardViewConfig envelope",
+        (stored: DashboardViewConfig): unknown => {
+          return { _type: "DashboardViewConfig", value: stored };
+        },
+      ],
+      [
+        "the envelope without its _type",
+        (stored: DashboardViewConfig): unknown => {
+          return { value: stored };
+        },
+      ],
+      [
+        "JSON text",
+        (stored: DashboardViewConfig): unknown => {
+          return JSON.stringify(stored);
+        },
+      ],
+      [
+        "the envelope as JSON text",
+        (stored: DashboardViewConfig): unknown => {
+          return JSON.stringify({
+            _type: "DashboardViewConfig",
+            value: stored,
+          });
+        },
+      ],
+      [
+        "a widget list keyed 0, 1, 2 ...",
+        (stored: DashboardViewConfig): unknown => {
+          const keyed: Record<string, unknown> = {};
+          stored.components.forEach((component: unknown, index: number) => {
+            keyed[String(index)] = component;
+          });
+          return { ...stored, components: keyed };
+        },
+      ],
+      [
+        "each widget in the DashboardComponent envelope",
+        wrapEachWidget((component: unknown): unknown => {
+          return { _type: "DashboardComponent", value: component };
+        }),
+      ],
+      [
+        "each widget as JSON text",
+        wrapEachWidget((component: unknown): unknown => {
+          return JSON.stringify(component);
+        }),
+      ],
+    ];
+
+    describe.each(STORED_SHAPES)(
+      "stored as %s",
+      (_name: string, shape: StoredShape) => {
+        it.each([
+          SQL_SECRET,
+          PROMQL_SECRET,
+          LEGEND_SECRET,
+          DATA_SOURCE_ID_SECRET,
+          "internal_capacity",
+          "internal_users",
+        ])("does not serialize %s", (secret: string) => {
+          const serialized: string = JSON.stringify(
+            sanitize(shape(leakyConfig())),
+          );
+
+          expect(serialized).not.toContain(secret);
+        });
+
+        it("serves the widgets a public viewer can render, as a widget list", () => {
+          const result: DashboardViewConfig | null = sanitize(
+            shape(leakyConfig()),
+          );
+
+          expect(Array.isArray(result!.components)).toBe(true);
+          expect(componentTypesOf(result)).toEqual([
+            DashboardComponentType.Chart,
+          ]);
+          expect(JSON.stringify(result)).toContain("Public CPU");
+        });
+      },
+    );
+  });
+
+  describe("where the widgets are (issue #4571)", () => {
+    it("serves the envelope's own config, not the envelope", () => {
+      const metricChart: DashboardBaseComponent = widget(
+        DashboardComponentType.Chart,
+      );
+
+      const result: DashboardViewConfig | null = sanitize({
+        _type: "DashboardViewConfig",
+        value: config([metricChart], { name: "Inner" }),
+      });
+
+      expect(Object.prototype.hasOwnProperty.call(result, "value")).toBe(false);
+      expect((result as unknown as Record<string, unknown>)["name"]).toBe(
+        "Inner",
+      );
+      // Each widget is still passed through untouched.
+      expect(result!.components[0]).toBe(metricChart);
+    });
+
+    it("leaves another type's envelope alone: nothing in it is a widget list", () => {
+      const result: DashboardViewConfig | null = sanitize({
+        _type: "MonitorSteps",
+        value: config([widget(DashboardComponentType.DataSourceChart)]),
+      });
+
+      expect(result!.components).toEqual([]);
+    });
+
+    it("a widget in the DashboardComponent envelope is served as the widget inside", () => {
+      const inner: DashboardBaseComponent = widget(DashboardComponentType.Text);
+
+      const result: DashboardViewConfig | null = sanitize(
+        config([{ _type: "DashboardComponent", value: inner }]),
+      );
+
+      expect(result!.components).toEqual([inner]);
+    });
+
+    it("a widget list that is one widget object is served as a list", () => {
+      const only: DashboardBaseComponent = widget(DashboardComponentType.Value);
+
+      const result: DashboardViewConfig | null = sanitize({
+        _type: ObjectType.DashboardViewConfig,
+        heightInDashboardUnits: 10,
+        components: only,
+      });
+
+      expect(result!.components).toEqual([only]);
+    });
+
+    it.each([
+      ["a number", 42],
+      ["text that is not JSON", "not json"],
+      ["a boolean", true],
+    ])(
+      "a stored value that is %s serves an empty widget list",
+      (_name: string, value: unknown) => {
+        expect(sanitize(value)!.components).toEqual([]);
+      },
+    );
   });
 });

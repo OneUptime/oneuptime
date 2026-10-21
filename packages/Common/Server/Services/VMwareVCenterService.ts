@@ -1,9 +1,20 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import VMwareVCenterLabelRuleEngineService from "./VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterOwnerRuleEngineService from "./VMwareVCenterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/VMwareVCenter";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+  ResourceAiAccessWriteCarryForward,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -12,6 +23,11 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -20,6 +36,19 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import VMwareVCenterConnection, {
+  VMWARE_CONNECTION_SAVED_SELECT,
+  VMwareConnectionChange,
+} from "../Utils/VMware/VMwareVCenterConnection";
+import VMwareProbeCollectionStore, {
+  VMwareCollectionReportOutcome,
+} from "../Utils/VMware/VMwareProbeCollectionStore";
+import {
+  VMwareCollectionJob,
+  VMwareCollectionReport,
+} from "../../Types/VMware/VMwareProbeCollection";
+import Select from "../Types/Database/Select";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "vmware-vcenter-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -47,9 +76,114 @@ export interface VMwareVCenterLastSeenExtras {
   datastoreUsedBytes?: number | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A vCenter is matched to its telemetry by its name (vmware.vcenter.name),
+ * so a rename is held to the rules a new vCenter is: no spaces around
+ * it, never blank, and never another vCenter's name
+ * (DiscoveredResourceUpdate).
+ */
+const VMWARE_VCENTER_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "vCenter",
+});
+
+/*
+ * What VMwareVCenterService's write hooks hand on to their success hooks:
+ * the AI access settings' carry (kept at the top level, where
+ * ResourceAiAccessSettings reads it) and the collection settings changes.
+ */
+interface VMwareVCenterWriteCarryForward {
+  vmwareConnectionChanges?: Array<VMwareConnectionChange> | undefined;
+}
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The collection probe is checked by VMwareVCenterConnection: a probe of
+   * the project's own - or, on a self-hosted install, one of the instance's
+   * global probes - with another project's probe answered like one that does
+   * not exist. The generic check would refuse every global probe.
+   */
+  protected override getRelationsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return ["collectionProbe"];
+  }
+
+  /*
+   * Claim the vCenters a probe collects that are due, and hand them out
+   * with their credentials (VMwareProbeCollectionStore).
+   */
+  public async claimForCollection(data: {
+    probeId: ObjectID;
+    runningVMwareVCenterIds: Array<string>;
+    limit: number;
+  }): Promise<Array<VMwareCollectionJob>> {
+    return await VMwareProbeCollectionStore.claimDueVCenters(this, data);
+  }
+
+  // Record what a probe found for a vCenter it collected.
+  public async recordCollectionReport(data: {
+    probeId: ObjectID;
+    report: VMwareCollectionReport;
+  }): Promise<VMwareCollectionReportOutcome> {
+    return await VMwareProbeCollectionStore.recordCollectionReport(this, data);
+  }
+
+  /*
+   * The server-only columns a collection settings write decides, written
+   * after the save without hooks (see VMwareVCenterConnection.afterWrite).
+   */
+  private async writeConnectionServerColumns(write: {
+    vmwareVCenterId: ObjectID;
+    values: Record<string, unknown>;
+    bumpSettingsVersion: boolean;
+  }): Promise<void> {
+    if (write.bumpSettingsVersion) {
+      await this.atomicAddToColumnsByIdWithoutHooks({
+        id: write.vmwareVCenterId,
+        add: { collectionSettingsVersion: 1 },
+        set: write.values as never,
+      });
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: write.vmwareVCenterId,
+      data: write.values as never,
+    });
+  }
+
+  private async afterConnectionWrites(data: {
+    changes: Array<VMwareConnectionChange>;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    for (const change of data.changes) {
+      await VMwareVCenterConnection.afterWrite({
+        change: change,
+        userId: data.userId,
+        writeServerColumns: async (write: {
+          vmwareVCenterId: ObjectID;
+          values: Record<string, unknown>;
+          bumpSettingsVersion: boolean;
+        }): Promise<void> => {
+          await this.writeConnectionServerColumns(write);
+        },
+      });
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: VMWARE_VCENTER_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()
@@ -95,6 +229,29 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * A vCenter created for probe collection: whether its password is saved,
+     * and that its probe collects it now (VMwareVCenterConnection).
+     */
+    const carryForward: VMwareVCenterWriteCarryForward | null =
+      (onCreate.carryForward as VMwareVCenterWriteCarryForward | null) || null;
+
+    if (createdItem.id && carryForward?.vmwareConnectionChanges?.length) {
+      await this.afterConnectionWrites({
+        changes: carryForward.vmwareConnectionChanges.map(
+          (change: VMwareConnectionChange): VMwareConnectionChange => {
+            return {
+              ...change,
+              vmwareVCenterId: createdItem.id!,
+              // The created feed item already says how it is collected.
+              feedLines: [],
+            };
+          },
+        ),
+        userId: onCreate.createBy.props.userId,
+      });
+    }
 
     return createdItem;
   }
@@ -196,8 +353,8 @@ export class Service extends DatabaseService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (inventory counts + datastore capacity, every
    * batch) and the fenced autoDiscoverVMwareVCenter maintenance path
-   * (agentVersion only — and usually an all-null fingerprint, since the
-   * shipped agent config does not stamp oneuptime.agent.version). The
+   * (agentVersion only — the oneuptime.agent.version the shipped agent
+   * config stamps). The
    * single fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra Postgres
    * UPDATE per maintenance-fence window (~5 min), which is accepted. Do
@@ -377,15 +534,20 @@ export class Service extends DatabaseService<Model> {
      * gives 3x headroom, and is also well above the receiver's default
      * 2-minute collection interval.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedVCenters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -454,7 +616,7 @@ export class Service extends DatabaseService<Model> {
   public async getVMwareVCenterMarkdownLink(
     projectId: ObjectID,
     vmwareVCenterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getVMwareVCenterName({
       vmwareVCenterId: vmwareVCenterId,
     });
@@ -463,7 +625,7 @@ export class Service extends DatabaseService<Model> {
       vmwareVCenterId,
     );
 
-    return `[vCenter ${name}](${link.toString()})`;
+    return mdText`[vCenter ${name}](${link.toString()})`;
   }
 
   private async writeVMwareVCenterCreatedFeed(
@@ -513,6 +675,142 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a vCenter settles its in-flight AI remediation rounds and removes
+   * its resource AI agent — read before the delete, done after it for the
+   * vCenters actually deleted (ResourceAiDeleteCleanup, shared by every
+   * resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.VMwareVCenter,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.VMwareVCenter,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new vCenter starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.VMwareVCenter,
+      createBy,
+    });
+
+    // Probe collection settings, checked and normalized in place.
+    const connectionChange: VMwareConnectionChange | null =
+      await VMwareVCenterConnection.prepareCreate(createBy);
+
+    // Nothing to carry for a vCenter that names no collection setting.
+    const carryForward: VMwareVCenterWriteCarryForward | null = connectionChange
+      ? { vmwareConnectionChanges: [connectionChange] }
+      : null;
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this vCenter — the rules every resource AI
+   * agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const aiAccessCarryForward: ResourceAiAccessWriteCarryForward | null =
+      await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.VMwareVCenter,
+        service: this,
+        updateBy,
+      });
+
+    /*
+     * Probe collection settings: checked against the row they change (the
+     * saved password is bound to its address, probe and certificate), and
+     * normalized in place.
+     */
+    let vmwareConnectionChanges: Array<VMwareConnectionChange> = [];
+
+    if (
+      VMwareVCenterConnection.isConnectionWrite(
+        updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      const saved: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        VMWARE_CONNECTION_SAVED_SELECT as Select<Model>,
+      );
+
+      vmwareConnectionChanges = await VMwareVCenterConnection.prepareUpdate({
+        updateBy: updateBy,
+        saved: saved.map((row: Model) => {
+          return {
+            _id: row._id?.toString(),
+            projectId: row.projectId,
+            collectionMethod: row.collectionMethod,
+            vcenterUrl: row.vcenterUrl,
+            vcenterUsername: row.vcenterUsername,
+            isVCenterPasswordSet: row.isVCenterPasswordSet,
+            collectionProbeId: row.collectionProbeId,
+            trustedCertificateFingerprint: row.trustedCertificateFingerprint,
+            presentedCertificate: row.presentedCertificate,
+          };
+        }),
+      });
+    }
+
+    /*
+     * The AI access carry stays at the top level, where
+     * ResourceAiAccessSettings.afterUpdate looks for it - exactly as it was
+     * when the write changes no collection setting.
+     */
+    if (vmwareConnectionChanges.length === 0) {
+      return { updateBy, carryForward: aiAccessCarryForward };
+    }
+
+    return {
+      updateBy,
+      carryForward: {
+        ...(aiAccessCarryForward || {}),
+        vmwareConnectionChanges: vmwareConnectionChanges,
+      },
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -523,6 +821,58 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    // Probe collection settings: what only the server writes, and the feed.
+    const connectionCarryForward: VMwareVCenterWriteCarryForward | null =
+      (onUpdate.carryForward as VMwareVCenterWriteCarryForward | null) || null;
+
+    if (connectionCarryForward?.vmwareConnectionChanges?.length) {
+      const updatedIds: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      await this.afterConnectionWrites({
+        changes: connectionCarryForward.vmwareConnectionChanges.filter(
+          (change: VMwareConnectionChange): boolean => {
+            return (
+              Boolean(change.vmwareVCenterId) &&
+              updatedIds.has(change.vmwareVCenterId!.toString())
+            );
+          },
+        ),
+        userId: onUpdate.updateBy.props.userId,
+      });
+    }
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the vCenter
+     * marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        vmwareVCenterId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getVMwareVCenterMarkdownLink(projectId, vmwareVCenterId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await VMwareVCenterFeedService.createVMwareVCenterFeedItem({
+          vmwareVCenterId: item.resourceId,
+          projectId: item.projectId,
+          vmwareVCenterFeedEventType:
+            VMwareVCenterFeedEventType.VMwareVCenterUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -575,7 +925,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getVMwareVCenterMarkdownLink(projectId, vmwareVCenterId);
 
       if (isArchiveChange) {
@@ -587,8 +937,8 @@ export class Service extends DatabaseService<Model> {
             : VMwareVCenterFeedEventType.VMwareVCenterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

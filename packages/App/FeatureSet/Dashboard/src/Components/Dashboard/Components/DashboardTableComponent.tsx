@@ -32,6 +32,22 @@ import {
   getDashboardDateTime,
 } from "../Utils/DashboardDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DASHBOARD_WIDGET_SORT_ARGUMENT,
+  DashboardWidgetSortChoice,
+  DashboardWidgetSortColumnInfo,
+  DashboardWidgetSortDirection,
+  DashboardWidgetSortKind,
+  findDashboardWidgetSortColumn,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
+import useDashboardWidgetSort, {
+  DashboardWidgetSortState,
+  useReportDashboardWidgetSortColumns,
+} from "Common/UI/Utils/UseDashboardWidgetSort";
+import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTableComponent;
@@ -52,15 +68,31 @@ interface ValueColumn {
 const TUPLE_SEPARATOR: string = "";
 
 /*
- * sortConfig.columnKey namespaces which column the viewer sorted on:
+ * A sort's column names which column the rows are ordered by:
  *   - "attr:<index>" → a group-by attribute column (grouped mode)
  *   - "timestamp"     → the time column (time-bucketed mode)
  *   - anything else   → a value column (its ValueColumn.key, e.g. "col:<id>")
  * Value column keys are always "col:"/"legacy:" prefixed, so they never
- * collide with these.
+ * collide with these. The same keys name the widget's own sort
+ * (`arguments.sort`, "col:<id>:desc") and a viewer's remembered pick.
  */
 const ATTR_SORT_PREFIX: string = "attr:";
 const TIMESTAMP_SORT_KEY: string = "timestamp";
+
+/*
+ * The table's own order, which it always had: grouped rows alphabetically
+ * by their attributes - the first attribute, then the rest - and
+ * time-bucketed rows oldest first.
+ */
+const GROUPED_DEFAULT_SORT: DashboardWidgetSortChoice = {
+  column: `${ATTR_SORT_PREFIX}0`,
+  direction: DashboardWidgetSortDirection.Ascending,
+};
+
+const TIME_DEFAULT_SORT: DashboardWidgetSortChoice = {
+  column: TIMESTAMP_SORT_KEY,
+  direction: DashboardWidgetSortDirection.Ascending,
+};
 
 interface ResolvedQueryData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -77,20 +109,12 @@ interface ResolvedQueryData {
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  /*
-   * Viewer-local UI state — not persisted in the widget config.
-   * sortConfig.columnKey is null when no value column sort is active
-   * (then rows fall back to the default attribute-tuple sort).
-   */
-  const [sortConfig, setSortConfig] = useState<{
-    columnKey: string | null;
-    direction: "asc" | "desc";
-  }>({ columnKey: null, direction: "desc" });
   const [searchText, setSearchText] = useState<string>("");
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
 
@@ -242,6 +266,74 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       return c.visible;
     });
   }, [valueColumns]);
+
+  /*
+   * The columns a header click sorts by (issue #5082): every attribute
+   * column (A to Z first) or the time column (newest first), and every
+   * shown metric or formula column (highest first). The table holds every
+   * row of its window before it trims to Max Rows, so it sorts them itself.
+   */
+  const sortColumns: Array<DashboardWidgetSortColumnInfo> = useMemo(() => {
+    const columns: Array<DashboardWidgetSortColumnInfo> = isGroupedMode
+      ? widgetGroupByAttributes.map(
+          (
+            attr: TableGroupByAttribute,
+            attrIndex: number,
+          ): DashboardWidgetSortColumnInfo => {
+            return {
+              key: `${ATTR_SORT_PREFIX}${attrIndex}`,
+              title: attr.header || attr.key,
+              kind: DashboardWidgetSortKind.Text,
+              isTitleUserText: true,
+            };
+          },
+        )
+      : [
+          {
+            key: TIMESTAMP_SORT_KEY,
+            title: "Timestamp",
+            kind: DashboardWidgetSortKind.Date,
+          },
+        ];
+
+    for (const column of visibleValueColumns) {
+      columns.push({
+        key: column.key,
+        title: column.label,
+        kind: DashboardWidgetSortKind.Number,
+        isTitleUserText: true,
+      });
+    }
+
+    return columns;
+  }, [isGroupedMode, widgetGroupByAttributes, visibleValueColumns]);
+
+  const widgetSort: DashboardWidgetSortState = useDashboardWidgetSort({
+    dashboardId: props.dashboardId,
+    componentId: props.componentId.toString(),
+    columns: sortColumns,
+    savedSort: (args as Record<string, unknown>)[
+      DASHBOARD_WIDGET_SORT_ARGUMENT
+    ],
+    builtInSort: isGroupedMode ? GROUPED_DEFAULT_SORT : TIME_DEFAULT_SORT,
+    onSavedSortChange: props.onWidgetSortChange,
+  });
+
+  useReportDashboardWidgetSortColumns(props.onWidgetSortColumnsChange, {
+    columns: sortColumns,
+    builtInSort: isGroupedMode ? GROUPED_DEFAULT_SORT : TIME_DEFAULT_SORT,
+  });
+
+  const sortConfig: { columnKey: string | null; direction: "asc" | "desc" } =
+    useMemo(() => {
+      return {
+        columnKey: widgetSort.sort?.column || null,
+        direction:
+          widgetSort.sort?.direction === DashboardWidgetSortDirection.Descending
+            ? "desc"
+            : "asc",
+      };
+    }, [widgetSort.sort?.column, widgetSort.sort?.direction]);
 
   const reducedByColumnAndTuple: Map<
     string,
@@ -414,66 +506,6 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     reducedByColumnAndTuple,
     maxRows,
   ]);
-
-  /*
-   * Three-state header toggle: first click → the column's natural direction
-   * (asc for text/timestamp, desc for metric values), second click reverses,
-   * third click clears back to the default order. firstDirection lets each
-   * column pick the direction that surfaces the interesting rows first.
-   */
-  const toggleSort: (
-    columnKey: string,
-    firstDirection: "asc" | "desc",
-  ) => void = (columnKey: string, firstDirection: "asc" | "desc"): void => {
-    setSortConfig(
-      (prev: {
-        columnKey: string | null;
-        direction: "asc" | "desc";
-      }): { columnKey: string | null; direction: "asc" | "desc" } => {
-        if (prev.columnKey !== columnKey) {
-          return { columnKey, direction: firstDirection };
-        }
-        if (prev.direction === firstDirection) {
-          return {
-            columnKey,
-            direction: firstDirection === "desc" ? "asc" : "desc",
-          };
-        }
-        return { columnKey: null, direction: "desc" };
-      },
-    );
-  };
-
-  const renderSortableHeaderContent: (
-    label: string,
-    columnKey: string,
-    align: "left" | "right",
-  ) => ReactElement = (
-    label: string,
-    columnKey: string,
-    align: "left" | "right",
-  ): ReactElement => {
-    const isActive: boolean = sortConfig.columnKey === columnKey;
-    const indicator: string = !isActive
-      ? "↕"
-      : sortConfig.direction === "asc"
-        ? "↑"
-        : "↓";
-    return (
-      <span
-        className={`inline-flex items-center gap-1 ${
-          align === "right" ? "justify-end" : ""
-        }`}
-      >
-        <span>{label}</span>
-        <span
-          className={isActive ? "text-indigo-500" : "text-gray-300 opacity-60"}
-        >
-          {indicator}
-        </span>
-      </span>
-    );
-  };
 
   const timestampRows: Array<{
     timestampIso: string;
@@ -672,8 +704,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                 onBlur={(): void => {
                   setSearchFocused(false);
                 }}
-                placeholder="Search rows…"
-                aria-label="Search rows"
+                placeholder={translator.translateText("Search rows…")}
+                aria-label={translator.translateText("Search rows")}
                 className="w-full h-8 pl-8 pr-7 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 shadow-sm transition-colors focus:outline-none focus:border-indigo-400 hover:border-gray-300"
               />
               {searchText.length > 0 && (
@@ -682,8 +714,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   onClick={(): void => {
                     setSearchText("");
                   }}
-                  aria-label="Clear search"
-                  title="Clear search"
+                  aria-label={translator.translateText("Clear search")}
+                  title={translator.translateText("Clear search")}
                   className="absolute right-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100"
                 >
                   <span className="h-3 w-3">
@@ -697,18 +729,25 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
             {isGroupedMode &&
             searchText.trim() !== "" &&
             allRowTuples.length !== rowCount ? (
-              <>
-                <span className="font-medium text-gray-500">{rowCount}</span>
-                <span className="text-gray-300">
-                  {" "}
-                  of {allRowTuples.length}{" "}
-                </span>
-                {allRowTuples.length === 1 ? "row" : "rows"}
-              </>
+              <TranslatedSentence
+                template={{
+                  one: "{{shown}} of {{count}} row",
+                  other: "{{shown}} of {{count}} rows",
+                }}
+                count={allRowTuples.length}
+                slots={{
+                  shown: (
+                    <span className="font-medium text-gray-500">
+                      {translator.formatNumber(rowCount)}
+                    </span>
+                  ),
+                }}
+              />
             ) : (
-              <>
-                {rowCount} {rowCount === 1 ? "row" : "rows"}
-              </>
+              translator.translatePlural(
+                { one: "{{count}} row", other: "{{count}} rows" },
+                rowCount,
+              )
             )}
           </span>
         </div>
@@ -723,57 +762,50 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       attr: TableGroupByAttribute,
                       attrIndex: number,
                     ): ReactElement => {
-                      const columnKey: string = `${ATTR_SORT_PREFIX}${attrIndex}`;
                       return (
-                        <th
+                        <DashboardSortableColumnHeader
                           key={`attr:${attrIndex}:${attr.key}`}
-                          className="px-3 py-2 font-medium tracking-wider cursor-pointer select-none hover:bg-gray-100/60"
-                          onClick={(): void => {
-                            toggleSort(columnKey, "asc");
-                          }}
-                          title="Click to sort"
-                        >
-                          {renderSortableHeaderContent(
-                            attr.header || attr.key,
-                            columnKey,
-                            "left",
+                          label={attr.header || attr.key}
+                          isLabelUserText={true}
+                          paddingClassName="px-3 py-2"
+                          sortColumn={findDashboardWidgetSortColumn(
+                            sortColumns,
+                            `${ATTR_SORT_PREFIX}${attrIndex}`,
                           )}
-                        </th>
+                          sort={widgetSort.sort}
+                          onSortClick={widgetSort.onColumnClick}
+                        />
                       );
                     },
                   )
                 : [
-                    <th
+                    <DashboardSortableColumnHeader
                       key="timestamp"
-                      className="px-3 py-2 font-medium tracking-wider cursor-pointer select-none hover:bg-gray-100/60"
-                      onClick={(): void => {
-                        toggleSort(TIMESTAMP_SORT_KEY, "desc");
-                      }}
-                      title="Click to sort"
-                    >
-                      {renderSortableHeaderContent(
-                        "Timestamp",
+                      label="Timestamp"
+                      paddingClassName="px-3 py-2"
+                      sortColumn={findDashboardWidgetSortColumn(
+                        sortColumns,
                         TIMESTAMP_SORT_KEY,
-                        "left",
                       )}
-                    </th>,
+                      sort={widgetSort.sort}
+                      onSortClick={widgetSort.onColumnClick}
+                    />,
                   ]}
               {visibleValueColumns.map((column: ValueColumn): ReactElement => {
                 return (
-                  <th
+                  <DashboardSortableColumnHeader
                     key={column.key}
-                    className="px-3 py-2 font-medium tracking-wider text-right cursor-pointer select-none hover:bg-gray-100/60"
-                    onClick={(): void => {
-                      toggleSort(column.key, "desc");
-                    }}
-                    title="Click to sort"
-                  >
-                    {renderSortableHeaderContent(
-                      column.label,
+                    label={column.label}
+                    isLabelUserText={true}
+                    alignRight={true}
+                    paddingClassName="px-3 py-2"
+                    sortColumn={findDashboardWidgetSortColumn(
+                      sortColumns,
                       column.key,
-                      "right",
                     )}
-                  </th>
+                    sort={widgetSort.sort}
+                    onSortClick={widgetSort.onColumnClick}
+                  />
                 );
               })}
             </tr>
@@ -887,7 +919,9 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   colSpan={totalColumnCount}
                   className="px-4 py-8 text-center text-gray-400 text-sm"
                 >
-                  No data available for the selected time range.
+                  {translator.translateText(
+                    "No data available for the selected time range.",
+                  )}
                 </td>
               </tr>
             )}

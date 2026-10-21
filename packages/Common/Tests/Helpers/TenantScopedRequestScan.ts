@@ -3,10 +3,20 @@ import ts from "typescript";
 import {
   AllowlistEntry,
   Finding,
-  allowlistedFiles,
   fromRelativePath,
   toRelativePath,
 } from "./RefreshAwareApiScan";
+
+/*
+ * An entry of the project-free allowlist. Without `routes` it excuses every
+ * request in its file. With them it excuses only the requests whose url
+ * names one of those routes, so a module whose other requests are about one
+ * project stays swept - Push.tsx registers a browser in one project, but the
+ * subscription the browser renews is the user's, on every project at once.
+ */
+export interface ProjectFreeAllowlistEntry extends AllowlistEntry {
+  routes?: Array<string> | undefined;
+}
 
 /*
  * The detector behind the "Dashboard requests name the project they are for"
@@ -407,11 +417,8 @@ export function makesProjectExplicit(
   );
 }
 
-/* Every raw call in one module that names no project. */
-export function findImplicitProjectCalls(
-  source: string,
-  file: string,
-): Array<Finding> {
+/* Every raw call in one module that names no project, as the scan read it. */
+function findImplicitRawCalls(source: string, file: string): Array<RawApiCall> {
   const calls: Array<RawApiCall> = findRawApiCalls(source, file);
 
   if (calls.length === 0) {
@@ -422,9 +429,30 @@ export function findImplicitProjectCalls(
     parse(source, file),
   );
 
-  return calls
+  return calls.filter((call: RawApiCall): boolean => {
+    return !makesProjectExplicit(call, declarations);
+  });
+}
+
+// Whether a call's url names one of the routes an allowlist entry excuses.
+function namesRoute(call: RawApiCall, routes: ReadonlyArray<string>): boolean {
+  return routes.some((route: string): boolean => {
+    return call.url.includes(route);
+  });
+}
+
+/*
+ * Every raw call in one module that names no project, but for the calls to
+ * the routes an allowlist entry excuses.
+ */
+export function findImplicitProjectCalls(
+  source: string,
+  file: string,
+  excusedRoutes: ReadonlyArray<string> = [],
+): Array<Finding> {
+  return findImplicitRawCalls(source, file)
     .filter((call: RawApiCall): boolean => {
-      return !makesProjectExplicit(call, declarations);
+      return !namesRoute(call, excusedRoutes);
     })
     .map((call: RawApiCall): Finding => {
       const target: string = call.url.replace(/\s+/g, " ").trim();
@@ -446,19 +474,28 @@ export function findImplicitProjectCalls(
 export function findImplicitProjectOffenders(data: {
   sources: ReadonlyMap<string, string>;
   baseDir: string;
-  allowlist: ReadonlyArray<AllowlistEntry>;
+  allowlist: ReadonlyArray<ProjectFreeAllowlistEntry>;
 }): Array<string> {
-  const allowed: Set<string> = allowlistedFiles(data.allowlist);
   const offenders: Array<string> = [];
 
   for (const [file, source] of data.sources) {
     const relative: string = toRelativePath(data.baseDir, file);
 
-    if (allowed.has(relative)) {
+    const entry: ProjectFreeAllowlistEntry | undefined = data.allowlist.find(
+      (candidate: ProjectFreeAllowlistEntry): boolean => {
+        return candidate.file === relative;
+      },
+    );
+
+    if (entry && !entry.routes) {
       continue;
     }
 
-    for (const finding of findImplicitProjectCalls(source, file)) {
+    for (const finding of findImplicitProjectCalls(
+      source,
+      file,
+      entry?.routes || [],
+    )) {
       offenders.push(
         `${relative}:${finding.line} ${finding.description}. Add \`headers: ModelAPI.getCommonHeaders(),\` to the call so a \`tenantid\` header is sent (or put \`projectId\` in the body). Without it ProjectMiddleware.getProjectId finds no project, and a project-scoped route answers "Project ID is required".`,
       );
@@ -475,7 +512,7 @@ export function findImplicitProjectOffenders(data: {
  */
 export function findStaleProjectAllowlistEntries(data: {
   baseDir: string;
-  allowlist: ReadonlyArray<AllowlistEntry>;
+  allowlist: ReadonlyArray<ProjectFreeAllowlistEntry>;
   allowlistName: string;
 }): Array<string> {
   const stale: Array<string> = [];
@@ -490,13 +527,32 @@ export function findStaleProjectAllowlistEntries(data: {
       continue;
     }
 
-    if (
-      findImplicitProjectCalls(fs.readFileSync(filePath, "utf8"), filePath)
-        .length === 0
-    ) {
-      stale.push(
-        `${entry.file} no longer makes a request without a project - remove it from ${data.allowlistName}`,
+    const implicitCalls: Array<RawApiCall> = findImplicitRawCalls(
+      fs.readFileSync(filePath, "utf8"),
+      filePath,
+    );
+
+    if (!entry.routes) {
+      if (implicitCalls.length === 0) {
+        stale.push(
+          `${entry.file} no longer makes a request without a project - remove it from ${data.allowlistName}`,
+        );
+      }
+      continue;
+    }
+
+    for (const route of entry.routes) {
+      const isStillSentWithoutProject: boolean = implicitCalls.some(
+        (call: RawApiCall): boolean => {
+          return namesRoute(call, [route]);
+        },
       );
+
+      if (!isStillSentWithoutProject) {
+        stale.push(
+          `${entry.file} no longer sends a request to ${route} without a project - remove the route from ${data.allowlistName}`,
+        );
+      }
     }
   }
 

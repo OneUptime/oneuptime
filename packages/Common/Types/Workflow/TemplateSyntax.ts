@@ -15,18 +15,18 @@
  */
 
 import JSON5 from "json5";
+import {
+  TemplatePlaceholder,
+  findTemplatePlaceholders,
+  replaceTemplatePlaceholders,
+} from "../../Utils/TemplatePlaceholders";
 
-/**
- * The exact expression matcher the runtime uses (VMAPI.ts: `/{{(.*?)}}/g`).
- * Non-greedy, so `{{a}} and {{b}}` yields two matches rather than one.
- * Built fresh on each use because a global RegExp carries lastIndex state.
+/*
+ * Expressions are found the way the runtime finds them (VMAPI.ts reads
+ * placeholders with the same TemplatePlaceholders helpers): "{{", the fewest
+ * characters other than a line break, "}}" - so `{{a}} and {{b}}` are two
+ * expressions rather than one - and in time in line with the value's length.
  */
-export type GetTemplateExpressionRegexFunction = () => RegExp;
-
-export const getTemplateExpressionRegex: GetTemplateExpressionRegexFunction =
-  (): RegExp => {
-    return /{{(.*?)}}/g;
-  };
 
 export enum TemplateExpressionKind {
   /** A value reference, e.g. {{local.variables.apiKey}}. */
@@ -110,13 +110,11 @@ export const parseTemplateExpressions: ParseTemplateExpressionsFunction = (
   }
 
   const expressions: Array<TemplateExpression> = [];
-  const regex: RegExp = getTemplateExpressionRegex();
-  let match: RegExpExecArray | null = null;
   let eachDepth: number = 0;
 
-  while ((match = regex.exec(value)) !== null) {
-    const raw: string = match[0];
-    const innerRaw: string = match[1] || "";
+  for (const placeholder of findTemplatePlaceholders(value)) {
+    const raw: string = placeholder.text;
+    const innerRaw: string = placeholder.inner;
     const inner: string = innerRaw.trim();
     const kind: TemplateExpressionKind = classifyExpression(inner);
 
@@ -135,8 +133,8 @@ export const parseTemplateExpressions: ParseTemplateExpressionsFunction = (
       inner: inner,
       innerRaw: innerRaw,
       kind: kind,
-      startIndex: match.index,
-      endIndex: match.index + raw.length,
+      startIndex: placeholder.start,
+      endIndex: placeholder.end,
       isInsideEachBlock: eachDepth > 0,
     });
 
@@ -188,7 +186,12 @@ export const maskTemplateExpressions: MaskTemplateExpressionsFunction = (
     return value;
   }
 
-  return value.replace(getTemplateExpressionRegex(), TEMPLATE_MASK_TOKEN);
+  return replaceTemplatePlaceholders(
+    value,
+    (_placeholder: TemplatePlaceholder): string => {
+      return TEMPLATE_MASK_TOKEN;
+    },
+  );
 };
 
 export interface JSONSyntaxCheckResult {

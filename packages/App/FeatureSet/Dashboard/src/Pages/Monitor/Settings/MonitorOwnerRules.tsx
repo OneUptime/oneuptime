@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,9 +16,6 @@ import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const monitorOwnerDocumentation: string = `
 ### How Monitor Owner Rules Work
@@ -100,45 +101,8 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<MonitorOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign DB team to database monitors",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
@@ -157,7 +121,7 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -168,41 +132,13 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+        ...getOwnerRuleActionFields<MonitorOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

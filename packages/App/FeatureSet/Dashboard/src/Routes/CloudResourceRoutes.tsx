@@ -21,8 +21,13 @@ import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
+import CloudMonitoredResources from "../Pages/Cloud/MonitoredResources";
+import CloudConnect from "../Pages/Cloud/Connect";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -82,6 +87,24 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES] || ""}
+          element={
+            <CloudMonitoredResources
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_CONNECT] || ""}
+          element={
+            <CloudConnect
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_CONNECT] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_ARCHIVED] || ""}
           element={
             <CloudArchived
@@ -90,6 +113,13 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CloudResource,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.CLOUD_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -211,6 +241,12 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CloudResource,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

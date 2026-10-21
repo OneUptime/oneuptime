@@ -422,7 +422,7 @@ describe("the Enterprise license", () => {
     answerLicense({
       status: "valid",
       licenseValid: true,
-      features: ["sso", "scim"],
+      features: ["scim", "team-compliance"],
     });
     getItemMock.mockResolvedValue(projectWith(true));
 

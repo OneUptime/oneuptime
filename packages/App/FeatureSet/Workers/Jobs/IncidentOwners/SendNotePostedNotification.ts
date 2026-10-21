@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
@@ -12,20 +13,22 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentInternalNoteService from "Common/Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "Common/Server/Services/IncidentPublicNoteService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -118,12 +121,11 @@ RunCron(
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
-          },
-          monitors: {
-            name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
@@ -164,17 +166,28 @@ RunCron(
         incidentNumber: incidentNumberStr,
         projectName: incident.project!.name!,
         currentState: incident.currentIncidentState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          incident.currentIncidentState?.color,
+        ),
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+        // Every resource the incident's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForIncident({
+            service: IncidentService,
+            projectId: incident.projectId!,
+            incidentId: incident.id!,
+          }),
+          fallback: "None",
+        }),
         incidentSeverity: incident.incidentSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "incidentSeverity",
+          incident.incidentSeverity?.color,
+        ),
         incidentViewLink: (
           await IncidentService.getIncidentLinkInDashboard(
             incident.projectId!,
@@ -205,7 +218,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `New note posted on incident ${incidentIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -260,19 +275,22 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(
         note._id!.toString(),
       );
 
-      const projectId: ObjectID = incident.projectId!;
-      const incidentId: ObjectID = incident.id!;
-      const incidentNumberDisplayValue: string =
-        incident.incidentNumberWithPrefix || "#" + incident.incidentNumber!; // incident number is not null here.
-
-      const incidentFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`;
+      const incidentFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: isPrivateNote,
+      });
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,

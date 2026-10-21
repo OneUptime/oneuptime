@@ -1,26 +1,35 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import {
+  FEED_BODY_GRID_CLASS_NAME,
+  FEED_PANEL_BUTTON_CLASS_NAME,
+  FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+  getFeedStatusColumnClassName,
+} from "./CalendarFeedLayout";
 import CalendarFeedPlanGate, {
   isCalendarFeedAccessibleOnCurrentPlan,
 } from "./CalendarFeedPlanGate";
 import { FeedStatus } from "./CalendarFeedTypes";
 import {
   COVERAGE_GAPS_DESCRIPTION,
-  DISABLED_FEED_COPY,
+  FeedHealth,
   PROJECT_FEED_CURRENT_PATH,
   PROJECT_FEED_PUBLISH_PATH,
   PROJECT_FEED_ROTATE_PATH,
   REGENERATE_WARNING_COPY,
   SHARED_FEED_EMPTY_TITLE,
   SHARED_LINK_OWNERSHIP_COPY,
+  SHARED_NEEDS_REGENERATION_COPY,
   SHARED_PREVIOUS_LINK_COPY,
+  getFeedHealth,
   getScheduleFeedCurrentPath,
   getScheduleFeedPublishPath,
   getScheduleFeedRotatePath,
-  translateInterpolated,
 } from "./CalendarFeedUtil";
+import FeedCardFooter from "./FeedCardFooter";
 import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
 import FeedEmptyState from "./FeedEmptyState";
-import FeedStatusLine from "./FeedStatusLine";
+import { FeedManageAction, getFeedManageMenuButtons } from "./FeedManageMenu";
+import FeedStatusPanel from "./FeedStatusPanel";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
@@ -34,10 +43,11 @@ import {
 } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -48,6 +58,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -121,10 +133,16 @@ export const getSharedFeedPaths: GetPathsFunction = (
   };
 };
 
+interface LoadOptions {
+  // Keep what the card shows while it reads: a re-read after an action.
+  keepContent?: boolean | undefined;
+}
+
 const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -167,8 +185,18 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     props.scheduleId,
   );
 
-  const load: () => Promise<void> = async (): Promise<void> => {
-    setIsLoading(true);
+  /*
+   * The first read of a link - this schedule's, or another one's after the
+   * page moves on - puts the loader in the card's place. A re-read after an
+   * action (Disable or Enable link, saving the settings) keeps the card as
+   * it is until the answer arrives, as the personal card does.
+   */
+  const load: (options?: LoadOptions) => Promise<void> = async (
+    options?: LoadOptions,
+  ): Promise<void> => {
+    if (!options?.keepContent) {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -235,7 +263,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           isEnabled: isEnabled,
         },
       });
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -265,51 +293,62 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   const isLegacyTimezone: boolean =
     props.scheduleTimezone === null || props.scheduleTimezone === "";
 
-  /* ---------- card buttons (editors only) ---------- */
+  /*
+   * ---------- the ⋯ menu (editors act, everyone else sees why not) ----------
+   *
+   * Regenerate and Disable / Enable need Edit on the schedule. A reader who
+   * lacks it still finds them in the menu, locked, saying which permission
+   * they need; with no permission snapshot yet - nothing worth saying - the
+   * menu is left out rather than accusing the reader of lacking one.
+   */
+  const lockedReason: string | undefined = updateGate.isAllowed
+    ? undefined
+    : updateGate.disabledReason;
+  const mayManage: boolean = updateGate.isAllowed || Boolean(lockedReason);
 
-  const buttons: Array<CardButtonSchema> = [];
+  const manageActions: Array<FeedManageAction> = [];
 
-  if (status && status.exists) {
-    const regenerate: CardButtonSchema | null = PermissionGate.gateCardButton(
-      {
-        title: "Regenerate link",
-        icon: IconProp.Refresh,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        disabled: isBusy,
-        onClick: () => {
-          setShowRegenerateConfirm(true);
-        },
+  if (status && status.exists && mayManage) {
+    manageActions.push({
+      key: "regenerate",
+      text: "Regenerate link",
+      icon: IconProp.Refresh,
+      isDisabled: isBusy,
+      disabledReason: lockedReason,
+      dataTestId: `${idPrefix}-regenerate`,
+      onClick: () => {
+        setError("");
+        setShowRegenerateConfirm(true);
       },
-      model,
-      ModelAction.Update,
-      { singularName: singularName },
-    );
+    });
 
-    if (regenerate) {
-      buttons.push(regenerate);
-    }
-
-    const toggle: CardButtonSchema | null = PermissionGate.gateCardButton(
-      {
-        title: status.isEnabled ? "Disable" : "Enable",
-        icon: status.isEnabled ? IconProp.BellSlash : IconProp.Bell,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        disabled: isBusy,
-        onClick: () => {
-          setEnabled(!status.isEnabled).catch(() => {
-            // setEnabled routes every failure into the error state.
-          });
-        },
+    manageActions.push({
+      key: "toggle",
+      text: status.isEnabled ? "Disable link" : "Enable link",
+      icon: status.isEnabled ? IconProp.BellSlash : IconProp.Bell,
+      isDisabled: isBusy,
+      disabledReason: lockedReason,
+      dataTestId: `${idPrefix}-toggle`,
+      onClick: () => {
+        setEnabled(!status.isEnabled).catch(() => {
+          // setEnabled routes every failure into the error state.
+        });
       },
-      model,
-      ModelAction.Update,
-      { singularName: singularName },
-    );
-
-    if (toggle) {
-      buttons.push(toggle);
-    }
+    });
   }
+
+  /*
+   * A failed action is said above the card's body, in red - unless the
+   * dialog that started it is still open and says it there.
+   */
+  const actionError: ReactElement | null =
+    error && !showRegenerateConfirm ? (
+      <Alert
+        type={AlertType.DANGER}
+        title={error}
+        dataTestId={`${idPrefix}-error`}
+      />
+    ) : null;
 
   /* ---------- body ---------- */
 
@@ -337,8 +376,17 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
      * sentence with nothing to act on.
      */
     body = isOnPlan ? (
-      <ErrorMessage
-        message={error || "Could not load the shared calendar link."}
+      <Alert
+        type={AlertType.DANGER}
+        strongTitle="Could not load the shared calendar link."
+        title={error}
+        textOnRight="Try again"
+        dataTestId={`${idPrefix}-load-error`}
+        onClick={() => {
+          load().catch(() => {
+            // load routes every failure into the error state.
+          });
+        }}
       />
     ) : (
       planGate
@@ -346,6 +394,11 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   } else if (!status.exists) {
     let publishControl: ReactElement;
 
+    /*
+     * Publish starts the panel's text column, as the personal card's
+     * Generate calendar link does: a Button keeps a left margin for a
+     * dialog's footer from md up, which set it 12px in from the text above.
+     */
     if (!isOnPlan) {
       publishControl = planGate;
     } else if (createGate.isAllowed) {
@@ -358,6 +411,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           buttonStyle={ButtonStyleType.PRIMARY}
           isLoading={isBusy}
           dataTestId={`${idPrefix}-publish`}
+          className={FEED_PANEL_BUTTON_CLASS_NAME}
           onClick={() => {
             postAction(paths.publish).catch(() => {
               // postAction routes every failure into the error state.
@@ -376,6 +430,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           disabled={true}
           tooltip={createGate.disabledReason}
           dataTestId={`${idPrefix}-publish`}
+          className={FEED_PANEL_BUTTON_CLASS_NAME}
           onClick={() => {
             // Locked. The tooltip says which permission is missing.
           }}
@@ -398,7 +453,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
 
     body = (
       <div className="space-y-4" data-testid={`${idPrefix}-empty`}>
-        {error && <ErrorMessage message={error} />}
+        {actionError}
         {/*
          * Above the panel, not inside it. The server sends these even with no
          * feed, and they say the link will be unreachable or unencrypted -
@@ -407,6 +462,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          privateHost={status.privateHost}
           idPrefix={idPrefix}
         />
         {/*
@@ -421,7 +477,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           title={SHARED_FEED_EMPTY_TITLE}
           description={
             isSchedule
-              ? "No shared link has been published for this schedule yet. Once published, anyone with the link sees everyone's shifts on it - handy for a team calendar."
+              ? "No shared link for this schedule yet. Anyone with the link sees everyone's shifts - handy for a team calendar."
               : "No project-wide link has been published yet. Once published, anyone with the link sees every shift on every schedule in this project."
           }
           control={publishControl}
@@ -429,80 +485,122 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
       </div>
     );
   } else {
-    body = (
-      <div className="space-y-4" data-testid={`${idPrefix}-active`}>
-        {error && <ErrorMessage message={error} />}
+    const health: FeedHealth = getFeedHealth(
+      status,
+      props.now || OneUptimeDate.getCurrentDate(),
+    );
 
-        {planGate}
+    const truncatedWarning: ReactElement | null = status.lastRenderTruncated ? (
+      <Alert
+        type={AlertType.WARNING}
+        title={
+          translateString(
+            "The last calendar was shortened because it would have exceeded the event limit. Reduce the days ahead in the settings to see every shift.",
+          ) || ""
+        }
+        dataTestId={`${idPrefix}-truncated-warning`}
+      />
+    ) : null;
 
-        {status.needsRegeneration && (
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId={`${idPrefix}-needs-regeneration`}
-            title={
-              translateString(
-                "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until an editor regenerates it.",
-              ) || ""
-            }
-          />
-        )}
-
-        {!status.isEnabled && (
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId={`${idPrefix}-disabled`}
-            title={translateString(DISABLED_FEED_COPY) || DISABLED_FEED_COPY}
-          />
-        )}
-
-        {hasLink && status.urls && (
-          <CalendarFeedLinks
-            urls={status.urls}
-            hostWarning={status.hostWarning}
-            protocolWarning={status.protocolWarning}
-            lastRenderTruncated={status.lastRenderTruncated}
-            idPrefix={idPrefix}
-          />
-        )}
-
-        <FeedStatusLine
-          status={status}
-          now={props.now}
-          showRotatedAgo={true}
-          idPrefix={idPrefix}
+    const timezoneWarning: ReactElement | null =
+      isSchedule && isLegacyTimezone ? (
+        <Alert
+          type={AlertType.WARNING}
+          dataTestId={`${idPrefix}-timezone-warning`}
+          title={
+            translateString(
+              "This schedule has no timezone, so shift times in the calendar description are shown in UTC. Set a timezone on the schedule to fix this.",
+            ) || ""
+          }
         />
+      ) : null;
 
-        {status.previousTokenExpiresAt && (
-          <div
-            className="text-sm text-gray-500"
-            data-testid={`${idPrefix}-previous-link`}
-          >
-            {translateInterpolated(translateString, SHARED_PREVIOUS_LINK_COPY, {
-              date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                OneUptimeDate.fromString(status.previousTokenExpiresAt),
-              ),
-            })}
+    /*
+     * Whatever the reader must know before anything else - a failed action,
+     * the plan, a deployment that makes the link unreachable, a shortened
+     * calendar, a schedule without a timezone - goes above both columns.
+     */
+    const hasNotices: boolean = Boolean(
+      actionError ||
+        !isOnPlan ||
+        status.hostWarning ||
+        status.protocolWarning ||
+        status.privateHost ||
+        truncatedWarning ||
+        timezoneWarning,
+    );
+
+    // The footer sits outside the spaced stack (see PersonalCalendarFeedCard).
+    body = (
+      <div data-testid={`${idPrefix}-active`}>
+        <div className="space-y-6">
+          {hasNotices && (
+            <div className="space-y-4" data-testid={`${idPrefix}-notices`}>
+              {actionError}
+              {planGate}
+              <FeedDeploymentWarnings
+                hostWarning={status.hostWarning}
+                protocolWarning={status.protocolWarning}
+                privateHost={status.privateHost}
+                idPrefix={idPrefix}
+              />
+              {truncatedWarning}
+              {timezoneWarning}
+            </div>
+          )}
+
+          <div className={FEED_BODY_GRID_CLASS_NAME}>
+            {hasLink && status.urls && (
+              <div className={FEED_SUBSCRIBE_COLUMN_CLASS_NAME}>
+                <CalendarFeedLinks
+                  urls={status.urls}
+                  tokenHint={status.tokenHint}
+                  idPrefix={idPrefix}
+                />
+              </div>
+            )}
+            <div
+              className={getFeedStatusColumnClassName({
+                hasLink: hasLink,
+                health: health,
+              })}
+            >
+              <FeedStatusPanel
+                status={status}
+                now={props.now}
+                showRotatedAgo={true}
+                idPrefix={idPrefix}
+                previousLinkCopy={SHARED_PREVIOUS_LINK_COPY}
+                needsRegenerationCopy={SHARED_NEEDS_REGENERATION_COPY}
+                isBusy={isBusy}
+                onEnable={
+                  updateGate.isAllowed
+                    ? () => {
+                        setEnabled(true).catch(() => {
+                          // setEnabled routes every failure into the error state.
+                        });
+                      }
+                    : undefined
+                }
+                onRegenerate={
+                  updateGate.isAllowed
+                    ? () => {
+                        setError("");
+                        setShowRegenerateConfirm(true);
+                      }
+                    : undefined
+                }
+              />
+            </div>
           </div>
-        )}
-
-        <div
-          className="text-sm text-gray-500"
-          data-testid={`${idPrefix}-ownership`}
-        >
-          {translateString(SHARED_LINK_OWNERSHIP_COPY)}
         </div>
 
-        {isSchedule && isLegacyTimezone && (
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId={`${idPrefix}-timezone-warning`}
-            title={
-              translateString(
-                "This schedule has no timezone, so shift times in the calendar description are shown in UTC. Set a timezone on the schedule to fix this.",
-              ) || ""
-            }
-          />
-        )}
+        <FeedCardFooter
+          icon={IconProp.Lock}
+          dataTestId={`${idPrefix}-ownership`}
+        >
+          {translateString(SHARED_LINK_OWNERSHIP_COPY)}
+        </FeedCardFooter>
       </div>
     );
   }
@@ -520,7 +618,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
             ? "One link for the whole team. It belongs to the project: editors publish and regenerate it, anyone who can see this schedule may copy it."
             : "One link for every schedule in the project. It belongs to the project: editors publish and regenerate it, anyone who can see the project's schedules may copy it."
         }
-        buttons={buttons}
+        buttons={getFeedManageMenuButtons({
+          actions: manageActions,
+          idPrefix: idPrefix,
+        })}
       >
         {body}
       </Card>
@@ -537,10 +638,17 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           editButtonText="Edit settings"
           refresher={settingsRefresher}
           onSaveSuccess={() => {
-            load().catch(() => {
+            load({ keepContent: true }).catch(() => {
               // load routes every failure into the error state.
             });
           }}
+          /*
+           * One page, as the personal link's settings are: the link's few
+           * settings, which this card lists, edited where they are read.
+           * They were three steps (coverage gaps, time range, and one
+           * switch on a step of its own), so changing one meant finding its
+           * step first. The minimum gap shows only while gaps are shown.
+           */
           formFields={[
             {
               field: {
@@ -560,6 +668,9 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 "Gaps shorter than this are left out (1 to 10080 minutes).",
               fieldType: FormFieldSchemaType.Number,
               required: true,
+              showIf: (values: FormValues<SharedFeedModel>): boolean => {
+                return Boolean(values.includeCoverageGaps);
+              },
               validation: {
                 minValue: 1,
                 maxValue: 10080,
@@ -570,7 +681,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 pastDays: true,
               },
               title: "Days of past shifts",
-              description: `How many days back the calendar reaches (0 to ${MAX_PAST_DAYS}).`,
+              description: translator.translateTemplate(
+                "How many days back the calendar reaches (0 to {{max}}).",
+                { max: MAX_PAST_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -583,7 +697,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 futureDays: true,
               },
               title: "Days ahead",
-              description: `How far ahead the calendar reaches (${MIN_FUTURE_DAYS} to ${MAX_FUTURE_DAYS}).`,
+              description: translator.translateTemplate(
+                "How far ahead the calendar reaches ({{min}} to {{max}}).",
+                { min: MIN_FUTURE_DAYS, max: MAX_FUTURE_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -607,6 +724,11 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
             id: `${idPrefix}-settings`,
             modelId: new ObjectID(status.feedId),
             showDetailsInNumberOfColumns: 3,
+            /*
+             * Compact: each setting takes its whole third of the card (the
+             * default style sizes a field to a third of its own grid cell).
+             */
+            style: DetailStyle.Compact,
             fields: [
               {
                 field: {
@@ -658,6 +780,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           error={error || undefined}
           onClose={() => {
             setShowRegenerateConfirm(false);
+            setError("");
           }}
           onSubmit={() => {
             postAction(paths.rotate).catch(() => {

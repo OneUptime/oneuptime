@@ -16,12 +16,11 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import ReminderRuleScope from "./ReminderRuleScope";
 
-export enum ReminderRuleScope {
-  Incident = "Incident",
-  Alert = "Alert",
-  ScheduledMaintenance = "ScheduledMaintenance",
-}
+export { ReminderRuleScope };
 
 export interface ComponentProps {
   nextReminderAt?: Date | string | undefined | null;
@@ -81,13 +80,15 @@ const TimeUnit: FunctionComponent<{
   label: string;
   pad?: boolean;
 }> = (props: { value: number; label: string; pad?: boolean }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex flex-col items-center">
       <span className="text-2xl font-semibold leading-none tabular-nums text-gray-900">
         {props.pad ? String(props.value).padStart(2, "0") : props.value}
       </span>
       <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
-        {props.label}
+        {translator.translateText(props.label)}
       </span>
     </div>
   );
@@ -107,6 +108,7 @@ const Separator: FunctionComponent = (): ReactElement => {
 const NextReminderCountdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
   const [intervalInMinutes, setIntervalInMinutes] = useState<number | null>(
     null,
@@ -294,9 +296,11 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
   if (!props.nextReminderAt) {
     return (
       <div className="text-sm text-gray-500">
-        {props.remindersEnabled === false
-          ? "Reminders are disabled, so no reminder is scheduled."
-          : "No reminder is currently scheduled."}
+        {translator.translateText(
+          props.remindersEnabled === false
+            ? "Reminders are disabled, so no reminder is scheduled."
+            : "No reminder is currently scheduled.",
+        )}
       </div>
     );
   }
@@ -318,11 +322,15 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"></span>
           </span>
           <span className="text-sm font-medium text-amber-700">
-            Due now &mdash; the next reminder will be sent shortly.
+            {translator.translateText(
+              "Due now — the next reminder will be sent shortly.",
+            )}
           </span>
         </div>
         <div className="text-xs text-gray-500">
-          Was scheduled for {formattedTargetDate}
+          {translator.translateTemplate("Was scheduled for {{date}}", {
+            date: formattedTargetDate,
+          })}
         </div>
       </div>
     );
@@ -347,7 +355,13 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
       <div className="flex items-start space-x-1.5">
         {days > 0 && (
           <>
-            <TimeUnit value={days} label={days === 1 ? "day" : "days"} />
+            <TimeUnit
+              value={days}
+              label={translator.translatePlural(
+                { one: "day", other: "days" },
+                days,
+              )}
+            />
             <Separator />
           </>
         )}
@@ -366,7 +380,10 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             aria-valuenow={Math.round(elapsedPercent)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`${Math.round(elapsedPercent)}% of the reminder interval has elapsed`}
+            aria-label={translator.translateTemplate(
+              "{{percent}}% of the reminder interval has elapsed",
+              { percent: Math.round(elapsedPercent) },
+            )}
           >
             <div
               className="h-2 rounded-full bg-indigo-600 transition-all duration-1000 ease-linear"
@@ -375,10 +392,18 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
           </div>
           <div className="mt-1.5 flex justify-between text-xs text-gray-500">
             <span>
-              Repeats every{" "}
-              {OneUptimeDate.getHoursAndMinutesFromMinutes(intervalInMinutes)}
+              {translator.translateTemplate("Repeats every {{interval}}", {
+                interval:
+                  OneUptimeDate.getHoursAndMinutesFromMinutes(
+                    intervalInMinutes,
+                  ),
+              })}
             </span>
-            <span>{Math.round(elapsedPercent)}% elapsed</span>
+            <span>
+              {translator.translateTemplate("{{percent}}% elapsed", {
+                percent: Math.round(elapsedPercent),
+              })}
+            </span>
           </div>
         </div>
       ) : (
@@ -399,7 +424,9 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        Scheduled for {formattedTargetDate}
+        {translator.translateTemplate("Scheduled for {{date}}", {
+          date: formattedTargetDate,
+        })}
       </div>
     </div>
   );

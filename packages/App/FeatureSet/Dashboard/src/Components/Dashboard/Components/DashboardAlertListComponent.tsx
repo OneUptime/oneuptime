@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
@@ -17,7 +18,10 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
 import {
   DashboardDateTime,
   getDashboardDateTime,
@@ -25,6 +29,11 @@ import {
 } from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertStateUtil from "../../../Utils/AlertState";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -33,25 +42,36 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
+import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardAlertListComponent;
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Title", widthPct: "40%" },
-  { label: "State", widthPct: "17%" },
-  { label: "Severity", widthPct: "15%" },
+  { label: "Title", widthPct: "40%", sortKey: "title" },
+  { label: "State", widthPct: "17%", sortKey: "state" },
+  { label: "Severity", widthPct: "15%", sortKey: "severity" },
   // Wider than the other columns because it carries a date *and* a time.
-  { label: "Created", widthPct: "28%" },
+  { label: "Created", widthPct: "28%", sortKey: "created" },
 ];
 
 const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [alerts, setAlerts] = useState<Array<Alert>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.AlertList,
+  );
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const viewMode: ResourceListViewMode =
@@ -71,7 +91,15 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const monitorIdsKey: string = (monitorIds || []).join(",");
   const labelIdsKey: string = (labelIds || []).join(",");
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchAlerts: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -86,18 +114,49 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
         projectId: projectId,
       } as Query<Alert>;
 
-      if (stateFilter === "unresolved") {
-        (query as Record<string, unknown>)["currentAlertState"] = {
-          isResolvedState: false,
-        };
-      } else if (stateFilter === "resolved") {
-        (query as Record<string, unknown>)["currentAlertState"] = {
-          isResolvedState: true,
-        };
-      } else if (stateFilter === "acknowledged") {
-        (query as Record<string, unknown>)["currentAlertState"] = {
-          isAcknowledgedState: true,
-        };
+      /*
+       * Unresolved, Resolved and Acknowledged are the project's to say: its
+       * resolved state and any state placed after it are resolved
+       * (Common/Utils/ResolvedState); its acknowledged state and any state
+       * placed after it, short of resolved, are acknowledged
+       * (Common/Utils/AcknowledgedState). On a public dashboard the server
+       * applies the stored filter itself.
+       */
+      let resolvedFilterStateIds: Array<string> | null = null;
+
+      if (
+        (stateFilter === "unresolved" ||
+          stateFilter === "resolved" ||
+          stateFilter === "acknowledged") &&
+        !DashboardResourceList.isPublic() &&
+        projectId
+      ) {
+        const states: Array<AlertState> =
+          await AlertStateUtil.getAlertStates(projectId);
+
+        let filterStateIds: Array<ObjectID> = [];
+
+        if (stateFilter === "acknowledged") {
+          filterStateIds =
+            AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+              list: StateListType.AlertState,
+              states: states,
+            });
+        } else if (stateFilter === "unresolved") {
+          filterStateIds = ResolvedStateUtil.getUnresolvedStateIds({
+            list: StateListType.AlertState,
+            states: states,
+          });
+        } else {
+          filterStateIds = ResolvedStateUtil.getResolvedStateIds({
+            list: StateListType.AlertState,
+            states: states,
+          });
+        }
+
+        resolvedFilterStateIds = filterStateIds.map((stateId: ObjectID) => {
+          return stateId.toString();
+        });
       }
 
       if (severityIds && severityIds.length > 0) {
@@ -108,7 +167,16 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
 
       if (stateIds && stateIds.length > 0) {
         (query as Record<string, unknown>)["currentAlertStateId"] =
-          new Includes(stateIds);
+          new Includes(
+            resolvedFilterStateIds
+              ? stateIds.filter((stateId: string) => {
+                  return resolvedFilterStateIds!.includes(stateId);
+                })
+              : stateIds,
+          );
+      } else if (resolvedFilterStateIds) {
+        (query as Record<string, unknown>)["currentAlertStateId"] =
+          new Includes(resolvedFilterStateIds);
       }
 
       if (monitorIds && monitorIds.length > 0) {
@@ -126,11 +194,12 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
         requestOptions: DashboardResourceList.getRequestOptions("alert", {
           componentId: props.componentId,
           variables: props.variables,
+          viewerSort: widgetSort.viewerPick,
         }),
         query: query,
         limit: maxRows,
         skip: 0,
-        select: {
+        select: widgetSort.withSortSelect({
           _id: true,
           title: true,
           createdAt: true,
@@ -142,15 +211,22 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
           },
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
+        } as JSONObject) as Select<Alert>,
+        // The viewer's pick, else the widget's own sort, else newest first.
+        sort: widgetSort.modelSort as Sort<Alert>,
       });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setAlerts(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -164,6 +240,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     labelIdsKey,
     props.componentId,
     props.variables,
+    widgetSort.sortKey,
   ]);
 
   useEffect(() => {
@@ -249,7 +326,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
             to={detailRoute}
             className="hover:underline text-gray-700 group-hover:text-blue-600"
           >
-            {(alert.title as string) || "Untitled"}
+            {(alert.title as string) ||
+              (translator.translateText("Untitled") as string)}
           </AppLink>
         </td>
         <td className="px-3 py-2">
@@ -267,19 +345,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
           </span>
         </td>
         <td className="px-3 py-2">
-          <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
-            style={{
-              fontSize: "10px",
-              color: severityColor ? severityColor.toString() : "#6b7280",
-              borderColor: severityColor ? severityColor.toString() : "#e5e7eb",
-              backgroundColor: severityColor
-                ? `${severityColor.toString()}10`
-                : "#f9fafb",
-            }}
-          >
-            {severityName}
-          </span>
+          <span {...getSeverityPillProps(severityColor)}>{severityName}</span>
         </td>
         <td
           className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
@@ -304,6 +370,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       emptyIcon={IconProp.Alert}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

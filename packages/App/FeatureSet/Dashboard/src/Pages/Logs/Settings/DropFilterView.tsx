@@ -13,9 +13,11 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import {
+  DROP_FILTER_EDIT_ACTION_TITLE,
+  getLogDropFilterActionFields,
+} from "../../../Components/Telemetry/DropFilterForm";
 import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import {
   isSamplePercentageConfigured,
   MAX_SAMPLE_PERCENTAGE,
@@ -23,10 +25,13 @@ import {
   resolveSamplePercentage,
 } from "Common/Types/Telemetry/DropFilterSampling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const LogDropFilterView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -36,7 +41,6 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
         name="Log Drop Filter Details"
         cardProps={{
           title: "Drop Filter Details",
-          description: "Basic information about this drop filter.",
         }}
         isEditable={true}
         formFields={[
@@ -117,48 +121,13 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching logs or keep a sample.",
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: {
-              action: true,
-            },
-            title: "Action",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Drop — Discard all matching logs",
-                value: "drop",
-              },
-              {
-                label: "Sample — Keep a percentage of matching logs",
-                value: "sample",
-              },
-            ],
-          },
-          {
-            field: {
-              samplePercentage: true,
-            },
-            title: "Sample Percentage",
-            fieldType: FormFieldSchemaType.Number,
-            /*
-             * Required only while the Sample action is selected. Saving a
-             * sample filter with no percentage used to be allowed, and the
-             * engine read the blank as "throw away half".
-             */
-            required: (values: FormValues<LogDropFilter>): boolean => {
-              return values.action === LogDropFilterAction.Sample;
-            },
-            validation: {
-              minValue: MIN_SAMPLE_PERCENTAGE,
-              maxValue: MAX_SAMPLE_PERCENTAGE,
-            },
-            description:
-              "Required when Action is Sample. Percentage of matching logs to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-            placeholder: "e.g. 10",
-          },
-        ]}
+        editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}
+        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}
+        /*
+         * The create form's Action fields (DropFilterForm): Drop or Sample,
+         * each with its line, and the percentage only for Sample.
+         */
+        formFields={getLogDropFilterActionFields()}
         modelDetailProps={{
           modelType: LogDropFilter,
           id: "model-detail-log-drop-filter-action",
@@ -174,7 +143,9 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                     <div className="flex items-center gap-3">
                       <Pill color={Red} text="Drop" icon={IconProp.Trash} />
                       <span className="text-sm text-gray-500">
-                        All matching logs are permanently discarded
+                        {translator.translateText(
+                          "All matching logs are permanently discarded",
+                        )}
                       </span>
                     </div>
                   );
@@ -188,13 +159,17 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                         icon={IconProp.Filter}
                       />
                       <span className="text-sm text-gray-500">
-                        Only a percentage of matching logs are kept
+                        {translator.translateText(
+                          "Only a percentage of matching logs are kept",
+                        )}
                       </span>
                     </div>
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">Not configured</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not configured")}
+                  </span>
                 );
               },
             },
@@ -217,12 +192,16 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                   return (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-400">
-                        Not configured
+                        {translator.translateText("Not configured")}
                       </span>
                       <span className="text-sm text-gray-500">
-                        — no logs are being sampled away. Set a percentage
-                        between {MIN_SAMPLE_PERCENTAGE} and{" "}
-                        {MAX_SAMPLE_PERCENTAGE} to start sampling.
+                        {translator.translateTemplate(
+                          "— no logs are being sampled away. Set a percentage between {{min}} and {{max}} to start sampling.",
+                          {
+                            min: MIN_SAMPLE_PERCENTAGE,
+                            max: MAX_SAMPLE_PERCENTAGE,
+                          },
+                        )}
                       </span>
                     </div>
                   );
@@ -239,14 +218,18 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                       <span className="text-lg font-semibold text-gray-900">
                         {pct}%
                       </span>
-                      <span className="text-sm text-gray-500">kept</span>
+                      <span className="text-sm text-gray-500">
+                        {translator.translateText("kept")}
+                      </span>
                     </div>
                     <div className="text-gray-300">•</div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-semibold text-gray-400">
                         {discardPct}%
                       </span>
-                      <span className="text-sm text-gray-500">discarded</span>
+                      <span className="text-sm text-gray-500">
+                        {translator.translateText("discarded")}
+                      </span>
                     </div>
                     <div className="flex-1 max-w-xs">
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -297,7 +280,9 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (dropped === 0) {
                   return (
                     <span className="text-sm text-gray-400">
-                      This filter has never matched a log.
+                      {translator.translateText(
+                        "This filter has never matched a log.",
+                      )}
                     </span>
                   );
                 }

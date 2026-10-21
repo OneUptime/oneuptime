@@ -1,0 +1,3 @@
+# A values file with fixes: true, which names no level.
+aiAgent:
+  fixes: true

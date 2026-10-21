@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
@@ -16,7 +16,6 @@ import {
   getMonitorTypeCriteriaValidationError,
   isMonitorTypeCriteriaValue,
 } from "../../Utils/Rules/MonitorTypeRuleCriteria";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import {
   getRuleCriteriaValidationError,
   isValidRuleCriteria,
@@ -33,12 +32,16 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import logger, { LogAttributes } from "../Utils/Logger";
 import MonitorRulePatternValidator from "../Utils/Rules/MonitorRulePatternValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Everything a hook needs to validate a rule, describe it in the SLO feed,
@@ -63,9 +66,9 @@ const RULE_SNAPSHOT_SELECT: Select<Model> = {
 };
 
 type BuildRuleFeedSentenceFunction = (data: {
-  sloLink: string;
-  ruleName: string;
-}) => string;
+  sloLink: MarkdownText;
+  ruleName: MarkdownText;
+}) => MarkdownText;
 
 interface RuleUpdateCarryForward {
   rulesBeforeUpdate: Array<Model>;
@@ -75,19 +78,36 @@ interface RuleDeleteCarryForward {
   rulesToDelete: Array<Model>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The SLO is checked by SloRecordReferenceValidator (pinned to the project,
+   * ids only). The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["serviceLevelObjective"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const serviceLevelObjectiveId: ObjectID | string | undefined =
-      resolveReferenceId(
-        createBy.data.serviceLevelObjectiveId ||
-          createBy.data.serviceLevelObjective,
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The SLO, under either of its names: the two must agree, so the SLO the
+     * rule is checked against - and whose legacy labels it adopts below - is
+     * the one stored.
+     */
+    const serviceLevelObjectiveId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["serviceLevelObjectiveId", "serviceLevelObjective"],
+        "Service Level Objective",
       );
 
     if (!serviceLevelObjectiveId) {
@@ -161,12 +181,12 @@ export class Service extends DatabaseService<Model> {
       displayColor: Green500,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       buildFeedInfoInMarkdown: (data: {
-        sloLink: string;
-        ruleName: string;
-      }): string => {
+        sloLink: MarkdownText;
+        ruleName: MarkdownText;
+      }): MarkdownText => {
         return rule.isEnabled === false
-          ? `🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. It was added disabled, so it does not attach any monitors yet.`
-          : `🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. Monitors it matches are attached to this SLO.`;
+          ? mdText`🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. It was added disabled, so it does not attach any monitors yet.`
+          : mdText`🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. Monitors it matches are attached to this SLO.`;
       },
       moreInformationInMarkdown: await this.describeRuleForFeed(rule),
     });
@@ -186,6 +206,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     MonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as
@@ -249,9 +272,9 @@ export class Service extends DatabaseService<Model> {
     );
 
     /*
-     * The snapshot was read with the caller's raw (tenant-pinned) query,
-     * before the permission check narrowed it. updatedItemIds is the set that
-     * was actually written, so only those rows are described.
+     * The snapshot is the rows the update was held to before the write.
+     * updatedItemIds is the set that was actually written, so only those rows
+     * are described.
      */
     const rulesBeforeUpdate: Array<Model> = (
       (onUpdate.carryForward as RuleUpdateCarryForward | null)
@@ -336,31 +359,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    let rulesToDelete: Array<Model> = [];
-
-    try {
-      rulesToDelete = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-          serviceLevelObjectiveId: true,
-          name: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: deleteBy.props,
-      });
-    } catch (error) {
-      /*
-       * Best effort. Failing to note the rules down must not block the
-       * delete; the worst case is that their monitors stay attached until the
-       * next edit to a rule on that SLO, or the next change to the monitor.
-       */
-      logger.error(
-        `Error collecting SLO monitor rules before delete: ${error}`,
-      );
-    }
+    // The rules the delete removes, and the delete held to them.
+    const rulesToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+        serviceLevelObjectiveId: true,
+        name: true,
+      },
+    );
 
     const carryForward: RuleDeleteCarryForward = {
       rulesToDelete: rulesToDelete,
@@ -403,10 +411,10 @@ export class Service extends DatabaseService<Model> {
         displayColor: Red500,
         userId: onDelete.deleteBy.props.userId,
         buildFeedInfoInMarkdown: (data: {
-          sloLink: string;
-          ruleName: string;
-        }): string => {
-          return `🗑️ Removed monitor rule ${data.ruleName} from ${data.sloLink}. Monitors only this rule attached are detached; monitors attached by hand, or matched by another enabled rule, stay.`;
+          sloLink: MarkdownText;
+          ruleName: MarkdownText;
+        }): MarkdownText => {
+          return mdText`🗑️ Removed monitor rule ${data.ruleName} from ${data.sloLink}. Monitors only this rule attached are detached; monitors attached by hand, or matched by another enabled rule, stay.`;
         },
       });
     }
@@ -484,8 +492,8 @@ export class Service extends DatabaseService<Model> {
   /**
    * Which of these SLOs have at least one enabled monitor rule, as lower-case
    * id strings. The SLO service asks this to refuse hand-edits to a monitor
-   * list the rules own. Read as root: the caller has already pinned the SLOs
-   * to the caller's tenant.
+   * list the rules own. Read as root: the caller hands in the SLOs its update
+   * writes, read as the rows the update was held to.
    */
   @CaptureSpan()
   public async findServiceLevelObjectiveIdsWithEnabledRules(
@@ -566,12 +574,11 @@ export class Service extends DatabaseService<Model> {
    * SLO would attach this project's monitors to it - and reveal, through the
    * feed and the Monitors page, which monitors this project has.
    *
-   * SloRecordReferenceValidator rather than ProjectScopedReferenceValidator.
-   * That one reads the referenced row as root and names a foreign one in its
-   * error ("belong to a different project: Service Level Objective <name>"),
-   * which confirms another tenant's SLO exists and hands its name to anyone
-   * holding its id. This lookup is pinned to the rule's project, selects only
-   * ids, and gives a foreign id the same answer as an id that matches nothing.
+   * SloRecordReferenceValidator checks it: pinned to the rule's project,
+   * selecting only ids, and giving a foreign id the same answer as an id
+   * that matches nothing - in words that name the SLO, which is why the
+   * generic reference check leaves this relation to it
+   * (getRelationsCheckedByService).
    */
   private async assertServiceLevelObjectiveIsInScope(data: {
     projectId: ObjectID | undefined;
@@ -727,33 +734,18 @@ export class Service extends DatabaseService<Model> {
    * The rules an update actually touches, read for validation and for the
    * feed's before-snapshot.
    *
-   * onBeforeUpdate runs before DatabaseService applies the update query's
-   * permission check, so the query here is still the caller's raw one. The
-   * tenant is pinned onto it when the caller has one, so a validation read can
-   * never reach across projects and answer questions about another tenant's
-   * rules. Genuinely root callers (the engines, migrations) have no tenantId
-   * and are trusted.
+   * They are the rows the update writes - for a teammate, the rules they may
+   * write - and the update is held to them (findRowsAndHoldUpdateToThem), so
+   * a validation read never answers questions about another project's rules,
+   * and no rule is written that was not validated.
    */
   private async findRulesForQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: RULE_SNAPSHOT_SELECT,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      RULE_SNAPSHOT_SELECT,
+    );
   }
 
   /**
@@ -828,17 +820,17 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const details: Array<string> = [];
+    const details: Array<MarkdownText> = [];
 
     if (isNameChanged) {
       details.push(
-        `- **Name:** ${this.formatRuleName(previous.name)} → ${this.formatRuleName(current.name)}`,
+        mdText`**Name:** ${this.formatRuleName(previous.name)} → ${this.formatRuleName(current.name)}`,
       );
     }
 
     if (isDescriptionChanged) {
       details.push(
-        `- **Description:** ${
+        mdText`**Description:** ${
           !previous.description
             ? "added"
             : !current.description
@@ -850,7 +842,7 @@ export class Service extends DatabaseService<Model> {
 
     if (isEnabledChanged) {
       details.push(
-        `- **Status:** ${wasEnabled ? "Enabled" : "Disabled"} → ${isEnabled ? "Enabled" : "Disabled"}`,
+        mdText`**Status:** ${wasEnabled ? "Enabled" : "Disabled"} → ${isEnabled ? "Enabled" : "Disabled"}`,
       );
     }
 
@@ -861,20 +853,16 @@ export class Service extends DatabaseService<Model> {
       ]);
 
       details.push(
-        `- **Match criteria (before):** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: previous,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria (before):** ${describeSloMonitorRuleCriteria({
+          rule: previous,
+          labelNameById: labelNameById,
+        })}`,
       );
       details.push(
-        `- **Match criteria (now):** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: current,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria (now):** ${describeSloMonitorRuleCriteria({
+          rule: current,
+          labelNameById: labelNameById,
+        })}`,
       );
     }
 
@@ -890,25 +878,25 @@ export class Service extends DatabaseService<Model> {
       displayColor: Gray500,
       userId: data.userId,
       buildFeedInfoInMarkdown: (sentence: {
-        sloLink: string;
-        ruleName: string;
-      }): string => {
+        sloLink: MarkdownText;
+        ruleName: MarkdownText;
+      }): MarkdownText => {
         if (isOnlyEnabledChanged) {
           return isEnabled
-            ? `▶️ Enabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors it matches are attached to this SLO again.`
-            : `⏸️ Disabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors only this rule attached are detached.`;
+            ? mdText`▶️ Enabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors it matches are attached to this SLO again.`
+            : mdText`⏸️ Disabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors only this rule attached are detached.`;
         }
 
-        return `🧩 Updated monitor rule ${sentence.ruleName} on ${sentence.sloLink}.`;
+        return mdText`🧩 Updated monitor rule ${sentence.ruleName} on ${sentence.sloLink}.`;
       },
-      moreInformationInMarkdown: details.join("\n"),
+      moreInformationInMarkdown: FeedMarkdown.bulletList(details).toString(),
     });
   }
 
   /*
    * Posts one rule event to the rule's SLO feed. The rule name and everything
-   * else user-controlled is escaped here, once, at the point it becomes
-   * markdown. Never throws: the rule is already saved, and a feed item that
+   * else user-controlled is placed as text (mdText), once, at the point it
+   * becomes markdown. Never throws: the rule is already saved, and a feed item that
    * could not be written must not fail the write it describes.
    */
   private async postRuleFeedItem(data: {
@@ -926,7 +914,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: rule.projectId,
           sloId: rule.serviceLevelObjectiveId,
@@ -938,10 +926,12 @@ export class Service extends DatabaseService<Model> {
           projectId: rule.projectId,
           serviceLevelObjectiveFeedEventType: data.eventType,
           displayColor: data.displayColor,
-          feedInfoInMarkdown: data.buildFeedInfoInMarkdown({
-            sloLink: sloLink,
-            ruleName: this.formatRuleName(rule.name),
-          }),
+          feedInfoInMarkdown: data
+            .buildFeedInfoInMarkdown({
+              sloLink: sloLink,
+              ruleName: this.formatRuleName(rule.name),
+            })
+            .toString(),
           moreInformationInMarkdown:
             data.moreInformationInMarkdown || undefined,
           userId: data.userId || undefined,
@@ -955,11 +945,13 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // "**Production APIs**" - escaped, bold, and never an empty pair of stars.
-  private formatRuleName(name: string | undefined): string {
-    const escapedName: string = escapeMarkdownInline(name).trim();
+  // "**Production APIs**" - placed as text, bold, and never an empty pair of stars.
+  private formatRuleName(name: string | undefined): MarkdownText {
+    const trimmedName: string = (name || "").trim();
 
-    return escapedName ? `**${escapedName}**` : "**an unnamed rule**";
+    return trimmedName
+      ? mdText`**${trimmedName}**`
+      : mdText`**an unnamed rule**`;
   }
 
   /*
@@ -967,8 +959,8 @@ export class Service extends DatabaseService<Model> {
    * is on, and what it matches in words.
    */
   private async describeRuleForFeed(rule: Model): Promise<string> {
-    const lines: Array<string> = [
-      `- **Status:** ${rule.isEnabled === false ? "Disabled" : "Enabled"}`,
+    const lines: Array<MarkdownText> = [
+      mdText`**Status:** ${rule.isEnabled === false ? "Disabled" : "Enabled"}`,
     ];
 
     try {
@@ -977,24 +969,20 @@ export class Service extends DatabaseService<Model> {
       );
 
       lines.push(
-        `- **Match criteria:** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: rule,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria:** ${describeSloMonitorRuleCriteria({
+          rule: rule,
+          labelNameById: labelNameById,
+        })}`,
       );
     } catch (error) {
       logger.error(`Error describing SLO monitor rule criteria: ${error}`);
     }
 
     if (rule.description) {
-      lines.push(
-        `- **Description:** ${escapeMarkdownInline(rule.description)}`,
-      );
+      lines.push(mdText`**Description:** ${rule.description}`);
     }
 
-    return lines.join("\n");
+    return FeedMarkdown.bulletList(lines).toString();
   }
 
   /*

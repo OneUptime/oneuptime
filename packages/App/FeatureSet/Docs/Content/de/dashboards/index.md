@@ -1,82 +1,105 @@
-# Dashboards – Überblick
+# Dashboards – Übersicht
 
-Dashboards verwandeln die Daten, die OneUptime bereits sammelt – Metriken, Logs, Traces, Vorfälle, Monitore, Kubernetes-Ressourcen, Hosts – in eine einzige Seite, auf der man mit einem Blick erkennt, was los ist.
+Ein Dashboard ist eine Seite mit Widgets, die Sie selbst anordnen: Diagramme Ihrer Metriken, Logs und Traces, Listen von Vorfällen, Warnungen und Monitoren, Ihre SLOs und Ihre Infrastruktur, sogar Daten aus Systemen außerhalb von OneUptime. Bauen Sie eines für den Bildschirm der Rufbereitschaft, den Morgencheck eines Teams oder eine Seite für Ihre Kunden, und teilen Sie es mit Ihrem Projekt oder mit allen, die den Link haben.
 
-Platzieren Sie ein Diagramm zur Anfrage-Latenz neben einer Liste offener Vorfälle, daneben eine Anzeige für die CPU und einen Textabschnitt mit Kontext. Speichern. Link teilen.
+:::cards
+- [Wie ein Dashboard funktioniert](#wie-ein-dashboard-funktioniert): Woher seine Daten kommen und wer es sieht.
+- [Ihre Dashboards finden](#ihre-dashboards-finden): Die Liste Dashboards und die eigenen Seiten jedes Dashboards.
+- [Ihr erstes Dashboard bauen](#ihr-erstes-dashboard-bauen): Von einer Vorlage zu einer geteilten Seite in fünf Schritten.
+- [Ein Beispiel: ein Dashboard für die Rufbereitschaft](#ein-beispiel-ein-dashboard-für-die-rufbereitschaft): Eine Seite, die für jeden Dienst funktioniert.
+:::
+
+## Wie ein Dashboard funktioniert
+
+Jedes Widget liest aus einer Quelle, innerhalb des Zeitbereichs des Dashboards und gefiltert durch seine Variablen. Alle, die das Dashboard öffnen, sehen dieselben Widgets: Ihr Team nach der Anmeldung und Besucher über seinen öffentlichen Link, sobald Sie es teilen.
+
+```mermaid title="Von Ihren Daten zu den Menschen, die sie lesen"
+flowchart TB
+    S["Ihre Daten: Telemetrie,<br/>Monitore, Vorfälle,<br/>SLOs, Infrastruktur,<br/>andere Systeme"] --> W["Widgets: Diagramme,<br/>Zahlen, Listen,<br/>Karten und Text"]
+    W --> D["Ein Dashboard: sein<br/>Zeitbereich, Variablen<br/>und Aktualisierung"]
+    D --> M["Ihr Team,<br/>angemeldet"]
+    D --> P["Alle mit dem Link,<br/>sobald Sie teilen"]
+```
+
+| Begriff | Bedeutung |
+| --- | --- |
+| Dashboard | Eine Seite: ein Name, ein Raster aus Widgets, ein Zeitbereich, Variablen und eine Einstellung für die automatische Aktualisierung. |
+| Widget | Eine Kachel im Raster: ein Diagramm, eine Zahl, eine Liste, eine Karte, eine Uhr oder ein Textblock. |
+| Variable | Eine Auswahl in der Werkzeugleiste, die jedes Widget, das sie unterstützt, auf einen Dienst, einen Host oder einen Kunden eingrenzt. |
+| Zeitbereich | Das Zeitfenster, das jedes Diagramm und jede Zahl liest. Ein Dashboard öffnet sich mit seinem Standard, der letzten Stunde, es sei denn, jemand legt beim Bearbeiten einen anderen fest, und jeder Betrachter kann einen eigenen wählen. |
+| Automatische Aktualisierung | Wie oft die Widgets ihre Daten neu lesen: aus, oder alle 5 Sekunden bis 15 Minuten. |
+| Ansehen und bearbeiten | Ein Dashboard öffnet sich zum Lesen. Das Bearbeiten ist ein eigener Schritt, der mit dem Speichern oder Verwerfen Ihrer Änderungen endet. |
 
 ## Wofür Dashboards gut sind
 
-- **Eine „Ist alles in Ordnung?"-Seite** – für die Rufbereitschaft, das tägliche Standup oder ein Wand-TV.
-- **Zusammenhänge erkennen** – ein CPU-Spitzenwert zur selben Zeit wie ein Latenzanstieg und ein offener Vorfall ist auf einer Seite viel leichter zu sehen als über drei Tabs verteilt.
-- **Untersuchen** – wenn Sie ein Problem analysieren, schlägt ein spontan zusammengestelltes Dashboard zehn nacheinander ausgeführte Abfragen.
-- **Extern teilen** – eine kundenseitige Performance-Seite, ein Partner-Statusbereich, ein öffentliches Dashboard für ein Open-Source-Projekt.
+- **Eine Seite „Ist alles in Ordnung?“** für die Person in Rufbereitschaft, das Standup eines Teams oder einen Bildschirm an der Wand.
+- **Zusammenhänge sehen**: Eine CPU-Spitze neben einem Latenzanstieg und einem offenen Vorfall ist auf einer Seite offensichtlich und leicht zu übersehen, wenn sie auf drei Seiten verteilt ist.
+- **Untersuchen**: Stellen Sie die Diagramme, die Sie immer wieder öffnen, nebeneinander, und ziehen Sie über eine Spitze, um jedes Widget in diesem Moment zu lesen.
+- **Außerhalb des Teams teilen**: eine Leistungsseite für einen Kunden oder Partner, auf Wunsch mit einem Passwort oder einer IP-Zulassungsliste geschützt.
 
-## Was Sie auf einem Dashboard platzieren können
+## Ihre Dashboards finden
 
-- **Diagramme** für Trends im Zeitverlauf – Latenz, Fehler, Durchsatz.
-- **Einzelwertfelder und Anzeigen** – aktuelle Fehlerquote, CPU, offene Vorfälle.
-- **Tabellen** für Aufschlüsselungen – Top-10-lauteste Hosts, Fehler je Service.
-- **Textblöcke** für Überschriften, Kontext und Links zu Runbooks.
-- **Live-Listen** von Vorfällen, Benachrichtigungen, Monitoren, Logs, Traces, Kubernetes-Ressourcen, Docker-Ressourcen und Hosts.
+Öffnen Sie **Produkte → Dashboards**. Die Liste **Dashboards** zeigt die Dashboards des Projekts mit ihren Beschreibungen, Beschriftungen und Eigentümern. Suchen Sie nach Name oder Beschreibung, grenzen Sie die Liste mit den Filtern **Eigentümer** und **Beschriftungen** ein, oder wählen Sie mehrere Dashboards aus, um ihre Beschriftungen oder Eigentümer zu ändern, sie zu archivieren oder als JSON zu exportieren.
 
-Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widgets](/docs/dashboards/widgets).
+Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards kümmern:
 
-## Wichtige Begriffe
+| Seite | Was Sie dort tun |
+| --- | --- |
+| **Dashboards** | Die Dashboards des Projekts. Erstellen Sie eines, oder holen Sie Dashboards mit **JSON importieren** herein. |
+| **Einstellungen → Eigentümerregeln** | Neuen Dashboards automatisch Eigentümer hinzufügen. |
+| **Einstellungen → Beschriftungsregeln** | Neuen Dashboards automatisch Beschriftungen hinzufügen. |
+| **Einstellungen → Datenquellen** | Prometheus, SQL-Datenbanken, ClickHouse, Loki, Elasticsearch oder eine REST-API anbinden. |
+| **Erweitert → Archiviert** | Dashboards, die Sie archiviert haben. Holen Sie sie von hier aus dem Archiv zurück. |
 
-| Begriff            | Bedeutung                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**      | Die gesamte Seite – ein Name, ein Raster aus Widgets, Steuerung des Zeitbereichs und eine Liste von Variablen. |
-| **Widget**         | Eine Kachel auf der Seite – ein Diagramm, eine Zahl, eine Liste, ein Textabschnitt.                            |
-| **Variable**       | Ein Dropdown oben, das alle Widgets gleichzeitig filtert (Cluster, Service, Kunde, Umgebung).                  |
-| **Zeitbereich**    | Das Zeitfenster, das jedes Diagramm und jede Zahl verwendet. Wird einmal oben auf der Seite eingestellt.       |
-| **Aktualisieren**  | Wie oft Widgets die Daten neu abfragen. Aus, alle paar Sekunden, alle paar Minuten.                            |
-| **Modus**          | Entweder **Bearbeiten** (Widgets verschieben) oder **Ansehen** (nur lesen, wie Besucher sie sehen).            |
+Öffnen Sie ein Dashboard, und sein eigenes Seitenmenü enthält diese Seiten. Jeder Abschnitt außer **Grundlegend** ist anfangs eingeklappt: Klicken Sie auf seinen Titel, um ihn zu öffnen.
 
-## Wo Sie Dashboards finden
+| Seite | Was Sie dort tun |
+| --- | --- |
+| **Dashboard** | Das Dashboard selbst. Lesen Sie es, oder bearbeiten Sie es über sein Menü **⋯**. |
+| **Übersicht** | Sein Name, seine Beschreibung und seine Beschriftungen. |
+| **Freigabe** | Wer es sehen kann, sein öffentlicher Link und eine IP-Zulassungsliste unter Weitere Einstellungen. |
+| **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
+| **Branding** | Seitentitel, Beschreibung, Logo, Design und Favicon des öffentlichen Dashboards. |
+| **Benutzerdefinierte Domains** | Das öffentliche Dashboard unter Ihrer eigenen Domain bereitstellen. |
+| **Einstellungen** | Das Dashboard duplizieren, exportieren oder archivieren. |
+| **Audit-Protokolle** | Jede Änderung am Dashboard und wer sie vorgenommen hat. |
+| **Löschen** | Das Dashboard endgültig löschen. |
 
-Öffnen Sie **Dashboards** in der linken Navigation.
+## Ihr erstes Dashboard bauen
 
-| Seite                         | Was Sie dort tun                                                                        |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| **Dashboards**                | Ihre Liste der Dashboards. Neues erstellen, suchen oder nach Label filtern.             |
-| **Dashboard → Ansehen**       | Die Arbeitsfläche. Im Kopfbereich wechseln Sie zwischen **Bearbeiten** und **Ansehen**. |
-| **Dashboard → Übersicht**     | Beschreibung, Eigentümer und Labels.                                                    |
-| **Dashboard → Einstellungen** | Öffentliche Freigabe, Passwort, IP-Zugriffsliste, eigene Domain, Branding.              |
-| **Dashboard → Eigentümer**    | Benutzer und Teams mit explizitem Zugriff.                                              |
-| **Dashboard → Löschen**       | Das Dashboard entfernen.                                                                |
+:::steps
+1. **Erstellen** — Wählen Sie eine Vorlage oder **Ohne Vorlage beginnen**. Eine Vorlage füllt den Namen aus und öffnet sich mit ihren Widgets; ein Dashboard ohne Vorlage öffnet sich leer, mit **Widget hinzufügen** auf seiner Arbeitsfläche.
+2. **Widgets hinzufügen** — Wählen Sie ein Widget aus dem Katalog, legen Sie in seinen Einstellungen fest, was es liest, und ziehen Sie es dann an seinen Platz und in seine Größe.
+3. **Variablen hinzufügen, falls Sie sie brauchen** — Eine Variable `service` zum Beispiel lässt ein Dashboard jeden beliebigen Dienst zeigen.
+4. **Speichern** — Klicken Sie auf **Änderungen speichern**. Nichts, was Sie beim Bearbeiten ändern, bleibt erhalten, bevor Sie das tun.
+5. **(Optional) Öffentlich teilen** — Wählen Sie **⋯ → Teilen** im Dashboard und legen Sie fest, wer es sehen kann: alle mit dem Link oder alle mit dem Link und einem Passwort.
+:::
 
-## Ein Dashboard aufbauen
+[Ein Dashboard erstellen](/docs/dashboards/authoring) führt durch jeden Schritt.
 
-1. **Erstellen** – wählen Sie einen Namen. Die Arbeitsfläche öffnet sich leer.
-2. **Widgets hinzufügen** – Widget-Typ wählen, dessen Daten konfigurieren und an die gewünschte Stelle ziehen.
-3. **(Optional) Variablen hinzufügen** – zum Beispiel ein Dropdown `service`, damit dasselbe Dashboard für jeden Service funktioniert.
-4. **Zeitbereich einstellen** – die Voreinstellungen passen meist; später feinjustieren.
-5. **(Optional) Öffentlich freigeben** – den Schalter in den Einstellungen umlegen, bei Bedarf Passwort oder IP-Zugriffsliste hinzufügen.
-6. **(Optional) Eigene Domain** – das Dashboard auf `status.ihre-domain.de` hosten.
+## Ein Beispiel: ein Dashboard für die Rufbereitschaft
 
-## Ein kurzes Beispiel
+Das Ziel: eine Seite für den Checkout-Dienst mit seiner Latenz, seiner Fehlerquote, seinen offenen Vorfällen und seinen neuesten Logs, die auch für jeden anderen Dienst funktioniert.
 
-Ziel: eine Rufbereitschafts-Seite für den Checkout-Service mit Latenz, Fehlerquote, offenen Vorfällen und einem Live-Log-Stream.
+1. Klicken Sie auf **Dashboard erstellen**, wählen Sie **Ohne Vorlage beginnen** und nennen Sie das Dashboard „Checkout on-call“.
+2. Klicken Sie auf **Widget hinzufügen** und fügen Sie ein **Diagramm** Ihrer Latenzmetrik für Anfragen hinzu, aggregiert als P95.
+3. Fügen Sie daneben einen **Wert** Ihrer Fehlerquote hinzu, mit einer Warnschwelle von 1 und einer kritischen Schwelle von 5.
+4. Fügen Sie darunter eine **Vorfallsliste** hinzu, gefiltert auf ungelöste Vorfälle, und einen **Protokoll-Stream** der Logs des Dienstes.
+5. Öffnen Sie **Variablen**, fügen Sie eine Variable namens `service` mit der Quelle Telemetry Attribute und dem Attributschlüssel `service.name` hinzu und geben Sie ihr den Standardwert `checkout`.
+6. Klicken Sie auf **Änderungen speichern**. Wählen Sie `payments` in der Auswahl `service` der Werkzeugleiste: Das Diagramm, der Wert und der Log-Stream wechseln zum Dienst payments, und die Vorfallsliste zeigt weiterhin jeden ungelösten Vorfall.
 
-1. Erstellen Sie ein Dashboard mit dem Namen „Checkout Rufbereitschaft".
-2. Fügen Sie eine Variable `service` hinzu. Standardwert `checkout`.
-3. Fügen Sie ein **Diagramm**-Widget mit P95-Latenz hinzu, gefiltert nach der Variablen `service`.
-4. Daneben ein **Wert**-Widget für die Fehlerquote, mit Warnung bei 1 % und kritisch bei 5 %.
-5. Darunter ein **Vorfallsliste**-Widget für Vorfälle mit dem Label `checkout`.
-6. Darunter ein **Protokoll-Stream**-Widget, das Logs desselben Service zeigt.
-7. Speichern. Wechseln Sie das Dropdown auf `payments` – dasselbe Dashboard zeigt nun den Payments-Service.
+## Wie Dashboards zum Rest von OneUptime passen
 
-## Wie Dashboards in OneUptime hineinpassen
+- **Monitore und Telemetrie** sind die Herkunft der Daten. Jede Metrik, jedes Log und jeder Trace, den Sie senden, kann auf ein Widget.
+- **Vorfälle und Warnungen** erscheinen in den Widgets **Vorfallsliste** und **Warnungsliste**. Ein Dashboard zeigt sie nur: Bearbeitet werden sie auf ihren eigenen Seiten.
+- **Statusseiten** sagen Ihren Kunden, ob Ihr Dienst läuft. Dashboards zeigen im Detail, wie er sich verhält. Beide arbeiten Seite an Seite.
+- **Workflows** handeln, wenn etwas geschieht. Dashboards sind der Ort, an dem Sie es lesen.
 
-- **Monitore und Telemetrie** sind die Datenquellen. Jede Metrik, jedes Log und jeder Trace, den Sie sammeln, ist in einem Widget abfragbar.
-- **Vorfälle und Benachrichtigungen** tauchen in Widgets vom Typ **Vorfallsliste** und **Warnungsliste** auf. Dashboards sind dafür nur lesend – erstellen und aktualisieren Sie diese an anderer Stelle.
-- **Statusseiten** sind die kundenseitige Kommunikation („Funktioniert das System?"). Dashboards dienen dazu, im Detail zu sehen, wie sich das System verhält. Beide ergänzen sich, sie ersetzen einander nicht.
-- **Arbeitsabläufe** sind das Mittel, mit dem OneUptime handelt. Dashboards sind das Mittel, mit dem Sie sehen, was passiert.
+## Nächste Schritte
 
-## Weiterführende Themen
-
-- [Dashboard erstellen](/docs/dashboards/authoring) – Arbeitsfläche nutzen, Widgets bearbeiten.
-- [Widgets](/docs/dashboards/widgets) – die vollständige Liste der Widgets.
-- [Variablen & Filter](/docs/dashboards/variables) – ein Dashboard für viele Services oder Kunden nutzbar machen.
-- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – öffentliche URLs, Passwörter, IP-Zugriffsliste, eigene Domains.
-- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) – Eigentümer, Labels, Zugriffskontrolle.
+:::cards
+- [Ein Dashboard erstellen](/docs/dashboards/authoring): Ein Dashboard anlegen, bearbeiten und Ihre Änderungen speichern.
+- [Dashboard-Widgets](/docs/dashboards/widgets): Jedes Widget und welches Sie wählen.
+- [Dashboard-Variablen & Filter](/docs/dashboards/variables): Ein Dashboard für jeden Dienst, jeden Host oder jeden Kunden.
+- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing): Öffentliche Links, Passwörter, IP-Zulassungslisten und eigene Domains.
+:::

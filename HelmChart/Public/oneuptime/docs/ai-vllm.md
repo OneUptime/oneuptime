@@ -40,9 +40,9 @@ fit your GPU's memory at its full context window, cap it with
 
 When enabled, vLLM is **registered automatically as a Global LLM Provider** at
 startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for
-all projects with no dashboard setup. It appears under **AI Agents > LLM
-Providers** as "OneUptime AI" (configurable via `vllm.globalProvider.name` and
-`vllm.globalProvider.description`).
+all projects with no dashboard setup. It appears under **Project Settings > AI >
+LLM Providers** as "OneUptime AI" (configurable via `vllm.globalProvider.name`
+and `vllm.globalProvider.description`).
 
 The registration is declarative:
 
@@ -52,24 +52,42 @@ The registration is declarative:
   URL, API key) in the Admin Dashboard are overwritten. Other fields — such as
   the token cost used for AI-credit billing — are left alone.
 
+It also works with `billing.enabled: true` or
+`outboundConnections.blockPrivateNetwork: true`. Both refuse private addresses,
+such as the vLLM Service's cluster IP, but only to LLM providers that projects
+configure. A global provider's address comes from the chart or an
+administrator, never from a project member, so it is exempt. Loopback and
+link-local addresses stay refused for every provider.
+
 Two caveats:
 
-- Project-scoped AI Agents cannot use global providers (they need a
-  project-specific LLM Provider).
+- A project's own LLM Provider takes precedence; AI fix tasks fall back to the
+  global provider when a project has none.
 - On installs with `billing.enabled: true`, global providers are subject to
-  AI-credit balance checks.
+  AI-credit balance checks once you set their token cost (cost per million
+  tokens) in the Admin Dashboard. The auto-registered provider starts at no
+  cost.
 
 ## Wire it up manually instead
 
-Set `vllm.globalProvider.enabled: false` and go to **AI Agents > LLM Providers >
-Create LLM Provider**:
+Set `vllm.globalProvider.enabled: false` and go to **Project Settings > AI > LLM
+Providers > Create LLM Provider**:
 
 - **LLM Provider**: `OpenAI Compatible`
 - **Base URL**: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+  (replace `cluster.local` if you changed `global.clusterDomain`). Use this
+  Service DNS name, not `localhost`: OneUptime refuses loopback addresses for
+  LLM providers, and the same pattern reaches any other in-cluster model server,
+  such as `http://ollama.<namespace>.svc.cluster.local:11434` for Ollama.
 - **Model Name**: the value of `vllm.servedModelName`, or the full HuggingFace
   model id if unset
 - **API Key**: the value of `vllm.apiKey`; leave blank if you did not set one
   (vLLM is keyless by default)
+
+With `billing.enabled: true` or `outboundConnections.blockPrivateNetwork: true`,
+a project's own provider cannot reach the Service's private cluster IP. Create
+it with the same fields in the Admin Dashboard under **Settings > Global LLM
+Providers** instead.
 
 ## Scaling & upgrades
 

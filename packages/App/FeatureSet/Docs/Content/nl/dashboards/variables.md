@@ -1,92 +1,128 @@
-# Variabelen en filters
+# Dashboard-variabelen en filters
 
-Een variabele verandert één dashboard in een template. Voeg een `service`-variabele toe aan je dashboard en dezelfde charts rerenderen voor `checkout`, `payments` of `search` — kijkers kiezen uit een dropdown bovenaan in plaats van dat jij drie bijna identieke dashboards bouwt.
+Een variabele is een kiezer in de werkbalk van het dashboard. Voeg een variabele `service` toe en dezelfde grafieken tonen `checkout`, `payments` of `search`: kijkers kiezen in de werkbalk, in plaats van dat jij drie bijna identieke dashboards bouwt.
 
-## Variabele-types
+:::cards
+- [Een variabele toevoegen](#een-variabele-toevoegen): Geef haar een naam, kies waar de waarden vandaan komen, sla op.
+- [Bronnen van variabelen](#bronnen-van-variabelen): Telemetry Attribute, Project Labels, Custom List en Text Input.
+- [Hoe widgets een variabele gebruiken](#hoe-widgets-een-variabele-gebruiken): Welke widgets welke variabelen volgen.
+- [Links die de selectie bewaren](#links-die-de-selectie-bewaren): Stuur een link die op dezelfde service opent.
+:::
 
-Voeg variabelen toe onder **Dashboard → Instellingen → Variabelen**. Elke variabele heeft een naam (gebruikt als `{{name}}` in je widgets), een optioneel label en een type.
+## Hoe een variabele werkt
 
-### Custom List
+Je definieert variabelen terwijl je het dashboard bewerkt, en ze worden ermee opgeslagen. In leesmodus is elke variabele een kiezer in de werkbalk. Als een kijker een waarde kiest, leest elke widget die de variabele volgt zijn gegevens opnieuw, en bewaart de link van de pagina de keuze.
 
-Een statische dropdown. Je typt de opties zelf.
+```mermaid title="Van een variabele definiëren tot de keuze van een kijker"
+flowchart TB
+    A["Bewerken: Variabelen,<br/>dan Variabele<br/>toevoegen"] --> B["Variabelen opslaan,<br/>dan Wijzigingen<br/>opslaan"]
+    B --> C["Lezen: een kiezer<br/>in de werkbalk"]
+    C --> D["Een kijker kiest<br/>een waarde"]
+    D --> E["De widgets die de<br/>variabele volgen,<br/>lezen opnieuw"]
+    D --> F["De link van de pagina<br/>bewaart de keuze"]
+```
 
-Gebruik dit wanneer: de keuzes klein en vast zijn. `environment` met waarden `prod, staging, dev`. `region` met waarden `us-east-1, eu-west-1, ap-south-1`.
+## Een variabele toevoegen
 
-### Query
+:::steps
+### Open het dialoogvenster voor variabelen
 
-De opties komen uit een query tegen je data.
+Open het dashboard, kies **⋯ → Edit Dashboard** en klik op **Variabelen** in de werkbalk. Het dialoogvenster **Dashboardvariabelen** toont de variabelen van het dashboard; de knop in de werkbalk telt ze.
 
-Gebruik dit wanneer: de keuzes in de tijd veranderen en je wilt dat de dropdown bijblijft. "Elke klant-ID die in de afgelopen 24 uur is gezien." De query draait tegen de data van je project en de resultaten worden de dropdown.
+### Voeg er een toe
 
-### Text Input
+Klik op **Variabele toevoegen**. Een nieuwe variabele leest een telemetrie-attribuut; kies een andere **Bron** als je die nodig hebt.
 
-Een vrij tekstveld. Wat de kijker typt wordt gebruikt.
+### Vul haar in
 
-Gebruik dit wanneer: je wilt dat het dashboard als zoekgereedschap fungeert. Filteren op IP-adres, request-ID of elke andere vrije waarde.
+Geef haar een **Naam**, die widgets en links gebruiken, zoals `service`: letters, cijfers en underscores, beginnend met een letter of een underscore, en anders dan de andere namen van het dashboard. Voeg desgewenst een **Label** voor de werkbalk toe, een **Standaard** om mee te beginnen, en vink **Allow multi-select** aan om kijkers meerdere waarden te laten kiezen.
+
+### Sla haar op
+
+Klik op **Variabelen opslaan** en daarna op **Wijzigingen opslaan** in de werkbalk. De kiezer van de variabele verschijnt in de werkbalk zodra het dashboard terug is in leesmodus.
+:::
+
+Om een variabele later te wijzigen of te verwijderen, open je het dialoogvenster opnieuw: wijzig haar velden, of klik op de prullenbak ernaast.
+
+## Bronnen van variabelen
+
+De **Bron** bepaalt waar de waarden van een variabele vandaan komen, en welke widgets haar volgen.
+
+| Bron | Waar de waarden vandaan komen | Meervoudige selectie |
+| --- | --- | --- |
+| Telemetry Attribute | De waarden van één attribuutsleutel in je metrics, zoals `service.name` | Ja |
+| Project Labels | De projectlabels die je toestaat, van 1 tot 1.000 | Ja |
+| Custom List | Waarden die je typt, gescheiden door komma's, zoals `prod, staging` | Ja |
+| Text Input | Wat de kijker ook typt | Nee |
 
 ### Telemetry Attribute
 
-De opties zijn de unieke waarden van een attribuut in je telemetry over het tijdsbereik van het dashboard.
+Stel de **Attribuutsleutel** in, zoals `service.name`, `host.name` of `k8s.namespace.name`; het veld stelt de sleutels voor die je telemetrie bevat. De kiezer biedt tot 100 waarden van die sleutel, gelezen uit je metrics van de afgelopen dag, zodat een nieuwe service erin verschijnt zonder dat je het dashboard bewerkt.
 
-Configureer de **attribute key** (bijvoorbeeld `service.name`, `host.name`, `k8s.cluster.name`). De dropdown vult zich met elke unieke waarde die in je logs, metrics en traces is gezien.
+Dit is de meest gebruikte bron, omdat er geen eigen lijst voor nodig is: de waarden zijn degene die je al verstuurt.
 
-Gebruik dit wanneer: de keuzes overeenkomen met de tags die je al met je telemetry meestuurt. Dit is het meest voorkomende type omdat het automatisch bijwerkt — wanneer je een nieuwe service uitbrengt met tag `service.name = inventory`, verschijnt die naam in de dropdown zonder dat je het dashboard hoeft te bewerken.
+### Project Labels
 
-## Multi-select
+Kies bestaande projectlabels om als vervolgkeuzelijst op het dashboard aan te bieden. Maak bijvoorbeeld een variabele met de naam `UNIT`, zet de bron op **Project Labels**, en kies de labels `0660` en `0661`.
 
-Elke variabele kan meerdere selecties toestaan. Wanneer aan, kan de kijker één of meer waarden kiezen; het dashboard filtert dan op elk daarvan.
+Het dashboard slaat de ID's en weergavenamen van de gekozen labels op. Filteren gebruikt de ID's, dus het hernoemen van een projectlabel verbreekt de koppeling niet. Weergavenamen worden met het dashboard opgeslagen; selecteer een hernoemd label opnieuw in de variabele-editor om de weergavenaam bij te werken. Openbare dashboards tonen dezelfde opgeslagen keuzes.
 
-Gebruik multi-select wanneer: je "checkout en payments samen" wilt vergelijken zonder het dashboard te verlaten. Vermijd het wanneer de berekening niet klopt over geselecteerde waarden heen (bijvoorbeeld gemiddelden middelen).
+Open in een widget **Monitorlijst** **Filters → Label Variable** en selecteer `UNIT`. Als je dan `0660` kiest, zie je de monitors met dat label. Andere widgets worden niet beïnvloed, tenzij ze de variabele uitdrukkelijk ondersteunen en koppelen: de **SLO List** heeft dezelfde instelling **Label Variable**.
 
-## Standaardwaarden
+Vaste widgetfilters blijven gelden. Met een vast label `network` en `UNIT` ingesteld op `0660` moet een monitor bijvoorbeeld beide labels hebben. Meerdere geselecteerde eenheden komen overeen met elk van die eenheden. **Alle** kiezen verwijdert alleen de voorwaarde van de variabele, en behoudt de vaste filters op label, status en monitortype.
 
-Elke variabele kan een standaardwaarde hebben. Het dashboard rendert met de standaard totdat de kijker hem verandert. Voor publieke dashboards is de standaard wat bezoekers als eerste zien.
+Een ontbrekende variabele of een selectie buiten de ingestelde keuzes toont een fout. Een gekozen label zonder overeenkomende monitors toont de lege lijst. Verwijder de koppeling van de widget uitdrukkelijk als die niet meer nodig is.
 
-## Hoe je een variabele in een widget gebruikt
+### Custom List en Text Input
 
-Overal waar een widget een filter accepteert — een metric's `WHERE`, een lijstfilter, een attribuut-match van een log-stream — kun je `{{variable_name}}` gebruiken.
+Een Custom List biedt de waarden die je typt, gescheiden door komma's. Een Text Input laat de kijker elke waarde typen, zoals een IP-adres of een verzoek-ID. Geen van beide filtert op zichzelf een widget: hun waarden komen waar je `{{name}}` schrijft (zie hieronder).
 
-Bijvoorbeeld een chart gefilterd op service:
+Een Query-variabele uit een ouder dashboard blijft behouden en toont een tekstvak in de werkbalk: OneUptime laadt de waarden niet meer uit een query.
 
+## Meervoudige selectie en standaardwaarden
+
+Met **Allow multi-select** aangevinkt kiezen kijkers een of meer waarden, en tonen de widgets elk daarvan. Een lege selectie betekent **Alle**, en een variabele met meervoudige selectie begint altijd op **Alle**, dus haar **Standaard** is grijs.
+
+Een variabele met enkelvoudige selectie begint op haar **Standaard**, of op **Alle** als ze er geen heeft. **Alle** verwijdert het filter van de variabele, zodat de widgets alles tonen.
+
+Gebruik meervoudige selectie om "checkout en payments samen" te vergelijken zonder het dashboard te verlaten. Vermijd haar als de getallen niet optellen over waarden heen, zoals bij een gemiddelde van gemiddelden.
+
+## Hoe widgets een variabele gebruiken
+
+Elke bron bereikt de widgets op zijn eigen manier:
+
+- **Telemetry Attribute**-variabelen filteren widgets zonder dat je er iets op hoeft in te stellen: elke metric-grafiek, waarde, meter en tabel; de **Log Chart**, de **Logstroom**, de **Trace Chart** en de **Trace Table**; en de infrastructuurlijsten waarvan de resources het attribuut hebben, zoals `host.name` op hostlijsten en `k8s.namespace.name` op Kubernetes-lijsten. Een grafiek van een metric zonder het attribuut toont geen gegevens zolang er een waarde is gekozen: kies **Alle** om hem weer te zien. De **Tracelijst** en de incident- en waarschuwingslijsten volgen ze niet.
+- **Project Labels**-variabelen filteren een **Monitorlijst** of een **SLO List** waarvan de **Label Variable** ze noemt.
+- **Elke variabele** kan in tekst worden geschreven als `{{name}}`: in een [HTML-widget](/docs/dashboards/widgets#html), in de query van een [externe gegevensbron](/docs/dashboards/data-sources), en in de titel van een **Monitorlijst** of een **SLO List**. Een titel zoals `{{UNIT}} NETWORK` toont `0660 NETWORK`, `0660, 0661 NETWORK` of `All NETWORK`. Een titel bepaalt alleen de getoonde tekst; stel **Label Variable** in om de monitorquery te filteren.
+
+De [SLO-widget](/docs/dashboards/widgets#slo) kan een Telemetry Attribute-variabele volgen op de sleutel `sloName`, zodat kijkers kiezen welke SLO hij toont.
+
+## Links die de selectie bewaren
+
+De link van de pagina draagt de keuze van elke variabele als `?var-<name>=<value>`, meerdere waarden gescheiden door komma's, dus een link die je kopieert opent met dezelfde selectie, ook een expliciete **Alle**. Een link als deze opent op de service payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
-service.name = '{{service}}'
-```
 
-Wanneer de dropdown op `checkout` staat, filtert de chart op de checkout-service. Wanneer de kijker naar `payments` overschakelt, rerendert de chart voor payments.
+De link draagt ook het tijdsbereik en het automatisch vernieuwen die je hebt gekozen, als `range` en `refresh`, zodat de mensen naar wie je hem stuurt zien wat jij ziet. [Een link sturen](/docs/dashboards/sharing#een-link-sturen) noemt hun waarden.
 
-Voor **Telemetry Attribute**-variabelen weet OneUptime welk attribuut de variabele matcht en past het filter toe op elke widget die hetzelfde attribuut gebruikt — je hoeft niet elke widget met de hand te bewerken.
+## Een voorbeeld: één dashboard voor elke service
 
-## Tijdsbereik
+Een servicedashboard heeft meestal:
 
-De header van het dashboard heeft een globaal tijdsbereik. Elke metric-widget querydraait tegen dit venster. Opties:
+1. Een variabele `service`, bron Telemetry Attribute, attribuutsleutel `service.name`, met je drukste service als standaard. Laat meervoudige selectie uit, zodat de grafieken één service tegelijk tonen.
+2. Een variabele `namespace`, bron Telemetry Attribute, attribuutsleutel `k8s.namespace.name`, met meervoudige selectie aan om naamruimten te vergelijken.
+3. Een variabele `environment`, bron Custom List, waarden `prod, staging`, gebruikt als `{{environment}}` in een query van een gegevensbron.
+4. Widgets die die attributen lezen: grafieken en waarden van de metrics van de service, een logstroom en een lijst met Kubernetes-pods.
 
-- **Presets** — afgelopen uur, 24 uur, 7 dagen, 30 dagen, 90 dagen (afhankelijk van je dataretentie).
-- **Aangepast** — kies een start- en eindtijd.
+Het resultaat: één dashboard voor elke service, met drie kiezers bovenaan.
 
-Het tijdsbereik is onderdeel van de URL van het dashboard — de URL delen deelt het venster. Handig tijdens een incident: pin het tijdsbereik op "10:00–10:30 UTC vandaag" en plak de link in het incident-kanaal.
+## Volgende stappen
 
-## Refresh-interval
-
-Naast het tijdsbereik kies je hoe vaak widgets opnieuw queryen:
-
-- **Uit** — widgets queryen één keer wanneer de pagina laadt.
-- **5s / 10s / 30s / 1m / 5m / 15m** — automatisch ververseren.
-
-Auto-refresh is goed voor een muurscherm of een live incident-view. Laat het uit wanneer je aan het onderzoeken bent, zodat de view stil blijft terwijl je kijkt.
-
-## Alles samenbrengen
-
-Een service-getemplated dashboard heeft meestal:
-
-1. Een `service`-variabele van type **Telemetry Attribute** voor `service.name`. Standaard: je meest bekeken service. Multi-select uit (zodat charts altijd één tegelijk tonen).
-2. Een `environment`-variabele van type **Custom List**. Standaard: `prod`.
-3. Een `cluster`-variabele van type **Telemetry Attribute** voor `k8s.cluster.name`. Multi-select aan (zodat je over clusters heen kunt vergelijken).
-4. Widgets die naar deze variabelen verwijzen in hun filters.
-
-Het resultaat: één dashboard, elke service gedekt, drie dropdowns bovenaan.
-
-## Waar verder lezen
-
-- [Widgets](/docs/dashboards/widgets) — hoe elke widget een filter gebruikt.
-- [Delen en publieke dashboards](/docs/dashboards/sharing) — variabelen en gedeelde links.
-- [Een dashboard maken](/docs/dashboards/authoring) — de canvas-mechanica.
+:::cards
+- [Dashboard-widgets](/docs/dashboards/widgets): Welke widgets welke variabelen volgen.
+- [Externe gegevensbronnen](/docs/dashboards/data-sources): Zet een variabele in een PromQL- of SQL-query.
+- [Delen en publieke dashboards](/docs/dashboards/sharing): Variabelen op een openbaar dashboard.
+- [Een dashboard maken](/docs/dashboards/authoring): Bewerkmodus, opslaan en het tijdsbereik.
+:::

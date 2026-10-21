@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -15,6 +16,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
+import StorageArrayElement from "../StorageArray/StorageArrayElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
@@ -55,6 +57,7 @@ type ResourceItem =
   | { _key: string; type: "ProxmoxCluster"; model: ProxmoxCluster }
   | { _key: string; type: "VMwareVCenter"; model: VMwareVCenter }
   | { _key: string; type: "CephCluster"; model: CephCluster }
+  | { _key: string; type: "StorageArray"; model: StorageArray }
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
   | { _key: string; type: "IoTFleet"; model: IoTFleet }
   | { _key: string; type: "DatabaseServer"; model: DatabaseServer }
@@ -75,6 +78,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
+  storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
@@ -150,6 +154,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `CephCluster:${cluster._id ? String(cluster._id) : Math.random()}`,
       type: "CephCluster",
       model: cluster,
+    });
+  }
+  for (const storageArray of props.storageArrays || []) {
+    items.push({
+      _key: `StorageArray:${
+        storageArray._id ? String(storageArray._id) : Math.random()
+      }`,
+      type: "StorageArray",
+      model: storageArray,
     });
   }
   for (const cluster of props.dockerSwarmClusters || []) {
@@ -278,6 +291,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <CephClusterElement
               cephCluster={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "StorageArray") {
+          return (
+            <StorageArrayElement
+              storageArray={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

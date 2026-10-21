@@ -39,7 +39,11 @@ import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
-import KubernetesClusterViewAI from "../Pages/Kubernetes/View/AI";
+import KubernetesClusterViewAiAgent, {
+  KubernetesClusterViewAiRedirect,
+} from "../Pages/Kubernetes/View/AI/Agent";
+import KubernetesClusterViewAiInsights from "../Pages/Kubernetes/View/AI/Insights";
+import KubernetesClusterViewAiLogs from "../Pages/Kubernetes/View/AI/Logs";
 import KubernetesClusterViewRecommendations from "../Pages/Kubernetes/View/Recommendations";
 import KubernetesClusterViewCosts from "../Pages/Kubernetes/View/Costs";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
@@ -63,6 +67,9 @@ import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRule
 import KubernetesArchived from "../Pages/Kubernetes/Archived";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -162,6 +169,13 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: KubernetesCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.KUBERNETES_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -593,7 +607,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* Insights */}
+        {/* Resource Usage (the cluster's resource charts) */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS,
@@ -608,13 +622,58 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI access */}
+        {/*
+         * AI. ":id/ai" was the single AI page before the section had pages of
+         * its own; it now sends old links and bookmarks to the AI agent page.
+         * ":id/ai/insights" is the AI Insights page, as it always was by name;
+         * the list of everything AI did that it showed before is ":id/ai/logs".
+         */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI)}
+          element={<KubernetesClusterViewAiRedirect />}
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
           element={
-            <KubernetesClusterViewAI
+            <KubernetesClusterViewAiInsights
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route
+              }
             />
           }
         />
@@ -877,6 +936,12 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: KubernetesCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

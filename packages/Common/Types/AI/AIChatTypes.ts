@@ -41,6 +41,13 @@ export enum AIChatCitationTargetType {
   RumApplicationView = "RumApplicationView",
   TelemetryResources = "TelemetryResources",
   TelemetryResourceView = "TelemetryResourceView",
+  // One telemetry service's page; params: { serviceId }.
+  ServiceView = "ServiceView",
+  /*
+   * The Profiler; params: { serviceId?, profileType?, startTime?, endTime? }
+   * open it on the profiles the evidence was read from.
+   */
+  Profiles = "Profiles",
 }
 
 export interface AIChatCitationTarget {
@@ -222,6 +229,97 @@ export interface AIRunEventResultSummary {
    */
   citationLabel?: string | undefined;
   citationTarget?: AIChatCitationTarget | undefined;
+  /*
+   * What was left out of the incident's or alert's text before the model
+   * read it (ProgressLog events of autonomous investigations; see
+   * Common/Utils/AI/PromptText). The run's activity says so in the reader's
+   * language; `message` says the same in English.
+   */
+  promptOmissions?: AIPromptOmissions | undefined;
+  /*
+   * The infrastructure an investigation's subject is linked to, and how
+   * many open or recent alerts were on it (ProgressLog events; see
+   * Server/Utils/AI/SRE/LinkedInfrastructureContext). Worded in the
+   * reader's language by the run's activity; `message` is the English.
+   */
+  linkedInfrastructure?: LinkedInfrastructureActivity | undefined;
+  /*
+   * Why an investigation checked its incident again: the alert that opened
+   * on the incident's linked infrastructure after the first analysis
+   * (ProgressLog events; see Server/Utils/AI/SRE/IncidentFollowUpCheck).
+   */
+  followUpCheck?: FollowUpCheckActivity | undefined;
+  /*
+   * The changes recorded before an investigation's subject, and how many of
+   * them its service's telemetry made suspects (ProgressLog events; see
+   * Server/Utils/AI/SRE/RecentChangesContext). Worded in the reader's
+   * language by the run's activity; `message` is the English.
+   */
+  recentChanges?: RecentChangesActivity | undefined;
+}
+
+// What an investigation read about the changes recorded before its subject.
+export interface RecentChangesActivity {
+  // The changes listed in the starting context.
+  changeCount: number;
+  // How many of them were followed by a jump in their service's telemetry.
+  suspectCount: number;
+  // How many of them had their service's telemetry checked.
+  checkedCount: number;
+  // True when more changes were recorded than were listed.
+  hasMoreChanges: boolean;
+  // How far before the subject a change counted.
+  lookbackMinutes: number;
+}
+
+// What an investigation read about its subject's linked infrastructure.
+export interface LinkedInfrastructureActivity {
+  /*
+   * The linked resources, in display order: `kind` is the kind of resource
+   * (LinkedAffectedResourceType: Host, DockerHost, KubernetesCluster, ...).
+   */
+  resources: Array<{ kind: string; name: string }>;
+  // The alerts listed: opened in the lookback before the subject, or still open.
+  alertCount: number;
+  // How many of them were still open.
+  openAlertCount: number;
+  // True when more alerts matched than were listed.
+  hasMoreAlerts: boolean;
+  // How far before the subject an alert counted.
+  lookbackMinutes: number;
+}
+
+// The alert that made OneUptime AI check an incident again.
+export interface FollowUpCheckActivity {
+  alertNumber?: number | undefined;
+  alertNumberWithPrefix?: string | undefined;
+  // The linked resource it opened on.
+  resourceKind: string;
+  resourceName: string;
+  // Whole minutes between the incident and the alert opening.
+  minutesAfterIncident: number;
+}
+
+/*
+ * What a prompt left out of the text it was built from (see
+ * Common/Utils/AI/PromptText): the images and other data embedded in it -
+ * a synthetic monitor's screenshot in a description is hundreds of
+ * kilobytes of base64, which a model reads as noise and is billed for as
+ * text - and the end of a text longer than its field may take.
+ */
+export interface AIPromptOmissions {
+  // Images left out: data: URLs of images, and base64 whose bytes are one.
+  imageCount: number;
+  // Their size, in bytes.
+  imageBytes: number;
+  // Other encoded data left out: other data: URLs, long runs of base64.
+  encodedDataCount: number;
+  // Its size, in bytes (characters, for a run that may not be base64).
+  encodedDataBytes: number;
+  // Texts cut to the length their field may take.
+  shortenedTextCount: number;
+  // The characters those cuts left out.
+  omittedCharacterCount: number;
 }
 
 /*

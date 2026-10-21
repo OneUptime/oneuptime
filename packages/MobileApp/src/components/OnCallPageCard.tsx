@@ -5,6 +5,7 @@ import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { formatRelativeTime } from "../utils/date";
 import type { OnCallPageItem } from "../api/types";
+import { PASS_ON_TEXT } from "../oncall/passOn";
 import AppText from "./AppText";
 import Card from "./Card";
 import IconBadge from "./IconBadge";
@@ -82,17 +83,26 @@ export default function OnCallPageCard({
   const subject: PageSubject = getPageSubject(page);
   const isAcknowledged: boolean = Boolean(page.acknowledgedAt);
   const isError: boolean = page.status === "Error";
+  /*
+   * They could not take it and passed it on: the policy paged its next
+   * escalation rule, and nothing is waiting on them - not "Not acknowledged".
+   */
+  const isPassedOn: boolean = page.status === PASS_ON_TEXT.passedOnStatus;
   const tone: StatusTone = isAcknowledged
     ? "success"
     : isError
       ? "danger"
-      : "warning";
+      : isPassedOn
+        ? "neutral"
+        : "warning";
   const toneColor: string = getToneColors(theme, tone).text;
   const statusLabel: string = isAcknowledged
     ? "Acknowledged"
     : isError
       ? "Failed to notify"
-      : "Not acknowledged";
+      : isPassedOn
+        ? "Passed on"
+        : "Not acknowledged";
   const isPressable: boolean = Boolean(onPress && subject.id);
 
   return (
@@ -166,7 +176,10 @@ export default function OnCallPageCard({
               style={{ marginTop: 2 }}
             />
             <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
-              {page.policyName || "On-call policy unavailable"}
+              {page.policyName ||
+                (page.isDirectPage
+                  ? "Direct page"
+                  : "On-call policy unavailable")}
             </AppText>
           </View>
         </View>

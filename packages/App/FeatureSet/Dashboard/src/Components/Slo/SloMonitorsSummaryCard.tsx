@@ -3,6 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -80,11 +83,8 @@ const toStatusInput: ToStatusInputFunction = (
     isOperationalState: monitor.currentMonitorStatus?.isOperationalState,
     isOfflineState: monitor.currentMonitorStatus?.isOfflineState,
     statusPriority: monitor.currentMonitorStatus?.priority,
-    isMonitoringPaused: Boolean(
-      monitor.disableActiveMonitoring ||
-        monitor.disableActiveMonitoringBecauseOfManualIncident ||
-        monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent,
-    ),
+    // Archived counts as paused: it is not checked, like a disabled monitor.
+    isMonitoringPaused: MonitorPauseState.isPaused(monitor),
   };
 };
 
@@ -150,9 +150,7 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
               isOfflineState: true,
               priority: true,
             },
-            disableActiveMonitoring: true,
-            disableActiveMonitoringBecauseOfManualIncident: true,
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+            ...MONITOR_PAUSE_FLAGS_SELECT,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -208,7 +206,7 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
             title="Your monitor rules match no monitors yet"
             description={
               props.enabledMonitorRuleCount > 0
-                ? "This SLO has monitor rules, but no monitor in this project matches them. Check the rules, or give the monitors this SLO should measure the names or labels the rules look for."
+                ? "No monitor matches this SLO's rules. Check the rules, or give the right monitors the names or labels they look for."
                 : "Every monitor rule on this SLO is disabled, so no monitors are attached. Enable a rule, or add monitors by hand."
             }
             actions={
@@ -229,7 +227,7 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
           icon={IconProp.AltGlobe}
           tone="warning"
           title="This SLO is not measuring any monitors"
-          description="An SLO measures uptime from its monitors. Pick them by hand, or add a rule that attaches every monitor matching a name, description or label — including ones created later."
+          description="An SLO measures uptime from its monitors. Pick them by hand, or add a rule that attaches matching ones, including new ones."
           actions={
             <>
               <SloOverviewActionLink

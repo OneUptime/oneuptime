@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -13,9 +17,6 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const scheduledMaintenanceOwnerDocumentation: string = `
 ### How Scheduled Maintenance Owner Rules Work
@@ -116,45 +117,8 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria", columns: 2 },
-          { title: "Owners", id: "owners", columns: 2 },
-        ]}
+        formSteps={getOwnerRuleFormSteps<ScheduledMaintenanceOwnerRule>()}
         formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Assign DB team to database maintenance",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this rule.",
-          },
-          {
-            field: { notifyOwners: true },
-            title: "Notify Owners",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Notify owners when they are added by this rule. Disable to add silently.",
-          },
           {
             field: { monitors: true },
             title: "Monitors",
@@ -199,7 +163,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { titlePattern: true },
-            title: "Title Pattern",
+            title: "Event Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -210,7 +174,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { descriptionPattern: true },
-            title: "Description Pattern",
+            title: "Event Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -218,7 +182,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -226,98 +190,15 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
           },
-          {
-            field: { ownerTeams: true },
-            title: "Owner Teams",
-            stepId: "owners",
-            sectionTitle: "Owners to Assign",
-            sectionDescription:
-              "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-          },
-          {
-            field: { ownerUsers: true },
-            title: "Owner Users",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-          },
-          {
-            field: { inheritOwnersFromMonitors: true },
-            title: "Inherit Owners From Monitors",
-            stepId: "owners",
-            sectionTitle: "Inherit Owners",
-            sectionDescription:
-              "Optionally assign owners from related entities to the event.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's monitors as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromHosts: true },
-            title: "Inherit Owners From Hosts",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromKubernetesClusters: true },
-            title: "Inherit Owners From Kubernetes Clusters",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Kubernetes clusters as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromDockerHosts: true },
-            title: "Inherit Owners From Docker Hosts",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Docker hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromPodmanHosts: true },
-            title: "Inherit Owners From Podman Hosts",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Podman hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromServices: true },
-            title: "Inherit Owners From Services",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected services as an owner of the event.",
-          },
+          ...getInheritingOwnerRuleActionFields<ScheduledMaintenanceOwnerRule>(
+            "scheduledMaintenance",
+          ),
         ]}
         showRefreshButton={true}
       />

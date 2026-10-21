@@ -200,12 +200,17 @@ const ENTERPRISE_ROUTES: Array<string> = [
   "/postgres-activity",
 ];
 
-// Available on every edition.
+/*
+ * Available on every edition. /visitor-addresses (where people sign in
+ * from) takes a master admin's session only, never the master API key, so
+ * the API reference does not list it (VisitorAddressesRoute.test.ts).
+ */
 const COMMUNITY_ROUTES: Array<string> = [
   "/clickhouse-capacity",
   "/instance-health-logs",
   "/migrations",
   "/support-bundle",
+  "/visitor-addresses",
 ];
 
 interface HttpResult {
@@ -271,9 +276,9 @@ const LOCKED_STATES: Array<EditionState & { message: string }> = [
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
-        EnterpriseFeature.SSO,
         EnterpriseFeature.SCIM,
         EnterpriseFeature.AuditLogs,
+        EnterpriseFeature.TeamCompliance,
       ]);
     },
     message: EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
@@ -799,6 +804,15 @@ describe("the Community routes answer on every edition", () => {
     expect(result.body["logs"]).toEqual([]);
     expect(InstanceHealthLogService.findBy).toHaveBeenCalledTimes(1);
   });
+
+  test("where people sign in from is reported on the Community Edition, and claims nothing while Postgres is away", async () => {
+    const result: HttpResult = await get("/visitor-addresses");
+
+    expect(result.status).toBe(200);
+    expect(result.body["checked"]).toBe(false);
+    expect(result.body["addresses"]).toEqual([]);
+    expect(result.body["windowDays"]).toBe(30);
+  });
 });
 
 describe("the query console is not part of core", () => {
@@ -1060,7 +1074,7 @@ describe("the support bundle reports the edition this process really runs", () =
 
   test("a license subset is listed feature by feature", async () => {
     installFakeEnterpriseModuleWithFeatures([
-      EnterpriseFeature.SSO,
+      EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
     ]);
 
@@ -1070,7 +1084,7 @@ describe("the support bundle reports the edition this process really runs", () =
     ] as JSONObject;
 
     expect(license["features"]).toEqual(
-      [EnterpriseFeature.AuditLogs, EnterpriseFeature.SSO].sort(),
+      [EnterpriseFeature.AuditLogs, EnterpriseFeature.SCIM].sort(),
     );
     expect(license["instanceHealthAvailable"]).toBe(false);
   });

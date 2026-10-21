@@ -20,6 +20,11 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Alerts", "Microsoft Teams Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "Alerts",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW, [
       "Project",
       "Alerts",
@@ -141,11 +146,11 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
 
     // Alert Settings (Product-level)
-    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_MORE, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_NUMBERING, [
       "Project",
       "Alerts",
       "Settings",
-      "More Settings",
+      "Numbering",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_STATE, [
       "Project",
@@ -181,22 +186,35 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Measurements",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+      ["Project", "Alerts", "Settings", "Episode Membership"],
+    ),
 
     /*
-     * AI and Rules are their own side-menu sections, not lines under Settings,
-     * so the trail has to name the section the page actually lives in —
-     * otherwise the header says "Settings" while the menu highlights "Rules".
+     * The trail names the side-menu section a page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "AI".
+     * The AI settings and the auto-remediation rules are pages of the AI
+     * section.
      */
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_AI_INSIGHTS, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_AI_LOGS, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_AI, [
       "Project",
       "Alerts",
       "AI",
-      "Investigation",
+      "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Alerts", "AI", "Remediation"],
-    ),
 
     // Alert Rules
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_GROUPING_RULES, [
@@ -340,12 +358,6 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Episodes",
       "View Episode",
       "Delete Episode",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_DOCS, [
-      "Project",
-      "Alerts",
-      "Episodes",
-      "Documentation",
     ]),
   };
   return breadcrumpLinksMap[path];

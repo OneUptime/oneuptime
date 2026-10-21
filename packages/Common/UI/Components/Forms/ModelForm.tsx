@@ -6,11 +6,11 @@ import ModelAPI, {
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import PermissionUtil from "../../Utils/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 import User from "../../Utils/User";
 import { ButtonStyleType } from "../Button/Button";
 import {
@@ -33,12 +33,24 @@ import { FormStep } from "./Types/FormStep";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import {
+  CreateFormColumnDefault,
+  getColorsInUse,
+  getCreateFormColorDefault,
+  getCreateFormColumnDefault,
+} from "./Utils/CreateFormDefaults";
+import {
+  getPeoplePickerValueKeys,
+  PeoplePickerFormValue,
+  toPeoplePickerFormValue,
+} from "../PeoplePicker/PeoplePickerTypes";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { Black, VeryLightGray } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
@@ -46,25 +58,69 @@ import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnL
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
+import {
+  composedValue,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
+import Sort from "../../../Types/BaseDatabase/Sort";
+
+/*
+ * Whether a dropdown's list request was refused because the person may not
+ * read that model (the server answers NotAuthorizedException with 422).
+ */
+export const isListRefusedForLackOfPermission: (err: unknown) => boolean = (
+  err: unknown,
+): boolean => {
+  return err instanceof HTTPErrorResponse && err.statusCode === 422;
+};
 
 export enum FormType {
   Create,
   Update,
 }
+
+/*
+ * Runs on a Create form just before the request goes out, with the model built
+ * from the form's model columns and the misc data the request will carry (the
+ * same object: what the hook adds or removes there is what is sent).
+ *
+ * `formValues` is every value the form holds, exactly as submitted - the
+ * inputs that are not model columns included. Read those values from here
+ * rather than from `miscDataProps`, which keeps only the truthy ones: a
+ * number input holding 0 or a switch left off would otherwise vanish.
+ */
+export type ModelFormOnBeforeCreate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = (
+  item: TBaseModel,
+  miscDataProps: JSONObject,
+  formValues: JSONObject,
+) => Promise<TBaseModel>;
+
+/*
+ * The same, on an Update form: the model that is about to be saved (its _id
+ * set), the misc data the request carries and every value the form holds.
+ * What it returns is what is saved - an escalation rule's edit dialog names a
+ * rule whose name was cleared after its level here.
+ */
+export type ModelFormOnBeforeUpdate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = ModelFormOnBeforeCreate<TBaseModel>;
 
 export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
   extends Field<TBaseModel> {
@@ -109,19 +165,44 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   hideSubmitButton?: undefined | boolean;
   submitButtonStyleType?: ButtonStyleType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
+  // Whether the step on screen is the last one (see BasicForm).
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
+  /*
+   * An Update form that opens on a draft of some of its fields - a
+   * postmortem template, or a postmortem AI wrote - rather than on the
+   * record alone. The form still fetches the record, and these values are
+   * laid over it: every field the draft leaves out starts from what is
+   * stored. (doNotFetchExistingModel with initialValues starts those fields
+   * empty instead, and BasicForm sends an untouched switch as off, so saving
+   * a draft quietly turned the postmortem's status page switch off.)
+   */
+  draftValues?: FormValues<TBaseModel> | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
+  // Any step can be opened from the step list (see BasicForm).
+  allowAnyStepNavigation?: boolean | undefined;
+  /*
+   * Records of this model listed beside a Create form - the rows of the
+   * table it was opened from (ModelTable hands them over). A colour the form
+   * picks for a new record is one none of them uses yet
+   * (Utils/CreateFormDefaults, getCreateFormColorDefault).
+   */
+  existingItems?: Array<TBaseModel> | undefined;
+  /*
+   * A rule form's records - "All incidents" / "Only incidents that match
+   * conditions" - for a model that holds the rules of several kinds of
+   * record (RuleCriteriaSubject). Every other rule is named by its model.
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -137,6 +218,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   /*
    * Almost every caller writes its `fields` as an inline array literal in JSX,
@@ -169,13 +251,94 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   const fieldsRunGeneration: MutableRefObject<number> = useRef<number>(0);
 
+  /*
+   * The colour a Create form picked for each colour field, by form key. The
+   * fields are worked out again on every render of the page around the form,
+   * and the rows beside it can be fetched again while it is open: the pick is
+   * made once, so the colour the form shows - and that a folded section
+   * compares with - never changes under the user. One pick per record: a
+   * form never resets itself after a save, and every Create opens a form of
+   * its own (a table's dialog is unmounted when it closes).
+   */
+  const pickedColorDefaults: MutableRefObject<Dictionary<string>> = useRef<
+    Dictionary<string>
+  >({});
+
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+
+  /*
+   * A people picker writes a form value per kind of pick - owners are
+   * ownerUsers and ownerTeams - and names itself with a key of its own that
+   * is no column ("owners"). The values that are columns of this model (an
+   * owner rule's) are selected and saved as columns; any other (a template's
+   * owners) goes in the misc data, as the dropdowns it replaces did.
+   */
+  type PeoplePickerFieldFunction<TResult> = (
+    field: Field<TBaseModel>,
+  ) => TResult;
+
+  const isPeoplePickerField: PeoplePickerFieldFunction<boolean> = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    return (
+      field.fieldType === FormFieldSchemaType.PeoplePicker &&
+      Boolean(field.peoplePicker)
+    );
+  };
+
+  const getPeoplePickerColumnKeys: PeoplePickerFieldFunction<Array<string>> = (
+    field: Field<TBaseModel>,
+  ): Array<string> => {
+    if (!field.peoplePicker) {
+      return [];
+    }
+
+    return getPeoplePickerValueKeys(field.peoplePicker).filter(
+      (key: string): boolean => {
+        return model.hasColumn(key);
+      },
+    );
+  };
+
+  const getPermittedPeoplePickerColumnKeys: PeoplePickerFieldFunction<
+    Array<string>
+  > = (field: Field<TBaseModel>): Array<string> => {
+    return getPeoplePickerColumnKeys(field).filter((key: string): boolean => {
+      return (
+        Boolean(field.showEvenIfPermissionDoesNotExist) ||
+        hasPermissionOnField(key)
+      );
+    });
+  };
+
+  /*
+   * Shown when its picks can be saved: one of its columns may be written,
+   * or it has no columns at all - its picks are misc data, which the server
+   * checks for itself.
+   */
+  const isPeoplePickerFieldPermitted: PeoplePickerFieldFunction<boolean> = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    if (getPeoplePickerColumnKeys(field).length === 0) {
+      return true;
+    }
+
+    return getPermittedPeoplePickerColumnKeys(field).length > 0;
+  };
 
   type GetSelectFieldsFunction = () => Select<TBaseModel>;
 
   const getSelectFields: GetSelectFieldsFunction = (): Select<TBaseModel> => {
     const select: Select<TBaseModel> = {};
     for (const field of props.fields) {
+      if (isPeoplePickerField(field)) {
+        for (const key of getPermittedPeoplePickerColumnKeys(field)) {
+          (select as Dictionary<boolean>)[key] = true;
+        }
+
+        continue;
+      }
+
       const key: string | null = field.field
         ? (Object.keys(field.field)[0] as string)
         : null;
@@ -200,6 +363,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const relationSelect: Select<TBaseModel> = {};
 
       for (const field of props.fields) {
+        if (isPeoplePickerField(field)) {
+          for (const key of getPeoplePickerColumnKeys(field)) {
+            if (model.isEntityColumn(key)) {
+              (relationSelect as JSONObject)[key] = true;
+            }
+          }
+
+          continue;
+        }
+
         const key: string | null = field.field
           ? (Object.keys(field.field)[0] as string)
           : null;
@@ -219,6 +392,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return relationSelect;
     };
 
+  // What the user holds, read once per draw: every field is weighed against it.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
   const hasPermissionOnField: (fieldName: string) => boolean = (
     fieldName: string,
   ): boolean => {
@@ -227,42 +403,156 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     /*
-     * A copy. The Public permission is appended below, and pushing into the
-     * array the util handed back mutates the snapshot every other permission
-     * check on the page reads from.
+     * The column's create (or update) permissions, read the way the server's
+     * column check reads them (PermissionGate.holdsColumnPermission): one of
+     * them held - Public by everyone, so a public form shows its fields to a
+     * visitor - and no team block on any of them.
      */
-    let userPermissions: Array<Permission> = [
-      ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
-    ];
-    if (
-      PermissionUtil.getProjectPermissions() &&
-      PermissionUtil.getProjectPermissions()?.permissions &&
-      PermissionUtil.getProjectPermissions()!.permissions.length > 0
-    ) {
-      userPermissions = userPermissions.concat(
-        PermissionUtil.getProjectPermissions()!.permissions.map(
-          (i: UserPermission) => {
-            return i.permission;
-          },
-        ),
-      );
+    return PermissionGate.holdsColumnPermission(
+      model,
+      fieldName,
+      FormType.Create === props.formType ? "create" : "update",
+      { held: heldPermissions },
+    );
+  };
+
+  /*
+   * A field this edit writes that the user may not read back - a provider's
+   * API key, for a member who may change the provider but not see its
+   * secrets. One column in a select the caller may not read refuses the
+   * whole request (SelectPermission), so such a field is left out of the
+   * fetch (getFetchSelect), starts empty, and is sent only when it is filled
+   * in (isBlankWriteOnlyValue): leaving it blank keeps what is stored. Asked
+   * the way every select asks (PermissionGate.canReadColumn). A form that
+   * loads through a route of its own (fetchItemApiUrl) leaves that route to
+   * decide what it returns. Until the permission snapshot has landed there
+   * is nothing to tell a field the user may not read from one they may
+   * (canReadColumn fails closed then), so every field loads as it always has
+   * and the server decides.
+   */
+  const isWriteOnlyField: (fieldName: string) => boolean = (
+    fieldName: string,
+  ): boolean => {
+    if (props.formType !== FormType.Update || props.fetchItemApiUrl) {
+      return false;
     }
 
-    userPermissions.push(Permission.Public);
+    if (!model.hasColumn(fieldName)) {
+      return false;
+    }
 
-    const fieldPermissions: Array<Permission> = getFieldPermissions(fieldName);
+    if (!PermissionGate.hasPermissionSnapshot({ held: heldPermissions })) {
+      return false;
+    }
 
-    if (
-      fieldPermissions &&
-      PermissionHelper.doesPermissionsIntersect(
-        userPermissions,
-        fieldPermissions,
-      )
-    ) {
+    return !PermissionGate.canReadColumn(model, fieldName, {
+      held: heldPermissions,
+    });
+  };
+
+  // What an edit loads: the fields it shows, less those it may not read.
+  const getFetchSelect: () => Select<TBaseModel> = (): Select<TBaseModel> => {
+    const select: Dictionary<unknown> = {
+      ...getSelectFields(),
+      ...getRelationSelect(),
+    } as Dictionary<unknown>;
+
+    for (const key of Object.keys(select)) {
+      if (isWriteOnlyField(key)) {
+        delete select[key];
+      }
+    }
+
+    return select as Select<TBaseModel>;
+  };
+
+  /*
+   * Whether a write-only field was left as it started: nothing typed, or
+   * only spaces, or nothing picked. Such a value is not sent, so the stored
+   * one stays.
+   */
+  const isBlankWriteOnlyValue: (value: unknown) => boolean = (
+    value: unknown,
+  ): boolean => {
+    if (value === undefined || value === null) {
       return true;
     }
 
-    return false;
+    if (typeof value === Typeof.String) {
+      return (value as string).trim().length === 0;
+    }
+
+    return Array.isArray(value) && value.length === 0;
+  };
+
+  /*
+   * How a write-only field is drawn on an edit: never required and never
+   * filled with a default, since blank keeps the stored value, and saying
+   * so under it. Its own help is looked up first, so the sentence reads in
+   * one language whether or not the reader's words it.
+   */
+  const getWriteOnlyFieldProps: (
+    field: Field<TBaseModel>,
+  ) => Partial<Field<TBaseModel>> = (
+    field: Field<TBaseModel>,
+  ): Partial<Field<TBaseModel>> => {
+    const ownDescription: string | undefined =
+      typeof field.description === "string" ? field.description : undefined;
+
+    const sentence: string = translator
+      .translateTemplate(
+        "{{description}} Leave blank to keep the stored value.",
+        {
+          description: composedValue((language: Translator): string => {
+            return (
+              (ownDescription && language.translateText(ownDescription)) || ""
+            );
+          }),
+        },
+      )
+      .trim();
+
+    return {
+      required: false,
+      defaultValue: undefined,
+      getDefaultValue: undefined,
+      placeholder: "Unchanged",
+      // Help drawn by the page itself keeps its element, with the hint after.
+      description:
+        field.description !== undefined && ownDescription === undefined ? (
+          <>
+            {field.description}
+            <span className="mt-1 block">{sentence}</span>
+          </>
+        ) : (
+          sentence
+        ),
+    };
+  };
+
+  /*
+   * A write-only field is offered only where leaving it blank can keep what
+   * is stored. A switch or a checkbox has no blank - drawn off, it would save
+   * off over a stored on - so one the user may set but not read is left off
+   * the edit, and the rest of the form still loads.
+   */
+  const canOfferWriteOnlyField: (
+    fieldName: string,
+    field: ModelField<TBaseModel>,
+  ) => boolean = (
+    fieldName: string,
+    field: ModelField<TBaseModel>,
+  ): boolean => {
+    if (
+      field.fieldType === FormFieldSchemaType.Toggle ||
+      field.fieldType === FormFieldSchemaType.Checkbox
+    ) {
+      return false;
+    }
+
+    return (
+      model.getTableColumnMetadata(fieldName)?.type !== TableColumnType.Boolean
+    );
   };
 
   const getFieldPermissions: (fieldName: string) => Array<Permission> = (
@@ -280,6 +570,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     return fieldPermissions;
+  };
+
+  type HasInitialValueFunction = (key: string) => boolean;
+
+  /*
+   * Whether the form starts with a value of its own for this key - empty
+   * included, as BasicForm reads it: it fills in a default only where the
+   * value is undefined.
+   */
+  const hasInitialValue: HasInitialValueFunction = (key: string): boolean => {
+    return (
+      (props.initialValues as Record<string, unknown> | undefined)?.[key] !==
+      undefined
+    );
   };
 
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
@@ -313,10 +617,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
          */
         const effectiveFieldKey: string = field.overrideFieldKey || key;
 
-        const hasPermission: boolean = hasPermissionOnField(key);
+        const hasPermission: boolean = isPeoplePickerField(field)
+          ? isPeoplePickerFieldPermitted(field)
+          : hasPermissionOnField(key);
+
+        // A write-only switch is not offered (canOfferWriteOnlyField).
+        const isOfferable: boolean =
+          !isWriteOnlyField(key) || canOfferWriteOnlyField(key, field);
 
         if (
           (field.showEvenIfPermissionDoesNotExist || hasPermission) &&
+          isOfferable &&
           fieldsToSet.filter((i: ModelField<TBaseModel>) => {
             const fieldObj:
               | {
@@ -348,8 +659,62 @@ const ModelForm: <TBaseModel extends BaseModel>(
             };
           }
 
+          /*
+           * A Create form starts from the model's own column defaults - what
+           * the server stores for a field left out - unless the field or the
+           * form's initial values say otherwise (Utils/CreateFormDefaults).
+           * Without this a switch whose column defaults to on was drawn off
+           * and saved off. An Edit form shows the record as it is, but its
+           * folded sections still compare with the column's default, so a
+           * switch on because its column starts on is not shown as set.
+           */
+          const columnDefault: CreateFormColumnDefault | undefined =
+            getCreateFormColumnDefault(model, field);
+
+          /*
+           * A colour the record cannot be saved without, and whose column
+           * has no default, starts picked: one the records beside the form
+           * do not use yet. Not over a colour the form already starts with.
+           */
+          if (
+            props.formType === FormType.Create &&
+            columnDefault === undefined &&
+            pickedColorDefaults.current[effectiveFieldKey] === undefined &&
+            !hasInitialValue(effectiveFieldKey)
+          ) {
+            const colorDefault: string | undefined = getCreateFormColorDefault(
+              model,
+              field,
+              getColorsInUse(field, props.existingItems),
+            );
+
+            if (colorDefault) {
+              pickedColorDefaults.current[effectiveFieldKey] = colorDefault;
+            }
+          }
+
+          const createDefault: CreateFormColumnDefault | undefined =
+            props.formType === FormType.Create
+              ? columnDefault ?? pickedColorDefaults.current[effectiveFieldKey]
+              : undefined;
+
           fieldsToSet.push({
             ...field,
+            ...(createDefault !== undefined
+              ? { defaultValue: createDefault }
+              : {}),
+            ...(columnDefault !== undefined
+              ? { columnDefaultValue: columnDefault }
+              : {}),
+            /*
+             * Required of a new record only: an Edit form leaves it optional
+             * (Field.doNotRequireWhenEditing).
+             */
+            ...(field.doNotRequireWhenEditing &&
+            props.formType !== FormType.Create
+              ? { required: false }
+              : {}),
+            ...(isWriteOnlyField(key) ? getWriteOnlyFieldProps(field) : {}),
             field: {
               [key]: true,
             } as SelectFormFields<TBaseModel>,
@@ -365,7 +730,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return;
     }
 
-    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet);
+    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet, {
+      subject: props.ruleCriteriaSubject,
+    });
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -382,9 +749,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
             model.getTableColumnMetadata(fieldName);
 
           setError(
-            `You don't have enough permissions to ${
-              props.formType === FormType.Create ? "create" : "edit"
-            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermissions.join(", ")}`,
+            translator.translateTemplate(
+              props.formType === FormType.Create
+                ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}"
+                : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
+              {
+                columnName: translatableTerm(columnMetadata.title || fieldName),
+                itemName: translatableTerm(model.singularName || ""),
+                permissions: fieldPermissions.join(", "),
+              },
+            ),
           );
         }
       }
@@ -406,7 +780,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
     let item: BaseModel | null = await modelAPI.getItem({
       modelType: props.modelType,
       id: props.modelIdToEdit,
-      select: { ...getSelectFields(), ...getRelationSelect() },
+      select: getFetchSelect(),
       requestOptions: {
         overrideRequestUrl: props.fetchItemApiUrl,
       },
@@ -496,10 +870,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => Promise<Fields<TBaseModel>>;
 
   /*
-   * What a dropdown's options depend on, and nothing else: the model, and the
-   * two columns read off it. The request below takes no query and no closure
-   * state, so two fields with the same three always get the same list back -
-   * which is what makes caching them safe.
+   * What a dropdown's options depend on, and nothing else: the model, the
+   * two columns read off it, the order it is listed in and the query that
+   * narrows it. The request below takes no closure state, so two fields with
+   * the same five always get the same list back - which is what makes
+   * caching them safe.
    */
   type GetCachedDropdownOptionsFunction = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
@@ -515,7 +890,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => string = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
   ): string => {
-    return `${dropdownModal.labelField}|${dropdownModal.valueField}`;
+    const sortKey: string = Object.entries(dropdownModal.sort || {})
+      .map((entry: [string, string]): string => {
+        return `${entry[0]}:${entry[1]}`;
+      })
+      .join(",");
+
+    const queryKey: string = JSON.stringify(dropdownModal.query || {});
+
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}|${queryKey}`;
   };
 
   const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
@@ -587,8 +970,21 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     setIsFetchingDropdownOptions(true);
 
-    try {
-      for (const field of fieldsToFetch) {
+    /*
+     * Each dropdown is fetched on its own, so one that fails still leaves the
+     * others their options. The first failure is shown once they are done,
+     * except a list the person may not read at all: that dropdown is simply
+     * left empty (and remembered as empty), as EntityDropdown does for its
+     * own requests. Reading the related model is a separate permission from
+     * editing this one, so someone may edit a field whose options they cannot
+     * list - an incident member and the status pages an incident is limited
+     * to - and a form-wide error on every step would say the form is broken
+     * when it is not. The dropdown then just has nothing to pick.
+     */
+    let firstFetchError: unknown = null;
+
+    for (const field of fieldsToFetch) {
+      try {
         if (field.dropdownModal && field.dropdownModal.type) {
           const tempModel: BaseModel = new field.dropdownModal.type();
           const select: any = {
@@ -606,6 +1002,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             shouldSelectColorColumn = true;
           }
 
+          /*
+           * A sorted column is selected too: with the labels relation below
+           * the list goes down TypeORM's paginated path, which orders by a
+           * column only if it was selected - leaving it out fails the request.
+           */
+          for (const sortColumnName of Object.keys(
+            field.dropdownModal.sort || {},
+          )) {
+            select[sortColumnName] = true;
+          }
+
           const accessControlColumnName: string | null =
             tempModel.getAccessControlColumn();
 
@@ -621,11 +1028,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
           const listResult: ListResult<BaseModel> =
             await modelAPI.getList<BaseModel>({
               modelType: field.dropdownModal.type,
-              query: {},
+              query: {
+                ...(field.dropdownModal.query || {}),
+              } as Query<BaseModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,
-              sort: {},
+              sort: (field.dropdownModal.sort || {}) as Sort<BaseModel>,
             });
 
           if (listResult.data && listResult.data.length > 0) {
@@ -788,9 +1197,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
             selectByAccessControlProps: field.selectByAccessControlProps,
           });
         }
+      } catch (err) {
+        if (isListRefusedForLackOfPermission(err) && field.dropdownModal) {
+          field.dropdownOptions = [];
+
+          setCachedDropdownOptions(field.dropdownModal, {
+            dropdownOptions: [],
+            selectByAccessControlProps: undefined,
+          });
+
+          continue;
+        }
+
+        if (firstFetchError === null) {
+          firstFetchError = err;
+        }
       }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
+    }
+
+    if (firstFetchError !== null) {
+      setError(API.getFriendlyMessage(firstFetchError));
     }
 
     if (generation === fieldsRunGeneration.current) {
@@ -805,8 +1231,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
    * so a form that mounts before its id is known still fetches once it
    * arrives. It used to run only on mount, which left an Update form showing
    * blank defaults: submitting that silently wrote empty values - and false
-   * for every Toggle, since BasicForm defaults untouched toggles to false -
-   * over the real record.
+   * for every Toggle, since BasicForm sends an untouched toggle as false -
+   * over the real record. (A Create form starts from the column defaults
+   * instead; an Update form only ever from the record it fetched.)
    */
   useAsyncEffect(async () => {
     if (props.formType !== FormType.Update || props.doNotFetchExistingModel) {
@@ -855,6 +1282,40 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const result: JSONObject = {};
 
     for (const field of fields) {
+      /*
+       * A people picker's values that are not columns of the model - a
+       * template's ownerUsers and ownerTeams - are sent as misc data, as
+       * plain ids (one id, for a picker that takes a single pick). Its
+       * columns are saved with the model.
+       */
+      if (isPeoplePickerField(field) && field.peoplePicker) {
+        for (const key of getPeoplePickerValueKeys(field.peoplePicker)) {
+          if (model.hasColumn(key)) {
+            continue;
+          }
+
+          if (values[key] === undefined || values[key] === null) {
+            continue;
+          }
+
+          const formValue: PeoplePickerFormValue = toPeoplePickerFormValue(
+            field.peoplePicker,
+            values[key],
+          );
+
+          if (formValue !== null) {
+            result[key] = formValue;
+          }
+        }
+
+        continue;
+      }
+
+      // A form-only field drives the form; nothing of it is sent.
+      if (field.formOnly) {
+        continue;
+      }
+
       if (field.overrideFieldKey && values[field.overrideFieldKey]) {
         result[field.overrideFieldKey] =
           (values[field.overrideFieldKey] as JSONObject) || null;
@@ -886,6 +1347,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const valuesToSend: JSONObject = {};
 
       for (const key in getSelectFields()) {
+        // A write-only field left blank keeps what is stored (isWriteOnlyField).
+        if (isWriteOnlyField(key) && isBlankWriteOnlyValue(values[key])) {
+          continue;
+        }
+
         (valuesToSend as any)[key] = values[key];
       }
 
@@ -953,6 +1419,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
             arr.push(baseModel);
           }
           valuesToSend[key] = arr;
+        }
+
+        /*
+         * A colour a Create form picked for a new record is held as text
+         * ("#6366f1"), where the picker holds a Color: it is sent as the
+         * Color it stands for, the same as one picked by hand.
+         */
+        if (
+          tableColumnMetadata &&
+          tableColumnMetadata.type === TableColumnType.Color &&
+          typeof valuesToSend[key] === Typeof.String &&
+          (valuesToSend[key] as string).trim()
+        ) {
+          valuesToSend[key] = new Color((valuesToSend[key] as string).trim());
         }
       }
 
@@ -1024,7 +1504,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
       ) as TBaseModel;
 
       if (props.onBeforeCreate && props.formType === FormType.Create) {
-        tBaseModel = await props.onBeforeCreate(tBaseModel, miscDataProps);
+        tBaseModel = await props.onBeforeCreate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
+      }
+
+      if (props.onBeforeUpdate && props.formType === FormType.Update) {
+        tBaseModel = await props.onBeforeUpdate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
       }
 
       result = await modelAPI.createOrUpdate<TBaseModel>({
@@ -1176,11 +1668,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
         hideSubmitButton={props.hideSubmitButton}
         formRef={props.formRef}
         initialValues={
-          (itemToEdit || props.initialValues) as
+          (itemToEdit && props.draftValues
+            ? { ...itemToEdit, ...props.draftValues }
+            : itemToEdit || props.initialValues) as
             | FormValues<TBaseModel>
             | undefined
         }
         summary={props.summary}
+        allowAnyStepNavigation={props.allowAnyStepNavigation}
+        /*
+         * The dropdowns search through the API their first list of options
+         * was read with (fetchDropdownOptions), so an Admin Dashboard form's
+         * search names no project either.
+         */
+        modelAPI={modelAPI}
       ></BasicModelForm>
     </div>
   );

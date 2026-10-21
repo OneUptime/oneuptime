@@ -7,6 +7,7 @@ import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
@@ -47,6 +48,8 @@ RunCron(
         _id: true,
         monitorSteps: true,
         incomingMonitorRequest: true,
+        // Keys this monitor's arrivals in IncomingRequestReceivedAtStore.
+        incomingRequestSecretKey: true,
         createdAt: true,
         projectId: true,
       },
@@ -103,15 +106,43 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       return;
     }
 
+    /*
+     * Judge the latest ARRIVAL, not the last heartbeat a Telemetry worker
+     * happened to persist. The persisted time trails arrivals by however far
+     * behind the queue is, and coalescing can drop a monitor's newer requests
+     * altogether, so judging it alone flipped every heartbeat monitor Offline
+     * whenever the queue fell more than the window behind - while every
+     * sender was still getting 2xx. The store has every arrival the endpoint
+     * saw; the persisted time is only the floor (and the fallback when Redis
+     * is unavailable).
+     *
+     * Read here, after the bookkeeping write above: that write can wait on a
+     * busy database (behind a migration's lock, say) for minutes, and the
+     * arrivals recorded during the wait are in the store, not in the page
+     * this monitor was loaded with before it. This call also registers the
+     * monitor's secret key, which is what lets the endpoint record arrivals
+     * for it.
+     */
+    const latestReceivedAt: Date = await IncomingRequestReceivedAtStore.track({
+      secretKey: monitor.incomingRequestSecretKey,
+      receivedAt:
+        monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
+        monitor.createdAt!,
+    });
+
+    const checkedAt: Date = OneUptimeDate.getCurrentDate();
+
     const incomingRequest: IncomingMonitorRequest = {
       ...(monitor.incomingMonitorRequest! || {}),
       incomingRequestReceivedAt:
-        monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
-        monitor.createdAt!,
+        IncomingRequestReceivedAtStore.getReceivedAtAsOf(
+          latestReceivedAt,
+          checkedAt,
+        ),
       onlyCheckForIncomingRequestReceivedAt: true,
       monitorId: monitor.id!,
       projectId: monitor.projectId!,
-      checkedAt: OneUptimeDate.getCurrentDate(),
+      checkedAt: checkedAt,
     };
 
     logger.debug(

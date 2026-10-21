@@ -1,47 +1,77 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import UserElement from "../../../Components/User/User";
-import ProjectUtil from "Common/UI/Utils/Project";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import PageMap from "../../../Utils/PageMap";
-import ProjectUser from "../../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
-import TeamElement from "../../../Components/Team/Team";
-import Team from "Common/Models/DatabaseModels/Team";
+import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
+import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  getMonitorThisProbeRoute,
+  MONITOR_THIS_PROBE_ICON,
+  MONITOR_THIS_PROBE_TITLE,
+} from "../../../Utils/MonitorThisProbe";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
   BlockPermissions = "BlockPermissions",
 }
 
+const advancedSection: FormFieldCollapsibleSection<Probe> =
+  getAdvancedFormSection<Probe>();
+
 const ProbeView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
   const [probeKey, setProbeKey] = useState<string | null>(null);
+
+  /*
+   * Beside the probe's status: the way to be told, once, when it goes
+   * offline - a Probe Status monitor watching this probe.
+   */
+  const monitorThisProbeButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: MONITOR_THIS_PROBE_TITLE,
+        icon: MONITOR_THIS_PROBE_ICON,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          Navigation.navigate(getMonitorThisProbeRoute(modelId.toString()));
+        },
+      },
+      new Monitor(),
+      ModelAction.Create,
+    );
 
   return (
     <Fragment>
@@ -50,15 +80,15 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         name="Probe Details"
         cardProps={{
           title: "Probe Details",
-          description: "Here are more details for this probe.",
         }}
         isEditable={true}
         /*
-         * Deliberately NOT a multi-step form. With steps, the modal's primary
-         * button reads "Next" until the last step, so someone editing the name
-         * or the auto-enable toggle sees only "Cancel" and "Next" and closes
-         * the modal thinking there is nothing to save - and the edit is lost.
-         * Five fields fit on one page with a real "Save Changes" button.
+         * One page, with a real "Save Changes" button: the name and the
+         * description, and Advanced folding the logo, the auto-enable switch
+         * and the labels (it says "Configured" when any is set). It was
+         * meant to be a one-page form long before stepped edit dialogs
+         * could save from any step, and the "More" step held only the
+         * switch and the labels.
          */
         formFields={[
           {
@@ -92,34 +122,21 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               shouldAutoEnableProbeOnNewMonitors: true,
             },
-            title: "Enable monitoring automatically on new monitors",
-            description:
-              "When on, this probe is pre-selected for every new monitor you create.",
+            title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,
+            description: PROBE_ON_NEW_MONITORS_COPY.description,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Probe>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         modelDetailProps={{
           onItemLoaded: (item: Probe) => {
@@ -136,6 +153,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               },
               title: "Probe ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A custom probe is installed with its ID and its key
+               * (PROBE_ID, PROBE_KEY), so the ID stays a field, read beside
+               * the key, rather than going to the card's ID line.
+               */
+              showIdAsField: true,
             },
             {
               field: {
@@ -164,9 +187,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring on New Monitors",
-              description:
-                "When on, this probe is pre-selected for every new monitor you create.",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
+              description: PROBE_ON_NEW_MONITORS_COPY.description,
               fieldType: FieldType.Boolean,
             },
             {
@@ -190,9 +212,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
       <CardModelDetail<Probe>
         name="Probe Status"
         cardProps={{
+          // The title says it all; the button is how to be told it went down.
           title: "Probe Status",
-          description:
-            "Here is more details on the connection status for this probe.",
+          buttons: monitorThisProbeButton ? [monitorThisProbeButton] : [],
         }}
         isEditable={false}
         modelDetailProps={{
@@ -221,208 +243,28 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
+      {/*
+       * Captures of the traffic this probe sees, started here and downloaded
+       * for Wireshark - once whoever runs the probe has turned them on.
+       */}
+      <ProbePacketCaptures probeId={modelId} />
+
       {probeKey && (
         <CustomProbeDocumentation probeKey={probeKey} probeId={modelId} />
       )}
 
-      <ModelTable<ProbeOwnerTeam>
-        modelType={ProbeOwnerTeam}
-        id="table-monitor-owner-team"
-        userPreferencesKey="probe-owner-team-table"
-        saveFilterProps={{
-          tableId: "probe-owner-team-table",
-        }}
-        name="Probe > Owner Team"
-        singularName="Team"
-        isDeleteable={true}
-        createVerb={"Add"}
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        query={{
-          probeId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(item: ProbeOwnerTeam): Promise<ProbeOwnerTeam> => {
-          item.probeId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Teams)",
-          description:
-            "Here is list of teams that own this probe. They will be alerted when this probe status changes.",
-        }}
-        noItemsMessage={"No teams associated with this probe so far."}
-        formFields={[
-          {
-            field: {
-              team: true,
-            },
-            title: "Team",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select Team",
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              team: true,
-            },
-            type: FieldType.Entity,
-            title: "Team",
-            filterEntityType: Team,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-            getElement: (item: ProbeOwnerTeam): ReactElement => {
-              if (!item["team"]) {
-                throw new BadDataException("Team not found");
-              }
-
-              return <TeamElement team={item["team"] as Team} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
-
-      <ModelTable<ProbeOwnerUser>
-        modelType={ProbeOwnerUser}
-        id="table-monitor-owner-team"
-        name="Probe > Owner Team"
-        userPreferencesKey="probe-owner-user-table"
-        saveFilterProps={{
-          tableId: "probe-owner-user-table",
-        }}
-        isDeleteable={true}
-        singularName="User"
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        createVerb={"Add"}
-        query={{
-          probeId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(item: ProbeOwnerUser): Promise<ProbeOwnerUser> => {
-          item.probeId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Users)",
-          description:
-            "Here is list of users that own this probe. They will be alerted when this probe status changes.",
-        }}
-        noItemsMessage={"No users associated with this probe so far."}
-        formFields={[
-          {
-            field: {
-              user: true,
-            },
-            title: "User",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select User",
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              user: true,
-            },
-            title: "User",
-            type: FieldType.Entity,
-            filterEntityType: User,
-            fetchFilterDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-            getElement: (item: ProbeOwnerUser): ReactElement => {
-              if (!item["user"]) {
-                throw new BadDataException("User not found");
-              }
-
-              return <UserElement user={item["user"] as User} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
+      {/*
+       * Its owners, people and teams together, added and removed the way
+       * the Owners pages and every owners field do.
+       */}
+      <OwnersCard<ProbeOwnerUser, ProbeOwnerTeam>
+        resourceId={modelId}
+        resourceIdField="probeId"
+        resourceDisplayName="probe"
+        ownerUserModelType={ProbeOwnerUser}
+        ownerTeamModelType={ProbeOwnerTeam}
+        description="People and teams who own this probe. They are alerted when its status changes."
+        emptyDescription="Add a teammate or a team so they are alerted when this probe's status changes."
       />
 
       <ResetObjectID<Probe>
@@ -433,10 +275,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         fieldName={"key"}
         title={"Reset Probe Key"}
         description={
-          <p className="mt-2">
-            Resetting the secret key will generate a new key. Secret is used to
-            authenticate probe requests.
-          </p>
+          // A span: the card draws its description in a <p>.
+          <span>
+            {translator.translateText(
+              "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",
+            )}
+          </span>
         }
         modelId={modelId}
       />

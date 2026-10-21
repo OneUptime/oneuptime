@@ -60,6 +60,8 @@ jest.mock("net", () => {
 
   class MockSocket extends EventEmitterConstructor {
     public readonly connectCalls: Array<{ port: number; host: string }> = [];
+    // The lookup each connect was handed, in the same order.
+    public readonly connectLookups: Array<unknown> = [];
     public destroyCallCount: number = 0;
 
     public constructor() {
@@ -67,8 +69,14 @@ jest.mock("net", () => {
       sockets.push(this);
     }
 
-    public connect(port: number, host: string): this {
-      this.connectCalls.push({ port, host });
+    // PortMonitor passes the options form: { port, host, lookup }.
+    public connect(options: {
+      port: number;
+      host: string;
+      lookup?: unknown;
+    }): this {
+      this.connectCalls.push({ port: options.port, host: options.host });
+      this.connectLookups.push(options.lookup);
 
       const scenario: SocketScenario | undefined = scenarios.shift();
       if (!scenario) {

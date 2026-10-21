@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -44,6 +45,8 @@ import {
 import ExceptionInstanceTable from "../../Exceptions/ExceptionInstanceTable";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import TraceProfilerLink from "./TraceProfilerLink";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
 
@@ -51,6 +54,12 @@ export interface ComponentProps {
   traceId: string;
   // The trace's wall-clock window; null until spans load.
   traceWindow: { startTime: Date; endTime: Date } | null;
+  /*
+   * The service of the trace's root span, and its name: the Profiler is
+   * offered for it, around the trace's time, when it was profiled then.
+   */
+  rootServiceId?: string | null | undefined;
+  rootServiceName?: string | null | undefined;
 }
 
 // Server-enforced cap on POST /telemetry/metrics/for-trace.
@@ -58,6 +67,24 @@ const METRICS_FOR_TRACE_LIMIT: number = 500;
 // Metric links widen the trace's window so near-instant traces still chart.
 export const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
 const MAX_SAMPLED_METRIC_VALUES: number = 5;
+
+/*
+ * Whether to offer the Metrics tab. Metrics are read with their own
+ * permission, not the trace one, so the tab is left out for somebody who
+ * may read this trace but not metrics, rather than offered and then
+ * refused. It asks what POST /telemetry/metrics/for-trace asks: the Metric
+ * model's own read gate (PermissionGate.check) - one of its read
+ * permissions or the Read All Operational Resources wildcard, held as an
+ * allow, with no team block on any of them. Offered while the permission
+ * snapshot is still loading: the server has the last word.
+ */
+function canOfferTraceMetrics(): boolean {
+  if (!PermissionGate.hasPermissionSnapshot()) {
+    return true;
+  }
+
+  return PermissionGate.check(new Metric(), ModelAction.Read).isAllowed;
+}
 
 export function formatTraceMetricValue(value: number): string {
   if (!Number.isFinite(value)) {
@@ -111,7 +138,20 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   const metricsLoadGenerationRef: React.MutableRefObject<number> =
     useRef<number>(0);
 
+  /*
+   * Another trace starts from a clean slate. Not on the first mount: the
+   * initial state already is one, and a reset that ran then - after the
+   * first paint - could undo a tab the reader had already picked.
+   */
+  const shownTraceIdRef: React.MutableRefObject<string> =
+    useRef<string>(traceId);
+
   useEffect(() => {
+    if (shownTraceIdRef.current === traceId) {
+      return;
+    }
+    shownTraceIdRef.current = traceId;
+
     setActiveSignalTab("logs");
     setExceptionCount(null);
     setProfileSampleCount(0);
@@ -205,15 +245,47 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     };
   }, [traceId]);
 
-  // If the gate closes while Profile is selected, fall back to the default tab.
+  const canReadMetrics: boolean = canOfferTraceMetrics();
+
+  /*
+   * Which tabs are offered: Metrics to who may read metrics, Profile only
+   * when the trace was profiled. The tab list, the panels and the fallback
+   * below all ask this one question.
+   */
+  const isTabOffered: (tab: CorrelatedSignalTab) => boolean = (
+    tab: CorrelatedSignalTab,
+  ): boolean => {
+    if (tab === "metrics") {
+      return canReadMetrics;
+    }
+
+    if (tab === "profile") {
+      return profileSampleCount > 0;
+    }
+
+    return true;
+  };
+
+  const isActiveTabOffered: boolean = isTabOffered(activeSignalTab);
+
+  /*
+   * If a tab's gate closes while it is selected (a trace without profile
+   * samples, or a permission snapshot that arrives without the metric
+   * read), fall back to the default tab.
+   */
   useEffect(() => {
-    if (activeSignalTab === "profile" && profileSampleCount === 0) {
+    if (!isActiveTabOffered) {
       setActiveSignalTab("logs");
     }
-  }, [activeSignalTab, profileSampleCount]);
+  }, [isActiveTabOffered]);
 
   // Metrics tab: reverse exemplar lookup, fetched on first open only.
   useEffect(() => {
+    // Never asked of the server by somebody it would refuse.
+    if (!canReadMetrics) {
+      return;
+    }
+
     if (activeSignalTab !== "metrics" || metricsFetched) {
       return;
     }
@@ -348,12 +420,16 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   }> = [
     { id: "logs", label: "Logs", count: null },
     { id: "exceptions", label: "Exceptions", count: exceptionCount },
-    {
-      id: "metrics",
-      label: "Metrics",
-      count: metricsFetched ? traceMetricSeries.length : null,
-    },
-    ...(profileSampleCount > 0
+    ...(isTabOffered("metrics")
+      ? [
+          {
+            id: "metrics" as CorrelatedSignalTab,
+            label: "Metrics",
+            count: metricsFetched ? traceMetricSeries.length : null,
+          },
+        ]
+      : []),
+    ...(isTabOffered("profile")
       ? [
           {
             id: "profile" as CorrelatedSignalTab,
@@ -378,6 +454,15 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           <p className="text-xs text-gray-500">
             Logs, exceptions, metrics and profiles recorded during this trace.
           </p>
+          {props.traceWindow && props.rootServiceId ? (
+            <TraceProfilerLink
+              serviceId={props.rootServiceId}
+              serviceName={props.rootServiceName || null}
+              traceStart={props.traceWindow.startTime}
+            />
+          ) : (
+            <></>
+          )}
         </div>
         <div
           className="-mb-px flex gap-1 overflow-x-auto"
@@ -446,7 +531,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {activeSignalTab === "metrics" && (
+        {activeSignalTab === "metrics" && isActiveTabOffered && (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -544,12 +629,12 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {activeSignalTab === "profile" && profileSampleCount > 0 && (
+        {activeSignalTab === "profile" && isActiveTabOffered && (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
               Flame graph built from the {profileSampleCount.toLocaleString()}{" "}
-              profile sample{profileSampleCount === 1 ? "" : "s"} recorded
-              during this trace.
+              profile sample{profileSampleCount === 1 ? "" : "s"} linked to the
+              spans of this trace.
             </p>
             <TraceScopedFlamegraph traceId={traceId} />
           </div>

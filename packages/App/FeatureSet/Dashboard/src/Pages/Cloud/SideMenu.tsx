@@ -6,12 +6,28 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CloudSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
       title: "Cloud",
       items: [
+        /*
+         * The way in: AWS, Azure and Google Cloud accounts connected in a
+         * few clicks, read on a schedule with read-only access.
+         */
+        {
+          link: {
+            title: "Connect",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_CONNECT] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
         {
           link: {
             title: "All Environments",
@@ -21,14 +37,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        /*
+         * The IaaS and PaaS resources discovered from the provider's own
+         * monitoring (Azure Monitor, CloudWatch, Cloud Monitoring) - virtual
+         * machines, load balancers, buckets, managed databases, queues.
+         */
         {
           link: {
-            title: "Archived",
+            title: "All Resources",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_ARCHIVED] as Route,
+              RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route,
             ),
           },
-          icon: IconProp.Archive,
+          icon: IconProp.SquareStack,
         },
       ],
     },
@@ -56,7 +77,31 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived cloud environments, which the list leaves out.
+     * Few visits need it, so it waits in Advanced: folded away until opened,
+     * and open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: CloudResource,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

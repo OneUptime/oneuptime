@@ -4,9 +4,21 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    WorkflowVariableService,
+    jest.spyOn(WorkflowVariableService, "findBy"),
+  );
+});
 
 /*
  * Workflow variables became editable from the dashboard, which made renaming a
@@ -117,6 +129,7 @@ type RecordedCall = {
   select?: Record<string, unknown> | undefined;
   props?: Record<string, unknown> | undefined;
   limit?: unknown;
+  skip?: unknown;
 };
 
 function stubReads(options: {
@@ -134,6 +147,7 @@ function stubReads(options: {
       select: typed.select,
       props: typed.props,
       limit: typed.limit,
+      skip: typed.skip,
     };
   }
 
@@ -229,7 +243,7 @@ describe("WorkflowVariableService rename uniqueness", () => {
           makeUpdateBy({
             description: "Token for the nightly Airflow sync",
             isSecret: "true",
-          } as Partial<WorkflowVariable>),
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
 
@@ -293,9 +307,10 @@ describe("WorkflowVariableService rename uniqueness", () => {
     /*
      * The hook resolves the update's own query to real rows before it can judge
      * anything, and every part of that read matters: the query decides which
-     * rows, isRoot lets it see rows the caller cannot read, the select supplies
-     * the scope the lookup is built from, and the limit is what lets the
-     * multi-row guard below see all of them. A stub that answers regardless of
+     * rows, isRoot lets it see rows the caller cannot read, the select
+     * supplies the scope the lookup is built from, and the update's own window
+     * (skip and limit) is what makes the rows read the rows written, so the
+     * multi-row guard below sees all of them. A stub that answers regardless of
      * its arguments would hide all four.
      */
     test("reads exactly the rows this update targets, as root, with the scope columns", async () => {
@@ -306,14 +321,20 @@ describe("WorkflowVariableService rename uniqueness", () => {
         conflictCount: 0,
       });
 
-      await hook()(makeUpdateBy({ name: "NewName" }));
+      const updateBy: UpdateBy<WorkflowVariable> = makeUpdateBy({
+        name: "NewName",
+      });
+      updateBy.skip = 5;
+      updateBy.limit = 25;
+
+      await hook()(updateBy);
 
       expect(findByCalls).toHaveLength(1);
 
       const call: RecordedCall = findByCalls[0]!;
 
       expect(call.query).toEqual({ _id: VARIABLE_ID.toString() });
-      expect(call.props).toEqual({ isRoot: true });
+      expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(call.props).not.toHaveProperty("userId");
       expect(call.select).toEqual(
         expect.objectContaining({
@@ -323,7 +344,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
           workflowId: true,
         }),
       );
-      expect(call.limit).toBe(LIMIT_PER_PROJECT);
+      // The update's own window.
+      expect(call.skip).toBe(5);
+      expect(call.limit).toBe(25);
     });
   });
 
@@ -668,7 +691,11 @@ describe("WorkflowVariableService rename uniqueness", () => {
       });
 
       await expect(
-        hook()(makeUpdateBy({ isSecret: "true" } as Partial<WorkflowVariable>)),
+        hook()(
+          makeUpdateBy({
+            isSecret: "true",
+          } as unknown as Partial<WorkflowVariable>),
+        ),
       ).resolves.toBeDefined();
     });
 
@@ -686,7 +713,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).rejects.toThrow(BadDataException);
 
@@ -726,6 +755,70 @@ describe("WorkflowVariableService rename uniqueness", () => {
       ).rejects.toThrow(BadDataException);
     });
 
+    /*
+     * The flag is read as the database stores it (toStoredBoolean), the way
+     * DatabaseService hands every switch to a hook: "yes" marks a variable
+     * secret, so writing it over a secret variable is not un-marking it - it
+     * used to be refused as if it were - while "no" and 0 un-mark it, and
+     * are refused.
+     */
+    test.each([
+      ['"yes"', "yes"],
+      ['"on"', "on"],
+      ['"1"', "1"],
+      ["1", 1],
+    ] as Array<[string, unknown]>)(
+      "writing the flag as %s over a secret variable keeps it secret: not refused",
+      async (_label: string, value: unknown) => {
+        stubReads({
+          itemsBeingUpdated: [
+            makeVariable({
+              name: "Token",
+              workflowId: WORKFLOW_ID,
+              isSecret: true,
+            }),
+          ],
+          conflictCount: 0,
+        });
+
+        await expect(
+          hook()(
+            makeUpdateBy({
+              isSecret: value,
+            } as unknown as Partial<WorkflowVariable>),
+          ),
+        ).resolves.toBeDefined();
+      },
+    );
+
+    test.each([
+      ['"no"', "no"],
+      ['"off"', "off"],
+      ["0", 0],
+    ] as Array<[string, unknown]>)(
+      "un-marking a secret variable written as %s is refused",
+      async (_label: string, value: unknown) => {
+        stubReads({
+          itemsBeingUpdated: [
+            makeVariable({
+              name: "Token",
+              workflowId: WORKFLOW_ID,
+              isSecret: true,
+            }),
+          ],
+          conflictCount: 0,
+        });
+
+        await expect(
+          hook()(
+            makeUpdateBy({
+              isSecret: value,
+            } as unknown as Partial<WorkflowVariable>),
+          ),
+        ).rejects.toThrow(/cannot be un-marked/);
+      },
+    );
+
     test("leaves a variable that was never secret alone", async () => {
       stubReads({
         itemsBeingUpdated: [
@@ -740,7 +833,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
     });

@@ -118,12 +118,18 @@ describe("Import Sites modal disarms a stale parse", () => {
    * against a project that already contains most of it — every created row
    * coming back as a duplicate-name failure.
    */
-  test("a finished run turns the submit button into Done", () => {
+  /*
+   * And it leaves exactly one way out: the submit goes away and the close
+   * button reads "Done", rather than a primary "Done" beside a "Close" that
+   * did the same thing.
+   */
+  test("a finished run takes the Import button away and leaves one Done", () => {
     expect(source).toContain("setHasImported(true);");
-    expect(source).toContain(squash('hasImported ? "Done"'));
     expect(source).toContain(
-      squash("if (hasImported) { props.onClose(); return; }"),
+      squash('closeButtonText={hasImported ? "Done" : "Cancel"}'),
     );
+    expect(source).toContain(squash("onSubmit={ hasImported ? undefined :"));
+    expect(source).not.toContain(squash('hasImported ? "Close"'));
   });
 
   // Closing mid-run would leave the create loop writing into an unmounted tree.
@@ -426,7 +432,7 @@ describe("the Network Map follows the drill", () => {
 });
 
 /*
- * The sidebar's "Network Map" entry has to take the user back to the top of
+ * The sidebar's "Map" entry has to take the user back to the top of
  * the map from any drill depth. The drill position lives in the query string,
  * and Navigation.navigate() swallows any navigation whose target is already
  * the current page — a judgement it makes on the pathname alone. So a bare
@@ -548,11 +554,11 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
    * whole fix, so pin it here. Without this, "simplifying" the menu back to the
    * bare route restores the dead link with the suite still green.
    */
-  test("the Network Map menu entry is wired to that route, not the bare one", () => {
+  test("the Map menu entry is wired to that route, not the bare one", () => {
     /*
-     * The map entry now lives in the shared Network side menu (both the
-     * Devices and Sites sections render it), so that is where the wiring
-     * must hold.
+     * The map entry lives in the shared Network side menu (both the Devices
+     * and Sites sections render it), among the everyday pages, titled "Map"
+     * there - so that is where the wiring must hold.
      */
     const source: string = readSource(
       "Components",
@@ -561,7 +567,7 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
     );
 
     const mapEntry: RegExpMatchArray | null = source.match(
-      /title: "Network Map", to: ([^,]+?),/,
+      /title: "Map", to: ([^,]+?),/,
     );
 
     expect(mapEntry).not.toBeNull();
@@ -1707,6 +1713,12 @@ describe("SiteGeoMap calms its ink rather than hiding it", () => {
    * A thread drawn at a hairline is easy to miss, so somebody who cannot
    * see where a marker really sits has to be told the answer is a hover
    * away rather than gone.
+   *
+   * Each hint is a whole sentence looked up in the reader's language
+   * (#4295), so the space that runs it on from the sentence before it is
+   * added where the hint line renders it rather than carried inside the
+   * key — and the hint line is pinned too, or the sentence could be
+   * computed and never shown.
    */
   test("the map says when it has calmed something down", () => {
     expect(source).toContain(
@@ -1714,9 +1726,27 @@ describe("SiteGeoMap calms its ink rather than hiding it", () => {
         'const isInkCalmed: boolean = inkPlan.positionLines === "quiet" || inkPlan.labelThreads === "quiet" || inkPlan.links === "quiet";',
       ),
     );
-    expect(source).toContain('" Hover one to trace what it connects to."');
-    expect(source).toContain('" Hover one to see exactly where it sits."');
+    expect(code).toContain(
+      squash(
+        'const emphasisHint: string = hasDrawnLinks ? translator.translateTemplate("Hover one to trace what it connects to.") : isInkCalmed ? translator.translateTemplate("Hover one to see exactly where it sits.") : "";',
+      ),
+    );
     expect(source).toContain('data-testid="site-geo-map-hint"');
+    const hintLine: string = code
+      .split('data-testid="site-geo-map-hint"')[1]!
+      .split("</p>")[0]!;
+    expect(hintLine).toContain('{emphasisHint ? ` ${emphasisHint}` : ""}');
+
+    // Keys the extractor recorded, so every locale can translate them.
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "en.json"), "utf8"),
+    );
+    for (const sentence of [
+      "Hover one to trace what it connects to.",
+      "Hover one to see exactly where it sits.",
+    ]) {
+      expect([sentence, english[sentence]]).toEqual([sentence, sentence]);
+    }
   });
 
   /*

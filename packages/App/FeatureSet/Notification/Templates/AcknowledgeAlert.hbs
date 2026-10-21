@@ -10,9 +10,9 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Alert Title:" plainText=alertTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=alertSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=alertSeverity color=alertSeverityColor textColor=alertSeverityTextColor }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
 {{> DetailBoxField title="Description: " blockText=alertDescription  }}
 {{> DetailBoxEnd this }}
@@ -23,6 +23,12 @@
 {{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText="Acknowledge Alert"}}
 
 {{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel="You can also copy and paste this link:"}}
+
+{{#if passOnLink}}
+{{> InfoBlock info="Can't take it? Pass it on, and you won't be paged about it again."}}
+
+{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}
+{{/if}}
 
 {{> InfoBlock info="You will be notified when the status of this alert changes."}}
 

@@ -11,6 +11,23 @@ import {
   OverviewVendor,
   fetchNetworkOverview,
 } from "../../Components/Network/NetworkSummaryApi";
+import NetworkHealthHero from "../../Components/Network/NetworkHealthHero";
+import NetworkGetStarted from "../../Components/Network/NetworkGetStarted";
+import AddProbeModal from "../../Components/Network/AddProbeModal";
+import {
+  NetworkHealthVerdict,
+  getNetworkHealthVerdict,
+} from "../../Components/Network/NetworkHealthVerdict";
+import {
+  NetworkQuickAction,
+  clearNetworkQuickAction,
+  getNetworkQuickActionRoute,
+  isNetworkQuickActionRequested,
+} from "../../Components/Network/NetworkQuickActions";
+import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
+import { DEVICES_WITH_INTERFACES_DOWN_SELECTION } from "../../Components/NetworkDevice/DeviceFacets";
+import { formatRelativeTime } from "../../Components/Home/HomeRelativeTime";
+import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import Route from "Common/Types/API/Route";
 import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -23,7 +40,6 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -40,6 +56,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RECENT_SCAN_LIMIT: number = 5;
 
@@ -47,9 +65,13 @@ const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
 
 /*
  * Network Overview — the mission-control landing page for the whole
- * Network area. One glance answers: is the fleet healthy, which devices
- * and sites need attention right now, what is the fleet made of, and is
- * discovery finding anything new.
+ * Network area. It opens with the answer people come for: one sentence that
+ * says whether the network is healthy and, if not, what is wrong
+ * (NetworkHealthHero), whether anything alerts on it, and the two ways to
+ * bring more of it in. Below that, at a glance: which devices and sites
+ * need attention right now, what the fleet is made of, and whether
+ * discovery is finding anything new. With nothing on it yet, it shows the
+ * two ways in instead (NetworkGetStarted).
  *
  * Every number here used to be worked out in this component, from every
  * device and every site downloaded into the browser. That reads badly at
@@ -65,12 +87,62 @@ const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
 const NetworkOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [summary, setSummary] = useState<NetworkOverviewSummary | null>(null);
   const [recentScans, setRecentScans] = useState<
     Array<NetworkDeviceDiscoveryScan>
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * How many enabled alert policies the project has - whether anything turns
+   * a device going down into an incident. Null when it could not be read
+   * (a role without access to alert policies): the hero then leaves the
+   * line out rather than claim there are none.
+   */
+  const [enabledAlertPolicyCount, setEnabledAlertPolicyCount] = useState<
+    number | null
+  >(null);
+
+  /*
+   * Opened to add a probe (?open=add-probe): read once, when the page mounts,
+   * and taken back out of the address so a refresh opens nothing. Before the
+   * first device the first-run path opens the dialog on its own step; after
+   * it, this page does.
+   */
+  const [isAddProbeRequested, setIsAddProbeRequested] = useState<boolean>(
+    (): boolean => {
+      return isNetworkQuickActionRequested(NetworkQuickAction.AddProbe);
+    },
+  );
+
+  useEffect(() => {
+    if (isAddProbeRequested) {
+      clearNetworkQuickAction();
+    }
+  }, []);
+
+  /*
+   * Read apart from the page's own data, and allowed to fail on its own: a
+   * line about alerting is never worth an error page.
+   */
+  const fetchEnabledAlertPolicyCount: (
+    projectId: ObjectID,
+  ) => Promise<void> = async (projectId: ObjectID): Promise<void> => {
+    try {
+      const count: number = await ModelAPI.count<NetworkAlertPolicy>({
+        modelType: NetworkAlertPolicy,
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+      });
+
+      setEnabledAlertPolicyCount(count);
+    } catch {
+      setEnabledAlertPolicyCount(null);
+    }
+  };
 
   const fetchOverviewData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -86,6 +158,7 @@ const NetworkOverview: FunctionComponent<
       const [overview, scanResult]: [
         NetworkOverviewSummary,
         ListResult<NetworkDeviceDiscoveryScan>,
+        void,
       ] = await Promise.all([
         fetchNetworkOverview(),
         ModelAPI.getList<NetworkDeviceDiscoveryScan>({
@@ -107,6 +180,7 @@ const NetworkOverview: FunctionComponent<
             createdAt: SortOrder.Descending,
           },
         }),
+        fetchEnabledAlertPolicyCount(projectId),
       ]);
 
       setSummary(overview);
@@ -140,52 +214,32 @@ const NetworkOverview: FunctionComponent<
     down: 0,
     pending: 0,
     interfacesDown: 0,
+    snmpFailing: 0,
   };
 
-  // Onboarding: nothing in the Network area yet.
-  if (fleet.total === 0 && (summary?.siteCount || 0) === 0) {
+  /*
+   * First run: nothing in the Network area yet. The two ways in, each one
+   * click from its form (NetworkGetStarted). A project with sites but no
+   * devices gets the same choice - its sites are waiting for devices.
+   */
+  if (fleet.total === 0) {
     return (
-      <Card
-        title="Welcome to Network Monitoring"
-        description="Monitor switches, routers, firewalls and everything else on the wire — reachability for every device, plus topology, interfaces, traffic and per-site health rollups over SNMP."
-      >
-        <EmptyState
-          id="network-overview-empty-state"
-          icon={IconProp.Signal}
-          title="Bring your network in"
-          description="Add a device by hand, or point a discovery scan at a subnet and import what answers. Your probes ping every device on its schedule, and walk it over SNMP once it has credentials — interfaces, topology, and health come in automatically."
-          footer={
-            <div className="flex w-full justify-center gap-3">
-              <Button
-                title="Add Device"
-                icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.NETWORK_DEVICES] as Route,
-                    ),
-                  );
-                }}
-              />
-              <Button
-                title="Discover Devices"
-                icon={IconProp.Search}
-                buttonStyle={ButtonStyleType.NORMAL}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
-                    ),
-                  );
-                }}
-              />
-            </div>
-          }
-        />
-      </Card>
+      <NetworkGetStarted
+        enabledAlertPolicyCount={enabledAlertPolicyCount}
+        isAddProbeRequested={isAddProbeRequested}
+      />
     );
   }
+
+  const verdict: NetworkHealthVerdict | null = getNetworkHealthVerdict({
+    totalDevices: fleet.total,
+    devicesUp: fleet.up,
+    devicesDown: fleet.down,
+    devicesPending: fleet.pending,
+    interfacesDown: fleet.interfacesDown,
+    unhealthySites: summary?.unhealthySiteCount || 0,
+    snmpFailingDevices: fleet.snmpFailing,
+  });
 
   const attentionDevices: Array<OverviewAttentionDevice> =
     summary?.attentionDevices || [];
@@ -215,10 +269,38 @@ const NetworkOverview: FunctionComponent<
 
   return (
     <Fragment>
+      {isAddProbeRequested && (
+        <AddProbeModal
+          onClose={() => {
+            setIsAddProbeRequested(false);
+          }}
+        />
+      )}
+      {verdict ? (
+        <NetworkHealthHero
+          verdict={verdict}
+          devicesPending={fleet.pending}
+          enabledAlertPolicyCount={enabledAlertPolicyCount}
+        />
+      ) : (
+        <></>
+      )}
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/*
+         * Each tile opens the rows behind its number: the device list, the
+         * devices with a port down (the list's own Interfaces chip, set),
+         * the sites, the endpoints.
+         */}
         <InfoCard
           title="Devices"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetDevices}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICES] as Route,
+              ),
+            );
+          }}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
@@ -226,7 +308,10 @@ const NetworkOverview: FunctionComponent<
               </div>
               <div className="mt-2 text-sm">
                 <span className="font-medium text-emerald-600">
-                  {fleet.up} up
+                  {translator.translatePlural(
+                    { one: "{{count}} up", other: "{{count}} up" },
+                    fleet.up,
+                  )}
                 </span>
                 <span className="text-gray-400"> · </span>
                 <span
@@ -236,13 +321,22 @@ const NetworkOverview: FunctionComponent<
                       : "text-gray-500"
                   }
                 >
-                  {fleet.down} down
+                  {translator.translatePlural(
+                    { one: "{{count}} down", other: "{{count}} down" },
+                    fleet.down,
+                  )}
                 </span>
                 {fleet.pending > 0 && (
                   <Fragment>
                     <span className="text-gray-400"> · </span>
                     <span className="text-gray-500">
-                      {fleet.pending} pending
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} pending",
+                          other: "{{count}} pending",
+                        },
+                        fleet.pending,
+                      )}
                     </span>
                   </Fragment>
                 )}
@@ -253,6 +347,13 @@ const NetworkOverview: FunctionComponent<
         <InfoCard
           title="Interfaces Down"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetInterfacesDown}
+          onClick={() => {
+            Navigation.navigate(
+              getDeviceListRouteForFacet(
+                DEVICES_WITH_INTERFACES_DOWN_SELECTION,
+              ),
+            );
+          }}
           value={
             <div className="mt-1">
               <div
@@ -263,7 +364,7 @@ const NetworkOverview: FunctionComponent<
                 {fleet.interfacesDown}
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                Across all devices.
+                {translator.translateText("Across all devices.")}
               </div>
             </div>
           }
@@ -271,6 +372,13 @@ const NetworkOverview: FunctionComponent<
         <InfoCard
           title="Sites"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetSites}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_SITES] as Route,
+              ),
+            );
+          }}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
@@ -279,10 +387,18 @@ const NetworkOverview: FunctionComponent<
               <div className="mt-2 text-sm">
                 {unhealthySiteCount > 0 ? (
                   <span className="font-medium text-red-600">
-                    {unhealthySiteCount} unhealthy
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} unhealthy",
+                        other: "{{count}} unhealthy",
+                      },
+                      unhealthySiteCount,
+                    )}
                   </span>
                 ) : (
-                  <span className="text-gray-500">All healthy</span>
+                  <span className="text-gray-500">
+                    {translator.translateText("All healthy")}
+                  </span>
                 )}
               </div>
             </div>
@@ -291,13 +407,31 @@ const NetworkOverview: FunctionComponent<
         <InfoCard
           title="Endpoints"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetEndpoints}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
+              ),
+            );
+          }}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
                 {endpointCount}
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                Discovered via ARP / FDB.
+                {/*
+                 * None is what every project sees until a switch collects
+                 * them - it is off by default - so the tile says how to turn
+                 * it on, not just what an endpoint is.
+                 */}
+                {endpointCount > 0
+                  ? translator.translateText(
+                      "Plugged into your switches and routers.",
+                    )
+                  : translator.translateText(
+                      "None yet: turn on Collect Connected Endpoints on a switch or router.",
+                    )}
               </div>
             </div>
           }
@@ -307,12 +441,13 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description="Unreachable devices first (the last poll, or the bound monitor, could not reach them), then devices whose SNMP walk is failing, then devices with down interfaces."
+          description="Down devices first (their probe or monitor cannot reach them), then failing SNMP, then ports down."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Every device is reachable, every SNMP walk is succeeding and no
-              interfaces are down. Nothing needs you here.
+              {translator.translateText(
+                "Every device answers, its details are being read and no interface is down. Nothing needs you here.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -333,12 +468,24 @@ const NetworkOverview: FunctionComponent<
                         {device.isDown ? (
                           <span className="font-medium text-red-600">
                             {device.isMonitorBacked
-                              ? "Monitor reports offline"
+                              ? translator.translateText(
+                                  "Monitor reports offline",
+                                )
                               : device.lastSeenAt
-                                ? `Last seen ${OneUptimeDate.fromNow(
-                                    OneUptimeDate.fromString(device.lastSeenAt),
-                                  )}`
-                                : "Never answered"}
+                                ? translator.translateTemplate(
+                                    "Last seen {{time}}",
+                                    {
+                                      // In the reader's language.
+                                      time: formatRelativeTime({
+                                        date: OneUptimeDate.fromString(
+                                          device.lastSeenAt,
+                                        ),
+                                        now: new Date(),
+                                        language: translator.language,
+                                      }),
+                                    },
+                                  )
+                                : translator.translateText("Never answered")}
                           </span>
                         ) : device.isSnmpFailing ? (
                           /*
@@ -348,14 +495,21 @@ const NetworkOverview: FunctionComponent<
                            */
                           <span
                             className="font-medium text-amber-700"
-                            title="The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device."
+                            title={translator.translateText(
+                              "The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device.",
+                            )}
                           >
-                            SNMP failing
+                            {translator.translateText("SNMP failing")}
                           </span>
                         ) : (
                           <span className="font-medium text-amber-700">
-                            {device.interfacesDown} interface
-                            {device.interfacesDown === 1 ? "" : "s"} down
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} interface down",
+                                other: "{{count}} interfaces down",
+                              },
+                              device.interfacesDown,
+                            )}
                           </span>
                         )}
                       </div>
@@ -369,11 +523,13 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Sites needing attention"
-          description="Sites whose health rollup is not operational — the worst status of any device below them."
+          description="Sites whose health is not operational: the worst status of any device in them."
         >
           {attentionSites.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Every site with monitored devices is rolling up healthy.
+              {translator.translateText(
+                "Every site with devices in it is healthy.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -434,8 +590,9 @@ const NetworkOverview: FunctionComponent<
         >
           {vendors.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Vendor identity appears after a device&apos;s first successful
-              SNMP walk — pinged-only devices have none.
+              {translator.translateText(
+                "Vendor identity appears after a device's first successful SNMP walk — pinged-only devices have none.",
+              )}
             </p>
           ) : (
             <div className="space-y-3">
@@ -447,7 +604,13 @@ const NetworkOverview: FunctionComponent<
                         {vendor.vendor}
                       </span>
                       <span className="text-gray-500">
-                        {vendor.count} device{vendor.count === 1 ? "" : "s"}
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} device",
+                            other: "{{count}} devices",
+                          },
+                          vendor.count,
+                        )}
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -467,16 +630,16 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Recent discovery scans"
-          description="Address-range sweeps that find devices to import - ping only, or ping plus SNMP."
+          description="Scans of an address range that find devices to add."
           rightElement={
             <Button
-              title="Run a Scan"
+              title="Start Scan"
               icon={IconProp.Search}
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
                 Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+                  getNetworkQuickActionRoute(
+                    NetworkQuickAction.DiscoverDevices,
                   ),
                 );
               }}
@@ -485,8 +648,9 @@ const NetworkOverview: FunctionComponent<
         >
           {recentScans.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              No scans yet. Point one at a subnet or octet range and import what
-              answers.
+              {translator.translateText(
+                "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -506,9 +670,11 @@ const NetworkOverview: FunctionComponent<
                   const secondaryLine: string = [
                     scanName ? scan.cidr : null,
                     scan.createdAt
-                      ? OneUptimeDate.fromNow(
-                          OneUptimeDate.fromString(scan.createdAt),
-                        )
+                      ? formatRelativeTime({
+                          date: OneUptimeDate.fromString(scan.createdAt),
+                          now: new Date(),
+                          language: translator.language,
+                        })
                       : null,
                   ]
                     .filter((part: string | null | undefined): boolean => {
@@ -525,10 +691,18 @@ const NetworkOverview: FunctionComponent<
                     statusClassName = "text-red-600";
                   }
 
+                  /*
+                   * Each scan opens the Discovery page, where its results
+                   * are reviewed and imported; its status in the reader's
+                   * language.
+                   */
                   return (
-                    <div
+                    <AppLink
                       key={scan._id?.toString()}
-                      className="flex items-center justify-between gap-3 py-2.5"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+                      )}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2.5 hover:bg-gray-50"
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-gray-900">
@@ -544,15 +718,20 @@ const NetworkOverview: FunctionComponent<
                         {scan.respondedHostCount !== undefined &&
                           scan.respondedHostCount !== null && (
                             <span className="text-gray-500">
-                              {scan.respondedHostCount} host
-                              {scan.respondedHostCount === 1 ? "" : "s"}
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} host",
+                                  other: "{{count}} hosts",
+                                },
+                                scan.respondedHostCount,
+                              )}
                             </span>
                           )}
                         <span className={`font-medium ${statusClassName}`}>
-                          {status}
+                          {translator.translateText(status) || status}
                         </span>
                       </div>
-                    </div>
+                    </AppLink>
                   );
                 },
               )}

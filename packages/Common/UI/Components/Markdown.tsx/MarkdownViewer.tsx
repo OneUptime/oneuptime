@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -12,6 +13,7 @@ import React, {
 import ReactMarkdown, { Components } from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
+import { sanitizeDiagramSvg } from "./DiagramSanitizer";
 /*
  * @types/react-syntax-highlighter declares every deep subpath below as ambient
  * `declare module` blocks inside its single index.d.ts, and that file only enters the
@@ -46,6 +48,7 @@ import ruby from "react-syntax-highlighter/dist/esm/languages/prism/ruby";
 import php from "react-syntax-highlighter/dist/esm/languages/prism/php";
 import graphql from "react-syntax-highlighter/dist/esm/languages/prism/graphql";
 import http from "react-syntax-highlighter/dist/esm/languages/prism/http";
+import hcl from "react-syntax-highlighter/dist/esm/languages/prism/hcl";
 
 SyntaxHighlighter.registerLanguage("javascript", javascript);
 SyntaxHighlighter.registerLanguage("js", javascript);
@@ -78,10 +81,29 @@ SyntaxHighlighter.registerLanguage("ruby", ruby);
 SyntaxHighlighter.registerLanguage("php", php);
 SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
-import DOMPurify from "dompurify";
+// Terraform configuration (the Developer > Terraform pages).
+SyntaxHighlighter.registerLanguage("hcl", hcl);
+SyntaxHighlighter.registerLanguage("terraform", hcl);
+SyntaxHighlighter.registerLanguage("tf", hcl);
 import SessionAwareImage from "./SessionAwareImage";
+import {
+  HeldBackViewerText,
+  MAX_HIGHLIGHTED_CODE_LENGTH,
+  holdBackForViewer,
+  rehypePutBackHeldText,
+} from "./MarkdownViewerOverLongText";
+import { markdownUrlTransform } from "./MarkdownUrlTransform";
+import MarkdownLink from "./MarkdownLink";
+import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
+import { remarkMarkdownCallouts } from "./MarkdownCallouts";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
+import {
+  translateTemplate,
+  translateText,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   InlineReferenceTransformOptions,
   MARKDOWN_INLINE_REFERENCE_COMPONENTS,
@@ -100,12 +122,13 @@ const ISO_8601_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 
 /*
- * mermaid's pre-bundled build is ~4.5MB — by far the heaviest dependency of
- * this component — so it is loaded on demand the first time a mermaid fence
- * actually renders. Plain markdown (the overwhelmingly common case) never
- * pays for it: there is no static import and no module-scope initialization.
- * The promise is cached module-wide so multiple diagrams share one load, and
- * theme setup runs only after the load resolves.
+ * mermaid is by far the heaviest dependency of this component - about 700KB
+ * of chunks before its first diagram, bundled from mermaid's ES module source
+ * (Common/UI/esbuild-mermaid.js) - so it is loaded on demand the first time a
+ * mermaid fence actually renders. Plain markdown (the overwhelmingly common
+ * case) never pays for it: there is no static import and no module-scope
+ * initialization. The promise is cached module-wide so multiple diagrams
+ * share one load, and theme setup runs only after the load resolves.
  */
 type MermaidApi = typeof import("mermaid").default;
 
@@ -147,6 +170,11 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
     startOnLoad: false,
     theme: isDark ? "dark" : "default",
     securityLevel: "strict",
+    /*
+     * A diagram that does not parse throws, and the viewer says so in its
+     * place; mermaid draws no "Syntax error" graphic of its own.
+     */
+    suppressErrorRendering: true,
     fontFamily: "inherit",
     themeVariables: isDark
       ? {
@@ -168,6 +196,45 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
           tertiaryColor: "#ffffff",
         },
   });
+};
+
+/*
+ * mermaid draws in a working element of its own and measures every label
+ * with the page's layout, so that element must be in the page while it
+ * draws. Given no container it appends it to document.body, where - without
+ * suppressErrorRendering - it left its "Syntax error in text" graphic for a
+ * diagram that did not parse, one more on every redraw. suppressErrorRendering
+ * makes mermaid remove that element when parsing or drawing fails; drawing in
+ * a container of its own, laid out but never seen and removed when the
+ * drawing is done, keeps anything it leaves on any other failure off the page
+ * too.
+ */
+const renderInOwnContainer: (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+) => Promise<string> = async (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+): Promise<string> => {
+  const container: HTMLDivElement = document.createElement("div");
+  container.setAttribute("aria-hidden", "true");
+  container.style.position = "absolute";
+  container.style.top = "0";
+  container.style.width = "100%";
+  container.style.height = "0";
+  container.style.overflow = "hidden";
+  container.style.visibility = "hidden";
+  container.style.pointerEvents = "none";
+  document.body.appendChild(container);
+
+  try {
+    const { svg } = await mermaid.render(id, chart, container);
+    return svg;
+  } finally {
+    container.remove();
+  }
 };
 
 // Mermaid diagram component (exported so tests can exercise the lazy load directly)
@@ -197,19 +264,20 @@ export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         containerRef.current.innerHTML = "";
         initializeMermaid(mermaid, theme);
         const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-        const { svg } = await mermaid.render(id, chart);
+        const svg: string = await renderInOwnContainer(mermaid, id, chart);
         if (containerRef.current && !isCancelled) {
-          containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
-            USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: ["foreignObject"],
-          });
+          // SVG, plus the MathML KaTeX writes for a $$...$$ label.
+          containerRef.current.innerHTML = sanitizeDiagramSvg(svg);
         }
       } catch (error) {
         if (containerRef.current && !isCancelled) {
           const errorMessage: string = String(error);
           const errorEl: HTMLPreElement = document.createElement("pre");
           errorEl.className = "text-red-500";
-          errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
+          errorEl.textContent = translateTemplate(
+            "Error rendering diagram: {{error}}",
+            { error: errorMessage },
+          );
           containerRef.current.innerHTML = "";
           containerRef.current.appendChild(errorEl);
         }
@@ -320,9 +388,18 @@ const langDisplayNames: Record<string, string> = {
   php: "PHP",
   graphql: "GraphQL",
   http: "HTTP",
+  hcl: "HCL",
+  terraform: "Terraform",
+  tf: "Terraform",
   markdown: "Markdown",
   md: "Markdown",
 };
+
+/*
+ * Makes every element inside a code block inherit the block's monospace
+ * font, instead of matching index.ejs's `* { font-family: Inter }`.
+ */
+export const CODE_BLOCK_FONT_CLASS_NAME: string = "[&_*]:[font-family:inherit]";
 
 // Code block with copy button and language label
 const CodeBlock: FunctionComponent<{
@@ -338,6 +415,7 @@ const CodeBlock: FunctionComponent<{
   content: string;
   rest: any;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copied, setCopied] = useState<boolean>(false);
 
   const handleCopy: () => void = useCallback((): void => {
@@ -358,10 +436,31 @@ const CodeBlock: FunctionComponent<{
     langDisplayNames[language] ||
     (language ? language.charAt(0).toUpperCase() + language.slice(1) : "");
 
+  /*
+   * The highlighter's classes carry no language, so a copy of the rendered
+   * note would paste back as spans of plain text. The data attributes tell
+   * the editor's paste handler (MarkdownPaste) that this is a code block and
+   * in which language, and that the header -- the language label and the
+   * Copy button -- is not part of the document.
+   *
+   * They are on the <pre> the code is in as well as on the block: a copy of
+   * part of the block -- a drag over its lines, a triple click -- carries
+   * the <pre> around the selected text in every browser, but no <div> above
+   * it, so hints on the block alone were lost and the code pasted back as
+   * markdown ("# deploy config" a heading). The header cannot be selected at
+   * all, so its "Copy" label never lands in a copy's plain text.
+   */
   return (
-    <div className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm">
+    <div
+      className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm"
+      data-markdown-code-block="true"
+      data-language={language}
+    >
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700">
+      <div
+        className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 select-none"
+        data-markdown-ignore="true"
+      >
         <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400 select-none">
           {displayLang}
         </span>
@@ -372,7 +471,7 @@ const CodeBlock: FunctionComponent<{
               ? "text-green-400"
               : "text-gray-400 hover:text-gray-200 hover:bg-white/10"
           }`}
-          aria-label="Copy code"
+          aria-label={translator.translateText("Copy code")}
           type="button"
         >
           {copied ? (
@@ -401,18 +500,34 @@ const CodeBlock: FunctionComponent<{
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
           )}
-          {copied ? "Copied!" : "Copy"}
+          {translator.translateText(copied ? "Copied!" : "Copy")}
         </button>
       </div>
-      {/* Code content */}
+      {/*
+       * Code content. Every frontend's index.ejs sets `* { font-family:
+       * Inter }`, and a rule that matches an element beats what it inherits,
+       * so each highlighted token (a <span>) was drawn in Inter: the code was
+       * proportional and lined-up code (Terraform's `=`, YAML's indentation,
+       * table-like output) came out ragged. Every element inside takes its
+       * font from the <code> instead (CODE_BLOCK_FONT_CLASS_NAME); a class
+       * selector outranks `*`.
+       */}
       <SyntaxHighlighter
         {...rest}
-        PreTag="div"
+        PreTag="pre"
+        data-markdown-code-block="true"
+        data-language={language}
         // eslint-disable-next-line react/no-children-prop
         children={content}
-        language={language}
+        /*
+         * Code too long to highlight - a response body or a log of
+         * megabytes took minutes - is shown as it is.
+         */
+        language={
+          content.length > MAX_HIGHLIGHTED_CODE_LENGTH ? "text" : language
+        }
         style={vscDarkPlus}
-        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0"
+        className={`!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0 ${CODE_BLOCK_FONT_CLASS_NAME}`}
         codeTagProps={{ className: "font-mono" }}
       />
     </div>
@@ -430,6 +545,7 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
 }: {
   isoValue: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const parsed: Date = new Date(isoValue);
   if (isNaN(parsed.getTime())) {
     return (
@@ -449,11 +565,117 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
   return (
     <time
       dateTime={isoValue}
-      title={`${isoValue} (UTC)`}
+      title={translator.translateTemplate("{{time}} (UTC)", {
+        time: isoValue,
+      })}
       className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono whitespace-nowrap"
     >
       {localFormatted}
     </time>
+  );
+};
+
+/*
+ * A fenced block's class is "language-" followed by the first word of its
+ * info string -- the one class remark gives it. Read from the start of the
+ * class, as it is written: searched for anywhere in it, an info string of
+ * "-language-mermaid" (class "language--language-mermaid") gave the language
+ * "mermaid" too.
+ */
+const RE_CODE_LANGUAGE: RegExp = /^language-(\w+)/;
+
+/*
+ * Whether a code element's class makes it a mermaid diagram: only a fence
+ * whose language is exactly "mermaid" is one. The class was searched for
+ * "language-mermaid" anywhere, so "```-language-mermaid" drew a diagram --
+ * and a diagram's image nodes are fetched as it is drawn, which the server
+ * keeps out of a reporter's text by renaming the fences whose language is
+ * mermaid, and only those.
+ */
+const isMermaidCodeClass: (className: unknown) => boolean = (
+  className: unknown,
+): boolean => {
+  return className === "language-mermaid";
+};
+
+/*
+ * What react-markdown hands a renderer, without the tree node it adds
+ * (`node`): spread onto an element, React wrote it out as
+ * node="[object Object]".
+ */
+const withoutTreeNode: (
+  props: Record<string, unknown>,
+) => Record<string, unknown> = (
+  props: Record<string, unknown>,
+): Record<string, unknown> => {
+  const attributes: Record<string, unknown> = { ...props };
+  delete attributes["node"];
+  return attributes;
+};
+
+/*
+ * How many lists deep a list sits. Every level used to draw the same filled
+ * disc, so a nested list stood apart from its parent only by its indent. A
+ * bulleted list now steps through disc, circle and square -- the browser's
+ * own defaults, and how Word and Outlook draw the same list -- and, as in
+ * the browser's defaults, a numbered list counts as a level too.
+ */
+const ListDepthContext: React.Context<number> = React.createContext<number>(0);
+
+const BULLET_STYLES: Array<string> = [
+  "list-disc",
+  "list-[circle]",
+  "list-[square]",
+];
+
+const getBulletStyleForDepth: (depth: number) => string = (
+  depth: number,
+): string => {
+  return (
+    BULLET_STYLES[Math.min(Math.max(depth, 0), BULLET_STYLES.length - 1)] ||
+    "list-disc"
+  );
+};
+
+const MarkdownBulletList: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const depth: number = useContext(ListDepthContext);
+  return (
+    <ListDepthContext.Provider value={depth + 1}>
+      <ul
+        className={`${getBulletStyleForDepth(depth)} pl-6 mt-0 mb-1`}
+        {...withoutTreeNode(props)}
+      />
+    </ListDepthContext.Provider>
+  );
+};
+
+const MarkdownNumberedList: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const depth: number = useContext(ListDepthContext);
+  return (
+    <ListDepthContext.Provider value={depth + 1}>
+      <ol className="list-decimal pl-6 mt-0 mb-1" {...withoutTreeNode(props)} />
+    </ListDepthContext.Provider>
+  );
+};
+
+/*
+ * A paragraph. Inside a quote it takes the quote's lighter shade
+ * (MarkdownQuote), so a quote reads as somebody's words, in both themes.
+ */
+const MarkdownParagraph: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const textClassName: string = useMarkdownTextClassName();
+
+  return (
+    <p
+      className={`text-sm mt-2 mb-1 ${textClassName} leading-relaxed`}
+      {...withoutTreeNode(props)}
+    />
   );
 };
 
@@ -486,6 +708,55 @@ const extractTextFromChildren: (children: unknown) => string = (
   return "";
 };
 
+/*
+ * A list item: a task's checkbox named after its text, and inside a quote
+ * the quote's lighter shade, as a paragraph takes it.
+ */
+const MarkdownListItem: FunctionComponent<any> = ({
+  children,
+  ...props
+}: any): ReactElement => {
+  const textClassName: string = useMarkdownTextClassName();
+
+  const isTaskItem: boolean =
+    typeof props.className === "string" &&
+    props.className.includes("task-list-item");
+
+  // Give the task-list checkbox an accessible name from its label text.
+  const renderedChildren: any = isTaskItem
+    ? React.Children.map(children, (child: any) => {
+        if (
+          React.isValidElement(child) &&
+          (child.type === "input" ||
+            (child.props as { type?: string } | null)?.type === "checkbox")
+        ) {
+          const existingLabel: string | undefined = (
+            child.props as { ["aria-label"]?: string }
+          )["aria-label"];
+          return React.cloneElement(
+            child as ReactElement,
+            {
+              "aria-label":
+                existingLabel ||
+                extractTextFromChildren(children).trim() ||
+                translateText("Task item"),
+            } as any,
+          );
+        }
+        return child;
+      })
+    : children;
+
+  return (
+    <li
+      className={`text-sm mt-1 mb-1 ${textClassName} leading-relaxed`}
+      {...withoutTreeNode(props)}
+    >
+      {renderedChildren}
+    </li>
+  );
+};
+
 const MarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -502,6 +773,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
    * reset whenever the parent re-rendered.
    */
   const hasInlineReferences: boolean = Boolean(inlineReferences);
+
+  /*
+   * Text too long for the parser - a response body or a log of megabytes -
+   * is held back before it reads the text, and put back, as text, in what
+   * it renders (MarkdownViewerOverLongText).
+   */
+  const heldBack: HeldBackViewerText = useMemo((): HeldBackViewerText => {
+    return holdBackForViewer(props.text);
+  }, [props.text]);
+
   const components: Components = useMemo((): Components => {
     return {
       /*
@@ -517,7 +798,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h1
             className="text-lg mt-6 mb-3 text-gray-900 font-bold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -525,7 +806,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h2
             className="text-base mt-6 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -533,7 +814,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h3
             className="text-base mt-4 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -541,7 +822,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h4
             className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -549,7 +830,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h5
             className="text-sm mt-3 mb-1 text-gray-900 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -557,17 +838,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h6
             className="text-sm mt-2 mb-1 text-gray-700 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
       p: ({ ...props }: any) => {
-        return (
-          <p
-            className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed"
-            {...props}
-          />
-        );
+        return <MarkdownParagraph {...props} />;
       },
       a: ({ children, ...props }: any) => {
         if (safeMode) {
@@ -578,14 +854,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             </span>
           );
         }
-        return (
-          <a
-            className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
-            {...props}
-          >
-            {children}
-          </a>
-        );
+        /*
+         * A link that leaves the app - another site, an attachment - opens
+         * in a tab of its own; one to another page of the app stays in
+         * this one (MarkdownLink).
+         */
+        return <MarkdownLink {...props}>{children}</MarkdownLink>;
       },
       img: ({ alt, ...props }: any) => {
         if (safeMode) {
@@ -595,7 +869,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
            * alt text (already plain, React-escaped) instead.
            */
           return alt ? (
-            <span className="text-gray-500 italic">{`[image: ${alt}]`}</span>
+            <span className="text-gray-500 italic">
+              {translateTemplate("[image: {{alt}}]", { alt: String(alt) })}
+            </span>
           ) : null;
         }
         return (
@@ -612,7 +888,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
         const isMermaid: boolean =
           React.isValidElement(children) &&
-          (children as any).props?.className?.includes("language-mermaid");
+          isMermaidCodeClass((children as any).props?.className);
 
         if (isMermaid) {
           // For mermaid, just return the children (MermaidDiagram component)
@@ -635,7 +911,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <pre
             className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
-            {...rest}
+            {...withoutTreeNode(rest)}
           >
             {children}
           </pre>
@@ -643,133 +919,98 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       },
       strong: ({ ...props }: any) => {
         return (
-          <strong className="text-sm font-semibold text-gray-900" {...props} />
+          <strong
+            className="text-sm font-semibold text-gray-900"
+            {...withoutTreeNode(props)}
+          />
         );
       },
-      li: ({ children, ...props }: any) => {
-        const isTaskItem: boolean =
-          typeof props.className === "string" &&
-          props.className.includes("task-list-item");
-
-        // Give the task-list checkbox an accessible name from its label text.
-        const renderedChildren: any = isTaskItem
-          ? React.Children.map(children, (child: any) => {
-              if (
-                React.isValidElement(child) &&
-                (child.type === "input" ||
-                  (child.props as { type?: string } | null)?.type ===
-                    "checkbox")
-              ) {
-                const existingLabel: string | undefined = (
-                  child.props as { ["aria-label"]?: string }
-                )["aria-label"];
-                return React.cloneElement(
-                  child as ReactElement,
-                  {
-                    "aria-label":
-                      existingLabel ||
-                      extractTextFromChildren(children).trim() ||
-                      "Task item",
-                  } as any,
-                );
-              }
-              return child;
-            })
-          : children;
-
-        return (
-          <li
-            className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
-            {...props}
-          >
-            {renderedChildren}
-          </li>
-        );
+      li: ({ ...props }: any) => {
+        return <MarkdownListItem {...props} />;
       },
       ul: ({ ...props }: any) => {
-        return <ul className="list-disc pl-6 mt-0 mb-1" {...props} />;
+        return <MarkdownBulletList {...props} />;
       },
       ol: ({ ...props }: any) => {
-        return <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />;
+        return <MarkdownNumberedList {...props} />;
       },
-      blockquote: ({ children, ...props }: any) => {
-        return (
-          <blockquote
-            className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
-            {...props}
-          >
-            <div className="flex items-start gap-3 px-4 py-3">
-              <svg
-                className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-                />
-              </svg>
-              <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
-                {children}
-              </div>
-            </div>
-          </blockquote>
-        );
+      /*
+       * A quote is drawn as a quote; only a blockquote that asked to be a
+       * callout ("> [!WARNING]", "> **Note:**") is a tinted panel with its
+       * kind's icon (MarkdownQuote, MarkdownCallouts).
+       */
+      blockquote: ({ ...props }: any) => {
+        return <MarkdownBlockquote {...props} />;
       },
       table: ({ ...props }: any) => {
         return (
           <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
             <table
               className="min-w-full table-auto border-collapse text-sm"
-              {...props}
+              {...withoutTreeNode(props)}
             />
           </div>
         );
       },
       thead: ({ ...props }: any) => {
-        return <thead className="bg-gray-50" {...props} />;
+        return <thead className="bg-gray-50" {...withoutTreeNode(props)} />;
       },
       tbody: ({ ...props }: any) => {
-        return <tbody className="divide-y divide-gray-100" {...props} />;
+        return (
+          <tbody
+            className="divide-y divide-gray-100"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       tr: ({ ...props }: any) => {
-        return <tr className="hover:bg-gray-50 transition-colors" {...props} />;
+        return (
+          <tr
+            className="hover:bg-gray-50 transition-colors"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       th: ({ ...props }: any) => {
         return (
           <th
             className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
       td: ({ ...props }: any) => {
-        return <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />;
+        return (
+          <td
+            className="px-4 py-2.5 text-sm text-gray-700"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       hr: ({ ...props }: any) => {
-        return <hr className="border-gray-300 my-6" {...props} />;
+        return (
+          <hr className="border-gray-300 my-6" {...withoutTreeNode(props)} />
+        );
       },
       code: (props: any) => {
-        const { children, className, ...rest } = props;
+        const { children, className, ...attributes } = props;
+        const rest: Record<string, unknown> = withoutTreeNode(attributes);
 
-        const match: RegExpExecArray | null = new RegExp(
-          "language-(\\w+)",
-        ).exec(className || "");
+        const match: RegExpExecArray | null = RE_CODE_LANGUAGE.exec(
+          className || "",
+        );
 
         const content: string = String(children as string).replace(/\n$/, "");
 
         // Handle mermaid diagrams
-        if (match && match[1] === "mermaid") {
+        if (isMermaidCodeClass(className)) {
           /*
            * Never render mermaid for untrusted content: a diagram can
            * carry an image node whose src the renderer fetches on paint
            * (a zero-click exfil channel). Show the source as a plain,
            * non-executing code block instead.
            */
-          if (safeMode) {
+          if (safeMode || content.length > MAX_HIGHLIGHTED_CODE_LENGTH) {
             return (
               <CodeBlock language="mermaid" content={content} rest={rest} />
             );
@@ -818,20 +1059,51 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
     };
   }, [safeMode, hasInlineReferences]);
 
+  /*
+   * More Markdown than react-markdown reads in good time is left even after
+   * holding back - a log of megabytes whose lines each hold a "|" or a "<",
+   * a table of thousands of rows: the text is shown as it was written, its
+   * line breaks kept (MarkdownViewerOverLongText).
+   */
+  if (heldBack.showAsText) {
+    return (
+      <MarkdownViewerFrame inlineReferences={inlineReferences}>
+        <p
+          className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
+          data-testid="markdown-viewer-text"
+        >
+          {props.text}
+        </p>
+      </MarkdownViewerFrame>
+    );
+  }
+
   return (
     <MarkdownViewerFrame inlineReferences={inlineReferences}>
       <ReactMarkdown
         components={components}
+        urlTransform={markdownUrlTransform}
         remarkPlugins={
           hasInlineReferences
             ? [
                 remarkGfm,
                 [remarkInlineReferences, INLINE_REFERENCE_TRANSFORM_OPTIONS],
+                remarkMarkdownCallouts,
               ]
-            : [remarkGfm]
+            : [remarkGfm, remarkMarkdownCallouts]
+        }
+        rehypePlugins={
+          heldBack.held.length > 0
+            ? [
+                [
+                  rehypePutBackHeldText,
+                  { held: heldBack.held, heldLines: heldBack.heldLines },
+                ],
+              ]
+            : undefined
         }
       >
-        {props.text}
+        {heldBack.markdown}
       </ReactMarkdown>
     </MarkdownViewerFrame>
   );

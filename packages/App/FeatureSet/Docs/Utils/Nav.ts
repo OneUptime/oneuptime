@@ -7,6 +7,12 @@ export interface NavLink {
 export interface NavGroup {
   // Stable English title — also used as a translation key.
   title: string;
+  /*
+   * The sidebar section the group is listed under, by its stable English
+   * title (a translation key under navSections). Groups of one section are
+   * kept together, in the order the sections are listed in DocsNavSections.
+   */
+  section: string;
   links: NavLink[];
 }
 
@@ -21,220 +27,138 @@ export interface LocalizedNavGroup {
   key: string;
   title: string;
   links: LocalizedNavLink[];
+  // Canonical English title of the group's section, and its translation.
+  sectionKey?: string | undefined;
+  sectionTitle?: string | undefined;
+  // The group's icon: the inner markup of a 24x24 outline SVG.
+  icon?: string | undefined;
 }
 
 /*
+ * The sidebar's sections, in order. They follow what a reader comes to do:
+ * get started, watch their systems, respond when something breaks, look
+ * into their telemetry, automate, connect other tools, build on the API,
+ * administer a project, and run OneUptime themselves.
+ */
+export const DocsNavSections: Array<string> = [
+  "Get Started",
+  "Monitoring",
+  "Incident Response",
+  "Observability",
+  "Automation & AI",
+  "Integrations",
+  "Developers",
+  "Administration",
+  "Self-Hosting",
+];
+
+/*
  * The canonical navigation tree. Titles here are English and double as
- * translation keys (see Utils/I18n.ts).
+ * translation keys (see Utils/I18n.ts). URLs never change when a page moves
+ * to another group or section: the dashboard, the website and search engines
+ * link to them.
  */
 const DocsNav: NavGroup[] = [
   {
     title: "Introduction",
+    section: "Get Started",
     links: [
       {
         title: "Getting Started",
         url: "/docs/introduction/getting-started",
       },
-    ],
-  },
-  {
-    title: "Installation",
-    links: [
       {
-        title: "Local Development",
-        url: "/docs/installation/local-development",
+        title: "Quickstart",
+        url: "/docs/introduction/quickstart",
       },
       {
-        title: "Docker Compose",
-        url: "/docs/installation/docker-compose",
+        title: "Core Concepts",
+        url: "/docs/introduction/core-concepts",
       },
       {
-        title: "Upgrading",
-        url: "/docs/installation/upgrading",
+        title: "Home Page & Shortcuts",
+        url: "/docs/introduction/home",
       },
       {
-        title: "Kubernetes and Helm",
-        url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
-      },
-      {
-        title: "Sizing & Capacity Planning",
-        url: "/docs/installation/sizing",
+        title: "Your Account",
+        url: "/docs/introduction/your-account",
       },
     ],
   },
+  /*
+   * One page per tool that Project Settings > Advanced > Import from
+   * another tool brings a team, monitors or status pages over from
+   * (Common/Types/ToolImport/ToolImportCatalog's docsPath).
+   */
   {
-    title: "Mobile & Desktop Apps",
+    title: "Moving to OneUptime",
+    section: "Get Started",
     links: [
       {
-        title: "Overview",
-        url: "/docs/mobile-desktop-apps/index",
+        title: "Moving from Opsgenie",
+        url: "/docs/moving-to-oneuptime/opsgenie",
       },
       {
-        title: "Android Installation",
-        url: "/docs/mobile-desktop-apps/android-installation",
+        title: "Moving from PagerDuty",
+        url: "/docs/moving-to-oneuptime/pagerduty",
       },
       {
-        title: "iOS Installation",
-        url: "/docs/mobile-desktop-apps/ios-installation",
+        title: "Moving from incident.io",
+        url: "/docs/moving-to-oneuptime/incident-io",
       },
       {
-        title: "Windows Installation",
-        url: "/docs/mobile-desktop-apps/windows-installation",
+        title: "Moving from Splunk On-Call",
+        url: "/docs/moving-to-oneuptime/splunk-on-call",
       },
       {
-        title: "macOS Installation",
-        url: "/docs/mobile-desktop-apps/macos-installation",
+        title: "Moving from Grafana OnCall",
+        url: "/docs/moving-to-oneuptime/grafana-oncall",
       },
       {
-        title: "Linux Installation",
-        url: "/docs/mobile-desktop-apps/linux-installation",
+        title: "Moving from UptimeRobot",
+        url: "/docs/moving-to-oneuptime/uptimerobot",
       },
       {
-        title: "FAQ & Troubleshooting",
-        url: "/docs/mobile-desktop-apps/faq-troubleshooting",
-      },
-    ],
-  },
-  {
-    title: "Configuration",
-    links: [
-      {
-        title: "IP Addresses",
-        url: "/docs/configuration/ip-addresses",
+        title: "Moving from Atlassian Statuspage",
+        url: "/docs/moving-to-oneuptime/atlassian-statuspage",
       },
       {
-        title: "Import and Export Label Rules",
-        url: "/docs/configuration/label-rule-import-export",
+        title: "Moving from Better Stack",
+        url: "/docs/moving-to-oneuptime/better-stack",
       },
       {
-        title: "Run Rules on Existing Resources",
-        url: "/docs/configuration/run-rules-now",
-      },
-    ],
-  },
-  {
-    title: "Emails",
-    links: [
-      {
-        title: "SMTP",
-        url: "/docs/emails/smtp",
+        title: "Moving from Pingdom",
+        url: "/docs/moving-to-oneuptime/pingdom",
       },
       {
-        title: "Notification Rollup",
-        url: "/docs/emails/notification-rollup",
-      },
-    ],
-  },
-  {
-    title: "Identity",
-    links: [
-      {
-        title: "SSO",
-        url: "/docs/identity/sso",
+        title: "Moving from StatusCake",
+        url: "/docs/moving-to-oneuptime/statuscake",
       },
       {
-        title: "Global SSO",
-        url: "/docs/identity/global-sso",
-      },
-      {
-        title: "SCIM",
-        url: "/docs/identity/scim",
-      },
-    ],
-  },
-  {
-    title: "Users & Permissions",
-    links: [
-      {
-        title: "Users, Teams & Permissions",
-        url: "/docs/permissions/index",
-      },
-      {
-        title: "Permission Reference",
-        url: "/docs/permissions/reference",
-      },
-    ],
-  },
-  {
-    title: "Terraform Provider",
-    links: [
-      {
-        title: "Overview",
-        url: "/docs/terraform/index",
-      },
-      {
-        title: "Quick Start",
-        url: "/docs/terraform/quick-start",
-      },
-      {
-        title: "Complete Guide",
-        url: "/docs/terraform/complete-guide",
-      },
-      {
-        title: "Monitor Steps",
-        url: "/docs/terraform/monitor-steps",
-      },
-      {
-        title: "Examples",
-        url: "/docs/terraform/examples",
-      },
-      {
-        title: "Importing Resources",
-        url: "/docs/terraform/importing-resources",
-      },
-      {
-        title: "Troubleshooting",
-        url: "/docs/terraform/troubleshooting",
-      },
-      {
-        title: "Self-Hosted Setup",
-        url: "/docs/terraform/self-hosted",
-      },
-      {
-        title: "Registry Usage",
-        url: "/docs/terraform/registry",
-      },
-      {
-        title: "OpenTofu",
-        url: "/docs/terraform/opentofu",
-      },
-    ],
-  },
-  {
-    title: "CLI",
-    links: [
-      {
-        title: "Overview",
-        url: "/docs/cli/index",
-      },
-      {
-        title: "Authentication",
-        url: "/docs/cli/authentication",
-      },
-      {
-        title: "Resource Operations",
-        url: "/docs/cli/resource-operations",
-      },
-      {
-        title: "Output Formats",
-        url: "/docs/cli/output-formats",
-      },
-      {
-        title: "Scripting & CI/CD",
-        url: "/docs/cli/scripting",
-      },
-      {
-        title: "Command Reference",
-        url: "/docs/cli/command-reference",
+        title: "Moving from Uptime Kuma",
+        url: "/docs/moving-to-oneuptime/uptime-kuma",
       },
     ],
   },
   {
     title: "Monitor",
+    section: "Monitoring",
     links: [
+      {
+        title: "Creating a Monitor",
+        url: "/docs/monitor/create-monitor",
+      },
       {
         title: "Monitor Templates",
         url: "/docs/monitor/monitor-templates",
+      },
+      {
+        title: "Monitor Criteria & Statuses",
+        url: "/docs/monitor/criteria-and-statuses",
+      },
+      {
+        title: "Monitor Groups",
+        url: "/docs/monitor/monitor-groups",
       },
       {
         title: "Website Monitor",
@@ -263,6 +187,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "DNSSEC Monitor",
         url: "/docs/monitor/dnssec-monitor",
+      },
+      {
+        title: "NTP Monitor",
+        url: "/docs/monitor/ntp-monitor",
       },
       {
         title: "SSL Certificate Monitor",
@@ -301,6 +229,41 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/external-status-page-monitor",
       },
       {
+        title: "Manual Monitor",
+        url: "/docs/monitor/manual-monitor",
+      },
+      {
+        title: "Probe Status Monitor",
+        url: "/docs/monitor/probe-status-monitor",
+      },
+      {
+        title: "JavaScript Expressions",
+        url: "/docs/monitor/javascript-expression",
+      },
+      {
+        title: "Incident & Alert Templating",
+        url: "/docs/monitor/incident-alert-templating",
+      },
+      {
+        title: "Monitor Secrets",
+        url: "/docs/monitor/monitor-secrets",
+      },
+      {
+        title: "When OneUptime Is Not Receiving Data",
+        url: "/docs/monitor/when-oneuptime-is-not-receiving",
+      },
+    ],
+  },
+  /*
+   * Monitors for the infrastructure an agent or a probe reports on. Each
+   * page describes the monitor type - what it watches and its criteria; the
+   * agent that feeds it is installed from the Infrastructure Agents pages.
+   */
+  {
+    title: "Infrastructure Monitors",
+    section: "Monitoring",
+    links: [
+      {
         title: "Server / VM Monitor",
         url: "/docs/monitor/server-monitor",
       },
@@ -311,6 +274,18 @@ const DocsNav: NavGroup[] = [
       {
         title: "Network Sites (Health Rollup & Uptime)",
         url: "/docs/monitor/network-sites",
+      },
+      {
+        title: "Network Vendor Guides (Sophos, Extreme, Cambium)",
+        url: "/docs/monitor/network-vendor-guides",
+      },
+      {
+        title: "Network Traffic (NetFlow, IPFIX, sFlow)",
+        url: "/docs/monitor/network-traffic",
+      },
+      {
+        title: "Network Events (Syslog and SNMP Traps)",
+        url: "/docs/monitor/network-events",
       },
       {
         title: "Kubernetes Monitor",
@@ -345,6 +320,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/ceph-monitor",
       },
       {
+        title: "Storage Array Monitor",
+        url: "/docs/monitor/storage-array-monitor",
+      },
+      {
         title: "IoT Device Monitor",
         url: "/docs/monitor/iot-device-monitor",
       },
@@ -352,6 +331,13 @@ const DocsNav: NavGroup[] = [
         title: "VMware Monitor",
         url: "/docs/monitor/vmware-monitor",
       },
+    ],
+  },
+  // Monitors whose criteria run over the telemetry OneUptime ingests.
+  {
+    title: "Telemetry Monitors",
+    section: "Monitoring",
+    links: [
       {
         title: "Logs Monitor",
         url: "/docs/monitor/logs-monitor",
@@ -372,26 +358,11 @@ const DocsNav: NavGroup[] = [
         title: "Profiles Monitor",
         url: "/docs/monitor/profiles-monitor",
       },
-      {
-        title: "Manual Monitor",
-        url: "/docs/monitor/manual-monitor",
-      },
-      {
-        title: "JavaScript Expressions",
-        url: "/docs/monitor/javascript-expression",
-      },
-      {
-        title: "Incident & Alert Templating",
-        url: "/docs/monitor/incident-alert-templating",
-      },
-      {
-        title: "Monitor Secrets",
-        url: "/docs/monitor/monitor-secrets",
-      },
     ],
   },
   {
     title: "SLOs",
+    section: "Monitoring",
     links: [
       {
         title: "SLOs Overview",
@@ -424,7 +395,26 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Probe",
+    section: "Monitoring",
+    links: [
+      {
+        title: "Custom Probes",
+        url: "/docs/probe/custom-probe",
+      },
+      {
+        title: "Incoming Request Ingress",
+        url: "/docs/probe/incoming-request-ingress",
+      },
+      {
+        title: "Packet Capture",
+        url: "/docs/probe/packet-capture",
+      },
+    ],
+  },
+  {
     title: "Incidents",
+    section: "Incident Response",
     links: [
       {
         title: "Incidents Overview",
@@ -447,17 +437,68 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/linked-alerts",
       },
       {
+        title: "Episodes",
+        url: "/docs/incidents/episodes",
+      },
+      {
+        title: "Postmortems",
+        url: "/docs/incidents/postmortems",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },
     ],
   },
   {
-    title: "On Call",
+    title: "Alerts",
+    section: "Incident Response",
     links: [
+      {
+        title: "Alerts Overview",
+        url: "/docs/alerts/index",
+      },
+      {
+        title: "Alert States & Severities",
+        url: "/docs/alerts/states-and-severities",
+      },
+      {
+        title: "Alert Episodes & Grouping Rules",
+        url: "/docs/alerts/episodes",
+      },
+      {
+        title: "Alert Rules & Settings",
+        url: "/docs/alerts/settings",
+      },
+    ],
+  },
+  {
+    title: "On Call",
+    section: "Incident Response",
+    links: [
+      {
+        title: "On-Call Overview",
+        url: "/docs/on-call/index",
+      },
+      {
+        title: "On-Call Policies",
+        url: "/docs/on-call/policies",
+      },
+      {
+        title: "Escalation Rules",
+        url: "/docs/on-call/escalation-rules",
+      },
+      {
+        title: "On-Call Schedules",
+        url: "/docs/on-call/schedules",
+      },
       {
         title: "Schedule Timeline",
         url: "/docs/on-call/schedule-timeline",
+      },
+      {
+        title: "User Overrides",
+        url: "/docs/on-call/user-overrides",
       },
       {
         title: "Calendar Feeds",
@@ -471,10 +512,508 @@ const DocsNav: NavGroup[] = [
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
       },
+      {
+        title: "Readiness & Reports",
+        url: "/docs/on-call/readiness",
+      },
+    ],
+  },
+  {
+    title: "Notifications",
+    section: "Incident Response",
+    links: [
+      {
+        title: "How OneUptime Reaches You",
+        url: "/docs/notifications/index",
+      },
+      {
+        title: "Notification Methods",
+        url: "/docs/notifications/notification-methods",
+      },
+      {
+        title: "Personal On-Call Rules",
+        url: "/docs/notifications/on-call-rules",
+      },
+      {
+        title: "Notification Settings",
+        url: "/docs/notifications/notification-settings",
+      },
+    ],
+  },
+  {
+    title: "Status Pages",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Status Pages Overview",
+        url: "/docs/status-pages/index",
+      },
+      {
+        title: "Status Page Resources & Groups",
+        url: "/docs/status-pages/resources-and-groups",
+      },
+      {
+        title: "Status Page Branding & Domains",
+        url: "/docs/status-pages/branding-and-domains",
+      },
+      {
+        title: "Subscribers & Announcements",
+        url: "/docs/status-pages/subscribers",
+      },
+      {
+        title: "One Status Page per Audience",
+        url: "/docs/status-pages/one-status-page-per-audience",
+      },
+      {
+        title: "Public API",
+        url: "/docs/status-pages/public-api",
+      },
+    ],
+  },
+  /*
+   * Planned work, announced on the status pages above: the overview first,
+   * so /docs/scheduled-maintenance opens it.
+   */
+  {
+    title: "Scheduled Maintenance",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Scheduled Maintenance Overview",
+        url: "/docs/scheduled-maintenance/index",
+      },
+      {
+        title: "Creating Maintenance Events",
+        url: "/docs/scheduled-maintenance/creating-events",
+      },
+      {
+        title: "Maintenance States",
+        url: "/docs/scheduled-maintenance/states",
+      },
+      {
+        title: "Templates & Recurring Events",
+        url: "/docs/scheduled-maintenance/templates",
+      },
+      {
+        title: "Maintenance Rules & Settings",
+        url: "/docs/scheduled-maintenance/settings",
+      },
+      {
+        title: "Maintenance Calendar",
+        url: "/docs/scheduled-maintenance/calendar",
+      },
+    ],
+  },
+  {
+    title: "Workspace Connections",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Slack",
+        url: "/docs/workspace-connections/slack",
+      },
+      {
+        title: "Microsoft Teams",
+        url: "/docs/workspace-connections/microsoft-teams",
+      },
+      {
+        title: "Video Calls",
+        url: "/docs/workspace-connections/video-calls",
+      },
+    ],
+  },
+  {
+    title: "Telemetry",
+    section: "Observability",
+    links: [
+      {
+        title: "OpenTelemetry",
+        url: "/docs/telemetry/open-telemetry",
+      },
+      // The key every sender needs, right after the guide that creates one.
+      {
+        title: "Ingestion Keys",
+        url: "/docs/telemetry/ingestion-keys",
+      },
+      /*
+       * Where the telemetry goes once it arrives: the services it belongs
+       * to, then the explorers a reader works in and the map of how it all
+       * connects, before the reference pages (search syntax, zooming) those
+       * explorers share.
+       */
+      {
+        title: "Service Catalog",
+        url: "/docs/telemetry/services",
+      },
+      {
+        title: "Logs Explorer",
+        url: "/docs/telemetry/logs-explorer",
+      },
+      {
+        title: "Traces Explorer",
+        url: "/docs/telemetry/traces-explorer",
+      },
+      {
+        title: "Metrics Explorer",
+        url: "/docs/telemetry/metrics-explorer",
+      },
+      {
+        title: "Exception Tracking",
+        url: "/docs/telemetry/exceptions",
+      },
+      {
+        title: "Topology",
+        url: "/docs/telemetry/topology",
+      },
+      {
+        title: "Search Syntax",
+        url: "/docs/telemetry/search-syntax",
+      },
+      {
+        title: "Zooming Into a Time Range",
+        url: "/docs/telemetry/charts-and-time-ranges",
+      },
+      {
+        title: "Deploys and Changes",
+        url: "/docs/telemetry/change-events",
+      },
+      {
+        title: "Log Pipelines",
+        url: "/docs/telemetry/log-pipelines",
+      },
+      /*
+       * What happens to telemetry before and after it is stored: what is
+       * dropped or masked as it arrives, then how long the rest is kept.
+       */
+      {
+        title: "Drop Filters & Scrub Rules",
+        url: "/docs/telemetry/drop-filters-and-scrub-rules",
+      },
+      {
+        title: "Data Retention",
+        url: "/docs/telemetry/data-retention",
+      },
+      {
+        title: "Continuous Profiling",
+        url: "/docs/telemetry/profiles",
+      },
+      {
+        title: "Source Maps",
+        url: "/docs/telemetry/source-maps",
+      },
+      {
+        title: "Serilog (.NET)",
+        url: "/docs/telemetry/serilog",
+      },
+      {
+        title: "Fluent Bit",
+        url: "/docs/telemetry/fluentbit",
+      },
+      {
+        title: "Fluentd",
+        url: "/docs/telemetry/fluentd",
+      },
+      {
+        title: "Syslog",
+        url: "/docs/telemetry/syslog",
+      },
+      {
+        title: "Log Recording Rules",
+        url: "/docs/telemetry/log-recording-rules",
+      },
+    ],
+  },
+  /*
+   * Installing the agents and collectors that send a platform's telemetry.
+   * The pages keep their /docs/telemetry/ URLs.
+   */
+  {
+    title: "Infrastructure Agents",
+    section: "Observability",
+    links: [
+      // Adding a host in one command, and the configs OneUptime sends it.
+      {
+        title: "Hosts",
+        url: "/docs/telemetry/hosts",
+      },
+      {
+        title: "Host OpenTelemetry Collector",
+        url: "/docs/telemetry/host-otel-collector",
+      },
+      {
+        title: "Kubernetes Agent",
+        url: "/docs/telemetry/kubernetes-agent",
+      },
+      {
+        title: "Kubernetes Cost Observability",
+        url: "/docs/telemetry/kubernetes-cost",
+      },
+      {
+        title: "Docker Agent",
+        url: "/docs/telemetry/docker-host",
+      },
+      {
+        title: "IoT Devices",
+        url: "/docs/telemetry/iot-devices",
+      },
+      {
+        title: "Podman Agent",
+        url: "/docs/telemetry/podman-host",
+      },
+      {
+        title: "Proxmox Agent",
+        url: "/docs/telemetry/proxmox",
+      },
+      {
+        title: "Ceph Agent",
+        url: "/docs/telemetry/ceph",
+      },
+      {
+        title: "Storage Array Agent",
+        url: "/docs/telemetry/storage-arrays",
+      },
+      {
+        title: "Docker Swarm Agent",
+        url: "/docs/telemetry/docker-swarm",
+      },
+      {
+        title: "VMware Agent",
+        url: "/docs/telemetry/vmware",
+      },
+      {
+        title: "VMware Without an Agent",
+        url: "/docs/telemetry/vmware-agentless",
+      },
+      {
+        title: "Databases",
+        url: "/docs/telemetry/databases",
+      },
+      {
+        title: "Queues",
+        url: "/docs/telemetry/queues",
+      },
+      {
+        title: "Serverless Functions",
+        url: "/docs/telemetry/serverless-functions",
+      },
+    ],
+  },
+  /*
+   * One page per managed platform, right under the hub, so the sidebar
+   * mirrors the platform picker on the in-app guide. The order is the hub
+   * page's order: the three container platforms with their own pages, then
+   * the rest, then the shared troubleshooting page, then the IaaS and PaaS
+   * resources discovered from Azure Monitor, CloudWatch and Cloud
+   * Monitoring - the Cloud product's other list: connected from the
+   * dashboard (Cloud > Connect), or sent by a collector you run.
+   */
+  {
+    title: "Cloud",
+    section: "Observability",
+    links: [
+      {
+        title: "Cloud Environments",
+        url: "/docs/telemetry/cloud-environments",
+      },
+      {
+        title: "AWS ECS / Fargate",
+        url: "/docs/telemetry/cloud-aws-ecs",
+      },
+      {
+        title: "Google Cloud Run",
+        url: "/docs/telemetry/cloud-gcp-cloud-run",
+      },
+      {
+        title: "Azure Container Apps",
+        url: "/docs/telemetry/cloud-azure-container-apps",
+      },
+      {
+        title: "Other Cloud Platforms",
+        url: "/docs/telemetry/cloud-other-platforms",
+      },
+      {
+        title: "Cloud Troubleshooting",
+        url: "/docs/telemetry/cloud-troubleshooting",
+      },
+      {
+        title: "Connect a Cloud Account",
+        url: "/docs/telemetry/cloud-accounts",
+      },
+      {
+        title: "Cloud Resources (IaaS & PaaS)",
+        url: "/docs/telemetry/cloud-resources",
+      },
+    ],
+  },
+  {
+    title: "AI Observability",
+    section: "Observability",
+    links: [
+      {
+        title: "AI / LLM Observability",
+        url: "/docs/telemetry/ai-llm-observability",
+      },
+      {
+        title: "AI Provider Accounts",
+        url: "/docs/telemetry/ai-provider-accounts",
+      },
+      {
+        title: "Company AI Tools",
+        url: "/docs/telemetry/ai-company-tools",
+      },
+      {
+        title: "AI Coding Assistants",
+        url: "/docs/telemetry/ai-coding-assistants",
+      },
+      {
+        title: "Claude Code",
+        url: "/docs/telemetry/claude-code",
+      },
+      {
+        title: "Cursor",
+        url: "/docs/telemetry/cursor",
+      },
+      {
+        title: "OpenAI Codex",
+        url: "/docs/telemetry/openai-codex",
+      },
+      {
+        title: "Gemini CLI & GitHub Copilot",
+        url: "/docs/telemetry/gemini-cli-and-copilot",
+      },
+      {
+        title: "AI Gateways (LiteLLM, Portkey)",
+        url: "/docs/telemetry/ai-gateways",
+      },
+      {
+        title: "AI Agent Circuit Breakers",
+        url: "/docs/telemetry/ai-agent-circuit-breaker",
+      },
+    ],
+  },
+  {
+    title: "Security",
+    section: "Observability",
+    links: [
+      {
+        title: "Get Started with Security",
+        url: "/docs/telemetry/security-getting-started",
+      },
+      {
+        title: "Security Events (SIEM)",
+        url: "/docs/telemetry/security-events",
+      },
+      {
+        title: "Security Cases and Playbooks (SOAR)",
+        url: "/docs/telemetry/security-cases",
+      },
+      {
+        title: "Threat Intelligence (STIX/TAXII)",
+        url: "/docs/telemetry/threat-intelligence",
+      },
+    ],
+  },
+  /*
+   * RUM is its own product surface in the dashboard (Resources → Real User
+   * Monitoring) with applications, rules, clients and session replay — not
+   * just one more "how to send telemetry from X" recipe — so it gets its own
+   * group rather than a single entry inside Telemetry. Session Replay keeps
+   * its /docs/telemetry/session-replay URL; only its position in the nav
+   * moved, so inbound links are unaffected.
+   */
+  {
+    title: "Real User Monitoring",
+    section: "Observability",
+    links: [
+      {
+        title: "RUM Overview",
+        url: "/docs/rum/index",
+      },
+      {
+        title: "Browser Setup",
+        url: "/docs/rum/browser-setup",
+      },
+      {
+        title: "Mobile Setup",
+        url: "/docs/rum/mobile-setup",
+      },
+      {
+        title: "Core Web Vitals",
+        url: "/docs/rum/web-vitals",
+      },
+      {
+        title: "Managing Applications",
+        url: "/docs/rum/applications",
+      },
+      {
+        title: "Session Replay",
+        url: "/docs/telemetry/session-replay",
+      },
+      {
+        title: "Session Replay Troubleshooting",
+        url: "/docs/rum/session-replay-troubleshooting",
+      },
+      {
+        title: "RUM Troubleshooting",
+        url: "/docs/rum/troubleshooting",
+      },
+    ],
+  },
+  {
+    title: "Dashboards",
+    section: "Observability",
+    links: [
+      {
+        title: "Dashboards Overview",
+        url: "/docs/dashboards/index",
+      },
+      {
+        title: "Authoring a Dashboard",
+        url: "/docs/dashboards/authoring",
+      },
+      {
+        title: "Dashboard Widgets",
+        url: "/docs/dashboards/widgets",
+      },
+      {
+        title: "Dashboard Variables & Filters",
+        url: "/docs/dashboards/variables",
+      },
+      {
+        title: "External Data Sources",
+        url: "/docs/dashboards/data-sources",
+      },
+      {
+        title: "Sharing & Public Dashboards",
+        url: "/docs/dashboards/sharing",
+      },
+      {
+        title: "Dashboard Configuration & Permissions",
+        url: "/docs/dashboards/configuration",
+      },
+    ],
+  },
+  {
+    title: "Inventory",
+    section: "Observability",
+    links: [
+      {
+        title: "Inventory Overview",
+        url: "/docs/inventory/overview",
+      },
+      {
+        title: "Inventory Custom Fields",
+        url: "/docs/inventory/custom-fields",
+      },
+      {
+        title: "Exporting to a CMDB",
+        url: "/docs/inventory/cmdb-sync",
+      },
     ],
   },
   {
     title: "Runbooks",
+    section: "Automation & AI",
     links: [
       {
         title: "Runbooks Overview",
@@ -493,11 +1032,19 @@ const DocsNav: NavGroup[] = [
         url: "/docs/runbooks/running",
       },
       {
+        title: "Runbook Triggers",
+        url: "/docs/runbooks/triggers",
+      },
+      {
+        title: "Runbook Variables",
+        url: "/docs/runbooks/variables",
+      },
+      {
         title: "Runbook Agents",
         url: "/docs/runbooks/agents",
       },
       {
-        title: "Runbook Credentials",
+        title: "AI Access",
         url: "/docs/runbooks/credentials",
       },
       {
@@ -507,7 +1054,30 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Forms",
+    section: "Automation & AI",
+    links: [
+      {
+        title: "Forms Overview",
+        url: "/docs/forms/index",
+      },
+      {
+        title: "Building a Form",
+        url: "/docs/forms/building",
+      },
+      {
+        title: "What a Submission Creates",
+        url: "/docs/forms/on-submit",
+      },
+      {
+        title: "Sharing & Security",
+        url: "/docs/forms/sharing-and-security",
+      },
+    ],
+  },
+  {
     title: "Workflows",
+    section: "Automation & AI",
     links: [
       {
         title: "Workflows Overview",
@@ -530,7 +1100,8 @@ const DocsNav: NavGroup[] = [
         url: "/docs/workflows/variables",
       },
       {
-        title: "Workflow Runs & Logs",
+        // The Dashboard menu item is Logs → Runs; the page keeps its URL.
+        title: "Workflow Runs",
         url: "/docs/workflows/runs-and-logs",
       },
       {
@@ -540,74 +1111,50 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "Dashboards",
+    title: "AI",
+    section: "Automation & AI",
     links: [
       {
-        title: "Dashboards Overview",
-        url: "/docs/dashboards/index",
+        title: "Ask AI",
+        url: "/docs/ai/ask-ai",
       },
       {
-        title: "Authoring a Dashboard",
-        url: "/docs/dashboards/authoring",
+        title: "AI SRE",
+        url: "/docs/ai/ai-sre",
       },
       {
-        title: "Dashboard Widgets",
-        url: "/docs/dashboards/widgets",
+        title: "Infrastructure AI Agents",
+        url: "/docs/ai/infrastructure-ai-agents",
       },
       {
-        title: "Dashboard Variables & Filters",
-        url: "/docs/dashboards/variables",
+        title: "Code",
+        url: "/docs/ai/ai-agent",
       },
       {
-        title: "Sharing & Public Dashboards",
-        url: "/docs/dashboards/sharing",
+        title: "GitHub App",
+        url: "/docs/ai/github-app",
       },
       {
-        title: "Dashboard Configuration & Permissions",
-        url: "/docs/dashboards/configuration",
-      },
-    ],
-  },
-  {
-    title: "Status Pages",
-    links: [
-      {
-        title: "Status Pages Overview",
-        url: "/docs/status-pages/index",
+        title: "LLM Providers",
+        url: "/docs/ai/llm-provider",
       },
       {
-        title: "Status Page Resources & Groups",
-        url: "/docs/status-pages/resources-and-groups",
+        title: "Microsoft Foundry",
+        url: "/docs/ai/microsoft-foundry",
       },
       {
-        title: "Status Page Branding & Domains",
-        url: "/docs/status-pages/branding-and-domains",
+        title: "External MCP Servers",
+        url: "/docs/ai/external-mcp-servers",
       },
       {
-        title: "Subscribers & Announcements",
-        url: "/docs/status-pages/subscribers",
-      },
-      {
-        title: "Public API",
-        url: "/docs/status-pages/public-api",
-      },
-    ],
-  },
-  {
-    title: "Workspace Connections",
-    links: [
-      {
-        title: "Slack",
-        url: "/docs/workspace-connections/slack",
-      },
-      {
-        title: "Microsoft Teams",
-        url: "/docs/workspace-connections/microsoft-teams",
+        title: "MCP Server",
+        url: "/docs/ai/mcp-server",
       },
     ],
   },
   {
     title: "Integrations",
+    section: "Integrations",
     links: [
       {
         title: "Integrations Overview",
@@ -648,6 +1195,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Datadog",
         url: "/docs/integrations/datadog",
+      },
+      {
+        title: "Huntress",
+        url: "/docs/integrations/huntress",
       },
       {
         title: "Google SecOps",
@@ -697,207 +1248,19 @@ const DocsNav: NavGroup[] = [
         title: "Telegram",
         url: "/docs/integrations/telegram",
       },
-    ],
-  },
-  {
-    title: "Probe",
-    links: [
-      { title: "Custom Probes", url: "/docs/probe/custom-probe" },
       {
-        title: "Incoming Request Ingress",
-        url: "/docs/probe/incoming-request-ingress",
-      },
-    ],
-  },
-  {
-    title: "Inventory",
-    links: [
-      { title: "Overview", url: "/docs/inventory/overview" },
-      { title: "Custom Fields", url: "/docs/inventory/custom-fields" },
-      { title: "Exporting to a CMDB", url: "/docs/inventory/cmdb-sync" },
-    ],
-  },
-  {
-    title: "Telemetry",
-    links: [
-      { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
-      { title: "Search Syntax", url: "/docs/telemetry/search-syntax" },
-      {
-        title: "AI / LLM Observability",
-        url: "/docs/telemetry/ai-llm-observability",
+        title: "IRC",
+        url: "/docs/integrations/irc",
       },
       {
-        title: "AI Coding Assistants",
-        url: "/docs/telemetry/ai-coding-assistants",
+        title: "Vercel",
+        url: "/docs/integrations/vercel",
       },
-      {
-        title: "Claude Code",
-        url: "/docs/telemetry/claude-code",
-      },
-      {
-        title: "Cursor",
-        url: "/docs/telemetry/cursor",
-      },
-      {
-        title: "OpenAI Codex",
-        url: "/docs/telemetry/openai-codex",
-      },
-      {
-        title: "Gemini CLI & GitHub Copilot",
-        url: "/docs/telemetry/gemini-cli-and-copilot",
-      },
-      {
-        title: "AI Gateways (LiteLLM, Portkey)",
-        url: "/docs/telemetry/ai-gateways",
-      },
-      {
-        title: "AI Agent Circuit Breakers",
-        url: "/docs/telemetry/ai-agent-circuit-breaker",
-      },
-      {
-        title: "Continuous Profiling",
-        url: "/docs/telemetry/profiles",
-      },
-      {
-        title: "Source Maps",
-        url: "/docs/telemetry/source-maps",
-      },
-      { title: "Serilog (.NET)", url: "/docs/telemetry/serilog" },
-      { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
-      { title: "Fluentd", url: "/docs/telemetry/fluentd" },
-      { title: "Syslog", url: "/docs/telemetry/syslog" },
-      {
-        title: "Security Events (SIEM)",
-        url: "/docs/telemetry/security-events",
-      },
-      {
-        title: "Threat Intelligence (STIX/TAXII)",
-        url: "/docs/telemetry/threat-intelligence",
-      },
-      {
-        title: "Host OpenTelemetry Collector",
-        url: "/docs/telemetry/host-otel-collector",
-      },
-      {
-        title: "Kubernetes Agent",
-        url: "/docs/telemetry/kubernetes-agent",
-      },
-      {
-        title: "Kubernetes Cost Observability",
-        url: "/docs/telemetry/kubernetes-cost",
-      },
-      {
-        title: "Docker Agent",
-        url: "/docs/telemetry/docker-host",
-      },
-      {
-        title: "IoT Devices",
-        url: "/docs/telemetry/iot-devices",
-      },
-      {
-        title: "Podman Agent",
-        url: "/docs/telemetry/podman-host",
-      },
-      {
-        title: "Proxmox Agent",
-        url: "/docs/telemetry/proxmox",
-      },
-      {
-        title: "Ceph Agent",
-        url: "/docs/telemetry/ceph",
-      },
-      {
-        title: "Docker Swarm Agent",
-        url: "/docs/telemetry/docker-swarm",
-      },
-      {
-        title: "VMware Agent",
-        url: "/docs/telemetry/vmware",
-      },
-      /*
-       * The Databases hub (auto-detection, the Database Agent, Kubernetes,
-       * endpoints). Pages are resolved by substring match on the URL
-       * (Docs/Index.ts), so a request for this hub would land on any EARLIER
-       * link whose URL contains "telemetry/databases" — keep future
-       * telemetry/databases-* pages after this entry.
-       */
-      {
-        title: "Databases",
-        url: "/docs/telemetry/databases",
-      },
-      {
-        title: "Serverless Functions",
-        url: "/docs/telemetry/serverless-functions",
-      },
-      {
-        title: "Cloud Environments",
-        url: "/docs/telemetry/cloud-environments",
-      },
-      /*
-       * One page per managed platform, right under the hub, so the sidebar
-       * mirrors the platform picker on the in-app guide. The order is the
-       * hub page's order: the three container platforms with their own
-       * pages, then the rest, then the shared troubleshooting page.
-       */
-      {
-        title: "AWS ECS / Fargate",
-        url: "/docs/telemetry/cloud-aws-ecs",
-      },
-      {
-        title: "Google Cloud Run",
-        url: "/docs/telemetry/cloud-gcp-cloud-run",
-      },
-      {
-        title: "Azure Container Apps",
-        url: "/docs/telemetry/cloud-azure-container-apps",
-      },
-      {
-        title: "Other Cloud Platforms",
-        url: "/docs/telemetry/cloud-other-platforms",
-      },
-      {
-        title: "Cloud Troubleshooting",
-        url: "/docs/telemetry/cloud-troubleshooting",
-      },
-    ],
-  },
-  /*
-   * RUM is its own product surface in the dashboard (Resources → Real User
-   * Monitoring) with applications, rules, clients and session replay — not
-   * just one more "how to send telemetry from X" recipe — so it gets its own
-   * group rather than a single entry inside Telemetry. Session Replay keeps
-   * its /docs/telemetry/session-replay URL; only its position in the nav
-   * moved, so inbound links are unaffected.
-   */
-  {
-    title: "Real User Monitoring",
-    links: [
-      { title: "RUM Overview", url: "/docs/rum/index" },
-      { title: "Browser Setup", url: "/docs/rum/browser-setup" },
-      { title: "Mobile Setup", url: "/docs/rum/mobile-setup" },
-      { title: "Core Web Vitals", url: "/docs/rum/web-vitals" },
-      { title: "Managing Applications", url: "/docs/rum/applications" },
-      { title: "Session Replay", url: "/docs/telemetry/session-replay" },
-      {
-        title: "Session Replay Troubleshooting",
-        url: "/docs/rum/session-replay-troubleshooting",
-      },
-      { title: "RUM Troubleshooting", url: "/docs/rum/troubleshooting" },
-    ],
-  },
-  {
-    title: "AI",
-    links: [
-      { title: "Ask AI", url: "/docs/ai/ask-ai" },
-      { title: "AI SRE", url: "/docs/ai/ai-sre" },
-      { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
-      { title: "GitHub App", url: "/docs/ai/github-app" },
-      { title: "LLM Providers", url: "/docs/ai/llm-provider" },
-      { title: "MCP Server", url: "/docs/ai/mcp-server" },
     ],
   },
   {
     title: "API Reference",
+    section: "Developers",
     links: [
       {
         title: "OneUptime API Reference",
@@ -905,48 +1268,277 @@ const DocsNav: NavGroup[] = [
       },
     ],
   },
+  {
+    title: "CLI",
+    section: "Developers",
+    links: [
+      {
+        title: "CLI Overview",
+        url: "/docs/cli/index",
+      },
+      {
+        title: "Authentication",
+        url: "/docs/cli/authentication",
+      },
+      {
+        title: "Resource Operations",
+        url: "/docs/cli/resource-operations",
+      },
+      {
+        title: "Output Formats",
+        url: "/docs/cli/output-formats",
+      },
+      {
+        title: "Scripting & CI/CD",
+        url: "/docs/cli/scripting",
+      },
+      {
+        title: "Command Reference",
+        url: "/docs/cli/command-reference",
+      },
+    ],
+  },
+  {
+    title: "Terraform Provider",
+    section: "Developers",
+    links: [
+      {
+        title: "Terraform Overview",
+        url: "/docs/terraform/index",
+      },
+      {
+        title: "Quick Start",
+        url: "/docs/terraform/quick-start",
+      },
+      {
+        title: "Complete Guide",
+        url: "/docs/terraform/complete-guide",
+      },
+      {
+        title: "Monitor Steps",
+        url: "/docs/terraform/monitor-steps",
+      },
+      {
+        title: "Examples",
+        url: "/docs/terraform/examples",
+      },
+      {
+        title: "Importing Resources",
+        url: "/docs/terraform/importing-resources",
+      },
+      {
+        title: "Troubleshooting",
+        url: "/docs/terraform/troubleshooting",
+      },
+      {
+        title: "Self-Hosted Setup",
+        url: "/docs/terraform/self-hosted",
+      },
+      {
+        title: "Registry Usage",
+        url: "/docs/terraform/registry",
+      },
+      {
+        title: "OpenTofu",
+        url: "/docs/terraform/opentofu",
+      },
+    ],
+  },
+  {
+    title: "Users & Permissions",
+    section: "Administration",
+    links: [
+      {
+        title: "Users, Teams & Permissions",
+        url: "/docs/permissions/index",
+      },
+      {
+        title: "Inviting People",
+        url: "/docs/permissions/inviting-people",
+      },
+      {
+        title: "Permission Reference",
+        url: "/docs/permissions/reference",
+      },
+    ],
+  },
+  {
+    title: "Identity",
+    section: "Administration",
+    links: [
+      {
+        title: "SSO",
+        url: "/docs/identity/sso",
+      },
+      {
+        title: "Global SSO",
+        url: "/docs/identity/global-sso",
+      },
+      {
+        title: "SCIM",
+        url: "/docs/identity/scim",
+      },
+    ],
+  },
+  {
+    title: "Configuration",
+    section: "Administration",
+    links: [
+      {
+        title: "Project Settings",
+        url: "/docs/configuration/project-settings",
+      },
+      {
+        title: "Billing & Usage",
+        url: "/docs/configuration/billing",
+      },
+      {
+        title: "Audit Logs",
+        url: "/docs/configuration/audit-logs",
+      },
+      {
+        title: "IP Addresses",
+        url: "/docs/configuration/ip-addresses",
+      },
+      {
+        title: "Label and Owner Rules",
+        url: "/docs/configuration/label-and-owner-rules",
+      },
+      {
+        title: "Import and Export Label Rules",
+        url: "/docs/configuration/label-rule-import-export",
+      },
+      {
+        title: "Run Rules on Existing Resources",
+        url: "/docs/configuration/run-rules-now",
+      },
+    ],
+  },
+  {
+    title: "Emails",
+    section: "Administration",
+    links: [
+      {
+        title: "SMTP",
+        url: "/docs/emails/smtp",
+      },
+      {
+        title: "Notification Rollup",
+        url: "/docs/emails/notification-rollup",
+      },
+    ],
+  },
+  {
+    title: "Mobile & Desktop Apps",
+    section: "Administration",
+    links: [
+      {
+        title: "Apps Overview",
+        url: "/docs/mobile-desktop-apps/index",
+      },
+      {
+        title: "Android Installation",
+        url: "/docs/mobile-desktop-apps/android-installation",
+      },
+      {
+        title: "iOS Installation",
+        url: "/docs/mobile-desktop-apps/ios-installation",
+      },
+      {
+        title: "Windows Installation",
+        url: "/docs/mobile-desktop-apps/windows-installation",
+      },
+      {
+        title: "macOS Installation",
+        url: "/docs/mobile-desktop-apps/macos-installation",
+      },
+      {
+        title: "Linux Installation",
+        url: "/docs/mobile-desktop-apps/linux-installation",
+      },
+      {
+        title: "FAQ & Troubleshooting",
+        url: "/docs/mobile-desktop-apps/faq-troubleshooting",
+      },
+    ],
+  },
+  {
+    title: "Installation",
+    section: "Self-Hosting",
+    links: [
+      /*
+       * Docker Compose first: /docs/installation opens a category's first
+       * page, and people who type it want to install OneUptime. Running it
+       * from source, to work on it, comes last.
+       */
+      {
+        title: "Docker Compose",
+        url: "/docs/installation/docker-compose",
+      },
+      {
+        title: "Upgrading",
+        url: "/docs/installation/upgrading",
+      },
+      {
+        title: "Kubernetes and Helm",
+        url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
+      },
+      {
+        title: "Cloud Marketplaces",
+        url: "/docs/installation/cloud-marketplaces",
+      },
+      {
+        title: "Sizing & Capacity Planning",
+        url: "/docs/installation/sizing",
+      },
+      {
+        title: "Local Development",
+        url: "/docs/installation/local-development",
+      },
+    ],
+  },
+  {
+    title: "Self Hosted",
+    section: "Self-Hosting",
+    links: [
+      {
+        title: "Slack Integration",
+        url: "/docs/self-hosted/slack-integration",
+      },
+      {
+        title: "Microsoft Teams Integration",
+        url: "/docs/self-hosted/microsoft-teams-integration",
+      },
+      {
+        title: "Twilio Integration",
+        url: "/docs/self-hosted/twilio-integration",
+      },
+      {
+        title: "GitHub Integration",
+        url: "/docs/self-hosted/github-integration",
+      },
+      {
+        title: "Push Notifications",
+        url: "/docs/self-hosted/push-notifications",
+      },
+      {
+        title: "SendGrid Inbound Email",
+        url: "/docs/self-hosted/sendgrid-inbound-email",
+      },
+      {
+        title: "Private Network Access",
+        url: "/docs/self-hosted/private-network-access",
+      },
+      {
+        title: "Architecture",
+        url: "/docs/self-hosted/architecture",
+      },
+      {
+        title: "Enterprise Edition",
+        url: "/docs/self-hosted/enterprise",
+      },
+    ],
+  },
 ];
-
-DocsNav.push({
-  title: "Self Hosted",
-  links: [
-    {
-      title: "Slack Integration",
-      url: "/docs/self-hosted/slack-integration",
-    },
-    {
-      title: "Microsoft Teams Integration",
-      url: "/docs/self-hosted/microsoft-teams-integration",
-    },
-    {
-      title: "Twilio Integration",
-      url: "/docs/self-hosted/twilio-integration",
-    },
-    {
-      title: "GitHub Integration",
-      url: "/docs/self-hosted/github-integration",
-    },
-    {
-      title: "Push Notifications",
-      url: "/docs/self-hosted/push-notifications",
-    },
-    {
-      title: "SendGrid Inbound Email",
-      url: "/docs/self-hosted/sendgrid-inbound-email",
-    },
-    {
-      title: "Private Network Access",
-      url: "/docs/self-hosted/private-network-access",
-    },
-    {
-      title: "Architecture",
-      url: "/docs/self-hosted/architecture",
-    },
-    {
-      title: "Enterprise Edition",
-      url: "/docs/self-hosted/enterprise",
-    },
-  ],
-});
 
 export default DocsNav;

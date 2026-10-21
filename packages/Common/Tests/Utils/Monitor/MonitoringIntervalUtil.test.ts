@@ -272,7 +272,7 @@ describe("MonitoringIntervalUtil", () => {
         "*".repeat(5000),
         "{{ variable }}",
         "; DROP TABLE Monitor; --",
-        " ",
+        "\u0000",
         12345,
         {},
         [],

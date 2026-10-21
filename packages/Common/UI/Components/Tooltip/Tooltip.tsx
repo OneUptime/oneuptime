@@ -1,13 +1,17 @@
 import Tippy from "@tippyjs/react";
+import { Placement } from "tippy.js";
 import React, {
   cloneElement,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
+import useTranslateValue from "../../Utils/Translation";
+import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -22,15 +26,57 @@ export interface ComponentProps {
    * nothing to click: it then mounts on <body> and hides on mouse-out.
    */
   interactive?: boolean | undefined;
+  /*
+   * The trigger already points aria-describedby at this same text, which it
+   * does when the text must be announced whether or not the tooltip is showing
+   * (a locked menu item saying why it is locked). Tippy's own describedby would
+   * then have it read twice, so leave it off.
+   */
+  isTriggerAlreadyDescribed?: boolean | undefined;
+  /*
+   * Show on focus only when the keyboard moved it there; hover still shows
+   * it. For a trigger a script focuses after a click: a menu opened with the
+   * mouse focuses its first item, so that item's tooltip popped up at once,
+   * unasked, over whatever was under it - and, drawn before the menu had
+   * settled, beside the place the menu opened from rather than the item.
+   * From the keyboard it still shows the moment the item takes focus.
+   */
+  isShownOnKeyboardFocusOnly?: boolean | undefined;
+  /*
+   * Which side of its trigger the tooltip opens on: "top" unless given.
+   * fallbackPlacements are the sides it may move to, in order, when that one
+   * has no room. An item of a menu opens to the side, so the reason a locked
+   * item gives never covers the items above it (MoreMenuItem).
+   */
+  placement?: Placement | undefined;
+  fallbackPlacements?: Array<Placement> | undefined;
+  /*
+   * A press - a click, or a tap - shows it and keeps it shown until the
+   * trigger is pressed again, whatever the pointer does in between. For a
+   * trigger whose press does nothing else, such as a locked menu item: on a
+   * phone nothing hovers, and the tap is how a person asks why it is locked.
+   * Hover alone was not enough there - a tap ends with the pointer leaving
+   * (Chrome sends mouseleave the moment the finger lifts), which hid the
+   * reason again before it could be read.
+   */
+  isShownOnPress?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
   reference?: HTMLElement | undefined;
 }
 
+// What a focus-triggered show says it was triggered by (Tippy's onTrigger).
+const FOCUS_TRIGGERS: Array<string> = ["focus", "focusin"];
+
 const TooltipPopup: FunctionComponent<PopupProps> = (
   props: PopupProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+
+  // The event that last asked this tooltip to show.
+  const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
+
   if (!props.text && !props.richContent) {
     return props.children;
   }
@@ -38,7 +84,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
   const tooltipContent: ReactElement = props.richContent ? (
     props.richContent
   ) : (
-    <span>{props.text}</span>
+    <span>{translateString(props.text) ?? props.text}</span>
   );
 
   const isRich: boolean = Boolean(props.richContent);
@@ -49,6 +95,29 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
 
   const animationProps: { animation: string } | Record<string, never> = isRich
     ? { animation: "shift-away-subtle" }
+    : {};
+
+  const keyboardFocusOnlyProps:
+    | {
+        onTrigger: (instance: unknown, event: Event) => void;
+        onShow: () => false | undefined;
+      }
+    | Record<string, never> = props.isShownOnKeyboardFocusOnly
+    ? {
+        onTrigger: (_instance: unknown, event: Event): void => {
+          lastTriggerRef.current = event.type;
+        },
+        onShow: (): false | undefined => {
+          if (
+            FOCUS_TRIGGERS.includes(lastTriggerRef.current) &&
+            !wasLastInputFromKeyboard()
+          ) {
+            return false;
+          }
+
+          return undefined;
+        },
+      }
     : {};
 
   return (
@@ -69,16 +138,37 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}
       interactive={props.interactive ?? isRich}
-      trigger="mouseenter focus"
-      hideOnClick={false}
+      /*
+       * A press shows it and keeps it until the next press (see
+       * isShownOnPress); everything else shows on hover and focus.
+       */
+      trigger={
+        props.isShownOnPress ? "mouseenter focus click" : "mouseenter focus"
+      }
+      hideOnClick={props.isShownOnPress ? "toggle" : false}
       maxWidth={isRich ? 380 : 350}
       delay={isRich ? [120, 80] : [0, 0]}
       duration={[200, 150]}
-      placement={isRich ? "top" : "top"}
+      placement={props.placement || "top"}
+      {...(props.fallbackPlacements && props.fallbackPlacements.length > 0
+        ? {
+            popperOptions: {
+              modifiers: [
+                {
+                  name: "flip",
+                  options: {
+                    fallbackPlacements: props.fallbackPlacements,
+                  },
+                },
+              ],
+            },
+          }
+        : {})}
       {...themeProps}
       {...animationProps}
+      {...keyboardFocusOnlyProps}
       aria={{
-        content: "describedby",
+        content: props.isTriggerAlreadyDescribed ? null : "describedby",
         /*
          * Tippy's default ("auto") stamps aria-expanded onto the trigger, but our
          * triggers are often plain non-interactive elements (e.g. uptime bars) whose

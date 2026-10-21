@@ -1,8 +1,13 @@
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import IncomingEmailMonitorRequestUtil from "../../../Utils/Monitor/IncomingEmailMonitorRequestUtil";
+import OneUptimeDate from "../../../Types/Date";
 import ServerMonitorResponse, {
   ServerProcess,
 } from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -15,6 +20,7 @@ import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/S
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpTableTemplateUtil from "./SnmpTableTemplateUtil";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpTrap, {
   SnmpTrapVarbind,
@@ -24,6 +30,7 @@ import DnsMonitorResponse, {
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
 import DatabaseMonitorResponse, {
   DatabaseMetricGroupStatus,
 } from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
@@ -31,6 +38,10 @@ import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import ProbeStatusMonitorResponse, {
+  ProbeStatusMonitorProbe,
+} from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import Typeof from "../../../Types/Typeof";
 import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
@@ -38,6 +49,7 @@ import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Path segments that resolve to the object prototype when a dotted series
  * label key is walked as a nested property path. See the fold in
@@ -49,6 +61,43 @@ const PrototypeWalkingKeySegments: ReadonlySet<string> = new Set<string>([
   "constructor",
   "prototype",
 ]);
+
+/*
+ * Longest an email's subject, sender, recipients or body may run in a title.
+ *
+ * `Alert.title` and `Incident.title` are LongText - 500 characters - and an
+ * over-long title is not shortened on the way in: create refuses it, and
+ * the alert or incident is never opened. Those four values are as long as
+ * whoever sent the email makes them, so a title quoting them whole would stop
+ * paging on exactly the emails that say the most. Three of them still fit
+ * with room for the template's own text. Descriptions and remediation notes
+ * get them in full, and so does the monitor summary stored on the alert.
+ */
+export const MaxEmailValueLengthInTitle: number = 150;
+
+const TitleEllipsis: string = "...";
+
+/*
+ * The variables a description or remediation notes template places as they
+ * are: Markdown OneUptime builds itself (each escapes what it names), and the
+ * monitor's own description, which the project's people write as they write
+ * the template. Every other value is what the monitored system reported (see
+ * buildMarkdownStorageMap).
+ */
+export const MarkdownTemplateStorageMapKeys: ReadonlySet<string> =
+  new Set<string>([
+    "seriesResourceBlock",
+    "seriesDebugCommands",
+    "monitorDescription",
+  ]);
+
+// The Incoming Email variables whose text the email's sender wrote.
+const SenderWrittenEmailKeys: ReadonlyArray<string> = [
+  "emailSubject",
+  "emailFrom",
+  "emailTo",
+  "emailBody",
+];
 
 /**
  * Utility for building template variable storage map and processing dynamic placeholders
@@ -126,6 +175,42 @@ export default class MonitorTemplateUtil {
           incomingRequestReceivedAt: (
             data.dataToProcess as IncomingMonitorRequest
           ).incomingRequestReceivedAt,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.IncomingEmail) {
+        const emailRequest: IncomingEmailMonitorRequest =
+          data.dataToProcess as IncomingEmailMonitorRequest;
+
+        /*
+         * The email as the ingest boundary left it. processIncomingEmailFromQueue
+         * masks this monitor's own address - its monitor-{secretKey}@ address
+         * or its custom name - before the payload exists, so `{{emailTo}}`
+         * reads `monitor-[REDACTED]@<inbound domain>` here just as the
+         * monitor summary does. Nothing below reads the monitor's secret key
+         * or custom address, so no template can put the credential back into
+         * a title that is paged, posted to chat or shown on a status page.
+         *
+         * Exactly the documented variables: the headers, the HTML body and
+         * the attachments stay in the monitor summary.
+         *
+         * Always strings: "" for a field the email did not have (mail with
+         * no Subject: header exists), so a template never renders
+         * `{{emailSubject}}` literally. A scheduled "not received" check that
+         * ran before any email arrived stands the monitor's creation time in
+         * for emailReceivedAt (see IncomingEmailMonitorRequestUtil.hasEmail);
+         * no email arrived then, so it is not shown as one.
+         */
+        storageMap = {
+          emailSubject: emailRequest.emailSubject || "",
+          emailFrom: emailRequest.emailFrom || "",
+          emailTo: emailRequest.emailTo || "",
+          emailBody: emailRequest.emailBody || "",
+          emailReceivedAt: IncomingEmailMonitorRequestUtil.hasEmail(
+            emailRequest,
+          )
+            ? MonitorTemplateUtil.toTimestamp(emailRequest.emailReceivedAt)
+            : "",
         } as JSONObject;
       }
 
@@ -347,6 +432,18 @@ export default class MonitorTemplateUtil {
         }
 
         /*
+         * Walked SNMP tables, by key, so a template can say
+         * "{{tables.ipsec_tunnels.unhealthyRowCount}} tunnel(s) down:
+         * {{tables.ipsec_tunnels.unhealthyRows.0.name}}". A per-row alert
+         * also gets {{snmpTable}} and {{snmpTableRow}} from its series labels.
+         */
+        if (snmpResponse?.tables && snmpResponse.tables.length > 0) {
+          storageMap["tables"] = SnmpTableTemplateUtil.toTemplateVariables(
+            snmpResponse.tables,
+          );
+        }
+
+        /*
          * Device system identity (SNMPv2 system group), when collected.
          * Missing fields default to "" so templates render blank instead of
          * a raw {{placeholder}} — but never clobber a value the user already
@@ -422,6 +519,40 @@ export default class MonitorTemplateUtil {
             },
           );
         }
+      }
+
+      if (data.monitorType === MonitorType.NTP) {
+        const probeResponse: ProbeMonitorResponse =
+          data.dataToProcess as ProbeMonitorResponse;
+        const ntpResponse: NtpMonitorResponse | undefined =
+          probeResponse.ntpResponse;
+
+        /*
+         * The time server's own facts, so a title can say what is wrong:
+         * "{{monitorName}} is at stratum {{stratum}}" or "... is
+         * {{clockOffsetInMs}} ms off". clockOffsetInMs keeps its sign:
+         * positive is ahead of the probe, negative behind.
+         */
+        storageMap = {
+          isOnline: probeResponse.isOnline,
+          isSynchronized: ntpResponse?.isSynchronized,
+          responseTimeInMs:
+            ntpResponse?.responseTimeInMs ?? probeResponse.responseTimeInMs,
+          failureCause: ntpResponse?.failureCause ?? probeResponse.failureCause,
+          isTimeout: ntpResponse?.isTimeout ?? probeResponse.isTimeout,
+          serverAddress: ntpResponse?.serverAddress,
+          port: ntpResponse?.port,
+          stratum: ntpResponse?.stratum,
+          kissCode: ntpResponse?.kissCode,
+          leapIndicator: ntpResponse?.leapIndicator,
+          referenceId: ntpResponse?.referenceId,
+          clockOffsetInMs: ntpResponse?.clockOffsetInMs,
+          roundTripDelayInMs: ntpResponse?.roundTripDelayInMs,
+          rootDelayInMs: ntpResponse?.rootDelayInMs,
+          rootDispersionInMs: ntpResponse?.rootDispersionInMs,
+          serverTime: ntpResponse?.serverTime,
+          referenceTime: ntpResponse?.referenceTime,
+        } as JSONObject;
       }
 
       if (data.monitorType === MonitorType.Domain) {
@@ -509,17 +640,12 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
-      if (
-        data.monitorType === MonitorType.Metrics ||
-        data.monitorType === MonitorType.Kubernetes ||
-        data.monitorType === MonitorType.Docker ||
-        data.monitorType === MonitorType.Host ||
-        data.monitorType === MonitorType.Podman ||
-        data.monitorType === MonitorType.DockerSwarm ||
-        data.monitorType === MonitorType.Proxmox ||
-        data.monitorType === MonitorType.VMware ||
-        data.monitorType === MonitorType.Ceph
-      ) {
+      /*
+       * Every monitor type evaluated as metric series, IoT Device included:
+       * the one list (MonitorTypeHelper), which TemplateVariablesCatalog
+       * reads too, so the editor offers exactly what is set here.
+       */
+      if (MonitorTypeHelper.isMetricBackedMonitor(data.monitorType)) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;
 
@@ -571,6 +697,51 @@ export default class MonitorTemplateUtil {
               },
             );
         }
+      }
+      /*
+       * The probes a Probe Status monitor watches. Always strings and
+       * numbers, never undefined: a template is shared by every evaluation,
+       * and `{{disconnectedProbeNames}}` must read "" - not the placeholder
+       * itself - on the one that finds every probe connected.
+       */
+      if (data.monitorType === MonitorType.ProbeStatus) {
+        const probeStatusResponse: ProbeStatusMonitorResponse =
+          data.dataToProcess as ProbeStatusMonitorResponse;
+
+        const probes: Array<ProbeStatusMonitorProbe> = Array.isArray(
+          probeStatusResponse?.probes,
+        )
+          ? probeStatusResponse.probes
+          : [];
+
+        const connectedProbes: Array<ProbeStatusMonitorProbe> =
+          ProbeStatusMonitorUtil.getConnectedProbes({ probes: probes });
+        const disconnectedProbes: Array<ProbeStatusMonitorProbe> =
+          ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes });
+
+        storageMap = {
+          probeStatusSummary: ProbeStatusMonitorUtil.describe({
+            probes: probes,
+            connectedProbeCount: connectedProbes.length,
+            disconnectedProbeCount: disconnectedProbes.length,
+          }),
+          connectedProbeCount: connectedProbes.length,
+          disconnectedProbeCount: disconnectedProbes.length,
+          connectedProbeNames:
+            ProbeStatusMonitorUtil.joinProbeNames(connectedProbes),
+          disconnectedProbeNames:
+            ProbeStatusMonitorUtil.joinProbeNames(disconnectedProbes),
+          probes: probes.map((probe: ProbeStatusMonitorProbe): JSONObject => {
+            return {
+              probeName: probe.probeName,
+              isConnected: probe.isConnected,
+              isGlobalProbe: probe.isGlobalProbe,
+              lastAliveAt: probe.lastAliveAt
+                ? MonitorTemplateUtil.toTimestamp(probe.lastAliveAt)
+                : "",
+            };
+          }),
+        } as JSONObject;
       }
     } catch (err) {
       logger.error(err);
@@ -683,6 +854,203 @@ export default class MonitorTemplateUtil {
     logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);
 
     return storageMap;
+  }
+
+  /**
+   * The storage map a title renders against.
+   *
+   * A title shares the variables of its description but not the room: it is
+   * one line in a 500-character column (see MaxEmailValueLengthInTitle), and
+   * it is what a phone call reads out and an SMS carries. For an Incoming
+   * Email monitor, the values the email's sender wrote are therefore cut to
+   * one line of at most MaxEmailValueLengthInTitle characters here. Every
+   * other monitor type's map is returned as it is.
+   */
+  public static buildTitleStorageMap(data: {
+    monitorType: MonitorType;
+    storageMap: JSONObject;
+  }): JSONObject {
+    if (data.monitorType !== MonitorType.IncomingEmail) {
+      return data.storageMap;
+    }
+
+    const titleStorageMap: JSONObject = { ...data.storageMap };
+
+    for (const key of SenderWrittenEmailKeys) {
+      const value: unknown = titleStorageMap[key];
+
+      if (typeof value === "string") {
+        titleStorageMap[key] = MonitorTemplateUtil.toTitleLine(value);
+      }
+    }
+
+    return titleStorageMap;
+  }
+
+  /**
+   * The storage map a description or remediation notes template renders
+   * against.
+   *
+   * Those are Markdown, shown on the dashboard, in email and in the
+   * record's Slack and Microsoft Teams channels, and almost every value in
+   * the map is what the monitored system sent: a response body or header,
+   * an incoming request or email, a certificate's fields, a device's SNMP
+   * values, a series' labels. Each such text - every string anywhere in the
+   * map, and every key, since {{responseBody}} places a whole object as
+   * JSON - is neutralized (FeedMarkdown.reportedValue): wherever the template
+   * places it, in a sentence or inside the author's own code span or block,
+   * it reads exactly as sent, and no renderer finds a mention, a link, an
+   * image, a diagram or an HTML tag in it. Numbers and booleans stay what
+   * they are, and a date is its ISO text, as VMUtil.deepFind reads the map.
+   *
+   * A title renders against buildTitleStorageMap instead: a title is plain
+   * text, which every place that shows it escapes as such.
+   */
+  public static buildMarkdownStorageMap(data: {
+    storageMap: JSONObject;
+  }): JSONObject {
+    // As VMUtil.deepFind reads it: plain JSON, a Date as its ISO text.
+    const plainStorageMap: JSONObject = JSON.parse(
+      JSON.stringify(data.storageMap),
+    ) as JSONObject;
+
+    const markdownStorageMap: JSONObject = {};
+
+    for (const [key, value] of Object.entries(plainStorageMap)) {
+      markdownStorageMap[key] = MarkdownTemplateStorageMapKeys.has(key)
+        ? value
+        : MonitorTemplateUtil.neutralizeReportedValue(value);
+    }
+
+    return markdownStorageMap;
+  }
+
+  /*
+   * The description map of each storage map, built once, and only when a
+   * template places a value (processMarkdownTemplateString). Weak, so a
+   * map goes with the storage map it was built from.
+   */
+  private static markdownStorageMaps: WeakMap<JSONObject, JSONObject> =
+    new WeakMap<JSONObject, JSONObject>();
+
+  /**
+   * Replace {{var}} placeholders in a description or remediation notes
+   * template - Markdown - with the values as buildMarkdownStorageMap places
+   * them. A template that places no value is returned as it is, without
+   * building the map; a storage map that several templates render against -
+   * a description and remediation notes - has it built once.
+   */
+  public static processMarkdownTemplateString(data: {
+    value: string | undefined;
+    storageMap: JSONObject;
+  }): string {
+    if (!data.value) {
+      return "";
+    }
+
+    // Nothing to place: VMUtil replaces only between "{{" and "}}".
+    if (!data.value.includes("{{")) {
+      return data.value;
+    }
+
+    let markdownStorageMap: JSONObject | undefined =
+      MonitorTemplateUtil.markdownStorageMaps.get(data.storageMap);
+
+    if (!markdownStorageMap) {
+      markdownStorageMap = MonitorTemplateUtil.buildMarkdownStorageMap({
+        storageMap: data.storageMap,
+      });
+      MonitorTemplateUtil.markdownStorageMaps.set(
+        data.storageMap,
+        markdownStorageMap,
+      );
+    }
+
+    return MonitorTemplateUtil.processTemplateString({
+      value: data.value,
+      storageMap: markdownStorageMap,
+    });
+  }
+
+  // Every string in `value` neutralized, object keys included.
+  private static neutralizeReportedValue(value: JSONValue): JSONValue {
+    if (typeof value === "string") {
+      return FeedMarkdown.reportedValue(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item: JSONValue): JSONValue => {
+        return MonitorTemplateUtil.neutralizeReportedValue(item);
+      });
+    }
+
+    if (value !== null && typeof value === "object") {
+      const neutralized: JSONObject = {};
+
+      for (const [key, item] of Object.entries(value as JSONObject)) {
+        const neutralizedKey: string = FeedMarkdown.reportedValue(key);
+
+        // Two keys that read the same: the first one wins, as in JSON.
+        if (Object.prototype.hasOwnProperty.call(neutralized, neutralizedKey)) {
+          continue;
+        }
+
+        /*
+         * Defined, not assigned: a reported "__proto__" key is a property
+         * like any other, as JSON.parse made it - assigning it would swap
+         * the copy's prototype and drop the key.
+         */
+        Object.defineProperty(neutralized, neutralizedKey, {
+          value: MonitorTemplateUtil.neutralizeReportedValue(item),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      return neutralized;
+    }
+
+    return value;
+  }
+
+  /*
+   * `text` as one line of at most MaxEmailValueLengthInTitle characters,
+   * ending in "..." when it was cut. Line breaks and runs of whitespace - a
+   * body's paragraphs, a folded header - become one space.
+   */
+  private static toTitleLine(text: string): string {
+    const line: string = text.replace(/\s+/g, " ").trim();
+
+    if (line.length <= MaxEmailValueLengthInTitle) {
+      return line;
+    }
+
+    let end: number = MaxEmailValueLengthInTitle - TitleEllipsis.length;
+
+    // Never end on the first half of a surrogate pair, such as an emoji.
+    const lastCharCode: number = line.charCodeAt(end - 1);
+
+    if (lastCharCode >= 0xd800 && lastCharCode <= 0xdbff) {
+      end -= 1;
+    }
+
+    return `${line.slice(0, end)}${TitleEllipsis}`;
+  }
+
+  /*
+   * `value` - a Date, or the text a stored email's Date became - as an ISO
+   * 8601 timestamp in UTC. "" when there is none, and when it is not a date
+   * at all, so one unreadable timestamp cannot cost a template the email's
+   * other variables.
+   */
+  private static toTimestamp(value: Date | undefined): string {
+    try {
+      return OneUptimeDate.toString(value);
+    } catch (err) {
+      logger.error(err);
+      return "";
+    }
   }
 
   /**

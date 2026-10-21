@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -24,7 +25,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import ProjectUtil from "Common/UI/Utils/Project";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -33,11 +35,12 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import Team from "Common/Models/DatabaseModels/Team";
 import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
@@ -78,9 +81,17 @@ import {
   RecommendationStatusFilter,
   RecommendationViewModel,
 } from "./RecommendationViewModel";
-import ProjectUser from "../../Utils/ProjectUser";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
+import { readActiveMonitorLimitIfReached } from "../Monitor/ActiveMonitorLimitNotice";
+import { orderAlertTemplateCategories } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -121,9 +132,47 @@ interface ProjectDefaults {
 const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
+
+  /*
+   * The plan's limit on active monitors, when the project has no room for
+   * any: the create panel says so above its form and starts nothing. Read
+   * as the panel opens, and again when Create is pressed.
+   */
+  const [limitReached, setLimitReached] =
+    useState<ActiveMonitorLimitStatus | null>(null);
+
+  /*
+   * Which read of the limit an answer belongs to: the newest wins, so a
+   * slow read from when the panel opened never overwrites the one Create
+   * made after it.
+   */
+  const limitReadSequence: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The limit, read now; null when the project has room, has no limit, or
+   * it cannot be read. Never rejects. An answer a newer read has overtaken
+   * is dropped.
+   */
+  type ReadLimitFunction = () => Promise<ActiveMonitorLimitStatus | null>;
+
+  const readLimit: ReadLimitFunction =
+    async (): Promise<ActiveMonitorLimitStatus | null> => {
+      limitReadSequence.current += 1;
+      const sequence: number = limitReadSequence.current;
+
+      const status: ActiveMonitorLimitStatus | null =
+        await readActiveMonitorLimitIfReached();
+
+      if (sequence === limitReadSequence.current) {
+        setLimitReached(status);
+      }
+
+      return status;
+    };
 
   const [projectDefaults, setProjectDefaults] =
     useState<ProjectDefaults | null>(null);
@@ -138,26 +187,40 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     Set<string>
   >(new Set<string>());
 
-  const [filterState, setFilterState] = useState<RecommendationFilterState>({
-    searchText: "",
-    /*
-     * Opens on the not-yet-set-up subset. This page's job is "what still needs
-     * doing here"; opening on All means a cluster with every monitor already
-     * created renders eighteen greyed-out cards and the user has to work out
-     * that there is nothing to do.
-     */
-    status: RecommendationStatusFilter.Available,
-    severity: RecommendationSeverityFilter.All,
-  });
+  /*
+   * `?search=` pre-fills the search box and `?status=` the status filter, so
+   * another page can link straight to a slice of this one: the Replay Health
+   * page's "Set up alerts" opens a RUM application's list on its storage
+   * budget alerts (`?search=budget&status=All`). They seed the first render
+   * only; from then on the filters are the user's.
+   */
+  const [filterState, setFilterState] = useState<RecommendationFilterState>(
+    (): RecommendationFilterState => {
+      const statusFromUrl: string | null =
+        Navigation.getQueryStringByName("status");
+
+      return {
+        searchText: Navigation.getQueryStringByName("search") || "",
+        /*
+         * Opens on the not-yet-set-up subset unless the link says otherwise.
+         * This page's job is "what still needs doing here"; opening on All
+         * means a cluster with every monitor already created renders eighteen
+         * greyed-out cards and the user has to work out that there is nothing
+         * to do. A link to a handful of named alerts is the exception: opened
+         * on Available after they were created, it would show an empty list.
+         */
+        status: Object.values(RecommendationStatusFilter).includes(
+          statusFromUrl as RecommendationStatusFilter,
+        )
+          ? (statusFromUrl as RecommendationStatusFilter)
+          : RecommendationStatusFilter.Available,
+        severity: RecommendationSeverityFilter.All,
+      };
+    },
+  );
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     useState<Array<DropdownOption>>([]);
-  const [teamDropdownOptions, setTeamDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
-  const [userDropdownOptions, setUserDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
   const [labelDropdownOptions, setLabelDropdownOptions] = useState<
     Array<DropdownOption>
   >([]);
@@ -193,10 +256,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    * catalog instead would render an empty "JVM Runtime" heading on a Go
    * service — `groupByCategory` drops empty categories, so it would not
    * actually break, but the two would be answering different questions.
+   * They come in the order Create Monitor's Quick Setup lists the same
+   * templates under the same headings (orderAlertTemplateCategories).
    */
-  const categories: Array<string> = MonitorRecommendationCatalog.getCategories(
+  const categories: Array<string> = orderAlertTemplateCategories(
     props.resourceType,
-    props.resourceContext,
+    MonitorRecommendationCatalog.getCategories(
+      props.resourceType,
+      props.resourceContext,
+    ),
   );
 
   type BuildArgsFunction = (
@@ -233,8 +301,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             name: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const onlineStatus: MonitorStatus | undefined =
@@ -252,7 +323,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -262,7 +333,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -274,22 +345,30 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
        */
       if (!onlineStatus?._id) {
         throw new Error(
-          "This project has no operational monitor status. Add one under Project Settings > Monitor Status.",
+          translator.translateTemplate(
+            "This project has no operational monitor status. Add one under Monitors → Settings → Monitor Status.",
+          ),
         );
       }
       if (!offlineStatus?._id) {
         throw new Error(
-          "This project has no offline monitor status. Add one under Project Settings > Monitor Status.",
+          translator.translateTemplate(
+            "This project has no offline monitor status. Add one under Monitors → Settings → Monitor Status.",
+          ),
         );
       }
       if (!incidentSeverityList.data[0]?._id) {
         throw new Error(
-          "This project has no incident severity. Add one under Project Settings > Incident Severity.",
+          translator.translateTemplate(
+            "This project has no incident severity. Add one under Incidents → Settings → Incident Severity.",
+          ),
         );
       }
       if (!alertSeverityList.data[0]?._id) {
         throw new Error(
-          "This project has no alert severity. Add one under Project Settings > Alert Severity.",
+          translator.translateTemplate(
+            "This project has no alert severity. Add one under Alerts → Settings → Alert Severity.",
+          ),
         );
       }
 
@@ -311,6 +390,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -320,6 +400,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -340,21 +421,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         }),
       );
 
-      const teamList: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { name: true },
-        sort: { name: SortOrder.Ascending },
-      });
-
-      setTeamDropdownOptions(
-        teamList.data.map((item: Team) => {
-          return { value: item._id!, label: item.name! };
-        }),
-      );
-
       const labelList: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: {},
@@ -369,13 +435,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           return { value: item._id!, label: item.name! };
         }),
       );
-
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (projectId) {
-        setUserDropdownOptions(
-          await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-        );
-      }
 
       await Promise.all([loadCoverage(defaults), loadDismissals()]);
     } catch (err) {
@@ -468,6 +527,23 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   ]);
 
   /*
+   * Opens the create panel - from the card's header or the bar pinned under
+   * the list - and reads the plan's limit on active monitors as it opens: a
+   * project with no room is told so at once, above the form, before anyone
+   * fills it in.
+   */
+  type OpenCreatePanelFunction = () => void;
+
+  const openCreatePanel: OpenCreatePanelFunction = (): void => {
+    setActionError("");
+    setLimitReached(null);
+    setShowCreateSideOver(true);
+
+    // Never rejects: a limit it cannot read is no limit here.
+    void readLimit();
+  };
+
+  /*
    * Takes the ids explicitly rather than reading the derived
    * `selectedRecommendations` below it. Both would work — the handler only
    * fires from a render that got past the early returns — but a create path
@@ -520,6 +596,28 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setActionError(MONITOR_CONSENT_ERROR);
       setIsCreating(false);
       return;
+    }
+
+    /*
+     * A project with no room under its plan's limit on active monitors can
+     * create none of the recommended monitors: said once, with the limit's
+     * notice in the panel, and the batch never starts - rather than every
+     * row refused in the same words. With some room left the batch runs, and
+     * the server refuses the creates past it one by one (ActiveMonitorLimit).
+     */
+    if (
+      plan.some((item: MonitorRecommendationCreatePlanItem): boolean => {
+        return MonitorTypeHelper.isBilledAsActiveMonitor(
+          item.monitor.monitorType as MonitorType,
+        );
+      })
+    ) {
+      const limitStatus: ActiveMonitorLimitStatus | null = await readLimit();
+
+      if (limitStatus) {
+        setIsCreating(false);
+        return;
+      }
     }
 
     /*
@@ -672,10 +770,19 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   if (!definition) {
     return (
       <ErrorMessage
-        message={`No monitor recommendations are available for ${props.resourceType}.`}
+        message={translator.translateTemplate(
+          "No monitor recommendations are available for {{resourceType}}.",
+          { resourceType: props.resourceType },
+        )}
       />
     );
   }
+
+  // The resource's noun as it reads in the middle of a sentence.
+  const resourceName: TranslatableTerm = translatableTerm(
+    definition.resourceLabel,
+    { inSentence: true },
+  );
 
   if (!props.resourceIdentifier) {
     return (
@@ -683,7 +790,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         id="monitor-recommendations-no-identifier"
         icon={IconProp.Alert}
         title="No telemetry yet"
-        description={`This ${definition.resourceLabel.toLowerCase()} has not reported an identifier yet, so monitors cannot be scoped to it. Once the agent sends its first data, recommendations will appear here.`}
+        description={translator.translateTemplate(
+          "This {{resourceName}} has not sent data yet. Recommendations appear once its agent reports.",
+          { resourceName: resourceName },
+        )}
       />
     );
   }
@@ -748,7 +858,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           <EmptyState
             id="monitor-recommendations-none-for-resource"
             icon={IconProp.Sparkles}
-            title={`No recommendations for this ${definition.resourceLabel.toLowerCase()} yet`}
+            title={translator.translateTemplate(
+              "No recommendations for this {{resourceName}} yet",
+              { resourceName: resourceName },
+            )}
             description="The note above explains why. You can still create monitors by hand."
           />
         );
@@ -775,7 +888,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           id="monitor-recommendations-all-handled"
           icon={IconProp.CheckCircle}
           title="Nothing left to set up here"
-          description={`All ${counts.total} recommended monitors for this ${definition.resourceLabel.toLowerCase()} have been created or dismissed. Use the tiles above to review them.`}
+          description={translator.translatePlural(
+            {
+              one: "The {{count}} recommended monitor for this {{resourceName}} has been created or dismissed. Use the tiles above to review it.",
+              other:
+                "All {{count}} recommended monitors for this {{resourceName}} have been created or dismissed. Use the tiles above to review them.",
+            },
+            counts.total,
+            { resourceName: resourceName },
+          )}
         />
       );
     }
@@ -801,7 +922,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       <MonitorPayAsYouGoCard />
       <Card
         title="Recommended Monitors"
-        description={`Monitors OneUptime recommends for this ${definition.resourceLabel.toLowerCase()}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.`}
+        description={translator.translateTemplate(
+          "Monitors OneUptime recommends for this {{resourceName}}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.",
+          { resourceName: resourceName },
+        )}
         buttons={[
           {
             /*
@@ -811,19 +935,27 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
              */
             title:
               selectedRecommendations.length > 0
-                ? `Create ${selectedRecommendations.length} Selected`
+                ? translator.translateTemplate("Create {{count}} Selected", {
+                    count: translator.formatNumber(
+                      selectedRecommendations.length,
+                    ),
+                  })
                 : "Create Monitors",
             icon: IconProp.Add,
-            buttonStyle: ButtonStyleType.PRIMARY,
+            /*
+             * Plain. Once anything is selected the bar pinned under the list
+             * carries the same action as the page's one primary button, and
+             * two filled "Create" buttons on one screen read as two different
+             * things to do. With nothing selected the next step is to pick,
+             * not to press.
+             */
+            buttonStyle: ButtonStyleType.NORMAL,
             disabled: selectedRecommendations.length === 0,
             tooltip:
               selectedRecommendations.length === 0
                 ? "Pick at least one recommendation below first."
                 : undefined,
-            onClick: () => {
-              setActionError("");
-              setShowCreateSideOver(true);
-            },
+            onClick: openCreatePanel,
           },
         ]}
       >
@@ -898,9 +1030,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-medium text-gray-900">
-              {selectedRecommendations.length}{" "}
-              {selectedRecommendations.length === 1 ? "monitor" : "monitors"}{" "}
-              selected
+              {translator.translatePlural(
+                {
+                  one: "{{count}} monitor selected",
+                  other: "{{count}} monitors selected",
+                },
+                selectedRecommendations.length,
+              )}
             </span>
             {/*
              * The severity split of what is about to be created. It is the
@@ -910,7 +1046,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
              */}
             {selectedCriticalCount > 0 ? (
               <StatusBadge
-                text={`${selectedCriticalCount} Critical`}
+                text={translator.translateTemplate("{{count}} Critical", {
+                  count: translator.formatNumber(selectedCriticalCount),
+                })}
                 type={StatusBadgeType.Danger}
               />
             ) : (
@@ -918,7 +1056,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             )}
             {selectedWarningCount > 0 ? (
               <StatusBadge
-                text={`${selectedWarningCount} Warning`}
+                text={translator.translateTemplate("{{count}} Warning", {
+                  count: translator.formatNumber(selectedWarningCount),
+                })}
                 type={StatusBadgeType.Warning}
               />
             ) : (
@@ -934,15 +1074,16 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               }}
             />
             <Button
-              title={`Create ${selectedRecommendations.length} Selected ${
-                selectedRecommendations.length === 1 ? "Monitor" : "Monitors"
-              }`}
+              title={translator.translatePlural(
+                {
+                  one: "Create {{count}} Selected Monitor",
+                  other: "Create {{count}} Selected Monitors",
+                },
+                selectedRecommendations.length,
+              )}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.PRIMARY}
-              onClick={() => {
-                setActionError("");
-                setShowCreateSideOver(true);
-              }}
+              onClick={openCreatePanel}
             />
           </div>
         </div>
@@ -959,8 +1100,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           )}
           resourceLabel={definition.resourceLabel}
           onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-          teamDropdownOptions={teamDropdownOptions}
-          userDropdownOptions={userDropdownOptions}
           labelDropdownOptions={labelDropdownOptions}
           incidentSeverityOptions={incidentSeverityOptions}
           alertSeverityOptions={alertSeverityOptions}
@@ -974,6 +1113,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
            * those return before any progress is seeded.
            */
           error={createProgress ? undefined : actionError || undefined}
+          limitReached={limitReached || undefined}
           createProgress={createProgress || undefined}
           /*
            * Closes even mid-batch. The footer's Close is disabled while the
@@ -1010,13 +1150,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       {dismissTarget ? (
         <ConfirmModal
-          title={`Dismiss "${dismissTarget.recommendation.name}"?`}
+          title={translator.translateTemplate('Dismiss "{{name}}"?', {
+            name: dismissTarget.recommendation.name,
+          })}
           description={
             <div className="space-y-3">
               <p className="text-sm text-gray-500">
-                This hides the recommendation for everyone on the project. It
-                does not delete anything, and you can restore it at any time
-                from the Dismissed tile.
+                {translator.translateText(
+                  "This hides the recommendation for everyone on the project. It does not delete anything, and you can restore it at any time from the Dismissed tile.",
+                )}
               </p>
               <TextArea
                 value={dismissalReason}

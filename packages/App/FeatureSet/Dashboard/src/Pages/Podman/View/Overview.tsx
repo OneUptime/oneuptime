@@ -3,6 +3,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
@@ -18,7 +21,12 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getPodmanHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import GoldenMetricTile, {
   GoldenMetricTileColor,
   tileColorClasses,
@@ -57,6 +65,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -64,6 +74,12 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import HeartbeatAvailabilityUtil, {
   HeartbeatAvailabilityResult,
 } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { ReceivingGap } from "Common/Utils/Telemetry/ReceivingGaps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  fetchReceivingGaps,
+  getNotMonitoredRegions,
+} from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   Fragment,
@@ -73,6 +89,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface TopContainerRow {
   name: string;
@@ -141,6 +159,7 @@ const REFRESH_STORAGE_KEY: string = "podman-overview-auto-refresh-interval";
 const PodmanHostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [host, setHost] = useState<PodmanHost | null>(null);
@@ -158,6 +177,8 @@ const PodmanHostOverview: FunctionComponent<
     Array<SeriesPoint>
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  // When OneUptime itself was not receiving, inside the chart window.
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{
@@ -189,7 +210,30 @@ const PodmanHostOverview: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker and the Refresh button each start a
+   * fetch, and they overlap: a drag straight followed by a double-click is
+   * two range changes in a second. Only the most recently started fetch may
+   * commit, or a slow response for the window just left would land last and
+   * be drawn under the new range.
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its fetch then instead of superseding that one with a fetch for
+   * the same window: were every fetch to outlast the interval, none would
+   * ever land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -207,6 +251,10 @@ const PodmanHostOverview: FunctionComponent<
         },
       });
 
+      if (isStale()) {
+        return;
+      }
+
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
         setIsRefreshing(false);
@@ -220,6 +268,13 @@ const PodmanHostOverview: FunctionComponent<
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
       const startDate: Date = dateRange.startValue;
       const endDate: Date = dateRange.endValue;
+      /*
+       * When OneUptime itself was not receiving data in this window, asked
+       * for alongside the metrics: those stretches are "Not monitored",
+       * never "Down" (issue #2825). Never rejects.
+       */
+      const receivingGapsPromise: Promise<Array<ReceivingGap>> =
+        fetchReceivingGaps({ startsAt: startDate, endsAt: endDate });
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -392,6 +447,13 @@ const PodmanHostOverview: FunctionComponent<
           aggregateBy: heartbeatAgg,
         }),
       ]);
+
+      const receivingGapsInWindow: Array<ReceivingGap> =
+        await receivingGapsPromise;
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -756,7 +818,9 @@ const PodmanHostOverview: FunctionComponent<
           windowStart: startDate,
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
+          receivingGaps: receivingGapsInWindow,
         });
+      setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
         availability.points.length > 0
           ? [{ seriesName: "Up", data: availability.points }]
@@ -767,7 +831,15 @@ const PodmanHostOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -789,9 +861,12 @@ const PodmanHostOverview: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchStatsRef.current().catch((err: Error) => {
-        setStatsError(API.getFriendlyMessage(err));
-      });
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (!fetchInFlightRef.current) {
+        fetchStatsRef.current().catch((err: Error) => {
+          setStatsError(API.getFriendlyMessage(err));
+        });
+      }
       setDetailsRefresher((prev: boolean) => {
         return !prev;
       });
@@ -881,7 +956,10 @@ const PodmanHostOverview: FunctionComponent<
     if (stats && stats.containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${stats.containerCount} container${stats.containerCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} container", other: "{{count}} containers" },
+          stats.containerCount,
+        ),
         description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containers,
       });
     }
@@ -953,7 +1031,9 @@ const PodmanHostOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1092,6 +1172,10 @@ const PodmanHostOverview: FunctionComponent<
     headerExtra?: ReactElement;
     // What the chart shows, in an (i) beside its title.
     description?: string | undefined;
+    // Shaded stretches, such as when OneUptime was not monitoring.
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    // false breaks the line where it has no points.
+    connectNulls?: boolean;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1102,6 +1186,8 @@ const PodmanHostOverview: FunctionComponent<
     curve?: ChartCurve;
     headerExtra?: ReactElement;
     description?: string | undefined;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       tileColorClasses[params.iconColor];
@@ -1114,7 +1200,7 @@ const PodmanHostOverview: FunctionComponent<
       return (
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
+            {translator.translateText(params.title)}
           </span>
           <InfoTooltip label={params.title} text={params.description} />
         </div>
@@ -1162,6 +1248,11 @@ const PodmanHostOverview: FunctionComponent<
       },
     };
 
+    /*
+     * No zoom handlers of its own: the chart takes the page's zoom
+     * (TimeRangeZoomScope below), so a drag retimes every card, tile and
+     * list on the page and a double-click puts the range back.
+     */
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -1184,6 +1275,8 @@ const PodmanHostOverview: FunctionComponent<
           syncid={`podman-overview-${modelId.toString()}`}
           heightInPx={180}
           showLegend={params.showLegend ?? false}
+          referenceRegions={params.referenceRegions}
+          connectNulls={params.connectNulls}
         />
       </div>
     );
@@ -1226,6 +1319,13 @@ const PodmanHostOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1239,23 +1339,35 @@ const PodmanHostOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
+    /*
+     * Each section names the drag-to-zoom gesture on the right of its
+     * heading, while the pointer is over the section (its `group`). Not in
+     * the cards' own headers: four resource cards share a row, and a hint
+     * there - invisible, yet still taking its width - pushed their titles
+     * onto two lines. Below lg the hint would wrap the subtitles when it
+     * grows to name the double-click, and tablets rarely hover anyway.
+     */
     return (
       <Fragment>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Whether this host&apos;s agent was sending metrics, over the
-                selected time range
+                {translator.translateText(
+                  "Whether this host's agent was sending metrics, over the selected time range",
+                )}
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Availability",
@@ -1265,19 +1377,24 @@ const PodmanHostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            referenceRegions: notMonitoredRegions,
+            connectNulls: false,
             description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Container resource usage
+                {translator.translateText("Container resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated across containers over the selected time range
+                {translator.translateText(
+                  "Aggregated across containers over the selected time range",
+                )}
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
@@ -1310,14 +1427,19 @@ const PodmanHostOverview: FunctionComponent<
             })}
           </div>
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Network</h2>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {translator.translateText("Network")}
+              </h2>
               <p className="text-xs text-gray-500">
-                Aggregate receive / transmit rate across all containers
+                {translator.translateText(
+                  "Aggregate receive / transmit rate across all containers",
+                )}
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Network",
@@ -1356,7 +1478,7 @@ const PodmanHostOverview: FunctionComponent<
         <Card
           title={
             <span className="inline-flex items-center gap-1.5">
-              {title}
+              {translator.translateText(title)}
               <InfoTooltip
                 label={title}
                 text={description}
@@ -1364,12 +1486,30 @@ const PodmanHostOverview: FunctionComponent<
               />
             </span>
           }
-          description={`Top ${rows.length} containers by ${metric === "cpu" ? "CPU" : "memory"} usage (last 5 minutes).`}
+          description={
+            metric === "cpu"
+              ? translator.translatePlural(
+                  {
+                    one: "Top {{count}} container by CPU usage (last 5 minutes).",
+                    other:
+                      "Top {{count}} containers by CPU usage (last 5 minutes).",
+                  },
+                  rows.length,
+                )
+              : translator.translatePlural(
+                  {
+                    one: "Top {{count}} container by memory usage (last 5 minutes).",
+                    other:
+                      "Top {{count}} containers by memory usage (last 5 minutes).",
+                  },
+                  rows.length,
+                )
+          }
         >
           <div className="divide-y divide-gray-200">
             {rows.length === 0 ? (
               <div className="py-4 text-sm text-gray-500">
-                No data available yet.
+                {translator.translateText("No data available yet.")}
               </div>
             ) : (
               rows.map((row: TopContainerRow) => {
@@ -1407,13 +1547,13 @@ const PodmanHostOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {renderList(
-          "Top CPU Consumers",
+          translationKey("Top CPU Consumers"),
           stats.topByCpu,
           "cpu",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topCpuConsumers,
         )}
         {renderList(
-          "Top Memory Consumers",
+          translationKey("Top Memory Consumers"),
           stats.topByMemory,
           "memory",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topMemoryConsumers,
@@ -1434,28 +1574,38 @@ const PodmanHostOverview: FunctionComponent<
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
             <div className="text-sm font-semibold text-gray-900">
-              Containers
+              {translator.translateText("Containers")}
             </div>
             <div className="text-xs text-gray-500">
-              Live list of running containers with CPU, memory, and network.
+              {translator.translateText(
+                "Live list of running containers with CPU, memory, and network.",
+              )}
             </div>
           </Link>
           <Link
             to={metricsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Metrics</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Metrics")}
+            </div>
             <div className="text-xs text-gray-500">
-              Aggregated CPU, memory, network, and process charts.
+              {translator.translateText(
+                "Aggregated CPU, memory, network, and process charts.",
+              )}
             </div>
           </Link>
           <Link
             to={logsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Logs</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Logs")}
+            </div>
             <div className="text-xs text-gray-500">
-              Structured container logs ingested via OpenTelemetry.
+              {translator.translateText(
+                "Structured container logs ingested via OpenTelemetry.",
+              )}
             </div>
           </Link>
         </div>
@@ -1463,9 +1613,35 @@ const PodmanHostOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Drag-to-zoom (issue #4105): a drag on any chart sets the page's range
+   * to the window dragged out, so every chart, tile, consumer list and the
+   * uptime badge refetch for it; a double-click on any chart, or Reset
+   * zoom beside the hero's picker, puts back the range from before the
+   * first zoom. Picking a range in the picker simply ends the zoom.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      {host ? (
+        <ResourceConnectionGuideCard
+          status={host.otelCollectorStatus as string | undefined}
+          lastSeenAt={host.lastSeenAt}
+          guide={getPodmanHostConnectionGuide(
+            (host.hostIdentifier as string | undefined) ||
+              (host.name as string | undefined) ||
+              "",
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      ) : (
+        <></>
+      )}
       {renderSummaryCards()}
       <ResourceActivityCards
         modelId={modelId}
@@ -1492,7 +1668,16 @@ const PodmanHostOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Podman Host Details",
-          description: "Overview of this Podman host.",
+          // Edited in one place: the same card on the host's Settings page.
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PODMAN_HOST_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
         modelDetailProps={{
           modelType: PodmanHost,
@@ -1503,7 +1688,7 @@ const PodmanHostOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
               showIf: (item: PodmanHost): boolean => {
                 return Boolean(item.name);
@@ -1523,7 +1708,7 @@ const PodmanHostOverview: FunctionComponent<
               field: {
                 hostIdentifier: true,
               },
-              title: "Host Identifier",
+              title: "Host Name (host.name)",
               fieldType: FieldType.Text,
               showIf: (item: PodmanHost): boolean => {
                 return Boolean(item.hostIdentifier);
@@ -1594,10 +1779,25 @@ const PodmanHostOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: PodmanHost): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * agent; the podman run command is in the host's setup guide.
+               */
+              getElement: (item: PodmanHost): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.PodmanAgent}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                  />
+                );
               },
             },
             {
@@ -1623,7 +1823,17 @@ const PodmanHostOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+
+      {/*
+       * Last on the page: the Podman AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.PodmanHost)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

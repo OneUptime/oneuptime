@@ -5,6 +5,7 @@ import {
   evaluateFilter,
 } from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
 import { JSONObject } from "Common/Types/JSON";
+import { LinearRegExpHandle } from "Common/Utils/LinearRegExp/PatternCache";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -12,7 +13,7 @@ import { describe, expect, test } from "@jest/globals";
  * evaluator (drop filters, pipeline filters, category processors).
  *
  * The evaluator is two-stage by design: compileFilter precomputes
- * likeSubstring / likeRegex once per rule load, and the per-record
+ * likeSubstring / likePattern once per rule load, and the per-record
  * evaluation must READ those precompiled forms instead of re-escaping the
  * pattern and constructing a fresh RegExp per record — that rebuild in the
  * hottest ingest loop is exactly what the compile stage exists to remove,
@@ -106,7 +107,7 @@ describe("LIKE with % (SQL wildcard semantics)", () => {
 describe("per-record evaluation reads the precompiled forms (mutation guard)", () => {
   type LikeComparison = {
     likeSubstring?: string;
-    likeRegex?: RegExp | null;
+    likePattern?: LinearRegExpHandle | null;
   };
 
   function comparisonOf(filter: CompiledFilter): LikeComparison {
@@ -128,13 +129,16 @@ describe("per-record evaluation reads the precompiled forms (mutation guard)", (
     expect(evaluateCompiledFilter(row("has tampered text"), filter)).toBe(true);
   });
 
-  test("wildcard path uses comp.likeRegex, not a per-record rebuild", () => {
+  test("wildcard path uses comp.likePattern, not a per-record rebuild", () => {
     const filter: CompiledFilter = compile("body LIKE 'orig%'");
 
     expect(evaluateCompiledFilter(row("original"), filter)).toBe(true);
 
-    // Tamper with the precompiled regex; the raw value still says 'orig%'.
-    comparisonOf(filter).likeRegex = /^tampered$/i;
+    // Tamper with the precompiled pattern; the raw value still says 'orig%'.
+    comparisonOf(filter).likePattern = new LinearRegExpHandle(
+      "^tampered$",
+      "i",
+    );
 
     expect(evaluateCompiledFilter(row("original"), filter)).toBe(false);
     expect(evaluateCompiledFilter(row("TAMPERED"), filter)).toBe(true);

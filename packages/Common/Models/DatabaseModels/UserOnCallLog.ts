@@ -35,8 +35,14 @@ import AlertEpisode from "./AlertEpisode";
 import IncidentEpisode from "./IncidentEpisode";
 import Alert from "./Alert";
 
+/*
+ * A person's own log of the notifications sent to them: read by that person
+ * (CurrentUser) whether or not they may read the on-call policy that paged
+ * them, so reading the policy is optional (isParentReadOptional). A caller
+ * who may read policies reaches the logs of the policies they may read.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("onCallDutyPolicy")
+@CanAccessIfCanReadOn("onCallDutyPolicy", { isParentReadOptional: true })
 @CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableBillingAccessControl({
@@ -226,6 +232,12 @@ export default class UserOnCallLog extends BaseModel {
   @JoinColumn({ name: "onCallDutyPolicyId" })
   public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
 
+  /*
+   * Empty for a direct page: a person paged by name, as a member of a team
+   * or as whoever is on call in a schedule, with no on-call policy behind
+   * the page (Types/OnCallDutyPolicy/OnCallDirectPage). Not `required`, so
+   * such a log passes DatabaseService.checkRequiredFields.
+   */
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -234,16 +246,15 @@ export default class UserOnCallLog extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
     description:
-      "ID of your On-Call Policy which belongs to this execution log event.",
+      "ID of your On-Call Policy which belongs to this execution log event. Empty when the person was paged directly, without an on-call policy.",
     example: "9e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -326,6 +337,7 @@ export default class UserOnCallLog extends BaseModel {
   public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
     undefined;
 
+  // Empty for a direct page, which has no escalation rules (see onCallDutyPolicyId).
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -334,16 +346,15 @@ export default class UserOnCallLog extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of your On-Call Policy Escalation Rule which belongs to this log event.",
+      "ID of your On-Call Policy Escalation Rule which belongs to this log event. Empty when the person was paged directly, without an on-call policy.",
     example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
@@ -885,7 +896,8 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Overridden by User",
-    description: "Relation to User who overrode this alert",
+    description:
+      "The user this alert would have paged, when a user override sent it to this log's user instead because they were away. Empty when no override applied.",
   })
   @ManyToOne(
     () => {
@@ -909,7 +921,8 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Overridden by User ID",
-    description: "User ID who overrode this alert",
+    description:
+      "ID of the user this alert would have paged, when a user override sent it to this log's user instead because they were away. Empty when no override applied.",
     example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({

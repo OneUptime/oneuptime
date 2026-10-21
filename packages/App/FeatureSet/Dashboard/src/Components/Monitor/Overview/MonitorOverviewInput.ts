@@ -15,8 +15,13 @@ import MonitorOverviewProbeUtil, {
   MonitorOverviewProbeSummary,
 } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
+import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import { OverviewSection } from "../../../Utils/OverviewSection";
 import { MonitorOverviewProbeData } from "./MonitorOverviewTypes";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Turns what the overview's data hook loaded into the input of
@@ -90,7 +95,7 @@ export function getCurrentStatusRef(
 
   return {
     id: getCurrentStatusId(monitor) || "",
-    name: status.name || "Unknown status",
+    name: status.name || translateTemplate("Unknown status"),
     color: MonitorStatusHistoryUtil.normalizeColor(status.color),
     isOperationalState: Boolean(status.isOperationalState),
     isOfflineState: Boolean(status.isOfflineState),
@@ -104,6 +109,7 @@ export function getCurrentStatusRef(
  */
 export function isMonitorScheduled(monitor: Monitor): boolean {
   return !(
+    Boolean(monitor.isArchived) ||
     Boolean(monitor.disableActiveMonitoring) ||
     Boolean(monitor.disableActiveMonitoringBecauseOfManualIncident) ||
     Boolean(monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent)
@@ -220,7 +226,9 @@ export function getTelemetryLastCheckedAt(data: {
 export function getTelemetryLastCheckedLabel(data: {
   evaluation: OverviewSection<MonitorEvaluationByProbe>;
 }): string {
-  return data.evaluation.value?.latestAt ? "Evaluated At" : "Scheduled At";
+  return data.evaluation.value?.latestAt
+    ? translationKey("Evaluated At")
+    : translationKey("Scheduled At");
 }
 
 /*
@@ -346,6 +354,7 @@ export function toPresentationInput(data: {
       now: data.now,
     }),
     pause: {
+      isArchived: Boolean(monitor.isArchived),
       isDisabled: Boolean(monitor.disableActiveMonitoring),
       byManualIncident: Boolean(
         monitor.disableActiveMonitoringBecauseOfManualIncident,
@@ -411,5 +420,16 @@ export function toPresentationInput(data: {
     latestEvaluationAt: data.evaluation.value?.latestAt,
     evaluationStatus: data.evaluation.status,
     minimumProbeAgreement: toFiniteNumber(monitor.minimumProbeAgreement),
+    /*
+     * A Probe Status monitor's probes, as the newest log row found them:
+     * the same row the Summary card draws, so the hero's "Latest result"
+     * and the card never disagree.
+     */
+    probeStatus:
+      monitor.monitorType === MonitorType.ProbeStatus
+        ? ProbeStatusMonitorUtil.parseResponse(
+            data.evaluation.value?.latestLogBody,
+          ) || undefined
+        : undefined,
   };
 }

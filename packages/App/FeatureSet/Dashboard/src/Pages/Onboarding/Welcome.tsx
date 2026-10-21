@@ -21,6 +21,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends PageComponentProps {
   onClickShowProjectModal: () => void;
@@ -29,6 +31,7 @@ export interface ComponentProps extends PageComponentProps {
 const Welcome: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [canCreateProject, setCanCreateProject] = useState<boolean>(true);
 
   /*
@@ -107,7 +110,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
             id="create-project-alternative"
           >
             <p className="text-sm text-gray-500">
-              Or start a project of your own.
+              {translator.translateText("Or start a project of your own.")}
             </p>
             <div className="mt-3 flex justify-center">
               {/*
@@ -136,18 +139,23 @@ const Welcome: FunctionComponent<ComponentProps> = (
           <EmptyState
             id="empty-state-project-creation-restricted"
             icon={IconProp.Lock}
-            title={"Project creation restricted"}
+            title={"Ask to join a project"}
             description={
               <>
-                Creating new projects is restricted to admin users on this
-                OneUptime Server. Please contact your server admin to be added
-                to an existing project.
+                {translator.translateText(
+                  "Only admins can create projects on this server. Ask your server admin to add you to one.",
+                )}
               </>
             }
           />
         );
       }
 
+      /*
+       * Someone who has just signed up does not know what a project is, and
+       * this page is all they see. Say it - in the words the create project
+       * dialog uses - rather than only that they have none.
+       */
       return (
         <EmptyState
           id="empty-state-no-projects"
@@ -155,8 +163,14 @@ const Welcome: FunctionComponent<ComponentProps> = (
           title={"No projects"}
           description={
             <>
-              Get started by creating a new project.{" "}
-              {BILLING_ENABLED && <span> No credit card required.</span>}
+              {translator.translateText(
+                "A project holds your monitors, incidents, status pages and team.",
+              )}{" "}
+              {BILLING_ENABLED && (
+                <span>
+                  {translator.translateText("No credit card required.")}
+                </span>
+              )}
             </>
           }
           footer={

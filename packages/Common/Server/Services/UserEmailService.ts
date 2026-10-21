@@ -13,7 +13,9 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
-import ChannelVerification from "../Utils/ChannelVerification";
+import ChannelVerification, {
+  ChannelVerificationStatus,
+} from "../Utils/ChannelVerification";
 import Model from "../../Models/DatabaseModels/UserEmail";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -26,18 +28,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The methods the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const item of itemsToDelete) {
       await UserNotificationRuleService.deleteBy({
@@ -101,9 +99,21 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      // issue and send the first verification code
-      const plainCode: string =
-        await this.issueAndSendVerificationCode(createdItem);
+      /*
+       * Issue and send the first verification code - for a member of the
+       * address's project only, as every code is, or no address
+       * (ChannelVerification.sendFirstCodeOrRemoveItem).
+       */
+      let plainCode: string = "";
+
+      await ChannelVerification.sendFirstCodeOrRemoveItem({
+        service: this,
+        itemId: createdItem.id!,
+        item: createdItem,
+        issueAndSend: async (): Promise<void> => {
+          plainCode = await this.issueAndSendVerificationCode(createdItem);
+        },
+      });
 
       /*
        * TEST-ONLY seam, OFF unless explicitly switched on.
@@ -133,6 +143,27 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  /*
+   * Where this address's code stands, for its owner's verify dialog
+   * (ChannelVerification.getStatus). The item is read by the caller, who
+   * has already checked whose it is.
+   *
+   * Nothing is said to stand in the way of an email: the mail service
+   * decides how to send it (the server's SMTP, the project's, or
+   * OneUptime's own), and the code still goes out fire-and-forget - the
+   * end-to-end stack, which has no mailbox, confirms addresses with the
+   * code it is handed (onCreateSuccess) whether or not the mail went out.
+   */
+  @CaptureSpan()
+  public async getVerificationStatus(
+    item: Model,
+  ): Promise<ChannelVerificationStatus> {
+    return ChannelVerification.getStatus({
+      item: item,
+      cannotSendReason: null,
+    });
+  }
+
   @CaptureSpan()
   public async resendVerificationCode(itemId: ObjectID): Promise<void> {
     const item: Model | null = await this.findOneById({
@@ -154,6 +185,16 @@ export class Service extends DatabaseService<Model> {
         "Item with ID " + itemId.toString() + " not found",
       );
     }
+
+    /*
+     * Only for a member of the row's project: anybody else's row is answered
+     * as one that does not exist, before the project is asked whether it can
+     * send (ChannelVerification.assertOwnerIsProjectMember).
+     */
+    await ChannelVerification.assertOwnerIsProjectMember({
+      item: item,
+      itemId: itemId,
+    });
 
     if (item.isVerified) {
       throw new BadDataException("Email already verified");

@@ -154,6 +154,26 @@ export function titlesInMenu(): Array<string> {
   });
 }
 
+/*
+ * The entries the menu marks as the page you are on: the tinted row with the
+ * rail (SideMenuItem's active classes). Exactly one on any of its pages.
+ */
+export function activeLinkTitles(): Array<string> {
+  return sectionTitlesInOrder().flatMap((title: string): Array<string> => {
+    return Array.from(sectionRoot(title).querySelectorAll("a"))
+      .filter((anchor: HTMLAnchorElement): boolean => {
+        return anchor.className.split(/\s+/).includes("bg-indigo-50");
+      })
+      .map((anchor: HTMLAnchorElement): string => {
+        return (
+          anchor.querySelector("span.truncate")?.textContent ??
+          anchor.textContent ??
+          ""
+        ).trim();
+      });
+  });
+}
+
 // Every anchor in a section carries an icon, rendered as an inline <svg>.
 export function iconCountIn(title: string): number {
   return Array.from(sectionRoot(title).querySelectorAll("a")).filter(

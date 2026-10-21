@@ -11,6 +11,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getBigIntDatabaseTransformer } from "../../Types/Database/BigIntColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -22,6 +23,9 @@ import Permission from "../../Types/Permission";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../Types/AI/FixPullRequestCiStatus";
 import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
+import FixProductionStatus from "../../Types/AI/FixProductionStatus";
+import FixProductionCheck from "../../Types/AI/FixProductionCheck";
+import FixProductionBaseline from "../../Types/AI/FixProductionBaseline";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 
@@ -445,14 +449,21 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     required: false,
-    type: TableColumnType.Number,
+    type: TableColumnType.BigPositiveNumber,
     canReadOnRelationQuery: true,
     title: "Pull Request ID",
     description: "The unique ID of the pull request from the hosting platform.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Number,
+    /*
+     * bigint: GitHub's pull request IDs passed 2^31 long ago (4885508095 is
+     * a real one), so an integer column refused every pull request the agent
+     * opened and the run reported "Failed to record pull request" for work
+     * it had done.
+     */
+    type: ColumnType.BigPositiveNumber,
+    transformer: getBigIntDatabaseTransformer(),
   })
   public pullRequestId?: number = undefined;
 
@@ -622,6 +633,251 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     length: ColumnLength.LongText,
   })
   public runnerVerificationSummary?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Merge Commit SHA",
+    description:
+      "The commit GitHub merged the pull request as. The fix is in production once a recorded deploy contains this commit. Written by the server when the pull request merges.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mergeCommitSha?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Merged At",
+    description: "When GitHub merged the pull request. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public mergedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Production Status",
+    description:
+      "Whether the merged fix worked in production: AwaitingDeploy, Watching, Verified, Regressed or Unverifiable. Written by the server, which watches what the fix was for (Production Check) once a recorded deploy contains the fix.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public productionStatus?: FixProductionStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Production Status At",
+    description:
+      "When the production status last changed. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public productionStatusAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Deployed At",
+    description:
+      "When the first recorded deploy that contains the fix ran. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public deployedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Deployed Version",
+    description:
+      "The version that deploy reported, when it reported one. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public deployedVersion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Deployed Commit SHA",
+    description:
+      "The commit that deploy ran: the fix's merge commit or a later one. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public deployedCommitSha?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Production Summary",
+    description:
+      "What the production check found, in a sentence: the deploy that shipped the fix and what it measured before and since. Written by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public productionSummary?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Production Check",
+    description:
+      "What production is watched for once the fix merges: Exception (the exception stops), Performance (the operation it names gets faster), Recurrence (the monitor stops raising incidents or alerts) or Telemetry (the spans and log fields it adds arrive). Empty on a watched fix of an exception from before the column existed. Written by the server when the pull request merges.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public productionCheck?: FixProductionCheck = undefined;
+
+  /*
+   * What the production check measured before the merge
+   * (Types/AI/FixProductionBaseline). Server-only like AIRun.taskContext:
+   * it holds span names, attribute keys and log bodies, whose telemetry
+   * read permissions are narrower than this table's.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Production Baseline",
+    description:
+      "Internal: what the production check measured in the time before the merge - the p99 of the operation a performance fix names, how often the monitor raised incidents or alerts, or what a telemetry improvement adds that was not there yet. Written by the server on the fix's first check.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public productionBaseline?: FixProductionBaseline = undefined;
 
   @ColumnAccessControl({
     create: [

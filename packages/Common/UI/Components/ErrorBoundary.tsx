@@ -1,4 +1,7 @@
 import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
+import { Translator } from "../Utils/TranslateTemplate";
+import useTranslator from "../Utils/UseTranslator";
+import TranslatedSentence from "./TranslatedSentence/TranslatedSentence";
 import React, {
   ErrorInfo,
   FunctionComponent,
@@ -585,6 +588,7 @@ export const SUPPORT_EMAIL: string = "support@oneuptime.com";
 export const Fallback: FunctionComponent<FallbackComponentProps> = (
   props: FallbackComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [supportBundleStatus, setSupportBundleStatus] =
     useState<SupportBundleStatus | null>(null);
   const errorMessage: string =
@@ -611,7 +615,9 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
       setSupportBundleStatus({
         type: "success",
         message:
-          "Support bundle downloaded. Review it, then attach it to your email.",
+          translator.translateText(
+            "Support bundle downloaded. Review it, then attach it to your email.",
+          ) || "",
       });
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -619,7 +625,9 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
       setSupportBundleStatus({
         type: "error",
         message:
-          "The support bundle could not be downloaded. Please try again.",
+          translator.translateText(
+            "The support bundle could not be downloaded. Please try again.",
+          ) || "",
       });
     }
   };
@@ -633,9 +641,13 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
       <div className="oueb-card">
         <div className="oueb-badge">{getIcon(ALERT_ICON_PATH)}</div>
         <div role="alert">
-          <h1 className="oueb-title">Something went wrong</h1>
+          <h1 className="oueb-title">
+            {translator.translateText("Something went wrong")}
+          </h1>
           <p className="oueb-message">
-            An unexpected error has occurred. Please reload the page to continue
+            {translator.translateText(
+              "An unexpected error has occurred. Please reload the page to continue",
+            )}
           </p>
         </div>
         <div className="oueb-actions">
@@ -648,7 +660,7 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
             }}
           >
             {getIcon(RELOAD_ICON_PATH)}
-            Reload page
+            {translator.translateText("Reload page")}
           </button>
           <button
             type="button"
@@ -658,16 +670,17 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
               props.resetErrorBoundary();
             }}
           >
-            Try again
+            {translator.translateText("Try again")}
           </button>
         </div>
         <div className="oueb-support">
-          <p className="oueb-support-title">Still stuck?</p>
+          <p className="oueb-support-title">
+            {translator.translateText("Still stuck?")}
+          </p>
           <p className="oueb-support-text">
-            Download a local diagnostics file with the error stack, component
-            stack, scrubbed page URL, browser details, and OneUptime build. It
-            never reads cookies, saved browser data, or form contents. Review it
-            before sharing it with OneUptime Support.
+            {translator.translateText(
+              "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
+            )}
           </p>
           <div className="oueb-support-actions">
             <button
@@ -677,20 +690,26 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
               onClick={downloadSupportBundle}
             >
               {getIcon(DOWNLOAD_ICON_PATH)}
-              Download support bundle
+              {translator.translateText("Download support bundle")}
             </button>
           </div>
           <p className="oueb-support-email">
             {getIcon(MAIL_ICON_PATH)}
             <span>
-              Send it to{" "}
-              <a
-                className="oueb-link"
-                data-testid="error-boundary-support-email"
-                href={`mailto:${SUPPORT_EMAIL}`}
-              >
-                {SUPPORT_EMAIL}
-              </a>
+              <TranslatedSentence
+                template="Send it to {{email}}"
+                slots={{
+                  email: (
+                    <a
+                      className="oueb-link"
+                      data-testid="error-boundary-support-email"
+                      href={`mailto:${SUPPORT_EMAIL}`}
+                    >
+                      {SUPPORT_EMAIL}
+                    </a>
+                  ),
+                }}
+              />
             </span>
           </p>
           <div
@@ -709,7 +728,7 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
           <details className="oueb-details">
             <summary>
               {getIcon(CHEVRON_ICON_PATH)}
-              Error details
+              {translator.translateText("Error details")}
             </summary>
             <pre
               data-testid="error-boundary-error-message"

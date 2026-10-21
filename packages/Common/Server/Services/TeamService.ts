@@ -6,6 +6,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { BUILT_IN_TEAM_DELETE_MESSAGE } from "../../Types/Team/BuiltInTeam";
 import Model from "../../Models/DatabaseModels/Team";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
@@ -13,7 +14,6 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
 import ProjectSCIMService from "./ProjectSCIMService";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 
 export class Service extends DatabaseService<Model> {
@@ -134,17 +134,13 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     // get teams by query.
 
-    const teams: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    const teams: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         name: true,
         isTeamEditable: true,
       },
-
-      props: updateBy.props,
-    });
+    );
 
     for (const team of teams) {
       if (!team.isTeamEditable) {
@@ -163,19 +159,20 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const teams: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    /*
+     * The teams the delete removes - the ones the caller may delete, in the
+     * delete's own window - and the delete held to them: only their
+     * memberships are removed below.
+     */
+    const teams: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         name: true,
         isTeamDeleteable: true,
         projectId: true,
       },
-
-      props: deleteBy.props,
-    });
+    );
 
     const projectIds: Array<ObjectID> = teams
       .map((team: Model) => {
@@ -194,11 +191,12 @@ export class Service extends DatabaseService<Model> {
 
     for (const team of teams) {
       if (!team.isTeamDeleteable) {
-        throw new BadDataException(
-          `${
-            team.name || "This"
-          } team cannot be deleted its a critical team for this project.`,
-        );
+        /*
+         * The words the Teams list's locked Delete says before anyone
+         * clicks (BuiltInTeam): a bulk Delete lists this team, by name,
+         * with them.
+         */
+        throw new BadDataException(BUILT_IN_TEAM_DELETE_MESSAGE);
       }
     }
 
@@ -224,21 +222,6 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (teamIds.length > 0) {
-      /*
-       * DatabaseService checks DELETE permission AFTER this hook runs, and the
-       * lookup above only needed READ permission. Since we are about to delete
-       * rows on the caller's behalf, check the caller's delete permission on
-       * Team FIRST — otherwise someone who may read teams but not delete them
-       * would still wipe every membership before being refused. The framework
-       * re-runs the same check on the untouched query straight after, so this
-       * changes nothing for a caller who is allowed.
-       */
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
       await TeamMemberService.deleteBy({
         query: {
           teamId: QueryHelper.any(teamIds),

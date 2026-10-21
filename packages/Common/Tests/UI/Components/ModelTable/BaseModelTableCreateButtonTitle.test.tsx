@@ -16,8 +16,10 @@ import {
  * be translated one word at a time, so a table with createVerb "Link" read
  * "Link" out of context - most locales translated it as the noun ("a link"),
  * and a verb-noun phrase does not keep English word order in many languages
- * either. The whole phrase is now looked up first and the word-by-word join
- * is only the fallback. Translation is mocked with a dictionary per test.
+ * either. The whole phrase is looked up first; then the verb's template
+ * ("Invite {{itemName}}") with the model's translated name in it; a locale
+ * with neither reads the English button, never words glued together.
+ * Translation is mocked with a dictionary per test.
  */
 
 let dictionary: Record<string, string> = {};
@@ -209,7 +211,19 @@ describe("BaseModelTable header create button title", () => {
     expect(lookedUp).toContain("Link Alert");
   });
 
-  test("falls back to word by word when the phrase has no translation", async () => {
+  test("falls back to the verb's template, with the name translated into it", async () => {
+    dictionary = {
+      "Invite {{itemName}}": "{{itemName}} einladen",
+      Member: "Mitglied",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Invite", singularName: "Member" }),
+    ).toBe("Mitglied einladen");
+    expect(lookedUp).toContain("Invite Member");
+  });
+
+  test("stays English when the locale has neither the phrase nor the template", async () => {
     dictionary = {
       Invite: "Einladen",
       Member: "Mitglied",
@@ -217,7 +231,56 @@ describe("BaseModelTable header create button title", () => {
 
     expect(
       await renderedTitle({ createVerb: "Invite", singularName: "Member" }),
-    ).toBe("Einladen Mitglied");
+    ).toBe("Invite Member");
+  });
+
+  test("keeps the English name when only the template is translated", async () => {
+    dictionary = {
+      "Link {{itemName}}": "{{itemName}} verknüpfen",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Link", singularName: "Alert" }),
+    ).toBe("Alert verknüpfen");
+  });
+
+  test("a verb with no template of its own only has its words reordered", async () => {
+    dictionary = {
+      Assign: "Zuweisen",
+      Owner: "Besitzer",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Assign", singularName: "Owner" }),
+    ).toBe("Zuweisen Besitzer");
+  });
+
+  test("a verb with no template of its own still has its whole phrase looked up first", async () => {
+    dictionary = {
+      "Assign Owner": "Besitzer zuweisen",
+      Assign: "Zuweisen",
+      Owner: "Besitzer",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Assign", singularName: "Owner" }),
+    ).toBe("Besitzer zuweisen");
+  });
+
+  test("a verb with no template of its own reads the same in English", async () => {
+    expect(
+      await renderedTitle({ createVerb: "Assign", singularName: "Owner" }),
+    ).toBe("Assign Owner");
+  });
+
+  test("a blank name leaves the verb on its own", async () => {
+    dictionary = {
+      Invite: "Einladen",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Invite", singularName: " " }),
+    ).toBe("Einladen");
   });
 
   test("reads the same in English, where the phrase maps to itself", async () => {
@@ -246,12 +309,21 @@ describe("BaseModelTable header create button title", () => {
     expect(await renderedTitle({})).toBe("Monitor erstellen");
   });
 
-  test("defaults still translate word by word without a phrase entry", async () => {
+  test("defaults to the Create template without a phrase entry", async () => {
+    dictionary = {
+      "Create {{itemName}}": "{{itemName}} erstellen",
+      Monitor: "Überwachung",
+    };
+
+    expect(await renderedTitle({})).toBe("Überwachung erstellen");
+  });
+
+  test("never glues the words of the default verb either", async () => {
     dictionary = {
       Create: "Erstellen",
     };
 
-    expect(await renderedTitle({})).toBe("Erstellen Monitor");
+    expect(await renderedTitle({})).toBe("Create Monitor");
   });
 
   test("still opens the page's own create flow", async () => {

@@ -7,6 +7,10 @@ import API from "Common/Utils/API";
 import ObjectID from "Common/Types/ObjectID";
 import TelegramMessage from "Common/Types/Telegram/TelegramMessage";
 import TelegramStatus from "Common/Types/TelegramStatus";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import TelegramService from "../../FeatureSet/Notification/Services/TelegramService";
 
@@ -30,7 +34,19 @@ jest.mock("../../FeatureSet/Notification/Config", () => {
 });
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
-  return { IsBillingEnabled: true };
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("Common/Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
+  ).default;
+
+  return {
+    IsBillingEnabled: true,
+    // Where the owners' notice links to the switch.
+    DashboardClientUrl: URLType.fromString(
+      "https://oneuptime.example.com/dashboard",
+    ),
+  };
 });
 
 jest.mock("Common/Server/Services/NotificationService", () => {
@@ -47,6 +63,8 @@ jest.mock("Common/Server/Services/ProjectService", () => {
       findOneById: jest.fn(),
       sendEmailToProjectOwners: jest.fn(),
       updateOneById: jest.fn(),
+      claimSmsOrCallLowBalanceNotice: jest.fn(),
+      deductSmsOrCallBalanceInUSDCents: jest.fn(),
     },
   };
 });
@@ -61,7 +79,7 @@ jest.mock("Common/Server/Services/TelegramLogService", () => {
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
-    default: { updateOneById: jest.fn() },
+    default: { updateOneById: jest.fn(), markNotSent: jest.fn() },
   };
 });
 
@@ -198,7 +216,12 @@ describe("TelegramService credential containment", () => {
     expect(persistedLog.status).toBe(TelegramStatus.Error);
     expect(persistedLog.telegramCostInUSDCents).toBe(0);
     expect(persistedLog.statusMessage).toBe(
-      "Telegram notifications are not enabled for this project. Please enable Telegram notifications in Project Settings.",
+      getProjectNotificationChannelOffMessage(
+        ProjectNotificationChannel.Telegram,
+      ),
+    );
+    expect(persistedLog.statusMessage).toBe(
+      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     );
   });
 
@@ -222,7 +245,11 @@ describe("TelegramService credential containment", () => {
     expect(serializedOwnerEmail).not.toContain(CHAT_ID);
     expect(serializedOwnerEmail).not.toContain(MESSAGE_BODY);
     expect(serializedOwnerEmail).toContain(
-      "Telegram notifications are disabled",
+      "A Telegram notification was not sent. Telegram is off in this project. If it should be on, turn it on in Project Settings &gt; Notifications &gt; Notification Settings.",
+    );
+    // And the switch, one click away: the owners may flip it.
+    expect(serializedOwnerEmail).toContain(
+      `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`,
     );
   });
 
@@ -262,15 +289,21 @@ describe("TelegramService credential containment", () => {
         }),
       }),
     );
-    expect(ProjectService.updateOneById).toHaveBeenCalledTimes(1);
-    expect(ProjectService.updateOneById).toHaveBeenCalledWith({
-      id: PROJECT_ID,
-      data: {
-        smsOrCallCurrentBalanceInUSDCents: 9_999,
-        notEnabledSmsOrCallNotificationSentToOwners: false,
-      },
-      props: { isRoot: true },
+    /*
+     * Paid once, in one statement that takes the cost from whatever the
+     * balance is now (it used to write back the balance it read, less the
+     * cost, which lost whatever else wrote it meanwhile).
+     */
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 1,
     });
+    expect(ProjectService.updateOneById).not.toHaveBeenCalled();
     expect(TelegramLogService.create).toHaveBeenCalledTimes(1);
     const persistedLog: TelegramLog = (
       TelegramLogService.create as unknown as jest.Mock
@@ -285,6 +318,9 @@ describe("TelegramService credential containment", () => {
     expect(ProjectService.findOneById).not.toHaveBeenCalled();
     expect(NotificationService.rechargeIfBalanceIsLow).not.toHaveBeenCalled();
     expect(ProjectService.updateOneById).not.toHaveBeenCalled();
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).not.toHaveBeenCalled();
     expect(ProjectService.sendEmailToProjectOwners).not.toHaveBeenCalled();
     expect(API.post).toHaveBeenCalledTimes(1);
     expect(TelegramLogService.create).not.toHaveBeenCalled();

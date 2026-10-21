@@ -125,6 +125,34 @@ export function resolveInitialSavedView<T>(
 }
 
 /**
+ * Whether resolveInitialSavedView could apply a view for this link and host,
+ * before the saved views are known: true when some list of views would make
+ * it apply one. A link that names a view may get it; a link with no scope of
+ * its own, outside a host that owns the view, may get the project default.
+ * Nothing applies anywhere else, whatever the views are.
+ *
+ * An explorer that waits for its saved views before its first reads uses
+ * this to decide whether to wait at all (issue #4709): reading first and
+ * applying the view after sent every read twice, and showed rows the view
+ * then replaced. Where no view can apply there is nothing to wait for.
+ */
+export function mayApplyInitialSavedView(
+  input: Pick<
+    InitialSavedViewInput<unknown>,
+    "urlSavedViewId" | "hasUrlScope" | "hostOwnsView"
+  >,
+): boolean {
+  const urlSavedViewId: string =
+    typeof input.urlSavedViewId === "string" ? input.urlSavedViewId.trim() : "";
+
+  if (urlSavedViewId.length > 0) {
+    return true;
+  }
+
+  return !input.hostOwnsView && !input.hasUrlScope;
+}
+
+/**
  * The URL's own scope, shaped as saved-view state, for layering over a view
  * that the same URL named.
  *

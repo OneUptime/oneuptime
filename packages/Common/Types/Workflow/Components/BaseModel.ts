@@ -1,11 +1,32 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
+import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
+import {
+  WHAT_HAPPENED_ID,
+  WHAT_HAPPENED_NAME,
+  WhatHappened,
+  getCreateOrUpdateTriggerId,
+  hasCreateOrUpdateTrigger,
+} from "../CreateOrUpdateTrigger";
+import {
+  DatabaseOperation,
+  getDatabaseOperation,
+  WRITE_DATABASE_OPERATIONS,
+} from "../DatabaseOperation";
 import ComponentMetadata, {
+  Argument,
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+
+/*
+ * What the record triggers' and Find steps' field lists are called, wherever
+ * they are named: the settings dialog, the step's help, the run log, and the
+ * value picker's note on a field a step does not pass on.
+ */
+export const SELECT_FIELDS_NAME: string = "Fields to pass on";
+export const WATCHED_FIELDS_NAME: string = "Fields to watch";
 
 export default class BaseModelComponent {
   public static getComponents(model: BaseModel): Array<ComponentMetadata> {
@@ -21,11 +42,12 @@ export default class BaseModelComponent {
      * is called everywhere else in the product - when the column is "_id".
      * Both spellings work.
      *
-     * Query, Select and the write payload all get an editor backed by the
-     * model's real column list, so the names are offered rather than
-     * remembered. The hint stays because those editors keep a JSON escape
-     * hatch for values rows cannot express, and because it is still the only
-     * thing explaining the two spellings.
+     * Query, the field lists and the write payload all get an editor backed
+     * by the model's real column list, so the names are offered rather than
+     * remembered. The hint stays on Query and the payload because their
+     * editors keep a JSON escape hatch for values rows cannot express, and
+     * because it is still the only thing explaining the two spellings. The
+     * field lists say it in their own JSON view instead (ModelFieldPicker).
      */
     const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
 
@@ -35,6 +57,45 @@ export default class BaseModelComponent {
       'Example: {"_id": "00000000-0000-0000-0000-000000000000"}';
 
     const selectPlaceholder: string = 'Example: {"_id": true, "name": true}';
+
+    /*
+     * The record triggers' and Find steps' two field lists, in words a
+     * first-time builder reads without the docs. "Listen on" and "Select
+     * Fields" were the maintainer's "very confusing" pair: two identical
+     * checkbox lists under SQL-ish names, with column keys in their help.
+     * Each now says what it decides and what leaving it empty means. The
+     * column keys only matter to someone editing the JSON, which says so
+     * itself (ModelFieldPicker); the finer points of a change are in the
+     * step's How to use (DatabaseDocumentation).
+     */
+    const selectDescription: string = `The ${model.singularName} fields the next steps can use. A field you leave out is empty in later steps.`;
+
+    const listenOnDescription: string = `Run only when an update changes one of these fields. Leave it empty to run on every change to the ${model.singularName}.`;
+
+    /*
+     * The same list on On Create or Update, which a create always runs:
+     * Fields to watch is about updates only.
+     */
+    const createOrUpdateListenOnDescription: string = `Run on an update only when it changes one of these fields. A new ${model.singularName} always runs this workflow. Leave it empty to run on every change.`;
+
+    /*
+     * What every record trigger asks Run Workflow for: the record to run
+     * with. The panel finds it by its number or name (RunRecordField). A
+     * fresh copy for each trigger, so no trigger's metadata shares an object
+     * with another's.
+     */
+    type RunRecordArgumentFunction = () => Argument;
+
+    const runRecordArgument: RunRecordArgumentFunction = (): Argument => {
+      return {
+        type: ComponentInputType.Text,
+        name: `${model.singularName} ID`,
+        description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+        required: true,
+        id: "_id",
+        placeholder: `ID of the ${model.singularName}`,
+      };
+    };
 
     const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
 
@@ -54,30 +115,12 @@ export default class BaseModelComponent {
     const limitDescription: string = `The most ${model.pluralName} this step will touch. Defaults to 10, so a query that matches 500 records still only affects 10. Raise this if you mean all of them.`;
 
     /*
-     * One file per operation, rather than one shared file for all eleven
-     * components. Shared, it had to describe Query, Select, the write payload,
-     * Items Updated and Items Deleted at once - so on Create One, which has
-     * none of those but the payload, most of it was about something else, and
-     * its one concrete instruction ("use the Select Fields picker") named an
-     * argument that component does not have.
-     *
-     * The route serves any filename in the docs directory, so these need no
-     * registration anywhere.
+     * Each of these steps has "How to use" help of its own, written for its
+     * operation and its model: Types/Workflow/Documentation/
+     * DatabaseDocumentation.ts. It, and the Add Component picker, read the
+     * operation off the id suffixes below through
+     * Types/Workflow/DatabaseOperation.ts. Rename a suffix there too.
      */
-    const findDocs: Route = Route.fromString("/workflow/docs/DatabaseFind.md");
-    const createDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseCreate.md",
-    );
-    const updateDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseUpdate.md",
-    );
-    const deleteDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseDelete.md",
-    );
-    // The triggers had no documentation link at all, so their card never rendered.
-    const triggerDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseTriggers.md",
-    );
 
     if (model.enableWorkflowOn.read) {
       components.push({
@@ -88,7 +131,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -100,8 +142,8 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -148,7 +190,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -160,8 +201,8 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -226,17 +267,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [],
         returnValues: [
           {
@@ -251,8 +282,8 @@ export default class BaseModelComponent {
         outPorts: [
           {
             title: "Success",
-            description:
-              "This is executed when the query executes successfully",
+            // A trigger runs no query of its own; this fired on a delete.
+            description: `This is executed when the ${model.singularName} is deleted.`,
             id: "success",
           },
         ],
@@ -266,7 +297,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -318,7 +348,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -388,22 +417,12 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -429,6 +448,32 @@ export default class BaseModelComponent {
         ],
       });
 
+      /*
+       * A record that can be declared from one of its templates (an
+       * incident) gets the template as a setting of its own, first: picking
+       * one is the quickest way to declare it, and with one picked the JSON
+       * Object only needs what should differ from the template
+       * (Types/Workflow/CreateFromTemplate).
+       */
+      const templateArgument: Argument | null = getCreateFromTemplateArgument(
+        model.tableName || undefined,
+      );
+
+      const jsonArgument: Argument = {
+        id: "json",
+        placeholder: 'Example: {"columnName": "value", ...}',
+        name: "JSON Object",
+        description: templateArgument
+          ? `${model.singularName} represented as JSON. With a template picked, only what should differ from it. ${columnHint}`
+          : `${model.singularName} represented as JSON. ${columnHint}`,
+        type: ComponentInputType.JSON,
+        required: true,
+      };
+
+      if (templateArgument) {
+        jsonArgument.notRequiredWhen = { argumentId: templateArgument.id };
+      }
+
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-create-one`,
         title: `Create One ${model.singularName}`,
@@ -437,17 +482,9 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: createDocs,
-        arguments: [
-          {
-            id: "json",
-            placeholder: 'Example: {"columnName": "value", ...}',
-            name: "JSON Object",
-            description: `${model.singularName} represented as JSON. ${columnHint}`,
-            type: ComponentInputType.JSON,
-            required: true,
-          },
-        ],
+        arguments: templateArgument
+          ? [templateArgument, jsonArgument]
+          : [jsonArgument],
         returnValues: [
           {
             id: "model",
@@ -489,7 +526,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: createDocs,
         arguments: [
           {
             id: "json-array",
@@ -543,30 +579,20 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [
           {
             type: ComponentInputType.Select,
-            name: "Listen on",
-            description: `Narrows this trigger to updates that touch these fields on ${model.singularName}. Leave it blank to fire on any change. When an update arrives without a record of which fields moved, this filter is skipped and the workflow runs anyway.`,
+            name: WATCHED_FIELDS_NAME,
+            description: listenOnDescription,
             required: false,
             id: "listen-on",
             placeholder: 'Example: {"columnName": true, ...}',
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -599,7 +625,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -659,7 +684,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -725,6 +749,105 @@ export default class BaseModelComponent {
             id: "error",
           },
         ],
+      });
+    }
+
+    /*
+     * One trigger for a new record and a changed one, for every model with
+     * both triggers it stands for (Types/Workflow/CreateOrUpdateTrigger). Its
+     * settings are On Update's, under the same ids, so the field lists, the
+     * value picker and the run treat them alike; only what Fields to watch
+     * says differs, since a create always runs it. What Happened says which
+     * of the two started the run, and Run Workflow asks which to test.
+     */
+    if (hasCreateOrUpdateTrigger(model.enableWorkflowOn)) {
+      components.push({
+        id: getCreateOrUpdateTriggerId(model.tableName!),
+        title: `On Create or Update ${model.singularName}`,
+        category: `${model.singularName}`,
+        description: `When the ${model.singularName} is created or updated...`,
+        iconProp: IconProp.Bolt,
+        tableName: model.tableName!,
+        componentType: ComponentType.Trigger,
+        /*
+         * What Happened first: the record's search opens on arrival with its
+         * list under it, and a question under an open list moved away from
+         * the press that closed the list, so its first press did nothing.
+         */
+        runWorkflowManuallyArguments: [
+          {
+            type: ComponentInputType.Choice,
+            name: WHAT_HAPPENED_NAME,
+            description: `Run as if the ${model.singularName} had just been created, or just been updated.`,
+            required: false,
+            id: WHAT_HAPPENED_ID,
+            // As Run Workflow words them (RunForm).
+            choices: [
+              { value: WhatHappened.Created, label: "Just created" },
+              { value: WhatHappened.Updated, label: "Just updated" },
+            ],
+          },
+          runRecordArgument(),
+        ],
+        arguments: [
+          {
+            type: ComponentInputType.Select,
+            name: WATCHED_FIELDS_NAME,
+            description: createOrUpdateListenOnDescription,
+            required: false,
+            id: "listen-on",
+            placeholder: 'Example: {"columnName": true, ...}',
+          },
+          {
+            type: ComponentInputType.Select,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
+            required: true,
+            id: "select",
+            placeholder: selectPlaceholder,
+          },
+        ],
+        returnValues: [
+          {
+            id: "model",
+            name: `${model.singularName}`,
+            description: `The ${model.singularName} that was created or updated`,
+            type: ComponentInputType.BaseModel,
+            required: true,
+          },
+          {
+            id: WHAT_HAPPENED_ID,
+            name: WHAT_HAPPENED_NAME,
+            // Short enough for one line of the value list.
+            description: `"${WhatHappened.Created}" for a new ${model.singularName}, "${WhatHappened.Updated}" for a change to one.`,
+            type: ComponentInputType.Text,
+            required: true,
+          },
+        ],
+        inPorts: [],
+        outPorts: [
+          {
+            title: "Success",
+            description: `This is executed when the ${model.singularName} is created, and when it is updated.`,
+            id: "success",
+          },
+        ],
+      });
+    }
+
+    /*
+     * A table only OneUptime writes, such as a call log, keeps its triggers
+     * and its Find steps but offers no step that writes its rows. See
+     * EnableWorkflowOn.writeSteps.
+     */
+    if (model.enableWorkflowOn.writeSteps === false) {
+      return components.filter((component: ComponentMetadata): boolean => {
+        const operation: DatabaseOperation | null = getDatabaseOperation({
+          componentId: component.id,
+          tableName: model.tableName!,
+        });
+
+        return !operation || !WRITE_DATABASE_OPERATIONS.includes(operation);
       });
     }
 

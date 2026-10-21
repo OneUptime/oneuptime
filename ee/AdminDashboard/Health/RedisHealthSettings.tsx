@@ -29,12 +29,20 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
       }}
       isEditable={true}
       editButtonText="Edit Valkey policy"
+      formSteps={[
+        { title: "Memory", id: "memory" },
+        {
+          title: "Connections & Persistence",
+          id: "connections-and-persistence",
+        },
+      ]}
       formFields={[
         {
           field: {
             redisMemoryNotificationEnabled: true,
           },
           title: "Notify on high memory usage",
+          stepId: "memory",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -45,6 +53,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
             redisMemoryNotificationThresholdPercent: true,
           },
           title: "Memory threshold (%)",
+          stepId: "memory",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isMemoryNotificationEnabled,
           showIf: isMemoryNotificationEnabled,
@@ -58,9 +67,21 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
         },
         {
           field: {
+            redisKeyEvictionNotificationEnabled: true,
+          },
+          title: "Notify on key eviction",
+          stepId: "memory",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Notify master admins when Valkey drops keys because it is out of memory. Leave it off if Valkey is only a cache, where that is expected.",
+        },
+        {
+          field: {
             redisConnectionNotificationEnabled: true,
           },
           title: "Notify on connection saturation",
+          stepId: "connections-and-persistence",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -71,6 +92,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
             redisConnectionNotificationThresholdPercent: true,
           },
           title: "Connection threshold (%)",
+          stepId: "connections-and-persistence",
           fieldType: FormFieldSchemaType.PositiveNumber,
           required: isConnectionNotificationEnabled,
           showIf: isConnectionNotificationEnabled,
@@ -84,23 +106,14 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
         },
         {
           field: {
-            redisKeyEvictionNotificationEnabled: true,
-          },
-          title: "Notify on key eviction",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify master administrators when Valkey discards keys because it reached its memory limit. Leave this off if you run Valkey as a pure cache, where eviction is expected.",
-        },
-        {
-          field: {
             redisPersistenceFailureNotificationEnabled: true,
           },
           title: "Notify on persistence failure",
+          stepId: "connections-and-persistence",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when a Valkey RDB snapshot or AOF write fails, which means everything since the last successful write is lost if Valkey restarts.",
+            "Notify master admins when a Valkey RDB snapshot or AOF write fails: a restart would lose everything since the last good write.",
         },
       ]}
       modelDetailProps={{

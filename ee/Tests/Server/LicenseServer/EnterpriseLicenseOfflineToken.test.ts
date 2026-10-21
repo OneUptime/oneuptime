@@ -383,6 +383,8 @@ describe("POST /enterprise-license/:enterpriseLicenseId/offline-token", () => {
           expiresAt: true,
           userLimit: true,
           isEvaluationLicense: true,
+          // Signed into the offline token as a claim when the switch is on.
+          canBeWhiteLabelled: true,
         },
         props: {
           isRoot: true,

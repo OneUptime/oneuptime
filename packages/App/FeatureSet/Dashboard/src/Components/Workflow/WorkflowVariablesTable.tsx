@@ -11,9 +11,18 @@
  * a button of its own made the table hard to read and pushed the actions off
  * screen on an ordinary laptop.
  *
+ * A row shows the variable's Name and Description, and nothing else - no Type
+ * column. Nearly every variable is static, so that column read "Static" on
+ * row after row, and the list is easier to take in without it. Whether a
+ * variable is static or OAuth 2.0, and its grant type, is on the variable's
+ * own page, where it decides which cards the page shows. The list reads only
+ * the columns it shows.
+ *
  * Create makes a static variable - the kind almost everybody wants - and its
- * form never asks which kind. An OAuth 2.0 variable is created from the More
- * menu beside it, with a form of its own (CreateOAuthWorkflowVariableModal).
+ * form never asks which kind. It walks two steps, Variable (name and
+ * description) then Value (content and the secret switch), rather than one
+ * long page. An OAuth 2.0 variable is created from the More menu beside it,
+ * with a form of its own (CreateOAuthWorkflowVariableModal).
  */
 
 import React, {
@@ -27,10 +36,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  WorkflowVariableType,
-  isOAuth2WorkflowVariable,
-} from "Common/Types/Workflow/WorkflowVariableOAuth";
+import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import {
   ButtonSize,
   ButtonStyleType,
@@ -47,10 +53,10 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import CreateOAuthWorkflowVariableModal from "./CreateOAuthWorkflowVariableModal";
 import WorkflowVariableTokenRefreshModal from "./WorkflowVariableTokenRefreshModal";
 import {
+  STATIC_VARIABLE_FORM_STEPS,
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getStaticVariableCreateFormFields,
-  getVariableTypeLabel,
   getWorkflowVariableViewRoute,
 } from "../../Utils/Workflow/WorkflowVariableUtil";
 
@@ -234,18 +240,14 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: isGlobal ? "Global Variables" : "Workflow Variables",
           description: isGlobal
-            ? "Values every workflow in this project can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh."
-            : "Values only this workflow can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh.",
+            ? "Values every workflow in this project can use, such as API keys and URLs. Create an OAuth 2.0 variable from the More menu."
+            : "Values only this workflow can use, such as API keys and URLs. Create an OAuth 2.0 variable from the More menu.",
           buttons: moreMenuButtons,
         }}
         userPreferencesKey="workflow-variable-table"
         query={{
           workflowId: props.workflowId ? props.workflowId : new IsNull(),
           projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        selectMoreFields={{
-          variableType: true,
-          oauthGrantType: true,
         }}
         onBeforeCreate={(item: WorkflowVariable): Promise<WorkflowVariable> => {
           /*
@@ -275,6 +277,7 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             setHasFetchedOnce(true);
           }
         }}
+        formSteps={STATIC_VARIABLE_FORM_STEPS}
         formFields={getStaticVariableCreateFormFields({ isGlobal })}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
@@ -301,31 +304,6 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              variableType: true,
-            },
-            title: "Type",
-            type: FieldType.Element,
-            getElement: (item: WorkflowVariable): ReactElement => {
-              if (!isOAuth2WorkflowVariable(item.variableType)) {
-                return <span>{getVariableTypeLabel(item)}</span>;
-              }
-
-              return (
-                <div className="flex flex-col">
-                  <span>{getVariableTypeLabel(item)}</span>
-                  {item.oauthGrantType ? (
-                    <span className="text-xs text-gray-500">
-                      {item.oauthGrantType}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
-            },
           },
           {
             field: {

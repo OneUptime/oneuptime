@@ -1,4 +1,10 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import {
+  looksLikeStackTrace,
+  readAfterGoPanic,
+  readAfterJavaThreadPrefix,
+  readQualifiedTypeLine,
+} from "./LogExceptionText";
 import StackTraceParser, { ParsedStackTrace } from "./StackTraceParser";
 
 /**
@@ -36,6 +42,23 @@ export interface LogExceptionExtractorInput {
  * reach the parser.
  */
 const MIN_ERROR_SEVERITY_NUMBER: number = 17;
+const MAX_FATAL_SEVERITY_NUMBER: number = 24;
+
+/*
+ * A positive range check, so anything that is not an ERROR/FATAL integer
+ * fails closed. The gate used to be `severityNumber < 17 -> skip`, and
+ * `NaN < 17` is false: a NaN severity — what OtelLogsIngestService produced
+ * for every OTLP severity name it did not map, e.g. SEVERITY_NUMBER_WARN2
+ * (GH#3978) — was body-scanned as if it were an error.
+ */
+function isErrorOrFatalSeverity(severityNumber: unknown): boolean {
+  return (
+    typeof severityNumber === "number" &&
+    Number.isInteger(severityNumber) &&
+    severityNumber >= MIN_ERROR_SEVERITY_NUMBER &&
+    severityNumber <= MAX_FATAL_SEVERITY_NUMBER
+  );
+}
 
 /**
  * Only the first 16 KB of a body is parsed. A clean single-record stack trace
@@ -52,38 +75,32 @@ const MAX_PARSE_BODY_LENGTH: number = 16 * 1024;
 const MAX_STORED_STACK_TRACE_LENGTH: number = 64 * 1024;
 const MAX_MESSAGE_LENGTH: number = 1024;
 
-/**
- * Single pre-compiled signature for "this body plausibly contains a stack
- * trace". Evaluated once before the (more expensive) multi-language parser.
- * Covers: Python traceback header, JS/Java `at file:line`, Go panic/goroutine,
- * Python `File "...", line N`, a Firefox/Safari `fn@url:line:col` frame, and a
- * typed `SomethingException`/`SomethingError`.
+/*
+ * Whether a body plausibly contains a stack trace (looksLikeStackTrace, in
+ * LogExceptionText) is asked once before the (more expensive) multi-language
+ * parser. It covers: Python traceback header, JS/Java `at file:line`, Go
+ * panic/goroutine, Python `File "...", line N`, a Firefox/Safari
+ * `fn@url:line:col` frame, and a typed `SomethingException`/`SomethingError`.
  *
- * The `fn@url:line` alternative mirrors the shape StackTraceParser's browser
+ * The `fn@url:line` signature mirrors the shape StackTraceParser's browser
  * parser accepts and must stay in step with it. Without it a SpiderMonkey or
  * JavaScriptCore stack reaches this gate with no `at ` frame and — unless the
  * app happened to log a `*Error`/`*Exception` token above it — is rejected
- * here, before the parser ever runs. The name class admits spaces (Safari's
- * `global code@…`, Firefox's `promise callback*fn@…`) but never a colon, which
- * is what keeps ordinary `key: value` log prose out. It also absorbs a log
- * body's leading indentation, so do NOT prepend a `[ \t]*` — space and tab are
- * already in the class, and the two overlapping quantifiers backtrack
- * quadratically (a hostile 16 KB body measured 11 ms against 0.1 ms without).
+ * here, before the parser ever runs.
+ *
+ * The body is whatever an application logged, so every reader of it - the
+ * signature and the first line's type and message - reads it a fixed number
+ * of times (LogExceptionText).
  */
-const LOOKS_LIKE_STACK_TRACE: RegExp =
-  /(?:Traceback \(most recent call last\)|\n\s+at\s+.+:\d+|\bpanic:\s|goroutine\s+\d+\s+\[|\n\s*File\s+"[^"]+",\s+line\s+\d+|(?:^|\n)[^@:\n]{0,256}@[A-Za-z][A-Za-z0-9+.-]{0,31}:[^\s]{1,2048}:\d{1,9}|\b[A-Za-z_][\w.$]*(?:Exception|Error)\b)/;
 
 // Header parsers for deriving exceptionType + message from a raw body.
 const PYTHON_TRACEBACK_HEADER: RegExp = /^Traceback \(most recent call last\):/;
-const JAVA_THREAD_PREFIX: RegExp = /^Exception in thread\s+"[^"]*"\s+(.*)$/;
-const GO_PANIC: RegExp = /^panic:\s*(.*)$/;
 /*
  * Leading identifier is optional so a bare "Error: msg" / "Exception: msg"
  * (common in Node.js) matches as well as "TypeError" / "java.lang.IOException".
  */
 const TYPED_ERROR: RegExp =
   /^((?:[A-Za-z_][\w.$]*)?(?:Error|Exception|Warning|Fault))(?::\s*([\s\S]*))?$/;
-const QUALIFIED_TYPE: RegExp = /^([A-Za-z_][\w.$]*\.[A-Za-z_][\w.$]*):\s*(.*)$/;
 
 export default class LogExceptionExtractor {
   /**
@@ -105,7 +122,7 @@ export default class LogExceptionExtractor {
       }
 
       // Path B — raw body scan. Gated to keep the hot path cheap.
-      if (input.severityNumber < MIN_ERROR_SEVERITY_NUMBER) {
+      if (!isErrorOrFatalSeverity(input.severityNumber)) {
         return null;
       }
       if (input.hasTraceAndSpan) {
@@ -166,7 +183,7 @@ export default class LogExceptionExtractor {
         ? body.slice(0, MAX_PARSE_BODY_LENGTH)
         : body;
 
-    if (!LOOKS_LIKE_STACK_TRACE.test(sliced)) {
+    if (!looksLikeStackTrace(sliced)) {
       return null;
     }
 
@@ -236,15 +253,15 @@ export default class LogExceptionExtractor {
 
     // Strip Java's "Exception in thread "name"" prefix if present.
     let firstLine: string = lines[0]!;
-    const threadMatch: RegExpMatchArray | null =
-      firstLine.match(JAVA_THREAD_PREFIX);
-    if (threadMatch) {
-      firstLine = threadMatch[1]!.trim();
+    const afterThreadPrefix: string | null =
+      readAfterJavaThreadPrefix(firstLine);
+    if (afterThreadPrefix !== null) {
+      firstLine = afterThreadPrefix.trim();
     }
 
-    const goMatch: RegExpMatchArray | null = firstLine.match(GO_PANIC);
-    if (goMatch) {
-      return { exceptionType: "panic", message: (goMatch[1] || "").trim() };
+    const afterPanic: string | null = readAfterGoPanic(firstLine);
+    if (afterPanic !== null) {
+      return { exceptionType: "panic", message: afterPanic.trim() };
     }
 
     // "TypeError: msg", "java.lang.NullPointerException: msg", "...Exception"
@@ -257,12 +274,12 @@ export default class LogExceptionExtractor {
     }
 
     // Generic qualified "pkg.Sub.Type: msg"
-    const qualifiedMatch: RegExpMatchArray | null =
-      firstLine.match(QUALIFIED_TYPE);
-    if (qualifiedMatch) {
+    const qualified: { type: string; message: string } | null =
+      readQualifiedTypeLine(firstLine);
+    if (qualified) {
       return {
-        exceptionType: qualifiedMatch[1] || "",
-        message: (qualifiedMatch[2] || "").trim(),
+        exceptionType: qualified.type,
+        message: qualified.message.trim(),
       };
     }
 

@@ -37,21 +37,27 @@ import {
   resolveSection,
   shouldAttemptRead,
 } from "../../../Utils/OverviewSection";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
-export const MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE: string =
-  "The uptime summary could not be read.";
+export const MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE: string = translationKey(
+  "The uptime summary could not be read.",
+);
 
 export const MONITOR_UPTIME_ACCESS_REASONS: {
   summary: string;
   incidents: string;
 } = {
-  summary: "You need permission to read this monitor's status timeline.",
-  incidents: "You need permission to read incidents.",
+  summary: translationKey(
+    "You need permission to read this monitor's status timeline.",
+  ),
+  incidents: translationKey("You need permission to read incidents."),
 };
 
 // The markers need the window the summary covers, so they cannot load without it.
 export const MONITOR_UPTIME_INCIDENTS_WITHOUT_SUMMARY_MESSAGE: string =
-  "Incident markers need the uptime history, which did not load.";
+  translationKey(
+    "Incident markers need the uptime history, which did not load.",
+  );
 
 // Severity and state colours are required by the tooltip; a missing one is drawn black.
 const FALLBACK_MARKER_COLOR: string = "#000000";

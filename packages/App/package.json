@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "14.0.4",
+  "version": "14.0.82",
   "description": "",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
     "dev:api": "npx nodemon",
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts",
     "migrate": "export NODE_OPTIONS=\"--max-old-space-size=8096 --max-http-header-size=8388608${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Migrate.ts",
-    "compile": "tsc",
+    "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "bash ./scripts/dev.sh",
     "audit": "npm audit --audit-level=low",
@@ -43,17 +43,20 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.12.5",
     "@grpc/proto-loader": "^0.7.13",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@sendgrid/mail": "^8.1.0",
+    "@xmldom/xmldom": "^0.9.10",
     "aedes": "^1.1.2",
     "Common": "file:../Common",
     "ejs": "^3.1.9",
     "handlebars": "^4.7.8",
     "nodemailer": "^10.0.3",
+    "openid-client": "^5.7.1",
     "protobufjs": "^7.5.4",
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
@@ -65,5 +68,10 @@
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.8",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

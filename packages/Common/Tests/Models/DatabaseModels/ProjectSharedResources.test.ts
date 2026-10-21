@@ -53,18 +53,18 @@ const PROJECT_SHARED_MODELS: Array<string> = [
  * Whatever ProjectUser reaches on one of these is what it already declared,
  * column by column.
  *
- * All five reach every member another way already: Project, ProjectSSO and
+ * All three reach every member another way already: Project, ProjectSSO and
  * ProjectOIDC name UnAuthorizedSsoUser, which every principal in a project
- * holds, and the two status page providers name Public. Making the grant real
- * changed nothing about who can read them. The test below pins that, because
- * it is the only reason this list is safe to have.
+ * holds. Making the grant real changed nothing about who can read them. The
+ * test below pins that, because it is the only reason this list is safe to
+ * have. A status page's own SSO and OIDC providers are not on it: they are
+ * read by the roles that read the status page's configuration, and the
+ * status page's sign-in page reads them itself.
  */
 const LEGACY_PROJECT_USER_MODELS: Array<string> = [
   "Project",
   "ProjectOIDC",
   "ProjectSSO",
-  "StatusPageOIDC",
-  "StatusPageSSO",
 ];
 
 /*

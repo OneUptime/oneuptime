@@ -21,7 +21,6 @@ const TeamViewIndex: FunctionComponent<
         name="Team Details"
         cardProps={{
           title: "Team Details",
-          description: "Here are more details for this team.",
         }}
         videoLink={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
         isEditable={true}
@@ -37,6 +36,8 @@ const TeamViewIndex: FunctionComponent<
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -46,6 +47,7 @@ const TeamViewIndex: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Team Description",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{

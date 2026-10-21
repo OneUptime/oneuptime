@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -29,15 +32,6 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Billing,
-        },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
         },
         {
           link: {
@@ -74,7 +68,31 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived Kubernetes clusters, which the list leaves out.
+     * Few visits need it, so it waits in Advanced: folded away until opened,
+     * and open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: KubernetesCluster,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

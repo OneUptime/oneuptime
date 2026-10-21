@@ -26,10 +26,23 @@ import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
+import IncidentCustomFieldTemplateVariables, {
+  IncidentCustomFieldTemplateVariablesState,
+} from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
+import SubscriberTemplateLivePreview from "../../../Components/StatusPage/SubscriberTemplateLivePreview";
+import SubscriberTemplateVariablesFooter, {
+  getSubscriberTemplateVariableGroups,
+} from "../../../Components/StatusPage/SubscriberTemplateVariables";
+import SubscriberTemplateVariablesCopy from "../../../Components/StatusPage/SubscriberTemplateVariablesCopy";
+import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const SubscriberNotificationTemplateView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [eventType, setEventType] = useState<
     StatusPageSubscriberNotificationEventType | undefined
@@ -37,6 +50,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
   const [notificationMethod, setNotificationMethod] = useState<
     StatusPageSubscriberNotificationMethod | undefined
   >(undefined);
+  /*
+   * The project's incident custom fields, read by the body's variables list
+   * once the Edit dialog shows an incident event's body.
+   */
+  const [customFields, setCustomFields] =
+    useState<IncidentCustomFieldTemplateVariablesState>({ status: "loading" });
 
   useEffect(() => {
     // Fetch the template to get its event type
@@ -62,6 +81,10 @@ const SubscriberNotificationTemplateView: FunctionComponent<
     fetchTemplate();
   }, [modelId.toString()]);
 
+  // What the template's content can use: the variables of its event.
+  const templateVariableGroups: TemplateVariableGroups =
+    getSubscriberTemplateVariableGroups(eventType, customFields);
+
   const getTemplateBodyFieldType: () => FormFieldSchemaType =
     (): FormFieldSchemaType => {
       if (notificationMethod === StatusPageSubscriberNotificationMethod.Email) {
@@ -77,8 +100,6 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         name="Subscriber Notification Template Details"
         cardProps={{
           title: "Template Overview",
-          description:
-            "Basic information about this subscriber notification template.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
@@ -184,8 +205,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                   },
                   title: "Email Subject",
                   description:
-                    "Subject line for email notifications. You can use template variables like {{incidentTitle}}.",
+                    SubscriberTemplateVariablesCopy.emailSubjectDescription,
                   fieldType: FormFieldSchemaType.Text,
+                  // The event's variables, under the subject and one "{{" away.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
                   required: false,
                   placeholder: "{{statusPageName}}: {{incidentTitle}}",
                 },
@@ -200,6 +225,37 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                   required: true,
                   placeholder:
                     "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
+                  // The event's variables, collapsed under the body.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
+                  getTemplateVariablesFooter: (): ReactElement => {
+                    return (
+                      <SubscriberTemplateVariablesFooter
+                        eventType={eventType}
+                        onCustomFieldsChange={setCustomFields}
+                      />
+                    );
+                  },
+                  // The subject and body as typed, filled in with sample values.
+                  getFooterElement: (
+                    values: FormValues<StatusPageSubscriberNotificationTemplate>,
+                  ): ReactElement => {
+                    return (
+                      <div className="mt-4">
+                        <SubscriberTemplateLivePreview
+                          eventType={eventType}
+                          notificationMethod={notificationMethod}
+                          templateBody={
+                            values.templateBody as string | undefined
+                          }
+                          emailSubject={
+                            values.emailSubject as string | undefined
+                          }
+                        />
+                      </div>
+                    );
+                  },
                 },
               ]
             : [
@@ -220,6 +276,34 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                     StatusPageSubscriberNotificationMethod.SMS
                       ? "{{statusPageName}}: {{incidentTitle}} - {{incidentDescription}}"
                       : "**{{incidentTitle}}**\n{{incidentDescription}}",
+                  // The event's variables, collapsed under the body.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
+                  getTemplateVariablesFooter: (): ReactElement => {
+                    return (
+                      <SubscriberTemplateVariablesFooter
+                        eventType={eventType}
+                        onCustomFieldsChange={setCustomFields}
+                      />
+                    );
+                  },
+                  // The body as typed, filled in with sample values.
+                  getFooterElement: (
+                    values: FormValues<StatusPageSubscriberNotificationTemplate>,
+                  ): ReactElement => {
+                    return (
+                      <div className="mt-4">
+                        <SubscriberTemplateLivePreview
+                          eventType={eventType}
+                          notificationMethod={notificationMethod}
+                          templateBody={
+                            values.templateBody as string | undefined
+                          }
+                        />
+                      </div>
+                    );
+                  },
                 },
               ]
         }
@@ -280,13 +364,15 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             : "Available variables you can use in your template body based on the selected event type."
         }
       >
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           <MarkdownViewer
             text={getSubscriberNotificationTemplateVariablesDocumentation(
               eventType,
               notificationMethod,
             )}
           />
+          {/* An incident event: the project's custom fields and their keys. */}
+          <IncidentCustomFieldTemplateVariables eventType={eventType} />
         </div>
       </Card>
 
@@ -360,7 +446,11 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             getElement: (
               item: StatusPageSubscriberNotificationTemplateStatusPage,
             ): ReactElement => {
-              return <span>{item.statusPage?.name || "Unknown"}</span>;
+              return (
+                <span>
+                  {item.statusPage?.name || translator.translateText("Unknown")}
+                </span>
+              );
             },
           },
           {

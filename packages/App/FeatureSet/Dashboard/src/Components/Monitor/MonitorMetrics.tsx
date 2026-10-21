@@ -30,6 +30,7 @@ import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { buildMonitorMetricQueryConfig } from "./MonitorMetricQueryConfig";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -166,8 +167,18 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * Every category card shows the tab's one range, so a drag on any chart
+   * zooms them all, and a double-click on any other chart (or Reset zoom
+   * beside any card's picker) takes them all back. The zoom has to live
+   * here, above the cards: kept by the card that was dragged, a
+   * double-click on a sibling card would have nothing to undo.
+   */
   return (
-    <>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       {categories.map(
         (category: MonitorMetricCategory, index: number): ReactElement => {
           return (
@@ -182,7 +193,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
           );
         },
       )}
-    </>
+    </TimeRangeZoomScope>
   );
 };
 

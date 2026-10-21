@@ -1,21 +1,41 @@
+import {
+  AI_INSIGHTS_SWITCHES,
+  AI_LANE_SWITCHES,
+  AiLane,
+  AiLaneAdvancedCard,
+  AI_LANE_ADVANCED_CARDS,
+  ENABLE_AI_COLUMN,
+  getAiLaneAdvancedCardColumns,
+  ProjectAiSwitchDefinition,
+  isAiLaneRulesCard,
+} from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 /*
- * The four pages this file covers are React components, and react is a
+ * The pages this file covers are React components, and react is a
  * dependency of the Dashboard package alone — App's own `npm install` never
  * provides it, which is exactly why App's tsconfig excludes
  * FeatureSet/Dashboard. Importing the pages here would pull react into
  * App's program and break `npm run compile` and this suite in CI, so the
- * separation is pinned against the source instead, the same way
- * NetworkMapWidgetInvariants pins the Network Map widget.
+ * separation is pinned against the source instead (and against the
+ * React-free ProjectAiSettingsCopy, which says which switch writes which
+ * column).
  *
  * What is being protected is a data-loss bug rather than a rendering one: a
- * CardModelDetail writes every field it is given on Update. If the incident
- * page ever carries an alert field — or either page carries one of the
- * removed shared fields — then saving one lane silently overwrites the
- * other lane's configuration, and nothing about that looks wrong on screen.
+ * CardModelDetail writes every field it is given on save. If the incident
+ * page ever carried an alert field — or either page one of the removed
+ * shared fields, or a card a switch's column — then saving one setting
+ * would silently overwrite another, and nothing about that looks wrong on
+ * screen. The AI behaviours are switches now, each saving its own column
+ * alone; only the limits under Advanced are cards, three to a page, each
+ * writing its own two columns.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -33,7 +53,7 @@ function read(...relativeParts: Array<string>): string {
 
 /*
  * The source between two markers. Throwing rather than returning empty
- * matters: a page that no longer has a `formFields={[` at all would
+ * matters: a card that no longer has a `formFields={[` at all would
  * otherwise pass every assertion below with zero fields.
  */
 function sectionBetween(source: string, start: string, end: string): string {
@@ -53,20 +73,12 @@ function sectionBetween(source: string, start: string, end: string): string {
   return source.slice(from, to);
 }
 
-interface ConfiguredField {
-  name: string;
-  stepId: string | null;
-}
-
-/*
- * Every `field: { <name>: ... }` in a section, in source order, carrying the
- * stepId declared alongside it in the same entry.
- */
-function fieldsIn(section: string): Array<ConfiguredField> {
+// Every `field: { <name>: ... }` in a section, in source order.
+function fieldsIn(section: string): Array<string> {
   return section
     .split(/field:\s*\{/)
     .slice(1)
-    .map((entry: string): ConfiguredField => {
+    .map((entry: string): string => {
       const name: RegExpMatchArray | null = entry.match(/^\s*(\w+)\s*:/);
 
       if (!name || !name[1]) {
@@ -75,83 +87,128 @@ function fieldsIn(section: string): Array<ConfiguredField> {
         );
       }
 
-      const stepId: RegExpMatchArray | null =
-        entry.match(/stepId:\s*"([^"]+)"/);
-
-      return { name: name[1], stepId: stepId && stepId[1] ? stepId[1] : null };
+      return name[1];
     });
 }
 
-function namesOf(fields: Array<ConfiguredField>): Array<string> {
-  return fields.map((field: ConfiguredField): string => {
-    return field.name;
-  });
+interface SettingsCard {
+  name: string;
+  formFields: Array<string>;
+  detailFields: Array<string>;
 }
 
-interface SettingsPage {
-  formFields: Array<ConfiguredField>;
-  detailFields: Array<ConfiguredField>;
+/*
+ * Every CardModelDetail on a page, in source order. Each card saves on its
+ * own, so each one's fields are its whole update payload.
+ */
+function settingsCards(...relativeParts: Array<string>): Array<SettingsCard> {
+  return read(...relativeParts)
+    .split("<CardModelDetail")
+    .slice(1)
+    .map((card: string): SettingsCard => {
+      const name: RegExpMatchArray | null = card.match(/name="([^"]+)"/);
+
+      return {
+        name: name && name[1] ? name[1] : "",
+        formFields: fieldsIn(
+          sectionBetween(card, "formFields={[", "modelDetailProps={{"),
+        ),
+        detailFields: fieldsIn(
+          sectionBetween(card, "modelDetailProps={{", "modelId:"),
+        ),
+      };
+    });
 }
 
-function settingsPage(...relativeParts: Array<string>): SettingsPage {
-  const source: string = read(...relativeParts);
-
-  return {
-    formFields: fieldsIn(
-      sectionBetween(source, "formFields={[", "modelDetailProps={{"),
-    ),
-    detailFields: fieldsIn(
-      sectionBetween(source, "modelDetailProps={{", "modelId:"),
-    ),
-  };
-}
-
-const INCIDENT_PAGE: SettingsPage = settingsPage(
+const INCIDENT_PAGE: Array<string> = [
   "Pages",
   "Incidents",
   "Settings",
   "IncidentAISettings.tsx",
-);
+];
 
-const ALERT_PAGE: SettingsPage = settingsPage(
+const ALERT_PAGE: Array<string> = [
   "Pages",
   "Alerts",
   "Settings",
   "AlertAISettings.tsx",
-);
+];
 
-const GUARDRAILS_PAGE: SettingsPage = settingsPage(
-  "Pages",
-  "Settings",
-  "AIGuardrails.tsx",
-);
+const INCIDENT_CARDS: Array<SettingsCard> = settingsCards(...INCIDENT_PAGE);
+const ALERT_CARDS: Array<SettingsCard> = settingsCards(...ALERT_PAGE);
 
-const INCIDENT_FIELDS: Array<string> = [
+function formFieldsOf(cards: Array<SettingsCard>): Array<string> {
+  return cards.flatMap((card: SettingsCard): Array<string> => {
+    return card.formFields;
+  });
+}
+
+// Every switch's column, in drawn order: the ones under a switch too.
+function columnsOf(
+  switches: Array<ProjectAiSwitchDefinition<string>>,
+): Array<string> {
+  return getSwitchesInDrawnOrder(switches).map(
+    (definition: ProjectAiSwitchDefinition<string>): string => {
+      return definition.column;
+    },
+  );
+}
+
+// The project's AI switch, which lives on Project Settings → AI → AI Features.
+const PROJECT_AI_SWITCH_FIELDS: Array<string> = ["enableAi"];
+
+/*
+ * The project switches folded into Enable AI. They are not Project columns
+ * any more, so nothing in the dashboard may read, write or name them.
+ */
+const RETIRED_PROJECT_AI_SWITCH_FIELDS: Array<string> = [
+  "enableAutoRemediation",
+  "enableAiCommandExecution",
+];
+
+// The titles their toggles had on the AI Features card.
+const RETIRED_PROJECT_AI_SWITCH_TITLES: Array<string> = [
+  "Enable Auto-Remediation",
+  "Enable AI Command Execution",
+];
+
+const POSTMORTEM_DRAFT_COLUMN: string = "enableAutomaticPostmortemDraft";
+
+/*
+ * In drawn order: the two pull requests are part of fixing, under "Fix new
+ * incidents automatically", and the postmortem follows them.
+ */
+const INCIDENT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
+  "enableAutomaticIncidentRemediation",
+  "enableAutomaticIncidentCodeFixes",
+  "enableIncidentInstrumentationFixTasks",
+  POSTMORTEM_DRAFT_COLUMN,
+];
+
+const ALERT_SWITCH_COLUMNS: Array<string> = [
+  "enableAutomaticAlertInvestigation",
+  "enableAutomaticAlertRemediation",
+  "enableAutomaticAlertCodeFixes",
+  "enableAlertInstrumentationFixTasks",
+];
+
+const INCIDENT_LIMIT_COLUMNS: Array<string> = [
   "incidentInvestigationMinimumSeverity",
   "incidentInvestigationDedupeWindowMinutes",
   "incidentAiMaxConcurrentInvestigations",
+  "incidentAiInvestigationTimeLimitInMinutes",
   "incidentAiDailyAutonomousTokenLimit",
-  "enableIncidentInstrumentationFixTasks",
-  "enableAutomaticIncidentCodeFixes",
   "incidentAiDailyFixTaskLimit",
 ];
 
-const ALERT_FIELDS: Array<string> = [
-  "enableAutomaticAlertInvestigation",
+const ALERT_LIMIT_COLUMNS: Array<string> = [
   "alertInvestigationMinimumSeverity",
   "alertInvestigationDedupeWindowMinutes",
   "alertAiMaxConcurrentInvestigations",
+  "alertAiInvestigationTimeLimitInMinutes",
   "alertAiDailyAutonomousTokenLimit",
-  "enableAlertInstrumentationFixTasks",
-  "enableAutomaticAlertCodeFixes",
   "alertAiDailyFixTaskLimit",
-];
-
-const OTHER_AI_GUARDRAIL_FIELDS: Array<string> = [
-  "aiMaxConcurrentInvestigations",
-  "aiDailyAutonomousTokenLimit",
-  "aiDailyFixTaskLimit",
 ];
 
 const LEGACY_SHARED_FIELDS: Array<string> = [
@@ -163,30 +220,89 @@ const LEGACY_SHARED_FIELDS: Array<string> = [
 ];
 
 describe("incident and alert AI settings separation", () => {
-  test("incident card edits and displays only incident settings", () => {
-    expect(namesOf(INCIDENT_PAGE.formFields)).toEqual(INCIDENT_FIELDS);
-    expect(namesOf(INCIDENT_PAGE.detailFields)).toEqual(INCIDENT_FIELDS);
+  test("the incident page's switches are the incident behaviours, and only those", () => {
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Incident])).toEqual(
+      INCIDENT_SWITCH_COLUMNS,
+    );
   });
 
-  test("alert card edits and displays only alert settings", () => {
-    expect(namesOf(ALERT_PAGE.formFields)).toEqual(ALERT_FIELDS);
-    expect(namesOf(ALERT_PAGE.detailFields)).toEqual(ALERT_FIELDS);
+  test("the alert page's switches are the alert behaviours, and only those", () => {
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Alert])).toEqual(
+      ALERT_SWITCH_COLUMNS,
+    );
   });
 
-  test("the two update payloads have no fields in common", () => {
-    const alert: Set<string> = new Set(namesOf(ALERT_PAGE.formFields));
+  test.each([
+    ["incident", AiLane.Incident, INCIDENT_CARDS, INCIDENT_LIMIT_COLUMNS],
+    ["alert", AiLane.Alert, ALERT_CARDS, ALERT_LIMIT_COLUMNS],
+  ] as Array<[string, AiLane, Array<SettingsCard>, Array<string>]>)(
+    "the %s page's three cards each edit and show exactly their own two limits",
+    (
+      _kind: string,
+      lane: AiLane,
+      cards: Array<SettingsCard>,
+      limits: Array<string>,
+    ) => {
+      // The rules tables under More settings hold rules, not Project columns.
+      const columnCards: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS[
+        lane
+      ].filter((card: AiLaneAdvancedCard): boolean => {
+        return !isAiLaneRulesCard(card);
+      });
+
+      expect(cards).toHaveLength(columnCards.length);
+
+      columnCards.forEach((card: AiLaneAdvancedCard, index: number): void => {
+        const columns: Array<string> = getAiLaneAdvancedCardColumns(lane, card);
+
+        expect([card, cards[index]!.formFields]).toEqual([card, columns]);
+        expect([card, cards[index]!.detailFields]).toEqual([card, columns]);
+      });
+
+      // Together, every limit of the lane, once.
+      expect(formFieldsOf(cards)).toEqual(limits);
+    },
+  );
+
+  test("the two pages' payloads have no field in common", () => {
+    const alert: Set<string> = new Set(formFieldsOf(ALERT_CARDS));
 
     expect(
-      namesOf(INCIDENT_PAGE.formFields).filter((field: string): boolean => {
+      formFieldsOf(INCIDENT_CARDS).filter((field: string): boolean => {
         return alert.has(field);
+      }),
+    ).toEqual([]);
+
+    const alertSwitches: Set<string> = new Set(ALERT_SWITCH_COLUMNS);
+
+    expect(
+      INCIDENT_SWITCH_COLUMNS.filter((column: string): boolean => {
+        return alertSwitches.has(column);
       }),
     ).toEqual([]);
   });
 
+  test("no card writes an AI switch: each switch saves its own column alone", () => {
+    const switchColumns: Array<string> = [
+      ...INCIDENT_SWITCH_COLUMNS,
+      ...ALERT_SWITCH_COLUMNS,
+      ...PROJECT_AI_SWITCH_FIELDS,
+    ];
+
+    for (const field of [
+      ...formFieldsOf(INCIDENT_CARDS),
+      ...formFieldsOf(ALERT_CARDS),
+    ]) {
+      expect([field, switchColumns.includes(field)]).toEqual([field, false]);
+    }
+  });
+
   test("neither page can write a legacy shared setting", () => {
     const allPageFields: Array<string> = [
-      ...namesOf(INCIDENT_PAGE.formFields),
-      ...namesOf(ALERT_PAGE.formFields),
+      ...formFieldsOf(INCIDENT_CARDS),
+      ...formFieldsOf(ALERT_CARDS),
+      ...INCIDENT_SWITCH_COLUMNS,
+      ...ALERT_SWITCH_COLUMNS,
     ];
 
     for (const legacyField of LEGACY_SHARED_FIELDS) {
@@ -194,61 +310,292 @@ describe("incident and alert AI settings separation", () => {
     }
   });
 
-  test("each lane's follow-up PR controls stay on its Fix Tasks step", () => {
-    const assertFixTaskStep: (
-      page: SettingsPage,
-      fields: Array<string>,
-    ) => void = (page: SettingsPage, fields: Array<string>): void => {
-      for (const configuredField of page.formFields) {
-        if (fields.includes(configuredField.name)) {
-          expect(configuredField.stepId).toBe("fix-tasks");
-        }
-      }
-    };
-
-    assertFixTaskStep(INCIDENT_PAGE, [
-      "enableIncidentInstrumentationFixTasks",
-      "enableAutomaticIncidentCodeFixes",
-      "incidentAiDailyFixTaskLimit",
-    ]);
-    assertFixTaskStep(ALERT_PAGE, [
-      "enableAlertInstrumentationFixTasks",
-      "enableAutomaticAlertCodeFixes",
-      "alertAiDailyFixTaskLimit",
-    ]);
+  test("each lane's investigation time limit is on its Investigation limits card", () => {
+    expect(
+      getAiLaneAdvancedCardColumns(
+        AiLane.Incident,
+        AiLaneAdvancedCard.InvestigationLimits,
+      ),
+    ).toContain("incidentAiInvestigationTimeLimitInMinutes");
+    expect(
+      getAiLaneAdvancedCardColumns(
+        AiLane.Alert,
+        AiLaneAdvancedCard.InvestigationLimits,
+      ),
+    ).toContain("alertAiInvestigationTimeLimitInMinutes");
   });
 
-  test("subjectless AI work keeps its three fallback limits on the dedicated guardrails page", () => {
-    expect(namesOf(GUARDRAILS_PAGE.formFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
+  test("each lane's daily fix limit sits with its token limit, not with the switches", () => {
+    expect(
+      getAiLaneAdvancedCardColumns(
+        AiLane.Incident,
+        AiLaneAdvancedCard.DailyLimits,
+      ),
+    ).toEqual([
+      "incidentAiDailyAutonomousTokenLimit",
+      "incidentAiDailyFixTaskLimit",
+    ]);
+    expect(
+      getAiLaneAdvancedCardColumns(
+        AiLane.Alert,
+        AiLaneAdvancedCard.DailyLimits,
+      ),
+    ).toEqual(["alertAiDailyAutonomousTokenLimit", "alertAiDailyFixTaskLimit"]);
+  });
+
+  test("the pages hand the shared switch card their own lane's switches", () => {
+    expect(read(...INCIDENT_PAGE)).toContain(
+      "switches={AI_LANE_SWITCHES[AiLane.Incident]}",
     );
-    expect(namesOf(GUARDRAILS_PAGE.detailFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
+    expect(read(...ALERT_PAGE)).toContain(
+      "switches={AI_LANE_SWITCHES[AiLane.Alert]}",
     );
+    expect(read(...INCIDENT_PAGE)).not.toContain("AiLane.Alert");
+    expect(read(...ALERT_PAGE)).not.toContain("AiLane.Incident");
   });
 
   /*
-   * The guardrails page is the only home the three fallback limits have
-   * left, so it has to sit in the part of the AI menu that renders for
-   * every project — not inside the BILLING_ENABLED branch that hides AI
-   * Credits on a self-hosted install.
+   * The "Other AI Workload Guardrails" page was removed: AI work with no
+   * incident or alert subject runs on the built-in defaults, so nothing in
+   * the dashboard should link to or write those legacy columns any more.
    */
-  test("AI Guardrails is in the always-visible AI menu section", () => {
-    const source: string = read("Pages", "Settings", "SideMenu.tsx");
-    const sections: Array<string> = source.split(/^ {6}title: "/m);
-    const aiSection: string | undefined = sections.find(
-      (section: string): boolean => {
-        return section.startsWith('AI",');
-      },
+  test("the Other AI Workload Guardrails page stays removed", () => {
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "Settings", "AIGuardrails.tsx"),
+      ),
+    ).toBe(false);
+    expect(aiMenuSection()).not.toContain("AI Guardrails");
+    expect(read("Utils", "PageMap.ts")).not.toContain("SETTINGS_AI_GUARDRAILS");
+  });
+});
+
+// Every .ts and .tsx file under the Dashboard source, relative to it.
+function dashboardSourceFiles(
+  directory: string = DASHBOARD_SRC,
+): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...dashboardSourceFiles(entryPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(path.relative(DASHBOARD_SRC, entryPath));
+    }
+  }
+
+  return files;
+}
+
+// The settings side menu's AI section, as source.
+function aiMenuSection(): string {
+  const source: string = read("Pages", "Settings", "SideMenu.tsx");
+  const sections: Array<string> = source.split(/^ {6}title: "/m);
+  const aiSection: string | undefined = sections.find(
+    (section: string): boolean => {
+      return section.startsWith('AI",');
+    },
+  );
+
+  if (!aiSection) {
+    throw new Error("Expected an AI section in the settings side menu.");
+  }
+
+  return aiSection;
+}
+
+/*
+ * The project's AI switch used to live on AI Credits — listed only when
+ * billing is on, so on a self-hosted install the master switch was reachable
+ * only by URL. It now has one home that every install shows. It is also the
+ * only one: "Enable auto-remediation" and "Enable AI command execution" were
+ * folded into it, so auto-remediation and AI commands on Runners are on
+ * exactly when Enable AI is.
+ */
+describe("the project's AI switches", () => {
+  /*
+   * Enable AI is the switch itself, never a card behind an Edit button. The
+   * page's one card is the project's Daily limits, folded under More
+   * settings, and it edits the daily limit columns alone - never Enable AI.
+   */
+  test("AI Features is Enable AI's own switch, saving on flip; its one card is Daily limits, under More settings", () => {
+    // Code only: the comment that says what it replaced may name it.
+    const source: string = read("Pages", "Settings", "AIFeatures.tsx")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+    expect(ENABLE_AI_COLUMN).toBe("enableAi");
+    expect(source).toContain("<ModelSwitchCard<Project>");
+    expect(source).toContain("column={ENABLE_AI_COLUMN}");
+    expect(source).toContain("getConfirmation={getEnableAiConfirmation}");
+    expect(source).not.toContain("Edit AI Features");
+
+    expect(source.split("<CardModelDetail").length - 1).toBe(1);
+    const fold: number = source.indexOf("<AdvancedPageSection");
+    const card: number = source.indexOf("<CardModelDetail");
+    expect(fold).toBeGreaterThan(source.indexOf("<ModelSwitchCard"));
+    expect(card).toBeGreaterThan(fold);
+    expect(card).toBeLessThan(source.indexOf("</AdvancedPageSection>"));
+
+    // The card's fields are the daily limits, and Enable AI is none of them.
+    const fields: string = source.slice(
+      source.indexOf("const formFields"),
+      source.indexOf("return ("),
+    );
+    expect(fields).toContain("aiDailyTokenLimit: true");
+    expect(fields).toContain("aiDailySpendLimitInUSD: true");
+    expect(fields).not.toContain("enableAi");
+  });
+
+  test("AI Features never shows the switches folded into Enable AI", () => {
+    const source: string = read("Pages", "Settings", "AIFeatures.tsx");
+
+    for (const retired of [
+      ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect({ retired, named: source.includes(retired) }).toEqual({
+        retired,
+        named: false,
+      });
+    }
+  });
+
+  /*
+   * The columns are gone from the model and the database. A page that still
+   * selected or wrote one would fail against the API, and copy that still
+   * named a toggle would send people looking for one that does not exist.
+   */
+  test("no Dashboard source reads, writes or names a retired switch", () => {
+    const files: Array<string> = dashboardSourceFiles();
+    const offenders: Array<string> = [];
+
+    // A walk that found nothing would pass vacuously.
+    expect(files).toContain(path.join("Pages", "Settings", "AIFeatures.tsx"));
+    expect(files.length).toBeGreaterThan(100);
+
+    for (const file of files) {
+      const source: string = read(file);
+
+      for (const retired of [
+        ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+        ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ]) {
+        if (source.includes(retired)) {
+          offenders.push(`${file}: ${retired}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("AI Credits no longer carries any of them", () => {
+    const source: string = read("Pages", "Settings", "AICredits.tsx");
+    const credits: Array<string> = fieldsIn(source);
+
+    for (const field of [
+      ...PROJECT_AI_SWITCH_FIELDS,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect(credits).not.toContain(field);
+    }
+    /*
+     * What stays: the balance, and the recharge settings - drawn by the
+     * Auto Recharge card both balances share, for the AI balance's columns.
+     */
+    expect(credits).toContain("aiCurrentBalanceInUSDCents");
+    expect(source).toContain("<AutoRechargeCard");
+    expect(source).toContain("balance={ProjectBalanceType.AI}");
+    expect(
+      PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI],
+    ).toContain("enableAutoRechargeAiBalance");
+
+    const card: string = read(
+      "Components",
+      "ProjectBalance",
+      "AutoRechargeCard.tsx",
     );
 
-    expect(aiSection).toBeDefined();
-    expect(aiSection).toContain('title: "AI Guardrails"');
+    for (const field of [
+      ...PROJECT_AI_SWITCH_FIELDS,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect(card).not.toContain(field);
+    }
+  });
 
-    const guardrailsAt: number = aiSection!.indexOf('title: "AI Guardrails"');
-    const billingBranchAt: number = aiSection!.indexOf("BILLING_ENABLED");
+  test("no other AI settings page can write them", () => {
+    for (const field of PROJECT_AI_SWITCH_FIELDS) {
+      expect(formFieldsOf([...INCIDENT_CARDS, ...ALERT_CARDS])).not.toContain(
+        field,
+      );
+      expect([
+        ...INCIDENT_SWITCH_COLUMNS,
+        ...ALERT_SWITCH_COLUMNS,
+        ...columnsOf(AI_INSIGHTS_SWITCHES),
+      ]).not.toContain(field);
+    }
+  });
+
+  test("AI Features is the first item of the AI menu section, outside the billing branch", () => {
+    const aiSection: string = aiMenuSection();
+    const featuresAt: number = aiSection.indexOf('title: "AI Features"');
+    const firstItemAt: number = aiSection.indexOf("title: ");
+    const billingBranchAt: number = aiSection.indexOf("...(BILLING_ENABLED");
 
     expect(billingBranchAt).toBeGreaterThan(-1);
-    expect(guardrailsAt).toBeLessThan(billingBranchAt);
+    expect(featuresAt).toBeGreaterThan(-1);
+    expect(featuresAt).toBe(firstItemAt);
+    expect(featuresAt).toBeLessThan(billingBranchAt);
+    expect(aiSection).toContain("PageMap.SETTINGS_AI_FEATURES");
+  });
+
+  test("the page is routed", () => {
+    const routes: string = read("Routes", "SettingsRoutes.tsx");
+
+    expect(routes).toContain(
+      'import SettingsAIFeatures from "../Pages/Settings/AIFeatures";',
+    );
+    expect(routes).toContain(
+      "path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}",
+    );
+    expect(read("Utils", "RouteMap.ts")).toContain(
+      '[PageMap.SETTINGS_AI_FEATURES]: "ai-features",',
+    );
+  });
+});
+
+/*
+ * Drafting a postmortem when an incident resolves used to ride on the
+ * automatic investigation switch. It is its own switch, saving its own
+ * column: no other switch or card on the page can write it.
+ */
+describe("the automatic postmortem draft", () => {
+  test("is a switch of its own on the incident AI settings page", () => {
+    const postmortem: ProjectAiSwitchDefinition<string> | undefined =
+      AI_LANE_SWITCHES[AiLane.Incident].find(
+        (definition: ProjectAiSwitchDefinition<string>): boolean => {
+          return definition.column === POSTMORTEM_DRAFT_COLUMN;
+        },
+      );
+
+    expect(postmortem?.title).toBe(
+      "Draft a postmortem when an incident resolves",
+    );
+  });
+
+  test("is not part of any card's payload", () => {
+    expect(formFieldsOf(INCIDENT_CARDS)).not.toContain(POSTMORTEM_DRAFT_COLUMN);
+    expect(formFieldsOf(ALERT_CARDS)).not.toContain(POSTMORTEM_DRAFT_COLUMN);
+  });
+
+  test("is an incident setting only", () => {
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Alert])).not.toContain(
+      POSTMORTEM_DRAFT_COLUMN,
+    );
+    expect(read(...ALERT_PAGE)).not.toContain(POSTMORTEM_DRAFT_COLUMN);
   });
 });

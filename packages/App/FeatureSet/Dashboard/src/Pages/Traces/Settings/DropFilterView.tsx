@@ -13,9 +13,11 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import {
+  DROP_FILTER_EDIT_ACTION_TITLE,
+  getTraceDropFilterActionFields,
+} from "../../../Components/Telemetry/DropFilterForm";
 import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import {
   isSamplePercentageConfigured,
   MAX_SAMPLE_PERCENTAGE,
@@ -23,10 +25,13 @@ import {
   resolveSamplePercentage,
 } from "Common/Types/Telemetry/DropFilterSampling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -36,7 +41,6 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
         name="Trace Drop Filter Details"
         cardProps={{
           title: "Drop Filter Details",
-          description: "Basic information about this drop filter.",
         }}
         isEditable={true}
         formFields={[
@@ -97,44 +101,13 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching spans or keep a sample.",
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: { action: true },
-            title: "Action",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Drop — Discard all matching spans",
-                value: "drop",
-              },
-              {
-                label: "Sample — Keep a percentage of matching spans",
-                value: "sample",
-              },
-            ],
-          },
-          {
-            field: { samplePercentage: true },
-            title: "Sample Percentage",
-            fieldType: FormFieldSchemaType.Number,
-            /*
-             * Required only while the Sample action is selected. Saving a
-             * sample filter with no percentage used to be allowed, and the
-             * engine read the blank as "throw away half".
-             */
-            required: (values: FormValues<TraceDropFilter>): boolean => {
-              return values.action === TraceDropFilterAction.Sample;
-            },
-            validation: {
-              minValue: MIN_SAMPLE_PERCENTAGE,
-              maxValue: MAX_SAMPLE_PERCENTAGE,
-            },
-            description:
-              "Required when Action is Sample. Percentage of matching spans to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-            placeholder: "e.g. 10",
-          },
-        ]}
+        editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}
+        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}
+        /*
+         * The create form's Action fields (DropFilterForm): Drop or Sample,
+         * each with its line, and the percentage only for Sample.
+         */
+        formFields={getTraceDropFilterActionFields()}
         modelDetailProps={{
           modelType: TraceDropFilter,
           id: "model-detail-trace-drop-filter-action",
@@ -148,7 +121,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                     <div className="flex items-center gap-3">
                       <Pill color={Red} text="Drop" icon={IconProp.Trash} />
                       <span className="text-sm text-gray-500">
-                        All matching spans are permanently discarded
+                        {translator.translateText(
+                          "All matching spans are permanently discarded",
+                        )}
                       </span>
                     </div>
                   );
@@ -162,13 +137,17 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                         icon={IconProp.Filter}
                       />
                       <span className="text-sm text-gray-500">
-                        Only a percentage of matching spans are kept
+                        {translator.translateText(
+                          "Only a percentage of matching spans are kept",
+                        )}
                       </span>
                     </div>
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">Not configured</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not configured")}
+                  </span>
                 );
               },
             },
@@ -187,9 +166,13 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (!isSamplePercentageConfigured(item.samplePercentage)) {
                   return (
                     <span className="text-sm text-gray-400">
-                      Not configured — no spans are being sampled away. Set a
-                      percentage between {MIN_SAMPLE_PERCENTAGE} and{" "}
-                      {MAX_SAMPLE_PERCENTAGE} to start sampling.
+                      {translator.translateTemplate(
+                        "Not configured — no spans are being sampled away. Set a percentage between {{min}} and {{max}} to start sampling.",
+                        {
+                          min: MIN_SAMPLE_PERCENTAGE,
+                          max: MAX_SAMPLE_PERCENTAGE,
+                        },
+                      )}
                     </span>
                   );
                 }
@@ -200,7 +183,10 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 return (
                   <span className="text-sm text-gray-900">
-                    {pct}% kept • {100 - pct}% discarded
+                    {translator.translateTemplate(
+                      "{{kept}}% kept • {{discarded}}% discarded",
+                      { kept: pct, discarded: 100 - pct },
+                    )}
                   </span>
                 );
               },
@@ -242,7 +228,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (dropped === 0) {
                   return (
                     <span className="text-sm text-gray-400">
-                      This filter has never matched a span.
+                      {translator.translateText(
+                        "This filter has never matched a span.",
+                      )}
                     </span>
                   );
                 }

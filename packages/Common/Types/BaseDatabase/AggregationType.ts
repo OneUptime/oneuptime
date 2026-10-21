@@ -15,6 +15,12 @@ enum AggregationType {
    * over the raw column, which is the right thing for scalar columns.
    */
   P50 = "P50",
+  /*
+   * The level Core Web Vitals are judged at: Google's good / poor
+   * thresholds for LCP, INP and CLS apply to the 75th percentile of page
+   * views, so a web-vital chart or monitor wants exactly this one.
+   */
+  P75 = "P75",
   P90 = "P90",
   P95 = "P95",
   P99 = "P99",
@@ -24,6 +30,7 @@ export default AggregationType;
 
 export const PercentileAggregationLevels: Record<string, number> = {
   [AggregationType.P50]: 0.5,
+  [AggregationType.P75]: 0.75,
   [AggregationType.P90]: 0.9,
   [AggregationType.P95]: 0.95,
   [AggregationType.P99]: 0.99,

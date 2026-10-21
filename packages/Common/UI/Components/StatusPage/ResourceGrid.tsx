@@ -6,7 +6,15 @@ import StatusPageResourceExplorerUtil, {
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import Icon, { ThickProp } from "../Icon/Icon";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   rowLabel: string;
@@ -38,7 +46,27 @@ export interface ComponentProps {
   onAddToCell: (rowValue: string | null, columnValue: string | null) => void;
   onEdit: (statusPageResource: StatusPageResource) => void;
   onDelete: (statusPageResource: StatusPageResource) => void;
+  /*
+   * See ResourceList: a list row's ⋯ menu offers the resource's id, and a grid
+   * chip is the same resource, so its menu offers it too.
+   */
+  onShowId: (statusPageResource: StatusPageResource) => void;
 }
+
+/*
+ * The chip's actions fade in on hover and on keyboard focus, so a cell full of
+ * monitors reads as names rather than as a column of icons. Neither of those
+ * holds while the ⋯ menu is open, though: the menu is drawn in the body, so the
+ * pointer leaves the chip to reach it and focus moves into it - and the trigger
+ * the menu hangs from would fade out from under it. The trigger says it is
+ * expanded for as long as the menu is open, so that is what keeps it shown.
+ */
+const CHIP_ACTIONS_CLASS_NAME: string =
+  "flex flex-shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 has-[[aria-expanded=true]]:opacity-100";
+
+/* A stranded resource needs fixing, so its actions are not held back. */
+const ORPHAN_ACTIONS_CLASS_NAME: string =
+  "flex flex-shrink-0 items-center gap-0.5";
 
 /*
  * A group whose view mode is Grid, edited as the matrix it renders as on the
@@ -54,6 +82,7 @@ export interface ComponentProps {
 const ResourceGrid: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const gridModel: StatusPageResourceGridModel =
     useMemo((): StatusPageResourceGridModel => {
       return StatusPageResourceExplorerUtil.buildGridModel({
@@ -104,13 +133,120 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         <CheckboxElement
           value={isResourceSelected(statusPageResource)}
           disabled={!resourceId}
-          ariaLabel={`Select ${name}`}
-          hoverText={`Select ${name}`}
+          ariaLabel={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
+          hoverText={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
           onChange={() => {
             props.onToggleResourceSelected(statusPageResource);
           }}
         />
       </span>
+    );
+  };
+
+  type RenderActionsFunction = (data: {
+    statusPageResource: StatusPageResource;
+    editTooltip: string;
+    className: string;
+  }) => ReactElement;
+
+  /*
+   * The same two controls a list row carries, so that switching a group's view
+   * mode moves its resources around without changing what can be done to them
+   * or where: edit stays one click away, and everything else - the id, and the
+   * removal that deserves a moment's thought - waits behind ⋯.
+   *
+   * The menu is portalled because the grid scrolls sideways inside an
+   * overflow-x-auto box, which would clip a menu opened under a chip in the
+   * bottom row, or under one in the last column.
+   */
+  const renderActions: RenderActionsFunction = (data: {
+    statusPageResource: StatusPageResource;
+    editTooltip: string;
+    className: string;
+  }): ReactElement => {
+    const statusPageResource: StatusPageResource = data.statusPageResource;
+    const name: string =
+      StatusPageResourceExplorerUtil.getResourceName(statusPageResource);
+
+    const menuItems: Array<ReactElement> = [
+      <MoreMenuItem
+        key="show-id"
+        text="Show ID"
+        icon={IconProp.Identification}
+        onClick={() => {
+          props.onShowId(statusPageResource);
+        }}
+      />,
+    ];
+
+    if (props.isDeleteable) {
+      menuItems.push(
+        <MoreMenuItem
+          key="delete"
+          text="Remove from status page"
+          icon={IconProp.Trash}
+          isDestructive={true}
+          onClick={() => {
+            props.onDelete(statusPageResource);
+          }}
+        />,
+      );
+    }
+
+    return (
+      <div
+        className={data.className}
+        data-testid="status-page-resource-grid-actions"
+      >
+        {props.isEditable ? (
+          <Button
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.ICON}
+            icon={IconProp.Edit}
+            title=""
+            tooltip={data.editTooltip}
+            ariaLabel={translator.translateTemplate("Edit {{name}}", {
+              name: name,
+            })}
+            dataTestId="status-page-resource-grid-edit"
+            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+            onClick={() => {
+              props.onEdit(statusPageResource);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        <MoreMenu
+          text={translator.translateTemplate("More actions for {{name}}", {
+            name: name,
+          })}
+          menuIcon={IconProp.EllipsisHorizontal}
+          isMenuPortaled={true}
+          elementToBeShownInsteadOfButton={
+            <button
+              type="button"
+              aria-label={translator.translateTemplate(
+                "More actions for {{name}}",
+                {
+                  name: name,
+                },
+              )}
+              data-testid="status-page-resource-grid-more"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            >
+              <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
+            </button>
+          }
+        >
+          {menuItems}
+        </MoreMenu>
+      </div>
     );
   };
 
@@ -153,43 +289,11 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        <div className="flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-          {props.isEditable ? (
-            <Button
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.ICON}
-              icon={IconProp.Edit}
-              title=""
-              tooltip="Edit this resource"
-              ariaLabel={`Edit ${name}`}
-              dataTestId="status-page-resource-grid-edit"
-              className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-              onClick={() => {
-                props.onEdit(statusPageResource);
-              }}
-            />
-          ) : (
-            <></>
-          )}
-
-          {props.isDeleteable ? (
-            <Button
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.ICON}
-              icon={IconProp.Trash}
-              title=""
-              tooltip="Remove this resource from the status page"
-              ariaLabel={`Remove ${name}`}
-              dataTestId="status-page-resource-grid-delete"
-              className="text-gray-400 hover:bg-red-50 hover:text-red-600"
-              onClick={() => {
-                props.onDelete(statusPageResource);
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
+        {renderActions({
+          statusPageResource,
+          editTooltip: translationKey("Edit this resource"),
+          className: CHIP_ACTIONS_CLASS_NAME,
+        })}
       </div>
     );
   };
@@ -217,7 +321,10 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         {props.isCreateable ? (
           <button
             type="button"
-            aria-label={`Add a monitor to ${rowValue} and ${columnValue}`}
+            aria-label={translator.translateTemplate(
+              "Add a monitor to {{row}} and {{column}}",
+              { row: rowValue, column: columnValue },
+            )}
             data-testid="status-page-resource-grid-cell-add"
             onClick={() => {
               props.onAddToCell(rowValue, columnValue);
@@ -229,7 +336,11 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
               className="h-3.5 w-3.5"
               thick={ThickProp.Thick}
             />
-            <span>{cell.length > 0 ? "Add" : "Add monitor"}</span>
+            <span>
+              {translator.translateText(
+                cell.length > 0 ? "Add" : "Add monitor",
+              )}
+            </span>
           </button>
         ) : (
           <></>
@@ -300,24 +411,29 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
           data-testid="status-page-resource-grid-orphans"
         >
           <div className="text-xs font-semibold text-amber-800">
-            {gridModel.orphanResources.length.toLocaleString()} resource
-            {gridModel.orphanResources.length === 1 ? "" : "s"} are not on the
-            grid
+            {translator.translatePlural(
+              {
+                one: "{{count}} resource is not on the grid",
+                other: "{{count}} resources are not on the grid",
+              },
+              gridModel.orphanResources.length,
+            )}
           </div>
           <p className="mt-0.5 text-xs text-amber-700">
-            Their {props.rowLabel.toLowerCase()} or{" "}
-            {props.columnLabel.toLowerCase()} is not one this group defines, so
-            visitors never see them. Edit each one to put it in a cell.
+            {translator.translateTemplate(
+              "Their {{row}} or {{column}} is not one this group defines, so visitors never see them. Edit each one to put it in a cell.",
+              {
+                row: translatableTerm(props.rowLabel, { inSentence: true }),
+                column: translatableTerm(props.columnLabel, {
+                  inSentence: true,
+                }),
+              },
+            )}
           </p>
 
           <div className="mt-3 flex flex-col gap-2">
             {gridModel.orphanResources.map(
               (statusPageResource: StatusPageResource) => {
-                const name: string =
-                  StatusPageResourceExplorerUtil.getResourceName(
-                    statusPageResource,
-                  );
-
                 return (
                   <div
                     key={statusPageResource._id?.toString()}
@@ -343,41 +459,13 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
                       </div>
                     </div>
 
-                    <div className="flex flex-shrink-0 items-center gap-0.5">
-                      {props.isEditable ? (
-                        <Button
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.ICON}
-                          icon={IconProp.Edit}
-                          title=""
-                          tooltip="Put this resource on the grid"
-                          ariaLabel={`Edit ${name}`}
-                          className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-                          onClick={() => {
-                            props.onEdit(statusPageResource);
-                          }}
-                        />
-                      ) : (
-                        <></>
-                      )}
-
-                      {props.isDeleteable ? (
-                        <Button
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.ICON}
-                          icon={IconProp.Trash}
-                          title=""
-                          tooltip="Remove this resource from the status page"
-                          ariaLabel={`Remove ${name}`}
-                          className="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                          onClick={() => {
-                            props.onDelete(statusPageResource);
-                          }}
-                        />
-                      ) : (
-                        <></>
-                      )}
-                    </div>
+                    {renderActions({
+                      statusPageResource,
+                      editTooltip: translationKey(
+                        "Put this resource on the grid",
+                      ),
+                      className: ORPHAN_ACTIONS_CLASS_NAME,
+                    })}
                   </div>
                 );
               },

@@ -1,0 +1,52 @@
+# The OneUptime VMware agent without Docker: the upstream otelcol-contrib
+# release, run by systemd with the agent's otel-collector-config.yaml. It is
+# installed as /etc/systemd/system/oneuptime-vmware-agent.service, next to the
+# files in /opt/oneuptime-vmware-agent (README.md, "Quick Start — Without
+# Docker"). The Docker install runs oneuptime-vmware-agent.service, beside
+# this file, instead: run one of the two, never both, or every metric of the
+# vCenter arrives twice.
+[Unit]
+Description=OneUptime VMware Agent (OpenTelemetry Collector, without Docker)
+Documentation=https://oneuptime.com/docs/telemetry/vmware
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The defaults docker-compose.yml gives these three. .env overrides them.
+Environment=VMWARE_VCENTER_NAME=vmware-vcenter
+Environment=VCENTER_INSECURE_SKIP_VERIFY=false
+Environment=VCENTER_COLLECTION_INTERVAL=2m
+# The agent's settings: the variables the Docker install keeps in its .env.
+# Root's alone (mode 0600): systemd reads it before the collector starts, and
+# the collector never opens it.
+EnvironmentFile=/opt/oneuptime-vmware-agent/.env
+# The collector serves its own metrics on localhost:8888 unless told
+# otherwise, and so does every other OpenTelemetry Collector — the host
+# collector OneUptime suggests for this machine among them. Whichever starts
+# second fails ("bind: address already in use") and restarts forever, so this
+# one serves them on 127.0.0.1:8890 instead.
+ExecStart=/opt/oneuptime-vmware-agent/otelcol-contrib --config=/opt/oneuptime-vmware-agent/otel-collector-config.yaml "--set=service::telemetry::metrics::readers=[{pull: {exporter: {prometheus: {host: 127.0.0.1, port: 8890}}}}]"
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# The collector only talks to vCenter and to OneUptime, so it runs as a
+# throwaway unprivileged user that can write nowhere and holds no
+# capabilities. The optional syslog listener needs none either: port 5514
+# is above 1024.
+DynamicUser=yes
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

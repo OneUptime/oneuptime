@@ -30,6 +30,7 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
+import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import IoTFleetService from "../../../Server/Services/IoTFleetService";
@@ -39,7 +40,19 @@ import RumApplicationService from "../../../Server/Services/RumApplicationServic
 import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 
 /*
  * The L1 memo inside OTelIngestService.getResourceRetention.
@@ -51,7 +64,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * `resolveTelemetryResource` has run, and none of the three consults the
  * dictionary before calling in. So every resource block of every batch paid
  * that SELECT. The memo (keyed on entityType + entityId, 60s TTL) is what
- * actually removes it; this suite pins that for ALL thirteen entity types.
+ * actually removes it; this suite pins that for ALL fourteen entity types.
  *
  * What is pinned, per type:
  *
@@ -112,6 +125,11 @@ const RETENTION_CASES: Array<RetentionCase> = [
     service: CephClusterService,
   },
   {
+    name: "StorageArray",
+    serviceType: ServiceType.StorageArray,
+    service: StorageArrayService,
+  },
+  {
     name: "DockerSwarmCluster",
     serviceType: ServiceType.DockerSwarmCluster,
     service: DockerSwarmClusterService,
@@ -144,6 +162,21 @@ const RETENTION_CASES: Array<RetentionCase> = [
 ];
 
 const PROJECT_DEFAULT_RETENTION_DAYS: number = 15;
+
+/*
+ * Retention overrides are an Enterprise feature: ingest applies them only
+ * while EnterpriseFeature.TelemetryRetention is active. These suites are
+ * about the caches, so they run as a licensed Enterprise Edition (a valid
+ * license is active with billing on or off). The Community Edition path is
+ * pinned in OpenTelemetryRetentionOverrideEdition.test.ts.
+ */
+beforeAll(() => {
+  installFakeEnterpriseModule();
+});
+
+afterAll(() => {
+  uninstallEnterpriseModule();
+});
 const RESOURCE_RETENTION_CONFIG: TelemetryRetentionConfig = {
   logs: { default: 45 },
   traces: { default: 60 },

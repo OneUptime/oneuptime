@@ -44,6 +44,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import { SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js";
 import { createExpressApp } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
 import { setupMCPRoutes } from "../Handlers/RouteHandler";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
 import { McpToolInfo } from "../Types/McpTypes";
@@ -69,6 +70,10 @@ const TOOLS: McpToolInfo[] = [
 ];
 
 const A_RANDOM_SESSION_ID: string = "11111111-2222-3333-4444-555555555555";
+
+// What a call that needs an identity, made without one, is told.
+const SIGN_IN_REQUIRED: string =
+  "Authentication is required for this tool. Sign in with OneUptime, or send a OneUptime API key in the x-api-key header.";
 
 /*
  * The protocol version Claude's MCP client declared in issue #3695. It is newer
@@ -413,7 +418,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        "key-from-newer-client",
+        { type: "api-key", apiKey: "key-from-newer-client" },
       );
     });
 
@@ -1144,35 +1149,178 @@ describe("MCP RouteHandler (stateless mode)", () => {
       expect(allowHeaders).toContain("mcp-protocol-version");
       // Stateless mode: no session id is ever issued, so none is allowed/exposed.
       expect(allowHeaders).not.toContain("mcp-session-id");
-      expect(res.headers.get("access-control-expose-headers")).toBeNull();
+
+      /*
+       * The one header that IS exposed: a browser hides WWW-Authenticate from
+       * script unless it is named here, and it is where a client reads that
+       * it must sign in.
+       */
+      expect(
+        (res.headers.get("access-control-expose-headers") || "").toLowerCase(),
+      ).toBe("www-authenticate");
+    });
+
+    it("exposes nothing when OAuth is switched off: the endpoint then never sends that header", async () => {
+      const oauthOff: jest.SpyInstance = jest
+        .spyOn(McpOAuthConfig, "isEnabled")
+        .mockReturnValue(false) as unknown as jest.SpyInstance;
+
+      try {
+        for (const method of ["GET", "OPTIONS", "DELETE"]) {
+          const res: Response = await fetch(`http://127.0.0.1:${portA}/mcp`, {
+            method,
+          });
+
+          // Exactly what the endpoint answered before sign-in existed.
+          expect(res.headers.get("access-control-expose-headers")).toBeNull();
+        }
+
+        const post: Response = await fetch(`http://127.0.0.1:${portA}/mcp`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+        });
+
+        expect(post.status).toBe(200);
+        expect(post.headers.get("access-control-expose-headers")).toBeNull();
+      } finally {
+        oauthOff.mockRestore();
+      }
+    });
+
+    it("adds WWW-Authenticate to whatever the app's own CORS middleware already exposes", async () => {
+      // The real app runs a CORS middleware in front of every route.
+      const app: ReturnType<typeof createExpressApp> = createExpressApp();
+
+      app.use(
+        (
+          _req: unknown,
+          res: { setHeader: (name: string, value: string) => void },
+          next: () => void,
+        ): void => {
+          res.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
+          next();
+        },
+      );
+      setupMCPRoutes(app, TOOLS);
+
+      const server: http.Server = http.createServer(app);
+
+      await new Promise<void>((resolve: () => void) => {
+        server.listen(0, "127.0.0.1", () => {
+          resolve();
+        });
+      });
+
+      try {
+        const res: Response = await fetch(
+          `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`,
+        );
+
+        expect(res.headers.get("access-control-expose-headers")).toBe(
+          "X-Request-Id, WWW-Authenticate",
+        );
+
+        const oauthOff: jest.SpyInstance = jest
+          .spyOn(McpOAuthConfig, "isEnabled")
+          .mockReturnValue(false) as unknown as jest.SpyInstance;
+
+        try {
+          const off: Response = await fetch(
+            `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`,
+          );
+
+          // Switched off, the app's own value is left exactly as it was.
+          expect(off.headers.get("access-control-expose-headers")).toBe(
+            "X-Request-Id",
+          );
+        } finally {
+          oauthOff.mockRestore();
+        }
+      } finally {
+        await closeServer(server);
+      }
     });
   });
 
   describe("tool execution uses the per-request API key", () => {
-    it("tools/call without an API key returns an in-band isError tool result", async () => {
-      const res: McpResult = await postMcp(portA, {
-        jsonrpc: "2.0",
-        id: 4,
-        method: "tools/call",
-        params: { name: "create_project", arguments: { name: "Acme" } },
+    it("tools/call without any credential is refused with a 401 Bearer challenge", async () => {
+      const res: Response = await fetch(`http://127.0.0.1:${portA}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 4,
+          method: "tools/call",
+          params: { name: "create_project", arguments: { name: "Acme" } },
+        }),
       });
 
-      expect(res.status).toBe(200);
       /*
-       * Per the MCP spec, execution failures (like a missing API key) are
-       * reported inside the CallToolResult with isError: true — not as
-       * JSON-RPC protocol errors — so the calling agent sees the message
-       * and can self-correct.
+       * An MCP client starts signing its user in when, and only when, the
+       * HTTP request itself is refused. An error inside a 200 reads to it as
+       * a tool that ran and failed, and nobody is ever prompted.
        */
-      const result: {
-        isError?: boolean;
-        content?: Array<{ type: string; text: string }>;
-      } = (res.json as { result?: never })?.["result"] || {};
-      expect(result.isError).toBe(true);
-      expect(result.content?.[0]?.text).toMatch(/API key is required/i);
+      expect(res.status).toBe(401);
+
+      const challenge: string = res.headers.get("www-authenticate") || "";
+
+      // Which parameter comes where is pinned by the challenge's own tests.
+      expect(challenge.startsWith("Bearer ")).toBe(true);
+      expect(challenge).toContain('error="invalid_token"');
+      expect(challenge).toContain(`error_description="${SIGN_IN_REQUIRED}"`);
+      expect(challenge).toContain(
+        `resource_metadata="${McpOAuthConfig.getProtectedResourceMetadataUrl()}"`,
+      );
+      expect(challenge).toContain('scope="mcp:read mcp:write"');
+      expect(await res.json()).toEqual({
+        error: "invalid_token",
+        error_description: SIGN_IN_REQUIRED,
+      });
       expect(
         OneUptimeApiService.executeOperation as jest.Mock,
       ).not.toHaveBeenCalled();
+    });
+
+    it("tools/call without an API key is still an in-band isError tool result when OAuth is switched off", async () => {
+      const oauthOff: jest.SpyInstance = jest
+        .spyOn(McpOAuthConfig, "isEnabled")
+        .mockReturnValue(false) as unknown as jest.SpyInstance;
+
+      try {
+        const res: McpResult = await postMcp(portA, {
+          jsonrpc: "2.0",
+          id: 4,
+          method: "tools/call",
+          params: { name: "create_project", arguments: { name: "Acme" } },
+        });
+
+        expect(res.status).toBe(200);
+        /*
+         * Per the MCP spec, execution failures (like a missing API key) are
+         * reported inside the CallToolResult with isError: true — not as
+         * JSON-RPC protocol errors — so the calling agent sees the message
+         * and can self-correct. With no authorization server to send anyone
+         * to, this is what the server answered before OAuth existed.
+         */
+        const result: {
+          isError?: boolean;
+          content?: Array<{ type: string; text: string }>;
+        } = (res.json as { result?: never })?.["result"] || {};
+        expect(result.isError).toBe(true);
+        expect(result.content?.[0]?.text).toMatch(/API key is required/i);
+        expect(
+          OneUptimeApiService.executeOperation as jest.Mock,
+        ).not.toHaveBeenCalled();
+      } finally {
+        oauthOff.mockRestore();
+      }
     });
 
     it("tools/call passes the request's API key to executeOperation", async () => {
@@ -1196,7 +1344,11 @@ describe("MCP RouteHandler (stateless mode)", () => {
       const payload: any = JSON.parse(res.json.result.content[0].text);
       expect(payload.success).toBe(true);
 
-      // Signature: (tableName, operation, modelType, apiPath, args, apiKey)
+      /*
+       * Signature: (tableName, operation, modelType, apiPath, args, credential).
+       * The key travels as an API-key credential, so the tool layer can tell
+       * it from a client that signed in with OAuth.
+       */
       expect(
         OneUptimeApiService.executeOperation as jest.Mock,
       ).toHaveBeenCalledTimes(1);
@@ -1208,7 +1360,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        "secret-key-123",
+        { type: "api-key", apiKey: "secret-key-123" },
       );
     });
 
@@ -1236,7 +1388,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        "bearer-key-456",
+        { type: "api-key", apiKey: "bearer-key-456" },
       );
     });
   });

@@ -9,7 +9,9 @@ import TenantPermission from "../../../../../Server/Types/Database/Permissions/T
 import UserPermissions from "../../../../../Server/Types/Database/Permissions/UserPermission";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../../../Types/Permission";
 
 /*
  * Exercises the @CanAccessIfCanReadOn handling in
@@ -22,11 +24,30 @@ describe("BasePermission canAccessIfCanReadOn relation query", () => {
   const userId: ObjectID = ObjectID.generate();
   const permittedLabel: ObjectID = ObjectID.generate();
 
-  function makeProps(): DatabaseCommonInteractionProps {
+  /*
+   * A caller who may read incidents (the note is read through its incident)
+   * with these permission rows.
+   */
+  function makeProps(
+    permissions: Array<UserPermission> = [
+      {
+        _type: "UserPermission",
+        permission: Permission.IncidentViewer,
+        labelIds: [],
+        isBlockPermission: false,
+      },
+    ],
+  ): DatabaseCommonInteractionProps {
     return {
       userId,
       tenantId: projectId,
-      userTenantAccessPermission: {},
+      userTenantAccessPermission: {
+        [projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: projectId,
+          permissions: permissions,
+        },
+      },
     };
   }
 
@@ -50,13 +71,14 @@ describe("BasePermission canAccessIfCanReadOn relation query", () => {
     jest
       .spyOn(QueryPermission, "checkQueryPermission")
       .mockImplementation(() => {});
+    // The table's own labels and owners: what the record rule asks for them.
     jest
-      .spyOn(AccessControlPermission, "addAccessControlIdsToQuery")
-      .mockImplementation(async (_modelType: any, query: any) => {
+      .spyOn(AccessControlPermission, "addLabelIdsToQuery")
+      .mockImplementation((_modelType: any, query: any) => {
         return query;
       });
     jest
-      .spyOn(OwnedScopePermission, "addOwnedScopeToQuery")
+      .spyOn(OwnedScopePermission, "addOwnedRecordsToQuery")
       .mockImplementation(async (_modelType: any, query: any) => {
         return query;
       });
@@ -114,5 +136,45 @@ describe("BasePermission canAccessIfCanReadOn relation query", () => {
     expect(query.incident).toEqual({
       labels: [permittedLabel],
     });
+  });
+
+  /*
+   * A note is read through its incident: a caller who holds a note
+   * permission but none of the incident's read permissions reaches no note,
+   * where it used to reach the notes of every incident.
+   */
+  it("refuses a caller who may read no incident, whatever they hold on notes", async () => {
+    for (const type of [
+      DatabaseRequestType.Read,
+      DatabaseRequestType.Update,
+      DatabaseRequestType.Delete,
+    ]) {
+      await expect(
+        BasePermission.checkPermissions(
+          IncidentInternalNote,
+          { projectId },
+          null,
+          makeProps(
+            [
+              Permission.ReadIncidentInternalNote,
+              Permission.EditIncidentInternalNote,
+              Permission.DeleteIncidentInternalNote,
+            ].map((permission: Permission): UserPermission => {
+              return {
+                _type: "UserPermission",
+                permission: permission,
+                labelIds: [],
+                isBlockPermission: false,
+              };
+            }),
+          ),
+          type,
+        ),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          `You do not have permissions to ${type} Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: Project Owner, Project Admin, Project Member, Viewer, Incident Admin, Incident Member, Incident Viewer, Read Incident`,
+        ),
+      );
+    }
   });
 });

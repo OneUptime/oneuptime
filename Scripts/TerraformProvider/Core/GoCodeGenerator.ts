@@ -81,9 +81,7 @@ ${body}
       case "int":
       case "int64":
       case "float64":
-        return `if val, ok := ${mapVar}["${key}"].(float64); ok {
-        ${targetVar} = types.NumberValue(big.NewFloat(val))
-    }`;
+        return this.generateNumberFromAPI(targetVar, `${mapVar}["${key}"]`);
       case "bool":
         return `if val, ok := ${mapVar}["${key}"].(bool); ok {
         ${targetVar} = types.BoolValue(val)
@@ -93,6 +91,31 @@ ${body}
         ${targetVar} = types.StringValue(val)
     }`;
     }
+  }
+
+  /*
+   * Sets a number attribute from what the API answered for it, in Create,
+   * Read and Update and in a data source's Read: the one way generated code
+   * reads a number.
+   *
+   * numberFromAPI (StaticFiles/apinumber.go) reads every shape the API
+   * answers a number in: a JSON number, numeric text - Postgres hands a
+   * decimal column back as text, and servers before the fix for #4719
+   * answered it as "99.65" - or either inside a {_type, value} wrapper. It
+   * takes the attribute's current value too (the plan in Create and Update,
+   * the prior state in Read, the configuration in a data source) and keeps
+   * it when the API answered the same number, so a configuration's 99.65
+   * reads back as exactly the 99.65 Terraform planned.
+   *
+   * Reading text as null instead made every apply of a status page bar
+   * color rule fail with "Provider produced inconsistent result after
+   * apply" (#4719).
+   */
+  public static generateNumberFromAPI(
+    attributeRef: string,
+    responseValue: string,
+  ): string {
+    return `${attributeRef} = numberFromAPI(${attributeRef}, ${responseValue})`;
   }
 
   public static generateImports(imports: string[]): string {

@@ -19,6 +19,7 @@ import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonit
 import SyntheticMonitorResponse from "../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import TraceMonitorResponse from "../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
+import ProbeStatusMonitorResponse from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 
 /*
  * Builds and reads the frozen "Monitor Summary" stored on an incident or
@@ -46,7 +47,8 @@ export type MonitorSummaryDataToProcess =
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
-  | ProfileMonitorResponse;
+  | ProfileMonitorResponse
+  | ProbeStatusMonitorResponse;
 
 /*
  * The props the dashboard's SummaryInfo component takes. Declared here
@@ -70,6 +72,7 @@ export interface MonitorSummaryInfoProps {
     | { lastCheckedAt?: Date | undefined; nextCheckAt?: Date | undefined }
     | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  probeStatusMonitorResponse?: ProbeStatusMonitorResponse | undefined;
 }
 
 /*
@@ -217,6 +220,19 @@ export default class MonitorSummarySnapshotUtil {
     }
 
     /*
+     * Before the probe-check fallback below: a Probe Status evaluation is
+     * scoped to its step like a probe check is, but no probe ran it, and
+     * the incident page should show the probes it watched, not a check.
+     */
+    if (monitorType === MonitorType.ProbeStatus) {
+      if (this.isProbeStatusMonitorResponse(dataToProcess)) {
+        snapshot.probeStatusMonitorResponse =
+          dataToProcess as ProbeStatusMonitorResponse;
+      }
+      return;
+    }
+
+    /*
      * Everything else is served by a probe check: every probeable type,
      * plus Network Device, whose SNMP walk and trap results arrive as a
      * ProbeMonitorResponse even though the type is not "probeable" (its
@@ -253,6 +269,7 @@ export default class MonitorSummarySnapshotUtil {
     const counts: Array<{ key: string; title: string }> = [
       { key: "logCount", title: "Log Records" },
       { key: "securityEventCount", title: "Security Events" },
+      { key: "llmBadAnswerCount", title: "Bad AI Answers" },
       { key: "spanCount", title: "Spans" },
       { key: "exceptionCount", title: "Exceptions" },
       { key: "profileCount", title: "Profiles" },
@@ -282,6 +299,7 @@ export default class MonitorSummarySnapshotUtil {
         snapshot.incomingMonitorRequest ||
         snapshot.incomingEmailMonitorRequest ||
         snapshot.telemetryMonitorSummary ||
+        snapshot.probeStatusMonitorResponse ||
         snapshot.evaluationSummary,
     );
   }
@@ -526,6 +544,10 @@ export default class MonitorSummarySnapshotUtil {
       };
     }
 
+    if (snapshot.probeStatusMonitorResponse) {
+      props.probeStatusMonitorResponse = snapshot.probeStatusMonitorResponse;
+    }
+
     if (snapshot.evaluationSummary) {
       props.evaluationSummary = snapshot.evaluationSummary;
     }
@@ -560,6 +582,16 @@ export default class MonitorSummarySnapshotUtil {
      * response is scoped to the monitor step it ran.
      */
     return Boolean((data as ProbeMonitorResponse).monitorStepId);
+  }
+
+  private static isProbeStatusMonitorResponse(
+    data: MonitorSummaryDataToProcess | undefined,
+  ): boolean {
+    if (!data || typeof data !== "object") {
+      return false;
+    }
+
+    return Array.isArray((data as ProbeStatusMonitorResponse).probes);
   }
 
   private static isServerMonitorResponse(

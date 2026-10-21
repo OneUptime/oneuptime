@@ -6,7 +6,6 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -17,6 +16,9 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
+import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import {
   afterEach,
   beforeEach,
@@ -25,6 +27,20 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService). And the
+ * episode a note is created under is one its creator may read: a member who
+ * is no project admin is looked up with the rule for private episodes
+ * (CreatePermission.checkParentPermission), answered here as found.
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubReadableParents();
+});
 
 /*
  * A public note that does not say whether to notify status page subscribers
@@ -52,6 +68,12 @@ const OTHER_EPISODE_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
 const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+// Somebody else, whom a request may not name as having done anything.
+const OTHER_USER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 const SKIPPED_MESSAGE: string =
   "Notifications skipped as subscribers are not to be notified for this episode note.";
@@ -96,9 +118,16 @@ const rootProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
   return { isRoot: true };
 };
 
-// A member whose only way in is the episode public note create permission.
+/*
+ * A member whose only way in is the episode public note create permission,
+ * and a read of the episode the note is posted on: a note is created only
+ * under an episode its creator may read.
+ */
 const noteCreatorProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
-  return memberProps([Permission.CreateIncidentEpisodePublicNote]);
+  return memberProps([
+    Permission.CreateIncidentEpisodePublicNote,
+    Permission.ReadIncidentEpisode,
+  ]);
 };
 
 type EpisodeWithFlagFunction = (
@@ -283,7 +312,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
     });
 
-    test("an explicit yes on a quiet episode is kept, without reading the episode", async () => {
+    test("an explicit yes on a quiet episode is kept: the episode is read once, only for whether it is private", async () => {
       mockEpisodeLookup(episodeWithFlag(false));
 
       const result: OnCreate<IncidentEpisodePublicNote> = await runBeforeCreate(
@@ -291,7 +320,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(true);
@@ -300,7 +329,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Pending);
     });
 
-    test("an explicit no on a notifying episode is kept, without reading the episode", async () => {
+    test("an explicit no on a notifying episode is kept: the episode is read once, only for whether it is private", async () => {
       mockEpisodeLookup(episodeWithFlag(true));
 
       const result: OnCreate<IncidentEpisodePublicNote> = await runBeforeCreate(
@@ -308,7 +337,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(false);
@@ -474,12 +503,13 @@ describe("IncidentEpisodePublicNoteService onBeforeCreate episode lookup", () =>
     expect(episodeLookupQuery()).toEqual({ _id: EPISODE_ID.toString() });
   });
 
-  test("reads only the episode's notify setting", async () => {
+  test("reads only whether the episode is private and its notify setting", async () => {
     mockEpisodeLookup(episodeWithFlag(false));
 
     await runBeforeCreate(buildNote());
 
     expect(episodeLookup().select).toEqual({
+      isPrivate: true,
       shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
     });
   });
@@ -527,7 +557,7 @@ describe("IncidentEpisodePublicNoteService addNote (Slack)", () => {
       );
 
     await IncidentEpisodePublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       incidentEpisodeId: EPISODE_ID,
       projectId: PROJECT_ID,
       note: "Posted from the episode channel.",
@@ -554,7 +584,9 @@ describe("IncidentEpisodePublicNoteService addNote (Slack)", () => {
       EPISODE_ID.toString(),
     );
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createBy.props).toEqual({ isRoot: true });
+    // Created with the member's own props: the note is theirs.
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.isRoot).toBeUndefined();
   });
 
   test("a note posted on a quiet episode stays quiet", async () => {
@@ -633,6 +665,7 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
     jest
       .spyOn(IncidentEpisodePublicNoteService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    stubProjectDirectory({});
   });
 
   test("a member who may only create episode public notes saves a quiet note on a quiet episode", async () => {
@@ -645,6 +678,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(save.mock.calls[0]![0]).toBe(saved);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
@@ -680,7 +715,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
         props: noteCreatorProps(),
       });
 
-    expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+    // Read once, for whether the episode is private: it is not.
+    expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
@@ -696,7 +732,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
         props: noteCreatorProps(),
       });
 
-    expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+    // Read once, for whether the episode is private: it is not.
+    expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );
@@ -739,13 +776,15 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
 
     const saved: IncidentEpisodePublicNote =
       await IncidentEpisodePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         incidentEpisodeId: EPISODE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the episode channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );
@@ -759,13 +798,15 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
 
     const saved: IncidentEpisodePublicNote =
       await IncidentEpisodePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         incidentEpisodeId: EPISODE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the episode channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
@@ -775,20 +816,40 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
   test("harness guard: the create still enforces column permissions on this path", async () => {
     mockEpisodeLookup(episodeWithFlag(false));
 
-    const note: IncidentEpisodePublicNote = buildNote({ projectId: undefined });
-    note.deletedByUserId = USER_ID;
+    const columnCheck: SpyInstance = getJestSpyOn(
+      ColumnPermission,
+      "checkDataColumnPermissions",
+    );
 
-    await expect(
-      IncidentEpisodePublicNoteService.create({
+    await IncidentEpisodePublicNoteService.create({
+      data: buildNote({ projectId: undefined }),
+      props: noteCreatorProps(),
+    });
+
+    expect(columnCheck).toHaveBeenCalledWith(
+      IncidentEpisodePublicNote,
+      expect.anything(),
+      expect.objectContaining({ userId: USER_ID }),
+      DatabaseRequestType.Create,
+    );
+  });
+
+  test("who deleted a note is never the request's to say: it is taken out, not stored", async () => {
+    mockEpisodeLookup(episodeWithFlag(false));
+
+    const note: IncidentEpisodePublicNote = buildNote({ projectId: undefined });
+    note.deletedByUserId = OTHER_USER_ID;
+    note.createdByUserId = OTHER_USER_ID;
+
+    const saved: IncidentEpisodePublicNote =
+      await IncidentEpisodePublicNoteService.create({
         data: note,
         props: noteCreatorProps(),
-      }),
-    ).rejects.toThrow(
-      new BadDataException(
-        "User is not allowed to create on deletedByUserId column of Incident Episode Public Note",
-      ),
-    );
-    expect(save).not.toHaveBeenCalled();
+      });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saved.deletedByUserId).toBeUndefined();
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
   });
 
   test("harness guard: a caller who may only read episode public notes is refused", async () => {

@@ -27,6 +27,19 @@ import {
 import type { SpyInstance } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -89,9 +102,9 @@ describe("auto-provisioned Monitor lifecycle", () => {
       "Monitor template is outside your label scope",
     );
     const findTemplateSpy: SpyInstance<
-      typeof MonitorTemplateService.findOneById
+      typeof MonitorTemplateService.findOneBy
     > = jest
-      .spyOn(MonitorTemplateService, "findOneById")
+      .spyOn(MonitorTemplateService, "findOneBy")
       .mockRejectedValue(readDenied);
     const monitor: Monitor = new Monitor();
     monitor.monitorType = MonitorType.NetworkDevice;
@@ -111,8 +124,8 @@ describe("auto-provisioned Monitor lifecycle", () => {
 
   it("rejects conflicting scalar and relation template IDs on direct create", async () => {
     const findTemplateSpy: SpyInstance<
-      typeof MonitorTemplateService.findOneById
-    > = jest.spyOn(MonitorTemplateService, "findOneById");
+      typeof MonitorTemplateService.findOneBy
+    > = jest.spyOn(MonitorTemplateService, "findOneBy");
     const monitor: Monitor = new Monitor();
     monitor.monitorType = MonitorType.NetworkDevice;
     monitor.monitorTemplateId = TEMPLATE_ID;
@@ -213,9 +226,59 @@ describe("auto-provisioned Monitor lifecycle", () => {
     const template: MonitorTemplate = new MonitorTemplate();
     template.projectId = ObjectID.generate();
     template.monitorType = MonitorType.NetworkDevice;
-    jest
-      .spyOn(MonitorTemplateService, "findOneById")
-      .mockResolvedValue(template);
+    // The template is read pinned to the monitor's project, as the database would.
+    const findTemplateSpy: SpyInstance<
+      typeof MonitorTemplateService.findOneBy
+    > = jest
+      .spyOn(MonitorTemplateService, "findOneBy")
+      .mockImplementation((async (input: {
+        query: { projectId?: unknown };
+      }): Promise<MonitorTemplate | null> => {
+        return String(input.query.projectId) === template.projectId!.toString()
+          ? template
+          : null;
+      }) as never);
+
+    // Another project's template reads exactly like one that does not exist.
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorTemplateId: TEMPLATE_ID },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("Monitor template not found.");
+
+    expect(
+      String(
+        (findTemplateSpy.mock.calls[0]![0] as { query: { projectId: unknown } })
+          .query.projectId,
+      ),
+    ).toBe(PROJECT_ID.toString());
+
+    findTemplateSpy.mockResolvedValue(null);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorTemplateId: OTHER_TEMPLATE_ID },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("Monitor template not found.");
+  });
+
+  it("refuses a template of another monitor type, once it is found in the project", async () => {
+    const monitor: Monitor = new Monitor();
+    monitor.projectId = PROJECT_ID;
+    monitor.monitorType = MonitorType.NetworkDevice;
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.projectId = PROJECT_ID;
+    template.monitorType = MonitorType.Website;
+    jest.spyOn(MonitorTemplateService, "findOneBy").mockResolvedValue(template);
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
@@ -225,14 +288,20 @@ describe("auto-provisioned Monitor lifecycle", () => {
         skip: 0,
         props: { isRoot: true, tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow("same project as the monitor");
+    ).rejects.toThrow("Monitor template type must match the monitor type.");
   });
 
   it("refuses a direct update that links a template hidden by the caller's read scope", async () => {
     const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
     monitor.projectId = PROJECT_ID;
     monitor.monitorType = MonitorType.NetworkDevice;
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+    // The monitors the caller's update may write: this one.
+    stubRowsCallerMayWriteLikeFindBy(
+      MonitorService,
+      jest.spyOn(MonitorService, "findBy"),
+    );
     const props: DatabaseCommonInteractionProps = {
       tenantId: PROJECT_ID,
       userId: ObjectID.generate(),
@@ -241,14 +310,14 @@ describe("auto-provisioned Monitor lifecycle", () => {
       "Monitor template is outside your label scope",
     );
     const findTemplateSpy: SpyInstance<
-      typeof MonitorTemplateService.findOneById
+      typeof MonitorTemplateService.findOneBy
     > = jest
-      .spyOn(MonitorTemplateService, "findOneById")
+      .spyOn(MonitorTemplateService, "findOneBy")
       .mockRejectedValue(readDenied);
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: monitor.id.toString() },
         data: { monitorTemplateId: TEMPLATE_ID },
         limit: 1,
         skip: 0,
@@ -267,8 +336,8 @@ describe("auto-provisioned Monitor lifecycle", () => {
     monitor.monitorType = MonitorType.NetworkDevice;
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
     const findTemplateSpy: SpyInstance<
-      typeof MonitorTemplateService.findOneById
-    > = jest.spyOn(MonitorTemplateService, "findOneById");
+      typeof MonitorTemplateService.findOneBy
+    > = jest.spyOn(MonitorTemplateService, "findOneBy");
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
@@ -291,8 +360,8 @@ describe("auto-provisioned Monitor lifecycle", () => {
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([automaticMonitor()]);
     const findTemplateSpy: SpyInstance<
-      typeof MonitorTemplateService.findOneById
-    > = jest.spyOn(MonitorTemplateService, "findOneById");
+      typeof MonitorTemplateService.findOneBy
+    > = jest.spyOn(MonitorTemplateService, "findOneBy");
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
@@ -335,6 +404,16 @@ describe("Network Device deletion with automatic monitors", () => {
    */
   beforeEach(() => {
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
+    /*
+     * The devices the caller may delete: those the case's device read
+     * answers. A case's own delete permission stub, set after this, decides
+     * the rest.
+     */
+    stubRowsCallerMayDeleteLikeFindBy(
+      NetworkDeviceService,
+      jest.spyOn(NetworkDeviceService, "findBy"),
+    );
   });
 
   it("fails closed at the foreign key when a monitor appears after service preflight", () => {

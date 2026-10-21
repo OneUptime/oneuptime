@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   icon?: IconProp | undefined;
@@ -17,6 +19,7 @@ export interface ComponentProps {
 const DataSourceWidgetPlaceholder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="flex flex-col items-center justify-center w-full h-full gap-2">
       <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
@@ -25,8 +28,10 @@ const DataSourceWidgetPlaceholder: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       <p className="text-xs text-gray-400 text-center max-w-48">
-        {props.message ||
-          "External data sources are not available on public dashboards."}
+        {translator.translateText(
+          props.message ||
+            "External data sources are not available on public dashboards.",
+        )}
       </p>
     </div>
   );

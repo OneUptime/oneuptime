@@ -1,5 +1,5 @@
 import { ContentPath } from "./Config";
-import DocsNav from "./Nav";
+import DocsNav, { DocsNavSections, NavGroup } from "./Nav";
 import DocsPlaceholders from "./Placeholders";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -101,26 +101,37 @@ export default class LlmsTxtUtil {
         `${baseUrl}/docs/llms-full.txt`,
     );
 
-    for (const group of DocsNav) {
+    /*
+     * Sections, then their groups, as the sidebar lists them: an agent
+     * reading the index sees the same map of the docs a person does.
+     */
+    for (const section of DocsNavSections) {
       lines.push("");
-      lines.push(`## ${group.title}`);
-      lines.push("");
+      lines.push(`## ${section}`);
 
-      for (const link of group.links) {
-        const pagePath: string | null = getDocsPagePath(link.url);
+      for (const group of DocsNav.filter((candidate: NavGroup): boolean => {
+        return candidate.section === section;
+      })) {
+        lines.push("");
+        lines.push(`### ${group.title}`);
+        lines.push("");
 
-        if (pagePath === null) {
-          // External link — no markdown version exists.
-          lines.push(`- [${link.title}](${link.url})`);
-          continue;
+        for (const link of group.links) {
+          const pagePath: string | null = getDocsPagePath(link.url);
+
+          if (pagePath === null) {
+            // External link — no markdown version exists.
+            lines.push(`- [${link.title}](${link.url})`);
+            continue;
+          }
+
+          const markdownUrl: string = `${baseUrl}/docs/as-markdown/${DEFAULT_DOCS_LANGUAGE}/${pagePath}`;
+          const htmlUrl: string = `${baseUrl}/docs/${DEFAULT_DOCS_LANGUAGE}/${pagePath}`;
+
+          lines.push(
+            `- [${link.title}](${markdownUrl}): raw markdown (HTML version: ${htmlUrl})`,
+          );
         }
-
-        const markdownUrl: string = `${baseUrl}/docs/as-markdown/${DEFAULT_DOCS_LANGUAGE}/${pagePath}`;
-        const htmlUrl: string = `${baseUrl}/docs/${DEFAULT_DOCS_LANGUAGE}/${pagePath}`;
-
-        lines.push(
-          `- [${link.title}](${markdownUrl}): raw markdown (HTML version: ${htmlUrl})`,
-        );
       }
     }
 

@@ -63,8 +63,9 @@ const ProxmoxClusterDocumentation: FunctionComponent<
   return (
     <Fragment>
       <ProxmoxDocumentationCard
+        clusterName={cluster.name || ""}
         title="Proxmox Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Proxmox Agent for this cluster."
+        description="Install or reconfigure the OneUptime Proxmox agent for this cluster, or connect it with the native push. Pick how to connect, then follow the steps."
       />
     </Fragment>
   );

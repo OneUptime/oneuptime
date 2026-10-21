@@ -32,6 +32,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -131,6 +135,8 @@ beforeEach(() => {
   (EnvironmentConfig as { IsBillingEnabled: boolean }).IsBillingEnabled = true;
   service = new Service();
   hooks = service as unknown as KeyHooks;
+  // Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
     .mockResolvedValue(false);
@@ -158,7 +164,7 @@ describe("telemetry key creation and enablement payment admission", () => {
     const input: CreateBy<TelemetryIngestionKey> = createInput();
     delete input.data.keyType;
     await expect(hooks.onBeforeCreate(input)).rejects.toThrow(
-      "Project Settings > Billing",
+      "Project Settings > Billing and Invoices > Billing",
     );
   });
 
@@ -230,17 +236,24 @@ describe("telemetry key creation and enablement payment admission", () => {
     expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledTimes(2);
   });
 
-  test("scopes a non-root enable lookup to the request tenant", async () => {
+  test("reads a teammate's enable among the keys they may write, in their project", async () => {
+    // The keys the update path finds the caller may write: what findBy answers.
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     const input: UpdateBy<TelemetryIngestionKey> = updateInput({
       isEnabled: true,
     });
     input.props = { tenantId: projectId };
+    const query: UpdateBy<TelemetryIngestionKey>["query"] = input.query;
+    const limit: UpdateBy<TelemetryIngestionKey>["limit"] = input.limit;
+    const skip: UpdateBy<TelemetryIngestionKey>["skip"] = input.skip;
+
     await hooks.onBeforeUpdate(input);
-    expect(service.findBy).toHaveBeenCalledWith(
+
+    expect(readsOfRowsCallerMayWrite(service)[0]).toEqual(
       expect.objectContaining({
-        query: { ...input.query, projectId },
-        limit: input.limit,
-        skip: input.skip,
+        query: { ...query, projectId },
+        limit: limit,
+        skip: skip,
       }),
     );
   });

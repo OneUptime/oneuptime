@@ -1,3 +1,5 @@
+/** @timezone UTC */
+
 import {
   afterEach,
   beforeEach,
@@ -8,29 +10,54 @@ import {
 } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
-  act,
   cleanup,
   fireEvent,
-  render,
   RenderResult,
   screen,
+  within,
 } from "@testing-library/react";
-import React from "react";
+import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  flush,
+  NOTIFY_FLAG,
+  NOTIFYING_DESCRIPTION,
+  notifyCheckbox,
+  notifyDescription,
+  openNoteDialog,
+  postedModelType,
+  postedPayload,
+  postNote,
+  renderAndSettle,
+  UNTICKED_ON_NOTIFYING_EVENT_DESCRIPTION,
+  writeNote,
+} from "./FeedNoteDialogHelpers";
 
 /*
  * An incident episode created without notifying status page subscribers
- * should not have its first public note be what tells them. The episode
- * feed's "Add Public Note" form now starts with "Notify Status Page
- * Subscribers" off for such an episode. The flag is seeded through
- * initialValues as well as the field's defaultValue, because the form drops a
- * false defaultValue, and the request should carry what the user saw rather
- * than leave the choice to the server. These tests pin both, the checkbox
- * copy, and that nothing changes for an episode that did notify.
+ * should not have its first public note be what tells them. The Episode
+ * Feed's "Add Public Note" opens the episode's Notes page composer in a
+ * dialog, and its "Notify status page subscribers" starts unticked on such
+ * an episode, says why (in the episode's words, not an incident's), and the
+ * note is posted with an explicit false - never left out for the server to
+ * decide. Nothing changes for an episode that did notify, or for private
+ * notes.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
-const modalRenderMock: MockFunction = getJestMockFunction();
+const createMock: MockFunction = getJestMockFunction();
+
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (key: string, options?: { defaultValue?: string }): string => {
+          return options?.defaultValue ?? key;
+        },
+      };
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -39,11 +66,75 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
       },
+      create: (...args: Array<any>) => {
+        return createMock(...args);
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
+      },
     },
   };
 });
 
-/* Keep the test about the note forms, not markdown parsing or timeline chrome. */
+jest.mock("../../../UI/Utils/Project", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCurrentProjectId: (): unknown => {
+        const ObjectIDClass: any = jest.requireActual(
+          "../../../Types/ObjectID",
+        ) as any;
+        return new ObjectIDClass.default(
+          "10000000-0000-4000-8000-000000000001",
+        );
+      },
+      getCurrentProject: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/User", () => {
+  return {
+    __esModule: true,
+    default: {
+      isMasterAdmin: (): boolean => {
+        return true;
+      },
+      getUserId: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Components/Markdown.tsx/MarkdownEditor", () => {
+  const ReactModule: typeof React = jest.requireActual("react") as typeof React;
+  return {
+    __esModule: true,
+    default: (props: {
+      initialValue?: string;
+      onChange?: (value: string) => void;
+    }): ReactElement => {
+      const [value, setValue] = ReactModule.useState<string>(
+        props.initialValue || "",
+      );
+      return (
+        <textarea
+          aria-label="Note text"
+          value={value}
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setValue(event.target.value);
+            props.onChange?.(event.target.value);
+          }}
+        />
+      );
+    },
+  };
+});
+
+/* Keep the test about the notes, not markdown parsing or timeline chrome. */
 jest.mock("../../../UI/Components/Feed/Feed", () => {
   return {
     __esModule: true,
@@ -53,139 +144,48 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
-  return {
-    __esModule: true,
-    default: (props: { title: string }): React.ReactElement => {
-      modalRenderMock(props);
-      return React.createElement(
-        "div",
-        { "data-testid": "note-modal" },
-        props.title,
-      );
-    },
-  };
-});
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookPicker",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 
 import IncidentEpisodeFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentEpisode/IncidentEpisodeFeed";
 import IncidentEpisodeInternalNote from "../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEpisodePublicNote";
-import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-
-interface NoteField {
-  field: Record<string, boolean>;
-  fieldType: FormFieldSchemaType;
-  title: string;
-  description?: string | undefined;
-  defaultValue?: unknown;
-  required?: boolean | undefined;
-}
-
-interface NoteModalProps {
-  name: string;
-  title: string;
-  modelType: unknown;
-  initialValues?: Record<string, unknown> | undefined;
-  onBeforeCreate: (model: unknown) => Promise<unknown>;
-  formProps: {
-    name: string;
-    fields: Array<NoteField>;
-  };
-}
 
 const EPISODE_ID: string = "77777777-7777-4777-8777-777777777777";
-const NOTIFY_FIELD_KEY: string =
-  "shouldStatusPageSubscribersBeNotifiedOnNoteCreated";
-const ORIGINAL_DESCRIPTION: string =
-  "Should status page subscribers be notified when this note is posted?";
-const PUBLIC_NOTE_TITLE: string = "Add Public Note to this Episode";
-const PRIVATE_NOTE_TITLE: string = "Add Private Note to this Episode";
-const ON_CALL_TITLE: string = "Execute On-Call Policy";
+const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
-async function flush(): Promise<void> {
-  await act(async () => {
-    for (let i: number = 0; i < 10; i++) {
-      await Promise.resolve();
-    }
-  });
-}
-
-function renderFeed(
+function feed(
   notifyStatusPageSubscribersByDefault?: boolean | undefined,
-): RenderResult {
-  return render(
+): ReactElement {
+  return (
     <IncidentEpisodeFeedElement
       incidentEpisodeId={new ObjectID(EPISODE_ID)}
       refreshToken={0}
       notifyStatusPageSubscribersByDefault={
         notifyStatusPageSubscribersByDefault
       }
-    />,
+    />
   );
 }
 
-function lastModalProps(): NoteModalProps {
-  const calls: Array<Array<NoteModalProps>> = modalRenderMock.mock
-    .calls as Array<Array<NoteModalProps>>;
-
-  return calls[calls.length - 1]![0]!;
-}
-
-function modalPropsWithTitle(title: string): NoteModalProps {
-  const calls: Array<Array<NoteModalProps>> = modalRenderMock.mock
-    .calls as Array<Array<NoteModalProps>>;
-
-  const matching: Array<NoteModalProps> = calls
-    .map((call: Array<NoteModalProps>): NoteModalProps => {
-      return call[0]!;
-    })
-    .filter((props: NoteModalProps): boolean => {
-      return props.title === title;
-    });
-
-  if (matching.length === 0) {
-    throw new Error(`No modal titled "${title}" was rendered`);
-  }
-
-  return matching[matching.length - 1]!;
-}
-
-function notifyField(props: NoteModalProps): NoteField {
-  const field: NoteField | undefined = props.formProps.fields.find(
-    (candidate: NoteField): boolean => {
-      return Boolean(candidate.field[NOTIFY_FIELD_KEY]);
-    },
-  );
-
-  if (!field) {
-    throw new Error("The public note form has no notify subscribers field");
-  }
-
-  return field;
-}
-
-async function chooseAction(text: string): Promise<void> {
-  const trigger: HTMLElement = screen
-    .getByText("Actions")
-    .closest('[aria-haspopup="menu"]') as HTMLElement;
-
-  fireEvent.click(trigger);
-  fireEvent.click(await screen.findByRole("menuitem", { name: text }));
-  await flush();
-}
-
-async function openPublicNoteModal(
+async function openPublicNote(
   notifyStatusPageSubscribersByDefault?: boolean | undefined,
-): Promise<NoteModalProps> {
-  renderFeed(notifyStatusPageSubscribersByDefault);
-  await flush();
-  await chooseAction("Add Public Note");
-
-  return modalPropsWithTitle(PUBLIC_NOTE_TITLE);
+): Promise<HTMLElement> {
+  await renderAndSettle(feed(notifyStatusPageSubscribersByDefault));
+  return await openNoteDialog("Add Public Note");
 }
 
 beforeEach(() => {
@@ -196,299 +196,191 @@ beforeEach(() => {
     skip: 0,
     limit: DEFAULT_LIMIT,
   } as never);
+  createMock.mockImplementation(async (...args: Array<any>) => {
+    return { data: args[0].model };
+  });
+  jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+    return new Date(NOW.getTime());
+  });
 });
 
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
-  modalRenderMock.mockReset();
+  createMock.mockReset();
+  jest.restoreAllMocks();
 });
 
-describe("IncidentEpisodeFeed public note: episode created without notifying subscribers", () => {
-  test("seeds the form value with notify off, so a false flag is actually sent", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(false);
+describe("Episode Feed public note: episode created without notifying subscribers", () => {
+  test("starts 'Notify status page subscribers' unticked", async () => {
+    const dialog: HTMLElement = await openPublicNote(false);
 
-    expect(props.modelType).toBe(IncidentEpisodePublicNote);
-    expect(props.name).toBe("create-episode-public-note");
-    expect(props.formProps.name).toBe("create-episode-public-note");
-    expect(props.initialValues).toEqual({
-      [NOTIFY_FIELD_KEY]: false,
-    });
-    expect(props.initialValues![NOTIFY_FIELD_KEY]).toBe(false);
+    expect(notifyCheckbox(dialog)).not.toBeChecked();
   });
 
-  test("starts the notify checkbox unticked", async () => {
-    const field: NoteField = notifyField(await openPublicNoteModal(false));
+  test("explains why the box starts unticked", async () => {
+    const dialog: HTMLElement = await openPublicNote(false);
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Checkbox);
-    expect(field.title).toBe("Notify Status Page Subscribers");
-    expect(field.required).toBe(false);
-    expect(field.defaultValue).toBe(false);
-  });
-
-  test("explains why the checkbox starts unticked", async () => {
-    const field: NoteField = notifyField(await openPublicNoteModal(false));
-
-    expect(field.description).toBe(
+    expect(notifyDescription(dialog)).toBe(
       PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
     );
-    expect(field.description).toBe(
+    expect(notifyDescription(dialog)).toBe(
       "Unticked by default because status page subscribers were not notified when this episode was created.",
     );
-    expect(field.description).not.toBe(ORIGINAL_DESCRIPTION);
-    // The episode copy, not the incident one.
-    expect(field.description).not.toBe(
-      PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+    // An episode's own reason, not the incident's.
+    expect(notifyDescription(dialog)).not.toBe(
+      "Unticked by default because status page subscribers were not notified when this incident was declared.",
     );
   });
 
-  test("leaves the other public note fields as they were", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(false);
+  test("posts an explicit false when the box is left unticked", async () => {
+    const dialog: HTMLElement = await openPublicNote(false);
 
-    expect(
-      props.formProps.fields.map((field: NoteField): string => {
-        return field.title;
-      }),
-    ).toEqual([
-      "Public Note",
-      "Attachments",
-      "Posted At",
-      "Notify Status Page Subscribers",
-    ]);
-    expect(props.formProps.fields[0]!.required).toBe(true);
-    expect(props.formProps.fields[0]!.fieldType).toBe(
-      FormFieldSchemaType.Markdown,
-    );
-    // Only the notify field changed its default.
-    expect(
-      props.formProps.fields
-        .filter((field: NoteField): boolean => {
-          return !field.field[NOTIFY_FIELD_KEY];
-        })
-        .map((field: NoteField): unknown => {
-          return field.defaultValue;
-        }),
-    ).toEqual([undefined, undefined, undefined]);
+    writeNote(dialog, "Several services in Europe are degraded.");
+    await postNote(dialog);
+
+    const payload: Record<string, unknown> = postedPayload(createMock);
+    expect(postedModelType(createMock)).toBe(IncidentEpisodePublicNote);
+    expect(Object.keys(payload)).toContain(NOTIFY_FLAG);
+    expect(payload[NOTIFY_FLAG]).toBe(false);
   });
 
-  test("still attaches the note to this episode before it is created", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(false);
-    const note: IncidentEpisodePublicNote = new IncidentEpisodePublicNote();
+  test("ticking the box notifies after all", async () => {
+    const dialog: HTMLElement = await openPublicNote(false);
 
-    const created: IncidentEpisodePublicNote = (await props.onBeforeCreate(
-      note,
-    )) as IncidentEpisodePublicNote;
+    fireEvent.click(notifyCheckbox(dialog));
+    expect(notifyCheckbox(dialog)).toBeChecked();
+    expect(notifyDescription(dialog)).toBe(NOTIFYING_DESCRIPTION);
 
-    expect(created).toBe(note);
-    expect(created.incidentEpisodeId?.toString()).toBe(EPISODE_ID);
-    // The form's own choice is not overridden on the way out.
-    expect(created.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
-      undefined,
-    );
+    writeNote(dialog, "Telling them now.");
+    await postNote(dialog);
+
+    expect(postedPayload(createMock)[NOTIFY_FLAG]).toBe(true);
   });
 
-  test("onBeforeCreate never rewrites a flag the user set", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(false);
-    const note: IncidentEpisodePublicNote = new IncidentEpisodePublicNote();
-    note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated = true;
+  test("attaches the note to this episode, posted now", async () => {
+    const dialog: HTMLElement = await openPublicNote(false);
 
-    const created: IncidentEpisodePublicNote = (await props.onBeforeCreate(
-      note,
-    )) as IncidentEpisodePublicNote;
+    writeNote(dialog, "Attached to the episode.");
+    await postNote(dialog);
 
-    expect(created.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
-      true,
-    );
-    expect(created.incidentEpisodeId?.toString()).toBe(EPISODE_ID);
+    const payload: Record<string, unknown> = postedPayload(createMock);
+    expect(payload["incidentEpisodeId"]).toMatchObject({ value: EPISODE_ID });
+    expect(payload["postedAt"]).toMatchObject({ value: NOW.toISOString() });
   });
 });
 
-describe("IncidentEpisodeFeed public note: episode created with subscribers notified", () => {
-  test("seeds the form value with notify on", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(true);
+describe("Episode Feed public note: episode created with subscribers notified", () => {
+  test("starts the box ticked, saying the note will notify", async () => {
+    const dialog: HTMLElement = await openPublicNote(true);
 
-    expect(props.initialValues).toEqual({
-      [NOTIFY_FIELD_KEY]: true,
-    });
+    expect(notifyCheckbox(dialog)).toBeChecked();
+    expect(notifyDescription(dialog)).toBe(NOTIFYING_DESCRIPTION);
   });
 
-  test("starts the checkbox ticked with the original description", async () => {
-    const field: NoteField = notifyField(await openPublicNoteModal(true));
+  test("posts true when the box is left ticked", async () => {
+    const dialog: HTMLElement = await openPublicNote(true);
 
-    expect(field.defaultValue).toBe(true);
-    expect(field.description).toBe(ORIGINAL_DESCRIPTION);
-    expect(field.description).not.toBe(
+    writeNote(dialog, "An update.");
+    await postNote(dialog);
+
+    expect(postedPayload(createMock)[NOTIFY_FLAG]).toBe(true);
+  });
+
+  test("unticking says the note still goes on the status page, and posts false", async () => {
+    const dialog: HTMLElement = await openPublicNote(true);
+
+    fireEvent.click(notifyCheckbox(dialog));
+    expect(notifyDescription(dialog)).toBe(
+      UNTICKED_ON_NOTIFYING_EVENT_DESCRIPTION,
+    );
+    expect(notifyDescription(dialog)).not.toBe(
       PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
     );
-  });
 
-  test("attaches the note to this episode before it is created", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(true);
+    writeNote(dialog, "A small fix.");
+    await postNote(dialog);
 
-    const created: IncidentEpisodePublicNote = (await props.onBeforeCreate(
-      new IncidentEpisodePublicNote(),
-    )) as IncidentEpisodePublicNote;
-
-    expect(created.incidentEpisodeId?.toString()).toBe(EPISODE_ID);
+    expect(postedPayload(createMock)[NOTIFY_FLAG]).toBe(false);
   });
 });
 
-describe("IncidentEpisodeFeed public note: no default passed (backwards compatible)", () => {
-  test("seeds the form value with notify on", async () => {
-    const props: NoteModalProps = await openPublicNoteModal(undefined);
+describe("Episode Feed public note: no default passed (backwards compatible)", () => {
+  test("starts the box ticked", async () => {
+    const dialog: HTMLElement = await openPublicNote(undefined);
 
-    expect(props.initialValues).toEqual({
-      [NOTIFY_FIELD_KEY]: true,
-    });
-  });
-
-  test("starts the checkbox ticked with the original description", async () => {
-    const field: NoteField = notifyField(await openPublicNoteModal(undefined));
-
-    expect(field.defaultValue).toBe(true);
-    expect(field.description).toBe(ORIGINAL_DESCRIPTION);
+    expect(notifyCheckbox(dialog)).toBeChecked();
   });
 
   test("a feed rendered without the prop at all behaves the same", async () => {
-    render(
+    await renderAndSettle(
       <IncidentEpisodeFeedElement
         incidentEpisodeId={new ObjectID(EPISODE_ID)}
       />,
     );
-    await flush();
-    await chooseAction("Add Public Note");
+    const dialog: HTMLElement = await openNoteDialog("Add Public Note");
 
-    const props: NoteModalProps = modalPropsWithTitle(PUBLIC_NOTE_TITLE);
-
-    expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: true });
-    expect(notifyField(props).defaultValue).toBe(true);
-    expect(notifyField(props).description).toBe(ORIGINAL_DESCRIPTION);
+    expect(notifyCheckbox(dialog)).toBeChecked();
   });
 });
 
-describe("IncidentEpisodeFeed public note: the default follows the page", () => {
+describe("Episode Feed public note: the default follows the page", () => {
   /*
-   * The overview passes the flag once the episode has loaded, and again after
-   * a refresh. The next form opened must use the current value.
+   * The page passes the flag once the episode has loaded, and again after a
+   * refresh. The next dialog opened must use the current value.
    */
-  test("a form opened after the default turns off starts unticked", async () => {
-    const view: RenderResult = renderFeed(true);
+  test("a dialog opened after the default turns off starts unticked", async () => {
+    const view: RenderResult = await renderAndSettle(feed(true));
+
+    view.rerender(feed(false));
     await flush();
+    const dialog: HTMLElement = await openNoteDialog("Add Public Note");
 
-    view.rerender(
-      <IncidentEpisodeFeedElement
-        incidentEpisodeId={new ObjectID(EPISODE_ID)}
-        refreshToken={0}
-        notifyStatusPageSubscribersByDefault={false}
-      />,
-    );
-    await flush();
-    await chooseAction("Add Public Note");
-
-    const props: NoteModalProps = modalPropsWithTitle(PUBLIC_NOTE_TITLE);
-
-    expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: false });
-    expect(notifyField(props).defaultValue).toBe(false);
-    expect(notifyField(props).description).toBe(
+    expect(notifyCheckbox(dialog)).not.toBeChecked();
+    expect(notifyDescription(dialog)).toBe(
       PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
     );
   });
 
-  test("a form opened after the default turns back on starts ticked", async () => {
-    const view: RenderResult = renderFeed(false);
+  test("a dialog opened after the default turns back on starts ticked", async () => {
+    const view: RenderResult = await renderAndSettle(feed(false));
+
+    view.rerender(feed(true));
     await flush();
+    const dialog: HTMLElement = await openNoteDialog("Add Public Note");
 
-    view.rerender(
-      <IncidentEpisodeFeedElement
-        incidentEpisodeId={new ObjectID(EPISODE_ID)}
-        refreshToken={0}
-        notifyStatusPageSubscribersByDefault={true}
-      />,
-    );
-    await flush();
-    await chooseAction("Add Public Note");
-
-    const props: NoteModalProps = modalPropsWithTitle(PUBLIC_NOTE_TITLE);
-
-    expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: true });
-    expect(notifyField(props).defaultValue).toBe(true);
-    expect(notifyField(props).description).toBe(ORIGINAL_DESCRIPTION);
-  });
-
-  test("changing the default does not reload the feed", async () => {
-    const view: RenderResult = renderFeed(true);
-    await flush();
-
-    const listCallsBefore: number = getListMock.mock.calls.length;
-
-    view.rerender(
-      <IncidentEpisodeFeedElement
-        incidentEpisodeId={new ObjectID(EPISODE_ID)}
-        refreshToken={0}
-        notifyStatusPageSubscribersByDefault={false}
-      />,
-    );
-    await flush();
-
-    expect(getListMock.mock.calls.length).toBe(listCallsBefore);
-    expect(screen.getByTestId("rendered-feed")).toBeInTheDocument();
+    expect(notifyCheckbox(dialog)).toBeChecked();
+    expect(notifyDescription(dialog)).toBe(NOTIFYING_DESCRIPTION);
   });
 });
 
-describe("IncidentEpisodeFeed private note is unaffected", () => {
+describe("Episode Feed private note is unaffected", () => {
   test.each([
     ["off", false],
     ["on", true],
     ["not passed", undefined],
   ])(
-    "with the default %s, the private note form seeds no notify value and has no notify field",
+    "with the default %s, the private note has no notify box and posts no flag",
     async (_label: string, notifyByDefault: boolean | undefined) => {
-      renderFeed(notifyByDefault);
-      await flush();
-      await chooseAction("Add Private Note");
+      await renderAndSettle(feed(notifyByDefault));
+      const dialog: HTMLElement = await openNoteDialog("Add Private Note");
 
-      const props: NoteModalProps = lastModalProps();
-
-      expect(props.title).toBe(PRIVATE_NOTE_TITLE);
-      expect(props.modelType).toBe(IncidentEpisodeInternalNote);
-      expect(props.initialValues).toBeUndefined();
       expect(
-        props.formProps.fields.some((field: NoteField): boolean => {
-          return Boolean(field.field[NOTIFY_FIELD_KEY]);
+        within(dialog).queryByRole("checkbox", {
+          name: "Notify status page subscribers",
         }),
-      ).toBe(false);
-      expect(screen.queryByText(PUBLIC_NOTE_TITLE)).toBeNull();
+      ).toBeNull();
+      expect(
+        screen.queryByRole("dialog", { name: "Add Public Note" }),
+      ).toBeNull();
+
+      writeNote(dialog, "For the team.");
+      await postNote(dialog);
+
+      const payload: Record<string, unknown> = postedPayload(createMock);
+      expect(postedModelType(createMock)).toBe(IncidentEpisodeInternalNote);
+      expect(Object.keys(payload)).not.toContain(NOTIFY_FLAG);
+      expect(payload["incidentEpisodeId"]).toMatchObject({ value: EPISODE_ID });
     },
   );
-
-  test("the private note is still attached to this episode", async () => {
-    renderFeed(false);
-    await flush();
-    await chooseAction("Add Private Note");
-
-    const props: NoteModalProps = modalPropsWithTitle(PRIVATE_NOTE_TITLE);
-
-    const created: IncidentEpisodeInternalNote = (await props.onBeforeCreate(
-      new IncidentEpisodeInternalNote(),
-    )) as IncidentEpisodeInternalNote;
-
-    expect(created.incidentEpisodeId?.toString()).toBe(EPISODE_ID);
-  });
-
-  test("the on-call policy form seeds no notify value either", async () => {
-    renderFeed(false);
-    await flush();
-    await chooseAction(ON_CALL_TITLE);
-
-    const props: NoteModalProps = lastModalProps();
-
-    expect(props.title).toBe(ON_CALL_TITLE);
-    expect(props.modelType).toBe(OnCallDutyPolicyExecutionLog);
-    expect(props.initialValues).toBeUndefined();
-    expect(
-      props.formProps.fields.some((field: NoteField): boolean => {
-        return Boolean(field.field[NOTIFY_FIELD_KEY]);
-      }),
-    ).toBe(false);
-  });
 });

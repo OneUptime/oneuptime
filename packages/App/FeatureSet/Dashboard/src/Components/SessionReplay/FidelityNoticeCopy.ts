@@ -37,11 +37,12 @@ export interface FidelityNoticeCopy {
  *   Playback — there is footage you cannot watch, or the timeline is not
  *   what it claims. Worth interrupting for.
  *
- *   Fidelity — everything IS playable, it just does not look pixel-exact:
- *   a system font instead of a web font, an unstyled region, a black box
- *   where a payment iframe was. These are permanent, deliberate properties
- *   of how the recorder works and appear on a large share of recordings,
- *   so they belong in a quiet, expandable note rather than a warning.
+ *   Fidelity — everything IS playable, it just may not look pixel-exact:
+ *   a web font or a stylesheet that had to be fetched from its original
+ *   address and did not load, a black box where a payment iframe was.
+ *   These follow from deliberate choices in how the recorder works and
+ *   appear on a large share of recordings, so they belong in a quiet,
+ *   expandable note rather than a warning.
  */
 export type FidelityNoticeSeverity = "playback" | "fidelity";
 
@@ -98,7 +99,7 @@ const COPY: Record<string, FidelityNoticeCopy> = {
   [SessionReplayFidelityNotice.StylesheetInaccessible]: {
     title: "A stylesheet could not be read",
     description:
-      'A cross-origin stylesheet without crossorigin="anonymous" cannot be read by the recorder, so parts of this recording may play back unstyled.',
+      'A stylesheet from another origin could not be read by the recorder, so it is not stored with the recording and playback loads it from its original address instead. If that address does not load in your browser, parts of the page play back unstyled. To have it recorded, serve it with an Access-Control-Allow-Origin header and add crossorigin="anonymous" to its <link>.',
   },
   [SessionReplayFidelityNotice.AdoptedStylesheet]: {
     title: "Adopted stylesheets partially captured",
@@ -108,12 +109,12 @@ const COPY: Record<string, FidelityNoticeCopy> = {
   [SessionReplayFidelityNotice.FontsOmitted]: {
     title: "Web fonts not captured",
     description:
-      "Font files are large and are not recorded; playback uses a system font stack, so text metrics can differ slightly from what the user saw.",
+      "Font files are large and are not recorded, so playback loads them from their original addresses (a recording made under Mask all text loads none). That works when the font's server lets other sites use it (Access-Control-Allow-Origin); otherwise text falls back to a system font, its metrics can differ slightly from what the user saw, and icon fonts can show as empty boxes.",
   },
   [SessionReplayFidelityNotice.MediaNotReplayable]: {
     title: "Video/audio not replayable",
     description:
-      "Media elements are shown as labelled placeholders: their sources are often signed URLs that expire, and playback position cannot be synchronized.",
+      "Video and audio do not play in the replay - at most, a poster image the page set is shown in their place - because media sources are often signed URLs that expire, and playback position cannot be synchronized.",
   },
   [SessionReplayFidelityNotice.SnapshotTooLarge]: {
     title: "A snapshot was too large to store",

@@ -2,6 +2,8 @@ import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -37,8 +39,9 @@ export interface LiveRegionProps {
   summary?: string | null | undefined;
 }
 
-export const AI_INVESTIGATION_READY_ANNOUNCEMENT: string =
-  "AI root cause analysis ready.";
+export const AI_INVESTIGATION_READY_ANNOUNCEMENT: string = translationKey(
+  "AI root cause analysis ready.",
+);
 
 export const getAIInvestigationStatusCopy: (status: AIRunStatus) => {
   title: string;
@@ -66,6 +69,7 @@ export const getAIInvestigationStatusCopy: (status: AIRunStatus) => {
 export const AIInvestigationStatusLiveRegion: FunctionComponent<
   LiveRegionProps
 > = (props: LiveRegionProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const isReady: boolean = isCompletedAIInvestigationWithSummary(
     props.status,
     props.summary,
@@ -90,12 +94,15 @@ export const AIInvestigationStatusLiveRegion: FunctionComponent<
   if (isActiveAIInvestigationStatus(props.status)) {
     const copy: { title: string; description: string } =
       getAIInvestigationStatusCopy(props.status!);
-    announcement = `${copy.title}. ${copy.description}`;
+    // Two whole sentences, each in the reader's language.
+    announcement = `${translator.translateText(copy.title)}. ${translator.translateText(copy.description)}`;
   } else if (
     props.status === AIRunStatus.Completed &&
     (isReady || isReadyLatched)
   ) {
-    announcement = AI_INVESTIGATION_READY_ANNOUNCEMENT;
+    announcement = translator.translateText(
+      AI_INVESTIGATION_READY_ANNOUNCEMENT,
+    ) as string;
   }
 
   return (
@@ -162,6 +169,7 @@ interface CompletedSummaryNoticeProps {
 const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   props: CompletedSummaryNoticeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const summaryId: string = useId();
   const summaryRef: React.RefObject<HTMLParagraphElement> =
     useRef<HTMLParagraphElement>(null);
@@ -244,7 +252,7 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
               <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
             </span>
             <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-indigo-600">
-              AI root cause analysis
+              {translator.translateText("AI root cause analysis")}
             </h3>
           </div>
           {verdictBadge ? (
@@ -253,7 +261,7 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
               className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${verdictBadge.className}`}
             >
               <Icon icon={verdictBadge.icon} className="h-3 w-3" />
-              {verdictBadge.text}
+              {translator.translateText(verdictBadge.text)}
             </span>
           ) : (
             <></>
@@ -265,7 +273,7 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
           aria-controls={AI_INVESTIGATION_PANEL_ID}
           className="group col-start-2 row-start-3 -my-0.5 inline-flex items-center justify-center gap-1.5 self-start justify-self-end whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 lg:row-start-1"
         >
-          View full report
+          {translator.translateText("View full report")}
           <Icon
             icon={IconProp.ArrowDown}
             className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
@@ -290,7 +298,9 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
             aria-controls={summaryId}
             className="col-start-1 row-start-3 -my-1 -ml-1.5 inline-flex items-center gap-1 justify-self-start rounded-md px-1.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            {isExpanded ? "Show less" : "Show more"}
+            {isExpanded
+              ? translator.translateText("Show less")
+              : translator.translateText("Show more")}
             <Icon
               icon={IconProp.ChevronDown}
               className={`h-3.5 w-3.5 motion-safe:transition-transform ${
@@ -314,6 +324,8 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
 const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (isCompletedAIInvestigationWithSummary(props.status, props.summary)) {
     return (
       <CompletedSummaryNotice
@@ -356,10 +368,10 @@ const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-indigo-950">
-              {copy.title}
+              {translator.translateText(copy.title)}
             </p>
             <p className="mt-0.5 text-xs leading-5 text-indigo-700">
-              {copy.description}
+              {translator.translateText(copy.description)}
             </p>
           </div>
         </div>
@@ -367,10 +379,12 @@ const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
           type="button"
           onClick={props.onViewProgress}
           aria-controls={AI_INVESTIGATION_PANEL_ID}
-          aria-label="View live AI investigation progress"
+          aria-label={translator.translateText(
+            "View live AI investigation progress",
+          )}
           className="group inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:self-auto"
         >
-          View live progress
+          {translator.translateText("View live progress")}
           <Icon
             icon={IconProp.ArrowDown}
             className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"

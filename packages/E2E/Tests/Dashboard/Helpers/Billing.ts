@@ -1,4 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../../Config";
+import { getCardButton } from "../../Helpers/CardButton";
 import { gotoProjectPage } from "./ProductOnboarding";
 import {
   APIResponse,
@@ -161,10 +162,14 @@ export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
   const billingUrl: string = URL.fromString(BASE_URL.toString())
     .addRoute(`/dashboard/${data.projectId}/settings/billing`)
     .toString();
-  const addPaymentMethodButton: Locator = page.getByRole("button", {
-    name: "Add Payment Method",
-    exact: true,
-  });
+  /*
+   * The Payment Methods card's own button: a project with no card yet - every
+   * project this runs for - repeats it under the empty list's message.
+   */
+  const addPaymentMethodButton: Locator = getCardButton(
+    page,
+    "Add Payment Method",
+  );
 
   await gotoProjectPage({
     page,

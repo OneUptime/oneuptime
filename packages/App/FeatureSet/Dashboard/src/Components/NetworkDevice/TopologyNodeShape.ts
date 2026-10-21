@@ -276,8 +276,11 @@ export function polygonPointsAt(
     .join(" ");
 }
 
-/** How tall the elliptical cap of a cylinder is. */
-function cylinderCapHalfHeight(halfHeight: number): number {
+/**
+ * How tall the elliptical cap of a cylinder is. Exported for the PDF
+ * export, which draws the same drum with Bézier curves instead of SVG arcs.
+ */
+export function cylinderCapHalfHeight(halfHeight: number): number {
   return round(Math.min(halfHeight * 0.32, halfHeight));
 }
 

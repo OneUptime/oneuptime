@@ -62,6 +62,14 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
   protected readonly verificationSkippedMessage: string =
     "Not verified — this task type is excluded from the build and test verification loop.";
 
+  /*
+   * Whether the code agent may query the repository's production telemetry
+   * while it works (CodeAgentTask.productionTelemetry). FixException does;
+   * the server offers the tools to the fixes of an exception, a slow trace
+   * and an incident only.
+   */
+  protected readonly usesProductionTelemetry: boolean = false;
+
   // Failure message when no repository yielded a pull request.
   protected abstract readonly noActionMessage: string;
 
@@ -275,8 +283,16 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       `Getting access token for ${repo.organizationName}/${repo.repositoryName}...`,
     );
 
+    /*
+     * The run's id goes with the token request, so the server links the
+     * run to the repository it found (the task then shows on that
+     * repository's page in Code) - the open pull request cap still applies.
+     */
     const tokenData: RepositoryToken =
-      await context.backendAPI.getRepositoryToken(repo.id);
+      await context.backendAPI.getRepositoryToken(
+        repo.id,
+        context.taskId.toString(),
+      );
 
     // Clone the repository
     await this.log(
@@ -350,6 +366,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     if (repo.servicePathInRepository) {
       codeAgentTask.servicePath = repo.servicePathInRepository;
+    }
+
+    if (this.usesProductionTelemetry) {
+      codeAgentTask.productionTelemetry = true;
     }
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
@@ -470,7 +490,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
 
     // Record the PR in the backend
-    await context.backendAPI.recordPullRequest({
+    await this.recordOpenedPullRequest(context, {
       taskId: context.taskId.toString(),
       codeRepositoryId: repo.id,
       pullRequestUrl: prResult.htmlUrl,

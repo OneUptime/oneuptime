@@ -48,14 +48,17 @@ describe("investigation drawer wiring", () => {
       "setInvestigationWindow(effectiveStartAndEndDate)",
     );
     expect(widget).toContain(
-      'aria-label="Investigate this time window in a side panel"',
+      'aria-label={translator.translateText( "Investigate this time window in a side panel", )}',
     );
 
     const explorer: string = readSquashed(
       "App/FeatureSet/Dashboard/src/Components/Metrics/MetricExplorer.tsx",
     );
     expect(explorer).toContain("<InvestigationDrawer");
-    expect(explorer).toContain("setIsInvestigationOpen(true)");
+    // A snapshot of the view, so an auto-refresh tick cannot re-pin it.
+    expect(explorer).toContain(
+      "setInvestigation({ window: investigatedWindow, viewData: metricViewData, });",
+    );
   });
 
   test("annotation clicks never leak into bucket pinning", () => {

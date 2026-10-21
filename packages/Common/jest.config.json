@@ -1,6 +1,6 @@
 {
   "preset": "ts-jest",
-  "testPathIgnorePatterns": ["node_modules", "dist"],
+  "testPathIgnorePatterns": ["/node_modules/", "/dist/"],
   "verbose": true,
   "globals": {
     "ts-jest": {
@@ -9,7 +9,7 @@
       "isolatedModules": true
     }
   },
-  "modulePathIgnorePatterns": ["<rootDir>/build/dist"],
+  "modulePathIgnorePatterns": ["<rootDir>/build/dist/"],
   "moduleNameMapper": {
     "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "Common/(.*)": "<rootDir>/$1",
@@ -49,7 +49,7 @@
   "transform": {
     ".(ts|tsx)": "ts-jest"
   },
-  "transformIgnorePatterns": ["node_modules/(?!(uuid|locter|yaml|@azure)/)"],
+  "transformIgnorePatterns": ["/node_modules/(?!(uuid|locter|yaml|@azure)/)"],
   "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
   "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.ts"],
   "collectCoverage": false,

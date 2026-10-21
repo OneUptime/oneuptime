@@ -205,14 +205,20 @@ describe("tooltips on disabled controls", () => {
         />,
       );
 
-      fireEvent.mouseEnter(screen.getByRole("menuitem").parentElement!);
+      fireEvent.mouseEnter(screen.getByRole("menuitem"));
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(
         "You do not have permission to delete this Monitor.",
       );
     });
 
-    test("takes a disabled item out of hit-testing", () => {
+    /*
+     * Unlike a Button, a locked menu item that explains itself is not natively
+     * disabled: it is aria-disabled, so it still takes hover and keyboard
+     * focus itself (MoreMenu moves focus through it) and needs no wrapper to
+     * catch the pointer for it.
+     */
+    test("stays hoverable and focusable - aria-disabled, not natively disabled", () => {
       render(
         <MoreMenuItem
           text="Delete"
@@ -222,7 +228,12 @@ describe("tooltips on disabled controls", () => {
         />,
       );
 
-      expect(screen.getByRole("menuitem")).toHaveClass("pointer-events-none");
+      const item: HTMLElement = screen.getByRole("menuitem");
+
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      expect(item).not.toBeDisabled();
+      expect(item).not.toHaveClass("pointer-events-none");
+      expect(item).toHaveAccessibleDescription("Nope");
     });
 
     test("does not fire onClick while disabled", () => {

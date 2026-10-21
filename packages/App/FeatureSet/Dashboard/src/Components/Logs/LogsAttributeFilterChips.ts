@@ -47,6 +47,7 @@ export const ATTRIBUTE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   "resource.proxmox.cluster.name": "Cluster",
   "resource.docker.swarm.cluster.name": "Cluster",
   "resource.vmware.vcenter.name": "vCenter",
+  "resource.storage.array.name": "Storage Array",
   "resource.iot.fleet.name": "Fleet",
   /*
    * Databases: ingest stamps these on DB receiver batches (the Database

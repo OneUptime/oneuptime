@@ -23,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 jest.mock("react-markdown", () => {
   return {
@@ -40,6 +41,7 @@ import "@testing-library/jest-dom";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import React, { ReactElement, useEffect, useState } from "react";
 import remarkGfm from "remark-gfm";
+import { remarkMarkdownCallouts } from "../../../UI/Components/Markdown.tsx/MarkdownCallouts";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   CITATION_REFERENCE_NODE_TYPE,
@@ -1049,20 +1051,6 @@ describe("applyInlineReferences — a citation can never become a link", () => {
  */
 
 describe("applyInlineReferences — generated trees", () => {
-  // Small deterministic PRNG so a failure is reproducible from its seed.
-  const createRandom: (seed: number) => () => number = (
-    seed: number,
-  ): (() => number) => {
-    let state: number = seed >>> 0;
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let value: number = state;
-      value = Math.imul(value ^ (value >>> 15), value | 1);
-      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-  };
-
   const FRAGMENTS: Array<string> = [
     "[C1]",
     "[C12]",
@@ -1245,7 +1233,8 @@ describe("applyInlineReferences — generated trees", () => {
   };
 
   test("never creates links or images, never leaves a citation link, and preserves the visible text", () => {
-    const random: Random = createRandom(20260914);
+    // Seeded, so a failure is reproducible from its seed.
+    const random: Random = seededRandom(20260914);
 
     for (let iteration: number = 0; iteration < 400; iteration++) {
       const tree: Node = randomTree(random);
@@ -1782,13 +1771,14 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     mockMarkdownState.calls = [];
   });
 
-  test("without inlineReferences: only remark-gfm, the existing components, today's DOM", () => {
+  test("without inlineReferences: remark-gfm and the callout pass only, the existing components, today's DOM", () => {
     const { container } = render(
       <MarkdownViewer text="Same as #6954 [C1]" safeMode={true} />,
     );
 
     const props: MockReactMarkdownProps = lastMarkdownProps();
-    expect(props.remarkPlugins).toEqual([remarkGfm]);
+    // The callout pass marks blockquotes only (MarkdownCallouts).
+    expect(props.remarkPlugins).toEqual([remarkGfm, remarkMarkdownCallouts]);
     expect(props.remarkPlugins?.[0]).toBe(remarkGfm);
     expect(Object.keys(props.components || {}).sort()).toEqual(
       EXISTING_COMPONENT_KEYS,
@@ -1821,8 +1811,9 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     );
 
     const props: MockReactMarkdownProps = lastMarkdownProps();
-    expect(props.remarkPlugins).toHaveLength(2);
+    expect(props.remarkPlugins).toHaveLength(3);
     expect(props.remarkPlugins?.[0]).toBe(remarkGfm);
+    expect(props.remarkPlugins?.[2]).toBe(remarkMarkdownCallouts);
     expect(props.remarkPlugins?.[1]).toEqual([
       remarkInlineReferences,
       { citations: true, eventReferences: true },
@@ -2044,7 +2035,10 @@ describe("MarkdownViewer inlineReferences wiring", () => {
 
     rerender(<MarkdownViewer text="ignored" safeMode={true} />);
 
-    expect(lastMarkdownProps().remarkPlugins).toEqual([remarkGfm]);
+    expect(lastMarkdownProps().remarkPlugins).toEqual([
+      remarkGfm,
+      remarkMarkdownCallouts,
+    ]);
     expect(screen.queryByRole("button")).toBeNull();
     expect(container.textContent).toBe("see [C4]");
   });

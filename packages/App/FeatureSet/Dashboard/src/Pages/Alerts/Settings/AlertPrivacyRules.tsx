@@ -17,32 +17,33 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  getPrivacyRuleActionFields,
+  getPrivacyRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const alertPrivacyDocumentation: string = `
 ### How Alert Privacy Rules Work
 
-Alert Privacy Rules automatically mark matching alerts as **private** when they are created — visible only to their owners (users + members of owner teams), project admins, and project owners.
+A privacy rule makes every new alert it matches private: only the alert's owners (the people and teams named as its owners), project admins and project owners can see it.
 
 ### Match Criteria
 
-A rule matches an alert only when **all** specified criteria pass. Empty criteria are skipped.
+The conditions a new alert must meet.
 
-- **Monitors**, **Severities**, **Alert Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+### What It Does
 
-### Action
-
-When a rule matches, the alert's \`isPrivate\` flag is set to \`true\`. Multiple matching rules behave additively — once any rule matches, the alert is private. The rule fires before workspace channel creation, so private alerts also get private Slack/Teams channels.
+A matching alert is private from the moment it is created. One matching rule is enough. Privacy is decided before anything else happens to the alert, so its Slack or Microsoft Teams channel is private too.
 `;
 
 const alertEpisodePrivacyDocumentation: string = `
 ### How Alert Episode Privacy Rules Work
 
-Match an alert episode on creation and mark it as **private** automatically. Empty criteria are skipped.
+An episode privacy rule makes every new alert episode it matches private: only its owners, project admins and project owners can see it.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+The conditions a new episode must meet.
 `;
 
 interface RulesTableProps {
@@ -78,11 +79,11 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Alert Privacy Rules",
-        description: "Auto-mark alerts as private when they match these rules.",
+        description: "Make new alerts private when they match.",
       }}
       helpContent={{
         title: "How Alert Privacy Rules Work",
-        description: "Match alerts and automatically set them to private.",
+        description: "Which new alerts become private.",
         markdown: alertPrivacyDocumentation,
       }}
       sortBy="name"
@@ -116,35 +117,8 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-      ]}
+      formSteps={getPrivacyRuleFormSteps<AlertPrivacyRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Mark database alerts as private",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -170,6 +144,9 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -202,7 +179,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertTitlePattern: true },
-          title: "Alert Title Pattern",
+          title: "Alert Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -213,7 +190,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertDescriptionPattern: true },
-          title: "Alert Description Pattern",
+          title: "Alert Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -221,7 +198,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -229,12 +206,13 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
+        ...getPrivacyRuleActionFields<AlertPrivacyRule>("alert"),
       ]}
       showRefreshButton={true}
     />
@@ -269,12 +247,11 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Alert Episode Privacy Rules",
-        description:
-          "Auto-mark alert episodes as private when they match these rules.",
+        description: "Make new alert episodes private when they match.",
       }}
       helpContent={{
         title: "How Alert Episode Privacy Rules Work",
-        description: "Match episodes and automatically set them to private.",
+        description: "Which new episodes become private.",
         markdown: alertEpisodePrivacyDocumentation,
       }}
       sortBy="name"
@@ -308,33 +285,8 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-      ]}
+      formSteps={getPrivacyRuleFormSteps<AlertEpisodePrivacyRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
         {
           field: { alertSeverities: true },
           title: "Alert Severities",
@@ -347,6 +299,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -366,7 +321,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -377,12 +332,13 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "timeout|connection refused",
         },
+        ...getPrivacyRuleActionFields<AlertEpisodePrivacyRule>("alertEpisode"),
       ]}
       showRefreshButton={true}
     />

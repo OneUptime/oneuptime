@@ -26,31 +26,6 @@ jest.mock("../../../../UI/Utils/API/API", () => {
   };
 });
 
-/*
- * Monaco cannot run in jsdom. A textarea that echoes the value is enough to
- * assert what the JSON view was handed and to type into it.
- */
-jest.mock("@monaco-editor/react", () => {
-  return {
-    __esModule: true,
-    loader: { config: jest.fn() },
-    default: (editorProps: {
-      value?: string | undefined;
-      onChange?: ((value: string | undefined) => void) | undefined;
-    }) => {
-      return (
-        <textarea
-          data-testid="monaco"
-          value={editorProps.value || ""}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            editorProps.onChange?.(event.target.value);
-          }}
-        />
-      );
-    },
-  };
-});
-
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -61,6 +36,7 @@ import ModelColumnEditor, {
 } from "../../../../UI/Components/Workflow/ModelColumnEditor";
 import { ModelSchemaColumn } from "../../../../UI/Components/Workflow/ModelSchema";
 import API from "../../../../UI/Utils/API/API";
+import { chipsIn, keys, placeCaret } from "./ValuePicker/ValuePickerTestUtils";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -70,6 +46,7 @@ import {
   render,
   waitFor,
 } from "@testing-library/react";
+import userEvent, { UserEvent } from "@testing-library/user-event";
 
 type MakeColumnFunction = (
   overrides: Partial<ModelSchemaColumn> & { id: string },
@@ -163,7 +140,6 @@ type RenderEditorProps = {
   initialValue?: string | undefined;
   recordIntent?: RecordIntent | undefined;
   onChange?: MockFunction | undefined;
-  valueSuggestions?: Array<string> | undefined;
 };
 
 type RenderEditorFunction = (props?: RenderEditorProps) => RenderResult;
@@ -177,7 +153,6 @@ const renderEditor: RenderEditorFunction = (
       mode={props?.mode || ModelColumnEditorMode.Record}
       initialValue={props?.initialValue}
       recordIntent={props?.recordIntent}
-      valueSuggestions={props?.valueSuggestions}
       onChange={
         (props?.onChange as unknown as (value: string) => void) ||
         ((): void => {})
@@ -350,6 +325,7 @@ describe("opening a step does not rewrite what it does", () => {
 
   test("editing a value is reported, with the exact JSON that will be stored", async () => {
     const onChange: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
 
     const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
@@ -357,9 +333,13 @@ describe("opening a step does not rewrite what it does", () => {
       onChange: onChange,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "Resolved" },
-    });
+    // A text cell is the chip editor: select what is there and type over it.
+    placeCaret(
+      await findByTestId("model-column-value-name"),
+      0,
+      "Acknowledged".length,
+    );
+    await user.paste("Resolved");
 
     expect(onChange).toHaveBeenCalledWith('{"name":"Resolved"}');
   });
@@ -444,7 +424,13 @@ describe("editing as JSON", () => {
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
 
-    expect(getByTestId("monaco")).toHaveValue('{"name":"Acknowledged"}');
+    // The real code editor: its textarea holds the document.
+    expect(getByTestId("code-editor-input")).toHaveValue(
+      '{"name":"Acknowledged"}',
+    );
+    expect(
+      document.querySelector('[data-code-type="json"]'),
+    ).toBeInTheDocument();
   });
 
   test("a key added in the JSON view is there as a field on the way back", async () => {
@@ -461,14 +447,18 @@ describe("editing as JSON", () => {
     );
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
-    fireEvent.change(getByTestId("monaco"), {
+    fireEvent.change(getByTestId("code-editor-input"), {
       target: { value: '{"name":"Acknowledged","color":"#ffffff"}' },
     });
     fireEvent.click(getByTestId("model-column-json-toggle"));
 
     expect(getByText("Color")).toBeInTheDocument();
     await waitFor(() => {
-      expect(getByTestId("model-column-value-color")).toHaveValue("#ffffff");
+      // The color field holds its color as data-value, not in a text box.
+      expect(getByTestId("model-column-value-color")).toHaveAttribute(
+        "data-value",
+        "#ffffff",
+      );
     });
   });
 
@@ -481,13 +471,15 @@ describe("editing as JSON", () => {
     );
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
-    fireEvent.change(getByTestId("monaco"), {
+    fireEvent.change(getByTestId("code-editor-input"), {
       target: { value: '{"name":{"nested":"value"}}' },
     });
     fireEvent.click(getByTestId("model-column-json-toggle"));
 
     // Still on JSON, with the edit intact and a reason given.
-    expect(getByTestId("monaco")).toHaveValue('{"name":{"nested":"value"}}');
+    expect(getByTestId("code-editor-input")).toHaveValue(
+      '{"name":{"nested":"value"}}',
+    );
     expect(getByText(/can't go back to fields/)).toBeInTheDocument();
   });
 
@@ -526,14 +518,21 @@ describe("values the rows keep faithfully", () => {
   });
 
   test("a reference is shown as a reference on a numeric column", async () => {
-    const { findByDisplayValue }: RenderResult = renderEditor({
+    const { findByTestId, getByTestId }: RenderResult = renderEditor({
       initialValue: '{"order":"{{local.variables.position}}"}',
       recordIntent: RecordIntent.Update,
-      valueSuggestions: ["{{local.variables.position}}"],
     });
 
+    // The value, as a chip, with "abc" to type a number again.
+    const cell: HTMLElement = await findByTestId("model-column-value-order");
+
+    expect(chipsIn(cell)).toHaveLength(1);
+    expect(chipsIn(cell)[0]).toHaveAttribute(
+      "title",
+      "{{local.variables.position}}",
+    );
     expect(
-      await findByDisplayValue("{{local.variables.position}}"),
+      getByTestId("model-column-value-order-type-a-value"),
     ).toBeInTheDocument();
   });
 });
@@ -644,23 +643,24 @@ describe("an edit reaches the workflow, whatever the cell was holding", () => {
     expect(onChange).toHaveBeenLastCalledWith('{"name":"Acknowledged"}');
   });
 
-  test("typing {{ turns the cell into a reference there and then", async () => {
-    const { findByTestId, getByTestId }: RenderResult = renderEditor({
+  test("a reference typed into a text cell becomes a chip there and then", async () => {
+    const user: UserEvent = userEvent.setup({ delay: null });
+    const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
       recordIntent: RecordIntent.Update,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "{{local.variables.stateName}}" },
-    });
+    const cell: HTMLElement = await findByTestId("model-column-value-name");
 
-    expect(
-      getByTestId("model-column-value-name-reference-toggle"),
-    ).toHaveAttribute("aria-pressed", "true");
+    placeCaret(cell, 0, "Acknowledged".length);
+    await user.keyboard(keys("{{local.variables.stateName}}"));
+
+    expect(chipsIn(cell)).toHaveLength(1);
   });
 
   test("and the reference is what gets stored", async () => {
     const onChange: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
 
     const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
@@ -668,9 +668,12 @@ describe("an edit reaches the workflow, whatever the cell was holding", () => {
       onChange: onChange,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "{{local.variables.stateName}}" },
-    });
+    placeCaret(
+      await findByTestId("model-column-value-name"),
+      0,
+      "Acknowledged".length,
+    );
+    await user.paste("{{local.variables.stateName}}");
 
     expect(onChange).toHaveBeenLastCalledWith(
       '{"name":"{{local.variables.stateName}}"}',

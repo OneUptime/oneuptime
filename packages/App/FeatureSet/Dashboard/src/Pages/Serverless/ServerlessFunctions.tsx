@@ -1,65 +1,86 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getServerlessDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
+import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ServerlessFunctions: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<ServerlessFunction>({
+      modelType: ServerlessFunction,
+    });
 
   const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
     modelType: ServerlessFunction,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: ServerlessFunction,
-      query: {},
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
+
+  /*
+   * The create form asks for the one thing a function cannot be created
+   * without: the faas.name its telemetry carries (on Azure Functions,
+   * ingest fills it in from service.name). The display name follows it - a
+   * function added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<ServerlessFunction> =
+    getAdvancedFormSection<ServerlessFunction>();
 
   return (
     <Fragment>
       <ModelTable<ServerlessFunction>
         modelType={ServerlessFunction}
+        refreshToggle={firstRecordWatch.refreshToken}
+        emptyState={getFirstRunEmptyState({
+          emptyState: undefined,
+          count: firstRecordWatch.count,
+        })}
         id="serverless-functions-table"
         userPreferencesKey="serverless-functions-table"
         query={{
@@ -68,12 +89,11 @@ const ServerlessFunctions: FunctionComponent<
         onCreateSuccess={(
           item: ServerlessFunction,
         ): Promise<ServerlessFunction> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -94,29 +114,28 @@ const ServerlessFunctions: FunctionComponent<
         cardProps={{
           title: "Serverless Functions",
           description:
-            "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
+            "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.",
         }}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "checkout-handler",
-          },
-          {
+          getIdentityFormField<ServerlessFunction>({
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Function Name (faas.name)",
             placeholder: "checkout-handler",
             description:
-              "This should match the faas.name attribute reported by the OTel collector.",
-          },
+              "The faas.name your function's telemetry carries, exactly (on Azure Functions, the app's OTEL_SERVICE_NAME).",
+          }),
+          getDisplayNameFormField<ServerlessFunction>({
+            getDefaultName:
+              getNameFromIdentityField<ServerlessFunction>(
+                "functionIdentifier",
+              ),
+            placeholder: "Checkout handler",
+            description:
+              "Starts as the function name. Type your own name to show instead; telemetry is still matched by the function name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -125,23 +144,11 @@ const ServerlessFunctions: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Handles checkout events",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<ServerlessFunction>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -155,7 +162,7 @@ const ServerlessFunctions: FunctionComponent<
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
+            title: "Function Name (faas.name)",
             type: FieldType.Text,
           },
           {
@@ -222,7 +229,9 @@ const ServerlessFunctions: FunctionComponent<
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="font-mono">{platform || "unknown"}</span>
+                  <span className="font-mono">
+                    {platform || translator.translateText("unknown")}
+                  </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500">
                       {region}
@@ -284,11 +293,10 @@ const ServerlessFunctions: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
-        <ResourceDocumentationCard
+      {firstRecordWatch.count === 0 && (
+        <ServerlessDocumentationCard
           title="Getting Started with Serverless Functions"
-          description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getServerlessDocMarkdown}
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

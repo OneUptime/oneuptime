@@ -149,6 +149,23 @@ describe("InMemoryTTLCache basics", () => {
     expect(cache.get("b")).toBeUndefined();
   });
 
+  test("deleteByPrefix removes every entry whose key starts with the prefix, and no other", () => {
+    const cache: InMemoryTTLCache<string> = new InMemoryTTLCache<string>(10);
+
+    cache.set("user-1:project-a", "a", 60_000);
+    cache.set("user-1:project-b", "b", 60_000);
+    cache.set("user-10:project-a", "c", 60_000);
+    cache.set("user-2:project-a", "d", 60_000);
+
+    cache.deleteByPrefix("user-1:");
+
+    expect(cache.get("user-1:project-a")).toBeUndefined();
+    expect(cache.get("user-1:project-b")).toBeUndefined();
+    expect(cache.get("user-10:project-a")).toBe("c");
+    expect(cache.get("user-2:project-a")).toBe("d");
+    expect(cache.size()).toBe(2);
+  });
+
   test("has returns false for a key that was never set", () => {
     const cache: InMemoryTTLCache<string> = new InMemoryTTLCache<string>(3);
 

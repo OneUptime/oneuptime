@@ -1,11 +1,37 @@
 import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
+import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
+import {
+  getCurrentProjectBillingMarketplace,
+  getMarketplaceBalanceCardDescription,
+  getProjectBalanceAccess,
+  getProjectBalanceCardDescription,
+  getRechargeBalanceButtons,
+  ProjectBalanceAccess,
+} from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
+import {
+  CURRENT_BALANCE_ROW_TITLE,
+  RECHARGE_AMOUNT_DESCRIPTION,
+  RECHARGE_AMOUNT_TITLE,
+} from "../../Components/ProjectBalance/ProjectBalanceCopy";
+import {
+  getProjectColumnsEditGate,
+  ProjectColumnsEditGate,
+} from "./ProjectColumnEditGate";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -22,7 +48,25 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Project Settings -> Notifications -> Notification Settings: the balance SMS,
+ * calls, WhatsApp and Telegram are paid from (billing only), the four channel
+ * switches, Auto Recharge (billing only), and the project's own SMTP and Twilio
+ * configs.
+ *
+ * Only a project owner or someone with Manage Billing may add to the
+ * balance or change Auto Recharge (Common/Utils/Project/ProjectBalance). So
+ * the balance card asks them to recharge it and offers the button; everyone
+ * else is told who can, and the button stays locked, saying why - it used
+ * to open a form whose save the server then refused. Auto Recharge's Edit is
+ * gated on its own columns rather than the Project table's wider update
+ * list, for the same reason.
+ *
+ * When Auto Recharge's last charge failed, the page says so first
+ * (AutoRechargeFailedNotice), with what to do or who can.
+ */
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
     useState<boolean>(false);
   const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] =
@@ -30,28 +74,63 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Saving Auto Recharge tries the card at once: ask again whether it failed.
+  const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
+
+  /*
+   * Read on every render rather than remembered: the permission snapshot
+   * arrives on a response header, and may land after the first paint.
+   */
+  const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.SmsOrCall,
+  );
+  // A project a cloud marketplace bills has no card: its recharges go there.
+  const billingMarketplace: CloudMarketplace | null =
+    getCurrentProjectBillingMarketplace();
+  const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [
+      ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.SmsOrCall],
+    ],
+    buttonTitle: "Edit Auto Recharge",
+  });
 
   return (
     <Fragment>
-      {/* API Key View  */}
+      {BILLING_ENABLED ? (
+        <AutoRechargeFailedNotice
+          balance={ProjectBalanceType.SmsOrCall}
+          access={balanceAccess}
+          refreshKey={autoRechargeSaves}
+        />
+      ) : (
+        <></>
+      )}
+
       {BILLING_ENABLED ? (
         <CardModelDetail
           name="Current Balance"
           cardProps={{
             title: "Current Balance",
-            description:
-              "Here is your current SMS, Call, WhatsApp, and Telegram balance for this project.",
-            buttons: [
-              {
-                title: "Recharge Balance",
-                icon: IconProp.Add,
-                onClick: () => {
-                  setShowRechargeBalanceModal(true);
-                  setRechargeBalanceError(null);
-                  setIsRechargeBalanceLoading(false);
-                },
+            description: billingMarketplace
+              ? getMarketplaceBalanceCardDescription({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  access: balanceAccess,
+                  marketplace: billingMarketplace,
+                  translator: translator,
+                })
+              : getProjectBalanceCardDescription(
+                  ProjectBalanceType.SmsOrCall,
+                  balanceAccess,
+                ),
+            buttons: getRechargeBalanceButtons({
+              access: balanceAccess,
+              translator: translator,
+              onRecharge: () => {
+                setShowRechargeBalanceModal(true);
+                setRechargeBalanceError(null);
+                setIsRechargeBalanceLoading(false);
               },
-            ],
+            }),
           }}
           isEditable={false}
           modelDetailProps={{
@@ -63,9 +142,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   smsOrCallCurrentBalanceInUSDCents: true,
                 },
                 fieldType: FieldType.USDCents,
-                title: "SMS, Call, WhatsApp, and Telegram Current Balance",
-                description:
-                  "This is your current balance for SMS, Call, WhatsApp, and Telegram. It is in USD. ",
+                // The card's description says what the balance pays for.
+                title: CURRENT_BALANCE_ROW_TITLE,
                 placeholder: "0 USD",
               },
             ],
@@ -76,264 +154,20 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
-      <CardModelDetail
-        name="Enable Notifications"
-        cardProps={{
-          title: "Enable Notifications",
-          description:
-            "Enable Call, SMS, WhatsApp, and Telegram notifications for this project.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Notification Settings"
-        formFields={[
-          {
-            field: {
-              enableCallNotifications: true,
-            },
-            title: "Enable Call Notifications",
-            description:
-              "Enable Call notifications for this project. This will be used for alerting users by phone call.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableWhatsAppNotifications: true,
-            },
-            title: "Enable WhatsApp Notifications",
-            description:
-              "Enable WhatsApp notifications for this project. This will be used for alerting users via WhatsApp.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableTelegramNotifications: true,
-            },
-            title: "Enable Telegram Notifications",
-            description:
-              "Enable Telegram notifications for this project. Users link their Telegram account via our bot to receive alerts.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableSmsNotifications: true,
-            },
-            title: "Enable SMS Notifications",
-            description:
-              "Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "notifications",
-          fields: [
-            {
-              field: {
-                enableCallNotifications: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Call Notifications",
-              placeholder: "Not Enabled",
-              description:
-                "Enable Call notifications for this project. This will be used for alerting users by phone call.",
-            },
-            {
-              field: {
-                enableWhatsAppNotifications: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable WhatsApp Notifications",
-              placeholder: "Not Enabled",
-              description:
-                "Enable WhatsApp notifications for this project. This will be used for alerting users via WhatsApp.",
-            },
-            {
-              field: {
-                enableTelegramNotifications: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Telegram Notifications",
-              placeholder: "Not Enabled",
-              description:
-                "Enable Telegram notifications for this project. Users link their Telegram account via our bot to receive alerts.",
-            },
-            {
-              field: {
-                enableSmsNotifications: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable SMS Notifications",
-              placeholder: "Not Enabled",
-              description:
-                "Enable SMS notifications for this project. This will be used for alerting users by SMS.",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
+      {/*
+       * SMS, calls, WhatsApp and Telegram: one switch each, saved the
+       * moment it is flipped.
+       */}
+      <ProjectNotificationChannelsCard />
 
       {BILLING_ENABLED ? (
-        <CardModelDetail
-          name="Auto Recharge"
-          cardProps={{
-            title: "Auto Recharge",
-            description:
-              "Enable Auto Recharge for SMS, Call, and WhatsApp balance. This will make sure you always have enough balance for sending notifications.",
-          }}
-          isEditable={true}
-          editButtonText="Edit Auto Recharge"
-          formFields={[
-            {
-              field: {
-                enableAutoRechargeSmsOrCallBalance: true,
-              },
-              title: "Enable Auto Recharge",
-              description:
-                "Enable Auto Recharge. This will be used for sending an SMS, Call, or WhatsApp message.",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-            },
-            {
-              field: {
-                autoRechargeSmsOrCallByBalanceInUSD: true,
-              },
-              title: "Auto Recharge Balance by (in USD)",
-              description:
-                "Amount of balance to be recharged when the balance is low. It is in USD. ",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: [
-                {
-                  value: 10,
-                  label: "10 USD",
-                },
-                {
-                  value: 20,
-                  label: "20 USD",
-                },
-                {
-                  value: 25,
-                  label: "25 USD",
-                },
-                {
-                  value: 50,
-                  label: "50 USD",
-                },
-                {
-                  value: 75,
-                  label: "75 USD",
-                },
-                {
-                  value: 100,
-                  label: "100 USD",
-                },
-                {
-                  value: 200,
-                  label: "200 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 1000,
-                  label: "1000 USD",
-                },
-              ],
-              required: true,
-            },
-            {
-              field: {
-                autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-              },
-              title: "Auto Recharge when balance falls to (in USD)",
-              description:
-                "Trigger auto recharge when balance falls to this amount. It is in USD. ",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: [
-                {
-                  value: 10,
-                  label: "10 USD",
-                },
-                {
-                  value: 20,
-                  label: "20 USD",
-                },
-                {
-                  value: 25,
-                  label: "25 USD",
-                },
-                {
-                  value: 50,
-                  label: "50 USD",
-                },
-                {
-                  value: 75,
-                  label: "75 USD",
-                },
-                {
-                  value: 100,
-                  label: "100 USD",
-                },
-                {
-                  value: 200,
-                  label: "200 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 1000,
-                  label: "1000 USD",
-                },
-              ],
-              required: true,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: Project,
-            id: "notifications",
-            fields: [
-              {
-                field: {
-                  enableAutoRechargeSmsOrCallBalance: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Auto Recharge Balance by (in USD)",
-                description:
-                  "Amount of balance to be recharged when the balance is low. It is in USD. ",
-                placeholder: "Not Enabled",
-              },
-              {
-                field: {
-                  autoRechargeSmsOrCallByBalanceInUSD: true,
-                },
-                fieldType: FieldType.Text,
-                title: "Auto Recharge by (in USD)",
-                placeholder: "0 USD",
-              },
-              {
-                field: {
-                  autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-                },
-                fieldType: FieldType.Text,
-                title: "Trigger auto recharge if balance falls below (in USD)",
-                placeholder: "0 USD",
-              },
-            ],
-            modelId: ProjectUtil.getCurrentProjectId()!,
+        <AutoRechargeCard
+          balance={ProjectBalanceType.SmsOrCall}
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          isEditable={autoRechargeGate.isEditable}
+          lockedButtons={autoRechargeGate.lockedButtons}
+          onSaveSuccess={() => {
+            setAutoRechargeSaves(autoRechargeSaves + 1);
           }}
         />
       ) : (
@@ -380,8 +214,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: "Amount (in USD)",
-                description: `Please enter the amount to recharge. It is in USD.`,
+                title: RECHARGE_AMOUNT_TITLE,
+                description: RECHARGE_AMOUNT_DESCRIPTION,
                 field: {
                   amount: true,
                 },

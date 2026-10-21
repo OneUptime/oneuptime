@@ -6,7 +6,6 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -17,6 +16,9 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
+import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import {
   afterEach,
   beforeEach,
@@ -25,6 +27,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A public note that does not say whether to notify status page subscribers
@@ -52,6 +63,12 @@ const OTHER_SCHEDULED_MAINTENANCE_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
 const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+// Somebody else, whom a request may not name as having done anything.
+const OTHER_USER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 const SKIPPED_MESSAGE: string =
   "Notifications skipped as subscribers are not to be notified for this scheduled maintenance note.";
@@ -96,9 +113,16 @@ const rootProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
   return { isRoot: true };
 };
 
-// A member whose only way in is the scheduled maintenance public note create permission.
+/*
+ * A member whose only way in is the scheduled maintenance public note create
+ * permission, and a read of the event the note is posted on: a note is
+ * created only under an event its creator may read.
+ */
 const noteCreatorProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
-  return memberProps([Permission.CreateScheduledMaintenancePublicNote]);
+  return memberProps([
+    Permission.CreateScheduledMaintenancePublicNote,
+    Permission.ReadProjectScheduledMaintenance,
+  ]);
 };
 
 type EventWithFlagFunction = (
@@ -524,7 +548,7 @@ describe("ScheduledMaintenancePublicNoteService addNote (Slack and Microsoft Tea
       );
 
     await ScheduledMaintenancePublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
       projectId: PROJECT_ID,
       note: "Posted from the maintenance channel.",
@@ -553,7 +577,9 @@ describe("ScheduledMaintenancePublicNoteService addNote (Slack and Microsoft Tea
       SCHEDULED_MAINTENANCE_ID.toString(),
     );
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createBy.props).toEqual({ isRoot: true });
+    // Created with the member's own props: the note is theirs.
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.isRoot).toBeUndefined();
   });
 
   test("a note posted on a quiet event stays quiet", async () => {
@@ -628,6 +654,7 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
     jest
       .spyOn(ScheduledMaintenancePublicNoteService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    stubProjectDirectory({});
   });
 
   test("a member who may only create scheduled maintenance public notes saves a quiet note on a quiet event", async () => {
@@ -640,6 +667,8 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(save.mock.calls[0]![0]).toBe(saved);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
@@ -734,13 +763,15 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
 
     const saved: ScheduledMaintenancePublicNote =
       await ScheduledMaintenancePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the maintenance channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );
@@ -754,13 +785,15 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
 
     const saved: ScheduledMaintenancePublicNote =
       await ScheduledMaintenancePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the maintenance channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
@@ -770,22 +803,44 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
   test("harness guard: the create still enforces column permissions on this path", async () => {
     mockEventLookup(eventWithFlag(false));
 
+    const columnCheck: SpyInstance = getJestSpyOn(
+      ColumnPermission,
+      "checkDataColumnPermissions",
+    );
+
+    await ScheduledMaintenancePublicNoteService.create({
+      data: buildNote({
+        projectId: undefined,
+      }),
+      props: noteCreatorProps(),
+    });
+
+    expect(columnCheck).toHaveBeenCalledWith(
+      ScheduledMaintenancePublicNote,
+      expect.anything(),
+      expect.objectContaining({ userId: USER_ID }),
+      DatabaseRequestType.Create,
+    );
+  });
+
+  test("who deleted a note is never the request's to say: it is taken out, not stored", async () => {
+    mockEventLookup(eventWithFlag(false));
+
     const note: ScheduledMaintenancePublicNote = buildNote({
       projectId: undefined,
     });
-    note.deletedByUserId = USER_ID;
+    note.deletedByUserId = OTHER_USER_ID;
+    note.createdByUserId = OTHER_USER_ID;
 
-    await expect(
-      ScheduledMaintenancePublicNoteService.create({
+    const saved: ScheduledMaintenancePublicNote =
+      await ScheduledMaintenancePublicNoteService.create({
         data: note,
         props: noteCreatorProps(),
-      }),
-    ).rejects.toThrow(
-      new BadDataException(
-        "User is not allowed to create on deletedByUserId column of Scheduled Event Public Note",
-      ),
-    );
-    expect(save).not.toHaveBeenCalled();
+      });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saved.deletedByUserId).toBeUndefined();
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
   });
 
   test("harness guard: a caller who may only read scheduled maintenance public notes is refused", async () => {

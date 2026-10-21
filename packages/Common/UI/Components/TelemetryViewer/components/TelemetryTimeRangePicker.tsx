@@ -1,10 +1,24 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
-import TimeRangePickerDropdown from "../../Date/TimeRangePickerDropdown";
+import TimeRangePickerDropdown, {
+  TimeRangePickerSize,
+} from "../../Date/TimeRangePickerDropdown";
+import ResetTimeRangeZoomButton from "../../Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 
 export interface TelemetryTimeRangePickerProps {
   value: RangeStartAndEndDateTime;
   onChange: (value: RangeStartAndEndDateTime) => void;
+  /*
+   * False while the explorer this picker belongs to follows a zoom offered
+   * around it (see useViewerTimeRangeZoom): whoever offers that zoom shows
+   * its "Reset zoom", and a second one here would only repeat it.
+   */
+  showResetZoom?: boolean | undefined;
+  /*
+   * Compact (the explorer toolbar's chip) unless said otherwise; Header in a
+   * table's card header, beside its search and its ⋯.
+   */
+  size?: TimeRangePickerSize | undefined;
 }
 
 // Matches the Tailwind `w-72` on the rendered dropdown (18rem).
@@ -16,13 +30,32 @@ export const TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX: string =
 const TelemetryTimeRangePicker: FunctionComponent<
   TelemetryTimeRangePickerProps
 > = (props: TelemetryTimeRangePickerProps): ReactElement => {
+  /*
+   * Inside a page that zooms (TimeRangeZoomScope), a drag on any chart
+   * retimes the page; the reset button beside the picker is the way back
+   * for anyone who does not know to double-click a chart. It shows only
+   * for a zoom of this picker's range, so a viewer nested in a zoomed page
+   * does not offer to reset the page.
+   */
+  /*
+   * No wider than the row it sits in: the picker cuts a long custom range
+   * short (TimeRangePickerDropdown) only when this group may shrink, and
+   * Reset zoom keeps its width (shrink-0). Sized to its content, the group
+   * ran a zoomed range past its card at 768px.
+   */
   return (
-    <TimeRangePickerDropdown
-      value={props.value}
-      onChange={props.onChange}
-      dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
-      dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
-    />
+    <div className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+      <TimeRangePickerDropdown
+        value={props.value}
+        onChange={props.onChange}
+        dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
+        dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
+        size={props.size}
+      />
+      {props.showResetZoom === false ? null : (
+        <ResetTimeRangeZoomButton forTimeRange={props.value} />
+      )}
+    </div>
   );
 };
 

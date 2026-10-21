@@ -1,11 +1,12 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
-import AIService from "../../../Server/Services/AIService";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+} from "../../../Server/Services/AIService";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
-import AIAgentService from "../../../Server/Services/AIAgentService";
-import RunnerService from "../../../Server/Services/RunnerService";
+import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
@@ -14,14 +15,17 @@ import TelemetryException from "../../../Models/DatabaseModels/TelemetryExceptio
 import TelemetryService from "../../../Models/DatabaseModels/Service";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
-import AIAgent, {
-  AIAgentConnectionStatus,
-} from "../../../Models/DatabaseModels/AIAgent";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  CodeRepositoryRunnerChoiceKind,
+  CodeWorker,
+  CodeWorkerKind,
+} from "../../../Types/Runner/CodeRepositoryRunner";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -55,9 +59,12 @@ function fakeException(
   } as unknown as TelemetryException;
 }
 
+// The repository the exception resolves to.
+const resolvedRepositoryId: ObjectID = ObjectID.generate();
+
 function fakeResolution(): RepoResolution {
   return {
-    codeRepositoryId: ObjectID.generate().toString(),
+    codeRepositoryId: resolvedRepositoryId.toString(),
     organizationName: "acme",
     repositoryName: "checkout",
     servicePathInRepository: null,
@@ -84,25 +91,20 @@ function mockReadinessOk(): void {
   jest
     .spyOn(CodeRepositoryService, "resolveRepositoryForException")
     .mockResolvedValue(fakeResolution());
-  const onlineAgent: AIAgent = {
-    id: ObjectID.generate(),
-    name: "agent",
-    connectionStatus: AIAgentConnectionStatus.Connected,
-  } as unknown as AIAgent;
-
-  jest
-    .spyOn(AIAgentService, "getAIAgentForProject")
-    .mockResolvedValue(onlineAgent);
-  jest
-    .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-    .mockResolvedValue(onlineAgent);
   /*
-   * The readiness check falls back to a code-fix-capable Runner when no
-   * AIAgent is online. Stubbed to none so this suite never reaches a database.
+   * The resolved repository picks no Runner, and a global Runner for code
+   * is online to take its work (CodeRepositoryRunnerChoice, which has its
+   * own suite).
    */
+  jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue({
+    id: resolvedRepositoryId,
+  } as unknown as CodeRepository);
   jest
-    .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-    .mockResolvedValue(null);
+    .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+    .mockResolvedValue({
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    });
   /*
    * The llmProvider check also gates on the daily autonomous token budget
    * (AI_CODE_FIX_FEATURE is autonomous, so executeWithLogging enforces it).
@@ -128,10 +130,40 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
   beforeEach(() => {
     // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    // AI on: the switch's own refusal is held below.
+    jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test("AI switched off for the project: refused in the switch's own words, before the budget, the readiness probes or any run", async () => {
+    mockReadinessOk();
+    jest
+      .spyOn(AIService, "assertProjectAIEnabled")
+      .mockRejectedValue(new BadDataException(AI_DISABLED_MESSAGE));
+    const budget: jest.SpyInstance = jest.spyOn(
+      FixRunBudget,
+      "assertWithinBudget",
+    );
+    const readiness: jest.SpyInstance = jest.spyOn(
+      TelemetryExceptionService,
+      "getAIFixReadiness",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(AI_DISABLED_MESSAGE);
+
+    expect(AIService.assertProjectAIEnabled).toHaveBeenCalledWith(projectId);
+    expect(budget).not.toHaveBeenCalled();
+    expect(readiness).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("records a Queued CodeFix AIRun carrying the triggering exception", async () => {
@@ -160,10 +192,50 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
           triggeredByTelemetryExceptionId: exceptionId,
           // New rows are stamped explicitly; only legacy rows are null.
           codeFixTaskType: CodeFixTaskType.FixException,
+          /*
+           * Queued on the repository the exception resolved to, so the
+           * Runner that repository picks is the one that takes it.
+           */
+          codeRepositoryId: resolvedRepositoryId,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
+  });
+
+  test("the run's Runner is the resolved repository's: its readiness asks about that repository's Runner", async () => {
+    mockReadinessOk();
+    const pickedRunnerId: ObjectID = ObjectID.generate();
+    jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue({
+      id: resolvedRepositoryId,
+      runnerId: pickedRunnerId,
+    } as unknown as CodeRepository);
+    const status: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: pickedRunnerId.toString(),
+        },
+        isOnline: false,
+        runnerName: "prod-eu-runner",
+      });
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/Runner online/);
+
+    expect(status).toHaveBeenCalledWith({
+      projectId: projectId,
+      runnerId: pickedRunnerId,
+    });
+    // The picked Runner is offline: no run that would only wait is queued.
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("over the daily fix-run budget: rejects BEFORE the readiness probes, nothing created", async () => {
@@ -510,6 +582,18 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
  * legacy null column to FixException before the run leaves the service.
  */
 describe("AIRunService.claimNextQueuedCodeFixRun task recipe", () => {
+  // Who claims; the candidate query always names one (see AIRunCodeFixClaim).
+  const WORKER: CodeWorker = {
+    kind: CodeWorkerKind.GlobalRunner,
+    id: new ObjectID("0a1b2c3d-8888-4222-8333-944455556666"),
+  };
+
+  beforeEach(() => {
+    jest
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
+      .mockResolvedValue("0a1b2c3d-9999-4222-8333-944455556666");
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -531,6 +615,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun task recipe", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -545,6 +630,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun task recipe", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 

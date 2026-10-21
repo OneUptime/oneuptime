@@ -15,6 +15,7 @@ jest.mock("Common/Server/Services/DatabaseService", () => {
     default: class DatabaseServiceStub {
       public hardDeleteItemsOlderThanInDays(): void {}
       public setDoNotAllowDelete(): void {}
+      public keepRowsOnDeleteByQuery(): void {}
       public findBy(...args: Array<unknown>): Promise<Array<unknown>> {
         return mockFindBy(...args);
       }

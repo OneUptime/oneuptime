@@ -98,6 +98,15 @@ const IPV4_REGEX: RegExp =
 // Loose IPv6: hex groups and colons, at least two colons; enough to tell an address from a hostname.
 const IPV6_REGEX: RegExp = /^[0-9a-fA-F:]*:[0-9a-fA-F:]*:[0-9a-fA-F:.]*$/;
 
+/*
+ * The longest an address can be written: an IPv6 address that ends in an
+ * IPv4 one ("ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255"). A longer value
+ * is no address, and is never handed to the patterns above - so the time a
+ * field takes to tell apart stays tied to how long an address can be, not
+ * to how long the event made it.
+ */
+export const MAX_IP_ADDRESS_LENGTH: number = 45;
+
 function isObject(value: unknown): value is JSONObject {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -183,7 +192,7 @@ function firstField(payload: JSONObject, keys: Array<string>): string {
 export function isIpAddress(value: string): boolean {
   const trimmed: string = (value || "").trim();
 
-  if (!trimmed) {
+  if (!trimmed || trimmed.length > MAX_IP_ADDRESS_LENGTH) {
     return false;
   }
 

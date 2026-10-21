@@ -7,6 +7,7 @@ import TriggerCode, {
 } from "Common/Server/Types/Workflow/TriggerCode";
 import Express, { ExpressRouter } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 
 export default class ComponentCodeAPI {
   public router!: ExpressRouter;
@@ -37,6 +38,21 @@ export default class ComponentCodeAPI {
           });
       }
     }
+
+    // A schedule the database no longer wants is never re-added on reconnect.
+    Queue.setReconnectGuard(
+      QueueName.Workflow,
+      async (workflowId: string, cronPattern?: string): Promise<boolean> => {
+        return await QueueWorkflow.isScheduleCurrent(
+          new ObjectID(workflowId),
+          cronPattern,
+        );
+      },
+    );
+
+    QueueWorkflow.reconcileAllSchedules().catch((err: Error) => {
+      logger.error(err);
+    });
   }
 
   public async scheduleWorkflow(

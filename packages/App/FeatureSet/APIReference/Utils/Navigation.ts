@@ -17,6 +17,14 @@ export interface ReferenceNavItem {
   slug: string;
   /** Shown under the name in search results; absent for guides. */
   description?: string;
+  /*
+   * Set on a model or data type, whose name is the same English word in every
+   * language; a guide's name is translated. The views lay an English name out
+   * left to right, so on a right-to-left page a long one is still cut short
+   * at its end - and leave a translated one to the page, since one that opens
+   * with a Latin acronym ("APIهای مدیر ارشد") would read in the wrong order.
+   */
+  isEnglishName?: boolean;
 }
 
 /**
@@ -112,6 +120,7 @@ function buildResourceSection(
             name: resource.name,
             slug: resource.path,
             description: resource.description,
+            isEnglishName: true,
           };
         }),
       },
@@ -159,6 +168,7 @@ function buildDataTypeSection(
       name: dataType.name,
       slug: dataType.path,
       description: dataType.description,
+      isEnglishName: true,
     };
   };
 

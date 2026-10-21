@@ -5,6 +5,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   DEFAULT_LOGS_TABLE_COLUMNS,
   getLogsAttributeColumnId,
@@ -30,6 +32,7 @@ export const COLUMN_SELECTOR_PANEL_TEST_ID: string = "column-selector-panel";
 const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
   props: ColumnSelectorProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -154,7 +157,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
         aria-haspopup="dialog"
         aria-expanded={isComponentVisible}
       >
-        <span>Columns</span>
+        <span>{translator.translateText("Columns")}</span>
         <span className="text-xs text-gray-400">
           {selectedColumnIds.length}
         </span>
@@ -167,9 +170,13 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Columns</h3>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {translator.translateText("Columns")}
+              </h3>
               <p className="text-xs text-gray-500">
-                Add, remove, and reorder visible columns.
+                {translator.translateText(
+                  "Add, remove, and reorder visible columns.",
+                )}
               </p>
             </div>
 
@@ -180,13 +187,13 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                 updateColumns(DEFAULT_LOGS_TABLE_COLUMNS);
               }}
             >
-              Reset
+              {translator.translateText("Reset")}
             </button>
           </div>
 
           <div className="mt-4">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              Selected
+              {translator.translateText("Selected")}
             </p>
 
             <div className="space-y-2">
@@ -213,7 +220,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                           }}
                           disabled={isFirst}
                         >
-                          Up
+                          {translator.translateText("Up")}
                         </button>
                         <button
                           type="button"
@@ -223,7 +230,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                           }}
                           disabled={isLast}
                         >
-                          Down
+                          {translator.translateText("Down")}
                         </button>
                         <button
                           type="button"
@@ -233,7 +240,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                           }}
                           disabled={selectedColumns.length <= 1}
                         >
-                          Remove
+                          {translator.translateText("Remove")}
                         </button>
                       </div>
                     </div>
@@ -246,7 +253,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                Available
+                {translator.translateText("Available")}
               </p>
 
               <input
@@ -263,7 +270,9 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                     setSearchQuery("");
                   }
                 }}
-                placeholder="Search or type attribute"
+                placeholder={translator.translateText(
+                  "Search or type attribute",
+                )}
                 className="w-48 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
             </div>
@@ -273,11 +282,15 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                 <div className="flex items-center justify-between rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-gray-700">
-                      <span className="text-gray-500">Attribute: </span>
+                      <span className="text-gray-500">
+                        {translator.translateText("Attribute:")}{" "}
+                      </span>
                       <span className="font-mono">{trimmedAttributeKey}</span>
                     </p>
                     <p className="text-[11px] text-gray-500">
-                      Add as a column to show this attribute&apos;s value.
+                      {translator.translateText(
+                        "Add as a column to show this attribute's value.",
+                      )}
                     </p>
                   </div>
 
@@ -289,16 +302,18 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                       setSearchQuery("");
                     }}
                   >
-                    Add attribute
+                    {translator.translateText("Add attribute")}
                   </button>
                 </div>
               )}
 
               {availableColumns.length === 0 && !canAddCustomAttribute && (
                 <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500">
-                  {trimmedAttributeKey
-                    ? "No matching columns available."
-                    : "Type an attribute name above to add it as a column."}
+                  {translator.translateText(
+                    trimmedAttributeKey
+                      ? "No matching columns available."
+                      : "Type an attribute name above to add it as a column.",
+                  )}
                 </div>
               )}
 
@@ -319,7 +334,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                         addColumn(column.id);
                       }}
                     >
-                      Add
+                      {translator.translateText("Add")}
                     </button>
                   </div>
                 );

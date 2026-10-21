@@ -1,4 +1,5 @@
 import ResellerPlan from "../../Models/DatabaseModels/ResellerPlan";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateProject,
@@ -7,6 +8,14 @@ import {
   getAllEnvVars,
 } from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
+import VercelMarketplaceResources from "../Utils/Marketplace/Vercel/VercelMarketplaceResources";
+import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
+import MarketplaceSubscriptionStatus, {
+  MarketplaceSubscriptionStatusUtil,
+} from "../../Types/Marketplace/MarketplaceSubscriptionStatus";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
@@ -14,7 +23,6 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
-import EditionEnforcement from "../Utils/EditionEnforcement";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import Errors from "../Utils/Errors";
@@ -30,8 +38,10 @@ import {
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
+import PlanDowngradeOwnerNotice from "../Utils/Billing/PlanDowngradeOwnerNotice";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
@@ -41,6 +51,7 @@ import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NotificationService from "./NotificationService";
+import AIBillingService from "./AIBillingService";
 import PromoCodeService from "./PromoCodeService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import TeamMemberService from "./TeamMemberService";
@@ -59,13 +70,10 @@ import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
   Black,
-  Blue500,
-  Gray500,
   Green,
   Moroon500,
   Purple500,
   Red,
-  Teal500,
   Yellow,
   Yellow500,
 } from "../../Types/BrandColors";
@@ -80,8 +88,35 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
+import ProjectSsoProviderStanding from "../Utils/ProjectSsoProviderStanding";
+import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
+import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+  PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+  PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+  ProjectAiDailyLimit,
+  ProjectAiDailyLimitColumn,
+  ProjectAiDailyLimitReachedAtColumn,
+} from "../../Types/AI/ProjectAiDailyLimits";
+import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
+import NumberPrefixUtil, {
+  NUMBER_PREFIX_COLUMNS,
+  NumberPrefixColumn,
+} from "../../Utils/Project/NumberPrefix";
+import NextNumberUtil, {
+  NUMBERED_RECORD_KINDS,
+  NumberedRecordKind,
+  NumberedRecordKindInfo,
+  NumbersStartAtColumn,
+  RecordNumbering,
+} from "../../Utils/Project/NextNumber";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -102,17 +137,25 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../Models/DatabaseModels/Team";
+import Label from "../../Models/DatabaseModels/Label";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
+import TeamPermissionHolders, {
+  TeamMembershipRow,
+  TeamPermissionRow,
+} from "../Utils/Permission/TeamPermissionHolders";
 import Query from "../Types/Database/Query";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import URL from "../../Types/API/URL";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
@@ -120,11 +163,31 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
-import { IsNull, UpdateResult } from "typeorm";
+import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
+import { IsNull, Repository, UpdateResult } from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export interface CurrentPlan {
   plan: PlanType | null;
   isSubscriptionUnpaid: boolean;
+  /*
+   * How many active monitors the project's own plan includes, when it caps
+   * them: a plan bought from a reseller (Project.activeMonitorsLimit). Left
+   * out when it does not. Read and cached with the plan, as it is a part of
+   * it; ActiveMonitorLimit (Utils/Billing) holds creates to it.
+   */
+  activeMonitorsLimit?: number | undefined;
+}
+
+/*
+ * What a project asks of the people who open it at sign-in, as kept for a
+ * minute per server: whether they must have signed in with SSO, and the
+ * one provider (its id) that sign-in must come from, or null for any.
+ */
+interface ProjectSignInRule {
+  requireSsoForLogin: boolean;
+  requireSsoWithSsoProviderId: string | null;
 }
 
 export interface ProjectBalanceAdjustmentResult {
@@ -146,13 +209,40 @@ export type ProjectBalanceColumnName =
 export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 
 /*
- * The project columns that hold its SSO requirement: the ones onFindSuccess
- * masks and onBeforeUpdate guards while SSO is not active.
+ * The per-feature AI switches a new project starts with ON (see
+ * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
+ * belongs here; Enable AI is not listed because its column already defaults
+ * to true. A switch added to Project later is added here too, or new
+ * projects get it off - which is what fixing wants: the two automatic-fix
+ * switches (enableAutomaticIncidentRemediation,
+ * enableAutomaticAlertRemediation) change infrastructure, so a project turns
+ * them on itself, and the pull-request switches under them
+ * (enableAutomaticIncidentCodeFixes, enableIncidentInstrumentationFixTasks
+ * and their alert twins) are part of fixing: they open pull requests only
+ * while fixing is on, and come on with it (Types/AI/AutomaticFixSwitches).
  */
-export const PROJECT_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
-  "requireSsoForLogin",
-  "requireSsoWithSsoProviderId",
-];
+export type NewProjectAiDefaultColumn =
+  | "enableAutomaticIncidentInvestigation"
+  | "enableAutomaticAlertInvestigation"
+  | "enableAutomaticPostmortemDraft"
+  | "enableAiInsights"
+  | "enableInsightFixTasks"
+  | "autoArchiveNonActionableExceptions";
+
+export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
+  [
+    "enableAutomaticIncidentInvestigation",
+    "enableAutomaticAlertInvestigation",
+    "enableAutomaticPostmortemDraft",
+    "enableAiInsights",
+    "enableInsightFixTasks",
+    "autoArchiveNonActionableExceptions",
+  ];
+
+// The AI switches of a project being created; unset or null means "not said".
+export type NewProjectAiDefaults = {
+  [column in NewProjectAiDefaultColumn]?: boolean | null | undefined;
+};
 
 // The project columns that decide what the audit log records and keeps.
 export interface ProjectAuditLogSettings {
@@ -246,7 +336,42 @@ export const widensAuditLogging: (
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
 
-export class ProjectService extends DatabaseService<Model> {
+/*
+ * How long sendEmailToOwnersAndWait waits for the mail service to take one
+ * owner's email. It takes one in a few seconds; a mail service that hangs
+ * must not hold a run that waits for each email - the migrate Job - for
+ * longer than this.
+ */
+export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
+
+/*
+ * How long one server trusts its answer to "has a master admin blocked this
+ * project?" (isProjectBlocked) - the longest a block or an unblock takes to
+ * reach a server other than the one that wrote it, which drops its own answer
+ * at once (onUpdateSuccess).
+ */
+export const BLOCKED_PROJECT_CACHE_TTL_MS: number = 60_000;
+
+/*
+ * Where a project created from a reseller's promo code was bought: the
+ * reseller, the plan it sold and the license, as the promo code holds them.
+ * OneUptime writes them (onCreatePermitted); no caller may.
+ */
+export interface ProjectResellerFromPromoCode {
+  resellerId?: ObjectID | undefined;
+  resellerPlanId?: ObjectID | undefined;
+  resellerLicenseId?: string | undefined;
+}
+
+// What onBeforeCreate hands the hooks after it: who is creating the project.
+export interface ProjectCreateCarryForward {
+  // The creator is a master admin, whom the server's Require SSO for Login does not hold.
+  isCreatorMasterAdmin: boolean;
+  // Where it was bought, when it is created from a reseller's promo code.
+  resellerFromPromoCode?: ProjectResellerFromPromoCode | undefined;
+}
+
+export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
    * staleness on "last seen" is acceptable; an UPDATE per request is not.
@@ -255,29 +380,72 @@ export class ProjectService extends DatabaseService<Model> {
     10_000,
   );
   /*
-   * Caches the `requireSsoForLogin` flag per project so middleware can skip a
-   * Postgres findOneById on every authenticated request.
+   * Caches each project's sign-in rule - its `requireSsoForLogin` flag and
+   * the `requireSsoWithSsoProviderId` it pins (a string id, or null when
+   * unset) - so middleware can skip a Postgres findOneById on every
+   * authenticated request. Both are one entry, read by one query: neither
+   * is ever kept without the other, so a project's pinned provider is never
+   * forgotten while the rule that requires it is still remembered. Keyed by
+   * the project id in lower case, as every request and every forget names
+   * it, whatever case the request wrote it in.
    */
-  private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
+  private signInRuleCache: InMemoryTTLCache<ProjectSignInRule> =
     new InMemoryTTLCache(10_000);
+
   /*
-   * Caches the `requireSsoWithSsoProviderId` discriminator per project so the
-   * enforce-SSO middleware can require that the SSO token was issued by a
-   * specific provider. Stored as a string id (or null when unset). Populated
-   * alongside `getRequireSsoForLogin` so the common path stays a single query.
+   * One read of a project's sign-in rule in flight per project: a page fires
+   * a burst of requests at once, and a forgotten rule would otherwise turn
+   * the burst into as many identical reads. A read is kept only while it is
+   * still the project's current one: a forget clears the slot, so a read
+   * that was on the wire when the rule changed answers its own callers but
+   * never puts the old rule back.
    */
-  private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
-    new InMemoryTTLCache(10_000);
+  private signInRuleLookups: Map<string, Promise<ProjectSignInRule>> =
+    new Map();
   /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
    * authenticated request when billing is enabled — without caching,
-   * that's one Postgres findOneById per API call to a billable project.
+   * that's one Postgres findOneById per API call to a billable project —
+   * and by the API-key and SCIM middleware, which refuse a project's keys
+   * and SCIM connections below their plan (PlanCutoffCredentialAccess).
    * Plans change rarely (subscription create / cancel / change), so a
-   * 60s staleness window is acceptable.
+   * 60s staleness window is acceptable. A plan change drops the project's
+   * entry on the server that made it (forgetCurrentPlan), so there the
+   * new plan applies at once, and everywhere else within the 60 seconds.
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * Counts this server's plan changes (forgetCurrentPlan). A plan read that
+   * was under way when the plan changed may hold the old plan, so it is
+   * returned but not cached: otherwise it would put the old plan back for
+   * another minute, after forgetCurrentPlan had dropped it.
+   */
+  private currentPlanChanges: number = 0;
+
+  /*
+   * isProjectBlocked's answers, per server. Read with an explicit `undefined`
+   * check: a cached "not blocked" is `false` and must not look like a miss.
+   */
+  private blockedProjectCache: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
+    10_000,
+  );
+
+  /*
+   * One lookup per project in flight. A status page view fires a burst of
+   * requests at once - the page, its overview, its incidents, its images -
+   * and without this a cold cache turns the burst into as many identical
+   * queries.
+   */
+  private blockedProjectLookups: Map<string, Promise<boolean>> = new Map();
+
+  /*
+   * How long a project's plan is cached on a server: the longest a plan
+   * change takes to reach a server that did not make it.
+   */
+  public static readonly CURRENT_PLAN_CACHE_TTL_MS: number = 60_000;
 
   public constructor() {
     super(Model);
@@ -317,18 +485,135 @@ export class ProjectService extends DatabaseService<Model> {
     data.dataResidency = dataResidency;
   }
 
+  /*
+   * Runs on every create and update, before the write, for each number
+   * prefix the data carries: the prefix is stored trimmed, a blank one as
+   * null (numbers then start with "#"), and one that breaks the rules in
+   * NumberPrefixUtil - too long, a space or a character Markdown, Slack or
+   * HTML would read, a digit at the end that runs into the number - is
+   * refused. A prefix the data does not carry is left alone, so an update
+   * of anything else never touches the prefixes.
+   */
+  public applyNumberPrefixRules(
+    data: Partial<Record<NumberPrefixColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (values[info.column] === undefined) {
+        continue;
+      }
+
+      values[info.column] = NumberPrefixUtil.normalize(
+        values[info.column],
+        info.title,
+      );
+    }
+  }
+
+  /*
+   * Runs on every create and update, before the write, for each start of
+   * numbers the data carries (Utils/Project/NextNumber): null or blank text
+   * is stored as null - nothing chosen, the numbers carry on from the
+   * highest one used - and anything but a whole number from 1 to
+   * 1,000,000,000 is refused, naming the column. A start the data does not
+   * carry is left alone, so an update of anything else never touches the
+   * starts. Whether a new start is above the highest number used is checked
+   * once the caller may make the update (checkNumbersStartAboveHighest): it
+   * reads the project's counters.
+   */
+  public applyNextNumberRules(
+    data: Partial<Record<NumbersStartAtColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const info of NUMBERED_RECORD_KINDS) {
+      if (values[info.startsAtColumn] === undefined) {
+        continue;
+      }
+
+      values[info.startsAtColumn] = NextNumberUtil.normalize(
+        values[info.startsAtColumn],
+        info.title,
+      );
+    }
+  }
+
+  /*
+   * Runs on every create and update, before the write, for each of the
+   * project's own daily AI limits the data carries (Types/AI/
+   * ProjectAiDailyLimits). A blank one is stored as null - no limit, which
+   * is what clearing the field in the dashboard means - a typed "200000"
+   * as the number it is, and a limit must otherwise be a whole number within
+   * its bounds, at least 1: AI is turned off with Enable AI, not with a
+   * limit of 0. The spend limit counts only what is billed to AI credits,
+   * so on a server without billing it cannot be set (it would limit
+   * nothing); clearing it is always allowed.
+   */
+  public applyAiDailyLimitRules(
+    data: Partial<Record<ProjectAiDailyLimitColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of [
+      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+      PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+    ]) {
+      if (values[column] === undefined) {
+        continue;
+      }
+
+      if (
+        typeof values[column] === "string" &&
+        (values[column] as string).trim().length === 0
+      ) {
+        values[column] = null;
+      }
+
+      values[column] = coerceNumericColumnValue(values[column]);
+
+      const error: string | null = ProjectAiDailyLimits.getWriteError(
+        column,
+        values[column],
+      );
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+
+      if (
+        column === PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN &&
+        values[column] !== null &&
+        !IsBillingEnabled
+      ) {
+        throw new BadDataException(
+          "The daily AI spend limit counts AI credits, which this server does not bill, so it can only be set where billing is enabled. Use the daily AI token limit instead.",
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
 
     this.applyDataResidencyRules(data.data);
+    this.applyNumberPrefixRules(data.data);
+    this.applyNextNumberRules(data.data);
+    this.applyAiDailyLimitRules(data.data);
 
     if (data.props.userId) {
-      data.data.createdByUserId = data.props.userId;
+      RelationIdUtil.stamp(
+        data.data as unknown as Record<string, unknown>,
+        CREATED_BY_USER_KEYS,
+        data.props.userId,
+      );
     } else {
       throw new NotAuthorizedException(
         "User should be logged in to create the project.",
@@ -345,6 +630,10 @@ export class ProjectService extends DatabaseService<Model> {
         return [DEFAULT_PROJECT_AUDIT_LOG_SETTINGS];
       },
     });
+
+    // Where the project was bought, from a reseller's promo code. See below.
+    let resellerFromPromoCode: ProjectResellerFromPromoCode | undefined =
+      undefined;
 
     logger.debug("Creating project for user " + data.props.userId, {
       userId: data.props.userId?.toString(),
@@ -395,6 +684,22 @@ export class ProjectService extends DatabaseService<Model> {
       }
 
       data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
+
+      /*
+       * The project's own settings that a plan sells (its audit logs,
+       * Require SSO) are checked against the plan it is created on, after
+       * this hook, by the create's column check (ColumnPermission) - as
+       * every record's settings are checked against its project's plan.
+       * Not against the plan of the project the request was sent from,
+       * nor against none when it was sent from no project. A new project
+       * has no subscription yet, so none that is unpaid. A copy: the
+       * request's own props are left as they are.
+       */
+      data.props = {
+        ...data.props,
+        currentPlan: data.data.planName,
+        isSubscriptionUnpaid: false,
+      };
 
       if (data.data.paymentProviderPromoCode) {
         /*
@@ -456,17 +761,19 @@ export class ProjectService extends DatabaseService<Model> {
             );
           }
 
-          if (promoCode.resellerLicenseId) {
-            data.data.resellerLicenseId = promoCode.resellerLicenseId;
-          }
-
-          if (promoCode.resellerId) {
-            data.data.resellerId = promoCode.resellerId;
-          }
-
-          if (promoCode.resellerPlanId) {
-            data.data.resellerPlanId = promoCode.resellerPlanId;
-          }
+          /*
+           * Where the project was bought - the promo code's reseller, its
+           * plan and the license - is OneUptime's to write, and no caller's:
+           * the columns take no caller's create, so it is written once the
+           * creator has passed every check of the create
+           * (onCreatePermitted), not here, where the create's column check
+           * would hold it against the creator.
+           */
+          resellerFromPromoCode = {
+            resellerId: promoCode.resellerId || undefined,
+            resellerPlanId: promoCode.resellerPlanId || undefined,
+            resellerLicenseId: promoCode.resellerLicenseId || undefined,
+          };
         }
       }
 
@@ -533,28 +840,175 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.clickIds = user.clickIds!;
     data.data.firstTouchAttribution = user.firstTouchAttribution!;
 
-    // Set default number prefixes.
-    if (!data.data.incidentNumberPrefix) {
-      data.data.incidentNumberPrefix = "INC-";
+    /*
+     * A new project starts with a prefix for each kind of number (INC-, IE-,
+     * ALT-, AE-, SM-) unless the create request set one itself.
+     */
+    const newProject: Record<string, unknown> = data.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (!newProject[info.column]) {
+        newProject[info.column] = info.defaultForNewProjects;
+      }
     }
 
-    if (!data.data.alertNumberPrefix) {
-      data.data.alertNumberPrefix = "ALT-";
+    this.applyNewProjectAiDefaults(data.data);
+
+    const carryForward: ProjectCreateCarryForward = {
+      isCreatorMasterAdmin: user.isMasterAdmin === true,
+      resellerFromPromoCode: resellerFromPromoCode,
+    };
+
+    return Promise.resolve({ createBy: data, carryForward: carryForward });
+  }
+
+  /*
+   * The last step before a project is written, once its creator has passed
+   * every permission and plan check:
+   *
+   *   - a project created from a reseller's promo code records where it was
+   *     bought - the reseller, its plan and the license, as the promo code
+   *     holds them (onBeforeCreate read it). No caller may write them: they
+   *     are written here, after the create's column check, under their ID
+   *     columns alone;
+   *   - a project that would require SSO - itself, or because the whole
+   *     server does - needs a provider that signs people in to it, as an
+   *     update to Require SSO for Login does
+   *     (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
+   *     lock on the server's sign-in rules, held until the project is
+   *     written (onCreateSuccess) or its create fails (onCreateError) - kept
+   *     by the create's one OnCreate, the very object those hooks are handed
+   *     too, so it is given back however the create ends.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const carryForward: ProjectCreateCarryForward | null =
+      (onCreate.carryForward as ProjectCreateCarryForward | null) || null;
+
+    this.writeResellerFromPromoCode(
+      onCreate.createBy.data,
+      carryForward?.resellerFromPromoCode,
+    );
+
+    await SsoRequirementChanges.beforeProjectCreate({
+      create: onCreate,
+      isCreatorExemptFromServerRule:
+        carryForward?.isCreatorMasterAdmin === true,
+    });
+  }
+
+  /*
+   * Writes where a project was bought onto the project being created, from
+   * the reseller's promo code it is created with (onBeforeCreate), under the
+   * columns' ID names alone: a relation beside one would be stored in its
+   * place. Nothing for a project created without one.
+   */
+  public writeResellerFromPromoCode(
+    project: Model,
+    reseller: ProjectResellerFromPromoCode | undefined,
+  ): void {
+    if (!reseller) {
+      return;
     }
 
-    if (!data.data.scheduledMaintenanceNumberPrefix) {
-      data.data.scheduledMaintenanceNumberPrefix = "SM-";
+    const row: Record<string, unknown> = project as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (reseller.resellerId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerId", "reseller"],
+        reseller.resellerId,
+      );
     }
 
-    if (!data.data.incidentEpisodeNumberPrefix) {
-      data.data.incidentEpisodeNumberPrefix = "IE-";
+    if (reseller.resellerPlanId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerPlanId", "resellerPlan"],
+        reseller.resellerPlanId,
+      );
     }
 
-    if (!data.data.alertEpisodeNumberPrefix) {
-      data.data.alertEpisodeNumberPrefix = "AE-";
+    if (reseller.resellerLicenseId) {
+      project.resellerLicenseId = reseller.resellerLicenseId;
+    }
+  }
+
+  /*
+   * A create that fails once its sign-in check holds the lock - in a step
+   * just before the INSERT, at the INSERT, or in onCreateSuccess before it
+   * gave the lock back - reaches no other hook: the lock is given back here,
+   * whatever happened - or, when the database may still commit the project
+   * (its COMMIT went unanswered), kept until it would have cancelled it
+   * (SsoRequirementChanges). DatabaseService.create hands every failure
+   * after onBeforeCreate to this hook, with the create's one OnCreate - the
+   * very object onCreatePermitted kept the lock by.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    await SsoRequirementChanges.afterFailedProjectCreate(
+      onCreate,
+      error,
+      failedStatement,
+    );
+
+    return error;
+  }
+
+  /*
+   * A new project starts with every AI feature on: each per-feature switch
+   * in NEW_PROJECT_AI_DEFAULT_COLUMNS is turned on unless the create request
+   * set it itself (a request that says false keeps false). The columns'
+   * database default stays false, so projects that existed before this are
+   * never switched on by an upgrade, and a create that bypasses this hook
+   * entirely gets the old behaviour rather than a surprise.
+   *
+   * On means allowed, not running: each feature still needs what it always
+   * needed (an LLM provider, AI balance, a connected repository and a
+   * capable Runner for the ones that open pull requests), and Enable AI
+   * turns all of them off at once.
+   */
+  public applyNewProjectAiDefaults(data: NewProjectAiDefaults): void {
+    for (const column of NEW_PROJECT_AI_DEFAULT_COLUMNS) {
+      if (data[column] === undefined || data[column] === null) {
+        data[column] = true;
+      }
+    }
+  }
+
+  /*
+   * An update that failed - refused or thrown, an auto recharge charge
+   * included - once a stricter sign-in rule held its locks: they are given
+   * back - or, when the database may still apply the write, kept until it
+   * would have cancelled it (SsoRequirementChanges).
+   */
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
-    return Promise.resolve({ createBy: data, carryForward: null });
+    return error;
   }
 
   /*
@@ -570,10 +1024,55 @@ export class ProjectService extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // The locks a stricter sign-in rule held for its check (onUpdatePermitted).
+    await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
     const updateData: Record<string, unknown> = onUpdate.updateBy
       .data as unknown as Record<string, unknown>;
 
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
+
+    /*
+     * The active monitor limit is read and cached with the plan
+     * (getCurrentPlan): a new one - a reseller's change of tier, or a master
+     * admin's edit - holds this server's monitor creates at once, and every
+     * other server's within the cache's minute.
+     */
+    if (updateData["activeMonitorsLimit"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        this.forgetCurrentPlan(projectId);
+      }
+    }
+
+    /*
+     * Blocked or unblocked: this server reads the flag again on the next
+     * request, and every other server is told to (RealtimeAccessChanges) -
+     * so the project's API requests are refused or let in again, its
+     * members' live updates stop, and its status pages and public
+     * dashboards go down or come back, everywhere at once. A server the
+     * channel does not reach (a worker, Valkey down) catches up within
+     * BLOCKED_PROJECT_CACHE_TTL_MS. Hook-only: a write made with
+     * `ignoreHooks: true` waits out the TTL everywhere.
+     */
+    if (updateData["isBlocked"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        this.forgetBlockedStatus(projectId);
+
+        RealtimeAccessChanges.announce({
+          kind: RealtimeAccessChangeKind.ProjectBlockChanged,
+          projectId: projectId.toString(),
+        });
+      }
+    }
+
+    await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
+
+    this.announceSignInRulesChanged(
+      SsoRequirementChanges.takeProjectsWhoseRuleChanged(
+        onUpdate.updateBy,
+        updatedItemIds,
+      ),
+    );
 
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
@@ -657,34 +1156,76 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Drops this server's cached sign-in rules (Require SSO, the provider a
+   * project pins, and whether each of its own SSO providers still vouches
+   * for the sign-ins it gave) of the project, or of every project when none
+   * is named, so the next request reads them again. Called when they
+   * change, here or on another server (RealtimeAccessChanges): a provider
+   * turned off or deleted is announced this way too
+   * (Utils/ProjectSsoProviderChanges).
+   */
+  public forgetSignInRules(projectId?: ObjectID): void {
+    if (!projectId) {
+      this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
+      ProjectSsoProviderStanding.forget();
+      return;
+    }
+
+    const key: string = projectId.toString().toLowerCase();
+
+    this.signInRuleCache.delete(key);
+    this.signInRuleLookups.delete(key);
+    ProjectSsoProviderStanding.forget(projectId);
+  }
+
+  /*
+   * The projects whose sign-in rules a write told of: every project a write
+   * that asks for more wrote - Require SSO turned on, or a provider pinned,
+   * whatever the rule was before - and those whose rule a write that asks
+   * for less changed - Require SSO turned off, or the pinned provider
+   * cleared; written back as it was, it is not one
+   * (SsoRequirementChanges.takeProjectsWhoseRuleChanged). Every server reads
+   * them again at once, rather than when its cached copy runs out a minute
+   * later (RealtimeAccessChanges). Rules that ask for more stop a page that
+   * no longer meets them hearing at once, as its API requests are refused
+   * at once - the live updates already open in the project are asked again
+   * as their joins were. Rules that ask for less let people back in at once
+   * on every server: one that still held the old rule would refuse them
+   * until it ran out.
+   */
+  private announceSignInRulesChanged(changedProjectIds: Array<ObjectID>): void {
+    for (const projectId of changedProjectIds) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: projectId.toString(),
+      });
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    /*
-     * While SSO is not active this caller only ever read the requirement as
-     * off (see onFindSuccess), so a write of it must not switch the stored
-     * requirement off, or set one nobody could see. Drops or refuses it.
-     */
-    EditionEnforcement.guardSsoRequirementWrite({
-      props: updateBy.props,
-      data: updateBy.data as unknown as Record<string, unknown>,
-      columns: PROJECT_SSO_REQUIREMENT_COLUMNS,
-    });
+    await super.onBeforeUpdate(updateBy);
 
     /*
      * Any project field could have changed; invalidate the in-process cache
-     * of the SSO flag. Cheap to refetch on the next request.
+     * of the sign-in rules. Cheap to refetch on the next request.
      */
-    if (updateBy.data.requireSsoForLogin !== undefined) {
-      this.requireSsoForLoginCache.clear();
-    }
-
-    if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
-      this.requireSsoWithSsoProviderIdCache.clear();
+    if (
+      updateBy.data.requireSsoForLogin !== undefined ||
+      updateBy.data.requireSsoWithSsoProviderId !== undefined
+    ) {
+      this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
     }
 
     this.applyDataResidencyRules(updateBy.data);
+    this.applyNumberPrefixRules(updateBy.data);
+    this.applyNextNumberRules(updateBy.data);
+    this.applyAiDailyLimitRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,
@@ -693,91 +1234,13 @@ export class ProjectService extends DatabaseService<Model> {
         Array<StoredProjectAuditLogSettings>
       > => {
         return this.findAuditLogSettingsInCallerScope({
-          query: updateBy.query,
+          updateBy: updateBy,
           props: updateBy.props,
         });
       },
     });
 
     if (IsBillingEnabled) {
-      if (
-        updateBy.data.businessDetails ||
-        updateBy.data.businessDetailsCountry ||
-        updateBy.data.financeAccountingEmail ||
-        updateBy.data.sendInvoicesByEmail !== undefined
-      ) {
-        logger.debug(
-          `[Invoice Email] ProjectService.onBeforeUpdate - syncing billing details to Stripe`,
-        );
-        logger.debug(
-          `[Invoice Email] Fields being updated - businessDetails: ${Boolean(updateBy.data.businessDetails)}, businessDetailsCountry: ${Boolean(updateBy.data.businessDetailsCountry)}, financeAccountingEmail: ${Boolean(updateBy.data.financeAccountingEmail)}, sendInvoicesByEmail: ${updateBy.data.sendInvoicesByEmail}`,
-        );
-
-        // Sync to Stripe.
-        const project: Model | null = await this.findOneById({
-          id: new ObjectID(updateBy.query._id! as string),
-          select: {
-            paymentProviderCustomerId: true,
-            financeAccountingEmail: true,
-            sendInvoicesByEmail: true,
-          },
-          props: { isRoot: true },
-        });
-
-        logger.debug(
-          `[Invoice Email] Project found - paymentProviderCustomerId: ${project?.paymentProviderCustomerId}, existing sendInvoicesByEmail: ${(project as any)?.sendInvoicesByEmail}`,
-        );
-
-        if (project?.paymentProviderCustomerId) {
-          try {
-            const sendInvoicesByEmailValue: boolean | null =
-              updateBy.data.sendInvoicesByEmail !== undefined
-                ? (updateBy.data.sendInvoicesByEmail as boolean)
-                : (project as any).sendInvoicesByEmail || null;
-
-            logger.debug(
-              `[Invoice Email] Calling BillingService.updateCustomerBusinessDetails with sendInvoicesByEmail: ${sendInvoicesByEmailValue}`,
-            );
-
-            await BillingService.updateCustomerBusinessDetails(
-              project.paymentProviderCustomerId,
-              (updateBy.data.businessDetails as string) || "",
-              (updateBy.data.businessDetailsCountry as string) || null,
-              (updateBy.data.financeAccountingEmail as string) ||
-                (project as any).financeAccountingEmail ||
-                null,
-              sendInvoicesByEmailValue,
-            );
-
-            logger.debug(
-              `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
-            );
-          } catch (err) {
-            logger.error(
-              `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
-              { projectId: updateBy.query._id?.toString() } as LogAttributes,
-            );
-          }
-        } else {
-          logger.debug(
-            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
-          );
-        }
-      }
-      if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
-        await NotificationService.rechargeIfBalanceIsLow(
-          new ObjectID(updateBy.query._id! as string),
-          {
-            autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-              .autoRechargeSmsOrCallByBalanceInUSD as number,
-            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-              .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-            enableAutoRechargeSmsOrCallBalance: updateBy.data
-              .enableAutoRechargeSmsOrCallBalance as boolean,
-          },
-        );
-      }
-
       if (
         updateBy.data.paymentProviderPlanId &&
         !updateBy.props.ignoreHooks &&
@@ -790,6 +1253,267 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * The last steps before an update is written, once the caller has passed
+   * every permission check:
+   *
+   *   - writing Require SSO for Login on, or naming the provider the
+   *     project requires - turning it on, or saving back the rule it has -
+   *     needs an SSO provider that signs people in to the project
+   *     (Utils/SsoRequirementChanges). Checked under the project's lock -
+   *     and, when the project would rely on more than its own providers that
+   *     are on, the lock on the server's sign-in rules - held until the
+   *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
+   *     below that fails included), and before anything is charged below.
+   *     An update that names its projects by a filter writes only the
+   *     projects read under those locks;
+   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn);
+   *   - last, right before the write, the locks of the check are kept once
+   *     more, and kept alive while it is written. One lost by now - the
+   *     charge took long, or Valkey lost it - is taken again and the check
+   *     run again under it: the write is refused only when the lock cannot
+   *     be taken or the check now fails, never for the time the charge took
+   *     (SsoRequirementChanges.beforeWrite). A charge made already stays:
+   *     the balance it bought is credited in its own write.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await this.checkNumbersStartAboveHighest(updateBy);
+
+    await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
+
+    // What the rules are now, so a write that asks for less is told only where it changes one.
+    await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
+
+    await this.chargeAutoRechargeTurnedOn(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
+  }
+
+  /*
+   * A start of numbers that an update changes must be above the highest
+   * number its kind has given out, in every project the update writes, so
+   * a number is never given twice (Utils/Project/NextNumber). Checked
+   * against the counters of the very rows the update writes, once the
+   * caller may make it - so the refusal, which names the highest number, is
+   * never an answer to someone who may not change the project - and before
+   * anything else the update sets off.
+   *
+   * A start sent as it is stored is no change: Terraform sends every value
+   * it holds on each apply, and a start the records have since passed must
+   * not fail it. Clearing a start is always allowed: the numbers then carry
+   * on from the highest one used.
+   *
+   * A record created between this check and the write takes the one after
+   * the counter at the least, as every record does (takeNextNumber), so it
+   * never takes a number already used: a start only ever moves the numbers
+   * on.
+   */
+  private async checkNumbersStartAboveHighest(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const values: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    const changing: Array<NumberedRecordKindInfo> =
+      NUMBERED_RECORD_KINDS.filter((info: NumberedRecordKindInfo): boolean => {
+        return (
+          values[info.startsAtColumn] !== undefined &&
+          values[info.startsAtColumn] !== null
+        );
+      });
+
+    if (changing.length === 0) {
+      return;
+    }
+
+    const select: Record<string, boolean> = { _id: true };
+
+    for (const info of changing) {
+      select[info.counterColumn] = true;
+      select[info.startsAtColumn] = true;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as Select<Model>,
+    );
+
+    for (const project of projects) {
+      const row: Record<string, unknown> = project as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const info of changing) {
+        const startsAt: number | null = NextNumberUtil.toStoredNumber(
+          values[info.startsAtColumn],
+        );
+
+        if (
+          startsAt === null ||
+          startsAt === NextNumberUtil.toStoredNumber(row[info.startsAtColumn])
+        ) {
+          continue;
+        }
+
+        const highestNumber: number =
+          NextNumberUtil.toStoredNumber(row[info.counterColumn]) || 0;
+
+        if (startsAt <= highestNumber) {
+          throw new BadDataException(
+            NextNumberUtil.getNotAboveHighestError({
+              kind: info.kind,
+              highestNumber: highestNumber,
+            }),
+          );
+        }
+      }
+    }
+  }
+
+  /*
+   * Turning auto recharge on tops the balance up at once when it is already
+   * below the threshold - the SMS and call balance, and the AI credits alike.
+   * A charge is never made for a change that is refused, so it is made here:
+   * once the caller has passed every permission check (the auto recharge
+   * columns need Manage Billing), for the projects the update is narrowed to
+   * - and still before the write, so a charge that fails (no card, say)
+   * refuses the change, as it always has for SMS and calls.
+   */
+  private async chargeAutoRechargeTurnedOn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (
+      !IsBillingEnabled ||
+      (!updateBy.data.enableAutoRechargeSmsOrCallBalance &&
+        !updateBy.data.enableAutoRechargeAiBalance)
+    ) {
+      return;
+    }
+
+    // The same rows, and the same window of them, the update writes.
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+      },
+    );
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      /*
+       * Saving Auto Recharge is somebody trying the card on purpose, so it
+       * is tried at once, whatever failed before (ignoreRecentFailure), for
+       * both balances alike.
+       */
+      if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
+        await NotificationService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeSmsOrCallBalance: true,
+          autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+            .autoRechargeSmsOrCallByBalanceInUSD as number | undefined,
+          autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
+            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as
+            | number
+            | undefined,
+          ignoreRecentFailure: true,
+        });
+      }
+
+      /*
+       * AI credits used to wait for an AI call to run out first - and a call
+       * cannot run on used-up credits. Saving Auto Recharge is somebody
+       * trying the card on purpose, so a recent failure does not hold it
+       * back (AIBillingService).
+       */
+      if (updateBy.data.enableAutoRechargeAiBalance) {
+        await AIBillingService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeAiBalance: true,
+          autoAiRechargeByBalanceInUSD: updateBy.data
+            .autoAiRechargeByBalanceInUSD as number | undefined,
+          autoRechargeAiWhenCurrentBalanceFallsInUSD: updateBy.data
+            .autoRechargeAiWhenCurrentBalanceFallsInUSD as number | undefined,
+          ignoreRecentFailure: true,
+        });
+      }
+    }
+  }
+
+  /*
+   * The invoice details the payment provider holds follow the project's once
+   * an update of them has been made - so after every permission check (they
+   * need Manage Billing) and only for the projects the update wrote. The
+   * provider is sent what the project now holds. A failure is logged and
+   * does not undo the update.
+   */
+  private async syncInvoiceDetailsToPaymentProvider(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const invoiceDetailColumns: Array<string> = [
+      "businessDetails",
+      "businessDetailsCountry",
+      "financeAccountingEmail",
+      "sendInvoicesByEmail",
+    ];
+
+    if (
+      !IsBillingEnabled ||
+      !invoiceDetailColumns.some((column: string): boolean => {
+        return updateData[column] !== undefined;
+      })
+    ) {
+      return;
+    }
+
+    for (const projectId of updatedItemIds) {
+      try {
+        const project: Model | null = await this.findOneById({
+          id: projectId,
+          select: {
+            paymentProviderCustomerId: true,
+            businessDetails: true,
+            businessDetailsCountry: true,
+            financeAccountingEmail: true,
+            sendInvoicesByEmail: true,
+          },
+          props: { isRoot: true },
+        });
+
+        if (!project?.paymentProviderCustomerId) {
+          logger.debug(
+            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
+          );
+          continue;
+        }
+
+        await BillingService.updateCustomerBusinessDetails(
+          project.paymentProviderCustomerId,
+          project.businessDetails || "",
+          project.businessDetailsCountry || null,
+          project.financeAccountingEmail || null,
+          project.sendInvoicesByEmail ?? null,
+        );
+
+        logger.debug(
+          `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
+        );
+      } catch (err) {
+        logger.error(
+          `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      }
+    }
   }
 
   /*
@@ -858,21 +1582,19 @@ export class ProjectService extends DatabaseService<Model> {
    * check that follows anyway.
    */
   private async findAuditLogSettingsInCallerScope(data: {
-    query: Query<Model>;
+    updateBy: UpdateBy<Model>;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<StoredProjectAuditLogSettings>> {
-    const projects: Array<Model> = await this.findBy({
-      query: data.query,
-      select: {
+    // The projects the update writes, and the update held to them.
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      {
         _id: true,
         enableAuditLogs: true,
         storeSystemEventsInAuditLogs: true,
         auditLogsRetentionInDays: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     const callerProjectIds: Array<string> = data.props.isMasterAdmin
       ? []
@@ -899,6 +1621,196 @@ export class ProjectService extends DatabaseService<Model> {
       });
   }
 
+  /*
+   * A marketplace-billed project's plan change: the plan columns, and
+   * everything a plan change tells people. No card is charged - the
+   * marketplace bills the new plan's per-user price from the next hourly
+   * usage report on.
+   */
+  private async changeMarketplaceBilledPlan(data: {
+    project: Model;
+    paymentProviderPlanId: string;
+  }): Promise<void> {
+    const project: Model = data.project;
+
+    const plan: SubscriptionPlan | undefined =
+      SubscriptionPlan.getSubscriptionPlanById(
+        data.paymentProviderPlanId,
+        getAllEnvVars(),
+      );
+
+    if (!plan) {
+      throw new BadDataException("Invalid plan");
+    }
+
+    await this.updateOneById({
+      id: project.id!,
+      data: {
+        paymentProviderPlanId: data.paymentProviderPlanId,
+        planName: plan.getName() as PlanType,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(project.id!);
+    PayAsYouGoBillingService.invalidate(project.id!);
+
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: data.paymentProviderPlanId,
+    });
+
+    this.capturePlanChangeAnalytics({
+      project: project,
+      newPlan: plan,
+      newPlanId: data.paymentProviderPlanId,
+      seats: await TeamMemberService.getUniqueTeamMemberCountInProject(
+        project.id!,
+      ),
+    });
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+
+    /*
+     * On Vercel the plan is the resource's billing plan, which the team
+     * sees in its Vercel dashboard: it follows a change made here. Never
+     * fails the change - Vercel is told best effort.
+     */
+    if (project.billingMarketplace === CloudMarketplace.Vercel) {
+      try {
+        await VercelMarketplaceResources.onPlanChanged({
+          projectId: project.id!,
+          paymentProviderPlanId: data.paymentProviderPlanId,
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+  }
+
+  /*
+   * A cloud marketplace now bills this project (a buyer linked their
+   * marketplace purchase to it - MarketplaceSubscriptionService.linkToProject).
+   *
+   * Its card subscriptions are cancelled with a final invoice, so what they
+   * already owe - metered usage not yet invoiced, less the unused part of the
+   * seats paid in advance - is settled once, and nothing is billed twice from
+   * here on. The card customer stays, with its invoice history. The project's
+   * subscription columns then follow the marketplace purchase.
+   */
+  @CaptureSpan()
+  public async moveBillingToMarketplace(data: {
+    projectId: ObjectID;
+    marketplace: CloudMarketplace;
+    status: MarketplaceSubscriptionStatus;
+  }): Promise<void> {
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    for (const subscriptionId of [
+      project.paymentProviderSubscriptionId,
+      project.paymentProviderMeteredSubscriptionId,
+    ]) {
+      if (subscriptionId) {
+        await BillingService.cancelSubscriptionWithFinalInvoice(subscriptionId);
+      }
+    }
+
+    const subscriptionStatus: SubscriptionStatus =
+      MarketplaceSubscriptionStatusUtil.toProjectSubscriptionStatus(
+        data.status,
+      );
+
+    await this.updateOneById({
+      id: data.projectId,
+      data: {
+        billingMarketplace: data.marketplace,
+        paymentProviderSubscriptionId: null,
+        paymentProviderMeteredSubscriptionId: null,
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: subscriptionStatus,
+      } as QueryDeepPartialEntity<Model>,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(data.projectId);
+    PayAsYouGoBillingService.invalidate(data.projectId);
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(data.projectId);
+  }
+
+  /*
+   * A marketplace-billed project follows its purchase: active while the
+   * marketplace bills it, unpaid while the marketplace has suspended it,
+   * cancelled once it has ended. Every check that decides whether a project
+   * is served reads these two columns (SubscriptionStatusUtil), so a
+   * marketplace project is held to exactly the same rules as a card-billed
+   * one.
+   */
+  @CaptureSpan()
+  public async setMarketplaceBillingStatus(data: {
+    projectId: ObjectID;
+    status: MarketplaceSubscriptionStatus;
+  }): Promise<void> {
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        billingMarketplace: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Only a project the marketplace bills: a card-billed one keeps its card's status.
+    if (!project || !project.billingMarketplace) {
+      return;
+    }
+
+    const subscriptionStatus: SubscriptionStatus =
+      MarketplaceSubscriptionStatusUtil.toProjectSubscriptionStatus(
+        data.status,
+      );
+
+    await this.updateOneById({
+      id: data.projectId,
+      data: {
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: subscriptionStatus,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(data.projectId);
+    PayAsYouGoBillingService.invalidate(data.projectId);
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(data.projectId);
+  }
+
   @CaptureSpan()
   public async changePlan(params: {
     projectId: ObjectID;
@@ -919,6 +1831,7 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderPlanId: true,
         trialEndsAt: true,
         paymentProviderCustomerId: true,
+        billingMarketplace: true,
         createdOwnerEmail: true,
         /*
          * The full attribution set, not just the three UTMs the analytics
@@ -947,6 +1860,19 @@ export class ProjectService extends DatabaseService<Model> {
 
     if (!project) {
       throw new BadDataException("Project not found");
+    }
+
+    /*
+     * A marketplace bills this project: there is no card subscription to
+     * move, and the new plan's price reaches the bill through the hourly
+     * usage report (MarketplaceUsageReporter).
+     */
+    if (project.billingMarketplace) {
+      await this.changeMarketplaceBilledPlan({
+        project: project,
+        paymentProviderPlanId: params.paymentProviderPlanId,
+      });
+      return;
     }
 
     if (!project.paymentProviderSubscriptionId) {
@@ -1027,12 +1953,35 @@ export class ProjectService extends DatabaseService<Model> {
       paymentProviderSubscriptionId: subscription.subscriptionId,
       paymentProviderMeteredSubscriptionId: subscription.meteredSubscriptionId,
       paymentProviderSubscriptionSeats: seats,
-      trialEndsAt: subscription.trialEndsAt || endTrialAt || new Date(),
       planName: SubscriptionPlan.getPlanType(
         params.paymentProviderPlanId,
         getAllEnvVars(),
       ),
     };
+
+    /*
+     * The payment provider's trial date wins over the one sent, as in
+     * reactiveSubscription, and the column is left alone when there is no
+     * trial to record. Stamping the moment of the change on a project that
+     * never had a trial - one created on Free - made the Admin Dashboard show
+     * a trial that ended at the upgrade.
+     *
+     * The exception is a row still claiming a future trial the payment
+     * provider no longer has, which only a caller passing endTrialAt: null
+     * can leave behind. That trial is closed now, so the row never claims a
+     * trial Stripe does not have.
+     */
+    const newTrialEndsAt: Date | undefined =
+      subscription.trialEndsAt || endTrialAt;
+
+    if (newTrialEndsAt) {
+      updateData.trialEndsAt = newTrialEndsAt;
+    } else if (
+      project.trialEndsAt &&
+      OneUptimeDate.isInTheFuture(project.trialEndsAt)
+    ) {
+      updateData.trialEndsAt = OneUptimeDate.getCurrentDate();
+    }
 
     if (meteredSubscriptionState) {
       updateData.paymentProviderMeteredSubscriptionStatus =
@@ -1053,12 +2002,28 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     /*
+     * The new plan applies to the next request: what the project's API keys
+     * and SCIM connections may do turns on it (PlanCutoffCredentialAccess).
+     */
+    this.forgetCurrentPlan(project.id!);
+
+    /*
      * Raised after the row is written, because the row is what makes these ids
      * unreachable: it now carries the replacements.
      */
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,
       subscriptionIds: subscription.subscriptionIdsPendingCancellation,
+    });
+
+    /*
+     * A move below the plan the project's API keys or SCIM connections need
+     * stops them; its owners are told once, now, what stopped. Never throws.
+     */
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: params.paymentProviderPlanId,
     });
 
     this.capturePlanChangeAnalytics({
@@ -1138,33 +2103,32 @@ export class ProjectService extends DatabaseService<Model> {
       return;
     }
 
-    const slackMessage: string = `*Subscriptions could not be cancelled after a plan change:*
-*Project ID:* ${data.projectId.toString()}
-*Subscriptions still open at the payment provider:* ${data.subscriptionIds.join(", ")}
-These are no longer recorded against the project and have to be cancelled by hand.
-`;
-
     /*
-     * Delivery is deliberately not awaited, and neither is reading the
-     * configured webhook. SlackUtil retries three times with exponential
-     * backoff and sets no HTTP timeout, so awaiting it would let a webhook
-     * that hangs hold the plan-change response open with it - for a message
-     * whose contents are already on the error log above. Same shape as
-     * sendSubscriptionChangeWebhookSlackNotification below.
+     * Delivery is deliberately not awaited. SlackUtil retries three times
+     * with exponential backoff and sets no HTTP timeout, so awaiting it would
+     * let a webhook that hangs hold the plan-change response open with it -
+     * for a message whose contents are already on the error log above. Same
+     * shape as sendSubscriptionChangeWebhookSlackNotification below. Posting
+     * never throws (OperatorSlackNotice.post); writing the message is kept
+     * from throwing here too.
      */
     try {
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Error) => {
-        logger.error("Error sending slack message: " + error, {
-          projectId: data.projectId.toString(),
-        } as LogAttributes);
+      void OperatorSlackNotice.post({
+        webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+        text: OperatorSlackNotice.getSubscriptionsPendingCancellationText({
+          projectId: data.projectId,
+          subscriptionIds: data.subscriptionIds,
+        }),
+        about: "subscriptions a plan change could not cancel",
+        projectId: data.projectId,
       });
     } catch (error) {
-      logger.error("Error sending slack message: " + error, {
-        projectId: data.projectId.toString(),
-      } as LogAttributes);
+      logger.error(
+        `Could not write the Slack message for subscriptions a plan change could not cancel: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
     }
   }
 
@@ -1507,57 +2471,50 @@ These are no longer recorded against the project and have to be cancelled by han
     });
   }
 
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON
+   * _SUBSCRIPTION_UPDATE) that a project's plan changed, or its
+   * subscription was reactivated, with the plan it is on now
+   * (OperatorSlackNotice). The project is read again for it; the message is
+   * posted in the background, so the plan change waits on no webhook.
+   */
   private async sendSubscriptionChangeWebhookSlackNotification(
     projectId: ObjectID,
   ): Promise<void> {
-    if (NotificationSlackWebhookOnSubscriptionUpdate) {
-      // fetch project again.
-      const project: Model | null = await this.findOneById({
-        id: new ObjectID(projectId.toString()),
-        select: {
-          name: true,
-          _id: true,
-          createdOwnerName: true,
-          createdOwnerEmail: true,
-          planName: true,
-          createdByUserId: true,
-          paymentProviderSubscriptionStatus: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project) {
-        throw new BadDataException("Project not found");
-      }
-
-      let slackMessage: string = `*Project Plan Changed:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-`;
-
-      if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Project Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
-`;
-      }
-
-      if (IsBillingEnabled) {
-        // which plan?
-        slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"} 
-*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
-`;
-      }
-
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Exception) => {
-        logger.error("Error sending slack message: " + error, {
-          projectId: project?.id?.toString(),
-        } as LogAttributes);
-      });
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
     }
+
+    // fetch project again.
+    const project: Model | null = await this.findOneById({
+      id: new ObjectID(projectId.toString()),
+      select: {
+        name: true,
+        _id: true,
+        createdOwnerName: true,
+        createdOwnerEmail: true,
+        planName: true,
+        createdByUserId: true,
+        paymentProviderSubscriptionStatus: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getProjectPlanChangedText({
+        project: project,
+        isBillingEnabled: IsBillingEnabled,
+      }),
+      about: "plan change",
+      projectId: projectId,
+    });
   }
 
   /**
@@ -1692,12 +2649,19 @@ These are no longer recorded against the project and have to be cancelled by han
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // Create billing.
+    // Written: the lock its sign-in check held is given back before anything else.
+    await SsoRequirementChanges.afterProjectCreate(onCreate);
 
-    if (IsBillingEnabled) {
+    /*
+     * Create billing. A project created for a marketplace purchase is billed
+     * by the marketplace (MarketplaceSubscriptionService), so it gets no card
+     * customer and no card subscriptions.
+     */
+
+    if (IsBillingEnabled && !createdItem.billingMarketplace) {
       const customerId: string = await BillingService.createCustomer({
         name: createdItem.name!,
         email: createdItem.createdOwnerEmail!,
@@ -1825,56 +2789,59 @@ These are no longer recorded against the project and have to be cancelled by han
       });
     }
 
-    if (NotificationSlackWebhookOnCreateProject) {
-      // fetch project again.
-      const project: Model | null = await this.findOneById({
-        id: createdItem.id!,
-        select: {
-          name: true,
-          _id: true,
-          createdOwnerName: true,
-          createdOwnerEmail: true,
-          planName: true,
-          createdByUserId: true,
-          paymentProviderSubscriptionStatus: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project) {
-        throw new BadDataException("Project not found");
-      }
-
-      let slackMessage: string = `*Project Created:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-`;
-
-      if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
-`;
-
-        if (IsBillingEnabled) {
-          // which plan?
-          slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"}
-*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
-`;
-        }
-
-        SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: URL.fromString(NotificationSlackWebhookOnCreateProject),
-          text: slackMessage,
-        }).catch((error: Exception) => {
-          logger.error("Error sending slack message: " + error, {
-            projectId: createdItem.id?.toString(),
-          } as LogAttributes);
-        });
-      }
-    }
+    await this.sendProjectCreatedSlackNotification(createdItem.id!);
 
     return createdItem;
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_CREATED
+   * _PROJECT) that a project was created, by whom and on which plan
+   * (OperatorSlackNotice). The project is read again for it; the message is
+   * posted in the background, so the create waits on no webhook.
+   *
+   * Every project is announced. The message used to go only when its creator
+   * had both a name and an email, so a project created by a user with no
+   * name - one made by an invitation or by SSO - never reached the channel;
+   * a creator is now named by whichever of the two is known.
+   */
+  private async sendProjectCreatedSlackNotification(
+    projectId: ObjectID,
+  ): Promise<void> {
+    if (!NotificationSlackWebhookOnCreateProject) {
+      return;
+    }
+
+    // fetch project again.
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        name: true,
+        _id: true,
+        createdOwnerName: true,
+        createdOwnerEmail: true,
+        planName: true,
+        createdByUserId: true,
+        paymentProviderSubscriptionStatus: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnCreateProject,
+      text: OperatorSlackNotice.getProjectCreatedText({
+        project: project,
+        isBillingEnabled: IsBillingEnabled,
+      }),
+      about: "project creation",
+      projectId: projectId,
+    });
   }
 
   private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
@@ -1989,7 +2956,7 @@ These are no longer recorded against the project and have to be cancelled by han
       const resolvedAlertState: AlertState = new AlertState();
       resolvedAlertState.name = "Resolved";
       resolvedAlertState.description =
-        "When an incident is resolved, it belongs to this state.";
+        "When an alert is resolved, it belongs to this state.";
       resolvedAlertState.color = Green;
       resolvedAlertState.isResolvedState = true;
       resolvedAlertState.projectId = projectId;
@@ -2136,6 +3103,24 @@ These are no longer recorded against the project and have to be cancelled by han
     return createdItem;
   }
 
+  /*
+   * A new project starts with one incident role: Incident Commander, the
+   * person in charge of the response. It is the primary role: declaring an
+   * incident from the dashboard puts the declarer in it when nobody else was
+   * picked, and an incident still without one gets the first person to
+   * change its state (IncidentStateTimelineService). So it is the one role
+   * that cannot be deleted, and it is always held by one person
+   * (IncidentRoleService refuses both).
+   *
+   * Projects used to start with Responder, Communications Lead and Observer
+   * too. The maintainer: "To make things simple, can we remove all the roles
+   * except Incident Commander by default? People can add more roles if they
+   * feel like." Projects that already have those roles keep them: nothing
+   * here, or anywhere else, removes a role.
+   *
+   * Public because the AddDefaultIncidentRolesToExistingProjects data
+   * migration seeds projects that have no roles at all through it.
+   */
   public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
@@ -2156,58 +3141,6 @@ These are no longer recorded against the project and have to be cancelled by han
 
       await IncidentRoleService.create({
         data: incidentCommander,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Responder")) {
-      const responder: IncidentRole = new IncidentRole();
-      responder.name = "Responder";
-      responder.description =
-        "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
-      responder.color = Blue500;
-      responder.roleIcon = IconProp.Wrench;
-      responder.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: responder,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Communications Lead")) {
-      const communicationsLead: IncidentRole = new IncidentRole();
-      communicationsLead.name = "Communications Lead";
-      communicationsLead.description =
-        "Handles stakeholder communication and status updates during an incident.";
-      communicationsLead.color = Teal500;
-      communicationsLead.roleIcon = IconProp.Announcement;
-      communicationsLead.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: communicationsLead,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Observer")) {
-      const observer: IncidentRole = new IncidentRole();
-      observer.name = "Observer";
-      observer.description =
-        "Read-only participant who monitors the incident without active involvement.";
-      observer.color = Gray500;
-      observer.roleIcon = IconProp.Activity;
-      observer.projectId = projectId;
-      observer.canAssignMultipleUsers = true;
-
-      await IncidentRoleService.create({
-        data: observer,
         props: {
           isRoot: true,
         },
@@ -2701,71 +3634,175 @@ These are no longer recorded against the project and have to be cancelled by han
   }
 
   /**
-   * Returns whether the given project requires SSO for login. Cached for
-   * 60s in-process — middleware calls this on every authenticated request.
+   * Whether a master admin has blocked this project (Admin Dashboard >
+   * Projects). For the checks that run on every public request - the status
+   * pages and public dashboards of a blocked project answer as if they did
+   * not exist (BlockedProjectStatusPages, DashboardService) - so the answer
+   * is cached per server for BLOCKED_PROJECT_CACHE_TTL_MS.
+   *
+   * A project that does not exist is reported as not blocked: this answers
+   * the blocked question only.
    */
   @CaptureSpan()
-  public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
-    const key: string = projectId.toString();
-    const cached: boolean | undefined = this.requireSsoForLoginCache.get(key);
+  public async isProjectBlocked(projectId: ObjectID): Promise<boolean> {
+    const key: string = projectId.toString().toLowerCase();
+
+    const cached: boolean | undefined = this.blockedProjectCache.get(key);
+
     if (cached !== undefined) {
       return cached;
     }
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
-      props: { isRoot: true },
-    });
+    const inFlight: Promise<boolean> | undefined =
+      this.blockedProjectLookups.get(key);
 
-    if (!project) {
-      // Don't cache "not found" — let the caller decide how to handle it.
-      throw new BadDataException("Project not found");
+    if (inFlight) {
+      return inFlight;
     }
 
-    const value: boolean = Boolean(project.requireSsoForLogin);
-    this.requireSsoForLoginCache.set(key, value, 60_000);
-    this.requireSsoWithSsoProviderIdCache.set(
-      key,
-      project.requireSsoWithSsoProviderId
-        ? project.requireSsoWithSsoProviderId.toString()
-        : null,
-      60_000,
-    );
-    return value;
+    const lookup: Promise<boolean> = this.findOneById({
+      id: projectId,
+      select: { isBlocked: true },
+      props: { isRoot: true, ignoreHooks: true },
+    })
+      .then((project: Model | null): boolean => {
+        const isBlocked: boolean = Boolean(project?.isBlocked);
+
+        /*
+         * Only cached if this lookup is still the current one. A block written
+         * while it was on the wire clears the slot (forgetBlockedStatus), and
+         * the answer this lookup read may predate that write.
+         */
+        if (this.blockedProjectLookups.get(key) === lookup) {
+          this.blockedProjectCache.set(
+            key,
+            isBlocked,
+            BLOCKED_PROJECT_CACHE_TTL_MS,
+          );
+        }
+
+        return isBlocked;
+      })
+      .finally((): void => {
+        if (this.blockedProjectLookups.get(key) === lookup) {
+          this.blockedProjectLookups.delete(key);
+        }
+      });
+
+    this.blockedProjectLookups.set(key, lookup);
+
+    return lookup;
+  }
+
+  // Drops this server's answer, so the next request reads the row.
+  public forgetBlockedStatus(projectId: ObjectID): void {
+    const key: string = projectId.toString().toLowerCase();
+
+    this.blockedProjectCache.delete(key);
+    this.blockedProjectLookups.delete(key);
+  }
+
+  /**
+   * Returns whether the given project requires SSO for login. Cached for
+   * 60s in-process — middleware calls this on every authenticated request.
+   * Throws when the project does not exist, and when it cannot be read.
+   */
+  @CaptureSpan()
+  public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
+    return (await this.getSignInRule(projectId)).requireSsoForLogin;
   }
 
   /**
    * Returns the specific SSO provider id a project requires for SSO-enforced
-   * login, or null when any trusted provider is acceptable. Cached for 60s and
-   * populated by `getRequireSsoForLogin`, so the enforce path stays one query.
+   * login, or null when any trusted provider is acceptable. Read with
+   * `getRequireSsoForLogin`, by the same query and kept with it for 60s, so
+   * the enforce path stays one query. Throws when the project does not
+   * exist, and when it cannot be read: null is only ever the project's
+   * answer.
    */
   @CaptureSpan()
   public async getRequireSsoWithSsoProviderId(
     projectId: ObjectID,
   ): Promise<ObjectID | null> {
-    const key: string = projectId.toString();
-    const cached: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    if (cached !== undefined) {
-      return cached ? new ObjectID(cached) : null;
-    }
+    const requiredProviderId: string | null = (
+      await this.getSignInRule(projectId)
+    ).requireSsoWithSsoProviderId;
 
-    // Populate both caches via the existing single-query path.
-    await this.getRequireSsoForLogin(projectId);
-
-    const populated: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    return populated ? new ObjectID(populated) : null;
+    return requiredProviderId ? new ObjectID(requiredProviderId) : null;
   }
 
+  /*
+   * A project's sign-in rule, kept for 60s, or read from its row - by one
+   * read for every caller asking at once. A read that fails, or finds no
+   * project, throws to each of them and keeps nothing.
+   */
+  private getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
+    const key: string = projectId.toString().toLowerCase();
+    const cached: ProjectSignInRule | undefined = this.signInRuleCache.get(key);
+
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+
+    const inFlight: Promise<ProjectSignInRule> | undefined =
+      this.signInRuleLookups.get(key);
+
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<ProjectSignInRule> = this.findOneById({
+      id: projectId,
+      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
+      props: { isRoot: true },
+    })
+      .then((project: Model | null): ProjectSignInRule => {
+        if (!project) {
+          // Don't cache "not found" — let the caller decide how to handle it.
+          throw new BadDataException("Project not found");
+        }
+
+        const rule: ProjectSignInRule = {
+          requireSsoForLogin: Boolean(project.requireSsoForLogin),
+          requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
+            ? project.requireSsoWithSsoProviderId.toString()
+            : null,
+        };
+
+        // Only while this read is still the current one (see signInRuleLookups).
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleCache.set(key, rule, 60_000);
+        }
+
+        return rule;
+      })
+      .finally((): void => {
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleLookups.delete(key);
+        }
+      });
+
+    this.signInRuleLookups.set(key, lookup);
+
+    return lookup;
+  }
+
+  /*
+   * The project's owners: the members who hold Project Owner, by the rule
+   * every permission check follows (TeamPermissionHolders, the people-side
+   * twin of CallerPermission). Owner emails - plan changes, the plan
+   * cut-off notice, AI limits and credits, low balances - and the owner jobs
+   * that fall back to the project's owners all read this list, so a member
+   * whose team blocks Project Owner is not told as an owner, whatever an
+   * owner team they also belong to allows.
+   */
   @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
     }
 
-    // get teams with project owner permissions.
+    // Every team row of the project for Project Owner: allows and blocks.
     const teamPermissions: Array<TeamPermission> =
       await TeamPermissionService.findBy({
         query: {
@@ -2779,29 +3816,123 @@ These are no longer recorded against the project and have to be cancelled by han
         skip: 0,
         select: {
           teamId: true,
+          permission: true,
+          isBlockPermission: true,
+          scope: true,
+          labels: {
+            _id: true,
+          },
         },
       });
 
-    if (teamPermissions.length === 0) {
-      return [];
-    }
-
-    const teamIds: Array<ObjectID> = teamPermissions.map(
-      (item: TeamPermission) => {
-        return item.teamId!;
+    // Nobody holds it without a team that allows it.
+    const isAnyTeamAllowed: boolean = teamPermissions.some(
+      (row: TeamPermission): boolean => {
+        return row.isBlockPermission !== true;
       },
     );
 
+    if (!isAnyTeamAllowed) {
+      return [];
+    }
+
+    const teamIds: Array<ObjectID> = [];
+
+    for (const row of teamPermissions) {
+      if (
+        row.teamId &&
+        !teamIds.some((teamId: ObjectID): boolean => {
+          return teamId.toString() === row.teamId!.toString();
+        })
+      ) {
+        teamIds.push(row.teamId);
+      }
+    }
+
     /*
-     * Accepted rows only. A pending invitation to an owner team grants no
-     * ProjectOwner permission and comes with no notification settings, so the
-     * owner jobs that fall back to this list recorded such invitees as
-     * notified while nothing reached them, and the owner emails sent from here
-     * reached someone who never joined. Acceptance is per team row, so this
-     * also leaves out a member of another team whose invitation to the owner
-     * team is still pending.
+     * Accepted rows only, of every team with a row: the allowing teams name
+     * who may be an owner, the blocking ones who may not. A pending
+     * invitation grants nothing and takes nothing away - a member's
+     * permissions are built from the teams they accepted - and it comes with
+     * no notification settings, so the owner jobs that fall back to this
+     * list recorded such invitees as notified while nothing reached them, and
+     * the owner emails sent from here reached someone who never joined.
      */
-    return TeamMemberService.getUsersInTeams(teamIds, { acceptedOnly: true });
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: projectId,
+        teamId: QueryHelper.any(teamIds),
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        teamId: true,
+        userId: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+          timezone: true,
+        } as Select<User>,
+      },
+    });
+
+    const holderIds: Array<string> = TeamPermissionHolders.getHolderIds({
+      permission: Permission.ProjectOwner,
+      rows: teamPermissions
+        .filter((row: TeamPermission): boolean => {
+          return Boolean(row.teamId);
+        })
+        .map((row: TeamPermission): TeamPermissionRow => {
+          return {
+            teamId: row.teamId!,
+            permission: row.permission || Permission.ProjectOwner,
+            isBlockPermission: row.isBlockPermission,
+            labelIds: (row.labels || []).map((label: Label): ObjectID => {
+              return label.id!;
+            }),
+            scope: row.scope,
+          };
+        }),
+      memberships: memberships
+        .map((membership: TeamMember): TeamMembershipRow | null => {
+          const userId: ObjectID | undefined =
+            membership.userId || membership.user?.id || undefined;
+
+          if (!membership.teamId || !userId) {
+            return null;
+          }
+
+          return { teamId: membership.teamId, userId: userId };
+        })
+        .filter((row: TeamMembershipRow | null): row is TeamMembershipRow => {
+          return row !== null;
+        }),
+    });
+
+    // Each owner once, as their first membership names them.
+    const owners: Array<User> = [];
+
+    for (const holderId of holderIds) {
+      const membership: TeamMember | undefined = memberships.find(
+        (candidate: TeamMember): boolean => {
+          return (
+            (candidate.userId || candidate.user?.id)?.toString() === holderId
+          );
+        },
+      );
+
+      if (membership?.user) {
+        owners.push(membership.user);
+      }
+    }
+
+    return owners;
   }
 
   @CaptureSpan()
@@ -2825,44 +3956,6 @@ These are no longer recorded against the project and have to be cancelled by han
     return { findBy, carryForward: null };
   }
 
-  /*
-   * While SSO is not active a project's SSO requirement is not enforced: on
-   * the Community Edition (the SSO login routes are part of the Enterprise
-   * Edition), and on an Enterprise install whose license is lapsed or does
-   * not include SSO (the routes refuse). Reads made for a caller then report
-   * the EFFECTIVE value: not required, no required provider. Clients decide
-   * from these columns whether to start an SSO flow - the mobile app hides a
-   * project's on-call data behind an SSO login it cannot complete, and its
-   * store builds cannot be patched.
-   *
-   * Only the returned objects change. Internal (root) reads, and the stored
-   * row, keep the real value, and onBeforeUpdate keeps a caller from writing
-   * the masked value back. So running the Enterprise Edition with a valid
-   * license (or in its trial or grace period) again restores enforcement
-   * exactly as configured.
-   */
-  @CaptureSpan()
-  protected override async onFindSuccess(
-    onFind: OnFind<Model>,
-    items: Array<Model>,
-  ): Promise<OnFind<Model>> {
-    if (
-      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
-    ) {
-      for (const item of items) {
-        if (item.requireSsoForLogin !== undefined) {
-          item.requireSsoForLogin = false;
-        }
-
-        if (item.requireSsoWithSsoProviderId !== undefined) {
-          item.requireSsoWithSsoProviderId = null!;
-        }
-      }
-    }
-
-    return { ...onFind, carryForward: items };
-  }
-
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -2873,14 +3966,9 @@ These are no longer recorded against the project and have to be cancelled by han
      * The extra columns beyond the billing ones are the snapshot that goes
      * into DeletedProject for customer outreach.
      */
-    const projects: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
@@ -2894,6 +3982,7 @@ These are no longer recorded against the project and have to be cancelled by han
         paymentProviderSubscriptionSeats: true,
         trialEndsAt: true,
         currentActiveMonitorsCount: true,
+        billingMarketplace: true,
         isBlocked: true,
         createdByUserId: true,
         createdByUser: {
@@ -2905,7 +3994,23 @@ These are no longer recorded against the project and have to be cancelled by han
           jobRole: true,
         },
       },
-    });
+    );
+
+    /*
+     * A marketplace bills a project's usage by the hour, after the hour:
+     * what it used since the last hourly report, and the balance top-ups
+     * bought since, are billed now, while the project is still here to be
+     * priced. Once it is gone its purchase is unlinked (onDeleteSuccess), and
+     * nothing would bill that time. The delete never waits on, or fails
+     * because of, a marketplace (reportFinalUsageOfProject).
+     */
+    if (IsBillingEnabled) {
+      for (const project of projects) {
+        if (project.id && project.billingMarketplace) {
+          await MarketplaceUsageReporter.reportFinalUsageOfProject(project.id);
+        }
+      }
+    }
 
     return { deleteBy, carryForward: projects };
   }
@@ -2954,43 +4059,14 @@ These are no longer recorded against the project and have to be cancelled by han
 
     if (NotificationSlackWebhookOnDeleteProject) {
       for (const project of onDelete.carryForward) {
-        let subscriptionStatus: SubscriptionStatus | null = null;
-
-        if (IsBillingEnabled) {
-          subscriptionStatus = await BillingService.getSubscriptionStatus(
-            project.paymentProviderSubscriptionId!,
-          );
+        // As above: only a project that was really deleted is announced.
+        if (project.id && !deletedProjectIds.has(project.id.toString())) {
+          continue;
         }
 
-        let slackMessage: string = `*Project Deleted:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project._id?.toString() || "N/A"}
-*Project Created Date:* ${project.createdAt ? new Date(project.createdAt).toUTCString() : "N/A"}
-*Project Plan Name:* ${project.planName?.toString() || "N/A"}
-`;
-
-        if (subscriptionStatus) {
-          slackMessage += `*Project Subscription Status:* ${subscriptionStatus?.toString() || "N/A"}
-`;
-        }
-
-        if (
-          project.createdByUser &&
-          project.createdByUser.name &&
-          project.createdByUser.email
-        ) {
-          slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + " (" + project.createdByUser.email.toString() + ")" || "N/A"}
-`;
-        }
-
-        SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: URL.fromString(NotificationSlackWebhookOnDeleteProject),
-          text: slackMessage,
-        }).catch((err: Error) => {
-          // log this error but do not throw it. Not important enough to stop the process.
-          logger.error(err, {
-            projectId: project?.id?.toString(),
-          } as LogAttributes);
+        await this.sendProjectDeletedSlackNotification({
+          project: project,
+          deletionReason: onDelete.deleteBy.deletionReason,
         });
       }
     }
@@ -3010,9 +4086,108 @@ These are no longer recorded against the project and have to be cancelled by han
           );
         }
       }
+
+      /*
+       * A Vercel resource IS its project: deleting the project in OneUptime
+       * deletes the resource on Vercel too, which takes its environment
+       * variables out of the Vercel projects connected to it. One Vercel
+       * deleted itself has ended already, and nothing is sent.
+       */
+      for (const project of onDelete.carryForward) {
+        if (
+          project.id &&
+          deletedProjectIds.has(project.id.toString()) &&
+          project.billingMarketplace === CloudMarketplace.Vercel
+        ) {
+          try {
+            await VercelMarketplaceResources.onProjectDeleted(project.id);
+          } catch (err) {
+            logger.error(err);
+          }
+        }
+      }
+
+      /*
+       * A marketplace purchase that paid for a deleted project stops being
+       * reported against it: its last usage was billed before the delete
+       * (onBeforeDelete). The purchase itself is the buyer's, on the
+       * marketplace: it is cancelled there, or linked to another project
+       * from the marketplace's "manage" link.
+       */
+      for (const deletedProjectId of itemIdsBeforeDelete) {
+        try {
+          await MarketplaceSubscriptionService.unlinkProject(deletedProjectId);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
     }
 
     return onDelete;
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_DELETED
+   * _PROJECT) that a project was deleted, with the feedback its owner gave
+   * for deleting it (OperatorSlackNotice).
+   *
+   * The project is gone already, so nothing here may fail the delete or keep
+   * its subscription from being cancelled after it: a payment provider that
+   * does not answer leaves the status the project last had, and the message
+   * is posted in the background. The status is read before the
+   * subscription is cancelled, so it says what the customer was paying for.
+   */
+  private async sendProjectDeletedSlackNotification(data: {
+    project: Model;
+    deletionReason?: string | undefined;
+  }): Promise<void> {
+    if (!NotificationSlackWebhookOnDeleteProject) {
+      return;
+    }
+
+    const project: Model = data.project;
+
+    let subscriptionStatus: string | null =
+      project.paymentProviderSubscriptionStatus?.toString() || null;
+
+    if (IsBillingEnabled && project.paymentProviderSubscriptionId) {
+      try {
+        subscriptionStatus =
+          (
+            await BillingService.getSubscriptionStatus(
+              project.paymentProviderSubscriptionId,
+            )
+          )?.toString() || subscriptionStatus;
+      } catch (err) {
+        logger.error(
+          `Could not read the subscription status of deleted project ${project.id?.toString()} for its Slack message: ${err}`,
+          { projectId: project.id?.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    let text: string;
+
+    try {
+      text = OperatorSlackNotice.getProjectDeletedText({
+        project: project,
+        subscriptionStatus: subscriptionStatus,
+        deletionReason: data.deletionReason,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not write the Slack message for deleted project ${project.id?.toString()}: ${err}`,
+        { projectId: project.id?.toString() } as LogAttributes,
+      );
+      return;
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnDeleteProject,
+      text: text,
+      about: "project deletion",
+      projectId: project.id,
+    });
   }
 
   @CaptureSpan()
@@ -3027,12 +4202,15 @@ These are no longer recorded against the project and have to be cancelled by han
       return cached;
     }
 
+    const planChangesBeforeRead: number = this.currentPlanChanges;
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
         paymentProviderPlanId: true,
         paymentProviderSubscriptionStatus: true,
         paymentProviderMeteredSubscriptionStatus: true,
+        activeMonitorsLimit: true,
       },
       props: {
         isRoot: true,
@@ -3065,8 +4243,296 @@ These are no longer recorded against the project and have to be cancelled by han
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
-    this.currentPlanCache.set(cacheKey, result, 60_000);
+
+    const activeMonitorsLimit: number | null =
+      ActiveMonitorLimitUtil.getProjectLimit(project.activeMonitorsLimit);
+
+    if (activeMonitorsLimit !== null) {
+      result.activeMonitorsLimit = activeMonitorsLimit;
+    }
+    if (planChangesBeforeRead === this.currentPlanChanges) {
+      this.currentPlanCache.set(
+        cacheKey,
+        result,
+        ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
+      );
+    }
+
     return result;
+  }
+
+  /*
+   * Drop this server's cached plan of the project, so the next request
+   * reads the plan just written - and keep a read already under way from
+   * caching the plan it read before the change (currentPlanChanges). Other
+   * servers keep theirs until it expires (CURRENT_PLAN_CACHE_TTL_MS).
+   */
+  public forgetCurrentPlan(projectId: ObjectID): void {
+    this.currentPlanChanges++;
+    this.currentPlanCache.delete(projectId.toString());
+  }
+
+  /*
+   * Record that one of the project's own daily AI limits stopped OneUptime
+   * AI at `now`, if it had not yet that UTC day. True only for the one call
+   * that writes it - the first of the day for that limit - which is the
+   * caller that tells the project's owners (ProjectAiDailyLimitOwnerNotice):
+   * everyone else gets false, whatever moment of the day they ask.
+   *
+   * One statement: the condition and the write are a single UPDATE, so two
+   * servers refusing AI calls at the same moment cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads.
+   */
+  @CaptureSpan()
+  public async markAiDailyLimitReached(data: {
+    projectId: ObjectID;
+    limit: ProjectAiDailyLimit;
+    now: Date;
+  }): Promise<boolean> {
+    const column: ProjectAiDailyLimitReachedAtColumn =
+      PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS[data.limit];
+
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${column}" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND ("${column}" IS NULL OR "${column}" < $3) RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+      ProjectAiDailyLimits.getDayStart(data.now),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Record that the project's owners are told its AI credits are used up,
+   * unless they were since the credits were last added. True only for the
+   * one caller that writes it - the first AI call refused, or found unable
+   * to run, once the credits ran out - which is the caller that emails them
+   * (Server/Utils/AI/AiCreditsUsedUpOwnerNotice); every other caller, on any
+   * server, gets false. Every recharge clears the flag (AIBillingService), as
+   * does a master admin adding credits (adjustBalance), so the next time the
+   * credits run out the owners are told again.
+   *
+   * One statement, like markAiDailyLimitReached: the condition and the write
+   * are a single UPDATE, so two servers refusing AI calls at the same moment
+   * cannot both win. A passive bookkeeping write - no hooks, no version or
+   * updatedAt bump - on a column the API never reads; a deleted project is
+   * never told.
+   */
+  @CaptureSpan()
+  public async claimAiCreditsUsedUpNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowAiBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * Record that the project's owners are told its balance for SMS, calls,
+   * WhatsApp and Telegram could not pay for a message, unless they were since
+   * the balance was last added to. True only for the one caller that writes
+   * it - the first message not sent for want of balance - which is the one
+   * that emails them (SmsService, CallService, WhatsAppService,
+   * TelegramService); every other caller, on any server, gets false. Every
+   * recharge clears the flag in the statement that adds the balance
+   * (creditSmsOrCallBalanceInUSDCents), as does a master admin adding
+   * balance (adjustBalance), so the next time it runs out the owners are
+   * told again.
+   *
+   * It used to be read with the project and written back afterwards, so the
+   * messages of a paging storm that found the balance used up together each
+   * read "not told yet", and each emailed every owner.
+   */
+  @CaptureSpan()
+  public async claimSmsOrCallLowBalanceNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowCallAndSMSBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * One owners' notice flag, claimed in one statement: the condition and the
+   * write are a single UPDATE, so two servers cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads; a deleted project is never told.
+   */
+  private async claimOwnerNotice(data: {
+    projectId: ObjectID;
+    column:
+      | "lowAiBalanceNotificationSentToOwners"
+      | "lowCallAndSMSBalanceNotificationSentToOwners";
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${data.column}" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "${data.column}" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * A recharge of the project's balance for SMS, calls, WhatsApp and
+   * Telegram, once the card is charged: the amount is added to whatever the
+   * balance is now, in one statement that answers what it became. The
+   * owners' notices about it are re-armed in the same statement: the next
+   * time it runs low, or a charge fails, or a channel is off, they are told
+   * again.
+   *
+   * It used to be "the balance read before the charge, plus the amount",
+   * written back after the payment provider answered - which lost the cost
+   * of every message sent meanwhile, and let a second recharge running at
+   * the same moment overwrite the first one's credit, so a card charged
+   * twice was credited once.
+   */
+  @CaptureSpan()
+  public async creditSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    const balance: number | null = await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      deltaInUSDCents: data.amountInUSDCents,
+      set: ProjectService.getBalanceNotificationFlagResets(
+        ProjectBalanceType.SmsOrCall,
+      ),
+    });
+
+    if (balance === null) {
+      throw new BadDataException("Project not found");
+    }
+
+    return balance;
+  }
+
+  /*
+   * What one SMS, call, WhatsApp or Telegram message cost, taken from the
+   * project's balance once it was handed to the provider: in one statement,
+   * from whatever the balance is now, answering what it became (null when
+   * the project is gone). It used to be "the balance read before sending,
+   * less the cost", written back afterwards - so of the messages a paging
+   * storm sent together, all but one went unpaid, and a recharge landing in
+   * between was written over.
+   *
+   * Messages that find just enough left at the same moment can take the
+   * balance below zero: the cost is owed rather than forgiven, and the next
+   * message waits for balance. A message that went out also re-arms the
+   * owners' "channel is off" notice, as it always has.
+   */
+  @CaptureSpan()
+  public async deductSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number | null> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    return await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      // Never -0: nothing taken is nothing taken.
+      deltaInUSDCents: -data.amountInUSDCents || 0,
+      set: {
+        notEnabledSmsOrCallNotificationSentToOwners: false,
+      },
+    });
+  }
+
+  private async addToSmsOrCallBalance(data: {
+    projectId: ObjectID;
+    deltaInUSDCents: number;
+    set: QueryDeepPartialEntity<Model>;
+  }): Promise<number | null> {
+    const values: Partial<Record<keyof Model, number>> | null =
+      await this.atomicAddToColumnsByIdAndGetValuesWithoutHooks({
+        id: data.projectId,
+        add: {
+          smsOrCallCurrentBalanceInUSDCents: data.deltaInUSDCents,
+        },
+        set: data.set,
+      });
+
+    if (!values) {
+      return null;
+    }
+
+    return values.smsOrCallCurrentBalanceInUSDCents ?? null;
+  }
+
+  // An amount of a balance: whole, non-negative cents.
+  private static assertWholeCents(amountInUSDCents: number): void {
+    if (
+      typeof amountInUSDCents !== "number" ||
+      !Number.isInteger(amountInUSDCents) ||
+      amountInUSDCents < 0
+    ) {
+      throw new BadDataException(
+        `A balance amount must be a whole, non-negative number of cents: ${amountInUSDCents}`,
+      );
+    }
+  }
+
+  /*
+   * Claim the one-time notice to a project's owners that its plan stops its
+   * API keys or limits its SCIM connections (PlanDowngradeOwnerNotice): true
+   * only for the one call that writes planCutoffNoticeSentAt, while it is
+   * still empty - so the owners of a project already told, by a plan change
+   * or by an earlier run, are not told again, and two workers running the
+   * notice at once cannot both win. One statement, like
+   * markAiDailyLimitReached: a passive bookkeeping write, no hooks, on a
+   * column the API never reads; a deleted project is never told.
+   */
+  @CaptureSpan()
+  public async claimPlanCutoffNotice(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND "planCutoffNoticeSentAt" IS NULL RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Give back a claim (claimPlanCutoffNotice) whose notice could not be
+   * sent, so a later run tells the owners after all. Only the claim made at
+   * `claimedAt` is given back: one written since stays.
+   */
+  @CaptureSpan()
+  public async releasePlanCutoffNotice(data: {
+    projectId: ObjectID;
+    claimedAt: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = NULL WHERE "_id" = $1 AND "planCutoffNoticeSentAt" = $2`,
+      [data.projectId.toString(), data.claimedAt],
+    );
+  }
+
+  /*
+   * Record that the project's owners were told now - a plan change stopped
+   * its API keys or limited its SCIM connections - whether or not they were
+   * told before.
+   */
+  @CaptureSpan()
+  public async markPlanCutoffNoticeSent(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2`,
+      [data.now, data.projectId.toString()],
+    );
   }
 
   @CaptureSpan()
@@ -3082,27 +4548,96 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     for (const owner of owners) {
-      MailService.sendMail(
-        {
-          toEmail: owner.email!,
-          templateType: EmailTemplateType.SimpleMessage,
-          vars: {
-            subject: subject,
-            message: message,
-          },
-          subject: subject,
-          isSubjectLiteral: true,
-        },
-        {
-          projectId,
-          userId: owner.id!,
-        },
-      ).catch((err: Error) => {
+      this.sendOwnerEmail({
+        projectId: projectId,
+        owner: owner,
+        subject: subject,
+        message: message,
+      }).catch((err: Error) => {
         logger.error(err, {
           projectId: projectId?.toString(),
         } as LogAttributes);
       });
     }
+  }
+
+  /*
+   * sendEmailToProjectOwners, for a notice that must know it went out: sends
+   * the email to each of the owners given (read with getOwners), waits until
+   * the mail service has taken each one, and says how many it took. For a
+   * notice sent from a process that exits as soon as it is done - a one-time
+   * notice run by the migrate Job - an email not handed over by then would
+   * never leave. Never throws: an email the mail service refused, could not
+   * be reached for, or did not take within OWNER_EMAIL_TIMEOUT_IN_MS, is
+   * logged and not counted - so a mail service that hangs never holds the
+   * run up for longer than that.
+   */
+  @CaptureSpan()
+  public async sendEmailToOwnersAndWait(data: {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  }): Promise<number> {
+    let delivered: number = 0;
+
+    for (const owner of data.owners) {
+      try {
+        const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+          await this.sendOwnerEmail({
+            projectId: data.projectId,
+            owner: owner,
+            subject: data.subject,
+            message: data.message,
+            timeoutInMs: OWNER_EMAIL_TIMEOUT_IN_MS,
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            `The mail service refused an owner email of project ${data.projectId.toString()}: ${response.message}`,
+            {
+              projectId: data.projectId.toString(),
+            } as LogAttributes,
+          );
+          continue;
+        }
+
+        delivered++;
+      } catch (err) {
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
+
+    return delivered;
+  }
+
+  // One owner's email, as the owner emails above send it.
+  private sendOwnerEmail(data: {
+    projectId: ObjectID;
+    owner: User;
+    subject: string;
+    message: string;
+    timeoutInMs?: number | undefined;
+  }): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
+    return MailService.sendMail(
+      {
+        toEmail: data.owner.email!,
+        templateType: EmailTemplateType.SimpleMessage,
+        vars: {
+          subject: data.subject,
+          message: data.message,
+        },
+        subject: data.subject,
+        isSubjectLiteral: true,
+      },
+      {
+        projectId: data.projectId,
+        userId: data.owner.id!,
+        ...(data.timeoutInMs ? { timeoutInMs: data.timeoutInMs } : {}),
+      },
+    );
   }
 
   /**
@@ -3290,6 +4825,9 @@ These are no longer recorded against the project and have to be cancelled by han
       },
     });
 
+    // The subscription's new status applies to the next request.
+    this.forgetCurrentPlan(project.id!);
+
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,
       subscriptionIds: result.subscriptionIdsPendingCancellation,
@@ -3314,6 +4852,13 @@ These are no longer recorded against the project and have to be cancelled by han
    *
    * NULL stays admitted: that is a project with no subscription at all
    * (self-hosted, or created before billing was enabled).
+   *
+   * A project a master admin blocked (Admin Dashboard > Projects) is not
+   * served, whatever it pays: its monitors are not fetched or swept until it
+   * is unblocked. Read from the row, so a block stops them at once. The
+   * probes' own fetches are raw SQL and say the same
+   * (MonitorProbeService.claimMonitorProbesForProbing, and the network
+   * device and VMware claims).
    */
   public getActiveProjectStatusQuery(): Query<Model> {
     return {
@@ -3323,6 +4868,7 @@ These are no longer recorded against the project and have to be cancelled by han
       paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       ),
+      isBlocked: false,
     };
   }
 
@@ -3553,10 +5099,112 @@ These are no longer recorded against the project and have to be cancelled by han
       }. Reason: ${reason}`,
     );
 
+    /*
+     * The operator's Slack channel hears of it as it hears of a refill, in
+     * the background: the balance has moved, and the answer to the admin
+     * does not wait on Slack.
+     */
+    this.sendBalanceAdjustedSlackNotification({
+      projectId: data.projectId,
+      balanceType: data.balanceType,
+      adjustmentType: data.adjustmentType,
+      amountInUSDCents: data.amountInUSDCents,
+      previousBalanceInUSDCents: previousBalanceInUSDCents,
+      newBalanceInUSDCents: newBalanceInUSDCents,
+      reason: reason,
+      adjustedByUserId: data.adjustedByUserId,
+    }).catch((err: Error) => {
+      logger.error(
+        `Error sending slack message for a balance adjustment: ${err}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    });
+
     return {
       previousBalanceInUSDCents: previousBalanceInUSDCents,
       newBalanceInUSDCents: newBalanceInUSDCents,
     };
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION
+   * _UPDATE, where refills of both balances go) that a master admin adjusted
+   * a balance: by how much, from what to what, who and why
+   * (OperatorSlackNotice). The project's name and the admin's are read for
+   * it; one that cannot be read is left out, and the message still goes.
+   */
+  private async sendBalanceAdjustedSlackNotification(data: {
+    projectId: ObjectID;
+    balanceType: ProjectBalanceType;
+    adjustmentType: BalanceAdjustmentType;
+    amountInUSDCents: number;
+    previousBalanceInUSDCents: number;
+    newBalanceInUSDCents: number;
+    reason: string;
+    adjustedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+    } as LogAttributes;
+
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    }).catch((err: Error): null => {
+      logger.error(
+        `Could not read project ${data.projectId.toString()} for its balance adjustment's Slack message: ${err}`,
+        logAttributes,
+      );
+      return null;
+    });
+
+    const adjustedByUser: User | null = data.adjustedByUserId
+      ? await UserService.findOneById({
+          id: data.adjustedByUserId,
+          select: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        }).catch((err: Error): null => {
+          logger.error(
+            `Could not read the master admin who adjusted project ${data.projectId.toString()}'s balance, for its Slack message: ${err}`,
+            logAttributes,
+          );
+          return null;
+        })
+      : null;
+
+    await OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getBalanceAdjustedText({
+        balance: data.balanceType,
+        projectId: data.projectId,
+        project: project,
+        adjustmentType: data.adjustmentType,
+        amountInUSDCents: data.amountInUSDCents,
+        previousBalanceInUSDCents: data.previousBalanceInUSDCents,
+        newBalanceInUSDCents: data.newBalanceInUSDCents,
+        reason: data.reason,
+        adjustedByUserId: data.adjustedByUserId,
+        adjustedByUser: adjustedByUser,
+      }),
+      about: `${OperatorSlackNotice.getBalanceLogName(data.balanceType)} adjustment`,
+      projectId: data.projectId,
+    });
   }
 
   private static getBalanceColumnName(
@@ -3600,206 +5248,232 @@ These are no longer recorded against the project and have to be cancelled by han
     throw new BadDataException(`Invalid balance type: ${balanceType}`);
   }
 
+  /*
+   * The next number of a kind, taken for a record being created
+   * (Utils/Project/NextNumber): the kind's counter moves to the one after the
+   * highest number given out - or to where the project chose its numbers to
+   * start, when that is higher - and the number it moved to is the record's.
+   *
+   * One statement does it all, and Postgres runs the statements that change
+   * a row one at a time: records created at the same moment each get a
+   * number of their own, every number is higher than any given out before
+   * it, and a start changed meanwhile is wholly before or wholly after each
+   * one. So no lock is needed (the counters used to be read back under one,
+   * in a second statement), and Valkey being down no longer stops a record
+   * from being numbered. The prefix is read in the same statement, as it
+   * stands when the number is taken.
+   */
+  private async takeNextNumber(
+    projectId: ObjectID,
+    kind: NumberedRecordKind,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    const info: NumberedRecordKindInfo = NextNumberUtil.getKindInfo(kind);
+    const repository: Repository<Model> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+
+    // Identifiers from the entity's own metadata, never from a caller.
+    const quoted: (propertyName: string) => string = (
+      propertyName: string,
+    ): string => {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+
+      if (!column) {
+        throw new BadDataException(`Unknown Project column: ${propertyName}`);
+      }
+
+      return `"${column.databaseName}"`;
+    };
+
+    const counter: string = quoted(info.counterColumn);
+    const startsAt: string = quoted(info.startsAtColumn);
+    const prefix: string = quoted(info.prefixColumn);
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+
+    const result: unknown = await repository.manager.query(
+      `UPDATE "${metadata.tableName}" SET ${counter} = GREATEST(${counter} + 1, COALESCE(${startsAt}, 0)) WHERE "${primaryColumnName}" = $1 RETURNING ${counter} AS "counter", ${prefix} AS "prefix"`,
+      [projectId.toString()],
+    );
+
+    /*
+     * TypeORM's Postgres driver returns `[rows, affectedCount]` for an
+     * UPDATE and a bare row array for everything else, so both shapes are
+     * unwrapped rather than one being assumed.
+     */
+    const rows: Array<unknown> = Array.isArray(result)
+      ? Array.isArray(result[0])
+        ? (result[0] as Array<unknown>)
+        : (result as Array<unknown>)
+      : [];
+
+    const row: unknown = rows[0];
+
+    const number: number | null =
+      row && typeof row === "object"
+        ? NextNumberUtil.toStoredNumber(
+            (row as Record<string, unknown>)["counter"],
+          )
+        : null;
+
+    if (number === null) {
+      throw new BadDataException(
+        `Could not read ${info.counterColumn} for project ${projectId.toString()}`,
+      );
+    }
+
+    const prefixValue: unknown = (row as Record<string, unknown>)["prefix"];
+
+    return {
+      counter: number,
+      prefix:
+        typeof prefixValue === "string" && prefixValue
+          ? prefixValue
+          : undefined,
+    };
+  }
+
   @CaptureSpan()
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.incidentCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "incidentCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          incidentCounter: true,
-          incidentNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.incidentCounter === undefined) {
-        throw new BadDataException(
-          `Could not read incidentCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.incidentCounter,
-        prefix: project.incidentNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(projectId, NumberedRecordKind.Incident);
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.alertCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "alertCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          alertCounter: true,
-          alertNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.alertCounter === undefined) {
-        throw new BadDataException(
-          `Could not read alertCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.alertCounter,
-        prefix: project.alertNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(projectId, NumberedRecordKind.Alert);
   }
 
   @CaptureSpan()
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.scheduledMaintenanceCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "scheduledMaintenanceCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          scheduledMaintenanceCounter: true,
-          scheduledMaintenanceNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.scheduledMaintenanceCounter === undefined) {
-        throw new BadDataException(
-          `Could not read scheduledMaintenanceCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.scheduledMaintenanceCounter,
-        prefix: project.scheduledMaintenanceNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.ScheduledMaintenance,
+    );
   }
 
   @CaptureSpan()
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.incidentEpisodeCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "incidentEpisodeCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          incidentEpisodeCounter: true,
-          incidentEpisodeNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.incidentEpisodeCounter === undefined) {
-        throw new BadDataException(
-          `Could not read incidentEpisodeCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.incidentEpisodeCounter,
-        prefix: project.incidentEpisodeNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.IncidentEpisode,
+    );
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.AlertEpisode,
+    );
+  }
+
+  /*
+   * Where each kind of number stands in a project: its prefix, the highest
+   * number given out so far, the number the next record gets and the start
+   * the project chose (Utils/Project/NextNumber). Read as OneUptime: the
+   * counters are no caller's to read through the model API, so the route
+   * that answers with this (ProjectAPI, /project/:id/numbering) checks its
+   * caller first.
+   */
+  @CaptureSpan()
+  public async getNumbering(
+    projectId: ObjectID,
+  ): Promise<Array<RecordNumbering>> {
+    const select: Record<string, boolean> = { _id: true };
+
+    for (const info of NUMBERED_RECORD_KINDS) {
+      select[info.counterColumn] = true;
+      select[info.startsAtColumn] = true;
+      select[info.prefixColumn] = true;
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: select as Select<Model>,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    const row: Record<string, unknown> = project as unknown as Record<
+      string,
+      unknown
+    >;
+
+    return NUMBERED_RECORD_KINDS.map(
+      (info: NumberedRecordKindInfo): RecordNumbering => {
+        const highestNumber: number =
+          NextNumberUtil.toStoredNumber(row[info.counterColumn]) || 0;
+        const numbersStartAt: number | null = NextNumberUtil.toStoredNumber(
+          row[info.startsAtColumn],
+        );
+        const prefix: unknown = row[info.prefixColumn];
+
+        return {
+          kind: info.kind,
+          prefix: typeof prefix === "string" && prefix ? prefix : null,
+          highestNumber: highestNumber,
+          nextNumber: NextNumberUtil.getNextNumber({
+            highestNumber: highestNumber,
+            numbersStartAt: numbersStartAt,
+          }),
+          numbersStartAt: numbersStartAt,
+        };
+      },
+    );
+  }
+
+  /*
+   * Allocate the next security case number for a project. Like AI task
+   * numbers there is no prefix column: cases are numbered CASE-1, CASE-2, ...
+   * in every project (SECURITY_CASE_NUMBER_PREFIX).
+   */
+  @CaptureSpan()
+  public async incrementAndGetSecurityCaseCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
-      namespace: "ProjectService.alertEpisodeCounter",
+      namespace: "ProjectService.securityCaseCounter",
     });
 
     try {
       await this.atomicIncrementColumnValueByOne({
         id: projectId,
-        columnName: "alertEpisodeCounter",
+        columnName: "securityCaseCounter",
       });
 
       const project: Model | null = await this.findOneById({
         id: projectId,
         select: {
-          alertEpisodeCounter: true,
-          alertEpisodeNumberPrefix: true,
+          securityCaseCounter: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-      if (!project || project.alertEpisodeCounter === undefined) {
+      if (!project || project.securityCaseCounter === undefined) {
         throw new BadDataException(
-          `Could not read alertEpisodeCounter for project ${projectId.toString()}`,
+          `Could not read securityCaseCounter for project ${projectId.toString()}`,
         );
       }
 
-      return {
-        counter: project.alertEpisodeCounter,
-        prefix: project.alertEpisodeNumberPrefix,
-      };
+      return project.securityCaseCounter;
     } finally {
       await Semaphore.release(mutex);
     }

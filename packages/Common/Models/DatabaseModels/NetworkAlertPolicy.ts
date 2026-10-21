@@ -293,10 +293,7 @@ export default class NetworkAlertPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkAlertPolicy,
     ],
     update: [
       Permission.ProjectOwner,
@@ -319,10 +316,11 @@ export default class NetworkAlertPolicy extends BaseModel {
    * the operator can still recognise and repair. The service refuses to
    * write the null itself; only the cascade produces it.
    *
-   * Read permissions are the MonitorTemplate's own (the
-   * NetworkDeviceAutoImportRule precedent): selecting this relation reads a
-   * template's name and type, so it takes the permission that reading the
-   * template takes.
+   * Which template a policy uses is part of the policy, so it is read with
+   * the policy's own read permission, like every other column here. The
+   * template's own fields stay with the template's permissions; a relation
+   * select brings only what the template lets a joined row show (its name,
+   * description and monitor type).
    */
   @TableColumn({
     manyToOneRelationColumn: "monitorTemplateId",
@@ -358,10 +356,7 @@ export default class NetworkAlertPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkAlertPolicy,
     ],
     update: [
       Permission.ProjectOwner,

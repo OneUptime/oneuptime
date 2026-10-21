@@ -36,6 +36,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
@@ -116,6 +125,7 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
      * test would leak into the next without an explicit clear.
      */
     ApiKeyPermissionService.clearCache();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -444,11 +454,12 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         projectId,
       );
       /*
-       * Two queries select the update's IDs and load their complete security
-       * snapshot; the fourth call proves the cached auth result was
-       * evicted and had to be loaded again afterwards.
+       * One query reads the rows the update writes, with their complete
+       * security snapshot (findRowsAndHoldUpdateToThem); the third call
+       * proves the cached auth result was evicted and had to be loaded
+       * again afterwards.
        */
-      expect(findBy).toHaveBeenCalledTimes(4);
+      expect(findBy).toHaveBeenCalledTimes(3);
     });
 
     test("deleting a permission clears the cache", async () => {

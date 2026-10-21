@@ -1,88 +1,158 @@
-# iOS Installation Guide
+# iOS स्थापना
 
-अपने iPhone या iPad पर Apple App Store से **OneUptime On-Call** native iOS app install करें।
+App Store से iPhone या iPad पर **OneUptime On-Call** इंस्टॉल करें, उसे अपने OneUptime से कनेक्ट करें और साइन इन करें। फिर ख़ुद को एक परीक्षण सूचना भेजें, और ज़रूरी ऑन-कॉल पेज को साइलेंट मोड और फ़ोकस के पार बजने दें।
 
-## आवश्यकताएं
+:::cards
+- [ऐप इंस्टॉल करें](#ऐप-इंस्टॉल-करें): App Store से।
+- [साइन इन करें](#साइन-इन-करें): पहले आपके OneUptime का पता, फिर आपका खाता।
+- [जाँचें कि पेज डिवाइस तक पहुँचते हैं](#जाँचें-कि-पेज-डिवाइस-तक-पहुँचते-हैं): डैशबोर्ड में उसे ढूँढें और परखें।
+- [साइलेंट मोड के पार बजाएँ](#साइलेंट-मोड-के-पार-बजाएँ): गंभीर अलर्ट, अलार्म ध्वनि और उसका वॉल्यूम।
+- [समस्या निवारण](#समस्या-निवारण): साइन-इन, सूचना और गंभीर अलर्ट की समस्याएँ।
+:::
 
-- **iOS 15.0 या बाद का version** चलाने वाला iPhone या iPad
-- एक active OneUptime account (या आपके self-hosted OneUptime instance का URL)
-- sign-in के लिए और push notifications प्राप्त करने के लिए Internet connection
+## शुरू करने से पहले
 
-## App Store से Install करें
+- iOS 16.4 या बाद के संस्करण वाला iPhone, या iPadOS 16.4 या बाद के संस्करण वाला iPad।
+- किसी OneUptime प्रोजेक्ट में खाता। पेज पाने के लिए आपका ऑन-कॉल होना भी ज़रूरी है: [एस्केलेशन नियम](/docs/on-call/escalation-rules) देखें।
+- आपके OneUptime का पता: OneUptime Cloud पर `https://oneuptime.com`, या आपका अपना, जैसे `https://oneuptime.example.com`। ऐप केवल HTTPS पर कनेक्ट होता है।
 
-1. अपने iPhone या iPad पर **App Store** open करें।
-2. **Search** tab पर tap करें और **"OneUptime On-Call"** search करें, या अपने device पर यह link open करें:
-   [https://apps.apple.com/us/app/oneuptime-on-call/id6759615391](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)
-3. **Get** पर tap करें, फिर Face ID, Touch ID, या अपने Apple ID password से authenticate करें।
-4. एक बार install हो जाने पर, **Open** पर tap करें या अपनी home screen से **OneUptime On-Call** launch करें।
+## ऐप इंस्टॉल करें
 
-## पहला Launch और Sign-in
+1. iPhone या iPad पर [App Store पर OneUptime On-Call](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) खोलें, या App Store में OneUptime On-Call खोजें।
+2. **प्राप्त करें** पर टैप करें, और Face ID, Touch ID या अपने Apple खाते के पासवर्ड से पुष्टि करें।
+3. **खोलें** पर टैप करें, या होम स्क्रीन से OneUptime On-Call खोलें।
 
-1. **Server URL**
-   - यदि आप OneUptime Cloud का उपयोग कर रहे हैं, तो default `https://oneuptime.com` को छोड़ दें।
-   - यदि आप self-hosting कर रहे हैं, तो अपने OneUptime instance का URL enter करें (उदाहरण के लिए, `https://oneuptime.example.com`)।
-   - app आगे बढ़ने से पहले verify करता है कि server reachable है।
-2. **Sign In**
-   - अपने OneUptime account के लिए email और password enter करें।
-   - बाद के launches पर तेज़ unlock के लिए वैकल्पिक रूप से **Face ID** या **Touch ID** enable करें।
-3. **Notifications Allow करें**
-   - prompt होने पर, **Allow** पर tap करें ताकि app on-call pages, incident alerts, और acknowledgements deliver कर सके।
+जब तक **सेटिंग्ज़ → App Store** के तहत **ऐप अपडेट** चालू है, App Store ऐप को अप-टू-डेट रखता है।
 
-## Push Notifications
+## साइन इन करें
 
-Push notifications, Expo Push के माध्यम से Apple Push Notification service (APNs) के द्वारा deliver होते हैं। यह सुनिश्चित करने के लिए कि pages आपको reliably पहुंचें:
+```mermaid title="साइन इन करते समय ऐप क्या करता है"
+flowchart TB
+    Address["आप अपने OneUptime<br/>का पता डालते हैं"]
+    Check["ऐप जाँचता है कि आपका<br/>OneUptime जवाब देता है"]
+    SignIn["आप साइन इन करते हैं: पासवर्ड,<br/>पासकी या SSO"]
+    Allow["आप सूचनाओं की अनुमति देते हैं"]
+    Register["ऐप डिवाइस को आपके हर<br/>प्रोजेक्ट में पंजीकृत करता है"]
+    Rules["हर प्रोजेक्ट डिवाइस को डिफ़ॉल्ट<br/>ऑन-कॉल नियमों के साथ<br/>दिखाता है"]
+    Address --> Check --> SignIn --> Allow --> Register --> Rules
+```
 
-1. **Settings → Notifications → OneUptime On-Call** पर जाएं।
-2. **Allow Notifications**, **Sounds**, **Badges**, और **Lock Screen / Banner / Notification Centre** delivery enable करें।
-3. **Notification Grouping** को **Automatic** पर set करें।
-4. यदि आप on-call हैं, तो अपनी shift के दौरान **Low Power Mode** disable करें और app को Force-Quit करने से बचें — यदि app force-closed हो तो iOS background delivery में delay कर सकता है।
-5. किसी भी **Focus** mode में **OneUptime On-Call** add करें जहां आप अभी भी pages प्राप्त करना चाहते हैं।
+:::steps
+### अपने OneUptime का पता डालें
+ऐप खोलें। **Connect your workspace** पर, OneUptime Cloud के लिए `https://oneuptime.com` रहने दें, या अपने OneUptime का पता डालें, और **Connect** पर टैप करें। जैसे ही `https://<your-oneuptime>/api/status` जवाब देता है, ऐप आगे बढ़ता है।
 
-## Updates
+### अपने खाते में साइन इन करें
+आपका खाता जिस तरह साइन इन करता है, वही तरीका इस्तेमाल करें:
 
-app को App Store के माध्यम से update किया जाता है:
+- आपका ईमेल और पासवर्ड, फिर **Sign In**। **Forgot password?** आपको नया पासवर्ड सेट करने का लिंक ईमेल करता है।
+- **Sign in with SSO**, अगर आपका संगठन सिंगल साइन-ऑन इस्तेमाल करता है। अपना प्रदाता चुनें, या अपना कार्य ईमेल डालकर **Continue** पर टैप करें। एक सुरक्षित ब्राउज़र खुलता है, और साइन इन करते ही आप ऐप में वापस आ जाते हैं।
+- **Sign in with a passkey**, जब आप डैशबोर्ड में एक पासकी जोड़ चुके हों: [एक पासकी जोड़ें](/docs/introduction/your-account#एक-पासकी-जोड़ें) देखें। उसकी पुष्टि के लिए एक ब्राउज़र शीट खुलती है, फिर आपको वापस ले आती है।
 
-- **App Store** open करें, अपनी profile picture पर tap करें, **OneUptime On-Call** तक scroll करें, और **Update** पर tap करें।
-- या updates automatically install करने के लिए **Settings → App Store → App Updates** enable करें।
+टू-फ़ैक्टर ऑथेंटिकेशन चालू हो, तो अपने ऑथेंटिकेटर ऐप का छह अंकों वाला कोड, या अपना कोई बैकअप कोड डालें। ऐप में सिक्योरिटी की इस्तेमाल नहीं की जा सकती। अगर आपके एडमिनिस्ट्रेटर को टू-फ़ैक्टर ऑथेंटिकेशन चाहिए और आपने उसे अभी तक सेट नहीं किया है, तो ऐप पहले आपके साथ एक ऑथेंटिकेटर ऐप सेट करता है।
 
-## Uninstall
+### सूचनाओं की अनुमति दें
+जब iOS पूछे कि क्या OneUptime On-Call आपको सूचनाएँ भेज सकता है, तो **अनुमति दें** पर टैप करें।
 
-1. अपनी home screen पर **OneUptime On-Call** icon को **Long-press** करें।
-2. **Remove App → Delete App** पर tap करें।
-3. **Delete** पर tap करके पुष्टि करें।
+फिर ऐप iPhone या iPad को आपके हर प्रोजेक्ट में पंजीकृत करता है। हर प्रोजेक्ट उसे डिफ़ॉल्ट ऑन-कॉल नियमों के साथ आपके पुश डिवाइस में दिखाता है, इसलिए अब से आपके पेज उस तक पहुँचते हैं।
+:::
 
-आपका OneUptime account और on-call schedules server-side stored होते हैं और जब आप app uninstall करते हैं तो हटाए नहीं जाते।
+ऐप एक बार में एक प्रोजेक्ट दिखाता है: बदलने के लिए स्क्रीन के ऊपर प्रोजेक्ट के नाम पर टैप करें। जिस प्रोजेक्ट के लिए सिंगल साइन-ऑन ज़रूरी है, वह **Settings → Manage Projects** के तहत तब तक **SSO Required** दिखाता है जब तक आप वहाँ **Authenticate with SSO** पर टैप न करें।
 
-## Troubleshooting
+## जाँचें कि पेज डिवाइस तक पहुँचते हैं
 
-**App Store कहता है कि app "Not Available in Your Region" है:**
+:::steps
+### डैशबोर्ड में डिवाइस ढूँढें
+डैशबोर्ड में **उपयोगकर्ता सेटिंग्स → सूचना विधियां** और **Push Notifications** टैब खोलें। iPhone या iPad **Push सूचना डिवाइस** के तहत अपने मॉडल के नाम से दिखता है। हर प्रोजेक्ट की अपनी सूची होती है।
 
-- app global App Store पर publish है। यदि यह आपके region में नहीं दिखाई देता है, तो [support](mailto:support@oneuptime.com) से संपर्क करें।
+### परीक्षण भेजें
+डिवाइस की पंक्ति में **परीक्षण सूचना** पर क्लिक करें। डिवाइस पर एक सूचना आती है; ऐप खोलने के लिए उस पर टैप करें।
+:::
 
-**Sign in करते समय "Network Error":**
+कौन-से पेज डिवाइस पर जाते हैं, और कितनी जल्दी, यह आपके ऑन-कॉल नियम तय करते हैं: **उपयोगकर्ता सेटिंग्स → ऑन-कॉल नियम** देखें। नए डिवाइस को वही डिफ़ॉल्ट नियम मिलते हैं जो आपके जोड़े गए किसी भी दूसरे तरीके को मिलते हैं।
 
-- verify करें कि **Server URL** सही है और आपके device से reachable है।
-- यदि आप corporate network या VPN पर हैं, तो सुनिश्चित करें कि OneUptime instance accessible है।
-- पुष्टि करें कि server HTTPS पर valid certificate के साथ serve हो रहा है।
+## साइलेंट मोड के पार बजाएँ
 
-**Push notifications प्राप्त नहीं हो रहे:**
+डिफ़ॉल्ट रूप से ऑन-कॉल पेज डिवाइस की आवाज़ की सेटिंग्स का पालन करता है: साइलेंट मोड उसे चुप रखता है, और डू नॉट डिस्टर्ब जैसा फ़ोकस उसे रोक लेता है। गंभीर अलर्ट ऑन-कॉल पेज को दोनों के पार बजने देते हैं। जब तक आप इन्हें चालू न करें, ये हर डिवाइस पर बंद रहते हैं।
 
-- **Settings → Notifications → OneUptime On-Call** open करें और पुष्टि करें कि notifications allowed हैं।
-- **Do Not Disturb** disable करें या OneUptime On-Call को अपने active Focus mode की allow list में add करें।
-- server के साथ registered push token refresh करने के लिए sign out करें और फिर से sign in करें।
-- Self-hosted users: पुष्टि करें कि push notifications आपके OneUptime instance पर configure हैं (self-hosted [Push Notifications](/docs/self-hosted/push-notifications) guide देखें)।
+```mermaid title="iPhone या iPad पर ऑन-कॉल पेज पार बजता है या नहीं"
+flowchart TB
+    Page["इस डिवाइस के लिए<br/>ऑन-कॉल पेज"]
+    Rule{"नियम महत्वपूर्ण<br/>अलर्ट पर है?"}
+    Device{"Critical On-Call<br/>Alerts चालू है?"}
+    Quiet["यह डिवाइस की आवाज़<br/>और फ़ोकस का पालन<br/>करता है"]
+    Loud["यह साइलेंट मोड और<br/>फ़ोकस के पार, आपके<br/>वॉल्यूम पर, आपका<br/>अलार्म बजाता है"]
+    Page --> Rule
+    Rule -->|"नहीं: सामान्य"| Quiet
+    Rule -->|"हाँ"| Device
+    Device -->|"नहीं"| Quiet
+    Device -->|"हाँ"| Loud
+```
 
-**Face ID / Touch ID काम नहीं कर रहा:**
+:::steps
+### Critical On-Call Alerts चालू करें
+ऐप में **Settings** खोलें और **Notifications** के तहत **Critical On-Call Alerts** चालू करें।
 
-- सुनिश्चित करें कि biometrics **Settings → Face ID & Passcode** या **Settings → Touch ID & Passcode** में enrolled हैं।
-- OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
+### गंभीर अलर्ट की अनुमति दें
+जब iOS पूछे कि क्या OneUptime On-Call गंभीर अलर्ट भेज सकता है, तो **अनुमति दें** पर टैप करें। इसके बाद iOS ऐप के लिए **सेटिंग्ज़ → सूचनाएँ → OneUptime On-Call** के तहत एक **गंभीर अलर्ट** स्विच जोड़ता है, जहाँ आप बाद में अपना फ़ैसला बदल सकते हैं। ऐप के स्विच के नीचे की पंक्ति बताती है कि पेज पार बजेंगे या नहीं।
 
-**App launch पर crash होता है:**
+### अलार्म ध्वनि और उसका वॉल्यूम चुनें
+स्विच के नीचे **Alarm sound** पर टैप करें। डिवाइस की अपनी गंभीर अलर्ट ध्वनि के अलावा, इसमें Klaxon, Siren, Digital alarm, Smoke alarm और Rising alarm हैं, जो धीमे शुरू होकर तेज़ होता जाता है। किसी ध्वनि को सुनने के लिए उसके पास चलाएँ बटन दबाएँ। फिर वह वॉल्यूम चुनें जिस पर पेज बजता है: 25%, 50%, 75% या 100%, जो डिफ़ॉल्ट है।
+:::
 
-- App Store से latest version पर update करें।
-- अपना device restart करें।
-- यदि समस्या बनी रहती है, तो app को delete करें और फिर से install करें, फिर sign in करें।
+केवल ऑन-कॉल पेज पार बजते हैं, और केवल उन ऑन-कॉल नियमों से जो **महत्वपूर्ण अलर्ट** पर सेट हैं, जो डिफ़ॉल्ट है। **सामान्य** पर सेट नियम स्विच चाहे जो कहे, डिवाइस की सेटिंग्स का पालन करता है, ताकि गंभीर घटना पर आपको जगाया जा सके और छोटी घटना पर चुपचाप पेज किया जा सके। डिवाइस को साइलेंट पर रखकर **परीक्षण सूचना** भेजें और सुनें कि पेज क्या करेगा। **Alarm sound** स्क्रीन पर पूर्वावलोकन रिंगर वॉल्यूम पर बजता है, और साइलेंट पर बिल्कुल नहीं बजता; असली पेज आपके चुने वॉल्यूम पर साइलेंट मोड के पार बजता है।
 
-## Support
+> [!NOTE]
+> गंभीर अलर्ट के लिए App Store से OneUptime On-Call 1.5.0 या बाद का संस्करण चाहिए। पुराने संस्करण Apple की गंभीर अलर्ट अनुमति के बिना बनाए गए थे, इसलिए iOS ने उन्हें कभी यह स्विच नहीं दिया।
 
-यदि आपको अभी भी सहायता चाहिए, तो अपने OneUptime dashboard के माध्यम से संपर्क करें या हमारे [GitHub repository](https://github.com/OneUptime/oneuptime) पर एक issue open करें।
+## पेज रुके नहीं
+
+गंभीर अलर्ट के बिना, कोई फ़ोकस या सारांश पेज को रोक सकता है:
+
+- **फ़ोकस।** **सेटिंग्ज़ → फ़ोकस** के तहत, OneUptime On-Call को उन ऐप्स में जोड़ें जिनकी हर फ़ोकस अनुमति देता है।
+- **शेड्यूल्ड सारांश।** **सेटिंग्ज़ → सूचनाएँ → शेड्यूल्ड सारांश** के तहत OneUptime On-Call को उससे बाहर रखें: सारांश में गई सूचना सारांश के अगले समय तक रुकी रहती है।
+- **सूचनाएँ।** **सेटिंग्ज़ → सूचनाएँ → OneUptime On-Call** के तहत **सूचनाओं को अनुमति दें** चालू रखें।
+
+## ऐप लॉक करें
+
+ऐप में **Settings** के तहत **Biometrics Login** चालू करें, और ऐप हर बार शुरू होने पर Face ID, Touch ID या आपका पासकोड माँगेगा। यह स्विच तब दिखता है जब डिवाइस पर Face ID या Touch ID सेट हो। उसी स्क्रीन पर **Appearance** हल्का या गहरा रूप चुनता है, या डिवाइस के अनुसार चलता है।
+
+## अपडेट, साइन आउट या ऐप डिलीट करें
+
+- **अपडेट।** App Store ऐप को अपडेट करता है; आप उसे App Store में अपने खाते से भी अपडेट कर सकते हैं। ऐप का संस्करण उसकी **Settings** स्क्रीन के सबसे नीचे होता है।
+- **साइन आउट।** **Settings → Log Out** आपको साइन आउट करता है और डिवाइस को हर प्रोजेक्ट के आपके पुश डिवाइस से, उसके ऑन-कॉल नियमों समेत, हटा देता है। फिर से साइन इन करने पर वह डिफ़ॉल्ट नियमों के साथ वापस जुड़ जाता है।
+- **डिलीट।** ऐप के आइकन को छूकर रखें, फिर **ऐप हटाएँ** और **ऐप डिलीट करें** पर टैप करें। अगर आप तब भी साइन इन थे, तो डिवाइस आपकी सूची में तब तक रहता है जब तक उस पर कोई पुश विफल न हो: फिर OneUptime उसे **सूचनाएँ नहीं मिल रहीं** चिह्नित करता है। ऐप फिर से इंस्टॉल करके साइन इन करने पर आमतौर पर वही प्रविष्टि अपने नियमों के साथ वापस आ जाती है; अगर आपको वह डिवाइस अब नहीं चाहिए, तो प्रविष्टि **हटाएं** से हटाएँ।
+
+## समस्या निवारण
+
+:::details “Could not connect to the server”
+ऐप `https://<your-oneuptime>/api/status` तक नहीं पहुँच सका। `https://` समेत पता जाँचें। अगर आपका OneUptime किसी निजी नेटवर्क पर है, तो पहले डिवाइस को उससे जोड़ें, उदाहरण के लिए अपने VPN से। वह पता डिवाइस पर Safari में खोलें: डिवाइस OneUptime तक पहुँच पाता है तो वह `{"status":"ok"}` दिखाता है।
+:::
+
+:::details कोई सूचना नहीं आती
+- जाँचें कि **सेटिंग्ज़ → सूचनाएँ → OneUptime On-Call** के तहत **सूचनाओं को अनुमति दें** चालू है, और कोई फ़ोकस पेज को रोक नहीं रहा।
+- जाँचें कि डिवाइस **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** के तहत दिखता है, और उसे **परीक्षण सूचना** भेजें।
+- अगर डिवाइस **सूचनाएँ नहीं मिल रहीं** चिह्नित है, तो साइन इन रहते हुए ऐप खोलें। वह डिवाइस को फिर से पंजीकृत करता है; [जब फ़ोन को फिर से पंजीकृत होना पड़े](/docs/mobile-desktop-apps/faq-troubleshooting#जब-फ़ोन-को-फिर-से-पंजीकृत-होना-पड़े) देखें।
+- **उपयोगकर्ता सेटिंग्स → ऑन-कॉल नियम** के तहत अपने ऑन-कॉल नियम जाँचें।
+- सेल्फ-होस्टेड OneUptime पर, जाँचें कि आपका सर्वर अपने पुश रिले तक पहुँच पाता है: [पुश सूचनाएँ](/docs/self-hosted/push-notifications#नेटवर्क-पहुँच) देखें।
+:::
+
+:::details iOS सेटिंग्ज़ में गंभीर अलर्ट का स्विच नहीं है
+पहले ऐप में **Critical On-Call Alerts** चालू करें: iOS अपना स्विच तभी जोड़ता है जब ऐप गंभीर अलर्ट माँग चुका हो। अगर ऐप कहता है कि यह संस्करण गंभीर अलर्ट नहीं पा सकता, तो App Store से OneUptime On-Call अपडेट करें।
+:::
+
+:::details गंभीर अलर्ट नहीं बजते
+ऐप की **Settings** खोलें: **Critical On-Call Alerts** के नीचे की पंक्ति बताती है कि क्या कमी है। जाँचें कि **सेटिंग्ज़ → सूचनाएँ → OneUptime On-Call** के तहत **गंभीर अलर्ट** चालू है, और ऐप की **Alarm sound** स्क्रीन पर वॉल्यूम कम सेट नहीं है।
+:::
+
+:::details Biometrics Login स्विच नहीं है
+यह स्विच तब दिखता है जब **सेटिंग्ज़ → Face ID और पासकोड** या **सेटिंग्ज़ → Touch ID और पासकोड** के तहत Face ID या Touch ID सेट हो।
+:::
+
+## अगले कदम
+
+:::cards
+- [अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण](/docs/mobile-desktop-apps/faq-troubleshooting): जब फ़ोन पर पेज आने बंद हो जाएँ तो क्या करें।
+- [Android स्थापना](/docs/mobile-desktop-apps/android-installation): Android पर वही ऐप।
+- [एस्केलेशन नियम](/docs/on-call/escalation-rules): तय करें कि किसे और कब पेज किया जाए।
+- [पुश सूचनाएँ](/docs/self-hosted/push-notifications): सेल्फ-होस्टेड OneUptime फ़ोन पर पेज कैसे भेजता है।
+:::

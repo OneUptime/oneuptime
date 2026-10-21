@@ -25,11 +25,11 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Input from "Common/UI/Components/Input/Input";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "Common/Types/Rum/SessionReplay";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * "Record this user's next session."
@@ -68,9 +68,7 @@ export function canArmTargetedCapture(): boolean {
   try {
     return (
       User.isMasterAdmin() ||
-      new RumApplication().hasUpdatePermissions(
-        PermissionUtil.getAllPermissions(),
-      )
+      PermissionGate.check(new RumApplication(), ModelAction.Update).isAllowed
     );
   } catch {
     return false;

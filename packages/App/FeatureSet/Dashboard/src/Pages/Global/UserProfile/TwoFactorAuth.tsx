@@ -24,10 +24,16 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal from "Common/UI/Components/Modal/Modal";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const TwoFactorAuth: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedTotpAuth, setSelectedTotpAuth] =
     React.useState<UserTotpAuth | null>(null);
   const [showVerificationModal, setShowVerificationModal] =
@@ -220,10 +226,12 @@ const TwoFactorAuth: FunctionComponent<
               <Icon icon={IconProp.DevicePhoneMobile} className="h-6 w-6" />
             </span>
             <p className="mt-3 font-medium text-gray-900">
-              No authenticator apps added yet.
+              {translator.translateText("No authenticator apps added yet.")}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              Add an app, scan the QR code, and enter a code to finish setup.
+              {translator.translateText(
+                "Add an app, scan the QR code, and enter a code to finish setup.",
+              )}
             </p>
           </div>
         }
@@ -308,7 +316,9 @@ const TwoFactorAuth: FunctionComponent<
                   {item.isVerified ? (
                     <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
                   ) : null}
-                  {item.isVerified ? "Ready" : "Setup incomplete"}
+                  {item.isVerified
+                    ? translator.translateText("Ready")
+                    : translator.translateText("Setup incomplete")}
                 </span>
               );
             },
@@ -329,7 +339,11 @@ const TwoFactorAuth: FunctionComponent<
       />
       {showVerificationModal && selectedTotpAuth && (
         <Modal
-          title={`Set up ${selectedTotpAuth.name || "authenticator app"}`}
+          title={translator.translateTemplate("Set up {{name}}", {
+            name:
+              selectedTotpAuth.name ||
+              translatableTerm("authenticator app", { inSentence: true }),
+          })}
           description="Scan the QR code with your authenticator app, then enter its 6-digit code to finish setup."
           submitButtonText="Verify and finish"
           isLoading={verificationLoading}
@@ -363,7 +377,7 @@ const TwoFactorAuth: FunctionComponent<
                   htmlFor="authenticator-verification-code"
                   className="mb-2 block text-sm font-medium text-gray-900"
                 >
-                  Verification code
+                  {translator.translateText("Verification code")}
                 </label>
                 <input
                   id="authenticator-verification-code"
@@ -392,8 +406,9 @@ const TwoFactorAuth: FunctionComponent<
                   id="authenticator-code-hint"
                   className="mt-2 text-sm text-gray-500"
                 >
-                  Codes refresh every 30 seconds. Use the current code shown in
-                  your app.
+                  {translator.translateText(
+                    "Codes refresh every 30 seconds. Use the current code shown in your app.",
+                  )}
                 </p>
               </>
             ) : null}

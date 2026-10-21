@@ -22,11 +22,11 @@
  *
  * The two enterprise jobs are the only ones that boot a self-hosted Enterprise
  * stack - the enterprise image with billing OFF, where the license rather than
- * the billing flag decides whether SSO, SCIM and audit logging run - and the
- * only ones that run their suite in two phases against one stack: licensed,
- * then with the trial backdated out from under it. The last describe in this
- * file pins that shape, because a phase that quietly stopped running would
- * leave the job green.
+ * the billing flag decides whether SCIM and audit logging run (single sign-on
+ * is core and runs on every stack) - and the only ones that run their suite in
+ * two phases against one stack: licensed, then with the trial backdated out
+ * from under it. The last describe in this file pins that shape, because a
+ * phase that quietly stopped running would leave the job green.
  *
  * The check's boot probe calls into code it only meets inside a real image,
  * so the second half of this suite pins what the probe relies on: the
@@ -46,6 +46,7 @@ const {
   ancestry,
   instructions,
 } = require("./Utils/DockerfileTemplate");
+const { releaseTagImages } = require("./Utils/ReleaseWorkflow");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const CHECK_SCRIPT = "Scripts/GHA/check_app_image_edition.sh";
@@ -75,13 +76,13 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-saas",
-    tag: `enterprise-${VERSION}-test`,
+    tag: `enterprise-${VERSION}-test-amd64`,
     edition: "enterprise",
   },
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-self-hosted",
-    tag: `${VERSION}-test`,
+    tag: `${VERSION}-test-amd64`,
     edition: "community",
   },
   {
@@ -93,7 +94,7 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-enterprise",
-    tag: `enterprise-${VERSION}-test`,
+    tag: `enterprise-${VERSION}-test-amd64`,
     edition: "enterprise",
   },
 ];
@@ -348,17 +349,59 @@ describe.each(ENTERPRISE_E2E_JOBS)("$workflow $job", ({ workflow, job }) => {
     expect(run).toContain("exit 1");
   });
 
+  /*
+   * Phase A needs the trial, and a brand-new install does not have it yet when
+   * the stack first answers: its first license read can come before the
+   * AddDefaultGlobalConfig data migration has created the GlobalConfig row the
+   * trial is stamped on, so it reports "missing" - and serves that from the
+   * 60s license-inputs cache - until a later read stamps the row
+   * (ee/Server/License/LicenseStore.ts). This used to be covered only by
+   * accident: the e2e image was built or pulled between the boot and phase A,
+   * which took longer than that.
+   */
+  test("waits for the app to report a usable license before starting the licensed phase", () => {
+    const start = indexOfStep(steps, isStartStep, "start");
+    const licensed = indexOfRun(steps, LICENSED_PHASE, "phase A (licensed)");
+    const poll = requireStep(
+      steps,
+      (step, index) => {
+        const run = runOf(step);
+
+        return (
+          index > start &&
+          index < licensed &&
+          run.includes(LICENSE_ENDPOINT) &&
+          run.includes("while")
+        );
+      },
+      `the trial poll: no step between the boot and phase A loops on ${LICENSE_ENDPOINT}, so the licensed phase can start before a fresh install's trial has`,
+    );
+    const run = runOf(steps[poll]);
+
+    // Usable: the trial ("grace") or an installed license ("valid").
+    expect(run).toContain('"grace"');
+    expect(run).toContain('"valid"');
+    expect(run).toContain("licenseValid");
+    // Bounded, and loud when the bound is reached.
+    expect(run).toMatch(/date \+%s\) \+ \d+ \)\)/);
+    expect(run).toContain("::error::");
+  });
+
   test("waits for the app to report the lapse before starting the lapsed phase", () => {
     const expiry = indexOfRun(steps, TRIAL_COLUMN, "the trial-expiry step");
     const lapsed = indexOfRun(steps, LAPSED_PHASE, "phase B (lapsed)");
     const poll = requireStep(
       steps,
-      (step) => {
+      (step, index) => {
         const run = runOf(step);
 
-        return run.includes(LICENSE_ENDPOINT) && run.includes("while");
+        return (
+          index > expiry &&
+          run.includes(LICENSE_ENDPOINT) &&
+          run.includes("while")
+        );
       },
-      `the license poll: no step in this job loops on ${LICENSE_ENDPOINT}, so the lapsed phase would start inside the 60s license-inputs cache`,
+      `the license poll: no step after the trial is expired loops on ${LICENSE_ENDPOINT}, so the lapsed phase would start inside the 60s license-inputs cache`,
     );
     const run = runOf(steps[poll]);
 
@@ -385,7 +428,7 @@ describe("release.yml", () => {
     expect(needs).toContain("test-e2e-release-saas");
     expect(needs).toContain("test-e2e-release-self-hosted");
     expect(needs).toContain("test-e2e-release-enterprise");
-    expect(jobs["push-release-tags"].strategy.matrix.image).toContain("app");
+    expect(releaseTagImages(jobs["push-release-tags"])).toContain("app");
   });
 
   test("the App build and merge publish version tags only, never the release tags", () => {

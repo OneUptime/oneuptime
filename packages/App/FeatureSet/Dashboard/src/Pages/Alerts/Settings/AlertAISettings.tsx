@@ -1,4 +1,27 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
+import {
+  ProjectColumnsEditGate,
+  getProjectColumnsEditGate,
+} from "../../Settings/ProjectColumnEditGate";
+import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
+import AIInvestigationRulesTable from "../../../Components/AISettings/AIInvestigationRulesTable";
+import AutoRemediationRulesTable from "../../../Components/AutoRemediation/AutoRemediationRulesTable";
+import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
+import {
+  AI_LANE_ADVANCED_SECTION_TEST_ID,
+  AI_LANE_PAGE_COPY,
+  AI_LANE_SWITCHES,
+  AI_LANE_SWITCHES_TEST_ID,
+  AiLane,
+  AiLaneAdvancedCard,
+  getAiLaneAdvancedCardColumns,
+  ProjectAiNoticeContext,
+} from "../../../Components/AISettings/ProjectAiSettingsCopy";
+import useAiLaneAdvancedState, {
+  AiLaneAdvanced,
+} from "../../../Components/AISettings/useAiLaneAdvancedState";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -9,209 +32,282 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export type ComponentProps = PageComponentProps;
 
+/*
+ * Alerts → AI → Settings: what OneUptime AI does on its own as alerts
+ * happen, as switches that save the moment they are flipped, then - folded
+ * under Advanced - which alerts it investigates or fixes and the limits on
+ * its work, each card one question with its own Edit, and the rules that
+ * narrow which alerts are investigated and which are fixed (and how).
+ *
+ * It used to be one card of nine read-only rows whose Update opened a
+ * three-step wizard. See ProjectAiSettingsCopy for the words, and
+ * IncidentAISettings for the incidents' twin of this page (which also
+ * drafts postmortems).
+ *
+ * Every card writes only its own columns (a card writes every field it is
+ * given): no save here can touch an incident setting, or a setting of
+ * another card. Every limit is empty by default, and empty means no limit.
+ */
 const AlertAISettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const advanced: AiLaneAdvanced = useAiLaneAdvancedState(AiLane.Alert);
+
+  /*
+   * The limits take Project Owner or Project Admin; the Project table's
+   * update list, which a card would otherwise gate its Edit on, also lets
+   * Edit Project and Manage Billing in, and their save would be refused.
+   */
+  const getEditGate: (card: AiLaneAdvancedCard) => ProjectColumnsEditGate = (
+    card: AiLaneAdvancedCard,
+  ): ProjectColumnsEditGate => {
+    return getProjectColumnsEditGate({
+      fields: getAiLaneAdvancedCardColumns(AiLane.Alert, card),
+      buttonTitle: "Edit",
+    });
+  };
+
+  const whichGate: ProjectColumnsEditGate = getEditGate(
+    AiLaneAdvancedCard.WhichAreInvestigated,
+  );
+  const limitsGate: ProjectColumnsEditGate = getEditGate(
+    AiLaneAdvancedCard.InvestigationLimits,
+  );
+  const dailyGate: ProjectColumnsEditGate = getEditGate(
+    AiLaneAdvancedCard.DailyLimits,
+  );
+
   return (
     <>
-      <CardModelDetail<Project>
-        name="Automatic Alert Investigation"
-        cardProps={{
-          title: "Automatic Alert Investigation",
-          description:
-            "When enabled, OneUptime AI automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Alerts can be higher-volume than incidents, so enable this with that in mind. Requires an LLM provider to be configured in Settings > AI > LLM Providers.",
-        }}
-        isEditable={true}
-        editButtonText={"Update"}
-        formSteps={[
-          {
-            title: "Investigation",
-            id: "investigation",
-          },
-          {
-            title: "Limits",
-            id: "limits",
-          },
-          {
-            title: "Fix Tasks",
-            id: "fix-tasks",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              enableAutomaticAlertInvestigation: true,
-            },
-            stepId: "investigation",
-            title: "Automatically Investigate Alerts",
+      <ProjectAiNotice context={ProjectAiNoticeContext.Alerts} />
+
+      <ProjectAiSwitchesCard
+        cardTitle={AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardTitle}
+        cardDescription={
+          AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardDescription
+        }
+        switches={AI_LANE_SWITCHES[AiLane.Alert]}
+        dataTestId={AI_LANE_SWITCHES_TEST_ID[AiLane.Alert]}
+      />
+
+      <AdvancedPageSection
+        description={AI_LANE_PAGE_COPY[AiLane.Alert].advancedDescription}
+        items={advanced.items}
+        summary={advanced.summary}
+        dataTestId={AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Alert]}
+      >
+        <AIInvestigationRulesTable
+          lane={AiLane.Alert}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.InvestigationRules,
+          )}
+        />
+
+        <CardModelDetail<Project>
+          name="Which alerts are investigated"
+          cardProps={{
+            title: "Which alerts are investigated",
             description:
-              "Investigate every new alert and post a cited root cause analysis to the alert timeline.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
-              alertInvestigationMinimumSeverity: true,
-            },
-            stepId: "investigation",
-            title: "Minimum Severity To Investigate",
-            description:
-              "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default.",
-            required: false,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: AlertSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            placeholder: "Default (top two severity tiers)",
-          },
-          {
-            field: {
-              alertInvestigationDedupeWindowMinutes: true,
-            },
-            stepId: "investigation",
-            title: "Re-investigation Cooldown (Minutes)",
-            description:
-              "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying alert.",
-            required: false,
-            fieldType: FormFieldSchemaType.Number,
-            placeholder: "30",
-          },
-          {
-            field: {
-              alertAiMaxConcurrentInvestigations: true,
-            },
-            stepId: "limits",
-            title: "Max Concurrent Alert Investigations",
-            description:
-              "How many alert investigations may run at the same time for this project. Queued alert investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
-            required: false,
-            fieldType: FormFieldSchemaType.Number,
-            placeholder: "3",
-          },
-          {
-            field: {
-              alertAiDailyAutonomousTokenLimit: true,
-            },
-            stepId: "limits",
-            title: "Daily Alert AI Token Limit",
-            description:
-              "Maximum tokens per day (UTC) for autonomous alert-linked AI work, including investigations, remediation, and follow-up fix tasks. When reached, new alert-linked AI work is skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit; set 0 to pause autonomous alert AI work entirely.",
-            required: false,
-            fieldType: FormFieldSchemaType.Number,
-            placeholder: "No limit",
-          },
-          {
-            field: {
-              enableAlertInstrumentationFixTasks: true,
-            },
-            stepId: "fix-tasks",
-            title: "Instrumentation PRs From Inconclusive Investigations",
-            description:
-              "Open instrumentation pull requests from inconclusive alert investigations (requires a connected GitHub repository). When an alert investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
-              enableAutomaticAlertCodeFixes: true,
-            },
-            stepId: "fix-tasks",
-            title: "Enable Automatic Alert Code Fixes",
-            description:
-              "Open a fix pull request automatically, ready for review, when an alert investigation ends with a confident, evidenced root cause analysis that recommends a repository code change — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not open pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
-              alertAiDailyFixTaskLimit: true,
-            },
-            stepId: "fix-tasks",
-            title: "Daily Alert AI Fix Task Limit",
-            description:
-              "Maximum alert AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic alert fix recipes. Leave empty for the default of 25 per day; set 0 to pause alert AI fix tasks entirely.",
-            required: false,
-            fieldType: FormFieldSchemaType.Number,
-            placeholder: "25",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "model-detail-project-alert-ai-settings",
-          fields: [
+              "Every new alert is investigated unless you narrow it down here.",
+            buttons: whichGate.lockedButtons,
+          }}
+          isEditable={whichGate.isEditable}
+          editButtonText="Edit"
+          editModalTitle="Which alerts are investigated"
+          formFields={[
             {
               field: {
-                enableAutomaticAlertInvestigation: true,
-              },
-              title: "Automatically Investigate Alerts",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                alertInvestigationMinimumSeverity: {
-                  name: true,
-                  color: true,
-                },
+                alertInvestigationMinimumSeverity: true,
               },
               title: "Minimum Severity To Investigate",
-              placeholder: "Default (top two severity tiers)",
-              fieldType: FieldType.Entity,
+              description:
+                "Only alerts at or above this severity are investigated. Leave unset to investigate every alert, whatever its severity.",
+              required: false,
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownModal: {
+                type: AlertSeverity,
+                labelField: "name",
+                valueField: "_id",
+                sort: {
+                  order: SortOrder.Ascending,
+                },
+              },
+              placeholder: "Every severity",
             },
             {
               field: {
                 alertInvestigationDedupeWindowMinutes: true,
               },
               title: "Re-investigation Cooldown (Minutes)",
-              placeholder: "Default (30 minutes)",
-              fieldType: FieldType.Number,
+              description:
+                "Alerts from the same monitor within this many minutes reuse the first investigation. Leave empty to investigate every alert. At most 1440.",
+              required: false,
+              fieldType: FormFieldSchemaType.Number,
+              placeholder: "No cooldown",
             },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-alert-ai-which",
+            onItemLoaded: advanced.onCardLoaded(
+              AiLaneAdvancedCard.WhichAreInvestigated,
+            ),
+            fields: [
+              {
+                field: {
+                  alertInvestigationMinimumSeverity: {
+                    name: true,
+                    color: true,
+                  },
+                },
+                title: "Minimum Severity To Investigate",
+                placeholder: "Every severity",
+                fieldType: FieldType.Entity,
+              },
+              {
+                field: {
+                  alertInvestigationDedupeWindowMinutes: true,
+                },
+                title: "Re-investigation Cooldown (Minutes)",
+                placeholder: "No cooldown",
+                fieldType: FieldType.Number,
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
+
+        <CardModelDetail<Project>
+          name="Alert Investigation Limits"
+          cardProps={{
+            title: "Investigation limits",
+            description:
+              "Investigations start right away and run until they are done unless you set a limit here.",
+            buttons: limitsGate.lockedButtons,
+          }}
+          isEditable={limitsGate.isEditable}
+          editButtonText="Edit"
+          editModalTitle="Investigation limits"
+          formFields={[
             {
               field: {
                 alertAiMaxConcurrentInvestigations: true,
               },
               title: "Max Concurrent Alert Investigations",
-              placeholder: "Default (3)",
-              fieldType: FieldType.Number,
+              description:
+                "How many alert investigations may run at once. Leave empty for no limit. Queued ones wait for a free slot for up to 30 minutes.",
+              required: false,
+              fieldType: FormFieldSchemaType.Number,
+              placeholder: "No limit",
             },
+            {
+              field: {
+                alertAiInvestigationTimeLimitInMinutes: true,
+              },
+              title: "Alert Investigation Time Limit (Minutes)",
+              description:
+                "Stop an alert investigation after this many minutes and report what it found. Leave empty for no limit.",
+              required: false,
+              fieldType: FormFieldSchemaType.Number,
+              placeholder: "No time limit",
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-alert-ai-limits",
+            onItemLoaded: advanced.onCardLoaded(
+              AiLaneAdvancedCard.InvestigationLimits,
+            ),
+            fields: [
+              {
+                field: {
+                  alertAiMaxConcurrentInvestigations: true,
+                },
+                title: "Max Concurrent Alert Investigations",
+                placeholder: "No limit",
+                fieldType: FieldType.Number,
+              },
+              {
+                field: {
+                  alertAiInvestigationTimeLimitInMinutes: true,
+                },
+                title: "Alert Investigation Time Limit (Minutes)",
+                placeholder: "No time limit",
+                fieldType: FieldType.Number,
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
+
+        <AutoRemediationRulesTable
+          lane={AiLane.Alert}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.RemediationRules,
+          )}
+        />
+
+        <CardModelDetail<Project>
+          name="Alert Daily Limits"
+          cardProps={{
+            title: "Daily limits",
+            description:
+              "How much alert AI work may run each day (UTC). Ask AI is never limited.",
+            buttons: dailyGate.lockedButtons,
+          }}
+          isEditable={dailyGate.isEditable}
+          editButtonText="Edit"
+          editModalTitle="Daily limits"
+          formFields={[
             {
               field: {
                 alertAiDailyAutonomousTokenLimit: true,
               },
               title: "Daily Alert AI Token Limit",
+              description:
+                "The most tokens alert AI work may use each day: investigations, remediation and fix tasks. Leave empty for no limit, or set 0 to pause it.",
+              required: false,
+              fieldType: FormFieldSchemaType.Number,
               placeholder: "No limit",
-              fieldType: FieldType.Number,
-            },
-            {
-              field: {
-                enableAlertInstrumentationFixTasks: true,
-              },
-              title: "Instrumentation PRs From Inconclusive Investigations",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                enableAutomaticAlertCodeFixes: true,
-              },
-              title: "Enable Automatic Alert Code Fixes",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
             },
             {
               field: {
                 alertAiDailyFixTaskLimit: true,
               },
               title: "Daily Alert AI Fix Task Limit",
-              placeholder: "Default (25)",
-              fieldType: FieldType.Number,
+              description:
+                "How many fix pull requests OneUptime AI may start for alerts each day. Leave empty for no limit, or 0 to pause them.",
+              required: false,
+              fieldType: FormFieldSchemaType.Number,
+              placeholder: "No limit",
             },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-alert-ai-daily",
+            onItemLoaded: advanced.onCardLoaded(AiLaneAdvancedCard.DailyLimits),
+            fields: [
+              {
+                field: {
+                  alertAiDailyAutonomousTokenLimit: true,
+                },
+                title: "Daily Alert AI Token Limit",
+                placeholder: "No limit",
+                fieldType: FieldType.Number,
+              },
+              {
+                field: {
+                  alertAiDailyFixTaskLimit: true,
+                },
+                title: "Daily Alert AI Fix Task Limit",
+                placeholder: "No limit",
+                fieldType: FieldType.Number,
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
+      </AdvancedPageSection>
     </>
   );
 };

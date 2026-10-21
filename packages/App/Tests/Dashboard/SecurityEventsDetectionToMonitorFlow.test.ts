@@ -63,11 +63,6 @@ function stripComments(source: string): string {
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
-const monitorsPageSource: string = readDashboardSource(
-  "Pages",
-  "SecurityEvents",
-  "Monitors.tsx",
-);
 const detectionRulesSource: string = readDashboardSource(
   "Pages",
   "SecurityEvents",
@@ -82,10 +77,9 @@ const routesSource: string = readDashboardSource(
   "Routes",
   "SecurityEventsRoutes.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+const navigationSource: string = readDashboardSource(
+  "Utils",
+  "SecurityEventsNavigation.ts",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -162,7 +156,13 @@ beforeAll(async () => {
   };
 });
 
-describe("Security Events monitors page wiring", () => {
+/*
+ * Security Events monitors are monitors like any other: they are listed,
+ * and filtered by type, under Monitors. The old Security Events > Monitors
+ * address still works - it opens Monitors - so a bookmark or a docs link
+ * never lands on an empty page.
+ */
+describe("the old Security Events monitors address", () => {
   test("the page key exists and has a route path segment", () => {
     expect(PageMap.SECURITY_EVENTS_MONITORS).toBeTruthy();
     expect(SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS]).toBe(
@@ -179,83 +179,40 @@ describe("Security Events monitors page wiring", () => {
     );
   });
 
-  test("the route is registered in SecurityEventsRoutes", () => {
-    expect(routesSource).toContain(
-      'import SecurityEventsMonitorsPage from "../Pages/SecurityEvents/Monitors"',
-    );
-    expect(routesSource).toContain(
+  test("the route opens Monitors, replacing the old address in history", () => {
+    const source: string = stripComments(routesSource);
+
+    expect(source).toContain(
       "SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS]",
     );
-    expect(routesSource).toContain("<SecurityEventsMonitorsPage");
+    expect(source).toContain("<Navigate");
+    expect(source).toContain("replace={true}");
+    expect(source).toContain("RouteMap[PageMap.MONITORS] as Route");
+    expect(source).not.toContain("SecurityEventsMonitorsPage");
   });
 
-  test("the monitor link is one of the Security Events header tabs", () => {
-    expect(navTabsSource).toContain('label: "Monitors"');
-    expect(navTabsSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route",
+  test("the address is a redirect, not an entry of the Security Events menu", () => {
+    expect(navigationSource).not.toContain('title: "Monitors",');
+    expect(navigationSource).toContain(
+      "export const SECURITY_EVENTS_REDIRECTED_PAGES: Array<PageMap> = [\n  PageMap.SECURITY_EVENTS_MONITORS,",
     );
   });
 
-  test("the layout renders the Security Events tabs in the page header", () => {
+  test("the layout renders the Security Events side menu", () => {
     expect(layoutSource).toContain(
-      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+      'import SecurityEventsSideMenu from "./SideMenu"',
     );
-    expect(layoutSource).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
-    expect(layoutSource).not.toContain("sideMenu=");
+    expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
-  test("the monitors page has a breadcrumb trail", () => {
+  test("the old address has no trail of its own: it opens Monitors at once", () => {
     const pattern: string = RouteUtil.getRouteString(
       PageMap.SECURITY_EVENTS_MONITORS,
     );
 
     setNavigationLocation(pattern.replace(RouteParams.ProjectID, "proj-1"));
 
-    const trail: Array<Link> | undefined =
-      getSecurityEventsBreadcrumbs(pattern);
-
-    expect(trail).toBeDefined();
-    expect(
-      trail!.map((link: Link) => {
-        return link.title;
-      }),
-    ).toEqual(["Project", "Security Events", "Monitors"]);
-  });
-});
-
-describe("Security Events monitors page", () => {
-  test("scopes the table to Security Events monitors", () => {
-    expect(monitorsPageSource).toContain(
-      "monitorType: MonitorType.SecurityEvents",
-    );
-  });
-
-  test("uses its own filter-state key so it cannot share URL state with the main monitors table", () => {
-    expect(monitorsPageSource).toContain(
-      'tableId: "security-events-monitors-table"',
-    );
-  });
-
-  test("replaces the built-in create button with a permission-gated, type-preselecting deep link", () => {
-    const source: string = stripComments(monitorsPageSource);
-
-    expect(source).toContain("disableCreate={true}");
-    expect(source).toContain("PermissionGate.gateCardButton");
-    expect(source).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
-    expect(source).toContain("monitorType: MonitorType.SecurityEvents");
-    /*
-     * The deep link must go through the monitor create PAGE — never an
-     * inline create form, which would bypass the pay-as-you-go consent
-     * gate that page carries.
-     */
-    expect(source).not.toContain("FormType.Create");
-  });
-
-  test("keeps the reseller telemetry gate the other pages have", () => {
-    expect(monitorsPageSource).toContain("enableTelemetryFeatures === false");
-    expect(monitorsPageSource).toContain("<ErrorMessage");
+    expect(getSecurityEventsBreadcrumbs(pattern)).toBeUndefined();
   });
 });
 
@@ -340,15 +297,15 @@ describe("Detection rule → monitor deep link", () => {
 });
 
 describe("Security Events monitor step form", () => {
-  test("Event Class and Event Severity are first-class fields, not advanced options", () => {
+  test("Event Class and Event Severity are first-class fields, not folded away", () => {
     const source: string = stripComments(stepFormSource);
 
     /*
-     * Find each field block and assert it carries no showIf. The block
-     * ends at the next `field: {` — if a showIf lives between, the field
-     * went back behind the advanced toggle. Severity joined class here
-     * for issue #3398: hidden behind the toggle, it read as "monitors
-     * cannot filter by severity".
+     * Find each field block and assert it carries no showIf and no folded
+     * section. The block ends at the next `field: {` — if either lives
+     * between, the field went back out of sight. Severity joined class
+     * here for issue #3398: hidden behind the old advanced toggle, it read
+     * as "monitors cannot filter by severity".
      */
     for (const fieldName of ["classNames: true", "severityNames: true"]) {
       const fieldStart: number = source.indexOf(fieldName);
@@ -362,11 +319,19 @@ describe("Security Events monitor step form", () => {
           : source.slice(fieldStart, nextField);
 
       expect(fieldBlock).not.toContain("showIf");
+      expect(fieldBlock).not.toContain("collapsibleSection");
     }
   });
 
-  test("service and attribute filters stay behind the advanced toggle", () => {
+  test("service and attribute filters fold under the shared More fields section", () => {
     const source: string = stripComments(stepFormSource);
+
+    // The section every form folds its rarely needed fields into.
+    expect(source).toMatch(
+      /MORE_SECURITY_EVENT_FILTERS:[^=]*=\s*getAdvancedFormSection<MonitorStepSecurityEventsMonitor>\(\)/,
+    );
+    // Not the old Show / Hide Advanced Options link of its own.
+    expect(source).not.toContain("showAdvancedOptions");
 
     for (const fieldName of ["telemetryServiceIds: true", "attributes: true"]) {
       const fieldStart: number = source.indexOf(fieldName);
@@ -379,19 +344,49 @@ describe("Security Events monitor step form", () => {
           ? source.slice(fieldStart)
           : source.slice(fieldStart, nextField);
 
-      expect(fieldBlock).toContain("showAdvancedOptions");
+      expect(fieldBlock).toContain(
+        "collapsibleSection: MORE_SECURITY_EVENT_FILTERS",
+      );
+      expect(fieldBlock).not.toContain("showIf");
     }
   });
 });
 
 describe("Detection rule incident form fields", () => {
+  /*
+   * The rule's On Match step is the shared one (SecurityMatchActionFields):
+   * one choice writes the alert and incident columns, and each severity
+   * shows while its column says the match raises it - an incident only
+   * when its column is true, as the evaluator reads it.
+   */
   test("the incident toggle and severity dropdown exist and chain", () => {
-    const source: string = stripComments(detectionRulesSource);
+    const page: string = stripComments(detectionRulesSource);
+    const fields: string = stripComments(
+      readDashboardSource(
+        "Components",
+        "SecurityEvents",
+        "SecurityMatchActionFields.ts",
+      ),
+    );
+    const raises: string = stripComments(
+      readDashboardSource(
+        "Components",
+        "SecurityEvents",
+        "SecurityMatchRaises.ts",
+      ),
+    );
 
-    expect(source).toContain("shouldCreateIncident: true");
-    expect(source).toContain("incidentSeverity: true");
-    expect(source).toContain("model.shouldCreateIncident === true");
-    expect(source).toContain("model.shouldCreateAlert === true");
+    expect(page).toContain("...getSecurityMatchActionFields<DetectionRule>(");
+    expect(fields).toContain("shouldCreateIncident: true");
+    expect(fields).toContain("incidentSeverity: true");
+    expect(fields).toContain("return raisesIncident(values);");
+    expect(fields).toContain("return raisesAlert(values);");
+    expect(raises).toContain(
+      'return asValues(values)["shouldCreateIncident"] === true;',
+    );
+    expect(raises).toContain(
+      'return asValues(values)["shouldCreateAlert"] !== false;',
+    );
   });
 
   test("createInitialValues mirrors the DB defaults so showIf sees booleans", () => {

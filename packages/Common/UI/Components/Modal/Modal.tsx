@@ -3,6 +3,9 @@ import ButtonType from "../Button/ButtonTypes";
 import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
+import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -25,6 +28,19 @@ export enum ModalWidth {
   Large,
 }
 
+/*
+ * A plain button the footer draws between Cancel and the submit button: a
+ * way to move on that is not the dialog's action, such as Next on a stepped
+ * edit form whose submit button saves from any step. Never primary - the
+ * submit button is the dialog's one primary action.
+ */
+export interface ModalSecondaryButton {
+  title: string;
+  onClick: () => void;
+  dataTestId?: string | undefined;
+  disabled?: boolean | undefined;
+}
+
 export interface ComponentProps {
   title: string;
   description?: string | undefined;
@@ -44,7 +60,81 @@ export interface ComponentProps {
   closeButtonText?: string | undefined;
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
+
+/*
+ * Where focus starts when a dialog opens.
+ *
+ * A field in the body comes first, so a form can be typed into straight away.
+ * A dialog with nothing to fill in - a confirmation, a notice - starts on the
+ * button the dialog is for: the affirmative action, so Enter does what the
+ * one highlighted button says. Starting on Cancel, the first button in the
+ * footer, put the focus ring round Cancel and made it look like the main
+ * action. A destructive confirmation (a DANGER submit) is the exception and
+ * starts on Cancel, the least destructive choice, so a stray Enter never
+ * deletes anything. The header's X is never the starting point, and nor is
+ * anything else in the header: a control there (rightElement) is an aside -
+ * a way to the help, say - and starting on it would take the focus away from
+ * the field the dialog is for.
+ */
+export const pickInitialFocusElement: (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
+}) => HTMLElement | undefined = (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
+}): HTMLElement | undefined => {
+  const header: HTMLElement | null | undefined = data.header;
+  const candidates: Array<HTMLElement> = data.focusableElements.filter(
+    (element: HTMLElement) => {
+      return (
+        element.getAttribute("data-testid") !== "close-button" &&
+        !(header && header.contains(element))
+      );
+    },
+  );
+
+  const footer: HTMLElement | null = data.footer;
+
+  const firstOutsideTheFooter: HTMLElement | undefined = candidates.find(
+    (element: HTMLElement) => {
+      return !footer || !footer.contains(element);
+    },
+  );
+
+  if (firstOutsideTheFooter || !footer) {
+    return firstOutsideTheFooter || candidates[0];
+  }
+
+  const findFooterButton: (testId: string) => HTMLElement | undefined = (
+    testId: string,
+  ): HTMLElement | undefined => {
+    return candidates.find((element: HTMLElement) => {
+      return (
+        footer.contains(element) &&
+        element.getAttribute("data-testid") === testId
+      );
+    });
+  };
+
+  const submitButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-submit-button",
+  );
+  const cancelButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-close-button",
+  );
+
+  const preferred: HTMLElement | undefined = data.isSubmitDestructive
+    ? cancelButton || submitButton
+    : submitButton || cancelButton;
+
+  return preferred || candidates[0];
+};
 
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -77,6 +167,13 @@ const Modal: FunctionComponent<ComponentProps> = (
   const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
     (() => void) | undefined
   >(props.onClose);
+  const submitButtonStyleType: ButtonStyleType =
+    props.submitButtonStyleType ?? ButtonStyleType.PRIMARY;
+  const isSubmitDestructiveRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  isSubmitDestructiveRef.current =
+    submitButtonStyleType === ButtonStyleType.DANGER ||
+    submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
   const backdropPressStartedOutsideRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   const backdropPressEndedInsideRef: React.MutableRefObject<boolean> =
@@ -175,6 +272,36 @@ const Modal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  /*
+   * Why the last action failed - a refusal the server sent back - is drawn
+   * at the top of the body (ModalBody). A body scrolled down, as a long form
+   * is on a phone or with its fold open, left it out of sight: the button
+   * was pressed, its spinner stopped, and nothing seemed to happen. A new
+   * reason brings the top of the body back into view. The same reason kept,
+   * or none, leaves the scroll where the person put it.
+   */
+  useEffect(() => {
+    const content: HTMLDivElement | null = contentRef.current;
+
+    if (!props.error || !content || content.scrollTop <= 0) {
+      return;
+    }
+
+    const prefersReducedMotion: boolean =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (typeof content.scrollTo === "function") {
+      content.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+      return;
+    }
+
+    content.scrollTop = 0;
+  }, [props.error]);
+
   const isTopmostDialog: () => boolean = useCallback((): boolean => {
     const modal: HTMLDivElement | null = modalRef.current;
 
@@ -221,9 +348,28 @@ const Modal: FunctionComponent<ComponentProps> = (
         });
       };
 
+    /*
+     * The footer is a direct child of the panel. Searching the whole panel
+     * would find a nested dialog's footer first, since a dialog opened from
+     * inside this one renders in its body.
+     */
+    const footer: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-footer";
+      }) as HTMLElement | undefined) || null;
+
+    // Found the same way, for the same reason.
+    const header: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-header";
+      }) as HTMLElement | undefined) || null;
+
     const initialFocusElement: HTMLElement | undefined =
-      getFocusableElements().find((element: HTMLElement) => {
-        return element.getAttribute("data-testid") !== "close-button";
+      pickInitialFocusElement({
+        focusableElements: getFocusableElements(),
+        footer,
+        isSubmitDestructive: isSubmitDestructiveRef.current,
+        header,
       });
 
     if (isTopmostDialog()) {
@@ -432,6 +578,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             tabIndex={-1}
           >
             <div
+              data-testid="modal-header"
               className={`relative z-10 flex shrink-0 items-start gap-3 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-4 transition-shadow duration-200 sm:gap-4 sm:rounded-t-xl sm:px-6 ${
                 isContentHiddenAbove
                   ? "shadow-[0_6px_10px_-10px_var(--ou-modal-scroll-shadow,rgb(15_23_42_/_0.35))]"
@@ -439,18 +586,28 @@ const Modal: FunctionComponent<ComponentProps> = (
               }`}
             >
               <div className="min-w-0 flex-1">
+                {/*
+                 * A name in the title or the description - a variable, a
+                 * host, a URL - may be one long word: it breaks rather than
+                 * running under the close button.
+                 */}
                 <h3
                   data-testid="modal-title"
-                  className="text-base font-semibold leading-6 tracking-tight text-gray-900"
+                  className="text-base font-semibold leading-6 tracking-tight text-gray-900 [overflow-wrap:anywhere]"
                   id={titleId}
                 >
                   {translatedTitle}
                 </h3>
+                {/*
+                 * text-pretty: a description that runs onto a second line
+                 * takes a few words with it, never leaves one alone there
+                 * ("... status pages and / team.").
+                 */}
                 {translatedDescription && (
                   <p
                     id={descriptionId}
                     data-testid="modal-description"
-                    className="mt-0.5 text-sm leading-5 text-gray-500"
+                    className="mt-0.5 text-pretty text-sm leading-5 text-gray-500 [overflow-wrap:anywhere]"
                   >
                     {translatedDescription}
                   </p>
@@ -482,11 +639,30 @@ const Modal: FunctionComponent<ComponentProps> = (
               ref={contentRef}
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
               data-testid="modal-content"
+              /*
+               * A popup that stays inside its surroundings (the color field's)
+               * is kept inside this body: over the fields, never over the
+               * header or the footer's buttons (UseAnchoredFieldPopup).
+               */
+              data-anchored-popup-boundary="true"
             >
               <div ref={contentInnerRef}>
                 <ModalBody error={props.error}>
                   {!props.isBodyLoading ? (
-                    props.children
+                    /*
+                     * A dialog is a surface of its own: a card drawn in it is
+                     * never a section of the card it was opened from, nor is
+                     * what it draws a value of the detail card it was opened
+                     * from (DetailValueContext), nor a cell of the table it
+                     * was opened from (TableCellContext).
+                     */
+                    <CardSurfaceContext.Provider value={CardSurface.Page}>
+                      <DetailValueContext.Provider value={false}>
+                        <TableCellContext.Provider value={false}>
+                          {props.children}
+                        </TableCellContext.Provider>
+                      </DetailValueContext.Provider>
+                    </CardSurfaceContext.Provider>
                   ) : (
                     <div className="modal-body flex justify-center py-16">
                       <Loader
@@ -505,15 +681,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                   ? props.submitButtonType
                   : ButtonType.Button
               }
-              submitButtonStyleType={
-                props.submitButtonStyleType
-                  ? props.submitButtonStyleType
-                  : ButtonStyleType.PRIMARY
-              }
+              /*
+               * `??`, not a truthiness test: ButtonStyleType.PRIMARY is 0, so
+               * `style ? style : default` threw an explicit PRIMARY away.
+               */
+              submitButtonStyleType={submitButtonStyleType}
               closeButtonStyleType={
-                props.closeButtonStyleType
-                  ? props.closeButtonStyleType
-                  : ButtonStyleType.NORMAL
+                props.closeButtonStyleType ?? ButtonStyleType.NORMAL
               }
               submitButtonText={
                 translatedSubmitButtonText
@@ -533,6 +707,20 @@ const Modal: FunctionComponent<ComponentProps> = (
               }
               leftFooterElement={props.leftFooterElement}
               hasContentHiddenBelow={isContentHiddenBelow}
+              secondaryButton={
+                props.secondaryButton
+                  ? {
+                      ...props.secondaryButton,
+                      title:
+                        translateString(props.secondaryButton.title) ||
+                        props.secondaryButton.title,
+                      disabled:
+                        props.isLoading ||
+                        props.isBodyLoading ||
+                        props.secondaryButton.disabled,
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>

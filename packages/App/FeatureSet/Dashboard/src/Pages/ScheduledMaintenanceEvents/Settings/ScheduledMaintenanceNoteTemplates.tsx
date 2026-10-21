@@ -5,6 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceNoteTemplates: FunctionComponent<
@@ -16,7 +17,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         modelType={ScheduledMaintenanceNoteTemplate}
         id="incident-templates-table"
         name="Settings > Scheduled Maintenance Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -28,23 +29,17 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
           title:
             "Public or Private Note Templates for Scheduled Maintenance Events",
           description:
-            "Here is a list of all the public and private note templates for scheduled maintenance.",
+            "Ready-made text for maintenance updates. Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -52,7 +47,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -65,7 +59,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -76,9 +69,9 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             field: {
               note: true,
             },
-            title: "Public or Private note template.",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "note-details",
             required: true,
             validation: {
               minLength: 2,

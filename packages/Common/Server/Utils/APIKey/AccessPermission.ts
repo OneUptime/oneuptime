@@ -75,6 +75,7 @@ export default class APIKeyAccessPermission {
     userPermissions.push({
       permission: Permission.ProjectOwner,
       labelIds: [],
+      isBlockPermission: false,
       _type: "UserPermission",
     });
 

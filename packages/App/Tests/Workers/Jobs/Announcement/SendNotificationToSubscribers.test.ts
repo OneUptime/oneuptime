@@ -15,6 +15,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
@@ -109,6 +110,27 @@ jest.mock(
        * implementation.
        */
       Service: {
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
         compileTemplate: jest.fn(
           (template: string, variables: Record<string, string>): string => {
             let compiled: string = template;
@@ -126,8 +148,14 @@ jest.mock(
   },
 );
 
+/*
+ * The job reads the resources an announcement affects through
+ * AffectedStatusPageResources, which asks findByMonitors - the lookup that
+ * also follows monitor groups - once per announcement, for all of its status
+ * pages.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/MailService", () => {
@@ -183,8 +211,14 @@ jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
   return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
 });
 
+// Whether the announcement's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import MailService from "Common/Server/Services/MailService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageAnnouncementService from "Common/Server/Services/StatusPageAnnouncementService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
@@ -200,6 +234,45 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MULTILINE_PAGE_NAME,
+  MULTILINE_RESOURCE_NAME,
+  MULTILINE_TITLE,
+  RecordedCompile,
+  expectChatMessageShowsValuesAsText,
+  expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  onOneLine,
+  recordedCompiles,
+  withoutMarkdownEscapes,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  groupResourceOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -247,7 +320,15 @@ const GROUP_IDS: Record<string, ObjectID> = {
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/announcements/${ANNOUNCEMENT_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const SLACK_URL: string = "https://hooks.slack.com/services/T000/B000/XXXX";
 const TEAMS_URL: string = "https://outlook.office.com/webhook/abc";
 const WEBHOOK_URL: string = "https://hooks.acme.com/status";
@@ -275,7 +356,11 @@ let createdRows: Array<Row> = [];
 let updatedRows: Array<Row> = [];
 let skipRows: Array<Row> = [];
 
-// StatusPageResource rows returned for each status page id.
+/*
+ * The StatusPageResource rows each status page lists for the announcement's
+ * monitors. findByMonitors answers for the pages it is asked about, all at
+ * once.
+ */
 let resourcesByStatusPage: Record<string, Array<StatusPageResource>> = {};
 
 function announcement(overrides?: {
@@ -288,6 +373,7 @@ function announcement(overrides?: {
 }): Row {
   const row: Row = new StatusPageAnnouncement();
   row._id = (overrides?.id || ANNOUNCEMENT_ID).toString();
+  row.projectId = PROJECT_ID;
   row.title = TITLE;
   row.description = DESCRIPTION;
   row.showAnnouncementAt =
@@ -420,7 +506,7 @@ function subscriber(): StatusPageSubscriber {
   row.slackIncomingWebhookUrl = URL.fromString(SLACK_URL);
   row.microsoftTeamsIncomingWebhookUrl = URL.fromString(TEAMS_URL);
   row.subscriberWebhook = URL.fromString(WEBHOOK_URL);
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -504,12 +590,14 @@ interface CompileTemplateCall {
 
 // Every compileTemplate call, in order.
 function compileTemplateCalls(): Array<CompileTemplateCall> {
-  return mock(
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.map((call: Array<unknown>): CompileTemplateCall => {
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileTemplateCall => {
     return {
-      template: call[0] as string,
-      variables: call[1] as Record<string, string>,
+      template: call.template,
+      variables: call.variables,
     };
   });
 }
@@ -531,10 +619,22 @@ function variablesByChannel(): Record<string, Record<string, string>> {
   return byChannel;
 }
 
-function resourceLookups(): Array<{ query: JSONObject; select: JSONObject }> {
-  return mock(StatusPageResourceService.findAllBy).mock.calls.map(
-    (call: Array<unknown>): { query: JSONObject; select: JSONObject } => {
-      return call[0] as { query: JSONObject; select: JSONObject };
+interface ResourceLookup {
+  monitorIds: Array<ObjectID>;
+  statusPageIds: Array<ObjectID>;
+  select: JSONObject;
+}
+
+function idsOf(ids: Array<ObjectID>): Array<string> {
+  return ids.map((id: ObjectID): string => {
+    return id.toString();
+  });
+}
+
+function resourceLookups(): Array<ResourceLookup> {
+  return mock(StatusPageResourceService.findByMonitors).mock.calls.map(
+    (call: Array<unknown>): ResourceLookup => {
+      return call[0] as ResourceLookup;
     },
   );
 }
@@ -635,7 +735,10 @@ function dashboardDefault(
     detailsUrl: DETAILS_URL,
     announcementTitle: TITLE,
     announcementDescription: DESCRIPTION,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
   };
 
   return template.replace(/{{\s*(\w+)\s*}}/g, (_match: string, key: string) => {
@@ -691,18 +794,28 @@ beforeEach(() => {
   mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
     true,
   );
-  mock(StatusPageSubscriberService.getUnsubscribeLink).mockReturnValue(
-    URL.fromString(UNSUBSCRIBE_URL),
+  mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
+    fakeGetUnsubscribeLink,
   );
 
   mock(StatusPageService.getStatusPageURL).mockResolvedValue(
     STATUS_PAGE_URL as never,
   );
 
-  mock(StatusPageResourceService.findAllBy).mockImplementation(
+  mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+
+  // Answers only for the status pages it is asked about, as the real one does.
+  mock(StatusPageResourceService.findByMonitors).mockImplementation(
     async (args: unknown): Promise<Array<StatusPageResource>> => {
-      const query: JSONObject = (args as { query: JSONObject }).query;
-      return resourcesByStatusPage[String(query["statusPageId"])] || [];
+      const askedFor: Array<string> = idsOf(
+        (args as ResourceLookup).statusPageIds || [],
+      );
+
+      return askedFor.flatMap(
+        (statusPageId: string): Array<StatusPageResource> => {
+          return resourcesByStatusPage[statusPageId] || [];
+        },
+      );
     },
   );
 
@@ -767,29 +880,44 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     nothingSent();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips the update while the original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedRows = [
-        announcement({ subscriberNotificationStatus: originalStatus }),
-      ];
+  test("skips the update while the original notification is Pending", async () => {
+    updatedRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnAnnouncementUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnAnnouncementUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnAnnouncementUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnAnnouncementUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  /*
+   * The original is being sent with the announcement as it was read before
+   * the edit: the update waits, untouched, and goes out once that settled.
+   */
+  test("waits, untouched, while the original notification is being sent", async () => {
+    updatedRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()).toEqual([]);
+  });
 
   test("skips an announcement that is not shown on status pages yet", async () => {
     updatedRows = [
@@ -867,7 +995,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     await runJob(UPDATED_JOB);
 
     expect(sentSms()).toEqual([
-      `Announcement updated: ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Announcement updated: ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(
@@ -1034,7 +1162,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
       subscriberNotificationStatusOnAnnouncementUpdated:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessageOnAnnouncementUpdated:
-        "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
     });
   });
 
@@ -1052,6 +1180,56 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     expect(
       StatusPageSubscriberService.getSubscribersByStatusPage,
     ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Send Notifications to Subscribers off (Common/Types/StatusPage/
+   * SubscriberNotificationsSwitch): the page is passed over before a single
+   * subscriber is read.
+   */
+  test("sends nothing from a status page that sends its subscribers nothing", async () => {
+    updatedRows = [announcement()];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(statusWrites()[1]).toEqual({
+      subscriberNotificationStatusOnAnnouncementUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnAnnouncementUpdated:
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
+    });
+  });
+
+  test("still sends from the pages that send, beside one that does not", async () => {
+    updatedRows = [announcement()];
+    const off: StatusPage = statusPage({ id: ObjectID.generate() });
+    off.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([off, statusPage()] as never);
+
+    await runJob(UPDATED_JOB);
+
+    expect(
+      mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock.calls
+        .length,
+    ).toBe(1);
+    expect(
+      String(
+        mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock
+          .calls[0]![0],
+      ),
+    ).toBe(STATUS_PAGE_ID.toString());
+    expect(sentMail().length).toBeGreaterThan(0);
   });
 
   test("marks the update Skipped when the announcement has no status pages", async () => {
@@ -1193,7 +1371,7 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
     );
     expect(sentMail()[0]!.mail["subject"]).toBe(`[Announcement] ${TITLE}`);
     expect(sentSms()).toEqual([
-      `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()[0]).toContain(`## 📢 Announcement - ${TITLE}`);
     expect(sentTeams()[0]).toContain(`## 📢 Announcement - ${TITLE}`);
@@ -1206,6 +1384,28 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
         StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
       );
     }
+  });
+
+  test("a new announcement is sent nothing from a status page that sends its subscribers nothing", async () => {
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()).toEqual([]);
+    expect(sentSms()).toEqual([]);
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
   });
 
   test("matches the dashboard's created defaults for SMS and chat", async () => {
@@ -1427,7 +1627,10 @@ describe.each(TRIGGERS)(
         }),
       );
 
-      expect(sentSms()).toEqual([`SMS|${plainTextRendering}`]);
+      // An SMS carries the same token link as every other message, on a public page too.
+      expect(sentSms()).toEqual([
+        `SMS|${plainTextRendering.replace(UNSUBSCRIBE_URL, SMS_UNSUBSCRIBE_URL)}`,
+      ]);
       expect(sentSlack()).toEqual([`Slack|${markdownRendering}`]);
       expect(sentTeams()).toEqual([`Microsoft Teams|${markdownRendering}`]);
       expect(sentCustomEmails()).toEqual([
@@ -1480,7 +1683,12 @@ describe.each(TRIGGERS)(
         }).toEqual({
           statusPageName: "Acme Status",
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: UNSUBSCRIBE_URL,
+          // An SMS carries the same token link as every other message, on a public page too.
+          unsubscribeUrl: call.template.startsWith(
+            `${StatusPageSubscriberNotificationMethod.SMS}|`,
+          )
+            ? SMS_UNSUBSCRIBE_URL
+            : UNSUBSCRIBE_URL,
           resourcesAffected: "",
           announcementTitle: TITLE,
           announcementDescription: "",
@@ -1578,6 +1786,8 @@ describe.each(TRIGGERS)(
           ...shared,
           announcementDescription: DESCRIPTION_TEXT,
           resourcesAffected: RESOURCES_AFFECTED_TEXT,
+          // An SMS carries the same token link as every other message, on a public page too.
+          unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
         },
         [StatusPageSubscriberNotificationMethod.Slack]: {
           ...shared,
@@ -1743,7 +1953,7 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
 
       const calls: Array<CompileTemplateCall> = compileTemplateCalls();
 
@@ -1790,11 +2000,9 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(
-        resourceLookups().map((lookup: { query: JSONObject }): string => {
-          return String(lookup.query["statusPageId"]);
-        }),
-      ).toEqual([
+      // One lookup answers every page; each page gets only its own.
+      expect(resourceLookups()).toHaveLength(1);
+      expect(idsOf(resourceLookups()[0]!.statusPageIds)).toEqual([
         STATUS_PAGE_ID.toString(),
         SECOND_STATUS_PAGE_ID.toString(),
         THIRD_STATUS_PAGE_ID.toString(),
@@ -1825,14 +2033,14 @@ describe.each(TRIGGERS)(
       ]);
     });
 
-    test("loads each page's resources for the announcement's monitors, with their group names", async () => {
+    test("looks up the resources the announcement's monitors affect, monitor groups included, with their group names", async () => {
       trigger.queue([scopedAnnouncement()]);
 
       await runJob(trigger.job);
 
-      const lookups: Array<{ query: JSONObject; select: JSONObject }> =
-        resourceLookups();
+      const lookups: Array<ResourceLookup> = resourceLookups();
 
+      // findByMonitors is the lookup that also follows monitor groups.
       expect(lookups).toHaveLength(1);
       expect(lookups[0]!.select).toEqual({
         _id: true,
@@ -1843,18 +2051,14 @@ describe.each(TRIGGERS)(
           name: true,
         },
       });
-      expect(lookups[0]!.query["statusPageId"]).toEqual(
-        new ObjectID(STATUS_PAGE_ID.toString()),
-      );
-
-      const monitorFilter: { objectLiteralParameters?: JSONObject } =
-        lookups[0]!.query["monitorId"] as unknown as {
-          objectLiteralParameters?: JSONObject;
-        };
-
-      expect(
-        Object.values(monitorFilter.objectLiteralParameters || {}),
-      ).toEqual([[API_MONITOR_ID.toString(), WEBSITE_MONITOR_ID.toString()]]);
+      expect(idsOf(lookups[0]!.monitorIds)).toEqual([
+        API_MONITOR_ID.toString(),
+        WEBSITE_MONITOR_ID.toString(),
+      ]);
+      // Only the pages the announcement is on.
+      expect(idsOf(lookups[0]!.statusPageIds)).toEqual([
+        STATUS_PAGE_ID.toString(),
+      ]);
     });
 
     test("keeps the default messages unchanged for an announcement scoped to resources", async () => {
@@ -2017,3 +2221,496 @@ describe.each(TRIGGERS)(
     });
   },
 );
+
+/*
+ * Escaping, for the posted and the updated announcement alike. The title,
+ * the status page's name and the names of its resources and groups are
+ * plain text a project member typed. In an email they must read as those
+ * characters; the description is Markdown rendered to HTML and stays HTML.
+ * Text channels (a subject, SMS, webhooks) show text as written, and Slack
+ * and Teams - Markdown - get each plain value escaped for Markdown, so it
+ * reads as written once rendered: none of them gets an HTML entity.
+ */
+describe.each(TRIGGERS)(
+  "Announcement escapes plain values in email ($name job)",
+  (trigger: TriggerCase) => {
+    const ESCAPING_EMAIL_BODY: string =
+      '<h1>{{announcementTitle}}</h1><p>{{statusPageName}}</p><div>{{resourcesAffected}}</div><div>{{announcementDescription}}</div><a href="{{detailsUrl}}">Details</a>';
+    const ESCAPING_TEXT: string =
+      "{{announcementTitle}} on {{statusPageName}}: {{resourcesAffected}}";
+
+    function hostilePage(withCustomDelivery: boolean): StatusPage {
+      const page: StatusPage = withCustomDelivery
+        ? statusPageWithCustomDelivery()
+        : statusPage();
+      page.pageTitle = HOSTILE_PAGE_NAME;
+      return page;
+    }
+
+    beforeEach(() => {
+      const row: Row = scopedAnnouncement();
+      row.title = HOSTILE_TITLE;
+      trigger.queue([row]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        hostileResources(STATUS_PAGE_ID);
+    });
+
+    describe("with custom templates", () => {
+      beforeEach(() => {
+        givenStatusPages([hostilePage(true)]);
+        mock(
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+        ).mockImplementation(async (args: unknown) => {
+          const method: string = (args as JSONObject)[
+            "notificationMethod"
+          ] as string;
+          return method === StatusPageSubscriberNotificationMethod.Email
+            ? customTemplate(ESCAPING_EMAIL_BODY, ESCAPING_TEXT)
+            : customTemplate(`${method}: ${ESCAPING_TEXT}`);
+        });
+      });
+
+      test("the email body escapes the plain values and keeps the description and the resource list as HTML", async () => {
+        await runJob(trigger.job);
+
+        expect(sentCustomEmails()).toEqual([
+          {
+            body: `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML}</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${DESCRIPTION_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+            subject: `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME}: ${HOSTILE_RESOURCES_TEXT}`,
+          },
+        ]);
+
+        const emailBody: Array<RecordedCompile> = recordedCompiles(
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+          StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+        ).filter((call: RecordedCompile): boolean => {
+          return call.emailBody;
+        });
+        expect(emailBody).toHaveLength(1);
+        expectOnlyTheListedHtmlVariables(
+          emailBody[0]!.rawVariables,
+          trigger.eventType,
+        );
+      });
+
+      test("the subject, SMS and webhooks get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
+        await runJob(trigger.job);
+
+        const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME}: ${HOSTILE_RESOURCES_TEXT}`;
+        const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN}: ${HOSTILE_RESOURCES_MARKDOWN}`;
+
+        expect(sentSms()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+        ]);
+        expect(sentSlack()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
+        ]);
+        expect(sentTeams()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
+        ]);
+        // Rendered, the chat message reads exactly what was written.
+        expect(withoutMarkdownEscapes(markdown)).toBe(text);
+        for (const message of [
+          sentCustomEmails()[0]!.subject,
+          ...sentSms(),
+          ...sentSlack(),
+          ...sentTeams(),
+        ]) {
+          expectNoHtmlEntities(message);
+        }
+        for (const message of [...sentSlack(), ...sentTeams()]) {
+          expectNoUnescapedAngleBracket(message);
+        }
+
+        expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+        expect(sentWebhooks()[0]!["data"]).toEqual(
+          expect.objectContaining({ announcementTitle: HOSTILE_TITLE }),
+        );
+      });
+    });
+
+    test("the default email gets the title and page name as written, for the template to escape", async () => {
+      givenStatusPages([hostilePage(false)]);
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!.mail["vars"]).toEqual(
+        expect.objectContaining({
+          announcementTitle: HOSTILE_TITLE,
+          statusPageName: HOSTILE_PAGE_NAME,
+          announcementDescription: DESCRIPTION_HTML,
+        }),
+      );
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+      }
+    });
+
+    test("the default Slack and Teams messages escape the title for Markdown", async () => {
+      givenStatusPages([hostilePage(false)]);
+
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expect(message).toContain(` - ${HOSTILE_TITLE_MARKDOWN}\n`);
+        // The description is Markdown its author wrote, and is sent as written.
+        expect(message).toContain(`**Description:** ${DESCRIPTION}`);
+        expectNoUnescapedAngleBracket(message);
+      }
+    });
+  },
+);
+
+/*
+ * A title, a status page's name or a resource's name can hold a line break,
+ * a link whose words hide where it goes and a Slack mention: the API, an
+ * import or a monitor can set one so. A Slack or Teams message is Markdown,
+ * so each is escaped there, in the default messages and in a custom template
+ * alike: it reads on one line, exactly as written, and notifies nobody. The
+ * description is Markdown a project member wrote, and keeps its formatting.
+ */
+describe.each(TRIGGERS)(
+  "Announcement chat messages show values as text ($name job)",
+  (trigger: TriggerCase) => {
+    beforeEach(() => {
+      const row: Row = scopedAnnouncement();
+      row.title = MULTILINE_TITLE;
+      trigger.queue([row]);
+
+      const page: StatusPage = statusPage();
+      page.pageTitle = MULTILINE_PAGE_NAME;
+      givenStatusPages([page]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = [
+        resource({
+          statusPageId: STATUS_PAGE_ID,
+          displayName: MULTILINE_RESOURCE_NAME,
+        }),
+      ];
+    });
+
+    test("the default Slack and Teams messages", async () => {
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectChatMessageShowsValuesAsText(message, [MULTILINE_TITLE]);
+        // The title starts no block of its own under the heading.
+        expect(withoutMarkdownEscapes(message.split("\n")[0]!)).toContain(
+          ` - ${onOneLine(MULTILINE_TITLE)}`,
+        );
+        // The message's own links are links, and the description keeps its formatting.
+        expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+        expect(message).toContain(`**Description:** ${DESCRIPTION}`);
+      }
+    });
+
+    test("a custom Slack or Teams template", async () => {
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Slack ||
+          method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+          ? customTemplate(
+              "**{{announcementTitle}}** on {{statusPageName}}: {{resourcesAffected}}\n\n{{announcementDescription}}\n\n[Details]({{detailsUrl}})",
+            )
+          : null;
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectChatMessageShowsValuesAsText(message, [
+          MULTILINE_TITLE,
+          MULTILINE_PAGE_NAME,
+          MULTILINE_RESOURCE_NAME,
+        ]);
+        expect(message).toContain(
+          `\n\n${DESCRIPTION}\n\n[Details](${DETAILS_URL})`,
+        );
+      }
+
+      // Webhooks are not Markdown: they get the values as written.
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(MULTILINE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({ announcementTitle: MULTILINE_TITLE }),
+      );
+    });
+  },
+);
+
+/*
+ * Subscribers who chose resources, on a page that shows the announcement's
+ * monitor through a monitor group. The job used to look resources up by
+ * monitorId alone. A page that showed the monitor only through a group then
+ * had no affected resource, so the announcement went to everyone on it,
+ * subscribers of unrelated resources included; and a page that also listed
+ * the monitor by itself left out whoever had picked the group.
+ */
+describe.each(TRIGGERS)(
+  "Announcement subscribers who picked a monitor group ($name job)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map(({ mail }: { mail: JSONObject }): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(subscribers as never);
+    }
+
+    beforeEach(() => {
+      givenStatusPages([lettingSubscribersChooseResources(statusPage())]);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(sentSms()).toHaveLength(0);
+    });
+
+    test("lists the group among the resources affected", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.Group]));
+      givenStatusPages([
+        lettingSubscribersChooseResources(statusPageWithCustomDelivery()),
+      ]);
+      useCustomTemplates({
+        body: "{{resourcesAffected}}",
+        subject: "{{resourcesAffected}}",
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentCustomEmails()).toEqual([
+        {
+          body: "Email|Checkout API, Payments",
+          subject: "Subject|Checkout API, Payments",
+        },
+      ]);
+    });
+
+    test("an announcement that names no monitor still tells everyone on the page", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement()]);
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+      expect(emailsSentTo()).toEqual(
+        [ResourceFan.Everything, ResourceFan.Group, ResourceFan.OtherGroup].map(
+          fanEmail,
+        ),
+      );
+    });
+
+    test("a failed lookup marks the notification Failed with the reason, and tells nobody", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      givenSubscribers(
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers,
+      );
+      mock(StatusPageResourceService.findByMonitors).mockRejectedValue(
+        new Error("database went away") as never,
+      );
+
+      await runJob(trigger.job);
+
+      /*
+       * Without the affected resources the job cannot tell who picked them,
+       * so it sends nothing, rather than everything, and says why. Retry
+       * sends it again to every page.
+       */
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        trigger.name === "created"
+          ? {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessage: "database went away",
+            }
+          : {
+              subscriberNotificationStatusOnAnnouncementUpdated:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessageOnAnnouncementUpdated:
+                "database went away",
+            },
+      );
+    });
+
+    test("finishes with the 'no matching subscribers' message when nobody picked an affected resource", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = [
+        groupResourceOn(STATUS_PAGE_ID),
+      ];
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.OtherGroup]));
+
+      await runJob(trigger.job);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        expect.objectContaining({
+          [trigger.name === "created"
+            ? "subscriberNotificationStatusMessage"
+            : "subscriberNotificationStatusMessageOnAnnouncementUpdated"]:
+            "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
+        }),
+      );
+    });
+  },
+);
+
+describe("Announcement unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * A blocked project's status pages send nothing: the one lookup every
+ * subscriber notification reads (getStatusPagesToSendNotification) leaves
+ * them out, so the job gets no page to send from. It says why, rather than
+ * that no subscriber matched.
+ */
+describe("Announcements of a blocked project", () => {
+  beforeEach(() => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(true as never);
+  });
+
+  test("a new announcement is marked Skipped with the reason, and nothing is sent", async () => {
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+
+    await runJob(CREATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(ProjectService.isProjectBlocked).toHaveBeenCalledWith(PROJECT_ID);
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+      },
+    ]);
+  });
+
+  test("an update the editor asked to send is marked Skipped the same way", async () => {
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnAnnouncementUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnAnnouncementUpdated:
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+      },
+    ]);
+  });
+
+  test("with no page left in a project that is not blocked, says as before that no subscriber matched", async () => {
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnAnnouncementUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnAnnouncementUpdated:
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
+    });
+  });
+
+  test("a live project's announcement is sent without asking about its project", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage()] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    expect(MailService.sendMail).toHaveBeenCalled();
+    expect(ProjectService.isProjectBlocked).not.toHaveBeenCalled();
+  });
+
+  test("reads the announcement's project, which it asks", async () => {
+    createdRows = [];
+
+    await runJob(CREATED_JOB);
+
+    const select: JSONObject = (
+      mock(StatusPageAnnouncementService.findAllBy).mock.calls[1]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+
+    expect(select["projectId"]).toBe(true);
+  });
+});

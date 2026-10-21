@@ -1,247 +1,252 @@
-# Widgets
+# Dashbord-widgets
 
-En widget er én flis på et dashbord. Denne siden lister hver widget du kan legge til, hva den viser og når du skal gripe til den.
+En widget er én flis på et dashbord. Denne siden går gjennom hver widget i katalogen **Legg til widget**, hva den viser og innstillingene som betyr noe, i katalogens egne grupper. For å plassere widgets i rutenettet og lagre dem, se [Opprette et dashbord](/docs/dashboards/authoring).
 
-For hvordan du drar widgets rundt på lerretet, se [Lage et dashbord](/docs/dashboards/authoring).
+:::cards
+- [Hvilken widget bør jeg bruke?](#hvilken-widget-bør-jeg-bruke): Velg ut fra spørsmålet flisen svarer på.
+- [Diagrammer og tall](#diagrammer-og-tall): Diagram, Verdi, Måler og Tabell, fra en metrikkspørring.
+- [Logger, spor og sikkerhet](#logger-spor-og-sikkerhet): Volumdiagrammer, sanntidsstrømmer og lister.
+- [Sortere lister og tabeller](#sortere-lister-og-tabeller): Sorter etter en kolonne, og velg rekkefølgen alle ser.
+- [Når en widget ikke kan vises](#når-en-widget-ikke-kan-vises): Hva en ødelagt widget viser, og hvordan du fikser den.
+:::
+
+## Hvilken widget bør jeg bruke?
+
+Start med spørsmålet flisen skal svare på:
+
+| Spørsmålet | Widgeten |
+| --- | --- |
+| Hvordan har en metrikk endret seg over tid? | **Diagram** |
+| Hvor mange logger, av hvilken alvorlighet, over tid? | **Log Chart** |
+| Hvor raske er forespørslene, og hvor mange feiler, over tid? | **Trace Chart** |
+| Hva er ett bestemt tall akkurat nå? | **Verdi**, eller **Måler** når det har et kjent område |
+| Hvilke verter, tjenester eller endepunkter skiller seg ut? | **Tabell** eller **Trace Table** |
+| Hva skjer akkurat nå? | **Loggstrøm**, **Sporliste**, **Hendelsesliste** eller **Varselliste** |
+| Er alle nettstedene våre oppe? | **Overvåkingsliste** |
+| Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO List** |
+| Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
+| Hvor i verden er nettverket vårt, og hva er nede? | **Network Map** |
+| En overskrift, et notat, klokka på et annet kontor? | **Tekst** eller **Klokke** |
+| Data som ligger utenfor OneUptime? | En widget fra gruppen Eksterne datakilder |
+| Noe ingen widget dekker? | **HTML**, når du er sikker på at ingen annen widget gjør det |
+
+```mermaid title="Velg en widget, ett spørsmål om gangen"
+flowchart TB
+    q1("Endrer svaret<br/>seg over tid?") -->|"Ja"| w1["Diagram, Log Chart<br/>eller Trace Chart"]
+    q1 -->|"Nei"| q2("Er det ett tall?")
+    q2 -->|"Nei"| q3("Er det ting og<br/>tilstanden deres?")
+    q2 -->|"Ja"| w2["Verdi, eller en Måler<br/>ved et kjent område"]
+    q3 -->|"Ja"| w3["En listewidget<br/>eller en tabell"]
+    q3 -->|"Nei"| w4["Tekst, Klokke<br/>eller HTML"]
+```
+
+De fleste dashbord blander noen få: et diagram øverst, en verdi eller to ved siden av, en tekstoverskrift og en liste eller to under.
 
 ## Diagrammer og tall
 
+Disse fire widgetene leser en metrikkspørring, bygget slik metrikkutforskeren bygger en: velg en metrikk og en aggregering, legg til attributtfiltre, og grupper etter et attributt for å få én serie per verdi.
+
 ### Diagram
 
-Et linje-, søyle- eller arealdiagram av én eller flere metrikkserier over dashbordets tidsperiode.
+En tidsserie med én eller flere metrikkspørringer over dashbordets tidsintervall. **Chart Type** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Additional Queries** legger flere metrikker på de samme aksene, og **Formulas** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings visningsinnstillinger legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
 
-**Innstillinger**:
-
-- Én eller flere metrikkspørringer.
-- En valgfri formel som kombinerer to spørringer (for eksempel `errors / total * 100` for å få en feilrate).
-- Et "vis som rate"-alternativ for kumulative tellere som vokser uten å nullstille seg.
-- Visningsalternativer: stablet eller overlagt, Y-akse-enhet, plassering av forklaring, diagramtype.
-
-Bruk det når: trender betyr noe. Latens over tid, feilantall, kødybde, alt der formen på linjen forteller historien.
+Bruk den når formen på linjen forteller historien: ventetid, feil, gjennomstrømning eller kødybde.
 
 ### Verdi
 
-Ett stort tall med valgfrie fargede terskler.
+Ett stort tall med en sparkline: spørringens verdi over hele tidsintervallet, summert for en sum eller en telling, den høyeste for et maksimum, den laveste for et minimum og ellers gjennomsnittet. En pil sammenligner den andre halvdelen av intervallet med den første, farget etter **Trend Direction**: om en høyere verdi er bedre eller verre, eller lest ut fra metrikkens navn. **Warning Threshold** gjør bakgrunnen gul og **Critical Threshold** rød når verdien når dem.
 
-**Innstillinger**:
-
-- En metrikkspørring som gir tilbake ett tall (siste verdi, gjennomsnitt eller maks over tidsperioden).
-- En valgfri **advarselsterskel** (gul over).
-- En valgfri **kritisk terskel** (rød over).
-- Tallformat og enhet.
-
-Bruk det når: ett tall svarer på spørsmålet. Nåværende feilrate, P95-latens akkurat nå, antall åpne hendelser.
+Bruk den når ett tall svarer på spørsmålet: feilraten, P95-ventetiden eller antall forespørsler betjent i dag.
 
 ### Måler
 
-En sirkulær måler med et minimum, maksimum, advarselsbånd og kritisk bånd.
+En skive mellom et minimum og et maksimum, 0 og 100 med mindre du angir dem, med en gul sone fra **Warning Threshold** og en rød sone fra **Critical Threshold**.
 
-**Innstillinger**: en metrikkspørring og de fire grensene.
-
-Bruk det når: verdien passer innenfor et kjent område. CPU-prosent (0–100 %), diskbruk, kø-kapasitet.
+Bruk den når verdien lever i et kjent område: CPU- eller diskbruk i prosent, eller kapasiteten til en kø.
 
 ### Tabell
 
-En tabell med metrikkresultater, én rad per gruppe.
+Metrikkverdier som rader. **Group By Attributes** gir én rad per verdi, for eksempel én per `host.name`; uten den er hver rad en tidsbolk. **Metrics & Columns** angir kolonnene: metrikker og formler over dem, som tilgjengelighet i prosent. Når du grupperer, gjør **Reduce across time** hver rads serie om til én verdi: den siste verdien, gjennomsnittet, summen, minimum eller maksimum.
 
-**Innstillinger**: en metrikkspørring (vanligvis gruppert etter en etikett som host eller tjeneste), kolonnene som skal vises og en rad-grense.
+Bruk den til en oppdeling i stedet for en trend: de mest støyende vertene, feilene per tjeneste, forespørslene per endepunkt.
 
-Bruk det når: du vil ha en nedbrytning i stedet for en trend. Topp 10 mest støyende hoster, feilantall per tjeneste, forespørsler per endepunkt.
+## Tekst, klokke og HTML
 
-## Tekst
+Disse widgetene trenger ingen datakilde.
 
-En statisk blokk med Markdown.
+### Tekst
 
-**Innstillinger**: Markdown-kroppen. Overskrifter, lister, lenker, utheving og kodeblokker rendres alle.
+En linje eller en tekstblokk, for en overskrift, et notat eller lenker til runbookene dine. Slå på **Markdown** for å tegne overskrifter, lenker, lister, kode og tabeller; ellers vises teksten slik den er skrevet, med fet, kursiv eller understreking om du vil.
 
-Bruk det når: du vil ha en seksjonsoverskrift, et avsnitt med kontekst, en liste med lenker til runbooks eller et midlertidig banner under en hendelse.
+### Klokke
 
-## HTML
+Klokkeslettet nå i en hvilken som helst tidssone, som sifre eller som en analog urskive, med en etikett som "Sydney-kontoret". Uten tidssone viser den hver seers egen. Legg til én per kontor for å se hvem som er våken.
 
-Din egen HTML, CSS og JavaScript, rendret som en widget.
+### HTML
 
-**Innstillinger**: HTML-kroppen, et valgfritt stilark, et valgfritt skript og tre tillatelsesbrytere.
+Din egen HTML, CSS og JavaScript, tegnet som en widget. Innstillingene er HTML-innholdet, et valgfritt stilark, et valgfritt skript og tre tillatelsesbrytere.
 
-Bruk det når: du trenger noe ingen innebygd widget dekker — et innebygd merke fra en tredjepart, en tabell hentet fra et internt API, en egendefinert forklaring, et sett med stilsatte lenker inn i dine egne verktøy.
+Bruk den når du trenger noe ingen innebygd widget dekker: et innebygd merke fra en tredjepart, en tabell hentet fra et internt API, en tilpasset forklaring eller et sett stiliserte lenker til dine egne verktøy.
 
-### Hva den kan og ikke kan gjøre
+#### Hva den kan og ikke kan gjøre
 
-Widgeten rendres i en sandkasse-ramme på sitt eget isolerte origin. Inne i den rammen kan koden din gjøre omtrent hva som helst: bygge DOM, kjøre timere, hente fra hvilken som helst URL, tegne på et canvas.
+Widgeten gjengis i en sandkasseramme på sin egen isolerte opprinnelse. Inne i den rammen kan koden din gjøre mer eller mindre hva som helst: bygge DOM, kjøre tidtakere, hente fra en hvilken som helst URL, tegne på et canvas.
 
-Det den ikke kan gjøre, er å nå OneUptime-siden rundt seg. Den har ingen tilgang til dashbordets DOM, cookies, local storage eller API-sesjon, og den kan ikke navigere nettleserfanen bort. Dette gjelder enten dashbordet er privat eller delt offentlig.
+Det den ikke kan, er å nå OneUptime-siden rundt seg. Den har ingen tilgang til dashbordets DOM, informasjonskapsler, lokale lagring eller API-økt, og den kan ikke få nettleserfanen til å navigere bort. Det gjelder enten dashbordet er privat eller delt offentlig.
 
-To konsekvenser som er verdt å vite om før du limer inn noe:
+To konsekvenser som er verdt å kjenne til før du limer inn noe:
 
-- En `fetch` fra widgeten er en forespørsel på tvers av origin, fra et ugjennomsiktig origin, så serveren du kaller må tillate den med CORS. Å kalle OneUptime-API-et herfra støttes ikke.
-- Widgeten starter gjennomsiktig. Sett en bakgrunn på `body` i CSS-en din hvis du vil at den skal fylle kortet.
+- En `fetch` fra widgeten er en forespørsel på tvers av opprinnelser fra en ugjennomsiktig opprinnelse, så serveren du kaller, må tillate den med CORS. Det støttes ikke å kalle OneUptime-API-et herfra.
+- Widgeten starter gjennomsiktig. Angi en bakgrunn på `body` i CSS-en din hvis du vil at den skal fylle kortet. I det mørke temaet starter teksten lys, og elementet `<html>` har klassen `dark`: start en CSS-regel med `html.dark` for å style bare det mørke temaet.
 
-### Bruke dashbord-variabler
+#### Bruke dashbordvariabler
 
-Skriv `{{variableName}}` hvor som helst i HTML-en, CSS-en eller JavaScript-en, så erstattes det med variabelens nåværende verdi før widgeten rendres. Å velge en ny verdi rendrer widgeten på nytt. En plassholder som navngir en variabel som ikke finnes, blir stående som den er.
+Skriv `{{variableName}}` hvor som helst i HTML, CSS eller JavaScript, så erstattes det med variabelens nåværende verdi før widgeten gjengis. Å velge en ny verdi gjengir widgeten på nytt. En plassholder som nevner en variabel som ikke finnes, blir stående som den er.
 
-Skript får de samme verdiene, pluss dashbordets tidsperiode, på `window.ONEUPTIME`:
+Skript får de samme verdiene, pluss dashbordets tidsintervall, på `window.ONEUPTIME`:
 
-```javascript
-window.ONEUPTIME.variables.environment; // nåværende verdi, eller "" hvis den ikke er satt
-window.ONEUPTIME.startDate; // ISO 8601-streng, starten på dashbordets tidsperiode
-window.ONEUPTIME.endDate; // ISO 8601-streng, slutten på den
+```javascript title="window.ONEUPTIME"
+window.ONEUPTIME.variables.environment; // current value, or "" if unset
+window.ONEUPTIME.startDate; // ISO 8601 string, start of the dashboard's time range
+window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 ```
 
-Widgeten lastes på nytt hver gang dashbordet oppdateres, så en widget som henter sine egne data holder tritt med oppdateringsintervallet.
+Widgeten lastes inn på nytt hver gang dashbordet oppdateres, så en widget som henter sine egne data, holder tritt med oppdateringsintervallet.
 
-### Tillatelser
+#### Tillatelser
 
-**Run JavaScript** (Kjør JavaScript, på som standard) kjører skriptet ditt. Slå det av for å bare rendre markup og stiler — skriptet blir da utelatt fra widgeten helt, i stedet for bare å bli blokkert.
+**Run JavaScript** (på som standard) kjører skriptet ditt. Slå den av for bare å gjengi markering og stiler: skriptet utelates da helt fra widgeten i stedet for bare å bli blokkert.
 
-**Open links in a new tab** (Åpne lenker i en ny fane, på som standard) lar lenker og `window.open` åpne en nettleserfane. Lenker åpnes alltid i en ny fane; widgeten kan aldri navigere selve dashbordet.
+**Open links in a new tab** (på som standard) lar lenker og `window.open` åpne en nettleserfane. Lenker åpnes alltid i en ny fane; widgeten kan aldri få selve dashbordet til å navigere.
 
-**Allow forms to submit** (Tillat at skjemaer sendes inn, av som standard) gjør at et `<form>` inne i widgeten kan sendes inn.
+**Allow forms to submit** (av som standard) lar et `<form>` inne i widgeten sendes.
 
-Alle som kan redigere dashbordet bestemmer hva denne widgeten kjører, og alle som ser dashbordet kjører det — på et offentlig dashbord inkluderer det anonyme besøkende. Behandle redigeringstilgang til et dashbord med en HTML-widget slik du ville behandlet tilgang til all annen kode du leverer.
+Den som kan redigere dashbordet, bestemmer hva denne widgeten kjører, og alle som ser dashbordet, kjører det: på et offentlig dashbord gjelder det også anonyme besøkende. Behandle redigeringstilgang til et dashbord med en HTML-widget slik du ville behandlet tilgang til all annen kode du leverer.
 
-## Logger og sporinger
+## Logger, spor og sikkerhet
 
-### Loggdiagram
+| Widget | Hva den viser | Innstillinger som betyr noe |
+| --- | --- | --- |
+| **Log Chart** | Loggvolum over tid, én serie per alvorlighet, som stolper, linjer eller arealer. | Alvorligheter, tekst innholdet inneholder, attributtfiltre. |
+| **Loggstrøm** | De nyeste logglinjene som samsvarer med et filter. | Alvorlighet, tekst innholdet inneholder, attributtfiltre som `@service.name:checkout`, hvor mange rader. |
+| **Trace Chart** | Antall forespørsler, antall feil eller responstid (gjennomsnitt, minimum, maksimum, P50 til P99) over tid. | Metrikken, hvilke spenn som telles, og et attributt seriene deles opp etter. |
+| **Sporliste** | De nyeste sporene, med varighet og status. | Status, hvor mange rader. |
+| **Trace Table** | De største spennavnene, statusene eller attributtverdiene etter antall forespørsler, med median, gjennomsnittlig, minste og største responstid. | Hva radene grupperes etter, og hvilke spenn som telles. |
+| **Security Events** | De nyeste sikkerhetshendelsene, med alvorlighet, hendelsesklasse og vert. | Alvorligheter, hendelsesklasser, tekst meldingen inneholder. |
+| **Security Events Flow** | En flyt av sikkerhetshendelser fra kilden, gjennom hendelsesklassen, til alvorligheten. | Alvorligheter, hvor mange hendelser. |
 
-Et tidsseriediagram over loggvolumet i tidsrommet til dashbordet. Hver serie står for en alvorlighetsgrad, slik at feiltopper skiller seg ut fra normal trafikk.
+Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du tar med underordnede spenn i innstillingene deres. Et vanlig mønster er et ventetidsdiagram øverst med en liste over trege spor under.
 
-**Innstillinger**:
+## Hendelser, varsler og overvåkinger
 
-- Visualisering som stolpe-, linje- eller arealdiagram. Stolpe- og arealdiagrammer stabler alvorlighetsseriene.
-- Valgfrie filtre på alvorlighetsgrad.
-- Valgfritt tekstsøk i loggteksten.
-- Eksakte OpenTelemetry-attributtfiltre via søkbare nøkkel/verdi-rader. Attributtnavn og kjente verdier foreslås mens du skriver, og egne verdier støttes fortsatt.
-- En valgfri tittel.
+| Widget | Hva den viser | Filtre |
+| --- | --- | --- |
+| **Hendelsesliste** | Hendelser med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
+| **Varselliste** | Varsler med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
+| **Overvåkingsliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Label Variable** som seerne velger i verktøylinjen. |
 
-Tidsrom- og oppdateringskontrollene til dashbordet kjører spørringen for diagrammet på nytt automatisk. Telemetriattributt-variabler på dashbordet gjelder også for det, inkludert flervalgsvariabler.
-
-Loggdiagram krever for øyeblikket et dashbord med innlogging. Offentlige dashbord viser widgeten som utilgjengelig i stedet for å eksponere prosjektets loggaggregater anonymt.
-
-Bruk det når: du vil oppdage endringer i loggvolumet eller sammenligne feil, advarsler og informasjonslogger uten å forlate dashbordet.
-
-### Loggstrøm
-
-En live tail av loggelinjer som matcher et filter.
-
-**Innstillinger**: loggfiltre (tjeneste, alvorlighetsgrad, attributter) og kolonnene som skal vises.
-
-Bruk det når: du vil se hva applikasjonen sier akkurat nå, uten å forlate dashbordet.
-
-### Sporingsliste
-
-En liste over nylige sporinger som matcher et filter, med varighet, status og tjeneste.
-
-**Innstillinger**: sporingsfiltre (tjeneste, status, attributter).
-
-Bruk det når: du vil ha en liste over nylig aktivitet i stedet for et diagram. Et vanlig mønster er et latensdiagram øverst med en liste over trege sporinger under.
-
-## Live lister
-
-### Hendelsesliste
-
-En live liste over hendelser som matcher et filter.
-
-**Innstillinger**: filtre etter tilstand, alvorlighetsgrad, etiketter, monitor eller team.
-
-Bruk det når: dashbordet svarer på "hva er ødelagt akkurat nå?"
-
-### Varselliste
-
-En live liste over varsler som matcher et filter.
-
-**Innstillinger**: filtre etter tilstand, alvorlighetsgrad, etiketter.
-
-Bruk det når: et teamdashbord sporer varsler på tjenestene sine.
-
-### Monitorliste
-
-En live liste over monitorer og deres nåværende status.
-
-**Innstillinger**: filtre etter monitortype, etiketter eller nåværende tilstand.
-
-Bruk det når: du vil ha en flåtevisning — "er alle nettstedene oppe?"
+Som de fleste listewidgets kan disse tre tegne en bikube av celler farget etter status i stedet for en tabell: velg det under **Visningsmodus**. De viser den nåværende tilstanden, uansett dashbordets tidsintervall.
 
 ## Tjenestenivåmål
 
 ### SLO
 
-Ett tjenestenivåmål, tegnet enten som ett enkelt tall eller som en linje over tid.
+Ett tjenestenivåmål (SLO), tegnet enten som ett tall eller som en linje over tid.
 
-**Innstillinger**: hvilket SLO, hvilket av de tre tallene (SLI, gjenstående feilbudsjett eller burn rate), visning som Flis eller Diagram, og en valgfri tittel.
+**Innstillinger**: hvilket SLO, eller SLO-et som er valgt i en dashbordvariabel; hvilket av de tre tallene (SLI, Error Budget Remaining eller Burn Rate); visning som Tile eller Diagram; og en valgfri tittel.
 
-- **Flis** viser det gjeldende tallet, og en andre linje der det finnes en — målet under SLI-en, minuttene som er igjen under feilbudsjettet. En statusmarkør farger hele widgeten.
-- **Diagram** tegner samme tall over tidsrommet til dashbordet, med målet markert som en stiplet linje på SLI-serien. Historikken skrives med noen minutters mellomrom av evalueringsjobben, så et helt nytt SLO tegnes som tomt til det er evaluert for første gang.
+- **Tile** viser det nåværende tallet, pluss en andre linje der det finnes en: målet under SLI-et, gjenstående minutter under feilbudsjettet. En statusetikett farger det hele.
+- **Diagram** tegner det samme tallet over dashbordets tidsintervall, med målet markert som en stiplet linje på SLI-serien. Historikken skrives med noen minutters mellomrom av evalueringsworkeren, så et helt nytt SLO vises som et tomt diagram til det er evaluert første gang.
 
-Bruk det når: dashbordet svarer på "leverer vi det vi har lovet?" heller enn "hva skjer akkurat nå?"
+Bruk den når dashbordet svarer på "holder vi det vi har lovet?" heller enn "hva skjer akkurat nå?".
 
-SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det som publiseres, er hovedtallene til SLO-en — navn, mål, gjeldende SLI, gjenstående feilbudsjett, burn rate og status — uansett hvilket av dem widgeten faktisk tegner. Definisjonen holdes privat: monitorene den følger, etikettene, beskrivelsen, spørringen og evalueringsplanen sendes aldri til en offentlig besøkende. En Flis-widget publiserer bare de gjeldende tallene; en Diagram-widget publiserer i tillegg historikken til den ene serien den tegner, og ingenting mer.
+SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det som publiseres, er SLO-ets nøkkeltall (navn, mål, nåværende SLI, gjenstående feilbudsjett, burn rate og status), uansett hvilket av dem widgeten tegner. Definisjonen forblir privat: overvåkingene det følger med på, etikettene, beskrivelsen, spørringen og evalueringsplanen sendes aldri til en offentlig seer. En Tile-widget publiserer bare disse nåværende tallene; en Diagram-widget publiserer også historikken til den ene serien den tegner, og ingenting annet.
 
-## Kubernetes ressurslister
+### SLO List
 
-For prosjekter med en [Kubernetes Agent](/docs/monitor/kubernetes-agent) installert. Hver tar valgfrie filtre for klynge, namespace og etiketter.
-
-- **Kubernetes Pod-liste** — pods med fasen sin, omstarter og node.
-- **Kubernetes Node-liste** — noder med tilstandene sine og kapasitet.
-- **Kubernetes Namespace-liste** — namespaces og arbeidsmengde-antall.
-- **Kubernetes Deployment-liste** — deployments med ønskede vs. klare replikaer.
-- **Kubernetes StatefulSet-liste** — stateful sets med klare replikaer.
-- **Kubernetes DaemonSet-liste** — daemon sets med ønsket vs. klar.
-- **Kubernetes Job-liste** — jobber og fullføringsstatus.
-- **Kubernetes CronJob-liste** — cron-jobber med tidsplan og siste kjøring.
-
-Bruk disse når: du vil ha ett enkelt dashbord som blander Kubernetes-tilstand med telemetri fra disse arbeidsmengdene.
-
-## Docker ressurslister
-
-For prosjekter med Docker-overvåking satt opp.
-
-- **Docker Host-liste** — hoster som kjører Docker, med antall containere.
-- **Docker Container-liste** — containere med tilstand, image, host, oppetid.
-- **Docker Image-liste** — images og størrelsene deres.
-- **Docker Network-liste** — Docker-nettverk og tilkoblede containere.
-- **Docker Volume-liste** — Docker-volumer og bruken deres.
+Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Label Variable** som seerne velger i verktøylinjen. [SLO-metrikker og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
 
 ## Infrastruktur
 
-### Host-liste
+Hver av disse widgetene viser ressursene som en agent eller en collector rapporterer til OneUptime. Snevre dem inn etter klynge, vert eller navnerom i filtrene, og vis dem som en liste eller som en bikube.
 
-Hoster overvåket av OneUptimes server-monitor, med status, CPU, minne og oppetid.
+| Gruppe | Widgets | Fylles av |
+| --- | --- | --- |
+| **Verter** | **Verter**, med tilkoblingsstatus, OS, CPU og minne | Enhver OpenTelemetry-collector som sender `host.name` |
+| **Kubernetes** | **Pods**, **Noder**, **Navnerom**, **Distribusjoner**, **StatefulSets**, **DaemonSets**, **Jobber**, **CronJobs** | [Kubernetes-agent](/docs/monitor/kubernetes-agent) |
+| **Docker** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Docker-agenten |
+| **Docker Swarm** | **Noder**, **Tjenester** | Docker Swarm-agenten |
+| **Podman** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Podman-agenten |
+| **Proxmox** | **Noder**, **Guests** | Proxmox-agenten |
+| **VMware** | **Verter**, **Virtual Machines** | VMware-agenten, eller et vCenter du kobler til |
+| **Ceph** | **OSDs**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
+| **Lagringsarrayer** | **Volumer**, og **Hardware** som en vegg farget etter status | Storage Array-agenten |
 
-**Innstillinger**: filtre etter etiketter eller nåværende tilstand.
+Bruk dem til én side som blander tilstanden til infrastrukturen din med telemetrien fra arbeidslastene som kjører på den.
 
-## Nettverk
+### Network Map
 
-### Nettverkskart
+Nettverkslokasjonene dine tegnet på verdenskartet, hver festet på sin egen breddegrad og lengdegrad og farget etter overvåkingsstatusen som er samlet på den. Lokasjoner nær hverandre deler en markør med antallet skrevet inni; en markør som står for nøyaktig én lokasjon, åpner den lokasjonen når du klikker på den.
 
-Nettverksstedene dine tegnet på verdenskartet, hvert festet til sin egen breddegrad og lengdegrad og farget etter monitorstatusen som er rullet opp på det. Steder som ligger tett, deler en markør med antallet skrevet inni; en markør som står for nøyaktig ett sted, åpner det stedet når du klikker på den.
+Kartet rammer seg selv inn rundt lokasjonene det tegnet: et nettverk innenfor ett land fyller rammen med det landet, og ett spredt over kontinenter åpnes på hele verden. Det finnes ingen kontroller for å zoome eller panorere: en dashbordflis er et bilde, og siden Network Map under Network er der du går gjennom hierarkiet.
 
-Kartet rammer seg selv inn etter stedene det tegnet — en portefølje innenfor ett land fyller rammen med det landet, en spredt over kontinenter åpner på verden. Det finnes ingen zoom- eller panoreringskontroller: en dashbordflis er et bilde, og Nettverkskart-siden under Nettverk er der du går gjennom hierarkiet.
+Over kartet står det hvor mange lokasjoner som er nede, fordi en rød prikk på to piksler blant to hundre grønne ikke er noe noen leser på dashbordavstand. Under det forteller en dekningslinje hva kartet ikke viser: lokasjoner uten koordinater, og om radgrensen ble nådd.
 
-Over kartet skriver den hvor mange steder som er nede, for en to piksler stor rød prikk blant to hundre grønne er ikke noe noen leser på dashbordavstand. Under det sier en dekningslinje hva kartet _ikke_ viser — steder uten koordinater, og om radgrensen ble nådd.
+**Innstillinger**: tittel, kart- eller listevisning, høyeste antall tegnede lokasjoner, om lokasjonsnavn skal skrives, og filtre etter lokasjonstype og etter status. Lokasjonsnavn forsvinner automatisk når kartet blir for fullt til at de kan leses; verktøytipset navngir fortsatt hver markør.
 
-**Innstillinger**: tittel, kart- eller listevisning, maksimalt antall tegnede steder, om stedsnavn skal skrives, og filtre etter stedstype og status. Stedsnavn forsvinner automatisk når kartet blir for travelt for at de kan leses; verktøytipset navngir fortsatt hver markør.
+En lokasjon vises bare hvis den har koordinater. Legg til breddegrad og lengdegrad på lokasjonen (eller importer dem fra en CSV) for å feste den.
 
-Et sted vises bare hvis det har koordinater. Legg til breddegrad og lengdegrad på stedet (eller importer dem fra CSV) for å feste det.
+## Eksterne datakilder
 
-## Hvilken widget bør jeg bruke?
+Gruppen Eksterne datakilder tegner et **Diagram**, en **Verdi**, en **Måler** eller en **Tabell** fra et system som OneUptime ikke eier: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch eller et hvilket som helst REST-API. Du kobler til systemet én gang og skriver deretter hver widgets spørring i systemets eget språk. [Eksterne datakilder](/docs/dashboards/data-sources) viser hvordan.
 
-Noen raske regler:
+## Sortere lister og tabeller
 
-- **Trend over tid?** Diagram.
-- **Loggvolum eller feiltopper over tid?** Loggdiagram.
-- **Ett tall som betyr noe akkurat nå?** Verdi (eller Måler hvis den har en tydelig min/maks).
-- **Nedbrytning på tvers av mange ting?** Tabell.
-- **Hva som skjer i systemet akkurat nå?** Loggstrøm, Sporingsliste, Hendelsesliste.
-- **Tilstanden til en spesifikk gruppe ressurser?** Den tilsvarende listewidgeten.
-- **Leverer vi den påliteligheten vi har lovet?** SLO.
-- **Hvor i verden nettverket ditt er, og hva som er rødt?** Nettverkskart.
-- **En overskrift, et avsnitt eller en lenke?** Tekst.
-- **Noe ingen av widgetene over dekker?** HTML — men bare etter at du har sjekket at en innebygd widget virkelig ikke klarer det.
+Klikk på overskriften til en kolonne for å sortere en liste eller en tabell etter den: et første klikk sorterer slik tabellen nedenfor sier, neste klikk den andre veien, og klikket etter det setter widgeten tilbake i sin egen rekkefølge. På kolonnen widgeten allerede er sortert etter, snur et klikk rekkefølgen. En pil markerer kolonnen radene er sortert etter.
 
-De fleste dashbord blander noen få — et diagram øverst, en verdi eller to ved siden av, en tekstdeler, og en liste eller to under.
+| Kolonne | Første klikk | Neste klikk |
+| --- | --- | --- |
+| En status, en tilstand eller en alvorlighetsgrad | Verste først | Beste først |
+| Et tidspunkt | Nyeste først | Eldste først |
+| Et tall | Høyeste først | Laveste først |
+| Tekst | A til Å | Å til A |
 
-## Hvor du leser videre
+Verst følger prosjektets egen rekkefølge: en monitorstatus etter prioriteten, alvorlighetsgraden og tilstanden til en hendelse eller et varsel etter rekkefølgen du har dem i, og en ressurs som er nede, ikke klar eller slått av, før en sunn. Fasen til en pod sorteres Failed, så Unknown, så Pending, så Running og Succeeded. SLI-en og feilbudsjettet til et SLO, og VMID-en til en Proxmox-gjest, sorteres med de laveste først.
 
-- [Variabler & filtre](/docs/dashboards/variables) — å gjøre widgets gjenbrukbare for mange tjenester eller kunder.
-- [Lage et dashbord](/docs/dashboards/authoring) — lerret-mekanikken.
-- [Deling & offentlige dashbord](/docs/dashboards/sharing) — å dele utenfor teamet ditt.
+Hele listen sorteres, ikke bare radene på skjermen: en liste som viser 25 rader, sortert med de verste først, viser de 25 verste av alle. Rader som står likt, beholder widgetens egen rekkefølge. En kolonne en liste ikke kan sorteres etter som helhet, som meldingen til en sikkerhetshendelse, sorterer ikke.
+
+### Din egen sortering
+
+Sorteringen din er bare din: nettleseren din husker den for den widgeten på det dashbordet, så en ny innlasting eller en omstart av en veggskjerm beholder den, og ingen andre ser den. Klikket som setter widgeten tilbake i sin egen rekkefølge, glemmer sorteringen din, og widgeten følger deretter sin egen rekkefølge, også når en redaktør endrer den senere.
+
+### Rekkefølgen alle ser
+
+For å velge rekkefølgen en widget åpnes i for alle, redigerer du den og velger rekkefølgen under **Sorter**, eller klikker på en kolonneoverskrift i **Live Preview** for den, og klikker så på **Lagre endringer**. Du ser den nye rekkefølgen med en gang; en seer som har sortert widgeten på sin egen måte, beholder sorteringen sin.
+
+Dashbordmalene åpner listene over verter, noder, pods, Swarm-tjenester og nettverksenheter med de verste først.
+
+Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolonne og en retning, for eksempel `status:desc`. En listewidget avviser en kolonne den ikke har, og feilen lister opp sorteringene den har.
+
+## På et offentlig dashbord
+
+Et [offentlig dashbord](/docs/dashboards/sharing) tegner de fleste widgets for de besøkende, og hver viser bare det den er satt opp til å vise. Noen få kan ikke vises uten en pålogget økt:
+
+- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** og **Security Events Flow** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
+- Widgetene fra Eksterne datakilder utelates helt fra et offentlig dashbord, fordi innstillingene deres er selve spørringen.
+
+## Når en widget ikke kan vises
+
+En widget som ikke kan tegnes, viser **Denne widgeten kunne ikke vises** på sin egen plass, og resten av dashbordet fortsetter å fungere. Det skjer når OneUptime ikke har noen widget av den typen (en som er fjernet, feilstavet da dashbordet ble skrevet gjennom API-et, eller lagt til av en nyere versjon), eller når widgeten feiler mens den tegnes, for eksempel fordi de lagrede innstillingene er ufullstendige.
+
+Hvis du kan redigere dashbordet, klikker du på **Rediger widget** på den. Dashbordet bytter til redigeringsmodus med widgetens innstillinger åpne: rett dem, eller klikk på **Slett widget**, og deretter på **Lagre endringer**. En widget som feilet mens den ble tegnet, tilbyr også **Prøv igjen**, og tegnes på nytt ved neste automatiske oppdatering eller når du endrer tidsintervallet.
+
+Besøkende på et offentlig dashbord får bare beskjed om at widgeten ikke kunne vises.
+
+## Neste steg
+
+:::cards
+- [Dashbord-variabler & filtre](/docs/dashboards/variables): La seerne rette widgetene mot en tjeneste, en vert eller en kunde.
+- [Eksterne datakilder](/docs/dashboards/data-sources): Vis Prometheus, SQL, Loki og mer ved siden av dine egne data.
+- [Opprette et dashbord](/docs/dashboards/authoring): Legg til, ordne og lagre widgets.
+- [Deling & offentlige dashbord](/docs/dashboards/sharing): Del dashbordet utenfor teamet ditt.
+:::

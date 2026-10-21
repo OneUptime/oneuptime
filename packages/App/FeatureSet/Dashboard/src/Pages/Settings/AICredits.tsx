@@ -1,9 +1,34 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import {
+  getCurrentProjectBillingMarketplace,
+  getMarketplaceBalanceCardDescription,
+  getProjectBalanceAccess,
+  getProjectBalanceCardDescription,
+  getRechargeBalanceButtons,
+  ProjectBalanceAccess,
+} from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
+import {
+  CURRENT_BALANCE_ROW_TITLE,
+  RECHARGE_AMOUNT_DESCRIPTION,
+  RECHARGE_AMOUNT_TITLE,
+} from "../../Components/ProjectBalance/ProjectBalanceCopy";
+import {
+  getProjectColumnsEditGate,
+  ProjectColumnsEditGate,
+} from "./ProjectColumnEditGate";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -20,9 +45,26 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Project Settings -> AI -> AI Credits (listed only where billing is on): the
+ * balance OneUptime AI is paid from on the OneUptime-hosted provider, and
+ * its Auto Recharge.
+ *
+ * Only a project owner or someone with Manage Billing may add AI credits or
+ * change Auto Recharge (Common/Utils/Project/ProjectBalance). So the balance
+ * card asks them to recharge it and offers the button; everyone else is
+ * told who can, and the button stays locked, saying why - it used to open a
+ * form whose save the server then refused. Auto Recharge's Edit is gated on
+ * its own columns rather than the Project table's wider update list, for
+ * the same reason.
+ *
+ * When Auto Recharge's last charge failed, the page says so first
+ * (AutoRechargeFailedNotice), with what to do or who can.
+ */
 const AIBillingSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
     useState<boolean>(false);
   const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] =
@@ -30,26 +72,57 @@ const AIBillingSettings: FunctionComponent<
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Saving Auto Recharge tries the card at once: ask again whether it failed.
+  const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
+
+  /*
+   * Read on every render rather than remembered: the permission snapshot
+   * arrives on a response header, and may land after the first paint.
+   */
+  const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
+  // A project a cloud marketplace bills has no card: its recharges go there.
+  const billingMarketplace: CloudMarketplace | null =
+    getCurrentProjectBillingMarketplace();
+  const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI]],
+    buttonTitle: "Edit Auto Recharge",
+  });
 
   return (
     <Fragment>
+      <AutoRechargeFailedNotice
+        balance={ProjectBalanceType.AI}
+        access={balanceAccess}
+        refreshKey={autoRechargeSaves}
+      />
+
       {/* Current Balance */}
       <CardModelDetail
         name="Current Balance"
         cardProps={{
           title: "Current Balance",
-          description: "Here is your current AI balance for this project.",
-          buttons: [
-            {
-              title: "Recharge Balance",
-              icon: IconProp.Add,
-              onClick: () => {
-                setShowRechargeBalanceModal(true);
-                setRechargeBalanceError(null);
-                setIsRechargeBalanceLoading(false);
-              },
+          description: billingMarketplace
+            ? getMarketplaceBalanceCardDescription({
+                balance: ProjectBalanceType.AI,
+                access: balanceAccess,
+                marketplace: billingMarketplace,
+                translator: translator,
+              })
+            : getProjectBalanceCardDescription(
+                ProjectBalanceType.AI,
+                balanceAccess,
+              ),
+          buttons: getRechargeBalanceButtons({
+            access: balanceAccess,
+            translator: translator,
+            onRecharge: () => {
+              setShowRechargeBalanceModal(true);
+              setRechargeBalanceError(null);
+              setIsRechargeBalanceLoading(false);
             },
-          ],
+          }),
         }}
         isEditable={false}
         modelDetailProps={{
@@ -61,9 +134,8 @@ const AIBillingSettings: FunctionComponent<
                 aiCurrentBalanceInUSDCents: true,
               },
               fieldType: FieldType.USDCents,
-              title: "AI Current Balance",
-              description:
-                "This is your current balance for AI services. It is in USD.",
+              // The card's description says what the balance pays for.
+              title: CURRENT_BALANCE_ROW_TITLE,
               placeholder: "0 USD",
             },
           ],
@@ -71,235 +143,19 @@ const AIBillingSettings: FunctionComponent<
         }}
       />
 
-      {/* Enable AI */}
-      <CardModelDetail
-        name="Enable AI"
-        cardProps={{
-          title: "Enable AI",
-          description: "Enable AI services for this project.",
-        }}
-        isEditable={true}
-        editButtonText="Edit AI Settings"
-        formFields={[
-          {
-            field: {
-              enableAi: true,
-            },
-            title: "Enable AI",
-            description:
-              "Enable AI services for this project. This allows the use of AI features like chat, investigations, automatic improvements, and more.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "enable-ai",
-          fields: [
-            {
-              field: {
-                enableAi: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable AI",
-              placeholder: "Not Enabled",
-              description: "Enable AI services for this project.",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
-
-      {/* Enable AI Command Execution */}
-      <CardModelDetail
-        name="Enable AI Command Execution"
-        cardProps={{
-          title: "Enable AI Command Execution",
-          description:
-            "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners.",
-        }}
-        isEditable={true}
-        editButtonText="Edit AI Command Execution Settings"
-        formFields={[
-          {
-            field: {
-              enableAiCommandExecution: true,
-            },
-            title: "Enable AI Command Execution",
-            description:
-              "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. This is off by default. Every command is policy-checked, and it only runs if it matches an operator-defined allowlist or receives one-click human approval.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "enable-ai-command-execution",
-          fields: [
-            {
-              field: {
-                enableAiCommandExecution: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable AI Command Execution",
-              placeholder: "Not Enabled",
-              description:
-                "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. Off by default. Commands are policy-checked and require either an operator allowlist match or one-click human approval.",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
-
-      {/* Auto Recharge */}
-      <CardModelDetail
-        name="Auto Recharge"
-        cardProps={{
-          title: "Auto Recharge",
-          description:
-            "Enable Auto Recharge for AI balance. This will make sure you always have enough balance for AI services.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Auto Recharge"
-        formFields={[
-          {
-            field: {
-              enableAutoRechargeAiBalance: true,
-            },
-            title: "Enable Auto Recharge",
-            description:
-              "Enable Auto Recharge. This will automatically recharge your AI balance when it falls below a threshold.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              autoAiRechargeByBalanceInUSD: true,
-            },
-            title: "Auto Recharge Balance by (in USD)",
-            description:
-              "Amount of balance to be recharged when the balance is low. It is in USD.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                value: 10,
-                label: "10 USD",
-              },
-              {
-                value: 20,
-                label: "20 USD",
-              },
-              {
-                value: 25,
-                label: "25 USD",
-              },
-              {
-                value: 50,
-                label: "50 USD",
-              },
-              {
-                value: 75,
-                label: "75 USD",
-              },
-              {
-                value: 100,
-                label: "100 USD",
-              },
-              {
-                value: 200,
-                label: "200 USD",
-              },
-              {
-                value: 500,
-                label: "500 USD",
-              },
-              {
-                value: 1000,
-                label: "1000 USD",
-              },
-            ],
-            required: true,
-          },
-          {
-            field: {
-              autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
-            },
-            title: "Auto Recharge when balance falls to (in USD)",
-            description:
-              "Trigger auto recharge when balance falls to this amount. It is in USD.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                value: 10,
-                label: "10 USD",
-              },
-              {
-                value: 20,
-                label: "20 USD",
-              },
-              {
-                value: 25,
-                label: "25 USD",
-              },
-              {
-                value: 50,
-                label: "50 USD",
-              },
-              {
-                value: 75,
-                label: "75 USD",
-              },
-              {
-                value: 100,
-                label: "100 USD",
-              },
-              {
-                value: 200,
-                label: "200 USD",
-              },
-              {
-                value: 500,
-                label: "500 USD",
-              },
-              {
-                value: 1000,
-                label: "1000 USD",
-              },
-            ],
-            required: true,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "ai-auto-recharge",
-          fields: [
-            {
-              field: {
-                enableAutoRechargeAiBalance: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Auto Recharge Enabled",
-              description: "Enable auto recharge for AI balance.",
-              placeholder: "Not Enabled",
-            },
-            {
-              field: {
-                autoAiRechargeByBalanceInUSD: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Auto Recharge by (in USD)",
-              placeholder: "0 USD",
-            },
-            {
-              field: {
-                autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Trigger auto recharge if balance falls below (in USD)",
-              placeholder: "0 USD",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
+      {/*
+       * Enable AI moved to Project Settings → AI → AI Features
+       * (Pages/Settings/AIFeatures), which every install shows. This page is
+       * listed only when billing is on, so it keeps the balance and recharge
+       * settings alone.
+       */}
+      <AutoRechargeCard
+        balance={ProjectBalanceType.AI}
+        projectId={ProjectUtil.getCurrentProjectId()!}
+        isEditable={autoRechargeGate.isEditable}
+        lockedButtons={autoRechargeGate.lockedButtons}
+        onSaveSuccess={() => {
+          setAutoRechargeSaves(autoRechargeSaves + 1);
         }}
       />
 
@@ -343,8 +199,8 @@ const AIBillingSettings: FunctionComponent<
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: "Amount (in USD)",
-                description: `Please enter the amount to recharge. It is in USD.`,
+                title: RECHARGE_AMOUNT_TITLE,
+                description: RECHARGE_AMOUNT_DESCRIPTION,
                 field: {
                   amount: true,
                 },

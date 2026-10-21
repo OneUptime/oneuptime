@@ -1658,3 +1658,67 @@ describe("URL state", () => {
     );
   });
 });
+
+/*
+ * github.com/OneUptime/oneuptime/issues/4119: the replay document loads
+ * the recorded page's own images and stylesheets (not under Mask all
+ * text), and a viewer is told which of them did not load and why. The
+ * stage picks the policy and hears the failures; what only this file can
+ * get wrong is handing it the right masking mode and carrying its reports
+ * to the capture notes and the Details panel.
+ */
+describe("recorded assets", () => {
+  test("the stage is told the recording's masking mode, which picks the replay document's policy", () => {
+    const stage: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stage).toContain("maskingMode={manifest.details.maskingMode}");
+  });
+
+  test("the stage's failure reports reach the capture notes and the Missing assets list", () => {
+    const stage: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stage).toContain("onAssetLoadFailures={onAssetLoadFailures}");
+    expect(SOURCE).toMatch(/buildReplayPlaybackAssetNotes\(\{/);
+    expect(SOURCE).toContain("isTruncated: areAssetFailuresTruncated,");
+    expect(SOURCE).toContain("missingAssets={missingAssetUrls}");
+    expect(SOURCE).toContain(
+      "areMissingAssetsTruncated={areAssetFailuresTruncated}",
+    );
+    /* The notes lead the capture notes, so their summary names them first. */
+    expect(SOURCE).toContain("[...playbackAssetNotes, ...captureNotes]");
+  });
+
+  /*
+   * One engine plays every tab of the session (a tab switch swaps its
+   * loader), so the list is the session's; what must not happen is a
+   * report from one engine showing under another after a reload or on
+   * another session.
+   */
+  test("failures belong to the engine that reported them, so a new engine starts from none", () => {
+    expect(SOURCE).toMatch(
+      /setAssetFailureReport\(\{\s*engine: engine,\s*failures: failures,\s*isTruncated: isTruncated,?\s*\}\)/,
+    );
+    expect(SOURCE).toContain("assetFailureReport.engine === engine");
+  });
+
+  test("the stage installs the policy and the failure listener on every created and rebuilt document", () => {
+    expect(STAGE_SOURCE).toContain(
+      "injectDocumentCsp(event.replayer, getReplayDocumentCsp(isMasked));",
+    );
+    expect(STAGE_SOURCE).toContain(
+      "listenForAssetFailures(event.replayer, !isMasked);",
+    );
+  });
+
+  test("the docs links carry their visible words as their name, not an aria-label", () => {
+    const notes: string = slice(
+      SOURCE,
+      "{playbackAssetNotes.map(",
+      "{captureNotes.map(",
+    );
+
+    expect(notes).toContain("Why they go missing, and how to allow them");
+    expect(notes).toContain('<span className="sr-only">');
+    expect(notes).not.toContain("aria-label=");
+  });
+});

@@ -205,7 +205,7 @@ const SUMMARY: Array<[string, string]> = [
   ["Virtual Machines", D.overviewVirtualMachineCount],
   ["Datastores", D.overviewDatastoreCount],
   ["Resource Pools", D.overviewResourcePoolCount],
-  ["Agent Status", D.overviewAgentStatus],
+  ["Data Status", D.overviewAgentStatus],
 ];
 
 const TOP: Array<[string, string]> = [
@@ -373,7 +373,7 @@ describe("VMware overview: an (i) beside every number", () => {
       expect(screen.getByText("Agent 1.2.3")).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(infoButtonsFor("Agent Status")).toHaveLength(1);
+      expect(infoButtonsFor("Data Status")).toHaveLength(1);
     });
 
     expect(infoButtonsFor("vCenter inventory counts")).toHaveLength(0);
@@ -589,7 +589,7 @@ describe("VMware overview: an (i) on a clickable summary card explains, it does 
   test("cards that do not navigate are not turned into buttons by the (i)", async () => {
     await renderLoaded();
 
-    for (const label of ["vCenter Health", "Datacenters", "Agent Status"]) {
+    for (const label of ["vCenter Health", "Datacenters", "Data Status"]) {
       const button: HTMLElement = infoButtonsFor(label)[0]!;
 
       expect(button.parentElement?.closest("button, [role='button']")).toBe(

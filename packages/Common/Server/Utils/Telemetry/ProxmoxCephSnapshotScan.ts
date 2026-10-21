@@ -151,6 +151,15 @@ export interface ProxmoxClusterSnapshotBufferEntry {
   sawBackupInfo: boolean;
   guestsWithoutBackupCount: number | null; // pve_not_backed_up_total value
   notBackedUpIds: Set<string>; // raw `id` labels of pve_not_backed_up_info
+  /*
+   * The batch came from a source that only ever describes part of the
+   * cluster per request — the Proxmox VE native OTLP push, where every
+   * node pushes its own status and flushes node, qemu, lxc and storage
+   * as separate requests. Counting the batch would flip the cluster's
+   * node/guest/storage counts on every push, so they are recounted from
+   * the stored inventory instead (proxmoxClusterCountsFromInventory).
+   */
+  countsFromInventory: boolean;
 }
 
 /*
@@ -307,6 +316,7 @@ export function getOrCreateProxmoxClusterSnapshot(
       sawBackupInfo: false,
       guestsWithoutBackupCount: null,
       notBackedUpIds: new Set(),
+      countsFromInventory: false,
     };
     buffer.set(clusterIdStr, entry);
   }
@@ -325,6 +335,11 @@ export function bufferProxmoxSnapshotMetric(data: {
   datapoint: JSONObject;
   resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
   clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+  /*
+   * The datapoint's resource block describes only part of the cluster
+   * (see ProxmoxClusterSnapshotBufferEntry.countsFromInventory).
+   */
+  countsFromInventory?: boolean | undefined;
 }): void {
   const valueFromInt: number | null = toNumberOrNull(data.datapoint["asInt"]);
   const valueFromDouble: number | null = toNumberOrNull(
@@ -345,6 +360,9 @@ export function bufferProxmoxSnapshotMetric(data: {
 
   const cluster: ProxmoxClusterSnapshotBufferEntry =
     getOrCreateProxmoxClusterSnapshot(data.clusterBuffer, data.clusterIdStr);
+  if (data.countsFromInventory) {
+    cluster.countsFromInventory = true;
+  }
 
   /*
    * pve_version_info carries no `id` label — it is the cluster-level
@@ -646,22 +664,27 @@ export function deriveProxmoxClusterSnapshotExtras(
   if (snap?.pveVersion) {
     extras.pveVersion = snap.pveVersion;
   }
-  if (snap?.sawNodeIdentity) {
+  /*
+   * A partial-by-design batch never counts itself — the flush recounts
+   * from the stored inventory (proxmoxClusterCountsFromInventory).
+   */
+  const countBatch: boolean = !snap?.countsFromInventory;
+  if (countBatch && snap?.sawNodeIdentity) {
     extras.nodeCount = entries.filter((e: ProxmoxResourceBufferEntry) => {
       return e.kind === "Node";
     }).length;
   }
-  if (snap?.sawNodeUp) {
+  if (countBatch && snap?.sawNodeUp) {
     extras.onlineNodeCount = entries.filter((e: ProxmoxResourceBufferEntry) => {
       return e.kind === "Node" && e.isUp === true;
     }).length;
   }
-  if (snap?.sawGuestIdentity) {
+  if (countBatch && snap?.sawGuestIdentity) {
     extras.guestCount = entries.filter((e: ProxmoxResourceBufferEntry) => {
       return e.kind === "Guest";
     }).length;
   }
-  if (snap?.sawStorageIdentity) {
+  if (countBatch && snap?.sawStorageIdentity) {
     extras.storageCount = entries.filter((e: ProxmoxResourceBufferEntry) => {
       return e.kind === "Storage";
     }).length;
@@ -679,6 +702,37 @@ export function deriveProxmoxClusterSnapshotExtras(
     extras.guestsWithoutBackupCount = snap.guestsWithoutBackupCount;
   }
 
+  return extras;
+}
+
+/*
+ * The ProxmoxCluster count columns recounted from the stored inventory
+ * (ProxmoxResourceService.getInventorySummary) — for batches that only
+ * describe part of the cluster. The inventory holds every node, guest
+ * and storage any push reported within the stale window, so the counts
+ * cover the whole cluster whichever node's push triggered the recount.
+ * A kind with no rows yet is left unwritten rather than zeroed: a
+ * cluster whose storage has not pushed yet has an unknown storage count,
+ * not zero.
+ */
+export function proxmoxClusterCountsFromInventory(summary: {
+  countsByKind: Record<string, number>;
+  nodeOnlineCount: number;
+}): ProxmoxClusterSnapshotExtras {
+  const extras: ProxmoxClusterSnapshotExtras = {};
+  const nodes: number = summary.countsByKind["Node"] || 0;
+  const guests: number = summary.countsByKind["Guest"] || 0;
+  const storages: number = summary.countsByKind["Storage"] || 0;
+  if (nodes > 0) {
+    extras.nodeCount = nodes;
+    extras.onlineNodeCount = Math.min(summary.nodeOnlineCount, nodes);
+  }
+  if (guests > 0) {
+    extras.guestCount = guests;
+  }
+  if (storages > 0) {
+    extras.storageCount = storages;
+  }
   return extras;
 }
 

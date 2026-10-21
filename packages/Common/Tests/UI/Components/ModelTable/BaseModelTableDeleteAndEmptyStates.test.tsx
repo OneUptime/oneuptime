@@ -242,7 +242,11 @@ describe("per-row delete confirmation", () => {
     });
 
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      'Are you sure you want to delete "Billing Worker"?',
+      "Are you sure you want to delete Billing Worker?",
+    );
+    // The name is drawn apart from the sentence, so it reads as the thing.
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Billing Worker$/,
     );
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
       "This action cannot be undone",
@@ -271,7 +275,10 @@ describe("per-row delete confirmation", () => {
     });
 
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      'Are you sure you want to delete "Checkout is down"?',
+      "Are you sure you want to delete Checkout is down?",
+    );
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Checkout is down$/,
     );
   });
 
@@ -301,7 +308,8 @@ describe("empty table message", () => {
     renderTable({ rows: [] });
 
     await waitFor(() => {
-      expect(screen.getByText("No monitors yet.")).toBeInTheDocument();
+      // A heading now: the title of the empty state, without its stop.
+      expect(screen.getByText("No monitors yet")).toBeInTheDocument();
     });
   });
 
@@ -310,7 +318,7 @@ describe("empty table message", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Connect your first monitor."),
+        screen.getByText("Connect your first monitor"),
       ).toBeInTheDocument();
     });
   });
@@ -330,12 +338,12 @@ describe("empty table message", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("No monitors match your search or filters."),
+        screen.getByText("No monitors match your search or filters"),
       ).toBeInTheDocument();
     });
 
     expect(
-      screen.queryByText("Connect your first monitor."),
+      screen.queryByText("Connect your first monitor"),
     ).not.toBeInTheDocument();
   });
 });

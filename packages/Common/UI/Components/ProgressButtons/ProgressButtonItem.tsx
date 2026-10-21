@@ -85,7 +85,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
 
       {!props.isLastStep && (
         <div
-          className="absolute right-0 top-0 hidden h-full w-5 md:block"
+          className="absolute right-0 top-0 max-md:hidden h-full w-5 md:block"
           aria-hidden="true"
         >
           <svg

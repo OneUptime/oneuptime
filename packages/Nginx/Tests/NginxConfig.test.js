@@ -11,9 +11,12 @@
  */
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
+  NGINX_DIRECTORY,
   readTemplate,
   readNginxConf,
   stripComments,
@@ -30,8 +33,9 @@ const nginxConf = readNginxConf();
 
 const serverBlocks = getServerBlocks(template);
 
-// The third server block is the primary ingress ("localhost ingress $HOST");
-// the first two are the status-page servers on port 7849.
+// The third server block is the primary ingress ("localhost ingress", then
+// HOST without its port); the first two are the status-page servers, the
+// default servers of the plaintext port 7849 and the TLS port 7850.
 const primaryServerBlock = serverBlocks.find((block) => {
   return /server_name\s+localhost\s+ingress/.test(block.body);
 });
@@ -60,8 +64,11 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
 ];
 
 /*
- * The on-call calendar feed location. The URL carries a bearer token
- * (/api/on-call-calendar/user/<token>/shifts.ics), so it is the ONE place in
+ * The calendar feed location: the on-call feeds and the team's scheduled
+ * maintenance calendar. The URL carries a bearer token
+ * (/api/on-call-calendar/user/<token>/shifts.ics,
+ * /api/scheduled-maintenance-calendar/project/<token>/maintenance.ics), so it
+ * is the ONE place in
  * the shipped config where per-request access logging is switched off: an
  * access-log line there is a credential written to disk. Every server block
  * must carry it, because a calendar client can be pointed at any of the three
@@ -69,7 +76,7 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
  * defeats the purpose on that listener.
  */
 const CALENDAR_FEED_LOCATION_SPEC =
-  "~ ^/api/on-call-calendar/(user|schedule|project)/";
+  "~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/";
 
 function findCalendarFeedLocation(serverBlock) {
   return getLocationBlocks(serverBlock.body).find((location) => {
@@ -326,6 +333,32 @@ test("each high-volume ingest location logs through the operator switch", () => 
   }
 });
 
+test("the status-page servers' OTLP locations log through the same operator switch", () => {
+  // They exist so OTLP under a Host the primary does not name takes the same
+  // batch (GH#3978); an operator who turns ingest logging off must not still
+  // get a line per batch from them.
+  const statusPageServers = serverBlocks.filter((block) => {
+    return block !== primaryServerBlock;
+  });
+
+  assert.equal(statusPageServers.length, 2);
+
+  for (const serverBlock of statusPageServers) {
+    for (const ingestPath of ["/otlp", "/telemetry"]) {
+      const locations = getLocationBlocks(serverBlock.body).filter(
+        (candidate) => {
+          return candidate.spec === ingestPath;
+        },
+      );
+
+      assert.equal(locations.length, 1, `one ${ingestPath} per server block`);
+      assert.deepEqual(getDirectives(locations[0].body, "access_log"), [
+        "access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;",
+      ]);
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Pyroscope ingest body size
 // ---------------------------------------------------------------------------
@@ -353,9 +386,7 @@ function clientMaxBodySizeOf(locationSpec) {
     `${locationSpec} should set client_max_body_size exactly once`,
   );
 
-  return parseNginxSize(
-    /^client_max_body_size (\S+);$/.exec(directives[0])[1],
-  );
+  return parseNginxSize(/^client_max_body_size (\S+);$/.exec(directives[0])[1]);
 }
 
 test("/pyroscope accepts uncompressed .NET profile uploads", () => {
@@ -375,6 +406,30 @@ test("/pyroscope never allows more than the App will parse", () => {
 
 test("raising /pyroscope left /telemetry at its documented 4M", () => {
   assert.equal(clientMaxBodySizeOf("/telemetry"), 4 * 1024 * 1024);
+});
+
+test("OTLP ingest takes the same batch on /otlp, /telemetry and gRPC", () => {
+  // /otlp was left on nginx's 1M default while /telemetry (the same OTLP
+  // router) allowed 4M, so a collector pointed at /otlp got bare 413s
+  // (GH#3978).
+  const telemetry = clientMaxBodySizeOf("/telemetry");
+  assert.equal(clientMaxBodySizeOf("/otlp"), telemetry);
+  assert.equal(
+    clientMaxBodySizeOf("~ /opentelemetry.proto.collector*"),
+    telemetry,
+  );
+});
+
+test("a heartbeat a probe forwards takes the same body as one sent to /heartbeat", () => {
+  // A probe's incoming request ingress forwards the heartbeats it takes to
+  // /incoming-request-ingest/incoming-request/<key>
+  // (Probe/API/IncomingRequestIngress.ts). Left on nginx's 1M default, a
+  // heartbeat the probe accepted would be refused here on its way in.
+  assert.equal(
+    clientMaxBodySizeOf("/incoming-request-ingest"),
+    clientMaxBodySizeOf("/heartbeat"),
+  );
+  assert.equal(clientMaxBodySizeOf("/heartbeat"), 50 * 1024 * 1024);
 });
 
 test("ordinary locations are left on the inherited global access_log", () => {
@@ -536,7 +591,7 @@ test("no other location silences or redirects its error log", () => {
   );
 });
 
-test("the calendar feed regex covers the three feed kinds and nothing else", () => {
+test("the calendar feed regex covers the four feed kinds and nothing else", () => {
   const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
 
   const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
@@ -545,9 +600,12 @@ test("the calendar feed regex covers the three feed kinds and nothing else", () 
     `/api/on-call-calendar/user/${token}/shifts.ics`,
     `/api/on-call-calendar/schedule/${token}/schedule.ics`,
     `/api/on-call-calendar/project/${token}/project.ics`,
-    // Any path under the three prefixes: a mistyped file name still has the
+    // The team's scheduled maintenance calendar carries a token the same way.
+    `/api/scheduled-maintenance-calendar/project/${token}/maintenance.ics`,
+    // Any path under the four prefixes: a mistyped file name still has the
     // token in it and still must not be logged.
     "/api/on-call-calendar/user/not-a-token/anything",
+    "/api/scheduled-maintenance-calendar/project/not-a-token/anything",
   ]) {
     assert.ok(pattern.test(uri), `should match ${uri}`);
   }
@@ -566,6 +624,17 @@ test("the calendar feed regex covers the three feed kinds and nothing else", () 
     "/api/on-call-calendar/users/abc/shifts.ics",
     "/api/on-call-calendar/user",
     "/api/on-call-calendar/",
+    // The maintenance calendar's session routes carry no token either.
+    "/api/scheduled-maintenance-calendar/project-feed/current",
+    "/api/scheduled-maintenance-calendar/project-feed/publish",
+    "/api/scheduled-maintenance-calendar/project-feed/rotate",
+    "/api/scheduled-maintenance-calendarx/project/abc/maintenance.ics",
+    "/status-page-api/scheduled-maintenance-calendar/project/abc/maintenance.ics",
+    "/api/scheduled-maintenance-calendar/projects/abc/maintenance.ics",
+    "/api/scheduled-maintenance-calendar/",
+    // A status page's own calendar is public and carries no token.
+    "/maintenance.ics",
+    "/status-page/00000000-0000-4000-8000-000000000000/maintenance.ics",
   ]) {
     assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
   }
@@ -585,9 +654,26 @@ test("nginx location precedence sends feed requests to the calendar block and ma
   }
 
   assert.equal(
+    resolveLocation(
+      locations,
+      `/api/scheduled-maintenance-calendar/project/${token}/maintenance.ics`,
+    ).spec,
+    CALENDAR_FEED_LOCATION_SPEC,
+    "a maintenance calendar request must land in the unlogged location, not /api",
+  );
+
+  assert.equal(
     resolveLocation(locations, "/api/on-call-calendar/feed/current").spec,
     "/api",
     "the management routes must keep landing in /api and being logged",
+  );
+  assert.equal(
+    resolveLocation(
+      locations,
+      "/api/scheduled-maintenance-calendar/project-feed/current",
+    ).spec,
+    "/api",
+    "the maintenance calendar's management routes must keep landing in /api",
   );
   assert.equal(
     resolveLocation(locations, "/api/on-call-calendar/my-shifts").spec,
@@ -608,7 +694,7 @@ test("the calendar feed location proxies exactly like the block it pre-empts", (
     "proxy_set_header Host $host;",
     "proxy_set_header X-Real-IP $remote_addr;",
     "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
-    "proxy_set_header X-Forwarded-Proto $scheme;",
+    "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
   ];
 
   for (const serverBlock of serverBlocks) {
@@ -1055,7 +1141,7 @@ test("the immutable regex matches content-hashed chunks only", () => {
     "/status-page/index.html",
     // Not under /dist/.
     "/dashboard/assets/js/tailwind-3.4.5.js",
-    "/dashboard/assets/monaco/vs/loader.js",
+    "/dashboard/assets/fonts/InterVariable.woff2",
     // Lowercase is not esbuild's hash alphabet, so a hand-written name with a
     // dash in it cannot be mistaken for a content hash.
     "/dashboard/dist/mermaid-wrapper.js",
@@ -1431,6 +1517,1202 @@ test("every add_header on a browser-facing SPA location uses the always flag", (
         /\balways\s*;$/.test(directive.trim()),
         `${spec} has an add_header without the always flag, so it is dropped on error responses: ${directive}`,
       );
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The docs' and the API reference's sitemaps
+// ---------------------------------------------------------------------------
+
+/*
+ * The sitemap index (/sitemap.xml, served by Home) lists the docs' and the
+ * API reference's sitemaps at the site's root, beside Home's own. The app
+ * builds them, at /docs/sitemap.xml and /reference/sitemap.xml. Without this
+ * location the two root addresses fall to "location /", which with
+ * BILLING_ENABLED=true is Home - a 404 page - and the index would list two
+ * sitemaps that do not exist.
+ */
+const SITEMAP_LOCATION_SPEC = "~ ^/sitemap-(docs|reference)\\.xml$";
+
+const APP_SITEMAPS = {
+  "/sitemap-docs.xml": "/docs/sitemap.xml",
+  "/sitemap-reference.xml": "/reference/sitemap.xml",
+};
+
+// What the location's rewrites make of a request path, as nginx applies them.
+function rewrittenBySitemapLocation(location, uri) {
+  for (const directive of getDirectives(location.body, "rewrite")) {
+    const parts = directive.replace(/;$/, "").split(" ");
+    const pattern = new RegExp(parts[1]);
+
+    if (pattern.test(uri)) {
+      return uri.replace(pattern, parts[2]);
+    }
+  }
+
+  return uri;
+}
+
+test("the docs and reference sitemaps are routed exactly once, in the primary ingress", () => {
+  const routed = serverBlocks.map((block) => {
+    return getLocationBlocks(block.body).filter((location) => {
+      return location.spec === SITEMAP_LOCATION_SPEC;
+    }).length;
+  });
+
+  assert.equal(
+    routed.reduce((sum, count) => {
+      return sum + count;
+    }, 0),
+    1,
+    "exactly one location may route the docs' and the reference's sitemaps",
+  );
+  assert.ok(
+    findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC),
+    "the primary ingress must route the docs' and the reference's sitemaps",
+  );
+});
+
+test("nginx location precedence sends the two sitemaps to their block, and every other sitemap to Home", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of Object.keys(APP_SITEMAPS)) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      SITEMAP_LOCATION_SPEC,
+      `${uri} must land in the sitemap location, not in "location /" (Home when billing is on)`,
+    );
+  }
+
+  // Home's own sitemaps, the retired tag sitemaps, and near misses stay Home's.
+  for (const uri of [
+    "/sitemap.xml",
+    "/sitemap-pages.xml",
+    "/sitemap-compare.xml",
+    "/sitemap-blog-1.xml",
+    "/sitemap-tags-1.xml",
+    "/sitemap-docs.xml.gz",
+    "/sitemap-docsxml",
+    "/sitemap-documentation.xml",
+    "/blog/sitemap-docs.xml",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must stay with "location /"`,
+    );
+  }
+
+  // The app's own addresses are the docs' and the reference's locations.
+  assert.equal(resolveLocation(locations, "/docs/sitemap.xml").spec, "/docs");
+  assert.equal(
+    resolveLocation(locations, "/reference/sitemap.xml").spec,
+    "/reference",
+  );
+});
+
+test("the sitemap location hands the app each sitemap at the app's own address", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(getDirectives(location.body, "rewrite"), [
+    "rewrite ^/sitemap-docs\\.xml$ /docs/sitemap.xml break;",
+    "rewrite ^/sitemap-reference\\.xml$ /reference/sitemap.xml break;",
+  ]);
+
+  for (const [uri, appPath] of Object.entries(APP_SITEMAPS)) {
+    assert.equal(rewrittenBySitemapLocation(location, uri), appPath);
+  }
+
+  assert.deepEqual(getDirectives(location.body, "return"), []);
+});
+
+test("the sitemap location proxies to the app whatever billing says", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(
+    getDirectives(location.body, "proxy_pass"),
+    ["proxy_pass ${BACKEND_APP_TARGET};"],
+    "exactly one proxy_pass: the app",
+  );
+  assert.ok(
+    !location.body.includes("$billing_enabled"),
+    "the sitemap location must not branch on billing: Home has no such sitemaps",
+  );
+  assert.ok(
+    !location.body.includes("$backend_home"),
+    "the sitemap location must never proxy to Home",
+  );
+  assert.ok(
+    !/\bif\s*\(/.test(location.body),
+    "the sitemap location must proxy unconditionally",
+  );
+});
+
+test("the sitemap location proxies like the /docs location it hands requests to", () => {
+  const sitemaps = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+  const docs = findLocation(primaryServerBlock, "/docs");
+
+  for (const directive of ["proxy_set_header", "proxy_http_version"]) {
+    assert.deepEqual(
+      getDirectives(sitemaps.body, directive),
+      getDirectives(docs.body, directive),
+      `the sitemap location must ${directive} exactly as /docs does`,
+    );
+  }
+
+  assert.deepEqual(getDirectives(sitemaps.body, "access_log"), []);
+  assert.deepEqual(getDirectives(sitemaps.body, "add_header"), []);
+});
+
+// ---------------------------------------------------------------------------
+// OAuth discovery documents for the MCP server
+// ---------------------------------------------------------------------------
+
+/*
+ * An MCP client is told one thing - https://<host>/mcp - and has to find out
+ * for itself where to sign its user in. It does that by fetching two JSON
+ * documents from the ORIGIN's well-known paths, with the resource path as a
+ * suffix (RFC 9728 section 3.1, RFC 8414 section 3.1):
+ *
+ *   /.well-known/oauth-protected-resource[/mcp]
+ *   /.well-known/oauth-authorization-server[/mcp]
+ *
+ * The app serves them (it also serves /mcp), but nothing under /.well-known
+ * was routed to the app on the primary ingress: those paths fell to
+ * `location /`, which with BILLING_ENABLED=true is the marketing Home
+ * service. A client would get Home's 404 page, conclude the server has no
+ * authorization server, and never show a sign-in. The failure is silent on
+ * both ends, so the routing is pinned here.
+ */
+const OAUTH_DISCOVERY_LOCATION_SPEC =
+  "~ ^/\\.well-known/oauth-(authorization-server|protected-resource)(/|$)";
+
+const OAUTH_DISCOVERY_PATHS = [
+  "/.well-known/oauth-protected-resource",
+  "/.well-known/oauth-protected-resource/mcp",
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-authorization-server/mcp",
+];
+
+function findOAuthDiscoveryLocations(serverBlock) {
+  return getLocationBlocks(serverBlock.body).filter((location) => {
+    return location.spec === OAUTH_DISCOVERY_LOCATION_SPEC;
+  });
+}
+
+function findLocation(serverBlock, spec) {
+  return getLocationBlocks(serverBlock.body).find((location) => {
+    return location.spec === spec;
+  });
+}
+
+test("the OAuth discovery location exists exactly once, in the primary ingress", () => {
+  assert.equal(
+    findOAuthDiscoveryLocations(primaryServerBlock).length,
+    1,
+    "the primary ingress must route the OAuth discovery documents exactly once",
+  );
+
+  // And nothing else in the whole template routes those paths by name.
+  assert.equal(
+    stripComments(template).split("well-known/oauth-").length - 1,
+    1,
+    "exactly one location may name the OAuth discovery documents",
+  );
+});
+
+test("the OAuth discovery documents are served wherever /mcp is served, and nowhere else", () => {
+  /*
+   * The documents describe the MCP endpoint, so a server block that does not
+   * serve /mcp has no business answering for it: on a customer's status-page
+   * domain there is no MCP server to discover. And a block that DOES serve
+   * /mcp without them is the bug this location exists to fix.
+   */
+  for (const serverBlock of serverBlocks) {
+    const servesMcp = Boolean(findLocation(serverBlock, "/mcp"));
+    const servesDiscovery = findOAuthDiscoveryLocations(serverBlock).length > 0;
+
+    assert.equal(
+      servesDiscovery,
+      servesMcp,
+      "a server block must serve the OAuth discovery documents if and only if it serves /mcp",
+    );
+  }
+
+  assert.ok(
+    findLocation(primaryServerBlock, "/mcp"),
+    "the primary ingress must still serve /mcp",
+  );
+});
+
+test("the OAuth discovery regex covers the two documents, with or without a resource path, and nothing else", () => {
+  const pattern = new RegExp(
+    locationRegexSource(OAUTH_DISCOVERY_LOCATION_SPEC),
+  );
+
+  for (const uri of [
+    ...OAUTH_DISCOVERY_PATHS,
+    // The suffix is the resource's path; a trailing slash is still the document.
+    "/.well-known/oauth-protected-resource/",
+    "/.well-known/oauth-authorization-server/",
+    "/.well-known/oauth-protected-resource/mcp/",
+  ]) {
+    assert.ok(pattern.test(uri), `should match ${uri}`);
+  }
+
+  for (const uri of [
+    // A segment boundary, not a string prefix.
+    "/.well-known/oauth-protected-resourceX",
+    "/.well-known/oauth-protected-resource.json",
+    "/.well-known/oauth-protected-resource-evil",
+    "/.well-known/oauth-authorization-serverX",
+    "/.well-known/oauth-authorization-servers",
+    // Other well-known documents keep going where they went before.
+    "/.well-known/openid-configuration",
+    "/.well-known/openid-configuration/mcp",
+    "/.well-known/mcp.json",
+    "/.well-known/assetlinks.json",
+    "/.well-known/apple-app-site-association",
+    "/.well-known/acme-challenge/token",
+    "/.well-known/security.txt",
+    "/.well-known/oauth-client",
+    "/.well-known/oauth-",
+    "/.well-known/",
+    "/.well-known",
+    // Anchored at the start of the path.
+    "/mcp/.well-known/oauth-protected-resource",
+    "/x/.well-known/oauth-authorization-server",
+    "/api/.well-known/oauth-protected-resource",
+    // The dot is a literal dot.
+    "/Xwell-known/oauth-protected-resource",
+    "/well-known/oauth-protected-resource",
+    // nginx's `~` is case-sensitive, and so are these well-known names.
+    "/.well-known/OAuth-Protected-Resource",
+    "/.WELL-KNOWN/oauth-protected-resource",
+  ]) {
+    assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
+  }
+});
+
+test("the OAuth discovery location is case-sensitive", () => {
+  // `~*` would also claim /.well-known/OAUTH-PROTECTED-RESOURCE, which the app
+  // does not serve; the well-known names are lower-case by registration.
+  const specsNamingTheDocuments = getLocationBlocks(primaryServerBlock.body)
+    .map((location) => {
+      return location.spec;
+    })
+    .filter((spec) => {
+      return spec.includes("oauth-");
+    });
+
+  assert.deepEqual(specsNamingTheDocuments, [OAUTH_DISCOVERY_LOCATION_SPEC]);
+  assert.ok(
+    specsNamingTheDocuments[0].startsWith("~ "),
+    "the OAuth discovery location must use the case-sensitive ~ operator",
+  );
+});
+
+test("nginx location precedence sends the OAuth discovery documents to their own block", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of OAUTH_DISCOVERY_PATHS) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      OAUTH_DISCOVERY_LOCATION_SPEC,
+      `${uri} must land in the OAuth discovery location, not in "location /" (the marketing site when billing is on)`,
+    );
+  }
+});
+
+test("the OAuth discovery location does not shadow any other well-known path", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  // The two well-known locations that were already there keep their requests.
+  assert.equal(
+    resolveLocation(locations, "/.well-known/acme-challenge/some-token").spec,
+    "/.well-known/acme-challenge",
+  );
+  assert.equal(
+    resolveLocation(locations, "/.well-known/assetlinks.json").spec,
+    "/.well-known/assetlinks.json",
+  );
+
+  // Everything else under /.well-known is still the catch-all's, as before.
+  for (const uri of [
+    "/.well-known/mcp.json",
+    "/.well-known/apple-app-site-association",
+    "/.well-known/openid-configuration",
+    "/.well-known/security.txt",
+    "/.well-known/oauth-protected-resourceX",
+    "/.well-known/oauth-authorization-servers",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must keep landing in "location /"`,
+    );
+  }
+
+  // The copies of the documents under /mcp, and the authorization server
+  // itself, were always reachable through /mcp and still are.
+  for (const uri of [
+    "/mcp",
+    "/mcp/.well-known/oauth-protected-resource",
+    "/mcp/.well-known/oauth-authorization-server",
+    "/mcp/oauth/authorize",
+    "/mcp/oauth/token",
+    "/mcp/oauth/register",
+    "/mcp/oauth/revoke",
+    "/mcp/oauth/consent/details",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/mcp",
+      `${uri} must land in location /mcp`,
+    );
+  }
+
+  // The consent screen is the Accounts app.
+  assert.equal(
+    resolveLocation(locations, "/accounts/mcp-authorize").spec,
+    "/accounts",
+  );
+});
+
+test("no location that nginx consults first can take the OAuth discovery documents", () => {
+  /*
+   * nginx tries regex locations in file order and stops at the first match,
+   * and a `^~` prefix or an `=` location that matches is chosen without the
+   * regexes being tried at all. resolveLocation models all three; they are
+   * also ruled out here directly, so this does not rest on the model alone.
+   */
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const discoveryIndex = locations.findIndex((location) => {
+    return location.spec === OAUTH_DISCOVERY_LOCATION_SPEC;
+  });
+
+  assert.ok(discoveryIndex >= 0);
+
+  for (const location of locations.slice(0, discoveryIndex)) {
+    if (!location.spec.startsWith("~")) {
+      continue;
+    }
+
+    const earlier = new RegExp(
+      locationRegexSource(location.spec),
+      location.spec.startsWith("~*") ? "i" : "",
+    );
+
+    for (const uri of OAUTH_DISCOVERY_PATHS) {
+      assert.ok(
+        !earlier.test(uri),
+        `the earlier regex location ${location.spec} would take ${uri}`,
+      );
+    }
+  }
+
+  for (const location of locations) {
+    const isExact = location.spec.startsWith("=");
+    const isNoRegexPrefix = location.spec.startsWith("^~");
+
+    if (!isExact && !isNoRegexPrefix) {
+      continue;
+    }
+
+    const target = location.spec.replace(/^(=|\^~)\s*/, "").trim();
+
+    for (const uri of OAUTH_DISCOVERY_PATHS) {
+      assert.ok(
+        isExact ? uri !== target : !uri.startsWith(target),
+        `location ${location.spec} pre-empts the OAuth discovery location for ${uri}`,
+      );
+    }
+  }
+});
+
+test("the OAuth discovery location proxies to the app whatever billing says", () => {
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.ok(
+    /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body),
+    "the OAuth discovery location must proxy to the app backend",
+  );
+  assert.deepEqual(
+    getDirectives(location.body, "proxy_pass"),
+    ["proxy_pass ${BACKEND_APP_TARGET};"],
+    "exactly one proxy_pass: the app",
+  );
+
+  /*
+   * The catch-all it pre-empts splits on $billing_enabled and sends the hosted
+   * product's traffic to Home. Copying that split here would be the original
+   * bug again: Home has no such documents.
+   */
+  assert.ok(
+    !location.body.includes("$billing_enabled"),
+    "the OAuth discovery location must not branch on billing",
+  );
+  assert.ok(
+    !location.body.includes("$backend_home"),
+    "the OAuth discovery location must never proxy to Home",
+  );
+  assert.ok(
+    !/\bif\s*\(/.test(location.body),
+    "the OAuth discovery location must proxy unconditionally",
+  );
+});
+
+test("the OAuth discovery location hands the app the path it was asked for", () => {
+  /*
+   * The app registers these routes at the well-known paths themselves. The
+   * other well-known locations rewrite onto /api/...; a rewrite here would
+   * send the app a path it does not serve.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.deepEqual(getDirectives(location.body, "rewrite"), []);
+  assert.deepEqual(getDirectives(location.body, "return"), []);
+});
+
+test("the OAuth discovery location proxies exactly like /mcp, the block that serves the rest of the flow", () => {
+  /*
+   * A regex location wins outright over the prefix locations, so nothing is
+   * inherited from "location /": what the request needs has to be stated
+   * here. /mcp is the reference - the same app serves both, and a client goes
+   * from one to the other in consecutive requests.
+   */
+  const REQUIRED_PROXY_HEADERS = [
+    "proxy_set_header Host $host;",
+    "proxy_set_header X-Real-IP $remote_addr;",
+    "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+    "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
+  ];
+
+  const discovery = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+  const mcp = findLocation(primaryServerBlock, "/mcp");
+
+  const discoveryHeaders = getDirectives(discovery.body, "proxy_set_header");
+  const mcpHeaders = getDirectives(mcp.body, "proxy_set_header");
+
+  for (const header of REQUIRED_PROXY_HEADERS) {
+    assert.ok(
+      discoveryHeaders.includes(header),
+      `the OAuth discovery location is missing "${header}"`,
+    );
+    assert.ok(mcpHeaders.includes(header), `/mcp is missing "${header}"`);
+  }
+
+  // The same upstream, named the same way.
+  assert.deepEqual(
+    getDirectives(discovery.body, "set"),
+    getDirectives(mcp.body, "set"),
+  );
+  assert.deepEqual(getDirectives(discovery.body, "set"), [
+    "set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};",
+  ]);
+  assert.deepEqual(
+    getDirectives(discovery.body, "proxy_pass"),
+    getDirectives(mcp.body, "proxy_pass"),
+  );
+  assert.deepEqual(
+    getDirectives(discovery.body, "resolver"),
+    getDirectives(mcp.body, "resolver"),
+  );
+  assert.ok(
+    /resolver\s+\$\{NGINX_RESOLVER\}/.test(discovery.body),
+    "the OAuth discovery location must carry the resolver like every other proxying location",
+  );
+  assert.deepEqual(getDirectives(discovery.body, "proxy_http_version"), [
+    "proxy_http_version 1.1;",
+  ]);
+});
+
+test("the OAuth discovery location takes none of /mcp's streaming settings", () => {
+  /*
+   * /mcp holds a connection open for a day and switches buffering off for
+   * Server-Sent Events. A discovery document is a few hundred bytes of JSON:
+   * it is buffered and it times out like any other request.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  for (const directive of [
+    "proxy_read_timeout",
+    "proxy_send_timeout",
+    "proxy_buffering",
+    "proxy_cache",
+    "chunked_transfer_encoding",
+    "client_max_body_size",
+  ]) {
+    assert.deepEqual(
+      getDirectives(location.body, directive),
+      [],
+      `the OAuth discovery location should not set ${directive}`,
+    );
+  }
+});
+
+test("the OAuth discovery location is logged and cached like an ordinary request", () => {
+  /*
+   * Nothing in these URLs is a credential, so there is no reason to keep them
+   * out of the logs (that exception is the calendar feed's alone), and the
+   * app sets the documents' Cache-Control itself.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.deepEqual(getDirectives(location.body, "access_log"), []);
+  assert.deepEqual(getDirectives(location.body, "error_log"), []);
+  assert.deepEqual(getDirectives(location.body, "add_header"), []);
+  assert.deepEqual(getDirectives(location.body, "proxy_hide_header"), []);
+});
+
+test("the well-known locations that were already there are unchanged", () => {
+  const acme = findLocation(primaryServerBlock, "/.well-known/acme-challenge");
+
+  assert.ok(acme, "the primary ingress lost its ACME challenge location");
+  assert.deepEqual(getDirectives(acme.body, "rewrite"), [
+    "rewrite ^/\\.well-known/acme-challenge(.*)$ /api/acme-challenge/.well-known$1 break;",
+  ]);
+  assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(acme.body));
+
+  const assetLinks = findLocation(
+    primaryServerBlock,
+    "/.well-known/assetlinks.json",
+  );
+
+  assert.ok(
+    assetLinks,
+    "the primary ingress lost its assetlinks.json location",
+  );
+  assert.deepEqual(getDirectives(assetLinks.body, "proxy_pass"), [
+    "proxy_pass $backend_home;",
+  ]);
+
+  // Status-page domains answer ACME through the status-page API, and only
+  // the plaintext server does: that is where the challenge is fetched.
+  const statusPageWellKnown = serverBlocks
+    .filter((block) => {
+      return block !== primaryServerBlock;
+    })
+    .map((block) => {
+      return findLocation(block, "/.well-known");
+    })
+    .filter(Boolean);
+
+  assert.equal(statusPageWellKnown.length, 1);
+  assert.deepEqual(getDirectives(statusPageWellKnown[0].body, "rewrite"), [
+    "rewrite ^/\\.well-known(.*)$ /api/status-page/.well-known$1 break;",
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// /workflows and /runbooks: the marketing site's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /workflows and /runbooks to /product/workflows and
+ * /product/runbooks (Home/Routes.ts). `location /workflow` and
+ * `location /runbook` are prefixes of those two paths, so nginx used to send
+ * them to the app, which has no such route and answered with a JSON 404. An
+ * exact location for each hands them back to wherever `location /` sends the
+ * marketing site, without moving anything the app serves.
+ */
+const MARKETING_ALIASES = [
+  {
+    alias: "/workflows",
+    product: "/product/workflows",
+    appPrefix: "/workflow",
+  },
+  { alias: "/runbooks", product: "/product/runbooks", appPrefix: "/runbook" },
+];
+
+/** A location's directives, one per line, with comments and indentation gone. */
+function directivesOf(location) {
+  return stripComments(location.body)
+    .split("\n")
+    .map((line) => {
+      return line.trim().replace(/\s+/g, " ");
+    })
+    .filter(Boolean);
+}
+
+function findAliasLocation(alias) {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === `= ${alias}`;
+  });
+}
+
+test("the primary ingress has one exact location for each marketing alias", () => {
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      getLocationBlocks(primaryServerBlock.body).filter((location) => {
+        return location.spec === `= ${alias}`;
+      }).length,
+      1,
+      `the primary ingress must have exactly one "location = ${alias}"`,
+    );
+  }
+});
+
+test("the status-page servers are left as they were", () => {
+  // They have no /workflow or /runbook prefix for the aliases to escape from.
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      assert.ok(
+        !location.spec.startsWith("="),
+        `a status-page server gained an exact location: ${location.spec}`,
+      );
+      assert.ok(
+        !/^\/(workflow|runbook)/.test(location.spec),
+        `a status-page server gained ${location.spec}`,
+      );
+    }
+  }
+});
+
+test("nginx location precedence sends each marketing alias to its own block", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      resolveLocation(locations, alias).spec,
+      `= ${alias}`,
+      `${alias} must not fall into a prefix location that sends it to the app`,
+    );
+  }
+});
+
+test("each marketing alias is proxied exactly like location /", () => {
+  /*
+   * Home when billing is enabled, the app otherwise: the address goes where
+   * every other page of the marketing site goes, with the same headers.
+   */
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+  assert.ok(
+    directivesOf(catchAll).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.deepEqual(
+      directivesOf(findAliasLocation(alias)),
+      directivesOf(catchAll),
+    );
+  }
+});
+
+test("the marketing alias locations leave the redirect itself to Home", () => {
+  /*
+   * Home keeps the query string a paid click carries and answers with a
+   * relative Location. A `return 301` here would need the query carried by
+   * hand, and nginx would name its own listen port in an absolute Location.
+   */
+  for (const { alias } of MARKETING_ALIASES) {
+    const location = findAliasLocation(alias);
+
+    for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+      assert.deepEqual(
+        getDirectives(location.body, directive),
+        [],
+        `location = ${alias} should not carry ${directive}`,
+      );
+    }
+  }
+
+  const homeRoutes = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Routes.ts"),
+    "utf8",
+  );
+
+  for (const { alias, product } of MARKETING_ALIASES) {
+    assert.ok(
+      new RegExp(
+        `app\\.get\\("${alias}",[^}]*redirectPreservingQuery\\(req, res, "${product}", 301\\)`,
+      ).test(homeRoutes),
+      `Home must answer ${alias} with a 301 to ${product}`,
+    );
+  }
+});
+
+test("everything the app serves under /workflow and /runbook still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/workflow", "/workflow"],
+    ["/workflow/", "/workflow"],
+    ["/workflow/manual/run/6a7b", "/workflow"],
+    ["/workflow/run-step/6a7b", "/workflow"],
+    ["/workflow/model-schema/Incident", "/workflow"],
+    ["/workflow/step-samples/6a7b", "/workflow"],
+    ["/workflow/update/6a7b", "/workflow"],
+    ["/runbook", "/runbook"],
+    ["/runbook/run/6a7b", "/runbook"],
+    ["/runbook/execution/6a7b/cancel", "/runbook"],
+    ["/runbook-agent-ingest/heartbeat", "/runbook-agent-ingest"],
+    ["/runner-ingest/heartbeat", "/runner-ingest"],
+    // Only the two exact addresses moved; anything under them is as it was.
+    ["/workflows/", "/workflow"],
+    ["/workflows/6a7b", "/workflow"],
+    ["/runbooks/", "/runbook"],
+    ["/runbooks/6a7b", "/runbook"],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  for (const { appPrefix } of MARKETING_ALIASES) {
+    const location = getLocationBlocks(primaryServerBlock.body).find(
+      (candidate) => {
+        return candidate.spec === appPrefix;
+      },
+    );
+
+    assert.ok(location, `the primary ingress lost location ${appPrefix}`);
+    assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// /files/: the old addresses of the compliance PDFs
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /files/soc-3.pdf and the other compliance PDFs it once
+ * published to the pages of its legal center (Home/Utils/LegacyRedirects.ts).
+ * `location /file`, the app's file API, is a prefix of /files/, so nginx sent
+ * them to the app as /api/files/..., which answered with a JSON 404. A
+ * `^~ /files/` location hands them back to wherever `location /` sends the
+ * marketing site.
+ */
+const LEGACY_FILES_SPEC = "^~ /files/";
+
+/** Every { from, to } in Home's legacy redirect table, read from its source. */
+function readLegacyRedirects() {
+  const source = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Utils", "LegacyRedirects.ts"),
+    "utf8",
+  );
+
+  const redirects = Array.from(
+    source.matchAll(/\{\s*from:\s*"([^"]+)",\s*to:\s*"([^"]+)",?\s*\}/g),
+    (match) => {
+      return { from: match[1], to: match[2] };
+    },
+  );
+
+  // A table this reads only part of would let the tests below pass vacuously.
+  assert.ok(redirects.length > 0, "read no entries from LegacyRedirects.ts");
+  assert.equal(
+    redirects.length,
+    source.split('from: "').length - 1,
+    "every entry of LegacyRedirects.ts must be read",
+  );
+
+  return redirects;
+}
+
+function findCatchAllLocation() {
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+
+  return catchAll;
+}
+
+function findLegacyFilesLocation() {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === LEGACY_FILES_SPEC;
+  });
+}
+
+test("the primary ingress has one location for the old /files/ addresses", () => {
+  assert.equal(
+    getLocationBlocks(primaryServerBlock.body).filter((location) => {
+      return location.spec === LEGACY_FILES_SPEC;
+    }).length,
+    1,
+    `the primary ingress must have exactly one "location ${LEGACY_FILES_SPEC}"`,
+  );
+
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    assert.ok(
+      !getLocationBlocks(serverBlock.body).some((location) => {
+        return location.spec.includes("/files");
+      }),
+      "a status-page server gained a /files location",
+    );
+  }
+});
+
+test("every address Home's legacy redirects move reaches the marketing site", () => {
+  /*
+   * Home can answer these only if nginx sends them where it sends the rest
+   * of the marketing site: to `location /` itself, or to a block that
+   * proxies exactly like it. A prefix location of the app's that happens to
+   * start the same way (as /file starts /files/) would hide them.
+   */
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  for (const { from } of readLegacyRedirects()) {
+    const location = resolveLocation(locations, from);
+
+    assert.deepEqual(
+      directivesOf(location),
+      directivesOf(catchAll),
+      `${from} lands in "location ${location.spec}", which does not send it to the marketing site`,
+    );
+  }
+});
+
+test("the /files/ location is proxied exactly like location /", () => {
+  const location = findLegacyFilesLocation();
+
+  assert.ok(location, `the primary ingress lost location ${LEGACY_FILES_SPEC}`);
+  assert.ok(
+    directivesOf(findCatchAllLocation()).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+  assert.deepEqual(
+    directivesOf(location),
+    directivesOf(findCatchAllLocation()),
+  );
+});
+
+test("the /files/ location leaves the redirects themselves to Home", () => {
+  const location = findLegacyFilesLocation();
+
+  for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+    assert.deepEqual(
+      getDirectives(location.body, directive),
+      [],
+      `location ${LEGACY_FILES_SPEC} should not carry ${directive}`,
+    );
+  }
+
+  // The addresses this location exists for, and where Home sends each.
+  assert.deepEqual(
+    readLegacyRedirects().filter(({ from }) => {
+      return from.startsWith("/files/");
+    }),
+    [
+      { from: "/files/soc-3.pdf", to: "/legal/soc-3" },
+      { from: "/files/pci.pdf", to: "/legal/pci" },
+      { from: "/files/iso-27001.pdf", to: "/legal/iso-27001" },
+      { from: "/files/iso-27017.pdf", to: "/legal/iso-27017" },
+      { from: "/files/iso-27018.pdf", to: "/legal/iso-27018" },
+    ],
+  );
+});
+
+test("everything the app serves under /file still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/file", "/file"],
+    ["/file/", "/file"],
+    ["/file/6a7b", "/file"],
+    ["/file/image/6a7b", "/file"],
+    // Only the /files/ directory moved; the rest of what /file caught has not.
+    ["/files", "/file"],
+    ["/filesystem", "/file"],
+    ["/files/soc-3.pdf", LEGACY_FILES_SPEC],
+    ["/files/iso-27018.pdf", LEGACY_FILES_SPEC],
+    ["/files/", LEGACY_FILES_SPEC],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  const fileLocation = locations.find((location) => {
+    return location.spec === "/file";
+  });
+
+  assert.ok(fileLocation, "the primary ingress lost location /file");
+  assert.deepEqual(getDirectives(fileLocation.body, "rewrite"), [
+    "rewrite ^/file(.*)$ /api/file$1 break;",
+  ]);
+  assert.ok(
+    /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(fileLocation.body),
+  );
+});
+
+/*
+ * The scheme the visitor used reaches the app, so the app can keep the
+ * visitor's cookies on HTTPS (Secure) whenever the browser is on HTTPS:
+ * Common/Server/Utils/RequestTransport.ts reads it, as Express's req.secure.
+ *
+ * Every proxying location forwards $visitor_scheme: nginx's own $scheme
+ * (https where this ingress ended TLS), raised to https when the proxy in
+ * front of this one - a CDN, a load balancer, the operator's own TLS proxy -
+ * said the visitor used https. Before, that https was overwritten with this
+ * hop's http, and the app took every visitor behind such a proxy for a
+ * plain-HTTP one.
+ *
+ * /notification keeps its own passthrough ($forwarded_proto): Twilio signs
+ * the exact URL it called, so that location hands on whatever scheme the
+ * proxy in front reported, http included.
+ */
+const VISITOR_SCHEME_MAP_PATTERN =
+  /^map\s+\$http_x_forwarded_proto\s+\$visitor_scheme\s*\{([^}]*)\}/m;
+
+function visitorSchemeMapEntries() {
+  const match = VISITOR_SCHEME_MAP_PATTERN.exec(stripComments(template));
+
+  assert.ok(
+    match,
+    "expected a map from $http_x_forwarded_proto to $visitor_scheme",
+  );
+
+  return match[1]
+    .split(";")
+    .map((entry) => {
+      return entry.trim().replace(/\s+/g, " ");
+    })
+    .filter((entry) => {
+      return entry.length > 0;
+    });
+}
+
+// The one regex key of the map, as JavaScript reads it (the same PCRE subset).
+function visitorSchemeClaimPattern() {
+  const regexEntries = visitorSchemeMapEntries().filter((entry) => {
+    return entry.startsWith('"~');
+  });
+
+  assert.equal(regexEntries.length, 1, "expected exactly one regex key");
+
+  const keyMatch = /^"~(\*?)(.+)" (\S+)$/.exec(regexEntries[0]);
+
+  assert.ok(keyMatch, `could not read the map entry ${regexEntries[0]}`);
+  assert.equal(keyMatch[1], "*", "the https claim must match in any case");
+  assert.equal(keyMatch[3], "https", "a matching claim must map to https");
+
+  return new RegExp(keyMatch[2], "i");
+}
+
+test("the visitor's scheme defaults to the scheme of the hop into this ingress", () => {
+  const entries = visitorSchemeMapEntries();
+
+  assert.deepEqual(
+    entries.filter((entry) => {
+      return entry.startsWith("default ");
+    }),
+    ["default $scheme"],
+  );
+
+  // A default and the https claim - nothing a caller sends maps to http.
+  assert.equal(entries.length, 2, `unexpected map entries: ${entries}`);
+  assert.ok(
+    entries.every((entry) => {
+      return !/ http$/.test(entry);
+    }),
+    "no entry may map a claim to http",
+  );
+});
+
+test("only an https claim, first in the list, raises the visitor's scheme to https", () => {
+  const claim = visitorSchemeClaimPattern();
+
+  for (const value of [
+    "https",
+    "HTTPS",
+    "Https",
+    " https ",
+    "https, http",
+    "https,http",
+    "https , http",
+  ]) {
+    assert.ok(claim.test(value), `"${value}" is the visitor using https`);
+  }
+
+  for (const value of [
+    "",
+    "http",
+    "http, https",
+    "httpss",
+    "xhttps",
+    "https-ish",
+    "wss",
+    "ws",
+  ]) {
+    assert.ok(!claim.test(value), `"${value}" is not the visitor using https`);
+  }
+
+  // Linear in the length of what a caller sends.
+  const long = `https${" ".repeat(200000)}x`;
+  const startedAt = Date.now();
+
+  assert.ok(!claim.test(long));
+  assert.ok(Date.now() - startedAt < 2000, "the claim pattern must be linear");
+});
+
+test("every proxying location forwards the visitor's scheme", () => {
+  const forwarding = [];
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const headers = getDirectives(location.body, "proxy_set_header").filter(
+        (header) => {
+          return header.startsWith("proxy_set_header X-Forwarded-Proto ");
+        },
+      );
+
+      if (location.spec === "/notification") {
+        assert.deepEqual(headers, [
+          "proxy_set_header X-Forwarded-Proto $forwarded_proto;",
+        ]);
+        continue;
+      }
+
+      if (!/proxy_pass|grpc_pass/.test(location.body)) {
+        continue;
+      }
+
+      forwarding.push(location.spec);
+
+      if (/grpc_pass/.test(location.body)) {
+        continue;
+      }
+
+      assert.deepEqual(
+        headers,
+        ["proxy_set_header X-Forwarded-Proto $visitor_scheme;"],
+        `location ${location.spec} must forward the visitor's scheme`,
+      );
+    }
+  }
+
+  // Every server block, and the locations that set sign-in cookies among them.
+  assert.ok(forwarding.length > 60, `only ${forwarding.length} locations`);
+  for (const spec of [
+    "/identity",
+    "/api",
+    "/accounts",
+    "/dashboard",
+    "/status-page-identity-api/",
+    "/status-page-sso-api/",
+    "/status-page-oidc-api/",
+    "/public-dashboard-api/",
+  ]) {
+    assert.ok(forwarding.includes(spec), `${spec} is not forwarded`);
+  }
+
+  assert.ok(
+    !/X-Forwarded-Proto\s+\$scheme\s*;/.test(stripComments(template)),
+    "no location may forward nginx's own $scheme in place of the visitor's",
+  );
+});
+
+/*
+ * The app tells its own address (HOST) from a status page's or a dashboard's
+ * custom domain by the Host header this ingress passes on - never by
+ * X-Forwarded-Host, which a caller writes. An installation with
+ * HTTP_PROTOCOL=https keeps the cookies of HOST on HTTPS (Secure) and tells
+ * browsers to stay on HTTPS for it (Strict-Transport-Security) by that Host
+ * alone, even behind a proxy that never says the visitor used https
+ * (Common/Server/Utils/RequestTransport.ts). So every location that serves
+ * the routes that write sign-in cookies passes on the Host the browser asked
+ * for. `proxy_set_header Host $server_name` there would hand the app this
+ * server's first name ("localhost") for every request, and those cookies
+ * would quietly lose Secure.
+ */
+const SIGN_IN_COOKIE_ADDRESSES = {
+  // The installation's own address.
+  primary: [
+    "/identity/login",
+    "/identity/refresh-token",
+    "/identity/logout",
+    "/identity/passkey-login-options",
+    "/identity/microsoft/callback",
+    "/identity/oidc-callback/project/provider",
+    "/identity/global-sso/x",
+    "/identity/status-page-oidc-callback/page/provider",
+    "/api/identity/login",
+    "/api/marketplace/aws/register",
+    "/accounts/login",
+    "/dashboard/x",
+    "/status-page/x",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard/x",
+    "/public-dashboard-api/x",
+    "/mcp",
+  ],
+  // A status page's or a dashboard's custom domain, on either port.
+  statusPage: [
+    "/",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard-api/x",
+  ],
+};
+
+test("every location that writes sign-in cookies passes on the Host the browser asked for", () => {
+  const statusPageServerBlocks = serverBlocks.filter((block) => {
+    return block !== primaryServerBlock;
+  });
+
+  assert.equal(statusPageServerBlocks.length, 2);
+
+  const blocksAndAddresses = [
+    [primaryServerBlock, SIGN_IN_COOKIE_ADDRESSES.primary],
+    ...statusPageServerBlocks.map((block) => {
+      return [block, SIGN_IN_COOKIE_ADDRESSES.statusPage];
+    }),
+  ];
+
+  for (const [serverBlock, addresses] of blocksAndAddresses) {
+    const locations = getLocationBlocks(serverBlock.body);
+
+    for (const address of addresses) {
+      const location = resolveLocation(locations, address);
+
+      assert.ok(location, `nothing serves ${address}`);
+      assert.ok(
+        /proxy_pass/.test(location.body),
+        `${address} is not proxied to the app`,
+      );
+      assert.deepEqual(
+        getDirectives(location.body, "proxy_set_header").filter((header) => {
+          return header.startsWith("proxy_set_header Host ");
+        }),
+        ["proxy_set_header Host $host;"],
+        `${address} (location ${location.spec}) must pass on the browser's Host`,
+      );
+    }
+  }
+});
+
+test("no location hands the app a Host the caller wrote in X-Forwarded-Host", () => {
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      for (const header of getDirectives(location.body, "proxy_set_header")) {
+        assert.ok(
+          !/^proxy_set_header Host \$http_x_forwarded_host;$/i.test(header),
+          `location ${location.spec} passes on a caller's X-Forwarded-Host as Host`,
+        );
+      }
     }
   }
 });

@@ -552,6 +552,49 @@ describe("DatabaseEngineMetricsSection", () => {
     expect(chartCardMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * Issue #4105: every zoom, reset and auto-refresh reloads the page's
+   * telemetry. The charts on screen used to be swapped for one loader card
+   * each time, collapsing the section under the pointer and dropping a
+   * drag in progress on an engine chart.
+   */
+  test("a reload keeps the charts that are on screen, not a loader card", () => {
+    const connections: DatabaseServerMetricDefinition = catalog.find(
+      (definition: DatabaseServerMetricDefinition): boolean => {
+        return definition.metricName === "postgresql.backends";
+      },
+    )!;
+    renderSection({
+      status: DatabaseEngineMetricsStatus.Connected,
+      results: [
+        toEngineMetricResult(connections, [
+          { x: at(0), y: 10 },
+          { x: at(1), y: 12 },
+        ]),
+      ],
+      isLoading: true,
+    });
+
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.getByTestId("database-engine-metrics")).toBeInTheDocument();
+    expect(screen.getAllByTestId("chart-card")).toHaveLength(1);
+  });
+
+  test("a reload with nothing charted yet still shows the loader, not a no-data card", () => {
+    renderSection({
+      status: DatabaseEngineMetricsStatus.Connected,
+      results: catalog.map((definition: DatabaseServerMetricDefinition) => {
+        return toEngineMetricResult(definition, []);
+      }),
+      isLoading: true,
+    });
+
+    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: ENGINE_METRICS_NO_DATA_TITLE }),
+    ).not.toBeInTheDocument();
+  });
+
   test("never connected: a gray 'Not connected', and the install guide — never 'stopped reporting'", () => {
     renderSection({
       status: DatabaseEngineMetricsStatus.NotConnected,

@@ -1,5 +1,13 @@
 import ObjectID from "../../../../Types/ObjectID";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  AutomaticFixPullRequest,
+  AutomaticFixPullRequestBlocker,
+  getAutomaticFixPullRequestBlocker,
+  getAutomaticFixPullRequestSelect,
+  getAutomaticFixSignal,
+} from "../../../../Types/AI/AutomaticFixSwitches";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ProjectService from "../../../Services/ProjectService";
@@ -14,9 +22,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * When an investigation finishes INCONCLUSIVE — per the structured G6
  * confidence signal (ConfidenceSignal.ts), never the analysis prose — the
  * telemetry itself is the bug: the code paths involved were not observable
- * enough to diagnose. For projects that opted in
- * (the subject lane's incident/alert instrumentation setting, default FALSE
- * — G11 posture: autonomous PR creation is opt-in only), the inconclusive analysis becomes
+ * enough to diagnose. For projects with the subject lane's incident/alert
+ * instrumentation setting on, under its fixing switch ("Fix new incidents
+ * automatically" or alerts) - the pull request is one of the ways OneUptime
+ * AI fixes, so it opens only while fixing is on
+ * (Types/AI/AutomaticFixSwitches); both start off, and unset reads as off -
+ * the inconclusive analysis becomes
  * the input to a CodeFix AIRun (codeFixTaskType: ImproveInstrumentation)
  * that the agent worker turns into a pull request adding the missing
  * observability — so the NEXT investigation of a similar signal can reach a
@@ -28,7 +39,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  */
 
 export interface InstrumentationTaskGateInput {
-  // The project row with enableAi + the subject lane's opt-in selected.
+  /*
+   * The project row with enableAi, the subject lane's fixing switch and its
+   * instrumentation opt-in selected.
+   */
   project: Project | null;
   // Exactly one subject selects the incident or alert opt-in.
   incidentId?: ObjectID | undefined;
@@ -48,8 +62,9 @@ export interface InstrumentationTaskGateDecision {
 export default class InstrumentationTaskTrigger {
   /*
    * The pure trigger decision, separated from IO so it can be tested
-   * directly: opt-in (default FALSE), a repository the agent can actually
-   * open a PR against, and the per-subject dedupe guard.
+   * directly: the project's fixing switch and its instrumentation setting
+   * (both === true), a repository the agent can actually open a PR against,
+   * and the per-subject dedupe guard.
    */
   public static shouldEnqueueInstrumentationTask(
     input: InstrumentationTaskGateInput,
@@ -62,25 +77,44 @@ export default class InstrumentationTaskTrigger {
       return { enqueue: false, reason: "AI is disabled for the project" };
     }
 
-    /*
-     * Strict opt-in — the column defaults to false, so unset/legacy rows
-     * never enqueue. Autonomous PR creation must never be default-on.
-     */
-    if (Boolean(input.incidentId) === Boolean(input.alertId)) {
+    const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal({
+      incidentId: input.incidentId,
+      alertId: input.alertId,
+    });
+
+    if (!signal) {
       return {
         enqueue: false,
         reason: "exactly one incident or alert subject is required",
       };
     }
 
-    const instrumentationFixTasksEnabled: boolean = input.incidentId
-      ? input.project.enableIncidentInstrumentationFixTasks === true
-      : input.project.enableAlertInstrumentationFixTasks === true;
+    const signalLabel: "incident" | "alert" =
+      signal === AutoRemediationTriggerEntity.Incident ? "incident" : "alert";
 
-    if (!instrumentationFixTasksEnabled) {
+    /*
+     * Strictly === true for both switches: the columns default to false, so
+     * unset/legacy rows never enqueue. The pull request is part of fixing,
+     * so it waits for the fixing switch as well as its own.
+     */
+    const blocker: AutomaticFixPullRequestBlocker | null =
+      getAutomaticFixPullRequestBlocker({
+        project: input.project,
+        signal,
+        pullRequest: AutomaticFixPullRequest.MissingTelemetry,
+      });
+
+    if (blocker === AutomaticFixPullRequestBlocker.FixOff) {
       return {
         enqueue: false,
-        reason: `project has not opted in to ${input.incidentId ? "incident" : "alert"} instrumentation fix tasks`,
+        reason: `project has fixing new ${signalLabel}s automatically off, and its telemetry pull requests open only while it is on`,
+      };
+    }
+
+    if (blocker === AutomaticFixPullRequestBlocker.PullRequestOff) {
+      return {
+        enqueue: false,
+        reason: `project has not opted in to ${signalLabel} instrumentation fix tasks`,
       };
     }
 
@@ -126,21 +160,27 @@ export default class InstrumentationTaskTrigger {
     const { projectId } = data;
 
     try {
-      if (Boolean(data.incidentId) === Boolean(data.alertId)) {
+      const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal(
+        {
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        },
+      );
+
+      if (!signal) {
         return;
       }
 
+      // Enable AI, the lane's fixing switch and its instrumentation switch.
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
-        select: data.incidentId
-          ? {
-              enableAi: true,
-              enableIncidentInstrumentationFixTasks: true,
-            }
-          : {
-              enableAi: true,
-              enableAlertInstrumentationFixTasks: true,
-            },
+        select: {
+          enableAi: true,
+          ...getAutomaticFixPullRequestSelect(
+            signal,
+            AutomaticFixPullRequest.MissingTelemetry,
+          ),
+        },
         props: { isRoot: true },
       });
 

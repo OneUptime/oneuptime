@@ -10,7 +10,15 @@ import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
 import SideMenuItem from "./SideMenuItem";
-import SideMenuSection from "./SideMenuSection";
+import SideMenuSection, {
+  ComponentProps as SideMenuSectionElementProps,
+} from "./SideMenuSection";
+import {
+  MenuRoute,
+  routesInMenuChildren,
+  routesOfMenuEntry,
+  sectionsHoldingCurrentPage,
+} from "./SideMenuSectionState";
 import CountModelSideMenuItem from "./CountModelSideMenuItem";
 import Link from "../../../Types/Link";
 import { BadgeType } from "../Badge/Badge";
@@ -55,6 +63,95 @@ export interface ComponentProps {
   children?: ReactElement | Array<ReactElement>;
 }
 
+type MapSectionFunction = (
+  section: ReactElement<SideMenuSectionElementProps>,
+) => ReactElement;
+
+/*
+ * Rebuilds a menu's hand-written children with every <SideMenuSection> passed
+ * through `mapSection`, in menu order. It looks inside fragments, because a
+ * section shown only in some editions is written as
+ * `{cond ? <SideMenuSection .../> : <></>}`, and leaves everything else as
+ * it is.
+ */
+function mapSectionElements(
+  children: ReactElement | Array<ReactElement>,
+  mapSection: MapSectionFunction,
+): Array<ReactElement> {
+  const elements: Array<ReactElement> = Array.isArray(children)
+    ? children
+    : [children];
+
+  return elements.map((child: ReactElement): ReactElement => {
+    if (!React.isValidElement(child)) {
+      return child;
+    }
+
+    if (child.type === SideMenuSection) {
+      return mapSection(child as ReactElement<SideMenuSectionElementProps>);
+    }
+
+    if (child.type === React.Fragment) {
+      const fragmentChildren: ReactElement | Array<ReactElement> | undefined = (
+        child.props as { children?: ReactElement | Array<ReactElement> }
+      ).children;
+
+      if (!fragmentChildren) {
+        return child;
+      }
+
+      return React.cloneElement(
+        child,
+        {},
+        ...mapSectionElements(fragmentChildren, mapSection),
+      );
+    }
+
+    return child;
+  });
+}
+
+/*
+ * The hand-written form gets the same "this section holds the page you are
+ * on" answer the `sections` array gets, so a section that starts collapsed
+ * (an Advanced section, say) still opens on its own pages. Before, only the
+ * array form computed it; written as JSX, which is how every resource's own
+ * menu is written, a collapsed section stayed shut on its own pages.
+ *
+ * A section that is given `isActive` explicitly keeps it.
+ */
+function withActiveSections(
+  children: ReactElement | Array<ReactElement>,
+): Array<ReactElement> {
+  const sectionRoutes: Array<Array<MenuRoute>> = [];
+
+  mapSectionElements(
+    children,
+    (section: ReactElement<SideMenuSectionElementProps>): ReactElement => {
+      sectionRoutes.push(routesInMenuChildren(section.props.children));
+      return section;
+    },
+  );
+
+  const holdsCurrentPage: Array<boolean> =
+    sectionsHoldingCurrentPage(sectionRoutes);
+  let sectionIndex: number = 0;
+
+  return mapSectionElements(
+    children,
+    (section: ReactElement<SideMenuSectionElementProps>): ReactElement => {
+      const isActive: boolean = Boolean(holdsCurrentPage[sectionIndex]);
+      sectionIndex++;
+
+      if (section.props.isActive !== undefined) {
+        return section;
+      }
+
+      return React.cloneElement(section, { isActive });
+    },
+  );
+}
+
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const { translateString } = useTranslateValue();
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -88,7 +185,22 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, []);
 
   // Close mobile menu when clicking on a menu item
-  const handleMenuItemClick: () => void = (): void => {
+  /*
+   * Following a link closes the phone menu; opening or closing a section
+   * must not. The handler sits on the whole <nav>, so a tap on a section's
+   * header used to close the menu too: a folded section (Advanced, or a
+   * product's Settings) could never be opened on a phone, and its pages were
+   * out of reach from the menu.
+   */
+  const handleMenuItemClick: (event: React.MouseEvent<HTMLElement>) => void = (
+    event: React.MouseEvent<HTMLElement>,
+  ): void => {
+    const target: EventTarget | null = event.target;
+
+    if (!(target instanceof Element) || !target.closest("a")) {
+      return;
+    }
+
     if (isMobile && isMobileMenuVisible) {
       setIsMobileMenuOpen(false);
     }
@@ -262,8 +374,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const translatedItemTitle: string | undefined = translateString(
     activeItem.itemTitle,
   );
+  /*
+   * "Section / Page" names where the reader is - except when the page is
+   * named like its section (a monitor's Overview, under Overview), which
+   * read "Overview / Overview".
+   */
+  const isPageNamedLikeSection: boolean = Boolean(
+    translatedSectionTitle &&
+      translatedItemTitle &&
+      translatedSectionTitle.trim().toLocaleLowerCase() ===
+        translatedItemTitle.trim().toLocaleLowerCase(),
+  );
   const displayText: string =
-    translatedSectionTitle && translatedItemTitle
+    translatedSectionTitle && translatedItemTitle && !isPageNamedLikeSection
       ? `${translatedSectionTitle} / ${translatedItemTitle}`
       : translatedItemTitle || translateString("Navigation") || "Navigation";
 
@@ -281,6 +404,20 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Render sections
     if (props.sections) {
+      /*
+       * Which sections hold the current page: the one with the entry for it,
+       * or, on a page the menu does not list (one API key, a timeline), the
+       * one with its nearest ancestor. A section that starts collapsed opens
+       * on those pages.
+       */
+      const holdsCurrentPage: Array<boolean> = sectionsHoldingCurrentPage(
+        props.sections.map(
+          (section: SideMenuSectionProps): Array<MenuRoute> => {
+            return section.items.flatMap(routesOfMenuEntry);
+          },
+        ),
+      );
+
       props.sections.forEach(
         (section: SideMenuSectionProps, sectionIndex: number) => {
           // Build section props conditionally to avoid undefined values
@@ -294,9 +431,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           } = {
             key: `section-${sectionIndex}`,
             title: section.title,
-            isActive: section.items.some((item: SideMenuItemProps): boolean => {
-              return Navigation.isOnThisPage(item.activeRoute || item.link.to);
-            }),
+            isActive: Boolean(holdsCurrentPage[sectionIndex]),
           };
 
           if (section.icon) {
@@ -397,13 +532,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Support legacy children prop for backward compatibility
     if (props.children) {
-      const children: Array<ReactElement> = Array.isArray(props.children)
-        ? props.children
-        : [props.children];
-
-      children.forEach((child: ReactElement, index: number) => {
-        content.push(React.cloneElement(child, { key: `child-${index}` }));
-      });
+      withActiveSections(props.children).forEach(
+        (child: ReactElement, index: number) => {
+          if (React.isValidElement(child)) {
+            content.push(React.cloneElement(child, { key: `child-${index}` }));
+          }
+        },
+      );
     }
 
     return content;
@@ -431,10 +566,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           aria-expanded={isMobileMenuVisible}
           aria-label={
             isMobileMenuVisible
-              ? translateString("Close navigation menu") ||
-                "Close navigation menu"
-              : translateString("Open navigation menu") ||
-                "Open navigation menu"
+              ? translateString("Close navigation menu")
+              : translateString("Open navigation menu")
           }
           data-testid="mobile-sidemenu-toggle"
         >
@@ -444,7 +577,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Icon icon={activeItem.icon} className="h-3.5 w-3.5" />
               </div>
             )}
-            <div className="min-w-0">
+            {/*
+             * text-start: a <button> centres its text, which set "Navigate
+             * to" off-centre above the page's name, the two lines starting
+             * at different edges. Both start at the icon's side, in a
+             * right-to-left page too.
+             */}
+            <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
@@ -492,7 +631,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 animate-in slide-in-from-top-2 fade-in duration-200
               `}
               role="navigation"
-              aria-label="Main navigation"
+              aria-label={translateString("Main navigation")}
             >
               {/* Optional Header */}
               {props.header && (
@@ -532,10 +671,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
        * ("Scheduled Maintenance", "Recommendations" beside a badge) were
        * ellipsised on every page that has them. 16px buys those back without
        * taking a visible bite out of the content column.
+       *
+       * `max-md:hidden`, not `hidden`, for the reason given on the NavBar's
+       * desktop view: a foreign `.hidden` rule must not remove the menu.
        */
-      className={`hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
+      className={`max-md:hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
-      aria-label="Main navigation"
+      aria-label={translateString("Main navigation")}
     >
       {/*
        * Stick below the app header, not at the top of the viewport. The header

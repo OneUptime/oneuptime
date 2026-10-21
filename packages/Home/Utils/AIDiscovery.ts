@@ -11,6 +11,13 @@
 
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
+import { ResellersPageContent } from "./Resellers";
+import { AirGappedPageContent, AirGappedStep } from "./AirGapped";
+import {
+  CloudMarketplaceLink,
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "./CloudMarketplaces";
 import ProductCompare, {
   Product,
   PricingTier,
@@ -18,6 +25,8 @@ import ProductCompare, {
   getProductCompareSlugs,
 } from "./ProductCompare";
 import { JSONObject } from "Common/Types/JSON";
+import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
+import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
 
 /*
  * Minimal blog post shape so this module does not depend on the blog utils
@@ -57,9 +66,12 @@ function formatPlanValue(value: string | boolean): string {
   return value;
 }
 
-// Escape characters that would break a markdown table cell.
+/*
+ * A value in a markdown table cell: every "|" kept in its cell and every
+ * line break made a space (markdownTableCell).
+ */
 function tableCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return markdownTableCell(value);
 }
 
 /*
@@ -286,7 +298,23 @@ export function generateLlmsFullTxt(
   return lines.join("\n");
 }
 
-export function generatePricingMarkdown(homeUrl: string): string {
+/*
+ * Links named in a sentence, as the pages write them: "[A](a) or [B](b)".
+ */
+function marketplaceLinksSentence(
+  links: ReadonlyArray<CloudMarketplaceLink>,
+): string {
+  return links
+    .map((link: CloudMarketplaceLink): string => {
+      return `${link.separator}[${link.name}](${link.url})`;
+    })
+    .join("");
+}
+
+export function generatePricingMarkdown(
+  homeUrl: string,
+  cloudMarketplaces: CloudMarketplacesContent = getCloudMarketplacesContent(),
+): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
 
@@ -305,6 +333,14 @@ export function generatePricingMarkdown(homeUrl: string): string {
   }
   lines.push("");
   lines.push(`Canonical page: ${baseUrl}/pricing`);
+
+  // The line under the plans: OneUptime Cloud's public marketplace listings.
+  if (cloudMarketplaces.publicListings.cloud.length > 0) {
+    lines.push("");
+    lines.push(
+      `Prefer to pay on your cloud bill? Buy OneUptime Cloud on ${marketplaceLinksSentence(cloudMarketplaces.publicListings.cloud)}, at the same prices. Every marketplace: ${baseUrl}${cloudMarketplaces.sectionPath}`,
+    );
+  }
 
   for (const category of Pricing) {
     lines.push("");
@@ -364,6 +400,297 @@ export function generatePageMarkdown(
   lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
   lines.push(`- [Documentation](${baseUrl}/docs)`);
   lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/*
+ * The Resellers page's cloud marketplaces section, as markdown: each
+ * marketplace with its listings as the page shows them (a link where the
+ * listing is public, "coming soon" where it is not, one line for a
+ * marketplace with none), and nothing while no listing is public.
+ */
+function cloudMarketplacesMarkdown(
+  baseUrl: string,
+  marketplaces: CloudMarketplacesContent,
+): Array<string> {
+  if (!marketplaces.hasPublicListing) {
+    return [];
+  }
+
+  const lines: Array<string> = [];
+
+  lines.push("");
+  lines.push("## Buy through your cloud marketplace");
+  lines.push("");
+  lines.push(
+    `Buy OneUptime with the cloud account you already have, and pay for it on your cloud bill. OneUptime Cloud is run by OneUptime, at the prices on ${baseUrl}/pricing. OneUptime Enterprise runs in your own Kubernetes cluster, for ${marketplaces.enterprisePricePerUserHour} per user per hour, with no license key to activate: ${baseUrl}${marketplaces.enterpriseGuidePath}`,
+  );
+  lines.push("");
+
+  for (const card of marketplaces.marketplaces) {
+    if (!card.hasPublicListing) {
+      lines.push(`- ${card.name}: coming soon`);
+      continue;
+    }
+
+    lines.push(`- ${card.name}`);
+    for (const listing of card.listings) {
+      lines.push(
+        listing.listingUrl
+          ? `  - [${listing.productName}](${listing.listingUrl}): ${listing.detail}`
+          : `  - ${listing.productName}: ${listing.detail}, coming soon`,
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push(
+    `For annual pricing or a volume discount, ask for a private offer, which you accept on your marketplace: ${baseUrl}${marketplaces.privateOfferPath}`,
+  );
+
+  return lines;
+}
+
+/*
+ * /resellers.md: the resellers by region, from the same content the page
+ * renders (Utils/Resellers.ts), the cloud marketplaces, and how to become a
+ * reseller.
+ */
+export function generateResellersMarkdown(
+  homeUrl: string,
+  content: ResellersPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig["/resellers"];
+  const lines: Array<string> = [];
+
+  lines.push("# Resellers");
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${baseUrl}/resellers`);
+
+  lines.push("");
+  lines.push("## Resellers by region");
+
+  if (content.regions.length === 0) {
+    lines.push("");
+    lines.push(
+      "No resellers are listed yet. Buy OneUptime directly instead: start for free, or talk to the team.",
+    );
+  }
+
+  for (const group of content.regions) {
+    lines.push("");
+    lines.push(`### ${group.region}`);
+    lines.push("");
+    for (const reseller of group.resellers) {
+      const localName: string = reseller.localName
+        ? ` (${reseller.localName})`
+        : "";
+      lines.push(
+        `- [${reseller.name}](${reseller.websiteUrl})${localName}, ${reseller.location}: ${reseller.summary}`,
+      );
+    }
+  }
+
+  lines.push(...cloudMarketplacesMarkdown(baseUrl, content.cloudMarketplaces));
+
+  lines.push("");
+  lines.push("## Become a reseller");
+  lines.push("");
+  lines.push(
+    `Companies that want to sell OneUptime can send the form at ${baseUrl}/resellers#become-a-reseller, or email ${content.form.fallbackEmail}.`,
+  );
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
+  lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
+  lines.push(`- [Request a demo](${baseUrl}/enterprise/demo.md)`);
+  lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/*
+ * A docs or site address as an absolute link: the page writes them rooted
+ * ("/docs/..."), and a markdown reader has no page to resolve them against.
+ */
+function absoluteLink(baseUrl: string, href: string): string {
+  return href.startsWith("/") ? `${baseUrl}${href}` : href;
+}
+
+/*
+ * /enterprise/air-gapped.md: the air-gapped page, section by section, from
+ * the same content the page renders (Utils/AirGapped.ts) - who it is for,
+ * what runs inside, the four steps and the values they set, every
+ * connection out and what to use instead, AI on a model the customer runs,
+ * compliance, and the questions buyers ask.
+ */
+export function generateAirGappedMarkdown(
+  homeUrl: string,
+  content: AirGappedPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig[content.pagePath];
+  const pageUrl: string = `${baseUrl}${content.pagePath}`;
+  const lines: Array<string> = [];
+
+  lines.push(`# ${seo ? shortTitle(seo) : "Air-Gapped Installs"}`);
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${pageUrl}`);
+
+  lines.push("");
+  lines.push("## Who it's for");
+  lines.push("");
+  for (const audience of content.audiences) {
+    lines.push(`- **${audience.title}**: ${audience.description}`);
+  }
+
+  lines.push("");
+  lines.push("## What runs inside your network");
+  lines.push("");
+  for (const capability of content.capabilities) {
+    const more: string = capability.link
+      ? ` ([${capability.link.label}](${absoluteLink(baseUrl, capability.link.href)}))`
+      : "";
+    lines.push(`- **${capability.title}**: ${capability.description}${more}`);
+  }
+
+  lines.push("");
+  lines.push("## Four steps to an air-gapped install");
+  lines.push("");
+  lines.push(
+    "The same Helm chart every self-hosted install runs. There is no special air-gapped build.",
+  );
+  lines.push("");
+  content.steps.forEach((step: AirGappedStep, index: number) => {
+    // The settings a step names, in brackets - none for a step that has none.
+    const settings: string =
+      step.settings.length > 0
+        ? ` (${step.settings
+            .map((setting: string): string => {
+              return `\`${setting}\``;
+            })
+            .join(", ")})`
+        : "";
+    const more: string = step.link
+      ? ` See [${step.link.label}](${absoluteLink(baseUrl, step.link.href)}).`
+      : "";
+    lines.push(
+      `${index + 1}. **${step.title}**: ${step.description}${settings}${more}`,
+    );
+  });
+  lines.push("");
+  lines.push(
+    `The chart is signed with OneUptime's key, fingerprint ${content.signingKey.fingerprintHalves.join(" ")} (${content.signingKey.url}).`,
+  );
+  lines.push("");
+  lines.push("The values.yaml of an air-gapped install:");
+  lines.push("");
+  lines.push("```yaml");
+  lines.push(content.valuesYaml);
+  lines.push("```");
+  lines.push("");
+  lines.push(content.valuesCaption);
+  lines.push("");
+  lines.push(
+    `${content.upgradeNote} See [Upgrading](${absoluteLink(baseUrl, content.docs.upgrading)}).`,
+  );
+
+  lines.push("");
+  lines.push("## What reaches out, and what to use instead");
+  lines.push("");
+  lines.push(
+    "Three things reach out on their own unless you change a setting. Everything else reaches out only once you set it up.",
+  );
+  lines.push("");
+  lines.push("| Connection | Where it goes | When | Inside an air gap |");
+  lines.push("|---|---|---|---|");
+  for (const connection of content.connections) {
+    const name: string = connection.onByDefault
+      ? `${connection.name} (on by default)`
+      : connection.name;
+    lines.push(
+      `| ${tableCell(name)} | ${tableCell(connection.destination)} | ${tableCell(connection.when)} | ${tableCell(connection.inside)} |`,
+    );
+  }
+  lines.push("");
+  lines.push(
+    `The exact addresses each integration needs: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}). Every setting that lets OneUptime reach private addresses: [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
+  );
+
+  lines.push("");
+  lines.push("## OneUptime AI, on a model you run");
+  lines.push("");
+  for (const option of content.ai.options) {
+    lines.push(`- **${option.title}**: ${option.description}`);
+  }
+  lines.push("");
+  lines.push("```bash");
+  lines.push(content.ai.envExample);
+  lines.push("```");
+  lines.push("");
+  lines.push(content.ai.setup);
+  lines.push("");
+  lines.push(content.ai.safety);
+  lines.push("");
+  lines.push(
+    `See [LLM providers](${absoluteLink(baseUrl, content.docs.llmProviders)}).`,
+  );
+
+  lines.push("");
+  lines.push("## Compliance and data residency");
+  lines.push("");
+  for (const point of content.compliance) {
+    lines.push(`- **${point.title}**: ${point.description}`);
+  }
+
+  lines.push("");
+  lines.push("## Questions buyers ask");
+  for (const faq of content.faqs) {
+    lines.push("");
+    lines.push(`### ${faq.question}`);
+    lines.push("");
+    lines.push(faq.answer);
+  }
+
+  lines.push("");
+  lines.push("## Plan your install");
+  lines.push("");
+  lines.push(
+    `Book a working session with OneUptime's engineers at ${pageUrl}#plan-your-install, or email ${content.planCall.email}.`,
+  );
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(
+    `- [Self-hosted deployment](${baseUrl}/enterprise/self-hosted.md)`,
+  );
+  lines.push(
+    `- [Self-hosted architecture](${absoluteLink(baseUrl, content.docs.architecture)})`,
+  );
+  lines.push(
+    `- [Offline license activation](${absoluteLink(baseUrl, content.docs.offlineActivation)})`,
+  );
+  lines.push(`- [Helm chart configuration](${content.helmDocs.configuration})`);
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
   lines.push("");
 
   return lines.join("\n");
@@ -490,20 +817,48 @@ export function generateCompareMarkdown(
   return lines.join("\n");
 }
 
-// Manifest served at /.well-known/mcp.json for MCP client discovery.
-export function generateMcpManifest(homeUrl: string): JSONObject {
+/*
+ * Manifest served at /.well-known/mcp.json for MCP client discovery.
+ *
+ * `isOAuthEnabled` is false on an instance that has OAuth sign-in for the MCP
+ * server switched off (DISABLE_MCP_OAUTH); the manifest then describes API
+ * keys only, as it did before sign-in existed. An MCP client does not need
+ * any of this - it discovers OAuth from the endpoint's own 401 - so what is
+ * said here is for people and crawlers reading the manifest.
+ */
+export function generateMcpManifest(
+  homeUrl: string,
+  options?: { isOAuthEnabled?: boolean | undefined } | undefined,
+): JSONObject {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const isOAuthEnabled: boolean = options?.isOAuthEnabled !== false;
+
+  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`;
+
   return {
     name: "OneUptime MCP Server",
     description:
       "Model Context Protocol server for OneUptime. Lets AI agents query and manage incidents, monitors, alerts, on-call schedules, status pages, logs, metrics and traces.",
     endpoint: `${baseUrl}/mcp`,
     transport: ["streamable-http"],
-    authentication: {
-      type: "apiKey",
-      headers: ["x-api-key", "Authorization: Bearer <api-key>"],
-      instructions: `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`,
-    },
+    authentication: isOAuthEnabled
+      ? {
+          type: "oauth2",
+          methods: ["oauth2", "apiKey"],
+          oauth2: {
+            protectedResourceMetadata: `${baseUrl}/mcp/.well-known/oauth-protected-resource`,
+            authorizationServerMetadata: `${baseUrl}/.well-known/oauth-authorization-server/mcp`,
+            scopes: [...McpOAuthScopeUtil.ACCESS_SCOPES],
+          },
+          headers: ["x-api-key", "Authorization: Bearer <api-key>"],
+          instructions: `Add the endpoint to an MCP client with no credentials and sign in to OneUptime when the client asks; the client then acts as you in the project you choose. For an unattended agent, use an API key instead: ${apiKeyInstructions}`,
+        }
+      : {
+          type: "apiKey",
+          methods: ["apiKey"],
+          headers: ["x-api-key", "Authorization: Bearer <api-key>"],
+          instructions: apiKeyInstructions,
+        },
     capabilities: {
       tools: true,
       resources: false,

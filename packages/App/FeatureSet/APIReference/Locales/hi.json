@@ -98,10 +98,10 @@
       "title": "प्रमाणीकरण",
       "intro": "OneUptime API के किसी भी एंडपॉइंट तक पहुँचने के लिए आपको अपने अनुरोधों को प्रमाणित करना होगा। इस गाइड में, हम देखेंगे कि प्रमाणीकरण कैसे काम करता है। OneUptime आपके API अनुरोधों को प्रमाणित करने का एक तरीका प्रदान करता है - API Key का उपयोग करके।",
       "generateApiKey": "एक API Key जनरेट करें",
-      "generateApiKeyBody": "कृपया <strong>Project Settings</strong> > <strong>API Keys</strong> पर जाएँ। एक नई API Key बनाएँ। कृपया ध्यान दें: नई API Keys को कोई अनुमति नहीं सौंपी गई है, इसलिए उपयोग करने से पहले आपको एक अनुमति सौंपनी होगी।",
+      "generateApiKeyBody": "कृपया <strong>प्रोजेक्ट सेटिंग्स</strong> > <strong>उन्नत</strong> > <strong>API कुंजियाँ</strong> पर जाएँ। एक नई API Key बनाएँ। कृपया ध्यान दें: नई API Keys को कोई अनुमति नहीं सौंपी गई है, इसलिए उपयोग करने से पहले आपको एक अनुमति सौंपनी होगी।",
       "readMorePermissions": "अनुमतियों के बारे में और पढ़ें",
       "projectId": "प्रोजेक्ट ID",
-      "projectIdBody": "कृपया <strong>Project Settings</strong> > <strong>Project</strong> पर जाएँ। आपको वहाँ अपनी Project ID दिखाई देनी चाहिए।",
+      "projectIdBody": "कृपया <strong>प्रोजेक्ट सेटिंग्स</strong> > <strong>प्रोजेक्ट</strong> पर जाएँ। आपको वहाँ अपनी Project ID दिखाई देनी चाहिए।",
       "authWithApiKey": "API Key के साथ प्रमाणीकरण",
       "authWithApiKeyBody": "जब आप अनुरोध कर रहे हों, तो आप Request Header पर OneUptime API Key का उपयोग कर सकते हैं। अनुरोध करते समय आप अपनी API Key के साथ <code>ApiKey</code> हेडर का उपयोग कर सकते हैं।",
       "exampleApiRequest": "API Key के साथ उदाहरण अनुरोध",
@@ -132,7 +132,7 @@
       "metaDescription": "जानें कि OneUptime के साथ अनुमतियाँ कैसे काम करती हैं",
       "badge": "गाइड",
       "title": "अनुमतियाँ",
-      "intro": "किसी भी संसाधन को बनाने, अपडेट करने, पढ़ने या हटाने के लिए आपके API Token को अनुमतियों की आवश्यकता है। यदि आपके पास अनुरोध करने की अनुमति नहीं है तो प्रतिक्रिया के रूप में <code>4xx</code> स्थिति भेजी जाएगी। आप Project Settings > API Keys में अपनी API Key के लिए अनुमतियाँ प्रबंधित कर सकते हैं।",
+      "intro": "किसी भी संसाधन को बनाने, अपडेट करने, पढ़ने या हटाने के लिए आपके API Token को अनुमतियों की आवश्यकता है। यदि आपके पास अनुरोध करने की अनुमति नहीं है तो प्रतिक्रिया के रूप में <code>4xx</code> स्थिति भेजी जाएगी। आप प्रोजेक्ट सेटिंग्स > उन्नत > API कुंजियाँ में अपनी API Key के लिए अनुमतियाँ प्रबंधित कर सकते हैं।",
       "jumpToCategory": "एक श्रेणी पर जाएँ"
     },
     "errors": {

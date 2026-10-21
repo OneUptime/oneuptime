@@ -9,6 +9,8 @@ import Input from "Common/UI/Components/Input/Input";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import DataSourceTypeUIUtil from "../../Utils/DataSourceType";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   onSelect: (dataSourceType: DataSourceType) => void;
@@ -23,6 +25,7 @@ interface TypeGroup {
 const DataSourceTypeSelectModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [searchText, setSearchText] = useState<string>("");
 
   const search: string = searchText.trim().toLowerCase();
@@ -104,10 +107,14 @@ const DataSourceTypeSelectModal: FunctionComponent<ComponentProps> = (
                 className="mx-auto h-8 w-8 text-gray-400"
               />
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No data source types match your search
+                {translator.translateText(
+                  "No data source types match your search",
+                )}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Try a different name, like Prometheus or SQL.
+                {translator.translateText(
+                  "Try a different name, like Prometheus or SQL.",
+                )}
               </p>
             </div>
           ) : (

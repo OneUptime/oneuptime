@@ -13,6 +13,18 @@ import {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -35,12 +47,12 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
-const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-  "22222222-2222-4222-8222-222222222222",
-);
 const TEMPLATE_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
+// A template of another project: not in this project's directory.
+const OTHER_PROJECT_TEMPLATE_ID: string =
+  "33333333-3333-4333-8333-0000000000ff";
 const DEVICE_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
@@ -106,23 +118,44 @@ function templateOnlyUpdate(
 }
 
 describe("linking a device to an OID Collection Template is tenant-checked", () => {
-  /*
-   * Typed loosely: jest.spyOn's SpiedFunction and this repo's @types/jest
-   * disagree about the optionality of mock.lastCall, and these assertions
-   * only need mockResolvedValue and the call count.
-   */
-  let templateFindSpy: {
-    mockResolvedValue: (value: never) => unknown;
-    mock: { calls: Array<Array<unknown>> };
-  };
+  const MISSING_TEMPLATE_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-0000000000dd",
+  );
+
+  let directory: ProjectDirectoryStub;
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    templateFindSpy = jest.spyOn(
-      NetworkDeviceOidTemplateService,
-      "findOneById",
-    ) as unknown as typeof templateFindSpy;
+    // The project has one template: TEMPLATE_ID. Nothing else is its own.
+    directory = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkDeviceOidTemplate: [TEMPLATE_ID.toString()] },
+    });
   });
+
+  function templateLookups(): Array<{ ids: Array<string> }> {
+    return directory.recordLookups.filter(
+      (lookup: { model: string }): boolean => {
+        return lookup.model === "NetworkDeviceOidTemplate";
+      },
+    );
+  }
+
+  function updateLinking(
+    spelling: "id" | "relation",
+    templateId: ObjectID,
+  ): UpdateBy<NetworkDevice> {
+    const data: Record<string, unknown> =
+      spelling === "id"
+        ? { oidTemplateId: templateId }
+        : { oidTemplate: new NetworkDeviceOidTemplate(templateId) };
+
+    return {
+      query: { _id: DEVICE_ID.toString() },
+      data: data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkDevice>;
+  }
 
   /*
    * THE regression test. If the guard drifts back below the early return this
@@ -137,13 +170,14 @@ describe("linking a device to an OID Collection Template is tenant-checked", () 
       jest
         .spyOn(service, "findBy")
         .mockResolvedValue([matchedDevice()] as never);
-      templateFindSpy.mockResolvedValue(
-        templateInProject(OTHER_PROJECT_ID) as never,
-      );
 
       await expect(
-        internals.onBeforeUpdate(templateOnlyUpdate(spelling)),
-      ).rejects.toThrow(/must belong to the same project/);
+        internals.onBeforeUpdate(
+          updateLinking(spelling, new ObjectID(OTHER_PROJECT_TEMPLATE_ID)),
+        ),
+      ).rejects.toThrow(
+        `references records that are not in this project: OID Collection Template "${OTHER_PROJECT_TEMPLATE_ID}"`,
+      );
     },
   );
 
@@ -151,7 +185,6 @@ describe("linking a device to an OID Collection Template is tenant-checked", () 
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    templateFindSpy.mockResolvedValue(templateInProject(PROJECT_ID) as never);
 
     await expect(
       internals.onBeforeUpdate(templateOnlyUpdate("id")),
@@ -161,28 +194,55 @@ describe("linking a device to an OID Collection Template is tenant-checked", () 
   /*
    * The guard must actually reach the database rather than being skipped. A
    * hook that returns early looks identical to a hook that passed, so assert
-   * the lookup happened.
+   * the lookup happened - pinned to the device's project.
    */
   test("actually looks the template up, rather than returning early", async () => {
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    templateFindSpy.mockResolvedValue(templateInProject(PROJECT_ID) as never);
 
     await internals.onBeforeUpdate(templateOnlyUpdate("id"));
 
-    expect(templateFindSpy.mock.calls.length).toBeGreaterThan(0);
+    expect(templateLookups().length).toBeGreaterThan(0);
+    expect(
+      directory.recordLookups.every(
+        (lookup: { projectId: string }): boolean => {
+          return lookup.projectId === PROJECT_ID.toString();
+        },
+      ),
+    ).toBe(true);
   });
 
-  test("refuses a template that does not exist at all", async () => {
+  test("refuses a template that does not exist at all, exactly as one of another project", async () => {
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    templateFindSpy.mockResolvedValue(null as never);
 
-    await expect(
-      internals.onBeforeUpdate(templateOnlyUpdate("id")),
-    ).rejects.toThrow(BadDataException);
+    let missing: string = "";
+    let foreign: string = "";
+
+    try {
+      await internals.onBeforeUpdate(updateLinking("id", MISSING_TEMPLATE_ID));
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      missing = (error as Error).message;
+    }
+
+    try {
+      await internals.onBeforeUpdate(
+        updateLinking("id", new ObjectID(OTHER_PROJECT_TEMPLATE_ID)),
+      );
+    } catch (error) {
+      foreign = (error as Error).message;
+    }
+
+    expect(missing).not.toBe("");
+    expect(
+      missing.replace(
+        MISSING_TEMPLATE_ID.toString(),
+        OTHER_PROJECT_TEMPLATE_ID,
+      ),
+    ).toBe(foreign);
   });
 
   test("does no template lookup for an update that links nothing", async () => {
@@ -194,26 +254,24 @@ describe("linking a device to an OID Collection Template is tenant-checked", () 
       props: { isRoot: true },
     } as unknown as UpdateBy<NetworkDevice>);
 
-    expect(templateFindSpy.mock.calls).toHaveLength(0);
+    expect(templateLookups()).toHaveLength(0);
   });
 
   test("checks the template on create too", async () => {
     const { internals } = buildDeviceService();
 
-    templateFindSpy.mockResolvedValue(
-      templateInProject(OTHER_PROJECT_ID) as never,
-    );
-
     const device: NetworkDevice = new NetworkDevice();
     device.projectId = PROJECT_ID;
-    device.oidTemplateId = TEMPLATE_ID;
+    device.oidTemplateId = new ObjectID(OTHER_PROJECT_TEMPLATE_ID);
 
     await expect(
       internals.onBeforeCreate({
         data: device,
         props: { isRoot: true },
       } as CreateBy<NetworkDevice>),
-    ).rejects.toThrow(/must belong to the same project/);
+    ).rejects.toThrow(
+      `references records that are not in this project: OID Collection Template "${OTHER_PROJECT_TEMPLATE_ID}"`,
+    );
   });
 });
 
@@ -228,6 +286,7 @@ describe("device-specific OID validation runs on the write that carries it", () 
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   /*

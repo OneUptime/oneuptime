@@ -22,6 +22,10 @@ import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import {
+  OnCallRulesLink,
+  getUserSettingsOnCallRulesLink,
+} from "../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -175,21 +179,18 @@ const REMINDER_THROTTLE_NAMESPACE: string = "oncall-setup-reminder";
 const THROTTLE_MAX_ENTRIES: number = 10_000;
 
 /*
- * Dashboard user-settings path segments, duplicated from the Dashboard's
- * UserSettingsRoutePath.
+ * The Notification Methods page's path segment, duplicated from the
+ * Dashboard's UserSettingsRoutePath.
  *
  * Common/Server cannot import App sources, which is why
- * OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard and
- * OnCallNotificationAlertingService both spell their routes out by hand too. The
- * duplication is a known cost; sending somebody a link to the wrong settings tab
- * is a worse one, because a reminder that lands on a page with nothing wrong on
- * it reads as "this system is confused" and gets ignored.
+ * OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard spells its route
+ * out by hand too. The On-Call Rules page's address - its path and the
+ * `?type=` that opens a kind's tab - comes from Common's OnCallRuleKind, which
+ * the dashboard reads as well. Sending somebody a link to the wrong settings
+ * tab is the cost worth avoiding: a reminder that lands on a page with
+ * nothing wrong on it reads as "this system is confused" and gets ignored.
  */
 const NOTIFICATION_METHODS_PATH: string = "notification-methods";
-const INCIDENT_RULES_PATH: string = "incident-on-call-rules";
-const INCIDENT_EPISODE_RULES_PATH: string = "incident-episode-on-call-rules";
-const ALERT_RULES_PATH: string = "alert-on-call-rules";
-const ALERT_EPISODE_RULES_PATH: string = "alert-episode-on-call-rules";
 
 /*
  * How many reason lines a reminder carries before it stops listing them.
@@ -837,14 +838,37 @@ export class OnCallSetupReminderService extends BaseService {
     context: ReminderContext,
     readiness: UserReadiness,
   ): URL {
-    return URL.fromString(context.dashboardUrl.toString()).addRoute(
-      `/${context.projectId.toString()}/user-settings/${this.getSettingsPath(readiness)}`,
-    );
+    /*
+     * The On-Call Rules page, opened on the tab that holds the first hole.
+     * No hole to name, or a rule type this build has not heard of: the
+     * Notification Methods page, the one that is relevant to every gap there
+     * could ever be, rather than a guess about which tab it belongs on.
+     */
+    const rulesLink: OnCallRulesLink | null = getUserSettingsOnCallRulesLink({
+      projectId: context.projectId.toString(),
+      ruleType: this.getRuleTypeToFix(readiness),
+    });
+
+    if (!rulesLink) {
+      return URL.fromString(context.dashboardUrl.toString()).addRoute(
+        `/${context.projectId.toString()}/user-settings/${NOTIFICATION_METHODS_PATH}`,
+      );
+    }
+
+    return URL.fromString(context.dashboardUrl.toString())
+      .addRoute(rulesLink.path)
+      .addQueryParams(rulesLink.query);
   }
 
-  private getSettingsPath(readiness: UserReadiness): string {
+  /*
+   * The rule type of the first hole, or null when the fix is a notification
+   * method rather than a rule.
+   */
+  private getRuleTypeToFix(
+    readiness: UserReadiness,
+  ): NotificationRuleType | null {
     if (readiness.status === ReadinessStatus.NotReachable) {
-      return NOTIFICATION_METHODS_PATH;
+      return null;
     }
 
     const firstGap: ReadinessCoverageCell | undefined = readiness.coverage.find(
@@ -853,30 +877,7 @@ export class OnCallSetupReminderService extends BaseService {
       },
     );
 
-    if (!firstGap) {
-      return NOTIFICATION_METHODS_PATH;
-    }
-
-    switch (firstGap.ruleType) {
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-        return ALERT_RULES_PATH;
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-        return ALERT_EPISODE_RULES_PATH;
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-        return INCIDENT_EPISODE_RULES_PATH;
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT:
-      case NotificationRuleType.WHEN_USER_GOES_ON_CALL:
-      case NotificationRuleType.WHEN_USER_GOES_OFF_CALL:
-        return INCIDENT_RULES_PATH;
-      default:
-        /*
-         * A rule type this build has not heard of. Notification Methods is the
-         * one page that is relevant to every gap there could ever be, so an
-         * unknown type degrades to "somewhere useful" rather than to a guess
-         * about which settings tab it belongs on.
-         */
-        return NOTIFICATION_METHODS_PATH;
-    }
+    return firstGap ? firstGap.ruleType : null;
   }
 
   private tally(

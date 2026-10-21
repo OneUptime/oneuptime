@@ -21,8 +21,9 @@ import {
 } from "@jest/globals";
 
 /*
- * WorkspaceOAuthState is what the Slack and Microsoft Teams connect callbacks
- * trust to decide which project and user a workspace binding is written for.
+ * WorkspaceOAuthState is what the Slack, Microsoft Teams and GitHub App
+ * connect callbacks trust to decide which project and user a binding is
+ * written for.
  * These tests pin the properties that make it trustworthy: opaque, single-use,
  * short-lived, flow-specific and bound to the browser that started the flow.
  */
@@ -56,6 +57,19 @@ jest.mock("../../../../Server/Infrastructure/GlobalCache", () => {
           const entry: MockCacheEntry | undefined =
             mockCacheStore.get(cacheKey);
           mockCacheStore.delete(cacheKey);
+
+          if (!entry || entry.expiresAt <= Date.now()) {
+            return null;
+          }
+
+          return entry.value;
+        },
+      ),
+      getString: jest.fn(
+        async (namespace: string, key: string): Promise<string | null> => {
+          const entry: MockCacheEntry | undefined = mockCacheStore.get(
+            `${namespace}-${key}`,
+          );
 
           if (!entry || entry.expiresAt <= Date.now()) {
             return null;
@@ -460,6 +474,69 @@ describe("WorkspaceOAuthState", () => {
       ).toBeNull();
     });
 
+    test("a GitHub App installation state is spent by its own callback", async () => {
+      const { created, cookies } = await start(
+        WorkspaceOAuthFlow.GitHubAppInstall,
+      );
+
+      const record: WorkspaceOAuthStateRecord | null =
+        await WorkspaceOAuthState.consume({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+        });
+
+      expect(record?.flow).toBe(WorkspaceOAuthFlow.GitHubAppInstall);
+      expect(record?.projectId.toString()).toBe(projectId.toString());
+      expect(record?.userId.toString()).toBe(userId.toString());
+    });
+
+    test("a GitHub App installation state is never spent by a Slack or Teams callback", async () => {
+      const { created, cookies } = await start(
+        WorkspaceOAuthFlow.GitHubAppInstall,
+      );
+
+      expect(
+        await WorkspaceOAuthState.consume({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows: Object.values(WorkspaceOAuthFlow).filter(
+            (flow: WorkspaceOAuthFlow): boolean => {
+              return flow !== WorkspaceOAuthFlow.GitHubAppInstall;
+            },
+          ),
+        }),
+      ).toBeNull();
+    });
+
+    test.each([
+      WorkspaceOAuthFlow.SlackInstall,
+      WorkspaceOAuthFlow.SlackUserSignIn,
+      WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn,
+      WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent,
+      WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn,
+    ])(
+      "a %s state is never spent by the GitHub App installation callback",
+      async (flow: WorkspaceOAuthFlow) => {
+        const { created, cookies } = await start(flow);
+
+        expect(
+          await WorkspaceOAuthState.consume({
+            req: makeRequest(cookies),
+            state: created.state,
+            flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+          }),
+        ).toBeNull();
+      },
+    );
+
+    test("every flow is its own", () => {
+      const flows: Array<string> = Object.values(WorkspaceOAuthFlow);
+
+      expect(new Set(flows).size).toBe(flows.length);
+      expect(flows).toContain("GitHubAppInstall");
+    });
+
     test("refuses a state completed in a browser without the binding cookie, and burns it", async () => {
       const { created, cookies } = await start();
       const flows: Array<WorkspaceOAuthFlow> = [
@@ -532,6 +609,158 @@ describe("WorkspaceOAuthState", () => {
           flows: [WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent],
         }),
       ).toBeNull();
+    });
+  });
+
+  /*
+   * peek reads a state for a page that shows what it offers - the GitHub
+   * installations a sign-in found - before the person picks. It refuses
+   * everything consume refuses, and it never spends the state: only the
+   * callback the pick goes through does.
+   */
+  describe("peek", () => {
+    const flows: Array<WorkspaceOAuthFlow> = [
+      WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+    ];
+
+    async function startChoice(): Promise<{
+      created: CreatedWorkspaceOAuthState;
+      cookies: Record<string, string>;
+    }> {
+      const res: FakeResponse = makeResponse();
+
+      const created: CreatedWorkspaceOAuthState =
+        await WorkspaceOAuthState.create({
+          req: makeRequest(),
+          res,
+          flow: WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+          projectId,
+          userId,
+          payload: {
+            installations: [
+              {
+                installationId: "111",
+                accountLogin: "acme",
+                accountType: "Organization",
+              },
+            ],
+          },
+        });
+
+      return { created, cookies: { [COOKIE_NAME]: issuedBinding(res) } };
+    }
+
+    test("returns what the state stands for, without spending it", async () => {
+      const { created, cookies } = await startChoice();
+
+      for (let read: number = 0; read < 2; read++) {
+        const record: WorkspaceOAuthStateRecord | null =
+          await WorkspaceOAuthState.peek({
+            req: makeRequest(cookies),
+            state: created.state,
+            flows,
+          });
+
+        expect(record?.flow).toBe(
+          WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+        );
+        expect(record?.projectId.toString()).toBe(projectId.toString());
+        expect(record?.userId.toString()).toBe(userId.toString());
+        expect(record?.payload).toEqual({
+          installations: [
+            {
+              installationId: "111",
+              accountLogin: "acme",
+              accountType: "Organization",
+            },
+          ],
+        });
+      }
+
+      expect(GlobalCache.getAndDeleteString).not.toHaveBeenCalled();
+
+      // Still the callback's to spend, once.
+      expect(
+        await WorkspaceOAuthState.consume({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows,
+        }),
+      ).not.toBeNull();
+
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows,
+        }),
+      ).toBeNull();
+    });
+
+    test("refuses a state issued for another flow", async () => {
+      const { created, cookies } = await start(
+        WorkspaceOAuthFlow.GitHubAppInstall,
+      );
+
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows,
+        }),
+      ).toBeNull();
+    });
+
+    test("refuses a browser without the binding cookie, or with someone else's", async () => {
+      const { created } = await startChoice();
+      const other: { cookies: Record<string, string> } = await startChoice();
+
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(),
+          state: created.state,
+          flows,
+        }),
+      ).toBeNull();
+
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(other.cookies),
+          state: created.state,
+          flows,
+        }),
+      ).toBeNull();
+    });
+
+    test("refuses a state after it has expired", async () => {
+      const { created, cookies } = await startChoice();
+
+      for (const entry of mockCacheStore.values()) {
+        entry.expiresAt = Number.MAX_SAFE_INTEGER;
+      }
+
+      const realNow: number = Date.now();
+      jest.spyOn(Date, "now").mockReturnValue(realNow + 901 * 1000);
+
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows,
+        }),
+      ).toBeNull();
+    });
+
+    test("refuses a malformed state without touching the cache", async () => {
+      expect(
+        await WorkspaceOAuthState.peek({
+          req: makeRequest(),
+          state: "not-a-state",
+          flows,
+        }),
+      ).toBeNull();
+
+      expect(GlobalCache.getString).not.toHaveBeenCalled();
     });
   });
 

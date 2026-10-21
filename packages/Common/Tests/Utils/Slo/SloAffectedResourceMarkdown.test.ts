@@ -7,6 +7,7 @@ import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The SLO bullets under "Resources Affected" in an incident's or alert's
  * "created" feed item. The feed renders markdown without safe mode, so the
@@ -94,6 +95,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
           ownSlo({ _id: OTHER_SLO_ID, name: "Search latency p95" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
@@ -109,6 +112,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         ownSlo({ _id: SLO_ID, name: "A" }),
         ownSlo({ _id: OTHER_SLO_ID, name: "B" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(lines[1]).toBe(`- [SLO B](${sloLink(OTHER_SLO_ID)})`);
@@ -124,6 +129,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       serviceLevelObjectives: [
         ownSlo({ _id: SLO_ID, name: "Checkout](https://evil.example) x" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).toBe(
@@ -144,13 +151,15 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           name: "![pixel](https://tracker.example/p.gif) <img src=x> *loud* _x_",
         }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).not.toContain("![");
     // Every `<` is backslash-escaped, which CommonMark renders as a literal `<`.
     expect(line).not.toMatch(/(^|[^\\])</);
     expect(line).toContain("\\!\\[pixel\\]");
-    expect(line).toContain("\\<img src=x\\>");
+    expect(line).toContain("\\<img src=x>");
     expect(line).toContain("\\*loud\\*");
     expect(line).toContain("\\_x\\_");
   });
@@ -162,11 +171,13 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       serviceLevelObjectives: [
         ownSlo({ _id: SLO_ID, name: "Checkout\n# Pwned\r\n- injected bullet" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).not.toMatch(/[\r\n]/);
     expect(line).toBe(
-      `- [SLO Checkout \\# Pwned \\- injected bullet](${sloLink(SLO_ID)})`,
+      `- [SLO Checkout # Pwned - injected bullet](${sloLink(SLO_ID)})`,
     );
   });
 
@@ -179,6 +190,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID }),
           ownSlo({ _id: OTHER_SLO_ID, name: "   " }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([
       `- [SLO](${sloLink(SLO_ID)})`,
@@ -195,6 +208,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ name: "Unsaved objective" }),
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });
@@ -208,6 +223,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toHaveLength(1);
   });
@@ -225,6 +242,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           dashboardUrl: DASHBOARD_URL,
           projectId: PROJECT_ID,
           serviceLevelObjectives: serviceLevelObjectives,
+        }).map((line: MarkdownText): string => {
+          return line.toString();
         }),
       ).toEqual([]);
     },
@@ -244,6 +263,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
         },
         ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(lines).toEqual([
@@ -262,6 +283,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
           { _id: SLO_ID, name: "Checkout availability" },
           { _id: OTHER_SLO_ID, name: "Search latency", projectId: null },
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([]);
   });
@@ -278,6 +301,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
             projectId: PROJECT_ID.toString().toUpperCase(),
           },
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });
@@ -296,6 +321,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
           { _id: SLO_ID, name: "Foreign", projectId: OTHER_PROJECT_ID },
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });

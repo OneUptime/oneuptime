@@ -1,14 +1,19 @@
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
-import DatabaseService from "./DatabaseService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import NetworkSiteService from "./NetworkSiteService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
@@ -40,6 +45,11 @@ import {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
+import MonitorStatusEventDelete, {
+  StatusEventDeleteDecision,
+} from "../../Utils/Monitor/MonitorStatusEventDelete";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -51,9 +61,9 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
   "Monitor Status cannot be same as previous status.";
 
 /*
- * Thrown by create() when the per-monitor mutex cannot be acquired. The timeline
- * write is refused rather than performed unlocked - see the comment on the lock
- * acquisition below. Probe ingest call sites match on this to log and skip
+ * Thrown by create() (its onBeforeCreate) when the per-monitor mutex cannot be
+ * acquired. The timeline write is refused rather than performed unlocked - see
+ * lockMonitor below. Probe ingest call sites match on this to log and skip
  * instead of failing the whole ingest run.
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
@@ -92,9 +102,31 @@ export interface MergedDowntimeRow {
   downtimeSeconds: string | number | null;
 }
 
-export class Service extends DatabaseService<MonitorStatusTimeline> {
+/*
+ * What onBeforeDelete hands onDeleteSuccess for one status event deleted by
+ * its id: the event, its monitor, and the event before it that runs on over
+ * its time once it is gone (null when there is none: the oldest event).
+ */
+export interface StatusEventDeleteCarryForward {
+  monitorId: ObjectID;
+  eventId: ObjectID;
+  previousRunsOn: { previousId: ObjectID; endsAt: Date | null } | null;
+}
+
+export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge -
+     * leaves each monitor's current status and every status event that
+     * covers part of the last 90 days, so a monitor never turns gray on a
+     * status page because its history was cleaned up. One event deleted by
+     * its id is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("MonitorStatusTimeline"),
+    );
   }
 
   /**
@@ -418,9 +450,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    * everything clipped to [startDate, LEAST(endDate, now())], and an open row
    * capped at the next row's start, `ORDER BY startsAt, endsAt NULLS LAST`.
    * For a single monitor the two agree exactly, unless two of its own rows
-   * overlap (deleting a row from the middle of a timeline leaves that, see
-   * getRollingUptimeTotals): the aggregate counts the overlap twice, and a
-   * union once.
+   * overlap (deleting a row from the middle of a timeline used to leave
+   * that, see getRollingUptimeTotals): the aggregate counts the overlap
+   * twice, and a union once.
    *
    * Downtime statuses are picked out AFTER that LEAD, never before it.
    * Filtered first, an open Offline row would run on to the next Offline
@@ -627,13 +659,14 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    * That row set is exactly what the aggregate reads while no closed row
    * ends after a later row starts. The write paths keep that: create closes
    * the preceding row at the new row's start, and a backfilled row gets the
-   * next row's start as its end. The exception is deleting a row from the
-   * middle of a timeline (onBeforeDelete). That moves the preceding row's
-   * end to the next row's old start and the next row's start back to the
-   * deleted row's start, so the two overlap across the deleted span. Where
-   * that overlap straddles the widest window's start, the aggregate counts
-   * it twice, reporting more than 100% coverage, and this counts it once,
-   * from the newer row.
+   * next row's start as its end, and deleting a row from the middle of a
+   * timeline runs the preceding row on to the next row's start
+   * (MonitorStatusEventDelete). That delete used to move the next row's
+   * start back to the deleted row's start as well, so the two overlapped
+   * across the deleted span, and rows it wrote then still do. Where such an
+   * overlap straddles the widest window's start, the aggregate counts it
+   * twice, reporting more than 100% coverage, and this counts it once, from
+   * the newer row.
    */
   @CaptureSpan()
   public async getRollingUptimeTotals(data: {
@@ -966,65 +999,20 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     };
   }
 
+  /*
+   * The status change itself, then what follows it once the monitor's lock
+   * is given back (onCreateSuccess): the network-site bridge and the feed
+   * item. A create that skips the hooks moved no current status and runs
+   * neither; one that fails runs neither.
+   */
   @CaptureSpan()
   public override async create(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<MonitorStatusTimeline> {
-    /*
-     * The per-monitor mutex is owned here, around the whole create, rather than
-     * inside onBeforeCreate. DatabaseService.create() invokes onBeforeCreate and
-     * then runs validation, permission checks and the INSERT before it ever
-     * reaches onCreateSuccess, all OUTSIDE any try/catch this service can hook
-     * (onCreateError never fires for a throw raised before the INSERT). So a
-     * mutex acquired in onBeforeCreate and released in onCreateSuccess leaks on
-     * any throw in between, and a leaked redis-semaphore mutex never expires - it
-     * keeps refreshing its own Redis key for the life of the process, which would
-     * block every later create for that monitor until acquireTimeout. Holding it
-     * in a try/finally here releases it on every path.
-     *
-     * The critical section that must be serialized per monitor spans reading the
-     * predecessor row (onBeforeCreate) through closing it (onCreateSuccess), so
-     * the lock is held across the entire super.create(), not just one hook.
-     */
-    if (createBy.props.ignoreHooks || !createBy.data.monitorId) {
-      // No predecessor bookkeeping runs on these paths, so no serialization is needed.
-      return await super.create(createBy);
-    }
+    const createdItem: MonitorStatusTimeline = await super.create(createBy);
 
-    const logAttributes: LogAttributes = {
-      projectId: createBy.data.projectId?.toString(),
-      monitorId: createBy.data.monitorId?.toString(),
-    } as LogAttributes;
-
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: createBy.data.monitorId.toString(),
-        namespace: "MonitorStatusTimeline.create",
-      });
-    } catch (e) {
-      /*
-       * Fail closed. This used to fall through and INSERT UNLOCKED, which let two
-       * concurrent writers resolve the same predecessor row, both pass the
-       * same-as-previous check, and both INSERT a status row milliseconds apart.
-       * Only the later row is ever closed (the next writer resolves its
-       * predecessor with ORDER BY startsAt DESC LIMIT 1), so the earlier row is
-       * orphaned with endsAt = NULL permanently and is read back as unbounded
-       * downtime. Refusing the write is strictly safer: the monitor keeps its
-       * current status and the next probe result for the same monitor
-       * re-evaluates the same criteria and recreates the status change.
-       */
-      logger.error(e, logAttributes);
-      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
-    }
-
-    let createdItem: MonitorStatusTimeline;
-
-    try {
-      createdItem = await super.create(createBy);
-    } finally {
-      await this.releaseMutex(mutex, logAttributes);
+    if (createBy.props.ignoreHooks) {
+      return createdItem;
     }
 
     /*
@@ -1046,8 +1034,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
      * HTTP (Slack/Teams) with unbounded latency, and holding the per-monitor
      * lock across them would block every concurrent status write for this
      * monitor until acquireTimeout - turning one slow webhook into refused
-     * status transitions. (The pre-fail-closed code released the lock at this
-     * same boundary, before the feed block.)
+     * status transitions.
      */
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
@@ -1058,69 +1045,111 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
-    if (!createBy.data.monitorId) {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The monitor under either of its names (the two must agree, whoever
+     * writes), kept in the ID column for the rest of the create and the
+     * saved row: the lock is the monitor's whichever name the write used.
+     */
+    const monitorId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["monitorId", "monitor"],
+      "Monitor",
+    );
+
+    if (!monitorId) {
       throw new BadDataException("monitorId is null");
     }
 
+    /*
+     * The status, checked before the monitor's lock is taken: a write naming
+     * a status that is not the project's is refused without waiting on, or
+     * holding up, the monitor's other status changes.
+     */
+    const monitorStatusId: ObjectID = await this.checkMonitorStatus(createBy);
+
     const logAttributes: LogAttributes = {
       projectId: createBy.data.projectId?.toString(),
-      monitorId: createBy.data.monitorId?.toString(),
+      monitorId: monitorId.toString(),
     } as LogAttributes;
 
     /*
-     * The per-monitor mutex that serializes this read-modify-write is acquired
-     * and released in create() (see the comment there); it is held for the whole
-     * duration of this hook.
+     * The per-monitor mutex serializes this read-modify-write: the read of
+     * the predecessor here through the close of it in onCreateSuccess, so
+     * two writers for one monitor can never both resolve the same
+     * predecessor. Taken here - once DatabaseService has checked the caller,
+     * so a refused write takes no lock - and given back in onCreateSuccess
+     * once the predecessor is closed and the monitor's status written, or in
+     * onCreateError for a create refused or failed after this hook.
      */
-    return await this.buildOnCreate(
-      createBy,
-      createBy.data.monitorId,
+    const mutex: SemaphoreMutex = await this.lockMonitor(
+      monitorId,
       logAttributes,
     );
+
+    try {
+      const onCreate: OnCreate<MonitorStatusTimeline> =
+        await this.buildOnCreate(
+          createBy,
+          monitorId,
+          monitorStatusId,
+          logAttributes,
+        );
+
+      onCreate.carryForward.mutex = mutex;
+
+      return onCreate;
+    } catch (error) {
+      /*
+       * Refused by this hook, once the lock is taken: no create follows to
+       * give it back.
+       */
+      await StateChangeLock.giveBack(mutex, logAttributes);
+
+      throw error;
+    }
   }
 
   /*
-   * Body of onBeforeCreate, split out to keep the null-narrowing of monitorId in
-   * one place: it is passed in already narrowed so it can never reach a query as
-   * undefined, which would widen the query to every monitor.
+   * The monitor's lock, or a refusal. Fail closed: this used to fall
+   * through and INSERT UNLOCKED, which let two concurrent writers resolve
+   * the same predecessor row, both pass the same-as-previous check, and both
+   * INSERT a status row milliseconds apart. Only the later row is ever closed
+   * (the next writer resolves its predecessor with ORDER BY startsAt DESC
+   * LIMIT 1), so the earlier row is orphaned with endsAt = NULL permanently
+   * and is read back as unbounded downtime. Refusing the write is strictly
+   * safer: the monitor keeps its current status and the next probe result
+   * for the same monitor re-evaluates the same criteria and recreates the
+   * status change.
    */
-  private async buildOnCreate(
-    createBy: CreateBy<MonitorStatusTimeline>,
+  private async lockMonitor(
     monitorId: ObjectID,
     logAttributes: LogAttributes,
-  ): Promise<OnCreate<MonitorStatusTimeline>> {
-    if (!createBy.data.startsAt) {
-      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+  ): Promise<SemaphoreMutex> {
+    try {
+      return await Semaphore.lock({
+        key: monitorId.toString(),
+        namespace: "MonitorStatusTimeline.create",
+      });
+    } catch (e) {
+      logger.error(e, logAttributes);
+      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
     }
+  }
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
-
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
-      }
-    }
-
-    const monitorStatusId: ObjectID | undefined | null =
-      createBy.data.monitorStatusId || createBy.data.monitorStatus?.id;
+  /*
+   * The status the write names, under either of its names (the two must
+   * agree), held to the project.
+   */
+  private async checkMonitorStatus(
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): Promise<ObjectID> {
+    const monitorStatusId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["monitorStatusId", "monitorStatus"],
+      "Monitor Status",
+    );
 
     if (!monitorStatusId) {
       throw new BadDataException("monitorStatusId is null");
@@ -1153,6 +1182,40 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         },
       ],
     });
+
+    return monitorStatusId;
+  }
+
+  /*
+   * Body of onBeforeCreate, split out to keep the null-narrowing of monitorId in
+   * one place: it is passed in already narrowed so it can never reach a query as
+   * undefined, which would widen the query to every monitor.
+   */
+  private async buildOnCreate(
+    createBy: CreateBy<MonitorStatusTimeline>,
+    monitorId: ObjectID,
+    monitorStatusId: ObjectID,
+    logAttributes: LogAttributes,
+  ): Promise<OnCreate<MonitorStatusTimeline>> {
+    if (!createBy.data.startsAt) {
+      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+    }
+
+    // Who made the change, under either name of it: see CreatedByUser.
+    const changedByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
+
+    if (changedByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause =
+        mdText`Monitor status created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`.toString();
+    }
 
     const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
@@ -1259,27 +1322,6 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   }
 
   /*
-   * Releases the per-monitor mutex. Never throws: a failed release must not mask
-   * the error we are already unwinding, and must not fail an otherwise successful
-   * create. Semaphore.release stops the refresh interval before it talks to
-   * Redis, so even if the Redis call fails the key expires on its own lockTimeout.
-   */
-  private async releaseMutex(
-    mutex: SemaphoreMutex | null | undefined,
-    logAttributes: LogAttributes,
-  ): Promise<void> {
-    if (!mutex) {
-      return;
-    }
-
-    try {
-      await Semaphore.release(mutex);
-    } catch (err) {
-      logger.error(err, logAttributes);
-    }
-  }
-
-  /*
    * Closes the status timeline row that precedes the row we just created.
    *
    * The update is conditional instead of a blind updateOneById: it only touches
@@ -1357,9 +1399,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     }
 
     /*
-     * Everything below runs while the per-monitor mutex acquired in create() is
-     * still held, so the read of the predecessor in onBeforeCreate and the close
-     * of it here cannot interleave with another writer for the same monitor.
+     * Everything below runs while the per-monitor mutex acquired in
+     * onBeforeCreate is still held, so the read of the predecessor there and
+     * the close of it here cannot interleave with another writer for the same
+     * monitor. It is given back at the end of this hook.
      */
 
     // update the last status as ended.
@@ -1433,6 +1476,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     if (!createdItem.endsAt) {
       // if this is the last status, then update the monitor status.
 
+      /*
+       * As OneUptime's own write, derived from the timeline: the permission
+       * to create the status change is the permission to change the
+       * monitor's status (StateChangeFollowOn).
+       */
       await MonitorService.updateOneBy({
         query: {
           _id: createdItem.monitorId?.toString(),
@@ -1440,7 +1488,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         data: {
           currentMonitorStatusId: createdItem.monitorStatusId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
 
       /*
@@ -1450,7 +1498,31 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
        * right after the mutex is released.
        */
     }
+
+    // The predecessor is closed and the monitor's status written.
+    await StateChangeLock.giveBackFor(onCreate, logAttributes);
+
     return createdItem;
+  }
+
+  /*
+   * A status change refused or failed once onBeforeCreate took the
+   * monitor's lock - by a check DatabaseService.create runs after the hook,
+   * at the INSERT, or in onCreateSuccess before it gave the lock back - gives
+   * it back here (StateChangeLock). Left held, every later status change for
+   * the monitor would be refused until the process ended.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<MonitorStatusTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      monitorId: onCreate?.createBy.data.monitorId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   /*
@@ -1473,7 +1545,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    * alerts and post workspace notifications), and holding the lock across that
    * would serialise every concurrent status write for this monitor behind it -
    * past the semaphore's acquire timeout, refuse it. Only the predecessor
-   * read -> INSERT -> predecessor close needs the lock (see create()).
+   * read -> INSERT -> predecessor close needs the lock (see onBeforeCreate).
    *
    * Ordering note: two status writes for the same monitor bridge in release
    * order, and a bridge carries the status of ITS row. Probe results for one
@@ -1589,6 +1661,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         },
       });
 
+    /*
+     * The status's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     */
     const stateName: string = monitorStatus?.name || "";
     let stateEmoji: string = "➡️";
 
@@ -1613,12 +1689,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
       displayColor: monitorStatus?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed Monitor **[${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:**
-    ${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed Monitor **[${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **${stateName}**`.toString(),
+      moreInformationInMarkdown: mdText`**Cause:**
+    ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -1632,160 +1705,176 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<MonitorStatusTimeline>,
   ): Promise<OnDelete<MonitorStatusTimeline>> {
-    if (deleteBy.query._id) {
-      const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            monitorId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const monitorId: ObjectID | undefined =
-        monitorStatusTimelineToBeDeleted?.monitorId;
-
-      if (monitorId) {
-        const monitorStatusTimeline: PositiveNumber = await this.countBy({
-          query: {
-            monitorId: monitorId,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!monitorStatusTimelineToBeDeleted) {
-          throw new BadDataException("Monitor status timeline not found.");
-        }
-
-        if (monitorStatusTimeline.isOne()) {
-          throw new BadDataException(
-            "Cannot delete the only status timeline. Monitor should have at least one status timeline.",
-          );
-        }
-
-        /*
-         * There are three cases.
-         * 1. This is the first status.
-         * 2. This is the last status.
-         * 3. This is in the middle.
-         */
-
-        const stateBeforeThis: MonitorStatusTimeline | null =
-          await this.findOneBy({
-            query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
-              monitorId: monitorId,
-              startsAt: QueryHelper.lessThanEqualTo(
-                monitorStatusTimelineToBeDeleted.startsAt!,
-              ),
-            },
-            sort: {
-              startsAt: SortOrder.Descending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              monitorStatusId: true,
-              startsAt: true,
-              endsAt: true,
-            },
-          });
-
-        const stateAfterThis: MonitorStatusTimeline | null =
-          await this.findOneBy({
-            query: {
-              monitorId: monitorId,
-              startsAt: QueryHelper.greaterThan(
-                monitorStatusTimelineToBeDeleted.startsAt!,
-              ),
-            },
-            sort: {
-              startsAt: SortOrder.Ascending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              monitorStatusId: true,
-              startsAt: true,
-              endsAt: true,
-            },
-          });
-
-        if (!stateBeforeThis) {
-          // This is the first status, no need to update previous status.
-          logger.debug("This is the first status.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        } else if (!stateAfterThis) {
-          /*
-           * This is the last status.
-           * Update the previous status to end at the start of this status.
-           */
-          await this.updateOneById({
-            id: stateBeforeThis.id!,
-            data: {
-              endsAt: monitorStatusTimelineToBeDeleted.endsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug("This is the last status.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        } else {
-          /*
-           * This status is in the middle.
-           * Update the previous status to end at the start of this status.
-           */
-          await this.updateOneById({
-            id: stateBeforeThis.id!,
-            data: {
-              endsAt: stateAfterThis.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          // Update the next status to start at the end of this status.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: monitorStatusTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug("This status is in the middle.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        }
-      }
-
-      return { deleteBy, carryForward: monitorId };
+    /*
+     * A delete that names its events by a query - a workflow's Delete Many
+     * or Delete One by query, a retention purge - is a clean-up, not a
+     * correction: it moves no event. DatabaseService has already narrowed it
+     * to the events that are over (keepRowsOnDeleteByQuery, declared in the
+     * constructor): each monitor keeps its current status, and every event
+     * that covers part of the last 90 days.
+     */
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
     }
 
-    return { deleteBy, carryForward: null };
+    /*
+     * The one event the delete names by its id, and the delete held to it:
+     * the event before it closes the gap it leaves, or the delete is refused
+     * when no event is left to (MonitorStatusEventDelete).
+     */
+    const toBeDeleted: {
+      row: MonitorStatusTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      monitorId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore || !toBeDeleted.row) {
+      return { deleteBy, carryForward: null };
+    }
+
+    const event: MonitorStatusTimeline = toBeDeleted.row;
+    const monitorId: ObjectID | undefined = event.monitorId;
+
+    if (!monitorId) {
+      return { deleteBy, carryForward: null };
+    }
+
+    const eventCount: PositiveNumber = await this.countBy({
+      query: {
+        monitorId: monitorId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        _id: QueryHelper.notEquals(event.id!.toString()),
+        monitorId: monitorId,
+        startsAt: QueryHelper.lessThanEqualTo(event.startsAt!),
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+
+    const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: monitorId,
+        startsAt: QueryHelper.greaterThan(event.startsAt!),
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        startsAt: true,
+      },
+    });
+
+    const decision: StatusEventDeleteDecision = MonitorStatusEventDelete.decide(
+      {
+        event: event,
+        before:
+          stateBeforeThis && stateBeforeThis.id
+            ? {
+                id: stateBeforeThis.id,
+                startsAt: stateBeforeThis.startsAt,
+                endsAt: stateBeforeThis.endsAt,
+              }
+            : null,
+        after: stateAfterThis,
+        eventCount: eventCount.toNumber(),
+        now: OneUptimeDate.getCurrentDate(),
+      },
+    );
+
+    if (decision.kind === "refuse") {
+      throw new BadDataException(decision.message);
+    }
+
+    /*
+     * The event before it runs on once the event is gone (onDeleteSuccess),
+     * never before: a delete refused after this hook, or one that removed
+     * nothing, leaves the timeline as it was.
+     */
+    const carryForward: StatusEventDeleteCarryForward = {
+      monitorId: monitorId,
+      eventId: event.id!,
+      previousRunsOn:
+        decision.kind === "previous-runs-on"
+          ? { previousId: decision.previousId, endsAt: decision.endsAt }
+          : null,
+    };
+
+    return { deleteBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<MonitorStatusTimeline>> {
-    if (onDelete.carryForward) {
-      // this is monitorId.
-      const monitorId: ObjectID = onDelete.carryForward as ObjectID;
+    const carryForward: StatusEventDeleteCarryForward | null =
+      onDelete.carryForward || null;
+
+    /*
+     * Only for the one event deleted by its id (onBeforeDelete), once it is
+     * gone: a delete by query moves no event, and leaves every monitor's
+     * current status where it was.
+     */
+    const eventWasDeleted: boolean = Boolean(
+      carryForward &&
+        itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+          return (
+            id.toString().toLowerCase() ===
+            carryForward.eventId.toString().toLowerCase()
+          );
+        }),
+    );
+
+    if (carryForward && eventWasDeleted) {
+      const monitorId: ObjectID = carryForward.monitorId;
+
+      if (carryForward.previousRunsOn) {
+        /*
+         * The event before it runs on over its time: to where the next event
+         * starts, or on, as the current status again (MonitorStatusEventDelete).
+         * Written as null, never left out, when it runs on: a column left out
+         * of an update is not written at all.
+         */
+        await this.updateOneById({
+          id: carryForward.previousRunsOn.previousId,
+          data: {
+            endsAt: carryForward.previousRunsOn.endsAt,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      logger.debug(
+        `Monitor status event ${carryForward.eventId.toString()} deleted; the event before it ${carryForward.previousRunsOn ? "runs on over its time" : "was none: the history now starts later"}.`,
+        {
+          monitorId: monitorId.toString(),
+        } as LogAttributes,
+      );
 
       // get last status of this monitor.
       const monitorStatusTimeline: MonitorStatusTimeline | null =

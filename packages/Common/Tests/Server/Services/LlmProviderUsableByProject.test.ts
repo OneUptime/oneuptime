@@ -291,3 +291,99 @@ describe("LlmProviderService.getProviderForChat", () => {
     expect(query["isDefault"]).toBe(true);
   });
 });
+
+/*
+ * isUnownedGlobalProvider decides which providers LLMService lets reach a
+ * private address where the deployment refuses one (billing, or
+ * DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES): the Helm chart's in-cluster vLLM is
+ * the case it exists for. That is safe only for a row no project member can
+ * repoint, so a row a project owns never qualifies, whatever its isGlobalLlm
+ * says.
+ */
+describe("LlmProviderService.isUnownedGlobalProvider", () => {
+  test("a global provider with no project qualifies", () => {
+    expect(
+      LlmProviderService.isUnownedGlobalProvider(
+        fakeProvider({ isGlobalLlm: true }),
+      ),
+    ).toBe(true);
+  });
+
+  test("a project's own provider does not", () => {
+    expect(
+      LlmProviderService.isUnownedGlobalProvider(
+        fakeProvider({ projectId, isGlobalLlm: false }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a global row that a project owns does not: its members can edit the Base URL", () => {
+    expect(
+      LlmProviderService.isUnownedGlobalProvider(
+        fakeProvider({ projectId, isGlobalLlm: true }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a row with no project that is not global does not", () => {
+    expect(
+      LlmProviderService.isUnownedGlobalProvider(
+        fakeProvider({ isGlobalLlm: false }),
+      ),
+    ).toBe(false);
+    expect(LlmProviderService.isUnownedGlobalProvider(fakeProvider())).toBe(
+      false,
+    );
+  });
+});
+
+/*
+ * isUnownedGlobalProvider reads projectId off the row, so every lookup that
+ * resolves the provider for an AI call must select it. Left out, a project's
+ * row marked global would read as having no project.
+ */
+describe("the provider lookups behind an AI call select projectId", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function selectsOf(
+    findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy>,
+  ): Array<Select<LlmProvider>> {
+    return findSpy.mock.calls.map((call: Array<unknown>) => {
+      return (call[0] as { select: Select<LlmProvider> }).select;
+    });
+  }
+
+  test("the project default and the global fallback", async () => {
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest.spyOn(LlmProviderService, "findOneBy").mockResolvedValue(null);
+
+    await LlmProviderService.getLLMProviderForProject(projectId);
+
+    const selects: Array<Select<LlmProvider>> = selectsOf(findSpy);
+
+    expect(selects).toHaveLength(2);
+    for (const select of selects) {
+      expect(select["projectId"]).toBe(true);
+      expect(select["isGlobalLlm"]).toBe(true);
+    }
+  });
+
+  test("a provider chosen in chat", async () => {
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest
+        .spyOn(LlmProviderService, "findOneBy")
+        .mockResolvedValue(fakeProvider({ isGlobalLlm: true }));
+
+    await LlmProviderService.getProviderForChat({
+      projectId,
+      llmProviderId: providerId,
+    });
+
+    const select: Select<LlmProvider> = selectsOf(findSpy)[0]!;
+
+    expect(select["projectId"]).toBe(true);
+    expect(select["isGlobalLlm"]).toBe(true);
+  });
+});

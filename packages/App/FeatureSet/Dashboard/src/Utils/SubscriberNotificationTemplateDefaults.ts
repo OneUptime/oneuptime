@@ -7,7 +7,12 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
  *
  * - SMS / Slack / Microsoft Teams strings are kept verbatim with the worker
  *   defaults (with hard-coded values swapped for `{{templateVariables}}`) so
- *   what the user sees here matches what subscribers actually receive.
+ *   what the user sees here matches what subscribers actually receive. The
+ *   one thing a starter cannot show is the incident custom fields marked
+ *   "Include in Subscriber Notifications": the workers add them to the
+ *   default incident emails, Slack and Teams messages when an incident has
+ *   values for them, but which fields a project has is not known here. A
+ *   custom template places them with `{{incident.customFields.<key>}}`.
  * - Email defaults are simplified, email-safe inline-CSS HTML that mirrors the
  *   structure (title + intro + key/value detail box + action button +
  *   unsubscribe footer) and reuses the wording from the corresponding
@@ -84,6 +89,7 @@ const subscriptionConfirmationDefaults: EventDefaults = {
   <p style="margin: 0 0 24px 0;">
     <a href="{{confirmationUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
   </p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">This link expires in 24 hours. If you did not subscribe, you can ignore this email and you will not be subscribed.</p>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #111111; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
   <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">

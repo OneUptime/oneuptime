@@ -57,6 +57,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The lifecycle of a DatabaseServer row once it exists: which evidence may
  * change its engine and version, how discovered endpoints are kept honest,
@@ -122,7 +123,7 @@ function silenceLogs(): {
 
 function mockFeed(): jest.SpyInstance {
   getJestSpyOn(service, "getDatabaseServerMarkdownLink").mockResolvedValue(
-    "[Database x](/x)",
+    FeedMarkdown.asMarkdown("[Database x](/x)"),
   );
   getJestSpyOn(
     DatabaseServerLabelRuleEngineService,

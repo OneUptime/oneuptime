@@ -14,9 +14,11 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 
 /*
  * The setup checklist, rendered for real.
@@ -116,12 +118,18 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   };
 });
 
+/*
+ * The translations the page is drawn with: none by default, so every string
+ * reads as its English key; a test may hand it a real locale file.
+ */
+let mockTranslations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, options?: { defaultValue?: string }): string => {
-          return options?.defaultValue ?? key;
+          return mockTranslations[key] ?? options?.defaultValue ?? key;
         },
       };
     },
@@ -149,9 +157,13 @@ import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotifica
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import SetupChecklist from "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/SetupChecklist";
+import ProjectNotificationChannelsStore from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
+import { ProjectNotificationChannel } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -668,14 +680,15 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(screen.getByTestId("setup-checklist-step-incident-rules"));
 
     const expected: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
+      RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
     );
 
+    // The first tab, Incidents, is the page's bare address.
     expect(navigateMock).toHaveBeenCalledTimes(1);
     expect(String(navigateMock.mock.calls[0]![0])).toBe(String(expected));
   });
 
-  test("the alert rules step goes to the alert page, not the incident page", async (): Promise<void> => {
+  test("the alert rules step opens the alerts tab, not the incidents tab", async (): Promise<void> => {
     const withUncoveredAlert: JSONArray = [
       ...coverageJson({ includeAlerts: false }),
       {
@@ -700,10 +713,12 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(screen.getByTestId("setup-checklist-step-alert-rules"));
 
     const expected: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
+      RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
     );
 
-    expect(String(navigateMock.mock.calls[0]![0])).toBe(String(expected));
+    expect(String(navigateMock.mock.calls[0]![0])).toBe(
+      `${String(expected)}?type=alerts`,
+    );
   });
 
   test("a completed step is inert", async (): Promise<void> => {
@@ -753,7 +768,17 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(step);
 
     expect(navigateMock).not.toHaveBeenCalled();
-    expect(screen.getByText("Needs an admin")).toBeInTheDocument();
+    /*
+     * Labelled by who is needed without naming a role the row's own detail
+     * could contradict; the detail says exactly who.
+     */
+    expect(screen.getByText("Needs someone else")).toBeInTheDocument();
+    expect(screen.queryByText("Needs an admin")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("setup-checklist-detail-channels-enabled"),
+    ).toHaveTextContent(
+      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
+    );
   });
 
   test("an outstanding step is reachable by keyboard", async (): Promise<void> => {
@@ -1184,6 +1209,46 @@ describe("setup checklist page - deliverable notification settings", () => {
   });
 
   /*
+   * The checklist reads the four switches through the definition the method
+   * lists use, in its one project read, and hands what it read to their
+   * shared store: the Notification Methods page it links to opens on the
+   * same answer, so the two never disagree about which channel is off.
+   */
+  test("reads the switches through the lists' shared definition, and shares what it read", async (): Promise<void> => {
+    ProjectNotificationChannelsStore.reset();
+    respondWithProject({ enableSms: true });
+
+    renderChecklist();
+    await settle();
+
+    const projectReads: Array<any> = getItemMock.mock.calls
+      .map((call: Array<any>): any => {
+        return call[0];
+      })
+      .filter((data: any): boolean => {
+        return data.modelType === Project;
+      });
+
+    expect(projectReads).toHaveLength(1);
+    expect(projectReads[0].select).toEqual({
+      disableOnCallNotificationFallback: true,
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+    });
+
+    expect(
+      ProjectNotificationChannelsStore.getChannels(PROJECT_ID).enabled,
+    ).toEqual({
+      [ProjectNotificationChannel.SMS]: true,
+      [ProjectNotificationChannel.Call]: false,
+      [ProjectNotificationChannel.WhatsApp]: false,
+      [ProjectNotificationChannel.Telegram]: false,
+    });
+  });
+
+  /*
    * An unverified address is the case this row exists for: the switch is green
    * and nothing arrives.
    */
@@ -1285,9 +1350,9 @@ describe("setup checklist page - blocked steps are reconciled with the bar", () 
     renderChecklist();
     await settle();
 
-    expect(
-      screen.getByTestId("setup-checklist-blocked-note"),
-    ).toHaveTextContent("1 more step needs a project admin");
+    expect(screen.getByTestId("setup-checklist-blocked-note").textContent).toBe(
+      "1 more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
+    );
   });
 
   test("says nothing about blocked steps when there are none", async (): Promise<void> => {
@@ -1297,6 +1362,281 @@ describe("setup checklist page - blocked steps are reconciled with the bar", () 
     expect(
       screen.queryByTestId("setup-checklist-blocked-note"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("setup checklist page - who can turn a channel on", () => {
+  /*
+   * Only a project owner, a Billing Admin or someone with Manage Billing
+   * may switch a project's SMS, call, WhatsApp or Telegram channel on - the step used to
+   * say "Ask a project admin", who may not. So someone who may is sent
+   * straight to the switches, and everyone else is told exactly who can.
+   */
+  const ONLY_SMS_VERIFIED: JSONObject = readinessJson({
+    status: "NotReachable",
+    methods: [
+      {
+        methodId: "method-sms",
+        methodType: "SMS",
+        maskedIdentifier: "+44 ••• ••• 0123",
+        isVerified: true,
+      },
+    ],
+  });
+
+  type SignInFunction = (
+    permissions: Array<Permission>,
+    isMasterAdmin?: boolean,
+  ) => void;
+
+  const signInWith: SignInFunction = (
+    permissions: Array<Permission>,
+    isMasterAdmin: boolean = false,
+  ): void => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+        ...permissions,
+      ]);
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(isMasterAdmin);
+  };
+
+  test.each([
+    ["a project owner", [Permission.ProjectOwner], false],
+    ["someone with Manage Billing", [Permission.ManageProjectBilling], false],
+    ["a Billing Admin", [Permission.BillingAdmin], false],
+    ["a master admin", [], true],
+  ] as Array<[string, Array<Permission>, boolean]>)(
+    "%s gets the step as their own, opening Project Settings → Notifications → Notification Settings",
+    async (
+      _who: string,
+      permissions: Array<Permission>,
+      isMasterAdmin: boolean,
+    ): Promise<void> => {
+      signInWith(permissions, isMasterAdmin);
+      respondWithReadiness(ONLY_SMS_VERIFIED);
+
+      renderChecklist();
+      await settle();
+
+      const step: HTMLElement = screen.getByTestId(
+        "setup-checklist-step-channels-enabled",
+      );
+
+      expect(step).toHaveAttribute("data-status", "Incomplete");
+      expect(step).toHaveAttribute("role", "button");
+      expect(step).toHaveTextContent(
+        "Go to Project Settings → Notifications → Notification Settings →",
+      );
+      expect(
+        screen.getByTestId("setup-checklist-detail-channels-enabled")
+          .textContent,
+      ).toBe(
+        "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notifications → Notification Settings, or add an email or push device instead.",
+      );
+
+      // Nothing is somebody else's to do, so nothing is said about it.
+      expect(
+        screen.queryByTestId("setup-checklist-blocked-note"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Needs someone else")).not.toBeInTheDocument();
+
+      fireEvent.click(step);
+
+      expect(String(navigateMock.mock.calls[0]![0])).toBe(
+        String(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+          ),
+        ),
+      );
+    },
+  );
+
+  test.each([
+    ["a project admin", [Permission.ProjectAdmin]],
+    ["someone who may edit the project", [Permission.EditProject]],
+    ["a project member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s is told exactly who can turn it on, with no link",
+    async (_who: string, permissions: Array<Permission>): Promise<void> => {
+      signInWith(permissions);
+      respondWithReadiness(ONLY_SMS_VERIFIED);
+
+      renderChecklist();
+      await settle();
+
+      const step: HTMLElement = screen.getByTestId(
+        "setup-checklist-step-channels-enabled",
+      );
+
+      expect(step).toHaveAttribute("data-status", "Blocked");
+      expect(step).not.toHaveAttribute("role", "button");
+
+      const detail: string =
+        screen.getByTestId("setup-checklist-detail-channels-enabled")
+          .textContent || "";
+
+      expect(detail).toBe(
+        "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings, or you can add an email or push device instead.",
+      );
+      expect(detail.toLowerCase()).not.toContain("project admin");
+      expect(within(step).getByText("Needs someone else")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("setup-checklist-blocked-note").textContent,
+      ).toBe(
+        "1 more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
+      );
+
+      fireEvent.click(step);
+
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
+
+  /*
+   * The permission snapshot rides on response headers, so it can still be
+   * empty when the page mounts - just after signing in, or after switching
+   * project. The checklist reads it once every one of its own requests has
+   * answered, and those answers are what bring it: an owner whose
+   * permissions arrive with them is still sent to the switches, not told to
+   * ask somebody else.
+   */
+  test("goes by the permissions its own answers bring: an owner whose arrive with them is sent to the switches", async (): Promise<void> => {
+    let hasArrived: boolean = false;
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockImplementation((): Array<Permission> => {
+        return hasArrived
+          ? [
+              Permission.Public,
+              Permission.User,
+              Permission.CurrentUser,
+              Permission.ProjectOwner,
+            ]
+          : [];
+      });
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(false);
+
+    let permissionsWhenAsked: Array<Permission> | null = null;
+
+    // The readiness answer is what carries the snapshot here.
+    apiGetMock.mockImplementation(((): Promise<HTTPResponse<JSONObject>> => {
+      if (permissionsWhenAsked === null) {
+        permissionsWhenAsked = [...PermissionUtil.getAllPermissions()];
+      }
+
+      hasArrived = true;
+
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(200, ONLY_SMS_VERIFIED, {}),
+      );
+    }) as never);
+
+    renderChecklist();
+    await settle();
+
+    // When the checklist asked, nothing was known yet.
+    expect(permissionsWhenAsked).toEqual([]);
+
+    const step: HTMLElement = screen.getByTestId(
+      "setup-checklist-step-channels-enabled",
+    );
+
+    expect(step).toHaveAttribute("data-status", "Incomplete");
+    expect(step).toHaveTextContent(
+      "Go to Project Settings → Notifications → Notification Settings →",
+    );
+    expect(screen.queryByText("Needs someone else")).not.toBeInTheDocument();
+  });
+
+  test("a usable channel is done, whoever reads it", async (): Promise<void> => {
+    signInWith([Permission.ProjectAdmin]);
+    respondWithProject({ enableSms: true });
+
+    renderChecklist();
+    await settle();
+
+    expect(
+      screen.getByTestId("setup-checklist-step-channels-enabled"),
+    ).toHaveAttribute("data-status", "Complete");
+    expect(
+      screen.queryByTestId("setup-checklist-detail-channels-enabled"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("setup checklist page - in the reader's language", () => {
+  /*
+   * The step rows are drawn through the translator; so are the headline
+   * above them and the section headings between them, so a German reader
+   * does not get German rows under English headings. From the real
+   * locale files.
+   */
+  const DE: Record<string, string> = germanLocale as unknown as Record<
+    string,
+    string
+  >;
+
+  afterEach((): void => {
+    mockTranslations = {};
+  });
+
+  test("the headline, section titles and descriptions, and step rows read German", async (): Promise<void> => {
+    mockTranslations = DE;
+
+    respondWithReadiness(
+      readinessJson({
+        status: "NotReachable",
+        methods: [],
+      }),
+    );
+
+    renderChecklist();
+    await settle();
+
+    const headline: HTMLElement = screen.getByTestId(
+      "setup-checklist-headline",
+    );
+
+    expect(DE["Nothing can reach you yet"]).toBeTruthy();
+    expect(headline).toHaveTextContent(DE["Nothing can reach you yet"]!);
+    expect(headline).not.toHaveTextContent("Nothing can reach you yet");
+
+    const section: HTMLElement = screen.getByTestId(
+      "setup-checklist-section-reachability",
+    );
+    const sectionTitle: string = "So we can reach you";
+    const sectionDescription: string =
+      "Where OneUptime sends things. Everything else on this page depends on getting this right first.";
+
+    expect(DE[sectionTitle]).toBeTruthy();
+    expect(DE[sectionDescription]).toBeTruthy();
+    expect(section).toHaveTextContent(DE[sectionTitle]!);
+    expect(section).toHaveTextContent(DE[sectionDescription]!);
+    expect(section).not.toHaveTextContent(sectionTitle);
+
+    // The rows under it, as before.
+    const rowTitle: string = "Add a way for us to reach you";
+
+    expect(DE[rowTitle]).toBeTruthy();
+    expect(section).toHaveTextContent(DE[rowTitle]!);
+  });
+
+  test("every headline the checklist can show has a German translation", () => {
+    for (const headline of [
+      "Nothing can reach you yet",
+      "A few things still need setting up",
+      "You are set up, and not on call right now",
+      "You are all set",
+    ]) {
+      expect([headline, Boolean(DE[headline])]).toEqual([headline, true]);
+      expect(DE[headline]).not.toBe(headline);
+    }
   });
 });
 

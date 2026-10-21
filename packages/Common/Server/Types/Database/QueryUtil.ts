@@ -1,5 +1,6 @@
 import Query from "./Query";
 import QueryHelper from "./QueryHelper";
+import UUIDColumnFilter from "./UUIDColumnFilter";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
@@ -39,6 +40,61 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export default class QueryUtil {
+  /*
+   * A relation filtered by ids - a plain id (`incident: "<id>"`) or several
+   * in Includes (`incident: new Includes([...])`) - is a filter on the
+   * relation's key (`incidentId`), and is written there. It is added to
+   * whatever the key already holds - the condition a permission check put
+   * on it, the caller's own filter on the key - and never takes its place:
+   * both hold.
+   */
+  private static moveRelationFilterToKey<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    relation: string,
+    keyColumn: string,
+    relationIds: string | FindOperator<any>,
+  ): void {
+    const record: Record<string, unknown> = query as Record<string, unknown>;
+    delete record[relation];
+
+    const existing: unknown = record[keyColumn];
+
+    if (existing === undefined) {
+      record[keyColumn] = relationIds;
+      return;
+    }
+
+    // The key's own filter as this serializes it, whether reached yet or not.
+    const keyFilter: unknown = (
+      QueryUtil.serializeQuery(modelType, {
+        [keyColumn]: existing,
+      } as Query<TBaseModel>) as Record<string, unknown>
+    )[keyColumn];
+
+    const relationFilter: FindOperator<any> =
+      relationIds instanceof FindOperator
+        ? relationIds
+        : (QueryHelper.equalTo(relationIds) as FindOperator<any>);
+
+    if (typeof keyFilter === Typeof.String) {
+      record[keyColumn] = And(
+        QueryHelper.equalTo(keyFilter as string) as FindOperator<any>,
+        relationFilter,
+      );
+      return;
+    }
+
+    if (keyFilter instanceof FindOperator) {
+      record[keyColumn] = And(keyFilter, relationFilter);
+      return;
+    }
+
+    throw new BadDataException(
+      `Cannot combine the filter on ${relation} with the filter on ${keyColumn}.`,
+    );
+  }
+
   @CaptureSpan()
   public static serializeQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -128,6 +184,19 @@ export default class QueryUtil {
     for (const key in query) {
       const tableColumnMetadata: TableColumnMetadata =
         model.getTableColumnMetadata(key);
+
+      /*
+       * From here on every id the filter compares a uuid column with is text
+       * Postgres reads as a uuid, or the query has been refused with a 400.
+       * See UUIDColumnFilter.
+       */
+      if (tableColumnMetadata) {
+        query[key] = UUIDColumnFilter.normalizeFilter({
+          columnName: key,
+          column: tableColumnMetadata,
+          value: query[key],
+        }) as any;
+      }
 
       if (query[key] instanceof IncludesAnyOfGroups) {
         if (tableColumnMetadata?.type !== TableColumnType.EntityArray) {
@@ -516,6 +585,21 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         if (
+          tableColumnMetadata.type === TableColumnType.Entity &&
+          tableColumnMetadata.manyToOneRelationColumn
+        ) {
+          // A filter on the relation's key, beside what the key holds.
+          QueryUtil.moveRelationFilterToKey(
+            modelType,
+            query,
+            key,
+            tableColumnMetadata.manyToOneRelationColumn,
+            QueryHelper.any(
+              (query[key] as Includes).values,
+            ) as FindOperator<any>,
+          );
+          continue;
+        } else if (
           tableColumnMetadata.type === TableColumnType.EntityArray ||
           tableColumnMetadata.type === TableColumnType.Entity
         ) {
@@ -571,10 +655,13 @@ export default class QueryUtil {
         tableColumnMetadata.manyToOneRelationColumn &&
         typeof query[key] === Typeof.String
       ) {
-        (query as any)[tableColumnMetadata.manyToOneRelationColumn] = query[
-          key
-        ] as string;
-        delete query[key];
+        QueryUtil.moveRelationFilterToKey(
+          modelType,
+          query,
+          key,
+          tableColumnMetadata.manyToOneRelationColumn,
+          query[key] as unknown as string,
+        );
       }
 
       if (

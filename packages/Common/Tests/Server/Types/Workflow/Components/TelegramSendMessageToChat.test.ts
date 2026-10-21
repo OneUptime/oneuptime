@@ -10,6 +10,10 @@ import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import API from "../../../../../Utils/API";
+import {
+  MAX_TELEGRAM_MESSAGE_LENGTH,
+  TRUNCATED_TEXT_NOTE,
+} from "../../../../../Utils/MessageFit";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -309,6 +313,40 @@ describe("Telegram SendMessageToChat - argument validation", () => {
 
     expect(error.message).not.toContain(secret);
     expect(error.message).not.toContain("8000000001");
+  });
+});
+
+describe("Telegram SendMessageToChat - a message Telegram takes", () => {
+  test("a message over 4,096 characters is cut to fit, ending with a note that the rest is in OneUptime", async () => {
+    apiPostMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { ok: true, result: {} }, {}),
+    );
+
+    await new SendMessageToChat().run(
+      makeArgs({ text: `Deploy log:\n${"step finished\n".repeat(1000)}` }),
+      makeOptions(),
+    );
+
+    const text: string = getPostRequest().data["text"] as string;
+
+    expect(text.length).toBeLessThanOrEqual(MAX_TELEGRAM_MESSAGE_LENGTH);
+    expect(text.startsWith("Deploy log:\nstep finished")).toBe(true);
+    expect(text.endsWith(TRUNCATED_TEXT_NOTE)).toBe(true);
+  });
+
+  test("a message that fits goes as it is", async () => {
+    apiPostMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { ok: true, result: {} }, {}),
+    );
+
+    await new SendMessageToChat().run(
+      makeArgs({ text: "x".repeat(MAX_TELEGRAM_MESSAGE_LENGTH) }),
+      makeOptions(),
+    );
+
+    expect(getPostRequest().data["text"]).toBe(
+      "x".repeat(MAX_TELEGRAM_MESSAGE_LENGTH),
+    );
   });
 });
 

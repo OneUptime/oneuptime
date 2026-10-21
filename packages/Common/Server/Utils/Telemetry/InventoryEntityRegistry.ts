@@ -1,9 +1,11 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import IoTDevice from "../../../Models/DatabaseModels/IoTDevice";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceRole from "../../../Models/DatabaseModels/NetworkDeviceRole";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -12,6 +14,7 @@ import CloudResourceService from "../../Services/CloudResourceService";
 import DockerHostService from "../../Services/DockerHostService";
 import IoTDeviceService from "../../Services/IoTDeviceService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceRoleService from "../../Services/NetworkDeviceRoleService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import RumApplicationService from "../../Services/RumApplicationService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
@@ -31,7 +34,28 @@ import {
   INVENTORY_ENTITY_IDENTITY_ATTRIBUTE,
   keyForInventoryEntity,
 } from "../../../Utils/Telemetry/EntityKey";
+import {
+  INVENTORY_ASSET_ATTRIBUTE_KEYS,
+  INVENTORY_POLLED_ADDRESS_ATTRIBUTE_KEY,
+  INVENTORY_SITE_ATTRIBUTE_KEY,
+  InventoryAssetField,
+} from "../../../Utils/Inventory/InventoryAssetDetails";
+import {
+  NetworkDeviceAssetFacts,
+  NetworkDeviceAssetFactsOptions,
+  getNetworkDeviceAssetFacts,
+  toOtelMacAddress,
+} from "../../../Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import { TopologyDeviceRoleInput } from "../../../Utils/Monitor/NetworkDeviceRoleCatalog";
 import logger from "../Logger";
+import { truncateDescriptiveAttributeValue } from "./TelemetryEntity";
+
+/*
+ * Moved to the shared asset facts (Utils/NetworkDevice/NetworkDeviceAssetFacts)
+ * so the device's own page spells a MAC the way its inventory item does.
+ * Re-exported for the callers that import it from here.
+ */
+export { toOtelMacAddress };
 
 /*
  * Mirrors OneUptime's inventory tables into the InventoryItem registry.
@@ -97,7 +121,10 @@ export interface ErasedInventorySource {
   findLiveIds(ids: Array<ObjectID>): Promise<Set<string>>;
 }
 
-export interface InventorySourceSpec<TModel extends BaseModel> {
+export interface InventorySourceSpec<
+  TModel extends BaseModel,
+  TPageContext = undefined,
+> {
   entityType: EntityType;
   resourceType: string;
   service: DatabaseService<TModel>;
@@ -111,8 +138,16 @@ export interface InventorySourceSpec<TModel extends BaseModel> {
    * reflects the live estate rather than its history.
    */
   query: Query<TModel>;
+  /**
+   * Lookups `describe` needs beyond the row itself, read ONCE per page of
+   * rows rather than once per row - a network device's type is named by its
+   * project's device roles. Optional; most sources need nothing.
+   */
+  loadPageContext?:
+    | ((rows: Array<TModel>) => Promise<TPageContext>)
+    | undefined;
   /** Non-identifying metadata worth showing on the entity. */
-  describe(row: TModel): Dictionary<string>;
+  describe(row: TModel, context: TPageContext | undefined): Dictionary<string>;
 }
 
 /**
@@ -138,6 +173,196 @@ export function compactAttributes(
   }
 
   return out;
+}
+
+/**
+ * The asset details of a mirrored network device (issues #4107, #4569).
+ *
+ * The keys are the ones a host's item uses for the same facts
+ * (INVENTORY_ASSET_ATTRIBUTE_KEYS in Utils/Inventory/InventoryAssetDetails,
+ * and the `host` entry of descriptiveAttributeKeysByType in
+ * Utils/Telemetry/TelemetryEntity), so one CMDB column holds the serial number
+ * whether the row is a server or a switch, and Inventory shows both with the
+ * same Asset details card:
+ *
+ *   hostname        host.name                (the device's own name by the
+ *                                             naming rule - never its IP)
+ *   IP address      host.ip                  (the polled address, when it is
+ *                                             one)
+ *   MAC             host.mac                 (IEEE RA form, as hosts send)
+ *   make / model    device.manufacturer / device.model.name
+ *   serial number   host.serial_number
+ *   firmware        device.firmware.version  (entPhysicalFirmwareRev; also
+ *                                             the IoT device key)
+ *   OS / version    os.name / os.version     (entPhysicalSoftwareRev, or
+ *                                             what sysDescr names)
+ *   sysDescr        os.description           (semconv: "human readable OS
+ *                                             version information")
+ *   device type     device.type              (its role)
+ *   location        device.location          (sysLocation)
+ *   site            oneuptime.site.name
+ *   DNS name        net.device.dns_name
+ *
+ * Where each fact comes from, and what wins when two places know it, is
+ * NetworkDeviceAssetFacts' business: this only places the facts.
+ *
+ * `net.device.hostname` - the address OneUptime polls, usually an IP address -
+ * stays for the syncs that read it before #4569. It is not the hostname, and
+ * Inventory no longer shows it as one.
+ *
+ * Every value is bounded to the length of any other descriptive value: some
+ * come from LongText columns (sysDescr, dnsName), and a CMDB column should not
+ * depend on which.
+ *
+ * There is no "available upgrade" version: nothing standard in SNMP reports
+ * one, and deriving it from a vendor feed is a different feature.
+ */
+export function describeNetworkDevice(
+  row: NetworkDevice,
+  options?: NetworkDeviceAssetFactsOptions | undefined,
+): Dictionary<string> {
+  type BoundedFunction = (value: string | undefined | null) => string | null;
+
+  const bounded: BoundedFunction = (
+    value: string | undefined | null,
+  ): string | null => {
+    const text: string = String(value || "").trim();
+    return text ? truncateDescriptiveAttributeValue(text) : null;
+  };
+
+  const facts: NetworkDeviceAssetFacts = getNetworkDeviceAssetFacts(
+    row,
+    options,
+  );
+  const key: (field: InventoryAssetField) => string = (
+    field: InventoryAssetField,
+  ): string => {
+    return INVENTORY_ASSET_ATTRIBUTE_KEYS[field];
+  };
+
+  return compactAttributes({
+    [INVENTORY_POLLED_ADDRESS_ATTRIBUTE_KEY]: bounded(row.hostname),
+    [key(InventoryAssetField.DnsName)]: bounded(facts.dnsName),
+    [key(InventoryAssetField.Hostname)]: bounded(facts.hostname),
+    [key(InventoryAssetField.IpAddress)]: bounded(facts.ipAddress),
+    [key(InventoryAssetField.MacAddress)]: bounded(facts.macAddress),
+    [key(InventoryAssetField.Manufacturer)]: bounded(facts.manufacturer),
+    [key(InventoryAssetField.Model)]: bounded(facts.model),
+    [key(InventoryAssetField.SerialNumber)]: bounded(facts.serialNumber),
+    [key(InventoryAssetField.FirmwareVersion)]: bounded(facts.firmwareVersion),
+    [key(InventoryAssetField.OperatingSystem)]: bounded(facts.operatingSystem),
+    [key(InventoryAssetField.OsVersion)]: bounded(facts.osVersion),
+    [key(InventoryAssetField.SystemDescription)]: bounded(row.sysDescr),
+    [key(InventoryAssetField.DeviceType)]: bounded(facts.deviceType),
+    [key(InventoryAssetField.Location)]: bounded(facts.location),
+    [INVENTORY_SITE_ATTRIBUTE_KEY]: bounded(facts.site),
+  });
+}
+
+/*
+ * A project's configured device roles, by project id, for a page of devices
+ * from any number of projects (see getNetworkDeviceType).
+ */
+export type DeviceRolesByProject = Map<string, Array<TopologyDeviceRoleInput>>;
+
+/*
+ * The role read's limit, per project on the page. A project is seeded with
+ * eleven roles and rarely adds more than a few, so this is room to spare for
+ * every project a page of devices spans.
+ */
+export const MAX_DEVICE_ROLES_READ_PER_PROJECT: number = 500;
+
+/**
+ * The device roles of every project a page of devices belongs to, in one
+ * query. Best-effort: a failed read leaves each device typed by the built-in
+ * role names, the same answer a project without configured roles gets, rather
+ * than stalling the mirror of every device on the page.
+ */
+export async function loadDeviceRolesForDevices(
+  rows: Array<NetworkDevice>,
+): Promise<DeviceRolesByProject> {
+  const rolesByProject: DeviceRolesByProject = new Map<
+    string,
+    Array<TopologyDeviceRoleInput>
+  >();
+
+  const projectIds: Array<string> = Array.from(
+    new Set<string>(
+      rows
+        .map((row: NetworkDevice): string => {
+          return row.projectId ? row.projectId.toString() : "";
+        })
+        .filter((projectId: string): boolean => {
+          return Boolean(projectId);
+        }),
+    ),
+  );
+
+  if (projectIds.length === 0) {
+    return rolesByProject;
+  }
+
+  try {
+    const roles: Array<NetworkDeviceRole> =
+      await NetworkDeviceRoleService.findBy({
+        query: { projectId: QueryHelper.any(projectIds) },
+        select: { projectId: true, key: true, name: true },
+        skip: 0,
+        limit: projectIds.length * MAX_DEVICE_ROLES_READ_PER_PROJECT,
+        props: { isRoot: true },
+      });
+
+    for (const role of roles) {
+      if (!role.projectId || !role.key || !role.name) {
+        continue;
+      }
+
+      const projectId: string = role.projectId.toString();
+      const list: Array<TopologyDeviceRoleInput> =
+        rolesByProject.get(projectId) || [];
+      list.push({ key: role.key, name: role.name });
+      rolesByProject.set(projectId, list);
+    }
+  } catch (err) {
+    logger.warn(
+      "InventoryEntityRegistry: could not read device roles; network devices are typed by the built-in role names this pass.",
+    );
+    logger.warn(err as Error);
+  }
+
+  return rolesByProject;
+}
+
+/**
+ * Key-order-insensitive equality for two attribute bags.
+ *
+ * The drift check used to compare `JSON.stringify` of the two bags, but
+ * `descriptiveAttributes` is a `jsonb` column, and jsonb does not keep
+ * insertion order — it stores keys shortest-first. So the bag read back
+ * from Postgres serialized differently from the freshly built one as soon
+ * as it held two keys of different lengths: every such row counted as
+ * drifted, and every reconcile rewrote all of them. The cloud-resource and
+ * serverless mirrors have been doing that since they shipped; the
+ * network-device bag would have joined them.
+ */
+export function attributeBagsEqual(
+  left: JSONObject | undefined | null,
+  right: JSONObject | undefined | null,
+): boolean {
+  const a: JSONObject = left || {};
+  const b: JSONObject = right || {};
+  const aKeys: Array<string> = Object.keys(a);
+
+  if (aKeys.length !== Object.keys(b).length) {
+    return false;
+  }
+
+  return aKeys.every((key: string): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(b, key) &&
+      JSON.stringify(a[key]) === JSON.stringify(b[key])
+    );
+  });
 }
 
 /**
@@ -211,9 +436,9 @@ export function inventoryEntityNeedsUpdate(data: {
     return true;
   }
 
-  return (
-    JSON.stringify(existing.descriptiveAttributes || {}) !==
-    JSON.stringify(desired.descriptiveAttributes || {})
+  return !attributeBagsEqual(
+    existing.descriptiveAttributes,
+    desired.descriptiveAttributes,
   );
 }
 
@@ -259,9 +484,10 @@ function buildMirrorUpdate(
   return update as unknown as QueryDeepPartialEntity<InventoryItem>;
 }
 
-function defineInventorySource<TModel extends BaseModel>(
-  spec: InventorySourceSpec<TModel>,
-): ErasedInventorySource {
+function defineInventorySource<
+  TModel extends BaseModel,
+  TPageContext = undefined,
+>(spec: InventorySourceSpec<TModel, TPageContext>): ErasedInventorySource {
   return {
     entityType: spec.entityType,
     resourceType: spec.resourceType,
@@ -284,6 +510,11 @@ function defineInventorySource<TModel extends BaseModel>(
       });
 
       const projections: Array<InventoryRowProjection> = [];
+
+      const context: TPageContext | undefined =
+        spec.loadPageContext && rows.length > 0
+          ? await spec.loadPageContext(rows)
+          : undefined;
 
       for (const row of rows) {
         const rowRecord: Record<string, unknown> = row as unknown as Record<
@@ -309,7 +540,7 @@ function defineInventorySource<TModel extends BaseModel>(
           projectId: new ObjectID(String(projectId)),
           displayName:
             displayName.length > 0 ? displayName : row._id.toString(),
-          descriptiveAttributes: spec.describe(row),
+          descriptiveAttributes: spec.describe(row, context),
         });
       }
 
@@ -357,14 +588,37 @@ function defineInventorySource<TModel extends BaseModel>(
  * an archive flag, so it is the only unrestricted query.
  */
 export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
-  defineInventorySource<NetworkDevice>({
+  defineInventorySource<NetworkDevice, DeviceRolesByProject>({
     entityType: EntityType.NetworkDevice,
     resourceType: "NetworkDevice",
     service: NetworkDeviceService,
-    select: { hostname: true },
+    select: {
+      hostname: true,
+      dnsName: true,
+      sysName: true,
+      discoveredName: true,
+      discoveredNameSource: true,
+      macAddress: true,
+      vendor: true,
+      deviceModel: true,
+      serialNumber: true,
+      firmwareVersion: true,
+      softwareVersion: true,
+      sysDescr: true,
+      sysObjectId: true,
+      sysLocation: true,
+      site: { name: true },
+      networkDeviceRole: { key: true, name: true },
+    },
     query: { isArchived: false },
-    describe: (row: NetworkDevice): Dictionary<string> => {
-      return compactAttributes({ "net.device.hostname": row.hostname });
+    loadPageContext: loadDeviceRolesForDevices,
+    describe: (
+      row: NetworkDevice,
+      rolesByProject: DeviceRolesByProject | undefined,
+    ): Dictionary<string> => {
+      return describeNetworkDevice(row, {
+        roles: rolesByProject?.get(row.projectId?.toString() || ""),
+      });
     },
   }),
   defineInventorySource<CloudResource>({
@@ -373,12 +627,29 @@ export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
     service: CloudResourceService,
     select: {
       resourceIdentifier: true,
+      cloudResourceKind: true,
+      cloudResourceType: true,
+      providerResourceId: true,
       cloudProvider: true,
       cloudRegion: true,
       cloudAccountId: true,
     },
     query: { isArchived: false },
     describe: (row: CloudResource): Dictionary<string> => {
+      /*
+       * A resource discovered from cloud monitoring is identified by the
+       * provider's own id (its ARM id, ARN or full resource name) - what a
+       * CMDB matches on - not by its resourceIdentifier, a hash.
+       */
+      if (row.cloudResourceKind === CloudResourceKind.Resource) {
+        return compactAttributes({
+          "cloud.resource.id": row.providerResourceId,
+          "cloud.resource.type": row.cloudResourceType,
+          "cloud.provider": row.cloudProvider,
+          "cloud.region": row.cloudRegion,
+          "cloud.account.id": row.cloudAccountId,
+        });
+      }
       return compactAttributes({
         "cloud.resource.id": row.resourceIdentifier,
         "cloud.provider": row.cloudProvider,

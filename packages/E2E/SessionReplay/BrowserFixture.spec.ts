@@ -115,15 +115,34 @@ const facet: (
     .filter({ has: page.getByText(option, { exact: true }) })
     .click();
 };
+/*
+ * A picture of the page for the reader of the run, not what a test checks.
+ * Headless Chromium now and then answers a capture under load with "Unable to
+ * capture screenshot" (Page.captureScreenshot): on the 14.0.73 gate that
+ * failed the suite with every assertion passing. That one error is tried
+ * once more after a frame; any other error, or the same one twice, fails.
+ */
+const UNABLE_TO_CAPTURE: string = "Unable to capture screenshot";
+
 const screenshot: (page: Page, name: string) => Promise<void> = async (
   page: Page,
   name: string,
 ): Promise<void> => {
   await mkdir(artifacts, { recursive: true });
-  await page.screenshot({
-    path: path.join(artifacts, `${name}.png`),
-    fullPage: true,
-  });
+  for (let attempt: number = 1; ; attempt++) {
+    try {
+      await page.screenshot({
+        path: path.join(artifacts, `${name}.png`),
+        fullPage: true,
+      });
+      return;
+    } catch (error) {
+      if (attempt >= 2 || !String(error).includes(UNABLE_TO_CAPTURE)) {
+        throw error;
+      }
+      await page.waitForTimeout(500);
+    }
+  }
 };
 const clockSeconds: (text: string) => number = (text: string): number => {
   const match: RegExpMatchArray | null = text.match(
@@ -532,7 +551,11 @@ test("combines facets, synchronizes URL and clears filters across the entire res
   await expect(page.getByTestId("session-facet-signal")).toContainText(
     "Errors",
   );
-  await page.getByTestId("session-clear-filters").click();
+  /* The chip row's own Clear all, as every list's chips have. */
+  await page
+    .getByTestId("session-replay-facets")
+    .getByRole("button", { name: "Clear all", exact: true })
+    .click();
   await expect(rows(page)).toHaveCount(8);
   await expect
     .poll(async (): Promise<unknown> => {
@@ -576,16 +599,23 @@ test("country search and duration facets issue the expected endpoint values", as
   await expect(rows(page)).toHaveCount(3);
 });
 
-test("search guidance is optional and an empty result offers a direct reset", async ({
+test("search guidance drops down from the opened search and an empty result offers a direct reset", async ({
   page,
 }: {
   page: Page;
 }) => {
   await openList(page);
-  await expect(page.getByTestId("session-search-hint")).toHaveCount(0);
-  await page.getByRole("button", { name: "Search help", exact: true }).click();
-  await expect(page.getByTestId("session-search-hint")).toBeVisible();
+  /* No help line under a search nobody opened. */
+  await expect(page.getByTestId("session-search-help")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open search", exact: true }).click();
+  await expect(page.getByTestId("session-search-input")).toBeFocused();
+  await expect(page.getByTestId("session-search-help")).toBeVisible();
+  await expect(page.getByTestId("session-search-help")).toContainText(
+    "user:<reference>",
+  );
   await page.getByTestId("session-search-input").fill("absent-customer");
+  /* Typing puts the help away. */
+  await expect(page.getByTestId("session-search-help")).toHaveCount(0);
   await page.getByTestId("session-search-input").press("Enter");
   await expect(page.getByTestId("list-empty")).toBeVisible();
   await expect(page.getByTestId("list-empty-title")).toContainText(
@@ -665,8 +695,11 @@ test("pagination forwards the opaque cursor and changing the sort resets it", as
       return (await lastListRequest(page))["cursor"];
     })
     .toMatchObject({ sessionId: "00000000000000000000000000000014" });
-  await page.getByRole("combobox", { name: "Sort sessions" }).click();
-  await page.getByRole("option", { name: "Longest", exact: true }).click();
+  /* The sort order is one of the header's ⋯ choices. */
+  await page.getByTestId("session-replay-more").click();
+  await page
+    .getByRole("menuitemradio", { name: "Longest", exact: true })
+    .click();
   await expect(rows(page)).toHaveCount(20);
   await expect
     .poll(async (): Promise<unknown> => {
@@ -1101,6 +1134,72 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   await expect(page.getByTestId("replay-phase")).toHaveText("playing");
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-player");
+});
+
+/*
+ * #4208: after five minutes without input the recorder pauses, and nothing
+ * at all is stored until the user is back - so the player must jump the
+ * stretch, with the real Replayer and the real chunk loader, rather than
+ * hold the last frame for twenty minutes. Skip idle stays off: that toggle
+ * is for footage of a page nobody touched, and this is no footage.
+ */
+test("jumps a stretch the recorder paused through, with Skip idle off, and says why", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?pause=idle&t=20");
+
+  await expect(page.getByTestId("replay-skip-idle")).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+
+  /* The timeline draws the pause before playback reaches it. */
+  const band: Locator = page.getByTestId("timeline-paused-band");
+
+  await expect(band).toBeVisible({ timeout: 15000 });
+  await expect(band).toHaveAttribute("data-kind", "paused");
+  await expect(band).toHaveAttribute(
+    "aria-label",
+    /^Recording paused while the page was idle: /,
+  );
+
+  const toast: Locator = page.getByTestId("replay-overlay-idle-skip");
+
+  await expect(toast).toBeVisible({ timeout: 30000 });
+  await expect(toast).toHaveAttribute("data-kind", "paused");
+  await expect(toast).toContainText("recording paused while the page was idle");
+
+  /* Landed just before the resume, twenty minutes on, and still playing. */
+  await expect
+    .poll(
+      async (): Promise<number> => {
+        return clockSeconds(await page.getByTestId("replay-time").innerText());
+      },
+      { timeout: 15000 },
+    )
+    .toBeGreaterThanOrEqual(20 * 60 + 28);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing");
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .getByText("Complete your order"),
+  ).toBeVisible();
+
+  /* The rail says where recording paused and where it came back. */
+  await page.getByTestId("rail-search-input").fill("Recording");
+  await expect(
+    page
+      .getByTestId("rail-row")
+      .filter({ hasText: "Recording paused: no input for 5m" }),
+  ).toHaveCount(1);
+  await expect(
+    page
+      .getByTestId("rail-row")
+      .filter({ hasText: /Recording resumed after 20m/ }),
+  ).toHaveCount(1);
+  await screenshot(page, "session-replay-idle-pause-skipped");
 });
 
 test("plays a React Native view tree while keeping text, images and webviews private", async ({

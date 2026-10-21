@@ -28,6 +28,7 @@ import {
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
+import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
 
 const BLANK_PROFILE_PICTURE_PATH: string =
@@ -437,6 +438,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
               file: boolean;
               fileType: boolean;
               name: boolean;
+              createdByUserId: boolean;
             };
           } = {
             profilePictureFile: {
@@ -444,6 +446,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
               file: true,
               fileType: true,
               name: true,
+              // Only a picture the user uploaded is served. See below.
+              createdByUserId: true,
             },
           };
 
@@ -457,7 +461,17 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
             },
           });
 
-          if (userById && userById.profilePictureFile) {
+          /*
+           * Anyone may ask for a person's picture, so it is served only
+           * when it is a file that person uploaded (FileOwnership): no
+           * other file can be read here by its id. Anything else reads as
+           * no picture at all.
+           */
+          if (
+            userById &&
+            userById.profilePictureFile &&
+            FileOwnership.isFileOfUser(userById.profilePictureFile, userId)
+          ) {
             Response.setNoCacheHeaders(res);
             return Response.sendFileResponse(
               req,

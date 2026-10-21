@@ -228,7 +228,8 @@ describe("module quality", () => {
   /*
    * OneUptime seeds monitor statuses and incident severities per project. A
    * module instantiated once per service must look them up, not create them —
-   * creating them duplicates the taxonomy and shifts `priority` insert slots.
+   * creating them duplicates the taxonomy, and a status created with a
+   * `priority` another one holds takes its place and moves the rest down.
    */
   test("the module looks the project taxonomy up instead of creating it", () => {
     const mainHcl: string = read(path.join(MODULE_DIR, "main.tf"));
@@ -309,5 +310,78 @@ describe("published module source address", () => {
   test("the advertised directory name matches the checked-in module", () => {
     expect(fs.existsSync(MODULE_DIR)).toBe(true);
     expect(path.basename(MODULE_DIR)).toBe("monitoring-and-incident-response");
+  });
+});
+
+describe("what the READMEs say about the engines and the module", () => {
+  const examplesReadme: string = read(path.join(EXAMPLES_DIR, "README.md"));
+  const moduleReadme: string = read(path.join(MODULE_DIR, "README.md"));
+  // A module source pinned to a release: "?ref=v14.0.55".
+  const PINNED_REF: RegExp = /\?ref=v(\d+\.\d+\.\d+)/g;
+
+  /*
+   * OpenTofu reads TF_VAR_* only: a TOFU_VAR_ variable sets nothing (checked
+   * with tofu 1.6.0, 1.8.0 and 1.12.7 while writing the OpenTofu docs).
+   */
+  test("no README promises TOFU_VAR_* variables", () => {
+    expect(examplesReadme).not.toContain("TOFU_VAR");
+    expect(examplesReadme).toContain(
+      "OpenTofu reads `TF_VAR_*` environment variables",
+    );
+  });
+
+  /*
+   * The module is published under modules/ from provider 14.0.0 on; the
+   * README's example pinned v11.7.4, a tag the provider repository does not
+   * have. The example names no version, and says to pick a published one.
+   */
+  test("the module README pins no release that may not exist", () => {
+    expect(Array.from(moduleReadme.matchAll(PINNED_REF))).toEqual([]);
+    expect(moduleReadme).toContain("?ref=vX.Y.Z");
+    expect(moduleReadme).toContain("replace `vX.Y.Z` with it");
+  });
+
+  // Who gets paged is an escalation rule's team, user or schedule.
+  test("the module README says how to add who gets paged", () => {
+    expect(moduleReadme).toContain(
+      "`oneuptime_team_on_call_duty_escalation_rule`",
+    );
+    expect(moduleReadme).not.toContain("`oneuptime_team_member`");
+    expect(moduleReadme).toContain("`escalation_rule_id`");
+  });
+});
+
+describe("the provider version the examples pin", () => {
+  /*
+   * The provider's major tracks the platform's. An example that pins an older
+   * major installs a provider that old for everyone who copies it - the docs
+   * recommended ~> 11.0 three majors later. A major bump has to bring the
+   * examples along.
+   */
+  const releaseMajor: string = read(path.join(REPO_ROOT, "VERSION"))
+    .trim()
+    .split(".")[0]!;
+  const PESSIMISTIC_PIN: RegExp = /version\s*=\s*"~>\s*(\d+)\.\d+"/;
+
+  const pinned: Array<{ file: string; major: string }> = allTfFiles
+    .map((file: string) => {
+      const match: RegExpMatchArray | null = read(file).match(PESSIMISTIC_PIN);
+      return {
+        file: path.relative(EXAMPLES_DIR, file),
+        major: match ? match[1]! : "",
+      };
+    })
+    .filter((entry: { file: string; major: string }) => {
+      return entry.major !== "";
+    });
+
+  test("there is a pinned example to check", () => {
+    expect(pinned.length).toBeGreaterThan(0);
+  });
+
+  test("every pessimistic pin is this release's major", () => {
+    for (const entry of pinned) {
+      expect(entry).toEqual({ file: entry.file, major: releaseMajor });
+    }
   });
 });

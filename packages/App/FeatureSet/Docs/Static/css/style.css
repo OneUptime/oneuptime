@@ -1173,6 +1173,14 @@ video {
   bottom: 0;
 }
 
+.start-0 {
+  inset-inline-start: 0;
+}
+
+.end-0 {
+  inset-inline-end: 0;
+}
+
 .-bottom-40 {
   bottom: -10rem;
 }
@@ -1320,6 +1328,10 @@ video {
 
 .-ml-0\.5 {
   margin-left: -0.125rem;
+}
+
+.-ms-0\.5 {
+  margin-inline-start: -0.125rem;
 }
 
 .-mr-72 {
@@ -2059,6 +2071,22 @@ video {
   padding-bottom: 2rem;
 }
 
+.ps-0\.5 {
+  padding-inline-start: 0.125rem;
+}
+
+.pe-1 {
+  padding-inline-end: 0.25rem;
+}
+
+.pe-4 {
+  padding-inline-end: 1rem;
+}
+
+.pe-6 {
+  padding-inline-end: 1.5rem;
+}
+
 .pb-12 {
   padding-bottom: 3rem;
 }
@@ -2129,6 +2157,10 @@ video {
 
 .text-right {
   text-align: right;
+}
+
+.text-start {
+  text-align: start;
 }
 
 .font-display {
@@ -2832,6 +2864,10 @@ video {
     padding-bottom: 5rem;
   }
 
+  .sm\:text-end {
+    text-align: end;
+  }
+
   .sm\:text-sm {
     font-size: 0.875rem;
     line-height: 1.5rem;
@@ -3062,6 +3098,14 @@ video {
     padding-bottom: 15vh;
   }
 
+  .lg\:ps-10 {
+    padding-inline-start: 2.5rem;
+  }
+
+  .lg\:pe-0 {
+    padding-inline-end: 0;
+  }
+
   .lg\:pl-8 {
     padding-left: 2rem;
   }
@@ -3145,6 +3189,14 @@ video {
   .xl\:py-16 {
     padding-top: 4rem;
     padding-bottom: 4rem;
+  }
+
+  .xl\:ps-14 {
+    padding-inline-start: 3.5rem;
+  }
+
+  .xl\:pe-8 {
+    padding-inline-end: 2rem;
   }
 
   .xl\:pl-10 {
@@ -3580,6 +3632,8 @@ video {
   --docs-warn-bg: #fffbeb;
   --docs-danger: #dc2626;
   --docs-danger-bg: #fef2f2;
+  --docs-important: #7c3aed;
+  --docs-important-bg: #f5f3ff;
 
   --docs-header-h: 3.5rem;
 }
@@ -3628,6 +3682,8 @@ html.dark {
   --docs-warn-bg: rgba(245, 158, 11, 0.12);
   --docs-danger: #f87171;
   --docs-danger-bg: rgba(239, 68, 68, 0.12);
+  --docs-important: #c4b5fd;
+  --docs-important-bg: rgba(139, 92, 246, 0.14);
 }
 
 /* --------------------------------------------------------------------------
@@ -3659,7 +3715,7 @@ body.docs-body {
 .docs-skip-link {
   position: fixed;
   top: 0.75rem;
-  left: 0.75rem;
+  inset-inline-start: 0.75rem;
   z-index: 300;
   padding: 0.5rem 0.9rem;
   border-radius: 0.5rem;
@@ -3764,6 +3820,7 @@ html.dark .docs-logo--light {
   border-color: var(--docs-border);
 }
 
+/* A shortcut reads the same way round on every page: ⌘K, never K⌘. */
 .docs-kbd {
   border: 1px solid var(--docs-border-strong);
   background-color: var(--docs-bg-raised);
@@ -3771,6 +3828,8 @@ html.dark .docs-logo--light {
   border-radius: 0.3rem;
   font-family: inherit;
   line-height: 1;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .docs-select {
@@ -3805,13 +3864,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-sidebar-tint {
   background: var(--docs-bg-subtle);
-  border-right: 1px solid var(--docs-border-soft);
+  border-inline-end: 1px solid var(--docs-border-soft);
 }
 
 .docs-drawer {
   background-color: var(--docs-bg);
   box-shadow: var(--docs-shadow-lg);
-  border-right: 1px solid var(--docs-border);
+  border-inline-end: 1px solid var(--docs-border);
 }
 .docs-drawer__title {
   color: var(--docs-text);
@@ -3829,7 +3888,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-progress {
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   height: 2px;
   width: 0;
   background: linear-gradient(
@@ -3868,7 +3927,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.3;
-  text-align: left;
+  text-align: start;
   color: var(--docs-text-muted);
   transition:
     background-color 0.12s ease,
@@ -3916,8 +3975,8 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.22s ease;
-  margin-left: 1.0625rem;
-  border-left: 1px solid var(--docs-border);
+  margin-inline-start: 1.0625rem;
+  border-inline-start: 1px solid var(--docs-border);
 }
 .docs-nav__links > div {
   overflow: hidden;
@@ -3929,10 +3988,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-nav__link {
   display: block;
-  padding: 0.3125rem 0.5rem 0.3125rem 0.75rem;
-  margin-left: -1px;
-  border-left: 2px solid transparent;
-  border-radius: 0 0.375rem 0.375rem 0;
+  padding-block: 0.3125rem;
+  padding-inline: 0.75rem 0.5rem;
+  margin-inline-start: -1px;
+  border-inline-start: 2px solid transparent;
+  border-radius: 0;
+  border-start-end-radius: 0.375rem;
+  border-end-end-radius: 0.375rem;
   font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--docs-text-muted);
@@ -3944,12 +4006,12 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-nav__link:hover {
   color: var(--docs-text);
   background-color: var(--docs-bg-hover);
-  border-left-color: var(--docs-border-strong);
+  border-inline-start-color: var(--docs-border-strong);
 }
 .docs-nav__link.is-active {
   color: var(--docs-accent-text);
   font-weight: 600;
-  border-left-color: var(--docs-accent);
+  border-inline-start-color: var(--docs-accent);
   background-color: var(--docs-accent-soft);
 }
 
@@ -3974,8 +4036,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-toc__link {
   display: block;
-  padding: 0.25rem 0 0.25rem 0.875rem;
-  border-left: 2px solid var(--docs-border);
+  padding-block: 0.25rem;
+  padding-inline: 0.875rem 0;
+  border-inline-start: 2px solid var(--docs-border);
   font-size: 0.8125rem;
   line-height: 1.5;
   color: var(--docs-text-muted);
@@ -3985,18 +4048,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-toc__link:hover {
   color: var(--docs-text);
-  border-left-color: var(--docs-border-strong);
+  border-inline-start-color: var(--docs-border-strong);
 }
 .docs-toc__link.is-active {
   color: var(--docs-accent-text);
-  border-left-color: var(--docs-accent);
+  border-inline-start-color: var(--docs-accent);
   font-weight: 500;
 }
 .docs-toc__link[data-level="3"] {
-  padding-left: 1.625rem;
+  padding-inline-start: 1.625rem;
 }
 .docs-toc__link[data-level="4"] {
-  padding-left: 2.375rem;
+  padding-inline-start: 2.375rem;
   font-size: 0.78125rem;
 }
 
@@ -4110,6 +4173,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
   font-size: 0.75rem;
   color: var(--docs-text-subtle);
 }
+/* A page result's summary, under its group. */
+.docs-search__item-detail {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--docs-text-faint);
+}
 .docs-search__footer {
   display: flex;
   align-items: center;
@@ -4157,16 +4227,72 @@ html.dark .docs-theme-toggle .docs-icon-light {
   letter-spacing: -0.025em;
   font-weight: 700;
   color: var(--docs-text);
+  /*
+   * A one-word title wider than a phone (Norwegian
+   * "Overvåkingshemmeligheter") breaks rather than widening the page.
+   */
+  overflow-wrap: break-word;
+}
+
+/* The page's Markdown: copy it, or open it. */
+.docs-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+.docs-page-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  background: var(--docs-bg-raised);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--docs-text-muted);
+  text-decoration: none;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.docs-page-action[hidden] {
+  display: none;
+}
+.docs-page-action:hover {
+  color: var(--docs-text);
+  border-color: var(--docs-border-strong);
+}
+.docs-page-action:focus-visible {
+  outline: 2px solid var(--docs-accent);
+  outline-offset: 2px;
+}
+.docs-page-action.is-copied {
+  color: var(--docs-tip);
+  border-color: var(--docs-tip);
+}
+.docs-page-action svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
 }
 
 /* --------------------------------------------------------------------------
    Article body typography
    -------------------------------------------------------------------------- */
 
+/*
+ * A long token in prose - an env var name outside backticks - wraps instead
+ * of widening the page. A phone opens a too-wide right-to-left page at its
+ * far end, with the start of every line cut off.
+ */
 .docs-content {
   font-size: 1rem;
   line-height: 1.75;
   color: var(--docs-text-body);
+  overflow-wrap: break-word;
 }
 
 .docs-content > *:first-child {
@@ -4235,7 +4361,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 
 .docs-anchor {
-  margin-left: 0.4rem;
+  margin-inline-start: 0.4rem;
   color: var(--docs-text-faint);
   font-weight: 400;
   text-decoration: none;
@@ -4268,7 +4394,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: inline-block;
   width: 0.75em;
   height: 0.75em;
-  margin-left: 0.2em;
+  margin-inline-start: 0.2em;
   vertical-align: baseline;
   opacity: 0.65;
 }
@@ -4276,7 +4402,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-content ul,
 .docs-content ol {
   margin: 1.15rem 0;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 .docs-content ul {
   list-style: none;
@@ -4286,7 +4412,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-content li {
   margin: 0.4rem 0;
-  padding-left: 0.125rem;
+  padding-inline-start: 0.125rem;
 }
 .docs-content ol > li::marker {
   color: var(--docs-text-faint);
@@ -4299,7 +4425,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-content ul > li::before {
   content: "";
   position: absolute;
-  left: -1rem;
+  inset-inline-start: -1rem;
   top: 0.72em;
   width: 5px;
   height: 5px;
@@ -4336,8 +4462,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-quote {
   margin: 1.5rem 0;
-  padding: 0.25rem 0 0.25rem 1.125rem;
-  border-left: 3px solid var(--docs-accent-border);
+  padding-block: 0.25rem;
+  padding-inline: 1.125rem 0;
+  border-inline-start: 3px solid var(--docs-accent-border);
   color: var(--docs-text-muted);
 }
 .docs-quote p {
@@ -4355,13 +4482,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
   padding: 0.875rem 1.125rem 1rem;
   border-radius: 0.625rem;
   border: 1px solid color-mix(in srgb, var(--callout-accent) 30%, transparent);
-  border-left: 3px solid var(--callout-accent);
+  border-inline-start: 3px solid var(--callout-accent);
   background: var(--callout-bg);
 }
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
   .docs-callout {
     border: 1px solid var(--docs-border);
-    border-left: 3px solid var(--callout-accent);
+    border-inline-start: 3px solid var(--callout-accent);
   }
 }
 .docs-callout--tip {
@@ -4424,9 +4551,14 @@ html.dark .docs-theme-toggle .docs-icon-light {
   min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  text-align: left;
+  text-align: start;
 }
+/*
+ * Said again on the header cells: browsers centre a th whose row has the
+ * initial text-align, and `start` is the initial value.
+ */
 .docs-table th {
+  text-align: start;
   padding: 0.625rem 1rem;
   background: var(--docs-bg-subtle);
   color: var(--docs-text);
@@ -4454,6 +4586,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
    Code
    -------------------------------------------------------------------------- */
 
+/*
+ * Code reads left to right in every language. In a right-to-left paragraph a
+ * command, a YAML key or an env var name would otherwise be reordered by the
+ * prose around it (`--flag` drawn `flag--`), and a long line would scroll
+ * from its end. Isolating it keeps it from reordering the prose in turn.
+ */
+.docs-code pre,
+.docs-code-inline {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 .docs-code-inline {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, monospace;
@@ -4464,6 +4608,15 @@ html.dark .docs-theme-toggle .docs-icon-light {
   border: 1px solid var(--docs-code-inline-border);
   color: var(--docs-code-inline-text);
   overflow-wrap: break-word;
+}
+/*
+ * In a right-to-left paragraph, JetBrains Mono's ligatures for "{{" and "}}"
+ * are drawn over the letters beside them inside the isolated run: a Persian
+ * page's {{alertname}} read "{{ alertnam}}", its braces on the "e". There
+ * each character is drawn on its own.
+ */
+.docs-code-inline:dir(rtl) {
+  font-variant-ligatures: none;
 }
 .docs-content a .docs-code-inline {
   color: inherit;
@@ -4486,7 +4639,8 @@ html.dark .docs-theme-toggle .docs-icon-light {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  padding-block: 0.4rem;
+  padding-inline: 0.9rem 0.5rem;
   min-height: 2.125rem;
   background: var(--docs-code-bar-bg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
@@ -4568,6 +4722,11 @@ html.dark .docs-theme-toggle .docs-icon-light {
   background: rgba(255, 255, 255, 0.28);
 }
 
+/*
+ * Left to right on every page: Mermaid lays diagrams out that way, so a
+ * right-to-left page would scroll a wide one from its far end. The text of
+ * a label, and of the caption, reads the way its page reads (below).
+ */
 .docs-diagram {
   margin: 1.75rem 0;
   padding: 1.25rem;
@@ -4576,6 +4735,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   border: 1px solid var(--docs-border);
   border-radius: 0.75rem;
   background: var(--docs-bg-raised);
+  direction: ltr;
 }
 /*
  * Not a flex container: Mermaid's SVG sizes itself from its viewBox, and as a
@@ -4585,9 +4745,441 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: block;
   text-align: center;
 }
-/* Width is set per diagram after rendering — see the Mermaid block in Head.ejs. */
+/*
+ * Width is set per diagram after rendering — see the Mermaid block in
+ * Head.ejs. A diagram narrower than the column sits in its middle, over the
+ * caption; one wider starts at the left edge of the box it scrolls in.
+ */
 .docs-diagram .mermaid svg {
+  display: block;
+  margin-inline: auto;
   height: auto;
+}
+/*
+ * On a left-to-right page each line of a label, and the caption, reads in
+ * the direction of its first letter: "Rule 1:" left to right, never
+ * ":Rule 1".
+ */
+.docs-diagram .mermaid foreignObject div,
+.docs-diagram .mermaid foreignObject p,
+.docs-diagram .docs-diagram__caption {
+  unicode-bidi: plaintext;
+}
+/*
+ * On a right-to-left page every line of a label, a sequence diagram's
+ * names, messages and notes (SVG text), and the caption read right to
+ * left, as the page's own paragraphs do, whatever word they start with.
+ * Laid out by its first letter, a Persian line that opened with a Latin
+ * word ("OneUptime حساب", the OneUptime account) was laid out left to right
+ * and read back to front; laid out left to right like the diagram, a line
+ * drew the comma that ends it first. A line of Latin words only keeps its
+ * order when it starts with a letter and ends with a letter or a digit, as
+ * the docs tests hold every right-to-left page to (DiagramReadingDirection).
+ * :dir() is the article's direction, so the English copy of an untranslated
+ * page, served on a Persian URL, stays left to right.
+ */
+.docs-diagram:dir(rtl) .mermaid foreignObject div,
+.docs-diagram:dir(rtl) .mermaid foreignObject p,
+.docs-diagram:dir(rtl) .mermaid text,
+.docs-diagram:dir(rtl) .docs-diagram__caption {
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+/*
+ * A diagram the page could not draw - it does not parse, or this server has
+ * no mermaid build: a short note, then the diagram's source as it was
+ * written, its line breaks and indentation kept, in the code font. The box
+ * scrolls a long line rather than wrapping it.
+ */
+.docs-diagram .docs-diagram__note {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--docs-text-muted);
+}
+.docs-diagram .mermaid[data-diagram="source"] {
+  text-align: start;
+  white-space: pre;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--docs-text-body);
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar sections
+   --------------------------------------------------------------------------
+   The groups are listed under the section they belong to (Utils/Nav.ts).
+   -------------------------------------------------------------------------- */
+
+.docs-nav__section + .docs-nav__section {
+  margin-top: 1.25rem;
+}
+
+.docs-nav__section-title {
+  margin: 0 0 0.375rem;
+  padding-inline: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--docs-text-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   Components — written in Markdown, see
+   Common/Server/Types/MarkdownDocsExtensions.ts
+   -------------------------------------------------------------------------- */
+
+/* Steps: a numbered procedure, one heading per step, joined by a rail. */
+.docs-content .docs-steps {
+  list-style: none;
+  margin: 1.75rem 0;
+  padding: 0;
+  counter-reset: docs-step;
+}
+.docs-content .docs-step {
+  position: relative;
+  margin: 0;
+  padding-block: 0 1.75rem;
+  padding-inline: 2.75rem 0;
+  counter-increment: docs-step;
+}
+.docs-content .docs-step::before {
+  content: counter(docs-step);
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 999px;
+  border: 1px solid var(--docs-accent-border);
+  background: var(--docs-accent-soft);
+  color: var(--docs-accent-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.docs-content .docs-step::after {
+  content: "";
+  position: absolute;
+  top: 2.25rem;
+  bottom: 0.5rem;
+  inset-inline-start: 0.875rem;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--docs-border);
+}
+.docs-content .docs-step:last-child {
+  padding-bottom: 0.25rem;
+}
+.docs-content .docs-step:last-child::after {
+  display: none;
+}
+.docs-content .docs-step > .docs-heading {
+  margin-top: 0;
+  padding-top: 0.125rem;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.docs-content .docs-step > .docs-h2 {
+  font-size: 1.25rem;
+}
+.docs-content .docs-step__body > *:first-child {
+  margin-top: 0.5rem;
+}
+.docs-content .docs-step__body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Steps without headings: a numbered list drawn the same way. */
+.docs-content .docs-steps--list > ol {
+  list-style: none;
+  padding-inline-start: 0;
+  counter-reset: docs-step;
+}
+.docs-content .docs-steps--list > ol > li {
+  position: relative;
+  margin: 0;
+  padding-block: 0.125rem 1rem;
+  padding-inline: 2.75rem 0;
+  counter-increment: docs-step;
+}
+.docs-content .docs-steps--list > ol > li::before {
+  content: counter(docs-step);
+  position: absolute;
+  top: 0.125rem;
+  inset-inline-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--docs-accent-border);
+  background: var(--docs-accent-soft);
+  color: var(--docs-accent-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * Tabs. Without scripting every panel shows under its own label, in order;
+ * html.docs-js (set in Head.ejs before the body is drawn) turns the set into
+ * tabs with the first one selected, and the page's script applies the
+ * reader's remembered choice.
+ */
+.docs-tabs {
+  margin: 1.5rem 0;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.75rem;
+  background: var(--docs-bg-raised);
+}
+/*
+ * The rule under the tabs is an inset shadow rather than a border, so the
+ * selected tab's underline can sit on it without a negative margin - which
+ * gave the scrolling list a vertical scrollbar of its own.
+ */
+.docs-tabs__list {
+  display: none;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: inset 0 -1px 0 var(--docs-border);
+  scrollbar-width: thin;
+}
+html.docs-js .docs-tabs__list {
+  display: flex;
+}
+.docs-tabs__tab {
+  flex: none;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--docs-text-muted);
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.docs-tabs__tab:hover {
+  color: var(--docs-text);
+}
+.docs-tabs__tab[aria-selected="true"] {
+  color: var(--docs-accent-text);
+  border-bottom-color: var(--docs-accent);
+  font-weight: 600;
+}
+.docs-tabs__tab:focus-visible {
+  outline: 2px solid var(--docs-accent);
+  outline-offset: -2px;
+  border-radius: 0.375rem;
+}
+.docs-tabs__panel {
+  padding: 0.25rem 1.125rem;
+}
+.docs-tabs__panel + .docs-tabs__panel {
+  border-top: 1px solid var(--docs-border);
+}
+.docs-tabs__panel:focus-visible {
+  outline: 2px solid var(--docs-accent);
+  outline-offset: -2px;
+}
+.docs-content .docs-tabs__panel-label {
+  margin: 0.875rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--docs-text-subtle);
+}
+html.docs-js .docs-tabs__panel-label {
+  display: none;
+}
+html.docs-js .docs-tabs__panel + .docs-tabs__panel {
+  border-top: 0;
+}
+html.docs-js .docs-tabs__panel:not(.is-active) {
+  display: none;
+}
+.docs-tabs__panel > .docs-code,
+.docs-tabs__panel > .docs-diagram {
+  margin-block: 1rem;
+}
+
+/* Cards: a grid of links, each with the icon of the section it leads to. */
+.docs-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.875rem;
+  margin: 1.5rem 0 2rem;
+}
+.docs-cards__extra {
+  grid-column: 1 / -1;
+}
+.docs-content .docs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1rem 1.125rem 1.125rem;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.75rem;
+  background: var(--docs-bg-raised);
+  color: var(--docs-text-body);
+  text-decoration: none;
+  box-shadow: var(--docs-shadow-sm);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.docs-content a.docs-card:hover {
+  border-color: var(--docs-accent-border);
+  box-shadow: var(--docs-shadow-md);
+  transform: translateY(-1px);
+}
+.docs-content a.docs-card:focus-visible {
+  outline: 2px solid var(--docs-accent);
+  outline-offset: 2px;
+}
+.docs-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.625rem;
+  background: var(--docs-accent-soft);
+  color: var(--docs-accent-text);
+}
+.docs-card__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.docs-card__title {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--docs-text);
+}
+.docs-content a.docs-card:hover .docs-card__title {
+  color: var(--docs-accent-text);
+}
+.docs-card__body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--docs-text-muted);
+}
+.docs-card__body p {
+  margin: 0.25rem 0;
+}
+
+/* Details: a section that starts folded. */
+.docs-details {
+  margin: 1rem 0;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.625rem;
+  background: var(--docs-bg-raised);
+}
+.docs-details + .docs-details {
+  margin-top: -0.375rem;
+}
+.docs-details__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--docs-text);
+}
+.docs-details__summary::-webkit-details-marker {
+  display: none;
+}
+.docs-details__summary::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-inline-end: 2px solid var(--docs-text-subtle);
+  border-bottom: 2px solid var(--docs-text-subtle);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.docs-details[open] > .docs-details__summary::before {
+  transform: rotate(45deg);
+}
+/*
+ * Right to left, the marker is drawn on the left and bottom borders: closed,
+ * it points left, into the page, and open it points down, as it does left to
+ * right. Keyed on the fold's own direction, so the English copy of a page on
+ * a Persian address keeps the left-to-right marker.
+ */
+.docs-details__summary:dir(rtl)::before {
+  transform: rotate(45deg);
+}
+.docs-details[open] > .docs-details__summary:dir(rtl)::before {
+  transform: rotate(-45deg);
+}
+/*
+ * The title is the summary's one flex item beside the marker, so its words
+ * and inline code wrap as a paragraph; min-width: 0 lets it shrink below its
+ * longest word, and a code span longer than the line breaks rather than
+ * pushing a phone-width page sideways.
+ */
+.docs-details__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.docs-details__summary:hover {
+  color: var(--docs-accent-text);
+}
+.docs-details__summary:focus-visible {
+  outline: 2px solid var(--docs-accent);
+  outline-offset: 2px;
+  border-radius: 0.625rem;
+}
+.docs-details__body {
+  padding: 0 1rem 0.25rem;
+  border-top: 1px solid var(--docs-border-soft);
+}
+
+/* A code block's title ("install.sh"), before its language. */
+.docs-code__title {
+  margin-inline-end: auto;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--docs-code-text);
+}
+
+/* A diagram's caption, under it. */
+.docs-diagram .docs-diagram__caption {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--docs-text-subtle);
+}
+
+/* The "important" callout: neither a warning nor a plain note. */
+.docs-callout--important {
+  --callout-accent: var(--docs-important);
+  --callout-bg: var(--docs-important-bg);
 }
 
 /* --------------------------------------------------------------------------
@@ -4772,6 +5364,43 @@ html.dark .docs-btn--primary {
 }
 
 /* --------------------------------------------------------------------------
+   Right to left
+   --------------------------------------------------------------------------
+   Persian pages are served with dir="rtl" on <html>. Spacing, borders and
+   alignment above are written with logical properties, so they follow the
+   reading direction by themselves; this is what those cannot express. Code
+   and the layout of diagrams stay left to right on every page - see "Code" -
+   while a diagram's words read the page's way (the .docs-diagram rules).
+   -------------------------------------------------------------------------- */
+
+/* Arrows and chevrons that point along the reading direction turn with it. */
+[dir="rtl"] .docs-rtl-mirror {
+  transform: scaleX(-1);
+}
+
+/*
+ * A closed group's chevron points into the page, so leftwards here. Open, it
+ * still points down: the rotate(90deg) rule above is more specific.
+ */
+[dir="rtl"] .docs-nav__chevron {
+  transform: rotate(180deg);
+}
+
+/* The drawer is pinned to the right, so it slides out that way. */
+[dir="rtl"] .docs-drawer.-translate-x-full {
+  transform: translateX(100%);
+}
+
+/* The bar grows from the right: its brighter end leads, as it does above. */
+[dir="rtl"] .docs-progress {
+  background-image: linear-gradient(
+    270deg,
+    var(--docs-accent),
+    color-mix(in srgb, var(--docs-accent) 55%, #ffffff)
+  );
+}
+
+/* --------------------------------------------------------------------------
    Motion + print
    -------------------------------------------------------------------------- */
 
@@ -4810,5 +5439,43 @@ html.dark .docs-btn--primary {
   .docs-code {
     box-shadow: none;
     break-inside: avoid;
+  }
+}
+
+/*
+ * Desktop-only markup in the Docs views is written `max-lg:hidden lg:block`,
+ * not `hidden lg:block`: a browser extension or user stylesheet declaring
+ * `.hidden { display: none !important }` (Bootstrap 3, HTML5 Boilerplate)
+ * would otherwise take the sidebar and search off every screen. These mirror
+ * Tailwind's max-width hides so the first paint, before the Play CDN has
+ * generated them, still hides that markup on small screens.
+ */
+@media not all and (min-width: 1536px) {
+  .max-2xl\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 1280px) {
+  .max-xl\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 1024px) {
+  .max-lg\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 768px) {
+  .max-md\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 640px) {
+  .max-sm\:hidden {
+    display: none;
   }
 }

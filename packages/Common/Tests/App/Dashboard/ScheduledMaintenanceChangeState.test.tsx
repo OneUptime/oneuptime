@@ -38,6 +38,9 @@ const SCHEDULED_STATE_ID: string = "44444444-4444-4444-8444-444444444441";
 const ONGOING_STATE_ID: string = "44444444-4444-4444-8444-444444444442";
 const VERIFYING_STATE_ID: string = "44444444-4444-4444-8444-444444444443";
 const ENDED_STATE_ID: string = "44444444-4444-4444-8444-444444444444";
+// States of the project's own: one before Ongoing, one after Ended.
+const PREPARING_STATE_ID: string = "44444444-4444-4444-8444-444444444445";
+const REVIEWING_STATE_ID: string = "44444444-4444-4444-8444-444444444446";
 
 const getListMock: MockFunction = getJestMockFunction();
 const modalRenderMock: MockFunction = getJestMockFunction();
@@ -178,6 +181,7 @@ function makeState(data: {
     | "isEndedState"
     | "isResolvedState"
     | undefined;
+  order?: number | undefined;
 }): ScheduledMaintenanceState {
   const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
   state.id = new ObjectID(data.id);
@@ -186,6 +190,10 @@ function makeState(data: {
 
   if (data.flag) {
     state[data.flag] = true;
+  }
+
+  if (data.order !== undefined) {
+    state.order = data.order;
   }
 
   return state;
@@ -609,6 +617,209 @@ describe("ChangeScheduledMaintenanceState", () => {
       expect(
         container.querySelector("#sm-mark-complete-btn"),
       ).toHaveTextContent("Mark as Ended");
+    });
+
+    /*
+     * States of the project's own are placed by the one rule
+     * (Common/Utils/ScheduledMaintenanceStart): before Ongoing the event has
+     * not started, between Ongoing and Ended it is in progress, after Ended
+     * it is over.
+     */
+    describe("states of the project's own, by their place", () => {
+      function placedStates(): Array<ScheduledMaintenanceState> {
+        return [
+          makeState({
+            id: SCHEDULED_STATE_ID,
+            name: "Scheduled",
+            color: "#6366f1",
+            flag: "isScheduledState",
+            order: 1,
+          }),
+          makeState({
+            id: PREPARING_STATE_ID,
+            name: "Preparing",
+            color: "#64748b",
+            order: 2,
+          }),
+          makeState({
+            id: ONGOING_STATE_ID,
+            name: "Ongoing",
+            color: "#f59e0b",
+            flag: "isOngoingState",
+            order: 3,
+          }),
+          makeState({
+            id: VERIFYING_STATE_ID,
+            name: "Verifying",
+            color: "#0ea5e9",
+            order: 4,
+          }),
+          makeState({
+            id: ENDED_STATE_ID,
+            name: "Ended",
+            color: "#10b981",
+            flag: "isEndedState",
+            order: 5,
+          }),
+          makeState({
+            id: REVIEWING_STATE_ID,
+            name: "Reviewing",
+            color: "#a855f7",
+            order: 6,
+          }),
+        ];
+      }
+
+      test("a state after Ended is over: no actions, and the event took from its start to its end", async () => {
+        jest.setSystemTime(at(DAY, ENDS_AT));
+        serve({
+          states: placedStates(),
+          timelines: [
+            [
+              makeTimeline(SCHEDULED_STATE_ID, at(-DAY)),
+              makeTimeline(ONGOING_STATE_ID, at(5 * MINUTE)),
+              makeTimeline(ENDED_STATE_ID, at(90 * MINUTE)),
+              makeTimeline(REVIEWING_STATE_ID, at(2 * HOUR)),
+            ],
+          ],
+        });
+
+        const { container } = renderHeader();
+        await flush();
+
+        expect(currentStatePill()).toBe("Reviewing");
+        // Moving on from Ended to "Reviewing" is no second end.
+        expect(readDuration()).toEqual({
+          prefix: "Completed in",
+          value: "1 hour, 25 minutes",
+        });
+        expect(container.querySelector("#sm-mark-ongoing-btn")).toBe(null);
+        expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
+        expect(overdueNotice()).toBe(null);
+      });
+
+      test("a move from Verifying straight into a state after Ended is the event's end", async () => {
+        jest.setSystemTime(at(DAY, ENDS_AT));
+        serve({
+          states: placedStates(),
+          timelines: [
+            [
+              makeTimeline(SCHEDULED_STATE_ID, at(-DAY)),
+              makeTimeline(ONGOING_STATE_ID, at(0)),
+              makeTimeline(VERIFYING_STATE_ID, at(30 * MINUTE)),
+              makeTimeline(REVIEWING_STATE_ID, at(45 * MINUTE)),
+            ],
+          ],
+        });
+
+        const { container } = renderHeader();
+        await flush();
+
+        expect(currentStatePill()).toBe("Reviewing");
+        expect(readDuration()).toEqual({
+          prefix: "Completed in",
+          value: "45 minutes",
+        });
+        expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
+      });
+
+      test("an event moved straight into Verifying is in progress from that move", async () => {
+        jest.setSystemTime(at(HOUR));
+        serve({
+          states: placedStates(),
+          timelines: [
+            [
+              makeTimeline(SCHEDULED_STATE_ID, at(-DAY)),
+              makeTimeline(VERIFYING_STATE_ID, at(10 * MINUTE)),
+            ],
+          ],
+        });
+
+        const { container } = renderHeader();
+        await flush();
+
+        expect(currentStatePill()).toBe("Verifying");
+        expect(readDuration()).toEqual({
+          prefix: "In progress for",
+          value: "50 minutes",
+        });
+        expect(container.querySelector("#sm-mark-ongoing-btn")).toBe(null);
+        expect(
+          container.querySelector("#sm-mark-complete-btn"),
+        ).toHaveTextContent("Mark as Ended");
+      });
+
+      test("a state before Ongoing has not started: Mark as Ongoing still leads", async () => {
+        jest.setSystemTime(at(-HOUR));
+        serve({
+          states: placedStates(),
+          timelines: [
+            [
+              makeTimeline(SCHEDULED_STATE_ID, at(-DAY)),
+              makeTimeline(PREPARING_STATE_ID, at(-2 * HOUR)),
+            ],
+          ],
+        });
+
+        const { container } = renderHeader();
+        await flush();
+
+        expect(currentStatePill()).toBe("Preparing");
+        expect(readDuration()?.prefix).toBe("Starts in");
+        expect(
+          container.querySelector("#sm-mark-ongoing-btn"),
+        ).toHaveTextContent("Mark as Ongoing");
+      });
+
+      test("the states' place decides, not the order the list arrives in", async () => {
+        jest.setSystemTime(at(DAY, ENDS_AT));
+        serve({
+          states: [...placedStates()].reverse(),
+          timelines: [
+            [
+              makeTimeline(SCHEDULED_STATE_ID, at(-DAY)),
+              makeTimeline(ONGOING_STATE_ID, at(5 * MINUTE)),
+              makeTimeline(ENDED_STATE_ID, at(90 * MINUTE)),
+              makeTimeline(REVIEWING_STATE_ID, at(2 * HOUR)),
+            ],
+          ],
+        });
+
+        const { container } = renderHeader();
+        await flush();
+
+        expect(currentStatePill()).toBe("Reviewing");
+        expect(readDuration()?.prefix).toBe("Completed in");
+        expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
+      });
+
+      test("asks for each state's place along with its flags", async () => {
+        jest.setSystemTime(at(HOUR));
+        serve({ states: placedStates(), timelines: [[]] });
+
+        renderHeader();
+        await flush();
+
+        const stateRequest: ListRequest | undefined = getListMock.mock.calls
+          .map((call: Array<any>): ListRequest => {
+            return call[0] as ListRequest;
+          })
+          .find((request: ListRequest): boolean => {
+            return request.modelType === ScheduledMaintenanceState;
+          });
+
+        expect(stateRequest).toBeDefined();
+        const select: Record<string, unknown> = stateRequest!.select;
+        for (const column of [
+          "order",
+          "isScheduledState",
+          "isOngoingState",
+          "isEndedState",
+          "isResolvedState",
+        ]) {
+          expect([column, select[column]]).toEqual([column, true]);
+        }
+      });
     });
 
     test("offers no actions and no duration without a timeline", async () => {

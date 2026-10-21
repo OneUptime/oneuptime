@@ -10,6 +10,12 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
+import useUnresolvedStateIds from "../../Components/EventView/useUnresolvedStateIds";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -18,6 +24,24 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Only the chat workspaces this project has connected, or one entry to
+   * connect one when it has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
+    });
+
+  /*
+   * Active: in a state above the project's resolved state - a state placed
+   * after it counts as resolved (Common/Utils/ResolvedState). The badge
+   * counts once the states are read.
+   */
+  const { unresolvedStateIds } = useUnresolvedStateIds("incident");
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Overview",
@@ -41,12 +65,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
           modelType: Incident,
-          countQuery: {
-            projectId: props.project?._id,
-            currentIncidentState: {
-              isResolvedState: false,
-            },
-          } as any,
+          countQuery: unresolvedStateIds
+            ? ({
+                projectId: props.project?._id,
+                currentIncidentStateId: new Includes(
+                  unresolvedStateIds.map((stateId: ObjectID) => {
+                    return stateId.toString();
+                  }),
+                ),
+              } as any)
+            : undefined,
         },
       ],
     },
@@ -77,74 +105,49 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             resolvedAt: null,
           } as any,
         },
-        {
-          link: {
-            title: "Documentation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route,
-            ),
-          },
-          icon: IconProp.Book,
-        },
       ],
     },
     /*
-     * AI is its own destination rather than a line inside Settings: both pages
-     * under it configure autonomous work that runs against every incident, and
-     * burying them under a collapsed Settings section is how they went
-     * unnoticed. Investigation is the analysis half, Remediation the acting
-     * half.
+     * Everything OneUptime AI does for incidents, in one place: what it
+     * learned (Insights), what it did (Logs) and how it is set up
+     * (Settings, whose More settings hold the rules for which incidents it
+     * investigates and fixes - they had a page of their own). Folded down
+     * to its title until opened, like the AI section of every menu
+     * (SideMenuSectionState.ts), and open by itself on its pages.
      */
     {
       title: "AI",
       items: [
         {
           link: {
-            title: "Investigation",
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_AI_INSIGHTS] as Route,
+            ),
+          },
+          icon: IconProp.LightBulb,
+        },
+        {
+          link: {
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_AI_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.QueueList,
+        },
+        {
+          link: {
+            title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
             ),
           },
-          icon: IconProp.Sparkles,
-        },
-        {
-          link: {
-            title: "Remediation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
+          icon: IconProp.Settings,
         },
       ],
     },
-    {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
+    ...(workspaceSection ? [workspaceSection] : []),
     /*
      * Every "when an incident looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited, and left
@@ -306,18 +309,55 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        /*
+         * Whether an incident's linked alerts follow it when it is
+         * acknowledged or resolved. Its own page so it is findable by name.
+         */
         {
           link: {
-            title: "More Settings",
+            title: "Linked Alerts",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          icon: IconProp.Link,
+        },
+        /*
+         * Whether an incident can be in only one episode. Its own page,
+         * findable by name like Linked Alerts - not "Episodes", the
+         * section above that lists them.
+         */
+        {
+          link: {
+            title: "Episode Membership",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack3D,
+        },
+        /*
+         * How incident and episode numbers look (the INC- in INC-42) and
+         * which comes next: a page of its own, named for what it holds. It
+         * was More Settings, then Number Prefix.
+         */
+        {
+          link: {
+            title: "Numbering",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route,
+            ),
+          },
+          icon: IconProp.Hashtag,
         },
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Incident,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

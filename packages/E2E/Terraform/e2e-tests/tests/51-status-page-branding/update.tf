@@ -1,6 +1,6 @@
 # Update-phase config: the runner copies this over main.tf after the initial
-# apply + drift gate. Changed vs main.tf: page_title, copyright_text and
-# custom_css.
+# apply + drift gate. Changed vs main.tf: page_title, copyright_text,
+# custom_css and theme.
 terraform {
   required_providers {
     oneuptime = {
@@ -22,6 +22,7 @@ resource "oneuptime_status_page" "page" {
   page_description                    = "Branding fields set by Terraform E2E tests"
   copyright_text                      = "Copyright Terraform E2E Updated"
   custom_css                          = ".status-page { background: #f5f5f5; }"
+  theme                               = "System"
   hide_powered_by_one_uptime_branding = true
   is_public_status_page               = false
   enable_email_subscribers            = false

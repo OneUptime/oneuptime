@@ -1,5 +1,8 @@
 import * as grpc from "@grpc/grpc-js";
-import { startGrpcServer } from "../../FeatureSet/Telemetry/GrpcServer";
+import {
+  INVALID_INGESTION_TOKEN_MESSAGE,
+  startGrpcServer,
+} from "../../FeatureSet/Telemetry/GrpcServer";
 import LogsQueueService from "../../FeatureSet/Telemetry/Services/Queue/LogsQueueService";
 import MetricsQueueService from "../../FeatureSet/Telemetry/Services/Queue/MetricsQueueService";
 import ProfilesQueueService from "../../FeatureSet/Telemetry/Services/Queue/ProfilesQueueService";
@@ -8,9 +11,12 @@ import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngest
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
+import TelemetryIngestionKeyGuard from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { getPolicyFromSecretKey: jest.fn() } };
@@ -88,6 +94,62 @@ const signals: Array<Signal> = [
   },
 ];
 
+type BuildPolicyFunction = (
+  overrides?: Partial<TelemetryIngestionKeyPolicy>,
+) => TelemetryIngestionKeyPolicy;
+
+const buildPolicy: BuildPolicyFunction = (
+  overrides: Partial<TelemetryIngestionKeyPolicy> = {},
+): TelemetryIngestionKeyPolicy => {
+  return {
+    ingestionKeyId: ObjectID.generate(),
+    projectId,
+    keyType: TelemetryIngestionKeyType.Server,
+    allowedOrigins: [],
+    pinnedServiceName: null,
+    isEnabled: true,
+    expiresAt: null,
+    requestsPerMinuteLimit: null,
+    ...overrides,
+  };
+};
+
+interface RefusedKeyCase {
+  reason: string;
+  policy: TelemetryIngestionKeyPolicy | null;
+  code: grpc.status;
+  details: string;
+}
+
+const disabledPolicy: TelemetryIngestionKeyPolicy = buildPolicy({
+  isEnabled: false,
+});
+
+/*
+ * One refusal for each of the two statuses. The sentences are taken from
+ * where the server gets them - GrpcServer's copy of the HTTP middleware's
+ * invalid-token sentence, and the shared guard - and
+ * GrpcServerAuthStatusLive.test.ts checks both against the HTTP middleware
+ * itself over a real socket.
+ */
+const refusedKeyCases: Array<RefusedKeyCase> = [
+  {
+    reason: "unknown token",
+    policy: null,
+    code: grpc.status.UNAUTHENTICATED,
+    details: INVALID_INGESTION_TOKEN_MESSAGE,
+  },
+  {
+    reason: "disabled key",
+    policy: disabledPolicy,
+    code: grpc.status.PERMISSION_DENIED,
+    details: TelemetryIngestionKeyGuard.getRefusal({
+      policy: disabledPolicy,
+      surface: TelemetryIngestSurface.Grpc,
+    })!.message,
+  },
+];
+
 function call(): { request: Record<string, unknown>; metadata: grpc.Metadata } {
   const metadata: grpc.Metadata = new grpc.Metadata();
   metadata.set("x-oneuptime-token", "synthetic-token");
@@ -149,16 +211,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (
     TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
-  ).mockResolvedValue({
-    ingestionKeyId: ObjectID.generate(),
-    projectId,
-    keyType: TelemetryIngestionKeyType.Server,
-    allowedOrigins: [],
-    pinnedServiceName: null,
-    isEnabled: true,
-    expiresAt: null,
-    requestsPerMinuteLimit: null,
-  });
+  ).mockResolvedValue(buildPolicy());
   jest.spyOn(TelemetryIngestionDisabled, "isDisabled").mockReturnValue(false);
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined;
@@ -270,7 +323,7 @@ describe.each(signals)(
 
     test("keeps an auth-backend failure non-retryable and out of the queue", async () => {
       /*
-       * handleExport's terminal catch also covers authenticateRequest. Only
+       * handleExport's terminal catch also covers authenticateGrpcRequest. Only
        * the enqueue maps to a retryable UNAVAILABLE: a Postgres or billing
        * outage answered that way would have every exporter retry an
        * already-degraded auth backend, uncached, on a port with no per-key
@@ -299,18 +352,40 @@ describe.each(signals)(
       expect(loggedText()).not.toContain("must-not-be-logged");
     });
 
-    test.each(["disabled", "unauthenticated"])(
-      "preserves intentional %s drop without queueing",
-      async (mode: string) => {
-        if (mode === "disabled") {
-          jest
-            .spyOn(TelemetryIngestionDisabled, "isDisabled")
-            .mockReturnValue(true);
-        } else {
+    test("preserves intentional disabled-ingestion drop without queueing", async () => {
+      jest
+        .spyOn(TelemetryIngestionDisabled, "isDisabled")
+        .mockReturnValue(true);
+      const callback: jest.Mock = jest.fn();
+      await new Promise<void>((resolve: () => void) => {
+        handlers.get(service)!(
+          call(),
           (
-            TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
-          ).mockResolvedValue(null);
-        }
+            error: grpc.ServiceError | null,
+            result?: Record<string, unknown>,
+          ) => {
+            callback(error, result);
+            resolve();
+          },
+        );
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(null, {});
+      expect(queue).not.toHaveBeenCalled();
+    });
+
+    test.each(refusedKeyCases)(
+      "answers a refused key ($reason) with its non-retryable status and sentence, not success",
+      async (refused: RefusedKeyCase) => {
+        /*
+         * A success here made a mistyped or switched-off key
+         * indistinguishable from a healthy pipeline (GH#3978).
+         * UNAUTHENTICATED and PERMISSION_DENIED are both non-retryable in the
+         * OTLP gRPC status mapping, so the exporter still does not retry.
+         */
+        (
+          TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
+        ).mockResolvedValue(refused.policy);
         const callback: jest.Mock = jest.fn();
         await new Promise<void>((resolve: () => void) => {
           handlers.get(service)!(
@@ -325,7 +400,13 @@ describe.each(signals)(
           );
         });
         expect(callback).toHaveBeenCalledTimes(1);
-        expect(callback).toHaveBeenCalledWith(null, {});
+        expect(callback.mock.calls[0]![1]).toBeUndefined();
+        const error: grpc.ServiceError = callback.mock.calls[0]![0];
+        expect(error.code).toBe(refused.code);
+        expect(error.details).toBe(refused.details);
+        expect(error.message).toBe(refused.details);
+        expect(error.metadata).toBeInstanceOf(grpc.Metadata);
+        expect(error.metadata.getMap()).toEqual({});
         expect(queue).not.toHaveBeenCalled();
       },
     );

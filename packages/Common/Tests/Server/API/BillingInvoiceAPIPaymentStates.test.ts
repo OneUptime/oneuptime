@@ -12,11 +12,13 @@ import {
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { tenantPermissionsFor } from "./PermissionRows";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
+import { PROJECT_INVOICE_PAY_PERMISSIONS } from "../../../Utils/Project/ProjectBilling";
 import BillingInvoice, {
   InvoiceStatus,
 } from "../../../Models/DatabaseModels/BillingInvoice";
@@ -76,7 +78,7 @@ const CLIENT_SECRET: string = "pi_stale_card_invoice_secret_abc";
 const PENDING_PAYMENTS_MESSAGE: string =
   "Invoices with pending payments waiting to clear cannot be paid, voided, or marked uncollectible.";
 const UPDATE_PAYMENT_METHOD_SUFFIX: string =
-  " Please update your payment method in Project Settings > Billing and try again.";
+  " Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.";
 
 type StripeLikeErrorFunction = (data: {
   type: string;
@@ -225,14 +227,6 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
     project.paymentProviderSubscriptionId = "sub_stale_card_plan";
     project.paymentProviderMeteredSubscriptionId = "sub_pinned_metered";
 
-    jest
-      .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-      .mockResolvedValue([
-        {
-          permission: Permission.ProjectOwner,
-        } as UserPermission,
-      ]);
-
     loggerError = getJestSpyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
@@ -263,6 +257,9 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
 
     mockRequest = {
       tenantId: projectId,
+      userTenantAccessPermission: tenantPermissionsFor(projectId, [
+        Permission.ProjectOwner,
+      ]),
       body: {
         data: {
           paymentProviderInvoiceId: INVOICE_ID,
@@ -928,11 +925,9 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
     });
 
     it("rejects a caller without ProjectOwner or EditInvoices", async () => {
-      jest
-        .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-        .mockResolvedValue([
-          { permission: Permission.ProjectMember } as UserPermission,
-        ]);
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectMember,
+      ]);
 
       await callPay();
 
@@ -943,10 +938,65 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
       expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
     });
 
+    /*
+     * Paying charges the card: it stays with a project owner and Manage
+     * Billing (and Edit Invoices). The billing roles read the invoices, and
+     * Billing Member and Billing Admin download them, but none of them pays
+     * one (Utils/Project/ProjectBilling).
+     */
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: paying an invoice is not a billing role's",
+      async (held: Permission) => {
+        mockRequest.userTenantAccessPermission = tenantPermissionsFor(
+          projectId,
+          [Permission.ProjectUser, held],
+        );
+
+        await callPay();
+
+        expect((nextError() as Error).message).toBe(
+          "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
+        );
+        expect(payInvoice).not.toHaveBeenCalled();
+        expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.EditInvoices,
+    ])("lets a member holding %s pay", async (held: Permission) => {
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectUser,
+        held,
+      ]);
+
+      await callPay();
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(payInvoice).toHaveBeenCalledWith(CUSTOMER_ID, INVOICE_ID, {
+        canSurfaceAuthenticationPrompt: true,
+      });
+    });
+
+    it("asks for exactly the list the dashboard's Pay Invoice action asks for", () => {
+      expect([...PROJECT_INVOICE_PAY_PERMISSIONS]).toEqual([
+        Permission.ProjectOwner,
+        Permission.ManageProjectBilling,
+        Permission.EditInvoices,
+      ]);
+    });
+
     it("lets a master admin pay without project permissions", async () => {
-      jest
-        .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-        .mockResolvedValue([]);
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(
+        projectId,
+        [],
+      );
       (mockRequest as unknown as Record<string, unknown>)["userAuthorization"] =
         { isMasterAdmin: true };
 

@@ -1,11 +1,11 @@
 import { JSONObject } from "../../../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Permission, { PermissionHelper } from "../../../../Types/Permission";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
+import CallerPermission from "../../Permission/CallerPermission";
 import { LLMToolDefinition } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import {
@@ -21,6 +21,8 @@ import {
   QueryTelemetryResourcesTool,
   QueryResourceTelemetryTool,
 } from "./ResourceTools";
+import { QueryContainersTool } from "./ContainerTools";
+import { QueryNetworkTransceiversTool } from "./TransceiverTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -49,8 +51,14 @@ import {
   SecurityEventSummaryTool,
 } from "./SecurityEventTools";
 import { RecentChangesTool } from "./RecentChangesTools";
+import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
+import {
+  CompareProfilesTool,
+  GetProfileFunctionTool,
+  GetProfileHotspotsTool,
+} from "./ProfileTools";
 import { LookupContextTool } from "./ContextTools";
 import {
   FindCodeForExceptionTool,
@@ -93,8 +101,11 @@ const TOOL_EXECUTION_TIMEOUT_MS: number = 45 * 1000;
  * The curated tool belt for AI features (chat today, the Investigation Engine
  * later). Read tools wrap an existing deterministic query; write tools mutate
  * the project (create/acknowledge/resolve). Every tool executes under the
- * requesting user's permission props, and write tools are additionally gated by
- * the conversation's permission mode (see ChatAgentRunner).
+ * requesting user's permission props. A write tool makes the change the
+ * dashboard makes for the same action, with those props, and runs only for a
+ * signed-in person (executeTool; ToolboxWritesAsThePersonGuard holds every
+ * write to it); write tools are additionally gated by the conversation's
+ * permission mode (see ChatAgentRunner).
  */
 export default class AIToolbox {
   private static readonly tools: Array<ObservabilityTool> = [
@@ -109,6 +120,10 @@ export default class AIToolbox {
     QueryRumWebVitalsTool,
     QueryTelemetryResourcesTool,
     QueryResourceTelemetryTool,
+    // A container host's containers: the busiest, and the ones that stopped.
+    QueryContainersTool,
+    // A network device's optics, port by port, with their trend.
+    QueryNetworkTransceiversTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to
@@ -141,7 +156,16 @@ export default class AIToolbox {
     BaselineAnomalyTool,
     QueryTracesTool,
     GetTraceTool,
+    /*
+     * Continuous profiling: where a service spends its CPU time and memory,
+     * what got slower around a deploy, and one function's callers and
+     * callees.
+     */
+    GetProfileHotspotsTool,
+    CompareProfilesTool,
+    GetProfileFunctionTool,
     RecentChangesTool,
+    GetChangeDetailsTool,
     /*
      * Source code (read-only). Closes the loop from a telemetry signal to the
      * code that produced it — see CodeTools for the narrower trust posture.
@@ -266,27 +290,14 @@ export default class AIToolbox {
     }
 
     /*
-     * Fail closed on block permissions: if any of the tool's permissions is
-     * block-listed for this user, deny the tool outright. This is coarser
-     * than the label-scoped block filtering the model layer applies, but the
-     * raw-SQL aggregation tools have no model layer — this gate is their
-     * only authorization.
+     * Held the way every permission check reads it (CallerPermission), and
+     * failing closed on blocks: if any of the tool's permissions is
+     * block-listed for this user, labelled or not, deny the tool outright.
+     * This is coarser than the label-scoped block filtering the model layer
+     * applies, but the raw-SQL aggregation tools have no model layer — this
+     * gate is their only authorization.
      */
-    const blockedPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        ctx.props,
-        PermissionType.Block,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const userPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        ctx.props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
+    const held: HeldPermissions = CallerPermission.getHeld(ctx.props);
 
     const groups: Array<Array<Permission>> =
       args !== undefined && tool.getRequiredPermissionGroups
@@ -295,14 +306,9 @@ export default class AIToolbox {
     return (
       groups.length > 0 &&
       groups.every((group: Array<Permission>): boolean => {
-        return (
-          group.length > 0 &&
-          !PermissionHelper.doesPermissionsIntersect(
-            blockedPermissions,
-            group,
-          ) &&
-          PermissionHelper.doesPermissionsIntersect(userPermissions, group)
-        );
+        return HeldPermissionsUtil.holdsAnyOf(held, group, {
+          labelledBlocksRefuse: true,
+        });
       })
     );
   }
@@ -351,10 +357,33 @@ export default class AIToolbox {
       };
     }
 
+    /*
+     * A tool that changes the project writes as the person who asked for it,
+     * with their props: what they may not do in the dashboard, it does not
+     * do (every write tool makes the dashboard's own write). A run with no
+     * such person - a system run as OneUptime - has nobody to write as, so
+     * it changes nothing.
+     */
+    if (tool.isMutation && !this.isPersonContext(data.ctx)) {
+      if (this.hasPerson(data.ctx)) {
+        return {
+          success: false,
+          textForLlm: `Error: ${data.name} changes the project, and only runs inside the project the request is for. Answer with the data you already have.`,
+          errorMessage: `Permission denied for tool: ${data.name} (the request is not for this project)`,
+        };
+      }
+
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
+      };
+    }
+
     if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
       return {
         success: false,
-        textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.`,
+        textForLlm: this.describePermissionRefusal(tool, data.ctx, data.args),
         errorMessage: `Permission denied for tool: ${data.name}`,
       };
     }
@@ -380,6 +409,24 @@ export default class AIToolbox {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
+      /*
+       * A refusal - the person may not make this change, or the project's
+       * plan does not include it - is no mistake in the arguments: retrying
+       * cannot help, so the model is told to say what was refused, plainly.
+       */
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException
+      ) {
+        logger.debug(`AI toolbox tool ${data.name} was refused: ${message}`);
+
+        return {
+          success: false,
+          textForLlm: `Refused: ${data.name} was not allowed for the current user. ${message} Do not retry it. Tell the user plainly that it was not done, and why.`,
+          errorMessage: message,
+        };
+      }
+
       logger.error(`AI toolbox tool ${data.name} failed: ${message}`);
 
       return {
@@ -388,5 +435,78 @@ export default class AIToolbox {
         errorMessage: message,
       };
     }
+  }
+
+  /*
+   * Whether a tool runs for a signed-in person: a user, not OneUptime
+   * itself, whose request is for the project the tool acts in. Only then is
+   * there someone a change can be made as - in that project, with their
+   * grants there (WorkspaceMemberActions reads the project from the
+   * request's tenant).
+   */
+  public static isPersonContext(ctx: ToolContext): boolean {
+    return (
+      this.hasPerson(ctx) &&
+      Boolean(ctx.props.tenantId) &&
+      Boolean(ctx.projectId) &&
+      ctx.props.tenantId!.toString() === ctx.projectId.toString()
+    );
+  }
+
+  // Whether the request is a user's, not OneUptime's own.
+  private static hasPerson(ctx: ToolContext): boolean {
+    return Boolean(ctx.props.userId) && !ctx.props.isRoot;
+  }
+
+  /*
+   * What the model is told when the person may not use a tool, for the
+   * first list of permissions they fall short of: the permissions it needs,
+   * when they hold none of them - or, when they hold one, the block that
+   * takes it away (a team's block on any permission of the list refuses the
+   * tool, one limited to some labels included: hasPermissionForTool), so
+   * they are not sent after a role they already have.
+   */
+  private static describePermissionRefusal(
+    tool: ObservabilityTool,
+    ctx: ToolContext,
+    args: JSONObject,
+  ): string {
+    const refused: string = `Error: the current user does not have permission to use ${tool.name}. Answer with the data you already have`;
+
+    const held: HeldPermissions = CallerPermission.getHeld(ctx.props);
+    const groups: Array<Array<Permission>> = tool.getRequiredPermissionGroups
+      ? tool.getRequiredPermissionGroups(args)
+      : [tool.requiredPermissions];
+    const missing: Array<Permission> | undefined = groups.find(
+      (group: Array<Permission>): boolean => {
+        return !HeldPermissionsUtil.holdsAnyOf(held, group, {
+          labelledBlocksRefuse: true,
+        });
+      },
+    );
+
+    if (!missing || missing.length === 0) {
+      return `${refused}, and tell the user which permission is missing.`;
+    }
+
+    if (!HeldPermissionsUtil.isGrantedAny(held, missing)) {
+      return `${refused}, and tell the user which permission is missing. It needs one of these permissions: ${PermissionHelper.getPermissionTitles(missing).join(", ")}.`;
+    }
+
+    const blocked: Array<Permission> = missing.filter(
+      (permission: Permission): boolean => {
+        return (
+          held.blocked.includes(permission) ||
+          held.blockedForSomeLabels.includes(permission)
+        );
+      },
+    );
+    const blockedOnSomeLabelsOnly: boolean = blocked.every(
+      (permission: Permission): boolean => {
+        return !held.blocked.includes(permission);
+      },
+    );
+
+    return `${refused}, and tell the user why: they hold a permission it needs, but a team they belong to blocks ${PermissionHelper.getPermissionTitles(blocked).join(", ")}${blockedOnSomeLabelsOnly ? " on some labels" : ""}, and a block on any permission this tool accepts refuses it${blockedOnSomeLabelsOnly ? " everywhere" : ""}.`;
   }
 }

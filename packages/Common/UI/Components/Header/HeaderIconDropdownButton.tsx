@@ -128,7 +128,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
               keys={props.shortcut!}
               size={KeyboardShortcutSize.ExtraSmall}
               variant={KeyboardShortcutVariant.Ghost}
-              className="ml-0.5 hidden sm:inline-flex"
+              className="ml-0.5 max-sm:hidden sm:inline-flex"
             />
           )}
         </button>

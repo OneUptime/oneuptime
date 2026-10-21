@@ -1,10 +1,4 @@
-import {
-  DisableOnCallCalendarFeed,
-  Host,
-  HttpProtocol,
-  ProvisionSsl,
-  TrustedProxyHops,
-} from "../EnvironmentConfig";
+import { DisableOnCallCalendarFeed } from "../EnvironmentConfig";
 import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallCalendarFeedRateLimit from "../Middleware/OnCallCalendarFeedRateLimit";
@@ -13,6 +7,7 @@ import OnCallDutyPolicyScheduleCalendarFeedService from "../Services/OnCallDutyP
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import ProjectOnCallCalendarFeedService from "../Services/ProjectOnCallCalendarFeedService";
 import UserOnCallCalendarFeedService from "../Services/UserOnCallCalendarFeedService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -29,6 +24,7 @@ import OnCallCalendarFeedRenderer, {
   FeedRenderOutcome,
   FeedRenderRequest,
   FeedRenderStatus,
+  NOT_A_PROJECT_MEMBER_REASON,
   TOKEN_ROTATED_REASON,
   UserShiftsResult,
 } from "../Utils/OnCall/OnCallCalendarFeedRenderer";
@@ -36,17 +32,18 @@ import OnCallCalendarFeedUrls, {
   FeedUrls,
 } from "../Utils/OnCall/OnCallCalendarFeedUrls";
 import Response from "../Utils/Response";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CommonAPI from "./CommonAPI";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallCalendarFeed from "../../Models/DatabaseModels/UserOnCallCalendarFeed";
-import Protocol from "../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import { JSONObject } from "../../Types/JSON";
@@ -72,15 +69,34 @@ import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalen
  * add nothing, but a browser holding an expired session cookie would be
  * answered 401 before the token was even read, and an `apikey` header -- even
  * an empty one -- would hijack the request into API-key authentication. The
- * pipeline is, in order: kill switch -> scheme guard -> rate limit -> shape
- * guard -> token lookup (current hash, then the rotated-out hash inside its
- * grace) -> the renderer, which re-derives authorisation on every fetch
- * (a valid token is not authorisation) -> response -> bookkeeping.
+ * pipeline is, in order: kill switch -> rate limit -> shape guard -> token
+ * lookup (current hash, then the rotated-out hash inside its grace) -> the
+ * renderer, which re-derives authorisation on every fetch (a valid token is
+ * not authorisation) -> response -> bookkeeping.
+ *
+ * NO SCHEME REDIRECT. These routes answer on whatever scheme reached the app
+ * and never redirect. They used to send plain http to https (301) when
+ * HTTP_PROTOCOL=https, PROVISION_SSL=true and the forwarded scheme said http.
+ * The app cannot always see the scheme the CLIENT used. Back then every
+ * proxying location in Nginx/default.conf.template set
+ * `X-Forwarded-Proto $scheme`, the scheme of the hop INTO Nginx, and on any
+ * install whose TLS ends in front of Nginx -- a CDN, a load balancer,
+ * OneUptime Cloud itself -- that hop is http on every request.
+ * The 301 then pointed at the very URL the client had just asked for: an
+ * endless loop, so Google Calendar, Outlook and Apple Calendar all fetched
+ * nothing, and every feed URL the dashboard handed out was dead. Nginx now
+ * forwards `$visitor_scheme`, which is https when the proxy in front says so,
+ * but a proxy that says nothing still leaves it at http, so the loop would
+ * come back for those installs. Nothing needs the redirect: the links are
+ * built from HOST and HTTP_PROTOCOL (an https install hands out https links),
+ * and sending plain http to https is the edge proxy's job, the one hop that
+ * knows what the client spoke.
  *
  * ONE RESPONSE RULE, applied everywhere:
  *   unknown / malformed / expired token          -> 404, generic body
  *   disabled, rotated-out-in-grace, below plan,
- *   no eligible schedule                          -> 200, EMPTY VCALENDAR
+ *   no eligible schedule, a personal feed whose
+ *   owner is no longer a member of its project   -> 200, EMPTY VCALENDAR
  *   kill switch, or render cap with nothing cached -> 503 + Retry-After
  * The empty-calendar cases are 200 on purpose: a client that gets 404 keeps
  * showing the last copy it downloaded (or drops the subscription with an
@@ -186,6 +202,11 @@ export interface FeedStatus {
   urls: FeedUrls | null;
   hostWarning: string | null;
   protocolWarning: string | null;
+  /*
+   * HOST, when it is a private address that Google Calendar and Outlook on
+   * the web cannot reach (OnCallCalendarFeedUrls.getPrivateHost).
+   */
+  privateHost: string | null;
 }
 
 export interface MyShiftsResponse {
@@ -273,105 +294,6 @@ export function killSwitchMiddleware(
   }
 
   return next();
-}
-
-/*
- * The X-Forwarded-Proto entry written by OUR proxy, read the way ClientIp
- * reads X-Forwarded-For: counting in from the right by TRUSTED_PROXY_HOPS,
- * never the leftmost (caller-supplied) entry. With no trusted proxies there
- * is no trustworthy header at all, and undefined is returned.
- */
-export function resolveTrustedForwardedProto(
-  req: ExpressRequest,
-  options?: { trustedProxyHops?: number | undefined } | undefined,
-): string | undefined {
-  const configuredHops: number =
-    options?.trustedProxyHops === undefined
-      ? TrustedProxyHops
-      : options.trustedProxyHops;
-
-  const hops: number =
-    Number.isFinite(configuredHops) && configuredHops > 0
-      ? Math.floor(configuredHops)
-      : 0;
-
-  if (hops === 0) {
-    return undefined;
-  }
-
-  const header: string | Array<string> | undefined = req.headers?.[
-    "x-forwarded-proto"
-  ] as string | Array<string> | undefined;
-
-  if (header === undefined || header === null) {
-    return undefined;
-  }
-
-  const raw: string = Array.isArray(header) ? header.join(",") : header;
-
-  if (!raw.trim()) {
-    return undefined;
-  }
-
-  const entries: Array<string> = raw.split(",");
-
-  if (entries.length < hops) {
-    return undefined;
-  }
-
-  const entry: string | undefined = entries[entries.length - hops];
-
-  return entry ? entry.trim().toLowerCase() : undefined;
-}
-
-/*
- * Scheme guard. An https instance whose proxy reports the request arrived
- * over plain http answers 301 to the https URL, so a link pasted without the
- * "s" is corrected once instead of served in the clear forever. The target
- * is built from HOST, never from the request's own Host header (an open
- * redirect otherwise). Nginx only does this itself when billing is on.
- *
- * It only fires when OUR nginx terminates TLS (PROVISION_SSL=true). Every
- * proxying location in Nginx/default.conf.template sets
- * `X-Forwarded-Proto $scheme`, REPLACING whatever an outer proxy sent, so on
- * an install that terminates TLS on an external reverse proxy
- * (PROVISION_SSL=false with HTTP_PROTOCOL=https -- the topology
- * config.example.env documents) nginx always reports `http` even though the
- * client spoke https. Redirecting there would 301 to the very URL the client
- * just asked for: an endless loop, ERR_TOO_MANY_REDIRECTS in a browser and a
- * dead subscription in every calendar client. Serving the feed is the right
- * answer; the settings page still shows `protocolWarning` when the install
- * really is plain http.
- */
-export function schemeGuardMiddleware(
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): void {
-  if (HttpProtocol !== Protocol.HTTPS) {
-    return next();
-  }
-
-  if (!ProvisionSsl) {
-    return next();
-  }
-
-  const forwardedProto: string | undefined = resolveTrustedForwardedProto(req);
-
-  if (forwardedProto !== "http") {
-    return next();
-  }
-
-  const host: string = OnCallCalendarFeedUrls.normalizeHost(Host);
-
-  if (!host) {
-    return next();
-  }
-
-  const originalUrl: string = req.originalUrl || req.url || "/";
-
-  res.set("Cache-Control", "no-store");
-  res.redirect(301, `${Protocol.HTTPS}${host}${originalUrl}`);
 }
 
 // -- Helpers ----------------------------------------------------------------
@@ -756,6 +678,7 @@ export function buildAbsentFeedStatus(
     urls: null,
     hostWarning: OnCallCalendarFeedUrls.getHostWarning(),
     protocolWarning: OnCallCalendarFeedUrls.getProtocolWarning(),
+    privateHost: OnCallCalendarFeedUrls.getPrivateHost(),
   };
 }
 
@@ -851,6 +774,7 @@ export function buildFeedStatus(data: {
       : null,
     hostWarning: OnCallCalendarFeedUrls.getHostWarning(),
     protocolWarning: OnCallCalendarFeedUrls.getProtocolWarning(),
+    privateHost: OnCallCalendarFeedUrls.getPrivateHost(),
   };
 }
 
@@ -1233,10 +1157,22 @@ async function serveFeed(data: {
         projectName?: string | undefined;
       }
     | undefined;
+  /*
+   * Why this feed may show nothing at all, decided by the route before
+   * anything is rendered or read from a cache: an empty calendar saying so,
+   * whatever the feed's own state. Not a fetch worth bookkeeping.
+   */
+  refusalReason?: string | undefined;
 }): Promise<void> {
   let outcome: FeedRenderOutcome;
 
-  if (data.lookup.viaPreviousToken) {
+  if (data.refusalReason) {
+    outcome = OnCallCalendarFeedRenderer.buildEmptyOutcome({
+      kind: data.kind,
+      reason: data.refusalReason,
+      now: data.now,
+    });
+  } else if (data.lookup.viaPreviousToken) {
     outcome = OnCallCalendarFeedRenderer.buildEmptyOutcome({
       kind: data.kind,
       reason: TOKEN_ROTATED_REASON,
@@ -1282,7 +1218,11 @@ async function serveFeed(data: {
    * Unavailable outcome is skipped, and that one already returned above
    * without sending a body.
    */
-  if (!data.lookup.viaPreviousToken && data.lookup.feed.isEnabled !== false) {
+  if (
+    !data.refusalReason &&
+    !data.lookup.viaPreviousToken &&
+    data.lookup.feed.isEnabled !== false
+  ) {
     recordFetch({
       kind: data.kind,
       feed: data.lookup.feed,
@@ -1296,7 +1236,6 @@ async function serveFeed(data: {
 router.get(
   PERSONAL_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,
@@ -1331,12 +1270,27 @@ router.get(
         return sendNotFound(req, res);
       }
 
+      /*
+       * A personal feed shows its owner's shifts only while they are a
+       * member of the project, read from the database on every fetch. The
+       * leave cleanup turns a leaver's feed off as well, but this does not
+       * depend on it: somebody who has left gets an empty calendar - which
+       * makes a subscribed calendar clear its copy - before anything is
+       * rendered or read from a cache, so no body cached while they were a
+       * member can reach them. A failed read is an error, never a pass.
+       */
+      const isOwnerAMember: boolean = await ProjectMembership.isMember({
+        projectId: lookup.feed.projectId,
+        userId: lookup.feed.userId,
+      });
+
       return await serveFeed({
         kind: OnCallCalendarFeedKind.Personal,
         req,
         res,
         lookup,
         now,
+        refusalReason: isOwnerAMember ? undefined : NOT_A_PROJECT_MEMBER_REASON,
         request: {
           kind: OnCallCalendarFeedKind.Personal,
           feedId: lookup.feed.id,
@@ -1359,7 +1313,6 @@ router.get(
 router.get(
   SCHEDULE_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,
@@ -1416,7 +1369,6 @@ router.get(
 router.get(
   PROJECT_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,
@@ -1750,6 +1702,44 @@ router.get(
 );
 
 /*
+ * A SCHEDULE'S LINK IS CHANGED ONLY BY SOMEONE WHO MAY CHANGE IT. The update
+ * that stands for the change (publishing a link again, or rotating it) is
+ * made with the caller's props, so it is narrowed to the feeds they may
+ * change: the labels and the owners of the schedule. Someone who may read
+ * the schedule but not change its link - a grant limited to labels it does
+ * not carry, or scoped to Owned on a schedule another team owns - changes
+ * nothing, and is told so before anything else happens: the root rotation
+ * that follows would otherwise go ahead whatever the update reached. A link
+ * gone meanwhile (its schedule deleted) is answered as missing, as every
+ * write by id answers it (DatabaseService.getUnwrittenByIdError).
+ */
+export const SCHEDULE_FEED_CHANGE_REFUSAL: string =
+  "You do not have permission to change the shared link of this on-call schedule.";
+
+async function assertScheduleFeedChanged(data: {
+  changed: number;
+  feedId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  if (data.changed) {
+    return;
+  }
+
+  const refusal: Exception =
+    await OnCallDutyPolicyScheduleCalendarFeedService.getUnwrittenByIdError({
+      id: data.feedId,
+      props: data.props,
+      type: DatabaseRequestType.Update,
+    });
+
+  if (refusal instanceof NotFoundException) {
+    throw new NotFoundException("Calendar feed not found.");
+  }
+
+  throw new NotAuthorizedException(SCHEDULE_FEED_CHANGE_REFUSAL);
+}
+
+/*
  * Publish = a NON-root create with the caller's props, so DatabaseService
  * runs the schedule's Create permission check and the service hook mints the
  * token (anything the request carried is discarded). A feed that already
@@ -1779,9 +1769,14 @@ router.post(
         await findScheduleFeedAsCaller({ scheduleId, projectId, props });
 
       if (existing && existing.id) {
-        await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
-          query: { _id: existing.id, projectId },
-          data: { isEnabled: true },
+        await assertScheduleFeedChanged({
+          changed:
+            await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+              query: { _id: existing.id, projectId },
+              data: { isEnabled: true },
+              props,
+            }),
+          feedId: existing.id,
           props,
         });
       } else {
@@ -1877,9 +1872,13 @@ router.post(
         );
       }
 
-      await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
-        query: { _id: existing.id, projectId },
-        data: { isEnabled: existing.isEnabled !== false },
+      await assertScheduleFeedChanged({
+        changed: await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+          query: { _id: existing.id, projectId },
+          data: { isEnabled: existing.isEnabled !== false },
+          props,
+        }),
+        feedId: existing.id,
         props,
       });
 
@@ -2111,7 +2110,7 @@ router.post(
 /*
  * The caller's own upcoming shifts as JSON. Scoped to the tenant project
  * when a `tenantid` header is present (the dashboard), to every project the
- * caller is rostered in otherwise (the mobile app). Same resolver and
+ * caller is a member of otherwise (the mobile app). Same resolver and
  * schedule-level cache as the feeds; the per-process render cap applies, and
  * a capped request is a 503 the mobile app answers by falling back to its
  * roster-derived list.
@@ -2131,14 +2130,34 @@ router.get(
 
       const userId: ObjectID = requireUserId(props);
 
-      let projectIds: Array<ObjectID> | undefined = undefined;
+      let projectIds: Array<ObjectID> = [];
 
       if (props.tenantId) {
         projectIds = [CommonAPI.assertAuthenticatedProjectMember(props)];
+      } else {
+        /*
+         * Every project the caller is a member of now - never one they have
+         * left, even while a layer or an override of it still names them.
+         */
+        projectIds = await ProjectMembership.getMemberProjectIds({ userId });
       }
 
       const now: Date = OneUptimeDate.getCurrentDate();
       const window: { from: Date; to: Date } = readMyShiftsWindow(req, now);
+
+      if (projectIds.length === 0) {
+        const nothing: MyShiftsResponse = {
+          shifts: [],
+          truncated: false,
+          generatedAt: now.toISOString(),
+        };
+
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          nothing as unknown as JSONObject,
+        );
+      }
 
       /*
        * Session renders leave slots free for the public feeds. /my-shifts is

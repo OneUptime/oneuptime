@@ -118,6 +118,70 @@ JSON
 	exit "${NPM_AUDIT_FAIL_CODE:-1}"
 fi
 
+# The shape npm reports for React Native's metro: two packages that depend on
+# each other, with the advisory one step out of the cycle.
+if [[ -n "${NPM_AUDIT_CYCLE_SUFFIX:-}" && "$PWD" == *"$NPM_AUDIT_CYCLE_SUFFIX" ]]; then
+	cat <<'JSON'
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "fixture-leaf": {
+      "name": "fixture-leaf",
+      "severity": "high",
+      "isDirect": false,
+      "via": [{
+        "source": 12345,
+        "name": "fixture-leaf",
+        "dependency": "fixture-leaf",
+        "title": "Fixture vulnerability",
+        "url": "https://github.com/advisories/GHSA-aaaa-bbbb-cccc",
+        "severity": "high",
+        "range": "<2.0.0"
+      }],
+      "effects": ["fixture-cycle-a"],
+      "range": "<2.0.0",
+      "nodes": ["node_modules/fixture-leaf"],
+      "fixAvailable": false
+    },
+    "fixture-cycle-a": {
+      "name": "fixture-cycle-a",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["fixture-cycle-b", "fixture-leaf"],
+      "effects": ["fixture-cycle-b", "fixture-parent"],
+      "range": "*",
+      "nodes": ["node_modules/fixture-cycle-a"],
+      "fixAvailable": false
+    },
+    "fixture-cycle-b": {
+      "name": "fixture-cycle-b",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["fixture-cycle-a"],
+      "effects": ["fixture-cycle-a"],
+      "range": "*",
+      "nodes": ["node_modules/fixture-cycle-b"],
+      "fixAvailable": false
+    },
+    "fixture-parent": {
+      "name": "fixture-parent",
+      "severity": "high",
+      "isDirect": true,
+      "via": ["fixture-cycle-a"],
+      "effects": [],
+      "range": "*",
+      "nodes": ["node_modules/fixture-parent"],
+      "fixAvailable": false
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {"info": 0, "low": 0, "moderate": 0, "high": 4, "critical": 0, "total": 4}
+  }
+}
+JSON
+	exit "${NPM_AUDIT_FAIL_CODE:-1}"
+fi
+
 cat <<'JSON'
 {
   "auditReportVersion": 2,
@@ -269,6 +333,34 @@ status=0
 output="$(run_audit "$CASE_ROOT" env NPM_AUDIT_FAIL_SUFFIX="App")" || status=$?
 assert_eq 1 "$status" "does not apply an exception to another project"
 assert_contains "$output" "Dependency audit failed in 1 project(s): ./OtherApp" "identifies the unapproved project"
+
+# npm's dependency graph has cycles (metro -> metro-config -> metro). When the
+# only way out of a cycle is an excepted advisory, the exception covers the
+# cycle and its dependents; the same cycle with no exception is still blocked.
+CASE_ROOT="${WORK_DIR}/cyclic-exception"
+make_package "$CASE_ROOT" "MobileApp" true
+write_exceptions "$CASE_ROOT" <<'JSON'
+{
+  "MobileApp": [{
+    "advisory": "GHSA-aaaa-bbbb-cccc",
+    "expires": "2999-12-31",
+    "reason": "The fixture has no compatible fixed release."
+  }]
+}
+JSON
+CALL_LOG="${WORK_DIR}/cyclic-exception.calls"
+status=0
+output="$(run_audit "$CASE_ROOT" env NPM_AUDIT_CYCLE_SUFFIX="/MobileApp")" || status=$?
+assert_eq 0 "$status" "allows an excepted advisory reached through a dependency cycle"
+assert_contains "$output" "allowed 4 dependency node(s) through GHSA-AAAA-BBBB-CCCC" "approves the cycle and the package above it"
+
+CASE_ROOT="${WORK_DIR}/cyclic-unapproved"
+make_package "$CASE_ROOT" "MobileApp" true
+CALL_LOG="${WORK_DIR}/cyclic-unapproved.calls"
+status=0
+output="$(run_audit "$CASE_ROOT" env NPM_AUDIT_CYCLE_SUFFIX="/MobileApp")" || status=$?
+assert_eq 1 "$status" "still blocks a cycle whose advisory has no exception"
+assert_contains "$output" "fixture-cycle-b (high)" "names the packages of the blocked cycle"
 
 # Exceptions expire and stale exceptions fail once the advisory disappears,
 # forcing the repository to revisit rather than accumulate permanent ignores.

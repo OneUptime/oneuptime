@@ -17,6 +17,9 @@ provider "oneuptime" {
 # 1. File resource can be created with base64 content
 # 2. A second terraform plan succeeds without "Read Not Implemented" error
 # 3. The resource state is preserved correctly across plan/apply cycles
+# 4. An upload starts private: OneUptime decides is_public (read-only), and a
+#    file becomes public only when a record that shows it to everyone is
+#    published, so a configuration never sets it
 #
 # Bug scenario being tested:
 # - First apply: CREATE succeeds, file is uploaded
@@ -27,7 +30,6 @@ resource "oneuptime_file" "logo" {
   file_type = "image/png"
   # Small 1x1 red PNG pixel encoded as base64
   file      = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-  is_public = "true"
 }
 
 resource "oneuptime_file" "favicon" {
@@ -35,7 +37,6 @@ resource "oneuptime_file" "favicon" {
   file_type = "image/png"
   # Same small 1x1 PNG pixel
   file      = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-  is_public = "true"
 }
 
 output "logo_id" {
@@ -51,6 +52,11 @@ output "logo_name" {
 output "logo_file_type" {
   value       = oneuptime_file.logo.file_type
   description = "File type of the created logo file"
+}
+
+output "logo_is_public" {
+  value       = oneuptime_file.logo.is_public
+  description = "Whether OneUptime made the uploaded logo public (uploads start private)"
 }
 
 output "favicon_id" {

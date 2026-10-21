@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -17,18 +16,22 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -37,6 +40,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -44,6 +48,10 @@ import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -68,6 +76,7 @@ RunCron(
           scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
             name: true,
+            color: true,
             isScheduledState: true,
           },
         },
@@ -190,13 +199,14 @@ RunCron(
           continue; // skip if not visible on status page.
         }
 
-        // get status page resources from monitors.
-
-        let statusPageResources: Array<StatusPageResource> = [];
-
-        if (event.monitors && event.monitors.length > 0) {
-          statusPageResources = await StatusPageResourceService.findByMonitors({
-            monitors: event.monitors,
+        /*
+         * The resources the event affects on each status page: its monitors,
+         * and the monitor groups that hold them.
+         */
+        const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+          await AffectedStatusPageResources.findForMonitors({
+            monitors: event.monitors || [],
+            statusPages: event.statusPages || [],
             select: {
               _id: true,
               displayName: true,
@@ -207,23 +217,6 @@ RunCron(
               },
             },
           });
-        }
-
-        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-        for (const resource of statusPageResources) {
-          if (!resource.statusPageId) {
-            continue;
-          }
-
-          if (!statusPageToResources[resource.statusPageId?.toString()]) {
-            statusPageToResources[resource.statusPageId?.toString()] = [];
-          }
-
-          statusPageToResources[resource.statusPageId?.toString()]?.push(
-            resource,
-          );
-        }
 
         const statusPages: Array<StatusPage> =
           await StatusPageSubscriberService.getStatusPagesToSendNotification(
@@ -231,6 +224,28 @@ RunCron(
               return i.id!;
             }) || [],
           );
+
+        /*
+         * The pages of a blocked project send nothing, and are left out of
+         * the pages to send from. Say so, rather than that every page hides
+         * maintenance events or had no matching subscriber.
+         */
+        if (
+          statusPages.length === 0 &&
+          (await BlockedProjectStatusPages.isProjectBlocked(event.projectId))
+        ) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
+          continue;
+        }
 
         /*
          * {{scheduledMaintenanceDescription}} in the format each channel
@@ -254,6 +269,14 @@ RunCron(
             continue;
           }
 
+          // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+          if (!isSendingSubscriberNotifications(statuspage)) {
+            logger.debug(
+              `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+            );
+            continue;
+          }
+
           if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
             continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
           }
@@ -272,8 +295,6 @@ RunCron(
 
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
-          const statusPageIdString: string | null =
-            statuspage.id?.toString() || statuspage._id?.toString() || null;
 
           const scheduledEventDetailsUrl: string =
             event.id && statusPageURL
@@ -282,6 +303,11 @@ RunCron(
                   .toString()
               : statusPageURL;
 
+          /*
+           * The HTML list (escaped names, "<br/>" between groups) is only for
+           * email bodies; SMS, Slack, Teams, subjects and webhooks get the
+           * plain-text list.
+           */
           const resourcesAffectedString: string =
             StatusPageResourceUtil.getResourcesGroupedByGroupName(
               statusPageToResources[statuspage._id!] || [],
@@ -367,12 +393,20 @@ RunCron(
            * BlankTemplate), plain text for SMS and the email subject, and
            * the Markdown as written for Slack and Teams. Only the email body
            * gets the "<br/>"-joined resource list.
+           *
+           * The shared values above are plain text: the email body escapes
+           * them (compileEmailBodyTemplate), and only the values wrapped in
+           * SafeHtml go into it as HTML.
            */
-          const emailBodyTemplateVariables: Record<string, string> = {
-            ...templateVariables,
-            resourcesAffected: resourcesAffectedString,
-            scheduledMaintenanceDescription: descriptionHtml,
-          };
+          const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+            {
+              ...templateVariables,
+              resourcesAffected: SafeHtml.fromTrustedHtml(
+                resourcesAffectedString,
+              ),
+              scheduledMaintenanceDescription:
+                SafeHtml.fromTrustedHtml(descriptionHtml),
+            };
 
           const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
@@ -380,11 +414,26 @@ RunCron(
             scheduledMaintenanceDescription: descriptionPlainText,
           };
 
+          /*
+           * A custom Slack or Teams message is Markdown: every plain value -
+           * the title, the status page's name, the state, the resource list -
+           * is escaped, so it reads as typed and cannot become a link, an
+           * image, raw HTML or a chat mention wherever the template places
+           * it (SubscriberMarkdownTemplateValues). The addresses are
+           * OneUptime's own; the description stays the Markdown it was
+           * written as.
+           */
           const markdownTemplateVariables: Record<string, string> = {
-            ...templateVariables,
-            resourcesAffected: resourcesAffectedPlainText,
+            ...SubscriberMarkdownTemplateValues.fromPlainValues({
+              ...templateVariables,
+              resourcesAffected: resourcesAffectedPlainText,
+            }),
             scheduledMaintenanceDescription: event.description || "",
           };
+
+          // The state the default Slack and Teams messages name.
+          const stateName: string =
+            scheduledEventStateTimeline.scheduledMaintenanceState?.name || "";
 
           // Send email to Email subscribers.
 
@@ -411,11 +460,11 @@ RunCron(
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
                 URL.fromString(statusPageURL),
-                subscriber.id!,
+                subscriber,
               ).toString();
 
             // Add unsubscribeUrl to template variables for this subscriber
-            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
               {
                 ...emailBodyTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
@@ -482,15 +531,16 @@ RunCron(
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
+                markdownMessage =
+                  mdText`## Scheduled Maintenance State Update - ${statusPageName}
 
 **Event:** ${event.title || ""}
 
-**State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
+**State Changed To:** ${stateName}
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Slack notification with markdown conversion
@@ -513,11 +563,12 @@ RunCron(
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
+                markdownMessage =
+                  mdText`## Scheduled Maintenance State Update - ${statusPageName}
 **Event:** ${event.title || ""}
-**State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
-**Resources Affected:** ${resourcesAffectedString}
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+**State Changed To:** ${stateName}
+**Resources Affected:** ${resourcesAffectedPlainText}
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Teams notification
@@ -561,7 +612,7 @@ RunCron(
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const compiledBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );
@@ -607,13 +658,11 @@ RunCron(
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: scheduledEventDetailsUrl,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
+                      logoUrl: StatusPageEmailLogo.getLogoUrl({
+                        statusPage: statuspage,
+                        host: host,
+                        httpProtocol: httpProtocol,
+                      }),
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",
@@ -621,6 +670,11 @@ RunCron(
                       eventState:
                         scheduledEventStateTimeline.scheduledMaintenanceState
                           ?.name || "",
+                      ...EmailColorUtil.getTemplateVariables(
+                        "eventState",
+                        scheduledEventStateTimeline.scheduledMaintenanceState
+                          ?.color,
+                      ),
                       scheduledAt: scheduledAtString,
                       eventTitle: event.title || "",
                       unsubscribeUrl: unsubscribeUrl,
@@ -666,9 +720,14 @@ RunCron(
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
               displayColor: Blue500,
-              feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+              feedInfoInMarkdown:
+                mdText`📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
+              /*
+               * The feed only: a side effect of the state change the
+               * channel was told of already.
+               */
               workspaceNotification: {
-                sendWorkspaceNotification: true,
+                sendWorkspaceNotification: false,
               },
             },
           );
@@ -691,9 +750,10 @@ RunCron(
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
               displayColor: Yellow500,
-              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+              feedInfoInMarkdown:
+                mdText`📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
               moreInformationInMarkdown:
-                "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+                "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
               workspaceNotification: {
                 sendWorkspaceNotification: false,
               },

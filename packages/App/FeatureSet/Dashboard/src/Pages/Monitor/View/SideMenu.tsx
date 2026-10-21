@@ -11,6 +11,9 @@ import SideMenu, {
   SideMenuItemProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import MonitorModel from "Common/Models/DatabaseModels/Monitor";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -65,7 +68,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         { modelId: props.modelId },
       ),
     },
-    icon: IconProp.List,
+    icon: IconProp.Timeline,
   });
 
   overviewItems.push({
@@ -160,21 +163,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * One page for how often the monitor is checked, the probes that check it
+   * and how many of them must agree, as Create Monitor asks for them on one
+   * step. Only monitors that probes check have one.
+   */
   if (isProbeableMonitor) {
     configurationItems.push({
       link: {
-        title: "Interval",
-        to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
-          { modelId: props.modelId },
-        ),
-      },
-      icon: IconProp.Clock,
-    });
-
-    configurationItems.push({
-      link: {
-        title: "Probes",
+        title: "Probes & Interval",
         to: RouteUtil.populateRouteParams(
           RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
           { modelId: props.modelId },
@@ -264,7 +261,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  // Only add Configuration section if there are items
+  /*
+   * Only add Configuration section if there are items. It starts folded down
+   * to its title, like every rarely used kind of section (by its title: see
+   * SideMenuSectionState.ts): a monitor's criteria and probes are set up
+   * once and tuned now and then, while its overview and activity above are
+   * what this menu is opened for. It opens by itself on its own pages.
+   */
   if (configurationItems.length > 0) {
     sections.push({
       title: "Configuration",
@@ -275,6 +278,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   sections.push({
     title: "Advanced",
     items: advancedItems,
+  });
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: MonitorModel,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
   });
 
   return <SideMenu sections={sections} />;

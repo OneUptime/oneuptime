@@ -70,6 +70,10 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 );
 
+const PROJECT_ID: ObjectID = new ObjectID(
+  "ffffffff-ffff-4fff-8fff-ffffffffffff",
+);
+
 const CORPORATE: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
@@ -457,7 +461,10 @@ function newestRows(
 /*
  * Wires up every read getReportByStatusPage makes. Incident counts come back as
  * "one incident per monitor asked about", which makes it visible whether a group
- * asked about its whole subtree.
+ * asked about its whole subtree. Each count is asked of the database in two
+ * halves (IncidentStatusPageScope.countIncidentsForStatusPage): incidents not
+ * limited to any status page, which is where the stub puts them, and incidents
+ * limited to this page, of which it has none.
  *
  * The day aggregate and the merged downtime are built from the WHOLE
  * timeline, as the real ones are. The row fetch returns the whole timeline
@@ -472,6 +479,9 @@ function mockReads(data: {
   monitorsInGroup?: Dictionary<Array<ObjectID>> | undefined;
 }): void {
   const statusPage: StatusPage = new StatusPage();
+  statusPage._id = STATUS_PAGE_ID.toString();
+  statusPage.projectId = PROJECT_ID;
+  statusPage.onlyShowScopedIncidents = false;
   statusPage.downtimeMonitorStatuses = [OFFLINE];
 
   jest
@@ -519,6 +529,10 @@ function mockReads(data: {
   jest
     .spyOn(IncidentService, "countBy")
     .mockImplementation(async (findBy: any) => {
+      if (findBy?.query?.isScopedToStatusPages !== false) {
+        return new PositiveNumber(0) as never;
+      }
+
       const monitorIds: Array<ObjectID> = (findBy?.query?.monitors ||
         []) as Array<ObjectID>;
       return new PositiveNumber(monitorIds.length) as never;
@@ -710,11 +724,13 @@ describe("StatusPageService.getReportByStatusPage", () => {
       });
 
       /*
-       * One for the page total, one per resource, and ONE for all four levels
-       * of the hierarchy - Corporate / Region / Market / Unit all roll up the
-       * same two monitors, so they must not issue four identical queries.
+       * One count for the page total, one per resource, and ONE for all four
+       * levels of the hierarchy - Corporate / Region / Market / Unit all roll
+       * up the same two monitors, so they must not issue four identical
+       * queries. Each count is two queries: the unlimited incidents and the
+       * ones limited to this page.
        */
-      expect(countBy).toHaveBeenCalledTimes(5);
+      expect(countBy).toHaveBeenCalledTimes(5 * 2);
     });
 
     test("merges downtime once per distinct set of monitors", async () => {

@@ -4,14 +4,13 @@ import {
   SERVICE_PROVIDER_LOGIN_OIDC_URL,
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
-import { isSsoUnavailableStatusCode } from "../Utils/SsoAvailability";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import { DASHBOARD_URL, IDENTITY_URL } from "Common/UI/Config";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
@@ -28,36 +27,23 @@ import Email from "Common/Types/Email";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
-
-/*
- * True when every one of the SSO lookups was refused the way a server without
- * SSO login refuses it (see isSsoUnavailableStatusCode). A single refusal is
- * not enough: the other lookup may still have found providers.
- */
-const areAllLookupsUnavailable: (
-  results: Array<HTTPResponse<JSONArray> | HTTPErrorResponse>,
-) => boolean = (
-  results: Array<HTTPResponse<JSONArray> | HTTPErrorResponse>,
-): boolean => {
-  return (
-    results.length > 0 &&
-    results.every(
-      (result: HTTPResponse<JSONArray> | HTTPErrorResponse): boolean => {
-        return (
-          result instanceof HTTPErrorResponse &&
-          isSsoUnavailableStatusCode(result.statusCode)
-        );
-      },
-    )
-  );
-};
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts, not on every render, where it would repeat the
+   * navigation and abort the one already under way.
+   */
+  useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -69,15 +55,6 @@ const LoginPage: () => JSX.Element = () => {
   const [globalOidcConfigs, setGlobalOidcConfigs] = useState<Array<GlobalOIDC>>(
     [],
   );
-  /*
-   * SSO login is part of the OneUptime Enterprise Edition and runs only while
-   * its license is active. A Community Edition server does not serve the SSO
-   * routes at all (404), and an Enterprise Edition server whose license has
-   * lapsed (or does not include SSO) refuses them (402). Instead of a
-   * confusing "no SSO configuration found" this page explains why, in words
-   * that fit both servers, and points back to email and password sign-in.
-   */
-  const [isSsoUnavailable, setIsSsoUnavailable] = useState<boolean>(false);
 
   /*
    * Global SSO / OIDC providers are NOT email-bound, so they are discovered up
@@ -100,16 +77,6 @@ const LoginPage: () => JSX.Element = () => {
           return e;
         }),
       ]);
-
-      if (
-        areAllLookupsUnavailable([
-          samlResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
-          oidcResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
-        ])
-      ) {
-        setIsSsoUnavailable(true);
-        return;
-      }
 
       if (
         !(samlResult instanceof HTTPErrorResponse) &&
@@ -173,17 +140,6 @@ const LoginPage: () => JSX.Element = () => {
           return e;
         }),
       ]);
-
-      if (
-        areAllLookupsUnavailable([
-          samlResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
-          oidcResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
-        ])
-      ) {
-        setIsSsoUnavailable(true);
-        setIsLoading(false);
-        return;
-      }
 
       let nextSaml: Array<ProjectSSO> = [];
       let nextOidc: Array<ProjectOIDC> = [];
@@ -313,44 +269,6 @@ const LoginPage: () => JSX.Element = () => {
     return <PageLoader isVisible={true} />;
   }
 
-  if (isSsoUnavailable) {
-    return (
-      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md mx-auto">
-          <img
-            className="mx-auto h-10 w-auto sm:h-12"
-            src={OneUptimeLogo}
-            alt="OneUptime"
-          />
-          <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-            {t("sso.title")}
-          </h2>
-        </div>
-
-        <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
-          <div
-            className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10"
-            data-testid="sso-enterprise-edition-required"
-          >
-            <p className="text-center text-sm text-gray-600">
-              {t("sso.enterpriseEditionRequired", {
-                defaultValue:
-                  "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license. Sign in with your email and password instead.",
-              })}
-            </p>
-            <div className="actions text-center mt-4 hover:underline fw-semibold">
-              <Link to={new Route("/accounts/login")}>
-                <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                  {t("sso.useUsernameInstead")}
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const hasAnyConfigs: boolean =
     samlConfigs.length > 0 || oidcConfigs.length > 0;
 
@@ -394,11 +312,7 @@ const LoginPage: () => JSX.Element = () => {
       <div className="w-full max-w-md mx-auto px-4 sm:px-0">
         <div className="flex min-h-full flex-col justify-center py-8 sm:py-12">
           <div className="w-full">
-            <img
-              className="mx-auto h-10 w-auto sm:h-12"
-              src={OneUptimeLogo}
-              alt="OneUptime"
-            />
+            <ProductLogo />
             <h2 className="mt-6 sm:mt-10 text-center text-lg sm:text-xl tracking-tight text-gray-900">
               {t("sso.selectProjectTitle")}
             </h2>
@@ -437,11 +351,7 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("sso.title")}
         </h2>
@@ -461,16 +371,10 @@ const LoginPage: () => JSX.Element = () => {
                 renderGlobalSamlList(globalSamlConfigs)}
               {globalOidcConfigs.length > 0 &&
                 renderGlobalOidcList(globalOidcConfigs)}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">
-                    {t("sso.globalProvidersDivider")}
-                  </span>
-                </div>
-              </div>
+              <LabelledDivider
+                label={t("sso.globalProvidersDivider")}
+                dataTestId="global-providers-divider"
+              />
             </div>
           )}
           <BasicForm
@@ -497,14 +401,26 @@ const LoginPage: () => JSX.Element = () => {
               await fetchSsoConfigs(data["email"] as Email);
             }}
             footer={
-              <div className="actions text-center mt-4 hover:underline fw-semibold">
-                <div>
-                  <Link to={new Route("/accounts/login")}>
-                    <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                      {t("sso.useUsernameInstead")}
-                    </div>
-                  </Link>
-                </div>
+              /*
+               * The way back to the password form, drawn as the password
+               * page draws its other ways in: an outlined button under "or",
+               * as wide and as tall as this page's own button
+               * (SignInOptionStyle). It was a small text link, the mirror of
+               * the one that brought the visitor here.
+               */
+              <div data-testid="sign-in-options">
+                <LabelledDivider
+                  label={t("common.or")}
+                  className="my-5"
+                  dataTestId="sign-in-options-divider"
+                />
+                <SignInOptionLink
+                  to={new Route("/accounts/login")}
+                  id="password-login"
+                  dataTestId="password-login"
+                  icon={IconProp.Lock}
+                  title={t("sso.signInWithPassword")}
+                />
               </div>
             }
           />

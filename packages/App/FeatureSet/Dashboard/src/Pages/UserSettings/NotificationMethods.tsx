@@ -1,14 +1,5 @@
-import UserCall from "../../Components/NotificationMethods/Call";
-import UserEmail from "../../Components/NotificationMethods/Email";
-import UserMicrosoftTeams from "../../Components/NotificationMethods/MicrosoftTeams";
-import UserPush from "../../Components/NotificationMethods/Push";
-import UserSMS from "../../Components/NotificationMethods/SMS";
-import UserSlack from "../../Components/NotificationMethods/Slack";
-import UserTelegram from "../../Components/NotificationMethods/Telegram";
-import UserWebhook from "../../Components/NotificationMethods/Webhook";
-import UserWhatsApp from "../../Components/NotificationMethods/WhatsApp";
+import NotificationMethodTabs from "../../Components/NotificationMethods/NotificationMethodTabs";
 import PageComponentProps from "../PageComponentProps";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -30,40 +21,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
-      <Tabs
-        tabs={[
-          {
-            name: "Direct Contact",
-            children: (
-              <div className="space-y-4">
-                <UserEmail />
-                <UserSMS />
-                <UserCall />
-                <UserWhatsApp />
-                <UserTelegram />
-              </div>
-            ),
-          },
-          {
-            name: "Workspace Apps",
-            children: (
-              <div className="space-y-4">
-                <UserSlack />
-                <UserMicrosoftTeams />
-              </div>
-            ),
-          },
-          {
-            name: "Push Notifications",
-            children: <UserPush />,
-          },
-          {
-            name: "Webhooks",
-            children: <UserWebhook />,
-          },
-        ]}
-        onTabChange={() => {}}
-      />
+      <NotificationMethodTabs />
     </Fragment>
   );
 };

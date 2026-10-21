@@ -11,7 +11,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import CephResource from "Common/Models/DatabaseModels/CephResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -40,11 +40,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Pool", widthPct: "26%" },
-  { label: "Stored", widthPct: "14%" },
+  { label: "Pool", widthPct: "26%", sortKey: "name" },
+  { label: "Stored", widthPct: "14%", sortKey: "stored" },
   { label: "Used", widthPct: "28%" },
-  { label: "Objects", widthPct: "14%" },
-  { label: "Cluster", widthPct: "18%" },
+  { label: "Objects", widthPct: "14%", sortKey: "objects" },
+  { label: "Cluster", widthPct: "18%", sortKey: "cluster" },
 ];
 
 const POOL_LEGEND: Array<HoneycombLegendItem> = [
@@ -277,7 +277,8 @@ const DashboardCephPoolListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.CephPoolList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

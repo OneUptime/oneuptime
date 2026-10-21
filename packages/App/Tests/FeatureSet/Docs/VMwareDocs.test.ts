@@ -1,4 +1,6 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { diagramSkeleton } from "./DocsTranslationChecks";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -9,6 +11,22 @@ import {
   getAllVMwareMetrics,
 } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { VMwareVCenterNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
+import {
+  VMWARE_AGENT_NATIVE_ENV_FILE,
+  VMWARE_AGENT_NATIVE_SELF_METRICS_URL,
+  VMWARE_AGENT_NATIVE_UNIT_FILE,
+  VMWARE_NATIVE_ENV_FILE_COMMAND,
+  VMWARE_NATIVE_LOGS_COMMAND,
+  VMWARE_NATIVE_START_COMMAND,
+  VMWARE_NATIVE_STATUS_COMMAND,
+  VMWARE_NATIVE_UNINSTALL_COMMAND,
+  getVMwareNativeEnvFile,
+  getVMwareNativeInstallCommand,
+  getVMwareNativeUpgradeCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_AGENT_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { parseSystemdEnvironmentFile } from "Common/Tests/App/Dashboard/SystemdEnvironmentFile";
+import { detailsBody, tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -24,6 +42,12 @@ import path from "path";
  * points at a page that was renamed. Each test reads the source of truth —
  * the catalog, the template registry, the compose file, the nav — and checks
  * the shipped pages still tell the same story.
+ *
+ * The install without Docker is held to the in-app setup guide: every
+ * command the page gives for it is the guide's own (so the guide's tests,
+ * and the end-to-end run of Tests/Ops/vmware-agent-native-install.sh over
+ * this very page, cover what readers copy), pinned to the collector release
+ * the agent's files pin.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -45,17 +69,55 @@ const MONITOR_PAGE: string = "monitor/vmware-monitor";
 const OWNED_PAGES: ReadonlyArray<string> = [TELEMETRY_PAGE, MONITOR_PAGE];
 
 /*
- * Every language directory that ships the VMware pages. `fa` is the only
- * translated corpus (every other language falls back to English per page at
- * request time), so a new translation only has to be added here.
+ * Every language besides English: both pages ship in each of them (the
+ * agent page since docs task 22).
  */
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
+const MONITOR_PAGE_LANGUAGES: ReadonlyArray<string> =
+  SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+    return language !== "en";
+  });
+
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
+
+/*
+ * The languages whose custom-code monitor and Terraform monitor-steps pages
+ * name the vCenter attribute and escape hatch: the ones those pages are
+ * translated into, every language since docs task 30a.
+ */
+const ESCAPE_HATCH_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
+
+/*
+ * The install without Docker: the "systemd" tab of "Install and start the
+ * agent", the first systemd tab on the page.
+ */
+function installWithoutDocker(markdown: string): string {
+  return tabPanel(markdown, "systemd");
+}
+
+interface LanguagePage {
+  language: string;
+  page: string;
+}
+
+/* Every translated page: the agent page in `fa`, the monitor page in every language. */
+const TRANSLATED_PAGES: ReadonlyArray<LanguagePage> = [
+  ...TRANSLATED_LANGUAGES.map((language: string): LanguagePage => {
+    return { language, page: TELEMETRY_PAGE };
+  }),
+  ...MONITOR_PAGE_LANGUAGES.map((language: string): LanguagePage => {
+    return { language, page: MONITOR_PAGE };
+  }),
+];
 
 const FENCE_LINE: RegExp = /^\s*```/;
+/* The opening fence of a mermaid diagram. */
+const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
 /* A table row whose first cell is a backticked vcenter.* metric name. */
 const METRIC_ROW: RegExp = /^\|\s*`(vcenter\.[a-z_.]+)`\s*\|/;
 /* Bare environment variable names in the compose file's environment block. */
 const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=/;
+// A service of docker-compose.yml: a key two spaces in, under services:.
+const COMPOSE_SERVICE_LINE: RegExp = /^ {2}([a-z0-9][a-z0-9-]*):\s*$/;
 
 function pageFile(language: string, relative: string): string {
   return path.join(CONTENT_DIR, language, `${relative}.md`);
@@ -105,6 +167,11 @@ function metricTableRows(markdown: string): Map<string, string> {
   return rows;
 }
 
+/* A fenced bash block holding exactly the given commands. */
+function bashBlock(commands: string): string {
+  return "```bash\n" + commands + "\n```";
+}
+
 /* Every backticked identifier in a page, in order, duplicates kept. */
 function backtickedIdentifiers(markdown: string): Array<string> {
   return Array.from(markdown.matchAll(/`([^`\n]+)`/g)).map(
@@ -114,18 +181,31 @@ function backtickedIdentifiers(markdown: string): Array<string> {
   );
 }
 
-/* Fenced code blocks of a page, each as its full text between the fences. */
-function codeBlocks(markdown: string): Array<string> {
+/*
+ * Fenced code blocks of a page, each as its full text between the fences.
+ * With diagrams by skeleton, a mermaid block is its skeleton instead: a
+ * translation draws its diagram in its own language, so only the diagram's
+ * node ids, shapes, arrows and line order must be the English ones.
+ */
+function codeBlocks(
+  markdown: string,
+  options: { diagramsBySkeleton: boolean } = { diagramsBySkeleton: false },
+): Array<string> {
   const blocks: Array<string> = [];
   let current: Array<string> | null = null;
+  let diagram: boolean = false;
 
   for (const line of markdown.split("\n")) {
     if (FENCE_LINE.test(line)) {
       if (current) {
-        blocks.push(current.join("\n"));
+        const code: string = current.join("\n");
+        blocks.push(
+          diagram && options.diagramsBySkeleton ? diagramSkeleton(code) : code,
+        );
         current = null;
       } else {
         current = [];
+        diagram = MERMAID_FENCE.test(line);
       }
       continue;
     }
@@ -138,7 +218,11 @@ function codeBlocks(markdown: string): Array<string> {
   return blocks;
 }
 
-/* Environment variables the agent's docker-compose.yml passes to the collector. */
+/*
+ * Environment variables the agent's docker-compose.yml passes to the
+ * collector: its oneuptime-vmware-agent service only (the VMware AI agent
+ * beside it reads the same .env, and is documented in its own section).
+ */
 function composeEnvironmentVariables(): Array<string> {
   const compose: string = fs.readFileSync(
     path.join(AGENT_DIR, "docker-compose.yml"),
@@ -146,9 +230,19 @@ function composeEnvironmentVariables(): Array<string> {
   );
 
   const names: Array<string> = [];
+  let inCollector: boolean = false;
 
   for (const line of compose.split("\n")) {
-    const match: RegExpMatchArray | null = line.match(COMPOSE_ENV_LINE);
+    const service: RegExpMatchArray | null = line.match(COMPOSE_SERVICE_LINE);
+
+    if (service) {
+      inCollector = service[1] === "oneuptime-vmware-agent";
+      continue;
+    }
+
+    const match: RegExpMatchArray | null = inCollector
+      ? line.match(COMPOSE_ENV_LINE)
+      : null;
 
     if (match) {
       names.push(match[1] as string);
@@ -184,9 +278,7 @@ describe("VMware docs", (): void => {
     });
 
     it("open with the titles the nav uses", (): void => {
-      expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe(
-        "# OneUptime VMware Agent",
-      );
+      expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe("# VMware Agent");
       expect(readPage(MONITOR_PAGE).split("\n")[0]).toBe("# VMware Monitor");
     });
 
@@ -296,8 +388,8 @@ describe("VMware docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the VMware monitor page in the Monitor group, right after the other infrastructure monitors", (): void => {
-      const urls: Array<string> = navGroup("Monitor").links.map(
+    it("lists the VMware monitor page in the Infrastructure Monitors group, right after the other infrastructure monitors", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Monitors").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -310,8 +402,8 @@ describe("VMware docs", (): void => {
       expect(urls.indexOf("/docs/monitor/proxmox-monitor")).toBeLessThan(index);
     });
 
-    it("lists the VMware agent page in the Telemetry group, next to the other agents", (): void => {
-      const urls: Array<string> = navGroup("Telemetry").links.map(
+    it("lists the VMware agent page in the Infrastructure Agents group, next to the other agents", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Agents").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -326,8 +418,8 @@ describe("VMware docs", (): void => {
 
     it("uses the product's titles", (): void => {
       const titles: Array<string> = [
-        ...navGroup("Monitor").links,
-        ...navGroup("Telemetry").links,
+        ...navGroup("Infrastructure Monitors").links,
+        ...navGroup("Infrastructure Agents").links,
       ].map((link: NavLink): string => {
         return link.title;
       });
@@ -337,10 +429,10 @@ describe("VMware docs", (): void => {
       );
     });
 
-    it("resolves every Monitor- and Telemetry-group URL to an English page on disk", (): void => {
+    it("resolves every Infrastructure Monitors- and Infrastructure Agents-group URL to an English page on disk", (): void => {
       for (const link of [
-        ...navGroup("Monitor").links,
-        ...navGroup("Telemetry").links,
+        ...navGroup("Infrastructure Monitors").links,
+        ...navGroup("Infrastructure Agents").links,
       ]) {
         expect({
           url: link.url,
@@ -560,7 +652,7 @@ describe("VMware docs", (): void => {
     it("documents every environment variable the agent's docker-compose.yml passes, and nothing else", (): void => {
       const table: string = section(
         readPage(TELEMETRY_PAGE),
-        "## Environment Variables",
+        "## Environment variables",
       );
       const documented: Array<string> = table
         .split("\n")
@@ -578,9 +670,10 @@ describe("VMware docs", (): void => {
     });
 
     it("uses the same .env example the compose quick start and the E2E spec expect", (): void => {
-      const quickStart: string = section(
+      // The Docker Compose tab of "Install and start the agent".
+      const quickStart: string = tabPanel(
         readPage(TELEMETRY_PAGE),
-        "## Alternative — Docker Compose",
+        "Docker Compose",
       );
 
       for (const name of composeEnvironmentVariables()) {
@@ -612,7 +705,7 @@ describe("VMware docs", (): void => {
     it("lists the identity resource attributes and the collected metric families", (): void => {
       const collected: string = section(
         readPage(TELEMETRY_PAGE),
-        "## What Gets Collected",
+        "## What the agent collects",
       );
 
       for (const attribute of [
@@ -649,9 +742,9 @@ describe("VMware docs", (): void => {
     it("explains the VM power-state inference and the syslog option", (): void => {
       const markdown: string = readPage(TELEMETRY_PAGE);
 
-      expect(markdown).toContain("### VM Power State");
+      expect(markdown).toContain("### VM power state");
       expect(markdown).toContain("send_batch_max_size");
-      expect(markdown).toContain("## Optional — Ship ESXi Syslog");
+      expect(markdown).toContain("## Optional — Ship ESXi syslog");
       expect(markdown).toContain("Syslog.global.logHost");
       expect(markdown).toContain("5514");
     });
@@ -716,6 +809,163 @@ describe("VMware docs", (): void => {
       );
     });
 
+    it("documents the install without Docker with the setup guide's own commands, in order", (): void => {
+      const part: string = installWithoutDocker(readPage(TELEMETRY_PAGE));
+      const blocks: Array<string> = [
+        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
+        bashBlock(
+          getVMwareNativeEnvFile({
+            oneuptimeUrl: "YOUR_ONEUPTIME_URL",
+            apiKey: "YOUR_TELEMETRY_INGESTION_TOKEN",
+            vcenterName: "my-vcenter",
+          }),
+        ),
+        bashBlock(VMWARE_NATIVE_START_COMMAND),
+      ];
+      let previous: number = -1;
+      for (const block of blocks) {
+        const at: number = part.indexOf(block);
+        expect({ block, found: at > previous }).toEqual({
+          block,
+          found: true,
+        });
+        previous = at;
+      }
+      expect(codeBlocks(part)).toHaveLength(blocks.length);
+    });
+
+    it("installs without Docker the collector release the agent's files pin", (): void => {
+      const compose: string = fs.readFileSync(
+        path.join(AGENT_DIR, "docker-compose.yml"),
+        "utf8",
+      );
+      const pin: string = (
+        compose.match(
+          /image: otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/,
+        ) as RegExpMatchArray
+      )[1] as string;
+      expect(pin).toBe(VMWARE_AGENT_VERSION);
+
+      // The install, and the upgrade again: both download the pin.
+      const markdown: string = readPage(TELEMETRY_PAGE);
+      const pins: Array<string> = Array.from(
+        markdown.matchAll(/^VERSION=(\S+)\s/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+      expect(pins).toEqual([pin, pin]);
+    });
+
+    it("the .env of the install without Docker sets exactly what the collector reads, as systemd reads it", (): void => {
+      const part: string = installWithoutDocker(readPage(TELEMETRY_PAGE));
+      const env: string = codeBlocks(part).find((block: string): boolean => {
+        return block.startsWith("ONEUPTIME_URL=");
+      }) as string;
+      // As systemd 255 and systemd 239 (RHEL 8) read it.
+      for (const legacy of [false, true]) {
+        const variables: Map<string, string> = parseSystemdEnvironmentFile(
+          env,
+          { legacy },
+        );
+
+        expect(Array.from(variables.keys()).sort()).toEqual(
+          composeEnvironmentVariables().sort(),
+        );
+        expect(variables.get("VCENTER_USERNAME")).toBe(
+          "oneuptime@vsphere.local",
+        );
+        expect(variables.get("VCENTER_PASSWORD")).toBe("a-strong-password");
+      }
+      expect(env).toContain('VCENTER_PASSWORD="a-strong-password"');
+      expect(part).toContain('`DOMAIN\\user` is `"DOMAIN\\\\user"`');
+      expect(part).toContain(
+        "older ones (RHEL 8's, for one) drop a backslash even inside single quotes",
+      );
+    });
+
+    it("links the systemd unit the agent ships, and upgrades and uninstalls without Docker as the guide does", (): void => {
+      const markdown: string = readPage(TELEMETRY_PAGE);
+
+      expect(markdown).toContain(
+        `(https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/${VMWARE_AGENT_NATIVE_UNIT_FILE})`,
+      );
+      expect(
+        fs.existsSync(path.join(AGENT_DIR, VMWARE_AGENT_NATIVE_UNIT_FILE)),
+      ).toBe(true);
+      expect(section(markdown, "## Upgrading the agent")).toContain(
+        bashBlock(getVMwareNativeUpgradeCommand()),
+      );
+      expect(section(markdown, "## Uninstalling the agent")).toContain(
+        bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
+      );
+      expect(section(markdown, "### Verify the installation")).toContain(
+        bashBlock(
+          `${VMWARE_NATIVE_STATUS_COMMAND}\n${VMWARE_NATIVE_LOGS_COMMAND}`,
+        ),
+      );
+    });
+
+    it("troubleshoots the install without Docker with what it has: the journal, curl and the collector's own counters", (): void => {
+      const part: string = detailsBody(
+        readPage(TELEMETRY_PAGE),
+        "Installed without Docker",
+      );
+
+      // troubleshoot.sh probes from the agent container, so it cannot help here.
+      expect(part).toContain("The diagnostic script needs Docker.");
+      expect(part).not.toContain("bash troubleshoot.sh");
+      expect(part).toContain(
+        `curl -s ${VMWARE_AGENT_NATIVE_SELF_METRICS_URL} | grep -E`,
+      );
+      expect(part).toContain("`Failed with result 'resources'`");
+      expect(part).toContain(`\`${VMWARE_AGENT_NATIVE_ENV_FILE}\``);
+      expect(part).toContain("`update-ca-certificates`");
+      expect(part).toContain("`update-ca-trust`");
+    });
+
+    it("says the install without Docker has no AI agent, and never promises one", (): void => {
+      const markdown: string = readPage(TELEMETRY_PAGE);
+      const part: string = installWithoutDocker(markdown);
+
+      expect(part).toContain(
+        "the [AI agent](#ai-agent) ships only as a container image",
+      );
+      expect(part).not.toContain("AI investigations are on");
+      expect(section(markdown, "## AI agent")).toContain(
+        "`docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs)",
+      );
+    });
+
+    it("keeps the agent README's install without Docker the docs' own", (): void => {
+      const readme: string = fs.readFileSync(
+        path.join(AGENT_DIR, "README.md"),
+        "utf8",
+      );
+
+      for (const block of [
+        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
+        bashBlock(
+          getVMwareNativeEnvFile({
+            oneuptimeUrl: "https://oneuptime.com",
+            apiKey: "your-telemetry-ingestion-key",
+            vcenterName: "prod-vcenter",
+          }),
+        ),
+        bashBlock(VMWARE_NATIVE_START_COMMAND),
+        bashBlock(getVMwareNativeUpgradeCommand()),
+        bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
+      ]) {
+        expect({ block, inReadme: readme.includes(block) }).toEqual({
+          block,
+          inReadme: true,
+        });
+      }
+      expect(readme).toContain("## Quick Start — Without Docker");
+      expect(readme).toContain("### Installed without Docker");
+    });
+
     it("matches the agent config it documents", (): void => {
       const config: string = fs.readFileSync(
         path.join(AGENT_DIR, "otel-collector-config.yaml"),
@@ -745,86 +995,81 @@ describe("VMware docs", (): void => {
   });
 
   describe("translations", (): void => {
-    it("ship both pages in every translated language", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            exists: fs.existsSync(pageFile(language, page)),
-          }).toEqual({ language, page, exists: true });
-        }
+    it("ship both pages in every language", (): void => {
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          exists: fs.existsSync(pageFile(language, page)),
+        }).toEqual({ language, page, exists: true });
       }
     });
 
     it("keep every backticked identifier, in order", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            identifiers: backtickedIdentifiers(readPage(page, language)),
-          }).toEqual({
-            language,
-            page,
-            identifiers: backtickedIdentifiers(readPage(page)),
-          });
-        }
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          identifiers: backtickedIdentifiers(readPage(page, language)),
+        }).toEqual({
+          language,
+          page,
+          identifiers: backtickedIdentifiers(readPage(page)),
+        });
       }
     });
 
-    it("keep every code block byte-identical", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            blocks: codeBlocks(readPage(page, language)),
-          }).toEqual({ language, page, blocks: codeBlocks(readPage(page)) });
-        }
+    it("keep every code block byte-identical, and every diagram's skeleton", (): void => {
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          blocks: codeBlocks(readPage(page, language), {
+            diagramsBySkeleton: true,
+          }),
+        }).toEqual({
+          language,
+          page,
+          blocks: codeBlocks(readPage(page), { diagramsBySkeleton: true }),
+        });
       }
     });
 
     it("keep the same heading structure, table row counts and line count", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          const english: Array<string> = readPage(page).split("\n");
-          const translated: Array<string> = readPage(page, language).split(
-            "\n",
-          );
+      for (const { language, page } of TRANSLATED_PAGES) {
+        const english: Array<string> = readPage(page).split("\n");
+        const translated: Array<string> = readPage(page, language).split("\n");
 
-          expect({ language, page, lines: translated.length }).toEqual({
-            language,
-            page,
-            lines: english.length,
+        expect({ language, page, lines: translated.length }).toEqual({
+          language,
+          page,
+          lines: english.length,
+        });
+
+        const shape: (lines: Array<string>) => Array<string> = (
+          lines: Array<string>,
+        ): Array<string> => {
+          return lines.map((line: string): string => {
+            const heading: RegExpMatchArray | null = line.match(/^(#{1,6})\s/);
+            if (heading) {
+              return heading[1] as string;
+            }
+            if (line.startsWith("|")) {
+              return "|";
+            }
+            if (FENCE_LINE.test(line)) {
+              return "```";
+            }
+            return "";
           });
+        };
 
-          const shape: (lines: Array<string>) => Array<string> = (
-            lines: Array<string>,
-          ): Array<string> => {
-            return lines.map((line: string): string => {
-              const heading: RegExpMatchArray | null =
-                line.match(/^(#{1,6})\s/);
-              if (heading) {
-                return heading[1] as string;
-              }
-              if (line.startsWith("|")) {
-                return "|";
-              }
-              if (FENCE_LINE.test(line)) {
-                return "```";
-              }
-              return "";
-            });
-          };
-
-          expect(shape(translated)).toEqual(shape(english));
-        }
+        expect(shape(translated)).toEqual(shape(english));
       }
     });
 
     it("keep every alert template name untranslated so the picker and the docs agree", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
+      for (const language of MONITOR_PAGE_LANGUAGES) {
         const markdown: string = readPage(MONITOR_PAGE, language);
 
         for (const template of getAllVMwareAlertTemplates()) {
@@ -838,7 +1083,7 @@ describe("VMware docs", (): void => {
     });
 
     it("mention the reserved vCenter attribute and the Terraform escape hatch where English does", (): void => {
-      for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+      for (const language of ["en", ...ESCAPE_HATCH_LANGUAGES]) {
         expect(readPage("monitor/custom-code-monitor", language)).toContain(
           "`vmware.vcenter.name`",
         );

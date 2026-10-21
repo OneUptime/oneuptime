@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface FacetShowMoreButtonProps {
   // Whether the list is longer than the collapsed view in either direction.
@@ -17,6 +19,7 @@ export interface FacetShowMoreButtonProps {
 const FacetShowMoreButton: FunctionComponent<FacetShowMoreButtonProps> = (
   props: FacetShowMoreButtonProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (!props.hasMore) {
     return null;
   }
@@ -28,7 +31,12 @@ const FacetShowMoreButton: FunctionComponent<FacetShowMoreButtonProps> = (
       aria-expanded={props.isShowingAll}
       onClick={props.onToggle}
     >
-      {props.isShowingAll ? "Show less" : `Show ${props.hiddenCount} more`}
+      {props.isShowingAll
+        ? translator.translateText("Show less")
+        : translator.translatePlural(
+            { one: "Show {{count}} more", other: "Show {{count}} more" },
+            props.hiddenCount,
+          )}
     </button>
   );
 };

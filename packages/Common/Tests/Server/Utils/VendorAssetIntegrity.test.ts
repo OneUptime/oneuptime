@@ -1,18 +1,21 @@
-import { afterAll, describe, expect, test } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import childProcess from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import {
+  MermaidEntryFilename,
   VendorAssetsPath,
-  getMermaidDistPath,
 } from "../../../Server/Utils/VendorAssets";
 
 /*
  * The vendored files are third-party build output that a human refreshes by
  * hand (see Common/Server/Static/Vendor/README.md). Serving them with a 200 is
  * not the same as them working: a highlight.js grammar compiled against a
- * different core throws on registration, and a mermaid chunk the static mount
- * declines to serve is a diagram that never appears. Neither failure shows up
- * in a status code, and both are exactly what a careless refresh produces.
+ * different core throws on registration, and a mermaid chunk the build did not
+ * produce is a diagram that never appears. Neither failure shows up in a
+ * status code, and both are exactly what a careless refresh or upgrade
+ * produces.
  *
  * So these tests execute the code and walk the module graph rather than
  * stat-ing files.
@@ -191,34 +194,78 @@ describe("vendored highlight.js", () => {
   });
 });
 
-describe("vendored mermaid", () => {
-  const mermaidDistPath: string | null = getMermaidDistPath();
-
+describe("the mermaid build the docs and the blog import", () => {
   /*
-   * Only .js and .mjs are served (VendorAssets.ts). mermaid's ES entrypoint is
-   * 26 KB of imports pointing at everything else it can draw, so "the
-   * entrypoint is served" says nothing about whether a diagram renders. If a
-   * release ever code-splits across an extension the filter declines, the docs
-   * page silently loses its diagrams.
+   * The build the App and Home images make (Common/Scripts/
+   * build-mermaid-browser.js), made the same way into a scratch directory and
+   * read from disk: VendorAssets.test.ts covers the mount that serves it.
    */
-  const SERVABLE_EXTENSIONS: Array<string> = [".js", ".mjs"];
+  const build: { files: Map<string, Buffer> } = {
+    files: new Map<string, Buffer>(),
+  };
+  let scratch: string;
+
+  beforeAll(() => {
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-diagrams-"));
+    const directory: string = path.join(scratch, "mermaid-browser");
+
+    childProcess.execFileSync(
+      process.execPath,
+      [
+        path.resolve(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Scripts",
+          "build-mermaid-browser.js",
+        ),
+        directory,
+      ],
+      { encoding: "utf8", stdio: "pipe" },
+    );
+
+    const walk: (current: string) => void = (current: string): void => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const absolute: string = path.join(current, entry.name);
+
+        if (entry.isDirectory()) {
+          walk(absolute);
+        } else {
+          build.files.set(
+            path.relative(directory, absolute).split(path.sep).join("/"),
+            fs.readFileSync(absolute),
+          );
+        }
+      }
+    };
+
+    walk(directory);
+  });
+
+  afterAll(() => {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  });
 
   /*
    * The `\(?` matters more than it looks. mermaid loads every diagram type
-   * through a dynamic import() - `import("./chunks/.../flowDiagram-X.mjs")` -
-   * and a pattern that only caught static `from "..."` sees 15 modules where
-   * the real graph is 47. Those dynamic ones ARE the diagrams; missing them
-   * would have left this test green while the docs page rendered nothing.
+   * through a dynamic import() - `import("./chunks/flowDiagram-X.mjs")` - and
+   * a pattern that only caught static `from "..."` would see a fraction of
+   * the graph. Those dynamic ones ARE the diagrams.
    */
   const IMPORT_SPECIFIER: RegExp =
     /(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g;
 
   function importsOf(file: string): Array<string> {
+    const contents: Buffer | undefined = build.files.get(file);
+
+    if (!contents) {
+      return [];
+    }
+
     const specifiers: Array<string> = [];
 
-    for (const match of fs
-      .readFileSync(file, "utf8")
-      .matchAll(IMPORT_SPECIFIER)) {
+    for (const match of contents.toString("utf8").matchAll(IMPORT_SPECIFIER)) {
       if (match[1]) {
         specifiers.push(match[1]);
       }
@@ -227,58 +274,60 @@ describe("vendored mermaid", () => {
     return specifiers;
   }
 
-  test("resolves out of node_modules", () => {
-    expect(mermaidDistPath).not.toBeNull();
-  });
+  function textOf(file: string): string {
+    return (build.files.get(file) as Buffer).toString("utf8");
+  }
 
-  test("the ES entrypoint the docs import exists and has imports to check", () => {
-    const entrypoint: string = path.join(
-      mermaidDistPath as string,
-      "mermaid.esm.min.mjs",
+  /*
+   * "0.18.10" against a range's floor such as "^0.18.2": numeric collation
+   * compares each run of digits as a number, so 10 is past 2.
+   */
+  function isAtLeast(version: string, range: string): boolean {
+    return (
+      version.localeCompare(range.replace(/^[^0-9]*/, ""), "en", {
+        numeric: true,
+      }) >= 0
     );
+  }
 
-    expect(fs.existsSync(entrypoint)).toBe(true);
-    expect(importsOf(entrypoint).length).toBeGreaterThan(5);
+  test("compares versions the way the katex check needs", () => {
+    expect(isAtLeast("0.18.10", "^0.18.2")).toBe(true);
+    expect(isAtLeast("0.18.2", "^0.18.2")).toBe(true);
+    expect(isAtLeast("0.19.0", "^0.18.2")).toBe(true);
+    expect(isAtLeast("0.16.47", "^0.18.2")).toBe(false);
+    expect(isAtLeast("0.18.1", "^0.18.2")).toBe(false);
   });
 
-  test("every module it reaches is on disk and has a servable extension", () => {
+  test("has the entry the views import, with imports to check", () => {
+    expect(build.files.has(MermaidEntryFilename)).toBe(true);
+    expect(importsOf(MermaidEntryFilename).length).toBeGreaterThan(5);
+  });
+
+  test("every module the entry reaches is in the build", () => {
     /*
-     * Walks the graph rather than checking the entrypoint's direct imports:
-     * mermaid's chunks import each other, and a blocked extension two levels
-     * down fails just as completely as one at the top.
+     * Walks the graph rather than checking the entry's direct imports: the
+     * chunks import each other, and a missing file two levels down fails just
+     * as completely as one at the top.
      */
-    const entrypoint: string = path.join(
-      mermaidDistPath as string,
-      "mermaid.esm.min.mjs",
-    );
-
-    const visited: Set<string> = new Set<string>([entrypoint]);
-    const queue: Array<string> = [entrypoint];
+    const visited: Set<string> = new Set<string>([MermaidEntryFilename]);
+    const queue: Array<string> = [MermaidEntryFilename];
     const problems: Array<string> = [];
 
     while (queue.length > 0) {
       const current: string = queue.shift() as string;
 
       for (const specifier of importsOf(current)) {
-        const resolved: string = path.resolve(path.dirname(current), specifier);
-
-        const relative: string = path.relative(
-          mermaidDistPath as string,
-          resolved,
+        const resolved: string = path.posix.normalize(
+          path.posix.join(path.posix.dirname(current), specifier),
         );
 
-        if (!SERVABLE_EXTENSIONS.includes(path.extname(resolved))) {
-          problems.push(`${relative}: extension is not served`);
+        if (resolved.startsWith("..")) {
+          problems.push(`${resolved}: escapes the served directory`);
           continue;
         }
 
-        if (!fs.existsSync(resolved)) {
-          problems.push(`${relative}: does not exist`);
-          continue;
-        }
-
-        if (relative.startsWith("..")) {
-          problems.push(`${relative}: escapes the served directory`);
+        if (!build.files.has(resolved)) {
+          problems.push(`${resolved}: not in the build`);
           continue;
         }
 
@@ -292,37 +341,70 @@ describe("vendored mermaid", () => {
     expect(problems).toEqual([]);
 
     /*
-     * A floor, not a pin - mermaid's chunking changes between releases. It is
-     * here so that a regex that silently stops matching cannot turn this into
-     * a walk of one file that passes.
+     * A floor, not a pin - the chunking changes between releases. It is here
+     * so that a regex that silently stops matching cannot turn this into a
+     * walk of one file that passes.
      */
     expect(visited.size).toBeGreaterThan(50);
   });
 
-  test("the UMD bundle the blog loads is self-contained and sets a global", () => {
-    /*
-     * The blog appends it as a plain <script> and then calls
-     * window.mermaid.run(). It used to be mermaid 10 from jsdelivr; this is
-     * whatever version Common depends on, so the shape it exposes matters.
-     */
-    const umd: string = path.join(mermaidDistPath as string, "mermaid.min.js");
+  // chunks/<name>-<HASH>.mjs, as esbuild-mermaid.js names them.
+  const CONTENT_HASHED_CHUNK: RegExp =
+    /^chunks\/[A-Za-z0-9._-]+-[A-Z0-9]{8,}\.mjs$/;
 
-    expect(fs.existsSync(umd)).toBe(true);
+  test("names every chunk by its content, under chunks/", () => {
+    for (const file of build.files.keys()) {
+      if (file === MermaidEntryFilename) {
+        continue;
+      }
 
-    const contents: string = fs.readFileSync(umd, "utf8");
-
-    expect(contents).toContain("mermaid");
-    /* A UMD build inlines everything - no bare import of a sibling chunk. */
-    expect(importsOf(umd)).toEqual([]);
+      expect([file, CONTENT_HASHED_CHUNK.test(file)]).toEqual([file, true]);
+    }
   });
 
-  test("is the version Common depends on, not a second copy", () => {
-    const declared: string = (
+  test("carries exactly one katex: the one npm installed, no older than Common's override", () => {
+    const katexFiles: Array<string> = [...build.files.keys()].filter(
+      (file: string): boolean => {
+        return textOf(file).includes("KaTeX parse error");
+      },
+    );
+
+    expect(katexFiles).toHaveLength(1);
+
+    const installed: string = (
       JSON.parse(
-        fs.readFileSync(
-          path.join(path.dirname(mermaidDistPath as string), "package.json"),
-          "utf8",
-        ),
+        fs.readFileSync(require.resolve("katex/package.json"), "utf8"),
+      ) as { version: string }
+    ).version;
+
+    expect(textOf(katexFiles[0] as string)).toContain(`"${installed}"`);
+
+    /*
+     * Common's package.json holds katex for mermaid at a floor ("^0.18.2").
+     * The installed copy must be at least that, or the override was lost.
+     */
+    const commonPackage: {
+      overrides: { mermaid: { katex: string } };
+    } = JSON.parse(
+      fs.readFileSync(
+        path.resolve(__dirname, "..", "..", "..", "package.json"),
+        "utf8",
+      ),
+    ) as { overrides: { mermaid: { katex: string } } };
+
+    const floor: string = commonPackage.overrides.mermaid.katex;
+
+    expect([installed, floor, isAtLeast(installed, floor)]).toEqual([
+      installed,
+      floor,
+      true,
+    ]);
+  });
+
+  test("is built from the mermaid Common depends on", () => {
+    const installed: string = (
+      JSON.parse(
+        fs.readFileSync(require.resolve("mermaid/package.json"), "utf8"),
       ) as { version: string }
     ).version;
 
@@ -334,10 +416,14 @@ describe("vendored mermaid", () => {
     ) as { dependencies: Record<string, string> };
 
     expect(commonPackage.dependencies["mermaid"]).toBeDefined();
-    expect(declared.split(".")[0]).toBe(
+    expect(installed.split(".")[0]).toBe(
       (commonPackage.dependencies["mermaid"] as string)
         .replace(/[^0-9]/, "")
         .split(".")[0],
     );
+  });
+
+  test("is not committed under Static/Vendor", () => {
+    expect(fs.existsSync(path.join(VendorAssetsPath, "mermaid"))).toBe(false);
   });
 });

@@ -1,99 +1,147 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
-import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IncidentFeed, {
   IncidentFeedEventType,
 } from "Common/Models/DatabaseModels/IncidentFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
+import getSavedChatMessageFeedAuthor from "Common/UI/Components/Feed/SavedChatMessageFeedAuthor";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import OneUptimeDate from "Common/Types/Date";
-import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import {
+  FeedEntryKind,
+  FeedTone,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
 } from "Common/UI/Components/Feed/FeedOptions";
 import {
+  AI_REPORT_DETAILS_LABEL,
   FeedItemMarkdown,
   getFeedItemMarkdown,
 } from "../../Utils/AIRootCauseFeedItem";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import {
+  getIncidentPrivateNoteKind,
+  getIncidentPublicNoteKind,
+} from "../EventNotes/NoteKinds/IncidentNoteKinds";
 
 export interface ComponentProps {
   incidentId: ObjectID;
   refreshToken?: number | undefined;
   /*
-   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * Where "Notify status page subscribers" starts on a new public note.
    * False when the incident was declared without notifying subscribers.
    */
   notifyStatusPageSubscribersByDefault?: boolean | undefined;
+  /*
+   * The incident is private: it takes no public notes, so "Add Public Note"
+   * is locked with why (EventNoteKind.isPrivateEvent).
+   */
+  isPrivate?: boolean | undefined;
 }
 
 /*
- * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match. A root
- * cause posted by an AI investigation is the one item that swaps its icon
- * (see getFeedItemFromIncidentFeed).
+ * What each event type is (FeedEntryKind): its icon and colour, and whether
+ * a burst of it folds together. Shared by the feed's entries and the event
+ * type filter's checklist (the feed's ⋯ menu), so the two always match. A
+ * root cause posted by an AI investigation is the one entry that swaps its
+ * kind (see getFeedItemFromIncidentFeed).
  */
-export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> = {
-  [IncidentFeedEventType.PublicNote]: IconProp.Announcement,
-  [IncidentFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
-  [IncidentFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [IncidentFeedEventType.OwnerUserAdded]: IconProp.User,
-  [IncidentFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [IncidentFeedEventType.IncidentCreated]: IconProp.Alert,
-  [IncidentFeedEventType.IncidentStateChanged]: IconProp.ArrowCircleRight,
-  [IncidentFeedEventType.PrivateNote]: IconProp.Lock,
-  [IncidentFeedEventType.IncidentUpdated]: IconProp.Edit,
-  [IncidentFeedEventType.RootCause]: IconProp.Cube,
-  [IncidentFeedEventType.RemediationNotes]: IconProp.Wrench,
-  [IncidentFeedEventType.PostmortemNote]: IconProp.Book,
-  [IncidentFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [IncidentFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [IncidentFeedEventType.OnCallPolicy]: IconProp.Call,
-  [IncidentFeedEventType.OnCallNotification]: IconProp.Alert,
-  [IncidentFeedEventType.IncidentMemberAdded]: IconProp.Circle,
-  [IncidentFeedEventType.IncidentMemberRemoved]: IconProp.Circle,
-  [IncidentFeedEventType.AlertLinked]: IconProp.Link,
-  [IncidentFeedEventType.AlertUnlinked]: IconProp.LinkSlash,
-  [IncidentFeedEventType.LabelRuleExecuted]: IconProp.Tag,
-  [IncidentFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [IncidentFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
-  [IncidentFeedEventType.OnCallRuleExecuted]: IconProp.Call,
-  [IncidentFeedEventType.AutoRemediation]: IconProp.Circle,
-};
+export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
+  {
+    [IncidentFeedEventType.PublicNote]: SHARED_FEED_ENTRY_KINDS.PublicNote,
+    [IncidentFeedEventType.SubscriberNotificationSent]:
+      SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+    [IncidentFeedEventType.OwnerNotificationSent]:
+      SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+    [IncidentFeedEventType.OwnerUserAdded]:
+      SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+    [IncidentFeedEventType.OwnerTeamAdded]:
+      SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+    // The flag a declared incident is planted with, in red.
+    [IncidentFeedEventType.IncidentCreated]: {
+      icon: IconProp.Flag,
+      tone: FeedTone.Danger,
+    },
+    [IncidentFeedEventType.IncidentStateChanged]:
+      SHARED_FEED_ENTRY_KINDS.StateChanged,
+    [IncidentFeedEventType.PrivateNote]: SHARED_FEED_ENTRY_KINDS.PrivateNote,
+    [IncidentFeedEventType.IncidentUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+    [IncidentFeedEventType.RootCause]: SHARED_FEED_ENTRY_KINDS.RootCause,
+    [IncidentFeedEventType.RemediationNotes]:
+      SHARED_FEED_ENTRY_KINDS.RemediationNotes,
+    [IncidentFeedEventType.PostmortemNote]:
+      SHARED_FEED_ENTRY_KINDS.PostmortemNote,
+    [IncidentFeedEventType.OwnerUserRemoved]:
+      SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+    [IncidentFeedEventType.OwnerTeamRemoved]:
+      SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+    [IncidentFeedEventType.OnCallPolicy]: SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+    [IncidentFeedEventType.OnCallNotification]:
+      SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+    [IncidentFeedEventType.IncidentMemberAdded]:
+      SHARED_FEED_ENTRY_KINDS.RoleAssigned,
+    [IncidentFeedEventType.IncidentMemberRemoved]:
+      SHARED_FEED_ENTRY_KINDS.RoleUnassigned,
+    [IncidentFeedEventType.AlertLinked]: SHARED_FEED_ENTRY_KINDS.Linked,
+    [IncidentFeedEventType.AlertUnlinked]: SHARED_FEED_ENTRY_KINDS.Unlinked,
+    [IncidentFeedEventType.LabelRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+    [IncidentFeedEventType.OwnerRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+    [IncidentFeedEventType.PrivacyRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
+    [IncidentFeedEventType.OnCallRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+    [IncidentFeedEventType.AutoRemediation]:
+      SHARED_FEED_ENTRY_KINDS.AutoRemediation,
+    [IncidentFeedEventType.VideoCallStarted]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
+    [IncidentFeedEventType.VideoCallFailed]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+    [IncidentFeedEventType.VideoCallTranscriptAdded]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallTranscriptAdded,
+    [IncidentFeedEventType.VideoCallSummary]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallSummary,
+    [IncidentFeedEventType.ChannelMemberAdded]:
+      SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
+  };
+
+export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> =
+  getFeedIcons(INCIDENT_FEED_KINDS);
 
 export const getIncidentFeedEventIcon: (eventType: string) => IconProp = (
   eventType: string,
 ): IconProp => {
-  return (
-    INCIDENT_FEED_ICONS[eventType as IncidentFeedEventType] || IconProp.Circle
-  );
+  return getFeedEntryKind({ kinds: INCIDENT_FEED_KINDS, eventType }).icon;
 };
 
 const IncidentFeedElement: FunctionComponent<ComponentProps> = (
@@ -103,12 +151,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const notifySubscribersByDefault: boolean =
     props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
-    React.useState<boolean>(false);
-
-  const [showPublicNoteModal, setShowPublicNoteModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
@@ -133,9 +175,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromIncidentFeed: GetFeedItemFromIncidentFeed = (
     incidentFeed: IncidentFeed,
   ): FeedItemProps => {
-    let icon: IconProp = getIncidentFeedEventIcon(
-      incidentFeed.incidentFeedEventType || "",
-    );
     const isAIInvestigation: boolean = Boolean(
       incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause &&
         (incidentFeed.aiRunId ||
@@ -144,16 +183,17 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           )),
     );
 
-    if (
-      incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause
-    ) {
-      icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
-    }
+    const kind: FeedEntryKind = isAIInvestigation
+      ? SHARED_FEED_ENTRY_KINDS.AIRootCause
+      : getFeedEntryKind({
+          kinds: INCIDENT_FEED_KINDS,
+          eventType: incidentFeed.incidentFeedEventType,
+        });
 
     /*
      * An AI report is laid out in full by the AI Investigation card, so its
-     * feed item shows only the summary and root cause; the whole report sits
-     * behind More Information.
+     * feed item shows only the summary and root cause; the whole report
+     * unfolds under Show the full report.
      */
     const feedItemMarkdown: FeedItemMarkdown = getFeedItemMarkdown({
       isAIInvestigation,
@@ -165,10 +205,26 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       key: incidentFeed.id!.toString(),
       textInMarkdown: feedItemMarkdown.textInMarkdown,
       moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
-      user: incidentFeed.user,
+      /*
+       * A note saved from a chat message is led by the message's author;
+       * the row's user only saved it (SavedChatMessageFeedAuthor).
+       */
+      ...getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: incidentFeed.savedFromChatMessage,
+        user: incidentFeed.user,
+      }),
+      // A change no person made, by a project API key: the key's name then.
+      apiKeyName: incidentFeed.user ? undefined : incidentFeed.apiKeyName,
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
-      color: incidentFeed.displayColor || Gray500,
-      icon: icon,
+      color: getFeedEntryColor({
+        kind: kind,
+        rowColor: incidentFeed.displayColor,
+      }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      eventType: incidentFeed.incidentFeedEventType,
+      detailsLabel: isAIInvestigation ? AI_REPORT_DETAILS_LABEL : kind.moreText,
+      isNote: kind.isNote,
       safeMode: isAIInvestigation,
     };
   };
@@ -180,18 +236,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: incidentIdString,
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    setError,
-    refresh,
-    loadMore,
-  } = useFeedItems<IncidentFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<IncidentFeed>({
     resourceKey: incidentIdString,
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -216,8 +261,10 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             email: true,
             profilePictureId: true,
           },
+          apiKeyName: true,
           incidentFeedEventType: true,
           postedAt: true,
+          savedFromChatMessage: true,
         },
         skip: 0,
         sort: {
@@ -229,92 +276,68 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     mapItems: getFeedItemsFromIncidentFeeds,
   });
 
+  /*
+   * "Add Public Note" and "Add Private Note": the incident's Notes page
+   * composer, in a dialog.
+   */
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "incident",
+    publicNoteKind: getIncidentPublicNoteKind({
+      incidentId: props.incidentId,
+      isNotifyingByDefault: notifySubscribersByDefault,
+      isPrivate: props.isPrivate,
+    }),
+    privateNoteKind: getIncidentPrivateNoteKind({
+      incidentId: props.incidentId,
+    }),
+    onPosted: () => {
+      feed.refresh().catch((err: unknown) => {
+        feed.setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
-    <Card
+    <FeedCard
       title={"Incident Feed"}
       description={
-        "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
+        "Everything that has happened to this incident: status changes, notes, owners and every notification sent."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="incident-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        <MoreMenu
-          key="incident-feed-actions-menu"
-          elementToBeShownInsteadOfButton={
-            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
-              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
-              <span>Actions</span>
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
-              />
-            </div>
-          }
-        >
-          <MoreMenuItem
-            key="incident-action-run-runbook"
-            text="Execute Runbook"
-            icon={IconProp.Play}
-            onClick={() => {
-              setShowRunbookPickerModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-execute-policy"
-            text="Execute On-Call Policy"
-            icon={IconProp.Call}
-            onClick={() => {
-              setShowOnCallPolicyModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-public-note"
-            text="Add Public Note"
-            icon={IconProp.Team}
-            onClick={() => {
-              setShowPublicNoteModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
-        </MoreMenu>,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={feed.refresh}
+      actions={
+        <FeedActionsMenu key="incident-feed-actions-menu">
+          {[
+            <MoreMenuItem
+              key="incident-action-run-runbook"
+              text="Execute Runbook"
+              icon={IconProp.Play}
+              onClick={() => {
+                setShowRunbookPickerModal(true);
+              }}
+            />,
+            <MoreMenuItem
+              key="incident-action-execute-policy"
+              text="Execute On-Call Policy"
+              icon={IconProp.Call}
+              onClick={() => {
+                setShowOnCallPolicyModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
+        </FeedActionsMenu>
+      }
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this incident.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this incident yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -337,8 +360,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
+              feed.refresh().catch((err: unknown) => {
+                feed.setError(API.getFriendlyMessage(err as Exception));
               });
             }}
             formProps={{
@@ -368,97 +391,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {showPublicNoteModal && (
-          <ModelFormModal
-            modelType={IncidentPublicNote}
-            modalWidth={ModalWidth.Large}
-            name={"create-incident-public-note"}
-            title={"Add Public Note to this Incident"}
-            description={
-              "Add a public note to this incident. This note will be visible to all subscribers of this incident and will show up on the status page."
-            }
-            onClose={() => {
-              setShowPublicNoteModal(false);
-            }}
-            submitButtonText="Save"
-            /*
-             * Seeded as a value, not only as the field's default: the form
-             * drops a false default, and an unsent flag would fall back to
-             * notifying.
-             */
-            initialValues={{
-              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
-                notifySubscribersByDefault,
-            }}
-            onBeforeCreate={async (model: IncidentPublicNote) => {
-              model.incidentId = props.incidentId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPublicNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Public Note",
-              },
-              name: "create-incident-state-timeline",
-              modelType: IncidentPublicNote,
-              id: "create-incident-state-timeline",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a public note about this state change to the status page.",
-                  title: "Public Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be shared with subscribers on the status page.",
-                  title: "Attachments",
-                  required: false,
-                },
-                {
-                  field: {
-                    postedAt: true,
-                  },
-                  fieldType: FormFieldSchemaType.DateTime,
-                  description:
-                    "The date and time this note was posted. By default, it will be the current date and time.",
-                  title: "Posted At",
-                  required: true,
-                  getDefaultValue: () => {
-                    return OneUptimeDate.getCurrentDate();
-                  },
-                },
-                {
-                  field: {
-                    shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-                  },
-                  fieldType: FormFieldSchemaType.Checkbox,
-                  description: notifySubscribersByDefault
-                    ? "Should status page subscribers be notified when this note is posted?"
-                    : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-                  title: "Notify Status Page Subscribers",
-                  required: false,
-                  defaultValue: notifySubscribersByDefault,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+        {noteActions.dialog}
 
         <RunbookPicker
           isOpen={showRunbookPickerModal}
@@ -466,72 +399,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            refresh().catch((err: unknown) => {
-              setError(API.getFriendlyMessage(err as Exception));
+            feed.refresh().catch((err: unknown) => {
+              feed.setError(API.getFriendlyMessage(err as Exception));
             });
           }}
           incidentId={props.incidentId}
         />
-
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modelType={IncidentInternalNote}
-            name={"create-incident-internal-note"}
-            modalWidth={ModalWidth.Large}
-            title={"Add Private Note to this Incident"}
-            description={
-              "Add a private note to this incident. This note will be visible only to the team members of this incident."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: IncidentInternalNote) => {
-              model.incidentId = props.incidentId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-incident-internal-note",
-              modelType: IncidentInternalNote,
-              id: "create-incident-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this incident. This note will be visible only to the team members of this incident.",
-                  title: "Private Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be visible to the incident response team.",
-                  title: "Attachments",
-                  required: false,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

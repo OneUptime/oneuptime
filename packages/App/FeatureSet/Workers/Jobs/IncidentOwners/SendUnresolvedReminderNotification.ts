@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,16 +12,17 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import IncidentReminderRuleService from "Common/Server/Services/IncidentReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -29,6 +31,7 @@ import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentOwner:SendUnresolvedReminderNotification",
@@ -59,15 +62,14 @@ RunCron(
         incidentSeverityId: true,
         incidentSeverity: {
           name: true,
+          color: true,
         },
         labels: {
           _id: true,
         },
         currentIncidentState: {
           name: true,
-        },
-        monitors: {
-          name: true,
+          color: true,
         },
         incidentNumber: true,
         incidentNumberWithPrefix: true,
@@ -197,12 +199,15 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       ),
     );
 
-  const resourcesAffected: string =
-    incident
-      .monitors!.map((monitor: Monitor) => {
-        return monitor.name!;
-      })
-      .join(", ") || "";
+  // Every resource the incident's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForIncident({
+      service: IncidentService,
+      projectId: projectId,
+      incidentId: incidentId,
+    }),
+    fallback: "",
+  });
 
   const incidentNumberStr: string =
     incident.incidentNumberWithPrefix ||
@@ -232,6 +237,10 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       incidentNumber: incidentNumberStr,
       projectName: incident.project!.name!,
       currentState: currentStateName,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incident.currentIncidentState?.color,
+      ),
       openDuration: openDuration,
       declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
         date: openedAt,
@@ -240,6 +249,10 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       incidentDescription: incidentDescriptionHtml,
       resourcesAffected: resourcesAffected || "None",
       incidentSeverity: incident.incidentSeverity?.name || "",
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        incident.incidentSeverity?.color,
+      ),
       incidentViewLink: incidentViewLink,
     };
 
@@ -260,7 +273,9 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     };
 
     const sms: SMSMessage = {
-      message: `This is a message from OneUptime. Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      message: buildNotificationSms(
+        `Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+      ),
     };
 
     const callMessage: CallRequestMessage = {
@@ -310,7 +325,7 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       eventType,
     });
 
-    moreIncidentFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+    moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
       {
         userId: user.id!,
         projectId: projectId,
@@ -326,7 +341,8 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     projectId: projectId,
     incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
     displayColor: Blue500,
-    feedInfoInMarkdown: `🔔 **Reminder sent to owners of [Incident ${incidentNumberDisplayValue}](${incidentViewLink})**: This incident is still **${currentStateName}** and has been open for **${openDuration}**.`,
+    feedInfoInMarkdown:
+      mdText`🔔 **Reminder sent to owners of [Incident ${incidentNumberDisplayValue}](${incidentViewLink})**: This incident is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
     workspaceNotification: {
       sendWorkspaceNotification: true,

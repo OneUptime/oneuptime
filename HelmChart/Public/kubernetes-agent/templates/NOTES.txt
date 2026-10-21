@@ -1,22 +1,18 @@
 {{- /*
-`helm upgrade --reuse-values` renders with the previous release's values, so
-on an install from a chart without aiAccess `.Values.aiAccess` is nil (or
-holds only what --set passed) and a bare `.Values.aiAccess.enabled` would
-abort the upgrade. Same locals as templates/ai-runner.yaml.
+The Kubernetes AI agent's settings come from the same helper
+templates/ai-agent.yaml renders from (templates/_ai-agent.tpl), so these notes
+describe exactly the RBAC and pod that were rendered, including settings
+carried over from a release's stored aiAccess values.
 */ -}}
-{{- $aiAccess := .Values.aiAccess | default dict -}}
-{{- $aiRemediation := $aiAccess.remediation | default dict -}}
-{{- $aiWriteNamespaces := $aiRemediation.namespaces | default list | uniq -}}
-{{- $aiNodeOperations := true -}}
-{{- if and (hasKey $aiRemediation "nodeOperations") (kindIs "bool" $aiRemediation.nodeOperations) }}
-{{- $aiNodeOperations = $aiRemediation.nodeOperations -}}
-{{- end }}
+{{- $aiAgent := include "kubernetes-agent.aiAgent.settings" . | fromJson -}}
 OneUptime Kubernetes Agent has been installed.
 
 Cluster Name: {{ .Values.clusterName }}
 OneUptime URL: {{ .Values.oneuptime.url }}
 
 The agent is now collecting:
+{{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
+{{- if eq (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" }}
   - Node, pod, and container resource metrics (kubeletstats)
 {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
   - Container & pod CPU/memory saturation (% of request/limit)
@@ -26,6 +22,7 @@ The agent is now collecting:
 {{- end }}
 {{- if .Values.cadvisor.enabled }}
   - cAdvisor: CFS throttling and OOM kill counters (kubelet /metrics/cadvisor)
+{{- end }}
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
@@ -50,13 +47,13 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
   - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation (DaemonSet, no code changes)
 {{- end }}
-{{- if .Values.profiling.enabled }}
+{{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
   - Continuous CPU flame graphs from every process on every node, via the OpenTelemetry eBPF Profiler (DaemonSet, samples stacks at {{ .Values.profiling.samplesPerSecond }}Hz)
 {{- end }}
-{{- if .Values.hostMetrics.enabled }}
+{{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
   - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
 {{- end }}
 {{- if .Values.auditLogs.enabled }}
@@ -76,12 +73,23 @@ The agent is now collecting:
   - Raw cost metrics (node hourly cost, container allocation, PV and load balancer cost) for Metric Explorer and the Kubernetes Cost dashboard
 {{- end }}
 {{- end }}
-{{- if $aiAccess.enabled }}
-  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if $aiRemediation.enabled }}kubectl to investigate AND fix incidents (a cluster registering for the first time starts in "ask for approval", unless AI settings were already picked on its AI page before the install, which are kept as chosen; a cluster that was already registered keeps the AI remediation mode chosen on its AI page — pick ask for approval, automatic or bypass approval there){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
+{{- if $aiAgent.enabled }}
+  - Kubernetes AI agent: lets OneUptime AI run {{ if $aiAgent.allowWrites }}kubectl to investigate AND fix incidents and alerts{{ else }}read-only kubectl while it investigates incidents and alerts{{ end }}
 {{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
+{{- if eq (include "kubernetes-agent.privilegedPodsAllowed" .) "false" }}
+eBPF auto-instrumentation and continuous CPU profiling are off on this preset,
+whatever ebpf.enabled and profiling.enabled say: both need a privileged pod
+{{- if eq .Values.preset "eks-fargate" }}
+on every node, and EKS Fargate runs neither privileged pods nor DaemonSets.
+To trace your services, send traces from them with an OpenTelemetry SDK.
+{{- else }}
+on every node, and GKE Autopilot refuses privileged pods. To trace your
+services, send traces from them with an OpenTelemetry SDK.
+{{- end }}
+{{- end }}
 {{- end }}
 
 To verify the agent is running:
@@ -89,89 +97,177 @@ To verify the agent is running:
 
 To check collector logs:
   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }} -c otel-collector
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 
 To check the eBPF instrumentation logs:
   kubectl logs -n {{ .Release.Namespace }} -l component=ebpf-instrument -c ebpf-instrument --tail=100
 
 To turn eBPF auto-instrumentation off:
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set ebpf.enabled=false
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set ebpf.enabled=false
 {{- end }}
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
-{{- if $aiAccess.enabled }}
+{{- if $aiAgent.enabled }}
 
-OneUptime AI access registers itself with the same key — within a minute the
-cluster's AI page (Kubernetes → <cluster> → AI) shows the Runner as Connected
-and lists what AI may do. If it does not, check the Runner's logs. A refused
-registration says whether it clears on its own or what to change (an
-ingestion key with a Pinned Service Name cannot register the Runner):
-  kubectl logs -n {{ .Release.Namespace }} -l component=ai-runner --tail=100
-If you delete the Runner so the agent registers a fresh one, select the new
-Runner on the cluster's AI page afterwards: a registration never re-binds a
-cluster that had a Runner bound.
-{{- if $aiRemediation.enabled }}
+Kubernetes AI agent: on, {{ if $aiAgent.allowWrites }}with write access{{ else }}read-only{{ end }}.
+It connects with the same API key and cluster name; within a minute the
+cluster's AI agent page (Kubernetes → <cluster> → AI → Agent) shows it as
+Connected. If it does not, its log says why: whether a refusal clears on its
+own, or what to change (an API key with a Pinned Service Name cannot register
+it, and a self-hosted OneUptime server older than this chart has no AI agent
+API, so upgrade OneUptime first):
+  kubectl logs -n {{ .Release.Namespace }} -l component=ai-agent --tail=100
+Turn it off with --set aiAgent.enabled=false.
+{{- if $aiAgent.aiSettingsConfigured }}
 
-What the Runner's write access amounts to: patch on workloads and pods (and
-create on jobs) in a namespace is as good as running any image as any
-ServiceAccount there and reading its Secrets. OneUptime's command policy
-refuses changing which ServiceAccount, security settings, volumes, command or
-Secret wiring a pod runs with (pod-template security patches, set
-serviceaccount, create deployment/cronjob/job --image, patch bodies that are
-not JSON, patches that replace the pod spec or a whole containers list,
-expose --overrides).
-It still allows changing an image (set image, or a patch of an
-image field) as a riskier change: the new image runs as the workload's own
-ServiceAccount, with its Secrets, and a human approves it unless the cluster
-bypasses approvals or its allowlist names the command. RBAC only decides
-where writes may land.
-{{- if $aiWriteNamespaces }}
-Write access is bound only in: {{ join ", " $aiWriteNamespaces }} (aiAccess.remediation.namespaces).
+What OneUptime AI may do on this cluster, set by this release: investigation
+{{ ternary "on" "off" $aiAgent.investigation }}, fixes {{ $aiAgent.fixes }}. The cluster's AI agent page shows them;
+change them here, with aiAgent.investigation (true or false) and
+aiAgent.fixes (off, ask-for-approval, automatic or bypass-approval).
+{{- else }}
+
+This release does not set what OneUptime AI may do on this cluster, so the
+agent uses its defaults (investigation on, fixes {{ $aiAgent.fixes }}), unless
+someone already chose them on the cluster's AI agent page, which keeps them.
+To set them here instead:
+  --set aiAgent.investigation=true --set aiAgent.fixes={{ $aiAgent.fixes }}
+{{- end }}
+{{- if $aiAgent.allowWrites }}
+{{- if eq $aiAgent.writesKey "aiAccess.remediation.enabled" }}
+
+Write access was carried over from aiAccess.remediation.enabled; set
+aiAgent.fixes from now on.
+{{- else if eq $aiAgent.writesKey "aiAgent.remediation.enabled" }}
+
+Write access comes from aiAgent.remediation.enabled, which aiAgent.fixes
+replaces: set aiAgent.fixes from now on.
+{{- end }}
+
+What write access amounts to: patch on workloads and pods (and create on
+jobs) in a namespace is as good as running any image as any ServiceAccount
+there and reading its Secrets. OneUptime's command policy refuses changing
+which ServiceAccount, security settings, volumes, command or Secret wiring a
+pod runs with (patches that replace the pod spec or a whole containers list
+included), and expose --overrides. It still allows changing an image (set
+image) as a riskier change a human approves unless the cluster bypasses
+approvals or its allowlist names the command. RBAC only decides where writes
+may land.
+{{- if $aiAgent.writeNamespaces }}
+Write access is bound only in: {{ join ", " $aiAgent.writeNamespaces }} ({{ $aiAgent.namespacesKey }}).
 Each listed namespace must already exist: the chart creates a RoleBinding in
 each and never creates a namespace, so a missing one fails every install or
 upgrade with 'namespaces "<name>" not found'. Take a namespace off the list
-before you delete it; --set-json 'aiAccess.remediation.namespaces=[]' goes
-back to cluster-wide (--set aiAccess.remediation.namespaces=null does not
-reset a stored list under --reuse-values). A fix outside these namespaces is
-refused when it is proposed or approved, and the Runner refuses it again
-before it runs kubectl.
+before you delete it; --set-json 'aiAgent.remediation.namespaces=[]' goes
+back to cluster-wide. A fix outside these namespaces is refused when it is
+proposed or approved, and the agent refuses it again before it runs kubectl.
 {{- else }}
 Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,
 kube-public, kube-node-lease or {{ .Release.Namespace }}: there OneUptime's policy (never
-without a human in the three system namespaces) and the Runner (never its own
+without a human in the three system namespaces) and the agent (never its own
 namespace) hold the line. To bind it only where AI may fix things, upgrade
 with (every listed namespace must already exist):
-  --set "aiAccess.remediation.namespaces={web,api}"
+  --set "aiAgent.remediation.namespaces={web,api}"
 {{- end }}
-{{- if $aiNodeOperations }}
+{{- if $aiAgent.allowNodeOperations }}
 Node operations (cordon, uncordon, taint, drain) are on, cluster-wide. A drain
 evicts pods in every namespace, kube-system and {{ .Release.Namespace }} included, so a drain,
 a taint or a patch of a node always waits for a human, in every mode; turn
-node operations off with --set aiAccess.remediation.nodeOperations=false.
+node operations off with --set aiAgent.remediation.nodeOperations=false.
 {{- else }}
 Node operations (cordon, uncordon, taint, drain) are off: the chart grants no
-node RBAC, and the Runner refuses them before it runs kubectl. OneUptime reads
-that from the Runner and refuses a node fix already when it is proposed or
-approved.
-{{- end }}
+node RBAC, and the agent refuses them before it runs kubectl. OneUptime refuses
+a node fix already when it is proposed or approved.
 {{- end }}
 {{- else }}
 
-To let OneUptime AI run kubectl on this cluster while it investigates, refresh
-your chart index (an old one serves a chart without aiAccess) and upgrade:
+To let OneUptime AI also fix what it finds, pick how fixes run and the
+namespaces it may change (each must already exist):
   helm repo update
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAccess.enabled=true
-To also let it fix what it finds, add --set aiAccess.remediation.enabled=true
-(write RBAC; aiAccess.remediation.namespaces limits where it applies).
-On Helm 3.14+, --reset-then-reuse-values is the safer flag: it keeps your
-overrides and also picks up this chart's defaults for everything else.
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set aiAgent.investigation={{ $aiAgent.investigation }} --set aiAgent.fixes=ask-for-approval --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
+{{- end }}
+{{- else }}
+
+The Kubernetes AI agent is off (aiAgent.enabled=false). To let OneUptime AI
+run read-only kubectl on this cluster while it investigates, refresh your
+chart index and upgrade:
+  helm repo update
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set aiAgent.enabled=true
 {{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
-ingestion key — which is silently dropped, so the collector logs look clean),
-run the diagnostic script for a one-shot root-cause verdict:
+ingestion key: OneUptime refuses it with 401/422, and the collector only logs
+"Exporting failed. Dropping data.", which is easy to miss), run the diagnostic
+script for a one-shot root-cause verdict:
   curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate
+{{- /*
+Upgrades. --reset-then-reuse-values takes this chart's defaults and keeps the
+values somebody set; --reuse-values keeps the old chart's defaults too, so a
+default a newer chart changes never applies (templates/_stale-defaults.tpl).
+A release that already renders with an older chart's defaults gets the
+warning, with the upgrade that fixes it, instead of the general advice.
+*/ -}}
+{{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
+{{- $helmUpgrade := printf "helm upgrade %s oneuptime/kubernetes-agent -n %s" .Release.Name .Release.Namespace }}
+{{- $helmGetValues := printf "helm get values %s -n %s -o yaml > values.yaml" .Release.Name .Release.Namespace }}
+{{- if $defaults.stale }}
+
+WARNING: this release did not get this chart's defaults.
+{{- if $defaults.from }}
+It renders with the defaults of chart {{ $defaults.from }} (chartDefaultsVersion), not
+with those of this chart, {{ .Chart.Version }}.
+{{- else }}
+It renders with an older chart's defaults (its values have no
+chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
+{{- end }}
+`helm upgrade --reuse-values` does that: it keeps the previous release's
+values, the old chart's defaults included. So does a values file copied from
+an older chart's values.yaml (or from `helm get values --all`). Either way, a
+default this chart added or changed never applies.
+{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale $defaults.contextPropagationStale $defaults.routeHarvestStale }}
+Stale here:
+{{- if $defaults.collectorImageTagStale }}
+  - image.tag is {{ $defaults.collectorImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultCollectorImageTag" . | quote }}
+    (the OpenTelemetry Collector, with security fixes the older one lacks).
+    Kept if you set it yourself.
+{{- end }}
+{{- if $defaults.ebpfImageTagStale }}
+  - ebpf.image.tag is {{ $defaults.ebpfImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultEbpfImageTag" . | quote }}
+    (OBI, the eBPF instrumentation). Kept if you set it yourself.
+{{- end }}
+{{- if $defaults.contextPropagationStale }}
+  - ebpf.contextPropagation is off; this chart turns it on by default, so a
+    call to a pod on another node joins the caller's trace. Kept if you set
+    it yourself.
+{{- end }}
+{{- if $defaults.routeHarvestStale }}
+  - ebpf.routes.disabledHarvesters is not set, so OBI reads each Node.js
+    app's sources for route names before tracing it, up to 10s an app, one
+    app at a time; this chart skips Node.js. Kept if you set it yourself.
+{{- end }}
+{{- end }}
+After --reuse-values, apply this chart's defaults and keep the values you set
+(Helm 3.14+):
+  helm repo update
+  {{ $helmUpgrade }} --version {{ .Chart.Version }} --reset-then-reuse-values
+Helm before 3.14:
+  helm repo update
+  {{ $helmGetValues }} && {{ $helmUpgrade }} --version {{ .Chart.Version }} -f values.yaml
+After a copied values file, keep only the values you changed in it
+(chartDefaultsVersion is not one of them) and upgrade with -f and that file,
+without --reuse-values or --reset-then-reuse-values: they, and the commands
+above, would keep the copy this release stored.
+{{- else }}
+
+To upgrade to a newer chart, keeping the values you set (Helm 3.14+):
+  helm repo update
+  {{ $helmUpgrade }} --reset-then-reuse-values
+Helm before 3.14:
+  helm repo update
+  {{ $helmGetValues }} && {{ $helmUpgrade }} -f values.yaml
+Not --reuse-values: it keeps this chart's defaults too, so a newer chart's
+defaults (its collector and eBPF images among them) would never apply.
+{{- end }}

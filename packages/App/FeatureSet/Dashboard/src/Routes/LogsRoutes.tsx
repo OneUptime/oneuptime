@@ -16,6 +16,7 @@ import LogsSettingsPipelineView from "../Pages/Logs/Settings/PipelineView";
 import LogsSettingsDropFilters from "../Pages/Logs/Settings/DropFilters";
 import LogsSettingsDropFilterView from "../Pages/Logs/Settings/DropFilterView";
 import LogsSettingsScrubRules from "../Pages/Logs/Settings/ScrubRules";
+import LogsSettingsRecordingRules from "../Pages/Logs/Settings/RecordingRules";
 
 const LogsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -98,6 +99,17 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
               <LogsSettingsScrubRules
                 {...props}
                 pageRoute={RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES] || ""}
+            element={
+              <LogsSettingsRecordingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.LOGS_SETTINGS_RECORDING_RULES] as Route
+                }
               />
             }
           />

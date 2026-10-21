@@ -136,6 +136,38 @@ export default abstract class GlobalCache {
     return value;
   }
 
+  /*
+   * Several keys of one namespace in a single round-trip (MGET). The result
+   * is positional: one entry per requested key, null where the key is
+   * missing or empty.
+   */
+  @CaptureSpan()
+  public static async getStrings(
+    namespace: string,
+    keys: Array<string>,
+  ): Promise<Array<string | null>> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const values: Array<string | null> = await client.mget(
+      keys.map((key: string) => {
+        return `${namespace}-${key}`;
+      }),
+    );
+
+    return keys.map((_key: string, index: number) => {
+      const value: string | null | undefined = values[index];
+      return value ? value : null;
+    });
+  }
+
   @CaptureSpan()
   public static async setJSON(
     namespace: string,
@@ -271,6 +303,111 @@ export default abstract class GlobalCache {
   }
 
   /*
+   * Atomic swap: set the key to `value` and return what it held before, or
+   * null when it held nothing.
+   *
+   * For "what was the last X before this one": two workers that read with
+   * `getString()` and then write with `setString()` can both read the same
+   * old value, and both report a change from it. The swap answers each
+   * caller with exactly the value its own write replaced.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async swapString(
+    namespace: string,
+    key: string,
+    value: string,
+    options?: CacheSetOptions,
+  ): Promise<string | null> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const expiresInSeconds: number =
+      options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
+
+    const result: unknown = await client.eval(
+      "local previous = redis.call('GET', KEYS[1]) " +
+        "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) " +
+        "return previous",
+      1,
+      `${namespace}-${key}`,
+      value,
+      String(expiresInSeconds),
+    );
+
+    // A missing key comes back from the script as nil (null here).
+    return typeof result === "string" && result !== "" ? result : null;
+  }
+
+  /*
+   * SET NX that keeps a live key alive: creates the key with `value` and
+   * returns true when it does not exist; otherwise extends its expiry and
+   * returns false - in one atomic evaluation.
+   *
+   * For "has this been seen lately": with setStringIfNotExists alone, the
+   * key's expiry counts from the FIRST sighting, so a value seen every
+   * minute is forgotten once that expiry runs out and is "new" again.
+   * Extending it on every sighting counts from the last.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async setStringIfNotExistsOrExtend(
+    namespace: string,
+    key: string,
+    value: string,
+    options?: CacheSetOptions,
+  ): Promise<boolean> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const expiresInSeconds: number =
+      options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
+
+    const result: unknown = await client.eval(
+      "if redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2], 'NX') then return 1 end " +
+        "redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
+        "return 0",
+      1,
+      `${namespace}-${key}`,
+      value,
+      String(expiresInSeconds),
+    );
+
+    return result === 1;
+  }
+
+  // Extends a key's expiry. False when there is no such key.
+  @CaptureSpan()
+  public static async extendExpiry(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions,
+  ): Promise<boolean> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: number = await client.expire(
+      `${namespace}-${key}`,
+      options.expiresInSeconds,
+    );
+
+    return result === 1;
+  }
+
+  /*
    * Spread a fence TTL over [ttl, ttl + 25%].
    *
    * A fixed TTL makes every fence for a fleet of rows expire in lockstep once
@@ -361,6 +498,154 @@ export default abstract class GlobalCache {
     );
 
     return typeof result === "string" && result ? result : null;
+  }
+
+  /*
+   * Adds one to a counter and returns the new count. The first add also
+   * sets the counter's expiry, in the same atomic evaluation, so a counter
+   * is never left without one - the primitive for a fixed-window budget
+   * whose key names its window.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async incrementWithExpiry(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions,
+  ): Promise<number> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local count = redis.call('INCR', KEYS[1]) " +
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end " +
+        "return count",
+      1,
+      `${namespace}-${key}`,
+      String(options.expiresInSeconds),
+    );
+
+    const count: number = Number(result);
+
+    if (!Number.isFinite(count)) {
+      throw new BadDataException("The cache counter is not a number");
+    }
+
+    return count;
+  }
+
+  /*
+   * Adds one to a counter only while it is below limit, and returns the new
+   * count - or null, adding nothing, once the counter has reached limit. As
+   * with incrementWithExpiry, the first add sets the expiry in the same
+   * atomic evaluation.
+   *
+   * A refusal adds nothing. That is what lets several limits share one
+   * counter: callers that may only take the first few units of a window and
+   * callers that may take all of them can count against the same key, and
+   * the ones refused at the lower limit do not use up what the others still
+   * may take.
+   */
+  @CaptureSpan()
+  public static async incrementIfBelow(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions & { limit: number },
+  ): Promise<number | null> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local current = tonumber(redis.call('GET', KEYS[1]) or '0') " +
+        "if current >= tonumber(ARGV[1]) then return -1 end " +
+        "local count = redis.call('INCR', KEYS[1]) " +
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end " +
+        "return count",
+      1,
+      `${namespace}-${key}`,
+      String(Math.floor(options.limit)),
+      String(options.expiresInSeconds),
+    );
+
+    const count: number = Number(result);
+
+    if (!Number.isFinite(count)) {
+      throw new BadDataException("The cache counter is not a number");
+    }
+
+    return count < 0 ? null : count;
+  }
+
+  /*
+   * Atomic monotonic advance: store value only when it is greater than the
+   * number the key already holds, refresh the expiry either way, and return
+   * the number the key holds afterwards.
+   *
+   * GET, compare, then SET from the client is a check-then-act race: two
+   * writers read the same old value, both write, and the smaller one can land
+   * last and move the value backwards. One evaluation makes the comparison and
+   * the write a single step.
+   *
+   * onlyIfExists makes the call update-only: a missing key stays missing and
+   * the call answers null. That lets a caller that cannot vouch for its key
+   * (an unauthenticated request path) advance keys a trusted caller created,
+   * without being able to create keys of its own.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async setNumberIfGreater(
+    namespace: string,
+    key: string,
+    value: number,
+    options: CacheSetOptions & { onlyIfExists?: boolean | undefined },
+  ): Promise<number | null> {
+    if (!Number.isFinite(value)) {
+      throw new BadDataException("The value to store is not a number");
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local stored = redis.call('GET', KEYS[1]) " +
+        "if not stored and ARGV[3] == '1' then return false end " +
+        "local current = stored and tonumber(stored) " +
+        "if not current or tonumber(ARGV[1]) > current then " +
+        "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) " +
+        "return ARGV[1] end " +
+        "redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
+        "return stored",
+      1,
+      `${namespace}-${key}`,
+      String(value),
+      String(options.expiresInSeconds),
+      options.onlyIfExists ? "1" : "0",
+    );
+
+    if (result === null || result === undefined) {
+      return null;
+    }
+
+    const stored: number = Number(result);
+
+    if (!Number.isFinite(stored)) {
+      throw new BadDataException("The cached value is not a number");
+    }
+
+    return stored;
   }
 
   @CaptureSpan()

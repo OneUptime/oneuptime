@@ -168,8 +168,9 @@ test("the table reports what each rule declares, and where each output goes", as
 /*
  * The create form is a wizard. These walk it, because the interesting part is
  * not that the fields exist — the unit suite pins that from the exported
- * arrays — but that the rail reacts: the incident step is absent until the
- * rule says it declares one, and the alert step leaves when it says it does not.
+ * arrays — but that the rail reacts: the incident step is absent until When
+ * it fires says the rule declares one, and the alert step leaves when it says
+ * the rule does not raise one.
  */
 
 const STEP_RAIL: Array<string> = [
@@ -215,14 +216,26 @@ async function next(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Next", exact: true }).click();
 }
 
-// A toggle is found by the label it renders ("<Title> (Optional)").
+/*
+ * A toggle is found by its name: the title its row draws beside it as its
+ * label (a switch field says nothing about being optional). The dialog is
+ * drawn last, so the last match is the one in it.
+ */
 function toggle(page: Page, title: string): ReturnType<Page["locator"]> {
-  return page
-    .locator("div")
-    .filter({ hasText: new RegExp(`^${title} \\(Optional\\)`) })
-    .last()
-    .locator("[aria-checked]")
-    .first();
+  return page.getByRole("switch", { name: title, exact: true }).last();
+}
+
+/*
+ * What a rule opens is one question, When it fires, with three answers where
+ * there were two switches (Create Alert, Declare Incident) that could both be
+ * off. An answer is a radio button named by its title, its line under it.
+ */
+function whenItFires(page: Page): Locator {
+  return page.getByRole("radiogroup", { name: /^When it fires/ }).last();
+}
+
+function answer(page: Page, title: string): Locator {
+  return whenItFires(page).getByRole("radio", { name: title, exact: true });
 }
 
 async function fillRuleAndWindow(
@@ -263,13 +276,18 @@ test("the wider form opens with only the steps for its enabled outputs", async (
   expect(bounds).not.toBeNull();
   expect(bounds!.width).toBe(1280);
 
-  // Enabled carries its column default, so the first step is already truthful.
-  await expect(toggle(page, "Enabled")).toHaveAttribute("aria-checked", "true");
+  /*
+   * A new rule is on: Enabled is on the edit form only, so the first step
+   * asks for the name alone.
+   */
+  await expect(
+    page.getByRole("switch", { name: "Enabled", exact: true }),
+  ).toHaveCount(0);
 
   await screenshot(page, "burn-rate-rule-form-step-rule-synthetic", false);
 });
 
-test("the step rail gains and loses each output step with its toggle", async ({
+test("the step rail follows the answer to When it fires", async ({
   page,
 }: {
   page: Page;
@@ -279,15 +297,32 @@ test("the step rail gains and loses each output step with its toggle", async ({
   await screenshot(page, "burn-rate-rule-form-step-window-synthetic", false);
   await next(page);
 
-  // Step 3 - What It Declares: both toggles, together, before any output step.
-  const alertToggle: ReturnType<Page["locator"]> = toggle(page, "Create Alert");
-  const incidentToggle: ReturnType<Page["locator"]> = toggle(
-    page,
-    "Declare Incident",
-  );
+  /*
+   * Step 3 - What It Declares: one question, before any output step. A new
+   * rule starts on Create an alert, what the two columns' defaults make.
+   */
+  await expect(whenItFires(page).getByRole("radio")).toHaveCount(3);
+  await expect(answer(page, "Create an alert")).toBeChecked();
+  await expect(answer(page, "Declare an incident")).not.toBeChecked();
+  await expect(answer(page, "Both")).not.toBeChecked();
 
-  await expect(alertToggle).toHaveAttribute("aria-checked", "true");
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "false");
+  // Each answer says in a line what it opens.
+  for (const line of [
+    "Opens an alert for the team to look at.",
+    "Opens an incident. Burn rate incidents never reach status pages.",
+    "Opens an alert and an incident, each set up on the next steps.",
+  ]) {
+    await expect(
+      whenItFires(page).getByText(line, { exact: true }),
+    ).toBeVisible();
+  }
+
+  // The two switches it replaced are gone from the screen.
+  for (const title of ["Create Alert", "Declare Incident"]) {
+    await expect(
+      page.getByRole("switch", { name: title, exact: true }),
+    ).toHaveCount(0);
+  }
 
   // The switch that applies to both outputs lives here, off by default.
   await expect(toggle(page, "Add SLO Owners as Owners")).toHaveAttribute(
@@ -297,9 +332,9 @@ test("the step rail gains and loses each output step with its toggle", async ({
 
   await screenshot(page, "burn-rate-rule-form-step-declares-synthetic", false);
 
-  // Declaring an incident adds its configuration step.
-  await incidentToggle.click();
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "true");
+  // Both adds the incident's configuration step.
+  await answer(page, "Both").click();
+  await expect(answer(page, "Both")).toBeChecked();
   await expect
     .poll(() => {
       return visibleSteps(page);
@@ -312,9 +347,9 @@ test("the step rail gains and loses each output step with its toggle", async ({
     false,
   );
 
-  // And dropping the alert takes its configuration step away again.
-  await alertToggle.click();
-  await expect(alertToggle).toHaveAttribute("aria-checked", "false");
+  // And Declare an incident takes the alert's step away again.
+  await answer(page, "Declare an incident").click();
+  await expect(answer(page, "Declare an incident")).toBeChecked();
   await expect
     .poll(() => {
       return visibleSteps(page);
@@ -322,50 +357,25 @@ test("the step rail gains and loses each output step with its toggle", async ({
     .toEqual(["Rule", "Burn Window", "What It Declares", "Incident"]);
 
   /*
-   * A rule that declares nothing is refused here rather than after a
-   * round-trip. The server enforces it too — this only saves the trip.
-   *
-   * With neither output on, every output step leaves the rail, so What It
-   * Declares becomes the last step and its primary button turns from "Next"
-   * into the submit button. Wait for that before clicking: reaching for "Next"
-   * straight after the toggle only worked when the click beat the re-render.
+   * No answer opens nothing, so What It Declares is never the last step and
+   * the old "This rule would do nothing" refusal has nothing left to catch.
    */
-  await incidentToggle.click();
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "false");
+  await answer(page, "Create an alert").click();
   await expect
     .poll(() => {
       return visibleSteps(page);
     })
-    .toEqual(["Rule", "Burn Window", "What It Declares"]);
-  const dialog: ReturnType<Page["locator"]> = page.getByRole("dialog", {
-    name: "Create New SLO Burn Rate Rule",
-  });
-  await dialog
-    .getByRole("button", { name: "Create SLO Burn Rate Rule", exact: true })
-    .click();
-
-  // Refused in the form: the dialog is still open on the same step.
-  await expect(dialog).toBeVisible();
-
-  const noOutputError: ReturnType<Page["locator"]> = page.getByText(
-    "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.",
-  );
-
-  /*
-   * Once, not twice. The validator hangs off the alert toggle alone — both
-   * toggles carrying it rendered the same sentence under each of them.
-   */
-  await expect(noOutputError).toHaveCount(1);
-  await expect(noOutputError).toBeVisible();
-
-  await screenshot(page, "burn-rate-rule-form-no-output-synthetic", false);
+    .toEqual(["Rule", "Burn Window", "What It Declares", "Alert"]);
+  await expect(
+    page.getByText("This rule would do nothing", { exact: false }),
+  ).toHaveCount(0);
 });
 
 const OUTPUT_SECTIONS: Array<string> = [
   "Description",
   "Ownership & Labels",
   "On-Call",
-  "Advanced Options",
+  "More fields",
 ];
 
 async function setSection(
@@ -391,6 +401,39 @@ async function selectOption(
 ): Promise<void> {
   await page.getByRole("combobox", { name: field }).click();
   await page.getByRole("option", { name: value, exact: true }).click();
+}
+
+/*
+ * Owners are one people picker per output - people and teams in one list -
+ * where there used to be an Owner Teams and an Owner Users dropdown. Opens
+ * it, picks each name with one click, and closes it with Escape (which the
+ * list keeps from closing the dialog).
+ */
+async function pickOwners(
+  page: Page,
+  output: string,
+  names: Array<string>,
+): Promise<void> {
+  const owners: Locator = page.getByRole("group", { name: `${output} Owners` });
+  await owners.getByRole("button", { name: "Add owner", exact: true }).click();
+
+  const list: Locator = page.getByRole("dialog", {
+    name: "Add owner",
+    exact: true,
+  });
+
+  for (const name of names) {
+    await list.getByRole("option").filter({ hasText: name }).click();
+  }
+
+  await page.keyboard.press("Escape");
+  await expect(list).toHaveCount(0);
+
+  for (const name of names) {
+    await expect(
+      owners.getByTestId("people-chip").filter({ hasText: name }),
+    ).toBeVisible();
+  }
 }
 
 async function openEditForm(page: Page, ruleName: string): Promise<void> {
@@ -419,7 +462,7 @@ test("each output keeps title and severity beside collapsible optional sections"
   await openCreateForm(page);
   await fillRuleAndWindow(page);
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
 
   for (const output of ["Alert", "Incident"]) {
@@ -456,16 +499,20 @@ test("each output keeps title and severity beside collapsible optional sections"
       page.getByRole("textbox", { name: `${output} Description` }),
     ).toBeVisible();
     await setSection(page, "Ownership & Labels", true);
-    for (const field of ["Owner Teams", "Owner Users", "Labels"]) {
-      await expect(
-        page.getByRole("combobox", { name: `${output} ${field}` }),
-      ).toBeVisible();
-    }
+    // One picker for people and teams, then the labels.
+    await expect(
+      page
+        .getByRole("group", { name: `${output} Owners` })
+        .getByRole("button", { name: "Add owner", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: `${output} Labels` }),
+    ).toBeVisible();
     await setSection(page, "On-Call", true);
     await expect(
       page.getByRole("combobox", { name: `${output} On-Call Duty Policies` }),
     ).toBeVisible();
-    await setSection(page, "Advanced Options", true);
+    await setSection(page, "More fields", true);
     await expect(toggle(page, `Auto Resolve ${output}`)).toHaveAttribute(
       "aria-checked",
       "true",
@@ -539,12 +586,11 @@ async function configureOutput(
     .getByRole("textbox", { name: `${output} Description` })
     .fill(values.description);
   await setSection(page, "Ownership & Labels", true);
-  await selectOption(page, `${output} Owner Teams`, values.team);
-  await selectOption(page, `${output} Owner Users`, values.user);
+  await pickOwners(page, output, [values.user, values.team]);
   await selectOption(page, `${output} Labels`, values.label);
   await setSection(page, "On-Call", true);
   await selectOption(page, `${output} On-Call Duty Policies`, values.policy);
-  await setSection(page, "Advanced Options", true);
+  await setSection(page, "More fields", true);
   await toggle(page, `Auto Resolve ${output}`).click();
   await toggle(page, `Private ${output}`).click();
   await page
@@ -557,16 +603,51 @@ async function configureOutput(
   }
 }
 
+/*
+ * The sections that open by themselves when a step comes up holding a value
+ * in them: an Edit form, or a step drawn again after going back. More fields
+ * is not one of them. Like every More fields section (getAdvancedFormSection)
+ * it never opens itself, on Create or on Edit; folded, its header names the
+ * fields inside and shows each set one as a chip saying what it is set to.
+ */
+const SECTIONS_OPENED_BY_A_VALUE: Array<string> = [
+  "Description",
+  "Ownership & Labels",
+  "On-Call",
+];
+
 async function expectOutputValues(
   page: Page,
   values: OutputValues,
 ): Promise<void> {
   const output: string = values.output;
-  for (const title of OUTPUT_SECTIONS) {
+  for (const title of SECTIONS_OPENED_BY_A_VALUE) {
     await expect(
       page.getByRole("button", { name: title, exact: true }),
     ).toHaveAttribute("aria-expanded", "true");
   }
+
+  /*
+   * Folded, More fields still shows that all three of its fields are set,
+   * and to what. The remediation notes are a paragraph, so their chip has
+   * the name only. Then it opens to show the values themselves.
+   */
+  const moreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    moreFields.locator(
+      "[data-testid='folded-section-item'][data-item-set='true']",
+    ),
+  ).toHaveText([
+    `Auto Resolve ${output}: Off`,
+    `Private ${output}: On`,
+    `${output} Remediation Notes`,
+  ]);
+  await setSection(page, "More fields", true);
+
   await expect(
     page.getByRole("textbox", { name: `${output} Title` }),
   ).toHaveValue(values.title);
@@ -606,7 +687,7 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await openCreateForm(page);
   await fillRuleAndWindow(page, "Custom burn");
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await toggle(page, "Add SLO Owners as Owners").click();
   await next(page);
   await configureOutput(page, ALERT_VALUES);
@@ -614,8 +695,10 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await configureOutput(page, INCIDENT_VALUES);
 
   /*
-   * Go back with every optional section closed. The filled values survive
-   * both remounting a wizard step and the final create request.
+   * Go back with every optional section closed. The sections that open on a
+   * value open again, More fields stays folded and its header shows what is
+   * set, and the filled values survive both remounting a wizard step and the
+   * final create request.
    */
   await page
     .locator('nav[aria-label="Progress"] li')
@@ -634,6 +717,8 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await page.getByPlaceholder("Fast burn").fill("Custom burn updated");
   await next(page);
   await next(page);
+  // The rule's two columns read back as the answer they make.
+  await expect(answer(page, "Both")).toBeChecked();
   await expect(toggle(page, "Add SLO Owners as Owners")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -643,8 +728,13 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await page
     .getByRole("textbox", { name: "Alert Title" })
     .fill("Updated alert title");
+  /*
+   * Saved with these sections folded, More fields among them as an edit
+   * that never opens it leaves it: the next open still finds every value.
+   */
   await setSection(page, "Ownership & Labels", false);
   await setSection(page, "On-Call", false);
+  await setSection(page, "More fields", false);
   await next(page);
   await expectOutputValues(page, INCIDENT_VALUES);
   await page
@@ -652,6 +742,7 @@ test("creating and editing preserve both outputs' optional values and distinct r
     .fill("Updated incident title");
   await setSection(page, "Ownership & Labels", false);
   await setSection(page, "On-Call", false);
+  await setSection(page, "More fields", false);
   await page.getByRole("button", { name: "Save Changes", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -674,6 +765,8 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   page: Page;
 }) => {
   await openEditForm(page, "Fast burn");
+  // Enabled is on the edit form, on for a rule that is on.
+  await expect(toggle(page, "Enabled")).toHaveAttribute("aria-checked", "true");
   await reachOutputStep(page);
   for (const output of ["Alert", "Incident"]) {
     await expect(
@@ -691,7 +784,7 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
         page.getByRole("button", { name: title, exact: true }),
       ).toHaveAttribute("aria-expanded", "true");
     }
-    for (const title of ["Description", "Advanced Options"]) {
+    for (const title of ["Description", "More fields"]) {
       await expect(
         page.getByRole("button", { name: title, exact: true }),
       ).toHaveAttribute("aria-expanded", "false");
@@ -702,12 +795,20 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   }
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
 
-  // A false auto-resolve value is configured; a truthy-only check loses it.
+  /*
+   * A false auto-resolve value is set; a truthy-only check loses it. More
+   * fields stays folded, as every More fields section does, and its header
+   * shows the switch as off.
+   */
   await openEditForm(page, "Slow burn");
   await reachOutputStep(page);
-  await expect(
-    page.getByRole("button", { name: "Advanced Options", exact: true }),
-  ).toHaveAttribute("aria-expanded", "true");
+  const alertMoreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(alertMoreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(alertMoreFields).toContainText("Auto Resolve Alert: Off");
+  await alertMoreFields.click();
   await expect(toggle(page, "Auto Resolve Alert")).toHaveAttribute(
     "aria-checked",
     "false",
@@ -722,9 +823,13 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   await expect(
     page.getByRole("textbox", { name: "Incident Title" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Advanced Options", exact: true }),
-  ).toHaveAttribute("aria-expanded", "true");
+  const incidentMoreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(incidentMoreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(incidentMoreFields).toContainText("Private Incident: On");
+  await incidentMoreFields.click();
   await expect(toggle(page, "Private Incident")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -739,7 +844,7 @@ test("validation reopens a collapsed section containing an invalid description",
   await openCreateForm(page);
   await fillRuleAndWindow(page);
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
   await setSection(page, "Description", true);
   await page
@@ -825,7 +930,7 @@ test("default templates survive saving and reopening, and clearing them keeps th
   await openCreateForm(page);
   await fillRuleAndWindow(page, "Default templates");
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
 
   for (const output of ["Alert", "Incident"]) {
@@ -890,7 +995,7 @@ test("default templates survive saving and reopening, and clearing them keeps th
 });
 
 for (const disabledOutput of ["Alert", "Incident"]) {
-  test(`a disabled ${disabledOutput.toLowerCase()} restores its configured values after saving and re-enabling`, async ({
+  test(`a dropped ${disabledOutput.toLowerCase()} restores its configured values after saving and picking Both again`, async ({
     page,
   }: {
     page: Page;
@@ -914,11 +1019,13 @@ for (const disabledOutput of ["Alert", "Incident"]) {
       .locator('nav[aria-label="Progress"] li')
       .filter({ hasText: /^What It Declares$/ })
       .click();
-    const disabledToggle: string =
-      disabledOutput === "Alert" ? "Create Alert" : "Declare Incident";
+    // The answer that keeps the other output only.
+    const keptAnswer: string =
+      disabledOutput === "Alert" ? "Declare an incident" : "Create an alert";
     const enabledOutput: string =
       disabledOutput === "Alert" ? "Incident" : "Alert";
-    await toggle(page, disabledToggle).click();
+    await expect(answer(page, "Both")).toBeChecked();
+    await answer(page, keptAnswer).click();
     await expect
       .poll(() => {
         return visibleSteps(page);
@@ -939,11 +1046,8 @@ for (const disabledOutput of ["Alert", "Incident"]) {
     await openEditForm(page, "Fast burn");
     await next(page);
     await next(page);
-    await expect(toggle(page, disabledToggle)).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    await toggle(page, disabledToggle).click();
+    await expect(answer(page, keptAnswer)).toBeChecked();
+    await answer(page, "Both").click();
     await expect
       .poll(() => {
         return visibleSteps(page);

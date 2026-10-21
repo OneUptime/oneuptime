@@ -7,12 +7,15 @@ import ObjectID from "../../../Types/ObjectID";
 import WorkspaceChannelInvitationPayload from "../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
+  WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
+  WorkspaceNumberInputBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadMarkdown,
@@ -49,6 +52,27 @@ export interface WorkspaceChannel {
    * into that channel specifically rather than into the parent team.
    */
   membershipType?: string | undefined;
+}
+
+/*
+ * A channel the workspace is asked to create (createChannel): its name and,
+ * for Microsoft Teams, the team it is created in.
+ */
+export interface WorkspaceChannelToCreate {
+  channelName: string;
+  teamId?: string | undefined;
+}
+
+/*
+ * Where a message OneUptime keeps up to date sits, as the workspace needs it
+ * to edit the message: the channel (or Microsoft Teams chat) and, for a
+ * Teams channel, its team.
+ */
+export interface WorkspaceMessageLocation {
+  channelId: string;
+  teamId?: string | undefined;
+  // A Microsoft Teams group or personal chat, rather than a channel.
+  isChat?: boolean | undefined;
 }
 
 export default class WorkspaceBase {
@@ -91,13 +115,43 @@ export default class WorkspaceBase {
     return String(err);
   }
 
+  /*
+   * Edits a message the bot posted, in place: it keeps its place in the
+   * channel and nobody is notified again (Slack chat.update, Microsoft Teams
+   * updateActivity). Throws what the workspace answered when it refuses.
+   */
   @CaptureSpan()
-  public static async isUserInDirectMessageChannel(_data: {
+  public static async updateMessage(_data: {
     authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    // What a notification or a screen reader shows of the message.
+    text?: string | undefined;
+  }): Promise<void> {
     throw new NotImplementedException();
+  }
+
+  /*
+   * Whether an edit failed because the message is no longer there - somebody
+   * deleted it - so a new one has to be posted instead. Any other failure
+   * (the channel is archived, the app was removed, a network error) is not:
+   * posting again would fail the same way, or post twice.
+   */
+  public static isMessageGoneError(_error: unknown): boolean {
+    return false;
+  }
+
+  /*
+   * Whether creating a channel failed because a channel has that name
+   * already - one in use, an archived or deleted one the workspace keeps the
+   * name of, another project's - so it can be created under another name
+   * (WorkspaceNotificationRuleService tries name-2, name-3 and so on). Any
+   * other refusal is not: another name would be refused the same way.
+   */
+  public static isChannelNameTakenError(_error: unknown): boolean {
+    return false;
   }
 
   @CaptureSpan()
@@ -168,6 +222,8 @@ export default class WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    // What a notification or a screen reader shows of the message.
+    text?: string | undefined;
   }): Promise<WorkspaceThread> {
     throw new NotImplementedException();
   }
@@ -220,6 +276,20 @@ export default class WorkspaceBase {
   @CaptureSpan()
   public static getDateTimePickerBlock(_data: {
     payloadDateTimePickerBlock: WorkspaceDateTimePickerBlock;
+  }): JSONObject {
+    throw new NotImplementedException();
+  }
+
+  @CaptureSpan()
+  public static getDatePickerBlock(_data: {
+    payloadDatePickerBlock: WorkspaceDatePickerBlock;
+  }): JSONObject {
+    throw new NotImplementedException();
+  }
+
+  @CaptureSpan()
+  public static getNumberInputBlock(_data: {
+    payloadNumberInputBlock: WorkspaceNumberInputBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
@@ -287,6 +357,19 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  /*
+   * Whether the workspace creates two channels it is asked for as one
+   * channel, and so refuses to create the second. Names are taken as they
+   * are here; a workspace that changes the names it is given compares them
+   * as it changes them.
+   */
+  public static isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return channel.channelName === otherChannel.channelName;
+  }
+
   @CaptureSpan()
   public static getHeaderBlock(_data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
@@ -311,6 +394,22 @@ export default class WorkspaceBase {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
     throw new NotImplementedException();
+  }
+
+  /*
+   * Small, muted text under a message (WorkspacePayloadContext). A
+   * workspace with no such block of its own draws it as plain Markdown.
+   */
+  @CaptureSpan()
+  public static getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    return this.getMarkdownBlock({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: data.payloadContextBlock.text,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -338,6 +437,13 @@ export default class WorkspaceBase {
           break;
         case "WorkspacePayloadDivider":
           blocks.push(this.getDividerBlock());
+          break;
+        case "WorkspacePayloadContext":
+          blocks.push(
+            this.getContextBlock({
+              payloadContextBlock: block as WorkspacePayloadContext,
+            }),
+          );
           break;
         case "WorkspacePayloadButtons":
           blocks.push(
@@ -385,6 +491,20 @@ export default class WorkspaceBase {
           blocks.push(
             this.getDateTimePickerBlock({
               payloadDateTimePickerBlock: block as WorkspaceDateTimePickerBlock,
+            }),
+          );
+          break;
+        case "WorkspaceDatePickerBlock":
+          blocks.push(
+            this.getDatePickerBlock({
+              payloadDatePickerBlock: block as WorkspaceDatePickerBlock,
+            }),
+          );
+          break;
+        case "WorkspaceNumberInputBlock":
+          blocks.push(
+            this.getNumberInputBlock({
+              payloadNumberInputBlock: block as WorkspaceNumberInputBlock,
             }),
           );
           break;

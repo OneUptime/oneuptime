@@ -1,0 +1,25 @@
+# A release installed from a 14.0.2 to 14.0.8 chart that never touched AI
+# access, upgraded with --reuse-values. Helm stored that chart's whole
+# aiAccess block with its defaults (enabled: false and the Runner image among
+# them) whether or not anyone set it, and there is no aiAgent. aiAccess.enabled
+# is therefore NOT an opt-out: the agent must come up, read-only, with the
+# NEW image and the NEW resources, never the stored Runner ones.
+aiAgent: null
+aiAccess:
+  enabled: false
+  remediation:
+    enabled: false
+    namespaces: []
+    nodeOperations: true
+  image:
+    repository: oneuptime/runner
+    tag: ""
+    pullPolicy: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  extraEnv: []

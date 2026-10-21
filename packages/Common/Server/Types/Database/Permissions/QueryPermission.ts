@@ -2,14 +2,14 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
+import ColumnRefusalMessage from "./ColumnRefusalMessage";
+import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
+import RelationListPermission from "./RelationListPermission";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
@@ -18,10 +18,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
+import Permission from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 import Typeof from "../../../../Types/Typeof";
 
 export default class QueryPermission {
@@ -45,13 +45,15 @@ export default class QueryPermission {
     props: DatabaseCommonInteractionProps,
   ): void {
     const model: BaseModel = new modelType();
-    const userPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((i: UserPermission) => {
-        return i.permission;
-      });
+
+    /*
+     * What the caller holds, read the way the select check reads it
+     * (ColumnPermission): allow rows grant, and a block with no labels takes
+     * a permission away.
+     */
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: ColumnPermissions.getColumnCheckRows(props),
+    });
 
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
@@ -130,35 +132,71 @@ export default class QueryPermission {
               continue;
             }
 
-            // check if the user has permission to read this column
-            if (userPermissions) {
-              const hasPermission: boolean = relatedModel.hasReadPermissions(
-                userPermissions,
-                innerKey,
-              );
-
-              if (!hasPermission) {
-                let readPermissions: Array<Permission> = [];
-                if (relatedModel.getColumnAccessControlFor(innerKey)) {
-                  readPermissions =
-                    relatedModel.getColumnAccessControlFor(innerKey)!.read;
-                }
-
-                throw new NotAuthorizedException(
-                  `You do not have permissions to read ${
-                    relatedModel.singularName
-                  } on ${
-                    model.singularName
-                  }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                    readPermissions,
-                  ).join(", ")}`,
-                );
+            /*
+             * Whether the caller may read this column of the related record,
+             * by the rule every permission check follows (HeldPermissionsUtil),
+             * as the select check reads a column: one of its read permissions
+             * held, no block with no labels on any of them, and the related
+             * table's operational-resource wildcard for a column that lets in
+             * everyone its table does. A column without its own access
+             * control is read with its table's permissions.
+             */
+            if (
+              !QueryPermission.canReadRelatedColumn({
+                relatedModel: relatedModel,
+                column: innerKey,
+                held: held,
+              })
+            ) {
+              let readPermissions: Array<Permission> = [];
+              if (relatedModel.getColumnAccessControlFor(innerKey)) {
+                readPermissions =
+                  relatedModel.getColumnAccessControlFor(innerKey)!.read;
               }
+
+              throw new NotAuthorizedException(
+                `You do not have permissions to read ${
+                  relatedModel.singularName
+                } on ${
+                  model.singularName
+                }. ${ColumnRefusalMessage.getWhoMay("query", readPermissions)}`,
+              );
             }
           }
         }
       }
     }
+  }
+
+  // Whether `held` may read one column of a record reached by a relation.
+  private static canReadRelatedColumn(data: {
+    relatedModel: BaseModel;
+    column: string;
+    held: HeldPermissions;
+  }): boolean {
+    const tablePermissions: Array<Permission> =
+      data.relatedModel.getReadPermissions() || [];
+
+    if (!data.relatedModel.getColumnAccessControlFor(data.column)) {
+      return HeldPermissionsUtil.holdsAnyOf(data.held, tablePermissions, {
+        wildcard: HeldPermissionsUtil.getModelWildcard({
+          isOperationalResource: data.relatedModel.isOperationalResource,
+          operation: "read",
+        }),
+      });
+    }
+
+    const columnPermissions: Array<Permission> =
+      data.relatedModel.getColumnAccessControlFor(data.column)!.read || [];
+
+    return HeldPermissionsUtil.holdsAnyOf(data.held, columnPermissions, {
+      wildcard: HeldPermissionsUtil.getColumnWildcard({
+        isOperationalResource: data.relatedModel.isOperationalResource,
+        operation: "read",
+        tablePermissions: tablePermissions,
+        columnPermissions: columnPermissions,
+      }),
+    });
   }
 
   @CaptureSpan()
@@ -180,16 +218,10 @@ export default class QueryPermission {
      */
     OwnerOnlyColumnPermission.checkQueryPermission(modelType, query, props);
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns =
       ColumnPermissions.getModelColumnsByPermissions(
         modelType,
-        userPermissions || [],
+        ColumnPermissions.getColumnCheckRows(props),
         DatabaseRequestType.Read,
       );
 
@@ -197,6 +229,14 @@ export default class QueryPermission {
 
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
+
+    /*
+     * What the caller holds, read the way the select check reads it - for
+     * the columns a relation filter names (checkRelationFilterPermission).
+     */
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: ColumnPermissions.getColumnCheckRows(props),
+    });
 
     // Now we need to check all columns.
 
@@ -228,11 +268,10 @@ export default class QueryPermission {
 
           if (!canReadOnTheseColumns.columns.includes(field)) {
             throw new NotAuthorizedException(
-              `You do not have permissions to query on - ${field}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                model.getColumnAccessControlFor(field)
-                  ? model.getColumnAccessControlFor(field)!.read
-                  : [],
-              ).join(", ")}`,
+              ColumnRefusalMessage.getQueryRefusal({
+                column: field,
+                permissions: model.getColumnAccessControlFor(field)?.read || [],
+              }),
             );
           }
         }
@@ -247,14 +286,180 @@ export default class QueryPermission {
           );
         }
 
+        // Who may read it, or that nobody may (ColumnRefusalMessage).
         throw new NotAuthorizedException(
-          `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-            model.getColumnAccessControlFor(key)
-              ? model.getColumnAccessControlFor(key)!.read
-              : [],
-          ).join(", ")}`,
+          ColumnRefusalMessage.getQueryRefusal({
+            column: key,
+            permissions: model.getColumnAccessControlFor(key)?.read || [],
+          }),
         );
       }
+
+      QueryPermission.checkRelationFilterPermission({
+        model: model,
+        relationColumn: key,
+        filter: (query as Record<string, unknown>)[key],
+        held: held,
+        props: props,
+      });
     }
+  }
+
+  /*
+   * A FILTER THROUGH A RELATION IS HELD TO THE RELATED COLUMN'S READ.
+   *
+   * A query may filter a record by a column of a record it names -
+   * `{ user: { name: Search("jo") } }` on a team member - and the database
+   * joins the related table to answer it. The check above holds the
+   * relation itself to the caller's read, but nothing held the related
+   * column: a filter on a status page's `callSmsConfig.twilioAuthToken`, or
+   * on its `smtpConfig.password`, was answered for anyone who may read the
+   * page. Which records a filter matches says something about the value it
+   * compares, so a WHERE reads a value as surely as a SELECT does.
+   *
+   * So each column a relation filter names is held to the related column's
+   * read: a column marked canReadOnRelationQuery, which any reader of the
+   * relation may select, or one of the id and timestamp columns every
+   * select may name, is filtered on freely; any other only by a caller who
+   * may read that column of the related model (canReadRelatedColumn) - and
+   * never by a workflow's step when the related model is a setting that
+   * holds credentials, whose read a step acting as a Project Admin is not
+   * lent (RelationListPermission.isReadWithheldFromWorkflow): whoever may
+   * edit a workflow decides what its Find steps filter by. A filter a level
+   * deeper is held to the same rule from there. Root and master admin reads
+   * never reach this check.
+   */
+  private static checkRelationFilterPermission(data: {
+    model: BaseModel;
+    relationColumn: string;
+    filter: unknown;
+    held: HeldPermissions;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const filters: Array<unknown> = Array.isArray(data.filter)
+      ? data.filter
+      : [data.filter];
+
+    const relationFilters: Array<Record<string, unknown>> = filters.filter(
+      (filter: unknown): filter is Record<string, unknown> => {
+        return QueryPermission.isPlainObject(filter);
+      },
+    );
+
+    if (relationFilters.length === 0) {
+      return;
+    }
+
+    const tableColumnMetadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.relationColumn);
+
+    if (
+      !tableColumnMetadata ||
+      !tableColumnMetadata.modelType ||
+      (tableColumnMetadata.type !== TableColumnType.Entity &&
+        tableColumnMetadata.type !== TableColumnType.EntityArray)
+    ) {
+      return;
+    }
+
+    const relatedModel: BaseModel = new tableColumnMetadata.modelType();
+
+    const excludedColumnNames: Array<string> =
+      ColumnPermissions.getExcludedColumnNames();
+
+    /*
+     * The related model's columns the caller reads only on the records they
+     * or their teams own (a Runner's key: OwnedScopePermission
+     * .getColumnsKeptToOwners). A filter through the relation would match
+     * every other record by them too, so it is refused.
+     */
+    const keptToOwners: Array<string> =
+      OwnedScopePermission.getColumnsKeptToOwners(
+        tableColumnMetadata.modelType,
+        data.props,
+      );
+
+    for (const relationFilter of relationFilters) {
+      for (const relatedColumn of Object.keys(relationFilter)) {
+        if (keptToOwners.includes(relatedColumn)) {
+          throw new NotAuthorizedException(
+            OwnedScopePermission.getColumnKeptToOwnersRefusal(
+              tableColumnMetadata.modelType,
+              relatedColumn,
+            ),
+          );
+        }
+
+        const relatedColumnMetadata: TableColumnMetadata | undefined =
+          relatedModel.getTableColumnMetadata(relatedColumn);
+
+        if (!relatedColumnMetadata) {
+          throw new BadDataException(
+            `Column ${relatedColumn} not found on ${relatedModel.singularName}`,
+          );
+        }
+
+        if (
+          !excludedColumnNames.includes(relatedColumn) &&
+          !relatedColumnMetadata.canReadOnRelationQuery &&
+          (!QueryPermission.canReadRelatedColumn({
+            relatedModel: relatedModel,
+            column: relatedColumn,
+            held: data.held,
+          }) ||
+            RelationListPermission.isReadWithheldFromWorkflow(
+              tableColumnMetadata.modelType,
+              data.props,
+            ))
+        ) {
+          throw new NotAuthorizedException(
+            ColumnRefusalMessage.getRelationQueryRefusal({
+              column: relatedColumn,
+              relatedModelName: relatedModel.singularName || "",
+              relationColumn: data.relationColumn,
+              permissions: QueryPermission.getRelatedReadPermissions(
+                relatedModel,
+                relatedColumn,
+              ),
+            }),
+          );
+        }
+
+        QueryPermission.checkRelationFilterPermission({
+          model: relatedModel,
+          relationColumn: relatedColumn,
+          filter: relationFilter[relatedColumn],
+          held: data.held,
+          props: data.props,
+        });
+      }
+    }
+  }
+
+  // Who may read one column of a related model, as a refusal names them.
+  private static getRelatedReadPermissions(
+    relatedModel: BaseModel,
+    column: string,
+  ): Array<Permission> {
+    return (
+      relatedModel.getColumnAccessControlFor(column)?.read ||
+      relatedModel.getReadPermissions() ||
+      []
+    );
+  }
+
+  /*
+   * A filter object: what a relation filter is. Never an operator
+   * (Search, Includes...), an id or a date, which are values a column is
+   * compared with.
+   */
+  private static isPlainObject(value: unknown): boolean {
+    if (!value || typeof value !== Typeof.Object || Array.isArray(value)) {
+      return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
   }
 }

@@ -17,8 +17,16 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import WorkspaceOAuthState from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import UserService from "../../../Server/Services/UserService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
-import { AppApiClientUrl } from "../../../Server/EnvironmentConfig";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import logger from "../../../Server/Utils/Logger";
+import {
+  AppApiClientUrl,
+  DashboardClientUrl,
+} from "../../../Server/EnvironmentConfig";
 import SlackAppManifest from "../../../Server/Utils/Workspace/Slack/app-manifest.json";
 import {
   CacheEntry,
@@ -39,7 +47,13 @@ import {
  * link a Slack account to a OneUptime user (sign-in). These tests drive the
  * real routes over HTTP and pin that both callbacks trust only a single-use,
  * browser-bound state issued to an authorised member, and never the project
- * and user ids in the redirect path, which must agree with the state.
+ * and user ids in the redirect path, which must agree with the state. Before
+ * either writes, it asks again whether that member may still finish:
+ * connecting the project needs a role that may manage the connection,
+ * signing in needs membership (WorkspaceOAuthCallbackAccess). Every answer is
+ * a redirect to the Slack page the connection started from, with a code for
+ * a refusal (ConnectCallback.route); Tests/Server/API/ConnectCallbacksAnswer
+ * drives the failures.
  */
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
@@ -169,7 +183,67 @@ describe("Slack OAuth state", () => {
     postSpy = jest.spyOn(API, "post").mockImplementation(async () => {
       throw new Error("Unexpected API.post");
     });
+
+    // Whoever starts a flow is still a Project Admin when Slack sends them back.
+    callbackMembership = [Permission.ProjectAdmin];
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation(
+        async (data: {
+          userId: ObjectID;
+          projectId: ObjectID;
+        }): Promise<DatabaseCommonInteractionProps> => {
+          if (!callbackMembership) {
+            throw new NotAuthorizedException(
+              WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+            );
+          }
+
+          return {
+            userId: data.userId,
+            tenantId: data.projectId,
+            userTenantAccessPermission: {
+              [data.projectId.toString()]: {
+                _type: "UserTenantAccessPermission",
+                projectId: data.projectId,
+                permissions: callbackMembership.map(
+                  (permission: Permission) => {
+                    return {
+                      _type: "UserPermission",
+                      permission: permission,
+                      labelIds: [],
+                      isBlockPermission: false,
+                    };
+                  },
+                ),
+              },
+            },
+            userTeamIds: [],
+          };
+        },
+      );
+
+    jest.spyOn(UserService, "findOneById").mockImplementation(async () => {
+      return { isMasterAdmin: false } as any;
+    });
   });
+
+  /*
+   * What the person who started the flow holds in its project when Slack
+   * sends them back; null when they are no longer a member.
+   */
+  let callbackMembership: Array<Permission> | null = null;
+
+  // The callback's next membership read fails the way a database does.
+  function failNextMembershipRead(): void {
+    jest.spyOn(logger, "error").mockImplementation(() => {});
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
+    ).mockImplementationOnce(async () => {
+      throw new Error('relation "TeamMember" does not exist');
+    });
+  }
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -252,7 +326,16 @@ describe("Slack OAuth state", () => {
     };
   }
 
-  function stubInstallTokenExchange(): void {
+  /*
+   * Slack's answer to the install. Who installed it comes with a token of
+   * theirs only for an app that asks for user scopes: one created from an
+   * older manifest (`withUserToken`), not from this one.
+   */
+  function stubInstallTokenExchange(options?: {
+    withUserToken?: boolean | undefined;
+  }): void {
+    const withUserToken: boolean = options?.withUserToken !== false;
+
     postSpy.mockImplementation(async () => {
       return new HTTPResponse<JSONObject>(
         200,
@@ -261,7 +344,9 @@ describe("Slack OAuth state", () => {
           access_token: "xoxb-bot-token",
           bot_user_id: "UBOT",
           team: { id: SLACK_TEAM_ID, name: "Acme" },
-          authed_user: { id: "U123", access_token: "xoxp-user-token" },
+          authed_user: withUserToken
+            ? { id: "U123", access_token: "xoxp-user-token" }
+            : { id: "U123" },
         },
         {},
       ) as any;
@@ -288,6 +373,32 @@ describe("Slack OAuth state", () => {
   function expectNothingWritten(): void {
     expect(refreshProjectAuth).not.toHaveBeenCalled();
     expect(refreshUserAuth).not.toHaveBeenCalled();
+  }
+
+  // The project's Slack page, which every callback answers on.
+  function slackPage(): string {
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/settings/slack-integration`;
+  }
+
+  // Sent back to the Slack page, told `code` (ConnectCallback.route).
+  function expectAnsweredOnSlackPage(
+    response: ProbeResponse,
+    code: string,
+  ): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(`${slackPage()}?error=${code}`);
+  }
+
+  /*
+   * A state that cannot be spent names no project anyone may trust, not even
+   * the one in the path: the Dashboard opens the Slack page of the project
+   * the person has open, and tells them the link cannot be used.
+   */
+  function expectLinkRefused(response: ProbeResponse): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(
+      `${DashboardClientUrl.toString()}/connect-return?provider=slack&error=link-invalid`,
+    );
   }
 
   describe("GET /slack/install-url", () => {
@@ -342,9 +453,9 @@ describe("Slack OAuth state", () => {
       expect(query.get("scope")).toBe(
         (scopes["bot"] as Array<string>).join(","),
       );
-      expect(query.get("user_scope")).toBe(
-        (scopes["user"] as Array<string>).join(","),
-      );
+      // The app asks for no user scopes, so no user_scope - not even empty.
+      expect(scopes["user"]).toEqual([]);
+      expect(query.has("user_scope")).toBe(false);
       expect(query.get("redirect_uri")).toBe(
         `${AppApiClientUrl.toString()}/slack/auth/${projectId.toString()}/${userId.toString()}`,
       );
@@ -360,10 +471,7 @@ describe("Slack OAuth state", () => {
         code: "slack-code",
       });
 
-      expect(response.status).toBe(400);
-      expect((response.body as JSONObject)["message"]).toBe(
-        WorkspaceOAuthState.INVALID_STATE_MESSAGE,
-      );
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -380,7 +488,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -396,9 +504,7 @@ describe("Slack OAuth state", () => {
       );
 
       expect(response.status).toBe(302);
-      expect(response.location).toContain(
-        `/${projectId.toString()}/settings/slack-integration`,
-      );
+      expect(response.location).toBe(slackPage());
 
       expect(postSpy).toHaveBeenCalledTimes(1);
       expect((postSpy.mock.calls[0]![0] as any).data).toMatchObject({
@@ -421,6 +527,50 @@ describe("Slack OAuth state", () => {
       expect((userWrite["userId"] as ObjectID).toString()).toBe(
         userId.toString(),
       );
+      // An app created from an older manifest still gets a user token: kept.
+      expect(userWrite["authToken"]).toBe("xoxp-user-token");
+    });
+
+    test("installs with no user token - the app asks for no user scopes, so Slack names who installed it and gives no token of theirs - and links their Slack account all the same", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange({ withUserToken: false });
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.location).toBe(slackPage());
+
+      expect(refreshProjectAuth).toHaveBeenCalledTimes(1);
+      const projectWrite: JSONObject = refreshProjectAuth.mock
+        .calls[0]![0] as JSONObject;
+      expect(projectWrite["authToken"]).toBe("xoxb-bot-token");
+      expect(projectWrite["miscData"]).toEqual({
+        teamId: SLACK_TEAM_ID,
+        teamName: "Acme",
+        botUserId: "UBOT",
+      });
+
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+      const userWrite: JSONObject = refreshUserAuth.mock
+        .calls[0]![0] as JSONObject;
+      expect((userWrite["projectId"] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+      expect((userWrite["userId"] as ObjectID).toString()).toBe(
+        userId.toString(),
+      );
+      expect(userWrite["workspaceType"]).toBe(WorkspaceType.Slack);
+      expect(userWrite["workspaceUserId"]).toBe("U123");
+      expect(userWrite["miscData"]).toEqual({ userId: "U123" });
+      /*
+       * Linked with an empty token, which the service keeps
+       * (WorkspaceUserAuthTokenWithoutUserToken.test.ts).
+       */
+      expect(userWrite["authToken"]).toBe("");
     });
 
     test("refuses a path naming a different project from the state", async () => {
@@ -433,7 +583,8 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      // The path's project is never trusted, not even to choose a page.
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -448,7 +599,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
 
@@ -468,7 +619,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(replay.status).toBe(400);
+      expectLinkRefused(replay);
       expect(refreshProjectAuth).toHaveBeenCalledTimes(1);
     });
 
@@ -489,7 +640,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
 
@@ -503,7 +654,7 @@ describe("Slack OAuth state", () => {
         state,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -518,11 +669,78 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
 
-    test("reports a Slack error on the project that started the flow", async () => {
+    test("refuses an install finished by someone who may no longer connect the project", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+      callbackMembership = [Permission.Viewer];
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expectAnsweredOnSlackPage(response, "no-permission");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("refuses an install finished by someone who has left the project, with the same answer", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+      callbackMembership = null;
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expectAnsweredOnSlackPage(response, "no-permission");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("a check that fails is answered plainly, never with what failed, and connects nothing", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+      failNextMembershipRead();
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expectAnsweredOnSlackPage(response, "could-not-finish");
+      expect(response.location).not.toContain("TeamMember");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("asks about the person and project the state names, not the path", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+
+      await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      const read: { userId: ObjectID; projectId: ObjectID } = (
+        WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
+      ).mock.calls[0]![0] as { userId: ObjectID; projectId: ObjectID };
+
+      expect(read.userId.toString()).toBe(userId.toString());
+      expect(read.projectId.toString()).toBe(projectId.toString());
+    });
+
+    test("reports cancelling on Slack on the project that started the flow, as a code", async () => {
       const { state, browser } = await startFlow(INSTALL_START);
 
       const response: ProbeResponse = await callback(
@@ -531,11 +749,8 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(302);
-      expect(response.location).toContain(
-        `/${projectId.toString()}/settings/slack-integration`,
-      );
-      expect(response.location).toContain("error=access_denied");
+      expectAnsweredOnSlackPage(response, "cancelled");
+      expect(response.location).not.toContain("access_denied");
       expectNothingWritten();
     });
   });
@@ -570,7 +785,7 @@ describe("Slack OAuth state", () => {
         code: "slack-code",
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -586,10 +801,7 @@ describe("Slack OAuth state", () => {
       );
 
       expect(response.status).toBe(302);
-      expect(response.location).toContain(
-        `/${projectId.toString()}/settings/slack-integration`,
-      );
-      expect(response.location).not.toContain("error=");
+      expect(response.location).toBe(slackPage());
 
       expect((postSpy.mock.calls[0]![0] as any).data).toMatchObject({
         redirect_uri: `${AppApiClientUrl.toString()}/slack/auth/${projectId.toString()}/${userId.toString()}/user`,
@@ -618,7 +830,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -639,7 +851,7 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(replay.status).toBe(400);
+      expectLinkRefused(replay);
       expect(refreshUserAuth).toHaveBeenCalledTimes(1);
     });
 
@@ -652,7 +864,7 @@ describe("Slack OAuth state", () => {
         state,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
 
@@ -666,8 +878,59 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
+    });
+
+    test("refuses a sign-in finished by someone who has left the project", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START);
+      stubSignInTokenExchange();
+      callbackMembership = null;
+
+      const response: ProbeResponse = await callback(
+        signInCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expectAnsweredOnSlackPage(response, "not-a-member");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("a membership check that fails is answered plainly, never with what failed", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START);
+      stubSignInTokenExchange();
+      failNextMembershipRead();
+
+      const response: ProbeResponse = await callback(
+        signInCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expectAnsweredOnSlackPage(response, "could-not-finish");
+      expect(response.location).not.toContain("TeamMember");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("any member may finish signing in, as any member may start", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START, {
+        permissions: [Permission.Viewer],
+      });
+      stubSignInTokenExchange();
+      callbackMembership = [Permission.Viewer];
+
+      const response: ProbeResponse = await callback(
+        signInCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.location).toBe(slackPage());
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
     });
 
     test("still refuses a Slack account from a different workspace", async () => {
@@ -680,9 +943,68 @@ describe("Slack OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(302);
-      expect(response.location).toContain("error=");
+      expectAnsweredOnSlackPage(response, "slack-other-workspace");
       expectNothingWritten();
+    });
+  });
+
+  describe("the page a connection goes back to", () => {
+    test("a connection started on the project's settings goes back there", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.location).toBe(slackPage());
+    });
+
+    test("a connection started on the person's own settings goes back there", async () => {
+      const { state, browser } = await startFlow(
+        `${SIGN_IN_START}?from=user-settings`,
+      );
+      stubSignInTokenExchange();
+
+      const response: ProbeResponse = await callback(
+        signInCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.location).toBe(
+        `${DashboardClientUrl.toString()}/${projectId.toString()}/user-settings/slack-integration`,
+      );
+    });
+
+    test("a start page the start does not know is the project's settings", async () => {
+      const { state, browser } = await startFlow(
+        `${INSTALL_START}?from=${encodeURIComponent("https://evil.example/x")}`,
+      );
+      stubInstallTokenExchange();
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.location).toBe(slackPage());
+    });
+
+    test("the start page is recorded with the state, never read from the callback", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state, from: "user-settings" },
+        browser,
+      );
+
+      expect(response.location).toBe(slackPage());
     });
   });
 });

@@ -8,6 +8,10 @@ import {
   SharedAttribute,
   TopErrorPatternRow,
 } from "./LogsInsights";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "What is this error, and what should I do about it?" — computed from the
@@ -662,18 +666,43 @@ const CO_OCCURRENCE_SHARE: number = 0.5;
 /* Below this many occurrences, shape-based findings are reading noise. */
 const MIN_OCCURRENCES_FOR_SHAPE: number = 5;
 
-function formatRelativeToEvent(eventMs: number, referenceMs: number): string {
+/*
+ * "Deploy X landed 4 minutes before this error was first seen - ...", as one
+ * sentence per case, so a translation never glues a time phrase into it.
+ */
+function describeChangeNearFirstSeen(
+  changeLabel: string,
+  eventMs: number,
+  referenceMs: number,
+): string {
   const minutes: number = Math.round(Math.abs(referenceMs - eventMs) / 60000);
 
   if (minutes === 0) {
-    return "at the same moment as";
+    return translateTemplate(
+      "{{change}} landed at the same moment as this error was first seen — deployments and config changes are the most common cause of a new error.",
+      { change: changeLabel },
+    );
   }
 
-  const unit: string = minutes === 1 ? "minute" : "minutes";
-
   return eventMs <= referenceMs
-    ? `${minutes} ${unit} before`
-    : `${minutes} ${unit} after`;
+    ? translatePlural(
+        {
+          one: "{{change}} landed {{count}} minute before this error was first seen — deployments and config changes are the most common cause of a new error.",
+          other:
+            "{{change}} landed {{count}} minutes before this error was first seen — deployments and config changes are the most common cause of a new error.",
+        },
+        minutes,
+        { change: changeLabel },
+      )
+    : translatePlural(
+        {
+          one: "{{change}} landed {{count}} minute after this error was first seen — deployments and config changes are the most common cause of a new error.",
+          other:
+            "{{change}} landed {{count}} minutes after this error was first seen — deployments and config changes are the most common cause of a new error.",
+        },
+        minutes,
+        { change: changeLabel },
+      );
 }
 
 /**
@@ -716,7 +745,11 @@ export function buildErrorPatternFindings(
   for (const change of nearbyChanges) {
     findings.push({
       severity: "critical",
-      text: `${change.label} landed ${formatRelativeToEvent(change.timeMs, firstSeenMs as number)} this error was first seen — deployments and config changes are the most common cause of a new error.`,
+      text: describeChangeNearFirstSeen(
+        change.label,
+        change.timeMs,
+        firstSeenMs as number,
+      ),
     });
   }
 
@@ -732,7 +765,10 @@ export function buildErrorPatternFindings(
 
     findings.push({
       severity: "info",
-      text: `${change.label} also landed inside this window, though not close to when the error started.`,
+      text: translateTemplate(
+        "{{change}} also landed inside this window, though not close to when the error started.",
+        { change: change.label },
+      ),
     });
   }
 
@@ -740,7 +776,15 @@ export function buildErrorPatternFindings(
   if (evidence.trend.previousCount === 0 && evidence.trend.recentCount > 0) {
     findings.push({
       severity: "warning",
-      text: `New in this window: every one of the ${evidence.trend.recentCount.toLocaleString()} occurrences landed in its second half, with none before.`,
+      text: translatePlural(
+        {
+          one: "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
+          other:
+            "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
+        },
+        evidence.trend.recentCount,
+        { count: evidence.trend.recentCount.toLocaleString() },
+      ),
     });
   } else if (
     evidence.trend.direction === "rising" &&
@@ -748,12 +792,22 @@ export function buildErrorPatternFindings(
   ) {
     findings.push({
       severity: "warning",
-      text: `Getting worse: ${evidence.trend.changePercent}% more occurrences in the second half of the window than the first (${evidence.trend.previousCount.toLocaleString()} → ${evidence.trend.recentCount.toLocaleString()}).`,
+      text: translateTemplate(
+        "Getting worse: {{percent}}% more occurrences in the second half of the window than the first ({{previous}} → {{recent}}).",
+        {
+          percent: evidence.trend.changePercent,
+          previous: evidence.trend.previousCount.toLocaleString(),
+          recent: evidence.trend.recentCount.toLocaleString(),
+        },
+      ),
     });
   } else if (evidence.trend.direction === "falling") {
     findings.push({
       severity: "info",
-      text: `Easing off: ${Math.abs(evidence.trend.changePercent)}% fewer occurrences in the second half of the window than the first — if you changed something, it is working.`,
+      text: translateTemplate(
+        "Easing off: {{percent}}% fewer occurrences in the second half of the window than the first — if you changed something, it is working.",
+        { percent: Math.abs(evidence.trend.changePercent) },
+      ),
     });
   }
 
@@ -780,13 +834,24 @@ export function buildErrorPatternFindings(
 
     if (peak && peak.count >= occurrences * BURST_SHARE) {
       const share: number = Math.round((peak.count / occurrences) * 100);
-      const at: string = peak.time
-        ? OneUptimeDate.getDateAsLocalFormattedString(peak.time)
-        : "one bucket";
-
       findings.push({
         severity: "warning",
-        text: `Bursty, not steady: ${share}% of the occurrences landed in a single ${evidence.correlation.bucketSizeInMinutes}-minute bucket at ${at} — look for one event rather than an ongoing condition.`,
+        text: peak.time
+          ? translateTemplate(
+              "Bursty, not steady: {{share}}% of the occurrences landed in a single {{minutes}}-minute bucket at {{time}} — look for one event rather than an ongoing condition.",
+              {
+                share: share,
+                minutes: evidence.correlation.bucketSizeInMinutes,
+                time: OneUptimeDate.getDateAsLocalFormattedString(peak.time),
+              },
+            )
+          : translateTemplate(
+              "Bursty, not steady: {{share}}% of the occurrences landed in a single {{minutes}}-minute bucket — look for one event rather than an ongoing condition.",
+              {
+                share: share,
+                minutes: evidence.correlation.bucketSizeInMinutes,
+              },
+            ),
       });
     }
   }
@@ -798,12 +863,22 @@ export function buildErrorPatternFindings(
   if (resources.length === 1 && occurrences >= MIN_OCCURRENCES_FOR_SHAPE) {
     findings.push({
       severity: "warning",
-      text: `Confined to one source, ${evidence.resourceLabel(resources[0]!.resourceId)} — that points at that instance or host rather than at the code path itself.`,
+      text: translateTemplate(
+        "Confined to one source, {{source}} — that points at that instance or host rather than at the code path itself.",
+        { source: evidence.resourceLabel(resources[0]!.resourceId) },
+      ),
     });
   } else if (resources.length >= 3) {
     findings.push({
       severity: "info",
-      text: `Spread across ${resources.length} sources — a shared dependency or a common code path, not one bad instance.`,
+      text: translatePlural(
+        {
+          one: "Spread across {{count}} sources — a shared dependency or a common code path, not one bad instance.",
+          other:
+            "Spread across {{count}} sources — a shared dependency or a common code path, not one bad instance.",
+        },
+        resources.length,
+      ),
     });
   }
 
@@ -817,7 +892,10 @@ export function buildErrorPatternFindings(
   if (universal) {
     findings.push({
       severity: "warning",
-      text: `Every occurrence carries ${universal.key} = ${universal.value} — the strongest single clue on this page about which input or path triggers it.`,
+      text: translateTemplate(
+        "Every occurrence carries {{key}} = {{value}} — the strongest single clue on this page about which input or path triggers it.",
+        { key: universal.key, value: universal.value },
+      ),
     });
   }
 
@@ -832,7 +910,18 @@ export function buildErrorPatternFindings(
   ) {
     findings.push({
       severity: "info",
-      text: `Fires alongside "${partner.sampleBody || partner.pattern}" (${partner.count.toLocaleString()} times in the same buckets) — the two probably share a cause.`,
+      text: translatePlural(
+        {
+          one: 'Fires alongside "{{pattern}}" ({{count}} time in the same buckets) — the two probably share a cause.',
+          other:
+            'Fires alongside "{{pattern}}" ({{count}} times in the same buckets) — the two probably share a cause.',
+        },
+        partner.count,
+        {
+          pattern: partner.sampleBody || partner.pattern,
+          count: partner.count.toLocaleString(),
+        },
+      ),
     });
   }
 
@@ -840,7 +929,9 @@ export function buildErrorPatternFindings(
   if (evidence.pattern.traceCount === 0) {
     findings.push({
       severity: "info",
-      text: "None of these logs carry a trace id, so there is no request context to open — instrumenting this path with tracing would make the next occurrence far easier to explain.",
+      text: translateTemplate(
+        "None of these logs carry a trace id, so there is no request context to open — instrumenting this path with tracing would make the next occurrence far easier to explain.",
+      ),
     });
   }
 
@@ -852,7 +943,10 @@ export function buildErrorPatternFindings(
 
     findings.push({
       severity: "info",
-      text: `${event.label} was open inside this window — it may share this root cause.`,
+      text: translateTemplate(
+        "{{event}} was open inside this window — it may share this root cause.",
+        { event: event.label },
+      ),
     });
   }
 
@@ -866,8 +960,12 @@ export function buildErrorPatternFindings(
     findings.push({
       severity: "info",
       text: canReadShape
-        ? "Nothing about this error's shape stands out — it is steady, spread out, and shares no attribute across every occurrence. Widening the window, or opening one of its traces, is the next move."
-        : "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
+        ? translateTemplate(
+            "Nothing about this error's shape stands out — it is steady, spread out, and shares no attribute across every occurrence. Widening the window, or opening one of its traces, is the next move.",
+          )
+        : translateTemplate(
+            "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
+          ),
     });
   }
 

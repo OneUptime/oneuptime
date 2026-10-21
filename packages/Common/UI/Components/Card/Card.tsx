@@ -1,5 +1,6 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
+import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -22,16 +23,50 @@ export interface CardButtonSchema {
 }
 
 /*
- * How the header shares its width.
+ * Where a card's actions go. Whatever the layout, what a card offers - Edit,
+ * Create, the ⋯ menu, a status badge, a picker - sits at the RIGHT edge of
+ * the header, on the title's line ("Why are edit buttons not on the right?").
+ * When it does not fit there it moves onto the next line, still at the right
+ * edge. It is never centred, and never put under the description at the
+ * left.
  *
- * "default" puts the actions to the right of the title on md and up, which
- * suits a full-width card. In a narrow column (the one-third sidebar of an
- * overview page) that squeezes the title and description into a column a
- * word or two wide beside the buttons, so "stacked" gives the title and
- * description the whole width and moves the actions onto their own row
- * underneath.
+ * How the header shares its width:
+ *
+ * "default" is for a card as wide as the page's content: the title and the
+ * description on the left, the actions beside them on the right, their top
+ * level with the title's. Below md the description is hidden, and the title
+ * and the actions share a line the way the stacked header's do.
+ *
+ * "stacked" is for a narrow column (the one-third sidebar of an overview
+ * page, or a card whose header holds a row of controls). Beside the actions
+ * the description would be squeezed into a column a word or two wide, so the
+ * title and the actions share the first line and the description runs under
+ * both, across the card's whole width.
+ *
+ * "toolbar" is the stacked header for a card as wide as the page whose
+ * actions are a row of controls - a table's search, its saved views, its
+ * main button and ⋯. The title and the controls share the first line, and
+ * the description runs under both; but where the stacked header keeps half
+ * the line for the title, this one keeps only what a title needs (12rem), so
+ * a table's controls stay beside its title until they really do not fit,
+ * rather than dropping to a line of their own the moment a filter brings
+ * the Saved Views button in.
  */
-export type CardHeaderLayout = "default" | "stacked";
+export type CardHeaderLayout = "default" | "stacked" | "toolbar";
+
+/*
+ * Every layout, for the tests that hold each of them to the rule above: a
+ * Record, so a layout added to the type cannot be left out of the list.
+ */
+const CARD_HEADER_LAYOUT_SET: Record<CardHeaderLayout, true> = {
+  default: true,
+  stacked: true,
+  toolbar: true,
+};
+
+export const CARD_HEADER_LAYOUTS: ReadonlyArray<CardHeaderLayout> = Object.keys(
+  CARD_HEADER_LAYOUT_SET,
+) as Array<CardHeaderLayout>;
 
 export interface ComponentProps {
   title?: string | ReactElement | undefined;
@@ -42,17 +77,143 @@ export interface ComponentProps {
   bodyClassName?: string | undefined;
   rightElement?: ReactElement | undefined;
   headerLayout?: CardHeaderLayout | undefined;
+  /*
+   * The card is as tall as the box it is in, and its body takes the height
+   * the header leaves - for cards that share a grid row, so the row ends on
+   * one line instead of leaving the page showing under the shorter card.
+   * The box gives the height: a grid cell is as tall as its row. The body
+   * is a column, so what is in it can grow into the room (flex-1) or sit in
+   * its middle. The card adds no gap under itself: the box's parent spaces
+   * its cards. A card drawn as a section of another card ignores it: the
+   * card it is in has the height.
+   */
+  fillHeight?: boolean | undefined;
 }
+
+/*
+ * The header's class names, exported so the layout tests and the guard
+ * (Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx) read the same
+ * strings Card draws with.
+ */
+
+/*
+ * The actions: one row that wraps, at the right edge of the header. ml-auto
+ * keeps the row at the right edge when it has a line to itself, and
+ * justify-end keeps each of its own lines there when it wraps.
+ */
+export const CARD_HEADER_ACTIONS_CLASS_NAME: string =
+  "ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2";
+
+/*
+ * The title's share of the line it shares with the actions.
+ *
+ * On a phone the title keeps its whole width: the actions stay beside it
+ * while the two fit, and move to the next line, at the right edge, when they
+ * do not - the title is never broken to make room for them.
+ *
+ * In the stacked header from md up - the one-third column of an overview
+ * page, about 230px of header at 1280px - the title grows into whatever the
+ * actions leave, and keeps the line with them as long as they leave it at
+ * least half of it: "Affected Resources" breaks over two lines beside Edit
+ * rather than dropping Edit onto a line of its own. Actions wider than that
+ * - a probe picker and Test Monitor, or Assign and Refresh in that narrow
+ * column - move to the next line instead, so a title is never squeezed
+ * beside a row of controls.
+ *
+ * In the default header from md up the title and the description fill what
+ * the actions leave, on one line that does not wrap.
+ */
+export const CARD_HEADER_TITLE_BLOCK_CLASS_NAME: string = "min-w-0 md:flex-1";
+
+export const CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME: string =
+  "min-w-0 md:grow md:basis-1/2";
+
+/*
+ * In the toolbar header from md up the title grows into what the controls
+ * leave, and keeps the line with them as long as they leave it 12rem.
+ */
+export const CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME: string =
+  "min-w-0 md:grow md:basis-48";
+
+/*
+ * A control of a toolbar header that fills its line on a phone - a table's
+ * search - marks the element it is in with this attribute. Below md the
+ * toolbar's actions, and the action box that holds that element, then take
+ * the card's width (CARD_HEADER_TOOLBAR_FILL_CLASS_NAME), so the search can
+ * fill its line: as wide as the card, not hung at the right edge, and an
+ * opened search no wider than its text's own measure. A toolbar with no
+ * such control (a table without a search) keeps its buttons beside the
+ * title while they fit.
+ */
+export const CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE: string = "data-toolbar-fill";
+
+export const CARD_HEADER_TOOLBAR_FILL_CLASS_NAME: string =
+  "max-md:has-[[data-toolbar-fill]]:w-full";
+
+/*
+ * Each action's own box. Button carries a left margin meant for a dialog's
+ * footer (md:ml-3 on a normal button, ml-1 on an outline one), which made
+ * the gaps between a card's buttons uneven - 18px between two normal
+ * buttons, 10px before the ⋯. The row's gap spaces them, so that margin is
+ * cleared on the action itself (a <button>, or the one element a button
+ * sits in: a disabled button's tooltip span, the ⋯ menu's wrapper) and never
+ * on the buttons inside a control, such as a picker or a dialog it opens.
+ */
+export const CARD_HEADER_ACTION_CLASS_NAME: string =
+  "flex items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+/*
+ * A card's frame on a page: a white box with a border, rounded corners and a
+ * shadow, and a gap under it for the next card.
+ */
+export const CARD_FRAME_CLASS_NAME: string =
+  "bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible";
+
+/*
+ * The same card drawn as a section of the card it is in (CardSections): no
+ * frame and no gap of its own, a divider across the whole card above it.
+ * Its padding is a card's, so everything drawn to a card's edges - a
+ * table's rows and footer, a switch row - still reaches the section's.
+ */
+export const CARD_SECTION_CLASS_NAME: string = "border-t border-gray-200";
+
+export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";
+
+/*
+ * What fillHeight adds, exported so the tests read the same strings: the
+ * card and its frame take the box's height, the frame and the padding are
+ * columns, and the body grows into what the header leaves.
+ */
+export const CARD_FILL_HEIGHT_CLASS_NAME: string = "h-full";
+
+export const CARD_FILL_HEIGHT_FRAME_CLASS_NAME: string = "flex h-full flex-col";
+
+export const CARD_FILL_HEIGHT_CONTENT_CLASS_NAME: string =
+  "flex flex-1 flex-col";
+
+export const CARD_FILL_HEIGHT_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
+
+/*
+ * A section's title, a step below a card's: the sections are parts of one
+ * card, and their titles say so beside the cards on the rest of the page.
+ */
+export const CARD_TITLE_CLASS_NAME: string =
+  "text-lg font-semibold leading-6 text-gray-900 text-balance break-words";
+
+export const CARD_SECTION_TITLE_CLASS_NAME: string =
+  "text-base font-semibold leading-6 text-gray-900 text-balance break-words";
 
 const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const isSection: boolean = useIsCardSection();
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
-  const noRightElementsOrButtons: boolean = !props.rightElement && !hasButtons;
-  const isStacked: boolean = props.headerLayout === "stacked";
+  const hasActions: boolean = Boolean(props.rightElement) || hasButtons;
+  const isToolbar: boolean = props.headerLayout === "toolbar";
+  const isStacked: boolean = props.headerLayout === "stacked" || isToolbar;
   const translatedTitle: string | ReactElement | undefined = translateValue(
     props.title,
   );
@@ -63,7 +224,14 @@ const Card: FunctionComponent<ComponentProps> = (
     return (props.buttons || []).map(
       (button: CardButtonSchema | ReactElement, i: number) => {
         return (
-          <div key={i} className="flex items-center">
+          <div
+            key={i}
+            className={
+              isToolbar
+                ? `${CARD_HEADER_ACTION_CLASS_NAME} ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}`
+                : CARD_HEADER_ACTION_CLASS_NAME
+            }
+          >
             {React.isValidElement(button) ? button : null}
             {React.isValidElement(button) ? null : (
               <Button
@@ -91,86 +259,178 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const titleAndDescription: ReactElement = (
-    <React.Fragment>
-      {translatedTitle && (
-        <h2
-          data-testid="card-details-heading"
-          id="card-details-heading"
-          className="text-lg font-semibold leading-6 text-gray-900"
-        >
-          {translatedTitle}
-        </h2>
+  const titleElement: ReactElement | false | "" | undefined =
+    translatedTitle && (
+      <h2
+        data-testid="card-details-heading"
+        id="card-details-heading"
+        className={
+          isSection ? CARD_SECTION_TITLE_CLASS_NAME : CARD_TITLE_CLASS_NAME
+        }
+      >
+        {translatedTitle}
+      </h2>
+    );
+
+  const descriptionElement: ReactElement | false | "" | undefined =
+    translatedDescription && (
+      <p
+        data-testid="card-description"
+        className="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed"
+      >
+        {translatedDescription}
+      </p>
+    );
+
+  const actionsElement: ReactElement | null = hasActions ? (
+    <div
+      data-testid="card-header-actions"
+      className={`${CARD_HEADER_ACTIONS_CLASS_NAME}${
+        isStacked ? "" : " md:flex-shrink-0"
+      }${isToolbar ? ` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}` : ""}`}
+    >
+      {props.rightElement && (
+        <div className="flex items-center">{props.rightElement}</div>
       )}
-      {translatedDescription && (
-        <p
-          data-testid="card-description"
-          className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
+      {hasButtons && renderButtons()}
+    </div>
+  ) : null;
+
+  /*
+   * The title and the actions share one line that wraps: side by side while
+   * the actions leave the title its share, the actions on the next line - at
+   * the right edge - when they do not (see the title block's class above).
+   * On a phone the two are centred on each other; from md up their tops are
+   * level, as in the default header. The description is not on that line,
+   * so its length cannot push the actions off it: it runs under both, across
+   * the card's whole width.
+   */
+  const stackedHeader: ReactElement = (
+    <div
+      data-testid="card-header"
+      data-header-layout={isToolbar ? "toolbar" : "stacked"}
+    >
+      {(titleElement || actionsElement) && (
+        <div
+          data-testid="card-header-title-row"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start"
         >
-          {translatedDescription}
-        </p>
+          {titleElement && (
+            <div
+              data-testid="card-header-title-block"
+              className={
+                actionsElement
+                  ? isToolbar
+                    ? CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME
+                    : CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
+                  : "w-full min-w-0"
+              }
+            >
+              {titleElement}
+            </div>
+          )}
+          {actionsElement}
+        </div>
       )}
-    </React.Fragment>
+      {descriptionElement}
+    </div>
   );
 
   /*
-   * Button carries a left margin for the side-by-side header (ml-1 or
-   * md:ml-3, depending on its style). On a row of its own that margin only
-   * pushes the first button off the title's left edge, and the gap already
-   * spaces the rest, so it is cleared here.
+   * From md up the title and the description are one block on the left, and
+   * the actions sit beside it at the right edge, their top level with the
+   * title's. Below md the description is hidden, so the title and the
+   * actions share a line the way the stacked header's do: centred on each
+   * other while they fit, the actions on the next line, at the right edge,
+   * when they do not.
    */
-  const stackedHeader: ReactElement = (
-    <div data-testid="card-header" data-header-layout="stacked">
-      <div className="w-full min-w-0">{titleAndDescription}</div>
-      {(props.rightElement || hasButtons) && (
+  const defaultHeader: ReactElement = (
+    <div
+      data-testid="card-header"
+      data-header-layout="default"
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"
+    >
+      <div
+        data-testid="card-header-title-block"
+        className={
+          hasActions ? CARD_HEADER_TITLE_BLOCK_CLASS_NAME : "w-full min-w-0"
+        }
+      >
+        {titleElement}
+        {descriptionElement}
+      </div>
+      {actionsElement}
+    </div>
+  );
+
+  /*
+   * Only a card with a frame of its own fills its box: a section's height
+   * is the card it is in. Without fillHeight every class below is exactly
+   * what it was, so no other card changes.
+   */
+  const fillsHeight: boolean = Boolean(props.fillHeight) && !isSection;
+  const bodyClassName: string = props.bodyClassName || "mt-4";
+
+  const content: ReactElement = (
+    <div
+      className={
+        fillsHeight
+          ? `${CARD_PADDING_CLASS_NAME} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`
+          : CARD_PADDING_CLASS_NAME
+      }
+    >
+      {isStacked ? stackedHeader : defaultHeader}
+
+      {props.children && (
         <div
-          data-testid="card-header-actions"
-          className="mt-3 flex flex-wrap items-center gap-2 [&_button]:ml-0 [&_button]:md:ml-0"
+          className={
+            fillsHeight
+              ? `${bodyClassName} ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}`
+              : bodyClassName
+          }
         >
-          {props.rightElement && (
-            <div className="flex items-center">{props.rightElement}</div>
-          )}
-          {hasButtons && renderButtons()}
+          {props.children}
         </div>
       )}
     </div>
   );
 
-  const defaultHeader: ReactElement = (
-    <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+  if (isSection) {
+    return (
       <div
-        className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
+        data-testid="card"
+        data-card-surface="section"
+        className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}
       >
-        {titleAndDescription}
+        {content}
       </div>
-      {(props.rightElement || hasButtons) && (
-        <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center">
-          {props.rightElement && (
-            <div className="mb-2 md:mb-0 md:mr-3">{props.rightElement}</div>
-          )}
-          {hasButtons && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {renderButtons()}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+    );
+  }
+
+  /*
+   * A card that fills its box leaves no gap under it either: that would
+   * reach past the box's bottom, and its parent spaces its cards (a grid's
+   * or a column's gap).
+   */
+  const frameBoxClassName: string = fillsHeight
+    ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
+    : `mb-5 ${props.className || ""}`;
 
   return (
     <React.Fragment>
-      <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
-          <div className="py-6 px-5 md:px-6">
-            {isStacked ? stackedHeader : defaultHeader}
-
-            {props.children && (
-              <div className={props.bodyClassName || "mt-4"}>
-                {props.children}
-              </div>
-            )}
-          </div>
+      <div
+        data-testid="card"
+        data-fill-height={fillsHeight ? "true" : undefined}
+        className={frameBoxClassName}
+      >
+        <div
+          className={
+            fillsHeight
+              ? `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`
+              : CARD_FRAME_CLASS_NAME
+          }
+        >
+          {content}
         </div>
       </div>
     </React.Fragment>

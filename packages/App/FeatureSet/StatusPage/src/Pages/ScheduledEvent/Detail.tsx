@@ -35,8 +35,13 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "Common/Utils/ScheduledMaintenanceStart";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import { getResourcesAffectedByMonitors } from "Common/Types/StatusPage/StatusPageAffectedResources";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import FileModel from "Common/Models/DatabaseModels/File";
 import React, {
@@ -47,6 +52,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../Utils/i18n";
+import { AddEventToCalendarButton } from "../../Components/MaintenanceCalendar/MaintenanceCalendarButtons";
 import { translateStatusName } from "../../Utils/StatusTranslation";
 import useAsyncEffect from "use-async-effect";
 
@@ -58,11 +64,48 @@ export type GetScheduledEventEventItemFunctionProps = {
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
   isSummary: boolean;
+  /*
+   * The project's states, in their order: what places a state of the
+   * project's own, so one between Ongoing and Ended ("Verifying") shows as
+   * in progress, as Ongoing does (ScheduledMaintenanceStartUtil).
+   */
+  scheduledMaintenanceStates?: Array<ScheduledMaintenanceState> | undefined;
 };
 
 export type GetScheduledEventEventItemFunction = (
   props: GetScheduledEventEventItemFunctionProps,
 ) => EventItemComponentProps;
+
+/*
+ * The icon of a state change on the event's timeline, by where the state it
+ * moved into sits (Common/Utils/ScheduledMaintenanceStart): a clock while
+ * the event has not started - Scheduled, or a state of the project's own
+ * before Ongoing, such as "Confirmed"; the work icon while it is in
+ * progress; a check once it is complete - Completed, or a state of the
+ * project's own after it; an arrow when it is over but not complete yet -
+ * Ended, or "Reviewing" between Ended and Completed.
+ */
+export const getStateChangeIcon: (data: {
+  states: Array<ScheduledMaintenanceState>;
+  state: ScheduledMaintenanceState;
+}) => IconProp = (data: {
+  states: Array<ScheduledMaintenanceState>;
+  state: ScheduledMaintenanceState;
+}): IconProp => {
+  if (ScheduledMaintenanceStartUtil.isInProgress(data)) {
+    return IconProp.Settings;
+  }
+
+  if (ScheduledMaintenanceStartUtil.isComplete(data)) {
+    return IconProp.CheckCircle;
+  }
+
+  if (!ScheduledMaintenanceStartUtil.hasStarted(data)) {
+    return IconProp.Clock;
+  }
+
+  return IconProp.ArrowCircleRight;
+};
 
 export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
   props: GetScheduledEventEventItemFunctionProps,
@@ -76,6 +119,9 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     isPreviewPage,
     isSummary,
   } = props;
+
+  const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+    props.scheduledMaintenanceStates || [];
   /// get timeline.
 
   let currentStateStatus: string = "";
@@ -198,16 +244,11 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
           scheduledMaintenanceEventstateTimeline?.startsAt ||
           (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
-        icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-          .isScheduledState
-          ? IconProp.Clock
-          : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-                .isOngoingState
-            ? IconProp.Settings
-            : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-                  .isResolvedState
-              ? IconProp.CheckCircle
-              : IconProp.ArrowCircleRight,
+        icon: getStateChangeIcon({
+          states: scheduledMaintenanceStates,
+          state:
+            scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
+        }),
         iconColor:
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
             .color || Gray500,
@@ -233,57 +274,22 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
   });
 
-  let namesOfResources: Array<StatusPageResource> = [];
-
-  if (scheduledMaintenance.monitors) {
-    const monitorIdsInThisScheduledMaintenance: Array<string> =
-      scheduledMaintenance.monitors
-        .map((monitor: Monitor) => {
-          return monitor.id!.toString();
-        })
-        .filter((id: string) => {
-          return Boolean(id);
-        });
-
-    namesOfResources = statusPageResources.filter(
-      (resource: StatusPageResource) => {
-        return (
-          resource.monitorId &&
-          monitorIdsInThisScheduledMaintenance.includes(
-            resource.monitorId.toString(),
-          )
-        );
-      },
-    );
-
-    // add names of the groups as well.
-    namesOfResources = namesOfResources.concat(
-      statusPageResources.filter((resource: StatusPageResource) => {
-        if (!resource.monitorGroupId) {
-          return false;
-        }
-
-        const monitorGroupId: string = resource.monitorGroupId.toString();
-
-        const monitorIdsInThisGroup: Array<ObjectID> =
-          monitorsInGroup[monitorGroupId]!;
-
-        for (const monitorId of monitorIdsInThisGroup) {
-          if (
-            monitorIdsInThisScheduledMaintenance.find(
-              (id: string | undefined) => {
-                return id?.toString() === monitorId.toString();
-              },
-            )
-          ) {
-            return true;
-          }
-        }
-
-        return false;
-      }),
-    );
-  }
+  /*
+   * The page's resources the event's monitors reach - the resources that are
+   * one of them, then the groups that hold one - by the names the page gives
+   * them. The page's maintenance calendar names them by the same rule
+   * (StatusPageAffectedResources).
+   */
+  const namesOfResources: Array<StatusPageResource> =
+    getResourcesAffectedByMonitors({
+      monitorIds: (scheduledMaintenance.monitors || []).map(
+        (monitor: Monitor): string | undefined => {
+          return monitor.id?.toString();
+        },
+      ),
+      statusPageResources: statusPageResources,
+      monitorsInGroup: monitorsInGroup,
+    });
 
   return {
     eventTitle: scheduledMaintenance.title || "",
@@ -360,6 +366,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     Array<StatusPageResource>
   >([]);
 
+  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
+    Array<ScheduledMaintenanceState>
+  >([]);
+
   StatusPageUtil.checkIfUserHasLoggedIn();
 
   useAsyncEffect(async () => {
@@ -428,7 +438,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
           (data["monitorsInGroup"] as JSONObject) || {},
         ) as Dictionary<Array<ObjectID>>;
 
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+        BaseModel.fromJSONArray(
+          (data["scheduledMaintenanceStates"] as JSONArray) || [],
+          ScheduledMaintenanceState,
+        );
+
       // save data. set()
+      setScheduledMaintenanceStates(scheduledMaintenanceStates);
       setscheduledMaintenanceEventsPublicNotes(
         scheduledMaintenanceEventsPublicNotes,
       );
@@ -469,6 +486,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorsInGroup,
         isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
         isSummary: false,
+        scheduledMaintenanceStates,
       }),
     );
   }, [isLoading, i18nInstance.resolvedLanguage]);
@@ -488,6 +506,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
       <Page
         title={t("scheduledEvents.report")}
+        /*
+         * The event in a calendar app, once it is read - while it is still
+         * to come or under way; an event that is over is history.
+         */
+        headerRight={
+          scheduledMaintenanceEvent?.startsAt &&
+          (scheduledMaintenanceEvent.id || scheduledMaintenanceEvent._id) &&
+          ScheduledMaintenanceStartUtil.getPhase({
+            states: scheduledMaintenanceStates,
+            state: scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+          }) !== ScheduledMaintenancePhaseOfState.Over ? (
+            <AddEventToCalendarButton
+              eventId={(scheduledMaintenanceEvent.id ||
+                scheduledMaintenanceEvent._id)!.toString()}
+              title={scheduledMaintenanceEvent.title || ""}
+              startsAt={scheduledMaintenanceEvent.startsAt}
+              endsAt={scheduledMaintenanceEvent.endsAt}
+            />
+          ) : undefined
+        }
         breadcrumbLinks={[
           {
             title: t("nav.overview"),

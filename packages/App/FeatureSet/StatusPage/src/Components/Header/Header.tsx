@@ -1,4 +1,5 @@
 import Logo from "../Logo/Logo";
+import LogoPlate from "../Logo/LogoPlate";
 import Link from "Common/Types/Link";
 import UILink from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -64,7 +65,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * This deliberately does not use Common's <Header>. That component wraps its
+   * This deliberately does not use Common's <Header>. That component used to wrap its
    * rightComponents in "hidden lg:flex", which hid this header's links — and
    * the mobile menu button meant to replace them — on every viewport under
    * 1024px. The status page header is a logo and a row of links; a plain flex
@@ -74,7 +75,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
     <div className="mt-5 flex items-start justify-between gap-4">
       <div className="flex min-h-[3rem] items-center">
         {props.logo && (
-          <div id="status-page-logo" className="flex">
+          <LogoPlate id="status-page-logo" className="flex">
             <Logo
               file={props.logo}
               alt={props.logoAltText}
@@ -85,14 +86,14 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                 height: "50px",
               }}
             />
-          </div>
+          </LogoPlate>
         )}
       </div>
 
       {hasLinks && (
         <div className="relative flex min-h-[3rem] items-center">
           {/* Desktop: every link inline. */}
-          <div className="hidden md:flex md:items-center md:gap-5">
+          <div className="max-md:hidden md:flex md:items-center md:gap-5">
             {props.links.map((link: Link, i: number) => {
               return (
                 <UILink

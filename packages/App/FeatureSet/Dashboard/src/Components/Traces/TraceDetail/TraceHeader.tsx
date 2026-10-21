@@ -1,15 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import Route from "Common/Types/API/Route";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import SpanUtil from "../../../Utils/SpanUtil";
 import { formatRelativeTime } from "../../../Utils/ExceptionDetailPresentation";
 import {
@@ -35,10 +32,11 @@ export interface ComponentProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   shareUrl: string;
-  isCreatingPerformanceFix: boolean;
-  performanceFixRoute: Route | null;
-  performanceFixError: string | null;
-  onCreatePerformanceFix: () => void;
+  /*
+   * "Fix performance with AI" with what it found (TracePerformanceSuggestion)
+   * - only on a trace worth fixing; nothing otherwise.
+   */
+  performanceSuggestion?: ReactNode | undefined;
 }
 
 interface Stat {
@@ -213,24 +211,11 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         {/*
-         * Buttons are full width below md; on a phone the AI action takes a
-         * row and the two small actions share the next.
+         * On a phone the two small actions share a row. "Fix performance
+         * with AI" is not here: it shows below, only on a trace worth
+         * fixing, beside what it found.
          */}
         <div className="grid flex-none grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <div className="col-span-2 sm:col-span-1">
-            <Button
-              title="Fix performance with AI"
-              icon={IconProp.Bolt}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              isLoading={props.isCreatingPerformanceFix}
-              disabled={Boolean(props.performanceFixRoute)}
-              tooltip="Analyze this trace's span tree and, when a known performance pattern is found, open an AI pull request that fixes it"
-              dataTestId="trace-fix-performance"
-              className="md:!ml-0"
-              onClick={props.onCreatePerformanceFix}
-            />
-          </div>
           <CopyTextButton
             textToBeCopied={props.shareUrl}
             size="md"
@@ -253,30 +238,8 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {(props.performanceFixRoute || props.performanceFixError) && (
-        <div className="px-5 pb-4">
-          {props.performanceFixRoute ? (
-            <Alert
-              type={AlertType.SUCCESS}
-              strongTitle="Performance fix task created"
-              title={
-                <span>
-                  AI will open a pull request grounded in this trace&apos;s span
-                  tree.{" "}
-                  <Link className="underline" to={props.performanceFixRoute}>
-                    View task progress
-                  </Link>
-                </span>
-              }
-            />
-          ) : (
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle="Could not create the performance fix task"
-              title={<span>{props.performanceFixError}</span>}
-            />
-          )}
-        </div>
+      {props.performanceSuggestion && (
+        <div className="px-5 pb-4">{props.performanceSuggestion}</div>
       )}
 
       {/* gap-px over a gray ground draws the dividers at any column count. */}
@@ -379,7 +342,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                   <span className="tabular-nums text-gray-500">
                     {formatPercent(service.percent)}
                   </span>
-                  <span className="hidden tabular-nums text-gray-400 sm:inline">
+                  <span className="max-sm:hidden tabular-nums text-gray-400 sm:inline">
                     {pluralize(service.spanCount, "span")}
                   </span>
                   {service.errorCount > 0 && (

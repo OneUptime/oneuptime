@@ -3,6 +3,11 @@ import TemplateVariablesCatalog, {
   TemplateVariableGroup,
 } from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import {
+  TemplateVariable as EditorTemplateVariable,
+  TemplateVariableGroup as EditorTemplateVariableGroup,
+  TemplateVariableGroups,
+} from "../../../../Types/Template/TemplateVariable";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -31,9 +36,13 @@ const ALWAYS_GROUP_TITLES: Array<string> = [
 ];
 
 /*
- * The nine infrastructure/telemetry monitor types that (a) get the single
- * "Metric" per-type group AND (b) additionally get the "Series Labels" group.
- * Both lists in the source are identical, so one constant covers both.
+ * The eleven monitor types evaluated as metric series, which (a) get the
+ * single "Metric" per-type group AND (b) additionally get the "Series Labels"
+ * group. Written out rather than read from
+ * MonitorTypeHelper.getMetricBackedMonitorTypes(), so this file disagrees
+ * loudly if that list changes. IoT Device is one of them: the worker
+ * evaluates it as metric series, so its templates get {{metricName}} and its
+ * device labels like every other metric monitor's.
  */
 const INFRA_TYPES: Array<MonitorType> = [
   MonitorType.Metrics,
@@ -45,19 +54,17 @@ const INFRA_TYPES: Array<MonitorType> = [
   MonitorType.Proxmox,
   MonitorType.VMware,
   MonitorType.Ceph,
+  MonitorType.StorageArray,
+  MonitorType.IoTDevice,
 ];
 
 /*
  * Monitor types that hit the `default` arm of perTypeGroup (returns null) and
- * are NOT in the infrastructure list, so getVariables returns the identity
- * group and nothing else. IoTDevice is the notable trap here: it is a
- * telemetry monitor elsewhere in the codebase but is deliberately absent from
- * both the "Metric" and "Series Labels" branches.
+ * are NOT in the metric list, so getVariables returns the identity group and
+ * nothing else.
  */
 const IDENTITY_ONLY_TYPES: Array<MonitorType> = [
   MonitorType.Manual,
-  MonitorType.IoTDevice,
-  MonitorType.IncomingEmail,
   MonitorType.SQLQuery,
   MonitorType.Logs,
   MonitorType.Traces,
@@ -107,6 +114,17 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "requestBody",
       "requestHeaders",
       "incomingRequestReceivedAt",
+    ],
+  },
+  {
+    monitorType: MonitorType.IncomingEmail,
+    title: "Incoming Email",
+    keys: [
+      "emailSubject",
+      "emailFrom",
+      "emailTo",
+      "emailBody",
+      "emailReceivedAt",
     ],
   },
   {
@@ -197,6 +215,11 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "trapOid",
       "trapSourceIp",
       "trapVarbinds",
+      "tables.<key>.rowCount",
+      "tables.<key>.unhealthyRows",
+      "tables.<key>.rows",
+      "snmpTable",
+      "snmpTableRow",
     ],
   },
   {
@@ -277,6 +300,29 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "componentName",
       "isOnline",
       "responseTimeInMs",
+      "failureCause",
+    ],
+  },
+  {
+    monitorType: MonitorType.NTP,
+    title: "NTP",
+    keys: [
+      "isOnline",
+      "isSynchronized",
+      "stratum",
+      "clockOffsetInMs",
+      "referenceId",
+      "leapIndicator",
+      "kissCode",
+      "responseTimeInMs",
+      "roundTripDelayInMs",
+      "rootDelayInMs",
+      "rootDispersionInMs",
+      "serverTime",
+      "referenceTime",
+      "serverAddress",
+      "port",
+      "isTimeout",
       "failureCause",
     ],
   },
@@ -465,16 +511,100 @@ describe("TemplateVariablesCatalog.getVariables - identity-only monitor types", 
       expect(titlesOf(groups)).toEqual(ALWAYS_GROUP_TITLES);
     });
   }
+});
 
-  it("does not emit a series-labels group for IoTDevice even when attribute keys are supplied", () => {
+/*
+ * IoT Device monitors. The worker evaluates them as metric series and the
+ * server gives their templates {{metricName}} and, grouped by device, the
+ * device's labels (MonitorTemplateUtilIoTDevice.test.ts). The list under the
+ * editor used to leave both out, so it never offered {{device.id}} on a
+ * monitor grouped by it.
+ */
+describe("TemplateVariablesCatalog.getVariables - IoT Device", () => {
+  it("offers the Metric group's {{metricName}}", () => {
+    const metricGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IoTDevice,
+      }),
+      METRIC_GROUP_TITLE,
+    );
+
+    expect(metricGroup).toBeDefined();
+    expect(keysOf(metricGroup as TemplateVariableGroup)).toEqual([
+      "metricName",
+    ]);
+  });
+
+  it("offers a device-grouped monitor's device.id as a series label", () => {
     const groups: Array<TemplateVariableGroup> =
       TemplateVariablesCatalog.getVariables({
         monitorType: MonitorType.IoTDevice,
-        seriesAttributeKeys: ["host.name"],
+        seriesAttributeKeys: ["device.id"],
       });
 
-    expect(findGroup(groups, SERIES_GROUP_TITLE)).toBeUndefined();
-    expect(titlesOf(groups)).toEqual(ALWAYS_GROUP_TITLES);
+    expect(titlesOf(groups)).toEqual([
+      ...ALWAYS_GROUP_TITLES,
+      METRIC_GROUP_TITLE,
+      SERIES_GROUP_TITLE,
+    ]);
+    expect(
+      keysOf(findGroup(groups, SERIES_GROUP_TITLE) as TemplateVariableGroup),
+    ).toEqual(["device.id"]);
+  });
+
+  it("shows the Group By guidance on an ungrouped IoT monitor", () => {
+    const seriesGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IoTDevice,
+      }),
+      SERIES_GROUP_TITLE,
+    );
+
+    expect(seriesGroup).toBeDefined();
+    expect(seriesGroup?.variables).toEqual([]);
+    expect(seriesGroup?.description).toContain("Group By");
+  });
+
+  it("offers the editor the same groups and variables as a Metrics monitor with the same Group By", () => {
+    const namesOf: (
+      monitorType: MonitorType,
+    ) => Array<[string | undefined, Array<string>]> = (
+      monitorType: MonitorType,
+    ): Array<[string | undefined, Array<string>]> => {
+      return TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType,
+        seriesAttributeKeys: ["device.id"],
+      }).map(
+        (
+          group: EditorTemplateVariableGroup,
+        ): [string | undefined, Array<string>] => {
+          return [
+            group.title,
+            group.variables.map((variable: EditorTemplateVariable): string => {
+              return variable.name;
+            }),
+          ];
+        },
+      );
+    };
+
+    expect(namesOf(MonitorType.IoTDevice)).toEqual(
+      namesOf(MonitorType.Metrics),
+    );
+  });
+
+  it("gives {{metricName}} an IoT metric as its example, not a container's", () => {
+    const metricGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IoTDevice,
+      }),
+      METRIC_GROUP_TITLE,
+    );
+
+    expect(metricGroup?.variables[0]?.example).toBe("iot_device_up");
+    expect(metricGroup?.variables[0]?.description).toBe(
+      "The name of the metric the monitor's first query reads.",
+    );
   });
 });
 
@@ -568,6 +698,21 @@ describe("TemplateVariablesCatalog.getVariables - infrastructure series labels",
     );
 
     expect(seriesGroup?.variables.length).toBe(2);
+  });
+
+  it("offers a storage array monitor's object labels as series variables", () => {
+    const seriesGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.StorageArray,
+        seriesAttributeKeys: ["name", "component_name"],
+      }),
+      SERIES_GROUP_TITLE,
+    );
+
+    expect(keysOf(seriesGroup as TemplateVariableGroup)).toEqual([
+      "name",
+      "component_name",
+    ]);
   });
 
   it("wraps each attribute key in backticks inside its description", () => {
@@ -720,5 +865,183 @@ describe("TemplateVariablesCatalog.getVariables - determinism and isolation", ()
 
     first.push({ title: "Injected", variables: [] });
     expect(titlesOf(second)).not.toContain("Injected");
+  });
+});
+
+/*
+ * The same catalog as a template editor offers it: a monitor criteria's
+ * incident and alert descriptions and remediation notes list these under the
+ * Markdown editor and behind its Insert variable button.
+ */
+describe("TemplateVariablesCatalog.getTemplateVariableGroups", () => {
+  it.each([
+    [MonitorType.API, undefined],
+    [MonitorType.SSLCertificate, undefined],
+    [MonitorType.IncomingEmail, undefined],
+    [MonitorType.Kubernetes, ["host.name", "region"]],
+    [MonitorType.Metrics, undefined],
+  ])(
+    "for %s, the same groups, in the same order, with the same variables and examples",
+    (
+      monitorType: MonitorType,
+      seriesAttributeKeys: Array<string> | undefined,
+    ) => {
+      const catalog: Array<TemplateVariableGroup> =
+        TemplateVariablesCatalog.getVariables({
+          monitorType,
+          seriesAttributeKeys,
+        });
+
+      const groups: TemplateVariableGroups =
+        TemplateVariablesCatalog.getTemplateVariableGroups({
+          monitorType,
+          seriesAttributeKeys,
+        });
+
+      expect(groups).toEqual(
+        catalog.map((group: TemplateVariableGroup) => {
+          return {
+            title: group.title,
+            description: group.description,
+            variables: group.variables.map((variable: TemplateVariable) => {
+              return {
+                name: variable.key,
+                description: variable.description,
+                example: variable.example,
+              };
+            }),
+          };
+        }),
+      );
+    },
+  );
+
+  it("offers a grouped monitor's series labels by their attribute key", () => {
+    const names: Array<string> =
+      TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType: MonitorType.Kubernetes,
+        seriesAttributeKeys: ["host.name"],
+      }).flatMap((group: EditorTemplateVariableGroup): Array<string> => {
+        return group.variables.map(
+          (variable: EditorTemplateVariable): string => {
+            return variable.name;
+          },
+        );
+      });
+
+    expect(names).toContain("monitorName");
+    expect(names).toContain("host.name");
+  });
+});
+
+/*
+ * Incoming Email monitors. The docs promised these variables long before the
+ * picker listed them, so the group is pinned on its own: what it offers, and
+ * what it tells the reader about titles, masking and scheduled checks. Its
+ * keys are held to the server by MonitorTemplateUtilIncomingEmail.test.ts.
+ */
+describe("TemplateVariablesCatalog.getVariables - Incoming Email", () => {
+  const INCOMING_EMAIL_GROUP_TITLE: string = "Incoming Email";
+
+  function incomingEmailGroup(): TemplateVariableGroup {
+    const group: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IncomingEmail,
+      }),
+      INCOMING_EMAIL_GROUP_TITLE,
+    );
+
+    expect(group).toBeDefined();
+    return group!;
+  }
+
+  function variable(key: string): TemplateVariable {
+    const found: TemplateVariable | undefined =
+      incomingEmailGroup().variables.find(
+        (candidate: TemplateVariable): boolean => {
+          return candidate.key === key;
+        },
+      );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  it("follows the identity and resource groups, with no series labels even when attribute keys are passed", () => {
+    const groups: Array<TemplateVariableGroup> =
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IncomingEmail,
+        seriesAttributeKeys: ["host.name"],
+      });
+
+    expect(titlesOf(groups)).toEqual([
+      ...ALWAYS_GROUP_TITLES,
+      INCOMING_EMAIL_GROUP_TITLE,
+    ]);
+  });
+
+  it("is offered to Incoming Email monitors only", () => {
+    for (const monitorType of Object.values(
+      MonitorType,
+    ) as Array<MonitorType>) {
+      if (monitorType === MonitorType.IncomingEmail) {
+        continue;
+      }
+
+      expect(
+        titlesOf(TemplateVariablesCatalog.getVariables({ monitorType })),
+      ).not.toContain(INCOMING_EMAIL_GROUP_TITLE);
+    }
+  });
+
+  it("says a scheduled check uses the last email, and how much of a value a title gets", () => {
+    const description: string = incomingEmailGroup().description || "";
+
+    expect(description).toContain(
+      "A scheduled check for missing email uses the last email received.",
+    );
+    expect(description).toContain(
+      "In a title, each value is cut to one line of at most",
+    );
+  });
+
+  it("shows the recipient's example masked, the way {{emailTo}} renders the monitor's address", () => {
+    expect(variable("emailTo").example).toContain("[REDACTED]@");
+    expect(variable("emailTo").description).toContain(
+      "This monitor's own address is masked.",
+    );
+  });
+
+  it("gives the received time's example in the ISO 8601 form it renders in, and says when it is empty", () => {
+    expect(variable("emailReceivedAt").example).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
+    expect(variable("emailReceivedAt").description).toContain(
+      "Empty until the first email arrives.",
+    );
+  });
+
+  it("offers the editor every email variable", () => {
+    const names: Array<string> =
+      TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType: MonitorType.IncomingEmail,
+      }).flatMap((group: EditorTemplateVariableGroup): Array<string> => {
+        return group.variables.map(
+          (editorVariable: EditorTemplateVariable): string => {
+            return editorVariable.name;
+          },
+        );
+      });
+
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "monitorName",
+        "emailSubject",
+        "emailFrom",
+        "emailTo",
+        "emailBody",
+        "emailReceivedAt",
+      ]),
+    );
   });
 });

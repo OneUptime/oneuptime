@@ -5,9 +5,13 @@ import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
-import CodeEditor from "../../CodeEditor/CodeEditor";
+import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
+import {
+  DropdownChange,
+  getDropdownChange,
+} from "../../Dropdown/DropdownChange";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
@@ -35,13 +39,40 @@ import GenericObject from "../../../../Types/GenericObject";
 import { JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Typeof from "../../../../Types/Typeof";
-import React, { ReactElement, useEffect, useId } from "react";
+import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
+import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 import YamlEditor from "../../CodeEditor/YamlEditor";
+import PeoplePicker from "../../PeoplePicker/PeoplePicker";
+import {
+  getPeoplePickerKinds,
+  PeoplePickerChange,
+  PeoplePickerFormValue,
+  PeoplePickerValue,
+  readPeoplePickerExcludedValue,
+  readPeoplePickerFormValue,
+  toPeoplePickerDropdownChange,
+  toPeoplePickerFormValues,
+} from "../../PeoplePicker/PeoplePickerTypes";
+import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
+import TemplateVariableTextControl from "../../TemplateVariables/TemplateVariableTextControl";
+import {
+  TemplateVariable,
+  TemplateVariableGroups,
+  countTemplateVariables,
+  formatTemplateVariable,
+  hasTemplateVariables,
+} from "../../../../Types/Template/TemplateVariable";
 import useTranslateValue from "../../../Utils/Translation";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 /*
  * Shown under every DateTime and Time field. It is one sentence with
@@ -50,6 +81,17 @@ import useTranslateValue from "../../../Utils/Translation";
  */
 export const TIMEZONE_DESCRIPTION_TEMPLATE: string =
   "This is in your timezone - {{abbreviation}} ({{timezone}}).";
+
+/*
+ * Under a color field that says nothing of its own. The column's own
+ * description ("Color of this resource in Hex (#32a852 for example)") is
+ * written for API readers and is not shown on a form (BasicModelForm): the
+ * swatches are the field, and the reader only needs to know there is more
+ * than the swatches.
+ */
+export const COLOR_FIELD_DESCRIPTION: string = translationKey(
+  "Pick a color, or choose a custom one.",
+);
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -64,6 +106,8 @@ export interface ComponentProps<T extends GenericObject> {
   disableAutofocus?: boolean;
   submitForm?: (() => void) | undefined;
   setFormValues?: ((values: FormValues<T>) => void) | undefined;
+  // What an entity dropdown searches through (BasicForm's modelAPI).
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const FormField: <T extends GenericObject>(
@@ -72,6 +116,7 @@ const FormField: <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedPlaceholder: string | undefined = translateString(
     props.field.placeholder,
   );
@@ -91,9 +136,15 @@ const FormField: <T extends GenericObject>(
    */
   const fieldLabelId: string = `${fieldId}-label`;
 
-  type onChangeFunction = (value: JSONValue) => void;
+  type onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ) => void;
 
-  const onChange: onChangeFunction = (value: JSONValue): void => {
+  const onChange: onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ): void => {
     if (props.field.onChange) {
       props.field.onChange(
         value,
@@ -101,6 +152,7 @@ const FormField: <T extends GenericObject>(
         (newFormValues: FormValues<T>) => {
           props.setFormValues?.(newFormValues);
         },
+        change,
       );
     }
   };
@@ -127,8 +179,6 @@ const FormField: <T extends GenericObject>(
         return "time";
       case FormFieldSchemaType.LongText:
         return "textarea";
-      case FormFieldSchemaType.Color:
-        return "color";
       case FormFieldSchemaType.URL:
         return "url";
       case FormFieldSchemaType.PositiveNumber:
@@ -148,8 +198,17 @@ const FormField: <T extends GenericObject>(
     switch (fieldType) {
       case FormFieldSchemaType.Email:
         return "email";
+      /*
+       * Not "current-password", which every Password field used to get: it
+       * marks the field as the password the person signs in with, and turned
+       * any form with a password in it - an SMTP server, a private status
+       * page user - into a sign-in form to browsers and password managers. A
+       * field that really is one says so (Field.autoComplete and
+       * Field.isOwnCredential), as the sign-in pages do.
+       */
       case FormFieldSchemaType.Password:
-        return "current-password";
+      case FormFieldSchemaType.EncryptedText:
+        return "new-password";
       case FormFieldSchemaType.Phone:
         return "tel";
       case FormFieldSchemaType.Name:
@@ -256,6 +315,65 @@ const FormField: <T extends GenericObject>(
     const isMultiFileField: boolean =
       props.field.fieldType === FormFieldSchemaType.MultipleFiles;
 
+    /*
+     * A template's {{variables}}: collapsed under the input, and one "{{"
+     * (or, in an editor with a toolbar, one Insert variable) away.
+     */
+    const templateVariableGroups: TemplateVariableGroups =
+      (typeof props.field.templateVariables === "function"
+        ? props.field.templateVariables(props.currentValues)
+        : props.field.templateVariables) || [];
+    const showsTemplateVariables: boolean = hasTemplateVariables(
+      templateVariableGroups,
+    );
+    const templateVariablesFooter: ReactElement | undefined = props.field
+      .getTemplateVariablesFooter
+      ? props.field.getTemplateVariablesFooter(props.currentValues)
+      : undefined;
+
+    // A text field, long text field or code editor, with its variables.
+    const withTemplateVariables: (control: ReactElement) => ReactElement = (
+      control: ReactElement,
+    ): ReactElement => {
+      if (!showsTemplateVariables) {
+        return control;
+      }
+
+      return (
+        <TemplateVariableTextControl
+          groups={templateVariableGroups}
+          description={props.field.templateVariablesDescription}
+          listChildren={templateVariablesFooter}
+        >
+          {control}
+        </TemplateVariableTextControl>
+      );
+    };
+
+    // A code editor's toolbar: Insert variable first, then the field's own.
+    const codeEditorToolbarActions:
+      | ((editor: CodeEditorActions) => ReactNode)
+      | undefined =
+      countTemplateVariables(templateVariableGroups) > 0
+        ? (editor: CodeEditorActions): ReactNode => {
+            return (
+              <>
+                <InsertTemplateVariableButton
+                  groups={templateVariableGroups}
+                  dataTestId="code-editor-insert-variable"
+                  onPick={(variable: TemplateVariable) => {
+                    editor.insertText(formatTemplateVariable(variable.name));
+                  }}
+                  onCloseFocus={editor.focus}
+                />
+                {props.field.codeEditorToolbarActions
+                  ? props.field.codeEditorToolbarActions(editor)
+                  : null}
+              </>
+            );
+          }
+        : props.field.codeEditorToolbarActions;
+
     if (Object.keys(props.field.field || {}).length === 0) {
       throw new BadDataException("Object cannot be without Field");
     }
@@ -291,6 +409,13 @@ const FormField: <T extends GenericObject>(
 
     let fieldDescription: string | ReactElement | undefined =
       props.field.description;
+
+    if (
+      props.field.fieldType === FormFieldSchemaType.Color &&
+      !fieldDescription
+    ) {
+      fieldDescription = COLOR_FIELD_DESCRIPTION;
+    }
 
     if (
       props.field.fieldType === FormFieldSchemaType.DateTime ||
@@ -349,9 +474,15 @@ const FormField: <T extends GenericObject>(
         props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
         props.field.selectByAccessControlProps
       ) {
+        /*
+         * The description reaches FieldLabel inside an element here, and
+         * FieldLabel looks up only a string: so it is looked up now, or it
+         * stayed English in every language beside a translated link (an
+         * on-call rule's On-Call Duty Policies).
+         */
         return (
           <span>
-            {fieldDescription}
+            {translateValue(fieldDescription)}
             <Link
               onClick={() => {
                 setShowMultiSelectCheckboxCategoryModal(true);
@@ -359,9 +490,12 @@ const FormField: <T extends GenericObject>(
               className="ml-1 underline text-blue-500 cursor-pointer"
             >
               <span>
-                Select items by{" "}
-                {props.field.selectByAccessControlProps
-                  .accessControlColumnTitle || ""}
+                {translator.translateTemplate("Select items by {{column}}", {
+                  column: translatableTerm(
+                    props.field.selectByAccessControlProps
+                      .accessControlColumnTitle || "",
+                  ),
+                })}
               </span>
             </Link>
           </span>
@@ -387,20 +521,37 @@ const FormField: <T extends GenericObject>(
           : (props.field.defaultValue as boolean)) || false;
     }
 
-    const storedInputValue: unknown =
+    const storedValue: unknown =
       props.currentValues?.[props.fieldName as keyof FormValues<T>];
     const inputInitialValue: unknown =
-      storedInputValue === undefined
-        ? props.field.defaultValue
-        : storedInputValue;
+      storedValue === undefined ? props.field.defaultValue : storedValue;
+
+    /*
+     * A checkbox and a switch draw their own label, beside the control: the
+     * title names it and pressing the title flips it. A switch drawn under a
+     * label and a paragraph of help read as a stray control at the bottom of
+     * the paragraph, a long way from the word that said what it was for.
+     * Neither says "(Optional)" either: on or off, a switch always has an
+     * answer, so there is nothing to leave out.
+     */
+    /*
+     * A custom element can say it does the same: a workflow step's switch,
+     * which can also take a value from an earlier step.
+     */
+    const customElementDrawsOwnLabel: boolean =
+      props.field.fieldType === FormFieldSchemaType.CustomComponent &&
+      Boolean(props.field.customElementDrawsOwnLabel);
+
+    const drawsOwnLabel: boolean =
+      props.field.fieldType === FormFieldSchemaType.Checkbox ||
+      props.field.fieldType === FormFieldSchemaType.Toggle ||
+      customElementDrawsOwnLabel;
 
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
-        {/*** Do not display label on checkbox because checkbox can display its own label */}
-
         {props.field.showHorizontalRuleAbove && <HorizontalRule />}
 
-        {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
+        {!drawsOwnLabel && (
           <FieldLabelElement
             title={props.field.title || ""}
             id={fieldLabelId}
@@ -413,7 +564,19 @@ const FormField: <T extends GenericObject>(
           />
         )}
 
-        <div className="mt-2">
+        {/*
+         * The gap is the one between a label and its control. A switch's
+         * label is beside it, so its row starts where a label would, level
+         * with the label of the field next to it in a two-column form.
+         */}
+        <div
+          className={
+            props.field.fieldType === FormFieldSchemaType.Toggle ||
+            customElementDrawsOwnLabel
+              ? ""
+              : "mt-2"
+          }
+        >
           {/* Time Picker */}
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker
@@ -450,13 +613,18 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
                 props.setFieldTouched(props.fieldName, true);
               }}
-              tabIndex={0}
+              /*
+               * A required color has no "No color": one is always picked,
+               * and a Create form starts with one (CreateFormDefaults).
+               */
+              isClearable={!required}
+              disabled={props.isDisabled || props.field.disabled}
               placeholder={translatedPlaceholder || ""}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
+              // The form holds the value; the field shows exactly that.
+              value={
+                (props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]) ||
+                ""
               }
             />
           )}
@@ -499,10 +667,20 @@ const FormField: <T extends GenericObject>(
                 id={props.field.id}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
+                /*
+                 * A field its form locks (an alert's monitor, when that
+                 * monitor raised the alert) must not open, change or clear.
+                 * Only field.disabled: the form-wide props.isDisabled also
+                 * covers the form's own dropdown-options load, which
+                 * EntityDropdown never waits on because it searches the
+                 * server itself.
+                 */
+                disabled={props.field.disabled}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
+                  change?: DropdownChange,
                 ) => {
-                  onChange(value);
+                  onChange(value, change);
                   props.setFieldValue(props.fieldName, value as JSONValue);
                 }}
                 onBlur={() => {
@@ -513,8 +691,10 @@ const FormField: <T extends GenericObject>(
                   FormFieldSchemaType.MultiSelectDropdown
                 }
                 modelType={props.field.dropdownModal.type}
+                modelAPI={props.modelAPI}
                 labelField={props.field.dropdownModal.labelField}
                 valueField={props.field.dropdownModal.valueField}
+                query={props.field.dropdownModal.query}
                 onLabelsBulkAdded={props.field.onLabelsBulkAdded}
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
@@ -532,10 +712,29 @@ const FormField: <T extends GenericObject>(
                 id={props.field.id}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
+                disabled={props.field.disabled}
                 onChange={async (
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
-                  onChange(value);
+                  /*
+                   * A fixed list holds every option, so what the pick
+                   * changed is read from it (an EntityDropdown reports its
+                   * own, above).
+                   */
+                  onChange(
+                    value,
+                    props.field.onChange
+                      ? getDropdownChange({
+                          options: props.field.dropdownOptions,
+                          value: value,
+                          previousValue: props.currentValues
+                            ? (props.currentValues as Record<string, unknown>)[
+                                props.fieldName
+                              ]
+                            : undefined,
+                        })
+                      : undefined,
+                  );
                   props.setFieldValue(props.fieldName, value);
                 }}
                 onBlur={async () => {
@@ -547,10 +746,14 @@ const FormField: <T extends GenericObject>(
                 }
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
+                /*
+                 * What the form holds, 0 included: an option whose value is
+                 * 0 ("Don't repeat", "Immediately") is a choice, and a
+                 * truthiness check drew it as none.
+                 */
                 value={
-                  props.currentValues &&
-                  (props.currentValues as any)[props.fieldName]
-                    ? (props.currentValues as any)[props.fieldName]
+                  storedValue !== undefined && storedValue !== null
+                    ? (storedValue as any)
                     : ""
                 }
               />
@@ -563,9 +766,11 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
+              maxColumns={props.field.cardSelectMaxColumns}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
-              collapsibleGroups={props.field.cardSelectCollapsibleGroups}
+              searchHint={props.field.cardSelectSearchHint}
+              catalog={props.field.cardSelectCatalog}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -627,6 +832,24 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
+          {/*
+           * The key/value editor draws no error of its own, so a Dictionary
+           * field that failed validation used to stop the form with nothing
+           * on screen to say why - an OAuth 2.0 variable's reserved
+           * additional parameter left Create doing nothing at all.
+           */}
+          {props.field.fieldType === FormFieldSchemaType.Dictionary &&
+            props.touched &&
+            props.error && (
+              <p
+                data-testid="error-message"
+                className="mt-1 text-sm text-red-400"
+                role="alert"
+              >
+                {props.error}
+              </p>
+            )}
+
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons
@@ -656,12 +879,24 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
+              /*
+               * Each answer in the reader's language, with its one line
+               * under it when it has one - a choice of modes reads as plain
+               * answers (a reminder rule's Resolved / Acknowledged).
+               */
               options={
                 props.field.radioButtonOptions?.map(
                   (option: BasicRadioButtonOption) => {
                     return {
-                      label: option.title,
+                      label: translateString(option.title) || option.title,
                       value: option.value,
+                      ...(option.description
+                        ? {
+                            description:
+                              translateString(option.description) ||
+                              option.description,
+                          }
+                        : {}),
                     };
                   },
                 ) || []
@@ -675,60 +910,70 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
-          {props.field.fieldType === FormFieldSchemaType.LongText && (
-            <TextArea
-              autoFocus={!props.disableAutofocus && index === 1}
-              id={fieldId}
-              error={props.touched && props.error ? props.error : undefined}
-              tabIndex={0}
-              dataTestId={props.field.dataTestId}
-              disableSpellCheck={props.field.disableSpellCheck}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+          {props.field.fieldType === FormFieldSchemaType.LongText &&
+            withTemplateVariables(
+              <TextArea
+                autoFocus={!props.disableAutofocus && index === 1}
+                id={fieldId}
+                error={props.touched && props.error ? props.error : undefined}
+                tabIndex={0}
+                dataTestId={props.field.dataTestId}
+                disableSpellCheck={props.field.disableSpellCheck}
+                autoGrow={props.field.autoGrow}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
-          {props.field.fieldType === FormFieldSchemaType.JSON && (
-            <CodeEditor
-              ariaLabelledby={fieldLabelId}
-              error={props.touched && props.error ? props.error : undefined}
-              type={CodeType.JSON}
-              tabIndex={0}
-              dataTestId={props.field.dataTestId}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              value={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+          {props.field.fieldType === FormFieldSchemaType.JSON &&
+            withTemplateVariables(
+              <CodeEditor
+                ariaLabelledby={fieldLabelId}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaInvalid={Boolean(props.touched && props.error)}
+                type={CodeType.JSON}
+                /*
+                 * The form validates this field with JSON5 when the value is
+                 * read that way, so the editor's own check has to agree.
+                 */
+                allowJSON5={props.field.allowJSON5}
+                toolbarActions={codeEditorToolbarActions}
+                tabIndex={0}
+                dataTestId={props.field.dataTestId}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                value={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
           {props.field.fieldType === FormFieldSchemaType.YAML && (
             <YamlEditor
@@ -766,6 +1011,12 @@ const FormField: <T extends GenericObject>(
               dataTestId={props.field.dataTestId}
               tabIndex={0}
               disableSpellCheck={props.field.disableSpellCheck}
+              allowImageUpload={props.field.allowImageUpload}
+              templateVariables={templateVariableGroups}
+              templateVariablesDescription={
+                props.field.templateVariablesDescription
+              }
+              templateVariablesFooter={templateVariablesFooter}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -803,33 +1054,98 @@ const FormField: <T extends GenericObject>(
                   : "",
 
               placeholder: translatedPlaceholder || "",
+
+              ariaLabelledby: customElementDrawsOwnLabel
+                ? undefined
+                : fieldLabelId,
             })}
+
+          {/*
+           * One picker writing a form value per kind - owners are the
+           * people in ownerUsers and the teams in ownerTeams - so each is
+           * written to the form on its own, as two dropdowns used to. A
+           * picker that takes one pick writes each kind's one id, or null:
+           * the kind not picked is cleared. Its search list leaves out what
+           * the form values its excludePicksOf names hold right now. The
+           * field's own onChange hears what was picked by name, as a
+           * dropdown's does (an owner rule is named after its owners).
+           */}
+          {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
+            props.field.peoplePicker && (
+              <PeoplePicker
+                kinds={getPeoplePickerKinds(props.field.peoplePicker)}
+                value={readPeoplePickerFormValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
+                onChange={(
+                  value: PeoplePickerValue,
+                  change?: PeoplePickerChange,
+                ) => {
+                  const formValues: Record<string, PeoplePickerFormValue> =
+                    toPeoplePickerFormValues(props.field.peoplePicker!, value);
+
+                  onChange(
+                    formValues,
+                    change ? toPeoplePickerDropdownChange(change) : undefined,
+                  );
+
+                  for (const valueKey of Object.keys(formValues)) {
+                    props.setFieldValue(
+                      valueKey,
+                      formValues[valueKey] as PeoplePickerFormValue,
+                    );
+                  }
+
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                onBlur={() => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                addButtonText={props.field.peoplePicker.addButtonText}
+                searchPlaceholder={props.field.peoplePicker.searchPlaceholder}
+                emptyText={props.field.peoplePicker.emptyText}
+                isSinglePick={props.field.peoplePicker.isSinglePick}
+                excluded={readPeoplePickerExcludedValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
+                whenNobodyPicked={props.field.peoplePicker.whenNobodyPicked}
+                disabled={props.field.disabled}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaLabelledby={fieldLabelId}
+                dataTestId={props.field.dataTestId}
+              />
+            )}
 
           {(props.field.fieldType === FormFieldSchemaType.HTML ||
             props.field.fieldType === FormFieldSchemaType.CSS ||
-            props.field.fieldType === FormFieldSchemaType.JavaScript) && (
-            <CodeEditor
-              ariaLabelledby={fieldLabelId}
-              error={props.touched && props.error ? props.error : undefined}
-              tabIndex={0}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              dataTestId={props.field.dataTestId}
-              type={codeType}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+            props.field.fieldType === FormFieldSchemaType.JavaScript) &&
+            withTemplateVariables(
+              <CodeEditor
+                ariaLabelledby={fieldLabelId}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaInvalid={Boolean(props.touched && props.error)}
+                tabIndex={0}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                dataTestId={props.field.dataTestId}
+                toolbarActions={codeEditorToolbarActions}
+                type={codeType}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
           {isFileField && (
             <FilePicker
@@ -876,6 +1192,7 @@ const FormField: <T extends GenericObject>(
                     : []
               }
               isMultiFilePicker={isMultiFileField}
+              maxFileSizeInBytes={props.field.maxFileSizeInBytes}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&
@@ -891,8 +1208,17 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Toggle && (
             <Toggle
-              ariaLabelledby={fieldLabelId}
+              id={fieldId}
+              title={
+                translateString(props.field.title) ?? props.field.title ?? ""
+              }
+              description={translateValue(props.field.description) || ""}
               error={props.touched && props.error ? props.error : undefined}
+              /*
+               * As every other input here: refused while the form saves,
+               * and wherever the field itself is switched off.
+               */
+              disabled={props.isDisabled || props.field.disabled}
               onChange={async (value: boolean) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -968,51 +1294,53 @@ const FormField: <T extends GenericObject>(
             props.field.fieldType === FormFieldSchemaType.Port ||
             props.field.fieldType === FormFieldSchemaType.Phone ||
             props.field.fieldType === FormFieldSchemaType.Domain ||
-            props.field.fieldType === FormFieldSchemaType.PositiveNumber) && (
-            <Input
-              autoFocus={!props.disableAutofocus && index === 1}
-              id={fieldId}
-              tabIndex={0}
-              disabled={props.isDisabled || props.field.disabled}
-              error={
-                !props.field.errorMessageInFooter &&
-                props.touched &&
-                props.error
-                  ? props.error
-                  : undefined
-              }
-              ariaInvalid={Boolean(
-                props.field.errorMessageInFooter &&
+            props.field.fieldType === FormFieldSchemaType.PositiveNumber) &&
+            withTemplateVariables(
+              <Input
+                autoFocus={!props.disableAutofocus && index === 1}
+                id={fieldId}
+                tabIndex={0}
+                disabled={props.isDisabled || props.field.disabled}
+                error={
+                  !props.field.errorMessageInFooter &&
                   props.touched &&
-                  props.error,
-              )}
-              dataTestId={props.field.dataTestId}
-              type={fieldType as InputType}
-              ariaDescribedby={props.field.ariaDescribedby}
-              autoComplete={
-                props.field.autoComplete ||
-                (props.field.fieldType
-                  ? getAutoComplete(props.field.fieldType)
-                  : undefined)
-              }
-              onChange={(value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onEnterPress={() => {
-                props.submitForm?.();
-              }}
-              onBlur={() => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                inputInitialValue instanceof Date
-                  ? inputInitialValue
-                  : String(inputInitialValue ?? "")
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+                  props.error
+                    ? props.error
+                    : undefined
+                }
+                ariaInvalid={Boolean(
+                  props.field.errorMessageInFooter &&
+                    props.touched &&
+                    props.error,
+                )}
+                dataTestId={props.field.dataTestId}
+                type={fieldType as InputType}
+                ariaDescribedby={props.field.ariaDescribedby}
+                autoComplete={
+                  props.field.autoComplete ||
+                  (props.field.fieldType
+                    ? getAutoComplete(props.field.fieldType)
+                    : undefined)
+                }
+                isOwnCredential={props.field.isOwnCredential}
+                onChange={(value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onEnterPress={() => {
+                  props.submitForm?.();
+                }}
+                onBlur={() => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  inputInitialValue instanceof Date
+                    ? inputInitialValue
+                    : String(inputInitialValue ?? "")
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
         </div>
 
         {showMultiSelectCheckboxCategoryModal &&

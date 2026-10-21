@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import PodmanHostLabelRule from "../../Models/DatabaseModels/PodmanHostLabelRule";
@@ -19,6 +20,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class PodmanHostLabelRuleEngineServiceClass
   implements RuleRunEngine<PodmanHost, PodmanHostLabelRule>
@@ -105,6 +110,7 @@ class PodmanHostLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     podmanHost: PodmanHost;
     rules: Array<PodmanHostLabelRule>;
@@ -173,11 +179,23 @@ class PodmanHostLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: podmanHost.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of Podman host label rules",
+      logAttributes: {
+        projectId: podmanHost.projectId.toString(),
+        podmanHostId: podmanHost.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -216,15 +234,15 @@ class PodmanHostLabelRuleEngineServiceClass
       projectId: podmanHost.projectId,
       podmanHostFeedEventType: PodmanHostFeedEventType.LabelRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await PodmanHostService.getPodmanHostMarkdownLink(
-        podmanHost.projectId,
-        podmanHost.id,
-      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`🏷️ ${newLabelIds.length} label(s) were attached to ${await PodmanHostService.getPodmanHostMarkdownLink(
+          podmanHost.projectId,
+          podmanHost.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Label",
+        ruleNames: matchedRuleNames,
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(newLabelIds.length);
@@ -302,8 +320,7 @@ class PodmanHostLabelRuleEngineServiceClass
     rule: PodmanHostLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in Podman host label rule ${rule.id}: ${pattern}`,

@@ -7,7 +7,9 @@ import Exception from "../../../Types/Exception/Exception";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ComponentMetadata, { Port } from "../../../Types/Workflow/Component";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import WorkflowPrincipal from "../../Utils/Workflow/WorkflowPrincipal";
 
 export interface ExecuteChildWorkflow {
   workflowId: ObjectID;
@@ -24,6 +26,11 @@ export interface RunOptions {
   log: (item: string | JSONObject | Error | JSONArray | JSONValue) => void;
   workflowLogId: ObjectID;
   workflowId: ObjectID;
+  /*
+   * The workflow's name, for the audit trail of what its steps change
+   * (WorkflowPrincipal). Nothing checks it.
+   */
+  workflowName?: string | undefined;
   projectId: ObjectID;
   onError: (exception: Exception) => Exception;
   /**
@@ -32,6 +39,14 @@ export interface RunOptions {
    * inside the workflow deadline.
    */
   getRemainingExecutionTimeInMs?: (() => number) | undefined;
+  /**
+   * The step's settings as they are saved, before any {{...}} in them was
+   * resolved: what the canvas shows. A step that names something after its
+   * settings - a Switch / Case names its outputs after its cases - reads them
+   * here, so a run names it as the canvas does, and never by a resolved
+   * value, which can be a secret variable's.
+   */
+  configuredArguments?: JSONObject | undefined;
   /**
    * Fire-and-forget trigger for another workflow in the same project.
    * Enqueues the target workflow with the given `returnValues` as its arguments
@@ -44,6 +59,12 @@ export interface RunOptions {
 export interface RunReturnType {
   returnValues: JSONObject;
   executePort?: Port | undefined;
+  /**
+   * Why the step took executePort, in a sentence the run's Steps view shows
+   * under the output: which case a Switch / Case matched, and that the ones
+   * above it did not. The runner redacts it like everything else it keeps.
+   */
+  executePortReason?: string | undefined;
   /**
    * When set to a positive number of milliseconds, the workflow runner will
    * suspend execution AFTER this component (the components connected to
@@ -70,6 +91,22 @@ export default class ComponentCode {
     }
 
     return this.metadata;
+  }
+
+  /*
+   * The props a step reads and writes its project's records with: a Project
+   * Admin of the project the workflow runs in, on the project's plan, and no
+   * person (WorkflowPrincipal). Never root - a step can do what a Project
+   * Admin can do, and no more.
+   */
+  protected async getStepProps(
+    options: RunOptions,
+  ): Promise<DatabaseCommonInteractionProps> {
+    return await WorkflowPrincipal.getProps({
+      projectId: options.projectId,
+      workflowId: options.workflowId,
+      workflowName: options.workflowName,
+    });
   }
 
   @CaptureSpan()

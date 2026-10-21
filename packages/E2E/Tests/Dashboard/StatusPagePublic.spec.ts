@@ -1,5 +1,6 @@
 import {
   APIRequestContext,
+  APIResponse,
   Browser,
   BrowserContext,
   Cookie,
@@ -16,11 +17,13 @@ import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import {
   buildUrl,
   createItem,
+  getItem,
   getProjectDefaults,
   JSONish,
   listItems,
   pollUntil,
   ProjectDefaults,
+  requestJson,
   toId,
 } from "./Helpers/MonitorAlerting";
 import {
@@ -55,6 +58,9 @@ import {
  * billing-enabled run has to land on that plan rather than the free one.
  */
 const PREFERRED_PLAN_NAME: string = "Growth";
+
+// Letting subscribers choose resources is sold on Scale (see the Subscribe test).
+const SUBSCRIBE_PLAN_NAME: string = "Scale";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 
@@ -345,9 +351,17 @@ test.describe("public status page", () => {
 
     const unique: string = Faker.generateName().toString().replace(/\s/g, "-");
 
+    /*
+     * The page below lets subscribers choose resources - the Subscribe form
+     * asks for the page's resources only then - and that is sold on Scale,
+     * when the page is created with it as when it is switched on later
+     * (StatusPage.allowSubscribersToChooseResources). So the billing-enabled
+     * run creates this project on Scale.
+     */
     const projectId: string = await registerAndCreateProject({
       page,
       projectNamePrefix: "Status Page Subscribe E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? SUBSCRIBE_PLAN_NAME : undefined,
     });
 
     const defaults: ProjectDefaults = await getProjectDefaults({
@@ -500,7 +514,15 @@ test.describe("public status page", () => {
     ).toBe(storedStatusPageIdBeforeSubscribe);
   });
 
-  test("should not expose a private status page to an anonymous visitor", async ({
+  /*
+   * The page's theme, end to end: a page made through the API with no theme
+   * follows each visitor's device; one its owner turns Dark is sent dark in
+   * its HTML - before any script runs - and a visitor whose device is light
+   * sees the dark page. The offline suite (packages/E2E/StatusPageTheme)
+   * covers the rendering in depth; this holds the real server, the /seo
+   * lookup, the database and the app together.
+   */
+  test("should draw a status page in its theme, a dark one dark before its app loads", async ({
     page,
     browser,
   }: {
@@ -513,7 +535,121 @@ test.describe("public status page", () => {
 
     const projectId: string = await registerAndCreateProject({
       page,
+      projectNamePrefix: "Status Page Theme E2E",
+    });
+
+    const statusPage: JSONish = await createItem({
+      page,
+      projectId,
+      path: "/api/status-page",
+      item: {
+        name: `Theme Status Page ${unique}`,
+        description: "Created by StatusPagePublic.spec.ts for the theme",
+        projectId,
+        pageTitle: `Theme Status Page ${unique}`,
+      },
+    });
+
+    const statusPageId: string = toId(statusPage["_id"]);
+    expect(statusPageId, "status page should have been created").not.toBe("");
+
+    // A page made with no theme in its create follows the visitor's device.
+    const created: JSONish = await getItem({
+      page,
+      projectId,
+      path: "/api/status-page",
+      id: statusPageId,
+      select: { theme: true },
+    });
+
+    expect(created["theme"]).toBe("System");
+
+    const anonymous: APIRequestContext = (await browser.newContext()).request;
+
+    const htmlOf: () => Promise<string> = async (): Promise<string> => {
+      const response: APIResponse = await anonymous.get(
+        buildUrl(`/status-page/${statusPageId}`),
+      );
+
+      return response.text();
+    };
+
+    const systemHtml: string = await htmlOf();
+
+    expect(systemHtml).toContain('data-status-page-theme="system"');
+    expect(systemHtml).toContain(
+      '<meta name="color-scheme" content="light dark" />',
+    );
+
+    // The owner turns it Dark.
+    await requestJson({
+      page,
+      projectId,
+      method: "put",
+      path: `/api/status-page/${statusPageId}`,
+      body: { data: { theme: "Dark" } },
+    });
+
+    const darkHtml: string = await pollUntil<string>({
+      page,
+      description: "the status page's HTML to be sent dark",
+      timeoutMs: 120000,
+      check: async (): Promise<string | null> => {
+        const html: string = await htmlOf();
+
+        return html.includes('data-status-page-theme="dark"') ? html : null;
+      },
+    });
+
+    // Dark in the HTML itself, before any script or stylesheet.
+    expect(darkHtml).toContain('class="dark"');
+    expect(darkHtml).toContain('<meta name="color-scheme" content="dark" />');
+    expect(darkHtml).toContain('<meta name="theme-color" content="#0f172a" />');
+
+    // A visitor whose device is light sees the dark page.
+    const visitorContext: BrowserContext = await browser.newContext({
+      colorScheme: "light",
+    });
+    const visitorPage: Page = await visitorContext.newPage();
+
+    try {
+      await waitForStatusPageToRender({ page: visitorPage, statusPageId });
+
+      const drawn: { isDark: boolean; ground: string } =
+        await visitorPage.evaluate((): { isDark: boolean; ground: string } => {
+          return {
+            isDark: document.documentElement.classList.contains("dark"),
+            ground: getComputedStyle(document.body).backgroundColor,
+          };
+        });
+
+      expect(drawn.isDark).toBe(true);
+      expect(drawn.ground).toBe("rgb(15, 23, 42)");
+    } finally {
+      await visitorContext.close();
+    }
+  });
+
+  test("should not expose a private status page to an anonymous visitor", async ({
+    page,
+    browser,
+  }: {
+    page: Page;
+    browser: Browser;
+  }) => {
+    test.setTimeout(600000);
+
+    const unique: string = Faker.generateName().toString().replace(/\s/g, "-");
+
+    /*
+     * A private status page is sold on Growth, when the page is created
+     * private as when it is made private later (StatusPage.isPublicStatusPage),
+     * so the billing-enabled run creates this project on Growth too.
+     */
+    const projectId: string = await registerAndCreateProject({
+      page,
       projectNamePrefix: "Private Status Page E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? PREFERRED_PLAN_NAME : undefined,
     });
 
     const statusPage: JSONish = await createItem({

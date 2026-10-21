@@ -1,15 +1,14 @@
 import { generatePricingMarkdown } from "../Utils/AIDiscovery";
 import Pricing from "../Utils/Pricing";
+import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
+import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
 import path from "path";
 
 const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
 
 function textContent(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return markupAsSpaces(html).replace(/\s+/g, " ").trim();
 }
 
 describe("Rendered notification pricing", () => {
@@ -17,11 +16,15 @@ describe("Rendered notification pricing", () => {
   let notifications: string = "";
 
   beforeAll(async () => {
+    const seo: PageSEOData = getPageSEO("/pricing");
+
+    // The locals Routes.ts hands the template, plus homeUrl.
     html = (await ejs.renderFile(
       path.join(VIEWS_ROOT, "pricing.ejs"),
       {
         pricing: Pricing,
         enableGoogleTagManager: false,
+        seo: { ...seo, fullCanonicalUrl: "https://oneuptime.com/pricing" },
         homeUrl: "https://oneuptime.com",
       },
       { views: [VIEWS_ROOT] },

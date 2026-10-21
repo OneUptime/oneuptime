@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { SiteBreadcrumbEntry } from "./SiteHierarchyTypes";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * Root-first breadcrumb trail for the drill-down network map: a fixed
@@ -30,10 +32,14 @@ const CRUMB_LINK_CLASS: string =
 const SiteBreadcrumbs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isAtRoot: boolean = props.breadcrumb.length === 0;
 
   return (
-    <nav className="flex" aria-label="Site breadcrumb">
+    <nav
+      className="flex"
+      aria-label={translator.translateText("Site breadcrumb")}
+    >
       <ol role="list" className="flex flex-wrap items-center gap-x-0.5 gap-y-1">
         <li className="flex items-center">
           {isAtRoot ? (
@@ -45,13 +51,13 @@ const SiteBreadcrumbs: FunctionComponent<ComponentProps> = (
                 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                 icon={IconProp.Globe}
               />
-              All Sites
+              {translator.translateText("All Sites")}
             </span>
           ) : (
             <button
               type="button"
               data-testid="site-breadcrumb-root"
-              title="Back to all sites"
+              title={translator.translateText("Back to all sites")}
               className={`inline-flex items-center gap-1.5 ${CRUMB_LINK_CLASS}`}
               onClick={() => {
                 props.onNavigate(null);
@@ -61,7 +67,7 @@ const SiteBreadcrumbs: FunctionComponent<ComponentProps> = (
                 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                 icon={IconProp.Globe}
               />
-              All Sites
+              {translator.translateText("All Sites")}
             </button>
           )}
         </li>

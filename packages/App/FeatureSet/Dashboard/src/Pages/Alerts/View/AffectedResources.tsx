@@ -17,6 +17,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -45,6 +47,7 @@ const normalizeSeriesLabels: NormalizeLabelsFunction = (
 const AlertAffectedResources: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const alertIdString: string = props.alertId.toString();
   const hasSeriesLabelsFromPage: boolean = props.seriesLabels !== undefined;
 
@@ -163,7 +166,7 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
           <SeriesLabelsViewer seriesLabels={seriesLabels} />
         ) : (
           <div className="py-2 text-sm text-gray-400">
-            No resource labels on this alert.
+            {translator.translateText("No resource labels on this alert.")}
           </div>
         )}
       </Card>

@@ -157,6 +157,51 @@ describe("MonitorTemplateSyncFieldUtil", () => {
     },
   );
 
+  test("Storage array options keep the array and its storage platform together", (): void => {
+    const fields: Array<MonitorTemplateSyncField> =
+      MonitorTemplateSyncFieldUtil.getFields(MonitorType.StorageArray);
+    expect(
+      fields.map((field: MonitorTemplateSyncField): string => {
+        return field.path;
+      }),
+    ).toEqual([
+      "storageArrayMonitor.arrayIdentifier",
+      "storageArrayMonitor.resourceFilters",
+      "storageArrayMonitor.metricViewConfig",
+      "storageArrayMonitor.rollingTime",
+    ]);
+    expect(fields[0]).toEqual({
+      path: "storageArrayMonitor.arrayIdentifier",
+      label: "Storage array",
+      description: "Keep the array and its storage platform together.",
+    });
+    expect(
+      MonitorTemplateSyncFieldUtil.getPaths(
+        "storageArrayMonitor.arrayIdentifier",
+      ),
+    ).toEqual([
+      "storageArrayMonitor.arrayIdentifier",
+      "storageArrayMonitor.storageSystem",
+    ]);
+    // The platform is only ever kept with its array, never on its own.
+    expect((): void => {
+      MonitorTemplateSyncFieldUtil.parse(["storageArrayMonitor.storageSystem"]);
+    }).toThrow("Unsupported do not sync field");
+    expect((): void => {
+      MonitorTemplateSyncFieldUtil.parse(
+        ["cephMonitor.clusterIdentifier"],
+        MonitorType.StorageArray,
+      );
+    }).toThrow("Unsupported do not sync field");
+    // Other infrastructure identities stay single-path options.
+    expect(
+      MonitorTemplateSyncFieldUtil.getPaths("cephMonitor.clusterIdentifier"),
+    ).toEqual(["cephMonitor.clusterIdentifier"]);
+    expect(
+      MonitorTemplateSyncFieldUtil.getFields(MonitorType.Ceph)[0],
+    ).not.toHaveProperty("description");
+  });
+
   test.each([
     MonitorType.Manual,
     MonitorType.IncomingRequest,

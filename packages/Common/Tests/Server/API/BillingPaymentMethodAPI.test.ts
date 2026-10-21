@@ -1,5 +1,4 @@
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import { getJestSpyOn } from "../../Spy";
 import BillingPaymentMethodAPI from "../../../Server/API/BillingPaymentMethodAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import BillingService from "../../../Server/Services/BillingService";
@@ -26,6 +25,11 @@ import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavail
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import Project from "../../../Models/DatabaseModels/Project";
+import BillingPaymentMethod from "../../../Models/DatabaseModels/BillingPaymentMethod";
+import {
+  PAYMENT_METHOD_ADD_PERMISSIONS,
+  PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
+} from "../../../Utils/Project/ProjectBilling";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -125,7 +129,6 @@ describe("BillingPaymentMethodAPI", () => {
   let res: OneUptimeResponse;
   let next: MockFunction;
   let project: Project;
-  let permissions: ReturnType<typeof getJestSpyOn>;
 
   const makePaymentMethodDefault: MockFunction =
     BillingService.makePaymentMethodDefault as unknown as MockFunction;
@@ -144,14 +147,52 @@ describe("BillingPaymentMethodAPI", () => {
       .handlerFunction(req, res, next as unknown as NextFunction);
   };
 
+  type GivenRowsFunction = (rows: Array<UserPermission>) => void;
+
+  /*
+   * The caller's rows in the project, as the request carries them - allow
+   * and block rows alike. The route reads them by the rule every permission
+   * check follows (CallerPermission).
+   */
+  const givenRows: GivenRowsFunction = (rows: Array<UserPermission>): void => {
+    (
+      req as unknown as {
+        userTenantAccessPermission: Record<string, unknown>;
+      }
+    ).userTenantAccessPermission = {
+      [projectId.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: projectId,
+        permissions: rows,
+      },
+    };
+  };
+
+  type RowFunction = (
+    permission: Permission,
+    options?: { isBlock?: boolean; labelled?: boolean },
+  ) => UserPermission;
+
+  const row: RowFunction = (
+    permission: Permission,
+    options?: { isBlock?: boolean; labelled?: boolean },
+  ): UserPermission => {
+    return {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: options?.labelled ? [ObjectID.generate()] : [],
+      isBlockPermission: Boolean(options?.isBlock),
+    };
+  };
+
   type GivenPermissionsFunction = (list: Array<Permission>) => void;
 
   const givenPermissions: GivenPermissionsFunction = (
     list: Array<Permission>,
   ): void => {
-    permissions.mockResolvedValue(
+    givenRows(
       list.map((permission: Permission) => {
-        return { permission: permission } as UserPermission;
+        return row(permission);
       }),
     );
   };
@@ -177,13 +218,6 @@ describe("BillingPaymentMethodAPI", () => {
     makePaymentMethodDefault.mockResolvedValue(undefined as never);
     getSetupIntentSecret.mockResolvedValue("seti_secret" as never);
 
-    permissions = getJestSpyOn(
-      BillingPaymentMethodAPI.prototype,
-      "getPermissionsForTenant",
-    ).mockResolvedValue([
-      { permission: Permission.ProjectOwner } as UserPermission,
-    ]);
-
     req = {
       tenantId: projectId,
       body: {
@@ -192,6 +226,7 @@ describe("BillingPaymentMethodAPI", () => {
         },
       },
     } as unknown as OneUptimeRequest;
+    givenPermissions([Permission.ProjectOwner]);
     res = {} as OneUptimeResponse;
     next = getJestMockFunction();
   });
@@ -344,8 +379,24 @@ describe("BillingPaymentMethodAPI", () => {
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
     });
 
-    it("refuses a request with no tenant", async () => {
+    it("refuses a request with no tenant: the caller holds nothing in no project", async () => {
       (req as unknown as { tenantId: unknown }).tenantId = undefined;
+
+      await callRoute(SET_DEFAULT_ROUTE);
+
+      expect(nextError()).toBeInstanceOf(BadDataException);
+      expect((nextError() as Error).message).toContain(
+        "change the default payment method",
+      );
+      expect(findProject).not.toHaveBeenCalled();
+      expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+    });
+
+    it("refuses a master admin's request with no tenant: there is no project", async () => {
+      (req as unknown as { tenantId: unknown }).tenantId = undefined;
+      (req as unknown as { userAuthorization: unknown }).userAuthorization = {
+        isMasterAdmin: true,
+      };
 
       await callRoute(SET_DEFAULT_ROUTE);
 
@@ -454,13 +505,52 @@ describe("BillingPaymentMethodAPI", () => {
       },
     );
 
-    it("passes a failed permission lookup to the error handler", async () => {
-      const failure: Error = new Error("permission lookup failed");
-      permissions.mockRejectedValue(failure);
+    it("refuses a member whose only Manage Project Billing row is a block", async () => {
+      givenRows([
+        row(Permission.ProjectMember),
+        row(Permission.ManageProjectBilling, { isBlock: true }),
+      ]);
 
       await callRoute(SET_DEFAULT_ROUTE);
 
-      expect(next).toHaveBeenCalledWith(failure);
+      expect(nextError()).toBeInstanceOf(BadDataException);
+      expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member another team's block with no labels takes it from", async () => {
+      givenRows([
+        row(Permission.ManageProjectBilling),
+        row(Permission.ManageProjectBilling, { isBlock: true }),
+      ]);
+
+      await callRoute(SET_DEFAULT_ROUTE);
+
+      expect(nextError()).toBeInstanceOf(BadDataException);
+      expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+    });
+
+    it("allows a member whose block has labels: the route touches no labelled record", async () => {
+      givenRows([
+        row(Permission.ManageProjectBilling),
+        row(Permission.ManageProjectBilling, { isBlock: true, labelled: true }),
+      ]);
+
+      await callRoute(SET_DEFAULT_ROUTE);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(makePaymentMethodDefault).toHaveBeenCalledWith(
+        PROJECT_CUSTOMER_ID,
+        NEW_CARD_ID,
+      );
+    });
+
+    it("refuses a member whose rows are for another project", async () => {
+      givenPermissions([Permission.ProjectOwner]);
+      req.tenantId = ObjectID.generate();
+
+      await callRoute(SET_DEFAULT_ROUTE);
+
+      expect(nextError()).toBeInstanceOf(BadDataException);
       expect(makePaymentMethodDefault).not.toHaveBeenCalled();
     });
 
@@ -526,6 +616,64 @@ describe("BillingPaymentMethodAPI", () => {
 
       expect(nextError()).toBeInstanceOf(BadDataException);
       expect(getSetupIntentSecret).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The billing roles read the payment methods; adding one - which the
+     * card is then charged on - stays with a project owner and Manage
+     * Billing (Utils/Project/ProjectBilling).
+     */
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: adding a payment method is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
+        req.body = {};
+
+        await callRoute(SETUP_ROUTE);
+
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(getSetupIntentSecret).not.toHaveBeenCalled();
+      },
+    );
+
+    it("asks for exactly the list the dashboard's Add Payment Method button asks for", () => {
+      expect([...PAYMENT_METHOD_ADD_PERMISSIONS]).toEqual([
+        Permission.ProjectOwner,
+        Permission.ManageProjectBilling,
+        Permission.CreateBillingPaymentMethod,
+      ]);
+      expect(new BillingPaymentMethod().getCreatePermissions()).toEqual([
+        ...PAYMENT_METHOD_ADD_PERMISSIONS,
+      ]);
+    });
+  });
+
+  describe("the billing roles and the default payment method", () => {
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: choosing which card is charged is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
+
+        await callRoute(SET_DEFAULT_ROUTE);
+
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+      },
+    );
+
+    it("asks for exactly the list the dashboard's Set as Default action asks for", () => {
+      expect([...PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS]).toEqual([
+        ...PAYMENT_METHOD_ADD_PERMISSIONS,
+        Permission.EditBillingPaymentMethod,
+      ]);
     });
   });
 });

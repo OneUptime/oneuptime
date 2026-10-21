@@ -30,7 +30,11 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Owners are the part of a resource's history people actually get paged about,
  * and until now nothing recorded when one changed: a Kubernetes cluster's
@@ -70,16 +74,20 @@ beforeEach(() => {
 
   jest
     .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
-    .mockImplementation((): Promise<string> => {
+    .mockImplementation((): Promise<MarkdownText> => {
       return Promise.resolve(
-        "[Kubernetes Cluster prod](https://example.com/cluster)",
+        FeedMarkdown.asMarkdown(
+          "[Kubernetes Cluster prod](https://example.com/cluster)",
+        ),
       );
     });
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockImplementation((): Promise<string> => {
-      return Promise.resolve("Jane Doe (jane@example.com)");
+    .mockImplementation((): Promise<MarkdownText> => {
+      return Promise.resolve(
+        FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
+      );
     });
 });
 
@@ -130,7 +138,9 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
      * onBeforeDelete is the only chance to learn which cluster and which user
      * the removal was about.
      */
-    const doomed: KubernetesClusterOwnerUser = new KubernetesClusterOwnerUser();
+    const doomed: KubernetesClusterOwnerUser = new KubernetesClusterOwnerUser(
+      ObjectID.generate(),
+    );
     doomed.kubernetesClusterId = CLUSTER_ID;
     doomed.projectId = PROJECT_ID;
     doomed.userId = USER_ID;
@@ -140,6 +150,10 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
       .mockImplementation((): Promise<Array<KubernetesClusterOwnerUser>> => {
         return Promise.resolve([doomed]);
       });
+    // The caller may delete the owner row.
+    stubRowsCallerMayDelete(KubernetesClusterOwnerUserService, () => {
+      return [doomed];
+    });
 
     const user: User = new User(USER_ID);
     user.name = new Name("Jane Doe");
@@ -155,11 +169,16 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
 
     const onDelete: unknown = await service.onBeforeDelete({
       query: {},
-      props: { userId: ACTING_USER_ID },
+      props: { userId: ACTING_USER_ID, tenantId: PROJECT_ID },
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((onDelete as any).carryForward.itemsToDelete).toEqual([doomed]);
+    // The delete is held to the one row carried forward.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((onDelete as any).deleteBy.query).toEqual({
+      _id: doomed._id,
+    });
 
     await service.onDeleteSuccess(
       {

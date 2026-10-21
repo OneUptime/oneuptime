@@ -20,6 +20,9 @@ import useLogsHistogram, {
   LogsHistogramData,
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
@@ -49,7 +52,10 @@ import {
   getLogsQueryValues,
 } from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
+import { leaveSavedViewDefaultOutUnlessTicked } from "Common/Utils/Telemetry/SavedViewDefault";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -84,6 +90,12 @@ import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
+import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
+import useResultTotal, {
+  ResultTotalListAnswer,
+} from "Common/UI/Utils/Telemetry/UseResultTotal";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
@@ -112,10 +124,12 @@ import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCur
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import {
   InitialSavedViewResolution,
+  mayApplyInitialSavedView,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
 import { buildSavedViewQueryForOverrides } from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
+import useStableValue from "Common/UI/Utils/UseStableValue";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { buildAttributeFilterChips } from "./LogsAttributeFilterChips";
@@ -174,6 +188,13 @@ export interface ComponentProps {
   sessionIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * The Logs page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their noLogsMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   logQuery?: Query<Log> | undefined;
   /*
    * Entity scope with attribute fallback (contract C4): compiles server-side
@@ -231,6 +252,13 @@ export interface ComponentProps {
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
+/*
+ * How long the first reads wait for the saved views before going ahead
+ * without them (see awaitsInitialSavedView). The saved views are one small
+ * read and are normally in long before this; it only bounds a read that never
+ * answers, so the list cannot be held behind it.
+ */
+export const INITIAL_SAVED_VIEW_WAIT_MS: number = 5000;
 
 interface InitialUrlState {
   facetFilters: Map<string, Set<string>>;
@@ -244,6 +272,11 @@ interface InitialUrlState {
    * filters with the view deselected.
    */
   savedViewId: string | null;
+  /*
+   * Whether the link named a page size. A saved view the same link names is
+   * applied under it, so the restored page means the same rows it did.
+   */
+  hasPageSize: boolean;
   /*
    * Whether the link described a slice of its own (chips or a window). The
    * project's default saved view must not auto-apply over one: a
@@ -277,6 +310,12 @@ interface InitialUrlState {
 interface ApplySavedViewOptions {
   overrideTimeRange?: RangeStartAndEndDateTime | undefined;
   overrideFacetFilters?: Map<string, Set<string>> | undefined;
+  /*
+   * The page the same link was on, and its page size when it named one: a
+   * reload of a view's page 3 opens page 3, not page 1 (issue #4709).
+   */
+  overridePage?: number | undefined;
+  overridePageSize?: number | undefined;
 }
 
 const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
@@ -350,10 +389,12 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
       ? Math.max(1, parseInt(pageRaw, 10))
       : 1;
   const pageSizeRaw: string | null = params.get("pageSize");
-  const pageSize: number =
-    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw)
-      ? Math.max(1, parseInt(pageSizeRaw, 10))
-      : defaultPageSize;
+  const hasPageSize: boolean = Boolean(
+    pageSizeRaw && POSITIVE_INT_REGEX.test(pageSizeRaw),
+  );
+  const pageSize: number = hasPageSize
+    ? Math.max(1, parseInt(pageSizeRaw as string, 10))
+    : defaultPageSize;
 
   const savedViewIdRaw: string | null = params.get("savedView");
   const savedViewId: string | null =
@@ -376,6 +417,7 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
     page,
     pageSize,
     savedViewId,
+    hasPageSize,
     hasScope: hasFilters || hasRange,
     hasFilters,
     hasRange,
@@ -463,6 +505,70 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   return query;
 }
 
+/*
+ * A host's logQuery by value, less its pinned window (the viewer follows
+ * that on its own; see getPinnedTimeRangeKey). Hosts hand over a new but
+ * equal query whenever they re-read one: the incident and alert pages on
+ * every background refresh, the telemetry snapshot card whenever it
+ * re-derives a companion. Only a change of value is a new scope.
+ */
+function getLogQueryScopeKey(logQuery: Query<Log> | undefined): string {
+  if (!logQuery) {
+    return "";
+  }
+
+  const scope: Record<string, unknown> = {
+    ...(logQuery as Record<string, unknown>),
+  };
+  delete scope["time"];
+
+  return JSON.stringify(scope);
+}
+
+// Everything buildBaseQuery scopes the list by, by value.
+function getLogsScopeKey(props: ComponentProps): string {
+  return JSON.stringify({
+    serviceIds: (props.serviceIds || []).map((serviceId: ObjectID): string => {
+      return serviceId.toString();
+    }),
+    traceIds: props.traceIds || [],
+    spanIds: props.spanIds || [],
+    sessionIds: props.sessionIds || [],
+    logQuery: getLogQueryScopeKey(props.logQuery),
+    entityScope: props.entityScope || null,
+  });
+}
+
+function getPinnedTimeRangeKey(
+  pinnedTimeRange: RangeStartAndEndDateTime | null,
+): string {
+  const window: InBetween<Date> | null = TelemetryQueryTimeRange.toDateWindow(
+    pinnedTimeRange?.startAndEndDate,
+  );
+
+  if (!window) {
+    return "";
+  }
+
+  return `${window.startValue.getTime()}|${window.endValue.getTime()}`;
+}
+
+/*
+ * A host's id list as the strings the histogram and facet requests carry, or
+ * undefined when it names none.
+ */
+function toIdStrings(
+  ids: Array<ObjectID | string> | undefined,
+): Array<string> | undefined {
+  if (!ids || ids.length === 0) {
+    return undefined;
+  }
+
+  return ids.map((id: ObjectID | string): string => {
+    return id.toString();
+  });
+}
+
 function getApiUrl(path: string): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(path);
 }
@@ -546,6 +652,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the list did not load (issue #4707). Shown where the rows go, so the
+   * search bar, the time range and the filters stay on screen to narrow a
+   * search that took too long. It used to replace the whole page, with
+   * "Server Error".
+   */
+  const [listError, setListError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<Query<Log>>(() => {
     const base: Query<Log> = buildBaseQuery(props);
@@ -567,11 +682,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       initialUrlState?.facetFilters || new Map(),
     );
   });
+  // Render-time mirror, so a list answer can tell whether it is still current.
+  const filterOptionsRef: React.MutableRefObject<Query<Log>> =
+    useRef<Query<Log>>(filterOptions);
+  filterOptionsRef.current = filterOptions;
   const [page, setPage] = useState<number>(initialUrlState?.page || 1);
   const [pageSize, setPageSize] = useState<number>(
     initialUrlState?.pageSize || effectiveDefaultPageSize,
   );
+  /*
+   * The list endpoint's `count` — a lower bound, not a total (it skips
+   * COUNT(*)). The total is `resultTotal`; this seeds the footer meanwhile.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  // The newest page the list committed, for the result total (see fetchItems).
+  const [resultTotalListAnswer, setResultTotalListAnswer] =
+    useState<ResultTotalListAnswer<Query<Log>> | null>(null);
+  // Bumped when a live poll lands, so the moved window is counted again.
+  const [resultTotalRefreshKey, setResultTotalRefreshKey] = useState<number>(0);
+  /*
+   * The query that page was fetched with: a live poll's carries a fresher
+   * window than `filterOptions`, and the count has to match it.
+   */
+  const resultTotalListQueryRef: React.MutableRefObject<Query<Log> | null> =
+    useRef<Query<Log> | null>(null);
   const [sortField, setSortField] = useState<LogsSortField>("time");
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
@@ -616,10 +750,44 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [viewMode, setViewMode] = useState<LogsViewMode>("list");
 
-  const liveRequestInFlight: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
   const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  /*
+   * Whether a host or link owns what this viewer shows: a pinned moment, a
+   * controlled window, or an embed (`!syncUrlState` marks a viewer inside
+   * another page). The project's default saved view never applies over one.
+   */
+  const hostOwnsView: boolean = Boolean(
+    pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState,
+  );
+
+  /*
+   * Whether the list, the chart and the facets wait for the saved views
+   * before their first reads (issue #4709).
+   *
+   * The explorer applies a saved view on load when the link names one -
+   * every reload once a view is selected, since the URL carries it - and,
+   * on a link with no scope of its own, the project's default view. Reading
+   * first and applying the view a moment later sent all three reads twice
+   * on those loads, and showed rows the view then replaced. So where a view
+   * may apply they wait for the answer, and read once, what the page will
+   * show. Embeds and links with a scope of their own never wait: no view
+   * applies to them. INITIAL_SAVED_VIEW_WAIT_MS bounds the wait.
+   */
+  const [awaitsInitialSavedView, setAwaitsInitialSavedView] = useState<boolean>(
+    (): boolean => {
+      if (!initialUrlState) {
+        return false;
+      }
+
+      return mayApplyInitialSavedView({
+        urlSavedViewId: initialUrlState.savedViewId,
+        hasUrlScope: initialUrlState.hasScope,
+        hostOwnsView: hostOwnsView,
+      });
+    },
+  );
 
   // Facet state
   const [facetData, setFacetData] = useState<FacetData>({});
@@ -634,11 +802,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     Record<string, string>
   >({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Facets the server could not count in time, and why the facets did not
+   * load at all: the sidebar says so instead of "No values" or zeros.
+   */
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   // Track user-applied facet filters: Map<facetKey, Set<value>>
   const [appliedFacetFilters, setAppliedFacetFilters] = useState<
     Map<string, Set<string>>
   >(initialUrlState?.facetFilters || new Map());
+
+  /*
+   * The chips as the last chip edit left them, ahead of the render that
+   * shows it. A click on a checked facet value takes off every chip that
+   * lit it, one call each, in the same tick: each call has to start from
+   * the one before it, not from the render both were made in.
+   */
+  const appliedFacetFiltersRef: React.MutableRefObject<
+    Map<string, Set<string>>
+  > = useRef<Map<string, Set<string>>>(appliedFacetFilters);
+  appliedFacetFiltersRef.current = appliedFacetFilters;
 
   // Time range state — single source of truth for histogram, facets, and log query
   const [timeRange, setTimeRange] =
@@ -654,24 +841,102 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useRef<RangeStartAndEndDateTime>(timeRange);
   timeRangeRef.current = timeRange;
 
+  /*
+   * What the list is scoped to and pinned to, by value: the effect below
+   * runs when either one really changes, and never because a host handed
+   * over an equal query again. Re-running it for that would throw away a
+   * zoom the reader made in here (the incident page's background refresh
+   * did exactly that), along with their page and their typed search.
+   */
+  const scopeKey: string = useMemo((): string => {
+    return getLogsScopeKey(props);
+  }, [
+    props.serviceIds,
+    props.traceIds,
+    props.spanIds,
+    props.sessionIds,
+    props.logQuery,
+    props.entityScope,
+  ]);
+  const logQueryScopeKey: string = useMemo((): string => {
+    return getLogQueryScopeKey(props.logQuery);
+  }, [props.logQuery]);
+  const pinnedTimeRangeKey: string = getPinnedTimeRangeKey(pinnedTimeRange);
+
+  // The pin this viewer last followed; see the effect below.
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
+  /*
+   * The scope the list query was last built for: to begin with, the one the
+   * filterOptions initializer above built it for.
+   */
+  const [builtScopeKey, setBuiltScopeKey] = useState<string>(scopeKey);
+
+  /*
+   * False for the one render between a host handing over a new scope and
+   * the effect below rebuilding the list query for it. The chart and facet
+   * requests read the host's ids straight from props but the rest of their
+   * scope from the list query (applyTypedLogFilterToRequest), so in that
+   * render they would mix the new ids with the old query - and the query's
+   * ids win - sending one request for the PREVIOUS scope before the one for
+   * the new. They wait that render out instead.
+   */
+  const isListQueryOnScope: boolean = scopeKey === builtScopeKey;
+
   useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    /*
+     * Only a pin that differs by value from the one it replaces is the
+     * host describing a different moment (the incident page re-reading
+     * another window, a snapshot zoomed or reset, the investigation drawer
+     * re-pinned). The same pin again is not, and must not take the reader
+     * back to it: the traces and exceptions explorers keep to the same
+     * rule.
+     */
+    const isNewPin: boolean =
+      Boolean(pinnedTimeRange) &&
+      !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin);
+
+    /*
+     * Nothing to rebuild unless the scope or the pin really changed. That is
+     * the case right after mount, every time: the initializer has just built
+     * this very query from the same props and the same URL. Rebuilding it
+     * anyway (issue #4709) resolved a relative window again a few
+     * milliseconds later - a new query, so the list ran twice on every page
+     * load, at the full cost of a long search each time - and put the page
+     * back to 1, losing the page a refresh or a shared link restored. A pin
+     * that went away with the scope unchanged is not a change either: the
+     * window it left behind is the one on screen.
+     */
+    if (!isNewPin && scopeKey === builtScopeKey) {
+      return;
+    }
+
+    setBuiltScopeKey(scopeKey);
+
     const base: Query<Log> = buildBaseQuery(props);
 
     /*
-     * A new pinned window means the caller is describing a different moment
-     * (the incident page re-fetching), so follow it rather than re-stamping
-     * the window the user is currently looking at. With no pinned window this
-     * keeps the user's current picker value, as before.
+     * A new pinned window is followed rather than re-stamping the window
+     * the user is currently looking at. Anything else (a new scope under
+     * the same pin, or no pin at all) keeps the user's current picker
+     * value, a zoom made in here included: stamping the pin back onto the
+     * list alone would leave it describing a different window from the
+     * picker and the histogram.
      */
     const nextTimeRange: RangeStartAndEndDateTime =
-      pinnedTimeRange || timeRange;
+      isNewPin && pinnedTimeRange ? pinnedTimeRange : timeRange;
 
     /*
-     * Compare by value, not identity. A host that rebuilds its query object on
-     * every render hands us an equal-but-new window each time; setting state
-     * from it unconditionally would re-render, rebuild, and loop.
+     * Compare by value, not identity: setting state from an equal window
+     * would re-render and rebuild for nothing.
      */
     if (
+      isNewPin &&
       pinnedTimeRange &&
       !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, timeRange)
     ) {
@@ -686,22 +951,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     );
     /*
      * The applied chips survive a base-scope change (only the base + window
-     * are re-stamped), so they must stay compiled into the list query —
-     * this is also the pass that runs right after mount, where the chips
-     * may have been hydrated from the URL. Read from the render closure
-     * like `timeRange` above: chip CHANGES flow through the interaction
+     * are re-stamped), so they must stay compiled into the list query, the
+     * ones a link hydrated included. Read from the render closure like
+     * `timeRange` above: chip CHANGES flow through the interaction
      * handlers, not through this effect.
      */
     setFilterOptions(applyLogsFacetFiltersToQuery(base, appliedFacetFilters));
     setPage(1);
-  }, [
-    props.serviceIds,
-    props.traceIds,
-    props.spanIds,
-    props.sessionIds,
-    props.logQuery,
-    props.entityScope,
-  ]);
+  }, [scopeKey, pinnedTimeRangeKey]);
 
   /*
    * Mirror time range / chip filters / page / pageSize to the URL so refresh
@@ -783,16 +1040,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  // Extract service IDs for API calls
-  const serviceIdStrings: Array<string> | undefined = useMemo(() => {
-    if (!props.serviceIds || props.serviceIds.length === 0) {
-      return undefined;
-    }
-
-    return props.serviceIds.map((id: ObjectID) => {
-      return id.toString();
-    });
-  }, [props.serviceIds]);
+  /*
+   * The host's ids for the API calls, by value. Pages hand over new arrays on
+   * every render (`serviceIds={[modelId]}`); keyed on those, the chart and
+   * the facets were read again whenever the page re-rendered.
+   */
+  const serviceIdStrings: Array<string> | undefined = useStableValue(
+    toIdStrings(props.serviceIds),
+  );
 
   /*
    * Resolve every entity id a chip can show — the page's locked scope and
@@ -824,29 +1079,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    * Extract trace/span IDs for API calls (histogram + facets must respect these
    * base filters so they reflect the same scope as the logs list)
    */
-  const traceIdStrings: Array<string> | undefined = useMemo(() => {
-    if (!props.traceIds || props.traceIds.length === 0) {
-      return undefined;
-    }
+  const traceIdStrings: Array<string> | undefined = useStableValue(
+    toIdStrings(props.traceIds),
+  );
 
-    return [...props.traceIds];
-  }, [props.traceIds]);
+  const spanIdStrings: Array<string> | undefined = useStableValue(
+    toIdStrings(props.spanIds),
+  );
 
-  const spanIdStrings: Array<string> | undefined = useMemo(() => {
-    if (!props.spanIds || props.spanIds.length === 0) {
-      return undefined;
-    }
-
-    return [...props.spanIds];
-  }, [props.spanIds]);
-
-  const sessionIdStrings: Array<string> | undefined = useMemo(() => {
-    if (!props.sessionIds || props.sessionIds.length === 0) {
-      return undefined;
-    }
-
-    return [...props.sessionIds];
-  }, [props.sessionIds]);
+  const sessionIdStrings: Array<string> | undefined = useStableValue(
+    toIdStrings(props.sessionIds),
+  );
 
   /*
    * Extract attribute filters from logQuery for the chips, the
@@ -876,7 +1119,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       return attributes;
-    }, [props.logQuery]);
+      /*
+       * Keyed on the query's value, not on the object: the chart and the
+       * facet counts reload whenever this changes identity, and an equal
+       * query handed over again must not reload them.
+       */
+    }, [logQueryScopeKey]);
 
   /*
    * Extract the entityKeys membership filter from logQuery so the histogram
@@ -897,7 +1145,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return values;
-  }, [props.logQuery]);
+    // By value, like logQueryAttributes above.
+  }, [logQueryScopeKey]);
 
   const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
     return [...savedViews]
@@ -971,39 +1220,87 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   type FetchOptions = {
     skipLoadingState?: boolean;
+    /*
+     * Count the result set again once this page lands: a live poll, whose
+     * window has moved. Realtime refreshes leave it be — on a busy project
+     * they arrive many times a second.
+     */
+    refreshResultTotal?: boolean;
   };
 
+  /*
+   * Render-time mirror of the live switch, read when a request is built (see
+   * fetchItems): turning live mode on or off is not a new list request.
+   */
+  const isLiveEnabledRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isLiveEnabled);
+  isLiveEnabledRef.current = isLiveEnabled;
+
+  /*
+   * The newest list request, and whether it is still out. Only the newest
+   * request may paint the list, say why it failed, move the page or clear the
+   * loaders: an older one that lands late - for filters the reader has since
+   * changed, a search stopped at the time limit long after the narrower one
+   * that replaced it landed (issue #4707), or a live poll a change overtook -
+   * would paint rows or an error for a query nobody is looking at any more.
+   */
+  const listRequestSequenceRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+  const isListRequestOutRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * One list request per call, for the filters, page, page size and sort on
+   * screen - which are all that its identity follows, so the list is read
+   * again exactly when one of them really changes (issue #4709).
+   */
   const fetchItems: (options?: FetchOptions) => Promise<void> = useCallback(
     async (options: FetchOptions = {}): Promise<void> => {
-      const { skipLoadingState = false } = options;
+      const { skipLoadingState = false, refreshResultTotal = false } = options;
 
+      /*
+       * A live poll never replaces a list request still out. That request
+       * already reads the window up to now (see below), and replacing it
+       * would throw its answer away - on a list slower than the poll, every
+       * answer. The traces explorer keeps the same rule.
+       */
+      if (skipLoadingState && isListRequestOutRef.current) {
+        return;
+      }
+
+      const sequence: number = ++listRequestSequenceRef.current;
+      const isNewest: () => boolean = (): boolean => {
+        return listRequestSequenceRef.current === sequence;
+      };
+
+      isListRequestOutRef.current = true;
       setError("");
 
       if (skipLoadingState) {
-        if (liveRequestInFlight.current) {
-          return;
-        }
-
-        liveRequestInFlight.current = true;
         setIsLiveUpdating(true);
       } else {
         setIsLoading(true);
+        setListError(undefined);
       }
 
       try {
         /*
-         * When live polling, recompute the time range so the query window
-         * slides forward to "now" and new logs become visible.
+         * While live, a request reads its preset window up to now, whatever
+         * sent it: a poll, or a change made while live (turning live on from
+         * page 3, a new page size). Otherwise it reads the window the filters
+         * were set with - resolved once, when they were.
          */
+        const readsLiveWindow: boolean =
+          isLiveEnabledRef.current &&
+          timeRangeRef.current.range !== TimeRange.CUSTOM;
+
         let query: Query<Log> = filterOptions;
 
-        if (
-          skipLoadingState &&
-          isLiveEnabled &&
-          timeRange.range !== TimeRange.CUSTOM
-        ) {
+        if (readsLiveWindow) {
           const freshRange: InBetween<Date> =
-            RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+            RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+              timeRangeRef.current,
+            );
           query = {
             ...filterOptions,
             time: new InBetween<Date>(
@@ -1026,43 +1323,116 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             requestOptions: {},
           });
 
+        if (!isNewest()) {
+          return;
+        }
+
         setLogs(listResult.data);
         setTotalCount(listResult.count);
+        setListError(undefined);
+
+        /*
+         * What the result total needs from this page. Keyed by the filter
+         * state it was fetched for, and dropped when that state has moved
+         * on: an older page landing late must not stand in for the newer
+         * filters' list.
+         */
+        if (filterOptionsRef.current === filterOptions) {
+          resultTotalListQueryRef.current = query;
+          setResultTotalListAnswer({
+            query: filterOptions,
+            page: {
+              rowCount: listResult.data.length,
+              skip: (page - 1) * pageSize,
+              hasMore: listResult.hasMore,
+            },
+          });
+
+          /*
+           * A request that read a moved window counts it again: a poll asks
+           * to, and so does a change made while live. The last total stays
+           * on screen until the new one lands.
+           */
+          if (refreshResultTotal || (readsLiveWindow && !skipLoadingState)) {
+            setResultTotalRefreshKey((key: number): number => {
+              return key + 1;
+            });
+          }
+        }
 
         if (props.onCountChange) {
           props.onCountChange(listResult.count);
         }
 
-        const maximumPage: number = Math.max(
-          1,
-          Math.ceil(listResult.count / Math.max(pageSize, 1)),
-        );
+        /*
+         * A page past the end of the results - an old link to page 40 of
+         * what is now 3 pages - comes back empty, and the list's `count` is
+         * then only the rows it skipped (a lower bound, never a total), so
+         * it cannot say which page is the last. Go back to the first page,
+         * in one step. Reading that count as a total stepped back one page
+         * per request instead: a read for every page between the link's and
+         * the last one (issue #4709).
+         */
+        const skippedRows: number = (page - 1) * pageSize;
 
-        if (page > maximumPage) {
-          setPage(maximumPage);
+        if (
+          page > 1 &&
+          listResult.data.length === 0 &&
+          listResult.count <= skippedRows
+        ) {
+          setPage(1);
         }
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        if (!isNewest()) {
+          return;
+        }
+
+        /*
+         * A live poll that fails leaves the rows on screen for the next poll
+         * to refresh. A search that fails says why where its rows would be;
+         * the rows of the search before it are cleared, so neither the list
+         * nor an export can pass them off as this one's.
+         */
+        if (!skipLoadingState) {
+          setLogs([]);
+          setListError(TelemetryLoadErrorUtil.fromError(err));
+        }
       } finally {
-        if (skipLoadingState) {
-          liveRequestInFlight.current = false;
-          setIsLiveUpdating(false);
-        } else {
+        /*
+         * The newest request clears both loaders, whatever raised them: the
+         * one it replaced may have been the one that did. A newer search's
+         * loader stays up until its own answer lands.
+         */
+        if (isNewest()) {
+          isListRequestOutRef.current = false;
           setIsLoading(false);
+          setIsLiveUpdating(false);
         }
       }
     },
-    [
-      filterOptions,
-      isLiveEnabled,
-      page,
-      pageSize,
-      select,
-      sortField,
-      sortOrder,
-      timeRange,
-    ],
+    [filterOptions, page, pageSize, select, sortField, sortOrder],
   );
+
+  /*
+   * How many logs the filters match (issue #4202). The list endpoint skips
+   * COUNT(*) and answers with a lower bound, which the toolbar used to print
+   * as the total — "51 results · Page 1 of 2". Counted with the list's own
+   * query (a live poll's fresher window included), exactly or not at all.
+   */
+  const resultTotal: ResultTotal = useResultTotal<Query<Log>>({
+    query: filterOptions,
+    listAnswer: resultTotalListAnswer,
+    countRows: (query: Query<Log>): Promise<number> => {
+      return AnalyticsModelAPI.count<Log>(
+        Log,
+        resultTotalListQueryRef.current || query,
+        undefined,
+        { exact: true },
+      );
+    },
+    // The toolbar shows the total over the analytics view as well.
+    refreshKey: resultTotalRefreshKey,
+  });
 
   /*
    * The slice of the list query the chart and the facet counts are built
@@ -1146,7 +1516,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       typedAggregateFilter,
     ]);
 
-  const histogram: LogsHistogramState = useLogsHistogram(fetchHistogramBuckets);
+  const histogram: LogsHistogramState = useLogsHistogram(
+    fetchHistogramBuckets,
+    { isEnabled: !awaitsInitialSavedView && isListQueryOnScope },
+  );
 
   // --- Fetch facets ---
 
@@ -1246,10 +1619,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           {}) as unknown as FacetData;
 
         setFacetData(facets);
-      } catch {
-        // Facets are non-critical; silently degrade
+        setTimedOutFacets(
+          Array.isArray(response.data["timedOutFacets"])
+            ? (response.data["timedOutFacets"] as Array<string>)
+            : [],
+        );
+        setFacetError(undefined);
+      } catch (err) {
+        /*
+         * Facets are non-critical: the page keeps working without them, and
+         * the sidebar says why they are missing.
+         */
         if (isCurrent()) {
           setFacetData({});
+          setTimedOutFacets([]);
+          setFacetError(TelemetryLoadErrorUtil.fromError(err));
         }
       } finally {
         // A superseded request must not switch off the loader of the live one.
@@ -1274,7 +1658,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const disableLiveMode: () => void = useCallback((): void => {
     if (isLiveEnabled) {
       setIsLiveEnabled(false);
-      liveRequestInFlight.current = false;
       setIsLiveUpdating(false);
     }
   }, [isLiveEnabled]);
@@ -1347,8 +1730,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           ? applyLogsFacetFiltersToQuery(mergedQuery, nextFacetFilters)
           : mergedQuery,
       );
-      setPage(1);
-      setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
+      setPage(options?.overridePage || 1);
+      setPageSize(
+        options?.overridePageSize || savedView.pageSize || DEFAULT_PAGE_SIZE,
+      );
       setSortField((savedView.sortField as LogsSortField) || "time");
       setSortOrder(savedView.sortOrder || SortOrder.Descending);
       setSelectedColumns(normalizeLogsTableColumns(savedView.columns || []));
@@ -1421,19 +1806,45 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
     setPage(1);
     setIsLiveEnabled(false);
-    liveRequestInFlight.current = false;
     setIsLiveUpdating(false);
   }, [props.timeRangeOverride]);
 
   useEffect(() => {
+    // The first read waits until the explorer knows what it will show.
+    if (awaitsInitialSavedView) {
+      return;
+    }
+
     fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, [fetchItems]);
+  }, [fetchItems, awaitsInitialSavedView]);
 
   useEffect(() => {
+    if (awaitsInitialSavedView || !isListQueryOnScope) {
+      return;
+    }
+
     void fetchFacets();
-  }, [fetchFacets]);
+  }, [fetchFacets, awaitsInitialSavedView, isListQueryOnScope]);
+
+  /*
+   * The saved views are one small read and are in long before this fires.
+   * It only stops a read that never answers from holding the list back.
+   */
+  useEffect(() => {
+    if (!awaitsInitialSavedView) {
+      return;
+    }
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setAwaitsInitialSavedView(false);
+    }, INITIAL_SAVED_VIEW_WAIT_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [awaitsInitialSavedView]);
 
   useEffect(() => {
     void fetchSavedViews();
@@ -1478,9 +1889,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * view the URL NAMES still applies anywhere, because that is the
          * user asking for it.
          */
-        hostOwnsView: Boolean(
-          pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState,
-        ),
+        hostOwnsView: hostOwnsView,
       });
 
     if (resolution.isUrlSavedViewMissing) {
@@ -1498,10 +1907,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         resolution.savedView,
         /*
          * A view the URL named is applied UNDER the scope the same URL
-         * carries; a project default (nobody asked for it) is applied as
-         * saved.
+         * carries - its window, its chips and its page - so a reload of a
+         * view's page 3 opens on page 3 (issue #4709); a project default
+         * (nobody asked for it) is applied as saved.
          */
-        resolution.source === "url" && initialUrlState?.hasScope
+        resolution.source === "url" && initialUrlState
           ? {
               overrideTimeRange: initialUrlState.hasRange
                 ? initialUrlState.timeRange
@@ -1509,17 +1919,25 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
               overrideFacetFilters: initialUrlState.hasFilters
                 ? initialUrlState.facetFilters
                 : undefined,
+              overridePage: initialUrlState.page,
+              overridePageSize: initialUrlState.hasPageSize
+                ? initialUrlState.pageSize
+                : undefined,
             }
           : undefined,
       );
     }
+
+    /*
+     * In the same pass as the view's state, so the reads that waited for
+     * it go out once, for it.
+     */
+    setAwaitsInitialSavedView(false);
   }, [
     applySavedView,
     hasFetchedSavedViews,
     savedViews,
-    pinnedTimeRange,
-    props.timeRangeOverride,
-    props.syncUrlState,
+    hostOwnsView,
     initialUrlState,
   ]);
 
@@ -1547,14 +1965,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    * Live polling. The list and the histogram come from different endpoints,
    * so both have to be refreshed on the same beat — otherwise new rows keep
    * arriving under a chart that never moves.
+   *
+   * Not while the explorer waits for a saved view to apply (issue #4709),
+   * like the first reads: a beat then would read the query the view is
+   * about to replace, and paint its rows over the loaders.
    */
   useLiveLogsRefresh({
     isLive: isLiveEnabled,
     isEligible:
-      page === 1 && sortField === "time" && sortOrder === SortOrder.Descending,
+      !awaitsInitialSavedView &&
+      page === 1 &&
+      sortField === "time" &&
+      sortOrder === SortOrder.Descending,
     intervalInMs: LIVE_POLL_INTERVAL_MS,
     refreshLogs: () => {
-      void fetchItems({ skipLoadingState: true });
+      void fetchItems({ skipLoadingState: true, refreshResultTotal: true });
     },
     refreshHistogram: () => {
       void histogram.refresh({ silent: true });
@@ -1563,7 +1988,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // Realtime
   useEffect(() => {
-    if (!props.enableRealtime) {
+    if (!props.enableRealtime || awaitsInitialSavedView) {
       return;
     }
 
@@ -1597,7 +2022,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       disconnectFunction();
     };
-  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
+  }, [
+    fetchItems,
+    isLiveEnabled,
+    page,
+    sortField,
+    sortOrder,
+    awaitsInitialSavedView,
+  ]);
 
   // --- Handlers ---
 
@@ -1616,7 +2048,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           setSortOrder(SortOrder.Descending);
         }
       } else {
-        liveRequestInFlight.current = false;
         setIsLiveUpdating(false);
       }
 
@@ -1731,6 +2162,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
+  /*
+   * What an empty, unnarrowed list shows on the Logs page: the setup guide
+   * and, on a short range, the past week. Embedded viewers (a service's or a
+   * host's logs) keep the plain empty message.
+   */
+  const firstSteps: ReactElement | undefined = props.offersSetupWhenEmpty ? (
+    <TelemetryFirstStepsEmptyState
+      signal={TelemetryFirstStepsSignal.Logs}
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    />
+  ) : undefined;
+
   const rebuildFilterOptionsFromFacets: (
     facets: Map<string, Set<string>>,
   ) => Query<Log> = useCallback(
@@ -1755,55 +2199,59 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [props, timeRange],
   );
 
+  /*
+   * Add a chip: a facet value clicked in the sidebar, or a `key:value` picked
+   * in the search bar. Adding one that is already there changes nothing. It
+   * used to toggle, so picking `severity:error` in the search bar while an
+   * Error chip was applied took the chip off; the sidebar now takes a
+   * checked value off through handleRemoveFilter, the chip's own x.
+   */
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string): void => {
-        const nextFilters: Map<string, Set<string>> = new Map(
-          Array.from(appliedFacetFilters.entries()).map(
-            ([k, v]: [string, Set<string>]) => {
-              return [k, new Set(v)] as [string, Set<string>];
-            },
-          ),
-        );
+        const current: Map<
+          string,
+          Set<string>
+        > = appliedFacetFiltersRef.current;
 
-        const currentValues: Set<string> | undefined =
-          nextFilters.get(facetKey);
-
-        if (currentValues && currentValues.has(value)) {
-          // Toggle off: remove this value
-          currentValues.delete(value);
-
-          if (currentValues.size === 0) {
-            nextFilters.delete(facetKey);
-          }
-        } else if (currentValues) {
-          // Add value to the existing set
-          currentValues.add(value);
-        } else {
-          nextFilters.set(facetKey, new Set([value]));
+        if (current.get(facetKey)?.has(value)) {
+          return;
         }
 
+        const nextFilters: Map<string, Set<string>> = new Map(
+          Array.from(current.entries()).map(([k, v]: [string, Set<string>]) => {
+            return [k, new Set(v)] as [string, Set<string>];
+          }),
+        );
+
+        nextFilters.set(
+          facetKey,
+          new Set([...Array.from(nextFilters.get(facetKey) || []), value]),
+        );
+
+        appliedFacetFiltersRef.current = nextFilters;
         setAppliedFacetFilters(nextFilters);
         setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
         setPage(1);
         disableLiveMode();
       },
-      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+      [disableLiveMode, rebuildFilterOptionsFromFacets],
     );
 
-  const handleFacetExclude: (_facetKey: string, _value: string) => void =
-    useCallback((_facetKey: string, _value: string): void => {
-      /*
-       * Exclusion filters are not yet supported in the Query type.
-       * This is a placeholder for future NOT-filter support.
-       */
-    }, []);
+  /*
+   * No exclude for logs: the list could leave a value out, but the chart
+   * and the facet counts beside it are read through endpoints that take
+   * only values to keep (severityTexts, serviceIds, resourceFilters), so an
+   * exclusion would draw bars and counts for rows the list no longer shows.
+   * Without a handler the sidebar shows no exclude button at all; typing
+   * `-severity:debug` still leaves rows out of the list.
+   */
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string): void => {
         const nextFilters: Map<string, Set<string>> = new Map(
-          Array.from(appliedFacetFilters.entries()).map(
+          Array.from(appliedFacetFiltersRef.current.entries()).map(
             ([k, v]: [string, Set<string>]) => {
               return [k, new Set(v)] as [string, Set<string>];
             },
@@ -1823,15 +2271,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           nextFilters.delete(facetKey);
         }
 
+        appliedFacetFiltersRef.current = nextFilters;
         setAppliedFacetFilters(nextFilters);
         setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
         setPage(1);
         disableLiveMode();
       },
-      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+      [disableLiveMode, rebuildFilterOptionsFromFacets],
     );
 
   const handleClearAllFilters: () => void = useCallback((): void => {
+    appliedFacetFiltersRef.current = new Map();
     setAppliedFacetFilters(new Map());
     const base: Query<Log> = buildBaseQuery(props);
     const dateRange: InBetween<Date> =
@@ -2340,6 +2790,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     entityFacetDisplayNames,
   ]);
 
+  /*
+   * One click runs the search again: the list, and the chart and the
+   * filter counts if they did not load either.
+   */
+  const retrySearch: () => void = (): void => {
+    void fetchItems();
+
+    if (histogram.error) {
+      void histogram.refresh();
+    }
+
+    if (facetError || timedOutFacets.length > 0) {
+      void fetchFacets();
+    }
+  };
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -2367,7 +2833,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             savedView.sortField = sortField;
             savedView.sortOrder = sortOrder;
             savedView.pageSize = pageSize;
-            return savedView;
+            // Unticked, the service decides: a project's first view is its default.
+            return leaveSavedViewDefaultOutUnlessTicked(savedView);
           }}
           onSuccess={async (savedView: LogSavedView) => {
             setShowCreateSavedViewModal(false);
@@ -2451,8 +2918,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
       {savedViewToDelete && (
         <ConfirmModal
-          title={`Delete ${savedViewToDelete.name || "saved view"}`}
-          description={`Are you sure you want to delete ${savedViewToDelete.name || "this saved view"}?`}
+          title="Delete Saved View"
+          description={
+            <DeleteConfirmationMessage
+              kind="question"
+              name={getRecordDisplayName(savedViewToDelete)}
+              typeLabel="saved view"
+            />
+          }
           isLoading={isSavedViewLoading}
           submitButtonText="Delete"
           submitButtonType={ButtonStyleType.DANGER}
@@ -2490,13 +2963,27 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
       <div id={props.id}>
         <LogsViewer
-          isLoading={isLoading}
+          isLoading={isLoading || awaitsInitialSavedView}
+          listError={listError}
+          onRetryList={retrySearch}
+          histogramError={histogram.error}
+          onRetryHistogram={() => {
+            void histogram.refresh();
+          }}
+          timedOutFacets={timedOutFacets}
+          facetError={facetError}
+          onRetryFacets={() => {
+            void fetchFacets();
+          }}
           onFilterChanged={handleFilterChanged}
           filterData={filterOptions}
           logs={logs}
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}
+          emptyContentWhenUnfiltered={firstSteps}
           totalCount={totalCount}
+          hasMore={resultTotalListAnswer?.page.hasMore}
+          resultTotal={resultTotal}
           page={page}
           pageSize={pageSize}
           onPageChange={handlePageChange}
@@ -2520,9 +3007,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           histogramBucketIntervalMs={histogram.bucketIntervalMs}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
           facetData={facetData}
-          facetLoading={facetLoading}
+          facetLoading={facetLoading || awaitsInitialSavedView}
           onFacetInclude={handleFacetInclude}
-          onFacetExclude={handleFacetExclude}
           onFacetSearchChange={(facetKey: string, text: string) => {
             setFacetSearchText(
               (prev: Record<string, string>): Record<string, string> => {

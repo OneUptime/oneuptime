@@ -53,6 +53,16 @@ export interface GitHubInstallationToken {
   expiresAt: Date;
 }
 
+// An installation of this GitHub App, as a user's access token sees it.
+export interface GitHubUserInstallation {
+  installationId: string;
+  // The account the app is installed on.
+  accountLogin: string;
+  accountId: number | null;
+  // "User" or "Organization".
+  accountType: string;
+}
+
 // Check-run counts for one ref plus the rolled-up conclusion.
 export interface GitHubCheckRunsSummary extends FixPullRequestCiCheckRunCounts {
   conclusion: FixPullRequestCiStatus;
@@ -84,6 +94,19 @@ export interface GitHubCommitResult {
   commitSha: string;
   branchName: string;
   htmlUrl: string;
+}
+
+// The commit a pull request merged as: a full or abbreviated SHA.
+const MERGE_COMMIT_SHA: RegExp = /^[0-9a-f]{7,64}$/i;
+
+// What a branch's ref starts with, in the refs GitHub lists.
+const BRANCH_REF_PREFIX: string = "refs/heads/";
+
+// A pull request's state, with its merge commit and time once merged.
+export interface GitHubPullRequestMerge {
+  state: PullRequestState;
+  mergeCommitSha?: string | undefined;
+  mergedAt?: Date | undefined;
 }
 
 export default class GitHubUtil extends HostedCodeRepository {
@@ -495,6 +518,39 @@ export default class GitHubUtil extends HostedCodeRepository {
     return PullRequestState.Open;
   }
 
+  /*
+   * A pull request's state, and - once merged - the commit GitHub merged it
+   * as and when. The commit is what a deploy must contain for the fix to be
+   * in production (FixProductionVerifier).
+   */
+  public static readPullRequestMerge(
+    pullRequest: JSONObject,
+  ): GitHubPullRequestMerge {
+    const state: PullRequestState =
+      GitHubUtil.mapGitHubPullRequestToState(pullRequest);
+
+    if (state !== PullRequestState.Merged) {
+      return { state };
+    }
+
+    const mergeCommitSha: unknown = pullRequest["merge_commit_sha"];
+    const mergedAtText: unknown = pullRequest["merged_at"];
+    const mergedAt: Date | undefined =
+      typeof mergedAtText === "string" &&
+      !Number.isNaN(new Date(mergedAtText).getTime())
+        ? new Date(mergedAtText)
+        : undefined;
+
+    return {
+      state,
+      ...(typeof mergeCommitSha === "string" &&
+      MERGE_COMMIT_SHA.test(mergeCommitSha)
+        ? { mergeCommitSha }
+        : {}),
+      ...(mergedAt ? { mergedAt } : {}),
+    };
+  }
+
   // Fetches the current state of one pull request via the GitHub App installation.
   @CaptureSpan()
   public static async getPullRequestState(data: {
@@ -548,6 +604,34 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return GitHubUtil.mapGitHubPullRequestToState(result.data);
+  }
+
+  // getPullRequestStateWithToken, with the merge commit and time once merged.
+  @CaptureSpan()
+  public static async getPullRequestMergeWithToken(data: {
+    token: string;
+    organizationName: string;
+    repositoryName: string;
+    pullRequestNumber: number;
+  }): Promise<GitHubPullRequestMerge> {
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls/${data.pullRequestNumber}`,
+    );
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: url,
+      headers: {
+        Authorization: `Bearer ${data.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    return GitHubUtil.readPullRequestMerge(result.data);
   }
 
   /*
@@ -753,16 +837,20 @@ export default class GitHubUtil extends HostedCodeRepository {
   }
 
   /*
-   * Lists the IDs of every installation of THIS GitHub App that the user
-   * behind `userAccessToken` can administer. GitHub scopes this endpoint to
-   * the app the token was issued for, so a token minted by another app cannot
-   * widen it.
+   * Every installation of THIS GitHub App that the user behind
+   * `userAccessToken` can see, with the account each one is on. GitHub
+   * scopes this endpoint to the app the token was issued for, so a token
+   * minted by another app cannot widen it.
+   *
+   * Seeing an installation is not administering it: GitHub lists one for
+   * anyone with access to a repository in it, an organization member with
+   * read access included. userAdministersInstallation answers that.
    */
   @CaptureSpan()
-  public static async listInstallationIdsForUserAccessToken(
+  public static async listInstallationsForUserAccessToken(
     userAccessToken: string,
-  ): Promise<Array<string>> {
-    const installationIds: Array<string> = [];
+  ): Promise<Array<GitHubUserInstallation>> {
+    const userInstallations: Array<GitHubUserInstallation> = [];
     let page: number = 1;
     let hasMore: boolean = true;
 
@@ -772,11 +860,7 @@ export default class GitHubUtil extends HostedCodeRepository {
           url: URL.fromString(
             `https://api.github.com/user/installations?per_page=100&page=${page}`,
           ),
-          headers: {
-            Authorization: `Bearer ${userAccessToken}`,
-            Accept: "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
+          headers: GitHubUtil.buildApiHeaders(userAccessToken),
         });
 
       if (result instanceof HTTPErrorResponse) {
@@ -793,23 +877,224 @@ export default class GitHubUtil extends HostedCodeRepository {
           installation as JSONObject
         )?.["id"]?.toString();
 
-        if (installationId) {
-          installationIds.push(installationId);
+        if (!installationId) {
+          continue;
         }
+
+        const account: JSONObject =
+          ((installation as JSONObject)["account"] as JSONObject) || {};
+
+        userInstallations.push({
+          installationId: installationId,
+          accountLogin: account["login"]?.toString() || "",
+          accountId:
+            typeof account["id"] === "number"
+              ? (account["id"] as number)
+              : null,
+          accountType: account["type"]?.toString() || "",
+        });
       }
 
       hasMore = installations.length === 100;
       page++;
     }
 
-    return installationIds;
+    return userInstallations;
+  }
+
+  // The IDs of the installations listInstallationsForUserAccessToken returns.
+  @CaptureSpan()
+  public static async listInstallationIdsForUserAccessToken(
+    userAccessToken: string,
+  ): Promise<Array<string>> {
+    return (
+      await GitHubUtil.listInstallationsForUserAccessToken(userAccessToken)
+    ).map((installation: GitHubUserInstallation) => {
+      return installation.installationId;
+    });
+  }
+
+  // The GitHub account behind a user access token.
+  @CaptureSpan()
+  public static async getUserForAccessToken(
+    userAccessToken: string,
+  ): Promise<{ id: number; login: string }> {
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString("https://api.github.com/user"),
+      headers: GitHubUtil.buildApiHeaders(userAccessToken),
+    });
+
+    if (
+      result instanceof HTTPErrorResponse ||
+      typeof result.data["id"] !== "number"
+    ) {
+      throw new BadDataException(
+        "Could not read your GitHub account from GitHub. Please restart the installation from OneUptime.",
+      );
+    }
+
+    return {
+      id: result.data["id"] as number,
+      login: result.data["login"]?.toString() || "",
+    };
   }
 
   /*
-   * Proves that the person completing the install redirect actually controls
-   * the installation they claim, by round-tripping the OAuth code through
-   * GitHub. Throws (never returns false) so no caller can accidentally treat
-   * a verification failure as a pass.
+   * Does the GitHub account behind `userAccessToken` administer
+   * `installation`?
+   *
+   * Connecting an installation gives a OneUptime project write access,
+   * through the app, to every repository in it. So only someone who holds
+   * that access themselves may connect one:
+   *
+   *  - on a personal account, the account's owner;
+   *  - on an organization, someone with admin on every repository the
+   *    installation can access - as an owner of the organization has.
+   *
+   * Read access to one of its repositories, which is enough for GitHub to
+   * list the installation to a person, is not enough to connect it.
+   */
+  @CaptureSpan()
+  public static async userAdministersInstallation(data: {
+    userAccessToken: string;
+    userId: number;
+    installation: GitHubUserInstallation;
+  }): Promise<boolean> {
+    if (data.installation.accountType === "User") {
+      return data.installation.accountId === data.userId;
+    }
+
+    if (data.installation.accountType !== "Organization") {
+      return false;
+    }
+
+    const installationRepositoryCount: number =
+      await GitHubUtil.countRepositoriesForInstallation(
+        data.installation.installationId,
+      );
+
+    if (installationRepositoryCount === 0) {
+      return false;
+    }
+
+    let administeredRepositoryCount: number = 0;
+    let page: number = 1;
+    let hasMore: boolean = true;
+
+    while (hasMore) {
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get({
+          url: URL.fromString(
+            `https://api.github.com/user/installations/${encodeURIComponent(
+              data.installation.installationId,
+            )}/repositories?per_page=100&page=${page}`,
+          ),
+          headers: GitHubUtil.buildApiHeaders(data.userAccessToken),
+        });
+
+      if (result instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          "Could not read your access to the installation's repositories from GitHub. Please restart the installation from OneUptime.",
+        );
+      }
+
+      const repositories: JSONArray =
+        (result.data["repositories"] as JSONArray) || [];
+
+      for (const repository of repositories) {
+        const permissions: JSONObject | undefined = (repository as JSONObject)[
+          "permissions"
+        ] as JSONObject | undefined;
+
+        if (permissions?.["admin"] !== true) {
+          return false;
+        }
+
+        administeredRepositoryCount++;
+      }
+
+      hasMore =
+        repositories.length === 100 &&
+        administeredRepositoryCount < installationRepositoryCount;
+      page++;
+    }
+
+    /*
+     * GitHub lists only the repositories the person can see, so a shorter
+     * list means repositories in the installation they cannot even read.
+     */
+    return administeredRepositoryCount === installationRepositoryCount;
+  }
+
+  // How many repositories an installation can access, as the app sees it.
+  private static async countRepositoriesForInstallation(
+    installationId: string,
+  ): Promise<number> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(installationId, {
+        permissions: {
+          metadata: "read",
+        },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(
+        "https://api.github.com/installation/repositories?per_page=1",
+      ),
+      headers: GitHubUtil.buildApiHeaders(tokenData.token),
+    });
+
+    if (
+      result instanceof HTTPErrorResponse ||
+      typeof result.data["total_count"] !== "number"
+    ) {
+      throw new BadDataException(
+        "Could not read the installation's repositories from GitHub. Please restart the installation from OneUptime.",
+      );
+    }
+
+    return result.data["total_count"] as number;
+  }
+
+  /*
+   * Trades the OAuth `code` of a sign-in for the installations of this app
+   * its GitHub account administers - what that person may connect to a
+   * project when the app is already installed.
+   */
+  @CaptureSpan()
+  public static async listInstallationsUserAdministers(
+    oauthCode: string,
+  ): Promise<Array<GitHubUserInstallation>> {
+    const userAccessToken: string =
+      await GitHubUtil.exchangeOAuthCodeForUserAccessToken(oauthCode);
+
+    const user: { id: number; login: string } =
+      await GitHubUtil.getUserForAccessToken(userAccessToken);
+
+    const administered: Array<GitHubUserInstallation> = [];
+
+    for (const installation of await GitHubUtil.listInstallationsForUserAccessToken(
+      userAccessToken,
+    )) {
+      if (
+        await GitHubUtil.userAdministersInstallation({
+          userAccessToken: userAccessToken,
+          userId: user.id,
+          installation: installation,
+        })
+      ) {
+        administered.push(installation);
+      }
+    }
+
+    return administered;
+  }
+
+  /*
+   * Proves that the person completing the install redirect administers the
+   * installation they claim, by round-tripping the OAuth code through GitHub.
+   * Throws (never returns false) so no caller can accidentally treat a
+   * verification failure as a pass.
    */
   @CaptureSpan()
   public static async assertUserControlsInstallation(data: {
@@ -819,12 +1104,30 @@ export default class GitHubUtil extends HostedCodeRepository {
     const userAccessToken: string =
       await GitHubUtil.exchangeOAuthCodeForUserAccessToken(data.oauthCode);
 
-    const installationIds: Array<string> =
-      await GitHubUtil.listInstallationIdsForUserAccessToken(userAccessToken);
+    const installation: GitHubUserInstallation | undefined = (
+      await GitHubUtil.listInstallationsForUserAccessToken(userAccessToken)
+    ).find((candidate: GitHubUserInstallation) => {
+      return candidate.installationId === data.installationId.toString();
+    });
 
-    if (!installationIds.includes(data.installationId.toString())) {
+    if (!installation) {
       throw new BadDataException(
         "The GitHub account you authorized does not have access to this GitHub App installation. Please restart the installation from OneUptime.",
+      );
+    }
+
+    const user: { id: number; login: string } =
+      await GitHubUtil.getUserForAccessToken(userAccessToken);
+
+    if (
+      !(await GitHubUtil.userAdministersInstallation({
+        userAccessToken: userAccessToken,
+        userId: user.id,
+        installation: installation,
+      }))
+    ) {
+      throw new BadDataException(
+        "The GitHub account you authorized does not administer this GitHub App installation. Please install the app with an account that does.",
       );
     }
   }
@@ -1147,6 +1450,124 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return (result.data["default_branch"] as string) || "";
+  }
+
+  /*
+   * A repository's branch names, for a person picking the branch a task
+   * starts from: the first page GitHub lists (at most `limit`, in GitHub's
+   * order), or - given what the person typed - the branches whose names
+   * start with it (the matching-refs API, which reads refs by prefix).
+   * `isComplete` says the names are every branch that matches: false when
+   * the page was full, so the picker searches instead of filtering.
+   */
+  @CaptureSpan()
+  public static async listBranchNames(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    search?: string | undefined;
+    limit: number;
+  }): Promise<{ names: Array<string>; isComplete: boolean }> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "read", metadata: "read" },
+      });
+
+    const repositoryUrl: string = `https://api.github.com/repos/${encodeURIComponent(
+      data.organizationName,
+    )}/${encodeURIComponent(data.repositoryName)}`;
+
+    const search: string = (data.search || "").trim();
+    const limit: number = Math.max(1, Math.min(100, Math.floor(data.limit)));
+
+    if (!search) {
+      const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
+        await API.get<JSONArray>({
+          url: URL.fromString(`${repositoryUrl}/branches?per_page=${limit}`),
+          headers: GitHubUtil.buildApiHeaders(tokenData.token),
+        });
+
+      if (result instanceof HTTPErrorResponse) {
+        throw result;
+      }
+
+      const names: Array<string> = GitHubUtil.readNames(
+        Array.isArray(result.data) ? result.data : [],
+        (entry: JSONObject): unknown => {
+          return entry["name"];
+        },
+      );
+
+      return { names, isComplete: names.length < limit };
+    }
+
+    /*
+     * Each part of the prefix is encoded on its own: a branch name's "/"
+     * is part of the ref's path, which matching-refs reads as written.
+     */
+    const prefix: string = search
+      .split("/")
+      .map((part: string): string => {
+        return encodeURIComponent(part);
+      })
+      .join("/");
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
+      await API.get<JSONArray>({
+        url: URL.fromString(
+          `${repositoryUrl}/git/matching-refs/heads/${prefix}`,
+        ),
+        headers: GitHubUtil.buildApiHeaders(tokenData.token),
+      });
+
+    if (result instanceof HTTPErrorResponse) {
+      // A prefix nothing starts with reads as an empty list on GitHub; a 404 too.
+      if (result.statusCode === 404) {
+        return { names: [], isComplete: true };
+      }
+
+      throw result;
+    }
+
+    const names: Array<string> = GitHubUtil.readNames(
+      Array.isArray(result.data) ? result.data : [],
+      (entry: JSONObject): unknown => {
+        const ref: unknown = entry["ref"];
+
+        return typeof ref === "string" && ref.startsWith(BRANCH_REF_PREFIX)
+          ? ref.substring(BRANCH_REF_PREFIX.length)
+          : null;
+      },
+    );
+
+    return {
+      names: names.slice(0, limit),
+      isComplete: names.length <= limit,
+    };
+  }
+
+  // The names a GitHub list holds, once each and in its order.
+  private static readNames(
+    entries: JSONArray,
+    readName: (entry: JSONObject) => unknown,
+  ): Array<string> {
+    const names: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const entry of entries) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const name: unknown = readName(entry as JSONObject);
+
+      if (typeof name === "string" && name.length > 0 && !seen.has(name)) {
+        seen.add(name);
+        names.push(name);
+      }
+    }
+
+    return names;
   }
 
   /*

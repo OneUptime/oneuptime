@@ -23,6 +23,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncomingCallPolicyOwnerRuleEngineServiceClass
   implements RuleRunEngine<IncomingCallPolicy, IncomingCallPolicyOwnerRule>
@@ -119,6 +121,7 @@ class IncomingCallPolicyOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     policy: IncomingCallPolicy;
     rules: Array<IncomingCallPolicyOwnerRule>;
@@ -363,8 +366,7 @@ class IncomingCallPolicyOwnerRuleEngineServiceClass
     rule: IncomingCallPolicyOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in incoming call policy owner rule ${rule.id}: ${pattern}`,

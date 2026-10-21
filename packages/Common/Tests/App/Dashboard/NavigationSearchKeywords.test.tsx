@@ -57,8 +57,13 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["error tracking", "Exceptions", PageMap.EXCEPTIONS],
   ["genai", "AI / LLM", PageMap.LLM],
   ["copilot", "Chat", PageMap.AI_COPILOT],
-  ["ai agents", "Tasks", PageMap.AI_AGENT_TASKS],
-  ["source code", "Code Repositories", PageMap.CODE_REPOSITORY],
+  ["ai agents", "Code", PageMap.CODE],
+  // Tasks and Code Repositories became Code, so their words lead there.
+  ["tasks", "Code", PageMap.CODE],
+  ["ask ai", "Code", PageMap.CODE],
+  ["source code", "Code", PageMap.CODE],
+  ["github", "Code", PageMap.CODE],
+  ["repositories", "Code", PageMap.CODE],
   ["dependency map", "Topology", PageMap.TOPOLOGY],
   ["cmdb", "Inventory", PageMap.INVENTORY],
   ["container monitoring", "Docker", PageMap.DOCKER_HOSTS],
@@ -91,7 +96,9 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["opentelemetry", "Traces", PageMap.TRACES],
   ["service level", "SLOs", PageMap.SLOS],
   ["error budget", "SLOs", PageMap.SLOS],
-  ["siem", "Security Events", PageMap.SECURITY_EVENTS],
+  // Security Events opens on its overview.
+  ["siem", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
+  ["soar", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
   ["snmp", "Network", PageMap.NETWORK_OVERVIEW],
   ["flamegraph", "Performance Profiles", PageMap.PROFILES],
   ["lambda", "Serverless", PageMap.SERVERLESS_FUNCTIONS],
@@ -106,6 +113,14 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["redis", "Databases", PageMap.DATABASE_SERVERS],
   ["mongodb", "Databases", PageMap.DATABASE_SERVERS],
   ["sql server", "Databases", PageMap.DATABASE_SERVERS],
+  ["kafka", "Queues", PageMap.MESSAGE_QUEUES],
+  ["rabbitmq", "Queues", PageMap.MESSAGE_QUEUES],
+  ["sqs", "Queues", PageMap.MESSAGE_QUEUES],
+  ["service bus", "Queues", PageMap.MESSAGE_QUEUES],
+  ["pub/sub", "Queues", PageMap.MESSAGE_QUEUES],
+  ["consumer lag", "Queues", PageMap.MESSAGE_QUEUES],
+  ["dead letter", "Queues", PageMap.MESSAGE_QUEUES],
+  ["message queue", "Queues", PageMap.MESSAGE_QUEUES],
 ];
 
 function navbar(): React.ReactElement {
@@ -300,7 +315,61 @@ describe("dashboard product search keywords", () => {
 
     expect(screen.getByRole("combobox")).toHaveFocus();
     expect(screen.getAllByRole("option")).toHaveLength(initialCount);
+
+    /*
+     * The menu is back on Essentials, with every other section folded to one
+     * line: the products the search found are one click away.
+     */
+    for (const section of ["Resources", "Infrastructure"]) {
+      const toggle: HTMLElement = screen.getByRole("button", { name: section });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+    }
     expect(productLink(PageMap.RUM_APPLICATIONS)).toBeVisible();
     expect(productLink(PageMap.KUBERNETES_CLUSTERS)).toBeVisible();
+  });
+
+  test("the real catalog opens on Essentials, and every search case is in a folded section or Essentials", () => {
+    render(navbar());
+    openProducts();
+
+    const essentials: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return option.querySelector("span.truncate")?.textContent ?? "";
+      });
+    expect(essentials).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "On-Call Duty",
+      "Status Pages",
+      "Scheduled Maintenance",
+      "SLOs",
+    ]);
+
+    /*
+     * Every product a search case above finds is either on screen in
+     * Essentials or behind one of the folded lines, which names it.
+     */
+    const foldedLines: Array<string> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement): boolean => {
+        return button.getAttribute("aria-expanded") === "false";
+      })
+      .map((button: HTMLElement): string => {
+        return (
+          document.getElementById(button.getAttribute("aria-describedby")!)
+            ?.textContent ?? ""
+        );
+      });
+    for (const [, title] of SEARCH_CASES) {
+      expect(
+        essentials.includes(title) ||
+          foldedLines.some((line: string): boolean => {
+            return line.includes(title);
+          }),
+      ).toBe(true);
+    }
   });
 });

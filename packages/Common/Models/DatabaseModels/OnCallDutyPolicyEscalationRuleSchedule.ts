@@ -389,6 +389,50 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
 
+  /*
+   * Who the rule pages in this schedule: whoever is on call (false, as every
+   * schedule of a rule always did), or the next person in the rotation after
+   * them (true) - the backup a level after the on-call person's own pages.
+   * Set when the schedule is added to the rule and never changed: the
+   * dashboard removes the row and adds another to change it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.CreateProjectOnCallDutyPolicyEscalationRuleSchedule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyEscalationRuleSchedule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Page Next in Rotation",
+    description:
+      "When true, the escalation rule pages the next person in this schedule's rotation - the person after whoever is on call, passing over anyone who is away - instead of whoever is on call. Use it on the level after the one that pages the schedule, so a page nobody acknowledges goes to the backup from the same rotation.",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public pageNextInRotation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -1,8 +1,10 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/GlobalConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ObjectID from "../../Types/ObjectID";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -11,6 +13,13 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
+import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorization";
+import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
+import Exception from "../../Types/Exception/Exception";
+import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -39,6 +48,29 @@ export const ROOT_ONLY_LICENSE_COLUMNS: ReadonlyArray<keyof Model> = [
   "enterpriseLicenseUserCountUpdatedAt",
   "enterpriseLicenseInstances",
   "enterpriseEditionFirstSeenAt",
+  /*
+   * A self-hosted installation billed through a cloud marketplace is
+   * licensed by the marketplace's answers recorded here (verifiedAt): a
+   * forged one would license the installation for free.
+   */
+  "enterpriseMarketplaceBilling",
+];
+
+/*
+ * The installation's branding (GlobalConfig.branding*). The enterprise module
+ * writes and reads them, as root, behind its own checks of whether this
+ * installation may change its branding at all; the generic API neither
+ * writes them (assertBrandingColumnsWrittenByRootOnly) nor reads them back
+ * (onBeforeFind drops them), so a value stored while it was allowed is never
+ * served once it is not.
+ */
+export const ROOT_ONLY_BRANDING_COLUMNS: ReadonlyArray<keyof Model> = [
+  "brandingProductName",
+  "brandingWebsiteUrl",
+  "brandingLogo",
+  "brandingDarkLogo",
+  "brandingFavicon",
+  "brandingUpdatedAt",
 ];
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
@@ -68,6 +100,16 @@ export class Service extends DatabaseService<Model> {
   private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
   /*
+   * The one read of the server's Require SSO for Login in flight, if any:
+   * when the minute runs out - or the rule is forgotten, and every page's
+   * live updates are asked again at once - every request that asks shares
+   * it, rather than each reading the row. A read is kept only while it is
+   * still the current one: forgetting the rule clears the slot, so a read
+   * that was on the wire when the rule changed answers its own callers but
+   * never puts the old rule back for the minute.
+   */
+  private requireSsoForLoginLookup: Promise<boolean> | null = null;
+  /*
    * The public Telegram webhook is hit without a OneUptime session. The value
    * cache lives in Redis so every app replica observes the same generation.
    * Only the in-flight promise is process-local: it collapses a cache-miss
@@ -82,8 +124,30 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Drops this server's cached instance-wide sign-in rules - Require SSO for
+   * Login, and what it knows of the global SSO and OIDC providers (whether
+   * each is on, and the projects it signs people in to) - so the next
+   * request reads them again. Called when they change, here or on another
+   * server (RealtimeAccessChanges).
+   */
+  public forgetSignInRules(): void {
+    this.forgetRequireSsoForLogin();
+    clearGlobalSsoAuthorizationCaches();
+  }
+
+  // Drops this server's copy of Require SSO for Login, and the read in flight.
+  private forgetRequireSsoForLogin(): void {
+    this.requireSsoForLoginCache.clear();
+    this.requireSsoForLoginLookup = null;
+  }
+
+  /*
    * Instance-wide: must every user sign in with SSO to access projects?
-   * (Master admins are exempted by the enforcement layer, not here.)
+   * (Master admins are exempted by the enforcement layer, not here.) Kept
+   * for 60s, or read from the row - by one read for every caller asking at
+   * once. Throws when it cannot be read, and keeps nothing: a read that
+   * fails is no answer, and callers refuse rather than take it for "not
+   * required" (UserMiddleware.getUserTenantAccessPermissionWithTenantId).
    */
   @CaptureSpan()
   public async getRequireSsoForLogin(): Promise<boolean> {
@@ -93,15 +157,36 @@ export class Service extends DatabaseService<Model> {
       return cached;
     }
 
-    const config: Model | null = await this.findOneBy({
+    const inFlight: Promise<boolean> | null = this.requireSsoForLoginLookup;
+
+    if (inFlight) {
+      return await inFlight;
+    }
+
+    const lookup: Promise<boolean> = this.findOneBy({
       query: {},
       select: { requireSsoForLogin: true },
       props: { isRoot: true },
-    });
+    })
+      .then((config: Model | null): boolean => {
+        const value: boolean = Boolean(config?.requireSsoForLogin);
 
-    const value: boolean = Boolean(config?.requireSsoForLogin);
-    this.requireSsoForLoginCache.set(key, value, 60_000);
-    return value;
+        // Only while this read is still the current one (see requireSsoForLoginLookup).
+        if (this.requireSsoForLoginLookup === lookup) {
+          this.requireSsoForLoginCache.set(key, value, 60_000);
+        }
+
+        return value;
+      })
+      .finally((): void => {
+        if (this.requireSsoForLoginLookup === lookup) {
+          this.requireSsoForLoginLookup = null;
+        }
+      });
+
+    this.requireSsoForLoginLookup = lookup;
+
+    return await lookup;
   }
 
   @CaptureSpan()
@@ -268,11 +353,99 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * Refuses any write to ROOT_ONLY_BRANDING_COLUMNS that does not come from
+   * OneUptime itself. The refusal is the generic "not allowed" a column a
+   * caller may not write gets, naming no column: the generic API must not
+   * confirm that these columns exist.
+   */
+  public assertBrandingColumnsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_BRANDING_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown>)[column as string] !== undefined
+        );
+      },
+    );
+
+    if (isWritten) {
+      throw new NotAuthorizedException(
+        "You do not have permission to change these settings.",
+      );
+    }
+  }
+
+  /*
+   * The branding columns, removed from what a caller other than OneUptime
+   * itself selects or filters on: read back through the generic API, they
+   * would show values the enterprise module has decided not to apply.
+   */
+  public dropBrandingColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
+    if (findBy.props.isRoot) {
+      return findBy;
+    }
+
+    const without: <T>(value: T) => T = <T>(value: T): T => {
+      if (!value || typeof value !== "object") {
+        return value;
+      }
+
+      const copy: Record<string, unknown> = {
+        ...(value as unknown as Record<string, unknown>),
+      };
+
+      for (const column of ROOT_ONLY_BRANDING_COLUMNS) {
+        delete copy[column as string];
+      }
+
+      return copy as unknown as T;
+    };
+
+    return {
+      ...findBy,
+      select: without(findBy.select),
+      query: without(findBy.query),
+    };
+  }
+
+  /*
+   * The server's numbers for SMS (Admin Dashboard > Settings > Call and
+   * SMS), refused when they are typed rather than when an alert goes out -
+   * as a project's are (ProjectCallSMSConfigService).
+   */
+  private assertTwilioSmsNumbersAreValid(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    TwilioPhoneNumbers.assertListIsValid({
+      title: "Twilio SMS Phone Numbers",
+      text: (data as { twilioSmsPhoneNumbers?: unknown }).twilioSmsPhoneNumbers,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    return {
+      findBy: this.dropBrandingColumnsFromRead(findBy),
+      carryForward: null,
+    };
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertTwilioSmsNumbersAreValid(createBy.data);
 
     return {
       createBy,
@@ -285,6 +458,8 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertBrandingColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertTwilioSmsNumbersAreValid(updateBy.data);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;
@@ -339,17 +514,14 @@ export class Service extends DatabaseService<Model> {
      * cross-field validation still compares the effective pruning threshold
      * and target when the request changes only one of them.
      */
-    const currentConfig: Model | null = await this.findOneBy({
-      query: updateBy.query,
-      select: {
-        clickhouseCapacityNotificationThresholdPercent: true,
-        clickhouseDataPruningThresholdPercent: true,
-        clickhouseDataPruningTargetPercent: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const currentConfig: Model | null =
+      (
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          clickhouseCapacityNotificationThresholdPercent: true,
+          clickhouseDataPruningThresholdPercent: true,
+          clickhouseDataPruningTargetPercent: true,
+        })
+      )[0] || null;
 
     const normalizePercent: (value: unknown, fieldName: string) => number = (
       value: unknown,
@@ -455,16 +627,79 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * Writing the server's Require SSO for Login on - turning it on, or saving
+   * it on again - needs an SSO provider that signs people in to every
+   * project that does not require SSO itself (Utils/SsoRequirementChanges):
+   * checked once the caller has passed every permission check, under the
+   * lock on the server's sign-in rules, held until the write is done
+   * (onUpdateSuccess) - kept once more right before it, taken again and the
+   * check run again should it be gone by then, and kept alive while it is
+   * written (SsoRequirementChanges.beforeWrite).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+
+    // What the rule is now, so turning it off is told only when it was on.
+    await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
+  }
+
+  /*
+   * An update that failed once it held the lock: it is given back - or, when
+   * the database may still apply the write, kept until it would have
+   * cancelled it (SsoRequirementChanges).
+   */
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
+    }
+
+    return error;
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
     if (
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
         .requireSsoForLogin !== undefined
     ) {
-      this.requireSsoForLoginCache.clear();
+      this.forgetRequireSsoForLogin();
+    }
+
+    /*
+     * Turned on or off: every server reads the rule again at once, rather
+     * than when its cached copy runs out a minute later. Turned on, the live
+     * updates already open are asked again as their joins were, so a page
+     * that no longer meets it stops hearing at once, as its API requests are
+     * refused. That is told even when it was on already: turning it off
+     * takes no lock, so it may have been turned off a moment before this
+     * write landed. Turned off, people signed in with a password are let
+     * back in at once on every server, not only on this one; saved off
+     * again while off, nobody is told.
+     */
+    if (SsoRequirementChanges.takeWhetherServerRuleChanged(onUpdate.updateBy)) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+      });
     }
 
     if (

@@ -1,10 +1,18 @@
-import { describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import ServiceLevelObjectiveLabelRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveOwnerRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
 import ServiceLevelObjectiveLabelRuleService from "../../../Server/Services/ServiceLevelObjectiveLabelRuleService";
 import ServiceLevelObjectiveOwnerRuleService from "../../../Server/Services/ServiceLevelObjectiveOwnerRuleService";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * The SLO label and owner rule services.
@@ -15,6 +23,9 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * And a rule is configuration: unlike the feed-style retention most rule
  * services copy, it is never hard-deleted by age.
+ *
+ * Every new rule also has to add something (LabelAndOwnerRuleBaseService),
+ * so the rules created here add a label or a team - the project's own.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -31,7 +42,14 @@ interface ServiceCase {
   makeRule: () =>
     | ServiceLevelObjectiveLabelRule
     | ServiceLevelObjectiveOwnerRule;
+  // What a new rule of the kind adds: one label, or one team.
+  addsSomething: Record<string, unknown>;
+  // What it is told when it adds nothing.
+  addsNothingMessage: string;
 }
+
+const LABEL_ID: string = "33333333-3333-4333-8333-333333333333";
+const TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
 
 const SERVICES: Array<ServiceCase> = [
   {
@@ -40,6 +58,9 @@ const SERVICES: Array<ServiceCase> = [
     makeRule: () => {
       return new ServiceLevelObjectiveLabelRule();
     },
+    addsSomething: { labelsToAdd: [{ _id: LABEL_ID }] },
+    addsNothingMessage:
+      "This label rule adds nothing. Choose at least one label in Labels to Add.",
   },
   {
     name: "ServiceLevelObjectiveOwnerRuleService",
@@ -47,6 +68,9 @@ const SERVICES: Array<ServiceCase> = [
     makeRule: () => {
       return new ServiceLevelObjectiveOwnerRule();
     },
+    addsSomething: { ownerTeams: [{ _id: TEAM_ID }] },
+    addsNothingMessage:
+      "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams.",
   },
 ];
 
@@ -68,6 +92,15 @@ function callHook(
 }
 
 describe.each(SERVICES)("$name", (c: ServiceCase) => {
+  beforeEach(() => {
+    // The label and the team are the project's own.
+    stubProjectDirectory({ projectId: PROJECT_ID });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   function create(fields: Record<string, unknown>): Promise<unknown> {
     const rule:
       | ServiceLevelObjectiveLabelRule
@@ -75,6 +108,7 @@ describe.each(SERVICES)("$name", (c: ServiceCase) => {
     Object.assign(rule as unknown as Record<string, unknown>, {
       projectId: PROJECT_ID,
       name: "Checkout SLOs",
+      ...c.addsSomething,
       ...fields,
     });
 
@@ -110,6 +144,17 @@ describe.each(SERVICES)("$name", (c: ServiceCase) => {
 
     it("accepts a rule without patterns", async () => {
       await expect(create({})).resolves.toBeDefined();
+    });
+
+    it("refuses a rule that adds nothing, before its patterns are read", async () => {
+      await expect(
+        create({
+          labelsToAdd: [],
+          ownerUsers: [],
+          ownerTeams: [],
+          serviceLevelObjectiveNamePattern: "checkout-(01",
+        }),
+      ).rejects.toThrow(new BadDataException(c.addsNothingMessage));
     });
 
     it("refuses a name pattern that can never match, naming the field", async () => {

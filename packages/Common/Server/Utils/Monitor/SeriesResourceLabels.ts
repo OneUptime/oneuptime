@@ -129,6 +129,23 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * Storage array identity rides the agent-stamped resource attribute
+ * (`storage.array.name`) and its ClickHouse `resource.`-prefixed twin,
+ * exactly like Ceph: ingest keys StorageArray rows by name only — there is
+ * no `oneuptime.*.id` stamp — and the name maps to the StorageArray
+ * model's `name` column. The shipped storage array alert templates group
+ * by datapoint labels (`name`, `host`, `component_name`, `local_pod`,
+ * `summary`), so their series labels do NOT carry these keys; the
+ * deterministic array link for those monitors comes from the monitor step
+ * config instead (see MonitorResourceContext). These keys cover user-built
+ * monitors that group by the array attribute.
+ */
+export const StorageArrayNameLabelKeys: ReadonlyArray<string> = [
+  "resource.storage.array.name",
+  "storage.array.name",
+];
+
+/*
  * vCenter identity rides the agent-stamped resource attribute
  * (`vmware.vcenter.name` — one value per vCenter Server or standalone
  * ESXi host the VMware Agent connects to) and its ClickHouse
@@ -298,6 +315,7 @@ export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
   ...ProxmoxClusterNameLabelKeys,
   ...VMwareVCenterNameLabelKeys,
   ...CephClusterNameLabelKeys,
+  ...StorageArrayNameLabelKeys,
   ...IoTFleetNameLabelKeys,
   ...DatabaseServerIdLabelKeys,
   ...ServiceIdLabelKeys,
@@ -324,6 +342,7 @@ export interface SeriesResourceRefs {
   proxmoxClusterNames: Array<string>;
   vmwareVCenterNames: Array<string>;
   cephClusterNames: Array<string>;
+  storageArrayNames: Array<string>;
   iotFleetNames: Array<string>;
   serviceIds: Array<string>;
   serviceNames: Array<string>;
@@ -416,6 +435,10 @@ export default class SeriesResourceLabels {
       cephClusterNames: this.collectLabelValues(
         seriesLabels,
         CephClusterNameLabelKeys,
+      ),
+      storageArrayNames: this.collectLabelValues(
+        seriesLabels,
+        StorageArrayNameLabelKeys,
       ),
       iotFleetNames: this.collectLabelValues(
         seriesLabels,

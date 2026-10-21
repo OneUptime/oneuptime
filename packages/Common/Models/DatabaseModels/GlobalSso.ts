@@ -4,7 +4,6 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -25,9 +24,6 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
  * the federated user is already a member of. Access is restricted to master
  * admins through empty access-control arrays (master-admin/isRoot bypass).
  */
-@TableEditionAccessControl({
-  requiresEnterprise: true,
-})
 @TableAccessControl({
   create: [],
   read: [],
@@ -234,6 +230,34 @@ export default class GlobalSSO extends BaseModel {
     default: false,
   })
   public isEnabled?: boolean = undefined;
+
+  /*
+   * When this provider was last turned off. Turning a global provider off
+   * ends the sign-ins it gave: a Global SSO sign-in made before this time
+   * no longer counts, even once the provider is turned on again, so the
+   * person signs in again (UserMiddleware.
+   * isGlobalSsoTokenAuthorizedForProject). OneUptime writes it when the
+   * provider is turned off (Server/Utils/GlobalSsoProviderChanges); no one
+   * reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Sign-ins Ended At",
+    description:
+      "Internal: when this provider was last turned off. Sign-ins it gave before then no longer count.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public signInsEndedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

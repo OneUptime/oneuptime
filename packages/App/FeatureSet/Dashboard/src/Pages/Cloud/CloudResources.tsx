@@ -1,30 +1,37 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  followWithDisplayName,
+  getCloudEnvironmentNameFromFields,
+  getDisplayNameFormField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CLOUD_PROVIDER_LABELS,
@@ -38,7 +45,10 @@ import {
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
 import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Picker options for the create form and the Platform filter. The label
@@ -65,41 +75,62 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CloudResource>(
+    {
+      modelType: CloudResource,
+      query: { cloudResourceKind: CloudResourceKind.Environment },
+    },
+  );
 
   const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: CloudResource,
-      query: {},
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The create form asks for what an environment is matched on - its
+   * platform, account and region - on one page. The display name follows
+   * them ("AWS ECS · us-east-1 · 123456789012"), the way a discovered
+   * environment is named, and folds under Advanced with the description and
+   * the labels (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<CloudResource> =
+    getAdvancedFormSection<CloudResource>();
+
   return (
     <Fragment>
-      <CloudFleetSummary refreshToken={count} />
+      <CloudFleetSummary refreshToken={firstRecordWatch.count} />
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        refreshToggle={firstRecordWatch.refreshToken}
+        emptyState={getFirstRunEmptyState({
+          emptyState: undefined,
+          count: firstRecordWatch.count,
+        })}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
+        // The list is of environments: not the model's "No cloud resources yet".
+        noItemsMessage="No cloud environments yet."
         query={{
           isArchived: false,
+          /*
+           * The resources discovered from cloud monitoring share the table
+           * and have a list of their own (MonitoredResources).
+           */
+          cloudResourceKind: CloudResourceKind.Environment,
         }}
         onBeforeCreate={(
           item: CloudResource,
@@ -153,12 +184,11 @@ const CloudResources: FunctionComponent<
           return Promise.resolve(item);
         }}
         onCreateSuccess={(item: CloudResource): Promise<CloudResource> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -178,7 +208,7 @@ const CloudResources: FunctionComponent<
         cardProps={{
           title: "Cloud Environments",
           description:
-            "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
+            "Managed compute environments discovered from OpenTelemetry, one per platform, account and region, such as AWS ECS or Google Cloud Run.",
         }}
         formFields={[
           {
@@ -191,7 +221,11 @@ const CloudResources: FunctionComponent<
             required: true,
             placeholder: "Select a platform",
             description:
-              "The managed compute platform this environment runs on. Must equal the cloud.platform resource attribute your collector reports, or telemetry will never be matched to this environment.",
+              "The platform this environment runs on. It must match the cloud.platform your collector reports.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudPlatform",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
           {
             field: {
@@ -202,7 +236,11 @@ const CloudResources: FunctionComponent<
             required: false,
             placeholder: "123456789012",
             description:
-              "AWS account id, GCP project id or Azure subscription id — exactly as the cloud.account.id resource attribute reports it. Leave blank if your collector does not report one.",
+              "The AWS account, GCP project or Azure subscription id, as cloud.account.id reports it. Leave blank if it is not reported.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudAccountId",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
           {
             field: {
@@ -214,18 +252,18 @@ const CloudResources: FunctionComponent<
             placeholder: "us-east-1",
             description:
               "The cloud.region resource attribute, e.g. us-east-1, europe-west1 or eastus. Leave blank if your collector does not report one.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudRegion",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+          getDisplayNameFormField<CloudResource>({
+            getDefaultName: getCloudEnvironmentNameFromFields,
             placeholder: "AWS ECS · us-east-1 · 123456789012",
             description:
-              "A friendly name for this environment. Auto-discovered environments are named platform · region · account; following the same form keeps the list easy to scan.",
-          },
+              "Starts as platform · region · account. Type your own name to show instead; telemetry is still matched by platform, account and region.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -234,23 +272,11 @@ const CloudResources: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production ECS cluster for the checkout stack",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<CloudResource>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -324,7 +350,9 @@ const CloudResources: FunctionComponent<
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      account {account}
+                      {translator.translateTemplate("account {{account}}", {
+                        account: account,
+                      })}
                     </div>
                   )}
                 </div>
@@ -349,7 +377,7 @@ const CloudResources: FunctionComponent<
                   <span>
                     {platform
                       ? getManagedCloudPlatformLabel(platform)
-                      : "unknown"}
+                      : translator.translateText("unknown")}
                   </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">
@@ -429,10 +457,10 @@ const CloudResources: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <CloudDocumentationCard
           title="Getting Started with Cloud Environments"
-          description="No cloud environments connected yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector using the guide below — managed compute appears here automatically once the first telemetry arrives."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

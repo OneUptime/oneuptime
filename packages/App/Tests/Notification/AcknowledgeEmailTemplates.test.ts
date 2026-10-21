@@ -233,17 +233,19 @@ describe("the acknowledge emails escape everything that is not markup", () => {
 describe("the acknowledge emails show every row their template asks for", () => {
   for (const template of TEMPLATES) {
     /*
-     * DetailBoxField renders the LABEL from `title` but guards the VALUE
-     * with `{{#if}}`. A variable the generator forgets to set therefore
-     * produces a labelled row with nothing under it — no error, no blank
-     * where a reader would notice one. That is how AcknowledgeAlert.hbs
-     * shipped a "ROOT CAUSE:" heading over empty space for as long as its
-     * generator never set the variable.
+     * DetailBoxField used to render the LABEL from `title` and guard only
+     * the VALUE with `{{#if}}`, so a variable the generator forgot to set
+     * produced a labelled row with nothing under it. That is how
+     * AcknowledgeAlert.hbs shipped a "ROOT CAUSE:" heading over empty space
+     * for as long as its generator never set the variable, and how an alert
+     * without a description ended its card with a bare "Description:".
      *
-     * This test pins the failure mode so the service-level fix that now
-     * supplies the variable has something to be measured against.
+     * Now a row with no value is left out, label and all, and the card's
+     * dividers stay between the rows that show. The generators still set
+     * the root cause - with "No root cause identified" when there is none
+     * (OnCallEmailDetailRows.test.ts) - so the Root Cause row always shows.
      */
-    test(`${template.file} renders an empty value box when a variable is missing`, () => {
+    test(`${template.file} leaves out a row whose variable is missing, label and all`, () => {
       const withRow: string = render(template.file, varsFor(template));
       const withoutRow: string = render(
         template.file,
@@ -251,12 +253,24 @@ describe("the acknowledge emails show every row their template asks for", () => 
       );
 
       expect(withRow).toContain("<strong>Filter Conditions Met</strong>");
+      expect(withRow).toContain("Root Cause:");
       expect(withoutRow).not.toContain(
         "<strong>Filter Conditions Met</strong>",
       );
+      expect(withoutRow).not.toContain("Root Cause:");
+    });
 
-      // The label survives either way — which is exactly why it went unnoticed.
-      expect(withoutRow).toContain("Root Cause:");
+    test(`${template.file} ends its card with the root cause when there is no description`, () => {
+      const html: string = render(
+        template.file,
+        varsFor(template, { [template.descriptionVar]: "" }),
+      );
+
+      expect(html).toContain("Root Cause:");
+      expect(html).not.toContain("Description:");
+      expect(html.indexOf("Filter Conditions Met")).toBeGreaterThan(
+        html.indexOf("Severity:"),
+      );
     });
 
     test(`${template.file} asks for a Resources Affected row`, () => {
@@ -266,6 +280,55 @@ describe("the acknowledge emails show every row their template asks for", () => 
 
       const html: string = render(template.file, varsFor(template));
       expect(html).toContain("web-7d9f");
+    });
+  }
+});
+
+/*
+ * "CAN'T TAKE IT? PASS IT ON."
+ *
+ * Somebody woken by a page they cannot take passes it on from the email
+ * (OnCallPagePassOn): a line that says what passing on means for them, and
+ * a quieter button under Acknowledge. The button opens a page that asks
+ * first - a mail scanner that follows every link passes nothing on.
+ */
+describe("the acknowledge emails offer passing the page on", () => {
+  const PASS_ON_LINK: string =
+    "https://oneuptime.example.com/api/user-notification-log-timeline/pass-on-page/1?pageToken=t";
+
+  for (const template of TEMPLATES) {
+    test(`${template.file} says Can't take it? Pass it on, under Acknowledge`, () => {
+      const html: string = render(
+        template.file,
+        varsFor(template, { passOnLink: PASS_ON_LINK }),
+      );
+
+      expect(html).toContain(
+        "Can't take it? Pass it on, and you won't be paged about it again.",
+      );
+      // Handlebars writes the link's "=" as &#x3D;, which mail clients read back.
+      expect(html).toContain(
+        'href="https://oneuptime.example.com/api/user-notification-log-timeline/pass-on-page/1?pageToken&#x3D;t"',
+      );
+      expect(html).toContain(">Pass it on</a>");
+      expect(html.indexOf("Pass it on</a>")).toBeGreaterThan(
+        html.indexOf("You can also copy and paste this link:"),
+      );
+    });
+
+    test(`${template.file} leaves passing on out of an email without its link`, () => {
+      const html: string = render(template.file, varsFor(template));
+
+      expect(html).not.toContain("Pass it on");
+      expect(html).not.toContain("Can't take it?");
+    });
+
+    test(`${template.file} draws Pass it on as the secondary button`, () => {
+      const source: string = templateSource(template.file);
+
+      expect(source).toContain(
+        '{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}',
+      );
     });
   }
 });

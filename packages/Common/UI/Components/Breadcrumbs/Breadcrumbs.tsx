@@ -16,13 +16,33 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   return (
-    <nav className="block" aria-label="Breadcrumb">
+    <nav className="block" aria-label={translateString("Breadcrumb")}>
       <ol role="list" className="flex flex-wrap items-center gap-x-1 gap-y-2">
         {links &&
           links.length > 0 &&
           links.map((link: Link, i: number) => {
-            const translatedTitle: string =
-              translateString(link.title) || link.title;
+            // A record's name is drawn as typed (Link.isRecordName).
+            const translatedTitle: string = link.isRecordName
+              ? link.title
+              : translateString(link.title) || link.title;
+
+            /*
+             * The record's name in place of the page's ("View Monitor"),
+             * as typed (Link.recordName). Cut short past a line's worth,
+             * with the whole of it on hover: an incident's title can be a
+             * sentence.
+             */
+            const shownTitle: ReactElement | string = link.recordName ? (
+              <span
+                className="inline-block max-w-xs truncate align-bottom"
+                title={link.recordName}
+                data-testid="breadcrumb-record-name"
+              >
+                {link.recordName}
+              </span>
+            ) : (
+              translatedTitle
+            );
             return (
               <li className="breadcrumb-item" key={i}>
                 {i === 0 && (
@@ -32,7 +52,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                       className="text-gray-400 hover:text-gray-500 -mt-1"
                     >
                       <span className="text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1">
-                        {translatedTitle}
+                        {shownTitle}
                       </span>
                     </UILink>
                   </div>
@@ -52,7 +72,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                       }
                       className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1"
                     >
-                      {translatedTitle}
+                      {shownTitle}
                     </UILink>
                   </div>
                 )}

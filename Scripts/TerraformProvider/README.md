@@ -36,6 +36,7 @@ Terraform/terraform-provider-oneuptime/
 ├── go.mod                           # Go module definition
 ├── Makefile                         # Build automation
 ├── README.md                        # Documentation
+├── LICENSE                          # Apache License 2.0
 ├── build.sh                         # Build script
 ├── install.sh                       # Local installation
 ├── test.sh                          # Test runner
@@ -224,6 +225,27 @@ To modify the generator:
 2. Run `npm run generate-terraform-provider` to test changes
 3. Check generated Go code in `Terraform/terraform-provider-oneuptime/`
 4. Iterate and improve
+
+### Checking the generator
+
+The generator has its own unit tests and type check. The Terraform Provider
+Generation workflow runs both on every pull request:
+
+```bash
+cd Scripts/TerraformProvider
+npm test          # unit tests (jest)
+npm run compile   # type check (tsc --noEmit)
+```
+
+Both need `npm install` in `packages/Common`, `Scripts` and
+`Scripts/TerraformProvider`: the generator imports Common's sources and
+`Scripts/OpenAPI/GenerateSpec.ts`, whose packages resolve from those folders.
+
+`tsconfig.json` extends `packages/Common/tsconfig.json`, so the Common files
+the generator imports are checked exactly as Common checks them, and the
+generator's own files are held to the same strict rules. Change compiler
+options in Common's tsconfig, not here; `Tests/TypeCheckConfig.test.ts` names
+the few that differ and why.
 
 ## 📚 Documentation
 

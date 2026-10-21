@@ -63,6 +63,11 @@ export interface NetFlowV5Record {
   destinationAs: number;
   sourceMaskBits: number;
   destinationMaskBits: number;
+  /*
+   * The 1-in-N rate the header's sampling interval gives (1 when the
+   * device reports every packet): the same for every record of a datagram.
+   */
+  samplingRate: number;
 }
 
 export interface ParsedNetFlowV5Datagram {
@@ -119,11 +124,20 @@ export default class NetFlowV5Parser {
       samplingInterval: samplingField & 0x3fff,
     };
 
+    /*
+     * A device that samples says one in how many packets it counted. An
+     * interval of 0 or 1 means every packet.
+     */
+    const samplingRate: number =
+      header.samplingInterval > 1 ? header.samplingInterval : 1;
+
     const records: Array<NetFlowV5Record> = [];
 
     for (let i: number = 0; i < count; i++) {
       const offset: number = HEADER_LENGTH_BYTES + i * RECORD_LENGTH_BYTES;
-      records.push(NetFlowV5Parser.parseRecord(datagram, offset, header));
+      records.push(
+        NetFlowV5Parser.parseRecord(datagram, offset, header, samplingRate),
+      );
     }
 
     return {
@@ -136,6 +150,7 @@ export default class NetFlowV5Parser {
     datagram: Buffer,
     offset: number,
     header: NetFlowV5Header,
+    samplingRate: number,
   ): NetFlowV5Record {
     /*
      * `first`/`last` are the device's sysUptime (ms since boot) when the
@@ -176,6 +191,7 @@ export default class NetFlowV5Parser {
       sourceMaskBits: datagram.readUInt8(offset + 44),
       destinationMaskBits: datagram.readUInt8(offset + 45),
       // offset + 46 is pad2.
+      samplingRate: samplingRate,
     };
   }
 

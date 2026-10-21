@@ -55,6 +55,11 @@ const {
   contextSourceProblem,
   findEnterpriseLeaks,
 } = require("./Utils/DockerfileContext");
+const {
+  stepCommand,
+  stepCommandFromRoot,
+  stepWorkingDirectory,
+} = require("./Utils/WorkflowStep");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const EE_DIR = path.join(REPO_ROOT, "ee");
@@ -938,19 +943,10 @@ describe(".gitignore keeps ee key material out of the repository too", () => {
 });
 
 /*
- * Workflow helpers. A "step command" is a step's `run`, or the `command` of a
- * nick-fields/retry step.
+ * Workflow helpers. A "step command" is what a step runs as shell
+ * (Utils/WorkflowStep): its `run`, the npm command of an npm-install step, or
+ * the `command` of a nick-fields/retry step.
  */
-function stepCommand(step) {
-  if (typeof step.run === "string") {
-    return step.run;
-  }
-  if (step.with && typeof step.with.command === "string") {
-    return step.with.command;
-  }
-  return "";
-}
-
 function removesEnterprise(step) {
   return /^\s*rm -rf ee\s*$/m.test(stepCommand(step));
 }
@@ -980,8 +976,36 @@ describe("core CI is the Community Edition by construction", () => {
       });
   });
 
+  /*
+   * There were 22 core jobs when this was written; the Compile workflow's core
+   * packages have since moved from a job each into four jobs (see the header
+   * of compile.yml), leaving 8. The check below runs per job, and per package
+   * in CompileWorkflow.test.js.
+   */
   test("there are core jobs to check", () => {
-    expect(coreJobs.length).toBeGreaterThan(15);
+    expect(coreJobs.length).toBeGreaterThan(5);
+  });
+
+  test("it can see their installs (an install it cannot read passes the check below)", () => {
+    /*
+     * When installs moved into ./.github/actions/npm-install, the step reader
+     * saw two of the 22 core jobs' installs, and the check below passed the
+     * other 20 without looking at them. Every core job installs something, so
+     * the reader must see an install in every one of them.
+     */
+    const installing = coreJobs.filter(([, job]) => {
+      return (job.steps || []).some(installsPackages);
+    });
+
+    expect(
+      installing.map(([label]) => {
+        return label;
+      }),
+    ).toEqual(
+      coreJobs.map(([label]) => {
+        return label;
+      }),
+    );
   });
 
   test.each(coreJobs)(
@@ -1002,29 +1026,30 @@ describe("core CI is the Community Edition by construction", () => {
 describe("the Enterprise Edition's own CI", () => {
   test("compile-ee installs what ee type-checks against, then ee, then compiles it", () => {
     const job = readYaml(".github/workflows/compile.yml").jobs["compile-ee"];
-    const commands = job.steps.map(stepCommand);
-    const indexOf = (pattern) => {
-      return commands.findIndex((command) => {
-        return pattern.test(command);
-      });
+    // Each step as typed from the root: every install is a step of its own.
+    const commands = job.steps.map((step) => {
+      return stepCommandFromRoot(step).trim();
+    });
+    const indexOf = (command) => {
+      return commands.indexOf(command);
     };
 
-    const common = indexOf(/cd packages\/Common && npm install/);
-    const app = indexOf(/cd packages\/App && npm install/);
+    const common = indexOf("cd packages/Common && npm install");
+    const app = indexOf("cd packages/App && npm install");
     const dashboard = indexOf(
-      /cd packages\/App\/FeatureSet\/Dashboard && npm install/,
+      "cd packages/App/FeatureSet/Dashboard && npm install",
     );
     const admin = indexOf(
-      /cd packages\/App\/FeatureSet\/AdminDashboard && npm install/,
+      "cd packages/App/FeatureSet/AdminDashboard && npm install",
     );
-    const ee = indexOf(
-      /cd ee && npm ci --ignore-scripts && npm run compile && npm run dep-check/,
-    );
+    const ee = indexOf("cd ee && npm ci --ignore-scripts");
+    const compile = indexOf("cd ee && npm run compile && npm run dep-check");
 
-    for (const index of [common, app, dashboard, admin, ee]) {
+    for (const index of [common, app, dashboard, admin, ee, compile]) {
       expect(index).toBeGreaterThan(-1);
     }
     expect(Math.max(common, app, dashboard, admin)).toBeLessThan(ee);
+    expect(ee).toBeLessThan(compile);
     expect(job.steps.some(removesEnterprise)).toBe(false);
   });
 
@@ -1041,7 +1066,7 @@ describe("the Enterprise Edition's own CI", () => {
     const inDirectory = (directory, pattern) => {
       return (step) => {
         return (
-          step["working-directory"] === directory &&
+          stepWorkingDirectory(step) === directory &&
           pattern.test(stepCommand(step))
         );
       };
@@ -1076,13 +1101,13 @@ describe("the Enterprise Edition's own CI", () => {
     };
     const app = indexOf((step) => {
       return (
-        step["working-directory"] === "packages/App" &&
+        stepWorkingDirectory(step) === "packages/App" &&
         /^npm install$/.test(stepCommand(step))
       );
     });
     const guards = indexOf((step) => {
       return (
-        step["working-directory"] === "packages/App" &&
+        stepWorkingDirectory(step) === "packages/App" &&
         stepCommand(step).trim() ===
           "node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit"
       );
@@ -1244,8 +1269,8 @@ describe("release workflows", () => {
   /*
    * The self-hosted ENTERPRISE e2e jobs: the enterprise image with billing
    * OFF. That combination is the whole point of them - it is the only one in
-   * which the license, rather than the billing flag, decides whether SSO, SCIM
-   * and audit logging run. Turn billing on and EnterpriseEdition answers
+   * which the license, rather than the billing flag, decides whether SCIM and
+   * audit logging run. Turn billing on and EnterpriseEdition answers
    * "OneUptime Cloud" to every check; move them to a Community tag and there is
    * no ee/ to gate. Either mistake leaves a green job that proves nothing, so
    * both are pinned here. (Their two-phase structure is pinned in
@@ -1760,7 +1785,7 @@ describe("the Ops workflow runs the tool-backed checks", () => {
     return /cd Tests\/Ops && npm run test/.test(stepCommand(step));
   });
   const gomplate = indexOf((step) => {
-    return /gomplate --version/.test(stepCommand(step));
+    return step.uses === "./.github/actions/setup-gomplate";
   });
 
   test("runs the jest suite with RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1", () => {
@@ -1770,79 +1795,25 @@ describe("the Ops workflow runs the tool-backed checks", () => {
     );
   });
 
-  test("installs gomplate before the jest suite, from the release binary, and checks it runs", () => {
-    const install = stepCommand(steps[gomplate]).replace(/\\\n\s*/g, " ");
-
+  test("puts the pinned gomplate on PATH before the jest suite", () => {
+    /*
+     * With .github/actions/setup-gomplate, which every other gomplate user
+     * runs too: the binary configure.sh pins, from the Actions cache, checked
+     * against its pinned sha256 before it is put on PATH and run.
+     * GomplateSetupCoverage.test.js holds the action to those pins. The step
+     * this replaced downloaded the release on every run, with a 15-second
+     * retry, from a CDN that answers 500/504 in bursts.
+     */
     expect(gomplate).toBeGreaterThan(-1);
     expect(gomplate).toBeLessThan(jest);
-    expect(install).toContain("set -euo pipefail");
-    expect(install).toMatch(
-      /curl -fsSL [^\n]*"https:\/\/github\.com\/hairyhenderson\/gomplate\/releases\/download\/v\$\{GOMPLATE_VERSION\}\/gomplate_linux-amd64"/,
-    );
-    expect(install).toContain(
-      'gomplate --version | grep -F "$GOMPLATE_VERSION"',
-    );
   });
 
-  test("verifies the downloaded gomplate against a pinned sha256 before running it", () => {
-    const install = stepCommand(steps[gomplate]);
-    const pinnedVersion = (install.match(
-      /^\s*GOMPLATE_PINNED_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
-    const configureVersion = (read("Scripts/Install/configure.sh").match(
-      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
+  test("no step downloads gomplate itself", () => {
+    const downloads = steps.filter((step) => {
+      return /hairyhenderson\/gomplate\/releases/.test(stepCommand(step));
+    });
 
-    // The pinned digest belongs to the version configure.sh installs.
-    expect(pinnedVersion).toBe(configureVersion);
-    expect(install).toMatch(/GOMPLATE_LINUX_AMD64_SHA256="[0-9a-f]{64}"/);
-    expect(install).toContain(
-      '[ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]',
-    );
-
-    const verify = install.indexOf("sha256sum -c -");
-    const chmod = install.indexOf(
-      'chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"',
-    );
-    const run = install.indexOf("gomplate --version");
-
-    expect(verify).toBeGreaterThan(-1);
-    // Checked before it is made executable, let alone run.
-    expect(verify).toBeLessThan(chmod);
-    expect(chmod).toBeLessThan(run);
-  });
-
-  test("the gomplate it installs is the version Scripts/Install/configure.sh pins", () => {
-    /*
-     * The step reads the pin out of configure.sh rather than repeating it;
-     * run that line for real and compare.
-     */
-    const pinned = (read("Scripts/Install/configure.sh").match(
-      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
-    const readsVersion = stepCommand(steps[gomplate])
-      .split("\n")
-      .map((line) => {
-        return line.trim();
-      })
-      .find((line) => {
-        return line.startsWith("GOMPLATE_VERSION=");
-      });
-
-    expect(pinned).toBeDefined();
-    expect(readsVersion).toBeDefined();
-
-    const result = spawnSync(
-      "bash",
-      [
-        "-c",
-        `set -euo pipefail\n${readsVersion}\nprintf '%s' "$GOMPLATE_VERSION"`,
-      ],
-      { cwd: REPO_ROOT, encoding: "utf8" },
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe(pinned);
+    expect(downloads).toEqual([]);
   });
 });
 

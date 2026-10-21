@@ -3,7 +3,10 @@ import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import AIAgentTaskLog from "../Utils/CodeFixTaskLog";
 import TaskLogger from "../Utils/TaskLogger";
-import BackendAPI from "../Utils/BackendAPI";
+import BackendAPI, {
+  RecordPullRequestOptions,
+  UnrecordedPullRequest,
+} from "../Utils/BackendAPI";
 import SecretRedactor from "../Utils/SecretRedactor";
 import {
   getTaskHandlerRegistry,
@@ -15,10 +18,11 @@ import TaskHandlerRegistry from "../TaskHandlers/TaskHandlerRegistry";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import { CodeTaskOutcomeReport } from "Common/Types/AI/CodeTask";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
 
@@ -48,6 +52,16 @@ interface GetPendingTaskResponse {
 const SLEEP_WHEN_NO_TASKS_MS: number = 60 * 1000; // 1 minute
 
 /*
+ * The report that closes a task is retried when the request never got an
+ * answer, or got one that says the server broke rather than the request — a
+ * deploy, a dropped connection. Lost, it leaves the run Running until the
+ * stale-run sweeper fails it, and takes the pull requests a Completed report
+ * carries with it. The server closes a run once and records a pull request
+ * once, so a retry of a report that did land changes nothing.
+ */
+const FINAL_STATUS_REPORT_RETRIES: number = 3;
+
+/*
  * How a task finished, for the caller to report. Only the two non-failure
  * outcomes are represented — a task that could not finish throws instead, and
  * the catch block reports Error.
@@ -56,9 +70,46 @@ export interface TaskOutcome {
   status: AIAgentTaskStatus.Completed | AIAgentTaskStatus.NoFixFound;
   // Why no fix was proposed. Only set for NoFixFound.
   statusMessage?: string | undefined;
+  /*
+   * The pull requests the task opened. Only set for Completed, and reported
+   * with it: recording a pull request can fail after GitHub has opened it
+   * (BaseTaskHandler.recordOpenedPullRequest), and the status report is then
+   * the only way the server learns where the pull request is.
+   */
+  pullRequestUrls?: Array<string> | undefined;
+  /*
+   * The pull requests the task opened but could not record, each with the
+   * record it failed to make. Only set for Completed, whose report carries
+   * them for the server to record.
+   */
+  unrecordedPullRequests?: Array<UnrecordedPullRequest> | undefined;
+  /*
+   * What a request from Code ended with (TaskResult.outcome): sent with the
+   * Completed status, which the server keeps on the run for the task's
+   * conversation. A server that predates it ignores it.
+   */
+  outcome?: CodeTaskOutcomeReport | undefined;
 }
 
 type ExecuteTaskFunction = (task: PendingTask) => Promise<TaskOutcome>;
+
+type ToUnrecordedPullRequestFunction = (
+  record: RecordPullRequestOptions,
+) => UnrecordedPullRequest;
+
+/*
+ * A record that failed, as the status report carries it: every field it had,
+ * without the task (the report names it).
+ */
+const toUnrecordedPullRequest: ToUnrecordedPullRequestFunction = (
+  record: RecordPullRequestOptions,
+): UnrecordedPullRequest => {
+  const unrecorded: Partial<RecordPullRequestOptions> = { ...record };
+
+  delete unrecorded.taskId;
+
+  return unrecorded as UnrecordedPullRequest;
+};
 
 /**
  * Execute an AI Agent task using the registered task handler
@@ -105,6 +156,7 @@ export const executeTask: ExecuteTaskFunction = async (
     logger: taskLogger,
     backendAPI,
     startedAt: new Date(),
+    unrecordedPullRequests: [],
   };
 
   try {
@@ -145,7 +197,23 @@ export const executeTask: ExecuteTaskFunction = async (
       };
     }
 
-    return { status: AIAgentTaskStatus.Completed };
+    const unrecordedPullRequests: Array<RecordPullRequestOptions> =
+      context.unrecordedPullRequests || [];
+
+    return {
+      status: AIAgentTaskStatus.Completed,
+      ...(result.outcome ? { outcome: result.outcome } : {}),
+      ...(result.pullRequestUrls && result.pullRequestUrls.length > 0
+        ? { pullRequestUrls: result.pullRequestUrls }
+        : {}),
+      ...(unrecordedPullRequests.length > 0
+        ? {
+            unrecordedPullRequests: unrecordedPullRequests.map(
+              toUnrecordedPullRequest,
+            ),
+          }
+        : {}),
+    };
   } finally {
     /*
      * dispose(), not flush(): a TaskLogger starts a repeating flush timer in
@@ -165,6 +233,95 @@ export const executeTask: ExecuteTaskFunction = async (
      * a dead credential in memory for the life of the process.
      */
     SecretRedactor.clearRegistered();
+  }
+};
+
+type BuildTaskOutcomeReportFunction = (data: {
+  taskId: string;
+  outcome: TaskOutcome;
+}) => JSONObject;
+
+/*
+ * The status report that closes a task that finished. A field is only sent
+ * when it has a value, so a task that opened no pull request reports exactly
+ * what it always did — and a server that predates pullRequestUrls or
+ * unrecordedPullRequests never reads them, which is all an older server
+ * needs.
+ */
+export const buildTaskOutcomeReport: BuildTaskOutcomeReportFunction = (data: {
+  taskId: string;
+  outcome: TaskOutcome;
+}): JSONObject => {
+  return {
+    ...RunnerAPIRequest.getDefaultRequestBody(),
+    taskId: data.taskId,
+    status: data.outcome.status,
+    ...(data.outcome.statusMessage
+      ? { statusMessage: data.outcome.statusMessage }
+      : {}),
+    ...(data.outcome.pullRequestUrls && data.outcome.pullRequestUrls.length > 0
+      ? { pullRequestUrls: data.outcome.pullRequestUrls }
+      : {}),
+    ...(data.outcome.unrecordedPullRequests &&
+    data.outcome.unrecordedPullRequests.length > 0
+      ? {
+          unrecordedPullRequests: data.outcome
+            .unrecordedPullRequests as unknown as JSONArray,
+        }
+      : {}),
+    ...(data.outcome.outcome
+      ? { outcome: data.outcome.outcome as unknown as JSONObject }
+      : {}),
+  };
+};
+
+type BuildPendingTaskRequestFunction = () => JSONObject;
+
+/*
+ * The request that asks for work: this Runner's credentials, and the
+ * recipes it has a handler for. A server hands it only those - so a
+ * request from Code is never given to a Runner that cannot do it - and a
+ * server that predates the list ignores it.
+ */
+export const buildPendingTaskRequest: BuildPendingTaskRequestFunction =
+  (): JSONObject => {
+    return {
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      supportedTaskTypes: getTaskHandlerRegistry().getRegisteredTaskTypes(),
+    };
+  };
+
+type SendFinalStatusReportFunction = (data: {
+  url: URL;
+  report: JSONObject;
+  logAttributes: LogAttributes;
+}) => Promise<HTTPResponse<JSONObject> | null>;
+
+/*
+ * Send the report that closes a task — Completed, NoFixFound or Error — with
+ * retries. Null when no answer came back, retries included. API.post throws
+ * then, and a Completed or NoFixFound report's throw must not reach the catch
+ * that reports Error: the task finished, and an Error report that got
+ * through once the server was back would say it failed.
+ */
+const sendFinalStatusReport: SendFinalStatusReportFunction = async (data: {
+  url: URL;
+  report: JSONObject;
+  logAttributes: LogAttributes;
+}): Promise<HTTPResponse<JSONObject> | null> => {
+  try {
+    return await API.post({
+      url: data.url,
+      data: data.report,
+      options: RunnerAPIRequest.getDefaultRequestOptions({
+        retries: FINAL_STATUS_REPORT_RETRIES,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+      }),
+    });
+  } catch (error) {
+    logger.error(error, data.logAttributes);
+    return null;
   }
 };
 
@@ -202,7 +359,8 @@ const startTaskProcessingLoop: () => Promise<void> =
         /* Fetch one scheduled task */
         const getPendingTaskResult: HTTPResponse<JSONObject> = await API.post({
           url: getPendingTaskUrl,
-          data: RunnerAPIRequest.getDefaultRequestBody(),
+          data: buildPendingTaskRequest(),
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
         if (!getPendingTaskResult.isSuccess()) {
@@ -259,6 +417,7 @@ const startTaskProcessingLoop: () => Promise<void> =
               taskId: taskId,
               status: AIAgentTaskStatus.InProgress,
             },
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
           });
 
           if (!inProgressResult.isSuccess()) {
@@ -287,44 +446,46 @@ const startTaskProcessingLoop: () => Promise<void> =
           const outcome: TaskOutcome = await executeTask(task);
 
           /* Mark task as Completed / NoFixFound */
-          let finalResult: HTTPResponse<JSONObject> = await API.post({
-            url: updateTaskStatusUrl,
-            data: {
-              ...RunnerAPIRequest.getDefaultRequestBody(),
-              taskId: taskId,
-              status: outcome.status,
-              ...(outcome.statusMessage
-                ? { statusMessage: outcome.statusMessage }
-                : {}),
-            },
-          });
+          let finalResult: HTTPResponse<JSONObject> | null =
+            await sendFinalStatusReport({
+              url: updateTaskStatusUrl,
+              report: buildTaskOutcomeReport({
+                taskId: taskId,
+                outcome: outcome,
+              }),
+              logAttributes: taskLogAttrs,
+            });
 
           /*
-           * Servers that predate NoFixFound reject it as an invalid status,
-           * which would leave the run Running until the sweeper marked it
-           * Stale. Fall back to Completed: the run did finish, and a stale
-           * red run would be a worse lie than a green one.
+           * Servers that predate NoFixFound refuse it as an invalid status (a
+           * 400), which would leave the run Running until the sweeper marked
+           * it Stale. Fall back to Completed: the run did finish, and a stale
+           * red run would be a worse lie than a green one. Only on that
+           * refusal: no answer, or a server error that outlasted the retries,
+           * says nothing about what the server supports, and a Completed that
+           * got through once it was back would hide why no fix was found.
            */
           if (
-            !finalResult.isSuccess() &&
-            outcome.status === AIAgentTaskStatus.NoFixFound
+            outcome.status === AIAgentTaskStatus.NoFixFound &&
+            finalResult?.statusCode === 400
           ) {
             logger.warn(
               `Server rejected NoFixFound for task ${taskId}; reporting Completed instead`,
               taskLogAttrs,
             );
 
-            finalResult = await API.post({
+            finalResult = await sendFinalStatusReport({
               url: updateTaskStatusUrl,
-              data: {
+              report: {
                 ...RunnerAPIRequest.getDefaultRequestBody(),
                 taskId: taskId,
                 status: AIAgentTaskStatus.Completed,
               },
+              logAttributes: taskLogAttrs,
             });
           }
 
-          if (!finalResult.isSuccess()) {
+          if (!finalResult || !finalResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as ${outcome.status}`,
               taskLogAttrs,
@@ -348,17 +509,19 @@ const startTaskProcessingLoop: () => Promise<void> =
           const errorMessage: string =
             error instanceof Error ? error.message : "Unknown error occurred";
 
-          const errorResult: HTTPResponse<JSONObject> = await API.post({
-            url: updateTaskStatusUrl,
-            data: {
-              ...RunnerAPIRequest.getDefaultRequestBody(),
-              taskId: taskId,
-              status: AIAgentTaskStatus.Error,
-              statusMessage: errorMessage,
-            },
-          });
+          const errorResult: HTTPResponse<JSONObject> | null =
+            await sendFinalStatusReport({
+              url: updateTaskStatusUrl,
+              report: {
+                ...RunnerAPIRequest.getDefaultRequestBody(),
+                taskId: taskId,
+                status: AIAgentTaskStatus.Error,
+                statusMessage: errorMessage,
+              },
+              logAttributes: taskLogAttrs,
+            });
 
-          if (!errorResult.isSuccess()) {
+          if (!errorResult || !errorResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as Error: ${errorMessage}`,
               taskLogAttrs,

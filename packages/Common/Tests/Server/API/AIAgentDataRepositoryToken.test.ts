@@ -2,10 +2,16 @@ import AIAgentDataAPI from "../../../Server/API/AIAgentDataAPI";
 import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import OpenPullRequestCap from "../../../Server/Utils/AI/CodeFix/OpenPullRequestCap";
+import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import {
+  CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL,
+  CodeWorkerKind,
+} from "../../../Types/Runner/CodeRepositoryRunner";
 import Response from "../../../Server/Utils/Response";
 import {
   ExpressRequest,
@@ -100,6 +106,8 @@ describe("POST /ai-agent-data/get-repository-token", () => {
   let mintTokenSpy: jest.SpyInstance;
   let bindingSpy: jest.SpyInstance;
   let findRepositorySpy: jest.SpyInstance;
+  let mayWorkSpy: jest.SpyInstance;
+  let agentId: ObjectID;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -115,11 +123,22 @@ describe("POST /ai-agent-data/get-repository-token", () => {
     ownInstallationId = "11111111";
 
     // The agent key is project-scoped and self-issued in the attacker's project.
-    jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-      id: ObjectID.generate(),
-      projectId: attackerProjectId,
-      source: CodeFixAgentSource.AIAgent,
-    });
+    agentId = ObjectID.generate();
+    jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+      credentialCheckProving({
+        id: agentId,
+        projectId: attackerProjectId,
+        source: CodeFixAgentSource.AIAgent,
+      }),
+    );
+
+    /*
+     * The repository's Runner setting lets this agent work in it, unless a
+     * test says otherwise (its own suite: CodeRepositoryRunnerChoice).
+     */
+    mayWorkSpy = jest
+      .spyOn(CodeRepositoryRunnerChoice, "mayWorkInRepository")
+      .mockResolvedValue(true);
 
     findRepositorySpy = jest.spyOn(CodeRepositoryService, "findOneById");
 
@@ -319,8 +338,8 @@ describe("POST /ai-agent-data/get-repository-token", () => {
   describe("pre-existing guards still hold", () => {
     test("rejects invalid agent credentials before reading anything", async () => {
       jest
-        .spyOn(CodeFixAgentAuth, "resolveAgentIdentity")
-        .mockResolvedValue(null);
+        .spyOn(CodeFixAgentAuth, "checkCredential")
+        .mockResolvedValue(credentialCheckProving(null));
 
       await callRoute();
 
@@ -376,6 +395,64 @@ describe("POST /ai-agent-data/get-repository-token", () => {
 
       expect(thrownError()).toBeInstanceOf(BadDataException);
       expect(mintTokenSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A repository picks the Runner AI works in it on (its Runner setting in
+   * Code). The token is the only way into the repository, so only the
+   * worker the repository picks is handed one - whatever handed the worker
+   * its run.
+   */
+  describe("only the worker the repository picks is given a token", () => {
+    test("a worker the repository does not pick is refused, before the binding or GitHub is asked", async () => {
+      mockRepository(ownInstallationId);
+      bindingSpy.mockResolvedValue(true);
+      mayWorkSpy.mockResolvedValue(false);
+
+      await callRoute();
+
+      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(thrownError()!.message).toBe(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL);
+      expect(bindingSpy).not.toHaveBeenCalled();
+      expect(mintTokenSpy).not.toHaveBeenCalled();
+      expect(jsonResponse()).toBeUndefined();
+    });
+
+    test("the refusal names no other Runner of the project", () => {
+      expect(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL).toContain(
+        "settings in Code",
+      );
+      expect(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL).not.toMatch(/"[^"]+"/);
+    });
+
+    test("asks about the worker the credential proves and the repository's own Runner setting", async () => {
+      mockRepository(ownInstallationId);
+      bindingSpy.mockResolvedValue(true);
+
+      await callRoute();
+
+      expect(mayWorkSpy).toHaveBeenCalledTimes(1);
+
+      const asked: {
+        worker: { kind: CodeWorkerKind; id: ObjectID };
+        repository: CodeRepository;
+      } = mayWorkSpy.mock.calls[0]![0] as {
+        worker: { kind: CodeWorkerKind; id: ObjectID };
+        repository: CodeRepository;
+      };
+
+      // An AI agent of the project's own, from before Runners.
+      expect(asked.worker.kind).toBe(CodeWorkerKind.ProjectAgent);
+      expect(asked.worker.id.toString()).toBe(agentId.toString());
+      expect(asked.repository.id?.toString()).toBe(codeRepositoryId.toString());
+
+      // The repository is read with its Runner setting.
+      const read: { select: Record<string, unknown> } = findRepositorySpy.mock
+        .calls[0]![0] as { select: Record<string, unknown> };
+      expect(read.select["runnerId"]).toBe(true);
+
+      expect(mintTokenSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

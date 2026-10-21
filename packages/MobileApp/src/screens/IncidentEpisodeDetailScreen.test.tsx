@@ -8,6 +8,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as passOnApi from "../api/onCallPassOn";
+import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import { QueryClient } from "@tanstack/react-query";
 import IncidentEpisodeDetailScreen from "./IncidentEpisodeDetailScreen";
 import {
@@ -131,6 +133,31 @@ jest.mock("../api/incidentEpisodes", () => {
   };
 });
 
+/*
+ * Whether the signed-in person is being paged about it, for Pass it on
+ * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
+ * the answer never comes: the screen renders as it always did, and nothing
+ * updates it after a test has looked.
+ */
+const mockPassOnPages: { current: OnCallPassOnPage[] | null } = {
+  current: null,
+};
+
+jest.mock("../api/onCallPassOn", () => {
+  return {
+    fetchOnCallPassOnPages: jest.fn(() => {
+      return mockPassOnPages.current
+        ? Promise.resolve(mockPassOnPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    passOnOnCallPages: jest.fn(async () => {
+      return [];
+    }),
+  };
+});
+
 jest.mock("../hooks/useHaptics", () => {
   return {
     useHaptics: () => {
@@ -164,6 +191,17 @@ const resolvedState: IncidentState = makeIncidentState({
   isResolvedState: true,
   isCreatedState: false,
   order: 3,
+});
+
+/*
+ * A state the project placed after Resolved, without the resolved flag: by
+ * the one resolved rule (utils/resolvedState) a record in it is resolved.
+ */
+const closedState: IncidentState = makeIncidentState({
+  _id: "incident-state-closed",
+  name: "Closed",
+  isCreatedState: false,
+  order: 4,
 });
 
 const createdState: IncidentState = makeIncidentState();
@@ -627,6 +665,40 @@ describe("The state-change controls", () => {
     ).toBeNull();
   });
 
+  test("an episode in a state placed after Resolved offers neither control either", async () => {
+    /*
+     * "Closed" comes after Resolved and does not carry the resolved flag. The
+     * episode is resolved all the same: nothing to acknowledge, and no
+     * Resolve to move it back up the list.
+     */
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      resolvedState,
+      closedState,
+    ];
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeIncidentEpisode({
+        currentIncidentState: {
+          _id: closedState._id,
+          name: closedState.name,
+          color: closedState.color,
+        },
+      }),
+    });
+
+    await renderScreen(createSeedableClient());
+
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident episode" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Resolve incident episode" }),
+    ).toBeNull();
+    expect(screen.getByText("Response complete")).toBeTruthy();
+  });
+
   test("acknowledging sends the acknowledged state for this episode", async () => {
     await renderScreen(createSeedableClient());
 
@@ -1007,5 +1079,150 @@ describe("Episode guidance for each response stage", () => {
       screen.getByRole("header", { name: "Something went wrong" }),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+});
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved, without
+   * the acknowledged flag. An episode in it has been acknowledged - on-call
+   * stopped paging when it got there - so Acknowledge, a move back up the
+   * list the server refuses, is not offered.
+   */
+  const investigatingState: IncidentState = makeIncidentState({
+    _id: "incident-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const laterResolvedState: IncidentState = makeIncidentState({
+    _id: "incident-state-resolved",
+    name: "Resolved",
+    isResolvedState: true,
+    isCreatedState: false,
+    order: 4,
+  });
+  const secondAcknowledgedState: IncidentState = makeIncidentState({
+    _id: "incident-state-second-acknowledged",
+    name: "Escalated",
+    isAcknowledgedState: true,
+    isCreatedState: false,
+    order: 3,
+  });
+
+  function loadInState(state: IncidentState): void {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeIncidentEpisode({
+        currentIncidentState: {
+          _id: state._id,
+          name: state.name,
+          color: state.color,
+        },
+      }),
+    });
+  }
+
+  test("an episode in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      investigatingState,
+      laterResolvedState,
+    ];
+    loadInState(investigatingState);
+
+    await renderScreen(createSeedableClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", {
+        name: "Acknowledge incident episode",
+      }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", {
+        name: "Resolve incident episode",
+      }),
+    ).toBeTruthy();
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      secondAcknowledgedState,
+      laterResolvedState,
+    ];
+    loadInState(secondAcknowledgedState);
+
+    await renderScreen(createSeedableClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident episode" }),
+    ).toBeNull();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    mockStates.current = [
+      secondAcknowledgedState,
+      laterResolvedState,
+      createdState,
+      acknowledgedState,
+    ];
+
+    await renderScreen(createSeedableClient());
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge incident episode" }),
+    );
+
+    await waitFor(() => {
+      expect(mockChangeState).toHaveBeenCalledWith(
+        PROJECT_ID,
+        EPISODE_ID,
+        acknowledgedState._id,
+      );
+    });
+  });
+});
+
+describe("Passing the page on", () => {
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+
+  const PASS_ON_PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+  };
+
+  afterEach(() => {
+    mockPassOnPages.current = null;
+  });
+
+  test("the person being paged about this incident episode is offered Pass it on", async () => {
+    fetchPassOnMock.mockClear();
+    mockPassOnPages.current = [PASS_ON_PAGE];
+
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Pass this incident episode page on",
+      }),
+    ).toBeTruthy();
+    expect(fetchPassOnMock).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "incident-episode",
+      EPISODE_ID,
+    );
   });
 });

@@ -214,6 +214,44 @@ describe("BreadcrumbTrailResolver", () => {
       expect(target.routePattern).toBe(`${PROJECT}/monitors/settings/status`);
       expect(REAL_ROUTE_SET.has(target.routePattern ?? "")).toBe(true);
     });
+
+    /*
+     * The AI sections of Incidents and Alerts have no page of their own; the
+     * "AI" crumb lands on the section's first page, Insights.
+     */
+    test.each([
+      ["incidents", "logs"],
+      ["incidents", "settings"],
+      ["incidents", "auto-remediation-rules"],
+      ["alerts", "logs"],
+      ["alerts", "settings"],
+      ["alerts", "auto-remediation-rules"],
+    ])(
+      '"AI" links to /%s/ai/insights on the AI section\'s %s page',
+      (product: string, page: string) => {
+        const target: BreadcrumbTarget = resolveOne({
+          index: 2,
+          crumbCount: 4,
+          pagePattern: `${PROJECT}/${product}/ai/${page}`,
+        });
+
+        expect(target.kind).toBe(BreadcrumbTargetKind.SectionLanding);
+        expect(target.routePattern).toBe(`${PROJECT}/${product}/ai/insights`);
+      },
+    );
+
+    test.each(["incidents", "alerts"])(
+      '"AI" is plain text on the /%s/ai/insights page itself',
+      (product: string) => {
+        const target: BreadcrumbTarget = resolveOne({
+          index: 2,
+          crumbCount: 4,
+          pagePattern: `${PROJECT}/${product}/ai/insights`,
+        });
+
+        expect(target.kind).toBe(BreadcrumbTargetKind.CurrentPage);
+      },
+    );
   });
 
   describe("nearest real ancestor on the current path", () => {
@@ -229,15 +267,70 @@ describe("BreadcrumbTrailResolver", () => {
       );
     });
 
-    test('"AI Tasks" links to /ai/agents on an /ai/agents/:id page', () => {
+    test('"Code" links to /code on a /code/repositories/:id page', () => {
       const target: BreadcrumbTarget = resolveOne({
         index: 1,
         crumbCount: 3,
-        pagePattern: `${PROJECT}/ai/agents/:id`,
+        pagePattern: `${PROJECT}/code/repositories/:id`,
       });
       expect(target.kind).toBe(BreadcrumbTargetKind.Ancestor);
-      expect(resolvedPattern(target, `${PROJECT}/ai/agents/:id`)).toBe(
-        `${PROJECT}/ai/agents`,
+      expect(resolvedPattern(target, `${PROJECT}/code/repositories/:id`)).toBe(
+        `${PROJECT}/code`,
+      );
+    });
+
+    /*
+     * Code's Repositories became a page (/code/repositories). A trail of
+     * Project > Code > Repository > Settings then pointed its "Repository"
+     * crumb at that list - the first real page past /code - and the record
+     * crumb never got the repository's name. The trail now names
+     * Repositories, so each crumb is the page above.
+     */
+    test("on a repository's Settings, \"Repositories\" links to the list and the repository's crumb to its own page", () => {
+      const page: string = `${PROJECT}/code/repositories/:id/settings`;
+      const targets: Array<BreadcrumbTarget> = resolveBreadcrumbTrail({
+        pagePattern: page,
+        crumbCount: 5,
+        realRoutePatterns: REAL_ROUTES,
+      });
+
+      expect(
+        targets.map((target: BreadcrumbTarget) => {
+          return target.kind === BreadcrumbTargetKind.CurrentPage
+            ? "current"
+            : resolvedPattern(target, page);
+        }),
+      ).toEqual([
+        PROJECT,
+        `${PROJECT}/code`,
+        `${PROJECT}/code/repositories`,
+        `${PROJECT}/code/repositories/:id`,
+        "current",
+      ]);
+    });
+
+    test("without the Repositories crumb, a repository's crumb would open the list instead of the repository", () => {
+      const page: string = `${PROJECT}/code/repositories/:id/settings`;
+      const repository: BreadcrumbTarget = resolveOne({
+        index: 2,
+        crumbCount: 4,
+        pagePattern: page,
+      });
+
+      expect(resolvedPattern(repository, page)).toBe(
+        `${PROJECT}/code/repositories`,
+      );
+    });
+
+    test('"Code" links to /code on a /code/tasks/:id page, past the /code/tasks that is no page', () => {
+      const target: BreadcrumbTarget = resolveOne({
+        index: 1,
+        crumbCount: 3,
+        pagePattern: `${PROJECT}/code/tasks/:id`,
+      });
+      expect(target.kind).toBe(BreadcrumbTargetKind.Ancestor);
+      expect(resolvedPattern(target, `${PROJECT}/code/tasks/:id`)).toBe(
+        `${PROJECT}/code`,
       );
     });
   });
@@ -413,6 +506,9 @@ describe("BreadcrumbTrailResolver", () => {
         `${PROJECT}/monitors/settings`,
         `${PROJECT}/incidents/settings`,
         `${PROJECT}/alerts/settings`,
+        // The AI sections of Incidents and Alerts: pages, but no page of their own.
+        `${PROJECT}/incidents/ai`,
+        `${PROJECT}/alerts/ai`,
         `${PROJECT}/traces/settings`,
         `${PROJECT}/traces/view`,
         `${PROJECT}/profiles/view`,

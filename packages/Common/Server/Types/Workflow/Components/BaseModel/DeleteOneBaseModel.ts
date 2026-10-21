@@ -13,6 +13,9 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
+import logRowsKeptByDelete from "./LogRowsKeptByDelete";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class DeleteOneBaseModel<
   TBaseModel extends BaseModel,
@@ -91,6 +94,14 @@ export default class DeleteOneBaseModel<
         );
       }
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
+
       const query: Query<TBaseModel> = JSONFunctions.deserialize(
         normalizeModelKeys(
           args["query"] as JSONObject,
@@ -109,12 +120,13 @@ export default class DeleteOneBaseModel<
         ] = options.projectId;
       }
 
+      // A Project Admin of the project, never root. See getStepProps.
+      const props: DatabaseCommonInteractionProps =
+        await this.getStepProps(options);
+
       const itemsDeleted: number = await this.modelService.deleteOneBy({
         query: query,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        props: props,
       });
 
       options.log(
@@ -123,6 +135,17 @@ export default class DeleteOneBaseModel<
         }(s).`,
       );
 
+      /*
+       * What the table kept of the rows the query names, and why. Nothing for
+       * a query that names the one row by its id.
+       */
+      await logRowsKeptByDelete({
+        service: this.modelService,
+        query: query,
+        props: props,
+        log: options.log,
+      });
+
       return {
         returnValues: {
           "items-deleted": itemsDeleted,
@@ -130,15 +153,18 @@ export default class DeleteOneBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

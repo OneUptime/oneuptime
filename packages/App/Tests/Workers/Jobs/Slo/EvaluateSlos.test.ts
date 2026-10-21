@@ -18,6 +18,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import User from "Common/Models/DatabaseModels/User";
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate, { Moment } from "Common/Types/Date";
@@ -26,6 +27,7 @@ import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 
 /*
  * End-to-end regression tests for the SLO evaluation worker.
@@ -238,6 +240,32 @@ jest.mock("Common/Server/Services/IncidentSeverityService", () => {
 });
 
 /*
+ * An open burn rate record is in one of the project's states above its
+ * resolved state (Common/Utils/ResolvedState): these are those states.
+ */
+jest.mock("Common/Server/Services/IncidentStateService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnresolvedIncidentStateIds: jest.fn(async () => {
+        return ["incident-state-open"];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/AlertStateService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnresolvedAlertStateIds: jest.fn(async () => {
+        return ["alert-state-open"];
+      }),
+    },
+  };
+});
+
+/*
  * Burn rate record owners are de-duplicated before they are added: against
  * owner rows already on the record (OwnerRuleAssignment reads these four) and
  * against the members of the owner teams being added.
@@ -271,6 +299,18 @@ jest.mock("Common/Server/Services/ProjectService", () => {
 
 jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+/*
+ * The project's states an event is in progress in (the ongoing state and
+ * the project's own placed between Ongoing and Ended): what the maintenance
+ * check asks for the events by.
+ */
+jest.mock("Common/Server/Services/ScheduledMaintenanceStateService", () => {
+  return {
+    __esModule: true,
+    default: { getInProgressScheduledMaintenanceStateIds: jest.fn() },
+  };
 });
 
 /*
@@ -344,6 +384,7 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
 import SloHistoryService from "Common/Server/Services/SloHistoryService";
@@ -418,6 +459,64 @@ const projectService: { getOwners: jest.Mock; findOneById: jest.Mock } =
   ProjectService as unknown as { getOwners: jest.Mock; findOneById: jest.Mock };
 const maintenanceService: { findBy: jest.Mock } =
   ScheduledMaintenanceService as unknown as { findBy: jest.Mock };
+const maintenanceStateService: {
+  getInProgressScheduledMaintenanceStateIds: jest.Mock;
+} = ScheduledMaintenanceStateService as unknown as {
+  getInProgressScheduledMaintenanceStateIds: jest.Mock;
+};
+
+// The project's ongoing state, and "Verifying", a state of its own after it.
+const ONGOING_STATE_ID: ObjectID = new ObjectID(
+  "5f000000-0000-4000-8000-0000000000a3",
+);
+const VERIFYING_STATE_ID: ObjectID = new ObjectID(
+  "5f000000-0000-4000-8000-0000000000a4",
+);
+// "Reviewing", a state of its own placed after Ended: over, not in progress.
+const REVIEWING_STATE_ID: ObjectID = new ObjectID(
+  "5f000000-0000-4000-8000-0000000000a6",
+);
+
+// The ids a query's state condition (QueryHelper.any) asks for.
+function stateIdsAskedFor(query: Record<string, unknown>): Array<string> {
+  const condition: { objectLiteralParameters?: Record<string, unknown> } =
+    query["currentScheduledMaintenanceStateId"] as {
+      objectLiteralParameters?: Record<string, unknown>;
+    };
+
+  const values: Array<unknown> = Object.values(
+    condition?.objectLiteralParameters || {},
+  );
+
+  return ((values[0] as Array<unknown>) || []).map((id: unknown): string => {
+    return String(id).toLowerCase();
+  });
+}
+
+/*
+ * Events of the project, each in a state, kept to the ones a query's state
+ * condition lets through, as Postgres would.
+ */
+function mockMaintenanceEventsInStates(
+  events: Array<{ stateId: ObjectID; monitorId: ObjectID }>,
+): void {
+  maintenanceService.findBy.mockImplementation(
+    async (args: { query: Record<string, unknown> }) => {
+      const asked: Array<string> = stateIdsAskedFor(args.query);
+
+      return events
+        .filter((event: { stateId: ObjectID }): boolean => {
+          return asked.includes(event.stateId.toString().toLowerCase());
+        })
+        .map((event: { stateId: ObjectID; monitorId: ObjectID }) => {
+          const maintenance: ScheduledMaintenance = new ScheduledMaintenance();
+          maintenance.currentScheduledMaintenanceStateId = event.stateId;
+          maintenance.monitors = [new Monitor(event.monitorId)];
+          return maintenance;
+        });
+    },
+  );
+}
 const notificationService: {
   ensureSettingExistsForUser: jest.Mock;
   sendUserNotification: jest.Mock;
@@ -910,8 +1009,11 @@ describe("Slo:EvaluateSlos worker", () => {
     historyService.insertHistoryRows.mockResolvedValue(undefined);
     sloMetricUtil.saveSloMetrics.mockResolvedValue(undefined);
     sloMetricUtil.saveSloGuardMetrics.mockResolvedValue(undefined);
+    // The link as the service writes it: Markdown (MarkdownText).
     sloService.getSloMarkdownLink.mockResolvedValue(
-      "[SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1)",
+      FeedMarkdown.asMarkdown(
+        "[SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1)",
+      ),
     );
     feedService.createServiceLevelObjectiveFeedItem.mockResolvedValue(
       undefined,
@@ -979,6 +1081,9 @@ describe("Slo:EvaluateSlos worker", () => {
     projectService.getOwners.mockResolvedValue([]);
     projectService.findOneById.mockResolvedValue(null);
     maintenanceService.findBy.mockResolvedValue([]);
+    maintenanceStateService.getInProgressScheduledMaintenanceStateIds.mockResolvedValue(
+      [ONGOING_STATE_ID, VERIFYING_STATE_ID],
+    );
     notificationService.ensureSettingExistsForUser.mockResolvedValue(undefined);
     notificationService.sendUserNotification.mockResolvedValue(undefined);
     /*
@@ -1445,6 +1550,8 @@ describe("Slo:EvaluateSlos worker", () => {
 
   describe("Paused guard (fix 4)", () => {
     test.each([
+      // Archived monitors are not checked either: no live signal.
+      "isArchived",
       "disableActiveMonitoring",
       "disableActiveMonitoringBecauseOfManualIncident",
       "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
@@ -1463,6 +1570,50 @@ describe("Slo:EvaluateSlos worker", () => {
         expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
       },
     );
+
+    test("the guard reads every monitor's archive flag along with the pause flags", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      monitorService.findBy.mockResolvedValue([enabledMonitor(MONITOR_A_ID)]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      const selects: Array<Record<string, unknown>> =
+        monitorService.findBy.mock.calls.map((call: Array<unknown>) => {
+          return ((call[0] as { select?: Record<string, unknown> }) || {})
+            .select as Record<string, unknown>;
+        });
+
+      expect(
+        selects.some((select: Record<string, unknown> | undefined) => {
+          return Boolean(
+            select &&
+              select["isArchived"] === true &&
+              select["disableActiveMonitoring"] === true,
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("an archived monitor beside a live one keeps the SLO evaluating on the live one", async () => {
+      const archived: Monitor = enabledMonitor(MONITOR_B_ID);
+      archived.isArchived = true;
+
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({
+          monitors: [new Monitor(MONITOR_A_ID), new Monitor(MONITOR_B_ID)],
+        }),
+      ]);
+      monitorService.findBy.mockResolvedValue([
+        enabledMonitor(MONITOR_A_ID),
+        archived,
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Healthy);
+    });
 
     test("one still-enabled monitor keeps the SLO evaluating instead of Paused", async () => {
       const disabled: Monitor = enabledMonitor(MONITOR_B_ID);
@@ -2229,6 +2380,35 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toHaveLength(1);
     });
 
+    test("the owners' SMS says the news in the words of every notification SMS, and WhatsApp the news alone", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.AtRisk }),
+      ]);
+      stubExhausted();
+      stubOneOwner();
+
+      await runWorkerTick();
+
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
+
+      const sent: {
+        smsMessage: { message: string };
+        whatsAppMessage: { body: string };
+      } = notificationService.sendUserNotification.mock.calls[0]![0] as {
+        smsMessage: { message: string };
+        whatsAppMessage: { body: string };
+      };
+      const news: string = sent.whatsAppMessage.body;
+      const [said, link] = news.split(" View: ");
+
+      expect(said).toContain(
+        'SLO Budget Exhausted: "Checkout availability" in Acme. Error budget remaining: ',
+      );
+      expect(link).toBe("https://oneuptime.com/dashboard/slo/slo-1");
+      // "OneUptime: <news> Turn off in User Settings > Notification Settings."
+      expect(sent.smsMessage.message).toBe(buildNotificationSms(news));
+    });
+
     test("staying BudgetExhausted tick after tick notifies nobody", async () => {
       sloService.getDueSlos.mockResolvedValue([
         makeSlo({ sloStatus: SloStatus.BudgetExhausted }),
@@ -2466,6 +2646,99 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(alertService.create).not.toHaveBeenCalled();
+    });
+
+    test("an event in a state of the project's own between Ongoing and Ended holds the alert back too: it is in progress", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3)),
+          down(hoursAgo(3)),
+        ],
+      });
+
+      mockMaintenanceEventsInStates([
+        { stateId: VERIFYING_STATE_ID, monitorId: MONITOR_A_ID },
+      ]);
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(
+        maintenanceStateService.getInProgressScheduledMaintenanceStateIds,
+      ).toHaveBeenCalledWith(PROJECT_ID);
+    });
+
+    test("an event in a state of the project's own after Ended holds nothing back: it is over", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3)),
+          down(hoursAgo(3)),
+        ],
+      });
+
+      mockMaintenanceEventsInStates([
+        { stateId: REVIEWING_STATE_ID, monitorId: MONITOR_A_ID },
+      ]);
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+    });
+
+    test("the maintenance check asks for the events by the states they are in progress in, not by the ongoing flag", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3)),
+          down(hoursAgo(3)),
+        ],
+      });
+
+      await runWorkerTick();
+
+      const queries: Array<Record<string, unknown>> =
+        maintenanceService.findBy.mock.calls.map(
+          (call: Array<unknown>): Record<string, unknown> => {
+            return (call[0] as { query: Record<string, unknown> }).query;
+          },
+        );
+
+      expect(queries.length).toBeGreaterThan(0);
+
+      for (const query of queries) {
+        expect(query["currentScheduledMaintenanceState"]).toBeUndefined();
+        expect(stateIdsAskedFor(query).sort()).toEqual(
+          [ONGOING_STATE_ID, VERIFYING_STATE_ID]
+            .map((id: ObjectID): string => {
+              return id.toString().toLowerCase();
+            })
+            .sort(),
+        );
+      }
+    });
+
+    test("a project whose states hold no event in progress asks for no event at all", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3)),
+          down(hoursAgo(3)),
+        ],
+      });
+      maintenanceStateService.getInProgressScheduledMaintenanceStateIds.mockResolvedValue(
+        [],
+      );
+
+      await runWorkerTick();
+
+      expect(maintenanceService.findBy).not.toHaveBeenCalled();
+      expect(alertService.create).toHaveBeenCalledTimes(1);
     });
 
     test("a maintenance window on an UNRELATED monitor does not suppress the alert", async () => {
@@ -4207,21 +4480,28 @@ describe("Slo:EvaluateSlos worker", () => {
         query: {
           projectId: ObjectID;
           seriesFingerprint: string;
-          currentAlertState: { isResolvedState: boolean };
+          currentAlertStateId: {
+            objectLiteralParameters?: Record<string, unknown>;
+          };
         };
       } = alertService.findOneBy.mock.calls[0]![0] as {
         query: {
           projectId: ObjectID;
           seriesFingerprint: string;
-          currentAlertState: { isResolvedState: boolean };
+          currentAlertStateId: {
+            objectLiteralParameters?: Record<string, unknown>;
+          };
         };
       };
 
       expect(lookup.query.seriesFingerprint).toBe(EXPECTED_FINGERPRINT);
       expect(lookup.query.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(lookup.query.currentAlertState).toEqual({
-        isResolvedState: false,
-      });
+      // Open: in one of the project's states above its resolved state.
+      expect(
+        Object.values(
+          lookup.query.currentAlertStateId.objectLiteralParameters || {},
+        ),
+      ).toEqual([["alert-state-open"]]);
 
       expect(
         burnRateFeedItems(
@@ -4434,7 +4714,7 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toBe(CREATED_ALERT_ID.toString());
 
       expect(item.feedInfoInMarkdown).toBe(
-        "Burn rate rule **Fast burn** raised [Alert \\#12](https://oneuptime.com/dashboard/project-1/alerts/alert-1).",
+        "Burn rate rule **Fast burn** raised [Alert #12](https://oneuptime.com/dashboard/project-1/alerts/alert-1).",
       );
 
       const details: string = item.moreInformationInMarkdown || "";
@@ -4476,7 +4756,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
       expect(items).toHaveLength(1);
       expect(items[0]!.feedInfoInMarkdown).toBe(
-        "Burn rate rule **Fast burn** declared [Incident INC\\-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
+        "Burn rate rule **Fast burn** declared [Incident INC-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
       );
       expect(
         String(incidentRecords.getIncidentLinkInDashboard.mock.calls[0]![1]),
@@ -4528,8 +4808,9 @@ describe("Slo:EvaluateSlos worker", () => {
         ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
       )[0]!.feedInfoInMarkdown;
 
-      expect(info).toContain("**x\\]\\(https://evil.example\\) \\*loud\\***");
-      expect(info).not.toContain("](https://evil.example)");
+      expect(info).toContain("**x\\](https://evil.example) \\*loud\\***");
+      // The rule name closes no link: its "]" is escaped.
+      expect(info).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example\)/);
     });
 
     /*
@@ -4655,7 +4936,7 @@ describe("Slo:EvaluateSlos worker", () => {
           ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
         )[0]!.feedInfoInMarkdown,
       ).toBe(
-        "Burn rate rule **Fast burn** declared [Incident INC\\-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
+        "Burn rate rule **Fast burn** declared [Incident INC-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
       );
     });
 
@@ -5594,7 +5875,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
         const details: string = item.moreInformationInMarkdown || "";
         expect(details).toContain(
-          "**Why**: Every monitor attached to this SLO is disabled",
+          "**Why**: Every monitor attached to this SLO is archived or disabled",
         );
         // No measurement was taken, so none is claimed.
         expect(details).not.toContain("**SLI**");

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
@@ -11,11 +12,14 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertInternalNoteService from "Common/Server/Services/AlertInternalNoteService";
 import AlertService from "Common/Server/Services/AlertService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import User from "Common/Models/DatabaseModels/User";
@@ -23,6 +27,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
@@ -84,13 +89,17 @@ RunCron(
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
-          monitor: {
-            name: true,
-          },
+          /*
+           * The series a grouped monitor raised this alert for, named in the
+           * monitor's place under Resources Affected, as the created email does.
+           */
+          seriesLabels: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
         },
@@ -135,12 +144,31 @@ RunCron(
         alertNumber: alertNumberStr,
         projectName: alert.project!.name!,
         currentState: alert.currentAlertState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          alert.currentAlertState?.color,
+        ),
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected: alert.monitor?.name || "None",
+        // Every resource the alert's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForAlert({
+            service: AlertService,
+            projectId: alert.projectId!,
+            alertId: alert.id!,
+          }),
+          seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+            alert.seriesLabels,
+          ),
+          fallback: "None",
+        }),
         alertSeverity: alert.alertSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "alertSeverity",
+          alert.alertSeverity?.color,
+        ),
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(
             alert.projectId!,
@@ -168,7 +196,9 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `New note posted on alert ${alertIdentifier}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -221,15 +251,18 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreAlertFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-      const projectId: ObjectID = alert.projectId!;
-      const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
-
-      const alertFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).`;
+      const alertFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: true,
+      });
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,

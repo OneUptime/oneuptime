@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -19,6 +20,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+@CanAccessIfCanReadOn("runbook")
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -27,7 +29,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.CreateRunbookOwnerUser,
   ],
   read: [
@@ -45,7 +46,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.DeleteRunbookOwnerUser,
   ],
   update: [
@@ -53,7 +53,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.EditRunbookOwnerUser,
   ],
 })
@@ -86,7 +85,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -128,7 +126,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -164,7 +161,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -207,7 +203,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -243,7 +238,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -285,7 +279,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -321,7 +314,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [
@@ -364,7 +356,6 @@ export default class RunbookOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunbookOwnerUser,
     ],
     read: [

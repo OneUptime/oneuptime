@@ -5,6 +5,7 @@ import {
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeMinutes,
+  EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
@@ -16,24 +17,176 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import {
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  translatePlural,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The labels of the numbers an AI / LLM monitor's criteria compare: the
+ * CheckOn values getCheckOnOptionsByMonitorType offers for MonitorType.Llm,
+ * in that order. The dropdown draws each option's label in the reader's
+ * language; spelling them out here is what puts them in the locale files.
+ */
+export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Bad AI Answers (in %)"),
+  translationKey("Bad AI Answers"),
+  translationKey("AI Answers"),
+];
+
+// The same for a Profiles monitor's criteria (MonitorType.Profiles).
+export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Profile Count"),
+  translationKey("Function Share (in %)"),
+];
 
 export default class CriteriaFilterUtil {
+  /*
+   * The window a filter is given when "Evaluate this criteria over a period
+   * of time" is ticked: every check of the last 5 minutes. All Values is the
+   * choice that waits - the reason most people tick the box - and the one
+   * every dropdown below already fell back to.
+   */
+  public static readonly DEFAULT_EVALUATE_OVER_TIME_OPTIONS: EvaluateOverTimeOptions =
+    {
+      timeValueInMinutes: 5,
+      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+    };
+
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
     const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
     return keys.map((key: string) => {
       return {
-        label: `${(EvaluateOverTimeMinutes as any)[key].toString()} Minutes`,
+        label: translatePlural(
+          { one: "{{count}} Minute", other: "{{count}} Minutes" },
+          Number((EvaluateOverTimeMinutes as any)[key]),
+        ),
         value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
       };
     });
   }
 
+  /*
+   * The "For the last" option a saved window shows as. The form used to
+   * save the minutes as the option's string ("5"), while the API, Terraform
+   * and the form's own defaults hold a number (5) - and a strict comparison
+   * of the two drew an empty dropdown over a window that was saved and in
+   * force. Both spellings name the same option.
+   */
+  public static getEvaluateOverTimeMinutesOption(
+    timeValueInMinutes: number | string | undefined,
+  ): DropdownOption | undefined {
+    if (
+      timeValueInMinutes === undefined ||
+      timeValueInMinutes === null ||
+      String(timeValueInMinutes).trim() === ""
+    ) {
+      return undefined;
+    }
+
+    const minutes: number = Number(timeValueInMinutes);
+
+    return CriteriaFilterUtil.getEvaluateOverTimeMinutesOptions().find(
+      (option: DropdownOption) => {
+        return Number(option.value) === minutes;
+      },
+    );
+  }
+
+  /*
+   * The filter once "Evaluate this criteria over a period of time" is
+   * ticked or unticked.
+   *
+   * Ticking it on a filter with no window gives it the default one. The box
+   * used to set the flag alone, so a filter saved straight after ticking it
+   * had no window - and the server judges such a filter on the latest check
+   * alone, while the form showed the box ticked. Unticking keeps the window,
+   * so ticking it again brings back what was chosen.
+   */
+  public static setEvaluateOverTime(data: {
+    criteriaFilter: CriteriaFilter;
+    evaluateOverTime: boolean;
+  }): CriteriaFilter {
+    if (!data.evaluateOverTime) {
+      return {
+        ...data.criteriaFilter,
+        evaluateOverTime: false,
+      };
+    }
+
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: data.criteriaFilter.evaluateOverTimeOptions
+        ? { ...data.criteriaFilter.evaluateOverTimeOptions }
+        : { ...CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS },
+    };
+  }
+
+  /*
+   * The filter with one of its window's settings changed. A window that
+   * was never set starts from the default, so changing one setting never
+   * leaves the others empty.
+   */
+  public static setEvaluateOverTimeOption(data: {
+    criteriaFilter: CriteriaFilter;
+    change: Partial<EvaluateOverTimeOptions>;
+  }): CriteriaFilter {
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        ...(data.criteriaFilter.evaluateOverTimeOptions ||
+          CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+        ...data.change,
+      },
+    };
+  }
+
+  /*
+   * What the "Evaluate" dropdown's choices mean for this filter. A check
+   * judged check by check (a yes/no series, or a body, header or expression
+   * judged from its match history on this monitor type) is offered All
+   * Values and Any Value only, so it is told what those two mean; a
+   * measured value is told the aggregates as well.
+   */
+  public static getEvaluateOverTimeTypeDescription(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): string {
+    if (
+      CommonCriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+    ) {
+      return translationKey(
+        "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
+      );
+    }
+
+    return translationKey(
+      "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.",
+    );
+  }
+
+  /*
+   * The filter as a sentence, for the criteria list. Pass the monitor type
+   * when it is known: whether a window is judged check by check depends on
+   * it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   */
   public static translateFilterToText(
     criteriaFilter: CriteriaFilter,
     filterCondition?: FilterCondition | undefined,
+    monitorType?: MonitorType | undefined,
   ): string {
     let text: string = "Check if ";
 
@@ -51,13 +204,17 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
-      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
+      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
-      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime;
+      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpClockOffset ||
+      criteriaFilter?.checkOn === CheckOn.NtpResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpRootDispersion;
 
     /*
      * A Database Health filter names its series in databaseMonitorOptions,
@@ -80,10 +237,30 @@ export default class CriteriaFilterUtil {
      * Online and the like) saved with an aggregate is judged as All Values.
      */
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
-      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter);
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      );
+
+    /*
+     * A body, a header or an expression judged from its match history has
+     * no values to speak of - "all values of Response Body" reads as
+     * nonsense - so it says which checks it must have matched on, after
+     * what it checks: ... not contains "App Title" on every check in the
+     * past 5 minutes.
+     */
+    const checkByCheckWindow: string =
+      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
+
+    /*
+     * A body, header or expression filter with the box ticked but no minutes
+     * is judged on the latest check, so it reads as one.
+     */
+    const isEvaluatedOverTime: boolean =
+      CommonCriteriaFilterUtil.isEvaluatedOverTime(criteriaFilter, monitorType);
 
     // check evaluation over time values.
-    if (criteriaFilter?.evaluateOverTime && evaluateOverTimeType) {
+    if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
       if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
         text += `all values of `;
       } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
@@ -133,7 +310,9 @@ export default class CriteriaFilterUtil {
       text +=
         "JavaScript expression " +
         criteriaFilter?.value +
-        " - evaluates to true.";
+        " - evaluates to true" +
+        (checkByCheckWindow ? ` ${checkByCheckWindow.trim()}` : "") +
+        ".";
     } else {
       /*
        * Name the metric rather than the check: "Database Metric is greater
@@ -149,6 +328,29 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      const resultValuePath: string | undefined =
+        criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.trim();
+
+      if (resultValuePath && criteriaFilter?.checkOn === CheckOn.ResultValue) {
+        text += "at " + resultValuePath + " ";
+      }
+
+      const transceiverReading: string | undefined =
+        criteriaFilter?.snmpMonitorOptions?.transceiverReading;
+
+      if (
+        criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+        transceiverReading &&
+        TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+      ) {
+        text +=
+          "(" +
+          TRANSCEIVER_READING_TITLES[
+            transceiverReading as TransceiverReadingKind
+          ] +
+          ") ";
+      }
+
       if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
         text +=
           "on interface " +
@@ -156,10 +358,23 @@ export default class CriteriaFilterUtil {
           " ";
       }
 
+      if (criteriaFilter?.snmpMonitorOptions?.tableKey) {
+        text +=
+          "in SNMP table " + criteriaFilter.snmpMonitorOptions.tableKey + " ";
+
+        if (criteriaFilter.snmpMonitorOptions.tableRow) {
+          text +=
+            criteriaFilter.snmpMonitorOptions.tableRow.trim() === "*"
+              ? "for each row "
+              : "on row " + criteriaFilter.snmpMonitorOptions.tableRow + " ";
+        }
+      }
+
       // add minutes if evaluate over time is true
       if (
-        criteriaFilter?.evaluateOverTime &&
-        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+        isEvaluatedOverTime &&
+        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes &&
+        !checkByCheckWindow
       ) {
         text +=
           "in the past " +
@@ -169,8 +384,16 @@ export default class CriteriaFilterUtil {
 
       // ADD FILTER TYPE - like greater than, less than, etc
 
+      /*
+       * A text comparison reads as a verb of its own - contains, starts
+       * with - where the others read "is greater than", "is true".
+       */
+      const isTextComparison: boolean = CriteriaFilterUtil.isTextComparison(
+        criteriaFilter?.filterType,
+      );
+
       if (criteriaFilter?.filterType) {
-        if (criteriaFilter?.filterType.toLowerCase().includes("contains")) {
+        if (isTextComparison) {
           text += criteriaFilter?.filterType.toString().toLowerCase() + " ";
         } else {
           text +=
@@ -180,7 +403,20 @@ export default class CriteriaFilterUtil {
 
       /// FINALLY ADD THE VALUE
 
-      if (criteriaFilter?.value !== undefined) {
+      if (
+        criteriaFilter?.value !== undefined &&
+        criteriaFilter?.value !== null &&
+        isTextComparison
+      ) {
+        /*
+         * The text a comparison looks for is quoted, as the evaluation log
+         * and an incident's root cause quote it (Response Body Not Contains
+         * "App Title"): a window can follow it - ... not contains "App
+         * Title" on every check in the past 5 minutes - and the reader has
+         * to see where the text ends.
+         */
+        text += `"${criteriaFilter.value.toString()}" `;
+      } else if (criteriaFilter?.value !== undefined) {
         const thresholdUnitSuffix: string =
           criteriaFilter?.checkOn === CheckOn.MetricValue &&
           criteriaFilter?.metricMonitorOptions?.thresholdUnit
@@ -191,10 +427,25 @@ export default class CriteriaFilterUtil {
           ? ` ${databaseMetric.unit}`
           : "";
 
+        // A transceiver reading is in its own unit: dBm, °C, V or mA.
+        const transceiverUnit: string | undefined =
+          criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          criteriaFilter?.snmpMonitorOptions?.transceiverReading
+            ? TRANSCEIVER_READING_UNITS[
+                criteriaFilter.snmpMonitorOptions
+                  .transceiverReading as TransceiverReadingKind
+              ]
+            : undefined;
+        const transceiverUnitSuffix: string = transceiverUnit
+          ? ` ${transceiverUnit}`
+          : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
+
+      text += checkByCheckWindow;
     }
 
     if (filterCondition === FilterCondition.All) {
@@ -206,6 +457,62 @@ export default class CriteriaFilterUtil {
     }
 
     return text;
+  }
+
+  /*
+   * Whether a condition compares text: what it looks for is a piece of
+   * text, quoted when the filter is written as a sentence.
+   */
+  public static isTextComparison(filterType: FilterType | undefined): boolean {
+    return (
+      filterType === FilterType.Contains ||
+      filterType === FilterType.NotContains ||
+      filterType === FilterType.StartsWith ||
+      filterType === FilterType.EndsWith
+    );
+  }
+
+  /*
+   * "on every check in the past 5 minutes " for a body, header or
+   * expression filter judged from its match history, "on any check ..." for
+   * Any Value; empty for every other filter, for one whose window is not
+   * set (the server judges that one on the latest check alone), and for one
+   * on a monitor type that keeps no match history for it.
+   *
+   * Is Request Timeout keeps a match history too, but it is a true/false
+   * check like Is Online and reads like one: "all values of ... is true".
+   */
+  public static getCheckByCheckWindowText(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): string {
+    const minutes: number | string | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
+
+    if (
+      !CommonCriteriaFilterUtil.isEvaluatedOverTime(
+        criteriaFilter,
+        monitorType,
+      ) ||
+      !minutes ||
+      !CommonCriteriaFilterUtil.keepsMatchHistory(
+        criteriaFilter?.checkOn,
+        monitorType,
+      ) ||
+      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+    ) {
+      return "";
+    }
+
+    const whichChecks: string =
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ) === EvaluateOverTimeType.AnyValue
+        ? "any check"
+        : "every check";
+
+    return `on ${whichChecks} in the past ${minutes} minutes `;
   }
 
   public static getCheckOnOptionsByMonitorType(
@@ -378,19 +685,28 @@ export default class CriteriaFilterUtil {
     }
 
     /*
-     * Every monitor type whose criteria the server hands to
-     * MetricMonitorCriteria: the metric-only types this form already pins
-     * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
-     * types Docker / Host / Podman / Docker Swarm / Proxmox / VMware /
-     * Ceph), plus
-     * IoT Device, which MonitorCriteriaEvaluator routes down the same path
-     * but which is not metric-only here, so it still draws the full
-     * criteria UI. All of them alert on one thing - an ingested metric.
+     * AI / LLM monitors compare their answers: the share that was bad
+     * first, since that is what most alerts on an AI want, then the count
+     * of bad answers and the count of answers ("the AI stopped answering").
      */
-    if (
-      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType) ||
-      monitorType === MonitorType.IoTDevice
-    ) {
+    if (monitorType === MonitorType.Llm) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.LlmBadAnswerPercent ||
+          i.value === CheckOn.LlmBadAnswerCount ||
+          i.value === CheckOn.LlmAnswerCount
+        );
+      });
+    }
+
+    /*
+     * Every monitor type whose criteria the server hands to
+     * MetricMonitorCriteria (MonitorTypeHelper's one list): the metric-only
+     * types this form already pins to CheckOn.MetricValue, plus IoT Device,
+     * which is not metric-only here, so it still draws the full criteria UI.
+     * All of them alert on one thing - an ingested metric.
+     */
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
       });
@@ -404,7 +720,10 @@ export default class CriteriaFilterUtil {
 
     if (monitorType === MonitorType.Profiles) {
       options = options.filter((i: DropdownOption) => {
-        return i.value === CheckOn.ProfileCount;
+        return (
+          i.value === CheckOn.ProfileCount ||
+          i.value === CheckOn.ProfileFunctionShare
+        );
       });
     }
 
@@ -428,7 +747,17 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
           i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
-          i.value === CheckOn.SnmpTrapReceived
+          // Optics (SFP, SFP+, QSFP), port by port.
+          i.value === CheckOn.SnmpTransceiverNotDetected ||
+          i.value === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+          i.value === CheckOn.SnmpTransceiverPastWarningThreshold ||
+          i.value === CheckOn.SnmpTransceiverRxPowerDrop ||
+          i.value === CheckOn.SnmpTransceiverReading ||
+          i.value === CheckOn.SnmpTableValue ||
+          i.value === CheckOn.SnmpTableRowIsUnhealthy ||
+          i.value === CheckOn.SnmpTableRowCount ||
+          i.value === CheckOn.SnmpTrapReceived ||
+          i.value === CheckOn.SnmpTrapVarbindValue
         );
       });
     }
@@ -441,6 +770,25 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.DnsRecordValue ||
           i.value === CheckOn.DnssecIsValid ||
           i.value === CheckOn.DnsRecordExists
+        );
+      });
+    }
+
+    /*
+     * In CheckOn order, which puts online and synchronized - the two an NTP
+     * monitor starts with - first, and a new filter on "NTP Is Online". The
+     * stratum, offset and root dispersion are there for the thresholds
+     * people add: "stratum at most 2", "offset over 100 ms".
+     */
+    if (monitorType === MonitorType.NTP) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.NtpIsOnline ||
+          i.value === CheckOn.NtpIsSynchronized ||
+          i.value === CheckOn.NtpClockOffset ||
+          i.value === CheckOn.NtpStratum ||
+          i.value === CheckOn.NtpRootDispersion ||
+          i.value === CheckOn.NtpResponseTime
         );
       });
     }
@@ -514,6 +862,26 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    /*
+     * A Probe Status monitor counts the probes it watches. Disconnected
+     * Probes leads - "a probe is down" is the rule nearly everyone writes,
+     * and a new filter starts on it - then Connected Probes, for "fewer
+     * than two are left" on a monitor that watches several.
+     */
+    if (monitorType === MonitorType.ProbeStatus) {
+      options = [CheckOn.DisconnectedProbes, CheckOn.ConnectedProbes]
+        .map((checkOn: CheckOn): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === checkOn;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
+    }
+
     return options;
   }
 
@@ -577,6 +945,67 @@ export default class CriteriaFilterUtil {
             i.value === FilterType.Anomalous);
         return baseStatic || baseAnomaly;
       });
+    }
+
+    /*
+     * The AI / LLM numbers are compared by LlmMonitorCriteria with
+     * CompareCriteria.compareCriteriaNumbers: these six conditions, and no
+     * anomaly baseline behind any of them. Greater Than leads, so a new
+     * filter reads "more than 5% of answers were bad" rather than "exactly
+     * 5%".
+     */
+    if (
+      checkOn === CheckOn.LlmBadAnswerPercent ||
+      checkOn === CheckOn.LlmBadAnswerCount ||
+      checkOn === CheckOn.LlmAnswerCount
+    ) {
+      const llmComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ];
+
+      options = llmComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
+    }
+
+    /*
+     * A function's share of the window is judged by ProfileMonitorCriteria
+     * with CompareCriteria.compareCriteriaNumbers: above or below a share.
+     * Greater Than leads, so a new filter reads "more than 30% of the CPU
+     * time"; equal-to a share of sampled time would never fire.
+     */
+    if (checkOn === CheckOn.ProfileFunctionShare) {
+      const shareComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+      ];
+
+      options = shareComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
     }
 
     if (
@@ -712,7 +1141,9 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.True ||
+          i.value === FilterType.False
         );
       });
     }
@@ -793,10 +1224,72 @@ export default class CriteriaFilterUtil {
        */
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
-      checkOn === CheckOn.SnmpInterfaceIsDown
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * A transceiver reading or the drop in received power is a number: dBm,
+     * degrees C, volts, milliamps or dB.
+     */
+    if (
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
+      });
+    }
+
+    /*
+     * A table cell or a trap varbind can hold a number or text, so both
+     * kinds of comparison are offered - numbers compare as numbers, text
+     * against both the raw value and its label (SnmpTableCriteria).
+     */
+    if (
+      checkOn === CheckOn.SnmpTableValue ||
+      checkOn === CheckOn.SnmpTrapVarbindValue
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith ||
+          i.value === FilterType.IsEmpty ||
+          i.value === FilterType.IsNotEmpty
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpTableRowCount) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
       });
     }
 
@@ -1065,6 +1558,55 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * Measurements in milliseconds, so the four comparisons; Greater Than
+     * leads because "offset over 100 ms" is the rule people mean.
+     */
+    if (
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    /*
+     * A whole number from 1 to 16, so equality is a real rule too
+     * ("stratum equal to 1" for a GPS server). Greater Than leads: "stratum
+     * greater than 2" is the alert most people write.
+     */
+    if (checkOn === CheckOn.NtpStratum) {
+      options = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -1096,6 +1638,31 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo
         );
+      });
+    }
+
+    /*
+     * Probe counts are whole numbers the server compares with
+     * CompareCriteria.compareCriteriaNumbers. Greater Than leads, so a new
+     * filter reads "more than 0 disconnected"; equality is a real rule too
+     * ("0 disconnected" is the online default).
+     */
+    if (
+      checkOn === CheckOn.ConnectedProbes ||
+      checkOn === CheckOn.DisconnectedProbes
+    ) {
+      options = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
       });
     }
 
@@ -1210,18 +1777,15 @@ export default class CriteriaFilterUtil {
    * Monitor types whose criteria are expressed purely as metric
    * thresholds. Their criteria form hides the "Filter Type" dropdown
    * entirely and pins every filter to CheckOn.MetricValue.
+   *
+   * Every metric-backed type (MonitorTypeHelper's one list) but IoT Device,
+   * which is left out on purpose: its criteria form keeps the full filter
+   * UI, so its criteria stay filters, not alert rules.
    */
   public static isMetricOnlyMonitorType(monitorType: MonitorType): boolean {
     return (
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.Metrics
+      MonitorTypeHelper.isMetricBackedMonitor(monitorType) &&
+      monitorType !== MonitorType.IoTDevice
     );
   }
 
@@ -1413,6 +1977,31 @@ export default class CriteriaFilterUtil {
       return "1";
     }
 
+    if (checkOn === CheckOn.LlmBadAnswerPercent) {
+      return "5";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerCount) {
+      return "3";
+    }
+
+    if (checkOn === CheckOn.LlmAnswerCount) {
+      return "0";
+    }
+
+    // A share of the window, in percent.
+    if (checkOn === CheckOn.ProfileFunctionShare) {
+      return "30";
+    }
+
+    if (checkOn === CheckOn.DisconnectedProbes) {
+      return "0";
+    }
+
+    if (checkOn === CheckOn.ConnectedProbes) {
+      return "1";
+    }
+
     if (checkOn === CheckOn.ServerProcessCommand) {
       return "node index.js";
     }
@@ -1551,6 +2140,27 @@ export default class CriteriaFilterUtil {
       return "1.3.6.1.6.3.1.1.5.3";
     }
 
+    if (checkOn === CheckOn.SnmpTableValue) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTableRowCount) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTrapVarbindValue) {
+      return "tunnel is down";
+    }
+
+    // RX power in dBm - the reading most criteria are written on.
+    if (checkOn === CheckOn.SnmpTransceiverReading) {
+      return "-14";
+    }
+
+    if (checkOn === CheckOn.SnmpTransceiverRxPowerDrop) {
+      return "2";
+    }
+
     if (checkOn === CheckOn.DnsResponseTime) {
       return "5000";
     }
@@ -1581,6 +2191,22 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       return "5000";
+    }
+
+    if (checkOn === CheckOn.NtpClockOffset) {
+      return "100";
+    }
+
+    if (checkOn === CheckOn.NtpStratum) {
+      return "2";
+    }
+
+    if (checkOn === CheckOn.NtpRootDispersion) {
+      return "500";
+    }
+
+    if (checkOn === CheckOn.NtpResponseTime) {
+      return "1000";
     }
 
     if (checkOn === CheckOn.ExternalStatusPageOverallStatus) {

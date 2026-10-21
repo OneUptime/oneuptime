@@ -22,6 +22,10 @@ import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
+  RunbookScheduleMissedRunPolicy,
+  RunbookScheduleOverlapPolicy,
+} from "../../Types/Runbook/RunbookSchedule";
+import {
   Column,
   Entity,
   Index,
@@ -42,7 +46,6 @@ import {
     Permission.CreateRunbook,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
   ],
   read: [
     Permission.ProjectOwner,
@@ -60,7 +63,6 @@ import {
     Permission.DeleteRunbook,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
   ],
   update: [
     Permission.ProjectOwner,
@@ -90,7 +92,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -132,7 +133,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -168,7 +168,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -239,7 +238,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -280,7 +278,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -323,7 +320,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -421,7 +417,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -460,7 +455,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -500,7 +494,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -545,4 +538,339 @@ export default class Runbook extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  /*
+   * THE RUNBOOK'S TRIGGERS: a schedule and a webhook URL, set on its
+   * Triggers page (Types/Runbook/RunbookSchedule, RunbookWebhook).
+   *
+   * Turning either on, or changing the schedule, lets the runbook run with
+   * nobody there, so it takes permission to run the runbook as well as to
+   * edit it: RunbookService refuses a write to these columns from a caller
+   * who may not start a run of this runbook (RunbookTriggerAccess). A
+   * runbook turned off (isEnabled) runs neither.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Run on Schedule",
+    description:
+      "Whether the runbook runs on its schedule (Schedule Cron, read in Schedule Time Zone). Turning it on takes permission to run the runbook as well as to edit it.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isScheduleEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Schedule Cron",
+    description:
+      "When the runbook runs on its schedule: a five-field cron expression (minute, hour, day of month, month, day of week), read on the wall clock of Schedule Time Zone. Runbooks run at most once a minute.",
+    example: "0 9 * * 1-5",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public scheduleCron?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Schedule Time Zone",
+    description:
+      "The IANA time zone the schedule is read in, such as Europe/London or America/New_York. A 09:00 schedule runs at 09:00 there all year, also after the clocks change for daylight saving time. Left out, it is UTC.",
+    example: "Europe/London",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public scheduleTimezone?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "If a Run Is Still Going",
+    description:
+      'What a scheduled time does while a run of the runbook is still queued, running or waiting for someone: "Skip" (the default) starts nothing for that time, "RunAfter" starts one run as soon as the current run ends.',
+    example: "Skip",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public scheduleOverlapPolicy?: RunbookScheduleOverlapPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Missed Scheduled Runs",
+    description:
+      'What happens to scheduled times OneUptime could not start a run at, because it was down: "RunOnce" (the default) starts one run when it is back, "Skip" starts none.',
+    example: "RunOnce",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public scheduleMissedRunPolicy?: RunbookScheduleMissedRunPolicy = undefined;
+
+  /*
+   * The scheduler's own: when the schedule's next run is due, worked out on
+   * every change to the schedule and moved on by the Worker that starts the
+   * run (RunbookScheduler), which claims each due time with a
+   * compare-and-set on this column so two Workers never start it twice.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Next Scheduled Run At",
+    description:
+      "When the runbook's schedule starts its next run. Worked out by OneUptime; empty while the schedule is off.",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scheduleNextRunAt?: Date = undefined;
+
+  // The scheduler's own: the scheduled time a run is waiting for the current one to end for.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Waiting Scheduled Run",
+    description:
+      'The scheduled time a run is waiting for the current run to end for, when "If a Run Is Still Going" is "RunAfter". Set and cleared by OneUptime.',
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scheduleQueuedRunAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbook,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Run from Webhook",
+    description:
+      "Whether a POST request to the runbook's webhook URL starts a run. The URL holds a secret key OneUptime generates when this is first turned on, shown on the runbook's Triggers page to people who may edit and run the runbook. Turning it on takes permission to run the runbook as well as to edit it.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isWebhookEnabled?: boolean = undefined;
+
+  /*
+   * The secret part of the webhook URL. Never read or written through the
+   * API's runbook routes - not even by those who may see it: the Triggers
+   * page reads and resets it through the runbook service's own routes
+   * (App/FeatureSet/Runbook/API/RunbookWebhook), which ask that the caller
+   * may both change the runbook's triggers and run it. Generated on the
+   * server (32 random bytes) the first time the webhook is turned on, and
+   * compared in constant time on every call.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Webhook Secret Key",
+    description:
+      "The secret part of the runbook's webhook URL. Not readable through the API; the runbook's Triggers page shows it to people who may edit and run the runbook.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public webhookSecretKey?: string = undefined;
 }

@@ -13,7 +13,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
+import { SITE_MORE_FIELDS } from "../SiteFormSections";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Sites nested directly under this one. New child sites created here are
@@ -22,6 +25,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteChildSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -39,13 +43,17 @@ const NetworkSiteChildSites: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        // "Add Child Site", the same verb as the Sites list's "Add Site".
+        createVerb="Add"
+        singularName="Child Site"
+        pluralName="Child Sites"
         showRefreshButton={true}
         name="Child Sites"
         cardProps={{
           title: "Child Sites",
           description: "Sites nested directly under this one.",
         }}
-        noItemsMessage="This site has no child sites. Create one to build out the hierarchy below it."
+        noItemsMessage="This site has no child sites. Add one to build out the hierarchy below it."
         filters={[
           {
             field: {
@@ -69,19 +77,18 @@ const NetworkSiteChildSites: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Site Details", id: "site-details" },
-          { title: "Location", id: "location" },
-        ]}
+        /*
+         * One page: the child's type and name, with its location folded
+         * under More fields. Two rows and a fold need no steps (the parent
+         * is this site, so there is no hierarchy step to walk to).
+         */
         formFields={[
           {
             field: {
               networkSiteType: true,
             },
             title: "Site Type",
-            stepId: "site-details",
-            description:
-              "Any type except the ones above this site's own type in the hierarchy. A unit-level site holds devices rather than child sites, so it offers none.",
+            description: "Any type except the ones above this site's type.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: () => {
               return fetchChildNetworkSiteTypeOptions(modelId);
@@ -94,17 +101,16 @@ const NetworkSiteChildSites: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Unit 1042 - Springfield",
+            placeholder: "Second floor",
           },
           {
             field: {
               address: true,
             },
             title: "Address",
-            stepId: "location",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -114,7 +120,7 @@ const NetworkSiteChildSites: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
-            stepId: "location",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -90 and 90. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -126,7 +132,7 @@ const NetworkSiteChildSites: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
-            stepId: "location",
+            collapsibleSection: SITE_MORE_FIELDS,
             description:
               "Between -180 and 180. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -168,7 +174,11 @@ const NetworkSiteChildSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
-                return <span className="text-sm text-gray-400">Not set</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not set")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -189,7 +199,11 @@ const NetworkSiteChildSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No Data")}
+                  </span>
+                );
               }
               return (
                 <MonitorStatusElement

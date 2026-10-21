@@ -91,6 +91,13 @@ export const RESOURCE_FACET_CATALOG: ReadonlyArray<ResourceFacetDefinition> = [
     icon: IconProp.Ceph,
   },
   {
+    facetKey: "storageArrayId",
+    serviceType: ServiceType.StorageArray,
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    icon: IconProp.StorageArray,
+  },
+  {
     facetKey: "serverlessFunctionId",
     serviceType: ServiceType.ServerlessFunction,
     label: "Serverless Function",

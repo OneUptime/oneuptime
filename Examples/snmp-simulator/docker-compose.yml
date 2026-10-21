@@ -24,6 +24,30 @@ services:
       snmpsim:
         ipv4_address: 172.30.99.12
 
+  # A Sophos firewall (SFOS v21): three IPsec tunnels - one active, one
+  # inactive, one partially active - and CPU cores numbered from 196608.
+  sophos-xgs:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/sophos-xgs:/data:ro
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.15
+
+  # A Cambium Enterprise Wi-Fi access point: a 2.4 GHz radio that is on and a
+  # 5 GHz radio that is off, and two SSIDs.
+  cambium-ap:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/cambium-ap:/data:ro
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.16
+
   # Real net-snmp agent for exercising the SNMPv3 path (snmpsim only answers
   # v3 requests that carry a context name, which the probe does not send).
   router-v3:

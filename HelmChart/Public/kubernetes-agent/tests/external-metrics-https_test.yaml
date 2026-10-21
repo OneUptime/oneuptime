@@ -1,0 +1,70 @@
+suite: external metrics scrapes use the endpoint scheme
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+tests:
+  - it: scrapes an external kube-state-metrics endpoint over HTTPS
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: https://ksm.example.com:443/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: kube-state-metrics\\n\\s*scrape_interval: 30s\\n\\s*scheme: https"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '"ksm.example.com:443"'
+
+  - it: keeps HTTP for an external kube-state-metrics endpoint
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/metrics
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: kube-state-metrics\\n\\s*scrape_interval: 30s\\n\\s*scheme:"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '"ksm.example.com:8080"'
+
+  - it: scrapes an external cost endpoint over HTTPS
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: https://opencost.example.com:443
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine\\n\\s*scrape_interval: 60s\\n\\s*scheme: https"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '"opencost.example.com:443"'
+
+  - it: uses the metrics endpoint scheme when it overrides the cost engine URL
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://opencost.example.com:9003
+      cost.metrics.endpoint: https://metrics.example.com:443/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine\\n\\s*scrape_interval: 60s\\n\\s*scheme: https"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '"metrics.example.com:443"'
+
+  - it: keeps HTTP for the bundled cost engine
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine\\n\\s*scrape_interval: 60s\\n\\s*scheme:"

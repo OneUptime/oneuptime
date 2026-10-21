@@ -128,8 +128,12 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
 
     test("a resource processor is shown, wired into the metrics pipeline", () => {
       expect(generated()).toContain("resource/oneuptime-hardware");
+      /*
+       * After the config's own `resource`, which reports the collector's
+       * version: the fragment's pipeline replaces the config's, so it keeps it.
+       */
       expect(generated()).toContain(
-        "processors: [resourcedetection, resource/oneuptime-hardware, batch]",
+        "processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]",
       );
     });
 
@@ -247,7 +251,7 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
       const doc: string = readDoc("en", "telemetry", "host-otel-collector.md");
 
       expect(doc).toContain(
-        "### Inventory attributes (IP, serial number, make, model)",
+        "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
       );
       for (const key of REQUESTED_ATTRIBUTES) {
         expect(doc).toContain(key);
@@ -283,12 +287,16 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
      */
     test("the new section did not add a copy-whole config", () => {
       const doc: string = readDoc("en", "telemetry", "host-otel-collector.md");
-      const section: string = doc.substring(
-        doc.indexOf(
-          "### Inventory attributes (IP, serial number, make, model)",
-        ),
-        doc.indexOf("### Complete example — Linux host"),
+      const start: number = doc.indexOf(
+        "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
       );
+      // The section runs to the next section of the page, its H4s included.
+      const end: number = doc.indexOf("\n## ", start);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+
+      const section: string = doc.substring(start, end);
 
       expect(section.length).toBeGreaterThan(0);
       expect(section).not.toContain(

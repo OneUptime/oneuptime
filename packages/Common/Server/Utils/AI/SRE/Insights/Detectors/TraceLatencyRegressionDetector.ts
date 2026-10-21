@@ -19,8 +19,9 @@ import TraceAggregationService, {
 } from "../../../../../Services/TraceAggregationService";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
-} from "../../../PerfEvidence/SpanTreeAnalyzer";
+} from "../../../../../../Utils/Traces/SpanTreeAnalyzer";
 import FixPerformanceTaskTrigger from "../../FixPerformanceTaskTrigger";
+import LlmConversationPrivacy from "../../../../LlmObservability/LlmConversationPrivacy";
 import logger from "../../../../Logger";
 import {
   InsightCandidate,
@@ -241,30 +242,13 @@ export default class TraceLatencyRegressionDetector implements InsightDetector {
   }
 
   /*
-   * Nanoseconds → milliseconds conversion into the analyzer's input shape
-   * (the AIInvestigationAPI conversion, kept local because the API file
-   * does not export it). Pure — the ns→ms arithmetic is unit-tested.
+   * Nanoseconds → milliseconds conversion into the analyzer's input shape -
+   * the same conversion the trace page's suggestion and the create route
+   * use (FixPerformanceTaskTrigger.toAnalyzableSpans), so all three read a
+   * trace alike. Pure — the ns→ms arithmetic is unit-tested.
    */
   public static toAnalyzableSpans(spans: Array<Span>): Array<AnalyzableSpan> {
-    return spans.map((span: Span): AnalyzableSpan => {
-      const attributes: Record<string, string> = {};
-
-      for (const [key, value] of Object.entries(span.attributes || {})) {
-        if (value !== null && value !== undefined) {
-          attributes[key] = String(value);
-        }
-      }
-
-      return {
-        spanId: span.spanId?.toString() || "",
-        parentSpanId: span.parentSpanId?.toString() || undefined,
-        name: span.name || "",
-        startMs: Number(span.startTimeUnixNano) / 1_000_000,
-        endMs: Number(span.endTimeUnixNano) / 1_000_000,
-        durationMs: Number(span.durationUnixNano) / 1_000_000,
-        attributes,
-      };
-    });
+    return FixPerformanceTaskTrigger.toAnalyzableSpans(spans);
   }
 
   /*
@@ -332,9 +316,26 @@ export default class TraceLatencyRegressionDetector implements InsightDetector {
         priorProfile.rows,
       );
 
+    /*
+     * The scan reads as root, which the permission layer leaves unfiltered,
+     * and an insight is read by people who may not read a company AI tool's
+     * private chats: those services are left out (LlmConversationPrivacy).
+     */
+    const privateChatServiceIds: Set<string> = new Set<string>(
+      await LlmConversationPrivacy.getRestrictedServiceIds(context.projectId),
+    );
+
     const candidates: Array<InsightCandidate> = [];
 
     for (const windows of joined) {
+      if (
+        privateChatServiceIds.has(
+          String(windows.primaryEntityId).trim().toLowerCase(),
+        )
+      ) {
+        continue;
+      }
+
       const decision: LatencyRegressionDecision =
         TraceLatencyRegressionDetector.evaluateRegression({
           recentP99Ms: windows.recentP99Ms,

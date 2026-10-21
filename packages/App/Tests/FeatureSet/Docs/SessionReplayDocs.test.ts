@@ -55,6 +55,8 @@ const PAGE_URL: string = "/docs/telemetry/session-replay";
 const NAV_GROUP_TITLE: string = "Real User Monitoring";
 
 const FENCE_LINE: RegExp = /^\s*```/;
+// The title line right after a form field's column: `title: "Consent",`.
+const POLICY_FIELD_TITLE: RegExp = /^\s*title: "([^"]+)",/;
 const CADENCE_CLAIM: RegExp = /every 15 seconds/;
 /* The words that turn "a POST every 15 seconds" into a true statement. */
 const CADENCE_QUALIFIER: RegExp =
@@ -141,6 +143,25 @@ function ownGroup(): NavGroup | undefined {
   return DocsNav.find((group: NavGroup): boolean => {
     return group.title === NAV_GROUP_TITLE;
   });
+}
+
+/* The title Edit Policy on the Replay Policy page gives a RumApplication column. */
+function policyFieldTitle(column: string): string {
+  const policyPage: string = readRepo(
+    "App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings.tsx",
+  );
+  const field: string = `field: { ${column}: true },`;
+  const start: number = policyPage.indexOf(field);
+
+  expect([column, start >= 0]).toEqual([column, true]);
+
+  const title: string | undefined = policyPage
+    .slice(start + field.length)
+    .match(POLICY_FIELD_TITLE)?.[1];
+
+  expect([column, title !== undefined]).toEqual([column, true]);
+
+  return title as string;
 }
 
 describe("Session Replay docs page", (): void => {
@@ -244,7 +265,8 @@ describe("Session Replay docs page", (): void => {
     for (const relative of [
       "Common/Models/DatabaseModels/RumApplication.ts",
       "Common/Models/DatabaseModels/TelemetryIngestionKey.ts",
-      "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeys.tsx",
+      // The create form Settings and every setup guide share.
+      "App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeyForm.ts",
       "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeyView.tsx",
       "App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector.tsx",
     ]) {
@@ -416,9 +438,23 @@ describe("Session Replay docs page", (): void => {
 
     const page: string = readPage();
 
-    expect(page).toContain("| Capture trigger | **Always** |");
-    expect(page).toContain("| Consent mode | **Not required** |");
-    expect(page).toContain("| Sample percentage | **100%** |");
+    /*
+     * The privacy table names each setting as Edit Policy titles it, so a
+     * reader finds the row's switch in the form (docs task 25b: the table
+     * used to say "Capture trigger" and "Consent mode", which the form
+     * does not).
+     */
+    const privacy: string = section(page, "## Privacy");
+
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplayCaptureTrigger")}** | _Always_ |`,
+    );
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplayConsentMode")}** | _Not required_ |`,
+    );
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplaySamplePercentage")}** | 100% |`,
+    );
 
     /*
      * docs-tests-e2e-1: the sentence that survived the default flip and
@@ -607,18 +643,33 @@ describe("Session Replay docs page", (): void => {
       expect(listSection).toContain(`\`${token}:`);
     }
 
-    /* Every quick filter and every sort option, from the option tables. */
+    /*
+     * Every option of the Signal chip and of the sort menu, from the option
+     * tables. "All" is the Signal chip cleared: SessionReplayFacets offers
+     * every other signal as an option, not that one.
+     */
     const filters: string = fs.readFileSync(
       path.join(DASHBOARD_REPLAY_DIR, "SessionReplayListFilters.ts"),
       "utf8",
     );
+    const labels: Array<string> = Array.from(
+      filters.matchAll(/label: "([^"]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
 
-    for (const label of Array.from(filters.matchAll(/label: "([^"]+)"/g)).map(
-      (match: RegExpMatchArray): string => {
-        return match[1] as string;
-      },
-    )) {
-      expect(listSection).toContain(label);
+    expect(labels).toContain("All");
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD_REPLAY_DIR, "SessionReplayFacets.tsx"),
+        "utf8",
+      ),
+    ).toContain('return option.value !== "all";');
+
+    for (const label of labels) {
+      if (label !== "All") {
+        expect(listSection).toContain(label);
+      }
     }
   });
 
@@ -693,7 +744,8 @@ describe("Session Replay docs page", (): void => {
     expect(origins).not.toContain("no expiry and no origin binding");
     expect(origins).toContain("**Allowed Origins**");
     expect(origins).toContain("**Expires At**");
-    expect(origins).toContain("_Replay Policy → Allowed origins_");
+    // A page and a field, drawn as the Dashboard names them.
+    expect(origins).toContain("**Replay Policy → Allowed origins**");
   });
 
   it("describes erasure with the request types the model accepts", (): void => {
@@ -815,21 +867,37 @@ describe("Session Replay docs page", (): void => {
     );
 
     /* The reference is only ever put on the wire behind the switch. */
-    expect(recorder).toContain(
-      "if (this.config.captureUserIdentity && this.userRef) {",
-    );
+    const metaBlock: string =
+      recorder
+        .split("const sessionUserRef: string | null =")[1]
+        ?.split(";")[0] || "";
+
+    expect(metaBlock).toContain("this.config.captureUserIdentity");
+    expect(metaBlock).toContain(": null");
+
+    /* Nor remembered in the browser for a later page of the session. */
+    const rememberBlock: string =
+      recorder
+        .split("private rememberSessionUser(): void {")[1]
+        ?.split("SessionId.writeStoredUserRef")[0] || "";
+
+    expect(rememberBlock).toContain("!this.config.captureUserIdentity");
 
     const ingest: string = readRepo(
       "App/FeatureSet/Telemetry/Services/SessionReplayIngestService.ts",
     );
 
-    /* And the server re-checks the switch, storing "" for key and label. */
-    const keyBlock: string =
-      ingest.split("const hasUsableUserRef: boolean =")[1]?.split(";")[0] || "";
+    /*
+     * And the server re-checks the switch where a reference arrives,
+     * storing "" for key and label - nothing enters the session's carry.
+     */
+    const identityBlock: string =
+      ingest
+        .split("private static deriveChunkIdentity(")[1]
+        ?.split("private static deriveChunkTags(")[0] || "";
 
-    expect(keyBlock).toContain("data.policy.captureUserIdentity");
-    expect(ingest).toContain(
-      "const identifiedUserKey: string = hasUsableUserRef",
+    expect(identityBlock).toMatch(
+      /!data\.policy\.captureUserIdentity[\s\S]*?identifiedUserKey: "",\s*identifiedUserLabel: "",/,
     );
 
     const identify: string = section(readPage(), "## Identify your users");

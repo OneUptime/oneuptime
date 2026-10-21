@@ -10,6 +10,15 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Tenancy of the probe attached through the MonitorProbe CRUD path.
@@ -113,6 +122,7 @@ describe("MonitorProbeService probe tenancy", () => {
       monitor.monitorType = MonitorType.Website;
 
       getJestSpyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+      stubProjectDirectory({});
     });
 
     afterEach(() => {

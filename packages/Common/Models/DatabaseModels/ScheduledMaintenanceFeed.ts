@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import Project from "./Project";
 import User from "./User";
@@ -41,6 +42,7 @@ export enum ScheduledMaintenanceFeedEventType {
   OnCallNotification = "OnCallNotification",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()
@@ -635,4 +637,36 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "For a note saved from a Slack or Microsoft Teams message: the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). The feed item's user is whoever saved it. Written by OneUptime.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

@@ -1,5 +1,7 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -10,6 +12,7 @@ export interface ComponentProps {
 const FullPageModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const handleClose: () => void = (): void => {
     props.onClose?.();
   };
@@ -47,7 +50,7 @@ const FullPageModal: FunctionComponent<ComponentProps> = (
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-label="Close modal"
+        aria-label={translator.translateText("Close modal")}
       >
         <Icon
           icon={IconProp.Close}

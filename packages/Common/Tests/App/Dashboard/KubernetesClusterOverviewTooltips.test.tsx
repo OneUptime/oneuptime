@@ -284,7 +284,7 @@ const QUIET_SUMMARY: Record<string, unknown> = {
 
 /*
  * Every (i) the busy overview draws, in page order, with the text it must
- * show. Twenty-six - every overview description in the record.
+ * show. Twenty-seven - every overview description in the record.
  */
 const EXPECTED: Array<[string, string]> = [
   ["Cluster inventory counts", TEXT.inventoryCounts],
@@ -307,6 +307,7 @@ const EXPECTED: Array<[string, string]> = [
   ["Pods", TEXT.pods],
   ["Namespaces", TEXT.namespaces],
   ["Agent Status", TEXT.agentStatus],
+  ["AI agent", TEXT.aiAgent],
   ["Memory Pressure", TEXT.memoryPressure],
   ["Disk Pressure", TEXT.diskPressure],
   ["PID Pressure", TEXT.pidPressure],

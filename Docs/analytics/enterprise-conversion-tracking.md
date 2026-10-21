@@ -28,7 +28,9 @@ the CRM can read it back.
 The enterprise licence conversation is not a separate conversion type: asking
 about a licence and booking an architecture assessment are the same
 conversation, so `/enterprise/self-hosted` books through the same Cal embed as
-`/enterprise/demo`.
+`/enterprise/demo`. Planning an air-gapped install is that conversation too, so
+`/enterprise/air-gapped` books an architecture assessment as well;
+`meeting_booked`'s `page_path` tells the two pages apart.
 
 ## Browser `meeting_booked`
 
@@ -44,15 +46,16 @@ commercial count — for that, read Cal.com.
 
 A page view, opening the Cal embed, or choosing a time is not `meeting_booked`.
 
-Three pages book, and each tags the event with the conversation it books:
+Four pages book, and each tags the event with the conversation it books:
 
 | Page                      | `booking_kind`            | Legacy PostHog event                  |
 | ------------------------- | ------------------------- | ------------------------------------- |
 | `/enterprise/demo`        | `enterprise_demo`         | `home/demo-booked`                    |
 | `/support`                | `support_call`            | `home/support-call-booked`            |
 | `/enterprise/self-hosted` | `architecture_assessment` | `home/architecture-assessment-booked` |
+| `/enterprise/air-gapped`  | `architecture_assessment` | `home/architecture-assessment-booked` |
 
-All three book the same Cal event type (`oneuptimehq/demo`), so without
+All four book the same Cal event type (`oneuptimehq/demo`), so without
 `booking_kind` a free user's support call and a net-new enterprise demo are one
 undifferentiated count. The legacy per-page events are still emitted so existing
 dashboards keep their history; `packages/Home/Tests/MeetingBookedAnalytics.test.ts`
@@ -84,11 +87,11 @@ browser `meeting_booked` event carries only `event_schema_version`,
 
 What *does* leave the page is the visitor's own campaign — UTM values, ad click
 IDs, the landing URL and the first touch — handed to Cal.com as booking
-metadata so the CRM can attribute the booking. It is not gated on the cookie
-banner; see [Consent](#consent). Cal.com joins it to the attendee details the
+metadata so the CRM can attribute the booking, but only while measurement is
+allowed; see [Consent](#consent). Cal.com joins it to the attendee details the
 visitor types into the booking form, so a booked demo is identified campaign
-*and* person on the CRM's side. That is the point of the path, and it is the
-thing to weigh if the consent position is ever revisited.
+*and* person on the CRM's side. A visitor who has not allowed measurement books
+with `ou_booking_kind` alone.
 
 ## Attribution
 
@@ -104,13 +107,15 @@ It leaves the browser through two doors:
 1. **The signup form**, which posts it onto the User record
    (`packages/App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
    rather than hand-listing keys).
-2. **Cal.com booking metadata.** All three embeds call
+2. **Cal.com booking metadata.** All four embeds call
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
 
 Because it is read out of localStorage rather than off the current URL, it
-survives any number of internal navigations. Nothing rewrites link hrefs to
+survives any number of internal navigations. It is written only while
+measurement is allowed: a visitor who has not been asked yet keeps the page's
+touch in memory until they answer, and a refusal clears what is stored. Nothing rewrites link hrefs to
 carry campaign parameters between pages: self-referential UTMs on internal links
 would register as a fresh campaign touch on arrival, overwrite `utmUrl` with an
 internal page, drop any click ID not repeated on the link, and double-count the
@@ -132,7 +137,7 @@ while bookings keep succeeding.
 | `metadata[ou_first_touch]`              | The first attributed visit, one JSON string, bounded at 4000  |
 | `metadata[ou_booking_kind]`             | `enterprise_demo`, `support_call` or `architecture_assessment`|
 
-`ou_booking_kind` is not optional detail. All three embeds book the same Cal
+`ou_booking_kind` is not optional detail. All four embeds book the same Cal
 event type (`oneuptimehq/demo`), so without it the CRM cannot tell a free
 user's support call from a net-new enterprise demo — they arrive identical. It
 is sent even when there is no campaign to report, because the embed always
@@ -161,38 +166,78 @@ everything else that address has done.
 
 ## Consent
 
-**Measurement is not gated on the cookie banner.** Consent Mode v2 defaults to
-granted, attribution is captured and stored on every visit, and PostHog loads on
-every visit.
+**Measurement waits for consent where the law asks for it, and stops when it is
+refused.** One rule, `window.oneUptimeConsent.isAllowed()` in
+`packages/Common/Server/Views/Partials/AnalyticsConsent.ejs`, decides for
+every tag on every OneUptime-owned origin:
 
-Before this, the cookie banner wrote `cookiesAccepted` to localStorage and
-nothing read it: everything ran identically whether the visitor pressed Accept,
-pressed Reject, or never saw the banner. "Reject all" rejected nothing, and
-there was no Google Consent Mode signal at all.
+- An answer on the cookie banner always wins: "Accept all" allows, "Reject all"
+  refuses. It is stored under `cookiesAccepted`, and the origins share one
+  hostname, so the marketing site, the docs, sign-up and the dashboard honour
+  the same answer.
+- With no answer, a browser sending Global Privacy Control has refused.
+- With no answer and no signal, it depends on where the visitor is: in the EEA
+  (including the EU's outermost regions), the UK and Switzerland nothing runs
+  until they accept; elsewhere measurement runs until they refuse. Where is
+  read from the browser's time zone. Every `Europe/` zone counts, which is
+  deliberately wider than the EEA, and a missing or hidden zone (`UTC`,
+  `Etc/...`, as privacy-hardened browsers report) asks first.
 
-Gating was then unwound, deliberately, so that every booking reaches the CRM
-attributed. `window.oneUptimeConsent` still records the visitor's answer under
-`cookiesAccepted`, and the banner and the footer's cookie-settings link still
-read and write it — but nothing downstream branches on it.
+What follows from the rule:
 
-Stated plainly, because it is not what the banner's own copy says:
+- Consent Mode v2 defaults are pushed before any tag loads, granted only when
+  measurement is allowed, with `wait_for_update: 500`. Every answer is sent as
+  an update, so a refusal reaches Google tags already on the page.
+- The Google tag loads only once measurement is allowed — at page load, or the
+  moment the visitor accepts. On the marketing site, the docs and the API
+  reference that is the Google Tag Manager container; on sign-up and the
+  dashboard it is Google Analytics alone (`googleTagMode: 'analytics-only'`),
+  so no advertising pixel or visitor identification tool runs in the product.
+- The marketing site's PostHog loads through the same gate, and a refusal opts
+  it out on the page it was given.
+- Attribution is written to localStorage only while measurement is allowed; a
+  visitor who has not been asked keeps the page's touch in memory until they
+  answer. Nothing is read back, sent with a signup or handed to Cal.com while
+  measurement is not allowed.
+- A refusal expires the measurement cookies the tags set (`_ga`, `_gcl_*`,
+  `_fbp`, `_uet*`, `_rdt_*` and the like), PostHog's `ph_*` storage and the
+  stored attribution. A visitor for whom measurement is not allowed has
+  leftovers from earlier visits removed on every page.
+- The product's own PostHog (`ANALYTICS_KEY`) does not start for a visitor who
+  pressed "Reject all", or who has not answered and whose browser sends Global
+  Privacy Control.
 
-- Consent Mode v2 defaults are pushed before the container loads with every
-  signal **granted** and `wait_for_update: 500`. No update is pushed on either
-  answer, so pressing "Reject all" does not push a denial.
-- Every touch is written to localStorage on sight, whether or not the banner has
-  been answered.
-- Refusing does not clear what an earlier visit stored.
-- PostHog loads on every visit, deferred to idle for LCP but not to an answer.
+Status pages and public dashboards load none of this: they belong to
+OneUptime's customers, and their visitors are not OneUptime's to measure.
 
-Two consequences worth naming. The Consent Mode default asserts to Google that
-consent was collected, which is a claim about the visitor rather than a choice
-about OneUptime's own storage. And the banner still renders Accept and Reject
-while neither button changes anything, which is a choice presented but not
-honoured — if the banner is meant to keep promising one, this is the section and
-`AnalyticsConsent.ejs` is the file that has to change back.
-`AttributionCapture.test.ts` pins each of the four behaviours above, so a change
-in either direction has to be explicit.
+`packages/Home/Tests/AttributionCapture.test.ts` and
+`packages/Common/Tests/Server/Views/AnalyticsConsentPartial.test.ts` pin each
+of these behaviours, so a change in either direction has to be explicit.
+
+## Google Analytics in the product
+
+Sign-up and the dashboard load Google Analytics alone, so
+`packages/Common/Utils/Analytics.ts` talks to it directly:
+
+- **Key events.** The revenue funnel's events (`RevenueEventName`) are sent
+  with the parameters the Tag Manager key-event tag forwards
+  (`GoogleAnalyticsEventParameters`), and nothing else.
+- **`purchase`.** Each paid conversion is also sent as GA4's `purchase`, so
+  Google Analytics' revenue reports and Google Ads' return on ad spend have
+  something to count: a project created on a paid plan, and a free project
+  moving to a paid plan. A move between paid tiers is expansion and is not a
+  purchase; custom pricing has no amount and sends none. `transaction_id` is
+  the server's marketing event ID for the same conversion
+  (`subscription_started:{projectId}`, `subscription_upgraded:{projectId}:{time}`;
+  see `marketing-event-webhooks.md`), `value` the monthly recurring revenue
+  after the change, and the plan is the one item.
+- **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
+  user ID, never an email address, so one person's sessions join up across
+  devices.
+
+All three wait for consent like everything else: gtag holds the calls until
+Google Analytics loads, and on a self-hosted install there is no Google tag to
+send them to.
 
 ## Deliberately not implemented
 

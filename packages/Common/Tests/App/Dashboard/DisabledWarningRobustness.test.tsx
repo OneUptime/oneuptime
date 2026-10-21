@@ -18,7 +18,7 @@ import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The "This monitor is disabled" banner on the monitor's sub-pages (Probes,
+ * The "Monitoring is turned off" banner on the monitor's sub-pages (Probes,
  * Criteria, Settings and a dozen more). It used to have no error handling -
  * a failed read became an unhandled rejection - and it was set but never
  * cleared, so it stayed up after the monitor was re-enabled and carried over
@@ -106,10 +106,10 @@ describe("DisabledWarning", () => {
     render(warning(MONITOR_A));
     await flush();
 
-    expect(screen.getByText("This monitor is disabled")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring is turned off")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.",
+        "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.",
       ),
     ).toBeInTheDocument();
   });
@@ -137,13 +137,13 @@ describe("DisabledWarning", () => {
 
     const view: RenderResult = render(warning(MONITOR_A, "1"));
     await flush();
-    expect(screen.getByText("This monitor is disabled")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring is turned off")).toBeInTheDocument();
 
     view.rerender(warning(MONITOR_A, "2"));
     await flush();
 
     expect(getItemMock).toHaveBeenCalledTimes(2);
-    expect(screen.queryByText("This monitor is disabled")).toBeNull();
+    expect(screen.queryByText("Monitoring is turned off")).toBeNull();
   });
 
   test("a failed refresh does not leave a stale banner up", async () => {
@@ -153,12 +153,12 @@ describe("DisabledWarning", () => {
 
     const view: RenderResult = render(warning(MONITOR_A, "1"));
     await flush();
-    expect(screen.getByText("This monitor is disabled")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring is turned off")).toBeInTheDocument();
 
     view.rerender(warning(MONITOR_A, "2"));
     await flush();
 
-    expect(screen.queryByText("This monitor is disabled")).toBeNull();
+    expect(screen.queryByText("Monitoring is turned off")).toBeNull();
     expect(unhandled).toEqual([]);
   });
 
@@ -173,7 +173,7 @@ describe("DisabledWarning", () => {
 
     const view: RenderResult = render(warning(MONITOR_A));
     await flush();
-    expect(screen.getByText("This monitor is disabled")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring is turned off")).toBeInTheDocument();
 
     view.rerender(warning(MONITOR_B));
     await flush();
@@ -185,13 +185,13 @@ describe("DisabledWarning", () => {
     expect(secondRead.id.toString()).toBe(MONITOR_B);
 
     // Monitor B has not answered yet: A's banner must already be gone.
-    expect(screen.queryByText("This monitor is disabled")).toBeNull();
+    expect(screen.queryByText("Monitoring is turned off")).toBeNull();
 
     await act(async () => {
       resolveB(ENABLED);
     });
     await flush();
-    expect(screen.queryByText("This monitor is disabled")).toBeNull();
+    expect(screen.queryByText("Monitoring is turned off")).toBeNull();
   });
 
   test("a late answer for the previous monitor is ignored", async () => {
@@ -214,7 +214,7 @@ describe("DisabledWarning", () => {
     });
     await flush();
 
-    expect(screen.queryByText("This monitor is disabled")).toBeNull();
+    expect(screen.queryByText("Monitoring is turned off")).toBeNull();
   });
 
   test("a re-render with the same id does not read again", async () => {
@@ -232,7 +232,10 @@ describe("DisabledWarning", () => {
 
 describe("getDisabledMessage", () => {
   test("names each reason monitoring is off", () => {
-    expect(getDisabledMessage(DISABLED)).toContain("go to Settings");
+    // What off means; the banner's button turns it back on.
+    expect(getDisabledMessage(DISABLED)).toContain(
+      "Nothing checks this monitor while monitoring is off",
+    );
     expect(
       getDisabledMessage(
         monitorWith({ disableActiveMonitoringBecauseOfManualIncident: true }),

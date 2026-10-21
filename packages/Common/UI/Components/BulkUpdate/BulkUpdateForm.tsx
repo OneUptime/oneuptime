@@ -9,21 +9,122 @@ import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import MoreMenuDivider from "../MoreMenu/Divider";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
-import { Green, Red } from "../../../Types/BrandColors";
+import { Gray500, Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import {
+  PluralTemplate,
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
+
+/*
+ * The bulk-action bar's sentences. The labels are the table's English nouns,
+ * translated with the sentence; the count picks the language's plural form.
+ */
+export const BULK_SELECTED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} Selected",
+  other: "{{count}} {{itemsName}} Selected",
+};
+
+export const BULK_SUCCEEDED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} succeeded",
+  other: "{{count}} {{itemsName}} succeeded",
+};
+
+export const BULK_FAILED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} failed",
+  other: "{{count}} {{itemsName}} failed",
+};
+
+/*
+ * The third outcome: items an action looked at and left alone on purpose -
+ * a device nothing polls, one already in the state asked for. Neither
+ * "succeeded" (nothing was done) nor "failed" (nothing went wrong), so it is
+ * a list of its own, each item with the reason it was left.
+ */
+export const BULK_UNCHANGED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not changed",
+  other: "{{count}} {{itemsName}} not changed",
+};
+
+export const BULK_SELECTION_LIMIT: PluralTemplate = {
+  one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
+  other:
+    "Selected {{selected}} of {{count}} matching {{itemsName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
+};
 
 export interface BulkActionFailed<T extends GenericObject> {
   failedMessage: string | ReactElement;
   item: T;
 }
 
+// An item the action left alone on purpose, and why (BULK_UNCHANGED_COUNT).
+export interface BulkActionUnchanged<T extends GenericObject> {
+  reason: string | ReactElement;
+  item: T;
+}
+
+/*
+ * The items of a result list that share one reason: their names, in the
+ * order they ran, and the reason once.
+ */
+export interface BulkItemGroup {
+  names: Array<string>;
+  message: string | ReactElement;
+}
+
+/*
+ * A result list's items, grouped by the reason given for them, in the order
+ * each reason first came up. Reasons are compared as written - the server's
+ * words - so two items refused for the same reason share a group and two
+ * different refusals never do. A reason drawn as an element can't be
+ * compared, and keeps a group of its own.
+ */
+export const groupItemsByReason: (
+  entries: ReadonlyArray<{ name: string; message: string | ReactElement }>,
+) => Array<BulkItemGroup> = (
+  entries: ReadonlyArray<{ name: string; message: string | ReactElement }>,
+): Array<BulkItemGroup> => {
+  const groups: Array<BulkItemGroup> = [];
+  const groupsByReason: Map<string, BulkItemGroup> = new Map();
+
+  for (const entry of entries) {
+    const names: Array<string> = entry.name ? [entry.name] : [];
+
+    if (typeof entry.message !== "string") {
+      groups.push({ names: names, message: entry.message });
+      continue;
+    }
+
+    const group: BulkItemGroup | undefined = groupsByReason.get(entry.message);
+
+    if (group) {
+      group.names.push(...names);
+      continue;
+    }
+
+    const newGroup: BulkItemGroup = { names: names, message: entry.message };
+    groupsByReason.set(entry.message, newGroup);
+    groups.push(newGroup);
+  }
+
+  return groups;
+};
+
 export interface ProgressInfo<T extends GenericObject> {
   inProgressItems: Array<T>;
   successItems: Array<T>;
   failed: Array<BulkActionFailed<T>>;
+  /*
+   * Optional: only an action that can leave an item alone on purpose reports
+   * it. Counted towards the progress bar like the other two.
+   */
+  unchanged?: Array<BulkActionUnchanged<T>> | undefined;
   totalItems: Array<T>;
 }
 
@@ -43,7 +144,11 @@ export interface BulkActionOnClickProps<T extends GenericObject> {
 
 export interface BulkActionButtonSchema<T extends GenericObject> {
   title: string;
-  icon?: undefined | IconProp;
+  /*
+   * Required: every item in the Bulk Actions menu has an icon, as every item
+   * in a row's ⋯ menu does (see ActionButtonSchema).
+   */
+  icon: IconProp;
   buttonStyleType: ButtonStyleType;
   isLoading?: boolean | undefined;
   isVisible?: (items: Array<T>) => boolean | undefined;
@@ -55,7 +160,33 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
   shortcutKey?: undefined | ShortcutKey;
   confirmMessage?: ((items: Array<T>) => string) | undefined;
   confirmTitle?: ((items: Array<T>) => string) | undefined;
+  /*
+   * Drawn under confirmMessage: which records the action is about to touch,
+   * where the count alone does not say (DeleteItemNames lists them).
+   */
+  confirmDetails?: ((items: Array<T>) => ReactElement | undefined) | undefined;
   confirmButtonStyleType?: ButtonStyleType;
+  /*
+   * The result's words for what happened to each item, when this action has
+   * better ones than "succeeded" and "failed": a Delete says "2 Monitors
+   * deleted" and "1 Monitor not deleted", which is what the reader is
+   * looking for. Plural templates with {{count}}, {{itemName}} and
+   * {{itemsName}}, as BULK_SUCCEEDED_COUNT.
+   */
+  resultLabels?:
+    | {
+        succeeded: PluralTemplate;
+        failed: PluralTemplate;
+      }
+    | undefined;
+  /*
+   * Drawn last in the result, once the action has finished: where to go
+   * next, when the action made or changed one thing the reader will want
+   * to open - the episode the selected alerts were added to, say. Read when
+   * the result is drawn, so it can name what the run produced. Nothing is
+   * drawn when it returns undefined.
+   */
+  resultDetails?: (() => ReactElement | undefined) | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject> {
@@ -101,6 +232,14 @@ const BulkUpdateForm: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  // The bar writes the table's labels as given: "2 Monitors succeeded".
+  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel);
+  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel);
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
   const [confirmModalProps, setConfirmModalProps] =
     React.useState<ConfirmModalProps | null>(null);
 
@@ -111,6 +250,10 @@ const BulkUpdateForm: <T extends GenericObject>(
 
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
+
+  // The action whose run the progress dialog reports, for its words.
+  const [runningAction, setRunningAction] =
+    React.useState<BulkActionButtonSchema<T> | null>(null);
 
   if (props.selectedItems.length === 0) {
     return <></>;
@@ -150,6 +293,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         setProgressInfo(info);
       },
       onBulkActionStart: () => {
+        setRunningAction(button);
         setShowProgressInfoModal(true);
         setProgressInfo({
           inProgressItems: props.selectedItems,
@@ -171,8 +315,9 @@ const BulkUpdateForm: <T extends GenericObject>(
       setConfirmModalProps({
         title: button.confirmTitle
           ? button.confirmTitle(props.selectedItems)
-          : "Confirm",
+          : tx("Confirm"),
         description: button.confirmMessage(props.selectedItems),
+        children: button.confirmDetails?.(props.selectedItems),
         submitButtonType: button.confirmButtonStyleType,
         submitButtonText: button.title,
         onClose: () => {
@@ -225,16 +370,22 @@ const BulkUpdateForm: <T extends GenericObject>(
   };
 
   const showProgressInfo: GetReactElementFunction = (): ReactElement => {
+    const unchangedItems: Array<BulkActionUnchanged<T>> =
+      progressInfo?.unchanged || [];
+
     if (actionInProgress && progressInfo) {
       return (
         <div className="space-y-4">
           <p className="text-sm text-gray-500">
-            Please wait while the bulk action is being performed. This may take
-            a moment.
+            {tx(
+              "Please wait while the bulk action is being performed. This may take a moment.",
+            )}
           </p>
           <ProgressBar
             count={
-              progressInfo.successItems.length + progressInfo.failed.length
+              progressInfo.successItems.length +
+              progressInfo.failed.length +
+              unchangedItems.length
             }
             totalCount={progressInfo.totalItems.length}
             suffix={props.pluralLabel}
@@ -247,6 +398,9 @@ const BulkUpdateForm: <T extends GenericObject>(
     if (!actionInProgress && progressInfo) {
       const hasFailures: boolean = progressInfo.failed.length > 0;
       const hasSuccesses: boolean = progressInfo.successItems.length > 0;
+      const hasUnchanged: boolean = unchangedItems.length > 0;
+      const resultDetails: ReactElement | undefined =
+        runningAction?.resultDetails?.();
 
       return (
         <div className="space-y-4">
@@ -259,12 +413,20 @@ const BulkUpdateForm: <T extends GenericObject>(
                   icon={IconProp.CheckCircle}
                   color={Green}
                 />
-                <div className="ml-2 text-sm font-medium text-green-800">
-                  {progressInfo.successItems.length}{" "}
-                  {progressInfo.successItems.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  succeeded
+                <div
+                  className="ml-2 text-sm font-medium text-green-800"
+                  data-testid="bulk-action-succeeded-count"
+                >
+                  {translator.translatePlural(
+                    runningAction?.resultLabels?.succeeded ||
+                      BULK_SUCCEEDED_COUNT,
+                    progressInfo.successItems.length,
+                    {
+                      count: String(progressInfo.successItems.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </div>
               </div>
             )}
@@ -275,49 +437,167 @@ const BulkUpdateForm: <T extends GenericObject>(
                   icon={IconProp.Close}
                   color={Red}
                 />
-                <div className="ml-2 text-sm font-medium text-red-800">
-                  {progressInfo.failed.length}{" "}
-                  {progressInfo.failed.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  failed
+                <div
+                  className="ml-2 text-sm font-medium text-red-800"
+                  data-testid="bulk-action-failed-count"
+                >
+                  {translator.translatePlural(
+                    runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
+                    progressInfo.failed.length,
+                    {
+                      count: String(progressInfo.failed.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </div>
               </div>
             )}
           </div>
 
           {/* Failure details */}
-          {hasFailures && (
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
-                {progressInfo.failed.map(
-                  (failedItem: BulkActionFailed<T>, i: number) => {
-                    const itemName: string = props.itemToString
-                      ? props.itemToString(failedItem.item)
-                      : "";
+          {hasFailures &&
+            renderItemList(
+              progressInfo.failed.map((failedItem: BulkActionFailed<T>) => {
+                return {
+                  item: failedItem.item,
+                  message: failedItem.failedMessage,
+                };
+              }),
+              "bulk-action-failed-items",
+            )}
 
-                    return (
-                      <div className="px-4 py-3 text-sm" key={i}>
-                        {itemName && (
-                          <div className="font-medium text-gray-900">
-                            {itemName}
-                          </div>
-                        )}
-                        <div className="text-gray-500 mt-0.5">
-                          {failedItem.failedMessage}
-                        </div>
-                      </div>
-                    );
+          {/*
+           * Left alone on purpose, after the failures: those are what to act
+           * on first. Its own count and its own list, so a reason never reads
+           * as an error.
+           */}
+          {hasUnchanged && (
+            <div
+              className="flex items-center rounded-lg bg-gray-50 p-3"
+              data-testid="bulk-action-unchanged-count"
+            >
+              <Icon
+                className="h-5 w-5 flex-shrink-0"
+                icon={IconProp.Info}
+                color={Gray500}
+              />
+              <div className="ml-2 text-sm font-medium text-gray-800">
+                {translator.translatePlural(
+                  BULK_UNCHANGED_COUNT,
+                  unchangedItems.length,
+                  {
+                    count: String(unchangedItems.length),
+                    itemName: itemTerm,
+                    itemsName: itemsTerm,
                   },
                 )}
               </div>
             </div>
+          )}
+          {hasUnchanged &&
+            renderItemList(
+              unchangedItems.map((unchanged: BulkActionUnchanged<T>) => {
+                return {
+                  item: unchanged.item,
+                  message: unchanged.reason,
+                };
+              }),
+              "bulk-action-unchanged-items",
+            )}
+
+          {/* Where to go next, when the action says (resultDetails). */}
+          {resultDetails && (
+            <div data-testid="bulk-action-result-details">{resultDetails}</div>
           )}
         </div>
       );
     }
 
     return <></>;
+  };
+
+  /*
+   * The items, by what happened to them: the names, then why. Items that
+   * share a reason are listed together under it once. A bulk Delete the
+   * server refuses part of usually refuses for one reason - a permission
+   * scoped to a label, the teams every project comes with - and a row per
+   * item said that same sentence six times over, in a box that showed three
+   * of them and hid the rest below its fold. The failure list and the "not
+   * changed" list are the same list with different words.
+   */
+  type RenderItemListFunction = (
+    entries: Array<{ item: T; message: string | ReactElement }>,
+    dataTestId: string,
+  ) => ReactElement;
+
+  const renderItemList: RenderItemListFunction = (
+    entries: Array<{ item: T; message: string | ReactElement }>,
+    dataTestId: string,
+  ): ReactElement => {
+    const groups: Array<BulkItemGroup> = groupItemsByReason(
+      entries.map((entry: { item: T; message: string | ReactElement }) => {
+        return {
+          name: props.itemToString ? props.itemToString(entry.item) : "",
+          message: entry.message,
+        };
+      }),
+    );
+
+    return (
+      <div
+        className="rounded-lg border border-gray-200 overflow-hidden"
+        data-testid={dataTestId}
+      >
+        <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+          {groups.map((group: BulkItemGroup, i: number) => {
+            /*
+             * A reason the server gave is English. When the reader's
+             * language has its own wording for it - a refusal the Dashboard
+             * also shows, such as a monitor's only status event - the list
+             * says it in theirs, as the error dialog for one row does.
+             */
+            const message: string | ReactElement =
+              typeof group.message === "string"
+                ? translator.translateText(group.message) || group.message
+                : group.message;
+
+            return (
+              <div
+                className="px-4 py-3 text-sm"
+                key={i}
+                data-testid={`${dataTestId}-group`}
+              >
+                {group.names.length === 1 ? (
+                  <div className="break-words font-medium text-gray-900">
+                    {group.names[0]}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {group.names.length > 1 ? (
+                  <ul className="space-y-0.5">
+                    {group.names.map((name: string, j: number) => {
+                      return (
+                        <li
+                          key={j}
+                          className="break-words font-medium text-gray-900"
+                        >
+                          {name}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <></>
+                )}
+                <div className="text-gray-500 mt-0.5">{message}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const menuChildren: Array<ReactElement> = [];
@@ -358,16 +638,20 @@ const BulkUpdateForm: <T extends GenericObject>(
                   className="h-4 w-4 text-indigo-600"
                 />
                 <span>
-                  {props.selectedItems.length}{" "}
                   {/*
                    * The singular when there is one of them. The badge is the
                    * one sentence in this bar that is always on screen, and
                    * "1 resources Selected" reads as a bug in the count.
                    */}
-                  {props.selectedItems.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  Selected
+                  {translator.translatePlural(
+                    BULK_SELECTED_COUNT,
+                    props.selectedItems.length,
+                    {
+                      count: String(props.selectedItems.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </span>
               </div>
 
@@ -401,9 +685,12 @@ const BulkUpdateForm: <T extends GenericObject>(
                     className="h-3.5 w-3.5"
                   />
                   <span>
-                    {props.isSelectingAllItems
-                      ? `Selecting All ${props.pluralLabel}...`
-                      : `Select All ${props.pluralLabel}`}
+                    {translator.translateTemplate(
+                      props.isSelectingAllItems
+                        ? "Selecting All {{itemsName}}..."
+                        : "Select All {{itemsName}}",
+                      { itemsName: itemsTerm },
+                    )}
                   </span>
                 </button>
               )}
@@ -417,11 +704,16 @@ const BulkUpdateForm: <T extends GenericObject>(
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                <span>Clear Selection</span>
+                <span>{tx("Clear Selection")}</span>
               </button>
             </div>
 
-            <div className="flex items-center">
+            {/*
+             * At the right edge even when the bar wraps, as on a phone: the
+             * menu opens leftwards from this button's right edge, and from a
+             * button at the left it ran off the screen.
+             */}
+            <div className="ml-auto flex items-center">
               {menuChildren.length > 0 && (
                 <MoreMenu
                   elementToBeShownInsteadOfButton={
@@ -430,7 +722,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                         icon={IconProp.Bolt}
                         className="h-4 w-4 text-gray-500"
                       />
-                      <span>Bulk Actions</span>
+                      <span>{tx("Bulk Actions")}</span>
                       <Icon
                         icon={IconProp.ChevronDown}
                         className="h-3.5 w-3.5 text-gray-400 ml-0.5"
@@ -446,12 +738,16 @@ const BulkUpdateForm: <T extends GenericObject>(
 
           {showLimitWarning && (
             <div className="mt-2 text-xs text-gray-500">
-              Selected {props.selectedItems.length.toLocaleString()} of{" "}
-              {totalMatchingItemsCount.toLocaleString()} matching{" "}
-              {props.pluralLabel}. You can only select{" "}
-              {LIMIT_PER_PROJECT.toLocaleString()} {props.pluralLabel} at a
-              time, for performance reasons, so bulk actions will apply to the
-              selected {props.selectedItems.length.toLocaleString()} only.
+              {translator.translatePlural(
+                BULK_SELECTION_LIMIT,
+                totalMatchingItemsCount,
+                {
+                  selected: translator.formatNumber(props.selectedItems.length),
+                  limit: translator.formatNumber(LIMIT_PER_PROJECT),
+                  itemName: itemTerm,
+                  itemsName: itemsTerm,
+                },
+              )}
             </div>
           )}
 

@@ -5,7 +5,12 @@ import AlertMeasurementService from "./AlertMeasurementService";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
+import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimelineService from "./AlertStateTimelineService";
+import AlertStateService from "./AlertStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import AlertStateRole from "../../Types/Alerts/AlertStateRole";
 import MeasurementEvaluator, {
@@ -71,6 +76,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         createdAt: true,
         impactStartedAt: true,
+        firstPagedAt: true,
         labels: { _id: true, name: true, color: true },
         customFields: true,
         monitor: { _id: true, name: true },
@@ -114,9 +120,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.alertId,
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      alertId: data.alertId,
+      projectId: alert.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: AlertMeasurement) => {
@@ -143,12 +150,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    alertId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<AlertStateTimeline> =
       await AlertStateTimelineService.findBy({
-        query: { alertId: alertId },
+        query: { alertId: data.alertId },
         select: {
           _id: true,
           alertStateId: true,
@@ -158,8 +166,6 @@ export class Service extends DatabaseService<Model> {
             name: true,
             order: true,
             isCreatedState: true,
-            isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -167,6 +173,58 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    const states: Array<AlertState> = await AlertStateService.getAllAlertStates(
+      {
+        projectId: data.projectId,
+        props: { isRoot: true },
+      },
+    );
+
+    const timelineRows: Array<{
+      id: string;
+      stateId: ObjectID | undefined;
+      startsAt: Date | undefined;
+    }> = timelines.map((timeline: AlertStateTimeline) => {
+      return {
+        id: timeline._id?.toString() || "",
+        stateId: timeline.alertStateId,
+        startsAt: timeline.startsAt,
+      };
+    });
+
+    /*
+     * "The alert is resolved" is each move into a state that counts as
+     * resolved (Common/Utils/ResolvedState) - the project's resolved state,
+     * or one placed after it - from one that does not. Moving on from one
+     * resolved state to another is not a second resolve.
+     */
+    const resolutionRowIds: Set<string> = new Set(
+      ResolvedStateUtil.getResolutionRows({
+        list: StateListType.AlertState,
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
+
+    /*
+     * "The alert is acknowledged" the same way: each move into a state
+     * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+     * project's acknowledged state, one placed after it ("Investigating"),
+     * or a resolved one - from one that does not. Moving on from Acknowledged
+     * to a state after it is not a second acknowledgement.
+     */
+    const acknowledgementRowIds: Set<string> = new Set(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: StateListType.AlertState,
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
 
     return timelines
       .filter((timeline: AlertStateTimeline) => {
@@ -179,11 +237,11 @@ export class Service extends DatabaseService<Model> {
           roles.push(AlertStateRole.Created);
         }
 
-        if (timeline.alertState?.isAcknowledgedState) {
+        if (acknowledgementRowIds.has(timeline._id?.toString() || "")) {
           roles.push(AlertStateRole.Acknowledged);
         }
 
-        if (timeline.alertState?.isResolvedState) {
+        if (resolutionRowIds.has(timeline._id?.toString() || "")) {
           roles.push(AlertStateRole.Resolved);
         }
 
@@ -273,6 +331,22 @@ export class Service extends DatabaseService<Model> {
           /*
            * Recorded by a person after the fact, so a blank value on an open
            * alert is still coming rather than never arriving.
+           */
+          canResolveAfterTerminalState: true,
+        };
+
+      case AlertMeasurementAnchorType.FirstPagedAt:
+        return {
+          kind: MeasurementAnchorKind.Timestamp,
+          label: "First Paged At",
+          timestamp: alert.firstPagedAt,
+          /*
+           * Written by OneUptime when an on-call policy or a direct page
+           * first notifies somebody about the alert (FirstPagedAt), which can
+           * be long after it opened - a page held until working hours goes
+           * out in the morning. Blank, it is still to come rather than never
+           * coming: an alert nobody was paged about has no value, and stays
+           * Pending as a state it never reached does.
            */
           canResolveAfterTerminalState: true,
         };

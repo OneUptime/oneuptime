@@ -1,6 +1,7 @@
 import { Client, ClientChannel, ConnectConfig } from "ssh2";
 import { MAX_OUTPUT_BYTES } from "../Config";
 import { JSONObject } from "Common/Types/JSON";
+import { shellQuote } from "Common/Types/Runbook/ShellWord";
 
 export interface SSHExecResult {
   success: boolean;
@@ -21,6 +22,28 @@ function truncate(s: string): string {
 }
 
 /*
+ * What an SSH step runs on its machine.
+ *
+ * A step that takes a script (payload.script) runs it with bash there:
+ * `bash -c '<script>'`, the script in single quotes (shellQuote), so the
+ * machine's login shell hands it to bash exactly as written, and nothing the
+ * script reads from its input is taken from the script itself. A step
+ * written before scripts, and a command OneUptime AI composed, send their
+ * command (payload.command), which is sent as it is, as it always was. A
+ * server sends a script step's script as its command too, so a Runner older
+ * than scripts runs it with the machine's own login shell.
+ */
+export function getSshCommandToRun(payload: JSONObject): string {
+  const script: unknown = payload["script"];
+
+  if (typeof script === "string" && script.trim()) {
+    return `bash -c ${shellQuote(script)}`;
+  }
+
+  return String(payload["command"] || "");
+}
+
+/*
  * Run one command on a remote host over SSH.
  *
  * The connection is opened, used and closed per step — no pooling. A runbook
@@ -28,8 +51,9 @@ function truncate(s: string): string {
  * credentials resident and connections open against hosts that may be exactly
  * the ones misbehaving.
  *
- * The command is sent verbatim rather than through a shell the Runner builds,
- * so nothing here re-quotes or re-interprets what the author wrote.
+ * Nothing here re-quotes or re-interprets what the author wrote: a script is
+ * quoted once, whole, for bash (getSshCommandToRun), and a command is sent
+ * verbatim.
  */
 export default class SSHExecutor {
   public static execute(data: {
@@ -37,7 +61,7 @@ export default class SSHExecutor {
     credential: JSONObject;
     timeoutInMs: number;
   }): Promise<SSHExecResult> {
-    const command: string = String(data.payload["command"] || "");
+    const command: string = getSshCommandToRun(data.payload);
     const hostname: string = String(data.credential["hostname"] || "");
     const username: string = String(data.credential["username"] || "");
     const port: number = Number(data.credential["port"] || 22);
@@ -54,7 +78,7 @@ export default class SSHExecutor {
       return Promise.resolve({
         success: false,
         output: "",
-        errorMessage: "SSH step has no command to run.",
+        errorMessage: "SSH step has no script to run.",
       });
     }
 

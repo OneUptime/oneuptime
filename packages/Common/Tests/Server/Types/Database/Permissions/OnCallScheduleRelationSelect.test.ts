@@ -214,13 +214,14 @@ describe("On-call schedule relation select - through the full permission stack",
     jest
       .spyOn(TablePermission, "checkTableLevelPermissions")
       .mockImplementation(() => {});
+    // The table's own labels and owners: what the record rule asks for them.
     jest
-      .spyOn(AccessControlPermission, "addAccessControlIdsToQuery")
-      .mockImplementation(async (_modelType: any, query: any) => {
+      .spyOn(AccessControlPermission, "addLabelIdsToQuery")
+      .mockImplementation((_modelType: any, query: any) => {
         return query;
       });
     jest
-      .spyOn(OwnedScopePermission, "addOwnedScopeToQuery")
+      .spyOn(OwnedScopePermission, "addOwnedRecordsToQuery")
       .mockImplementation(async (_modelType: any, query: any) => {
         return query;
       });

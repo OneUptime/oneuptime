@@ -89,6 +89,18 @@ export interface SearchDetectionsResult {
 }
 
 /*
+ * What events:import answered. errorText is Google's error with anything
+ * secret-looking redacted; errorReason its ErrorInfo reason
+ * (IAM_PERMISSION_DENIED, RATE_LIMIT_EXCEEDED...) when it gave one.
+ */
+export interface GoogleSecOpsImportResult {
+  ok: boolean;
+  status: number;
+  errorText: string;
+  errorReason: string;
+}
+
+/*
  * One curated rule that produced detections in the counted interval, read
  * from countAllCuratedRuleSetDetections' curatedRuleCounts[]. ruleId is the
  * last segment of CuratedRule.name (ur_...), the identifier
@@ -702,6 +714,64 @@ export default class GoogleSecOpsClient {
     }
 
     return GoogleSecOpsClient.parseSearchDetectionsBody(responseText);
+  }
+
+  /*
+   * Import UDM events into the instance: the Chronicle API's events:import,
+   * the other direction from everything above. A Security Event
+   * Destination sends OneUptime's events through it.
+   *
+   *   POST {base}/events:import
+   *     { inlineSource: { events: [{ udm: {...} }, ...] } }
+   *   -> 200 {} once the batch is accepted
+   * https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.events/import
+   *
+   * The service account needs chronicle.events.import (Chronicle API
+   * Editor has it). Same token handling and one-shot 401 retry as the
+   * reads. The answer is returned, not thrown: whether a failed batch is
+   * retried, split or given up on is the sender's to decide from the
+   * status.
+   */
+  public async importUdmEvents(
+    events: Array<JSONObject>,
+  ): Promise<GoogleSecOpsImportResult> {
+    const url: string = `${this.getApiBaseUrl()}/events:import`;
+    const body: string = JSON.stringify({
+      inlineSource: {
+        events: events.map((udm: JSONObject): JSONObject => {
+          return { udm };
+        }),
+      },
+    });
+
+    let accessToken: string = await this.getAccessToken();
+    let response: FetchResponseLike = await this.postJson(
+      url,
+      accessToken,
+      body,
+      "events import",
+    );
+
+    if (response.status === 401) {
+      this.clearCachedAccessToken();
+      accessToken = await this.getAccessToken();
+      response = await this.postJson(url, accessToken, body, "events import");
+    }
+
+    const responseText: string = await response.text();
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      errorText: response.ok
+        ? ""
+        : GoogleSecOpsClient.redactErrorBody(responseText),
+      errorReason: response.ok
+        ? ""
+        : GoogleSecOpsClient.errorInfoReason(
+            GoogleSecOpsClient.findErrorObject(responseText),
+          ),
+    };
   }
 
   /*

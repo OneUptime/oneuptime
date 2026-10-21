@@ -5,6 +5,8 @@ import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import { NotificationItem } from "./NotificationItem";
 import NotificationBellDropdown from "./NotificationBellDropdown";
 import { HeaderAlertType } from "../HeaderAlert";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   items: Array<NotificationItem>;
@@ -14,6 +16,7 @@ export interface ComponentProps {
 const NotificationBell: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
@@ -68,7 +71,9 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
         aria-expanded={isComponentVisible}
         aria-haspopup="true"
       >
-        <span className="sr-only">View notifications</span>
+        <span className="sr-only">
+          {translator.translateText("View notifications")}
+        </span>
         <Icon className="h-5 w-5 text-gray-500" icon={IconProp.Bell} />
       </button>
 

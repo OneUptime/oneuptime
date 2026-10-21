@@ -9,7 +9,13 @@ import Card, {
   CardButtonSchema,
   ComponentProps as CardProps,
 } from "../Card/Card";
-import { FormType } from "../Forms/ModelForm";
+import CardMoreMenu from "../Card/CardMoreMenu";
+import {
+  CARD_RULED_BODY_CLASS_NAME,
+  useIsCardSection,
+} from "../Card/CardSurface";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import { FormType, ModelFormOnBeforeUpdate } from "../Forms/ModelForm";
 import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
@@ -19,7 +25,18 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IconProp from "../../../Types/Icon/IconProp";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import {
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import React, {
+  ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   cardProps: CardProps;
@@ -27,8 +44,22 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   isEditable?: undefined | boolean;
   onSaveSuccess?: undefined | ((item: TBaseModel) => void);
   editButtonText?: undefined | string;
+  /*
+   * The edit dialog's title and the line under it. The title defaults to
+   * "Edit <model>", which says "Edit Project" on a card that edits a few of
+   * the project's settings: such a card names what it edits instead.
+   */
+  editModalTitle?: undefined | string;
+  editModalDescription?: undefined | string;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
   formFields?: undefined | Fields<TBaseModel>;
+  /*
+   * Called with the model the Edit dialog is about to save, the misc data
+   * and every value the form holds (ModelForm's onBeforeUpdate): what it
+   * returns is what is saved. The incident's Affected Resources card leaves
+   * out a monitor status when no monitor is left to put in it.
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -40,18 +71,40 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeEdit?: (() => boolean) | undefined;
 }
 
+/*
+ * The fields' box on a page: a rule across the card under its header, and
+ * the fields padded as the card is, so their left edge is the title's at
+ * every width. It is the ruled body a switch card has (CardSurface), so a
+ * detail card and a switch card on one page draw their rules alike.
+ *
+ * It used to pull itself out by 24px on every side whatever the card's
+ * padding, and pad its fields 16px: on a phone, where a card is padded
+ * 20px, the rule ran 4px past the card's edges and the fields sat 8px left
+ * of the title.
+ */
+export const CARD_MODEL_DETAIL_BODY_CLASS_NAME: string = `${CARD_RULED_BODY_CLASS_NAME} px-5 py-5 md:px-6`;
+
+/*
+ * In a section of a card: no rule and no box of their own, and a little more
+ * room under the header than a card's body has, which the rule gave.
+ */
+export const CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME: string = "pt-2";
+
 const CardModelDetail: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const [cardButtons, setCardButtons] = useState<
-    Array<CardButtonSchema | ReactElement>
-  >([]);
+  const translator: Translator = useTranslator();
+  const isCardSection: boolean = useIsCardSection();
   const [showModel, setShowModal] = useState<boolean>(false);
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
+  const editTitle: string = translateNamedAction(translator, {
+    template: "Edit {{itemName}}",
+    itemName: model.singularName || "",
+  });
 
   const onBeforeEditRef: React.MutableRefObject<(() => boolean) | undefined> =
     useRef<(() => boolean) | undefined>(props.onBeforeEdit);
@@ -78,48 +131,39 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     setRefresher(!refresher);
   }, [props.refresher]);
 
-  useEffect(() => {
+  /*
+   * The header's actions: Edit, then the page's buttons, then a ⋯ holding
+   * the way to read more - the documentation, a demo - as a table's header
+   * keeps them ("as few buttons as possible visible"). Those two were
+   * buttons of their own before Edit, drawn in an outline style that has
+   * no border, so they read as stray text in the header.
+   *
+   * Worked out while rendering rather than kept in state, so a page button
+   * that comes and goes - Apply Template on the postmortem, shown once the
+   * project's templates have loaded and there is one - is drawn as soon as
+   * the page hands it over. Kept in state and refreshed only by the
+   * refresher, a button the page added after the first paint stayed missing
+   * until something else changed.
+   */
+  const cardButtons: Array<CardButtonSchema | ReactElement> = useMemo(() => {
     /*
      * This used to look at project permissions only, so a permission granted
      * globally did not count, and it read the raw updateRecordPermissions
      * field rather than going through the model's own accessor.
+     *
+     * It then looked at the record's update list alone. The form leaves out
+     * every field its viewer may not change, and many columns are narrower
+     * than their record - a project's name is not a project admin's to
+     * change, its notification channels are a Billing Admin's - so somebody
+     * the record let in but none of the card's fields did was handed an
+     * Edit button that opened an empty form. The button now locks for them
+     * too, naming what would open it (PermissionGate.checkFormUpdate).
      */
-    const updateGate: PermissionGateResult = PermissionGate.check(
-      model,
-      ModelAction.Update,
-    );
+    const updateGate: PermissionGateResult = props.formFields
+      ? PermissionGate.checkFormUpdate(model, props.formFields)
+      : PermissionGate.check(model, ModelAction.Update);
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
-
-    // Add documentation link button first if provided
-    if (props.documentationLink) {
-      cardButtons.push({
-        title: "View Documentation",
-        icon: IconProp.Book,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        className: "hidden md:flex",
-        onClick: () => {
-          Navigation.navigate(props.documentationLink!, {
-            openInNewTab: true,
-          });
-        },
-      });
-    }
-
-    // Add video link button if provided
-    if (props.videoLink) {
-      cardButtons.push({
-        title: "Watch Demo",
-        icon: IconProp.Play,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        className: "hidden md:flex",
-        onClick: () => {
-          Navigation.navigate(props.videoLink!, {
-            openInNewTab: true,
-          });
-        },
-      });
-    }
 
     /*
      * Without update permission the button stays where it is, locked, and the
@@ -133,7 +177,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       (updateGate.isAllowed || updateGate.disabledReason)
     ) {
       cardButtons.push({
-        title: props.editButtonText || `Edit ${model.singularName}`,
+        title: props.editButtonText || editTitle,
         buttonStyle: ButtonStyleType.NORMAL,
         disabled: !updateGate.isAllowed,
         tooltip: updateGate.disabledReason,
@@ -155,18 +199,86 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       cardButtons = cardButtons.concat(...props.cardProps.buttons);
     }
 
-    setCardButtons(cardButtons);
+    const moreMenuItems: Array<ReactElement> = [];
+
+    if (props.documentationLink) {
+      moreMenuItems.push(
+        <MoreMenuItem
+          key="documentation"
+          text="View Documentation"
+          icon={IconProp.Book}
+          onClick={() => {
+            Navigation.navigate(props.documentationLink!, {
+              openInNewTab: true,
+            });
+          }}
+        />,
+      );
+    }
+
+    if (props.videoLink) {
+      moreMenuItems.push(
+        <MoreMenuItem
+          key="video"
+          text="Watch Demo"
+          icon={IconProp.Play}
+          onClick={() => {
+            Navigation.navigate(props.videoLink!, {
+              openInNewTab: true,
+            });
+          }}
+        />,
+      );
+    }
+
+    if (moreMenuItems.length > 0) {
+      cardButtons.push(
+        <CardMoreMenu
+          key="card-model-detail-more-menu"
+          dataTestId="card-model-detail-more-menu"
+        >
+          {moreMenuItems}
+        </CardMoreMenu>,
+      );
+    }
+
+    return cardButtons;
     /*
      * props.refresher is the card's existing "something changed, look again"
      * signal. The permission snapshot arrives on an API response header, so a
-     * one-shot read at mount could permanently show the wrong state.
+     * one-shot read at mount could permanently show the wrong state. A page
+     * usually writes its buttons as a literal, so they are new on every
+     * render of the page, which looks again too.
      */
-  }, [props.refresher, props.isEditable, props.editButtonText]);
+  }, [
+    props.refresher,
+    props.isEditable,
+    props.editButtonText,
+    props.documentationLink,
+    props.videoLink,
+    props.cardProps.buttons,
+    props.formFields,
+    translator.language,
+  ]);
 
   return (
     <>
       <Card {...props.cardProps} buttons={cardButtons}>
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+        {/*
+         * On a page the fields sit under a rule across the card, apart from
+         * its header. In a section of a card (CardSections) a rule across
+         * the card is the divider between two sections, so one here would
+         * read as the start of a section with no title: the fields follow
+         * the header as they do in a card without one.
+         */}
+        <div
+          className={
+            isCardSection
+              ? CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME
+              : CARD_MODEL_DETAIL_BODY_CLASS_NAME
+          }
+          data-testid="card-model-detail-body"
+        >
           <ModelDetail
             refresher={refresher}
             {...props.modelDetailProps}
@@ -183,13 +295,15 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
       {showModel ? (
         <ModelFormModal<TBaseModel>
-          title={`Edit ${model.singularName}`}
+          title={props.editModalTitle || editTitle}
+          description={props.editModalDescription}
           modalWidth={props.createEditModalWidth}
           modelAPI={props.modelAPI}
           onClose={() => {
             setShowModal(false);
           }}
           submitButtonText={`Save Changes`}
+          onBeforeUpdate={props.onBeforeUpdate}
           onSuccess={(item: TBaseModel) => {
             setShowModal(false);
             setRefresher(!refresher);

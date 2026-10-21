@@ -33,6 +33,7 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 
@@ -138,6 +139,15 @@ jest.mock("Common/Server/Services/TeamService", () => {
       deleteBy: jest.fn(),
     },
   };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -258,6 +268,25 @@ function expectLoggedStatus(
   );
 }
 
+/*
+ * The user, provisioned already: a project connection keeps a record of the
+ * users it provisioned, which is how a DELETE finds them. A status page's
+ * private user is found by the private user lookup.
+ */
+function provisioned(scope: Scope): void {
+  if (scope === "project") {
+    fakeProjectSCIMUserService.seed({
+      projectId: PROJECT_ID,
+      projectScimId: SCIM_ID,
+      userId: USER_ID,
+      isActive: true,
+      userName: EMAIL,
+      externalId: null,
+      scimAttributes: {},
+    });
+  }
+}
+
 function expectNoContent(result: HttpResult): void {
   expect(result.status).toBe(204);
   expect(result.text).toBe("");
@@ -324,6 +353,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  fakeProjectSCIMUserService.reset();
 
   statusPageConfig = new StatusPageSCIM(SCIM_ID);
   statusPageConfig.autoProvisionUsers = true;
@@ -383,6 +413,8 @@ describe.each<Scope>(["project", "status-page"])(
     });
 
     test("DELETE /Users/:id answers 204 No Content with no body", async () => {
+      provisioned(scope);
+
       const result: HttpResult = await send(
         "DELETE",
         scimPath(scope, `Users/${USER_ID}`),
@@ -409,6 +441,8 @@ describe.each<Scope>(["project", "status-page"])(
     });
 
     test("a Bulk request that is processed still answers 200 with each operation's status", async () => {
+      provisioned(scope);
+
       const result: HttpResult = await send("POST", scimPath(scope, "Bulk"), {
         schemas: [BULK_SCHEMA],
         Operations: [{ method: "DELETE", path: `/Users/${USER_ID}` }],
@@ -422,6 +456,58 @@ describe.each<Scope>(["project", "status-page"])(
     });
   },
 );
+
+describe("project SCIM Users the connection does not have", () => {
+  test("DELETE /Users/:id answers 404 in the SCIM error format", async () => {
+    const result: HttpResult = await send(
+      "DELETE",
+      scimPath("project", `Users/${USER_ID}`),
+    );
+
+    expect(result.status).toBe(404);
+    expect(result.body).toEqual({
+      schemas: [ERROR_SCHEMA],
+      status: "404",
+      detail: "User not found or not part of this project",
+    });
+    expectLoggedStatus("project", "DeleteUser", 404);
+  });
+
+  test("GET /Users/:id answers 404 in the SCIM error format, for an id that is not a UUID too", async () => {
+    for (const id of [USER_ID.toString(), "not-a-uuid"]) {
+      const result: HttpResult = await send(
+        "GET",
+        scimPath("project", `Users/${id}`),
+      );
+
+      expect(result.status).toBe(404);
+      expect(result.body["schemas"]).toEqual([ERROR_SCHEMA]);
+    }
+  });
+
+  test("POST /Users answers 409 uniqueness when the connection has the userName already", async () => {
+    provisioned("project");
+
+    const result: HttpResult = await send(
+      "POST",
+      scimPath("project", "Users"),
+      {
+        schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        userName: EMAIL.toUpperCase(),
+      },
+    );
+
+    expect(result.status).toBe(409);
+    expect(result.body).toEqual({
+      schemas: [ERROR_SCHEMA],
+      status: "409",
+      scimType: "uniqueness",
+      detail: `A user with the userName "${EMAIL.toUpperCase()}" is already provisioned by this SCIM connection.`,
+    });
+    expect(userService.createByEmail).not.toHaveBeenCalled();
+    expectLoggedStatus("project", "CreateUser", 409);
+  });
+});
 
 describe("project SCIM Groups", () => {
   test("POST /Groups answers 201 Created when it creates the team", async () => {

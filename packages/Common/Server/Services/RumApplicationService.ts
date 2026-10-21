@@ -1,7 +1,8 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RumApplication";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -12,6 +13,11 @@ import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGat
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
 import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
 import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
 
@@ -29,9 +35,51 @@ const REPLAY_BUDGET_EXCEEDED_CACHE_NAMESPACE: string =
   "rum-application-replay-budget-exceeded";
 const REPLAY_BUDGET_EXCEEDED_THROTTLE_SECONDS: number = 300;
 
-export class Service extends DatabaseService<Model> {
+/*
+ * An application is matched to its telemetry by the service.name its
+ * browser or mobile SDK reports, and named after it unless somebody gives
+ * it a display name of their own (DiscoveredResourceCreate).
+ */
+const RUM_APPLICATION_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>({
+    identityColumn: "appIdentifier",
+    resourceName: "RUM application",
+    identityName: "app name",
+  });
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // Named after its app name when nobody gave it a name.
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    DiscoveredResourceCreate.fillName({
+      createBy,
+      naming: RUM_APPLICATION_NAMING,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * An application that is already there - discovered from its telemetry or
+   * added before - is refused by its app name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: RUM_APPLICATION_NAMING,
+    });
   }
 
   @CaptureSpan()
@@ -496,15 +544,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedApps: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,

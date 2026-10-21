@@ -23,6 +23,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IoTFleetOwnerRuleEngineServiceClass
   implements RuleRunEngine<IoTFleet, IoTFleetOwnerRule>
@@ -117,6 +119,7 @@ class IoTFleetOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     iotFleet: IoTFleet;
     rules: Array<IoTFleetOwnerRule>;
@@ -356,8 +359,7 @@ class IoTFleetOwnerRuleEngineServiceClass
     rule: IoTFleetOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in IoT fleet owner rule ${rule.id}: ${pattern}`,

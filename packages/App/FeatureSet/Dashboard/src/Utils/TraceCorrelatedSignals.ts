@@ -7,6 +7,8 @@ import {
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
+import { pluralize } from "./TraceDetailPresentation";
+import { SpanSubtreeIds } from "./TraceWaterfall";
 
 /*
  * Pure helpers behind the trace <-> other-signal correlation surfaces
@@ -263,6 +265,15 @@ export const buildExceptionsGroupRoute: BuildExceptionsGroupRouteFunction =
     return route;
   };
 
+/*
+ * Most span ids a span's Profile tab asks for: the span and the nearest
+ * spans under it. The server binds them as one ClickHouse query parameter,
+ * which travels in the request URI (http_max_uri_size, 1 MiB by default), so
+ * a span over a huge subtree must not grow it without bound; 1,000 span ids
+ * stay around 25 KB.
+ */
+export const PROFILE_SPAN_ID_LIMIT: number = 1000;
+
 type BuildTraceFlamegraphRequestFunction = (args: {
   traceId: string;
   spanIds?: Array<string> | undefined;
@@ -305,6 +316,34 @@ export const buildTraceFlamegraphRequest: BuildTraceFlamegraphRequestFunction =
     }
 
     return request;
+  };
+
+type DescribeSpanProfileScopeFunction = (args: {
+  sampleCount: number;
+  subtree: SpanSubtreeIds;
+}) => string;
+
+/**
+ * The line above a span's flame graph. Profilers often link a request's
+ * samples to a span under it rather than to the request span itself (OBI
+ * links Node.js CPU time to the "processing" span or to the client call in
+ * flight), so the Profile tab covers the span's subtree and says so.
+ */
+export const describeSpanProfileScope: DescribeSpanProfileScopeFunction =
+  (args: { sampleCount: number; subtree: SpanSubtreeIds }): string => {
+    const samples: string = pluralize(args.sampleCount, "profile sample");
+    const descendantCount: number = args.subtree.descendantCount;
+
+    if (descendantCount === 0) {
+      return `Flame graph built from the ${samples} linked to this span.`;
+    }
+
+    if (args.subtree.isTruncated) {
+      const includedCount: number = args.subtree.spanIds.length - 1;
+      return `Flame graph built from the ${samples} linked to this span and the nearest ${includedCount.toLocaleString()} of the ${descendantCount.toLocaleString()} spans nested under it.`;
+    }
+
+    return `Flame graph built from the ${samples} linked to this span and the ${pluralize(descendantCount, "span")} nested under it.`;
   };
 
 /*

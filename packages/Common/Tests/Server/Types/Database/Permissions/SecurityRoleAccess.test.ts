@@ -10,6 +10,13 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import TableView from "../../../../../Models/DatabaseModels/TableView";
 import Team from "../../../../../Models/DatabaseModels/Team";
 import ThreatIntelFeed from "../../../../../Models/DatabaseModels/ThreatIntelFeed";
+import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseFeed from "../../../../../Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCaseNote from "../../../../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityDetection from "../../../../../Models/DatabaseModels/SecurityDetection";
+import SecurityPlaybook from "../../../../../Models/DatabaseModels/SecurityPlaybook";
+import SecurityPlaybookRun from "../../../../../Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "../../../../../Models/DatabaseModels/SecurityProtectedEntity";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -141,6 +148,13 @@ const SIEM_MODELS: Array<[string, ModelType]> = [
   ["ThreatIntelFeed", ThreatIntelFeed],
   ["SecurityEventConnection", SecurityEventConnection],
   ["SecurityEventConnectionRun", SecurityEventConnectionRun],
+  ["SecurityCase", SecurityCase],
+  ["SecurityCaseFeed", SecurityCaseFeed],
+  ["SecurityCaseNote", SecurityCaseNote],
+  ["SecurityDetection", SecurityDetection],
+  ["SecurityPlaybook", SecurityPlaybook],
+  ["SecurityPlaybookRun", SecurityPlaybookRun],
+  ["SecurityProtectedEntity", SecurityProtectedEntity],
 ];
 
 describe("Security roles reach the SIEM", () => {
@@ -234,6 +248,78 @@ describe("Security roles reach the SIEM", () => {
    * the SIEM; they do not get to repoint it at another source. Google SecOps
    * is one of these connections, so this split is its split too.
    */
+  /*
+   * Working cases is the Member tier's job: opening, assigning, changing and
+   * closing them, writing notes, running playbooks on them and approving
+   * their steps. Deleting a case destroys an investigation trail, and
+   * writing a playbook decides what runs unattended against the project's
+   * connections - both are the Admin tier's.
+   */
+  test("Security Member works cases, notes and playbook runs", () => {
+    for (const modelType of [SecurityCase, SecurityCaseNote]) {
+      expect(can(modelType, securityMember, DatabaseRequestType.Create)).toBe(
+        true,
+      );
+      expect(can(modelType, securityMember, DatabaseRequestType.Update)).toBe(
+        true,
+      );
+    }
+
+    expect(
+      can(SecurityCaseNote, securityMember, DatabaseRequestType.Delete),
+    ).toBe(true);
+    expect(
+      can(SecurityPlaybookRun, securityMember, DatabaseRequestType.Create),
+    ).toBe(true);
+    expect(
+      can(SecurityPlaybookRun, securityMember, DatabaseRequestType.Update),
+    ).toBe(true);
+  });
+
+  test("Security Member cannot delete cases or write playbooks", () => {
+    expect(can(SecurityCase, securityMember, DatabaseRequestType.Delete)).toBe(
+      false,
+    );
+
+    for (const requestType of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+      DatabaseRequestType.Delete,
+    ]) {
+      expect(can(SecurityPlaybook, securityMember, requestType)).toBe(false);
+      // Nor the users and hosts playbooks never contain: that list is a safety control.
+      expect(can(SecurityProtectedEntity, securityMember, requestType)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("Security Admin deletes cases and writes playbooks", () => {
+    expect(can(SecurityCase, securityAdmin, DatabaseRequestType.Delete)).toBe(
+      true,
+    );
+
+    for (const requestType of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+      DatabaseRequestType.Delete,
+    ]) {
+      expect(can(SecurityPlaybook, securityAdmin, requestType)).toBe(true);
+      expect(can(SecurityProtectedEntity, securityAdmin, requestType)).toBe(
+        true,
+      );
+    }
+  });
+
+  // Detections and the case feed are written by OneUptime, never through the API.
+  test("nobody creates detections or feed entries through the API", () => {
+    for (const modelType of [SecurityDetection, SecurityCaseFeed]) {
+      expect(can(modelType, securityAdmin, DatabaseRequestType.Create)).toBe(
+        false,
+      );
+    }
+  });
+
   test("Security Member cannot configure security event connections", () => {
     expect(canRead(SecurityEventConnection, securityMember)).toBe(true);
 

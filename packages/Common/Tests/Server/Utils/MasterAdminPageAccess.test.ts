@@ -1,4 +1,5 @@
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import UserService from "../../../Server/Services/UserService";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
@@ -13,6 +14,7 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -47,6 +49,8 @@ describe("ensureMasterAdminPageAccess", () => {
   let getAccessTokenSpy: jest.SpyInstance<any, any>;
   let decodeSpy: jest.SpyInstance<any, any>;
   let sendErrorSpy: jest.SpyInstance<any, any>;
+  let isUserBlockedSpy: jest.SpyInstance<any, any>;
+  let isUserMasterAdminSpy: jest.SpyInstance<any, any>;
 
   type RunFunction = () => Promise<JSONObject>;
 
@@ -102,6 +106,20 @@ describe("ensureMasterAdminPageAccess", () => {
     ).mockImplementation(() => {
       return undefined as never;
     });
+
+    /*
+     * The session is read as every route reads it, which asks the person's
+     * account: here nobody is blocked, and a session that says master admin
+     * is one whose person still is one, unless a test says otherwise.
+     */
+    isUserBlockedSpy = getJestSpyOn(
+      UserService,
+      "isUserBlocked",
+    ).mockResolvedValue(false);
+    isUserMasterAdminSpy = getJestSpyOn(
+      UserService,
+      "isUserMasterAdmin",
+    ).mockResolvedValue(true);
   });
 
   describe("with no access token (the expired-cookie reload)", () => {
@@ -146,7 +164,10 @@ describe("ensureMasterAdminPageAccess", () => {
       await expect(run()).resolves.toEqual({});
 
       expect(decodeSpy).toHaveBeenCalledTimes(1);
-      expect(decodeSpy).toHaveBeenCalledWith("expired.jwt.token");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "expired.jwt.token",
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(sendErrorSpy).not.toHaveBeenCalled();
       expect(response.status).not.toHaveBeenCalled();
     });
@@ -236,10 +257,107 @@ describe("ensureMasterAdminPageAccess", () => {
 
       await expect(run()).resolves.toEqual({});
 
-      expect(decodeSpy).toHaveBeenCalledWith("valid.jwt.token");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "valid.jwt.token",
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(sendErrorSpy).not.toHaveBeenCalled();
       expect(response.status).not.toHaveBeenCalled();
       expect(response.send).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A session's token says whether its person was a master admin when it
+   * was signed, up to 15 minutes ago; the page is served only while their
+   * account still is one.
+   */
+  describe("with a token of someone whose master admin access was removed", () => {
+    beforeEach(() => {
+      getAccessTokenSpy.mockReturnValue("former.admin.jwt");
+      decodeSpy.mockReturnValue(decodedToken(true) as never);
+      isUserMasterAdminSpy.mockResolvedValue(false);
+    });
+
+    test("refuses the page with the 422 a session that never was one gets", async () => {
+      await expect(run()).resolves.toEqual({});
+
+      expect(sendErrorSpy).toHaveBeenCalledTimes(1);
+
+      const sentError: Exception = (
+        sendErrorSpy.mock.calls[0] as Array<unknown>
+      )[2] as Exception;
+
+      expect(sentError).toBeInstanceOf(NotAuthorizedException);
+      expect(sentError.code).toBe(422);
+      expect(sentError.message).toBe(NOT_A_MASTER_ADMIN_MESSAGE);
+    });
+
+    test("asks the account of the session's own person", async () => {
+      const decoded: JSONWebTokenData = decodedToken(true);
+      decodeSpy.mockReturnValue(decoded as never);
+
+      await run();
+
+      expect(isUserMasterAdminSpy).toHaveBeenCalledTimes(1);
+      expect(isUserMasterAdminSpy).toHaveBeenCalledWith(decoded.userId);
+    });
+
+    /*
+     * The page's renderer logs a throw and renders the page anyway, so a
+     * lookup that fails is sent as the answer, never served past.
+     */
+    test("refuses the page with the error when the account cannot be read", async () => {
+      const failure: Error = new Error("database unavailable");
+      isUserMasterAdminSpy.mockRejectedValue(failure);
+
+      await expect(run()).resolves.toEqual({});
+
+      expect(sendErrorSpy).toHaveBeenCalledTimes(1);
+      expect((sendErrorSpy.mock.calls[0] as Array<unknown>)[2]).toBe(failure);
+      expect(logger.error).toHaveBeenCalledWith(failure, { service: SERVICE });
+    });
+
+    test("refuses the page with the error when whether they are blocked cannot be read", async () => {
+      const failure: Error = new Error("database unavailable");
+      isUserBlockedSpy.mockRejectedValue(failure);
+
+      await expect(run()).resolves.toEqual({});
+
+      expect(sendErrorSpy).toHaveBeenCalledTimes(1);
+      expect((sendErrorSpy.mock.calls[0] as Array<unknown>)[2]).toBe(failure);
+    });
+  });
+
+  /*
+   * A blocked person's session is answered by what it says, as before: the
+   * APIs refuse it with a 401 and the app sends them to the login page.
+   */
+  describe("with a blocked person's token", () => {
+    beforeEach(() => {
+      getAccessTokenSpy.mockReturnValue("blocked.jwt");
+      isUserBlockedSpy.mockResolvedValue(true);
+    });
+
+    test("serves the page to one that says master admin, without asking more", async () => {
+      decodeSpy.mockReturnValue(decodedToken(true) as never);
+
+      await expect(run()).resolves.toEqual({});
+
+      expect(sendErrorSpy).not.toHaveBeenCalled();
+      expect(isUserMasterAdminSpy).not.toHaveBeenCalled();
+    });
+
+    test("refuses one that does not say master admin", async () => {
+      decodeSpy.mockReturnValue(decodedToken(false) as never);
+
+      await run();
+
+      expect(sendErrorSpy).toHaveBeenCalledTimes(1);
+      expect(
+        ((sendErrorSpy.mock.calls[0] as Array<unknown>)[2] as Exception)
+          .message,
+      ).toBe(NOT_A_MASTER_ADMIN_MESSAGE);
     });
   });
 

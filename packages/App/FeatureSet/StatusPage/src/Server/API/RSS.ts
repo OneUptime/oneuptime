@@ -13,6 +13,11 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
+import XML from "Common/Types/XML";
 
 type RSSItem = {
   title: string;
@@ -30,7 +35,14 @@ export const handleRSS: (
 ): Promise<void> => {
   try {
     // Get status page data
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");
@@ -153,22 +165,27 @@ export const handleRSS: (
     // Generate RSS XML
     const feedUrl: string = `${HttpProtocol}${req.get("host")}${req.path}`;
 
+    /*
+     * Every value goes through XML.escape. One "&" in a page title, or a
+     * "]]>" ending a CDATA section early, and feed readers reject the whole
+     * feed. The links carry the request's host and path.
+     */
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>${title} Updates</title>
-<description>${description}</description>
-<link>${baseUrl}</link>
-<atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
+<title>${XML.escape(title)} Updates</title>
+<description>${XML.escape(description)}</description>
+<link>${XML.escape(baseUrl)}</link>
+<atom:link href="${XML.escape(feedUrl)}" rel="self" type="application/rss+xml" />
 `;
 
     items.forEach((item: RSSItem) => {
       rssXml += `
 <item>
-<title><![CDATA[${item.title}]]></title>
-<description><![CDATA[${item.description}]]></description>
-<link>${item.link}</link>
-<guid>${item.link}</guid>
+<title>${XML.escape(item.title)}</title>
+<description>${XML.escape(item.description)}</description>
+<link>${XML.escape(item.link)}</link>
+<guid>${XML.escape(item.link)}</guid>
 <pubDate>${item.pubDate}</pubDate>
 </item>`;
     });

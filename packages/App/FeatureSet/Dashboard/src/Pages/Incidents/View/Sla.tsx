@@ -27,14 +27,22 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import IncidentStateUtil from "../../../Utils/IncidentState";
 import Modal from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
+import { readDisplayText } from "Common/UI/Utils/ModelDisplayName";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface SlaTimerProps {
   deadline: Date | undefined;
@@ -47,6 +55,7 @@ interface SlaTimerProps {
 const SlaTimer: FunctionComponent<SlaTimerProps> = (
   props: SlaTimerProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [currentTime, setCurrentTime] = useState<Date>(
     OneUptimeDate.getCurrentDate(),
   );
@@ -68,7 +77,16 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
   if (!props.deadline) {
     return (
       <div className="text-gray-400 text-sm">
-        <span className="font-medium">{props.label}:</span> Not configured
+        <TranslatedSentence
+          template="{{label}}: Not configured"
+          slots={{
+            label: (
+              <span className="font-medium">
+                {translator.translateText(props.label)}
+              </span>
+            ),
+          }}
+        />
       </div>
     );
   }
@@ -152,7 +170,9 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
   return (
     <div className="mb-4">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-medium text-gray-700">{props.label}</span>
+        <span className="text-sm font-medium text-gray-700">
+          {translator.translateText(props.label)}
+        </span>
         <div className={`text-sm font-mono ${textColor} flex items-center`}>
           {!props.isCompleted && !isOverdue && (
             <Icon
@@ -166,15 +186,23 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
                 icon={isOverdue ? IconProp.Close : IconProp.CheckCircle}
                 className="h-4 w-4 mr-1"
               />
-              {isOverdue ? "Missed" : "Met"}
+              {isOverdue
+                ? translator.translateText("Missed")
+                : translator.translateText("Met")}
             </span>
           ) : isOverdue ? (
             <span className="flex items-center">
               <Icon icon={IconProp.Alert} className="h-4 w-4 mr-1" />
-              Overdue by {getTimeDisplay()}
+              {translator.translateTemplate("Overdue by {{time}}", {
+                time: getTimeDisplay(),
+              })}
             </span>
           ) : (
-            <span>{getTimeDisplay()} remaining</span>
+            <span>
+              {translator.translateTemplate("{{time}} remaining", {
+                time: getTimeDisplay(),
+              })}
+            </span>
           )}
         </div>
       </div>
@@ -190,17 +218,24 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
       {/* Deadline info */}
       <div className="flex justify-between text-xs text-gray-500 mt-1">
         <span>
-          Started: {OneUptimeDate.getDateAsLocalFormattedString(startedAt)}
+          {translator.translateTemplate("Started: {{date}}", {
+            date: OneUptimeDate.getDateAsLocalFormattedString(startedAt),
+          })}
         </span>
         <span>
-          Deadline: {OneUptimeDate.getDateAsLocalFormattedString(deadline)}
+          {translator.translateTemplate("Deadline: {{date}}", {
+            date: OneUptimeDate.getDateAsLocalFormattedString(deadline),
+          })}
         </span>
       </div>
 
       {props.isCompleted && props.completedAt && (
         <div className="text-xs text-gray-500 mt-1">
-          Completed:{" "}
-          {OneUptimeDate.getDateAsLocalFormattedString(props.completedAt)}
+          {translator.translateTemplate("Completed: {{date}}", {
+            date: OneUptimeDate.getDateAsLocalFormattedString(
+              props.completedAt,
+            ),
+          })}
         </div>
       )}
     </div>
@@ -218,6 +253,7 @@ interface NoteReminderTimerProps {
 const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
   props: NoteReminderTimerProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [currentTime, setCurrentTime] = useState<Date>(
     OneUptimeDate.getCurrentDate(),
   );
@@ -239,7 +275,16 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
   if (!props.intervalMinutes) {
     return (
       <div className="text-gray-400 text-sm">
-        <span className="font-medium">{props.label}:</span> Not configured
+        <TranslatedSentence
+          template="{{label}}: Not configured"
+          slots={{
+            label: (
+              <span className="font-medium">
+                {translator.translateText(props.label)}
+              </span>
+            ),
+          }}
+        />
       </div>
     );
   }
@@ -297,23 +342,27 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
       <div className="flex justify-between items-center mb-1">
         <span className="text-sm font-medium text-gray-700">
           <Icon icon={IconProp.TextFile} className="h-4 w-4 inline mr-1" />
-          {props.label}
+          {translator.translateText(props.label)}
         </span>
         <div className={`text-sm font-mono ${textColor} flex items-center`}>
           {props.isIncidentResolved ? (
-            <span className="text-gray-500">Incident resolved</span>
+            <span className="text-gray-500">
+              {translator.translateText("Incident resolved")}
+            </span>
           ) : isOverdue ? (
             <span className="flex items-center">
               <Icon
                 icon={IconProp.Bell}
                 className="h-4 w-4 mr-1 animate-bounce"
               />
-              Note due now!
+              {translator.translateText("Note due now!")}
             </span>
           ) : (
             <span className="flex items-center">
               <Icon icon={IconProp.Clock} className="h-4 w-4 mr-1" />
-              {getTimeDisplay()} until next
+              {translator.translateTemplate("{{time}} until next", {
+                time: getTimeDisplay(),
+              })}
             </span>
           )}
         </div>
@@ -328,11 +377,18 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
       </div>
 
       <div className="flex justify-between text-xs text-gray-500 mt-1">
-        <span>Interval: Every {props.intervalMinutes} min</span>
+        <span>
+          {translator.translateTemplate("Interval: Every {{minutes}} min", {
+            minutes: props.intervalMinutes,
+          })}
+        </span>
         {props.lastSentAt && (
           <span>
-            Last:{" "}
-            {OneUptimeDate.getDateAsLocalFormattedString(props.lastSentAt)}
+            {translator.translateTemplate("Last: {{date}}", {
+              date: OneUptimeDate.getDateAsLocalFormattedString(
+                props.lastSentAt,
+              ),
+            })}
           </span>
         )}
       </div>
@@ -350,6 +406,7 @@ interface SlaCardProps {
 const SlaCard: FunctionComponent<SlaCardProps> = (
   props: SlaCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { sla, rule, onRemove, isRemoving } = props;
 
   const getStatusColor: (status: IncidentSlaStatus | undefined) => Color = (
@@ -396,7 +453,7 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
-            {rule?.name || "SLA Rule"}
+            {rule?.name || translator.translateText("SLA Rule")}
           </h3>
           {rule?.description && (
             <p className="text-sm text-gray-500 mt-1">{rule.description}</p>
@@ -426,7 +483,7 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
       <div className="space-y-2">
         <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
           <Icon icon={IconProp.Clock} className="h-4 w-4 mr-2" />
-          SLA Deadlines
+          {translator.translateText("SLA Deadlines")}
         </h4>
 
         <SlaTimer
@@ -456,7 +513,7 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
         <div className="mt-6 pt-4 border-t border-gray-200">
           <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
             <Icon icon={IconProp.TextFile} className="h-4 w-4 mr-2" />
-            Note Reminders
+            {translator.translateText("Note Reminders")}
           </h4>
 
           <NoteReminderTimer
@@ -481,36 +538,44 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
       <div className="mt-6 pt-4 border-t border-gray-200">
         <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
           <Icon icon={IconProp.Time} className="h-4 w-4 mr-2" />
-          Timeline
+          {translator.translateText("Timeline")}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">SLA Started:</span>
+            <span className="text-gray-500">
+              {translator.translateText("SLA Started:")}
+            </span>
             <div className="font-medium">
               {sla.slaStartedAt
                 ? OneUptimeDate.getDateAsLocalFormattedString(sla.slaStartedAt)
-                : "N/A"}
+                : translator.translateText("N/A")}
             </div>
           </div>
           <div>
-            <span className="text-gray-500">Responded At:</span>
+            <span className="text-gray-500">
+              {translator.translateText("Responded At:")}
+            </span>
             <div className="font-medium">
               {sla.respondedAt
                 ? OneUptimeDate.getDateAsLocalFormattedString(sla.respondedAt)
-                : "Not yet"}
+                : translator.translateText("Not yet")}
             </div>
           </div>
           <div>
-            <span className="text-gray-500">Resolved At:</span>
+            <span className="text-gray-500">
+              {translator.translateText("Resolved At:")}
+            </span>
             <div className="font-medium">
               {sla.resolvedAt
                 ? OneUptimeDate.getDateAsLocalFormattedString(sla.resolvedAt)
-                : "Not yet"}
+                : translator.translateText("Not yet")}
             </div>
           </div>
           {rule?.atRiskThresholdInPercentage && (
             <div>
-              <span className="text-gray-500">At-Risk Threshold:</span>
+              <span className="text-gray-500">
+                {translator.translateText("At-Risk Threshold:")}
+              </span>
               <div className="font-medium">
                 {rule.atRiskThresholdInPercentage}%
               </div>
@@ -522,9 +587,18 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
   );
 };
 
+// The Remove SLA Rule dialog, naming the rule.
+export const REMOVE_SLA_RULE_TEMPLATE: string =
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.";
+
+// The same, for a rule whose name could not be read.
+export const REMOVE_UNNAMED_SLA_RULE_SENTENCE: string =
+  "Are you sure you want to remove this SLA rule from the incident? This will delete all SLA tracking data for this rule.";
+
 const IncidentViewSla: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
@@ -724,10 +798,10 @@ const IncidentViewSla: FunctionComponent<
           select: {
             _id: true,
             startsAt: true,
+            incidentStateId: true,
             incidentState: {
               _id: true,
               isCreatedState: true,
-              isResolvedState: true,
             },
           },
           sort: {
@@ -737,27 +811,43 @@ const IncidentViewSla: FunctionComponent<
 
         // Find when the incident was first responded to (moved out of created state)
         let respondedAt: Date | undefined;
-        let resolvedAt: Date | undefined;
 
         for (const timeline of timelineResponse.data) {
           const state: {
             isCreatedState?: boolean;
-            isResolvedState?: boolean;
           } = timeline.incidentState as {
             isCreatedState?: boolean;
-            isResolvedState?: boolean;
           };
 
           // First non-created state is when the incident was responded to
           if (!respondedAt && !state?.isCreatedState && timeline.startsAt) {
             respondedAt = timeline.startsAt;
           }
-
-          // Find when the incident was resolved
-          if (state?.isResolvedState && timeline.startsAt) {
-            resolvedAt = timeline.startsAt;
-          }
         }
+
+        /*
+         * When the incident was last resolved: its latest move into a state
+         * that counts as resolved - the project's resolved state, or one
+         * placed after it (Common/Utils/ResolvedState).
+         */
+        const resolutionRows: Array<{ startsAt?: Date | undefined }> =
+          ResolvedStateUtil.getResolutionRows({
+            list: StateListType.IncidentState,
+            states: await IncidentStateUtil.getIncidentStates(
+              new ObjectID(projectIdString),
+            ),
+            timeline: timelineResponse.data.map(
+              (timeline: IncidentStateTimeline) => {
+                return {
+                  stateId: timeline.incidentStateId,
+                  startsAt: timeline.startsAt,
+                };
+              },
+            ),
+          });
+
+        const resolvedAt: Date | undefined =
+          resolutionRows[resolutionRows.length - 1]?.startsAt || undefined;
 
         // Calculate deadlines based on rule configuration
         const slaStartTime: Date =
@@ -903,6 +993,26 @@ const IncidentViewSla: FunctionComponent<
     fetchAvailableRules();
   }, [fetchAvailableRules]);
 
+  /*
+   * Which rule the Remove dialog is about. An incident can carry several SLA
+   * rules - response, resolution, an escalation - and removing one throws away
+   * its tracking data, so the dialog names it.
+   */
+  const getRuleNameToRemove: () => string = (): string => {
+    const sla: IncidentSla | undefined = slaRecords.find(
+      (record: IncidentSla) => {
+        return record._id?.toString() === slaToRemove?.toString();
+      },
+    );
+
+    const rule: IncidentSlaRule | undefined =
+      (sla?.incidentSlaRuleId
+        ? slaRules.get(sla.incidentSlaRuleId.toString())
+        : undefined) || (sla?.incidentSlaRule as IncidentSlaRule | undefined);
+
+    return readDisplayText(rule?.name);
+  };
+
   const openRemoveModal: (slaId: ObjectID) => void = useCallback(
     (slaId: ObjectID): void => {
       setSlaToRemove(slaId);
@@ -957,12 +1067,12 @@ const IncidentViewSla: FunctionComponent<
               className="h-12 w-12 text-gray-400 mx-auto mb-4"
             />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No SLA Rules Applied
+              {translator.translateText("No SLA Rules Applied")}
             </h3>
             <p className="text-gray-500 max-w-md mx-auto mb-4">
-              No SLA rules matched this incident. You can manually add an SLA
-              rule or configure SLA rules in Settings to automatically track
-              response and resolution times.
+              {translator.translateText(
+                "No SLA rules matched this incident. You can manually add an SLA rule or configure SLA rules in Settings to automatically track response and resolution times.",
+              )}
             </p>
             <Button
               title="Add SLA Rule"
@@ -993,20 +1103,21 @@ const IncidentViewSla: FunctionComponent<
                     className="h-6 w-6 animate-spin mx-auto"
                   />
                   <p className="text-gray-500 mt-2">
-                    Loading available rules...
+                    {translator.translateText("Loading available rules...")}
                   </p>
                 </div>
               ) : availableRules.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-gray-500">
-                    No SLA rules available. All rules have already been applied
-                    to this incident, or no rules are configured.
+                    {translator.translateText(
+                      "No SLA rules available. All rules have already been applied to this incident, or no rules are configured.",
+                    )}
                   </p>
                 </div>
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select SLA Rule
+                    {translator.translateText("Select SLA Rule")}
                   </label>
                   <Dropdown
                     options={ruleOptions}
@@ -1085,19 +1196,22 @@ const IncidentViewSla: FunctionComponent<
                   icon={IconProp.Spinner}
                   className="h-6 w-6 animate-spin mx-auto"
                 />
-                <p className="text-gray-500 mt-2">Loading available rules...</p>
+                <p className="text-gray-500 mt-2">
+                  {translator.translateText("Loading available rules...")}
+                </p>
               </div>
             ) : availableRules.length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-gray-500">
-                  No SLA rules available. All rules have already been applied to
-                  this incident, or no rules are configured.
+                  {translator.translateText(
+                    "No SLA rules available. All rules have already been applied to this incident, or no rules are configured.",
+                  )}
                 </p>
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select SLA Rule
+                  {translator.translateText("Select SLA Rule")}
                 </label>
                 <Dropdown
                   options={ruleOptions}
@@ -1118,7 +1232,18 @@ const IncidentViewSla: FunctionComponent<
       {showRemoveModal && (
         <ConfirmModal
           title="Remove SLA Rule"
-          description="Are you sure you want to remove this SLA rule from the incident? This will delete all SLA tracking data for this rule."
+          description={
+            getRuleNameToRemove() ? (
+              <span data-testid="remove-sla-rule-description">
+                <NamedSentence
+                  template={REMOVE_SLA_RULE_TEMPLATE}
+                  name={getRuleNameToRemove()}
+                />
+              </span>
+            ) : (
+              REMOVE_UNNAMED_SLA_RULE_SENTENCE
+            )
+          }
           onClose={() => {
             setShowRemoveModal(false);
             setSlaToRemove(null);

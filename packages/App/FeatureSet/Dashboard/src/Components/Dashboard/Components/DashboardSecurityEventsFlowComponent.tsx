@@ -36,6 +36,8 @@ import {
   getSecurityEventSeverityColor,
   resolveSecurityEventsFlowMaxEvents,
 } from "./SecurityEventsWidgetData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSecurityEventsFlowComponent;
@@ -94,6 +96,7 @@ const renderSankeyNode: RenderSankeyNodeFunction = (
 const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [flowRecords, setFlowRecords] = useState<
     Array<SecurityEventFlowRecord>
   >([]);
@@ -227,7 +230,9 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
         {!isLoading && error && <ErrorMessage message={error} />}
         {!isLoading && !error && flowData.links.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            No security events for the selected time range and filters
+            {translator.translateText(
+              "No security events for the selected time range and filters",
+            )}
           </div>
         )}
         {!error && flowData.links.length > 0 && (

@@ -1,324 +1,288 @@
-# Indgående opkaldspolitik (Twilio-integration)
+# Politik for indgående opkald
 
-Indgående opkaldspolitikker giver eksterne opkaldere mulighed for at nå dine vagtingeniører ved at ringe til et dedikeret telefonnummer. Når nogen ringer, dirigerer OneUptime opkaldet gennem dine konfigurerede eskaleringsregler, indtil en ingeniør svarer.
+En politik for indgående opkald giver dit team et telefonnummer, der når den, der har vagt. Når nogen ringer til det, ringer OneUptime til personerne i politikkens eskaleringsregler, én efter én, indtil nogen svarer, og stiller opkalderen igennem. Numrene og opkaldene kører på din egen Twilio-konto.
 
-## Sådan fungerer det
-
-```mermaid
-flowchart TD
-    A[Opkalder ringer<br/>Indgående opkaldsnummer] --> B[Twilio modtager opkald]
-    B --> C[Twilio sender webhook<br/>til OneUptime]
-    C --> D[OneUptime afspiller<br/>hilsenbesked]
-    D --> E[Indlæs eskaleringsregler]
-    E --> F{Regel 1:<br/>Prøv vagthavende bruger}
-    F -->|Intet svar| G{Regel 2:<br/>Prøv reserveteam}
-    F -->|Besvaret| H[Forbind opkalder<br/>til ingeniør]
-    G -->|Intet svar| I{Regel 3:<br/>Prøv leder}
-    G -->|Besvaret| H
-    I -->|Intet svar| J[Afspil besked om<br/>intet svar og læg på]
-    I -->|Besvaret| H
-    H --> K[Opkald forbundet]
-    K --> L[Opkald slutter]
-    L --> M[Log opkaldsdetaljer]
+```mermaid title="Fra et telefonopkald til den vagthavende ingeniør"
+flowchart TB
+    caller["Opkalderen ringer til politikkens nummer"] --> twilio["Twilio modtager opkaldet"]
+    twilio --> greeting["OneUptime afspiller velkomsten"]
+    greeting --> ring["Ring til næste regels person"]
+    ring --> answered{"Besvaret<br/>i tide?"}
+    answered -->|"Ja"| connected["Opkalderen stilles igennem"]
+    answered -->|"Nej"| more{"En regel mere?"}
+    more -->|"Ja"| ring
+    more -->|"Nej"| repeat{"Gentage politikken?"}
+    repeat -->|"Ja"| ring
+    repeat -->|"Nej"| missed["Besked ved intet svar,<br/>derefter læg på"]
 ```
 
-## Opkaldsdirigieringsflow
+:::cards
+- [Opsæt en politik](#opsæt-en-politik): Fra din Twilio-konto til et testopkald, i syv trin.
+- [Sådan routes et opkald](#sådan-routes-et-opkald): Hvem der ringes til, hvor længe, og hvad opkalderen hører.
+- [Ubesvarede opkald](#ubesvarede-opkald): Hvem der får besked, og hvordan du reagerer på dem i et workflow.
+- [Fejlfinding](#fejlfinding): Opkald, der aldrig kommer frem eller aldrig når en ingeniør.
+:::
 
-```mermaid
+## Før du begynder
+
+| Du skal bruge | Hvorfor |
+| --- | --- |
+| En Twilio-konto med dens Account SID og Auth Token | Politikkens numre og opkald kører på den, og Twilio fakturerer dem til den. |
+| Planen **Growth** på OneUptime Cloud | Et projekt skal have den for at få sin egen Twilio-konfiguration. |
+| En OneUptime-server, som Twilio kan nå, hvis du selv hoster den | Twilio sender hvert opkald til `https://<your host>/notification/incoming-call/voice` og udfaldet af hver opringning til `https://<your host>/notification/incoming-call/dial-status/...`. |
+| **SMS** slået til i projektet | Hver ingeniørs nummer bekræftes med en kode, der sendes via SMS. |
+| Et bekræftet nummer for hver ingeniør | En regel ringer kun til personer, der har tilføjet og bekræftet et nummer til indgående opkald i projektet. |
+
+## Opsæt en politik
+
+:::steps
+### Tilføj din Twilio-konto
+
+Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger**. Klik i kortet **Twilio-konfiguration** på **Opret Twilio-konfiguration**, og udfyld formularen:
+
+- **Navn** og **Beskrivelse**: hvad kontoen bruges til, fx "Supportlinje".
+- **Twilio Account SID**: fra Twilio Console. Den starter med `AC`.
+- **Twilio Auth Token**: fra Twilio Console.
+- **Twilio primært telefonnummer**: et nummer på den konto, til de SMS'er og opkald, den sender. Under **Flere felter**, valgfrit: numre til modtagere i andre lande og numre til SMS, når kontoens numre kun kan foretage opkald (se [Separate numre til opkald og SMS](/docs/self-hosted/twilio-integration#separate-numre-til-opkald-og-sms)).
+- **Indstil som projektstandard**: slået til for projektets første Twilio-konfiguration, så SMS'er og opkald til projektets medlemmer også går gennem denne konto. Slå det fra, hvis kontoen kun er til indgående opkald.
+
+### Opret politikken
+
+Gå til **Vagtordning** > **Indgående opkaldspolitikker**, og klik på **Opret Indgående opkaldspolitik**. Giv den et **Navn**, fx "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfri, under **Flere felter**. Den nye politik åbner på sin **Oversigt**.
+
+### Vælg Twilio-kontoen
+
+Politikkens **Oversigt** viser et kort **Opsætning** med tre nummererede trin. Klik i det første på **Vælg**, vælg kontoen under **Twilio-konfiguration**, og klik på **Gem**.
+
+### Tilføj et telefonnummer
+
+Klik i det andet trin på **Add Phone Number**. Vælg **Use Existing Phone Number** for at tage et nummer med, som din Twilio-konto allerede har, eller **Reserve New Phone Number** for at få et nyt. OneUptime peger nummeret på sig selv, så der er intet at sætte op i Twilio. Se [Telefonnumre](#telefonnumre).
+
+### Tilføj eskaleringsregler
+
+Klik i det tredje trin på **Administrer regler**. Tilføj en regel for hver vagtplan eller person, der skal ringes til, i den rækkefølge, der skal ringes. Se [Eskaleringsregler](#eskaleringsregler).
+
+### Bekræft hver ingeniørs nummer
+
+Alle, som en regel kan ringe til, tilføjer og bekræfter deres eget nummer til indgående opkald. Se [Ingeniørernes telefonnumre](#ingeniørernes-telefonnumre).
+
+### Ring til nummeret
+
+Når alle tre trin er færdige, bliver kortet til **Phone Numbers & Twilio Configuration**. Ring til nummeret fra en hvilken som helst telefon, og åbn derefter politikkens **Opkaldslogs** for at se, hvem der blev ringet til.
+:::
+
+## Sådan routes et opkald
+
+1. Twilio sender opkaldet til OneUptime, som læser politikkens **Velkomstbesked** op.
+2. OneUptime ringer til den person, den første eskaleringsregel nævner: den person, eller den, der har vagt i reglens vagtplan i det øjeblik, brugeroverrides medregnet. Personens telefon viser politikkens nummer som opkalder.
+3. Svarer personen inden for reglens **Ringetid**, stilles opkalderen igennem, og opkaldsloggen registrerer, hvem der svarede.
+4. Hvis ikke, hører opkalderen "Connecting you to the next available engineer.", og der ringes til næste regels person.
+5. Efter den sidste regel bestemmer politikkens **Gentagelsespolitik**: **Ring igen fra den første regel** ringer hver regel op igen, så mange gange mere, som den siger, og **Afslut opkaldet** gør ikke. Derefter hører opkalderen **Besked ved intet svar**, og opkaldet slutter.
+
+```mermaid title="Forespørgslerne bag ét opkald"
 sequenceDiagram
-    participant Opkalder
+    participant Caller as Opkalder
     participant Twilio
     participant OneUptime
-    participant VagtIngeniør
-
-    Opkalder->>Twilio: Ringer til indgående opkaldsnummer
-    Twilio->>OneUptime: POST /incoming-call/voice
-    OneUptime->>Twilio: TwiML: Afspil hilsen
-    Twilio->>Opkalder: "Vent venligst mens vi forbinder dig..."
-
-    loop Eskaleringsregler
-        OneUptime->>OneUptime: Hent næste eskaleringsregel
-        OneUptime->>Twilio: TwiML: Ring til vagthavende bruger
-        Twilio->>VagtIngeniør: Telefonen ringer
-        alt Ingeniør svarer
-            VagtIngeniør->>Twilio: Tager telefonen
-            Twilio->>OneUptime: Opkaldsstatus: gennemført
-            Twilio->>Opkalder: Forbind til ingeniør
-            Note over Opkalder,VagtIngeniør: Opkald i gang
-        else Intet svar (timeout)
-            Twilio->>OneUptime: Opkaldsstatus: intet svar
-            OneUptime->>OneUptime: Prøv næste regel
-        end
-    end
-
-    alt Alle regler udtømt
-        OneUptime->>Twilio: TwiML: Afspil besked om intet svar
-        Twilio->>Opkalder: "Ingen er tilgængelig..."
-        Twilio->>Opkalder: Læg på
-    end
+    participant Engineer as Ingeniør
+    Caller->>Twilio: Ringer til<br/>politikkens<br/>nummer
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Velkomst,<br/>ring derefter<br/>til første<br/>regels person
+    Twilio->>Engineer: Ringer i<br/>reglens ringetid
+    Note over Twilio,Engineer: Ingen svarer<br/>i tide
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring til næste<br/>regels person
+    Twilio->>Engineer: Ringer til<br/>næste person
+    Engineer-->>Twilio: Svarer
+    Twilio-->>Caller: Stiller<br/>opkalderen<br/>igennem
 ```
 
-## Forudsætninger
+En regel springes over, uden at der ringes til nogen, når der lige nu ikke er nogen at ringe til for den: dens vagtplan har ingen på vagt, personen har intet bekræftet nummer til indgående opkald i dette projekt, eller personen er ikke længere medlem af projektet. Når ingen regel har nogen at ringe til, hører opkalderen **Besked ved ingen tilgængelige**. Med **Besvar opkald** slået fra besvarer en politik hvert opkald med "Sorry, this service is currently disabled." og lægger på.
 
-- En Twilio-konto – Opret en på [https://www.twilio.com](https://www.twilio.com)
-- Dit Twilio-konto-SID og Auth Token
-- Adgang til din OneUptime selvhostede instans
+OneUptime kontrollerer Twilios signatur på hver forespørgsel med Twilio-konfigurationens Auth Token og afviser en forespørgsel, den ikke kan verificere.
 
-## Oversigt
+> [!TIP]
+> Gem politikkens nummer som en kontakt på din telefon, fx "Supportlinje", så du genkender et viderestillet opkald, når det ringer.
 
-Funktionen Indgående opkaldspolitik fungerer ved at:
+## Eskaleringsregler
 
-1. Modtage indgående opkald på et Twilio-telefonnummer
-2. Afspille en tilpasselig hilsenbesked
-3. Dirigere opkaldet gennem eskaleringsregler (teams, planer eller brugere)
-4. Forbinde opkalderen til den første tilgængelige vagthavende ingeniør
-5. Eskalere til den næste regel, hvis ingen svarer
+Eskaleringsregler bestemmer, hvem der ringes til, når nogen ringer til politikkens nummer, oppefra og ned i listen. Åbn politikken, vælg **Eskaleringsregler** i dens sidemenu, og klik på **Tilføj eskaleringsregel**. En regel er ét kort trin:
 
-Da du selvhoster OneUptime, skal du konfigurere din egen Twilio-konto. Dette giver dig fuld kontrol over dine telefonnumre og fakturering.
+- **Hvem der skal ringes til**: en vagtplan eller én person. En vagtplan ringer til den, der har vagt i den, når opkaldet kommer ind. Personer er medlemmerne af dit projekt.
+- **Ringetid (i sekunder)**: hvor længe personens telefon ringer, før opkaldet går videre til næste regel. Den starter på 20 sekunder, og Twilio accepterer 5 til 600.
+- **Navn** og **Beskrivelse** er valgfrie, under **Flere felter**. En regel uden navn står i listen efter sin plads: **Level 1**, **Level 2**.
 
-## Trin 1: Opret en Twilio-konto
+Reglerne kaldes oppefra og ned i listen, og en ny regel tilføjes til sidst. For at ændre rækkefølgen trækker du en regel i håndtaget øverst til venstre. Med tastaturet sætter du fokus på håndtaget, trykker på mellemrumstasten, flytter det med piletasterne og trykker på mellemrumstasten igen.
 
-1. Gå til [https://www.twilio.com](https://www.twilio.com) og opret en konto
-2. Fuldfør verifikationsprocessen
-3. Notér dit **Konto-SID** og **Auth Token** fra Twilio Console-dashboardet
+> [!WARNING]
+> **Pas på telefonsvareren**: hold **Ringetid** kortere end den tid, personens telefon er om at sende et ubesvaret opkald til telefonsvareren. Svarer telefonsvareren først, forbindes opkalderen til den, og opkaldet går ikke videre til næste regel. Twilio lægger et par sekunder af sine egne til hver ringning. Derfor starter en ny regel på 20 sekunder. Regler, der blev tilføjet, da standarden var 30 sekunder, beholder deres 30: ender deres opkald på telefonsvareren, så sænk **Ringetid** på de regler.
 
-## Trin 2: Konfigurer opkalds-/SMS-konfiguration i OneUptime
+For eksempel tre regler, der prøver to rotationer og derefter en leder:
 
-1. Log ind på dit OneUptime-dashboard
-2. Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger**
-3. Klik på **Opret brugerdefineret opkalds-/SMS-konfiguration**
-4. Udfyld følgende felter:
-   - **Navn**: Et brugervenligt navn (f.eks. "Produktions-Twilio-konfiguration")
-   - **Beskrivelse**: Valgfri beskrivelse
-   - **Twilio Account SID**: Dit Twilio-konto-SID (starter med `AC`)
-   - **Twilio Auth Token**: Dit Twilio Auth Token
-   - **Twilio primært telefonnummer**: Et telefonnummer fra din Twilio-konto til udgående opkald
-5. Klik på **Gem**
+| Niveau | Hvem der skal ringes til | Ringetid |
+| --- | --- | --- |
+| Level 1 | Primær vagtplan | 20 sekunder |
+| Level 2 | Sekundær vagtplan | 20 sekunder |
+| Level 3 | Teknisk leder (én person) | 20 sekunder |
 
-## Trin 3: Opret en indgående opkaldspolitik
+## Telefonnumre
 
-1. Gå til **Vagtordning** > **Indgående opkaldspolitikker**
-2. Klik på **Opret indgående opkaldspolitik**
-3. Udfyld følgende felter:
-   - **Navn**: Et brugervenligt navn (f.eks. "Support-hotline")
-   - **Beskrivelse**: Valgfri beskrivelse
-4. Klik på **Gem**
+En politik kan have flere numre, og hvert af dem ringer til de samme regler. Hvert nummer hører til én politik. Tilføj dem med **Add Phone Number** på politikkens **Oversigt**:
 
-## Trin 4: Tilknyt Twilio-konfiguration til politik
+:::tabs
+@tab Brug et nummer, du har
+1. Klik på **Add Phone Number** og derefter på **Use Existing Phone Number**. OneUptime viser numrene på politikkens Twilio-konto.
+2. Klik på **Vælg** ud for nummeret og derefter på **Tildel nummer**.
 
-1. Åbn din nyoprettede indgående opkaldspolitik
-2. Find **Trin 2: Tilknyt Twilio-konfiguration** i kortet **Telefonnummerdirigering**
-3. Klik på **Vælg Twilio-konfiguration** og vælg den konfiguration, du oprettede i trin 2
-4. Gem valget
+Et nummer, der allerede sender sine opkald et andet sted hen, siger "Currently has a webhook configured". At tildele det sender dets opkald til OneUptime i stedet.
+@tab Reservér et nyt nummer
+1. Klik på **Add Phone Number**, derefter på **Reserve New Phone Number** og **Søg efter numre**.
+2. Vælg et **Land**. Udfyld eventuelt **Områdekode (valgfrit)**, fx 415, eller **Indeholder (valgfrit)** med cifre, nummeret skal indeholde. Klik på **Søg**: op til 10 lokale numre vises.
+3. Klik på **Reserver** ud for et nummer, og bekræft med **Reserver**. Twilio opkræver nummeret på din Twilio-konto.
+:::
 
-## Trin 5: Konfigurer et telefonnummer
+OneUptime sætter nummerets voice-webhook til `https://<your host>/notification/incoming-call/voice`, bygget ud fra `HOST` og `HTTP_PROTOCOL` på en selvhostet installation. For at flytte en politik til en anden Twilio-konto skal du først frigive dens numre: kontoen kan kun ændres, mens politikken ikke har nogen.
 
-Du har to muligheder for at opsætte et telefonnummer:
+For at frigive et nummer skal du klikke på **Frigiv** ud for det og bekræfte med **Frigiv nummer**.
 
-### Mulighed A: Brug et eksisterende Twilio-telefonnummer
+> [!CAUTION]
+> At frigive et nummer giver det tilbage til Twilio, også et nummer, du tog med via **Use Existing Phone Number**, og du får det måske ikke igen. At slette en politik, eller den Twilio-konfiguration, den bruger, frigiver også dens numre.
 
-Hvis du allerede har telefonnumre i din Twilio-konto:
+## Ingeniørernes telefonnumre
 
-1. Klik på **Brug eksisterende nummer** i kortet **Telefonnummer**
-2. OneUptime henter alle telefonnumre fra din Twilio-konto
-3. Vælg det telefonnummer, du vil bruge
-4. Klik på **Brug dette** for at tildele det til politikken
+En regel ringer til en person på det nummer, personen har bekræftet til indgående opkald i dette projekt, og springer alle over, der ikke har et. Hver person tilføjer sit eget:
 
-> **Bemærk**: Hvis telefonnummeret allerede har en webhook konfigureret, opdateres den til at pege på OneUptime.
+:::steps
+1. Åbn **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre**. **Indgående opkaldspolitik** er et afsnit i sidemenuen, der starter foldet sammen.
+2. Klik i kortet **Telefonnumre til indgående opkaldsrouting** på **Tilføj Telefonnummer til indgående opkaldsrouting**, og indtast nummeret med landekode, fx `+15551234567`.
+3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send a new code** sender en ny.
+:::
 
-### Mulighed B: Køb et nyt telefonnummer
+Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
-For at købe et nyt telefonnummer direkte fra OneUptime:
+Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Billing Admin** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 
-1. Klik på **Køb nyt nummer** i kortet **Telefonnummer**
-2. Vælg et **Land** fra rullelisten
-3. Angiv valgfrit et **Retningsnummer** (f.eks. 45 for Danmark)
-4. Angiv valgfrit cifre, som nummeret skal **Indeholde** (f.eks. 555)
-5. Klik på **Søg** for at finde tilgængelige numre
-6. Vælg et telefonnummer fra resultaterne
-7. Klik på **Køb** for at købe nummeret
+## Talebeskeder og politikindstillinger
 
-Telefonnummeret købes fra din Twilio-konto, og webhook'en **konfigureres automatisk** – ingen manuel opsætning er nødvendig!
+Åbn politikken, og vælg **Indstillinger** under **Avanceret** i dens sidemenu. Siden har tre kort:
 
-```mermaid
-flowchart LR
-    A[Opret politik] --> B[Tilknyt Twilio-konfiguration]
-    B --> C{Vælg telefonnummer<br/>mulighed}
-    C -->|Eksisterende| D[Vælg fra<br/>Twilio-konto]
-    C -->|Ny| E[Søg og køb<br/>nyt nummer]
-    D --> F[Webhook konfigureret automatisk]
-    E --> F
-    F --> G[Tilføj eskaleringsregler]
-    G --> H[Politik klar!]
-```
+- **Besvar opkald**: **Besvar opkald til denne politiks numre** gemmes, så snart du slår den om. Slået fra hører opkaldere, at linjen ikke er tilgængelig, og ingen bliver ringet op; dens numre, regler og opkaldslogs bevares. Før den slås fra, spørger siden først, med **Stop med at besvare opkald**. Så længe den er slået fra, siger politikkens **Oversigt** det, med **Besvar opkald igen** til at slå den til igen.
+- **Gentagelsespolitik**: hvad der sker, når ingen svarer efter den sidste regel. **Rediger** spørger **Hvis ingen svarer efter den sidste regel**: **Afslut opkaldet**, eller **Ring igen fra den første regel** og **Hvor mange gange mere?**.
+- **Talebeskeder**: hvad opkaldere hører. **Rediger beskeder** ændrer dem.
 
-## Trin 6: Konfigurer eskaleringsregler
+| Indstilling | Hvad den gør | For en ny politik |
+| --- | --- | --- |
+| **Velkomstbesked** | Læses op, når nogen ringer, før nogen ringes op. | "Please wait while we connect you to the on-call engineer." |
+| **Besked ved intet svar** | Læses op, når hver regel har ringet, og ingen har svaret, før opkaldet slutter. | "No one is available. Please try again later." |
+| **Besked ved ingen tilgængelige** | Læses op, når ingen kan ringes op, fx når ingen har vagt. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Besvar opkald til denne politiks numre** | Slået fra hører hver opkalder "Sorry, this service is currently disabled.", og opkaldet slutter. | Til |
+| **Hvis ingen svarer efter den sidste regel** | **Afslut opkaldet**, eller **Ring igen fra den første regel**. | **Afslut opkaldet** |
 
-Eskaleringsregler bestemmer, hvordan opkald dirigeres:
+Twilio læser beskederne op med en tekst-til-tale-stemme, så skriv dem, som du vil have dem til at lyde. En besked, der er efterladt tom, læses op med OneUptimes egne ord, som kortet viser i stedet.
 
-1. Åbn din indgående opkaldspolitik
-2. Gå til fanen **Eskaleringsregler**
-3. Klik på **Tilføj eskaleringsregel**
-4. Konfigurer reglen:
-   - **Rækkefølge**: Prioritetsrækkefølgen (lavere tal prøves først)
-   - **Eskalér efter (sekunder)**: Tid at vente, inden der eskaleres
-   - **Vagttidsplan**: Vælg en plan for at dirigere til den, der er på vagt
-   - **Teams**: Vælg specifikke teams
-   - **Brugere**: Vælg specifikke brugere
-5. Tilføj yderligere eskaleringsregler efter behov
+## Opkaldslogs
 
-### Eksempel på eskaleringsregel
+Hvert opkald står på politikkens side **Opkaldslogs** under **Protokoller** i dens sidemenu: **Opkalder**, **Number Called**, dets **Status**, hvem der besvarede det (**Besvaret af**), **Varighed**, og hvornår det startede (**Startet den**). Klik på **View Timeline** ved et opkald for at se dets **Opkaldstidslinje**: hver person, der blev ringet til, på hvilket nummer, og hvordan hvert forsøg endte.
 
-```mermaid
-flowchart TD
-    subgraph "Eskaleringskæde"
-        A[Regel 1: Primær vagthavende<br/>Vent 30 sekunder] --> B[Regel 2: Sekundær vagthavende<br/>Vent 30 sekunder]
-        B --> C[Regel 3: Ingeniørleder<br/>Vent 30 sekunder]
-        C --> D[Besked om intet svar]
-    end
-```
+| Status | Hvad der skete |
+| --- | --- |
+| **Initiated**, **Escalated** | Opkaldet er stadig i gang: det kom ind, og en telefon ringer, eller det gik videre til en senere regel. |
+| **Fuldført** | Nogen svarede, og opkalderen blev stillet igennem. |
+| **Intet svar** | Alle eskaleringsregler blev prøvet, og ingen svarede. Opkalderen hørte din **Besked ved intet svar**. |
+| **Caller Hung Up** | Opkalderen lagde på, mens en ingeniørs telefon ringede. |
+| **Mislykkedes** | Der kunne ikke ringes til nogen: ingen eskaleringsregel havde en bruger på vagt med et bekræftet nummer til indgående opkald (opkalderen hørte din **Besked ved ingen tilgængelige**), eller **Besvar opkald** er slået fra. |
 
-| Rækkefølge | Eskaler efter | Mål                   |
-| ---------- | ------------- | --------------------- |
-| 1          | 30 sekunder   | Primær vagtplan       |
-| 2          | 30 sekunder   | Sekundær vagtplan     |
-| 3          | 30 sekunder   | Ingeniørteamets leder |
+## Ubesvarede opkald
 
-## Trin 7: Konfigurer stemmebeskeder (valgfrit)
+Et opkald er ubesvaret, når det slutter uden at nå nogen: dets status er **Intet svar**, **Caller Hung Up** eller **Mislykkedes**.
 
-Tilpas de beskeder, opkaldere hører:
+### Hvem der får besked
 
-1. Åbn din indgående opkaldspolitik
-2. Gå til **Indstillinger**
-3. Konfigurer:
-   - **Velkomstbesked**: Afspilles, når opkaldet besvares
-   - **Besked ved intet svar**: Afspilles, når alle eskaleringsregler fejler
-   - **Besked ved ingen tilgængelige**: Afspilles, når ingen er på vagt
+Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får projektets ejere besked i stedet.
 
-## Konfigurationsindstillinger
+Notifikationen siger, hvem der ringede, hvilket nummer der blev ringet til, hvorfor ingen svarede, og hvem der blev ringet til, og hvordan hvert forsøg endte. Den linker til opkaldet i opkaldsloggen.
 
-### Politikindstillinger
+Ejere får som standard en e-mail. Hver person kan vælge andre kanaler (SMS, opkald, push og mere) eller slå den fra i **Brugerindstillinger** > **Notifikationsindstillinger** under **Vagt** > **Indgående opkaldspolitikker** > **Ubesvaret opkald**. Se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
-| Indstilling                                   | Beskrivelse                                 | Standard                                                                   |
-| --------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
-| Hilsenbesked                                  | TTS-besked afspillet, når opkaldet besvares | "Vent venligst mens vi forbinder dig til vagthavende ingeniør."            |
-| Besked om intet svar                          | Besked, når alle eskaleringsregler fejler   | "Ingen er tilgængelig. Prøv venligst igen senere."                         |
-| Ingen vagthavende ingeniør tilgængelig-besked | Besked, når ingen er på vagt                | "Vi beklager, men ingen vagthavende ingeniør er i øjeblikket tilgængelig." |
-| Gentag politik, hvis ingen svarer             | Genstart fra første regel, hvis alle fejler | Deaktiveret                                                                |
-| Gentag politik antal gange                    | Maks. antal genforsøg                       | 1                                                                          |
+### Reagér på ubesvarede opkald i et workflow
 
-### Eskaleringsregel-indstillinger
+Logs over indgående opkald er tilgængelige som workflowudløsere:
 
-| Indstilling            | Beskrivelse                                         |
-| ---------------------- | --------------------------------------------------- |
-| Rækkefølge             | Prioritetsrækkefølge (1 = højeste prioritet)        |
-| Eskaler efter sekunder | Ventetid, inden næste regel prøves (standard: 30 s) |
-| Vagtplan               | Diriger til den, der i øjeblikket er på vagt        |
-| Teams                  | Diriger til alle medlemmer af valgte teams          |
-| Brugere                | Diriger til specifikke brugere                      |
+- **On Create Incoming Call Log** kører, når et opkald kommer ind.
+- **On Update Incoming Call Log** kører, efterhånden som opkaldet skrider frem. Den opdatering, der sætter **Ended At**, er opkaldets afslutning.
 
-## Visning af opkaldslogge
+For kun at reagere på ubesvarede opkald, fx for at poste dem i Slack eller Microsoft Teams eller for at åbne en sag:
 
-For at se historikken for indgående opkald:
+:::steps
+1. Tilføj udløseren **On Update Incoming Call Log**. Sæt **Fields to watch** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
+2. Tilføj et trin **If / Else**. Tjek udløserens **Status** med sammenligningen **er ikke lig med** og `Completed`.
+3. Forbind dine trin til porten **Yes**.
+:::
 
-1. Gå til **Vagtordning** > **Indgående opkaldspolitikker**
-2. Klik på din politik
-3. Gå til fanen **Opkaldslogs**
+Et workflow kan læse opkaldslogs med **Find One** og **Find Many**, men det kan ikke oprette eller ændre dem.
 
-Loggene viser:
+## Hvem der kan tilføje og frigive telefonnumre
 
-- Opkalderens telefonnummer
-- Opkaldsstatus (Gennemført, Intet svar, Mislykket osv.)
-- Hvem der besvarede opkaldet
-- Opkaldsvarighed
-- Tidsstempel
+En politiks telefonnumre følger de samme roller som selve politikken:
 
-## Konfiguration af brugertelefonnummer
+- **Slå numre op** - søge i Twilio efter et nummer at reservere eller vise de numre, din Twilio-konto allerede har - kræver tilladelse til at læse politikker for indgående opkald og til at læse konfigurationer for opkald og SMS, fordi det læser din Twilio-konto via en af dem. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** og **Settings Viewer** har begge. I en brugerdefineret rolle er det **Read Incoming Call Policy** og **Read Call and SMS**.
+- **At reservere et nummer, bruge et eksisterende og frigive et** kræver tilladelse til at redigere politikker for indgående opkald: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** og **Settings Member** eller **Edit Incoming Call Policy** i en brugerdefineret rolle. De ændrer numrene på en politik, du må redigere: med en rolle, der er begrænset til bestemte etiketter, de politikker, der har de etiketter.
 
-For at brugere kan modtage indgående opkald, skal de have et bekræftet telefonnummer:
+Et teams blokering uden etiketter på en af disse tilladelser fjerner den. For alle andre bliver **Add Phone Number** og **Frigiv** på siden, låst, og deres tooltip siger, hvad der kræves. API'et afviser deres forespørgsel med en sætning, der siger, hvad der kræves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." At reservere et nummer opkræves på din egen Twilio-konto, ikke på din OneUptime-saldo, så det kræver ingen faktureringstilladelse.
 
-1. Brugere går til **Brugerindstillinger** > **Notifikationsmetoder**
-2. Tilføj et telefonnummer under **Indgående opkaldsnumre**
-3. Bekræft telefonnummeret via SMS-kode
+## Opret politikker med API'et eller Terraform
 
-Kun brugere med bekræftede telefonnumre kan ringes op via eskaleringsregler.
+| Ressource | API-rute |
+| --- | --- |
+| Politikker for indgående opkald | `/api/incoming-call-policy` |
+| Deres eskaleringsregler | `/api/incoming-call-policy-escalation-rule` |
+| Deres telefonnumre, kun læsning | `/api/incoming-call-policy-phone-number` |
+| Opkaldslogs, kun læsning | `/api/incoming-call-log` |
 
-## Frigørelse af et telefonnummer
+En regel, der oprettes via API'et uden `escalateAfterSeconds`, ringer i 20 sekunder, og det gør en regel, som Terraform opretter uden `escalate_after_seconds`, også.
 
-Hvis du ikke længere har brug for et telefonnummer:
+### Indstillinger for en eskaleringsregel
 
-1. Åbn din indgående opkaldspolitik
-2. Klik på **Frigiv nummer** i kortet **Telefonnummer**
-3. Bekræft frigørelsen
-
-> **Advarsel**: Frigivne numre returneres til Twilio og er muligvis ikke tilgængelige til genkøb.
+| Indstilling | API-felt | Hvad det indeholder |
+| --- | --- | --- |
+| Hvem der skal ringes til | `onCallDutyPolicyScheduleId` eller `userId` | Ét af dem, aldrig begge: vagtplanen, hvis vagthavende ringes op, eller personen. |
+| Ringetid (i sekunder) | `escalateAfterSeconds` | Hvor længe telefonen ringer, før opkaldet går videre (standard: 20; fra 5 til 600). |
+| Navn og Beskrivelse | `name`, `description` | Valgfrie. En regel uden navn står som Level 1, Level 2 og så videre, efter sin plads i listen. |
+| Rækkefølge | `order` | Hvor reglen står i listen: reglerne kaldes oppefra og ned. En ny regel uden rækkefølge kommer til sidst. |
 
 ## Fejlfinding
 
-### Opkald modtages ikke
+:::details Opkald når ikke frem til OneUptime
+- Åbn nummeret i Twilio Console: **A call comes in** skal være webhooken `https://<your host>/notification/incoming-call/voice` med HTTP POST. OneUptime sætter den, når nummeret tilføjes, ud fra `HOST` og `HTTP_PROTOCOL`. Er de ændret siden, så ret webhooken i Twilio.
+- En selvhostet OneUptime skal kunne nås fra internettet via https. Nummerets opkaldslog i Twilio Console og Twilios **Debugger** viser, hvad OneUptime svarede.
+- Et svar `403` betyder, at forespørgslens signatur ikke stemte. Sørg for, at Twilio-konfigurationen har kontoens aktuelle **Twilio Auth Token**, og at en proxy foran OneUptime videregiver den vært og det skema, Twilio kaldte (`X-Forwarded-Host` og `X-Forwarded-Proto`).
+:::
 
-- Bekræft, at Twilio-konfigurationen er korrekt tilknyttet politikken
-- Kontroller, at din OneUptime-instans er tilgængelig fra internettet
-- Bekræft, at Twilio-konto-SID og Auth Token er korrekte
-- Kontroller Twilio Console for fejllogge
+:::details Opkaldet besvares, men der ringes ikke til nogen
+Opkaldsloggen siger **Mislykkedes**. Tjek, at **Besvar opkald** er slået til under politikkens **Indstillinger**, at hver regels vagtplan har nogen på vagt lige nu, og at de personer, reglerne ringer til, har et bekræftet nummer under **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre** i dette projekt. Regler ringer kun til projektets medlemmer.
+:::
 
-### Opkald opretter ikke forbindelse til ingeniører
+:::details Opkald ender på telefonsvareren
+Ender opkald på en ingeniørs telefonsvarer, så sæt reglens **Ringetid** under den tid, personens telefon er om at gå til telefonsvareren. En telefonsvarer, der svarer, tæller som et svar, og opkaldet stopper dér.
+:::
 
-- Bekræft, at brugere har bekræftede telefonnumre i deres notifikationsindstillinger
-- Kontroller, at eskaleringsregler er korrekt konfigureret
-- Sørg for, at vagtplaner har brugere tildelt for den aktuelle tid
-- Bekræft, at politikken er aktiveret
+:::details Et nyt nummer kan ikke reserveres
+Twilio kræver i mange lande en godkendt regulatory bundle, før det sælger lokale numre, og nogle numre kræver en positiv Twilio-saldo. Sæt det op i Twilio Console, eller få nummeret dér, og tilføj det med **Use Existing Phone Number**.
+:::
 
-### Lydkvalitetsproblemer
+:::details Politikkens Twilio-konto kan ikke ændres
+Kontoen kan kun ændres, mens politikken ikke har nogen telefonnumre: siden siger "Remove all phone numbers to change". At frigive numrene giver dem tilbage til Twilio, så planlæg flytningen først.
+:::
 
-- Sørg for, at din server har stabil internetforbindels
-- Kontroller Twilios statusside for eventuelle igangværende problemer
-- Bekræft, at telefonnumre er i det korrekte format (E.164-format: +4511223344)
+:::details Koden til en ingeniørs nummer kommer ikke frem
+SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send a new code** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
+:::
 
-## Sikkerhedsovervejelser
+## Næste trin
 
-- Hold dit Twilio Auth Token sikkert og eksponér det aldrig offentligt
-- Brug HTTPS til din OneUptime-instans
-- OneUptime validerer webhook-signaturer for at sikre, at anmodninger kommer fra Twilio
-- Overvej at begrænse, hvilke telefonnumre der kan ringe til dine indgående opkaldspolitikker
-
-## Arkitekturoversigt
-
-```mermaid
-graph TB
-    subgraph "Eksternt"
-        A[Opkalder]
-        B[Twilio Cloud]
-    end
-
-    subgraph "OneUptime"
-        C[Indgående opkalds-API]
-        D[Opkaldsrouter]
-        E[Eskaleringsmotor]
-        F[Database]
-    end
-
-    subgraph "Vagttjenesteteam"
-        G[Ingeniør 1]
-        H[Ingeniør 2]
-        I[Leder]
-    end
-
-    A -->|1. Ringer til nummer| B
-    B -->|2. Webhook| C
-    C -->|3. Indlæs politik| F
-    C -->|4. Hent regler| D
-    D -->|5. Behandl regler| E
-    E -->|6. TwiML-svar| B
-    B -->|7. Ring til| G
-    B -->|8. Eskaler| H
-    B -->|9. Eskaler| I
-```
-
-## Support
-
-For problemer med funktionen Indgående opkaldspolitik:
-
-1. Kontroller Twilio Console for fejllogge
-2. Gennemgå OneUptime-serverlogge
-3. Kontakt support på [hello@oneuptime.com](mailto:hello@oneuptime.com)
+:::cards
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vagtpolitik tilkalder folk, niveau for niveau.
+- [Vagtplaner](/docs/on-call/schedules): Byg de rotationer, dine regler ringer til.
+- [Workflows](/docs/workflows/index): Reagér på ubesvarede opkald: post dem i en kanal, eller åbn en sag.
+- [Twilio-integration til SMS og tale](/docs/self-hosted/twilio-integration): Opsæt Twilio til en selvhostet installation.
+:::

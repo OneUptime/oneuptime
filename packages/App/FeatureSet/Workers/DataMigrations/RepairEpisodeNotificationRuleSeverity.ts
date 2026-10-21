@@ -41,9 +41,9 @@ const BATCH_SIZE: number = 100;
  *   1. It can never match. The count query the on-call path runs always supplies a
  *      concrete severity id, so a NULL row is unreachable by construction, not merely
  *      unlikely.
- *   2. It is invisible. Both episode rule pages (EpisodeOnCallRules.tsx and
- *      IncidentEpisodeOnCallRules.tsx) scope their ModelTable by severity id, so a
- *      NULL-severity row renders in no table on any page.
+ *   2. It is invisible. Both episode tabs of the On-Call Rules page (see
+ *      Components/NotificationRule/OnCallRuleKinds.ts) scope their ModelTable by
+ *      severity id, so a NULL-severity row renders in no table on any page.
  *
  * Together those mean the user can neither be notified by the row nor see it nor remove
  * it — it is pure invisible clutter that shows up only as an inflated rule count in any

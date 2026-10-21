@@ -3,6 +3,8 @@ import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents
 import DashboardComponentType, {
   isDataSourceComponentType,
 } from "../../../Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "../../../Types/JSON";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 
 /*
  * Sanitizer for the dashboard config served to ANONYMOUS public-dashboard
@@ -20,6 +22,15 @@ import DashboardComponentType, {
  * So the widgets are dropped outright rather than field-stripped: the
  * placeholder the client renders needs nothing from the config, and
  * dropping leaves no room for a later-added field to leak by omission.
+ *
+ * The widgets are found where the dashboard finds them
+ * (StoredDashboardViewConfig): a config stored as the API reference's
+ * `{_type: "DashboardViewConfig", value: {...}}` envelope or as JSON text
+ * has its widgets one level down, and reading only a top-level `components`
+ * missed them - the whole stored value, Data Source queries included, went
+ * to the anonymous viewer as it was (issue #4571). What is served is the
+ * config itself, with its widget list; each widget in it is passed through
+ * untouched.
  */
 export default class PublicDashboardViewConfig {
   public static sanitize(
@@ -29,14 +40,19 @@ export default class PublicDashboardViewConfig {
       return null;
     }
 
-    const components: Array<DashboardBaseComponent> =
-      dashboardViewConfig.components || [];
+    const storedConfig: JSONObject =
+      StoredDashboardViewConfig.unwrap(dashboardViewConfig);
+
+    const components: Array<unknown> =
+      StoredDashboardViewConfig.getComponentEntries(storedConfig);
 
     return {
-      ...dashboardViewConfig,
-      components: components.filter((component: DashboardBaseComponent) => {
-        return !PublicDashboardViewConfig.isDataSourceComponent(component);
-      }),
+      ...(storedConfig as unknown as DashboardViewConfig),
+      components: components.filter((component: unknown) => {
+        return !PublicDashboardViewConfig.isDataSourceComponent(
+          component as DashboardBaseComponent,
+        );
+      }) as Array<DashboardBaseComponent>,
     };
   }
 

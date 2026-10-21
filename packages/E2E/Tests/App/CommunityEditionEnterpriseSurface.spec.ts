@@ -1,4 +1,3 @@
-import { E2E_SIGNUP_PASSWORD } from "../../Config";
 import {
   AUDIT_LOG_POLL_INTERVAL_MS,
   AuditLogEntry,
@@ -14,12 +13,7 @@ import {
   LICENSE_REQUIRED_MESSAGE_FRAGMENT,
   createProjectScim,
 } from "../../Enterprise/Helpers/EnterpriseConfiguration";
-import {
-  IDENTITY_PREFIXES,
-  IDENTITY_PROBES,
-  PAGE_NOT_FOUND_MESSAGE_FRAGMENT,
-  identityProbeUrl,
-} from "../../Enterprise/Helpers/IdentityRoutes";
+import { SCIM_PROBES } from "../../Enterprise/Helpers/IdentityRoutes";
 import {
   EnterpriseLicenseState,
   LICENSE_ENDPOINT_PATH,
@@ -27,7 +21,12 @@ import {
   enterpriseUrl,
   fetchEnterpriseLicenseState,
 } from "../../Enterprise/Helpers/LicenseState";
-import { JSONish, toId } from "../Dashboard/Helpers/MonitorAlerting";
+import { SignedUpOwner, signUpOwnerWithProject } from "../Helpers/ApiSignup";
+import {
+  IDENTITY_PREFIXES,
+  PAGE_NOT_FOUND_MESSAGE_FRAGMENT,
+  identityRouteUrl,
+} from "../Helpers/SsoRoutes";
 import {
   APIRequestContext,
   APIResponse,
@@ -45,12 +44,18 @@ import Faker from "Common/Utils/Faker";
  * e2e job, and the reason its positives mean anything.
  *
  * packages/E2E/Enterprise/** asserts that a self-hosted ENTERPRISE stack
- * serves the identity routes, renders the enterprise screens, records audit
+ * serves the SCIM routes, renders the enterprise screens, records audit
  * entries and accepts enterprise configuration - and that a lapsed licence
  * stops all of it in a way that is visibly NOT the Community Edition. Every
  * one of those assertions is only interesting if the Community image really
  * does none of it. That is what this spec pins, on the community stack, where
  * no enterprise suite ever runs.
+ *
+ * Single sign-on is not part of that surface: SAML and OIDC sign-in and
+ * "Require SSO for login" are core, and the Community Edition serves them
+ * like every other stack. Tests/App/SingleSignOn.spec.ts, which runs on this
+ * same stack, proves that half - its routes, and a provider configured and
+ * used end to end.
  *
  * KEEP THE TWO IN STEP. The expectations here are the `community` column of
  * the same tables the enterprise suites read their own columns from
@@ -63,12 +68,13 @@ import Faker from "Common/Utils/Faker";
  * WHY IT LIVES IN Tests/ AND SKIPS AT RUNTIME. The community image is booted
  * by test-e2e-test-self-hosted, which runs the whole ./Tests tree and nothing
  * else; a focused suite like the enterprise ones would never be run there. The
- * same tree also runs on the two enterprise stacks, where every assertion here
- * would be wrong, so this spec detects the edition at runtime from
- * GET /api/global-config/license and skips when it is not the Community one.
- * It does NOT read IS_ENTERPRISE_EDITION: docker-compose.base.yml passes that
- * variable through to the e2e container and no job sets it, so it reads false
- * even in the job that boots the enterprise image.
+ * same tree also runs on the SaaS stack, which boots the enterprise image, and
+ * where every assertion here would be wrong, so this spec detects the edition
+ * at runtime from GET /api/global-config/license and skips when it is not the
+ * Community one. It does NOT read IS_ENTERPRISE_EDITION:
+ * docker-compose.base.yml passes that variable through to the e2e container
+ * and no job sets it, so it reads false even in the jobs that boot the
+ * enterprise image.
  *
  * It is deliberately cheap - a handful of API calls and no page navigation -
  * because the default suite is already near the 90-minute ceiling its own
@@ -96,87 +102,6 @@ const NOT_COMMUNITY_SKIP_REASON: string =
  * job that time to re-prove something the 404s already settled.
  */
 const COMMUNITY_AUDIT_ABSENCE_WINDOW_MS: number = 15000;
-
-type RegisterOwnerAndProjectFunction = (data: {
-  page: Page;
-}) => Promise<string>;
-
-/*
- * Signs a fresh owner up and creates a project, over the API alone.
- *
- * The shared onboarding helper (Tests/Dashboard/Helpers/ProductOnboarding.ts)
- * drives the register form and the project modal in a browser, which is right
- * for a spec about onboarding and far too expensive for this one: it runs in
- * the default suite, in two browsers, in every job. These two calls are the
- * same two requests that flow ends in.
- *
- * The bodies are the envelopes the Dashboard's model forms send
- * (JSONFunctions.serialize), because that is what the API deserializes back
- * into Email, Name and HashedString before the User row is built.
- */
-const registerOwnerAndProject: RegisterOwnerAndProjectFunction = async (data: {
-  page: Page;
-}): Promise<string> => {
-  const email: string = Faker.generateEmail().toString();
-
-  const signupUrl: string = enterpriseUrl("/api/identity/signup");
-  const signupResponse: APIResponse = await data.page.request.post(signupUrl, {
-    headers: { "content-type": "application/json" },
-    data: {
-      data: {
-        email: { _type: "Email", value: email },
-        name: { _type: "Name", value: "E2E Community Control" },
-        password: { _type: "HashedString", value: E2E_SIGNUP_PASSWORD },
-      },
-    },
-  });
-
-  expect(
-    signupResponse.ok(),
-    `POST ${signupUrl} failed: ${signupResponse.status()} ${(
-      await signupResponse.text()
-    ).slice(0, 300)}`,
-  ).toBe(true);
-
-  /*
-   * The session is a cookie the answer above set, and this request context
-   * keeps it - so the project below is created BY this user, which is what
-   * makes them its owner and gives the later calls their permissions.
-   */
-  const projectUrl: string = enterpriseUrl("/api/project");
-  const projectResponse: APIResponse = await data.page.request.post(
-    projectUrl,
-    {
-      headers: { "content-type": "application/json" },
-      data: {
-        data: {
-          name: `E2E community control ${Faker.generateName().toString()}`,
-        },
-      },
-    },
-  );
-
-  const projectBody: string = await projectResponse.text();
-
-  expect(
-    projectResponse.ok(),
-    `POST ${projectUrl} failed: ${projectResponse.status()} ${projectBody.slice(
-      0,
-      300,
-    )}`,
-  ).toBe(true);
-
-  const parsed: JSONish = JSON.parse(projectBody) as JSONish;
-  const project: JSONish = (parsed["data"] as JSONish) || parsed;
-  const projectId: string = toId(project["_id"]);
-
-  expect(
-    projectId,
-    `POST ${projectUrl} did not return a project id: ${projectBody.slice(0, 300)}`,
-  ).not.toBe("");
-
-  return projectId;
-};
 
 test.describe("Community Edition: no enterprise routes are served", () => {
   let licenseState: EnterpriseLicenseState;
@@ -225,14 +150,20 @@ test.describe("Community Edition: no enterprise routes are served", () => {
     expect(licenseState.features, `Found: ${found}`).toBeNull();
   });
 
+  /*
+   * The Enterprise Edition's identity routers - SCIM for projects and status
+   * pages - are absent. Core's single sign-on routers sit at the same two
+   * prefixes and DO answer here, as on every stack
+   * (Tests/App/SingleSignOn.spec.ts).
+   */
   for (const prefix of IDENTITY_PREFIXES) {
-    for (const probe of IDENTITY_PROBES) {
+    for (const probe of SCIM_PROBES) {
       test(`GET ${prefix}${probe.path} is not served - ${probe.label}`, async ({
         request,
       }: {
         request: APIRequestContext;
       }): Promise<void> => {
-        const url: string = identityProbeUrl({ prefix, path: probe.path });
+        const url: string = identityRouteUrl({ prefix, path: probe.path });
 
         const response: APIResponse = await request.get(url, {
           maxRedirects: 0,
@@ -242,16 +173,16 @@ test.describe("Community Edition: no enterprise routes are served", () => {
         const found: string = `HTTP ${status} from ${url}: ${body.slice(0, 300)}`;
 
         /*
-         * 404 from the App's catch-all, and nothing else. A 402 or 403 here
-         * would mean this image DOES mount the enterprise identity routers and
-         * is merely refusing per request - that is the lapsed Enterprise
-         * stack's answer, and on a community build it would mean enterprise
-         * code shipped where it must not.
+         * 404 from the App's catch-all, and nothing else. A 403 here would
+         * mean this image DOES mount the SCIM routers and is merely refusing
+         * per request - that is the lapsed Enterprise stack's answer, and on a
+         * community build it would mean enterprise code shipped where it must
+         * not.
          */
         expect(
           status,
           `${url} answered something other than 404, so this build mounts the ` +
-            `enterprise identity routers. ${found}`,
+            `Enterprise Edition's SCIM routers. ${found}`,
         ).toBe(probe.community.status);
 
         expect(
@@ -333,7 +264,18 @@ test.describe("Community Edition: enterprise writes and audit logging", () => {
       shared.page = await context.newPage();
       shared.page.setDefaultTimeout(30000);
 
-      shared.projectId = await registerOwnerAndProject({ page: shared.page });
+      /*
+       * Signed up and given a project over the API alone - the two requests
+       * the register form and the project modal end in - because driving
+       * that flow in a browser would cost this cheap spec more than all of
+       * its assertions.
+       */
+      const owner: SignedUpOwner = await signUpOwnerWithProject({
+        request: shared.page.request,
+        name: "E2E Community Control",
+      });
+
+      shared.projectId = owner.projectId;
     },
   );
 

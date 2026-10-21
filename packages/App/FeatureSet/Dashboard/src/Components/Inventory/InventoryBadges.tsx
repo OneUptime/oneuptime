@@ -17,6 +17,8 @@ import {
   getInventoryTypeLabel,
 } from "./InventoryTypeCatalog";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The three pills the Inventory product renders a row's identity with. They
@@ -45,6 +47,7 @@ export interface InventoryTypeBadgeProps {
 export const InventoryTypeBadge: FunctionComponent<InventoryTypeBadgeProps> = (
   props: InventoryTypeBadgeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (!props.entityType) {
     return <span className="text-sm text-gray-400">-</span>;
   }
@@ -58,7 +61,7 @@ export const InventoryTypeBadge: FunctionComponent<InventoryTypeBadgeProps> = (
         size={SizeProp.Smaller}
         className="h-3 w-3"
       />
-      {getInventoryTypeLabel(props.entityType)}
+      {translator.translateText(getInventoryTypeLabel(props.entityType))}
     </span>
   );
 };
@@ -75,6 +78,7 @@ export interface InventorySourceBadgeProps {
 export const InventorySourceBadge: FunctionComponent<
   InventorySourceBadgeProps
 > = (props: InventorySourceBadgeProps): ReactElement => {
+  const translator: Translator = useTranslator();
   if (!props.source) {
     return <span className="text-sm text-gray-400">-</span>;
   }
@@ -88,7 +92,7 @@ export const InventorySourceBadge: FunctionComponent<
         descriptor?.pillClassName || "bg-gray-50 text-gray-700 ring-gray-500/20"
       }`}
     >
-      {getInventorySourceLabel(props.source)}
+      {translator.translateText(getInventorySourceLabel(props.source))}
     </span>
   );
 
@@ -118,6 +122,7 @@ export interface InventoryLivenessBadgeProps {
 export const InventoryLivenessBadge: FunctionComponent<
   InventoryLivenessBadgeProps
 > = (props: InventoryLivenessBadgeProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const result: InventoryLivenessResult = getInventoryLiveness({
     source: props.source,
     lastSeenAt: props.lastSeenAt,
@@ -130,7 +135,7 @@ export const InventoryLivenessBadge: FunctionComponent<
 
   const age: string | null =
     props.showAge && result.minutesSinceLastSeen !== null
-      ? formatMinutesAgo(result.minutesSinceLastSeen)
+      ? formatMinutesAgo(result.minutesSinceLastSeen, translator)
       : null;
 
   return (
@@ -143,7 +148,7 @@ export const InventoryLivenessBadge: FunctionComponent<
             className="h-3 w-3"
           />
         )}
-        {result.label}
+        {translator.translateText(result.label)}
         {age ? <span className="font-normal opacity-75">· {age}</span> : null}
       </span>
     </Tooltip>

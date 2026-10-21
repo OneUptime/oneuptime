@@ -31,6 +31,8 @@ import PageMap from "../../Utils/PageMap";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The fleet-wide way out of "monitor-backed with nothing bound".
@@ -57,8 +59,9 @@ export interface BulkSwitchToProbePollingResult {
   modals: ReactElement;
 }
 
-export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string =
-  "Switch to Probe Polling";
+export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string = translationKey(
+  "Switch to Probe Polling",
+);
 
 /*
  * The one no-op outcome, worded once so the tests and the page can pin it.
@@ -68,8 +71,9 @@ export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string =
  * honestly — "succeeded" claims it was switched, dropping it makes the
  * totals stop adding up.
  */
-export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string =
-  "Skipped: already probe-polled.";
+export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string = translationKey(
+  "Skipped: already probe-polled.",
+);
 
 /*
  * The one field the modal writes. A type alias rather than an interface so
@@ -80,6 +84,7 @@ type SwitchToProbePollingFormData = {
 };
 
 function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<NetworkDevice> | null>(null);
@@ -165,7 +170,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
 
     if (!device) {
       throw new BadDataException(
-        "This device could not be read. It may have been deleted since the list was loaded.",
+        translationKey(
+          "This device could not be read. It may have been deleted since the list was loaded.",
+        ),
       );
     }
 
@@ -235,15 +242,19 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 
@@ -274,7 +285,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       const name: string = probe.name || probe._id?.toString() || "";
 
       return {
-        label: probe.isGlobalProbe ? `${name} (global)` : name,
+        label: probe.isGlobalProbe
+          ? translator.translateTemplate("{{name}} (global)", { name: name })
+          : name,
         value: probe._id?.toString() || "",
       };
     });
@@ -377,7 +390,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       {showModal && didProbeLoadFail && (
         <Modal
           title="Probes Could Not Be Loaded"
-          description="Nothing was changed. A probe is required — it is what will ping these devices — and the project's probes could not be loaded just now. Try again in a moment."
+          description="Nothing was changed: your probes could not be loaded. Try again in a moment."
           onClose={closeModal}
           closeButtonText="Close"
         >
@@ -387,7 +400,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       {showModal && hasNoProbes && (
         <Modal
           title="No Probes Yet"
-          description="A probe-polled device is pinged by the probe assigned to it, so there has to be one that can reach these devices. Create a custom probe on their network first, then come back and switch them."
+          description="No probe can reach these devices yet. Add a probe on their network first, then try again."
           onClose={closeModal}
           closeButtonText="Close"
         >
@@ -395,7 +408,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
             to={probesSettingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Create a custom probe
+            {translator.translateText("Create a custom probe") || ""}
           </AppLink>
         </Modal>
       )}
@@ -407,7 +420,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
            * in place — it may be paging somebody — but it stops being the
            * device's status; the probe's poll is.
            */
-          description="Switches each selected monitor-backed device to probe polling: the probe you pick pings it on its schedule, and walks it over SNMP as well once it has credentials, so the device has a status from its first poll — with no monitor needed. A monitor already bound to a device stays bound, but the device's status comes from the probe from now on. Devices that are already probe-polled are skipped."
+          description="The probe you pick pings each device, and walks it when it has credentials. Bound monitors stay, but the probe sets the status."
           isLoading={isLoadingProbes}
           onClose={closeModal}
           submitButtonText={SWITCH_TO_PROBE_POLLING_ACTION_TITLE}
@@ -443,7 +456,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
                 },
                 title: "Probe",
                 description:
-                  "The probe that will ping these devices on their schedule, and walk them over SNMP when they have credentials. It has to be able to reach them directly: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.",
+                  "It must reach these devices directly: pick a probe on their network.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownOptions: probeDropdownOptions,

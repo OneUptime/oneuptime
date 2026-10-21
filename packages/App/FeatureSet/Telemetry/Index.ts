@@ -3,21 +3,26 @@ import KubernetesCostIngestAPI from "./API/KubernetesCostIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
+import VercelLogDrainAPI from "./API/VercelLogDrain";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
+// OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
+import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
 import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
 import ProbeIngestNetworkDevicePollAPI from "./API/ProbeIngest/NetworkDevicePoll";
 import ProbeIngestNetworkDeviceDiagnosticAPI from "./API/ProbeIngest/NetworkDeviceDiagnostic";
+import ProbeIngestPacketCaptureAPI from "./API/ProbeIngest/PacketCapture";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
+import ProbeIngestVMwareCollectionAPI from "./API/ProbeIngest/VMwareCollection";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
 import ServerMonitorAPI from "./API/ServerMonitorIngest/ServerMonitor";
@@ -78,10 +83,17 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
+      app.use(TELEMETRY_PREFIXES, VercelLogDrainAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
+      /*
+       * The supervisor on every host OneUptime manages polls here for the
+       * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an
+       * ingress that routes only /telemetry to the App.
+       */
+      app.use(TELEMETRY_PREFIXES, HostCollectorOpAmpAPI);
       /*
        * Session replay ingest. Mounted on both prefixes like the rest, which
        * is why StartServer's body-parser bypass predicates must match with
@@ -117,9 +129,11 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkDevicePollAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkDeviceDiagnosticAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestPacketCaptureAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestVMwareCollectionAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 
       // ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]

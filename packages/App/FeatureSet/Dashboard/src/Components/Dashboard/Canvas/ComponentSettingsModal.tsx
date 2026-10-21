@@ -5,19 +5,71 @@ import ObjectID from "Common/Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { withDashboardWidgetSavedSort } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import {
+  readDisplayText,
+  shortenDisplayName,
+} from "Common/UI/Utils/ModelDisplayName";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ArgumentsForm from "./ArgumentsForm";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
+import ContainedErrorBoundary from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
+
+/*
+ * The settings a widget is titled by, by kind of widget: most call it
+ * `title`, charts `chartTitle`, tables `tableTitle`, gauges `gaugeTitle` and
+ * the SLO widget `widgetTitle`.
+ */
+export const WIDGET_TITLE_ARGUMENTS: ReadonlyArray<string> = [
+  "title",
+  "chartTitle",
+  "widgetTitle",
+  "tableTitle",
+  "gaugeTitle",
+];
+
+/*
+ * What the widget is called on the dashboard, or "" when it has no title -
+ * the name the Delete Widget confirmation uses.
+ */
+export const getWidgetDisplayName: (
+  component: DashboardBaseComponent | undefined,
+) => string = (component: DashboardBaseComponent | undefined): string => {
+  const widgetArguments: Record<string, unknown> =
+    (component?.arguments as Record<string, unknown> | undefined) || {};
+
+  for (const key of WIDGET_TITLE_ARGUMENTS) {
+    const title: string = readDisplayText(widgetArguments[key]);
+
+    if (title) {
+      return shortenDisplayName(title);
+    }
+  }
+
+  return "";
+};
 
 export interface ComponentProps {
   title: string;
@@ -40,14 +92,12 @@ export interface ComponentProps {
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const component: DashboardBaseComponent =
-    props.dashboardViewConfig.components.find(
-      (component: DashboardBaseComponent) => {
-        return (
-          component.componentId.toString() === props.componentId.toString()
-        );
-      },
-    ) as DashboardBaseComponent;
+  const translator: Translator = useTranslator();
+  const component: DashboardBaseComponent | undefined = (
+    props.dashboardViewConfig.components || []
+  ).find((component: DashboardBaseComponent) => {
+    return component.componentId.toString() === props.componentId.toString();
+  });
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
@@ -75,6 +125,106 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  /*
+   * The preview zooms ITSELF, never the board behind the modal. A drag on
+   * the previewed chart narrows this preview's own copy of the board's
+   * range, a double-click (or "Reset zoom" above it) puts it back, and the
+   * dashboard keeps the range it had: the board is not what is being
+   * edited, and retiming it from inside a settings dialog would leave it
+   * zoomed with its reset hidden (edit mode hides the toolbar's).
+   */
+  const [previewRange, setPreviewRange] = useState<RangeStartAndEndDateTime>(
+    props.dashboardStartAndEndDate,
+  );
+
+  /*
+   * A new board range starts the preview over from it. Compared by value
+   * against the last board range seen, not against the preview's own
+   * (zoomed) range, so a parent re-render that hands down an equal range
+   * cannot knock the preview out of its zoom.
+   */
+  const boardRangeRef: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(props.dashboardStartAndEndDate);
+
+  useEffect(() => {
+    if (
+      TimeRangeZoomUtil.isSameRange(
+        boardRangeRef.current,
+        props.dashboardStartAndEndDate,
+      )
+    ) {
+      return;
+    }
+
+    boardRangeRef.current = props.dashboardStartAndEndDate;
+    setPreviewRange(props.dashboardStartAndEndDate);
+  }, [props.dashboardStartAndEndDate]);
+
+  const previewZoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: previewRange,
+    onTimeRangeChange: setPreviewRange,
+  });
+
+  /*
+   * A click on a column header in the preview sets the widget's own sort
+   * (issue #5082): the preview is the widget as everyone will see it. The
+   * widget is read when the click comes, not when the preview last drew -
+   * a list widget draws again only when its settings change, and an older
+   * copy would undo an edit made since.
+   */
+  const latestComponentRef: React.MutableRefObject<
+    DashboardBaseComponent | undefined
+  > = useRef<DashboardBaseComponent | undefined>(component);
+  latestComponentRef.current = component;
+
+  const onComponentUpdateRef: React.MutableRefObject<
+    ComponentProps["onComponentUpdate"]
+  > = useRef<ComponentProps["onComponentUpdate"]>(props.onComponentUpdate);
+  onComponentUpdateRef.current = props.onComponentUpdate;
+
+  const setPreviewWidgetSort: (sort: string | null) => void = useCallback(
+    (sort: string | null): void => {
+      const latest: DashboardBaseComponent | undefined =
+        latestComponentRef.current;
+
+      if (!latest) {
+        return;
+      }
+
+      onComponentUpdateRef.current(withDashboardWidgetSavedSort(latest, sort));
+    },
+    [],
+  );
+
+  /*
+   * What a widget whose columns are its own can be sorted by, as its
+   * preview reports it - for the Sort setting, which cannot know a metric
+   * table's or a Data Source table's columns otherwise.
+   */
+  const [previewSortColumns, setPreviewSortColumns] =
+    useState<DashboardWidgetSortColumns | null>(null);
+
+  useEffect(() => {
+    setPreviewSortColumns(null);
+  }, [props.componentId.toString()]);
+
+  /*
+   * Gone from the config: the widget was just deleted, and this dialog is
+   * closing in the same update.
+   */
+  if (!component) {
+    return <></>;
+  }
+
+  /*
+   * A widget of a type this version does not draw (DashboardWidgetFallback)
+   * has no settings to edit, and a copy of it would be just as broken, so
+   * its dialog offers Delete Widget and says why there is nothing else.
+   */
+  const isKnownType: boolean = isDashboardComponentType(
+    component.componentType,
+  );
+
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
@@ -95,14 +245,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       closeButtonText="Done"
       leftFooterElement={
         <div className="flex items-center gap-2">
-          <Button
-            title={`Duplicate Widget`}
-            icon={IconProp.Copy}
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={() => {
-              props.onComponentDuplicate(component);
-            }}
-          />
+          {isKnownType ? (
+            <Button
+              title={`Duplicate Widget`}
+              icon={IconProp.Copy}
+              buttonStyle={ButtonStyleType.NORMAL}
+              onClick={() => {
+                props.onComponentDuplicate(component);
+              }}
+            />
+          ) : (
+            <></>
+          )}
           <Button
             title={`Delete Widget`}
             icon={IconProp.Trash}
@@ -116,11 +270,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       rightElement={
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
-            {component.componentType}
+            {translator.translateText(component.componentType)}
           </span>
           <span className="text-xs text-gray-400">
-            {component.widthInDashboardUnits} x{" "}
-            {component.heightInDashboardUnits} units
+            {translator.translateTemplate("{{width}} x {{height}} units", {
+              width: component.widthInDashboardUnits,
+              height: component.heightInDashboardUnits,
+            })}
           </span>
         </div>
       }
@@ -129,7 +285,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         {showDeleteConfirmation && (
           <ConfirmModal
             title={`Delete Widget?`}
-            description={`Are you sure you want to delete this widget? This action cannot be undone.`}
+            description={
+              <DeleteConfirmationMessage
+                kind="question"
+                name={getWidgetDisplayName(component)}
+                typeLabel="widget"
+              />
+            }
             onClose={() => {
               setShowDeleteConfirmation(false);
             }}
@@ -153,15 +315,21 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                   className="text-gray-500"
                 />
                 <h4 className="text-sm font-semibold text-gray-800">
-                  Live Preview
+                  {translator.translateText("Live Preview")}
                 </h4>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Updates as you edit
+              <div className="flex items-center gap-2">
+                {/* Shown only while the preview is zoomed. */}
+                <TimeRangeZoomProvider zoom={previewZoom}>
+                  <ResetTimeRangeZoomButton />
+                </TimeRangeZoomProvider>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  {translator.translateText("Updates as you edit")}
+                </div>
               </div>
             </div>
             <div
@@ -197,8 +365,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     dashboardComponentWidthInPx={previewWidth - 32}
                     dashboardComponentHeightInPx={previewHeight}
                     dashboardViewConfig={props.dashboardViewConfig}
-                    dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+                    dashboardStartAndEndDate={previewRange}
                     metricTypes={props.metrics.metricTypes}
+                    /*
+                     * The preview's own zoom (above), never the board's: the
+                     * widget hands its drag and double-click here exactly as
+                     * it hands them to the dashboard on the board.
+                     */
+                    onDashboardTimeRangeSelect={previewZoom.zoomToTimeRange}
+                    onDashboardTimeRangeReset={previewZoom.resetZoom}
+                    isDashboardTimeRangeZoomed={previewZoom.isZoomed}
+                    onWidgetSortChange={setPreviewWidgetSort}
+                    onWidgetSortColumnsChange={setPreviewSortColumns}
                     dndActiveMode={null}
                     isAnyGestureActive={false}
                     onMovePointerDown={() => {}}
@@ -213,16 +391,54 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
           <section>
             <h4 className="text-sm font-semibold text-gray-800 mb-3">
-              Settings
+              {translator.translateText("Settings")}
             </h4>
-            <ArgumentsForm
-              variables={props.variables}
-              component={component}
-              onFormChange={(component: DashboardBaseComponent) => {
-                props.onComponentUpdate(component);
-              }}
-              metrics={props.metrics}
-            />
+            {isKnownType ? (
+              /*
+               * Saved settings the form cannot read must not take the
+               * dashboard with them: the form's place says so, and Delete
+               * Widget below still works.
+               */
+              <ContainedErrorBoundary
+                resetKeys={[props.componentId.toString()]}
+                renderFallback={() => {
+                  return (
+                    <p
+                      className="text-sm text-gray-500"
+                      data-testid="widget-settings-unavailable"
+                    >
+                      {translator.translateText(
+                        "These settings could not be shown. You can still delete this widget and add it again.",
+                      )}
+                    </p>
+                  );
+                }}
+              >
+                <ArgumentsForm
+                  variables={props.variables}
+                  component={component}
+                  onFormChange={(component: DashboardBaseComponent) => {
+                    props.onComponentUpdate(component);
+                  }}
+                  metrics={props.metrics}
+                  widgetSortColumns={previewSortColumns}
+                />
+              </ContainedErrorBoundary>
+            ) : (
+              <p
+                className="text-sm text-gray-500"
+                data-testid="widget-settings-unknown-type"
+              >
+                {String(component.componentType || "").trim()
+                  ? translator.translateTemplate(
+                      'OneUptime has no "{{componentType}}" widget, so there are no settings to change. Delete it to take it off this dashboard.',
+                      { componentType: String(component.componentType) },
+                    )
+                  : translator.translateText(
+                      "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.",
+                    )}
+              </p>
+            )}
           </section>
         </div>
       </>

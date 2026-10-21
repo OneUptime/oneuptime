@@ -13,11 +13,14 @@ import {
   WORKFLOW_ISSUE_UNTITLED_STEP_TITLE,
   WorkflowIssueGroup,
   WorkflowLintTone,
+  WorkflowNodeIssueSummary,
+  buildNodeIssueSummaries,
   buildStepTitlesByNodeId,
   findStepNodeToOpen,
   getWorkflowLintCountText,
   getWorkflowLintSeverityLabel,
   getWorkflowLintTone,
+  getWorkflowNodeIssuePresentation,
   groupWorkflowLintIssues,
 } from "../../../../UI/Components/Workflow/GraphLintSummary";
 import Dictionary from "../../../../Types/Dictionary";
@@ -751,5 +754,469 @@ describe("groupWorkflowLintIssues — over a real linted graph", () => {
     expect(groupWorkflowLintIssues({ issues: result.issues })).toEqual([]);
     expect(getWorkflowLintTone(result)).toBe(WorkflowLintTone.Clean);
     expect(getWorkflowLintCountText(result)).toBe("");
+  });
+});
+
+/*
+ * What one step on the canvas says about itself. Settings no longer open when
+ * a step is added, so an empty required setting has to read as "Click to set
+ * up" (the next thing to do) and not as a red error badge on a step that was
+ * added a moment ago.
+ */
+describe("buildNodeIssueSummaries", () => {
+  test("an empty list summarises no steps", () => {
+    expect(buildNodeIssueSummaries([])).toEqual({});
+  });
+
+  test("an empty required setting is a setting to fill in, not an error", () => {
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries([
+        makeIssue({
+          rule: WorkflowLintRule.MissingRequiredArgument,
+          message: '"Message" is required but empty.',
+        }),
+      ]);
+
+    expect(summaries["n1"]).toEqual({
+      missingSettingMessages: ['"Message" is required but empty.'],
+      errorMessages: [],
+      warningMessages: [],
+    });
+  });
+
+  test("every other error stays an error", () => {
+    const rules: Array<WorkflowLintRule> = [
+      WorkflowLintRule.InvalidJSON,
+      WorkflowLintRule.ReferenceHasWhitespace,
+      WorkflowLintRule.UnknownReferenceRoot,
+      WorkflowLintRule.UnknownReferencedComponent,
+      WorkflowLintRule.UnknownReferencedReturnValue,
+      WorkflowLintRule.SelfReference,
+      WorkflowLintRule.ForwardReference,
+      WorkflowLintRule.DuplicateComponentId,
+      WorkflowLintRule.ComponentIdContainsDot,
+    ];
+
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries(
+        rules.map((rule: WorkflowLintRule) => {
+          return makeIssue({ rule: rule, message: `${rule}.` });
+        }),
+      );
+
+    expect(summaries["n1"]?.errorMessages).toEqual(
+      rules.map((rule: WorkflowLintRule) => {
+        return `${rule}.`;
+      }),
+    );
+    expect(summaries["n1"]?.missingSettingMessages).toEqual([]);
+    expect(summaries["n1"]?.warningMessages).toEqual([]);
+  });
+
+  test("warnings are kept apart from errors", () => {
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries([
+        makeIssue({
+          rule: WorkflowLintRule.UnreachableComponent,
+          severity: WorkflowLintSeverity.Warning,
+          message: "Nothing runs this step.",
+        }),
+        makeIssue({
+          rule: WorkflowLintRule.ReferenceToUnreachableComponent,
+          severity: WorkflowLintSeverity.Warning,
+          message: "It reads from a step that never runs.",
+        }),
+      ]);
+
+    expect(summaries["n1"]).toEqual({
+      missingSettingMessages: [],
+      errorMessages: [],
+      warningMessages: [
+        "Nothing runs this step.",
+        "It reads from a step that never runs.",
+      ],
+    });
+  });
+
+  test("keys each step by its react-flow node id", () => {
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries([
+        makeIssue({ nodeId: "a", message: "About a." }),
+        makeIssue({
+          nodeId: "b",
+          rule: WorkflowLintRule.InvalidJSON,
+          message: "About b.",
+        }),
+      ]);
+
+    expect(Object.keys(summaries).sort()).toEqual(["a", "b"]);
+    expect(summaries["a"]?.missingSettingMessages).toEqual(["About a."]);
+    expect(summaries["b"]?.errorMessages).toEqual(["About b."]);
+  });
+
+  test("issues about the whole workflow belong to no step", () => {
+    expect(
+      buildNodeIssueSummaries([
+        makeIssue({
+          rule: WorkflowLintRule.NoTrigger,
+          nodeId: null,
+          componentId: null,
+          message: "No trigger.",
+        }),
+      ]),
+    ).toEqual({});
+  });
+
+  test("a message repeated for the same step is kept once", () => {
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries([
+        makeIssue({ message: '"URL" is required but empty.' }),
+        makeIssue({ message: '"URL" is required but empty.' }),
+      ]);
+
+    expect(summaries["n1"]?.missingSettingMessages).toEqual([
+      '"URL" is required but empty.',
+    ]);
+  });
+
+  test("keeps the order the checks found things in", () => {
+    const summaries: Dictionary<WorkflowNodeIssueSummary> =
+      buildNodeIssueSummaries([
+        makeIssue({ argumentId: "b", message: '"B" is required but empty.' }),
+        makeIssue({ argumentId: "a", message: '"A" is required but empty.' }),
+      ]);
+
+    expect(summaries["n1"]?.missingSettingMessages).toEqual([
+      '"B" is required but empty.',
+      '"A" is required but empty.',
+    ]);
+  });
+
+  test("ignores holes in the list and does not change it", () => {
+    const issues: Array<WorkflowLintIssue> = [
+      makeIssue({ message: "Kept." }),
+      undefined as unknown as WorkflowLintIssue,
+    ];
+    const before: string = JSON.stringify(issues);
+
+    expect(
+      buildNodeIssueSummaries(issues)["n1"]?.missingSettingMessages,
+    ).toEqual(["Kept."]);
+    expect(JSON.stringify(issues)).toBe(before);
+  });
+});
+
+describe("getWorkflowNodeIssuePresentation", () => {
+  const summary: (
+    params: Partial<WorkflowNodeIssueSummary>,
+  ) => WorkflowNodeIssueSummary = (
+    params: Partial<WorkflowNodeIssueSummary>,
+  ): WorkflowNodeIssueSummary => {
+    return {
+      missingSettingMessages: params.missingSettingMessages || [],
+      errorMessages: params.errorMessages || [],
+      warningMessages: params.warningMessages || [],
+    };
+  };
+
+  test("a step the checks say nothing about shows nothing", () => {
+    expect(getWorkflowNodeIssuePresentation({})).toEqual({
+      needsSetup: false,
+      setupHint: "",
+      badgeTone: WorkflowLintTone.Clean,
+      badgeText: "",
+    });
+  });
+
+  test("a step with empty required settings asks to be set up, with no badge", () => {
+    expect(
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({
+          missingSettingMessages: [
+            '"Webhook URL" is required but empty.',
+            '"Message" is required but empty.',
+          ],
+        }),
+        error:
+          '"Webhook URL" is required but empty.\n"Message" is required but empty.',
+      }),
+    ).toEqual({
+      needsSetup: true,
+      setupHint:
+        '"Webhook URL" is required but empty.\n"Message" is required but empty.',
+      badgeTone: WorkflowLintTone.Clean,
+      badgeText: "",
+    });
+  });
+
+  test("a warning alone gives a warning badge", () => {
+    expect(
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({ warningMessages: ["Nothing runs this step."] }),
+      }),
+    ).toEqual({
+      needsSetup: false,
+      setupHint: "",
+      badgeTone: WorkflowLintTone.Warning,
+      badgeText: "Nothing runs this step.",
+    });
+  });
+
+  test("an error outranks a warning, and the badge says the error first", () => {
+    expect(
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({
+          warningMessages: ["Nothing runs this step."],
+          errorMessages: ['"Body" is not valid JSON.'],
+        }),
+      }),
+    ).toEqual({
+      needsSetup: false,
+      setupHint: "",
+      badgeTone: WorkflowLintTone.Error,
+      badgeText: '"Body" is not valid JSON.\nNothing runs this step.',
+    });
+  });
+
+  test("a step can need setting up and have an error at once", () => {
+    const presentation: ReturnType<typeof getWorkflowNodeIssuePresentation> =
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({
+          missingSettingMessages: ['"Message" is required but empty.'],
+          errorMessages: ['"Headers" is not valid JSON.'],
+        }),
+      });
+
+    expect(presentation.needsSetup).toBe(true);
+    expect(presentation.setupHint).toBe('"Message" is required but empty.');
+    expect(presentation.badgeTone).toBe(WorkflowLintTone.Error);
+    expect(presentation.badgeText).toBe('"Headers" is not valid JSON.');
+  });
+
+  test("the badge never repeats what the setup prompt already says", () => {
+    const presentation: ReturnType<typeof getWorkflowNodeIssuePresentation> =
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({
+          missingSettingMessages: ['"Message" is required but empty.'],
+          warningMessages: ["Nothing runs this step."],
+        }),
+      });
+
+    expect(presentation.badgeText).not.toContain("required");
+    expect(presentation.badgeTone).toBe(WorkflowLintTone.Warning);
+  });
+
+  test("plain error text with no summary still shows as an error", () => {
+    expect(
+      getWorkflowNodeIssuePresentation({ error: "Something is wrong." }),
+    ).toEqual({
+      needsSetup: false,
+      setupHint: "",
+      badgeTone: WorkflowLintTone.Error,
+      badgeText: "Something is wrong.",
+    });
+  });
+
+  test("a summary wins over the plain text it was built alongside", () => {
+    expect(
+      getWorkflowNodeIssuePresentation({
+        issueSummary: summary({}),
+        error: "Stale text.",
+      }).badgeTone,
+    ).toBe(WorkflowLintTone.Clean);
+  });
+});
+
+describe("buildNodeIssueSummaries — over a real linted graph", () => {
+  const messageArgument: Argument = {
+    id: "message",
+    name: "Message",
+    description: "What to send",
+    type: ComponentInputType.Text,
+    required: true,
+  };
+
+  const headersArgument: Argument = {
+    id: "headers",
+    name: "Headers",
+    description: "Request headers",
+    type: ComponentInputType.JSON,
+    required: false,
+  };
+
+  type MakeNodeFunction = (params: {
+    nodeId: string;
+    componentId: string;
+    componentType?: ComponentType | undefined;
+    args?: Array<Argument> | undefined;
+    values?: Dictionary<string> | undefined;
+  }) => LintGraphNode;
+
+  const makeNode: MakeNodeFunction = (params: {
+    nodeId: string;
+    componentId: string;
+    componentType?: ComponentType | undefined;
+    args?: Array<Argument> | undefined;
+    values?: Dictionary<string> | undefined;
+  }): LintGraphNode => {
+    const componentType: ComponentType =
+      params.componentType || ComponentType.Component;
+
+    const metadata: ComponentMetadata = {
+      id: params.componentId,
+      title: params.componentId,
+      category: "Test",
+      description: "A test component",
+      iconProp: IconProp.Bolt,
+      componentType: componentType,
+      arguments: params.args || [],
+      returnValues: [],
+      inPorts: [],
+      outPorts: [],
+    };
+
+    return {
+      id: params.nodeId,
+      data: {
+        error: "",
+        id: params.componentId,
+        nodeType: NodeType.Node,
+        metadata: metadata,
+        metadataId: `${params.componentId}-metadata`,
+        internalId: `${params.nodeId}-internal`,
+        arguments: params.values || {},
+        returnValues: {},
+        componentType: componentType,
+      },
+    };
+  };
+
+  const trigger: LintGraphNode = makeNode({
+    nodeId: "trigger",
+    componentId: "manual-1",
+    componentType: ComponentType.Trigger,
+  });
+
+  test("a step that was just added asks to be set up and warns it is not connected", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        trigger,
+        makeNode({
+          nodeId: "added",
+          componentId: "slack-1",
+          args: [messageArgument],
+        }),
+      ],
+      edges: [],
+    });
+
+    const presentation: ReturnType<typeof getWorkflowNodeIssuePresentation> =
+      getWorkflowNodeIssuePresentation({
+        issueSummary: buildNodeIssueSummaries(result.issues)["added"],
+      });
+
+    expect(presentation).toEqual({
+      needsSetup: true,
+      setupHint: '"Message" is required but empty.',
+      badgeTone: WorkflowLintTone.Warning,
+      badgeText:
+        "Nothing connects to this step from the trigger, so it will never run.",
+    });
+  });
+
+  test("once connected, an unconfigured step shows only the setup prompt", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        trigger,
+        makeNode({
+          nodeId: "added",
+          componentId: "slack-1",
+          args: [messageArgument],
+        }),
+      ],
+      edges: [{ source: "trigger", target: "added" }],
+    });
+
+    const presentation: ReturnType<typeof getWorkflowNodeIssuePresentation> =
+      getWorkflowNodeIssuePresentation({
+        issueSummary: buildNodeIssueSummaries(result.issues)["added"],
+      });
+
+    expect(presentation.needsSetup).toBe(true);
+    expect(presentation.badgeTone).toBe(WorkflowLintTone.Clean);
+  });
+
+  test("a set-up step with broken JSON shows a red badge and no setup prompt", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        trigger,
+        makeNode({
+          nodeId: "api",
+          componentId: "api-1",
+          args: [messageArgument, headersArgument],
+          values: { message: "Hello", headers: "{not json" },
+        }),
+      ],
+      edges: [{ source: "trigger", target: "api" }],
+    });
+
+    const presentation: ReturnType<typeof getWorkflowNodeIssuePresentation> =
+      getWorkflowNodeIssuePresentation({
+        issueSummary: buildNodeIssueSummaries(result.issues)["api"],
+      });
+
+    expect(presentation.needsSetup).toBe(false);
+    expect(presentation.badgeTone).toBe(WorkflowLintTone.Error);
+    expect(presentation.badgeText).toContain('"Headers" is not valid JSON.');
+  });
+
+  test("filling in the required setting clears the prompt", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        trigger,
+        makeNode({
+          nodeId: "added",
+          componentId: "slack-1",
+          args: [messageArgument],
+          values: { message: "Deploy finished" },
+        }),
+      ],
+      edges: [{ source: "trigger", target: "added" }],
+    });
+
+    expect(buildNodeIssueSummaries(result.issues)["added"]).toBeUndefined();
+    expect(getWorkflowNodeIssuePresentation({})).toEqual(
+      expect.objectContaining({
+        needsSetup: false,
+        badgeTone: WorkflowLintTone.Clean,
+      }),
+    );
+  });
+
+  test("the summary carries every message the canvas's error text does, sorted", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        trigger,
+        makeNode({
+          nodeId: "added",
+          componentId: "slack-1",
+          args: [messageArgument, headersArgument],
+          values: { headers: "{not json" },
+        }),
+      ],
+      edges: [],
+    });
+
+    const summary: WorkflowNodeIssueSummary = buildNodeIssueSummaries(
+      result.issues,
+    )["added"] as WorkflowNodeIssueSummary;
+
+    expect(
+      [
+        ...summary.missingSettingMessages,
+        ...summary.errorMessages,
+        ...summary.warningMessages,
+      ].sort(),
+    ).toEqual((result.errorsByNodeId["added"] || "").split("\n").sort());
   });
 });

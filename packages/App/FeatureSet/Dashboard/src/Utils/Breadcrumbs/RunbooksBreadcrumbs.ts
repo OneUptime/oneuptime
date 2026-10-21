@@ -22,6 +22,11 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Steps",
     ]),
+    /*
+     * A runbook's pages are named by their own titles, never by the side
+     * menu section that holds them (Executions is under Logs, Triggers and
+     * Settings under Settings), as on every record's page in the product.
+     */
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_EXECUTIONS, [
       "Project",
       "Runbooks",
@@ -35,11 +40,36 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "Executions",
       "Execution",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_TRIGGERS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Triggers",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_SETTINGS, [
       "Project",
       "Runbooks",
       "View Runbook",
       "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_VARIABLES, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Variables",
+    ]),
+    // Every page of a runbook's menu has its trail, these two included.
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_OWNERS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_DELETE, [
       "Project",
@@ -47,10 +77,26 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Delete Runbook",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SECRETS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_VARIABLES, [
       "Project",
       "Runbooks",
-      "Secrets",
+      "Global Variables",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNERS, [
+      "Project",
+      "Runbooks",
+      "Runners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNER_VIEW, [
+      "Project",
+      "Runbooks",
+      "Runners",
+      "View Runner",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNER_CREDENTIALS, [
+      "Project",
+      "Runbooks",
+      "AI Access",
     ]),
   };
   return breadcrumpLinksMap[path];

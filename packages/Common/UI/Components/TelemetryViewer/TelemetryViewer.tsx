@@ -1,4 +1,5 @@
 import React, { ReactElement, ReactNode, useId, useState } from "react";
+import useTranslateValue from "../../Utils/Translation";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import {
   FacetData,
@@ -14,23 +15,40 @@ import TelemetrySearchBar, {
   TelemetrySearchBarRef,
 } from "./components/TelemetrySearchBar";
 import TelemetryFacetSidebar from "./components/TelemetryFacetSidebar";
+import { hasLockedTelemetryScope } from "./FacetVisibility";
 import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips";
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
 import TelemetryPagination from "./components/TelemetryPagination";
+import TelemetryResultTotal from "./components/TelemetryResultTotal";
+import ResultTotalUtil, {
+  ResultTotal,
+} from "../../Utils/Telemetry/ResultTotal";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
+import TelemetryLoadErrorMessage from "./components/TelemetryLoadErrorMessage";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "../../Utils/Telemetry/TelemetryLoadError";
 import IconProp from "../../../Types/Icon/IconProp";
-import useHistogramZoom, {
-  HistogramZoomState,
-} from "../Charts/Utils/useHistogramZoom";
+import useViewerTimeRangeZoom, {
+  ViewerTimeRangeZoom,
+} from "./useViewerTimeRangeZoom";
+import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
   items: Array<T>;
   isLoading: boolean;
-  error?: string | undefined;
+  /*
+   * Why the list did not load, shown where the rows go with the toolbar and
+   * filters left in place (issue #4707). A TelemetryLoadError tells a search
+   * that took too long from any other failure; a plain message reads as a
+   * failure.
+   */
+  error?: string | TelemetryLoadError | undefined;
+  // Runs the list's read again from its error. Defaults to onRefresh.
+  onRetry?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
   emptyMessage?: string | undefined;
   /*
@@ -74,6 +92,14 @@ export interface TelemetryViewerProps<T> {
   searchBarRef?: React.Ref<TelemetrySearchBarRef> | undefined;
   searchAttributesLoading?: boolean | undefined;
   searchValuesLoading?: boolean | undefined;
+  /*
+   * The values of the `@key:` being typed could not be loaded (issue #4708):
+   * the search bar's dropdown says so, with Try again.
+   */
+  searchValuesError?: TelemetryLoadError | undefined;
+  onRetrySearchValues?: (() => void) | undefined;
+  // The `@key:` lookup came back with no values: the dropdown says so.
+  searchHasNoValues?: boolean | undefined;
 
   // -- Toolbar: time --
   timeRange: RangeStartAndEndDateTime;
@@ -89,7 +115,26 @@ export interface TelemetryViewerProps<T> {
   facetData?: FacetData | undefined;
   facetConfigs?: Array<FacetConfig> | undefined;
   facetLoading?: boolean;
+  /*
+   * Facets whose counts the server stopped at the query time limit (the
+   * facets endpoints' timedOutFacets), and why the facets did not load at
+   * all. The sidebar says so instead of "No values" or counts of 0.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
+  /*
+   * A facet value that is not filtering was clicked: add its chip. Called
+   * only for such a value - a click on a checked or excluded value takes its
+   * chips off through onRemoveFilter instead - so an explorer only ever adds
+   * here, and adding a chip it already has should change nothing.
+   */
   onFacetInclude?: ((facetKey: string, value: string) => void) | undefined;
+  /*
+   * Leave a facet value's rows out, dropping an include of it. Only an
+   * explorer whose list, chart and counts can all leave a value out passes
+   * this: without it the facet rows carry no exclude button.
+   */
   onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
    * Called (debounced) when the user types in a server-searchable facet's
@@ -108,6 +153,13 @@ export interface TelemetryViewerProps<T> {
    * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
+  /*
+   * Whether the facet sidebar lists only values found in the viewer's scope
+   * (see getFacetValuesInScope). Defaults to "whenever a locked chip is
+   * showing": a page pinned to one database, service or trace wants its
+   * sidebar to describe that slice, not the project's catalog.
+   */
+  onlyShowFacetValuesInScope?: boolean | undefined;
 
   // -- Histogram --
   showHistogram?: boolean;
@@ -115,6 +167,9 @@ export interface TelemetryViewerProps<T> {
   histogramSeries?: Array<HistogramSeriesOption> | undefined;
   histogramTitle?: string | undefined;
   histogramLoading?: boolean;
+  // Why the chart did not load; it says so in its own card.
+  histogramError?: TelemetryLoadError | undefined;
+  onRetryHistogram?: (() => void) | undefined;
   /*
    * How much time one histogram bar covers, as the query that drew the bars
    * bucketed them. It is what lets a click on a bar open that bar's rows.
@@ -138,7 +193,24 @@ export interface TelemetryViewerProps<T> {
   // -- Pagination --
   page: number;
   pageSize: number;
+  /*
+   * How many rows the query matches — or, for a list read from an analytics
+   * endpoint, the lower bound that endpoint answers with (see `hasMore`).
+   */
   totalCount: number;
+  /*
+   * Whether rows follow this page, for a list whose endpoint answers with
+   * that instead of a total (the analytics list endpoints skip COUNT(*)).
+   * Set, and with no exact `resultTotal`, the footer pages forward while
+   * more rows follow and prints no "of N" and no page numbers.
+   */
+  hasMore?: boolean | undefined;
+  /*
+   * The size of the whole result set, worked out apart from the list (see
+   * UseResultTotal). Set, the list opens with it — "712,345 spans",
+   * "Counting spans…" — and the footer numbers its pages once it is exact.
+   */
+  resultTotal?: ResultTotal | undefined;
   pageSizeOptions?: Array<number> | undefined;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
@@ -159,6 +231,7 @@ export const TELEMETRY_VIEWER_MAIN_AREA_TEST_ID: string =
 export const TELEMETRY_VIEWER_LIST_TEST_ID: string = "telemetry-viewer-list";
 
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
+  const { translateString } = useTranslateValue();
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
     props.facetConfigs !== undefined &&
@@ -166,13 +239,22 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showHistogram: boolean = props.showHistogram ?? true;
 
+  const onlyShowFacetValuesInScope: boolean =
+    props.onlyShowFacetValuesInScope ??
+    hasLockedTelemetryScope(props.activeFilters);
+
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
    * window for a custom one and nothing remembers what the reader was
-   * looking at. This keeps that window so a double-click on the chart can
-   * hand it back.
+   * looking at. This keeps that window so a double-click on a chart, or
+   * "Reset zoom" beside the picker, can hand it back. The same zoom is
+   * offered to everything the viewer renders (see the provider below), so
+   * a drag across the analytics chart retimes the viewer just like one
+   * across the histogram. A viewer pinned to the window of a zoom offered
+   * around it (a telemetry snapshot's primary explorer) follows that zoom
+   * instead, so a drag here retimes everything that zoom does.
    */
-  const histogramZoom: HistogramZoomState = useHistogramZoom({
+  const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
     onTimeRangeSelect: props.onHistogramTimeRangeSelect,
     onTimeRangeChange: props.onTimeRangeChange,
@@ -190,7 +272,31 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
 
-  return (
+  const rowsBeforePage: number = (Math.max(props.page, 1) - 1) * props.pageSize;
+  const rowsThroughPage: number = rowsBeforePage + props.items.length;
+
+  // The total the footer may number its pages by (see getPagingTotal).
+  const exactTotalCount: number | undefined = ResultTotalUtil.getPagingTotal({
+    resultTotal: props.resultTotal,
+    hasMore: props.hasMore,
+    totalCount: props.totalCount,
+    rowCount: props.items.length,
+    skip: rowsBeforePage,
+  });
+
+  const listError: TelemetryLoadError | undefined =
+    typeof props.error === "string"
+      ? props.error
+        ? TelemetryLoadErrorUtil.fromMessage(props.error)
+        : undefined
+      : props.error;
+
+  // Not over an empty list: its empty state already says there is nothing.
+  const showResultTotal: boolean = Boolean(
+    props.resultTotal && !listError && props.items.length > 0,
+  );
+
+  const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -219,6 +325,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             helpCombinedExample={props.searchHelpCombinedExample}
             isAttributesLoading={props.searchAttributesLoading}
             isValuesLoading={props.searchValuesLoading}
+            valuesError={props.searchValuesError}
+            onRetryValues={props.onRetrySearchValues}
+            hasNoValues={props.searchHasNoValues}
             isLoading={props.isLoading}
           />
         </div>
@@ -239,7 +348,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             }}
           >
             <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-            <span>Filters</span>
+            <span>{translateString("Filters")}</span>
           </button>
         )}
 
@@ -247,7 +356,12 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
         <TelemetryTimeRangePicker
           value={props.timeRange}
-          onChange={histogramZoom.onTimeRangeChange || props.onTimeRangeChange}
+          onChange={viewerZoom.onTimeRangeChange || props.onTimeRangeChange}
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom={!viewerZoom.followsEnclosingZoom}
         />
 
         {props.live && (
@@ -262,9 +376,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             onClick={() => {
               props.live?.onToggle(!props.live.isLive);
             }}
-            title={
-              props.live.isLive ? "Pause live updates" : "Enable live updates"
-            }
+            title={translateString(
+              props.live.isLive ? "Pause live updates" : "Enable live updates",
+            )}
           >
             <span
               className={`h-2 w-2 rounded-full ${
@@ -273,7 +387,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   : "bg-gray-300"
               }`}
             />
-            <span>{props.live.isLive ? "Live" : "Paused"}</span>
+            <span>
+              {translateString(props.live.isLive ? "Live" : "Paused")}
+            </span>
           </button>
         )}
 
@@ -282,10 +398,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             type="button"
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
             onClick={props.onRefresh}
-            title="Refresh"
+            title={translateString("Refresh")}
           >
             <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-            <span>Refresh</span>
+            <span>{translateString("Refresh")}</span>
           </button>
         )}
 
@@ -310,18 +426,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
       {props.mainContentOverride}
 
       {/* Histogram */}
+      {/*
+       * When the list says the search could not finish, a chart that could
+       * not either steps aside rather than say it again: one message, one
+       * Try again.
+       */}
       {!props.mainContentOverride &&
         showHistogram &&
         props.histogramBuckets &&
-        props.histogramSeries && (
+        props.histogramSeries &&
+        !(listError && props.histogramError) && (
           <TelemetryHistogram
             buckets={props.histogramBuckets}
             isLoading={props.histogramLoading || false}
+            error={props.histogramError}
+            onRetry={props.onRetryHistogram}
             series={props.histogramSeries}
             title={props.histogramTitle}
             bucketIntervalMs={props.histogramBucketIntervalMs}
-            onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
-            onZoomOut={histogramZoom.onZoomOut}
+            onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
+            onZoomOut={viewerZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}
             valueFormatter={props.histogramValueFormatter}
           />
@@ -343,15 +467,21 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isCollapsedOnSmallScreens={!isFacetPanelOpen}
             facetData={props.facetData || {}}
             isLoading={props.facetLoading || false}
+            timedOutFacets={props.timedOutFacets}
+            facetError={props.facetError}
+            onRetryFacets={props.onRetryFacets}
+            showCountsNotice={!listError}
             facetConfigs={props.facetConfigs || []}
             activeFilters={props.activeFilters}
             onIncludeFilter={(key: string, value: string) => {
               props.onFacetInclude?.(key, value);
             }}
-            onExcludeFilter={(key: string, value: string) => {
-              props.onFacetExclude?.(key, value);
+            onExcludeFilter={props.onFacetExclude}
+            onRemoveFilter={(key: string, value: string) => {
+              props.onRemoveFilter?.(key, value);
             }}
             onFacetSearchChange={props.onFacetSearchChange}
+            onlyShowValuesInScope={onlyShowFacetValuesInScope}
           />
         )}
 
@@ -359,13 +489,25 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           className="flex min-w-0 flex-1 flex-col rounded-lg border border-gray-200 bg-white"
           data-testid={TELEMETRY_VIEWER_LIST_TEST_ID}
         >
-          {props.error && (
-            <div className="p-4">
-              <ErrorMessage message={props.error} />
+          {showResultTotal && props.resultTotal && (
+            <div className="border-b border-gray-100 px-4 py-2">
+              <TelemetryResultTotal
+                total={props.resultTotal}
+                rowsThroughPage={rowsThroughPage}
+                itemLabel={props.itemLabel}
+              />
             </div>
           )}
 
-          {!props.error && (
+          {listError && (
+            <TelemetryLoadErrorMessage
+              error={listError}
+              subject="search"
+              onRetry={props.onRetry || props.onRefresh}
+            />
+          )}
+
+          {!listError && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               {props.isLoading && props.items.length === 0 ? (
                 <div className="flex h-48 items-center justify-center">
@@ -381,10 +523,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                       className="h-8 w-8 text-gray-300"
                     />
                     <p className="text-sm font-medium text-gray-500">
-                      {props.emptyMessage || "No results"}
+                      {translateString(props.emptyMessage || "No results")}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Try adjusting filters or time range.
+                      {translateString("Try adjusting filters or time range.")}
                     </p>
                   </div>
                 )
@@ -402,22 +544,67 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             </div>
           )}
 
-          <TelemetryPagination
-            currentPage={props.page}
-            totalItems={props.totalCount}
-            pageSize={props.pageSize}
-            pageSizeOptions={props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS}
-            onPageChange={props.onPageChange}
-            onPageSizeChange={props.onPageSizeChange}
-            isDisabled={props.isLoading}
-            itemLabel={props.itemLabel}
-          />
+          {/*
+           * An exact total numbers the pages. Without one the footer does not
+           * print the endpoint's lower bound as if it were a total ("of 51"):
+           * it pages forward while more rows follow. Not under an error: there
+           * are no rows to page through.
+           */}
+          {!listError && (
+            <TelemetryPagination
+              currentPage={props.page}
+              totalItems={
+                exactTotalCount === undefined
+                  ? props.totalCount
+                  : exactTotalCount
+              }
+              hasMore={
+                exactTotalCount === undefined
+                  ? props.hasMore ?? props.items.length >= props.pageSize
+                  : undefined
+              }
+              itemsOnCurrentPage={
+                props.resultTotal || props.hasMore !== undefined
+                  ? props.items.length
+                  : undefined
+              }
+              pageSize={props.pageSize}
+              pageSizeOptions={
+                props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS
+              }
+              onPageChange={props.onPageChange}
+              onPageSizeChange={props.onPageSizeChange}
+              isDisabled={props.isLoading}
+              isLoading={props.isLoading && props.items.length === 0}
+              itemLabel={props.itemLabel}
+            />
+          )}
         </div>
       </div>
 
       {/* Detail panel overlay */}
       {props.detailPanel}
     </div>
+  );
+
+  /*
+   * Every chart in the viewer zooms the viewer's own window: the histogram,
+   * the analytics charts a host renders as mainContentOverride, and the
+   * picker's "Reset zoom", which is how a keyboard user gets back out. It
+   * also shadows any zoom a page around the viewer offers, since a drag
+   * here is about this explorer's window, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
+   */
+  if (!viewerZoom.zoom) {
+    return viewer;
+  }
+
+  return (
+    <TimeRangeZoomProvider zoom={viewerZoom.zoom}>
+      {viewer}
+    </TimeRangeZoomProvider>
   );
 }
 

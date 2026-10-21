@@ -256,6 +256,60 @@ describe("CompareCriteria", () => {
     });
   });
 
+  describe("convertMetricThresholdToNumber", () => {
+    test("keeps the fraction of a decimal string (parseInt truncated it)", () => {
+      expect(CompareCriteria.convertMetricThresholdToNumber("0.9")).toBe(0.9);
+      expect(CompareCriteria.convertMetricThresholdToNumber("85.5")).toBe(85.5);
+      expect(CompareCriteria.convertMetricThresholdToNumber("-0.5")).toBe(-0.5);
+      expect(CompareCriteria.convertMetricThresholdToNumber(".5")).toBe(0.5);
+      expect(CompareCriteria.convertMetricThresholdToNumber("1e-3")).toBe(
+        0.001,
+      );
+    });
+
+    test("parses integer strings exactly as convertToNumber does", () => {
+      for (const value of ["42", "0", "-7", "  7  ", "10px"]) {
+        expect(CompareCriteria.convertMetricThresholdToNumber(value)).toBe(
+          CompareCriteria.convertToNumber(value),
+        );
+      }
+    });
+
+    test("passes finite numbers through unchanged", () => {
+      expect(CompareCriteria.convertMetricThresholdToNumber(42)).toBe(42);
+      expect(CompareCriteria.convertMetricThresholdToNumber(0)).toBe(0);
+      expect(CompareCriteria.convertMetricThresholdToNumber(0.9)).toBe(0.9);
+    });
+
+    test("returns null (not NaN) for a missing or unparseable threshold", () => {
+      expect(
+        CompareCriteria.convertMetricThresholdToNumber(undefined),
+      ).toBeNull();
+      expect(CompareCriteria.convertMetricThresholdToNumber("abc")).toBeNull();
+      expect(CompareCriteria.convertMetricThresholdToNumber("")).toBeNull();
+      expect(CompareCriteria.convertMetricThresholdToNumber("   ")).toBeNull();
+      expect(CompareCriteria.convertMetricThresholdToNumber(NaN)).toBeNull();
+    });
+
+    test("returns null for a non-finite threshold", () => {
+      /*
+       * "> Infinity" can never fire and "< Infinity" always would; neither
+       * is a threshold anyone meant.
+       */
+      expect(
+        CompareCriteria.convertMetricThresholdToNumber("Infinity"),
+      ).toBeNull();
+      expect(
+        CompareCriteria.convertMetricThresholdToNumber(Infinity),
+      ).toBeNull();
+    });
+
+    test("convertToNumber itself still truncates for non-metric criteria", () => {
+      expect(CompareCriteria.convertToNumber("0.9")).toBe(0);
+      expect(CompareCriteria.convertToNumber("85.5")).toBe(85);
+    });
+  });
+
   describe("checkEqualToOrNotEqualTo", () => {
     test("EqualTo returns a message only when the values match", () => {
       const filter: CriteriaFilter = makeFilter({

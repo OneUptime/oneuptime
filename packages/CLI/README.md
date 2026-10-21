@@ -1,12 +1,15 @@
 # @oneuptime/cli
 
-Command-line interface for managing OneUptime resources. Supports all MCP-enabled resources with full CRUD operations, named contexts for multiple environments, and flexible output formats.
+Command-line interface for managing OneUptime resources. Supports every MCP-enabled resource (records with full CRUD operations, telemetry with list, create and count), named contexts for multiple environments, and flexible output formats.
 
 ## Installation
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
+
+The CLI needs Node.js 22 or later. It has no dependencies, so npm installs it without fetching other packages or building anything.
 
 Or run directly within the monorepo:
 
@@ -87,7 +90,7 @@ oneuptime context delete old-context
 
 ### Resource Operations
 
-Every discovered resource supports these subcommands:
+Every resource supports `list`, `create` and `count`. Records (monitors, incidents, teams and the like) also support `get`, `update` and `delete`; telemetry (logs, metrics, spans and the like) does not:
 
 | Subcommand                             | Description                                  |
 | -------------------------------------- | -------------------------------------------- |
@@ -110,11 +113,20 @@ Every discovered resource supports these subcommands:
 
 ### Utility Commands
 
-| Command               | Description                       |
-| --------------------- | --------------------------------- |
-| `oneuptime version`   | Print CLI version                 |
-| `oneuptime whoami`    | Show current authentication info  |
-| `oneuptime resources` | List all available resource types |
+| Command               | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| `oneuptime version`   | Print CLI version                                               |
+| `oneuptime whoami`    | Show current authentication info                                |
+| `oneuptime resources` | List all available resource types                               |
+| `oneuptime deploy`    | Record a deploy, or another change, for charts and OneUptime AI |
+
+`oneuptime deploy` writes with a telemetry ingestion key, not an API key:
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com \
+ONEUPTIME_TELEMETRY_INGESTION_KEY=xxx \
+oneuptime deploy --service checkout --service-version 2.3.1 --commit "$GIT_SHA" --environment production
+```
 
 ## Output Formats
 
@@ -123,6 +135,8 @@ Every discovered resource supports these subcommands:
 | `table` | Formatted ASCII table (default for TTY) |
 | `json`  | Raw JSON (default when piped)           |
 | `wide`  | Table with all columns shown            |
+
+`-o` applies to `<resource> list`, `get`, `create`, `update` and `count`, as well as `oneuptime resources` and `oneuptime context list`, and can go anywhere on the command line. Any other value is rejected with an error.
 
 ```bash
 # Explicit format
@@ -152,11 +166,12 @@ ONEUPTIME_API_KEY=sk-xxx ONEUPTIME_URL=https://oneuptime.com oneuptime incident 
 
 ## Environment Variables
 
-| Variable            | Description                |
-| ------------------- | -------------------------- |
-| `ONEUPTIME_API_KEY` | API key for authentication |
-| `ONEUPTIME_URL`     | OneUptime instance URL     |
-| `NO_COLOR`          | Disable colored output     |
+| Variable                            | Description                                    |
+| ----------------------------------- | ---------------------------------------------- |
+| `ONEUPTIME_API_KEY`                 | API key for authentication                     |
+| `ONEUPTIME_URL`                     | OneUptime instance URL                         |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Telemetry ingestion key for `oneuptime deploy` |
+| `NO_COLOR`                          | Disable colored output                         |
 
 ## Configuration File
 
@@ -171,13 +186,11 @@ The CLI stores configuration at `~/.oneuptime/config.json` with `0600` permissio
       "apiUrl": "https://oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
+
+Output format and list size are not read from this file. Pass `-o` and `--limit` per command; without `-o`, the CLI prints a table in a terminal and JSON when piped. Older versions wrote a `defaults` block here; it was never read and can be deleted.
 
 ## Global Options
 
@@ -191,19 +204,30 @@ The CLI stores configuration at `~/.oneuptime/config.json` with `0600` permissio
 
 ## Supported Resources
 
-Run `oneuptime resources` to see all available resource types. Resources are auto-discovered from OneUptime models that have MCP enabled. Currently supported:
+Every resource is a command: `oneuptime <resource> <subcommand>`. Resources are discovered from the OneUptime models that have MCP enabled, and `oneuptime resources` lists the ones your version has (`--type database` for records, `--type analytics` for telemetry).
 
-- **Incident** - Manage incidents
-- **Alert** - Manage alerts
-- **Monitor** - Manage monitors
-- **Monitor Status** - Manage monitor statuses
-- **Incident State** - Manage incident states
-- **Status Page** - Manage status pages
-- **On-Call Policy** - Manage on-call duty policies
-- **Team** - Manage teams
-- **Scheduled Maintenance Event** - Manage scheduled maintenance
+Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 
-As more models are MCP-enabled in OneUptime, they automatically become available in the CLI.
+| Area                  | Commands                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                              |
+| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                          |
+| Status pages          | `status-page`, `status-page-announcement`                                                                                                        |
+| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                             |
+| Teams and on-call     | `team`, `on-call-policy`                                                                                                                         |
+| Security              | `security-case`, `security-case-note`, `security-detection`, `security-playbook`                                                                 |
+| Labels                | `label`                                                                                                                                          |
+
+Telemetry takes `list`, `create` and `count`:
+
+| Area             | Commands                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| Observability    | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
+| Security         | `security-event`, `threat-intel-indicator`                   |
+| Changes and cost | `change-event`, `kubernetes-cost-allocation`                 |
+
+As more models are MCP-enabled in OneUptime, they become available in the CLI as well. The [command reference](https://oneuptime.com/docs/cli/command-reference) describes every command and its options.
 
 ## Development
 
@@ -213,6 +237,8 @@ npm install
 npm start -- --help     # Run via ts-node
 npm test                # Run tests
 npm run compile         # Type-check
+npm run build           # Bundle into build/dist/Index.js, the file npm publishes
+npm run smoke-test      # Pack, install as a customer does, and run it
 ```
 
 ## License

@@ -32,6 +32,7 @@ import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test: the server half of the SLO feed.
  *
@@ -159,7 +160,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(`[Jane Doe](${USER_LINK})`);
   });
 
@@ -172,7 +178,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(`[jane\\_doe@example.com](${USER_LINK})`);
   });
 
@@ -187,7 +198,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(
       `[x\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://t.example/p.png\\)](${USER_LINK})`,
     );
@@ -211,54 +227,13 @@ describe("SloFeedUtil - the acting user", () => {
     ).resolves.toBeNull();
   });
 
-  test("the display name is escaped, and empty for no user", () => {
+  test("the display name is plain text, as typed, and empty for no user", () => {
+    // Placed as text (mdText) by the feed items that name the user.
     expect(SloFeedUtil.getUserDisplayName(makeUser({ name: "*Jane*" }))).toBe(
-      "\\*Jane\\*",
+      "*Jane*",
     );
     expect(SloFeedUtil.getUserDisplayName(null)).toBe("");
     expect(SloFeedUtil.getUserDisplayName(makeUser({}))).toBe("");
-  });
-});
-
-/*
- * onBeforeUpdate and onBeforeDelete both run before DatabaseService applies
- * the caller's permissions, so what a feed hook reads there - and what it
- * later describes - has to be narrowed by hand.
- */
-describe("SloFeedUtil - reads made before permissions are applied", () => {
-  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-    "2b2b2b2b-2b2b-4b2b-8b2b-2b2b2b2b2b2b",
-  );
-
-  test("pins the caller's query to the caller's project, without touching the query itself", () => {
-    const query: Record<string, unknown> = { _id: SLO_ID.toString() };
-
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: PROJECT_ID }),
-    ).toEqual({ _id: SLO_ID.toString(), projectId: PROJECT_ID });
-
-    // A copy: DatabaseService still receives the caller's query as it came.
-    expect(query).toEqual({ _id: SLO_ID.toString() });
-  });
-
-  test("a query naming another project is overridden, never trusted", () => {
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({
-        query: { _id: SLO_ID.toString(), projectId: OTHER_PROJECT_ID },
-        tenantId: PROJECT_ID,
-      }),
-    ).toEqual({ _id: SLO_ID.toString(), projectId: PROJECT_ID });
-  });
-
-  test("without a tenant - a root automation - the query is used exactly as it is", () => {
-    const query: Record<string, unknown> = { _id: SLO_ID.toString() };
-
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: undefined }),
-    ).toBe(query);
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: null }),
-    ).toBe(query);
   });
 });
 

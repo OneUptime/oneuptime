@@ -1,4 +1,6 @@
-import NetworkSiteAssignmentRuleService from "../../../Server/Services/NetworkSiteAssignmentRuleService";
+import NetworkSiteAssignmentRuleService, {
+  NETWORK_SITE_NOT_IN_PROJECT_MESSAGE,
+} from "../../../Server/Services/NetworkSiteAssignmentRuleService";
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
@@ -259,6 +261,38 @@ describe("NetworkSiteAssignmentRuleService.onBeforeCreate", () => {
   });
 
   /*
+   * Whether a site id exists in some other project is not this project's to
+   * learn, so the two refusals above read exactly the same.
+   */
+  it("answers another project's site exactly like a site that does not exist", async () => {
+    mockSiteInProject(OTHER_PROJECT_ID);
+
+    const foreign: unknown = await (NetworkSiteAssignmentRuleService as any)
+      .onBeforeCreate(makeCreateBy({ hostnamePattern: "unit-*" }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    jest.restoreAllMocks();
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(null);
+
+    const missing: unknown = await (NetworkSiteAssignmentRuleService as any)
+      .onBeforeCreate(makeCreateBy({ hostnamePattern: "unit-*" }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    expect(foreign).toBeInstanceOf(BadDataException);
+    expect(missing).toBeInstanceOf(BadDataException);
+    expect((foreign as Error).message).toBe(
+      NETWORK_SITE_NOT_IN_PROJECT_MESSAGE,
+    );
+    expect((missing as Error).message).toBe(
+      NETWORK_SITE_NOT_IN_PROJECT_MESSAGE,
+    );
+  });
+
+  /*
    * The dashboard posts `{ site: { _id } }`; a guard that reads only `siteId`
    * would wave this straight through.
    */
@@ -428,7 +462,7 @@ describe("NetworkSiteAssignmentRuleService.onBeforeUpdate", () => {
       (NetworkSiteAssignmentRuleService as any).onBeforeUpdate(
         makeUpdateBy({ site: { _id: SITE_ID.toString() } }),
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(NETWORK_SITE_NOT_IN_PROJECT_MESSAGE);
   });
 
   it("accepts re-pointing a rule at a site in its own project", async () => {

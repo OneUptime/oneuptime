@@ -15,7 +15,13 @@ import IconProp from "../../../Types/Icon/IconProp";
  * the whole suite is skipped before a single assertion runs.
  */
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -341,35 +347,71 @@ describe("Modal dismissal and portalled dropdown menus", () => {
   });
 
   /*
-   * ColorPicker and IconPicker share UseAnchoredFieldPopup, whose own
-   * outside-click guard is a native capture-phase document listener — it never
-   * touches React propagation, so both were as exposed as the autocomplete.
-   * They reach a modal through FormField's Color and Icon schema types, which
-   * is to say through every ModelFormModal that edits a label or an incident
-   * role: picking a colour used to throw the whole form away.
+   * The compact ColorPicker and IconPicker share UseAnchoredFieldPopup, whose
+   * own outside-click guard is a native capture-phase document listener - it
+   * never touches React propagation, so both were as exposed as the
+   * autocomplete. The color popover reaches a modal through a custom field's
+   * options (DropdownOptionsInput) and a workflow value; picking a color in
+   * one used to throw the whole form away.
    */
   describe("ColorPicker", () => {
-    test("pressing inside the colour popup keeps the modal open", () => {
+    test("pressing inside the color popover keeps the modal open", () => {
       const harness: PortalHarness = renderInModal(
         <ColorPicker
+          layout="compact"
           dataTestId="color-value"
-          placeholder="Pick a color"
+          placeholder="No color"
           onChange={jest.fn()}
         />,
       );
 
-      fireEvent.click(screen.getByTestId("color-value"));
+      fireEvent.click(
+        within(screen.getByTestId("color-value")).getByTestId(
+          "color-picker-trigger",
+        ),
+      );
 
       const popup: HTMLElement = screen.getByTestId("color-picker-popup");
 
       expect(screen.getByTestId("modal").contains(popup)).toBe(false);
 
-      // The hex field: the part of the popup a user is most likely to press.
-      press(popup.querySelector("input") as HTMLElement);
+      // Custom color: the part of the popover a press keeps it open for.
+      press(within(popup).getByTestId("color-picker-custom"));
 
       expect(harness.onClose).not.toHaveBeenCalled();
       expect(screen.getByTestId("modal")).toBeInTheDocument();
       expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
+
+      // And the code box inside it.
+      press(within(popup).getByTestId("color-picker-code"));
+
+      expect(harness.onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
+    });
+
+    test("pressing a swatch picks it and keeps the modal open", () => {
+      const onChange: (value: unknown) => void = jest.fn();
+      const harness: PortalHarness = renderInModal(
+        <ColorPicker
+          layout="compact"
+          dataTestId="color-value"
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.click(
+        within(screen.getByTestId("color-value")).getByTestId(
+          "color-picker-trigger",
+        ),
+      );
+
+      const popup: HTMLElement = screen.getByTestId("color-picker-popup");
+
+      press(within(popup).getByRole("radio", { name: "Teal" }));
+
+      expect(onChange).toHaveBeenCalled();
+      expect(harness.onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
     });
   });
 
@@ -535,13 +577,18 @@ describe("Modal dismissal and portalled dropdown menus", () => {
     test("dismissing an open picker leaves the modal behind it standing", () => {
       const harness: PortalHarness = renderInModal(
         <ColorPicker
+          layout="compact"
           dataTestId="color-value"
-          placeholder="Pick a color"
+          placeholder="No color"
           onChange={jest.fn()}
         />,
       );
 
-      fireEvent.click(screen.getByTestId("color-value"));
+      fireEvent.click(
+        within(screen.getByTestId("color-value")).getByTestId(
+          "color-picker-trigger",
+        ),
+      );
       expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
 
       /*

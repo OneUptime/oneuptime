@@ -1,8 +1,15 @@
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import SubscriberNotificationStatus, {
+  ResendNotificationOptions,
+} from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import SubscriberNotificationResendCopy from "../../../Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
+import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
@@ -14,6 +21,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -24,7 +32,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   Fragment,
   FunctionComponent,
@@ -35,7 +43,11 @@ import React, {
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
+import { canWriteNoteColumn } from "../../../Components/EventNotes/EventNotesUtil";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -45,13 +57,19 @@ import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
 import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
+import useTelemetrySnapshotZoom, {
+  TelemetrySnapshotBadge,
+  TelemetrySnapshotZoom,
+} from "../../../Components/Telemetry/TelemetrySnapshotZoom";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
+import InvestigationPanel, {
+  InvestigationConversationSlot,
+} from "../../../Components/AI/InvestigationPanel";
+import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import IncidentAffectedResources from "./AffectedResources";
@@ -60,26 +78,41 @@ import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentM
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
-import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import {
+  EventPanelAction,
+  EventStatusFact,
+} from "../../../Components/EventView/EventStatusPanel";
+import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import CallSummarySection from "../../../Components/AI/CallSummary/CallSummarySection";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import useEventVideoCalls, {
+  EventVideoCallsState,
+  VideoCallEventKind,
+} from "../../../Components/VideoCall/useEventVideoCalls";
+import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import Host from "Common/Models/DatabaseModels/Host";
-import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
-import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
-import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Service from "Common/Models/DatabaseModels/Service";
-import AffectedResourcesPicker, {
-  isAffectedResourcesPayload,
-} from "../../../Components/AffectedResources/AffectedResourcesPicker";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import {
+  getIncidentAffectedResourcesFormFields,
+  onBeforeIncidentAffectedResourcesUpdate,
+} from "../../../Components/Incident/IncidentAffectedResourcesFormFields";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedResend from "Common/Types/StatusPage/IncidentCreatedResend";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -93,12 +126,18 @@ import {
 import {
   EventResponseTimes,
   VisibleItems,
+  getAcknowledgedAfterPagingText,
   getEventCreatorName,
   getEventResponseTimes,
   getTimeToStateText,
   splitVisibleItems,
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  INCIDENT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -106,6 +145,11 @@ import AppLink from "../../../Components/AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -145,9 +189,21 @@ interface FetchDataOptions {
 // How many monitor names the header lists before "+N more".
 const MAX_HEADER_MONITORS: number = 2;
 
+// Join call for the newest call, when the incident has one.
+function getJoinVideoCallActions(
+  videoCalls: EventVideoCallsState,
+): Array<EventPanelAction> {
+  const action: EventPanelAction | null = getJoinVideoCallAction(
+    videoCalls.calls,
+  );
+
+  return action ? [action] : [];
+}
+
 const IncidentView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -195,6 +251,20 @@ const IncidentView: FunctionComponent<
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
   /*
+   * A drag on the snapshot's primary chart (the metric chart, or a logs,
+   * traces or exceptions explorer's histogram) zooms the whole snapshot,
+   * every tab of it; see TelemetrySnapshotZoom. Held by the page, above the
+   * tabs, so it outlives a switch to another tab and back, and the
+   * background refresh (which re-reads an equal window) keeps it.
+   */
+  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
+    snapshotWindow: telemetrySnapshotWindow,
+    metricViewData: telemetryQuery?.metricViewData,
+    telemetryType: telemetryQuery?.telemetryType,
+    explorerQuery: telemetryQuery?.telemetryQuery,
+    subjectKey: modelIdString,
+  });
+  /*
    * "host.name = prod-01" when a grouped metric monitor opened this
    * incident for one series. Empty for whole-monitor incidents.
    */
@@ -218,6 +288,10 @@ const IncidentView: FunctionComponent<
   const [incidentStartedAt, setIncidentStartedAt] = useState<Date | undefined>(
     undefined,
   );
+  // When somebody was first paged about the incident, if anybody was.
+  const [incidentFirstPagedAt, setIncidentFirstPagedAt] = useState<
+    Date | undefined
+  >(undefined);
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
@@ -362,6 +436,33 @@ const IncidentView: FunctionComponent<
 
   const refreshFeedAfterAnalysisAvailable: () => void = refreshFeed;
 
+  /*
+   * The incident's video calls: the card in the right column, and the Join
+   * call button in the header for the newest one.
+   */
+  const videoCalls: EventVideoCallsState = useEventVideoCalls({
+    kind: VideoCallEventKind.Incident,
+    eventId: modelId,
+    // A rule's call arrives a moment after a new incident is created.
+    eventStartedAt: incidentStartedAt,
+  });
+
+  // The incident's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.Incident,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new incident is created.
+    recordStartedAt: incidentStartedAt,
+  });
+
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.Incident,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: refreshFeed,
+  });
+
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
     options: FetchDataOptions,
   ): Promise<void> => {
@@ -414,8 +515,11 @@ const IncidentView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Incident>({
           id: modelId,
@@ -427,6 +531,8 @@ const IncidentView: FunctionComponent<
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
             title: true,
             declaredAt: true,
+            // "Acknowledged in" also says how long after paging.
+            firstPagedAt: true,
             incidentNumber: true,
             incidentNumberWithPrefix: true,
             incidentSeverity: {
@@ -508,6 +614,7 @@ const IncidentView: FunctionComponent<
 
       setIncidentTitle(incident?.title || undefined);
       setIncidentStartedAt(incident?.declaredAt || undefined);
+      setIncidentFirstPagedAt(incident?.firstPagedAt || undefined);
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -569,11 +676,56 @@ const IncidentView: FunctionComponent<
     });
   };
 
-  const handleResendNotification: () => Promise<void> =
-    async (): Promise<void> => {
-      setResendNotificationErrorState(null);
+  /*
+   * Retry and Resend of the 'created' notification write its status: offered
+   * only to whoever may update the incident and that column, as the notes
+   * feed offers a note's. The server refuses everyone else anyway.
+   */
+  const incidentModelForPermissions: Incident = new Incident();
+  const canSendCreatedNotificationAgain: boolean =
+    PermissionGate.check(incidentModelForPermissions, ModelAction.Update)
+      .isAllowed &&
+    canWriteNoteColumn({
+      model: incidentModelForPermissions,
+      column: "subscriberNotificationStatusOnIncidentCreated",
+      action: "update",
+      held: PermissionGate.getHeldPermissions(),
+      isMasterAdmin: User.isMasterAdmin(),
+    });
 
-      try {
+  /*
+   * Sends the incident-created notification again. Retry after a failure
+   * puts it back to Pending, and the server keeps its record of the status
+   * pages already reached, so the send resumes after them. Resend after a
+   * success - and Retry with "every status page" ticked - asks the server to
+   * send it to every page again (IncidentCreatedResend), which empties that
+   * record in the same write.
+   */
+  const handleResendNotification: (
+    options: ResendNotificationOptions,
+  ) => Promise<void> = async (
+    options: ResendNotificationOptions,
+  ): Promise<void> => {
+    setResendNotificationErrorState(null);
+
+    try {
+      if (options.isToAllStatusPages) {
+        /*
+         * The same Pending as Retry - an update must write some column -
+         * with the request that makes it reach every page.
+         */
+        const incident: Incident = new Incident();
+        incident._id = modelIdString;
+        incident.subscriberNotificationStatusOnIncidentCreated =
+          StatusPageSubscriberNotificationStatus.Pending;
+
+        await ModelAPI.createOrUpdate<Incident>({
+          model: incident,
+          modelType: Incident,
+          formType: FormType.Update,
+          miscDataProps: IncidentCreatedResend.getMiscDataProps(),
+        });
+      } else {
         // Reset the notification status to Pending so the worker can pick it up again
         await ModelAPI.updateById({
           id: modelId,
@@ -582,21 +734,22 @@ const IncidentView: FunctionComponent<
             subscriberNotificationStatusOnIncidentCreated:
               StatusPageSubscriberNotificationStatus.Pending,
             subscriberNotificationStatusMessage:
-              "Notification queued for resending",
+              IncidentCreatedResend.retryQueuedMessage,
           },
         });
-
-        // Only the details card shows the status, so only it reads again.
-        setDetailsRefresher((current: boolean): boolean => {
-          return !current;
-        });
-      } catch (err) {
-        setResendNotificationErrorState({
-          subjectId: modelIdString,
-          value: BaseAPI.getFriendlyMessage(err),
-        });
       }
-    };
+
+      // Only the details card shows the status, so only it reads again.
+      setDetailsRefresher((current: boolean): boolean => {
+        return !current;
+      });
+    } catch (err) {
+      setResendNotificationErrorState({
+        subjectId: modelIdString,
+        value: BaseAPI.getFriendlyMessage(err),
+      });
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -632,21 +785,53 @@ const IncidentView: FunctionComponent<
 
   type GetIncidentStateFunction = () => IncidentState | undefined;
 
+  /*
+   * The project's acknowledged state, by name, and every state that counts
+   * as acknowledged short of resolved: it and any state placed after it, up
+   * to the resolved one (Common/Utils/AcknowledgedState).
+   */
   const getAcknowledgeState: GetIncidentStateFunction = ():
     | IncidentState
     | undefined => {
-    return incidentStates.find((state: IncidentState) => {
-      return state.isAcknowledgedState;
-    });
+    return (
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }) || undefined
+    );
   };
 
+  const acknowledgedStateIds: Array<string> =
+    AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }).map((stateId: ObjectID) => {
+      return stateId.toString();
+    });
+
+  /*
+   * The project's resolved state, by name, and every state that counts as
+   * resolved: it and any state placed after it (Common/Utils/ResolvedState).
+   */
   const getResolvedState: GetIncidentStateFunction = ():
     | IncidentState
     | undefined => {
-    return incidentStates.find((state: IncidentState) => {
-      return state.isResolvedState;
-    });
+    return (
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }) || undefined
+    );
   };
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const acknowledgeState: IncidentState | undefined = getAcknowledgeState();
   const resolvedState: IncidentState | undefined = getResolvedState();
@@ -670,14 +855,14 @@ const IncidentView: FunctionComponent<
   const responseTimes: EventResponseTimes = getEventResponseTimes({
     timelines: timelineDates,
     startedAt: incidentStartedAt,
-    acknowledgedStateId: acknowledgeState?._id?.toString(),
-    resolvedStateId: resolvedState?._id?.toString(),
+    acknowledgedStateIds: acknowledgedStateIds,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
     timelineDates,
-    resolvedState?._id?.toString(),
+    resolvedStateIds,
   );
 
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
@@ -701,7 +886,8 @@ const IncidentView: FunctionComponent<
     return (
       <span>
         {monitorsToShow.visible.map((monitor: Monitor, index: number) => {
-          const monitorName: string = monitor.name || "Unnamed monitor";
+          const monitorName: string =
+            monitor.name || translator.translateTerm("Unnamed monitor");
 
           return (
             <Fragment key={monitor._id?.toString() || `monitor-${index}`}>
@@ -726,7 +912,11 @@ const IncidentView: FunctionComponent<
         })}
         {monitorsToShow.hiddenCount > 0 ? (
           <span className="font-normal text-gray-500">
-            {` +${monitorsToShow.hiddenCount} more`}
+            {" "}
+            {translator.translatePlural(
+              { one: "+{{count}} more", other: "+{{count}} more" },
+              monitorsToShow.hiddenCount,
+            )}
           </span>
         ) : (
           <></>
@@ -770,7 +960,10 @@ const IncidentView: FunctionComponent<
    */
   const snapshotWindowAlert: ReactElement | undefined =
     telemetrySnapshotWindow ? (
-      <TelemetrySnapshotWindowAlert window={telemetrySnapshotWindow} />
+      <TelemetrySnapshotBadge
+        window={telemetrySnapshotWindow}
+        zoom={snapshotZoom.zoom}
+      />
     ) : undefined;
 
   return (
@@ -781,7 +974,10 @@ const IncidentView: FunctionComponent<
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {`Could not refresh this incident. ${refreshError}`}
+            {translator.translateTemplate(
+              "Could not refresh this incident. {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -789,7 +985,7 @@ const IncidentView: FunctionComponent<
               onClick={refreshData}
               className="rounded-md text-sm font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Try again
+              {translator.translateText("Try again")}
             </button>
             <button
               type="button"
@@ -798,7 +994,7 @@ const IncidentView: FunctionComponent<
               }}
               className="rounded-md text-sm font-medium text-red-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Dismiss
+              {translator.translateText("Dismiss")}
             </button>
           </div>
         </div>
@@ -818,6 +1014,11 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault
           }
           facts={headerFacts}
+          secondaryActions={[
+            ...passOn.actions,
+            ...getJoinVideoCallActions(videoCalls),
+            ...getOpenInChatActions(channelLinks),
+          ]}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
@@ -825,8 +1026,11 @@ const IncidentView: FunctionComponent<
             refreshData();
             // The state change is a new feed entry.
             refreshFeed();
+            // Acknowledging it ends the reader's own page, if they had one.
+            passOn.refresh();
           }}
         />
+        {passOn.dialog}
       </div>
 
       <EventStatBar
@@ -836,7 +1040,10 @@ const IncidentView: FunctionComponent<
       >
         <EventStatTile
           variant="segment"
-          label={`${acknowledgeState?.name || "Acknowledged"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName:
+              acknowledgeState?.name || translatableTerm("Acknowledged"),
+          })}
           icon={IconProp.Check}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -844,11 +1051,20 @@ const IncidentView: FunctionComponent<
             stateName: acknowledgeState?.name,
             fallbackStateName: "acknowledged",
           })}
+          note={getAcknowledgedAfterPagingText(
+            {
+              firstPagedAt: incidentFirstPagedAt,
+              acknowledgedAt: responseTimes.acknowledgedAt,
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.acknowledgedAt)}
         />
         <EventStatTile
           variant="segment"
-          label={`${resolvedState?.name || "Resolved"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: resolvedState?.name || translatableTerm("Resolved"),
+          })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -873,7 +1089,11 @@ const IncidentView: FunctionComponent<
             )
           }
           description={
-            durationEndDate ? `Ended ${formatDate(durationEndDate)}` : undefined
+            durationEndDate
+              ? translator.translateTemplate("Ended {{date}}", {
+                  date: formatDate(durationEndDate) || "",
+                })
+              : undefined
           }
         />
       </EventStatBar>
@@ -891,12 +1111,36 @@ const IncidentView: FunctionComponent<
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+            renderConversation={(slot: InvestigationConversationSlot) => {
+              return (
+                <InvestigationConversation
+                  subjectType="incident"
+                  subjectId={modelId}
+                  investigationStage={slot.investigationStage}
+                />
+              );
+            }}
+            renderCallSummaries={() => {
+              return (
+                <CallSummarySection
+                  incidentId={modelId}
+                  calls={videoCalls.calls as Array<IncidentVideoCall>}
+                  onChanged={() => {
+                    videoCalls.refresh();
+                    // A root cause used from the call is a new feed entry.
+                    refreshFeed();
+                  }}
+                />
+              );
+            }}
           />
 
           {telemetryQuery && (
             <TelemetryCompanionSignalTabs
               telemetryQuery={telemetryQuery}
-              snapshotWindow={telemetrySnapshotWindow}
+              // The companion tabs follow the zoom: they show the slice too.
+              snapshotWindow={snapshotZoom.window}
+              isSnapshotZoomed={snapshotZoom.isZoomed}
               snapshotWindowAlert={snapshotWindowAlert}
               eventNoun="incident"
               primarySignalElement={
@@ -909,14 +1153,23 @@ const IncidentView: FunctionComponent<
                           description={"Logs for this incident."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <DashboardLogsViewer
-                            id="logs-preview"
-                            logQuery={
-                              telemetryQuery.telemetryQuery as Query<Log>
-                            }
-                            limit={10}
-                            noLogsMessage="No logs found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows: a drag
+                           * on the log volume chart zooms every tab, and a
+                           * double-click or the badge's Reset zoom
+                           * returns them all. See TelemetrySnapshotZoom.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <DashboardLogsViewer
+                              id="logs-preview"
+                              logQuery={
+                                snapshotZoom.explorerQuery as Query<Log>
+                              }
+                              limit={10}
+                              noLogsMessage="No logs found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
@@ -929,41 +1182,61 @@ const IncidentView: FunctionComponent<
                           description={"Spans for this incident."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <TracesViewer
-                            spanQuery={
-                              telemetryQuery.telemetryQuery as Query<Span>
-                            }
-                            limit={10}
-                            /*
-                             * Pinned to the snapshot: this page owns the URL,
-                             * so the viewer neither reads a filter out of it
-                             * nor writes its own state back into it.
-                             */
-                            disableUrlSync={true}
-                            emptyMessage="No spans found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows; see the
+                           * logs above.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <TracesViewer
+                              spanQuery={
+                                snapshotZoom.explorerQuery as Query<Span>
+                              }
+                              limit={10}
+                              /*
+                               * Pinned to the snapshot: this page owns the URL,
+                               * so the viewer neither reads a filter out of it
+                               * nor writes its own state back into it.
+                               */
+                              disableUrlSync={true}
+                              emptyMessage="No spans found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
 
                   {telemetryQuery.telemetryType === TelemetryType.Metric &&
-                    telemetryQuery.metricViewData && (
+                    snapshotZoom.metricViewData && (
                       <Card
                         title={"Metrics"}
                         description={
                           seriesSummary
-                            ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                            ? translator.translateTemplate(
+                                "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).",
+                                { seriesSummary: seriesSummary },
+                              )
                             : "Metrics related to this incident."
                         }
                         rightElement={snapshotWindowAlert}
                       >
                         <MetricView
-                          data={telemetryQuery.metricViewData}
+                          data={snapshotZoom.metricViewData}
                           hideQueryElements={true}
                           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                           hideStartAndEndDate={true}
-                          // Read-only host: onChange is a no-op, so zoom can't apply.
-                          disableChartZoom={true}
+                          /*
+                           * A drag zooms the whole snapshot, and a
+                           * double-click (or Reset zoom beside the badge)
+                           * returns it to the snapshot window. The window
+                           * itself is a record, nobody's to change
+                           * (onChange is a no-op). A snapshot that stored
+                           * no window has nothing to hand the other tabs:
+                           * its chart zooms itself alone.
+                           */
+                          onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
+                          onTimeRangeReset={snapshotZoom.onTimeRangeReset}
+                          localChartZoom={true}
                           onChange={(_data: MetricViewData) => {
                             // do nothing!
                           }}
@@ -978,24 +1251,31 @@ const IncidentView: FunctionComponent<
                         description={"Exceptions related to this incident."}
                         rightElement={snapshotWindowAlert}
                       >
-                        <ExceptionsViewer
-                          exceptionInstanceQuery={
-                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                          }
-                          /*
-                           * An event shows the exceptions it fired on,
-                           * whoever has since resolved them and whatever the
-                           * classifier made of them — the explorer's
-                           * "unresolved issues" defaults would hide exactly
-                           * those.
-                           */
-                          defaultStatus="all"
-                          defaultClassScope="all"
-                          limit={10}
-                          // Pinned to the snapshot; this page owns the URL.
-                          disableUrlSync={true}
-                          emptyMessage="No exceptions found"
-                        />
+                        {/*
+                         * On the window the snapshot shows and inside its
+                         * zoom, which the explorer follows; see the logs
+                         * above.
+                         */}
+                        <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                          <ExceptionsViewer
+                            exceptionInstanceQuery={
+                              snapshotZoom.explorerQuery as Query<ExceptionInstance>
+                            }
+                            /*
+                             * An event shows the exceptions it fired on,
+                             * whoever has since resolved them and whatever the
+                             * classifier made of them — the explorer's
+                             * "unresolved issues" defaults would hide exactly
+                             * those.
+                             */
+                            defaultStatus="all"
+                            defaultClassScope="all"
+                            limit={10}
+                            // Pinned to the snapshot; this page owns the URL.
+                            disableUrlSync={true}
+                            emptyMessage="No exceptions found"
+                          />
+                        </TimeRangeZoomProvider>
                       </Card>
                     )}
                 </Fragment>
@@ -1020,10 +1300,37 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={isPrivate}
           />
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          <EventVideoCallsCard
+            kind={VideoCallEventKind.Incident}
+            eventId={modelId}
+            calls={videoCalls.calls}
+            hasLoaded={videoCalls.hasLoaded}
+            error={videoCalls.error}
+            onRetry={videoCalls.refresh}
+            onChanged={() => {
+              videoCalls.refresh();
+              // A started call is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
+          {/*
+           * Who is in the incident's own channel, beside its call: where its
+           * responders talk. Only for an incident with a channel of its own.
+           */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Incident}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
+          />
+
           {/* Incident View  */}
           <CardModelDetail<Incident>
             name="Incident Details"
@@ -1040,23 +1347,12 @@ const IncidentView: FunctionComponent<
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Incident Details",
-                id: "incident-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Incident Title",
-                stepId: "incident-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Incident Title",
@@ -1070,34 +1366,20 @@ const IncidentView: FunctionComponent<
                   incidentSeverity: true,
                 },
                 title: "Incident Severity",
-                description: "What type of incident is this?",
+                description: "How serious is it?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "incident-details",
                 dropdownModal: {
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Incident Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Incident>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {
@@ -1149,7 +1431,11 @@ const IncidentView: FunctionComponent<
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span className="text-gray-500">Unknown</span>;
+                    return (
+                      <span className="text-gray-500">
+                        {translator.translateText("Unknown")}
+                      </span>
+                    );
                   },
                 },
                 {
@@ -1185,27 +1471,116 @@ const IncidentView: FunctionComponent<
                           subscriberNotificationStatusMessage={
                             item.subscriberNotificationStatusMessage
                           }
-                          onResendNotification={() => {
-                            handleResendNotification().catch((err: Error) => {
-                              setResendNotificationErrorState({
-                                subjectId: modelIdString,
-                                value: BaseAPI.getFriendlyMessage(err),
-                              });
-                            });
-                          }}
+                          statusText={
+                            IncidentCreatedRenotify.isHiddenFromStatusPagesSkip(
+                              {
+                                status:
+                                  item.subscriberNotificationStatusOnIncidentCreated,
+                                message:
+                                  item.subscriberNotificationStatusMessage,
+                              },
+                            )
+                              ? IncidentCreatedRenotify.hiddenFromStatusPagesLabel
+                              : undefined
+                          }
+                          /*
+                           * Only for whoever may send it again - it writes
+                           * the notification's status. A viewer is offered
+                           * neither Resend nor Retry, as in the notes feed.
+                           */
+                          onResendNotification={
+                            canSendCreatedNotificationAgain
+                              ? (options: ResendNotificationOptions) => {
+                                  handleResendNotification(options).catch(
+                                    (err: Error) => {
+                                      setResendNotificationErrorState({
+                                        subjectId: modelIdString,
+                                        value: BaseAPI.getFriendlyMessage(err),
+                                      });
+                                    },
+                                  );
+                                }
+                              : undefined
+                          }
+                          /*
+                           * Resend after a success, Retry after a failure,
+                           * each confirmed with who it reaches now: the
+                           * pages of the incident's current scope - for a
+                           * Retry, without the pages already sent it in
+                           * full, which it skips - or that it reaches no
+                           * one.
+                           */
+                          resendConfirmation={
+                            canSendCreatedNotificationAgain
+                              ? {
+                                  resendDescription:
+                                    SubscriberNotificationResendCopy.incidentCreatedResendDescription,
+                                  retryDescription:
+                                    SubscriberNotificationResendCopy.incidentCreatedRetryDescription,
+                                  retryToAllStatusPagesLabel:
+                                    SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+                                  retryToAllStatusPagesDescription:
+                                    SubscriberNotificationResendCopy.incidentCreatedResendToAllStatusPagesDescription,
+                                  audience: (
+                                    <SubscriberAudienceSummary
+                                      request={{ incidentId: modelId }}
+                                      dataTestId="incident-created-resend-audience"
+                                      saysWhenNobodyIsNotified={true}
+                                    />
+                                  ),
+                                  retryAudience: (
+                                    <SubscriberAudienceSummary
+                                      request={{
+                                        incidentId: modelId,
+                                        excludeStatusPagesNotifiedOnCreation:
+                                          true,
+                                      }}
+                                      dataTestId="incident-created-retry-audience"
+                                      saysWhenNobodyIsNotified={true}
+                                    />
+                                  ),
+                                }
+                              : undefined
+                          }
                         />
                         {resendNotificationError ? (
                           <p
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {"Could not resend notifications: " +
-                              resendNotificationError}
+                            {translator.translateTemplate(
+                              "Could not resend notifications: {{error}}",
+                              { error: resendNotificationError },
+                            )}
                           </p>
                         ) : (
                           <></>
                         )}
                       </div>
+                    );
+                  },
+                },
+                /*
+                 * The status pages this incident is limited to, read only;
+                 * it is changed on the Settings tab. The pages are read by
+                 * the element itself: this card already reads two lists.
+                 */
+                {
+                  field: {
+                    isScopedToStatusPages: true,
+                  },
+                  title: IncidentStatusPageScopeCopy.overviewFieldTitle,
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <IncidentStatusPageScopeView
+                        isScopedToStatusPages={item.isScopedToStatusPages}
+                        incidentId={modelId}
+                        editRoute={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route,
+                          { modelId: modelId },
+                        )}
+                      />
                     );
                   },
                 },
@@ -1254,6 +1629,22 @@ const IncidentView: FunctionComponent<
             }}
           />
 
+          {/*
+           * The project's own measurements - time to mitigate, say - worked
+           * out for this incident, under its other facts. Drawn only when
+           * the project shows some on incident pages.
+           */}
+          <EventMeasurementsCard
+            source={INCIDENT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: incidentStateTimeline,
+              times: [incidentStartedAt],
+            })}
+            headerLayout="stacked"
+          />
+
           <IncidentMemberRoleAssignment
             incidentId={modelId}
             headerLayout="stacked"
@@ -1274,216 +1665,14 @@ const IncidentView: FunctionComponent<
                 "Monitors, services, infrastructure and SLOs this incident affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
               refreshFeed();
             }}
-            formFields={[
-              {
-                field: {
-                  monitors: true,
-                },
-                title: "",
-                description:
-                  "Search and attach monitors, hosts, clusters, container hosts, or services affected by this incident.",
-                fieldType: FormFieldSchemaType.CustomComponent,
-                required: false,
-                getCustomElement: (
-                  values: FormValues<Incident>,
-                  elementProps: CustomElementProps,
-                ) => {
-                  return (
-                    <AffectedResourcesPicker
-                      monitors={values.monitors as Array<Monitor>}
-                      hosts={values.hosts as Array<Host>}
-                      kubernetesClusters={
-                        values.kubernetesClusters as Array<KubernetesCluster>
-                      }
-                      dockerHosts={values.dockerHosts as Array<DockerHost>}
-                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                      proxmoxClusters={
-                        values.proxmoxClusters as Array<ProxmoxCluster>
-                      }
-                      vmwareVCenters={
-                        values.vmwareVCenters as Array<VMwareVCenter>
-                      }
-                      cephClusters={values.cephClusters as Array<CephCluster>}
-                      dockerSwarmClusters={
-                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
-                      }
-                      iotFleets={values.iotFleets as Array<IoTFleet>}
-                      databaseServers={
-                        values.databaseServers as Array<DatabaseServer>
-                      }
-                      services={values.services as Array<Service>}
-                      resourceTypes={[
-                        "Monitor",
-                        "Host",
-                        "KubernetesCluster",
-                        "DockerHost",
-                        "PodmanHost",
-                        "ProxmoxCluster",
-                        "VMwareVCenter",
-                        "CephCluster",
-                        "DockerSwarmCluster",
-                        "IoTFleet",
-                        "DatabaseServer",
-                        "Service",
-                      ]}
-                      onChange={(payload: unknown) => {
-                        elementProps.onChange?.(payload);
-                      }}
-                    />
-                  );
-                },
-                onChange: (
-                  value: unknown,
-                  currentValues: FormValues<Incident>,
-                  setNewFormValues: (values: FormValues<Incident>) => void,
-                ) => {
-                  if (isAffectedResourcesPayload(value)) {
-                    const payload: typeof value = value;
-                    queueMicrotask(() => {
-                      setNewFormValues({
-                        ...currentValues,
-                        monitors: payload.monitors,
-                        hosts: payload.hosts,
-                        kubernetesClusters: payload.kubernetesClusters,
-                        dockerHosts: payload.dockerHosts,
-                        podmanHosts: payload.podmanHosts,
-                        proxmoxClusters: payload.proxmoxClusters,
-                        vmwareVCenters: payload.vmwareVCenters,
-                        cephClusters: payload.cephClusters,
-                        dockerSwarmClusters: payload.dockerSwarmClusters,
-                        iotFleets: payload.iotFleets,
-                        databaseServers: payload.databaseServers,
-                        services: payload.services,
-                      } as FormValues<Incident>);
-                    });
-                  }
-                },
-              },
-              /*
-               * Hidden registrations so ModelForm.getSelectFields includes
-               * hosts/kubernetesClusters/dockerHosts/services on load and submit.
-               */
-              {
-                field: { hosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { kubernetesClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { podmanHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { proxmoxClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { vmwareVCenters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { cephClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerSwarmClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { iotFleets: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { databaseServers: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { services: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: {
-                  changeMonitorStatusTo: true,
-                },
-                title: "Change Monitor Status to",
-                description:
-                  "This will change the status of all the monitors attached to this incident.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: MonitorStatus,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Monitor Status",
-              },
-            ]}
+            onBeforeUpdate={onBeforeIncidentAffectedResourcesUpdate}
+            formFields={getIncidentAffectedResourcesFormFields()}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
               style: DetailStyle.Compact,
@@ -1531,6 +1720,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
                     dockerSwarmClusters: {
                       name: true,
                       _id: true,
@@ -1572,6 +1765,7 @@ const IncidentView: FunctionComponent<
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}

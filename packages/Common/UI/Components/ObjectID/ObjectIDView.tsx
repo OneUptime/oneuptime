@@ -1,23 +1,71 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import Clipboard from "../../Utils/Clipboard";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+/*
+ * An ID drawn as a field: the whole ID in a pill, copied on a click. A
+ * details card draws a record's own ID on its small ID line instead
+ * (Detail/DetailIdLine.tsx); this is for the IDs that stay fields - a card
+ * whose point is the ID, or an ID that is not the record's own.
+ */
 
 export interface ComponentProps {
   objectId: string;
 }
 
+const COPIED_FEEDBACK_MS: number = 2000;
+
 const ObjectIDView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [copied, setCopied] = useState<boolean>(false);
+  const resetTimerRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy: () => Promise<void> = async (): Promise<void> => {
-    await navigator.clipboard?.writeText(props.objectId);
+    /*
+     * A refused or missing clipboard (a plain-http self-hosted install, an
+     * unfocused document) used to say "Copied!" all the same.
+     */
+    const hasCopied: boolean = await Clipboard.copyToClipboard(props.objectId);
+
+    // Refused, or the page moved on while the clipboard answered.
+    if (!hasCopied || !isMountedRef.current) {
+      return;
+    }
+
     setCopied(true);
-    setTimeout(() => {
+
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+    }
+
+    resetTimerRef.current = setTimeout(() => {
+      resetTimerRef.current = null;
       setCopied(false);
-    }, 2000);
+    }, COPIED_FEEDBACK_MS);
   };
 
   return (
@@ -28,6 +76,8 @@ const ObjectIDView: FunctionComponent<ComponentProps> = (
       tabIndex={0}
       onKeyDown={async (e: React.KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
+          // Space would otherwise scroll the page as well.
+          e.preventDefault();
           await handleCopy();
         }
       }}

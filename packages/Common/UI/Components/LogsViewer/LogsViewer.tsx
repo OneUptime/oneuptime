@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -59,7 +60,18 @@ import {
   normalizeLogsTableColumns,
 } from "./types";
 import LogsAnalyticsView from "./components/LogsAnalyticsView";
-import { LogSearchBarRef } from "./components/LogSearchBar";
+import {
+  isLogSearchFieldAlias,
+  LogSearchBarRef,
+} from "./components/LogSearchBar";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "../../Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+  toValueList,
+} from "../../Utils/Telemetry/AttributeValueSuggestions";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -68,10 +80,17 @@ import ProjectUtil from "../../Utils/Project";
 import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import useHistogramZoom, {
-  HistogramZoomState,
-} from "../Charts/Utils/useHistogramZoom";
+import useViewerTimeRangeZoom, {
+  ViewerTimeRangeZoom,
+} from "../TelemetryViewer/useViewerTimeRangeZoom";
+import { hasLockedTelemetryScope } from "../TelemetryViewer/FacetVisibility";
+import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
+import ResultTotalUtil, {
+  ResultTotal,
+} from "../../Utils/Telemetry/ResultTotal";
+import { TelemetryLoadError } from "../../Utils/Telemetry/TelemetryLoadError";
+import TelemetryLoadErrorMessage from "../TelemetryViewer/components/TelemetryLoadErrorMessage";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
@@ -87,8 +106,34 @@ export interface ComponentProps {
   onFilterChanged: (filterOptions: Query<Log>) => void;
   filterData: Query<Log>;
   isLoading: boolean;
+  /*
+   * Why the list did not load (issue #4707). Shown where the rows go —
+   * never in place of the whole viewer — so the search bar, the time range
+   * and the filters stay to narrow the search, with one click to try again.
+   */
+  listError?: TelemetryLoadError | undefined;
+  onRetryList?: (() => void) | undefined;
+  // Why the chart did not load; it says so in its own card.
+  histogramError?: TelemetryLoadError | undefined;
+  onRetryHistogram?: (() => void) | undefined;
+  /*
+   * Facets whose counts the server stopped at the time limit, and why the
+   * facets did not load at all: the sidebar says so.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * What the list shows when it comes back empty while nothing narrows it -
+   * no filter chip the reader added, no search typed: the Logs page's way
+   * in for a project that may not be sending logs yet (its setup guide).
+   * A list a filter or a search emptied keeps noLogsMessage, and a page
+   * that leaves this unset (a service's or an incident's logs) is
+   * unchanged.
+   */
+  emptyContentWhenUnfiltered?: ReactNode | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
   /*
@@ -110,7 +155,20 @@ export interface ComponentProps {
       ) => Route | URL | undefined | Promise<Route | URL | undefined>)
     | undefined;
   projectId?: ObjectID | undefined;
+  /*
+   * How many logs the query matches — or the lower bound the logs list
+   * endpoint answers with when `hasMore` is set (it skips COUNT(*)). Unset,
+   * the viewer pages `logs` itself.
+   */
   totalCount?: number | undefined;
+  // Whether logs follow this page, from the list endpoint (see totalCount).
+  hasMore?: boolean | undefined;
+  /*
+   * The size of the whole result set, worked out apart from the list (see
+   * UseResultTotal): the toolbar shows it, and the footer numbers its pages
+   * by it once it is exact.
+   */
+  resultTotal?: ResultTotal | undefined;
   page?: number | undefined;
   pageSize?: number | undefined;
   onPageChange?: (page: number) => void;
@@ -129,8 +187,18 @@ export interface ComponentProps {
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
+  /*
+   * A facet value that is not filtering was clicked: add its chip. A click
+   * on a checked value takes its chip off through onRemoveFilter instead,
+   * so adding a chip that is already there should change nothing.
+   */
   onFacetInclude?: (facetKey: string, value: string) => void;
-  onFacetExclude?: (facetKey: string, value: string) => void;
+  /*
+   * Leave a facet value's rows out. Only a host whose list, chart and
+   * counts can all leave a value out passes this: without it the facet rows
+   * carry no exclude button.
+   */
+  onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
    * Debounced search emit for resource facets (serviceId / hostId / etc.).
    * Parent updates state and re-fetches facets so the result includes
@@ -199,6 +267,20 @@ const severityWeight: Record<string, number> = {
   debug: 2,
   trace: 1,
 };
+
+/**
+ * Whether the reader narrowed the list: a filter chip of their own (the
+ * chips a page pins are passed apart, as baseActiveFilters) or a search in
+ * the bar. Only an unnarrowed empty list shows emptyContentWhenUnfiltered.
+ */
+export function isNarrowedByReader(data: {
+  activeFilters: Array<ActiveFilter> | undefined;
+  searchQuery: string;
+}): boolean {
+  return (
+    (data.activeFilters || []).length > 0 || data.searchQuery.trim().length > 0
+  );
+}
 
 /*
  * Exported so the window it reports can be unit-tested directly - rendering the
@@ -278,18 +360,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [filterData, setFilterData] = useState<Query<Log>>(props.filterData);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  /*
+   * The project's attribute keys: the `@` dropdown's list, the column
+   * picker's attribute columns, and what tells the `@key:` value picker which
+   * keys to look up. Loaded once; a list that could not load is not asked
+   * for again and again (it used to be, back to back, for as long as the
+   * page was open), and the value picker then looks up any key.
+   */
   const [logAttributes, setLogAttributes] = useState<Array<string>>([]);
-  const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
-  const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-
-  // Per-attribute value suggestions, populated lazily as the user types `@key:`.
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  const [attributesLoading, setAttributesLoading] = useState<boolean>(true);
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
@@ -342,10 +422,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
    * window for a custom one and nothing remembers what the reader was
-   * looking at. This keeps that window so a double-click on the chart can
-   * hand it back.
+   * looking at. This keeps that window so a double-click on a chart, or
+   * "Reset zoom" beside the picker, can hand it back. The analytics chart
+   * shares the same zoom (see the provider below), so dragging across
+   * either one retimes the whole viewer, and either one zooms back out. A
+   * viewer pinned to the window of a zoom offered around it (a telemetry
+   * snapshot's primary explorer) follows that zoom instead, so a drag here
+   * retimes everything that zoom does.
    */
-  const histogramZoom: HistogramZoomState = useHistogramZoom({
+  const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
     onTimeRangeSelect: props.onHistogramTimeRangeSelect,
     onTimeRangeChange: props.onTimeRangeChange,
@@ -384,7 +469,27 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const currentPage: number = props.page ?? internalPage;
   const pageSize: number = props.pageSize ?? internalPageSize;
 
-  const totalItems: number = props.totalCount ?? props.logs.length;
+  const logsBeforePage: number = (Math.max(currentPage, 1) - 1) * pageSize;
+
+  /*
+   * The total the toolbar and the footer may print as "of N" and number
+   * pages by. Undefined while the logs list endpoint has only said whether
+   * more logs follow: it skips COUNT(*), and its `count` is a lower bound
+   * that read as "51 results · Page 1 of 2" over millions of logs.
+   */
+  const pagingTotal: number | undefined =
+    props.totalCount === undefined
+      ? props.logs.length
+      : ResultTotalUtil.getPagingTotal({
+          resultTotal: props.resultTotal,
+          hasMore: props.hasMore,
+          totalCount: props.totalCount,
+          rowCount: props.logs.length,
+          skip: logsBeforePage,
+        });
+
+  const totalItems: number =
+    pagingTotal ?? props.totalCount ?? props.logs.length;
 
   const totalPages: number = Math.max(
     1,
@@ -638,11 +743,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       }
     }, []);
 
-  const loadAttributes: PromiseVoidFunction =
-    useCallback(async (): Promise<void> => {
-      try {
-        setAttributesLoading(true);
+  useEffect(() => {
+    void loadServices();
+  }, [loadServices]);
 
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const loadAttributes: () => Promise<void> = async (): Promise<void> => {
+      try {
         const attributeResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -658,81 +767,55 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           throw attributeResponse;
         }
 
-        const attributes: Array<string> = (attributeResponse.data[
-          "attributes"
-        ] || []) as Array<string>;
-        setLogAttributes(attributes);
-        setAttributesLoaded(true);
-      } catch {
-        setLogAttributes([]);
-        setAttributesLoaded(false);
-      } finally {
-        setAttributesLoading(false);
-      }
-    }, []);
-
-  useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
-
-  // Load attributes eagerly for search bar suggestions
-  useEffect(() => {
-    if (!attributesLoaded && !attributesLoading) {
-      void loadAttributes();
-    }
-  }, [attributesLoaded, attributesLoading, loadAttributes]);
-
-  /*
-   * Lazily fetch values for the attribute the user is currently typing.
-   * Triggered by `@key:` patterns in the search bar — the same approach
-   * used by Traces/Metrics so the value dropdown can populate.
-   */
-  useEffect(() => {
-    const currentWord: string = (searchQuery.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (!attrKey || attrKey === lastValueSuggestionKeyRef.current) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async (): Promise<void> => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/logs/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
+        if (!isCancelled) {
+          setLogAttributes(toValueList(attributeResponse.data["attributes"]));
         }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
       } catch {
-        // non-critical — leave the dropdown empty so users can still free-type
+        if (!isCancelled) {
+          setLogAttributes([]);
+          setAttributesFailed(true);
+        }
       } finally {
-        setAttributeValuesLoading(false);
+        if (!isCancelled) {
+          setAttributesLoading(false);
+        }
       }
     };
-    void loadValues();
-  }, [searchQuery]);
+
+    void loadAttributes();
+
+    return (): void => {
+      isCancelled = true;
+    };
+  }, []);
+
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project has, once per key and time
+   * range (issue #4708). The time range is the one on screen, so the values
+   * are those of the logs the reader is looking at.
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchQuery,
+      attributeKeys: logAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: isLogSearchFieldAlias,
+      scope: `logs|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(props.timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "logs",
+          attributeKey: attributeKey,
+          timeRange: props.timeRange,
+        });
+      },
+    });
+
+  const attributeValueSuggestions: Record<
+    string,
+    Array<string>
+  > = attributeValues.valueSuggestions;
 
   // Reset focused row when displayed logs change
   useEffect(() => {
@@ -1156,9 +1239,21 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     showSidebar && currentViewMode !== "analytics";
 
   const toolbarProps: LogsViewerToolbarProps = {
-    resultCount: totalItems,
+    /*
+     * Without a total, what the list has shown so far, marked as a lower
+     * bound — never the endpoint's `skip + rows + 1` read as a total.
+     */
+    resultCount:
+      pagingTotal === undefined
+        ? logsBeforePage + props.logs.length
+        : totalItems,
+    isResultCountLowerBound: pagingTotal === undefined,
+    resultTotal: props.resultTotal,
+    rowsThroughPage: logsBeforePage + props.logs.length,
+    hideResultCount: Boolean(props.listError),
     currentPage,
-    totalPages,
+    // No "of N" until there is an N.
+    totalPages: pagingTotal === undefined ? undefined : totalPages,
     viewMode: currentViewMode,
     onViewModeChange: handleViewModeChange,
     savedViews: props.savedViews,
@@ -1192,10 +1287,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       exportLogs(displayedLogs, LogExportFormat.JSON, selectedColumns);
     },
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
-    ...(props.timeRange && histogramZoom.onTimeRangeChange
+    ...(props.timeRange && viewerZoom.onTimeRangeChange
       ? {
           timeRange: props.timeRange,
-          onTimeRangeChange: histogramZoom.onTimeRangeChange,
+          onTimeRangeChange: viewerZoom.onTimeRangeChange,
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom: !viewerZoom.followsEnclosingZoom,
         }
       : {}),
     showKeyboardShortcuts,
@@ -1219,7 +1319,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       : {}),
   };
 
-  return (
+  const viewer: ReactElement = (
     <div className="space-y-2">
       {props.showFilters && (
         <div>
@@ -1232,7 +1332,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             valueSuggestions={resolvedValueSuggestions}
             onFieldValueSelect={handleFieldValueSelectWithServiceResolve}
             isAttributesLoading={attributesLoading}
-            isValuesLoading={attributeValuesLoading}
+            isValuesLoading={attributeValues.isLoading}
+            valuesError={attributeValues.error}
+            onRetryValues={attributeValues.retry}
+            hasNoValues={attributeValues.hasNoValues}
             toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>
@@ -1250,13 +1353,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Histogram */}
-      {props.histogramBuckets && (
+      {/*
+       * When the list says the search could not finish, a chart that could
+       * not either steps aside rather than say it again: one message, one
+       * Try again (which reruns the chart too).
+       */}
+      {props.histogramBuckets && !(props.listError && props.histogramError) && (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
+          error={props.histogramError}
+          onRetry={props.onRetryHistogram}
           bucketIntervalMs={props.histogramBucketIntervalMs}
-          onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
-          onZoomOut={histogramZoom.onZoomOut}
+          onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
+          onZoomOut={viewerZoom.onZoomOut}
         />
       )}
 
@@ -1284,6 +1394,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               isCollapsedOnSmallScreens={!isFacetPanelOpen}
               facetData={props.facetData}
               isLoading={props.facetLoading || false}
+              timedOutFacets={props.timedOutFacets}
+              facetError={props.facetError}
+              onRetryFacets={props.onRetryFacets}
+              showCountsNotice={!props.listError}
               serviceMap={serviceMap}
               hostMap={hostMap}
               dockerHostMap={dockerHostMap}
@@ -1291,13 +1405,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               kubernetesClusterMap={kubernetesClusterMap}
               entityNameMap={entityNameMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
-              onExcludeFilter={props.onFacetExclude || (() => {})}
+              onExcludeFilter={props.onFacetExclude}
+              onRemoveFilter={props.onRemoveFilter || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
               onClearSavedView={props.onClearSavedView}
               onFacetSearchChange={props.onFacetSearchChange}
+              onlyShowValuesInScope={hasLockedTelemetryScope(
+                enrichedBaseActiveFilters,
+              )}
             />
           )}
 
@@ -1312,74 +1430,122 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
-              <LogsTable
-                logs={displayedLogs}
-                serviceMap={serviceMap}
-                resourceEntityMaps={entityLookupMaps}
-                entityNameMap={entityNameMap}
-                isLoading={props.isLoading}
-                focusedRowIndex={
-                  focusedRowIndex >= 0 ? focusedRowIndex : undefined
-                }
-                emptyMessage={
-                  props.noLogsMessage ||
-                  getEmptyMessageWithTimeRange(props.timeRange)
-                }
-                onRowClick={(_log: Log, rowId: string) => {
-                  setSelectedLogId((currentSelected: string | null) => {
-                    if (currentSelected === rowId) {
-                      return null;
-                    }
-
-                    return rowId;
-                  });
-                }}
-                selectedLogId={selectedLogId}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSortChange={handleSortChange}
-                selectedColumns={selectedColumns}
-                getTraceRoute={props.getTraceRoute}
-                getSpanRoute={props.getSpanRoute}
-                resolveSpanRoute={props.resolveSpanRoute}
-                renderExpandedContent={(log: Log) => {
-                  return (
-                    <LogDetailsPanel
-                      log={log}
-                      serviceMap={serviceMap}
-                      resourceEntityMaps={entityLookupMaps}
-                      entityNameMap={entityNameMap}
-                      onClose={() => {
-                        setSelectedLogId(null);
-                      }}
-                      getTraceRoute={props.getTraceRoute}
-                      getSpanRoute={props.getSpanRoute}
-                      resolveSpanRoute={props.resolveSpanRoute}
-                      getSessionRoute={props.getSessionRoute}
-                      variant="embedded"
-                      projectId={props.projectId}
-                      onFilterByAttribute={
-                        handleFieldValueSelectWithServiceResolve
+              {props.listError ? (
+                <TelemetryLoadErrorMessage
+                  error={props.listError}
+                  subject="search"
+                  onRetry={props.onRetryList}
+                />
+              ) : (
+                <LogsTable
+                  logs={displayedLogs}
+                  serviceMap={serviceMap}
+                  resourceEntityMaps={entityLookupMaps}
+                  entityNameMap={entityNameMap}
+                  isLoading={props.isLoading}
+                  focusedRowIndex={
+                    focusedRowIndex >= 0 ? focusedRowIndex : undefined
+                  }
+                  emptyMessage={
+                    props.noLogsMessage ||
+                    getEmptyMessageWithTimeRange(props.timeRange)
+                  }
+                  emptyContent={
+                    isNarrowedByReader({
+                      activeFilters: props.activeFilters,
+                      searchQuery: searchQuery,
+                    })
+                      ? undefined
+                      : props.emptyContentWhenUnfiltered
+                  }
+                  onRowClick={(_log: Log, rowId: string) => {
+                    setSelectedLogId((currentSelected: string | null) => {
+                      if (currentSelected === rowId) {
+                        return null;
                       }
-                    />
-                  );
-                }}
-              />
 
-              <LogsPagination
-                currentPage={currentPage}
-                totalItems={totalItems}
-                pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                isDisabled={props.isLoading}
-              />
+                      return rowId;
+                    });
+                  }}
+                  selectedLogId={selectedLogId}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                  selectedColumns={selectedColumns}
+                  getTraceRoute={props.getTraceRoute}
+                  getSpanRoute={props.getSpanRoute}
+                  resolveSpanRoute={props.resolveSpanRoute}
+                  renderExpandedContent={(log: Log) => {
+                    return (
+                      <LogDetailsPanel
+                        log={log}
+                        serviceMap={serviceMap}
+                        resourceEntityMaps={entityLookupMaps}
+                        entityNameMap={entityNameMap}
+                        onClose={() => {
+                          setSelectedLogId(null);
+                        }}
+                        getTraceRoute={props.getTraceRoute}
+                        getSpanRoute={props.getSpanRoute}
+                        resolveSpanRoute={props.resolveSpanRoute}
+                        getSessionRoute={props.getSessionRoute}
+                        variant="embedded"
+                        projectId={props.projectId}
+                        onFilterByAttribute={
+                          handleFieldValueSelectWithServiceResolve
+                        }
+                      />
+                    );
+                  }}
+                />
+              )}
+
+              {/* No rows to page through while the list could not load. */}
+              {!props.listError && (
+                <LogsPagination
+                  currentPage={currentPage}
+                  totalItems={totalItems}
+                  hasMore={
+                    pagingTotal === undefined
+                      ? props.hasMore ?? props.logs.length >= pageSize
+                      : undefined
+                  }
+                  itemsOnCurrentPage={
+                    props.resultTotal || props.hasMore !== undefined
+                      ? props.logs.length
+                      : undefined
+                  }
+                  pageSize={pageSize}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  isDisabled={props.isLoading}
+                  isLoading={props.isLoading && props.logs.length === 0}
+                />
+              )}
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+
+  /*
+   * The histogram, the analytics chart and the toolbar's "Reset zoom" all
+   * work on this viewer's window, whatever page it sits in, so the viewer's
+   * zoom shadows any zoom offered around it, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
+   */
+  if (!viewerZoom.zoom) {
+    return viewer;
+  }
+
+  return (
+    <TimeRangeZoomProvider zoom={viewerZoom.zoom}>
+      {viewer}
+    </TimeRangeZoomProvider>
   );
 };
 

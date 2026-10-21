@@ -134,6 +134,18 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A database server address (host and port) the Databases product scopes queries and metrics by. Never an inventory item of its own.",
   },
+  /*
+   * Membership-only like the endpoint above: it keys telemetry for the
+   * Queues product and never becomes an inventory row.
+   */
+  [EntityType.MessageQueue]: {
+    label: "Message Queue",
+    pluralLabel: "Message Queues",
+    category: InventoryCategory.Applications,
+    icon: IconProp.QueueList,
+    description:
+      "A queue, topic or subscription the Queues product scopes messaging traces and broker metrics by. Never an inventory item of its own.",
+  },
   [EntityType.RemoteService]: {
     label: "Remote Service",
     pluralLabel: "Remote Services",
@@ -279,6 +291,14 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Ceph,
     description: "A Ceph storage cluster.",
   },
+  [EntityType.StorageArray]: {
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.StorageArray,
+    description:
+      "A storage array, such as a Pure Storage FlashArray or FlashBlade.",
+  },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     pluralLabel: "Swarm Clusters",
@@ -329,7 +349,7 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     category: InventoryCategory.Cloud,
     icon: IconProp.Cloud,
     description:
-      "A managed cloud compute environment (ECS / Fargate, Cloud Run, Container Apps, App Runner, Beanstalk, App Engine, App Service) discovered from OpenTelemetry cloud.* resource attributes.",
+      "A managed cloud compute environment (ECS / Fargate, Cloud Run, Container Apps, App Runner, Beanstalk, App Engine, App Service) discovered from OpenTelemetry cloud.* resource attributes, or an IaaS or PaaS resource (a virtual machine, a load balancer, a bucket, a managed database, ...) discovered from the metrics Azure Monitor, CloudWatch or Cloud Monitoring publish about it.",
   },
 
   [EntityType.ExternalService]: {

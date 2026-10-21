@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import IncidentMeasurementService from "./IncidentMeasurementService";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -7,9 +8,19 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
+import IncidentCustomFieldService from "./IncidentCustomFieldService";
+import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
+import CustomFieldFeedChange from "../Utils/CustomField/CustomFieldFeedChange";
+import { sortCustomFieldDefinitions } from "../../Types/CustomField/CustomFieldOrder";
+import { mergeTemplateCustomFields } from "../../Types/CustomField/CustomFieldTemplateMerge";
+import {
+  CustomFieldValueValidationError,
+  formatCustomFieldValueValidationErrors,
+  validateCustomFieldValues,
+} from "../../Types/CustomField/CustomFieldValueValidator";
 import AIRunService from "./AIRunService";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
@@ -24,7 +35,9 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
 import URL from "../../Types/API/URL";
-import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+} from "../Utils/AffectedResources/LinkedAffectedResources";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -34,27 +47,64 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
+  ProjectScopedReferenceException,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../Types/Database/Permissions/ColumnWriteRefusedException";
+import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
+import EpisodeMembershipReference, {
+  INCIDENT_EPISODE_REFERENCE,
+} from "../Utils/Episode/EpisodeMembershipReference";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedResend from "../../Types/StatusPage/IncidentCreatedResend";
+import IncidentPostmortemPublication, {
+  IncidentPostmortemStoredState,
+  PostmortemNotificationAction,
+} from "../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import IncidentScopeAddedPagesNotification, {
+  IncidentScopeAddedPagesNotificationAction,
+  StatusPageScopeChange,
+} from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPageService from "./StatusPageService";
+import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import Select from "../Types/Database/Select";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ServiceModel from "../../Models/DatabaseModels/Service";
 import Model from "../../Models/DatabaseModels/Incident";
+import { UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -71,6 +121,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
+
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -78,11 +129,12 @@ import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import IncidentReminderRule from "../../Models/DatabaseModels/IncidentReminderRule";
-import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
@@ -93,8 +145,15 @@ import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
@@ -106,32 +165,181 @@ import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
 import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
+import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
 import IncidentAlertService, {
+  AcknowledgeDeclaredAlertsResult,
+  AlertsToAcknowledgeOnDeclare,
   LinkAlertsToIncidentResult,
 } from "./IncidentAlertService";
-import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+} from "../../Types/Incident/IncidentAlertLink";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
+
+/*
+ * How an update changed an incident's status page scope, for its feed item.
+ * notificationQueued: the update also queued the 'created' notification for
+ * the added pages (IncidentScopeAddedPagesNotification).
+ * notificationAlreadyQueued: that notification was Pending or being sent, so
+ * the update left it alone; onUpdateSuccess checks it did not finish without
+ * the added pages in the meantime.
+ */
+type StatusPageScopeCarryForward = StatusPageScopeChange & {
+  isScoped: boolean;
+  notificationQueued: boolean;
+  notificationAlreadyQueued?: boolean | undefined;
+};
+
+/*
+ * What adding status pages does to one matched incident's 'created'
+ * notification, and the record of told pages to write if it is queued with
+ * none (IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue).
+ */
+interface AddedStatusPagesDecision {
+  incidentId: string;
+  action: IncidentScopeAddedPagesNotificationAction;
+  recordToSeed: Array<string> | undefined;
+}
+
+// A custom field's definition, with its place on the Custom Fields card.
+type CustomFieldDefinitionInOrder = CustomFieldDefinition & {
+  sortOrder?: number | null | undefined;
+};
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
+  /*
+   * The monitors the update takes off and puts on the incident. Both are
+   * empty unless the update sends the monitor list.
+   */
   monitorsRemoved: Array<Monitor>;
   monitorsAdded: Array<Monitor>;
+  /*
+   * Whether the incident was resolved before the update, which decides if
+   * the monitors taken off it are restored. Read before the write, since the
+   * same update may resolve or reopen it, and only when a monitor is taken
+   * off (undefined otherwise).
+   */
+  isResolvedBeforeUpdate?: boolean | undefined;
+  /*
+   * Whether the incident held its monitors before the update
+   * (Incident.holdsMonitors): false for one that never did, or gave them
+   * back, so a monitor taken off it has nothing of the incident's to give
+   * back. Null for an incident from before it was recorded.
+   */
+  holdsMonitorsBeforeUpdate?: boolean | null | undefined;
+  // The monitor status the incident put its monitors in before the update.
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
+  // The monitor status the update writes; undefined when it writes none.
   newMonitorChangeStatusIdTo: ObjectID | undefined;
+  /*
+   * The update sets the incident's monitor status to nothing, so the
+   * incident no longer puts its monitors, old or added, in any status.
+   */
+  isChangeMonitorStatusToCleared?: boolean | undefined;
+  statusPageScopeChange?: StatusPageScopeCarryForward | undefined;
+  /*
+   * The severity the incident held before the update (null: none), read only
+   * when the update writes one, so onUpdateSuccess runs the severity's side
+   * effects for a real change only (recordStoredValuesBeforeUpdate).
+   */
+  severityIdBeforeUpdate?: string | null | undefined;
+  /*
+   * The incident's postmortem before the update - whether it was switched on
+   * for the status page and its note, when the update writes either, and
+   * where its subscriber notification stood - and, when the update may show
+   * the incident, whether the status page showed it and why the
+   * notification was settled (IncidentPostmortemPublication.isComparedBy).
+   * So onUpdateSuccess tells subscribers once, when the update publishes the
+   * postmortem or first shows it on status pages, and records a note that
+   * really changed (recordStoredValuesBeforeUpdate).
+   */
+  postmortemBeforeUpdate?: IncidentPostmortemStoredState | undefined;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch the incident held before the update - those the update
+   * writes, and no others - so its feed item and its reminder refresh follow
+   * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
+   */
+  valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
+  /*
+   * The custom field values the incident held before the update - read only
+   * when the update writes them - so its feed item names the fields that
+   * really changed (CustomFieldFeedChange).
+   */
+  customFieldsBeforeUpdate?: JSONObject | null | undefined;
 }>;
 
 /*
- * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
- * being declared from alerts.
+ * What onBeforeCreate hands to onCreateSuccess: how far along the incident
+ * starts (StartingStage), which decides what its create sets off, and the
+ * alerts it is being declared from, if any. Null only for a success hook run
+ * without one, which then sets off what a new incident always did.
  */
-type IncidentCreateCarryForward = {
-  // Validated, deduplicated alert ids to link once the incident exists.
-  alertIdsToLink: Array<ObjectID>;
-} | null;
+type IncidentCreateCarryForward =
+  | (StartingStageCarryForward & {
+      /*
+       * Validated, deduplicated alert ids to link once the incident exists.
+       * Empty unless the incident is being declared from alerts.
+       */
+      alertIdsToLink: Array<ObjectID>;
+      /*
+       * Acknowledge alerts once they are linked, as the declaring user
+       * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their
+       * escalation. When asked to: the project's Acknowledged alert state,
+       * and the alerts not acknowledged yet, which the caller was checked
+       * for. Null otherwise.
+       */
+      acknowledgedAlertStateId: ObjectID | null;
+      alertIdsToAcknowledge: Array<ObjectID>;
+    })
+  | null;
+
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. A write may name a reference under either, and the two must
+ * agree (RelationIdUtil.readConsistent), so what the service checks and acts
+ * on is what is stored.
+ */
+const CURRENT_STATE_KEYS: Array<string> = [
+  "currentIncidentStateId",
+  "currentIncidentState",
+];
+const SEVERITY_KEYS: Array<string> = ["incidentSeverityId", "incidentSeverity"];
+const CHANGE_MONITOR_STATUS_KEYS: Array<string> = [
+  "changeMonitorStatusToId",
+  "changeMonitorStatusTo",
+];
+const TEMPLATE_KEYS: Array<string> = [
+  "createdIncidentTemplateId",
+  "createdIncidentTemplate",
+];
+
+// Where an incident's postmortem notification stands, as read.
+type PostmortemNotificationStatusRead = {
+  status: StatusPageSubscriberNotificationStatus | null;
+};
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -144,12 +352,247 @@ type IncidentUpdatePayload = {
   [key: string]: unknown;
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The creates that declare an incident from a template through
+   * createFromTemplate, and the template each one names. Only that method
+   * adds to it: a create from anywhere else - an API request, a workflow's
+   * JSON - cannot name a template this way, and one that sends
+   * createdIncidentTemplateId is refused by the column check, as that
+   * column is OneUptime's to write.
+   */
+  private readonly templateDeclarations: WeakMap<CreateBy<Model>, ObjectID> =
+    new WeakMap<CreateBy<Model>, ObjectID>();
+
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * DECLARES AN INCIDENT FROM ONE OF THE PROJECT'S INCIDENT TEMPLATES, AS
+   * `props`: a workflow's Create One Incident step with an Incident Template
+   * picked (Types/Workflow/CreateFromTemplate).
+   *
+   * It is the declaration the dashboard makes from a template, made on the
+   * server, by the code that applies a template anywhere on the server (the
+   * template branch of onBeforeCreate):
+   *
+   *  - the template fills in every field `data` leaves out - the title,
+   *    description, severity, initial state, monitor status, monitors and
+   *    other resources, on-call policies, labels, status pages and custom
+   *    field values - and a field `data` sets wins over the template's;
+   *  - the template's owners become the incident's owners, added as the
+   *    dashboard adds them;
+   *  - the template is read as the caller: one in another project, one that
+   *    does not exist, or one outside what they may read is refused alike;
+   *    a caller who may not read templates at all, or whose plan does not
+   *    include them, is told so, as the dashboard tells them;
+   *  - everything the incident is written with, the template's values
+   *    included, meets the caller's own permission and plan checks;
+   *  - the incident records the template it was declared from
+   *    (createdIncidentTemplateId), a value no caller may send for itself,
+   *    written once every check on the caller has passed (onCreatePermitted).
+   */
+  @CaptureSpan()
+  public override async createFromTemplate(data: {
+    templateId: ObjectID;
+    data: Model;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    const projectId: ObjectID | undefined =
+      data.props.tenantId || data.data.projectId;
+
+    if (!projectId) {
+      throw new BadDataException(
+        "An incident is declared from a template in a project. Please name the project.",
+      );
+    }
+
+    // The template is applied by onBeforeCreate, which a hook-free create skips.
+    if (data.props.ignoreHooks) {
+      throw new BadDataException(
+        "An incident cannot be declared from a template without its hooks.",
+      );
+    }
+
+    /*
+     * The template is named once, here. A create that also names one in
+     * its data is refused, whoever makes it: there would be two templates.
+     */
+    if (
+      RelationIdUtil.isPresent(
+        data.data as unknown as Record<string, unknown>,
+        TEMPLATE_KEYS,
+      )
+    ) {
+      throw new ColumnWriteRefusedException({
+        requestType: DatabaseRequestType.Create,
+        columnName: "createdIncidentTemplateId",
+        modelName: this.getModel().singularName,
+      });
+    }
+
+    // A malformed id names no template: refused like a missing one.
+    if (!ObjectID.isValidUUID(data.templateId.toString())) {
+      throw this.getTemplateNotInProjectException(data.templateId);
+    }
+
+    /*
+     * Everything else - the template and its owners - is read by
+     * onBeforeCreate, once the caller has been checked: one who may not
+     * create incidents reads nothing of the template.
+     */
+    const createBy: CreateBy<Model> = {
+      data: data.data,
+      props: data.props,
+    };
+
+    this.templateDeclarations.set(createBy, data.templateId);
+
+    try {
+      return await this.create(createBy);
+    } finally {
+      this.templateDeclarations.delete(createBy);
+    }
+  }
+
+  // The template a create declares the incident from, through createFromTemplate.
+  private getTemplateDeclaredFor(createBy: CreateBy<Model>): ObjectID | null {
+    return this.templateDeclarations.get(createBy) || null;
+  }
+
+  /*
+   * The owners of the template an incident is declared from through
+   * createFromTemplate become the incident's owners, handed over as the
+   * dashboard hands over the owners its declare form fills in from a
+   * template: onCreateSuccess adds them once the incident's channels exist,
+   * quietly, as the caller (a user's create never asks for its owners to be
+   * notified). Read as the caller, once the template is known to be one
+   * they may declare from; owners the create already hands over are kept,
+   * and each one is handed over once.
+   */
+  private async handOverTemplateOwners(data: {
+    createBy: CreateBy<Model>;
+    incidentTemplateId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const owners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
+      await IncidentTemplateService.getOwnerIds({
+        incidentTemplateId: data.incidentTemplateId,
+        projectId: data.projectId,
+        props: data.createBy.props,
+      });
+
+    if (owners.userIds.length === 0 && owners.teamIds.length === 0) {
+      return;
+    }
+
+    const miscDataProps: JSONObject = data.createBy.miscDataProps || {};
+
+    const merge: (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ) => Array<ObjectID> = (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ): Array<ObjectID> => {
+      const merged: Array<ObjectID> = Array.isArray(handedOver)
+        ? [...(handedOver as Array<ObjectID>)]
+        : [];
+      const seen: Set<string> = new Set<string>(
+        merged.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const id of fromTemplate) {
+        if (!seen.has(id.toString())) {
+          seen.add(id.toString());
+          merged.push(id);
+        }
+      }
+
+      return merged;
+    };
+
+    if (owners.userIds.length > 0) {
+      miscDataProps["ownerUsers"] = merge(
+        miscDataProps["ownerUsers"],
+        owners.userIds,
+      );
+    }
+
+    if (owners.teamIds.length > 0) {
+      miscDataProps["ownerTeams"] = merge(
+        miscDataProps["ownerTeams"],
+        owners.teamIds,
+      );
+    }
+
+    data.createBy.miscDataProps = miscDataProps;
+  }
+
+  /*
+   * A template that is not the project's - another project's, one that
+   * does not exist, one the caller may not read - in the words every
+   * reference check of the project answers with
+   * (ProjectScopedReferenceValidator): which of these it is, is not the
+   * caller's to learn.
+   */
+  private getTemplateNotInProjectException(
+    templateId: ObjectID,
+  ): ProjectScopedReferenceException {
+    return new ProjectScopedReferenceException(
+      ProjectScopedReferenceValidator.getRefusalMessage({
+        subject: "incident",
+        described: [`Incident Template "${templateId.toString()}"`],
+      }),
+    );
+  }
+
+  /*
+   * An incident declared from a template through createFromTemplate
+   * records the template: createdIncidentTemplateId. No caller may write
+   * that column, so it is written here, once every check on the caller has
+   * passed, rather than held against their column permissions.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const templateId: ObjectID | null = this.getTemplateDeclaredFor(
+      onCreate.createBy,
+    );
+
+    if (templateId) {
+      onCreate.createBy.data.createdIncidentTemplateId = templateId.toString();
+    }
+  }
+
+  /*
+   * The severity and the monitor status to switch to, the monitors, the
+   * labels, the on-call policies, the status pages, the SLOs and the
+   * affected-resource lists are checked by this service's own hooks below, with
+   * ProjectScopedReferenceValidator and its own words. Everything else an
+   * incident names - its episode, its state, the probe that opened it - is
+   * checked by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incidentSeverity", "changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "onCallDutyPolicies",
+      "statusPages",
+      "serviceLevelObjectives",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -171,65 +614,61 @@ export class Service extends DatabaseService<Model> {
     return super.countBy(countBy);
   }
 
+  /*
+   * Whether the incident is resolved: its state is at or below its
+   * project's resolved state, or flagged resolved - the one rule
+   * (Common/Utils/ResolvedState) that reminders, monitor edits, Slack and
+   * Microsoft Teams, auto-remediation and everything else read.
+   */
   @CaptureSpan()
   public async isIncidentResolved(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
-    const incident: Model | null = await this.findOneBy({
-      query: {
-        _id: data.incidentId,
-      },
-      select: {
-        projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
+    const incident: Model = await this.getIncidentWithState(data.incidentId);
+
+    if (!incident.currentIncidentStateId) {
+      return false;
+    }
+
+    return await IncidentStateService.isResolvedIncidentState({
+      projectId: incident.projectId!,
+      incidentStateId: incident.currentIncidentStateId,
     });
-
-    if (!incident) {
-      throw new BadDataException("Incident not found");
-    }
-
-    if (!incident.projectId) {
-      throw new BadDataException("Incident Project ID not found");
-    }
-
-    const resolvedIncidentState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentIncidentStateOrder: number =
-      incident.currentIncidentState!.order!;
-    const resolvedIncidentStateOrder: number = resolvedIncidentState.order!;
-
-    if (currentIncidentStateOrder >= resolvedIncidentStateOrder) {
-      return true;
-    }
-
-    return false;
   }
 
+  /*
+   * Whether the incident is acknowledged or further along - resolved
+   * included: what stops its on-call escalation and takes Acknowledge away.
+   * Its state is at or below its project's acknowledged state, or flagged
+   * acknowledged or resolved - the one rule (Common/Utils/AcknowledgedState)
+   * that Slack and Microsoft Teams, the on-call workers and every
+   * Acknowledge button read.
+   */
   @CaptureSpan()
   public async isIncidentAcknowledged(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
+    const incident: Model = await this.getIncidentWithState(data.incidentId);
+
+    if (!incident.currentIncidentStateId) {
+      return false;
+    }
+
+    return await IncidentStateService.isAcknowledgedIncidentState({
+      projectId: incident.projectId!,
+      incidentStateId: incident.currentIncidentStateId,
+    });
+  }
+
+  // The incident's project and current state, as OneUptime.
+  private async getIncidentWithState(incidentId: ObjectID): Promise<Model> {
     const incident: Model | null = await this.findOneBy({
       query: {
-        _id: data.incidentId,
+        _id: incidentId,
       },
       select: {
         projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -244,23 +683,55 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident Project ID not found");
     }
 
-    const ackIncidentState: IncidentState =
-      await IncidentStateService.getAcknowledgedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
+    return incident;
+  }
+
+  /*
+   * The row of an incident's state timeline it was first acknowledged with:
+   * the first move into a state that counts as acknowledged
+   * (AcknowledgedState) - the acknowledged state, a state after it, or a
+   * resolved one.
+   */
+  private getFirstAcknowledgementRow(data: {
+    incidentStates: Array<IncidentState>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+  }): IncidentStateTimeline | undefined {
+    return AcknowledgedStateUtil.getAcknowledgementRows({
+      list: StateListType.IncidentState,
+      states: data.incidentStates,
+      timeline: data.incidentStateTimelines.map(
+        (timeline: IncidentStateTimeline) => {
+          return {
+            stateId: timeline.incidentStateId,
+            startsAt: timeline.startsAt,
+            timeline: timeline,
+          };
         },
-      });
+      ),
+    })[0]?.timeline;
+  }
 
-    const currentIncidentStateOrder: number =
-      incident.currentIncidentState!.order!;
-    const ackIncidentStateOrder: number = ackIncidentState.order!;
-
-    if (currentIncidentStateOrder >= ackIncidentStateOrder) {
-      return true;
-    }
-
-    return false;
+  /*
+   * The row of an incident's state timeline it was first resolved with: the
+   * first move into a state that counts as resolved (ResolvedState).
+   */
+  private getFirstResolutionRow(data: {
+    incidentStates: Array<IncidentState>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+  }): IncidentStateTimeline | undefined {
+    return ResolvedStateUtil.getResolutionRows({
+      list: StateListType.IncidentState,
+      states: data.incidentStates,
+      timeline: data.incidentStateTimelines.map(
+        (timeline: IncidentStateTimeline) => {
+          return {
+            stateId: timeline.incidentStateId,
+            startsAt: timeline.startsAt,
+            timeline: timeline,
+          };
+        },
+      ),
+    })[0]?.timeline;
   }
 
   @CaptureSpan()
@@ -321,115 +792,68 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Acknowledges the incident: moves it into its project's acknowledged
+   * state - the first from the top flagged acknowledged. One that is
+   * acknowledged already, or further along, is refused with a sentence that
+   * says which (Common/Utils/AcknowledgedState) rather than moved back up
+   * its list. The incident is read, and its state timeline row created,
+   * with `props`: a person's props hold the acknowledge to their read of the
+   * incident and their permission to create the row, and credit it to them;
+   * root props credit `acknowledgedByUserId`.
+   *
+   * A person's acknowledge is the state timeline row created with their own
+   * props: the dashboard creates it through the API, and Slack, Microsoft
+   * Teams and OneUptime AI through WorkspaceMemberActions. What is left here
+   * is OneUptime's own acknowledge, made once a responder has answered an
+   * on-call page about the incident (UserOnCallLogTimelineService), which
+   * says so by passing root props.
+   */
   @CaptureSpan()
-  public async resolveIncident(
-    incidentId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    // check if the incident is already resolved.
-    const isIncidentResolved: boolean = await this.isIncidentResolved({
-      incidentId: incidentId,
-    });
-
-    if (isIncidentResolved) {
-      throw new BadDataException("Incident is already resolved.");
-    }
+  public async acknowledgeIncident(data: {
+    incidentId: ObjectID;
+    acknowledgedByUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    const { incidentId, acknowledgedByUserId } = data;
 
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         projectId: true,
         incidentNumber: true,
+        currentIncidentStateId: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     if (!incident || !incident.projectId) {
       throw new BadDataException("Incident not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: incident.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: incident.projectId,
         props: {
           isRoot: true,
         },
       });
 
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-      );
-    }
-
-    const incidentStateTimeline: IncidentStateTimeline =
-      new IncidentStateTimeline();
-    incidentStateTimeline.projectId = incident.projectId;
-    incidentStateTimeline.incidentId = incidentId;
-    incidentStateTimeline.incidentStateId = incidentState.id;
-    incidentStateTimeline.createdByUserId = resolvedByUserId;
-
-    await IncidentStateTimelineService.create({
-      data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: incident.currentIncidentStateId,
+      subject: "Incident",
     });
 
-    // store incident metric
-
-    return incident;
-  }
-
-  @CaptureSpan()
-  public async acknowledgeIncident(
-    incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<Model> {
-    // check if the incident is already acknowledged.
-    const isIncidentAcknowledged: boolean = await this.isIncidentAcknowledged({
-      incidentId: incidentId,
-    });
-
-    if (isIncidentAcknowledged) {
-      throw new BadDataException("Incident is already acknowledged.");
-    }
-
-    const incident: Model | null = await this.findOneById({
-      id: incidentId,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!incident || !incident.projectId) {
-      throw new BadDataException("Incident not found.");
+    if (refusal) {
+      throw new BadDataException(refusal);
     }
 
     const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: incident.projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     if (!incidentState || !incidentState.id) {
@@ -447,9 +871,7 @@ export class Service extends DatabaseService<Model> {
 
     await IncidentStateTimelineService.create({
       data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     // store incident metric
@@ -460,10 +882,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
-     * get monitors for this incident.
-     * if the monitors are removed then change them to operational state.
-     * then change all of the monitors in this incident to the changeMonitorStatusToId.
+     * The incident's episode follows its episode membership: only
+     * IncidentEpisodeMemberService moves it (EpisodeMembershipReference).
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: updateBy.data,
+      props: updateBy.props,
+      reference: INCIDENT_EPISODE_REFERENCE,
+    });
+
+    /*
+     * Records which monitors the update takes off and puts on each incident,
+     * the monitor status it writes, and whether the incident was resolved
+     * before it, for onUpdateSuccess to decide what that does to the
+     * monitors (updateMonitorsForIncidentEdit).
      */
 
     updateBy.query = applyIncidentSelfPrivacyFilter(
@@ -471,115 +906,198 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
 
-    if (updateBy.data.isPrivate === true) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
+    /*
+     * Visible on Status Page and Private Incident as they are stored, and a
+     * private incident hidden from status pages (StatusPageVisibility):
+     * making an incident private switches Visible on Status Page off with
+     * it, whoever writes it. Before anything below reads the update.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    this.stripServiceOwnedScopeColumns(updateBy);
+
+    /*
+     * Before anything below adds values of its own to customFields (the
+     * mapped values copied from monitors), so only what the caller wrote is
+     * checked.
+     */
+    await this.validateCustomFieldValuesOnUpdate(updateBy);
+
+    // Before the hooks below add a Pending of their own.
+    const isCreatedNotificationResendRequested: boolean =
+      this.isCreatedNotificationResendRequested(updateBy);
 
     await this.validateProjectScopedReferences(updateBy);
 
+    /*
+     * An update that writes the incident's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of incident states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.Incident,
+      updateBy: updateBy,
+      stateKeys: CURRENT_STATE_KEYS,
+      stateModelName: "Incident State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<IncidentState>> => {
+        return IncidentStateService.getAllIncidentStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
+
     const carryForward: UpdateCarryForward = {};
 
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    /*
+     * Only an update that sends the monitor list changes which monitors the
+     * incident holds. One that sends just the monitor status (the API, the
+     * CLI or a workflow) takes no monitor off: reading the missing list as
+     * empty would restore every monitor, and walking it threw. A list set to
+     * null is sent: TypeORM clears a many-to-many set to null, like [].
+     */
+    const isMonitorListUpdated: boolean = data["monitors"] !== undefined;
+
     if (
-      updateBy.data.monitors ||
+      isMonitorListUpdated ||
       updateBy.data.changeMonitorStatusTo ||
       updateBy.data.changeMonitorStatusToId
     ) {
-      const incidentsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const incidentsToUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           monitors: {
             _id: true,
           },
           projectId: true,
           changeMonitorStatusToId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: updateBy.props,
-      });
+          holdsMonitors: true,
+        });
+
+      /*
+       * The monitor status the update writes, in any shape the API accepts
+       * (an id, a bare uuid string or a relation object), so the status an
+       * update writes is never mistaken for one it leaves alone. Read under
+       * both of its names, which must agree, so the status put on the
+       * monitors is the one stored on the incident.
+       */
+      const newMonitorChangeStatusIdTo: ObjectID | undefined =
+        RelationIdUtil.readConsistent(
+          data,
+          CHANGE_MONITOR_STATUS_KEYS,
+          "Monitor Status",
+        ) || undefined;
+
+      const isChangeMonitorStatusToCleared: boolean =
+        !newMonitorChangeStatusIdTo &&
+        RelationIdUtil.isPresent(data, CHANGE_MONITOR_STATUS_KEYS);
+
+      const monitorIdsAfterUpdate: Array<string> = isMonitorListUpdated
+        ? this.getMonitorIdsInUpdate(data["monitors"])
+        : [];
 
       for (const incident of incidentsToUpdate) {
-        carryForward[incident.id!.toString()] = {
-          monitorsRemoved: [],
-          monitorsAdded: [],
-          oldChangeMonitorStatusIdTo: incident.changeMonitorStatusToId,
-          newMonitorChangeStatusIdTo:
-            (updateBy.data.changeMonitorStatusToId as ObjectID) ||
-            (updateBy.data.changeMonitorStatusTo as unknown as MonitorStatus)
-              ?._id ||
-            undefined,
-        };
+        const storedMonitors: Array<Monitor> = incident.monitors || [];
 
-        for (const monitor of incident.monitors || []) {
-          // check if this monitor is actually removed.
-          let isRemoved: boolean = true;
+        const storedMonitorIds: Array<string> = storedMonitors.map(
+          (monitor: Monitor): string => {
+            return this.getMonitorIdForComparison(monitor);
+          },
+        );
 
-          for (const updatedMonitor of updateBy.data
-            ?.monitors as unknown as Array<Monitor>) {
-            if (
-              updatedMonitor._id &&
-              updatedMonitor._id.toString() === monitor._id?.toString()
-            ) {
-              isRemoved = false;
-              break;
-            }
-          }
-
-          if (isRemoved) {
-            carryForward[incident.id!.toString()]?.monitorsRemoved?.push(
-              monitor,
-            );
-          }
-        }
-
-        if (updateBy.data.monitors && updateBy.data.monitors.length > 0) {
-          for (const monitor of updateBy.data
-            ?.monitors as unknown as Array<Monitor>) {
-            // check if this monitor is actually added.
-            let isAdded: boolean = true;
-
-            for (const existingMonitor of incident.monitors || []) {
-              if (
-                existingMonitor._id &&
-                existingMonitor._id.toString() === monitor._id?.toString()
-              ) {
-                isAdded = false;
-                break;
-              }
-            }
-
-            if (isAdded) {
-              // this monitor is added.
-              carryForward[incident.id!.toString()]?.monitorsAdded?.push(
-                monitor,
+        const monitorsRemoved: Array<Monitor> = isMonitorListUpdated
+          ? storedMonitors.filter((monitor: Monitor): boolean => {
+              return !monitorIdsAfterUpdate.includes(
+                this.getMonitorIdForComparison(monitor),
               );
-            }
-          }
-        }
+            })
+          : [];
+
+        carryForward[incident.id!.toString()] = {
+          monitorsRemoved: monitorsRemoved,
+          /*
+           * Read now, before the write: an update that resolves the incident
+           * and takes a monitor off must still restore that monitor, and one
+           * that reopens a resolved incident must not restore it twice.
+           * After the write, the state no longer tells these cases apart.
+           */
+          isResolvedBeforeUpdate:
+            monitorsRemoved.length > 0
+              ? await this.isIncidentResolved({ incidentId: incident.id! })
+              : undefined,
+          holdsMonitorsBeforeUpdate: incident.holdsMonitors,
+          monitorsAdded: monitorIdsAfterUpdate
+            .filter((monitorId: string): boolean => {
+              return !storedMonitorIds.includes(monitorId);
+            })
+            .map((monitorId: string): Monitor => {
+              return new Monitor(new ObjectID(monitorId));
+            }),
+          oldChangeMonitorStatusIdTo: incident.changeMonitorStatusToId,
+          newMonitorChangeStatusIdTo: newMonitorChangeStatusIdTo,
+          isChangeMonitorStatusToCleared: isChangeMonitorStatusToCleared,
+        };
       }
     }
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated if it's being updated
-    if (
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
-      undefined
-    ) {
-      if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        false
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this incident.";
-      } else if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    await this.recordStoredValuesBeforeUpdate(updateBy, carryForward);
+
+    /*
+     * Notifying subscribers that the incident was created
+     * (shouldStatusPageSubscribersBeNotifiedOnIncidentCreated) is decided
+     * when it is declared. An update that writes it - only root and master
+     * admins can - leaves the 'created' message alone: re-sending the value
+     * the incident holds used to send that message to every status page
+     * again, and turning it on does not send a message the incident was
+     * declared without. Turned off, a message still queued is skipped by
+     * the job that would send it, which reads the flag. Retry, Resend and
+     * the API's Pending are how the message is sent again.
+     */
+
+    await this.queueCreatedNotificationResendToAllStatusPagesIfRequested(
+      updateBy,
+    );
+
+    /*
+     * Retry or Resend - a user's Pending - over a notification that is
+     * being sent would let a second run send it alongside, or be
+     * overwritten when the send settles (SubscriberNotificationResendAccess).
+     * 'Resend to all pages' above has refused that already, with its own
+     * reason; the hooks below queue their own Pending only from a settled
+     * state.
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: [
+        "subscriberNotificationStatusOnIncidentCreated",
+        "subscriberNotificationStatusOnPostmortemPublished",
+      ],
+    });
+
+    await this.clearCreatedNotificationRecordOnResend({
+      updateBy: updateBy,
+      isResendRequested: isCreatedNotificationResendRequested,
+    });
+
+    await this.queueCreatedNotificationOnPublishIfRequested(updateBy);
+
+    await this.applyStatusPageScopeToUpdate(updateBy, carryForward);
 
     /*
      * Re-apply mapped custom field values. Covers the Custom Fields modal
@@ -600,6 +1118,1412 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The ids of the monitors an update's list holds, deduplicated and
+   * lowercased like getMonitorIdForComparison. The list reaches the hook as
+   * models, `{ _id }` objects, ObjectIDs or bare uuid strings (API update),
+   * and comparing only `_id` read every bare id as a monitor taken off and
+   * put back on again.
+   */
+  private getMonitorIdsInUpdate(monitors: unknown): Array<string> {
+    const monitorIds: Array<string> = [];
+
+    for (const monitorId of resolveReferenceIds(monitors)) {
+      const normalizedMonitorId: string = monitorId
+        .toString()
+        .trim()
+        .toLowerCase();
+
+      if (!monitorIds.includes(normalizedMonitorId)) {
+        monitorIds.push(normalizedMonitorId);
+      }
+    }
+
+    return monitorIds;
+  }
+
+  // A monitor's id as getMonitorIdsInUpdate writes it, for comparing the two.
+  private getMonitorIdForComparison(monitor: Monitor): string {
+    return (monitor._id?.toString() || "").trim().toLowerCase();
+  }
+
+  /*
+   * What onUpdateSuccess compares an update with: each incident it matches
+   * as it is stored, read here, before the write, so a side effect follows a
+   * real change only. Updates often write back what an incident holds - a
+   * dashboard card sends every field it shows with each save, and an API
+   * client or a workflow may write the whole incident. One read, of the
+   * columns the update needs compared and no others, and only when it needs
+   * any:
+   *
+   * - the severity, when the update writes one under either of its names. A
+   *   severity change records itself in the incident feed, recalculates the
+   *   SLA deadlines, re-matches the reminder rule and counts in the
+   *   SeverityChange metric (ReferenceChange);
+   * - the postmortem - its note, its Publish on Status Page switch and where
+   *   its subscriber notification stands - when the update writes the note
+   *   or the switch. Subscribers are told once, when an update publishes the
+   *   postmortem, and the feed records a note that really changed
+   *   (IncidentPostmortemPublication). The Edit Postmortem form sends the
+   *   note with every save, so its being there is no news;
+   * - the incident's Visible on Status Page and Private Incident, and where
+   *   its postmortem's notification stands and why, when the update may show
+   *   the incident (it switches Visible on Status Page on, or writes Private
+   *   Incident off). A postmortem published while the incident was hidden
+   *   was skipped for that reason, and showing the incident sends it then
+   *   (IncidentPostmortemPublication.isShownByUpdate). The incident's
+   *   Settings form sends both switches with every save, so only a hidden
+   *   incident it shows counts. The postmortem's note is not read for this:
+   *   the rare update that does show such an incident reads it once it is
+   *   written;
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Incident updated" feed
+   *   item records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange). The Incident Details card
+   *   sends the title, the severity and the labels with every save.
+   */
+  private async recordStoredValuesBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): Promise<void> {
+    const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      SEVERITY_KEYS,
+      "Incident Severity",
+    );
+
+    const isPostmortemWritten: boolean =
+      IncidentPostmortemPublication.isWrittenBy(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    // Whether it may show the incident, and with it a postmortem that waits.
+    const mayShowIncident: boolean =
+      IncidentPostmortemPublication.mayShowIncident(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    // Either of the two, by the rule onUpdateSuccess acts on (isComparedBy).
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    // The custom fields are one bag: it is read when the update writes it.
+    const isCustomFieldsWritten: boolean =
+      updateBy.data.customFields !== undefined;
+
+    if (
+      !writtenSeverityId &&
+      !isPostmortemCompared &&
+      !isFieldWritten &&
+      !isCustomFieldsWritten
+    ) {
+      return;
+    }
+
+    const select: Select<Model> = {
+      _id: true,
+      ...(writtenSeverityId
+        ? {
+            incidentSeverityId: true,
+          }
+        : {}),
+      ...(isPostmortemWritten
+        ? {
+            postmortemNote: true,
+            showPostmortemOnStatusPage: true,
+          }
+        : {}),
+      ...(isPostmortemCompared
+        ? {
+            subscriberNotificationStatusOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(mayShowIncident
+        ? {
+            isVisibleOnStatusPage: true,
+            isPrivate: true,
+            subscriberNotificationStatusMessageOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+      ...(isCustomFieldsWritten
+        ? {
+            customFields: true,
+          }
+        : {}),
+    };
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: select,
+    });
+
+    for (const incident of incidents) {
+      if (!incident.id) {
+        continue;
+      }
+
+      const incidentId: string = incident.id.toString();
+
+      carryForward[incidentId] = {
+        monitorsRemoved: [],
+        monitorsAdded: [],
+        oldChangeMonitorStatusIdTo: undefined,
+        newMonitorChangeStatusIdTo: undefined,
+        ...carryForward[incidentId],
+        ...(writtenSeverityId
+          ? {
+              severityIdBeforeUpdate: incident.incidentSeverityId
+                ? incident.incidentSeverityId.toString()
+                : null,
+            }
+          : {}),
+        ...(isPostmortemCompared
+          ? {
+              postmortemBeforeUpdate: {
+                ...(isPostmortemWritten
+                  ? {
+                      showPostmortemOnStatusPage:
+                        incident.showPostmortemOnStatusPage,
+                      postmortemNote: incident.postmortemNote,
+                    }
+                  : {}),
+                subscriberNotificationStatusOnPostmortemPublished:
+                  incident.subscriberNotificationStatusOnPostmortemPublished,
+                ...(mayShowIncident
+                  ? {
+                      isVisibleOnStatusPage: incident.isVisibleOnStatusPage,
+                      isPrivate: incident.isPrivate,
+                      subscriberNotificationStatusMessageOnPostmortemPublished:
+                        incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(isFieldWritten
+          ? {
+              valuesBeforeUpdate: EventFieldChange.getValuesBeforeUpdate({
+                record: incident,
+                fields: fieldsWritten,
+              }),
+            }
+          : {}),
+        ...(isCustomFieldsWritten
+          ? {
+              customFieldsBeforeUpdate:
+                (incident.customFields as JSONObject | undefined) || null,
+            }
+          : {}),
+      };
+    }
+  }
+
+  /*
+   * A private incident is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private
+   * Incident as it is shows only the incidents that are not private - the
+   * same as the incident's Settings form, which sends both switches with
+   * every save, has always done. It holds whoever writes: the API,
+   * Terraform, a workflow.
+   *
+   * Each incident is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): Visible on Status Page is stored
+   * on only while the incident is not private as it is then, so no privacy
+   * write landing at the same moment - a privacy rule, another editor -
+   * leaves both on. What the write stored is what the workflow trigger, the
+   * realtime event, the audit log and the incident's images are decided by.
+   * No earlier read, and no other incident, decides it. Every status page
+   * read and subscriber job leaves a private incident out whatever its
+   * switch says.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
+      data as unknown as Record<string, unknown>,
+    );
+  }
+
+  /*
+   * The incidents an update writes, as they are stored, for the hooks below
+   * that decide what else joins the update - the ones its caller may write,
+   * with the update held to them (findRowsAndHoldUpdateToThem), so no
+   * incident is written that those hooks did not see.
+   *
+   * Read as root: the answer only decides which columns join this update, and
+   * the update itself is still checked against the caller's permissions
+   * afterwards. Reading with the caller's props would fail the whole edit for
+   * a role that may edit incidents but not read these columns. The query
+   * carries the caller's privacy filter (applyIncidentSelfPrivacyFilter), and
+   * a request for another project's incident id reads nothing, so it is
+   * answered with the usual "nothing updated" rather than that incident's
+   * state.
+   */
+  private async findIncidentsForUpdateHook(data: {
+    updateBy: UpdateBy<Model>;
+    select: Select<Model>;
+  }): Promise<Array<Model>> {
+    return await this.findRowsAndHoldUpdateToThem(data.updateBy, data.select);
+  }
+
+  /*
+   * CUSTOM FIELD VALUES must fit their fields: a Number field holds a number,
+   * a Dropdown one of its options (CustomFieldValueValidator has the rules).
+   *
+   * Only for writes a user or an API key makes. Root writes - the server's
+   * own, such as values copied from monitors or an incident template - are
+   * trusted, and the mapped values are added after this runs, so they never
+   * reach it. Only the keys a write changes are checked, so a value stored
+   * before these checks, or a dropdown option removed since, does not stop
+   * someone saving the rest of the card.
+   *
+   * "Required on create" is not enforced here: incidents created by
+   * monitors, the API, Slack, Microsoft Teams or AI cannot fill in a form.
+   */
+  private async getCustomFieldDefinitionsForValidation(
+    projectId: ObjectID,
+  ): Promise<Array<CustomFieldDefinitionInOrder>> {
+    const definitions: Array<IncidentCustomField> =
+      await IncidentCustomFieldService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+          customFieldType: true,
+          dropdownOptions: true,
+          // The order the Custom Fields card shows them in, for the feed.
+          sortOrder: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const result: Array<CustomFieldDefinitionInOrder> = [];
+
+    for (const definition of definitions) {
+      if (typeof definition.name !== "string") {
+        continue;
+      }
+
+      result.push({
+        name: definition.name,
+        customFieldType: definition.customFieldType,
+        dropdownOptions: definition.dropdownOptions,
+        sortOrder: definition.sortOrder,
+      });
+    }
+
+    return result;
+  }
+
+  /*
+   * The "updated" feed item's lines for the custom fields an update changed
+   * (CustomFieldFeedChange): against the bag the incident held before the
+   * write, read when the update wrote one. Empty when it wrote none, or
+   * changed none - or when the bag before it was not read (an incident the
+   * read before the write did not see), so nothing is said that may not be
+   * so.
+   */
+  private async getCustomFieldsFeedMarkdown(data: {
+    projectId: ObjectID;
+    written: unknown;
+    carryForward: UpdateCarryForward[string] | undefined;
+  }): Promise<MarkdownText> {
+    if (
+      data.written === undefined ||
+      !data.carryForward ||
+      data.carryForward.customFieldsBeforeUpdate === undefined
+    ) {
+      return FeedMarkdown.empty();
+    }
+
+    // In the Custom Fields card's order: the feed lists them as it does.
+    const definitions: Array<CustomFieldDefinition> =
+      sortCustomFieldDefinitions(
+        await this.getCustomFieldDefinitionsForValidation(data.projectId),
+      );
+
+    return CustomFieldFeedChange.getFeedMarkdown({
+      changes: CustomFieldFeedChange.getChanges({
+        written: data.written,
+        before: data.carryForward.customFieldsBeforeUpdate,
+        definitions: definitions,
+      }),
+      definitions: definitions,
+    });
+  }
+
+  private hasCustomFieldValuesToValidate(customFields: unknown): boolean {
+    return (
+      customFields !== null &&
+      typeof customFields === "object" &&
+      !Array.isArray(customFields) &&
+      Object.keys(customFields as JSONObject).length > 0
+    );
+  }
+
+  private throwIfCustomFieldValuesInvalid(
+    errors: Array<CustomFieldValueValidationError>,
+  ): void {
+    if (errors.length > 0) {
+      throw new BadDataException(
+        formatCustomFieldValueValidationErrors(errors),
+      );
+    }
+  }
+
+  private async validateCustomFieldValuesOnCreate(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const customFields: unknown = data.createBy.data.customFields;
+
+    if (
+      data.createBy.props.isRoot ||
+      !data.projectId ||
+      !this.hasCustomFieldValuesToValidate(customFields)
+    ) {
+      return;
+    }
+
+    this.throwIfCustomFieldValuesInvalid(
+      validateCustomFieldValues({
+        definitions: await this.getCustomFieldDefinitionsForValidation(
+          data.projectId,
+        ),
+        customFields: customFields,
+        storedCustomFields: {},
+      }),
+    );
+  }
+
+  /*
+   * Checked against each incident the update writes, because what counts as
+   * changed depends on what that incident already holds.
+   */
+  private async validateCustomFieldValuesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const customFields: unknown = updateBy.data.customFields;
+
+    if (
+      updateBy.props.isRoot ||
+      !this.hasCustomFieldValuesToValidate(customFields)
+    ) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        projectId: true,
+        customFields: true,
+      },
+    });
+
+    const definitionsByProject: Map<
+      string,
+      Array<CustomFieldDefinition>
+    > = new Map<string, Array<CustomFieldDefinition>>();
+
+    for (const incident of incidents) {
+      if (!incident.projectId) {
+        continue;
+      }
+
+      const projectKey: string = incident.projectId.toString();
+
+      if (!definitionsByProject.has(projectKey)) {
+        definitionsByProject.set(
+          projectKey,
+          await this.getCustomFieldDefinitionsForValidation(incident.projectId),
+        );
+      }
+
+      this.throwIfCustomFieldValuesInvalid(
+        validateCustomFieldValues({
+          definitions: definitionsByProject.get(projectKey)!,
+          customFields: customFields,
+          storedCustomFields: incident.customFields,
+        }),
+      );
+    }
+  }
+
+  /*
+   * isScopedToStatusPages and statusPagesNotifiedOnCreation are this
+   * service's to write. A client value for either is dropped before any hook
+   * runs, so what the hooks write is all that is written: the flag is derived
+   * from statusPages (applyStatusPageScopeToUpdate), and the record is the
+   * notification job's - a client must not be able to seed it and so keep
+   * pages from ever hearing about the incident, or clear it and have them
+   * told twice. Root (internal) callers keep the record they send.
+   */
+  private stripServiceOwnedScopeColumns(updateBy: UpdateBy<Model>): void {
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    delete data["isScopedToStatusPages"];
+
+    if (!updateBy.props.isRoot) {
+      delete data["statusPagesNotifiedOnCreation"];
+    }
+  }
+
+  /*
+   * Whether an update itself asks for the 'created' notification to go out
+   * again: it sets the status to Pending - the API route of resending it,
+   * and the dashboard's Retry - or asks for it to be sent to every status
+   * page again (IncidentCreatedResend, the dashboard's Resend). Read before
+   * any hook adds a Pending of its own.
+   *
+   * Writing shouldStatusPageSubscribersBeNotifiedOnIncidentCreated is no
+   * such request, whatever its value: a client writing the whole incident
+   * back sends it as true, and that emptied the record of told pages and
+   * sent the message to every page again.
+   */
+  private isCreatedNotificationResendRequested(
+    updateBy: UpdateBy<Model>,
+  ): boolean {
+    return (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+        StatusPageSubscriberNotificationStatus.Pending ||
+      IncidentCreatedResend.isRequested(updateBy.miscDataProps)
+    );
+  }
+
+  /*
+   * 'Resend to all pages' (see IncidentCreatedResend): the 'created'
+   * notification goes back to Pending with a message saying so, and
+   * clearCreatedNotificationRecordOnResend empties its record of told pages
+   * in the same write, so the job sends it to every page the incident
+   * reaches now - after a failure too, where a plain Retry would resume.
+   *
+   * Everything is written into the caller's own update, so it lands with the
+   * rest of it or not at all, and the column check that runs after this hook
+   * still decides whether the caller may write the status. That check is
+   * also made here first, before the incidents are read: the refusals below
+   * depend on the notification's state, and a caller who may not send it
+   * again is told only that. The incidents are then read with the caller's
+   * own permissions (and the privacy filter already on the query), so an
+   * incident they cannot see never decides the answer; when they can see
+   * none of those the update matches, nothing is queued.
+   *
+   * Refused - with the reason, rather than silently dropped, because asking
+   * for it is the whole point of the request - when any matched incident's
+   * notification did not go out (Skipped) or is on its way (Pending,
+   * InProgress), and when the same update sets the status to anything but
+   * Pending.
+   */
+  private async queueCreatedNotificationResendToAllStatusPagesIfRequested(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (!IncidentCreatedResend.isRequested(updateBy.miscDataProps)) {
+      return;
+    }
+
+    const requestedStatus: unknown =
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated;
+
+    if (
+      requestedStatus !== undefined &&
+      requestedStatus !== StatusPageSubscriberNotificationStatus.Pending
+    ) {
+      throw new BadDataException(
+        IncidentCreatedResend.conflictingStatusMessage,
+      );
+    }
+
+    SubscriberNotificationResendAccess.assertCallerMayUpdateColumns({
+      modelType: Model,
+      columns: {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessage:
+          IncidentCreatedResend.queuedMessage,
+        statusPagesNotifiedOnCreation: [],
+      },
+      props: updateBy.props,
+      refusal: IncidentCreatedResend.noPermissionMessage,
+    });
+
+    const incidents: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+      },
+    );
+
+    for (const incident of incidents) {
+      const refusal: string | null = IncidentCreatedResend.getRefusalReason(
+        incident.subscriberNotificationStatusOnIncidentCreated,
+      );
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+    }
+
+    if (incidents.length === 0) {
+      return;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+
+    if (updateBy.data.subscriberNotificationStatusMessage === undefined) {
+      updateBy.data.subscriberNotificationStatusMessage =
+        IncidentCreatedResend.queuedMessage;
+    }
+  }
+
+  /*
+   * A resend asked for by the update itself (see
+   * isCreatedNotificationResendRequested) goes to every status page, as it
+   * always did. The job skips the pages in its record of told pages
+   * (Incident.statusPagesNotifiedOnCreation), so without this a resend of a
+   * notification that went out would reach nobody: the record is emptied in
+   * the same write.
+   *
+   * It is kept in three cases:
+   * - Failed: Retry resumes where the failed send stopped, so the pages it
+   *   told are not told twice - unless the update asks for it to go to every
+   *   page again (IncidentCreatedResend), which is what that request is for;
+   * - Pending or InProgress: the notification is on its way already, and its
+   *   record is what keeps a send queued for added pages from reaching the
+   *   pages told before (IncidentCreatedResend refuses these);
+   * - a root caller that writes the record itself.
+   *
+   * An update matching several incidents empties the record when any of them
+   * would otherwise be resent to nobody, because the write applies the same
+   * data to all of them.
+   */
+  private async clearCreatedNotificationRecordOnResend(data: {
+    updateBy: UpdateBy<Model>;
+    isResendRequested: boolean;
+  }): Promise<void> {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    if (!data.isResendRequested) {
+      return;
+    }
+
+    if (
+      (updateBy.data as Dictionary<unknown>)[
+        "statusPagesNotifiedOnCreation"
+      ] !== undefined
+    ) {
+      return;
+    }
+
+    if (IncidentCreatedResend.isRequested(updateBy.miscDataProps)) {
+      /*
+       * Queued for every page by
+       * queueCreatedNotificationResendToAllStatusPagesIfRequested, which
+       * left the status alone when the caller can see none of the incidents
+       * the update matches: nothing to read to decide.
+       */
+      if (
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+        StatusPageSubscriberNotificationStatus.Pending
+      ) {
+        updateBy.data.statusPagesNotifiedOnCreation = [];
+      }
+
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+      },
+    });
+
+    const someIncidentWouldReachNobody: boolean = incidents.some(
+      (incident: Model): boolean => {
+        return ![
+          StatusPageSubscriberNotificationStatus.Failed,
+          StatusPageSubscriberNotificationStatus.Pending,
+          StatusPageSubscriberNotificationStatus.InProgress,
+        ].includes(
+          incident.subscriberNotificationStatusOnIncidentCreated as StatusPageSubscriberNotificationStatus,
+        );
+      },
+    );
+
+    if (someIncidentWouldReachNobody) {
+      updateBy.data.statusPagesNotifiedOnCreation = [];
+    }
+  }
+
+  /*
+   * Publishing a hidden incident can announce it: when the editor turns
+   * 'Visible on Status Page' on and ticks "Notify subscribers that this
+   * incident was created" (see IncidentCreatedRenotify), the incident's
+   * 'created' notification goes back to Pending, and the
+   * Incident:SendNotificationToSubscribers job sends it now that the incident
+   * is visible - to the pages its record of told pages does not list, so an
+   * incident whose notification went out before it was hidden tells only the
+   * pages added while it was hidden.
+   *
+   * It only ever re-queues a notification with someone left to tell, for an
+   * incident that is hidden today, not private, and meant to notify on
+   * creation, so a stray request cannot email subscribers twice or break a
+   * deliberate "don't notify". The status is written into this same update,
+   * so it lands together with the visibility change or not at all. The
+   * column (and its message) are computed, but their update ACL lists the
+   * incident roles, so a non-root edit still passes the column check that
+   * runs after this hook.
+   *
+   * An update that sets the status itself - the API route of resetting it to
+   * Pending - is left alone. Notifying on creation is read as the update
+   * leaves it, so one that turns it off in the same write queues nothing.
+   * An update that matches several incidents queues only when every one of
+   * them qualifies, because the write applies the same data to all of them.
+   */
+  private async queueCreatedNotificationOnPublishIfRequested(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (!IncidentCreatedRenotify.isRequested(updateBy.miscDataProps)) {
+      return;
+    }
+
+    if (updateBy.data.isVisibleOnStatusPage !== true) {
+      return;
+    }
+
+    if (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated !== undefined
+    ) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        statusPagesNotifiedOnCreation: true,
+        statusPages: {
+          _id: true,
+        },
+      },
+    });
+
+    if (incidents.length === 0) {
+      return;
+    }
+
+    const everyIncidentQualifies: boolean = incidents.every(
+      (incident: Model): boolean => {
+        return IncidentCreatedRenotify.canRenotifyOnPublish({
+          isVisibleOnStatusPage: incident.isVisibleOnStatusPage,
+          isPrivate:
+            updateBy.data.isPrivate !== undefined &&
+            updateBy.data.isPrivate !== null
+              ? (updateBy.data.isPrivate as boolean)
+              : incident.isPrivate,
+          subscriberNotificationStatusOnIncidentCreated:
+            incident.subscriberNotificationStatusOnIncidentCreated,
+          // As this update leaves it, like the privacy above.
+          shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+            this.getValueAfterUpdate(
+              updateBy.data
+                .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            ),
+          // The pages it is limited to once this update is written.
+          statusPages:
+            updateBy.data.statusPages !== undefined
+              ? updateBy.data.statusPages
+              : incident.statusPages,
+          statusPagesNotifiedOnCreation: incident.statusPagesNotifiedOnCreation,
+        });
+      },
+    );
+
+    if (!everyIncidentQualifies) {
+      logger.debug(
+        `Not re-queueing the incident created notification on publish: ${incidents.length} incident(s) matched and not all of them were hidden, set to notify subscribers and had subscribers left to tell.`,
+      );
+      return;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    updateBy.data.subscriberNotificationStatusMessage =
+      IncidentCreatedRenotify.queuedMessage;
+  }
+
+  /*
+   * The status pages a new incident is limited to (Incident.statusPages), and
+   * the two columns that follow from them.
+   *
+   * isScopedToStatusPages is derived from the list, whatever the caller sent
+   * for it: the column is computed, which exempts it from the column check on
+   * create, so a client value would otherwise be stored as is - and a scoped
+   * flag with no pages hides the incident from every status page.
+   *
+   * statusPagesNotifiedOnCreation is the created-notification job's record of
+   * the pages it told. A client must not be able to seed it and so keep pages
+   * from ever hearing about the incident; only root (internal) callers keep
+   * what they send.
+   *
+   * The pages a non-root caller picks must be pages they can read (see
+   * StatusPageReadAccess), except the pages of an incident template they can
+   * read: the dashboard fills a template's pages in for everyone who declares
+   * from it, which is what the template is for. Pages copied from a template
+   * on the server are not the caller's pick. That is checked once the pages
+   * are known to be the project's (assertCallerCanPickStatusPagesOnCreate).
+   *
+   * `isScopedToNothingByTemplate`: declared through the API from a template
+   * whose status pages were all deleted. The incident is scoped with no
+   * pages - hidden from every status page - rather than unscoped.
+   */
+  private applyStatusPageScopeToCreate(data: {
+    createBy: CreateBy<Model>;
+    isScopedToNothingByTemplate?: boolean | undefined;
+  }): void {
+    const createBy: CreateBy<Model> = data.createBy;
+
+    if (!createBy.props.isRoot) {
+      delete createBy.data.statusPagesNotifiedOnCreation;
+    }
+
+    const statusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      );
+
+    if (
+      createBy.data.statusPages !== undefined &&
+      createBy.data.statusPages !== null
+    ) {
+      createBy.data.statusPages = this.toStatusPageStubs(statusPageIds);
+    }
+
+    createBy.data.isScopedToStatusPages =
+      statusPageIds.length > 0 || data.isScopedToNothingByTemplate === true;
+  }
+
+  /*
+   * The pages a non-root caller picks for a new incident must be pages they
+   * can read (see applyStatusPageScopeToCreate). Runs after the project check,
+   * so another project's page, or one that does not exist, is reported as
+   * such rather than as a page the caller cannot read.
+   */
+  private async assertCallerCanPickStatusPagesOnCreate(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID;
+    statusPagesFromCaller: boolean;
+  }): Promise<void> {
+    const createBy: CreateBy<Model> = data.createBy;
+
+    const statusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      );
+
+    if (
+      createBy.props.isRoot ||
+      !data.statusPagesFromCaller ||
+      statusPageIds.length === 0
+    ) {
+      return;
+    }
+
+    const readableStatusPageIds: Array<string> =
+      await StatusPageReadAccess.getReadableStatusPageIds({
+        statusPageIds: statusPageIds,
+        props: createBy.props,
+      });
+
+    let unreadableStatusPageIds: Array<string> = statusPageIds.filter(
+      (id: string): boolean => {
+        return !readableStatusPageIds.includes(id);
+      },
+    );
+
+    if (unreadableStatusPageIds.length > 0) {
+      const templateStatusPageIds: Array<string> =
+        await this.getStatusPageIdsOfTemplatesReadableByCaller({
+          projectId: data.projectId,
+          props: createBy.props,
+        });
+
+      unreadableStatusPageIds = unreadableStatusPageIds.filter(
+        (id: string): boolean => {
+          return !templateStatusPageIds.includes(id);
+        },
+      );
+    }
+
+    if (unreadableStatusPageIds.length > 0) {
+      throw new NotAuthorizedException(
+        StatusPageReadAccess.getRefusalMessage("incident"),
+      );
+    }
+  }
+
+  /*
+   * The status pages the incident templates the caller can read are limited
+   * to. Such a page may be picked for a new incident without reading it:
+   * declaring from the template picks it anyway. The templates are read with
+   * the caller's permissions (and labels); their pages as root. A caller who
+   * cannot read templates at all gets none.
+   */
+  private async getStatusPageIdsOfTemplatesReadableByCaller(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    let templates: Array<IncidentTemplate> = [];
+
+    try {
+      templates = await IncidentTemplateService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+    } catch (err) {
+      // No access to templates (or not on a plan that has them): no pages.
+      logger.debug(
+        `Could not read the caller's incident templates while checking the status pages of a new incident: ${err}`,
+      );
+      return [];
+    }
+
+    if (templates.length === 0) {
+      return [];
+    }
+
+    const templatesWithPages: Array<IncidentTemplate> =
+      await IncidentTemplateService.findBy({
+        query: {
+          _id: QueryHelper.any(
+            templates.map((template: IncidentTemplate): string => {
+              return template.id!.toString();
+            }),
+          ),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          statusPages: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+      templatesWithPages.flatMap(
+        (template: IncidentTemplate): Array<StatusPage> => {
+          return template.statusPages || [];
+        },
+      ),
+    );
+  }
+
+  /*
+   * The status pages an incident is limited to, on update. Everything that
+   * follows from a write to Incident.statusPages happens here, in the
+   * caller's own update, so the list, the flag and a re-queued notification
+   * land together or not at all:
+   *
+   * - isScopedToStatusPages is derived from the list the update writes (a
+   *   value the caller sent for it was dropped by
+   *   stripServiceOwnedScopeColumns). Nothing else ever sets it, and it is
+   *   never recomputed when join rows disappear: deleting the only page an
+   *   incident is scoped to leaves it scoped to nothing, hidden from every
+   *   page, rather than widened to all of them;
+   * - a non-root caller's list is topped up with the pages the incident is
+   *   scoped to that the caller cannot read. Status pages are label-scoped,
+   *   so an editor may see only some of an incident's pages, and a list write
+   *   replaces the whole list (the dashboard sends back what the editor
+   *   sees). Without this, saving the incident would silently drop every page
+   *   the editor was not shown;
+   * - the pages a non-root caller adds must be pages they can read (see
+   *   StatusPageReadAccess);
+   * - with IncidentScopeAddedPagesNotification requested, the 'created'
+   *   notification is queued again for the pages the update adds;
+   * - what was added and removed is carried forward for the feed item
+   *   onUpdateSuccess writes, and so is whether the notification was on its
+   *   way already, which onUpdateSuccess checks again once the pages are
+   *   written.
+   *
+   * The flag and the notification columns are computed, but their update
+   * access control lists every role that may edit statusPages, so a non-root
+   * edit passes the column check that runs after this hook.
+   */
+  private async applyStatusPageScopeToUpdate(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): Promise<void> {
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    if (data["statusPages"] === undefined) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        statusPages: {
+          _id: true,
+        },
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        statusPagesNotifiedOnCreation: true,
+      },
+    });
+
+    const requestedStatusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        data["statusPages"],
+      );
+
+    const hiddenStatusPageIds: Array<string> = updateBy.props.isRoot
+      ? []
+      : await this.getScopedStatusPageIdsHiddenFromCaller({
+          incidents: incidents,
+          props: updateBy.props,
+        });
+
+    const statusPageIds: Array<string> = [
+      ...requestedStatusPageIds,
+      ...hiddenStatusPageIds.filter((id: string) => {
+        return !requestedStatusPageIds.includes(id);
+      }),
+    ];
+
+    if (!updateBy.props.isRoot) {
+      await StatusPageReadAccess.assertCallerCanPickStatusPages({
+        statusPageIds: this.getStatusPageIdsAddedToAny({
+          incidents: incidents,
+          statusPageIds: statusPageIds,
+        }),
+        props: updateBy.props,
+        subject: "incident",
+      });
+    }
+
+    data["statusPages"] = this.toStatusPageStubs(statusPageIds);
+    data["isScopedToStatusPages"] = statusPageIds.length > 0;
+
+    const decisions: Array<AddedStatusPagesDecision> = [];
+
+    for (const incident of incidents) {
+      const incidentId: string = incident.id!.toString();
+
+      const change: StatusPageScopeChange =
+        IncidentScopeAddedPagesNotification.getScopeChange({
+          before: incident.statusPages,
+          after: statusPageIds,
+        });
+
+      const action: IncidentScopeAddedPagesNotificationAction =
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: change.addedStatusPageIds,
+          incident: {
+            subscriberNotificationStatusOnIncidentCreated:
+              incident.subscriberNotificationStatusOnIncidentCreated,
+            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+              this.getValueAfterUpdate(
+                updateBy.data
+                  .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+                incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              ),
+            isVisibleOnStatusPage: this.getValueAfterUpdate(
+              updateBy.data.isVisibleOnStatusPage,
+              incident.isVisibleOnStatusPage,
+            ),
+            isPrivate: this.getValueAfterUpdate(
+              updateBy.data.isPrivate,
+              incident.isPrivate,
+            ),
+            statusPagesNotifiedOnCreation:
+              incident.statusPagesNotifiedOnCreation,
+          },
+        });
+
+      carryForward[incidentId] = {
+        monitorsRemoved: [],
+        monitorsAdded: [],
+        oldChangeMonitorStatusIdTo: undefined,
+        newMonitorChangeStatusIdTo: undefined,
+        ...carryForward[incidentId],
+        statusPageScopeChange: {
+          ...change,
+          isScoped: statusPageIds.length > 0,
+          notificationQueued: false,
+          /*
+           * On its way already, and nothing in this update sets the status:
+           * onUpdateSuccess makes sure the send did not finish without the
+           * added pages in the meantime.
+           */
+          notificationAlreadyQueued:
+            action ===
+              IncidentScopeAddedPagesNotificationAction.AlreadyQueued &&
+            updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+              undefined,
+        },
+      };
+
+      decisions.push({
+        incidentId: incidentId,
+        action: action,
+        recordToSeed:
+          action === IncidentScopeAddedPagesNotificationAction.Queue
+            ? IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+                statusPagesNotifiedOnCreation:
+                  incident.statusPagesNotifiedOnCreation,
+                statusPageIdsBeforeUpdate: incident.statusPages,
+              })
+            : undefined,
+      });
+    }
+
+    this.queueCreatedNotificationForAddedStatusPagesIfRequested({
+      updateBy: updateBy,
+      decisions: decisions,
+      carryForward: carryForward,
+    });
+  }
+
+  /*
+   * The pages an update writing `statusPageIds` adds to at least one of the
+   * incidents it matches.
+   */
+  private getStatusPageIdsAddedToAny(data: {
+    incidents: Array<Model>;
+    statusPageIds: Array<string>;
+  }): Array<string> {
+    const added: Array<string> = [];
+
+    for (const incident of data.incidents) {
+      for (const id of IncidentScopeAddedPagesNotification.getScopeChange({
+        before: incident.statusPages,
+        after: data.statusPageIds,
+      }).addedStatusPageIds) {
+        if (!added.includes(id)) {
+          added.push(id);
+        }
+      }
+    }
+
+    return added;
+  }
+
+  /*
+   * Adding status pages to an incident's scope can tell them the incident was
+   * created: with IncidentScopeAddedPagesNotification requested, the 'created'
+   * notification goes back to Pending, and the job sends it to the pages it
+   * has no record of telling (Incident.statusPagesNotifiedOnCreation). See
+   * IncidentScopeAddedPagesNotification.getAction for when it applies.
+   *
+   * A notification that was never sent has no record yet, so the pages the
+   * incident was limited to before are written in as the record in the same
+   * write (getRecordToSeedOnQueue): the job then tells only the added pages.
+   *
+   * An update that sets the status itself - the API route of resetting it to
+   * Pending, or publishing a hidden incident - is left alone. Notifying on
+   * creation is read as the update leaves it, like the visibility and the
+   * privacy. An update that matches several incidents queues only when it
+   * may for every one of them, because the write applies the same data to
+   * all. For the same reason it cannot write a record that differs between
+   * them, or overwrite the record of an incident that has one, and is refused
+   * instead.
+   */
+  private queueCreatedNotificationForAddedStatusPagesIfRequested(data: {
+    updateBy: UpdateBy<Model>;
+    decisions: Array<AddedStatusPagesDecision>;
+    carryForward: UpdateCarryForward;
+  }): void {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    if (
+      !IncidentScopeAddedPagesNotification.isRequested(updateBy.miscDataProps)
+    ) {
+      return;
+    }
+
+    if (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated !== undefined
+    ) {
+      return;
+    }
+
+    const actions: Array<IncidentScopeAddedPagesNotificationAction> =
+      data.decisions.map(
+        (
+          decision: AddedStatusPagesDecision,
+        ): IncidentScopeAddedPagesNotificationAction => {
+          return decision.action;
+        },
+      );
+
+    if (!actions.includes(IncidentScopeAddedPagesNotificationAction.Queue)) {
+      return;
+    }
+
+    const everyIncidentMayQueue: boolean = actions.every(
+      (action: IncidentScopeAddedPagesNotificationAction): boolean => {
+        return (
+          action === IncidentScopeAddedPagesNotificationAction.Queue ||
+          action === IncidentScopeAddedPagesNotificationAction.AlreadyQueued
+        );
+      },
+    );
+
+    if (!everyIncidentMayQueue) {
+      logger.debug(
+        `Not queueing the incident created notification for added status pages: ${actions.length} incident(s) matched and not all of them gained status pages and may be announced.`,
+      );
+      return;
+    }
+
+    const recordsToSeed: Array<Array<string>> = data.decisions
+      .map((decision: AddedStatusPagesDecision): Array<string> | undefined => {
+        return decision.recordToSeed;
+      })
+      .filter((record: Array<string> | undefined): boolean => {
+        return record !== undefined;
+      }) as Array<Array<string>>;
+
+    if (recordsToSeed.length > 0) {
+      const recordToSeed: Array<string> = recordsToSeed[0]!;
+
+      const everyIncidentTakesTheSameRecord: boolean =
+        recordsToSeed.length === data.decisions.length &&
+        recordsToSeed.every((record: Array<string>): boolean => {
+          return (
+            [...record].sort().join(",") === [...recordToSeed].sort().join(",")
+          );
+        });
+
+      if (!everyIncidentTakesTheSameRecord) {
+        throw new BadDataException(
+          "These incidents cannot be sent the incident-created notification for their added status pages together: they were limited to different status pages, or not all of them were ever announced. Change them one at a time.",
+        );
+      }
+
+      updateBy.data.statusPagesNotifiedOnCreation = recordToSeed;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    updateBy.data.subscriberNotificationStatusMessage =
+      IncidentScopeAddedPagesNotification.queuedMessage;
+
+    for (const decision of data.decisions) {
+      const scopeChange: StatusPageScopeCarryForward | undefined =
+        data.carryForward[decision.incidentId]?.statusPageScopeChange;
+
+      if (
+        scopeChange &&
+        decision.action === IncidentScopeAddedPagesNotificationAction.Queue
+      ) {
+        scopeChange.notificationQueued = true;
+      }
+    }
+  }
+
+  /*
+   * An update that added pages while the 'created' notification was Pending
+   * or being sent left the status alone: the queued send reads the scope when
+   * it goes out, and a running send reads it again once it has finished (see
+   * the Incident:SendNotificationToSubscribers job). One case slips between
+   * the two: the whole send started after this update read the status and
+   * finished before it wrote the pages. Once the pages are written, this
+   * checks for exactly that - the send finished, and an added page is not in
+   * its record - and queues the notification again for the pages it missed.
+   *
+   * Never throws: the update is already written.
+   */
+  private async requeueCreatedNotificationIfAddedPagesWereMissed(data: {
+    incidentId: ObjectID;
+    change: StatusPageScopeCarryForward | undefined;
+  }): Promise<void> {
+    if (
+      !data.change?.notificationAlreadyQueued ||
+      data.change.addedStatusPageIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const incident: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          subscriberNotificationStatusOnIncidentCreated: true,
+          statusPagesNotifiedOnCreation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        incident?.subscriberNotificationStatusOnIncidentCreated !==
+        StatusPageSubscriberNotificationStatus.Success
+      ) {
+        // Still on its way (it will see the pages), or settled otherwise.
+        return;
+      }
+
+      const recorded: Array<string> =
+        IncidentScopeAddedPagesNotification.getRecordedStatusPageIds(
+          incident.statusPagesNotifiedOnCreation,
+        ) || [];
+
+      const missed: boolean = data.change.addedStatusPageIds.some(
+        (id: string): boolean => {
+          return !recorded.includes(id);
+        },
+      );
+
+      if (!missed) {
+        return;
+      }
+
+      await this.updateOneById({
+        id: data.incidentId,
+        data: {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            IncidentScopeAddedPagesNotification.queuedMessage,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to check whether the incident created notification reached the status pages added to the incident: ${err}`,
+        {
+          incidentId: data.incidentId?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * The pages the matched incidents are scoped to that the caller cannot
+   * read, which a list write from them must keep (see
+   * applyStatusPageScopeToUpdate). A bulk update writes the same list onto
+   * every incident it matches, so it can only keep them when every matched
+   * incident holds the same hidden pages; otherwise it would scope some of
+   * them to pages they were never scoped to, and it is refused.
+   */
+  private async getScopedStatusPageIdsHiddenFromCaller(data: {
+    incidents: Array<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    const heldByIncident: Array<Array<string>> = data.incidents.map(
+      (incident: Model) => {
+        return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          incident.statusPages,
+        );
+      },
+    );
+
+    const heldIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        heldByIncident.flat(),
+      );
+
+    if (heldIds.length === 0) {
+      return [];
+    }
+
+    const readableIds: Array<string> =
+      await StatusPageReadAccess.getReadableStatusPageIds({
+        statusPageIds: heldIds,
+        props: data.props,
+      });
+
+    const hiddenByIncident: Array<Array<string>> = heldByIncident.map(
+      (held: Array<string>) => {
+        return held
+          .filter((id: string) => {
+            return !readableIds.includes(id);
+          })
+          .sort();
+      },
+    );
+
+    const hiddenIds: Array<string> = hiddenByIncident[0] || [];
+
+    const everyIncidentHidesTheSame: boolean = hiddenByIncident.every(
+      (hidden: Array<string>) => {
+        return hidden.join(",") === hiddenIds.join(",");
+      },
+    );
+
+    if (!everyIncidentHidesTheSame) {
+      throw new BadDataException(
+        "These incidents are limited to different status pages that you do not have access to, so their status pages cannot be changed together. Change them one at a time.",
+      );
+    }
+
+    return hiddenIds;
+  }
+
+  private toStatusPageStubs(statusPageIds: Array<string>): Array<StatusPage> {
+    return statusPageIds.map((statusPageId: string) => {
+      const statusPage: StatusPage = new StatusPage();
+      statusPage._id = statusPageId;
+      return statusPage;
+    });
+  }
+
+  // A column's value once an update is written: the update's, else the stored.
+  private getValueAfterUpdate<T>(
+    updatedValue: unknown,
+    storedValue: T | undefined,
+  ): T | undefined {
+    if (updatedValue !== undefined && updatedValue !== null) {
+      return updatedValue as T;
+    }
+
+    return storedValue;
+  }
+
+  /*
    * An update can repoint an incident at another project's state, severity or
    * monitor status just as easily as a create can, and the result is the same:
    * the referenced project can no longer be deleted. Only the columns actually
@@ -608,17 +2532,35 @@ export class Service extends DatabaseService<Model> {
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const incidentStateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
-      resolveReferenceId(updateBy.data.currentIncidentState);
-
-    const incidentSeverityId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.incidentSeverityId) ||
-      resolveReferenceId(updateBy.data.incidentSeverity);
-
-    const changeMonitorStatusToId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
-      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+    /*
+     * The state, the severity and the monitor status, each by both of its
+     * names: the API takes the ID column and the relation alike, and every
+     * name that holds an id is checked. Two names that disagree are refused
+     * before anything is read.
+     */
+    const references: Array<ProjectScopedReference> = [
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentIncidentStateId",
+        relation: "currentIncidentState",
+        modelName: "Incident State",
+        service: IncidentStateService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
+        modelName: "Incident Severity",
+        service: IncidentSeverityService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+    ];
 
     /*
      * The SLOs this incident affects: a relation list the API accepts on
@@ -647,9 +2589,7 @@ export class Service extends DatabaseService<Model> {
       );
 
     if (
-      !incidentStateId &&
-      !incidentSeverityId &&
-      !changeMonitorStatusToId &&
+      references.length === 0 &&
       !hasServiceLevelObjectiveIds &&
       relations.length === 0
     ) {
@@ -657,18 +2597,19 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each incident the query actually matches.
+     * The project of every incident the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * incident's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -686,22 +2627,8 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Incident State",
-          id: incidentStateId,
-          service: IncidentStateService,
-        },
-        {
-          modelName: "Incident Severity",
-          id: incidentSeverityId,
-          service: IncidentSeverityService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: changeMonitorStatusToId,
-          service: MonitorStatusService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -710,18 +2637,14 @@ export class Service extends DatabaseService<Model> {
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
-        references: references,
+        references: referencesInProject,
       });
     }
   }
@@ -749,52 +2672,102 @@ export class Service extends DatabaseService<Model> {
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
       },
+      /*
+       * The status pages the incident is limited to. Another project's page
+       * here would put that project's page name into this incident's feed and
+       * scope it to a page it can never show on.
+       */
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
+      },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const incident of incidents) {
-      if (incident.projectId) {
-        projectIds[incident.projectId.toString()] = incident.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The owners the declarer picked in the form, as sent: asked about below,
+     * once the incident is as it will be saved. A template's owners, handed
+     * over below, are the template's to name, and are added once the
+     * incident is saved, as they were.
+     */
+    const ownersPicked: JSONObject = OwnerRuleAssignment.getOwnersPicked(
+      createBy.miscDataProps,
+    );
+
+    /*
+     * A new incident is in no episode: it joins one through grouping or the
+     * episode's members (EpisodeMembershipReference). Refused before the
+     * incident number is taken.
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: createBy.data,
+      props: createBy.props,
+      reference: INCIDENT_EPISODE_REFERENCE,
+    });
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
-    if (createBy.data.isPrivate === true) {
-      createBy.data.isVisibleOnStatusPage = false;
+    /*
+     * A private incident is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, and nobody is told it was created - whoever creates
+     * it, with whatever the request says for either.
+     */
+    StatusPageVisibility.normalizeWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
         false;
     }
 
+    /*
+     * Owners handed over to be notified are added by onCreateSuccess's
+     * chain, once the incident's Slack / Microsoft Teams channels exist -
+     * seconds after the incident is written, with a workspace connected. The
+     * owners' "Incident Created" notification is sent by a job that runs
+     * every minute and takes every incident not yet marked as notified: run
+     * in between, it would find no owners, tell the project's owners
+     * instead, and mark the incident done, and the owners the create named
+     * would hear nothing of it ("owner added" is off by default). So such an
+     * incident is written as notified already, and the chain marks it not
+     * notified once it has added them (releaseCreatedNotificationHeldForOwners):
+     * the job then tells them on its next run.
+     */
+    if (this.isCreatedNotificationHeldForOwners(createBy)) {
+      createBy.data.isOwnerNotifiedOfResourceCreation = true;
+    }
+
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
+
+    /*
+     * The values the caller sent, before a template or a mapping adds any:
+     * those are not the caller's to get wrong.
+     */
+    await this.validateCustomFieldValuesOnCreate({
+      createBy: createBy,
+      projectId: projectId,
+    });
+
+    /*
+     * Status pages the caller picked, as opposed to ones copied from a
+     * template below (see applyStatusPageScopeToCreate).
+     */
+    const statusPagesFromCaller: boolean =
+      createBy.data.statusPages !== undefined &&
+      createBy.data.statusPages !== null;
 
     /*
      * Declaring the incident from alerts. The alert ids are checked here,
@@ -804,21 +2777,32 @@ export class Service extends DatabaseService<Model> {
      * incident behind that is missing some of its alerts. The alerts are
      * linked in onCreateSuccess, once the incident exists.
      */
-    let carryForward: IncidentCreateCarryForward = null;
-
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
-    if (alertIdsToLink !== undefined && alertIdsToLink !== null) {
-      carryForward = {
-        alertIdsToLink:
-          await IncidentAlertService.validateAlertIdsForNewIncident({
+    const validatedAlertIds: Array<ObjectID> =
+      alertIdsToLink !== undefined && alertIdsToLink !== null
+        ? await IncidentAlertService.validateAlertIdsForNewIncident({
             projectId: projectId,
             alertIds: alertIdsToLink,
             props: createBy.props,
-          }),
-      };
-    }
+          })
+        : [];
+
+    /*
+     * Asking to acknowledge the alerts is checked here too, with the alert
+     * ids, so a request that cannot be honoured (no Acknowledged alert state,
+     * or a caller who may not change these alerts' states) is refused before
+     * the incident exists rather than leaving alerts that keep paging.
+     */
+    const alertsToAcknowledge: AlertsToAcknowledgeOnDeclare | null =
+      await IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
+        projectId: projectId,
+        acknowledgeAlerts:
+          createBy.miscDataProps?.[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY],
+        alertIds: validatedAlertIds,
+        props: createBy.props,
+      });
 
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
@@ -849,45 +2833,77 @@ export class Service extends DatabaseService<Model> {
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
-    // If currentIncidentStateId is already provided (manual selection), use it
-    if (createBy.data.currentIncidentStateId) {
-      initialIncidentStateId = createBy.data.currentIncidentStateId;
+    /*
+     * Where the incident starts (StartingStage), read with the state it
+     * starts in: one read of the project's states both places a picked
+     * state, or a template's, and tells whether it is the project's own.
+     * Open for the created state, where it starts when neither names one.
+     */
+    let startingStage: StartingStage = StartingStage.Open;
 
-      // Validate that the provided state exists and belongs to the project
-      const providedState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            _id: initialIncidentStateId.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+    // Whether that read found the state among the project's own.
+    let isStatePlacedByStartingRead: boolean = false;
 
-      if (!providedState) {
-        throw new BadDataException(
-          "Invalid incident state provided. The state does not exist or does not belong to this project.",
-        );
-      }
-    } else if (createBy.data.createdIncidentTemplateId) {
-      /*
-       * Created from a template — pull every field we may want to
-       * inherit and apply each one only if the caller didn't already
-       * provide it. The dashboard pre-fills these on the client, so in
-       * the UI flow this is a no-op; the gain is for API consumers
-       * that just send `createdIncidentTemplateId` and expect the
-       * server to materialize the rest. `undefined` means "not set by
-       * the caller" — an explicit empty array or empty string is
-       * treated as an intentional override and we leave it alone.
-       */
-      const incidentTemplate: IncidentTemplate | null =
-        await IncidentTemplateService.findOneBy({
+    // Declared from a template whose status pages were all deleted.
+    let isScopedToNothingByTemplate: boolean = false;
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * A state the caller picked, under either of its names (the two must
+     * agree), so a pick sent as the relation counts the same as one sent as
+     * the ID. The template is read the same way below.
+     */
+    const pickedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createData,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    /*
+     * The template the incident is declared from. Either one named through
+     * createFromTemplate - a workflow's Create One Incident step - or
+     * createdIncidentTemplateId, which only OneUptime itself sends (an
+     * incident form), under either of its names.
+     */
+    const templateIdInData: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEMPLATE_KEYS,
+      "Incident Template",
+    );
+
+    /*
+     * createdIncidentTemplateId itself is OneUptime's to set: anyone else who
+     * sends it is refused by the column check after these hooks, as for
+     * every column no caller may write. A caller declares from a template
+     * through createFromTemplate instead.
+     */
+    const declaredTemplateId: ObjectID | null =
+      this.getTemplateDeclaredFor(createBy);
+
+    const incidentTemplateId: ObjectID | null =
+      declaredTemplateId || templateIdInData;
+
+    /*
+     * Declared from a template: pull every field it may give, and apply each
+     * one only where the caller did not provide it. The dashboard pre-fills
+     * these on the client, so in its flow this is a no-op; the gain is for a
+     * workflow step or a form, which name the template and expect the server
+     * to materialize the rest. `undefined` means "not set by the caller" - an
+     * explicit empty array or empty string is treated as an intentional
+     * override and left alone.
+     *
+     * A template named through createFromTemplate is read as the caller: one
+     * they may not read, or whose plan does not include templates, is not
+     * theirs to declare from, and one that is not the project's is refused
+     * like a missing reference. One OneUptime names is read as OneUptime.
+     */
+    const incidentTemplate: IncidentTemplate | null = incidentTemplateId
+      ? await IncidentTemplateService.findOneBy({
           query: {
-            _id: createBy.data.createdIncidentTemplateId.toString(),
+            _id: incidentTemplateId.toString(),
             projectId: projectId,
           },
           select: {
@@ -904,183 +2920,262 @@ export class Service extends DatabaseService<Model> {
             services: { _id: true },
             onCallDutyPolicies: { _id: true },
             labels: { _id: true },
+            statusPages: { _id: true },
+            isScopedToStatusPages: true,
+            customFields: true,
           },
-          props: {
-            isRoot: true,
-          },
-        });
+          props: declaredTemplateId
+            ? createBy.props
+            : {
+                isRoot: true,
+              },
+        })
+      : null;
 
-      if (incidentTemplate?.initialIncidentStateId) {
-        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-
-        // Validate that the template's state exists and belongs to the project
-        const templateState: IncidentState | null =
-          await IncidentStateService.findOneBy({
-            query: {
-              _id: initialIncidentStateId.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (!templateState) {
-          // Fall back to default if template state is invalid
-          initialIncidentStateId = undefined;
-        }
-      }
-
-      if (incidentTemplate) {
-        if (
-          !createBy.data.incidentSeverityId?.toString() &&
-          incidentTemplate.incidentSeverityId
-        ) {
-          createBy.data.incidentSeverityId =
-            incidentTemplate.incidentSeverityId;
-        }
-        if (
-          createBy.data.changeMonitorStatusToId === undefined &&
-          incidentTemplate.changeMonitorStatusToId
-        ) {
-          createBy.data.changeMonitorStatusToId =
-            incidentTemplate.changeMonitorStatusToId;
-        }
-        if (
-          createBy.data.title === undefined &&
-          typeof incidentTemplate.title === "string"
-        ) {
-          createBy.data.title = incidentTemplate.title;
-        }
-        if (
-          createBy.data.description === undefined &&
-          typeof incidentTemplate.description === "string"
-        ) {
-          createBy.data.description = incidentTemplate.description;
-        }
-
-        const stubBy: <T extends { _id?: string | undefined }>(
-          ctor: new () => T,
-          rows: Array<{ _id?: string | undefined }> | undefined,
-        ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
-          ctor: new () => T,
-          rows: Array<{ _id?: string | undefined }> | undefined,
-        ): Array<T> | undefined => {
-          if (!rows) {
-            return undefined;
-          }
-          return rows
-            .filter((row: { _id?: string | undefined }): boolean => {
-              return Boolean(row._id);
-            })
-            .map((row: { _id?: string | undefined }): T => {
-              const stub: T = new ctor();
-              stub._id = String(row._id);
-              return stub;
-            });
-        };
-
-        if (createBy.data.monitors === undefined) {
-          const stubs: Array<Monitor> | undefined = stubBy(
-            Monitor,
-            incidentTemplate.monitors,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.monitors = stubs;
-          }
-        }
-        if (createBy.data.hosts === undefined) {
-          const stubs: Array<Host> | undefined = stubBy(
-            Host,
-            incidentTemplate.hosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.hosts = stubs;
-          }
-        }
-        if (createBy.data.kubernetesClusters === undefined) {
-          const stubs: Array<KubernetesCluster> | undefined = stubBy(
-            KubernetesCluster,
-            incidentTemplate.kubernetesClusters,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.kubernetesClusters = stubs;
-          }
-        }
-        if (createBy.data.dockerHosts === undefined) {
-          const stubs: Array<DockerHost> | undefined = stubBy(
-            DockerHost,
-            incidentTemplate.dockerHosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.dockerHosts = stubs;
-          }
-        }
-        if (createBy.data.podmanHosts === undefined) {
-          const stubs: Array<PodmanHost> | undefined = stubBy(
-            PodmanHost,
-            incidentTemplate.podmanHosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.podmanHosts = stubs;
-          }
-        }
-        if (createBy.data.services === undefined) {
-          const stubs: Array<ServiceModel> | undefined = stubBy(
-            ServiceModel,
-            incidentTemplate.services,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.services = stubs;
-          }
-        }
-        if (createBy.data.onCallDutyPolicies === undefined) {
-          const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
-            OnCallDutyPolicy,
-            incidentTemplate.onCallDutyPolicies,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.onCallDutyPolicies = stubs;
-          }
-        }
-        if (createBy.data.labels === undefined) {
-          const stubs: Array<Label> | undefined = stubBy(
-            Label,
-            incidentTemplate.labels,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.labels = stubs;
-          }
-        }
-      }
+    if (declaredTemplateId && !incidentTemplate) {
+      throw this.getTemplateNotInProjectException(declaredTemplateId);
     }
 
-    // If no custom state is provided or found, fall back to default created state
-    if (!initialIncidentStateId) {
-      const incidentState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            projectId: projectId,
-            isCreatedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
+    if (declaredTemplateId) {
+      await this.handOverTemplateOwners({
+        createBy: createBy,
+        incidentTemplateId: declaredTemplateId,
+        projectId: projectId,
+      });
+    }
+
+    /*
+     * A state the caller picked (manual selection) is where the incident
+     * starts, over the template's like any other field - the rest of the
+     * template still applies, as it does when a state is picked on the
+     * dashboard's declare form.
+     */
+    if (pickedIncidentStateId) {
+      initialIncidentStateId = pickedIncidentStateId;
+
+      // It has to be one of the project's states.
+      const pickedStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
         });
 
-      if (!incidentState || !incidentState.id) {
+      if (!pickedStart) {
         throw new BadDataException(
-          "Created incident state not found for this project. Please add created incident state from settings.",
+          "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
 
-      initialIncidentStateId = incidentState.id;
+      startingStage = pickedStart.stage;
+      isStatePlacedByStartingRead = true;
+    } else if (incidentTemplate?.initialIncidentStateId) {
+      /*
+       * The template's state, while it is one of the project's states.
+       * One deleted since, or never the project's, leaves the incident to
+       * start in the created state.
+       */
+      const templateStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: incidentTemplate.initialIncidentStateId,
+        });
+
+      if (templateStart) {
+        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+        startingStage = templateStart.stage;
+        isStatePlacedByStartingRead = true;
+      }
+    }
+
+    if (incidentTemplate) {
+      /*
+       * A severity or a monitor status the caller sent, under either of
+       * its names, wins over the template's. The template's is written
+       * with stamp, so no other name is left beside it to be stored
+       * instead.
+       */
+      if (
+        !RelationIdUtil.readConsistent(
+          createData,
+          SEVERITY_KEYS,
+          "Incident Severity",
+        ) &&
+        incidentTemplate.incidentSeverityId
+      ) {
+        RelationIdUtil.stamp(
+          createData,
+          SEVERITY_KEYS,
+          incidentTemplate.incidentSeverityId,
+        );
+      }
+      if (
+        !RelationIdUtil.isPresent(createData, CHANGE_MONITOR_STATUS_KEYS) &&
+        incidentTemplate.changeMonitorStatusToId
+      ) {
+        RelationIdUtil.stamp(
+          createData,
+          CHANGE_MONITOR_STATUS_KEYS,
+          incidentTemplate.changeMonitorStatusToId,
+        );
+      }
+      if (
+        createBy.data.title === undefined &&
+        typeof incidentTemplate.title === "string"
+      ) {
+        createBy.data.title = incidentTemplate.title;
+      }
+      if (
+        createBy.data.description === undefined &&
+        typeof incidentTemplate.description === "string"
+      ) {
+        createBy.data.description = incidentTemplate.description;
+      }
+
+      const stubBy: <T extends { _id?: string | undefined }>(
+        ctor: new () => T,
+        rows: Array<{ _id?: string | undefined }> | undefined,
+      ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
+        ctor: new () => T,
+        rows: Array<{ _id?: string | undefined }> | undefined,
+      ): Array<T> | undefined => {
+        if (!rows) {
+          return undefined;
+        }
+        return rows
+          .filter((row: { _id?: string | undefined }): boolean => {
+            return Boolean(row._id);
+          })
+          .map((row: { _id?: string | undefined }): T => {
+            const stub: T = new ctor();
+            stub._id = String(row._id);
+            return stub;
+          });
+      };
+
+      if (createBy.data.monitors === undefined) {
+        const stubs: Array<Monitor> | undefined = stubBy(
+          Monitor,
+          incidentTemplate.monitors,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.monitors = stubs;
+        }
+      }
+      if (createBy.data.hosts === undefined) {
+        const stubs: Array<Host> | undefined = stubBy(
+          Host,
+          incidentTemplate.hosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.hosts = stubs;
+        }
+      }
+      if (createBy.data.kubernetesClusters === undefined) {
+        const stubs: Array<KubernetesCluster> | undefined = stubBy(
+          KubernetesCluster,
+          incidentTemplate.kubernetesClusters,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.kubernetesClusters = stubs;
+        }
+      }
+      if (createBy.data.dockerHosts === undefined) {
+        const stubs: Array<DockerHost> | undefined = stubBy(
+          DockerHost,
+          incidentTemplate.dockerHosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.dockerHosts = stubs;
+        }
+      }
+      if (createBy.data.podmanHosts === undefined) {
+        const stubs: Array<PodmanHost> | undefined = stubBy(
+          PodmanHost,
+          incidentTemplate.podmanHosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.podmanHosts = stubs;
+        }
+      }
+      if (createBy.data.services === undefined) {
+        const stubs: Array<ServiceModel> | undefined = stubBy(
+          ServiceModel,
+          incidentTemplate.services,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.services = stubs;
+        }
+      }
+      if (createBy.data.onCallDutyPolicies === undefined) {
+        const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
+          OnCallDutyPolicy,
+          incidentTemplate.onCallDutyPolicies,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.onCallDutyPolicies = stubs;
+        }
+      }
+      if (createBy.data.labels === undefined) {
+        const stubs: Array<Label> | undefined = stubBy(
+          Label,
+          incidentTemplate.labels,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.labels = stubs;
+        }
+      }
+      // Applying a template that has status pages scopes the incident.
+      if (createBy.data.statusPages === undefined) {
+        const stubs: Array<StatusPage> | undefined = stubBy(
+          StatusPage,
+          incidentTemplate.statusPages,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.statusPages = stubs;
+        } else if (incidentTemplate.isScopedToStatusPages) {
+          /*
+           * A template limited to status pages that have all been deleted
+           * since. Its incidents stay limited - to nothing - like an
+           * incident whose pages were deleted, rather than reaching every
+           * page that lists their monitors.
+           */
+          isScopedToNothingByTemplate = true;
+        }
+      }
+
+      /*
+       * The template's custom field values fill in the fields the caller
+       * left out; a value the caller sent always wins. Merged, not
+       * replaced, so the caller's own values are never dropped. They are
+       * the template's, so the value check above (the caller's values
+       * only) does not see them, and the mapping below still has the last
+       * word on a mapped field.
+       */
+      const customFieldsWithTemplate: JSONObject | undefined =
+        mergeTemplateCustomFields({
+          templateCustomFields: incidentTemplate.customFields,
+          customFields: createBy.data.customFields,
+        });
+
+      if (customFieldsWithTemplate) {
+        createBy.data.customFields = customFieldsWithTemplate;
+      }
+    }
+
+    this.applyStatusPageScopeToCreate({
+      createBy: createBy,
+      isScopedToNothingByTemplate: isScopedToNothingByTemplate,
+    });
+
+    /*
+     * With no state picked, and none from a template, the incident starts in
+     * the project's created state - as every incident a monitor declares
+     * does - which is open (StartingStage) with no need to read the rest of
+     * the project's states.
+     */
+    if (!initialIncidentStateId) {
+      initialIncidentStateId =
+        await IncidentStateService.getCreatedIncidentStateId(projectId);
     }
 
     /*
@@ -1104,25 +3199,33 @@ export class Service extends DatabaseService<Model> {
       projectId: projectId,
       subject: "incident",
       references: [
-        {
-          modelName: "Incident State",
-          id: initialIncidentStateId,
-          service: IncidentStateService,
-        },
-        {
+        /*
+         * The state it starts in - unless the read of where it starts found
+         * it among the project's states: a state picked or a template's.
+         */
+        ...(isStatePlacedByStartingRead
+          ? []
+          : [
+              {
+                modelName: "Incident State",
+                id: initialIncidentStateId,
+                service: IncidentStateService,
+              },
+            ]),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(createBy.data.incidentSeverityId) ||
-            resolveReferenceId(createBy.data.incidentSeverity),
           service: IncidentSeverityService,
-        },
-        {
+        }),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "changeMonitorStatusToId",
+          relation: "changeMonitorStatusTo",
           modelName: "Monitor Status",
-          id:
-            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
-            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
-        },
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -1145,41 +3248,94 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
+    // Before the counter increment too, like the checks above.
+    await this.assertCallerCanPickStatusPagesOnCreate({
+      createBy: createBy,
+      projectId: projectId,
+      statusPagesFromCaller: statusPagesFromCaller,
+    });
+
+    /*
+     * The owners the declarer picked, on the incident as it will be saved -
+     * with a template's labels - and before the counter increment too: a
+     * pick they may not add refuses the declare.
+     */
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentOwnerUserService,
+      ownerTeamService: IncidentOwnerTeamService,
+      resourceIdColumn: "incidentId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: ownersPicked,
+      props: createBy.props,
+    });
+
+    /*
+     * The monitors, status pages, on-call policies and the rest a template
+     * filled in above are the declarer's to name as if they had picked them:
+     * each must be one they may read, asked here, before the incident
+     * number is taken, rather than once the hooks have run.
+     */
+    await this.checkRecordsNamedSoFar(createBy);
+
+    /*
+     * How far along it starts (StartingStage), as read with its state above,
+     * is handed to onCreateSuccess, which decides on it what the create sets
+     * off: an incident declared already acknowledged pages nobody, and one
+     * declared resolved also sets off nothing that answers a live problem.
+     *
+     * The alerts to acknowledge are asked for only with alerts to link (the
+     * validator refuses the request otherwise), so they are empty, and the
+     * state null, for an incident declared from no alerts.
+     */
+    /*
+     * Whether the incident holds its monitors (Incident.holdsMonitors),
+     * whatever the write sent - it is OneUptime's to record. One declared
+     * open holds them: it puts them in its monitor status and, declared by
+     * hand, pauses their monitoring, and its resolve gives them back. One
+     * declared already resolved does neither (onCreateSuccess), so it holds
+     * nothing, and no resolve of it - after a reopen, say - gives anything
+     * back.
+     */
+    createBy.data.holdsMonitors = StartingStageUtil.isOngoing(startingStage);
+
+    const carryForward: IncidentCreateCarryForward = {
+      startingStage: startingStage,
+      alertIdsToLink: validatedAlertIds,
+      acknowledgedAlertStateId:
+        alertsToAcknowledge?.acknowledgedAlertStateId || null,
+      alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
+    };
+
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
     } = await ProjectService.incrementAndGetIncidentCounter(projectId);
 
-    createBy.data.currentIncidentStateId = initialIncidentStateId;
+    // The state it starts in, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(
+      createData,
+      CURRENT_STATE_KEYS,
+      initialIncidentStateId,
+    );
     createBy.data.incidentNumber = incidentCounterResult.counter;
-    createBy.data.incidentNumberWithPrefix = incidentCounterResult.prefix
-      ? `${incidentCounterResult.prefix}${incidentCounterResult.counter}`
-      : `#${incidentCounterResult.counter}`;
+    createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      incidentCounterResult.prefix,
+      incidentCounterResult.counter,
+    );
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+    // Who declared it, under either name of it: see CreatedByUser.
+    const declaredByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
 
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: projectId,
-          },
-        )}`;
-      }
+    if (declaredByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause =
+        mdText`Incident created by ${await UserService.getUserMarkdownString({
+          userId: declaredByUserId,
+          projectId: projectId,
+        })}`.toString();
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
@@ -1272,20 +3428,12 @@ export class Service extends DatabaseService<Model> {
         labels: {
           name: true,
         },
-        monitors: {
-          name: true,
-          _id: true,
-        },
         /*
-         * Named under "Resources Affected" in the created feed item. This read
-         * runs as root, so projectId comes along and the feed names only this
-         * project's SLOs (getSloAffectedResourceMarkdownLines).
+         * The resources named under "Resources Affected" are read by the feed
+         * builder itself (LinkedAffectedResources), one relation at a time.
          */
-        serviceLevelObjectives: {
-          name: true,
-          _id: true,
-          projectId: true,
-        },
+        // The created feed item names the status pages a scoped incident is limited to.
+        isScopedToStatusPages: true,
       },
       props: {
         isRoot: true,
@@ -1297,12 +3445,44 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * How far along the incident starts, as onBeforeCreate read it
+     * (StartingStage). Declared already acknowledged, no on-call policy
+     * runs. Declared resolved, it is over, and nothing below that answers a
+     * live problem runs either: no channel, monitor status, paused
+     * monitoring, runbook, grouping, SLA, AI investigation or remediation.
+     * Its rules, its owners, its feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
+
+    /*
      * Whether an AI investigation run was enqueued for this incident — set
      * by the investigation step below and read by the auto-remediation step
      * after it: an enqueued investigation DEFERS remediation until the run
      * settles (RCA-first ordering, see RemediationHandoff).
      */
     let aiInvestigationEnqueued: boolean = false;
+
+    /*
+     * Who could not be added to the incident's new Slack channels: set by
+     * the workspace step, told in those channels right after "Incident
+     * Created" (ChannelMembersNotAddedNotice), so a channel opens on the
+     * incident rather than on who is missing from it.
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
+    /*
+     * The holds of the policies the incident's on-call rules added that may
+     * not page yet - a rule that pages only during working hours, matched
+     * outside them (OnCallRulePagingHold): set by the on-call rules step,
+     * read by the on-call step after it.
+     */
+    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
 
     /*
      * Apply privacy rules BEFORE workspace operations so the workspace
@@ -1333,11 +3513,15 @@ export class Service extends DatabaseService<Model> {
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
-            return await this.handleIncidentWorkspaceOperationsAsync(
-              createdItem,
-            );
+          if (createdItem.projectId && createdItem.id && isOngoing) {
+            membersNotAddedToNewChannels =
+              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
           }
           return Promise.resolve();
         } catch (error) {
@@ -1354,7 +3538,10 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         try {
-          return await this.createIncidentFeedAsync(incident);
+          return await this.createIncidentFeedAsync(
+            incident,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
         } catch (error) {
           logger.error(
             `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
@@ -1365,6 +3552,36 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Under "Incident Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after
+         * "Incident Created" in the channels the rules just created. Not
+         * waited on: a meeting provider that is slow to answer must never
+         * hold up paging the on-call below. No call for an incident declared
+         * resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForIncident({
+            projectId: createdItem.projectId,
+            incidentId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                incidentId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {
@@ -1385,6 +3602,9 @@ export class Service extends DatabaseService<Model> {
               incidentId: createdItem.id!,
               alertIds: alertIds,
               actorUserId: this.getDeclaringUserId(onCreate, createdItem),
+              apiKeyActor: FeedApiKeyActorUtil.fromProps(
+                onCreate.createBy.props,
+              ),
             });
           }
         } catch (error) {
@@ -1430,7 +3650,10 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         try {
-          return await this.handleIncidentStateChangeAsync(createdItem);
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
@@ -1444,12 +3667,32 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Owners handed over with the create: a template's owners, from the
+         * dashboard's Declare Incident page or from an incident form. Added
+         * here - after the incident's Slack / Microsoft Teams channels
+         * exist, which is when the owners' own hooks can invite them to
+         * those channels, and after "Incident Created" - rather than by the
+         * caller once the create returns, while this chain may still be
+         * creating the channels.
+         *
+         * Whether they are notified is the caller's to say, but only an
+         * internal (root) caller's: an incident form asks for its
+         * template's owners to be notified - they are the people a report
+         * through it is meant to reach. A user's request cannot: the
+         * dashboard's declare has always added them quietly, and misc data
+         * is whatever the request body says.
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
               onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
+            const notifyOwners: boolean =
+              onCreate.createBy.props.isRoot === true &&
+              onCreate.createBy.miscDataProps["notifyOwners"] === true;
+
             return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
@@ -1459,8 +3702,9 @@ export class Service extends DatabaseService<Model> {
               (onCreate.createBy.miscDataProps[
                 "ownerTeams"
               ] as Array<ObjectID>) || [],
-              false,
+              notifyOwners,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -1474,11 +3718,31 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        } finally {
+          /*
+           * The owners the create handed over exist now - or could not be
+           * added, and this chain will not try again: either way the
+           * "Incident Created" notification held for them may go out.
+           */
+          if (this.isCreatedNotificationHeldForOwners(onCreate.createBy)) {
+            await this.releaseCreatedNotificationHeldForOwners(createdItem);
+          }
         }
       })
       .then(async () => {
+        /*
+         * An incident declared resolved leaves its monitors' status alone:
+         * only resolving puts them back, and it is resolved already, so
+         * nothing ever would. In turn its first state - resolved - gives
+         * them nothing back (handleIncidentStateChangeAsync), so a status a
+         * monitor holds for another reason stays.
+         */
         try {
-          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+          if (
+            createdItem.changeMonitorStatusToId &&
+            createdItem.projectId &&
+            isOngoing
+          ) {
             return await this.handleMonitorStatusChangeAsync(
               createdItem,
               onCreate,
@@ -1498,6 +3762,14 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Nor does it pause their monitoring: nothing would ever resume it,
+         * since only resolving the incident does.
+         */
+        if (!isOngoing) {
+          return Promise.resolve();
+        }
+
         try {
           return await this.disableActiveMonitoringIfManualIncident(
             createdItem.id!,
@@ -1557,9 +3829,10 @@ export class Service extends DatabaseService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
-          await IncidentOnCallRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
+          onCallRulePagingHolds =
+            (await IncidentOnCallRuleEngineService.applyRulesToIncident(
+              createdItem,
+            )) || onCallRulePagingHolds;
         } catch (error) {
           logger.error(
             `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
@@ -1571,6 +3844,11 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToIncident(createdItem);
         } catch (error) {
@@ -1589,7 +3867,11 @@ export class Service extends DatabaseService<Model> {
             createdItem.onCallDutyPolicies?.length &&
             createdItem.onCallDutyPolicies?.length > 0
           ) {
-            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+              onCallRulePagingHolds,
+            );
           }
           return Promise.resolve();
         } catch (error) {
@@ -1605,9 +3887,21 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
-        // Process incident for grouping into episodes
+        /*
+         * Process incident for grouping into episodes - unless it was
+         * declared resolved: it is over. One declared already acknowledged
+         * may join an episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the incident after all.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          await IncidentGroupingEngineService.processIncident(createdItem);
+          await IncidentGroupingEngineService.processIncident(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
@@ -1620,7 +3914,17 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
-        // Create SLA record for incident if a matching rule exists
+        /*
+         * Create SLA record for incident if a matching rule exists. An
+         * incident declared resolved has nothing left to respond to or
+         * resolve in time: it starts none. One declared acknowledged was
+         * responded to when it was declared, so its response deadline cannot
+         * be missed for it.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           if (
             createdItem.projectId &&
@@ -1631,6 +3935,9 @@ export class Service extends DatabaseService<Model> {
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
               declaredAt: createdItem.declaredAt,
+              ...(startingStage === StartingStage.Acknowledged
+                ? { respondedAt: createdItem.declaredAt }
+                : {}),
             });
           }
         } catch (error) {
@@ -1673,10 +3980,17 @@ export class Service extends DatabaseService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            /*
+             * An incident declared resolved was over before it was declared:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIIncidentInvestigationRunner.investigateNewIncident({
                 incidentId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -1698,14 +4012,20 @@ export class Service extends DatabaseService<Model> {
          * remediation planner always has the posted root cause analysis as
          * input instead of racing it. Without an investigation (opt-out,
          * gates, budget) remediation fires here immediately — it must
-         * never silently depend on the AI lane being enabled.
+         * never silently depend on the AI lane being enabled. Deferred, the
+         * Remediation card says it waits for the analysis
+         * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          if (!aiInvestigationEnqueued) {
-            await AutoRemediationRuleEngineService.applyRulesToIncident(
-              createdItem,
-            );
-          }
+          await AutoRemediationRuleEngineService.onIncidentCreated({
+            incident: createdItem,
+            isInvestigationQueued: aiInvestigationEnqueued,
+          });
         } catch (error) {
           logger.error(
             `Apply auto-remediation rules failed in IncidentService.onCreateSuccess: ${error}`,
@@ -1745,13 +4065,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The alerts the declaration asked to acknowledge that were not
+   * acknowledged yet when it was checked - the only ones the caller was
+   * authorized for, so the only ones that may be written.
+   */
+  private getAlertIdsToAcknowledgeDeclaredWith(
+    onCreate: OnCreate<Model>,
+  ): Array<ObjectID> {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    if (!carryForward?.acknowledgedAlertStateId) {
+      return [];
+    }
+
+    return carryForward.alertIdsToAcknowledge || [];
+  }
+
+  /*
    * Who declared the incident, as "Linked by" on the links and the actor of
-   * their feed entries. A user is recorded as themselves and an API key as
-   * nobody: Incident.createdByUserId is writable by the create payload, and
-   * an API key must not be able to name somebody else as the one who linked
-   * the alerts (IncidentAlertService.onBeforeCreate applies the same rule to
-   * a link created directly). Only an internal root caller is trusted to
-   * name the incident's creator.
+   * their feed entries: the incident's creator, as DatabaseService decided
+   * it (UserAttribution). A user is recorded as themselves and an API key or
+   * a workflow as nobody; only OneUptime's own server code names a creator
+   * itself.
    */
   private getDeclaringUserId(
     onCreate: OnCreate<Model>,
@@ -1778,6 +4114,13 @@ export class Service extends DatabaseService<Model> {
    * the incident's title when the incident is private, and a rule can make
    * it private after it was saved. (The alerts' owners are added to a private
    * incident later in the chain, once its workspace channels exist.)
+   *
+   * When the declaration asked for it, the alerts are then acknowledged as
+   * the declaring user, which stops their on-call escalation at the
+   * workers' next run. That is not waited for: each acknowledgement is a
+   * full state change (feed entry, Slack / Microsoft Teams post, owner
+   * notification), up to one per alert, and the page the user lands on does
+   * not show the alerts' states. It never fails the incident.
    */
   @CaptureSpan()
   private async linkAlertsDeclaredWithIncident(
@@ -1793,6 +4136,8 @@ export class Service extends DatabaseService<Model> {
 
     await privacyRulesApplied;
 
+    let linkedAlertIds: Array<ObjectID> = [];
+
     try {
       const result: LinkAlertsToIncidentResult =
         await IncidentAlertService.linkAlertsToIncident({
@@ -1805,6 +4150,11 @@ export class Service extends DatabaseService<Model> {
             isRoot: true,
           },
         });
+
+      linkedAlertIds = [
+        ...result.linkedAlertIds,
+        ...result.alreadyLinkedAlertIds,
+      ];
 
       if (result.failed.length > 0) {
         logger.error(
@@ -1824,12 +4174,112 @@ export class Service extends DatabaseService<Model> {
         } as LogAttributes,
       );
     }
+
+    const alertIdsToAcknowledge: Array<ObjectID> =
+      this.getAlertIdsToAcknowledgeDeclaredWith(onCreate);
+
+    if (alertIdsToAcknowledge.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID = createdItem.projectId;
+    const incidentId: ObjectID = createdItem.id;
+
+    IncidentAlertService.acknowledgeAlertsDeclaredWithIncident({
+      projectId: projectId,
+      incidentId: incidentId,
+      alertIds: alertIdsToAcknowledge,
+      linkedAlertIds: linkedAlertIds,
+      acknowledgedByUserId: this.getDeclaringUserId(onCreate, createdItem),
+    })
+      .then((acknowledged: AcknowledgeDeclaredAlertsResult) => {
+        if (acknowledged.failed.length > 0) {
+          logger.error(
+            `${acknowledged.failed.length} of ${alertIdsToAcknowledge.length} alerts could not be acknowledged when the incident was declared from them.`,
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .catch((error: Error) => {
+        logger.error(
+          `Acknowledging the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+          {
+            projectId: projectId.toString(),
+            incidentId: incidentId.toString(),
+          } as LogAttributes,
+        );
+      });
   }
 
+  /*
+   * Whether a create hands owners to its own onCreateSuccess chain to be
+   * notified, and so holds the incident's "Incident Created" notification
+   * until the chain has added them (see onBeforeCreate). Only an internal
+   * (root) caller can ask for owners to be notified - misc data is whatever
+   * a user's request body says - and today only an incident form does, for
+   * its template's owners. Every other create is written and notified as it
+   * always was. One predicate for the hold and the release alike, so the
+   * chain never releases an incident nobody held: the job may already have
+   * notified that one, and would do it again.
+   */
+  private isCreatedNotificationHeldForOwners(
+    createBy: CreateBy<Model>,
+  ): boolean {
+    const miscDataProps: JSONObject | undefined = createBy.miscDataProps;
+
+    return (
+      createBy.props.isRoot === true &&
+      miscDataProps?.["notifyOwners"] === true &&
+      Boolean(miscDataProps["ownerUsers"] || miscDataProps["ownerTeams"])
+    );
+  }
+
+  /*
+   * Marks an incident whose create held its "Incident Created" notification
+   * as not notified, so the owners' job sends it on its next run - to the
+   * owners the chain has just added. Without the update hooks, as the other
+   * notification markers on an incident are written: nothing they react to
+   * changed. It never throws, so the chain's later steps (the owner rules,
+   * on-call) still run; a failure is logged, and leaves the notification
+   * unsent.
+   */
+  private async releaseCreatedNotificationHeldForOwners(
+    incident: Model,
+  ): Promise<void> {
+    try {
+      await this.updateOneById({
+        id: incident.id!,
+        data: {
+          isOwnerNotifiedOfResourceCreation: false,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * Creates the incident's own channels and adds its people to them. Hands
+   * back who could not be added, for the channels to be told after
+   * "Incident Created".
+   */
   @CaptureSpan()
   private async handleIncidentWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -1838,9 +4288,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       // send message to workspaces - slack, teams, etc.
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
           projectId: createdItem.projectId,
           incidentId: createdItem.id,
@@ -1853,19 +4301,13 @@ export class Service extends DatabaseService<Model> {
           isPrivate: createdItem.isPrivate === true,
         });
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        // update incident with these channels.
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the incident while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(
         `Error in handleIncidentWorkspaceOperationsAsync: ${error}`,
@@ -1878,8 +4320,50 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The status pages a scoped incident is limited to, as a Markdown list for
+   * its created feed item. Read on their own rather than in onCreateSuccess's
+   * select: a find that selects several many-to-many lists returns a row for
+   * every combination of them.
+   */
+  private async getScopedStatusPagesMarkdown(incident: Model): Promise<string> {
+    const incidentWithStatusPages: Model | null = await this.findOneById({
+      id: incident.id!,
+      select: {
+        statusPages: {
+          _id: true,
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const statusPages: Array<StatusPage> =
+      incidentWithStatusPages?.statusPages || [];
+
+    if (statusPages.length === 0) {
+      // Scoped to pages that have all been deleted since: hidden everywhere.
+      return `- None: the status pages it was limited to have been deleted, so it is not shown on any status page.\n`;
+    }
+
+    let markdown: string = "";
+
+    for (const statusPage of statusPages) {
+      // A page name is free text: kept from turning into a link or an image.
+      markdown += mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
+    }
+
+    return markdown;
+  }
+
   @CaptureSpan()
-  private async createIncidentFeedAsync(incident: Model): Promise<void> {
+  private async createIncidentFeedAsync(
+    incident: Model,
+    // The API key that declared it, when one did (Utils/Feed/FeedApiKeyActor).
+    apiKeyActor?: FeedApiKeyActor | undefined,
+  ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
         incident.createdByUserId || incident.createdByUser?.id;
@@ -1888,71 +4372,87 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumberWithPrefix ||
         "#" + incident.incidentNumber?.toString();
 
-      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
+      /*
+       * The title is plain text - one line, typed by whoever declared the
+       * incident, which is anyone holding an incident form's link - placed
+       * into Markdown that is rendered without the viewer's safe mode and
+       * posted to Slack and Teams. Escaped as MarkdownEscape says a title
+       * must be, so "[Reset your password](...)" arrives as those
+       * characters, "![](https://tracker...)" is not fetched and "<!here>"
+       * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
+       * The description stays Markdown: that is what it is written in.
+       *
+       * The description, the root cause and the remediation notes count
+       * only when they say something: one of nothing but spaces and line
+       * breaks - which an API write can store - left a heading with nothing
+       * under it ("Root Cause:") in the feed, Slack and Teams.
+       */
+      let feedInfoInMarkdown: string =
+        mdText`#### 🚨 Incident ${incidentNumberDisplay} Created:
         
 **${incident.title || "No title provided."}**:
 
-${incident.description || "No description provided."}
+${FeedMarkdown.asMarkdown(incident.description?.trim() ? incident.description : "No description provided.")}
 
-`;
+`.toString();
 
+      // The state and severity names are plain text, escaped as the title is.
       if (incident.currentIncidentState?.name) {
-        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+        feedInfoInMarkdown += mdText`🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
       }
 
       if (incident.incidentSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+        feedInfoInMarkdown += mdText`⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
       }
 
       /*
-       * Monitors, then the SLOs this incident is linked to. A burn-rate
-       * incident carries no monitors on purpose, so its SLO is the only
-       * resource there is to name - and the feed's only way back to the
-       * objective that declared it. The SLO link is built inline:
-       * ServiceLevelObjectiveService cannot be imported here (it reaches
-       * this service through the burn-rate rule service).
+       * Everything the incident's Affected Resources card lists: monitors,
+       * the hosts, clusters and services it is attached to, then its SLOs. A
+       * burn-rate incident carries no monitors on purpose, so its SLO is the
+       * only resource there is to name - and the feed's only way back to the
+       * objective that declared it.
        */
-      const sloLines: Array<string> =
-        incident.serviceLevelObjectives &&
-        incident.serviceLevelObjectives.length > 0
-          ? getSloAffectedResourceMarkdownLines({
-              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
-              projectId: incident.projectId!,
-              serviceLevelObjectives: incident.serviceLevelObjectives,
-            })
-          : [];
+      const resources: Array<LinkedAffectedResource> =
+        await LinkedAffectedResources.readForIncident({
+          service: this,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        });
 
-      if (
-        (incident.monitors && incident.monitors.length > 0) ||
-        sloLines.length > 0
-      ) {
+      if (resources.length > 0) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        for (const monitor of incident.monitors || []) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
-        }
-
-        for (const sloLine of sloLines) {
-          feedInfoInMarkdown += `${sloLine}\n`;
+        for (const resourceLine of LinkedAffectedResources.getMarkdownLines({
+          dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+          projectId: incident.projectId!,
+          resources: resources,
+        })) {
+          feedInfoInMarkdown += mdText`${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (incident.rootCause) {
-        feedInfoInMarkdown += `\n
+      if (incident.isScopedToStatusPages) {
+        feedInfoInMarkdown += `📣 **Limited to Status Pages**:\n`;
+        feedInfoInMarkdown += await this.getScopedStatusPagesMarkdown(incident);
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (incident.rootCause?.trim()) {
+        feedInfoInMarkdown += mdText`\n
 📄 **Root Cause**:
 
-${incident.rootCause || "No root cause provided."}
+${FeedMarkdown.asMarkdown(incident.rootCause || "No root cause provided.")}
 
 `;
       }
 
-      if (incident.remediationNotes) {
-        feedInfoInMarkdown += `\n 
+      if (incident.remediationNotes?.trim()) {
+        feedInfoInMarkdown += mdText`\n 
 🎯 **Remediation Notes**:
 
-${incident.remediationNotes || "No remediation notes provided."}
+${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes provided.")}
 
 
 `;
@@ -1971,6 +4471,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
+        apiKeyActor: apiKeyActor,
         workspaceNotification: {
           appendMessageBlocks: incidentCreateMessageBlocks,
           sendWorkspaceNotification: true,
@@ -1989,6 +4490,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   private async handleIncidentStateChangeAsync(
     createdItem: Model,
+    // The API key that declared it, named on its first state's feed item.
+    apiKeyActor?: FeedApiKeyActor | undefined,
   ): Promise<void> {
     try {
       if (!createdItem.currentIncidentStateId) {
@@ -2015,8 +4518,16 @@ ${incident.remediationNotes || "No remediation notes provided."}
         rootCause: createdItem.rootCause,
         stateChangeLog: createdItem.createdStateLog,
         timelineStartsAt: createdItem.declaredAt,
+        /*
+         * Declared already resolved, the incident holds none of its monitors
+         * (onBeforeCreate recorded holdsMonitors false), so its first state -
+         * resolved - gives them nothing back (IncidentStateTimelineService).
+         * OneUptime's write, carrying the key that declared it, if one did,
+         * for that state's feed item.
+         */
         props: {
           isRoot: true,
+          ...FeedApiKeyActorUtil.toProps(apiKeyActor),
         },
       });
     } catch (error) {
@@ -2028,26 +4539,57 @@ ${incident.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the incident's on-call policies - the ones its create named,
+   * inherited from a template, or added by its on-call rules - when it
+   * starts open. Declared already acknowledged or resolved, somebody is on
+   * it or it is over: none of them runs, and its feed says so instead,
+   * naming them (OnCallNotRunOnCreate).
+   *
+   * A policy one of its on-call rules holds until working hours
+   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * they begin (OnCallDutyPolicyRunWait). Every other policy pages now.
+   */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
+    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { incidentId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
-            return OnCallDutyPolicyService.executePolicy(
-              new ObjectID(policy["_id"] as string),
-              {
-                triggeredByIncidentId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.IncidentCreated,
-              },
+            const policyId: ObjectID = new ObjectID(policy["_id"] as string);
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              policyId.toString(),
             );
+
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByIncidentId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.IncidentCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           });
 
         await Promise.allSettled(policyPromises);
@@ -2274,6 +4816,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the incident are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2286,6 +4834,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
@@ -2299,6 +4848,247 @@ ${incident.remediationNotes || "No remediation notes provided."}
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/incidents/${incidentId.toString()}`,
     );
+  }
+
+  /*
+   * What an update that writes the postmortem's note or its Publish on
+   * Status Page switch, or switches the incident's Visible on Status Page
+   * on, does to one incident, compared with the postmortem as it was before
+   * the write (recordStoredValuesBeforeUpdate; see
+   * IncidentPostmortemPublication):
+   *
+   * - a note that reads differently is recorded in the incident feed, and
+   *   its Slack and Microsoft Teams channels, once: "Postmortem Note
+   *   updated", or "cleared" when it was emptied. Writing back the note the
+   *   incident holds - every save of the Edit Postmortem form does - records
+   *   nothing;
+   * - an update that publishes the postmortem - the status page did not show
+   *   it, and does now - queues its subscriber notification
+   *   (getNotificationAction). Saving it again, editing it while it is
+   *   published and taking it off the status page queue nothing; publishing
+   *   it again after that does;
+   * - an update that shows a hidden incident queues its postmortem's
+   *   notification that was skipped because the incident was hidden - and
+   *   only that one, and only while the incident and its postmortem are on
+   *   the status page once the update is written: one that was sent, failed
+   *   or skipped for another reason stays as it is.
+   *
+   * Called once the update is written, and after the note's inline images
+   * were made public, so the notification never links to images the status
+   * page cannot show yet.
+   */
+  private async applyPostmortemUpdate(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    incidentLabel: string;
+    incidentLink: URL;
+    userId: ObjectID | undefined;
+    // The API key that made the change, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
+    written: Record<string, unknown>;
+    postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
+  }): Promise<void> {
+    const comparison: {
+      stored: IncidentPostmortemStoredState | undefined;
+      written: Record<string, unknown>;
+    } = {
+      stored: data.postmortemBeforeUpdate,
+      written: data.written,
+    };
+
+    if (IncidentPostmortemPublication.isNoteChanged(comparison)) {
+      const noteValue: string =
+        typeof data.written["postmortemNote"] === "string"
+          ? data.written["postmortemNote"]
+          : "";
+
+      const postmortemFeedMarkdown: string =
+        IncidentPostmortemPublication.hasNote(noteValue)
+          ? mdText`**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${FeedMarkdown.asMarkdown(noteValue)}`.toString()
+          : mdText`**📘 Postmortem Note cleared for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n_No postmortem note provided._`.toString();
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: data.incidentId,
+        projectId: data.projectId,
+        incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
+        displayColor: Blue500,
+        feedInfoInMarkdown: postmortemFeedMarkdown,
+        userId: data.userId,
+        apiKeyActor: data.apiKeyActor,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
+      });
+    }
+
+    const action: PostmortemNotificationAction =
+      IncidentPostmortemPublication.getNotificationAction(comparison);
+
+    if (action === PostmortemNotificationAction.Queue) {
+      await this.queuePostmortemNotification({
+        incidentId: data.incidentId,
+        postmortemBeforeUpdate: data.postmortemBeforeUpdate,
+      });
+    }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedMeanwhile) {
+      /*
+       * It was on its way when the update read it. The run holding it may
+       * have read the postmortem before this update published it, and so
+       * skip it as not shown: looked at again now that the update is
+       * written, a notification skipped in the meantime is queued again.
+       */
+      const current: PostmortemNotificationStatusRead | null =
+        await this.readPostmortemNotificationStatus(data.incidentId);
+
+      if (
+        current &&
+        current.status === StatusPageSubscriberNotificationStatus.Skipped
+      ) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: current.status,
+        });
+      }
+    }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedAsHidden) {
+      /*
+       * The update showed the incident. Its postmortem's notification was
+       * skipped because the incident was hidden - or was on its way, and the
+       * run holding it may have skipped it so from a read made before this
+       * update. So the incident is read again now that the update is
+       * written, and the notification goes back in the queue if it is due
+       * (isDueOnceShown: skipped for that reason, with the incident and its
+       * postmortem on the status page now) - only while it still stands at
+       * that skip, which also keeps two updates that both show the incident
+       * from queueing it twice. (The send job looks again after such a skip
+       * too, for a skip settled after this.)
+       */
+      const current: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+          showPostmortemOnStatusPage: true,
+          postmortemNote: true,
+          subscriberNotificationStatusOnPostmortemPublished: true,
+          subscriberNotificationStatusMessageOnPostmortemPublished: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (IncidentPostmortemPublication.isDueOnceShown(current)) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: StatusPageSubscriberNotificationStatus.Skipped,
+          expectedMessage: IncidentPostmortemPublication.hiddenIncidentMessage,
+          message: IncidentPostmortemPublication.shownQueuedMessage,
+        });
+      }
+    }
+  }
+
+  /*
+   * Queues the postmortem's subscriber notification from where it stood
+   * before the update. An incident the read before the write did not see
+   * has no such record, so where it stands now is read instead, and a
+   * notification on its way already is left to go.
+   */
+  private async queuePostmortemNotification(data: {
+    incidentId: ObjectID;
+    postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
+  }): Promise<void> {
+    if (data.postmortemBeforeUpdate) {
+      await this.setPostmortemNotificationPending({
+        incidentId: data.incidentId,
+        expectedStatus:
+          data.postmortemBeforeUpdate
+            .subscriberNotificationStatusOnPostmortemPublished ?? null,
+      });
+      return;
+    }
+
+    const current: PostmortemNotificationStatusRead | null =
+      await this.readPostmortemNotificationStatus(data.incidentId);
+
+    if (!current || IncidentPostmortemPublication.isOnItsWay(current.status)) {
+      return;
+    }
+
+    await this.setPostmortemNotificationPending({
+      incidentId: data.incidentId,
+      expectedStatus: current.status,
+    });
+  }
+
+  // Where the postmortem's subscriber notification stands; null when the incident is gone.
+  private async readPostmortemNotificationStatus(
+    incidentId: ObjectID,
+  ): Promise<PostmortemNotificationStatusRead | null> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        subscriberNotificationStatusOnPostmortemPublished: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return null;
+    }
+
+    return {
+      status:
+        incident.subscriberNotificationStatusOnPostmortemPublished ?? null,
+    };
+  }
+
+  /*
+   * Puts the postmortem's subscriber notification back to Pending, with a
+   * message saying why (`message`, else that the postmortem was published),
+   * for Incident:SendPostmortemNotificationToSubscribers to send it - only
+   * while it still stands at `expectedStatus`, and with `expectedMessage`
+   * when one is given, so a notification someone else queued again, a job
+   * claimed, or a run settled for another reason in the meantime is left to
+   * them. A hook-free write of those two columns, like the job's own claim
+   * (SubscriberNotificationClaim).
+   */
+  private async setPostmortemNotificationPending(data: {
+    incidentId: ObjectID;
+    expectedStatus: StatusPageSubscriberNotificationStatus | null;
+    expectedMessage?: string | null | undefined;
+    message?: string | undefined;
+  }): Promise<void> {
+    const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks({
+      id: data.incidentId,
+      data: {
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          data.message || IncidentPostmortemPublication.queuedMessage,
+      },
+      // A null status or message is matched as null (IS NOT DISTINCT FROM).
+      expectedData: {
+        subscriberNotificationStatusOnPostmortemPublished: data.expectedStatus,
+        ...(data.expectedMessage !== undefined
+          ? {
+              subscriberNotificationStatusMessageOnPostmortemPublished:
+                data.expectedMessage,
+            }
+          : {}),
+      } as unknown as PartialEntity<Model>,
+    });
+
+    if (!isQueued) {
+      logger.debug(
+        `Not queueing incident ${data.incidentId.toString()}'s postmortem notification: it changed since the update read it.`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -2342,16 +5132,40 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    if (
-      onUpdate.updateBy.data.currentIncidentStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    /*
+     * The severity the update wrote, under either of its names: the
+     * dashboard's forms send the relation, the API, Terraform, workflows and
+     * the AI tools the ID column, and onBeforeUpdate refused two that
+     * disagree. Its feed entry, SLA recalculation, reminder refresh and
+     * metric run for each incident whose severity this changed - compared
+     * with the severity it held before the write
+     * (recordStoredValuesBeforeUpdate) - so writing back the severity an
+     * incident holds runs none of them.
+     */
+    const writtenIncidentSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        SEVERITY_KEYS,
+        "Incident Severity",
+      );
+
+    if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeIncidentState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           incidentId: itemId,
-          incidentStateId: onUpdate.updateBy.data
-            .currentIncidentStateId as ObjectID,
+          incidentStateId: updatedIncidentStateId,
           notifyOwners: true,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
@@ -2359,10 +5173,25 @@ ${incident.remediationNotes || "No remediation notes provided."}
           stateChangeLog: undefined,
           props: {
             isRoot: true,
+            // The API key that changed it, if one did, for the feed item.
+            ...FeedApiKeyActorUtil.toProps(
+              FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
+            ),
           },
         });
       }
     }
+
+    /*
+     * Whether the update writes the postmortem's note or its switch, or may
+     * show the incident, and with it the postmortem for the first time: what
+     * applyPostmortemUpdate looks at, by the same rule
+     * recordStoredValuesBeforeUpdate read for.
+     */
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      );
 
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
@@ -2394,68 +5223,58 @@ ${incident.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "postmortemNote",
-          )
-        ) {
-          const noteValue: string =
-            (updatedIncidentData.postmortemNote as string) || "";
-          const hasNoteContent: boolean = noteValue.trim().length > 0;
-
-          const postmortemFeedMarkdown: string = hasNoteContent
-            ? `**📘 Postmortem Note updated for [${incidentLabel}](${incidentLink.toString()})**\n\n${noteValue}`
-            : `**📘 Postmortem Note cleared for [${incidentLabel}](${incidentLink.toString()})**\n\n_No postmortem note provided._`;
-
-          await IncidentFeedService.createIncidentFeedItem({
-            incidentId,
-            projectId,
-            incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
-            displayColor: Blue500,
-            feedInfoInMarkdown: postmortemFeedMarkdown,
+        /*
+         * The postmortem's inline images are already public if it is shown
+         * on the status page, private if not: DatabaseService made them so
+         * as it wrote the update, before this hook (PublishedImages), so
+         * the notification queued below never links to a private image.
+         */
+        if (isPostmortemCompared) {
+          await this.applyPostmortemUpdate({
+            incidentId: incidentId,
+            projectId: projectId,
+            incidentLabel: incidentLabel,
+            incidentLink: incidentLink,
             userId: createdByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-            },
-          });
-
-          // Set subscriber notification status to Pending so the cron job will send notifications
-          await this.updateOneById({
-            id: incidentId,
-            data: {
-              subscriberNotificationStatusOnPostmortemPublished:
-                StatusPageSubscriberNotificationStatus.Pending,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
+            written: updatedIncidentData as Record<string, unknown>,
+            postmortemBeforeUpdate: (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()]?.postmortemBeforeUpdate,
           });
         }
 
-        // Re-evaluate reminder schedule when reminders are enabled or disabled for this incident
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "enableReminders",
-          )
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
+        const isSeverityChanged: boolean = ReferenceChange.isChanged({
+          writtenId: writtenIncidentSeverityId,
+          idBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.severityIdBeforeUpdate,
+        });
+
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the incident held before the write (recordStoredValuesBeforeUpdate).
+         * One the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: updatedIncidentData,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.valuesBeforeUpdate,
+        });
+
+        /*
+         * The reminder rule is matched on the severity and the labels, and
+         * reminders can be switched on or off. One refresh covers whatever
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the incident has must not.
+         */
+        const shouldRefreshReminders: boolean =
+          isSeverityChanged ||
+          fieldChanges.labels ||
+          fieldChanges.enableReminders;
 
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
@@ -2573,185 +5392,55 @@ ${incident.remediationNotes || "No remediation notes provided."}
           }
         }
 
-        /*
-         * Sync isPublic on inline post-mortem images. The markdown
-         * editor uploads them as private; they must flip to public
-         * exactly when the post-mortem is shown on the status page so
-         * that anonymous status-page viewers can render the
-         * screenshots without exposing private artefacts.
-         */
-        const postmortemNoteChanged: boolean =
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "postmortemNote",
-          );
-        const postmortemVisibilityChanged: boolean =
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "showPostmortemOnStatusPage",
-          );
-
-        if (postmortemNoteChanged || postmortemVisibilityChanged) {
-          try {
-            const incidentForSync: Model | null = await this.findOneById({
-              id: incidentId,
-              select: {
-                postmortemNote: true,
-                showPostmortemOnStatusPage: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (incidentForSync) {
-              await setIsPublicForMarkdownImages(
-                incidentForSync.postmortemNote || "",
-                Boolean(incidentForSync.showPostmortemOnStatusPage),
-              );
-            }
-          } catch (syncError) {
-            logger.error(
-              `Failed to sync inline post-mortem image visibility: ${syncError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
-
         let shouldAddIncidentFeed: boolean = false;
-        let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`**[${incidentLabel}](${incidentLink.toString()}) was updated.**`.toString();
 
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
-        ) {
-          const title: string =
-            (updatedIncidentData.title as string) || "No title provided.";
-          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
-        ) {
-          const rootCause: string =
-            (updatedIncidentData.rootCause as string) || "";
-          const rootCauseText: string = rootCause.trim().length
-            ? rootCause
-            : "Root cause removed.";
-          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "description",
-          )
-        ) {
-          const description: string =
-            (updatedIncidentData.description as string) ||
-            "No description provided.";
-          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "remediationNotes",
-          )
-        ) {
-          const remediationNotes: string =
-            (updatedIncidentData.remediationNotes as string) || "";
-          const remediationText: string = remediationNotes.trim().length
-            ? remediationNotes
-            : "Remediation notes removed.";
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          updatedIncidentData.labels &&
-          (updatedIncidentData.labels as Array<Label>).length > 0 &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
+        /*
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * incident holds - every save of a card sends its fields - adds none.
+         */
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
+            written: updatedIncidentData,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Incident",
           });
 
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddIncidentFeed = true;
-          }
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
+          shouldAddIncidentFeed = true;
         }
 
         /*
-         * Re-match reminder rule on any labels change (including clearing all
-         * labels), since labels can change which reminder rule matches.
+         * The custom fields whose value the update really changed - set
+         * from the Custom Fields card, Slack, Microsoft Teams or the API -
+         * each with its new value, so the feed and the incident's channels
+         * hear of it. Writing back the bag the incident holds adds none.
          */
-        if (
-          updatedIncidentData.labels &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
+        const customFieldsMarkdown: MarkdownText =
+          await this.getCustomFieldsFeedMarkdown({
+            projectId: projectId,
+            written: (updatedIncidentData as Record<string, unknown>)[
+              "customFields"
+            ],
+            carryForward: (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()],
+          });
+
+        if (!customFieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += customFieldsMarkdown.toString();
+          shouldAddIncidentFeed = true;
         }
 
-        if (
-          updatedIncidentData.incidentSeverity &&
-          (updatedIncidentData.incidentSeverity as any)._id
-        ) {
+        if (isSeverityChanged && writtenIncidentSeverityId) {
           const incidentSeverity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: {
-                _id: new ObjectID(
-                  (updatedIncidentData.incidentSeverity as any)?._id.toString(),
-                ),
+                _id: writtenIncidentSeverityId,
               },
               select: {
                 name: true,
@@ -2762,7 +5451,7 @@ ${labels
             });
 
           if (incidentSeverity) {
-            feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
+            feedInfoInMarkdown += mdText`\n\n**⚠️ Incident Severity**:
 ${incidentSeverity.name}
 `;
 
@@ -2776,22 +5465,6 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
-                {
-                  projectId: projectId?.toString(),
-                  incidentId: incidentId?.toString(),
-                } as LogAttributes,
-              );
-            }
-
-            // Re-match reminder rule when severity changes
-            try {
-              await this.refreshReminderSchedule({
-                incidentId: incidentId,
-                projectId: projectId,
-              });
-            } catch (reminderError) {
-              logger.error(
-                `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
                 {
                   projectId: projectId?.toString(),
                   incidentId: incidentId?.toString(),
@@ -2875,18 +5548,56 @@ ${incidentSeverity.name}
           }
         }
 
+        if (shouldRefreshReminders) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        /*
+         * While an investigation rule makes OneUptime AI wait before it
+         * investigates the incident (issue #5074), the wait follows what
+         * the rules read: its severity, labels, monitors, title and
+         * description. A severity raised to one whose rule waits less
+         * starts the investigation sooner. Never throws, and reads nothing
+         * more when the update changed none of them.
+         */
+        const changedMonitors: UpdateCarryForward[string] | undefined = (
+          onUpdate.carryForward as UpdateCarryForward | undefined
+        )?.[incidentId.toString()];
+
+        if (
+          isSeverityChanged ||
+          fieldChanges.labels ||
+          fieldChanges.textColumns.includes("title") ||
+          fieldChanges.textColumns.includes("description") ||
+          (changedMonitors?.monitorsAdded?.length || 0) > 0 ||
+          (changedMonitors?.monitorsRemoved?.length || 0) > 0
+        ) {
+          await InvestigationRuleWait.onSubjectChanged({
+            lane: "Incident",
+            projectId: projectId,
+            subjectId: incidentId,
+          });
+        }
+
         const carryForward: UpdateCarryForward | undefined =
           onUpdate.carryForward;
 
         if (carryForward) {
-          const incidentCarryForward:
-            | {
-                monitorsRemoved: Array<Monitor>;
-                monitorsAdded: Array<Monitor>;
-                oldChangeMonitorStatusIdTo: ObjectID | undefined;
-                newMonitorChangeStatusIdTo: ObjectID | undefined;
-              }
-            | undefined = carryForward[incidentId.toString()];
+          const incidentCarryForward: UpdateCarryForward[string] | undefined =
+            carryForward[incidentId.toString()];
 
           if (incidentCarryForward) {
             if (incidentCarryForward.monitorsRemoved.length > 0) {
@@ -2912,16 +5623,11 @@ ${incidentSeverity.name}
                   },
                 });
 
-              // change these monitors back to operational state.
-              await this.markMonitorsActiveForMonitoring(
-                projectId!,
-                incidentCarryForward.monitorsRemoved,
-              );
-
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
 
+              // Each name is plain text inside its link's own text.
               for (const monitor of monitorsRemoved) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += mdText`- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -2954,15 +5660,34 @@ ${incidentSeverity.name}
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
 
               for (const monitor of monitorsAdded) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += mdText`- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
             }
 
+            const statusPageScopeMarkdown: string =
+              await this.getStatusPageScopeFeedMarkdown({
+                projectId: projectId,
+                incidentId: incidentId,
+                change: incidentCarryForward.statusPageScopeChange,
+              });
+
+            if (statusPageScopeMarkdown) {
+              feedInfoInMarkdown += statusPageScopeMarkdown;
+              shouldAddIncidentFeed = true;
+            }
+
+            await this.requeueCreatedNotificationIfAddedPagesWereMissed({
+              incidentId: incidentId,
+              change: incidentCarryForward.statusPageScopeChange,
+            });
+
+            // Saving the status the incident already had changes nothing.
             if (
               incidentCarryForward.oldChangeMonitorStatusIdTo &&
-              incidentCarryForward.newMonitorChangeStatusIdTo
+              incidentCarryForward.newMonitorChangeStatusIdTo &&
+              this.isMonitorStatusChangedByUpdate(incidentCarryForward)
             ) {
               const oldMonitorStatus: MonitorStatus | null =
                 await MonitorStatusService.findOneBy({
@@ -2991,50 +5716,18 @@ ${incidentSeverity.name}
                 });
 
               if (oldMonitorStatus && newMonitorStatus) {
-                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
+                feedInfoInMarkdown += mdText`\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
                 shouldAddIncidentFeed = true;
               }
             }
 
-            const changeNewMonitorStatusTo: ObjectID | undefined =
-              incidentCarryForward.newMonitorChangeStatusIdTo ||
-              incidentCarryForward.oldChangeMonitorStatusIdTo;
-
-            if (incidentCarryForward.monitorsAdded?.length > 0) {
-              await this.disableActiveMonitoringIfManualIncident(incidentId);
-            }
-
-            if (changeNewMonitorStatusTo) {
-              const incident: Model | null = await this.findOneById({
-                id: incidentId,
-                select: {
-                  projectId: true,
-                  monitors: {
-                    _id: true,
-                  },
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-              const monitorsForThisIncident: Array<Monitor> =
-                incident?.monitors || [];
-
-              await MonitorService.changeMonitorStatus(
-                projectId!,
-                monitorsForThisIncident.map((monitor: Monitor) => {
-                  return new ObjectID(monitor._id?.toString() || "");
-                }),
-                changeNewMonitorStatusTo,
-                true, // notifyMonitorOwners
-                "Status was changed because Incident " +
-                  incidentNumberDisplay +
-                  " was updated.",
-                undefined,
-                onUpdate.updateBy.props,
-              );
-            }
+            await this.updateMonitorsForIncidentEdit({
+              projectId: projectId,
+              incidentId: incidentId,
+              incidentNumberDisplay: incidentNumberDisplay,
+              carryForward: incidentCarryForward,
+              props: onUpdate.updateBy.props,
+            });
           }
         }
 
@@ -3046,10 +5739,48 @@ ${incidentSeverity.name}
             displayColor: Gray500,
             feedInfoInMarkdown: feedInfoInMarkdown,
             userId: createdByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
             },
           });
+        }
+
+        /*
+         * The on-call rules match the severity, the labels, the title, the
+         * description and the monitors. An incident whose runs wait for
+         * working hours, changed in one of those, may now match a rule that
+         * pages right away: those runs start paging now - a SEV3 raised to
+         * SEV1 at night pages at once (WaitingRunsOnRecordChange). Starting
+         * a page must not fail the edit.
+         */
+        const monitorChangesOfIncident: UpdateCarryForward[string] | undefined =
+          (onUpdate.carryForward as UpdateCarryForward | undefined)?.[
+            incidentId.toString()
+          ];
+
+        if (
+          WaitingRunsOnRecordChange.isRuleInputChanged({
+            isSeverityChanged: isSeverityChanged,
+            fieldChanges: fieldChanges,
+            isMonitorChanged: Boolean(
+              monitorChangesOfIncident &&
+                (monitorChangesOfIncident.monitorsAdded.length > 0 ||
+                  monitorChangesOfIncident.monitorsRemoved.length > 0),
+            ),
+          })
+        ) {
+          try {
+            await WaitingRunsOnRecordChange.startForIncident(incidentId);
+          } catch (waitingRunsError) {
+            logger.error(
+              `Starting waiting on-call runs failed in IncidentService.onUpdateSuccess: ${waitingRunsError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
         }
       }
     }
@@ -3057,32 +5788,287 @@ ${incidentSeverity.name}
     return onUpdate;
   }
 
+  /*
+   * Whether an update puts the incident's monitors in a different status
+   * from the one it held: it writes a status, and not the same one again.
+   */
+  private isMonitorStatusChangedByUpdate(
+    carryForward: UpdateCarryForward[string],
+  ): boolean {
+    if (!carryForward.newMonitorChangeStatusIdTo) {
+      return false;
+    }
+
+    return (
+      carryForward.newMonitorChangeStatusIdTo.toString().toLowerCase() !==
+      (carryForward.oldChangeMonitorStatusIdTo?.toString() || "").toLowerCase()
+    );
+  }
+
+  /*
+   * What an edit of an incident's monitors, or of the status it puts them
+   * in, does to the monitors themselves. The feed item records the edit
+   * either way; this only decides which monitors change.
+   *
+   * The monitors taken off the incident are restored, unless another open
+   * incident still holds them (markMonitorsActiveForMonitoring), when the
+   * incident was open before the update and held its monitors
+   * (Incident.holdsMonitors). That includes an update that resolves it as
+   * well: resolving restores only the monitors it still holds
+   * (IncidentStateTimelineService), so this is the only restore the ones
+   * taken off get. A monitor taken off an incident that was resolved
+   * already was restored when it resolved, and restoring it again could
+   * overwrite a status set since (maintenance, or a manual monitor's status
+   * set by hand) - as could restoring one of an incident that never held
+   * its monitors (declared already resolved, and reopened since).
+   *
+   * A resolved incident, as it stands after the update, does nothing else
+   * to its monitors. Nothing would clear what it did: an added monitor of a
+   * manual incident would never be probed again, and the incident's status
+   * would sit on its monitors as false downtime.
+   *
+   * An open incident:
+   * - stops probing the monitors of a manual incident when one is added,
+   *   as creating it did (disableActiveMonitoringIfManualIncident);
+   * - puts the monitors added in its status, and all of its monitors only
+   *   when the edit changes that status. Every save used to put all of them
+   *   in it again, overwriting a status a probe had set since;
+   * - holds its monitors from then on (Incident.holdsMonitors), so its
+   *   resolve gives them back - even one that held nothing before, as an
+   *   incident declared already resolved and reopened since.
+   */
+  private async updateMonitorsForIncidentEdit(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentNumberDisplay: string;
+    carryForward: UpdateCarryForward[string];
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const carryForward: UpdateCarryForward[string] = data.carryForward;
+
+    if (
+      carryForward.monitorsRemoved.length > 0 &&
+      !carryForward.isResolvedBeforeUpdate &&
+      carryForward.holdsMonitorsBeforeUpdate !== false
+    ) {
+      // change these monitors back to operational state.
+      await this.markMonitorsActiveForMonitoring(
+        data.projectId,
+        carryForward.monitorsRemoved,
+      );
+    }
+
+    const isMonitorStatusChanged: boolean =
+      this.isMonitorStatusChangedByUpdate(carryForward);
+
+    if (carryForward.monitorsAdded.length === 0 && !isMonitorStatusChanged) {
+      return;
+    }
+
+    /*
+     * Read after the update is written, so an edit that resolves the
+     * incident as well counts as resolved: changing the state restored the
+     * monitors it holds, the added ones included.
+     */
+    if (await this.isIncidentResolved({ incidentId: data.incidentId })) {
+      return;
+    }
+
+    // What the edit does next, it does to monitors the incident then holds.
+    if (carryForward.holdsMonitorsBeforeUpdate !== true) {
+      await this.recordHoldsMonitors({
+        incidentId: data.incidentId,
+        holdsMonitors: true,
+      });
+    }
+
+    if (carryForward.monitorsAdded.length > 0) {
+      await this.disableActiveMonitoringIfManualIncident(data.incidentId);
+    }
+
+    // The status the incident puts its monitors in after the update.
+    const monitorStatusIdToApply: ObjectID | undefined =
+      carryForward.isChangeMonitorStatusToCleared
+        ? undefined
+        : carryForward.newMonitorChangeStatusIdTo ||
+          carryForward.oldChangeMonitorStatusIdTo;
+
+    if (
+      !monitorStatusIdToApply ||
+      (!isMonitorStatusChanged && carryForward.monitorsAdded.length === 0)
+    ) {
+      return;
+    }
+
+    const addedMonitorIds: Array<string> = carryForward.monitorsAdded.map(
+      (monitor: Monitor): string => {
+        return this.getMonitorIdForComparison(monitor);
+      },
+    );
+
+    /*
+     * The monitors the incident holds now, so a status is only ever put on
+     * a monitor the update left on it.
+     */
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        monitors: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const monitorIdsToChange: Array<ObjectID> = (incident?.monitors || [])
+      .filter((monitor: Monitor): boolean => {
+        return (
+          isMonitorStatusChanged ||
+          addedMonitorIds.includes(this.getMonitorIdForComparison(monitor))
+        );
+      })
+      .map((monitor: Monitor): ObjectID => {
+        return new ObjectID(monitor._id?.toString() || "");
+      });
+
+    if (monitorIdsToChange.length === 0) {
+      return;
+    }
+
+    await MonitorService.changeMonitorStatus(
+      data.projectId,
+      monitorIdsToChange,
+      monitorStatusIdToApply,
+      true, // notifyMonitorOwners
+      "Status was changed because Incident " +
+        data.incidentNumberDisplay +
+        " was updated.",
+      undefined,
+      data.props,
+    );
+  }
+
+  /*
+   * The part of an update's feed item that records a change of the status
+   * pages the incident is limited to: the pages added and removed, whether
+   * the incident is now limited at all, and whether the added pages will be
+   * sent the 'created' notification. Empty when the scope did not change.
+   *
+   * Page names are read as root, like the monitor names above. The pages were
+   * validated as this project's when they were written, and the read is
+   * filtered on the project anyway. Never throws: the update is already
+   * written, and a missing line in the feed must not turn it into an error.
+   */
+  private async getStatusPageScopeFeedMarkdown(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    change: StatusPageScopeCarryForward | undefined;
+  }): Promise<string> {
+    const change: StatusPageScopeCarryForward | undefined = data.change;
+
+    if (
+      !change ||
+      (change.addedStatusPageIds.length === 0 &&
+        change.removedStatusPageIds.length === 0)
+    ) {
+      return "";
+    }
+
+    try {
+      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+        query: {
+          _id: QueryHelper.any([
+            ...change.addedStatusPageIds,
+            ...change.removedStatusPageIds,
+          ]),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const statusPageLines: (
+        ids: Array<string>,
+      ) => Promise<MarkdownText> = async (
+        ids: Array<string>,
+      ): Promise<MarkdownText> => {
+        const lines: Array<MarkdownText> = [];
+
+        for (const id of ids) {
+          const statusPage: StatusPage | undefined = statusPages.find(
+            (page: StatusPage) => {
+              return page.id?.toString().toLowerCase() === id;
+            },
+          );
+
+          if (!statusPage) {
+            // Deleted since: its name is gone with it.
+            lines.push(mdText`- A deleted status page\n`);
+            continue;
+          }
+
+          // A page name is free text: kept from turning into a link or an image.
+          lines.push(
+            mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`,
+          );
+        }
+
+        return FeedMarkdown.join(lines, "");
+      };
+
+      let markdown: string = "";
+
+      if (change.addedStatusPageIds.length > 0) {
+        markdown += mdText`\n\n**📣 Status Pages Added**:\n${await statusPageLines(change.addedStatusPageIds)}`;
+      }
+
+      if (change.removedStatusPageIds.length > 0) {
+        markdown += mdText`\n\n**🔕 Status Pages Removed**:\n${await statusPageLines(change.removedStatusPageIds)}`;
+      }
+
+      markdown += change.isScoped
+        ? `\n\nThis incident is shown on, and notifies the subscribers of, only its selected status pages that list its monitors.\n`
+        : `\n\nThis incident is no longer limited to specific status pages: it is shown on every status page that lists its monitors, except pages that only show incidents limited to them.\n`;
+
+      if (change.notificationQueued) {
+        markdown += `\nSubscribers of the added status pages will be sent the notification that this incident was created.\n`;
+      }
+
+      return markdown;
+    } catch (err) {
+      logger.error(
+        `Failed to describe the status page scope change in the incident feed: ${err}`,
+        {
+          projectId: data.projectId?.toString(),
+          incidentId: data.incidentId?.toString(),
+        } as LogAttributes,
+      );
+
+      return "";
+    }
+  }
+
+  // Whether another open incident declared by hand still holds the monitor.
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualIncidents(
     monitorId: ObjectID,
     proojectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: proojectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-      });
-
     const incidentCount: PositiveNumber = await this.countBy({
       query: {
         monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(proojectId),
+        ),
         isCreatedAutomatically: false,
       },
       props: {
@@ -3093,32 +6079,18 @@ ${incidentSeverity.name}
     return incidentCount.toNumber() > 0;
   }
 
+  // Whether any open incident lists the monitor (Common/Utils/ResolvedState).
   @CaptureSpan()
   public async doesMonitorHaveActiveIncidents(
     monitorId: ObjectID,
     projectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-      });
-
     const incidentCount: PositiveNumber = await this.countBy({
       query: {
         monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(projectId),
+        ),
       },
       props: {
         isRoot: true,
@@ -3258,21 +6230,18 @@ ${incidentSeverity.name}
       deleteBy.props,
     );
 
-    const incidents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The incidents the delete removes, and the delete held to them.
+    const incidents: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitors: {
           _id: true,
         },
+        holdsMonitors: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -3285,11 +6254,26 @@ ${incidentSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
-      for (const incident of onDelete.carryForward.incidents) {
-        if (incident.monitors && incident.monitors.length > 0) {
+      // The incidents the delete removed, of those onBeforeDelete read.
+      for (const incident of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.incidents,
+        deletedIds: deletedIds,
+      })) {
+        /*
+         * Deleting an incident gives back the monitors it holds - and those
+         * of an incident from before that was recorded, which is how
+         * monitors an older incident left offline are freed. One that holds
+         * nothing (declared already resolved, or resolved since) has nothing
+         * of theirs to give back.
+         */
+        if (
+          incident.monitors &&
+          incident.monitors.length > 0 &&
+          incident.holdsMonitors !== false
+        ) {
           await this.markMonitorsActiveForMonitoring(
             incident.projectId!,
             incident.monitors,
@@ -3421,6 +6405,28 @@ ${incidentSeverity.name}
     await IncidentStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+    });
+  }
+
+  /*
+   * Records whether the incident holds its monitors (Incident.holdsMonitors):
+   * OneUptime's own bookkeeping, written as root and without the update
+   * hooks - it changes nothing anyone sees, and nothing to tell anyone.
+   */
+  @CaptureSpan()
+  public async recordHoldsMonitors(data: {
+    incidentId: ObjectID;
+    holdsMonitors: boolean;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.incidentId,
+      data: {
+        holdsMonitors: data.holdsMonitors,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
     });
   }
 
@@ -3784,8 +6790,6 @@ ${incidentSeverity.name}
           incidentStateId: true,
           incidentState: {
             name: true,
-            isAcknowledgedState: true,
-            isResolvedState: true,
             isCreatedState: true,
           },
           startsAt: true,
@@ -3796,6 +6800,18 @@ ${incidentSeverity.name}
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * Which of them count as resolved (Common/Utils/ResolvedState) and as
+     * acknowledged (Common/Utils/AcknowledgedState).
+     */
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: incident.projectId,
         props: {
           isRoot: true,
         },
@@ -3877,74 +6893,76 @@ ${incidentSeverity.name}
 
       metricTypesMap[IncidentMetricType.IncidentCount] = metricType;
 
-      // is the incident acknowledged?
-      const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
-        (timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isAcknowledgedState;
-        },
-      );
+      /*
+       * Time to acknowledge: until the incident first moved into a state
+       * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+       * project's acknowledged state, one placed after it, or a resolved
+       * one - as the incident's overview and the workspace summaries count
+       * it.
+       */
+      const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
+        this.getFirstAcknowledgementRow({
+          incidentStates: incidentStates,
+          incidentStateTimelines: incidentStateTimelines,
+        });
 
-      if (isIncidentAcknowledged) {
-        const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
-          incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
-            return timeline.incidentState?.isAcknowledgedState;
-          });
+      if (ackIncidentStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = IncidentMetricType.TimeToAcknowledge;
+        metricType.description = "Time taken to acknowledge the incident";
+        metricType.unit = "seconds";
+        metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
 
-        if (ackIncidentStateTimeline) {
-          // register the metric type so the catalog stays complete across refreshes.
-          const metricType: MetricType = new MetricType();
-          metricType.name = IncidentMetricType.TimeToAcknowledge;
-          metricType.description = "Time taken to acknowledge the incident";
-          metricType.unit = "seconds";
-          metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
+        const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
 
-          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+        timeToAcknowledgeMetric.projectId = incident.projectId;
+        timeToAcknowledgeMetric.primaryEntityId = incident.id!;
+        timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
+        timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.metricPointId =
+          IncidentMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        // aiInvestigated: the MTTA with/without-AI dimension.
+        timeToAcknowledgeMetric.attributes = {
+          ...baseMetricAttributes,
+          aiInvestigated: aiInvestigated.toString(),
+        };
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
-          timeToAcknowledgeMetric.projectId = incident.projectId;
-          timeToAcknowledgeMetric.primaryEntityId = incident.id!;
-          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
-          timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.metricPointId =
-            IncidentMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
-            ackIncidentStateTimeline?.startsAt ||
-              OneUptimeDate.getCurrentDate(),
-            incidentStartsAt,
-          );
-          // aiInvestigated: the MTTA with/without-AI dimension.
-          timeToAcknowledgeMetric.attributes = {
-            ...baseMetricAttributes,
-            aiInvestigated: aiInvestigated.toString(),
-          };
-          timeToAcknowledgeMetric.attributeKeys =
-            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+        timeToAcknowledgeMetric.time =
+          ackIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToAcknowledgeMetric.time,
+        );
+        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+        timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
 
-          timeToAcknowledgeMetric.time =
-            ackIncidentStateTimeline?.startsAt ||
-            incident.declaredAt ||
-            incident.createdAt ||
-            OneUptimeDate.getCurrentDate();
-          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-            timeToAcknowledgeMetric.time,
-          );
-          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
-          timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
-
-          itemsToSave.push(timeToAcknowledgeMetric);
-        }
+        itemsToSave.push(timeToAcknowledgeMetric);
       }
 
-      // time to resolve
-      const isIncidentResolved: boolean = incidentStateTimelines.some(
-        (timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isResolvedState;
-        },
-      );
-
+      /*
+       * Time to resolve: until the incident first moved into a state that
+       * counts as resolved (Common/Utils/ResolvedState) - the project's
+       * resolved state, or one placed after it.
+       */
       const resolvedIncidentStateTimeline: IncidentStateTimeline | undefined =
-        incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isResolvedState;
+        this.getFirstResolutionRow({
+          incidentStates: incidentStates,
+          incidentStateTimelines: incidentStateTimelines,
         });
+
+      const isIncidentResolved: boolean = Boolean(
+        resolvedIncidentStateTimeline,
+      );
 
       if (isIncidentResolved && resolvedIncidentStateTimeline) {
         // register the metric type so the catalog stays complete across refreshes.
@@ -4090,10 +7108,21 @@ ${incidentSeverity.name}
           incidentStateId: timeline.incidentStateId?.toString(),
           isCreatedState:
             timeline.incidentState?.isCreatedState?.toString() || "false",
-          isAcknowledgedState:
-            timeline.incidentState?.isAcknowledgedState?.toString() || "false",
-          isResolvedState:
-            timeline.incidentState?.isResolvedState?.toString() || "false",
+          /*
+           * Whether the state is in the acknowledged stage - acknowledged
+           * (the acknowledged state or one placed after it) but not resolved
+           * - and whether it counts as resolved, as everywhere else.
+           */
+          isAcknowledgedState: AcknowledgedStateUtil.isAcknowledgedUnresolved({
+            list: StateListType.IncidentState,
+            states: incidentStates,
+            stateId: timeline.incidentStateId,
+          }).toString(),
+          isResolvedState: ResolvedStateUtil.isResolved({
+            list: StateListType.IncidentState,
+            states: incidentStates,
+            stateId: timeline.incidentStateId,
+          }).toString(),
         };
         timeInStateMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeInStateMetric.attributes,
@@ -4316,6 +7345,8 @@ ${incidentSeverity.name}
         incidentId: data.incidentId,
         includeWorkspaceMessages: true,
         workspaceMessageLimit: 500,
+        // What was said on the incident's calls, cause marked confirmed or not.
+        includeCalls: true,
       });
 
     // Format context for postmortem generation
@@ -4343,6 +7374,52 @@ ${incidentSeverity.name}
     });
 
     return response.content;
+  }
+
+  /*
+   * The automatic postmortem draft waits for what the incident's calls said
+   * (AIIncidentPostmortemRunner): from when, kept on the incident. Written
+   * past the incident's hooks - it is OneUptime's bookkeeping, not an edit
+   * anyone made.
+   */
+  @CaptureSpan()
+  public async startPostmortemDraftWait(data: {
+    incidentId: ObjectID;
+    waitingSince: Date;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.incidentId,
+      data: { postmortemDraftWaitingSince: data.waitingSince },
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  /*
+   * Ends the wait of a postmortem draft, so that whoever ends it - a reading
+   * that finished, the job that looks again, a resolve that drafts at once -
+   * is the one to write the draft: one UPDATE that clears the wait only while
+   * it still holds the time the caller read. 1 when the caller ended it, 0
+   * when another caller did first.
+   */
+  @CaptureSpan()
+  public async endPostmortemDraftWait(data: {
+    incidentId: ObjectID;
+    waitingSince: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        postmortemDraftWaitingSince: null,
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.incidentId.toString() })
+      .andWhere('"postmortemDraftWaitingSince" = :waitingSince', {
+        waitingSince: data.waitingSince,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
   }
 }
 

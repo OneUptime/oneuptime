@@ -202,6 +202,72 @@ describe("computeInfraParenting — robustness", () => {
     expect(a.get("h3")).toBe("probe");
   });
 
+  test("a container tie goes to the smaller key, whatever the edge order", () => {
+    const typeMap: TypeMap = types({
+      pod: EntityType.KubernetesPod,
+      "node-a": EntityType.KubernetesNode,
+      "node-b": EntityType.KubernetesNode,
+    });
+    const edges: Array<InfraEdgeInput> = [
+      edge("pod", EntityRelationshipType.PartOf, "node-b"),
+      edge("pod", EntityRelationshipType.PartOf, "node-a"),
+    ];
+    for (const order of [edges, [...edges].reverse()]) {
+      const { parentOf, nestingEdgeByChild } = computeInfraParenting(
+        order,
+        typeMap,
+      );
+      expect(parentOf.get("pod")).toBe("node-a");
+      expect(nestingEdgeByChild.get("pod")?.edgeId).toBe(
+        infraEdgeId("pod", EntityRelationshipType.PartOf, "node-a"),
+      );
+    }
+  });
+
+  /*
+   * The server ranks containers by key in COLLATE "C" (code-point) order and
+   * ships only the one it picked, so the browser must break the same tie the
+   * same way. Code-unit order (`<`) would put the surrogate pair of U+1F600
+   * (0xD83D 0xDE00) before U+FFFD; by code point U+FFFD comes first.
+   */
+  test("a container tie is broken by code point, as the server breaks it", () => {
+    const inPlane: string = "node-\uFFFD";
+    const beyondPlane: string = "node-\u{1F600}";
+    const typeMap: TypeMap = new Map<string, EntityType | string | undefined>([
+      ["pod", EntityType.KubernetesPod],
+      [inPlane, EntityType.KubernetesNode],
+      [beyondPlane, EntityType.KubernetesNode],
+    ]);
+    const edges: Array<InfraEdgeInput> = [
+      edge("pod", EntityRelationshipType.PartOf, beyondPlane),
+      edge("pod", EntityRelationshipType.PartOf, inPlane),
+    ];
+    for (const order of [edges, [...edges].reverse()]) {
+      expect(computeInfraParenting(order, typeMap).parentOf.get("pod")).toBe(
+        inPlane,
+      );
+    }
+  });
+
+  test("a service tie is broken by code point too", () => {
+    const inPlane: string = "svc-\uE000";
+    const beyondPlane: string = "svc-\u{10000}";
+    const typeMap: TypeMap = new Map<string, EntityType | string | undefined>([
+      ["shared", EntityType.Host],
+      [inPlane, EntityType.Service],
+      [beyondPlane, EntityType.Service],
+    ]);
+    const edges: Array<InfraEdgeInput> = [
+      edge(beyondPlane, EntityRelationshipType.HostedOn, "shared"),
+      edge(inPlane, EntityRelationshipType.HostedOn, "shared"),
+    ];
+    for (const order of [edges, [...edges].reverse()]) {
+      expect(computeInfraParenting(order, typeMap).parentOf.get("shared")).toBe(
+        inPlane,
+      );
+    }
+  });
+
   test("mixed graph: hosts group under service while k8s stays structural", () => {
     const typeMap: TypeMap = types({
       api: EntityType.Service,

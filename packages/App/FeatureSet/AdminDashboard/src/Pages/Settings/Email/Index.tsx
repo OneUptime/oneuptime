@@ -3,26 +3,99 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import { Green, Red } from "Common/Types/BrandColors";
-import MailTransportType from "Common/Types/Email/MailTransportType";
-import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
-import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import {
+  GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  SMTP_AUTH_TYPE_CHOICES,
+  getGlobalSmtpConfigFormFields,
+  getSmtpConfigFormSteps,
+  showsSmtpOAuthCredentials,
+  showsSmtpOAuthProviderType,
+  showsSmtpServerFields,
+  showsSmtpUsername,
+} from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * Server (hostname, port, username, password, and a folded Advanced
+ * section with the transport, TLS, sign-in type and OAuth), then Sender -
+ * the Dashboard's Custom SMTP form, from the same builder
+ * (Common/UI/Components/SmtpConfig), built once. An edit form of the one
+ * GlobalConfig row: nothing is filled in, so an instance saves what it
+ * holds.
+ */
+const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
+  getSmtpConfigFormSteps<GlobalConfig>();
+
+const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> =
+  getGlobalSmtpConfigFormFields();
+
+// How the instance sends its email: its own mail server first, the default.
+export const EMAIL_SERVER_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: EmailServerType.CustomSMTP,
+    title: "Custom SMTP",
+    description: "Send through your own mail server.",
+  },
+  {
+    value: EmailServerType.Sendgrid,
+    title: "SendGrid",
+    description: "Send through your SendGrid account.",
+  },
+];
+
+// The answer a stored value reads as, as the card shows it: "SendGrid", not "Sendgrid".
+export const getEmailServerTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = EMAIL_SERVER_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  return choice ? choice.title : value ? String(value) : "";
+};
+
+/*
+ * The sign-in a stored Authentication Type reads as, in the Edit dialog's
+ * words: the card showed the stored English ("Username and Password") in
+ * every language. Never picked, the mail service signs in with the
+ * username and password.
+ */
+export const getSmtpAuthTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = SMTP_AUTH_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  if (choice) {
+    return choice.title;
+  }
+
+  return value
+    ? String(value)
+    : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
+};
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -105,12 +178,16 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.adminNotificationEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.adminNotificationEditButton")}
         formFields={[
           {
             field: {
               adminNotificationEmail: true,
             },
             title: "Admin Notification Email",
+            description:
+              "Where OneUptime writes about this server, such as when a probe goes offline.",
             fieldType: FormFieldSchemaType.Email,
             required: false,
             disableSpellCheck: true,
@@ -141,19 +218,29 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.serverEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.serverEditButton")}
         onSaveSuccess={() => {
           window.location.reload();
         }}
         formFields={[
+          /*
+           * Two plain answers, each with its line, where a dropdown listed
+           * the enum's names (Sendgrid first) under a description that
+           * only said "Email Server Type" again. The stored values are the
+           * enum's, as before.
+           */
           {
             field: {
               emailServerType: true,
             },
             title: "Email Server Type",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(EmailServerType),
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: EMAIL_SERVER_TYPE_CHOICES,
+            // An instance that never picked one sends through its own server, as this page reads it.
+            defaultValue: EmailServerType.CustomSMTP,
             required: true,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -165,7 +252,19 @@ const Settings: FunctionComponent = (): ReactElement => {
                 emailServerType: true,
               },
               title: "Email Server Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: GlobalConfig): ReactElement => {
+                // Never picked: the mail service sends through Custom SMTP.
+                return (
+                  <span>
+                    {t(
+                      getEmailServerTypeTitle(
+                        item.emailServerType || EmailServerType.CustomSMTP,
+                      ),
+                    )}
+                  </span>
+                );
+              },
             },
           ],
           modelId: ObjectID.getZeroObjectID(),
@@ -181,326 +280,18 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.smtpEditButton")}
-          formSteps={[
-            {
-              title: "Transport",
-              id: "transport-info",
-            },
-            {
-              title: "SMTP Server",
-              id: "server-info",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                return transport === MailTransportType.SMTP;
-              },
-            },
-            {
-              title: "Authentication",
-              id: "authentication",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                return transport === MailTransportType.SMTP;
-              },
-            },
-            {
-              title: "OAuth Settings",
-              id: "oauth-info",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return true;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              title: "Email",
-              id: "email-info",
-            },
-          ]}
-          formFields={[
-            {
-              field: {
-                smtpTransportType: true,
-              },
-              title: "Transport",
-              stepId: "transport-info",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(MailTransportType),
-              required: true,
-              defaultValue: MailTransportType.SMTP,
-              description:
-                "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.",
-            },
-            {
-              field: {
-                smtpHost: true,
-              },
-              title: "Hostname",
-              stepId: "server-info",
-              fieldType: FormFieldSchemaType.Hostname,
-              required: true,
-              placeholder: "smtp.server.com",
-              description:
-                "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                return (
-                  ((values["smtpTransportType"] as MailTransportType) ||
-                    MailTransportType.SMTP) === MailTransportType.SMTP
-                );
-              },
-            },
-            {
-              field: {
-                smtpPort: true,
-              },
-              title: "Port",
-              stepId: "server-info",
-              fieldType: FormFieldSchemaType.Port,
-              required: true,
-              placeholder: "587",
-              description:
-                "SMTP port. Common ports: 587 (STARTTLS), 465 (SSL/TLS)",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                return (
-                  ((values["smtpTransportType"] as MailTransportType) ||
-                    MailTransportType.SMTP) === MailTransportType.SMTP
-                );
-              },
-            },
-            {
-              field: {
-                isSMTPSecure: true,
-              },
-              title: "Use SSL / TLS",
-              stepId: "server-info",
-              fieldType: FormFieldSchemaType.Toggle,
-              description:
-                "If you use port 465, please enable this. Do not enable this if you use port 587.",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                return (
-                  ((values["smtpTransportType"] as MailTransportType) ||
-                    MailTransportType.SMTP) === MailTransportType.SMTP
-                );
-              },
-            },
-            {
-              field: {
-                smtpAuthType: true,
-              },
-              title: "Authentication Type",
-              stepId: "authentication",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                SMTPAuthenticationType,
-              ),
-              required: true,
-              defaultValue: SMTPAuthenticationType.UsernamePassword,
-              description:
-                "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                return (
-                  ((values["smtpTransportType"] as MailTransportType) ||
-                    MailTransportType.SMTP) === MailTransportType.SMTP
-                );
-              },
-            },
-            {
-              field: {
-                smtpUsername: true,
-              },
-              title: "Username / Email",
-              stepId: "authentication",
-              fieldType: FormFieldSchemaType.Text,
-              required: false,
-              placeholder: "emailuser",
-              description:
-                "For OAuth, this should be the email address you want to send from.",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                return (
-                  ((values["smtpTransportType"] as MailTransportType) ||
-                    MailTransportType.SMTP) === MailTransportType.SMTP
-                );
-              },
-            },
-            {
-              field: {
-                smtpPassword: true,
-              },
-              title: "Password",
-              stepId: "authentication",
-              fieldType: FormFieldSchemaType.EncryptedText,
-              required: false,
-              placeholder: "Password",
-              description:
-                "Required for Username and Password authentication. Not used for OAuth.",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport !== MailTransportType.SMTP) {
-                  return false;
-                }
-                return (
-                  values["smtpAuthType"] ===
-                    SMTPAuthenticationType.UsernamePassword ||
-                  !values["smtpAuthType"]
-                );
-              },
-            },
-            {
-              field: {
-                smtpOAuthProviderType: true,
-              },
-              title: "OAuth Provider Type",
-              stepId: "oauth-info",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(OAuthProviderType),
-              required: true,
-              defaultValue: OAuthProviderType.ClientCredentials,
-              description:
-                "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
-              // Microsoft Graph always uses Client Credentials — no need to ask.
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return false;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              field: {
-                smtpClientId: true,
-              },
-              title: "OAuth Client ID",
-              stepId: "oauth-info",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "12345678-1234-1234-1234-123456789012",
-              description:
-                "Application (Client) ID from your Azure AD app registration (or service account for JWT Bearer).",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return true;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              field: {
-                smtpClientSecret: true,
-              },
-              title: "OAuth Client Secret",
-              stepId: "oauth-info",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Client secret value",
-              description:
-                "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return true;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              field: {
-                smtpTokenUrl: true,
-              },
-              title: "OAuth Token URL",
-              stepId: "oauth-info",
-              fieldType: FormFieldSchemaType.URL,
-              required: true,
-              placeholder:
-                "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
-              description:
-                "The OAuth token endpoint URL. For Microsoft 365 (both SMTP+OAuth and Microsoft Graph): https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return true;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              field: {
-                smtpScope: true,
-              },
-              title: "OAuth Scope",
-              stepId: "oauth-info",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "https://graph.microsoft.com/.default",
-              description:
-                "The OAuth scope(s) required. For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
-              disableSpellCheck: true,
-              showIf: (values: FormValues<GlobalConfig>): boolean => {
-                const transport: MailTransportType =
-                  (values["smtpTransportType"] as MailTransportType) ||
-                  MailTransportType.SMTP;
-                if (transport === MailTransportType.MicrosoftGraph) {
-                  return true;
-                }
-                return values["smtpAuthType"] === SMTPAuthenticationType.OAuth;
-              },
-            },
-            {
-              field: {
-                smtpFromEmail: true,
-              },
-              title: "Email From",
-              stepId: "email-info",
-              fieldType: FormFieldSchemaType.Email,
-              required: true,
-              description:
-                "Email used to log in to this SMTP Server. This is also the email your customers will see. ",
-              placeholder: "email@company.com",
-              disableSpellCheck: true,
-            },
-            {
-              field: {
-                smtpFromName: true,
-              },
-              title: "From Name",
-              stepId: "email-info",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "This is the display name your team and customers see, when they receive emails from OneUptime.",
-              placeholder: "Company, Inc.",
-              disableSpellCheck: true,
-            },
-          ]}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.smtpEditButton")}
+          formSteps={SMTP_HOST_FORM_STEPS}
+          formFields={SMTP_HOST_FORM_FIELDS}
           modelDetailProps={{
             modelType: GlobalConfig,
             id: "model-detail-global-config",
+            /*
+             * What the server sends with: the rows a Microsoft Graph or
+             * OAuth server does not use are left out, as the form leaves
+             * them out.
+             */
             fields: [
               {
                 field: {
@@ -515,6 +306,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                 },
                 title: "SMTP Host",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpServerFields(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
@@ -522,27 +319,71 @@ const Settings: FunctionComponent = (): ReactElement => {
                 },
                 title: "SMTP Port",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpServerFields(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
+              },
+              {
+                field: {
+                  isSMTPSecure: true,
+                },
+                title: "Require TLS",
+                placeholder: "No",
+                fieldType: FieldType.Boolean,
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpServerFields(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
                   smtpAuthType: true,
                 },
                 title: "Authentication Type",
-                placeholder: "Username and Password",
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalConfig): ReactElement => {
+                  return (
+                    <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>
+                  );
+                },
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpServerFields(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
                   smtpUsername: true,
                 },
-                title: "SMTP Username / Email",
+                title: "Username",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpUsername(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
                   smtpOAuthProviderType: true,
                 },
                 title: "OAuth Provider Type",
-                placeholder: "None",
+                // What the mail service uses when none is picked.
+                placeholder: "Client Credentials",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpOAuthProviderType(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
@@ -550,6 +391,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                 },
                 title: "OAuth Client ID",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpOAuthCredentials(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
@@ -557,6 +404,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                 },
                 title: "OAuth Token URL",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpOAuthCredentials(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
@@ -564,12 +417,18 @@ const Settings: FunctionComponent = (): ReactElement => {
                 },
                 title: "OAuth Scope",
                 placeholder: "None",
+                showIf: (item: GlobalConfig): boolean => {
+                  return showsSmtpOAuthCredentials(
+                    item,
+                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                  );
+                },
               },
               {
                 field: {
                   smtpFromEmail: true,
                 },
-                title: "SMTP Email",
+                title: "From Email",
                 placeholder: "None",
                 fieldType: FieldType.Email,
               },
@@ -577,16 +436,8 @@ const Settings: FunctionComponent = (): ReactElement => {
                 field: {
                   smtpFromName: true,
                 },
-                title: "SMTP From Name",
+                title: "From Name",
                 placeholder: "None",
-              },
-              {
-                field: {
-                  isSMTPSecure: true,
-                },
-                title: "Use SSL/TLS",
-                placeholder: "No",
-                fieldType: FieldType.Boolean,
               },
             ],
             modelId: ObjectID.getZeroObjectID(),
@@ -605,15 +456,19 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.sendgridEditButton")}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.sendgridEditButton")}
           formFields={[
             {
               field: {
                 sendgridApiKey: true,
               },
-              title: "Sendgrid API Key",
+              title: "SendGrid API Key",
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "Sendgrid API Key",
+              placeholder: "SendGrid API Key",
+              // The column's description only said "Sendgrid API Key" again.
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -623,6 +478,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "email@yourcompany.com",
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -632,6 +488,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
+              hideColumnDescription: true,
             },
           ]}
           modelDetailProps={{

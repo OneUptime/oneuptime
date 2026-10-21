@@ -275,9 +275,24 @@ export default function LoginScreen(): React.JSX.Element {
         />
       </View>
 
-      <AuthDivider label="Other ways to sign in" />
+      {/*
+       * The other ways in, under "or", in the order and words of the web
+       * sign-in page: single sign-on, then a passkey, last, so that what a
+       * passkey attempt says - its progress, a cancel, an error, and "New to
+       * passkeys?" - sits right under the button that started it.
+       */}
+      <AuthDivider label="or" />
 
       <View testID="alternative-sign-in" style={{ gap: spacing.md }}>
+        <GradientButton
+          testID="sso-sign-in"
+          label="Sign in with SSO"
+          onPress={handleSSOLogin}
+          variant="secondary"
+          icon="shield-checkmark-outline"
+          disabled={isBusy}
+        />
+
         <GradientButton
           testID="passkey-sign-in"
           label={
@@ -330,14 +345,6 @@ export default function LoginScreen(): React.JSX.Element {
         {passkeyNotice ? (
           <AuthNotice tone="neutral" live message={passkeyNotice} />
         ) : null}
-
-        <GradientButton
-          label="Sign in with SSO"
-          onPress={handleSSOLogin}
-          variant="secondary"
-          icon="shield-checkmark-outline"
-          disabled={isBusy}
-        />
       </View>
 
       <View style={{ marginTop: spacing.xs }}>
@@ -353,10 +360,15 @@ export default function LoginScreen(): React.JSX.Element {
       </View>
       {showPasskeyHelp ? (
         <Card variant="tinted" padding={spacing.lg}>
+          {/*
+           * The menu as the web dashboard draws it. "Passkeys & Two Factor
+           * Auth" was retired there; the web sign-in page's help names the
+           * same path.
+           */}
           <AppText variant="subhead" tone="secondary">
-            Sign in on the OneUptime website with your password or SSO. In your
-            profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
-            that passkey here on the same server.
+            Sign in on the OneUptime website with your password or SSO, then
+            open User Profile → Security → Passkeys to add a passkey. Use that
+            passkey here on the same server.
           </AppText>
         </Card>
       ) : null}

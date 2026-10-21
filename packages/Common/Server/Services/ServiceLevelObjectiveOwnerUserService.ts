@@ -3,7 +3,6 @@ import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import User from "../../Models/DatabaseModels/User";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -16,6 +15,10 @@ import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import UserService from "./UserService";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const SLO_OWNER_USER_SUBJECT: string = "SLO owner user";
 
@@ -92,36 +95,19 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here. The read only feeds the feed, so a
-     * failure must not block the delete itself. It runs before permissions
-     * are applied, hence the tenant pin (see SloFeedUtil).
+     * to be built from what was read here: the owner users the delete
+     * removes, and the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    let itemsToDelete: Array<Model> = [];
-
-    try {
-      itemsToDelete = await this.findBy({
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: deleteBy.query,
-          tenantId: deleteBy.props.tenantId,
-        }),
-        limit: deleteBy.limit,
-        skip: deleteBy.skip,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          // Matched against the ids the delete really removed.
-          _id: true,
-          serviceLevelObjectiveId: true,
-          projectId: true,
-          userId: true,
-        },
-      });
-    } catch (err) {
-      logger.error(
-        `Error reading SLO owner users before delete for the SLO feed: ${err}`,
-      );
-    }
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        // Matched against the ids the delete really removed.
+        _id: true,
+        serviceLevelObjectiveId: true,
+        projectId: true,
+        userId: true,
+      },
+    );
 
     return {
       carryForward: {
@@ -175,13 +161,13 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        const email: string = escapeMarkdownInline(
-          user.email?.toString() || "",
-        ).trim();
+        const email: string = user.email?.toString().trim() || "";
 
         // The email is only worth repeating when the name is not the email.
-        const emailSuffix: string =
-          email && email !== displayName ? ` (${email})` : "";
+        const emailSuffix: MarkdownText =
+          email && email !== displayName
+            ? mdText` (${email})`
+            : FeedMarkdown.empty();
 
         await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
           {
@@ -190,12 +176,13 @@ export class Service extends DatabaseService<Model> {
             serviceLevelObjectiveFeedEventType:
               ServiceLevelObjectiveFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${displayName}**${emailSuffix} as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-              {
-                projectId: projectId,
-                sloId: serviceLevelObjectiveId,
-              },
-            )}.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${displayName}**${emailSuffix} as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+                {
+                  projectId: projectId,
+                  sloId: serviceLevelObjectiveId,
+                },
+              )}.`.toString(),
             userId: deletedByUserId || undefined,
           },
         );
@@ -227,10 +214,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const userMarkdown: string | null = await SloFeedUtil.getUserMarkdown({
-        userId: userId,
-        projectId: projectId,
-      });
+      const userMarkdown: MarkdownText | null =
+        await SloFeedUtil.getUserMarkdown({
+          userId: userId,
+          projectId: projectId,
+        });
 
       if (!userMarkdown) {
         return createdItem;
@@ -243,12 +231,13 @@ export class Service extends DatabaseService<Model> {
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${userMarkdown}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-            {
-              projectId: projectId,
-              sloId: serviceLevelObjectiveId,
-            },
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Added **${userMarkdown}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+              {
+                projectId: projectId,
+                sloId: serviceLevelObjectiveId,
+              },
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         },
       );

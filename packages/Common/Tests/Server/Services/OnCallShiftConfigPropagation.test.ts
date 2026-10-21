@@ -12,6 +12,7 @@ import OnCallShiftChangeListeners, {
   OnCallShiftChangeReason,
 } from "../../../Server/Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../../../Server/Utils/Logger";
+import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -754,15 +755,20 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
   });
 
   test("onBeforeDelete captures projectId; onDeleteSuccess re-sequences, refreshes, then propagates", async () => {
-    jest
-      .spyOn(OnCallDutyPolicyScheduleLayerService, "findOneBy")
-      .mockResolvedValue({
-        order: 2,
-        onCallDutyPolicyScheduleId: SCHEDULE_1,
-        projectId: PROJECT_ID,
-      } as never);
+    const layer: Record<string, unknown> = {
+      id: LAYER_1,
+      order: 2,
+      onCallDutyPolicyScheduleId: SCHEDULE_1,
+      projectId: PROJECT_ID,
+    };
+    // The layer the caller may delete.
+    stubRowsCallerMayDelete(OnCallDutyPolicyScheduleLayerService, () => {
+      return [layer];
+    });
+    // The layer the delete removes, then the layers left in its schedule.
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
+      .mockResolvedValueOnce([layer] as never)
       .mockResolvedValue([] as never);
 
     const deleteBy: any = { query: { _id: LAYER_1 }, props: {} };
@@ -787,6 +793,31 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
       reason: OnCallShiftChangeReason.LayerChanged,
     });
     expectCalledAfter(propagate, refresh);
+  });
+
+  test("a delete that removed no layer neither re-sequences, refreshes nor propagates", async () => {
+    const findBy: any = jest
+      .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
+      .mockResolvedValue([] as never);
+    const refresh: any = spyRosterRefresh();
+    const propagate: any = spyPropagate();
+
+    await (OnCallDutyPolicyScheduleLayerService as any).onDeleteSuccess(
+      {
+        deleteBy: { query: { _id: LAYER_1 }, props: {} },
+        carryForward: {
+          id: LAYER_1,
+          order: 2,
+          onCallDutyPolicyScheduleId: SCHEDULE_1,
+          projectId: PROJECT_ID,
+        },
+      },
+      [],
+    );
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(propagate).not.toHaveBeenCalled();
   });
 
   test("a root delete (no carried resource) neither refreshes nor propagates — unchanged behaviour", async () => {
@@ -886,17 +917,22 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
   });
 
   test("onBeforeDelete captures user + project; onDeleteSuccess propagates with the removed user", async () => {
-    jest
-      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findOneBy")
-      .mockResolvedValue({
-        order: 1,
-        onCallDutyPolicyScheduleLayerId: LAYER_1,
-        onCallDutyPolicyScheduleId: SCHEDULE_1,
-        projectId: PROJECT_ID,
-        userId: USER_C,
-      } as never);
+    const layerUser: Record<string, unknown> = {
+      id: ROW_ID,
+      order: 1,
+      onCallDutyPolicyScheduleLayerId: LAYER_1,
+      onCallDutyPolicyScheduleId: SCHEDULE_1,
+      projectId: PROJECT_ID,
+      userId: USER_C,
+    };
+    // The layer user the caller may delete.
+    stubRowsCallerMayDelete(OnCallDutyPolicyScheduleLayerUserService, () => {
+      return [layerUser];
+    });
+    // The layer user the delete removes, then the ones left in its layer.
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
+      .mockResolvedValueOnce([layerUser] as never)
       .mockResolvedValue([] as never);
 
     const onDelete: any = await (
@@ -1014,6 +1050,7 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
       {
         deleteBy: { query: { _id: ROW_ID }, props: {} },
         carryForward: {
+          id: ROW_ID,
           order: 1,
           onCallDutyPolicyScheduleLayerId: LAYER_1,
           onCallDutyPolicyScheduleId: SCHEDULE_1,
@@ -1080,6 +1117,7 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
       .spyOn(OnCallDutyPolicyUserOverrideService, "findBy")
       .mockResolvedValue([
         {
+          _id: ROW_ID,
           projectId: PROJECT_ID,
           overrideUserId: USER_A,
           routeAlertsToUserId: USER_C,
@@ -1088,7 +1126,11 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
 
     const onUpdate: any = await (
       OnCallDutyPolicyUserOverrideService as any
-    ).onBeforeUpdate({ query: { _id: ROW_ID }, data: {}, props: {} });
+    ).onBeforeUpdate({
+      query: { _id: ROW_ID },
+      data: {},
+      props: { isRoot: true },
+    });
 
     expect(onUpdate.carryForward).toHaveLength(1);
     expect(onUpdate.carryForward[0].overrideUserId).toBe(USER_A);

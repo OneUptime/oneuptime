@@ -8,10 +8,27 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
+import MonitorStepLlmMonitor, {
+  LlmBadAnswerRule,
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
+import {
+  LlmAnswerIssue,
+  LlmAnswerIssueUtil,
+} from "Common/Types/Telemetry/LlmAnswerIssue";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
+import {
+  DEFAULT_NTP_PORT,
+  DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS,
+} from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
 
 /*
@@ -57,6 +74,8 @@ export enum MonitorStepViewValueType {
   TelemetryServices = "TelemetryServices",
   // Value is a single network device id string, resolved the same way.
   NetworkDevice = "NetworkDevice",
+  // Value is an array of probe id strings, resolved to the probes' names.
+  Probes = "Probes",
 }
 
 export type MonitorStepViewValue =
@@ -76,6 +95,11 @@ export interface MonitorStepViewRow {
   value: MonitorStepViewValue;
   // Shown by the viewer when `value` is empty.
   placeholder: string;
+  /*
+   * The value is words of the interface - an AI answer problem's name - not
+   * data the customer typed: the viewer shows it in the reader's language.
+   */
+  translateValue?: boolean | undefined;
 }
 
 type OptionalRow = MonitorStepViewRow | null;
@@ -218,6 +242,32 @@ const safeMetricsViewConfig: (
 };
 
 export default class MonitorStepViewModel {
+  /*
+   * A row's value as the viewer shows it: the words of a translateValue row
+   * in the reader's language (through `translate`), anything else as it is.
+   */
+  public static translateRowValue(
+    row: MonitorStepViewRow,
+    value: MonitorStepViewValue,
+    translate: (text: string) => string | undefined,
+  ): MonitorStepViewValue {
+    if (!row.translateValue) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      return translate(value) || value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry: string): string => {
+        return translate(entry) || entry;
+      });
+    }
+
+    return value;
+  }
+
   /**
    * The metric view every metric-backed monitor type keeps under its own
    * step shape. Mirrors MonitorStep.getMetricsViewConfig but always returns
@@ -253,7 +303,8 @@ export default class MonitorStepViewModel {
       data.podmanMonitor?.rollingTime ||
       data.proxmoxMonitor?.rollingTime ||
       data.vmwareMonitor?.rollingTime ||
-      data.cephMonitor?.rollingTime
+      data.cephMonitor?.rollingTime ||
+      data.storageArrayMonitor?.rollingTime
     );
   }
 
@@ -262,18 +313,7 @@ export default class MonitorStepViewModel {
    * page should therefore render a live chart preview of it.
    */
   public static hasMetricPreview(monitorType: MonitorType): boolean {
-    return [
-      MonitorType.Metrics,
-      MonitorType.Kubernetes,
-      MonitorType.Docker,
-      MonitorType.Host,
-      MonitorType.Podman,
-      MonitorType.Proxmox,
-      MonitorType.VMware,
-      MonitorType.DockerSwarm,
-      MonitorType.Ceph,
-      MonitorType.IoTDevice,
-    ].includes(monitorType);
+    return MonitorTypeHelper.isMetricBackedMonitor(monitorType);
   }
 
   /**
@@ -406,6 +446,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getDnsRows(data);
       case MonitorType.DNSSEC:
         return MonitorStepViewModel.getDnssecRows(data);
+      case MonitorType.NTP:
+        return MonitorStepViewModel.getNtpRows(data);
       case MonitorType.SQLQuery:
         return MonitorStepViewModel.getSqlRows(data);
       case MonitorType.Database:
@@ -416,6 +458,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getLogRows(data);
       case MonitorType.SecurityEvents:
         return MonitorStepViewModel.getSecurityEventsRows(data);
+      case MonitorType.Llm:
+        return MonitorStepViewModel.getLlmRows(data);
       case MonitorType.Traces:
         return MonitorStepViewModel.getTraceRows(data);
       case MonitorType.Exceptions:
@@ -440,8 +484,12 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getDockerSwarmRows(data);
       case MonitorType.Ceph:
         return MonitorStepViewModel.getCephRows(data);
+      case MonitorType.StorageArray:
+        return MonitorStepViewModel.getStorageArrayRows(data);
       case MonitorType.IoTDevice:
         return MonitorStepViewModel.getIoTRows(data);
+      case MonitorType.ProbeStatus:
+        return MonitorStepViewModel.getProbeStatusRows(data);
       default:
         // Manual, Server, Incoming Request/Email, Profiles: no step config.
         return [];
@@ -630,6 +678,53 @@ export default class MonitorStepViewModel {
         placeholder: "No port entered",
       },
       ...MonitorStepViewModel.getTimeoutAndRetryRows(data),
+    ]);
+  }
+
+  /*
+   * The server, then its port - shown as 123 when the step leaves it empty,
+   * which is the port the probe then uses - then the timeout and retries.
+   */
+  private static getNtpRows(data: MonitorStepType): Array<MonitorStepViewRow> {
+    return compact([
+      MonitorStepViewModel.getDestinationRow(
+        data,
+        translationKey("NTP Server"),
+        translationKey("The time server this monitor checks."),
+      ),
+      {
+        key: "monitorDestinationPort",
+        title: "Port",
+        description: "The UDP port the request goes to.",
+        valueType: MonitorStepViewValueType.Port,
+        value:
+          toText(data.monitorDestinationPort?.toString()) ||
+          String(DEFAULT_NTP_PORT),
+        placeholder: String(DEFAULT_NTP_PORT),
+      },
+      optional({
+        key: "requestTimeoutInMs",
+        title: "Request Timeout",
+        description: "How long we wait for the server's reply on each attempt.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(data.requestTimeoutInMs),
+        placeholder: "Default",
+      }) || {
+        key: "requestTimeoutInMs",
+        title: "Request Timeout",
+        description: "How long we wait for the server's reply on each attempt.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS),
+        placeholder: "Default",
+      },
+      {
+        key: "retryCount",
+        title: "Retry Count",
+        description: "How many times we retry after the first attempt fails.",
+        valueType: MonitorStepViewValueType.Number,
+        value: data.retryCount,
+        placeholder: PROBE_DEFAULT_RETRY_COUNT_LABEL,
+      },
     ]);
   }
 
@@ -1078,6 +1173,24 @@ export default class MonitorStepViewModel {
         placeholder: "No attributes entered",
       }),
       optional({
+        key: "logGroupByAttributes",
+        title: "Group by Attributes",
+        description:
+          "One alert or incident is raised per distinct combination of these attribute values.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepLogMonitorUtil.getGroupByAttributes(logMonitor),
+        placeholder: "Not grouped",
+      }),
+      optional({
+        key: "logResolvedByAttributes",
+        title: "Resolved by Attributes",
+        description:
+          "A group's alert or incident stays open until a log with these attributes arrives for that group.",
+        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        value: MonitorStepLogMonitorUtil.getResolvedByAttributes(logMonitor),
+        placeholder: "When the group's logs stop",
+      }),
+      optional({
         key: "logEntityKeys",
         title: "Inventory Items",
         description: "Hosts, pods or containers this monitor is scoped to.",
@@ -1166,6 +1279,70 @@ export default class MonitorStepViewModel {
           },
         ),
         placeholder: "No telemetry services entered",
+      }),
+    ]);
+  }
+
+  /*
+   * What an AI / LLM monitor counts as a bad answer, where it looks and over
+   * what window - read through MonitorStepLlmMonitorUtil, so a step saved
+   * without a field shows what the check really uses.
+   */
+  private static getLlmRows(data: MonitorStepType): Array<MonitorStepViewRow> {
+    const llmMonitor: MonitorStepLlmMonitor =
+      MonitorStepLlmMonitorUtil.fromJSON(
+        (data.llmMonitor || {}) as unknown as JSONObject,
+      );
+    const rule: LlmBadAnswerRule =
+      MonitorStepLlmMonitorUtil.getBadAnswerRule(llmMonitor);
+
+    return compact([
+      {
+        key: "llmBadAnswerIssues",
+        title: "Count an answer as bad when it",
+        description: "The problems that make an AI answer count as bad.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: rule.issues.map((issue: LlmAnswerIssue): string => {
+          return LlmAnswerIssueUtil.getInfo(issue).title;
+        }),
+        placeholder: "Only slow answers count",
+        translateValue: true,
+      },
+      optional({
+        key: "llmSlowAnswerSeconds",
+        title: "Or takes longer than",
+        description: "An answer slower than this counts as bad too.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(llmMonitor.slowAnswerSeconds),
+        placeholder: "No limit",
+      }),
+      optional({
+        key: "llmModel",
+        title: "Model",
+        description: "Only answers from this model count.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(llmMonitor.model),
+        placeholder: "Any model",
+      }),
+      optional({
+        key: "lastXSecondsOfCalls",
+        title: "Look at answers from the last (time)",
+        description: "How far back each check looks.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(llmMonitor.lastXSecondsOfCalls),
+        placeholder: "15 minutes",
+      }),
+      optional({
+        key: "llmTelemetryServices",
+        title: "Apps",
+        description: "The apps whose AI answers count. Every app when empty.",
+        valueType: MonitorStepViewValueType.TelemetryServices,
+        value: llmMonitor.telemetryServiceIds.map(
+          (serviceId: { toString: () => string }) => {
+            return serviceId.toString();
+          },
+        ),
+        placeholder: "Every app",
       }),
     ]);
   }
@@ -1327,6 +1504,28 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.NetworkDevice,
         value: toText(data.networkDeviceMonitor?.networkDeviceId),
         placeholder: "No network device selected",
+      },
+    ]);
+  }
+
+  /*
+   * Kept even when empty, like the device above: a Probe Status monitor
+   * watching nothing is the one thing about it worth saying.
+   */
+  private static getProbeStatusRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    return compact([
+      {
+        key: "probeIds",
+        title: "Probes to Watch",
+        description:
+          "This monitor goes offline when one of these probes disconnects.",
+        valueType: MonitorStepViewValueType.Probes,
+        value: MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
+          data.probeStatusMonitor?.probeIds,
+        ),
+        placeholder: "No probes picked",
       },
     ]);
   }
@@ -1803,6 +2002,81 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: cephMonitor?.metricViewConfig,
         rollingTime: cephMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  private static getStorageArrayRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const storageArrayMonitor: MonitorStepType["storageArrayMonitor"] =
+      data.storageArrayMonitor;
+
+    /*
+     * One row per StorageArrayResourceFilters key. There is no scope row:
+     * Pure's series name their object in a datapoint label (`name`,
+     * `host`, `component_name`), so the filters below ARE the scope.
+     */
+    return compact([
+      {
+        key: "arrayIdentifier",
+        title: "Storage Array",
+        description: "The storage array this monitor watches.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.arrayIdentifier),
+        placeholder: "No storage array selected",
+      },
+      optional({
+        key: "storageArrayVolumeName",
+        title: "Volume",
+        description: "Only this FlashArray volume is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.volumeName),
+        placeholder: "All volumes",
+      }),
+      optional({
+        key: "storageArrayHostName",
+        title: "Host",
+        description: "Only this host defined on the FlashArray is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.hostName),
+        placeholder: "All hosts",
+      }),
+      optional({
+        key: "storageArrayPodName",
+        title: "Pod",
+        description: "Only this pod is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.podName),
+        placeholder: "All pods",
+      }),
+      optional({
+        key: "storageArrayComponentName",
+        title: "Hardware Component",
+        description: "Only this hardware part is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.componentName),
+        placeholder: "All hardware components",
+      }),
+      optional({
+        key: "storageArrayFileSystemName",
+        title: "File System",
+        description: "Only this FlashBlade file system is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.fileSystemName),
+        placeholder: "All file systems",
+      }),
+      optional({
+        key: "storageArrayBucketName",
+        title: "Bucket",
+        description: "Only this FlashBlade bucket is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.bucketName),
+        placeholder: "All buckets",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: storageArrayMonitor?.metricViewConfig,
+        rollingTime: storageArrayMonitor?.rollingTime,
       }),
     ]);
   }

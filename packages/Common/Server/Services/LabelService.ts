@@ -11,8 +11,7 @@ import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitor
 import BadDataException from "../../Types/Exception/BadDataException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
-import Color from "../../Types/Color";
-import { BrightColors } from "../../Types/BrandColors";
+import { pickColorForName } from "../../Utils/DistinctColor";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Model from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -80,19 +79,15 @@ export class Service extends DatabaseService<Model> {
     let serviceLevelObjectiveIds: Array<ObjectID> = [];
     let statusPageMonitorRuleIds: Array<ObjectID> = [];
 
-    try {
-      const labels: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    // The labels the delete removes, and the delete held to them.
+    const labels: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+      },
+    );
 
+    try {
       const labelIds: Array<ObjectID> = labels
         .map((label: Model) => {
           return label.id;
@@ -257,8 +252,10 @@ export class Service extends DatabaseService<Model> {
    * Names are matched case-insensitively, so an OTel attribute of
    * `production` will resolve to a manually-created `Production`
    * label rather than spawning a duplicate. New labels are colored
-   * deterministically from the BrightColors palette so re-creating
-   * the same label across processes lands on the same color.
+   * deterministically from the palette OneUptime picks new records'
+   * colours from (Utils/DistinctColor - no black or grey, every colour
+   * visible on both themes) so re-creating the same label across
+   * processes lands on the same color.
    *
    * Resolved IDs are cached per (project, name) for 24h, so the
    * common case (steady-state collector pushing the same labels
@@ -338,7 +335,7 @@ export class Service extends DatabaseService<Model> {
       const newLabel: Model = new Model();
       newLabel.projectId = projectId;
       newLabel.name = name;
-      newLabel.color = pickColorForLabelName(name);
+      newLabel.color = pickColorForName(name);
 
       const created: Model = await this.create({
         data: newLabel,
@@ -370,18 +367,6 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
   }
-}
-
-function pickColorForLabelName(name: string): Color {
-  if (BrightColors.length === 0) {
-    return Color.fromString("#3686be");
-  }
-  let hash: number = 0;
-  for (let i: number = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
-  const idx: number = Math.abs(hash) % BrightColors.length;
-  return BrightColors[idx]!;
 }
 
 export default new Service();

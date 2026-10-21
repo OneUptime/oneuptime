@@ -2,6 +2,8 @@ import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
+  CAN_BE_WHITE_LABELLED_DESCRIPTION,
+  CAN_BE_WHITE_LABELLED_TITLE,
   EnterpriseLicenseInstanceStatusPill,
   LicenseStatusPill,
   SeatUsageMeter,
@@ -262,20 +264,35 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.enterpriseLicenseView.editButton")}
+          formSteps={[
+            { title: "Customer", id: "customer" },
+            { title: "License", id: "license" },
+          ]}
           formFields={[
             {
               field: {
                 companyName: true,
               },
               title: "Company Name",
+              stepId: "customer",
               fieldType: FormFieldSchemaType.Text,
               required: true,
+            },
+            {
+              field: {
+                annualContractValue: true,
+              },
+              title: "Annual Contract Value (USD)",
+              stepId: "customer",
+              fieldType: FormFieldSchemaType.PositiveNumber,
+              required: false,
             },
             {
               field: {
                 expiresAt: true,
               },
               title: "Expires At",
+              stepId: "license",
               fieldType: FormFieldSchemaType.Date,
               required: true,
             },
@@ -284,6 +301,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 isEvaluationLicense: true,
               },
               title: "Evaluation License",
+              stepId: "license",
               description:
                 "Turn on for an evaluation/testing key. The customer's installation shows an evaluation notice and it is not meant for production use.",
               fieldType: FormFieldSchemaType.Toggle,
@@ -294,6 +312,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 userLimit: true,
               },
               title: "User Limit",
+              stepId: "license",
               description:
                 "Maximum number of users allowed under this license. Leave blank for no limit.",
               fieldType: FormFieldSchemaType.PositiveNumber,
@@ -301,10 +320,12 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
-                annualContractValue: true,
+                canBeWhiteLabelled: true,
               },
-              title: "Annual Contract Value (USD)",
-              fieldType: FormFieldSchemaType.PositiveNumber,
+              title: CAN_BE_WHITE_LABELLED_TITLE,
+              stepId: "license",
+              description: CAN_BE_WHITE_LABELLED_DESCRIPTION,
+              fieldType: FormFieldSchemaType.Toggle,
               required: false,
             },
           ]}
@@ -364,6 +385,15 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 title: "User Limit",
                 fieldType: FieldType.Number,
                 placeholder: "No limit",
+              },
+              {
+                field: {
+                  canBeWhiteLabelled: true,
+                },
+                title: CAN_BE_WHITE_LABELLED_TITLE,
+                description:
+                  "When on, the customer can replace the OneUptime name and logo on their installation.",
+                fieldType: FieldType.Boolean,
               },
               {
                 field: {

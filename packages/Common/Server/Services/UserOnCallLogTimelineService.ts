@@ -1,4 +1,6 @@
-import { OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
@@ -12,6 +14,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import logger from "../Utils/Logger";
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
@@ -23,11 +28,96 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * A page the Notification service deliberately did not send - the
+   * project's balance could not pay for it, the project has the channel
+   * turned off, the project is gone - says so on the person's on-call
+   * timeline, with the reason the message's own log gives, instead of
+   * staying at "Sending" for ever. Like the timeline's other skips (an
+   * unverified number, say), it is recorded as Error: the page did not go
+   * out.
+   *
+   * Never throws: the skip is already in the message's log, and a timeline
+   * row that could not be written must not turn it into a failed send for
+   * whoever asked for it.
+   */
+  @CaptureSpan()
+  public async markNotSent(data: {
+    userOnCallLogTimelineId?: ObjectID | undefined;
+    reason: string;
+  }): Promise<void> {
+    if (!data.userOnCallLogTimelineId) {
+      return;
+    }
+
+    try {
+      await this.updateOneById({
+        id: data.userOnCallLogTimelineId,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: data.reason.substring(0, ColumnLength.LongText),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `On-call timeline ${data.userOnCallLogTimelineId.toString()}: could not record that a notification was not sent (${data.reason}): ${err}`,
+      );
+    }
+  }
+
+  /*
+   * How a page reached somebody - a call, an SMS, an email - is named in the
+   * on-call run's Slack / Microsoft Teams message (OnCallPolicyRunMessage):
+   * each delivery that is written, or changes status, asks for it to be
+   * brought up to date. Never waits on Slack or Teams.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
+
+    return createdItem;
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.status && updatedItemIds.length > 0) {
+      try {
+        const deliveries: Array<Model> = await this.findBy({
+          query: {
+            _id: QueryHelper.any(updatedItemIds),
+          },
+          select: {
+            _id: true,
+            onCallDutyPolicyExecutionLogId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const delivery of deliveries) {
+          OnCallPolicyRunMessage.refresh(
+            delivery.onCallDutyPolicyExecutionLogId,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `Could not ask for the on-call run's chat message to be updated: ${err}`,
+        );
+      }
+    }
+
     if (
       onUpdate.updateBy.data.acknowledgedAt &&
       onUpdate.updateBy.data.isAcknowledged
@@ -144,32 +234,68 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        if (isIncident) {
-          // incident.
-          await IncidentService.acknowledgeIncident(
-            item.triggeredByIncidentId!,
-            item.userId!,
-          );
+        /*
+         * The record itself is acknowledged only when it is not already -
+         * by the one rule (Common/Utils/AcknowledgedState): a colleague may
+         * have acknowledged it first, or moved it on to a state after
+         * Acknowledged, or resolved it. Their page is acknowledged above
+         * either way; acknowledging the record again would be a move back
+         * up its list, refused, and an error page for the responder who
+         * only answered their page.
+         *
+         * It is OneUptime's acknowledge, credited to the responder: the
+         * on-call policy paged them about this record, and answering the
+         * page is what acknowledging it means.
+         */
+        if (
+          isIncident &&
+          !(await IncidentService.isIncidentAcknowledged({
+            incidentId: item.triggeredByIncidentId!,
+          }))
+        ) {
+          await IncidentService.acknowledgeIncident({
+            incidentId: item.triggeredByIncidentId!,
+            acknowledgedByUserId: item.userId!,
+            props: {
+              isRoot: true,
+            },
+          });
         }
 
-        if (isAlert) {
-          // alert.
-          await AlertService.acknowledgeAlert(
-            item.triggeredByAlertId!,
-            item.userId!,
-          );
+        if (
+          isAlert &&
+          !(await AlertService.isAlertAcknowledged({
+            alertId: item.triggeredByAlertId!,
+          }))
+        ) {
+          await AlertService.acknowledgeAlert({
+            alertId: item.triggeredByAlertId!,
+            acknowledgedByUserId: item.userId!,
+            props: {
+              isRoot: true,
+            },
+          });
         }
 
-        if (isAlertEpisode) {
-          // alert episode — stops co-notified responders from escalating.
+        // An episode's - which also stops co-notified responders escalating.
+        if (
+          isAlertEpisode &&
+          !(await AlertEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByAlertEpisodeId!,
+          }))
+        ) {
           await AlertEpisodeService.acknowledgeEpisode(
             item.triggeredByAlertEpisodeId!,
             item.userId!,
           );
         }
 
-        if (isIncidentEpisode) {
-          // incident episode — stops co-notified responders from escalating.
+        if (
+          isIncidentEpisode &&
+          !(await IncidentEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByIncidentEpisodeId!,
+          }))
+        ) {
           await IncidentEpisodeService.acknowledgeEpisode(
             item.triggeredByIncidentEpisodeId!,
             item.userId!,

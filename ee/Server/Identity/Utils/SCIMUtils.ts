@@ -1,10 +1,26 @@
-import { ExpressRequest } from "Common/Server/Utils/Express";
+import { ScimFilterError } from "./SCIMFilter";
+import { IdentityRoute } from "Common/ServiceRoute";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
+import StatusCode from "Common/Types/API/StatusCode";
 import logger from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Exception from "Common/Types/Exception/Exception";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import BadRequestException from "Common/Types/Exception/BadRequestException";
+import ForbiddenException from "Common/Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import NotFoundException from "Common/Types/Exception/NotFoundException";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+
+// How many resources a SCIM list answers with, unless asked for fewer.
+export const SCIM_DEFAULT_PAGE_SIZE: number = 100;
+export const SCIM_MAX_PAGE_SIZE: number = 200;
 
 /**
  * SCIM Error types as defined in RFC 7644
@@ -150,6 +166,26 @@ export const extractEmailFromSCIM: (scimUser: JSONObject) => string = (
     (scimUser["userName"] as string) ||
     ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string) ||
     ""
+  );
+};
+
+/*
+ * Whether an update carrying `newEmail` would change the address of an
+ * account whose current address is `currentEmail`. Email normalises case
+ * and whitespace, so this compares what would actually be stored: the same
+ * address resent in another case changes nothing. For a project's accounts
+ * and a status page's private users alike.
+ */
+export const isScimEmailChanging: (data: {
+  currentEmail: string | undefined;
+  newEmail: string;
+}) => boolean = (data: {
+  currentEmail: string | undefined;
+  newEmail: string;
+}): boolean => {
+  return (
+    (data.currentEmail || "").trim().toLowerCase() !==
+    data.newEmail.trim().toLowerCase()
   );
 };
 
@@ -396,13 +432,13 @@ export const generateServiceProviderConfig: (
     },
     filter: {
       supported: true,
-      maxResults: 200,
+      maxResults: SCIM_MAX_PAGE_SIZE,
     },
     changePassword: {
       supported: false,
     },
     sort: {
-      supported: true,
+      supported: false,
     },
     etag: {
       supported: false,
@@ -413,6 +449,14 @@ export const generateServiceProviderConfig: (
         name: "HTTP Bearer",
         description: "Authentication scheme using HTTP Bearer Token",
         primary: true,
+      },
+      {
+        type: "oauthbearertoken",
+        name: "OAuth Bearer Token",
+        description:
+          "An OAuth 2.0 access token from the token endpoint, for the connection's client ID and client secret (client credentials grant).",
+        specUri: "https://www.rfc-editor.org/rfc/rfc6749",
+        documentationUri: documentationUrl,
       },
     ],
     meta: {
@@ -469,17 +513,214 @@ export const generateGroupsListResponse: (
 /**
  * Parse query parameters for SCIM list requests
  */
+/*
+ * startIndex and count of a SCIM list (RFC 7644, section 3.4.2.4): a
+ * startIndex below 1 is 1, a count above SCIM_MAX_PAGE_SIZE is cut to it,
+ * and a count of 0 asks for totalResults alone. Absent or unreadable, they
+ * are 1 and SCIM_DEFAULT_PAGE_SIZE.
+ */
 export const parseSCIMQueryParams: (req: ExpressRequest) => {
   startIndex: number;
   count: number;
 } = (req: ExpressRequest): { startIndex: number; count: number } => {
-  const startIndex: number = parseInt(req.query["startIndex"] as string) || 1;
-  const count: number = Math.min(
-    parseInt(req.query["count"] as string) || 100,
-    200, // SCIM recommended max
+  const requestedStartIndex: number = parseInt(
+    req.query["startIndex"] as string,
   );
+  const requestedCount: number = parseInt(req.query["count"] as string);
+
+  const startIndex: number =
+    isNaN(requestedStartIndex) || requestedStartIndex < 1
+      ? 1
+      : requestedStartIndex;
+
+  const count: number = isNaN(requestedCount)
+    ? SCIM_DEFAULT_PAGE_SIZE
+    : Math.max(0, Math.min(requestedCount, SCIM_MAX_PAGE_SIZE));
 
   return { startIndex, count };
+};
+
+/*
+ * A connection's SCIM base URL, as the SCIM dialogs show it and identity
+ * providers are configured with: <server>/identity/scim/v2/<id>, or
+ * /identity/status-page-scim/v2/<id>. What resources' meta.location and a
+ * group member's $ref are built on. Without a HOST, from the request.
+ */
+export const getScimBaseUrl: (data: {
+  req: ExpressRequest;
+  scimId: string;
+  scimType: "project" | "status-page";
+}) => string = (data: {
+  req: ExpressRequest;
+  scimId: string;
+  scimType: "project" | "status-page";
+}): string => {
+  const server: string = Host
+    ? `${HttpProtocol.toString()}${Host}`
+    : `${data.req.protocol}://${data.req.get("host")}`;
+
+  const route: string =
+    data.scimType === "project" ? "scim" : "status-page-scim";
+
+  return `${server}${IdentityRoute.toString()}/${route}/v2/${data.scimId}`;
+};
+
+/*
+ * SCIM's media type (RFC 7644, section 3.1). Identity providers read plain
+ * JSON too, but Microsoft Entra ID's gallery requirements name this one.
+ */
+export const SCIM_CONTENT_TYPE: string = "application/scim+json";
+
+/*
+ * A SCIM answer: `body` with `statusCode`, as application/scim+json. Express
+ * keeps a Content-Type that is already set when it writes JSON. A 200 is
+ * sent as every JSON answer is, with no status of its own.
+ */
+export const sendScimResponse: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  body: JSONObject,
+  statusCode?: number,
+) => void = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  body: JSONObject,
+  statusCode: number = 200,
+): void => {
+  res.setHeader("Content-Type", `${SCIM_CONTENT_TYPE}; charset=utf-8`);
+
+  if (statusCode === 200) {
+    Response.sendJsonObjectResponse(req, res, body);
+    return;
+  }
+
+  Response.sendJsonObjectResponse(req, res, body, {
+    statusCode: new StatusCode(statusCode),
+  });
+};
+
+/*
+ * An error the SCIM server answers with as it is: its HTTP status and RFC
+ * 7644's scimType. 409 uniqueness for a user that exists already, 400
+ * invalidFilter for a filter it does not answer.
+ */
+export class SCIMException extends Exception {
+  public readonly statusCode: number;
+  public readonly scimType: SCIMErrorType | undefined;
+
+  public constructor(data: {
+    statusCode: number;
+    message: string;
+    scimType?: SCIMErrorType | undefined;
+  }) {
+    super(data.statusCode, data.message);
+    this.statusCode = data.statusCode;
+    this.scimType = data.scimType;
+  }
+}
+
+// What an unexpected error is answered with: its message stays in the logs.
+export const SCIM_INTERNAL_ERROR_MESSAGE: string =
+  "OneUptime could not complete this SCIM request. Try again; if it keeps failing, the connection's SCIM logs in OneUptime show the request.";
+
+// The HTTP status and SCIM error type a SCIM request that failed with `err` is answered with.
+export const getScimErrorStatus: (err: unknown) => {
+  statusCode: number;
+  scimType: SCIMErrorType | undefined;
+  message: string;
+} = (
+  err: unknown,
+): {
+  statusCode: number;
+  scimType: SCIMErrorType | undefined;
+  message: string;
+} => {
+  if (err instanceof SCIMException) {
+    return {
+      statusCode: err.statusCode,
+      scimType: err.scimType,
+      message: err.message,
+    };
+  }
+
+  if (err instanceof ScimFilterError) {
+    return {
+      statusCode: 400,
+      scimType: SCIMErrorType.InvalidFilter,
+      message: err.message,
+    };
+  }
+
+  if (
+    err instanceof NotAuthorizedException ||
+    err instanceof NotAuthenticatedException
+  ) {
+    return { statusCode: 401, scimType: undefined, message: err.message };
+  }
+
+  if (err instanceof BadRequestException || err instanceof BadDataException) {
+    return {
+      statusCode: 400,
+      scimType: SCIMErrorType.InvalidValue,
+      message: err.message,
+    };
+  }
+
+  if (err instanceof NotFoundException) {
+    return { statusCode: 404, scimType: undefined, message: err.message };
+  }
+
+  if (err instanceof PaymentRequiredException) {
+    return { statusCode: 402, scimType: undefined, message: err.message };
+  }
+
+  if (err instanceof ForbiddenException) {
+    return { statusCode: 403, scimType: undefined, message: err.message };
+  }
+
+  return {
+    statusCode: 500,
+    scimType: undefined,
+    message: SCIM_INTERNAL_ERROR_MESSAGE,
+  };
+};
+
+/*
+ * Answers a SCIM request that failed with `err` in the SCIM error format
+ * (RFC 7644, section 3.12), with the status it calls for - instead of
+ * handing it to Express's error handler, whose { error } body an identity
+ * provider cannot read, and which answers a refused credential with 422.
+ * A 401 says how to authenticate (RFC 6750, section 3).
+ */
+export const sendScimError: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  err: unknown,
+) => void = (req: ExpressRequest, res: ExpressResponse, err: unknown): void => {
+  const status: {
+    statusCode: number;
+    scimType: SCIMErrorType | undefined;
+    message: string;
+  } = getScimErrorStatus(err);
+
+  if (res.headersSent) {
+    return;
+  }
+
+  if (status.statusCode === 401) {
+    res.setHeader("WWW-Authenticate", 'Bearer realm="OneUptime SCIM"');
+  }
+
+  sendScimResponse(
+    req,
+    res,
+    generateSCIMErrorResponse(
+      status.statusCode,
+      status.message,
+      status.scimType,
+    ),
+    status.statusCode,
+  );
 };
 
 /**

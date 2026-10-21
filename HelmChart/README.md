@@ -34,8 +34,12 @@ you do, and so does the unit suite anywhere it has to install the plugin.
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |
 | `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests)        |
 | `extra-values`      | no              | `extraEnv`/`extraVolumes`/`extraVolumeMounts` reach every workload the chart renders, and no more |
+| `vapid-existing-secret` | no          | with `vapid.existingSecret`, every workload given the VAPID private key reads it from that Secret and none as a plain value; without it the render does not change |
+| `air-gapped`        | no              | the air-gapped install the website shows ([`Tests/air-gapped-values.yaml`](Tests/air-gapped-values.yaml)): every image from the customer's registry, the pull secret on every pod the chart defines, the update check off, no public nameserver for a probe, and probes and webhooks allowed to reach private addresses; without `imagePullSecrets` the chart writes none |
+| `marketplace`       | no              | the AWS, Microsoft and Google Cloud Marketplace editions [`Marketplace/build.py`](Marketplace/build.py) makes of the chart, and the Kubernetes agent's Amazon EKS add-on: its unit tests, then each edition rendered and checked the way that marketplace checks it at submission |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
+| `gitops-revert`     | yes (opt-in)    | Argo CD, Flux and Helm against the kubectl fixes OneUptime AI makes: which fixes each one puts back to what git (or the chart) declares, and how fast, and the ownership markers OneUptime reads to tell (`packages/Common/Utils/AiRemediation/GitOpsOwnership.ts`) |
 
 Run one suite, or keep the cluster around to poke at a failure:
 
@@ -62,8 +66,31 @@ assertions and the cluster, end with `harness_report`, and list it in
 `ALL_SUITES` in `run.sh` (the runner fails if a suite file is not listed, so it
 cannot go unnoticed).
 
+A suite that measures other tools rather than this repository's charts, and
+pulls their images and waits out their timers to do it, goes in
+`OPT_IN_SUITES` instead: it is never run by default, so not in the helm-test
+job, only when named (`bash HelmChart/Tests/run.sh gitops-revert`).
+`gitops-revert` takes about ten minutes; its own workflow
+(`.github/workflows/test.gitops-revert.yaml`) runs it when it, or what it runs
+on, changes. It reads results off a KinD cluster it changes freely, so it
+points kubectl at a kubeconfig of its own for that cluster - never the one
+your shell uses.
+
 Not part of the `helm-test` job: `Tests/index.sh`, the full end-to-end install
 that pulls every image and waits for all pods to become ready.
+
+## Marketplace editions
+
+Self-hosted OneUptime Enterprise is also sold on AWS Marketplace (Amazon EKS),
+Microsoft Marketplace (AKS) and Google Cloud Marketplace (GKE), billed per user
+by the hour through the marketplace. Each edition is built from this chart by
+[`Marketplace/build.py`](Marketplace/build.py) at release time; see
+[Marketplace/README.md](Marketplace/README.md) and the release runbook,
+[SELF_HOSTED_RELEASING.md](../packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+
+The Kubernetes agent (`Public/kubernetes-agent`) is on AWS Marketplace too, free,
+as an Amazon EKS add-on: `build.py --marketplace aws-eks-addon` builds it from
+the agent chart, and the same runbook says how it is released.
 
 ## Database migration guides
 

@@ -79,7 +79,14 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Diagnostics">
+      {/*
+       * Overview and Datastores answer "is this instance healthy?", which is
+       * what this menu is opened for. Diagnostics and Maintenance are for
+       * digging deeper or for the odd upgrade and support request, so they
+       * fold down to their titles until opened, and open by themselves on
+       * their own pages.
+       */}
+      <SideMenuSection title="Diagnostics" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Diagnostic Logs",
@@ -109,7 +116,7 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Maintenance">
+      <SideMenuSection title="Maintenance" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Migrations",

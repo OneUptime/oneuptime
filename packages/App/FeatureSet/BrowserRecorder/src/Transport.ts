@@ -19,8 +19,10 @@ import OfflineStore, { OfflineChunk } from "./OfflineStore";
  * alternatives:
  *
  * 1. gzip via the native CompressionStream, never fflate. The server's
- *    entire decode vocabulary is "gzip" or "none" (OtelPayloadEncoding), so
- *    raw DEFLATE would be stored and later parsed as garbage. When
+ *    entire chunk decode vocabulary is the envelope's payloadEncoding,
+ *    "gzip" or "identity" (SessionReplayPayloadEncoding; see
+ *    SessionReplayIngestService.decodePayload), so raw DEFLATE would be
+ *    stored and later parsed as garbage. When
  *    CompressionStream is missing the payload goes up as identity and says
  *    so on the envelope.
  *

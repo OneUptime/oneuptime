@@ -25,8 +25,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import OneUptimeDate from "Common/Types/Date";
-import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -63,6 +61,8 @@ import {
   getExceptionDetailDataPlan,
 } from "../../Utils/ExceptionDetailData";
 import { ExceptionTriageAction } from "../../Utils/ExceptionDetailPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -80,6 +80,7 @@ interface EmptySectionProps {
 const EmptySection: FunctionComponent<EmptySectionProps> = (
   props: EmptySectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Card title={props.title} description={props.description}>
       <div
@@ -89,7 +90,9 @@ const EmptySection: FunctionComponent<EmptySectionProps> = (
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
           <Icon icon={props.icon} className="h-5 w-5 text-gray-400" />
         </div>
-        <p className="mt-3 max-w-md text-sm text-gray-600">{props.message}</p>
+        <p className="mt-3 max-w-md text-sm text-gray-600">
+          {translator.translateText(props.message)}
+        </p>
       </div>
     </Card>
   );
@@ -98,6 +101,7 @@ const EmptySection: FunctionComponent<EmptySectionProps> = (
 const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dataPlan: ExceptionDetailDataPlan = getExceptionDetailDataPlan(
     props.section,
   );
@@ -392,28 +396,16 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           const isResolveChange: boolean =
             action.id === "resolve" || action.id === "unresolve";
 
+          /*
+           * Only the switch is sent: the server records who turned it, and
+           * when.
+           */
           await ModelAPI.updateById<TelemetryException>({
             id: props.telemetryExceptionId,
             modelType: TelemetryException,
             data: isResolveChange
-              ? {
-                  isResolved: action.nextState.isResolved,
-                  markedAsResolvedAt: action.nextState.isResolved
-                    ? OneUptimeDate.getCurrentDate()
-                    : null,
-                  markedAsResolvedByUserId: action.nextState.isResolved
-                    ? User.getUserId() || null
-                    : null,
-                }
-              : {
-                  isArchived: action.nextState.isArchived,
-                  markedAsArchivedAt: action.nextState.isArchived
-                    ? OneUptimeDate.getCurrentDate()
-                    : null,
-                  markedAsArchivedByUserId: action.nextState.isArchived
-                    ? User.getUserId() || null
-                    : null,
-                },
+              ? { isResolved: action.nextState.isResolved }
+              : { isArchived: action.nextState.isArchived },
           });
 
           await loadException();
@@ -501,7 +493,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           />
           <p className="min-w-0 flex-1">
             <span className="font-medium">
-              Could not update this exception.
+              {translator.translateText("Could not update this exception.")}
             </span>{" "}
             {actionError}
           </p>
@@ -512,7 +504,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               setActionError(undefined);
             }}
           >
-            Dismiss
+            {translator.translateText("Dismiss")}
           </button>
         </div>
       )}

@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,9 +16,6 @@ import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerR
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const cephClusterOwnerDocumentation: string = `
 ### How Ceph Cluster Owner Rules Work
@@ -101,45 +102,8 @@ const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<CephClusterOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign team to matching Ceph clusters",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { cephClusterLabels: true },
           title: "Ceph Cluster Labels",
@@ -158,7 +122,7 @@ const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { cephClusterNamePattern: true },
-          title: "Ceph Cluster Name Pattern",
+          title: "Ceph Cluster Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,41 +133,13 @@ const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { cephClusterDescriptionPattern: true },
-          title: "Ceph Cluster Description Pattern",
+          title: "Ceph Cluster Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+        ...getOwnerRuleActionFields<CephClusterOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

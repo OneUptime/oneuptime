@@ -135,8 +135,11 @@ AI エージェントが、インシデントに紐付いた修正内容のプ�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — ノード、VM、コンテナ、ストレージ、HA 状態、バックアップの網羅状況、レプリケーションの健全性。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter、ESXi ホスト、仮想マシン、データストア、クラスタ、リソースプール、vSAN。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — クラスターの健全性、容量予測、OSD / プール / PG / モニターの可視化。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **ストレージアレイ** — Pure Storage FlashArray と FlashBlade の容量、レイテンシー、ボリューム、ホスト、レプリケーション、ハードウェアの健全性、ファイルシステム、バケット。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **データベース** — PostgreSQL、MySQL、Redis、MongoDB など。アプリケーションのトレース、Kubernetes、Docker から自動検出し、設定のみの Collector エージェントからエンジンのメトリクス、クエリサンプル、ログを取得。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **こんな方に** | セルフホスターと小規模チーム | プレミアムサポートを必要とする規制対象チーム |
 | **費用** | 無料＆オープンソース | [営業に問い合わせ](mailto:sales@oneuptime.com) |
 | **ライセンス** | Apache 2.0 | Apache 2.0、ただし `ee/` ディレクトリは [OneUptime Enterprise License](/ee/LICENSE) |
-| **機能** | 上記「すべてが揃っている」の全機能 — 監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI | Community の全機能 + SAML・OIDC シングルサインオン、SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
+| **機能** | 上記「すべてが揃っている」の全機能（監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI）と SAML・OIDC シングルサインオン | Community の全機能 + SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
 
 Enterprise の機能は [`ee/`](/ee) ディレクトリにあり、Enterprise イメージにのみ含まれます。詳しい比較は [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) をご覧ください。
 

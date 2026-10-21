@@ -82,26 +82,41 @@ describe("the logo the acknowledge page loads", () => {
    * nginx routes "/" to App on every install with billing off - which is every
    * self-hosted install - so the page asked a service that has no such route.
    * The logo now comes from the prefix Common mounts in every service.
+   *
+   * Each page takes its logo from one shared partial (Views/Partials/
+   * ProductLogo.ejs), so these read the HTML the page renders, partials
+   * included. With no branding of the installation's own, that is OneUptime's
+   * logo.
    */
-  const VIEWS_WITH_A_LOGO: Array<[string, string]> = [
-    ["acknowledge page", ACKNOWLEDGE_VIEW],
-    ["already-acknowledged page", VIEW_MESSAGE_VIEW],
-    ["SSO message page", IDENTITY_MESSAGE_VIEW],
+  const MESSAGE_BASE: Record<string, unknown> = {
+    title: "Alert acknowledged",
+    message: "This alert has already been acknowledged.",
+    viewDetailsUrl: "https://oneuptime.example/dashboard/alerts/1",
+    viewDetailsText: "View Alert",
+  };
+
+  const VIEWS_WITH_A_LOGO: Array<[string, string, Record<string, unknown>]> = [
+    ["acknowledge page", ACKNOWLEDGE_VIEW, ACKNOWLEDGE_BASE],
+    ["already-acknowledged page", VIEW_MESSAGE_VIEW, MESSAGE_BASE],
+    ["SSO message page", IDENTITY_MESSAGE_VIEW, MESSAGE_BASE],
   ];
 
   test("is served from a path every service mounts", () => {
-    for (const [label, viewPath] of VIEWS_WITH_A_LOGO) {
-      const source: string = fs.readFileSync(viewPath, "utf8");
+    for (const [label, viewPath, variables] of VIEWS_WITH_A_LOGO) {
+      const html: string = render(viewPath, variables);
 
-      expect([label, source.includes(OneUptimeLogoUrl)]).toEqual([label, true]);
+      expect([label, html.includes(`src="${OneUptimeLogoUrl}"`)]).toEqual([
+        label,
+        true,
+      ]);
     }
   });
 
   test("is not the Home-only path that 404'd", () => {
-    for (const [label, viewPath] of VIEWS_WITH_A_LOGO) {
-      const source: string = fs.readFileSync(viewPath, "utf8");
+    for (const [label, viewPath, variables] of VIEWS_WITH_A_LOGO) {
+      const html: string = render(viewPath, variables);
 
-      expect([label, source.includes("/img/3-transparent.svg")]).toEqual([
+      expect([label, html.includes("/img/3-transparent.svg")]).toEqual([
         label,
         false,
       ]);

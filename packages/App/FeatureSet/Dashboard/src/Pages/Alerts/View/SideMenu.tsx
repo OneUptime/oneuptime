@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import AlertModel from "Common/Models/DatabaseModels/Alert";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -17,7 +20,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      {/*
+       * The same sections as an incident's own menu (Overview,
+       * Investigation, Team, Notifications, Notes, Developer, Advanced),
+       * so a page is in the same place on every record it exists for.
+       */}
+      <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -29,6 +37,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
+        <SideMenuItem
+          link={{
+            title: "State Timeline",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Timeline}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Investigation">
         <SideMenuItem
           link={{
             title: "Description",
@@ -75,13 +96,28 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "State Timeline",
+            title: "Linked Incidents",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route,
+              RouteMap[PageMap.ALERT_VIEW_INCIDENTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.List}
+          icon={IconProp.Link}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Team">
+        <SideMenuItem
+          link={{
+            title: "On-Call Executions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Call}
         />
 
         <SideMenuItem
@@ -94,35 +130,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
-
-        <SideMenuItem
-          link={{
-            title: "Linked Incidents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_INCIDENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Link}
-        />
       </SideMenuSection>
 
-      <SideMenuSection title="On Call">
-        <SideMenuItem
-          link={{
-            title: "On Call Executions",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Call}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Logs">
+      <SideMenuSection title="Notifications">
         <SideMenuItem
           link={{
             title: "Notification Logs",
@@ -133,6 +143,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+
         <SideMenuItem
           link={{
             title: "AI Logs",
@@ -145,7 +156,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Alert Notes">
+      <SideMenuSection title="Notes">
         <SideMenuItem
           link={{
             title: "Private Notes",
@@ -157,6 +168,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Lock}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: AlertModel,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem
@@ -172,17 +189,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
-        />
-
-        <SideMenuItem
-          link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERT_VIEW_SETTINGS] as Route,
@@ -190,6 +196,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
 
         <SideMenuItem

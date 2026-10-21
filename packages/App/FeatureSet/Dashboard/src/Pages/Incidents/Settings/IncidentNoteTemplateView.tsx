@@ -10,10 +10,17 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import useIncidentNoteTemplateVariables, {
+  IncidentNoteTemplateVariables,
+} from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  // What the note can use, the project's custom fields included.
+  const noteTemplateVariables: IncidentNoteTemplateVariables =
+    useIncidentNoteTemplateVariables();
 
   return (
     <Fragment>
@@ -22,7 +29,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Basic Details"
         cardProps={{
           title: "Basic Details",
-          description: "Here are more details for this incident template.",
+          description:
+            "The name people pick this template by, and what it is for.",
         }}
         isEditable={true}
         editButtonText="Edit Details"
@@ -88,7 +96,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         editButtonText="Edit Note Template"
         cardProps={{
           title: "Note Template",
-          description: "Here is the note template.",
+          description: NoteTemplateFormCopy.noteFieldDescription,
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
@@ -97,8 +105,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               note: true,
             },
-            title: "Note",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
+            /*
+             * The {{variables}} it can use, filled in from the incident:
+             * collapsed under the editor, behind its Insert variable button,
+             * and under the cursor when "{{" is typed.
+             */
+            templateVariables: noteTemplateVariables.groups,
+            templateVariablesDescription: noteTemplateVariables.description,
             required: true,
             validation: {
               minLength: 2,

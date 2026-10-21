@@ -1,5 +1,6 @@
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -8,6 +9,10 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventType,
+} from "../../Workspace/WorkspaceMemberActions";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -17,6 +22,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
  * Resolved lazily rather than at module load: this module is pulled in through
@@ -32,20 +38,27 @@ const resolveCreatePermissions: () => Array<Permission> =
     }
     return cachedCreatePermissions;
   };
-let cachedUpdatePermissions: Array<Permission> | null = null;
-const resolveUpdatePermissions: () => Array<Permission> =
+/*
+ * Acknowledging or resolving an incident changes its state: the permission
+ * to create its state timeline row, as the dashboard's state panel asks.
+ */
+let cachedStateChangePermissions: Array<Permission> | null = null;
+const resolveStateChangePermissions: () => Array<Permission> =
   (): Array<Permission> => {
-    if (!cachedUpdatePermissions) {
-      cachedUpdatePermissions = new Incident().getUpdatePermissions();
+    if (!cachedStateChangePermissions) {
+      cachedStateChangePermissions =
+        new IncidentStateTimeline().getCreatePermissions();
     }
-    return cachedUpdatePermissions;
+    return cachedStateChangePermissions;
   };
 
 /*
  * Write tools mutate the project. They are gated twice: once by the tool's
  * requiredPermissions (RBAC) and once by the conversation's permission mode
- * (approval / auto-run / hidden in read-only). The user id used for the write
- * is the requesting user's — taken from ctx.props, never a tool argument.
+ * (approval / auto-run / hidden in read-only). Each write is the one the
+ * dashboard makes for the same change, made with the requesting user's
+ * props (ctx.props, never a tool argument), so it is held to what that
+ * person may do and is credited to them.
  */
 
 export const CreateIncidentTool: ObservabilityTool = {
@@ -115,7 +128,7 @@ export const CreateIncidentTool: ObservabilityTool = {
 
     if (severities.length === 0) {
       throw new BadDataException(
-        "No incident severities are configured for this project. Add one in Project Settings > Incidents > Severities first.",
+        "No incident severities are configured for this project. Add one in Incidents > Settings > Incident Severity first.",
       );
     }
 
@@ -138,7 +151,12 @@ export const CreateIncidentTool: ObservabilityTool = {
     const incident: Incident = new Incident();
     incident.projectId = ctx.projectId;
     incident.title = title;
-    incident.description = description;
+    /*
+     * The model wrote the description from what it read, telemetry included:
+     * it stays Markdown, but nothing in it acts on its own in the incident's
+     * feed, Slack and Teams (FeedMarkdown.aiWritten).
+     */
+    incident.description = FeedMarkdown.aiWritten(description).toString();
     incident.incidentSeverityId = severity.id!;
     incident.createdByUserId = userId;
     incident.rootCause = "Incident created via the OneUptime AI copilot.";
@@ -216,18 +234,13 @@ async function changeIncidentStateTool(data: {
     );
   }
 
-  const userId: ObjectID | undefined = ctx.props.userId;
-  if (!userId) {
+  if (!ctx.props.userId) {
     throw new BadDataException(
       "No authenticated user in context; cannot change the incident.",
     );
   }
 
-  /*
-   * Confirm the incident is visible to this user under their RBAC (the state
-   * change itself runs as root inside the service). This stops the tool from
-   * acting on incidents the user cannot see.
-   */
+  // The incident as the person reads it, for the answer below.
   const incident: Incident | null = await IncidentService.findOneById({
     id: incidentId,
     select: {
@@ -244,10 +257,25 @@ async function changeIncidentStateTool(data: {
     );
   }
 
+  /*
+   * The change is the incident state timeline row the dashboard's state
+   * panel creates, created as the person who asked
+   * (WorkspaceMemberActions): held to their permission to change the
+   * incident's state, their labels and owners and the project's plan, and
+   * credited to them in the incident's timeline and feed.
+   */
+  const event: WorkspaceEvent = {
+    type: WorkspaceEventType.Incident,
+    id: incidentId,
+  };
+
   if (verb === "acknowledge") {
-    await IncidentService.acknowledgeIncident(incidentId, userId);
+    await WorkspaceMemberActions.acknowledge({
+      event: event,
+      props: ctx.props,
+    });
   } else {
-    await IncidentService.resolveIncident(incidentId, userId);
+    await WorkspaceMemberActions.resolve({ event: event, props: ctx.props });
   }
 
   const newStateName: string =
@@ -306,7 +334,7 @@ export const AcknowledgeIncidentTool: ObservabilityTool = {
     required: ["incidentId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveUpdatePermissions();
+    return resolveStateChangePermissions();
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
@@ -335,7 +363,7 @@ export const ResolveIncidentTool: ObservabilityTool = {
     required: ["incidentId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveUpdatePermissions();
+    return resolveStateChangePermissions();
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {

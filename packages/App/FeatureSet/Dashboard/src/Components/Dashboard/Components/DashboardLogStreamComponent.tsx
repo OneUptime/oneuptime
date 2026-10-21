@@ -29,6 +29,8 @@ import {
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -76,6 +78,7 @@ const getSeverityColor: (severity: string) => SeverityColor = (
 const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -240,7 +243,10 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
             {props.component.arguments.title}
           </span>
           <span className="text-xs text-gray-300 tabular-nums">
-            {logs.length} entries
+            {translator.translatePlural(
+              { one: "{{count}} entry", other: "{{count}} entries" },
+              logs.length,
+            )}
           </span>
         </div>
       )}
@@ -295,7 +301,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
           })}
           {logs.length === 0 && (
             <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              No logs found
+              {translator.translateText("No logs found")}
             </div>
           )}
         </div>

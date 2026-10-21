@@ -20,6 +20,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -81,6 +84,16 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Traffic",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_SITE_VIEW_TRAFFIC] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ArrowUpDown}
+        />
+        <SideMenuItem
+          link={{
             title: "Child Sites",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_SITE_VIEW_CHILD_SITES] as Route,
@@ -107,7 +120,7 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.List}
+          icon={IconProp.Timeline}
         />
         {/*
          * Counts only the windows attached to THIS site, matching what the
@@ -141,6 +154,12 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: NetworkSite,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Manage">
         <SideMenuItem

@@ -11,7 +11,6 @@ import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   AppApiClientUrl,
-  DashboardClientUrl,
   Host,
   HttpProtocol,
   SlackAppClientId,
@@ -30,6 +29,7 @@ import SlackAuthAction, {
   SlackRequest,
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
+import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackIncidentEpisodeActions from "../Utils/Workspace/Slack/Actions/IncidentEpisode";
@@ -43,7 +43,12 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
-import AIService, { AI_DISABLED_MESSAGE } from "../Services/AIService";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+  getProjectDailyLimitMessage,
+  ProjectAiDailyLimitStatus,
+} from "../Services/AIService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
@@ -64,11 +69,222 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
+import ConnectCallback, {
+  ConnectCallbackFinish,
+  ConnectCallbackRefusal,
+} from "./ConnectCallback";
+import ConnectCallbackUtil, {
+  CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
+  CONNECT_REQUEST_QUERY_PARAM,
+  CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM,
+  CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM,
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectCallbackError,
+  ConnectProvider,
+  ConnectRequestOutcome,
+} from "../../Types/Workspace/ConnectCallback";
 import OneUptimeDate from "../../Types/Date";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+} from "../Utils/Workspace/WorkspaceConnectRequest";
+import WorkspaceConnectCompletion, {
+  WorkspaceConnectCompletionResult,
+} from "../Utils/Workspace/WorkspaceConnectCompletion";
+import SlackActionAnswer, {
+  SlackAnswerDelivery,
+  SlackAnswerPlace,
+} from "../Utils/Workspace/Slack/Actions/Answer";
+import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
+import SlackCommandActions from "../Utils/Workspace/Slack/Actions/Command";
+import SlackPageActions from "../Utils/Workspace/Slack/Actions/Page";
+import SlackAiConversations, {
+  SlackMessage,
+  SlackMessageKind,
+  SlackThreadMessage,
+  SlackThreadPerson,
+} from "../Utils/Workspace/Slack/SlackAiConversations";
+import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
+import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
+import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
+import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
+import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
+
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+/*
+ * A Slack mention of a person in a message's text: <@U0123> or
+ * <@U0123|name>. Its class leaves out "<" as well as ">": with "[^>]+" the
+ * pattern was tried again from every "<@" of "<@<@<@..." to the end of the
+ * message, so its time grew with the square of the message (code scanning
+ * alert #1643). Slack writes a "<" somebody typed as "&lt;", so no mention
+ * holds one.
+ */
+const SLACK_USER_MENTION: RegExp = /<@[^<>]+>/g;
+
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// The Slack app this server connects with.
+interface SlackAppCredentials {
+  clientId: string;
+  clientSecret: string;
+}
 
 export default class SlackAPI {
+  /*
+   * What someone who may not connect the project to Slack is told, when the
+   * connection starts and again when Slack sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Slack.";
+
+  /*
+   * What the sign-in a Connect button in Slack starts is refused with when
+   * the press behind it is gone - spent by an earlier sign-in, or past its
+   * thirty minutes - or is not this project's.
+   */
+  public static readonly CONNECT_REQUEST_GONE_MESSAGE: string =
+    "This Connect button has expired or was already used. Press the button in Slack again.";
+
   // Generous: the server-side channel fetch caches up to ~100k channels.
   public static readonly MAX_CHANNEL_CACHE_ENTRIES: number = 100000;
+
+  /*
+   * The press a sign-in's `?connect=` stands for, as the state's payload -
+   * nothing when there is no `?connect=`. Refused when the press is gone
+   * or is another project's: the page then says the button expired.
+   */
+  private static async getConnectRequestPayload(data: {
+    value: unknown;
+    projectId: ObjectID;
+  }): Promise<JSONObject | undefined> {
+    if (data.value === undefined) {
+      return undefined;
+    }
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await SlackAPI.peekConnectRequest({
+        token: data.value,
+        projectId: data.projectId,
+      });
+
+    if (!request) {
+      throw new BadDataException(SlackAPI.CONNECT_REQUEST_GONE_MESSAGE);
+    }
+
+    return { connectToken: data.value as string };
+  }
+
+  // A Slack press behind `token` in `projectId`, left in place; null for anything else.
+  private static async peekConnectRequest(data: {
+    token: unknown;
+    projectId: ObjectID;
+  }): Promise<WorkspaceConnectRequestRecord | null> {
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(data.token);
+
+    if (
+      !request ||
+      request.workspaceType !== WorkspaceType.Slack ||
+      request.projectId.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return request;
+  }
+
+  /*
+   * Once the account a Connect button was for is connected: spends the
+   * press, finishes it as the member (WorkspaceConnectCompletion), answers
+   * where it was made (SlackActionAnswer), and says what the settings page
+   * should tell the person - what became of the press, and where in Slack
+   * to go back to.
+   */
+  private static async finishConnectRequest(data: {
+    token: unknown;
+    connectRequest: WorkspaceConnectRequestRecord | null;
+    userId: ObjectID;
+    projectAuthToken: string | undefined;
+  }): Promise<Dictionary<string>> {
+    // Spent once, however many times its sign-in comes back.
+    const request: WorkspaceConnectRequestRecord | null = data.connectRequest
+      ? await WorkspaceConnectRequest.take(data.token)
+      : null;
+
+    if (!request) {
+      return {
+        [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: ConnectRequestOutcome.Expired,
+      };
+    }
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request,
+        userId: data.userId,
+      });
+
+    let delivery: SlackAnswerDelivery = SlackAnswerDelivery.None;
+
+    if (data.projectAuthToken) {
+      const place: SlackAnswerPlace = {
+        projectAuthToken: data.projectAuthToken,
+        slackUserId: request.workspaceUserId,
+      };
+
+      if (request.slack?.channelId) {
+        place.slackChannelId = request.slack.channelId;
+      }
+
+      if (request.slack?.threadTs) {
+        place.slackThreadTs = request.slack.threadTs;
+      }
+
+      if (SlackUtil.isSlackResponseUrl(request.slack?.responseUrl)) {
+        place.responseUrl = request.slack!.responseUrl;
+      }
+
+      delivery = await SlackActionAnswer.answer({
+        place: place,
+        answer: result.answer,
+      });
+    }
+
+    const params: Dictionary<string> = {
+      /*
+       * The page never says the answer is in Slack when Slack took none: it
+       * says to look at the record instead.
+       */
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
+        ConnectCallbackUtil.pointsToChatAnswer(result.outcome) &&
+        delivery === SlackAnswerDelivery.None
+          ? ConnectRequestOutcome.NotAnswered
+          : result.outcome,
+    };
+
+    /*
+     * Where the page's "Back to Slack" goes: the channel the press was in,
+     * or the person's direct messages with the app when they wrote there.
+     */
+    const backTo: string | undefined =
+      request.slack?.channelId || request.slack?.directMessageChannelId;
+
+    if (
+      backTo &&
+      ConnectCallbackUtil.getSlackChannelLink({
+        channel: backTo,
+        team: request.slack?.teamId,
+      })
+    ) {
+      params[CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM] = backTo;
+      params[CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM] = request.slack!.teamId!;
+    }
+
+    return params;
+  }
 
   // Slack caps channel names at 80 characters.
   private static readonly MAX_CHANNEL_NAME_LENGTH: number = 255;
@@ -164,7 +380,9 @@ export default class SlackAPI {
 
   /*
    * Spends the `state` Slack hands back and returns the project and user it
-   * was issued for, or null when the callback must be refused.
+   * was issued for, or null when the callback must be refused. A state that
+   * cannot be read at all throws, and is answered as such
+   * (ConnectCallback.route).
    *
    * The ids in the redirect path are only there because Slack matches
    * redirect URIs by prefix; they are never used. They must still agree with
@@ -174,18 +392,12 @@ export default class SlackAPI {
     req: ExpressRequest;
     flow: WorkspaceOAuthFlow;
   }): Promise<WorkspaceOAuthStateRecord | null> {
-    let stateRecord: WorkspaceOAuthStateRecord | null = null;
-
-    try {
-      stateRecord = await WorkspaceOAuthState.consume({
+    const stateRecord: WorkspaceOAuthStateRecord | null =
+      await WorkspaceOAuthState.consume({
         req: data.req,
         state: data.req.query["state"]?.toString(),
         flows: [data.flow],
       });
-    } catch (err) {
-      logger.error(err, getLogAttributesFromRequest(data.req as any));
-      return null;
-    }
 
     if (!stateRecord) {
       return null;
@@ -204,6 +416,83 @@ export default class SlackAPI {
     }
 
     return stateRecord;
+  }
+
+  /*
+   * The Slack app this server connects with. A connection cannot be finished
+   * without its client secret, so a server missing either is refused as one
+   * that is not set up.
+   */
+  private static getAppCredentials(): SlackAppCredentials {
+    if (!SlackAppClientId || !SlackAppClientSecret) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.NotConfigured,
+        "SLACK_APP_CLIENT_ID or SLACK_APP_CLIENT_SECRET is not set.",
+      );
+    }
+
+    return {
+      clientId: SlackAppClientId,
+      clientSecret: SlackAppClientSecret,
+    };
+  }
+
+  /*
+   * The body of what Slack's token endpoint answered, or a refusal when it
+   * did not answer with a token: an HTTP error, or a body whose `ok` is not
+   * true. What Slack said goes to the log, never to the browser.
+   */
+  private static getTokenResponseBody(
+    response: HTTPErrorResponse | HTTPResponse<JSONObject>,
+  ): JSONObject {
+    if (response instanceof HTTPErrorResponse) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        `Slack answered the token request with HTTP ${response.statusCode}.`,
+      );
+    }
+
+    const body: JSONObject = response.data || {};
+
+    if (body["ok"] !== true) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        `Slack refused the token request: ${String(body["error"] || "no reason given")}.`,
+      );
+    }
+
+    return body;
+  }
+
+  /*
+   * The claims of the ID token Slack's token endpoint answered with. Its
+   * signature is not checked, and need not be: it came straight from Slack
+   * over TLS, in exchange for a code and this app's client secret (OpenID
+   * Connect Core 3.1.3.7). A token that is missing or cannot be read is
+   * refused.
+   */
+  private static getIdTokenClaims(idToken: unknown): JSONObject {
+    const payload: string | undefined =
+      typeof idToken === "string" ? idToken.split(".")[1] : undefined;
+
+    let claims: unknown = null;
+
+    if (payload) {
+      try {
+        claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+      } catch {
+        claims = null;
+      }
+    }
+
+    if (!claims || typeof claims !== "object" || Array.isArray(claims)) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        "Slack returned no ID token that can be read.",
+      );
+    }
+
+    return claims as JSONObject;
   }
 
   public getRouter(): ExpressRouter {
@@ -258,8 +547,7 @@ export default class SlackAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Slack.",
+            errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!SlackAppClientId) {
@@ -274,6 +562,9 @@ export default class SlackAPI {
             flow: WorkspaceOAuthFlow.SlackInstall,
             projectId: projectId,
             userId: userId,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
           });
 
           const scopes: JSONObject = (
@@ -282,11 +573,22 @@ export default class SlackAPI {
             ] as JSONObject
           )["scopes"] as JSONObject;
 
+          /*
+           * The app asks for no user scopes: OneUptime acts with the bot's
+           * token, and Slack names who installed it all the same
+           * (authed_user.id). A user_scope goes only with a manifest that
+           * asks for one.
+           */
+          const userScopes: Array<string> =
+            (scopes["user"] as Array<string>) || [];
+
           const authorizationUrl: string = `https://slack.com/oauth/v2/authorize?scope=${encodeURIComponent(
             ((scopes["bot"] as Array<string>) || []).join(","),
-          )}&user_scope=${encodeURIComponent(
-            ((scopes["user"] as Array<string>) || []).join(","),
-          )}&client_id=${encodeURIComponent(
+          )}${
+            userScopes.length > 0
+              ? `&user_scope=${encodeURIComponent(userScopes.join(","))}`
+              : ""
+          }&client_id=${encodeURIComponent(
             SlackAppClientId,
           )}&redirect_uri=${encodeURIComponent(
             SlackAPI.getInstallRedirectUri({ projectId, userId }),
@@ -322,12 +624,27 @@ export default class SlackAPI {
 
           const userId: ObjectID = databaseProps.userId!;
 
+          /*
+           * Started from a Connect button in Slack (`?connect=`): the press
+           * it stands for goes with the sign-in, so the callback can finish
+           * it - when it is still there, and is this project's.
+           */
+          const payload: JSONObject | undefined =
+            await SlackAPI.getConnectRequestPayload({
+              value: req.query[CONNECT_REQUEST_QUERY_PARAM],
+              projectId: projectId,
+            });
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
             flow: WorkspaceOAuthFlow.SlackUserSignIn,
             projectId: projectId,
             userId: userId,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
+            payload: payload,
           });
 
           const authorizationUrl: string = `https://slack.com/openid/connect/authorize?response_type=code&scope=${encodeURIComponent(
@@ -347,487 +664,363 @@ export default class SlackAPI {
       },
     );
 
-    // this is project specific auth endpoint.
+    /*
+     * Where Slack sends the browser back once OneUptime is installed into a
+     * workspace. ConnectCallback.route spends the state, asks again, and
+     * answers every way this can end on the Slack page the install started
+     * from - with a code, never with what Slack or a failed read said.
+     */
     router.get(
       "/slack/auth/:projectId/:userId",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!SlackAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client ID is not set"),
-          );
-        }
-
-        if (!SlackAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client Secret is not set"),
-          );
-        }
-
-        const stateRecord: WorkspaceOAuthStateRecord | null =
-          await SlackAPI.consumeStateForCallback({
+      ConnectCallback.route({
+        provider: ConnectProvider.Slack,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return SlackAPI.consumeStateForCallback({
             req,
             flow: WorkspaceOAuthFlow.SlackInstall,
           });
-
-        if (!stateRecord) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
+        },
+        // Whoever started the install may still connect the project.
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+            {
+              record: record,
+              errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
+            },
           );
-        }
+        },
+        refusedAs: ConnectCallbackError.NoPermission,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
 
-        const projectId: string = stateRecord.projectId.toString();
-        const userId: string = stateRecord.userId.toString();
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-        // if there's an error query param.
-        const error: string | undefined = req.query["error"]?.toString();
+          if (providerError) {
+            throw providerError;
+          }
 
-        const slackIntegrationPageUrl: URL = URL.fromString(
-          DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
-        );
+          // Slack returns the code on a successful install.
+          const code: string | undefined = req.query["code"]?.toString();
 
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam("error", error),
+          if (!code) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack sent no authorization code back.",
+            );
+          }
+
+          /*
+           * Neither the token request nor the token response is logged: the
+           * request carries the app client secret and the authorization
+           * code, and the response carries the bot's access token (and a
+           * user's, for an app whose manifest asks for user scopes).
+           */
+          logger.debug(
+            "Exchanging Slack authorization code for an access token.",
+            getLogAttributesFromRequest(req as any),
           );
-        }
 
-        // slack returns the code on successful auth.
-        const code: string | undefined = req.query["code"]?.toString();
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post({
+              url: URL.fromString("https://slack.com/api/oauth.v2.access"),
+              data: {
+                code: code,
+                client_id: credentials.clientId,
+                client_secret: credentials.clientSecret,
+                redirect_uri: SlackAPI.getInstallRedirectUri({
+                  projectId: record.projectId,
+                  userId: record.userId,
+                }),
+              },
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            });
 
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
-        // get access token from slack api.
+          /*
+           * ReponseBody is in this format.
+           *   {
+           *     "ok": true,
+           *     "access_token": "sample-token",
+           *     "token_type": "bot",
+           *     "scope": "commands,incoming-webhook",
+           *     "bot_user_id": "U0KRQLJ9H",
+           *     "app_id": "A0KRD7HC3",
+           *     "team": {
+           *         "name": "Slack Pickleball Team",
+           *         "id": "T9TK3CUKW"
+           *     },
+           *     "enterprise": {
+           *         "name": "slack-pickleball",
+           *         "id": "E12345678"
+           *     },
+           *     "authed_user": {
+           *         "id": "U1234"
+           *     }
+           * }
+           *
+           * authed_user is who installed the app. It carries a token of
+           * theirs (access_token, scope, token_type) only for an app that
+           * asks for user scopes, and this one asks for none: OneUptime acts
+           * with the bot's token and their Slack user id, so their account
+           * is linked with an empty token (WorkspaceUserAuthTokenService).
+           * An app created from an older manifest still gets one; it is kept
+           * as before, and used for nothing.
+           */
 
-        const requestBody: JSONObject = {
-          code: code,
-          client_id: SlackAppClientId,
-          client_secret: SlackAppClientSecret,
-          redirect_uri: SlackAPI.getInstallRedirectUri({
-            projectId: stateRecord.projectId,
-            userId: stateRecord.userId,
-          }),
-        };
+          const team: JSONObject | undefined = responseBody["team"] as
+            | JSONObject
+            | undefined;
+          const authedUser: JSONObject | undefined = responseBody[
+            "authed_user"
+          ] as JSONObject | undefined;
 
-        /*
-         * Neither the token request nor the token response is logged: the
-         * request carries the app client secret and the authorization code,
-         * and the response carries the bot and user access tokens.
-         */
-        logger.debug(
-          "Exchanging Slack authorization code for an access token.",
-          getLogAttributesFromRequest(req as any),
-        );
+          const slackTeamId: string | undefined = team?.["id"]?.toString();
+          const slackTeamName: string | undefined = team?.["name"]?.toString();
+          const slackBotAccessToken: string | undefined =
+            responseBody["access_token"]?.toString();
+          const botUserId: string | undefined =
+            responseBody["bot_user_id"]?.toString();
+          const slackUserId: string | undefined =
+            authedUser?.["id"]?.toString();
+          const slackUserAccessToken: string | undefined =
+            authedUser?.["access_token"]?.toString();
 
-        // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString("https://slack.com/api/oauth.v2.access"),
-            data: requestBody,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
+          await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: slackBotAccessToken || "",
+            workspaceProjectId: slackTeamId || "",
+            miscData: {
+              teamId: slackTeamId || "",
+              teamName: slackTeamName || "",
+              botUserId: botUserId || "",
             },
           });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            userId: record.userId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: slackUserAccessToken || "",
+            workspaceUserId: slackUserId || "",
+            miscData: {
+              userId: slackUserId || "",
+            },
+          });
 
-        const responseBody: JSONObject = response.data;
+          // The app's Home tab, drawn for whoever installed it (SlackHome).
+          if (slackUserId) {
+            SlackAPI.refreshHomeAfterConnect({
+              projectId: record.projectId,
+              slackUserId: slackUserId,
+            });
+          }
 
-        logger.debug(
-          "Slack token exchange completed. ok: " + String(responseBody["ok"]),
-          getLogAttributesFromRequest(req as any),
-        );
-
-        let slackTeamId: string | undefined = undefined;
-        let slackBotAccessToken: string | undefined = undefined;
-        let slackUserId: string | undefined = undefined;
-        let slackTeamName: string | undefined = undefined;
-        let botUserId: string | undefined = undefined;
-        let slackUserAccessToken: string | undefined = undefined;
-
-        /*
-         * ReponseBody is in this format.
-         *   {
-         *     "ok": true,
-         *     "access_token": "sample-token",
-         *     "token_type": "bot",
-         *     "scope": "commands,incoming-webhook",
-         *     "bot_user_id": "U0KRQLJ9H",
-         *     "app_id": "A0KRD7HC3",
-         *     "team": {
-         *         "name": "Slack Pickleball Team",
-         *         "id": "T9TK3CUKW"
-         *     },
-         *     "enterprise": {
-         *         "name": "slack-pickleball",
-         *         "id": "E12345678"
-         *     },
-         *     "authed_user": {
-         *         "id": "U1234",
-         *         "scope": "chat:write",
-         *         "access_token": "sample-token",
-         *         "token_type": "user"
-         *     }
-         * }
-         */
-
-        if (responseBody["ok"] !== true) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
-
-        if (
-          responseBody["team"] &&
-          (responseBody["team"] as JSONObject)["id"]
-        ) {
-          slackTeamId = (responseBody["team"] as JSONObject)["id"]?.toString();
-        }
-
-        if (responseBody["access_token"]) {
-          slackBotAccessToken = responseBody["access_token"]?.toString();
-        }
-
-        if (
-          responseBody["authed_user"] &&
-          (responseBody["authed_user"] as JSONObject)["id"]
-        ) {
-          slackUserId = (responseBody["authed_user"] as JSONObject)[
-            "id"
-          ]?.toString();
-        }
-
-        if (
-          responseBody["authed_user"] &&
-          (responseBody["authed_user"] as JSONObject)["access_token"]
-        ) {
-          slackUserAccessToken = (responseBody["authed_user"] as JSONObject)[
-            "access_token"
-          ]?.toString();
-        }
-
-        if (
-          responseBody["team"] &&
-          (responseBody["team"] as JSONObject)["name"]
-        ) {
-          slackTeamName = (responseBody["team"] as JSONObject)[
-            "name"
-          ]?.toString();
-        }
-
-        if (responseBody["bot_user_id"]) {
-          botUserId = responseBody["bot_user_id"]?.toString();
-        }
-
-        await WorkspaceProjectAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: slackBotAccessToken || "",
-          workspaceProjectId: slackTeamId || "",
-          miscData: {
-            teamId: slackTeamId || "",
-            teamName: slackTeamName || "",
-            botUserId: botUserId || "",
-          },
-        });
-
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          userId: new ObjectID(userId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: slackUserAccessToken || "",
-          workspaceUserId: slackUserId || "",
-          miscData: {
-            userId: slackUserId || "",
-          },
-        });
-
-        // return back to dashboard after successful auth.
-        Response.redirect(req, res, slackIntegrationPageUrl);
-      },
+          data.backToPage();
+        },
+      }),
     );
 
-    // this is user specific auth endpoint to sign in to slack.
+    /*
+     * Where Slack sends the browser back once someone has signed in with
+     * Slack, to link their Slack account in a project already connected to a
+     * Slack workspace. Answered like the install above.
+     */
     router.get(
       "/slack/auth/:projectId/:userId/user",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!SlackAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client ID is not set"),
-          );
-        }
-
-        if (!SlackAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client Secret is not set"),
-          );
-        }
-
-        const stateRecord: WorkspaceOAuthStateRecord | null =
-          await SlackAPI.consumeStateForCallback({
+      ConnectCallback.route({
+        provider: ConnectProvider.Slack,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return SlackAPI.consumeStateForCallback({
             req,
             flow: WorkspaceOAuthFlow.SlackUserSignIn,
           });
-
-        if (!stateRecord) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
-          );
-        }
-
-        const projectId: string = stateRecord.projectId.toString();
-        const userId: string = stateRecord.userId.toString();
-
-        // if there's an error query param.
-        const error: string | undefined = req.query["error"]?.toString();
-
-        const slackIntegrationPageUrl: URL = URL.fromString(
-          DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
-        );
-
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam("error", error),
-          );
-        }
-
-        // slack returns the code on successful auth.
-        const code: string | undefined = req.query["code"]?.toString();
-
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
-
-        // get access token from slack api.
-
-        const requestBody: JSONObject = {
-          code: code,
-          client_id: SlackAppClientId,
-          client_secret: SlackAppClientSecret,
-          redirect_uri: SlackAPI.getUserSignInRedirectUri({
-            projectId: stateRecord.projectId,
-            userId: stateRecord.userId,
-          }),
-        };
-
-        // Same as above: the body holds the client secret and the auth code.
-        logger.debug(
-          "Exchanging Slack authorization code for a user token.",
-          getLogAttributesFromRequest(req as any),
-        );
-
-        // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString("https://slack.com/api/openid.connect.token"),
-            data: requestBody,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
+        },
+        // Whoever started the sign-in is still a member of the project.
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: record,
           });
+        },
+        refusedAs: ConnectCallbackError.NotAMember,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-        const responseBody: JSONObject = response.data;
+          if (providerError) {
+            throw providerError;
+          }
 
-        logger.debug(
-          "Slack user token exchange completed. ok: " +
-            String(responseBody["ok"]),
-          getLogAttributesFromRequest(req as any),
-        );
+          // Slack returns the code on a successful sign-in.
+          const code: string | undefined = req.query["code"]?.toString();
 
-        if (
-          responseBody["id_token"] &&
-          typeof responseBody["id_token"] === "string" &&
-          responseBody["id_token"].split(".").length > 0
-        ) {
-          const idToken: string = responseBody["id_token"];
-          const decodedIdToken: JSONObject = JSON.parse(
-            Buffer.from(
-              (idToken.split(".")?.[1] as string) || "",
-              "base64",
-            ).toString("utf8"),
-          );
-          // The decoded ID token is identity material; only the fact is logged.
+          if (!code) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack sent no authorization code back.",
+            );
+          }
+
+          // Same as above: the body holds the client secret and the auth code.
           logger.debug(
-            "Decoded Slack ID token.",
+            "Exchanging Slack authorization code for a user token.",
             getLogAttributesFromRequest(req as any),
           );
-          responseBody["id_token"] = decodedIdToken;
-        }
 
-        const idToken: JSONObject | undefined = responseBody[
-          "id_token"
-        ] as JSONObject;
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post({
+              url: URL.fromString("https://slack.com/api/openid.connect.token"),
+              data: {
+                code: code,
+                client_id: credentials.clientId,
+                client_secret: credentials.clientSecret,
+                redirect_uri: SlackAPI.getUserSignInRedirectUri({
+                  projectId: record.projectId,
+                  userId: record.userId,
+                }),
+              },
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            });
 
-        /*
-         * Example of Response Body
-         * {
-         *   "iss": "https://slack.com",
-         *   "sub": "U123ABC456",
-         *   "aud": "25259531569.1115258246291",
-         *   "exp": 1626874955,
-         *   "iat": 1626874655,
-         *   "auth_time": 1626874655,
-         *   "nonce": "abcd",
-         *   "at_hash": "abc...123",
-         *   "https://slack.com/team_id": "T0123ABC456",
-         *   "https://slack.com/user_id": "U123ABC456",
-         *   "email": "alice@example.com",
-         *   "email_verified": true,
-         *   "date_email_verified": 1622128723,
-         *   "locale": "en-US",
-         *   "name": "Alice",
-         *   "given_name": "",
-         *   "family_name": "",
-         *   "https://slack.com/team_image_230": "https://secure.gravatar.com/avatar/bc.png",
-         *   "https://slack.com/team_image_default": true
-         * }
-         */
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
-        /*
-         * check if the team id matches the project id.
-         * get project auth.
-         */
+          /*
+           * The ID token's claims, e.g.
+           * {
+           *   "iss": "https://slack.com",
+           *   "sub": "U123ABC456",
+           *   "https://slack.com/team_id": "T0123ABC456",
+           *   "https://slack.com/user_id": "U123ABC456",
+           *   "email": "alice@example.com",
+           *   ...
+           * }
+           */
+          const idToken: JSONObject = SlackAPI.getIdTokenClaims(
+            responseBody["id_token"],
+          );
 
-        const projectAuth: WorkspaceProjectAuthToken | null =
-          await WorkspaceProjectAuthTokenService.findOneBy({
-            query: {
-              projectId: new ObjectID(projectId),
-              workspaceType: WorkspaceType.Slack,
-            },
-            select: {
-              workspaceProjectId: true,
-              miscData: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          // The project's Slack workspace, which the account must belong to.
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.findOneBy({
+              query: {
+                projectId: record.projectId,
+                workspaceType: WorkspaceType.Slack,
+              },
+              select: {
+                workspaceProjectId: true,
+                miscData: true,
+                authToken: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
-        // cehck if the workspace project id is same as the team id.
-        if (projectAuth) {
-          logger.debug(
-            "Project Auth: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            projectAuth.workspaceProjectId,
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            "Response Team ID: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            idToken["https://slack.com/team_id"],
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            "Response User ID: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            idToken["https://slack.com/user_id"],
-            getLogAttributesFromRequest(req as any),
-          );
+          if (!projectAuth) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackNotInstalled,
+              "The project is not connected to a Slack workspace.",
+            );
+          }
 
           if (
             projectAuth.workspaceProjectId?.toString() !==
             idToken["https://slack.com/team_id"]?.toString()
           ) {
-            const teamName: string | undefined = (
-              projectAuth.miscData as SlackMiscData
-            )?.teamName;
-
-            // send error response.
-            return Response.redirect(
-              req,
-              res,
-              slackIntegrationPageUrl.addQueryParam(
-                "error",
-                "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the workspace " +
-                  teamName,
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackOtherWorkspace,
+              "The Slack account belongs to a different workspace from the project's.",
             );
           }
-        } else {
-          // send error response.
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam(
-              "error",
-              "Looks like this OneUptime project is not connected to any slack workspace. Please try again and sign in to the workspace",
-            ),
+
+          const authToken: string | undefined =
+            responseBody["access_token"]?.toString();
+          const slackUserId: string | undefined =
+            idToken["https://slack.com/user_id"]?.toString();
+
+          if (!slackUserId) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack's ID token named no Slack user.",
+            );
+          }
+
+          /*
+           * Started from a Connect button in Slack: the account that signed
+           * in must be the one that pressed it. Another one - a browser
+           * signed in to a colleague's Slack - is refused and nothing is
+           * connected: connecting it would let that account act as you.
+           */
+          const connectToken: unknown = record.payload?.["connectToken"];
+
+          const connectRequest: WorkspaceConnectRequestRecord | null =
+            connectToken
+              ? await SlackAPI.peekConnectRequest({
+                  token: connectToken,
+                  projectId: record.projectId,
+                })
+              : null;
+
+          if (
+            connectRequest &&
+            connectRequest.workspaceUserId !== slackUserId
+          ) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackOtherAccount,
+              "The Slack account signed in is not the one that pressed the Connect button.",
+            );
+          }
+
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            userId: record.userId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: authToken || "",
+            workspaceUserId: slackUserId,
+            miscData: {
+              userId: slackUserId,
+            },
+          });
+
+          /*
+           * The app's Home tab, which asked them to connect, fills in
+           * (SlackHome) - while the browser is already on its way back.
+           */
+          SlackAPI.refreshHomeAfterConnect({
+            projectId: record.projectId,
+            slackUserId: slackUserId,
+          });
+
+          if (!connectToken) {
+            return data.backToPage();
+          }
+
+          return data.backToPage(
+            await SlackAPI.finishConnectRequest({
+              token: connectToken,
+              connectRequest: connectRequest,
+              userId: record.userId,
+              projectAuthToken: projectAuth.authToken,
+            }),
           );
-        }
-
-        const authToken: string | undefined =
-          responseBody["access_token"]?.toString();
-        const slackUserId: string | undefined =
-          idToken["https://slack.com/user_id"]?.toString();
-
-        if (!slackUserId) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam(
-              "error",
-              "Unfortunately, we were unable to get your slack user id. Please try again.",
-            ),
-          );
-        }
-
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          userId: new ObjectID(userId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: authToken || "",
-          workspaceUserId: slackUserId || "",
-          miscData: {
-            userId: slackUserId || "",
-          },
-        });
-
-        // return back to dashboard after successful auth.
-        Response.redirect(req, res, slackIntegrationPageUrl);
-      },
+        },
+      }),
     );
 
     router.post(
@@ -892,8 +1085,20 @@ export default class SlackAPI {
         }
 
         if (authResult.isAuthorized === false) {
-          // return empty response if not authorized. Do nothing in this case.
-          return Response.sendTextResponse(req, res, "");
+          /*
+           * Slack is answered at once - within its three seconds, so the
+           * button never shows a timeout - and then the person, where they
+           * pressed: connect your account, or why they may not
+           * (SlackAuthAction.answerRefusal). They used to get a direct
+           * message instead, which nobody watching the channel saw.
+           */
+          Response.sendTextResponse(req, res, "");
+
+          if (authResult.refusal) {
+            await SlackAuthAction.answerRefusal(authResult);
+          }
+
+          return;
         }
 
         for (const action of authResult.actions || []) {
@@ -903,6 +1108,41 @@ export default class SlackAPI {
               res,
               new BadRequestException("Invalid request"),
             );
+          }
+
+          /*
+           * Join call and Connect are link buttons: Slack opens the link,
+           * and the click it reports needs nothing but an acknowledgement.
+           */
+          if (
+            action.actionType === SlackActionType.JoinVideoCall ||
+            action.actionType === SlackActionType.ConnectSlackAccount ||
+            action.actionType === SlackActionType.OpenInOneUptime
+          ) {
+            return Response.sendTextResponse(req, res, "");
+          }
+
+          // Who's on call, from the app's Home tab: answered in a modal.
+          if (action.actionType === SlackActionType.ShowOnCall) {
+            return await SlackCommandActions.showOnCall({
+              slackRequest: authResult,
+              req: req,
+              res: res,
+            });
+          }
+
+          // The Page someone form of `/oneuptime page`, submitted.
+          if (
+            SlackPageActions.isPageAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackPageActions.handlePageAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
           }
 
           if (
@@ -1061,27 +1301,20 @@ export default class SlackAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a channel is a side effect, so membership alone is
-           * not enough. Anyone who could create a workspace notification rule
-           * - including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this channel; a Viewer,
+           * Posting into a channel is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
            * or a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const channelId: string =
             typeof req.body?.["channelId"] === "string"
@@ -1091,9 +1324,9 @@ export default class SlackAPI {
           // Slack has no chats or teams: only the channel id is forwarded.
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.Slack,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               channelId: channelId,
             },
           );
@@ -1264,6 +1497,59 @@ export default class SlackAPI {
           }
 
           /*
+           * The OneUptime app's Home tab was opened: it is drawn for whoever
+           * opened it (SlackHome) - their on-call shifts, the open incidents
+           * and alerts, and what they can do. Its Messages tab: whoever
+           * opened it is welcomed there, the first time
+           * (SlackMessagesWelcome). Slack has its 200 first.
+           */
+          if (event["type"] === "app_home_opened") {
+            Response.sendTextResponse(req, res, "ok");
+
+            if (event["tab"] === "messages") {
+              await SlackMessagesWelcome.handleMessagesTabOpened({
+                teamId: (payload["team_id"] as string) || "",
+                slackUserId: (event["user"] as string) || "",
+              });
+
+              return;
+            }
+
+            await SlackHome.handleHomeOpened({
+              teamId: (payload["team_id"] as string) || "",
+              slackUserId: (event["user"] as string) || "",
+              tab: event["tab"] as string | undefined,
+            });
+
+            return;
+          }
+
+          /*
+           * Somebody added the OneUptime app to a channel: it says hello
+           * there, once (SlackWelcome). Channels it creates or joins by
+           * itself get none.
+           */
+          if (event["type"] === "member_joined_channel") {
+            Response.sendTextResponse(req, res, "ok");
+
+            if (req.headers["x-slack-retry-num"]) {
+              return;
+            }
+
+            await SlackWelcome.handleMemberJoinedChannel({
+              teamId:
+                (event["team"] as string) ||
+                (payload["team_id"] as string) ||
+                "",
+              joinedUserId: (event["user"] as string) || "",
+              channelId: (event["channel"] as string) || "",
+              inviterUserId: (event["inviter"] as string) || undefined,
+            });
+
+            return;
+          }
+
+          /*
            * "Pin to channel" is Slack's own pin, not an emoji, and it means the
            * same thing as a 📌 reaction: save the message as a private note.
            * Both share one note per message, so doing both saves it once.
@@ -1354,27 +1640,18 @@ export default class SlackAPI {
           }
 
           /*
-           * Handle "AI Ops" conversational events. There are three classes:
-           *  - app_mention: the bot was @mentioned in a channel/group.
-           *  - message with channel_type "im": a direct message to the bot.
-           *  - message with channel_type "channel" | "group" | "mpim": a plain
-           *    thread reply. We only treat these as follow-ups when they land
-           *    in a thread the bot already participates in (see below), so we
-           *    never answer arbitrary channel chatter.
+           * Messages and @mentions: answered only when addressed to
+           * OneUptime (SlackAiConversations.read) - an @mention, a direct
+           * message, or a reply in a conversation with OneUptime AI by
+           * somebody in it. People talking to each other in a channel, or
+           * in the thread of one of OneUptime's notifications, are never
+           * answered (#4768), and what is not addressed to OneUptime is
+           * dropped before anything is read.
            */
-          const eventChannelType: string | undefined = event["channel_type"] as
-            | string
-            | undefined;
-          const isAppMention: boolean = event["type"] === "app_mention";
-          const isDirectMessage: boolean =
-            event["type"] === "message" && eventChannelType === "im";
-          const isChannelThreadMessage: boolean =
-            event["type"] === "message" &&
-            (eventChannelType === "channel" ||
-              eventChannelType === "group" ||
-              eventChannelType === "mpim");
+          const message: SlackMessage | null =
+            SlackAiConversations.read(payload);
 
-          if (isAppMention || isDirectMessage || isChannelThreadMessage) {
+          if (message) {
             /*
              * Slack retries an event if it does not receive a 200 within 3
              * seconds. Acknowledge immediately and do the (slow) assistant
@@ -1395,283 +1672,42 @@ export default class SlackAPI {
               return;
             }
 
-            /*
-             * CRITICAL loop-guard: never react to messages produced by a bot
-             * (including ourselves) or to message subtypes such as
-             * message_changed / bot_message. Without this the bot would answer
-             * its own replies forever.
-             */
-            const eventSubtype: string | undefined = event["subtype"] as
-              | string
-              | undefined;
-            const eventBotId: string | undefined = event["bot_id"] as
-              | string
-              | undefined;
-            const eventUserId: string | undefined = event["user"] as
-              | string
-              | undefined;
-
-            if (eventBotId || eventSubtype) {
+            if (message.kind === SlackMessageKind.NotAddressed) {
               logger.debug(
-                "Skipping Slack AI Ops event from a bot or with a subtype.",
+                `Slack message not answered: ${message.reason || "not addressed to OneUptime"}.`,
                 getLogAttributesFromRequest(req as any),
               );
               return;
             }
-
-            const eventText: string = (event["text"] as string) || "";
-
-            /*
-             * A mention fires BOTH app_mention and message.* events. Let the
-             * app_mention path own mentions and skip mention-bearing plain
-             * message.* events to avoid answering twice.
-             */
-            const botMentionRegex: RegExp = /<@[A-Z0-9]+>/;
-            if (isChannelThreadMessage && botMentionRegex.test(eventText)) {
-              logger.debug(
-                "Skipping channel message that mentions the bot (handled by app_mention).",
-                getLogAttributesFromRequest(req as any),
-              );
-              return;
-            }
-
-            const slackTeamId: string = payload["team_id"] as string;
-            const slackChannelId: string = event["channel"] as string;
-            const eventTs: string | undefined = event["ts"] as
-              | string
-              | undefined;
-            const eventThreadTs: string | undefined = event["thread_ts"] as
-              | string
-              | undefined;
-            /*
-             * Reply in the same thread. For app_mention the mention may be in a
-             * thread (thread_ts) or a top-level message (ts). For DMs we thread
-             * off the message ts (or its thread if present).
-             */
-            const threadTs: string = eventThreadTs || eventTs || "";
 
             /*
              * Detach the assistant work (fire-and-forget). Everything below is
              * best-effort; the Slack ack has already been sent.
              */
             (async (): Promise<void> => {
-              const context:
-                | {
-                    projectId: ObjectID;
-                    projectAuthToken: string;
-                    botUserId: string | undefined;
-                    userId: ObjectID | undefined;
-                  }
-                | undefined = await SlackAPI.resolveSlackAiOpsContext({
-                slackTeamId: slackTeamId,
-                slackUserId: eventUserId || "",
-              });
-
-              // Workspace not connected to any project — nothing we can do.
-              if (!context) {
-                logger.debug(
-                  "Slack AI Ops event: workspace not connected to any project.",
-                  getLogAttributesFromRequest(req as any),
-                );
-                return;
-              }
-
               /*
-               * Loop-guard: ignore messages authored by our own bot user id.
+               * A plain reply in a thread is for OneUptime only in a
+               * conversation with OneUptime AI that its author is in.
                */
               if (
-                context.botUserId &&
-                eventUserId &&
-                context.botUserId === eventUserId
+                message.kind === SlackMessageKind.ThreadReply &&
+                !(await SlackAiConversations.isIn({
+                  teamId: message.teamId,
+                  channelId: message.channelId,
+                  threadTs: SlackAiConversations.getThreadTs(message),
+                  userId: message.userId,
+                }))
               ) {
                 logger.debug(
-                  "Skipping Slack AI Ops event authored by our bot user.",
+                  "Slack message not answered: a reply in a thread that is not a conversation of its author's with OneUptime AI.",
                   getLogAttributesFromRequest(req as any),
                 );
                 return;
               }
 
-              /*
-               * Extract the question text. Strip mention tokens (for
-               * app_mention the leading <@BOTID>) and trim.
-               */
-              const questionText: string =
-                SlackAPI.cleanSlackMessageText(eventText);
-
-              if (!questionText) {
-                logger.debug(
-                  "Slack AI Ops event has no question text. Skipping.",
-                  getLogAttributesFromRequest(req as any),
-                );
-                return;
-              }
-
-              /*
-               * Build conversation history so follow-ups are context-aware.
-               *  - app_mention: history only when inside a thread.
-               *  - channel/group/mpim: MUST be inside a thread AND the bot must
-               *    already participate in that thread (it started/answered it).
-               *    Otherwise we ignore the message entirely.
-               *  - im: history from recent DM messages.
-               */
-              let history:
-                | Array<{ role: "user" | "assistant"; content: string }>
-                | undefined = undefined;
-
-              if (isChannelThreadMessage) {
-                if (!eventThreadTs) {
-                  logger.debug(
-                    "Skipping channel message not in a thread.",
-                    getLogAttributesFromRequest(req as any),
-                  );
-                  return;
-                }
-
-                const threadReplies: Array<{
-                  user?: string | undefined;
-                  bot_id?: string | undefined;
-                  text?: string | undefined;
-                  ts?: string | undefined;
-                  subtype?: string | undefined;
-                }> = await SlackUtil.getThreadReplies({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: eventThreadTs,
-                });
-
-                const botParticipatesInThread: boolean = threadReplies.some(
-                  (reply: {
-                    user?: string | undefined;
-                    bot_id?: string | undefined;
-                  }) => {
-                    return Boolean(
-                      reply.bot_id ||
-                        (context.botUserId && reply.user === context.botUserId),
-                    );
-                  },
-                );
-
-                if (!botParticipatesInThread) {
-                  logger.debug(
-                    "Skipping channel thread the bot does not participate in.",
-                    getLogAttributesFromRequest(req as any),
-                  );
-                  return;
-                }
-
-                history = SlackAPI.buildHistoryFromSlackMessages({
-                  messages: threadReplies,
-                  botUserId: context.botUserId,
-                  currentMessageTs: eventTs,
-                });
-              } else if (isAppMention && eventThreadTs) {
-                const threadReplies: Array<{
-                  user?: string | undefined;
-                  bot_id?: string | undefined;
-                  text?: string | undefined;
-                  ts?: string | undefined;
-                  subtype?: string | undefined;
-                }> = await SlackUtil.getThreadReplies({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: eventThreadTs,
-                });
-
-                history = SlackAPI.buildHistoryFromSlackMessages({
-                  messages: threadReplies,
-                  botUserId: context.botUserId,
-                  currentMessageTs: eventTs,
-                });
-              } else if (isDirectMessage) {
-                const dmMessages: Array<{
-                  messageId: string;
-                  text: string;
-                  userId?: string;
-                  username?: string;
-                  timestamp: Date;
-                  isBot: boolean;
-                }> = await SlackUtil.getChannelMessages({
-                  channelId: slackChannelId,
-                  authToken: context.projectAuthToken,
-                  limit: 30,
-                });
-
-                history = SlackAPI.buildHistoryFromSlackMessages({
-                  messages: dmMessages.map(
-                    (message: {
-                      messageId: string;
-                      text: string;
-                      userId?: string;
-                      isBot: boolean;
-                    }) => {
-                      return {
-                        user: message.userId,
-                        bot_id: message.isBot ? "bot" : undefined,
-                        text: message.text,
-                        ts: message.messageId,
-                      };
-                    },
-                  ),
-                  botUserId: context.botUserId,
-                  currentMessageTs: eventTs,
-                });
-              }
-
-              // If the user's Slack account is not connected to OneUptime.
-              if (!context.userId) {
-                await SlackUtil.sendMessageToThread({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: threadTs,
-                  text: SlackAPI.getSlackAccountNotConnectedMessage(),
-                });
-                return;
-              }
-
-              /*
-               * The project's AI kill switch, read before we acknowledge —
-               * so a project with AI off gets one clear refusal instead of
-               * an "on it" that is never followed by anything.
-               */
-              if (!(await AIService.isProjectAIEnabled(context.projectId))) {
-                await SlackUtil.sendMessageToThread({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: threadTs,
-                  text: SlackAPI.getAiDisabledMessage(),
-                });
-                return;
-              }
-
-              // Immediate acknowledgement so the user sees we are working.
-              try {
-                await SlackUtil.sendMessageToThread({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: threadTs,
-                  text: "Looking into it… :hourglass_flowing_sand:",
-                });
-              } catch (err) {
-                logger.error(
-                  "Error sending Slack AI Ops acknowledgement:",
-                  getLogAttributesFromRequest(req as any),
-                );
-                logger.error(err, getLogAttributesFromRequest(req as any));
-              }
-
-              const answerMarkdown: string =
-                await SlackAPI.getAiOpsAnswerMarkdown({
-                  projectId: context.projectId,
-                  userId: context.userId,
-                  question: questionText,
-                  history: history,
-                });
-
-              await SlackUtil.sendMessageToThread({
-                authToken: context.projectAuthToken,
-                channelId: slackChannelId,
-                threadTs: threadTs,
-                text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+              await SlackAPI.answerMessage({
+                req: req,
+                message: message,
               });
             })().catch((err: Error) => {
               logger.error(
@@ -1691,11 +1727,11 @@ export default class SlackAPI {
     );
 
     /*
-     * Slash command endpoint: `/oneuptime ask <question>` (or bare
-     * `/oneuptime <question>`). Slack posts an application/x-www-form-urlencoded
-     * body and expects a 200 within 3 seconds. We acknowledge instantly with an
-     * ephemeral message, then run the assistant detached and POST the final
-     * answer back to the command's response_url.
+     * The /oneuptime command and every word after it - incident,
+     * maintenance, oncall, page, ask, help (SlackCommandActions). Slack posts an
+     * application/x-www-form-urlencoded body and expects a 200 within three
+     * seconds. A question for OneUptime AI is acknowledged at once and
+     * answered at the command's response_url (answerQuestionCommand).
      */
     router.post(
       "/slack/command",
@@ -1706,127 +1742,17 @@ export default class SlackAPI {
           getLogAttributesFromRequest(req as any),
         );
 
-        const body: JSONObject = req.body;
-
-        const slackTeamId: string = (body["team_id"] as string) || "";
-        const slackUserId: string = (body["user_id"] as string) || "";
-        const responseUrl: string = (body["response_url"] as string) || "";
-
-        /*
-         * Slack sends everything after the command word in `text`. We also
-         * accept a leading "ask" keyword (e.g. `/oneuptime ask <question>`).
-         */
-        const askPrefixRegex: RegExp = /^ask\s+/i;
-        let questionText: string = ((body["text"] as string) || "").trim();
-        if (askPrefixRegex.test(questionText)) {
-          questionText = questionText.replace(askPrefixRegex, "").trim();
-        }
-
-        // Empty command -> ephemeral usage help.
-        if (!questionText) {
-          return Response.sendJsonObjectResponse(req, res, {
-            response_type: "ephemeral",
-            text: "Usage: `/oneuptime ask which monitors are down?` — ask OneUptime AI about your logs, traces, metrics, incidents and monitors.",
-          });
-        }
-
-        /*
-         * Acknowledge instantly so Slack does not time out. The real answer is
-         * delivered to response_url below.
-         */
-        Response.sendJsonObjectResponse(req, res, {
-          response_type: "ephemeral",
-          text: "On it… :hourglass_flowing_sand:",
+        return await SlackCommandActions.handleCommand({
+          req: req,
+          res: res,
+          askQuestion: async (question: string): Promise<void> => {
+            return await SlackAPI.answerQuestionCommand({
+              req: req,
+              res: res,
+              question: question,
+            });
+          },
         });
-
-        // Detached work (fire-and-forget). Ack has already been sent.
-        (async (): Promise<void> => {
-          const context:
-            | {
-                projectId: ObjectID;
-                projectAuthToken: string;
-                botUserId: string | undefined;
-                userId: ObjectID | undefined;
-              }
-            | undefined = await SlackAPI.resolveSlackAiOpsContext({
-            slackTeamId: slackTeamId,
-            slackUserId: slackUserId,
-          });
-
-          if (!context) {
-            // Workspace not connected — tell the user ephemerally.
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: "This Slack workspace is not connected to any OneUptime project.",
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          if (!context.userId) {
-            // User's Slack account is not connected to OneUptime.
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: SlackAPI.getSlackAccountNotConnectedMessage(),
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          /*
-           * The project's AI kill switch. Ephemeral, like every other refusal
-           * on this slash-command path — the person who typed the command is
-           * the only one who needs to know the switch is off.
-           */
-          if (!(await AIService.isProjectAIEnabled(context.projectId))) {
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: SlackAPI.getAiDisabledMessage(),
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
-            projectId: context.projectId,
-            userId: context.userId,
-            question: questionText,
-          });
-
-          await API.post({
-            url: URL.fromString(responseUrl),
-            data: {
-              response_type: "in_channel",
-              text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
-            },
-            headers: {
-              ["Content-Type"]: "application/json",
-            },
-          });
-        })().catch((err: Error) => {
-          logger.error(
-            "Error handling Slack slash command:",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        });
-
-        return;
       },
     );
 
@@ -1843,6 +1769,525 @@ export default class SlackAPI {
     );
 
     return router;
+  }
+
+  /*
+   * `/oneuptime ask <question>`, or `/oneuptime <question>`: acknowledged at
+   * once with a message only the asker sees, then answered by the
+   * assistant, detached, at the command's response_url - in the channel.
+   */
+  private static async answerQuestionCommand(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    question: string;
+  }): Promise<void> {
+    const { req, res } = data;
+    const body: JSONObject = req.body;
+
+    const slackTeamId: string = (body["team_id"] as string) || "";
+    const slackUserId: string = (body["user_id"] as string) || "";
+    const responseUrl: string = (body["response_url"] as string) || "";
+    const questionText: string = data.question;
+
+    // The command as this workspace runs it, for "run /oneuptime help".
+    const helpCommand: string = `${WorkspaceCommands.getSlackCommand(
+      body["command"] as string | undefined,
+    )} help`;
+
+    /*
+     * Acknowledge instantly so Slack does not time out. The real answer is
+     * delivered to response_url below.
+     */
+    Response.sendJsonObjectResponse(req, res, {
+      response_type: "ephemeral",
+      text: "On it… :hourglass_flowing_sand:",
+    });
+
+    // Detached work (fire-and-forget). Ack has already been sent.
+    (async (): Promise<void> => {
+      const context:
+        | {
+            projectId: ObjectID;
+            projectAuthToken: string;
+            botUserId: string | undefined;
+            userId: ObjectID | undefined;
+          }
+        | undefined = await SlackAPI.resolveSlackAiOpsContext({
+        slackTeamId: slackTeamId,
+        slackUserId: slackUserId,
+      });
+
+      if (!context) {
+        // Workspace not connected — tell the user ephemerally.
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackUtil.getNotificationText(
+              SlackCommandActions.getNotConnectedAnswer().text,
+            ),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      if (!context.userId) {
+        /*
+         * A Slack account not connected to OneUptime: asked to connect
+         * it where the command was run, with the Connect button, and to
+         * ask again once it is.
+         */
+        await SlackConnectPrompt.prompt({
+          projectId: context.projectId,
+          slackTeamId: slackTeamId,
+          place: {
+            projectAuthToken: context.projectAuthToken,
+            slackUserId: slackUserId,
+            slackChannelId: (body["channel_id"] as string) || undefined,
+            responseUrl: responseUrl,
+          },
+          description: SlackConnectPrompt.describeQuestion(),
+        });
+        return;
+      }
+
+      /*
+       * The project's AI kill switch. Ephemeral, like every other refusal
+       * on this slash-command path — the person who typed the command is
+       * the only one who needs to know the switch is off. /oneuptime does
+       * more than ask AI, so the refusal says where the rest is.
+       */
+      if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackAPI.withHelpPointer(
+              SlackAPI.getAiDisabledMessage(),
+              helpCommand,
+            ),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      // The project's own daily AI limits: refused the same way.
+      const dailyLimitRefusal: string | null =
+        await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+      if (dailyLimitRefusal) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackAPI.withHelpPointer(dailyLimitRefusal, helpCommand),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
+        projectId: context.projectId,
+        userId: context.userId,
+        question: questionText,
+      });
+
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "in_channel",
+          text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+    })().catch((err: Error) => {
+      logger.error(
+        "Error handling Slack slash command:",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
+
+  /*
+   * Draws the Home tab of somebody who has just connected their Slack
+   * account, detached: the sign-in's page does not wait for Slack.
+   */
+  public static refreshHomeAfterConnect(data: {
+    projectId: ObjectID;
+    slackUserId: string;
+  }): void {
+    SlackHome.refreshAfterConnect(data).catch((err: Error) => {
+      logger.debug("Could not draw the Slack Home after a connection.");
+      logger.debug(err);
+    });
+  }
+
+  /*
+   * A refusal of a question, and where the commands that need no AI are -
+   * "... Run `/oneuptime help` to see the other commands." - as Slack text.
+   */
+  public static withHelpPointer(refusal: string, helpCommand: string): string {
+    return SlackUtil.convertMarkdownToSlackRichText(
+      mdText`${refusal} Run ${FeedMarkdown.code(
+        helpCommand,
+      )} to see the other commands.`.toString(),
+    );
+  }
+
+  /*
+   * A message addressed to OneUptime (SlackAiConversations.read): an
+   * @mention, a direct message, or a reply in a conversation with OneUptime
+   * AI by somebody in it. Answered by OneUptime AI in the thread - the one
+   * it is in, or the one it starts - except a direct message that is only
+   * "help", answered with the commands (SlackDirectMessageHelp). Detached
+   * from the request: Slack has its 200 already.
+   */
+  private static async answerMessage(data: {
+    req: ExpressRequest;
+    message: SlackMessage;
+  }): Promise<void> {
+    const { req, message } = data;
+
+    const context:
+      | {
+          projectId: ObjectID;
+          projectAuthToken: string;
+          botUserId: string | undefined;
+          userId: ObjectID | undefined;
+        }
+      | undefined = await SlackAPI.resolveSlackAiOpsContext({
+      slackTeamId: message.teamId,
+      slackUserId: message.userId,
+    });
+
+    // Workspace not connected to any project — nothing we can do.
+    if (!context) {
+      logger.debug(
+        "Slack AI Ops event: workspace not connected to any project.",
+        getLogAttributesFromRequest(req as any),
+      );
+      return;
+    }
+
+    // Loop-guard: ignore messages authored by our own bot user id.
+    if (context.botUserId && context.botUserId === message.userId) {
+      logger.debug(
+        "Skipping Slack AI Ops event authored by our bot user.",
+        getLogAttributesFromRequest(req as any),
+      );
+      return;
+    }
+
+    /*
+     * Extract the question text. Strip mention tokens (for app_mention the
+     * leading <@BOTID>) and trim.
+     */
+    const questionText: string = SlackAPI.cleanSlackMessageText(message.text);
+
+    if (!questionText) {
+      logger.debug(
+        "Slack AI Ops event has no question text. Skipping.",
+        getLogAttributesFromRequest(req as any),
+      );
+      return;
+    }
+
+    /*
+     * "help" in the app's direct messages: the commands, for anybody -
+     * connected or not, with AI on or off (SlackDirectMessageHelp).
+     */
+    if (
+      message.kind === SlackMessageKind.DirectMessage &&
+      SlackDirectMessageHelp.isHelp(questionText)
+    ) {
+      await SlackDirectMessageHelp.answer({
+        projectAuthToken: context.projectAuthToken,
+        message: message,
+      });
+      return;
+    }
+
+    const slackChannelId: string = message.channelId;
+    // The thread the answer goes in: the one it is in, or the one it starts.
+    const threadTs: string = SlackAiConversations.getThreadTs(message);
+
+    /*
+     * A question asked in a channel, not in a thread, starts a conversation
+     * with OneUptime AI in the thread under it, which its asker may reply in
+     * without mentioning OneUptime again. An @mention in that thread puts
+     * its author in it too, and each follow-up keeps it open. The thread of
+     * a notification is never one: there, OneUptime is mentioned each time.
+     */
+    const asker: SlackThreadPerson = {
+      teamId: message.teamId,
+      channelId: slackChannelId,
+      threadTs: threadTs,
+      userId: message.userId,
+    };
+
+    if (
+      message.kind === SlackMessageKind.ThreadReply ||
+      (message.kind === SlackMessageKind.Mention &&
+        (!message.threadTs ||
+          (await SlackAiConversations.isConversation(asker))))
+    ) {
+      await SlackAiConversations.remember(asker);
+    }
+
+    /*
+     * A Slack account not connected to OneUptime: asked to connect it, with
+     * the Connect button, and to ask again once they have - where they see
+     * it (SlackAiConversations.getConnectPromptPlace), and once in the
+     * conversation, not on each message they write there while that button
+     * works (SlackConnectPrompt.promptOnce).
+     */
+    if (!context.userId) {
+      const delivery: SlackAnswerDelivery | null =
+        await SlackConnectPrompt.promptOnce({
+          projectId: context.projectId,
+          slackTeamId: message.teamId,
+          place: SlackAiConversations.getConnectPromptPlace({
+            message: message,
+            projectAuthToken: context.projectAuthToken,
+          }),
+          description: SlackConnectPrompt.describeQuestion(),
+          conversation: SlackAiConversations.getConversation(message),
+        });
+
+      if (delivery === null) {
+        logger.debug(
+          "Slack message not answered: its author was asked to connect their Slack account in this conversation already.",
+          getLogAttributesFromRequest(req as any),
+        );
+      }
+
+      return;
+    }
+
+    /*
+     * The project's AI kill switch, read before we acknowledge — so a
+     * project with AI off gets one clear refusal instead of an "on it" that
+     * is never followed by anything.
+     */
+    if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackAPI.getAiDisabledMessage(),
+      });
+      return;
+    }
+
+    /*
+     * The project's own daily AI limits, read before we acknowledge for the
+     * same reason: a question refused by a limit would leave "Looking into
+     * it…" unanswered.
+     */
+    const dailyLimitRefusal: string | null =
+      await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+    if (dailyLimitRefusal) {
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: dailyLimitRefusal,
+      });
+      return;
+    }
+
+    // What was said before in the thread or the direct message.
+    const history:
+      | Array<{ role: "user" | "assistant"; content: string }>
+      | undefined = await SlackAPI.getConversationHistory({
+      req: req,
+      message: message,
+      projectAuthToken: context.projectAuthToken,
+      botUserId: context.botUserId,
+    });
+
+    /*
+     * Immediate acknowledgement so the user sees we are working. It stands
+     * in for the answer only: once the answer is posted it is removed, so a
+     * conversation does not keep a "Looking into it…" above every answer.
+     */
+    let placeholderTs: string | undefined = undefined;
+
+    try {
+      placeholderTs = await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackAPI.AI_PLACEHOLDER_TEXT,
+      });
+    } catch (err) {
+      logger.error(
+        "Error sending Slack AI Ops acknowledgement:",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    }
+
+    try {
+      const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
+        projectId: context.projectId,
+        userId: context.userId,
+        question: questionText,
+        history: history,
+      });
+
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+      });
+    } catch (err) {
+      /*
+       * The question is answered either way: a "Looking into it…" left
+       * on its own reads as an answer still coming.
+       */
+      logger.error(
+        "Could not answer a question to OneUptime AI in Slack:",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackAPI.AI_FAILED_TEXT,
+      }).catch((sendError: Error) => {
+        logger.error(sendError, getLogAttributesFromRequest(req as any));
+      });
+    } finally {
+      if (placeholderTs) {
+        await SlackUtil.deleteMessageBestEffort({
+          authToken: context.projectAuthToken,
+          channelId: slackChannelId,
+          ts: placeholderTs,
+        });
+      }
+    }
+  }
+
+  // What stands in for an answer from OneUptime AI while it is written.
+  public static readonly AI_PLACEHOLDER_TEXT: string =
+    "Looking into it… :hourglass_flowing_sand:";
+
+  // What a question whose answer could not be written is told.
+  public static readonly AI_FAILED_TEXT: string =
+    "Sorry, I ran into a problem answering that. Please try again in a minute.";
+
+  /*
+   * What was said before a question, so a follow-up is answered in context:
+   * the thread it is in, or the direct message's recent messages; nothing
+   * for a question at the top of a channel. An @mention in a conversation
+   * with OneUptime AI started before OneUptime remembered them - its first
+   * message a person's question to OneUptime - remembers it, and puts its
+   * author in it (SlackAiConversations.remember). Slack not answering is no
+   * reason to leave the question unanswered: it is answered without them.
+   */
+  private static async getConversationHistory(data: {
+    req: ExpressRequest;
+    message: SlackMessage;
+    projectAuthToken: string;
+    botUserId: string | undefined;
+  }): Promise<
+    Array<{ role: "user" | "assistant"; content: string }> | undefined
+  > {
+    const { message } = data;
+
+    try {
+      if (message.kind === SlackMessageKind.DirectMessage) {
+        const dmMessages: Array<{
+          messageId: string;
+          text: string;
+          userId?: string;
+          username?: string;
+          timestamp: Date;
+          isBot: boolean;
+        }> = await SlackUtil.getChannelMessages({
+          channelId: message.channelId,
+          authToken: data.projectAuthToken,
+          limit: 30,
+        });
+
+        return SlackAPI.buildHistoryFromSlackMessages({
+          messages: dmMessages.map(
+            (dmMessage: {
+              messageId: string;
+              text: string;
+              userId?: string;
+              isBot: boolean;
+            }) => {
+              return {
+                user: dmMessage.userId,
+                bot_id: dmMessage.isBot ? "bot" : undefined,
+                text: dmMessage.text,
+                ts: dmMessage.messageId,
+              };
+            },
+          ),
+          botUserId: data.botUserId,
+          currentMessageTs: message.ts,
+        });
+      }
+
+      if (!message.threadTs) {
+        return undefined;
+      }
+
+      const threadMessages: Array<SlackThreadMessage> =
+        await SlackUtil.getThreadReplies({
+          authToken: data.projectAuthToken,
+          channelId: message.channelId,
+          threadTs: message.threadTs,
+        });
+
+      if (
+        message.kind === SlackMessageKind.Mention &&
+        SlackAiConversations.isStartedByAQuestion({
+          threadTs: message.threadTs,
+          messages: threadMessages,
+          botUserId: data.botUserId,
+        })
+      ) {
+        await SlackAiConversations.remember({
+          teamId: message.teamId,
+          channelId: message.channelId,
+          threadTs: message.threadTs,
+          userId: message.userId,
+        });
+      }
+
+      return SlackAPI.buildHistoryFromSlackMessages({
+        messages: threadMessages,
+        botUserId: data.botUserId,
+        currentMessageTs: message.ts,
+      });
+    } catch (err) {
+      logger.debug(
+        "Could not read what was said before a Slack question; answering it without that.",
+        getLogAttributesFromRequest(data.req as any),
+      );
+      logger.debug(err, getLogAttributesFromRequest(data.req as any));
+      return undefined;
+    }
   }
 
   /*
@@ -1896,6 +2341,7 @@ export default class SlackAPI {
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
           workspaceUserId: slackUserId,
+          workspaceType: WorkspaceType.Slack,
           projectId: projectId,
         },
         select: {
@@ -1961,31 +2407,36 @@ export default class SlackAPI {
       feature: "Slack ChatOps",
     });
 
-    let answerMarkdown: string = result.contentInMarkdown || "";
+    /*
+     * The answer is written from telemetry, which can carry text meant to
+     * steer the model, and it is posted to a channel: it stays the Markdown
+     * the model wrote, with no mention that notifies anybody, no image, no
+     * link whose words hide where it goes and no HTML tag in it
+     * (FeedMarkdown.aiWritten). A citation's label is text.
+     */
+    let answerMarkdown: MarkdownText = FeedMarkdown.aiWritten(
+      result.contentInMarkdown || "",
+    );
 
     // Append a compact "Sources" footer from the server-minted citations.
     if (result.citations && result.citations.length > 0) {
-      const sourceLines: Array<string> = result.citations.map(
-        (citation: AIChatCitation) => {
-          return `• ${citation.label} (${citation.rowCount} rows)`;
-        },
-      );
+      const sourceLines: Array<MarkdownText> =
+        WorkspaceAiAnswerSources.getLines(result.citations);
 
-      answerMarkdown =
-        answerMarkdown + "\n\n*Sources*\n" + sourceLines.join("\n");
+      answerMarkdown = mdText`${answerMarkdown}\n\n*Sources*\n${FeedMarkdown.join(sourceLines, "\n")}`;
     }
 
-    return answerMarkdown;
+    return answerMarkdown.toString();
   }
 
   /*
    * Removes Slack `<@USER>` / `<@USER|name>` mention tokens and trims the text.
    * Used both to extract the question and to clean history turns.
    */
-  private static cleanSlackMessageText(text: string | undefined): string {
+  public static cleanSlackMessageText(text: string | undefined): string {
     return (text || "")
-      .replace(/<@[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
+      .replace(SLACK_USER_MENTION, " ")
+      .replace(WHITESPACE_RUN, " ")
       .trim();
   }
 
@@ -2068,14 +2519,6 @@ export default class SlackAPI {
   }
 
   /*
-   * Message shown to a Slack user whose Slack account is not connected to
-   * OneUptime. Mirrors the copy used in SlackAuthAction.isAuthorized.
-   */
-  private static getSlackAccountNotConnectedMessage(): string {
-    return "Unfortunately your Slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account.";
-  }
-
-  /*
    * Both AI Ops entry points above run their real work in a DETACHED
    * fire-and-forget IIFE whose .catch only logs. An exception thrown out of
    * the assistant — including the kill-switch refusal executeWithLogging
@@ -2086,5 +2529,20 @@ export default class SlackAPI {
    */
   private static getAiDisabledMessage(): string {
     return AI_DISABLED_MESSAGE;
+  }
+
+  /*
+   * The same for the project's own daily AI limits (Project Settings → AI
+   * Features → More settings): the sentence that says which limit was
+   * reached and when AI starts again, or null while there is room. Read
+   * before the acknowledgement, like the AI switch.
+   */
+  private static async getDailyLimitRefusal(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const reached: ProjectAiDailyLimitStatus | null =
+      await AIService.getReachedProjectDailyLimit({ projectId });
+
+    return reached ? getProjectDailyLimitMessage(reached) : null;
   }
 }

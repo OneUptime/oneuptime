@@ -39,6 +39,16 @@ enum EntityType {
   ProxmoxGuest = "proxmox.guest",
   CephCluster = "ceph.cluster",
   /*
+   * Storage arrays (Pure Storage FlashArray / FlashBlade today) are
+   * OneUptime-defined too. The identity attribute `storage.array.name` is
+   * not emitted by the array: the OneUptime Storage Array Agent's collector
+   * config stamps it (a `resource` processor), and it doubles as the typed
+   * StorageArray row's project-unique `name`. Volumes, hosts and the other
+   * objects inside an array are inventory rows (StorageArrayResource), not
+   * entities.
+   */
+  StorageArray = "storage.array",
+  /*
    * VMware vSphere types are OneUptime-defined (no upstream semconv exists)
    * and follow the same dotted naming convention. The root identity
    * attribute `vmware.vcenter.name` is NOT emitted by vSphere: it is stamped
@@ -109,6 +119,22 @@ enum EntityType {
    * dependency cron and keyed by engine + namespace.
    */
   DatabaseServer = "database.server",
+  /*
+   * A message QUEUE — a queue, topic, subscription or event hub (a
+   * "destination" in OpenTelemetry messaging terms) — the identity the
+   * Queues product (the MessageQueue table) scopes telemetry by.
+   * OneUptime-defined and MEMBERSHIP-ONLY, like DatabaseServer: ingest
+   * appends its key (`EntityKey.keyForMessageQueue`: `messaging.system` +
+   * the destination, plus the Azure namespace for Service Bus and Event
+   * Hubs) to the `entityKeys` of every messaging span and broker or
+   * messaging-client datapoint that resolves to a destination
+   * (Types/MessageQueue/MessagingTelemetryResolver). No resolver ever emits
+   * it, it is never promoted to an InventoryItem row, and so it has no
+   * prune TTL. Distinct from `RemoteService`, the node a messaging span's
+   * BROKER becomes on the service map (keyed by `messaging.system` +
+   * `server.address`, never by destination).
+   */
+  MessageQueue = "message.queue",
   /*
    * Inventory-mirrored types. Unlike everything above, these are never
    * derived from an OTLP resource — the estate they describe is collected

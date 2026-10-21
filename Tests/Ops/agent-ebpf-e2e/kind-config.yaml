@@ -1,0 +1,9 @@
+# Two nodes: `apps` (the worker) runs the instrumented workloads and their
+# dependencies, so one OBI pod sees a whole request path; `client` (the
+# control plane) runs the sink and the load generator. run.sh labels them and
+# mounts bpffs on both (see there).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker

@@ -12,12 +12,11 @@ import Express, {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Permission, { UserPermission } from "../../Types/Permission";
+import { PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import Project from "../../Models/DatabaseModels/Project";
-import CommonAPI from "./CommonAPI";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class BillingAPI {
@@ -135,10 +134,11 @@ export default class BillingAPI {
           }
 
           // Members need the feature gate, but never card or invoice details.
-          const permissions: Array<UserPermission> =
-            await this.getPermissionsForTenant(req);
           if (
-            permissions.length === 0 &&
+            !CallerPermission.isProjectMember(
+              req as OneUptimeRequest,
+              projectId,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
@@ -168,23 +168,16 @@ export default class BillingAPI {
             );
           }
 
-          const userPermissions: Array<UserPermission> = (
-            await this.getPermissionsForTenant(req)
-          ).filter((permission: UserPermission) => {
-            return (
-              permission.permission.toString() ===
-                Permission.ProjectOwner.toString() ||
-              permission.permission.toString() ===
-                Permission.ManageProjectBilling.toString()
-            );
-          });
-
+          // Reading it is billing: the billing roles read it too.
           if (
-            userPermissions.length === 0 &&
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
-              `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to view billing balance.`,
+              "You need Project Owner, Manage Billing or a billing role to view the billing balance.",
             );
           }
 
@@ -219,28 +212,6 @@ export default class BillingAPI {
         }
       },
     );
-  }
-
-  public async getPermissionsForTenant(
-    req: ExpressRequest,
-  ): Promise<Array<UserPermission>> {
-    const permissions: Array<UserPermission> = [];
-
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-    if (
-      props &&
-      props.userTenantAccessPermission &&
-      props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-    ) {
-      return (
-        props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-          ?.permissions || []
-      );
-    }
-
-    return permissions;
   }
 
   public getTenantId(req: ExpressRequest): ObjectID | null {

@@ -9,6 +9,7 @@ import {
   openAndroidDoNotDisturbAccessSettings,
   requestCriticalAlertPermission,
 } from "./criticalAlerts";
+import { CRITICAL_CHANNEL } from "./channels";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -35,6 +36,19 @@ function setIsDevice(isDevice: boolean): void {
   (Device as unknown as { isDevice: boolean }).isDevice = isDevice;
 }
 
+/*
+ * What expo-notifications reports on iOS. allowsCriticalAlerts mirrors
+ * UNNotificationSettings.criticalAlertSetting: true for enabled, false for
+ * disabled, and null for notSupported - the value of a build without Apple's
+ * entitlement, and of an entitled build that has not asked yet.
+ */
+function iosPermissions(
+  status: "granted" | "denied" | "undetermined",
+  allowsCriticalAlerts: boolean | null | undefined,
+): never {
+  return { status: status, ios: { allowsCriticalAlerts } } as never;
+}
+
 describe("getCriticalAlertStatus on iOS", () => {
   beforeEach(() => {
     setPlatform("ios");
@@ -57,9 +71,9 @@ describe("getCriticalAlertStatus on iOS", () => {
 
   test("is denied when iOS grants notifications but NOT critical alerts", async () => {
     /*
-     * The default state for any build without Apple's entitlement: ordinary
-     * notification permission is granted, so a naive check passes, while
-     * critical alerts are not.
+     * The responder said no to the critical alert prompt, or switched it off
+     * later: ordinary notification permission is granted, so a naive check
+     * passes, while critical alerts are not.
      */
     jest.spyOn(Notifications, "getPermissionsAsync").mockResolvedValue({
       status: "granted",
@@ -92,6 +106,18 @@ describe("getCriticalAlertStatus on iOS", () => {
     expect(status.reason).toContain("Settings");
   });
 
+  test("a switched-off Critical Alerts switch sends the responder back to it", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).toContain(
+      "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
+    );
+  });
+
   test("a thrown permission check is reported as denied, not as granted", async () => {
     jest
       .spyOn(Notifications, "getPermissionsAsync")
@@ -102,8 +128,42 @@ describe("getCriticalAlertStatus on iOS", () => {
     expect(status.availability).toBe(CriticalAlertAvailability.Denied);
   });
 
+  /*
+   * Denied is what the screen shows, but nothing may act on it: the server
+   * is told what the phone does only from a read that worked
+   * (criticalAlertsReport.ts), or one failed read would turn real pages
+   * ordinary until the app is next opened.
+   */
+  test("a thrown permission check is marked uncertain", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect((await getCriticalAlertStatus()).isUncertain).toBe(true);
+  });
+
+  test.each([
+    ["allowed", iosPermissions("granted", true)],
+    ["switched off", iosPermissions("granted", false)],
+    ["never asked", iosPermissions("granted", null)],
+    ["with notifications off", iosPermissions("denied", null)],
+  ])(
+    "an answer from iOS (%s) is certain",
+    async (_name: string, permissions: never) => {
+      jest
+        .spyOn(Notifications, "getPermissionsAsync")
+        .mockResolvedValue(permissions);
+
+      expect((await getCriticalAlertStatus()).isUncertain).toBeFalsy();
+    },
+  );
+
   test("does not consult Android notification channels", async () => {
-    const channelSpy: jest.SpyInstance = jest.spyOn(
+    const writeSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "setNotificationChannelAsync",
+    );
+    const readSpy: jest.SpyInstance = jest.spyOn(
       Notifications,
       "getNotificationChannelAsync",
     );
@@ -114,7 +174,155 @@ describe("getCriticalAlertStatus on iOS", () => {
 
     await getCriticalAlertStatus();
 
-    expect(channelSpy).not.toHaveBeenCalled();
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("getCriticalAlertStatus on iOS when Settings has no Critical Alerts switch", () => {
+  /*
+   * iOS adds a Critical Alerts switch to Settings > Notifications only after a
+   * build carrying Apple's entitlement has asked for it. Until then it reports
+   * the setting as not supported, which expo-notifications passes on as null.
+   * Every App Store build up to 1.4.0 lacked the entitlement, so for them the
+   * switch could never appear - and telling a responder to go and turn it on
+   * sent them looking for something that is not there.
+   */
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("is still denied rather than unsupported, so the setting stays on offer", async () => {
+    /*
+     * An entitled build that has not asked yet reports exactly this, and the
+     * only way to get the prompt is to turn the setting on. Calling it
+     * unsupported would hide the switch that asks.
+     */
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("does not send the responder to a Critical Alerts switch iOS is not showing", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).not.toContain("Allow Critical Alerts");
+  });
+
+  test("says why the switch is missing and that updating the app is the fix", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).toContain("no Critical Alerts switch");
+    expect(status.reason).toContain("Update OneUptime On-Call");
+    expect(status.reason).toContain("App Store");
+  });
+
+  test("reads an absent answer the same way as null", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", undefined));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
+  });
+
+  test("reads a response with no iOS block at all the same way", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue({ status: "granted" } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
+  });
+
+  test("gives a different instruction from a switch that exists and is off", async () => {
+    const getSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const missingSwitch: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+
+    const switchedOff: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(missingSwitch.reason).not.toBe(switchedOff.reason);
+  });
+
+  test("is denied before notification permission has been asked for at all", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("undetermined", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+});
+
+describe("getCriticalAlertStatus on iOS when notifications are turned off", () => {
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("names Allow Notifications, the switch the responder needs first", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Notifications are turned off");
+    expect(status.reason).toContain("Allow Notifications");
+    expect(status.reason).toContain("iOS Settings > Notifications");
+  });
+
+  test("does not blame the app version when notifications are simply off", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).not.toContain("App Store");
+  });
+
+  test("outranks a Critical Alerts switch that is also off", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Allow Notifications");
   });
 });
 
@@ -130,7 +338,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("is granted when the critical channel really carries the DND bypass", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ id: "oncall_critical", bypassDnd: true } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -145,7 +353,7 @@ describe("getCriticalAlertStatus on Android", () => {
      * not granted Do Not Disturb access. Nothing errored.
      */
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ id: "oncall_critical", bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -155,7 +363,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("is denied when the channel does not exist at all", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue(null as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -165,7 +373,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("the denial names Do Not Disturb access, which is where the toggle lives", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -173,19 +381,147 @@ describe("getCriticalAlertStatus on Android", () => {
     expect(status.reason).toContain("Do Not Disturb access");
   });
 
-  test("reads the channel the server actually targets", async () => {
+  test("writes and reads back the channel the server actually targets", async () => {
     const channelSpy: jest.SpyInstance = jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     await getCriticalAlertStatus();
 
-    expect(channelSpy).toHaveBeenCalledWith("oncall_critical");
+    expect(channelSpy).toHaveBeenCalledWith(
+      "oncall_critical",
+      CRITICAL_CHANNEL,
+    );
   });
 
-  test("a thrown channel read is reported as denied", async () => {
+  test("a channel written while access is granted is reported as granted, without a separate read", async () => {
+    /*
+     * The write's answer is Android's answer: it returns the channel as
+     * Android stored it. Reading again would only add a second call that can
+     * fail.
+     */
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+    const readSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "getNotificationChannelAsync",
+    );
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failed write falls back to what Android stored: a channel that already bypasses stays granted", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
     jest
       .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+  });
+
+  test("a failed write and a stored channel without the bypass is denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a failed write reads back the critical channel, not another one", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    const readSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    await getCriticalAlertStatus();
+
+    expect(readSpy).toHaveBeenCalledWith("oncall_critical");
+  });
+
+  test("a write that hands back no channel is denied, not guessed", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue(null as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a thrown write and a thrown read are reported as denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockRejectedValue(new Error("no such channel") as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a thrown write and a thrown read are marked uncertain: Android was never asked", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockRejectedValue(new Error("no such channel") as never);
+
+    expect((await getCriticalAlertStatus()).isUncertain).toBe(true);
+  });
+
+  test.each<[string, boolean | "throw", boolean | null | undefined]>([
+    ["the write answered with the bypass", true, undefined],
+    ["the write answered without it", false, undefined],
+    ["the write failed and the stored channel has the bypass", "throw", true],
+    ["the write failed and the stored channel lacks it", "throw", false],
+    ["the write failed and there is no stored channel", "throw", null],
+  ])(
+    "%s: certain",
+    async (
+      _name: string,
+      written: boolean | "throw",
+      stored: boolean | null | undefined,
+    ) => {
+      if (written === "throw") {
+        jest
+          .spyOn(Notifications, "setNotificationChannelAsync")
+          .mockRejectedValue(new Error("binder died") as never);
+        jest
+          .spyOn(Notifications, "getNotificationChannelAsync")
+          .mockResolvedValue(
+            (stored === null ? null : { bypassDnd: stored }) as never,
+          );
+      } else {
+        jest
+          .spyOn(Notifications, "setNotificationChannelAsync")
+          .mockResolvedValue({ bypassDnd: written } as never);
+      }
+
+      expect((await getCriticalAlertStatus()).isUncertain).toBeFalsy();
+    },
+  );
+
+  test("a thrown channel write is reported as denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockRejectedValue(new Error("no such channel") as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -200,7 +536,7 @@ describe("getCriticalAlertStatus on Android", () => {
     );
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     await getCriticalAlertStatus();
@@ -258,11 +594,52 @@ describe("isCriticalChannelBypassingDnd", () => {
     expect(await isCriticalChannelBypassingDnd()).toBe(false);
   });
 
+  test("neither writes nor reads a channel on iOS", async () => {
+    setPlatform("ios");
+
+    const writeSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "setNotificationChannelAsync",
+    );
+    const readSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "getNotificationChannelAsync",
+    );
+
+    await isCriticalChannelBypassingDnd();
+
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test("asks Android for the bypass again, with the critical channel's own definition", async () => {
+    /*
+     * Writing is what lets Android turn the bypass on for a channel created
+     * before the access was granted - the whole reason this writes rather
+     * than only reads.
+     */
+    setPlatform("android");
+
+    const writeSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+
+    await isCriticalChannelBypassingDnd();
+
+    // Every critical channel: the system sound's and one per alarm sound.
+    expect(writeSpy).toHaveBeenCalledTimes(6);
+    expect(writeSpy.mock.calls[0]![0]).toBe("oncall_critical");
+
+    for (const call of writeSpy.mock.calls) {
+      expect(call[1]).toEqual(expect.objectContaining({ bypassDnd: true }));
+    }
+  });
+
   test("reports what the OS stored, not what the app asked for", async () => {
     setPlatform("android");
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     expect(await isCriticalChannelBypassingDnd()).toBe(false);
@@ -272,7 +649,7 @@ describe("isCriticalChannelBypassingDnd", () => {
     setPlatform("android");
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     expect(await isCriticalChannelBypassingDnd()).toBe(true);
@@ -359,6 +736,139 @@ describe("requestCriticalAlertPermission on iOS", () => {
   });
 });
 
+describe("requestCriticalAlertPermission on iOS, with and without Apple's entitlement", () => {
+  /*
+   * The same request has different outcomes depending on the build, and only
+   * iOS knows which build it is talking to. Each test sets what iOS reports
+   * before the request and what it reports once the request has been made.
+   */
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function simulateIosRequest(
+    beforeRequest: never,
+    afterRequest: never,
+  ): jest.SpyInstance {
+    let current: never = beforeRequest;
+
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockImplementation(async () => {
+        return current;
+      });
+
+    return jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockImplementation(async () => {
+        current = afterRequest;
+        return afterRequest;
+      });
+  }
+
+  test("a build without the entitlement asks iOS before concluding anything", async () => {
+    const requestSpy: jest.SpyInstance = simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    await requestCriticalAlertPermission();
+
+    expect(requestSpy).toHaveBeenCalledWith({
+      ios: expect.objectContaining({ allowCriticalAlerts: true }),
+    });
+  });
+
+  test("a build without the entitlement stays denied once iOS ignores the request", async () => {
+    /*
+     * The App Store builds up to 1.4.0: iOS drops the critical alert option
+     * from the request without an error or a prompt, and still reports the
+     * setting as not supported afterwards.
+     */
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a build without the entitlement is told to update, not to hunt for a switch", async () => {
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.reason).toContain("Update OneUptime On-Call");
+    expect(status.reason).not.toContain("Allow Critical Alerts");
+  });
+
+  test("an entitled build that had not asked yet is granted when the prompt is accepted", async () => {
+    /*
+     * A responder updating from a build without the entitlement: iOS has never
+     * shown them the prompt, so before the request the setting still reads as
+     * not supported.
+     */
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", true),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+  });
+
+  test("an entitled build whose prompt is declined points at the switch iOS has now added", async () => {
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", false),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain(
+      "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
+    );
+  });
+
+  test("with notifications turned off the responder is told to turn them back on", async () => {
+    simulateIosRequest(
+      iosPermissions("denied", null),
+      iosPermissions("denied", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Allow Notifications");
+  });
+
+  test("the reason comes from the OS after the request, not from the request's return value", async () => {
+    jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", true));
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
+  });
+});
+
 describe("requestCriticalAlertPermission on Android", () => {
   beforeEach(() => {
     setPlatform("android");
@@ -380,7 +890,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .mockResolvedValue(undefined as never);
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await requestCriticalAlertPermission();
@@ -393,7 +903,7 @@ describe("requestCriticalAlertPermission on Android", () => {
   test("returns the state as it stands, since the user has not acted yet", async () => {
     jest.spyOn(Linking, "sendIntent").mockResolvedValue(undefined as never);
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await requestCriticalAlertPermission();
@@ -415,7 +925,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .mockResolvedValue(undefined as never);
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await requestCriticalAlertPermission();
@@ -431,7 +941,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .spyOn(Linking, "openSettings")
       .mockRejectedValue(new Error("nope") as never);
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await expect(requestCriticalAlertPermission()).resolves.toBeDefined();

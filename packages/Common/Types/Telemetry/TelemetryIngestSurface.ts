@@ -21,6 +21,11 @@ enum TelemetryIngestSurface {
   SourceMap = "source-map",
   Syslog = "syslog",
   Fluent = "fluent",
+  /*
+   * Log drains from Vercel (POST /vercel/v1/logs). Server keys only: a
+   * drain is Vercel's servers posting a team's logs, never a page.
+   */
+  VercelLogDrain = "vercel-log-drain",
   Pyroscope = "pyroscope",
   KubernetesCost = "kubernetes-cost",
   ChangeEvents = "change-events",
@@ -34,7 +39,54 @@ enum TelemetryIngestSurface {
    * mint a Runner credential.
    */
   KubernetesAgentRunner = "kubernetes-agent-runner",
+  /*
+   * The Kubernetes AI agent the kubernetes-agent chart installs registers
+   * itself with the same project ingestion key the collector uses, and
+   * receives an agent key that every kubectl job for its cluster is claimed
+   * with. Server keys only, for the same reason as the Runner above.
+   */
+  KubernetesAiAgent = "kubernetes-ai-agent",
+  /*
+   * A resource AI agent (Docker, Podman, Docker Swarm, Proxmox, VMware,
+   * Ceph, a database server or a host) registers itself with the same
+   * project ingestion key its collector uses, and receives an agent key
+   * that every command for its resource is claimed with. Server keys only,
+   * for the same reason as the two above.
+   */
+  ResourceAiAgent = "resource-ai-agent",
+  /*
+   * The OpAMP supervisor OneUptime's host installer puts on a host
+   * (POST /opamp/v1): it reports the collector's state and receives the
+   * config the host runs. Server keys only - a page never manages a
+   * collector - and a key pinned to one service is refused there: a host's
+   * collector sends the host's telemetry, not one service's. Not an
+   * identity registration surface (below): one key serves a whole fleet,
+   * each host polling every 30 seconds, which that surfaces' default
+   * requests-per-minute ceiling would refuse.
+   */
+  HostCollectorManagement = "host-collector-management",
 }
+
+/*
+ * Surfaces that mint an IDENTITY (a key that kubectl jobs for a cluster, or
+ * commands for another infrastructure resource, are targeted at) rather
+ * than accept telemetry. The ingest middleware holds
+ * every one of them to the same two extra rules, keyed on this set so a new
+ * identity surface cannot quietly miss one:
+ *
+ *   - a server key with no configured limit gets a conservative default
+ *     requests-per-minute ceiling instead of "unlimited";
+ *   - a key pinned to a single service is refused: its owner scoped it to
+ *     one service's telemetry, not to standing up cluster access.
+ *
+ * None of them is browser-allowed (see the allowlist below).
+ */
+export const IDENTITY_REGISTRATION_SURFACES: ReadonlySet<TelemetryIngestSurface> =
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.KubernetesAgentRunner,
+    TelemetryIngestSurface.KubernetesAiAgent,
+    TelemetryIngestSurface.ResourceAiAgent,
+  ]);
 
 /*
  * The only surfaces a Browser key may write to. This is an ALLOWLIST, not a
@@ -73,6 +125,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.SourceMap]: "source map upload",
   [TelemetryIngestSurface.Syslog]: "syslog ingest",
   [TelemetryIngestSurface.Fluent]: "Fluentd / Fluent Bit ingest",
+  [TelemetryIngestSurface.VercelLogDrain]: "Vercel log drain ingest",
   [TelemetryIngestSurface.Pyroscope]: "Pyroscope profile ingest",
   [TelemetryIngestSurface.KubernetesCost]: "Kubernetes cost ingest",
   [TelemetryIngestSurface.ChangeEvents]: "change event ingest",
@@ -81,6 +134,12 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",
   [TelemetryIngestSurface.KubernetesAgentRunner]:
     "Kubernetes agent Runner registration",
+  [TelemetryIngestSurface.KubernetesAiAgent]:
+    "Kubernetes AI agent registration",
+  [TelemetryIngestSurface.ResourceAiAgent]:
+    "infrastructure AI agent registration",
+  [TelemetryIngestSurface.HostCollectorManagement]:
+    "host collector management (OpAMP)",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

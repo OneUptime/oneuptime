@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import BaseService from "./BaseService";
 import MailService from "./MailService";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import ProjectService from "./ProjectService";
 import TeamMemberService from "./TeamMemberService";
 import UserCallService from "./UserCallService";
@@ -1151,10 +1152,14 @@ export class UserNotificationRuleAdminService extends BaseService {
      * that can leave a responder silently unreachable — which is the failure
      * this whole epic exists to stop happening unnoticed.
      */
+    const productName: string = this.escapeHtml(
+      ProductBrandingText.getProductName(),
+    );
+
     const consequence: string =
       data.action === AuditLogAction.Delete
-        ? "Your notification rules decide how OneUptime reaches you when you are paged. With them removed you may no longer be notified when you are on call, so add new rules if this was not what you expected, and tell your project owners."
-        : "Your notification rules decide how OneUptime reaches you when you are paged. If you were not expecting this change, review your rules now and tell your project owners.";
+        ? `Your notification rules decide how ${productName} reaches you when you are paged. With them removed you may no longer be notified when you are on call, so add new rules if this was not what you expected, and tell your project owners.`
+        : `Your notification rules decide how ${productName} reaches you when you are paged. If you were not expecting this change, review your rules now and tell your project owners.`;
 
     const message: string = `${this.escapeHtml(actorDescription)} ${verb} your on-call notification rules in ${this.escapeHtml(
       projectName,

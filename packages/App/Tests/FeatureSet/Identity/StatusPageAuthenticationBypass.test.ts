@@ -139,11 +139,17 @@ const findActiveSessionByRefreshToken: jest.Mock = jest.fn();
 const isLoginCodeSession: jest.Mock = jest.fn();
 const revokeSessionById: jest.Mock = jest.fn();
 const renewSessionWithNewRefreshToken: jest.Mock = jest.fn();
+const doesSignInStillCount: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
   return {
     __esModule: true,
+    SIGN_IN_NO_LONGER_ACCEPTED_REASON:
+      "Its sign-in is no longer accepted by the status page",
     default: {
+      doesSignInStillCount: (...args: Array<unknown>): unknown => {
+        return doesSignInStillCount(...args);
+      },
       createSession: (...args: Array<unknown>): unknown => {
         createSession(...args);
         return Promise.resolve({
@@ -614,6 +620,12 @@ describe("Status page login-code exchange", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // The sign-in still counts, on a page that does not require SSO.
+    doesSignInStillCount.mockResolvedValue(true);
+    statusPageFindOneById.mockResolvedValue({
+      id: statusPageId,
+      requireSsoForLogin: false,
+    });
   });
 
   it("rejects a missing status page id before looking up the code", async () => {
@@ -747,6 +759,106 @@ describe("Status page login-code exchange", () => {
     expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
     expect(sendEntityResponse).toHaveBeenCalledTimes(1);
     expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A login code an SSO provider gave counts only while that provider still
+   * vouches for the sign-in - turned off or deleted since, it does not -
+   * and, on a page that requires SSO, only if a provider gave it
+   * (StatusPagePrivateUserSessionService.addSignInRule).
+   */
+  it("refuses a code whose sign-in is no longer accepted, and ends its session", async () => {
+    exchangeLoginCode.mockResolvedValue(successfulExchange());
+    privateUserFindOneById.mockResolvedValue(matchingUser());
+    doesSignInStillCount.mockResolvedValue(false);
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(revokeSessionById).toHaveBeenCalledWith(sessionId, {
+      reason: "Its sign-in is no longer accepted by the status page",
+    });
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    expect(sendEntityResponse).not.toHaveBeenCalled();
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The page's Require SSO for Login is read in the same database read as
+   * the session (doesSignInStillCount joins the session's page), so the
+   * route reads no page of its own for it; a page that is gone counts no
+   * session there (StatusPageSsoSessionsPostgres.test).
+   */
+  it("asks whether the sign-in still counts in one read, with the session's own page", async () => {
+    exchangeLoginCode.mockResolvedValue(successfulExchange());
+    privateUserFindOneById.mockResolvedValue(matchingUser());
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(doesSignInStillCount).toHaveBeenCalledWith({ sessionId });
+    expect(statusPageFindOneById).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+  });
+
+  describe("a refresh", () => {
+    const signedInSession: () => Record<string, unknown> = () => {
+      return {
+        id: sessionId,
+        _id: sessionId.toString(),
+        statusPageId,
+        statusPagePrivateUserId: privateUserId,
+        refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      };
+    };
+
+    beforeEach(() => {
+      getRefreshTokenFromExpressRequest.mockReturnValue(validLoginCode);
+      findActiveSessionByRefreshToken.mockResolvedValue(signedInSession());
+      isLoginCodeSession.mockReturnValue(false);
+      privateUserFindOneById.mockResolvedValue(matchingUser());
+      renewSessionWithNewRefreshToken.mockResolvedValue({
+        session: { id: sessionId },
+        refreshToken: "renewed-refresh-token",
+        refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      });
+    });
+
+    it("whose sign-in still counts renews the session", async () => {
+      await invoke(
+        "/refresh-token/:statuspageid",
+        {},
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(doesSignInStillCount).toHaveBeenCalledWith({ sessionId });
+      expect(renewSessionWithNewRefreshToken).toHaveBeenCalledTimes(1);
+      expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    });
+
+    it("whose sign-in is no longer accepted ends the session and clears its cookies, renewing nothing", async () => {
+      doesSignInStillCount.mockResolvedValue(false);
+
+      await invoke(
+        "/refresh-token/:statuspageid",
+        {},
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(revokeSessionById).toHaveBeenCalledWith(sessionId, {
+        reason: "Its sign-in is no longer accepted by the status page",
+      });
+      expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+      expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+      expect(removeCookie).toHaveBeenCalledTimes(2);
+      expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("cannot redeem a login code through the ordinary refresh endpoint", async () => {
@@ -889,4 +1001,135 @@ describe("Status page /reset-password - token and password must be present", () 
     expect(query["resetPasswordToken"]).not.toBe("a-real-token");
     expect(query["resetPasswordToken"].length).toBeGreaterThan(0);
   });
+});
+
+/*
+ * The password emails show the status page's logo by its address on the
+ * page's logo route, which serves only a logo of the page's own project. A
+ * logo the route would not serve - another project's, or one with no project
+ * - is left out of the email rather than shown broken (StatusPageEmailLogo).
+ */
+describe("Status page password emails show the logo only when the logo route serves it", () => {
+  const PROJECT_ID: string = "0a7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6";
+  const OTHER_PROJECT_ID: string = "1b7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6";
+  // The logo route's address, on whatever host this instance is served from.
+  const LOGO_URL: RegExp = new RegExp(
+    `/status-page-api/logo/${PUBLIC_STATUS_PAGE_ID}$`,
+  );
+
+  function page(logoProjectId: string | null): Record<string, unknown> {
+    return {
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      _id: PUBLIC_STATUS_PAGE_ID,
+      name: "Acme",
+      requireSsoForLogin: false,
+      projectId: new ObjectID(PROJECT_ID),
+      logoFileId: new ObjectID("2c7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6"),
+      logoFile: {
+        _id: "2c7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        ...(logoProjectId ? { projectId: new ObjectID(logoProjectId) } : {}),
+      },
+    };
+  }
+
+  function sentLogoUrl(): unknown {
+    expect(sendMail).toHaveBeenCalledTimes(1);
+
+    return (
+      (sendMail.mock.calls[0]![0] as Record<string, unknown>)["vars"] as Record<
+        string,
+        unknown
+      >
+    )["logoUrl"];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    privateUserUpdateOneBy.mockResolvedValue(1 as never);
+    privateUserUpdateOneById.mockResolvedValue(1 as never);
+  });
+
+  it.each([
+    ["a logo of the page's own project", PROJECT_ID, LOGO_URL],
+    ["a logo of another project", OTHER_PROJECT_ID, null],
+    ["a logo with no project", null, null],
+  ])(
+    "forgot password: %s",
+    async (
+      _label: string,
+      logoProjectId: string | null,
+      expected: RegExp | null,
+    ) => {
+      statusPageFindOneById.mockResolvedValue(page(logoProjectId) as never);
+      privateUserFindOneBy.mockResolvedValue({
+        _id: "3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        email: "subscriber@example.com",
+      } as never);
+
+      await invoke("/forgot-password", {
+        data: {
+          statusPageId: PUBLIC_STATUS_PAGE_ID,
+          email: "subscriber@example.com",
+        },
+      });
+
+      // The page is read with the logo's project.
+      expect(
+        (statusPageFindOneById.mock.calls[0]![0] as Record<string, any>)[
+          "select"
+        ],
+      ).toMatchObject({
+        projectId: true,
+        logoFile: { _id: true, projectId: true },
+      });
+      if (expected) {
+        expect(sentLogoUrl()).toMatch(expected);
+      } else {
+        expect(sentLogoUrl()).toBe("");
+      }
+    },
+  );
+
+  it.each([
+    ["a logo of the page's own project", PROJECT_ID, LOGO_URL],
+    ["a logo of another project", OTHER_PROJECT_ID, null],
+    ["a logo with no project", null, null],
+  ])(
+    "password changed: %s",
+    async (
+      _label: string,
+      logoProjectId: string | null,
+      expected: RegExp | null,
+    ) => {
+      statusPageFindOneById.mockResolvedValue(page(logoProjectId) as never);
+      privateUserFindOneBy.mockResolvedValue({
+        _id: "3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        id: new ObjectID("3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6"),
+        email: "subscriber@example.com",
+        resetPasswordExpires: new Date(Date.now() + 60 * 60 * 1000),
+      } as never);
+
+      await invoke("/reset-password", {
+        data: {
+          statusPageId: PUBLIC_STATUS_PAGE_ID,
+          resetPasswordToken: "a-real-token",
+          password: { _type: "HashedString", value: "new-password" },
+        },
+      });
+
+      expect(
+        (statusPageFindOneById.mock.calls[0]![0] as Record<string, any>)[
+          "select"
+        ],
+      ).toMatchObject({
+        projectId: true,
+        logoFile: { _id: true, projectId: true },
+      });
+      if (expected) {
+        expect(sentLogoUrl()).toMatch(expected);
+      } else {
+        expect(sentLogoUrl()).toBe("");
+      }
+    },
+  );
 });

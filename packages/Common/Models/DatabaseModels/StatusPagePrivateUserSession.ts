@@ -412,4 +412,54 @@ export default class StatusPagePrivateUserSession extends BaseModel {
     nullable: true,
   })
   public additionalInfo?: JSONObject = undefined;
+
+  /*
+   * The status page SAML provider that signed this session in, when one did
+   * (the SSO sign-in's callback writes it). The session counts only while
+   * that provider vouches for it: it is still the status page's, it is on,
+   * and it was not turned off after the session began
+   * (StatusPagePrivateUserSessionService.addSignInRule). Not a foreign key:
+   * a provider deleted leaves the id behind, and the session stops counting.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Status Page SSO ID",
+    description:
+      "Internal: the status page SAML provider that signed this session in, if one did.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageSsoId?: ObjectID = undefined;
+
+  /*
+   * The status page OIDC provider that signed this session in, when one did.
+   * Read the same way as statusPageSsoId.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Status Page OIDC ID",
+    description:
+      "Internal: the status page OIDC provider that signed this session in, if one did.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageOidcId?: ObjectID = undefined;
 }

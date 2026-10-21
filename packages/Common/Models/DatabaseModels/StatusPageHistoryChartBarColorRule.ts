@@ -12,12 +12,14 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -26,6 +28,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["statusPageId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -271,11 +274,17 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     type: TableColumnType.Number,
     modelType: MonitorStatus,
     title: "Uptime Percent Greater than or equal to",
-    description: "Uptime percent greater than or equal to this value",
+    description:
+      "Uptime percent, from 0 to 100, that a day must reach for this rule to color its bar (99.65 for example)",
   })
   @Column({
     nullable: false,
     type: ColumnType.Decimal,
+    /*
+     * Postgres hands a decimal back as text; without this the API answered
+     * "100" for a number, and Terraform read it as null (#4719).
+     */
+    transformer: getDecimalDatabaseTransformer(),
   })
   public uptimePercentGreaterThanOrEqualTo?: number = undefined;
 
@@ -431,10 +440,12 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     ],
   })
   @TableColumn({
+    required: false,
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order / Priority of this resource",
+    description:
+      "Where this rule sits in the list. Rules are evaluated from the top of the list down, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

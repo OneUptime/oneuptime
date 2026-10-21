@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -19,13 +19,25 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
+import Runner from "../../Models/DatabaseModels/Runner";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
+
+/*
+ * Why a repository may not pick an in-cluster Runner the Kubernetes agent
+ * chart installed as its Runner (CodeRepository.runnerId).
+ */
+export const KUBERNETES_AGENT_RUNNER_FOR_CODE_MESSAGE: string =
+  "This Runner is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only and never works in a code repository, so a repository cannot pick it. Pick another of your Runners, or none for a global Runner.";
 
 export interface ImportReposFromInstallationResult {
   imported: number;
+  // Rows already in the project, moved onto this installation.
+  reconnected: number;
   skipped: number;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -48,6 +60,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    await Service.assertRunnerCanWorkInRepositories(createBy.data);
+
     const installationId: string | undefined =
       createBy.data.gitHubAppInstallationId;
 
@@ -79,6 +95,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    await Service.assertRunnerCanWorkInRepositories(updateBy.data);
+
     const installationId: string | undefined = updateBy.data
       .gitHubAppInstallationId as string | undefined;
 
@@ -87,18 +107,13 @@ export class Service extends DatabaseService<Model> {
        * updateBy matches by query rather than by id, so check every row the
        * write would touch: one unbound row is enough to leak a token.
        */
-      const repositories: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const repositories: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           projectId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const repository of repositories) {
         if (!repository.projectId) {
@@ -118,9 +133,70 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The Runner a write gives repositories (their Runner setting in Code) is
+   * one AI can work in them on. That it is one of the repositories' own
+   * project's Runners - never another project's, never a global Runner,
+   * which belongs to no project - the project check in
+   * super.onBeforeCreate / onBeforeUpdate has decided before this runs.
+   * What is left is an in-cluster Runner the Kubernetes agent chart
+   * installed: it never clones a repository, and its code-fix identity is
+   * refused (CodeFixAgentAuth), so a repository that picked it would never
+   * have its AI work done. Clearing the Runner (a global Runner) is always
+   * allowed.
+   */
+  public static async assertRunnerCanWorkInRepositories(
+    data: Model | Record<string, unknown> | undefined,
+  ): Promise<void> {
+    if (!data) {
+      return;
+    }
+
+    const written: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const runnerIds: Array<string> = Array.from(
+      new Set<string>(
+        [written["runnerId"], written["runner"]]
+          .map((value: unknown): string => {
+            const id: ObjectID | string | undefined = resolveReferenceId(value);
+            return id ? id.toString().trim() : "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      ),
+    );
+
+    for (const runnerId of runnerIds) {
+      // An id that is not one was refused before the hooks (UUID checks).
+      if (!ObjectID.isValidUUID(runnerId)) {
+        continue;
+      }
+
+      const runner: Runner | null = await RunnerService.findOneById({
+        id: new ObjectID(runnerId),
+        select: {
+          _id: true,
+          name: true,
+          hostInfo: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (runner && RunnerServiceClass.isKubernetesAgentRunnerRow(runner)) {
+        throw new BadDataException(KUBERNETES_AGENT_RUNNER_FOR_CODE_MESSAGE);
+      }
+    }
+  }
+
+  /*
    * Imports all repositories accessible to a GitHub App installation into a
-   * project. Repositories that already exist for the project (matched on
-   * organizationName + repositoryName) are skipped. Never deletes anything.
+   * project. A repository the project already has (matched on
+   * organizationName + repositoryName) is not imported again; its row is
+   * moved onto this installation when it is on no installation or another
+   * one. Never deletes anything.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
@@ -140,6 +216,8 @@ export class Service extends DatabaseService<Model> {
         name: true,
         organizationName: true,
         repositoryName: true,
+        repositoryHostedAt: true,
+        gitHubAppInstallationId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -148,11 +226,19 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const existingRepositoryKeys: Set<string> = new Set<string>(
-      existingRepositories.map((repository: Model) => {
-        return `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
-      }),
-    );
+    const existingRepositoriesByKey: Map<string, Array<Model>> = new Map<
+      string,
+      Array<Model>
+    >();
+
+    for (const repository of existingRepositories) {
+      const repositoryKey: string = `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
+
+      existingRepositoriesByKey.set(repositoryKey, [
+        ...(existingRepositoriesByKey.get(repositoryKey) || []),
+        repository,
+      ]);
+    }
 
     const existingDisplayNames: Set<string> = new Set<string>(
       existingRepositories
@@ -165,13 +251,56 @@ export class Service extends DatabaseService<Model> {
     );
 
     let imported: number = 0;
+    let reconnected: number = 0;
     let skipped: number = 0;
 
     for (const repository of installationRepositories) {
       const repositoryKey: string = `${repository.ownerLogin.toLowerCase()}/${repository.name.toLowerCase()}`;
 
-      if (existingRepositoryKeys.has(repositoryKey)) {
-        skipped++;
+      const sameRepositoryRows: Array<Model> | undefined =
+        existingRepositoriesByKey.get(repositoryKey);
+
+      if (sameRepositoryRows) {
+        /*
+         * The project already has this repository. A row on no installation
+         * (the app was uninstalled, or QuarantineUnboundGitHubInstallations
+         * cleared it) or on another one (the project was connected to a
+         * different installation before) can mint no token, so fix tasks,
+         * exception fixes and mentions all pass it by. Connecting again is
+         * what puts it back on the installation.
+         */
+        for (const row of sameRepositoryRows) {
+          if (
+            !row.id ||
+            row.repositoryHostedAt !== CodeRepositoryType.GitHub ||
+            row.gitHubAppInstallationId === data.installationId
+          ) {
+            skipped++;
+            continue;
+          }
+
+          try {
+            await this.updateOneById({
+              id: row.id,
+              data: {
+                gitHubAppInstallationId: data.installationId,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            row.gitHubAppInstallationId = data.installationId;
+            reconnected++;
+          } catch (error) {
+            logger.error(
+              `Failed to move repository ${repository.fullName} onto GitHub App installation ${data.installationId} in project ${data.projectId.toString()}:`,
+            );
+            logger.error(error);
+            skipped++;
+          }
+        }
+
         continue;
       }
 
@@ -218,7 +347,7 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        existingRepositoryKeys.add(repositoryKey);
+        existingRepositoriesByKey.set(repositoryKey, [codeRepository]);
         existingDisplayNames.add(displayName.toLowerCase());
         imported++;
       } catch (error) {
@@ -231,7 +360,7 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { imported, skipped };
+    return { imported, reconnected, skipped };
   }
 
   /*
@@ -246,9 +375,32 @@ export class Service extends DatabaseService<Model> {
     stackTrace: string | null;
     serviceName: string | null;
   }): Promise<RepoResolution | null> {
+    const resolvable: Array<ResolvableRepository> =
+      await this.getResolvableRepositories(data.projectId);
+
+    if (resolvable.length === 0) {
+      return null;
+    }
+
+    return resolveRepositoryForExceptionFix({
+      stackTrace: data.stackTrace,
+      serviceName: data.serviceName,
+      repositories: resolvable,
+      getTreePaths: Service.getRepositoryTreePaths,
+    });
+  }
+
+  /*
+   * The project's repositories a fix can be resolved to: every one the
+   * agent could clone and push.
+   */
+  @CaptureSpan()
+  public async getResolvableRepositories(
+    projectId: ObjectID,
+  ): Promise<Array<ResolvableRepository>> {
     const repositories: Array<Model> = await this.findBy({
       query: {
-        projectId: data.projectId,
+        projectId: projectId,
       },
       select: {
         _id: true,
@@ -274,9 +426,9 @@ export class Service extends DatabaseService<Model> {
      * initiative (GHSA-xx95-gmcf-7q86).
      */
     const boundInstallationId: string | null =
-      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
+      await GitHubInstallationBinding.getBoundInstallationId(projectId);
 
-    const resolvable: Array<ResolvableRepository> = repositories
+    return repositories
       .filter((repository: Model) => {
         return (
           repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
@@ -296,25 +448,17 @@ export class Service extends DatabaseService<Model> {
           gitHubAppInstallationId: repository.gitHubAppInstallationId || null,
         };
       });
+  }
 
-    if (resolvable.length === 0) {
-      return null;
-    }
-
-    return resolveRepositoryForExceptionFix({
-      stackTrace: data.stackTrace,
-      serviceName: data.serviceName,
-      repositories: resolvable,
-      getTreePaths: (
-        repository: ResolvableRepository,
-      ): Promise<Array<string>> => {
-        return GitHubUtil.getRepositoryTreePaths({
-          installationId: repository.gitHubAppInstallationId!,
-          organizationName: repository.organizationName,
-          repositoryName: repository.repositoryName,
-          branchName: repository.mainBranchName,
-        });
-      },
+  // A resolvable repository's file tree, cached (GitHubUtil).
+  public static getRepositoryTreePaths(
+    repository: ResolvableRepository,
+  ): Promise<Array<string>> {
+    return GitHubUtil.getRepositoryTreePaths({
+      installationId: repository.gitHubAppInstallationId!,
+      organizationName: repository.organizationName,
+      repositoryName: repository.repositoryName,
+      branchName: repository.mainBranchName,
     });
   }
 }

@@ -14,6 +14,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -90,9 +91,23 @@ describe("User two-factor self-service API integration", () => {
     } as unknown as OneUptimeRequest;
   };
 
+  /*
+   * Nothing written, and nothing read but the one lookup DatabaseService
+   * makes before the update's hooks: which of the rows the request names the
+   * caller may update, by id alone (see DatabaseServicePermissionBeforeHooks).
+   */
   const expectNoWrite: () => void = (): void => {
     expect(update).not.toHaveBeenCalled();
-    expect(find).not.toHaveBeenCalled();
+    const readsOfRowContent: Array<unknown> = find.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        const select: Record<string, unknown> =
+          ((call[0] as FindBy<User>).select as Record<string, unknown>) || {};
+        return Object.keys(select).some((column: string): boolean => {
+          return column !== "_id";
+        });
+      },
+    );
+    expect(readsOfRowContent).toHaveLength(0);
     expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
     expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
@@ -231,25 +246,48 @@ describe("User two-factor self-service API integration", () => {
       Permission.CurrentUser,
     );
 
+    /*
+     * Refused before the hook: an account may only be updated by its own
+     * user, and the caller has none, so it may update no row at all.
+     */
     await expect(api.updateItem(request, response)).rejects.toThrow(
-      BadDataException,
+      new NotAuthorizedException("A user session is required to update User."),
     );
 
     expectNoWrite();
   });
 
-  test.each([UserType.User, UserType.MasterAdmin])(
-    "blocks %s from disabling a foreign account through ordinary CRUD",
-    async (userType: UserType): Promise<void> => {
-      await expect(
-        api.updateItem(requestFor({ id: OTHER_ID, userType }), response),
-      ).rejects.toThrow(
-        "You can only turn off two factor authentication for your own account.",
-      );
+  test("blocks a User from disabling a foreign account through ordinary CRUD", async () => {
+    /*
+     * The account is not one the user may update, so the request is refused
+     * before the hook's own owner guard is reached.
+     */
+    await expect(
+      api.updateItem(
+        requestFor({ id: OTHER_ID, userType: UserType.User }),
+        response,
+      ),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to access another user's User.",
+      ),
+    );
 
-      expectNoWrite();
-    },
-  );
+    expectNoWrite();
+  });
+
+  test("blocks a MasterAdmin from disabling a foreign account through ordinary CRUD", async () => {
+    await expect(
+      api.updateItem(
+        requestFor({ id: OTHER_ID, userType: UserType.MasterAdmin }),
+        response,
+      ),
+    ).rejects.toThrow(
+      "You can only turn off two factor authentication for your own account.",
+    );
+
+    expectNoWrite();
+  });
 
   test("foreign self-service enabling still obeys the existing row permissions", async () => {
     await expect(
@@ -280,7 +318,7 @@ describe("User two-factor self-service API integration", () => {
         }),
         response,
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(NotAuthorizedException);
 
     expectNoWrite();
   });
@@ -294,7 +332,7 @@ describe("User two-factor self-service API integration", () => {
         }),
         response,
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(NotAuthorizedException);
 
     expectNoWrite();
   });
@@ -329,11 +367,36 @@ describe("User two-factor self-service API integration", () => {
     expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
   });
 
+  /*
+   * A hand-written "false" is the false the database stores: DatabaseService
+   * turns it into false before the service's hook reads it, so it goes
+   * through the same exact-false owner check as false - and turns off the
+   * caller's own setting like false does.
+   */
+  test.each(["false", "no", "0", 0])(
+    "a hand-written %p turns off the current user's own setting, as false does",
+    async (value: unknown): Promise<void> => {
+      const request: OneUptimeRequest = requestFor({
+        body: { data: { enableTwoFactorAuth: value } as JSONObject },
+      });
+
+      await api.updateItem(request, response);
+
+      expect(update).toHaveBeenCalledWith(
+        { _id: OWNER_ID },
+        expect.objectContaining({ enableTwoFactorAuth: false }),
+      );
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
+    },
+  );
+
   test.each([
-    { value: "false", id: OWNER_ID, userType: UserType.User },
     { value: null, id: OWNER_ID, userType: UserType.User },
+    { value: "maybe", id: OWNER_ID, userType: UserType.User },
     { value: "false", id: OTHER_ID, userType: UserType.MasterAdmin },
     { value: null, id: OTHER_ID, userType: UserType.MasterAdmin },
+    { value: "maybe", id: OTHER_ID, userType: UserType.MasterAdmin },
   ])(
     "rejects non-boolean $value for $userType targeting $id before persistence",
     async (data: {
@@ -366,6 +429,14 @@ describe("User two-factor self-service API integration", () => {
       expect(route.middleware).toBe(
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       );
+      /*
+       * The gate reads the session as every route does, asking the person's
+       * account whether they are blocked and still a master admin: here they
+       * are not blocked, and still are one (MasterAdminAuthorization.test.ts
+       * and MasterAdminRemovalOverHttp.test.ts cover the other answers).
+       */
+      getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+      getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
       const request: OneUptimeRequest = requestFor();
       request.params = { userId: OTHER_ID };
       request.body = { isRequired: false };
@@ -376,6 +447,8 @@ describe("User two-factor self-service API integration", () => {
           name: "Self service test",
           isMasterAdmin,
           isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          purpose: JsonWebTokenPurpose.UserSession,
         },
         60,
       )}`;

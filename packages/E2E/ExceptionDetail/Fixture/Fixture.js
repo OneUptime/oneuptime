@@ -18,6 +18,8 @@
  *   ?replay=     none (default) | session
  *   ?spans=      data (default) | empty
  *   ?fail=       comma separated: update, delete, create-task, exception
+ *   ?enableAi=   on (default) | off — the project's Enable AI switch, as
+ *                the selected project carries it
  *   ?hold=       exception — keep the exception read pending until
  *                window.__exceptionFixture.releaseException() is called
  *
@@ -42,6 +44,7 @@ import ExceptionDetailSection from "../../../App/FeatureSet/Dashboard/src/Compon
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
 import User from "Common/Models/DatabaseModels/User";
+import Project from "Common/Models/DatabaseModels/Project";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -83,6 +86,7 @@ const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
 const holdException = params.get("hold") === "exception";
+const isAiOn = params.get("enableAi") !== "off";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -202,7 +206,7 @@ const ORIGINAL_LOCATIONS = {
       lines: [
         "    const current = await this.warehouse.getStock(sku);",
         "    if (current.version !== expectedVersion) {",
-        "      span.addEvent(\"inventory.version_mismatch\", { sku });",
+        '      span.addEvent("inventory.version_mismatch", { sku });',
         "      // A concurrent order changed the row since we read it.",
         "      throw new InventoryReservationError(sku, quantity, orderId);",
         "    }",
@@ -227,6 +231,7 @@ const ORIGINAL_LOCATIONS = {
 const fixture = {
   getItemRequests: [],
   analyticsListRequests: [],
+  analyticsCountRequests: [],
   apiRequests: [],
   updates: [],
   deletes: [],
@@ -334,7 +339,10 @@ function makeOccurrence(index) {
       : index === 0
         ? TRACE_ID
         : `${String(index).padStart(2, "0")}${TRACE_ID.slice(2)}`;
-  record.spanId = index === 0 ? SPAN_ID : `${String(index).padStart(2, "0")}${SPAN_ID.slice(2)}`;
+  record.spanId =
+    index === 0
+      ? SPAN_ID
+      : `${String(index).padStart(2, "0")}${SPAN_ID.slice(2)}`;
   record.sessionId = index % 3 === 0 ? SESSION_ID : "";
   record.parsedFrames =
     framesMode === "raw" ? "[]" : JSON.stringify(PARSED_FRAMES);
@@ -603,9 +611,9 @@ function aiReadiness() {
         {
           id: "agentAvailable",
           ok: false,
-          title: "AI agent online",
+          title: "Runner online",
           detail:
-            "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Settings > Runners).",
+            "No Runner is online to work in this project's repositories. Each repository works on the Runner it picks in its settings in Code, or on a global Runner when it picks none.",
         },
       ],
     };
@@ -629,7 +637,7 @@ function aiReadiness() {
       {
         id: "agentAvailable",
         ok: true,
-        title: "AI agent online: runner-eu-1",
+        title: "Runner online: runner-eu-1",
         detail: "Connected and polling for tasks.",
       },
     ],
@@ -658,6 +666,20 @@ UserUtil.isMasterAdmin = () => true;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
+/*
+ * With ?enableAi=off, the selected project as the project list carries it:
+ * its Enable AI switched off. Otherwise the page reads it as it always has
+ * (none stored, read as AI on).
+ */
+if (!isAiOn) {
+  ProjectUtil.getCurrentProject = () => {
+    return Object.assign(new Project(), {
+      _id: PROJECT_ID,
+      name: "Commerce",
+      enableAi: false,
+    });
+  };
+}
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 AnalyticsModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 
@@ -709,16 +731,18 @@ ModelAPI.updateById = async (options) => {
       {},
     );
   }
-  for (const key of ["isResolved", "isArchived"]) {
+  /*
+   * As the server does: turning a switch records when, and turning it off
+   * clears it. The page sends only the switch.
+   */
+  for (const [key, timeKey] of [
+    ["isResolved", "markedAsResolvedAt"],
+    ["isArchived", "markedAsArchivedAt"],
+  ]) {
     if (key in options.data) {
       triage[key] = Boolean(options.data[key]);
+      triage[timeKey] = triage[key] ? new Date(NOW) : null;
     }
-  }
-  if ("markedAsResolvedAt" in options.data) {
-    triage.markedAsResolvedAt = options.data.markedAsResolvedAt;
-  }
-  if ("markedAsArchivedAt" in options.data) {
-    triage.markedAsArchivedAt = options.data.markedAsArchivedAt;
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -737,6 +761,29 @@ ModelAPI.deleteItem = async (options) => {
   }
 };
 
+/*
+ * Every row of an analytics table that `query` matches. A list pages through
+ * these rows and a count counts them, so the explorers' totals ("24 spans")
+ * always describe the very rows their lists hold.
+ */
+function analyticsRows(modelType, query) {
+  if (modelType === ExceptionInstance) {
+    return occurrences.filter((record) =>
+      matchesOccurrenceQuery(record, query),
+    );
+  }
+  if (modelType === Span) {
+    if (query && query.exceptionScope) {
+      return makeExceptionSpans();
+    }
+    return occurrenceMode === "trace" ? makeSpans() : [];
+  }
+  if (modelType === Log) {
+    return makeLogs(query);
+  }
+  return [];
+}
+
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = new options.modelType().tableName;
   const skip = Number(options.skip || 0);
@@ -750,20 +797,7 @@ AnalyticsModelAPI.getList = async (options) => {
     limit,
   });
 
-  let items = [];
-  if (options.modelType === ExceptionInstance) {
-    items = occurrences.filter((record) =>
-      matchesOccurrenceQuery(record, options.query),
-    );
-  } else if (options.modelType === Span) {
-    if (options.query && options.query.exceptionScope) {
-      items = makeExceptionSpans();
-    } else {
-      items = occurrenceMode === "trace" ? makeSpans() : [];
-    }
-  } else if (options.modelType === Log) {
-    items = makeLogs(options.query);
-  }
+  const items = analyticsRows(options.modelType, options.query);
 
   return {
     data: items.slice(skip, skip + limit),
@@ -773,13 +807,24 @@ AnalyticsModelAPI.getList = async (options) => {
   };
 };
 
-AnalyticsModelAPI.count = async (options) => {
-  if (options.modelType === ExceptionInstance) {
-    return occurrences.filter((record) =>
-      matchesOccurrenceQuery(record, options.query),
-    ).length;
-  }
-  return 0;
+/*
+ * POST <model>/count, which BaseAnalyticsAPI answers with `{ count }`: how
+ * many rows the query matches. The explorers print it as their total and ask
+ * for it exact (CountBy.exact): the very rows a list with the same query
+ * pages through. That is the only count the fixture gives.
+ */
+AnalyticsModelAPI.count = async (
+  modelType,
+  query,
+  _requestOptions,
+  countOptions,
+) => {
+  fixture.analyticsCountRequests.push({
+    modelName: new modelType().tableName,
+    query: serialize(query),
+    exact: Boolean(countOptions?.exact),
+  });
+  return analyticsRows(modelType, query).length;
 };
 
 function ok(data) {
@@ -801,7 +846,9 @@ async function handleApi(method, options) {
   }
 
   if (url.includes("/telemetry/traces/histogram")) {
-    return ok({ buckets: spansMode === "empty" ? [] : statusHistogram(body, "error") });
+    return ok({
+      buckets: spansMode === "empty" ? [] : statusHistogram(body, "error"),
+    });
   }
 
   if (url.includes("/telemetry/traces/facets")) {
@@ -957,7 +1004,7 @@ function AITaskPage() {
   const { taskId } = useParams();
   return (
     <main className="mx-auto max-w-3xl px-8 py-16">
-      <h1 className="text-xl font-semibold text-gray-900">AI Agent Task</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Code Task</h1>
       <p data-testid="ai-task-page" className="mt-2 text-sm text-gray-600">
         {taskId}
       </p>
@@ -1019,8 +1066,9 @@ createRoot(document.getElementById("root")).render(
             element={section(ExceptionDetailSection.Settings)}
           />
         </Route>
+        {/* A task's conversation in Code, where a started fix leads. */}
         <Route
-          path="/dashboard/:projectId/ai/agents/:taskId"
+          path="/dashboard/:projectId/code/tasks/:taskId"
           element={<AITaskPage />}
         />
         <Route

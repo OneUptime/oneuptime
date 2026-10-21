@@ -86,6 +86,19 @@ export const WebVitalDefinitions: Array<WebVitalDefinition> = [
   },
 ];
 
+/*
+ * The metric attribute that names the route a web vital was measured on,
+ * tried in order for the RUM overview's per-route breakdown. `app.route`
+ * is what the Core Web Vitals docs tell instrumentation to set;
+ * `url.template` is OpenTelemetry's semantic-convention name for the same
+ * thing. Either must hold the route PATTERN ("/products/:id"), never the
+ * concrete URL - one series per product page is a cardinality problem.
+ */
+export const WebVitalRouteAttributeKeys: Array<string> = [
+  "app.route",
+  "url.template",
+];
+
 // A threshold the way a person would say it: "2.5 s", "800 ms", "0.1".
 export function formatWebVitalThreshold(
   value: number,

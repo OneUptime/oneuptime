@@ -203,6 +203,18 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).not.toContain("__attr_grp_0");
       expect(query).toContain("GROUP BY time");
     });
+
+    it("computes P75 - the Core Web Vitals level - over the histogram buckets", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationType: AggregationType.P75,
+          groupByAttributeKeys: ["app.route"],
+        }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.75)");
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+    });
   });
 
   /*
@@ -641,9 +653,14 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   describe("execution-time cap settings", () => {
+    /*
+     * Every chart read stops with an error at its limit (issue #4707):
+     * ClickHouse answers a grouped read it breaks off with an empty body.
+     */
     const expectCapped: (query: string) => void = (query: string): void => {
       expect(query).toContain("max_execution_time = 45");
-      expect(query).toContain("timeout_overflow_mode = 'break'");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toContain("timeout_overflow_mode = 'break'");
     };
 
     it("caps the minute MV path", () => {
@@ -682,9 +699,9 @@ describe("MetricService aggregate statement generation", () => {
     });
 
     /*
-     * Overflow-mode threading: chart callers keep the 'break' default
-     * (asserted by every expectCapped above), while alerting callers —
-     * the metric-monitor worker — pass timeoutOverflowMode: "throw" so
+     * Overflow-mode threading: chart callers get 'throw' without asking
+     * (asserted by every expectCapped above), and alerting callers — the
+     * metric-monitor worker — still pass timeoutOverflowMode: "throw", so
      * a timed-out evaluation fails loudly instead of silently scoring
      * partial buckets.
      */
@@ -753,20 +770,26 @@ describe("MetricService aggregate statement generation", () => {
         );
       });
 
-      it("allow-lists the value: anything but the literal 'throw' degrades to 'break'", () => {
+      it("never passes the value through: whatever it says, the read stops with 'throw'", () => {
         /*
          * aggregateBy is deserialized wholesale from API clients and the
          * setting reaches SQL as a literal, so it must never pass through.
+         * An explicit 'break' no longer turns a chart's stop into an empty
+         * body either.
          */
-        const query: string = getQuery(
+        const injected: string = getQuery(
           buildAggregateBy({
             timeoutOverflowMode:
               "break', max_execution_time = 0 --" as unknown as "break",
           }),
         );
 
-        expect(query).toContain("timeout_overflow_mode = 'break'");
-        expect(query).not.toContain("max_execution_time = 0");
+        expect(injected).toContain("timeout_overflow_mode = 'throw'");
+        expect(injected).not.toContain("max_execution_time = 0");
+
+        expectThrows(
+          getQuery(buildAggregateBy({ timeoutOverflowMode: "break" })),
+        );
       });
 
       it("the metric-monitor worker passes 'throw' on every aggregateBy call", () => {
@@ -789,13 +812,22 @@ describe("MetricService aggregate statement generation", () => {
           .split("MetricService.aggregateBy(")
           .slice(1);
 
-        expect(callSites.length).toBeGreaterThanOrEqual(9);
+        /*
+         * The Metrics monitor's own read, and readQueryDataPoints - the one
+         * read every infrastructure monitor (Kubernetes, Docker, Host and
+         * the rest) makes its queries through.
+         */
+        expect(callSites.length).toBeGreaterThanOrEqual(2);
         for (const callSite of callSites) {
           // Each call's argument object is well under 1200 characters.
           expect(callSite.slice(0, 1200)).toContain(
             'timeoutOverflowMode: "throw"',
           );
         }
+
+        expect(
+          workerSource.split("await readQueryDataPoints(").length - 1,
+        ).toBeGreaterThanOrEqual(10);
       });
     });
   });
@@ -1286,7 +1318,7 @@ describe("MetricService aggregate statement generation", () => {
           }),
         );
         expect(query).toContain("max_execution_time = 45");
-        expect(query).toContain("timeout_overflow_mode = 'break'");
+        expect(query).toContain("timeout_overflow_mode = 'throw'");
       });
     });
 

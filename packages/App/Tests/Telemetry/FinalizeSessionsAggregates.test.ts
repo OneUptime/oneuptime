@@ -350,7 +350,7 @@ describe("FinalizeSessions tags and traits", () => {
     expect(row["identifiedUserTraits"]).toEqual({});
   });
 
-  test("the header read selects the newest version's tags and traits", () => {
+  test("the header read selects the newest tags and the newest identity, each from a version that has them", () => {
     const statement: Statement = buildProvisionalHeaderStatement({
       databaseName: databaseName,
       projectId: projectId,
@@ -358,11 +358,34 @@ describe("FinalizeSessions tags and traits", () => {
       sessionId: sessionId,
     });
 
-    expect(statement.query).toContain("tags AS tags");
+    /*
+     * The newest version that HAS tags, or names a person - not simply the
+     * newest version, which may come from a page that named nobody
+     * (#4206). That is still how a later meta's tags reach the row.
+     */
     expect(statement.query).toContain(
-      "identifiedUserTraits AS identifiedUserTraits",
+      "argMaxIf(tags, version, notEmpty(mapKeys(tags))) OVER () AS latestTags",
     );
-    /* Newest version wins: that is how a later meta's tags reach the row. */
+    expect(statement.query).toContain(
+      "argMaxIf(identifiedUserKey, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserKey",
+    );
+    expect(statement.query).toContain(
+      "argMaxIf(identifiedUserLabel, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserLabel",
+    );
+    expect(statement.query).toContain(
+      "argMaxIf(identifiedUserTraits, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserTraits",
+    );
+
+    /*
+     * The aliases must not shadow the columns: ClickHouse would resolve
+     * the condition's identifier to the window result itself.
+     */
+    expect(statement.query).not.toContain("AS identifiedUserKey");
+    expect(statement.query).not.toContain("AS identifiedUserLabel");
+    expect(statement.query).not.toContain("AS identifiedUserTraits");
+    expect(statement.query).not.toContain("AS tags");
+
+    /* Every other column still comes from the newest version. */
     expect(statement.query).toContain("ORDER BY version DESC");
     expect(statement.query).toContain("LIMIT 1");
   });
@@ -371,20 +394,40 @@ describe("FinalizeSessions tags and traits", () => {
     const parsed: ProvisionalSessionHeader = parseProvisionalHeaderRow({
       startTimeText: "2026-07-29 10:00:00.000000000",
       startTimeUnixMs: startUnixMs,
-      tags: [["build", "abc"]],
-      identifiedUserTraits: "plan=pro",
+      latestTags: [["build", "abc"]],
+      latestIdentifiedUserTraits: "plan=pro",
     });
 
     expect(parsed.tags).toEqual({});
     expect(parsed.identifiedUserTraits).toEqual({});
 
     const wellFormed: ProvisionalSessionHeader = parseProvisionalHeaderRow({
-      tags: { build: "abc" },
-      identifiedUserTraits: { plan: "pro" },
+      latestTags: { build: "abc" },
+      latestIdentifiedUserTraits: { plan: "pro" },
     });
 
     expect(wellFormed.tags).toEqual({ build: "abc" });
     expect(wellFormed.identifiedUserTraits).toEqual({ plan: "pro" });
+  });
+
+  test("the identity and tags are read from the statement's latest* columns", () => {
+    const parsed: ProvisionalSessionHeader = parseProvisionalHeaderRow({
+      latestIdentifiedUserKey: "f".repeat(64),
+      latestIdentifiedUserLabel: "user-42",
+      latestIdentifiedUserTraits: { plan: "pro" },
+      latestTags: { build: "abc" },
+      /*
+       * What the statement no longer selects: a row carrying only the
+       * plain column names is not an identity.
+       */
+      identifiedUserKey: "",
+      tags: {},
+    });
+
+    expect(parsed.identifiedUserKey).toBe("f".repeat(64));
+    expect(parsed.identifiedUserLabel).toBe("user-42");
+    expect(parsed.identifiedUserTraits).toEqual({ plan: "pro" });
+    expect(parsed.tags).toEqual({ build: "abc" });
   });
 });
 

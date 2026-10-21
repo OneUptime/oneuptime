@@ -8,10 +8,66 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+
+/*
+ * Why a 'scheduled' message that is queued while notifying subscribers is off
+ * is not sent - the same words the event's create writes when it is off.
+ */
+const SKIPPED_NOT_TO_BE_NOTIFIED_MESSAGE: string =
+  "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
+
 RunCron(
   "ScheduledMaintenance:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * A 'scheduled' message queued while notifying subscribers is off - it
+     * was turned off after the message was queued, or Retry or the API
+     * queued it again - is not sent. Marked Skipped, as the incident and
+     * announcement jobs do, rather than left "Sending Soon" for good: the
+     * query below only ever picks up events that notify.
+     */
+    const eventsToSkip: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findAllBy({
+        query: {
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Pending,
+          shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    for (const event of eventsToSkip) {
+      try {
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              SKIPPED_NOT_TO_BE_NOTIFIED_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          `Could not mark scheduled maintenance ${event.id} as Skipped for subscriber notifications: ${err}`,
+        );
+      }
+    }
+
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findAllBy({
@@ -46,6 +102,9 @@ RunCron(
       `Found ${scheduledEvents.length} scheduled maintenance event(s) to notify subscribers for.`,
     );
 
+    // Events of a blocked project, which are not sent (see below).
+    const eventIdsOfBlockedProjects: Set<string> = new Set();
+
     for (const event of scheduledEvents) {
       try {
         logger.debug(
@@ -57,8 +116,9 @@ RunCron(
           event.scheduledMaintenanceNumberWithPrefix ||
           event.scheduledMaintenanceNumber?.toString() ||
           " - ";
-        const scheduledMaintenanceFeedText: string = `📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
-              Notification sent to status page subscribers because this scheduled maintenance was created.`;
+        const scheduledMaintenanceFeedText: string =
+          mdText`📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+              Notification sent to status page subscribers because this scheduled maintenance was created.`.toString();
 
         // Set status to InProgress
         await ScheduledMaintenanceService.updateOneById({
@@ -95,6 +155,32 @@ RunCron(
             },
           });
           continue; // skip if not visible on status page.
+        }
+
+        /*
+         * The pages of a blocked project send nothing: they are left out of
+         * the pages to send from (getStatusPagesToSendNotification). The
+         * event says so, rather than that it was sent to every subscriber.
+         */
+        if (await BlockedProjectStatusPages.isProjectBlocked(event.projectId)) {
+          logger.debug(
+            `Scheduled maintenance ${event.id} is in a blocked project; marking as Skipped.`,
+          );
+          eventIdsOfBlockedProjects.add(event.id!.toString());
+          await ScheduledMaintenanceService.updateOneById({
+            id: event.id!,
+            data: {
+              subscriberNotificationStatusOnEventScheduled:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue;
         }
 
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
@@ -154,7 +240,10 @@ RunCron(
     // Only call notification service for successfully processed events
     const successfulEvents: Array<ScheduledMaintenance> =
       scheduledEvents.filter((event: ScheduledMaintenance) => {
-        return event.isVisibleOnStatusPage;
+        return (
+          event.isVisibleOnStatusPage &&
+          !eventIdsOfBlockedProjects.has(event.id!.toString())
+        );
       });
 
     if (successfulEvents.length > 0) {

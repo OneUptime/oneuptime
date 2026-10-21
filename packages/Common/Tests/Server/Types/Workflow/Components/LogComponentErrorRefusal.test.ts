@@ -1,0 +1,369 @@
+import logComponentError, {
+  buildTemplateColumnHint,
+  describeRefusal,
+} from "../../../../../Server/Types/Workflow/Components/BaseModel/LogComponentError";
+import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
+import ColumnWriteRefusedException from "../../../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
+import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import CallerPlan from "../../../../../Server/Utils/Billing/CallerPlan";
+import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import Team from "../../../../../Models/DatabaseModels/Team";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import ObjectID from "../../../../../Types/ObjectID";
+import { describe, expect, jest, test } from "@jest/globals";
+
+jest.mock("../../../../../Server/Utils/Logger");
+
+/*
+ * WHAT A REFUSED STEP SAYS.
+ *
+ * A step acts as a Project Admin of its project, on its plan
+ * (WorkflowPrincipal). When the checks refuse it, the run log says so in
+ * plain words - naming the step, saying why in terms a workflow author can
+ * act on - before the reason the check itself gave. A refusal is told by its
+ * type, never by its words. Any other failure is logged as it always was.
+ */
+
+const STEP: string = "Update One Project";
+const REFUSED: string = `"${STEP}" was refused. Workflow steps can do only what a Project Admin of this project can do: `;
+
+// What ColumnPermissions throws when a step writes `column` of a Team.
+function teamColumnRefusal(column: string): unknown {
+  const team: Team = new Team();
+  (team as unknown as Record<string, unknown>)[column] = false;
+
+  try {
+    ColumnPermissions.checkDataColumnPermissions(
+      Team,
+      team,
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: ObjectID.generate(),
+        workflowId: ObjectID.generate(),
+      }),
+      DatabaseRequestType.Update,
+    );
+  } catch (error) {
+    return error;
+  }
+
+  return null;
+}
+
+describe("describeRefusal", () => {
+  test("a plan OneUptime could not confirm: the step did not run", () => {
+    expect(
+      describeRefusal({
+        error: new NotAuthorizedException(CallerPlan.PLAN_UNKNOWN_MESSAGE),
+        message: CallerPlan.PLAN_UNKNOWN_MESSAGE,
+        stepTitle: STEP,
+      }),
+    ).toBe(`"${STEP}" did not run: ${CallerPlan.PLAN_UNKNOWN_MESSAGE}`);
+  });
+
+  test("a plan that does not include it: refused because of the plan, with the plan's name", () => {
+    const message: string =
+      "Please upgrade your plan to Scale to access this feature";
+
+    expect(
+      describeRefusal({
+        error: new PaymentRequiredException(message),
+        message,
+        stepTitle: STEP,
+      }),
+    ).toBe(`"${STEP}" was refused because of this project's plan: ${message}`);
+  });
+
+  test.each([
+    [
+      "a permission it lacks",
+      new NotAuthorizedException("You do not have permission to update Team"),
+    ],
+    ["no sign-in at all", new NotAuthenticatedException("Not signed in")],
+  ])(
+    "%s: refused, as a Project Admin would be",
+    (_label: string, error: Error) => {
+      expect(
+        describeRefusal({ error, message: error.message, stepTitle: STEP }),
+      ).toBe(REFUSED + error.message);
+    },
+  );
+
+  test("a column nobody but OneUptime may write, as the column check refuses it", () => {
+    const error: unknown = teamColumnRefusal("isTeamEditable");
+
+    expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+    expect(
+      describeRefusal({
+        error,
+        message: (error as Error).message,
+        stepTitle: STEP,
+      }),
+    ).toBe(
+      REFUSED +
+        "User is not allowed to update on isTeamEditable column of Team. No permission allows it: the column is changed by the server, not by a request.",
+    );
+  });
+
+  test("bad data in the same words is no refusal: the type decides, not the words", () => {
+    const message: string =
+      "User is not allowed to update on isTeamEditable column of Team";
+
+    expect(
+      describeRefusal({
+        error: new BadDataException(message),
+        message,
+        stepTitle: STEP,
+      }),
+    ).toBeNull();
+  });
+
+  test("any other failure is no refusal", () => {
+    expect(
+      describeRefusal({
+        error: new BadDataException("Name is required"),
+        message: "Name is required",
+        stepTitle: STEP,
+      }),
+    ).toBeNull();
+    expect(
+      describeRefusal({
+        error: new Error("connection reset"),
+        message: "connection reset",
+        stepTitle: STEP,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("logComponentError", () => {
+  test("a refused step's log line names the step and says why", () => {
+    const lines: Array<unknown> = [];
+    const error: NotAuthorizedException = new NotAuthorizedException(
+      "You do not have permission to update Team",
+    );
+
+    logComponentError({
+      error,
+      model: new Monitor(),
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+      stepTitle: STEP,
+    });
+
+    expect(lines).toEqual([
+      "Error running component",
+      REFUSED + "You do not have permission to update Team",
+    ]);
+  });
+
+  test("without the step's title, the reason is logged as it always was", () => {
+    const lines: Array<unknown> = [];
+
+    logComponentError({
+      error: new NotAuthorizedException("You do not have permission"),
+      model: null,
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+    });
+
+    expect(lines).toEqual([
+      "Error running component",
+      "You do not have permission",
+    ]);
+  });
+});
+
+/*
+ * What it hands back: everything it logged after "Error running component",
+ * as one paragraph. A database step returns it as the reason it took its
+ * Error output, which the run window's Steps view shows under that output -
+ * the step's error used to be only in the Full Log.
+ */
+describe("the reason logComponentError hands back", () => {
+  type Logged = { lines: Array<unknown>; reason: string };
+
+  function logged(data: {
+    error: unknown;
+    model: Incident | Monitor | null;
+    stepTitle?: string | undefined;
+  }): Logged {
+    const lines: Array<unknown> = [];
+
+    const reason: string = logComponentError({
+      error: data.error,
+      model: data.model,
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+      stepTitle: data.stepTitle,
+    });
+
+    return { lines, reason };
+  }
+
+  test("the message, as it was logged", () => {
+    const result: Logged = logged({
+      error: new BadDataException(
+        'Invalid ID for "currentMonitorStatusId" in the data: "abc".',
+      ),
+      model: new Monitor(),
+      stepTitle: "Create One Monitor",
+    });
+
+    expect(result.reason).toBe(
+      'Invalid ID for "currentMonitorStatusId" in the data: "abc".',
+    );
+    expect(result.lines).toEqual(["Error running component", result.reason]);
+  });
+
+  test("a refusal in the words the run log gave it", () => {
+    const result: Logged = logged({
+      error: new NotAuthorizedException(
+        "You do not have permission to update Team",
+      ),
+      model: new Monitor(),
+      stepTitle: STEP,
+    });
+
+    expect(result.reason).toBe(
+      REFUSED + "You do not have permission to update Team",
+    );
+  });
+
+  test("a message and its tip, as one paragraph in the order they were logged", () => {
+    const result: Logged = logged({
+      error: new Error(
+        'Property "currentStatus" was not found in "Monitor". Make sure your query is correct.',
+      ),
+      model: new Monitor(),
+      stepTitle: "Update One Monitor",
+    });
+
+    expect(result.lines).toHaveLength(3);
+    expect(result.lines[2]).toContain(
+      'Tip: "currentStatus" is not a column on Monitor.',
+    );
+    expect(result.reason).toBe(`${result.lines[1]} ${result.lines[2]}`);
+  });
+
+  test("a refusal and the template tip after it", () => {
+    const error: unknown = new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "createdIncidentTemplateId",
+      modelName: "Incident",
+    });
+
+    const result: Logged = logged({
+      error: error,
+      model: new Incident(),
+      stepTitle: "Create One Incident",
+    });
+
+    expect(result.lines).toHaveLength(3);
+    expect(result.reason).toBe(`${result.lines[1]} ${result.lines[2]}`);
+    expect(result.reason).toContain(
+      "pick the template under Incident Template on this step",
+    );
+  });
+
+  test("an error that is no Error at all, as the JSON it was logged as", () => {
+    const result: Logged = logged({
+      error: { code: "ECONNRESET" },
+      model: null,
+    });
+
+    expect(result.reason).toBe(JSON.stringify({ code: "ECONNRESET" }, null, 2));
+  });
+});
+
+/*
+ * A Create One Incident step that still declares from a template the way it
+ * did before steps acted as a Project Admin - createdIncidentTemplateId in
+ * its JSON Object - is refused for that column, and the run log points at
+ * the step's Incident Template setting. Told by the refusal's type and its
+ * column, never by its words.
+ */
+describe("buildTemplateColumnHint", () => {
+  const TIP: string =
+    'Tip: to declare the Incident from a template, pick the template under Incident Template on this step, and take "createdIncidentTemplateId" out of JSON Object.';
+
+  function refusalOf(columnName: string, modelName: string): unknown {
+    return new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: columnName,
+      modelName: modelName,
+    });
+  }
+
+  test("the template column of an incident: the step's setting", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Incident"),
+        model: new Incident(),
+      }),
+    ).toBe(TIP);
+  });
+
+  test("any other refused column of an incident: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("isOwnerNotifiedOfResourceCreation", "Incident"),
+        model: new Incident(),
+      }),
+    ).toBeNull();
+  });
+
+  test("a record with no template setting: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Team"),
+        model: new Team(),
+      }),
+    ).toBeNull();
+  });
+
+  test("the same words in another kind of error: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: new BadDataException(
+          "User is not allowed to create on createdIncidentTemplateId column of Incident",
+        ),
+        model: new Incident(),
+      }),
+    ).toBeNull();
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Incident"),
+        model: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("the run log says it after the refusal", () => {
+    const lines: Array<unknown> = [];
+    const error: unknown = refusalOf("createdIncidentTemplateId", "Incident");
+
+    logComponentError({
+      error,
+      model: new Incident(),
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+      stepTitle: "Create One Incident",
+    });
+
+    expect(lines).toEqual([
+      "Error running component",
+      '"Create One Incident" was refused. Workflow steps can do only what a Project Admin of this project can do: ' +
+        (error as Error).message,
+      TIP,
+    ]);
+  });
+});

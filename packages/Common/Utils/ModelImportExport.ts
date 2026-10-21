@@ -27,6 +27,19 @@ const SYSTEM_COLUMNS: Array<string> = [
 ];
 
 /*
+ * Lifecycle state rather than configuration. An export is a copy of a
+ * resource to recreate somewhere else; whether the original happens to be
+ * archived right now is not part of that, and an import that quietly created
+ * archived - hidden, never-running - resources would look like an import
+ * that lost them.
+ */
+const LIFECYCLE_STATE_COLUMNS: Array<string> = [
+  "isArchived",
+  "archivedAt",
+  "archivedByUserId",
+];
+
+/*
  * Column types that never make sense in an export file: relations to other
  * entities (their ids would not resolve in another project or instance),
  * binary data, and secrets.
@@ -94,6 +107,10 @@ export default class ModelImportExport {
 
     for (const columnName of model.getTableColumns().columns) {
       if (SYSTEM_COLUMNS.includes(columnName)) {
+        continue;
+      }
+
+      if (LIFECYCLE_STATE_COLUMNS.includes(columnName)) {
         continue;
       }
 

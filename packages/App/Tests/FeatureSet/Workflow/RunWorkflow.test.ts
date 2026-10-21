@@ -14,6 +14,11 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import logger from "Common/Server/Utils/Logger";
+import Components from "Common/Server/Types/Workflow/Components/Index";
+import ComponentCode, {
+  RunOptions,
+  RunReturnType,
+} from "Common/Server/Types/Workflow/ComponentCode";
 import RunWorkflow, {
   WORKFLOW_LOG_REDACTED_VALUE,
   RunStack,
@@ -29,6 +34,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -328,6 +334,8 @@ describe("getRemainingWorkflowTimeInMs", () => {
 
 describe("RunWorkflow sensitive logging and deadlines", () => {
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
@@ -513,5 +521,208 @@ describe("RunWorkflow sensitive logging and deadlines", () => {
     expect(persisted.workflowStatus).toBe(WorkflowStatus.Timeout);
     expect(persisted.logs).toContain("Workflow Timed out.");
     expect(persisted.logs).not.toContain("Executing Component");
+  });
+});
+
+/*
+ * A step acts as a Project Admin of the workflow's project and as no person
+ * (WorkflowPrincipal), so what it changes is attributed to the workflow: the
+ * runner hands every step the workflow it belongs to - its project, its id
+ * and its name.
+ */
+describe("RunWorkflow hands each step the workflow it runs for", () => {
+  const registry: Record<string, ComponentCode | undefined> =
+    Components as unknown as Record<string, ComponentCode | undefined>;
+
+  beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    delete registry["TestWorkflowComponent"];
+    jest.restoreAllMocks();
+  });
+
+  test("by project, id and name", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    const named: Workflow = workflow();
+    named.name = "Close stale incidents";
+    jest
+      .spyOn(
+        WorkflowService as unknown as WorkflowServiceForTest,
+        "findOneById",
+      )
+      .mockResolvedValue(named);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(received).toBeDefined();
+    expect(received!.workflowName).toBe("Close stale incidents");
+    expect(received!.workflowId.toString()).toBe(WORKFLOW_ID.toString());
+    expect(received!.projectId.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("a workflow with no name gives its steps none", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(received).toBeDefined();
+    expect(received!.workflowName).toBeUndefined();
+  });
+
+  /*
+   * A step is lent no read of a setting that holds credentials, whoever
+   * saved the workflow (RunbookCredentialReaders): the runner reads the
+   * steps it runs, and nobody who saved them, and hands a step nothing to
+   * be answered for instead.
+   */
+  test("reads the steps it runs, and nobody who saved them", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    const read: RecordedSpy = jest
+      .spyOn(
+        WorkflowService as unknown as WorkflowServiceForTest,
+        "findOneById",
+      )
+      .mockResolvedValue(workflow()) as unknown as RecordedSpy;
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    const select: Record<string, unknown> = (
+      read.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+    expect(select["graph"]).toBe(true);
+    expect(
+      Object.keys(select).filter((column: string): boolean => {
+        return column.startsWith("lastSaved");
+      }),
+    ).toEqual([]);
+
+    expect(received).toBeDefined();
+    expect(Object.keys(received!).sort()).toEqual(
+      [
+        // The step's own settings, as saved: no person in them either.
+        "configuredArguments",
+        "executeWorkflow",
+        "getRemainingExecutionTimeInMs",
+        "log",
+        "onError",
+        "projectId",
+        "workflowId",
+        "workflowLogId",
+        "workflowName",
+      ].sort(),
+    );
+  });
+
+  /*
+   * A step that names something after its settings - a Switch / Case names
+   * its outputs after its cases - reads them as configured: what the canvas
+   * shows, {{...}} and all, never the values a run resolved them to.
+   */
+  test("hands each step its settings as configured, before any {{...}} in them was resolved", async () => {
+    let received: RunOptions | undefined = undefined;
+    let receivedArgs: JSONObject | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        receivedArgs = args;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = {
+      ...node(metadata({ arguments: [argument("message")] })),
+      arguments: { message: "Hello {{local.variables.NAME}}" },
+    };
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: {
+        local: { variables: { NAME: "Ada" }, components: {} },
+        global: { variables: {} },
+      },
+      variables: [],
+    });
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(receivedArgs!["message"]).toBe("Hello Ada");
+    expect(received!.configuredArguments).toEqual({
+      message: "Hello {{local.variables.NAME}}",
+    });
   });
 });

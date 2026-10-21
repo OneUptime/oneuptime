@@ -99,7 +99,7 @@ const BUCKETS: Array<HistogramBucket> = [
   { time: LAST_BUCKET, series: "ok", count: 9 },
 ];
 
-const ZOOM_OUT_HINT: string = "Double-click to zoom out";
+const ZOOM_OUT_HINT: string = "Double-click to reset";
 
 function bucketAt(time: string): HTMLElement {
   return screen.getByTestId(`bucket-${time}`);

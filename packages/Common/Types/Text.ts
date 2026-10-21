@@ -1,3 +1,5 @@
+import { splitCapitalRunsBeforeWords } from "../Utils/CapitalRuns";
+
 export default class Text {
   public static convertBase64ToHex(textInBase64: string): string {
     if (!textInBase64) {
@@ -85,15 +87,13 @@ export default class Text {
       return text;
     }
 
-    return (
-      text
-        // "maskAll" / "v2Recorder" -> "mask All" / "v2 Recorder"
-        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-        // "OIDCProvider" -> "OIDC Provider"; the run keeps its own casing.
-        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-        .replace(/\s+/g, " ")
-        .trim()
-    );
+    // "maskAll" / "v2Recorder" -> "mask All" / "v2 Recorder"
+    const wordsSplit: string = text.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+    // "OIDCProvider" -> "OIDC Provider"; the run keeps its own casing.
+    return splitCapitalRunsBeforeWords(wordsSplit, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   public static getFirstWord(text: string): string {

@@ -1,5 +1,7 @@
 import {
   DEFAULT_DOCS_LANGUAGE,
+  DocsLanguageDirection,
+  getDocsLanguageDirection,
   isSupportedDocsLanguage,
   makeT,
   SUPPORTED_DOCS_LANGUAGES,
@@ -23,6 +25,8 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 export interface ReferenceRenderContext {
   lang: string;
+  /** Which way the language is written; set on <html> as `dir`. */
+  dir: DocsLanguageDirection;
   t: TranslateFn;
   supportedLanguages: typeof SUPPORTED_DOCS_LANGUAGES;
   currentPath: string;
@@ -120,6 +124,7 @@ export function buildRenderContext(
 
   return {
     lang: lang,
+    dir: getDocsLanguageDirection(lang),
     t: makeT(lang),
     supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
     currentPath: req.originalUrl,

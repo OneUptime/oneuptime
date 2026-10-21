@@ -5,6 +5,8 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -34,17 +36,101 @@ import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
 import SlackChannelsCard from "./SlackChannelsCard";
+import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
+import ConnectCallbackNotice, {
+  ConnectCallbackNoticeState,
+  useConnectCallbackNotice,
+} from "../Workspace/ConnectCallbackNotice";
+import {
+  CONNECT_REQUEST_QUERY_PARAM,
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectProvider,
+  ConnectStartPage,
+} from "Common/Types/Workspace/ConnectCallback";
+import ConnectRequestNotice, {
+  ConnectRequestConnecting,
+  ConnectRequestState,
+  useConnectRequest,
+} from "../Workspace/ConnectRequestNotice";
+import UninstallWorkspaceConfirm, {
+  MANAGE_WORKSPACE_CONNECTION,
+} from "../Workspace/UninstallWorkspaceConfirm";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * What each card of the Slack settings says. The project's card (Project
+ * Settings only) and your own are apart: installing the app is the
+ * project's, connecting your account is yours.
+ */
+export const CONNECT_WITH_SLACK_DESCRIPTION: string = translationKey(
+  "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.",
+);
+
+export const SLACK_INSTALLED_IN_WORKSPACE_TITLE: string = translationKey(
+  "OneUptime is installed in the {{team}} Slack workspace",
+);
+
+export const SLACK_INSTALLED_TITLE: string = translationKey(
+  "OneUptime is installed in Slack",
+);
+
+export const SLACK_INSTALLED_DESCRIPTION: string = translationKey(
+  "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.",
+);
+
+export const YOUR_SLACK_ACCOUNT_CONNECTED_TITLE: string = translationKey(
+  "Your Slack account is connected",
+);
+
+export const YOUR_SLACK_ACCOUNT_CONNECTED_DESCRIPTION: string = translationKey(
+  "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.",
+);
+
+export const SLACK_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
+  "Slack is not connected to this project yet",
+);
+
+export const SLACK_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
+  translationKey(
+    "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
+  );
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
   hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
+  /*
+   * The page this is on, which Slack sends the browser back to: the
+   * project's settings unless said otherwise.
+   */
+  startPage?: ConnectStartPage | undefined;
 }
 
 const SlackIntegration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
+
+  const translator: Translator = useTranslator();
+
+  // What a connection that came back unmade says (?error=).
+  const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
+    provider: ConnectProvider.Slack,
+  });
+
+  /*
+   * A Connect button pressed in Slack (?connect=), and what became of the
+   * press once the account was connected (?pressed=); or a note's Connect
+   * Slack account link (?connectAccount=).
+   */
+  const connectRequest: ConnectRequestState = useConnectRequest({
+    provider: ConnectProvider.Slack,
+  });
+
+  // On its way to Slack to sign in, for a Connect button pressed there.
+  const [isConnectingFromSlack, setIsConnectingFromSlack] =
+    React.useState<boolean>(false);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -61,6 +147,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
   const [showChannelsModal, setShowChannelsModal] =
     React.useState<boolean>(false);
+
+  // Uninstalling, asked first (UninstallWorkspaceConfirm).
+  const [isUninstallConfirmOpen, setIsUninstallConfirmOpen] =
+    React.useState<boolean>(false);
+  const [isUninstalling, setIsUninstalling] = React.useState<boolean>(false);
+  const [uninstallError, setUninstallError] = React.useState<string>("");
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -152,60 +244,166 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    // if this page has aqueryn param with error, then there was the error in authentication.
-    const error: string | null = Navigation.getQueryStringByName("error");
-
-    if (error) {
-      setError(
-        <div>
-          There was an error while connecting with Slack. Please try again.
-        </div>,
-      );
-      return;
-    }
-
+    /*
+     * A connection that came back unmade is said above the page
+     * (connectCallback), which loads as usual, its Connect button right
+     * there to try again.
+     */
     loadItems().catch((error: Exception) => {
       setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
     });
   }, []);
 
+  /*
+   * Starts "sign in with Slack" for the press a Connect button in Slack
+   * stands for (`connect`), and takes the browser there. A press that can no
+   * longer be used - spent, or expired - is answered by the server with a
+   * 400: the page says so, its own Connect button right below. Without a
+   * token (a note's Connect Slack account link) it is the sign-in the
+   * page's own Connect button starts.
+   */
+  type StartSignInFromSlackFunction = (token: string | null) => Promise<void>;
+
+  const startSignInFromSlack: StartSignInFromSlackFunction = async (
+    token: string | null,
+  ): Promise<void> => {
+    const signInUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute("/slack/sign-in-url")
+      .addQueryParam(
+        CONNECT_START_PAGE_QUERY_PARAM,
+        props.startPage || ConnectStartPage.ProjectSettings,
+      );
+
+    if (token) {
+      signInUrl.addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token);
+    }
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: signInUrl,
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      if (token && response.statusCode === 400) {
+        setIsConnectingFromSlack(false);
+        connectRequest.markLinkGone(isUserAccountConnected);
+        return;
+      }
+
+      throw response;
+    }
+
+    const authorizationUrl: string | undefined = (response.data as JSONObject)[
+      "authorizationUrl"
+    ] as string | undefined;
+
+    if (!authorizationUrl) {
+      throw new Error(
+        "OneUptime could not start the Slack connection. Please try again.",
+      );
+    }
+
+    Navigation.navigate(URL.fromString(authorizationUrl));
+  };
+
+  /*
+   * Opened from a Connect button in Slack: the account is connected straight
+   * away - the sign-in starts on its own, carrying the press, so the person
+   * presses nothing more here. Only once the page knows the project is
+   * connected to Slack; otherwise the page shows itself as usual.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectToken) {
+      return;
+    }
+
+    const token: string = connectRequest.connectToken;
+    connectRequest.takeToken();
+
+    if (!isProjectAccountConnected || !SlackAppClientId) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    /*
+     * A start that fails is said above the page, which shows as usual: its
+     * own Connect button is right there to try again.
+     */
+    startSignInFromSlack(token).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
+    });
+  }, [isLoading, isProjectAccountConnected]);
+
+  /*
+   * Opened from the Connect Slack account link in a Slack channel's note
+   * (the people OneUptime could not add to it): somebody whose account is
+   * not connected yet is taken to Slack to connect it straight away.
+   * Somebody connected already sees the page as usual - it says so - and
+   * so does everybody while the project itself is not connected to Slack.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectAccount) {
+      return;
+    }
+
+    connectRequest.takeConnectAccount();
+
+    if (
+      // A Connect button's press, opened with it, signs in for that press.
+      connectRequest.connectToken ||
+      isUserAccountConnected ||
+      !isProjectAccountConnected ||
+      !SlackAppClientId
+    ) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    startSignInFromSlack(null).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
+    });
+  }, [isLoading, isProjectAccountConnected, isUserAccountConnected]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
+  if (isConnectingFromSlack) {
+    return <ConnectRequestConnecting provider={ConnectProvider.Slack} />;
+  }
+
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <ConnectRequestNotice state={connectRequest} />
+        <ErrorMessage message={error} />
+      </Fragment>
+    );
   }
 
   let cardTitle: string = "";
   let cardDescription: string = "";
   let cardButtons: Array<CardButtonSchema> = [];
 
-  // if user and project both connected with slack, then.
+  /*
+   * Your own Slack account, connected: what that lets you do, and how to
+   * undo it. The project's own connection - its channels, uninstalling the
+   * app - is the card above this one, on Project Settings only.
+   */
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with ${slackTeamName} team on Slack`;
-    cardDescription = `Your account is already connected with Slack.`;
+    cardTitle = YOUR_SLACK_ACCOUNT_CONNECTED_TITLE;
+    cardDescription = YOUR_SLACK_ACCOUNT_CONNECTED_DESCRIPTION;
     cardButtons = [
-      {
-        title: `View Channels`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.NORMAL,
-        onClick: async () => {
-          try {
-            setError(null);
-            setShowChannelsModal(true);
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-        },
-        icon: IconProp.Slack,
-      },
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
+        buttonStyle: ButtonStyleType.DANGER_OUTLINE,
         onClick: async () => {
           try {
             setIsButtonLoading(true);
@@ -253,7 +451,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute(route),
+          // Slack sends the browser back to this page.
+          url: URL.fromURL(APP_API_URL)
+            .addRoute(route)
+            .addQueryParam(
+              CONNECT_START_PAGE_QUERY_PARAM,
+              props.startPage || ConnectStartPage.ProjectSettings,
+            ),
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -340,78 +544,169 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     };
   };
 
-  // if user is not connected and the project is connected with slack.
+  /*
+   * The project is connected to Slack, the person is not: what to do, as
+   * the Setup Checklist says it, and the workspace to sign in to. A Connect
+   * button that expired, or a sign-in that could not start, points here.
+   */
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in ${slackTeamName} team)`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardTitle = "Connect your Slack account";
+    cardDescription = slackTeamName
+      ? translator.translateTemplate(
+          "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
+          { team: slackTeamName },
+        )
+      : "Acknowledge incidents and get messages from OneUptime as yourself, in Slack.";
     cardButtons = [
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),
-      {
-        title: `View Channels`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.NORMAL,
-        onClick: async () => {
-          try {
-            setError(null);
-            setShowChannelsModal(true);
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-        },
-        icon: IconProp.Slack,
-      },
-      {
-        title: `Uninstall OneUptime from Slack`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
-        onClick: async () => {
-          try {
-            setIsButtonLoading(true);
-            setError(null);
-            if (projectAuthTokenId) {
-              await ModelAPI.deleteItem({
-                modelType: WorkspaceProjectAuthToken,
-                id: projectAuthTokenId!,
-              });
-
-              setIsProjectAccountConnected(false);
-              setWorkspaceProjectAuthTokenId(null);
-            } else {
-              setError(
-                <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
-                </div>,
-              );
-            }
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-          setIsButtonLoading(false);
-        },
-        icon: IconProp.Trash,
-      },
     ];
   }
 
+  /*
+   * Uninstalls the app from the project's Slack workspace, once asked
+   * (UninstallWorkspaceConfirm). A failure is said in the dialog, which
+   * stays open to try again.
+   */
+  const uninstallFromSlack: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsUninstalling(true);
+      setUninstallError("");
+
+      if (!projectAuthTokenId) {
+        setUninstallError(
+          translator.translateText(
+            "Looks like the project auth token id is not set properly. Please try again.",
+          ) || "",
+        );
+        return;
+      }
+
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+      });
+
+      setIsUninstallConfirmOpen(false);
+      setIsProjectAccountConnected(false);
+      setWorkspaceProjectAuthTokenId(null);
+      /*
+       * Uninstalling unlinks every member's Slack account too
+       * (WorkspaceProjectAuthTokenService), yours included.
+       */
+      setIsUserAccountConnected(false);
+      setWorkspaceUserAuthTokenId(null);
+
+      /*
+       * Every Workspace menu in the project lists only connected
+       * workspaces: ask again, so they stop listing this one.
+       */
+      ConnectedWorkspaces.refresh().catch(() => {
+        // A failed request leaves the menus as they were.
+      });
+    } catch (error) {
+      setUninstallError(API.getFriendlyErrorMessage(error as Exception));
+    } finally {
+      setIsUninstalling(false);
+    }
+  };
+
+  /*
+   * The project's connection to Slack, on Project Settings: which
+   * workspace, and - in its ⋯, whether or not your own account is
+   * connected - the channel list and uninstalling the app. Neither is a
+   * step anybody comes to the page for, so neither is a button: the card
+   * asks nothing of you, and the Connect button under it stays the page's
+   * one main action.
+   */
+  const projectCardActions: Array<ReactElement> = [
+    <CardMoreMenu
+      key="slack-project-actions"
+      ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
+        workspace: "Slack",
+      })}
+      dataTestId="slack-project-actions"
+    >
+      {[
+        <MoreMenuItem
+          key="view-channels"
+          text="View Channels"
+          icon={IconProp.Slack}
+          dataTestId="slack-view-channels"
+          onClick={() => {
+            setError(null);
+            setShowChannelsModal(true);
+          }}
+        />,
+        <MoreMenuItem
+          key="uninstall"
+          text="Uninstall OneUptime from Slack"
+          icon={IconProp.Trash}
+          isDestructive={true}
+          dataTestId="slack-uninstall"
+          onClick={() => {
+            setUninstallError("");
+            setIsUninstallConfirmOpen(true);
+          }}
+        />,
+      ]}
+    </CardMoreMenu>,
+  ];
+
   if (!isProjectAccountConnected) {
     cardTitle = `Connect with Slack`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardDescription = CONNECT_WITH_SLACK_DESCRIPTION;
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
   }
 
+  /*
+   * Your own settings, before anybody connected the project: installing the
+   * app into a Slack workspace is for the project's settings, not for a
+   * personal page.
+   */
+  if (!isProjectAccountConnected && props.hideProjectCards) {
+    cardTitle = SLACK_NOT_CONNECTED_TO_PROJECT_TITLE;
+    cardDescription = SLACK_NOT_CONNECTED_TO_PROJECT_DESCRIPTION;
+    cardButtons = [];
+  }
+
   if (!SlackAppClientId) {
-    return <SlackIntegrationDocumentation manifest={manifest as JSONObject} />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <SlackIntegrationDocumentation manifest={manifest as JSONObject} />
+      </Fragment>
+    );
   }
 
   return (
     <Fragment>
-      <div>
+      <ConnectCallbackNotice state={connectCallback} />
+      <ConnectRequestNotice state={connectRequest} />
+
+      {isProjectAccountConnected && !props.hideProjectCards && (
+        <div data-testid="slack-project-connection">
+          <Card
+            title={
+              slackTeamName
+                ? translator.translateTemplate(
+                    SLACK_INSTALLED_IN_WORKSPACE_TITLE,
+                    { team: slackTeamName },
+                  )
+                : SLACK_INSTALLED_TITLE
+            }
+            description={SLACK_INSTALLED_DESCRIPTION}
+            buttons={projectCardActions}
+          />
+        </div>
+      )}
+
+      <div
+        data-testid="slack-your-account"
+        className={
+          isProjectAccountConnected && !props.hideProjectCards ? "mt-6" : ""
+        }
+      >
         <Card
           title={cardTitle}
           description={cardDescription}
@@ -429,6 +724,23 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         <SlackChannelCacheModal
           onClose={() => {
             return setShowChannelsModal(false);
+          }}
+        />
+      ) : null}
+
+      {isUninstallConfirmOpen && isProjectAccountConnected ? (
+        <UninstallWorkspaceConfirm
+          workspaceName="Slack"
+          isUninstalling={isUninstalling}
+          error={uninstallError}
+          onClose={() => {
+            setIsUninstallConfirmOpen(false);
+            setUninstallError("");
+          }}
+          onConfirm={() => {
+            uninstallFromSlack().catch((error: Exception) => {
+              setUninstallError(API.getFriendlyErrorMessage(error));
+            });
           }}
         />
       ) : null}

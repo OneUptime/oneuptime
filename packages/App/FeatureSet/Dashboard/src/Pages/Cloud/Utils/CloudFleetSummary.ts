@@ -1,6 +1,7 @@
 import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "./CloudResourceTelemetryScope";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The numbers behind the stat strip at the top of the Cloud Environments
@@ -83,7 +84,9 @@ export function summarizeCloudFleet(
 
   const connectedShare: string =
     total > 0
-      ? `${Math.round((connected / total) * 100)}% of environments`
+      ? translateTemplate("{{percent}}% of environments", {
+          percent: Math.round((connected / total) * 100),
+        })
       : "";
 
   return [
@@ -113,7 +116,9 @@ export function summarizeCloudFleet(
     {
       title: "Live instances",
       value: formatCount(counts.liveInstances),
-      sublabel: `seen in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
+      sublabel: translateTemplate("seen in the last {{minutes}} min", {
+        minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+      }),
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances,
     },
   ];

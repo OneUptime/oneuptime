@@ -6,11 +6,15 @@ import {
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import ProbeUtil from "../Utils/Probe";
 import Express, {
+  ExpressApplication,
+  ExpressJson,
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  ExpressUrlEncoded,
   NextFunction,
   RequestHandler,
+  createExpressApp,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -40,12 +44,27 @@ const HOP_BY_HOP_HEADERS: Set<string> = new Set([
   "upgrade",
 ]);
 
+/*
+ * Content-Encoding describes the body as it arrived. The listener inflates a
+ * gzip or deflate body while it parses it, and the forward sends the parsed
+ * body, uncompressed - so a copied "Content-Encoding: gzip" would make
+ * OneUptime try to gunzip plain JSON, refuse the request, and the heartbeat
+ * would be retried and then dropped.
+ */
+const BODY_ENCODING_HEADERS: Set<string> = new Set(["content-encoding"]);
+
+// The largest JSON or form body the listener reads: OneUptime's own limit.
+export const INGRESS_BODY_LIMIT: string = "50mb";
+
 function buildForwardHeaders(
   incoming: Dictionary<string | string[] | undefined>,
 ): Headers {
   const headers: Headers = {};
   for (const key of Object.keys(incoming)) {
-    if (HOP_BY_HOP_HEADERS.has(key.toLowerCase())) {
+    if (
+      HOP_BY_HOP_HEADERS.has(key.toLowerCase()) ||
+      BODY_ENCODING_HEADERS.has(key.toLowerCase())
+    ) {
       continue;
     }
     const value: string | string[] | undefined = incoming[key];
@@ -55,6 +74,25 @@ function buildForwardHeaders(
     headers[key] = Array.isArray(value) ? value.join(", ") : value;
   }
   return headers;
+}
+
+/*
+ * Where a forwarded request goes: the App's incoming-request route under its
+ * "/incoming-request-ingest" prefix. The bare "/incoming-request/<key>" is
+ * served by the App too, but nginx has no location for it: on an
+ * installation with billing on, such as OneUptime Cloud, its catch-all
+ * sends that path to the marketing site, which answers 404, so every
+ * forward failed. "/incoming-request-ingest" is routed to the App by nginx
+ * on every installation, and the App mounts the router under it as well, so
+ * the same path also works for a probe whose ONEUPTIME_URL names the App
+ * directly (the Helm chart's own probes). The public "/heartbeat" path would
+ * not: nginx rewrites it, and the App itself does not serve it.
+ */
+export function getForwardUrl(secretKey: string): URL {
+  return URL.fromString(ONEUPTIME_BASE_URL.toString())
+    .addRoute("/incoming-request-ingest")
+    .addRoute("/incoming-request")
+    .addRoute(`/${secretKey}`);
 }
 
 function getRequestBody(req: ExpressRequest): JSONObject | JSONArray {
@@ -133,9 +171,7 @@ const forwardToOneUptime: RequestHandler = (
       return;
     }
 
-    const forwardUrl: URL = URL.fromString(ONEUPTIME_BASE_URL.toString())
-      .addRoute("/incoming-request")
-      .addRoute(`/${secretKey}`);
+    const forwardUrl: URL = getForwardUrl(secretKey);
 
     const headers: Headers = buildForwardHeaders(
       req.headers as Dictionary<string | string[] | undefined>,
@@ -172,5 +208,22 @@ router.post("/incoming-request/:secretkey", forwardToOneUptime);
 router.get("/incoming-request/:secretkey", forwardToOneUptime);
 router.post("/heartbeat/:secretkey", forwardToOneUptime);
 router.get("/heartbeat/:secretkey", forwardToOneUptime);
+
+/*
+ * The listener's own app, on its own port. It reads the bodies OneUptime
+ * reads - JSON and forms, up to the same 50 MB - and nothing else, so a
+ * request through the probe reaches the monitor as it would have directly:
+ * any other body arrives empty, whatever its size. (It used to read
+ * application/octet-stream bodies too, under express.raw's 100 KB default,
+ * which answered a larger one with 413 instead of the promised 200; and
+ * OneUptime drops such a body anyway.)
+ */
+export function createIngressApp(): ExpressApplication {
+  const app: ExpressApplication = createExpressApp();
+  app.use(ExpressJson({ limit: INGRESS_BODY_LIMIT }));
+  app.use(ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT }));
+  app.use(router);
+  return app;
+}
 
 export default router;

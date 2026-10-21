@@ -272,7 +272,7 @@ export default class StatusPageCustomField extends BaseModel {
     type: TableColumnType.VeryLongText,
     title: "Dropdown Options",
     description:
-      "Options and optional colors for dropdown fields. Plain one-per-line values remain supported.",
+      'Options and optional colors for dropdown fields, in the order they are listed. Plain one-per-line values remain supported. Records store an option as its text: changing an option here keeps the values records already hold. To rename an option and move those values with it, send the renames with the update, in miscDataProps: {"renamedDropdownOptions": [{"from": "Old text", "to": "New text"}]}. "to" must be one of the options.',
     example: "Option 1\nOption 2\nOption 3",
   })
   @Column({

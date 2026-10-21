@@ -2,7 +2,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import crypto, { KeyObject } from "crypto";
 import fs from "fs";
 import path from "path";
-import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
+import EnterpriseFeature, {
+  RETIRED_ENTERPRISE_FEATURE_VALUES,
+} from "Common/Server/Enterprise/EnterpriseFeature";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
@@ -385,7 +387,7 @@ describe("LicenseToken.sign", () => {
     const token: string = LicenseToken.sign(
       claimsFor({
         companyName: "A Rather Long Company Name Holdings International Ltd.",
-        features: ["sso", "scim", "team-compliance", "audit-logs", "instance-health"],
+        features: ["scim", "team-compliance", "audit-logs", "instance-health"],
         instanceId: LOCAL_INSTANCE_ID,
       }),
       SIGNING_KEY.privateKey,
@@ -770,7 +772,7 @@ describe("LicenseToken.validateClaims", () => {
     ["a string user limit", { userLimit: "50" }],
     ["a string evaluation flag", { isEvaluation: "false" }],
     ["features that are not a list", { features: "*" }],
-    ["a non-string feature", { features: ["sso", 7] }],
+    ["a non-string feature", { features: ["scim", 7] }],
     ["an empty instance id", { instanceId: "" }],
     ["a numeric instance id", { instanceId: 7 }],
     ["no expiry", { exp: undefined }],
@@ -808,13 +810,29 @@ describe("LicenseToken.toSnapshotFeatures", () => {
   test("a subset maps to features, ignoring names this build does not know", () => {
     expect(
       LicenseToken.toSnapshotFeatures([
-        "sso",
+        "audit-logs",
         "scim",
         "future-feature",
-        "sso",
+        "scim",
       ]),
-    ).toEqual([EnterpriseFeature.SSO, EnterpriseFeature.SCIM]);
+    ).toEqual([EnterpriseFeature.AuditLogs, EnterpriseFeature.SCIM]);
     expect(LicenseToken.toSnapshotFeatures([])).toEqual([]);
+  });
+
+  /*
+   * Single sign-on is part of the Community Edition, and its claim value is
+   * retired. A license issued with it still reads; the name grants nothing,
+   * and the rest of the list keeps its meaning.
+   */
+  test('the retired "sso" claim maps to no feature', () => {
+    expect(RETIRED_ENTERPRISE_FEATURE_VALUES).toContain("sso");
+    expect(LicenseToken.toSnapshotFeatures(["sso"])).toEqual([]);
+    expect(LicenseToken.toSnapshotFeatures(["sso", "scim"])).toEqual([
+      EnterpriseFeature.SCIM,
+    ]);
+    expect(
+      LicenseToken.toSnapshotFeatures(["scim", "sso", "audit-logs", "sso"]),
+    ).toEqual([EnterpriseFeature.SCIM, EnterpriseFeature.AuditLogs]);
   });
 });
 
@@ -1144,15 +1162,38 @@ describe("classifyLicenseToken: verified tokens", () => {
   test("a subset license lists only its known features", () => {
     const result: LicenseTokenClassification = classify({
       token: LicenseToken.sign(
-        claimsFor({ features: ["sso", "audit-logs", "quantum-monitoring"] }),
+        claimsFor({ features: ["scim", "audit-logs", "quantum-monitoring"] }),
         SIGNING_KEY.privateKey,
       ),
     });
 
     expect(result.features).toEqual([
-      EnterpriseFeature.SSO,
+      EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
     ]);
+  });
+
+  test('a signed license with the retired "sso" claim still verifies, and the claim entitles nothing', () => {
+    const onlySso: LicenseTokenClassification = classify({
+      token: LicenseToken.sign(
+        claimsFor({ features: ["sso"] }),
+        SIGNING_KEY.privateKey,
+      ),
+    });
+
+    expect(onlySso.status).toBe("valid");
+    expect(onlySso.verification).toBe("verified");
+    expect(onlySso.features).toEqual([]);
+
+    const ssoAndScim: LicenseTokenClassification = classify({
+      token: LicenseToken.sign(
+        claimsFor({ features: ["sso", "scim"] }),
+        SIGNING_KEY.privateKey,
+      ),
+    });
+
+    expect(ssoAndScim.status).toBe("valid");
+    expect(ssoAndScim.features).toEqual([EnterpriseFeature.SCIM]);
   });
 
   test("expiry: valid before exp, grace from exp through exp + 30 days, expired after", () => {
@@ -1603,14 +1644,15 @@ describe("classifyLicenseToken: unverified tokens", () => {
  * EnterpriseLicenseSync writes the two columns under independent presence
  * checks, and activation (LicenseClient.mapValidationResponse) writes the
  * token next to a null expiry when the response carried no expiresAt. That
- * state used to classify "invalid", which is not usable, so SSO, SCIM and
- * audit logging stopped the moment such an install upgraded - no trial, no
- * grace - for a customer whose paid license may be perfectly good.
+ * state used to classify "invalid", which is not usable, so every licensed
+ * feature stopped the moment such an install upgraded - no trial, no grace -
+ * for a customer whose paid license may be perfectly good.
  *
  * It is now treated exactly as an install with no license at all: the trial
  * counted from enterpriseEditionFirstSeenAt, then the same lapse, so the
  * outcome is a countdown instead of a cliff. If this regresses, an Enterprise
- * install with a mis-mirrored license loses single sign-on on upgrade.
+ * install with a mis-mirrored license loses SCIM provisioning and audit
+ * logging on upgrade.
  */
 describe("classifyLicenseToken: an unverified token with no recorded expiry", () => {
   const FIRST_SEEN: Date = new Date(NOW.getTime() - 3 * DAY_IN_MS);

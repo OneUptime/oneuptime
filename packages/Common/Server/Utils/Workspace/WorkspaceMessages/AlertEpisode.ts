@@ -1,14 +1,15 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
-import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackAlertEpisodeMessages from "../Slack/Messages/AlertEpisode";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class AlertEpisodeWorkspaceMessages {
   @CaptureSpan()
@@ -18,9 +19,7 @@ export default class AlertEpisodeWorkspaceMessages {
     episodeNumber: number;
     episodeNumberWithPrefix?: string;
     isPrivate?: boolean;
-  }): Promise<{
-    channelsCreated: NotificationRuleWorkspaceChannel[];
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       // we will notify the workspace about the alert episode creation with the bot tokken which is in WorkspaceProjectAuth Table.
       return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
@@ -30,8 +29,11 @@ export default class AlertEpisodeWorkspaceMessages {
             alertEpisodeId: data.alertEpisodeId,
           },
           notificationRuleEventType: NotificationRuleEventType.AlertEpisode,
-          channelNameSiffix:
-            data.episodeNumberWithPrefix || data.episodeNumber.toString(),
+          channelNameParts: WorkspaceChannelName.forNumberedRecord({
+            eventType: NotificationRuleEventType.AlertEpisode,
+            number: data.episodeNumber,
+            numberWithPrefix: data.episodeNumberWithPrefix,
+          }),
           ...(data.isPrivate ? { isPrivate: true } : {}),
         },
       );

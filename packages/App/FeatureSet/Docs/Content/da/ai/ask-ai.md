@@ -1,0 +1,124 @@
+# Spørg AI
+
+Spørg AI er OneUptimes chat over dit projekts data. Spørg om logs, traces, metrikker, undtagelser, hændelser, advarsler, monitorer, vagtordning, statussider, SLO'er, runbooks eller workflows: chatten forespørger dit projekt live, underbygger hver påstand med en kilde og handler for dig, når du tillader det.
+
+:::cards
+- [Åbn Spørg AI](#åbn-spørg-ai): Fra topbjælken, tastaturet, et diagram eller dens egen side.
+- [Hvad den kan se](#hvad-den-kan-se): De data, den læser for at svare dig.
+- [Handlinger og tilladelsestilstande](#handlinger-og-tilladelsestilstande): Vælg, om den må handle, og hvornår den spørger først.
+- [Handlinger udføres som dig](#handlinger-udføres-som-dig): Dine tilladelser, dit navn på hver ændring.
+:::
+
+## Sådan svarer Spørg AI
+
+Spørg AI svarer kun ud fra det, dens værktøjer returnerer: den kører forespørgsler mod dit projekt i stedet for at svare ud fra hukommelsen. Hvert faktum i et svar har en kildechip, der viser forespørgslen bag det og åbner de data, den læste. Når du beder den ændre noget, afgør samtalens tilladelsestilstand, om den spørger dig først.
+
+```mermaid title="Fra et spørgsmål til et underbygget svar"
+flowchart TB
+    Q["Dit spørgsmål,<br/>med den side,<br/>du står på"] --> A["Ask AI"]
+    A -->|"læseværktøjer"| D["Dit projekts data,<br/>forespurgt live"]
+    D --> R["Et svar med en<br/>kilde for hver<br/>påstand"]
+    A -->|"en handling"| M{"Tilladelses-<br/>tilstanden"}
+    M -->|"Ask to act"| C["Et godkendelseskort:<br/>du tillader eller<br/>springer over"]
+    M -->|"Auto-run"| X["Den kører,<br/>som dig"]
+    C -->|"tilladt"| X
+```
+
+I tilstanden **Skrivebeskyttet** tilbydes modellen aldrig handlingerne, så samtalen kun læser.
+
+## Åbn Spørg AI
+
+| Hvor | Hvordan |
+| --- | --- |
+| Enhver side | Klik på **Ask AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
+| Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Ask AI**. |
+| Et fejlmønster i logs eller et diagrams fund | Klik på **Explain with AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
+| Dens egen side | Åbn **Produkter → AI → Chat** for et arbejdsområde på hele siden. Hver samtale der har sin egen adresse, så du kan bogmærke en tråd eller indsætte den i en hændelseskanal. |
+
+På en hændelse eller en advarsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen: se [Tal med OneUptime AI om hændelsen](/docs/ai/ai-sre#tal-med-oneuptime-ai-om-hændelsen).
+
+## Hvad den kan se
+
+Spørg AI læser dit projekt med dine egne tilladelser, så den ser det, du må se, og intet mere.
+
+| Område | Hvad Spørg AI læser |
+| --- | --- |
+| Telemetri | Logsøgning og histogrammer, trace-aggregeringer og span-træer, metrikker, undtagelser, sikkerhedshændelser, real user monitoring og Web Vitals, nylige ændringer og anomalitjek mod indlærte baselines. |
+| Infrastruktur | Hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware vCenter, Ceph, lagersystemer, serverless-funktioner, cloudmiljøer, IoT-flåder og netværksenheder: hvad der er i inventaret, deres rapporterede forbindelsestilstand, metriktrends, antal logs pr. alvorlighed og resuméer af trace-operationer. En forespørgsel dækker både telemetri, der nævner en tjeneste, og telemetri, der nævner en infrastrukturressource. |
+| Hændelseshåndtering | Hændelser og advarsler med tilstandsfiltre ("hvad er aktivt lige nu?"), deres aktivitetstidslinjer (tilstandsskift, interne og offentlige noter, feedet) og ejere samt en søgning i tidligere hændelser for at genbruge, hvordan de blev løst. |
+| Vagter | Hvem der har vagt nu, politikker og eskaleringskæder, og om de seneste udkald blev leveret og kvitteret. |
+| AI'ens eget arbejde | Resultaterne af AI SRE-undersøgelser og AI-indsigter, så "hvad fandt AI'en?" besvares ud fra den offentliggjorte analyse i stedet for at blive udledt igen. |
+| Platform | Monitorer (med statusfiltre), planlagt vedligeholdelse, statussider og deres meddelelser, SLO'er, runbooks, workflow-kørsler, probernes sundhed, teams og koden i forbundne repositories. |
+
+## Sidekontekst
+
+Spørg AI ved, hvilken side du åbnede den fra. På en hændelsesside betyder "hvorfor skete det?" netop den hændelse, og indtastningsfeltet viser en chip med sidens emne; fjern den for at spørge om hele projektet i stedet. Går du til en anden side, mens panelet er åbent, følger konteksten med. Samtalen husker også sit første emne på serveren, så et opfølgende spørgsmål dage senere stadig forstår "denne hændelse".
+
+Infrastrukturlister og ressourcesider tilbyder spørgsmål til den slags ressource, du ser på. Åbn en Kubernetes-klynge og spørg "Hvilke metrikker har ændret sig de seneste 24 timer?", eller åbn en Docker-host og spørg "Opsummér logalvorlighed og trace-fejl de seneste seks timer." Bevislinks fører tilbage til ressourcens side. Læsninger respekterer dine tilladelser til projekt, ressourcer og telemetri, inklusive begrænsninger på ejerskab og labels.
+
+På en underside registrerer konteksten også den pod, container, VM, proces eller anden underressource, du valgte. Infrastrukturværktøjerne læser den overordnede ressources telemetri; de kan ikke måle én underressource ud fra dens navn alene. Spørg AI siger det og gætter ikke på et Kubernetes-namespace, som siden ikke angiver. En forbindelsestilstand er ikke en workloads sundhed, og manglende telemetri betyder ikke, at en ressource er sund.
+
+## Handlinger og tilladelsestilstande
+
+Hver samtale har en tilladelsestilstand, som du vælger i indtastningsfeltet ved siden af tekstboksen:
+
+| Tilstand | Hvad der sker |
+| --- | --- |
+| **Ask to act** | Standard. Spørg AI foreslår hver handling på et godkendelseskort, og intet kører, før du vælger **Allow** eller **Spring over** for den, eller **Deny all**. |
+| **Auto-run** | Handlinger kører, så snart modellen beder om dem, stadig begrænset til det, din rolle må. Brug den med omtanke. |
+| **Skrivebeskyttet** | Handlingerne tilbydes slet ikke modellen: Spørg AI kan kun læse. |
+
+Hvad Spørg AI kan gøre, når en tilstand tillader det:
+
+- Oprette en hændelse, kvittere for eller løse hændelser og advarsler og ændre en hændelses alvorlighed.
+- Skrive en intern note på en hændelse eller en advarsel. Interne noter vises aldrig på en statusside.
+- Offentliggøre en statusopdatering på en hændelse. Det er en særskilt handling, fordi den giver statussidens abonnenter besked.
+- Kalde en vagtpolitik ud, køre en runbook eller starte en AI-undersøgelse af en hændelse eller advarsel.
+- Foreslå en kodeændring: committe til en ny branch i et forbundet repository og åbne en pull request. Den skriver aldrig til standardbranchen eller en beskyttet branch, så en person stadig merger ændringen.
+
+## Handlinger udføres som dig
+
+Enhver handling, Spørg AI udfører, sker som dig: den foretager den samme ændring, som dashboardet foretager for samme handling, med dine egne tilladelser i projektet, og ændringen tilskrives dig. Kvitteres en hændelse fra chatten, opstår det samme tilstandsskift som fra hændelsens tilstandspanel, så hændelsens tidslinje og feed viser, at du ændrede dens tilstand. Et udkald sendt fra chatten viser dig som den, der udløste det.
+
+- **Hvad hver handling kræver.** Den tilladelse, dashboardet kræver for samme ændring. At kvittere for eller løse en hændelse kræver tilladelse til at ændre dens tilstand: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member**, eller **Create Incident State Timeline** i en brugerdefineret rolle; en advarsel kræver samme tilladelse for advarsler (**Create Alert State Timeline**). At kalde en vagtpolitik ud kræver tilladelse til at udføre den (**Create On-Call Duty Policy Execution Log**), og at køre en runbook kræver tilladelse til at starte runbook-kørsler: en rolle, der kører runbooks, for de runbooks, dens labels når, eller **Create Runbook Execution** i en brugerdefineret rolle, som når alle projektets runbooks. At ændre en hændelses alvorlighed, starte en AI-undersøgelse af en hændelse eller advarsel og skrive kode til et forbundet repository kræver tilladelse til at ændre den hændelse, advarsel eller det repository. En handling, du ikke må udføre, afvises, og AI'en fortæller dig, hvilken tilladelse den kræver. Har du tilladelsen, men et team, du er med i, blokerer den, fortæller AI'en dig det i stedet: en blokering på visse labels afviser handlingen i Spørg AI for alle poster, ikke kun for poster med de labels.
+- **Hvilke poster.** Dem, du må ændre, som overalt i OneUptime: med en rolle, der er begrænset til visse labels eller til de poster, du ejer, ændrer en handling på enhver anden post intet. En runbook kører kun, når din tilladelse til at starte runbook-kørsler når den. I OneUptime Cloud afvises en handling, som projektets abonnement ikke omfatter, med det abonnement, den kræver.
+- **Når en handling afvises.** Intet ændres, og AI'en siger klart, at handlingen ikke blev udført, og hvorfor, i stedet for at prøve igen.
+- **Slack, Microsoft Teams og AI-undersøgelser.** AI'ens svar i Slack og Microsoft Teams og autonome AI-undersøgelser læser kun: de udfører ingen af disse handlinger. For at handle fra Slack eller Microsoft Teams skal du bruge knapperne på OneUptimes beskeder, som også handler som dig (se [Slack](/docs/workspace-connections/slack#handl-på-hændelser-advarsler-og-begivenheder-fra-slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#handl-på-hændelser-advarsler-og-begivenheder-fra-microsoft-teams)).
+
+## Styr en samtale
+
+- **Stop den.** Mens Spørg AI arbejder, bliver send-knappen til en stopknap. Stop en kørsel når som helst, og spørg straks om noget andet.
+- **Vælg modellen.** Udbydervælgeren i indtastningsfeltet viser dit projekts LLM-udbydere og de globale, med standarden markeret. En ny samtale bruger standarden.
+- **Bedøm et svar.** **Good answer** og **Poor answer** gemmes sammen med beskeden, så svarenes kvalitet kan måles over tid.
+- **Se prisen.** Sidefoden under det nyeste svar viser dets pris, dets tokens og hvor mange forespørgsler det kørte, og hver forespørgsel er en kildechip, der åbner dataene bag den.
+- **Gem en kopi.** **Download conversation** gemmer tråden med **Download as Markdown**, til at læse eller indsætte i en sag, eller **Download as PDF**, til at give videre.
+
+## Krav
+
+- **En LLM-udbyder.** Spørg AI bruger projektets standard-LLM-udbyder (se [LLM-udbydere](/docs/ai/llm-provider)). I OneUptime Cloud virker den med det samme med den globale udbyder, betalt af projektets AI-kreditter; en selvhostet installation konfigurerer en udbyder eller miljøvariablerne for den globale udbyder. Svarene er kun så gode som modellen: en lille selvhostet model uden pålidelige værktøjskald svarer dårligt.
+- **Growth-abonnementet, i OneUptime Cloud.** Et projekt på et lavere abonnement ser, at AI ikke er med i abonnementet, med et link til **Projektindstillinger → Fakturering og fakturaer → Fakturering**.
+- **AI slået til for projektet.** **Aktivér AI** på **Projektindstillinger → AI → AI Features** slår alle projektets AI-funktioner fra, Spørg AI inklusive. Den er slået til, medmindre nogen har slået den fra.
+
+Spørg AI tæller med i projektets egne daglige AI-grænser, når projektet sætter dem (Projektindstillinger → AI → AI Features → Yderligere indstillinger): når en er nået, viser Spørg AI en sætning om, hvilken grænse der blev nået, at OneUptime AI starter igen ved midnat UTC, og hvem der kan hæve eller fjerne grænsen. Projektets ejere får en e-mail, første gang en grænse nås hver dag. De daglige grænser for hændelser og advarsler stopper aldrig Spørg AI. Se [projektets egne daglige grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser).
+
+## Fejlfinding
+
+:::details Spørg AI siger, at AI ikke er tilgængelig
+Panelet siger hvorfor, før du skriver: projektets abonnement omfatter ikke AI, **Aktivér AI** er slået fra, eller projektet har ingen LLM-udbyder. Hver besked linker til den side, hvor det ændres.
+:::
+
+:::details En handling blev afvist
+Spørg AI siger, hvilken tilladelse handlingen kræver, eller hvilket team der blokerer den. Bed en, der må foretage ændringen, eller bed en projektejer give din rolle tilladelsen. Intet blev ændret.
+:::
+
+:::details Svarene er vage eller bruger aldrig data
+Tjek modellen bag udbyderen. Spørg AI har brug for en model, der kalder værktøjer pålideligt; små lokale modeller svarer ofte uden at køre en eneste forespørgsel. Se [LLM-udbydere](/docs/ai/llm-provider).
+:::
+
+## Næste trin
+
+:::cards
+- [AI SRE](/docs/ai/ai-sre): Lad OneUptime AI undersøge hver ny hændelse og advarsel.
+- [LLM-udbydere](/docs/ai/llm-provider): Vælg den model, Spørg AI og de andre AI-funktioner bruger.
+- [MCP-server](/docs/ai/mcp-server): Spørg om OneUptime fra Claude, Cursor eller VS Code i stedet.
+:::

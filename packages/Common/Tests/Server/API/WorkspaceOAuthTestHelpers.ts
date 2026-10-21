@@ -14,7 +14,8 @@ import UserType from "../../../Types/UserType";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
- * Shared scaffolding for the Slack and Microsoft Teams OAuth state tests.
+ * Shared scaffolding for the Slack, Microsoft Teams and GitHub App OAuth
+ * state tests.
  *
  * Those tests run the real routers on a real express app and talk to it over
  * HTTP, so cookies, redirects and query strings behave the way a browser sees
@@ -26,6 +27,25 @@ import { JSONObject } from "../../../Types/JSON";
 export const TEST_USER_HEADER: string = "x-test-user-id";
 export const TEST_PERMISSIONS_HEADER: string = "x-test-permissions";
 export const TEST_MEMBER_OF_HEADER: string = "x-test-member-of";
+// Team block rows, with no labels and with one label.
+export const TEST_BLOCKED_PERMISSIONS_HEADER: string =
+  "x-test-blocked-permissions";
+export const TEST_LABELLED_BLOCKED_PERMISSIONS_HEADER: string =
+  "x-test-labelled-blocked-permissions";
+// A project API key instead of a person: no user, the key's permissions.
+export const TEST_API_KEY_HEADER: string = "x-test-api-key";
+// A credential issued for reading only (an MCP client connected read-only).
+export const TEST_READ_ONLY_HEADER: string = "x-test-read-only";
+// A server admin.
+export const TEST_MASTER_ADMIN_HEADER: string = "x-test-master-admin";
+
+// The label a labelled block row names.
+export const TEST_BLOCK_LABEL_ID: string =
+  "7d000000-0000-4000-8000-0000000000aa";
+
+function permissionList(value: unknown): Array<string> {
+  return ((value as string | undefined) || "").split(",").filter(Boolean);
+}
 
 /*
  * Stands in for UserMiddleware.getUserMiddleware. Like the real one it lets
@@ -47,34 +67,76 @@ export function fakeGetUserMiddleware(
     | undefined;
   const memberOf: string | undefined =
     (req.headers[TEST_MEMBER_OF_HEADER] as string | undefined) || tenantId;
-  const permissions: Array<string> = (
-    (req.headers[TEST_PERMISSIONS_HEADER] as string | undefined) || ""
-  )
-    .split(",")
-    .filter(Boolean);
+  const permissions: Array<string> = permissionList(
+    req.headers[TEST_PERMISSIONS_HEADER],
+  );
+  const blocked: Array<string> = permissionList(
+    req.headers[TEST_BLOCKED_PERMISSIONS_HEADER],
+  );
+  const labelledBlocked: Array<string> = permissionList(
+    req.headers[TEST_LABELLED_BLOCKED_PERMISSIONS_HEADER],
+  );
+  const isApiKey: boolean = Boolean(req.headers[TEST_API_KEY_HEADER]);
+  const isMasterAdmin: boolean = Boolean(req.headers[TEST_MASTER_ADMIN_HEADER]);
 
-  if (userId) {
-    request.userAuthorization = { userId: new ObjectID(userId) };
-    request.userType = UserType.User;
+  if (userId && !isApiKey) {
+    request.userAuthorization = {
+      userId: new ObjectID(userId),
+      isMasterAdmin: isMasterAdmin,
+    };
+    request.userType = isMasterAdmin ? UserType.MasterAdmin : UserType.User;
+  }
+
+  if (isApiKey) {
+    request.userType = UserType.API;
+  }
+
+  if (req.headers[TEST_READ_ONLY_HEADER]) {
+    request.mcpOAuth = {
+      grantId: new ObjectID("7d000000-0000-4000-8000-0000000000bb"),
+      clientId: "test-mcp-client",
+      clientName: "Test MCP client",
+      isReadOnly: true,
+    };
   }
 
   if (tenantId) {
     request.tenantId = new ObjectID(tenantId);
   }
 
-  if (userId && memberOf && permissions.length > 0) {
+  if ((userId || isApiKey) && memberOf && permissions.length > 0) {
+    const row: (
+      permission: string,
+      isBlockPermission: boolean,
+      labelIds: Array<ObjectID>,
+    ) => JSONObject = (
+      permission: string,
+      isBlockPermission: boolean,
+      labelIds: Array<ObjectID>,
+    ): JSONObject => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: labelIds,
+        isBlockPermission: isBlockPermission,
+      };
+    };
+
     request.userTenantAccessPermission = {
       [memberOf]: {
         _type: "UserTenantAccessPermission",
         projectId: new ObjectID(memberOf),
-        permissions: permissions.map((permission: string) => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-            isBlockPermission: false,
-          };
-        }),
+        permissions: [
+          ...permissions.map((permission: string) => {
+            return row(permission, false, []);
+          }),
+          ...blocked.map((permission: string) => {
+            return row(permission, true, []);
+          }),
+          ...labelledBlocked.map((permission: string) => {
+            return row(permission, true, [new ObjectID(TEST_BLOCK_LABEL_ID)]);
+          }),
+        ],
       },
     };
   }
@@ -91,12 +153,64 @@ export type CacheEntry = { value: string; expiresAt: number };
 export function createInMemoryGlobalCache(): {
   store: Map<string, CacheEntry>;
   setString: jest.Mock;
+  getString: jest.Mock;
   getAndDeleteString: jest.Mock;
+  setStringIfNotExists: jest.Mock;
+  deleteKeyIfValue: jest.Mock;
 } {
   const store: Map<string, CacheEntry> = new Map();
 
   return {
     store,
+    // SET ... NX: true only for the caller that created the key.
+    setStringIfNotExists: jest.fn(
+      async (
+        namespace: string,
+        key: string,
+        value: string,
+        options?: { expiresInSeconds: number },
+      ): Promise<boolean> => {
+        const cacheKey: string = `${namespace}-${key}`;
+        const entry: CacheEntry | undefined = store.get(cacheKey);
+
+        if (entry && entry.expiresAt > Date.now()) {
+          return false;
+        }
+
+        store.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + (options?.expiresInSeconds ?? 2592000) * 1000,
+        });
+
+        return true;
+      },
+    ),
+    // Compare-and-delete: true only when the key still held `value`.
+    deleteKeyIfValue: jest.fn(
+      async (namespace: string, key: string, value: string) => {
+        const cacheKey: string = `${namespace}-${key}`;
+        const entry: CacheEntry | undefined = store.get(cacheKey);
+
+        if (!entry || entry.expiresAt <= Date.now() || entry.value !== value) {
+          return false;
+        }
+
+        store.delete(cacheKey);
+        return true;
+      },
+    ),
+    // Reads without spending: a Connect button's request is peeked first.
+    getString: jest.fn(
+      async (namespace: string, key: string): Promise<string | null> => {
+        const entry: CacheEntry | undefined = store.get(`${namespace}-${key}`);
+
+        if (!entry || entry.expiresAt <= Date.now()) {
+          return null;
+        }
+
+        return entry.value;
+      },
+    ),
     setString: jest.fn(
       async (
         namespace: string,
@@ -141,17 +255,25 @@ export function httpGet(data: {
   port: number;
   path: string;
   headers?: http.OutgoingHttpHeaders | undefined;
+  timeoutMs?: number | undefined;
 }): Promise<ProbeResponse> {
   return httpRequest({ ...data, method: "GET" });
 }
 
-// Like httpGet, for any method; a `body` is sent as JSON.
+/*
+ * Like httpGet, for any method; a `body` is sent as JSON.
+ *
+ * `timeoutMs` fails the request when no answer has come back by then, so a
+ * route that never answers - an async handler whose rejection Express 4 does
+ * not catch - fails its test plainly instead of waiting out jest's timeout.
+ */
 export function httpRequest(data: {
   port: number;
   method: string;
   path: string;
   headers?: http.OutgoingHttpHeaders | undefined;
   body?: unknown;
+  timeoutMs?: number | undefined;
 }): Promise<ProbeResponse> {
   const payload: string | undefined =
     data.body === undefined ? undefined : JSON.stringify(data.body);
@@ -219,6 +341,16 @@ export function httpRequest(data: {
         return reject(error);
       });
 
+      if (data.timeoutMs !== undefined) {
+        request.setTimeout(data.timeoutMs, () => {
+          request.destroy(
+            new Error(
+              `${data.method} ${data.path} was not answered within ${data.timeoutMs} ms`,
+            ),
+          );
+        });
+      }
+
       if (payload !== undefined) {
         request.write(payload);
       }
@@ -242,13 +374,23 @@ export interface RunningApp {
   close: () => Promise<void>;
 }
 
-// Mounts routers under /api on a real express app with cookie and JSON parsing.
+/*
+ * Mounts routers under /api on a real express app with cookie and JSON
+ * parsing. The raw JSON body is kept on the request as the server's own
+ * parser keeps it (StartServer), for routes that check a signature over it.
+ */
 export async function startApp(
   routers: Array<ExpressRouter>,
 ): Promise<RunningApp> {
   const app: express.Express = express();
   app.use(cookieParser());
-  app.use(express.json());
+  app.use(
+    express.json({
+      verify: (req: any, _res: unknown, buf: Buffer): void => {
+        req.rawBody = buf.toString();
+      },
+    }),
+  );
 
   for (const router of routers) {
     app.use("/api", router as any);

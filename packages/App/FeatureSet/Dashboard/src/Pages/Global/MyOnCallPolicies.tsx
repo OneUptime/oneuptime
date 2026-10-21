@@ -39,6 +39,9 @@ import React, {
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface OnCallPolicyWithProject {
   project: Project;
@@ -62,6 +65,7 @@ const MyOnCallPolicies: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [onCallPoliciesByProject, setOnCallPoliciesByProject] = useState<
@@ -328,19 +332,45 @@ const MyOnCallPolicies: FunctionComponent<
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-green-800">
-                  You are currently on duty for{" "}
-                  <span className="font-bold">{getTotalPolicyCount()}</span>{" "}
-                  {getTotalPolicyCount() === 1
-                    ? "policy assignment"
-                    : "policy assignments"}{" "}
-                  across{" "}
-                  <span className="font-bold">
-                    {onCallPoliciesByProject.length}
-                  </span>{" "}
-                  {onCallPoliciesByProject.length === 1
-                    ? "project"
-                    : "projects"}
-                  .
+                  <TranslatedSentence
+                    template="You are currently on duty for {{assignments}} across {{projects}}."
+                    slots={{
+                      assignments: (
+                        <TranslatedSentence
+                          template={{
+                            one: "{{count}} policy assignment",
+                            other: "{{count}} policy assignments",
+                          }}
+                          count={getTotalPolicyCount()}
+                          slots={{
+                            count: (
+                              <span className="font-bold">
+                                {translator.formatNumber(getTotalPolicyCount())}
+                              </span>
+                            ),
+                          }}
+                        />
+                      ),
+                      projects: (
+                        <TranslatedSentence
+                          template={{
+                            one: "{{count}} project",
+                            other: "{{count}} projects",
+                          }}
+                          count={onCallPoliciesByProject.length}
+                          slots={{
+                            count: (
+                              <span className="font-bold">
+                                {translator.formatNumber(
+                                  onCallPoliciesByProject.length,
+                                )}
+                              </span>
+                            ),
+                          }}
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -376,10 +406,13 @@ const MyOnCallPolicies: FunctionComponent<
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-500">
                             <span>
-                              {policyItems.length}{" "}
-                              {policyItems.length === 1
-                                ? "assignment"
-                                : "assignments"}
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} assignment",
+                                  other: "{{count}} assignments",
+                                },
+                                policyItems.length,
+                              )}
                             </span>
                             {projectData.project.id && (
                               <Link
@@ -421,10 +454,15 @@ const MyOnCallPolicies: FunctionComponent<
                                             className="hover:text-indigo-600 hover:underline"
                                           >
                                             {item.policyName ||
-                                              "Unknown Policy"}
+                                              translator.translateText(
+                                                "Unknown Policy",
+                                              )}
                                           </Link>
                                         ) : (
-                                          item.policyName || "Unknown Policy"
+                                          item.policyName ||
+                                          translator.translateText(
+                                            "Unknown Policy",
+                                          )
                                         )}
                                       </div>
                                       {/* Assignment Type Pill */}
@@ -441,10 +479,14 @@ const MyOnCallPolicies: FunctionComponent<
                                           className="h-4 w-4 mr-1.5 text-gray-400"
                                         />
                                         <span>
-                                          Escalation Rule:{" "}
+                                          {translator.translateText(
+                                            "Escalation Rule:",
+                                          )}{" "}
                                           <span className="font-medium text-gray-700">
                                             {item.escalationRuleName ||
-                                              "Unknown"}
+                                              translator.translateText(
+                                                "Unknown",
+                                              )}
                                           </span>
                                         </span>
                                       </div>

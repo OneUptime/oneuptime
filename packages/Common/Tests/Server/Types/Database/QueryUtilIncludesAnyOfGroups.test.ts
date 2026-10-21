@@ -6,6 +6,16 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { FindOperator, In } from "typeorm";
 
+/*
+ * Label ids, named for the labels they stand for. They are uuids, as label
+ * ids are: an id that is not one is refused before any SQL is built
+ * (UUIDColumnFilter).
+ */
+const NETWORK: string = "3f1c2b7e-8a4d-4c6e-9b2a-1d5e7f9a0c34";
+const ROUTER: string = "6a9e4d21-5b7c-4f3a-8e1d-2c4b6a8e0f57";
+const UNIT_0660: string = "b84f0e3a-2c6d-4e1f-a7b9-5d3c1e9f7a20";
+const UNIT_0661: string = "d2c7a5e9-4f1b-4a8c-b3e6-9f0d2a4c6e81";
+
 const relation: {
   joinTableName: string;
   ownerColumnName: string;
@@ -30,8 +40,8 @@ describe("QueryUtil — grouped relation membership", () => {
   test("ANDs independent ANY groups without joining the relation into the row set", () => {
     const result: Record<string, any> = QueryUtil.serializeQuery(Monitor, {
       labels: new IncludesAnyOfGroups([
-        ["network", "router"],
-        ["0660", "0661"],
+        [NETWORK, ROUTER],
+        [UNIT_0660, UNIT_0661],
       ]),
     });
     expect(result["labels"]).toBeUndefined();
@@ -42,7 +52,7 @@ describe("QueryUtil — grouped relation membership", () => {
       filter.value.map((child: FindOperator<unknown>) => {
         return Object.values(child.objectLiteralParameters || {});
       }),
-    ).toEqual([[["network", "router"]], [["0660", "0661"]]]);
+    ).toEqual([[[NETWORK, ROUTER]], [[UNIT_0660, UNIT_0661]]]);
     for (const child of filter.value) {
       expect(child.getSql?.("Monitor._id")).toContain(
         'Monitor._id IN (SELECT "MonitorLabel"."monitorId"',
@@ -58,7 +68,7 @@ describe("QueryUtil — grouped relation membership", () => {
 
   test("an empty group contributes a false condition", () => {
     const result: Record<string, any> = QueryUtil.serializeQuery(Monitor, {
-      labels: new IncludesAnyOfGroups([["network"], []]),
+      labels: new IncludesAnyOfGroups([[NETWORK], []]),
     });
     expect(result["_id"].value[1].getSql("Monitor._id")).toBe("TRUE = FALSE");
   });
@@ -68,8 +78,8 @@ describe("QueryUtil — grouped relation membership", () => {
     (position: string) => {
       const id: ObjectID = ObjectID.generate();
       const labels: IncludesAnyOfGroups = new IncludesAnyOfGroups([
-        ["network"],
-        ["0660"],
+        [NETWORK],
+        [UNIT_0660],
       ]);
       const query: Record<string, unknown> =
         position === "before" ? { _id: id, labels } : { labels, _id: id };
@@ -93,8 +103,8 @@ describe("QueryUtil — grouped relation membership", () => {
         ObjectID.generate().toString(),
       ];
       const labels: IncludesAnyOfGroups = new IncludesAnyOfGroups([
-        ["network"],
-        ["0660"],
+        [NETWORK],
+        [UNIT_0660],
       ]);
       const query: Record<string, unknown> =
         position === "before"
@@ -117,7 +127,7 @@ describe("QueryUtil — grouped relation membership", () => {
       Monitor,
       {
         _id: id,
-        labels: new IncludesAnyOfGroups([["network"], ["0660"]]),
+        labels: new IncludesAnyOfGroups([[NETWORK], [UNIT_0660]]),
       },
     );
     expect(
@@ -128,7 +138,7 @@ describe("QueryUtil — grouped relation membership", () => {
       Monitor,
       {
         _id: idFilter as any,
-        labels: new IncludesAnyOfGroups([["network"], ["0660"]]),
+        labels: new IncludesAnyOfGroups([[NETWORK], [UNIT_0660]]),
       },
     );
     expect(operatorResult["_id"].value[0]).toBe(idFilter);
@@ -139,7 +149,7 @@ describe("QueryUtil — grouped relation membership", () => {
     const result: Record<string, any> = QueryUtil.serializeQuery(Monitor, {
       projectId,
       disableActiveMonitoring: false,
-      labels: new IncludesAnyOfGroups([["network"], ["0660"]]),
+      labels: new IncludesAnyOfGroups([[NETWORK], [UNIT_0660]]),
     });
     expect(Object.values(result["projectId"].objectLiteralParameters)).toEqual([
       projectId.toString(),
@@ -152,7 +162,7 @@ describe("QueryUtil — grouped relation membership", () => {
     (column: string) => {
       expect(() => {
         return QueryUtil.serializeQuery(Monitor, {
-          [column]: new IncludesAnyOfGroups([["network"]]),
+          [column]: new IncludesAnyOfGroups([[NETWORK]]),
         });
       }).toThrow(BadDataException);
     },
@@ -162,7 +172,7 @@ describe("QueryUtil — grouped relation membership", () => {
     jest.mocked(QueryUtil.getManyToManyRelationMetadata).mockReturnValue(null);
     expect(() => {
       return QueryUtil.serializeQuery(Monitor, {
-        labels: new IncludesAnyOfGroups([["network"], ["0660"]]),
+        labels: new IncludesAnyOfGroups([[NETWORK], [UNIT_0660]]),
       });
     }).toThrow("available many-to-many relation metadata");
   });

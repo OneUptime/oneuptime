@@ -1,19 +1,23 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE,
+  ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
+import { getOnCallPolicyRunRecordHandledMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import logger from "Common/Server/Utils/Logger";
-import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallEscalationAdvance from "Common/Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
-import OnCallDutyPolicyExecutionLogTimelineService from "Common/Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -22,16 +26,23 @@ RunCron(
     runOnStartup: false,
   },
   async () => {
-    // get all pending on-call executions and execute them all at once.
-
+    /*
+     * Every run still going: the ones paging, and the ones waiting to page
+     * (OnCallDutyPolicyRunWait), which start - or end, unpaged - here.
+     */
     const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
       await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
-          status: OnCallDutyPolicyStatus.Executing,
+          status: QueryHelper.any([
+            OnCallDutyPolicyStatus.Executing,
+            OnCallDutyPolicyStatus.Waiting,
+          ]),
         },
         select: {
           _id: true,
           projectId: true,
+          status: true,
+          pagingStartsAt: true,
           onCallDutyPolicyId: true,
           lastEscalationRuleExecutedAt: true,
           lastExecutedEscalationRuleId: true,
@@ -44,7 +55,9 @@ RunCron(
           triggeredByIncidentEpisodeId: true,
           createdAt: true,
           onCallDutyPolicy: {
+            repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+            isArchived: true,
           },
           onCallPolicyExecutionRepeatCount: true,
         },
@@ -56,7 +69,11 @@ RunCron(
     const promises: Array<Promise<void>> = [];
 
     for (const executionLog of pendingExecutions) {
-      promises.push(executeOnCallPolicy(executionLog));
+      promises.push(
+        executionLog.status === OnCallDutyPolicyStatus.Waiting
+          ? startOrEndWaitingRun(executionLog)
+          : executeOnCallPolicy(executionLog),
+      );
     }
 
     await Promise.allSettled(promises);
@@ -73,129 +90,65 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   try {
     logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
 
-    // get trigger by alert
-    if (executionLog.triggeredByAlertId) {
-      logger.debug(`Triggered by alert: ${executionLog.triggeredByAlertId}`);
-
-      // check if this alert is ack.
-      const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
-        alertId: executionLog.triggeredByAlertId,
+    /*
+     * The policy was archived while this execution was escalating: an
+     * archived policy pages no one, so it stops here. Whoever the earlier
+     * rules already paged was paged; nobody else is.
+     */
+    if (executionLog.onCallDutyPolicy?.isArchived === true) {
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: executionLog.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
       });
 
-      logger.debug(`Alert is acknowledged: ${isAcknowledged}`);
-
-      if (isAcknowledged) {
-        // then mark this policy as executed.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: executionLog.id!,
-          data: {
-            status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because alert is acknowledged or resolved.",
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return;
-      }
+      return;
     }
 
-    // get trigger by incident
-    if (executionLog.triggeredByIncidentId) {
-      logger.debug(
-        `Triggered by incident: ${executionLog.triggeredByIncidentId}`,
-      );
+    /*
+     * Its record was acknowledged or resolved: nobody else needs paging, so
+     * the run is over.
+     */
+    const handledRecordKind: string | null =
+      await getHandledRecordKind(executionLog);
 
-      // check if this incident is ack.
-      const isAcknowledged: boolean =
-        await IncidentService.isIncidentAcknowledged({
-          incidentId: executionLog.triggeredByIncidentId,
-        });
+    if (handledRecordKind) {
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: executionLog.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage:
+            getOnCallPolicyRunRecordHandledMessage(handledRecordKind),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-      logger.debug(`Incident is acknowledged: ${isAcknowledged}`);
-
-      if (isAcknowledged) {
-        // then mark this policy as executed.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: executionLog.id!,
-          data: {
-            status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because incident is acknowledged or resolved.",
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return;
-      }
+      return;
     }
 
-    // get trigger by alert episode
-    if (executionLog.triggeredByAlertEpisodeId) {
-      logger.debug(
-        `Triggered by alert episode: ${executionLog.triggeredByAlertEpisodeId}`,
-      );
+    /*
+     * A direct page - people, a team or a schedule paged with no on-call
+     * policy behind the page - has no escalation rules to go through and
+     * none to look up: with no policy to match on, the lookup below would
+     * find another policy's rule. It paged everybody when it started, and
+     * ends once their pages are over and it has waited for somebody to
+     * acknowledge.
+     */
+    if (isOnCallDirectPage(executionLog)) {
+      await OnCallDutyPolicyExecutionLogService.endDirectPageIfItsPagesAreOver({
+        executionLogId: executionLog.id!,
+        pagingStartedAt:
+          executionLog.lastEscalationRuleExecutedAt || executionLog.createdAt,
+      });
 
-      // check if this episode is ack.
-      const isAcknowledged: boolean =
-        await AlertEpisodeService.isEpisodeAcknowledged({
-          episodeId: executionLog.triggeredByAlertEpisodeId,
-        });
-
-      logger.debug(`Alert episode is acknowledged: ${isAcknowledged}`);
-
-      if (isAcknowledged) {
-        // then mark this policy as executed.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: executionLog.id!,
-          data: {
-            status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because alert episode is acknowledged or resolved.",
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return;
-      }
-    }
-
-    // get trigger by incident episode
-    if (executionLog.triggeredByIncidentEpisodeId) {
-      logger.debug(
-        `Triggered by incident episode: ${executionLog.triggeredByIncidentEpisodeId}`,
-      );
-
-      // check if this episode is ack.
-      const isAcknowledged: boolean =
-        await IncidentEpisodeService.isEpisodeAcknowledged({
-          episodeId: executionLog.triggeredByIncidentEpisodeId,
-        });
-
-      logger.debug(`Incident episode is acknowledged: ${isAcknowledged}`);
-
-      if (isAcknowledged) {
-        // then mark this policy as executed.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: executionLog.id!,
-          data: {
-            status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because incident episode is acknowledged or resolved.",
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return;
-      }
+      return;
     }
 
     // check if this execution needs to be executed.
@@ -225,217 +178,186 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
     }
 
     /*
-     * Atomically CLAIM this tick before advancing the escalation. This job is
-     * fanned out with Promise.allSettled and has no per-log lock, so two
-     * overlapping runs (a run exceeding the 1-minute cadence, or multiple
-     * worker replicas) could both read the same lastEscalationRuleExecutedAt,
-     * both pass the time gate above, and both start the same next rule —
-     * paging responders twice. claimEscalationAdvance issues a single atomic
-     * conditional UPDATE (returning the affected-row count) so exactly one run
-     * wins; the loser sees `false` and bows out. See audit F13 — the previous
-     * updateOneBy-based claim was NOT atomic (SELECT + save-by-id) so both runs
-     * could win.
+     * The wait is over: the run moves on to its next escalation rule - or
+     * starts again from its first, or ends - in the one way a run moves on
+     * (OnCallEscalationAdvance), which a page passed on by the person being
+     * paged uses too. The move is CLAIMED first, with a single atomic
+     * conditional UPDATE, so two overlapping ticks (a tick exceeding the
+     * 1-minute cadence, worker replicas) - or a tick and a pass landing
+     * together - move the run on once and page the next rule once (audit
+     * F13).
      */
-    const claimed: boolean =
-      await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
-        executionLogId: executionLog.id!,
-        previousLastEscalationRuleExecutedAt:
-          executionLog.lastEscalationRuleExecutedAt || null,
-        newLastEscalationRuleExecutedAt: currentDate,
-      });
-
-    if (!claimed) {
-      logger.debug(
-        `Execution log ${executionLog.id} was already claimed by a concurrent run; skipping to avoid double-paging.`,
-      );
-      return;
-    }
-
-    // get the next escalation rule to execute.
-    const nextEscalationRule: OnCallDutyPolicyEscalationRule | null =
-      await OnCallDutyPolicyEscalationRuleService.findOneBy({
-        query: {
-          projectId: executionLog.projectId!,
-          onCallDutyPolicyId: executionLog.onCallDutyPolicyId!,
-          order: executionLog.lastExecutedEscalationRuleOrder! + 1,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
-
-    if (!nextEscalationRule) {
-      logger.debug(
-        `No next escalation rule found. Checking if we need to repeat this execution.`,
-      );
-
-      /*
-       * check if we need to repeat this execution.
-       * onCallPolicyExecutionRepeatCount is seeded to 1 on create (the initial
-       * pass), and repeatPolicyIfNoOneAcknowledgesNoOfTimes is the number of
-       * additional repeats requested. Use <= so the policy repeats exactly that
-       * many times: with a strict <, "repeat 1 time" never repeated at all and
-       * "repeat N" only repeated N-1 times, leaving unacknowledged incidents
-       * under-escalated.
-       */
-      if (
-        executionLog.onCallPolicyExecutionRepeatCount &&
-        executionLog.onCallPolicyExecutionRepeatCount <=
-          executionLog.onCallDutyPolicy!
-            .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
-      ) {
-        // repeating execution
-
-        const newRepeatCount: number =
-          executionLog.onCallPolicyExecutionRepeatCount + 1;
-
-        logger.debug(
-          `Repeating execution. New repeat count: ${newRepeatCount}`,
-        );
-
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: executionLog.id!,
-          data: {
-            onCallPolicyExecutionRepeatCount: newRepeatCount,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // get first escalation rule.
-        const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
-          await OnCallDutyPolicyEscalationRuleService.findOneBy({
-            query: {
-              projectId: executionLog.projectId!,
-              onCallDutyPolicyId: executionLog.onCallDutyPolicyId!,
-              order: 1,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-            },
-          });
-
-        if (!firstEscalationRule) {
-          logger.debug(
-            `No first escalation rule found. Marking execution as complete.`,
-          );
-
-          // mark this as complete.
-          await OnCallDutyPolicyExecutionLogService.updateOneById({
-            id: executionLog.id!,
-            data: {
-              status: OnCallDutyPolicyStatus.Completed,
-              statusMessage: "Execution completed.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          return;
-        }
-
-        logger.debug(
-          `Starting execution of the first escalation rule: ${firstEscalationRule.id}`,
-        );
-
-        // update the execution log.
-        await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-          firstEscalationRule.id!,
-          {
-            projectId: executionLog.projectId!,
-            triggeredByIncidentId: executionLog.triggeredByIncidentId,
-            triggeredByAlertId: executionLog.triggeredByAlertId,
-            triggeredByAlertEpisodeId: executionLog.triggeredByAlertEpisodeId,
-            triggeredByIncidentEpisodeId:
-              executionLog.triggeredByIncidentEpisodeId,
-            userNotificationEventType: executionLog.userNotificationEventType!,
-            onCallPolicyExecutionLogId: executionLog.id!,
-            onCallPolicyId: executionLog.onCallDutyPolicyId!,
-          },
-        );
-
-        return;
-      }
-
-      logger.debug(
-        `No rules to execute and no repeats left. Marking execution as complete.`,
-      );
-
-      /*
-       * "Completed" on its own is ambiguous: a policy that walked every
-       * escalation rule and paged nobody — because each rule targeted a
-       * schedule with a coverage gap — reached this line with the same green
-       * "Execution Completed" as one that successfully paged the on-call
-       * engineer, so a policy could notify no one indefinitely without anything
-       * on screen looking wrong.
-       *
-       * Derived from the timeline rows rather than tracked in a counter column:
-       * a row has a recipient exactly when somebody was actually notified, so
-       * this cannot drift out of sync with what really happened, and it needs
-       * no schema change.
-       */
-      const notifiedCount: PositiveNumber =
-        await OnCallDutyPolicyExecutionLogTimelineService.countBy({
-          query: {
-            onCallDutyPolicyExecutionLogId: executionLog.id!,
-            alertSentToUserId: QueryHelper.notNull(),
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const notifiedSomeone: boolean = notifiedCount.toNumber() > 0;
-
-      // mark this as complete as we have no rules to execute.
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: executionLog.id!,
-        data: {
-          status: notifiedSomeone
-            ? OnCallDutyPolicyStatus.Completed
-            : OnCallDutyPolicyStatus.CompletedWithNoNotifications,
-          statusMessage: notifiedSomeone
-            ? "Execution completed."
-            : "Execution completed, but no one was notified. Every escalation rule in this policy reached no one - usually because the on-call schedules it targets had nobody on call.",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-      return;
-    }
-
-    logger.debug(
-      `Starting execution of the next escalation rule: ${nextEscalationRule.id}`,
-    );
-
-    await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-      nextEscalationRule!.id!,
-      {
-        projectId: executionLog.projectId!,
-        triggeredByIncidentId: executionLog.triggeredByIncidentId,
-        triggeredByAlertId: executionLog.triggeredByAlertId,
-        triggeredByAlertEpisodeId: executionLog.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: executionLog.triggeredByIncidentEpisodeId,
-        userNotificationEventType: executionLog.userNotificationEventType!,
-        onCallPolicyExecutionLogId: executionLog.id!,
-        onCallPolicyId: executionLog.onCallDutyPolicyId!,
-      },
-    );
+    await OnCallEscalationAdvance.advance({
+      run: executionLog,
+      now: currentDate,
+    });
 
     return;
   } catch (err: any) {
     logger.error(err);
 
     // update this log with error message.
+    await OnCallDutyPolicyExecutionLogService.updateOneById({
+      id: executionLog.id!,
+      data: {
+        status: OnCallDutyPolicyStatus.Error,
+        statusMessage:
+          err.message || "Error occurred while executing the on-call policy.",
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+};
+
+/*
+ * The kind of record a run pages about - "alert", "incident", "alert
+ * episode", "incident episode" - when that record is acknowledged or
+ * resolved; null while it is not, or the run pages about none.
+ */
+type GetHandledRecordKindFunction = (
+  executionLog: OnCallDutyPolicyExecutionLog,
+) => Promise<string | null>;
+
+const getHandledRecordKind: GetHandledRecordKindFunction = async (
+  executionLog: OnCallDutyPolicyExecutionLog,
+): Promise<string | null> => {
+  if (executionLog.triggeredByAlertId) {
+    logger.debug(`Triggered by alert: ${executionLog.triggeredByAlertId}`);
+
+    const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
+      alertId: executionLog.triggeredByAlertId,
+    });
+
+    logger.debug(`Alert is acknowledged: ${isAcknowledged}`);
+
+    if (isAcknowledged) {
+      return "alert";
+    }
+  }
+
+  if (executionLog.triggeredByIncidentId) {
+    logger.debug(
+      `Triggered by incident: ${executionLog.triggeredByIncidentId}`,
+    );
+
+    const isAcknowledged: boolean =
+      await IncidentService.isIncidentAcknowledged({
+        incidentId: executionLog.triggeredByIncidentId,
+      });
+
+    logger.debug(`Incident is acknowledged: ${isAcknowledged}`);
+
+    if (isAcknowledged) {
+      return "incident";
+    }
+  }
+
+  if (executionLog.triggeredByAlertEpisodeId) {
+    logger.debug(
+      `Triggered by alert episode: ${executionLog.triggeredByAlertEpisodeId}`,
+    );
+
+    const isAcknowledged: boolean =
+      await AlertEpisodeService.isEpisodeAcknowledged({
+        episodeId: executionLog.triggeredByAlertEpisodeId,
+      });
+
+    logger.debug(`Alert episode is acknowledged: ${isAcknowledged}`);
+
+    if (isAcknowledged) {
+      return "alert episode";
+    }
+  }
+
+  if (executionLog.triggeredByIncidentEpisodeId) {
+    logger.debug(
+      `Triggered by incident episode: ${executionLog.triggeredByIncidentEpisodeId}`,
+    );
+
+    const isAcknowledged: boolean =
+      await IncidentEpisodeService.isEpisodeAcknowledged({
+        episodeId: executionLog.triggeredByIncidentEpisodeId,
+      });
+
+    logger.debug(`Incident episode is acknowledged: ${isAcknowledged}`);
+
+    if (isAcknowledged) {
+      return "incident episode";
+    }
+  }
+
+  return null;
+};
+
+/*
+ * A RUN THAT WAITS TO PAGE (OnCallDutyPolicyRunWait), each minute until it
+ * pages or ends. It pages nobody while it waits; then, in this order:
+ *
+ * - its policy was archived: an archived policy pages no one, so it ends,
+ *   having paged nobody, and says so;
+ * - its record was acknowledged or resolved: nobody needs paging, so it
+ *   ends, having paged nobody;
+ * - its moment came: it pages its first escalation rule, and from then on
+ *   is a run like any other (executeOnCallPolicy).
+ *
+ * Starting and ending are each claimed, so of two ticks or two worker
+ * replicas that read the same waiting run, one acts and the other does
+ * nothing (startWaitingRun, endWaitingRun).
+ */
+type StartOrEndWaitingRunFunction = (
+  executionLog: OnCallDutyPolicyExecutionLog,
+) => Promise<void>;
+
+const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
+  executionLog: OnCallDutyPolicyExecutionLog,
+): Promise<void> => {
+  try {
+    if (executionLog.onCallDutyPolicy?.isArchived === true) {
+      await OnCallDutyPolicyExecutionLogService.endWaitingRun({
+        executionLogId: executionLog.id!,
+        status: OnCallDutyPolicyStatus.Error,
+        statusMessage: ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+      });
+
+      return;
+    }
+
+    const handledRecordKind: string | null =
+      await getHandledRecordKind(executionLog);
+
+    if (handledRecordKind) {
+      await OnCallDutyPolicyExecutionLogService.endWaitingRun({
+        executionLogId: executionLog.id!,
+        status: OnCallDutyPolicyStatus.Completed,
+        statusMessage:
+          getOnCallPolicyRunEndedWhileWaitingMessage(handledRecordKind),
+      });
+
+      return;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    // Not yet: it goes on waiting.
+    if (
+      executionLog.pagingStartsAt &&
+      OneUptimeDate.isAfter(
+        OneUptimeDate.fromString(executionLog.pagingStartsAt),
+        now,
+      )
+    ) {
+      return;
+    }
+
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: executionLog,
+      now: now,
+    });
+  } catch (err: any) {
+    logger.error(err);
+
     await OnCallDutyPolicyExecutionLogService.updateOneById({
       id: executionLog.id!,
       data: {

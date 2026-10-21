@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Status Pages | Keep Customers Informed During Incidents</title>
-    <meta name="description"
-        content="Beautiful, customizable status pages that keep your customers informed. Public and private status pages with automatic updates and subscriber notifications.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -33,7 +33,7 @@
 
           <!-- Main Headline -->
           <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Build trust with <br class="hidden sm:block" />
+            Build trust with <br class="max-sm:hidden sm:block" />
             transparent communication
           </h1>
 

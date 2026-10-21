@@ -573,6 +573,125 @@ describe("validateAuditReport: exceptions", () => {
   });
 
   /*
+   * The cycle npm reports for React Native: metro depends on metro-config
+   * and metro-transform-worker, and both depend on metro again. Every way
+   * out of it ends at braces' advisory. Once that advisory is approved, the
+   * cycle and everything that pulls it in are proven to be caused by it
+   * alone - meeting metro again from inside its own cycle is not a reason
+   * to block it.
+   */
+  const metroCycle = reportOf({
+    "react-native": {
+      severity: "high",
+      via: ["@react-native/community-cli-plugin"],
+    },
+    "@react-native/community-cli-plugin": {
+      severity: "high",
+      via: ["metro", "metro-config"],
+    },
+    metro: {
+      severity: "high",
+      via: ["metro-config", "metro-file-map", "metro-transform-worker"],
+    },
+    "metro-config": { severity: "high", via: ["metro"] },
+    "metro-transform-worker": { severity: "high", via: ["metro"] },
+    "metro-file-map": { severity: "high", via: ["micromatch"] },
+    micromatch: { severity: "high", via: ["braces"] },
+    braces: {
+      severity: "high",
+      via: [advisoryVia({ advisory: GHSA_A, severity: "high" })],
+    },
+  });
+
+  test("approves a cycle whose every way out is an approved advisory", () => {
+    const exceptions = [exception({ advisory: GHSA_A })];
+    const result = validate({ report: metroCycle, exceptions });
+
+    expect(result.ok).toBe(true);
+    expect(result.blocked).toEqual([]);
+    expect(result.allowed.sort()).toEqual(
+      Object.keys(metroCycle.vulnerabilities).sort(),
+    );
+    expect(exceptions[0].used).toBe(true);
+  });
+
+  test("still blocks that whole cycle when its advisory is not approved", () => {
+    const result = validate({
+      report: metroCycle,
+      exceptions: [exception({ advisory: GHSA_B })],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.allowed).toEqual([]);
+    expect(result.blocked.sort()).toEqual(
+      Object.keys(metroCycle.vulnerabilities).sort(),
+    );
+  });
+
+  /*
+   * The other half of deciding a cycle: an approval found on one way out
+   * must not stand in for the cycle as a whole. If any node of it also
+   * reaches an advisory nobody approved, every node of the cycle reaches it
+   * too - whichever one the report happens to list first.
+   */
+  const splitCycle = {
+    a: { severity: "high", via: ["b", "approved-leaf"] },
+    b: { severity: "high", via: ["a", "unapproved-leaf"] },
+    "approved-leaf": {
+      severity: "high",
+      via: [advisoryVia({ advisory: GHSA_A, severity: "high" })],
+    },
+    "unapproved-leaf": {
+      severity: "high",
+      via: [advisoryVia({ advisory: GHSA_B, severity: "high" })],
+    },
+  };
+
+  test.each([
+    ["in report order", Object.keys(splitCycle)],
+    ["in reverse order", Object.keys(splitCycle).reverse()],
+  ])(
+    "blocks a cycle that also reaches an unapproved advisory, listed %s",
+    (_order, names) => {
+      const report = reportOf(
+        Object.fromEntries(
+          names.map((name) => {
+            return [name, splitCycle[name]];
+          }),
+        ),
+      );
+
+      const result = validate({
+        report,
+        exceptions: [exception({ advisory: GHSA_A })],
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.blocked.sort()).toEqual(["a", "b", "unapproved-leaf"]);
+      expect(result.allowed).toEqual(["approved-leaf"]);
+    },
+  );
+
+  test("blocks a package that pulls in a cycle no advisory explains, even with its own advisory approved", () => {
+    const report = reportOf({
+      parent: {
+        severity: "high",
+        via: ["a", advisoryVia({ advisory: GHSA_A, severity: "high" })],
+      },
+      a: { severity: "high", via: ["b"] },
+      b: { severity: "high", via: ["a"] },
+    });
+
+    const result = validate({
+      report,
+      exceptions: [exception({ advisory: GHSA_A })],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.blocked.sort()).toEqual(["a", "b", "parent"]);
+  });
+
+  /*
    * An exception whose advisory is no longer anywhere in the tree is a hole
    * nobody remembers opening. It has to be removed, and the only moment
    * anyone will notice is a failing gate.

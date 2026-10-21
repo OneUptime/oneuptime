@@ -17,6 +17,11 @@ import * as React from "react";
  * thing worth pinning — an AI section added here by symmetry would be a
  * heading with nothing behind it.
  *
+ * It gets a Calendar section of its own, open, right after Overview: the
+ * Maintenance Calendar is a page of its own (it was a List | Calendar switch
+ * on All Events), and its Calendar Settings - the calendars from outside the
+ * project drawn on it - sit in the folded Settings, right before Numbering.
+ *
  * Rendered against the real RouteMap rather than asserted on the source, so a
  * menu entry pointing at a route that does not exist fails here. The
  * "coverage" block pins the full set of settings pages reachable before the
@@ -40,11 +45,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   hrefsInMenu,
   iconCountIn,
@@ -70,21 +78,37 @@ describe("Scheduled maintenance side menu", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     goTo(ROOT);
+
+    /*
+     * A project with Slack and Microsoft Teams both connected, so the
+     * Workspace section lists both. The other combinations, and what is
+     * listed while nothing is connected, are pinned in
+     * WorkspaceMenusConnected.test.tsx.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
   });
 
   afterEach(() => {
     cleanup();
+    ConnectedWorkspaces.reset();
   });
 
   describe("sections", () => {
-    test("renders Overview, Workspace, Rules and Settings in order", async () => {
+    test("renders Overview, Calendar, Workspace, Rules, Settings and Developer in order", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
         "Overview",
+        "Calendar",
         "Workspace",
         "Rules",
         "Settings",
+        "Developer",
       ]);
     });
 
@@ -99,13 +123,58 @@ describe("Scheduled maintenance side menu", () => {
       expect(sectionTitlesInOrder()).not.toContain("AI");
     });
 
+    // As the maintainer drew the Incidents menu, which this one mirrors.
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Overview")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Calendar")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    });
+
+    test.each([
+      [
+        "Slack",
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      ],
+      [
+        "Microsoft Teams",
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderScheduledMaintenanceMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
+
+    test("with nothing connected, Workspace holds one entry, to the Workspace page", async () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      await renderScheduledMaintenanceMenu();
+
+      expect(linksIn("Workspace")).toEqual([
+        {
+          title: "Connect Slack or Teams",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
+          ),
+        },
+      ]);
     });
 
     test("the overview and workspace sections are unchanged by the move", async () => {
@@ -136,6 +205,37 @@ describe("Scheduled maintenance side menu", () => {
           ),
         },
       ]);
+    });
+  });
+
+  describe("Calendar section", () => {
+    test("holds the Maintenance Calendar, at /calendar", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(linksIn("Calendar")).toEqual([
+        {
+          title: "Maintenance Calendar",
+          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR),
+        },
+      ]);
+      expect(routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR)).toBe(
+        `${ROOT}/calendar`,
+      );
+      expect(iconCountIn("Calendar")).toBe(1);
+    });
+
+    test("marks the Maintenance Calendar on its page, and All Events no longer", async () => {
+      goTo(`${ROOT}/calendar`);
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Calendar")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Maintenance Calendar"]);
+    });
+
+    test("on All Events, the list is marked and the calendar is not", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(activeLinkTitles()).toEqual(["All Events"]);
     });
   });
 
@@ -236,11 +336,73 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
           ),
         },
+        // The calendars from outside the project, drawn on the calendar.
         {
-          title: "More Settings",
-          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE),
+          title: "Calendar Settings",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+          ),
+        },
+        /*
+         * The number prefix, on a page named for it. It replaced More
+         * Settings, which held nothing else.
+         */
+        {
+          title: "Numbering",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
+          ),
         },
       ]);
+    });
+
+    test("lists Calendar Settings at settings/calendar, right before Numbering, which stays last", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      const settings: Array<MenuLink> = linksIn("Settings");
+
+      expect(settings[settings.length - 2]).toEqual({
+        title: "Calendar Settings",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/calendar`,
+      });
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Numbering",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
+      });
+    });
+
+    test("opens itself on the Calendar Settings page, and marks it", async () => {
+      goTo(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/calendar`,
+      );
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Calendar Settings"]);
+    });
+
+    test("has no More Settings or Number Prefix entry, and nothing points at their old addresses", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(titlesInMenu()).not.toContain("More Settings");
+      expect(titlesInMenu()).not.toContain("Number Prefix");
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/more`,
+      );
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
+      );
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Numbering page, and marks it", async () => {
+      goTo(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
+      );
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Numbering"]);
     });
 
     test("no longer holds any rule page", async () => {
@@ -268,7 +430,8 @@ describe("Scheduled maintenance side menu", () => {
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
-      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE,
+      // More Settings, then Number Prefix: named for what it holds.
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -301,7 +464,7 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       linksIn("Rules")
-        .concat(linksIn("Settings"), linksIn("Overview"))
+        .concat(linksIn("Settings"), linksIn("Overview"), linksIn("Calendar"))
         .forEach((link: MenuLink) => {
           expect(link.href).toContain(ROOT);
           expect(link.href).not.toContain(":");
@@ -320,6 +483,13 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       expect(mobileSummaryText()).toContain("Rules / Runbook Rules");
+    });
+
+    test("names the Calendar section on the calendar", async () => {
+      goTo(`${ROOT}/calendar`);
+      await renderScheduledMaintenanceMenu();
+
+      expect(mobileSummaryText()).toContain("Calendar / Maintenance Calendar");
     });
 
     test("still names the Settings section on a settings page", async () => {

@@ -1,115 +1,182 @@
 # Managing Applications
 
-Everything about a RUM application after the telemetry starts flowing: identity, ownership, labels, retention, archiving and who can see what.
+OneUptime creates a RUM application the first time your app's telemetry arrives. This page covers what you manage after that: the application's name, its labels and owners, how long its data is kept, archiving, who can see it, and alerts.
 
-## Auto-discovery and identity
+:::cards
+- [How an application is created](#how-an-application-is-created): Matched by `service.name`, created on its first batch.
+- [Labels](#labels): Group applications and decide who can reach them.
+- [Retention](#retention): How long telemetry and recordings are kept.
+- [Permissions](#permissions): Who can see applications, and who can watch recordings.
+:::
 
-You do not have to create a RUM application. The first time telemetry arrives carrying client attributes and a `service.name`, OneUptime creates one named after that `service.name` and files the telemetry under it.
+## How an application is created
 
-Identity is `service.name`, matched **case-insensitively** within the project. `Storefront-Web` and `storefront-web` are the same application, not two.
+You do not have to create a RUM application. When a batch of telemetry with browser or device attributes and a `service.name` arrives, OneUptime files it under the application with that `service.name`, and creates the application when the project has none.
 
-Consequences worth knowing before you pick names:
+```mermaid title="Where a batch of RUM telemetry goes"
+flowchart TB
+    batch["A batch with browser.*<br/>or device.* attributes"] --> find{"An application with<br/>its service.name?"}
+    find -->|"Yes"| file["Filed under it"]
+    find -->|"No"| create["Application created,<br/>named after it"]
+    create --> rules["Label and owner<br/>rules run"]
+    rules --> file
+```
 
-- **Renaming `service.name` in your app creates a new application.** The old one keeps its history and goes *Disconnected*; the new one starts empty. There is no merge.
-- Use one `service.name` per deployable app, not per environment. Distinguish environments with a label (`oneuptime.label.env=production`) so both stay under one application with one history.
-- The **Name** shown in the dashboard is editable and starts out equal to the identifier. Editing the name never changes the identifier, so renaming for readability is safe.
+- The `service.name` is the application's identity, compared without regard to case: `Storefront-Web` and `storefront-web` are one application.
+- A new `service.name` starts a new application. The old one keeps its history and turns **Disconnected**, the new one starts empty, and the two are never merged.
+- Use one `service.name` per app, not one per environment. Tell environments apart with a label such as `oneuptime.label.env=production`, so they share one application and one history.
 
-You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. Set **App Identifier** to the `service.name` your app will report.
+### Rename an application
+
+The **Display Name** starts out as the `service.name`. To change it, open the application's **Settings** page and click **Edit Details** on the **Application Details** card, where you also edit its description and labels. Telemetry is matched by the **App Name (service.name)**, which the card shows and which never changes, so renaming is safe.
+
+### Add an application yourself
+
+Create an application yourself when you want its labels, owners or replay policy in place before the first visitor arrives.
+
+:::steps
+#### Open the application list
+
+Go to **Products → Resources → Real User Monitoring** and click **Create RUM Application**.
+
+#### Enter the app name
+
+Fill in **App Name (service.name)** with the `service.name` your app will report, exactly as the app reports it.
+
+#### Name it and save
+
+The application is named after its app name, as a discovered one is. To show another name, open **More fields** and type a **Display Name**; the description and labels are there too. Then save the form.
+:::
+
+If the project already has an application with that `service.name`, whether discovered, added before or archived, the form says so instead of creating a second one.
 
 ## Connection status
 
-An application is **Connected** while telemetry keeps arriving, and flips to **Disconnected** after 15 minutes without any. `Last Seen` is throttled to one write per minute, so it can trail real traffic by up to a minute — the 15-minute threshold has that slack built in.
+An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any. OpenTelemetry telemetry and Session Replay traffic both count.
 
-A *Disconnected* application is not an error state on its own. A low-traffic internal tool with no visitors overnight is genuinely disconnected.
+**Last Seen** is refreshed every few minutes rather than on every batch, so it can trail live traffic by up to about five minutes, and the 15 minutes leave room for that. Time when OneUptime itself was down or catching up on its ingest queue does not count towards them.
+
+**Disconnected** is not an error on its own: an internal tool with no visitors overnight is genuinely disconnected. If people are using the app, see [RUM Troubleshooting](/docs/rum/troubleshooting).
 
 ## Labels
 
-Labels group applications and drive label-based access control. There are three ways one gets attached.
+Labels group applications in lists and filters. They also decide what a member restricted to some labels can reach: such a member sees only the applications that carry one of those labels. An application gets its labels in three ways:
 
-**Manually** — on the create/edit form.
+| How | Where |
+| --- | --- |
+| By hand | On the create form, under **More fields**, or later with **Edit Details** on the **Application Details** card of the application's **Settings** page. |
+| From telemetry | A resource attribute named `oneuptime.label.<name>` adds the label `<name>:<value>`, as shown below. |
+| From a label rule | A rule adds labels to every new application it matches. See [Label rules and owner rules](#label-rules-and-owner-rules). |
 
-**From telemetry.** Any resource attribute prefixed `oneuptime.label.` is promoted to a project label:
+Set the attributes on the same resource as `service.name`, for example in the `src/telemetry.ts` file from [Browser Setup](/docs/rum/browser-setup):
 
-```bash
-OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-web,oneuptime.label.team=payments,oneuptime.label.env=production"
+```ts
+const resource = defaultResource().merge(
+  resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: "storefront-web",
+    "oneuptime.label.team": "payments",
+    "oneuptime.label.env": "production",
+  }),
+);
 ```
 
-produces the labels `team:payments` and `env:production`, creating them in the project if they do not exist. The `<dimension>:<value>` form is what keeps `oneuptime.label.team=prod` and `oneuptime.label.env=prod` from collapsing into one label. Names longer than 100 characters are truncated, and empty or non-string values are skipped.
+This adds the labels `team:payments` and `env:production`, and creates them in the project when they do not exist. Writing the attribute's name into the label keeps `oneuptime.label.team=prod` and `oneuptime.label.env=prod` apart. A label longer than 100 characters is cut to 100, and an empty or non-string value adds nothing.
 
-**From a label rule.** See below.
+## Label rules and owner rules
 
-Labels also gate access: a team member restricted to a set of labels can only reach applications carrying one of them.
+A rule adds labels or owners to every new application it matches. Open **Real User Monitoring → Settings → Label Rules**, or **Owner Rules**, and create the rule in two steps:
 
-## Label rules
+1. On **Match**, **All RUM applications**, where a new rule starts, matches every application. To narrow it down, pick **Only RUM applications that match conditions** and add conditions on **Application Labels** (has any, all or none of the labels you pick), **Application Name** or **Application Description** (equals, contains, starts with, ends with, or matches a pattern).
+2. On **Labels**, or **Owners** for an owner rule, pick what the rule adds. A new rule has to add at least one label or owner. The **Name** is filled in from your picks, such as _Add team:payments_ or _Add Payments as owners_, until you type a name of your own. The **Description**, and **Notify Owners** on an owner rule, wait under **More fields**.
 
-_RUM → Settings → Label Rules_. A rule attaches labels to matching applications automatically.
+Rules run when an application is created, discovered ones included. To apply a rule to the applications you already have, open the **⋯** menu on its row and select **Run Now**: see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). A rule an edit left with nothing to add is marked **Adds nothing** in the list. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the forms in full.
 
-| Field | Behaviour |
-| --- | --- |
-| **Match Labels** | Only applications that already carry at least one of these labels. Leave empty to skip this filter. |
-| **Name Regex Pattern** | Case-insensitive regex, matched against the name and the description. |
-| **Description Regex Pattern** | Case-insensitive regex, matched against the name and the description. |
-| **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. |
-| **Enabled** | Turn the rule off without deleting it. |
+### Owners
 
-Rules run **when an application is created** — including auto-discovery. They are not retroactive: adding a rule today does not relabel applications discovered last week. Set those by hand, or archive and let them be rediscovered.
-
-Leaving every match field empty matches everything, which is a legitimate way to say "label every new RUM application".
-
-## Owner rules and ownership
-
-_RUM → Settings → Owner Rules_. Same matching fields as label rules, but the outcome is **Owner Teams** and **Owner Users**.
-
-Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
-
-Like label rules, owner rules apply at creation time only.
+Owners are the people and teams responsible for an application. A RUM application's owners come from owner rules: the Dashboard has no page to add them by hand, and the API adds them through `/rum-application-owner-user` and `/rum-application-owner-team`. With **Notify Owners** on, which is the default, each owner a rule adds is told so. Turn it off before you run a rule over many applications, if nobody should be notified.
 
 ## Retention
 
-By default a RUM application's telemetry follows the project's retention settings. Two overrides are available per application:
+An application's telemetry and its recordings are kept for different lengths of time:
 
-- **Retain Telemetry Data For Days** — a single value for all of this application's telemetry.
-- **Telemetry Data Retention Overrides** — per-pillar values (logs, metrics, traces, and profiles separately). Anything left unset falls back to the application default, then to the project setting.
+| Data | Kept for | Set on |
+| --- | --- | --- |
+| Logs, metrics, traces and profiles | The project's retention, unless the application overrides it | The application's **Settings** page |
+| Session Replay recordings | 7 days by default, or 1, 14, 30 or 90 days | **Replay Policy**, with **Edit Policy → Limits** |
 
-Open the application and choose **Settings** to configure both overrides.
+### Telemetry retention
 
-Session Replay recordings have their **own** retention on that Settings page and on the application's _Replay Policy_ page. Both controls update the same policy, which defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
+By default an application's telemetry is kept for the project's retention, which is set under **Project Settings → Telemetry & APM → Data Retention**. Two cards on the application's **Settings** page override it:
 
-RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.
+- **Telemetry Data Retention** holds **Retain Telemetry Data For (Days)**, one value for all of the application's telemetry. Leave it blank to use the project's retention.
+- **Retention by Telemetry Type** holds a default for logs, traces, metrics and profiles each, and for logs by severity and traces by status. A value left blank falls back to the application's value, then to the project's.
+
+Retention overrides are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan and above on OneUptime Cloud. Without them, the cards show what the plan adds, and the application keeps the project's retention.
+
+On a lower Cloud plan, an override left by a trial keeps applying to new telemetry. The **Settings** page shows it on a **Retention Override** card with a **Remove Override** button, which works on every plan: from then on the application keeps the project's retention, and what is already stored keeps the retention it was stored with. Setting an override again needs the Scale plan.
+
+### Session Replay retention
+
+Recordings have a retention of their own, set on the application's **Replay Policy** page with **Edit Policy → Limits**: 7 days by default, or 1, 14, 30 or 90 days. It is short on purpose, because a recording is far more sensitive, and far larger, than a span. The **Session Replay Retention** card on the **Settings** page shows it (_Session replays are kept for 7 days._), and its **Edit on Replay Policy** button opens the policy.
+
+A longer telemetry retention does not keep recordings longer. A session's counts, signals and device expire with its footage; only the session's logs, spans and exceptions follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
+
+> [!TIP]
+> RUM is often the busiest telemetry in a project, because it grows with your users rather than with your servers. A shorter retention here, and a longer one on your backend services, is a common setup.
 
 ## Archiving and deleting
 
-**Archive** hides an application from the main list while it *keeps collecting telemetry*. Use it for an app you no longer actively watch but do not want to lose history for. Archived applications live under **RUM → Archived** and can be unarchived in bulk.
+**Archive** hides an application from **All Applications** while it keeps collecting telemetry. Archive an app you no longer watch but whose history you want to keep.
 
-**Delete** — _View Application → Delete Application_ — is permanent and removes the application. If the app is still emitting telemetry, auto-discovery will simply recreate it on the next batch, with none of its previous settings, so stop the instrumentation first.
+- Click **Archive** on the application's **Settings** page, or select several applications in the list and archive them together.
+- Archived applications are under **Real User Monitoring → Advanced → Archived**. **Advanced** starts folded in the side menu: click it to show **Archived**. **Unarchive** an application there, or several at once.
 
-To erase a specific *user's* data rather than the application, use a session erasure request instead — see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions).
+**Delete Application**, in the **Advanced** section of the application's side menu, removes the application for good. If the app still sends telemetry, its next batch creates the application again, with none of its settings, so stop the instrumentation first.
+
+To erase one person's data rather than a whole application, file an erasure request: see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions).
 
 ## Permissions
 
-RUM applications are readable by the project-wide Viewer role. Session replay deliberately is **not** — watching a recording of a real person's screen is a separate grant from listing applications.
+Anyone with the project's Viewer role can see RUM applications and their telemetry. Session Replay is deliberately not part of that role: listing recordings, watching one and reading who watched are separate permissions. Project owners and admins hold them all. The permission pickers list each permission by its title, shown here in italics.
 
-| Permission | Grants |
+| Permission | Lets a member |
 | --- | --- |
-| `ReadRumApplication` | See applications and their telemetry tabs. |
-| `CreateRumApplication` / `EditRumApplication` / `DeleteRumApplication` | Manage applications. |
-| `ReadRumSessionReplay` | List recorded sessions and their metadata — not the recording itself. |
-| `ReadRumSessionReplayPayload` | Actually play a recording back. |
-| `ReadRumSessionReplayAudit` | See who watched which recording. |
-| `DeleteRumSessionReplay` | Delete recordings. |
-| `CreateRumSessionErasureRequest` / `ReadRumSessionErasureRequest` | File and review erasure requests. |
-| `ReadRumApplicationLabelRule` / `ReadRumApplicationOwnerRule` (+ Create/Edit/Delete) | Manage the rules above. |
-| `ReadRumApplicationOwnerUser` / `ReadRumApplicationOwnerTeam` (+ Create/Edit/Delete) | Manage owners directly. |
+| `ReadRumApplication` (_Read RUM Application_) | See applications and their telemetry pages. |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Add, edit and delete applications. |
+| `ReadRumSessionReplay` (_List Session Replays_) | List recorded sessions and their details, without playing them or learning who the user was. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Play recordings back, and read the identified user's reference and traits. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Read the **Replay Access Log**: who watched which recording. |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | Delete recordings. |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | File erasure requests and follow them. |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (and their Create, Edit and Delete) | Manage label rules and owner rules. |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (and their Create, Edit and Delete) | Add and remove owners through the API. |
 
-The useful split: a support engineer with `ReadRumApplication` + `ReadRumSessionReplay` can triage *which* sessions errored without being able to watch anyone's screen or learn who the user was — the identified user's reference and traits are shown only to roles that hold `ReadRumSessionReplayPayload`. Add that permission only for the people who need it; the `ReadRumSessionReplayAudit` holders can then see, under the application's **Replay Access Log** tab, who watched what. Every playback is written there. See [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) for what each permission unlocks in the session list and the player.
+A useful split: give a support engineer `ReadRumApplication` and `ReadRumSessionReplay`. They can see which sessions hit errors without watching anyone's screen or learning who the user was. Give `ReadRumSessionReplayPayload` only to the people who need it; members with `ReadRumSessionReplayAudit` then see every playback on the application's **Replay Access Log** page. [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) shows what each permission unlocks in the session list and the player.
 
 ## Alerting on RUM data
 
-There is no separate "RUM monitor" type — RUM telemetry is ordinary logs, metrics and traces, so the existing monitors apply directly:
+RUM telemetry is ordinary logs, metrics and traces, so there is no separate RUM monitor: the usual monitors work on it. The quickest start is the application's **Recommendations** page, which offers monitors already scoped to the application:
 
-- [Metrics Monitor](/docs/monitor/metrics-monitor) — alert on a Core Web Vital or any custom metric your app reports.
-- [Traces Monitor](/docs/monitor/traces-monitor) — alert on client-side error rate or latency.
-- [Logs Monitor](/docs/monitor/logs-monitor) — alert on a pattern in browser logs.
-- [Exceptions Monitor](/docs/monitor/exceptions-monitor) — alert on new or spiking client-side exceptions.
+| Group | Recommendations |
+| --- | --- |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint and Slow Time to First Byte. See [Core Web Vitals](/docs/rum/web-vitals). |
+| Errors | Failed User Operations, and Unhandled Browser Exceptions. |
+| Session Replay | The four [storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts), which warn before the project's daily limit or the application's monthly budget runs out. They are offered once the application has recorded a replay, and the monthly pair once it also has a monthly budget. |
 
-Scope the monitor to the application so a backend service with a similar signature does not trigger it.
+To build a monitor of your own, pick the one that reads the signal:
+
+- [Metrics Monitor](/docs/monitor/metrics-monitor): a Core Web Vital, or any metric your app sends.
+- [Traces Monitor](/docs/monitor/traces-monitor): the client-side error rate or latency.
+- [Logs Monitor](/docs/monitor/logs-monitor): a pattern in browser logs.
+- [Exceptions Monitor](/docs/monitor/exceptions-monitor): new or spiking client-side exceptions.
+
+Scope a monitor you build to the application, so that a backend service with a similar signature does not trigger it.
+
+## Next steps
+
+:::cards
+- [Session Replay](/docs/telemetry/session-replay): Record what users saw, with its own policy and retention.
+- [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Both rule forms, step by step.
+- [Run Rules on Existing Resources](/docs/configuration/run-rules-now): Apply a new rule to the applications you already have.
+- [RUM Troubleshooting](/docs/rum/troubleshooting): When an application is missing, empty or Disconnected.
+:::

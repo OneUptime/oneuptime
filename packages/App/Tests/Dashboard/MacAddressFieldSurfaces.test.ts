@@ -7,29 +7,34 @@ import path from "path";
  *
  * The MAC Address field exists so the topology map can put a ping-only
  * device on the switch port its switch's forwarding table says it is on.
- * That only works if the column can be SET, and there are four places an
+ * That only works if the column can be SET, and there are three places an
  * operator sets anything on a device: the create form on the device list,
- * the Device Settings card, the Overview card and the topology map's "Add
- * to Monitoring" dialog. A surface that forgot the field is a surface from
+ * the Device Settings card (the one place an existing device's details are
+ * edited - the Overview card links there) and the topology map's "Add to
+ * Monitoring" dialog. A surface that forgot the field is a surface from
  * which the device can never be put on its port - and, worse, an operator
  * who typed the MAC on create and cannot see it on Settings has no way to
  * tell whether it was saved.
  *
- * All four render the field through ONE helper, getMacAddressFormField, so
+ * All three render the field through ONE helper, getMacAddressFormField, so
  * the title, the validator and the description cannot drift apart - the
  * same reason every SNMP form routes through getSnmpConfigFormFields, and
  * pinned the same way SnmpConfigFormFields.test.ts pins that: against the
  * sources, comments stripped, whitespace squashed. The App suite has no
  * React renderer and these pages are JSX with no extractable logic.
  *
- * Two things about the CALL matter as well as its presence. Three of the
- * surfaces are stepped wizards, and BasicForm places a field on a step
- * purely from its `stepId` - an unstamped field renders on EVERY step. The
- * Overview card is a single-page form and a stamped field there would name a
- * step the form does not declare, which renders it on NONE. And the field
- * sits beside the hostname on every surface, because it is the device's
- * other address: an operator who learns where it lives on one form finds it
- * in the same place on the next.
+ * Two things about the CALL matter as well as its presence. The two
+ * stepped surfaces place the field on a step purely from its `stepId` - an
+ * unstamped field in a stepped form renders on no step at all. The Device
+ * Settings card's edit form walks Device Details (with the site, and the
+ * labels folded under Advanced), Address, Monitoring and SNMP, with the MAC
+ * on the Address step, beside the hostname - the device's other address.
+ *
+ * The Add Device form is one page now, and asks only what adding a device
+ * needs (the hostname, a name, the site, the probe). The MAC is one of the
+ * rarely needed fields folded under More fields: a router's ARP table fills
+ * it in for most devices, and the fold lists it by name, so it is one click
+ * away rather than gone.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -60,26 +65,28 @@ interface MacAddressSurface {
   parts: Array<string>;
   /*
    * The step the field is stamped with on a stepped wizard, or undefined
-   * on the one single-page form.
+   * on a single-page form.
    */
   stepId: string | undefined;
+  /*
+   * On a single-page form that folds it: the folded section it is handed,
+   * as written (the Add Device form's More fields).
+   */
+  foldedUnder?: string | undefined;
 }
 
 const SURFACES: Array<MacAddressSurface> = [
   {
     name: "the create form on the device list",
     parts: ["Pages", "NetworkDevice", "Devices.tsx"],
-    stepId: STEP_ID,
+    stepId: undefined,
+    foldedUnder: "ADD_DEVICE_MORE_FIELDS",
   },
   {
     name: "the Device Settings card",
     parts: ["Pages", "NetworkDevice", "View", "Settings.tsx"],
-    stepId: STEP_ID,
-  },
-  {
-    name: "the device Overview card",
-    parts: ["Pages", "NetworkDevice", "View", "Index.tsx"],
-    stepId: undefined,
+    // Its edit form puts the hostname and the MAC on its Address step.
+    stepId: "address",
   },
   {
     name: "the topology map's Add to Monitoring dialog",
@@ -128,6 +135,12 @@ const HAND_ROLLED_FORM_FIELD: RegExp =
 function steppedCall(stepId: string): RegExp {
   return new RegExp(
     `getMacAddressFormField\\(\\s*\\{\\s*stepId:\\s*"${stepId}",?\\s*\\}\\s*\\)`,
+  );
+}
+
+function foldedCall(section: string): RegExp {
+  return new RegExp(
+    `getMacAddressFormField\\(\\s*\\{\\s*collapsibleSection:\\s*${section},?\\s*\\}\\s*\\)`,
   );
 }
 
@@ -186,6 +199,17 @@ describe.each(SURFACES)(
       test("never calls the helper unstamped", () => {
         expect(source).not.toMatch(UNSTEPPED_CALL);
       });
+    } else if (surface.foldedUnder) {
+      const section: string = surface.foldedUnder;
+
+      test(`folds the field under ${section}`, () => {
+        expect(source).toMatch(foldedCall(section));
+      });
+
+      // A one-page form has no step to name.
+      test("never hands the helper a stepId", () => {
+        expect(source).not.toMatch(/getMacAddressFormField\(\s*\{\s*stepId:/);
+      });
     } else {
       test("calls the helper unstamped, as a single-page form must", () => {
         expect(source).toMatch(UNSTEPPED_CALL);
@@ -197,29 +221,56 @@ describe.each(SURFACES)(
       });
     }
 
-    test("places the field right after the hostname field", () => {
-      const callIndex: number = indexOfMatch(ANY_CALL, source);
-      expect(callIndex).toBeGreaterThan(-1);
+    /*
+     * Beside the hostname on the forms that show it on screen. On the Add
+     * Device form it sits in the folded More fields instead - see below.
+     */
+    if (!surface.foldedUnder) {
+      test("places the field right after the hostname field", () => {
+        const callIndex: number = indexOfMatch(ANY_CALL, source);
+        expect(callIndex).toBeGreaterThan(-1);
 
-      const hostnameIndex: number = lastHostnameFieldBefore(source, callIndex);
-      expect(hostnameIndex).toBeGreaterThan(-1);
+        const hostnameIndex: number = lastHostnameFieldBefore(
+          source,
+          callIndex,
+        );
+        expect(hostnameIndex).toBeGreaterThan(-1);
 
+        /*
+         * Nothing else declared between the two: the segment after the
+         * hostname literal up to the call holds the rest of the hostname
+         * field and no other field's opening.
+         */
+        const between: string = source.slice(
+          hostnameIndex + "field: {".length,
+          callIndex,
+        );
+        expect(between).not.toMatch(ANY_FIELD_LITERAL);
+      });
+    }
+
+    if (surface.foldedUnder) {
       /*
-       * Nothing else declared between the two: the segment after the
-       * hostname literal up to the call holds the rest of the hostname
-       * field and no other field's opening.
+       * Folded with the other rarely needed fields, after the questions the
+       * form asks on screen - so the hostname still comes first and the MAC
+       * is listed by name on the fold's header.
        */
-      const between: string = source.slice(
-        hostnameIndex + "field: {".length,
-        callIndex,
-      );
-      expect(between).not.toMatch(ANY_FIELD_LITERAL);
-    });
+      test("comes after the hostname, in the folded part of the form", () => {
+        const callIndex: number = indexOfMatch(ANY_CALL, source);
+        const hostnameIndex: number = lastHostnameFieldBefore(
+          source,
+          callIndex,
+        );
+
+        expect(hostnameIndex).toBeGreaterThan(-1);
+        expect(callIndex).toBeGreaterThan(hostnameIndex);
+      });
+    }
   },
 );
 
 /*
- * The list above is the whole inventory. A fifth NetworkDevice form that
+ * The list above is the whole inventory. A fourth NetworkDevice form that
  * appears without the field is caught by the create-entry-point tests only
  * if it is a create form; this guards the parse instead - every surface the
  * list names must still exist, so a moved page fails here rather than
@@ -232,7 +283,21 @@ describe("MAC Address field surfaces — inventory", () => {
     );
   });
 
-  test("covers all four forms that set a device's columns", () => {
-    expect(SURFACES).toHaveLength(4);
+  test("covers all three forms that set a device's columns", () => {
+    expect(SURFACES).toHaveLength(3);
+  });
+
+  // The Overview shows the MAC Address and links to Settings to change it.
+  test("the device Overview card edits nothing", () => {
+    const overview: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "View",
+      "Index.tsx",
+    );
+
+    expect(overview).not.toContain("getMacAddressFormField");
+    expect(overview).not.toContain("formFields=");
+    expect(overview).toContain('title: "MAC Address"');
   });
 });

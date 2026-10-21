@@ -137,10 +137,12 @@ import {
   describeResponderVia,
   fetchScheduleUsers,
   fetchTeamMembers,
+  getLargestRotation,
   getResponderGroupKey,
   getResponderGroupName,
   getRuleWarningLabel,
   getRuleWarningLevel,
+  isNobodyEverNextInRotation,
   readSetupReminderStatuses,
   requestSetupReminders,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness";
@@ -1192,6 +1194,16 @@ describe("The readiness detail", () => {
     expect(screen.getByTestId("rule-responder-unchecked")).toHaveTextContent(
       "does not cover Sam Doe, so they are unknown rather than ready",
     );
+    /*
+     * Where the full list is, as the bar names the product: On-Call Duty,
+     * not "On-Call", which is no menu.
+     */
+    expect(screen.getByTestId("rule-responder-unchecked")).toHaveTextContent(
+      "Open On-Call Duty > Readiness for the full list.",
+    );
+    expect(
+      screen.getByTestId("rule-responder-unchecked"),
+    ).not.toHaveTextContent("On-Call > Readiness");
   });
 
   test("a team that could not be read says so, and says what follows from it", () => {
@@ -1929,11 +1941,12 @@ describe("Expanding the groups a level notifies", () => {
   });
 
   /*
-   * No hasAcceptedInvitation filter, mirroring TeamMemberService.getUsersInTeam:
-   * somebody who never accepted their invite still gets paged, so they still
-   * have to be checked.
+   * Accepted members only, as paging expands a team (the escalation rule
+   * reads the team with acceptedOnly): somebody who has not accepted their
+   * invitation is not paged through the team, so there is nothing to check
+   * about them here.
    */
-  test("the team read does not filter on invitations being accepted", async () => {
+  test("the team read is the accepted members only, as paging expands a team", async () => {
     getListMock.mockResolvedValue({
       data: [],
       count: 0,
@@ -1945,7 +1958,7 @@ describe("Expanding the groups a level notifies", () => {
 
     const query: any = (getListMock as any).mock.calls[0][0].query;
 
-    expect(query.hasAcceptedInvitation).toBeUndefined();
+    expect(query.hasAcceptedInvitation).toBe(true);
     expect(query.teamId.toString()).toBe(TEAM_ID);
   });
 
@@ -1989,6 +2002,144 @@ describe("Expanding the groups a level notifies", () => {
     expect(resolution.state).toBe("unavailable");
     expect(resolution.members).toEqual([]);
     expect(resolution.label).toBe("Payments");
+  });
+
+  /*
+   * Whether anybody is ever next in the schedule's rotation: the next person
+   * comes from the on-call person's own layer, so it is the biggest layer
+   * that counts (a level that pages the schedule's Next in rotation pages
+   * nobody when every layer has one person).
+   */
+  test("a schedule's roster says how many people its biggest rotation takes turns between", async () => {
+    const LAYER_A: string = "1a7e0000-0000-4000-8000-00000000000a";
+    const LAYER_B: string = "1a7e0000-0000-4000-8000-00000000000b";
+
+    getListMock.mockResolvedValue({
+      data: [
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_A),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_B),
+          user: { id: new ObjectID(USER_SAM), name: "Sam Doe" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_B),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+      ],
+      count: 3,
+      skip: 0,
+      limit: 50,
+    } as never);
+
+    const resolution: ResponderGroupResolution = await fetchScheduleUsers({
+      group: SCHEDULE_REF,
+      projectId: PROJECT_ID,
+    });
+
+    // Each row is read with its layer.
+    expect(
+      (getListMock as any).mock.calls[0][0].select
+        .onCallDutyPolicyScheduleLayerId,
+    ).toBe(true);
+    expect(resolution.largestRotation).toBe(2);
+    expect(isNobodyEverNextInRotation(resolution)).toBe(false);
+  });
+
+  test("every layer with one person: nobody is ever next", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(
+            "1a7e0000-0000-4000-8000-00000000000a",
+          ),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(
+            "1a7e0000-0000-4000-8000-00000000000b",
+          ),
+          user: { id: new ObjectID(USER_SAM), name: "Sam Doe" },
+        },
+      ],
+      count: 2,
+      skip: 0,
+      limit: 50,
+    } as never);
+
+    const resolution: ResponderGroupResolution = await fetchScheduleUsers({
+      group: SCHEDULE_REF,
+      projectId: PROJECT_ID,
+    });
+
+    expect(resolution.largestRotation).toBe(1);
+    expect(isNobodyEverNextInRotation(resolution)).toBe(true);
+    // Two people are still two responders the readiness label checks.
+    expect(resolution.members).toHaveLength(2);
+  });
+
+  test("the biggest rotation: people counted once per layer, a row with no user not at all", () => {
+    expect(getLargestRotation([])).toBe(0);
+    expect(
+      getLargestRotation([
+        { layerId: "a", userId: USER_ALEX },
+        { layerId: "a", userId: USER_ALEX.toUpperCase() },
+        { layerId: "a", userId: "" },
+      ]),
+    ).toBe(1);
+    expect(
+      getLargestRotation([
+        { layerId: "a", userId: USER_ALEX },
+        { layerId: "b", userId: USER_SAM },
+        { layerId: "b", userId: USER_JO },
+        { layerId: "b", userId: USER_ALEX },
+      ]),
+    ).toBe(3);
+    /*
+     * A row read without its layer counts toward one shared layer: a
+     * missing layer can hide the warning, never raise it.
+     */
+    expect(
+      getLargestRotation([
+        { layerId: "", userId: USER_ALEX },
+        { layerId: "", userId: USER_SAM },
+      ]),
+    ).toBe(2);
+  });
+
+  test("nobody is said to be never next until a schedule's roster is known", () => {
+    const resolved: ResponderGroupResolution = {
+      key: getResponderGroupKey("schedule", SCHEDULE_ID),
+      kind: "schedule",
+      id: SCHEDULE_ID,
+      label: "Primary",
+      state: "resolved",
+      members: [{ userId: USER_ALEX, label: "Alex Chen" }],
+      largestRotation: 1,
+    };
+
+    expect(isNobodyEverNextInRotation(resolved)).toBe(true);
+    expect(isNobodyEverNextInRotation(undefined)).toBe(false);
+    expect(
+      isNobodyEverNextInRotation({ ...resolved, state: "resolving" }),
+    ).toBe(false);
+    expect(
+      isNobodyEverNextInRotation({ ...resolved, state: "unavailable" }),
+    ).toBe(false);
+    // Nobody in it at all: nobody is on call, which the chip says already.
+    expect(
+      isNobodyEverNextInRotation({
+        ...resolved,
+        members: [],
+        largestRotation: 0,
+      }),
+    ).toBe(false);
+    // A team has no rotation.
+    expect(isNobodyEverNextInRotation({ ...resolved, kind: "team" })).toBe(
+      false,
+    );
   });
 
   test("a schedule that cannot be read is unavailable too", async () => {
@@ -2236,7 +2387,9 @@ describe("The escalation page, wired", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByLabelText("Edit rule").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByRole("button", { name: "Edit rule" }).length,
+      ).toBeGreaterThan(0);
     });
 
     expect(
@@ -2741,5 +2894,52 @@ describe("the quiet default", () => {
     expect(level).toBe("none");
     expect(getRuleWarningLabel(empty, FALLBACK_OFF)).toBe("");
     expect(idle.state).toBe("idle");
+  });
+});
+
+/*
+ * A policy with no rules yet shows "Add Escalation Rule" twice: in the card's
+ * header and again under "No escalation rules yet", where the empty list leaves
+ * the eye. Both used to be filled indigo buttons - two primary buttons for one
+ * action. The header's is the page's primary button; the empty state repeats
+ * it drawn plain, the way an empty table repeats its Create button.
+ */
+describe("an escalation policy with no rules yet", () => {
+  test("offers Add Escalation Rule twice, and only the header's is the primary button", async () => {
+    mockPolicy({ users: [] });
+    getListMock.mockImplementation((): Promise<any> => {
+      return Promise.resolve({ data: [], count: 0, skip: 0, limit: 50 });
+    });
+
+    render(
+      <EscalationRules onCallDutyPolicyId={POLICY_ID} projectId={PROJECT_ID} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("No escalation rules yet")).toBeInTheDocument();
+    });
+
+    const addButtons: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: "Add Escalation Rule",
+    });
+
+    expect(addButtons).toHaveLength(2);
+
+    const filled: Array<HTMLElement> = addButtons.filter(
+      (button: HTMLElement) => {
+        return button.classList.contains("bg-indigo-600");
+      },
+    );
+    const emptyStateButton: HTMLElement = addButtons.find(
+      (button: HTMLElement) => {
+        return Boolean(button.closest("#no-escalation-rules"));
+      },
+    )!;
+
+    expect(filled).toHaveLength(1);
+    expect(emptyStateButton).toBeDefined();
+    expect(emptyStateButton).toHaveClass("bg-white");
+    expect(emptyStateButton).not.toHaveClass("bg-indigo-600");
+    expect(filled[0]).not.toBe(emptyStateButton);
   });
 });

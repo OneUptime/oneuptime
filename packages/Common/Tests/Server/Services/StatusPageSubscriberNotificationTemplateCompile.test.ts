@@ -4,6 +4,7 @@ import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubs
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
+import SafeHtml from "../../../Types/SafeHtml";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -114,6 +115,42 @@ describe("StatusPageSubscriberNotificationTemplateService.compileTemplate", () =
     expect(compile("{{ }} {{not a name}} {single}", { single: "x" })).toBe(
       "{{ }} {{not a name}} {single}",
     );
+  });
+});
+
+/*
+ * The body of an email template is HTML, so the service's email-body compile
+ * escapes plain values and inserts only SafeHtml ones as markup, while the
+ * text compile (subjects, SMS, Slack, Teams) leaves every value as written.
+ * The logic is SubscriberNotificationTemplateCompiler's (tested there); this
+ * pins that the service the workers call is wired to it.
+ */
+describe("StatusPageSubscriberNotificationTemplateService.compileEmailBodyTemplate", () => {
+  const TITLE: string = '<a href="https://evil.example">Reset password</a>';
+
+  test("escapes a plain value and keeps a SafeHtml one", () => {
+    expect(
+      StatusPageSubscriberNotificationTemplateService.compileEmailBodyTemplate(
+        "<h1>{{incidentTitle}}</h1>{{incidentDescription}}",
+        {
+          incidentTitle: TITLE,
+          incidentDescription: SafeHtml.fromTrustedHtml(
+            "<p><strong>Down</strong></p>",
+          ),
+        },
+      ),
+    ).toBe(
+      "<h1>&lt;a href=&quot;https://evil.example&quot;&gt;Reset password&lt;/a&gt;</h1><p><strong>Down</strong></p>",
+    );
+  });
+
+  test("the text compile leaves the same value as written", () => {
+    expect(
+      StatusPageSubscriberNotificationTemplateService.compileTemplate(
+        "[Incident] {{incidentTitle}}",
+        { incidentTitle: TITLE },
+      ),
+    ).toBe(`[Incident] ${TITLE}`);
   });
 });
 

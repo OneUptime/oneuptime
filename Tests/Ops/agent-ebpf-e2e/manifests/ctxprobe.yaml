@@ -1,0 +1,51 @@
+# Watches the traces_ctx_v1 map OBI pins on the `apps` node -- the map the
+# profiler reads to tag each CPU sample with the span its thread is serving --
+# for the duration of the load, and prints every distinct entry once:
+# "<key: pid_tgid, 8 bytes LE, hex> <value: trace id (16) + span id (8), hex>".
+# analyze.py checks that the entries name the app's real, exported spans,
+# which is what OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true (set by the chart
+# when profiling is on) and the shared bpffs pin are for. Runs in `loadgen`,
+# a namespace excluded from OBI discovery. @DURATION@ is set by run.sh.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ctxprobe
+  namespace: loadgen
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    e2e.oneuptime.com/apps: "true"
+  tolerations:
+    - operator: Exists
+  containers:
+    - name: ctxprobe
+      image: alpine:3.20
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        privileged: true
+      command:
+        - sh
+        - -c
+        - |
+          for i in 1 2 3 4 5; do apk add -q --no-progress bpftool jq >/dev/null 2>&1 && break; sleep $((i * 3)); done
+          command -v bpftool >/dev/null || { echo "PROBE-ERROR: no bpftool"; exit 1; }
+          PIN=/sys/fs/bpf/otel/traces_ctx_v1
+          for i in $(seq 1 60); do [ -e "$PIN" ] && break; sleep 1; done
+          [ -e "$PIN" ] || { echo "PROBE-ERROR: no pin at $PIN"; ls -la /sys/fs/bpf /sys/fs/bpf/otel 2>&1; exit 1; }
+          bpftool -j map show pinned "$PIN" | sed 's/^/PROBE-MAP: /'
+          echo PROBE-READY
+          end=$(( $(date +%s) + @DURATION@ ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            bpftool -j map dump pinned "$PIN" 2>/dev/null |
+              jq -r '.[] | ((.key | map(.[2:]) | join("")) + " " + (.value | map(.[2:]) | join("")))'
+            sleep 0.3
+          done | awk '!seen[$0]++'
+          echo PROBE-DONE
+      volumeMounts:
+        - name: bpffs
+          mountPath: /sys/fs/bpf
+          mountPropagation: HostToContainer
+  volumes:
+    - name: bpffs
+      hostPath:
+        path: /sys/fs/bpf

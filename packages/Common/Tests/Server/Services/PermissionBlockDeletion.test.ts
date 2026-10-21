@@ -1,4 +1,5 @@
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
@@ -6,6 +7,7 @@ import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
@@ -21,6 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -30,6 +33,19 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  answerRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return { __esModule: true, default: class PasswordHashStub {} };
@@ -75,6 +91,13 @@ interface PermissionServiceCase {
   isTeam: boolean;
 }
 
+// The case's service, as the testing helpers take a service of any model.
+function serviceOf(
+  serviceCase: PermissionServiceCase,
+): DatabaseService<DatabaseBaseModel> {
+  return serviceCase.service as unknown as DatabaseService<DatabaseBaseModel>;
+}
+
 interface RowOptions {
   permission?: Permission;
   labels?: Array<ObjectID>;
@@ -115,6 +138,7 @@ function props(
   return {
     userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [projectId],
       globalPermissions: [Permission.Public, Permission.User],
@@ -167,6 +191,28 @@ function asNumber(value: number | PositiveNumber): number {
 }
 
 function selectedIds(value: unknown): Array<string> | undefined {
+  // Every condition of an And holds: the ids each names, together.
+  if (value instanceof FindOperator && value.type === "and") {
+    let ids: Array<string> | undefined = undefined;
+
+    for (const part of value.value as unknown as Array<unknown>) {
+      const named: Array<string> | undefined = selectedIds(part);
+
+      if (named === undefined) {
+        continue;
+      }
+
+      ids =
+        ids === undefined
+          ? named
+          : ids.filter((id: string): boolean => {
+              return named.includes(id);
+            });
+    }
+
+    return ids;
+  }
+
   if (value instanceof FindOperator) {
     const parameters: Record<
       string,
@@ -276,6 +322,14 @@ describe.each(serviceCases)(
           return matchingRows.slice(skip, skip + asNumber(findBy.limit));
         },
       );
+      /*
+       * The rows the caller may delete: the permission checker narrows the
+       * read for real, and the same rows answer it.
+       */
+      answerRowsCallerMayWriteLikeFindBy(
+        serviceOf(serviceCase),
+        findPermissions,
+      );
       getJestSpyOn(serviceCase.service, "findOneBy").mockResolvedValue(null);
       getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
         _id: targetId.toString(),
@@ -291,6 +345,7 @@ describe.each(serviceCases)(
         AccessTokenService,
         "refreshUserTenantAccessPermission",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     afterEach(() => {
@@ -509,11 +564,12 @@ describe.each(serviceCases)(
           props: props([userPermission(Permission.ProjectOwner)]),
         });
         expect(selectedIds(result.deleteBy.query._id)).toEqual([]);
-        expect(findPermissions).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: expect.objectContaining({ projectId }),
-          }),
-        );
+        // The rows the caller may delete are read in the caller's project.
+        expect(
+          readsOfRowsCallerMayWrite(serviceOf(serviceCase))[0]!.query[
+            "projectId"
+          ],
+        ).toEqual(projectId);
         expect(findMembers).not.toHaveBeenCalled();
       },
     );
@@ -551,8 +607,12 @@ describe.each(serviceCases)(
       await expect(
         deleteAs(editorProps(), { limit: LIMIT_MAX + 1 }),
       ).rejects.toBeInstanceOf(NotAuthorizedException);
+      // Every row of the delete's window is read, and checked, before any goes.
+      expect(readsOfRowsCallerMayWrite(serviceOf(serviceCase))[0]!.limit).toBe(
+        LIMIT_MAX + 1,
+      );
       expect(findPermissions).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: LIMIT_MAX }),
+        expect.objectContaining({ limit: LIMIT_MAX + 1 }),
       );
       expect(findMembers).not.toHaveBeenCalled();
     });
@@ -755,7 +815,10 @@ describe.each(serviceCases)(
         expect(refreshTenant).not.toHaveBeenCalled();
         await hooks.onDeleteSuccess(result, [rows[0]!.id!]);
 
-        expect(refreshGlobal).toHaveBeenCalledWith(userId);
+        // Only the project's refresh tells their open live updates.
+        expect(refreshGlobal).toHaveBeenCalledWith(userId, {
+          forgetLiveUpdateReaders: false,
+        });
         expect(refreshTenant).toHaveBeenCalledWith(userId, projectId);
         expect(findMembers).toHaveBeenCalledWith(
           expect.objectContaining({

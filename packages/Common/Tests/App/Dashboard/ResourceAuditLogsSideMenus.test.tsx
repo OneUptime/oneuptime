@@ -111,6 +111,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Team",
       "Notifications",
       "Notes",
+      "Developer",
       "Advanced",
     ],
     auditSectionLinks: [
@@ -132,7 +133,13 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     },
     auditPage: PageMap.MONITOR_VIEW_AUDIT_LOGS,
     auditSection: "Advanced",
-    sections: ["Overview", "Activity", "Configuration", "Advanced"],
+    sections: [
+      "Overview",
+      "Activity",
+      "Configuration",
+      "Developer",
+      "Advanced",
+    ],
     auditSectionLinks: [
       { title: "Owners", page: PageMap.MONITOR_VIEW_OWNERS },
       { title: "Custom Fields", page: PageMap.MONITOR_VIEW_CUSTOM_FIELDS },
@@ -148,7 +155,14 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     },
     auditPage: PageMap.SLO_VIEW_AUDIT_LOGS,
     auditSection: "Management",
-    sections: ["Overview", "Activity", "Configuration", "Management"],
+    sections: [
+      "Overview",
+      "Activity",
+      "Configuration",
+      "Rules",
+      "Developer",
+      "Management",
+    ],
     auditSectionLinks: [
       { title: "Owners", page: PageMap.SLO_VIEW_OWNERS },
       { title: "Settings", page: PageMap.SLO_VIEW_SETTINGS },
@@ -166,11 +180,13 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     sections: [
       "Basic",
       "Resources",
+      "Rules",
       "Subscribers",
       "Notification Logs",
       "Branding",
       "Security",
       "AI",
+      "Developer",
       "Advanced",
     ],
     auditSectionLinks: [
@@ -305,8 +321,9 @@ describe.each(RESOURCE_CASES)(
 );
 
 /*
- * SLO performance and activity precede configuration. Charts remains absent:
- * its history lives in Metrics, and its route only survives for bookmarks.
+ * SLO performance and activity precede configuration and the rules. Charts
+ * remains absent: its history lives in Metrics, and its route only survives
+ * for bookmarks.
  */
 const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Overview", page: PageMap.SLO_VIEW },
@@ -335,6 +352,7 @@ describe("SLO resource menu", () => {
       ...linksIn("Overview"),
       ...linksIn("Activity"),
       ...linksIn("Configuration"),
+      ...linksIn("Rules"),
     ]).toEqual(
       SLO_SECTION_LINKS.map((link: ExpectedLink): MenuLink => {
         return {

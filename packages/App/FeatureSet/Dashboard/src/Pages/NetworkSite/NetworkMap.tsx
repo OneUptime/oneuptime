@@ -34,6 +34,7 @@ import {
 import {
   childTypeLabelFor,
   isUnitLevelFor,
+  opensDeviceTopology,
 } from "../../Components/NetworkSite/SiteMapViewModel";
 import StatusChipGroup, {
   StatusChipOption,
@@ -51,27 +52,23 @@ import {
   summarizeSiteHealth,
 } from "../../Components/NetworkSite/SiteHealthFilter";
 import NetworkTopologyLiveView from "../../Components/Topology/NetworkTopologyLiveView";
+import NetworkTopologyExplorer from "../../Components/Topology/NetworkTopologyExplorer";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { Slate500 } from "Common/Types/BrandColors";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import React, {
   Fragment,
   FunctionComponent,
@@ -82,6 +79,8 @@ import React, {
   useState,
 } from "react";
 import { Location, useLocation } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The drill-down network map — the franchise-network feature's
@@ -117,11 +116,12 @@ const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
 const PAGE_TITLE: string = "Network Map";
 const PAGE_DESCRIPTION: string =
-  "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
+  "Your whole network on one map. A marker's color is the worst status there: click it to open the site.";
 
 const NetworkSiteMap: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Lazy: the URL is read at mount, and after that only when a navigation
    * lands on this route (see the re-seed effect below).
@@ -346,9 +346,19 @@ const NetworkSiteMap: FunctionComponent<
    * customer can rename ("Unit" → "Store", "Restaurant", "Tower"), so a
    * string comparison would silently stop opening device topologies the
    * moment somebody edited the label. The flag travels on every breadcrumb
-   * entry and defaults to false, so an untyped site reads as a container.
+   * entry and defaults to false, so an untyped site reads as a container -
+   * unless it has no sites under it and devices of its own, when it opens
+   * those devices too (opensDeviceTopology).
    */
-  const isUnitView: boolean = Boolean(currentSite && currentSite.isUnitLevel);
+  const isUnitView: boolean = Boolean(
+    currentSite &&
+      childrenData &&
+      opensDeviceTopology({
+        isUnitLevel: currentSite.isUnitLevel,
+        childSiteCount: childrenData.children.length,
+        ownDeviceCount: childrenData.ownDeviceStats.total,
+      }),
+  );
 
   // The unit view's embedded topology polls itself — skip our poll there.
   const isUnitViewRef: React.MutableRefObject<boolean> =
@@ -526,7 +536,9 @@ const NetworkSiteMap: FunctionComponent<
           {/* Slate reads on both the light and the dark surface; the
            * default VeryLightGray all but vanishes on white. */}
           <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
-          <p className="text-sm text-gray-500">Loading your network…</p>
+          <p className="text-sm text-gray-500">
+            {translator.translateText("Loading your network…")}
+          </p>
         </div>
       </Card>
     );
@@ -550,7 +562,15 @@ const NetworkSiteMap: FunctionComponent<
             onNavigate={changeSite}
           />
         </div>
-        <NetworkTopologyLiveView siteId={currentSiteId} layoutMode="tiered" />
+        <NetworkTopologyLiveView
+          siteId={currentSiteId}
+          layoutMode="tiered"
+          scopeNames={(childrenData?.breadcrumb || []).map(
+            (entry: SiteBreadcrumbEntry): string => {
+              return entry.name;
+            },
+          )}
+        />
       </Fragment>
     );
   }
@@ -699,8 +719,16 @@ const NetworkSiteMap: FunctionComponent<
         data-testid="network-map-health-filter-hint"
       >
         {isHealthFiltered
-          ? `Showing ${healthSummary.attention} of ${healthSummary.total} — everything operational is hidden.`
-          : "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is."}
+          ? translator.translateTemplate(
+              "Showing {{attention}} of {{total}} — everything operational is hidden.",
+              {
+                attention: healthSummary.attention,
+                total: healthSummary.total,
+              },
+            )
+          : translator.translateText(
+              "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is.",
+            )}
       </p>
     </div>
   );
@@ -733,7 +761,10 @@ const NetworkSiteMap: FunctionComponent<
         </div>
         <Card
           title={currentSite.name}
-          description={`${currentSite.siteType} — click a site to drill down; a unit opens its device topology.`}
+          description={translator.translateTemplate(
+            "{{siteType}} — click a site to drill down; a unit opens its device topology.",
+            { siteType: currentSite.siteType },
+          )}
           buttons={[refreshButton]}
         >
           {/*
@@ -796,42 +827,21 @@ const NetworkSiteMap: FunctionComponent<
   const rootLinks: Array<SiteLinkView> = levelLinks;
 
   /*
-   * "No network sites yet" is a claim about the PROJECT, so it is decided on
-   * the unfiltered lists. A search that matches nothing must not tell a
-   * customer with a thousand stores that they have never created one — that
-   * case is the map's own "nothing matches" state, further down.
+   * No sites: there is nothing to put on a geographic map - but a project
+   * with no sites can still have a whole network of devices, and "No network
+   * sites yet" told it there was nothing to see. So the Map draws the
+   * devices instead: the device topology, as Device Topology does for a
+   * project without sites, with a note that grouping devices into sites puts
+   * them on this map by location (NetworkTopologyExplorer). The project's
+   * first site brings the geographic map back on the next refresh.
+   *
+   * Decided on the unfiltered lists: it is a claim about the PROJECT. A
+   * search that matches nothing must not hand a customer with a thousand
+   * stores the device graph - that case is the map's own "nothing matches"
+   * state, further down.
    */
   if (allLevelSites.length === 0 && allPinnedSites.length === 0) {
-    return (
-      <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
-        {/* EmptyState ships 13rem of vertical padding for a full-page
-         * placeholder; inside a card that reads as a hole, so trim it. */}
-        <div className="-my-28">
-          <EmptyState
-            id="network-map-empty"
-            icon={IconProp.Globe}
-            title="No network sites yet"
-            description={
-              <span className="mx-auto block max-w-md">
-                Model your network as a hierarchy — regions, franchisees,
-                markets, units — and this page becomes a drill-down map of all
-                of it, from the whole country down to the switch in one store.
-              </span>
-            }
-            footer={
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.NETWORK_SITES] as Route,
-                )}
-                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              >
-                Create your first network site
-              </Link>
-            }
-          />
-        </div>
-      </Card>
-    );
+    return <NetworkTopologyExplorer />;
   }
 
   return (
@@ -852,11 +862,13 @@ const NetworkSiteMap: FunctionComponent<
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500">
-          Drag to pan, scroll to zoom, or use the controls on the map.
+          {translator.translateText(
+            "Drag to pan, scroll to zoom, or use the controls on the map.",
+          )}
         </p>
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" />
-          Live — updates every minute
+          {translator.translateText("Live — updates every minute")}
         </p>
       </div>
 
@@ -864,8 +876,9 @@ const NetworkSiteMap: FunctionComponent<
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <Icon className="mt-px h-4 w-4 flex-shrink-0" icon={IconProp.Alert} />
           <span>
-            This network is very large, so only part of it is shown. Drill into
-            a site to see the rest.
+            {translator.translateText(
+              "This network is very large, so only part of it is shown. Drill into a site to see the rest.",
+            )}
           </span>
         </div>
       ) : (
@@ -881,7 +894,7 @@ const NetworkSiteMap: FunctionComponent<
           hint={
             normalizedSearch
               ? "Matching top-level sites. Click one to drill in."
-              : "Click a site to drill into its markets and units."
+              : "Click a site to open it."
           }
           description={NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards}
         >
@@ -915,11 +928,12 @@ const NetworkSiteMap: FunctionComponent<
                   icon={IconProp.CheckCircle}
                 />
               </span>
-              Nothing needs attention
+              {translator.translateText("Nothing needs attention")}
             </div>
             <p className="mt-1 text-sm text-gray-500">
-              Every site at this level is operational, and so is every unit
-              beneath them. Switch back to All to see them.
+              {translator.translateText(
+                "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see them.",
+              )}
             </p>
           </div>
         </MapSection>

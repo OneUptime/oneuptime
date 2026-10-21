@@ -148,11 +148,50 @@ describe("fetchIncidents", () => {
      * The unresolved badge asks for limit: 1 and reads `count`. Filtering
      * anywhere but in the query would count resolved incidents too and put a
      * number on the tab bar that no screen can explain.
+     *
+     * Which states are open is the project's to say: every state above its
+     * resolved state. "Closed", placed after Resolved and not flagged, is
+     * resolved too, so the project's states are read first and the list asks
+     * for the open ones by id (utils/resolvedState).
      */
+    postSpy().mockResolvedValueOnce({
+      data: makeListResponse([
+        makeIncidentState({ _id: "state-created", order: 1 }),
+        makeIncidentState({
+          _id: "state-acknowledged",
+          name: "Acknowledged",
+          isCreatedState: false,
+          isAcknowledgedState: true,
+          order: 2,
+        }),
+        makeIncidentState({
+          _id: "state-resolved",
+          name: "Resolved",
+          isCreatedState: false,
+          isResolvedState: true,
+          order: 3,
+        }),
+        makeIncidentState({
+          _id: "state-closed",
+          name: "Closed",
+          isCreatedState: false,
+          order: 4,
+        }),
+      ]),
+    } as never);
+
     await fetchIncidents("project-1", { unresolvedOnly: true });
 
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0]).toBe("/api/incident-state/get-list?skip=0&limit=20");
+    expect(calls[0]![2]).toEqual({ headers: { tenantid: "project-1" } });
+    expect(lastUrl()).toBe("/api/incident/get-list?skip=0&limit=20");
     expect(lastBody()["query"]).toEqual({
-      currentIncidentState: { isResolvedState: false },
+      currentIncidentStateId: {
+        _type: "Includes",
+        value: ["state-created", "state-acknowledged"],
+      },
     });
   });
 
@@ -273,14 +312,6 @@ describe("fetchAllIncidents", () => {
     expect(lastSelect()["projectId"]).toBe(true);
   });
 
-  test("narrows to unresolved incidents when asked", async () => {
-    await fetchAllIncidents({ unresolvedOnly: true });
-
-    expect(lastBody()["query"]).toEqual({
-      currentIncidentState: { isResolvedState: false },
-    });
-  });
-
   test("sends an empty query otherwise, so resolved incidents are not excluded by accident", async () => {
     await fetchAllIncidents();
 
@@ -297,7 +328,6 @@ describe("fetchAllIncidents", () => {
 
     const page: ListResponse<IncidentItem> = await fetchAllIncidents({
       limit: 1,
-      unresolvedOnly: true,
     });
 
     expect(page.count).toBe(42);

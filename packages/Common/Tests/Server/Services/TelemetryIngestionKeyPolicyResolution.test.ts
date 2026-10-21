@@ -14,6 +14,14 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
   };
 });
 
+// Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+jest.mock("../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: { isProjectBlocked: jest.fn().mockResolvedValue(false) },
+  };
+});
+
 /*
  * Every TelemetryIngestionKey in every installation that exists today was
  * written before this feature's seven columns did, so it reads back with all
@@ -76,6 +84,10 @@ jest.mock("../../../Server/Services/DatabaseService", () => {
     }
 
     public setDoNotAllowDelete(): void {
+      // no-op
+    }
+
+    public keepRowsOnDeleteByQuery(): void {
       // no-op
     }
 

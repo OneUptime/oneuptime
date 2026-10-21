@@ -7,13 +7,14 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
-import {
+import OtelPayloadDecoder, {
   OtelPayloadEncoding,
   OtelPayloadFormat,
 } from "../../Utils/OtelPayloadDecoder";
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
+import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatestPayloadStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 
 export enum TelemetryType {
@@ -41,16 +42,25 @@ export type ProbeIngestJobType =
 
 export interface IncomingEmailJobData {
   /*
-   * Which monitor the mail is for, read from the recipient address. Exactly
-   * one of the two is set: `secretKey` for a generated
-   * `monitor-{secretKey}@` address, `customLocalPart` for a custom one (see
-   * IncomingEmailMonitorAddress). Jobs queued before custom addresses existed
-   * carry `secretKey` only.
+   * Which monitor or workflow the mail is for, read from the recipient
+   * address. Exactly one of the three is set: `secretKey` for a monitor's
+   * generated `monitor-{secretKey}@` address, `customLocalPart` for a
+   * monitor's custom one, `workflowSecretKey` for a workflow's Incoming Email
+   * trigger, `workflow-{secretKey}@` (see IncomingEmailMonitorAddress). Jobs
+   * queued before custom addresses existed carry `secretKey` only.
    */
   secretKey?: string | undefined;
   customLocalPart?: string | undefined;
+  workflowSecretKey?: string | undefined;
   emailFrom: string;
   emailTo: string;
+  /*
+   * Every address in the To and Cc headers. A workflow is handed both lists;
+   * a monitor evaluates `emailTo`, as it always has. Absent on jobs queued
+   * before workflows received email.
+   */
+  emailToAddresses?: Array<string> | undefined;
+  emailCcAddresses?: Array<string> | undefined;
   emailSubject: string;
   emailBody: string;
   emailBodyHtml: string | undefined;
@@ -67,12 +77,24 @@ export interface IncomingEmailJobData {
 export interface ProbeIngestJobData {
   jobType: ProbeIngestJobType;
   ingestionTimestamp: Date;
-  // For probe-response and monitor-test
+  /*
+   * For probe-response and monitor-test: { probeId, probeMonitorResponse },
+   * where probeId is the probe that sent the result as it authenticated
+   * (the route writes it from req.probe, never from the body) and
+   * probeMonitorResponse the result as the probe put it on the wire. A job
+   * queued before the route wrote it this way carries the whole request
+   * body instead, whose top-level probeId is the one the probe
+   * authenticated with - so it is read the same way.
+   */
   probeMonitorResponse?: JSONObject | undefined;
   testId?: string | undefined;
   // For incoming-email
   incomingEmail?: IncomingEmailJobData | undefined;
-  // For snmp-trap: the raw request body ({ probeId, probeKey, snmpTrap })
+  /*
+   * For snmp-trap: { probeId, snmpTrap }, probeId being the probe that
+   * received the trap as it authenticated. Jobs queued earlier carry the
+   * whole request body, whose top-level probeId is that same probe.
+   */
   snmpTrap?: JSONObject | undefined;
   /*
    * For network-device-walk: the raw request body
@@ -102,6 +124,14 @@ export interface IncomingRequestIngestJobData {
   requestMethod: string;
   ingestionTimestamp: Date;
   receivedViaProbeId?: string | undefined;
+  /*
+   * Set only when the request was queued with same-monitor coalescing: its id
+   * in IncomingRequestLatestPayloadStore. It tells the worker to evaluate the
+   * monitor's newest stored request, which may be newer than this copy. The
+   * copy stays on the job for workers that predate the store (a rolling
+   * deploy) and for jobs queued with coalescing off.
+   */
+  coalescedPayloadId?: string | undefined;
 }
 
 export interface TelemetryMonitorEvaluationJobData {
@@ -162,8 +192,8 @@ export interface TelemetryIngestJobData {
    * TelemetryBodyStore before the job is enqueued. The worker
    * fetches the raw buffer via TelemetryBodyStore.readBody (and
    * deletes it via deleteBody only after the job succeeds) and
-   * decodes (gunzip + protobuf or JSON) per `bodyFormat` /
-   * `bodyEncoding`. Every OTel-type job carries
+   * decodes (gzip / deflate / zstd inflate + protobuf or JSON) per
+   * `bodyFormat` / `bodyEncoding`. Every OTel-type job carries
    * `bodyKey` + `bodyFormat` + `productType` — raw HTTP bodies are
    * stored as-is, while producers that hand us an already-parsed
    * object (gRPC, Pyroscope conversion) are serialized to JSON
@@ -496,9 +526,32 @@ export default class TelemetryQueueService {
         const buffer: Buffer = Buffer.isBuffer(req.body)
           ? (req.body as Buffer)
           : Buffer.from(req.body as Uint8Array);
-        const contentEncoding: string | undefined = headerValueToString(
-          req.headers["content-encoding"],
-        );
+        /*
+         * Every coding in the header is read, not just the first array
+         * element - "gzip, zstd" must not pass as gzip.
+         */
+        const bodyEncoding: OtelPayloadEncoding | null =
+          OtelPayloadDecoder.encodingFromContentEncoding(
+            req.headers["content-encoding"],
+          );
+
+        /*
+         * Backstop for OtelRequestMiddleware.parseBody, which answers 415
+         * for these on every OTLP/HTTP route before the handler runs, so a
+         * throw here means a new raw-body OTel producer skipped that check
+         * (the ingest handlers turn it into a 503, so it fails loudly).
+         * Refuse before storing anything: the worker cannot decode the
+         * body, and falling back to "none" is the silent drop GH#3978 was.
+         * Syslog / Fluent / security-event jobs never decode a stored body
+         * (their worker cases read `requestBody`), so they keep being
+         * accepted as before.
+         */
+        if (bodyEncoding === null && isOtelType) {
+          throw new Error(
+            `TelemetryQueueService: refusing ${type} body with unsupported Content-Encoding; OTLP/HTTP admission must answer 415 for it`,
+          );
+        }
+
         const contentType: string | undefined = headerValueToString(
           req.headers["content-type"],
         );
@@ -524,9 +577,7 @@ export default class TelemetryQueueService {
         jobData.bodyFormat = isProtobuf
           ? OtelPayloadFormat.Protobuf
           : OtelPayloadFormat.Json;
-        jobData.bodyEncoding = contentEncoding?.includes("gzip")
-          ? "gzip"
-          : "none";
+        jobData.bodyEncoding = bodyEncoding ?? "none";
         jobData.productType =
           req.productType ?? PRODUCT_TYPE_BY_TELEMETRY_TYPE[type];
       } else if (isOtelType) {
@@ -609,14 +660,25 @@ export default class TelemetryQueueService {
     return this.addTelemetryIngestJob(req, TelemetryType.SecurityEvents);
   }
 
+  /*
+   * Queues one probe's check result (or monitor test result). `probeId` is
+   * the probe that sent it, as it authenticated: the worker records the
+   * result as that probe's and nobody else's (ProbeReportIdentity). Only
+   * the result itself is queued with it - never the request body, which
+   * carries the probe's key.
+   */
   public static async addProbeIngestJob(data: {
+    probeId: ObjectID;
     probeMonitorResponse: JSONObject;
     jobType: "probe-response" | "monitor-test";
     testId?: string;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
-        probeMonitorResponse: data.probeMonitorResponse,
+        probeMonitorResponse: {
+          probeId: data.probeId.toString(),
+          probeMonitorResponse: data.probeMonitorResponse,
+        },
         jobType: data.jobType,
         testId: data.testId,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
@@ -654,13 +716,21 @@ export default class TelemetryQueueService {
     }
   }
 
+  /*
+   * Queues one trap a probe received. `probeId` is that probe, as it
+   * authenticated: traps are matched only to the devices it polls.
+   */
   public static async addSnmpTrapIngestJob(data: {
-    snmpTrapRequestBody: JSONObject;
+    probeId: ObjectID;
+    snmpTrap: JSONObject;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
         jobType: "snmp-trap",
-        snmpTrap: data.snmpTrapRequestBody,
+        snmpTrap: {
+          probeId: data.probeId.toString(),
+          snmpTrap: data.snmpTrap,
+        },
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
@@ -729,8 +799,11 @@ export default class TelemetryQueueService {
   public static async addIncomingEmailJob(data: {
     secretKey?: string | undefined;
     customLocalPart?: string | undefined;
+    workflowSecretKey?: string | undefined;
     emailFrom: string;
     emailTo: string;
+    emailToAddresses?: Array<string> | undefined;
+    emailCcAddresses?: Array<string> | undefined;
     emailSubject: string;
     emailBody: string;
     emailBodyHtml?: string | undefined;
@@ -750,8 +823,11 @@ export default class TelemetryQueueService {
         incomingEmail: {
           secretKey: data.secretKey,
           customLocalPart: data.customLocalPart,
+          workflowSecretKey: data.workflowSecretKey,
           emailFrom: data.emailFrom,
           emailTo: data.emailTo,
+          emailToAddresses: data.emailToAddresses,
+          emailCcAddresses: data.emailCcAddresses,
           emailSubject: data.emailSubject,
           emailBody: data.emailBody,
           emailBodyHtml: data.emailBodyHtml,
@@ -768,7 +844,8 @@ export default class TelemetryQueueService {
 
       /*
        * The recipient is deliberately not part of the id: it is the monitor's
-       * credential, and job ids end up in queue dashboards and logs.
+       * or the workflow's credential, and job ids end up in queue dashboards
+       * and logs.
        */
       const jobId: string = `incoming-email-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
@@ -845,6 +922,12 @@ export default class TelemetryQueueService {
     requestBody: string | JSONObject;
     requestMethod: string;
     receivedViaProbeId?: string | undefined;
+    /*
+     * When the endpoint received the request. Carried on the job so the
+     * worker records the heartbeat at its arrival time, not at the time the
+     * queue got around to it.
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const incomingRequestData: IncomingRequestIngestJobData = {
@@ -852,9 +935,35 @@ export default class TelemetryQueueService {
         requestHeaders: data.requestHeaders,
         requestBody: data.requestBody,
         requestMethod: data.requestMethod,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         receivedViaProbeId: data.receivedViaProbeId,
       };
+
+      /*
+       * Read once: whether the request is stored for coalescing and whether
+       * its job is deduplicated must agree.
+       */
+      const coalesce: boolean = INCOMING_REQUEST_INGEST_COALESCE_ENABLED;
+
+      if (coalesce) {
+        /*
+         * BullMQ's deduplication below keeps the newest payload only while
+         * the monitor's job is ACTIVE. A request that arrives while the job is
+         * still WAITING is discarded and the older waiting payload is the one
+         * evaluated - under a backlog, most requests. So the request is also
+         * stored as the monitor's newest, and a coalesced job evaluates that
+         * when it runs (see IncomingRequestLatestPayloadStore). Stored BEFORE
+         * the job is added, so the job that ends up evaluating this request
+         * always finds it.
+         */
+        incomingRequestData.coalescedPayloadId = ObjectID.generate().toString();
+
+        await IncomingRequestLatestPayloadStore.store({
+          secretKey: data.secretKey,
+          payloadId: incomingRequestData.coalescedPayloadId,
+          payload: incomingRequestData,
+        });
+      }
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.IncomingRequestIngest,
@@ -884,13 +993,21 @@ export default class TelemetryQueueService {
            * into many concurrent monitorResource() calls all contending on the
            * same per-monitor Redis lock ("Acquire mutex ... timeout"). With
            * keepLastIfActive BullMQ keeps at most one active + one waiting job
-           * per monitor and preserves the latest payload, so same-monitor
-           * processing is serialized at enqueue time (no worker slots, no lock
-           * contention) while liveness stays fresh. Keyed by secretKey because
-           * the monitorId is only resolved later in the worker; the secret key
-           * is 1:1 with the monitor. Gated so ops can disable without a deploy.
+           * per monitor, so same-monitor processing is serialized at enqueue
+           * time (no worker slots, no lock contention). Keyed by secretKey
+           * because the monitorId is only resolved later in the worker; the
+           * secret key is 1:1 with the monitor. Gated so ops can disable
+           * without a deploy.
+           *
+           * Which request gets evaluated is not left to BullMQ, which keeps
+           * the latest payload only for a request that arrives while the
+           * monitor's job is ACTIVE: the job evaluates the monitor's newest
+           * request from IncomingRequestLatestPayloadStore, stored above, so
+           * the newest one is evaluated whichever job runs. Liveness does not
+           * depend on it either: the endpoint records every arrival in
+           * IncomingRequestReceivedAtStore before enqueueing.
            */
-          ...(INCOMING_REQUEST_INGEST_COALESCE_ENABLED
+          ...(coalesce
             ? {
                 deduplication: {
                   id: `incoming-request-${data.secretKey}`,
@@ -1078,49 +1195,16 @@ export default class TelemetryQueueService {
     }
   }
 
-  public static async getQueueSize(): Promise<number> {
-    return Queue.getQueueSize(QueueName.Telemetry);
-  }
-
   /*
    * Telemetry queue BACKLOG (waiting + delayed) for autoscaling signals.
    * Active jobs are excluded on purpose: telemetry jobs park in the active
    * state for the fan-in writer's flush window while awaiting their
    * ClickHouse ack, so counting them makes a scaler read busy-but-healthy
-   * capacity as demand — see Queue.getQueueBacklogSize. getQueueSize above
+   * capacity as demand — see Queue.getQueueBacklogSize. Queue.getQueueSize
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
   public static async getQueueBacklogSize(): Promise<number> {
     return Queue.getQueueBacklogSize(QueueName.Telemetry);
-  }
-
-  public static async getQueueStats(): Promise<{
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-    total: number;
-  }> {
-    return Queue.getQueueStats(QueueName.Telemetry);
-  }
-
-  public static getFailedJobs(options?: {
-    start?: number;
-    end?: number;
-  }): Promise<
-    Array<{
-      id: string;
-      name: string;
-      data: JSONObject;
-      failedReason: string;
-      stackTrace?: string;
-      processedOn: Date | null;
-      finishedOn: Date | null;
-      attemptsMade: number;
-    }>
-  > {
-    return Queue.getFailedJobs(QueueName.Telemetry, options);
   }
 }

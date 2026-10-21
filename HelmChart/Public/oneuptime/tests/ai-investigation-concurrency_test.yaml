@@ -1,0 +1,61 @@
+# How many AI investigations one pod runs at once (AI_INVESTIGATION_CONCURRENCY).
+# The pods that consume the queues run them: the app pods while worker.enabled
+# is false, the worker pods otherwise - so each deployment carries its own
+# value, and an override that never reaches the container is invisible: the
+# operator raises it, and a storm still queues behind the default.
+suite: AI investigation concurrency
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: gives the app pods the default when unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AI_INVESTIGATION_CONCURRENCY
+            value: "10"
+
+  - it: passes the app pods' value through when set
+    templates:
+      - templates/app.yaml
+    set:
+      app.aiInvestigationConcurrency: 25
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AI_INVESTIGATION_CONCURRENCY
+            value: "25"
+
+  - it: passes the worker pods' own value through when set
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      worker.aiInvestigationConcurrency: 40
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AI_INVESTIGATION_CONCURRENCY
+            value: "40"
+
+  - it: refuses a value below one
+    templates:
+      - templates/app.yaml
+    set:
+      app.aiInvestigationConcurrency: 0
+    asserts:
+      - failedTemplate: {}

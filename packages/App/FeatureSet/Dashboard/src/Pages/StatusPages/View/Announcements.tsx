@@ -25,9 +25,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <AnnouncementTable
         query={query}
-        initialValues={{
-          statusPages: [modelId.toString()],
-        }}
+        statusPageId={modelId}
+        description="Notices on this status page, such as planned work or news."
       />
     </Fragment>
   );

@@ -14,6 +14,7 @@ import InsightFactsList, {
   InsightFact,
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
+import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -26,9 +27,25 @@ import {
   formatDroppedScopeHint,
   resolveServiceIdsByNames,
 } from "../../../Utils/MetricsCrossSignalPivot";
+import {
+  AIInsightMetricShape,
+  buildAIInsightMonitorRoute,
+  getAIInsightMonitorBlocker,
+} from "../../../Utils/AIInsightMonitorPrefill";
+import {
+  fetchAIInsightMetricShape,
+  toAIInsightMonitorInput,
+} from "../../../Utils/AIInsightMonitorData";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIAgentTaskPullRequest from "Common/Models/DatabaseModels/AIAgentTaskPullRequest";
+import FixProductionReport, {
+  parseFixProductionReport,
+} from "Common/Types/AI/FixProductionReport";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
@@ -58,6 +75,10 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import Link from "Common/UI/Components/Link/Link";
 import React, {
   FunctionComponent,
@@ -69,6 +90,11 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const POLL_INTERVAL_MS: number = 5000;
 // The server caps the triage event trail at 500 — show all of it.
@@ -105,6 +131,7 @@ const DISABLED_ACTION_CLASS: string =
 const AIInsightViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The id must come from useParams (a stable string), NOT from
    * Navigation.getLastParamAsObjectID(): that helper mints a fresh ObjectID
@@ -128,6 +155,14 @@ const AIInsightViewPage: FunctionComponent<
   const [status, setStatus] = useState<AIInsightStatus | null>(null);
   const [humanVerdict, setHumanVerdict] =
     useState<AIInsightHumanVerdict | null>(null);
+
+  /*
+   * Merged is not fixed: what production showed once the fix task's pull
+   * request merged (FixProductionVerifier) - it is what resolves the
+   * insight, or puts it back in front of people.
+   */
+  const [fixProduction, setFixProduction] =
+    useState<FixProductionReport | null>(null);
 
   const [triageRun, setTriageRun] = useState<AIRun | null>(null);
   const [triageEvents, setTriageEvents] = useState<Array<AIRunEvent>>([]);
@@ -262,6 +297,59 @@ const AIInsightViewPage: FunctionComponent<
       return clearInterval(interval);
     };
   }, [isTriageActive, fetchTriage]);
+
+  // The fix task's pull request verdict, read once per fix task.
+  const fixAiRunId: string | undefined = insight?.fixAiRunId?.toString();
+
+  useEffect(() => {
+    setFixProduction(null);
+
+    if (!fixAiRunId) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const readVerdict: () => Promise<void> = async (): Promise<void> => {
+      const result: ListResult<AIAgentTaskPullRequest> =
+        await ModelAPI.getList<AIAgentTaskPullRequest>({
+          modelType: AIAgentTaskPullRequest,
+          query: { aiRunId: new ObjectID(fixAiRunId) },
+          limit: 5,
+          skip: 0,
+          select: {
+            _id: true,
+            productionStatus: true,
+            productionCheck: true,
+            productionSummary: true,
+            productionStatusAt: true,
+          },
+          sort: { productionStatusAt: SortOrder.Descending },
+        });
+
+      for (const pullRequest of result.data) {
+        const report: FixProductionReport | undefined =
+          parseFixProductionReport({
+            status: pullRequest.productionStatus,
+            check: pullRequest.productionCheck,
+            summary: pullRequest.productionSummary,
+          });
+
+        if (report && isCurrent) {
+          setFixProduction(report);
+          return;
+        }
+      }
+    };
+
+    readVerdict().catch(() => {
+      // The verdict adds to the fix task's link; the link stands without it.
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [fixAiRunId]);
 
   /*
    * When the triage run lands, refetch the insight once — the runner posts
@@ -450,6 +538,51 @@ const AIInsightViewPage: FunctionComponent<
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
+  /*
+   * What a drifting metric IS, for the Create Monitor button: a cumulative
+   * counter or a histogram cannot carry a threshold from this insight, and
+   * saying so here beats a form that opens on a monitor that never clears.
+   * MetricDrift only, one newest-point read, and best-effort — while it is
+   * unknown the button stays available (Monitor Create checks again).
+   */
+  const [metricShape, setMetricShape] = useState<AIInsightMetricShape | null>(
+    null,
+  );
+
+  const driftMetricName: string =
+    insightType === AIInsightType.MetricDrift
+      ? insight?.metricName || insight?.evidence?.metricDrift?.metricName || ""
+      : "";
+  const driftEntityId: string =
+    insightType === AIInsightType.MetricDrift
+      ? insight?.evidence?.metricDrift?.primaryEntityId || ""
+      : "";
+
+  useEffect(() => {
+    if (!driftMetricName) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    fetchAIInsightMetricShape({
+      metricName: driftMetricName,
+      primaryEntityId: driftEntityId || undefined,
+    })
+      .then((shape: AIInsightMetricShape | null) => {
+        if (!isCancelled) {
+          setMetricShape(shape);
+        }
+      })
+      .catch(() => {
+        // Best-effort — an unknown shape is not held against the metric.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [driftMetricName, driftEntityId]);
+
   if (!hasLoadedOnce) {
     return <PageLoader isVisible={true} />;
   }
@@ -480,6 +613,27 @@ const AIInsightViewPage: FunctionComponent<
     humanVerdict === AIInsightHumanVerdict.Confirmed && !isDismissed;
   const isDismissNoOp: boolean =
     humanVerdict === AIInsightHumanVerdict.Dismissed && isDismissed;
+
+  /*
+   * Create Monitor: the way from a quiet insight to an incident the next time
+   * it happens. Gated on creating monitors like every other way into Monitor
+   * Create — hidden while the permission snapshot cannot say, disabled with
+   * the reason when it says no — and disabled with the reason when this
+   * insight cannot become a monitor at all.
+   */
+  const createMonitorGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  );
+  const createMonitorBlocker: string | null = getAIInsightMonitorBlocker(
+    toAIInsightMonitorInput(insight),
+    { metricShape: metricShape },
+  );
+  const isCreateMonitorShown: boolean =
+    createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
+  const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
+    ? createMonitorBlocker
+    : createMonitorGate.disabledReason || null;
 
   /*
    * The triage strip: a tinted panel rather than a bare colored line, so a
@@ -691,6 +845,27 @@ const AIInsightViewPage: FunctionComponent<
               ) : (
                 <></>
               )}
+              {isCreateMonitorShown ? (
+                <Button
+                  title="Create Monitor"
+                  icon={IconProp.Bell}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  className={DISABLED_ACTION_CLASS}
+                  disabled={Boolean(createMonitorDisabledReason)}
+                  tooltip={
+                    createMonitorDisabledReason ||
+                    "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident."
+                  }
+                  onClick={() => {
+                    Navigation.navigate(
+                      buildAIInsightMonitorRoute(modelId.toString()),
+                    );
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               <Button
                 title="Confirm"
                 icon={IconProp.Check}
@@ -776,10 +951,15 @@ const AIInsightViewPage: FunctionComponent<
          */}
         <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
           {isTerminal
-            ? `This insight is closed as ${getStatusLabel(
-                status || undefined,
-              )}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.`
-            : "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled."}
+            ? translator.translateTemplate(
+                "This insight is closed as {{status}}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.",
+                {
+                  status: translatableTerm(getStatusLabel(status || undefined)),
+                },
+              )
+            : translator.translateText(
+                "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled.",
+              )}
         </p>
       </section>
 
@@ -812,7 +992,9 @@ const AIInsightViewPage: FunctionComponent<
                */
               <MarkdownViewer text={insight.detailMarkdown} safeMode={true} />
             ) : (
-              <p className="text-sm text-gray-500">No evidence was recorded.</p>
+              <p className="text-sm text-gray-500">
+                {translator.translateText("No evidence was recorded.")}
+              </p>
             )}
           </InsightPanel>
 
@@ -899,14 +1081,27 @@ const AIInsightViewPage: FunctionComponent<
                */}
               <Link
                 to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                   { modelId: insight.fixAiRunId },
                 )}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
               >
-                <span>View the fix task and pull request</span>
+                <span>
+                  {translator.translateText(
+                    "View the fix task and pull request",
+                  )}
+                </span>
                 <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
               </Link>
+              {fixProduction ? (
+                <FixProductionVerdict
+                  production={fixProduction}
+                  testId="ai-insight-fix-production"
+                  className="mt-3"
+                />
+              ) : (
+                <></>
+              )}
             </InsightPanel>
           ) : (
             <></>

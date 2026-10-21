@@ -3,11 +3,13 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import AppLink from "../AppLink/AppLink";
+import EditInSettingsLink from "./EditInSettingsLink";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
@@ -17,6 +19,12 @@ export interface ResourceOverviewChip {
 export interface ResourceOverviewDetailRow {
   label: string;
   value: string | undefined;
+  /*
+   * How the value is drawn when it is more than text - an agent version with
+   * its upgrade sign (AgentVersion). Drawn only while `value` is set, so an
+   * empty row still reads "—".
+   */
+  element?: ReactElement | undefined;
   mono?: boolean | undefined;
 }
 
@@ -76,6 +84,12 @@ export interface ResourceOverviewProps {
   // What the pill means, as its hover text.
   statusDescription?: string | undefined;
   lastSeenAt: Date | undefined;
+  /*
+   * Drawn straight under the hero, beside the status pill it explains: the
+   * "how do I connect this?" card (ResourceConnectionGuideCard), which draws
+   * nothing once the resource is connected.
+   */
+  connectionGuide?: ReactElement | undefined;
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
   // Domain-relevant golden metric tiles, computed by the page.
@@ -89,6 +103,11 @@ export interface ResourceOverviewProps {
   quickLinks?: Array<ResourceOverviewQuickLink> | undefined;
   detailRows: Array<ResourceOverviewDetailRow>;
   labels?: Array<Label> | undefined;
+  /*
+   * The resource's Settings page, where its name, description and labels
+   * are edited (ResourceDetailsCard): the Details card links there.
+   */
+  settingsRoute?: Route | undefined;
 }
 
 const tileColorClasses: Record<
@@ -261,6 +280,11 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   props: ResourceOverviewProps,
 ): ReactElement => {
+  /*
+   * The Details rows and the quick links: ruled from edge to edge of their
+   * card, their words where the card's title starts, at every width.
+   */
+  const ruledListClassName: string = useCardRuledListClassName();
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean = status === "connected" || status === "active";
   const lastSeenText: string = props.lastSeenAt
@@ -368,6 +392,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         </div>
       </div>
 
+      {props.connectionGuide ? props.connectionGuide : <></>}
+
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -412,14 +438,24 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           props.description ||
           "Metadata captured from OpenTelemetry resource attributes."
         }
+        buttons={
+          props.settingsRoute
+            ? [
+                <EditInSettingsLink
+                  key="edit-in-settings"
+                  to={props.settingsRoute}
+                />,
+              ]
+            : undefined
+        }
       >
-        <div className="border-t border-gray-200 divide-y divide-gray-100 -m-6 -mt-2">
+        <div className={ruledListClassName}>
           {props.detailRows.map(
             (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
               return (
                 <div
                   key={`row-${idx}`}
-                  className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4"
+                  className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
                 >
                   <dt className="text-sm font-medium text-gray-500">
                     {row.label}
@@ -429,7 +465,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                       row.mono === false ? "" : "font-mono"
                     }`}
                   >
-                    {row.value && row.value.length > 0 ? row.value : "—"}
+                    {row.value && row.value.length > 0
+                      ? row.element || row.value
+                      : "—"}
                   </dd>
                 </div>
               );
@@ -445,7 +483,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             title="Explore telemetry"
             description="Drill into the raw signals for this resource."
           >
-            <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">
+            <div className={ruledListClassName}>
               {props.quickLinks.map(
                 (
                   link: ResourceOverviewQuickLink,
@@ -455,7 +493,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     <AppLink
                       key={`ql-${idx}`}
                       to={link.to}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 md:px-6"
                     >
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
                         <Icon

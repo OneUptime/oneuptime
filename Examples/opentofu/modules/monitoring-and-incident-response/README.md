@@ -1,6 +1,6 @@
 # Module: monitoring-and-incident-response
 
-A basic monitoring and incident-response setup for one service: HTTP monitors, an on-call rotation that gets paged when they go down, and a status page that shows them.
+A basic monitoring and incident-response setup for one service: HTTP monitors, an on-call policy that gets paged when they go down, and a status page that shows them.
 
 Works with **both OpenTofu and Terraform**. Nothing in it is engine-specific — it lives under `Examples/opentofu/` because that is the workstream it was written for, not because `terraform` cannot run it.
 
@@ -8,7 +8,7 @@ Works with **both OpenTofu and Terraform**. Nothing in it is engine-specific —
 
 ```hcl
 module "storefront" {
-  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=v11.7.4"
+  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=vX.Y.Z"
 
   service_name          = "storefront"
   status_page_is_public = true
@@ -21,7 +21,7 @@ module "storefront" {
 }
 ```
 
-Pin `ref` to a published provider tag. The provider repository is regenerated on every release, so an unpinned `source` tracks whatever was published last.
+Pin `ref` to a published provider tag, such as the newest on the [provider's releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases): replace `vX.Y.Z` with it. The provider repository is regenerated on every release, so an unpinned `source` tracks whatever was published last.
 
 A runnable version of the above is in [`../../monitoring-and-incident-response`](../../monitoring-and-incident-response).
 
@@ -41,7 +41,7 @@ When a monitor's probe fails, its offline criteria flips the monitor status, ope
 
 ## What it deliberately does not create
 
-**Monitor statuses and incident severities.** OneUptime seeds every project with `Operational` / `Degraded` / `Offline` and `Critical Incident` / `Major Incident` / `Minor Incident`. A module instantiated once per service would add a duplicate set on every call, and monitor-status `priority` is an insert slot that shifts existing statuses — creating them per service reorders the project's taxonomy. The module looks them up by name instead.
+**Monitor statuses and incident severities.** OneUptime seeds every project with `Operational` / `Degraded` / `Offline` and `Critical Incident` / `Major Incident` / `Minor Incident`. A module instantiated once per service would add a duplicate set on every call, and a monitor status created with a `priority` another status already holds takes its place and moves the ones below it down — creating them per service reorders the project's taxonomy. The module looks them up by name instead.
 
 If your project renamed them, override `operational_monitor_status_name`, `offline_monitor_status_name`, and `incident_severity_name`.
 
@@ -96,4 +96,4 @@ Each `monitors` entry takes:
 
 The provider is published to both the [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) and the [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime), so the bare `oneuptime/oneuptime` source address in `versions.tf` resolves under either engine with no change.
 
-Adding a member to the on-call rotation is a separate step — the module creates the policy and escalation rule, but who gets paged is configured in the OneUptime dashboard or with `oneuptime_team_member`.
+Who gets paged is a separate step: the module creates the policy and its escalation rule, but the rule pages nobody until you add a team, a user or an on-call schedule to it, in the OneUptime dashboard or with `oneuptime_team_on_call_duty_escalation_rule` and the module's `on_call_policy_id` and `escalation_rule_id` outputs.

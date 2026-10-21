@@ -57,6 +57,16 @@ const BLOCK_COMMENT_PATTERN: RegExp = /\/\*[\s\S]*?\*\//g;
 // A `//` that is not part of a URL (`https://`) or inside a quote.
 const LINE_COMMENT_PATTERN: RegExp = /(^|[^:"'`])\/\/.*$/gm;
 const WHITESPACE_PATTERN: RegExp = /\s+/g;
+// `<AffectedResourcesCell {...getAlertAffectedResources(item)} />`.
+const SPREAD_CALL_PATTERN: RegExp = /\{\.\.\.(\w+)\(\w+\)\}/;
+/*
+ * The SLOs handed to the resources cell: as its prop
+ * (`serviceLevelObjectives={item.serviceLevelObjectives || []}`) or in the
+ * object a table's own function hands it
+ * (`serviceLevelObjectives: alert.serviceLevelObjectives || []`).
+ */
+const SLO_HANDED_TO_CELL: RegExp =
+  /serviceLevelObjectives(=\{|: )\w+\.serviceLevelObjectives \|\| \[\]/;
 
 function normalizeSource(text: string): string {
   return text
@@ -156,6 +166,28 @@ function jsxPropsOf(source: string, component: string): string {
   return source.slice(start, source.indexOf("/>", start));
 }
 
+/*
+ * What the resources cell is handed: its props, or - when it spreads one
+ * function's result, as the alerts list does so its cell and its CSV read
+ * the same lists - the object that function returns.
+ */
+function resourcesHandedToCell(source: string): string {
+  const props: string = jsxPropsOf(source, "AffectedResourcesCell");
+  const spread: RegExpMatchArray | null = props.match(SPREAD_CALL_PATTERN);
+
+  if (!spread) {
+    return props;
+  }
+
+  const declaredAt: number = source.indexOf(`const ${spread[1]}:`);
+
+  if (declaredAt === -1) {
+    throw new Error(`${spread[1]} is not declared beside the table.`);
+  }
+
+  return blockAfter(source.slice(declaredAt), "return {");
+}
+
 describe("the SLO Alerts and Incidents tabs list through the relation", () => {
   test.each([
     ["Alerts.tsx", "AlertsTable"],
@@ -202,9 +234,7 @@ describe("the incident and alert tables load the relation the resources cell rea
       expect(fieldBlockRendering(source, "<AffectedResourcesCell")).toContain(
         "serviceLevelObjectives: {",
       );
-      expect(jsxPropsOf(source, "AffectedResourcesCell")).toContain(
-        "serviceLevelObjectives={item.serviceLevelObjectives || []}",
-      );
+      expect(resourcesHandedToCell(source)).toMatch(SLO_HANDED_TO_CELL);
       expect(
         blockAfter(source, `buildAffectedResourcesFacet<${modelName}>({`),
       ).toContain("includeServiceLevelObjective: true");

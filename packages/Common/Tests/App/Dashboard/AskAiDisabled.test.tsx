@@ -21,7 +21,7 @@ import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName"
 /*
  * Issue: "when AI features are disabled for the app, Ask AI is not".
  *
- * A project can switch AI off (Project.enableAi, on Settings > AI Credits), or
+ * A project can switch AI off (Project.enableAi, on Settings > AI Features), or
  * simply never configure an LLM provider (Settings > AI > LLM Providers), or
  * sit on a plan that does not include AI at all. In every one of those states
  * the server refuses a chat turn — and Ask AI still looked completely ready:
@@ -264,10 +264,20 @@ describe("Ask AI on a project whose AI is switched off", () => {
 
     await openAskAi();
 
+    // A button that says what it opens; the description says the switch.
+    expect(screen.getByText("Open AI Features")).toBeInTheDocument();
+    expect(screen.queryByText(/Go to Project Settings/)).toBeNull();
     expect(
-      screen.getByText("Go to Project Settings > AI Credits"),
+      screen.getByText(
+        /A project owner can turn it back on with the Enable AI toggle/,
+      ),
     ).toBeInTheDocument();
-    expect(settingsLinkHref()).toContain("/settings/ai-credits");
+    /*
+     * AI Features, not AI Credits: the credits page is in the menu only when
+     * billing is on, so a self-hosted user could never follow the link.
+     */
+    expect(settingsLinkHref()).toContain("/settings/ai-features");
+    expect(settingsLinkHref()).not.toContain("/settings/ai-credits");
   });
 
   test("the link is scoped to the project the user is in", async () => {

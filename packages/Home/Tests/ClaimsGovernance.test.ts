@@ -293,8 +293,11 @@ describe("Edition retired claims catch what the split made false", () => {
     "OneUptime delivers the entire stack in one platform, self-hosted free or on a predictable managed tier",
     "Self-hosted OneUptime under Apache 2.0 with monitoring, status, on-call, and incidents built in",
     "OneUptime is open source under Apache 2.0 and can be self-hosted for free, or run as managed cloud.",
-    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
-    "Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform, SAML and OIDC single sign-on included, is open source (Apache 2.0) and self-hostable; audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+    "Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition, SAML and OIDC single sign-on included, can be self-hosted for complete infrastructure control; self-hosted audit logs need the Enterprise Edition and an Enterprise license.",
+    // Single sign-on is part of the Community Edition, so it may be called open source.
+    "SAML and OIDC single sign-on are part of the Community Edition and remain open source under Apache 2.0.",
+    "OneUptime supports SSO/SAML and RBAC while remaining open source.",
   ];
 
   test.each(accurateCopy)(
@@ -316,6 +319,143 @@ describe("Edition retired claims catch what the split made false", () => {
     for (const retired of RetiredEditionClaims) {
       expect(RetiredClaims).toContain(retired);
     }
+  });
+});
+
+describe("The single sign-on edition rule catches SSO filed under the Enterprise Edition", () => {
+  /*
+   * SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are
+   * part of the Apache 2.0 Community Edition and need no license. The
+   * Enterprise Edition adds SCIM, audit logs, team compliance, and the
+   * instance health dashboards.
+   */
+  const ssoRule: RetiredClaim = RetiredEditionClaims.find(
+    (retired: RetiredClaim) => {
+      return (
+        retired.example ===
+        "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards"
+      );
+    },
+  )!;
+
+  test("the rule exists", () => {
+    expect(ssoRule).toBeDefined();
+  });
+
+  /*
+   * Every sentence that filed single sign-on under the Enterprise Edition,
+   * exactly as the site (templates, page data, and the claims matrix)
+   * published it before single sign-on moved into the Community Edition.
+   * Each one is caught by the single sign-on rule itself, not merely by some
+   * rule, so none of them can quietly come back.
+   */
+  const formerlyPublished: Array<string> = [
+    // The claims matrix.
+    "The Community Edition is the core platform under Apache 2.0; the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
+    "Enterprise Edition images add SSO, SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+    "Enterprise Edition images, which add SSO, SCIM, audit logs, team compliance, and instance health dashboards.",
+    "SSO, SCIM, audit logs, team compliance, and instance health dashboards are Enterprise Edition features.",
+    "The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+    // The self-hosted page (Utils/SelfHosted.ts) and its structured data.
+    "We ship RBAC and API-key scoping in both editions, and SSO/SAML, SCIM, and audit logs in the Enterprise Edition.",
+    "No SSO, SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
+    "The Enterprise Edition image: SSO (SAML and OIDC), SCIM, audit logs, team compliance, and instance health dashboards",
+    "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows. The Enterprise Edition adds identity and governance features — SAML and OIDC single sign-on, SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
+    "Enterprise Edition images with SSO, SCIM, and audit logs",
+    // Comparison pages (Utils/ProductCompare.ts).
+    "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+    "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - and its enterprise module adds SSO, SCIM, audit logs, and instance administration. They solve related but different problems.",
+    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+    // Templates.
+    "Open source under Apache 2.0, with enterprise features like SSO and audit logs in a separately licensed ee/ directory. Every line ships on GitHub, and the Community Edition is the whole monitoring, incident, and observability platform. Run our cloud, or run it yourself - either way, you're never locked in.",
+    "Yes. OneUptime is open source and deploys on your own infrastructure with our Helm chart on Kubernetes, or with Docker Compose on a single host. It runs air-gapped, with images mirrored to your registry and the update check disabled. Enterprise agreements add the Enterprise Edition (SSO, SCIM, audit logs, and instance health dashboards), deployment support, and custom data residency &mdash; and a private cloud option if you want a single-tenant environment you do not operate yourself.",
+    // The same claim in other words.
+    "Single sign-on is an Enterprise Edition feature.",
+    "SAML SSO is Enterprise Edition only.",
+    "OpenID Connect sign-in needs the OneUptime Enterprise Edition.",
+    "Self-hosted SSO requires an Enterprise license.",
+    "The Enterprise Edition includes SAML and OIDC single sign-on.",
+  ];
+
+  test.each(formerlyPublished)("catches: %s", (sentence: string) => {
+    expect(ssoRule.pattern.test(sentence)).toBe(true);
+  });
+
+  /*
+   * What the site says now, OneUptime Cloud's plan copy (SSO on the Scale
+   * plan is a plan, not an edition), enterprise as an adjective, and
+   * competitors' single sign-on. No edition rule may catch any of it.
+   */
+  const leftAlone: Array<string> = [
+    // What the site says now.
+    "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
+    "Enterprise Edition images add SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+    "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards.",
+    "We ship RBAC, API-key scoping, and SAML and OIDC single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition.",
+    "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
+    "No SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
+    "The Enterprise Edition image: SCIM, audit logs, team compliance, and instance health dashboards",
+    "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows, with SAML and OIDC single sign-on. The Enterprise Edition adds identity and governance features — SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
+    "SAML and OpenID Connect single sign-on in both editions",
+    "Enterprise Edition images with SCIM, audit logs, and team compliance",
+    "OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - along with SAML and OIDC single sign-on, and its enterprise module adds SCIM, audit logs, and instance administration.",
+    "Open source under Apache 2.0, with enterprise features like SCIM and audit logs in a separately licensed ee/ directory.",
+    "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, and instance health dashboards), deployment support, and custom data residency &mdash; and a private cloud option if you want a single-tenant environment you do not operate yourself.",
+    "SAML and OIDC single sign-on are part of every self-hosted edition, including the free Community Edition; SCIM needs the Enterprise Edition, and on OneUptime Cloud both are on the Scale plan and above.",
+    "The Community Edition is the core platform under Apache 2.0, SAML and OpenID Connect single sign-on included. The Enterprise Edition image adds the enterprise modules from the repository's ee/ directory",
+    "SSO in every edition",
+    "Enterprise SCIM &amp; audit logs",
+    "Community Edition; Scale plan on Cloud",
+    "The Enterprise Edition adds SCIM and audit logs, while single sign-on ships in every edition.",
+    // OneUptime Cloud: SSO on the Scale plan.
+    "Single sign-on (SSO) and SCIM provisioning on eligible plans.",
+    "SSO, Advanced Access Control, Better Support for your team.",
+    "SSO, OIDC, SCIM and team compliance on the Scale plan and above, and audit logs on the Enterprise plan.",
+    "SAML 2.0 and OpenID Connect SSO. SCIM 2.0 user provisioning. MFA enforceable at tenant level (TOTP, WebAuthn).",
+    // Enterprise as an adjective.
+    "Enterprise SSO with SAML/OIDC. Fine-grained role-based access controls.",
+    "SOC 2 Type II, ISO 27001, HIPAA, and GDPR compliant. SSO, SAML, SCIM, custom data residency, and dedicated support.",
+    "OneUptime for enterprise. Self-hosted deployment, SSO/SAML, advanced security, SLA guarantees, dedicated support. SOC 2, HIPAA, GDPR compliant.",
+    "Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options.",
+    // Competitors.
+    "White-label, password, SSO at $208-250/page",
+    "Team roles and SAML SSO ($5/user)",
+    "SSO/SAML and advanced security on higher tiers",
+    "Instatus jumps from $20 to $300 per month for more monitors and SSO. OneUptime charges a flat $1 per active monitor with unlimited free static monitors and no subscriber caps.",
+    "Keycloak is an open-source identity provider with SSO, SAML, and LDAP support, licensed under the Apache 2.0 license.",
+  ];
+
+  test.each(leftAlone)("leaves alone: %s", (sentence: string) => {
+    const caughtBy: Array<string> = RetiredEditionClaims.filter(
+      (retired: RetiredClaim) => {
+        return retired.pattern.test(sentence);
+      },
+    ).map((retired: RetiredClaim) => {
+      return retired.example;
+    });
+
+    expect(caughtBy).toEqual([]);
+  });
+
+  test("the scan reports single sign-on filed under the Enterprise Edition when it is put back into a template, with the file and line", () => {
+    const planted: Array<ViewFile> = [
+      {
+        relativePath: "Partials/home-own-it.ejs",
+        contents: [
+          '<p class="mt-6">',
+          "  Open source under Apache 2.0, with enterprise features like SSO and audit logs in a separately licensed ee/ directory.",
+          "</p>",
+        ].join("\n"),
+      },
+    ];
+
+    expect(findViolations(ssoRule.pattern, planted)).toEqual([
+      {
+        file: "Partials/home-own-it.ejs",
+        line: 2,
+        text: "Open source under Apache 2.0, with enterprise features like SSO and audit logs in a separately licensed ee/ directory.",
+      },
+    ]);
   });
 });
 
@@ -359,7 +499,38 @@ describe("Pages state the edition split accurately", () => {
 
   test("the demo FAQ names what the Enterprise Edition adds", () => {
     expect(readView("demo.ejs")).toContain(
-      "Enterprise agreements add the Enterprise Edition (SSO, SCIM, audit logs, and instance health dashboards)",
+      "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, and instance health dashboards)",
+    );
+  });
+
+  test("the home page's open-source section names SCIM and audit logs, not single sign-on, as the enterprise features", () => {
+    const contents: string = readView("Partials/home-own-it.ejs");
+
+    expect(contents).toContain(
+      "with enterprise features like SCIM and audit logs in a separately licensed ee/ directory",
+    );
+    expect(contents).not.toContain("enterprise features like SSO");
+  });
+
+  test("the self-hosted hero says single sign-on is in every edition, and SCIM and audit logs are Enterprise", () => {
+    const contents: string = readView("self-hosted.ejs");
+
+    expect(contents).toContain("<span>SSO in every edition</span>");
+    expect(contents).toContain("<span>Enterprise SCIM &amp; audit logs</span>");
+    expect(contents).not.toContain("Enterprise SSO");
+  });
+
+  test("the self-hosted Enterprise Edition section puts single sign-on in the Community Edition", () => {
+    const contents: string = readView("self-hosted.ejs").replace(/\s+/g, " ");
+
+    expect(contents).toContain(
+      "The Community Edition is the core platform under Apache 2.0, SAML and OpenID Connect single sign-on included. The Enterprise Edition image adds the enterprise modules from the repository's ee/ directory",
+    );
+  });
+
+  test("the demo SSO FAQ says where single sign-on and SCIM are, self-hosted and on Cloud", () => {
+    expect(readView("demo.ejs")).toContain(
+      "SAML and OIDC single sign-on are part of every self-hosted edition, including the free Community Edition; SCIM needs the Enterprise Edition, and on OneUptime Cloud both are on the Scale plan and above.",
     );
   });
 });
@@ -388,6 +559,40 @@ describe("Aligned pages state the governed numbers", () => {
 
     expect(contents).toContain("99.9% uptime target");
     expect(contents).not.toContain("99.95% SLA");
+  });
+
+  /*
+   * Paid plans are priced per user per month. Pages may say there is no cap
+   * on team members, but not that members come free.
+   */
+  test("the enterprise overview does not sell team members as free", () => {
+    const contents: string = readView("enterprise-overview.ejs");
+
+    expect(contents).not.toContain("Unlimited team members");
+    expect(contents).toContain("No cap on team members");
+    expect(contents).toContain("Plans are priced per user");
+  });
+
+  test("the pricing comparison prices a team of 10 with seats", () => {
+    const contents: string = readView("pricing-compare.ejs");
+
+    expect(contents).toContain("10 users on Growth at $22/user");
+    expect(contents).not.toContain("/mo to start");
+  });
+
+  test.each([
+    ["product-compare.ejs", "per-seat"],
+    ["observability.ejs", "not per seat"],
+    ["security-events.ejs", "no per-seat analyst license"],
+  ])("%s does not deny per-seat pricing", (file: string, retired: string) => {
+    expect(readView(file)).not.toContain(retired);
+  });
+
+  test("the data residency page names Amazon Web Services", () => {
+    const contents: string = readView("data-residency.ejs");
+
+    expect(contents).toContain("Amazon Web Services");
+    expect(contents).not.toContain("Aamazon");
   });
 
   test("the demo page points self-hosting buyers at the canonical page", () => {

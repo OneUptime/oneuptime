@@ -4,6 +4,8 @@ import IncidentAlertService, {
   chooseLinkedAlertTargetState,
   getLinkedAlertStateTargets,
   LinkedAlertStateTargets,
+  LinkedAlertSwitches,
+  readLinkedAlertSwitches,
 } from "../../../Server/Services/IncidentAlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
@@ -22,9 +24,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
- * The opt-in lifecycle sync between an incident and the alerts linked to it.
+ * The lifecycle sync between an incident and the alerts linked to it.
  *
- * When the project turns the switches on, acknowledging an incident
+ * With the project's switches on - both are, in a new project - acknowledging an incident
  * acknowledges its linked alerts (which is what stops their paging) and
  * resolving it resolves them - except an alert another open incident is still
  * tracking. States are compared by order, custom states between Acknowledged
@@ -112,8 +114,16 @@ const ALERT_RESOLVED: StateRow = {
   isResolved: true,
 };
 
+/*
+ * The project row's two switch values. Undefined is a row that holds no value
+ * for that switch (never written, or not selected); null is no project at
+ * all.
+ */
 interface Tables {
-  switches: { acknowledge: boolean; resolve: boolean } | null;
+  switches: {
+    acknowledge: boolean | undefined;
+    resolve: boolean | undefined;
+  } | null;
   incidentStates: Array<StateRow>;
   alertStates: Array<StateRow>;
   // incident id -> current state id
@@ -250,9 +260,14 @@ beforeEach(() => {
       }
       const project: Project = new Project();
       project._id = PROJECT_ID.toString();
-      project.acknowledgeLinkedAlertsWhenIncidentAcknowledged =
-        tables.switches.acknowledge;
-      project.resolveLinkedAlertsWhenIncidentResolved = tables.switches.resolve;
+      if (tables.switches.acknowledge !== undefined) {
+        project.acknowledgeLinkedAlertsWhenIncidentAcknowledged =
+          tables.switches.acknowledge;
+      }
+      if (tables.switches.resolve !== undefined) {
+        project.resolveLinkedAlertsWhenIncidentResolved =
+          tables.switches.resolve;
+      }
       return project;
     }) as never);
 
@@ -368,7 +383,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function setSwitches(acknowledge: boolean, resolve: boolean): void {
+function setSwitches(
+  acknowledge: boolean | undefined,
+  resolve: boolean | undefined,
+): void {
   tables.switches = { acknowledge, resolve };
 }
 
@@ -402,7 +420,7 @@ function linkEveryAlert(): void {
 }
 
 describe("the project switches", () => {
-  test("both off (the default): nothing about the alerts is even read", async () => {
+  test("both off: nothing about the alerts is even read", async () => {
     setSwitches(false, false);
     linkEveryAlert();
 
@@ -496,6 +514,149 @@ describe("the project switches", () => {
     expect(changeAlertState).not.toHaveBeenCalled();
     expect(linkLookup).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * Both switches are on by default. The sync reads a switch as on unless the
+ * project says false, so a row with no value for it behaves like a new
+ * project, while a project that turned a switch off keeps it off.
+ */
+describe("a switch is on unless the project says off", () => {
+  test("a project row with no value for either switch counts as both on", async () => {
+    setSwitches(undefined, undefined);
+    linkEveryAlert();
+
+    await cascade(INCIDENT_RESOLVED);
+
+    expect(moved()).toEqual([
+      [CREATED_ALERT, "Resolved"],
+      [ACKNOWLEDGED_ALERT, "Resolved"],
+      [INVESTIGATING_ALERT, "Resolved"],
+    ]);
+  });
+
+  test("an unset acknowledge switch acknowledges when the incident is acknowledged", async () => {
+    setSwitches(undefined, false);
+    linkEveryAlert();
+
+    await cascade(INCIDENT_ACKNOWLEDGED);
+
+    expect(moved()).toEqual([[CREATED_ALERT, "Acknowledged"]]);
+  });
+
+  test("an acknowledge switch turned off stays off when the resolve switch is unset", async () => {
+    setSwitches(false, undefined);
+    linkEveryAlert();
+
+    await cascade(INCIDENT_ACKNOWLEDGED);
+
+    // Acknowledged is before Resolved, and the acknowledge switch is off.
+    expect(changeAlertState).not.toHaveBeenCalled();
+
+    await cascade(INCIDENT_RESOLVED);
+
+    expect(moved()).toEqual([
+      [CREATED_ALERT, "Resolved"],
+      [ACKNOWLEDGED_ALERT, "Resolved"],
+      [INVESTIGATING_ALERT, "Resolved"],
+    ]);
+  });
+
+  test("a resolve switch turned off stays off when the acknowledge switch is unset", async () => {
+    setSwitches(undefined, false);
+    linkEveryAlert();
+
+    await cascade(INCIDENT_RESOLVED);
+
+    // Resolved is past Acknowledged, so the alerts are only acknowledged.
+    expect(moved()).toEqual([[CREATED_ALERT, "Acknowledged"]]);
+  });
+
+  test("both turned off: an explicit false is kept, and nothing is read", async () => {
+    setSwitches(false, false);
+    linkEveryAlert();
+
+    await cascade(INCIDENT_RESOLVED);
+
+    expect(incidentStateLookup).not.toHaveBeenCalled();
+    expect(linkLookup).not.toHaveBeenCalled();
+    expect(changeAlertState).not.toHaveBeenCalled();
+  });
+
+  test("the link-time sync reads the switches the same way", async () => {
+    setSwitches(undefined, undefined);
+    tables.incidents.set(INCIDENT_ID.toString(), INCIDENT_RESOLVED.id);
+    link(CREATED_ALERT);
+
+    await IncidentAlertService.syncAlertWithLinkedIncidentState({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      alertId: new ObjectID(CREATED_ALERT),
+    });
+
+    expect(moved()).toEqual([[CREATED_ALERT, "Resolved"]]);
+  });
+});
+
+describe("reading the switches off a project row", () => {
+  function projectWith(values: {
+    acknowledge?: boolean;
+    resolve?: boolean;
+  }): Project {
+    const project: Project = new Project();
+
+    if (values.acknowledge !== undefined) {
+      project.acknowledgeLinkedAlertsWhenIncidentAcknowledged =
+        values.acknowledge;
+    }
+
+    if (values.resolve !== undefined) {
+      project.resolveLinkedAlertsWhenIncidentResolved = values.resolve;
+    }
+
+    return project;
+  }
+
+  test("no project means nothing to do", () => {
+    expect(readLinkedAlertSwitches(null)).toBeNull();
+    expect(readLinkedAlertSwitches(undefined)).toBeNull();
+  });
+
+  test("a project fresh from the model, holding no values, has both on", () => {
+    expect(readLinkedAlertSwitches(new Project())).toEqual({
+      acknowledge: true,
+      resolve: true,
+    });
+  });
+
+  test.each([
+    // [acknowledge, resolve, expected]
+    [true, true, { acknowledge: true, resolve: true }],
+    [true, false, { acknowledge: true, resolve: false }],
+    [false, true, { acknowledge: false, resolve: true }],
+    [false, false, null],
+    [undefined, undefined, { acknowledge: true, resolve: true }],
+    [undefined, false, { acknowledge: true, resolve: false }],
+    [false, undefined, { acknowledge: false, resolve: true }],
+    [true, undefined, { acknowledge: true, resolve: true }],
+    [undefined, true, { acknowledge: true, resolve: true }],
+  ])(
+    "acknowledge=%s resolve=%s",
+    (
+      acknowledge: boolean | undefined,
+      resolve: boolean | undefined,
+      expected: LinkedAlertSwitches | null,
+    ) => {
+      expect(
+        readLinkedAlertSwitches(
+          projectWith({
+            ...(acknowledge === undefined ? {} : { acknowledge }),
+            ...(resolve === undefined ? {} : { resolve }),
+          }),
+        ),
+      ).toEqual(expected);
+    },
+  );
 });
 
 describe("states are compared by order", () => {

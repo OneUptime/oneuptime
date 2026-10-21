@@ -9,33 +9,40 @@
 import IconProp from "../../../../Types/Icon/IconProp";
 import Icon from "../../Icon/Icon";
 import { ModelSchemaColumn, findColumn } from "../ModelSchema";
-import AddColumnDropdown from "./AddColumnDropdown";
+import AddColumnPicker from "./AddColumnPicker";
 import { isOfferableColumn } from "./ColumnControl";
 import ColumnConditionRow from "./ColumnConditionRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
+import { ColumnUse } from "./ColumnUse";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
   onChange: (rows: Array<ModelColumnRow>) => void;
 }
 
 const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The row just added from the picker, so its value control can take focus.
-   * Without it the picker remounts to clear its own selection and focus falls
-   * to the document body, which for a keyboard user means starting again from
-   * the top of the panel.
+   * Without it the picker's list closes and focus falls to the document body,
+   * which for a keyboard user means starting again from the top of the panel.
    */
   const [justAddedKey, setJustAddedKey] = useState<string>("");
 
+  /*
+   * A query keeps the columns OneUptime fills in - "created after", "created
+   * by" and "ID is" are good filters - and drops only the ones that are empty
+   * on every record (ColumnUse.Filter).
+   */
   const offerableColumns: Array<ModelSchemaColumn> = props.columns.filter(
     (column: ModelSchemaColumn) => {
-      return isOfferableColumn(column);
+      return isOfferableColumn(column, ColumnUse.Filter);
     },
   );
 
@@ -60,19 +67,21 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
               className="mx-auto h-6 w-6 text-gray-300"
             />
             <p className="mt-2 text-sm font-medium text-gray-700">
-              No conditions yet
+              {translator.translateText("No conditions yet")}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              With no conditions this matches every record in the project.
+              {translator.translateText(
+                "With no conditions this matches every record in the project.",
+              )}
             </p>
           </div>
         ) : (
           <>
             {/* Column widths must stay in step with ColumnConditionRow's grid. */}
-            <div className="hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] sm:gap-2">
-              <span>Column</span>
-              <span>Comparison</span>
-              <span>Value</span>
+            <div className="max-sm:hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] sm:gap-2">
+              <span>{translator.translateText("Column")}</span>
+              <span>{translator.translateText("Comparison")}</span>
+              <span>{translator.translateText("Value")}</span>
               <span className="w-8" />
             </div>
             <div className="divide-y divide-gray-100">
@@ -83,7 +92,6 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
                     row={row}
                     column={findColumn(props.columns, row.columnId)}
                     columns={offerableColumns}
-                    suggestions={props.suggestions}
                     autoFocus={row.key === justAddedKey}
                     onChange={(nextRow: ModelColumnRow) => {
                       replaceRow(index, nextRow);
@@ -103,14 +111,15 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
         )}
 
         <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-          <AddColumnDropdown
+          <AddColumnPicker
             columns={offerableColumns.filter((column: ModelSchemaColumn) => {
               return !props.rows.some((row: ModelColumnRow) => {
                 return row.columnId === column.id;
               });
             })}
+            use={ColumnUse.Filter}
             requiredColumnIds={[]}
-            placeholder="Add a condition..."
+            triggerLabel={translationKey("Add a condition")}
             allowCustomColumn={true}
             dataTestId="model-column-add"
             onAdd={(columnId: string) => {

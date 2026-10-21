@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
@@ -250,6 +251,7 @@ describe("fromTimelineEvent: every kind maps", () => {
     tags: "marker",
     "click-dropped": "marker",
     "custom-dropped": "marker",
+    "idle-pause": "marker",
   };
 
   it.each(REPLAY_TIMELINE_EVENT_KINDS)(
@@ -646,6 +648,60 @@ describe("performance rows", () => {
     expect(signal.severity).toBe("info");
     expect(signal.title).not.toContain("0ms");
   });
+
+  /* Issue #3975: an INP per view, labelled with the route it measured. */
+  it("carries an INP's view and attribution into the detail, and the route into the subtitle", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "INP",
+        value: 480,
+        rating: "needs-improvement",
+        url: "https://shop.example.com/products",
+        navigationType: "soft",
+        interactionType: "keyboard",
+        interactionTarget: "input#search",
+        inputDelayMs: 12,
+        processingDurationMs: 400,
+        presentationDelayMs: 68,
+      }),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayPerformanceSignalDetail =
+      signal.detail as ReplayPerformanceSignalDetail;
+
+    expect(signal.title).toBe("INP 480ms needs improvement");
+    expect(signal.subtitle).toBe("/products");
+    expect(detail).toEqual(
+      expect.objectContaining({
+        navigationType: "soft",
+        interactionType: "keyboard",
+        interactionTarget: "input#search",
+        inputDelayMs: 12,
+        processingDurationMs: 400,
+        presentationDelayMs: 68,
+      }),
+    );
+  });
+
+  it("leaves the attribution empty for a recording that predates it", () => {
+    const detail: ReplayPerformanceSignalDetail = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "INP",
+        value: 320,
+        rating: "poor",
+      }),
+      { startTimeUnixMs: null },
+    ).detail as ReplayPerformanceSignalDetail;
+
+    expect(detail.navigationType).toBeNull();
+    expect(detail.interactionType).toBeNull();
+    expect(detail.interactionTarget).toBeNull();
+    expect(detail.inputDelayMs).toBeNull();
+    expect(detail.processingDurationMs).toBeNull();
+    expect(detail.presentationDelayMs).toBeNull();
+  });
 });
 
 describe("custom and marker rows", () => {
@@ -697,6 +753,120 @@ describe("custom and marker rows", () => {
     expect(droppedCustom.title).toBe(
       "3 custom events not recorded (recorder cap)",
     );
+  });
+
+  /*
+   * The idle pause (issue #4208): where the footage stops because nobody
+   * touched the page, and where it starts again. Each row says how long,
+   * from the recorder's own stamps, and degrades to plain words - never
+   * "NaN" or a negative length - when a payload did not carry them.
+   */
+  it("names where the recording paused and resumed, and for how long", () => {
+    const paused: ReplaySignal = fromTimelineEvent(
+      makeEvent("idle-pause", {
+        idlePauseEdge: "paused",
+        idleSinceUnixMs: START_UNIX_MS,
+        pausedAtUnixMs: START_UNIX_MS + 5 * 60 * 1000,
+        atUnixMs: START_UNIX_MS + 5 * 60 * 1000,
+      }),
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+    const resumed: ReplaySignal = fromTimelineEvent(
+      makeEvent("idle-pause", {
+        idlePauseEdge: "resumed",
+        pausedAtUnixMs: START_UNIX_MS + 5 * 60 * 1000,
+        resumedAtUnixMs: START_UNIX_MS + 28 * 60 * 1000,
+        pausedAtOffsetMs: 5 * 60 * 1000,
+      }),
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+
+    expect(paused.kind).toBe("marker");
+    expect(paused.severity).toBe("info");
+    expect(paused.title).toBe("Recording paused: no input for 5m");
+    expect(paused.subtitle).toBeUndefined();
+    expect(paused.detail).toEqual(
+      expect.objectContaining({
+        markerKind: "idle-pause",
+        idlePauseEdge: "paused",
+        idleForMs: 5 * 60 * 1000,
+        pausedForMs: null,
+        atUnixMs: START_UNIX_MS + 5 * 60 * 1000,
+      }),
+    );
+
+    expect(resumed.kind).toBe("marker");
+    expect(resumed.severity).toBe("info");
+    expect(resumed.title).toBe("Recording resumed after 23m idle");
+    expect(resumed.detail).toEqual(
+      expect.objectContaining({
+        markerKind: "idle-pause",
+        idlePauseEdge: "resumed",
+        idleForMs: null,
+        pausedForMs: 23 * 60 * 1000,
+      }),
+    );
+  });
+
+  it("falls back to plain words when an idle-pause row carries no usable stamps", () => {
+    const rows: Array<ReplaySignal> = [
+      fromTimelineEvent(makeEvent("idle-pause", { idlePauseEdge: "paused" }), {
+        startTimeUnixMs: null,
+      }),
+      fromTimelineEvent(
+        makeEvent("idle-pause", {
+          idlePauseEdge: "paused",
+          /* The last input "after" the pause: no length to quote. */
+          idleSinceUnixMs: START_UNIX_MS + 1000,
+          pausedAtUnixMs: START_UNIX_MS,
+        }),
+        { startTimeUnixMs: null },
+      ),
+      fromTimelineEvent(makeEvent("idle-pause", { idlePauseEdge: "resumed" }), {
+        startTimeUnixMs: null,
+      }),
+      fromTimelineEvent(
+        makeEvent("idle-pause", {
+          idlePauseEdge: "resumed",
+          pausedAtUnixMs: START_UNIX_MS,
+          resumedAtUnixMs: START_UNIX_MS,
+        }),
+        { startTimeUnixMs: null },
+      ),
+    ];
+
+    expect(
+      rows.map((row: ReplaySignal): string => {
+        return row.title;
+      }),
+    ).toEqual([
+      "Recording paused: nobody touched the page",
+      "Recording paused: nobody touched the page",
+      "Recording resumed after an idle pause",
+      "Recording resumed after an idle pause",
+    ]);
+
+    for (const row of rows) {
+      expect(row.detail["idleForMs"]).toBeNull();
+      expect(row.detail["pausedForMs"]).toBeNull();
+    }
+
+    /* A bare row (no edge at all) reads as the pause. */
+    expect(
+      fromTimelineEvent(makeEvent("idle-pause"), { startTimeUnixMs: null })
+        .detail["idlePauseEdge"],
+    ).toBe("paused");
+  });
+
+  it("leaves the idle-pause fields null on every other marker", () => {
+    const hidden: ReplaySignal = fromTimelineEvent(
+      makeEvent("visibility", { visibilityState: "hidden" }),
+      { startTimeUnixMs: null },
+    );
+
+    expect(hidden.detail["idlePauseEdge"]).toBeNull();
+    expect(hidden.detail["idleForMs"]).toBeNull();
+    expect(hidden.detail["pausedForMs"]).toBeNull();
   });
 
   it("fromTimelineEvents maps a batch in order", () => {
@@ -1216,12 +1386,8 @@ describe("findLastSignalIndexAtOrBefore", () => {
   });
 
   it("agrees with the linear scan on random sorted lists with duplicates", () => {
-    /* Deterministic LCG so a failure reproduces. */
-    let seed: number = 0x2f6e2b1;
-    const nextRandom: () => number = (): number => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return seed / 0x100000000;
-    };
+    // Seeded, so a failure reproduces.
+    const nextRandom: SeededRandom = seededRandom(0x2f6e2b1);
 
     const offsets: Array<number> = [];
     let offset: number = 0;
@@ -1229,7 +1395,7 @@ describe("findLastSignalIndexAtOrBefore", () => {
     for (let i: number = 0; i < 2000; i++) {
       /* ~30% ties, otherwise a small forward step. */
       if (nextRandom() > 0.3) {
-        offset += Math.floor(nextRandom() * 500);
+        offset += nextRandom(500);
       }
 
       offsets.push(offset);

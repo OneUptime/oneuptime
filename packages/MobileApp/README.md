@@ -70,7 +70,7 @@ On first launch, the app will ask for:
 1. **Server URL** - The URL of your OneUptime instance (defaults to `https://oneuptime.com`). The app validates the URL by calling `/api/status` before proceeding.
 2. **Login** - Email and password for your OneUptime account.
 
-Tokens are stored securely in the device Keychain. The server URL is stored in AsyncStorage.
+The session's tokens and the server URL are stored in AsyncStorage, the app's own storage on the device (`src/storage/keychain.ts` keeps its old name). Logging out deletes the tokens.
 
 ## Project Structure
 
@@ -83,7 +83,7 @@ MobileApp/
 │   ├── navigation/    # React Navigation (auth stack, main tabs)
 │   ├── oncall/        # Pure on-call domain logic (shifts, duty state, overrides)
 │   ├── screens/       # Screen components (auth, home, incidents, alerts, on-call, settings)
-│   ├── storage/       # Keychain (tokens) and AsyncStorage (server URL)
+│   ├── storage/       # AsyncStorage: session tokens, server URL, preferences
 │   ├── theme/         # Colors, typography, spacing, theme context
 │   └── App.tsx        # Root component with providers
 ├── assets/            # App icons and splash screen
@@ -227,20 +227,44 @@ escalated - never owner subscriptions or note-posted notices.
   settings; the app opens that screen when the switch is turned on. Channel
   settings are frozen by Android at creation, so changing them means shipping a
   new channel id, not editing `src/notifications/channels.ts`.
-- **iOS** needs Apple's critical-alerts entitlement, which is **not** enabled by
-  default because a build declaring an entitlement the Apple team has not been
-  granted fails to sign. Once Apple grants it:
+- **iOS** needs Apple's critical-alerts entitlement. Apple has granted it to
+  the team that publishes the official app, and the `production` profile in
+  `eas.json` sets `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"`, so store
+  builds carry it. It stays **off** by default everywhere else because a build
+  declaring an entitlement its Apple team has not been granted fails to sign.
+  A fork that signs with its own Apple team must remove that `env` entry until
+  Apple grants the entitlement to that team. For a local native build with the
+  entitlement:
 
   ```bash
   EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npm run prebuild
   ```
 
-  or set `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` in the relevant
-  `eas.json` build profile's `env`.
+  The App ID must have **Critical Alerts** enabled (Apple Developer >
+  Identifiers > Additional Capabilities), and the provisioning profile must be
+  regenerated after enabling it. EAS's capability sync does not manage this
+  capability.
 
 Without the OS capability the app does not pretend: the settings screen reads
 the real state back from the OS and tells the responder which setting is
 missing.
+
+Nor does the server. The app tells it what the phone will really do with a
+critical page - on only while the switch is on and the OS allows it - in every
+registration, when the switch moves, and whenever it changes without the
+responder (critical alerts turned off in iOS Settings, Do Not Disturb access
+taken away), on start and on every return to the app. So the Dashboard's
+device list, its test notification and every on-call page follow the phone.
+Writes to the server go through one queue, so a report never lands the state
+from before the switch moved. See `src/notifications/criticalAlertsReport.ts`.
+
+On iOS, Settings has a **Critical Alerts** switch for the app only once an
+entitled build has asked for the permission, which happens when the in-app
+setting is turned on. Until then iOS reports critical alerts as not supported
+(`allowsCriticalAlerts` is `null`, not `false`). If that is still the answer
+after asking, the build lacks the entitlement - true of every App Store build
+up to 1.4.0 - and the screen says to update the app instead of pointing at a
+switch iOS is not showing. See `src/notifications/criticalAlerts.ts`.
 
 ## Troubleshooting
 

@@ -27,6 +27,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../Utils/TeamMember/ProjectMembership";
+import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -265,6 +269,26 @@ export interface ReadinessSummary {
  * are several bullet-ish code points and they are indistinguishable on screen).
  */
 export const IDENTIFIER_MASK: string = "•••";
+
+/*
+ * The reasons on a responder who is not a member of the project (they left, and
+ * a layer, a rule or an override still names them). Nothing pages them, so
+ * nothing else about them matters until they are taken off the policy.
+ */
+export const NOT_A_PROJECT_MEMBER_READINESS_REASONS: ReadonlyArray<string> = [
+  "No longer a member of this project - cannot be paged",
+  "Remove them from this policy's escalation rules, schedules and overrides, or invite them back to the project",
+];
+
+/*
+ * The reasons on a responder who was invited to the project and has not
+ * accepted yet. Nothing pages them until they accept, so that is the fix.
+ */
+export const INVITATION_NOT_ACCEPTED_READINESS_REASONS: ReadonlyArray<string> =
+  [
+    "Has not accepted the invitation to this project - cannot be paged",
+    "Ask them to accept their invitation, or remove them from this policy's escalation rules, schedules and overrides",
+  ];
 
 /**
  * What SHAPE an identifier has, which is all masking needs to know. Kept separate from
@@ -964,6 +988,12 @@ export default class OnCallReadinessService {
       responders: responders,
       projectSettings: projectSettings,
       completeness: completeness,
+      // Every one of them is a member: the membership read above found them.
+      memberUserIds: new Set<string>(
+        memberIds.map((memberId: ObjectID): string => {
+          return memberId.toString().toLowerCase();
+        }),
+      ),
     });
 
     for (const one of computed) {
@@ -1097,9 +1127,13 @@ export default class OnCallReadinessService {
    * no table, because it actively certifies a gap as covered. Three deliberate
    * alignments with the runtime:
    *
-   *   - Team members are NOT filtered by hasAcceptedInvitation, because
-   *     TeamMemberService.getUsersInTeam does not filter either. A member who never
-   *     accepted their invite still gets paged, so they still have to be checked.
+   *   - Team members are the ACCEPTED rows only, exactly as the runtime expands a
+   *     team: a pending invitation puts nobody on the team's roster, so somebody who
+   *     never accepted is not paged through it and is not one of its responders.
+   *   - A responder named directly, through a schedule layer or by an override who is
+   *     not a member of the project (they left) is still listed - an admin has to see
+   *     the stale reference to remove it - but as NotReachable, because the runtime
+   *     never pages a non-member (ProjectMembership).
    *   - Schedule layer users are taken WHOLE, not sampled for who is on call right now.
    *     Readiness is a property of the roster, not of this instant; a user in next
    *     week's rotation with no notification rule is a page that will be missed next
@@ -1108,7 +1142,10 @@ export default class OnCallReadinessService {
    *     for. During an override the covered user is not paged at all, while the
    *     substitute is — and the substitute may not be attached to the policy by any
    *     other means, which makes them the single most likely responder to be silently
-   *     unreachable.
+   *     unreachable. A substitute who is no longer a member is listed as such, with
+   *     the fix (take them off the override): until then the runtime pages the
+   *     covered user instead, who is a responder through their own layer or rule
+   *     and is assessed there.
    */
   private static async resolveResponders(
     projectId: ObjectID,
@@ -1231,6 +1268,8 @@ export default class OnCallReadinessService {
         query: {
           projectId: projectId,
           teamId: new Includes(teamIds),
+          // The roster the runtime pages: accepted rows only.
+          hasAcceptedInvitation: true,
         },
         select: {
           _id: true,
@@ -1650,6 +1689,11 @@ export default class OnCallReadinessService {
       query: {
         projectId: projectId,
         userId: new Includes(userIds),
+        /*
+         * Accepted rows only: a pending invitation makes nobody a member of the
+         * project, or a responder through the team it is for.
+         */
+        hasAcceptedInvitation: true,
       },
       select: {
         _id: true,
@@ -1692,6 +1736,12 @@ export default class OnCallReadinessService {
     responders: Map<string, ResponderAttachment>;
     projectSettings: ProjectNotificationSettings;
     completeness: ReadCompleteness;
+    /*
+     * The members among the responders, when the caller has already read them
+     * (computeReadinessForUsers resolves membership first). Read here, once for
+     * the whole set, when it has not.
+     */
+    memberUserIds?: Set<string> | undefined;
   }): Promise<Array<UserReadiness>> {
     const userIds: Array<ObjectID> = Array.from(data.responders.keys()).map(
       (userId: string): ObjectID => {
@@ -1701,6 +1751,54 @@ export default class OnCallReadinessService {
 
     if (userIds.length === 0) {
       return [];
+    }
+
+    /*
+     * Whether each responder is a member of the project now - and, among those
+     * who are not, the ones still invited: the fix for them is to accept, not
+     * to be replaced. A layer, a rule or an override can still name somebody
+     * who has left; the runtime never pages them (ProjectMembership), so
+     * readiness must not call them reachable either. One read answers both.
+     */
+    let memberUserIds: Set<string>;
+    let invitedUserIds: Set<string> = new Set<string>();
+
+    if (data.memberUserIds) {
+      memberUserIds = new Set<string>(data.memberUserIds);
+
+      /*
+       * Read only when the caller's set leaves somebody out - and then trust
+       * the read for them: somebody who joined after the caller looked is a
+       * member, not somebody who has left.
+       */
+      const nonMemberUserIds: Array<ObjectID> = userIds.filter(
+        (userId: ObjectID): boolean => {
+          return !memberUserIds.has(userId.toString().toLowerCase());
+        },
+      );
+
+      if (nonMemberUserIds.length > 0) {
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
+            projectId: data.projectId,
+            userIds: nonMemberUserIds,
+          });
+
+        for (const userId of standings.memberUserIds) {
+          memberUserIds.add(userId);
+        }
+
+        invitedUserIds = standings.invitedUserIds;
+      }
+    } else {
+      const standings: ProjectMembershipStandings =
+        await ProjectMembership.getStandings({
+          projectId: data.projectId,
+          userIds: userIds,
+        });
+
+      memberUserIds = standings.memberUserIds;
+      invitedUserIds = standings.invitedUserIds;
     }
 
     const inputs: ReadinessInputs = await this.loadInputs({
@@ -1748,6 +1846,8 @@ export default class OnCallReadinessService {
           userIdString,
           inputs,
           teamNamesById,
+          memberUserIds.has(userIdString.toLowerCase()),
+          invitedUserIds.has(userIdString.toLowerCase()),
         ),
       );
     }
@@ -2451,6 +2551,8 @@ export default class OnCallReadinessService {
     userIdString: string,
     inputs: ReadinessInputs,
     teamNamesById: Map<string, string>,
+    isProjectMember: boolean,
+    hasPendingInvitation: boolean = false,
   ): UserReadiness {
     const sources: Set<ResponderSource> = attachment.sources;
     const methods: Array<ReadinessMethod> =
@@ -2530,21 +2632,35 @@ export default class OnCallReadinessService {
 
     let status: ReadinessStatus = ReadinessStatus.Ready;
 
-    if (usableMethods.length === 0) {
+    if (!isProjectMember || usableMethods.length === 0) {
       status = ReadinessStatus.NotReachable;
     } else if (uncoveredCells.length > 0) {
       status = ReadinessStatus.PartiallyReady;
     }
 
-    const reasons: Array<string> = this.buildReasons({
-      status: status,
-      methods: methods,
-      verifiedMethods: verifiedMethods,
-      usableMethods: usableMethods,
-      disabledChannels: disabledChannels,
-      uncoveredCells: uncoveredCells,
-      projectSettings: inputs.projectSettings,
-    });
+    /*
+     * Somebody who is not a member of the project is never paged, whatever
+     * methods they have: that is the one sentence that matters about them.
+     * The fix is to take them off the policy (or invite them back) - or, for
+     * somebody still invited, for them to accept.
+     */
+    let reasons: Array<string> = [];
+
+    if (isProjectMember) {
+      reasons = this.buildReasons({
+        status: status,
+        methods: methods,
+        verifiedMethods: verifiedMethods,
+        usableMethods: usableMethods,
+        disabledChannels: disabledChannels,
+        uncoveredCells: uncoveredCells,
+        projectSettings: inputs.projectSettings,
+      });
+    } else if (hasPendingInvitation) {
+      reasons = [...INVITATION_NOT_ACCEPTED_READINESS_REASONS];
+    } else {
+      reasons = [...NOT_A_PROJECT_MEMBER_READINESS_REASONS];
+    }
 
     return {
       userId: user.id!,
@@ -2643,13 +2759,17 @@ export default class OnCallReadinessService {
       /*
        * Three ways to be unreachable, and they need three different sentences because
        * they need three different people to fix them: the user adds a method, the user
-       * verifies a method, or an admin turns a channel back on. A single "cannot be
-       * paged" line sends all three to the wrong place.
+       * verifies a method, or a project owner (or a Billing Admin, or someone with
+       * Manage Billing - the only people the channel switches let in) turns a
+       * channel back on. A single "cannot be paged" line sends all three to the
+       * wrong place, so the third names exactly who can, and where.
        */
       if (data.verifiedMethods.length > 0) {
+        const isOneChannel: boolean = data.disabledChannels.length === 1;
+
         reasons.push("No usable notification method - cannot be paged");
         reasons.push(
-          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${data.disabledChannels.length === 1 ? "that channel" : "those channels"} switched off - that is a project setting, not something this user can fix`,
+          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
         );
 
         return reasons;
@@ -2663,15 +2783,47 @@ export default class OnCallReadinessService {
        * click from the user, not a conversation about how on-call works.
        */
       if (data.methods.length > 0) {
-        const unverified: Array<string> = this.distinctStrings(
-          data.methods.map((method: ReadinessMethod): string => {
-            return method.methodType;
-          }),
+        /*
+         * Push is the exception. A push device is verified the moment it is
+         * registered, so one that is not verified was registered, and then
+         * its push service or Expo said it was gone
+         * (UserPushService.markWebPushSubscriptionAsGone,
+         * markExpoPushTokenAsGone). "Never verified" would send an admin
+         * after a verification code that does not exist; the fix is to
+         * register the device again.
+         */
+        const neverVerified: Array<string> = this.distinctStrings(
+          data.methods
+            .filter((method: ReadinessMethod): boolean => {
+              return method.methodType !== ReadinessMethodType.Push;
+            })
+            .map((method: ReadinessMethod): string => {
+              return method.methodType;
+            }),
         );
 
-        reasons.push(
-          `Added ${unverified.join(", ")} but never verified - unverified methods are never used`,
-        );
+        const pushDevicesNotReceiving: number = data.methods.filter(
+          (method: ReadinessMethod): boolean => {
+            return (
+              method.methodType === ReadinessMethodType.Push &&
+              !method.isVerified
+            );
+          },
+        ).length;
+
+        if (neverVerified.length > 0) {
+          reasons.push(
+            `Added ${neverVerified.join(", ")} but never verified - unverified methods are never used`,
+          );
+        }
+
+        if (pushDevicesNotReceiving > 0) {
+          reasons.push(
+            pushDevicesNotReceiving === 1
+              ? "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to"
+              : `${pushDevicesNotReceiving} push devices no longer receive notifications - register them again from the mobile app or browser they belong to`,
+          );
+        }
       } else {
         reasons.push(
           "Ask this user to add and verify a notification method in User Settings > Notification Methods",

@@ -585,7 +585,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
     expect(
       warnLog.some((entry: unknown) => {
         return String(entry).includes(
-          "(an operator cleared it, or its Runner was deleted)",
+          "(an operator cleared it, its Runner was deleted, or OneUptime AI already reached it through the Kubernetes AI agent)",
         );
       }),
     ).toBe(true);
@@ -939,13 +939,13 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
 
     const HOLDINGS: JSONObject = {
       message:
-        'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults ("Runs Runbooks" is on). In Project Settings > Runners, turn off "Runs Runbooks" on it, or delete the Runner.',
+        'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults ("Runs Runbooks" is on). In Runbooks > Runners, turn off "Runs Runbooks" on it, or delete the Runner.',
       reason: "runner_holds_more_than_defaults",
     };
 
     const OTHER_CLUSTER: JSONObject = {
       message:
-        'Delete Runner "kubernetes-agent/prod-us" under Project Settings → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.',
+        'Delete Runner "kubernetes-agent/prod-us" under Runbooks → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.',
       reason: "runner_belongs_to_another_cluster",
     };
 

@@ -8,6 +8,19 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import HashedString from "../../../Types/HashedString";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    UserService,
+    jest.spyOn(UserService, "findBy"),
+  );
+});
 
 /*
  * ---------------------------------------------------------------------------

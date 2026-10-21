@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,16 +12,17 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -30,6 +32,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -58,7 +61,6 @@ RunCron(
           incidentStateId: true,
           incidentState: {
             name: true,
-            isResolvedState: true,
             color: true,
           },
         },
@@ -85,13 +87,11 @@ RunCron(
           title: true,
           description: true,
           projectId: true,
-          monitors: {
-            name: true,
-          },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -190,12 +190,15 @@ RunCron(
         continue;
       }
 
-      const resourcesAffected: string =
-        incident
-          .monitors!.map((monitor: Monitor) => {
-            return monitor.name!;
-          })
-          .join(", ") || "";
+      // Every resource the incident's Affected Resources card lists.
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        }),
+        fallback: "",
+      });
 
       const incidentNumberStr: string =
         incident.incidentNumberWithPrefix ||
@@ -218,9 +221,15 @@ RunCron(
           incidentNumber: incidentNumberStr,
           projectName: incidentStateTimeline.project!.name!,
           currentState: incidentState!.name!,
-          currentStateColor: incidentState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incidentState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           incidentDescription: incidentDescriptionHtml,
           resourcesAffected: resourcesAffected || "None",
@@ -230,6 +239,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           incidentSeverity: incident.incidentSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "incidentSeverity",
+            incident.incidentSeverity?.color,
+          ),
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incidentStateTimeline.projectId!,
@@ -257,8 +270,10 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Incident ${incidentIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -331,27 +346,32 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
-          {
-            userId: user.id!,
-            projectId: incidentStateTimeline.projectId!,
-          },
-        )})\n`;
+        moreIncidentFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: incidentStateTimeline.projectId!,
+            }),
+          );
       }
-
-      const incidentNumberDisplayValue: string =
-        incident.incidentNumberWithPrefix || "#" + incident.incidentNumber!;
-      const projectId: ObjectID = incident.projectId!;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "incident",
+          stateName: incidentState.name,
+        }),
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * state change, which the channel was told of itself: posting it to
+         * Slack and Microsoft Teams said the same change twice.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

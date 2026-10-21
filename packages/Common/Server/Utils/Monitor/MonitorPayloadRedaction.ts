@@ -430,9 +430,52 @@ export const redactMonitorEmailAddress: RedactMonitorEmailAddressFunction = <T>(
   ) as T;
 };
 
+export type RedactGeneratedInboundAddressKeysFunction = <T>(
+  payload: T,
+  prefixes: ReadonlyArray<string>,
+) => T;
+
+const UUID_TEXT: string =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+/*
+ * Value boundary for the OTHER generated addresses on the inbound email
+ * domain: `monitor-{key}@` (Incoming Email monitors) and `workflow-{key}@`
+ * (a workflow's Incoming Email trigger).
+ *
+ * One email can be sent to several of them at once - a monitor in To and a
+ * workflow in Cc - and each receiver keeps a copy of the whole email. The
+ * value boundaries above mask the receiver's OWN address only, so without
+ * this a monitor's stored email would carry a workflow's address, and a
+ * workflow's run would carry a monitor's, to people who may read the one but
+ * not the other. Generated keys have a fixed shape - a prefix and a whole
+ * UUID - so they are found by it, whoever they belong to; the prefix and the
+ * domain are kept, as with the receiver's own key.
+ */
+export const redactGeneratedInboundAddressKeys: RedactGeneratedInboundAddressKeysFunction =
+  <T>(payload: T, prefixes: ReadonlyArray<string>): T => {
+    if (payload === null || payload === undefined || prefixes.length === 0) {
+      return payload;
+    }
+
+    const pattern: RegExp = new RegExp(
+      `\\b(${prefixes.join("|")})-${UUID_TEXT}\\b`,
+      "gi",
+    );
+
+    return sweep(
+      payload as JSONValue,
+      (text: string): string => {
+        return text.replace(pattern, `$1-${REDACTED}`);
+      },
+      0,
+    ) as T;
+  };
+
 export default {
   stripAgentCredentials,
   redactForPersistence,
   redactMonitorSecret,
   redactMonitorEmailAddress,
+  redactGeneratedInboundAddressKeys,
 };

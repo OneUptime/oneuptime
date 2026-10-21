@@ -415,6 +415,20 @@ export default class OpenAPIUtil {
     });
   }
 
+  /*
+   * A request that names one record by its id - read, change or delete it -
+   * answers 404 when the record does not exist, is in another project, or
+   * is one the caller may not read: the same answer for each.
+   */
+  public static getNotFoundResponseSchema(): JSONObject {
+    return {
+      "404": {
+        description:
+          "Not found. The record does not exist, belongs to another project, or is one you may not read - the same answer for each.",
+      },
+    };
+  }
+
   public static getGenericStatusResponseSchema(): JSONObject {
     return {
       "400": {
@@ -523,6 +537,7 @@ export default class OpenAPIUtil {
           },
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }
@@ -604,6 +619,7 @@ export default class OpenAPIUtil {
           },
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }
@@ -647,6 +663,7 @@ export default class OpenAPIUtil {
           description: "Deleted successfully",
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }
@@ -1131,6 +1148,7 @@ export default class OpenAPIUtil {
           },
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }
@@ -1206,6 +1224,7 @@ export default class OpenAPIUtil {
           },
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }
@@ -1249,6 +1268,7 @@ export default class OpenAPIUtil {
           description: "Deleted successfully",
         },
         ...this.getGenericStatusResponseSchema(),
+        ...this.getNotFoundResponseSchema(),
       },
     });
   }

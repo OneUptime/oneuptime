@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -20,6 +21,11 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -35,6 +41,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ScheduledMaintenanceLabelRuleEngineServiceClass
   implements RuleRunEngine<ScheduledMaintenance, ScheduledMaintenanceLabelRule>
@@ -163,6 +171,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     scheduledMaintenance: ScheduledMaintenance;
     rules: Array<ScheduledMaintenanceLabelRule>;
@@ -392,11 +401,23 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: scheduledMaintenance.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of scheduled maintenance label rules",
+      logAttributes: {
+        projectId: scheduledMaintenance.projectId.toString(),
+        scheduledMaintenanceId: scheduledMaintenance.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -489,29 +510,17 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${n}**`;
-              })
-              .join(", ");
-
-      const labelsPart: string =
-        labelNames.length > 0
-          ? labelNames
-              .map((n: string) => {
-                return `\n- ${n}`;
-              })
-              .join("")
-          : "\n- (no named labels)";
-
-      const feedInfoInMarkdown: string = `🏷️ **Scheduled Maintenance Label Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAdded the following label${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🏷️",
+          ruleKind: "Scheduled Maintenance Label Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAdded the following label${
         labelNames.length === 1 ? "" : "s"
-      } to the event:${labelsPart}`;
+      } to the event:\n${FeedMarkdown.bulletList(labelNames, {
+        whenEmpty: "(no named labels)",
+      })}`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id,
@@ -519,7 +528,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.LabelRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
@@ -761,8 +770,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
     rule: ScheduledMaintenanceLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in scheduled maintenance label rule ${rule.id}: ${pattern}`,

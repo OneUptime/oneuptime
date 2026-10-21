@@ -4,8 +4,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -83,6 +84,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -90,6 +93,12 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import HeartbeatAvailabilityUtil, {
   HeartbeatAvailabilityResult,
 } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { ReceivingGap } from "Common/Utils/Telemetry/ReceivingGaps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  fetchReceivingGaps,
+  getNotMonitoredRegions,
+} from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { computeNetworkRate } from "../Utils/KubernetesNetworkUtils";
 import GoldenMetricTile, {
@@ -97,6 +106,25 @@ import GoldenMetricTile, {
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
+import KubernetesAiAgentStatusSummaryCard from "../Utils/KubernetesAiAgentStatusSummaryCard";
+import {
+  KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+  parseStatus as parseAiAccessStatus,
+} from "../Utils/KubernetesAiAgentStatus";
+import useAiAgentAccessStatus, {
+  AiAgentAccessStatusRead,
+} from "../../../Components/AiAccess/useAiAgentAccessStatus";
+import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceLink {
   title: string;
@@ -152,6 +180,16 @@ const formatBytesPerSec: (value: number | null) => string = (
 
 const TILE_WINDOW_MINUTES: number = 5;
 
+/*
+ * Allocatable CPU - what the CPU chart divides by - is only sampled every
+ * 30 seconds or so. A window a chart zoom narrowed to less than a minute
+ * can fall between two samples and leave the CPU chart with nothing to
+ * divide by while the other charts still draw, so the lookup always
+ * reaches at least this far back from the window's end. No preset is
+ * shorter, so only a zoomed window is ever widened.
+ */
+const ALLOCATABLE_CPU_MIN_LOOKBACK_MINUTES: number = 5;
+
 const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_THIRTY_MINS,
 };
@@ -179,12 +217,19 @@ export interface ClusterChartCardProps {
   showLegend?: boolean | undefined;
   curve?: ChartCurve | undefined;
   headerExtra?: ReactElement | undefined;
+  // Shaded stretches, such as when OneUptime was not monitoring.
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  // false breaks the line where it has no points.
+  connectNulls?: boolean | undefined;
 }
 
 /*
  * One golden chart on the cluster overview. The header - title, (i) and
  * icon - is built once and shared by the loading and loaded branches, so
  * the explanation is there before the chart is.
+ *
+ * The chart zooms the page (issue #4105): it is handed no zoom handlers of
+ * its own, so it takes the ones the page's TimeRangeZoomScope offers.
  */
 export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   props: ClusterChartCardProps,
@@ -193,7 +238,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
     tileColorClasses[props.iconColor];
 
   const header: ReactElement = (
-    <div className="flex items-center justify-between mb-3">
+    <div className="relative flex items-center justify-between mb-3">
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -208,12 +253,22 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
       >
         <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
       </div>
+      {/*
+       * "Drag to zoom", revealed while the pointer is over the card. It
+       * sits in the gap under the header rather than in it: four of these
+       * cards share a row, and the longer "double-click to reset" wording
+       * would not fit beside the title and the icon.
+       */}
+      <TimeRangeZoomHint
+        revealOnHover={true}
+        className="pointer-events-none absolute right-0 top-full leading-3"
+      />
     </div>
   );
 
   if (!props.chartWindow) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-48 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -243,7 +298,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.data}
@@ -254,6 +309,8 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
         syncid={props.syncId}
         heightInPx={180}
         showLegend={props.showLegend ?? false}
+        referenceRegions={props.referenceRegions}
+        connectNulls={props.connectNulls}
       />
     </div>
   );
@@ -269,7 +326,7 @@ export function titleWithTooltip(
 ): ReactElement {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span>{title}</span>
+      <span>{translateText(title)}</span>
       <InfoTooltip label={title} text={description} />
     </span>
   );
@@ -283,17 +340,17 @@ function formatRelativeTime(timestamp: string): string {
     const diffMins: number = Math.floor(diffMs / 60000);
 
     if (diffMins < 1) {
-      return "just now";
+      return translateTemplate("just now");
     }
     if (diffMins < 60) {
-      return `${diffMins}m ago`;
+      return translateTemplate("{{minutes}}m ago", { minutes: diffMins });
     }
     const diffHours: number = Math.floor(diffMins / 60);
     if (diffHours < 24) {
-      return `${diffHours}h ago`;
+      return translateTemplate("{{hours}}h ago", { hours: diffHours });
     }
     const diffDays: number = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
+    return translateTemplate("{{days}}d ago", { days: diffDays });
   } catch {
     return timestamp;
   }
@@ -302,6 +359,7 @@ function formatRelativeTime(timestamp: string): string {
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -389,6 +447,8 @@ const KubernetesClusterOverview: FunctionComponent<
     Array<SeriesPoint>
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  // When OneUptime itself was not receiving, inside the chart window.
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -675,6 +735,16 @@ const KubernetesClusterOverview: FunctionComponent<
   };
 
   /*
+   * Stamps every golden-metrics load. A chart zoom, the double-click that
+   * undoes it and an auto-refresh tick can all be in flight at once, and
+   * their answers can come back in any order. Only the newest load may
+   * paint the charts and tiles; otherwise they could settle on a window the
+   * picker no longer shows.
+   */
+  const goldenLoadSequenceRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
    * Golden cluster metrics — aggregate across all nodes for the
    * selected time range. CPU is cores in use (`k8s.node.cpu.
    * utilization` is a misnamed cores gauge, not a ratio), so we sum it
@@ -689,6 +759,12 @@ const KubernetesClusterOverview: FunctionComponent<
   const loadGoldenMetrics: (
     clusterIdentifier: string,
   ) => Promise<void> = async (clusterIdentifier: string): Promise<void> => {
+    goldenLoadSequenceRef.current += 1;
+    const loadSequence: number = goldenLoadSequenceRef.current;
+    const isSuperseded: () => boolean = (): boolean => {
+      return loadSequence !== goldenLoadSequenceRef.current;
+    };
+
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -696,6 +772,13 @@ const KubernetesClusterOverview: FunctionComponent<
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
       const startDate: Date = dateRange.startValue;
       const endDate: Date = dateRange.endValue;
+      /*
+       * When OneUptime itself was not receiving data in this window, asked
+       * for alongside the metrics: those stretches are "Not monitored",
+       * never "Down" (issue #2825). Never rejects.
+       */
+      const receivingGapsPromise: Promise<Array<ReceivingGap>> =
+        fetchReceivingGaps({ startsAt: startDate, endsAt: endDate });
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -785,10 +868,17 @@ const KubernetesClusterOverview: FunctionComponent<
        * the k8s_cluster receiver's `k8s.node.allocatable_cpu`. Fetched
        * in parallel with the usage queries below.
        */
+      const allocatableLookbackStart: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -ALLOCATABLE_CPU_MIN_LOOKBACK_MINUTES,
+      );
       const allocatablePromise: Promise<NodeAllocatableCpu> =
         KubernetesCpuUtils.fetchNodeAllocatableCpu({
           clusterIdentifier: clusterIdentifier,
-          startDate: startDate,
+          startDate:
+            allocatableLookbackStart.getTime() < startDate.getTime()
+              ? allocatableLookbackStart
+              : startDate,
           endDate: endDate,
         });
 
@@ -833,7 +923,15 @@ const KubernetesClusterOverview: FunctionComponent<
         }),
       ]);
 
+      const receivingGapsInWindow: Array<ReceivingGap> =
+        await receivingGapsPromise;
+
       const allocatable: NodeAllocatableCpu = await allocatablePromise;
+
+      // A newer load (a zoom, a reset, a refresh) owns the page now.
+      if (isSuperseded()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -1060,7 +1158,9 @@ const KubernetesClusterOverview: FunctionComponent<
           windowStart: startDate,
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
+          receivingGaps: receivingGapsInWindow,
         });
+      setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
         availability.points.length > 0
           ? [{ seriesName: "Up", data: availability.points }]
@@ -1085,10 +1185,16 @@ const KubernetesClusterOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isSuperseded()) {
+        return;
+      }
       setGoldenError(API.getFriendlyMessage(err));
     } finally {
-      setIsRefreshing(false);
-      setIsGoldenLoading(false);
+      // The newest load clears these when it lands, not an older one.
+      if (!isSuperseded()) {
+        setIsRefreshing(false);
+        setIsGoldenLoading(false);
+      }
     }
   };
 
@@ -1212,6 +1318,19 @@ const KubernetesClusterOverview: FunctionComponent<
       });
     }
   };
+
+  /*
+   * The cluster's AI access status, read once for both cards that show it
+   * — "AI agent" beside Agent Status and the AI agent card at the bottom —
+   * so they never disagree, and again when the Overview refreshes.
+   */
+  const aiAccessStatus: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+    useAiAgentAccessStatus<KubernetesClusterAiAccessStatus>({
+      route: KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+      body: { clusterId: modelId.toString() },
+      parse: parseAiAccessStatus,
+      refreshToken: lastRefreshedAt ? lastRefreshedAt.getTime() : undefined,
+    });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -1474,7 +1593,13 @@ const KubernetesClusterOverview: FunctionComponent<
           value={formatPercent(s.cpuPercent)}
           sublabel={
             nodeCount > 0
-              ? `across ${nodeCount} node${nodeCount === 1 ? "" : "s"}`
+              ? translator.translatePlural(
+                  {
+                    one: "across {{count}} node",
+                    other: "across {{count}} nodes",
+                  },
+                  nodeCount,
+                )
               : "across nodes"
           }
           percent={s.cpuPercent}
@@ -1528,6 +1653,8 @@ const KubernetesClusterOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }) => ReactElement = (params: {
     title: string;
     description: string;
@@ -1538,6 +1665,8 @@ const KubernetesClusterOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }): ReactElement => {
     return (
       <ClusterChartCard
@@ -1552,6 +1681,8 @@ const KubernetesClusterOverview: FunctionComponent<
         showLegend={params.showLegend}
         curve={params.curve}
         headerExtra={params.headerExtra}
+        referenceRegions={params.referenceRegions}
+        connectNulls={params.connectNulls}
       />
     );
   };
@@ -1606,6 +1737,13 @@ const KubernetesClusterOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1619,7 +1757,9 @@ const KubernetesClusterOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
@@ -1629,11 +1769,12 @@ const KubernetesClusterOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Per-bucket presence of cluster heartbeats over the selected time
-                range
+                {translator.translateText(
+                  "Per-bucket presence of cluster heartbeats over the selected time range",
+                )}
               </p>
             </div>
           </div>
@@ -1647,16 +1788,20 @@ const KubernetesClusterOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            referenceRegions: notMonitoredRegions,
+            connectNulls: false,
           })}
         </div>
         <div className="mb-6">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Cluster resource usage
+                {translator.translateText("Cluster resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated across nodes over the selected time range
+                {translator.translateText(
+                  "Aggregated across nodes over the selected time range",
+                )}
               </p>
             </div>
           </div>
@@ -1810,31 +1955,46 @@ const KubernetesClusterOverview: FunctionComponent<
     if (nodeCount > 0) {
       specChips.push({
         icon: IconProp.Server,
-        label: `${nodeCount} node${nodeCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} node", other: "{{count}} nodes" },
+          nodeCount,
+        ),
       });
     }
     if (podCount > 0) {
       specChips.push({
         icon: IconProp.Circle,
-        label: `${podCount} pod${podCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} pod", other: "{{count}} pods" },
+          podCount,
+        ),
       });
     }
     if (namespaceCount > 0) {
       specChips.push({
         icon: IconProp.Folder,
-        label: `${namespaceCount} namespace${namespaceCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} namespace", other: "{{count}} namespaces" },
+          namespaceCount,
+        ),
       });
     }
     if (deploymentCount > 0) {
       specChips.push({
         icon: IconProp.Layers,
-        label: `${deploymentCount} deployment${deploymentCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} deployment", other: "{{count}} deployments" },
+          deploymentCount,
+        ),
       });
     }
     if (containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${containerCount} container${containerCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} container", other: "{{count}} containers" },
+          containerCount,
+        ),
       });
     }
 
@@ -1893,8 +2053,29 @@ const KubernetesClusterOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            {/*
+             * The cluster's name keeps its room; the controls give way.
+             * They used to keep their whole width and squeeze the name
+             * instead, and a zoom widens them - a custom range in the
+             * picker and Reset zoom beside it - so zooming truncated the
+             * name ("Production (eu-..."), and narrower windows lost it
+             * altogether.
+             *
+             * - The name column never shrinks below its own content (the
+             *   automatic minimum of a flex item; min-w-0 is what let it),
+             *   capped at the row by w-full, so a name longer than the
+             *   whole row still truncates.
+             * - The controls take the rest of the row up to their full
+             *   width (basis 0, max-w-max, and a grow that outweighs the
+             *   name's), and wrap onto a second line of their own when
+             *   squeezed, still aligned right.
+             * - When that rest is narrower than 24rem - about a custom
+             *   range and Reset zoom side by side, so the picker's label
+             *   never has to wrap - they move under the name as one
+             *   block, kept on the right.
+             */}
+            <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between">
+              <div className="flex items-start gap-4 md:w-full md:flex-1">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
                   <Icon
                     icon={IconProp.Kubernetes}
@@ -1931,11 +2112,13 @@ const KubernetesClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div className="md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end">
                 {renderRefreshControl()}
               </div>
             </div>
@@ -1956,7 +2139,9 @@ const KubernetesClusterOverview: FunctionComponent<
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
-                        <span className="font-medium">{chip.label}</span>
+                        <span className="font-medium">
+                          {translator.translateText(chip.label)}
+                        </span>
                       </span>
                     );
                   },
@@ -1990,7 +2175,7 @@ const KubernetesClusterOverview: FunctionComponent<
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
                         <span className="font-semibold">{chip.value}</span>
-                        {chip.label}
+                        {translator.translateText(chip.label)}
                         <InfoTooltip
                           label={chip.label}
                           text={chip.description}
@@ -2008,9 +2193,32 @@ const KubernetesClusterOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Issue #4105: a drag across any golden chart narrows the whole page to
+   * the window dragged out - the picker shows it, and every chart and tile
+   * reloads for it - and a double-click on any of them (or Reset zoom
+   * beside the picker) puts the range back. The picker sits in the hero,
+   * inside the scope. The inventory counts, health, top consumers and
+   * warnings are "now" snapshots and do not follow the range, zoomed or not.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={cluster.otelCollectorStatus as string | undefined}
+        lastSeenAt={cluster.lastSeenAt}
+        guide={getKubernetesClusterConnectionGuide(
+          (cluster.clusterIdentifier as string | undefined) ||
+            (cluster.name as string | undefined) ||
+            "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}
@@ -2085,7 +2293,7 @@ const KubernetesClusterOverview: FunctionComponent<
                             {node.name}
                           </span>
                           <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
-                            Node
+                            {translator.translateText("Node")}
                           </span>
                           {pressureLabels.map((label: string) => {
                             return (
@@ -2197,7 +2405,9 @@ const KubernetesClusterOverview: FunctionComponent<
                         ) : (
                           !pod.reason && (
                             <p className="text-sm text-gray-400 italic">
-                              No reason reported yet — click to inspect the pod.
+                              {translator.translateText(
+                                "No reason reported yet — click to inspect the pod.",
+                              )}
                             </p>
                           )
                         )}
@@ -2218,7 +2428,7 @@ const KubernetesClusterOverview: FunctionComponent<
           <ErrorMessage message={summaryError} />
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
           tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth}
@@ -2263,7 +2473,9 @@ const KubernetesClusterOverview: FunctionComponent<
                 {nodeCount.toString()}
                 {nodeHealthSummary.notReady > 0 && (
                   <span className="text-sm text-red-500 ml-1">
-                    ({nodeHealthSummary.notReady} not ready)
+                    {translator.translateTemplate("({{notReady}} not ready)", {
+                      notReady: nodeHealthSummary.notReady,
+                    })}
                   </span>
                 )}
               </span>
@@ -2334,6 +2546,16 @@ const KubernetesClusterOverview: FunctionComponent<
             />
           }
         />
+        {/*
+         * Beside the collector's status on purpose: "Agent Status" is the
+         * telemetry agent, this is the Kubernetes AI agent OneUptime AI runs
+         * kubectl through. It links to AI → Agent.
+         */}
+        <KubernetesAiAgentOverviewCard
+          clusterId={modelId}
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.aiAgent}
+          read={aiAccessStatus}
+        />
       </div>
 
       <ResourceActivityCards
@@ -2400,7 +2622,14 @@ const KubernetesClusterOverview: FunctionComponent<
                     className="inline-flex items-center gap-1"
                   >
                     <StatusBadge
-                      text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
+                      text={translator.translatePlural(
+                        {
+                          one: "{{count}} node: {{label}}",
+                          other: "{{count}} nodes: {{label}}",
+                        },
+                        badge.count,
+                        { label: translatableTerm(badge.label) },
+                      )}
                       type={StatusBadgeType.Danger}
                     />
                     <InfoTooltip label={badge.label} text={badge.description} />
@@ -2455,12 +2684,14 @@ const KubernetesClusterOverview: FunctionComponent<
                       KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topCpuPods,
                     )}
                   </h4>
-                  <p className="text-xs text-gray-500">Top 5 pods by CPU</p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText("Top 5 pods by CPU")}
+                  </p>
                 </div>
               </div>
               {topCpuPods.length === 0 ? (
                 <p className="text-gray-400 text-sm py-8 text-center">
-                  No CPU usage data available.
+                  {translator.translateText("No CPU usage data available.")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -2543,12 +2774,14 @@ const KubernetesClusterOverview: FunctionComponent<
                       KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topMemoryPods,
                     )}
                   </h4>
-                  <p className="text-xs text-gray-500">Top 5 pods by memory</p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText("Top 5 pods by memory")}
+                  </p>
                 </div>
               </div>
               {topMemoryPods.length === 0 ? (
                 <p className="text-gray-400 text-sm py-8 text-center">
-                  No memory usage data available.
+                  {translator.translateText("No memory usage data available.")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -2758,7 +2991,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   }}
                   className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
                 >
-                  View All Events →
+                  {translator.translateText("View All Events →")}
                 </span>
               </div>
             </Card>
@@ -2766,77 +2999,25 @@ const KubernetesClusterOverview: FunctionComponent<
         })()
       )}
 
-      {/* Cluster Details */}
+      {/*
+       * Cluster Details: read here, edited in one place - the same card at
+       * the top of the cluster's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "Cluster Info",
-            id: "cluster-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Kubernetes cluster.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit Cluster"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "cluster-info",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
-            field: {
-              description: true,
-            },
-            stepId: "cluster-info",
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East",
-          },
-          {
-            field: {
-              clusterIdentifier: true,
-            },
-            stepId: "cluster-info",
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east-1",
-            description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: KubernetesCluster,
@@ -2847,14 +3028,14 @@ const KubernetesClusterOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Cluster Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
             },
             {
               field: {
                 clusterIdentifier: true,
               },
-              title: "Cluster Identifier",
+              title: "Cluster Name (clusterName)",
               fieldType: FieldType.Text,
             },
             {
@@ -2876,8 +3057,20 @@ const KubernetesClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * chart (AgentVersion).
+               */
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.KubernetesAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {
@@ -2895,7 +3088,17 @@ const KubernetesClusterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+
+      {/*
+       * Last on the page: the Kubernetes AI agent's connection, whether AI
+       * may investigate with kubectl, and how fixes run, linking to AI →
+       * Agent, where they are changed.
+       */}
+      <KubernetesAiAgentStatusSummaryCard
+        clusterId={modelId}
+        read={aiAccessStatus}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

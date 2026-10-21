@@ -10,6 +10,9 @@ import OsVersionDisplay, {
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -18,7 +21,12 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
@@ -56,6 +64,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -63,6 +73,12 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import HeartbeatAvailabilityUtil, {
   HeartbeatAvailabilityResult,
 } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { ReceivingGap } from "Common/Utils/Telemetry/ReceivingGaps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  fetchReceivingGaps,
+  getNotMonitoredRegions,
+} from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   Fragment,
@@ -72,6 +88,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface OverviewStats {
   cpuPercent: number | null;
@@ -156,6 +174,7 @@ const REFRESH_STORAGE_KEY: string = "host-overview-auto-refresh-interval";
 const HostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [host, setHost] = useState<Host | null>(null);
@@ -169,6 +188,8 @@ const HostOverview: FunctionComponent<
     Array<SeriesPoint>
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  // When OneUptime itself was not receiving, inside the chart window.
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{
@@ -202,7 +223,30 @@ const HostOverview: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker and Refresh can each start a fetch
+   * while another is still in flight. Only the most recently started one
+   * may commit: a slow response for the window the reader just left would
+   * otherwise repaint the charts, tiles and Filesystems table with it (a
+   * double-click right after a drag is exactly that race).
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -227,8 +271,14 @@ const HostOverview: FunctionComponent<
           hostType: true,
           hostIpAddresses: true,
           agentVersion: true,
+          collectorInstanceUid: true,
+          collectorRegisteredAt: true,
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
@@ -243,6 +293,13 @@ const HostOverview: FunctionComponent<
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
       const startDate: Date = dateRange.startValue;
       const endDate: Date = dateRange.endValue;
+      /*
+       * When OneUptime itself was not receiving data in this window, asked
+       * for alongside the metrics: those stretches are "Not monitored",
+       * never "Down" (issue #2825). Never rejects.
+       */
+      const receivingGapsPromise: Promise<Array<ReceivingGap>> =
+        fetchReceivingGaps({ startsAt: startDate, endsAt: endDate });
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -464,6 +521,13 @@ const HostOverview: FunctionComponent<
           aggregateBy: heartbeatAggregate,
         }),
       ]);
+
+      const receivingGapsInWindow: Array<ReceivingGap> =
+        await receivingGapsPromise;
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -973,7 +1037,9 @@ const HostOverview: FunctionComponent<
           windowStart: startDate,
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
+          receivingGaps: receivingGapsInWindow,
         });
+      setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
         availability.points.length > 0
           ? [{ seriesName: "Up", data: availability.points }]
@@ -984,7 +1050,19 @@ const HostOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
+    }
+    // A superseded fetch leaves the spinner to the fetch that replaced it.
+    if (isStale()) {
+      return;
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -1020,6 +1098,10 @@ const HostOverview: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
@@ -1098,7 +1180,10 @@ const HostOverview: FunctionComponent<
       const cores: number = Number(host.cpuCores);
       specChips.push({
         icon: IconProp.ChartBar,
-        label: `${cores} core${cores === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} core", other: "{{count}} cores" },
+          cores,
+        ),
       });
     }
     if (host.totalMemoryBytes !== undefined && host.totalMemoryBytes !== null) {
@@ -1171,7 +1256,9 @@ const HostOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1369,10 +1456,12 @@ const HostOverview: FunctionComponent<
               className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
             >
               <div className="text-sm font-semibold text-gray-900">
-                Docker Host
+                {translator.translateText("Docker Host")}
               </div>
               <div className="text-xs text-gray-500">
-                Containers, container metrics, and Docker-specific logs.
+                {translator.translateText(
+                  "Containers, container metrics, and Docker-specific logs.",
+                )}
               </div>
             </Link>
           )}
@@ -1382,10 +1471,12 @@ const HostOverview: FunctionComponent<
               className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
             >
               <div className="text-sm font-semibold text-gray-900">
-                Kubernetes Cluster
+                {translator.translateText("Kubernetes Cluster")}
               </div>
               <div className="text-xs text-gray-500">
-                Cluster nodes, pods, and namespaces this host belongs to.
+                {translator.translateText(
+                  "Cluster nodes, pods, and namespaces this host belongs to.",
+                )}
               </div>
             </Link>
           )}
@@ -1423,26 +1514,26 @@ const HostOverview: FunctionComponent<
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Mount
+                      {translator.translateText("Mount")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Type
+                      {translator.translateText("Type")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Device
+                      {translator.translateText("Device")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
                       <span className="inline-flex items-center justify-end gap-1">
-                        Used / Total
+                        {translator.translateText("Used / Total")}
                         <InfoTooltip
                           label="Used / Total"
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}
@@ -1454,7 +1545,7 @@ const HostOverview: FunctionComponent<
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
                     >
                       <span className="inline-flex items-center gap-1">
-                        Utilization
+                        {translator.translateText("Utilization")}
                         <InfoTooltip
                           label="Utilization"
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}
@@ -1535,6 +1626,10 @@ const HostOverview: FunctionComponent<
     headerExtra?: ReactElement;
     // What the chart plots, shown in an (i) tooltip beside the title.
     description?: string;
+    // Shaded stretches, such as when OneUptime was not monitoring.
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    // false breaks the line where it has no points.
+    connectNulls?: boolean;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1546,6 +1641,8 @@ const HostOverview: FunctionComponent<
     headerExtra?: ReactElement;
     // What the chart plots, shown in an (i) tooltip beside the title.
     description?: string;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       tileColorClasses[params.iconColor];
@@ -1556,7 +1653,7 @@ const HostOverview: FunctionComponent<
           <div className="flex items-center justify-between mb-3">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -1602,7 +1699,7 @@ const HostOverview: FunctionComponent<
           <div className="flex items-center gap-2">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -1623,6 +1720,8 @@ const HostOverview: FunctionComponent<
           syncid={`host-overview-${modelId.toString()}`}
           heightInPx={180}
           showLegend={params.showLegend ?? false}
+          referenceRegions={params.referenceRegions}
+          connectNulls={params.connectNulls}
         />
       </div>
     );
@@ -1677,6 +1776,13 @@ const HostOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1690,23 +1796,33 @@ const HostOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
+    /*
+     * Drag-to-zoom is named once per section, at the right of its heading,
+     * while the pointer is anywhere over the section: the chart cards are a
+     * few hundred pixels wide, too narrow to hold the hint beside a title
+     * and the icon without wrapping the title.
+     */
     return (
       <Fragment>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Per-bucket presence of host heartbeats over the selected time
-                range
+                {translator.translateText(
+                  "Per-bucket presence of host heartbeats over the selected time range",
+                )}
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} />
           </div>
           {renderChartCard({
             title: "Availability",
@@ -1716,19 +1832,24 @@ const HostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            referenceRegions: notMonitoredRegions,
+            connectNulls: false,
             description: HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Resource usage
+                {translator.translateText("Resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated over the selected time range
+                {translator.translateText(
+                  "Aggregated over the selected time range",
+                )}
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
@@ -1823,9 +1944,40 @@ const HostOverview: FunctionComponent<
     return <IpAddressList text={(item.hostIpAddresses as string) || ""} />;
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out, so every chart, tile and the Filesystems table refetch for
+   * it; a double-click on any chart (or Reset zoom beside the picker in the
+   * hero, which is why the scope wraps the whole page) puts the range from
+   * before the zoom back. The existing [timeRange] effect does the refetch.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      {host ? (
+        <ResourceConnectionGuideCard
+          status={host.otelCollectorStatus as string | undefined}
+          lastSeenAt={host.lastSeenAt}
+          guide={getHostConnectionGuide(
+            (host.hostIdentifier as string | undefined) ||
+              (host.name as string | undefined) ||
+              "",
+            {
+              isManaged: Boolean(host.collectorInstanceUid),
+              osType: host.osType,
+              registeredAt: host.collectorRegisteredAt,
+            },
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      ) : (
+        <></>
+      )}
       {renderSummaryCards()}
       <ResourceActivityCards
         modelId={modelId}
@@ -1854,6 +2006,16 @@ const HostOverview: FunctionComponent<
             <Card
               title="Identification"
               description="How this host is named and classified."
+              // Edited in one place: the Host Details card on its Settings page.
+              buttons={[
+                <EditInSettingsLink
+                  key="edit-in-settings"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+                    { modelId: modelId },
+                  )}
+                />,
+              ]}
             >
               <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
                 <Detail<Host>
@@ -1863,7 +2025,7 @@ const HostOverview: FunctionComponent<
                     [
                       {
                         key: "name",
-                        title: "Name",
+                        title: "Display Name",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.name);
@@ -1871,7 +2033,7 @@ const HostOverview: FunctionComponent<
                       },
                       {
                         key: "hostIdentifier",
-                        title: "Host Identifier",
+                        title: "Host Name (host.name)",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.hostIdentifier);
@@ -1896,9 +2058,37 @@ const HostOverview: FunctionComponent<
                       {
                         key: "agentVersion",
                         title: "Agent Version",
-                        fieldType: FieldType.Text,
+                        fieldType: FieldType.Element,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.agentVersion);
+                        },
+                        getElement: (item: Host): ReactElement => {
+                          /*
+                           * A sign beside a collector older than the
+                           * release the host guide pins opens how to
+                           * upgrade it: the config saved again from the
+                           * setup guide (it holds the ingestion key), then
+                           * the new release, for the install methods this
+                           * host's OS can have.
+                           */
+                          return (
+                            <AgentVersion
+                              kind={AgentKind.HostCollector}
+                              version={item.agentVersion}
+                              setupGuideRoute={RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.HOST_VIEW_DOCUMENTATION
+                                ] as Route,
+                                { modelId: modelId },
+                              )}
+                              upgradeGuideContext={{
+                                hostOsType: item.osType,
+                                isHostCollectorManaged: Boolean(
+                                  item.collectorInstanceUid,
+                                ),
+                              }}
+                            />
+                          );
                         },
                       },
                     ] as Array<DetailField<Host>>
@@ -1932,7 +2122,13 @@ const HostOverview: FunctionComponent<
                           }
                           return (
                             <span className="text-sm text-gray-900">
-                              {cores} core{cores === 1 ? "" : "s"}
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} core",
+                                  other: "{{count}} cores",
+                                },
+                                cores,
+                              )}
                             </span>
                           );
                         },
@@ -2071,7 +2267,17 @@ const HostOverview: FunctionComponent<
           </div>
         </div>
       )}
-    </Fragment>
+
+      {/*
+       * Last on the page: the Host AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.Host)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

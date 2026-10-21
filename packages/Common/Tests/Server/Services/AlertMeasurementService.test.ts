@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The alert twin of Tests/Server/Services/IncidentMeasurementService.test.ts --
@@ -54,6 +63,7 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<AlertMeasurement>,
   ): Promise<OnUpdate<AlertMeasurement>>;
+  onUpdatePermitted(updateBy: UpdateBy<AlertMeasurement>): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<AlertMeasurement>,
   ): Promise<OnDelete<AlertMeasurement>>;
@@ -61,6 +71,21 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   AlertMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(
+  updateBy: UpdateBy<AlertMeasurement>,
+): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -183,6 +208,7 @@ describe("AlertMeasurementService", () => {
     jest
       .spyOn(AlertStateService, "findBy")
       .mockResolvedValue([] as Array<AlertState> as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -199,10 +225,6 @@ describe("AlertMeasurementService", () => {
         hooks.onBeforeCreate(buildCreateBy({ key: "Time To Acknowledge" })),
       ).rejects.toThrow(BadDataException);
 
-      await expect(
-        hooks.onBeforeCreate(buildCreateBy({ key: "" })),
-      ).rejects.toThrow(BadDataException);
-
       // Leading hyphen, and one character past the 50 the column allows.
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "-time-to-acknowledge" })),
@@ -211,6 +233,25 @@ describe("AlertMeasurementService", () => {
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "a".repeat(51) })),
       ).rejects.toThrow(BadDataException);
+    });
+
+    /*
+     * An empty key is no longer refused: it is a key left out, made from the
+     * name. The rest of that behaviour, for all three kinds of measurement,
+     * is in MeasurementKeyGeneration.test.ts.
+     */
+    test("makes the key from the name when the create sends an empty one", async () => {
+      const createBy: CreateBy<AlertMeasurement> = buildCreateBy({
+        key: "",
+        name: "Time to Acknowledge",
+      });
+
+      await hooks.onBeforeCreate(createBy);
+
+      expect(createBy.data.key).toBe("time-to-acknowledge");
+      expect(createBy.data.metricName).toBe(
+        "oneuptime.alert.measurement.time-to-acknowledge",
+      );
     });
 
     test("accepts a lowercase hyphenated key", async () => {
@@ -233,27 +274,32 @@ describe("AlertMeasurementService", () => {
       );
     });
 
-    test("puts a new definition after the project's last one, so the settings list has a stable order", async () => {
-      const highest: AlertMeasurement = new AlertMeasurement();
-      highest.order = 4;
-
-      jest
-        .spyOn(AlertMeasurementService, "findOneBy")
-        .mockResolvedValue(highest as never);
+    /*
+     * Where a new definition goes is the list's business, not this hook's:
+     * the model is a drag-ordered list (@ListOrderColumn), and
+     * DatabaseService puts a row created without an order at the end of its
+     * project's list (see DatabaseServiceListOrder.test.ts).
+     */
+    test("leaves the order of a new definition to the list, which puts it at the end", async () => {
+      const findOneBy: jest.SpyInstance = jest.spyOn(
+        AlertMeasurementService,
+        "findOneBy",
+      ) as unknown as jest.SpyInstance;
 
       const createBy: CreateBy<AlertMeasurement> = buildCreateBy({});
 
       await hooks.onBeforeCreate(createBy);
 
-      expect(createBy.data.order).toBe(5);
+      expect(createBy.data.order).toBeUndefined();
+      expect(findOneBy).not.toHaveBeenCalled();
     });
 
-    test("gives the first definition in a project order 1", async () => {
-      const createBy: CreateBy<AlertMeasurement> = buildCreateBy({});
-
-      await hooks.onBeforeCreate(createBy);
-
-      expect(createBy.data.order).toBe(1);
+    test("is a list ordered within its project, lowest number first", () => {
+      expect(new AlertMeasurement().getListOrder()).toEqual({
+        column: "order",
+        scopeColumns: ["projectId"],
+        sortOrder: "ASC",
+      });
     });
 
     test("keeps an order the caller supplied, so a reordered list is not overwritten on save", async () => {
@@ -437,7 +483,7 @@ describe("AlertMeasurementService", () => {
         endStateOccurrence: "Last",
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -448,30 +494,39 @@ describe("AlertMeasurementService", () => {
     });
 
     test("restarts the backfill for every column that changes what the number means", async () => {
-      const definitionKeys: Array<string> = [
-        "startAnchorType",
-        "endAnchorType",
-        "startAlertStateId",
-        "endAlertStateId",
-        "startAlertStateRole",
-        "endAlertStateRole",
-        "startStateOccurrence",
-        "endStateOccurrence",
-        "isEnabled",
+      /*
+       * A new value for any of these - the stored measurement starts at
+       * Created At and ends when the alert is acknowledged, in seconds.
+       */
+      const changes: Array<[string, unknown]> = [
+        ["startAnchorType", AlertMeasurementAnchorType.ImpactStartedAt],
+        ["endAnchorType", AlertMeasurementAnchorType.ImpactStartedAt],
+        ["startAlertStateId", CREATED_STATE_ID],
+        ["endAlertStateId", RESOLVED_STATE_ID],
+        ["startAlertStateRole", AlertStateRole.Resolved],
+        ["endAlertStateRole", AlertStateRole.Resolved],
+        ["startStateOccurrence", "Last"],
+        ["endStateOccurrence", "Last"],
+        ["isEnabled", false],
+        // The number every chart point is written in.
+        ["unit", "minutes"],
       ];
 
-      for (const key of definitionKeys) {
+      for (const [key, value] of changes) {
         jest
           .spyOn(AlertMeasurementService, "findBy")
-          .mockResolvedValue([] as Array<AlertMeasurement> as never);
+          .mockResolvedValue([buildExistingMeasurement({})] as never);
 
         const updateBy: UpdateBy<AlertMeasurement> = buildUpdateBy({
-          [key]: undefined,
+          [key]: value,
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
-        expect(dataOf(updateBy)["backfillRequestedAt"]).toBeInstanceOf(Date);
+        expect({
+          key,
+          restarted: dataOf(updateBy)["backfillRequestedAt"] instanceof Date,
+        }).toEqual({ key, restarted: true });
       }
     });
 
@@ -491,7 +546,7 @@ describe("AlertMeasurementService", () => {
         isEnabled: false,
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -512,7 +567,7 @@ describe("AlertMeasurementService", () => {
         name: "Time to Acknowledge (v2)",
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -521,18 +576,18 @@ describe("AlertMeasurementService", () => {
     });
 
     test("leaves the backfill alone for the presentation-only columns", async () => {
+      // The unit is not one of them: it is the number the points are in.
       for (const key of [
         "description",
         "showOnAlertView",
         "order",
-        "unit",
         "aggregationType",
       ]) {
         const updateBy: UpdateBy<AlertMeasurement> = buildUpdateBy({
           [key]: undefined,
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(dataOf(updateBy)["backfillRequestedAt"]).toBeUndefined();
       }

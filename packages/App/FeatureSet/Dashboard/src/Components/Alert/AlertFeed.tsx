@@ -1,45 +1,54 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
-import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AlertFeed, {
   AlertFeedEventType,
 } from "Common/Models/DatabaseModels/AlertFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
+import getSavedChatMessageFeedAuthor from "Common/UI/Components/Feed/SavedChatMessageFeedAuthor";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
+import {
+  FeedEntryKind,
+  FeedTone,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
 } from "Common/UI/Components/Feed/FeedOptions";
 import {
+  AI_REPORT_DETAILS_LABEL,
   FeedItemMarkdown,
   getFeedItemMarkdown,
 } from "../../Utils/AIRootCauseFeedItem";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import { getAlertPrivateNoteKind } from "../EventNotes/NoteKinds/AlertNoteKinds";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -47,42 +56,66 @@ export interface ComponentProps {
 }
 
 /*
- * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match. A root
- * cause posted by an AI investigation is the one item that swaps its icon
- * (see getFeedItemFromAlertFeed).
+ * What each event type is (FeedEntryKind): its icon and colour, and whether
+ * a burst of it folds together. Shared by the feed's entries and the event
+ * type filter's checklist (the feed's ⋯ menu), so the two always match. A
+ * root cause posted by an AI investigation is the one entry that swaps its
+ * kind (see getFeedItemFromAlertFeed).
  */
-export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> = {
-  [AlertFeedEventType.PublicNote]: IconProp.Announcement,
-  [AlertFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
-  [AlertFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [AlertFeedEventType.OwnerUserAdded]: IconProp.User,
-  [AlertFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [AlertFeedEventType.AlertCreated]: IconProp.Alert,
-  [AlertFeedEventType.AlertStateChanged]: IconProp.ArrowCircleRight,
-  [AlertFeedEventType.PrivateNote]: IconProp.Lock,
-  [AlertFeedEventType.AlertUpdated]: IconProp.Edit,
-  [AlertFeedEventType.RootCause]: IconProp.Cube,
-  [AlertFeedEventType.RemediationNotes]: IconProp.Wrench,
-  [AlertFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [AlertFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [AlertFeedEventType.OnCallPolicy]: IconProp.Call,
-  [AlertFeedEventType.OnCallNotification]: IconProp.Alert,
-  [AlertFeedEventType.AddedToEpisode]: IconProp.Circle,
-  [AlertFeedEventType.RemovedFromEpisode]: IconProp.Circle,
-  [AlertFeedEventType.LinkedToIncident]: IconProp.Link,
-  [AlertFeedEventType.UnlinkedFromIncident]: IconProp.LinkSlash,
-  [AlertFeedEventType.LabelRuleExecuted]: IconProp.Tag,
-  [AlertFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [AlertFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
-  [AlertFeedEventType.OnCallRuleExecuted]: IconProp.Call,
-  [AlertFeedEventType.AutoRemediation]: IconProp.Circle,
+export const ALERT_FEED_KINDS: Record<AlertFeedEventType, FeedEntryKind> = {
+  [AlertFeedEventType.PublicNote]: SHARED_FEED_ENTRY_KINDS.PublicNote,
+  [AlertFeedEventType.SubscriberNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+  [AlertFeedEventType.OwnerNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+  [AlertFeedEventType.OwnerUserAdded]: SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [AlertFeedEventType.OwnerTeamAdded]: SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  // The bell an alert rings with, in red.
+  [AlertFeedEventType.AlertCreated]: {
+    icon: IconProp.BellAlert,
+    tone: FeedTone.Danger,
+  },
+  [AlertFeedEventType.AlertStateChanged]: SHARED_FEED_ENTRY_KINDS.StateChanged,
+  [AlertFeedEventType.PrivateNote]: SHARED_FEED_ENTRY_KINDS.PrivateNote,
+  [AlertFeedEventType.AlertUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+  [AlertFeedEventType.RootCause]: SHARED_FEED_ENTRY_KINDS.RootCause,
+  [AlertFeedEventType.RemediationNotes]:
+    SHARED_FEED_ENTRY_KINDS.RemediationNotes,
+  [AlertFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [AlertFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [AlertFeedEventType.OnCallPolicy]: SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+  [AlertFeedEventType.OnCallNotification]:
+    SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+  [AlertFeedEventType.AddedToEpisode]: SHARED_FEED_ENTRY_KINDS.MemberAdded,
+  [AlertFeedEventType.RemovedFromEpisode]:
+    SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+  [AlertFeedEventType.LinkedToIncident]: SHARED_FEED_ENTRY_KINDS.Linked,
+  [AlertFeedEventType.UnlinkedFromIncident]: SHARED_FEED_ENTRY_KINDS.Unlinked,
+  [AlertFeedEventType.LabelRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+  [AlertFeedEventType.OwnerRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+  [AlertFeedEventType.PrivacyRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
+  [AlertFeedEventType.OnCallRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+  [AlertFeedEventType.AutoRemediation]: SHARED_FEED_ENTRY_KINDS.AutoRemediation,
+  [AlertFeedEventType.VideoCallStarted]:
+    SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
+  [AlertFeedEventType.VideoCallFailed]: SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+  [AlertFeedEventType.ChannelMemberAdded]:
+    SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
 };
+
+export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> =
+  getFeedIcons(ALERT_FEED_KINDS);
 
 export const getAlertFeedEventIcon: (eventType: string) => IconProp = (
   eventType: string,
 ): IconProp => {
-  return ALERT_FEED_ICONS[eventType as AlertFeedEventType] || IconProp.Circle;
+  return getFeedEntryKind({ kinds: ALERT_FEED_KINDS, eventType }).icon;
 };
 
 const AlertFeedElement: FunctionComponent<ComponentProps> = (
@@ -90,9 +123,6 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const alertIdString: string = props.alertId.toString();
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
@@ -115,9 +145,6 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromAlertFeed: GetFeedItemFromAlertFeed = (
     alertFeed: AlertFeed,
   ): FeedItemProps => {
-    let icon: IconProp = getAlertFeedEventIcon(
-      alertFeed.alertFeedEventType || "",
-    );
     const isAIInvestigation: boolean = Boolean(
       alertFeed.alertFeedEventType === AlertFeedEventType.RootCause &&
         (alertFeed.aiRunId ||
@@ -126,14 +153,17 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           )),
     );
 
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.RootCause) {
-      icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
-    }
+    const kind: FeedEntryKind = isAIInvestigation
+      ? SHARED_FEED_ENTRY_KINDS.AIRootCause
+      : getFeedEntryKind({
+          kinds: ALERT_FEED_KINDS,
+          eventType: alertFeed.alertFeedEventType,
+        });
 
     /*
      * An AI report is laid out in full by the AI Investigation card, so its
-     * feed item shows only the summary and root cause; the whole report sits
-     * behind More Information.
+     * feed item shows only the summary and root cause; the whole report
+     * unfolds under Show the full report.
      */
     const feedItemMarkdown: FeedItemMarkdown = getFeedItemMarkdown({
       isAIInvestigation,
@@ -145,10 +175,24 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       key: alertFeed.id!.toString(),
       textInMarkdown: feedItemMarkdown.textInMarkdown,
       moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
-      user: alertFeed.user,
+      /*
+       * A note saved from a chat message is led by the message's author;
+       * the row's user only saved it (SavedChatMessageFeedAuthor).
+       */
+      ...getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: alertFeed.savedFromChatMessage,
+        user: alertFeed.user,
+      }),
       itemDateTime: alertFeed.postedAt || alertFeed.createdAt!,
-      color: alertFeed.displayColor || Gray500,
-      icon: icon,
+      color: getFeedEntryColor({
+        kind: kind,
+        rowColor: alertFeed.displayColor,
+      }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      eventType: alertFeed.alertFeedEventType,
+      detailsLabel: isAIInvestigation ? AI_REPORT_DETAILS_LABEL : kind.moreText,
+      isNote: kind.isNote,
       safeMode: isAIInvestigation,
     };
   };
@@ -160,18 +204,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: alertIdString,
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    setError,
-    refresh,
-    loadMore,
-  } = useFeedItems<AlertFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<AlertFeed>({
     resourceKey: alertIdString,
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -198,6 +231,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           },
           alertFeedEventType: true,
           postedAt: true,
+          savedFromChatMessage: true,
         },
         skip: 0,
         sort: {
@@ -209,84 +243,58 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     mapItems: getFeedItemsFromAlertFeeds,
   });
 
+  // "Add Private Note": the alert's Notes page composer, in a dialog.
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "alert",
+    privateNoteKind: getAlertPrivateNoteKind({ alertId: props.alertId }),
+    onPosted: () => {
+      feed.refresh().catch((err: unknown) => {
+        feed.setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
-    <Card
+    <FeedCard
       title={"Alert Feed"}
       description={
-        "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
+        "Everything that has happened to this alert: status changes, notes, owners and every notification sent."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="alert-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        <MoreMenu
-          key="alert-feed-actions-menu"
-          elementToBeShownInsteadOfButton={
-            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
-              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
-              <span>Actions</span>
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
-              />
-            </div>
-          }
-        >
-          <MoreMenuItem
-            key="alert-action-run-runbook"
-            text="Execute Runbook"
-            icon={IconProp.Play}
-            onClick={() => {
-              setShowRunbookPickerModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="alert-action-execute-policy"
-            text="Execute On-Call Policy"
-            icon={IconProp.Call}
-            onClick={() => {
-              setShowOnCallPolicyModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="alert-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
-        </MoreMenu>,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={feed.refresh}
+      actions={
+        <FeedActionsMenu key="alert-feed-actions-menu">
+          {[
+            <MoreMenuItem
+              key="alert-action-run-runbook"
+              text="Execute Runbook"
+              icon={IconProp.Play}
+              onClick={() => {
+                setShowRunbookPickerModal(true);
+              }}
+            />,
+            <MoreMenuItem
+              key="alert-action-execute-policy"
+              text="Execute On-Call Policy"
+              icon={IconProp.Call}
+              onClick={() => {
+                setShowOnCallPolicyModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
+        </FeedActionsMenu>
+      }
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this alert.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this alert yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -309,8 +317,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
+              feed.refresh().catch((err: unknown) => {
+                feed.setError(API.getFriendlyMessage(err as Exception));
               });
             }}
             formProps={{
@@ -346,72 +354,16 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            refresh().catch((err: unknown) => {
-              setError(API.getFriendlyMessage(err as Exception));
+            feed.refresh().catch((err: unknown) => {
+              feed.setError(API.getFriendlyMessage(err as Exception));
             });
           }}
           alertId={props.alertId}
         />
 
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modalWidth={ModalWidth.Large}
-            modelType={AlertInternalNote}
-            name={"create-alert-internal-note"}
-            title={"Add Private Note to this Alert"}
-            description={
-              "Add a private note to this alert. This note will be visible only to the team members of this alert."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: AlertInternalNote) => {
-              model.alertId = props.alertId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-alert-internal-note",
-              modelType: AlertInternalNote,
-              id: "create-alert-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this alert. This note will be visible only to the team members of this alert.",
-                  title: "Private Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be visible to the alert response team.",
-                  title: "Attachments",
-                  required: false,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+        {noteActions.dialog}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

@@ -245,6 +245,35 @@ describe("RulePatternMatchUtil.isSupportedPattern", () => {
     expect(RulePatternMatchUtil.isSupportedPattern("[unclosed")).toBe(false);
     expect(RulePatternMatchUtil.isSupportedPattern("+bad")).toBe(false);
   });
+
+  it("rejects a regex that refers back to a group, and does not read one with a '*' as a wildcard", () => {
+    expect(RulePatternMatchUtil.isSupportedPattern("(sw)-\\1")).toBe(false);
+    expect(RulePatternMatchUtil.isSupportedPattern("(\\w)\\1*")).toBe(false);
+    expect(RulePatternMatchUtil.isGlobPattern("(\\w)\\1*")).toBe(false);
+    expect(RulePatternMatchUtil.isGlobPattern("*0664*")).toBe(true);
+    expect(RulePatternMatchUtil.isGlobPattern("core-.*")).toBe(true);
+    expect(RulePatternMatchUtil.isGlobPattern("core-switch")).toBe(false);
+  });
+});
+
+describe("RulePatternMatchUtil.matches - patterns the matcher cannot run", () => {
+  it("never matches a pattern that refers back to a group", () => {
+    // JavaScript's RegExp reads these as a doubled character.
+    expect(RulePatternMatchUtil.matches("swwitch", "(w)\\1")).toBe(false);
+    expect(RulePatternMatchUtil.matches("swwitch", "(w)\\1*")).toBe(false);
+    // Nor as a wildcard, which would take "(w)\1" as it is written.
+    expect(RulePatternMatchUtil.matches("(w)\\1-01", "(w)\\1*")).toBe(false);
+  });
+
+  it("runs look-aheads and look-behinds", () => {
+    expect(RulePatternMatchUtil.matches("db-42", "(?<=db-)\\d+")).toBe(true);
+    expect(RulePatternMatchUtil.matches("prod-test", "^prod-(?!test)")).toBe(
+      false,
+    );
+    expect(RulePatternMatchUtil.matches("prod-api", "^prod-(?!test)")).toBe(
+      true,
+    );
+  });
 });
 
 describe("RulePatternMatchUtil.matches - performance", () => {

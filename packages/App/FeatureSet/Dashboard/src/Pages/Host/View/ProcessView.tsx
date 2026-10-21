@@ -20,6 +20,7 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -50,6 +51,9 @@ import GoldenMetricTile, {
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -63,18 +67,26 @@ import React, {
   useRef,
   useState,
 } from "react";
-
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
- * (pid, executable name, command, owner) to the *resource*. OneUptime's
- * ingest prefixes resource attributes with `resource.`, so they land in
- * ClickHouse as `resource.process.*` — same convention the Processes
- * list and Docker container pages already use.
+ * (pid, executable name, command, owner) to the *resource*, which ingest
+ * stores as `resource.process.*`. The keys are shared with the Processes
+ * list, so a row's View link always finds the process it came from - and so
+ * is the rule for which CPU readings add up to a process's CPU.
  */
-const PROCESS_PID_ATTR: string = "resource.process.pid";
-const PROCESS_NAME_ATTR: string = "resource.process.executable.name";
-const PROCESS_COMMAND_ATTR: string = "resource.process.command";
-const PROCESS_OWNER_ATTR: string = "resource.process.owner";
+import {
+  PROCESS_COMMAND_ATTR,
+  PROCESS_CPU_MODE_ATTRIBUTE_KEYS,
+  PROCESS_CPU_UTILIZATION_METRIC_NAME,
+  PROCESS_NAME_ATTR,
+  PROCESS_OWNER_ATTR,
+  PROCESS_PID_ATTR,
+  ProcessCpuPoint,
+  buildProcessCpuSeries,
+  processCpuWaitExclusion,
+} from "../Utils/Processes";
 
 interface ProcessIdentity {
   pid: string;
@@ -153,6 +165,7 @@ const REFRESH_STORAGE_KEY: string = "host-process-view-auto-refresh-interval";
 const HostProcessView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const pid: string = Navigation.getLastParamAsString();
 
@@ -188,7 +201,29 @@ const HostProcessView: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker and Refresh can each start a fetch
+   * while another is still in flight. Only the most recently started one
+   * may commit, or a slow response for the window the reader just left
+   * would repaint the charts, tiles and process identity with it.
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -203,6 +238,10 @@ const HostProcessView: FunctionComponent<
           osType: true,
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
@@ -240,7 +279,7 @@ const HostProcessView: FunctionComponent<
         modelType: Metric,
         query: {
           projectId: projectId,
-          name: "process.cpu.utilization",
+          name: PROCESS_CPU_UTILIZATION_METRIC_NAME,
           time: new InBetween<Date>(identityLookbackStart, endDate),
           attributes: {
             "resource.host.name": item.hostIdentifier,
@@ -261,6 +300,10 @@ const HostProcessView: FunctionComponent<
 
       const identityResult: ListResult<Metric> =
         await AnalyticsModelAPI.getList<Metric>(identityQuery);
+
+      if (isStale()) {
+        return;
+      }
 
       let resolvedExecutable: string = "";
       let resolvedCommand: string | null = null;
@@ -311,11 +354,11 @@ const HostProcessView: FunctionComponent<
       const buildAggregateBy: (
         metricName: string,
         aggType: AggregationType,
-        extraAttributes?: Record<string, string>,
+        extraAttributes?: Record<string, string | NotEqual<string>>,
       ) => AggregateBy<Metric> = (
         metricName: string,
         aggType: AggregationType,
-        extraAttributes?: Record<string, string>,
+        extraAttributes?: Record<string, string | NotEqual<string>>,
       ): AggregateBy<Metric> => {
         return {
           query: {
@@ -339,6 +382,22 @@ const HostProcessView: FunctionComponent<
           },
         };
       };
+
+      /*
+       * `process.cpu.utilization` is one reading per CPU mode per scrape -
+       * user, system and (Linux only) wait - each a share of every core
+       * together (0-1), on every OS. Grouped by the mode attributes, every
+       * bucket keeps the modes apart, so buildProcessCpuSeries can add user
+       * and system the way the Processes list does; one Avg over them all
+       * would read about a third of the real use. Wait - time blocked on
+       * disk, not CPU - is filtered out here, and never added either.
+       */
+      const cpuAggregate: AggregateBy<Metric> = buildAggregateBy(
+        PROCESS_CPU_UTILIZATION_METRIC_NAME,
+        AggregationType.Avg,
+        processCpuWaitExclusion(),
+      );
+      cpuAggregate.groupByAttributeKeys = [...PROCESS_CPU_MODE_ATTRIBUTE_KEYS];
 
       /*
        * `process.disk.io` is a cumulative byte counter per direction
@@ -370,10 +429,7 @@ const HostProcessView: FunctionComponent<
       ] = await Promise.all([
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
-          aggregateBy: buildAggregateBy(
-            "process.cpu.utilization",
-            AggregationType.Avg,
-          ),
+          aggregateBy: cpuAggregate,
         }),
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
@@ -405,6 +461,10 @@ const HostProcessView: FunctionComponent<
           aggregateBy: diskAggregate,
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -487,12 +547,18 @@ const HostProcessView: FunctionComponent<
       };
 
       /*
-       * `process.cpu.utilization` is a fraction (0..1) on Linux/macOS
-       * and percent (0..100) on Windows. The Processes list uses the
-       * x100 Linux convention; mirror that here. Windows hosts will
-       * show inflated CPU numbers — same caveat the list page has.
+       * One row per bucket - user plus system, already a percent - in the
+       * shape of the other metrics' buckets, so the tile averages the end
+       * of the same line the chart draws.
        */
-      const cpuPercent: number | null = meanFromBuckets(cpuResult, 100);
+      const cpuBuckets: AggregatedResult = {
+        data: buildProcessCpuSeries(cpuResult.data || []).map(
+          (point: ProcessCpuPoint): AggregatedModel => {
+            return { timestamp: point.time, value: point.cpuPercent };
+          },
+        ),
+      };
+      const cpuPercent: number | null = meanFromBuckets(cpuBuckets, 1);
 
       const memoryBytes: number | null = meanFromBuckets(memUsageResult, 1);
       const virtualMemoryBytes: number | null = meanFromBuckets(
@@ -520,10 +586,7 @@ const HostProcessView: FunctionComponent<
         openFds: meanFromBuckets(openFdResult, 1),
       });
 
-      const cpuPoints: Array<TimeValuePoint> = seriesFromBuckets(
-        cpuResult,
-        100,
-      );
+      const cpuPoints: Array<TimeValuePoint> = seriesFromBuckets(cpuBuckets, 1);
       const memoryPoints: Array<TimeValuePoint> = seriesFromBuckets(
         memUsageResult,
         1,
@@ -622,7 +685,19 @@ const HostProcessView: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
+    }
+    // A superseded fetch leaves the spinner to the fetch that replaced it.
+    if (isStale()) {
+      return;
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -644,6 +719,10 @@ const HostProcessView: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
@@ -705,7 +784,7 @@ const HostProcessView: FunctionComponent<
     const hostDisplayName: string =
       (host.name as string | undefined) ||
       (host.hostIdentifier as string | undefined) ||
-      "host";
+      translator.translateTerm("host");
 
     const chips: Array<{ icon: IconProp; label: string }> = [];
     chips.push({ icon: IconProp.Hashtag, label: `pid ${identity.pid}` });
@@ -715,7 +794,9 @@ const HostProcessView: FunctionComponent<
     if (identity.latestSampleAt) {
       chips.push({
         icon: IconProp.Clock,
-        label: `Last sample ${OneUptimeDate.fromNow(identity.latestSampleAt)}`,
+        label: translator.translateTemplate("Last sample {{time}}", {
+          time: OneUptimeDate.fromNow(identity.latestSampleAt),
+        }),
       });
     }
 
@@ -748,7 +829,7 @@ const HostProcessView: FunctionComponent<
                       to={processesRoute}
                       className="text-indigo-600 hover:text-indigo-900"
                     >
-                      Processes
+                      {translator.translateText("Processes")}
                     </Link>
                     <span className="mx-1.5 text-gray-300">/</span>
                     <Link
@@ -874,7 +955,11 @@ const HostProcessView: FunctionComponent<
           value={formatInt(s.threads)}
           sublabel={
             s.openFds !== null
-              ? `${formatInt(s.openFds)} open fds`
+              ? translator.translatePlural(
+                  { one: "{{count}} open fd", other: "{{count}} open fds" },
+                  s.openFds,
+                  { count: formatInt(s.openFds) },
+                )
               : "thread count"
           }
           description={HOST_METRIC_DESCRIPTIONS.processThreads}
@@ -913,7 +998,7 @@ const HostProcessView: FunctionComponent<
           <div className="flex items-center justify-between mb-3">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -958,7 +1043,7 @@ const HostProcessView: FunctionComponent<
         <div className="flex items-center justify-between mb-3">
           <div className="flex min-w-0 items-center gap-1">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
+              {translator.translateText(params.title)}
             </span>
             <InfoTooltip label={params.title} text={params.description} />
           </div>
@@ -1013,17 +1098,25 @@ const HostProcessView: FunctionComponent<
       },
     };
 
+    /*
+     * Drag-to-zoom is named once, at the right of the section heading,
+     * while the pointer is over the section: the chart cards are too narrow
+     * to hold the hint beside a title and the icon without wrapping it.
+     */
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="group/zoomhint mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
-              Resource usage
+              {translator.translateText("Resource usage")}
             </h2>
             <p className="text-xs text-gray-500">
-              Aggregated over the selected time range for this process
+              {translator.translateText(
+                "Aggregated over the selected time range for this process",
+              )}
             </p>
           </div>
+          <TimeRangeZoomHint revealOnHover={true} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {renderChartCard({
@@ -1066,23 +1159,33 @@ const HostProcessView: FunctionComponent<
     ) {
       return <Fragment />;
     }
+    /*
+     * A zoom into a stretch the process was quiet for lands here; the way
+     * back sits under the note (it renders nothing unless zoomed).
+     */
     return (
       <Card
         title="No process metrics in range"
         description="This process did not emit any samples during the selected time window. Pick a wider time range, or verify the OTel collector's hostmetrics `process` scraper is enabled on this host."
       >
-        <Fragment />
+        <ResetTimeRangeZoomButton />
       </Card>
     );
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out (tiles, charts and the process identity refetch for it);
+   * a double-click on any chart, or Reset zoom beside the hero's picker,
+   * puts the range from before the zoom back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryCards()}
       {renderCharts()}
       {renderNoDataNote()}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

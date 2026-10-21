@@ -25,6 +25,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import AlertStateUtil from "../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -40,6 +42,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
+
+  /*
+   * The states a scheduled maintenance event is in progress in: ongoing,
+   * and every state of the project's own between Ongoing and Ended.
+   */
+  const [
+    inProgressScheduledMaintenanceStates,
+    setInProgressScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -67,8 +78,27 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        if (props.project?.id) {
+          setInProgressScheduledMaintenanceStates(
+            await ScheduledMaintenanceStateUtil.getInProgressScheduledMaintenanceStates(
+              props.project?.id,
+            ),
+          );
+        }
+      } catch {
+        // maybe show an error message
+      }
+    };
+
   useEffect(() => {
     fetchIncidentStates().catch((_err: Error) => {
+      // do nothing
+    });
+
+    fetchScheduledMaintenanceStates().catch((_err: Error) => {
       // do nothing
     });
 
@@ -79,12 +109,32 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
   const sections: SideMenuSectionProps[] = [
     {
+      /*
+       * Home's own page: the project's health, its open work by name, its
+       * resources and the product directory. It used to be the Active
+       * Incidents table, which has a page of its own below now. The
+       * section is "Home", so the phone menu reads "Home / Overview".
+       */
+      title: "Home",
+      items: [
+        {
+          link: {
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+          },
+          icon: IconProp.Home,
+        },
+      ],
+    },
+    {
       title: "Incidents",
       items: [
         {
           link: {
             title: "Active Incidents",
-            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+            ),
           },
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
@@ -167,14 +217,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "Inoperational",
+            title: "Not Operational",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
             ),
           },
           icon: IconProp.AltGlobe,
+          /*
+           * Archived monitors are not checked, so a frozen "Offline" is not
+           * a problem - and the list this opens leaves them out. The badge
+           * counts what the list shows, like the Monitors menu's and Home's
+           * own strip.
+           */
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             currentMonitorStatus: {
               isOperationalState: false,
             },
@@ -199,9 +256,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Clock,
           countQuery: {
             projectId: props.project?._id,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
-            },
+            currentScheduledMaintenanceStateId: new Includes(
+              inProgressScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
+            ),
           },
           modelType: ScheduledMaintenance,
           badgeType: BadgeType.WARNING,

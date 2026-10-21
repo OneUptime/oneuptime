@@ -43,6 +43,31 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkAlertPolicyService,
+    jest.spyOn(NetworkAlertPolicyService, "findBy"),
+  );
+});
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * NetworkAlertPolicy: the contracts that live in metadata and in wiring, and
@@ -304,21 +329,25 @@ describe("the policy's columns", () => {
   });
 
   /*
-   * The template columns take the MonitorTemplate's own read permissions
-   * (the NetworkDeviceAutoImportRule precedent): selecting the relation
-   * reads a template's name and type, so it costs what reading a template
-   * costs. Writing them, by contrast, is gated on the policy's own
-   * permissions and never on a cross-model monitor permission.
+   * Which template a policy uses is part of the policy: the template columns
+   * are read and written under the policy's own permissions, like every other
+   * column of it, and never under a cross-model one. The template's own
+   * fields stay with the template's permissions; a relation select brings
+   * only what the template lets a joined row show.
    */
   test.each(["monitorTemplate", "monitorTemplateId"])(
-    "%s is read under the monitor template's permissions and written under the policy's",
+    "%s is read and written under the policy's own permissions",
     (columnName: string) => {
       const accessControl: ColumnAccessControl = accessControlFor(
         policy,
         columnName,
       );
 
-      expect(accessControl.read).toContain(Permission.ReadMonitorTemplate);
+      expect([...accessControl.read].sort()).toEqual(
+        [...policy.getReadPermissions()].sort(),
+      );
+      expect(accessControl.read).toContain(Permission.ReadNetworkAlertPolicy);
+      expect(accessControl.read).not.toContain(Permission.ReadMonitorTemplate);
       expect(accessControl.create).toContain(
         Permission.CreateNetworkAlertPolicy,
       );
@@ -860,6 +889,7 @@ describe("NetworkAlertPolicyService.onBeforeCreate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1190,6 +1220,7 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1312,7 +1343,7 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
     expect(policiesSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { _id: POLICY_ID.toString() },
-        props: { isRoot: true },
+        props: { isRoot: true, ignoreHooks: true },
       }),
     );
     // One distinct project among the matched rows: one template lookup.
@@ -1442,13 +1473,13 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
   });
 
   /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so the matched-row read — root, because it must see projectId — is
-   * re-scoped to the caller's tenant first. A guessed id from another
-   * project matches nothing here rather than becoming an oracle through the
-   * checks that follow.
+   * The matched rows are the ones the caller may write - found in the
+   * caller's project - read again by id, as root because the checks need
+   * projectId (DatabaseService.findRowsAndHoldUpdateToThem). A guessed id
+   * from another project matches nothing here rather than becoming an
+   * oracle through the checks that follow.
    */
-  test("scopes the matched-row read to the caller's tenant", async () => {
+  test("reads the matched rows among those the caller may write, in the caller's project", async () => {
     mockTemplateOwnedBy(PROJECT_ID);
 
     const spies: { policies: jest.SpyInstance; rules: jest.SpyInstance } =
@@ -1456,10 +1487,13 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
 
     await runOnBeforeUpdate(makeUpdateBy({ monitorTemplateId: TEMPLATE_ID }));
 
+    expect(
+      readsOfRowsCallerMayWrite(NetworkAlertPolicyService)[0]!.query,
+    ).toEqual({ _id: POLICY_ID.toString(), projectId: PROJECT_ID });
     expect(spies.policies).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: POLICY_ID.toString(), projectId: PROJECT_ID },
-        props: { isRoot: true },
+        query: { _id: POLICY_ID.toString() },
+        props: { isRoot: true, ignoreHooks: true },
       }),
     );
   });
@@ -1476,6 +1510,7 @@ describe("NetworkAlertPolicyService scope id validation", () => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1616,6 +1651,7 @@ describe("NetworkAlertPolicyService monitor-provisioning permission", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

@@ -124,6 +124,8 @@ import Route from "../../../Types/API/Route";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
+import type { SpyInstance } from "jest-mock";
 
 const POLICY_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
@@ -765,11 +767,12 @@ const runBulkAction: RunBulkActionFunction = (title: string): void => {
   fireEvent.click(screen.getByRole("menuitem", { name: title }));
 };
 
-/** The filter modal, opened from the funnel button in the card header. */
+/** The filter modal, opened from Filter in the card header's ⋯. */
 type OpenFilterModalFunction = () => void;
 
 const openFilterModal: OpenFilterModalFunction = (): void => {
-  fireEvent.click(screen.getByRole("button", { name: "Filter" }));
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Filter" }));
 };
 
 /*
@@ -1022,15 +1025,18 @@ describe("the escalation summary's readiness dots", () => {
   };
 
   /*
-   * The chip is the element whose own text is the responder label - the icon and
-   * the dot are element children, so they do not interfere with the match.
+   * The chip is the responder element around the label. The label and what
+   * is said about it ("next in rotation") are one run of text inside it, so
+   * a long name wraps as a line; the icon and the dot sit beside that text.
    */
   type ChipForFunction = (label: string) => HTMLElement;
 
   const chipFor: ChipForFunction = (label: string): HTMLElement => {
     const chip: HTMLElement | null = screen
       .getByText(label)
-      .closest("span") as HTMLElement | null;
+      .closest(
+        '[data-testid="escalation-summary-responder"]',
+      ) as HTMLElement | null;
 
     if (!chip) {
       throw new Error(`no responder chip for ${label}`);
@@ -1322,7 +1328,10 @@ describe("ResponderReadinessCard", () => {
       expect(
         await screen.findByText(/No one is on this policy yet/),
       ).toBeInTheDocument();
-      expect(screen.getByText("Escalation")).toBeInTheDocument();
+      // It names the page the people are added on, as the side menu does.
+      expect(screen.getByText("Escalation Rules")).toBeInTheDocument();
+      const theWordTab: RegExp = /\btab\b/;
+      expect(document.body).not.toHaveTextContent(theWordTab);
     });
   });
 
@@ -1757,6 +1766,58 @@ describe("ResponderReadinessCard", () => {
       expect(
         screen.getByRole("button", { name: "Add a notification method" }),
       ).toBeInTheDocument();
+    });
+
+    /*
+     * The rules are one On-Call Rules page with a tab per kind, so "fix it"
+     * means that page on the tab of the first hole: Jane's first gap is an
+     * alert rule, so the alerts tab, never the incidents one.
+     */
+    test("the signed-in user's button opens On-Call Rules on the tab of their first gap", async () => {
+      localStorage.setItem("user_id", SIGNED_IN_USER_ID);
+
+      const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {});
+
+      respondWith(
+        summaryJson([{ ...PARTIAL_USER, userId: SIGNED_IN_USER_ID }]),
+      );
+
+      await renderPolicyCard();
+
+      await screen.findByText("Jane Partial");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add the missing rules" }),
+      );
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+
+      const destination: string = String(navigateSpy.mock.calls[0]![0]);
+
+      expect(
+        destination.endsWith("/user-settings/on-call-rules?type=alerts"),
+      ).toBe(true);
+
+      navigateSpy.mockRestore();
+    });
+
+    test("another person's mail draft links On-Call Rules on the tab of their first gap", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderPolicyCard();
+
+      await screen.findByText("Jane Partial");
+
+      const href: string = decodeURIComponent(
+        cardRowFor("Jane Partial")
+          .querySelector('a[href^="mailto:"]')
+          ?.getAttribute("href") || "",
+      );
+
+      expect(href).toContain("/user-settings/on-call-rules?type=alerts");
+      expect(href).not.toContain("alert-on-call-rules");
     });
   });
 });
@@ -2791,9 +2852,15 @@ describe("On-call readiness page", () => {
 
       filterToUnreachable();
 
+      // The page's sentence heads the table's filtered empty state.
       expect(
-        screen.getByText("No responders match these filters."),
+        screen.getByText("No responders match these filters"),
       ).toBeInTheDocument();
+      expect(
+        screen
+          .getByText("No responders match these filters")
+          .closest("[data-empty-state-kind]"),
+      ).toHaveAttribute("data-empty-state-kind", "filtered");
     });
 
     /*
@@ -2882,8 +2949,8 @@ describe("On-call readiness page", () => {
   });
 
   /*
-   * The filter modal - the same one every other table in the product opens from
-   * the same funnel in the same corner.
+   * The filter modal - the same one every other table in the product opens
+   * from Filter in its header's ⋯.
    */
   describe("the filter modal", () => {
     /*
@@ -2952,7 +3019,7 @@ describe("On-call readiness page", () => {
       fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
     };
 
-    test("the funnel opens it", async () => {
+    test("Filter in the header's ⋯ opens it", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
@@ -3421,8 +3488,19 @@ describe("On-call readiness page", () => {
       /*
        * The footer button. The header carries a close icon labelled "Close" too,
        * and either one shuts the modal - this is the one a reader reaches for.
+       * It is the footer's only button: the panel used to offer a "Cancel" and
+       * a primary "Close" side by side, two ways out that did the same thing.
        */
-      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      const footerClose: HTMLElement = screen.getByTestId(
+        "modal-footer-close-button",
+      );
+
+      expect(footerClose).toHaveTextContent("Close");
+      expect(
+        screen.queryByTestId("modal-footer-submit-button"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(footerClose);
 
       expect(screen.queryByText("Incident severities")).toBeNull();
     });
@@ -3652,6 +3730,104 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     expect(screen.getByText("Unverified")).toBeInTheDocument();
     assertNoRawIdentifiers(container);
+  });
+
+  /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered and then stopped receiving notifications - its push
+   * service, or Expo, said it was gone - and is registered again rather than
+   * verified. It says so in the words the person's own device list uses.
+   */
+  describe("a push device that stopped receiving notifications", () => {
+    const MASKED_PUSH_DEVICE: string = "iPh•••";
+
+    const PUSH_GONE_USER: JSONObject = {
+      userId: UNREACHABLE_USER_ID,
+      userName: "Pia Pushgone",
+      userEmail: "pia.pushgone@example.com",
+      status: "NotReachable",
+      methods: [
+        methodJson({
+          methodType: "Push",
+          maskedIdentifier: MASKED_PUSH_DEVICE,
+          isVerified: false,
+          leakedRawValue: "ExponentPushToken[pia-phone-0000000001]",
+        }),
+      ],
+      coverage: fullCoverage(true),
+      reasons: [
+        "No verified notification method - cannot be paged",
+        "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+      ],
+      reachedVia: ["Direct"],
+      teams: [],
+    };
+
+    test("is labelled not receiving notifications, not unverified, and says how to bring it back", async () => {
+      respondWith(summaryJson([PUSH_GONE_USER]));
+
+      const container: HTMLElement = await renderProjectPage();
+
+      await screen.findByText("Pia Pushgone");
+
+      openCoverage("Pia Pushgone");
+
+      const methodRow: HTMLElement = (
+        await screen.findByText(MASKED_PUSH_DEVICE)
+      ).closest("li")!;
+
+      expect(
+        within(methodRow).getByText("Not receiving notifications"),
+      ).toBeInTheDocument();
+      expect(within(methodRow).queryByText("Unverified")).toBeNull();
+      expect(
+        screen.getByText(
+          "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+        ),
+      ).toBeInTheDocument();
+      expect(container.textContent).not.toContain("ExponentPushToken");
+    });
+
+    test("the channel meter's tooltip says the same", async () => {
+      respondWith(summaryJson([PUSH_GONE_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Pia Pushgone");
+
+      fireEvent.mouseEnter(
+        within(tableRowFor("Pia Pushgone")).getByLabelText(
+          "0 of 7 notification channels verified",
+        ),
+      );
+
+      expect(
+        await screen.findByText(
+          `${MASKED_PUSH_DEVICE} (not receiving notifications)`,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(`${MASKED_PUSH_DEVICE} (unverified)`),
+      ).toBeNull();
+    });
+
+    test("any other unverified channel is still unverified in the meter", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      fireEvent.mouseEnter(
+        within(tableRowFor("Jane Partial")).getByLabelText(
+          "2 of 7 notification channels verified",
+        ),
+      );
+
+      expect(
+        await screen.findByText(`${MASKED_TELEGRAM} (unverified)`),
+      ).toBeInTheDocument();
+    });
   });
 
   /*

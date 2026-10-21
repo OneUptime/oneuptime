@@ -3,10 +3,13 @@ import KubernetesClusterAiAccessService, {
   KubernetesAgentRegistrationRefusedException,
   getKubernetesAgentRunnerNameForCluster,
 } from "Common/Server/Services/KubernetesClusterAiAccessService";
+import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
+import CodeRepositoryService from "Common/Server/Services/CodeRepositoryService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
-import RunbookSecretService from "Common/Server/Services/RunbookSecretService";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunnerService from "Common/Server/Services/RunnerService";
+import KubernetesAiAgent from "Common/Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Runner, {
   RunnerConnectionStatus,
@@ -53,8 +56,12 @@ import {
  *     carries retryAfterSeconds — when the previous instance's last
  *     heartbeat ages out of the alive window, never less than 1 — and the
  *     same value as a Retry-After header;
+ *   - superseded_by_ai_agent (the cluster's Kubernetes AI agent is online and
+ *     replaces the Runner) clears on its own too — once the agent stops, as
+ *     after a helm rollback — so it carries retryAfterSeconds 60 and the
+ *     same Retry-After header;
  *   - the two refusals that need an operator carry neither, and lead with
- *     the instruction.
+ *     the instruction (now: upgrade the chart to the Kubernetes AI agent).
  *
  * Driven end to end from the real service (its database reads stubbed) to
  * the real Response serializer, so the reason the service decides is the
@@ -112,14 +119,6 @@ jest.mock("Common/Server/Utils/Express", () => {
   };
 });
 
-// VMUtil -> isolated-vm, a native binding not installed for this suite.
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: { loadForAgent: jest.fn(), populateInScript: jest.fn() },
-  };
-});
-
 jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
   return {
     __esModule: true,
@@ -146,6 +145,7 @@ const REFUSAL_REASONS: Array<KubernetesAgentRegistrationRefusalReason> = [
   "previous_instance_online",
   "runner_holds_more_than_defaults",
   "runner_belongs_to_another_cluster",
+  "superseded_by_ai_agent",
 ];
 
 // What went over the wire: the status, the headers set and the body sent.
@@ -231,7 +231,6 @@ function agentRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
     lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
     connectionStatus: RunnerConnectionStatus.Connected,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     canRunAiCommands: true,
     hostInfo: {
       kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
@@ -242,6 +241,8 @@ function agentRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
 
 describe("POST /register-kubernetes-agent refusals on the wire", () => {
   let runnerLookup: jest.SpyInstance;
+  let agentLookup: jest.SpyInstance;
+  let pickingRepositories: jest.SpyInstance;
 
   beforeAll(() => {
     mockRoutes.length = 0;
@@ -268,15 +269,64 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner unless a test says one does.
+    pickingRepositories = jest
+      .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue(agentRunner());
+    // No Kubernetes AI agent unless a test says otherwise.
+    agentLookup = jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test("superseded_by_ai_agent: 403, the reason, and a 60s retry in the body and as Retry-After", async () => {
+    agentLookup.mockResolvedValue({
+      id: ObjectID.generate(),
+      connectionStatus: "connected",
+      lastAliveAt: OneUptimeDate.getCurrentDate(),
+    } as unknown as KubernetesAiAgent);
+
+    const wire: WireResponse = await register({ clusterName: "prod-us" });
+
+    expect(wire.thrownToNext).toBeUndefined();
+    expect(wire.statusCode).toBe(403);
+    expect(wire.body!["reason"]).toBe("superseded_by_ai_agent");
+    expect(String(wire.body!["message"])).toContain(
+      'The Kubernetes AI agent of cluster "prod-us" is online and replaces this in-cluster Runner',
+    );
+    expect(wire.body!["retryAfterSeconds"]).toBe(60);
+    expect(wire.headers["Retry-After"]).toBe("60");
+    expect(
+      isTransientKubernetesAgentRegistrationRefusal(wire.body!["reason"]),
+    ).toBe(true);
+  });
+
+  test("negative control: an agent that is not online (a rollback) lets the Runner register again", async () => {
+    agentLookup.mockResolvedValue({
+      id: ObjectID.generate(),
+      connectionStatus: "disconnected",
+      lastAliveAt: OneUptimeDate.getCurrentDate(),
+    } as unknown as KubernetesAiAgent);
+    jest
+      .spyOn(RunnerService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(KubernetesClusterService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    const wire: WireResponse = await register({ clusterName: "prod-us" });
+
+    expect(wire.statusCode).toBe(200);
+    expect(wire.body!["bindingState"]).toBe("already_bound");
   });
 
   test("previous_instance_online: 403, the reason, and when to retry in the body and as Retry-After", async () => {
@@ -330,7 +380,7 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     expect(wire.statusCode).toBe(403);
     expect(wire.body!["reason"]).toBe("runner_holds_more_than_defaults");
     expect(String(wire.body!["message"])).toMatch(
-      /^Under Project Settings → Runners, on Runner "kubernetes-agent\/prod-us": turn off "Runs Runbooks"/,
+      /^Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner\. Or, under Runbooks → Runners, on Runner "kubernetes-agent\/prod-us": turn off "Runs Runbooks"/,
     );
     expect(wire.body).not.toHaveProperty("retryAfterSeconds");
     expect(wire.headers).not.toHaveProperty("Retry-After");
@@ -351,31 +401,54 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     expect(wire.statusCode).toBe(403);
     expect(wire.body!["reason"]).toBe("runner_belongs_to_another_cluster");
     /*
-     * Round four: was /^Rename or delete Runner/ — an agent-named Runner
-     * cannot be renamed by an operator, and the delete needs a second step.
+     * An agent-named Runner cannot be renamed by an operator, and the
+     * Kubernetes AI agent does not use Runner names: the upgrade leads.
      */
-    expect(String(wire.body!["message"])).toMatch(/^Delete Runner/);
-    expect(String(wire.body!["message"])).toContain(
-      "select it on the AI page of cluster",
+    expect(String(wire.body!["message"])).toMatch(
+      /^Upgrade the Kubernetes agent chart of cluster "prod-us"/,
     );
+    expect(String(wire.body!["message"])).not.toContain("AI page");
     expect(wire.body).not.toHaveProperty("retryAfterSeconds");
     expect(wire.headers).not.toHaveProperty("Retry-After");
   });
 
-  test("every refusal names a reason the Runner knows, and only the online one is transient", async () => {
-    const scenarios: Array<Runner> = [
-      agentRunner({ lastAlive: OneUptimeDate.getSomeMinutesAgo(1) }),
-      agentRunner({ canRunCodeFixTasks: true }),
-      agentRunner({
-        hostInfo: {
-          kubernetes: { inCluster: true, clusterIdentifier: "staging" },
-        },
-      }),
+  test("every refusal names a reason the Runner knows, and only the ones that clear on their own are transient", async () => {
+    const scenarios: Array<{
+      runner: Runner;
+      aiAgent: KubernetesAiAgent | null;
+      // How many code repositories pick the Runner (their Runner setting).
+      pickedBy?: number | undefined;
+    }> = [
+      {
+        runner: agentRunner({ lastAlive: OneUptimeDate.getSomeMinutesAgo(1) }),
+        aiAgent: null,
+      },
+      { runner: agentRunner(), aiAgent: null, pickedBy: 1 },
+      {
+        runner: agentRunner({
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: "staging" },
+          },
+        }),
+        aiAgent: null,
+      },
+      {
+        runner: agentRunner(),
+        aiAgent: {
+          id: ObjectID.generate(),
+          connectionStatus: "connected",
+          lastAliveAt: OneUptimeDate.getCurrentDate(),
+        } as unknown as KubernetesAiAgent,
+      },
     ];
     const seen: Array<string> = [];
 
-    for (const runner of scenarios) {
-      runnerLookup.mockResolvedValue(runner);
+    for (const scenario of scenarios) {
+      runnerLookup.mockResolvedValue(scenario.runner);
+      agentLookup.mockResolvedValue(scenario.aiAgent);
+      pickingRepositories.mockResolvedValue(
+        new PositiveNumber(scenario.pickedBy || 0),
+      );
 
       const wire: WireResponse = await register({ clusterName: "prod-us" });
       const reason: string = String(wire.body!["reason"]);

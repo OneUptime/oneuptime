@@ -7,7 +7,8 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -43,8 +44,12 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       projectNamePrefix: "E2E Docker Swarm Project",
     });
 
-    // Nav entry: Docker Swarm is listed in the "Products" navbar menu.
+    /*
+     * Nav entry: Docker Swarm is listed in the "Products" navbar menu, under
+     * Infrastructure, which the menu opens folded.
+     */
     await page.getByRole("button", { name: "Products" }).click();
+    await openProductsMenuSection(page, "Infrastructure");
     const dockerSwarmNavOption: Locator = page
       .getByRole("option")
       .filter({ hasText: "Docker Swarm" });
@@ -73,7 +78,12 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // ...and the install command block interpolates URL, key, and cluster name.
+    /*
+     * ...and the Docker Compose steps' .env interpolates URL, key, and
+     * cluster name. The guide opens on the install script, which asks for
+     * those itself, so switch to Docker Compose first.
+     */
+    await page.getByRole("radio", { name: /Docker Compose/ }).click();
     await expect
       .poll(
         async () => {
@@ -109,18 +119,18 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Docker Swarm Monitor " + Faker.generateName().toString());
 
-    await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
-
     /*
-     * The submit button keeps the "Create Monitor" test id on every form
-     * step (BasicForm uses props.submitButtonText as the test id); on the
-     * first step it reads "Next" and advances to the criteria step.
+     * Monitor Info is not the last step: its one way on is a plain Next
+     * (Create Monitor is on the last step only), which opens the criteria.
      */
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
 
     await expect(
       page.getByText("Docker Swarm Monitor Configuration"),
@@ -143,9 +153,15 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       await expect(page.getByText(templateName, { exact: true })).toBeVisible();
     }
 
-    // Selecting a template auto-configures the monitor step.
+    // Selecting a template sets the monitor step up.
     await page.getByText("Task Down (Low Uptime)", { exact: true }).click();
-    await expect(page.getByText("Template Configuration")).toBeVisible();
+    // The list folds into the picked template, with its Time Range under it.
+    await expect(page.getByTestId("alert-template-picked")).toContainText(
+      "Task Down (Low Uptime)",
+    );
+    await expect(
+      page.getByTestId("alert-template-configuration"),
+    ).toBeVisible();
   });
 
   /*
@@ -173,12 +189,16 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       ready: page.getByText("Getting Started with Docker Swarm Monitoring"),
     });
 
-    // Mint a key, then read the interpolated secret back out of the guide.
+    /*
+     * Mint a key, then read the interpolated secret back out of the guide's
+     * Docker Compose .env (the install script option asks for it instead).
+     */
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({
       page,
       keyName: "E2E Docker Swarm OTLP Key " + Faker.generateName().toString(),
     });
+    await page.getByRole("radio", { name: /Docker Compose/ }).click();
 
     await expect
       .poll(

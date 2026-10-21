@@ -8,6 +8,8 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useMemo, useState } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   DragDropContext,
   Draggable,
@@ -81,6 +83,21 @@ type ColumnCustomizationModalFunction = <
 ) => ReactElement;
 
 /*
+ * How tall the list of columns grows before it scrolls: seven rows and half
+ * of an eighth.
+ *
+ * A row is 53px (52px and the rule under it). The list used to stop at
+ * max-h-80, 320px: exactly six rows. A table's seventh column (Owners, on
+ * every infrastructure list) then sat just below the edge, with nothing to
+ * say it was there, since a Mac shows no scroll bar until you scroll. At
+ * 25rem a table of seven columns lists every one, and a longer list cuts its
+ * eighth row through the middle - the half row is what says it goes on.
+ */
+export const COLUMN_LIST_MAX_HEIGHT_CLASS_NAME: string = "max-h-[25rem]";
+
+export const COLUMN_LIST_TEST_ID: string = "column-customization-list";
+
+/*
  * The "Customize Columns" picker: a checkbox and a drag handle per column.
  *
  * Two constraints shape it:
@@ -101,6 +118,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
 >(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [entries, setEntries] = useState<Array<CustomizableColumn<TBaseModel>>>(
     [...props.columns],
   );
@@ -115,17 +133,40 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
   const normalizedSearch: string = searchText.trim().toLowerCase();
   const isSearching: boolean = normalizedSearch.length > 0;
 
+  type MatchesSearchFunction = (
+    title: string | undefined,
+    search: string,
+  ) => boolean;
+
+  /*
+   * A column is found by the name the reader sees: its title in their
+   * language. Only the English title used to be searched, so a reader in any
+   * other language typed the name in front of them and was told no column
+   * matched. The English title still finds it too - the name a guide or a
+   * colleague may use.
+   */
+  const matchesSearch: MatchesSearchFunction = (
+    title: string | undefined,
+    search: string,
+  ): boolean => {
+    const englishTitle: string = title || "";
+    const drawnTitle: string =
+      translator.translateText(englishTitle) || englishTitle;
+
+    return [drawnTitle, englishTitle].some((name: string): boolean => {
+      return name.toLowerCase().includes(search);
+    });
+  };
+
   const shownEntries: Array<CustomizableColumn<TBaseModel>> = useMemo(() => {
     if (!isSearching) {
       return entries;
     }
 
     return entries.filter((entry: CustomizableColumn<TBaseModel>) => {
-      return (entry.column.title || "")
-        .toLowerCase()
-        .includes(normalizedSearch);
+      return matchesSearch(entry.column.title, normalizedSearch);
     });
-  }, [entries, normalizedSearch, isSearching]);
+  }, [entries, normalizedSearch, isSearching, translator.language]);
 
   /*
    * Both bulk actions are switched off when they have nothing left to do -
@@ -168,11 +209,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       }
 
       return addableColumns.filter((entry: CustomizableColumn<TBaseModel>) => {
-        return (entry.column.title || "")
-          .toLowerCase()
-          .includes(normalizedAddSearch);
+        return matchesSearch(entry.column.title, normalizedAddSearch);
       });
-    }, [addableColumns, normalizedAddSearch]);
+    }, [addableColumns, normalizedAddSearch, translator.language]);
 
   const addableResultLimit: number = props.addableColumns?.maxResults ?? 25;
 
@@ -359,7 +398,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         onClick={data.onClick}
         className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent disabled:hover:shadow-none"
       >
-        {data.title}
+        {translator.translateText(data.title)}
       </button>
     );
   };
@@ -397,7 +436,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                     : "text-sm font-normal text-gray-400"
                 }
               >
-                {entry.column.title}
+                {translator.translateText(entry.column.title)}
               </span>
             }
             onChange={(value: boolean) => {
@@ -411,7 +450,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             className="flex-none rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
             data-testid={`column-locked-${entry.id}`}
           >
-            Required
+            {translator.translateText("Required")}
           </span>
         )}
 
@@ -422,7 +461,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             icon={IconProp.ChevronUp}
             title=""
             tooltip="Move up"
-            ariaLabel={`Move ${entry.column.title} up`}
+            ariaLabel={translator.translateTemplate("Move {{column}} up", {
+              column: translatableTerm(entry.column.title),
+            })}
             className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:text-gray-200 disabled:hover:bg-transparent"
             dataTestId={`column-move-up-${entry.id}`}
             disabled={isSearching || index === 0}
@@ -436,7 +477,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             icon={IconProp.ChevronDown}
             title=""
             tooltip="Move down"
-            ariaLabel={`Move ${entry.column.title} down`}
+            ariaLabel={translator.translateTemplate("Move {{column}} down", {
+              column: translatableTerm(entry.column.title),
+            })}
             className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:text-gray-200 disabled:hover:bg-transparent"
             dataTestId={`column-move-down-${entry.id}`}
             disabled={isSearching || index === entries.length - 1}
@@ -451,7 +494,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
               icon={IconProp.Close}
               title=""
               tooltip="Remove column"
-              ariaLabel={`Remove ${entry.column.title}`}
+              ariaLabel={translator.translateTemplate("Remove {{column}}", {
+                column: translatableTerm(entry.column.title),
+              })}
               className="text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:text-gray-200 disabled:hover:bg-transparent"
               dataTestId={`column-remove-${entry.id}`}
               disabled={isOnlyVisibleColumn}
@@ -476,7 +521,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         >
           <Icon icon={IconProp.Search} className="h-6 w-6 text-gray-300" />
           <p className="text-sm text-gray-500">
-            No columns match &quot;{searchText}&quot;.
+            {translator.translateTemplate('No columns match "{{search}}".', {
+              search: searchText,
+            })}
           </p>
         </div>
       );
@@ -513,7 +560,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
                 className="divide-y divide-gray-100"
-                aria-label="Columns"
+                aria-label={translator.translateText("Columns")}
               >
                 {shownEntries.map(
                   (entry: CustomizableColumn<TBaseModel>, index: number) => {
@@ -544,8 +591,17 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                                   <div
                                     {...draggableProvided.dragHandleProps}
                                     className="flex w-5 flex-none cursor-grab justify-center text-gray-300 transition-colors group-hover:text-gray-500 active:cursor-grabbing"
-                                    aria-label={`Drag to reorder ${entry.column.title}`}
-                                    title="Drag to reorder"
+                                    aria-label={translator.translateTemplate(
+                                      "Drag to reorder {{column}}",
+                                      {
+                                        column: translatableTerm(
+                                          entry.column.title,
+                                        ),
+                                      },
+                                    )}
+                                    title={translator.translateText(
+                                      "Drag to reorder",
+                                    )}
                                   >
                                     <Icon
                                       icon={IconProp.GripVertical}
@@ -600,7 +656,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             className="px-3 py-4 text-sm text-gray-500"
             data-testid="add-column-loading"
           >
-            Loading...
+            {translator.translateText("Loading...")}
           </p>
         );
       }
@@ -611,9 +667,11 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             className="px-3 py-4 text-sm text-gray-500"
             data-testid="add-column-empty"
           >
-            {(config.columns || []).length === 0
-              ? config.emptyMessage || "Nothing to add."
-              : "Every one of these is already in the list above."}
+            {translator.translateText(
+              (config.columns || []).length === 0
+                ? config.emptyMessage || "Nothing to add."
+                : "Every one of these is already in the list above.",
+            )}
           </p>
         );
       }
@@ -624,7 +682,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             className="px-3 py-4 text-sm text-gray-500"
             data-testid="add-column-no-results"
           >
-            No matches for &quot;{addSearchText}&quot;.
+            {translator.translateTemplate('No matches for "{{search}}".', {
+              search: addSearchText,
+            })}
           </p>
         );
       }
@@ -638,7 +698,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                 className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-gray-50"
               >
                 <span className="min-w-0 flex-1 break-words text-sm text-gray-700">
-                  {entry.column.title}
+                  {translator.translateText(entry.column.title)}
                 </span>
                 <Button
                   buttonSize={ButtonSize.Small}
@@ -646,7 +706,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                   icon={IconProp.Add}
                   title=""
                   tooltip="Add column"
-                  ariaLabel={`Add ${entry.column.title}`}
+                  ariaLabel={translator.translateTemplate("Add {{column}}", {
+                    column: translatableTerm(entry.column.title),
+                  })}
                   className="flex-none text-gray-400 hover:bg-gray-200 hover:text-gray-700"
                   dataTestId={`add-column-${entry.id}`}
                   onClick={() => {
@@ -663,9 +725,13 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     return (
       <div className="space-y-2 pt-1" data-testid="add-column-section">
         <div>
-          <h4 className="text-sm font-medium text-gray-900">{config.title}</h4>
+          <h4 className="text-sm font-medium text-gray-900">
+            {translator.translateText(config.title)}
+          </h4>
           {config.description ? (
-            <p className="text-xs text-gray-500">{config.description}</p>
+            <p className="text-xs text-gray-500">
+              {translator.translateText(config.description)}
+            </p>
           ) : (
             <></>
           )}
@@ -689,8 +755,8 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
           {addSearchText.length > 0 && (
             <button
               type="button"
-              aria-label="Clear search"
-              title="Clear search"
+              aria-label={translator.translateText("Clear search")}
+              title={translator.translateText("Clear search")}
               data-testid="add-column-search-clear"
               onClick={() => {
                 setAddSearchText("");
@@ -713,8 +779,13 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
          */}
         {matchingAddableColumns.length > shownAddableColumns.length && (
           <p className="text-xs text-gray-400" data-testid="add-column-hint">
-            Showing {shownAddableColumns.length} of{" "}
-            {matchingAddableColumns.length}. Search to narrow this down.
+            {translator.translateTemplate(
+              "Showing {{shown}} of {{total}}. Search to narrow this down.",
+              {
+                shown: translator.formatNumber(shownAddableColumns.length),
+                total: translator.formatNumber(matchingAddableColumns.length),
+              },
+            )}
           </p>
         )}
       </div>
@@ -771,8 +842,8 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
           {searchText.length > 0 && (
             <button
               type="button"
-              aria-label="Clear search"
-              title="Clear search"
+              aria-label={translator.translateText("Clear search")}
+              title={translator.translateText("Clear search")}
               data-testid="column-customization-search-clear"
               onClick={() => {
                 setSearchText("");
@@ -789,7 +860,14 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             className="text-xs font-medium text-gray-500"
             data-testid="column-customization-count"
           >
-            {visibleCount} of {entries.length} columns shown
+            {translator.translatePlural(
+              {
+                one: "{{visible}} of {{count}} column shown",
+                other: "{{visible}} of {{count}} columns shown",
+              },
+              entries.length,
+              { visible: translator.formatNumber(visibleCount) },
+            )}
           </div>
           <div className="flex flex-none items-center gap-1 rounded-md bg-gray-50 p-0.5 ring-1 ring-inset ring-gray-200">
             {getBulkAction({
@@ -811,7 +889,10 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
           </div>
         </div>
 
-        <div className="max-h-80 overflow-y-auto overscroll-contain rounded-md border border-gray-200 bg-white">
+        <div
+          className={`${COLUMN_LIST_MAX_HEIGHT_CLASS_NAME} overflow-y-auto overscroll-contain rounded-md border border-gray-200 bg-white`}
+          data-testid={COLUMN_LIST_TEST_ID}
+        >
           {getList()}
         </div>
 
@@ -819,9 +900,11 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
           className="text-xs text-gray-400"
           data-testid="column-customization-hint"
         >
-          {isSearching
-            ? "Clear the search to reorder columns."
-            : "Drag a row, or use the arrows, to change the column order."}
+          {translator.translateText(
+            isSearching
+              ? "Clear the search to reorder columns."
+              : "Drag a row, or use the arrows, to change the column order.",
+          )}
         </p>
 
         {getAddColumnSection()}

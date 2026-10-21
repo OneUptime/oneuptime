@@ -1,13 +1,12 @@
 import AlertService from "./AlertService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
-import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -18,13 +17,13 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
-import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
+import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Query from "../Types/Database/Query";
@@ -54,12 +53,16 @@ import SiteStatusRollupUtil, {
 import { parseSiteHealthRollupPolicy } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
 import NetworkSiteMaintenanceSuppression from "../Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import NetworkSiteHierarchyLock from "../Utils/NetworkSite/NetworkSiteHierarchyLock";
+import NetworkSiteLeafPurge, {
+  LeafPurgeShape,
+} from "../Utils/NetworkSite/NetworkSiteLeafPurge";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
   DeviceHealthGroup,
   deviceRollupStateForGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /**
  * How many sites are stamped with each MonitorStatus. `monitorStatusId` is
@@ -127,6 +130,20 @@ const DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE: number = 1000;
  * row from the old path prefix, so every page must start at offset zero.
  */
 const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
+
+/*
+ * What keeps a deleted site from the retention purge: a site row that names
+ * it as its parent, deleted or not. That foreign key (parentSiteId, NO
+ * ACTION) would refuse the DELETE. Devices, endpoints, status history, links,
+ * assignment rules and maintenance links are SET NULL or CASCADE, so they
+ * keep nothing. See NetworkSiteLeafPurge. NetworkSitePurgePostgres holds this
+ * list to the migrated foreign keys.
+ */
+export const SITE_PURGE_SHAPE: LeafPurgeShape = {
+  rowsName: "network sites",
+  parentColumn: "parentSiteId",
+  namedBy: [{ table: "NetworkSite", column: "parentSiteId" }],
+};
 
 /*
  * How deep a site tree may go, derived from the column that has to hold it:
@@ -228,7 +245,7 @@ interface DeleteCarryForward {
   sitesToDelete: Array<Model>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -379,10 +396,11 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * The generic retention cron intentionally queries every tenant at once
-     * by deletedAt. Resolve that open-ended query to a closed set of leaf IDs
-     * before locking and deleting. Deleting leaves only means a limit can
-     * never split a parent from a surviving child; the cron's next iteration
-     * naturally works upward through the tree.
+     * by deletedAt. Resolve that open-ended query to a closed set of IDs -
+     * leaves, or a whole closed cycle - before locking and deleting
+     * (hardDeleteClosedLeafBatch). So a limit can never split a parent from
+     * a surviving child; the cron's next iteration works upward through the
+     * tree.
      */
     if (
       !NetworkSiteHierarchyLock.isSafeRootMutationScope({
@@ -401,6 +419,7 @@ export class Service extends DatabaseService<Model> {
         limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
         skip: this.positiveNumberValue(deleteBy.skip, 0),
         isDelete: true,
+        withDeleted: true,
       });
 
     return await NetworkSiteHierarchyLock.runExclusive({
@@ -436,133 +455,121 @@ export class Service extends DatabaseService<Model> {
     return value ?? fallback;
   }
 
+  /*
+   * The retention cron's purge (HardDeleteItemsInDatabase): the sites
+   * deleted more than 30 days ago, in every project. NetworkSiteLeafPurge
+   * chooses them - the sites no site row names as its parent, deleted or
+   * not, or else a cycle of deleted sites nothing outside it names - and
+   * this deletes exactly the sites it chose, by their ids, as the purge's
+   * own delete.
+   */
   private async hardDeleteClosedLeafBatch(
     deleteBy: DeleteBy<Model>,
   ): Promise<number> {
-    const requestedLimit: number = this.positiveNumberValue(
-      deleteBy.limit,
-      LIMIT_MAX,
-    );
-
-    if (requestedLimit <= 0) {
-      return 0;
-    }
-
-    const scanPageSize: number = Math.min(
-      DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-      requestedLimit,
-    );
-    const leafSites: Array<Model> = [];
-    let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
-
-    while (leafSites.length < requestedLimit) {
-      const candidates: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        sort: { _id: SortOrder.Ascending },
-        limit: scanPageSize,
-        skip: scanSkip,
-        props: { isRoot: true },
-      });
-
-      if (candidates.length === 0) {
-        break;
-      }
-
-      const candidateIds: Array<ObjectID> = candidates
-        .map((candidate: Model): ObjectID | null => {
-          return candidate.id || null;
-        })
-        .filter((id: ObjectID | null): id is ObjectID => {
-          return Boolean(id);
-        });
-      const parentIdsWithChildren: Set<string> = new Set<string>();
-
-      for (
-        let parentOffset: number = 0;
-        parentOffset < candidateIds.length;
-        parentOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
-      ) {
-        const parentIdBatch: Array<ObjectID> = candidateIds.slice(
-          parentOffset,
-          parentOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-        );
-        let childSkip: number = 0;
-
-        while (parentIdBatch.length > 0) {
-          const children: Array<Model> = await this.findBy({
-            query: {
-              parentSiteId: QueryHelper.any(parentIdBatch),
-            },
-            select: { parentSiteId: true },
-            sort: { _id: SortOrder.Ascending },
-            limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-            skip: childSkip,
-            props: { isRoot: true },
-          });
-
-          for (const child of children) {
-            if (child.parentSiteId) {
-              parentIdsWithChildren.add(normalizeId(child.parentSiteId));
-            }
-          }
-
-          if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
-            break;
-          }
-
-          childSkip += children.length;
-        }
-      }
-
-      for (const candidate of candidates) {
-        if (
-          candidate.id &&
-          candidate.projectId &&
-          !parentIdsWithChildren.has(normalizeId(candidate.id))
-        ) {
-          leafSites.push(candidate);
-
-          if (leafSites.length === requestedLimit) {
-            break;
-          }
-        }
-      }
-
-      scanSkip += candidates.length;
-
-      if (candidates.length < scanPageSize) {
-        break;
-      }
-    }
-
-    if (leafSites.length === 0) {
-      return 0;
-    }
-
-    const leafIds: Array<ObjectID> = leafSites.map((site: Model): ObjectID => {
-      return site.id!;
-    });
-
-    return await NetworkSiteHierarchyLock.runExclusive({
-      projectIds: leafSites.map((site: Model): ObjectID => {
-        return site.projectId!;
-      }),
-      operation: async (): Promise<number> => {
+    return await NetworkSiteLeafPurge.purgeBatch<Model>({
+      shape: SITE_PURGE_SHAPE,
+      due: deleteBy.query,
+      limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+      skip: this.positiveNumberValue(deleteBy.skip, 0),
+      read: async (findBy: FindBy<Model>): Promise<Array<Model>> => {
+        return await this.findByWithDeleted(findBy);
+      },
+      hardDeleteByIds: async (ids: Array<ObjectID>): Promise<number> => {
         return await super.hardDeleteBy({
           ...deleteBy,
           query: {
             ...deleteBy.query,
-            _id: QueryHelper.any(leafIds),
+            _id: QueryHelper.any(ids),
           },
-          limit: leafIds.length,
+          limit: ids.length,
           skip: 0,
         });
       },
     });
+  }
+
+  /*
+   * Of the site types given, the ones some site row still names, the sites
+   * deleted before included: a deleted site keeps its networkSiteTypeId
+   * until the retention purge removes it, and that foreign key (NO ACTION)
+   * holds the type in the table until then. NetworkSiteTypeService asks
+   * before a type is deleted.
+   *
+   * Only the type ids are answered, never the sites. Each read asks only
+   * about the types no site row has named yet, so a type that many sites
+   * name costs one read, not one per thousand sites.
+   */
+  public async findSiteTypeIdsNamedBySites(
+    networkSiteTypeIds: Array<ObjectID | string>,
+  ): Promise<Set<string>> {
+    const namedTypeIds: Set<string> = new Set<string>();
+
+    for (
+      let offset: number = 0;
+      offset < networkSiteTypeIds.length;
+      offset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+    ) {
+      let unanswered: Array<ObjectID | string> = networkSiteTypeIds.slice(
+        offset,
+        offset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      );
+
+      while (unanswered.length > 0) {
+        const sites: Array<Model> = await this.findByWithDeleted({
+          query: {
+            networkSiteTypeId: QueryHelper.any(unanswered),
+          },
+          select: { networkSiteTypeId: true },
+          sort: { _id: SortOrder.Ascending },
+          limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+        const asked: Set<string> = new Set<string>(
+          unanswered.map((typeId: ObjectID | string): string => {
+            return normalizeId(typeId);
+          }),
+        );
+        let namedByThisRead: number = 0;
+
+        for (const site of sites) {
+          const typeId: string | null = site.networkSiteTypeId
+            ? normalizeId(site.networkSiteTypeId)
+            : null;
+
+          if (typeId && asked.has(typeId) && !namedTypeIds.has(typeId)) {
+            namedTypeIds.add(typeId);
+            namedByThisRead++;
+          }
+        }
+
+        // A short page answered every type it was asked about.
+        if (sites.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+          break;
+        }
+
+        /*
+         * A full page names at least one type it was asked about, so the
+         * next read asks about fewer. Should one ever name none, the rest
+         * are answered as named: a type is never called unused without
+         * proof.
+         */
+        if (namedByThisRead === 0) {
+          for (const typeId of asked) {
+            namedTypeIds.add(typeId);
+          }
+
+          break;
+        }
+
+        unanswered = unanswered.filter((typeId: ObjectID | string): boolean => {
+          return !namedTypeIds.has(normalizeId(typeId));
+        });
+      }
+    }
+
+    return namedTypeIds;
   }
 
   private async findMutationProjectIds(data: {
@@ -571,6 +578,8 @@ export class Service extends DatabaseService<Model> {
     limit: number;
     skip: number;
     isDelete: boolean;
+    // A hard delete's read: rows deleted before count too.
+    withDeleted?: boolean | undefined;
   }): Promise<Array<ObjectID | string>> {
     NetworkSiteHierarchyLock.assertSafeRootMutationScope({
       query: data.query as unknown as Record<string, unknown>,
@@ -578,7 +587,7 @@ export class Service extends DatabaseService<Model> {
       tenantScopeIsClosed: data.isDelete,
     });
 
-    const sites: Array<Model> = await this.findBy({
+    const findBy: FindBy<Model> = {
       query: data.isDelete
         ? this.scopeDeleteQueryToCallerTenant(data.query, data.props)
         : this.scopeQueryToCallerTenant(data.query, data.props),
@@ -586,7 +595,16 @@ export class Service extends DatabaseService<Model> {
       limit: data.limit,
       skip: data.skip,
       props: { isRoot: true },
-    });
+    };
+
+    /*
+     * A hard delete removes rows deleted before too, and its hook reads
+     * them (findRowsAndHoldDeleteToThem): the projects it locks are read
+     * the same way, so they are the projects of the rows it removes.
+     */
+    const sites: Array<Model> = data.withDeleted
+      ? await this.findByWithDeleted(findBy)
+      : await this.findBy(findBy);
 
     const projectIds: Array<ObjectID | string> = sites
       .map((site: Model): ObjectID | undefined => {
@@ -673,12 +691,11 @@ export class Service extends DatabaseService<Model> {
    */
 
   /*
-   * The hierarchy hooks run BEFORE DatabaseService applies tenant scoping to
-   * the caller's query (ModelPermission.check*QueryPermissions runs after
-   * onBeforeUpdate / onBeforeDelete), so reading the raw client query with
-   * props.isRoot would hand the hook rows from other projects - which the
-   * success hooks then write. Re-apply the caller's tenant here so a hook can
-   * never see, let alone rewrite, a row outside the caller's project.
+   * Which projects' hierarchy lock an update takes is read before the update
+   * runs, from the caller's own query, as root: keep that read in the
+   * caller's project, so the update takes no lock outside it. The update's
+   * hook then reads the rows it writes, checks them and holds the update to
+   * them inside the lock (findRowsAndHoldUpdateToThem).
    */
   private scopeQueryToCallerTenant(
     query: Query<Model>,
@@ -1088,46 +1105,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Same hole as the probe above, and the consequence is worse: a site's
-   * credential profile is read LIVE at poll time for every device in the
-   * site that has no credentials of its own
-   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a cross-project
-   * reference here would put another project's community string on this
-   * project's probe's wire. The resolver drops such a reference as a
-   * backstop; this is the half that stops it being written at all.
-   */
-  private async assertSnmpCredentialProfileBelongsToProject(data: {
-    snmpCredentialProfileId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const profile: NetworkSnmpCredentialProfile | null =
-      await NetworkSnmpCredentialProfileService.findOneById({
-        id: data.snmpCredentialProfileId,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!profile) {
-      throw new BadDataException("SNMP Credential Profile not found.");
-    }
-
-    if (profile.projectId && !sameId(profile.projectId, data.projectId)) {
-      throw new BadDataException(
-        "SNMP Credential Profile must belong to the same project.",
-      );
-    }
-  }
-
-  /*
    * The site's default probe, inherited: this site's own `probeId`, or the
    * nearest ancestor that has one.
    *
@@ -1224,10 +1201,26 @@ export class Service extends DatabaseService<Model> {
     return null;
   }
 
+  /*
+   * The default probe is checked by this service's own hooks with
+   * ProbeService.isProbeAttachableToProject: the project's own probes and
+   * the global ones, in one answer for an id from another project and one
+   * that matches nothing. Everything else a site names - its parent site,
+   * its type, its SNMP Credential Profile (read live at poll time for every
+   * device in the site without credentials of its own), its severity - is
+   * checked by ProjectReferencesService, before the hierarchy below reads
+   * any of them.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe"];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     let parentPath: string | null = null;
     let parentSite: Model | null = null;
     const rawData: Record<string, unknown> = createBy.data as unknown as Record<
@@ -1311,18 +1304,12 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    const snmpCredentialProfileId: ObjectID | null = readStrictRelationId({
+    // Conflicting spellings are refused; the project check ran above.
+    readStrictRelationId({
       payload: rawData,
       keys: SNMP_CREDENTIAL_PROFILE_KEYS,
       relationTitle: "SNMP Credential Profile",
     });
-
-    if (snmpCredentialProfileId) {
-      await this.assertSnmpCredentialProfileBelongsToProject({
-        snmpCredentialProfileId: snmpCredentialProfileId,
-        projectId: projectId,
-      });
-    }
 
     if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
@@ -1449,6 +1436,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const rawData: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
@@ -1521,30 +1510,16 @@ export class Service extends DatabaseService<Model> {
           relationTitle: "Network Site Type",
         })
       : null;
-    const updateLimit: number =
-      updateBy.limit instanceof PositiveNumber
-        ? updateBy.limit.toNumber()
-        : updateBy.limit || LIMIT_MAX;
-    const updateSkip: number =
-      updateBy.skip instanceof PositiveNumber
-        ? updateBy.skip.toNumber()
-        : updateBy.skip || 0;
-
-    const previousItems: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const previousItems: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         parentSiteId: true,
         networkSiteTypeId: true,
         materializedPath: true,
       },
-      limit: updateLimit,
-      skip: updateSkip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     if (touchesProject) {
       for (const item of previousItems) {
@@ -1580,9 +1555,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * One check per DISTINCT project in the matched set, because a single
-     * updateBy can span more than one project when a root caller issues it,
-     * and the payload names one probe / one profile for all of them. Reading
+     * The probe: one check per DISTINCT project in the matched set, because
+     * a single updateBy can span more than one project when a root caller
+     * issues it, and the payload names one probe for all of them. (The SNMP
+     * Credential Profile was checked by the generic check above.) Reading
      * the ids here (rather than above the previousItems read) keeps a
      * conflicting-spelling payload refused on every write shape.
      */
@@ -1594,17 +1570,17 @@ export class Service extends DatabaseService<Model> {
             relationTitle: "Probe",
           })
         : null;
-      const newSnmpCredentialProfileId: ObjectID | null =
-        touchesSnmpCredentialProfile
-          ? readStrictRelationId({
-              payload: rawData,
-              keys: SNMP_CREDENTIAL_PROFILE_KEYS,
-              relationTitle: "SNMP Credential Profile",
-            })
-          : null;
+
+      if (touchesSnmpCredentialProfile) {
+        readStrictRelationId({
+          payload: rawData,
+          keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+          relationTitle: "SNMP Credential Profile",
+        });
+      }
 
       // A clear (null) points at nothing and has nothing to check.
-      if (newProbeId || newSnmpCredentialProfileId) {
+      if (newProbeId) {
         const checkedProjectIds: Set<string> = new Set();
 
         for (const item of previousItems) {
@@ -1616,19 +1592,10 @@ export class Service extends DatabaseService<Model> {
           }
           checkedProjectIds.add(normalizeId(item.projectId));
 
-          if (newProbeId) {
-            await this.assertProbeIsAttachableToProject({
-              probeId: newProbeId,
-              projectId: item.projectId,
-            });
-          }
-
-          if (newSnmpCredentialProfileId) {
-            await this.assertSnmpCredentialProfileBelongsToProject({
-              snmpCredentialProfileId: newSnmpCredentialProfileId,
-              projectId: item.projectId,
-            });
-          }
+          await this.assertProbeIsAttachableToProject({
+            probeId: newProbeId,
+            projectId: item.projectId,
+          });
         }
       }
     }
@@ -1965,40 +1932,23 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Deletes are hard deletes, so the rows' hierarchy state has to be captured
-   * before they disappear. Scoped to the caller's tenant for the same reason
-   * onBeforeUpdate is: this hook runs before the delete query is permission
-   * checked.
+   * before they disappear. Scoped to the caller's tenant, as the delete's own
+   * permission check scopes it, because this hook runs before that check.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const deleteLimit: number =
-      deleteBy.limit instanceof PositiveNumber
-        ? deleteBy.limit.toNumber()
-        : deleteBy.limit || LIMIT_MAX;
-    const deleteSkip: number =
-      deleteBy.skip instanceof PositiveNumber
-        ? deleteBy.skip.toNumber()
-        : deleteBy.skip || 0;
-
-    const sitesToDelete: Array<Model> = await this.findBy({
-      query: this.scopeDeleteQueryToCallerTenant(
-        deleteBy.query,
-        deleteBy.props,
-      ),
-      select: {
+    // The sites the delete removes, and the delete held to them.
+    const sitesToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         parentSiteId: true,
         materializedPath: true,
       },
-      limit: deleteLimit,
-      skip: deleteSkip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const deletingSiteIds: Set<string> = new Set(
       sitesToDelete
@@ -2037,6 +1987,14 @@ export class Service extends DatabaseService<Model> {
      *
      * Parent ids and result rows are both batched so neither a wide delete nor
      * a wide site is silently truncated at a service query limit.
+     *
+     * A child deleted before counts too: its row still names its parent, and
+     * the foreign key (parentSiteId, NO ACTION) would refuse the DELETE
+     * anyway, with the database's generic "records still reference it"
+     * message. Refusing here gives the answer a live child gets, and counts
+     * the same rows as the retention purge's choice (NetworkSiteLeafPurge).
+     * A child the same delete removes holds nothing, so a closed cycle the
+     * purge removes in one delete goes whole.
      */
     for (
       let parentIdOffset: number = 0;
@@ -2050,7 +2008,7 @@ export class Service extends DatabaseService<Model> {
       let childSkip: number = 0;
 
       while (true) {
-        const directChildren: Array<Model> = await this.findBy({
+        const directChildren: Array<Model> = await this.findByWithDeleted({
           query: {
             projectId: QueryHelper.any(deletingProjectIdList),
             parentSiteId: QueryHelper.any(parentIdBatch),
@@ -2879,7 +2837,8 @@ export class Service extends DatabaseService<Model> {
       await this.resolveSiteAlert({
         projectId: site.projectId,
         alertId: site.currentActiveAlertId,
-        rootCause: `**Recovered:** Network site **${site.name || "site"}** rolled back up to ${data.newStatus.name || "an operational status"}.`,
+        rootCause:
+          mdText`**Recovered:** Network site **${site.name || "site"}** rolled back up to ${data.newStatus.name || "an operational status"}.`.toString(),
       });
 
       await this.updateColumnsByIdWithoutHooks({
@@ -2936,11 +2895,12 @@ export class Service extends DatabaseService<Model> {
     const alert: Alert = new Alert();
     alert.projectId = site.projectId;
     alert.title = `Network site ${site.name || site.id.toString()} is ${statusName}`;
-    alert.description = `The health rollup of network site **${
+    alert.description = mdText`The health rollup of network site **${
       site.name || site.id.toString()
-    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
+    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`.toString();
     alert.alertSeverityId = alertSeverityId;
-    alert.rootCause = `Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`;
+    alert.rootCause =
+      mdText`Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`.toString();
 
     const createdAlert: Alert = await AlertService.create({
       data: alert,

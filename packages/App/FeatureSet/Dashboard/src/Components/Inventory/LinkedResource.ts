@@ -2,6 +2,16 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import { getInventoryTypeLabel } from "./InventoryTypeCatalog";
+import {
+  CreateFromRecordAddress,
+  CreateFromRecordKind,
+} from "../CreateFromRecord/CreateFromRecord";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How an inventory item reaches the incidents, alerts and maintenance windows
@@ -51,6 +61,34 @@ const QUERY_FIELD: Record<LinkedResourceKind, string> = {
   [LinkedResourceKind.Host]: "hosts",
   [LinkedResourceKind.KubernetesCluster]: "kubernetesClusters",
 };
+
+/*
+ * The record an item's tabs create from: the typed row it points at, which
+ * is what a new incident, alert or maintenance event names - an inventory
+ * item itself is on none of them. So Declare Incident on a host's item opens
+ * with the host picked, and the breadcrumbs go back through the host.
+ */
+const CREATE_FROM_RECORD_KIND: Record<
+  LinkedResourceKind,
+  CreateFromRecordKind
+> = {
+  [LinkedResourceKind.Service]: CreateFromRecordKind.Service,
+  [LinkedResourceKind.Host]: CreateFromRecordKind.Host,
+  [LinkedResourceKind.KubernetesCluster]:
+    CreateFromRecordKind.KubernetesCluster,
+};
+
+export type GetCreateFromRecordForLinkedResourceFunction = (
+  resource: LinkedResource,
+) => CreateFromRecordAddress;
+
+export const getCreateFromRecordForLinkedResource: GetCreateFromRecordForLinkedResourceFunction =
+  (resource: LinkedResource): CreateFromRecordAddress => {
+    return {
+      kind: CREATE_FROM_RECORD_KIND[resource.kind],
+      id: resource.id,
+    };
+  };
 
 export type GetLinkedResourceQueryFieldFunction = (
   kind: LinkedResourceKind,
@@ -114,9 +152,25 @@ export const canHaveLinkedResource: CanHaveLinkedResourceFunction = (
   return getLinkedResourceKindForEntityType(entityType) !== null;
 };
 
+/*
+ * The signals an item's linked page can be about, as its sentences name them.
+ * Listed so the extraction finds each; they go into the sentences as terms.
+ */
+export const INVENTORY_LINKED_SIGNALS: ReadonlyArray<string> = [
+  translationKey("incidents"),
+  translationKey("alerts"),
+  translationKey("maintenance windows"),
+];
+
+// "incidents are raised..." starts a sentence, so its first letter is a capital.
+const capitalizeFirst: (text: string) => string = (text: string): string => {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+};
+
 export type DescribeMissingLinkFunction = (
   entityType: string | undefined,
   signal: string,
+  translator?: Translator,
 ) => string;
 
 /**
@@ -127,14 +181,29 @@ export type DescribeMissingLinkFunction = (
 export const describeMissingLink: DescribeMissingLinkFunction = (
   entityType: string | undefined,
   signal: string,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
-  const label: string = entityType
-    ? getInventoryTypeLabel(entityType)
-    : "This item";
+  const signalTerm: ReturnType<typeof translatableTerm> = translatableTerm(
+    signal,
+    { inSentence: true },
+  );
 
-  return (
-    `${signal.charAt(0).toUpperCase()}${signal.slice(1)} are raised against services, hosts and Kubernetes clusters. ` +
-    `A ${label} does not carry its own — look at the service or host it belongs to, ` +
-    `which you can find under Connections.`
+  if (!entityType) {
+    return capitalizeFirst(
+      translator.translateTemplate(
+        "{{signal}} are raised against services, hosts and Kubernetes clusters. This item does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+        { signal: signalTerm },
+      ),
+    );
+  }
+
+  return capitalizeFirst(
+    translator.translateTemplate(
+      "{{signal}} are raised against services, hosts and Kubernetes clusters. A {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      {
+        signal: signalTerm,
+        type: translatableTerm(getInventoryTypeLabel(entityType)),
+      },
+    ),
   );
 };

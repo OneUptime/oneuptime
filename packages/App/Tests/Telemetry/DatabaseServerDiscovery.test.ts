@@ -1686,6 +1686,7 @@ const OTHER_AUTO_DISCOVERY_METHODS: Array<string> = [
   "autoDiscoverProxmoxCluster",
   "autoDiscoverVMwareVCenter",
   "autoDiscoverCephCluster",
+  "autoDiscoverStorageArray",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverIoTFleet",
   "autoDiscoverServerless",

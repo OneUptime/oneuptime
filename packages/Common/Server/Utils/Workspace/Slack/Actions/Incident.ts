@@ -22,9 +22,6 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
-import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
-import IncidentStateService from "../../../../Services/IncidentStateService";
 import logger from "../../../Logger";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
@@ -39,13 +36,35 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
+import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
+import WorkspaceActionAnswers, {
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SlackActionAuthorization from "./Authorization";
+import SlackActionAuthorization, {
+  SlackAuthorizedEvent,
+} from "./Authorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import SlackIncidentMoreActions from "./IncidentMoreActions";
+import { WorkspacePendingActionKind } from "../../WorkspaceConnectRequest";
+import WorkspaceIncidentActions from "../../WorkspaceIncidentActions";
+import WorkspaceNoteForm, {
+  WorkspaceNoteFormType,
+  WorkspaceSubmittedNote,
+} from "../../WorkspaceNoteForm";
+import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
+import WorkspaceCommands from "../../WorkspaceCommands";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -68,7 +87,8 @@ export default class SlackIncidentActions {
       case SlackActionType.SubmitNewIncident:
         return true;
       default:
-        return false;
+        // The incident's menu (⋯), and `/oneuptime incident 42`.
+        return SlackIncidentMoreActions.isAction(actionType);
     }
   }
 
@@ -80,7 +100,7 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken } = slackRequest;
+    const { botUserId, projectAuthToken } = slackRequest;
 
     if (!projectAuthToken) {
       return Response.sendErrorResponse(
@@ -138,6 +158,27 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
+      /*
+       * The incident is declared by the member the Slack account is
+       * connected to, with their own permissions, as they would declare it
+       * in OneUptime: they must be allowed to declare incidents, and every
+       * record the submitted view names - the monitors, on-call policies,
+       * labels, severity and monitor status, whatever ids it carries - must
+       * be one they may name. IncidentService checks those on the create
+       * itself, and a record they may not read is answered like one that is
+       * not in the project.
+       */
+      const props: DatabaseCommonInteractionProps | null =
+        await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: Incident,
+          action: SlackIncidentActions.DECLARE_ACTION,
+        });
+
+      if (!props) {
+        return;
+      }
+
       const title: string =
         data.slackRequest.viewValues["incidentTitle"].toString();
       const description: string =
@@ -177,30 +218,13 @@ export default class SlackIncidentActions {
         ? new ObjectID(monitorStatus)
         : undefined;
 
-      /*
-       * The incident is created as root from ids in the submitted view, so
-       * check they belong to this project. IncidentService only checks the
-       * severity and the monitor status on create.
-       */
-      await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
-        {
-          projectId: slackRequest.projectId!,
-          subject: "incident",
-          monitorIds: incidentMonitors,
-          labelIds: incidentLabels,
-          onCallDutyPolicyIds: incidentOnCallPolicies,
-        },
-      );
-
       const incident: Incident = new Incident();
       incident.title = title;
       incident.description = description;
       incident.projectId = slackRequest.projectId!;
-      if (userId) {
-        incident.createdByUserId = userId;
-      }
       incident.incidentSeverityId = incidentSeverityId;
-      const rootCauseInMarkdown: string = `Incident created by @${slackRequest.slackUsername} on Slack.`;
+      const rootCauseInMarkdown: string =
+        mdText`Incident created by @${slackRequest.slackUsername} on Slack.`.toString();
 
       incident.rootCause = rootCauseInMarkdown;
 
@@ -234,12 +258,25 @@ export default class SlackIncidentActions {
         });
       }
 
-      const createdIncident: Incident = await IncidentService.create({
-        data: incident,
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Created with the member's props, so it is credited to them and
+       * held to what they may do and name; a refusal is told to them.
+       */
+      const createdIncident: Incident | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "declare the incident",
+          run: async (): Promise<Incident> => {
+            return await IncidentService.create({
+              data: incident,
+              props: props,
+            });
+          },
+        });
+
+      if (!createdIncident) {
+        return;
+      }
 
       // post a message to Slack after the incident was created.
       const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
@@ -257,10 +294,10 @@ export default class SlackIncidentActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+                text: mdText`**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
                   slackRequest.projectId!,
                   createdIncident.id!,
-                )})`,
+                )})`.toString(),
               } as WorkspacePayloadMarkdown,
             ],
           },
@@ -268,6 +305,17 @@ export default class SlackIncidentActions {
       }
     }
   }
+
+  // Declaring an incident, as a refusal names it: "... to declare an incident".
+  public static readonly DECLARE_ACTION: string = "declare an incident";
+
+  // Changing its state, as a refusal names it.
+  public static readonly CHANGE_STATE_ACTION: string =
+    "change the state of this incident";
+
+  // What a change-state form says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No incident states are available to you in this project. Ask a project admin for access to them.";
 
   @CaptureSpan()
   public static async viewNewIncidentModal(data: {
@@ -278,8 +326,46 @@ export default class SlackIncidentActions {
   }): Promise<void> {
     const blocks: Array<WorkspaceMessageBlock> = [];
 
+    /*
+     * `/oneuptime incident`, with nothing after it, typed in an incident's
+     * own channel: that incident, with its buttons - what a responder there
+     * wants - and how to declare another instead. Anywhere else, and from
+     * a button or a shortcut, the form, as always.
+     */
+    if (
+      data.action.command &&
+      !(data.action.actionValue || "").trim() &&
+      (await SlackIncidentMoreActions.showIncidentOfChannel({
+        slackRequest: data.slackRequest,
+        req: data.req,
+        res: data.res,
+      }))
+    ) {
+      return;
+    }
+
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
+
+    /*
+     * The form is filled in as the member the Slack account is connected
+     * to: someone who may not declare an incident is told so now, before
+     * filling it in, and every list below is read with their own
+     * permissions (WorkspaceActionAuthorization.findReadable), so it offers
+     * only what they may read - as the incident form in OneUptime does.
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: Incident,
+        action: SlackIncidentActions.DECLARE_ACTION,
+      });
+
+    if (!props) {
+      return;
+    }
+
+    const projectId: ObjectID = data.slackRequest.projectId!;
 
     /*
      * show new incident modal.
@@ -311,23 +397,83 @@ export default class SlackIncidentActions {
 
     blocks.push(incidentDescription);
 
-    const incidentSeveritiesForProject: Array<IncidentSeverity> =
-      await IncidentSeverityService.findBy({
+    const [
+      incidentSeveritiesForProject,
+      monitorsForProject,
+      monitorStatusForProject,
+      onCallPolicies,
+      labelsForProject,
+    ]: [
+      Array<IncidentSeverity>,
+      Array<Monitor>,
+      Array<MonitorStatus>,
+      Array<OnCallDutyPolicy>,
+      Array<Label>,
+    ] = await Promise.all([
+      WorkspaceActionAuthorization.findReadable({
+        service: IncidentSeverityService,
+        props: props,
         query: {
-          projectId: data.slackRequest.projectId!,
+          projectId: projectId,
         },
         sort: {
           order: SortOrder.Ascending,
         },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorService,
+        props: props,
+        query: {
+          projectId: projectId,
         },
-      });
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorStatusService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
+        query: {
+          projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: LabelService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+    ]);
 
     const dropdownOptions: Array<DropdownOption> =
       incidentSeveritiesForProject.map((severity: IncidentSeverity) => {
@@ -348,20 +494,6 @@ export default class SlackIncidentActions {
     if (incidentSeveritiesForProject.length > 0) {
       blocks.push(incidentSeverity);
     }
-
-    const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
 
     const monitorDropdownOptions: Array<DropdownOption> =
       monitorsForProject.map((monitor: Monitor) => {
@@ -384,24 +516,6 @@ export default class SlackIncidentActions {
     if (monitorsForProject.length > 0) {
       blocks.push(incidentMonitors);
     }
-
-    const monitorStatusForProject: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
-        query: {
-          projectId: data.slackRequest.projectId!,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
 
     const monitorStatusDropdownOptions: Array<DropdownOption> =
       monitorStatusForProject.map((status: MonitorStatus) => {
@@ -429,21 +543,6 @@ export default class SlackIncidentActions {
 
     // add on-call policy dropdown.
 
-    const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
-        query: {
-          projectId: data.slackRequest.projectId!,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
     const onCallPolicyDropdownOptions: Array<DropdownOption> =
       onCallPolicies.map((policy: OnCallDutyPolicy) => {
         return {
@@ -455,30 +554,16 @@ export default class SlackIncidentActions {
     if (onCallPolicies.length > 0) {
       const onCallPolicyDropdown: WorkspaceDropdownBlock = {
         _type: "WorkspaceDropdownBlock",
-        label: "Execute On Call Policy",
+        label: "Execute On-Call Policies",
         blockId: "onCallDutyPolicies",
         placeholder:
-          "Select on call policies to execute when this incident is created",
+          "Select on-call policies to execute when this incident is created",
         options: onCallPolicyDropdownOptions,
         multiSelect: true,
         optional: true,
       };
       blocks.push(onCallPolicyDropdown);
     }
-
-    const labelsForProject: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
 
     const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
       (label: Label) => {
@@ -513,10 +598,9 @@ export default class SlackIncidentActions {
       blocks: blocks,
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -528,7 +612,7 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -572,49 +656,69 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      /*
+       * The incident is read once, as the member, by the check - and that
+       * read answers "already acknowledged" below and goes to the write.
+       */
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: IncidentStateTimeline,
           action: "acknowledge this incident",
-          resources: [{ service: IncidentService, id: incidentId }],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyAcknowledged: boolean =
-        await IncidentService.isIncidentAcknowledged({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyAcknowledged) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
-        const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
-
-        // send a message to the channel visible to user, that the incident has already been acknowledged.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been acknowledged.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+      /*
+       * Somebody got there first: say who and when, where the press was
+       * (only the person who pressed sees it), as news, not as an error.
+       */
+      if ((await WorkspaceMemberActions.getStanding(incident)).isAcknowledged) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: incident,
+          press: WorkspaceLatePress.Acknowledge,
         });
 
         return;
       }
 
-      await IncidentService.acknowledgeIncident(incidentId, userId);
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions); a refusal is told to them.
+       */
+      const isAcknowledged: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "acknowledge the incident",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.acknowledge({
+              event: incident,
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (!isAcknowledged) {
+        return;
+      }
+
+      // Pressed where only they see it: what it did.
+      await SlackIncidentMoreActions.answerDoneIfPrivate({
+        slackRequest: slackRequest,
+        answer: () => {
+          return WorkspaceActionAnswers.getDoneAnswer({
+            event: incident,
+            kind: WorkspacePendingActionKind.Acknowledge,
+          });
+        },
+      });
 
       // Log the button interaction
       if (slackRequest.projectId) {
@@ -671,7 +775,7 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -715,48 +819,58 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      // Read once, by the check; that read answers "already resolved".
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: IncidentStateTimeline,
           action: "resolve this incident",
-          resources: [{ service: IncidentService, id: incidentId }],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean =
-        await IncidentService.isIncidentResolved({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyResolved) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
-        const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
-        // send a message to the channel visible to user, that the incident has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+      // Resolved already: who and when, where the press was.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: incident,
+          press: WorkspaceLatePress.Resolve,
         });
 
         return;
       }
 
-      await IncidentService.resolveIncident(incidentId, userId);
+      // Resolved by the member, as the dashboard resolves it for them.
+      const isResolved: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "resolve the incident",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.resolve({
+              event: incident,
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (isResolved) {
+        // Pressed where only they see it: what it did.
+        await SlackIncidentMoreActions.answerDoneIfPrivate({
+          slackRequest: slackRequest,
+          answer: () => {
+            return WorkspaceActionAnswers.getDoneAnswer({
+              event: incident,
+              kind: WorkspacePendingActionKind.Resolve,
+            });
+          },
+        });
+      }
 
       return;
     }
@@ -792,23 +906,39 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    // const incidentId: ObjectID = new ObjectID(actionValue);
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not execute an on-call policy for this incident is told so now. The
+     * form then offers the policies they may read, with their own
+     * permissions (WorkspaceActionAuthorization.findReadable).
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident",
+        resources: [
+          { service: IncidentService, id: new ObjectID(actionValue) },
+        ],
+      });
 
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+    if (!props) {
+      return;
+    }
 
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: data.slackRequest.projectId!,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: LIMIT_PER_PROJECT,
-        skip: 0,
       });
 
     const dropdownOption: Array<DropdownOption> = onCallPolicies
@@ -823,33 +953,26 @@ export default class SlackIncidentActions {
       });
 
     if (dropdownOption.length === 0) {
-      if (data.slackRequest.slackChannelId) {
-        await SlackUtil.sendEphemeralMessageToChannel({
-          messageBlocks: [
-            {
-              _type: "WorkspacePayloadMarkdown",
-              text: "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
-            } as WorkspacePayloadMarkdown,
-          ],
-          authToken: data.slackRequest.projectAuthToken!,
-          channelId: data.slackRequest.slackChannelId,
-          userId: data.slackRequest.slackUserId!,
-        });
-      }
+      // Said where the press was, as every other answer is.
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: SlackActionAnswer.NO_ON_CALL_POLICIES_MESSAGE,
+      });
       return;
     }
 
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "On Call Policy",
+      label: "On-Call Policy",
       blockId: "onCallPolicy",
-      placeholder: "Select On Call Policy",
+      placeholder: "Select On-Call Policy",
       options: dropdownOption,
     };
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Execute On Call Policy",
+      // At most 24 characters: Slack refuses a longer modal title.
+      title: "Execute On-Call Policy",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitExecuteIncidentOnCallPolicy,
@@ -857,10 +980,9 @@ export default class SlackIncidentActions {
       blocks: [onCallPolicyDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -887,36 +1009,58 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    // const incidentId: ObjectID = new ObjectID(actionValue);
-
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
-
-    const incidentStates: Array<IncidentState> =
-      await IncidentStateService.getAllIncidentStates({
-        projectId: data.slackRequest.projectId!,
-        props: {
-          isRoot: true,
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not change the state of this incident is told so now. The incident is read
+     * as the submit reads it, with the state it is in, and the form offers
+     * the states they may read that it may move into next - by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove) - so it
+     * never offers a move the timeline would refuse.
+     */
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
+        requester: data.slackRequest,
+        modelType: IncidentStateTimeline,
+        action: SlackIncidentActions.CHANGE_STATE_ACTION,
+        event: {
+          type: WorkspaceEventType.Incident,
+          id: new ObjectID(actionValue),
         },
       });
 
-    logger.debug("Incident States: ", {
-      projectId: data.slackRequest.projectId?.toString(),
-    });
-    logger.debug(incidentStates);
+    if (!authorized) {
+      return;
+    }
 
-    const dropdownOptions: Array<DropdownOption> = incidentStates
-      .map((state: IncidentState) => {
-        return {
-          label: state.name || "",
-          value: state._id?.toString() || "",
-        };
-      })
-      .filter((option: DropdownOption) => {
-        return option.label !== "" || option.value !== "";
+    const stateOptions: WorkspaceEventStateOptions =
+      await WorkspaceMemberActions.findStateOptions({
+        event: authorized.event,
+        props: authorized.props,
       });
 
-    logger.debug("Dropdown Options: ");
-    logger.debug(dropdownOptions);
+    if (stateOptions.options.length === 0) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: stateOptions.hasNoLaterState
+          ? WorkspaceMemberActions.getNoLaterStateMessage(
+              WorkspaceEventType.Incident,
+            )
+          : SlackIncidentActions.NO_STATES_MESSAGE,
+      });
+      return;
+    }
+
+    const incidentStates: Array<WorkspaceEventStateOption> =
+      stateOptions.options;
+
+    const dropdownOptions: Array<DropdownOption> = incidentStates.map(
+      (state: WorkspaceEventStateOption) => {
+        return {
+          label: state.name,
+          value: state.id.toString(),
+        };
+      },
+    );
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -936,10 +1080,9 @@ export default class SlackIncidentActions {
       blocks: [statePickerDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -987,24 +1130,50 @@ export default class SlackIncidentActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: IncidentStateTimeline,
-        action: "change the state of this incident",
-        resources: [{ service: IncidentService, id: incidentId }],
+        action: SlackIncidentActions.CHANGE_STATE_ACTION,
+        event: { type: WorkspaceEventType.Incident, id: incidentId },
       });
 
-    if (!props) {
+    if (!authorized) {
       return;
     }
 
-    await IncidentService.updateOneById({
-      id: incidentId,
-      data: {
-        currentIncidentStateId: stateId,
+    /*
+     * The state change the dashboard makes: a row in the incident's state
+     * timeline, created by the member (WorkspaceMemberActions), from the
+     * incident as the check read it.
+     */
+    const isStateChanged: boolean | null =
+      await SlackActionAuthorization.runForRequester({
+        requester: data.slackRequest,
+        action: "change the state of the incident",
+        run: async (): Promise<boolean> => {
+          await WorkspaceMemberActions.changeState({
+            event: authorized.event,
+            stateId: stateId,
+            props: authorized.props,
+          });
+          return true;
+        },
+      });
+
+    if (!isStateChanged) {
+      return;
+    }
+
+    // Opened from a message only they see: what it did.
+    await SlackIncidentMoreActions.answerDoneIfPrivate({
+      slackRequest: data.slackRequest,
+      answer: () => {
+        return WorkspaceIncidentActions.getStateChangedAnswer({
+          event: authorized.event,
+          stateId: stateId,
+        });
       },
-      props: props,
     });
 
     // Log the button interaction
@@ -1051,7 +1220,7 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -1115,53 +1284,46 @@ export default class SlackIncidentActions {
       // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: OnCallDutyPolicyExecutionLog,
           action: "execute an on-call policy for this incident",
-          resources: [
-            { service: IncidentService, id: incidentId },
-            { service: OnCallDutyPolicyService, id: onCallPolicyId },
-          ],
-        }))
-      ) {
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+          resources: [{ service: OnCallDutyPolicyService, id: onCallPolicyId }],
+        });
+
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean =
-        await IncidentService.isIncidentResolved({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyResolved) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
-        const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
-        // send a message to the channel visible to user, that the incident has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+      // Resolved already: nobody is paged, and the person is told why.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: incident,
+          press: WorkspaceLatePress.ExecuteOnCallPolicy,
         });
 
         return;
       }
 
-      await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
-        triggeredByIncidentId: incidentId,
-        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      /*
+       * Executed by the member, as the dashboard's Execute On-Call Policy
+       * executes it for them: an execution log triggered by the incident.
+       */
+      await SlackActionAuthorization.runForRequester({
+        requester: slackRequest,
+        action: "execute the on-call policy",
+        run: async (): Promise<void> => {
+          await WorkspaceMemberActions.executeOnCallPolicy({
+            event: incident,
+            onCallDutyPolicyId: onCallPolicyId,
+            props: props,
+          });
+        },
       });
     }
   }
@@ -1198,14 +1360,6 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (!data.slackRequest.viewValues["noteType"]) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid Note Type"),
-      );
-    }
-
     if (!data.slackRequest.viewValues["note"]) {
       // return error.
       return Response.sendErrorResponse(
@@ -1217,10 +1371,19 @@ export default class SlackIncidentActions {
 
     const incidentId: ObjectID = new ObjectID(actionValue);
     const note: string = data.slackRequest.viewValues["note"].toString();
-    const noteType: string =
-      data.slackRequest.viewValues["noteType"].toString();
 
-    if (noteType !== "public" && noteType !== "private") {
+    /*
+     * The form's Note Type: "public" or "private" - or none, from a private
+     * incident's form, which asks for none (WorkspaceNoteForm).
+     */
+    const submittedNoteType: string | undefined =
+      data.slackRequest.viewValues["noteType"]?.toString() || undefined;
+
+    if (
+      submittedNoteType !== undefined &&
+      submittedNoteType !== WorkspaceNoteFormType.Public &&
+      submittedNoteType !== WorkspaceNoteFormType.Private
+    ) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -1233,40 +1396,103 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    if (
-      !(await SlackActionAuthorization.authorize({
-        requester: data.slackRequest,
-        modelType:
-          noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
-        action:
-          noteType === "public"
-            ? "add a public note to this incident"
-            : "add a private note to this incident",
-        resources: [{ service: IncidentService, id: incidentId }],
-      }))
-    ) {
+    /*
+     * What it writes: a private incident takes no public notes, so a public
+     * one asked for on an incident made private since the form opened is
+     * written as a private note - and the answer says so.
+     */
+    const submitted: WorkspaceSubmittedNote | null =
+      await WorkspaceNoteForm.getSubmittedNote({
+        submittedNoteType: submittedNoteType,
+        kind: PrivateRecordKind.Incident,
+        recordId: incidentId,
+        projectId: data.slackRequest.projectId,
+      });
+
+    if (!submitted) {
       return;
     }
 
-    // if public note then, add a note.
-    if (noteType === "public") {
-      await IncidentPublicNoteService.addNote({
-        incidentId: incidentId!,
-        note: note || "",
-        projectId: data.slackRequest.projectId!,
-        userId: data.slackRequest.userId!,
+    const isPublic: boolean = submitted.noteType === WorkspaceNoteType.Public;
+
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: isPublic ? IncidentPublicNote : IncidentInternalNote,
+        action: isPublic
+          ? "add a public note to this incident"
+          : "add a private note to this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
       });
+
+    if (!props) {
+      return;
     }
 
-    // if private note then, add a note.
-    if (noteType === "private") {
-      await IncidentInternalNoteService.addNote({
-        incidentId: incidentId!,
-        note: note || "",
-        projectId: data.slackRequest.projectId!,
-        userId: data.slackRequest.userId!,
+    // Posted by the member, as the dashboard posts it for them.
+    const isAdded: boolean | null =
+      await SlackActionAuthorization.runForRequester({
+        requester: data.slackRequest,
+        action: "add the note",
+        run: async (): Promise<boolean> => {
+          if (isPublic) {
+            await IncidentPublicNoteService.addNote({
+              incidentId: incidentId,
+              note: note,
+              projectId: data.slackRequest.projectId!,
+              props: props,
+            });
+            return true;
+          }
+
+          await IncidentInternalNoteService.addNote({
+            incidentId: incidentId,
+            note: note,
+            projectId: data.slackRequest.projectId!,
+            props: props,
+          });
+          return true;
+        },
       });
+
+    if (!isAdded) {
+      return;
     }
+
+    if (submitted.isPublicAskedOnPrivateRecord) {
+      /*
+       * Not the note they chose: told wherever they opened the form, with
+       * what it became and why.
+       */
+      const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+        data.slackRequest,
+      );
+
+      if (place) {
+        await SlackActionAnswer.answer({
+          place: place,
+          answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
+            kind: PrivateRecordKind.Incident,
+            recordId: incidentId,
+            props: props,
+          }),
+        });
+      }
+
+      return;
+    }
+
+    // Opened from a message only they see: what it did.
+    await SlackIncidentMoreActions.answerDoneIfPrivate({
+      slackRequest: data.slackRequest,
+      answer: () => {
+        return WorkspaceIncidentActions.getNoteAddedAnswer({
+          incidentId: incidentId,
+          isPublic: isPublic,
+          props: props,
+        });
+      },
+    });
   }
 
   @CaptureSpan()
@@ -1292,49 +1518,36 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    // const incidentId: ObjectID = new ObjectID(actionValue);
-
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
-
-    const notePickerDropdown: WorkspaceDropdownBlock = {
-      _type: "WorkspaceDropdownBlock",
-      label: "Note Type",
-      blockId: "noteType",
-      placeholder: "Select Note Type",
-      options: [
-        {
-          label: "Public Note (Will be posted on Status Page)",
-          value: "public",
-        },
-        {
-          label: "Private Note (Only visible to team members)",
-          value: "private",
-        },
-      ],
-    };
-
-    const noteTextArea: WorkspaceTextAreaBlock = {
-      _type: "WorkspaceTextAreaBlock",
-      label: "Note",
-      blockId: "note",
-      placeholder: "Note",
-      description: "Please type in plain text or markdown.",
-    };
+    /*
+     * The note's kind - public, on the status page, or private - and the
+     * note. A private incident takes no public notes, so its form asks for
+     * no kind and says why (WorkspaceNoteForm).
+     */
+    const form: { title: string; blocks: Array<WorkspaceMessageBlock> } =
+      WorkspaceNoteForm.getSlackForm({
+        kind: PrivateRecordKind.Incident,
+        isPrivateRecord: ObjectID.isValidUUID(actionValue)
+          ? await WorkspaceNoteForm.isPrivateRecord({
+              kind: PrivateRecordKind.Incident,
+              recordId: new ObjectID(actionValue),
+              projectId: data.slackRequest.projectId,
+            })
+          : false,
+      });
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Add Note",
+      title: form.title,
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitIncidentNote,
       actionValue: actionValue,
-      blocks: [notePickerDropdown, noteTextArea],
+      blocks: form.blocks,
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -1396,6 +1609,33 @@ export default class SlackIncidentActions {
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });
+    }
+
+    /*
+     * `/oneuptime incident 42` - and a word that only looked like a number,
+     * "IPv6", which is the new incident's title after all.
+     */
+    if (actionType === SlackActionType.ShowIncident) {
+      return await SlackIncidentMoreActions.showIncidentByNumber({
+        ...data,
+        declare: async (): Promise<void> => {
+          return await this.viewNewIncidentModal({
+            ...data,
+            action: {
+              ...data.action,
+              actionType: SlackActionType.NewIncident,
+              actionValue: WorkspaceCommands.toTitle(
+                data.action.actionValue || "",
+              ),
+            },
+          });
+        },
+      });
+    }
+
+    // The incident's menu (⋯): Change Severity, Assign Role, ...
+    if (SlackIncidentMoreActions.isAction(actionType)) {
+      return await SlackIncidentMoreActions.handle(data);
     }
 
     // invalid action type.

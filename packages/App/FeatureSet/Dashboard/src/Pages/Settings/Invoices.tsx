@@ -5,7 +5,9 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -28,6 +30,11 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  getBillingActionLockedReason,
+  getPayInvoiceGate,
+} from "../../Components/Billing/BillingActionGates";
+import { formatInvoiceAmount } from "../../Components/Billing/InvoiceAmount";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
 /*
@@ -45,7 +52,29 @@ export type ComponentProps = PageComponentProps;
  * passes). Customers who saw an error here kept pressing Pay Invoice.
  */
 const PAYMENT_PROCESSING_MESSAGE: string =
-  "Your bank is still processing a payment for this invoice. Some banks (for example cards issued in India) take up to 2 days to confirm recurring card payments. You do not need to pay again - the invoice will update automatically once the bank confirms.";
+  "Your bank is still processing a payment for this invoice, which can take up to 2 days. You do not need to pay again.";
+
+/*
+ * An invoice that is settled, not yet issued, or cancelled has nothing left to
+ * pay. Every other status - open, uncollectible, even a missing one - may
+ * still owe money, so it gets the Pay Invoice action.
+ */
+const NOT_PAYABLE_INVOICE_STATUSES: Array<InvoiceStatus> = [
+  InvoiceStatus.Paid,
+  InvoiceStatus.Draft,
+  InvoiceStatus.Void,
+  InvoiceStatus.Deleted,
+];
+
+type IsInvoicePayableFunction = (invoice: BillingInvoice) => boolean;
+
+const isInvoicePayable: IsInvoicePayableFunction = (
+  invoice: BillingInvoice,
+): boolean => {
+  return !NOT_PAYABLE_INVOICE_STATUSES.includes(
+    invoice["status"] as InvoiceStatus,
+  );
+};
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
@@ -54,6 +83,17 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPaymentProcessing, setIsPaymentProcessing] =
     useState<boolean>(false);
+
+  /*
+   * Paying an invoice charges the card, so it stays with a project owner
+   * and Manage Billing: the billing roles read the invoices and see Pay
+   * Invoice locked, saying why (Components/Billing/BillingActionGates).
+   * Downloading one needs its download link, which the table only asks
+   * for from people who may read it - Billing Viewer reads the list
+   * without it.
+   */
+  const payInvoiceLockedReason: string | undefined =
+    getBillingActionLockedReason(getPayInvoiceGate());
 
   type PayInvoiceFunction = (
     customerId: string,
@@ -166,7 +206,8 @@ const Settings: FunctionComponent<ComponentProps> = (
           isViewable={false}
           cardProps={{
             title: "Invoices",
-            description: "Here is a list of invoices for this project.",
+            description:
+              "This project's invoices, as they are issued. Download one for your records, or pay one that is still open.",
           }}
           noItemsMessage={"No invoices so far."}
           query={{
@@ -175,9 +216,62 @@ const Settings: FunctionComponent<ComponentProps> = (
           showRefreshButton={true}
           selectMoreFields={{
             currencyCode: true,
+            /*
+             * No column shows the link any more - the Download action reads
+             * it - so it has to be asked for here or every row would lose
+             * its Download.
+             */
+            downloadableLink: true,
             paymentProviderCustomerId: true,
             paymentProviderInvoiceId: true,
           }}
+          actionButtons={[
+            {
+              title: "Download",
+              icon: IconProp.Download,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              isVisible: (item: BillingInvoice): boolean => {
+                return Boolean(item["downloadableLink"]);
+              },
+              onClick: (
+                item: BillingInvoice,
+                onCompleteAction: VoidFunction,
+              ) => {
+                Navigation.navigate(item["downloadableLink"] as URL);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "Pay Invoice",
+              icon: IconProp.Billing,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              disabled: Boolean(payInvoiceLockedReason),
+              tooltip: payInvoiceLockedReason,
+              /*
+               * An invoice that still owes money is the one thing on this
+               * page that needs doing, so paying it is the row's button and
+               * Download waits in the ⋯ menu. Settled invoices have no Pay
+               * Invoice, and Download takes the button back.
+               */
+              placement: ActionButtonPlacement.Primary,
+              isVisible: isInvoicePayable,
+              onClick: async (
+                item: BillingInvoice,
+                onCompleteAction: VoidFunction,
+              ) => {
+                /*
+                 * payInvoice reports its own failures in the page's error
+                 * dialog, and swaps the whole table for the page loader
+                 * while it runs - that loader is this action's spinner.
+                 */
+                await payInvoice(
+                  item["paymentProviderCustomerId"] as string,
+                  item["paymentProviderInvoiceId"] as string,
+                );
+                onCompleteAction();
+              },
+            },
+          ]}
           onFetchSuccess={async () => {
             if (ProjectUtil.isSubscriptionInactive()) {
               // fetch project and check subscription again.
@@ -265,11 +359,12 @@ const Settings: FunctionComponent<ComponentProps> = (
 
               getElement: (item: BillingInvoice) => {
                 return (
-                  <span>{`${(item["amount"] as number) / 100} ${item[
-                    "currencyCode"
-                  ]
-                    ?.toString()
-                    .toUpperCase()}`}</span>
+                  <span>
+                    {formatInvoiceAmount({
+                      amount: item.amount,
+                      currencyCode: item.currencyCode,
+                    })}
+                  </span>
                 );
               },
             },
@@ -294,49 +389,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                     text={Text.uppercaseFirstLetter(item["status"] as string)}
                     color={Yellow}
                   />
-                );
-              },
-            },
-            {
-              field: {
-                downloadableLink: true,
-              },
-              title: "Actions",
-              type: FieldType.Text,
-
-              getElement: (item: BillingInvoice) => {
-                return (
-                  <div>
-                    {item["downloadableLink"] ? (
-                      <Button
-                        icon={IconProp.Download}
-                        onClick={() => {
-                          Navigation.navigate(item["downloadableLink"] as URL);
-                        }}
-                        title="Download"
-                      />
-                    ) : (
-                      <></>
-                    )}
-
-                    {item["status"] !== InvoiceStatus.Paid &&
-                    item["status"] !== InvoiceStatus.Draft &&
-                    item["status"] !== InvoiceStatus.Void &&
-                    item["status"] !== InvoiceStatus.Deleted ? (
-                      <Button
-                        icon={IconProp.Billing}
-                        onClick={async () => {
-                          await payInvoice(
-                            item["paymentProviderCustomerId"] as string,
-                            item["paymentProviderInvoiceId"] as string,
-                          );
-                        }}
-                        title="Pay Invoice"
-                      />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
                 );
               },
             },

@@ -135,8 +135,11 @@ AI 代理開出一個包含修復內容的拉取請求，連結到該事件，�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — 節點、VM、容器、儲存、HA 狀態、備份覆蓋率與複寫健康狀態。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter、ESXi 主機、虛擬機器、資料存放區、叢集、資源集區與 vSAN。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — 叢集健康狀態、容量預測，以及 OSD／pool／PG／monitor 的可視性。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **儲存陣列** — Pure Storage FlashArray 與 FlashBlade：容量、延遲、磁碟區、主機、複寫、硬體健康狀態、檔案系統與儲存貯體。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **資料庫** — PostgreSQL、MySQL、Redis、MongoDB 等，可從應用程式追蹤、Kubernetes 與 Docker 自動偵測，並透過僅需設定的 Collector 代理取得引擎指標、查詢樣本與日誌。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ helm install oneuptime oneuptime/oneuptime
 | **最適合** | 自架者與小型團隊 | 需要進階支援的受監管團隊 |
 | **費用** | 免費且開源 | [聯絡銷售](mailto:sales@oneuptime.com) |
 | **授權** | Apache 2.0 | Apache 2.0，另外 `ee/` 目錄採用 [OneUptime Enterprise License](/ee/LICENSE) |
-| **功能** | 上方「盒子裡的一切」中的全部功能——監控、狀態頁、事件、值班、日誌、追蹤、指標、錯誤追蹤、工作流程與 AI | 社群版全部功能 + SAML 與 OIDC 單一登入、SCIM 使用者佈建、稽核日誌、團隊合規與執行個體健康儀表板，並提供優先支援、客製功能與資料落地 |
+| **功能** | 上方「盒子裡的一切」中的全部功能——監控、狀態頁、事件、值班、日誌、追蹤、指標、錯誤追蹤、工作流程與 AI——以及 SAML 與 OIDC 單一登入 | 社群版全部功能 + SCIM 使用者佈建、稽核日誌、團隊合規與執行個體健康儀表板，並提供優先支援、客製功能與資料落地 |
 
 企業版功能位於 [`ee/`](/ee) 目錄，只包含在企業版映像中。完整比較請參閱 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)。
 

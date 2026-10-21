@@ -19,6 +19,8 @@ import Dictionary from "Common/Types/Dictionary";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 
 /**
  * This job checks SLAs for breach conditions and updates their status:
@@ -199,9 +201,11 @@ async function sendBreachNotification(data: {
         },
         currentIncidentState: {
           name: true,
+          color: true,
         },
         incidentSeverity: {
           name: true,
+          color: true,
         },
       },
       props: {
@@ -253,7 +257,15 @@ async function sendBreachNotification(data: {
       incidentNumber: incidentNumberStr,
       projectName: incident.project!.name!,
       currentState: incident.currentIncidentState?.name || "Unknown",
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incident.currentIncidentState?.color,
+      ),
       incidentSeverity: incident.incidentSeverity?.name || "Unknown",
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        incident.incidentSeverity?.color,
+      ),
       breachType: breachTypeStr,
       deadline: deadlineStr,
       slaRuleName: ruleName,
@@ -272,7 +284,9 @@ async function sendBreachNotification(data: {
       };
 
       const sms: SMSMessage = {
-        message: `SLA ${breachTypeStr} Breached for incident ${incident.title} ${incidentNumberStr}. Deadline was ${deadlineStr}. View incident in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `SLA ${breachTypeStr} Breached for incident ${incident.title} ${incidentNumberStr}. Deadline was ${deadlineStr}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -297,6 +311,11 @@ async function sendBreachNotification(data: {
           templateVariables: {
             incident_title: incident.title!,
             incident_number: incident.incidentNumber?.toString() || "",
+            /*
+             * The template names the project: without it the template threw
+             * "Missing variable", and the breach reached nobody on any channel.
+             */
+            project_name: incident.project?.name || "",
             incident_link: incidentViewLink,
           },
         });

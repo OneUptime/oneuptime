@@ -1,21 +1,47 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import PromptText from "../../../../Utils/AI/PromptText";
+import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
 
 /*
  * Prepares tool results for the LLM prompt: redacts likely secrets/PII,
- * truncates long fields, and caps total payload size. Everything that enters
- * the prompt (and therefore leaves for the LLM provider, and is previewed in
- * LlmLog.requestPrompt) passes through here first.
+ * leaves embedded files out, truncates long fields, and caps total payload
+ * size. Everything that enters the prompt (and therefore leaves for the LLM
+ * provider, and is previewed in LlmLog.requestPrompt) passes through here
+ * first.
+ *
+ * An incident's description can hold a synthetic monitor's screenshot -
+ * hundreds of kilobytes of base64 in a data: URL. Left in, it filled the
+ * field's MAX_FIELD_LENGTH with base64 and cut off the words after it; so
+ * every value goes through redactAndOmitEmbeddedData, which puts a short
+ * note where the image was ("[image omitted: PNG, 340 KB]") before it is cut.
  */
 
-const MAX_ROWS: number = 50;
-const MAX_FIELD_LENGTH: number = 500;
-const MAX_PAYLOAD_BYTES: number = 16 * 1024;
+/*
+ * Rows beyond this are summarized ("showing the first 50 of N rows") so the
+ * model narrows the query instead of reading an unbounded table. A single
+ * field keeps up to MAX_FIELD_LENGTH characters — enough for a whole stack
+ * trace or a long log line, which used to be cut at 500 and lose exactly the
+ * frame that mattered — and one result keeps up to MAX_PAYLOAD_BYTES.
+ */
+export const MAX_ROWS: number = 50;
+export const MAX_FIELD_LENGTH: number = 4000;
+export const MAX_PAYLOAD_BYTES: number = 64 * 1024;
 
-interface RedactionRule {
-  name: string;
-  regex: RegExp;
-  replacement: string;
-}
+/*
+ * A rule is a pattern and what replaces each match, or - where one pattern
+ * cannot read a text in time in line with its length - a function that
+ * reads the text itself and says how many it replaced.
+ */
+type RedactionRule =
+  | {
+      name: string;
+      regex: RegExp;
+      replacement: string;
+    }
+  | {
+      name: string;
+      redact: (text: string) => { text: string; count: number };
+    };
 
 /*
  * These are security redactions, not the fingerprint-normalization regexes
@@ -23,9 +49,22 @@ interface RedactionRule {
  */
 const REDACTION_RULES: Array<RedactionRule> = [
   {
+    /*
+     * A JWT: three base64url segments split by dots, of any length.
+     *
+     * A token is looked for once per run of the characters it is made of:
+     * the match may only begin where such a run begins, and the look-ahead
+     * settles on the run's first "eyJ" - the one with the longest first
+     * segment, so when it is no token, no later "eyJ" of the run is one
+     * either. The text of the run before it is put back ($1). That replaces
+     * exactly the tokens a search from every "eyJ" did, while each run is
+     * read a bounded number of times, so a long tool result is read in time
+     * in line with its length.
+     */
     name: "jwt",
-    regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
-    replacement: "[redacted-jwt]",
+    regex:
+      /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+    replacement: "$1[redacted-jwt]",
   },
   {
     name: "bearer",
@@ -34,13 +73,15 @@ const REDACTION_RULES: Array<RedactionRule> = [
   },
   {
     /*
-     * PEM private key blocks (RSA/EC/OPENSSH/PGP…). Match the whole
-     * BEGIN…END block, including newlines, so no key material leaks.
+     * PEM private key blocks (RSA/EC/OPENSSH/PGP…). The whole BEGIN…END
+     * block, including newlines, so no key material leaks - read by
+     * PrivateKeyBlocks, in time in line with the text's length however many
+     * BEGIN lines it holds with no END after them.
      */
     name: "private-key",
-    regex:
-      /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
-    replacement: "[redacted-private-key]",
+    redact: (text: string): { text: string; count: number } => {
+      return replacePrivateKeyBlocks(text, "[redacted-private-key]");
+    },
   },
   {
     name: "aws-access-key-id",
@@ -64,8 +105,13 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-google-api-key]",
   },
   {
+    /*
+     * Each part of the address is length-bounded to the sizes RFC 5321 allows
+     * (local part 64, domain 253, final label 63), so scanning a long tool
+     * result for addresses stays in line with its length.
+     */
     name: "email",
-    regex: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+    regex: /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
     replacement: "[redacted-email]",
   },
   {
@@ -121,6 +167,10 @@ export default class ToolResultSerializer {
     text: string,
     rule: RedactionRule,
   ): { text: string; count: number } {
+    if ("redact" in rule) {
+      return rule.redact(text);
+    }
+
     let count: number = 0;
 
     const result: string = text.replace(
@@ -153,6 +203,28 @@ export default class ToolResultSerializer {
     }
 
     return { text: redacted, count };
+  }
+
+  /*
+   * Redaction, with the data embedded in the text left out around it
+   * (PromptText): data: URLs first, so a screenshot's megabytes of base64
+   * never reach the rules - they read everything else exactly as it was -
+   * and any long run of base64 last, because a secret glued to one would
+   * otherwise lose its first part, and with it the shape a rule knows it by.
+   * Every caller that redacts text for a model goes through here.
+   */
+  public static redactAndOmitEmbeddedData(text: string): {
+    text: string;
+    count: number;
+  } {
+    const redacted: { text: string; count: number } = this.redact(
+      PromptText.omitDataUrls(text).text,
+    );
+
+    return {
+      text: PromptText.omitEncodedRuns(redacted.text).text,
+      count: redacted.count,
+    };
   }
 
   // Byte-accurate truncation (substring counts UTF-16 units, not bytes).
@@ -217,7 +289,8 @@ export default class ToolResultSerializer {
           continue;
         }
 
-        const redacted: { text: string; count: number } = this.redact(rawValue);
+        const redacted: { text: string; count: number } =
+          this.redactAndOmitEmbeddedData(rawValue);
         redactionCount += redacted.count;
 
         const truncated: { value: string; truncated: boolean } =
@@ -275,7 +348,8 @@ export default class ToolResultSerializer {
     text: string,
     rowCount: number,
   ): SerializedResult {
-    const redacted: { text: string; count: number } = this.redact(text);
+    const redacted: { text: string; count: number } =
+      this.redactAndOmitEmbeddedData(text);
     let output: string = redacted.text;
     let isTruncated: boolean = false;
 

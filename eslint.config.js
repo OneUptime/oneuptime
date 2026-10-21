@@ -61,7 +61,9 @@ export default tseslint.config(
       "**/service-worker.js", // TODO: Remove this ignore
       "**/Static/", // TODO: Remove this ignore
       "**/*.js", // TODO: Remove this ignore
-      "packages/Probe/Tests/Utils/Monitors/SyntheticRuntime/Fixtures/ProcessRunnerWorker.cjs", // CommonJS fork fixture is intentionally outside the TypeScript project.
+      "packages/Probe/Tests/Utils/Monitors/SyntheticRuntime/Fixtures/*.cjs", // CommonJS fork fixtures are intentionally outside the TypeScript project.
+      "packages/Probe/Tests/TestingUtils/FakeTcpdump.cjs", // A stand-in for tcpdump the runner's tests start as a child process: plain CommonJS, outside the TypeScript project.
+      "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs", // The worker thread that reads external .ics calendars: a worker starts a fresh Node, which loads JavaScript, so plain CommonJS, outside the TypeScript project.
       "**/tmp/",
       "**/temp/",
       "**/.tmp/",

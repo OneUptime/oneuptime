@@ -76,7 +76,7 @@ import AuditLogsLicenseNotice, {
   getAuditLogsStoppedCopy,
 } from "../../../Dashboard/AuditLogs/AuditLogsLicenseNotice";
 import AuditLogsSettings from "../../../Dashboard/AuditLogs/AuditLogsSettings";
-import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import { EnterpriseLicenseMode } from "../../../Dashboard/Identity/License/EnterpriseLicenseMode";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
@@ -406,7 +406,7 @@ describe("Settings > Audit Logs against the license", () => {
     answerLicense({
       status: "valid",
       licenseValid: true,
-      features: ["sso", "scim"],
+      features: ["scim", "team-compliance"],
     });
 
     await renderSettings();

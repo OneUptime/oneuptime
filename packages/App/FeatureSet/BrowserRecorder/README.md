@@ -83,7 +83,7 @@ Available on `window.OneUptimeReplay` once the artifact has loaded, and via
 | `grantConsent()`            | permits upload; required when the app's consent mode is `RequireExplicit`. After a `revokeConsent()` it starts a fresh session - consent platforms fire reject-then-accept inside one page life routinely |
 | `revokeConsent()`           | stops uploading, drops the buffer and the retry queue, and clears the stored session identity. Nothing recorded under the withdrawn consent survives; a later grant covers only what happens after it |
 | `captureSession(reason?)`   | uploads this session even though nothing went wrong; the reason lands on the timeline      |
-| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page |
+| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page. The reference identifies the SESSION - every page and tab of it, from its start - and a reference for a different user than the one the session belongs to ends it and starts a new session (see "Session user" under the privacy model) |
 | `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
 | `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
 | `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
@@ -268,20 +268,94 @@ is never re-linked to their earlier recordings; a later `grantConsent()`
 mints a new one. Under DNT / GPC the recorder never loads, so nothing is
 minted at all. `getVisitorId()` returns it.
 
+**Session user.** `identify()` lives in the page's memory, but a session is
+many pages: a multi-page app loads the recorder afresh on every navigation,
+and every tab of the origin shares the session id. A page that never called
+`identify()` - the login page a sign-in redirect lands on, a link opened in
+a new tab - used to send the session's header an anonymous version, and an
+identified session was listed as a visitor (#4206). So, **only while
+"Capture user identity" is on**, the recorder keeps
+`{ sessionId, userRef }` in `localStorage` under `oneuptime.replay.user` and
+every page of that session names the user on its meta. The record is bound
+to one session id and read as nobody for any other, so it never says who
+uses the browser: a new session (idle rollover, duration cap) starts
+anonymous unless the page that started it had identified the user itself.
+It is removed by `revokeConsent()` with the rest of the identity state, and
+never written while consent is withdrawn, under `RequireExplicit` before the
+grant (unlike the random ids, it is a person's), or after `stop()`.
+
+The decisions are `SessionIdentity.decideIdentify` in Common: an anonymous
+session is **attached** to the user from its start (the pages before the
+sign-in are the same visit); the same user changes nothing; a **different**
+user - one person signed out and another signed in, in this tab or another
+- ends the session (sealed under the previous user) and starts a new one
+with rotation reason `identity-change`. References are compared trimmed and
+case-sensitively, exactly as the server keys them. The server keeps the
+newest identity a session was given even when a later header version names
+nobody, so a page from an older recorder cannot undo it either.
+
 ### Known limits, stated plainly
 
-- **Image and media URLs are recorded verbatim.** `src`, `srcset` and
-  `poster` are what the player draws the page from, so they are kept in every
-  mode; a signed query string on one is a reference rather than readable
-  text, but it is still a URL the page handed out. Short `data-*` tokens that
-  CSS attribute selectors key on are kept too. Use `blockSelectors` or
-  `.oneuptime-block` for elements whose URLs or data attributes are
-  sensitive. In the two permissive masking modes attributes, like text, are
-  recorded as-is by policy.
+- **Image and media URLs are recorded verbatim, in every mode.** `src`,
+  `srcset` and `poster` are what the player draws the page from: it loads
+  those images from their addresses while the recording is watched, for
+  recordings made in the two permissive masking modes. A signed query
+  string on one is a reference rather than readable text, but it is still a
+  URL the page handed out, and one that is still valid loads. Under
+  `MaskAllText` the addresses are kept but never loaded, and neither are
+  the page's web fonts: the replay stays a wireframe. The player does the
+  same, to be safe, for a session whose masking mode was not reported or is
+  not one it recognises (its text still plays back as recorded). It goes by
+  the mode the session reports, which is its most recent page's, so a
+  session whose policy was relaxed while it recorded plays back relaxed.
+  An image the page held as a `data:` URL is not an address but part of the
+  recording, so it shows in every mode, `MaskAllText` included: block
+  elements that can display a personal image that way (an upload preview,
+  a scanned document). Short `data-*` tokens that CSS attribute selectors
+  key on are kept too. Use `blockSelectors` or `.oneuptime-block` for
+  elements whose URLs or data attributes are sensitive. In the two
+  permissive masking modes attributes, like text, are recorded as-is by
+  policy.
 - Canvas / WebGL, cross-origin iframes, closed shadow roots, cross-origin
   stylesheets, web fonts and `<video>`/`<audio>` are not captured. Each is
   reported to the player as a machine-readable `fidelityNotices` code, so a
   viewer sees "this was not recorded" rather than an unexplained blank.
+  Cross-origin stylesheets and web fonts still show at playback: the
+  recording keeps their addresses (the `<link href>`, the `@font-face` `src`)
+  and the player loads them from there (web fonts not under `MaskAllText`),
+  so they only go missing when the viewer's browser cannot fetch them.
+- **Watching a replay makes the viewer's browser request those addresses**:
+  the images, the stylesheets rrweb could not inline and the web fonts, from
+  the hosts the recorded page used, which see the viewer's IP address.
+  `<img>` and `<link>` requests carry no `Referer`. The replay document's
+  URL is the player's, session id included, so the stage gives it a
+  `no-referrer` policy, and the player strips from every chunk, before
+  rrweb builds anything from it, the recorded page's own referrer controls
+  that would override that policy (`referrerpolicy` attributes, a
+  `<meta name="referrer">`). Requests made by CSS the recording inlined
+  (background images, `@font-face`) carry the Dashboard's origin to other
+  hosts in Chromium, and the player's full URL when they go back to the
+  Dashboard's own host; no request to another host carries the replay URL
+  or the session id. Fonts are CORS requests from the Dashboard's origin.
+  An asset behind the end user's sign-in, refused to other sites
+  (`Cross-Origin-Resource-Policy`, hotlink rules), expired, gone, refused
+  by the viewer's own ad or tracker blocker, or on a network the viewer
+  cannot reach does not render; the player names the first 200 images and
+  stylesheets that failed. A `blob:` image never loads outside the tab
+  that made it, and is not named.
+- **A tracking pixel would fire again on every watch.** The player removes
+  the `src` and `srcset` of an `<img>` whose `width` and `height`
+  attributes are both 1 or less before playback, so such a pixel is never
+  requested. Any other image a page uses as a tracker is requested from the
+  viewer's browser, with the viewer's cookies for that tracker, each time
+  the replay is watched: block it at capture (`blockSelectors`,
+  `.oneuptime-block`).
+- **Relative `poster` addresses, and the legacy `background` attribute,**
+  are the addresses rrweb does not make absolute. Left alone they would
+  resolve against the replay document, which is the Dashboard, so before
+  playback the player resolves them against the recorded page's `Meta`
+  href (scrubbed to origin and path) or a recorded `<base href>`, and drops
+  them when it has no page address for them.
 - **A terminal flush is ONE keepalive request under a 56 KB cap**, however
   many chunks it carries. The browser counts the keepalive quota per ORIGIN
   across every in-flight request, so "one request per piece" is one request
@@ -531,6 +605,43 @@ minted at all. `getVisitorId()` returns it.
   `SessionReplayFidelityNotice` enum, so the player renders it as an unknown
   code rather than with dedicated copy.
 
+## Idle pause
+
+A tab nobody is using records nothing after `SESSION_REPLAY_IDLE_PAUSE_MS`
+(five minutes). Until then it records as usual: nobody can know the user has
+gone sooner.
+
+- **Activity is a person.** It is `keydown`, `mousedown`, `mousemove`, `wheel`,
+  `touchstart` and `touchmove`, heard directly on the document (capture phase,
+  passive), plus rrweb's pointer, touch and drag sources. Mutations, scrolls,
+  input values, style rules, canvas frames and media events are not activity:
+  a page produces all of them on its own, and counting them kept the idle
+  clocks from ever running on such pages. keydown is heard because rrweb
+  records none: someone writing in a rich-text editor reaches the recording
+  only as mutations.
+- **Pausing** happens on the flush tick (`maybePauseForIdle`). It reports the
+  page's vitals as a hidden tab would, puts an `oneuptime.idle-paused` marker
+  at the end of the footage, closes the open chunk through the ordinary path,
+  drops the in-memory pre-roll and stops rrweb.
+- **While paused**, `emitCustomEvent` drops rather than queues. The console,
+  network, error and route recorders are `isSuspended`, so they neither
+  record nor spend their caps. Triggers other than `Manual` are ignored,
+  `track()` is dropped, and no session id goes on the page's requests. Every
+  seal (`getRecordingEndUnixMs`) is dated at the last activity, and the
+  chunker clamps that to the end of the footage (the pause marker).
+- **Resuming** happens on the next input (`resumeFromIdlePause`, deferred a
+  tick). rrweb starts again, which takes the snapshot, followed by an
+  `oneuptime.idle-resumed` marker and, if the stream last said `hidden`, a
+  `visible` one. It is the same session, the same tab and the next chunk
+  index. `captureSession()` resumes too, without counting as input.
+- **Rollovers while paused** do not start a session on an empty room. A
+  duration cap, a lost store or a sibling's rotation seals this tab's part and
+  waits, as an idle seal does (`sealedForIdle`). The user's return starts or
+  adopts the next session through `switchSession`, which resumes capture.
+
+The player draws the stretch between the two markers as a "paused" band and
+always skips it (`ReplayPlaybackIntent.shouldAutoSkipBand`).
+
 ## Offline mode
 
 Recording never depends on the network. When the visitor loses their
@@ -730,13 +841,16 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 311.4 KB raw / 94.2 KB gzip**, **loader.js 13.3 KB raw /
-4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (93 KB gzip
+Measured: **recorder.js 325.4 KB raw / 97.7 KB gzip**, **loader.js 13.3 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (97 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
-recorder budget went from 90 KB to 92 KB for offline mode, and to 93 KB on
+recorder budget went from 90 KB to 92 KB for offline mode, to 93 KB on
 2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
-94178 bytes gzip); `esbuild.config.js` carries each measurement and reason.
+94178 bytes gzip), to 95 KB on 2026-09-26 for INP per single-page-app
+view (issue #3975: 94102 → 95550 bytes gzip), and to 97 KB on 2026-10-02 for
+the idle pause (issue #4208: 96723 → 97650 bytes gzip); `esbuild.config.js`
+carries each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab

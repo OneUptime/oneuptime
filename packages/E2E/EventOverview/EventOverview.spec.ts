@@ -18,7 +18,8 @@ import path from "path";
  * on any request the fixture does not model.
  */
 
-const PORT: string = "4222";
+// The fixture server's port: EVENT_OVERVIEW_FIXTURE_PORT, as the config and server.js read it.
+const PORT: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
@@ -38,6 +39,10 @@ const RESOLVED_INCIDENT_STATE_ID: string = uuid("21000000", 3);
 const ACKNOWLEDGED_ALERT_STATE_ID: string = uuid("31000000", 2);
 
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
+
+// The Retry confirmation of the incident-created notification (SubscriberNotificationResendCopy).
+const INCIDENT_CREATED_RETRY_DESCRIPTION: string =
+  "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.";
 const INCIDENT_PATH: string = `${DASHBOARD}/incidents/${INCIDENT_ID}`;
 const ALERT_PATH: string = `${DASHBOARD}/alerts/${ALERT_ID}`;
 const SCHEDULED_MAINTENANCE_PATH: string = `${DASHBOARD}/scheduled-maintenance-events/${SCHEDULED_MAINTENANCE_ID}`;
@@ -75,6 +80,27 @@ const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
 // The investigation's guarantee, shown whether or not its details are open.
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
+/*
+ * The line that closes a published report. It only renders beside a report,
+ * so the pages use it to know the AI card has finished loading.
+ */
+const REPORT_CAVEAT: string = "AI-generated first pass — verify before acting.";
+
+// The rating row's question, which also names its two-answer group.
+const VERDICT_QUESTION: string = "Was this analysis correct?";
+
+/*
+ * "Declare Incident" in an alert's header, after the state actions
+ * (Components/Alert/DeclareIncidentFromAlert.ts). It opens the create-incident
+ * page prefilled from the alert.
+ */
+const DECLARE_INCIDENT: string = "Declare Incident";
+const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
+const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
+// Its disabled reason for someone who may not create incidents (PermissionGate).
+const DECLARE_INCIDENT_DENIED: string =
+  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+
 interface RecordedApiRequest {
   method: string;
   url: string;
@@ -96,6 +122,7 @@ interface RecordedWrite {
   modelName: string;
   id?: string;
   data?: Record<string, unknown>;
+  miscDataProps?: Record<string, unknown>;
 }
 
 interface UnhandledRequest {
@@ -162,6 +189,14 @@ interface EventPage {
   detailsCard: string;
   // Field labels of the details card, in order.
   detailLabels: ReadonlyArray<string>;
+  // The record's own ID, on the small line the details card ends with.
+  recordId: string;
+  /*
+   * When the record was created, on that same line after the ID, for the
+   * cards that show it. An incident's card says when it was declared, as a
+   * field, instead.
+   */
+  recordCreated?: string | undefined;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -172,11 +207,13 @@ const INCIDENT_PAGE: EventPage = {
   identifier: "#1042",
   feed: "Incident Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Rolling checkout-api back to 2026.09.14-1",
     "Communications Lead",
     "eu-west-1 probe",
     "4 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to postmortem",
   ],
   state: "Resolved",
   severity: "SEV-2",
@@ -207,17 +244,24 @@ const INCIDENT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:12 PM GMT",
     },
   ],
-  rightColumn: ["Incident Details", "Incident Roles", "Affected Resources"],
+  rightColumn: [
+    "Incident Details",
+    "Measurements",
+    "Incident Roles",
+    "Affected Resources",
+  ],
   detailsCard: "Incident Details",
   detailLabels: [
     "Declared At",
     "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
+    // The status pages the incident is limited to, read only.
+    "Status Page Scope",
     "Labels",
     "Incident Number",
-    "Incident ID",
   ],
+  recordId: INCIDENT_ID,
 };
 
 const ALERT_PAGE: EventPage = {
@@ -228,10 +272,13 @@ const ALERT_PAGE: EventPage = {
   identifier: "#311",
   feed: "Alert Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Alert #311 Created:",
     "Payments on-call",
-    "1 resource",
+    // Its monitor and its one service.
+    "2 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to resolve",
   ],
   state: "Resolved",
   severity: "High",
@@ -259,18 +306,18 @@ const ALERT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:15 PM GMT",
     },
   ],
-  rightColumn: ["Alert Details", "Affected Resources"],
+  rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
   detailsCard: "Alert Details",
   detailLabels: [
-    "Created At",
     "Created By",
     "Monitor",
     "Episode",
     "On-Call Duty Policies",
     "Labels",
     "Alert Number",
-    "Alert ID",
   ],
+  recordId: ALERT_ID,
+  recordCreated: "Sep 14 2026, 06:06 PM GMT",
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -285,6 +332,8 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Acme Internal Status",
     "4 resources",
     "Mark as Ongoing",
+    // The Measurements card, which reads its own rows.
+    "Maintenance duration",
   ],
   state: "Scheduled",
   duration: "Starts in 2 hours",
@@ -313,19 +362,19 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
       description: "Planned window · times in GMT",
     },
   ],
-  rightColumn: ["Maintenance Details", "Affected Resources"],
+  rightColumn: ["Maintenance Details", "Measurements", "Affected Resources"],
   detailsCard: "Maintenance Details",
   detailLabels: [
     "Starts At",
     "Ends At",
-    "Created At",
     "Shown on Status Pages",
     "Subscriber Reminders",
     "Subscriber Notifications",
     "Labels",
     "Scheduled Maintenance Number",
-    "Scheduled Maintenance ID",
   ],
+  recordId: SCHEDULED_MAINTENANCE_ID,
+  recordCreated: "Sep 10 2026, 09:00 AM GMT",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -366,10 +415,10 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: INCIDENT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:56 PM GMT",
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -410,10 +459,10 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: ALERT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:40 PM GMT",
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -659,6 +708,60 @@ async function expectAbove(
   );
 }
 
+/*
+ * Where a card header keeps what the card offers (Edit, Create, the ⋯ menu,
+ * a status pill): at the header's right edge, and under the title only when
+ * it does not fit beside it - never under the description, never at the
+ * left, never centred. "Why are edit buttons not on the right?"
+ */
+async function expectHeaderActionsOnTheRight(
+  cardLocator: Locator,
+  label: string,
+  options?: { onTitleLine?: boolean | undefined } | undefined,
+): Promise<void> {
+  const header: Locator = cardLocator.getByTestId("card-header").first();
+  const title: Box = await documentBox(
+    header.getByTestId("card-details-heading"),
+  );
+  const actions: Box = await documentBox(
+    header.getByTestId("card-header-actions"),
+  );
+  const headerBox: Box = await documentBox(header);
+  const isOnTitleLine: boolean =
+    actions.y < title.y + title.height && actions.y + actions.height > title.y;
+
+  expect(
+    Math.abs(headerBox.x + headerBox.width - (actions.x + actions.width)),
+    `${label} ends at the header's right edge`,
+  ).toBeLessThanOrEqual(1);
+
+  if (isOnTitleLine) {
+    expect(actions.x, `${label} sits right of the title`).toBeGreaterThan(
+      title.x + 1,
+    );
+  } else {
+    expect(
+      actions.y,
+      `${label} is under the title when it is not beside it`,
+    ).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  }
+
+  if (options?.onTitleLine !== undefined) {
+    expect(isOnTitleLine, `${label} on the title's line`).toBe(
+      options.onTitleLine,
+    );
+  }
+
+  // Never under the description: that comes after the actions, or beside them.
+  const description: Locator = header.getByTestId("card-description");
+  if ((await description.count()) > 0 && (await description.isVisible())) {
+    const descriptionBox: Box = await documentBox(description);
+    expect(actions.y, `${label} is not under the description`).toBeLessThan(
+      descriptionBox.y + 1,
+    );
+  }
+}
+
 function sideMenu(page: Page): Locator {
   return page
     .locator("aside[role='navigation'][aria-label='Main navigation']")
@@ -683,6 +786,11 @@ function hero(page: Page): Locator {
   return page
     .getByRole("group", { name: "Event actions" })
     .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+}
+
+// The hero's action row: state buttons, other actions, then "More actions".
+function heroActions(page: Page): Locator {
+  return page.getByRole("group", { name: "Event actions" });
 }
 
 function summarySection(page: Page): Locator {
@@ -715,8 +823,8 @@ type DetailsTabName = "Evidence" | "Activity";
 
 /*
  * A tab of the details (or its panel, which the tab names) by the start of
- * its name: every tab name ends with its count, and phones shorten
- * "Evidence checked" to "Evidence".
+ * its name: every tab name ends with its count. Phones draw a shorter
+ * "Evidence" label, but the name stays "Evidence checked".
  */
 function detailsTab(page: Page, name: DetailsTabName): Locator {
   return investigationDetails(page).getByRole("tab", {
@@ -928,7 +1036,7 @@ async function skeletonWasSeen(page: Page): Promise<boolean> {
  */
 
 test.describe("AI investigation report", () => {
-  test("the summary is its own section above the report", async ({
+  test("the summary is the card's first section, above the report", async ({
     page,
   }: {
     page: Page;
@@ -936,9 +1044,9 @@ test.describe("AI investigation report", () => {
     await openReady(page, INCIDENT_PAGE);
 
     const investigation: Locator = investigationCard(page);
-    await expect(
-      investigation.getByLabel("Investigation status"),
-    ).toContainText("Investigation complete");
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Completed",
+    );
     await expect(investigation).toContainText(
       "OneUptime AI's root-cause report for this incident.",
     );
@@ -947,7 +1055,8 @@ test.describe("AI investigation report", () => {
     await expect(summary.getByRole("heading", { level: 3 })).toHaveText(
       "Summary",
     );
-    await expect(summary.getByText("TL;DR", { exact: true })).toBeVisible();
+    // The TL;DR is the section's lead line; it no longer wears a chip.
+    await expect(summary.getByText("TL;DR", { exact: true })).toHaveCount(0);
     await expect(
       summary.getByText(INCIDENT_TLDR, { exact: true }),
     ).toBeVisible();
@@ -974,26 +1083,14 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const report: Locator = reportSection(page);
-    await expect(report.getByRole("heading", { level: 3 })).toHaveText(
-      "Investigation report",
-    );
     /*
-     * The header's own line says the report is an AI first pass, so there is
-     * no separate "AI generated" pill beside Copy report.
+     * No title of its own: the card's title already names the report, whose
+     * sections sit directly in the card under h3s like the Summary's.
      */
     await expect(
-      report.getByText("AI-generated first pass — verify before acting.", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
-      0,
-    );
-    await expect(
-      report.getByRole("button", { name: "Copy report" }),
-    ).toBeVisible();
-
-    await expect(report.getByRole("heading", { level: 4 })).toHaveText([
+      report.getByRole("heading", { name: "Investigation report" }),
+    ).toHaveCount(0);
+    await expect(report.getByRole("heading", { level: 3 })).toHaveText([
       "Most likely root cause",
       "Evidence",
       "Suggested next steps",
@@ -1003,10 +1100,30 @@ test.describe("AI investigation report", () => {
       0,
     );
 
+    /*
+     * The caveat and Copy report close the report, after its last section.
+     * There is no separate "AI generated" pill beside Copy report.
+     */
+    const caveat: Locator = report.getByText(REPORT_CAVEAT, { exact: true });
+    await expect(caveat).toBeVisible();
+    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
+      0,
+    );
+    const copyReport: Locator = report.getByRole("button", {
+      name: "Copy report",
+    });
+    await expect(copyReport).toBeVisible();
+    await expectAbove(
+      report.getByRole("heading", { name: "Suggested next steps" }),
+      caveat,
+      "the last section before the caveat",
+    );
+
+    // The root cause is a plain section, not an amber callout.
     const rootCause: Locator = report.locator(
       "section[data-section-kind='RootCause']",
     );
-    await expect(rootCause).toHaveClass(/border-amber-200/);
+    await expect(rootCause).not.toHaveClass(/border|bg-|ring|rounded|shadow/);
     await expect(rootCause).toContainText(
       "Release 2026.09.14-2 of checkout-api started at 17:52:04",
     );
@@ -1203,9 +1320,16 @@ test.describe("AI investigation report", () => {
       }),
     ).toBe(true);
 
-    // #1029 has no investigation: neither the card nor the header summary.
+    /*
+     * #1029 has no investigation: the card says so in its own words, with
+     * nothing of #1042's report, and there is no header summary.
+     */
     await expect(card(page, "Incident Feed")).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Not investigated");
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -1471,7 +1595,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     await rating.getByRole("button", { name: "Confirmed" }).click();
     await expect(
@@ -1519,7 +1643,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     await investigation
-      .getByRole("group", { name: "Rate this investigation" })
+      .getByRole("group", { name: VERDICT_QUESTION })
       .getByRole("button", { name: "Confirmed" })
       .click();
     await expect(
@@ -1548,7 +1672,7 @@ test.describe("AI investigation report", () => {
     const header: Locator = hero(page);
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
     const rejected: Locator = header.getByText("Rejected by a responder", {
@@ -1767,7 +1891,7 @@ test.describe("AI investigation report", () => {
     await expect(investigation.getByText("Fix task created")).toHaveCount(0);
   });
 
-  test("the feed shows a compact AI item and the full report behind More Information", async ({
+  test("the feed shows a compact AI item and unfolds the full report in place", async ({
     page,
   }: {
     page: Page;
@@ -1788,25 +1912,34 @@ test.describe("AI investigation report", () => {
     await expect(item).not.toContainText("Automated Root Cause Analysis");
     await expect(item).not.toContainText("Suggested next steps");
 
-    await item.getByRole("button", { name: "More Information" }).click();
-    const dialog: Locator = page.getByRole("dialog", {
-      name: "More Information",
+    const toggle: Locator = item.getByRole("button", {
+      name: "Show the full report",
     });
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Most likely root cause");
-    await expect(dialog).toContainText("Suggested next steps");
-    await expect(dialog).toContainText("Evidence checked");
-    await expect(dialog).toContainText(
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+
+    // Under the entry, where it was asked for: no dialog over the page.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const report: Locator = item.getByTestId("feed-entry-details");
+    await expect(report).toBeVisible();
+    await expect(
+      item.getByRole("button", { name: "Hide details" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(report).toContainText("Most likely root cause");
+    await expect(report).toContainText("Suggested next steps");
+    await expect(report).toContainText("Evidence checked");
+    await expect(report).toContainText(
       "Incident #1042 timeline (1 entry) — 1 row(s)",
     );
-    await expect(dialog).toContainText(
+    await expect(report).toContainText(
       "Investigated automatically by OneUptime AI",
     );
-    // Safe mode: nothing in the modal is a link or an image from the report.
-    await expect(dialog.locator("img")).toHaveCount(0);
+    // Safe mode: nothing in the report is an image.
+    await expect(report.locator("img")).toHaveCount(0);
 
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).toHaveCount(0);
+    await item.getByRole("button", { name: "Hide details" }).click();
+    await expect(report).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
   test("the alert page shows its report, references and header summary", async ({
@@ -1828,7 +1961,7 @@ test.describe("AI investigation report", () => {
       "#298 · Payment webhook 5xx rate above 5% · Resolved",
     );
     await expect(
-      reportSection(page).getByRole("heading", { level: 4 }),
+      reportSection(page).getByRole("heading", { level: 3 }),
     ).toHaveText([
       "Most likely root cause",
       "Evidence",
@@ -2096,7 +2229,7 @@ test.describe("investigation details", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation.getByLabel("Investigation status")).toHaveText(
-      "Preparing investigation report…",
+      "Preparing report…",
       { timeout: 30000 },
     );
     const details: Locator = investigationDetails(page);
@@ -2804,7 +2937,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "queued",
-    badge: "Queued — waiting for a worker…",
+    badge: "Queued",
     bodyTexts: [
       "OneUptime AI is investigating",
       "Waiting for a worker to pick this up.",
@@ -2814,7 +2947,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "failed",
-    badge: "Investigation did not finish",
+    badge: "Did not finish",
     bodyTexts: [
       "The investigation stopped before it could report.",
       "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
@@ -2826,7 +2959,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "pending",
-    badge: "Preparing investigation report…",
+    badge: "Preparing report…",
     bodyTexts: [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
@@ -2858,9 +2991,7 @@ test.describe("investigation states", () => {
       await expect(reportSection(page)).toHaveCount(0);
       await expect(evidenceList(page)).toHaveCount(0);
       // Nor a rating: there is nothing to judge, even once the run completes.
-      await expect(
-        investigation.getByText("Rate this investigation"),
-      ).toHaveCount(0);
+      await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
       await expect(
         investigation.getByRole("button", { name: "Confirmed" }),
       ).toHaveCount(0);
@@ -2902,7 +3033,12 @@ test.describe("investigation states", () => {
     });
   }
 
-  test("?ai=none renders no investigation card and no header notice", async ({
+  /*
+   * With no run the slot keeps the same card, header and pill a run gets,
+   * and says why nothing was investigated instead of a report. The
+   * conversation closes that card too (see "one AI card" below).
+   */
+  test("?ai=none explains the missing run in the same card, with no header notice", async ({
     page,
   }: {
     page: Page;
@@ -2912,7 +3048,30 @@ test.describe("investigation states", () => {
     await expect(
       page.getByText("Rolling checkout-api back").first(),
     ).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+
+    const investigation: Locator = investigationCard(page);
+    await expect(investigation).toHaveCount(1);
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Not investigated",
+      { timeout: 30000 },
+    );
+    await expect(
+      investigation.getByRole("heading", {
+        level: 3,
+        name: "No investigation has been recorded",
+      }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("heading", { level: 3, name: "What you can do" }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("link", { name: "Review incident AI settings" }),
+    ).toBeVisible();
+    // Nothing a run would show: no report, details or rating.
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(investigationDetails(page)).toHaveCount(0);
+    await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
     await expect(
       hero(page).getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -2921,6 +3080,2523 @@ test.describe("investigation states", () => {
         "OneUptime AI posted a root cause analysis",
       ),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An investigation rule's wait (issue #5074)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * While an investigation rule makes OneUptime AI wait, the AI card says when
+ * it investigates - eight minutes from the pinned clock, a 10-minute wait -
+ * if the record is still open, with a "Waiting" pill rather than "Not
+ * investigated". Whoever may change the record can start it at once with
+ * Investigate now; everyone else is told who can.
+ */
+const WAIT_TIME: string = "(6:28 PM|18:28)";
+const WAITING_INCIDENT_TITLE: RegExp = new RegExp(
+  `^OneUptime AI investigates at ${WAIT_TIME} if this incident is still open$`,
+);
+const WAITING_ALERT_TITLE: RegExp = new RegExp(
+  `^OneUptime AI investigates at ${WAIT_TIME} if this alert is still open$`,
+);
+const WAITING_INCIDENT_DESCRIPTION: string =
+  "An investigation rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
+const WAITING_ALERT_DESCRIPTION: string =
+  "An investigation rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
+// InvestigationRuleWait's refusal when the project's own daily limit is reached.
+const DAILY_LIMIT_REFUSAL: string =
+  "This project has reached its own daily AI limit. It resets at midnight UTC.";
+
+function waitingBody(page: Page): Locator {
+  return investigationCard(page).getByTestId("investigation-waiting");
+}
+
+async function openWaiting(
+  page: Page,
+  pagePath: string,
+  query: string = "ai=waiting",
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(
+    investigationCard(page).getByLabel("Investigation status"),
+  ).toHaveText("Waiting", { timeout: 30000 });
+  return waitingBody(page);
+}
+
+test.describe("an investigation rule's wait (issue #5074)", () => {
+  test("?ai=waiting says when OneUptime AI investigates the incident, and why it waits, in the same card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const investigation: Locator = investigationCard(page);
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      WAITING_INCIDENT_TITLE,
+    );
+    await expect(waiting).toContainText(WAITING_INCIDENT_DESCRIPTION);
+    await expect(waiting).toHaveAttribute("aria-live", "polite");
+
+    /*
+     * Nothing was skipped: no "Not investigated" pill, and no reason why
+     * (exact: the wait's own sentence ends "are not investigated.").
+     */
+    await expect(
+      investigation.getByTestId("investigation-not-started"),
+    ).toHaveCount(0);
+    await expect(
+      investigation.getByText("Not investigated", { exact: true }),
+    ).toHaveCount(0);
+    // Nothing a run shows yet.
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(investigationDetails(page)).toHaveCount(0);
+    await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
+
+    // Someone who may change the incident is offered Investigate now.
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+    await expect(waiting.getByTestId("investigate-now-who")).toHaveCount(0);
+    await expect(waiting.getByTestId("investigate-now-error")).toHaveCount(0);
+  });
+
+  test("Investigate now starts it at once, once, for this incident, and the card turns to the queued run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const investigation: Locator = investigationCard(page);
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Queued",
+      { timeout: 30000 },
+    );
+    await expect(waitingBody(page)).toHaveCount(0);
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/investigate-now",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      subjectType: "incident",
+      subjectId: INCIDENT_ID,
+    });
+  });
+
+  test("a refusal says why in the server's words, and the button stays for another try", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&fail=investigate-now",
+    );
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    const error: Locator = waiting.getByTestId("investigate-now-error");
+    await expect(error).toHaveText(DAILY_LIMIT_REFUSAL);
+    await expect(error).toHaveAttribute("role", "alert");
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Waiting");
+  });
+
+  test("?ai=waiting-viewer: someone who may not change the incident is told who can, and gets no button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting-viewer",
+    );
+
+    await expect(waiting.getByTestId("investigate-now-who")).toHaveText(
+      "Someone who can edit this incident can start the investigation now.",
+    );
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * A day's wait from an incident declared late in the day ends tomorrow:
+   * the heading says so, rather than "at 15 Sep, 5:20 PM".
+   */
+  test("?wait=tomorrow: a wait that ends after midnight says tomorrow at its time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&wait=tomorrow",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      /^OneUptime AI investigates tomorrow at (5:20 PM|17:20) if this incident is still open$/,
+    );
+    await expect(waiting).toContainText(
+      "An investigation rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
+    );
+  });
+
+  /*
+   * The rule-wait job takes a record within the minute its wait ends, and
+   * the card shows the run once it reads it. Until then the card names no
+   * time gone by: OneUptime AI investigates shortly. Still waiting, still
+   * startable.
+   */
+  test("?wait=ended: once the time has come, the card says shortly, naming no time gone by", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      ALERT_PATH,
+      "ai=waiting&wait=ended",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI investigates shortly if this alert is still open",
+    );
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+  });
+
+  test("an alert's wait names the alert, and Investigate now starts it on the alert's lane", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, ALERT_PATH);
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      WAITING_ALERT_TITLE,
+    );
+    await expect(waiting).toContainText(WAITING_ALERT_DESCRIPTION);
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Queued", { timeout: 30000 });
+    expect(
+      (await apiRequestsTo(page, "/ai-investigation/investigate-now")).map(
+        (request: RecordedApiRequest): Record<string, unknown> => {
+          return request.body;
+        },
+      ),
+    ).toEqual([{ subjectType: "alert", subjectId: ALERT_ID }]);
+  });
+
+  test("on a phone the waiting card fits the screen, its button and words inside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const button: Locator = waiting.getByRole("button", {
+      name: "Investigate now",
+    });
+
+    await button.scrollIntoViewIfNeeded();
+    const body: Box = await documentBox(waiting);
+    const buttonBox: Box = await documentBox(button);
+
+    expect(buttonBox.x).toBeGreaterThanOrEqual(body.x - 0.5);
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(
+      body.x + body.width + 0.5,
+    );
+    // The page never scrolls sideways.
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One flat card
+ * ---------------------------------------------------------------------------
+ */
+
+interface PanelOffender {
+  tag: string;
+  className: string;
+  reason: string;
+}
+
+/*
+ * Everything inside the AI card that paints a panel of its own, read from the
+ * browser's computed styles: a tinted background, a frame on all four sides,
+ * or a shadow, on anything big enough to be a region (small marks such as a
+ * spinner are not panels). Controls (buttons, links, tabs, the verdict's
+ * answer group, the rows block of an evidence query, and the conversation's
+ * text box together with the frame drawn around it), inline code and
+ * collapsed content are left out. So are the two things in an answer that
+ * keep a frame on purpose, each a named group: a chart or table (a figure,
+ * framed wherever it is drawn) and an action waiting for approval. The card
+ * used to hold a tinted summary box, a report box with an amber callout
+ * inside it, a details box and an actions box, and its conversation gray
+ * steps, a red error, bordered action rows and source pills.
+ *
+ * The card is read at rest. A row's hover wash is not a panel, but one caught
+ * fading out reads as a tinted background: clicking an evidence row moves the
+ * pointer off the Evidence and activity header it opened, whose wash then
+ * fades for 150ms. So the pointer is parked off the card and transitions are
+ * suspended while the styles are read, which settles every wash at once.
+ */
+async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
+  await page.mouse.move(0, 0);
+
+  return page
+    .locator("#ai-investigation")
+    .evaluate((region: Element): Array<PanelOffender> => {
+      const offenders: Array<PanelOffender> = [];
+      const atRest: HTMLStyleElement = document.createElement("style");
+      atRest.textContent =
+        "*, *::before, *::after { transition: none !important; }";
+      document.head.appendChild(atRest);
+      // Declared in here: this callback runs in the page, not in Node.
+      const zeroAlphaRgba: RegExp = /rgba\([^)]*,\s*0\)$/;
+      const isTransparent: (color: string) => boolean = (
+        color: string,
+      ): boolean => {
+        return (
+          color === "transparent" ||
+          zeroAlphaRgba.test(color) ||
+          color === "rgba(0, 0, 0, 0)"
+        );
+      };
+
+      const isFramed: (element: Element) => boolean = (
+        element: Element,
+      ): boolean => {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+        return ["top", "right", "bottom", "left"].every(
+          (side: string): boolean => {
+            return (
+              parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+              style.getPropertyValue(`border-${side}-style`) !== "none"
+            );
+          },
+        );
+      };
+
+      /*
+       * A textarea draws no border of its own: the frame around it (the
+       * nearest framed ancestor) is what shows it as a text box, so the two
+       * are one control, like a button.
+       */
+      const textBoxFrames: Array<Element> = [];
+
+      for (const textBox of Array.from(region.querySelectorAll("textarea"))) {
+        let ancestor: Element | null = textBox.parentElement;
+
+        while (ancestor && ancestor !== region) {
+          if (isFramed(ancestor)) {
+            textBoxFrames.push(ancestor);
+            break;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+      }
+
+      for (const element of Array.from(region.querySelectorAll("*"))) {
+        if (
+          element.closest(
+            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden], textarea",
+          ) ||
+          textBoxFrames.some((frame: Element): boolean => {
+            return frame.contains(element);
+          })
+        ) {
+          continue;
+        }
+
+        const rect: DOMRect = element.getBoundingClientRect();
+
+        if (rect.width < 40 || rect.height < 24) {
+          continue;
+        }
+
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        const shadowColors: Array<string> =
+          style.boxShadow === "none"
+            ? []
+            : style.boxShadow.match(/rgba?\([^)]*\)/g) || [];
+        const hasShadow: boolean = shadowColors.some(
+          (color: string): boolean => {
+            return !isTransparent(color);
+          },
+        );
+        const reasons: Array<string> = [];
+
+        if (!isTransparent(style.backgroundColor)) {
+          reasons.push(`background ${style.backgroundColor}`);
+        }
+
+        if (isFramed(element)) {
+          reasons.push("framed");
+        }
+
+        if (hasShadow) {
+          reasons.push(`shadow ${style.boxShadow}`);
+        }
+
+        if (reasons.length > 0) {
+          offenders.push({
+            tag: element.tagName.toLowerCase(),
+            className: element.getAttribute("class") || "",
+            reason: reasons.join(", "),
+          });
+        }
+      }
+
+      atRest.remove();
+
+      return offenders;
+    });
+}
+
+interface CardState {
+  name: string;
+  query: string;
+  badge: string;
+}
+
+const CARD_STATES: ReadonlyArray<CardState> = [
+  { name: "a completed report", query: "", badge: "Completed" },
+  {
+    name: "a report with cluster access notes",
+    query: "clusters=mixed",
+    badge: "Completed",
+  },
+  { name: "a legacy report", query: "ai=legacy", badge: "Completed" },
+  {
+    name: "a running investigation",
+    query: "ai=running",
+    badge: "Investigating…",
+  },
+  {
+    name: "a running investigation with cluster access notes",
+    query: "ai=running&clusters=mixed",
+    badge: "Investigating…",
+  },
+  { name: "a queued investigation", query: "ai=queued", badge: "Queued" },
+  {
+    name: "a failed investigation",
+    query: "ai=failed",
+    badge: "Did not finish",
+  },
+  {
+    name: "a report being prepared",
+    query: "ai=pending",
+    badge: "Preparing report…",
+  },
+  { name: "no investigation", query: "ai=none", badge: "Not investigated" },
+  // An incident checked again after an alert opened (?linked=followup).
+  {
+    name: "a follow-up check's report",
+    query: "linked=followup",
+    badge: "Completed",
+  },
+  {
+    name: "a follow-up check running",
+    query: "ai=running&linked=followup",
+    badge: "Investigating…",
+  },
+  // An investigation rule's wait (issue #5074, ?ai=waiting).
+  {
+    name: "an investigation waiting for its rule",
+    query: "ai=waiting",
+    badge: "Waiting",
+  },
+];
+
+async function openCardState(page: Page, state: CardState): Promise<Locator> {
+  await open(page, INCIDENT_PATH, state.query);
+  const investigation: Locator = investigationCard(page);
+  await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    state.badge,
+    { timeout: 30000 },
+  );
+  return investigation;
+}
+
+test.describe("one flat AI investigation card", () => {
+  for (const state of CARD_STATES) {
+    test(`${state.name} is one card with no panel inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const investigation: Locator = await openCardState(page, state);
+
+      // No card inside the card.
+      await expect(investigation.getByTestId("card")).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+  }
+
+  test("an open section and an expanded evidence row still draw no panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const details: Locator = await expandEvidence(page, "C5");
+    await expect(details.locator("pre")).toBeVisible();
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("every heading in the card shares one size, weight and colour", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+
+    const headings: Array<{ text: string; style: string }> = await page
+      .locator("#ai-investigation h3")
+      .evaluateAll(
+        (elements: Array<Element>): Array<{ text: string; style: string }> => {
+          return elements
+            .filter((element: Element): boolean => {
+              return !element.closest("[hidden]");
+            })
+            .map((element: Element): { text: string; style: string } => {
+              const style: CSSStyleDeclaration =
+                window.getComputedStyle(element);
+              return {
+                text: element.textContent || "",
+                style: [
+                  style.fontSize,
+                  style.fontWeight,
+                  style.color,
+                  style.textTransform,
+                  style.letterSpacing,
+                ].join(" "),
+              };
+            });
+        },
+      );
+
+    expect(
+      headings.map((heading: { text: string }): string => {
+        return heading.text;
+      }),
+    ).toEqual([
+      "Summary",
+      "Most likely root cause",
+      "Evidence",
+      "Suggested next steps",
+      "Evidence and activity",
+      "Act on this investigation",
+      VERDICT_QUESTION,
+      // The shared conversation under the report.
+      "Ask OneUptime AI",
+    ]);
+    expect(
+      new Set(
+        headings.map((heading: { style: string }): string => {
+          return heading.style;
+        }),
+      ).size,
+    ).toBe(1);
+    // A plain title: 14px semibold near-black, never an uppercase label.
+    expect(headings[0]!.style).toBe("14px 600 rgb(17, 24, 39) none normal");
+  });
+
+  test("the status pill is the same neutral pill in every state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const looks: Array<string> = [];
+
+    for (const state of CARD_STATES) {
+      const investigation: Locator = await openCardState(page, state);
+      looks.push(
+        await investigation
+          .getByLabel("Investigation status")
+          .evaluate((element: Element): string => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return [
+              style.backgroundColor,
+              style.color,
+              style.boxShadow,
+              style.borderRadius,
+            ].join(" | ");
+          }),
+      );
+    }
+
+    expect(new Set(looks).size).toBe(1);
+    // gray-50 behind gray-700 text: the colour is only in the small mark.
+    expect(looks[0]).toContain("rgb(249, 250, 251) | rgb(55, 65, 81)");
+  });
+
+  test("the report is the first thing in the card and the rating the last", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const investigation: Locator = investigationCard(page);
+
+    await expectAbove(
+      investigation.getByTestId("card-description"),
+      summarySection(page),
+      "the title before the summary",
+    );
+    await expectAbove(
+      page.getByTestId("investigation-report-footer"),
+      page.getByTestId("cluster-access-notice"),
+      "the report before the cluster notes",
+    );
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      investigationDetails(page),
+      "the cluster notes before the working",
+    );
+    await expectAbove(
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+      "the working before the actions",
+    );
+    await expect(
+      page
+        .getByTestId("investigation-actions")
+        .getByRole("heading", { level: 3 }),
+    ).toHaveText(["Act on this investigation", VERDICT_QUESTION]);
+  });
+
+  test("hairlines, not boxes, split the report from its working and its actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    for (const locator of [
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+    ]) {
+      const borders: Array<string> = await locator.evaluate(
+        (element: Element): Array<string> => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return [
+            style.borderTopWidth,
+            style.borderRightWidth,
+            style.borderBottomWidth,
+            style.borderLeftWidth,
+          ];
+        },
+      );
+      expect(borders).toEqual(["1px", "0px", "0px", "0px"]);
+    }
+  });
+
+  test("cluster access notes are plain lines, and the fix link opens the cluster's AI agent page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const notice: Locator = page.getByTestId("cluster-access-notice");
+
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveText(
+      "This investigation used OneUptime data only — no kubectl commands were run.",
+    );
+    const reachable: Locator = page.getByTestId("cluster-access-reachable");
+    await expect(reachable).toHaveText(
+      "OneUptime AI currently has read-only kubectl access to prod-eu-west-1 (fixes ask for your approval).",
+    );
+    await expect(
+      reachable.getByRole("link", { name: "prod-eu-west-1" }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000001/ai/agent`,
+    );
+
+    const unreachable: Locator = page.getByTestId("cluster-access-unreachable");
+    await expect(unreachable).toContainText(
+      'OneUptime AI cannot currently reach cluster "staging-us-east-1" with kubectl',
+    );
+    await expect(unreachable).toContainText(
+      "Why: The Kubernetes AI agent is not connected.",
+    );
+    await expect(unreachable).toContainText(
+      "What to do: Install the Kubernetes AI agent",
+    );
+
+    // Each note is a line with a mark, not a tinted box.
+    for (const row of await notice.locator(":scope > div").all()) {
+      const look: { background: string; border: string } = await row.evaluate(
+        (element: Element): { background: string; border: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopWidth,
+          };
+        },
+      );
+      expect(look).toEqual({ background: "rgba(0, 0, 0, 0)", border: "0px" });
+      await expect(row.locator("svg").first()).toBeVisible();
+    }
+
+    await unreachable
+      .getByRole("link", { name: "Open the cluster's AI agent page" })
+      .click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "KUBERNETES_CLUSTER_VIEW_AI_AGENT",
+    );
+    expect(new URL(page.url()).pathname).toBe(
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000002/ai/agent`,
+    );
+  });
+
+  test("a live run lists its cluster access before its steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&clusters=mixed");
+    const live: Locator = investigationCard(page).getByRole("region", {
+      name: "Live investigation",
+      exact: true,
+    });
+
+    await expect(
+      live.getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI is investigating",
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(live).toContainText(
+      "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed.",
+    );
+    await expect(page.getByTestId("cluster-access-unreachable")).toContainText(
+      'Investigating with OneUptime data only — no kubectl access to cluster "staging-us-east-1"',
+    );
+    // What the run did is only said once it has finished.
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveCount(0);
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      live.getByText("Starting investigation", { exact: true }),
+      "cluster access before the steps",
+    );
+  });
+
+  test("a chip's highlight reaches past the text while the row and its divider stay put", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const list: Locator = await openEvidence(page);
+    const tabs: Locator = investigationDetails(page).getByRole("tablist");
+    const row: Locator = evidenceRow(page, "C3");
+    const restingBox: Box = await documentBox(row);
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(
+        async (): Promise<{
+          left: string;
+          right: string;
+          background: string;
+        }> => {
+          return row.evaluate(
+            (
+              element: Element,
+            ): { left: string; right: string; background: string } => {
+              const style: CSSStyleDeclaration = window.getComputedStyle(
+                element,
+                "::before",
+              );
+              return {
+                left: style.left,
+                right: style.right,
+                background: style.backgroundColor,
+              };
+            },
+          );
+        },
+      )
+      .toEqual({
+        left: "-12px",
+        right: "-12px",
+        // indigo-50 at 70%.
+        background: "rgba(238, 242, 255, 0.7)",
+      });
+
+    // The row itself does not move, so its divider keeps to the text width.
+    const highlightedBox: Box = await documentBox(row);
+    expect(highlightedBox.x).toBeCloseTo(restingBox.x, 0);
+    expect(highlightedBox.width).toBeCloseTo(restingBox.width, 0);
+    const listBox: Box = await documentBox(list);
+    const tabsBox: Box = await documentBox(tabs);
+    expect(highlightedBox.width).toBeCloseTo(listBox.width, 0);
+    expect(listBox.x).toBeCloseTo(tabsBox.x, 0);
+    expect(listBox.width).toBeCloseTo(tabsBox.width, 0);
+
+    // The highlight fades after two seconds.
+    await expect(row).not.toHaveAttribute("data-highlighted", "true", {
+      timeout: 5000,
+    });
+  });
+
+  test("in the dark theme a chip's highlight uses the dark indigo wash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+    await openEvidence(page);
+    const row: Locator = evidenceRow(page, "C3");
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(async (): Promise<string> => {
+        return row.evaluate((element: Element): string => {
+          return window.getComputedStyle(element, "::before").backgroundColor;
+        });
+      })
+      .toBe("rgba(49, 46, 129, 0.35)");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One AI card: the investigation and the conversation
+ * ---------------------------------------------------------------------------
+ * The investigation and "Ask OneUptime AI" used to read as two cards. With no
+ * run they were two (the explanation of why nothing was investigated, and the
+ * conversation in a card of its own under it); with a run the conversation
+ * sat in the card behind an icon tile and a header of its own. The card now
+ * closes with the conversation in every state, drawn like its other rows.
+ */
+
+const CONVERSATION_TITLE: string = "Ask OneUptime AI";
+const WORKING_PLACEHOLDER: string =
+  "Type your next question — send it when this answer finishes…";
+const SENT_ANSWER: string =
+  "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state";
+const USUAL_SUGGESTIONS: ReadonlyArray<string> = [
+  "What should I do right now?",
+  "What changed just before this?",
+  "Is anything else affected?",
+  "Draft a status update",
+  "Acknowledge this incident",
+];
+const ROOT_CAUSE_SUGGESTION: string = "What is the root cause?";
+// indigo-600: the page's primary buttons, and OneUptime AI's mark.
+const INDIGO_600: string = "rgb(79, 70, 229)";
+// The font the dashboard ships (views/index.ejs); the fixture does not load it.
+const INTER_FONT_FILE: string = path.resolve(
+  __dirname,
+  "../../Common/Server/Static/Vendor/fonts/InterVariable.woff2",
+);
+
+function conversation(page: Page): Locator {
+  return page.getByTestId("investigation-conversation");
+}
+
+function composerBox(page: Page): Locator {
+  return conversation(page).getByRole("textbox", { name: CONVERSATION_TITLE });
+}
+
+// The frame drawn around the text box, its mode picker and Send.
+function composerFrame(page: Page): Locator {
+  return conversation(page)
+    .getByTestId("investigation-conversation-composer")
+    .locator(":scope > div")
+    .first();
+}
+
+function sendButton(page: Page): Locator {
+  return conversation(page).getByTitle("Send (Enter)");
+}
+
+function stopButton(page: Page): Locator {
+  return conversation(page).getByTitle("Stop generating");
+}
+
+function modePicker(page: Page): Locator {
+  return conversation(page).getByTitle("Choose what the AI is allowed to do");
+}
+
+function modeCaption(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-mode");
+}
+
+function suggestions(page: Page): Locator {
+  return conversation(page)
+    .getByRole("group", { name: "Suggested questions" })
+    .getByRole("button");
+}
+
+function questions(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-question");
+}
+
+function answers(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-answer");
+}
+
+function thread(page: Page): Locator {
+  return conversation(page).getByRole("log");
+}
+
+function showEarlier(page: Page): Locator {
+  return conversation(page).getByTestId(
+    "investigation-conversation-show-earlier",
+  );
+}
+
+function sources(answer: Locator): Locator {
+  return answer
+    .getByTestId("investigation-conversation-sources")
+    .getByRole("listitem");
+}
+
+async function openConversation(
+  page: Page,
+  query: string,
+  pagePath: string = INCIDENT_PATH,
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(
+    conversation(page).getByRole("heading", {
+      level: 3,
+      name: CONVERSATION_TITLE,
+    }),
+  ).toBeVisible({ timeout: 30000 });
+  // The thread has loaded: either it shows messages or it suggests some.
+  await expect(
+    conversation(page).getByText("Loading the conversation…"),
+  ).toHaveCount(0);
+  return conversation(page);
+}
+
+interface TextLook {
+  fontSize: string;
+  fontWeight: string;
+  color: string;
+}
+
+async function textLook(locator: Locator): Promise<TextLook> {
+  return locator.evaluate((element: Element): TextLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      color: style.color,
+    };
+  });
+}
+
+interface FrameLook {
+  background: string;
+  borders: Array<string>;
+  shadow: string;
+}
+
+async function frameLook(locator: Locator): Promise<FrameLook> {
+  return locator.evaluate((element: Element): FrameLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      borders: [
+        style.borderTopWidth,
+        style.borderRightWidth,
+        style.borderBottomWidth,
+        style.borderLeftWidth,
+      ],
+      shadow: style.boxShadow,
+    };
+  });
+}
+
+const NO_FRAME: FrameLook = {
+  background: "rgba(0, 0, 0, 0)",
+  borders: ["0px", "0px", "0px", "0px"],
+  shadow: "none",
+};
+
+test.describe("one AI card: the investigation and the conversation", () => {
+  for (const state of CARD_STATES) {
+    test(`${state.name}: the conversation closes the one AI card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const investigation: Locator = await openCardState(page, state);
+      await expect(
+        conversation(page).getByRole("heading", {
+          level: 3,
+          name: CONVERSATION_TITLE,
+        }),
+      ).toBeVisible();
+
+      // One AI card on the page, and the conversation is inside it.
+      await expect(investigation).toHaveCount(1);
+      await expect(
+        investigation.getByTestId("investigation-conversation"),
+      ).toHaveCount(1);
+      await expect(conversation(page)).toHaveCount(1);
+      await expect(
+        page.getByTestId("card").filter({ has: conversation(page) }),
+      ).toHaveCount(1);
+
+      // No card, and no card-level heading, of its own.
+      await expect(card(page, CONVERSATION_TITLE)).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { level: 2, name: CONVERSATION_TITLE }),
+      ).toHaveCount(0);
+      await expect(conversation(page).getByTestId("card")).toHaveCount(0);
+
+      // It is the last thing in the card's region.
+      expect(
+        await page
+          .locator("#ai-investigation")
+          .evaluate((region: Element): string | null => {
+            return region.lastElementChild?.getAttribute("data-testid") || null;
+          }),
+      ).toBe("investigation-conversation");
+
+      // And the card ends with its composer: nothing follows it but padding.
+      const cardBox: Box = await documentBox(
+        investigation.locator(":scope > div").first(),
+      );
+      const composer: Box = await documentBox(
+        conversation(page).getByTestId("investigation-conversation-composer"),
+      );
+      const gap: number =
+        cardBox.y + cardBox.height - (composer.y + composer.height);
+      expect(gap).toBeGreaterThanOrEqual(20);
+      expect(gap).toBeLessThanOrEqual(32);
+    });
+  }
+
+  test("the alert page has the same one card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of ["", "ai=none"]) {
+      await openConversation(page, query, ALERT_PATH);
+
+      await expect(investigationCard(page)).toHaveCount(1);
+      await expect(
+        investigationCard(page).getByTestId("investigation-conversation"),
+      ).toHaveCount(1);
+      await expect(card(page, CONVERSATION_TITLE)).toHaveCount(0);
+      await expect(
+        suggestions(page).filter({ hasText: "Acknowledge this alert" }),
+      ).toHaveCount(1);
+    }
+  });
+
+  test("the conversation is drawn like the card's other rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const section: Locator = conversation(page);
+    const heading: Locator = section.getByRole("heading", {
+      level: 3,
+      name: CONVERSATION_TITLE,
+    });
+    const verdictHeading: Locator = page
+      .getByTestId("investigation-actions")
+      .getByRole("heading", { level: 3, name: VERDICT_QUESTION });
+
+    // A hairline above it and nothing else around it.
+    expect(await frameLook(section)).toEqual({
+      background: "rgba(0, 0, 0, 0)",
+      borders: ["1px", "0px", "0px", "0px"],
+      shadow: "none",
+    });
+
+    // The same title and the same quieter line under it as the verdict row.
+    expect(await textLook(heading)).toEqual(await textLook(verdictHeading));
+    const description: Locator = heading.locator("xpath=following-sibling::p");
+    const verdictDescription: Locator = verdictHeading.locator(
+      "xpath=following-sibling::p",
+    );
+    await expect(description).toHaveText(
+      "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+    );
+    expect(await textLook(description)).toEqual(
+      await textLook(verdictDescription),
+    );
+
+    // The title starts at the card's left edge: no icon tile in front of it.
+    const headingBox: Box = await documentBox(heading);
+    const sectionBox: Box = await documentBox(section);
+    const verdictBox: Box = await documentBox(verdictHeading);
+    expect(headingBox.x).toBeCloseTo(sectionBox.x, 0);
+    expect(headingBox.x).toBeCloseTo(verdictBox.x, 0);
+    await expect(heading.locator("xpath=..").locator("svg")).toHaveCount(0);
+  });
+
+  test("the status pill ends at the edge the card's content ends at", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const investigation: Locator = investigationCard(page);
+    const pill: Box = await documentBox(
+      investigation.getByLabel("Investigation status"),
+    );
+    const title: Box = await documentBox(
+      investigation.getByRole("heading", { level: 2 }),
+    );
+    const section: Box = await documentBox(conversation(page));
+
+    // The default header: no layout of its own is needed any more.
+    await expect(investigation.getByTestId("card-header")).toHaveAttribute(
+      "data-header-layout",
+      "default",
+    );
+    // Beside the title, on its line.
+    expect(pill.y).toBeLessThan(title.y + title.height);
+    expect(pill.x).toBeGreaterThan(title.x + title.width);
+    // It used to stop 12px short of the hairlines' right end.
+    expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+  });
+
+  test.describe("what it suggests", () => {
+    const CASES: ReadonlyArray<{
+      name: string;
+      query: string;
+      description: string;
+      labels: ReadonlyArray<string>;
+    }> = [
+      {
+        name: "under a report it offers follow-ups",
+        query: "",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "with nothing investigated it leads with the root-cause question",
+        query: "ai=none",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
+      },
+      {
+        name: "after a run that stopped it leads with the root-cause question",
+        query: "ai=failed",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
+      },
+      {
+        name: "while a run is investigating it does not",
+        query: "ai=running",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "while a run is queued it does not",
+        query: "ai=queued",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "while the report is being written it does not",
+        query: "ai=pending",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+    ];
+
+    for (const scenario of CASES) {
+      test(scenario.name, async ({ page }: { page: Page }) => {
+        const section: Locator = await openConversation(page, scenario.query);
+
+        await expect(suggestions(page)).toHaveText([...scenario.labels]);
+        await expect(
+          section
+            .getByRole("heading", { level: 3 })
+            .locator("xpath=following-sibling::p"),
+        ).toHaveText(scenario.description);
+      });
+    }
+
+    test("the suggestions are plain chips straight above the composer", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "ai=none");
+      const group: Locator = section.getByRole("group", {
+        name: "Suggested questions",
+      });
+
+      // The sentence that only said the thread was empty is gone.
+      await expect(section).not.toContainText("Nobody has asked anything yet");
+      await expectAbove(group, composerFrame(page), "chips above the box");
+      const groupBox: Box = await documentBox(group);
+      const frameBox: Box = await documentBox(composerFrame(page));
+      expect(frameBox.y - (groupBox.y + groupBox.height)).toBeLessThanOrEqual(
+        20,
+      );
+
+      // Only the request to act carries a mark.
+      const marked: Array<string> = await suggestions(page).evaluateAll(
+        (chips: Array<Element>): Array<string> => {
+          return chips
+            .filter((chip: Element): boolean => {
+              return chip.querySelector("svg") !== null;
+            })
+            .map((chip: Element): string => {
+              return chip.textContent || "";
+            });
+        },
+      );
+      expect(marked).toEqual(["Acknowledge this incident"]);
+
+      // White pills on a hairline: no shadow under them.
+      for (const chip of await suggestions(page).all()) {
+        const look: FrameLook = await frameLook(chip);
+        expect(look.background).toBe("rgb(255, 255, 255)");
+        expect(look.borders).toEqual(["1px", "1px", "1px", "1px"]);
+        expect(look.shadow).toBe("none");
+      }
+    });
+  });
+
+  test.describe("asking", () => {
+    test("a suggested question is asked on the click, answered live and cited", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "ai=none");
+
+      await suggestions(page)
+        .filter({ hasText: ROOT_CAUSE_SUGGESTION })
+        .click();
+
+      // The question is in the thread at once, as the viewer's.
+      await expect(questions(page)).toHaveCount(1);
+      await expect(questions(page).first()).toContainText("You");
+      await expect(questions(page).first()).toContainText(
+        "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
+      );
+
+      const sent: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/send-message",
+      );
+      expect(sent).toHaveLength(1);
+      expect(sent[0]!.body).toEqual({
+        subjectType: "incident",
+        subjectId: INCIDENT_ID,
+        content:
+          "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
+        permissionMode: "AutoRun",
+      });
+
+      // While it is written: a status line, Stop instead of Send.
+      const answer: Locator = answers(page).first();
+      await expect(answer.getByRole("status")).toHaveText(
+        "OneUptime AI is working on your question…",
+      );
+      await expect(stopButton(page)).toBeVisible();
+      await expect(sendButton(page)).toHaveCount(0);
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        WORKING_PLACEHOLDER,
+      );
+      // The suggestions leave once someone has asked.
+      await expect(suggestions(page)).toHaveCount(0);
+
+      // Then the answer, its citation and its source.
+      await expect(answer).toContainText(SENT_ANSWER, { timeout: 20000 });
+      await expect(answer).toHaveAttribute("data-status", "Completed");
+      await expect(
+        answer.getByRole("button", {
+          name: "Citation C1: Monitors attached to checkout-api, right now",
+        }),
+      ).toBeVisible();
+      await expect(sources(answer)).toHaveText([
+        "C1Monitors attached to checkout-api, right now · 2 rows",
+      ]);
+      await expect(answer.getByRole("status")).toHaveCount(0);
+      await expect(sendButton(page)).toBeVisible();
+      await expect(stopButton(page)).toHaveCount(0);
+      await expect(
+        section.getByLabel("1 person has asked in this conversation"),
+      ).toBeVisible();
+      // Still one card.
+      await expect(
+        page.getByTestId("card").filter({ has: section }),
+      ).toHaveCount(1);
+    });
+
+    test("a suggested action is put in the composer, never sent on the click", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      await suggestions(page)
+        .filter({ hasText: "Acknowledge this incident" })
+        .click();
+
+      await expect(composerBox(page)).toHaveValue("Acknowledge this incident.");
+      await expect(sendButton(page)).toBeEnabled();
+      await expect(questions(page)).toHaveCount(0);
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toEqual([]);
+    });
+
+    test("typing: Enter sends, Shift+Enter is a new line, and nothing is sent while an answer is written", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const box: Locator = composerBox(page);
+
+      await expect(sendButton(page)).toBeDisabled();
+      await box.click();
+      await page.keyboard.type("Which deploy changed");
+      await page.keyboard.press("Shift+Enter");
+      await page.keyboard.type("DB_POOL_MAX?");
+
+      await expect(box).toHaveValue("Which deploy changed\nDB_POOL_MAX?");
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toEqual([]);
+      await expect(sendButton(page)).toBeEnabled();
+
+      await page.keyboard.press("Enter");
+
+      await expect(box).toHaveValue("");
+      await expect(questions(page).first()).toContainText(
+        "Which deploy changed",
+      );
+      // Focus stays in the box for the next question.
+      await expect(box).toBeFocused();
+
+      // Typing goes on; sending waits for the answer.
+      await expect(stopButton(page)).toBeVisible();
+      await page.keyboard.type("And who shipped it?");
+      await page.keyboard.press("Enter");
+      await expect(box).toHaveValue("And who shipped it?");
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toHaveLength(1);
+
+      // Once it is answered the next one goes.
+      await expect(answers(page).first()).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+      await expect(sendButton(page)).toBeEnabled();
+      await page.keyboard.press("Enter");
+      await expect(questions(page)).toHaveCount(2);
+      await expect(questions(page).nth(1)).toContainText("And who shipped it?");
+      await expect(answers(page).nth(1)).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+    });
+
+    test("an answer being written can be stopped", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=working");
+      const answer: Locator = answers(page).last();
+
+      await expect(answer.getByRole("status")).toHaveText(
+        "OneUptime AI is working on Sam Rivera's question…",
+      );
+      await stopButton(page).click();
+
+      const cancelled: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/cancel-run",
+      );
+      expect(cancelled).toHaveLength(1);
+      expect(cancelled[0]!.body).toEqual({
+        subjectType: "incident",
+        subjectId: INCIDENT_ID,
+      });
+      await expect(answer).toHaveAttribute("data-status", "Cancelled");
+      await expect(answer).toContainText(
+        "Stopped before the answer was finished.",
+      );
+      await expect(answer.getByRole("status")).toHaveCount(0);
+      await expect(
+        answer.getByTestId("investigation-conversation-live-steps"),
+      ).toHaveCount(0);
+      await expect(sendButton(page)).toBeVisible();
+    });
+
+    test("?fail=conversation-send says why in a notice that can be put away", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "fail=conversation-send",
+      );
+
+      await composerBox(page).fill("What changed?");
+      await sendButton(page).click();
+
+      const notice: Locator = section.getByTestId(
+        "investigation-conversation-error",
+      );
+      await expect(notice).toHaveAttribute("role", "alert");
+      await expect(notice).toContainText(
+        "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
+      );
+      // A line with a red mark: it was a red box.
+      expect(await frameLook(notice)).toEqual(NO_FRAME);
+      await expect(notice.locator("svg").first()).toBeVisible();
+      await expectAbove(notice, composerFrame(page), "notice above the box");
+      // What was typed is handed back, and nothing was added to the thread.
+      await expect(composerBox(page)).toHaveValue("What changed?");
+      await expect(questions(page)).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+
+      await notice.getByRole("button", { name: "Dismiss" }).click();
+
+      await expect(notice).toHaveCount(0);
+      await expect(composerBox(page)).toHaveValue("What changed?");
+    });
+
+    test("?fail=conversation says the thread could not be loaded, and can retry", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "fail=conversation",
+      );
+
+      await expect(section).toContainText(
+        "Could not load the conversation: The conversation service is unavailable.",
+      );
+      await expect(suggestions(page)).toHaveCount(0);
+      // The composer stays: the card still ends with it.
+      await expect(composerBox(page)).toBeEnabled();
+
+      const before: number = (
+        await apiRequestsTo(page, "/ai-investigation/conversation")
+      ).length;
+      await section.getByRole("button", { name: "Try again" }).click();
+      await expect
+        .poll(async (): Promise<number> => {
+          return (await apiRequestsTo(page, "/ai-investigation/conversation"))
+            .length;
+        })
+        .toBeGreaterThan(before);
+    });
+  });
+
+  test.describe("a shared thread", () => {
+    test("?thread=answered shows who asked what and whom each answer was for", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=answered");
+
+      await expect(questions(page)).toHaveCount(2);
+      await expect(answers(page)).toHaveCount(2);
+      await expect(questions(page).nth(0)).toContainText("Sam Rivera");
+      await expect(questions(page).nth(0)).toContainText(
+        "Is anything else affected by this incident?",
+      );
+      await expect(questions(page).nth(1)).toContainText("You");
+      await expect(questions(page).nth(1)).toContainText(
+        "Acknowledge this incident and tell me who is on call for checkout.",
+      );
+      // An answer to someone else says whose it is; the viewer's own does not.
+      await expect(answers(page).nth(0)).toContainText("to Sam Rivera");
+      await expect(answers(page).nth(1)).not.toContainText("to Maya Chen");
+      // When each was said, against the page's pinned clock.
+      await expect(questions(page).nth(0).locator("time")).toHaveText(
+        "9 minutes ago",
+      );
+      await expect(answers(page).nth(0).locator("time")).toHaveText(
+        "8 minutes ago",
+      );
+
+      await expect(
+        section.getByLabel("2 people have asked in this conversation"),
+      ).toHaveAttribute("title", "Sam Rivera, You");
+      // An answered thread has no suggestions.
+      await expect(suggestions(page)).toHaveCount(0);
+    });
+
+    test("an answer lists its sources, and one with a page of its own opens it", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).first();
+
+      await expect(
+        answer.getByRole("heading", { level: 4, name: "Sources" }),
+      ).toBeVisible();
+      await expect(sources(answer)).toHaveText([
+        "C1db.client.connections.usage for orders-db, 17:30 – 18:15 UTC · 45 rows",
+        'C2Logs matching "timeout acquiring connection" in cart-api · no rows',
+        "C3Monitors attached to checkout-api, cart-api and orders-db · 4 rows",
+      ]);
+
+      // A quiet list: no pill around a source.
+      for (const row of await sources(answer).all()) {
+        expect(await frameLook(row)).toEqual(NO_FRAME);
+        expect(await frameLook(row.locator(":scope > *").first())).toEqual(
+          NO_FRAME,
+        );
+      }
+
+      // Two have a page (metrics, logs); the third is a plain line.
+      await expect(sources(answer).nth(0).getByRole("button")).toHaveCount(1);
+      await expect(sources(answer).nth(1).getByRole("button")).toHaveAttribute(
+        "title",
+        'Logs matching "timeout acquiring connection" in cart-api — checked, found nothing',
+      );
+      await expect(sources(answer).nth(2).getByRole("button")).toHaveCount(0);
+
+      await sources(answer).nth(0).getByRole("button").click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "METRICS",
+      );
+
+      // Back on the incident the thread is still there.
+      await page.goBack();
+      await expect(answers(page)).toHaveCount(2, { timeout: 30000 });
+    });
+
+    test("a citation in the answer's text opens the same evidence", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).first();
+      const chip: Locator = answer.getByRole("button", {
+        name: 'Citation C2: Logs matching "timeout acquiring connection" in cart-api',
+      });
+
+      await expect(chip).toHaveText("C2");
+      // Evidence with no page of its own is a chip, never a dead button.
+      await expect(
+        answer.getByLabel(
+          "Citation C3: Monitors attached to checkout-api, cart-api and orders-db",
+        ),
+      ).toHaveJSProperty("tagName", "SPAN");
+
+      await chip.click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "LOGS",
+      );
+    });
+
+    test("charts and tables are shown to the person who asked, as a figure of the answer", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+
+      // Sam's answer comes without its rows; the viewer's own has them.
+      await expect(
+        answers(page)
+          .nth(0)
+          .getByRole("group", { name: "Data from this answer" }),
+      ).toHaveCount(0);
+      const figure: Locator = answers(page)
+        .nth(1)
+        .getByRole("group", { name: "Data from this answer" });
+      await expect(figure).toContainText("Checkout on-call — current shift");
+      await expect(figure).toContainText("Jordan Patel");
+      await expect(figure).toContainText("Alex Kim");
+    });
+
+    test("an action that ran is a line of the answer, and the answer can be copied", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.addInitScript((): void => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string): Promise<void> => {
+              (window as unknown as { __copiedText?: string }).__copiedText =
+                text;
+            },
+          },
+        });
+      });
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).nth(1);
+      const actions: Locator = answer.getByRole("list", { name: "Actions" });
+
+      await expect(actions.getByRole("listitem")).toHaveText([
+        "Acknowledge incident #1042 · Done",
+      ]);
+      await expect(actions.getByRole("listitem")).toHaveAttribute(
+        "data-status",
+        "Executed",
+      );
+      // A line with a mark: no bordered row, no chip, nothing to press.
+      expect(await frameLook(actions.getByRole("listitem"))).toEqual(NO_FRAME);
+      await expect(actions.getByRole("button")).toHaveCount(0);
+      await expect(
+        answer.getByRole("group", { name: "Actions waiting for approval" }),
+      ).toHaveCount(0);
+
+      await answer.getByRole("button", { name: "Copy" }).click();
+      await expect(
+        answer.getByRole("button", { name: "Copied" }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate((): string => {
+          return (
+            (window as unknown as { __copiedText?: string }).__copiedText || ""
+          );
+        }),
+      ).toBe(
+        "Done — incident #1042 is acknowledged. **Jordan Patel** is on call for Checkout on-call until 20:00 UTC [C1].",
+      );
+    });
+
+    test("?thread=working narrates the answer being written on a rule, with no box", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=working");
+      const answer: Locator = answers(page).last();
+      const steps: Locator = answer.getByTestId(
+        "investigation-conversation-live-steps",
+      );
+
+      await expect(answer).toContainText("to Sam Rivera");
+      await expect(steps).toContainText("Checking recent changes");
+      await expect(steps).toContainText("Searching logs");
+      expect(await frameLook(steps)).toEqual({
+        background: "rgba(0, 0, 0, 0)",
+        borders: ["0px", "0px", "0px", "2px"],
+        shadow: "none",
+      });
+      await expectAbove(
+        answer.getByRole("status"),
+        steps,
+        "what it is doing, then the steps",
+      );
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        WORKING_PLACEHOLDER,
+      );
+      // The earlier, finished answer narrates nothing.
+      await expect(
+        answers(page)
+          .first()
+          .getByTestId("investigation-conversation-live-steps"),
+      ).toHaveCount(0);
+    });
+
+    test("?thread=error says what went wrong in lines, not boxes", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=error");
+      const failed: Locator = answers(page).nth(0);
+      const stopped: Locator = answers(page).nth(1);
+      const failure: Locator = failed.getByTestId(
+        "investigation-conversation-answer-error",
+      );
+
+      await expect(failed).toHaveAttribute("data-status", "Error");
+      await expect(failure).toHaveText(
+        "The LLM provider returned 529 Overloaded three times. Nothing was changed.Ask again to retry.",
+      );
+      expect(await frameLook(failure)).toEqual(NO_FRAME);
+      // The mark carries the colour (red-600).
+      expect(
+        await failure.locator("svg").evaluate((icon: Element): string => {
+          return window.getComputedStyle(icon).color;
+        }),
+      ).toBe("rgb(220, 38, 38)");
+
+      await expect(stopped).toHaveAttribute("data-status", "Cancelled");
+      await expect(stopped).toContainText(
+        "Stopped before the answer was finished.",
+      );
+      // The stop mark is a circle with a square in it, not an empty ring.
+      expect(
+        await stopped
+          .locator("svg path")
+          .last()
+          .evaluate((mark: Element): number => {
+            return (mark.getAttribute("d") || "").split("Z").length - 1;
+          }),
+      ).toBe(2);
+      // Neither answer can be copied or has sources.
+      await expect(
+        conversation(page).getByRole("button", { name: "Copy" }),
+      ).toHaveCount(0);
+      // A thread whose last answer failed can be asked again.
+      await expect(sendButton(page)).toBeVisible();
+    });
+  });
+
+  test.describe("an action waiting for approval", () => {
+    test("?thread=approval asks for a decision, and running it settles into a line", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=approval");
+      const answer: Locator = answers(page).first();
+      const prompt: Locator = answer.getByRole("group", {
+        name: "Actions waiting for approval",
+      });
+
+      await expect(answer).toContainText(
+        "I'd like to take this action. Review it and approve to continue.",
+      );
+      await expect(prompt).toContainText("The AI wants to perform 1 action");
+      await expect(prompt).toContainText("Acknowledge incident #1042");
+      // Nothing settled yet, and an answer is in flight.
+      await expect(answer.getByRole("list", { name: "Actions" })).toHaveCount(
+        0,
+      );
+      await expect(stopButton(page)).toBeVisible();
+
+      await prompt.getByRole("button", { name: /Run 1 action/ }).click();
+
+      const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/respond-to-approval",
+      );
+      expect(decisions).toHaveLength(1);
+      expect(decisions[0]!.body["subjectType"]).toBe("incident");
+      expect(decisions[0]!.body["subjectId"]).toBe(INCIDENT_ID);
+      expect(decisions[0]!.body["decisions"]).toEqual([
+        { toolCallId: "call_acknowledge", approved: true },
+      ]);
+
+      await expect(answer).toContainText(
+        "Done — incident #1042 is acknowledged.",
+      );
+      await expect(prompt).toHaveCount(0);
+      await expect(
+        answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
+      ).toHaveText(["Acknowledge incident #1042 · Done"]);
+      await expect(sendButton(page)).toBeVisible();
+    });
+
+    test("denying it leaves the incident alone and says so", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=approval");
+      const answer: Locator = answers(page).first();
+
+      await answer.getByRole("button", { name: "Deny all" }).click();
+
+      const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/respond-to-approval",
+      );
+      expect(decisions[0]!.body["decisions"]).toEqual([
+        { toolCallId: "call_acknowledge", approved: false },
+      ]);
+      await expect(answer).toContainText(
+        "Okay — I left incident #1042 as it is.",
+      );
+      const line: Locator = answer
+        .getByRole("list", { name: "Actions" })
+        .getByRole("listitem");
+      await expect(line).toHaveText(["Acknowledge incident #1042 · Denied"]);
+      await expect(line).toHaveAttribute("data-status", "Denied");
+    });
+  });
+
+  test.describe("a long thread", () => {
+    test("?thread=crowded opens on its newest messages, with the rest one click away", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=crowded");
+
+      // Twelve messages: the last three exchanges show.
+      await expect(showEarlier(page)).toHaveText("Show 6 earlier messages");
+      await expect(questions(page)).toHaveCount(3);
+      await expect(answers(page)).toHaveCount(3);
+      await expect(questions(page).first()).toContainText("Alex Kim");
+      await expectAbove(showEarlier(page), thread(page), "the fold on top");
+
+      // Everyone who asked is counted, folded messages included.
+      const participants: Locator = section.getByLabel(
+        "6 people have asked in this conversation",
+      );
+      await expect(participants).toHaveAttribute(
+        "title",
+        "Sam Rivera, You, Jordan Patel, Alex Kim, Priya Nair, Diego Santos",
+      );
+      await expect(participants).toContainText("+2");
+
+      await showEarlier(page).focus();
+      await page.keyboard.press("Enter");
+
+      await expect(questions(page)).toHaveCount(6);
+      await expect(answers(page)).toHaveCount(6);
+      await expect(questions(page).first()).toContainText("Sam Rivera");
+      await expect(showEarlier(page)).toHaveCount(0);
+      // The pressed button is gone, so the thread it revealed takes focus.
+      await expect(thread(page)).toBeFocused();
+    });
+
+    test("no avatar hides the next one's initials", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=crowded");
+      const marks: Array<Box> = [];
+
+      for (const mark of await section
+        .getByLabel("6 people have asked in this conversation")
+        .locator(":scope > div > div")
+        .all()) {
+        marks.push(await documentBox(mark));
+      }
+
+      expect(marks).toHaveLength(4);
+      for (let index: number = 1; index < marks.length; index++) {
+        const overlap: number =
+          marks[index - 1]!.x + marks[index - 1]!.width - marks[index]!.x;
+        // They used to overlap by 8px of a 24px disc, over the second letter.
+        expect(overlap).toBeGreaterThan(0);
+        expect(overlap).toBeLessThanOrEqual(4);
+      }
+    });
+
+    test("the thread is part of the page, not a scrolling box inside the card", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=crowded");
+      await showEarlier(page).click();
+      await expect(answers(page)).toHaveCount(6);
+
+      // Nothing between the thread and the card clips or scrolls it.
+      const clippers: Array<string> = await thread(page).evaluate(
+        (log: Element): Array<string> => {
+          const found: Array<string> = [];
+          let element: Element | null = log;
+
+          while (element && element.getAttribute("data-testid") !== "card") {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+            if (
+              style.overflowY !== "visible" ||
+              style.maxHeight !== "none" ||
+              element.scrollHeight > element.clientHeight + 1
+            ) {
+              found.push(
+                `${element.tagName.toLowerCase()}.${element.getAttribute("class")}`,
+              );
+            }
+
+            element = element.parentElement;
+          }
+
+          return found;
+        },
+      );
+      expect(clippers).toEqual([]);
+
+      // It is as tall as its twelve messages: taller than the 640px box it had.
+      expect((await documentBox(thread(page))).height).toBeGreaterThan(640);
+      // And every message can be reached by scrolling the page alone.
+      await questions(page).first().scrollIntoViewIfNeeded();
+      await expect(questions(page).first()).toBeInViewport();
+    });
+  });
+
+  test.describe("the composer", () => {
+    test("is one framed control: the text, the mode with what it means, and Send", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const frame: Locator = composerFrame(page);
+      const frameBox: Box = await documentBox(frame);
+
+      // The dashboard's input frame: white, a gray-300 hairline all round.
+      const look: {
+        background: string;
+        border: string;
+        widths: Array<string>;
+      } = await frame.evaluate(
+        (
+          element: Element,
+        ): { background: string; border: string; widths: Array<string> } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopColor,
+            widths: [
+              style.borderTopWidth,
+              style.borderRightWidth,
+              style.borderBottomWidth,
+              style.borderLeftWidth,
+            ],
+          };
+        },
+      );
+      expect(look).toEqual({
+        background: "rgb(255, 255, 255)",
+        border: "rgb(209, 213, 219)",
+        widths: ["1px", "1px", "1px", "1px"],
+      });
+
+      // Everything it needs is inside that frame.
+      for (const part of [
+        composerBox(page),
+        modePicker(page),
+        modeCaption(page),
+        sendButton(page),
+      ]) {
+        const box: Box = await documentBox(part);
+        expect(box.x).toBeGreaterThanOrEqual(frameBox.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          frameBox.x + frameBox.width,
+        );
+        expect(box.y).toBeGreaterThanOrEqual(frameBox.y);
+        expect(box.y + box.height).toBeLessThanOrEqual(
+          frameBox.y + frameBox.height,
+        );
+      }
+
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        "Ask about this incident, or ask OneUptime AI to act…",
+      );
+      await expect(modePicker(page)).toHaveText("Auto-run");
+      await expect(modeCaption(page)).toHaveText(
+        "Acts on clear requests right away, within your permissions.",
+      );
+
+      // One row under the text: the picker, its caption, then Send at the end.
+      const picker: Box = await documentBox(modePicker(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const send: Box = await documentBox(sendButton(page));
+      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
+      expect(send.x).toBeGreaterThan(caption.x + caption.width - 1);
+      expect(
+        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+      ).toBeLessThanOrEqual(3);
+      // The caption fits on one line of the row.
+      expect(caption.height).toBeLessThanOrEqual(22);
+    });
+
+    test("does not take focus when the page loads, and shows an indigo focus when used", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      expect(
+        await page.evaluate((): string => {
+          return document.activeElement?.tagName || "";
+        }),
+      ).toBe("BODY");
+      expect(
+        await page.evaluate((): number => {
+          return window.scrollY;
+        }),
+      ).toBe(0);
+
+      await composerBox(page).click();
+
+      await expect
+        .poll(async (): Promise<string> => {
+          return composerFrame(page).evaluate((element: Element): string => {
+            return window.getComputedStyle(element).borderTopColor;
+          });
+        })
+        .toBe("rgb(99, 102, 241)");
+      // And a 1px ring of the same indigo round it, once it has faded in.
+      await expect
+        .poll(async (): Promise<string> => {
+          return composerFrame(page).evaluate((element: Element): string => {
+            return window.getComputedStyle(element).boxShadow;
+          });
+        })
+        .toContain("rgb(99, 102, 241) 0px 0px 0px 1px");
+    });
+
+    test("Send lights up in the page's primary colour once there is something to send", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const background: () => Promise<string> = async (): Promise<string> => {
+        return sendButton(page).evaluate((button: Element): string => {
+          return window.getComputedStyle(button).backgroundColor;
+        });
+      };
+
+      await expect(sendButton(page)).toBeDisabled();
+      expect(await background()).toBe("rgb(243, 244, 246)");
+
+      await composerBox(page).fill("What changed?");
+
+      await expect(sendButton(page)).toBeEnabled();
+      await expect.poll(background).toBe(INDIGO_600);
+    });
+
+    for (const width of [1440, 390]) {
+      test(`the mode's menu opens inside the card at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openConversation(page, "ai=none");
+        const cardBox: Box = await documentBox(
+          investigationCard(page).locator(":scope > div").first(),
+        );
+
+        await modePicker(page).click();
+        const menu: Locator = conversation(page).getByRole("menu", {
+          name: "AI permissions",
+        });
+        await expect(menu).toBeVisible();
+        await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
+
+        // It used to open some 150px past the card's left edge.
+        const menuBox: Box = await documentBox(menu);
+        const picker: Box = await documentBox(modePicker(page));
+        expect(menuBox.x).toBeGreaterThanOrEqual(cardBox.x);
+        expect(menuBox.x).toBeCloseTo(picker.x, 0);
+        expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
+        // Above the picker, not over it.
+        expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(picker.y);
+
+        await expect(menu.getByRole("menuitemradio")).toHaveCount(3);
+        await expect(
+          menu.getByRole("menuitemradio", { checked: true }),
+        ).toContainText("Auto-run");
+
+        await page.keyboard.press("Escape");
+        await expect(menu).toHaveCount(0);
+        await expect(modePicker(page)).toBeFocused();
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+
+    test("a chosen mode changes the caption and what the next question is sent with", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      await modePicker(page).click();
+      await conversation(page)
+        .getByRole("menuitemradio", { name: /^Read-only/ })
+        .click();
+
+      await expect(modePicker(page)).toHaveText("Read-only");
+      await expect(modeCaption(page)).toHaveText(
+        "Only reads and answers. It never changes anything.",
+      );
+      await expect(conversation(page).getByRole("menu")).toHaveCount(0);
+
+      await composerBox(page).fill("What changed?");
+      await sendButton(page).click();
+
+      await expect
+        .poll(async (): Promise<Array<unknown>> => {
+          return (
+            await apiRequestsTo(
+              page,
+              "/ai-investigation/conversation/send-message",
+            )
+          ).map((request: RecordedApiRequest): unknown => {
+            return request.body["permissionMode"];
+          });
+        })
+        .toEqual(["ReadOnly"]);
+      await expect(answers(page).first()).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+    });
+
+    test("with production's font the caption keeps to the picker's row in the two-thirds column of a 1280px page", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      /*
+       * Whether the caption fits beside the picker depends on the glyphs'
+       * width. The fixture falls back to the system font, which is wider
+       * than the Inter the dashboard ships, so this one test loads Inter the
+       * way views/index.ejs declares it.
+       */
+      await page.route(
+        "**/dashboard/assets/fonts/InterVariable.woff2",
+        async (route: PlaywrightRoute) => {
+          await route.fulfill({ path: INTER_FONT_FILE });
+        },
+      );
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openConversation(page, "");
+      await page.addStyleTag({
+        content:
+          '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}',
+      });
+      expect(
+        await page.evaluate(async (): Promise<number> => {
+          return (await document.fonts.load("500 12px Inter")).length;
+        }),
+        "Inter loaded",
+      ).toBeGreaterThan(0);
+
+      const picker: Box = await documentBox(modePicker(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const send: Box = await documentBox(sendButton(page));
+
+      for (const mode of ["Ask for approval", "Read-only", "Auto-run"]) {
+        await modePicker(page).click();
+        await conversation(page)
+          .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
+          .click();
+
+        const fitted: Box = await documentBox(modeCaption(page));
+        // One line of 12px text, between the picker and Send.
+        expect(fitted.height, `${mode} caption height`).toBeLessThanOrEqual(22);
+        expect(fitted.x).toBeGreaterThan(picker.x);
+        expect(fitted.x + fitted.width).toBeLessThanOrEqual(send.x);
+      }
+
+      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
+    });
+  });
+
+  test.describe("no panel inside the card, whatever the thread holds", () => {
+    const THREAD_STATES: ReadonlyArray<{ name: string; query: string }> = [
+      { name: "an answered thread under a report", query: "thread=answered" },
+      {
+        name: "an answered thread with nothing investigated",
+        query: "ai=none&thread=answered",
+      },
+      { name: "an answer being written", query: "thread=working" },
+      { name: "a failed and a stopped answer", query: "thread=error" },
+      { name: "a long thread", query: "ai=running&thread=crowded" },
+      { name: "an action waiting for approval", query: "thread=approval" },
+    ];
+
+    for (const state of THREAD_STATES) {
+      test(`${state.name} draws no panel`, async ({ page }: { page: Page }) => {
+        await openConversation(page, state.query);
+
+        /*
+         * Two things keep a frame on purpose, each a named group: a chart or
+         * table (a figure, framed wherever it is drawn) and an action waiting
+         * for someone to approve it (the one place the card raises its voice).
+         */
+        expect(await panelsInsideTheCard(page)).toEqual([]);
+        await expect(investigationCard(page).getByTestId("card")).toHaveCount(
+          0,
+        );
+      });
+    }
+
+    test("the fix task and verdict messages are lines of their rows", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "fail=verdict,create-fix-task");
+      const investigation: Locator = investigationCard(page);
+
+      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
+      await investigation.getByRole("button", { name: "Confirmed" }).click();
+
+      const fixError: Locator = investigation.getByTestId(
+        "investigation-fix-task-error",
+      );
+      const verdictError: Locator = investigation.getByTestId(
+        "investigation-verdict-error",
+      );
+      await expect(fixError).toContainText("Could not create the fix task");
+      await expect(verdictError).toContainText("Could not save your verdict");
+
+      // They were red alert boxes, the loudest things in the card.
+      for (const notice of [fixError, verdictError]) {
+        await expect(notice).toHaveAttribute("role", "alert");
+        expect(await frameLook(notice)).toEqual(NO_FRAME);
+      }
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+
+    test("a created fix task is a line with a green mark and a link to the task", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE);
+      const investigation: Locator = investigationCard(page);
+
+      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
+
+      const created: Locator = investigation.getByTestId(
+        "investigation-fix-task-created",
+      );
+      await expect(created).toContainText("Fix task created");
+      expect(await frameLook(created)).toEqual(NO_FRAME);
+      // emerald-600.
+      expect(
+        await created
+          .locator("svg")
+          .first()
+          .evaluate((icon: Element): string => {
+            return window.getComputedStyle(icon).color;
+          }),
+      ).toBe("rgb(5, 150, 105)");
+      await expect(
+        created.getByRole("link", { name: "View task progress" }),
+      ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the card with a thread does not scroll sideways, and a message's text takes the full width", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=answered");
+      await expectNoHorizontalOverflow(page);
+
+      const answer: Locator = answers(page).first();
+      const mark: Box = await documentBox(
+        answer.locator(":scope > div").nth(0),
+      );
+      const byline: Box = await documentBox(
+        answer.locator(":scope > div").nth(1),
+      );
+      const body: Box = await documentBox(
+        answer.locator(":scope > div").nth(2),
+      );
+      const sectionBox: Box = await documentBox(section);
+
+      // Who and when sit beside the mark; what was said starts under it.
+      expect(byline.x).toBeGreaterThan(mark.x + mark.width);
+      expect(body.y).toBeGreaterThanOrEqual(mark.y + mark.height);
+      expect(body.x).toBeCloseTo(sectionBox.x, 0);
+      expect(body.width).toBeCloseTo(sectionBox.width, 0);
+    });
+
+    test("the composer keeps the picker and Send on one row, with the caption under them", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "ai=none");
+
+      const picker: Box = await documentBox(modePicker(page));
+      const send: Box = await documentBox(sendButton(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const frame: Box = await documentBox(composerFrame(page));
+
+      expect(send.x).toBeGreaterThan(picker.x + picker.width);
+      expect(
+        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+      ).toBeLessThanOrEqual(3);
+      expect(caption.y).toBeGreaterThanOrEqual(
+        Math.max(picker.y + picker.height, send.y + send.height) - 1,
+      );
+      expect(caption.y + caption.height).toBeLessThanOrEqual(
+        frame.y + frame.height,
+      );
+      // A keyboard hint is no use on a phone.
+      await expect(conversation(page).getByText("to send")).toBeHidden();
+      await expectNoHorizontalOverflow(page);
+    });
+
+    test("the status pill sits beside the title when it fits and under it, at the right edge, when it does not", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // "Completed" fits beside "AI Investigation".
+      let investigation: Locator = await openCardState(page, CARD_STATES[0]!);
+      let title: Box = await documentBox(
+        investigation.getByRole("heading", { level: 2 }),
+      );
+      let pill: Box = await documentBox(
+        investigation.getByLabel("Investigation status"),
+      );
+      let section: Box = await documentBox(conversation(page));
+
+      expect(title.height).toBeLessThanOrEqual(26);
+      expect(pill.x).toBeGreaterThan(title.x + title.width);
+      expect(pill.y).toBeLessThan(title.y + title.height);
+      // At the card's content edge, not centred under the title.
+      expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+
+      /*
+       * "Preparing report…" may not: then it goes under the title - still at
+       * the card's right edge, as every card header's actions do - and never
+       * to the left or the middle.
+       */
+      investigation = await openCardState(page, CARD_STATES[7]!);
+      title = await documentBox(
+        investigation.getByRole("heading", { level: 2 }),
+      );
+      pill = await documentBox(
+        investigation.getByLabel("Investigation status"),
+      );
+      section = await documentBox(conversation(page));
+
+      // The title is never the one that gives way.
+      expect(title.height).toBeLessThanOrEqual(26);
+      expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+      if (pill.y >= title.y + title.height) {
+        expect(pill.x).toBeGreaterThan(title.x);
+      } else {
+        expect(pill.x).toBeGreaterThan(title.x + title.width);
+      }
+      await expectNoHorizontalOverflow(page);
+    });
+  });
+
+  test("from sm up a message's text lines up under its author's name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=answered");
+    const answer: Locator = answers(page).first();
+    const mark: Box = await documentBox(answer.locator(":scope > div").nth(0));
+    const byline: Box = await documentBox(
+      answer.locator(":scope > div").nth(1),
+    );
+    const body: Box = await documentBox(answer.locator(":scope > div").nth(2));
+
+    expect(mark.width).toBeCloseTo(32, 0);
+    expect(byline.x).toBeCloseTo(mark.x + mark.width + 12, 0);
+    expect(body.x).toBeCloseTo(byline.x, 0);
+    // The text starts straight under the name, beside the mark.
+    expect(body.y).toBeLessThan(mark.y + mark.height);
+    expect(body.y).toBeGreaterThanOrEqual(byline.y + byline.height - 1);
+  });
+
+  test.describe("in the dark theme", () => {
+    test("the conversation uses the card's dark colours", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "theme=dark&thread=answered",
+      );
+
+      // Light text on the dark card.
+      expect(
+        (
+          await textLook(
+            section.getByRole("heading", {
+              level: 3,
+              name: CONVERSATION_TITLE,
+            }),
+          )
+        ).color,
+      ).toBe("rgb(248, 250, 252)");
+
+      // The composer is the card's surface with a slate frame, not a white box.
+      const composer: { background: string; border: string } =
+        await composerFrame(page).evaluate(
+          (element: Element): { background: string; border: string } => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              border: style.borderTopColor,
+            };
+          },
+        );
+      expect(composer).toEqual({
+        background: "rgb(23, 32, 51)",
+        border: "rgb(100, 116, 139)",
+      });
+
+      // OneUptime AI's mark stays the solid indigo sparkle.
+      expect(
+        await answers(page)
+          .first()
+          .locator("[aria-hidden='true']")
+          .first()
+          .evaluate((mark: Element): string => {
+            return window.getComputedStyle(mark).backgroundColor;
+          }),
+      ).toBe(INDIGO_600);
+
+      // The hairline above the section is a dark rule.
+      expect(
+        await section.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).borderTopColor;
+        }),
+      ).toBe("rgb(71, 85, 105)");
+    });
+
+    test("no responder's avatar stays a pale disc", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "theme=dark&thread=crowded");
+      await showEarlier(page).click();
+      await expect(questions(page)).toHaveCount(6);
+
+      const grounds: Array<string> = await questions(page).evaluateAll(
+        (items: Array<Element>): Array<string> => {
+          return items.map((item: Element): string => {
+            return window.getComputedStyle(
+              item.querySelector("[aria-hidden='true']") as Element,
+            ).backgroundColor;
+          });
+        },
+      );
+
+      expect(grounds).toHaveLength(6);
+      for (const ground of grounds) {
+        /*
+         * Every tone's dark rule is a translucent wash of its hue. A tone
+         * without one (lime was) keeps an opaque pastel: rgb(...), no alpha.
+         */
+        expect(ground).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+      }
+    });
+  });
+
+  test("moving to another incident never brings the previous thread along", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "thread=answered");
+    await expect(questions(page)).toHaveCount(2);
+    await composerBox(page).fill("A question for #1042 only");
+
+    await referenceLink(summarySection(page), "#1017").click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Checkout API p95 latency above 2s",
+    );
+    await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}`));
+    // #1017 was never investigated and nobody has asked about it.
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Not investigated", { timeout: 30000 });
+    await expect(questions(page)).toHaveCount(0);
+    await expect(composerBox(page)).toHaveValue("");
+    await expect(suggestions(page).first()).toHaveText(ROOT_CAUSE_SUGGESTION);
+    await expect(investigationCard(page)).toHaveCount(1);
+
+    await page.goBack();
+
+    await expect(questions(page)).toHaveCount(2, { timeout: 30000 });
   });
 });
 
@@ -2962,7 +5638,10 @@ async function expectRightColumn(
     expect(box.y, `${heading} order`).toBeGreaterThan(previousBottom);
     previousBottom = box.y + box.height - 1;
 
-    // Narrow column: the title gets the full width, actions go underneath.
+    /*
+     * Narrow column: the title and what the card offers share the first
+     * line, and the description runs under both, across the card's width.
+     */
     await expect(rightCard.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
       "stacked",
@@ -2974,12 +5653,91 @@ async function expectRightColumn(
       .getByTestId("card-header-actions")
       .getByRole("button", { name: "Edit" }),
   ).toBeVisible();
-  await expectAbove(
-    details.getByRole("heading", { level: 2 }),
-    details.getByRole("button", { name: "Edit" }),
-    "Edit sits under the title",
+  // "Why are edit buttons not on the right?" On the title's line, at the right.
+  await expectHeaderActionsOnTheRight(
+    details,
+    `${eventPage.detailsCard}'s Edit`,
+    { onTitleLine: true },
   );
   expect(await detailLabels(details)).toEqual(eventPage.detailLabels);
+
+  /*
+   * The record's ID is not a field of the card any more: it is the small
+   * line the card ends with - "ID", the ID's first characters, and a copy
+   * button - with the whole ID in its text, clipped in the narrow column.
+   */
+  const idLine: Locator = details.getByTestId("detail-id-line");
+  const idValue: Locator = idLine.getByTestId("detail-id-value");
+  await expect(idLine).toBeVisible();
+  await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+  await expect(idValue).toHaveText(eventPage.recordId);
+  await expect(
+    idLine.getByRole("button", { name: "Copy ID to clipboard" }),
+  ).toBeVisible();
+  const idWidths: { shown: number; whole: number } = await idValue.evaluate(
+    (element: HTMLElement): { shown: number; whole: number } => {
+      return { shown: element.clientWidth, whole: element.scrollWidth };
+    },
+  );
+  expect(idWidths.shown, "the ID shows only its start").toBeLessThan(
+    idWidths.whole,
+  );
+  expect(idWidths.shown, "about nine characters wide").toBeLessThan(90);
+  await expectAbove(
+    details.locator("label").last(),
+    idLine,
+    "the ID line ends the card",
+  );
+
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't
+   * take space up top." When the record was created is not a row of the
+   * card: it follows the ID on the same small line, and moves under the ID
+   * - whole - only when the narrow column has no room for both.
+   */
+  const recordLine: Locator = details.getByTestId("detail-record-line");
+  const created: Locator = recordLine.getByTestId("detail-created-at");
+  await expect(recordLine).toContainText("ID");
+  expect(await detailLabels(details)).not.toContain("Created At");
+  if (!eventPage.recordCreated) {
+    await expect(created).toHaveCount(0);
+    return;
+  }
+  await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+    "Created",
+  );
+  await expect(created.getByTestId("detail-created-at-value")).toHaveText(
+    eventPage.recordCreated,
+  );
+  const lineBox: Box = await documentBox(recordLine);
+  const idBox: Box = await documentBox(idLine);
+  const createdBox: Box = await documentBox(created);
+  if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+    expect(
+      Math.abs(
+        createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+      ),
+      "Created sits level with the ID when both fit",
+    ).toBeLessThanOrEqual(2);
+    expect(createdBox.x, "after the ID").toBeGreaterThan(idBox.x + idBox.width);
+  } else {
+    expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+      idBox.y + idBox.height - 1,
+    );
+    expect(
+      Math.abs(createdBox.x - idBox.x),
+      "flush with the ID",
+    ).toBeLessThanOrEqual(1);
+  }
+  // Inside the card, under its last field.
+  expect(createdBox.x + createdBox.width).toBeLessThanOrEqual(
+    lineBox.x + lineBox.width + 1,
+  );
+  await expectAbove(
+    details.locator("label").last(),
+    created,
+    "Created is on the line under the fields",
+  );
 }
 
 test.describe("incident and alert overview", () => {
@@ -2992,10 +5750,24 @@ test.describe("incident and alert overview", () => {
       await openReady(page, eventPage);
       await expect(sideMenu(page)).toBeVisible();
       await expectHero(page, eventPage);
-      // Resolved: no forward actions left.
-      await expect(
-        page.getByRole("group", { name: "Event actions" }).getByRole("button"),
-      ).toHaveCount(0);
+      /*
+       * Resolved: no forward state actions left. An alert still offers to
+       * declare an incident from it; an incident has nothing.
+       */
+      const actions: Locator = heroActions(page);
+      if (eventPage === ALERT_PAGE) {
+        await expect(actions.getByRole("button")).toHaveText([
+          DECLARE_INCIDENT,
+        ]);
+      } else {
+        await expect(actions.getByRole("button")).toHaveCount(0);
+        await expect(
+          hero(page).getByRole("button", { name: DECLARE_INCIDENT }),
+        ).toHaveCount(0);
+        await expect(
+          page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`),
+        ).toHaveCount(0);
+      }
       // The step rail under the pills.
       await expectRenderedText(hero(page), "Created Acknowledged Resolved");
       await expectNoErrorStates(page);
@@ -3035,7 +5807,71 @@ test.describe("incident and alert overview", () => {
       expect(Math.abs(investigation.x - feed.x)).toBeLessThanOrEqual(1);
       await expectRightColumn(page, eventPage);
     });
+
+    test(`${eventPage.name} copies the whole ID from the details card's ID line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.addInitScript((): void => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string): Promise<void> => {
+              (window as unknown as { __copiedText?: string }).__copiedText =
+                text;
+            },
+          },
+        });
+      });
+      await openReady(page, eventPage);
+
+      const idLine: Locator = card(page, eventPage.detailsCard).getByTestId(
+        "detail-id-line",
+      );
+      const copiedText: () => Promise<string> = async (): Promise<string> => {
+        return page.evaluate((): string => {
+          return (
+            (window as unknown as { __copiedText?: string }).__copiedText || ""
+          );
+        });
+      };
+
+      // Hovering the clipped ID shows all of it.
+      await idLine.getByTestId("detail-id-value").hover();
+      await expect(page.getByRole("tooltip")).toHaveText(eventPage.recordId);
+
+      await idLine
+        .getByRole("button", { name: "Copy ID to clipboard" })
+        .click();
+      await expect.poll(copiedText).toBe(eventPage.recordId);
+      await expect(idLine.getByRole("status")).toHaveText(
+        "Copied to clipboard",
+      );
+    });
   }
+
+  test("alert-overview gives its creation time to the second on hover", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const created: Locator = card(page, ALERT_PAGE.detailsCard).getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(created).toHaveText("Sep 14 2026, 06:06 PM GMT");
+    await expect(created).toHaveAttribute(
+      "datetime",
+      "2026-09-14T18:06:00.000Z",
+    );
+    await created.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Sep 14 2026, 06:06:00 PM GMT",
+    );
+  });
 
   test("incident links in the hero facts open the monitors", async ({
     page,
@@ -3107,6 +5943,14 @@ test.describe("incident and alert overview", () => {
     await expect(dialog).toContainText(
       "This marks the incident as resolved on the incident timeline.",
     );
+    // A confirm: whether subscribers hear about it, and the note folded.
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Resolve", exact: true })
@@ -3149,6 +5993,7 @@ test.describe("incident and alert overview", () => {
     await expect(actions.getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",
+      DECLARE_INCIDENT,
     ]);
     expect(await statCells(page, ALERT_PAGE.statBar)).toEqual([
       { label: "Acknowledged in", value: "Not yet acknowledged" },
@@ -3162,13 +6007,30 @@ test.describe("incident and alert overview", () => {
       name: "Acknowledge Alert",
     });
     await expect(dialog).toBeVisible();
+    /*
+     * A plain confirm: one sentence, the private note folded, Cancel /
+     * Acknowledge - in the short dialog, not the wide editor one.
+     */
+    await expect(dialog).toContainText(
+      "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+    );
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Acknowledge", exact: true })
       .click();
     await expect(dialog).toHaveCount(0);
 
-    await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
+    // Declare Incident stays after the remaining state action.
+    await expect(actions.getByRole("button")).toHaveText([
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
     await expectRenderedText(
       hero(page),
       "Acknowledged High Ongoing for 14 minutes",
@@ -3183,6 +6045,61 @@ test.describe("incident and alert overview", () => {
       ACKNOWLEDGED_ALERT_STATE_ID,
     );
     expect(await skeletonWasSeen(page)).toBe(false);
+  });
+
+  test("?state=created: the alert's folded note opens in the wide dialog and goes with the acknowledgement", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "state=created");
+
+    const actions: Locator = page.getByRole("group", { name: "Event actions" });
+    await actions.getByRole("button", { name: "Acknowledge" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Alert",
+    });
+    await expect(dialog).toBeVisible();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await noteFold.click();
+    await expect(noteFold).toHaveAttribute("aria-expanded", "true");
+
+    // Opened to write, the dialog grows so the toolbar keeps its one line.
+    const toolbar: Locator = dialog.getByTestId("markdown-editor-toolbar");
+    await expect(toolbar).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await dialog.boundingBox())!.width;
+      })
+      .toBeGreaterThan(1000);
+    await expect(toolbar.getByTitle("Bold (Ctrl+B)")).toBeVisible();
+
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the payments team.");
+
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "AlertStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    expect(JSON.stringify(creates[0]?.data)).toContain(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the payments team.",
+    );
+    await expectNoErrorStates(page);
   });
 
   test("?fail=resend keeps the incident page and shows why the resend failed", async ({
@@ -3203,6 +6120,29 @@ test.describe("incident and alert overview", () => {
     );
     await dialog.getByRole("button", { name: "Retry" }).click();
 
+    /*
+     * Retry asks first: it resumes after the pages already reached, and
+     * says who it reaches now - without them.
+     */
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Retry this notification?",
+    });
+    await expect(
+      confirm.getByTestId("subscriber-notification-resend-description"),
+    ).toHaveText(INCIDENT_CREATED_RETRY_DESCRIPTION);
+    const retryAudience: Locator = confirm.getByTestId(
+      "incident-created-retry-audience",
+    );
+    await expect(retryAudience).toContainText(
+      "Acme EU (up to 1284 email, 3 webhook)",
+    );
+    await expect(retryAudience).toContainText(
+      "Acme US (already sent this notification in full)",
+    );
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
     await expect(details.getByRole("alert")).toHaveText(
       "Could not resend notifications: Notifications cannot be resent while the email provider is rate limiting this project.",
     );
@@ -3213,6 +6153,930 @@ test.describe("incident and alert overview", () => {
       id: INCIDENT_ID,
     });
     await expect(hero(page)).toContainText(INCIDENT_PAGE.title);
+  });
+
+  test("Retry with every status page ticked resends to all pages, through the server's request", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "fail=resend");
+
+    const details: Locator = card(page, "Incident Details");
+    await details.getByRole("button", { name: "more details" }).click();
+    await page
+      .getByRole("dialog", { name: "Notification Status Details" })
+      .getByRole("button", { name: "Retry" })
+      .click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Retry this notification?",
+    });
+    await confirm
+      .getByText(
+        "Send it to every status page again, including the pages already reached",
+      )
+      .click();
+
+    // Every page it reaches now, the ones already reached included.
+    await expect(
+      confirm.getByTestId("incident-created-resend-audience"),
+    ).toContainText("Acme US (up to 1284 email, 3 webhook)");
+    await expect(
+      confirm.getByTestId("incident-created-retry-audience"),
+    ).toHaveCount(0);
+
+    await confirm.getByRole("button", { name: "Resend to all pages" }).click();
+    await expect(confirm).toHaveCount(0);
+
+    const resends: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      },
+    );
+    expect(resends).toHaveLength(1);
+    expect(
+      resends[0]!.data!["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBe("Pending");
+    expect(resends[0]!.miscDataProps).toEqual({
+      resendIncidentCreatedToAllStatusPages: true,
+    });
+    // Not the plain Retry.
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("a notification that went out can be resent to every page, after confirming", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const details: Locator = card(page, "Incident Details");
+    await expect(details).toContainText("Notifications Sent");
+    await details.getByRole("button", { name: "more details" }).click();
+    await page
+      .getByRole("dialog", { name: "Notification Status Details" })
+      .getByRole("button", { name: "Resend" })
+      .click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Send this notification again?",
+    });
+    await expect(
+      confirm.getByTestId("incident-created-resend-audience"),
+    ).toContainText("Acme US (up to 1284 email, 3 webhook)");
+    await confirm.getByRole("button", { name: "Resend", exact: true }).click();
+    await expect(confirm).toHaveCount(0);
+
+    const resends: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      },
+    );
+    expect(resends).toHaveLength(1);
+    expect(resends[0]!.miscDataProps).toEqual({
+      resendIncidentCreatedToAllStatusPages: true,
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Declare an incident from the alert header
+ * ---------------------------------------------------------------------------
+ */
+
+// The hero actions' Tailwind colours (EventStatusPanel).
+const PRIMARY_ACTION_BACKGROUND: string = "rgb(79, 70, 229)"; // indigo-600
+const NEUTRAL_ACTION_BACKGROUND: string = "rgb(255, 255, 255)"; // white
+const NEUTRAL_ACTION_BORDER: string = "rgb(209, 213, 219)"; // gray-300
+const NEUTRAL_ACTION_TEXT: string = "rgb(55, 65, 81)"; // gray-700
+// focus-visible:ring-indigo-500, drawn as a box-shadow.
+const FOCUS_RING: RegExp = /rgb\(99, 102, 241\) 0px 0px 0px 4px/;
+
+interface AlertHeroState {
+  // Test title and screenshot name.
+  name: string;
+  // The fixture's ?state= for alert #311 ("" is the default, resolved).
+  query: string;
+  // The state buttons, in order, before Declare Incident.
+  stateActions: ReadonlyArray<string>;
+  // The one indigo (primary) state action, when there is one.
+  primaryAction?: string | undefined;
+}
+
+const CREATED_ALERT: AlertHeroState = {
+  name: "created",
+  query: "state=created",
+  stateActions: ["Acknowledge", "Resolve"],
+  primaryAction: "Acknowledge",
+};
+
+const ACKNOWLEDGED_ALERT: AlertHeroState = {
+  name: "acknowledged",
+  query: "state=ongoing",
+  stateActions: ["Resolve"],
+  primaryAction: "Resolve",
+};
+
+const RESOLVED_ALERT: AlertHeroState = {
+  name: "resolved",
+  query: "",
+  stateActions: [],
+};
+
+const ALERT_HERO_STATES: ReadonlyArray<AlertHeroState> = [
+  CREATED_ALERT,
+  ACKNOWLEDGED_ALERT,
+  RESOLVED_ALERT,
+];
+
+// Phone, tablet beside the side menu, small laptop, laptop.
+const HERO_WIDTHS: ReadonlyArray<number> = [390, 768, 1024, 1280];
+
+function declareIncidentButton(page: Page): Locator {
+  return heroActions(page).locator(`#${DECLARE_INCIDENT_BUTTON_ID}`);
+}
+
+function declareIncidentWrapper(page: Page): Locator {
+  return heroActions(page).getByTestId(
+    `${DECLARE_INCIDENT_BUTTON_ID}-disabled-wrapper`,
+  );
+}
+
+function heroActionButton(page: Page, label: string): Locator {
+  return heroActions(page).getByRole("button", { name: label, exact: true });
+}
+
+interface ActionPosition {
+  label: string;
+  top: number;
+  left: number;
+}
+
+// The hero's buttons, grouped into the rows they wrap onto, top to bottom.
+async function heroActionRows(page: Page): Promise<Array<Array<string>>> {
+  const positions: Array<ActionPosition> = await heroActions(page)
+    .getByRole("button")
+    .evaluateAll((buttons: Array<Element>): Array<ActionPosition> => {
+      return buttons.map((button: Element): ActionPosition => {
+        const rect: DOMRect = button.getBoundingClientRect();
+        return {
+          label: (button.textContent || "").trim(),
+          top: rect.top,
+          left: rect.left,
+        };
+      });
+    });
+  const rows: Array<Array<ActionPosition>> = [];
+  for (const position of [...positions].sort(
+    (a: ActionPosition, b: ActionPosition): number => {
+      return a.top - b.top || a.left - b.left;
+    },
+  )) {
+    const row: Array<ActionPosition> | undefined = rows.find(
+      (candidate: Array<ActionPosition>): boolean => {
+        return Math.abs(candidate[0]!.top - position.top) <= 2;
+      },
+    );
+    if (row) {
+      row.push(position);
+    } else {
+      rows.push([position]);
+    }
+  }
+  return rows.map((row: Array<ActionPosition>): Array<string> => {
+    return row.map((position: ActionPosition): string => {
+      return position.label;
+    });
+  });
+}
+
+/*
+ * Records whether a dialog is ever mounted, so a test can prove an action
+ * went straight to its page without opening the state-change modal on the
+ * way. Client-side navigation keeps the window, so this survives it.
+ */
+async function watchForDialog(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    const target: { __dialogSeen?: boolean } = window as unknown as {
+      __dialogSeen?: boolean;
+    };
+    target.__dialogSeen = Boolean(document.querySelector("[role='dialog']"));
+    new MutationObserver((): void => {
+      if (document.querySelector("[role='dialog']")) {
+        target.__dialogSeen = true;
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+async function dialogWasSeen(page: Page): Promise<boolean> {
+  return page.evaluate((): boolean => {
+    return Boolean(
+      (window as unknown as { __dialogSeen?: boolean }).__dialogSeen,
+    );
+  });
+}
+
+// The create-incident page for alert #311, and nothing written on the way.
+async function expectDeclaringFromAlert(page: Page): Promise<void> {
+  await expect(page.getByTestId("stub-page")).toHaveAttribute(
+    "data-page",
+    "INCIDENT_CREATE",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Create Incident",
+  );
+  expect(page.url()).toBe(
+    `http://127.0.0.1:${PORT}${DECLARE_INCIDENT_FROM_ALERT_PATH}`,
+  );
+  const url: URL = new URL(page.url());
+  expect(url.pathname).toBe(`${DASHBOARD}/incidents/create`);
+  // Only this alert, and none of the alert page's own ?state= scenario.
+  expect(url.search).toBe(`?alertIds=${ALERT_ID}`);
+  expect(url.searchParams.getAll("alertIds")).toEqual([ALERT_ID]);
+
+  expect(await dialogWasSeen(page), "a dialog opened on the way").toBe(false);
+  const state: FixtureState = await fixture(page);
+  expect(state.creates, "records created").toEqual([]);
+  expect(state.updates, "records updated").toEqual([]);
+  expect(state.deletes, "records deleted").toEqual([]);
+}
+
+test.describe("declare an incident from the alert hero", () => {
+  for (const alertState of ALERT_HERO_STATES) {
+    test(`${alertState.name} alert: Declare Incident follows the state actions as an outline button and opens the create page`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, ALERT_PAGE, alertState.query);
+
+      const actions: Locator = heroActions(page);
+      await expect(actions.getByRole("button")).toHaveText([
+        ...alertState.stateActions,
+        DECLARE_INCIDENT,
+      ]);
+      // Declaring is not a state, so it never adds a "More actions" menu.
+      await expect(
+        actions.getByRole("button", { name: "More actions" }),
+      ).toHaveCount(0);
+
+      const declare: Locator = declareIncidentButton(page);
+      await expect(declare).toBeVisible();
+      await expect(declare).toBeEnabled();
+      await expect(declare).toHaveAttribute("type", "button");
+      await expect(declare).toHaveAttribute("title", DECLARE_INCIDENT);
+      await expect(declare).toHaveAccessibleName(DECLARE_INCIDENT);
+      await expect(declare.locator("svg")).toHaveCount(1);
+      // Allowed: a plain button, with no disabled-reason wrapper around it.
+      await expect(declareIncidentWrapper(page)).toHaveCount(0);
+
+      // Neutral outline, the same size as the state actions.
+      await expect(declare).toHaveCSS(
+        "background-color",
+        NEUTRAL_ACTION_BACKGROUND,
+      );
+      await expect(declare).toHaveCSS(
+        "border-top-color",
+        NEUTRAL_ACTION_BORDER,
+      );
+      await expect(declare).toHaveCSS("color", NEUTRAL_ACTION_TEXT);
+      await expect(declare).toHaveCSS("height", "36px");
+
+      // The state action stays the only primary (indigo) button.
+      const backgrounds: Array<string> = await actions
+        .getByRole("button")
+        .evaluateAll((buttons: Array<Element>): Array<string> => {
+          return buttons.map((button: Element): string => {
+            return window.getComputedStyle(button).backgroundColor;
+          });
+        });
+      expect(
+        backgrounds.filter((color: string): boolean => {
+          return color === PRIMARY_ACTION_BACKGROUND;
+        }),
+      ).toHaveLength(alertState.primaryAction ? 1 : 0);
+      if (alertState.primaryAction) {
+        await expect(
+          heroActionButton(page, alertState.primaryAction),
+        ).toHaveCSS("background-color", PRIMARY_ACTION_BACKGROUND);
+      }
+
+      // Last in the row, on the same line as the state actions.
+      const declareBox: Box = await documentBox(declare);
+      for (const label of alertState.stateActions) {
+        const box: Box = await documentBox(heroActionButton(page, label));
+        expect(
+          Math.abs(box.y - declareBox.y),
+          `${label} shares the row`,
+        ).toBeLessThanOrEqual(1);
+        expect(declareBox.x, `after ${label}`).toBeGreaterThanOrEqual(
+          box.x + box.width,
+        );
+        await expect(heroActionButton(page, label)).toHaveCSS("height", "36px");
+      }
+
+      // Offering the action is a permission check: nothing is fetched for it.
+      const readModels: Array<string> = (await fixture(page)).listRequests.map(
+        (request: RecordedModelRequest): string => {
+          return request.modelName;
+        },
+      );
+      expect(readModels).not.toContain("IncidentAlert");
+
+      await watchForDialog(page);
+      await declare.click();
+      await expectDeclaringFromAlert(page);
+    });
+  }
+
+  test("the create page is a new history entry: Back returns to the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    await watchForDialog(page);
+    await declareIncidentButton(page).click();
+    await expectDeclaringFromAlert(page);
+
+    await page.goBack();
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      ALERT_PAGE.pageTitle,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+  });
+
+  test("keyboard: Tab reaches Declare Incident after Resolve and Enter opens the create page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    const acknowledge: Locator = heroActionButton(page, "Acknowledge");
+    const resolve: Locator = heroActionButton(page, "Resolve");
+    const declare: Locator = declareIncidentButton(page);
+
+    await acknowledge.focus();
+    await page.keyboard.press("Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+    // Keyboard focus draws the indigo ring.
+    await expect(declare).toHaveCSS("box-shadow", FOCUS_RING);
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+
+    await watchForDialog(page);
+    await page.keyboard.press("Enter");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("keyboard: Space on Declare Incident opens the create page from a resolved alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+    const declare: Locator = declareIncidentButton(page);
+    await declare.focus();
+    await expect(declare).toBeFocused();
+    await watchForDialog(page);
+    await page.keyboard.press("Space");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("?role=alert-member: Declare Incident is disabled and says which permission is missing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      ALERT_PAGE,
+      `${CREATED_ALERT.query}&role=alert-member`,
+    );
+
+    // An alert member may still acknowledge and resolve.
+    const actions: Locator = heroActions(page);
+    await expect(actions.getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+    await expect(heroActionButton(page, "Acknowledge")).toBeEnabled();
+    await expect(heroActionButton(page, "Resolve")).toBeEnabled();
+
+    const declare: Locator = declareIncidentButton(page);
+    const wrapper: Locator = declareIncidentWrapper(page);
+    await expect(declare).toBeDisabled();
+    await expect(declare).toHaveAttribute("aria-disabled", "true");
+    expect(await declare.getAttribute("title")).toBeNull();
+    await expect(declare).toHaveCSS("opacity", "0.5");
+    await expect(declare).toHaveCSS(
+      "background-color",
+      NEUTRAL_ACTION_BACKGROUND,
+    );
+    await expect(wrapper).toHaveAttribute("tabindex", "0");
+    await expect(wrapper.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(
+      1,
+    );
+
+    // Pointing at it says why, and the wrapper is described by that reason.
+    await wrapper.hover();
+    const tooltip: Locator = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveText(DECLARE_INCIDENT_DENIED);
+    await expect(wrapper).toHaveAccessibleDescription(DECLARE_INCIDENT_DENIED);
+
+    // Clicking it goes nowhere and writes nothing.
+    await watchForDialog(page);
+    await wrapper.click();
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+
+    // The keyboard reaches it too and hears why; Enter or Space does nothing.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await heroActionButton(page, "Resolve").focus();
+    await page.keyboard.press("Tab");
+    await expect(wrapper).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText(DECLARE_INCIDENT_DENIED);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    expect(await dialogWasSeen(page), "a dialog opened").toBe(false);
+    const state: FixtureState = await fixture(page);
+    expect(state.creates).toEqual([]);
+    expect(state.updates).toEqual([]);
+  });
+
+  test("?role=loading: Declare Incident is hidden until the permission snapshot arrives", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Without permissions the details card has nothing it may show.
+    await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
+      REPORT_CAVEAT,
+    ]);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+    await expect(declareIncidentWrapper(page)).toHaveCount(0);
+  });
+
+  // Resolved and ongoing incidents are covered in "incident and alert overview".
+  test("a created incident's hero keeps only its state actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The hero's title row across widths
+ * ---------------------------------------------------------------------------
+ */
+
+// Tailwind's xl breakpoint: from here the actions sit beside the title.
+const XL: number = 1280;
+// gap-3 between the title and the actions, stacked or side by side.
+const TITLE_ACTIONS_GAP: number = 12;
+
+// The hero's first row: the number and title, then the action group.
+function heroTitleRow(page: Page): Locator {
+  return heroActions(page).locator("xpath=..");
+}
+
+// The number and the title, the first child of the title row.
+function heroTitleBlock(page: Page): Locator {
+  return heroActions(page).locator("xpath=preceding-sibling::div[1]");
+}
+
+function heroTitle(page: Page): Locator {
+  return hero(page).getByRole("heading", { level: 2 });
+}
+
+interface HeroTitleRowBoxes {
+  // The title row spans the header's content box.
+  row: Box;
+  titleBlock: Box;
+  title: Box;
+  actions: Box;
+}
+
+async function heroTitleRowBoxes(page: Page): Promise<HeroTitleRowBoxes> {
+  return {
+    row: await documentBox(heroTitleRow(page)),
+    titleBlock: await documentBox(heroTitleBlock(page)),
+    title: await documentBox(heroTitle(page)),
+    actions: await documentBox(heroActions(page)),
+  };
+}
+
+/*
+ * Below xl: the title has the whole row to itself and the actions take the
+ * full width of their own rows under it.
+ */
+function expectActionsUnderTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.titleBlock.width - boxes.row.width),
+    "the title block spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.title.width - boxes.row.width),
+    "the title spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(
+      boxes.actions.y -
+        (boxes.titleBlock.y + boxes.titleBlock.height) -
+        TITLE_ACTIONS_GAP,
+    ),
+    "the actions start one gap under the title",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.x - boxes.row.x),
+    "the actions start at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.width - boxes.row.width),
+    "the actions span the header",
+  ).toBeLessThanOrEqual(1);
+}
+
+/*
+ * From xl: the title on the left and the actions on the right of one row,
+ * their tops aligned, with at least a gap between them.
+ */
+function expectActionsBesideTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.y - boxes.titleBlock.y),
+    "the actions are level with the top of the title block",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    boxes.actions.x - (boxes.titleBlock.x + boxes.titleBlock.width),
+    "the gap between the title and the actions",
+  ).toBeGreaterThanOrEqual(TITLE_ACTIONS_GAP - 1);
+  expect(
+    Math.abs(
+      boxes.actions.x + boxes.actions.width - (boxes.row.x + boxes.row.width),
+    ),
+    "the actions end at the header's right edge",
+  ).toBeLessThanOrEqual(1);
+}
+
+/*
+ * The actions never squeeze the title: a title that does not show whole has
+ * every pixel the row leaves it - the whole row under the actions below xl,
+ * everything left of the actions (less the gap) from xl. Whether a given
+ * title fits depends on the machine's fonts (CI's are wider than a Mac's),
+ * so this pins the room the title gets, not that it fits.
+ */
+async function expectTitleNotSqueezed(
+  page: Page,
+  boxes: HeroTitleRowBoxes,
+): Promise<void> {
+  if (!(await isOverflowing(heroTitle(page)))) {
+    return;
+  }
+
+  const isBeside: boolean = Math.abs(boxes.actions.y - boxes.titleBlock.y) <= 1;
+  const room: number = isBeside
+    ? boxes.actions.x - boxes.row.x - TITLE_ACTIONS_GAP
+    : boxes.row.width;
+
+  expect(
+    boxes.titleBlock.width,
+    "a truncated title has all the room the actions leave it",
+  ).toBeGreaterThanOrEqual(room - 1);
+}
+
+interface HeroLayoutCase {
+  // Test title.
+  title: string;
+  // Screenshot name, before the width.
+  screenshot: string;
+  eventPage: EventPage;
+  query: string;
+  // The hero's buttons, in order.
+  labels: ReadonlyArray<string>;
+  // The rows they wrap onto at each of HERO_WIDTHS, top to bottom.
+  rows: Readonly<Record<number, ReadonlyArray<ReadonlyArray<string>>>>;
+}
+
+const ALL_CREATED_ALERT_ACTIONS: ReadonlyArray<string> = [
+  ...CREATED_ALERT.stateActions,
+  DECLARE_INCIDENT,
+];
+
+// ?title=long: Alert #311 with a title wider than the room beside its actions.
+const ALERT_LONG_TITLE: string =
+  "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
+const LONG_TITLE_ALERT_PAGE: EventPage = {
+  ...ALERT_PAGE,
+  pageTitle: `Alert - ${ALERT_LONG_TITLE}`,
+  title: ALERT_LONG_TITLE,
+};
+
+/*
+ * Measured with the fixture's side menu (224px from 768px, 256px from
+ * 1024px). The header's content is 292px wide at 390px, 374px at 768px,
+ * 578px at 1024px and 834px at 1280px; the buttons need 145px
+ * (Acknowledge), 112px (Resolve) and 164px (Declare Incident) at sm and up.
+ *
+ * - 390px (phone): the buttons grow to fill their rows. Acknowledge and
+ *   Resolve share the first row and Declare Incident takes the whole second.
+ * - 768px: the three need 437px with their gaps, so Declare Incident wraps
+ *   onto a second row, right-aligned.
+ * - 1024px: one row under the title.
+ * - 1280px (xl): one row beside the title, which fits beside them (the
+ *   long-title tests below cover one that does not).
+ */
+const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
+  {
+    title: "created alert",
+    screenshot: "alert-hero-created",
+    eventPage: ALERT_PAGE,
+    query: CREATED_ALERT.query,
+    labels: ALL_CREATED_ALERT_ACTIONS,
+    rows: {
+      390: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      768: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      1024: [ALL_CREATED_ALERT_ACTIONS],
+      1280: [ALL_CREATED_ALERT_ACTIONS],
+    },
+  },
+  {
+    title: "resolved alert",
+    screenshot: "alert-hero-resolved",
+    eventPage: ALERT_PAGE,
+    query: RESOLVED_ALERT.query,
+    labels: [DECLARE_INCIDENT],
+    rows: {
+      390: [[DECLARE_INCIDENT]],
+      768: [[DECLARE_INCIDENT]],
+      1024: [[DECLARE_INCIDENT]],
+      1280: [[DECLARE_INCIDENT]],
+    },
+  },
+  {
+    title: "created incident",
+    screenshot: "incident-hero-created",
+    eventPage: INCIDENT_PAGE,
+    query: "state=created",
+    labels: ["Acknowledge", "Resolve"],
+    rows: {
+      390: [["Acknowledge", "Resolve"]],
+      768: [["Acknowledge", "Resolve"]],
+      1024: [["Acknowledge", "Resolve"]],
+      1280: [["Acknowledge", "Resolve"]],
+    },
+  },
+];
+
+test.describe("the hero's title row across widths", () => {
+  /*
+   * At each width the actions stay whole and inside the card, keep their
+   * order when they wrap and line up on the right. Below xl the title keeps
+   * the whole row (next to a side menu, sharing it squeezed the title down to
+   * a few characters and stacked the actions one per row); from xl the
+   * actions sit beside it.
+   */
+  for (const layoutCase of HERO_LAYOUT_CASES) {
+    for (const width of HERO_WIDTHS) {
+      const isBeside: boolean = width >= XL;
+      test(`${layoutCase.title} hero at ${width}px: the actions sit ${
+        isBeside ? "beside" : "under"
+      } the title, inside the header`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, layoutCase.eventPage, layoutCase.query);
+
+        const header: Locator = hero(page);
+        const actions: Locator = heroActions(page);
+        const labels: Array<string> = [...layoutCase.labels];
+        await expect(actions.getByRole("button")).toHaveText(labels);
+        await expect(heroTitle(page)).toHaveText(layoutCase.eventPage.title);
+
+        const headerBox: Box = await documentBox(header);
+        for (const label of labels) {
+          const button: Locator = heroActionButton(page, label);
+          await expect(button).toBeVisible();
+          const box: Box = await documentBox(button);
+          expect(
+            box.x,
+            `${label} starts inside the header`,
+          ).toBeGreaterThanOrEqual(headerBox.x);
+          expect(
+            box.x + box.width,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.x + headerBox.width);
+          expect(
+            box.y + box.height,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.y + headerBox.height);
+          await expect(button).toHaveCSS("height", "36px");
+          expect(
+            await isOverflowing(button.locator("span.truncate")),
+            `${label} is cut off`,
+          ).toBe(false);
+        }
+
+        const rows: Array<Array<string>> = await heroActionRows(page);
+        expect(rows, `rows at ${width}px`).toEqual(layoutCase.rows[width]);
+        // Wrapping keeps the reading order: state actions, then Declare Incident.
+        expect(
+          rows.reduce(
+            (all: Array<string>, row: Array<string>): Array<string> => {
+              return all.concat(row);
+            },
+            [],
+          ),
+        ).toEqual(labels);
+
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+        // Every row ends at the right edge of the action group.
+        for (const row of rows) {
+          const last: Box = await documentBox(
+            heroActionButton(page, row[row.length - 1]!),
+          );
+          expect(
+            Math.abs(
+              last.x + last.width - (boxes.actions.x + boxes.actions.width),
+            ),
+            `row "${row.join(", ")}" is right-aligned`,
+          ).toBeLessThanOrEqual(1);
+        }
+
+        if (isBeside) {
+          expectActionsBesideTitle(boxes);
+        } else {
+          expectActionsUnderTitle(boxes);
+        }
+
+        await expectTitleNotSqueezed(page, boxes);
+
+        if (width === 390 && rows[rows.length - 1]!.length === 1) {
+          // On a phone a button alone on its row fills it.
+          const lastBox: Box = await documentBox(
+            heroActionButton(page, rows[rows.length - 1]![0]!),
+          );
+          expect(Math.abs(lastBox.x - boxes.actions.x)).toBeLessThanOrEqual(1);
+          expect(
+            Math.abs(lastBox.width - boxes.actions.width),
+          ).toBeLessThanOrEqual(1);
+        }
+
+        await expectNoHorizontalOverflow(page);
+
+        await page.mouse.move(0, 0);
+        await screenshotElement(header, `${layoutCase.screenshot}-${width}`);
+      });
+    }
+  }
+
+  test("the actions move beside the title at xl (1280px), not a pixel earlier", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: XL - 1, height: 900 });
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+
+    // 1279px: the widest header that still stacks.
+    const stackedBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(stackedBoxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    await expectTitleNotSqueezed(page, stackedBoxes);
+    const stackedHeight: number = (await documentBox(hero(page))).height;
+
+    // One more pixel and the same page lays the row out side by side.
+    await page.setViewportSize({ width: XL, height: 900 });
+    await expect
+      .poll(async (): Promise<number> => {
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+        return Math.round(boxes.actions.y - boxes.titleBlock.y);
+      })
+      .toBe(0);
+    const besideBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(besideBoxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    await expectTitleNotSqueezed(page, besideBoxes);
+    // The actions' own row is gone: the header is 48px shorter.
+    expect(
+      stackedHeight - (await documentBox(hero(page))).height,
+      "height saved beside the title",
+    ).toBeCloseTo(36 + TITLE_ACTIONS_GAP, 0);
+  });
+
+  test("a long alert title below xl keeps its own row, truncated there, and the actions keep theirs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(boxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    // Wider than the header: cut at its full width, whole in its tooltip.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
+    await heroTitle(page).hover();
+    await expect(page.getByRole("tooltip")).toHaveText(ALERT_LONG_TITLE);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a long alert title at xl is truncated rather than pushing an action onto a second row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Beside the title (xl and up) the action group keeps its width
+     * (xl:shrink-0): a title wider than the room left beside the actions
+     * truncates instead of squeezing the group until an action wraps.
+     */
+    await page.setViewportSize({ width: XL, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+    expect(
+      await heroActionRows(page),
+      "the actions' rows beside a long title",
+    ).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(boxes);
+    // Cut, but with every pixel left of the actions.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
+  });
+
+  test("on a phone an acknowledged alert keeps Declare Incident's whole label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Phone buttons grow from their own width (flex-auto) rather than
+     * splitting the 292px row evenly, which cut "Declare Incident" to 142px
+     * of the 164px it needs.
+     */
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openReady(page, ALERT_PAGE, ACKNOWLEDGED_ALERT.query);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ACKNOWLEDGED_ALERT.stateActions,
+      DECLARE_INCIDENT,
+    ]);
+    expect(
+      await isOverflowing(declareIncidentButton(page).locator("span.truncate")),
+      "Declare Incident is cut off",
+    ).toBe(false);
   });
 });
 
@@ -3322,6 +7186,774 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     overdueNotice: "Overrunning",
   },
 ];
+
+test.describe("alert affected resources", () => {
+  /*
+   * An alert names its monitor under Resources Affected in its "created"
+   * feed item. The Affected Resources card used to hide monitors, so an
+   * alert raised on one read "No resources affected." beside that feed item.
+   */
+  test("the card lists the monitor the alert was raised on beside its service", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const resources: Locator = card(page, "Affected Resources");
+    await expect(
+      resources.getByText("Monitors", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      resources.getByText("Payment webhook error rate", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      resources.getByText("payments-webhooks", { exact: true }),
+    ).toBeVisible();
+    await expect(resources.getByText("across 2 categories")).toBeVisible();
+    await expect(resources.getByText("No resources affected.")).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Affected Resources card
+ * ---------------------------------------------------------------------------
+ *
+ * Each category used to be a card of its own - bordered, shadowed, with a
+ * coloured bar across its top - inside the page's "Affected Resources" card,
+ * so the right column read as cards nested in a card. The categories are now
+ * sections of the one card: a tinted icon, the label and its count, then the
+ * resources indented under the label, split by hairlines. Every row is one
+ * link (the resource's link stretched over the row).
+ */
+
+interface ResourcesCase {
+  eventPage: EventPage;
+  headings: ReadonlyArray<string>;
+  summary: string;
+  rows: number;
+}
+
+const RESOURCES_CASES: ReadonlyArray<ResourcesCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+  {
+    eventPage: ALERT_PAGE,
+    headings: ["Monitors 1", "Services 1"],
+    summary: "2 resources across 2 categories",
+    rows: 2,
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+];
+
+// ?resources=many attaches Incident #1042 to five categories.
+const MANY_RESOURCES_HEADINGS: ReadonlyArray<string> = [
+  "Monitors 6",
+  "Hosts 2",
+  "Kubernetes Clusters 1",
+  "Services 3",
+  "SLOs 1",
+];
+const MANY_RESOURCES_READY: ReadonlyArray<string> = [
+  REPORT_CAVEAT,
+  "13 resources",
+];
+const LONG_MONITOR_NAME: string =
+  "Checkout web journey (synthetic) from eu-west-1 and us-east-1";
+
+const SLO_HINT: string =
+  "SLOs are linked automatically when their burn rate rules fire.";
+
+function resourcesCard(page: Page): Locator {
+  return card(page, "Affected Resources");
+}
+
+function resourceSections(page: Page): Locator {
+  return resourcesCard(page).getByTestId("affected-resource-category");
+}
+
+function resourceRows(page: Page): Locator {
+  return resourcesCard(page).getByRole("listitem");
+}
+
+// The display's root: the summary and the grid of sections.
+function resourcesBody(page: Page): Locator {
+  return resourcesCard(page)
+    .getByTestId("affected-resources-grid")
+    .locator("xpath=..");
+}
+
+async function resourceHeadings(page: Page): Promise<Array<string>> {
+  return resourcesCard(page)
+    .getByRole("heading", { level: 3 })
+    .evaluateAll((headings: Array<Element>): Array<string> => {
+      return headings.map((heading: Element): string => {
+        return (heading.textContent || "").replace(/\s+/g, " ").trim();
+      });
+    });
+}
+
+/*
+ * What would make something inside the card a card of its own: a shadow, a
+ * border (other than the hairline above each section but the first) or a
+ * white fill. Read from computed styles, so a class that sneaks it back in
+ * any other way is caught too.
+ */
+async function nestedCardChrome(root: Locator): Promise<Array<string>> {
+  return root.evaluate((element: Element): Array<string> => {
+    const findings: Array<string> = [];
+    const sections: Array<Element> = Array.from(
+      element.querySelectorAll("[data-testid='affected-resource-category']"),
+    );
+
+    for (const node of [
+      element,
+      ...Array.from(element.querySelectorAll("*")),
+    ]) {
+      const style: CSSStyleDeclaration = getComputedStyle(node);
+      const name: string = `${node.tagName.toLowerCase()}${
+        node.getAttribute("data-testid")
+          ? `[${node.getAttribute("data-testid")}]`
+          : ""
+      } "${(node.textContent || "").trim().slice(0, 24)}"`;
+
+      if (style.boxShadow !== "none") {
+        findings.push(`${name}: box-shadow ${style.boxShadow}`);
+      }
+
+      for (const side of ["top", "right", "bottom", "left"]) {
+        const width: string = style.getPropertyValue(`border-${side}-width`);
+
+        if (width === "0px") {
+          continue;
+        }
+
+        if (side === "top" && sections.indexOf(node) > 0 && width === "1px") {
+          continue;
+        }
+
+        findings.push(`${name}: border-${side} ${width}`);
+      }
+
+      if (style.backgroundColor === "rgb(255, 255, 255)") {
+        findings.push(`${name}: white fill`);
+      }
+    }
+
+    return findings;
+  });
+}
+
+// Where the text of an element ends, not the (block-wide) element itself.
+async function textRight(locator: Locator): Promise<number> {
+  return locator.evaluate((element: Element): number => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let right: number = 0;
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      if (!(node.textContent || "").trim()) {
+        continue;
+      }
+
+      const range: Range = document.createRange();
+      range.selectNodeContents(node);
+      right = Math.max(right, range.getBoundingClientRect().right);
+    }
+
+    return right + window.scrollX;
+  });
+}
+
+async function computed(
+  locator: Locator,
+  property: string,
+  pseudo?: string,
+): Promise<string> {
+  return locator.evaluate(
+    (
+      element: Element,
+      args: { property: string; pseudo: string | undefined },
+    ): string => {
+      return getComputedStyle(element, args.pseudo || null).getPropertyValue(
+        args.property,
+      );
+    },
+    { property, pseudo },
+  );
+}
+
+async function expectStubPage(
+  page: Page,
+  pageKey: string,
+  pathname: string,
+): Promise<void> {
+  const stub: Locator = page.getByTestId("stub-page");
+  await expect(stub).toHaveAttribute("data-page", pageKey);
+  await expect(stub).toHaveText(pathname);
+  expect(new URL(page.url()).pathname).toBe(pathname);
+}
+
+test.describe("affected resources card", () => {
+  for (const resourcesCase of RESOURCES_CASES) {
+    const eventPage: EventPage = resourcesCase.eventPage;
+
+    test(`${eventPage.name} lists resources as sections of its card, not cards inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage);
+      await page.mouse.move(0, 0);
+
+      const resources: Locator = resourcesCard(page);
+      expect(await resourceHeadings(page)).toEqual(resourcesCase.headings);
+      await expect(
+        resources.getByTestId("affected-resources-summary"),
+      ).toHaveText(resourcesCase.summary);
+      await expect(resourceRows(page)).toHaveCount(resourcesCase.rows);
+
+      // Nothing inside the card is boxed: no shadow, border or white fill.
+      expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+      // The page's card is the one card, and it still draws as one.
+      const cardSurface: Locator = resources.locator(":scope > div").first();
+      expect(await computed(cardSurface, "box-shadow")).not.toBe("none");
+      expect(await computed(cardSurface, "border-top-width")).toBe("1px");
+
+      /*
+       * The sections span the card's body evenly. The maintenance card once
+       * used the default detail style, whose -mx-3 row at full width ended
+       * the display 24px short of the card's right edge.
+       */
+      const surfaceBox: Box = await documentBox(cardSurface);
+      const gridBox: Box = await documentBox(
+        resources.getByTestId("affected-resources-grid"),
+      );
+      const leftInset: number = gridBox.x - surfaceBox.x;
+      const rightInset: number =
+        surfaceBox.x + surfaceBox.width - (gridBox.x + gridBox.width);
+      expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(1);
+
+      // Hovering the body washes nothing between it and the card in grey.
+      await resources.getByTestId("affected-resources-summary").hover();
+      expect(
+        await resourcesBody(page).evaluate(
+          (element: Element): Array<string> => {
+            const washed: Array<string> = [];
+            for (
+              let node: Element | null = element;
+              node &&
+              node.parentElement?.getAttribute("data-testid") !== "card";
+              node = node.parentElement
+            ) {
+              const background: string = getComputedStyle(node).backgroundColor;
+              if (background !== "rgba(0, 0, 0, 0)") {
+                washed.push(`${node.className}: ${background}`);
+              }
+            }
+            return washed;
+          },
+        ),
+      ).toEqual([]);
+      await page.mouse.move(0, 0);
+
+      // A hairline between the sections, none above the first.
+      const sections: Locator = resourceSections(page);
+      await expect(sections).toHaveCount(resourcesCase.headings.length);
+      expect(await computed(sections.nth(0), "border-top-width")).toBe("0px");
+      expect(await computed(sections.nth(1), "border-top-width")).toBe("1px");
+      expect(await computed(sections.nth(1), "border-top-color")).toBe(
+        "rgb(243, 244, 246)",
+      );
+      for (const index of [0, 1]) {
+        const section: Locator = sections.nth(index);
+        expect(await computed(section, "background-color")).toBe(
+          "rgba(0, 0, 0, 0)",
+        );
+        expect(await computed(section, "border-top-left-radius")).toBe("0px");
+      }
+
+      await screenshotElement(
+        resources,
+        `${eventPage.name}-affected-resources`,
+      );
+    });
+  }
+
+  test("each resource lines up under its label, past a tinted icon, with the count beside the label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const section: Locator = resourceSections(page).first();
+    const heading: Locator = section.getByRole("heading", { level: 3 });
+    const label: Locator = heading.getByText("Monitors", { exact: true });
+    const count: Locator = section.getByTestId(
+      "affected-resource-category-count",
+    );
+    const tile: Locator = section.locator(":scope > div > div").first();
+    const firstItem: Locator = section
+      .getByTestId("affected-resource-item")
+      .first();
+
+    const labelBox: Box = await documentBox(label);
+    const countBox: Box = await documentBox(count);
+    const tileBox: Box = await documentBox(tile);
+    const itemBox: Box = await documentBox(firstItem);
+    const sectionBox: Box = await documentBox(section);
+
+    // A 24px tinted tile at the section's left edge.
+    expect(tileBox.width).toBeCloseTo(24, 0);
+    expect(tileBox.height).toBeCloseTo(24, 0);
+    expect(Math.abs(tileBox.x - sectionBox.x)).toBeLessThanOrEqual(1);
+    expect(await computed(tile, "background-color")).toBe("rgb(239, 246, 255)");
+    expect(await computed(tile.locator("svg"), "color")).toBe(
+      "rgb(37, 99, 235)",
+    );
+    // The label starts past it, and the names start where the label does.
+    expect(labelBox.x).toBeGreaterThan(tileBox.x + tileBox.width);
+    expect(Math.abs(itemBox.x - labelBox.x)).toBeLessThanOrEqual(1);
+    // The count follows the label rather than sitting at the far edge.
+    const gap: number = countBox.x - (labelBox.x + labelBox.width);
+    expect(gap).toBeGreaterThanOrEqual(4);
+    expect(gap).toBeLessThanOrEqual(12);
+    await expect(count).toHaveText("2");
+    // Rows are a comfortable target.
+    for (const row of await resourceRows(page).all()) {
+      expect((await documentBox(row)).height).toBeGreaterThanOrEqual(32);
+    }
+  });
+
+  test("a click anywhere on a row opens that resource, not only on its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const clickRowEdge: (row: Locator) => Promise<void> = async (
+      row: Locator,
+    ): Promise<void> => {
+      await row.scrollIntoViewIfNeeded();
+      const rowBox: Box = await documentBox(row);
+      const nameEnds: number = await textRight(row);
+      const x: number = rowBox.width - 4;
+
+      // The point clicked is past the end of the name.
+      expect(rowBox.x + x).toBeGreaterThan(nameEnds + 8);
+      await row.click({ position: { x, y: rowBox.height / 2 } });
+    };
+
+    const monitorRow: Locator = resourceRows(page).filter({
+      hasText: "Checkout API p95 latency",
+    });
+    await expect(monitorRow.getByRole("link")).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+    await clickRowEdge(monitorRow);
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    await page.goBack();
+    await expectPageReady(page, INCIDENT_PAGE);
+
+    const serviceRow: Locator = resourceRows(page).filter({
+      hasText: "orders-db",
+    });
+    const serviceHref: string = (await serviceRow
+      .getByRole("link")
+      .getAttribute("href"))!;
+    expect(serviceHref).toBe(`${DASHBOARD}/service/${uuid("75000000", 2)}`);
+    await clickRowEdge(serviceRow);
+    await expectStubPage(page, "SERVICE_VIEW", serviceHref);
+  });
+
+  test("hovering a row lights up the whole row and underlines its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+
+    const row: Locator = resourceRows(page).first();
+    const link: Locator = row.getByRole("link");
+    await row.scrollIntoViewIfNeeded();
+    expect(await computed(row, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    expect(await computed(link, "text-decoration-line")).toBe("none");
+
+    // Over the empty end of the row, well past the name.
+    const rowBox: DOMRect = await row.evaluate((element: Element): DOMRect => {
+      return element.getBoundingClientRect();
+    });
+    await page.mouse.move(
+      rowBox.x + rowBox.width - 4,
+      rowBox.y + rowBox.height / 2,
+    );
+
+    await expect
+      .poll(async (): Promise<string> => {
+        return computed(row, "background-color");
+      })
+      .toBe("rgb(249, 250, 251)");
+    expect(await computed(link, "text-decoration-line")).toBe("underline");
+    expect(await computed(link, "cursor")).toBe("pointer");
+    // The pointer is over the link's stretched overlay, not dead space.
+    expect(
+      await page.evaluate(
+        ({ x, y }: { x: number; y: number }): string | undefined => {
+          return document
+            .elementFromPoint(x, y)
+            ?.closest("a")
+            ?.textContent?.trim();
+        },
+        { x: rowBox.x + rowBox.width - 4, y: rowBox.y + rowBox.height / 2 },
+      ),
+    ).toBe("Checkout API p95 latency");
+  });
+
+  test("keyboard: Tab from Edit reaches each resource with a ring round its row, and Enter opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await resourcesCard(page)
+      .getByTestId("card-header-actions")
+      .getByRole("button", { name: "Edit" })
+      .focus();
+    await page.keyboard.press("Tab");
+
+    const firstLink: Locator = resourceRows(page).first().getByRole("link");
+    await expect(firstLink).toBeFocused();
+    // The ring is drawn by the stretched overlay, around the whole row.
+    expect(await computed(firstLink, "box-shadow", "::after")).toContain(
+      "rgb(99, 102, 241)",
+    );
+    expect(await computed(firstLink, "position", "::after")).toBe("absolute");
+    // The link's own outline, which the truncation would clip, is off.
+    expect(await computed(firstLink, "outline-color")).toBe("rgba(0, 0, 0, 0)");
+
+    await page.keyboard.press("Tab");
+    const secondLink: Locator = resourceRows(page).nth(1).getByRole("link");
+    await expect(secondLink).toBeFocused();
+    expect(await computed(firstLink, "box-shadow", "::after")).not.toContain(
+      "rgb(99, 102, 241)",
+    );
+
+    await page.keyboard.press("Enter");
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 2)}`,
+    );
+  });
+
+  test("?resources=many: five categories, and Show more opens the rest in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    expect(await resourceHeadings(page)).toEqual(MANY_RESOURCES_HEADINGS);
+    await expect(
+      resources.getByTestId("affected-resources-summary"),
+    ).toHaveText("13 resources across 5 categories");
+    expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+    // No label is cut short in the sidebar, the longest included.
+    const labels: Locator = resources
+      .getByRole("heading", { level: 3 })
+      .locator(":scope > span:first-child");
+    await expect(labels).toHaveText([
+      "Monitors",
+      "Hosts",
+      "Kubernetes Clusters",
+      "Services",
+      "SLOs",
+    ]);
+    for (const label of await labels.all()) {
+      expect(await isOverflowing(label)).toBe(false);
+    }
+
+    const monitors: Locator = resources.getByRole("list", {
+      name: "Monitors 6",
+    });
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    // By what it controls, since its name changes when it is pressed.
+    const listId: string = (await monitors.getAttribute("id"))!;
+    const toggle: Locator = resources.locator(
+      `button[aria-controls="${listId}"]`,
+    );
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+
+    /*
+     * A name wider than the sidebar ends in an ellipsis, whole in its title.
+     * The element's own flex name span is what truncates: the row turns it
+     * into a truncating block.
+     */
+    const longItem: Locator = resources.getByTitle(LONG_MONITOR_NAME);
+    await expect(longItem).toBeVisible();
+    const longName: Locator = longItem.locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    expect(await computed(longName, "white-space")).toBe("nowrap");
+
+    const hostsBefore: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(6);
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveText("Show less");
+    await expect(monitors.getByText("Cart API p99 latency")).toBeVisible();
+    await expect(monitors.getByText("CDN edge eu-west")).toBeVisible();
+    // In place: the sections below make room.
+    const hostsAfter: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+    expect(hostsAfter.y).toBeGreaterThan(hostsBefore.y + 50);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-many");
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+  });
+
+  test("?resources=many: host, cluster and SLO rows open their own pages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const targets: ReadonlyArray<[string, string, string]> = [
+      ["checkout-api-7f9c", "HOST_VIEW", uuid("84000000", 1)],
+      ["prod-eks-eu-west-1", "KUBERNETES_CLUSTER_VIEW", uuid("85000000", 1)],
+      ["Checkout availability 99.9%", "SLO_VIEW", uuid("86000000", 1)],
+    ];
+
+    for (const [name, pageKey, id] of targets) {
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        "resources=many",
+        MANY_RESOURCES_READY,
+      );
+      const link: Locator = resourceRows(page)
+        .filter({ hasText: name })
+        .getByRole("link");
+      const href: string = (await link.getAttribute("href"))!;
+      expect(href).toContain(id);
+      await link.click();
+      await expectStubPage(page, pageKey, href);
+    }
+  });
+
+  test("?resources=many fits a 390px phone, expanded too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    await resources.scrollIntoViewIfNeeded();
+    await expectNoHorizontalOverflow(page);
+    await resources.getByRole("button", { name: "Show 2 more" }).click();
+    await expect(resourceRows(page)).toHaveCount(13);
+    await expectNoHorizontalOverflow(page);
+
+    const cardBox: Box = await documentBox(resources);
+    for (const row of await resourceRows(page).all()) {
+      const rowBox: Box = await documentBox(row);
+      expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width,
+      );
+    }
+    // The long name is cut with an ellipsis rather than widening the card.
+    const longName: Locator = resources
+      .getByTitle(LONG_MONITOR_NAME)
+      .locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-mobile");
+  });
+
+  test("?resources=none: the incident's empty state is open text that says SLOs are linked for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "resources=none", [
+      REPORT_CAVEAT,
+      "No resources affected.",
+    ]);
+
+    const resources: Locator = resourcesCard(page);
+    const empty: Locator = resources.getByTestId("affected-resources-empty");
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(SLO_HINT);
+    await expect(resources.getByTestId("affected-resources-grid")).toHaveCount(
+      0,
+    );
+    await expect(resources.getByRole("heading", { level: 3 })).toHaveCount(0);
+    // No dashed, tinted box inside the card.
+    expect(await nestedCardChrome(empty)).toEqual([]);
+    expect(await computed(empty, "border-top-width")).toBe("0px");
+    expect(await computed(empty, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    await screenshotElement(resources, "incident-affected-resources-empty");
+  });
+
+  test("?resources=none: scheduled maintenance never promises SLOs, which nothing links to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "resources=none", [
+      "Subscribers notified",
+      "No resources affected.",
+    ]);
+
+    const empty: Locator = resourcesCard(page).getByTestId(
+      "affected-resources-empty",
+    );
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(
+      "Attach monitors, hosts, clusters, or services",
+    );
+    await expect(empty).not.toContainText("SLOs");
+  });
+
+  const THEMES: ReadonlyArray<{
+    theme: string;
+    query: string;
+    label: string;
+    item: string;
+    countFill: string;
+    countText: string;
+    divider: string;
+    hover: string;
+    tile: string;
+  }> = [
+    {
+      theme: "light",
+      query: "",
+      label: "rgb(17, 24, 39)",
+      item: "rgb(55, 65, 81)",
+      countFill: "rgb(243, 244, 246)",
+      countText: "rgb(75, 85, 99)",
+      divider: "rgb(243, 244, 246)",
+      hover: "rgb(249, 250, 251)",
+      tile: "rgb(239, 246, 255)",
+    },
+    {
+      /*
+       * Theme.css: --ou-text-primary, --ou-text-secondary,
+       * --ou-surface-tertiary, --ou-text-muted, --ou-border-subtle,
+       * --ou-surface-secondary and blue-50's remap.
+       */
+      theme: "dark",
+      query: "theme=dark",
+      label: "rgb(248, 250, 252)",
+      item: "rgb(226, 232, 240)",
+      countFill: "rgb(39, 52, 73)",
+      countText: "rgb(203, 213, 225)",
+      divider: "rgb(51, 65, 85)",
+      hover: "rgb(30, 41, 59)",
+      tile: "rgba(30, 64, 175, 0.28)",
+    },
+  ];
+
+  for (const colours of THEMES) {
+    test(`${colours.theme} theme: labels, rows, counts, hairlines and hover use its palette`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, colours.query);
+      await page.mouse.move(0, 0);
+
+      const section: Locator = resourceSections(page).first();
+      const row: Locator = resourceRows(page).first();
+      const count: Locator = section.getByTestId(
+        "affected-resource-category-count",
+      );
+
+      expect(
+        await computed(section.getByText("Monitors", { exact: true }), "color"),
+      ).toBe(colours.label);
+      expect(await computed(row, "color")).toBe(colours.item);
+      expect(await computed(count, "background-color")).toBe(colours.countFill);
+      expect(await computed(count, "color")).toBe(colours.countText);
+      expect(
+        await computed(resourceSections(page).nth(1), "border-top-color"),
+      ).toBe(colours.divider);
+      expect(
+        await computed(
+          section.locator(":scope > div > div").first(),
+          "background-color",
+        ),
+      ).toBe(colours.tile);
+
+      await row.hover({ position: { x: 4, y: 4 } });
+      await expect
+        .poll(async (): Promise<string> => {
+          return computed(row, "background-color");
+        })
+        .toBe(colours.hover);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        resourcesCard(page),
+        `incident-affected-resources-${colours.theme}`,
+      );
+    });
+  }
+});
 
 test.describe("scheduled maintenance overview", () => {
   for (const phase of MAINTENANCE_PHASES) {
@@ -3433,6 +8065,13 @@ test.describe("scheduled maintenance overview", () => {
       name: "Mark Scheduled Maintenance as Ongoing",
     });
     await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("This updates the event timeline.");
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Mark as Ongoing", exact: true })
@@ -3484,10 +8123,19 @@ test.describe("scheduled maintenance overview", () => {
 
 interface EpisodeCase {
   page: EventPage;
-  // How the members card reads its rows.
+  /*
+   * How the members card reads its rows: the episode's membership rows, then
+   * the members they name, by id. A member's own incidentEpisodeId /
+   * alertEpisodeId names only the latest episode it is in, so it is never
+   * asked.
+   */
+  membershipModel: string;
+  memberIdField: string;
   memberModel: string;
   episodeIdField: string;
   sortField: string;
+  // Every member's id, in the order they joined the episode.
+  memberIds: ReadonlyArray<string>;
   membersCard: string;
   count: string;
   viewAll: { name: string; href: string; stubPage: string };
@@ -3502,9 +8150,14 @@ interface EpisodeCase {
 const EPISODES: ReadonlyArray<EpisodeCase> = [
   {
     page: INCIDENT_EPISODE_PAGE,
+    membershipModel: "IncidentEpisodeMember",
+    memberIdField: "incidentId",
     memberModel: "Incident",
     episodeIdField: "incidentEpisodeId",
     sortField: "declaredAt",
+    memberIds: [1038, 1040, 1041, 1042].map((number: number): string => {
+      return uuid("20000000", number);
+    }),
     membersCard: "Incidents in this episode",
     count: "4 incidents",
     viewAll: {
@@ -3532,6 +8185,7 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
         severity: "SEV-2",
       },
       {
+        // Also in a later episode, which its own incidentEpisodeId names.
         number: "#1038",
         title: "Cart service 5xx rate above 2%",
         href: incidentPath(1038),
@@ -3541,9 +8195,14 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
   },
   {
     page: ALERT_EPISODE_PAGE,
+    membershipModel: "AlertEpisodeMember",
+    memberIdField: "alertId",
     memberModel: "Alert",
     episodeIdField: "alertEpisodeId",
     sortField: "createdAt",
+    memberIds: [305, 307, 309, 310, 311].map((number: number): string => {
+      return uuid("30000000", number);
+    }),
     membersCard: "Alerts in this episode",
     count: "5 alerts",
     viewAll: {
@@ -3577,6 +8236,7 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
         severity: "Low",
       },
       {
+        // Also in a later episode, which its own alertEpisodeId names.
         number: "#305",
         title: "Payment webhook latency above 3s",
         href: alertPath(305),
@@ -3659,24 +8319,63 @@ test.describe("episode overviews", () => {
         "members before feed",
       );
 
-      // Newest first, up to eight, filtered to this episode.
-      const list: RecordedModelRequest | undefined = (
-        await fixture(page)
-      ).listRequests.find((request: RecordedModelRequest): boolean => {
-        return (
-          request.modelName === episode.memberModel &&
-          Object.keys(request.query || {}).includes(episode.episodeIdField) &&
-          request.limit === 8
+      const requests: Array<RecordedModelRequest> = (await fixture(page))
+        .listRequests;
+
+      // The episode's membership: the page's snapshot and the card each read it.
+      const membershipReads: Array<RecordedModelRequest> = requests.filter(
+        (request: RecordedModelRequest): boolean => {
+          return request.modelName === episode.membershipModel;
+        },
+      );
+      expect(membershipReads, "membership reads").toHaveLength(2);
+      for (const read of membershipReads) {
+        expect(Object.keys(read.query || {})).toEqual([episode.episodeIdField]);
+        expect(JSON.stringify(read.query)).toContain(
+          eventPage === INCIDENT_EPISODE_PAGE
+            ? INCIDENT_EPISODE_ID
+            : ALERT_EPISODE_ID,
         );
-      });
+        expect(read.select).toEqual({ [episode.memberIdField]: true });
+      }
+
+      // Then the members it names, by id: newest first, up to eight.
+      const list: RecordedModelRequest | undefined = requests.find(
+        (request: RecordedModelRequest): boolean => {
+          return (
+            request.modelName === episode.memberModel && request.limit === 8
+          );
+        },
+      );
       expect(list, "members preview request").toBeDefined();
       expect(list?.skip).toBe(0);
       expect(list?.sort).toEqual({ [episode.sortField]: "DESC" });
-      expect(JSON.stringify(list?.query)).toContain(
-        eventPage === INCIDENT_EPISODE_PAGE
-          ? INCIDENT_EPISODE_ID
-          : ALERT_EPISODE_ID,
+      expect(list?.query).toEqual({
+        _id: { _type: "Includes", value: episode.memberIds },
+      });
+
+      // The telemetry snapshot's first member comes from the same membership.
+      const firstMember: RecordedModelRequest | undefined = requests.find(
+        (request: RecordedModelRequest): boolean => {
+          return (
+            request.modelName === episode.memberModel && request.limit === 1
+          );
+        },
       );
+      expect(firstMember, "first member request").toBeDefined();
+      expect(firstMember?.sort).toEqual({ [episode.sortField]: "ASC" });
+      expect(firstMember?.query).toEqual({
+        _id: { _type: "Includes", value: episode.memberIds },
+      });
+
+      // No read asks for members by their own episode link.
+      for (const request of requests) {
+        if (request.modelName === episode.memberModel) {
+          expect(Object.keys(request.query || {})).not.toContain(
+            episode.episodeIdField,
+          );
+        }
+      }
 
       await viewAll.click();
       await expect(page.getByTestId("stub-page")).toHaveAttribute(
@@ -3698,9 +8397,15 @@ test.describe("episode overviews", () => {
           ? "Checkout incidents within 30 minutes"
           : "Payments webhook alerts",
       );
+      /*
+       * The episode's ID is no longer a full-width pill among the fields: it
+       * is the card's ID line, the whole ID in its text and one click from
+       * the clipboard.
+       */
       await expect(
         details.getByRole("button", { name: /^[0-9a-f-]{36}$/ }),
-      ).toHaveText(
+      ).toHaveCount(0);
+      await expect(details.getByTestId("detail-id-value")).toHaveText(
         eventPage === INCIDENT_EPISODE_PAGE
           ? INCIDENT_EPISODE_ID
           : ALERT_EPISODE_ID,
@@ -3809,6 +8514,387 @@ test.describe("episode overviews", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Notes from the feed
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * "Add Public Note" and "Add Private Note" in a feed's Actions menu open the
+ * event's Notes page composer in a dialog: one step, with templates, Draft
+ * with AI and who the note reaches. They used to open a two-step form with a
+ * Summary page and a required Posted At.
+ */
+interface FeedNoteCase {
+  eventPage: EventPage;
+  action: "Add Public Note" | "Add Private Note";
+  modelName: string;
+  parentIdField: string;
+  feedModelName: string;
+  submitLabel: string;
+}
+
+const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentPublicNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Private Note",
+    modelName: "IncidentInternalNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: ALERT_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertInternalNote",
+    parentIdField: "alertId",
+    feedModelName: "AlertFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    action: "Add Public Note",
+    modelName: "ScheduledMaintenancePublicNote",
+    parentIdField: "scheduledMaintenanceId",
+    feedModelName: "ScheduledMaintenanceFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_EPISODE_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentEpisodePublicNote",
+    parentIdField: "incidentEpisodeId",
+    feedModelName: "IncidentEpisodeFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: ALERT_EPISODE_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertEpisodeInternalNote",
+    parentIdField: "alertEpisodeId",
+    feedModelName: "AlertEpisodeFeed",
+    submitLabel: "Add note",
+  },
+];
+
+async function openFeedNoteDialog(
+  page: Page,
+  noteCase: FeedNoteCase,
+): Promise<Locator> {
+  await card(page, noteCase.eventPage.feed)
+    .getByTestId("feed-actions-button")
+    .click();
+  await page
+    .getByRole("menuitem", { name: noteCase.action, exact: true })
+    .click();
+  const dialog: Locator = page.getByRole("dialog", { name: noteCase.action });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function feedReads(page: Page, modelName: string): Promise<number> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName === modelName;
+    },
+  ).length;
+}
+
+async function notesPosted(
+  page: Page,
+  modelName: string,
+): Promise<Array<RecordedWrite>> {
+  return (await fixture(page)).creates.filter(
+    (write: RecordedWrite): boolean => {
+      return write.modelName === modelName;
+    },
+  );
+}
+
+test.describe("notes from the feed", () => {
+  for (const noteCase of FEED_NOTES) {
+    test(`${noteCase.eventPage.name}: ${noteCase.action} is the Notes page composer, in one step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, noteCase.eventPage);
+      const readsBefore: number = await feedReads(page, noteCase.feedModelName);
+
+      const dialog: Locator = await openFeedNoteDialog(page, noteCase);
+      const composer: Locator = dialog.getByTestId("note-composer");
+      const submit: Locator = dialog.getByTestId("modal-footer-submit-button");
+
+      await expect(composer).toBeVisible();
+      await expect(dialog.getByTestId("note-audience")).toContainText(
+        noteCase.action === "Add Public Note"
+          ? "Visible on your status page"
+          : "Only your team can see this",
+      );
+      // No wizard, no Summary page, no Posted At up front.
+      await expect(
+        dialog.getByRole("button", { name: "Next", exact: true }),
+      ).toHaveCount(0);
+      await expect(dialog.getByText("Summary", { exact: true })).toHaveCount(0);
+      await expect(dialog.getByTestId("note-posted-at-input")).toHaveCount(0);
+      await expect(submit).toHaveText(noteCase.submitLabel);
+      await expect(submit).toBeDisabled();
+
+      // The cursor is in the note.
+      const editor: Locator = composer.locator('[contenteditable="true"]');
+      await expect(editor).toBeFocused();
+      await page.keyboard.type("Rolled back the deploy; watching p95.");
+      await expect(submit).toBeEnabled();
+      await submit.click();
+
+      await expect(dialog).toHaveCount(0);
+
+      const posted: Array<RecordedWrite> = await notesPosted(
+        page,
+        noteCase.modelName,
+      );
+      expect(posted).toHaveLength(1);
+      expect(posted[0]!.data!["note"]).toBe(
+        "Rolled back the deploy; watching p95.",
+      );
+      expect(
+        JSON.stringify(posted[0]!.data![noteCase.parentIdField]),
+      ).toContain(noteCase.eventPage.recordId);
+
+      if (noteCase.action === "Add Public Note") {
+        // Always sent, never left to the server; posted now.
+        expect(
+          typeof posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBe("boolean");
+        expect(posted[0]!.data!["postedAt"]).toBeTruthy();
+      } else {
+        expect(
+          posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBeUndefined();
+      }
+
+      // The feed reads itself again, in place.
+      await expect
+        .poll(async (): Promise<number> => {
+          return feedReads(page, noteCase.feedModelName);
+        })
+        .toBeGreaterThan(readsBefore);
+    });
+  }
+
+  test("the incident's public note says who it reaches and can be previewed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+    await expect(dialog.getByTestId("note-notify-checkbox")).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-preview-notification"),
+    ).toBeVisible();
+    expect(
+      (await apiRequestsTo(page, "/incident/subscriber-audience")).length,
+    ).toBeGreaterThan(0);
+  });
+
+  /*
+   * "This preview notification button is quite big. Can we please improve
+   * the UI?" In the feed's dialog too, 'Preview' is a small link on the
+   * notify box's line - grey, and saying why, until the note has text.
+   */
+  test("the incident's public note puts a small Preview link beside the notify box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+    const line: Locator = dialog.getByTestId("note-notify-line");
+    const label: Locator = line.getByText("Notify status page subscribers", {
+      exact: true,
+    });
+    const preview: Locator = dialog.getByTestId(
+      "incident-public-note-preview-notification",
+    );
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveText("Preview");
+    await expect(preview).toHaveAccessibleName("Preview notification");
+    await expect(line).toContainText("Preview");
+
+    // On the box's line, to the right of its label, a word wide.
+    const labelBox: { x: number; y: number; width: number; height: number } =
+      (await label.boundingBox())!;
+    const previewBox: { x: number; y: number; width: number; height: number } =
+      (await preview.boundingBox())!;
+    expect(
+      Math.abs(
+        labelBox.y +
+          labelBox.height / 2 -
+          (previewBox.y + previewBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(previewBox.x).toBeGreaterThan(labelBox.x + labelBox.width);
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    expect(previewBox.width).toBeLessThan(100);
+
+    // Nothing written yet: grey, still reachable, and it says why.
+    await expect(preview).toHaveAttribute("aria-disabled", "true");
+    await expect(preview).toHaveAccessibleDescription(
+      "Write the note first to preview the email it sends.",
+    );
+
+    // Once there is a note, it is ready to open.
+    await expect(
+      dialog.getByTestId("note-composer").locator('[contenteditable="true"]'),
+    ).toBeFocused();
+    await page.keyboard.type("Rolled back the deploy.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect(preview).not.toHaveAttribute("aria-describedby");
+
+    // Nothing was asked of the preview API: it is only asked when pressed.
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: RecordedApiRequest): boolean => {
+          return request.url.includes("/subscriber-notification-preview/");
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("the template menu opens over the dialog, whole and inside the window", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText("No note templates yet");
+
+    // Inside the window, top to bottom: nothing of it is cut off.
+    const edges: { top: number; bottom: number; windowHeight: number } =
+      await menu.evaluate(
+        (
+          element: Element,
+        ): { top: number; bottom: number; windowHeight: number } => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return {
+            top: rect.top,
+            bottom: rect.bottom,
+            windowHeight: window.innerHeight,
+          };
+        },
+      );
+    expect(edges.top).toBeGreaterThanOrEqual(0);
+    expect(edges.bottom).toBeLessThanOrEqual(edges.windowHeight);
+
+    // Nothing of the dialog paints over it.
+    const isOnTop: boolean = await menu.evaluate(
+      (element: Element): boolean => {
+        const rect: DOMRect = element.getBoundingClientRect();
+        const hit: Element | null = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return Boolean(hit && element.contains(hit));
+      },
+    );
+    expect(isOnTop).toBe(true);
+
+    // Escape puts the menu away and leaves the note being written.
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("Cancel with a draft asks before it is lost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await page.keyboard.type("Half a thought.");
+    await dialog.getByTestId("modal-footer-close-button").click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Discard this draft?",
+    });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Keep writing" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(dialog.locator('[contenteditable="true"]')).toContainText(
+      "Half a thought.",
+    );
+
+    await dialog.getByTestId("modal-footer-close-button").click();
+    await page
+      .getByRole("dialog", { name: "Discard this draft?" })
+      .getByRole("button", { name: "Discard draft" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    expect(await notesPosted(page, "IncidentInternalNote")).toHaveLength(0);
+  });
+
+  test("someone who may not write incident notes sees them locked, with the reason", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Only the feed is waited for: an alert member does not see every card.
+    await openReady(page, INCIDENT_PAGE, "role=alert-member", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+
+    await card(page, "Incident Feed")
+      .getByTestId("feed-actions-button")
+      .click();
+    for (const action of ["Add Public Note", "Add Private Note"]) {
+      await expect(
+        page.getByRole("menuitem", { name: action, exact: true }),
+      ).toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the dialog fits the screen", async ({ page }: { page: Page }) => {
+      await openReady(page, INCIDENT_PAGE);
+      const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+      await expect(dialog.getByTestId("note-composer")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      const box: Box = await documentBox(dialog);
+      expect(box.width).toBeLessThanOrEqual(390);
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Navigation
  * ---------------------------------------------------------------------------
  */
@@ -3889,12 +8975,34 @@ test.describe("responsive", () => {
     await expectNoHorizontalOverflow(page);
 
     /*
-     * Phones shorten "Evidence checked" to "Evidence" so both tabs share one
-     * row; the count still follows the name.
+     * Phones draw the short "Evidence" so both tabs share one row. Both
+     * labels are whole translated strings, never "Evidence" plus a hidden
+     * " checked", so the short one is drawn from an attribute and kept out
+     * of the name: a screen reader still hears the whole name, and the
+     * count still follows it.
      */
     const evidenceTab: Locator = detailsTab(page, "Evidence");
     const activityTab: Locator = detailsTab(page, "Activity");
-    await expect(evidenceTab).toHaveAccessibleName("Evidence 10");
+    await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
+    const shortLabel: Locator = evidenceTab.locator("[data-short-label]");
+    await expect(shortLabel).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await shortLabel.evaluate((element: Element): string => {
+        return window.getComputedStyle(element, "::before").content;
+      }),
+      "the tab draws the short label",
+    ).toBe('"Evidence"');
+    const shortLabelBox: Box = await documentBox(shortLabel);
+    expect(shortLabelBox.width, "the short label takes room").toBeGreaterThan(
+      0,
+    );
+    const fullLabelBox: Box = await documentBox(
+      evidenceTab.getByText("Evidence checked", { exact: true }),
+    );
+    expect(
+      Math.max(fullLabelBox.width, fullLabelBox.height),
+      "the whole name is for screen readers only",
+    ).toBeLessThanOrEqual(1);
     const evidenceBox: Box = await documentBox(evidenceTab);
     const activityBox: Box = await documentBox(activityTab);
     expect(
@@ -3903,6 +9011,48 @@ test.describe("responsive", () => {
     ).toBeLessThanOrEqual(1);
     expect(activityBox.x).toBeGreaterThan(evidenceBox.x + evidenceBox.width);
   });
+
+  /*
+   * "Why are edit buttons not on the right?" Every card on the page - the
+   * wide ones on the left, the narrow column on the right - keeps what it
+   * offers at its header's right edge: on the title's line on a desktop, and
+   * under the title, still at the right edge, only where the two do not fit.
+   * Never under the description, at the left, or in the middle.
+   */
+  for (const eventPage of EVENT_PAGES) {
+    for (const width of [1440, 1280, 390]) {
+      test(`${eventPage.name} keeps every card's actions at the right edge at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, eventPage);
+
+        const cards: Locator = page
+          .getByTestId("card")
+          .filter({ has: page.getByTestId("card-header-actions") })
+          .filter({ has: page.getByTestId("card-details-heading") });
+        const count: number = await cards.count();
+
+        expect(count, "cards with actions").toBeGreaterThan(1);
+
+        for (let index: number = 0; index < count; index++) {
+          const each: Locator = cards.nth(index);
+          const name: string = (
+            await each.getByTestId("card-details-heading").first().innerText()
+          ).trim();
+
+          await expectHeaderActionsOnTheRight(
+            each,
+            `${name} at ${width}px`,
+            width === 1440 ? { onTitleLine: true } : undefined,
+          );
+        }
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
 
   for (const eventPage of EVENT_PAGES) {
     test(`${eventPage.name} right column is not cramped at 1280px`, async ({
@@ -3931,6 +9081,2144 @@ test.describe("responsive", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Measurements
+ * ---------------------------------------------------------------------------
+ * "Someone who sets up 'Time to mitigate' opens an incident and finds it
+ * nowhere." Each event's page lists the project's measurements for it, in a
+ * card under its details: each one's name, what it measures, and what it
+ * reads - a number, a clock still running, or why there is none. The
+ * fixture works the values out with the real MeasurementEvaluator over its
+ * own timelines (see Fixture.js, Measurements).
+ */
+
+interface MeasurementRow {
+  name: string;
+  summary: string;
+  value: string;
+  reason: string | null;
+}
+
+function measurementsCard(page: Page): Locator {
+  return card(page, "Measurements");
+}
+
+async function measurementRows(page: Page): Promise<Array<MeasurementRow>> {
+  return measurementsCard(page)
+    .getByTestId("event-measurement")
+    .evaluateAll((rows: Array<Element>): Array<MeasurementRow> => {
+      return rows.map((row: Element): MeasurementRow => {
+        const text: (testId: string) => string | null = (
+          testId: string,
+        ): string | null => {
+          const element: Element | null = row.querySelector(
+            `[data-testid="${testId}"]`,
+          );
+          return element ? (element as HTMLElement).innerText.trim() : null;
+        };
+
+        return {
+          name: text("event-measurement-name") || "",
+          // The arrow is spaced by its margins, which innerText leaves out.
+          summary: (text("measurement-summary") || "")
+            .replace("→", " → ")
+            .replace(/\s+/g, " "),
+          value: text("event-measurement-value") || "",
+          reason: text("event-measurement-reason"),
+        };
+      });
+    });
+}
+
+// The ready text each page's Measurements card adds: a measurement's name.
+const MEASUREMENT_READY_TEXT: RegExp = /^(Time to|Maintenance duration)/;
+
+async function measurementRequests(
+  page: Page,
+): Promise<Array<RecordedModelRequest>> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName.includes("Measurement");
+    },
+  );
+}
+
+const INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  {
+    name: "Time to acknowledge",
+    summary: "Declared → Acknowledged",
+    value: "3 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to mitigate",
+    summary: "Declared → Mitigated",
+    value: "Not measured",
+    reason: "Mitigated was skipped",
+  },
+  {
+    name: "Time to resolve",
+    summary: "Declared → Resolved",
+    value: "11 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to postmortem",
+    summary: "Resolved → Postmortem published",
+    value: "Running for 8 minutes",
+    reason: null,
+  },
+];
+
+test.describe("measurements", () => {
+  test("incident-overview lists the incident's measurements under its details, in their order", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(measurementsCard(page)).toBeVisible();
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this incident.",
+    );
+    // Kept off incident pages, and switched off: neither is shown.
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+
+    // In the right-hand column, straight under the details card.
+    const details: Box = await documentBox(
+      card(page, INCIDENT_PAGE.detailsCard),
+    );
+    const measurements: Box = await documentBox(measurementsCard(page));
+    expect(Math.abs(measurements.x - details.x)).toBeLessThanOrEqual(1);
+    expect(measurements.y).toBeGreaterThan(details.y + details.height - 1);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Incident Roles"),
+      "measurements before roles",
+    );
+    // Out of the hero and the stat bar.
+    await expectAbove(
+      page.getByRole("group", { name: INCIDENT_PAGE.statBar }),
+      measurementsCard(page),
+      "stat bar before measurements",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("incident-overview asks for the measurements shown on incident pages, then this incident's values", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await expect(measurementsCard(page)).toBeVisible();
+
+    const requests: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+    const definitions: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurement";
+      },
+    );
+    const values: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurementValue";
+      },
+    );
+
+    expect(definitions?.query).toEqual({
+      isEnabled: true,
+      showOnIncidentView: true,
+    });
+    expect(definitions?.sort).toEqual({ order: "ASC" });
+    expect(JSON.stringify(values?.query)).toContain(INCIDENT_ID);
+    expect(Object.keys(values?.query || {})).toEqual(["incidentId"]);
+
+    /*
+     * Read once. The AI report arriving refreshes the feed, not the
+     * measurements: only a state change moves them. (A refresh is followed
+     * by one more read three seconds later, so wait past that.)
+     */
+    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    await page.waitForTimeout(3500);
+    expect(await measurementRequests(page)).toHaveLength(2);
+  });
+
+  test("alert-overview lists the alert's measurements, each in its own unit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this alert.",
+    );
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        // Pinned to minutes.
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Affected Resources"),
+      "measurements before resources",
+    );
+  });
+
+  const MAINTENANCE_CASES: Array<{
+    sm: string;
+    values: Array<string>;
+  }> = [
+    // Starts in two hours: no clock has started.
+    {
+      sm: "scheduled",
+      values: ["Not started yet", "Not started yet", "Not started yet"],
+    },
+    // Still Scheduled 20 minutes after its start: running late.
+    {
+      sm: "overdue",
+      values: ["Running for 20 minutes", "Not started yet", "Not started yet"],
+    },
+    // Started on time, still Ongoing.
+    {
+      sm: "ongoing",
+      values: ["0 seconds", "Not started yet", "Running for 15 minutes"],
+    },
+    // Ended two minutes past its planned end.
+    { sm: "ended", values: ["0 seconds", "2 minutes", "1 hour, 2 minutes"] },
+  ];
+
+  for (const maintenance of MAINTENANCE_CASES) {
+    test(`scheduled-maintenance-overview ?sm=${maintenance.sm} reads its measurements`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        SCHEDULED_MAINTENANCE_PAGE,
+        `sm=${maintenance.sm}`,
+        ["Maintenance duration"],
+      );
+
+      const rows: Array<MeasurementRow> = await measurementRows(page);
+
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.name;
+        }),
+      ).toEqual(["Start delay", "Overrun", "Maintenance duration"]);
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.value;
+        }),
+      ).toEqual(maintenance.values);
+      expect(rows[0]!.summary).toBe("Scheduled start → Started");
+    });
+  }
+
+  test("?state=ongoing: clocks still running count from the declaration, and resolving turns them into numbers in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    expect(await measurementRows(page)).toEqual([
+      INCIDENT_MEASUREMENTS[0],
+      {
+        name: "Time to mitigate",
+        summary: "Declared → Mitigated",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Declared → Resolved",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to postmortem",
+        summary: "Resolved → Postmortem published",
+        value: "Not started yet",
+        reason: null,
+      },
+    ]);
+
+    const readsBefore: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+
+    await watchForSkeleton(page);
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Resolve", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return (await measurementRows(page)).map(
+          (row: MeasurementRow): string => {
+            return row.value;
+          },
+        );
+      })
+      .toEqual([
+        "3 minutes",
+        // The incident went straight to resolved.
+        "Not measured",
+        "19 minutes",
+        "Running for less than a minute",
+      ]);
+    expect(await skeletonWasSeen(page)).toBe(false);
+
+    /*
+     * One read of the values, and only them: the fixture works them out as
+     * the timeline entry is saved, so the first read already has values
+     * newer than the ones on screen, and the card stops waiting. (It would
+     * read again after 3 seconds otherwise: wait past that.)
+     */
+    await page.waitForTimeout(3500);
+
+    const readsAfter: Array<RecordedModelRequest> = (
+      await measurementRequests(page)
+    ).slice(readsBefore.length);
+
+    expect(
+      readsAfter.map((request: RecordedModelRequest): string => {
+        return request.modelName;
+      }),
+    ).toEqual(["IncidentMeasurementValue"]);
+    await expectNoErrorStates(page);
+  });
+
+  test("?state=created: an incident nobody has answered yet runs every clock it has started", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    expect(
+      (await measurementRows(page)).map((row: MeasurementRow): string => {
+        return row.value;
+      }),
+    ).toEqual([
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Not started yet",
+    ]);
+  });
+
+  test("?measurements=states: an end before its start is called out, and a measurement just changed is not worked out yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+
+    const rows: Array<MeasurementRow> = await measurementRows(page);
+
+    expect(rows.slice(0, 4)).toEqual(INCIDENT_MEASUREMENTS);
+    expect(rows.slice(4)).toEqual([
+      {
+        name: "Time to impact",
+        summary: "Declared → Impact started",
+        value: "Ends before it starts",
+        reason: "Impact Started At precedes Declared At by 3m",
+      },
+      {
+        name: "Time to close",
+        summary: "Declared → Resolved (last time)",
+        value: "Not worked out yet",
+        reason: "OneUptime works it out in the background.",
+      },
+    ]);
+
+    // The one worth fixing is drawn as a warning, the rest as states.
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+    await expect(values.nth(4)).toHaveCSS("color", "rgb(180, 83, 9)");
+    await expect(values.nth(5)).toHaveCSS("color", "rgb(107, 114, 128)");
+  });
+
+  for (const eventPage of [
+    INCIDENT_PAGE,
+    ALERT_PAGE,
+    SCHEDULED_MAINTENANCE_PAGE,
+  ]) {
+    test(`${eventPage.name} ?measurements=none draws no card and reads no values`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        eventPage,
+        "measurements=none",
+        eventPage.readyTexts.filter((text: string): boolean => {
+          return !MEASUREMENT_READY_TEXT.test(text);
+        }),
+      );
+      await expect(card(page, eventPage.feed)).toBeVisible();
+
+      await expect
+        .poll(async (): Promise<number> => {
+          return (await measurementRequests(page)).length;
+        })
+        .toBe(1);
+      await expect(measurementsCard(page)).toHaveCount(0);
+      await expect(page.getByTestId("event-measurements")).toHaveCount(0);
+    });
+  }
+
+  test("the card reads well in the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark&measurements=states", [
+      "Time to close",
+    ]);
+
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+
+    // Light text on the dark card: neither the light theme's grey-900 nor its amber.
+    for (const index of [0, 4, 5]) {
+      const color: string = await values
+        .nth(index)
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        });
+      const channels: Array<number> = (color.match(/\d+/g) || [])
+        .slice(0, 3)
+        .map(Number);
+      const brightness: number =
+        (channels[0]! * 299 + channels[1]! * 587 + channels[2]! * 114) / 1000;
+      expect(brightness, `value ${index} is light on dark`).toBeGreaterThan(
+        120,
+      );
+    }
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-dark",
+    );
+  });
+
+  test("a phone shows every measurement without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-mobile",
+    );
+  });
+
+  test("screenshot of the incident's measurements", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(measurementsCard(page), "incident-measurements");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The feed, as a timeline
+ * ---------------------------------------------------------------------------
+ *
+ * Datadog's timeline, which the maintainer pointed at: a date and a time on
+ * every entry, never only "x days ago". Each day under a heading of its own
+ * (with Today / Yesterday beside it and the zone the times are in), each
+ * entry with the time it happened - a short "8 min. ago" only for the last
+ * hour - and its icon on a rail. The clock is pinned at 18:20 UTC on Monday,
+ * September 14, 2026, and the browser is in UTC.
+ */
+
+// Intl writes a narrow no-break space before AM/PM; read it as a space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+async function plainText(locator: Locator): Promise<string> {
+  return ((await locator.innerText()) || "")
+    .replace(WHITESPACE_RUN, " ")
+    .trim();
+}
+
+function feedEntry(feed: Locator, text: string): Locator {
+  return feed.getByTestId("feed-entry").filter({ hasText: text });
+}
+
+test.describe("the feed, as a timeline", () => {
+  test("the day is a heading with its date, Today beside it, and the zone the times are in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const day: Locator = feed.getByTestId("feed-day");
+
+    await expect(day).toHaveCount(1);
+    await expect(
+      day.getByRole("heading", {
+        level: 3,
+        name: "Monday, September 14, 2026",
+      }),
+    ).toBeVisible();
+    await expect(day.getByTestId("feed-day-relative")).toHaveText("Today");
+    /*
+     * The zone the dashboard reads every date in (OneUptimeDate's current
+     * timezone): for this browser's UTC clock, moment-timezone's guess,
+     * whose name is GMT - the same clock.
+     */
+    await expect(day.getByTestId("feed-day-zone")).toHaveText("GMT");
+    // The day's section is named by its heading.
+    await expect(
+      feed.getByRole("region", { name: "Monday, September 14, 2026" }),
+    ).toHaveCount(1);
+  });
+
+  test("every entry has the time it happened, newest first, and the last hour also says how long ago", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    expect(
+      await plainText(
+        feedEntry(feed, "Rolling checkout-api back").getByTestId(
+          "feed-entry-time",
+        ),
+      ),
+    ).toBe("6:09 PM 11 min. ago");
+
+    const times: Array<string> = [];
+    for (const time of await feed.getByTestId("feed-entry-time").all()) {
+      times.push(await plainText(time));
+    }
+
+    /*
+     * 18:12 resolved, 18:09 note, 18:05 commander, 18:04 acknowledged,
+     * 18:03 the AI report, 18:01 the on-call policy and, in the same minute,
+     * the incident itself: its time is not said twice.
+     */
+    expect(times).toEqual([
+      "6:12 PM 8 min. ago",
+      "6:09 PM 11 min. ago",
+      "6:05 PM 15 min. ago",
+      "6:04 PM 16 min. ago",
+      "6:03 PM 17 min. ago",
+      "6:01 PM 19 min. ago",
+      "",
+    ]);
+
+    // The time is a <time> with the instant it stands for.
+    await expect(
+      feedEntry(feed, "Rolling checkout-api back").locator("time"),
+    ).toHaveAttribute("datetime", "2026-09-14T18:09:00.000Z");
+  });
+
+  test("an entry reads as a sentence that starts with who did it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // "✅ Changed Incident #1042 State to Resolved", by Maya Chen.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    expect(await plainText(resolved.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen changed Incident #1042 State to Resolved",
+    );
+    expect(await plainText(resolved)).not.toContain("✅");
+
+    // A note is hers too, her name above what she wrote.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    await expect(note.getByTestId("feed-entry-author")).toHaveText("Maya Chen");
+    expect(await plainText(note)).not.toContain("🔒");
+    // The rail's icon says what kind of entry it is.
+    await expect(note.getByTestId("feed-entry-icon")).toBeVisible();
+    await expect(note).toHaveAttribute("data-event-type", "PrivateNote");
+  });
+
+  test("a phone keeps the time above each entry, without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const time: Box = await documentBox(note.getByTestId("feed-entry-time"));
+    const body: Box = await documentBox(note.getByTestId("feed-entry-author"));
+
+    expect(time.y + time.height).toBeLessThanOrEqual(body.y + 1);
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-mobile");
+  });
+
+  test("screenshot of the incident feed", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+    await screenshotElement(card(page, "Incident Feed"), "incident-feed");
+  });
+
+  test("what someone wrote is set apart in a card, as the Notes page draws a note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // Maya's note: her name above it, her words in the card.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const noteCard: Locator = note.getByTestId("feed-entry-body");
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).toContainText("Rolling checkout-api back");
+    await expect(noteCard).toHaveCSS("border-top-width", "1px");
+    await expect(noteCard).toHaveCSS("border-top-left-radius", "8px");
+    await expect(noteCard).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    expect(
+      (await documentBox(noteCard)).y,
+      "the card is under her name",
+    ).toBeGreaterThan(
+      (await documentBox(note.getByTestId("feed-entry-author"))).y,
+    );
+
+    // What the AI wrote is in a card too, the sentence that says so above it.
+    const report: Locator = feedEntry(
+      feed,
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-intro")).toHaveText(
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-body")).toHaveAttribute(
+      "data-note",
+      "true",
+    );
+    await expect(report.getByTestId("feed-entry-body")).not.toContainText(
+      "OneUptime AI posted",
+    );
+
+    // Something that happened is a sentence, not a card.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    await expect(resolved.locator("[data-note]")).toHaveCount(0);
+  });
+
+  test("a note's card follows the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+
+    const noteCard: Locator = feedEntry(
+      card(page, "Incident Feed"),
+      "Rolling checkout-api back",
+    ).getByTestId("feed-entry-body");
+
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await expect(noteCard).not.toHaveCSS("color", "rgb(31, 41, 55)");
+  });
+
+  test("a maintenance event's created entry reads as the sentence of whoever created it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE);
+
+    const created: Locator = feedEntry(
+      card(page, "Scheduled Maintenance Feed"),
+      "Primary database failover drill",
+    );
+
+    expect(await plainText(created.getByTestId("feed-entry-lead"))).toBe(
+      "Jordan Patel created Scheduled Maintenance #58",
+    );
+    // The heading it was written with is not drawn as one.
+    await expect(created.getByRole("heading")).toHaveCount(0);
+    await expect(created).not.toContainText("🕒");
+  });
+
+  test("an on-call run folds into its newest entry, unfolds in place with Show fewer at its end, and keyboard focus follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=oncall-run");
+
+    const feed: Locator = card(page, "Incident Feed");
+    const head: Locator = feedEntry(feed, "Sam Rivera acknowledged the page");
+    const showMore: Locator = feed.getByRole("button", {
+      name: "Show 3 more on-call updates",
+    });
+
+    // Folded: one entry, its button under it, the rest out of the feed.
+    await expect(head).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveText(
+      "Show 3 more on-call updates",
+    );
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(feedEntry(feed, "Started Executing")).toHaveCount(0);
+
+    await showMore.focus();
+    await page.keyboard.press("Enter");
+
+    // Unfolded in place, in order, ending with the run's start.
+    const run: Array<string> = [];
+    for (const entry of await feed
+      .locator('[data-testid="feed-entry"][data-event-type="OnCallPolicy"]')
+      .all()) {
+      run.push(await plainText(entry));
+    }
+    expect(run.length).toBe(4);
+    expect(run[0]).toContain("Sam Rivera acknowledged the page");
+    expect(run[1]).toContain("paged nobody at escalation rule Backup");
+    expect(run[2]).toContain("paged Sam Rivera at escalation rule");
+    expect(run[3]).toContain("Started Executing");
+
+    // Show fewer ends the group, under its last entry, not after its first.
+    const showFewer: Locator = feed.getByRole("button", { name: "Show fewer" });
+    await expect(showFewer).toHaveCount(1);
+    await expect(
+      feedEntry(feed, "Started Executing").getByRole("button", {
+        name: "Show fewer",
+      }),
+    ).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveCount(0);
+
+    // The button pressed went away: focus is on the first entry it unfolded.
+    const focused: string = await page.evaluate((): string => {
+      return document.activeElement?.textContent || "";
+    });
+    expect(focused).toContain("paged nobody at escalation rule");
+
+    // Folding it again hands focus back to the button that unfolds it.
+    await showFewer.focus();
+    await page.keyboard.press("Enter");
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(showMore).toBeFocused();
+
+    await expectNoHorizontalOverflow(page);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried, an attachment - took over the OneUptime tab, and quoted text
+ * showed an amber exclamation mark, as if it were a warning.
+ * ?feed=links-and-quotes adds a private note saved from a Slack message to
+ * incident #1042's feed: a quote, the message's file, a callout, links to
+ * another incident and to the docs, and the note's attachment. Here each
+ * link is opened, and the quote and the callout are measured, in a real
+ * browser with the real Markdown parser.
+ */
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH: string = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+
+function savedNote(page: Page): Locator {
+  return feedEntry(card(page, "Incident Feed"), QUOTED_WORDS);
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the incident stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const fileLink: Locator = savedNote(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The incident is still open, where it was.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      INCIDENT_PAGE.pageTitle,
+    );
+    await tab.close();
+  });
+
+  test("the note's attachment opens in a new tab once the session is refreshed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(`**${NOTE_ATTACHMENT_PATH}`, async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "runbook",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const attachment: Locator = savedNote(page).getByRole("link", {
+      name: "runbook.pdf",
+    });
+
+    await expect(attachment).toHaveAttribute("href", NOTE_ATTACHMENT_PATH);
+    await expect(attachment).toHaveAttribute("target", "_blank");
+    await expect(attachment).toHaveAttribute("rel", "noopener noreferrer");
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      attachment.click(),
+    ]);
+    await tab.waitForURL(`**${NOTE_ATTACHMENT_PATH}`);
+
+    expect(new URL(tab.url()).pathname).toBe(NOTE_ATTACHMENT_PATH);
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    expect((await apiRequestsTo(page, "/identity/refresh-token")).length).toBe(
+      1,
+    );
+    await tab.close();
+  });
+
+  test("a link to another incident stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const otherIncident: Locator = savedNote(page).getByRole("link", {
+      name: "Incident #1036",
+    });
+    const docs: Locator = savedNote(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docs).toHaveAttribute("target", "_blank");
+    await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+
+    await expect(otherIncident).not.toHaveAttribute("target", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("rel", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${incidentPath(1036)}`),
+      otherIncident.click(),
+    ]);
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-style",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      "border-left-style": "solid",
+      // border-gray-300, as the editor draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: lighter than the note's own text-gray-700.
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      color: "rgb(75, 85, 99)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
+    await expectNoHorizontalOverflow(page);
+
+    // In text read right to left, the bar is on the side it starts from.
+    await quote.evaluate((element: Element): void => {
+      element.setAttribute("dir", "rtl");
+    });
+    expect(
+      await computedStyleOf(quote, [
+        "border-right-width",
+        "border-left-width",
+        "padding-right",
+      ]),
+    ).toEqual({
+      "border-right-width": "3px",
+      "border-left-width": "0px",
+      "padding-right": "12px",
+    });
+  });
+
+  test("a callout the note asked for is a panel with its sign", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    expect(await plainText(callout)).toBe(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(callout.locator("svg")).toBeVisible();
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes&theme=dark");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      // --ou-border-strong in the dark theme.
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      // --ou-text-muted in the dark theme.
+      color: "rgb(203, 213, 225)",
+    });
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      "background-color": "rgba(120, 53, 15, 0.32)",
+      "border-top-color": "rgba(251, 191, 36, 0.42)",
+    });
+    expect(await computedStyleOf(callout.locator("svg"), ["color"])).toEqual({
+      color: "rgb(251, 191, 36)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Open in Slack / Open in Microsoft Teams
+ * ---------------------------------------------------------------------------
+ *
+ * A record a workspace notification rule made a channel for has a button in
+ * its header that opens that channel (?channels= picks the record's
+ * channels). One channel is a link that opens in a new tab; a workspace with
+ * several is a menu of them; no channel, no button.
+ */
+
+const SLACK_CHANNEL_URL: string =
+  "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+
+test.describe("Open in Slack / Microsoft Teams", () => {
+  test("no channel, no button", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    // The page asked, for this incident.
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/workspace-channel-link/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("an incident's Slack channel is a link in its header, opening in a new tab", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const slack: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Slack",
+    });
+
+    await expect(slack).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(slack).toHaveAttribute("target", "_blank");
+    await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
+
+    // Pointing at the button names the channel (the card names it too).
+    await slack.hover();
+    await expect(
+      page
+        .locator("[data-tippy-root]")
+        .getByText("#incident-1042-checkout-latency"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat");
+  });
+
+  test("a Microsoft Teams channel is a link to Teams, with its team", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const teams: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Microsoft Teams",
+    });
+    const teamsUrl: URL = new URL((await teams.getAttribute("href")) || "");
+
+    expect(teamsUrl.host).toBe("teams.microsoft.com");
+    expect(teamsUrl.searchParams.get("groupId")).toBe(
+      "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
+    );
+    await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Two buttons as wide as "Open in Slack" and "Open in Microsoft Teams"
+   * beside Acknowledge and Resolve left the title "Checko..." at 1280px.
+   * Channels in both products share one Open channel menu instead.
+   */
+  test("channels in Slack and Teams: one Open channel that lists them all, and the title keeps its room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,teams&state=created");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open channel",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+
+    const title: Box = await documentBox(
+      hero(page).getByRole("heading", { level: 2 }),
+    );
+    expect(title.width).toBeGreaterThanOrEqual(250);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-channel");
+
+    await button.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Microsoft Teams · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(hero(page), "incident-hero-open-channel-menu");
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Microsoft Teams · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    expect(new URL(tab.url()).host).toBe("teams.microsoft.com");
+    await tab.close();
+  });
+
+  test("two Slack channels: one Open in Slack that lists both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2");
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open in Slack",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+    await button.click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "#incident-1042-checkout-latency",
+      "#sre-war-room",
+    ]);
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu.getByRole("menuitem", { name: "#sre-war-room" }).click();
+    const tab: Page = await opened;
+    expect(tab.url()).toContain("C0ACME0002");
+    await tab.close();
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        heroActions(page).getByRole("link", { name: "Open in Slack" }),
+      ).toHaveAttribute("href", SLACK_CHANNEL_URL);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-link/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a failure to read the channels hides the buttons and breaks nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-links");
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("a phone shows the buttons without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open channel" }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Pass it on
+ * ---------------------------------------------------------------------------
+ *
+ * The person an on-call policy is paging about a record, who cannot take
+ * it, passes the page on from its header: the policy pages its next
+ * escalation rule at once instead of waiting. Only they see the button
+ * (?paged= picks the records the viewer is paged about; ?passOn= what
+ * passing on does). It asks first, saying what passing on will do, and then
+ * says what it did, or why there was nothing to pass on.
+ */
+
+function passOnButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "Pass it on" });
+}
+
+function passOnDialog(page: Page): Locator {
+  return page.getByRole("dialog");
+}
+
+async function dialogLines(page: Page, testId: string): Promise<Array<string>> {
+  return (
+    await passOnDialog(page).getByTestId(testId).locator("p").allInnerTexts()
+  ).map((line: string): string => {
+    return line.trim();
+  });
+}
+
+test.describe("Pass it on", () => {
+  test("somebody the policy is not paging sees no button, and the page asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("the person being paged passes it on: asked first, then told what it did", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    // After the state buttons it is the alternative to.
+    const button: Locator = passOnButton(page);
+    await expect(button).toBeVisible();
+    const order: Array<string> = (
+      await heroActions(page).getByRole("button").allInnerTexts()
+    ).map((text: string): string => {
+      return text.trim();
+    });
+    expect(order).toContain("Acknowledge");
+    expect(order.indexOf("Pass it on")).toBeGreaterThan(
+      order.indexOf("Acknowledge"),
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on");
+
+    await button.click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask");
+
+    // Nothing is passed on until they say so.
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Priya Patel now.",
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-done");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(passOnDialog(page)).toHaveCount(0);
+
+    // No longer paged about it: the button is gone.
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("Cancel passes nothing on", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-close-button").click();
+
+    await expect(passOnDialog(page)).toHaveCount(0);
+    await expect(passOnButton(page)).toBeVisible();
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("others on the rule are still paged: who, and when the policy moves on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=others",
+    );
+
+    await passOnButton(page).click();
+
+    const lines: Array<string> = await dialogLines(page, "pass-on-preview");
+    expect(lines[1]).toContain(
+      "Bob Smith is still being paged. If nobody acknowledges by ",
+    );
+    expect(lines[1]).toContain(", escalation rule 2 of 3 (Level 2) is next.");
+    // Twenty minutes away, today: the time alone, with no date in front of it.
+    expect(lines[1]).toContain("by 6:40 PM ");
+    expect(lines[1]).not.toContain("2026");
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveCount(
+      0,
+    );
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-others");
+  });
+
+  test("nobody left to page: the dialog warns about it first, before and after", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped",
+    );
+
+    await passOnButton(page).click();
+
+    const asked: Locator = passOnDialog(page).getByTestId("pass-on-warning");
+    await expect(asked).toHaveText(
+      "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    );
+    await expect(asked).toHaveAttribute("role", "alert");
+    // The warning, then the one line about the reader.
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    const warningBox: { y: number } | null = await asked.boundingBox();
+    const lineBox: { y: number } | null = await passOnDialog(page)
+      .getByTestId("pass-on-preview")
+      .locator("p")
+      .first()
+      .boundingBox();
+    expect(warningBox!.y).toBeLessThan(lineBox!.y);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-ask");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveText(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-done");
+  });
+
+  test("nobody left to page, in the dark theme and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped&theme=dark",
+    );
+
+    await passOnButton(page).click();
+    await expect(
+      passOnDialog(page).getByTestId("pass-on-warning"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      passOnDialog(page),
+      "pass-on-dialog-stopped-ask-dark-mobile",
+    );
+  });
+
+  test("two policies paging about the same record: each line names its policy", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=two",
+    );
+
+    await passOnButton(page).click();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Checkout on-call: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      "Payments escalation: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+  });
+
+  test("somebody acknowledged it meanwhile: it says so, and nothing is passed on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=acknowledged",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    // Why, in a few words: not the button's "Pass it on", an instruction.
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Already acknowledged",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Sam Lee acknowledged it already, so there is nothing to pass on.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-acknowledged");
+  });
+
+  test("a failed request keeps the question open, with an error", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(
+      passOnDialog(page).getByText("Could not pass it on. Please try again."),
+    ).toBeVisible();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+  });
+
+  test("when the server cannot say, there is no button and nothing breaks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on-read",
+    );
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  for (const passOnPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${passOnPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        passOnPage.eventPage,
+        `paged=${passOnPage.recordType}&state=created`,
+      );
+
+      await expect(passOnButton(page)).toBeVisible();
+      expect(
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/${passOnPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("scheduled maintenance pages nobody, so it never asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "paged=incident");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: RecordedApiRequest): boolean => {
+          return request.url.includes("/on-call-page/pass-on/");
+        },
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("a phone shows the button and the dialog without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await expect(passOnButton(page)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-mobile");
+
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "pass-on-dialog-mobile", { fullPage: false });
+  });
+
+  test("in the dark theme", async ({ page }: { page: Page }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&theme=dark",
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-dark");
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The record's channel card: who is in its channel, Join channel, Add people
+ * ---------------------------------------------------------------------------
+ *
+ * The customer: "if all users leave a private channel, can someone re-enter
+ * or invite others without requiring assistance from a Slack workspace
+ * admin?" A record with a channel of its own shows a card beside its call:
+ * the channel, the people in it, and - for somebody who may edit the record -
+ * Join channel and Add people, which have the OneUptime app invite them.
+ * The fixture answers GET /workspace-channel-members (?members=) and POST
+ * .../add; Maya Chen is the viewer.
+ */
+
+const MAYA_ID: string = uuid("80000000", 1);
+const SAM_ID: string = uuid("80000000", 2);
+const ALEX_ID: string = uuid("80000000", 4);
+
+function channelCard(page: Page): Locator {
+  return page.getByTestId("record-channel-members-card");
+}
+
+async function channelAdds(
+  page: Page,
+): Promise<Array<Record<string, unknown>>> {
+  return page.evaluate((): Array<Record<string, unknown>> => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __eventOverviewFixture: {
+              channelAdds: Array<Record<string, unknown>>;
+            };
+          }
+        ).__eventOverviewFixture.channelAdds,
+      ),
+    ) as Array<Record<string, unknown>>;
+  });
+}
+
+test.describe("the record's channel card", () => {
+  test("no channel of its own: no card, and nothing asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(channelCard(page)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("an incident's Slack channel: who is in it, and Join channel for a viewer who is not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      SLACK_CHANNEL_URL,
+    );
+    await expect(card.getByTestId("record-channel-not-in")).toHaveText(
+      "You're not in this channel.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+
+    await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("everybody left the private channel: Join channel lets the viewer back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-nobody")).toHaveText(
+      "Nobody is in this channel.",
+    );
+    await screenshotElement(card, "incident-channel-card-empty");
+
+    await card.getByTestId("record-channel-join").click();
+
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [MAYA_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(card, "incident-channel-card-joined");
+  });
+
+  test("Add people adds a person at once, and says who Slack does not know", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await expect(dialog.getByRole("option").first()).toBeVisible();
+
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Sam Rivera",
+    ]);
+    await expect(
+      dialog.getByRole("option", { name: /Sam Rivera/ }),
+    ).toHaveCount(0);
+    // Said where the pick was made, too.
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Slack",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [SAM_ID], teamIds: [] },
+      { channelId: "C0ACME0001", userIds: [ALEX_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(
+      page.locator("body"),
+      "incident-channel-card-add-people",
+    );
+  });
+
+  test("without permission to edit the incident: who to ask, and no buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=readonly");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-ask")).toHaveText(
+      "You're not in this channel. Ask someone who can edit this incident to add you.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+  });
+
+  test("a channel the OneUptime app was removed from says so, and how to let it back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    await expect(
+      channelCard(page).getByTestId("record-channel-state"),
+    ).toContainText("/invite @OneUptime");
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams channel says who can open it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Everyone in Checkout SRE can open the channel.",
+    );
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+    await expect(page.getByText("Microsoft Teams Channel")).toBeVisible();
+  });
+
+  test("a private Microsoft Teams channel says it is private once, then who adds people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams&teamsPrivate=1");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel",
+    );
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Only its members can open it. Its owners add people in Microsoft Teams.",
+    );
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        channelCard(page).getByTestId("record-channel-person-name"),
+      ).toHaveText(["Jordan Patel", "Priya from Support", "Sam Rivera"]);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a phone shows the card without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
+      3,
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(channelCard(page), "incident-channel-card-mobile");
+  });
+
+  /*
+   * The UI review's polish: the buttons in the narrow column, what each pick
+   * in Add people came to, the card's own words when a read fails, the next
+   * step when Slack was taken off the project, and the keyboard after a join.
+   */
+  test("in the narrow column of a 1280px screen, Join channel and Add people each fill a row; on a phone they share one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const actions: Locator = channelCard(page).getByTestId(
+      "record-channel-actions",
+    );
+    const join: Locator = actions.getByTestId("record-channel-join");
+    const addPeople: Locator = actions.getByTestId("record-channel-add-people");
+
+    await expect(addPeople).toBeVisible();
+
+    const row: { x: number; width: number } | null =
+      await actions.boundingBox();
+    const joinBox: { x: number; y: number; width: number } | null =
+      await join.boundingBox();
+    const addBox: { x: number; y: number; width: number } | null =
+      await addPeople.boundingBox();
+
+    // Stacked, each as wide as the column - not two ragged ends.
+    expect(addBox!.y).toBeGreaterThan(joinBox!.y);
+    expect(Math.abs(joinBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(joinBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    await screenshotElement(channelCard(page), "incident-channel-card-1280");
+
+    // A phone's full-width card has room for both, side by side.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(async () => {
+      const phoneJoin: { y: number } | null = await join.boundingBox();
+      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+
+      expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
+    }).toPass();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the video call card above it reads in lines in that column, its button under the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const empty: Locator = page.getByTestId("event-video-calls-empty");
+    const title: Locator = empty.getByText("No call yet");
+    const start: Locator = empty.getByTestId("event-video-call-start");
+
+    await expect(start).toBeVisible();
+
+    // Before, a row with the button beside it left the words a word a line.
+    const titleBox: { height: number; y: number } | null =
+      await title.boundingBox();
+    const startBox: { y: number } | null = await start.boundingBox();
+    const lineHeight: number = await title.evaluate(
+      (element: Element): number => {
+        return parseFloat(window.getComputedStyle(element).lineHeight);
+      },
+    );
+
+    expect(titleBox!.height).toBeLessThan(lineHeight * 1.5);
+    expect(startBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
+  });
+
+  test("a team picked in Add people: how many were added, and everyone Slack does not know, in one sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=empty&unknown=alex,jordan",
+    );
+
+    await channelCard(page).getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Checkout SRE/ }).click();
+
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added 2 people from Checkout SRE.",
+    );
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "OneUptime can't find Jordan Patel and Alex Kim in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+    );
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [], teamIds: [uuid("81000000", 1)] },
+    ]);
+    await screenshotElement(dialog, "incident-channel-card-add-team");
+  });
+
+  test("a read that fails is said in the card's own words, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-members");
+
+    const box: Locator = channelCard(page).getByTestId(
+      "record-channel-read-error",
+    );
+
+    await expect(box.getByRole("alert")).toHaveText(
+      "Could not read who is in this channel. Slack could not be reached.",
+    );
+    await expect(channelCard(page).getByText("Refresh?")).toHaveCount(0);
+
+    const reads: number = (
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      )
+    ).length;
+
+    await box.getByRole("button", { name: "Try again" }).click();
+
+    await expect(async () => {
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/incident/${INCIDENT_ID}`,
+        ),
+      ).toHaveLength(reads + 1);
+    }).toPass();
+  });
+
+  test("Slack taken off the project: Connect Slack goes to the project's Slack settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText("Slack isn't connected to this project.");
+    await expect(
+      state.getByRole("link", { name: "Connect Slack" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
+  });
+
+  test("the command that lets the app back in reads as a command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    const command: Locator = channelCard(page).locator("code");
+
+    await expect(command).toHaveText("/invite @OneUptime");
+    await expect(command).toHaveAttribute("dir", "ltr");
+  });
+
+  test("Join channel from the keyboard leaves focus on Open in Slack, the next step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").focus();
+    await page.keyboard.press("Enter");
+
+    const open: Locator = card.getByTestId("record-channel-open-after-join");
+
+    await expect(open).toBeFocused();
+    await expect(open).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+
+    await page.keyboard.press("Tab");
+    await expect(card.getByTestId("record-channel-add-people")).toBeFocused();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Screenshots (pinned clock, synthetic data)
  * ---------------------------------------------------------------------------
  */
@@ -3951,6 +11239,157 @@ test.describe("screenshots", () => {
     await openReady(page, INCIDENT_PAGE);
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "incident-ai-report");
+  });
+
+  // The feed's Add Public Note: the Notes page composer, in a dialog.
+  test("incident feed note dialog", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+    await page.keyboard.type("We have rolled back the deploy.");
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshot(page, "incident-feed-public-note-dialog", {
+      fullPage: false,
+    });
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    await expect(page.getByTestId("note-template-menu")).toBeVisible();
+    await screenshot(page, "incident-feed-public-note-dialog-templates", {
+      fullPage: false,
+    });
+  });
+
+  // Every state of the card, for review: one flat card in each.
+  test("AI investigation card states", async ({ page }: { page: Page }) => {
+    const states: ReadonlyArray<{ file: string; state: CardState }> = [
+      { file: "ai-card-running", state: CARD_STATES[3]! },
+      { file: "ai-card-running-clusters", state: CARD_STATES[4]! },
+      { file: "ai-card-queued", state: CARD_STATES[5]! },
+      { file: "ai-card-failed", state: CARD_STATES[6]! },
+      { file: "ai-card-pending", state: CARD_STATES[7]! },
+      { file: "ai-card-none", state: CARD_STATES[8]! },
+      { file: "ai-card-waiting", state: CARD_STATES[11]! },
+      {
+        file: "ai-card-waiting-viewer",
+        state: {
+          name: "waiting, for a viewer",
+          query: "ai=waiting-viewer",
+          badge: "Waiting",
+        },
+      },
+      { file: "ai-card-clusters", state: CARD_STATES[1]! },
+      {
+        file: "ai-card-dark",
+        state: { name: "dark", query: "theme=dark", badge: "Completed" },
+      },
+    ];
+
+    for (const { file, state } of states) {
+      await openCardState(page, state);
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
+  });
+
+  // The same one card with a conversation in it, in each thing a thread holds.
+  test("AI investigation card with a conversation", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const states: ReadonlyArray<{ file: string; state: CardState }> = [
+      {
+        file: "ai-card-conversation-answered",
+        state: {
+          name: "answered",
+          query: "thread=answered",
+          badge: "Completed",
+        },
+      },
+      {
+        file: "ai-card-conversation-none-answered",
+        state: {
+          name: "answered with nothing investigated",
+          query: "ai=none&thread=answered",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-working",
+        state: {
+          name: "working",
+          query: "ai=none&thread=working",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-approval",
+        state: {
+          name: "approval",
+          query: "ai=running&thread=approval",
+          badge: "Investigating…",
+        },
+      },
+      {
+        file: "ai-card-conversation-error",
+        state: {
+          name: "error",
+          query: "ai=failed&thread=error",
+          badge: "Did not finish",
+        },
+      },
+      {
+        file: "ai-card-conversation-crowded",
+        state: {
+          name: "crowded",
+          query: "ai=none&thread=crowded",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-dark",
+        state: {
+          name: "dark",
+          query: "theme=dark&thread=answered",
+          badge: "Completed",
+        },
+      },
+    ];
+
+    for (const { file, state } of states) {
+      await openCardState(page, state);
+      await expect(thread(page)).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
+  });
+
+  test("AI investigation card with a conversation on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    for (const { file, query, badge } of [
+      {
+        file: "ai-card-conversation-mobile",
+        query: "ai=none&thread=answered",
+        badge: "Not investigated",
+      },
+      {
+        file: "ai-card-none-mobile",
+        query: "ai=none",
+        badge: "Not investigated",
+      },
+    ]) {
+      await openCardState(page, { name: file, query, badge });
+      await expect(composerBox(page)).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
   });
 
   test.describe("AI report close-ups", () => {
@@ -4031,4 +11470,1737 @@ test.describe("screenshots", () => {
       await screenshotElement(investigationDetails(page), "ai-report-activity");
     });
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The linked infrastructure an investigation read, and its follow-up check
+ * (?linked=, issues #4786 and #4787)
+ * ---------------------------------------------------------------------------
+ *
+ * An investigation's activity says what it read about the infrastructure its
+ * incident or alert is linked to. When an alert opens on that
+ * infrastructure after the first analysis, OneUptime AI checks the incident
+ * again: the live run says so in its heading, its report leads with the
+ * server's "Checked again" line above the Summary, and the feed's entry
+ * says "OneUptime AI checked again" with the reason, apart from the first
+ * analysis below it. The evidence of the infrastructure tools reads in
+ * words.
+ */
+
+const LINKED_LINE: string =
+  "Read 2 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
+const FOLLOW_UP_ACTIVITY_LINE: string =
+  "Checking again: alert #318 opened on Host checkout-api-7f9c after the first analysis";
+const FOLLOW_UP_LEAD_TEXT: string =
+  "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FOLLOW_UP_FEED_LEAD: string =
+  "OneUptime AI checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FIRST_ANALYSIS_FEED_LEAD: string =
+  "OneUptime AI posted a root cause analysis";
+const FOLLOW_UP_TLDR_START: string = "Alert #318 does not change the analysis";
+
+function liveInvestigation(page: Page): Locator {
+  return page.getByRole("region", { name: "Live investigation" });
+}
+
+function followUpLead(page: Page): Locator {
+  return investigationCard(page).getByTestId("investigation-report-lead");
+}
+
+// The words of each step the live run draws, in order.
+async function stepTexts(page: Page): Promise<Array<string>> {
+  return liveInvestigation(page)
+    .getByTestId("activity-step-text")
+    .evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return (element.textContent || "").trim();
+      });
+    });
+}
+
+/*
+ * Where the first line of an element's text sits, in document coordinates:
+ * the box of its first character.
+ */
+async function firstLineBox(locator: Locator): Promise<Box> {
+  return locator.evaluate((element: Element): Box => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (
+      node &&
+      ((node.parentElement && node.parentElement.closest(".sr-only")) ||
+        !(node.textContent || "").trim())
+    ) {
+      node = walker.nextNode();
+    }
+
+    const text: string = node!.textContent || "";
+    let offset: number = 0;
+
+    while (offset < text.length && text.charAt(offset).trim() === "") {
+      offset++;
+    }
+
+    const range: Range = document.createRange();
+    range.setStart(node!, offset);
+    range.setEnd(node!, offset + 1);
+    const rect: DOMRect = range.getBoundingClientRect();
+
+    return {
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+}
+
+function centreOf(box: Box): number {
+  return box.y + box.height / 2;
+}
+
+test.describe("the linked infrastructure, and the follow-up check (?linked=)", () => {
+  test("a running investigation says what it read about its linked infrastructure, a line that wraps keeping its mark beside its first line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    expect((await stepTexts(page)).slice(0, 2)).toEqual([
+      "Starting investigation",
+      LINKED_LINE,
+    ]);
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: LINKED_LINE });
+    const mark: Locator = step.locator(
+      "xpath=preceding-sibling::*[@data-testid='activity-step-mark']",
+    );
+    const stepBox: Box = await documentBox(step);
+    const markBox: Box = await documentBox(mark);
+    const line: Box = await firstLineBox(step);
+
+    // It wraps on a phone, and its mark stays level with its first line.
+    expect(stepBox.height, "the line wraps").toBeGreaterThan(
+      markBox.height * 2,
+    );
+    expect(
+      Math.abs(centreOf(markBox) - centreOf(line)),
+      "the mark beside the first line",
+    ).toBeLessThanOrEqual(2);
+
+    // The steps every investigation takes read as words, not tool ids.
+    expect(await stepTexts(page)).toContain(
+      "Searching past incidents · 3 rows · 0.4s",
+    );
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the steps' detail follows their words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: "Aggregating metrics" });
+    const detail: Locator = step.getByText("· 80 rows · 1.2s");
+
+    // On the words' own line, right after them.
+    expect(
+      Math.abs(
+        centreOf(await documentBox(detail)) -
+          centreOf(await firstLineBox(step)),
+      ),
+    ).toBeLessThanOrEqual(2);
+  });
+
+  test("more alerts than it lists: the newest were read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=more");
+    await expect(liveInvestigation(page)).toContainText(
+      "Read the 10 newest open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      { timeout: 30000 },
+    );
+  });
+
+  test("an alert's investigation says when there was nothing on its host", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toContainText(
+      "No open or recent alerts on Host payments-web-2",
+      { timeout: 30000 },
+    );
+    // An alert is never checked again.
+    await expect(liveInvestigation(page)).toContainText(
+      "OneUptime AI is investigating",
+    );
+  });
+
+  test("a follow-up check, running, is headed 'checking again', its first line naming the alert that made it check", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=followup");
+    const live: Locator = liveInvestigation(page);
+    await expect(live).toBeVisible({ timeout: 30000 });
+
+    await expect(live.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI is checking again",
+    );
+    expect((await stepTexts(page)).slice(0, 3)).toEqual([
+      "Starting investigation",
+      FOLLOW_UP_ACTIVITY_LINE,
+      "Read 3 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+    ]);
+    expect(await stepTexts(page)).toContain(
+      "Checking the host's containers · 4 rows · 0.6s",
+    );
+    expect(await stepTexts(page)).toContain(
+      "Reading a resource's telemetry · 4 rows · 0.9s",
+    );
+    // A first investigation, running, keeps its heading.
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(
+      liveInvestigation(page).getByRole("heading", { level: 3 }),
+    ).toHaveText("OneUptime AI is investigating", { timeout: 30000 });
+  });
+
+  test("a follow-up check's report leads with why it was written, above the Summary, the alert a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const lead: Locator = followUpLead(page);
+    // The report's markdown is drawn once its renderer has loaded.
+    await expect(lead).toContainText(FOLLOW_UP_LEAD_TEXT, { timeout: 30000 });
+
+    expect(await plainText(lead)).toBe(FOLLOW_UP_LEAD_TEXT);
+    await expect(lead.locator("strong")).toHaveText("Checked again");
+    await expectAbove(lead, summarySection(page), "the lead, then the Summary");
+    await expect(summarySection(page)).toContainText(FOLLOW_UP_TLDR_START);
+    // Said once, not again inside the report.
+    await expect(reportSection(page)).not.toContainText("Checked again");
+
+    // The alert it names opens that alert.
+    const alertLink: Locator = referenceLink(lead, "#318");
+    await expect(alertLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/alerts/${uuid("30000000", 318)}`,
+    );
+
+    // The mark sits level with the line's first words.
+    const mark: Box = await documentBox(lead.locator("svg"));
+    expect(
+      Math.abs(centreOf(mark) - centreOf(await firstLineBox(lead))),
+    ).toBeLessThanOrEqual(2);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("a first analysis has no lead", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "linked=alerts");
+    await expect(followUpLead(page)).toHaveCount(0);
+  });
+
+  test("the feed says OneUptime AI checked again, and why, apart from the first analysis", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    const followUp: Locator = feedEntry(feed, FOLLOW_UP_FEED_LEAD);
+    await expect(followUp).toHaveCount(1, { timeout: 30000 });
+
+    expect(await plainText(followUp.getByTestId("feed-entry-intro"))).toBe(
+      FOLLOW_UP_FEED_LEAD,
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).toContainText(
+      "Alert #318 does not change the earlier analysis",
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).not.toContainText(
+      "Checked again",
+    );
+
+    // The first analysis, below it, is posted as it always was.
+    const first: Locator = feedEntry(feed, FIRST_ANALYSIS_FEED_LEAD);
+    await expect(first).toHaveCount(1);
+    await expectAbove(followUp, first, "the newest first");
+
+    // The whole report, its lead included, unfolds under the entry.
+    await followUp
+      .getByRole("button", { name: "Show the full report" })
+      .click();
+    await expect(followUp.getByTestId("feed-entry-details")).toContainText(
+      "Checked again after alert #318",
+    );
+  });
+
+  test("the infrastructure tools' evidence reads in words: the containers table and the CPU by state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    await expect(followUpLead(page)).toBeVisible({ timeout: 30000 });
+
+    const containers: Locator = await expandEvidence(page, "C2");
+    await expect(evidenceToggle(evidenceRow(page, "C2"))).toContainText(
+      "Checked a host's containers",
+    );
+    expect(await definitionPairs(containers)).toEqual(
+      expect.arrayContaining([
+        { label: "Resource type", value: "Docker Host" },
+        { label: "Resource", value: "84000000…" },
+        { label: "Ranked by", value: "CPU" },
+      ]),
+    );
+    await expectRowsLoaded(containers);
+    await expect(containers.locator("thead th")).toHaveText([
+      "Container",
+      "Status",
+      "CPU avg %",
+      "CPU peak %",
+      "Memory peak %",
+      "Restarts",
+      "Last seen",
+      "Image",
+    ]);
+    await expect(containers.locator("tbody tr").first()).toContainText(
+      "Stopped reporting",
+    );
+    // Dated in the reader's time, not by ISO instants.
+    await expect(containers).toContainText("Sep 14, 5:49 PM – 6:04 PM");
+    await expect(containers).not.toContainText("2026-09-14T17:49");
+
+    const cpu: Locator = await expandEvidence(page, "C3");
+    await expect(evidenceToggle(evidenceRow(page, "C3"))).toContainText(
+      "Read a resource's telemetry",
+    );
+    expect(await definitionPairs(cpu)).toEqual(
+      expect.arrayContaining([
+        { label: "Telemetry", value: "Metrics" },
+        { label: "Mode", value: "Trend" },
+      ]),
+    );
+    await expectRowsLoaded(cpu);
+    await expect(cpu).toContainText("Avg of system.cpu.utilization by state");
+  });
+
+  test("on a phone nothing scrolls sideways, in the light and the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+
+    for (const query of [
+      "linked=followup",
+      "linked=followup&theme=dark",
+      "ai=running&linked=followup",
+    ]) {
+      await open(page, INCIDENT_PATH, query);
+      await expect(investigationCard(page)).toContainText("checking again", {
+        ignoreCase: true,
+        timeout: 30000,
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test("screenshots", async ({ page }: { page: Page }) => {
+    const shots: ReadonlyArray<{ file: string; query: string; width: number }> =
+      [
+        { file: "ai-card-followup", query: "linked=followup", width: 1440 },
+        {
+          file: "ai-card-followup-running",
+          query: "ai=running&linked=followup",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-dark",
+          query: "linked=followup&theme=dark",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-mobile",
+          query: "linked=followup",
+          width: 390,
+        },
+        {
+          file: "ai-card-linked-running-mobile",
+          query: "ai=running&linked=alerts",
+          width: 390,
+        },
+      ];
+
+    for (const shot of shots) {
+      await page.setViewportSize({ width: shot.width, height: 1000 });
+      await open(page, INCIDENT_PATH, shot.query);
+      await expect(investigationCard(page)).toContainText(
+        shot.query.includes("ai=running")
+          ? "Starting investigation"
+          : REPORT_CAVEAT,
+        { timeout: 30000 },
+      );
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), shot.file);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    await expect(feedEntry(feed, FOLLOW_UP_FEED_LEAD)).toHaveCount(1, {
+      timeout: 30000,
+    });
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-followup");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * ?private=1 makes incident #1042 and incident episode #12 private: on no
+ * status page and told to no subscriber, so a public note on them would reach
+ * nobody it was written for (Common/Types/StatusPage/PrivateRecordPublicNotes).
+ * The incident's state change dialogs fold a private note and ask nothing
+ * about subscribers, and both feeds' "Add Public Note" is locked with the
+ * reason - the sentence the server refuses one with.
+ */
+const PRIVATE_INCIDENT_REFUSAL: string =
+  "This incident is private, so public notes cannot be added to it. Use a private note.";
+const PRIVATE_EPISODE_REFUSAL: string =
+  "This episode is private, so public notes cannot be added to it. Use a private note.";
+
+async function openFeedActions(page: Page, feed: string): Promise<Locator> {
+  await card(page, feed).getByTestId("feed-actions-button").click();
+  const menu: Locator = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+// The tooltip a locked menu item shows on hover, saying why it is locked.
+function tooltipSaying(page: Page, text: string): Locator {
+  return page.locator("[data-tippy-root]").filter({ hasText: text });
+}
+
+test.describe("a private incident or episode (?private=1)", () => {
+  test("Acknowledge on a private incident folds a private note, asks nothing about subscribers, and sends the note as a private one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created&private=1");
+    await expect(hero(page)).toContainText("Private");
+
+    await heroActions(page)
+      .getByRole("button", { name: "Acknowledge" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Incident",
+    });
+    await expect(dialog).toBeVisible();
+    // A confirm: no subscribers to ask about, and the private note folded.
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveCount(0);
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await expect(noteFold).toHaveAttribute("aria-expanded", "false");
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+    await page.mouse.move(0, 0);
+    await screenshotElement(dialog, "incident-private-acknowledge-dialog");
+
+    await noteFold.click();
+    await expect(dialog).toContainText(
+      "Post a private note about this state change.",
+    );
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the database team.");
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    // A private note, never a public one, and nobody notified.
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the database team.",
+    );
+    expect(creates[0]?.miscDataProps?.["publicNote"]).toBeUndefined();
+    expect(creates[0]?.data?.["shouldStatusPageSubscribersBeNotified"]).toBe(
+      false,
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("Resolve on an incident that is not private still asks about subscribers and folds a public note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveCount(0);
+  });
+
+  test("the private incident's feed locks Add Public Note with why, and Add Private Note opens the private composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_INCIDENT_REFUSAL,
+    );
+
+    // Hovered, it says why; pressed, it opens nothing.
+    await addPublic.hover();
+    await expect(tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL)).toBeVisible();
+    await addPublic.click({ force: true });
+    await expect(
+      page.getByRole("dialog", { name: "Add Public Note" }),
+    ).toHaveCount(0);
+
+    if (!(await menu.isVisible())) {
+      await openFeedActions(page, INCIDENT_PAGE.feed);
+    }
+    const addPrivate: Locator = page.getByRole("menuitem", {
+      name: "Add Private Note",
+      exact: true,
+    });
+    await expect(addPrivate).not.toHaveAttribute("aria-disabled", "true");
+    await addPrivate.click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add Private Note",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("note-audience")).toContainText(
+      "Only your team can see this",
+    );
+    expect(
+      (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentPublicNote";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the private episode's feed locks Add Public Note in the episode's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_EPISODE_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(
+      page,
+      INCIDENT_EPISODE_PAGE.feed,
+    );
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_EPISODE_REFUSAL,
+    );
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("an incident that is not private offers Add Public Note as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("screenshots of the private incident's locked Add Public Note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await menu
+      .getByRole("menuitem", { name: "Add Public Note", exact: true })
+      .hover();
+    const tooltip: Locator = tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL);
+    await expect(tooltip).toBeVisible();
+
+    // The Actions button, its menu and the tooltip beside it, in one shot.
+    const boxes: Array<Box> = [
+      await documentBox(
+        card(page, INCIDENT_PAGE.feed).getByTestId("feed-actions-button"),
+      ),
+      await documentBox(menu),
+      await documentBox(tooltip),
+    ];
+    const left: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.x;
+      }),
+    );
+    const top: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.y;
+      }),
+    );
+    const right: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.x + box.width;
+      }),
+    );
+    const bottom: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.y + box.height;
+      }),
+    );
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-private-feed-add-public-note-locked-synthetic.png",
+      ),
+      fullPage: true,
+      clip: {
+        x: Math.max(0, left - 16),
+        y: Math.max(0, top - 16),
+        width: right - left + 32,
+        height: bottom - top + 32,
+      },
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An incident call's transcript (?calls=, ?transcriptFetch=) - issue #4875
+ * ---------------------------------------------------------------------------
+ *
+ * Incident #1042's Zoom meeting keeps its transcript: read from Zoom, or
+ * added by a person (a Microsoft Teams meeting's, which Microsoft lets no
+ * app read). OneUptime AI reads it and suggests the root cause on the AI
+ * card - marked as a suggestion, resting on quoted lines - and nothing
+ * reaches the incident until a person uses it.
+ */
+test.describe("an incident call's transcript (?calls=)", () => {
+  const ZOOM_CALL_ID: string = uuid("88000000", 1);
+
+  function callsCard(page: Page): Locator {
+    return page.getByTestId("event-video-calls-card");
+  }
+
+  function callSummary(page: Page): Locator {
+    return page.getByTestId("call-summary");
+  }
+
+  // The Incident Feed card (the tests below name the Video Call card "card").
+  function incidentFeed(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Incident Feed",
+        exact: true,
+      }),
+    });
+  }
+
+  async function transcriptRequests(
+    page: Page,
+    method: string,
+    route: string,
+  ): Promise<Array<RecordedApiRequest>> {
+    return (
+      await apiRequestsTo(page, `/incident-video-call/${ZOOM_CALL_ID}/${route}`)
+    ).filter((request: RecordedApiRequest): boolean => {
+      return request.method === method;
+    });
+  }
+
+  test("Get from Zoom reads the transcript, and what OneUptime AI suggests appears on the AI card without a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=zoom");
+
+    const card: Locator = callsCard(page);
+    // Nothing read yet: the AI card says nothing about the call.
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+    await expect(card.getByTestId("call-transcript-reading")).toHaveText(
+      "OneUptime AI is reading it…",
+    );
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "11 minutes · 3 speakers · Read from Zoom",
+    );
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+
+    // The page looks again while it reads.
+    await expect(card.getByTestId("call-transcript-read")).toContainText(
+      "OneUptime AI suggested a root cause. Review it",
+      { timeout: 30000 },
+    );
+    expect(
+      await transcriptRequests(page, "POST", "transcript/from-provider"),
+    ).toHaveLength(1);
+
+    // The feed says who added it, as it says who did anything else.
+    const added: Locator = feedEntry(incidentFeed(page), "transcript");
+    await expect(added).toHaveAttribute(
+      "data-event-type",
+      "VideoCallTranscriptAdded",
+    );
+    expect(await plainText(added.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen added the call's transcript from Zoom: 11 minutes, 3 speakers, 12 remarks.",
+    );
+
+    await card.getByTestId("call-transcript-review").click();
+
+    await expect(callSummary(page)).toBeFocused();
+    await expect(callSummary(page)).toBeInViewport();
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+    await expectNoErrorStates(page);
+  });
+
+  test("when Zoom has no transcript to give, the card says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * One short sentence of the card's own for each answer, in the reader's
+     * language; what Zoom said - scope names and all - behind Show details.
+     */
+    const answers: Array<{
+      mode: string;
+      text: string;
+      zoomSaid: string;
+      docs: boolean;
+    }> = [
+      {
+        mode: "not-ready",
+        text: "Zoom is still preparing this meeting's transcript. Try again in a few minutes.",
+        zoomSaid: "It is usually ready within twice the length of the call.",
+        docs: false,
+      },
+      {
+        mode: "permission",
+        text: "The Zoom connection is not allowed to read transcripts yet.",
+        zoomSaid: "cloud_recording:read:list_recording_files:admin",
+        docs: true,
+      },
+      {
+        mode: "not-transcribed",
+        text: "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+        zoomSaid: "Audio transcript on",
+        docs: true,
+      },
+    ];
+
+    for (const answer of answers) {
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        `calls=zoom&transcriptFetch=${answer.mode}`,
+      );
+
+      const card: Locator = callsCard(page);
+      await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+      const outcome: Locator = card.getByTestId("call-transcript-outcome");
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-headline"),
+      ).toHaveText(answer.text);
+      await expect(outcome).not.toContainText(answer.zoomSaid);
+
+      const toggle: Locator = outcome.getByRole("button", {
+        name: "Show details",
+      });
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await toggle.click();
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-details"),
+      ).toContainText(answer.zoomSaid);
+      await expect(
+        outcome.getByRole("button", { name: "Hide details" }),
+      ).toHaveAttribute("aria-expanded", "true");
+
+      const docs: Locator = outcome.getByRole("link", {
+        name: "How to set it up",
+      });
+
+      if (answer.docs) {
+        await expect(docs).toHaveAttribute(
+          "href",
+          /\/docs\/workspace-connections\/video-calls#call-transcripts$/,
+        );
+        await expect(docs).toHaveAttribute("target", "_blank");
+        await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+      } else {
+        await expect(docs).toHaveCount(0);
+      }
+
+      // Nothing was added: the transcript is still to get.
+      await expect(card.getByTestId("call-transcript-facts")).toHaveCount(0);
+
+      await outcome.getByRole("button", { name: "Dismiss" }).click();
+      await expect(outcome).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "calls=zoom&transcriptFetch=permission",
+    );
+    await callsCard(page)
+      .getByRole("button", { name: "Get from Zoom" })
+      .click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome"),
+    ).toBeVisible();
+    await callsCard(page).getByRole("button", { name: "Show details" }).click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome-details"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a Microsoft Teams meeting's transcript is added by hand, and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams");
+
+    const card: Locator = callsCard(page);
+    await expect(card.getByTestId("call-transcript-get")).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Add transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add the call's transcript",
+    });
+    await expect(dialog).toContainText(
+      "In Microsoft Teams, open the meeting's Recap, then Transcript, and download it as a .vtt file.",
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Add transcript" }),
+    ).toBeDisabled();
+
+    const text: string =
+      "[00:00:05] Priya Shah: Checkout is timing out.\n[00:12:03] Sam Lee: The pool maxes at 50.";
+    await dialog.getByTestId("add-call-transcript-text").fill(text);
+    await dialog.getByRole("button", { name: "Add transcript" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    const [added] = await transcriptRequests(page, "POST", "transcript");
+    expect(added?.body).toEqual({ text });
+
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "12 minutes · 2 speakers · Added by Maya Chen 1 minute ago",
+    );
+    expect(
+      await plainText(
+        feedEntry(incidentFeed(page), "transcript").getByTestId(
+          "feed-entry-lead",
+        ),
+      ),
+    ).toBe(
+      "Maya Chen added a transcript of the Microsoft Teams meeting: 12 minutes, 2 speakers, 2 remarks.",
+    );
+    await expect(card.getByTestId("call-transcript-read")).toBeVisible({
+      timeout: 30000,
+    });
+  });
+
+  test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await expect(section).toContainText("From the incident's call");
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expect(section).toContainText(
+      "Said on the call: someone found or confirmed it.",
+    );
+
+    const quotes: Locator = section.getByTestId("call-summary-quote");
+    await expect(quotes).toHaveCount(3);
+    expect(
+      await quotes.evaluateAll(
+        (items: Array<Element>): Array<string | null> => {
+          return items.map((item: Element): string | null => {
+            return item.getAttribute("data-line");
+          });
+        },
+      ),
+    ).toEqual(["6", "10", "11"]);
+    await expect(quotes.first()).toContainText("00:04:03 · Sam Rivera");
+
+    // Nothing reached the incident by being suggested.
+    expect(
+      (await fixture(page)).updates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      }),
+    ).toEqual([]);
+
+    // The rest of what the call said is folded under it.
+    const details: Locator = section.getByTestId("call-summary-details");
+    await expect(details).not.toHaveAttribute("open", "");
+    await details.locator("summary").click();
+
+    // What the call confirmed, then the hypotheses: two lists, no tags.
+    const confirmed: Locator = details.getByTestId("call-summary-confirmed");
+    const hypotheses: Locator = details.getByTestId("call-summary-hypotheses");
+    await expect(confirmed.getByRole("heading", { level: 5 })).toHaveText(
+      "Confirmed on the call",
+    );
+    await expect(confirmed.getByTestId("call-summary-point")).toHaveText([
+      "The orders database itself was healthy. 00:00:31",
+      "Requests waited about two seconds in pg.pool.connect. 00:01:12",
+    ]);
+    await expect(hypotheses.getByRole("heading", { level: 5 })).toHaveText(
+      "Hypotheses",
+    );
+    await expect(hypotheses.getByTestId("call-summary-point")).toHaveText([
+      "A cold cache may have added to it. 00:05:02",
+    ]);
+    expect(
+      (await confirmed.boundingBox())!.y < (await hypotheses.boundingBox())!.y,
+    ).toBe(true);
+    await expect(details.getByTestId("call-summary-actions")).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+  });
+
+  test("View transcript starts on the quoted lines, highlighted", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    await callSummary(page)
+      .getByRole("button", { name: "View transcript" })
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Transcript of the Zoom meeting",
+    });
+    const lines: Locator = dialog.getByTestId("call-transcript-line");
+    await expect(lines).toHaveCount(12);
+    await expect(
+      dialog.getByTestId("call-transcript-highlight-legend"),
+    ).toBeVisible();
+    await expect(dialog.locator("[data-highlighted='true']")).toHaveCount(3);
+    await expect(lines.nth(5)).toHaveAttribute("data-highlighted", "true");
+
+    await dialog.getByTestId("call-transcript-search").fill("rollback");
+    await expect(lines).toHaveCount(1);
+    await expect(lines.first()).toContainText(
+      "Rollback done, p95 is back under 300 milliseconds.",
+    );
+  });
+
+  test("Use as root cause: the editor shows the suggestion as written, nothing is saved until the person saves it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
+    const editor: Locator = dialog.locator('[contenteditable="true"]').first();
+
+    // It opens in the editor, named for what it holds - not on its Bold button.
+    await expect(editor).toBeFocused();
+    await expect(
+      dialog.getByRole("textbox", { name: "Root Cause" }),
+    ).toBeVisible();
+
+    // An identifier stays as written: code, never italic.
+    await expect(editor.locator("code").first()).toHaveText("DB_POOL_MAX=10");
+    await expect(editor.locator("em")).toHaveCount(0);
+    await expect(editor.locator("blockquote")).toHaveCount(3);
+    await expect(editor.locator("blockquote").first()).toContainText(
+      "00:04:03 · Sam Rivera: The new release has DB_POOL_MAX=10, it was 40 before.",
+    );
+
+    // It replaces the incident's root cause, which it shows.
+    await expect(dialog).toContainText(
+      "It replaces the incident's current root cause. Show it",
+    );
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(
+      await transcriptRequests(page, "POST", "root-cause-suggestion"),
+    ).toEqual([]);
+
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+    await page
+      .getByRole("dialog", { name: "Use as root cause" })
+      .getByRole("button", { name: "Save as root cause" })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    const [decision] = await transcriptRequests(
+      page,
+      "POST",
+      "root-cause-suggestion",
+    );
+    expect(decision?.body["decision"]).toBe("Accepted");
+    expect(String(decision?.body["rootCause"])).toContain(
+      "shipped with `DB_POOL_MAX=10` instead of 40",
+    );
+    expect(String(decision?.body["rootCause"])).toContain(
+      "> 00:04:03 · Sam Rivera: The new release has `DB_POOL_MAX=10`, it was 40 before.",
+    );
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Used as root cause",
+    );
+    await expect(
+      section.getByRole("link", { name: "View root cause" }),
+    ).toBeVisible();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("Used as the incident's root cause.");
+  });
+
+  test("a save the server refuses keeps the dialog open and says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&fail=suggestion");
+
+    await callSummary(page)
+      .getByRole("button", { name: "Use as root cause" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
+    await dialog.getByRole("button", { name: "Save as root cause" }).click();
+
+    await expect(dialog).toContainText(
+      "You do not have permission to edit this incident's root cause.",
+    );
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+  });
+
+  test("Dismiss sets the suggestion aside, and Undo brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Dismiss" }).click();
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Dismissed",
+    );
+    await expect(section).toContainText("Maya Chen dismissed it 1 minute ago");
+    // Set aside: its one sentence stays, its quotes and its basis go.
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-basis")).toHaveCount(0);
+    await expect(
+      section.getByTestId("call-summary-root-cause-text"),
+    ).toBeVisible();
+
+    await section.getByRole("button", { name: "Undo" }).click();
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(3);
+
+    expect(
+      (await transcriptRequests(page, "POST", "root-cause-suggestion")).map(
+        (request: RecordedApiRequest): unknown => {
+          return request.body["decision"];
+        },
+      ),
+    ).toEqual(["Dismissed", "Suggested"]);
+  });
+
+  test("a decision already made: who used it, or dismissed it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=accepted");
+    await expect(callSummary(page)).toContainText(
+      "Jordan Patel used it as the incident's root cause",
+    );
+    await expect(
+      callSummary(page).getByRole("button", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    await openReady(page, INCIDENT_PAGE, "calls=dismissed");
+    await expect(callSummary(page)).toContainText("Jordan Patel dismissed it");
+    await expect(
+      callSummary(page).getByRole("button", { name: "Undo" }),
+    ).toBeVisible();
+  });
+
+  test("a call that did not settle the cause suggests none, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=not-enough");
+
+    const section: Locator = callSummary(page);
+    await expect(section.getByTestId("call-summary-not-enough")).toContainText(
+      "Not enough was said on the call to suggest a root cause",
+    );
+    await expect(section.getByTestId("call-summary-root-cause")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-details")).toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("not enough was said to suggest a root cause");
+  });
+
+  test("a reading that failed, or stopped part-way, is offered again from either card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=failed");
+
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "This project reached its daily AI token limit.",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI could not read it.");
+
+    await page.getByTestId("call-summary-read-again").click();
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed", { timeout: 30000 });
+    expect(await transcriptRequests(page, "POST", "call-summary")).toHaveLength(
+      1,
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=stuck");
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "Reading the transcript took too long",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI took too long to read it.");
+  });
+
+  test("AI off for the project: the card says so, and the AI card says nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=skipped");
+
+    const skipped: Locator = callsCard(page).getByTestId(
+      "call-transcript-read-skipped",
+    );
+    await expect(skipped).toHaveText(
+      "AI is off for this project, so OneUptime AI did not read it. Open AI Features",
+    );
+    await expect(
+      skipped.getByRole("link", { name: "Open AI Features" }),
+    ).toHaveAttribute(
+      "href",
+      "/dashboard/10000000-0000-4000-8000-000000000001/settings/ai-features",
+    );
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  /*
+   * Record and transcribe incident calls (Project Settings > Workspace >
+   * Video Calls): OneUptime gets the call's transcript by itself once the
+   * call is over, and what OneUptime AI read in it is the incident's next
+   * feed item.
+   */
+  test("while OneUptime waits to get Zoom's transcript by itself, the card says so, and Get and Add stay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=waiting");
+
+    const card: Locator = callsCard(page);
+
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveText(
+      "OneUptime gets it from Zoom once the call is over, and OneUptime AI reads it.",
+    );
+    // Not the line for a call nobody waits on.
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("once OneUptime stopped waiting, the card says what Zoom answered, with how to set it up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=fetch-stopped");
+
+    const card: Locator = callsCard(page);
+    const stopped: Locator = card.getByTestId("call-transcript-fetch-stopped");
+
+    await expect(stopped).toHaveAttribute("data-reason", "NotTranscribed");
+    await expect(stopped).toContainText(
+      "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+    );
+    await expect(
+      stopped.getByRole("link", { name: "How to set it up" }),
+    ).toHaveAttribute("target", "_blank");
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    // Get and Add are still there, to try again or add it by hand.
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expectNoErrorStates(page);
+  });
+
+  /*
+   * Microsoft Teams: a meeting OneUptime put on its organizer's calendar is
+   * waited on and read like a Zoom one; one it could not put there started
+   * unrecorded, and its card says why from the start.
+   */
+  test("a Microsoft Teams call on its organizer's calendar is waited on, and Get from Microsoft Teams reads it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams-recorded");
+
+    const card: Locator = callsCard(page);
+
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveText(
+      "OneUptime gets it from Microsoft Teams once the call is over, and OneUptime AI reads it.",
+    );
+
+    await card
+      .getByRole("button", { name: "Get from Microsoft Teams" })
+      .click();
+
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "11 minutes · 3 speakers · Read from Microsoft Teams",
+    );
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    expect(
+      await transcriptRequests(page, "POST", "transcript/from-provider"),
+    ).toHaveLength(1);
+    expect(
+      await plainText(
+        feedEntry(incidentFeed(page), "transcript").getByTestId(
+          "feed-entry-lead",
+        ),
+      ),
+    ).toBe(
+      "Maya Chen added the call's transcript from Microsoft Teams: 11 minutes, 3 speakers, 12 remarks.",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams call OneUptime could not put on a calendar says so from the start, with how to set it up, and Add transcript", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams-not-recorded");
+
+    const card: Locator = callsCard(page);
+    const stopped: Locator = card.getByTestId("call-transcript-fetch-stopped");
+
+    await expect(stopped).toHaveAttribute("data-reason", "PermissionMissing");
+    await expect(stopped).toContainText(
+      "The Microsoft Teams connection is not allowed to read transcripts yet.",
+    );
+    await expect(
+      stopped.getByRole("link", { name: "How to set it up" }),
+    ).toHaveAttribute(
+      "href",
+      /\/docs\/workspace-connections\/video-calls#call-transcripts$/,
+    );
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    // Never on a calendar: there is nothing to get, so it is added by hand.
+    await expect(card.getByTestId("call-transcript-get")).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+    await screenshotElement(card, "teams-call-not-recorded");
+    await expectNoErrorStates(page);
+  });
+
+  test("what OneUptime AI read in the call is OneUptime AI's note in the incident's feed, the cause marked as a suggestion", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=summary");
+
+    const entry: Locator = feedEntry(
+      incidentFeed(page),
+      "OneUptime AI read the transcript of the Zoom meeting",
+    );
+
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toHaveAttribute("data-event-type", "VideoCallSummary");
+    // Nobody's name on it: it is OneUptime AI's.
+    await expect(entry.getByTestId("feed-entry-author")).toHaveCount(0);
+
+    const body: Locator = entry.getByTestId("feed-entry-body");
+
+    await expect(body).toHaveAttribute("data-note", "true");
+    await expect(body).toContainText("Suggested root cause (not confirmed):");
+    await expect(body).toContainText(
+      "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
+    );
+
+    for (const part of [
+      "Confirmed on the call",
+      "Hypotheses",
+      "What was tried",
+      "Decisions",
+      "Follow-ups",
+      "Open questions",
+    ]) {
+      await expect(body.getByText(part, { exact: true })).toBeVisible();
+    }
+
+    await expect(body).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+    // A name with underscores reads as written, never as emphasis.
+    await expect(body).toContainText("Why the release changed DB_POOL_MAX.");
+    await expect(
+      body.locator("em, strong").filter({ hasText: "POOL" }),
+    ).toHaveCount(0);
+    await screenshotElement(entry, "feed-call-summary");
+    // And the AI card shows the same reading, for Use as root cause.
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+    await expectNoErrorStates(page);
+  });
+
+  test("removing the transcript asks first and keeps the incident's root cause", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const card: Locator = callsCard(page);
+    await card.getByTestId("call-transcript-menu-button").click();
+    await page.getByRole("menuitem", { name: "Remove transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Remove the transcript?",
+    });
+    await expect(dialog).toContainText("The incident's root cause is kept.");
+    await dialog.getByRole("button", { name: "Remove" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expect(await transcriptRequests(page, "DELETE", "transcript")).toHaveLength(
+      1,
+    );
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  test("two calls: each named for its own, the earlier one's transcript on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=two");
+
+    await expect(callSummary(page)).toContainText("From the Zoom meeting");
+
+    const rows: Locator = callsCard(page).getByTestId("event-video-call");
+    await expect(rows).toHaveCount(2);
+    await expect(
+      rows.nth(1).getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+  });
+
+  test("on a phone and in the dark theme, both cards fit and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await page.mouse.move(0, 0);
+    await screenshotElement(callsCard(page), "incident-call-transcript-card");
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary",
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&theme=dark");
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      callsCard(page),
+      "incident-call-transcript-card-dark",
+    );
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-dark",
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await expectNoHorizontalOverflow(page);
+
+    /*
+     * The heading shares its line with the menu's mark alone, and View
+     * transcript has a row of its own under the reading, as wide as the
+     * card on a phone; Copy link and Remove go under Join call together.
+     */
+    const heading: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-heading"),
+    );
+    const menu: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-menu-button"),
+    );
+    const read: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-read"),
+    );
+    const view: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-view"),
+    );
+    expect(
+      Math.abs(menu.y + menu.height / 2 - (heading.y + heading.height / 2)),
+    ).toBeLessThanOrEqual(2);
+    expect(view.y).toBeGreaterThanOrEqual(read.y + read.height);
+    expect(view.width).toBeGreaterThan(menu.x - heading.x);
+
+    const join: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-join"),
+    );
+    const secondary: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-secondary-actions"),
+    );
+    expect(secondary.y).toBeGreaterThanOrEqual(join.y + join.height);
+
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-mobile",
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Time to acknowledge after paging
+ * ---------------------------------------------------------------------------
+ * "Acknowledged in" counts from when the record began. For a record
+ * somebody was paged about (First Paged At), the tile keeps that number and
+ * adds one short, quieter line: how long after the first page it was
+ * acknowledged. Nothing changes for a record nobody was paged about.
+ * ?paged=paged pages incident #1042 at 18:02 and alert #311 at 18:07, a
+ * minute after each began; ?paged=never adds the measurement and pages
+ * nobody (Fixture.js).
+ */
+
+interface StatTileLine {
+  text: string;
+  fontSize: number;
+  color: string;
+  lines: number;
+}
+
+// Each line of the first tile of a stat bar: label, value, note, date.
+async function firstStatTileLines(
+  page: Page,
+  name: string,
+): Promise<Array<StatTileLine>> {
+  return page
+    .getByRole("group", { name, exact: true })
+    .locator(":scope > div")
+    .first()
+    .evaluate((cell: Element): Array<StatTileLine> => {
+      return Array.from(cell.children).map((child: Element): StatTileLine => {
+        const style: CSSStyleDeclaration = getComputedStyle(child);
+        const lineHeight: number = parseFloat(style.lineHeight);
+        return {
+          text: (child.textContent || "").trim(),
+          fontSize: parseFloat(style.fontSize),
+          color: style.color,
+          lines: Math.round(child.getBoundingClientRect().height / lineHeight),
+        };
+      });
+    });
+}
+
+const AFTER_PAGING_INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  INCIDENT_MEASUREMENTS[0]!,
+  {
+    name: "Time to acknowledge after paging",
+    summary: "First paged → Acknowledged",
+    value: "2 minutes",
+    reason: null,
+  },
+  ...INCIDENT_MEASUREMENTS.slice(1),
+];
+
+test.describe("time to acknowledge after paging", () => {
+  test("incident-overview: Acknowledged in keeps its number and adds the time after paging, quieter than it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged");
+
+    const lines: Array<StatTileLine> = await firstStatTileLines(
+      page,
+      INCIDENT_PAGE.statBar,
+    );
+    expect(
+      lines.map((line: StatTileLine): string => {
+        return line.text;
+      }),
+    ).toEqual([
+      "Acknowledged in",
+      "3 minutes",
+      "2 minutes after paging",
+      "Sep 14 2026, 06:04 PM GMT",
+    ]);
+    const [, value, note, date] = lines;
+    // Smaller and lighter than the value, larger than the date: value, note, date.
+    expect(note!.fontSize).toBeLessThan(value!.fontSize);
+    expect(note!.fontSize).toBeGreaterThan(date!.fontSize);
+    expect(note!.color).not.toBe(value!.color);
+    expect(note!.lines).toBe(1);
+
+    // The other tiles are as they were.
+    expect((await statCells(page, INCIDENT_PAGE.statBar)).slice(1)).toEqual(
+      INCIDENT_PAGE.stats.slice(1),
+    );
+
+    // The measurement sits next to Time to acknowledge.
+    expect(await measurementRows(page)).toEqual(
+      AFTER_PAGING_INCIDENT_MEASUREMENTS,
+    );
+  });
+
+  test("alert-overview: the same line, from the alert's own first page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "paged=paged");
+
+    expect(
+      (await firstStatTileLines(page, ALERT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual([
+      "Acknowledged in",
+      "2 minutes",
+      "1 minute after paging",
+      "Sep 14 2026, 06:08 PM GMT",
+    ]);
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to acknowledge after paging",
+        summary: "First paged → Acknowledged",
+        value: "1 minute",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+  });
+
+  test("?paged=never: nothing extra on the tile, and the measurement was never reached", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=never");
+
+    expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual(
+      INCIDENT_PAGE.stats,
+    );
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      value: "Not reached",
+      reason: null,
+    });
+  });
+
+  test("?state=created: paged and not yet acknowledged, the tile says only that, and the clock runs from the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged&state=created");
+
+    expect(
+      (await firstStatTileLines(page, INCIDENT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual(["Acknowledged in", "Not yet acknowledged"]);
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      // Paged at 18:02; the clock reads 18:20.
+      value: "Running for 18 minutes",
+      reason: null,
+    });
+  });
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 640, 390]) {
+      test(`reads well at ${width}px in the ${theme} theme`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(
+          page,
+          INCIDENT_PAGE,
+          theme === "dark" ? "paged=paged&theme=dark" : "paged=paged",
+        );
+
+        const [, value, note, date] = await firstStatTileLines(
+          page,
+          INCIDENT_PAGE.statBar,
+        );
+        expect(note!.text).toBe("2 minutes after paging");
+        // Its own colour in both themes: quieter than the value, not the date's.
+        expect(note!.color).not.toBe(value!.color);
+        expect(note!.color).not.toBe(date!.color);
+        /*
+         * One line where the cell has room; in the narrowest three-column
+         * bar (640px) two even lines, never a word left on its own.
+         */
+        expect(note!.lines).toBe(width === 640 ? 2 : 1);
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
 });

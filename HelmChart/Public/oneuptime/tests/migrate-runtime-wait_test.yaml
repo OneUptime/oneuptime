@@ -1,0 +1,337 @@
+suite: runtime pods wait for the migrate Job's schema migrations
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # In the 14.0.11 -> 14.0.13 upgrade the async migrate Job was still adding
+  # Monitor."isArchived" when the new worker pods started, and every monitor
+  # query failed until the migration committed. RUN_DATABASE_MIGRATIONS_ON_BOOT
+  # keeps the runtime pods from running migrations; DATABASE_MIGRATION_WAIT_
+  # TIMEOUT_MS makes each one wait at boot for the migrations its code needs
+  # (PostgresDatabase.connect() -> SchemaMigrationWait), so it is not ready and
+  # the old pods keep serving until they are applied.
+
+  # --- who waits --------------------------------------------------------------
+  - it: makes the app wait 15 minutes for the schema migrations its code needs
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RUN_DATABASE_MIGRATIONS_ON_BOOT
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+
+  - it: makes the worker wait too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+
+  - it: makes the telemetry writer wait too
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      telemetryWriter.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+
+  # Its Node sidecar connects to Postgres (certificates, domains) after its HTTP
+  # server is up; it waits in connect() like the others.
+  - it: makes the nginx sidecar wait too
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+
+  # The Job is what applies them: it must neither skip them nor wait for itself.
+  - it: leaves the migrate Job alone, which applies them
+    templates:
+      - templates/migrate-job.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "DATABASE_MIGRATION_WAIT_TIMEOUT_MS")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "RUN_DATABASE_MIGRATIONS_ON_BOOT")]
+
+  # Without the Job every pod migrates itself on boot, so there is nothing to
+  # wait for (and the app ignores the wait when it runs the migrations).
+  - it: renders neither when every pod migrates itself
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate.enabled: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "DATABASE_MIGRATION_WAIT_TIMEOUT_MS")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "RUN_DATABASE_MIGRATIONS_ON_BOOT")]
+
+  # --- how long ---------------------------------------------------------------
+  - it: renders the wait in milliseconds
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate.runtimeWaitTimeoutSeconds: 300
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "300000"
+
+  # 0 is the escape hatch (start on the schema as found), not "unset": it must
+  # render.
+  - it: renders 0, which switches the wait off
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate.runtimeWaitTimeoutSeconds: 0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "0"
+
+  - it: leaves an empty value to the app's own default
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate.runtimeWaitTimeoutSeconds: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "DATABASE_MIGRATION_WAIT_TIMEOUT_MS")]
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RUN_DATABASE_MIGRATIONS_ON_BOOT
+            value: "false"
+
+  # A waiting pod has not started: its HTTP server is not listening, so its
+  # startup probe fails until the wait ends, and liveness and readiness do not
+  # run before that. The probe kills it after about periodSeconds x
+  # (failureThreshold - 1) = 17 minutes; the wait (15) must end first, with
+  # room for the rest of the boot, so the pod gives up with an error naming the
+  # missing migrations instead of being killed. Changing either default without
+  # the other fails here.
+  - it: ends the default wait inside the default startup probe window
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 60
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 18
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+
+  # --- with migrate.hook ------------------------------------------------------
+  # On an install the Job is a post-install hook, which Helm runs only after the
+  # release's resources exist, and only once they are READY under `helm install
+  # --wait` (Argo CD maps it to PostSync, which waits for Healthy, on every sync:
+  # it renders with `helm template`, an install). Pods waiting for that Job
+  # would wait for each other, so they start without waiting, as before.
+  - it: does not make the pods of a hook install wait for a Job that runs after them
+    templates:
+      - templates/app.yaml
+      - templates/migrate-job.yaml
+    set:
+      migrate.hook: true
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install
+        template: templates/migrate-job.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "0"
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # An empty value would leave the app at its 15-minute default: still a wait.
+  - it: renders 0 for a hook install even when the value is empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate.hook: true
+      migrate.runtimeWaitTimeoutSeconds: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "0"
+
+  # On an upgrade the pre-upgrade hook has applied them before any pod rolls, so
+  # the wait finds nothing pending - and still covers `helm upgrade --no-hooks`.
+  - it: keeps the wait on a hook upgrade, whose pre-upgrade Job runs first
+    templates:
+      - templates/app.yaml
+      - templates/migrate-job.yaml
+    release:
+      upgrade: true
+    set:
+      migrate.hook: true
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: pre-upgrade
+        template: templates/migrate-job.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # Without the hook the Job is a plain resource, applied beside the Deployments
+  # (one Argo CD sync wave), so nothing it depends on waits for the pods.
+  - it: keeps the wait on an async install, where the Job runs beside the pods
+    templates:
+      - templates/app.yaml
+      - templates/migrate-job.yaml
+    asserts:
+      - notExists:
+          path: metadata.annotations
+        template: templates/migrate-job.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+            value: "900000"
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # --- the schema -------------------------------------------------------------
+  - it: rejects a negative wait
+    templates:
+      - templates/app.yaml
+    set:
+      migrate.runtimeWaitTimeoutSeconds: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "runtimeWaitTimeoutSeconds"
+
+  - it: rejects a wait that is not a whole number of seconds
+    templates:
+      - templates/app.yaml
+    set:
+      migrate.runtimeWaitTimeoutSeconds: 15m
+    asserts:
+      - failedTemplate:
+          errorPattern: "runtimeWaitTimeoutSeconds"
+
+  # --- the install notice -----------------------------------------------------
+  - it: says nothing about the wait on the defaults
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "runtimeWaitTimeoutSeconds"
+
+  - it: warns when the wait is not below the startup probe window
+    templates:
+      - templates/NOTES.txt
+    set:
+      migrate.runtimeWaitTimeoutSeconds: 1020
+    asserts:
+      - matchRegexRaw:
+          pattern: 'WARNING: migrate\.runtimeWaitTimeoutSeconds \(1020\) is not below the startup probe window \(1020 s = startupProbe\.periodSeconds x \(startupProbe\.failureThreshold - 1\)\)\.'
+      - matchRegexRaw:
+          pattern: "Lower migrate.runtimeWaitTimeoutSeconds, or\\s+raise startupProbe.failureThreshold."
+
+  # The window is the probe's, so shortening the probe is what usually trips it.
+  - it: warns when the startup probe is shortened below the default wait
+    templates:
+      - templates/NOTES.txt
+    set:
+      startupProbe.periodSeconds: 10
+      startupProbe.failureThreshold: 30
+    asserts:
+      - matchRegexRaw:
+          pattern: 'runtimeWaitTimeoutSeconds \(900\) is not below the startup probe window \(290 s'
+
+  - it: does not warn when the wait is off
+    templates:
+      - templates/NOTES.txt
+    set:
+      startupProbe.periodSeconds: 10
+      startupProbe.failureThreshold: 30
+      migrate.runtimeWaitTimeoutSeconds: 0
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "runtimeWaitTimeoutSeconds"
+
+  - it: does not warn for a hook install, whose pods do not wait
+    templates:
+      - templates/NOTES.txt
+    set:
+      migrate.hook: true
+      migrate.runtimeWaitTimeoutSeconds: 1200
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "runtimeWaitTimeoutSeconds"

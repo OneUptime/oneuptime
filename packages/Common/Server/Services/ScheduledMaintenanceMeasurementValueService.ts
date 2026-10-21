@@ -6,6 +6,9 @@ import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenan
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
+import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import ScheduledMaintenanceMeasurementAnchorType from "../../Types/ScheduledMaintenance/ScheduledMaintenanceMeasurementAnchorType";
 import ScheduledMaintenanceStateRole from "../../Types/ScheduledMaintenance/ScheduledMaintenanceStateRole";
 import MeasurementEvaluator, {
@@ -121,9 +124,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.scheduledMaintenanceId,
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      scheduledMaintenanceId: data.scheduledMaintenanceId,
+      projectId: scheduledMaintenance.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: ScheduledMaintenanceMeasurement) => {
@@ -153,12 +157,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    scheduledMaintenanceId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<ScheduledMaintenanceStateTimeline> =
       await ScheduledMaintenanceStateTimelineService.findBy({
-        query: { scheduledMaintenanceId: scheduledMaintenanceId },
+        query: { scheduledMaintenanceId: data.scheduledMaintenanceId },
         select: {
           _id: true,
           scheduledMaintenanceStateId: true,
@@ -179,6 +184,81 @@ export class Service extends DatabaseService<Model> {
         props: { isRoot: true },
       });
 
+    /*
+     * "The ongoing state entered" is the event's start: each move into a
+     * state where it is in progress - the project's ongoing state, or a state
+     * of its own placed between Ongoing and Ended ("Verifying") - from one
+     * where it was not (Common/Utils/ScheduledMaintenanceStart). An event
+     * started straight into such a state starts there; moving on from
+     * Ongoing to it is no second start.
+     */
+    const states: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: data.projectId,
+        props: { isRoot: true },
+      });
+
+    const timelineRows: Array<{
+      id: string;
+      stateId: ObjectID | undefined;
+      startsAt: Date | undefined;
+    }> = timelines.map(
+      (
+        timeline: ScheduledMaintenanceStateTimeline,
+      ): {
+        id: string;
+        stateId: ObjectID | undefined;
+        startsAt: Date | undefined;
+      } => {
+        return {
+          id: timeline._id?.toString() || "",
+          stateId: timeline.scheduledMaintenanceStateId,
+          startsAt: timeline.startsAt,
+        };
+      },
+    );
+
+    const idsOf: (rows: Array<{ id: string }>) => Set<string> = (
+      rows: Array<{ id: string }>,
+    ): Set<string> => {
+      return new Set<string>(
+        rows.map((row: { id: string }): string => {
+          return row.id;
+        }),
+      );
+    };
+
+    const startRowIds: Set<string> = idsOf(
+      ScheduledMaintenanceStartUtil.getStartRows({
+        states: states,
+        timeline: timelineRows,
+      }),
+    );
+
+    /*
+     * "The ended state entered" is the event's end the same way: each move
+     * into a state where it is over - Ended or Completed, or a state of its
+     * own after Ended ("Reviewing") - from one where it was not. An event
+     * completed straight from Ongoing ends there; moving on from Ended to
+     * Completed is no second end. And "the completed state entered" is each
+     * move into a state where it is complete - Completed, or a state of its
+     * own after it ("Archived") - from one where it was not
+     * (ScheduledMaintenanceStartUtil.getEndRows / getCompleteRows).
+     */
+    const endRowIds: Set<string> = idsOf(
+      ScheduledMaintenanceStartUtil.getEndRows({
+        states: states,
+        timeline: timelineRows,
+      }),
+    );
+
+    const completeRowIds: Set<string> = idsOf(
+      ScheduledMaintenanceStartUtil.getCompleteRows({
+        states: states,
+        timeline: timelineRows,
+      }),
+    );
+
     return timelines
       .filter((timeline: ScheduledMaintenanceStateTimeline) => {
         return Boolean(timeline.startsAt);
@@ -190,20 +270,26 @@ export class Service extends DatabaseService<Model> {
          * that is true is pushed rather than the first match winning.
          */
         const roles: Array<string> = [];
+        const timelineId: string = timeline._id?.toString() || "";
 
-        if (timeline.scheduledMaintenanceState?.isScheduledState) {
+        // The scheduled state itself: the one every event is created in.
+        if (
+          ScheduledMaintenanceStartUtil.isWaitingToStartByFlags(
+            timeline.scheduledMaintenanceState,
+          ) === true
+        ) {
           roles.push(ScheduledMaintenanceStateRole.Scheduled);
         }
 
-        if (timeline.scheduledMaintenanceState?.isOngoingState) {
+        if (startRowIds.has(timelineId)) {
           roles.push(ScheduledMaintenanceStateRole.Ongoing);
         }
 
-        if (timeline.scheduledMaintenanceState?.isEndedState) {
+        if (endRowIds.has(timelineId)) {
           roles.push(ScheduledMaintenanceStateRole.Ended);
         }
 
-        if (timeline.scheduledMaintenanceState?.isResolvedState) {
+        if (completeRowIds.has(timelineId)) {
           roles.push(ScheduledMaintenanceStateRole.Resolved);
         }
 

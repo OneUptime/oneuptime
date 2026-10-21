@@ -7,7 +7,7 @@
                     <% for (var h = 0; h < pageData.typeHierarchy.length; h++) { %>
                         <% if (h > 0) { %>
                             <li class="text-ink-faint">
-                                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                <svg aria-hidden="true" class="rtl-mirror w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </li>
                         <% } %>
                         <% if (pageData.typeHierarchy[h].path && pageData.typeHierarchy[h].name !== pageData.title) { %>
@@ -31,7 +31,8 @@
                 <span class="text-xs font-semibold text-success uppercase tracking-wider"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
             </div>
             <h1 class="font-bold text-3xl text-ink tracking-tight mb-3"><%= pageData.title %></h1>
-            <p class="text-lg text-ink-muted leading-relaxed max-w-2xl"><%- pageData.description %></p>
+            <%# Data type docs are not translated: each English string is isolated, so its full stop stays at its end on a right-to-left page. -%>
+            <p class="text-lg text-ink-muted leading-relaxed max-w-2xl"><bdi><%- pageData.description %></bdi></p>
         </div>
 
         <!-- At a Glance Summary Box -->
@@ -40,22 +41,23 @@
             <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
                 <div>
                     <span class="text-ink-subtle"><%= t('pages.dataType.kind') %></span>
-                    <span class="ml-2 font-medium text-ink"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
+                    <span class="ms-2 font-medium text-ink"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
                 </div>
                 <% if (pageData.isEnum && pageData.valueCount > 0) { %>
                     <div>
                         <span class="text-ink-subtle"><%= t('pages.dataType.values') %></span>
-                        <span class="ml-2 font-medium text-ink"><%= pageData.valueCount %></span>
+                        <span class="ms-2 font-medium text-ink"><%= pageData.valueCount %></span>
                     </div>
                 <% } else if (pageData.propertyCount > 0) { %>
                     <div>
                         <span class="text-ink-subtle"><%= t('pages.dataType.propertiesLabel') %></span>
-                        <span class="ml-2 font-medium text-ink"><%= pageData.propertyCount %></span>
+                        <span class="ms-2 font-medium text-ink"><%= pageData.propertyCount %></span>
                     </div>
                 <% } %>
                 <div>
-                    <span class="text-ink-subtle"><%= t('pages.dataType.jsonFormat') %></span>
-                    <code class="ml-2 text-xs font-mono bg-surface px-2 py-0.5 rounded border border-line text-ink-muted">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
+                    <%# The gap is the label's: the code reads left to right, so its own start is its left on every page. -%>
+                    <span class="me-2 text-ink-subtle"><%= t('pages.dataType.jsonFormat') %></span>
+                    <code class="text-xs font-mono bg-surface px-2 py-0.5 rounded border border-line text-ink-muted">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
                 </div>
             </div>
         </div>
@@ -83,7 +85,7 @@
                                 <dt class="sr-only"><%= t('ui.srValue') %></dt>
                                 <dd><code class="model-inline-code"><%= pageData.values[v].value %></code></dd>
                                 <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                                <dd class="w-full flex-none pl-9 text-sm text-ink-muted"><%- pageData.values[v].description %></dd>
+                                <dd class="w-full flex-none ps-9 text-sm text-ink-muted"><bdi><%- pageData.values[v].description %></bdi></dd>
                             </dl>
                         </li>
                     <% } %>
@@ -109,11 +111,12 @@
                             <div class="mb-1.5">
                                 <code class="text-sm font-semibold text-ink"><%= pageData.properties[p].name %></code>
                                 <% if (pageData.properties[p].required) { %>
-                                    <span class="ml-2 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
+                                    <span class="ms-2 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                                 <% } %>
                             </div>
                             <div class="mb-2">
-                                <span class="inline-flex items-center rounded-md bg-surface-soft px-2 py-0.5 text-xs font-mono text-ink-muted">
+                                <%# A type such as Array<MonitorStep> is code: right to left, it would be drawn >Array<MonitorStep. -%>
+                                <span class="inline-flex items-center rounded-md bg-surface-soft px-2 py-0.5 text-xs font-mono text-ink-muted" dir="ltr">
                                     <% if (pageData.properties[p].typeLinks && pageData.properties[p].typeLinks.length > 0) { %>
                                         <% var typeLinks = pageData.properties[p].typeLinks; %>
                                         <% for (var tl = 0; tl < typeLinks.length; tl++) { %>
@@ -128,7 +131,7 @@
                                     <% } %>
                                 </span>
                             </div>
-                            <p class="m-0 text-sm text-ink-muted leading-relaxed"><%- pageData.properties[p].description %></p>
+                            <p class="m-0 text-sm text-ink-muted leading-relaxed"><bdi><%- pageData.properties[p].description %></bdi></p>
                         </li>
                     <% } %>
                 </ul>
@@ -164,9 +167,9 @@
                             </div>
                             <div>
                                 <div class="text-sm font-semibold text-ink group-hover:text-accent transition-colors"><%= pageData.relatedTypes[r].name %></div>
-                                <div class="text-xs text-ink-subtle mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
+                                <div class="text-xs text-ink-subtle mt-0.5"><bdi><%= pageData.relatedTypes[r].relationship %></bdi></div>
                                 <% if (pageData.relatedTypes[r].description) { %>
-                                    <div class="text-xs text-ink-faint mt-1 line-clamp-2"><%= pageData.relatedTypes[r].description %></div>
+                                    <div class="text-xs text-ink-faint mt-1 line-clamp-2"><bdi><%= pageData.relatedTypes[r].description %></bdi></div>
                                 <% } %>
                             </div>
                         </a>

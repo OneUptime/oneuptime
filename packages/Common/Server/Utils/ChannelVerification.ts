@@ -1,8 +1,17 @@
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
 import logger from "./Logger";
+import ProjectMembership from "./TeamMember/ProjectMembership";
 import VerificationCode from "./VerificationCode";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../Types/JSON";
+import VerificationCodeStatusJSON, {
+  VerificationCodeState,
+  VerificationCodeStatus,
+} from "../../Types/UserNotification/VerificationCodeStatus";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
@@ -132,6 +141,11 @@ export enum ChannelVerificationOutcome {
   Verified = "verified",
   NotFound = "not-found",
   NotOwner = "not-owner",
+  /*
+   * The row is the caller's, in a project they are not a member of (any
+   * more): answered like a row that does not exist (isOwnerProjectMember).
+   */
+  NotProjectMember = "not-project-member",
   AlreadyVerified = "already-verified",
   Expired = "expired",
   TooManyAttempts = "too-many-attempts",
@@ -149,6 +163,19 @@ export interface ChannelVerificationResult {
   userId?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
 }
+
+/*
+ * Where an unverified row's code stands, for the dialog that asks for it.
+ *
+ * That dialog used to say "We have sent a SMS with your verification code"
+ * whatever had happened - including when nothing had been sent at all,
+ * because the project had no Twilio account and the send failed in the
+ * background. It now asks (the channel's verification-status route) and
+ * says what is true. The shape is shared with the dashboard
+ * (Types/UserNotification/VerificationCodeStatus).
+ */
+export { VerificationCodeState };
+export type ChannelVerificationStatus = VerificationCodeStatus;
 
 /*
  * The slice of a channel service this module actually uses.
@@ -172,6 +199,11 @@ interface VerifiableChannelWriter {
     columnName: string;
   }): Promise<number>;
 
+  deleteOneById(data: {
+    id: ObjectID;
+    props: { isRoot: boolean };
+  }): Promise<number>;
+
   getModel(): { tableName: string | null };
 }
 
@@ -184,6 +216,52 @@ const asWriter: (
 };
 
 export default class ChannelVerification {
+  /*
+   * Whether the person a channel row belongs to is a member of the project
+   * the row is in now: an accepted invitation to one of its teams, read from
+   * the database rather than from a cached permission set
+   * (ProjectMembership.isMember).
+   *
+   * A code is sent, checked and reported on only for a member. A row whose
+   * owner is not one - who left the project, or who never was and added the
+   * row before a create had to come from a member
+   * (CreatePermission.checkCreateInMemberProject) - is answered like a row
+   * that does not exist: the project pays for no message to it, and nothing
+   * about the project is read for it. The Telegram channel asks the same
+   * (UserTelegramService.hasActiveProjectMembership).
+   */
+  public static async isOwnerProjectMember(
+    item: VerifiableChannelFields,
+  ): Promise<boolean> {
+    if (!item.projectId || !item.userId) {
+      return false;
+    }
+
+    return await ProjectMembership.isMember({
+      projectId: new ObjectID(item.projectId.toString()),
+      userId: new ObjectID(item.userId.toString()),
+    });
+  }
+
+  /*
+   * For a resend (each channel service's resendVerificationCode, whoever
+   * asks - the person, or an administrator for them): refuses a row whose
+   * owner is not a member of its project (isOwnerProjectMember) before
+   * anything about the project - whether it can send, its balance - is
+   * read, in the words the resend, verify and status routes refuse a row
+   * that does not exist with ("Item not found").
+   */
+  public static async assertOwnerIsProjectMember(data: {
+    item: VerifiableChannelFields;
+    itemId: ObjectID;
+  }): Promise<void> {
+    if (!(await ChannelVerification.isOwnerProjectMember(data.item))) {
+      throw ChannelVerification.getFailureException(
+        ChannelVerificationOutcome.NotProjectMember,
+      );
+    }
+  }
+
   /*
    * When a code issued now stops being accepted.
    */
@@ -294,6 +372,36 @@ export default class ChannelVerification {
   }
 
   /*
+   * Mark a row verified without a code of its own - when something else
+   * already proved the same thing (a number verified for SMS is verified
+   * for calls: UserCallService.isNumberVerifiedForSms). The same write a
+   * correct code makes in verifyCode: verified, the attempt counter back to
+   * zero, and no code left on the row.
+   *
+   * Callers must have established the proof. This checks nothing.
+   */
+  public static async markVerified<
+    TModel extends VerifiableChannelModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+  }): Promise<void> {
+    await asWriter(
+      data.service as unknown as DatabaseService<VerifiableChannelModel>,
+    ).updateOneById({
+      id: data.itemId,
+      props: {
+        isRoot: true,
+      },
+      data: {
+        isVerified: true,
+        verificationFailedAttempts: 0,
+        ...ChannelVerification.getClearedCodeFields(),
+      },
+    });
+  }
+
+  /*
    * Write a fresh code onto an existing row and return the plaintext to send.
    *
    * Callers must have already decided that a send is allowed - this does not
@@ -326,12 +434,181 @@ export default class ChannelVerification {
   }
 
   /*
+   * Issue a fresh code and send it, and say so when it did not go.
+   *
+   * `send` hands the plaintext to the channel and must throw when the
+   * channel did not take it (throwIfNotSent turns the Notification
+   * service's answer into that). Every channel used to send fire-and-forget:
+   * the code was issued, the send failed in the background - no Twilio
+   * account, a number Twilio refused - and the person was told a code was on
+   * its way. Now the failure comes back to whoever asked, with the reason.
+   *
+   * A code that was never delivered is not left live on the row: nobody can
+   * know it, so all it could do is soak up guesses. The row is left with no
+   * code (getClearedCodeFields), and the dialog says so. The resend cooldown
+   * still counts from this attempt - the Notification service may have
+   * failed after the message went out (recording it, charging for it), and
+   * the cooldown is what stands between the resend button and somebody's
+   * phone.
+   */
+  public static async issueAndSendCode<
+    TModel extends VerifiableChannelModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+    // Where the code goes, for the message if it does not get there.
+    destination: string;
+    send: (plainCode: string) => Promise<void>;
+  }): Promise<void> {
+    const plainCode: string = await ChannelVerification.issueCodeOnItem({
+      service: data.service,
+      itemId: data.itemId,
+    });
+
+    try {
+      await data.send(plainCode);
+    } catch (error) {
+      try {
+        await asWriter(
+          data.service as unknown as DatabaseService<VerifiableChannelModel>,
+        ).updateOneById({
+          id: data.itemId,
+          props: {
+            isRoot: true,
+          },
+          data: ChannelVerification.getClearedCodeFields(),
+        });
+      } catch (clearError) {
+        logger.error(clearError);
+      }
+
+      throw ChannelVerification.getSendFailureException({
+        destination: data.destination,
+        error: error,
+      });
+    }
+  }
+
+  /*
+   * The first code of a row that was just added, or no row at all.
+   *
+   * A method whose code could not be sent can never be verified, and it
+   * would sit in the person's list looking like it was waiting on them. So
+   * the add is refused with the reason - the add form shows it - and the row
+   * is taken out again. Adding it once whatever was missing is fixed sends
+   * the code then.
+   *
+   * And like every other code, the first one goes out only for a member of
+   * the row's project (isOwnerProjectMember), read from the database as the
+   * code is sent: the add was let through for a member
+   * (CreatePermission.checkCreateInMemberProject), and somebody removed from
+   * the project in between has their add refused and the row taken out,
+   * with nothing sent on the project's account.
+   */
+  public static async sendFirstCodeOrRemoveItem<
+    TModel extends VerifiableChannelModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+    // The row as it was added: whose it is, and the project it is in.
+    item: VerifiableChannelFields;
+    issueAndSend: () => Promise<void>;
+  }): Promise<void> {
+    try {
+      if (!(await ChannelVerification.isOwnerProjectMember(data.item))) {
+        // In the words the add itself is refused with for them.
+        throw new NotAuthorizedException(
+          CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+        );
+      }
+
+      await data.issueAndSend();
+    } catch (error) {
+      try {
+        await asWriter(
+          data.service as unknown as DatabaseService<VerifiableChannelModel>,
+        ).deleteOneById({
+          id: data.itemId,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (deleteError) {
+        logger.error(deleteError);
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * The Notification service answers a message it did not send with an
+   * error response, not a thrown error - the channel services' senders
+   * return whatever it answered. This is what turns that answer into the
+   * throw issueAndSendCode is waiting for.
+   */
+  public static throwIfNotSent(response: unknown): void {
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+  }
+
+  /*
+   * Why a send failed, as a sentence: what the Notification service said
+   * (a missing Twilio account, the reason Twilio refused the number), or
+   * what was thrown on the way there.
+   */
+  public static getSendFailureReason(error: unknown): string {
+    let reason: string = "";
+
+    if (error instanceof HTTPErrorResponse) {
+      reason = error.message;
+    } else if (error instanceof Error) {
+      reason = error.message;
+    } else if (typeof error === "string") {
+      reason = error;
+    }
+
+    reason = (reason || "").trim();
+
+    // What the server says about a failure it does not explain.
+    if (!reason || reason === "Server Error") {
+      return "Something went wrong while sending it. Please try again in a moment.";
+    }
+
+    const endsAsSentence: RegExp = /[.!?]$/;
+
+    return endsAsSentence.test(reason) ? reason : `${reason}.`;
+  }
+
+  /*
+   * What the person is told when their code did not go out: "The
+   * verification code was not sent to +15551230100. No Twilio account is
+   * set up to send SMS. The OneUptime server's administrator can add one
+   * in ...". A user error: whatever failed was logged where it failed, by
+   * the Notification service, and this is the person's answer, not a
+   * defect of its own.
+   */
+  public static getSendFailureException(data: {
+    destination: string;
+    error: unknown;
+  }): BadDataException {
+    return new BadDataException(
+      `The verification code was not sent to ${data.destination}. ${ChannelVerification.getSendFailureReason(data.error)}`,
+    ).asUserError();
+  }
+
+  /*
    * Check a submitted code and, if it is right, mark the row verified.
    *
    * The ORDER of the steps is the security-relevant part:
    *
    *   ownership first, so one user cannot even probe the state of another
    *   user's row;
+   *
+   *   membership of the row's project next, so a row its owner is no longer
+   *   allowed to have - in a project they are not a member of - is never
+   *   checked, counted or verified (isOwnerProjectMember);
    *
    *   already-verified before the counter, so re-submitting a code against a
    *   row that is already done is not a way to burn somebody's attempts;
@@ -385,6 +662,14 @@ export default class ChannelVerification {
 
     if (item.userId?.toString() !== data.userId.toString()) {
       return { outcome: ChannelVerificationOutcome.NotOwner };
+    }
+
+    /*
+     * Theirs, but in a project they are not a member of: nothing is checked,
+     * counted or marked verified (isOwnerProjectMember).
+     */
+    if (!(await ChannelVerification.isOwnerProjectMember(item))) {
+      return { outcome: ChannelVerificationOutcome.NotProjectMember };
     }
 
     if (item.isVerified) {
@@ -483,13 +768,16 @@ export default class ChannelVerification {
    *
    * IncorrectCode and NotFound deliberately do NOT say anything the caller
    * did not already know, and every failure is a plain BadDataException so
-   * the shape of the response does not vary with the reason either.
+   * the shape of the response does not vary with the reason either. A row
+   * of a project its owner is not a member of is answered as one that does
+   * not exist.
    */
   public static getFailureException(
     outcome: ChannelVerificationOutcome,
   ): BadDataException {
     switch (outcome) {
       case ChannelVerificationOutcome.NotFound:
+      case ChannelVerificationOutcome.NotProjectMember:
         return new BadDataException("Item not found");
       case ChannelVerificationOutcome.NotOwner:
         return new BadDataException("Invalid user ID");
@@ -506,5 +794,75 @@ export default class ChannelVerification {
       default:
         return new BadDataException("Invalid code");
     }
+  }
+
+  /*
+   * Where a row's code stands, for its owner's verify dialog: whether one
+   * is waiting and until when, when another may be sent, and why none can
+   * be sent if that is so (the channel's service decides cannotSendReason,
+   * since only it knows what its channel needs).
+   *
+   * Nothing here is secret - times, and the reason a resend would be
+   * refused - but it is still only for the row's owner: the route asks
+   * whose row it is before it asks this.
+   */
+  public static getStatus(data: {
+    item: VerifiableChannelFields;
+    cannotSendReason?: string | null | undefined;
+    now?: Date | undefined;
+  }): ChannelVerificationStatus {
+    const now: Date = data.now || new Date();
+
+    if (data.item.isVerified) {
+      return {
+        isVerified: true,
+        codeState: VerificationCodeState.None,
+        codeSentAt: null,
+        codeExpiresAt: null,
+        resendAvailableInSeconds: 0,
+        cannotSendReason: null,
+      };
+    }
+
+    const expiresAt: Date | null = data.item.verificationCodeExpiresAt
+      ? new Date(data.item.verificationCodeExpiresAt)
+      : null;
+
+    let codeState: VerificationCodeState = VerificationCodeState.None;
+
+    /*
+     * A code whose attempts are spent is no code at all, even in the moment
+     * before the request that spent them clears it.
+     */
+    if (
+      expiresAt &&
+      (data.item.verificationFailedAttempts || 0) < MAX_VERIFICATION_ATTEMPTS
+    ) {
+      codeState = ChannelVerification.isCodeExpired({ expiresAt, now })
+        ? VerificationCodeState.Expired
+        : VerificationCodeState.Active;
+    }
+
+    const hasCode: boolean = codeState !== VerificationCodeState.None;
+
+    return {
+      isVerified: false,
+      codeState: codeState,
+      codeSentAt:
+        hasCode && data.item.verificationCodeSentAt
+          ? new Date(data.item.verificationCodeSentAt)
+          : null,
+      codeExpiresAt: hasCode ? expiresAt : null,
+      resendAvailableInSeconds: ChannelVerification.getResendRetryAfterSeconds({
+        lastSentAt: data.item.verificationCodeSentAt,
+        now,
+      }),
+      cannotSendReason: data.cannotSendReason || null,
+    };
+  }
+
+  // The status as the route sends it: times as ISO 8601 strings.
+  public static statusToJSON(status: ChannelVerificationStatus): JSONObject {
+    return VerificationCodeStatusJSON.toJSON(status);
   }
 }

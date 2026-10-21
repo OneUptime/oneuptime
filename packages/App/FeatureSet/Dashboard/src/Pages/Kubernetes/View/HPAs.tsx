@@ -165,7 +165,7 @@ const KubernetesClusterHPAs: FunctionComponent<
           },
         );
       }}
-      emptyMessage="No HPAs found. HPA data will appear here once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes horizontalpodautoscalers."
+      emptyMessage="No HPAs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes horizontalpodautoscalers."
     />
   );
 };

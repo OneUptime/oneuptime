@@ -1,4 +1,5 @@
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -9,10 +10,15 @@ import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import {
+  compileScrubRuleCustomRegex,
+  ScrubRegExp,
+  scrubRegExpFromBuiltIn,
+} from "Common/Types/Telemetry/ScrubRule";
 
 interface CompiledRule {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -23,8 +29,14 @@ const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
 
 // Built-in PII detection patterns — same set as logs.
 const BUILT_IN_PATTERNS: Record<string, RegExp> = {
+  /*
+   * Each part of the address is length-bounded to the sizes RFC 5321 allows
+   * (local part 64, domain 253, final label 63), so finding addresses in a
+   * span body or attribute stays in line with its length however long it is -
+   * this runs over ingested spans for a project with an email scrub rule.
+   */
   [TraceScrubPatternType.Email]:
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
   [TraceScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
   [TraceScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [TraceScrubPatternType.PhoneNumber]:
@@ -107,7 +119,7 @@ export class TraceScrubRuleService {
     const compiledPatterns: Array<CompiledRule> = [];
 
     for (const rule of rules) {
-      const regex: RegExp | null = this.getRegexForPattern(
+      const regex: ScrubRegExp | null = this.getRegexForPattern(
         rule.patternType as string,
         rule.customRegex as string | undefined,
       );
@@ -125,16 +137,16 @@ export class TraceScrubRuleService {
   private static getRegexForPattern(
     patternType: string,
     customRegex?: string,
-  ): RegExp | null {
+  ): ScrubRegExp | null {
     if (patternType === TraceScrubPatternType.Custom) {
-      if (!customRegex) {
-        return null;
-      }
-      try {
-        return new RegExp(customRegex, "g");
-      } catch {
-        return null;
-      }
+      /*
+       * Null for a pattern that is empty or does not compile: the rule
+       * scrubs nothing. The API refuses to save such a rule, and the rules
+       * table flags the ones saved before it did - all three judge the
+       * pattern with Common/Types/Telemetry/ScrubRule, so they cannot
+       * disagree on what ingest does with it.
+       */
+      return compileScrubRuleCustomRegex(customRegex);
     }
 
     /*
@@ -143,12 +155,12 @@ export class TraceScrubRuleService {
      * entirely by scrubString.
      */
     if (patternType === TraceScrubPatternType.SensitiveKeys) {
-      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
+      return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
     if (builtIn) {
-      return new RegExp(builtIn.source, builtIn.flags);
+      return scrubRegExpFromBuiltIn(builtIn);
     }
 
     return null;
@@ -242,12 +254,10 @@ export class TraceScrubRuleService {
         continue;
       }
 
-      regex.lastIndex = 0;
-
       const action: string =
         (rule.scrubAction as string) || TraceScrubAction.Redact;
 
-      result = result.replace(regex, (match: string) => {
+      result = regex.replace(result, (match: string): string => {
         return this.applyScrubAction(match, action, patternType);
       });
     }
@@ -307,6 +317,13 @@ export class TraceScrubRuleService {
       return content;
     }
 
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(content);
+
     const applicableRules: Array<CompiledRule> = compiledRules.filter(
       (compiled: CompiledRule): boolean => {
         // SensitiveKeys always applies to attribute content (see scrubSpan).
@@ -347,6 +364,13 @@ export class TraceScrubRuleService {
     if (compiledRules.length === 0) {
       return spanRow;
     }
+
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(spanRow);
 
     /*
      * Each rule's `fieldsToScrub` is per-rule (name vs attributes

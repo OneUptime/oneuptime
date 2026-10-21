@@ -20,6 +20,10 @@ import {
   MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
 } from "Common/Types/Runbook/RunbookStepTimeout";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import RunnerService from "Common/Server/Services/RunnerService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import Project from "Common/Models/DatabaseModels/Project";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   runBashStep,
@@ -56,6 +60,41 @@ function makeCtx(): StepExecutionContext {
   };
 }
 
+// The Runner the steps here picked: a Runner ID, as the step editor stores it.
+const AGENT_ID: string = "a9e10000-0000-4000-8000-000000000001";
+
+/*
+ * Where a step runs is decided by GlobalRunnerChoice, which reads, as
+ * OneUptime, the Runner the step picked, the project's "Use global Runners"
+ * switch and whether the server has a global Runner. Here the Runner a step
+ * picked is always one of its project's own, the project uses global
+ * Runners, and the server has none - so a step that picked no Runner is
+ * refused as it always was. StepExecutorsGlobalRunner covers the rest.
+ */
+function stubRunnerChoiceFacts(): void {
+  jest
+    .spyOn(RunnerService, "findOneById")
+    .mockImplementation(async (args: { id: ObjectID }): Promise<Runner> => {
+      const runner: Runner = new Runner();
+      runner._id = args.id.toString();
+      runner.projectId = makeCtx().projectId;
+      runner.isGlobalRunner = false;
+      return runner;
+    });
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation(async (): Promise<Project> => {
+      const project: Project = new Project();
+      project.useGlobalRunners = true;
+      return project;
+    });
+  jest
+    .spyOn(RunnerService, "hasGlobalRunnerForRunbooks")
+    .mockResolvedValue(false);
+}
+
+beforeEach(stubRunnerChoiceFacts);
+
 function makeHttpStep(
   config: Partial<HttpRequestStepConfig> = {},
 ): RunbookStep {
@@ -80,7 +119,7 @@ function makeBashStep(config: Partial<BashStepConfig> = {}): RunbookStep {
     title: "Run script",
     config: {
       script: "echo hi",
-      agentId: new ObjectID("agent1").toString(),
+      agentId: AGENT_ID,
       ...config,
     } as BashStepConfig,
   };
@@ -94,7 +133,7 @@ function makeJsStep(config: Partial<JavaScriptStepConfig> = {}): RunbookStep {
     title: "Run JS",
     config: {
       script: "return 1;",
-      agentId: new ObjectID("agent1").toString(),
+      agentId: AGENT_ID,
       ...config,
     } as JavaScriptStepConfig,
   };
@@ -252,24 +291,47 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
     jest.restoreAllMocks();
   });
 
-  test("Bash without an agent fails with a pointer to the Agents page", async () => {
+  /*
+   * The step names the page the Runner picker sends people to, Runbooks →
+   * Runners, as the SSH and Kubernetes steps do and the running page's
+   * troubleshooting quotes. It used to send them to "Runbooks → Agents",
+   * which no menu has had since Runners moved under Runbooks.
+   */
+  test("Bash without a Runner fails with a pointer to the Runners page", async () => {
     const result: StepRunResult = await runBashStep(
       makeBashStep({ agentId: "  " }),
       makeCtx(),
     );
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("missing a Runbook Agent");
+    expect(result.errorMessage).toBe(
+      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+    );
   });
 
-  test("JavaScript without an agent fails with a pointer to the Agents page", async () => {
+  test("JavaScript without a Runner, on a server with no global Runner, fails with a pointer to the Runners page", async () => {
     const result: StepRunResult = await runJavaScriptStep(
       makeJsStep({ agentId: "" }),
       makeCtx(),
     );
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("missing a Runbook Agent");
+    expect(result.errorMessage).toBe(
+      "This JavaScript step has no Runner of its own, and there is no global Runner to run it. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+    );
+  });
+
+  test("no step without a Runner sends people to a Runbooks → Agents page that does not exist", async () => {
+    const results: Array<StepRunResult> = [
+      await runBashStep(makeBashStep({ agentId: "" }), makeCtx()),
+      await runJavaScriptStep(makeJsStep({ agentId: "" }), makeCtx()),
+    ];
+
+    for (const result of results) {
+      expect(result.errorMessage).not.toContain("Agents");
+      expect(result.errorMessage).not.toContain("Runbook Agent");
+      expect(result.errorMessage).toContain("Runbooks → Runners");
+    }
   });
 
   test("agent IDs are passed through verbatim to the job targeting", async () => {
@@ -285,7 +347,7 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
       .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob());
 
-    const agentId: string = new ObjectID("agent-xyz").toString();
+    const agentId: string = "a9e10000-0000-4000-8000-0000000000ff";
     await runBashStep(makeBashStep({ agentId: ` ${agentId} ` }), makeCtx());
 
     const enqueueArgs: Record<string, unknown> = enqueueSpy.mock
@@ -877,6 +939,7 @@ describe("per-step timeouts", () => {
 
       for (const input of inputs) {
         jest.restoreAllMocks();
+        stubRunnerChoiceFacts();
         jest.spyOn(logger, "error").mockImplementation((): void => {
           return undefined;
         });

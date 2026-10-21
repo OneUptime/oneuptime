@@ -647,6 +647,146 @@ describe("getTelemetryLastCheckedAt", () => {
   });
 });
 
+/*
+ * A Probe Status monitor's hero says which probe is down ("Latest result").
+ * It reads the newest evaluation's log body - the same row the Summary card
+ * draws and the pulse times - parsed defensively, as JSON from the log.
+ */
+describe("toPresentationInput: a Probe Status monitor's latest evaluation", () => {
+  const probeStatusMonitor: Monitor = buildMonitor({
+    monitorType: MonitorType.ProbeStatus,
+    monitoringInterval: undefined,
+    monitorSteps: {
+      data: {
+        monitorStepsInstanceArray: [
+          {
+            data: {
+              id: STEP_ID,
+              probeStatusMonitor: { probeIds: [PROBE_A, PROBE_B] },
+            },
+          },
+        ],
+      },
+    } as unknown as MonitorSteps,
+  });
+
+  // As MonitorLogUtil stores it: a plain JSON round trip.
+  const logBody: JSONObject = JSON.parse(
+    JSON.stringify({
+      projectId: "10000000-0000-4000-8000-000000000001",
+      monitorId: MONITOR_ID,
+      monitorStepId: STEP_ID,
+      probes: [
+        {
+          probeId: PROBE_A,
+          probeName: "Frankfurt",
+          isGlobalProbe: false,
+          isConnected: true,
+          lastAliveAt: minutesAgo(1).toISOString(),
+        },
+        {
+          probeId: PROBE_B,
+          probeName: "Singapore",
+          isGlobalProbe: true,
+          isConnected: false,
+          lastAliveAt: minutesAgo(15).toISOString(),
+        },
+      ],
+      connectedProbeCount: 1,
+      disconnectedProbeCount: 1,
+      missingProbeIds: [],
+      checkedAt: minutesAgo(1).toISOString(),
+    }),
+  ) as JSONObject;
+
+  const withLog: (
+    value: MonitorEvaluationByProbe,
+  ) => OverviewSection<MonitorEvaluationByProbe> = (
+    value: MonitorEvaluationByProbe,
+  ): OverviewSection<MonitorEvaluationByProbe> => {
+    return resolveSection<MonitorEvaluationByProbe>({
+      value: value,
+      subjectId: MONITOR_ID,
+    });
+  };
+
+  test("hands the presentation the probes the newest evaluation found", () => {
+    const input: MonitorOverviewPresentationInput = buildInput({
+      monitor: probeStatusMonitor,
+      evaluation: withLog({
+        byProbeId: {},
+        latestAt: minutesAgo(1),
+        latestLogBody: logBody,
+      }),
+    });
+
+    expect(input.probeStatus?.connectedProbeCount).toBe(1);
+    expect(input.probeStatus?.disconnectedProbeCount).toBe(1);
+    expect(
+      input.probeStatus?.probes.map(
+        (probe: { probeName: string; isConnected: boolean }): string => {
+          return `${probe.probeName}:${probe.isConnected}`;
+        },
+      ),
+    ).toEqual(["Frankfurt:true", "Singapore:false"]);
+  });
+
+  test("the hero then names the disconnected probe", () => {
+    const presentation: MonitorOverviewPresentation =
+      MonitorOverviewPresentationUtil.build(
+        buildInput({
+          monitor: probeStatusMonitor,
+          evaluation: withLog({
+            byProbeId: {},
+            latestAt: minutesAgo(1),
+            latestLogBody: logBody,
+          }),
+        }),
+      );
+
+    expect(
+      presentation.facts.find((fact: { key: string }): boolean => {
+        return fact.key === "latest-result";
+      }),
+    ).toMatchObject({
+      value: "1 of 2 disconnected",
+      secondary: "Singapore",
+      tone: "danger",
+    });
+  });
+
+  test("no log body, or one that is not a Probe Status evaluation, gives nothing", () => {
+    expect(
+      buildInput({ monitor: probeStatusMonitor, evaluation: emptyEvaluation })
+        .probeStatus,
+    ).toBeUndefined();
+
+    expect(
+      buildInput({
+        monitor: probeStatusMonitor,
+        evaluation: withLog({
+          byProbeId: {},
+          latestAt: minutesAgo(1),
+          // A probe check's body: no probes list.
+          latestLogBody: { monitorId: MONITOR_ID, isOnline: true },
+        }),
+      }).probeStatus,
+    ).toBeUndefined();
+  });
+
+  test("any other monitor type is never read as one", () => {
+    expect(
+      buildInput({
+        evaluation: withLog({
+          byProbeId: {},
+          latestAt: minutesAgo(1),
+          latestLogBody: logBody,
+        }),
+      }).probeStatus,
+    ).toBeUndefined();
+  });
+});
+
 describe("toPresentationInput: agent metrics", () => {
   test("server metrics are extracted from the agent's last report", () => {
     const input: MonitorOverviewPresentationInput = buildInput({
@@ -852,6 +992,7 @@ describe("toPresentationInput: the rest of the row", () => {
 
   test("pause and probe flags are booleans even when the columns are unset", () => {
     expect(buildInput().pause).toEqual({
+      isArchived: false,
       isDisabled: false,
       byManualIncident: false,
       byScheduledMaintenance: false,
@@ -863,6 +1004,7 @@ describe("toPresentationInput: the rest of the row", () => {
 
     const input: MonitorOverviewPresentationInput = buildInput({
       monitor: buildMonitor({
+        isArchived: true,
         disableActiveMonitoring: true,
         disableActiveMonitoringBecauseOfManualIncident: true,
         disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
@@ -872,6 +1014,7 @@ describe("toPresentationInput: the rest of the row", () => {
     });
 
     expect(input.pause).toEqual({
+      isArchived: true,
       isDisabled: true,
       byManualIncident: true,
       byScheduledMaintenance: true,

@@ -109,11 +109,17 @@ var monitorStepsNoDataPolicyValues = []string{
 	"Trigger",
 }
 
-// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts).
+// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts), every value in
+// declaration order. Common/Tests/Utils/DeveloperDocs/TerraformCheckOnValues.test.ts
+// fails when a value the API accepts is missing here, so a filter on a new
+// check (NTP, SNMP tables and transceivers, Port timings, ...) is never
+// refused at plan time.
 var monitorStepsCheckOnValues = []string{
 	"Response Time (in ms)",
 	"Packet Loss (in %)",
 	"Jitter (in ms)",
+	"Port DNS Lookup Time (in ms)",
+	"Port TCP Connect Time (in ms)",
 	"Response Status Code",
 	"Response Header",
 	"Response Header Value",
@@ -148,9 +154,14 @@ var monitorStepsCheckOnValues = []string{
 	"Screen Size",
 	"Browser Type",
 	"Log Count",
+	"Security Event Count",
 	"Span Count",
+	"Bad AI Answers (in %)",
+	"Bad AI Answers",
+	"AI Answers",
 	"Exception Count",
 	"Profile Count",
+	"Function Share (in %)",
 	"Metric Value",
 	"Email Subject",
 	"Email From Address",
@@ -161,10 +172,20 @@ var monitorStepsCheckOnValues = []string{
 	"SNMP OID Exists",
 	"SNMP Response Time (in ms)",
 	"SNMP Device Is Online",
+	"SNMP Walk Is Succeeding",
 	"SNMP Interface Is Down",
 	"SNMP Trap Received (Trap OID)",
 	"SNMP Interface Utilization (in %)",
 	"SNMP Interface Errors (per second)",
+	"SNMP Table Value",
+	"SNMP Table Row Count",
+	"SNMP Table Row Is Unhealthy",
+	"SNMP Trap Varbind Value",
+	"SNMP Transceiver Not Detected",
+	"SNMP Transceiver Past Alarm Threshold",
+	"SNMP Transceiver Past Warning Threshold",
+	"SNMP Transceiver Reading",
+	"SNMP Transceiver RX Power Drop (in dB)",
 	"DNS Response Time (in ms)",
 	"DNS Is Online",
 	"DNS Record Value",
@@ -181,6 +202,12 @@ var monitorStepsCheckOnValues = []string{
 	"DNSSEC Signature Expires In Days",
 	"DNSSEC Resolver Consensus (AD Flag)",
 	"DNSSEC Nameservers Are Consistent",
+	"NTP Is Online",
+	"NTP Is Synchronized",
+	"NTP Stratum",
+	"NTP Clock Offset (in ms)",
+	"NTP Response Time (in ms)",
+	"NTP Root Dispersion (in ms)",
 	"SQL Is Online",
 	"SQL Query Row Count",
 	"SQL Query Scalar Value",
@@ -194,6 +221,8 @@ var monitorStepsCheckOnValues = []string{
 	"External Status Page Component Status",
 	"External Status Page Active Incidents",
 	"External Status Page Response Time (in ms)",
+	"Connected Probes",
+	"Disconnected Probes",
 }
 
 // FilterType enum (Common/Types/Monitor/CriteriaFilter.ts). "Recieved" is
@@ -257,6 +286,7 @@ type monitorStepsSubConfig struct {
 var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"log_monitor", "logMonitor"},
 	{"trace_monitor", "traceMonitor"},
+	{"llm_monitor", "llmMonitor"},
 	{"metric_monitor", "metricMonitor"},
 	{"exception_monitor", "exceptionMonitor"},
 	{"profile_monitor", "profileMonitor"},
@@ -275,7 +305,9 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"vmware_monitor", "vmwareMonitor"},
 	{"docker_swarm_monitor", "dockerSwarmMonitor"},
 	{"ceph_monitor", "cephMonitor"},
+	{"storage_array_monitor", "storageArrayMonitor"},
 	{"iot_monitor", "iotMonitor"},
+	{"probe_status_monitor", "probeStatusMonitor"},
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +327,7 @@ func monitorStepsFilterAttrTypes() map[string]attr.Type {
 		"metric_monitor_options":            types.StringType,
 		"snmp_monitor_options":              types.StringType,
 		"database_monitor_options":          types.StringType,
+		"custom_code_monitor_options":       types.StringType,
 	}
 }
 
@@ -339,6 +372,7 @@ func monitorStepsCriteriaAttrTypes() map[string]attr.Type {
 		"create_incidents":      types.BoolType,
 		"create_alerts":         types.BoolType,
 		"is_enabled":            types.BoolType,
+		"open_for_every_email":  types.BoolType,
 		"incident_grouping":     types.StringType,
 		"filters":               types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}},
 		"incidents":             types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsIncidentAttrTypes()}},
@@ -578,7 +612,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"evaluate_over_time": schema.BoolAttribute{
-				MarkdownDescription: "Evaluate this filter over a time window instead of the latest probe result.",
+				MarkdownDescription: "Evaluate this filter over a time window instead of the latest probe result. A filter with no series of its own - `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression` and `Is Request Timeout` on Website and API monitors, `Is Request Timeout` on Ping, IP and Port monitors - is judged from a record of whether it matched on each check.",
 				Optional:            true,
 			},
 			"evaluate_over_time_minutes": schema.Int64Attribute{
@@ -587,7 +621,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"evaluate_over_time_type": schema.StringAttribute{
-				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval.",
+				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval. True/false checks and the checks judged from whether they matched on each check (see `evaluate_over_time`) take `All Values` or `Any Value`; any other aggregation on them is evaluated as `All Values`.",
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsEvaluateOverTimeTypeValidator},
 			},
@@ -607,12 +641,17 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"snmp_monitor_options": schema.StringAttribute{
-				MarkdownDescription: "Raw JSON escape hatch for SNMP filter options (oid, interfaceName). Write it with `jsonencode()`.",
+				MarkdownDescription: "Raw JSON escape hatch for SNMP filter options (oid, interfaceName, and for SNMP table criteria tableKey, tableColumnOid and tableRow). Write it with `jsonencode()`.",
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"database_monitor_options": schema.StringAttribute{
 				MarkdownDescription: "Raw JSON escape hatch for Database Health filter options (metricType). Required on every `Database Metric` filter — it names the series the threshold applies to. Write it with `jsonencode()`.",
+				Optional:            true,
+				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			},
+			"custom_code_monitor_options": schema.StringAttribute{
+				MarkdownDescription: "Raw JSON escape hatch for Custom Code and Synthetic monitor filter options (resultValuePath - the field of the returned data a `Result Value` filter compares, e.g. `status` or `data.items[0].value`: dots for nested fields, `[n]` for array items). Omit it to compare the whole value. Write it with `jsonencode()`.",
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
@@ -781,6 +820,10 @@ func monitorStepsCriteriaSchema() schema.NestedAttributeObject {
 				MarkdownDescription: "Whether this criteria is evaluated. Defaults to true server-side.",
 				Optional:            true,
 			},
+			"open_for_every_email": schema.BoolAttribute{
+				MarkdownDescription: "Incoming Email monitors only: every email that matches opens an incident (and an alert) of its own, instead of one at a time. A reply is added as a note to what its email opened, and the same email delivered twice opens one. Defaults to false server-side.",
+				Optional:            true,
+			},
 			"incident_grouping": schema.StringAttribute{
 				MarkdownDescription: "Raw JSON escape hatch for per-criteria incident grouping (Incoming Request monitors only; groupByJSONPath, resolvedWhenJSONPath, resolvedWhenValue). Write it with `jsonencode()`.",
 				Optional:            true,
@@ -921,6 +964,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 	subDescriptions := map[string]string{
 		"log_monitor":                  "Raw JSON escape hatch for the Logs monitor query config (attributes, body, severityTexts, telemetryServiceIds, lastXSecondsOfLogs).",
 		"trace_monitor":                "Raw JSON escape hatch for the Traces monitor query config.",
+		"llm_monitor":                  "Raw JSON escape hatch for the AI / LLM monitor config (issues, slowAnswerSeconds, model, telemetryServiceIds, lastXSecondsOfCalls).",
 		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift.",
 		"exception_monitor":            "Raw JSON escape hatch for the Exceptions monitor query config.",
 		"profile_monitor":              "Raw JSON escape hatch for the Profiles monitor query config.",
@@ -939,7 +983,9 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"vmware_monitor":               "Raw JSON escape hatch for the VMware monitor config (vcenterIdentifier, resourceFilters, ...).",
 		"docker_swarm_monitor":         "Raw JSON escape hatch for the Docker Swarm monitor config (clusterIdentifier, ...).",
 		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...).",
+		"storage_array_monitor":        "Raw JSON escape hatch for the Storage Array monitor config (arrayIdentifier, storageSystem, resourceFilters, ...).",
 		"iot_monitor":                  "Raw JSON escape hatch for the IoT monitor config (fleetIdentifier, ...).",
+		"probe_status_monitor":         "Raw JSON escape hatch for the Probe Status monitor config (probeIds: the ids of the probes the monitor watches - this project's own probes and the global probes).",
 	}
 
 	for _, sub := range monitorStepsSubConfigs {
@@ -962,10 +1008,12 @@ func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute 
 		CustomType:          NewMonitorStepsType(),
 		Optional:            true,
 		/*
-		 * Computed because the server generates default steps when a monitor
-		 * is created without any (see MonitorService.onBeforeCreate). With a
-		 * plain Optional attribute that would be "planned null, got steps" —
-		 * the inconsistent-result class this provider just eliminated.
+		 * Computed so that a configuration may leave monitor_steps out: the
+		 * monitor then keeps the steps it has (one made in the dashboard and
+		 * imported keeps its checks), where a plain Optional attribute would
+		 * plan them away. The server adds no steps of its own: a monitor
+		 * created without any has none, and probes skip it
+		 * (MonitorService.onBeforeCreate saves steps only when given).
 		 * UseStateForUnknown keeps refresh plans clean once state is settled.
 		 */
 		Computed: true,
@@ -1112,6 +1160,9 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	if v, ok := monitorStepsAttrJSON(attrs, "database_monitor_options", attrPath, diags); ok {
 		out["databaseMonitorOptions"] = v
 	}
+	if v, ok := monitorStepsAttrJSON(attrs, "custom_code_monitor_options", attrPath, diags); ok {
+		out["customCodeMonitorOptions"] = v
+	}
 	return out
 }
 
@@ -1229,6 +1280,9 @@ func monitorStepsCriteriaToAPI(attrs map[string]attr.Value, attrPath string, dia
 	}
 	if v, ok := monitorStepsAttrBool(attrs, "is_enabled"); ok {
 		value["isEnabled"] = v
+	}
+	if v, ok := monitorStepsAttrBool(attrs, "open_for_every_email"); ok {
+		value["openForEveryEmail"] = v
 	}
 	if v, ok := monitorStepsAttrJSON(attrs, "incident_grouping", attrPath, diags); ok {
 		value["incidentGrouping"] = v
@@ -1584,6 +1638,9 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 	if s, ok := monitorStepsAPIJSONString(m["databaseMonitorOptions"]); ok {
 		attrs["database_monitor_options"] = types.StringValue(s)
 	}
+	if s, ok := monitorStepsAPIJSONString(m["customCodeMonitorOptions"]); ok {
+		attrs["custom_code_monitor_options"] = types.StringValue(s)
+	}
 	// metricCriteriaContext (evaluation-time context) and any unknown keys
 	// are intentionally dropped.
 
@@ -1718,6 +1775,9 @@ func monitorStepsCriteriaFromAPI(v interface{}, diags *diag.Diagnostics) (types.
 	}
 	if b, ok := monitorStepsAPIBool(m["isEnabled"]); ok {
 		attrs["is_enabled"] = types.BoolValue(b)
+	}
+	if b, ok := monitorStepsAPIBool(m["openForEveryEmail"]); ok {
+		attrs["open_for_every_email"] = types.BoolValue(b)
 	}
 	if s, ok := monitorStepsAPIJSONString(m["incidentGrouping"]); ok {
 		attrs["incident_grouping"] = types.StringValue(s)

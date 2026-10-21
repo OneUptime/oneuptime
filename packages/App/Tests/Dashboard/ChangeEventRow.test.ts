@@ -199,12 +199,15 @@ describe("buildChangeEventDbRow", () => {
   });
 
   test("a recent in-window timestamp is kept verbatim", () => {
-    const row: JSONObject = build({
-      time: new Date("2026-08-20T10:00:00.000Z"),
-    });
+    // A month before now: inside the window whenever the test runs.
+    const recent: Date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const row: JSONObject = build({ time: recent });
     const attributes: JSONObject = row["attributes"] as JSONObject;
     expect(attributes["oneuptime.original_time"]).toBeUndefined();
-    expect(String(row["time"])).toContain("2026-08-20");
+    // Stored as UTC "YYYY-MM-DD HH:mm:ss", to the second as it was sent.
+    expect(String(row["time"])).toContain(
+      recent.toISOString().replace("T", " ").slice(0, 19),
+    );
   });
 });
 

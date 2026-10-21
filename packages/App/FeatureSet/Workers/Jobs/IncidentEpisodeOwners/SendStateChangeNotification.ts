@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -17,6 +18,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -29,6 +31,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentEpisodeOwner:SendStateChangeEmail",
@@ -84,6 +87,7 @@ RunCron(
             episodeNumberWithPrefix: true,
             incidentSeverity: {
               name: true,
+              color: true,
             },
           },
         });
@@ -202,9 +206,15 @@ RunCron(
           episodeNumber: episodeNumberStr,
           projectName: episodeStateTimeline.project!.name!,
           currentState: incidentState!.name!,
-          currentStateColor: incidentState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incidentState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           episodeDescription: await Markdown.convertToHTML(
             episode.description! || "",
@@ -216,6 +226,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+          ...EmailColorUtil.getTemplateVariables(
+            "episodeSeverity",
+            episode.incidentSeverity?.color,
+          ),
           episodeViewLink: (
             await IncidentEpisodeService.getEpisodeLinkInDashboard(
               episodeStateTimeline.projectId!,
@@ -238,8 +252,10 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Incident Episode ${episodeIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Incident Episode ${episodeIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {
@@ -297,17 +313,14 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
-          {
-            userId: user.id!,
-            projectId: episodeStateTimeline.projectId!,
-          },
-        )}\n`;
+        moreEpisodeFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: episodeStateTimeline.projectId!,
+            }),
+          );
       }
-
-      const episodeDisplayNumber: string =
-        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
-      const projectId: ObjectID = episode.projectId!;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id!,
@@ -315,7 +328,10 @@ RunCron(
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the incident episode because the episode state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "incident episode",
+          stateName: incidentState.name,
+        }),
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

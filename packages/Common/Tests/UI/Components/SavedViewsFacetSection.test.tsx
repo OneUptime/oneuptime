@@ -383,6 +383,7 @@ describe("LogsFacetSidebar mounts the saved views section", () => {
   function renderSidebar(savedViews: Array<LogsSavedViewOption>): void {
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{}}
         isLoading={false}
         serviceMap={{}}

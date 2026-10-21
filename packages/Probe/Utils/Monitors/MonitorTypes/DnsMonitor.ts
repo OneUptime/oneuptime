@@ -11,6 +11,7 @@ import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import dns from "dns";
 import { execFile } from "child_process";
 import MonitorRetry from "../MonitorRetry";
+import { digOutputHasAuthenticatedData } from "../DigOutput";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -91,6 +92,7 @@ export default class DnsMonitorUtil {
           config.recordType,
           config.hostname,
           timeoutInMs,
+          config.port,
         );
       } catch (dnssecErr) {
         logger.debug(
@@ -318,9 +320,14 @@ export default class DnsMonitorUtil {
         break;
       }
       case DnsRecordType.CAA: {
-        // resolveCaa is not on the Resolver class type, use standalone function
+        /*
+         * Asked of this resolver like every other record type, so a CAA
+         * query honours the step's DNS server, port and timeout. The
+         * module-level dns.promises.resolveCaa used here before went to the
+         * probe's system resolver whatever the step said.
+         */
         const results: Array<dns.CaaRecord> =
-          await dns.promises.resolveCaa(queryName);
+          await resolver.resolveCaa(queryName);
         for (const result of results) {
           records.push({
             type: DnsRecordType.CAA,
@@ -365,6 +372,8 @@ export default class DnsMonitorUtil {
      * cannot add a second, longer wait on top of a slow resolution.
      */
     timeoutInMs: number = 10000,
+    // The step's port, which belongs to the custom DNS server only.
+    dnsServerPort?: number | undefined,
   ): Promise<boolean | undefined> {
     // Validate queryName to prevent argument injection
     if (!this.isValidHostnameOrIP(queryName)) {
@@ -392,6 +401,22 @@ export default class DnsMonitorUtil {
        */
       args.push(`@${dnsServer || "8.8.8.8"}`);
 
+      /*
+       * dig asks port 53 unless told otherwise. A custom server listening
+       * on another port is asked on that port, as the record query was;
+       * Google Public DNS is always asked on 53.
+       */
+      if (
+        dnsServer &&
+        dnsServerPort &&
+        Number.isInteger(dnsServerPort) &&
+        dnsServerPort > 0 &&
+        dnsServerPort <= 65535 &&
+        dnsServerPort !== 53
+      ) {
+        args.push("-p", String(dnsServerPort));
+      }
+
       execFile(
         "dig",
         args,
@@ -404,9 +429,7 @@ export default class DnsMonitorUtil {
           }
 
           // Check for the AD (Authenticated Data) flag in the response
-          const adFlagPattern: RegExp = /flags:.*\bad\b/i;
-          const hasAdFlag: boolean = adFlagPattern.test(stdout);
-          resolve(hasAdFlag);
+          resolve(digOutputHasAuthenticatedData(stdout));
         },
       );
     });

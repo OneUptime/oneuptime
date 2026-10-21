@@ -5,23 +5,31 @@ import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../../Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
+  WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
+  WorkspaceDropdownOptionGroup,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
+  WorkspaceNumberInputBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
+  WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import SlackOverflowMenu from "./SlackOverflowMenu";
 import logger, { LogAttributes } from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceChannelToCreate,
+  WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
@@ -34,6 +42,135 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import SSRFProtection from "../../SSRFProtection";
+import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
+import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import SlackInlineImages from "./SlackInlineImages";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
+import {
+  SLOW_MARKDOWN_MAX_INLINE_WORK,
+  SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+  SlowMarkdownLimits,
+  holdBackSlowMarkdown,
+} from "../../../../Utils/Markdown/SlowMarkdown";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
+
+// What conversations.create answers for a name a channel has already.
+export const SLACK_CHANNEL_NAME_TAKEN_ERROR: string = "name_taken";
+
+/*
+ * What slackify reads a "%" that starts no escape as (see
+ * getSlackifySafeMarkdown), and what encodeURI makes of it in an address.
+ */
+const SLACKIFY_PERCENT_STAND_IN: string = "\uE007";
+const ENCODED_PERCENT_STAND_IN: string = encodeURI(SLACKIFY_PERCENT_STAND_IN);
+
+const isHexDigit: (code: number) => boolean = (code: number): boolean => {
+  return (
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x46) ||
+    (code >= 0x61 && code <= 0x66)
+  );
+};
+
+// Markdown slackify cannot fail on, and how to put back what was changed.
+export interface SlackifySafeMarkdown {
+  markdown: string;
+  restore: (slackText: string) => string;
+}
+
+/*
+ * `markdown` with nothing slackify-markdown throws on (see
+ * SlackUtil.slackify): every "%" that is not the start of an escape ("%2F")
+ * becomes a stand-in, and every half of a surrogate pair standing alone
+ * becomes U+FFFD. `restore` turns the stand-in back into "%" - "%25" where
+ * slackify encoded the address it is in, as "%" is written in an address.
+ * Markdown with none of these comes back as it is. Scanned with a loop: the
+ * text can be long.
+ */
+export const getSlackifySafeMarkdown: (
+  markdown: string,
+) => SlackifySafeMarkdown = (markdown: string): SlackifySafeMarkdown => {
+  const unchanged: SlackifySafeMarkdown = {
+    markdown: markdown,
+    restore: (slackText: string): string => {
+      return slackText;
+    },
+  };
+
+  let safe: string = "";
+  let copiedUpTo: number = 0;
+  let hasStandIn: boolean = false;
+
+  for (let index: number = 0; index < markdown.length; index++) {
+    const code: number = markdown.charCodeAt(index);
+    let replacement: string | null = null;
+
+    if (code === 0x25) {
+      if (
+        !isHexDigit(markdown.charCodeAt(index + 1)) ||
+        !isHexDigit(markdown.charCodeAt(index + 2))
+      ) {
+        replacement = SLACKIFY_PERCENT_STAND_IN;
+        hasStandIn = true;
+      }
+    } else if (code >= 0xd800 && code <= 0xdbff) {
+      const next: number = markdown.charCodeAt(index + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index++;
+      } else {
+        replacement = "\uFFFD";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      replacement = "\uFFFD";
+    }
+
+    if (replacement !== null) {
+      safe += markdown.slice(copiedUpTo, index) + replacement;
+      copiedUpTo = index + 1;
+    }
+  }
+
+  if (copiedUpTo === 0) {
+    return unchanged;
+  }
+
+  safe += markdown.slice(copiedUpTo);
+
+  /*
+   * An address that already held the stand-in's escape would be read back
+   * wrongly: leave the "%" as it was, and let slackify fail on it.
+   */
+  if (
+    hasStandIn &&
+    markdown.toUpperCase().indexOf(ENCODED_PERCENT_STAND_IN) !== -1
+  ) {
+    return unchanged;
+  }
+
+  return {
+    markdown: safe,
+    restore: (slackText: string): string => {
+      if (!hasStandIn) {
+        return slackText;
+      }
+
+      return slackText
+        .split(ENCODED_PERCENT_STAND_IN)
+        .join("%25")
+        .split(SLACKIFY_PERCENT_STAND_IN)
+        .join("%");
+    },
+  };
+};
+
+// Markdown as slackify is given it (see SlackUtil.cutMarkdown).
+export interface CutMarkdown {
+  text: string;
+  // Whether it was cut: Slack is then told the text goes on.
+  isCutShort: boolean;
+}
 
 export default class SlackUtil extends WorkspaceBase {
   /*
@@ -43,6 +180,8 @@ export default class SlackUtil extends WorkspaceBase {
    * not just the offending block.
    */
   public static readonly SECTION_TEXT_MAX_LENGTH: number = 3000;
+  // The most a header block's text can be.
+  public static readonly HEADER_TEXT_MAX_LENGTH: number = 150;
   public static readonly MAX_BLOCKS_PER_MESSAGE: number = 50;
   public static readonly MAX_BLOCKS_PER_MODAL: number = 100;
 
@@ -59,6 +198,44 @@ export default class SlackUtil extends WorkspaceBase {
   // Ends the last section of a markdown payload that did not fit.
   public static readonly TRUNCATED_SECTION_NOTE: string =
     "\n\n_… (truncated — see OneUptime for the full text)_";
+
+  /*
+   * The most Markdown slackify is given at once: one section more than a
+   * markdown payload can show (MAX_SECTIONS_PER_MARKDOWN_BLOCK sections of
+   * SECTION_TEXT_MAX_LENGTH characters). slackify takes time that grows
+   * with the square of a long line, and ran out of stack on one of a few
+   * megabytes - and a description can carry a response body or a log of
+   * many megabytes. Text longer than this is cut first, at a line break
+   * where there is one, and ends with TRUNCATED_SECTION_NOTE: Slack could
+   * never show the rest.
+   */
+  public static readonly MARKDOWN_MAX_LENGTH: number =
+    (SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK + 1) *
+    SlackUtil.SECTION_TEXT_MAX_LENGTH;
+
+  /*
+   * What slackify is given at most once the Markdown is cut
+   * (Utils/Markdown/SlowMarkdown): its time grew with the square of a run of
+   * emphasis or brackets, of one paragraph's lines (a paragraph of 16,000
+   * lines took 4 s) and length (32 KB of web addresses on one line took
+   * three quarters of a second), and of the blocks of a message. So a block
+   * with a paragraph or list item of more than 256 lines or 4,096
+   * characters, more than 2,048 lines in all, and the content of fenced
+   * code are held back and written back as text. A list of short items is
+   * read in good time, however long.
+   */
+  public static readonly SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
+    maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
+    maxRunLines: Number.POSITIVE_INFINITY,
+    maxLines: 2048,
+    maxUnitLines: 256,
+    maxUnitLength: 4096,
+    maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+    maxCellsPerLine: 128,
+    holdBackCodeBlockContent: true,
+    countUrlLiterals: true,
+    countWordUnderscores: true,
+  };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
   private static readonly CODE_FENCE: string = "```";
@@ -83,6 +260,68 @@ export default class SlackUtil extends WorkspaceBase {
     return incomingWebhookUrl
       .toString()
       .startsWith("https://hooks.slack.com/services/");
+  }
+
+  /*
+   * A Slack user's name, and the email address Slack has for them when the
+   * app may read it (the users:read.email scope; an app installed before it
+   * was asked for has no email to give). Null when Slack answers nothing.
+   * One try, no retries: a person waits for it.
+   */
+  @CaptureSpan()
+  public static async getUserProfile(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<{ name: string; email: string } | null> {
+    try {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/users.info"),
+          data: {
+            user: data.userId,
+          },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        (response.jsonData as JSONObject)?.["ok"] !== true
+      ) {
+        return null;
+      }
+
+      const user: JSONObject =
+        ((response.jsonData as JSONObject)["user"] as JSONObject) || {};
+      const profile: JSONObject = (user["profile"] as JSONObject) || {};
+
+      const name: string =
+        [
+          profile["display_name"],
+          profile["real_name"],
+          user["real_name"],
+          user["name"],
+        ]
+          .map((value: unknown): string => {
+            return typeof value === "string" ? value.trim() : "";
+          })
+          .find((value: string): boolean => {
+            return value.length > 0;
+          }) || "";
+
+      const email: string =
+        typeof profile["email"] === "string"
+          ? (profile["email"] as string).trim()
+          : "";
+
+      return { name: name, email: email };
+    } catch (err) {
+      logger.debug("Slack did not tell who a user is.");
+      logger.debug(err);
+      return null;
+    }
   }
 
   @CaptureSpan()
@@ -208,12 +447,83 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Modal shown to user successfully.", modalLogAttributes);
   }
 
+  // The most a modal's title holds.
+  public static readonly MODAL_TITLE_MAX_LENGTH: number = 24;
+
+  /*
+   * A message shown in a modal that only closes: the answer to a press that
+   * has no channel to answer in - a global shortcut - opened where the
+   * person is. `triggerId` is the press's, good for three seconds.
+   */
+  @CaptureSpan()
+  public static async showMessageInModal(data: {
+    authToken: string;
+    triggerId: string;
+    title: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+    const title: string =
+      data.title.length > SlackUtil.MODAL_TITLE_MAX_LENGTH
+        ? data.title.substring(0, SlackUtil.MODAL_TITLE_MAX_LENGTH - 1) + "…"
+        : data.title;
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString("https://slack.com/api/views.open"),
+        data: {
+          trigger_id: data.triggerId,
+          view: {
+            type: "modal",
+            title: {
+              type: "plain_text",
+              text: title,
+            },
+            close: {
+              type: "plain_text",
+              text: "Close",
+            },
+            blocks: this.getBlocksFromWorkspaceMessagePayload({
+              messageBlocks: data.messageBlocks,
+              maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
+            }),
+          },
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    if ((result.jsonData as JSONObject)?.["ok"] !== true) {
+      throw new BadRequestException(
+        "Error from Slack " +
+          String((result.jsonData as JSONObject)?.["error"] || ""),
+      );
+    }
+  }
+
+  /*
+   * A message only `userId` sees, in the channel - in the thread `threadTs`,
+   * when given - where they are: Slack shows it under "Only visible to you".
+   * `text` is what its notification shows.
+   */
   @CaptureSpan()
   public static async sendEphemeralMessageToChannel(data: {
     authToken: string;
     channelId: string;
     userId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    threadTs?: string | undefined;
+    text?: string | undefined;
   }): Promise<void> {
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       {
@@ -221,14 +531,24 @@ export default class SlackUtil extends WorkspaceBase {
       },
     );
 
+    const requestData: JSONObject = {
+      channel: data.channelId,
+      user: data.userId,
+      blocks: blocks,
+    };
+
+    if (data.threadTs) {
+      requestData["thread_ts"] = data.threadTs;
+    }
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString("https://slack.com/api/chat.postEphemeral"),
-        data: {
-          channel: data.channelId,
-          user: data.userId,
-          blocks: blocks,
-        },
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
@@ -265,11 +585,90 @@ export default class SlackUtil extends WorkspaceBase {
     } as LogAttributes);
   }
 
+  /*
+   * Whether `url` is a response_url Slack hands out: https on
+   * hooks.slack.com, read off the WHATWG parser (SSRFProtection), so a "#"
+   * or "?" in it cannot make another host look like Slack's.
+   */
+  public static isSlackResponseUrl(url: string | undefined): boolean {
+    if (!url) {
+      return false;
+    }
+
+    return SSRFProtection.isUrlOnAllowedDomain(url, ["hooks.slack.com"]);
+  }
+
+  /*
+   * Answers a press - a button, a slash command - through the response_url
+   * Slack handed with it: a message only the person who pressed sees, where
+   * they pressed it ("Only visible to you"), never replacing the message the
+   * button is on. Works whether or not OneUptime is in that channel, for
+   * thirty minutes and five answers per press. Throws when Slack refuses it
+   * (an expired or used address).
+   */
+  @CaptureSpan()
+  public static async sendEphemeralResponse(data: {
+    responseUrl: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    if (!this.isSlackResponseUrl(data.responseUrl)) {
+      throw new BadDataException("Not a Slack response URL.");
+    }
+
+    const requestData: JSONObject = {
+      response_type: "ephemeral",
+      replace_original: false,
+      blocks: this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.messageBlocks,
+      }),
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString(data.responseUrl),
+        data: requestData,
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    // Slack answers {"ok": false, "error": "expired_url"} for an address it no longer takes.
+    const body: unknown = response.jsonData;
+
+    if (
+      body &&
+      typeof body === "object" &&
+      (body as JSONObject)["ok"] === false
+    ) {
+      throw new BadRequestException(
+        "Error from Slack " + String((body as JSONObject)["error"] || ""),
+      );
+    }
+  }
+
   @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * What the notification of the direct message says (Slack's top-level
+     * `text`): a direct message notifies, so it says something readable.
+     */
+    text?: string | undefined;
   }): Promise<void> {
     // Send direct message to user
 
@@ -287,6 +686,7 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceType: WorkspaceType.Slack,
       },
       blocks: blocks,
+      text: data.text,
     });
   }
 
@@ -1181,6 +1581,11 @@ export default class SlackUtil extends WorkspaceBase {
             value["selected_date_time"] as number,
           );
         }
+
+        // A date picker's day, as Slack gives it: "2026-10-15".
+        if (typeof value["selected_date"] === "string") {
+          values[blockId] = value["selected_date"] as string;
+        }
       }
     }
 
@@ -1229,9 +1634,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Sending message to Slack with data:", sendMsgLogAttributes);
     logger.debug(data, sendMsgLogAttributes);
 
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      data.workspaceMessagePayload,
-    );
+    /*
+     * A screenshot in the message's Markdown is shown as an image of its own,
+     * where the Markdown had it (WorkspaceInlineImages). Until it is uploaded
+     * it is its alt text, which is also what is posted when it cannot be.
+     */
+    const messageBlocks: Array<WorkspaceMessageBlock> =
+      WorkspaceInlineImages.splitMessageBlocks(
+        data.workspaceMessagePayload.messageBlocks,
+        { repeatLinkDefinitions: true },
+      );
+
+    const blocksWithoutImages: Array<JSONObject> =
+      this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: messageBlocks,
+      });
+
+    let blocks: Array<JSONObject> = blocksWithoutImages;
 
     logger.debug(
       "Blocks generated from workspace message payload:",
@@ -1294,6 +1713,26 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A channel the message is not for: the one a note it repeats was
+     * saved from (WorkspaceMessagePayload.exceptChannelIds) - named here
+     * by its name too, so it is left out once the name is resolved.
+     */
+    const exceptChannelIds: Array<string> =
+      data.workspaceMessagePayload.exceptChannelIds || [];
+
+    if (exceptChannelIds.length > 0) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
+        if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
+          workspaceChannelsToPostTo.splice(index, 1);
+        }
+      }
+    }
+
     logger.debug("Channel IDs to post to:", sendMsgLogAttributes);
     logger.debug(workspaceChannelsToPostTo, sendMsgLogAttributes);
 
@@ -1302,6 +1741,24 @@ export default class SlackUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.Slack,
       errors: [],
     };
+
+    const inlineImages: Array<WorkspacePayloadInlineImage> =
+      WorkspaceInlineImages.getInlineImages(messageBlocks);
+
+    if (inlineImages.length > 0 && workspaceChannelsToPostTo.length > 0) {
+      const uploadedImages: Map<string, string> =
+        await SlackInlineImages.uploadImages({
+          authToken: data.authToken,
+          images: inlineImages,
+        });
+
+      if (uploadedImages.size > 0) {
+        blocks = this.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: messageBlocks,
+          uploadedImages: uploadedImages,
+        });
+      }
+    }
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
@@ -1322,28 +1779,41 @@ export default class SlackUtil extends WorkspaceBase {
           }
         }
 
-        // Slack has a limit of 50 blocks per message. Split into batches if needed.
-        const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
         let lastThread: WorkspaceThread | undefined;
 
-        if (blocks.length <= maxBlocksPerMessage) {
-          lastThread = await this.sendPayloadBlocksToChannel({
+        try {
+          lastThread = await this.sendBlocksToChannel({
             authToken: data.authToken,
             workspaceChannel: channel,
             blocks: blocks,
+            text: data.workspaceMessagePayload.text,
           });
-        } else {
-          for (let i: number = 0; i < blocks.length; i += maxBlocksPerMessage) {
-            const chunk: Array<JSONObject> = blocks.slice(
-              i,
-              i + maxBlocksPerMessage,
-            );
-            lastThread = await this.sendPayloadBlocksToChannel({
-              authToken: data.authToken,
-              workspaceChannel: channel,
-              blocks: chunk,
-            });
+        } catch (error) {
+          /*
+           * Slack refuses the whole message when it cannot show one of its
+           * image blocks (invalid_blocks). A message with an uploaded image
+           * that went out in one post is posted again with each image as
+           * its alt text, so the message itself is not lost.
+           */
+          if (
+            blocks === blocksWithoutImages ||
+            blocks.length > SlackUtil.MAX_BLOCKS_PER_MESSAGE ||
+            !WorkspaceBase.getSendErrorMessage(error).includes("invalid_blocks")
+          ) {
+            throw error;
           }
+
+          logger.warn(
+            `Slack refused a message with images in channel ${channel.id}; posting it with each image as its alt text.`,
+            sendMsgLogAttributes,
+          );
+
+          lastThread = await this.sendBlocksToChannel({
+            authToken: data.authToken,
+            workspaceChannel: channel,
+            blocks: blocksWithoutImages,
+            text: data.workspaceMessagePayload.text,
+          });
         }
 
         if (lastThread) {
@@ -1373,11 +1843,51 @@ export default class SlackUtil extends WorkspaceBase {
     return workspaspaceMessageResponse;
   }
 
+  /*
+   * Posts the blocks to the channel: in one message, or in several of at
+   * most MAX_BLOCKS_PER_MESSAGE blocks each. The last one's thread.
+   */
+  private static async sendBlocksToChannel(data: {
+    authToken: string;
+    workspaceChannel: WorkspaceChannel;
+    blocks: Array<JSONObject>;
+    // What each message's notification shows (WorkspaceMessagePayload.text).
+    text?: string | undefined;
+  }): Promise<WorkspaceThread | undefined> {
+    const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
+
+    if (data.blocks.length <= maxBlocksPerMessage) {
+      return await this.sendPayloadBlocksToChannel(data);
+    }
+
+    let lastThread: WorkspaceThread | undefined;
+
+    for (
+      let index: number = 0;
+      index < data.blocks.length;
+      index += maxBlocksPerMessage
+    ) {
+      lastThread = await this.sendPayloadBlocksToChannel({
+        authToken: data.authToken,
+        workspaceChannel: data.workspaceChannel,
+        blocks: data.blocks.slice(index, index + maxBlocksPerMessage),
+        text: data.text,
+      });
+    }
+
+    return lastThread;
+  }
+
   @CaptureSpan()
   public static override async sendPayloadBlocksToChannel(data: {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    /*
+     * Plain text: what a push notification, a message preview or a screen
+     * reader shows of the blocks (Slack's top-level `text`).
+     */
+    text?: string | undefined;
   }): Promise<WorkspaceThread> {
     const payloadBlocksLogAttributes: LogAttributes = {
       channelId: data.workspaceChannel?.id,
@@ -1389,14 +1899,20 @@ export default class SlackUtil extends WorkspaceBase {
     );
     logger.debug(JSON.stringify(data, null, 2), payloadBlocksLogAttributes);
 
+    const requestData: JSONObject = {
+      channel: data.workspaceChannel.id,
+      blocks: data.blocks,
+      unfurl_links: false,
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString("https://slack.com/api/chat.postMessage"),
-        data: {
-          channel: data.workspaceChannel.id,
-          blocks: data.blocks,
-          unfurl_links: false,
-        },
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
@@ -1445,13 +1961,111 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
+  /*
+   * Edits a message the bot posted (chat.update). The blocks are built as a
+   * new message's are; the message keeps its place in the channel, and an
+   * edit notifies nobody. `text` is what a notification or a screen reader
+   * shows of it.
+   */
+  @CaptureSpan()
+  public static override async updateMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    const updateLogAttributes: LogAttributes = {
+      projectId: data.projectId?.toString(),
+      channelId: data.location.channelId,
+    };
+
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.messageBlocks,
+      },
+    );
+
+    const requestData: JSONObject = {
+      channel: data.location.channelId,
+      ts: data.messageId,
+      blocks: blocks,
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.update"),
+        data: requestData,
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error(
+        "Error response from Slack API when updating a message:",
+        updateLogAttributes,
+      );
+      logger.error(response, updateLogAttributes);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+
+      logger.error(
+        `Slack refused to update a message: ${messageFromSlack}`,
+        updateLogAttributes,
+      );
+
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+  }
+
+  /*
+   * A message's top-level `text`, from the plain text it was given: what a
+   * notification shows. Slack reads "&", "<" and ">" in it as it reads them
+   * in a message, so they are escaped (escapeSlackText): a name such as
+   * "<!channel>" in it would otherwise notify the whole channel.
+   */
+  public static getNotificationText(text: string): string {
+    return this.escapeSlackText(text);
+  }
+
+  /*
+   * Slack answers message_not_found when the message was deleted: posting a
+   * new one is the only way to show what it said.
+   */
+  public static override isMessageGoneError(error: unknown): boolean {
+    return WorkspaceBase.getSendErrorMessage(error).includes(
+      "message_not_found",
+    );
+  }
+
   @CaptureSpan()
   public static async sendMessageToThread(data: {
     authToken: string;
     channelId: string;
     threadTs: string;
     text: string;
-  }): Promise<void> {
+    /*
+     * Leave the message's links without a preview: a short answer whose
+     * link goes to OneUptime gains nothing from a card about OneUptime.
+     */
+    withoutLinkPreviews?: boolean | undefined;
+  }): Promise<string | undefined> {
     const threadLogAttributes: LogAttributes = { channelId: data.channelId };
 
     logger.debug("Sending message to thread with data:", threadLogAttributes);
@@ -1464,6 +2078,9 @@ export default class SlackUtil extends WorkspaceBase {
           channel: data.channelId,
           thread_ts: data.threadTs,
           text: data.text,
+          ...(data.withoutLinkPreviews
+            ? { unfurl_links: false, unfurl_media: false }
+            : {}),
         },
         headers: {
           Authorization: `Bearer ${data.authToken}`,
@@ -1497,6 +2114,141 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Thread message sent successfully.", threadLogAttributes);
+
+    // The message's own ts: what removes or edits it.
+    const ts: unknown = (response.jsonData as JSONObject)?.["ts"];
+
+    return typeof ts === "string" && ts ? ts : undefined;
+  }
+
+  /*
+   * Removes a message the app posted (chat.delete, which chat:write
+   * allows): the "Looking into it…" that stood in for an answer, once the
+   * answer is posted. Never throws: the answer is there either way.
+   */
+  @CaptureSpan()
+  public static async deleteMessageBestEffort(data: {
+    authToken: string;
+    channelId: string;
+    ts: string;
+  }): Promise<boolean> {
+    try {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString("https://slack.com/api/chat.delete"),
+          data: {
+            channel: data.channelId,
+            ts: data.ts,
+          },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/json",
+          },
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        (response.jsonData as JSONObject)?.["ok"] !== true
+      ) {
+        logger.debug("Slack did not remove a message of the app's.", {
+          channelId: data.channelId,
+        });
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      logger.debug("Could not remove a message of the app's.", {
+        channelId: data.channelId,
+      });
+      logger.debug(err);
+      return false;
+    }
+  }
+
+  /*
+   * A message as Slack hands it over - its text, blocks, files, author and
+   * ts - found by its ts in its channel, or in a thread of it
+   * (getMessageDetailsByTimestamp). Null when Slack has no such message.
+   */
+  @CaptureSpan()
+  public static async getMessage(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<JSONObject | null> {
+    return (
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.history",
+      })) ||
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.replies",
+      }))
+    );
+  }
+
+  /*
+   * The name Slack shows for a person - their display name, else their full
+   * name, else their handle - and whether they are a bot. Null when Slack
+   * does not say (an unknown user, a user of another workspace in a shared
+   * channel, a refusal).
+   */
+  @CaptureSpan()
+  public static async getUserDisplayName(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<{ name: string; isBot: boolean } | null> {
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/users.info"),
+        data: {
+          user: data.userId,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 1,
+        },
+      });
+
+    if (
+      response instanceof HTTPErrorResponse ||
+      (response.jsonData as JSONObject)?.["ok"] !== true
+    ) {
+      logger.debug("Slack did not say who a user is.");
+      return null;
+    }
+
+    const user: JSONObject | undefined = (response.jsonData as JSONObject)[
+      "user"
+    ] as JSONObject | undefined;
+    const profile: JSONObject | undefined = user?.["profile"] as
+      | JSONObject
+      | undefined;
+
+    const name: string =
+      [
+        profile?.["display_name"],
+        profile?.["real_name"],
+        user?.["real_name"],
+        user?.["name"],
+      ]
+        .map((value: unknown): string => {
+          return typeof value === "string" ? value.trim() : "";
+        })
+        .find((value: string): boolean => {
+          return value.length > 0;
+        }) || "";
+
+    if (!name) {
+      return null;
+    }
+
+    return { name: name, isBot: user?.["is_bot"] === true };
   }
 
   @CaptureSpan()
@@ -1727,18 +2479,66 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting buttons block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    const elements: Array<JSONObject> = data.payloadButtonsBlock.buttons.map(
+      (button: WorkspaceMessagePayloadButton) => {
+        return this.getButtonBlock({ payloadButtonBlock: button });
+      },
+    );
+
+    // The actions fewer people need: an overflow menu (⋯) after the buttons.
+    if (
+      data.payloadButtonsBlock.menuButtons &&
+      data.payloadButtonsBlock.menuButtons.length > 0
+    ) {
+      elements.push(
+        SlackOverflowMenu.getElement(data.payloadButtonsBlock.menuButtons),
+      );
+    }
+
     const buttonsBlock: JSONObject = {
       type: "actions",
-      elements: data.payloadButtonsBlock.buttons.map(
-        (button: WorkspaceMessagePayloadButton) => {
-          return this.getButtonBlock({ payloadButtonBlock: button });
-        },
-      ),
+      elements: elements,
     };
 
     logger.debug("Buttons block generated:", {} as LogAttributes);
     logger.debug(buttonsBlock, {} as LogAttributes);
     return buttonsBlock;
+  }
+
+  /*
+   * Whether conversations.create refused a channel's name because a channel
+   * has it already: one in use, or an archived one - Slack keeps an archived
+   * channel's name. The channel can then be created under another name.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    return (
+      WorkspaceBase.getSendErrorMessage(error) ===
+      `Error from Slack ${SLACK_CHANNEL_NAME_TAKEN_ERROR}`
+    );
+  }
+
+  /*
+   * The name Slack creates a channel by: Slack only allows lowercase
+   * letters, numbers, hyphens, and underscores, so the name is lower-cased
+   * and all other characters (including #) are removed. "#Incidents -INC-9"
+   * is created as "incidents-inc-9".
+   */
+  public static getChannelNameToCreate(channelName: string): string {
+    return channelName.toLowerCase().replace(/[^a-z0-9\-_]/g, "");
+  }
+
+  /*
+   * Names Slack creates by the same name are one channel: asked to create
+   * it a second time, Slack answers name_taken.
+   */
+  public static override isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return (
+      this.getChannelNameToCreate(channel.channelName) ===
+      this.getChannelNameToCreate(otherChannel.channelName)
+    );
   }
 
   @CaptureSpan()
@@ -1749,12 +2549,11 @@ export default class SlackUtil extends WorkspaceBase {
     isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     /*
-     * Sanitize channel name: Slack only allows lowercase letters, numbers,
-     * hyphens, and underscores. Remove all other characters (including #).
+     * As Slack creates it (getChannelNameToCreate). A rule's channel arrives
+     * named so already (WorkspaceChannelName), and no longer than Slack's
+     * 80 characters.
      */
-    data.channelName = data.channelName
-      .toLowerCase()
-      .replace(/[^a-z0-9\-_]/g, "");
+    data.channelName = this.getChannelNameToCreate(data.channelName);
 
     const createChannelLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),
@@ -1870,11 +2669,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting header block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    /*
+     * Slack refuses a whole message whose header is over 150 characters:
+     * a longer one is cut, between whole characters, and ends with "…".
+     */
+    const headerText: string =
+      data.payloadHeaderBlock.text.length > SlackUtil.HEADER_TEXT_MAX_LENGTH
+        ? cutToLength(
+            data.payloadHeaderBlock.text,
+            SlackUtil.HEADER_TEXT_MAX_LENGTH - 1,
+          ) + "…"
+        : data.payloadHeaderBlock.text;
+
     const headerBlock: JSONObject = {
       type: "header",
       text: {
         type: "plain_text",
-        text: data.payloadHeaderBlock.text,
+        text: headerText,
       },
     };
 
@@ -1946,12 +2757,29 @@ export default class SlackUtil extends WorkspaceBase {
     );
     logger.debug(data, {} as LogAttributes);
 
+    /*
+     * The moment it opens on: a Date, or the ISO time initialValue gives.
+     * Slack's date and time picker takes it as the seconds since 1970 - it
+     * has no initial_date, which only its date picker takes.
+     */
+    const initialDateTime: Date | undefined =
+      data.payloadDateTimePickerBlock.initialDateTime ||
+      (data.payloadDateTimePickerBlock.initialValue
+        ? new Date(data.payloadDateTimePickerBlock.initialValue)
+        : undefined);
+
     const dateTimePickerBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadDateTimePickerBlock.blockId,
+      optional: data.payloadDateTimePickerBlock.optional || false,
       element: {
         type: "datetimepicker",
         action_id: data.payloadDateTimePickerBlock.blockId,
-        initial_date: data.payloadDateTimePickerBlock.initialValue,
+        initial_date_time:
+          initialDateTime && !isNaN(initialDateTime.getTime())
+            ? Math.floor(initialDateTime.getTime() / 1000)
+            : undefined,
       },
       label: {
         type: "plain_text",
@@ -1959,9 +2787,112 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
+    if (data.payloadDateTimePickerBlock.description) {
+      dateTimePickerBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadDateTimePickerBlock.description,
+      };
+    }
+
     logger.debug("Date time picker block generated:", {} as LogAttributes);
     logger.debug(dateTimePickerBlock, {} as LogAttributes);
     return dateTimePickerBlock;
+  }
+
+  /*
+   * A calendar day (WorkspaceDatePickerBlock): Slack's date picker, which
+   * gives the day back as "2026-10-15" (getValuesFromView).
+   */
+  @CaptureSpan()
+  public static override getDatePickerBlock(data: {
+    payloadDatePickerBlock: WorkspaceDatePickerBlock;
+  }): JSONObject {
+    const block: WorkspaceDatePickerBlock = data.payloadDatePickerBlock;
+
+    const element: JSONObject = {
+      type: "datepicker",
+      action_id: block.blockId,
+    };
+
+    if (block.initialDate) {
+      element["initial_date"] = block.initialDate;
+    }
+
+    if (block.placeholder) {
+      element["placeholder"] = {
+        type: "plain_text",
+        text: block.placeholder,
+      };
+    }
+
+    const datePickerBlock: JSONObject = {
+      type: "input",
+      block_id: block.blockId,
+      optional: block.optional || false,
+      element: element,
+      label: {
+        type: "plain_text",
+        text: block.label,
+      },
+    };
+
+    if (block.description) {
+      datePickerBlock["hint"] = {
+        type: "plain_text",
+        text: block.description,
+      };
+    }
+
+    return datePickerBlock;
+  }
+
+  /*
+   * A number (WorkspaceNumberInputBlock): Slack's number input, which takes
+   * nothing but a number - a decimal point included - and gives back what
+   * was typed, as text.
+   */
+  @CaptureSpan()
+  public static override getNumberInputBlock(data: {
+    payloadNumberInputBlock: WorkspaceNumberInputBlock;
+  }): JSONObject {
+    const block: WorkspaceNumberInputBlock = data.payloadNumberInputBlock;
+
+    const element: JSONObject = {
+      type: "number_input",
+      is_decimal_allowed: true,
+      action_id: block.blockId,
+    };
+
+    if (block.initialValue) {
+      element["initial_value"] = block.initialValue;
+    }
+
+    if (block.placeholder) {
+      element["placeholder"] = {
+        type: "plain_text",
+        text: block.placeholder,
+      };
+    }
+
+    const numberInputBlock: JSONObject = {
+      type: "input",
+      block_id: block.blockId,
+      optional: block.optional || false,
+      element: element,
+      label: {
+        type: "plain_text",
+        text: block.label,
+      },
+    };
+
+    if (block.description) {
+      numberInputBlock["hint"] = {
+        type: "plain_text",
+        text: block.description,
+      };
+    }
+
+    return numberInputBlock;
   }
 
   @CaptureSpan()
@@ -1975,6 +2906,8 @@ export default class SlackUtil extends WorkspaceBase {
 
     const textAreaBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadTextAreaBlock.blockId,
       optional: optional,
       element: {
         type: "plain_text_input",
@@ -2017,6 +2950,8 @@ export default class SlackUtil extends WorkspaceBase {
 
     const textBoxBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadTextBoxBlock.blockId,
       optional: optional,
       element: {
         type: "plain_text_input",
@@ -2077,37 +3012,113 @@ export default class SlackUtil extends WorkspaceBase {
     const isMiltiSelect: boolean =
       data.payloadDropdownBlock.multiSelect || false;
 
-    const dropdownBlock: JSONObject = {
-      type: "input",
-      optional: optional,
-      element: {
-        type: isMiltiSelect ? "multi_static_select" : "static_select",
-        action_id: data.payloadDropdownBlock.blockId,
-        placeholder: {
+    const toOption: (option: DropdownOption) => JSONObject = (
+      option: DropdownOption,
+    ): JSONObject => {
+      return {
+        text: {
           type: "plain_text",
-          text: data.payloadDropdownBlock.placeholder,
+          text: option.label,
         },
-        options: data.payloadDropdownBlock.options.map(
-          (option: DropdownOption) => {
-            return {
-              text: {
-                type: "plain_text",
-                text: option.label,
-              },
-              value: option.value,
-            };
+        value: option.value,
+      };
+    };
+
+    const optionGroups: Array<WorkspaceDropdownOptionGroup> = (
+      data.payloadDropdownBlock.optionGroups || []
+    ).filter((group: WorkspaceDropdownOptionGroup): boolean => {
+      return group.options.length > 0;
+    });
+
+    /*
+     * A single select's pick as it opens. Slack takes it only as one of the
+     * options, text and all - an option with another text than its value
+     * (a severity's name and its id) is found by its value. A value no
+     * option has is left out: the select opens with nothing picked.
+     */
+    const initialOption: DropdownOption | undefined = data.payloadDropdownBlock
+      .initialValue
+      ? [
+          ...data.payloadDropdownBlock.options,
+          ...optionGroups.flatMap(
+            (group: WorkspaceDropdownOptionGroup): Array<DropdownOption> => {
+              return group.options;
+            },
+          ),
+        ].find((option: DropdownOption): boolean => {
+          return (
+            option.value.toString() === data.payloadDropdownBlock.initialValue
+          );
+        })
+      : undefined;
+
+    const element: JSONObject = {
+      type: isMiltiSelect ? "multi_static_select" : "static_select",
+      action_id: data.payloadDropdownBlock.blockId,
+      placeholder: {
+        type: "plain_text",
+        text: data.payloadDropdownBlock.placeholder,
+      },
+      initial_option:
+        !isMiltiSelect && initialOption ? toOption(initialOption) : undefined,
+    };
+
+    // Slack takes options, or groups of them: never both.
+    if (optionGroups.length > 0) {
+      element["option_groups"] = optionGroups.map(
+        (group: WorkspaceDropdownOptionGroup): JSONObject => {
+          return {
+            label: {
+              type: "plain_text",
+              text: group.label,
+            },
+            options: group.options.map(toOption),
+          };
+        },
+      );
+    } else {
+      element["options"] = data.payloadDropdownBlock.options.map(toOption);
+    }
+
+    /*
+     * A multi-select's picks as it opens: each the option itself, as Slack
+     * requires - an option no list holds is left out.
+     */
+    if (isMiltiSelect && data.payloadDropdownBlock.initialValues?.length) {
+      const allOptions: Array<DropdownOption> = [
+        ...data.payloadDropdownBlock.options,
+        ...optionGroups.flatMap(
+          (group: WorkspaceDropdownOptionGroup): Array<DropdownOption> => {
+            return group.options;
           },
         ),
-        initial_option: data.payloadDropdownBlock.initialValue
-          ? {
-              text: {
-                type: "plain_text",
-                text: data.payloadDropdownBlock.initialValue,
-              },
-              value: data.payloadDropdownBlock.initialValue,
-            }
-          : undefined,
-      },
+      ];
+
+      const initialOptions: Array<JSONObject> = [];
+
+      for (const value of data.payloadDropdownBlock.initialValues) {
+        const option: DropdownOption | undefined = allOptions.find(
+          (candidate: DropdownOption): boolean => {
+            return candidate.value === value;
+          },
+        );
+
+        if (option) {
+          initialOptions.push(toOption(option));
+        }
+      }
+
+      if (initialOptions.length > 0) {
+        element["initial_options"] = initialOptions;
+      }
+    }
+
+    const dropdownBlock: JSONObject = {
+      type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadDropdownBlock.blockId,
+      optional: optional,
+      element: element,
 
       label: {
         type: "plain_text",
@@ -2172,9 +3183,39 @@ export default class SlackUtil extends WorkspaceBase {
      * a modal view passes its own.
      */
     maxBlocks?: number | undefined;
+    /*
+     * The Slack files the message's inline images were uploaded as, by the
+     * image's base64 (SlackInlineImages.uploadImages). An inline image with
+     * none is shown as its alt text, or not at all when the text before it
+     * has that already.
+     */
+    uploadedImages?: Map<string, string> | undefined;
   }): Array<JSONObject> {
     const maxBlocks: number =
       data.maxBlocks ?? SlackUtil.MAX_BLOCKS_PER_MESSAGE;
+
+    const messageBlocks: Array<WorkspaceMessageBlock> = [];
+
+    for (const messageBlock of data.messageBlocks) {
+      if (messageBlock._type !== "WorkspacePayloadInlineImage") {
+        messageBlocks.push(messageBlock);
+        continue;
+      }
+
+      const inlineImage: WorkspacePayloadInlineImage =
+        messageBlock as WorkspacePayloadInlineImage;
+
+      if (data.uploadedImages?.has(inlineImage.image.base64)) {
+        messageBlocks.push(inlineImage);
+      } else if (inlineImage.fallbackMarkdown) {
+        const fallback: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: inlineImage.fallbackMarkdown,
+        };
+
+        messageBlocks.push(fallback);
+      }
+    }
 
     /*
      * A markdown payload is the one block whose size we do not control: it
@@ -2195,10 +3236,24 @@ export default class SlackUtil extends WorkspaceBase {
     const renderedBlocks: Array<Array<JSONObject> | null> = [];
     let blockCountBeforeSplitting: number = 0;
 
-    for (const messageBlock of data.messageBlocks) {
+    for (const messageBlock of messageBlocks) {
       if (messageBlock._type === "WorkspacePayloadMarkdown") {
         // Rendered in the second pass, once the budget is known.
         renderedBlocks.push(null);
+        blockCountBeforeSplitting += 1;
+        continue;
+      }
+
+      if (messageBlock._type === "WorkspacePayloadInlineImage") {
+        const inlineImage: WorkspacePayloadInlineImage =
+          messageBlock as WorkspacePayloadInlineImage;
+
+        renderedBlocks.push([
+          SlackInlineImages.getImageBlock({
+            fileId: data.uploadedImages!.get(inlineImage.image.base64)!,
+            altText: inlineImage.altText,
+          }),
+        ]);
         blockCountBeforeSplitting += 1;
         continue;
       }
@@ -2219,7 +3274,14 @@ export default class SlackUtil extends WorkspaceBase {
 
     const blocks: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < data.messageBlocks.length; index++) {
+    /*
+     * The pieces of a markdown block split around its images share the
+     * sections that block may take: each piece still gets one.
+     */
+    const sectionsLeftBySplitBlock: Map<WorkspaceMessageBlock, number> =
+      new Map<WorkspaceMessageBlock, number>();
+
+    for (let index: number = 0; index < messageBlocks.length; index++) {
       // Empty, not null, for a block of an unknown type — it stays dropped.
       const rendered: Array<JSONObject> | null = renderedBlocks[index] ?? null;
 
@@ -2228,14 +3290,24 @@ export default class SlackUtil extends WorkspaceBase {
         continue;
       }
 
+      const splitFrom: WorkspaceMessageBlock | undefined =
+        WorkspaceInlineImages.getSplitFrom(messageBlocks[index]!);
+      const sectionsLeft: number = splitFrom
+        ? sectionsLeftBySplitBlock.get(splitFrom) ??
+          SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK
+        : SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK;
+
       const sections: Array<JSONObject> = this.getMarkdownBlocks({
-        payloadMarkdownBlock: data.messageBlocks[
-          index
-        ] as WorkspacePayloadMarkdown,
-        maxSections:
-          1 +
-          Math.min(spareBlocks, SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK - 1),
+        payloadMarkdownBlock: messageBlocks[index] as WorkspacePayloadMarkdown,
+        maxSections: 1 + Math.min(spareBlocks, Math.max(0, sectionsLeft - 1)),
       });
+
+      if (splitFrom) {
+        sectionsLeftBySplitBlock.set(
+          splitFrom,
+          Math.max(0, sectionsLeft - sections.length),
+        );
+      }
 
       spareBlocks -= sections.length - 1;
       blocks.push(...sections);
@@ -2269,6 +3341,33 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
+   * Small, muted text under a message: a context block, whose one element
+   * is the Markdown as a section would say it (getMarkdownBlock), within
+   * the same 3000 characters.
+   */
+  @CaptureSpan()
+  public static override getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    const section: JSONObject = this.getMarkdownBlock({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: data.payloadContextBlock.text,
+      },
+    });
+
+    return {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: ((section["text"] as JSONObject)["text"] as string) || " ",
+        },
+      ],
+    };
+  }
+
+  /*
    * A markdown payload as consecutive section blocks, each within Slack's
    * 3000-character limit. Text that fits is one section, byte for byte what
    * a markdown payload has always rendered to (empty text included).
@@ -2279,13 +3378,41 @@ export default class SlackUtil extends WorkspaceBase {
     // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK.
     maxSections?: number | undefined;
   }): Array<JSONObject> {
-    const text: string = data.payloadMarkdownBlock.text
-      ? SlackifyMarkdown(data.payloadMarkdownBlock.text)
+    /*
+     * Slack shows no image whose address is a data: URL - a screenshot in a
+     * description - and would get its base64 as a link: each becomes its
+     * alt text here. sendMessage shows them as images of their own before
+     * a markdown block gets here (WorkspaceInlineImages).
+     */
+    const markdown: CutMarkdown = this.cutMarkdown(
+      data.payloadMarkdownBlock.text
+        ? ChatInlineImages.toText(data.payloadMarkdownBlock.text)
+        : "",
+      // One section more than this payload may take.
+      (Math.min(
+        Math.max(
+          1,
+          data.maxSections ?? SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK,
+        ),
+        SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK,
+      ) +
+        1) *
+        SlackUtil.SECTION_TEXT_MAX_LENGTH,
+    );
+
+    /*
+     * A moment the Markdown names in each reader's own time - written as
+     * Microsoft Teams reads it - becomes a Slack date here, once the
+     * conversion can no longer escape its "<" (WorkspaceMessageTime).
+     */
+    const text: string = markdown.text
+      ? WorkspaceMessageTime.toSlack(this.slackify(markdown.text))
       : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
       text: text,
       maxSections: data.maxSections,
+      isCutShort: markdown.isCutShort,
     });
 
     if (sectionTexts.length > 1) {
@@ -2330,10 +3457,15 @@ export default class SlackUtil extends WorkspaceBase {
     text: string;
     // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK; never less than one.
     maxSections?: number | undefined;
+    /*
+     * The text was cut short before it got here (cutMarkdown): its last
+     * section ends with TRUNCATED_SECTION_NOTE even when the rest fits.
+     */
+    isCutShort?: boolean | undefined;
   }): Array<string> {
     const maxLength: number = SlackUtil.SECTION_TEXT_MAX_LENGTH;
 
-    if (data.text.length <= maxLength) {
+    if (data.text.length <= maxLength && !data.isCutShort) {
       return [data.text];
     }
 
@@ -2363,7 +3495,8 @@ export default class SlackUtil extends WorkspaceBase {
       return [""];
     }
 
-    const isTruncated: boolean = pieces.length > maxSections;
+    const isTruncated: boolean =
+      pieces.length > maxSections || data.isCutShort === true;
 
     if (isTruncated) {
       pieces = pieces.slice(0, maxSections);
@@ -2453,11 +3586,36 @@ export default class SlackUtil extends WorkspaceBase {
 
     return pieces
       .map((piece: string): string => {
-        return piece.replace(/^[\r\n]+|[\r\n]+$/g, "");
+        return this.trimLineBreaks(piece);
       })
       .filter((piece: string): boolean => {
         return piece.trim().length > 0;
       });
+  }
+
+  /*
+   * The text without the line breaks it starts and ends with. A loop from
+   * each end, not /^[\r\n]+|[\r\n]+$/g: that pattern is tried again from
+   * every line break of a run that does not reach the end, so its time grew
+   * with the square of the run.
+   */
+  public static trimLineBreaks(text: string): string {
+    let start: number = 0;
+    let end: number = text.length;
+
+    while (start < end && SlackUtil.isLineBreak(text.charAt(start))) {
+      start++;
+    }
+
+    while (end > start && SlackUtil.isLineBreak(text.charAt(end - 1))) {
+      end--;
+    }
+
+    return text.substring(start, end);
+  }
+
+  private static isLineBreak(character: string): boolean {
+    return character === "\n" || character === "\r";
   }
 
   /*
@@ -2569,66 +3727,6 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static override async isUserInDirectMessageChannel(data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    // check of the user id is in the direct message channel id
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post({
-        url: URL.fromString("https://slack.com/api/conversations.info"),
-        data: {
-          channel: data.directMessageChannelId,
-        },
-        headers: {
-          Authorization: `Bearer ${data.authToken}`,
-          ["Content-Type"]: "application/x-www-form-urlencoded",
-        },
-        options: {
-          retries: 3,
-          exponentialBackoff: true,
-        },
-      });
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      throw response;
-    }
-
-    // check for ok response
-
-    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response.jsonData, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
-    }
-
-    // check if the user is in the channel
-    const user: JSONObject = (
-      (response.jsonData as JSONObject)["channel"] as JSONObject
-    )["user"] as JSONObject;
-
-    if (user?.["user_id"]?.toString() === data.userId.toString()) {
-      return true;
-    }
-
-    return false;
-  }
-
-  @CaptureSpan()
   public static override async isUserInChannel(data: {
     authToken: string;
     channelId: string;
@@ -2736,12 +3834,20 @@ export default class SlackUtil extends WorkspaceBase {
         text: data.payloadButtonBlock.title,
         emoji: true,
       },
-      value: data.payloadButtonBlock.value,
+      /*
+       * Slack refuses a button whose value is empty: a button that carries
+       * nothing - the Home's Declare incident - is sent without one.
+       */
+      value: data.payloadButtonBlock.value || undefined,
       action_id: data.payloadButtonBlock.actionId,
       url: data.payloadButtonBlock.url
         ? data.payloadButtonBlock.url.toString()
         : undefined,
     };
+
+    if (data.payloadButtonBlock.isPrimary) {
+      buttonBlock["style"] = "primary";
+    }
 
     logger.debug("Button block generated:", {} as LogAttributes);
     logger.debug(buttonBlock, {} as LogAttributes);
@@ -2770,19 +3876,27 @@ export default class SlackUtil extends WorkspaceBase {
       );
     }
 
+    /*
+     * Slack refuses a whole message with a section over 3000 characters,
+     * so a longer text goes as several sections (splitSectionText) - and,
+     * like any markdown payload, ends with a note when it does not fit in
+     * them. A text that fits is the one section it always was.
+     */
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
       await API.post({
         url: data.url,
         data: {
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `${data.text}`,
-              },
+          blocks: this.splitSectionText({ text: `${data.text}` }).map(
+            (sectionText: string): JSONObject => {
+              return {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: sectionText,
+                },
+              };
             },
-          ],
+          ),
         },
         options: {
           retries: 3,
@@ -2803,28 +3917,190 @@ export default class SlackUtil extends WorkspaceBase {
     return apiResult;
   }
 
+  /*
+   * Markdown as Slack's mrkdwn (slackify-markdown), in time linear in its
+   * length: the blocks slackify would take too long to read, and the
+   * content of fenced code, are held back first (SLOW_MARKDOWN_LIMITS) and
+   * written back where slackify put them - escaped as Slack reads text
+   * ("&", "<" and ">"), a line on each line.
+   *
+   * And whatever the text, it converts: slackify reads every link's address
+   * with decodeURIComponent and encodeURI, which throw on a "%" that starts
+   * no escape and on half an emoji ("URI malformed") - a response body with
+   * "100%" in an address was enough, and the message was never sent. Such a
+   * "%" goes through slackify as a stand-in character and comes back as it
+   * was ("%25" where slackify encoded the address), half an emoji goes
+   * through as U+FFFD, and should slackify still fail, the message is sent
+   * as its text (getSlackifySafeMarkdown).
+   *
+   * A hard break is a line break (withoutHardBreakSpaces).
+   */
+  public static slackify(givenMarkdown: string): string {
+    if (!givenMarkdown) {
+      return "";
+    }
+
+    const markdown: string = SlackUtil.withoutHardBreakSpaces(givenMarkdown);
+    const held: Array<string> = [];
+
+    // Read with indexOf: the text can be long.
+    const putBack: (value: string, escape: boolean) => string = (
+      value: string,
+      escape: boolean,
+    ): string => {
+      let restored: string = "";
+      let restoredUpTo: number = 0;
+
+      for (
+        let open: number = value.indexOf("\uE005");
+        open !== -1;
+        open = value.indexOf("\uE005", restoredUpTo)
+      ) {
+        const close: number = value.indexOf("\uE006", open + 1);
+
+        if (close === -1) {
+          break;
+        }
+
+        const heldText: string =
+          held[Number(value.slice(open + 1, close))] ?? "";
+
+        restored +=
+          value.slice(restoredUpTo, open) +
+          (escape ? SlackUtil.escapeSlackText(heldText) : heldText);
+        restoredUpTo = close + 1;
+      }
+
+      return restored + value.slice(restoredUpTo);
+    };
+
+    const hold: (text: string) => string = (text: string): string => {
+      held.push(putBack(text, false));
+
+      return `\uE005${held.length - 1}\uE006`;
+    };
+
+    /*
+     * Token characters already in the Markdown - and the stand-in for a
+     * "%" - are held back as they are.
+     */
+    let withoutTokens: string = markdown;
+
+    if (
+      markdown.indexOf("\uE005") !== -1 ||
+      markdown.indexOf("\uE006") !== -1 ||
+      markdown.indexOf(SLACKIFY_PERCENT_STAND_IN) !== -1
+    ) {
+      withoutTokens = "";
+      let copiedUpTo: number = 0;
+
+      for (let index: number = 0; index < markdown.length; index++) {
+        const code: number = markdown.charCodeAt(index);
+
+        if (code === 0xe005 || code === 0xe006 || code === 0xe007) {
+          withoutTokens +=
+            markdown.slice(copiedUpTo, index) + hold(markdown.charAt(index));
+          copiedUpTo = index + 1;
+        }
+      }
+
+      withoutTokens += markdown.slice(copiedUpTo);
+    }
+
+    let markdownToRead: string = holdBackSlowMarkdown(
+      withoutTokens,
+      { holdLines: hold, holdCode: hold },
+      SlackUtil.SLOW_MARKDOWN_LIMITS,
+    );
+
+    if (held.length === 0) {
+      // Nothing was held back: slackify reads the Markdown as it is.
+      markdownToRead = markdown;
+    }
+
+    const safe: SlackifySafeMarkdown = getSlackifySafeMarkdown(markdownToRead);
+    let text: string;
+
+    try {
+      text = SlackifyMarkdown(safe.markdown);
+    } catch (error) {
+      logger.warn(
+        `Slack could not convert a message's Markdown (${markdown.length} characters), and it is sent as text: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      return SlackUtil.escapeSlackText(markdown);
+    }
+
+    text = safe.restore(text);
+
+    return held.length > 0 ? putBack(text, true) : text;
+  }
+
+  /*
+   * Markdown whose hard breaks - two spaces at the end of a line, how a
+   * note keeps the lines of an email reply, a form answer or a chat message
+   * (FormSubmissionNote, ChatMessageMarkdown) - are plain line breaks.
+   * slackify writes a hard break the way Markdown does, a backslash before
+   * the line break, and Slack showed that backslash at the end of each
+   * line. Slack breaks the line at every line break, so the spaces come off
+   * and the line break left does the same. One pass over the lines.
+   */
+  public static withoutHardBreakSpaces(markdown: string): string {
+    if (markdown.indexOf("  \n") === -1) {
+      return markdown;
+    }
+
+    const lines: Array<string> = markdown.split("\n");
+
+    return lines
+      .map((line: string, index: number): string => {
+        return index < lines.length - 1 && line.endsWith("  ")
+          ? line.trimEnd()
+          : line;
+      })
+      .join("\n");
+  }
+
+  // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.
+  public static escapeSlackText(text: string): string {
+    return text
+      .split("&")
+      .join("&amp;")
+      .split("<")
+      .join("&lt;")
+      .split(">")
+      .join("&gt;");
+  }
+
   /**
    * Converts markdown tables to a Slack-friendly format.
    * Since Slack's mrkdwn doesn't support tables, we convert them to
-   * a row-by-row format with bold headers.
+   * a row-by-row format with bold headers. Tables are found in one pass over
+   * the lines (Utils/Markdown/PipeTables).
    */
   private static convertMarkdownTablesToSlackFormat(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split("|")
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
 
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
+      /*
+       * Skip separator line (line with dashes)
+       * Find data rows (skip header and separator)
+       */
+      const dataRows: Array<string> = lines.slice(2);
+      const formattedRows: Array<string> = [];
 
-        if (lines.length < 2) {
-          return table;
-        }
-
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+      for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
+        const row: string = dataRows[rowIndex] || "";
+        const cells: Array<string> = row
           .split("|")
           .map((cell: string) => {
             return cell.trim();
@@ -2833,58 +4109,66 @@ export default class SlackUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        /*
-         * Skip separator line (line with dashes)
-         * Find data rows (skip header and separator)
-         */
-        const dataRows: Array<string> = lines.slice(2);
-        const formattedRows: Array<string> = [];
-
-        for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
-          const row: string = dataRows[rowIndex] || "";
-          const cells: Array<string> = row
-            .split("|")
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
-
-          if (cells.length === 0) {
-            continue;
-          }
-
-          const rowParts: Array<string> = [];
-          for (
-            let cellIndex: number = 0;
-            cellIndex < cells.length;
-            cellIndex++
-          ) {
-            const header: string =
-              headers[cellIndex] || `Column ${cellIndex + 1}`;
-            const value: string = cells[cellIndex] || "";
-            rowParts.push(`*${header}:* ${value}`);
-          }
-
-          if (dataRows.length > 1) {
-            formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
-          } else {
-            formattedRows.push(rowParts.join("\n"));
-          }
+        if (cells.length === 0) {
+          continue;
         }
 
-        return "\n" + formattedRows.join("\n\n") + "\n";
-      },
-    );
+        const rowParts: Array<string> = [];
+        for (let cellIndex: number = 0; cellIndex < cells.length; cellIndex++) {
+          const header: string =
+            headers[cellIndex] || `Column ${cellIndex + 1}`;
+          const value: string = cells[cellIndex] || "";
+          rowParts.push(`*${header}:* ${value}`);
+        }
+
+        if (dataRows.length > 1) {
+          formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
+        } else {
+          formattedRows.push(rowParts.join("\n"));
+        }
+      }
+
+      return formattedRows.join("\n\n");
+    });
   }
 
   @CaptureSpan()
   public static convertMarkdownToSlackRichText(markdown: string): string {
+    /*
+     * An incoming webhook cannot upload a file, so an image whose address
+     * is a data: URL - a screenshot in a description - is its alt text.
+     */
+    const markdownWithoutInlineImages: CutMarkdown = this.cutMarkdown(
+      ChatInlineImages.toText(markdown),
+    );
+
     // First convert tables to Slack-friendly format
     const markdownWithConvertedTables: string =
-      this.convertMarkdownTablesToSlackFormat(markdown);
-    return SlackifyMarkdown(markdownWithConvertedTables);
+      this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages.text);
+    const text: string = this.slackify(markdownWithConvertedTables);
+
+    return markdownWithoutInlineImages.isCutShort
+      ? text.trimEnd() + SlackUtil.TRUNCATED_SECTION_NOTE
+      : text;
+  }
+
+  /*
+   * `markdown`, cut to `maxLength` characters (MARKDOWN_MAX_LENGTH unless
+   * said) when it is longer - at a line break where there is one near the
+   * end (cutToLength). Shorter Markdown is returned as it is.
+   */
+  public static cutMarkdown(
+    markdown: string,
+    maxLength: number = SlackUtil.MARKDOWN_MAX_LENGTH,
+  ): CutMarkdown {
+    if (markdown.length <= maxLength) {
+      return { text: markdown, isCutShort: false };
+    }
+
+    return {
+      text: cutToLength(markdown, maxLength),
+      isCutShort: true,
+    };
   }
 
   @CaptureSpan()

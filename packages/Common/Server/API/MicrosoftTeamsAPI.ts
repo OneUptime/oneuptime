@@ -4,7 +4,6 @@ import Express, {
   ExpressRouter,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BadRequestException from "../../Types/Exception/BadRequestException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -12,7 +11,6 @@ import Exception from "../../Types/Exception/Exception";
 import {
   AppApiClientUrl,
   AppVersion,
-  DashboardClientUrl,
   HomeClientUrl,
   Host,
   MicrosoftTeamsAppClientId,
@@ -32,12 +30,15 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsUtil, {
+  MicrosoftTeamsChatNameRefreshResult,
+} from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
 import path from "path";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
@@ -47,6 +48,27 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
+import ConnectCallback, {
+  ConnectCallbackFinish,
+  ConnectCallbackRefusal,
+} from "./ConnectCallback";
+import ConnectCallbackUtil, {
+  CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
+  CONNECT_REQUEST_QUERY_PARAM,
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectCallbackError,
+  ConnectProvider,
+  ConnectRequestOutcome,
+} from "../../Types/Workspace/ConnectCallback";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+} from "../Utils/Workspace/WorkspaceConnectRequest";
+import WorkspaceConnectCompletion, {
+  WorkspaceConnectCompletionResult,
+} from "../Utils/Workspace/WorkspaceConnectCompletion";
+import MicrosoftTeamsActionAnswer from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsCommands from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -60,6 +82,115 @@ const ENTRA_TENANT_ID_PATTERN: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default class MicrosoftTeamsAPI {
+  /*
+   * What someone who may not connect the project to Microsoft Teams is told,
+   * when admin consent starts and again when Microsoft sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Microsoft Teams.";
+
+  /*
+   * What the sign-in a Connect button in Microsoft Teams starts is refused
+   * with when the press behind it is gone - spent by an earlier sign-in, or
+   * past its thirty minutes - or is not this project's.
+   */
+  public static readonly CONNECT_REQUEST_GONE_MESSAGE: string =
+    "This Connect button has expired or was already used. Press the button in Microsoft Teams again.";
+
+  /*
+   * The press a sign-in's `?connect=` stands for, as the state's payload -
+   * nothing when there is no `?connect=`. Refused when the press is gone
+   * or is another project's.
+   */
+  private static async getConnectRequestPayload(data: {
+    value: unknown;
+    projectId: ObjectID;
+  }): Promise<JSONObject | undefined> {
+    if (data.value === undefined) {
+      return undefined;
+    }
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await MicrosoftTeamsAPI.peekConnectRequest({
+        token: data.value,
+        projectId: data.projectId,
+      });
+
+    if (!request) {
+      throw new BadDataException(
+        MicrosoftTeamsAPI.CONNECT_REQUEST_GONE_MESSAGE,
+      );
+    }
+
+    return { connectToken: data.value as string };
+  }
+
+  // A Microsoft Teams press behind `token` in `projectId`, left in place.
+  private static async peekConnectRequest(data: {
+    token: unknown;
+    projectId: ObjectID;
+  }): Promise<WorkspaceConnectRequestRecord | null> {
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(data.token);
+
+    if (
+      !request ||
+      request.workspaceType !== WorkspaceType.MicrosoftTeams ||
+      request.projectId.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return request;
+  }
+
+  /*
+   * Once the account a Connect button was for is connected: spends the
+   * press, finishes it as the member (WorkspaceConnectCompletion), answers
+   * in the conversation it was made in (MicrosoftTeamsActionAnswer), and
+   * says what the settings page should tell the person.
+   */
+  private static async finishConnectRequest(data: {
+    token: unknown;
+    connectRequest: WorkspaceConnectRequestRecord | null;
+    userId: ObjectID;
+  }): Promise<Dictionary<string>> {
+    // Spent once, however many times its sign-in comes back.
+    const request: WorkspaceConnectRequestRecord | null = data.connectRequest
+      ? await WorkspaceConnectRequest.take(data.token)
+      : null;
+
+    if (!request) {
+      return {
+        [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: ConnectRequestOutcome.Expired,
+      };
+    }
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request,
+        userId: data.userId,
+      });
+
+    const isAnswered: boolean = request.teams
+      ? await MicrosoftTeamsActionAnswer.sendToPlace({
+          place: request.teams,
+          answer: result.answer,
+        })
+      : false;
+
+    return {
+      /*
+       * The page never says the answer is in Microsoft Teams when Teams
+       * took none: it says to look at the record instead.
+       */
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
+        ConnectCallbackUtil.pointsToChatAnswer(result.outcome) && !isAnswered
+          ? ConnectRequestOutcome.NotAnswered
+          : result.outcome,
+    };
+  }
+
   private static getTeamsAppManifest(): JSONObject {
     if (!MicrosoftTeamsAppClientId) {
       throw new BadDataException("Microsoft Teams App Client ID is not set");
@@ -67,11 +198,26 @@ export default class MicrosoftTeamsAPI {
 
     const manifest: JSONObject = {
       $schema:
-        "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
-      manifestVersion: "1.23",
+        "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json",
+      manifestVersion: "1.25",
+      /*
+       * Teams only takes an uploaded package as an update when its version is
+       * higher than the installed one. Release images carry APP_VERSION; a
+       * build without it uses this fallback, so bump it whenever the manifest
+       * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
+       * are the words Slack's /oneuptime takes; 1.8.0: page; 1.9.0: shared
+       * and private channels; 1.10.0: incident takes an incident's number).
+       */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.5.0"
+        ? "1.10.0"
         : AppVersion,
+      /*
+       * The app works in shared and private channels as in standard ones: it
+       * posts where it is added and answers whoever mentions it. Partner
+       * Center refuses a store package without this (manifest v1.25 and
+       * later), and Teams only offers the app in those channels with it.
+       */
+      supportsChannelFeatures: "tier1",
       id: MicrosoftTeamsAppClientId,
       developer: {
         name: "HackerBay Inc",
@@ -112,52 +258,16 @@ export default class MicrosoftTeamsAPI {
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
-          // Provide basic command lists to improve client compatibility (esp. mobile)
+          /*
+           * What Teams suggests once somebody types "@OneUptime": the
+           * words Slack's /oneuptime takes too, and Teams' own lists
+           * (MicrosoftTeamsCommands). "create incident" and "create
+           * maintenance" still work when typed.
+           */
           commandLists: [
             {
               scopes: ["team", "groupChat", "personal"],
-              commands: [
-                {
-                  title: "help",
-                  description:
-                    "Show instructions for interacting with the OneUptime bot.",
-                },
-                {
-                  title: "ask",
-                  description:
-                    "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-                },
-                {
-                  title: "create incident",
-                  description:
-                    "Launch the adaptive card to declare a new incident in OneUptime.",
-                },
-                {
-                  title: "create maintenance",
-                  description:
-                    "Open the workflow to schedule maintenance directly from Teams.",
-                },
-                {
-                  title: "show active incidents",
-                  description:
-                    "List all ongoing incidents with severity and state context.",
-                },
-                {
-                  title: "show scheduled maintenance",
-                  description:
-                    "Display upcoming scheduled maintenance events for the workspace.",
-                },
-                {
-                  title: "show ongoing maintenance",
-                  description:
-                    "Surface maintenance windows that are currently in progress.",
-                },
-                {
-                  title: "show active alerts",
-                  description:
-                    "Provide a summary of alerts that still require attention.",
-                },
-              ],
+              commands: MicrosoftTeamsCommands.getManifestCommands(),
             },
           ],
         },
@@ -187,6 +297,15 @@ export default class MicrosoftTeamsAPI {
               name: "ChatMember.Read.Chat",
             },
             /*
+             * Lets OneUptime read a group chat's name. Teams does not put it on
+             * bot activities, so without this group chats are listed by their
+             * members' names.
+             */
+            {
+              type: "Application",
+              name: "ChatSettings.Read.Chat",
+            },
+            /*
              * Lets OneUptime confirm, per team, that the installed OneUptime app
              * is the package built from THIS deployment before telling an admin
              * their app is missing. Without it the installed-apps read falls back
@@ -209,6 +328,24 @@ export default class MicrosoftTeamsAPI {
     return manifest;
   }
 
+  // The chat list shape the Chats card reads, sorted by name.
+  private static serializeChats(
+    chats: Record<string, MicrosoftTeamsChat>,
+  ): Array<JSONObject> {
+    return Object.values(chats)
+      .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
+        return a.name.localeCompare(b.name);
+      })
+      .map((chat: MicrosoftTeamsChat) => {
+        return {
+          id: chat.id,
+          name: chat.name,
+          chatType: chat.chatType,
+          addedAt: chat.addedAt || null,
+        };
+      });
+  }
+
   private static getUserSignInRedirectUri(): string {
     return `${AppApiClientUrl.toString()}/microsoft-teams/auth`;
   }
@@ -217,10 +354,40 @@ export default class MicrosoftTeamsAPI {
     return `${AppApiClientUrl.toString()}/microsoft-teams/admin-consent/callback`;
   }
 
-  private static getIntegrationPageUrl(projectId: ObjectID): URL {
-    return URL.fromString(
-      DashboardClientUrl.toString() +
-        `/${projectId.toString()}/settings/microsoft-teams-integration`,
+  /*
+   * The Microsoft Teams app this server connects with. A connection cannot be
+   * finished without its client secret, so a server missing either is refused
+   * as one that is not set up.
+   */
+  private static getAppCredentials(): {
+    clientId: string;
+    clientSecret: string;
+  } {
+    if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.NotConfigured,
+        "MICROSOFT_TEAMS_APP_CLIENT_ID or MICROSOFT_TEAMS_APP_CLIENT_SECRET is not set.",
+      );
+    }
+
+    return {
+      clientId: MicrosoftTeamsAppClientId,
+      clientSecret: MicrosoftTeamsAppClientSecret,
+    };
+  }
+
+  /*
+   * A request to Microsoft that did not answer with what was asked for: told
+   * to the page as "could not finish", with what Microsoft said in the log
+   * only.
+   */
+  private static notAnswered(
+    what: string,
+    response: HTTPErrorResponse,
+  ): ConnectCallbackRefusal {
+    return new ConnectCallbackRefusal(
+      ConnectCallbackError.CouldNotFinish,
+      `Microsoft answered ${what} with HTTP ${response.statusCode}: ${response.message}`,
     );
   }
 
@@ -235,6 +402,9 @@ export default class MicrosoftTeamsAPI {
    * stand in for the signature. The claims are still checked — audience,
    * issuer, nonce and expiry — so a token minted for another app, another
    * tenant or another sign-in is never accepted.
+   *
+   * A sign-in to another tenant is refused as such, which the person can act
+   * on; every other refusal is "could not finish", its reason logged.
    */
   public static getVerifiedTenantIdFromIdToken(data: {
     idToken: unknown;
@@ -242,7 +412,7 @@ export default class MicrosoftTeamsAPI {
     expectedNonce: string;
   }): string {
     if (typeof data.idToken !== "string") {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "Microsoft did not return an ID token for the admin consent sign-in.",
       );
     }
@@ -250,7 +420,7 @@ export default class MicrosoftTeamsAPI {
     const parts: Array<string> = data.idToken.split(".");
 
     if (parts.length !== 3 || !parts[1]) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "Microsoft returned a malformed ID token for the admin consent sign-in.",
       );
     }
@@ -262,13 +432,13 @@ export default class MicrosoftTeamsAPI {
         Buffer.from(parts[1], "base64url").toString("utf8"),
       ) as JSONObject;
     } catch {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "Microsoft returned a malformed ID token for the admin consent sign-in.",
       );
     }
 
     if (!claims || typeof claims !== "object" || Array.isArray(claims)) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "Microsoft returned a malformed ID token for the admin consent sign-in.",
       );
     }
@@ -279,7 +449,7 @@ export default class MicrosoftTeamsAPI {
       typeof tenantClaim !== "string" ||
       !ENTRA_TENANT_ID_PATTERN.test(tenantClaim)
     ) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in did not identify a Microsoft 365 tenant.",
       );
     }
@@ -291,7 +461,7 @@ export default class MicrosoftTeamsAPI {
       claims["aud"].toLowerCase() !==
         (MicrosoftTeamsAppClientId || "").toLowerCase()
     ) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in was issued for a different application.",
       );
     }
@@ -301,13 +471,13 @@ export default class MicrosoftTeamsAPI {
       claims["iss"].toLowerCase() !==
         `https://login.microsoftonline.com/${tenantId}/v2.0`
     ) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in was issued by an unexpected authority.",
       );
     }
 
     if (claims["nonce"] !== data.expectedNonce) {
-      throw new BadDataException(
+      throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in does not belong to this connection attempt.",
       );
     }
@@ -318,16 +488,26 @@ export default class MicrosoftTeamsAPI {
       typeof expiresAtSeconds !== "number" ||
       expiresAtSeconds * 1000 <= Date.now()
     ) {
-      throw new BadDataException("The admin consent sign-in has expired.");
+      throw MicrosoftTeamsAPI.idTokenRefused(
+        "The admin consent sign-in has expired.",
+      );
     }
 
     if (tenantId !== data.expectedTenantId.toLowerCase()) {
-      throw new BadDataException(
-        "You signed in to a different Microsoft 365 tenant from the one that granted admin consent. Please sign in with an account from the tenant you granted consent for.",
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.TeamsOtherTenant,
+        "The admin consent sign-in was made in a different Microsoft 365 tenant from the one that granted admin consent.",
       );
     }
 
     return tenantId;
+  }
+
+  private static idTokenRefused(reason: string): ConnectCallbackRefusal {
+    return new ConnectCallbackRefusal(
+      ConnectCallbackError.CouldNotFinish,
+      reason,
+    );
   }
 
   /*
@@ -335,58 +515,36 @@ export default class MicrosoftTeamsAPI {
    * tenant it says consented. That claim is only a query parameter, so it is
    * used for nothing but choosing where to send the admin to sign in. A new
    * single-use state pins the flow to that tenant, and the sign-in's ID token
-   * must then prove it.
+   * must then prove it. The new state goes back to the page the first was
+   * started from.
    */
-  private static async continueAdminConsentWithSignIn(data: {
-    req: ExpressRequest;
-    res: ExpressResponse;
-    stateRecord: WorkspaceOAuthStateRecord;
-    teamsIntegrationPageUrl: URL;
-  }): Promise<void> {
-    const { req, res, stateRecord, teamsIntegrationPageUrl } = data;
+  private static async continueAdminConsentWithSignIn(
+    data: ConnectCallbackFinish,
+  ): Promise<void> {
+    const { req, res, record } = data;
 
     const tenantId: string = (req.query["tenant"]?.toString() || "")
       .trim()
       .toLowerCase();
 
     if (!ENTRA_TENANT_ID_PATTERN.test(tenantId)) {
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Missing tenant information from admin consent callback",
-        ),
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        "The admin consent callback named no Microsoft 365 tenant.",
       );
     }
 
     if (req.query["admin_consent"]?.toString().toLowerCase() !== "true") {
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Admin consent was not granted for the OneUptime Microsoft Teams app",
-        ),
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.Cancelled,
+        "Microsoft did not report admin consent as granted.",
       );
     }
 
-    if (
-      stateRecord.tenantId &&
-      stateRecord.tenantId.toLowerCase() !== tenantId
-    ) {
-      logger.warn(
-        `Refusing Microsoft Teams admin consent for project ${stateRecord.projectId.toString()}: consent came back for tenant ${tenantId}, but the project is connected to tenant ${stateRecord.tenantId}.`,
-        getLogAttributesFromRequest(req as any),
-      );
-
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Admin consent was granted for a different Microsoft 365 tenant from the one this project is connected to. Disconnect Microsoft Teams in Project Settings before connecting a different tenant.",
-        ),
+    if (record.tenantId && record.tenantId.toLowerCase() !== tenantId) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.TeamsOtherTenant,
+        `Admin consent came back for tenant ${tenantId}, but project ${record.projectId.toString()} is connected to tenant ${record.tenantId}.`,
       );
     }
 
@@ -394,8 +552,9 @@ export default class MicrosoftTeamsAPI {
       req,
       res,
       flow: WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn,
-      projectId: stateRecord.projectId,
-      userId: stateRecord.userId,
+      projectId: record.projectId,
+      userId: record.userId,
+      startPage: record.startPage,
       tenantId: tenantId,
       includeOidcNonce: true,
     });
@@ -418,27 +577,22 @@ export default class MicrosoftTeamsAPI {
    * tenant from it, and only then fetch that tenant's Graph app token and
    * bind it to the project recorded in the state.
    */
-  private static async completeAdminConsent(data: {
-    req: ExpressRequest;
-    res: ExpressResponse;
-    stateRecord: WorkspaceOAuthStateRecord;
-    teamsIntegrationPageUrl: URL;
-  }): Promise<void> {
-    const { req, res, stateRecord, teamsIntegrationPageUrl } = data;
+  private static async completeAdminConsent(
+    data: ConnectCallbackFinish,
+  ): Promise<void> {
+    const { req, record } = data;
+    const credentials: { clientId: string; clientSecret: string } =
+      MicrosoftTeamsAPI.getAppCredentials();
 
-    const projectId: ObjectID = stateRecord.projectId;
-    const userId: ObjectID = stateRecord.userId;
+    const projectId: ObjectID = record.projectId;
+    const userId: ObjectID = record.userId;
 
     const code: string | undefined = req.query["code"]?.toString();
 
-    if (!code || !stateRecord.tenantId || !stateRecord.oidcNonce) {
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Microsoft did not return a sign-in for the admin consent. Please try again.",
-        ),
+    if (!code || !record.tenantId || !record.oidcNonce) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        "Microsoft returned no sign-in for the admin consent.",
       );
     }
 
@@ -446,13 +600,13 @@ export default class MicrosoftTeamsAPI {
     const signInTokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(
-          `https://login.microsoftonline.com/${stateRecord.tenantId}/oauth2/v2.0/token`,
+          `https://login.microsoftonline.com/${record.tenantId}/oauth2/v2.0/token`,
         ),
         data: {
           grant_type: "authorization_code",
           code: code,
-          client_id: MicrosoftTeamsAppClientId || "",
-          client_secret: MicrosoftTeamsAppClientSecret || "",
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
           redirect_uri: MicrosoftTeamsAPI.getAdminConsentRedirectUri(),
           scope: ADMIN_CONSENT_SIGN_IN_SCOPES,
         },
@@ -460,46 +614,17 @@ export default class MicrosoftTeamsAPI {
       });
 
     if (signInTokenResponse instanceof HTTPErrorResponse) {
-      logger.error(
-        "Error exchanging the Microsoft Teams admin consent sign-in code:",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.error(
+      throw MicrosoftTeamsAPI.notAnswered(
+        "the admin consent sign-in code exchange",
         signInTokenResponse,
-        getLogAttributesFromRequest(req as any),
-      );
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Could not verify the Microsoft 365 sign-in after admin consent",
-        ),
       );
     }
 
-    let tenantId: string;
-
-    try {
-      tenantId = MicrosoftTeamsAPI.getVerifiedTenantIdFromIdToken({
-        idToken: signInTokenResponse.data["id_token"],
-        expectedTenantId: stateRecord.tenantId,
-        expectedNonce: stateRecord.oidcNonce,
-      });
-    } catch (verificationError) {
-      logger.warn(
-        `Refusing Microsoft Teams admin consent for project ${projectId.toString()}: ${(verificationError as Error).message}`,
-        getLogAttributesFromRequest(req as any),
-      );
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          (verificationError as Error).message,
-        ),
-      );
-    }
+    const tenantId: string = MicrosoftTeamsAPI.getVerifiedTenantIdFromIdToken({
+      idToken: signInTokenResponse.data["id_token"],
+      expectedTenantId: record.tenantId,
+      expectedNonce: record.oidcNonce,
+    });
 
     // Fetch any existing project auth to merge
     const existingAuth: WorkspaceProjectAuthToken | null =
@@ -515,8 +640,8 @@ export default class MicrosoftTeamsAPI {
           `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
         ),
         data: {
-          client_id: MicrosoftTeamsAppClientId || "",
-          client_secret: MicrosoftTeamsAppClientSecret || "",
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
           grant_type: "client_credentials",
           scope: "https://graph.microsoft.com/.default",
         },
@@ -524,18 +649,9 @@ export default class MicrosoftTeamsAPI {
       });
 
     if (tokenResp instanceof HTTPErrorResponse) {
-      logger.error(
-        "Error getting app token after admin consent:",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.error(tokenResp, getLogAttributesFromRequest(req as any));
-      return Response.redirect(
-        req,
-        res,
-        teamsIntegrationPageUrl.addQueryParam(
-          "error",
-          "Failed to get Graph app token after admin consent",
-        ),
+      throw MicrosoftTeamsAPI.notAnswered(
+        "the Graph app token request after admin consent",
+        tokenResp,
       );
     }
 
@@ -568,79 +684,49 @@ export default class MicrosoftTeamsAPI {
 
     // If no teams from user auth, try to get them using app token
     if (Object.keys(availableTeams).length === 0) {
-      try {
-        const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>({
-            url: URL.fromString(
-              "https://graph.microsoft.com/v1.0/teams?$select=id,displayName",
-            ),
-            headers: {
-              Authorization: `Bearer ${appAccessToken}`,
-            },
-          });
-
-        if (teamsResponse instanceof HTTPErrorResponse) {
-          logger.error(
-            "Failed to get teams:",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(teamsResponse, getLogAttributesFromRequest(req as any));
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam(
-              "error",
-              "Failed to retrieve teams from Microsoft Graph API after admin consent",
-            ),
-          );
-        }
-
-        const teamsData: JSONObject = teamsResponse.data;
-        const teams: Array<JSONObject> =
-          (teamsData["value"] as Array<JSONObject>) || [];
-
-        if (teams.length === 0) {
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam(
-              "error",
-              "No teams available in your Microsoft 365 tenant. Please create a team first.",
-            ),
-          );
-        }
-
-        availableTeams = teams.reduce(
-          (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
-            const team: MicrosoftTeamsTeam = {
-              id: t["id"] as string,
-              name: (t["displayName"] as string) || "Unnamed Team",
-            };
-            /*
-             * Keyed by id, not display name — Teams allows duplicate
-             * team names, and keying by name silently collapsed them so
-             * only the last one of each name was selectable.
-             */
-            acc[team.id] = team;
-            return acc;
-          },
-          {} as Record<string, MicrosoftTeamsTeam>,
-        );
-      } catch (error) {
-        logger.error(
-          "Error getting teams:",
-          getLogAttributesFromRequest(req as any),
-        );
-        logger.error(error, getLogAttributesFromRequest(req as any));
-        return Response.redirect(
-          req,
-          res,
-          teamsIntegrationPageUrl.addQueryParam(
-            "error",
-            "Failed to retrieve teams from Microsoft Graph API",
+      const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            "https://graph.microsoft.com/v1.0/teams?$select=id,displayName",
           ),
+          headers: {
+            Authorization: `Bearer ${appAccessToken}`,
+          },
+        });
+
+      if (teamsResponse instanceof HTTPErrorResponse) {
+        throw MicrosoftTeamsAPI.notAnswered(
+          "the teams read after admin consent",
+          teamsResponse,
         );
       }
+
+      const teams: Array<JSONObject> =
+        (teamsResponse.data["value"] as Array<JSONObject>) || [];
+
+      if (teams.length === 0) {
+        throw new ConnectCallbackRefusal(
+          ConnectCallbackError.TeamsNoTeams,
+          `Microsoft 365 tenant ${tenantId} has no teams.`,
+        );
+      }
+
+      availableTeams = teams.reduce(
+        (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
+          const team: MicrosoftTeamsTeam = {
+            id: t["id"] as string,
+            name: (t["displayName"] as string) || "Unnamed Team",
+          };
+          /*
+           * Keyed by id, not display name — Teams allows duplicate
+           * team names, and keying by name silently collapsed them so
+           * only the last one of each name was selectable.
+           */
+          acc[team.id] = team;
+          return acc;
+        },
+        {} as Record<string, MicrosoftTeamsTeam>,
+      );
     }
 
     /*
@@ -655,7 +741,7 @@ export default class MicrosoftTeamsAPI {
       adminConsentGrantedAt: new Date().toISOString(),
       adminConsentGrantedBy: userId.toString(),
       availableTeams: availableTeams,
-      botId: MicrosoftTeamsAppClientId || "",
+      botId: credentials.clientId,
     };
 
     await WorkspaceProjectAuthTokenService.refreshAuthToken({
@@ -667,13 +753,7 @@ export default class MicrosoftTeamsAPI {
       miscData: mergedMiscData,
     });
 
-    return Response.redirect(
-      req,
-      res,
-      teamsIntegrationPageUrl
-        .addQueryParam("adminConsent", "success")
-        .addQueryParam("tenantId", tenantId),
-    );
+    data.backToPage({ adminConsent: "success", tenantId: tenantId });
   }
 
   public getRouter(): ExpressRouter {
@@ -806,12 +886,27 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
+          /*
+           * Started from a Connect button in Microsoft Teams (`?connect=`):
+           * the press it stands for goes with the sign-in, so the callback
+           * can finish it - when it is still there, and is this project's.
+           */
+          const payload: JSONObject | undefined =
+            await MicrosoftTeamsAPI.getConnectRequestPayload({
+              value: req.query[CONNECT_REQUEST_QUERY_PARAM],
+              projectId: projectId,
+            });
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
             flow: WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn,
             projectId: projectId,
             userId: databaseProps.userId!,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
+            payload: payload,
           });
 
           const authorizationUrl: string = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
@@ -831,83 +926,52 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Microsoft Teams OAuth callback for "sign in with Microsoft Teams".
+    /*
+     * Microsoft Teams OAuth callback for "sign in with Microsoft Teams".
+     * ConnectCallback.route spends the state, asks again, and answers every
+     * way this can end on the Microsoft Teams page the sign-in started from -
+     * with a code, never with what Microsoft or a failed read said.
+     */
     router.get(
       "/microsoft-teams/auth",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!MicrosoftTeamsAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Microsoft Teams App Client ID is not set"),
-          );
-        }
-
-        if (!MicrosoftTeamsAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Microsoft Teams App Client Secret is not set",
-            ),
-          );
-        }
-
-        let stateRecord: WorkspaceOAuthStateRecord | null = null;
-
-        try {
-          stateRecord = await WorkspaceOAuthState.consume({
+      ConnectCallback.route({
+        provider: ConnectProvider.MicrosoftTeams,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return WorkspaceOAuthState.consume({
             req,
             state: req.query["state"]?.toString(),
             flows: [WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn],
           });
-        } catch (err) {
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        }
+        },
+        // Whoever started the sign-in is still a member of the project.
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: record,
+          });
+        },
+        refusedAs: ConnectCallbackError.NotAMember,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const credentials: { clientId: string; clientSecret: string } =
+            MicrosoftTeamsAPI.getAppCredentials();
 
-        if (!stateRecord) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
-          );
-        }
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-        const projectId: ObjectID = stateRecord.projectId;
-        const userId: ObjectID = stateRecord.userId;
+          if (providerError) {
+            throw providerError;
+          }
 
-        const teamsIntegrationPageUrl: URL =
-          MicrosoftTeamsAPI.getIntegrationPageUrl(projectId);
+          const code: string | undefined = req.query["code"]?.toString();
 
-        const error: string | undefined = req.query["error"]?.toString();
-
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam("error", error),
-          );
-        }
-
-        const code: string | undefined = req.query["code"]?.toString();
-
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request - no authorization code"),
-          );
-        }
-
-        try {
-          const tokenRequestBody: JSONObject = {
-            grant_type: "authorization_code",
-            code: code,
-            client_id: MicrosoftTeamsAppClientId,
-            client_secret: MicrosoftTeamsAppClientSecret,
-            redirect_uri: MicrosoftTeamsAPI.getUserSignInRedirectUri(),
-            scope: MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES,
-          };
+          if (!code) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Microsoft sent no authorization code back.",
+            );
+          }
 
           /*
            * The token request body holds the app client secret and the
@@ -924,43 +988,37 @@ export default class MicrosoftTeamsAPI {
               url: URL.fromString(
                 "https://login.microsoftonline.com/common/oauth2/v2.0/token",
               ),
-              data: tokenRequestBody,
+              data: {
+                grant_type: "authorization_code",
+                code: code,
+                client_id: credentials.clientId,
+                client_secret: credentials.clientSecret,
+                redirect_uri: MicrosoftTeamsAPI.getUserSignInRedirectUri(),
+                scope: MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES,
+              },
               headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
               },
             });
 
           if (tokenResponse instanceof HTTPErrorResponse) {
-            logger.error(
-              "Error getting Teams token:",
-              getLogAttributesFromRequest(req as any),
-            );
-            logger.error(
+            throw MicrosoftTeamsAPI.notAnswered(
+              "the sign-in code exchange",
               tokenResponse,
-              getLogAttributesFromRequest(req as any),
-            );
-            throw tokenResponse;
-          }
-
-          const tokenData: JSONObject = tokenResponse.data;
-          logger.debug(
-            "Microsoft Teams token exchange completed.",
-            getLogAttributesFromRequest(req as any),
-          );
-
-          if (!tokenData["access_token"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadRequestException(
-                "Failed to get access token from Microsoft Teams",
-              ),
             );
           }
 
-          const accessToken: string = tokenData["access_token"] as string;
+          const accessToken: string | undefined =
+            tokenResponse.data["access_token"]?.toString();
 
-          // Get user profile and team information
+          if (!accessToken) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Microsoft returned no access token for the sign-in.",
+            );
+          }
+
+          // The person's Microsoft profile; identity material, so not logged.
           const userProfileResponse:
             | HTTPErrorResponse
             | HTTPResponse<JSONObject> = await API.get<JSONObject>({
@@ -971,27 +1029,45 @@ export default class MicrosoftTeamsAPI {
           });
 
           if (userProfileResponse instanceof HTTPErrorResponse) {
-            logger.error(
-              "Error getting user profile:",
-              getLogAttributesFromRequest(req as any),
-            );
-            logger.error(
+            throw MicrosoftTeamsAPI.notAnswered(
+              "the profile read after sign-in",
               userProfileResponse,
-              getLogAttributesFromRequest(req as any),
             );
-            throw userProfileResponse;
           }
 
           const userProfile: JSONObject = userProfileResponse.data;
-          logger.debug(
-            "User Profile: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(userProfile, getLogAttributesFromRequest(req as any));
+
+          /*
+           * Started from a Connect button in Microsoft Teams: the Microsoft
+           * account that signed in must be the one that pressed it (Teams
+           * names it by the same Entra object id). Another one is refused
+           * and nothing is connected: connecting it would let that account
+           * act as you.
+           */
+          const connectToken: unknown = record.payload?.["connectToken"];
+
+          const connectRequest: WorkspaceConnectRequestRecord | null =
+            connectToken
+              ? await MicrosoftTeamsAPI.peekConnectRequest({
+                  token: connectToken,
+                  projectId: record.projectId,
+                })
+              : null;
+
+          if (
+            connectRequest &&
+            connectRequest.workspaceUserId.toLowerCase() !==
+              String(userProfile["id"] || "").toLowerCase()
+          ) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.TeamsOtherAccount,
+              "The Microsoft account signed in is not the one that pressed the Connect button.",
+            );
+          }
 
           await WorkspaceUserAuthTokenService.refreshAuthToken({
-            projectId: projectId,
-            userId: userId,
+            projectId: record.projectId,
+            userId: record.userId,
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: accessToken,
             workspaceUserId: userProfile["id"] as string,
@@ -1004,10 +1080,23 @@ export default class MicrosoftTeamsAPI {
             },
           });
 
+          /*
+           * The press the Connect button stood for, finished now as the
+           * member, and answered where it was made; the page is told what
+           * became of it.
+           */
+          const connectParams: Dictionary<string> = connectToken
+            ? await MicrosoftTeamsAPI.finishConnectRequest({
+                token: connectToken,
+                connectRequest: connectRequest,
+                userId: record.userId,
+              })
+            : {};
+
           // Check if admin consent is already granted
           const existingProjectAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: projectId,
+              projectId: record.projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
             });
 
@@ -1017,30 +1106,19 @@ export default class MicrosoftTeamsAPI {
           ) {
             // Admin consent already granted, refresh teams
             await MicrosoftTeamsUtil.refreshTeams({
-              projectId: projectId,
+              projectId: record.projectId,
             });
 
-            return Response.redirect(req, res, teamsIntegrationPageUrl);
+            return data.backToPage(connectParams);
           }
+
           // Need admin consent
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam("needAdminConsent", "true"),
-          );
-        } catch (err) {
-          logger.error(
-            "Error in static Microsoft Teams auth callback: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(err, getLogAttributesFromRequest(req as any));
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Failed to authenticate with Microsoft Teams"),
-          );
-        }
-      },
+          return data.backToPage({
+            needAdminConsent: "true",
+            ...connectParams,
+          });
+        },
+      }),
     );
 
     /*
@@ -1066,8 +1144,7 @@ export default class MicrosoftTeamsAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Microsoft Teams.",
+            errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!MicrosoftTeamsAppClientId) {
@@ -1097,6 +1174,9 @@ export default class MicrosoftTeamsAPI {
             flow: WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent,
             projectId: projectId,
             userId: databaseProps.userId!,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
             tenantId: existingTenantId,
           });
 
@@ -1136,108 +1216,54 @@ export default class MicrosoftTeamsAPI {
      *     and only a tenant proven that way is bound to the project.
      *
      * Which leg a request is comes from the server-side state record, not from
-     * the shape of the query string.
+     * the shape of the query string. ConnectCallback.route answers every way
+     * either leg can end on the Microsoft Teams page consent started from.
      */
     router.get(
       "/microsoft-teams/admin-consent/callback",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        let teamsIntegrationPageUrl: URL | null = null;
-
-        try {
-          const stateRecord: WorkspaceOAuthStateRecord | null =
-            await WorkspaceOAuthState.consume({
-              req,
-              state: req.query["state"]?.toString(),
-              flows: [
-                WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent,
-                WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn,
-              ],
-            });
-
-          if (!stateRecord) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadRequestException(
-                WorkspaceOAuthState.INVALID_STATE_MESSAGE,
-              ),
-            );
-          }
-
-          teamsIntegrationPageUrl = MicrosoftTeamsAPI.getIntegrationPageUrl(
-            stateRecord.projectId,
+      ConnectCallback.route({
+        provider: ConnectProvider.MicrosoftTeams,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return WorkspaceOAuthState.consume({
+            req,
+            state: req.query["state"]?.toString(),
+            flows: [
+              WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent,
+              WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn,
+            ],
+          });
+        },
+        // Whoever started admin consent may still connect the project.
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+            {
+              record: record,
+              errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
+            },
           );
+        },
+        refusedAs: ConnectCallbackError.NoPermission,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          MicrosoftTeamsAPI.getAppCredentials();
 
-          const error: string | undefined = req.query["error"]?.toString();
-          const errorDescription: string | undefined =
-            req.query["error_description"]?.toString();
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(data.req);
 
-          if (error) {
-            return Response.redirect(
-              req,
-              res,
-              teamsIntegrationPageUrl.addQueryParam(
-                "error",
-                `${error}${errorDescription ? ": " + errorDescription : ""}`,
-              ),
-            );
-          }
-
-          if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
-            return Response.redirect(
-              req,
-              res,
-              teamsIntegrationPageUrl.addQueryParam(
-                "error",
-                "Microsoft Teams App credentials are not configured",
-              ),
-            );
+          if (providerError) {
+            throw providerError;
           }
 
           if (
-            stateRecord.flow === WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent
+            data.record.flow === WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent
           ) {
-            return await MicrosoftTeamsAPI.continueAdminConsentWithSignIn({
-              req,
-              res,
-              stateRecord,
-              teamsIntegrationPageUrl,
-            });
+            return await MicrosoftTeamsAPI.continueAdminConsentWithSignIn(data);
           }
 
-          return await MicrosoftTeamsAPI.completeAdminConsent({
-            req,
-            res,
-            stateRecord,
-            teamsIntegrationPageUrl,
-          });
-        } catch (err) {
-          logger.error(
-            "Error in Microsoft Teams admin consent callback: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(err, getLogAttributesFromRequest(req as any));
-
-          if (teamsIntegrationPageUrl) {
-            return Response.redirect(
-              req,
-              res,
-              teamsIntegrationPageUrl.addQueryParam(
-                "error",
-                "Failed to finalize Microsoft Teams admin consent",
-              ),
-            );
-          }
-
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Failed to finalize Microsoft Teams admin consent",
-            ),
-          );
-        }
-      },
+          return await MicrosoftTeamsAPI.completeAdminConsent(data);
+        },
+      }),
     );
 
     /*
@@ -1562,27 +1588,20 @@ export default class MicrosoftTeamsAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a channel is a side effect, so membership alone is
-           * not enough. Anyone who could create a workspace notification rule
-           * - including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this channel; a Viewer,
+           * Posting into a channel is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
            * or a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const teamId: string =
             typeof req.body?.["teamId"] === "string"
@@ -1597,9 +1616,9 @@ export default class MicrosoftTeamsAPI {
           // chatId is deliberately not forwarded: this route tests channels only.
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               teamId: teamId,
               channelId: channelId,
             },
@@ -1634,18 +1653,62 @@ export default class MicrosoftTeamsAPI {
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            chats: Object.values(availableChats)
-              .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
-                return a.name.localeCompare(b.name);
-              })
-              .map((chat: MicrosoftTeamsChat) => {
-                return {
-                  id: chat.id,
-                  name: chat.name,
-                  chatType: chat.chatType,
-                  addedAt: chat.addedAt || null,
-                };
-              }),
+            chats: MicrosoftTeamsAPI.serializeChats(availableChats),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * "Refresh Chats". Chats still cannot be listed, but the name of each
+     * stored group chat can be re-read from Graph — which is what fixes a
+     * group chat listed under its member names, and picks up renames.
+     * Returns the same list as GET, plus which chats' names could not be read
+     * (Microsoft refused, or failed) so the page can mark them and say why.
+     *
+     * Member access, like the list: it changes nothing but the stored display
+     * names, and concurrent refreshes of a project share one run.
+     */
+    router.post(
+      "/microsoft-teams/chats/refresh",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          const refreshResult: MicrosoftTeamsChatNameRefreshResult =
+            await MicrosoftTeamsUtil.refreshChatNamesForProject({
+              projectId: projectId,
+            });
+
+          // Only chats that are still listed (one may be removed mid-refresh).
+          const listed: (chatIds: Array<string>) => Array<string> = (
+            chatIds: Array<string>,
+          ): Array<string> => {
+            return chatIds.filter((chatId: string) => {
+              return Boolean(refreshResult.chats[chatId]);
+            });
+          };
+
+          const permissionDeniedChatIds: Array<string> = listed(
+            refreshResult.permissionDeniedChatIds,
+          );
+          const failedChatIds: Array<string> = listed(
+            refreshResult.failedChatIds,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            chats: MicrosoftTeamsAPI.serializeChats(refreshResult.chats),
+            chatNamePermissionDeniedChatIds: permissionDeniedChatIds,
+            chatNamePermissionDeniedCount: permissionDeniedChatIds.length,
+            chatNameFailedChatIds: failedChatIds,
+            chatNameFailedCount: failedChatIds.length,
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
@@ -1659,27 +1722,20 @@ export default class MicrosoftTeamsAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a chat is a side effect, so membership alone is not
-           * enough. Anyone who could create a workspace notification rule -
-           * including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this chat; a Viewer, or
-           * a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
+           * Posting into a chat is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
+           * or a member whose team is blocked from creating rules, cannot.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const chatId: string =
             typeof req.body?.["chatId"] === "string"
@@ -1693,9 +1749,9 @@ export default class MicrosoftTeamsAPI {
            */
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               chatId: chatId,
             },
           );

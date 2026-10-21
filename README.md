@@ -135,8 +135,11 @@ Everything you need on a single server (Debian / Ubuntu / RHEL, Docker + Docker 
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config (then edit it — set strong, random secrets!)
+# 2. Create your config, with a random value for every secret
 cp config.example.env config.env
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
 
 # 3. Start everything
 npm start
@@ -196,6 +199,7 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 - **Proxmox** — nodes, VMs, containers, storage, HA state, backup coverage & replication health. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi hosts, virtual machines, datastores, clusters, resource pools & vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — cluster health, capacity forecasts, and OSD/pool/PG/monitor visibility. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Storage Arrays** — Pure Storage FlashArray and FlashBlade: capacity, latency, volumes, hosts, replication, hardware health, file systems and buckets. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **Databases** — PostgreSQL, MySQL, Redis, MongoDB and more, auto-detected from application traces, Kubernetes and Docker, with engine metrics, query samples and logs from a config-only collector agent. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
@@ -207,7 +211,7 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 | **Best for** | Self-hosters & small teams | Regulated teams needing premium support |
 | **Cost** | Free & open source | [Contact sales](mailto:sales@oneuptime.com) |
 | **License** | Apache 2.0 | Apache 2.0, plus the [OneUptime Enterprise License](/ee/LICENSE) for the `ee/` directory |
-| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI | Everything in Community + SAML & OIDC single sign-on, SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
+| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI — plus SAML & OIDC single sign-on | Everything in Community + SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
 
 Enterprise features live in the [`ee/`](/ee) directory and ship only in the Enterprise image. See [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for the full comparison.
 

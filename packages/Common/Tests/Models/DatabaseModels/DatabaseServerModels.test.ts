@@ -17,6 +17,10 @@ import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../../Server/Enterprise/FakeEnterpriseModule";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -25,9 +29,11 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import { getUniqueColumnsBy } from "../../../Types/Database/UniqueColumnBy";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -215,8 +221,9 @@ const RULE_CRITERIA_FIELDS: Array<string> = [
 
 /*
  * Every column DatabaseServerService.onBeforeCreate may set on a manual
- * (non-root) create, plus what DatabaseService itself stamps
- * (projectId, createdByUserId) and what the create form may send.
+ * (non-root) create, plus the project DatabaseService stamps and what the
+ * create form may send. Who created it is not one: OneUptime decides that
+ * (UserAttribution), and no request writes it.
  */
 const DATABASE_SERVER_USER_CREATE_COLUMNS: Array<string> = [
   "project",
@@ -232,8 +239,6 @@ const DATABASE_SERVER_USER_CREATE_COLUMNS: Array<string> = [
   "retainTelemetryDataForDays",
   "telemetryRetentionConfig",
   "isArchived",
-  "createdByUser",
-  "createdByUserId",
 ];
 
 // Columns a person may change after creation.
@@ -244,6 +249,18 @@ const DATABASE_SERVER_USER_UPDATE_COLUMNS: Array<string> = [
   "retainTelemetryDataForDays",
   "telemetryRetentionConfig",
   "isArchived",
+];
+
+/*
+ * OneUptime AI access settings (the Database AI agent's switches): never
+ * set on create, changed afterwards by the same roles as any other edit.
+ * Who may LOOSEN them is the service's check, not the column ACL's (see
+ * ResourceAiAccessColumns.test.ts).
+ */
+const DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS: Array<string> = [
+  "isAiInvestigationEnabled",
+  "aiRemediationMode",
+  "aiCommandAllowlist",
 ];
 
 // Columns only the discovery / heartbeat / archive paths write, as root.
@@ -276,6 +293,10 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "archivedByUserId",
   "deletedByUser",
   "deletedByUserId",
+  // Written by the resource AI access service after each AI command.
+  "aiAccessLastVerifiedAt",
+  "aiAccessLastError",
+  "aiAccessConfiguredAt",
 ];
 
 const PERMISSION_PROPS: Array<PermissionProps> =
@@ -315,7 +336,9 @@ function makeProps(
     }),
   };
 
+  // A member's request carries the project's plan: these ask about roles, not plans.
   return {
+    ...ON_HIGHEST_PLAN,
     userId: USER_ID,
     tenantId: PROJECT_ID,
     userTenantAccessPermission: {
@@ -862,7 +885,10 @@ describe("Databases (DatabaseServer) models", () => {
        */
       const accounted: Set<string> = new Set([
         ...DATABASE_SERVER_USER_CREATE_COLUMNS,
+        ...DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS,
         ...DATABASE_SERVER_ROOT_ONLY_COLUMNS,
+        // Who created it: OneUptime decides (UserAttribution).
+        ...UserAttribution.getColumns(model),
       ]);
       const unaccounted: Array<string> = ownColumns(model).filter(
         (column: string): boolean => {
@@ -1131,6 +1157,18 @@ describe("Databases (DatabaseServer) models", () => {
       },
     );
 
+    test.each(DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS)(
+      "%s is never set on create and is updatable by exactly the table's update roles",
+      (column: string) => {
+        const accessControl: ColumnAccessControl = columnAccess(model, column);
+
+        expect(accessControl.create || []).toEqual([]);
+        expect(sorted(accessControl.update || [])).toEqual(
+          sorted(model.getUpdatePermissions()),
+        );
+      },
+    );
+
     test.each(DATABASE_SERVER_ROOT_ONLY_COLUMNS)(
       "%s is root-only: nobody creates or updates it through the API",
       (column: string) => {
@@ -1140,6 +1178,38 @@ describe("Databases (DatabaseServer) models", () => {
         expect(accessControl.update || []).toEqual([]);
       },
     );
+
+    /*
+     * Who created, archived or deleted it is OneUptime's to say
+     * (UserAttribution): read as declared, written by no request, and
+     * computed, so DatabaseService's own stamps pass the column check while
+     * a value a request sends is taken out before the hooks run.
+     */
+    test("who created, archived or deleted it is written by no request", () => {
+      const columns: Array<string> = UserAttribution.getColumns(model);
+
+      expect(columns).toEqual(
+        expect.arrayContaining([
+          "createdByUser",
+          "createdByUserId",
+          "archivedByUser",
+          "archivedByUserId",
+          "deletedByUser",
+          "deletedByUserId",
+        ]),
+      );
+
+      for (const column of columns) {
+        const accessControl: ColumnAccessControl = columnAccess(model, column);
+
+        expect({
+          column,
+          create: accessControl.create || [],
+          update: accessControl.update || [],
+          computed: Boolean(model.getTableColumnMetadata(column).computed),
+        }).toEqual({ column, create: [], update: [], computed: true });
+      }
+    });
 
     test("identity columns are creatable but never updatable", () => {
       /*
@@ -1154,7 +1224,6 @@ describe("Databases (DatabaseServer) models", () => {
         "serverAddress",
         "serverPort",
         "discoverySource",
-        "createdByUserId",
       ]) {
         expect({ column, update: columnAccess(model, column).update }).toEqual({
           column,
@@ -1180,7 +1249,10 @@ describe("Databases (DatabaseServer) models", () => {
       );
 
       expect(updatable.sort()).toEqual(
-        [...DATABASE_SERVER_USER_UPDATE_COLUMNS].sort(),
+        [
+          ...DATABASE_SERVER_USER_UPDATE_COLUMNS,
+          ...DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS,
+        ].sort(),
       );
     });
 
@@ -1210,22 +1282,44 @@ describe("Databases (DatabaseServer) models", () => {
       );
 
       test("a manual create with labels and retention passes too", () => {
-        const data: DatabaseServer = manualCreateData();
-        const label: Label = new Label();
-        label._id = ObjectID.generate().toString();
-        data.labels = [label];
-        data.retainTelemetryDataForDays = 7;
-        data.isArchived = false;
+        /*
+         * Retention overrides are an Enterprise feature: with billing off,
+         * setting one needs a license that includes them (the Community
+         * Edition refusal is pinned in
+         * Server/Types/Database/Permissions/RetentionOverrideColumns.test.ts).
+         * A licensed Enterprise Edition passes with billing on or off.
+         */
+        installFakeEnterpriseModule();
 
-        expect(
-          checkCreate(DatabaseServer, data, [Permission.CreateDatabaseServer]),
-        ).not.toThrow();
+        try {
+          const data: DatabaseServer = manualCreateData();
+          const label: Label = new Label();
+          label._id = ObjectID.generate().toString();
+          data.labels = [label];
+          data.retainTelemetryDataForDays = 7;
+          data.isArchived = false;
+
+          expect(
+            checkCreate(DatabaseServer, data, [
+              Permission.CreateDatabaseServer,
+            ]),
+          ).not.toThrow();
+        } finally {
+          uninstallEnterpriseModule();
+        }
       });
 
       test.each(
         DATABASE_SERVER_ROOT_ONLY_COLUMNS.filter((column: string): boolean => {
-          // slug is a Slug column, which ColumnPermission always skips.
-          return column !== "slug";
+          /*
+           * slug is a Slug column, which ColumnPermission always skips. Who
+           * archived or deleted it, and when, is computed: DatabaseService
+           * takes a value a request sends out before this check
+           * (UserAttribution).
+           */
+          return (
+            column !== "slug" && !UserAttribution.isDecidedByServer(column)
+          );
         }),
       )("a non-root create carrying %s is refused", (column: string) => {
         const data: DatabaseServer = manualCreateData();
@@ -1531,8 +1625,6 @@ describe("Databases (DatabaseServer) models", () => {
         "endpoint",
         "source",
         "isPrimary",
-        "createdByUser",
-        "createdByUserId",
       ]) {
         expect({
           column,
@@ -1540,8 +1632,11 @@ describe("Databases (DatabaseServer) models", () => {
         }).toEqual({ column, create: sorted(model.getCreatePermissions()) });
       }
 
+      // Who added it is OneUptime's to say (UserAttribution).
       for (const column of [
         "lastMatchedAt",
+        "createdByUser",
+        "createdByUserId",
         "deletedByUser",
         "deletedByUserId",
       ]) {

@@ -5,7 +5,7 @@ export interface ComponentProps {
   /*
    * The right-hand rail. Rendered at every viewport width — see the note on the
    * container below. An entry that only earns its space on a wide screen
-   * carries its own breakpoint classes (`hidden lg:flex`) at the call site.
+   * carries its own breakpoint classes (`max-lg:hidden lg:flex`) at the call site.
    */
   rightComponents?: undefined | Array<ReactElement> | ReactElement;
   centerComponents?: undefined | Array<ReactElement> | ReactElement;

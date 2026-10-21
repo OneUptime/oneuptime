@@ -17,7 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React, { ReactElement, ReactNode } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -32,6 +32,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 const recordedProps: Record<string, Array<Record<string, unknown>>> = {};
 const mountCounts: Record<string, number> = {};
@@ -91,6 +92,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<unknown>) => {
         return updateByIdMock(...args);
+      },
+      createOrUpdate: (...args: Array<unknown>) => {
+        return createOrUpdateMock(...args);
       },
     },
   };
@@ -184,6 +188,12 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard",
+  () => {
+    return stubModule("VideoCall");
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard",
   () => {
     return stubModule("Remediation");
@@ -199,6 +209,12 @@ jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/CustomFields/OverviewCustomFields",
   () => {
     return stubModule("CustomFields");
+  },
+);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Measurement/EventMeasurementsCard",
+  () => {
+    return stubModule("Measurements");
   },
 );
 jest.mock(
@@ -312,12 +328,15 @@ import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import AlertVideoCall from "../../../Models/DatabaseModels/AlertVideoCall";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import Route from "../../../Types/API/Route";
@@ -325,8 +344,28 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedResend from "../../../Types/StatusPage/IncidentCreatedResend";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "../../../UI/Components/Forms/ModelForm";
+import { ModalWidth } from "../../../UI/Components/Modal/Modal";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
+import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import Permission from "../../../Types/Permission";
+import {
+  ALERT_EVENT_MEASUREMENTS,
+  EventMeasurementSource,
+  INCIDENT_EVENT_MEASUREMENTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/EventMeasurements";
 
 const EVENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const OTHER_EVENT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -375,6 +414,11 @@ function createDeferred<T>(): Deferred<T> {
 function propsHistory<T>(key: string): Array<T> {
   return (recordedProps[key] || []) as unknown as Array<T>;
 }
+
+// What the incident overview hands the notification status badge.
+type ResendStatusProps = {
+  onResendNotification: (options: { isToAllStatusPages: boolean }) => void;
+};
 
 function latestProps<T>(key: string): T {
   const history: Array<T> = propsHistory<T>(key);
@@ -444,6 +488,7 @@ interface PageCase {
   eventModel: typeof Incident | typeof Alert;
   stateModel: typeof IncidentState | typeof AlertState;
   timelineModel: typeof IncidentStateTimeline | typeof AlertStateTimeline;
+  videoCallModel: typeof IncidentVideoCall | typeof AlertVideoCall;
   changeStateKey: string;
   buildEvent: (title: string) => Incident | Alert;
   buildStates: () => Array<IncidentState | AlertState>;
@@ -456,6 +501,8 @@ interface PageCase {
   expectedDetailTitles: Array<string>;
   leftColumnOrder: Array<string>;
   rightColumnOrder: Array<string>;
+  // Where the Measurements card reads this kind of event's measurements.
+  measurementsSource: EventMeasurementSource;
 }
 
 interface StateSpec {
@@ -485,6 +532,7 @@ const INCIDENT_CASE: PageCase = {
   eventModel: Incident,
   stateModel: IncidentState,
   timelineModel: IncidentStateTimeline,
+  videoCallModel: IncidentVideoCall,
   changeStateKey: "ChangeIncidentState",
   buildEvent: (title: string): Incident => {
     const incident: Incident = new Incident();
@@ -532,6 +580,8 @@ const INCIDENT_CASE: PageCase = {
     "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
+    // The status pages the incident is limited to, read only.
+    "Status Page Scope",
     "Labels",
     "Incident Number",
     "Incident ID",
@@ -545,11 +595,14 @@ const INCIDENT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-VideoCall",
     "stub-card-Incident Details",
+    "stub-Measurements",
     "stub-Roles",
     "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
+  measurementsSource: INCIDENT_EVENT_MEASUREMENTS,
 };
 
 const ALERT_CASE: PageCase = {
@@ -563,6 +616,7 @@ const ALERT_CASE: PageCase = {
   eventModel: Alert,
   stateModel: AlertState,
   timelineModel: AlertStateTimeline,
+  videoCallModel: AlertVideoCall,
   changeStateKey: "ChangeAlertState",
   buildEvent: (title: string): Alert => {
     const alert: Alert = new Alert();
@@ -624,10 +678,13 @@ const ALERT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-VideoCall",
     "stub-card-Alert Details",
+    "stub-Measurements",
     "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
+  measurementsSource: ALERT_EVENT_MEASUREMENTS,
 };
 
 // Created, acknowledged at 5m, resolved at 20m, reopened at 60m, acknowledged again at 70m.
@@ -658,6 +715,10 @@ const serve: ServeFunction = (pageCase: PageCase, server: FakeServer): void => {
       return Promise.resolve(
         listResult(pageCase.buildTimeline(server.timeline)),
       );
+    }
+
+    if (request.modelType === pageCase.videoCallModel) {
+      return Promise.resolve(listResult([]));
     }
 
     return Promise.reject(new Error("Unexpected list request"));
@@ -717,7 +778,7 @@ let currentEventId: string = EVENT_ID;
 
 /*
  * Every stub that was ever rendered with `id` in an id prop: its own
- * incidentId / alertId / subjectId / modelId, or a detail card's
+ * incidentId / alertId / subjectId / modelId / eventId, or a detail card's
  * modelDetailProps.modelId.
  */
 function stubsRenderedWithId(id: string): Array<string> {
@@ -735,6 +796,7 @@ function stubsRenderedWithId(id: string): Array<string> {
           props["alertId"],
           props["subjectId"],
           props["modelId"],
+          props["eventId"],
           detailProps?.["modelId"],
         ].some((value: unknown): boolean => {
           return value instanceof ObjectID && value.toString() === id;
@@ -756,14 +818,22 @@ const itemRequestId: ItemRequestIdFunction = (args: Array<unknown>): string => {
   return (args[0] as { id: ObjectID }).id.toString();
 };
 
+// What the signed-in user may do; a project member unless a test says so.
+let currentPermissions: Array<Permission> = [Permission.ProjectMember];
+
 beforeEach(() => {
   currentEventId = EVENT_ID;
+  currentPermissions = [Permission.ProjectMember];
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockImplementation((): ObjectID => {
       return new ObjectID(currentEventId);
     });
+  jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+    return currentPermissions;
+  });
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -771,6 +841,7 @@ afterEach(() => {
   getListMock.mockReset();
   getItemMock.mockReset();
   updateByIdMock.mockReset();
+  createOrUpdateMock.mockReset();
 
   for (const key of Object.keys(recordedProps)) {
     delete recordedProps[key];
@@ -819,7 +890,7 @@ describe.each([
       expect(mountCounts["Feed"]).toBe(1);
     });
 
-    test("reads the timeline, the states and the row in parallel", async () => {
+    test("reads the timeline, the states, the video calls and the row in parallel", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
 
       const item: Deferred<Incident | Alert> = createDeferred<
@@ -839,9 +910,20 @@ describe.each([
       pageCase.renderPage();
 
       await waitFor(() => {
-        expect(getListMock).toHaveBeenCalledTimes(2);
+        expect(getListMock).toHaveBeenCalledTimes(3);
       });
       expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(
+        getListMock.mock.calls.map((call: Array<unknown>): unknown => {
+          return (call[0] as { modelType: unknown }).modelType;
+        }),
+      ).toEqual(
+        expect.arrayContaining([
+          pageCase.stateModel,
+          pageCase.timelineModel,
+          pageCase.videoCallModel,
+        ]),
+      );
     });
 
     test("a failed first load shows the error with a retry that recovers", async () => {
@@ -1204,6 +1286,154 @@ describe.each([
       expect(
         latestProps<{ seriesLabels: unknown }>("SeriesResource").seriesLabels,
       ).toEqual({ "host.name": "prod-01" });
+    });
+
+    /*
+     * The Affected Resources editor holds a picker whose placeholder names a
+     * dozen resource types. In the default 512px modal it was cut off and
+     * every chip cramped, so the card edits in a Medium one.
+     */
+    test("the Affected Resources card edits in a Medium modal", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(
+        latestProps<{ createEditModalWidth?: ModalWidth }>(
+          "CardModelDetail:Affected Resources",
+        ).createEditModalWidth,
+      ).toBe(ModalWidth.Medium);
+    });
+  });
+
+  describe("measurements card", () => {
+    interface MeasurementsProps {
+      source: EventMeasurementSource;
+      eventId: ObjectID;
+      isEventOver: boolean;
+      refreshKey: string;
+      headerLayout: string;
+    }
+
+    test("reads this event's own measurements, in a stacked card", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const props: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      expect(props.source).toBe(pageCase.measurementsSource);
+      expect(props.eventId.toString()).toBe(EVENT_ID);
+      expect(props.headerLayout).toBe("stacked");
+      expect(mountCounts["Measurements"]).toBe(1);
+    });
+
+    test("an open event's measurements still wait on its states", async () => {
+      // Reopened and acknowledged again: open.
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+        false,
+      );
+    });
+
+    test("a resolved event's do not: the card is told it is over", async () => {
+      serve(pageCase, {
+        timeline: [
+          [CREATED_STATE_ID, 0],
+          [RESOLVED_STATE_ID, 20],
+        ],
+        title: "Checkout slow",
+      });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+        true,
+      );
+    });
+
+    test("an action makes it read again, in place, and says when the event is over", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const before: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      serve(pageCase, {
+        timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],
+        title: "Checkout slow (resolved)",
+      });
+
+      act(() => {
+        latestProps<ChangeStateProps>(
+          pageCase.changeStateKey,
+        ).onActionComplete();
+      });
+
+      await waitFor(() => {
+        expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+          true,
+        );
+      });
+
+      const after: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      // The state timeline changed, so the key did: the card reads again.
+      expect(after.refreshKey).not.toBe(before.refreshKey);
+      // The same card, told to read again: never unmounted.
+      expect(mountCounts["Measurements"]).toBe(1);
+    });
+
+    /*
+     * Only a state change moves a measurement. An AI report arriving, a
+     * note, a role or a details edit refresh the feed or the page, and the
+     * card must not read its rows again for any of them.
+     */
+    test("nothing but a state change makes it read again", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const key: string =
+        latestProps<MeasurementsProps>("Measurements").refreshKey;
+
+      act(() => {
+        latestProps<InvestigationPanelProps>(
+          "InvestigationPanel",
+        ).onAnalysisAvailable();
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
+
+      // A details edit re-reads the page, the same timeline included.
+      act(() => {
+        latestProps<CardModelDetailProps>(
+          `CardModelDetail:${pageCase.detailsCardName}`,
+        ).onSaveSuccess!();
+      });
+      await waitFor(() => {
+        expect(countItemReads()).toBeGreaterThan(1);
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
     });
   });
 
@@ -1849,7 +2079,134 @@ describe.each([
   });
 });
 
+/*
+ * The Affected Resources card. CardModelDetail is stubbed, so the card's
+ * display field is read from its latest props and rendered here the way the
+ * real card renders it. AffectedResourcesDisplay is stubbed for the page too,
+ * so the element its getElement returns is re-rendered with the real
+ * display: what is asserted is what a reader of the card would see.
+ */
+interface ResourcesFormFieldProps {
+  field?: Record<string, unknown>;
+  title?: string;
+  description?: string;
+  fieldType?: FormFieldSchemaType;
+  required?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
+  dropdownModal?: { type: unknown; labelField: string; valueField: string };
+  showIf?: (values: unknown) => boolean;
+  getCustomElement?: (values: unknown, elementProps: unknown) => ReactElement;
+}
+
+interface ResourcesCardProps {
+  cardProps: { description?: string };
+  formFields: Array<ResourcesFormFieldProps>;
+  modelDetailProps: { fields: Array<DetailFieldProps> };
+}
+
+type ResourcesCardFunction = () => ResourcesCardProps;
+
+const resourcesCard: ResourcesCardFunction = (): ResourcesCardProps => {
+  return latestProps<ResourcesCardProps>("CardModelDetail:Affected Resources");
+};
+
+type ResourcesDisplayFieldFunction = () => DetailFieldProps;
+
+const resourcesDisplayField: ResourcesDisplayFieldFunction =
+  (): DetailFieldProps => {
+    const displayField: DetailFieldProps | undefined =
+      resourcesCard().modelDetailProps.fields.find(
+        (field: DetailFieldProps): boolean => {
+          return Boolean(field.getElement);
+        },
+      );
+
+    if (!displayField) {
+      throw new Error("The Affected Resources card has no display field");
+    }
+
+    return displayField;
+  };
+
+type RenderResourcesDisplayFunction = (item: Incident | Alert) => RenderResult;
+
+const renderResourcesDisplay: RenderResourcesDisplayFunction = (
+  item: Incident | Alert,
+): RenderResult => {
+  const RealAffectedResourcesDisplay: FunctionComponent<
+    Record<string, unknown>
+  > = (
+    jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesDisplay",
+    ) as { default: FunctionComponent<Record<string, unknown>> }
+  ).default;
+
+  const display: ReactElement = resourcesDisplayField().getElement!(item);
+
+  return render(
+    <RealAffectedResourcesDisplay
+      {...(display.props as Record<string, unknown>)}
+    />,
+  );
+};
+
+type NamedMonitorFunction = (name: string) => Monitor;
+
+const namedMonitor: NamedMonitorFunction = (name: string): Monitor => {
+  const monitor: Monitor = new Monitor();
+  monitor.id = new ObjectID(MONITOR_ID);
+  monitor.name = name;
+  return monitor;
+};
+
+type NamedSloFunction = (name: string) => ServiceLevelObjective;
+
+const namedSlo: NamedSloFunction = (name: string): ServiceLevelObjective => {
+  const slo: ServiceLevelObjective = new ServiceLevelObjective();
+  slo.id = new ObjectID("dddddddd-dddd-4ddd-8ddd-ddddddddddd1");
+  slo.name = name;
+  return slo;
+};
+
 describe("incident-only behaviour", () => {
+  /*
+   * Measurements can start when the incident was declared, and the server
+   * works them out again when that time is corrected.
+   */
+  test("a corrected declared time makes the Measurements card read again", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const before: string = latestProps<{ refreshKey: string }>(
+      "Measurements",
+    ).refreshKey;
+
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      incident.declaredAt = minutesAfterStart(-5);
+      return Promise.resolve(incident);
+    });
+
+    act(() => {
+      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+        .onSaveSuccess!();
+    });
+
+    await waitFor(() => {
+      expect(
+        latestProps<{ refreshKey: string }>("Measurements").refreshKey,
+      ).not.toBe(before);
+    });
+  });
+
   test("the header names who declared the incident once the details card has read it", async () => {
     serve(INCIDENT_CASE, {
       timeline: REOPENED_TIMELINE,
@@ -2021,9 +2378,9 @@ describe("incident-only behaviour", () => {
     const readsBefore: number = countItemReads();
 
     await act(async () => {
-      latestProps<{ onResendNotification: () => void }>(
+      latestProps<ResendStatusProps>(
         "SubscriberNotificationStatus",
-      ).onResendNotification();
+      ).onResendNotification({ isToAllStatusPages: false });
     });
 
     await waitFor(() => {
@@ -2033,6 +2390,7 @@ describe("incident-only behaviour", () => {
       ).toBe(!refresherBefore);
     });
 
+    // Retry: back to Pending, and the server keeps the record so it resumes.
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: Record<string, unknown> })
@@ -2040,11 +2398,221 @@ describe("incident-only behaviour", () => {
     ).toEqual({
       subscriberNotificationStatusOnIncidentCreated:
         StatusPageSubscriberNotificationStatus.Pending,
-      subscriberNotificationStatusMessage: "Notification queued for resending",
+      subscriberNotificationStatusMessage:
+        IncidentCreatedResend.retryQueuedMessage,
     });
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(countItemReads()).toBe(readsBefore);
     expect(mountCounts["InvestigationPanel"]).toBe(1);
   });
+
+  test("resending to every status page asks the server to, and re-reads only the details card", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    createOrUpdateMock.mockResolvedValue({});
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const refresherBefore: boolean | undefined =
+      latestProps<CardModelDetailProps>(
+        "CardModelDetail:Incident Details",
+      ).refresher;
+
+    renderStatusField();
+
+    await act(async () => {
+      latestProps<ResendStatusProps>(
+        "SubscriberNotificationStatus",
+      ).onResendNotification({ isToAllStatusPages: true });
+    });
+
+    await waitFor(() => {
+      expect(
+        latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+          .refresher,
+      ).toBe(!refresherBefore);
+    });
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+
+    const request: {
+      model: Incident;
+      modelType: unknown;
+      formType: FormType;
+      miscDataProps: Record<string, unknown>;
+    } = createOrUpdateMock.mock.calls[0]![0] as {
+      model: Incident;
+      modelType: unknown;
+      formType: FormType;
+      miscDataProps: Record<string, unknown>;
+    };
+
+    expect(request.modelType).toBe(Incident);
+    expect(request.formType).toBe(FormType.Update);
+    expect(request.model._id?.toString()).toBe(EVENT_ID);
+    expect(request.model.subscriberNotificationStatusOnIncidentCreated).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(request.miscDataProps).toEqual(
+      IncidentCreatedResend.getMiscDataProps(),
+    );
+  });
+
+  test("offers Resend after a success, confirmed with who this incident reaches now", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    renderStatusField();
+
+    const confirmation: {
+      resendDescription: string;
+      retryDescription: string;
+      retryToAllStatusPagesLabel?: string;
+      retryToAllStatusPagesDescription?: string;
+      audience: ReactElement;
+    } = latestProps<{
+      resendConfirmation: {
+        resendDescription: string;
+        retryDescription: string;
+        retryToAllStatusPagesLabel?: string;
+        retryToAllStatusPagesDescription?: string;
+        audience: ReactElement;
+      };
+    }>("SubscriberNotificationStatus").resendConfirmation;
+
+    expect(confirmation.resendDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedResendDescription,
+    );
+    expect(confirmation.retryDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedRetryDescription,
+    );
+    expect(confirmation.retryToAllStatusPagesLabel).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+    );
+    expect(confirmation.retryToAllStatusPagesDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedResendToAllStatusPagesDescription,
+    );
+
+    const audienceProps: {
+      request: { incidentId: { toString: () => string } };
+    } = confirmation.audience.props as {
+      request: { incidentId: { toString: () => string } };
+    };
+
+    expect(audienceProps.request.incidentId.toString()).toBe(EVENT_ID);
+    expect(audienceProps.request).not.toHaveProperty(
+      "excludeStatusPagesNotifiedOnCreation",
+    );
+  });
+
+  /*
+   * Retry resumes after the pages already sent it in full, so its
+   * confirmation's "Will notify" must not list them: it asks for the audience
+   * without them. Resend, and Retry to every page, keep the full one.
+   */
+  test("Retry's confirmation shows who Retry reaches: without the pages already sent it in full", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    renderStatusField();
+
+    const confirmation: { retryAudience?: ReactElement } = latestProps<{
+      resendConfirmation: { retryAudience?: ReactElement };
+    }>("SubscriberNotificationStatus").resendConfirmation;
+
+    const retryAudienceProps: {
+      request: {
+        incidentId: { toString: () => string };
+        excludeStatusPagesNotifiedOnCreation?: boolean;
+      };
+    } = confirmation.retryAudience!.props as {
+      request: {
+        incidentId: { toString: () => string };
+        excludeStatusPagesNotifiedOnCreation?: boolean;
+      };
+    };
+
+    expect(retryAudienceProps.request.incidentId.toString()).toBe(EVENT_ID);
+    expect(
+      retryAudienceProps.request.excludeStatusPagesNotifiedOnCreation,
+    ).toBe(true);
+  });
+
+  /*
+   * Retry and Resend write the notification's status. A role that may not
+   * is offered neither - the details card used to offer them to everyone,
+   * read-only viewers included, and let the server refuse.
+   */
+  test.each([[[Permission.Viewer]], [[Permission.IncidentViewer]], [[]]])(
+    "a user with %j is offered neither Resend nor Retry",
+    async (permissions: Array<Permission>) => {
+      currentPermissions = permissions;
+      serve(INCIDENT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      INCIDENT_CASE.renderPage();
+      await waitForPage();
+
+      renderStatusField();
+
+      const statusProps: {
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      } = latestProps<{
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      }>("SubscriberNotificationStatus");
+
+      expect(statusProps.onResendNotification).toBeUndefined();
+      expect(statusProps.resendConfirmation).toBeUndefined();
+    },
+  );
+
+  test.each([
+    [[Permission.IncidentMember]],
+    [[Permission.EditProjectIncident]],
+  ])(
+    "a user with %j is offered them",
+    async (permissions: Array<Permission>) => {
+      currentPermissions = permissions;
+      serve(INCIDENT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      INCIDENT_CASE.renderPage();
+      await waitForPage();
+
+      renderStatusField();
+
+      const statusProps: {
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      } = latestProps<{
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      }>("SubscriberNotificationStatus");
+
+      expect(statusProps.onResendNotification).toBeDefined();
+      expect(statusProps.resendConfirmation).toBeDefined();
+    },
+  );
 
   /*
    * The details card is stubbed, so the status row is rendered here from the
@@ -2072,9 +2640,9 @@ describe("incident-only behaviour", () => {
 
   const resend: ResendFunction = async (): Promise<void> => {
     await act(async () => {
-      latestProps<{ onResendNotification: () => void }>(
+      latestProps<ResendStatusProps>(
         "SubscriberNotificationStatus",
-      ).onResendNotification();
+      ).onResendNotification({ isToAllStatusPages: false });
     });
     await flush();
   };
@@ -2301,6 +2869,42 @@ describe("incident-only behaviour", () => {
       })?.value,
     ).toBe("Probe AP");
   });
+
+  /*
+   * The alert card's counterpart: Incident.monitors is ManyToMany and was
+   * always read and shown here, so the two cards agree on what an affected
+   * monitor looks like.
+   */
+  test("the Affected Resources card reads the incident's monitors and lists them under Monitors", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    expect(resourcesDisplayField().field?.["monitors"]).toEqual({
+      name: true,
+      _id: true,
+    });
+
+    const incident: Incident = new Incident();
+    incident.monitors = [namedMonitor("Developer portal")];
+
+    const view: RenderResult = renderResourcesDisplay(incident);
+    const grid: HTMLElement = within(view.container).getByTestId(
+      "affected-resources-grid",
+    );
+
+    expect(within(view.container).queryByText("No resources affected.")).toBe(
+      null,
+    );
+    expect(within(grid).getByText("Monitors")).toBeInTheDocument();
+    expect(within(grid).getByTestId("monitor-element")).toHaveTextContent(
+      "Developer portal",
+    );
+  });
 });
 
 describe("alert-only behaviour", () => {
@@ -2446,5 +3050,723 @@ describe("alert-only behaviour", () => {
         }),
       ).toEqual(["Created"]);
     }
+  });
+
+  /*
+   * An alert is raised on one monitor (Alert.monitor, singular, set when the
+   * alert is created), and the alert's "created" feed item lists that
+   * monitor under Resources Affected. The Affected Resources card used to
+   * hide monitors and never read the relation, so an alert raised on the
+   * "Developer portal" monitor said "No resources affected." right beside a
+   * feed item naming that monitor.
+   */
+  describe("the Affected Resources card", () => {
+    beforeEach(async () => {
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+    });
+
+    test("reads the alert's monitor alongside the other resources", () => {
+      const select: Record<string, unknown> =
+        resourcesDisplayField().field || {};
+
+      expect(select["monitor"]).toEqual({ name: true, _id: true });
+      expect(select).toEqual(
+        expect.objectContaining({
+          hosts: { name: true, _id: true },
+          services: { name: true, _id: true, serviceColor: true },
+          serviceLevelObjectives: { name: true, _id: true },
+        }),
+      );
+    });
+
+    test("lists the monitor an alert was raised on under Monitors, never 'No resources affected.'", () => {
+      const alert: Alert = new Alert();
+      alert.monitor = namedMonitor("Developer portal");
+
+      const view: RenderResult = renderResourcesDisplay(alert);
+
+      expect(
+        within(view.container).queryByText("No resources affected."),
+      ).toBeNull();
+
+      const grid: HTMLElement = within(view.container).getByTestId(
+        "affected-resources-grid",
+      );
+
+      expect(grid.children).toHaveLength(1);
+      expect(within(grid).getByText("Monitors")).toBeInTheDocument();
+      expect(
+        within(grid).getByTestId("affected-resource-item"),
+      ).toHaveAttribute("title", "Developer portal");
+      expect(within(grid).getByTestId("monitor-element")).toHaveTextContent(
+        "Developer portal",
+      );
+      // One category counts itself in its heading; no total line above it.
+      expect(
+        within(grid).getByRole("heading", { level: 3, name: "Monitors 1" }),
+      ).toBeVisible();
+      expect(
+        within(view.container).queryByTestId("affected-resources-summary"),
+      ).toBeNull();
+    });
+
+    test("shows both the monitor and an SLO, the monitor first", () => {
+      const alert: Alert = new Alert();
+      alert.monitor = namedMonitor("Developer portal");
+      alert.serviceLevelObjectives = [namedSlo("Checkout availability")];
+
+      const view: RenderResult = renderResourcesDisplay(alert);
+      const grid: HTMLElement = within(view.container).getByTestId(
+        "affected-resources-grid",
+      );
+      const categories: Array<HTMLElement> = Array.from(
+        grid.children,
+      ) as Array<HTMLElement>;
+
+      expect(categories).toHaveLength(2);
+      expect(within(categories[0]!).getByText("Monitors")).toBeVisible();
+      expect(
+        within(categories[0]!).getByTestId("monitor-element"),
+      ).toHaveTextContent("Developer portal");
+      expect(within(categories[1]!).getByText("SLOs")).toBeVisible();
+      expect(
+        within(categories[1]!).getByText("Checkout availability"),
+      ).toBeVisible();
+      expect(within(view.container).getByText("2 resources")).toBeVisible();
+      expect(
+        within(view.container).getByText("across 2 categories"),
+      ).toBeVisible();
+    });
+
+    test("an alert with no monitor and nothing else is still 'No resources affected.'", () => {
+      const view: RenderResult = renderResourcesDisplay(new Alert());
+
+      expect(
+        within(view.container).getByText("No resources affected."),
+      ).toBeVisible();
+      expect(
+        within(view.container).queryByTestId("affected-resources-grid"),
+      ).toBeNull();
+      expect(within(view.container).queryByTestId("monitor-element")).toBe(
+        null,
+      );
+    });
+
+    /*
+     * Alert.monitor is a single relation, so it is edited with a dropdown of
+     * its own above the picker (as on the Create page), never as a picker
+     * chip. ModelForm loads and saves only the fields registered here.
+     */
+    test("its edit form offers the monitor in a dropdown of its own, above the picker", () => {
+      const formFields: Array<ResourcesFormFieldProps> =
+        resourcesCard().formFields;
+      const keysOf: (field: ResourcesFormFieldProps) => Array<string> = (
+        field: ResourcesFormFieldProps,
+      ): Array<string> => {
+        return Object.keys(field.field || {});
+      };
+
+      const formKeys: Array<string> = formFields.flatMap(keysOf);
+
+      // The singular relation, never the incident's plural list.
+      expect(formKeys).not.toContain("monitors");
+      /*
+       * The lock is read by the page, not registered: ModelForm submits every
+       * registered field, and nobody may update this column.
+       */
+      expect(formKeys).not.toContain("isCreatedAutomatically");
+
+      const visibleFields: Array<ResourcesFormFieldProps> = formFields.filter(
+        (field: ResourcesFormFieldProps): boolean => {
+          return !field.showIf || field.showIf({});
+        },
+      );
+      const hiddenFields: Array<ResourcesFormFieldProps> = formFields.filter(
+        (field: ResourcesFormFieldProps): boolean => {
+          return Boolean(field.showIf) && !field.showIf!({});
+        },
+      );
+
+      // The monitor dropdown first, then the resource picker on hosts.
+      expect(visibleFields.map(keysOf)).toEqual([["monitor"], ["hosts"]]);
+
+      const monitorField: ResourcesFormFieldProps = visibleFields[0]!;
+
+      expect(monitorField.title).toBe("Monitor");
+      expect(monitorField.fieldType).toBe(FormFieldSchemaType.Dropdown);
+      expect(monitorField.dropdownModal).toEqual({
+        type: Monitor,
+        labelField: "name",
+        valueField: "_id",
+      });
+      expect(monitorField.required).toBe(false);
+      /*
+       * The Create page's placeholder: the dashboard translates it by its
+       * English text, and every locale has this spelling.
+       */
+      expect(monitorField.placeholder).toBe("Select Monitor");
+
+      const pickerField: ResourcesFormFieldProps = visibleFields[1]!;
+
+      // Read as a pair with the dropdown above it.
+      expect(pickerField.title).toBe("Other Affected Resources");
+      expect(pickerField.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      // Hidden registrations so the form still loads the other relations.
+      expect(hiddenFields.flatMap(keysOf)).toEqual([
+        "kubernetesClusters",
+        "dockerHosts",
+        "podmanHosts",
+        "proxmoxClusters",
+        "vmwareVCenters",
+        "cephClusters",
+        "storageArrays",
+        "dockerSwarmClusters",
+        "iotFleets",
+        "databaseServers",
+        "services",
+      ]);
+
+      // The picker does not offer monitors: the dropdown is the one place.
+      render(pickerField.getCustomElement!({}, {}));
+
+      const picker: { monitors?: unknown; resourceTypes?: Array<string> } =
+        latestProps<{ monitors?: unknown; resourceTypes?: Array<string> }>(
+          "AffectedResourcesPicker",
+        );
+
+      expect(picker.monitors).toBeUndefined();
+      expect(picker.resourceTypes).toContain("Host");
+      expect(picker.resourceTypes).not.toContain("Monitor");
+    });
+
+    test("says it covers monitors", () => {
+      expect(resourcesCard().cardProps.description).toBe(
+        "Monitors, services, infrastructure and SLOs this alert affects.",
+      );
+    });
+  });
+
+  /*
+   * An alert raised automatically keeps the monitor it was raised with, and
+   * the server refuses to set, change or clear it (AlertService.
+   * onBeforeUpdate). Raised by a monitor, the alert shows that monitor
+   * locked, with the reason; raised without one (an SLO burn-rate or
+   * security-event alert, or one whose monitor was deleted), it has no
+   * Monitor field at all. The page reads which case it is with its own row,
+   * so the lock is known before any card renders.
+   */
+  describe("the Affected Resources card's monitor lock", () => {
+    interface ServedAlert {
+      isCreatedAutomatically: boolean;
+      monitorId?: string | undefined;
+    }
+
+    type ServeAlertFunction = (served: ServedAlert) => void;
+
+    const serveAlert: ServeAlertFunction = (served: ServedAlert): void => {
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      getItemMock.mockImplementation(() => {
+        const alert: Alert = ALERT_CASE.buildEvent("Checkout slow") as Alert;
+        alert.isCreatedAutomatically = served.isCreatedAutomatically;
+
+        if (served.monitorId) {
+          alert.monitorId = new ObjectID(served.monitorId);
+        }
+
+        return Promise.resolve(alert);
+      });
+    };
+
+    type MonitorFieldFunction = () => ResourcesFormFieldProps;
+
+    const monitorField: MonitorFieldFunction = (): ResourcesFormFieldProps => {
+      const field: ResourcesFormFieldProps | undefined =
+        resourcesCard().formFields.find(
+          (formField: ResourcesFormFieldProps): boolean => {
+            return Boolean(formField.field?.["monitor"]);
+          },
+        );
+
+      if (!field) {
+        throw new Error("The Affected Resources form has no monitor field");
+      }
+
+      return field;
+    };
+
+    type IsMonitorFieldShownFunction = (values: unknown) => boolean;
+
+    // What the form decides for the Monitor field, given its current values.
+    const isMonitorFieldShown: IsMonitorFieldShownFunction = (
+      values: unknown,
+    ): boolean => {
+      const field: ResourcesFormFieldProps = monitorField();
+
+      return !field.showIf || field.showIf(values);
+    };
+
+    const LOCKED_DESCRIPTION: string =
+      "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed.";
+
+    test("the page reads whether the alert was raised automatically, and its monitor, with its own row", async () => {
+      serveAlert({ isCreatedAutomatically: false });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      const pageRead: { select: Record<string, unknown> } | undefined =
+        getItemMock.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as { select: Record<string, unknown> };
+          })
+          .find((request: { select: Record<string, unknown> }): boolean => {
+            return Boolean(request.select["telemetryQuery"]);
+          });
+
+      expect(pageRead).toBeDefined();
+      expect(pageRead!.select["isCreatedAutomatically"]).toBe(true);
+      expect(pageRead!.select["monitorId"]).toBe(true);
+    });
+
+    test("an alert its monitor raised shows the dropdown locked, and says why", async () => {
+      serveAlert({ isCreatedAutomatically: true, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({ monitor: MONITOR_ID })).toBe(true);
+      expect(monitorField().disabled).toBe(true);
+      expect(monitorField().description).toBe(LOCKED_DESCRIPTION);
+    });
+
+    test("a manual alert's monitor can be changed or cleared", async () => {
+      serveAlert({ isCreatedAutomatically: false, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({ monitor: MONITOR_ID })).toBe(true);
+      // Cleared in the open form, it stays there to pick another.
+      expect(isMonitorFieldShown({ monitor: null })).toBe(true);
+      expect(monitorField().disabled).toBe(false);
+      expect(monitorField().description).toBe(
+        "Select the monitor affected by this alert.",
+      );
+    });
+
+    test("a manual alert with no monitor can be given one", async () => {
+      serveAlert({ isCreatedAutomatically: false });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(true);
+      expect(monitorField().disabled).toBe(false);
+      expect(monitorField().description).toBe(
+        "Select the monitor affected by this alert.",
+      );
+    });
+
+    /*
+     * Nothing to show, and nothing that may be picked: the field is left out
+     * rather than shown empty and locked with a reason that names a monitor
+     * the alert does not have.
+     */
+    test("an automatic alert with no monitor (an SLO burn-rate alert) has no Monitor field", async () => {
+      serveAlert({ isCreatedAutomatically: true });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(false);
+      expect(isMonitorFieldShown({ monitor: null })).toBe(false);
+      // Still registered: ModelForm loads it and saves back the null it holds.
+      expect(monitorField().field).toEqual({ monitor: true });
+    });
+
+    /*
+     * Saving the card can set, move or clear a manual alert's monitor. The
+     * details card shows it (and reports it for the header's Monitor fact),
+     * and the lock depends on the page's own row, so both are read again
+     * without a reload. Here, an automatic alert's monitor was deleted while
+     * the page was open: after the save, the row the page reads again has no
+     * monitor, and the field locked on it is left out.
+     */
+    test("saving the card re-reads the details card, the page's lock and the feed", async () => {
+      serveAlert({ isCreatedAutomatically: true, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(true);
+      expect(monitorField().disabled).toBe(true);
+
+      const refresherBefore: boolean | undefined =
+        latestProps<CardModelDetailProps>(
+          "CardModelDetail:Alert Details",
+        ).refresher;
+      const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+        "Feed",
+      ).refreshToken;
+      const readsBefore: number = countItemReads();
+
+      // Its monitor was deleted, which leaves the alert's monitorId NULL.
+      serveAlert({ isCreatedAutomatically: true });
+
+      act(() => {
+        latestProps<CardModelDetailProps>("CardModelDetail:Affected Resources")
+          .onSaveSuccess!();
+      });
+
+      await waitFor(() => {
+        expect(isMonitorFieldShown({})).toBe(false);
+      });
+
+      expect(
+        latestProps<CardModelDetailProps>("CardModelDetail:Alert Details")
+          .refresher,
+      ).toBe(!refresherBefore);
+      expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+        feedTokenBefore + 1,
+      );
+      // One background read of the page's own row, and nothing remounted.
+      expect(countItemReads()).toBe(readsBefore + 1);
+      expect(mountCounts["InvestigationPanel"]).toBe(1);
+      expect(mountCounts["Feed"]).toBe(1);
+    });
+  });
+
+  /*
+   * The card's form fields, rendered in the real ModelForm its Edit modal
+   * opens (EntityDropdown included), against the row as the API hands it to
+   * the form: the monitor as `{ _id }` only.
+   */
+  describe("the Affected Resources edit form, rendered", () => {
+    const OTHER_MONITOR_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2";
+    const HOST_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1";
+    const OTHER_HOST_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2";
+
+    const MONITOR_NAMES: Record<string, string> = {
+      [MONITOR_ID]: "Developer portal",
+      [OTHER_MONITOR_ID]: "Payments API",
+    };
+
+    let formLoadSelect: Record<string, unknown> | null = null;
+
+    interface EditFormOptions {
+      isCreatedAutomatically: boolean;
+      // Whether the alert has a monitor. It has MONITOR_ID unless this is false.
+      hasMonitor?: boolean | undefined;
+    }
+
+    type RenderEditFormFunction = (options: EditFormOptions) => Promise<void>;
+
+    const renderEditForm: RenderEditFormFunction = async (
+      options: EditFormOptions,
+    ): Promise<void> => {
+      const hasMonitor: boolean = options.hasMonitor !== false;
+
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      getItemMock.mockImplementation(() => {
+        const alert: Alert = ALERT_CASE.buildEvent("Checkout slow") as Alert;
+        alert.isCreatedAutomatically = options.isCreatedAutomatically;
+
+        if (hasMonitor) {
+          alert.monitorId = new ObjectID(MONITOR_ID);
+        }
+
+        return Promise.resolve(alert);
+      });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      const fields: Array<ModelField<Alert>> = resourcesCard()
+        .formFields as unknown as Array<ModelField<Alert>>;
+
+      // The page has handed over its fields; only the form is needed now.
+      cleanup();
+
+      // The form is about wiring, not about who may edit which column.
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
+
+      formLoadSelect = null;
+
+      getItemMock.mockImplementation((...args: Array<unknown>) => {
+        formLoadSelect = (args[0] as { select: Record<string, unknown> })
+          .select;
+
+        return Promise.resolve(
+          BaseModel.fromJSON(
+            {
+              _id: EVENT_ID,
+              // The API answers a relation the row does not hold with null.
+              monitor: hasMonitor ? { _id: MONITOR_ID } : null,
+              hosts: [{ _id: HOST_ID }],
+              services: [],
+            },
+            Alert,
+          ) as Alert,
+        );
+      });
+
+      getListMock.mockImplementation((...args: Array<unknown>) => {
+        const request: {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        } = args[0] as {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        };
+
+        if (request.modelType !== Monitor) {
+          return Promise.resolve(listResult([]));
+        }
+
+        const idFilter: unknown = request.query["_id"];
+        const ids: Array<string> =
+          idFilter instanceof Includes
+            ? (idFilter.values as Array<unknown>).map((id: unknown) => {
+                return String(id);
+              })
+            : Object.keys(MONITOR_NAMES);
+
+        return Promise.resolve(
+          listResult(
+            ids
+              .filter((id: string): boolean => {
+                return Boolean(MONITOR_NAMES[id]);
+              })
+              .map((id: string): Monitor => {
+                const monitor: Monitor = new Monitor();
+                monitor._id = id;
+                monitor.name = MONITOR_NAMES[id]!;
+                return monitor;
+              }),
+          ),
+        );
+      });
+
+      createOrUpdateMock.mockResolvedValue({
+        data: new Alert(),
+        miscData: undefined,
+      });
+
+      render(
+        <ModelForm<Alert>
+          modelType={Alert}
+          id="edit-alert-affected-resources"
+          name="Affected Resources"
+          fields={fields}
+          formType={FormType.Update}
+          modelIdToEdit={new ObjectID(EVENT_ID)}
+          submitButtonText="Save Changes"
+          onSuccess={() => {
+            // asserted through createOrUpdateMock
+          }}
+        />,
+      );
+
+      if (hasMonitor) {
+        await screen.findByText("Developer portal");
+        return;
+      }
+
+      // No monitor name to wait for: the picker renders with the fields.
+      await waitFor(() => {
+        expect(propsHistory("AffectedResourcesPicker").length).toBeGreaterThan(
+          0,
+        );
+      });
+    };
+
+    type SaveFunction = () => Promise<Alert>;
+
+    const save: SaveFunction = async (): Promise<Alert> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      return (createOrUpdateMock.mock.calls[0]![0] as { model: Alert }).model;
+    };
+
+    // The body ModelAPI.createOrUpdate sends for this model.
+    type RequestBodyFunction = (model: Alert) => JSONObject;
+
+    const requestBodyOf: RequestBodyFunction = (model: Alert): JSONObject => {
+      return JSONFunctions.serialize(BaseModel.toJSON(model, Alert));
+    };
+
+    type MonitorButtonFunction = () => HTMLButtonElement;
+
+    // The dropdown shows its selection as a button until it is opened.
+    const monitorButton: MonitorButtonFunction = (): HTMLButtonElement => {
+      const button: HTMLButtonElement | null = screen
+        .getByText("Developer portal")
+        .closest("button");
+
+      if (!button) {
+        throw new Error("The monitor dropdown shows no selection");
+      }
+
+      return button;
+    };
+
+    test("loads the monitor as an id and shows its name", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      expect(formLoadSelect).not.toBeNull();
+      expect(formLoadSelect!["monitor"]).toBeTruthy();
+      expect(monitorButton()).not.toBeDisabled();
+    });
+
+    test("saving without touching the monitor keeps it", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+      expect(requestBodyOf(saved)["monitor"]).toEqual(
+        expect.objectContaining({ _id: MONITOR_ID }),
+      );
+    });
+
+    test("an edit to the other resources keeps the monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      act(() => {
+        latestProps<{ onChange: (payload: unknown) => void }>(
+          "AffectedResourcesPicker",
+        ).onChange([OTHER_HOST_ID]);
+      });
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+      expect(
+        (saved.hosts || []).map((host: BaseModel): string => {
+          return String(host._id);
+        }),
+      ).toEqual([OTHER_HOST_ID]);
+    });
+
+    test("choosing another monitor saves the new one", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      fireEvent.click(monitorButton());
+      fireEvent.click(
+        await screen.findByRole("option", { name: /Payments API/ }),
+      );
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(OTHER_MONITOR_ID);
+      expect(requestBodyOf(saved)["monitor"]).toEqual(
+        expect.objectContaining({ _id: OTHER_MONITOR_ID }),
+      );
+    });
+
+    /*
+     * Clear selection hands the form null. It has to reach the request as an
+     * explicit null: an absent key would leave the monitor where it is.
+     */
+    test("clearing it saves the alert with no monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Developer portal")).toBeNull();
+      });
+
+      const saved: Alert = await save();
+      const body: JSONObject = requestBodyOf(saved);
+
+      expect(saved.monitor).toBeNull();
+      expect(Object.prototype.hasOwnProperty.call(body, "monitor")).toBe(true);
+      expect(body["monitor"]).toBeNull();
+    });
+
+    test("for an alert its monitor raised, the dropdown cannot be opened or cleared, and saving keeps the monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: true });
+
+      expect(monitorButton()).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Clear selection" })).toBe(
+        null,
+      );
+      expect(
+        screen.getByText(/so it can't be moved to another monitor/),
+      ).toBeInTheDocument();
+
+      fireEvent.click(monitorButton());
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(screen.queryByRole("option", { name: /Payments API/ })).toBeNull();
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+    });
+
+    /*
+     * An automatic alert raised without a monitor has no Monitor field. The
+     * form still loads the hidden field and submits the null it holds, which
+     * the server reads as no change (AlertMonitorEditGuard.test.ts), so the
+     * rest of the card still saves.
+     */
+    test("for an automatic alert with no monitor, the field is left out, and saving keeps it without one", async () => {
+      await renderEditForm({ isCreatedAutomatically: true, hasMonitor: false });
+
+      expect(formLoadSelect!["monitor"]).toBeTruthy();
+      expect(screen.queryByText("Monitor")).toBeNull();
+      expect(screen.queryByPlaceholderText("Select Monitor")).toBeNull();
+      expect(screen.queryByText(/raised by this monitor/)).toBeNull();
+      expect(screen.queryByRole("button", { name: "Clear selection" })).toBe(
+        null,
+      );
+
+      act(() => {
+        latestProps<{ onChange: (payload: unknown) => void }>(
+          "AffectedResourcesPicker",
+        ).onChange([OTHER_HOST_ID]);
+      });
+
+      const saved: Alert = await save();
+      const body: JSONObject = requestBodyOf(saved);
+
+      expect(saved.monitor).toBeNull();
+      expect(body["monitor"]).toBeNull();
+      expect(
+        (saved.hosts || []).map((host: BaseModel): string => {
+          return String(host._id);
+        }),
+      ).toEqual([OTHER_HOST_ID]);
+    });
+
+    test("for a manual alert with no monitor, the dropdown is offered", async () => {
+      await renderEditForm({
+        isCreatedAutomatically: false,
+        hasMonitor: false,
+      });
+
+      expect(screen.getByText("Monitor")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Select Monitor")).not.toBeDisabled();
+    });
   });
 });

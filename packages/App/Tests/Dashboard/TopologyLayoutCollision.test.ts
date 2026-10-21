@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   DEVICE_NODE_RADIUS,
   ENDPOINT_NODE_HALF_HEIGHT,
@@ -113,28 +114,12 @@ const sceneFrom: SceneFromFunction = (
 };
 
 /*
- * Seeded xorshift. The layout is required to be a pure function of the
+ * Seeded draws. The layout is required to be a pure function of the
  * graph, so a fixture built from Math.random would make a failure
  * unreproducible — the one thing worse than a flaky layout is a flaky
  * test of one.
  */
 type NextRandomFunction = () => number;
-type MakeRandomFunction = (seed: number) => NextRandomFunction;
-
-const makeRandom: MakeRandomFunction = (seed: number): NextRandomFunction => {
-  let state: number = seed >>> 0;
-  if (state === 0) {
-    state = 0x9e3779b9;
-  }
-  return (): number => {
-    state ^= state << 13;
-    state >>>= 0;
-    state ^= state >> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    return state / 4294967296;
-  };
-};
 
 type ArrangementName =
   | "all coincident"
@@ -148,6 +133,35 @@ type BuildArrangementFunction = (
   count: number,
 ) => Scene;
 
+type ScatteredSceneFunction = (nodes: Array<NetworkTopologyNode>) => Scene;
+
+/*
+ * The nodes scattered over a 200 px square, from a fixed seed. A few nodes
+ * can land clear of one another and leave nothing to relax, so a scatter
+ * with no overlap is drawn again from the same stream: every scatter starts
+ * broken, and it is the same scatter on every run.
+ */
+const scatteredScene: ScatteredSceneFunction = (
+  nodes: Array<NetworkTopologyNode>,
+): Scene => {
+  const nextRandom: NextRandomFunction = seededRandom(12345);
+
+  for (let draw: number = 0; draw < 1000; draw++) {
+    const scene: Scene = sceneFrom(
+      nodes,
+      nodes.map((): TopologyPoint => {
+        return { x: nextRandom() * 200, y: nextRandom() * 200 };
+      }),
+    );
+
+    if (countNodeOverlaps(scene.positions, scene.ids, scene.footprints) > 0) {
+      return scene;
+    }
+  }
+
+  throw new Error("No scatter of these nodes overlaps in 1,000 draws.");
+};
+
 /*
  * The five starting shapes the relaxation has to cope with. Ids are zero
  * padded so canonical id order matches creation order, which keeps the
@@ -159,7 +173,6 @@ const buildArrangement: BuildArrangementFunction = (
 ): Scene => {
   const nodes: Array<NetworkTopologyNode> = [];
   const points: Array<TopologyPoint> = [];
-  const nextRandom: NextRandomFunction = makeRandom(12345);
   const columns: number = Math.ceil(Math.sqrt(count));
 
   for (let i: number = 0; i < count; i++) {
@@ -181,12 +194,13 @@ const buildArrangement: BuildArrangementFunction = (
     }
     if (arrangement === "a straight line") {
       points.push({ x: i * 24, y: 0 });
-      continue;
     }
-    points.push({ x: nextRandom() * 200, y: nextRandom() * 200 });
   }
 
-  return sceneFrom(nodes, points);
+  // The two seeded scatters place no point above.
+  return points.length === count
+    ? sceneFrom(nodes, points)
+    : scatteredScene(nodes);
 };
 
 // Positions as sorted plain rows, so two maps can be compared exactly.

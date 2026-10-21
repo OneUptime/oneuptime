@@ -14,6 +14,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import ObjectID from "Common/Types/ObjectID";
@@ -114,9 +116,28 @@ export function toEditableConfigs(
 // Every field the editor can write, so the update helper stays type-safe.
 type EditableConfigKey = keyof DiscoveryScanSnmpConfig;
 
+/*
+ * Each card's fields are labelled for assistive technology - and for tests -
+ * by the label drawn above them: an input by its id (the label's htmlFor), a
+ * dropdown by the label's id (aria-labelledby). They used to be unnamed
+ * inputs under a visual label.
+ */
+export function getSnmpConfigFieldId(index: number, field: string): string {
+  return `snmp-config-${index}-${field}`;
+}
+
+export function getSnmpConfigLabelId(index: number, field: string): string {
+  return `snmp-config-${index}-${field}-label`;
+}
+
+export const SNMP_CREDENTIALS_CARD_LABEL: string = translationKey(
+  "Credentials {{number}} ({{version}})",
+);
+
 const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [configs, setConfigs] = useState<Array<DiscoveryScanSnmpConfig>>(() => {
     return toEditableConfigs(props.initialValue);
   });
@@ -300,6 +321,26 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * Each card is headed by its own name, or "Credentials 1 (V2c)": the step
+   * is called SNMP Credentials, so its cards are too. (The probe's progress
+   * messages keep SnmpScanConfigUtil's own "SNMP config 1" wording.)
+   */
+  const getCardLabel: (
+    config: DiscoveryScanSnmpConfig,
+    index: number,
+  ) => string = (config: DiscoveryScanSnmpConfig, index: number): string => {
+    if ((config.name || "").trim()) {
+      return SnmpScanConfigUtil.getConfigLabel(config, index);
+    }
+
+    return translator.translateTemplate(SNMP_CREDENTIALS_CARD_LABEL, {
+      number: String(index + 1),
+      // Without a name and an index, the label is the version alone.
+      version: SnmpScanConfigUtil.getConfigLabel(config),
+    });
+  };
+
   const renderDropdown: (data: {
     index: number;
     field: EditableConfigKey;
@@ -315,6 +356,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
   }): ReactElement => {
     return (
       <Dropdown
+        ariaLabelledby={getSnmpConfigLabelId(data.index, data.field)}
         options={data.options}
         initialValue={toDropdownOption(data.options, data.value)}
         value={toDropdownOption(data.options, data.value)}
@@ -328,17 +370,12 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="snmp-config-list-editor">
-      <FieldLabelElement
-        title="SNMP Configs"
-        description={
-          "Credential sets tried against every host in the range, in order, until one answers. " +
-          "Add one per group of devices that share a version and community or v3 user - mixed subnets are normal. " +
-          "Each extra config costs another SNMP timeout on every address that answers nothing, so keep the list to what the range actually contains."
-        }
-        required={true}
-      />
-
-      <div className="space-y-4 mt-3">
+      {/*
+       * No label of its own: the form field this editor fills draws the
+       * label and its description above it. The editor used to draw a
+       * second "SNMP Configs" heading with a paragraph of its own.
+       */}
+      <div className="space-y-4">
         {configs.map((config: DiscoveryScanSnmpConfig, index: number) => {
           const isV3: boolean = isSnmpV3(config);
           const isV3WithAuth: boolean = isSnmpV3WithAuth(config);
@@ -352,7 +389,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-gray-900">
-                  {SnmpScanConfigUtil.getConfigLabel(config, index)}
+                  {getCardLabel(config, index)}
                 </div>
                 <div className="flex space-x-1">
                   {index > 0 && (
@@ -392,8 +429,13 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
               </div>
 
               <div>
-                <FieldLabelElement title="Name" required={false} />
+                <FieldLabelElement
+                  title="Name"
+                  required={false}
+                  htmlFor={getSnmpConfigFieldId(index, "name")}
+                />
                 <Input
+                  id={getSnmpConfigFieldId(index, "name")}
                   initialValue={config.name || ""}
                   placeholder="Core switches"
                   onChange={(value: string) => {
@@ -403,7 +445,11 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
               </div>
 
               <div>
-                <FieldLabelElement title="SNMP Version" required={true} />
+                <FieldLabelElement
+                  title="SNMP Version"
+                  required={true}
+                  id={getSnmpConfigLabelId(index, "snmpVersion")}
+                />
                 {renderDropdown({
                   index: index,
                   field: "snmpVersion",
@@ -419,8 +465,10 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                     title="SNMP Community String"
                     description="Tried against every host in the range. Defaults to public when left empty."
                     required={false}
+                    htmlFor={getSnmpConfigFieldId(index, "snmpCommunityString")}
                   />
                   <Input
+                    id={getSnmpConfigFieldId(index, "snmpCommunityString")}
                     type={InputType.PASSWORD}
                     initialValue={config.snmpCommunityString || ""}
                     placeholder="public"
@@ -437,6 +485,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                     title="SNMP v3 Security Level"
                     description="How much of the SNMP v3 exchange is authenticated/encrypted."
                     required={true}
+                    id={getSnmpConfigLabelId(index, "snmpV3SecurityLevel")}
                   />
                   {renderDropdown({
                     index: index,
@@ -454,8 +503,10 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                     title="SNMP v3 Username"
                     description="The SNMP v3 security name (user) configured on the device."
                     required={true}
+                    htmlFor={getSnmpConfigFieldId(index, "snmpV3Username")}
                   />
                   <Input
+                    id={getSnmpConfigFieldId(index, "snmpV3Username")}
                     initialValue={config.snmpV3Username || ""}
                     placeholder="monitoring"
                     onChange={(value: string) => {
@@ -470,6 +521,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                   <FieldLabelElement
                     title="SNMP v3 Authentication Protocol"
                     required={true}
+                    id={getSnmpConfigLabelId(index, "snmpV3AuthProtocol")}
                   />
                   {renderDropdown({
                     index: index,
@@ -486,6 +538,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                   <FieldLabelElement
                     title="SNMP v3 Authentication Key"
                     required={true}
+                    htmlFor={getSnmpConfigFieldId(index, "snmpV3AuthKey")}
                   />
                   {/*
                    * A masked input that round-trips its value, exactly like the
@@ -493,6 +546,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                    * hashed: the probe has to be able to read the real key back.
                    */}
                   <Input
+                    id={getSnmpConfigFieldId(index, "snmpV3AuthKey")}
                     type={InputType.PASSWORD}
                     initialValue={config.snmpV3AuthKey || ""}
                     placeholder="authentication passphrase"
@@ -508,6 +562,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                   <FieldLabelElement
                     title="SNMP v3 Privacy Protocol"
                     required={true}
+                    id={getSnmpConfigLabelId(index, "snmpV3PrivProtocol")}
                   />
                   {renderDropdown({
                     index: index,
@@ -524,8 +579,10 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                   <FieldLabelElement
                     title="SNMP v3 Privacy Key"
                     required={true}
+                    htmlFor={getSnmpConfigFieldId(index, "snmpV3PrivKey")}
                   />
                   <Input
+                    id={getSnmpConfigFieldId(index, "snmpV3PrivKey")}
                     type={InputType.PASSWORD}
                     initialValue={config.snmpV3PrivKey || ""}
                     placeholder="privacy passphrase"
@@ -541,8 +598,10 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
                   title="SNMP Port"
                   description="UDP port the agent listens on. Defaults to 161."
                   required={false}
+                  htmlFor={getSnmpConfigFieldId(index, "snmpPort")}
                 />
                 <Input
+                  id={getSnmpConfigFieldId(index, "snmpPort")}
                   type={InputType.NUMBER}
                   initialValue={
                     config.snmpPort === undefined || config.snmpPort === null
@@ -562,7 +621,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
 
       <div className="mt-3">
         <Button
-          title="Add SNMP Config"
+          title="Add more credentials"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
           icon={IconProp.Add}
@@ -572,13 +631,16 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
         />
         {configs.length >= MAX_SNMP_CONFIGS_PER_SCAN && (
           <div className="mt-2 text-xs text-gray-500">
-            {`A scan can try at most ${MAX_SNMP_CONFIGS_PER_SCAN} SNMP configs. Split the range into more scans if you need more.`}
+            {translator.translateTemplate(
+              "A scan can try at most {{max}} sets of credentials. Split the range into more scans if you need more.",
+              { max: MAX_SNMP_CONFIGS_PER_SCAN },
+            )}
           </div>
         )}
       </div>
 
       {props.error && (
-        <div className="mt-2 text-sm text-red-400">{props.error}</div>
+        <div className="mt-2 text-sm text-red-600">{props.error}</div>
       )}
     </div>
   );

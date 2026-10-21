@@ -9,6 +9,7 @@ import DatabaseServerLabelRuleEngineService from "../../../Server/Services/Datab
 import DatabaseServerOwnerRuleEngineService from "../../../Server/Services/DatabaseServerOwnerRuleEngineService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import logger from "../../../Server/Utils/Logger";
+import ResourceAiDeleteCleanup from "../../../Server/Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import DatabaseServerDiscoverySource from "../../../Types/DatabaseServer/DatabaseServerDiscoverySource";
@@ -16,6 +17,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { DataSource } from "typeorm";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The hand-written Postgres of the Databases product, EXECUTED - not string
  * matched. The unit suites replace manager.query with a mock, so a renamed
@@ -26,7 +28,9 @@ import { DataSource } from "typeorm";
  *
  *   - the disconnect sweep, the auto-archive sweep (every "invested" rule,
  *     automatic labels and owners, a person's restore, a dark parent), the
- *     auto-create budget count and the auto-archive restore;
+ *     client-socket sweep (the databases eBPF-swapped spans created for a
+ *     client's ephemeral port), the auto-create budget count and the
+ *     auto-archive restore;
  *   - the automaticAssignments bookkeeping;
  *   - the endpoint lifecycle statements (refresh, hand-over, release) and
  *     a whole workload identity change end to end;
@@ -52,6 +56,32 @@ const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_DATABASE_SERVER_SQL_TESTS"] === "true"
     ? describe
     : describe.skip;
+
+/*
+ * Removing an alias of a database outside the caller's scope removes nothing.
+ * Since #4526 the record rule reaches an alias through its database
+ * (CanAccessIfCanReadOn, OwnedThrough), so the permission layer answers
+ * before this service's own check could name the database: a label-scoped
+ * caller is refused outright, and an Owned-scoped caller's delete matches no
+ * row. How that layer answers is its own suites' business - by-id writes
+ * outside the caller's scope are moving to "not found" - so any of its
+ * answers that removes nothing passes here, and each test then checks the
+ * alias is still there.
+ */
+const OUT_OF_SCOPE_ALIAS_REMOVAL: RegExp =
+  /not found|you do not have permission to (?:edit it|delete this Database Endpoint)/i;
+
+async function expectNothingRemoved(removal: Promise<number>): Promise<void> {
+  let removed: number = 0;
+
+  try {
+    removed = await removal;
+  } catch (error) {
+    expect((error as Error).message).toMatch(OUT_OF_SCOPE_ALIAS_REMOVAL);
+  }
+
+  expect(removed).toBe(0);
+}
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 const HOUR_MS: number = 60 * 60 * 1000;
@@ -170,7 +200,7 @@ describePostgres("Databases SQL against Postgres", () => {
       .mockResolvedValue(undefined);
     jest
       .spyOn(DatabaseServerService, "getDatabaseServerMarkdownLink")
-      .mockResolvedValue("[Database x](/x)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Database x](/x)"));
     jest
       .spyOn(DatabaseServerLabelRuleEngineService, "applyRulesToDatabaseServer")
       .mockResolvedValue(undefined);
@@ -201,6 +231,7 @@ describePostgres("Databases SQL against Postgres", () => {
   }
 
   async function insertDatabase(data: {
+    id?: ObjectID;
     name?: string;
     description?: string | null;
     dbSystem?: string;
@@ -225,7 +256,7 @@ describePostgres("Databases SQL against Postgres", () => {
     workloadIdentifier?: string | null;
     deletedAt?: Date | null;
   }): Promise<ObjectID> {
-    const id: ObjectID = ObjectID.generate();
+    const id: ObjectID = data.id || ObjectID.generate();
     const name: string = data.name || `db-${id.toString().substring(0, 8)}`;
     await database.query(
       `INSERT INTO "${schema}"."DatabaseServer" (
@@ -740,6 +771,296 @@ describePostgres("Databases SQL against Postgres", () => {
     const untouched: any = await databaseState(personArchived);
     expect(untouched.isArchived).toBe(true);
     expect(untouched.autoArchivedAt).toBeNull();
+  });
+
+  /*
+   * The databases eBPF-swapped client spans created, one per connection the
+   * worker opened to Redis, named after the worker's ephemeral port - as
+   * client-span discovery created them before its create policy refused
+   * client sockets.
+   */
+  async function insertSwapped(
+    port: number,
+    overrides: Parameters<typeof insertDatabase>[0] = {},
+    endpoint:
+      | string
+      | null = `oneuptime-worker.default.svc.cluster.local:${port}@gke-test-cluster`,
+  ): Promise<ObjectID> {
+    const id: ObjectID = await insertDatabase({
+      name: `Redis oneuptime-worker.default.svc.cluster.local:${port}`,
+      dbSystem: "redis",
+      serverAddress: "oneuptime-worker.default.svc.cluster.local",
+      serverPort: port,
+      lastSeenAt: new Date(),
+      ...overrides,
+    });
+    if (endpoint) {
+      await insertEndpoint({
+        databaseServerId: id,
+        endpoint: endpoint,
+        source: "auto",
+        isPrimary: true,
+        ...(overrides.project ? { project: overrides.project } : {}),
+      });
+    }
+    return id;
+  }
+
+  function mockResourceAiCleanup(): {
+    before: jest.SpyInstance;
+    after: jest.SpyInstance;
+  } {
+    return {
+      before: jest
+        .spyOn(ResourceAiDeleteCleanup, "beforeDelete")
+        .mockImplementation(async (data: any) => {
+          return {
+            resourceType: data.resourceType,
+            inFlightRounds: [],
+            resourceNames: {},
+          };
+        }),
+      after: jest
+        .spyOn(ResourceAiDeleteCleanup, "afterDelete")
+        .mockResolvedValue(undefined),
+    };
+  }
+
+  test("the client-socket sweep deletes exactly the rows swapped spans created for a client's port", async () => {
+    const cleanup: { before: jest.SpyInstance; after: jest.SpyInstance } =
+      mockResourceAiCleanup();
+    const deleted: Map<string, ObjectID> = new Map();
+    const kept: Map<string, ObjectID> = new Map();
+
+    deleted.set("a connection seen just now", await insertSwapped(46600));
+    deleted.set("another connection", await insertSwapped(60538));
+    deleted.set("one on IANA's dynamic range", await insertSwapped(65000));
+    deleted.set(
+      "one discovery archived itself",
+      await insertSwapped(46482, {
+        isArchived: true,
+        autoArchivedAt: ago(DAY_MS),
+      }),
+    );
+    deleted.set(
+      "one without an endpoint row",
+      await insertSwapped(49114, {}, null),
+    );
+    deleted.set(
+      "one with a blank description",
+      await insertSwapped(41892, { description: "   " }),
+    );
+    deleted.set(
+      "one in another project",
+      await insertSwapped(38616, { project: otherProjectId }),
+    );
+    const label: ObjectID = await insertRow("Label", {
+      projectId: projectId,
+      name: "queues",
+    });
+    const ruleLabelled: ObjectID = await insertSwapped(45986, {
+      automaticAssignments: { labelIds: [label.toString()] },
+    });
+    await link("DatabaseServerLabel", {
+      databaseServerId: ruleLabelled,
+      labelId: label,
+    });
+    deleted.set("labelled only by a rule", ruleLabelled);
+
+    // A real server.
+    kept.set(
+      "the real Redis on its own port",
+      await insertSwapped(
+        6379,
+        {
+          name: "Redis oneuptime-redis-master.default.svc.cluster.local:6379",
+          serverAddress: "oneuptime-redis-master.default.svc.cluster.local",
+        },
+        "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+      ),
+    );
+    kept.set("a NodePort just below the range", await insertSwapped(32767));
+    kept.set(
+      "Db2 on its own default port",
+      await insertSwapped(
+        50000,
+        {
+          name: "Db2 ledger.example.com:50000",
+          dbSystem: "ibm.db2",
+          serverAddress: "ledger.example.com",
+        },
+        "ledger.example.com:50000",
+      ),
+    );
+
+    // Somebody's.
+    kept.set(
+      "renamed by a person",
+      await insertSwapped(46601, { name: "Worker queue Redis" }),
+    );
+    kept.set(
+      "described by a person",
+      await insertSwapped(46602, { description: "BullMQ" }),
+    );
+    const humanLabelled: ObjectID = await insertSwapped(46603);
+    await link("DatabaseServerLabel", {
+      databaseServerId: humanLabelled,
+      labelId: label,
+    });
+    kept.set("labelled by a person", humanLabelled);
+    const owned: ObjectID = await insertSwapped(46604);
+    await insertRow("DatabaseServerOwnerUser", {
+      projectId: projectId,
+      databaseServerId: owned,
+      userId: userId,
+    });
+    kept.set("owned by a person", owned);
+    const incident: ObjectID = await insertRow("Incident", {
+      projectId: projectId,
+    });
+    const incidentLinked: ObjectID = await insertSwapped(46605);
+    await link("IncidentDatabaseServer", {
+      incidentId: incident,
+      databaseServerId: incidentLinked,
+    });
+    kept.set("linked to an incident", incidentLinked);
+    const userEndpoint: ObjectID = await insertSwapped(46606);
+    await insertEndpoint({
+      databaseServerId: userEndpoint,
+      endpoint: "worker-cache.example.com:46606",
+      source: "user",
+    });
+    kept.set("with a person-added endpoint", userEndpoint);
+    kept.set(
+      "with a retention override",
+      await insertSwapped(46607, { retainDays: 30 }),
+    );
+    kept.set(
+      "archived by a person",
+      await insertSwapped(46608, { isArchived: true, autoArchivedAt: null }),
+    );
+    kept.set(
+      "restored by a person",
+      await insertSwapped(46609, { manuallyRestoredAt: ago(60 * DAY_MS) }),
+    );
+
+    // Something else's.
+    const alsoReal: ObjectID = await insertSwapped(46610);
+    await insertEndpoint({
+      databaseServerId: alsoReal,
+      endpoint: "cache.example.com:6379",
+      source: "auto",
+    });
+    kept.set("that also owns a real server's endpoint", alsoReal);
+    kept.set(
+      "a workload's row",
+      await insertSwapped(46611, {
+        workloadIdentifier:
+          "redis|kubernetes:gke-test-cluster/default/deployment/w",
+      }),
+    );
+    for (const source of [
+      DatabaseServerDiscoverySource.Kubernetes,
+      DatabaseServerDiscoverySource.Docker,
+      DatabaseServerDiscoverySource.Podman,
+      DatabaseServerDiscoverySource.Collector,
+      DatabaseServerDiscoverySource.Manual,
+    ]) {
+      kept.set(
+        `created by ${source}`,
+        await insertSwapped(47000 + kept.size, { source }),
+      );
+    }
+    const alreadyDeleted: ObjectID = await insertSwapped(46612, {
+      deletedAt: ago(DAY_MS),
+    });
+
+    const count: number =
+      await DatabaseServerService.deleteClientSocketDatabaseServers();
+
+    const unexpected: Array<string> = [];
+    for (const [label, id] of deleted) {
+      if (await databaseState(id)) {
+        unexpected.push(`${label}: should have been deleted`);
+      }
+    }
+    for (const [label, id] of kept) {
+      if (!(await databaseState(id))) {
+        unexpected.push(`${label}: should have been kept`);
+      }
+    }
+    expect(unexpected).toEqual([]);
+    expect(count).toBe(deleted.size);
+    expect((await databaseState(alreadyDeleted)).deletedAt).not.toBeNull();
+
+    // Through the delete pipeline: the resource AI agent cleanup ran for them.
+    const cleanedUp: Array<string> = cleanup.after.mock.calls
+      .flatMap((call: Array<any>): Array<ObjectID> => {
+        return call[0].deletedItemIds;
+      })
+      .map((id: ObjectID): string => {
+        return id.toString();
+      })
+      .sort();
+    expect(cleanedUp).toEqual(
+      Array.from(deleted.values())
+        .map((id: ObjectID): string => {
+          return id.toString();
+        })
+        .sort(),
+    );
+    expect(cleanup.before).toHaveBeenCalledTimes(deleted.size);
+
+    // Nothing is left to do.
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(0);
+  });
+
+  test("the client-socket sweep pages past a full page of rows it must keep", async () => {
+    mockResourceAiCleanup();
+
+    // 500 renamed client-socket rows, all sorting before the one to delete.
+    await database.query(
+      `INSERT INTO "${schema}"."DatabaseServer" (
+        "_id", "version", "projectId", "name", "slug", "databaseIdentifier",
+        "dbSystem", "discoverySource", "lastSeenAt", "createdAt", "isArchived",
+        "serverAddress", "serverPort"
+      )
+      SELECT
+        ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
+        1, $1, 'Renamed ' || n, 'renamed-' || n, 'redis|worker:' || (40000 + n),
+        'redis', $2, now(), now(), false,
+        'oneuptime-worker.default.svc.cluster.local', 40000 + n
+      FROM generate_series(1, 500) AS n`,
+      [projectId.toString(), DatabaseServerDiscoverySource.ClientSpans],
+    );
+    const last: ObjectID = await insertSwapped(46600, {
+      id: new ObjectID("ffffffff-ffff-4fff-bfff-ffffffffffff"),
+    });
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+    expect(await databaseState(last)).toBeUndefined();
+    const left: Array<{ count: number }> = await database.query(
+      `SELECT COUNT(*)::int AS "count" FROM "${schema}"."DatabaseServer"`,
+    );
+    expect(left[0]!.count).toBe(500);
+  });
+
+  test("deleting a database frees its endpoints (the foreign key cascades)", async () => {
+    // The clones carry no foreign keys, so read the migrated table's own.
+    const constraints: Array<{ confdeltype: string }> = await database.query(
+      `SELECT c.confdeltype FROM pg_constraint c
+      WHERE c.contype = 'f'
+        AND c.conrelid = 'public."DatabaseServerEndpoint"'::regclass
+        AND c.confrelid = 'public."DatabaseServer"'::regclass`,
+    );
+    expect(constraints.length).toBeGreaterThan(0);
+    for (const constraint of constraints) {
+      expect(constraint.confdeltype).toBe("c");
+    }
   });
 
   test("the auto-create budget counts live, non-archived, non-manual rows of the project - collector rows included", async () => {
@@ -1592,19 +1913,27 @@ describePostgres("Databases SQL against Postgres", () => {
     function scopedProps(
       scope: PermissionScope,
       labelIds: Array<ObjectID> = [],
+      readScope: { scope: PermissionScope; labelIds: Array<ObjectID> } = {
+        scope,
+        labelIds,
+      },
     ): DatabaseCommonInteractionProps {
       const permissions: Array<UserPermission> = [
-        Permission.EditDatabaseServer,
-        Permission.ReadDatabaseServer,
-      ].map((permission: Permission): UserPermission => {
-        return {
-          permission,
+        {
+          permission: Permission.EditDatabaseServer,
           labelIds,
           scope,
           isBlockPermission: false,
           _type: "UserPermission",
-        };
-      });
+        },
+        {
+          permission: Permission.ReadDatabaseServer,
+          labelIds: readScope.labelIds,
+          scope: readScope.scope,
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ];
       return {
         userId: userId,
         tenantId: projectId,
@@ -1668,12 +1997,15 @@ describePostgres("Databases SQL against Postgres", () => {
         }),
       ).toEqual(["orders-replica.example.com:5432"]);
 
+      // A database their read does not reach reads like one that does not exist.
       await expect(
         DatabaseServerEndpointService.create({
           data: alias(theirs, "hijack.example.com"),
           props: scopedProps(PermissionScope.Labels, [teamA]),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).rejects.toThrow(
+        `references records that are not in this project: Database "${theirs.toString()}"`,
+      );
       expect(await endpointsOf(theirs)).toHaveLength(1);
 
       // The owner of a colliding endpoint is not named to someone who cannot read it.
@@ -1707,8 +2039,48 @@ describePostgres("Databases SQL against Postgres", () => {
           data: alias(notOwned, "not-owned-replica.example.com"),
           props: scopedProps(PermissionScope.Owned),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).rejects.toThrow(
+        `references records that are not in this project: Database "${notOwned.toString()}"`,
+      );
       expect(await endpointsOf(notOwned)).toHaveLength(0);
+    });
+
+    test("an editor who may read every database but edit their label's adds aliases to those only", async () => {
+      const teamA: ObjectID = await insertRow("Label", {
+        projectId: projectId,
+        name: "team-a-editors",
+      });
+      const ours: ObjectID = await insertDatabase({
+        name: "orders (editable)",
+      });
+      const readOnly: ObjectID = await insertDatabase({
+        name: "payments (read only)",
+      });
+      await link("DatabaseServerLabel", {
+        databaseServerId: ours,
+        labelId: teamA,
+      });
+
+      const editorProps: DatabaseCommonInteractionProps = scopedProps(
+        PermissionScope.Labels,
+        [teamA],
+        { scope: PermissionScope.All, labelIds: [] },
+      );
+
+      await DatabaseServerEndpointService.create({
+        data: alias(ours, "orders-editable-replica.example.com"),
+        props: editorProps,
+      });
+      expect(await endpointsOf(ours)).toHaveLength(1);
+
+      // A database they may read but not edit: the service's own answer.
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: alias(readOnly, "payments-read-only-replica.example.com"),
+          props: editorProps,
+        }),
+      ).rejects.toThrow("you do not have permission to edit it");
+      expect(await endpointsOf(readOnly)).toHaveLength(0);
     });
 
     test("a relation object cannot point an alias at another project's database", async () => {
@@ -1724,7 +2096,7 @@ describePostgres("Databases SQL against Postgres", () => {
           data: data,
           props: scopedProps(PermissionScope.All),
         }),
-      ).rejects.toThrow("Conflicting database references");
+      ).rejects.toThrow(/Conflicting database references/i);
 
       const onlyRelation: any = new DatabaseServerEndpoint();
       onlyRelation.endpoint = "cross.example.com";
@@ -1774,12 +2146,12 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
-      await expect(
+      await expectNothingRemoved(
         DatabaseServerEndpointService.deleteOneById({
           id: theirAlias,
           props: scopedProps(PermissionScope.Labels, [teamA]),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      );
       expect(await endpointsOf(theirs)).toHaveLength(1);
 
       // ...so the endpoint cannot be freed and re-added to their own database.
@@ -1877,12 +2249,12 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
-      await expect(
+      await expectNothingRemoved(
         DatabaseServerEndpointService.deleteOneById({
           id: otherAlias,
           props: scopedProps(PermissionScope.Owned),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      );
       expect(await endpointsOf(notOwned)).toHaveLength(1);
 
       await expect(

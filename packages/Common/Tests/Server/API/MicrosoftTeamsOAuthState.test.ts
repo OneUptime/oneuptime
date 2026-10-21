@@ -18,7 +18,12 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import WorkspaceOAuthState from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import UserService from "../../../Server/Services/UserService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import logger from "../../../Server/Utils/Logger";
 import {
   AppApiClientUrl,
   DashboardClientUrl,
@@ -44,7 +49,13 @@ import {
  * Microsoft identity to a OneUptime user. These tests drive the real routes
  * over HTTP and pin that the callbacks trust only a single-use, browser-bound
  * state issued to an authorised member, and that the tenant bound is the one
- * an ID token proves, never a query parameter.
+ * an ID token proves, never a query parameter. Before either writes, it asks
+ * again whether that member may still finish: admin consent needs a role
+ * that may manage the connection, signing in needs membership
+ * (WorkspaceOAuthCallbackAccess). Every answer is a redirect to the Microsoft
+ * Teams page the connection started from, with a code for a refusal
+ * (ConnectCallback.route); Tests/Server/API/ConnectCallbacksAnswer drives the
+ * failures.
  */
 
 const TEAMS_CLIENT_ID: string = "3f1a8c52-7d0e-4b9a-9d61-2c4b5e6f7a80";
@@ -199,7 +210,67 @@ describe("Microsoft Teams OAuth state", () => {
     getSpy = jest.spyOn(API, "get").mockImplementation(async () => {
       throw new Error("Unexpected API.get");
     });
+
+    // Whoever starts a flow is still a Project Admin when Microsoft sends them back.
+    callbackMembership = [Permission.ProjectAdmin];
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation(
+        async (data: {
+          userId: ObjectID;
+          projectId: ObjectID;
+        }): Promise<DatabaseCommonInteractionProps> => {
+          if (!callbackMembership) {
+            throw new NotAuthorizedException(
+              WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+            );
+          }
+
+          return {
+            userId: data.userId,
+            tenantId: data.projectId,
+            userTenantAccessPermission: {
+              [data.projectId.toString()]: {
+                _type: "UserTenantAccessPermission",
+                projectId: data.projectId,
+                permissions: callbackMembership.map(
+                  (permission: Permission) => {
+                    return {
+                      _type: "UserPermission",
+                      permission: permission,
+                      labelIds: [],
+                      isBlockPermission: false,
+                    };
+                  },
+                ),
+              },
+            },
+            userTeamIds: [],
+          };
+        },
+      );
+
+    jest.spyOn(UserService, "findOneById").mockImplementation(async () => {
+      return { isMasterAdmin: false } as any;
+    });
   });
+
+  /*
+   * What the person who started the flow holds in its project when Microsoft
+   * sends them back; null when they are no longer a member.
+   */
+  let callbackMembership: Array<Permission> | null = null;
+
+  // The callback's next membership read fails the way a database does.
+  function failNextMembershipRead(): void {
+    jest.spyOn(logger, "error").mockImplementation(() => {});
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
+    ).mockImplementationOnce(async () => {
+      throw new Error('relation "TeamMember" does not exist');
+    });
+  }
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -349,6 +420,32 @@ describe("Microsoft Teams OAuth state", () => {
     expect(postSpy).not.toHaveBeenCalled();
   }
 
+  // The project's Microsoft Teams page, which every callback answers on.
+  function teamsPage(): string {
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/settings/microsoft-teams-integration`;
+  }
+
+  // Sent back to the Microsoft Teams page, told `code` (ConnectCallback.route).
+  function expectAnsweredOnTeamsPage(
+    response: ProbeResponse,
+    code: string,
+  ): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(`${teamsPage()}?error=${code}`);
+  }
+
+  /*
+   * A state that cannot be spent names no project anyone may trust: the
+   * Dashboard opens the Microsoft Teams page of the project the person has
+   * open, and tells them the link cannot be used.
+   */
+  function expectLinkRefused(response: ProbeResponse): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(
+      `${DashboardClientUrl.toString()}/connect-return?provider=microsoft-teams&error=link-invalid`,
+    );
+  }
+
   describe("GET /microsoft-teams/admin-consent (start)", () => {
     test("refuses an anonymous caller and issues no state", async () => {
       const response: ProbeResponse = await get(
@@ -466,10 +563,7 @@ describe("Microsoft Teams OAuth state", () => {
           state: `${projectId.toString()}:${userId.toString()}`,
         });
 
-        expect(response.status).toBe(400);
-        expect((response.body as JSONObject)["message"]).toBe(
-          WorkspaceOAuthState.INVALID_STATE_MESSAGE,
-        );
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -480,7 +574,7 @@ describe("Microsoft Teams OAuth state", () => {
           admin_consent: "True",
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -498,7 +592,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
 
@@ -512,7 +606,7 @@ describe("Microsoft Teams OAuth state", () => {
           state,
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -528,7 +622,7 @@ describe("Microsoft Teams OAuth state", () => {
           other.browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
       });
 
       test("refuses a replayed consent-screen state", async () => {
@@ -542,9 +636,9 @@ describe("Microsoft Teams OAuth state", () => {
         expect(
           (await callback(ADMIN_CONSENT_CALLBACK, query, browser)).status,
         ).toBe(302);
-        expect(
-          (await callback(ADMIN_CONSENT_CALLBACK, query, browser)).status,
-        ).toBe(400);
+        expectLinkRefused(
+          await callback(ADMIN_CONSENT_CALLBACK, query, browser),
+        );
       });
 
       test("refuses an expired state", async () => {
@@ -563,7 +657,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
 
@@ -576,7 +670,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
     });
@@ -681,11 +775,8 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain(
-          `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
-        expect(response.location).toContain("error=access_denied");
+        expectAnsweredOnTeamsPage(response, "cancelled");
+        expect(response.location).not.toContain("access_denied");
       });
 
       test("refuses consent for a tenant other than the one the project is bound to", async () => {
@@ -701,10 +792,87 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain("error=");
-        expect(response.location).not.toContain("login.microsoftonline.com");
+        expectAnsweredOnTeamsPage(response, "teams-other-tenant");
         expect(mockCacheStore.size).toBe(0);
+        expectNoTokenRequested();
+        expectNothingWritten();
+      });
+    });
+
+    describe("the person who started it, asked again", () => {
+      /*
+       * Refused on the project's Microsoft Teams page, as every other failure
+       * after the state is, told that they may no longer connect it - never
+       * which of the reasons it was.
+       */
+      function expectRefusedOnIntegrationPage(response: ProbeResponse): void {
+        expectAnsweredOnTeamsPage(response, "no-permission");
+      }
+
+      test("back from the consent screen: someone who may no longer connect the project is not sent on to sign in", async () => {
+        const start: { state: string; browser: Browser } =
+          await startFlow(ADMIN_CONSENT_START);
+        callbackMembership = [Permission.Viewer];
+
+        const response: ProbeResponse = await callback(
+          ADMIN_CONSENT_CALLBACK,
+          { tenant: TENANT_ID, admin_consent: "True", state: start.state },
+          start.browser,
+        );
+
+        expectRefusedOnIntegrationPage(response);
+        expect(response.location).not.toContain("login.microsoftonline.com");
+        expectNoTokenRequested();
+        expectNothingWritten();
+      });
+
+      test("back from the tenant sign-in: someone who left the project since binds nothing", async () => {
+        const { signInState, oidcNonce, browser } =
+          await completeConsentScreen();
+        stubSignInTokenExchange({ nonce: oidcNonce });
+        callbackMembership = null;
+
+        const response: ProbeResponse = await callback(
+          ADMIN_CONSENT_CALLBACK,
+          { code: "sign-in-code", state: signInState },
+          browser,
+        );
+
+        expectRefusedOnIntegrationPage(response);
+        expectNoTokenRequested();
+        expectNothingWritten();
+      });
+
+      test("a check that fails is shown on the integration page as the handler's own error, never what failed", async () => {
+        const start: { state: string; browser: Browser } =
+          await startFlow(ADMIN_CONSENT_START);
+        failNextMembershipRead();
+
+        const response: ProbeResponse = await callback(
+          ADMIN_CONSENT_CALLBACK,
+          { tenant: TENANT_ID, admin_consent: "True", state: start.state },
+          start.browser,
+        );
+
+        expectAnsweredOnTeamsPage(response, "could-not-finish");
+        expect(response.location).not.toContain("TeamMember");
+        expectNoTokenRequested();
+        expectNothingWritten();
+      });
+
+      test("back from the tenant sign-in: someone whose role no longer lets them connect binds nothing", async () => {
+        const { signInState, oidcNonce, browser } =
+          await completeConsentScreen();
+        stubSignInTokenExchange({ nonce: oidcNonce });
+        callbackMembership = [Permission.Viewer];
+
+        const response: ProbeResponse = await callback(
+          ADMIN_CONSENT_CALLBACK,
+          { code: "sign-in-code", state: signInState },
+          browser,
+        );
+
+        expectRefusedOnIntegrationPage(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -796,11 +964,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain("error=");
-        expect(response.location).toContain(
-          `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
+        expectAnsweredOnTeamsPage(response, "teams-other-tenant");
 
         // Only the code exchange ran; no app token was fetched for anyone.
         expect(postSpy).toHaveBeenCalledTimes(1);
@@ -920,7 +1084,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(replay.status).toBe(400);
+        expectLinkRefused(replay);
         expect(refreshProjectAuth).toHaveBeenCalledTimes(1);
       });
 
@@ -933,7 +1097,7 @@ describe("Microsoft Teams OAuth state", () => {
           state: signInState,
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -956,7 +1120,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -1009,7 +1173,7 @@ describe("Microsoft Teams OAuth state", () => {
         state: `${projectId.toString()}:${userId.toString()}`,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
       expectNothingWritten();
     });
@@ -1088,7 +1252,7 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(replay.status).toBe(400);
+      expectLinkRefused(replay);
       expect(refreshUserAuth).toHaveBeenCalledTimes(1);
     });
 
@@ -1100,7 +1264,7 @@ describe("Microsoft Teams OAuth state", () => {
         state,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
       expectNothingWritten();
     });
@@ -1114,8 +1278,39 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
+    });
+
+    test("refuses a sign-in finished by someone who has left the project", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START);
+      callbackMembership = null;
+
+      const response: ProbeResponse = await callback(
+        SIGN_IN_CALLBACK,
+        { code: "code", state },
+        browser,
+      );
+
+      expectAnsweredOnTeamsPage(response, "not-a-member");
+      expectNoTokenRequested();
+      expectNothingWritten();
+    });
+
+    test("a membership check that fails is answered plainly, never with what failed", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START);
+      failNextMembershipRead();
+
+      const response: ProbeResponse = await callback(
+        SIGN_IN_CALLBACK,
+        { code: "code", state },
+        browser,
+      );
+
+      expectAnsweredOnTeamsPage(response, "could-not-finish");
+      expect(response.location).not.toContain("TeamMember");
+      expectNoTokenRequested();
+      expectNothingWritten();
     });
   });
 });

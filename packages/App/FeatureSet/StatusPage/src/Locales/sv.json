@@ -22,6 +22,10 @@
     "label": "Språk",
     "switchLanguage": "Byt språk"
   },
+  "theme": {
+    "switchToDark": "Byt till mörkt tema",
+    "switchToLight": "Byt till ljust tema"
+  },
   "nav": {
     "overview": "Översikt",
     "incidents": "Incidenter",
@@ -125,7 +129,27 @@
     "noneDescription": "Inga planerade händelser har publicerats för den här statussidan.",
     "scheduledAt": "Planerad till ",
     "report": "Rapport för planerad händelse",
-    "notFound": "Ingen planerad händelse hittades för den här statussidan."
+    "notFound": "Ingen planerad händelse hittades för den här statussidan.",
+    "calendar": {
+      "subscribe": "Prenumerera på kalender",
+      "subscribeTitle": "Prenumerera på planerat underhåll",
+      "subscribeDescription": "Få den här sidans planerade underhåll i din kalenderapp. Den håller sig själv uppdaterad.",
+      "eventTitle": "Lägg till i kalender",
+      "eventDescription": "Lägg till det här underhållet i din kalenderapp.",
+      "addToCalendar": "Lägg till i kalender",
+      "addHeading": "Lägg till i din kalender",
+      "google": "Google Kalender",
+      "googleHint": "Öppnar Google Kalender på en ny flik",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Öppnar kalenderappen på den här enheten",
+      "deviceFileHint": "Laddar ner underhållet till kalenderappen på den här enheten",
+      "copyHeading": "Eller kopiera länken",
+      "copyHint": "Klistra in den i valfri kalenderapp som kan prenumerera på en kalender via URL.",
+      "copy": "Kopiera länk",
+      "copied": "Kopierat!",
+      "done": "Klar",
+      "refreshNote": "Kalenderappar letar efter ändringar enligt sitt eget schema, så det kan ta några timmar innan en uppdatering syns."
+    }
   },
   "subscribe": {
     "title": "Prenumerera",
@@ -151,7 +175,9 @@
       "placeholder": "prenumerant@foretag.se",
       "managePrompt": "Ange den e-postadress du prenumererar med",
       "manageDescription": "Vi skickar en hanteringslänk till den här e-postadressen.",
-      "managePlaceholder": "epost@dittforetag.se"
+      "managePlaceholder": "epost@dittforetag.se",
+      "signedInEmailDescription": "Du prenumererar med den e-postadress du loggar in med.",
+      "signInToSubscribe": "Logga in på den här statussidan för att prenumerera på den."
     },
     "sms": {
       "title": "Prenumerera via SMS",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "Ditt telefonnummer",
       "placeholder": "+46701234567",
       "managePrompt": "Ange det telefonnummer du prenumererar med",
-      "manageDescription": "Vi skickar en hanteringslänk till det här telefonnumret."
+      "manageDescription": "Vi skickar en hanteringslänk till det här telefonnumret.",
+      "confirmationSent": "Vi har skickat ett sms till det här telefonnumret. Öppna länken i det för att bekräfta din prenumeration."
     },
     "slack": {
       "title": "Prenumerera via Slack",
@@ -210,11 +237,48 @@
       "saved": "Dina ändringar har sparats.",
       "submit": "Uppdatera prenumeration",
       "unsubscribe": "Avsluta prenumeration",
-      "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser."
+      "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser.",
+      "linkNotValid": "Den här länken för att hantera din prenumeration har gått ut eller är ogiltig. Använd ”Hantera befintlig prenumeration” på sidan ”Prenumerera” för att få en ny.",
+      "getNewLink": "Få en ny länk",
+      "loadFailed": "Det gick inte att läsa in den här länken. Försök igen senare."
     },
     "confirm": {
       "title": "Bekräfta prenumeration",
-      "success": "Prenumeration bekräftad"
+      "success": "Prenumeration bekräftad",
+      "linkNotValid": "Den här länken för att bekräfta din prenumeration har gått ut eller är ogiltig. En länk fungerar i 24 timmar efter att den skickats. Prenumerera igen för att få en ny.",
+      "subscribeAgain": "Prenumerera igen"
+    },
+    "unsubscribe": {
+      "title": "Avsluta prenumeration",
+      "titleWithName": "Avsluta prenumerationen på {{statusPageName}}",
+      "confirmPrompt": "Vill du sluta ta emot aviseringar från den här statussidan?",
+      "channelEmail": "E-postadress",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-arbetsyta",
+      "channelMicrosoftTeams": "Microsoft Teams-arbetsyta",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Den här prenumerationen lades till av teamet som driver den här statussidan. Om det är en delad adress, till exempel en e-postlista, slutar aviseringarna att komma till alla som tar emot dem när du avslutar, och teamet meddelas.",
+      "confirmButton": "Avsluta prenumeration",
+      "manageInstead": "Välj i stället vilka aviseringar du får",
+      "manageSubscription": "Hantera din prenumeration",
+      "success": "Din prenumeration har avslutats. Du kommer inte att få fler aviseringar från den här statussidan.",
+      "alreadyUnsubscribed": "Den här prenumerationen har redan avslutats. Du får inga aviseringar från den här statussidan.",
+      "outOfDateLink": "Den här avregistreringslänken är inaktuell. Använd avregistreringslänken i ett nyligen skickat meddelande från den här statussidan för att avsluta prenumerationen.",
+      "invalidLink": "Den här avregistreringslänken är ogiltig. Den kan vara ofullständig, eller så kan prenumerationen ha tagits bort. Använd avregistreringslänken i ett nyligen skickat meddelande från den här statussidan för att avsluta prenumerationen.",
+      "failed": "Det gick inte att avsluta prenumerationen. Försök igen.",
+      "loadFailed": "Det gick inte att läsa in den här avregistreringslänken. Försök igen senare."
+    },
+    "preferences": {
+      "title": "Inställningar",
+      "description": "Välj vad du vill få höra om.",
+      "summary": {
+        "everything": "Du får alla uppdateringar från den här statussidan.",
+        "pickedResources": "Du får bara uppdateringar om de resurser du har valt.",
+        "pickedEventTypes": "Du får bara uppdateringar om de händelsetyper du har valt.",
+        "pickedResourcesAndEventTypes": "Du får bara uppdateringar om de resurser och händelsetyper du har valt.",
+        "noResources": "Du har inte valt några resurser än.",
+        "noEventTypes": "Du har inte valt några händelsetyper än."
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "Logga in för att se {{statusPageName}}",
       "forgotPassword": "Glömt lösenord?",
       "submit": "Logga in",
-      "useSSO": "Använd single sign-on (SSO) istället"
+      "or": "eller",
+      "logInWithSso": "Logga in med SSO"
     },
     "sso": {
       "title": "Logga in med SSO",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} får inte vara mindre än {{minValue}}.",
   "{{field}} is required.": "{{field}} är obligatoriskt.",
   "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
-  "Email is not valid.": "E-postadressen är ogiltig."
+  "Email is not valid.": "E-postadressen är ogiltig.",
+  "Next": "Nästa",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Note": "Obs",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktigt",
+  "Warning": "Varning",
+  "Caution": "Försiktighet",
+  "Danger": "Fara"
 }

@@ -230,6 +230,64 @@ describe("KubectlJobRunner.readFinishedJob", () => {
   });
 });
 
+/*
+ * A job enqueued for the cluster's Kubernetes AI agent (the row carries
+ * targetKubernetesAiAgentId) is worded for the agent: "Runner" would send
+ * the operator looking for a Runner that does not exist.
+ */
+describe("KubectlJobRunner.readFinishedJob for a Kubernetes AI agent job", () => {
+  function readAgentJob(terminalJob: RunnerJob): Promise<KubectlJobOutcome> {
+    return KubectlJobRunner.readFinishedJob({
+      job: {
+        ...enqueuedJob({ displayCommand: "kubectl get pods -n web" }),
+        targetKubernetesAiAgentId: ObjectID.generate(),
+      } as unknown as RunnerJob,
+      terminalJob,
+      command: "kubectl get pods -n web",
+      claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+      executionTimeoutInMs: EXECUTION_TIMEOUT_MS,
+    });
+  }
+
+  it("never picked up: names the agent", async () => {
+    claimRead.mockResolvedValue(terminal({}));
+
+    const outcome: KubectlJobOutcome = await readAgentJob(
+      terminal({ status: RunnerJobStatus.TimedOut }),
+    );
+
+    expect(outcome.errorMessage).toMatch(
+      /^The cluster's Kubernetes AI agent did not pick up this kubectl command within \d+s/,
+    );
+    expect(outcome.runState).toBe(KubectlRunState.NotRun);
+  });
+
+  it("taken and gone silent: names the agent", async () => {
+    claimRead.mockResolvedValue(terminal({ claimedAt: new Date() }));
+
+    const outcome: KubectlJobOutcome = await readAgentJob(
+      terminal({ status: RunnerJobStatus.TimedOut }),
+    );
+
+    expect(outcome.errorMessage).toMatch(
+      /^The Kubernetes AI agent took this kubectl command but did not report a result in time/,
+    );
+    expect(outcome.errorMessage).not.toContain("Runner");
+  });
+
+  it("claim unreadable: names the agent", async () => {
+    claimRead.mockRejectedValue(new Error("db down"));
+
+    const outcome: KubectlJobOutcome = await readAgentJob(
+      terminal({ status: RunnerJobStatus.TimedOut }),
+    );
+
+    expect(outcome.errorMessage).toContain(
+      "whether the Kubernetes AI agent picked it up could not be read",
+    );
+  });
+});
+
 describe("KubectlJobRunner.recordOutcomeOnCluster", () => {
   let recordOutcome: jest.SpyInstance;
 

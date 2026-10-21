@@ -26,6 +26,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -171,6 +174,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * What the SLO measures, apart from the rules that run on it: its
+       * monitors under Configuration, and its two kinds of rule under Rules
+       * (Monitor Rules attach every monitor that matches; Burn Rate Rules
+       * raise alerts and declare incidents when the budget burns too fast),
+       * as a status page keeps its Monitor Rules under Rules. Both are set
+       * up rather than visited, so like Management they fold down to their
+       * titles until opened, and each opens by itself on its own pages
+       * (SideMenuSectionState.ts).
+       */}
       <SideMenuSection title="Configuration">
         <SideMenuItem
           link={{
@@ -182,6 +195,9 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.AltGlobe}
         />
+      </SideMenuSection>
+
+      <SideMenuSection title="Rules">
         <SideMenuItem
           link={{
             title: "Monitor Rules",
@@ -203,6 +219,12 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Fire}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ServiceLevelObjective,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Management">
         <SideMenuItem

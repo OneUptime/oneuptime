@@ -1,5 +1,10 @@
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../Network/NetworkQuickActions";
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
+import NetworkTopologyEmptyState from "./NetworkTopologyEmptyState";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
 import { isAdoptableNode } from "./AdoptNeighborUtil";
@@ -31,6 +36,8 @@ import {
   prunePositionOverrides,
 } from "./TopologyPositionOverrides";
 import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
+import { TopologyLayoutModel } from "../NetworkDevice/TopologyLayout";
+import { exportNetworkTopologyAsPdf } from "./Export/NetworkTopologyPdfExport";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -59,11 +66,9 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Logger } from "Common/UI/Utils/Logger";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { APP_API_URL } from "Common/UI/Config";
-import Route from "Common/Types/API/Route";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -96,6 +101,18 @@ export interface ComponentProps {
    * tiered, radial, star and parent-child from the toolbar afterwards.
    */
   layoutMode?: TopologyLayoutMode | undefined;
+  /*
+   * Where the scoped site sits in the hierarchy, top first ("North
+   * America", "East", "Store 1042"). Names the exported PDF; omitted for
+   * the map of every device in the project.
+   */
+  scopeNames?: Array<string> | undefined;
+  /*
+   * How many devices and peers the map holds, each time it is read: what is
+   * around the map can stop talking about it when there is nothing on it
+   * (the explorer's "every device in one map" note).
+   */
+  onNodeCountChange?: ((nodeCount: number) => void) | undefined;
 }
 
 /*
@@ -229,6 +246,16 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [positionOverrides, setPositionOverrides] = useState<PositionOverrides>(
     new Map(),
   );
+  // Issue #4616: the PDF export, which runs in the browser and can take a moment.
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string>("");
+  /*
+   * The layout the graph is drawing, as it reported it. The export draws
+   * from this rather than recomputing it, so the PDF is the map on screen
+   * even when a poll has changed something the layout is not redrawn for.
+   */
+  const layoutModelRef: React.MutableRefObject<TopologyLayoutModel | null> =
+    useRef<TopologyLayoutModel | null>(null);
 
   // A background poll must not clobber the view if the component is gone.
   const isMounted: React.MutableRefObject<boolean> = useRef<boolean>(true);
@@ -525,6 +552,67 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }, [healthSummary]);
 
   /*
+   * Whether the map draws anything at all. The export is offered only then:
+   * a PDF of an empty frame is a file nobody asked for.
+   */
+  const hasNodesToExport: boolean =
+    healthSummary.total > 0 &&
+    (healthFilterMode === "all" || healthFilterMatchCount > 0);
+
+  /*
+   * Export what the reader is looking at: the same nodes after the VLAN
+   * filter, the same layout and dragged positions, the same type, health and
+   * search filters — and the whole map, not the part inside the viewport.
+   */
+  const exportPdf: () => void = (): void => {
+    if (isExporting) {
+      return;
+    }
+    setExportError("");
+    setIsExporting(true);
+    exportNetworkTopologyAsPdf({
+      topology: visibleTopology,
+      layoutModel: layoutModelRef.current || undefined,
+      layoutMode: layoutMode,
+      positionOverrides: positionOverrides,
+      searchText: searchText,
+      visibleKinds: effectiveVisibleKinds,
+      availableKinds: availableKinds,
+      healthFilterMode: healthFilterMode,
+      vlanId: selectedVlan === ALL_VLANS ? null : Number(selectedVlan),
+      projectName: ProjectUtil.getCurrentProject()?.name || undefined,
+      scopeNames: props.scopeNames || [],
+      notices: {
+        isTruncated: topology.isTruncated,
+        endpointsTruncated: topology.endpointsTruncated,
+        droppedEndpointCount: topology.droppedEndpointCount,
+        suppressedNodeCount: topology.suppressedNodeCount,
+      },
+    })
+      .catch((err: unknown) => {
+        /*
+         * The reader is told in a sentence they can act on; the reason —
+         * a library chunk that did not load, a page jsPDF refused — goes to
+         * the console, where it can be diagnosed.
+         */
+        Logger.error(
+          `Could not export the network topology as a PDF: ${API.getFriendlyMessage(err)}`,
+        );
+        if (isMounted.current) {
+          setExportError(
+            translateString("We couldn't create the PDF. Try again.") ||
+              "We couldn't create the PDF. Try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted.current) {
+          setIsExporting(false);
+        }
+      });
+  };
+
+  /*
    * ------------------------------------------------------------------
    * Saved arrangements
    * ------------------------------------------------------------------
@@ -618,6 +706,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     };
   }, [persistence, overridesStorageKey]);
 
+  // The map's size, once it is read, for whatever is around the map.
+  useEffect(() => {
+    if (!isLoading) {
+      props.onNodeCountChange?.(topology.nodes.length);
+    }
+  }, [topology, isLoading]);
+
   /*
    * Forget positions for devices that have left the topology. Runs
    * against the unfiltered node set, and returns the same map instance
@@ -675,6 +770,41 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The way forward from an empty map: the Add Device form itself, opened by
+   * the Devices list (NetworkQuickActions), rather than the list with a
+   * button on it somewhere.
+   */
+  const addDeviceLink: ReactElement = (
+    <Link
+      to={getNetworkQuickActionRoute(NetworkQuickAction.AddDevice)}
+      className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+    >
+      {/*
+       * Looked up here: Link draws its children as they are given, so a
+       * bare string stayed English in every language.
+       */}
+      {translateString("Add a device") || "Add a device"}
+    </Link>
+  );
+
+  /*
+   * Nothing on the network yet: the card is its empty state and nothing
+   * else. The search, the layout options, a health filter of four zeros,
+   * the "Read the map" guide and Export PDF all described a map that is not
+   * there, and pushed the one thing to do below them.
+   */
+  if (!isLoading && !error && topology.nodes.length === 0) {
+    return (
+      <Card
+        title="Network Topology"
+        description="See how your network devices connect. Select a device to inspect its health, or a connection to inspect its ports."
+      >
+        <NetworkTopologyEmptyState footer={addDeviceLink} />
+      </Card>
+    );
+  }
+
   if (error && topology.nodes.length === 0) {
     return (
       <Card
@@ -717,6 +847,17 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         </span>
       }
       buttons={[
+        {
+          title: "Export PDF",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Download,
+          isLoading: isExporting,
+          disabled: !hasNodesToExport || isExporting,
+          tooltip: hasNodesToExport
+            ? "Download the whole map as a PDF, with every device and connection listed."
+            : "There is nothing on the map to export.",
+          onClick: exportPdf,
+        },
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.NORMAL,
@@ -845,6 +986,18 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {exportError ? (
+        <div
+          role="alert"
+          className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
+          data-testid="network-topology-export-error"
+        >
+          {exportError}
+        </div>
+      ) : (
+        <></>
+      )}
+
       {/*
        * The rules with something to explain — including a site-scoped rule
        * that drew in most of its sites and failed in the rest, so a listed
@@ -921,11 +1074,25 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500"
         data-testid="network-topology-map-guide"
       >
+        {/*
+         * In the reader's language, and saying what the numbers on a device
+         * are: its ports up and down. The legend names colours and shapes,
+         * and nothing on the map explained "7/2".
+         */}
         <span>
-          <span className="font-medium text-gray-700">Read the map:</span>{" "}
-          devices are nodes; lines are network connections.
+          <span className="font-medium text-gray-700">
+            {translateString("Read the map:") || "Read the map:"}
+          </span>{" "}
+          {translateString(
+            "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down.",
+          ) ||
+            "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down."}
         </span>
-        <span>Click to inspect · Drag to arrange · Updates every minute</span>
+        <span>
+          {translateString(
+            "Click to inspect · Drag to arrange · Updates every minute",
+          ) || "Click to inspect · Drag to arrange · Updates every minute"}
+        </span>
       </div>
 
       <NetworkDeviceGraph
@@ -950,16 +1117,10 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           setSelectedNodeId(null);
           setSelectedEdgeKey(edgeKeyForEdge(edge));
         }}
-        emptyStateFooter={
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICES] as Route,
-            )}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            Set up network device monitoring
-          </Link>
-        }
+        onLayoutModelChange={(model: TopologyLayoutModel) => {
+          layoutModelRef.current = model;
+        }}
+        emptyStateFooter={addDeviceLink}
       />
 
       {selectedNode ? (

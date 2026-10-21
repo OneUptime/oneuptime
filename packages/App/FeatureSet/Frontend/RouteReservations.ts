@@ -39,6 +39,12 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/source-maps",
   /*
+   * The Vercel log drain (/vercel/v1/logs), mounted on both "/telemetry"
+   * and "/" the same way. POST-only today; reserved for the same reason as
+   * /fluentd above.
+   */
+  "/vercel",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"
@@ -71,6 +77,14 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
   "/heartbeat",
   "/incoming-email",
   "/worker",
+  /*
+   * A runbook's webhook URL, /runbook/webhook/<runbook>/<key>, which other
+   * tools call. Starting a run is POST only; a GET - a chat app previewing
+   * the pasted URL, a tool set to the wrong method - is answered 405 with
+   * how to call it, not with a web page at HTTP 200 that reads as success.
+   * The segment match leaves /runbooks, the marketing site's address, alone.
+   */
+  "/runbook",
 ];
 
 export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
@@ -109,6 +123,7 @@ export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/browserconfig.xml",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
@@ -135,6 +150,7 @@ export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/.well-known",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 /*

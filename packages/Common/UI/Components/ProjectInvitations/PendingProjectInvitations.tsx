@@ -17,6 +17,8 @@ import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
 
 export interface ComponentProps {
@@ -59,6 +61,7 @@ export interface ComponentProps {
 const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [invitations, setInvitations] = useState<Array<UserProjectMembership>>(
     [],
   );
@@ -277,14 +280,21 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                 </div>
               ) : (
                 <p className="mt-1 text-xs text-gray-500">
-                  {`You have been invited to ${ProjectInvitationDisplay.getTeamCountLabel(
-                    invitation,
-                  )} in this project.`}
+                  {translator.translatePlural(
+                    {
+                      one: "You have been invited to {{count}} team in this project.",
+                      other:
+                        "You have been invited to {{count}} teams in this project.",
+                    },
+                    invitation.teamMemberIds.length,
+                  )}
                 </p>
               )}
               {invitation.joinedAt ? (
                 <p className="mt-1.5 text-xs text-gray-400">
-                  {`Invited ${OneUptimeDate.fromNow(invitation.joinedAt)}`}
+                  {translator.translateTemplate("Invited {{time}}", {
+                    time: OneUptimeDate.fromNow(invitation.joinedAt),
+                  })}
                 </p>
               ) : (
                 <></>
@@ -312,7 +322,12 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
               className="whitespace-nowrap"
               disabled={isBusy}
               dataTestId="decline-invitation-button"
-              ariaLabel={`Decline invitation to ${projectName}`}
+              ariaLabel={translator.translateTemplate(
+                "Decline invitation to {{project}}",
+                {
+                  project: projectName,
+                },
+              )}
               onClick={() => {
                 setInvitationToDecline(invitation);
               }}
@@ -326,7 +341,12 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
               isLoading={isBusy}
               disabled={isBusy}
               dataTestId="accept-invitation-button"
-              ariaLabel={`Accept invitation to ${projectName}`}
+              ariaLabel={translator.translateTemplate(
+                "Accept invitation to {{project}}",
+                {
+                  project: projectName,
+                },
+              )}
               onClick={() => {
                 acceptInvitation(invitation).catch(() => {
                   /*
@@ -384,12 +404,19 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
           <div className="min-w-0">
             <h2 className="text-lg font-semibold leading-6 text-gray-900">
               {invitations.length === 1
-                ? "You have been invited to a project"
-                : `You have been invited to ${invitations.length} projects`}
+                ? translator.translateText("You have been invited to a project")
+                : translator.translatePlural(
+                    {
+                      one: "You have been invited to {{count}} project",
+                      other: "You have been invited to {{count}} projects",
+                    },
+                    invitations.length,
+                  )}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">
-              Accept an invitation to join right away. There is nothing to set
-              up.
+              {translator.translateText(
+                "Accept an invitation to join right away. There is nothing to set up.",
+              )}
             </p>
           </div>
         </div>
@@ -414,11 +441,18 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
       {invitationToDecline ? (
         <ConfirmModal
           title={`Decline invitation`}
-          description={`Are you sure you want to decline the invitation to ${ProjectInvitationDisplay.getProjectName(
-            invitationToDecline,
-          )}? You will lose access to ${ProjectInvitationDisplay.getTeamCountLabel(
-            invitationToDecline,
-          )} in this project, and will need a new invitation to join.`}
+          description={translator.translatePlural(
+            {
+              one: "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} team in this project, and will need a new invitation to join.",
+              other:
+                "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} teams in this project, and will need a new invitation to join.",
+            },
+            invitationToDecline.teamMemberIds.length,
+            {
+              project:
+                ProjectInvitationDisplay.getProjectName(invitationToDecline),
+            },
+          )}
           submitButtonText={`Decline`}
           submitButtonType={ButtonStyleType.DANGER}
           onSubmit={() => {

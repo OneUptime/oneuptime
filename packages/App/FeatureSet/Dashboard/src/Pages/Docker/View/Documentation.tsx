@@ -61,11 +61,14 @@ const DockerHostDocumentation: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  const hostName: string = host.hostIdentifier || host.name || "";
+
   return (
     <Fragment>
       <DockerDocumentationCard
-        title="Docker Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Docker Agent on this host."
+        hostName={hostName}
+        title="Agent Installation Guide"
+        description="Install or reconfigure the OneUptime Docker agent on this host. Pick how you run it, then follow the steps."
       />
     </Fragment>
   );

@@ -75,6 +75,11 @@ import KubernetesClusterLabelRule from "../../../../Models/DatabaseModels/Kubern
 import KubernetesClusterOwnerRule from "../../../../Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterOwnerTeam from "../../../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "../../../../Models/DatabaseModels/KubernetesClusterOwnerUser";
+import MessageQueue from "../../../../Models/DatabaseModels/MessageQueue";
+import MessageQueueLabelRule from "../../../../Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "../../../../Models/DatabaseModels/MessageQueueOwnerRule";
+import MessageQueueOwnerTeam from "../../../../Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "../../../../Models/DatabaseModels/MessageQueueOwnerUser";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../../../Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "../../../../Models/DatabaseModels/MonitorOwnerRule";
@@ -140,6 +145,11 @@ import StatusPageLabelRule from "../../../../Models/DatabaseModels/StatusPageLab
 import StatusPageOwnerRule from "../../../../Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageOwnerTeam from "../../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "../../../../Models/DatabaseModels/StatusPageOwnerUser";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
+import StorageArrayLabelRule from "../../../../Models/DatabaseModels/StorageArrayLabelRule";
+import StorageArrayOwnerRule from "../../../../Models/DatabaseModels/StorageArrayOwnerRule";
+import StorageArrayOwnerTeam from "../../../../Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "../../../../Models/DatabaseModels/StorageArrayOwnerUser";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterLabelRule from "../../../../Models/DatabaseModels/VMwareVCenterLabelRule";
 import VMwareVCenterOwnerRule from "../../../../Models/DatabaseModels/VMwareVCenterOwnerRule";
@@ -230,6 +240,11 @@ import KubernetesClusterLabelRuleService from "../../../Services/KubernetesClust
 import KubernetesClusterOwnerRuleEngineService from "../../../Services/KubernetesClusterOwnerRuleEngineService";
 import KubernetesClusterOwnerRuleService from "../../../Services/KubernetesClusterOwnerRuleService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import MessageQueueLabelRuleEngineService from "../../../Services/MessageQueueLabelRuleEngineService";
+import MessageQueueLabelRuleService from "../../../Services/MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleEngineService from "../../../Services/MessageQueueOwnerRuleEngineService";
+import MessageQueueOwnerRuleService from "../../../Services/MessageQueueOwnerRuleService";
+import MessageQueueService from "../../../Services/MessageQueueService";
 import MonitorLabelRuleEngineService from "../../../Services/MonitorLabelRuleEngineService";
 import MonitorLabelRuleService from "../../../Services/MonitorLabelRuleService";
 import MonitorOwnerRuleEngineService from "../../../Services/MonitorOwnerRuleEngineService";
@@ -295,6 +310,11 @@ import StatusPageLabelRuleService from "../../../Services/StatusPageLabelRuleSer
 import StatusPageOwnerRuleEngineService from "../../../Services/StatusPageOwnerRuleEngineService";
 import StatusPageOwnerRuleService from "../../../Services/StatusPageOwnerRuleService";
 import StatusPageService from "../../../Services/StatusPageService";
+import StorageArrayLabelRuleEngineService from "../../../Services/StorageArrayLabelRuleEngineService";
+import StorageArrayLabelRuleService from "../../../Services/StorageArrayLabelRuleService";
+import StorageArrayOwnerRuleEngineService from "../../../Services/StorageArrayOwnerRuleEngineService";
+import StorageArrayOwnerRuleService from "../../../Services/StorageArrayOwnerRuleService";
+import StorageArrayService from "../../../Services/StorageArrayService";
 import VMwareVCenterLabelRuleEngineService from "../../../Services/VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterLabelRuleService from "../../../Services/VMwareVCenterLabelRuleService";
 import VMwareVCenterOwnerRuleEngineService from "../../../Services/VMwareVCenterOwnerRuleEngineService";
@@ -599,6 +619,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     engine: KubernetesClusterOwnerRuleEngineService,
     ownerModelTypes: [KubernetesClusterOwnerUser, KubernetesClusterOwnerTeam],
   }),
+  [RuleRunType.MessageQueueLabelRule]: defineRuleRun({
+    ruleModelType: MessageQueueLabelRule,
+    resourceModelType: MessageQueue,
+    ruleService: MessageQueueLabelRuleService,
+    resourceService: MessageQueueService,
+    engine: MessageQueueLabelRuleEngineService,
+  }),
+  [RuleRunType.MessageQueueOwnerRule]: defineRuleRun({
+    ruleModelType: MessageQueueOwnerRule,
+    resourceModelType: MessageQueue,
+    ruleService: MessageQueueOwnerRuleService,
+    resourceService: MessageQueueService,
+    engine: MessageQueueOwnerRuleEngineService,
+    ownerModelTypes: [MessageQueueOwnerUser, MessageQueueOwnerTeam],
+  }),
   [RuleRunType.MonitorLabelRule]: defineRuleRun({
     ruleModelType: MonitorLabelRule,
     resourceModelType: Monitor,
@@ -802,6 +837,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: StatusPageService,
     engine: StatusPageOwnerRuleEngineService,
     ownerModelTypes: [StatusPageOwnerUser, StatusPageOwnerTeam],
+  }),
+  [RuleRunType.StorageArrayLabelRule]: defineRuleRun({
+    ruleModelType: StorageArrayLabelRule,
+    resourceModelType: StorageArray,
+    ruleService: StorageArrayLabelRuleService,
+    resourceService: StorageArrayService,
+    engine: StorageArrayLabelRuleEngineService,
+  }),
+  [RuleRunType.StorageArrayOwnerRule]: defineRuleRun({
+    ruleModelType: StorageArrayOwnerRule,
+    resourceModelType: StorageArray,
+    ruleService: StorageArrayOwnerRuleService,
+    resourceService: StorageArrayService,
+    engine: StorageArrayOwnerRuleEngineService,
+    ownerModelTypes: [StorageArrayOwnerUser, StorageArrayOwnerTeam],
   }),
   [RuleRunType.VMwareVCenterLabelRule]: defineRuleRun({
     ruleModelType: VMwareVCenterLabelRule,

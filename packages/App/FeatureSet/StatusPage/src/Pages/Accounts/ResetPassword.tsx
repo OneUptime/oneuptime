@@ -1,3 +1,4 @@
+import LogoPlate from "../../Components/Logo/LogoPlate";
 import { RESET_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -79,7 +80,9 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {logoUrl ? (
-          <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          <LogoPlate className="mx-auto w-fit">
+            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          </LogoPlate>
         ) : (
           <></>
         )}
@@ -132,6 +135,9 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   },
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Password,
+                  // The person's new password: password managers save it.
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   validation: {
                     minLength: 6,
                   },
@@ -150,6 +156,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   },
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Password,
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   placeholder: t("accounts.shared.confirmPassword"),
                   title: t("accounts.shared.confirmPassword"),
                   overrideFieldKey: "confirmPassword",

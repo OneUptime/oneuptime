@@ -5,6 +5,7 @@ import {
   SLO_UNARCHIVE_CARD_DESCRIPTION,
   SLO_UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../Components/Slo/SloArchiveCopy";
+import SloEvaluationCard from "../../../Components/Slo/SloEvaluationCard";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import PageMap from "../../../Utils/PageMap";
@@ -14,7 +15,6 @@ import {
   describeSloErrorBudget,
   describeSloWindow,
   getSloDowntimeSettingsFormFields,
-  getSloEvaluationSettingsFormFields,
   getSloObjectiveSettingsFormFields,
   getSloPeriodSettingsFormFields,
   orderDowntimeMonitorStatuses,
@@ -23,7 +23,6 @@ import {
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
@@ -39,8 +38,38 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translateTemplate,
+  translateText,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const EM_DASH: string = "—";
+
+/*
+ * Each card's dialog is titled like the button that opens it. All three
+ * said "Edit Service Level Objective" over the two or three fields of one
+ * card.
+ */
+const SLO_SETTINGS_DIALOG_TITLES: {
+  objective: string;
+  period: string;
+  downtime: string;
+} = {
+  objective: translationKey("Edit Objective"),
+  period: translationKey("Edit Period"),
+  downtime: translationKey("Edit Downtime Calculation"),
+};
+
+// Each mode's name (the enum value is its English name).
+const MULTI_MONITOR_MODE_NAMES: Record<SloMultiMonitorMode, string> = {
+  [SloMultiMonitorMode.AnyDown]: translationKey("Any Monitor Down"),
+  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
+    "Monitor Seconds Average",
+  ),
+};
 
 /*
  * Shown when a status has no colour, the same neutral fallback the
@@ -86,15 +115,17 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
    */
   if (orderedStatuses.length === 0) {
     return getValueElement(
-      "Every non-operational status",
-      "The default. Statuses added to the project later are counted too.",
+      translateTemplate("Every non-operational status"),
+      translateTemplate(
+        "The default. Statuses added to the project later are counted too.",
+      ),
     );
   }
 
   return (
     <ul
       className="flex flex-wrap gap-2"
-      aria-label="Statuses that count as downtime"
+      aria-label={translateText("Statuses that count as downtime")}
     >
       {orderedStatuses.map((status: MonitorStatus, index: number) => {
         return (
@@ -111,7 +142,7 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
                   : STATUS_DOT_FALLBACK_COLOR,
               }}
             />
-            {status.name || "Unnamed status"}
+            {status.name || translateText("Unnamed status")}
           </li>
         );
       })}
@@ -122,15 +153,17 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
 type RefreshBannerFunction = () => void;
 
 const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // The route is <sloId>/settings, so the id is one segment back.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
    * Bumped after any card saves, and after the archive card archives or
    * unarchives, so the notice banner re-reads the SLO: a banner saying "This
-   * SLO is disabled" or "This SLO is archived" must disappear the moment the
-   * user turns evaluation back on, or unarchives, right below it. A counter
-   * rather than a timestamp, because two saves inside the same second would
+   * SLO is archived" must disappear the moment the user unarchives right
+   * below it. (The Evaluation switch needs no bump: the banner hears it
+   * through ModelSwitchEvents, wherever it is flipped.) A counter rather
+   * than a timestamp, because two saves inside the same second would
    * otherwise produce the same toggle value and the second would not refresh.
    */
   const [bannerRefreshCount, setBannerRefreshCount] = useState<number>(0);
@@ -158,10 +191,6 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloDowntimeSettingsFormFields();
     }, []);
-  const evaluationFormFields: Array<ModelField<ServiceLevelObjective>> =
-    useMemo((): Array<ModelField<ServiceLevelObjective>> => {
-      return getSloEvaluationSettingsFormFields();
-    }, []);
 
   return (
     <Fragment>
@@ -179,6 +208,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Objective"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.objective}
         formFields={objectiveFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{
@@ -221,9 +251,14 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                 return getValueElement(
                   threshold
-                    ? `${threshold} of error budget remaining`
+                    ? translator.translateTemplate(
+                        "{{threshold}} of error budget remaining",
+                        { threshold: threshold },
+                      )
                     : EM_DASH,
-                  "Below this the SLO turns At Risk.",
+                  translator.translateTemplate(
+                    "Below this the SLO turns At Risk.",
+                  ),
                 );
               },
             },
@@ -240,7 +275,9 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     windowType: item.windowType,
                     windowDays: item.windowDays,
                   }) || EM_DASH,
-                  "The downtime this objective allows before it is breached.",
+                  translator.translateTemplate(
+                    "The downtime this objective allows before it is breached.",
+                  ),
                 );
               },
             },
@@ -257,6 +294,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Period"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.period}
         formFields={periodFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{
@@ -287,7 +325,9 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     windowDays: item.windowDays,
                     timezone: item.timezone,
                   }),
-                  SLO_WINDOW_TYPE_DESCRIPTIONS[windowType],
+                  translator.translateText(
+                    SLO_WINDOW_TYPE_DESCRIPTIONS[windowType],
+                  ),
                 );
               },
             },
@@ -304,8 +344,12 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return getValueElement(
                   item.timezone || "UTC",
                   item.timezone
-                    ? "Months start and end at midnight in this timezone."
-                    : "The default. Months start and end at midnight UTC.",
+                    ? translator.translateTemplate(
+                        "Months start and end at midnight in this timezone.",
+                      )
+                    : translator.translateTemplate(
+                        "The default. Months start and end at midnight UTC.",
+                      ),
                 );
               },
             },
@@ -322,6 +366,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Downtime Calculation"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.downtime}
         formFields={downtimeFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{
@@ -342,8 +387,10 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   item.multiMonitorMode || SloMultiMonitorMode.AnyDown;
 
                 return getValueElement(
-                  mode,
-                  SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
+                  translator.translateTerm(MULTI_MONITOR_MODE_NAMES[mode]),
+                  translator.translateText(
+                    SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
+                  ),
                 );
               },
             },
@@ -370,63 +417,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <CardModelDetail<ServiceLevelObjective>
-        name="SLO Evaluation"
-        cardProps={{
-          title: "Evaluation",
-          description:
-            "Whether OneUptime evaluates this SLO. A disabled SLO keeps its history and settings but stops measuring, and its burn rate rules stop firing.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Evaluation"
-        formFields={evaluationFormFields}
-        onSaveSuccess={refreshBanner}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: ServiceLevelObjective,
-          id: "slo-settings-evaluation",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                lastEvaluatedAt: true,
-              },
-              title: "Last Evaluated",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                if (!item.lastEvaluatedAt) {
-                  return getValueElement(
-                    "Not evaluated yet",
-                    "OneUptime evaluates enabled SLOs every few minutes.",
-                  );
-                }
-
-                const lastEvaluatedAt: Date = OneUptimeDate.fromString(
-                  item.lastEvaluatedAt,
-                );
-
-                return (
-                  <span
-                    className="font-medium text-gray-900"
-                    title={OneUptimeDate.getDateAsLocalFormattedString(
-                      lastEvaluatedAt,
-                    )}
-                  >
-                    {OneUptimeDate.fromNow(lastEvaluatedAt)}
-                  </span>
-                );
-              },
-            },
-          ],
-        }}
-      />
+      <SloEvaluationCard sloId={modelId} />
 
       <ArchiveResourceCard<ServiceLevelObjective>
         modelType={ServiceLevelObjective}

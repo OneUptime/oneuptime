@@ -55,10 +55,20 @@ fi
 PROVIDER_TYPES=$(find "$DOCS_DIR" -maxdepth 1 -name '*.md' -exec basename {} .md \; \
     | sed 's/^/oneuptime_/' | sort -u)
 
-# (b) Resource types exercised across all fixtures (main.tf + update.tf)
-TESTED_TYPES=$(grep -rhoE 'resource "oneuptime_[a-z0-9_]+"' \
+# (b) Deprecated aliases: the old names of renamed types
+# (internal/provider/resources.go, legacyResourceAliases). The provider still
+# ships them, but they are no type of their own, so a fixture that uses one
+# counts neither as coverage nor as a type the provider does not ship.
+ALIAS_TYPES=$(grep -hoE 'LegacyName: "[a-z0-9_]+"' \
+    "$PROVIDER_DIR/internal/provider/resources.go" 2>/dev/null \
+    | sed 's/LegacyName: "/oneuptime_/; s/"//' | sort -u || true)
+
+# (c) Resource types exercised across all fixtures (main.tf + update.tf)
+ALL_TESTED_TYPES=$(grep -rhoE 'resource "oneuptime_[a-z0-9_]+"' \
     "$TEST_DIR"/tests/*/main.tf "$TEST_DIR"/tests/*/update.tf 2>/dev/null \
     | sed 's/resource "//; s/"//' | sort -u)
+TESTED_TYPES=$(comm -23 <(printf '%s\n' "$ALL_TESTED_TYPES") <(printf '%s\n' "$ALIAS_TYPES") || true)
+TESTED_ALIASES=$(comm -12 <(printf '%s\n' "$ALL_TESTED_TYPES") <(printf '%s\n' "$ALIAS_TYPES") || true)
 
 PROVIDER_COUNT=$(printf '%s\n' "$PROVIDER_TYPES" | grep -c . || true)
 TESTED_COUNT=$(printf '%s\n' "$TESTED_TYPES" | grep -c . || true)
@@ -85,6 +95,12 @@ echo ""
 if [ -n "$UNKNOWN_TYPES" ]; then
     echo "WARNING: fixtures reference types the provider does not ship:"
     printf '%s\n' "$UNKNOWN_TYPES" | sed 's/^/  - /'
+    echo ""
+fi
+
+if [ -n "$TESTED_ALIASES" ]; then
+    echo "Deprecated aliases exercised (not counted):"
+    printf '%s\n' "$TESTED_ALIASES" | sed 's/^/  - /'
     echo ""
 fi
 

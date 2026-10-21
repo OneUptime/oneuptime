@@ -1,4 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 
 export interface LogSearchHelpProps {
   onExampleClick?: ((example: string) => void) | undefined;
@@ -18,7 +21,7 @@ interface HelpRow {
  */
 const HELP_ROWS: Array<HelpRow> = [
   {
-    syntax: "free text",
+    syntax: translationKey("free text"),
     description: "Search log messages",
     example: "connection refused",
   },
@@ -82,11 +85,12 @@ const HELP_ROWS: Array<HelpRow> = [
 const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
   props: LogSearchHelpProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="absolute left-0 top-full z-50 mt-1 w-[36rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       <div className="border-b border-gray-100 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Search syntax
+          {translator.translateText("Search syntax")}
         </span>
       </div>
 
@@ -106,12 +110,12 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
               >
                 <td className="whitespace-nowrap py-1.5 pl-3 pr-2">
                   <code className="font-mono text-xs text-indigo-600">
-                    {row.syntax}
+                    {translator.translateText(row.syntax)}
                   </code>
                 </td>
                 <td className="py-1.5 px-2">
                   <span className="text-xs text-gray-500">
-                    {row.description}
+                    {translator.translateText(row.description)}
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
@@ -127,16 +131,22 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
 
       <div className="border-t border-gray-100 px-3 py-1.5">
         <span className="text-[10px] text-gray-400">
-          Press{" "}
-          <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
-            Enter
-          </kbd>{" "}
-          to search · Filters combine with AND ·{" "}
-          <code className="font-mono text-[10px] text-gray-500">
-            severity:error service:api &quot;timeout&quot;
-          </code>{" "}
-          · Use <code className="font-mono text-[10px]">\*</code> for a literal
-          asterisk
+          <TranslatedSentence
+            template="Press {{key}} to search · Filters combine with AND · {{example}} · Use {{escape}} for a literal asterisk"
+            slots={{
+              key: (
+                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
+                  Enter
+                </kbd>
+              ),
+              example: (
+                <code className="font-mono text-[10px] text-gray-500">
+                  severity:error service:api &quot;timeout&quot;
+                </code>
+              ),
+              escape: <code className="font-mono text-[10px]">\*</code>,
+            }}
+          />
         </span>
       </div>
     </div>

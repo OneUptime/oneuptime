@@ -1,41 +1,50 @@
-# Complete Guide
+# Guida completa
 
-This guide covers everything beyond the first apply: authentication patterns, how to structure a OneUptime Terraform project, resource dependencies, data sources, state management, and upgrades.
+Questa guida copre ciò che viene dopo il tuo primo apply: come il provider trova la sua chiave API, come organizzare una configurazione per uno o più progetti, come le risorse si riferiscono l'una all'altra, come leggere record che non gestisci, come proteggere lo stato e come aggiornare. Nuovo al provider? Inizia dall'[Avvio rapido](/docs/terraform/quick-start).
 
-If you have never used the provider, start with the [Quick Start](/docs/terraform/quick-start).
+:::cards
+- [Configurare il provider](#configurare-il-provider): La chiave API e l'indirizzo, e dove il provider li legge.
+- [Organizzare una configurazione](#organizzare-una-configurazione): File, progetti e molte risorse da un solo blocco.
+- [Leggere ciò che esiste già](#leggere-ciò-che-esiste-già): Le sorgenti dati, e come corrisponde una ricerca.
+- [Proteggere lo stato](#proteggere-lo-stato): Un backend remoto, e cosa non committare mai.
+:::
 
-## Provider configuration
+## Configurare il provider
 
-The provider block accepts two attributes:
+Il provider prende due impostazioni. Ognuna viene dal blocco del provider, altrimenti da una variabile d'ambiente:
 
-| Attribute | Required | Environment variable | Default |
-|-----------|----------|----------------------|---------|
-| `api_key` | No (falls back to env var) | `ONEUPTIME_API_KEY` | — |
-| `oneuptime_url` | No | `ONEUPTIME_URL` | `https://oneuptime.com` |
+| Impostazione | Variabile d'ambiente | Quando nessuna delle due è impostata |
+| --- | --- | --- |
+| `api_key` | `ONEUPTIME_API_KEY` | Il provider si ferma prima di pianificare qualsiasi cosa: `Missing API Key` |
+| `oneuptime_url` | `ONEUPTIME_URL` | `https://oneuptime.com`, cioè OneUptime Cloud |
 
-If no API key is available from either the provider block or the environment, the provider fails at configure time with an explicit error — before any plan or apply work happens.
+```mermaid title="Dove il provider trova chiave e indirizzo"
+flowchart TB
+    B["1. Il blocco del provider:<br/>api_key e<br/>oneuptime_url"] --> E["2. Le variabili d'ambiente:<br/>ONEUPTIME_API_KEY<br/>e ONEUPTIME_URL"]
+    E --> N["3. Nessuna delle due:<br/>senza chiave l'esecuzione<br/>si ferma, senza indirizzo<br/>vale OneUptime Cloud"]
+```
 
-The key must be a **project API key** (Project Settings > API Keys), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
+`oneuptime_url` è l'indirizzo della tua istanza OneUptime, senza `/api`: il provider aggiunge `https://` quando l'indirizzo non ha uno schema, e `/api` alla fine. `api_key` è sensibile, quindi Terraform non lo stampa mai.
 
-### Option 1: Environment variables (recommended)
+La chiave deve essere una chiave API del progetto che gestisci, autorizzata a creare, leggere, modificare ed eliminare ogni tipo di record della tua configurazione: vedi [Creare una chiave API del progetto](/docs/terraform/quick-start#creare-una-chiave-api-del-progetto). La chiave API master di un'istanza OneUptime self-hosted non appartiene a nessun progetto, quindi una creazione fatta con essa fallisce con `ProjectId required`.
 
-Keep credentials out of your configuration entirely:
+### Dare al provider la sua chiave
 
+:::tabs
+@tab Variabile d'ambiente
 ```bash
-export ONEUPTIME_API_KEY="your-project-api-key"
-# Only needed for self-hosted instances:
+export ONEUPTIME_API_KEY="<your-api-key>"
+# Only on a self-hosted OneUptime:
 export ONEUPTIME_URL="https://oneuptime.example.com"
 ```
 
-```hcl
+```hcl title="main.tf"
 provider "oneuptime" {}
 ```
-
-### Option 2: Variables with a tfvars file
-
-```hcl
+@tab Variabile Terraform
+```hcl title="variables.tf"
 variable "oneuptime_api_key" {
-  description = "OneUptime project API key"
+  description = "API key of the OneUptime project"
   type        = string
   sensitive   = true
 }
@@ -45,173 +54,287 @@ provider "oneuptime" {
 }
 ```
 
-Put the value in `terraform.tfvars` (and add that file to `.gitignore`):
+```hcl title="terraform.tfvars"
+oneuptime_api_key = "<your-api-key>"
+```
+:::
+
+Una variabile d'ambiente tiene la chiave fuori da ogni file. Un file di variabili è comodo sulla tua macchina: aggiungi `terraform.tfvars` a `.gitignore`. In una pipeline, imposta `TF_VAR_oneuptime_api_key` invece di scrivere il file.
+
+### Eseguirlo in CI/CD
+
+Dai la chiave al job come segreto, nella variabile d'ambiente `ONEUPTIME_API_KEY`:
+
+:::tabs
+@tab GitHub Actions
+```yaml title=".github/workflows/oneuptime.yml"
+name: OneUptime
+on:
+  push:
+    branches: [main]
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform apply -input=false tfplan
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+apply:
+  image:
+    name: hashicorp/terraform:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - terraform init -input=false
+    - terraform plan -input=false -out=tfplan
+    - terraform apply -input=false tfplan
+```
+:::
+
+In GitHub, aggiungi il segreto in **Settings → Secrets and variables → Actions**; in GitLab, aggiungi una variabile CI/CD mascherata con lo stesso nome. Tieni lo stato in un [backend remoto](#proteggere-lo-stato), così ogni esecuzione parte dallo stato lasciato dalla precedente.
+
+## Organizzare una configurazione
+
+Un'organizzazione che funziona bene:
+
+```text
+oneuptime/
+├── main.tf          # the terraform and provider blocks
+├── variables.tf     # input variables
+├── outputs.tf       # the IDs other configurations need
+├── shared.tf        # labels, teams and monitor statuses
+├── monitors.tf      # monitors and monitor groups
+├── status-pages.tf  # status pages and their domains
+└── on-call.tf       # on-call policies and escalation rules
+```
+
+- **Una configurazione per ogni progetto.** Una chiave API appartiene a un progetto, quindi una configurazione ne gestisce naturalmente uno.
+- **I record condivisi una volta sola.** Definisci etichette, team e stati del monitor in un file, e riferisciti a essi con il loro indirizzo ovunque.
+
+### Gestire più progetti
+
+Per gestire più di un progetto da una configurazione, dai al provider un alias per ciascuno, ognuno con la chiave di quel progetto. Una risorsa nomina l'alias che usa con `provider`:
 
 ```hcl
-oneuptime_api_key = "your-project-api-key"
+provider "oneuptime" {
+  alias   = "production"
+  api_key = var.production_api_key
+}
+
+provider "oneuptime" {
+  alias   = "staging"
+  api_key = var.staging_api_key
+}
+
+resource "oneuptime_label" "staging_critical" {
+  provider = oneuptime.staging
+
+  name  = "critical"
+  color = "#FF5733"
+}
 ```
 
-### Option 3: CI/CD secrets
+Dichiara `production_api_key` e `staging_api_key` come variabili marcate `sensitive`, come sopra.
 
-In CI, inject the key as a masked environment variable. GitHub Actions example:
+### Molte risorse da un solo blocco
 
-```yaml
-env:
-  ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
-steps:
-  - uses: hashicorp/setup-terraform@v3
-  - run: terraform init
-  - run: terraform plan -input=false
-  - run: terraform apply -auto-approve -input=false
+`for_each` crea una risorsa per ogni voce di una map. Questi monitor condividono i loro criteri e differiscono solo per nome e indirizzo:
+
+```hcl
+variable "websites" {
+  type = map(string)
+  default = {
+    homepage = "https://example.com"
+    docs     = "https://docs.example.com"
+  }
+}
+
+resource "oneuptime_monitor" "website" {
+  for_each = var.websites
+
+  name                = "Website: ${each.key}"
+  monitor_type        = "Website"
+  monitoring_interval = "*/5 * * * *"
+
+  monitor_steps = [{
+    monitor_destination      = each.value
+    monitor_destination_type = "URL"
+
+    criteria = [
+      {
+        name                  = "Offline"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      }
+    ]
+  }]
+}
 ```
 
-The same pattern works in GitLab CI (masked variables), CircleCI (contexts), and Terraform Cloud (environment variables on the workspace).
+Aggiungi un sito alla map, e l'apply successivo crea il suo monitor. Togline uno, e lo elimina.
 
-## Project structure
+## Riferirsi ad altre risorse
 
-A layout that works well for OneUptime configurations:
+Una risorsa che nomina un attributo di un'altra dipende da essa, e Terraform ordina il lavoro secondo questi riferimenti. Qui l'etichetta viene creata per prima ed eliminata per ultima, perché il monitor e la pagina di stato la nominano:
 
+```mermaid title="Terraform crea prima ciò a cui una risorsa si riferisce"
+flowchart TB
+    L["oneuptime_label<br/>payments"] --> M["oneuptime_monitor<br/>checkout_api"]
+    L --> SP["oneuptime_status_page<br/>payments"]
+    M --> R["oneuptime_status_page_resource<br/>checkout_api"]
+    SP --> R
 ```
-oneuptime/
-├── main.tf          # terraform {} and provider {} blocks
-├── variables.tf     # input variables
-├── outputs.tf       # exported IDs
-├── labels.tf        # labels, teams — shared building blocks
-├── monitors.tf      # monitors and monitor statuses
-├── status-pages.tf  # status pages and domains
-├── on-call.tf       # on-call policies and escalation rules
-└── environments/
-    ├── production.tfvars
-    └── staging.tfvars
-```
-
-Two conventions that pay off:
-
-- **One Terraform root per OneUptime project.** API keys are project-scoped, so a root module maps naturally to one project. For multiple projects, use separate root modules (or provider aliases with one key each).
-- **Define shared building blocks (labels, teams, monitor statuses) once** in their own file and reference them by resource address everywhere else.
-
-## Resource dependencies
-
-Terraform infers dependencies from references. A typical graph — labels and teams feeding monitors, which feed a status page:
 
 ```hcl
 resource "oneuptime_label" "payments" {
   name        = "payments"
   description = "Payment infrastructure"
-  color       = "#2ecc71"
-}
-
-resource "oneuptime_team" "payments_oncall" {
-  name        = "Payments On-Call"
-  description = "Owns payment service availability"
+  color       = "#2ECC71"
 }
 
 resource "oneuptime_monitor" "checkout_api" {
   name         = "Checkout API"
   description  = "Availability of the checkout API"
-  monitor_type = "API"
+  monitor_type = "Manual"
   labels       = [oneuptime_label.payments.id]
 }
 
 resource "oneuptime_status_page" "payments" {
-  name                     = "Payments Status"
-  description              = "Customer-facing payments status"
-  page_title               = "Payments Status"
-  page_description         = "Live status of payment processing"
-  is_public_status_page    = true
-  enable_email_subscribers = true
-  enable_sms_subscribers   = false
-  labels                   = [oneuptime_label.payments.id]
+  name                  = "Payments Status"
+  page_title            = "Payments Status"
+  is_public_status_page = true
+  labels                = [oneuptime_label.payments.id]
+}
+
+resource "oneuptime_status_page_resource" "checkout_api" {
+  status_page_id = oneuptime_status_page.payments.id
+  monitor_id     = oneuptime_monitor.checkout_api.id
+  display_name   = "Checkout API"
 }
 ```
 
-Because `oneuptime_monitor.checkout_api` references `oneuptime_label.payments.id`, Terraform creates the label first and destroys it last. Explicit `depends_on` is rarely needed — only add it when there is a real ordering requirement without an attribute reference.
+Raramente ti serve `depends_on`: aggiungilo solo per un ordine che Terraform non può vedere dagli attributi. Gli elenchi di ID come `labels` sono insiemi, quindi cambiarne l'ordine non cambia nulla.
 
-Attributes like `labels` are **unordered sets of ID strings**: changing the order of entries produces no diff.
+## Leggere ciò che esiste già
 
-## Data sources
-
-Every resource has a matching data source with the same name. Use data sources to reference resources that are *not* managed by this configuration — created in the dashboard, or owned by another Terraform root.
-
-Look up by `name`:
+Ogni risorsa ha una sorgente dati con lo stesso nome. Una sorgente dati legge un record che questa configurazione non gestisce, creato nella dashboard o da un'altra configurazione, così puoi riferirti a esso senza prenderne il controllo.
 
 ```hcl
 data "oneuptime_label" "critical" {
   name = "critical"
 }
 
-resource "oneuptime_monitor" "db" {
+data "oneuptime_monitor_status" "offline" {
+  is_offline_state = true
+}
+
+data "oneuptime_status_page" "main" {
+  id = "5f8a1b2c-3d4e-4f6a-8b9c-0d1e2f3a4b5c"
+}
+
+resource "oneuptime_monitor" "database" {
   name         = "Database Health"
-  description  = "Managed here, but reuses a dashboard-created label"
   monitor_type = "Manual"
   labels       = [data.oneuptime_label.critical.id]
 }
 ```
 
-Or look up by `id`:
+Come corrisponde una ricerca:
 
-```hcl
-data "oneuptime_status_page" "main" {
-  id = "5f8a1b2c3d4e5f6a7b8c9d0e"
-}
-```
+| Imposti | Trova | Errori |
+| --- | --- | --- |
+| `id` | Il record con quell'ID | `Not Found` quando nessun record ce l'ha |
+| Qualsiasi altro argomento semplice, uno o più | L'unico record che corrisponde a tutti | `Not Found` quando nessuno corrisponde, `Ambiguous Match` quando ne corrisponde più di uno |
+| `id` e un altro argomento, oppure niente | Niente | `Invalid Lookup` |
 
-Lookup rules:
+Gli argomenti semplici sono testo, numeri e vero o falso: un nome, una priorità, un flag come `is_offline_state`. Non si può cercare per elenchi, valori JSON, timestamp o segreti. Per prendere il controllo di un record invece di limitarti a leggerlo, [importalo](/docs/terraform/importing-resources).
 
-- Provide `id` **or** `name`.
-- If nothing matches, the data source returns an error (fix the name, or create the resource).
-- If more than one resource matches a `name`, the data source also errors — names used for lookups must be unique. Look up by `id` instead.
+## Proteggere lo stato
 
-> **Note:** If you want to *manage* an existing resource rather than just reference it, import it instead — see [Importing Resources](/docs/terraform/importing-resources).
-
-## State management
-
-Terraform state for OneUptime configurations contains resource IDs and attribute values — including anything sensitive you set. Treat it accordingly:
-
-- **Use a remote backend** for anything beyond a personal experiment, so state is shared, locked, and not sitting in a laptop directory. Any [standard backend](https://developer.hashicorp.com/terraform/language/backend) works — S3 + DynamoDB, Terraform Cloud, azurerm, GCS:
+Lo stato di Terraform contiene gli ID e gli attributi di tutto ciò che gestisce, segreti compresi. Tienilo in un backend remoto che lo blocca, così un team condivide un solo stato e due esecuzioni non lo scrivono mai insieme. Va bene qualsiasi backend standard, per esempio un bucket S3:
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "my-terraform-state"
-    key            = "oneuptime/production.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
+    bucket       = "my-terraform-state"
+    key          = "oneuptime/production.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 ```
 
-- **Never edit state by hand.** Use `terraform state mv` / `terraform state rm` if you need surgery.
-- **Never commit `terraform.tfstate` or `*.tfvars` with secrets** to version control.
+`use_lockfile` richiede Terraform 1.10 o OpenTofu 1.10, o successivi. Prima di questi, il backend S3 blocca con una tabella DynamoDB (`dynamodb_table`).
 
-## Timestamps and drift
+- **Non modificare mai lo stato a mano.** Usa `terraform state mv` e `terraform state rm`.
+- **Non committare mai `terraform.tfstate`, né un file `.tfvars` che contiene un segreto.**
 
-Date/time attributes (for example `starts_at` / `ends_at` on `oneuptime_scheduled_maintenance_event`, or computed `created_at` fields) are RFC3339 strings. The provider compares timestamps semantically: `2026-08-01T02:00:00Z` and the server-normalized form of the same instant are treated as equal, so timestamp normalization does not produce spurious diffs.
+## La deriva, e cosa non la causa
 
-When you generate timestamps with functions like `timestamp()` or `timeadd()`, the *generated value* changes on every run — that is a Terraform behavior, not a provider one. Either use static values or ignore changes after creation:
+`terraform plan` confronta OneUptime con la tua configurazione ed elenca ciò che differisce. Alcune differenze non vengono mai mostrate:
+
+- **Gli orari si confrontano come istanti.** `2030-06-01T02:00:00Z` e il modo in cui il server scrive lo stesso istante sono uguali.
+- **I valori predefiniti che il server aggiunge** ai passaggi di un monitor o a un valore JSON non sono una differenza rispetto a ciò che hai scritto.
+- **Ciò che il server tiene aggiornato**, come lo stato attuale di un monitor, non è una differenza neppure lui.
+
+Un valore che calcoli a ogni esecuzione invece lo è: `timestamp()` dà un orario nuovo a ogni esecuzione, quindi un piano lo mostra sempre. Scrivi invece orari fissi:
 
 ```hcl
-resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
+resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   title       = "Database upgrade"
   description = "Planned PostgreSQL upgrade"
-  starts_at   = "2026-08-01T02:00:00Z"
-  ends_at     = "2026-08-01T04:00:00Z"
+  starts_at   = "2030-06-01T02:00:00Z"
+  ends_at     = "2030-06-01T04:00:00Z"
 }
 ```
 
-## Upgrading the provider
+## Aggiornare il provider
 
-1. Read the release notes on the [registry page](https://registry.terraform.io/providers/oneuptime/oneuptime) or [GitHub releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases).
-2. Raise the version constraint (for example `~> 11.0` already allows all 11.x releases; moving to a new major requires editing the constraint).
-3. Run `terraform init -upgrade` to fetch the new version.
-4. Run `terraform plan` and confirm the plan is empty (or contains only changes you expect) before applying.
+:::steps
+### Leggere le note di rilascio
 
-Self-hosted installations must keep the provider version at or below the platform version — upgrade OneUptime first, then the provider. See [Self-Hosted Setup](/docs/terraform/self-hosted).
+Il [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) e le [release del provider su GitHub](https://github.com/OneUptime/terraform-provider-oneuptime/releases) elencano cosa è cambiato.
 
-## Further reading
+### Alzare il vincolo di versione
 
-- [Examples](/docs/terraform/examples) — real configurations for each resource type
-- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` JSON schema in depth
-- [Importing Resources](/docs/terraform/importing-resources) — adopting existing resources
-- [Troubleshooting](/docs/terraform/troubleshooting) — common errors and fixes
+`{{TERRAFORM_PROVIDER_VERSION}}` prende già ogni release {{TERRAFORM_PROVIDER_MAJOR}}.x. Una nuova versione major richiede un nuovo vincolo.
+
+### Scaricare la nuova versione
+
+```bash
+terraform init -upgrade
+```
+
+### Pianificare prima di applicare
+
+Esegui `terraform plan`, e applica solo quando il piano è vuoto o mostra le modifiche che ti aspetti.
+:::
+
+Su un'istanza OneUptime self-hosted, aggiorna prima OneUptime e poi il provider: il provider non deve essere più nuovo della tua istanza OneUptime. Vedi la [Configurazione self-hosted](/docs/terraform/self-hosted).
+
+## Prossimi passi
+
+:::cards
+- [Passaggi del monitor](/docs/terraform/monitor-steps): Decidere cosa controlla un monitor e cosa significa ogni risultato.
+- [Esempi](/docs/terraform/examples): Configurazioni pronte all'uso per le risorse più comuni.
+- [Importare risorse](/docs/terraform/importing-resources): Portare sotto Terraform ciò che hai creato nella dashboard.
+- [Risoluzione dei problemi](/docs/terraform/troubleshooting): Gli errori comuni e come risolverli.
+:::

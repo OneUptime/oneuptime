@@ -196,6 +196,18 @@ describe("describeClusterEvidenceTool", () => {
       expect(note).not.toContain("its rows");
     }
   });
+
+  /*
+   * The list of every kubectl command moved from the cluster's AI Insights
+   * page to its AI Logs page; AI Insights sums up what AI learned instead.
+   */
+  test("sends the reader to the cluster's AI Logs page for every kubectl command", () => {
+    const note: string | null = getClusterEvidenceNote(RUN_KUBECTL_TOOL_NAME);
+    expect(note).toContain(
+      "the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.",
+    );
+    expect(note).not.toContain("AI Insights");
+  });
 });
 
 describe("the cluster tool names", () => {

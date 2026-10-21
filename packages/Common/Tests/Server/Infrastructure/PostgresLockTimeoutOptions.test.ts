@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
  * The Postgres connection deadlines.
@@ -14,20 +14,28 @@ import { describe, expect, test } from "@jest/globals";
  * Two subtleties this suite pins, both of which are easy to get wrong and
  * silent when wrong:
  *
- *  1. The MIGRATION path must be exempt. App/Migrate.ts loads these same
- *     options and connects directly to the backend, where startup parameters
- *     really do apply. A 3s lock_timeout there would abort ACCESS EXCLUSIVE
- *     DDL against any table with live traffic. Only the two migrations that
- *     set their own `SET LOCAL lock_timeout` expect to fail that way.
+ *  1. The app pool of a MIGRATING process is exempt. App/Migrate.ts loads
+ *     these same options and connects directly to the backend, where startup
+ *     parameters really do apply, and its data migrations run on that pool,
+ *     free to wait for row locks. Its SCHEMA migrations do not: they run on a
+ *     connection of their own (SchemaMigrationRunner) with a shorter bound,
+ *     DATABASE_MIGRATION_LOCK_TIMEOUT_MS, and a migration that runs out is
+ *     rolled back and retried. Unbounded, a DDL statement waiting for a lock
+ *     queued every query on its table behind itself - 14.0.13's ALTER TABLE
+ *     on "Monitor" stopped monitoring that way.
  *
- *  2. The deadlines must be ORDERED so the server wins. The client-side
- *     `query_timeout` does not cancel anything — it abandons the query while
- *     the backend keeps running and keeps its place in the lock queue. That is
+ *  2. The deadlines must be ORDERED so the server wins. node-postgres' own
+ *     `query_timeout` did not cancel anything - it abandoned the query while
+ *     the backend kept running and kept its place in the lock queue. That is
  *     how killed and scaled-down workers left orphaned statements holding the
  *     queue through pgbouncer. It used to be set equal to statement_timeout,
  *     and since the client timer starts before the packet reaches the backend,
  *     the client always won by a round trip and the server-side timeout never
- *     fired at all.
+ *     fired at all. The pool's client now cancels a statement it stops
+ *     waiting for, and closes its connection (CancelOnTimeoutClient) - for
+ *     where the server enforces no timeout of its own: behind a pooler that
+ *     drops it. Where it does, the server still answers first, with the
+ *     statement's own SQLSTATE.
  *
  * The module reads env at import time, so each case re-imports it in isolation.
  */
@@ -37,11 +45,15 @@ interface DataSourceExtra {
   statement_timeout?: number;
   query_timeout?: number;
   idle_in_transaction_session_timeout?: number;
+  // The node-postgres client class the pool opens its connections with.
+  Client?: (new (...args: Array<unknown>) => unknown) | undefined;
 }
 
-function loadExtra(env: Record<string, string | undefined>): DataSourceExtra {
-  let extra: DataSourceExtra = {};
-
+/* Runs `load` on fresh module instances, with `env` set for its duration. */
+function withEnv(
+  env: Record<string, string | undefined>,
+  load: () => void,
+): void {
   jest.isolateModules(() => {
     const previous: Record<string, string | undefined> = {};
 
@@ -55,14 +67,7 @@ function loadExtra(env: Record<string, string | undefined>): DataSourceExtra {
     }
 
     try {
-      /* eslint-disable @typescript-eslint/no-var-requires */
-      const options: {
-        default: { extra: DataSourceExtra };
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-      } = require("../../../Server/Infrastructure/Postgres/DataSourceOptions");
-      /* eslint-enable @typescript-eslint/no-var-requires */
-
-      extra = options.default.extra;
+      load();
     } finally {
       for (const [key, value] of Object.entries(previous)) {
         if (value === undefined) {
@@ -72,6 +77,21 @@ function loadExtra(env: Record<string, string | undefined>): DataSourceExtra {
         }
       }
     }
+  });
+}
+
+function loadExtra(env: Record<string, string | undefined>): DataSourceExtra {
+  let extra: DataSourceExtra = {};
+
+  withEnv(env, () => {
+    /* eslint-disable @typescript-eslint/no-var-requires */
+    const options: {
+      default: { extra: DataSourceExtra };
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+    } = require("../../../Server/Infrastructure/Postgres/DataSourceOptions");
+    /* eslint-enable @typescript-eslint/no-var-requires */
+
+    extra = options.default.extra;
   });
 
   return extra;
@@ -136,9 +156,9 @@ describe("Postgres connection deadlines", () => {
     });
 
     /*
-     * statement_timeout < query_timeout, so the SERVER cancels first. If the
-     * client wins, the statement is only abandoned — the backend keeps
-     * running, keeps its lock, and keeps its place in the queue.
+     * statement_timeout < query_timeout, so the SERVER cancels first, and the
+     * app sees the statement's own SQLSTATE. The client's cancel is for
+     * where the server enforces no statement timeout.
      */
     test("the server cancels before the client gives up", () => {
       const extra: DataSourceExtra = loadExtra({
@@ -166,6 +186,161 @@ describe("Postgres connection deadlines", () => {
 
       expect(extra.statement_timeout).toBe(60000);
       expect(extra.query_timeout!).toBeGreaterThan(60000);
+    });
+  });
+
+  describe("a statement the client stops waiting for", () => {
+    /*
+     * node-postgres' own query_timeout only stopped waiting: the statement
+     * ran on, and inside save() its ROLLBACK was dropped and the open
+     * transaction handed to the next request on that connection
+     * (AbandonedStatementsPostgres). The pool's client cancels it on the
+     * database and closes the connection instead.
+     */
+    test("is cancelled by the client the pool opens its connections with", () => {
+      const extra: DataSourceExtra = loadExtra({
+        RUN_DATABASE_MIGRATIONS_ON_BOOT: "false",
+      });
+
+      expect(typeof extra.Client).toBe("function");
+      expect(extra.Client!.name).toBe("CancelOnTimeoutClient");
+      // node-postgres' own client underneath, as the pool expects.
+      expect(Object.getPrototypeOf(extra.Client!).name).toBe("Client");
+      // Its timeout is still the pool's query_timeout, which it keeps itself.
+      expect(extra.query_timeout).toBeGreaterThan(0);
+    });
+
+    test("the same on the app pool of a migrating process", () => {
+      const extra: DataSourceExtra = loadExtra({
+        RUN_DATABASE_MIGRATIONS_ON_BOOT: "true",
+      });
+
+      expect(extra.Client!.name).toBe("CancelOnTimeoutClient");
+    });
+  });
+
+  describe("schema migrations", () => {
+    interface MigrationConnection {
+      appExtra: DataSourceExtra;
+      migrationExtra: DataSourceExtra;
+      lockTimeoutInMs: number;
+      retryTimeoutInMs: number;
+      appLockTimeoutInMs: number;
+    }
+
+    function loadMigrationConnection(
+      env: Record<string, string | undefined>,
+    ): MigrationConnection {
+      let loaded: MigrationConnection | null = null;
+
+      withEnv(env, () => {
+        /* eslint-disable @typescript-eslint/no-var-requires */
+        const options: {
+          default: { extra: DataSourceExtra };
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+        } = require("../../../Server/Infrastructure/Postgres/DataSourceOptions");
+        const runner: {
+          default: {
+            getDataSourceOptions: (options: unknown) => {
+              extra: DataSourceExtra;
+            };
+          };
+          SCHEMA_MIGRATION_LOCK_POLICY: {
+            lockTimeoutInMs: number;
+            retryTimeoutInMs: number;
+          };
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+        } = require("../../../Server/Infrastructure/Postgres/SchemaMigrationRunner");
+        const config: {
+          PostgresLockTimeoutMs: number;
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+        } = require("../../../Server/EnvironmentConfig");
+        /* eslint-enable @typescript-eslint/no-var-requires */
+
+        loaded = {
+          appExtra: options.default.extra,
+          migrationExtra: runner.default.getDataSourceOptions(options.default)
+            .extra,
+          lockTimeoutInMs: runner.SCHEMA_MIGRATION_LOCK_POLICY.lockTimeoutInMs,
+          retryTimeoutInMs:
+            runner.SCHEMA_MIGRATION_LOCK_POLICY.retryTimeoutInMs,
+          appLockTimeoutInMs: config.PostgresLockTimeoutMs,
+        };
+      });
+
+      return loaded!;
+    }
+
+    const MIGRATING: Record<string, string | undefined> = {
+      RUN_DATABASE_MIGRATIONS_ON_BOOT: undefined,
+      DATABASE_LOCK_TIMEOUT_MS: undefined,
+      DATABASE_MIGRATION_LOCK_TIMEOUT_MS: undefined,
+      DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS: undefined,
+    };
+
+    // Loading the options loads every entity: once for the defaults.
+    let defaults: MigrationConnection;
+
+    beforeAll(() => {
+      defaults = loadMigrationConnection(MIGRATING);
+    });
+
+    test("run with a 2s lock wait, as a startup parameter of their own connection", () => {
+      expect(defaults.migrationExtra.lock_timeout).toBe(2000);
+      // The app pool of the same process stays exempt: data migrations.
+      expect(defaults.appExtra.lock_timeout).toBeUndefined();
+    });
+
+    /*
+     * An app query that arrives while a migration waits for its lock queues
+     * behind that request. The migration giving up first is what lets the
+     * query through - delayed, not failed with its own lock_timeout.
+     */
+    test("wait less than the app's own queries, so those queued behind them are delayed, not failed", () => {
+      expect(defaults.lockTimeoutInMs).toBeLessThan(
+        defaults.appLockTimeoutInMs,
+      );
+      expect(defaults.migrationExtra.lock_timeout!).toBeLessThan(
+        defaults.appLockTimeoutInMs,
+      );
+    });
+
+    test("keep every other deadline of the app pool", () => {
+      // And its client: a migration statement the runner stops waiting for is cancelled too.
+      expect(defaults.migrationExtra.Client).toBe(defaults.appExtra.Client);
+      expect(defaults.migrationExtra.statement_timeout).toBe(
+        defaults.appExtra.statement_timeout,
+      );
+      expect(defaults.migrationExtra.query_timeout).toBe(
+        defaults.appExtra.query_timeout,
+      );
+      expect(defaults.migrationExtra.idle_in_transaction_session_timeout).toBe(
+        defaults.appExtra.idle_in_transaction_session_timeout,
+      );
+    });
+
+    test("a migration is retried for 10 minutes by default", () => {
+      expect(defaults.retryTimeoutInMs).toBe(600_000);
+    });
+
+    test("the lock wait and the retry window are configurable", () => {
+      const connection: MigrationConnection = loadMigrationConnection({
+        ...MIGRATING,
+        DATABASE_MIGRATION_LOCK_TIMEOUT_MS: "750",
+        DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS: "120000",
+      });
+
+      expect(connection.migrationExtra.lock_timeout).toBe(750);
+      expect(connection.retryTimeoutInMs).toBe(120_000);
+    });
+
+    test("0 lets them wait as long as it takes, as before", () => {
+      const connection: MigrationConnection = loadMigrationConnection({
+        ...MIGRATING,
+        DATABASE_MIGRATION_LOCK_TIMEOUT_MS: "0",
+      });
+
+      expect(connection.migrationExtra.lock_timeout).toBeUndefined();
     });
   });
 

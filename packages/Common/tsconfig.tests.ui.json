@@ -1,0 +1,22 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: Tests/UI, the tests of
+   * Common's components. Why the program is checked in parts:
+   * Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/UI/**/*.ts",
+    "Tests/UI/**/*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}

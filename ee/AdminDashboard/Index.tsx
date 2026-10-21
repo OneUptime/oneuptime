@@ -1,7 +1,7 @@
 import EnterpriseLicensesPlugins from "./EnterpriseLicenses/Plugins";
-import GlobalSSOPlugins from "./GlobalSSO/Plugins";
 import HealthPlugins from "./Health/Plugins";
 import LicensePlugins from "./License/Plugins";
+import WhiteLabelPlugins from "./WhiteLabel/Plugins";
 import { AdminDashboardEnterprisePlugins } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 
 /*
@@ -27,9 +27,9 @@ export const ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_SENTINEL: string =
   "ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1";
 
 export default {
-  ...GlobalSSOPlugins,
   ...HealthPlugins,
   ...EnterpriseLicensesPlugins,
   ...LicensePlugins,
+  ...WhiteLabelPlugins,
   buildMarker: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies AdminDashboardEnterprisePlugins;

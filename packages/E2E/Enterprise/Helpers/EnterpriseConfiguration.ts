@@ -13,9 +13,9 @@ import { APIResponse, Page } from "@playwright/test";
  * Writing ENTERPRISE CONFIGURATION over the ordinary CRUD API - the sharpest
  * assertion a licence makes on a plain REST route.
  *
- * Models marked requiresEnterprise (project/global/status-page SSO, OIDC and
- * SCIM, team compliance) can always be read and deleted, but creating or
- * changing one needs an active licence: Common/Server/Types/Database/
+ * Models marked requiresEnterprise (project and status-page SCIM, team
+ * compliance) can always be read and deleted, but creating or changing one
+ * needs an active licence: Common/Server/Types/Database/
  * Permissions/EditionPermission.ts asks EnterpriseEdition, which throws
  * PaymentRequired with one of two different messages - one for "this build has
  * no Enterprise Edition at all" and one for "it has one, but the licence does
@@ -27,6 +27,10 @@ import { APIResponse, Page } from "@playwright/test";
  * whole real stack - the session the sign-up flow created, nginx, the API
  * layer, the permission pipeline and the licence snapshot in a booted
  * process - rather than a direct call to the permission check.
+ *
+ * Single sign-on configuration is not in this group: it is core, and no
+ * edition or licence gates it (Tests/Helpers/SsoConfiguration.ts writes it on
+ * the Community and lapsed stacks and expects it to be accepted).
  */
 
 // Common/Models/DatabaseModels/ProjectSCIM.ts: name, projectId, bearerToken.
@@ -102,8 +106,7 @@ type CreateProjectScimFunction = (data: {
  * Community suites call this expecting a 402 with their own message.
  *
  * ProjectSCIM is the enterprise configuration model that needs the least
- * fixture data: a name, the project and a bearer token. A ProjectSSO would
- * need an issuer, a sign-on URL and a certificate.
+ * fixture data: a name, the project and a bearer token.
  */
 export const createProjectScim: CreateProjectScimFunction = async (data: {
   page: Page;

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
@@ -7,6 +7,7 @@ import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import UserService from "./UserService";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
+import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import Label from "../../Models/DatabaseModels/Label";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
@@ -26,21 +27,22 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
 } from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { holdsAnyPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { KubernetesAiRemediationMode } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
-  KubernetesAiRemediationMode,
-  isUnattendedRemediationMode,
-} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "../../Types/AI/AgentAiSettings";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { PermissionHelper } from "../../Types/Permission";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import KubernetesAiAgentService from "./KubernetesAiAgentService";
 import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
@@ -49,6 +51,16 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  NamedAfterIdentityOptions,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnIdentifier,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -57,6 +69,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "k8s-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -151,17 +167,48 @@ export const AI_ACCESS_CREDENTIAL_REFUSAL: string =
   "Credential not found, or it is not a Kubernetes credential in this project. The AI access credential must be a Kubernetes credential (API server URL and ServiceAccount token) that belongs to this project.";
 
 export function getAiAccessAdminRefusal(): string {
-  return `You need one of these permissions to let OneUptime AI do more on a Kubernetes cluster (switch AI remediation to Automatic or Bypass approval, add kubectl allowlist patterns, or bind a Runner or credential): ${PermissionHelper.getPermissionTitles(
+  return `You need one of these permissions to let OneUptime AI do more on a Kubernetes cluster (turn AI fixes on or give them more autonomy, add kubectl allowlist patterns, bind a Runner or credential, or clear one while the cluster has a Kubernetes AI agent): ${PermissionHelper.getPermissionTitles(
     KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   ).join(
     ", ",
-  )}. Anyone who may edit the cluster can still turn AI remediation off or back to Ask for approval, remove allowlist patterns, and clear the Runner or credential.`;
+  )}. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval, and remove allowlist patterns.`;
 }
 
-export function getAiAccessCredentialRefusal(): string {
-  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-  ).join(", ")}.`;
+/*
+ * The two settings a cluster's Kubernetes AI agent sets once its
+ * configuration (or, on a cluster nobody configured, its defaults) decides
+ * them. The allowlist and the Runner binding stay OneUptime's.
+ */
+export const AGENT_SET_AI_ACCESS_KEYS: Array<string> = [
+  "isAiInvestigationEnabled",
+  "aiRemediationMode",
+];
+
+/*
+ * The refusal for a change to a setting the cluster's Kubernetes AI agent
+ * sets: where it is set instead, and where the command is.
+ */
+export function getAgentSetAiAccessRefusal(
+  source: AgentAiSettingsSource,
+): string {
+  return `What OneUptime AI may do on this cluster is set by its Kubernetes AI agent${
+    source === "agent_defaults"
+      ? " (its defaults: the Kubernetes agent chart sets neither aiAgent.investigation nor aiAgent.fixes)"
+      : "'s configuration"
+  }, so AI investigation and fixes cannot be changed here. Set aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart instead; the cluster's AI agent page (AI → Agent) shows the command for each option.`;
+}
+
+/*
+ * Why a caller cannot bind a Kubernetes credential: it takes the read of
+ * runbook credentials (RunbookCredentialReaders) - and, for a workflow's
+ * step, that a person has to bind it.
+ */
+export function getAiAccessCredentialRefusal(
+  props?: DatabaseCommonInteractionProps | undefined,
+): string {
+  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${RunbookCredentialReaders.getTitles()}.${
+    props ? RunbookCredentialReaders.getWorkflowNote(props) : ""
+  }`;
 }
 
 /*
@@ -183,11 +230,33 @@ export interface AiAccessSettingsSnapshot {
   aiKubectlCommandAllowlist: Array<string>;
   aiAccessRunnerId: string | null;
   aiAccessCredentialId: string | null;
+  /*
+   * Whether the cluster has a Kubernetes AI agent row. Read only for a
+   * write that clears the Runner or credential binding (absent otherwise):
+   * with an agent, clearing an advanced Runner hands the cluster to the
+   * agent, whose RBAC may reach more, so it is a loosening.
+   */
+  hasKubernetesAiAgent?: boolean | undefined;
+  /*
+   * When an operator first chose AI settings for the cluster (null: never).
+   * The agent's defaults decide only while it is null.
+   */
+  aiAccessConfiguredAt?: Date | null | undefined;
+  /*
+   * Where investigation and fixes are set, as the write found it: while the
+   * agent sets them, an operator's change to either is refused, and the
+   * write marks nothing configured (it chose neither).
+   */
+  aiSettingsSource?: AgentAiSettingsSource | undefined;
 }
 
-// What a cluster that was never AI-configured has: the column defaults.
+/*
+ * What a cluster that was never AI-configured has: the column defaults
+ * (investigation on — it only ever runs read-only kubectl — and remediation
+ * Disabled).
+ */
 const NEVER_CONFIGURED_AI_ACCESS: AiAccessSettingsSnapshot = {
-  isAiInvestigationEnabled: false,
+  isAiInvestigationEnabled: true,
   aiRemediationMode: KubernetesAiRemediationMode.Disabled,
   aiKubectlCommandAllowlist: [],
   aiAccessRunnerId: null,
@@ -229,25 +298,66 @@ function getClusterDeleteCarryForward(
 }
 
 // What loosening an operator's write would do to one cluster.
-interface AiAccessLoosening {
+export interface AiAccessLoosening {
   loosens: boolean;
   bindsCredential: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A cluster is matched to its telemetry by the clusterName its
+ * kubernetes-agent reports (k8s.cluster.name), and named after it unless
+ * somebody gives it a display name of their own (DiscoveredResourceCreate).
+ */
+const KUBERNETES_CLUSTER_IDENTITY: NamedAfterIdentityOptions = {
+  identityColumn: "clusterIdentifier",
+  resourceName: "Kubernetes cluster",
+  identityName: "cluster name",
+};
+
+const KUBERNETES_CLUSTER_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>(KUBERNETES_CLUSTER_IDENTITY);
+
+const KUBERNETES_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnIdentifier(
+  KUBERNETES_CLUSTER_IDENTITY,
+);
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The AI access Runner and credential are checked by this service's own
+   * hooks (validateAiAccessBindingsBelongToProject): pinned to the project,
+   * the credential to a Kubernetes one, another project's answered like a
+   * missing one. Everything else a cluster names - its labels - is checked
+   * by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["aiAccessRunner", "aiAccessCredential"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The project, under either of its names (the two must agree).
     const projectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      createBy.data.project?.id ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      ) ||
       createBy.props.tenantId ||
       undefined;
+
+    // Named after its cluster name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({
+      createBy,
+      naming: KUBERNETES_CLUSTER_NAMING,
+    });
 
     const data: JSONObject = createBy.data as unknown as JSONObject;
 
@@ -289,6 +399,12 @@ export class Service extends DatabaseService<Model> {
         ],
         loaded,
       });
+
+      await this.allowBoundRunnerAiCommands({
+        data,
+        projectIds: projectId ? [projectId] : [],
+        props: createBy.props,
+      });
     }
 
     return {
@@ -300,10 +416,43 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * A cluster that is already there - discovered from its telemetry or
+   * added before - is refused by its cluster name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: KUBERNETES_CLUSTER_NAMING,
+    });
+  }
+
+  /*
+   * A cluster's cluster name - edited from the details card on its Settings page - is stored
+   * without the spaces around it, and refused when another one of the
+   * project already has it (DiscoveredResourceUpdate).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: KUBERNETES_CLUSTER_MATCH_COLUMN,
+    });
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
 
     this.validateAiRemediationSettings(data);
@@ -319,7 +468,21 @@ export class Service extends DatabaseService<Model> {
 
     if (!updateBy.props.isRoot && this.isAiAccessSettingWritten(data)) {
       const previousAiAccessSettings: Record<string, AiAccessSettingsSnapshot> =
-        await this.getAiAccessSettingsForUpdateQuery(updateBy);
+        await this.getAiAccessSettingsForUpdateQuery(updateBy, {
+          withKubernetesAiAgent: this.clearsAiAccessBinding(data),
+        });
+
+      /*
+       * Investigation and fixes are the agent's while it sets them: a change
+       * to either is refused for everyone, master admins included — it is
+       * where the setting lives, not who may change it. Re-posting the
+       * value the cluster has is no change and passes (Terraform and the
+       * API post every field).
+       */
+      this.assertAgentSetSettingsUnchanged({
+        data,
+        current: Object.values(previousAiAccessSettings),
+      });
 
       if (!updateBy.props.isMasterAdmin) {
         this.assertMayChangeAiAccess({
@@ -339,13 +502,13 @@ export class Service extends DatabaseService<Model> {
       ])
     ) {
       /*
-       * Root/API updates do not always carry a tenantId, so fall back to
-       * the project of each cluster the query actually matches — a Runner
-       * must belong to every one of them.
+       * The project of every cluster the update writes - the request's
+       * project for a teammate, whose update is kept to it, and each
+       * cluster's own project for OneUptime and a master admin
+       * (findProjectsToCheckUpdateIn): a Runner must belong to every one.
        */
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+      const projectIds: Array<ObjectID> =
+        await this.findProjectsToCheckUpdateIn(updateBy);
 
       const loaded: AiAccessBindingRows = {
         runners: new Map<string, Runner>(),
@@ -385,10 +548,49 @@ export class Service extends DatabaseService<Model> {
           clusters: Object.values(carryForward.previousAiAccessSettings),
           loaded,
         });
+
+        await this.allowBoundRunnerAiCommands({
+          data,
+          projectIds,
+          props: updateBy.props,
+        });
       }
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * Binding a Runner to a cluster's AI access is what lets OneUptime AI run
+   * that cluster's kubectl there: a Runner has no "Runs AI Remediation
+   * Commands" switch any more (RunnerAiCommandsPick). Asked once an
+   * operator's binding passed every check above, for the Runner it binds -
+   * none for a binding it clears - with what the switch asked: a binder who
+   * may not read runbook credentials may not bind a Runner that holds SSH
+   * credentials and does not run OneUptime AI's commands yet.
+   */
+  private async allowBoundRunnerAiCommands(data: {
+    data: JSONObject;
+    projectIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const runnerId: ObjectID | null = RelationIdUtil.readConsistent(
+      data.data,
+      AI_ACCESS_RUNNER_KEYS,
+      "AI access Runner",
+    );
+
+    if (!runnerId) {
+      return;
+    }
+
+    for (const projectId of data.projectIds) {
+      await RunnerAiCommandsPick.allowPickedRunners({
+        projectId,
+        runnerIds: [runnerId],
+        props: data.props,
+      });
+    }
   }
 
   /*
@@ -407,20 +609,13 @@ export class Service extends DatabaseService<Model> {
     let inFlightRounds: Array<AutoRemediationSuggestion> = [];
     const clusterNames: Record<string, string> = {};
 
-    try {
-      const clusters: Array<Model> = await this.findBy({
-        query: {
-          ...deleteBy.query,
-          ...(deleteBy.props.tenantId
-            ? { projectId: deleteBy.props.tenantId }
-            : {}),
-        },
-        select: { _id: true, name: true, clusterIdentifier: true },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // The clusters the delete removes, and the delete held to them.
+    const clusters: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, name: true, clusterIdentifier: true },
+    );
 
+    try {
       const clusterIds: Array<ObjectID> = [];
 
       for (const cluster of clusters) {
@@ -534,10 +729,10 @@ export class Service extends DatabaseService<Model> {
         },
       ).length;
 
-      const note: string =
+      const note: MarkdownText =
         executedCount > 0
-          ? `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** ${executedCount} command(s) had already run on it before; nothing was rolled back and no further command will run.`
-          : `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** None of its kubectl commands ran, and none will.`;
+          ? mdText`**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** ${executedCount} command(s) had already run on it before; nothing was rolled back and no further command will run.`
+          : mdText`**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** None of its kubectl commands ran, and none will.`;
 
       await AutoRemediationSuggestionService.attemptStatusTransition({
         suggestionId: suggestion.id!,
@@ -549,8 +744,8 @@ export class Service extends DatabaseService<Model> {
             ? { dismissedByUserId: data.deletedByUserId.toString() }
             : {}),
           rationaleMarkdown: suggestion.rationaleMarkdown
-            ? `${note}\n\n${suggestion.rationaleMarkdown}`
-            : note,
+            ? mdText`${note}\n\n${FeedMarkdown.asMarkdown(suggestion.rationaleMarkdown)}`.toString()
+            : note.toString(),
         },
       });
     } catch (error) {
@@ -562,6 +757,38 @@ export class Service extends DatabaseService<Model> {
 
   private isAiAccessSettingWritten(data: JSONObject): boolean {
     return isAnyKeyWritten(data, AI_ACCESS_SETTING_KEYS);
+  }
+
+  /*
+   * Refuse a change to investigation or fixes on a cluster whose agent sets
+   * them (see readKubernetesAiAgents). A write that posts the value the
+   * cluster already has changes nothing and passes.
+   */
+  private assertAgentSetSettingsUnchanged(data: {
+    data: JSONObject;
+    current: Array<AiAccessSettingsSnapshot>;
+  }): void {
+    const investigation: unknown = data.data["isAiInvestigationEnabled"];
+    const mode: unknown = data.data["aiRemediationMode"];
+
+    for (const snapshot of data.current) {
+      if (!isAgentAiSettingsSourceAgent(snapshot.aiSettingsSource)) {
+        continue;
+      }
+
+      const changesInvestigation: boolean =
+        investigation !== undefined &&
+        (investigation === true) !== snapshot.isAiInvestigationEnabled;
+      const changesMode: boolean =
+        mode !== undefined &&
+        readStoredRemediationMode(mode) !== snapshot.aiRemediationMode;
+
+      if (changesInvestigation || changesMode) {
+        throw new BadDataException(
+          getAgentSetAiAccessRefusal(snapshot.aiSettingsSource!),
+        );
+      }
+    }
   }
 
   /*
@@ -599,9 +826,11 @@ export class Service extends DatabaseService<Model> {
    * A cluster's AI mode does the job of a FullAuto AutoRemediationRule with
    * no rule row, so making AI do MORE on a cluster takes the same
    * permissions as authoring such a rule (KUBERNETES_AI_ACCESS_ADMIN_
-   * PERMISSIONS), and binding a credential additionally takes the right to
-   * read credentials — the rule the dashboard's picker applies, now enforced
-   * where it cannot be skipped. The column ACLs stay open to every cluster
+   * PERMISSIONS), and binding a credential additionally takes the read of
+   * runbook credentials - the one rule every use of a runbook credential
+   * asks, people and workflow steps alike (RunbookCredentialReaders), which
+   * the dashboard's picker applies too, enforced where it cannot be skipped.
+   * The column ACLs stay open to every cluster
    * editor on purpose: a column ACL cannot say "tightening is free", and
    * turning AI remediation off must never need more than editing the
    * cluster.
@@ -633,46 +862,51 @@ export class Service extends DatabaseService<Model> {
 
       if (
         !baseline.projectId ||
-        !holdsAnyPermission({
-          props: data.props,
-          projectId: baseline.projectId,
-          allowed: KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-        })
+        !CallerPermission.holdsAnyOf(
+          data.props,
+          KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+          { projectId: baseline.projectId },
+        )
       ) {
         throw new NotAuthorizedException(getAiAccessAdminRefusal());
       }
 
       if (
         loosening.bindsCredential &&
-        !holdsAnyPermission({
-          props: data.props,
-          projectId: baseline.projectId,
-          allowed: KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-        })
+        !RunbookCredentialReaders.mayRead(data.props, baseline.projectId)
       ) {
-        throw new NotAuthorizedException(getAiAccessCredentialRefusal());
+        throw new NotAuthorizedException(
+          getAiAccessCredentialRefusal(data.props),
+        );
       }
     }
   }
 
   /*
    * Does this write let AI do more on a cluster whose settings are
-   * `current`? Only a real change counts: the AI page posts every field of
-   * its form, so an editor who only flips the investigation switch re-posts
-   * an unchanged mode, allowlist and binding, and must not be refused for
-   * settings someone else chose.
+   * `current`? Only a real change counts: the AI agent page posts every
+   * field of its form, so an editor who only flips the investigation switch
+   * re-posts an unchanged mode, allowlist and binding, and must not be
+   * refused for settings someone else chose.
    *
-   * - mode: moving UP to Automatic or Bypass approval (Bypass approval ->
-   *   Automatic is a tightening);
+   * - mode: ANY move up — turning fixes on from Off (even to Ask for
+   *   approval: with the chart's write RBAC in place that is the step that
+   *   lets AI change the cluster at all, and no project opt-in stands behind
+   *   it any more for a cluster reached through its agent), or up to
+   *   Automatic or Bypass approval. Moving down (Bypass approval ->
+   *   Automatic, anything -> Off) tightens;
    * - allowlist: adding a pattern the cluster did not already have
    *   (removing patterns, or clearing the list, tightens);
-   * - Runner or credential: binding one other than the current one
-   *   (clearing tightens).
+   * - Runner or credential: binding one other than the current one; and
+   *   clearing one while the cluster has a Kubernetes AI agent, which hands
+   *   the cluster to the agent (resolveKubernetesAiAccessTarget) and its
+   *   RBAC. Without an agent, clearing leaves AI nothing to reach the
+   *   cluster through, and tightens.
    *
    * `data` has been through validateAiRemediationSettings, so the mode is a
    * known value and the allowlist a trimmed array or null.
    */
-  private getAiAccessLoosening(
+  public getAiAccessLoosening(
     data: JSONObject,
     current: AiAccessSettingsSnapshot,
   ): AiAccessLoosening {
@@ -685,7 +919,6 @@ export class Service extends DatabaseService<Model> {
 
     if (
       mode !== undefined &&
-      isUnattendedRemediationMode(mode) &&
       REMEDIATION_MODES_BY_AUTONOMY.indexOf(mode) >
         REMEDIATION_MODES_BY_AUTONOMY.indexOf(current.aiRemediationMode)
     ) {
@@ -729,28 +962,59 @@ export class Service extends DatabaseService<Model> {
       bindsCredential = true;
     }
 
+    if (current.hasKubernetesAiAgent === true) {
+      const clearsRunner: boolean =
+        isAnyKeyWritten(data, AI_ACCESS_RUNNER_KEYS) &&
+        !runnerId &&
+        current.aiAccessRunnerId !== null;
+      const clearsCredential: boolean =
+        isAnyKeyWritten(data, AI_ACCESS_CREDENTIAL_KEYS) &&
+        !credentialId &&
+        current.aiAccessCredentialId !== null;
+
+      if (clearsRunner || clearsCredential) {
+        loosens = true;
+      }
+    }
+
     return { loosens, bindsCredential };
+  }
+
+  // The write clears the Runner or the credential binding (null).
+  private clearsAiAccessBinding(data: JSONObject): boolean {
+    return (
+      (isAnyKeyWritten(data, AI_ACCESS_RUNNER_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data,
+          AI_ACCESS_RUNNER_KEYS,
+          "AI access Runner",
+        )) ||
+      (isAnyKeyWritten(data, AI_ACCESS_CREDENTIAL_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data,
+          AI_ACCESS_CREDENTIAL_KEYS,
+          "AI access credential",
+        ))
+    );
   }
 
   /*
    * The AI access settings of every cluster an operator's update reaches,
-   * read before the write. onBeforeUpdate runs before the framework scopes
-   * the query to the caller's project, so scope it here: a caller must
-   * never learn anything about, or be judged against, another project's
-   * cluster.
+   * read before the write: the clusters the update writes, with the update
+   * held to them (findRowsAndHoldUpdateToThem). A caller is only ever
+   * judged against, and only ever learns about, a cluster they may write.
    */
   @CaptureSpan()
   private async getAiAccessSettingsForUpdateQuery(
     updateBy: UpdateBy<Model>,
+    options: {
+      // Also read whether each cluster has a Kubernetes AI agent row.
+      withKubernetesAiAgent: boolean;
+    } = { withKubernetesAiAgent: false },
   ): Promise<Record<string, AiAccessSettingsSnapshot>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
-      },
-      select: {
+    const clusters: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         clusterIdentifier: true,
@@ -759,13 +1023,9 @@ export class Service extends DatabaseService<Model> {
         aiKubectlCommandAllowlist: true,
         aiAccessRunnerId: true,
         aiAccessCredentialId: true,
+        aiAccessConfiguredAt: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const settings: Record<string, AiAccessSettingsSnapshot> = {};
 
@@ -787,10 +1047,96 @@ export class Service extends DatabaseService<Model> {
         ),
         aiAccessRunnerId: cluster.aiAccessRunnerId?.toString() || null,
         aiAccessCredentialId: cluster.aiAccessCredentialId?.toString() || null,
+        aiAccessConfiguredAt: cluster.aiAccessConfiguredAt || null,
       };
     }
 
+    await this.readKubernetesAiAgents(settings, {
+      withPresence: options.withKubernetesAiAgent,
+    });
+
     return settings;
+  }
+
+  /*
+   * Read the clusters' Kubernetes AI agent rows, one query per project the
+   * write reaches, and fill in on each snapshot:
+   *
+   * - aiSettingsSource, always: whether the agent sets investigation and
+   *   fixes (a bound Runner is read only for a cluster whose agent reports
+   *   settings at all);
+   * - hasKubernetesAiAgent, for a write that clears a binding.
+   *
+   * Fails closed: when the rows cannot be read, every cluster is treated as
+   * having an agent whose configuration sets its settings, so clearing a
+   * binding needs the admin permissions and a change to investigation or
+   * fixes is refused, rather than either slipping through unchecked.
+   */
+  private async readKubernetesAiAgents(
+    settings: Record<string, AiAccessSettingsSnapshot>,
+    options: { withPresence: boolean },
+  ): Promise<void> {
+    const clustersByProject: Map<string, Array<Model>> = new Map<
+      string,
+      Array<Model>
+    >();
+
+    for (const [clusterId, snapshot] of Object.entries(settings)) {
+      const projectId: string = snapshot.projectId?.toString() || "";
+      const cluster: Model = new Model();
+      cluster.id = new ObjectID(clusterId);
+      if (snapshot.aiAccessRunnerId) {
+        cluster.aiAccessRunnerId = new ObjectID(snapshot.aiAccessRunnerId);
+      }
+      if (snapshot.aiAccessConfiguredAt) {
+        cluster.aiAccessConfiguredAt = snapshot.aiAccessConfiguredAt;
+      }
+      const clusters: Array<Model> = clustersByProject.get(projectId) || [];
+      clusters.push(cluster);
+      clustersByProject.set(projectId, clusters);
+    }
+
+    for (const [projectId, clusters] of clustersByProject.entries()) {
+      let agents: Map<string, KubernetesAiAgent> | null = null;
+      let sources: Map<string, AgentAiSettingsSource> | null = null;
+
+      if (projectId) {
+        try {
+          agents = await KubernetesAiAgentService.findForClusters({
+            projectId: new ObjectID(projectId),
+            kubernetesClusterIds: clusters.map((cluster: Model): ObjectID => {
+              return cluster.id!;
+            }),
+          });
+          sources =
+            await KubernetesAiAgentService.getAiSettingsSourcesForClusters({
+              projectId: new ObjectID(projectId),
+              clusters,
+              agents,
+            });
+        } catch (error) {
+          logger.error(
+            `KubernetesClusterService: could not read the Kubernetes AI agents of project ${projectId}; treating every cluster as having one that sets its AI settings: ${error}`,
+          );
+          agents = null;
+          sources = null;
+        }
+      }
+
+      for (const cluster of clusters) {
+        const clusterId: string = cluster.id!.toString();
+
+        settings[clusterId]!.aiSettingsSource = sources
+          ? sources.get(clusterId) || "oneuptime"
+          : "agent_configuration";
+
+        if (options.withPresence) {
+          settings[clusterId]!.hasKubernetesAiAgent = agents
+            ? agents.has(clusterId)
+            : true;
+        }
+      }
+    }
   }
 
   /*
@@ -977,7 +1323,7 @@ export class Service extends DatabaseService<Model> {
 
       if (isAgentRunner && !isThisClustersAgent && isRunnerChanged) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed on another cluster. Its ServiceAccount reaches only the cluster its pod runs in, and it is never given a credential, so it cannot run kubectl for this cluster. Install the in-cluster Runner on this cluster with --set aiAccess.enabled=true, or bind a Runner you created under Project Settings → Runners together with a Kubernetes credential for this cluster.`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed on another cluster. Its ServiceAccount reaches only the cluster its pod runs in, and it is never given a credential, so it cannot run kubectl for this cluster. Leave the Runner empty to use this cluster's Kubernetes AI agent, or bind a Runner you created under Runbooks → Runners together with a Kubernetes credential for this cluster.`,
         );
       }
 
@@ -987,7 +1333,7 @@ export class Service extends DatabaseService<Model> {
 
       if (isAgentRunner) {
         throw new BadDataException(
-          `Runner "${runner.name}" is an in-cluster Runner the Kubernetes agent chart installed: it runs kubectl with its own ServiceAccount only and is never given a credential. Clear the credential, or bind a Runner you created under Project Settings → Runners that the credential is assigned to.`,
+          `Runner "${runner.name}" is an in-cluster Runner the Kubernetes agent chart installed: it runs kubectl with its own ServiceAccount only and is never given a credential. Clear the credential, or bind a Runner you created under Runbooks → Runners that the credential is assigned to.`,
         );
       }
 
@@ -1013,7 +1359,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!isAssigned) {
         throw new BadDataException(
-          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Project Settings → Runner Credentials first, or choose a credential that is assigned to it.`,
+          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Runbooks → AI Access first, or choose a credential that is assigned to it.`,
         );
       }
     }
@@ -1074,33 +1420,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return credential;
-  }
-
-  @CaptureSpan()
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Record<string, ObjectID> = {};
-
-    for (const cluster of clusters) {
-      if (cluster.projectId) {
-        projectIds[cluster.projectId.toString()] = cluster.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -1380,15 +1699,20 @@ export class Service extends DatabaseService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedClusters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -1457,7 +1781,7 @@ export class Service extends DatabaseService<Model> {
   public async getKubernetesClusterMarkdownLink(
     projectId: ObjectID,
     kubernetesClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getKubernetesClusterName({
       kubernetesClusterId: kubernetesClusterId,
     });
@@ -1466,7 +1790,7 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterId,
     );
 
-    return `[Kubernetes Cluster ${name}](${link.toString()})`;
+    return mdText`[Kubernetes Cluster ${name}](${link.toString()})`;
   }
 
   private async writeKubernetesClusterCreatedFeed(
@@ -1555,14 +1879,66 @@ export class Service extends DatabaseService<Model> {
      * one that did.
      */
     if (aiAccessWrite && updatedItemIds.length > 0) {
-      await this.markAiAccessConfigured(updatedItemIds);
+      /*
+       * A cluster whose agent set investigation and fixes when the write
+       * came in had neither chosen by it (they are refused), so the write
+       * does not mark it configured: the agent's defaults keep deciding.
+       */
+      const chosenHere: Array<ObjectID> = updatedItemIds.filter(
+        (clusterId: ObjectID): boolean => {
+          return !isAgentAiSettingsSourceAgent(
+            aiAccessWrite.previousAiAccessSettings[clusterId.toString()]
+              ?.aiSettingsSource,
+          );
+        },
+      );
 
-      if (this.bindsRunner(onUpdate.updateBy.data as unknown as JSONObject)) {
+      if (chosenHere.length > 0) {
+        await this.markAiAccessConfigured(chosenHere);
+      }
+
+      const writeData: JSONObject = onUpdate.updateBy
+        .data as unknown as JSONObject;
+
+      if (this.bindsRunner(writeData)) {
         await this.markAiAccessRunnerBound(updatedItemIds);
+      }
+
+      /*
+       * Clearing the Runner binding hands the cluster back to its agent
+       * ("Switch to the AI agent"): what the agent reports applies now, not
+       * at its next check.
+       */
+      if (this.clearsRunnerBinding(writeData)) {
+        for (const clusterId of updatedItemIds) {
+          const projectId: ObjectID | undefined =
+            aiAccessWrite.previousAiAccessSettings[clusterId.toString()]
+              ?.projectId;
+
+          if (projectId) {
+            await KubernetesAiAgentService.applyStoredAiSettingsToCluster({
+              projectId,
+              kubernetesClusterId: clusterId,
+            });
+          }
+        }
       }
     }
 
     return onUpdate;
+  }
+
+  // The write clears the Runner binding (null), not merely the credential.
+  private clearsRunnerBinding(data: JSONObject | undefined): boolean {
+    return Boolean(
+      data &&
+        isAnyKeyWritten(data, AI_ACCESS_RUNNER_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data,
+          AI_ACCESS_RUNNER_KEYS,
+          "AI access Runner",
+        ),
+    );
   }
 
   // The write binds a Runner (not merely clears the binding).
@@ -1658,7 +2034,7 @@ export class Service extends DatabaseService<Model> {
       const previous: AiAccessSettingsSnapshot | undefined =
         data.previousAiAccessSettings[kubernetesClusterId.toString()];
 
-      const changes: Array<string> = await this.describeAiAccessChanges(
+      const changes: Array<MarkdownText> = await this.describeAiAccessChanges(
         updateData,
         previous,
       );
@@ -1681,14 +2057,26 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const userMarkdown: string = updatedByUserId
-        ? (await UserService.getUserMarkdownString({
+      /*
+       * The person who made the change, as a link; a user who cannot be
+       * read is "A user", and a write without one is an API key's.
+       */
+      const userLink: MarkdownText | null = updatedByUserId
+        ? await UserService.getUserMarkdownString({
             userId: updatedByUserId,
             projectId,
-          })) || "A user"
-        : "";
+          })
+        : null;
 
-      const actor: string = userMarkdown ? `**${userMarkdown}**` : "An API key";
+      const userMarkdown: MarkdownText | null = userLink
+        ? userLink.isEmpty()
+          ? mdText`A user`
+          : userLink
+        : null;
+
+      const actor: MarkdownText = userMarkdown
+        ? mdText`**${userMarkdown}**`
+        : mdText`An API key`;
 
       /*
        * Yellow when the change lets AI do more (the same test the permission
@@ -1701,19 +2089,19 @@ export class Service extends DatabaseService<Model> {
         ? Yellow500
         : Gray500;
 
-      const moreInformation: Array<string> = [
-        `**Changed by**: ${userMarkdown || "An API key (no user)"}`,
+      const moreInformation: Array<MarkdownText> = [
+        mdText`**Changed by**: ${userMarkdown || "An API key (no user)"}`,
       ];
 
       const allowlist: unknown = updateData["aiKubectlCommandAllowlist"];
 
       if (Array.isArray(allowlist) && allowlist.length > 0) {
         moreInformation.push(
-          `**kubectl allowlist**:\n\n${allowlist
-            .map((pattern: string) => {
-              return `- \`${pattern.replace(/`/g, "'")}\``;
-            })
-            .join("\n")}`,
+          mdText`**kubectl allowlist**:\n\n${FeedMarkdown.bulletList(
+            allowlist.map((pattern: string): MarkdownText => {
+              return FeedMarkdown.code(pattern.replace(/`/g, "'"));
+            }),
+          )}`,
         );
       }
 
@@ -1723,15 +2111,15 @@ export class Service extends DatabaseService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
         displayColor,
-        feedInfoInMarkdown: `🤖 ${actor} changed what OneUptime AI may do on ${await this.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}:\n\n${changes
-          .map((change: string) => {
-            return `- ${change}`;
-          })
-          .join("\n")}`,
-        moreInformationInMarkdown: moreInformation.join("\n\n"),
+        feedInfoInMarkdown:
+          mdText`🤖 ${actor} changed what OneUptime AI may do on ${await this.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}:\n\n${FeedMarkdown.bulletList(changes)}`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          moreInformation,
+          "\n\n",
+        ).toString(),
         userId: updatedByUserId,
       });
     }
@@ -1749,8 +2137,8 @@ export class Service extends DatabaseService<Model> {
   private async describeAiAccessChanges(
     updateData: JSONObject,
     previous: AiAccessSettingsSnapshot | undefined,
-  ): Promise<Array<string>> {
-    const changes: Array<string> = [];
+  ): Promise<Array<MarkdownText>> {
+    const changes: Array<MarkdownText> = [];
 
     if (updateData["isAiInvestigationEnabled"] !== undefined) {
       const isEnabled: boolean =
@@ -1758,7 +2146,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!previous || previous.isAiInvestigationEnabled !== isEnabled) {
         changes.push(
-          `AI investigation with kubectl turned **${isEnabled ? "on" : "off"}**`,
+          mdText`AI investigation with kubectl turned **${isEnabled ? "on" : "off"}**`,
         );
       }
     }
@@ -1770,11 +2158,11 @@ export class Service extends DatabaseService<Model> {
 
       if (!previous) {
         changes.push(
-          `AI remediation set to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
+          mdText`AI remediation set to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
         );
       } else if (previous.aiRemediationMode !== mode) {
         changes.push(
-          `AI remediation changed from **${
+          mdText`AI remediation changed from **${
             REMEDIATION_MODE_FEED_LABELS[previous.aiRemediationMode]
           }** to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
         );
@@ -1792,12 +2180,12 @@ export class Service extends DatabaseService<Model> {
       ) {
         changes.push(
           patterns.length === 0
-            ? "kubectl allowlist cleared"
-            : `kubectl allowlist changed to ${describePatternCount(
+            ? mdText`kubectl allowlist cleared`
+            : mdText`kubectl allowlist changed to ${describePatternCount(
                 patterns.length,
               )}${
                 previous
-                  ? ` (was ${describePatternCount(
+                  ? mdText` (was ${describePatternCount(
                       previous.aiKubectlCommandAllowlist.length,
                     )})`
                   : ""
@@ -1825,10 +2213,12 @@ export class Service extends DatabaseService<Model> {
           });
 
           changes.push(
-            `Runner **${runner?.name || runnerId.toString()}** bound to run kubectl`,
+            mdText`Runner **${runner?.name || runnerId.toString()}** bound to run kubectl`,
           );
         } else {
-          changes.push("Runner cleared, so AI runs no kubectl on this cluster");
+          changes.push(
+            mdText`Runner cleared, so AI runs no kubectl on this cluster`,
+          );
         }
       }
     }
@@ -1847,9 +2237,9 @@ export class Service extends DatabaseService<Model> {
         changes.push(
           credentialId
             ? previous?.aiAccessCredentialId
-              ? "Kubernetes credential changed"
-              : "Kubernetes credential bound"
-            : "Kubernetes credential cleared",
+              ? mdText`Kubernetes credential changed`
+              : mdText`Kubernetes credential bound`
+            : mdText`Kubernetes credential cleared`,
         );
       }
     }
@@ -1905,7 +2295,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getKubernetesClusterMarkdownLink(
           projectId,
           kubernetesClusterId,
@@ -1920,8 +2310,8 @@ export class Service extends DatabaseService<Model> {
             : KubernetesClusterFeedEventType.KubernetesClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

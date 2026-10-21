@@ -17,6 +17,7 @@ import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import FixRunBudget from "../CodeFix/FixRunBudget";
+import CodeFixRunRepository from "../CodeFix/CodeFixRunRepository";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationSubjectLock from "./InvestigationSubjectLock";
@@ -192,6 +193,22 @@ export default class SubjectCodeFixRun {
     }
 
     /*
+     * The repository the run will work in, decided now - before any lock is
+     * taken, as it may read the repositories' file trees - so the run is
+     * queued on it and the Runner that repository picks takes it
+     * (CodeFixRunRepository). Null when none resolves: the run is queued
+     * without one, as before, and says so when it starts.
+     */
+    const codeRepositoryId: ObjectID | null =
+      await CodeFixRunRepository.resolveForNewRun({
+        projectId: data.projectId,
+        taskType: data.taskType,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        taskContext: data.taskContext,
+      });
+
+    /*
      * FixFromIncident has both human and automatic writers, and its source
      * authorization depends on which Investigation is latest. Serialize the
      * final dedupe + source revalidation + INSERT with Investigation enqueue
@@ -219,17 +236,18 @@ export default class SubjectCodeFixRun {
             );
           }
 
-          return this.createSubjectCodeFixRun(data, true);
+          return this.createSubjectCodeFixRun(data, true, codeRepositoryId);
         },
       );
     }
 
-    return this.createSubjectCodeFixRun(data, false);
+    return this.createSubjectCodeFixRun(data, false, codeRepositoryId);
   }
 
   private static async createSubjectCodeFixRun(
     data: SubjectCodeFixRunInput,
     revalidateInvestigationSource: boolean,
+    codeRepositoryId: ObjectID | null,
   ): Promise<AIRun> {
     await FixRunBudget.assertWithinBudget(data.projectId, {
       incidentId: data.incidentId,
@@ -254,6 +272,10 @@ export default class SubjectCodeFixRun {
 
     if (data.taskContext) {
       run.taskContext = data.taskContext;
+    }
+
+    if (codeRepositoryId) {
+      run.codeRepositoryId = codeRepositoryId;
     }
 
     if (revalidateInvestigationSource) {

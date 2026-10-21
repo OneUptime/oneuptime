@@ -16,6 +16,7 @@ import {
   MIN_FUTURE_DAYS,
   PREVIOUS_TOKEN_GRACE_DAYS,
 } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
+import { strayMarkers } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -193,7 +194,7 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "onCallCalendarFeed.rateLimit.perTokenPerWindow",
   "onCallCalendarFeed.rateLimit.perIpPerWindow",
   "worker.enabled: true",
-  "location ~ ^/api/on-call-calendar/(user|schedule|project)/",
+  "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/",
   "access_log off;",
   "error_log /dev/null crit;",
   "proxy_max_temp_file_size 0;",
@@ -203,7 +204,7 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "configuration.md#on-call-calendar-feeds",
   "configuration.md#trusted-proxies",
   "/docs/self-hosted/private-network-access",
-  "webcals://",
+  "webcal://",
   "curl -I",
 ];
 
@@ -217,16 +218,37 @@ const DASHBOARD_UI_NAMES: Array<string> = [
   "Calendar Feeds",
   "Generate calendar link",
   "Subscribe to your on-call shifts",
+  "Add to your calendar",
   "Google Calendar",
-  "Apple / other apps",
-  "Copy webcal link",
+  "Apple Calendar / Outlook",
+  "Or copy the link",
+  "Copy link",
   "Include shifts I cover for others",
   "Days of past shifts",
   "Days ahead",
   "Upcoming shifts",
   "Get cover",
+  // The Add User Override form "Get cover" opens, as it asks.
+  "Who is away?",
+  "Who covers?",
+  // What Who covers? says until someone is picked: saved so, it skips you.
+  "Next person in the rotation",
+  "Starts",
+  "Ends",
   "Remind me before shifts",
+  // The link field's reveal button, and the Status panel with each badge it shows.
+  "Show",
+  "Status",
+  "Active",
+  "Waiting for first sync",
+  "Not fetched yet",
+  "Disabled",
+  "Needs regeneration",
+  // The card's ⋯ menu, and the panel's own Enable link button.
   "Regenerate link",
+  "Disable link",
+  "Enable link",
+  "Delete link",
   "Only my shifts on this schedule",
   "Add your shifts to your calendar",
   "Subscribe to this schedule",
@@ -425,6 +447,20 @@ describe("Calendar Feeds docs page", () => {
       }
     });
 
+    /*
+     * A bold span that ends in punctuation and runs straight into a letter
+     * is never closed, and the reader sees its asterisks (strayMarkers): the
+     * labels each translation quotes in bold are drawn bold, in every script.
+     */
+    it("draws every bold label in every translation, with no asterisks left on the page", async () => {
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        expect({
+          lang,
+          stray: await strayMarkers(readPage(lang), lang),
+        }).toEqual({ lang, stray: [] });
+      }
+    });
+
     it("uses no in-page anchors, so translated headings cannot break links", () => {
       for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
         expect({ lang, anchors: readPage(lang).match(/\]\(#/g) }).toEqual({
@@ -546,8 +582,9 @@ describe("Calendar Feeds docs page", () => {
 
     it("quotes the Nginx logging exemption that the shipped template contains", () => {
       const template: string = readRepoFile("Nginx/default.conf.template");
+      // One location keeps the on-call links and the maintenance calendar link out.
       const location: string =
-        "location ~ ^/api/on-call-calendar/(user|schedule|project)/";
+        "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/";
 
       expect(template).toContain(location);
       expect(english).toContain(location);
@@ -810,6 +847,49 @@ describe("Calendar Feeds docs page", () => {
       }
     });
 
+    /*
+     * The card's Status panel wears one badge (FEED_HEALTH_LABELS). The page
+     * lists every one, in the order the code declares them, in the list
+     * under the paragraph that introduces the panel - and nothing else.
+     */
+    it("lists every badge the Status panel can show, in the code's order", () => {
+      const util: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts",
+      );
+      const start: number = util.indexOf("FEED_HEALTH_LABELS");
+      const block: string = util.slice(start, util.indexOf("};", start));
+      const badges: Array<string> = Array.from(
+        block.matchAll(/translationKey\("([^"]+)"\)/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] || "";
+      });
+
+      expect(start).toBeGreaterThan(0);
+      expect(badges.length).toBeGreaterThanOrEqual(5);
+
+      const lines: Array<string> = english.split("\n");
+      const intro: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("The **Status** panel");
+      });
+
+      expect(intro).toBeGreaterThan(0);
+      expect(lines[intro + 1]).toBe("");
+
+      const listed: Array<string> = [];
+
+      for (const line of lines.slice(intro + 2)) {
+        const item: RegExpMatchArray | null = line.match(/^- \*\*([^*]+)\*\*:/);
+
+        if (!item) {
+          break;
+        }
+
+        listed.push(item[1] || "");
+      }
+
+      expect(listed).toEqual(badges);
+    });
+
     it("names mobile controls exactly as the mobile app does", () => {
       const mobile: string = readSourceTree("MobileApp/src");
 
@@ -823,6 +903,89 @@ describe("Calendar Feeds docs page", () => {
           inDocs: true,
         });
       }
+    });
+
+    /*
+     * The Google Calendar fix (a customer could not add an on-call schedule
+     * to Google Calendar): the button's link carries the webcal:// form in
+     * Google's cid, the links are webcal:// rather than webcals://, and feed
+     * URLs never redirect. The page states each, in step with the code.
+     */
+    it("describes Google's add-by-URL link exactly as the code builds it", () => {
+      const links: string = readRepoFile(
+        "Common/Types/Calendar/CalendarSubscriptionLinks.ts",
+      );
+      const prefix: string =
+        links.match(
+          /GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX:\s*string\s*=\s*"([^"]+)"/,
+        )?.[1] || "";
+
+      expect(prefix).toBe("https://calendar.google.com/calendar/r?cid=");
+      expect(english).toContain(
+        `\`${prefix}\` followed by the \`webcal://\` form`,
+      );
+      expect(english).toContain('"Unable to add calendar. Check the URL."');
+    });
+
+    it("hands out webcal:// links and never tells a reader to use webcals://", () => {
+      expect(english).toContain("OneUptime no longer hands out `webcals://`");
+      expect(english).not.toMatch(/paste the `webcals?:\/\/` link/);
+      expect(english).not.toContain("Copy webcal link");
+      expect(english).not.toContain("Apple / other apps");
+    });
+
+    it("says feed URLs never redirect, as the API serves them", () => {
+      const api: string = readRepoFile(
+        "Common/Server/API/OnCallCalendarAPI.ts",
+      );
+
+      expect(api).not.toContain(".redirect(");
+      expect(english).toContain("Feed URLs never redirect.");
+    });
+
+    it("tells a self-hosted reader why Google stays empty, and how to check", () => {
+      // Two troubleshooting entries of their own, as collapsible answers.
+      expect(english).toContain(
+        ':::details Google Calendar says "Unable to add calendar. Check the URL."\n',
+      );
+      expect(english).toContain(
+        ":::details Google Calendar shows the calendar but no shifts\n",
+      );
+      expect(english).toContain("`curl -sI <link>` must answer `200`");
+      expect(english).toContain("**Last fetched … by Google Calendar**");
+    });
+
+    it("sends readers to the Calendar section of User Settings, which starts folded", () => {
+      const userSettingsMenu: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu.tsx",
+      );
+
+      expect(userSettingsMenu).toMatch(
+        /title: "Calendar",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Calendar Feed"/,
+      );
+      expect(english).toContain(
+        "**User Settings** > **Calendar** > **Calendar Feed**",
+      );
+      expect(english).not.toContain("**User Settings** > **Calendar Feed**");
+    });
+
+    it("says where both time zones are set: your Profile, and the schedule's Layers page", () => {
+      const profile: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
+      );
+      const layers: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      );
+
+      expect(profile).toContain('title: "Timezone"');
+      expect(layers).toContain('title="Schedule timezone"');
+      expect(english).toContain("**Timezone** on your **Profile**");
+      expect(english).toContain(
+        "**Schedule timezone** card on its **Layers** page",
+      );
+      // The old pages sent readers to places that do not set a time zone.
+      expect(english).not.toContain("**User Settings** > **Profile**");
+      expect(english).not.toContain("under its **Settings** tab");
     });
 
     it("keeps the personal, schedule and project feed routes in step with the API", () => {

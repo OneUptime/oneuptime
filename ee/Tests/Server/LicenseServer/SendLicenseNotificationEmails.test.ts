@@ -113,8 +113,23 @@ import OneUptimeDate from "Common/Types/Date";
 import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import EnterpriseLicenseUserCountSource from "Common/Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import fs from "fs";
+import path from "path";
 
 const JOB_NAME: string = "EnterpriseLicense:SendLicenseNotificationEmails";
+const EXPIRY_REMINDER_TEMPLATE: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "packages",
+  "App",
+  "FeatureSet",
+  "Notification",
+  "Templates",
+  "EnterpriseLicenseExpiryReminder.hbs",
+);
 const NOW: Date = new Date("2026-09-02T12:00:00.000Z");
 
 const runTick: CronHandler = async (): Promise<void> => {
@@ -408,7 +423,7 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () =
     return call![0] as Record<string, unknown>;
   };
 
-  test("an expiring license: the instances keep running; single sign-on, SCIM and audit logging stop after the 30-day grace period", async () => {
+  test("an expiring license: the instances keep running; SCIM and audit logging stop after the 30-day grace period, and single sign-on too on 14.0.10 and earlier", async () => {
     const sent: Record<string, unknown> = await sendExpiryReminderFor(
       OneUptimeDate.addRemoveDays(NOW, 10),
     );
@@ -424,7 +439,13 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () =
       "Your self-hosted OneUptime instances keep running either way",
     );
     expect(message).toContain(
-      "single sign-on, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only when the 30-day grace period after the expiry ends",
+      "SCIM provisioning and audit logging stop and enterprise configuration becomes read-only when the 30-day grace period after the expiry ends",
+    );
+    expect(message).toContain(
+      "On OneUptime 14.0.10 and earlier, single sign-on (SSO) stops then too.",
+    );
+    expect(message).not.toContain(
+      "single sign-on, SCIM provisioning and audit logging",
     );
   });
 
@@ -444,18 +465,76 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () =
     expect(vars["expiryStatusMessage"]).toContain(
       "every enterprise feature stays on until its 30-day grace period ends on",
     );
+    expect(vars["expiryStatusMessage"]).toContain(
+      "when the grace period ends, SCIM provisioning and audit logging stop",
+    );
+    expect(vars["expiryStatusMessage"]).toContain(
+      "On OneUptime 14.0.10 and earlier, single sign-on (SSO) stops then too.",
+    );
   });
 
   test("an expired license past its grace period: says the features have stopped", async () => {
     const sent: Record<string, unknown> = await sendExpiryReminderFor(
       new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000 - 60 * 60 * 1000),
     );
+    const message: string = (sent["vars"] as Record<string, string>)[
+      "expiryStatusMessage"
+    ]!;
 
-    expect(
-      (sent["vars"] as Record<string, string>)["expiryStatusMessage"],
-    ).toContain(
-      "single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
+    expect(message).toContain(
+      "SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
     );
+    expect(message).toContain(
+      "On OneUptime 14.0.10 and earlier, single sign-on (SSO) has stopped too.",
+    );
+    expect(message).not.toContain(
+      "single sign-on, SCIM provisioning and audit logging",
+    );
+  });
+
+  /*
+   * The template reads these variables by name. A rename on either side
+   * sends an email with a blank title or status line, and nothing else would
+   * notice.
+   */
+  test("the reminder sets every variable the email template reads", async () => {
+    const sent: Record<string, unknown> = await sendExpiryReminderFor(
+      OneUptimeDate.addRemoveDays(NOW, 10),
+    );
+    const vars: Record<string, string> = sent["vars"] as Record<string, string>;
+    const template: string = fs.readFileSync(EXPIRY_REMINDER_TEMPLATE, "utf8");
+
+    // `text=companyName` (a partial's parameter) and `{{companyName}}`.
+    const referenced: Array<string> = [
+      ...Array.from(
+        template.matchAll(/\b[a-zA-Z]+=([a-zA-Z]+)\b/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+      ...Array.from(
+        template.matchAll(/\{\{\s*([a-zA-Z]+)\s*\}\}/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ].sort();
+
+    expect(referenced).toEqual([
+      "companyName",
+      "emailTitle",
+      "expiresAt",
+      "expiryStatus",
+      "expiryStatusMessage",
+      "licenseKey",
+    ]);
+
+    for (const name of referenced) {
+      expect({ name, set: (vars[name] || "").length > 0 }).toEqual({
+        name,
+        set: true,
+      });
+    }
   });
 
   /*
@@ -479,7 +558,7 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () =
     expect(
       (sent["vars"] as Record<string, string>)["expiryStatusMessage"],
     ).toContain(
-      "single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
+      "SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
     );
   });
 

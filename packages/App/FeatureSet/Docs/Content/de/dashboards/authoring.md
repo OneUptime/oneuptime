@@ -1,69 +1,150 @@
-# Dashboard erstellen
+# Ein Dashboard erstellen
 
-Um ein Dashboard zu erstellen, öffnen Sie **Dashboards → Dashboard erstellen**, geben Sie ihm einen Namen und öffnen Sie es. Die Arbeitsfläche öffnet sich im Modus **Bearbeiten**, bereit zum Hinzufügen von Widgets.
+Um ein Dashboard zu erstellen, öffnen Sie **Produkte → Dashboards** und klicken auf **Dashboard erstellen**. Der Dialog **Dashboard erstellen** fragt, wie Sie beginnen möchten, und dann nach einem Namen. **Ohne Vorlage beginnen** gibt Ihnen ein leeres Dashboard; eine Vorlage baut ihre Widgets und oft ihre Variablen für Sie auf und füllt ihren Namen aus (nummeriert, etwa „Kubernetes Dashboard 2“, wenn das Projekt schon eines hat). Klicken Sie auf **Dashboard erstellen**, und das neue Dashboard öffnet sich. Ein leeres öffnet sich auf seiner Arbeitsfläche, mit einer Schaltfläche **Widget hinzufügen** für sein erstes Widget.
 
-## Die Arbeitsfläche
+:::cards
+- [Ein Dashboard anlegen](#ein-dashboard-anlegen): Ohne Vorlage oder mit einer Vorlage beginnen.
+- [Bearbeiten und speichern](#bearbeiten-und-speichern): Für niemanden ändert sich etwas, bevor Sie auf Änderungen speichern klicken.
+- [Ein Widget hinzufügen](#ein-widget-hinzufügen): Aus dem Katalog wählen, einrichten, an seinen Platz bringen.
+- [In eine Spitze zoomen](#in-eine-spitze-zoomen): Ziehen Sie über ein Diagramm, um das ganze Dashboard in diesem Moment zu lesen.
+:::
 
-Ein Dashboard ist ein Raster. Widgets rasten ein – Sie entscheiden, wo jedes sitzt und wie groß es ist. Während Sie weitere Reihen hinzufügen, wächst die Seite nach unten. Jedes Widget behält seine Proportionen auf größeren oder kleineren Bildschirmen.
+## Bevor Sie beginnen
 
-## Bearbeiten und Ansicht
+Projektinhaber und -administratoren können jedes Dashboard erstellen und bearbeiten. Alle anderen brauchen eine Teamberechtigung: `CreateDashboard`, um Dashboards zu erstellen, und `EditDashboard`, um sie zu ändern. Projektmitglieder und Betrachter können Dashboards ohne beides lesen. Wer ein Dashboard nicht bearbeiten darf, öffnet trotzdem sein Menü **⋯**, in dem **Dashboard bearbeiten** gesperrt ist und sagt, welche Berechtigung fehlt.
 
-Der Umschalter im Kopfbereich wechselt zwischen zwei Modi:
+## Ein Dashboard anlegen
 
-- **Bearbeiten** – die Widget-Palette ist geöffnet, Sie können Widgets verschieben, ihre Größe ändern und jedes Widget anklicken, um seine Einstellungen zu bearbeiten.
-- **Ansehen** – das Dashboard ist schreibgeschützt, genau so, wie es Besucher und andere Teammitglieder sehen. Nutzen Sie diesen Modus, um das Ergebnis vor dem Teilen zu prüfen.
+:::steps
+### Wählen, wie Sie beginnen
 
-Es handelt sich um dasselbe Dashboard in beiden Modi. Es gibt keinen separaten Schritt zum „Veröffentlichen" – jede Änderung ist live, sobald sie gespeichert ist.
+Öffnen Sie **Produkte → Dashboards** und klicken Sie auf **Dashboard erstellen**. Der Dialog **Dashboard erstellen** öffnet sich auf **Ohne Vorlage beginnen**, einem leeren Dashboard für Ihre eigenen Widgets. Darunter führt **Oder mit einer Vorlage beginnen** sechs Vorlagen unter **Empfohlen** auf.
+
+### Eine Vorlage wählen
+
+Klicken Sie auf eine Vorlage, um zu sehen, was sie hinzufügt: ihre Widgets, benannt wie in **Widget hinzufügen**, und die Variablen, mit denen Sie sie in ihrer Werkzeugleiste eingrenzen. Für die anderen wählen Sie neben dem Suchfeld eine Kategorie oder **Alle Vorlagen**, oder Sie tippen in **Vorlagen durchsuchen…**: Jedes Wort, das Sie tippen, muss passen. Klicken Sie dann auf **Diese Vorlage verwenden**, oder doppelklicken Sie auf die Vorlage. Im Suchfeld wählen die Pfeiltasten eine Vorlage, und **Enter** verwendet sie.
+
+### Das Dashboard benennen
+
+Der Name einer Vorlage ist ausgefüllt und über die Namen hinaus nummeriert, die das Projekt schon hat. Mit **Ohne Vorlage beginnen** bleibt er leer: Geben Sie einen ein. Die Beschreibung ist optional, unter **Weitere Felder** eingeklappt, und Sie können sie später auf der Seite **Übersicht** des Dashboards hinzufügen. **Zurück** bringt Sie zu den Vorlagen zurück, wie Sie sie verlassen haben.
+
+### Es erstellen
+
+Klicken Sie auf **Dashboard erstellen**. Das neue Dashboard öffnet sich: die Widgets einer Vorlage sofort, oder eine leere Arbeitsfläche mit **Widget hinzufügen** darauf.
+:::
+
+Die Vorlagen, nach der Kategorie, unter der die Auswahl sie aufführt:
+
+| Kategorie | Vorlagen |
+| --- | --- |
+| Überwachung & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Reaktion auf Vorfälle | Incident Dashboard, Alert Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+
+**Empfohlen** enthält Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard und Metrics Dashboard. Eine Vorlage ist ein Ausgangspunkt, keine Verknüpfung: Sobald das Dashboard erstellt ist, ändern Sie es nach Belieben. Später aktualisiert die Vorlage es nicht mehr.
+
+## Bearbeiten und speichern
+
+Ein Dashboard öffnet sich in der Ansicht, zum Lesen. Um es zu ändern, öffnen Sie das Menü **⋯** in seiner Werkzeugleiste und wählen **Dashboard bearbeiten**. Die Werkzeugleiste zeigt **Bearbeitung** neben dem Namen und tauscht den Zeitbereich und seine anderen Bedienelemente gegen **Widget hinzufügen**, **Variablen**, **Abbrechen** und **Änderungen speichern**, darunter eine Zeile für den **Standardzeitraum** und die **Automatische Aktualisierung (Standard)** des Dashboards.
+
+```mermaid title="Vom Lesen eines Dashboards zum Ändern und zurück"
+flowchart TB
+    view["Ansicht: Hier öffnet<br/>sich das Dashboard"] -->|"⋯ → Dashboard<br/>bearbeiten"| edit["Bearbeitung: Widgets<br/>hinzufügen, ändern,<br/>verschieben, skalieren"]
+    edit -->|"Änderungen<br/>speichern"| saved["Alle sehen<br/>die Änderungen"]
+    edit -->|"Abbrechen, dann<br/>Änderungen verwerfen"| dropped["Nichts ändert sich"]
+    saved --> back["Zurück in der Ansicht"]
+    dropped --> back
+```
+
+Ihre Änderungen gehören nur Ihnen, bis Sie sie speichern. Beim Bearbeiten wird nichts gespeichert, daher sehen andere das Dashboard weiterhin so, wie es war.
+
+- **Änderungen speichern** speichert die Widgets, ihre Plätze und Größen, die Variablen sowie den Standardzeitraum und die standardmäßige automatische Aktualisierung auf einmal und kehrt zur Ansicht zurück. Wird das Speichern abgelehnt, etwa weil Sie inzwischen die Berechtigung verloren haben, bleiben Sie mit Ihren Änderungen in der Bearbeitung, und der Grund steht über dem Raster.
+- **Abbrechen** fragt zuerst, weil es Ihre Änderungen verwirft: **Änderungen verwerfen** kehrt zum gespeicherten Dashboard zurück, und **Weiter bearbeiten** bringt Sie zurück zu Ihrer Arbeit.
+
+Während Sie bearbeiten, pausiert die automatische Aktualisierung, und ein gezoomter Zeitbereich kehrt zu dem Bereich zurück, den Sie gewählt hatten.
 
 ## Ein Widget hinzufügen
 
-1. Klicken Sie auf die Schaltfläche **+**, um die Widget-Palette zu öffnen.
-2. Wählen Sie den Widget-Typ. Den Katalog finden Sie unter [Widgets](/docs/dashboards/widgets).
-3. Das Widget erscheint auf der Arbeitsfläche.
-4. Klicken Sie auf das Zahnradsymbol des Widgets, um seine Einstellungen zu öffnen.
-5. Wählen Sie die Datenquelle (eine Metrik, einen Listenfilter, einen Textabschnitt usw.) sowie etwaige Anzeigeoptionen.
-6. Verschieben Sie das Widget durch Ziehen. Ziehen Sie an einer Ecke, um die Größe anzupassen.
+:::steps
+### Den Widget-Katalog öffnen
 
-## Woher die Daten kommen
+Klicken Sie auf **Widget hinzufügen**: in der Werkzeugleiste während der Bearbeitung oder auf der Arbeitsfläche eines leeren Dashboards. Der Katalog gruppiert seine Widgets nach dem, was sie zeigen. Tippen Sie in sein Suchfeld, um eines nach Name oder Zweck zu finden ("error budget", "pods"), und drücken Sie die Eingabetaste, um den ersten Treffer hinzuzufügen.
 
-Die meisten Widgets lesen aus einer von drei Quellen:
+### Ein Widget wählen
 
-- **Metriken** – wählen Sie eine Metrik und eine Aggregation (Durchschnitt, Maximum, Anzahl, Perzentil). Fügen Sie Filter hinzu. Wählen Sie, wie das Ergebnis gruppiert werden soll. Dies ist derselbe Abfrage-Builder, den Sie auch an anderen Stellen in OneUptime sehen.
-- **Live-Listen** – Vorfälle, Benachrichtigungen, Monitore, Kubernetes-Pods, Docker-Container, Hosts. Jedes Listen-Widget nimmt einen Filter und zeigt die passenden Einträge live aktualisiert an.
-- **Statische Inhalte** – das **Text**-Widget nimmt einen Markdown-Block. Nutzen Sie es für Überschriften, Kontext, Links zu Runbooks oder temporäre Notizen während eines Vorfalls.
+Klicken Sie darauf. Das Widget landet an der ersten freien Stelle im Raster, an die es passt, und seine Einstellungen öffnen sich.
 
-## Schwellenwerte und Formatierung
+### Festlegen, was es zeigt
 
-Einzelwert-Widgets (**Wert**, **Messwert**) erlauben Folgendes:
+Der Einstellungsdialog zeigt über den Einstellungen eine **Live-Vorschau** des Widgets, und die Vorschau folgt jeder Änderung. Wählen Sie, was das Widget liest (eine Metrikabfrage, einen Filter, einen Text) und wie es aussieht, und klicken Sie dann auf **Fertig**.
 
-- Einen **Warn-Schwellenwert** – die Farbe wechselt auf Gelb, wenn der Wert ihn überschreitet.
-- Einen **Kritisch-Schwellenwert** – die Farbe wechselt auf Rot, wenn der Wert ihn überschreitet.
+### Es platzieren
 
-Bei Diagrammen können Sie die Einheit der Y-Achse festlegen, die Legendenposition wählen und entscheiden, ob Serien gestapelt oder übereinandergelegt werden. Bei Tabellen können Sie die anzuzeigenden Spalten und die Zeilenanzahl wählen.
+Ziehen Sie das Widget, um es zu verschieben, und ziehen Sie seine Kanten oder Ecken, um seine Größe zu ändern. Siehe [Widgets im Raster](#widgets-im-raster).
+:::
 
-## Zeitbereich und Aktualisierung
+[Dashboard-Widgets](/docs/dashboards/widgets) führt jedes Widget und seine Einstellungen auf.
 
-Oben am Dashboard wirken sich zwei Steuerungen auf jedes Metrik-Widget aus:
+## Widgets im Raster
 
-- **Zeitbereich** – eine Voreinstellung (letzte Stunde, 24 Stunden, 7 Tage, 30 Tage) oder ein eigener Bereich. Jedes Diagramm und jede Zahl verwendet dieses Fenster.
-- **Aktualisieren** – wie häufig die Widgets neu abfragen. Aus, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Live-Listen aktualisieren sich unabhängig von dieser Einstellung selbst.
+Die Arbeitsfläche ist ein Raster mit zwölf Spalten. Widgets rasten darin ein, und die Seite wächst nach unten, wenn Sie Zeilen hinzufügen. Während Sie ein Widget ziehen, zeigt ein gestrichelter Umriss, wo es landen wird, mit seiner Spalte und Zeile; während Sie eines skalieren, zeigt der Umriss seine Größe in Rastereinheiten. Widgets, die im Weg sind, weichen aus, sodass sich nie zwei Widgets überlappen.
 
-Widgets, die den Zeitbereich nicht nutzen (zum Beispiel ein Text-Widget), ignorieren beide Steuerungen.
+Jede Art von Widget hat eine Mindestgröße, damit das, was es zeichnet, lesbar bleibt: Ein Diagramm ist mindestens sechs Spalten breit und drei Zeilen hoch, während eine einzelne Zahl in eine Zelle passt.
 
-## Speichern
+Um ein Widget später zu ändern, klicken Sie während der Bearbeitung darauf. Seine Einstellungen öffnen sich erneut, mit zwei weiteren Schaltflächen unten:
 
-Die Arbeitsfläche speichert sich beim Arbeiten von selbst. Eine kleine Anzeige im Kopfbereich teilt mit, wann die letzte Änderung gespeichert wurde. Wenn Sie eine größere Änderung planen, duplizieren Sie das Dashboard zuerst, damit Sie eine sichere Kopie haben.
+- **Widget duplizieren** fügt an der ersten freien Stelle eine Kopie mit denselben Einstellungen hinzu.
+- **Widget löschen** entfernt es, sobald Sie bestätigen.
 
-## Tipps für Dashboards, die langfristig gut altern
+## Zeitbereich und automatische Aktualisierung
 
-- **Ein Thema pro Dashboard.** Widerstehen Sie der Versuchung, „alles, was wir überwachen" auf eine Seite zu packen. Ein paar fokussierte Dashboards schlagen eine einzige riesige Seite.
-- **Das wichtigste Widget an den Anfang.** Menschen scannen von oben nach unten – sorgen Sie dafür, dass das Erste, was sie sehen, die Frage „Ist dieses System gesund?" beantwortet.
-- **Beschriften Sie Abschnitte mit Text-Widgets.** Eine kurze Überschrift alle paar Zeilen („Latenz", „Fehler", „Kapazität") macht die Seite auch von der anderen Seite des Raums lesbar.
-- **Verwenden Sie Variablen statt zu duplizieren.** Wenn Sie kurz davor sind, dasselbe Dashboard für einen zweiten Service zu bauen, bauen Sie stattdessen ein Dashboard mit einer Variable `service`. Siehe [Variablen & Filter](/docs/dashboards/variables).
+In der Ansicht legt die Zeitbereichsauswahl der Werkzeugleiste das Fenster fest, das jedes Diagramm-, Zahlen-, Log- und Trace-Widget liest. Wählen Sie eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, oder einen eigenen Beginn und ein eigenes Ende. Das Dashboard öffnet sich mit seinem Standardzeitraum: der letzten Stunde, es sei denn, jemand legt beim Bearbeiten einen anderen fest.
 
-## Weiterführende Themen
+Listen von Vorfällen, Warnungen, Monitoren und Ressourcen zeigen ihren aktuellen Zustand, unabhängig vom Zeitbereich.
 
-- [Widgets](/docs/dashboards/widgets) – der Katalog.
-- [Variablen & Filter](/docs/dashboards/variables) – Variablen, Filter und der Zeitbereich.
-- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – außerhalb Ihres Teams teilen.
-- [Konfiguration & Berechtigungen](/docs/dashboards/configuration) – Eigentümer und Zugriffskontrolle.
+Neben dem Zeitbereich liest das Menü der automatischen Aktualisierung jedes Widget alle 5 Sekunden, 10 Sekunden, 30 Sekunden, 1 Minute, 5 Minuten oder 15 Minuten neu, mit einem Countdown bis zur nächsten Aktualisierung. Lassen Sie sie aus, während Sie untersuchen, damit die Ansicht stillhält. Das Dashboard öffnet sich mit seiner standardmäßigen automatischen Aktualisierung: aus, es sei denn, jemand legt beim Bearbeiten eine andere fest.
+
+Die Zeitbereichsauswahl, die Variablen und die automatische Aktualisierung erscheinen, sobald das Dashboard ein Widget hat.
+
+### Die Standardwerte des Dashboards
+
+Während Sie das Dashboard bearbeiten, legt die Zeile unter den Schaltflächen der Werkzeugleiste fest, womit alle es öffnen: **Standardzeitraum**, eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, und **Automatische Aktualisierung (Standard)**. **Änderungen speichern** speichert sie mit dem Rest des Dashboards, für Ihr Team ebenso wie für die Besucher seines öffentlichen Links. Ein eigener Beginn und ein eigenes Ende können kein Standard sein: Das Dashboard bliebe für immer auf diesem Moment stehen. Die Zeile erscheint, sobald das Dashboard ein Widget hat.
+
+Dashboards, die vor diesen Einstellungen gespeichert wurden, öffnen sich mit der letzten Stunde und mit der automatischen Aktualisierung, die sie hatten. Über die API und Terraform stehen beide in der `dashboardViewConfig` des Dashboards: `timeRange`, eine Vorgabe so geschrieben wie in der API-Referenz, etwa `Past 1 Day`, und `refreshInterval`, etwa `1m`. Jeder andere Wert wird abgelehnt.
+
+### Ihre eigene Auswahl
+
+Der Zeitbereich und die automatische Aktualisierung, die Sie in der Ansicht wählen, gelten nur für Sie, und Ihr Browser merkt sie sich für jedes Dashboard: Ein Neuladen, ein Neustart des Browsers oder der Neustart eines Wandbildschirms öffnet das Dashboard so, wie Sie es verlassen haben. Nur eine Vorgabe wird gemerkt. Ein eigener Zeitbereich oder ein Zoom gilt, bis Sie die Seite verlassen, sodass das Dashboard nie auf einem vergangenen Moment stehen bleibt.
+
+Der erste Eintrag jeder Auswahl nennt den Standard des Dashboards, etwa Standard (Letzter Tag). Wählen Sie ihn, um zum Standard zurückzukehren: Ihr Browser vergisst Ihre Auswahl, und das Dashboard folgt wieder seinem Standard, auch wenn jemand ihn später ändert. Wenn Sie selbst neue Standardwerte speichern, sehen Sie sie sofort.
+
+### In eine Spitze zoomen
+
+Sie müssen nicht zur Zeitbereichsauswahl greifen, um sich eine Spitze anzusehen. Ziehen Sie über den interessanten Abschnitt eines beliebigen Linien- oder Flächendiagramms, und das **ganze Dashboard** springt in dieses Fenster, genau als hätten Sie es in der Zeitbereichsauswahl gewählt — jedes Widget, das den Zeitbereich nutzt, fragt mit ab, sodass Sie einen Moment über das ganze Board hinweg lesen statt eines Diagramms in einem anderen Maßstab als seine Nachbarn. Live-Listen zeigen weiterhin, was gerade passiert, wie immer.
+
+**Doppelklicken Sie auf ein beliebiges Diagramm**, um das rückgängig zu machen: Das Dashboard kehrt zu dem Bereich zurück, den es vor dem Zoomen hatte, wie oft Sie auch hineingebohrt haben. Eine Schaltfläche **Zoom zurücksetzen** erscheint neben der Zeitbereichsauswahl, solange ein Zoom aktiv ist, und ein Doppelklick auf ein nicht gezoomtes Dashboard bewirkt nichts.
+
+Ein gezoomtes Fenster ist fest, daher rollt es nicht weiter, während die automatische Aktualisierung läuft — das ist Absicht, denn ein Fenster, das Ihnen mitten in einer Untersuchung davonläuft, wäre schlimmer. Setzen Sie den Zoom zurück, um wieder mitzurollen.
+
+Zoomen funktioniert nur in der Ansicht; in der Bearbeitung verschiebt und skaliert Ziehen stattdessen Widgets. Balkendiagramme zoomen genauso — ziehen Sie über die Balken —, und ein Doppelklick auf eines setzt das Dashboard wie jedes andere Diagramm zurück. Nur Ziehen zoomt: Ein einfacher Klick auf ein Diagramm ändert nie den Zeitbereich des Dashboards. Dieselben Gesten funktionieren in den Diagrammen überall in OneUptime; siehe [In einen Zeitbereich zoomen](/docs/telemetry/charts-and-time-ranges).
+
+## Vollbild
+
+**⋯ → Vollbild** zeigt die Widgets des Dashboards auf dem ganzen Bildschirm, für eine Wandanzeige oder ein Meeting. Drücken Sie Esc, um es zu verlassen.
+
+## Tipps für Dashboards, die gut altern
+
+- **Ein Thema pro Dashboard.** Einige fokussierte Dashboards schlagen eine Seite mit allem, was Sie überwachen.
+- **Stellen Sie das wichtigste Widget nach oben.** Menschen lesen von oben nach unten, also sollte das Erste, was sie sehen, die Frage „Ist das gesund?“ beantworten.
+- **Benennen Sie die Abschnitte mit Text-Widgets.** Eine kurze Überschrift alle paar Zeilen („Latenz“, „Fehler“, „Kapazität“) macht die Seite auch quer durch den Raum leicht überschaubar.
+- **Variablen statt Kopien.** Wenn Sie dabei sind, dasselbe Dashboard für einen zweiten Dienst zu bauen, fügen Sie stattdessen eine Variable `service` hinzu. Siehe [Dashboard-Variablen & Filter](/docs/dashboards/variables).
+- **Vor einer großen Änderung kopieren.** **Dashboard duplizieren** auf der Seite **Einstellungen** des Dashboards erstellt eine sichere Kopie, an der Sie Ihre Ideen ausprobieren.
+
+## Nächste Schritte
+
+:::cards
+- [Dashboard-Widgets](/docs/dashboards/widgets): Jedes Widget, seine Einstellungen und welches Sie wählen.
+- [Dashboard-Variablen & Filter](/docs/dashboards/variables): Ein Dashboard für jeden Dienst, jeden Host oder jeden Kunden.
+- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing): Das Dashboard außerhalb Ihres Teams teilen.
+- [Dashboard-Konfiguration & Berechtigungen](/docs/dashboards/configuration): Eigentümer, Beschriftungen, Archivieren und wer was darf.
+:::

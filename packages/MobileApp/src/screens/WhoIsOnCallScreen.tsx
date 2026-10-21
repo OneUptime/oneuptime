@@ -19,7 +19,12 @@ import {
 } from "../api/onCallCalendar";
 import { getServerUrl } from "../storage/serverUrl";
 import { getFriendlyErrorMessage } from "../utils/error";
-import { buildFeedLinks, type FeedLinks } from "../oncall/calendarFeedLinks";
+import {
+  buildFeedLinks,
+  toGoogleAddUrl,
+  toWebcalUrl,
+  type FeedLinks,
+} from "../oncall/calendarFeedLinks";
 import RosterScheduleCard from "../components/RosterScheduleCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
@@ -69,11 +74,17 @@ export function chooseTeamCalendarLinks(
     return links;
   }
 
+  /*
+   * Both subscribe forms are rebuilt from the server's https link rather than
+   * taken from the payload: a server from before the Google Calendar fix
+   * sends webcals:// (iOS will not open it) and a Google link with the
+   * https:// address in cid (Google rejects it).
+   */
   return {
     ...links,
     https: links.serverHttps,
-    webcal: status.urls?.webcal ?? links.webcal,
-    googleAdd: status.urls?.googleAdd ?? links.googleAdd,
+    webcal: toWebcalUrl(links.serverHttps),
+    googleAdd: toGoogleAddUrl(links.serverHttps),
     differsFromServer: false,
   };
 }

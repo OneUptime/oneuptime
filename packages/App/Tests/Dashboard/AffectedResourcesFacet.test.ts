@@ -6,8 +6,8 @@
  *
  * The mapping used to be an if/else chain ending in a bare `else` that
  * returned "podmanHosts". Every type added after Podman — Proxmox, Ceph,
- * Docker Swarm, IoT — would have fallen into it and filtered alerts by
- * Podman hosts. These tests pin one assertion per type.
+ * storage arrays, Docker Swarm, IoT — would have fallen into it and filtered
+ * alerts by Podman hosts. These tests pin one assertion per type.
  */
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -81,6 +81,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     ["proxmoxCluster", "proxmoxClusters"],
     ["vmwareVCenter", "vmwareVCenters"],
     ["cephCluster", "cephClusters"],
+    ["storageArray", "storageArrays"],
     ["dockerSwarmCluster", "dockerSwarmClusters"],
     ["iotFleet", "iotFleets"],
     ["databaseServer", "databaseServers"],
@@ -176,7 +177,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
      * One lookup per offered type. Monitors are excluded here because the
      * alerts table carries a dedicated Monitor chip.
      */
-    expect(getListMock.mock.calls).toHaveLength(11);
+    expect(getListMock.mock.calls).toHaveLength(12);
   });
 
   test("offers Databases in the dropdown, grouped under their own label", async () => {
@@ -210,6 +211,70 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     expect(database).toBeDefined();
     expect(database!.label).toBe("PostgreSQL db.prod:5432");
     expect(database!.group).toBe("Databases");
+  });
+
+  test("offers storage arrays in the dropdown, grouped under their own label", async () => {
+    getListMock.mockImplementation(
+      async (args: { modelType: { name: string } }) => {
+        if (args.modelType.name === "StorageArray") {
+          return {
+            data: [{ id: new ObjectID(RESOURCE_ID), name: "fa-prod-01" }],
+            count: 1,
+            skip: 0,
+            limit: 0,
+          };
+        }
+        return { data: [], count: 0, skip: 0, limit: 0 };
+      },
+    );
+
+    const options: Array<FilterChipDropdownOption> = await alertFacet()
+      .loadOptions!(PROJECT_ID, "");
+
+    const storageArray: FilterChipDropdownOption | undefined = options.find(
+      (option: FilterChipDropdownOption): boolean => {
+        return option.value === `storageArray:${RESOURCE_ID}`;
+      },
+    );
+    expect(storageArray).toBeDefined();
+    expect(storageArray!.label).toBe("fa-prod-01");
+    expect(storageArray!.group).toBe("Storage Arrays");
+  });
+
+  test("a storage array selection unions with a Ceph cluster selection", async () => {
+    getListMock.mockReset();
+    getListMock
+      .mockResolvedValueOnce({
+        data: [{ id: new ObjectID("alert-4") }],
+        count: 1,
+        skip: 0,
+        limit: 0,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: new ObjectID("alert-5") }],
+        count: 1,
+        skip: 0,
+        limit: 0,
+      });
+
+    const matched: Array<string> = await alertFacet()
+      .computeMatchingResourceIds!(
+      PROJECT_ID,
+      [`cephCluster:${RESOURCE_ID}`, `storageArray:${RESOURCE_ID}`],
+      IS_OPERATOR,
+    );
+
+    expect(matched.sort()).toEqual(["alert-4", "alert-5"]);
+    const relations: Array<string> = getListMock.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return Object.keys((call[0] as { query: JSONObject }).query)
+          .filter((key: string): boolean => {
+            return key !== "projectId";
+          })
+          .join(",");
+      },
+    );
+    expect(relations.sort()).toEqual(["cephClusters", "storageArrays"]);
   });
 
   test("a Database selection unions with a host selection", async () => {

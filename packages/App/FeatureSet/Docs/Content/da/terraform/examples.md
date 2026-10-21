@@ -1,27 +1,46 @@
-# Examples
+# Eksempler
 
-Copy-pasteable configurations for the most common OneUptime resources. Every example is adapted from the provider's end-to-end test suite, so the attributes shown here are real and the blocks apply cleanly.
+Færdige konfigurationer til de ressourcer, de fleste projekter starter med. Hver blok kan anvendes, som den er, oven på provider-opsætningen nedenfor, og de fleste kommer fra providerens end-to-end-tests, som anvender dem på en rigtig OneUptime ved hver ændring.
 
-All examples assume this provider setup:
+:::cards
+- [Monitorer](#monitorer): Website-, API-, ping-, port-, SSL-certifikat-, heartbeat- og manuelle monitorer.
+- [Statussider](#statussider): En statusside med en gruppe og en monitor, og et eget domæne.
+- [Teams og vagter](#teams-og-vagter): Et team, og en vagtpolitik, der tilkalder det.
+- [Hændelser og vedligeholdelse](#hændelser-og-vedligeholdelse): Alvorligheder, tilstande, en erklæret hændelse og et vedligeholdelsesvindue.
+:::
 
-```hcl
+```mermaid title="Sådan hænger eksemplerne sammen"
+flowchart TB
+    S["Monitorstatusser"] --> M["Monitorer"]
+    M --> SP["En statusside<br/>og dens domæne"]
+    M -->|"kriterier åbner"| I["Hændelser,<br/>med en alvorlighed"]
+    I -->|"tilkalder"| OC["En vagtpolitik"]
+    OC -->|"eskalerer til"| T["Et team"]
+```
+
+## Provider-opsætning
+
+Hvert eksempel forudsætter denne opsætning, med API-nøglen i miljøvariablen `ONEUPTIME_API_KEY`:
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
 
 provider "oneuptime" {
-  # api_key from ONEUPTIME_API_KEY; oneuptime_url only needed when self-hosted.
+  # On a self-hosted OneUptime, add your OneUptime's address:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## Labels
+## Etiketter
 
-Labels are the cheapest building block — create them first and attach them to almost anything via `labels = [...]` (an unordered set of label IDs).
+Etiketter sorterer og filtrerer poster. De fleste ressourcer tager et sæt etiket-ID'er i `labels`:
 
 ```hcl
 resource "oneuptime_label" "production" {
@@ -31,218 +50,435 @@ resource "oneuptime_label" "production" {
 }
 ```
 
-## Monitors
+## Monitorer
 
-### HTTP monitor with explicit checks
-
-A `Website` monitor with full control over what is checked and when it is considered up or down. The `monitor_steps` JSON is explained line by line in [Monitor Steps](/docs/terraform/monitor-steps).
+Monitorerne nedenfor sætter deres status med tre af de statusser, som alle projekter starter med, læst med datakilder:
 
 ```hcl
-resource "oneuptime_monitor_status" "operational" {
-  name                 = "Operational"
-  description          = "Monitor is operational"
-  color                = "#2ecc71"
-  priority             = 1
-  is_operational_state = true
+data "oneuptime_monitor_status" "operational" {
+  name = "Operational"
 }
 
-resource "oneuptime_monitor_status" "offline" {
-  name                 = "Offline"
-  description          = "Monitor is offline"
-  color                = "#e74c3c"
-  priority             = 3
-  is_operational_state = false
+data "oneuptime_monitor_status" "degraded" {
+  name = "Degraded"
 }
 
-resource "oneuptime_monitor" "website" {
-  name         = "Website"
-  description  = "Homepage availability and status code check"
-  monitor_type = "Website"
-
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-website-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-online"
-                      name                = "Online"
-                      description         = "Website responds with 200"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        },
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Response Status Code"
-                            filterType = "Equal To"
-                            value      = "200"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-offline"
-                      name                = "Offline"
-                      description         = "Website is unreachable"
-                      filterCondition     = "Any"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.offline.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "False"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    }
-  })
+data "oneuptime_monitor_status" "offline" {
+  name = "Offline"
 }
 ```
 
-*(Adapted from E2E test `35-monitor-with-steps`.)*
+Hver monitors `monitor_steps` siger, hvad den tjekker, og hvordan hvert resultat bedømmes: [Monitortrin](/docs/terraform/monitor-steps) forklarer hver attribut.
 
-### Ping monitor
+### Website-monitor
 
-Ping monitors take a `Hostname` (or `IP`) destination instead of a URL:
+Offline, når sitet ikke svarer, online, når det svarer med 200. End-to-end-testen `35-monitor-with-steps` anvender en monitor med disse tjek:
 
 ```hcl
-resource "oneuptime_monitor" "ping" {
-  name         = "Gateway Ping"
-  description  = "ICMP reachability of the gateway host"
+resource "oneuptime_monitor" "website" {
+  name                = "Website"
+  description         = "Homepage availability and status code"
+  monitor_type        = "Website"
+  monitoring_interval = "*/5 * * * *"
+  labels              = [oneuptime_label.production.id]
+
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The website does not respond"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
+      {
+        name                  = "Online"
+        description           = "The website responds with 200"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Equal To"
+            value       = "200"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### API-monitor
+
+En `POST` med headere og en JSON-body, nedsat, når svaret er langsomt. End-to-end-testen `35-monitor-with-steps` anvender en lignende API-monitor:
+
+```hcl
+resource "oneuptime_monitor" "orders_api" {
+  name         = "Orders API"
+  description  = "Health check of the orders API"
+  monitor_type = "API"
+
+  monitor_steps = [{
+    monitor_destination      = "https://api.example.com/v1/health"
+    monitor_destination_type = "URL"
+    request_type             = "POST"
+    request_headers = {
+      "Content-Type" = "application/json"
+      "Accept"       = "application/json"
+    }
+    request_body = jsonencode({ check = "health" })
+
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The API does not answer, or answers with an error"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Greater Than Or Equal To"
+            value       = "500"
+          }
+        ]
+      },
+      {
+        name                  = "Slow"
+        description           = "The API takes more than two seconds"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.degraded.id
+
+        filters = [
+          {
+            check_on    = "Response Time (in ms)"
+            filter_type = "Greater Than"
+            value       = "2000"
+          }
+        ]
+      },
+      {
+        name                  = "Online"
+        description           = "The API answers in time"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### Ping-monitor
+
+En Ping-monitor tager et værtsnavn eller en IP-adresse i stedet for en URL:
+
+```hcl
+resource "oneuptime_monitor" "gateway" {
+  name         = "Gateway"
+  description  = "The gateway answers ping"
   monitor_type = "Ping"
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ping-1"
-            monitorDestination = {
-              _type = "Hostname"
-              value = "gateway.example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-ping-online"
-                      name                = "Reachable"
-                      description         = "Host responds to ping"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "gateway.example.com"
+    monitor_destination_type = "Hostname"
+
+    criteria = [
+      {
+        name                  = "Unreachable"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Reachable"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
-*(Adapted from E2E test `35-monitor-with-steps`.)*
+### Port-monitor
 
-### Manual monitor
-
-Manual monitors have no active checks — status is set by hand or by automation. They need no `monitor_steps` at all:
+En Port-monitor tilføjer den `port`, der skal tjekkes, som et tal:
 
 ```hcl
-resource "oneuptime_monitor" "third_party" {
-  name                = "Payment Provider (manual)"
-  description         = "Tracked manually during vendor incidents"
-  monitor_type        = "Manual"
-  monitoring_interval = "*/5 * * * *"
+resource "oneuptime_monitor" "database_port" {
+  name         = "Database port"
+  description  = "PostgreSQL accepts connections"
+  monitor_type = "Port"
+
+  monitor_steps = [{
+    monitor_destination      = "db.example.com"
+    monitor_destination_type = "Hostname"
+    port                     = 5432
+
+    criteria = [
+      {
+        name                  = "Closed"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
+      {
+        name                  = "Open"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
-*(Adapted from E2E test `26-monitor-steps-basic`.)*
+### SSL-certifikatmonitor
 
-Other valid `monitor_type` values used the same way: `"API"`, `"Port"`, `"IP"`, `"SSL Certificate"`, `"Incoming Request"`, `"Server"`. Server and Incoming Request monitors expose computed secret keys (`server_monitor_secret_key`, `incoming_request_secret_key`) for their agents.
+Offline, når certifikatet ikke er gyldigt, nedsat, når det udløber om 14 dage eller mindre, sådan som en ny SSL-certifikatmonitor er i dashboardet:
 
-## Status page with a custom domain
+```hcl
+resource "oneuptime_monitor" "certificate" {
+  name         = "example.com certificate"
+  description  = "The TLS certificate of example.com"
+  monitor_type = "SSL Certificate"
 
-Three resources cooperate: a verified project `domain`, the `status_page` itself, and a `status_page_domain` linking them. `full_domain` and `cname_verification_token` are computed by the server — do not set them.
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+
+    criteria = [
+      {
+        name                  = "Not valid"
+        description           = "Expired, self-signed, untrusted or not reachable"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Not A Valid Certificate"
+            filter_type = "True"
+          }
+        ]
+      },
+      {
+        name                  = "Expires soon"
+        description           = "Valid, and expires in 14 days or less"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.degraded.id
+
+        filters = [
+          {
+            check_on    = "Is Valid Certificate"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Expires In Days"
+            filter_type = "Less Than Or Equal To"
+            value       = "14"
+          }
+        ]
+      },
+      {
+        name                  = "Valid"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Valid Certificate"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
+}
+```
+
+### Manuel monitor
+
+En manuel monitor tjekker ingenting: du sætter selv dens status. Den har ikke brug for `monitor_steps`:
+
+```hcl
+resource "oneuptime_monitor" "payment_provider" {
+  name         = "Payment provider"
+  description  = "Set by hand during the provider's incidents"
+  monitor_type = "Manual"
+}
+```
+
+### Heartbeat-monitor
+
+En monitor for indgående anmodninger venter på anmodninger i stedet for at sende dem: her et backupjob, der melder sig hver nat. Den går offline, når der ikke er kommet nogen anmodning i 25 timer:
+
+```hcl
+resource "oneuptime_monitor" "nightly_backup" {
+  name         = "Nightly backup"
+  description  = "The backup job sends a heartbeat when it finishes"
+  monitor_type = "Incoming Request"
+
+  monitor_steps = [{
+    criteria = [
+      {
+        name                  = "No heartbeat"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Incoming Request"
+            filter_type = "Not Recieved In Minutes"
+            value       = "1500"
+          }
+        ]
+      },
+      {
+        name                  = "Heartbeat received"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Incoming Request"
+            filter_type = "Recieved In Minutes"
+            value       = "1500"
+          }
+        ]
+      }
+    ]
+  }]
+}
+
+output "nightly_backup_heartbeat_key" {
+  value     = oneuptime_monitor.nightly_backup.incoming_request_secret_key
+  sensitive = true
+}
+```
+
+Jobbet sender sin anmodning til `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`, med den nøgle, som `terraform output -raw nightly_backup_heartbeat_key` udskriver: se [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor). En servermonitors agent melder sig på samme måde, med `server_monitor_secret_key`.
+
+### Monitorgruppe
+
+En monitorgruppe viser et sæt monitorer med én status:
+
+```hcl
+resource "oneuptime_monitor_group" "storefront" {
+  name        = "Storefront"
+  description = "Everything the shop needs"
+}
+
+resource "oneuptime_monitor_group_resource" "website" {
+  monitor_group_id = oneuptime_monitor_group.storefront.id
+  monitor_id       = oneuptime_monitor.website.id
+}
+
+resource "oneuptime_monitor_group_resource" "orders_api" {
+  monitor_group_id = oneuptime_monitor_group.storefront.id
+  monitor_id       = oneuptime_monitor.orders_api.id
+}
+```
+
+## Statussider
+
+### En statusside med en gruppe og en monitor
+
+En statusside viser ressourcer og kan sortere dem i grupper. End-to-end-testen `42-status-page-resources` anvender denne opsætning:
+
+```hcl
+resource "oneuptime_status_page" "public" {
+  name                  = "Public Status"
+  description           = "Customer-facing status page"
+  page_title            = "System Status"
+  page_description      = "Check our system status and incident history"
+  is_public_status_page = true
+}
+
+resource "oneuptime_status_page_group" "services" {
+  status_page_id = oneuptime_status_page.public.id
+  name           = "Services"
+}
+
+resource "oneuptime_status_page_resource" "website" {
+  status_page_id       = oneuptime_status_page.public.id
+  status_page_group_id = oneuptime_status_page_group.services.id
+  monitor_id           = oneuptime_monitor.website.id
+  display_name         = "Website"
+}
+```
+
+### Et eget domæne
+
+Tre ressourcer arbejder sammen: et domæne i dit projekt, statussiden og statussidens domæne, der forbinder dem. Serveren udfylder `full_domain` og CNAME-verifikationstokenet: angiv dem ikke. End-to-end-testene `12-status-page-domain` og `25-status-page-with-domain` anvender denne opsætning:
 
 ```hcl
 resource "oneuptime_domain" "company" {
   domain = "example.com"
-}
-
-resource "oneuptime_status_page" "public" {
-  name                     = "Public Status"
-  description              = "Customer-facing status page"
-  page_title               = "System Status"
-  page_description         = "Check our system status and incident history"
-  is_public_status_page    = true
-  enable_email_subscribers = true
-  enable_sms_subscribers   = false
 }
 
 resource "oneuptime_status_page_domain" "status" {
@@ -251,15 +487,17 @@ resource "oneuptime_status_page_domain" "status" {
   subdomain      = "status"
 }
 
-output "status_domain" {
-  # Computed by the server: subdomain + domain, e.g. status.example.com
+output "status_page_address" {
+  # The subdomain and the domain, such as status.example.com.
   value = oneuptime_status_page_domain.status.full_domain
 }
 ```
 
-*(Adapted from E2E tests `25-status-page-with-domain` and `12-status-page-domain`. New domains must pass DNS verification before the status page domain goes live.)*
+Et nyt domæne skal bestå DNS-verifikationen, før statussiden svarer på det.
 
-## Teams and members
+## Teams og vagter
+
+### Et team og dets medlemmer
 
 ```hcl
 resource "oneuptime_team" "sre" {
@@ -267,106 +505,136 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
+variable "alice_user_id" {
+  description = "Alice's user ID, the last part of the address of her page under Users"
+  type        = string
+}
+
 resource "oneuptime_team_member" "alice" {
   team_id = oneuptime_team.sre.id
-  user_id = "5f8a1b2c3d4e5f6a7b8c9d0e" # user's id — visible in the dashboard URL on their profile
+  user_id = var.alice_user_id
 }
 ```
 
-*(Team adapted from E2E test `33-team-crud`. The referenced user must already be part of the project; membership is confirmed once the user accepts the invitation.)*
+En person, der allerede er med i projektet, kommer straks med i teamet. Alle andre inviteres og er med i teamet, så snart de accepterer. End-to-end-testen `33-team-crud` anvender teamet.
 
-## On-call policy with escalation
+### En vagtpolitik, der tilkalder et team
 
-An on-call policy plus an escalation rule that escalates after 5 minutes without acknowledgement:
+Politikkens første regel tilkalder teamet, og politikken starter forfra, op til to gange, når ingen kvitterer:
 
 ```hcl
 resource "oneuptime_on_call_policy" "primary" {
-  name                                 = "Primary On-Call"
-  description                          = "First line for production incidents"
-  repeat_policy_if_no_one_acknowledges = true
+  name                                             = "Primary on-call"
+  description                                      = "First line for production incidents"
+  repeat_policy_if_no_one_acknowledges             = true
+  repeat_policy_if_no_one_acknowledges_no_of_times = 2
 }
 
 resource "oneuptime_escalation_rule" "first_line" {
-  on_call_duty_policy_id     = oneuptime_on_call_policy.primary.id
-  name                       = "First line"
-  description                = "Page the on-call engineer immediately"
-  order                      = 1
-  escalate_after_in_minutes  = 5
+  on_call_duty_policy_id    = oneuptime_on_call_policy.primary.id
+  name                      = "Page the SRE team"
+  description               = "Moves on after 5 minutes without an acknowledgement"
+  order                     = 1
+  escalate_after_in_minutes = 5
+}
+
+resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+  on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
+  on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
+  team_id                                = oneuptime_team.sre.id
 }
 ```
 
-*(Policy adapted from E2E test `31-on-call-duty-policy-crud`.)*
+En monitors kriterier tilkalder politikken via `on_call_policy_ids` på de hændelser, de åbner: se [Hændelser og advarsler](/docs/terraform/monitor-steps#hændelser-og-advarsler).
 
-## Scheduled maintenance
+## Hændelser og vedligeholdelse
 
-```hcl
-resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
-  title                     = "Database maintenance"
-  description               = "Planned PostgreSQL upgrade — writes paused briefly"
-  starts_at                 = "2026-08-01T02:00:00Z"
-  ends_at                   = "2026-08-01T04:00:00Z"
-  is_visible_on_status_page = true
-}
-```
+### Alvorligheder og tilstande
 
-*(Adapted from E2E test `30-scheduled-maintenance-crud`. Timestamps are RFC3339; equal instants in different notations do not cause drift.)*
-
-## Incident severities and states
-
-Customize your incident taxonomy — severities rank impact, states model the lifecycle. `order` controls display position.
+Alvorligheder rangerer en hændelses påvirkning, og tilstande er trinnene i dens forløb. `order` er der, hvor hver af dem står i listen:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
   name        = "SEV-1"
   description = "Full outage, all hands"
-  color       = "#e74c3c"
+  color       = "#E74C3C"
   order       = 1
 }
 
 resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
-  color       = "#f39c12"
+  color       = "#F39C12"
   order       = 3
 }
 ```
 
-*(Adapted from E2E tests `03-incident-severity` and `04-incident-state`. `oneuptime_alert_severity` and `oneuptime_alert_state` work identically for alerts.)*
+`oneuptime_alert_severity` og `oneuptime_alert_state` virker på samme måde for advarsler. End-to-end-testene `03-incident-severity` og `04-incident-state` anvender dem.
 
-### Declaring an incident from Terraform
+### Erklær en hændelse
 
-Incidents are normally created by monitors, but they are ordinary resources too — useful for game days:
+Det er som regel monitorer, der åbner hændelser, men en hændelse er også en ressource, hvilket passer til en game day. Det er en rigtig hændelse, så hold en øvelse væk fra dine statussider:
 
 ```hcl
 resource "oneuptime_incident" "drill" {
-  title                     = "DR drill"
-  description               = "Disaster recovery exercise"
+  title                     = "Disaster recovery drill"
+  description               = "A game day: we fail over the database"
   incident_severity_id      = oneuptime_incident_severity.sev1.id
-  current_incident_state_id = oneuptime_incident_state.mitigated.id
+  is_visible_on_status_page = false
+
+  should_status_page_subscribers_be_notified_on_incident_created = false
 }
 ```
 
-*(Adapted from E2E test `28-incident-crud`.)*
+End-to-end-testen `28-incident-crud` anvender en hændelse.
 
-## Probes
+### Planlagt vedligeholdelse
 
-Custom probes run monitoring checks from your own infrastructure:
+Et vedligeholdelsesvindue med faste tidspunkter, vist på dine statussider:
 
 ```hcl
+resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
+  title                       = "Database maintenance"
+  description                 = "Planned PostgreSQL upgrade: writes pause briefly"
+  starts_at                   = "2030-06-01T02:00:00Z"
+  ends_at                     = "2030-06-01T04:00:00Z"
+  is_visible_on_status_page   = true
+  monitors                    = [oneuptime_monitor.website.id]
+  change_monitor_status_to_id = data.oneuptime_monitor_status.degraded.id
+}
+```
+
+Tidspunkter er i RFC 3339, og det samme øjeblik skrevet på en anden måde er ingen ændring. End-to-end-testen `30-scheduled-maintenance-crud` anvender vedligeholdelseshændelser.
+
+For at sætte hændelsens monitorer i en status, mens den står på, tilknytter du dem med `monitors` og sætter `change_monitor_status_to_id` til en af dine monitorstatusser: monitorerne skifter til den, når hændelsen starter, og tilbage til operationel, når den slutter. Terraform ændrer `change_monitor_status_to_id` på stedet, indtil hændelsen starter. Når hændelsen er startet, er dens monitorer allerede i den status, og en apply, der ændrer den, fejler med “Change Monitor Status to can no longer be changed: this event has already started.”
+
+## Prober
+
+En egen probe kører tjek fra dit netværk. Dens nøgle er den hemmelighed, proben melder sig med, så giv den videre i en variabel:
+
+```hcl
+variable "probe_key" {
+  description = "The key the probe signs in with"
+  type        = string
+  sensitive   = true
+}
+
 resource "oneuptime_probe" "eu_west" {
-  key           = "probe-eu-west-1"
-  name          = "EU West Probe"
-  description   = "Probe running in eu-west-1"
+  key           = var.probe_key
+  name          = "EU West"
+  description   = "Probe in our eu-west-1 network"
   probe_version = "1.0.0"
 
   should_auto_enable_probe_on_new_monitors = true
 }
 ```
 
-*(Adapted from E2E test `23-probe-crud`.)*
+Kør proben med `PROBE_ID` sat til probens `id` og `PROBE_KEY` sat til nøglen: se [Brugerdefinerede probes](/docs/probe/custom-probe). End-to-end-testen `23-probe-crud` anvender prober.
 
-## More
+## Næste skridt
 
-- [Monitor Steps](/docs/terraform/monitor-steps) — the full `monitor_steps` schema, criteria filters, and common mistakes
-- [Importing Resources](/docs/terraform/importing-resources) — adopt dashboard-created resources into these patterns
-- Per-resource attribute reference: [Terraform Registry docs](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs)
+:::cards
+- [Monitortrin](/docs/terraform/monitor-steps): Hver attribut i en monitors tjek og kriterier.
+- [Import af ressourcer](/docs/terraform/importing-resources): Bring det, du har lavet i dashboardet, ind under Terraform.
+- [Komplet vejledning](/docs/terraform/complete-guide): Datakilder, state, CI/CD og opgraderinger.
+:::

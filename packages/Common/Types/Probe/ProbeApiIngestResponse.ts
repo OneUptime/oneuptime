@@ -15,7 +15,15 @@ export interface PerSeriesCriteriaMatch {
   fingerprint: string;
   labels: JSONObject;
   rootCause: string;
+  /** The context of the first filter this series matched. */
   metricContext?: MetricCriteriaContext | undefined;
+  /**
+   * The context of EVERY filter this series matched, in filter order. Under
+   * an "Any" criteria two series can match on different filters; a reader
+   * that describes one filter picks that filter's context from here rather
+   * than trusting `metricContext` to be about it.
+   */
+  metricContexts?: Array<MetricCriteriaContext> | undefined;
 }
 
 /**

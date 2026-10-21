@@ -1,4 +1,4 @@
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
@@ -81,7 +81,7 @@ const UNDECODABLE_TOKENS: Array<[string, () => string]> = [
     (): string => {
       return jwt.sign(
         tokenPayload(),
-        `${EncryptionSecret.toString()}-before-rotation`,
+        `${TokenSigningKey.get()}-before-rotation`,
         { expiresIn: 15 * 60 },
       );
     },
@@ -89,7 +89,7 @@ const UNDECODABLE_TOKENS: Array<[string, () => string]> = [
   [
     "an expired token",
     (): string => {
-      return jwt.sign(tokenPayload(), EncryptionSecret.toString(), {
+      return jwt.sign(tokenPayload(), TokenSigningKey.get(), {
         expiresIn: -60,
       });
     },
@@ -244,6 +244,8 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   // A blocked user's token is BlockedUserMiddleware.test.ts; here nobody is blocked.
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A token that says master admin is one whose person still is one.
+  getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
 });
 
 afterEach(() => {

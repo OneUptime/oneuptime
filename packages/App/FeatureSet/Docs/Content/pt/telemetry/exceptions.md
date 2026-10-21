@@ -1,0 +1,145 @@
+# Rastreamento de exceções
+
+O rastreamento de exceções reúne os erros que seu código lança e agrupa cada ocorrência do mesmo erro em uma única exceção, com o stack trace, a tendência e as requisições em que ela aconteceu. Trate-as como uma lista de tarefas: corrija, resolva ou arquive o ruído, e deixe a IA abrir um pull request para as que ela consegue corrigir.
+
+:::cards
+- [De onde vêm as exceções](#de-onde-vêm-as-exceções): Spans e registros que seus serviços já enviam.
+- [Fazer a triagem da lista](#fazer-a-triagem-da-lista): O não resolvido primeiro, o ruído oculto.
+- [A página de uma exceção](#a-página-de-uma-exceção): Stack trace, ocorrências e contexto.
+- [Corrigir com IA](#corrigir-com-ia): Um pull request com a correção, ou um teste de regressão.
+:::
+
+## De onde vêm as exceções
+
+Você não envia exceções separadamente. O OneUptime as encontra na telemetria que seus serviços já enviam:
+
+- um evento de exceção em um span, que é o que o `recordException()` do OpenTelemetry grava;
+- um registro com os atributos `exception.type`, `exception.message` ou `exception.stacktrace`;
+- um registro com gravidade Error ou Fatal cuja mensagem contém um stack trace, quando o registro não foi escrito dentro de um span (o span já a informa).
+
+Cada ocorrência é agrupada com as anteriores do mesmo erro em uma única exceção:
+
+```mermaid title="Como uma ocorrência entra na sua exceção"
+flowchart TB
+    span["Evento de exceção<br/>em um span"] --> fp["Impressão: serviço,<br/>tipo, mensagem, pilha"]
+    log["Registro de erro com<br/>um stack trace"] --> fp
+    fp --> seen{"Já vista?"}
+    seen -->|"Não"| new["Exceção nova,<br/>não resolvida"]
+    seen -->|"Sim"| count["Contada de novo;<br/>reaberta se resolvida"]
+```
+
+- **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção.
+- **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou.
+- **Uma exceção arquivada continua arquivada.** As novas ocorrências dela continuam sendo contadas, mas deixam de gerar notificações.
+
+> [!TIP]
+> Para manter um erro esperado fora do rastreamento de exceções, como uma entrada inválida que seu serviço rejeitou, defina o atributo `error.class` como `user-error` ou `expected-denial` no evento de exceção do span. Assim o OneUptime não registra exceção nenhuma para ele.
+
+## Antes de começar
+
+- **Spans ou registros chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem.
+- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Telemetry Service Exception. Resolver e arquivar exige Project Owner ou Project Admin, ou a permissão Edit Telemetry Service Exception.
+
+## Fazer a triagem da lista
+
+:::steps
+### Abrir as exceções
+
+Acesse **Produtos → Observabilidade → Exceções**. O selo da aba **Exceções** conta os problemas não resolvidos, e a lista abre nas exceções **Não resolvido**.
+
+### Escolher um status
+
+Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo.
+
+### Escolher o que conta como problema
+
+**Problemas**, o padrão, oculta erros de usuário e negações esperadas, para que a lista mostre o que precisa de correção. **User errors** mostra só esses, e **Todos** mostra todas as exceções.
+
+### Pesquisar e filtrar
+
+Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**.
+
+### Abrir uma exceção
+
+Clique em uma linha para abrir a página da exceção.
+:::
+
+## A página de uma exceção
+
+O menu lateral da página agrupa o que você faz com uma exceção:
+
+| Página | O que mostra |
+| --- | --- |
+| **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. |
+| **Stack trace** | Os frames da pilha. Para código de navegador, os arquivos e as linhas originais, depois que você enviar os [Source maps](/docs/telemetry/source-maps) da release. |
+| **Occurrences** | Cada ocorrência, com a hora, a mensagem e o traço em que aconteceu. |
+| **Context** | Os atributos da ocorrência mais recente, a gravação da sessão quando houver uma, e as etapas que levaram a ela. |
+| **Registros** | Os registros escritos em torno da ocorrência mais recente. |
+| **AI Assistance** | Tarefas de IA que corrigem a exceção ou a testam. |
+| **Configurações** | Resolver ou arquivar a exceção. Fica em **Manage**, que começa recolhido. |
+
+## Resolver, reabrir e arquivar
+
+Os botões no topo da página da exceção, e a página **Configurações** dela, mudam o status:
+
+| Ação | Quando usar | O que acontece depois |
+| --- | --- | --- |
+| **Resolver** | Você implantou a correção. | Ela sai da lista **Não resolvido**. Uma nova ocorrência a reabre. |
+| **Reopen** | A correção não funcionou. | Ela volta a estar não resolvida. |
+| **Arquivar** | É ruído que você não pretende corrigir. | Ela sai da lista. As novas ocorrências são contadas, mas deixam de gerar notificações. |
+| **Desarquivar** | Você quer voltar a ouvir falar dela. | Ela volta para a lista a que pertence. |
+
+**Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
+
+## Classes de erro
+
+Cada exceção tem uma classe de erro, que diz de quem é o problema. O OneUptime AI a define quando faz a triagem de um insight sobre a exceção, como uma exceção nova ou que disparou: veja [AI SRE](/docs/ai/ai-sre#insights-detecção-proativa). Uma exceção que ele não triou continua `unknown`.
+
+| Classe | O que significa | Em **Problemas** |
+| --- | --- | --- |
+| `code-fault` | Um defeito no código. A única classe que a IA corrige por conta própria. | Sim |
+| `infrastructure` | Um tempo limite esgotado, uma conexão interrompida ou recursos esgotados. | Sim |
+| `unknown` | Ainda não classificada. | Sim |
+| `user-error` | O resultado de uma entrada inválida de um usuário. | Não |
+| `expected-denial` | Uma verificação fazendo seu trabalho, como um login recusado. | Não |
+
+Com **Arquivar exceções esperadas** ativado, nas configurações dos insights de IA, as exceções que a triagem identifica como negações esperadas são arquivadas por você.
+
+## Corrigir com IA
+
+A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:
+
+| Tarefa | O que o pull request faz |
+| --- | --- |
+| **Fix this exception with AI** | Corrige a causa raiz. Inicie-a com **Corrigir com IA**. |
+| **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
+| **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
+
+Antes, a IA precisa de três coisas: um provedor de LLM, um repositório do GitHub conectado pela GitHub App e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent).
+
+## Insights de exceções
+
+A aba **Insights** conta suas exceções **Não resolvido**, **Resolvido** e **Arquivado** e sua taxa de resolução, e lista as exceções mais frequentes, os serviços que elas afetam e as vistas mais recentemente.
+
+## Solução de problemas
+
+:::details Uma exceção que acabei de lançar não está na lista
+Verifique primeiro a lente: **Problemas** oculta erros de usuário e negações esperadas, então escolha **Todos**. Depois amplie o intervalo de tempo e verifique se a exceção foi gravada em um span, ou em um registro com um stack trace.
+:::
+
+:::details Um erro aparece como várias exceções
+A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria.
+:::
+
+:::details Uma exceção resolvida sempre volta
+Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda acontece. Verifique se a correção chegou à release que a informa, ou arquive a exceção se não quiser mais ouvir falar dela.
+:::
+
+## Próximos passos
+
+:::cards
+- [Monitor de exceções](/docs/monitor/exceptions-monitor): Receber alertas quando as exceções dispararem.
+- [Source maps](/docs/telemetry/source-maps): Stack traces legíveis para código de navegador.
+- [Código](/docs/ai/ai-agent): Como a IA corrige código e abre pull requests.
+- [Explorador de traços](/docs/telemetry/traces-explorer): Ver a requisição em que uma exceção aconteceu.
+:::

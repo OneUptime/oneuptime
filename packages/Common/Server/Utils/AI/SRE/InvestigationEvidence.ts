@@ -239,6 +239,18 @@ export function deriveCitationTarget(
     }
     case "query_traces":
       return { type: AIChatCitationTargetType.Traces };
+    case "get_profile_hotspots":
+    case "compare_profiles":
+    case "get_profile_function": {
+      const serviceId: string | undefined = readUUID(args, "serviceId");
+
+      return serviceId
+        ? {
+            type: AIChatCitationTargetType.Profiles,
+            params: { serviceId: serviceId },
+          }
+        : { type: AIChatCitationTargetType.Profiles };
+    }
     case "search_logs":
     case "log_histogram":
       return { type: AIChatCitationTargetType.Logs };

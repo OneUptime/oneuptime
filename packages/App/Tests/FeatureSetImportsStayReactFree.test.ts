@@ -261,12 +261,50 @@ describe("App tests never reach a React module", () => {
       fs.readFileSync(path.join(APP_DIR, "jest.config.json"), "utf8"),
     ) as { testPathIgnorePatterns?: Array<string> };
 
-    expect(jestConfig.testPathIgnorePatterns).toEqual(
-      expect.arrayContaining([
-        "FeatureSet/BrowserRecorder",
-        "FeatureSet/MobileRecorder",
-      ]),
+    /*
+     * Matched the way jest matches them: <rootDir> replaced as text, the
+     * entries joined into one expression, tested against absolute paths.
+     */
+    const ignored: RegExp = new RegExp(
+      (jestConfig.testPathIgnorePatterns || [])
+        .map((pattern: string): string => {
+          return pattern.split("<rootDir>").join(APP_DIR);
+        })
+        .join("|"),
     );
+
+    const testsIn: (directory: string) => Array<string> = (
+      directory: string,
+    ): Array<string> => {
+      return listFiles(directory, ".test.ts").concat(
+        listFiles(directory, ".test.tsx"),
+      );
+    };
+
+    const recorderTests: Array<string> = testsIn(
+      path.join(APP_DIR, "FeatureSet", "BrowserRecorder", "Tests"),
+    ).concat(
+      testsIn(path.join(APP_DIR, "FeatureSet", "MobileRecorder", "Tests")),
+    );
+    const appTests: Array<string> = testsIn(TESTS_DIR).concat(
+      testsIn(path.join(APP_DIR, "FeatureSet", "MCP", "Tests")),
+    );
+
+    expect(recorderTests.length).toBeGreaterThan(0);
+    expect(
+      recorderTests
+        .filter((file: string): boolean => {
+          return !ignored.test(file);
+        })
+        .map(relativeToApp),
+    ).toEqual([]);
+    expect(
+      appTests
+        .filter((file: string): boolean => {
+          return ignored.test(file);
+        })
+        .map(relativeToApp),
+    ).toEqual([]);
   });
 
   test("the scan actually found something to check", () => {

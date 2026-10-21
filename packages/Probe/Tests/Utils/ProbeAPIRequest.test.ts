@@ -31,9 +31,12 @@ describe("getDefaultRequestBody", () => {
        * The capability list rides every request: the server hands
        * credential-less (ping-only) network devices only to probes that
        * declare "networkDevicePing", because an older probe would walk
-       * such a device with community "public" and report it Down.
+       * such a device with community "public" and report it Down. A walk
+       * from a probe that declares "snmpTables" and carries no
+       * tableResults was handed no tables; from one that does not, the
+       * server says the probe has to be updated to walk them.
        */
-      probeCapabilities: ["networkDevicePing"],
+      probeCapabilities: ["networkDevicePing", "snmpTables"],
     });
   });
 });
@@ -58,10 +61,26 @@ describe("getDefaultRequestOptions", () => {
      */
     expect(Object.keys(options).sort()).toEqual([
       "onRequestComplete",
+      "sameServerRedirectsOnly",
       "timeout",
     ]);
     expect("httpAgent" in options).toBe(false);
     expect("httpsAgent" in options).toBe(false);
+  });
+
+  test("keeps every request's redirects on the server it was sent to: each one carries the probe's key", () => {
+    /*
+     * An HTTP client hands a redirected request's headers, and a 307 or
+     * 308's body, to wherever the redirect points; the probe's key and the
+     * key that registers a global probe ride in that body.
+     */
+    for (const options of [
+      ProbeAPIRequest.getDefaultRequestOptions(aliveUrl),
+      ProbeAPIRequest.getDefaultRequestOptions(aliveUrl, { timeout: 30000 }),
+    ]) {
+      expect(options.sameServerRedirectsOnly).toBe(true);
+      expect(options.doNotFollowRedirects).toBeUndefined();
+    }
   });
 
   test("a caller's own deadline wins over the 45s default", () => {

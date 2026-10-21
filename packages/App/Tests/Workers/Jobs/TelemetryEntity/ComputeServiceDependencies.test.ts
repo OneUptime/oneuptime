@@ -15,6 +15,23 @@ import {
   getDatabaseEndpointCallerContextNeeds,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
+import {
+  MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS,
+  MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER,
+  MESSAGE_QUEUE_METRIC_SQL_MARKER,
+  MESSAGE_QUEUE_MIN_SPANS_ENV,
+  MESSAGE_QUEUE_SPAN_SQL_MARKER,
+  getMessagingDiscoveryColumn,
+} from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
+import {
+  MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
+  MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+} from "Common/Types/MessageQueue/MessagingTelemetryResolver";
+import {
+  MessageQueueIdentity,
+  buildMessageQueueIdentifier,
+} from "Common/Types/MessageQueue/MessageQueueIdentity";
+import { toStoredColumns } from "Common/Tests/Types/MessageQueue/MessagingTelemetryFixtures";
 
 /*
  * "TelemetryEntity:ComputeServiceDependencies" turns the recent telemetry window
@@ -88,6 +105,16 @@ jest.mock("Common/Server/Services/DatabaseServerEndpointService", () => {
     default: { findBy: jest.fn(), claimEndpoint: jest.fn() },
   };
 });
+jest.mock("Common/Server/Services/MessageQueueService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(),
+      findOrCreateByIdentity: jest.fn(),
+      recordSighting: jest.fn(),
+    },
+  };
+});
 // The batch owner lookup's IN (...) filter, made readable for assertions.
 jest.mock("Common/Server/Types/Database/QueryHelper", () => {
   return {
@@ -108,6 +135,7 @@ import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import DatabaseServerEndpointService from "Common/Server/Services/DatabaseServerEndpointService";
+import MessageQueueService from "Common/Server/Services/MessageQueueService";
 import {
   DatabaseEndpoint,
   buildDatabaseCallerContext,
@@ -125,8 +153,10 @@ import {
   DatabaseCallerContextSql,
   DependencyDatabaseTarget,
   DependencyTarget,
+  InferredDependencyEntity,
   MAX_DATABASE_TARGETS_PER_ROW,
   buildClientSpanDependencySql,
+  clientSocketPortSql,
   databaseCallerContextSql,
   mergeDependencyEntityDescriptions,
   readDependencyDatabaseTargets,
@@ -138,7 +168,10 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
-import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
+import {
+  ClickHouseClientConfigOptions,
+  dataSourceOptions,
+} from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
@@ -146,9 +179,12 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   MAX_DATABASE_ENDPOINT_ROWS,
+  MAX_MESSAGE_QUEUE_METRIC_ROWS,
+  MAX_MESSAGE_QUEUE_SPAN_ROWS,
   MAX_ROWS_PER_SOURCE,
   computeDependenciesForProject,
   discoverDatabaseServersForProject,
+  discoverMessageQueuesForProject,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies";
 
 const JOB_NAME: string = "TelemetryEntity:ComputeServiceDependencies";
@@ -197,6 +233,16 @@ const endpointMock: { findBy: jest.Mock; claimEndpoint: jest.Mock } =
     claimEndpoint: jest.Mock;
   };
 
+const messageQueueMock: {
+  findBy: jest.Mock;
+  findOrCreateByIdentity: jest.Mock;
+  recordSighting: jest.Mock;
+} = MessageQueueService as unknown as {
+  findBy: jest.Mock;
+  findOrCreateByIdentity: jest.Mock;
+  recordSighting: jest.Mock;
+};
+
 function rows(data: Array<unknown>): {
   json: () => Promise<{ data: Array<unknown> }>;
 } {
@@ -215,6 +261,20 @@ interface Sources {
   graph?: Array<unknown> | Error;
   // Rows of the database endpoint discovery query (routed by its marker).
   databases?: Array<unknown> | Error;
+  // Rows of the message queue span and metric queries (routed by marker).
+  queueSpans?: Array<unknown> | Error;
+  queueMetrics?: Array<unknown> | Error;
+  // Projects the messaging metric project scan finds (routed by marker).
+  queueMetricProjects?: Array<string>;
+}
+
+function rowsOrThrow(
+  result: Array<unknown> | Error | undefined,
+): ReturnType<typeof rows> {
+  if (result instanceof Error) {
+    throw result;
+  }
+  return rows(result || []);
 }
 
 function arrange(sources: Sources): void {
@@ -224,6 +284,9 @@ function arrange(sources: Sources): void {
         throw sources.databases;
       }
       return rows(sources.databases || []);
+    }
+    if (sql.includes(MESSAGE_QUEUE_SPAN_SQL_MARKER)) {
+      return rowsOrThrow(sources.queueSpans);
     }
     if (sql.includes("SELECT DISTINCT projectId")) {
       return rows(
@@ -241,6 +304,16 @@ function arrange(sources: Sources): void {
     return rows(result || []);
   });
   metricMock.executeQuery.mockImplementation(async (sql: string) => {
+    if (sql.includes(MESSAGE_QUEUE_METRIC_SQL_MARKER)) {
+      return rowsOrThrow(sources.queueMetrics);
+    }
+    if (sql.includes(MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER)) {
+      return rows(
+        (sources.queueMetricProjects || []).map((projectId: string) => {
+          return { projectId };
+        }),
+      );
+    }
     if (sql.includes("SELECT DISTINCT projectId")) {
       return rows(
         (sources.metricProjects || []).map((projectId: string) => {
@@ -292,6 +365,15 @@ beforeEach(() => {
   endpointMock.findBy.mockResolvedValue([]);
   endpointMock.claimEndpoint.mockReset();
   endpointMock.claimEndpoint.mockResolvedValue("claimed");
+  messageQueueMock.findBy.mockReset();
+  messageQueueMock.findBy.mockResolvedValue([]);
+  messageQueueMock.findOrCreateByIdentity.mockReset();
+  messageQueueMock.findOrCreateByIdentity.mockResolvedValue({
+    queue: null,
+    created: false,
+  });
+  messageQueueMock.recordSighting.mockReset();
+  messageQueueMock.recordSighting.mockResolvedValue(undefined);
 });
 
 const WINDOW: { projectId: string; startSql: string; endSql: string } = {
@@ -835,7 +917,10 @@ describe("database servers from client spans", () => {
         return String(call[0]);
       })
       .filter((sql: string): boolean => {
-        return !sql.includes(DATABASE_ENDPOINT_SQL_MARKER);
+        return (
+          !sql.includes(DATABASE_ENDPOINT_SQL_MARKER) &&
+          !sql.includes(MESSAGE_QUEUE_SPAN_SQL_MARKER)
+        );
       });
     // Trace-linked + client-span dependency queries.
     expect(dependencySql).toHaveLength(2);
@@ -849,6 +934,8 @@ describe("database servers from client spans", () => {
     expect(tracedSql).toHaveLength(1);
     for (const sql of dependencySql) {
       expect(sql).not.toContain(DATABASE_ENDPOINT_SQL_MARKER);
+      expect(sql).not.toContain(MESSAGE_QUEUE_SPAN_SQL_MARKER);
+      expect(sql).not.toContain(MESSAGE_QUEUE_METRIC_SQL_MARKER);
     }
     // The trace-linked query never reads a caller's placement.
     expect(tracedSql[0]).not.toContain("resource.k8s.cluster.name");
@@ -870,7 +957,15 @@ describe("database servers from client spans", () => {
     expect(collapsed).toContain(
       "GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp ORDER BY",
     );
-    expect(metricMock.executeQuery).toHaveBeenCalledTimes(1);
+    // The service graph metric query, and the queue step's own metric query.
+    expect(metricMock.executeQuery).toHaveBeenCalledTimes(2);
+    expect(
+      metricMock.executeQuery.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes(MESSAGE_QUEUE_METRIC_SQL_MARKER);
+        },
+      ),
+    ).toHaveLength(1);
   });
 
   test("the database query runs after the dependency queries, never beside them", async () => {
@@ -2006,6 +2101,1568 @@ describe("database servers from client spans", () => {
 });
 
 /*
+ * ---- Queues from messaging spans and broker metrics -------------------------
+ *
+ * The same run matches the queues the window's messaging spans, curated
+ * broker metrics and messaging client metrics name to their MessageQueue
+ * rows (creating them when new and named by enough spans, or reported by
+ * their broker at all) and sights them, once per kind of evidence. An
+ * isolated step like the database one: it runs after it, whatever the edges
+ * did, one scan at a time, and nothing it does can cost the project its
+ * edges or its databases. The rows below are the queries' own shape: every
+ * attribute the resolvers read, stored as ClickHouse returns it.
+ */
+
+const QUEUE_SEEN_AT_MS: number = 1790243100123;
+
+function queueSpanRow(
+  kind: string,
+  attributes: Record<string, unknown>,
+  spanCount: number = 10,
+): Record<string, unknown> {
+  const stored: Record<string, string> = toStoredColumns(
+    attributes,
+    MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+  );
+  const row: Record<string, unknown> = {
+    kind: kind,
+    spanCount: String(spanCount),
+    errorCount: "0",
+    lastSeenUnixMs: String(QUEUE_SEEN_AT_MS),
+  };
+  MESSAGING_RESOLVER_INPUT_ATTRIBUTES.forEach(
+    (key: string, index: number): void => {
+      row[getMessagingDiscoveryColumn(index)] = stored[key];
+    },
+  );
+  return row;
+}
+
+function queueMetricRow(
+  name: string,
+  attributes: Record<string, unknown>,
+  pointCount: number = 6,
+  lastSeenUnixMs: number = QUEUE_SEEN_AT_MS,
+): Record<string, unknown> {
+  const stored: Record<string, string> = toStoredColumns(
+    attributes,
+    MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
+  );
+  const row: Record<string, unknown> = {
+    name: name,
+    pointCount: String(pointCount),
+    lastSeenUnixMs: String(lastSeenUnixMs),
+  };
+  MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES.forEach(
+    (key: string, index: number): void => {
+      row[getMessagingDiscoveryColumn(index)] = stored[key];
+    },
+  );
+  return row;
+}
+
+const KAFKA_ORDERS: Record<string, unknown> = {
+  "messaging.system": "kafka",
+  "messaging.destination.name": "orders",
+  "server.address": "kafka-1",
+  "server.port": "9092",
+};
+
+function kafka(destination: string): Record<string, unknown> {
+  return { ...KAFKA_ORDERS, "messaging.destination.name": destination };
+}
+
+// kafka_metrics' consumer lag for one topic.
+function kafkaLag(
+  topic: string,
+  pointCount: number = 6,
+  lastSeenUnixMs: number = QUEUE_SEEN_AT_MS,
+): Record<string, unknown> {
+  return queueMetricRow(
+    "kafka.consumer_group.lag_sum",
+    { topic: topic, group: "billing" },
+    pointCount,
+    lastSeenUnixMs,
+  );
+}
+
+interface FindOrCreateQueueArgs {
+  projectId: ObjectID;
+  identity: MessageQueueIdentity;
+  system: string;
+  destination: string;
+  brokerAddress?: string | null | undefined;
+  source: string;
+  allowCreate: boolean;
+}
+
+interface QueueSightingArgs {
+  projectId: ObjectID;
+  queueId: ObjectID;
+  source: string;
+  brokerAddress?: string | null | undefined;
+  at?: Date | undefined;
+}
+
+function queueRowId(identifier: string): ObjectID {
+  return new ObjectID(`queue-${identifier}`);
+}
+
+/*
+ * A stand-in for MessageQueueService: `queues` holds the identifiers that
+ * have a row; the batch lookup and findOrCreateByIdentity read it and a
+ * create adds to it, as the real table would.
+ */
+function arrangeQueueRows(existing: Array<string>): Set<string> {
+  const queues: Set<string> = new Set<string>(existing);
+
+  messageQueueMock.findBy.mockImplementation(
+    async (args: { query: { queueIdentifier: { anyOf: Array<string> } } }) => {
+      return args.query.queueIdentifier.anyOf
+        .filter((identifier: string): boolean => {
+          return queues.has(identifier);
+        })
+        .map((identifier: string) => {
+          return {
+            id: queueRowId(identifier),
+            queueIdentifier: identifier,
+          };
+        });
+    },
+  );
+
+  messageQueueMock.findOrCreateByIdentity.mockImplementation(
+    async (args: FindOrCreateQueueArgs) => {
+      const identifier: string = buildMessageQueueIdentifier(args.identity)!;
+      if (queues.has(identifier)) {
+        return { queue: { id: queueRowId(identifier) }, created: false };
+      }
+      if (!args.allowCreate) {
+        return { queue: null, created: false };
+      }
+      queues.add(identifier);
+      return { queue: { id: queueRowId(identifier) }, created: true };
+    },
+  );
+
+  return queues;
+}
+
+/*
+ * The ONE brokerAddress column a queue row has, as MessageQueueService
+ * writes it: a created row starts with the address findOrCreateByIdentity
+ * was given, and every sighting that carries an address overwrites it, in
+ * call order. That holds from run to run: ResourceHeartbeat's gates on the
+ * address expire about a minute after a write, and the cron runs every ten
+ * minutes, each source's sighting in its own cache namespace. Install after
+ * arrangeQueueRows.
+ */
+function trackBrokerAddressColumn(): Map<string, string | null> {
+  const column: Map<string, string | null> = new Map<string, string | null>();
+  const standIn: (
+    args: FindOrCreateQueueArgs,
+  ) => Promise<{ queue: { id: ObjectID } | null; created: boolean }> =
+    messageQueueMock.findOrCreateByIdentity.getMockImplementation() as (
+      args: FindOrCreateQueueArgs,
+    ) => Promise<{ queue: { id: ObjectID } | null; created: boolean }>;
+
+  messageQueueMock.findOrCreateByIdentity.mockImplementation(
+    async (args: FindOrCreateQueueArgs) => {
+      const result: { queue: { id: ObjectID } | null; created: boolean } =
+        await standIn(args);
+      if (result.created && result.queue) {
+        column.set(result.queue.id.toString(), args.brokerAddress || null);
+      }
+      return result;
+    },
+  );
+  messageQueueMock.recordSighting.mockImplementation(
+    async (args: QueueSightingArgs) => {
+      if (args.brokerAddress) {
+        column.set(args.queueId.toString(), args.brokerAddress);
+      }
+    },
+  );
+
+  return column;
+}
+
+function queueLookups(): Array<FindOrCreateQueueArgs> {
+  return messageQueueMock.findOrCreateByIdentity.mock.calls.map(
+    (call: Array<unknown>): FindOrCreateQueueArgs => {
+      return call[0] as FindOrCreateQueueArgs;
+    },
+  );
+}
+
+// Each sighting as [queue row, source, broker address, datapoint time].
+function queueSightings(): Array<
+  [string, string, string | null, number | null]
+> {
+  return messageQueueMock.recordSighting.mock.calls.map(
+    (call: Array<unknown>): [string, string, string | null, number | null] => {
+      const args: QueueSightingArgs = call[0] as QueueSightingArgs;
+      return [
+        args.queueId.toString(),
+        args.source,
+        args.brokerAddress || null,
+        args.at ? args.at.getTime() : null,
+      ];
+    },
+  );
+}
+
+function sqlWith(mock: jest.Mock, marker: string): Array<string> {
+  return mock.mock.calls
+    .map((call: Array<unknown>): string => {
+      return String(call[0]);
+    })
+    .filter((sql: string): boolean => {
+      return sql.includes(marker);
+    });
+}
+
+/*
+ * The bug report: eBPF instrumentation swapped the two ends of the worker's
+ * Redis connections, so each CLIENT span named the worker's own ephemeral
+ * port as the server, and discovery created one database per connection
+ * ("Redis oneuptime-worker.default.svc.cluster.local:46600", ":46482", …).
+ */
+describe("database servers from client spans — a client's own socket", () => {
+  const SWAPPED_PORTS: Array<string> = [
+    "46600",
+    "46482",
+    "60538",
+    "49114",
+    "41892",
+    "38616",
+    "45986",
+  ];
+
+  function swappedRows(): Array<Record<string, unknown>> {
+    return SWAPPED_PORTS.map((port: string): Record<string, unknown> => {
+      return databaseRow({
+        dbSystem: "redis",
+        serverAddress: "oneuptime-worker",
+        serverPort: port,
+        callerNamespace: "default",
+        callerCluster: "gke-test-cluster",
+        callCount: "300",
+      });
+    });
+  }
+
+  let savedMinCalls: string | undefined;
+
+  beforeEach(() => {
+    savedMinCalls = process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+  });
+
+  afterEach(() => {
+    if (savedMinCalls === undefined) {
+      delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    } else {
+      process.env[DATABASE_SERVER_MIN_CALLS_ENV] = savedMinCalls;
+    }
+  });
+
+  test("creates no database for any of the worker's connections", async () => {
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows([]);
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(createAttempts()).toEqual([]);
+    expect(databaseServerMock.findOrCreateByEndpoint).not.toHaveBeenCalled();
+    expect(databaseServerMock.recordSighting).not.toHaveBeenCalled();
+    // Nothing to create means the budget is never even asked.
+    expect(databaseServerMock.isUnderAutoCreateBudget).not.toHaveBeenCalled();
+    expect(endpointMock.claimEndpoint).not.toHaveBeenCalled();
+  });
+
+  test("a run over every connection, again and again, still creates nothing", async () => {
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows([]);
+
+    for (let run: number = 0; run < 3; run++) {
+      await discoverDatabaseServersForProject({
+        projectId: PROJECT_ID,
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+      });
+    }
+
+    expect(createAttempts()).toEqual([]);
+  });
+
+  test("the Redis the worker really calls is still created, beside its swapped connections", async () => {
+    arrange({
+      databases: [
+        ...swappedRows(),
+        databaseRow({
+          dbSystem: "redis",
+          serverAddress: "oneuptime-redis-master",
+          serverPort: "6379",
+          callerNamespace: "default",
+          callerCluster: "gke-test-cluster",
+          callCount: "9000",
+        }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(
+      createAttempts().map((args: FindOrCreateArgs): string => {
+        return formatDatabaseEndpoint(args.endpoint);
+      }),
+    ).toEqual([
+      "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+    ]);
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+  });
+
+  test("a database that already owns such an endpoint is still matched and sighted", async () => {
+    /*
+     * A person added a database on a high port by hand (a Docker random
+     * host port, say): the create policy never stands between it and the
+     * spans that call it.
+     */
+    const owned: string =
+      "oneuptime-worker.default.svc.cluster.local:46600@gke-test-cluster";
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows({ [owned]: "by-hand" });
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(createAttempts()).toEqual([]);
+    const lookups: Array<FindOrCreateArgs> = findOrCreateCalls();
+    expect(lookups).toHaveLength(1);
+    expect(formatDatabaseEndpoint(lookups[0]!.endpoint)).toBe(owned);
+    expect(lookups[0]!.allowCreate).toBe(false);
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+    expect(databaseServerMock.recordSighting.mock.calls[0]![0].toString()).toBe(
+      rowId("by-hand").toString(),
+    );
+  });
+});
+
+/*
+ * The same bug on the Service Map: the swapped spans come from the Redis
+ * server's own pod, so the Redis service got a depends-on edge to a
+ * "redis @ oneuptime-worker" Database node.
+ */
+describe("the Service Map from client spans — a client's own socket", () => {
+  const REDIS_ID: string = "55555555-5555-4555-8555-555555555555";
+  const WORKER_ID: string = "66666666-6666-4666-8666-666666666666";
+  const WORKER_KEY: string = keyForService(PROJECT_ID, "oneuptime-worker");
+
+  beforeEach(() => {
+    serviceMock.findBy.mockResolvedValue([
+      { _id: REDIS_ID, name: "redis" },
+      { _id: WORKER_ID, name: "oneuptime-worker" },
+    ]);
+  });
+
+  /*
+   * A dbTargets entry named from a pod of namespace default: by default the
+   * worker, as the Redis pod's swapped spans name it.
+   */
+  function podTarget(
+    port: string,
+    address: string = "oneuptime-worker",
+  ): Array<string> {
+    return [address, port, "", "default", "0", "gke-test-cluster"];
+  }
+
+  // The Redis pod's client-span row for the worker's host.
+  function redisPodRow(targets: Array<Array<string>>): Record<string, unknown> {
+    return {
+      callerServiceId: REDIS_ID,
+      dbSystem: "redis",
+      dbNamespace: "",
+      serverAddress: "oneuptime-worker",
+      dbTargets: targets,
+      callCount: "300",
+      errorCount: "0",
+      avgDurationNano: "1000000",
+    };
+  }
+
+  const WORKER_CALLS_REDIS: Record<string, unknown> = {
+    callerServiceId: WORKER_ID,
+    dbSystem: "redis",
+    dbNamespace: "",
+    serverAddress: "oneuptime-redis-master",
+    dbTargets: [podTarget("6379", "oneuptime-redis-master")],
+    callCount: "9000",
+    errorCount: "3",
+    avgDurationNano: "2000000",
+  };
+
+  function redisNodeKey(serverAddress: string): string {
+    return computeEntityKey({
+      projectId: PROJECT_ID,
+      entityType: EntityType.Database,
+      identifyingAttributes: {
+        "db.system.name": "redis",
+        "server.address": serverAddress,
+      },
+    });
+  }
+
+  function registered(): Array<{
+    entityKey: string;
+    descriptiveAttributes?: Record<string, string>;
+  }> {
+    return inventoryMock.reconcileEntities.mock.calls.flatMap(
+      (call: Array<unknown>) => {
+        return (
+          call[0] as {
+            entities: Array<{
+              entityKey: string;
+              descriptiveAttributes?: Record<string, string>;
+            }>;
+          }
+        ).entities;
+      },
+    );
+  }
+
+  test("the client-span query leaves the swapped calls out before it groups", async () => {
+    arrange({});
+
+    await computeDependenciesForProject(WINDOW);
+
+    const clientSql: Array<string> = spanMock.executeQuery.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((sql: string): boolean => {
+        return (
+          sql.includes("NOT IN") &&
+          !sql.includes(DATABASE_ENDPOINT_SQL_MARKER) &&
+          !sql.includes(MESSAGE_QUEUE_SPAN_SQL_MARKER)
+        );
+      });
+    expect(clientSql).toHaveLength(1);
+    expect(clientSql[0]!.replace(/\s+/g, " ")).toContain(
+      `AND NOT ${clientSocketPortSql("serverPort")} AND (traceId, spanId) NOT IN (`,
+    );
+  });
+
+  test("a row whose every call named the worker's socket draws no edge and registers no Database", async () => {
+    // What the query cannot drop: Db2's port, a port inside the address.
+    arrange({
+      clients: [
+        redisPodRow([
+          podTarget("50000"),
+          podTarget("", "oneuptime-worker:46600"),
+        ]),
+      ],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(0);
+
+    expect(relationshipMock.reconcileRelationships).not.toHaveBeenCalled();
+    expect(inventoryMock.reconcileEntities).not.toHaveBeenCalled();
+  });
+
+  test("the Redis the worker really calls keeps its edge beside them", async () => {
+    arrange({
+      clients: [redisPodRow([podTarget("50000")]), WORKER_CALLS_REDIS],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(reconciledEdges()).toEqual([
+      {
+        fromEntityKey: WORKER_KEY,
+        toEntityKey: redisNodeKey("oneuptime-redis-master"),
+        relationshipType: EntityRelationshipType.DependsOn,
+        metrics: { callCount: 9000, errorCount: 3, avgDurationMs: 2 },
+      },
+    ]);
+    expect(
+      registered().map((entity: { entityKey: string }): string => {
+        return entity.entityKey;
+      }),
+    ).toEqual([redisNodeKey("oneuptime-redis-master")]);
+  });
+
+  test("a server the Redis pod really called on the same host keeps the node, described by that server alone", async () => {
+    arrange({
+      clients: [redisPodRow([podTarget("50000"), podTarget("6379")])],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(registered()).toEqual([
+      expect.objectContaining({
+        entityKey: redisNodeKey("oneuptime-worker"),
+        descriptiveAttributes: {
+          "db.system.name": "redis",
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+            "oneuptime-worker.default.svc.cluster.local:6379@gke-test-cluster",
+          [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "6379",
+        },
+      }),
+    ]);
+  });
+
+  test("Db2 on its default port 50000 keeps its edge", async () => {
+    arrange({
+      clients: [
+        {
+          callerServiceId: WORKER_ID,
+          dbSystem: "ibm.db2",
+          serverAddress: "db2.example.com",
+          dbTargets: [["db2.example.com", "50000", "", "", "0", ""]],
+          callCount: "10",
+          errorCount: "0",
+          avgDurationNano: "1000000",
+        },
+      ],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(registered()).toEqual([
+      expect.objectContaining({
+        descriptiveAttributes: {
+          "db.system.name": "ibm.db2",
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: "db2.example.com:50000",
+          [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "50000",
+        },
+      }),
+    ]);
+  });
+
+  test("a row whose targets may have been cut short keeps its edge, naming no one server", async () => {
+    const full: Array<Array<string>> = [];
+    for (let index: number = 0; index < MAX_DATABASE_TARGETS_PER_ROW; index++) {
+      full.push(podTarget("", `oneuptime-worker:${46000 + index}`));
+    }
+    arrange({ clients: [redisPodRow(full)] });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(
+      registered()[0]!.descriptiveAttributes![
+        DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+      ],
+    ).toBe("");
+  });
+});
+
+describe("message queues from messaging spans and broker metrics", () => {
+  let savedMinSpans: string | undefined;
+
+  beforeEach(() => {
+    savedMinSpans = process.env[MESSAGE_QUEUE_MIN_SPANS_ENV];
+    delete process.env[MESSAGE_QUEUE_MIN_SPANS_ENV];
+  });
+
+  afterEach(() => {
+    if (savedMinSpans === undefined) {
+      delete process.env[MESSAGE_QUEUE_MIN_SPANS_ENV];
+    } else {
+      process.env[MESSAGE_QUEUE_MIN_SPANS_ENV] = savedMinSpans;
+    }
+  });
+
+  test("runs even when every dependency source is empty", async () => {
+    arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 1)] });
+    arrangeQueueRows(["kafka||orders"]);
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(0);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueSightings()).toEqual([
+      [queueRowId("kafka||orders").toString(), "traces", "kafka-1:9092", null],
+    ]);
+    // The edge side still wrote nothing.
+    expect(relationshipMock.reconcileRelationships).not.toHaveBeenCalled();
+    expect(inventoryMock.reconcileEntities).not.toHaveBeenCalled();
+  });
+
+  test("reads one bounded span query and one bounded metric query, scoped to the project and the window", async () => {
+    arrange({});
+
+    await computeDependenciesForProject(WINDOW);
+
+    const spanSql: Array<string> = sqlWith(
+      spanMock.executeQuery,
+      MESSAGE_QUEUE_SPAN_SQL_MARKER,
+    );
+    expect(spanSql).toHaveLength(1);
+    expect(spanSql[0]).toContain(`projectId = '${PROJECT_ID}'`);
+    expect(spanSql[0]).toContain(`startTime >= ${WINDOW.startSql}`);
+    expect(spanSql[0]).toContain(`startTime < ${WINDOW.endSql}`);
+    expect(spanSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_SPAN_ROWS}\n`);
+    expect(spanSql[0]).toContain("hasAny(attributeKeys,");
+
+    const metricSql: Array<string> = sqlWith(
+      metricMock.executeQuery,
+      MESSAGE_QUEUE_METRIC_SQL_MARKER,
+    );
+    expect(metricSql).toHaveLength(1);
+    expect(metricSql[0]).toContain(`projectId = '${PROJECT_ID}'`);
+    expect(metricSql[0]).toContain(
+      `time >= ${WINDOW.startSql} - INTERVAL 45 MINUTE`,
+    );
+    expect(metricSql[0]).toContain(`time < ${WINDOW.endSql}`);
+    expect(metricSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_METRIC_ROWS}\n`);
+
+    /*
+     * Each ends while the client still waits for it: a time limit under the
+     * App pool's request_timeout, at which ClickHouse fails it with its own
+     * timeout error ('throw'), and no thread pin to slow it down.
+     */
+    for (const sql of [spanSql[0]!, metricSql[0]!]) {
+      expect(sql.trim().endsWith(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS)).toBe(
+        true,
+      );
+      expect(sql).toContain("timeout_overflow_mode = 'throw'");
+      expect(sql).not.toContain("max_threads");
+      const limitSeconds: number = Number(
+        sql.match(/max_execution_time = (\d+)/)![1],
+      );
+      expect(limitSeconds * 1000).toBeLessThan(
+        Number(dataSourceOptions.request_timeout),
+      );
+    }
+
+    // Nothing named, nothing asked of Postgres.
+    expect(messageQueueMock.findBy).not.toHaveBeenCalled();
+    expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+  });
+
+  test("runs after the database step, one scan at a time, never beside another", async () => {
+    arrange({});
+    arrangeQueueRows(["kafka||orders"]);
+
+    let inFlight: number = 0;
+    const events: Array<string> = [];
+    const startedWith: Record<string, number> = {};
+    const delayed: (label: string, result: unknown) => Promise<unknown> = (
+      label: string,
+      result: unknown,
+    ): Promise<unknown> => {
+      inFlight++;
+      events.push(`start ${label}`);
+      return new Promise<unknown>((resolve: (value: unknown) => void) => {
+        setTimeout(() => {
+          inFlight--;
+          events.push(`end ${label}`);
+          resolve(result);
+        }, 20);
+      });
+    };
+
+    spanMock.executeQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes(MESSAGE_QUEUE_SPAN_SQL_MARKER)) {
+        startedWith["spans"] = inFlight;
+        return delayed(
+          "queue spans",
+          rows([queueSpanRow(SpanKind.Producer, KAFKA_ORDERS)]),
+        );
+      }
+      if (sql.includes(DATABASE_ENDPOINT_SQL_MARKER)) {
+        return delayed("databases", rows([]));
+      }
+      return delayed("dependencies", rows([]));
+    });
+    metricMock.executeQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes(MESSAGE_QUEUE_METRIC_SQL_MARKER)) {
+        startedWith["metrics"] = inFlight;
+        return delayed("queue metrics", rows([kafkaLag("orders")]));
+      }
+      return delayed("dependencies", rows([]));
+    });
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(startedWith).toEqual({ spans: 0, metrics: 0 });
+    expect(events.indexOf("start queue spans")).toBeGreaterThan(
+      events.indexOf("end databases"),
+    );
+    expect(events.indexOf("start queue metrics")).toBeGreaterThan(
+      events.indexOf("end queue spans"),
+    );
+    expect(queueSightings()).toHaveLength(2);
+  });
+
+  test("an existing queue is matched WITHOUT create permission and sighted, however few its spans", async () => {
+    arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 1)] });
+    arrangeQueueRows(["kafka||orders"]);
+
+    expect(
+      await discoverMessageQueuesForProject({
+        projectId: PROJECT_ID,
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+      }),
+    ).toBe(1);
+
+    const lookups: Array<FindOrCreateQueueArgs> = queueLookups();
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.projectId.toString()).toBe(PROJECT_ID);
+    expect(lookups[0]!.allowCreate).toBe(false);
+    expect(lookups[0]!.identity).toEqual({
+      system: "kafka",
+      brokerScope: "",
+      destination: "orders",
+    });
+    expect(lookups[0]!.system).toBe("kafka");
+    expect(lookups[0]!.destination).toBe("orders");
+    expect(lookups[0]!.brokerAddress).toBe("kafka-1:9092");
+
+    const sighting: QueueSightingArgs = messageQueueMock.recordSighting.mock
+      .calls[0]![0] as QueueSightingArgs;
+    expect(sighting.projectId.toString()).toBe(PROJECT_ID);
+    expect(queueSightings()).toEqual([
+      [queueRowId("kafka||orders").toString(), "traces", "kafka-1:9092", null],
+    ]);
+  });
+
+  test("a new queue its spans name at least MESSAGE_QUEUE_MIN_SPANS times is created and sighted", async () => {
+    arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 3)] });
+    const queues: Set<string> = arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(
+      queueLookups().map((args: FindOrCreateQueueArgs) => {
+        return [args.allowCreate, args.source, args.system, args.destination];
+      }),
+    ).toEqual([[true, "traces", "kafka", "orders"]]);
+    expect(queues.has("kafka||orders")).toBe(true);
+    expect(queueSightings()).toEqual([
+      [queueRowId("kafka||orders").toString(), "traces", "kafka-1:9092", null],
+    ]);
+  });
+
+  test("fewer spans than the minimum create nothing and cost no lookup", async () => {
+    arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 2)] });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    // One batch query says it has no row; nothing is asked per queue.
+    expect(messageQueueMock.findBy).toHaveBeenCalledTimes(1);
+    expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+    expect(messageQueueMock.recordSighting).not.toHaveBeenCalled();
+  });
+
+  test("the span minimum is read from MESSAGE_QUEUE_MIN_SPANS", async () => {
+    process.env[MESSAGE_QUEUE_MIN_SPANS_ENV] = "1";
+    arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 1)] });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.allowCreate).toBe(true);
+  });
+
+  test("the spans of one queue from several rows add up towards the minimum", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 1),
+        queueSpanRow(
+          SpanKind.Consumer,
+          {
+            ...KAFKA_ORDERS,
+            "messaging.destination.name": "Orders",
+            "messaging.operation.type": "process",
+            "messaging.consumer.group.name": "billing",
+          },
+          2,
+        ),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.allowCreate).toBe(true);
+    // The busier spelling names the new row.
+    expect(queueLookups()[0]!.destination).toBe("Orders");
+  });
+
+  test("one broker metric datapoint creates its queue, sighted at the broker's newest datapoint time", async () => {
+    arrange({
+      queueMetrics: [
+        kafkaLag("orders", 1, 1790243000000),
+        queueMetricRow(
+          "kafka.consumer_group.offset_sum",
+          { topic: "orders", group: "billing" },
+          1,
+          1790243060000,
+        ),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(
+      queueLookups().map((args: FindOrCreateQueueArgs) => {
+        return [args.allowCreate, args.source, args.system, args.destination];
+      }),
+    ).toEqual([[true, "broker-metrics", "kafka", "orders"]]);
+    expect(queueSightings()).toEqual([
+      [
+        queueRowId("kafka||orders").toString(),
+        "broker-metrics",
+        null,
+        1790243060000,
+      ],
+    ]);
+  });
+
+  test("a queue created from its spans is sighted by its broker metrics too", async () => {
+    arrange({
+      queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 5)],
+      queueMetrics: [kafkaLag("orders", 6, 1790243000000)],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.source).toBe("traces");
+    // Both sightings carry the one address the run resolved: the spans'.
+    expect(queueSightings()).toEqual([
+      [queueRowId("kafka||orders").toString(), "traces", "kafka-1:9092", null],
+      [
+        queueRowId("kafka||orders").toString(),
+        "broker-metrics",
+        "kafka-1:9092",
+        1790243000000,
+      ],
+    ]);
+  });
+
+  describe("the broker address a queue shows", () => {
+    const PULSAR_QUEUE: string = "pulsar||persistent://public/default/orders";
+
+    // A Java agent Pulsar producer: the broker's binary protocol port.
+    function pulsarSpans(): Record<string, unknown> {
+      return queueSpanRow(SpanKind.Producer, {
+        "messaging.system": "pulsar",
+        "messaging.destination.name": "orders",
+        "server.address": "pulsar-broker",
+        "server.port": 6650,
+      });
+    }
+
+    /*
+     * The same broker scraped by the collector's prometheus receiver, which
+     * stamps the target it scraped on the resource: its HTTP metrics port.
+     */
+    function pulsarBacklog(): Record<string, unknown> {
+      return queueMetricRow("pulsar_msg_backlog", {
+        topic: "persistent://public/default/orders",
+        "resource.server.address": "pulsar-broker",
+        "resource.server.port": "8080",
+      });
+    }
+
+    function run(): Promise<number> {
+      return discoverMessageQueuesForProject({
+        projectId: PROJECT_ID,
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+      });
+    }
+
+    test("stays the spans' when a broker scrape names its metrics endpoint, run after run", async () => {
+      arrange({ queueSpans: [pulsarSpans()], queueMetrics: [pulsarBacklog()] });
+      arrangeQueueRows([]);
+      const column: Map<string, string | null> = trackBrokerAddressColumn();
+      const row: string = queueRowId(PULSAR_QUEUE).toString();
+
+      // Run 1 creates the row, run 2 finds it: the sightings end on 6650.
+      for (const expectedLookups of [1, 2]) {
+        expect(await run()).toBe(1);
+        expect(queueLookups()).toHaveLength(expectedLookups);
+        expect(column.get(row)).toBe("pulsar-broker:6650");
+      }
+
+      expect(queueLookups()[0]!.allowCreate).toBe(true);
+      expect(queueLookups()[0]!.brokerAddress).toBe("pulsar-broker:6650");
+      expect(queueSightings()).toEqual([
+        [row, "traces", "pulsar-broker:6650", null],
+        [row, "broker-metrics", "pulsar-broker:6650", QUEUE_SEEN_AT_MS],
+        [row, "traces", "pulsar-broker:6650", null],
+        [row, "broker-metrics", "pulsar-broker:6650", QUEUE_SEEN_AT_MS],
+      ]);
+    });
+
+    test("is the application's client metrics' before a broker scrape's target", async () => {
+      arrange({
+        queueMetrics: [
+          queueMetricRow("messaging.client.sent.messages", {
+            "messaging.system": "pulsar",
+            "messaging.destination.name": "orders",
+            "server.address": "pulsar-broker",
+            "server.port": 6650,
+          }),
+          pulsarBacklog(),
+        ],
+      });
+      arrangeQueueRows([PULSAR_QUEUE]);
+      const column: Map<string, string | null> = trackBrokerAddressColumn();
+      const row: string = queueRowId(PULSAR_QUEUE).toString();
+
+      await run();
+
+      expect(queueSightings()).toEqual([
+        [row, "traces", "pulsar-broker:6650", null],
+        [row, "broker-metrics", "pulsar-broker:6650", QUEUE_SEEN_AT_MS],
+      ]);
+      expect(column.get(row)).toBe("pulsar-broker:6650");
+    });
+
+    test("is a broker scrape's target when the application named none", async () => {
+      arrange({
+        queueSpans: [
+          queueSpanRow(SpanKind.Producer, {
+            "messaging.system": "pulsar",
+            "messaging.destination.name": "orders",
+          }),
+        ],
+        queueMetrics: [pulsarBacklog()],
+      });
+      arrangeQueueRows([]);
+      const column: Map<string, string | null> = trackBrokerAddressColumn();
+      const row: string = queueRowId(PULSAR_QUEUE).toString();
+
+      await run();
+
+      expect(queueLookups()[0]!.brokerAddress).toBe("pulsar-broker:8080");
+      expect(queueSightings()).toEqual([
+        [row, "traces", "pulsar-broker:8080", null],
+        [row, "broker-metrics", "pulsar-broker:8080", QUEUE_SEEN_AT_MS],
+      ]);
+      expect(column.get(row)).toBe("pulsar-broker:8080");
+    });
+
+    test("is a broker scrape's target for a queue only its broker reports", async () => {
+      arrange({ queueMetrics: [pulsarBacklog()] });
+      arrangeQueueRows([]);
+      const column: Map<string, string | null> = trackBrokerAddressColumn();
+      const row: string = queueRowId(PULSAR_QUEUE).toString();
+
+      await run();
+
+      expect(queueLookups()[0]!.source).toBe("broker-metrics");
+      expect(queueLookups()[0]!.brokerAddress).toBe("pulsar-broker:8080");
+      expect(queueSightings()).toEqual([
+        [row, "broker-metrics", "pulsar-broker:8080", QUEUE_SEEN_AT_MS],
+      ]);
+      expect(column.get(row)).toBe("pulsar-broker:8080");
+    });
+
+    test("no evidence naming an address writes none", async () => {
+      arrange({ queueMetrics: [kafkaLag("orders")] });
+      arrangeQueueRows(["kafka||orders"]);
+      const column: Map<string, string | null> = trackBrokerAddressColumn();
+
+      await run();
+
+      expect(queueSightings()).toEqual([
+        [
+          queueRowId("kafka||orders").toString(),
+          "broker-metrics",
+          null,
+          QUEUE_SEEN_AT_MS,
+        ],
+      ]);
+      expect(column.has(queueRowId("kafka||orders").toString())).toBe(false);
+    });
+  });
+
+  test("JMS spans and the ActiveMQ JMX Scraper's metrics are ONE queue, recorded as ActiveMQ", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, {
+          "messaging.system": "jms",
+          "messaging.destination.name": "queue://orders",
+        }),
+      ],
+      queueMetrics: [
+        queueMetricRow("activemq.message.queue.size", {
+          "messaging.destination.name": "orders",
+          "activemq.destination.type": "queue",
+        }),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.identity).toEqual({
+      system: "jms",
+      brokerScope: "",
+      destination: "orders",
+    });
+    expect(queueLookups()[0]!.system).toBe("activemq");
+    expect(
+      queueSightings().map(
+        (entry: [string, string, string | null, number | null]): string => {
+          return entry[1];
+        },
+      ),
+    ).toEqual(["traces", "broker-metrics"]);
+  });
+
+  test("Service Bus spans reach the queue Azure Monitor's metrics name through their namespace", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, {
+          "messaging.system": "servicebus",
+          "messaging.destination.name": "orders",
+          "server.address": "orders-prod.servicebus.windows.net",
+        }),
+      ],
+      queueMetrics: [
+        queueMetricRow("azure_activemessages_average", {
+          type: "Microsoft.ServiceBus/Namespaces",
+          name: "orders-prod",
+          metadata_entityname: "orders",
+        }),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.identity).toEqual({
+      system: "servicebus",
+      brokerScope: "orders-prod",
+      destination: "orders",
+    });
+  });
+
+  test("messaging client metrics never create a queue", async () => {
+    arrange({
+      queueMetrics: [
+        queueMetricRow("messaging.client.sent.messages", KAFKA_ORDERS, 5000),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+    expect(messageQueueMock.recordSighting).not.toHaveBeenCalled();
+  });
+
+  test("messaging client metrics sight a queue that exists, as the application's evidence", async () => {
+    arrange({
+      queueMetrics: [
+        queueMetricRow("messaging.client.sent.messages", KAFKA_ORDERS, 5000),
+      ],
+    });
+    arrangeQueueRows(["kafka||orders"]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(queueLookups()).toHaveLength(1);
+    expect(queueLookups()[0]!.allowCreate).toBe(false);
+    expect(queueSightings()).toEqual([
+      [queueRowId("kafka||orders").toString(), "traces", "kafka-1:9092", null],
+    ]);
+  });
+
+  test("SERVER spans, temporary destinations and other telemetry never reach the services", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Server, KAFKA_ORDERS, 50),
+        queueSpanRow(
+          SpanKind.Consumer,
+          {
+            "messaging.system": "rabbitmq",
+            "messaging.destination.name": "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+          },
+          50,
+        ),
+        queueSpanRow(
+          SpanKind.Producer,
+          { ...KAFKA_ORDERS, "messaging.destination.temporary": "true" },
+          50,
+        ),
+        queueSpanRow(
+          SpanKind.Client,
+          {
+            "az.namespace": "Microsoft.Storage",
+            "server.address": "acct.blob.core.windows.net",
+          },
+          50,
+        ),
+        queueSpanRow(
+          SpanKind.Client,
+          { "http.request.method": "GET", "server.address": "api.example.com" },
+          50,
+        ),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(messageQueueMock.findBy).not.toHaveBeenCalled();
+    expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+    expect(messageQueueMock.recordSighting).not.toHaveBeenCalled();
+  });
+
+  test("a queue whose identifier cannot be built never reaches the services", async () => {
+    // 255 characters that lowercase to 510: ingest stamps no key on these.
+    arrange({
+      queueSpans: [
+        queueSpanRow(
+          SpanKind.Producer,
+          kafka(String.fromCharCode(0x130).repeat(255)),
+          100,
+        ),
+      ],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(messageQueueMock.findBy).not.toHaveBeenCalled();
+    expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+  });
+
+  test("which queues exist is read in ONE query for every queue of the window, scoped to the project", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, kafka("orders"), 1),
+        queueSpanRow(SpanKind.Producer, kafka("payments"), 1),
+        queueSpanRow(SpanKind.Consumer, kafka("refunds"), 1),
+      ],
+      queueMetrics: [kafkaLag("audit")],
+    });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(messageQueueMock.findBy).toHaveBeenCalledTimes(1);
+    const args: {
+      query: {
+        projectId: ObjectID;
+        queueIdentifier: { anyOf: Array<string> };
+      };
+      select: Record<string, boolean>;
+      props: { isRoot: boolean };
+    } = messageQueueMock.findBy.mock.calls[0]![0];
+    expect(args.query.projectId.toString()).toBe(PROJECT_ID);
+    expect(args.props.isRoot).toBe(true);
+    expect(args.select).toEqual({ queueIdentifier: true });
+    expect([...args.query.queueIdentifier.anyOf].sort()).toEqual([
+      "kafka||audit",
+      "kafka||orders",
+      "kafka||payments",
+      "kafka||refunds",
+    ]);
+    // Only the broker-reported queue may be created.
+    expect(
+      queueLookups().map((lookup: FindOrCreateQueueArgs): string => {
+        return lookup.destination;
+      }),
+    ).toEqual(["audit"]);
+  });
+
+  test("over the auto-create budget the service creates nothing: one refusal ends this run's creates, and the step adds no warning", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, kafka("orders"), 50),
+        queueSpanRow(SpanKind.Producer, kafka("payments"), 5),
+      ],
+      queueMetrics: [kafkaLag("audit", 1)],
+    });
+    // The default stand-in: no rows, and every create refused.
+
+    await computeDependenciesForProject(WINDOW);
+
+    // The busiest new queue asks, is refused, and nothing else is asked.
+    expect(
+      queueLookups().map((lookup: FindOrCreateQueueArgs) => {
+        return [lookup.destination, lookup.allowCreate];
+      }),
+    ).toEqual([["orders", true]]);
+    expect(messageQueueMock.recordSighting).not.toHaveBeenCalled();
+    // The service warns about its budget itself.
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  test("after a refused create, queues that have a row are still matched and sighted", async () => {
+    arrange({
+      queueSpans: [
+        queueSpanRow(SpanKind.Producer, kafka("orders"), 50),
+        queueSpanRow(SpanKind.Producer, kafka("payments"), 5),
+        queueSpanRow(SpanKind.Producer, kafka("refunds"), 4),
+      ],
+    });
+    arrangeQueueRows(["kafka||payments"]);
+    const standIn: (args: FindOrCreateQueueArgs) => Promise<unknown> =
+      messageQueueMock.findOrCreateByIdentity.getMockImplementation() as (
+        args: FindOrCreateQueueArgs,
+      ) => Promise<unknown>;
+    messageQueueMock.findOrCreateByIdentity.mockImplementation(
+      async (args: FindOrCreateQueueArgs) => {
+        // At the budget: every create is refused.
+        if (args.allowCreate) {
+          return { queue: null, created: false };
+        }
+        return standIn(args);
+      },
+    );
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(
+      queueLookups().map((lookup: FindOrCreateQueueArgs) => {
+        return [lookup.destination, lookup.allowCreate];
+      }),
+    ).toEqual([
+      ["orders", true],
+      ["payments", false],
+    ]);
+    expect(queueSightings()).toEqual([
+      [
+        queueRowId("kafka||payments").toString(),
+        "traces",
+        "kafka-1:9092",
+        null,
+      ],
+    ]);
+  });
+
+  test("a query at its row cap is logged as partially matched", async () => {
+    const spans: Array<unknown> = [];
+    for (let index: number = 0; index < MAX_MESSAGE_QUEUE_SPAN_ROWS; index++) {
+      spans.push(queueSpanRow(SpanKind.Producer, kafka(`topic-${index}`), 1));
+    }
+    const metrics: Array<unknown> = [];
+    for (
+      let index: number = 0;
+      index < MAX_MESSAGE_QUEUE_METRIC_ROWS;
+      index++
+    ) {
+      metrics.push(kafkaLag(`lagging-${index}`, 1));
+    }
+    arrange({ queueSpans: spans, queueMetrics: metrics });
+    arrangeQueueRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    /*
+     * Each says what the cap kept — every share's busiest groups and a
+     * sample that changes every run — never that the rest is simply lost.
+     */
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `at least ${MAX_MESSAGE_QUEUE_SPAN_ROWS} messaging span groups in the window; ${MAX_MESSAGE_QUEUE_SPAN_ROWS} were matched to queues this run (each messaging system's busiest and a sample of the rest that changes every run), the others are read on later runs`,
+      ),
+    );
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `at least ${MAX_MESSAGE_QUEUE_METRIC_ROWS} broker and messaging client metric groups in the window; ${MAX_MESSAGE_QUEUE_METRIC_ROWS} were matched to queues this run (each metric's busiest and a sample of the rest that changes every run), the others are read on later runs`,
+      ),
+    );
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalledWith(
+      expect.stringContaining("(the busiest)"),
+    );
+    // Every broker-reported queue the cap let through is still created.
+    expect(queueLookups()).toHaveLength(MAX_MESSAGE_QUEUE_METRIC_ROWS);
+  });
+
+  test("queries below their row cap log no warning", async () => {
+    arrange({
+      queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 5)],
+      queueMetrics: [kafkaLag("orders")],
+    });
+    arrangeQueueRows(["kafka||orders"]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalled();
+    expect(logger.error as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  describe("isolation", () => {
+    test("a failing span query is logged, and the broker metrics' queues are still matched and sighted", async () => {
+      arrange({
+        queueSpans: new Error("Memory limit exceeded (spans)"),
+        queueMetrics: [kafkaLag("orders")],
+      });
+      arrangeQueueRows([]);
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(logger.error as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("Memory limit exceeded (spans)"),
+      );
+      expect(queueSightings()).toEqual([
+        [
+          queueRowId("kafka||orders").toString(),
+          "broker-metrics",
+          null,
+          QUEUE_SEEN_AT_MS,
+        ],
+      ]);
+    });
+
+    test("a failing metric query is logged, and the spans' queues are still matched and sighted", async () => {
+      arrange({
+        queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS, 5)],
+        queueMetrics: new Error("Memory limit exceeded (metrics)"),
+      });
+      arrangeQueueRows([]);
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(logger.error as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("Memory limit exceeded (metrics)"),
+      );
+      expect(queueSightings()).toEqual([
+        [
+          queueRowId("kafka||orders").toString(),
+          "traces",
+          "kafka-1:9092",
+          null,
+        ],
+      ]);
+    });
+
+    test("one queue failing is logged, and the next is still sighted", async () => {
+      arrange({
+        queueSpans: [
+          queueSpanRow(SpanKind.Producer, kafka("orders"), 50),
+          queueSpanRow(SpanKind.Producer, kafka("payments"), 5),
+        ],
+      });
+      arrangeQueueRows(["kafka||payments"]);
+      const standIn: (args: FindOrCreateQueueArgs) => Promise<unknown> =
+        messageQueueMock.findOrCreateByIdentity.getMockImplementation() as (
+          args: FindOrCreateQueueArgs,
+        ) => Promise<unknown>;
+      messageQueueMock.findOrCreateByIdentity.mockImplementation(
+        async (args: FindOrCreateQueueArgs) => {
+          if (args.destination === "orders") {
+            throw new Error("insert raced badly");
+          }
+          return standIn(args);
+        },
+      );
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("kafka||orders"),
+      );
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("insert raced badly"),
+      );
+      expect(queueSightings()).toEqual([
+        [
+          queueRowId("kafka||payments").toString(),
+          "traces",
+          "kafka-1:9092",
+          null,
+        ],
+      ]);
+    });
+
+    test("a failing sighting is logged; the queue's other sighting and the next queue go on", async () => {
+      arrange({
+        queueSpans: [
+          queueSpanRow(SpanKind.Producer, kafka("orders"), 50),
+          queueSpanRow(SpanKind.Producer, kafka("payments"), 5),
+        ],
+        queueMetrics: [kafkaLag("orders", 100)],
+      });
+      arrangeQueueRows(["kafka||orders", "kafka||payments"]);
+      messageQueueMock.recordSighting
+        .mockRejectedValueOnce(new Error("heartbeat failed"))
+        .mockResolvedValue(undefined);
+
+      await expect(
+        discoverMessageQueuesForProject({
+          projectId: PROJECT_ID,
+          startSql: WINDOW.startSql,
+          endSql: WINDOW.endSql,
+        }),
+      ).resolves.toBe(2);
+
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("heartbeat failed"),
+      );
+      expect(
+        queueSightings().map(
+          (entry: [string, string, string | null, number | null]): string => {
+            return `${entry[0]} ${entry[1]}`;
+          },
+        ),
+      ).toEqual([
+        `${queueRowId("kafka||orders").toString()} traces`,
+        `${queueRowId("kafka||orders").toString()} broker-metrics`,
+        `${queueRowId("kafka||payments").toString()} traces`,
+      ]);
+    });
+
+    test("a failing lookup of the existing queues is logged and the step returns 0", async () => {
+      arrange({ queueSpans: [queueSpanRow(SpanKind.Producer, KAFKA_ORDERS)] });
+      messageQueueMock.findBy.mockRejectedValue(new Error("pool exhausted"));
+
+      await expect(
+        discoverMessageQueuesForProject({
+          projectId: PROJECT_ID,
+          startSql: WINDOW.startSql,
+          endSql: WINDOW.endSql,
+        }),
+      ).resolves.toBe(0);
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("pool exhausted"),
+      );
+      expect(messageQueueMock.findOrCreateByIdentity).not.toHaveBeenCalled();
+    });
+
+    test("never rejects, whatever fails underneath it", async () => {
+      spanMock.executeQuery.mockImplementation(() => {
+        throw new Error("synchronous client failure");
+      });
+      metricMock.executeQuery.mockImplementation(() => {
+        throw new Error("synchronous client failure");
+      });
+
+      await expect(
+        discoverMessageQueuesForProject({
+          projectId: PROJECT_ID,
+          startSql: WINDOW.startSql,
+          endSql: WINDOW.endSql,
+        }),
+      ).resolves.toBe(0);
+    });
+
+    test("a failing queue step never costs the project its edges or its databases", async () => {
+      arrange({
+        traced: [
+          {
+            callerServiceId: IDS["probe"],
+            calleeServiceId: IDS["api"],
+            callCount: 1,
+            errorCount: 0,
+            avgDurationNano: 1,
+          },
+        ],
+        databases: [databaseRow({})],
+        queueSpans: new Error("queue span scan failed"),
+        queueMetrics: new Error("queue metric scan failed"),
+      });
+      arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+      expect(relationshipMock.reconcileRelationships).toHaveBeenCalledTimes(1);
+      expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+      expect(logger.error as jest.Mock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("the cron runs the queue step for every project, including one only its brokers' metrics name", async () => {
+    arrange({
+      projects: [PROJECT_ID],
+      queueMetricProjects: [OTHER_PROJECT_ID, PROJECT_ID],
+      queueMetrics: [kafkaLag("orders")],
+    });
+    arrangeQueueRows([]);
+
+    await mockCapturedJobs[JOB_NAME]!();
+
+    const projectsQueried: Array<string> = sqlWith(
+      metricMock.executeQuery,
+      MESSAGE_QUEUE_METRIC_SQL_MARKER,
+    ).map((sql: string): string => {
+      return sql.match(/projectId = '([^']+)'/)![1]!;
+    });
+    expect(projectsQueried.sort()).toEqual(
+      [PROJECT_ID, OTHER_PROJECT_ID].sort(),
+    );
+    expect(
+      queueLookups()
+        .map((lookup: FindOrCreateQueueArgs): string => {
+          return lookup.projectId.toString();
+        })
+        .sort(),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT_ID].sort());
+
+    // The scan that found the second project reads the queue query's window.
+    const scan: Array<string> = sqlWith(
+      metricMock.executeQuery,
+      MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER,
+    );
+    expect(scan).toHaveLength(1);
+    expect(scan[0]).toContain("SELECT DISTINCT projectId");
+    expect(scan[0]).toContain("- INTERVAL 45 MINUTE");
+    // …and ends at the queue queries' own time limit.
+    expect(
+      scan[0]!.trim().endsWith(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS),
+    ).toBe(true);
+  });
+
+  test("a failing messaging metric project scan never stops the other projects", async () => {
+    arrange({ projects: [PROJECT_ID], queueMetrics: [kafkaLag("orders")] });
+    arrangeQueueRows([]);
+    const routed: (sql: string) => Promise<unknown> =
+      metricMock.executeQuery.getMockImplementation() as (
+        sql: string,
+      ) => Promise<unknown>;
+    metricMock.executeQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes(MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER)) {
+        throw new Error("metric scan timed out");
+      }
+      return routed(sql);
+    });
+
+    await mockCapturedJobs[JOB_NAME]!();
+
+    expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining("metric scan timed out"),
+    );
+    expect(
+      queueLookups().map((lookup: FindOrCreateQueueArgs): string => {
+        return lookup.projectId.toString();
+      }),
+    ).toEqual([PROJECT_ID]);
+  });
+});
+
+/*
  * ------------------------------------------------------------------
  * The client-span dependency query against a real ClickHouse server.
  *
@@ -2207,6 +3864,100 @@ const ESTATE_SPANS: Array<DependencySpanFixture> = [
   },
 ];
 
+/*
+ * The bug report, in a third project: the Redis pod's spans of the worker's
+ * connections, their two ends swapped by eBPF instrumentation (one
+ * ephemeral port per connection, more ports than a row keeps targets),
+ * beside the worker's real Redis calls and calls that only look like the
+ * swapped ones.
+ */
+const SWAPPED_PROJECT_ID: string = "6d7e8f90-a1b2-4c3d-8e4f-5a6b7c8d9e0f";
+const SWAPPED_REDIS_SERVICE: string = "55555555-5555-4555-8555-555555555555";
+const SWAPPED_WORKER_SERVICE: string = "66666666-6666-4666-8666-666666666666";
+
+const SWAPPED_SPANS: Array<DependencySpanFixture> = [
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-redis-master",
+      "server.port": "6379",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+    count: 3,
+  },
+  ...Array.from(
+    { length: 20 },
+    (_value: unknown, index: number): DependencySpanFixture => {
+      return {
+        projectId: SWAPPED_PROJECT_ID,
+        service: SWAPPED_REDIS_SERVICE,
+        attributes: {
+          "db.system.name": "redis",
+          "server.address": "oneuptime-worker",
+          "server.port": String(32775 + index * 1499),
+          ...callerPod("default", "gke-test-cluster"),
+        },
+      };
+    },
+  ),
+  // Legacy attribute names, the port padded with spaces.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system": "redis",
+      "net.peer.name": "oneuptime-worker",
+      "net.peer.port": " 46482 ",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+  },
+  // A call the Redis pod really made to the worker's host, on Redis's port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-worker",
+      "server.port": "6379",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+    count: 2,
+  },
+  // A client that got Db2's port: the query keeps it, the job does not.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-scheduler",
+      "server.port": "50000",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+  },
+  // Db2 on its default port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "db.system.name": "ibm.db2",
+      "server.address": "db2.example.com",
+      "server.port": "50000",
+    },
+  },
+  // Not a database call, on an ephemeral port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "server.address": "api.example.com",
+      "server.port": "46600",
+      "http.request.method": "GET",
+    },
+  },
+];
+
 // A span's entry of its row's dbTargets, as the TypeScript twin predicts it.
 function predictedTarget(attributes: Record<string, string>): string | null {
   const first: (keys: ReadonlyArray<string>) => string = (
@@ -2340,7 +4091,11 @@ clickhouseIntegration(
       ).substring(0, 10);
       const values: Array<JSONObject> = [];
       let index: number = 0;
-      for (const fixture of [...DEPENDENCY_SPANS, ...ESTATE_SPANS]) {
+      for (const fixture of [
+        ...DEPENDENCY_SPANS,
+        ...ESTATE_SPANS,
+        ...SWAPPED_SPANS,
+      ]) {
         for (let copy: number = 0; copy < (fixture.count || 1); copy++) {
           index++;
           const start: Date = new Date(now - 60 * 1000 - index * 10);
@@ -2648,6 +4403,63 @@ clickhouseIntegration(
       };
       expect(describedEndpoint(RDS_HOST)).toBe(`${RDS_HOST}:5432`);
       expect(describedEndpoint("redis")).toBe("");
+    });
+
+    test("a client's own socket: the swapped calls are left out, every other call is kept", async () => {
+      const rows: Array<ClientSpanDependencyRow> = await runQuery(
+        SWAPPED_PROJECT_ID,
+        1000,
+      );
+
+      const pod: (address: string, port: string) => string = (
+        address: string,
+        port: string,
+      ): string => {
+        return JSON.stringify([
+          [address, port, "", "default", "0", "gke-test-cluster"],
+        ]);
+      };
+      expect(
+        rows
+          .map((row: ClientSpanDependencyRow): string => {
+            return `${row.callerServiceId} ${row.dbSystem || "http"} ${row.serverAddress} ${Number(row.callCount)} ${JSON.stringify(row.dbTargets)}`;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          `${SWAPPED_WORKER_SERVICE} redis oneuptime-redis-master 3 ${pod("oneuptime-redis-master", "6379")}`,
+          `${SWAPPED_REDIS_SERVICE} redis oneuptime-worker 2 ${pod("oneuptime-worker", "6379")}`,
+          `${SWAPPED_REDIS_SERVICE} redis oneuptime-scheduler 1 ${pod("oneuptime-scheduler", "50000")}`,
+          `${SWAPPED_WORKER_SERVICE} ibm.db2 db2.example.com 1 ${JSON.stringify([["db2.example.com", "50000", "", "", "0", ""]])}`,
+          `${SWAPPED_WORKER_SERVICE} http api.example.com 1 []`,
+        ].sort(),
+      );
+
+      // …and the job draws a node for every one but the client on Db2's port.
+      const nodes: Array<string> = rows
+        .map((row: ClientSpanDependencyRow): DependencyTarget | null => {
+          return resolveClientSpanTarget(row, new Set<string>());
+        })
+        .filter((node: DependencyTarget | null): boolean => {
+          return (
+            node?.kind === "dependency" &&
+            node.entity.entityType === EntityType.Database
+          );
+        })
+        .map((node: DependencyTarget | null): string => {
+          const entity: InferredDependencyEntity = (
+            node as { entity: InferredDependencyEntity }
+          ).entity;
+          return `${entity.identifyingAttributes["server.address"]} ${entity.descriptiveAttributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]}`;
+        })
+        .sort();
+      expect(nodes).toEqual(
+        [
+          "db2.example.com db2.example.com:50000",
+          "oneuptime-redis-master oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+          "oneuptime-worker oneuptime-worker.default.svc.cluster.local:6379@gke-test-cluster",
+        ].sort(),
+      );
     });
   },
 );

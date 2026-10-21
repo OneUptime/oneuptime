@@ -113,6 +113,8 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         "EnterpriseLicense:SendLicenseNotificationEmails",
         "EnterpriseLicense:ReconcileInstanceUsage",
         "InstanceHealth:EvaluateRedisHealth",
+        // Registered by ee only where a marketplace is named.
+        "EnterpriseMarketplace:ReportUsage",
       ],
     });
   }, 180000);

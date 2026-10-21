@@ -7,7 +7,9 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import Response from "../../../Server/Utils/Response";
 import { AppVersion } from "../../../Server/EnvironmentConfig";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
-import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
+import EnterpriseFeature, {
+  parseEnterpriseFeature,
+} from "../../../Server/Enterprise/EnterpriseFeature";
 import {
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseStatus,
@@ -18,6 +20,7 @@ import Exception from "../../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import UserType from "../../../Types/UserType";
 import {
   NextFunction,
@@ -159,6 +162,7 @@ const PUBLIC_KEYS: Array<string> = [
   "isEvaluation",
   "isEvaluationLicense",
   "licenseValid",
+  "marketplace",
   "status",
   "verification",
 ].sort();
@@ -178,6 +182,7 @@ const MASTER_ADMIN_ONLY_KEYS: Array<string> = [
   "latestVersionCheckedAt",
   "latestVersionPublishedAt",
   "licenseKey",
+  "marketplaceBilling",
   "message",
   "seatsInUse",
   "seatsRemaining",
@@ -956,19 +961,46 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
     });
 
     /*
-     * A valid license that leaves SSO out stops SSO (isFeatureActive), and
+     * A valid license that leaves SCIM out stops SCIM (isFeatureActive), and
      * licenseValid alone cannot tell a settings page that.
      */
     it("lists the features of a license that names them, so a page can tell one is left out", () => {
       const body: JSONObject = buildPublic(
         createLicenseSnapshot({
-          features: [EnterpriseFeature.SCIM, EnterpriseFeature.AuditLogs],
+          features: [
+            EnterpriseFeature.AuditLogs,
+            EnterpriseFeature.TeamCompliance,
+          ],
         }),
       );
 
       expect(body["licenseValid"]).toBe(true);
-      expect(body["features"]).toEqual(["scim", "audit-logs"]);
-      expect(body["features"]).not.toContain(EnterpriseFeature.SSO);
+      expect(body["features"]).toEqual(["audit-logs", "team-compliance"]);
+      expect(body["features"]).not.toContain(EnterpriseFeature.SCIM);
+    });
+
+    /*
+     * Single sign-on is part of the Community Edition. A license issued with
+     * the retired "sso" claim still parses; the name is simply not a feature,
+     * so it never reaches the response.
+     */
+    it("never lists single sign-on, even for a license that carried the retired sso claim", () => {
+      const parsed: Array<EnterpriseFeature> = ["sso", "scim"]
+        .map((claim: string): EnterpriseFeature | null => {
+          return parseEnterpriseFeature(claim);
+        })
+        .filter(
+          (feature: EnterpriseFeature | null): feature is EnterpriseFeature => {
+            return feature !== null;
+          },
+        );
+
+      const body: JSONObject = buildPublic(
+        createLicenseSnapshot({ features: parsed }),
+      );
+
+      expect(body["features"]).toEqual(["scim"]);
+      expect(body["features"]).not.toContain("sso");
     });
 
     it("is an empty list when the license entitles nothing", () => {
@@ -986,7 +1018,7 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
 
     it("hands out a copy, never the snapshot's own list", () => {
       const snapshot: EnterpriseLicenseSnapshot = createLicenseSnapshot({
-        features: [EnterpriseFeature.SSO],
+        features: [EnterpriseFeature.SCIM],
       });
       const features: Array<string> = buildPublic(snapshot)[
         "features"
@@ -994,19 +1026,19 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
 
       features.push("mutated");
 
-      expect(snapshot.features).toEqual([EnterpriseFeature.SSO]);
+      expect(snapshot.features).toEqual([EnterpriseFeature.SCIM]);
     });
 
     it("is the same for a master admin", () => {
       const body: JSONObject = GlobalConfigAPI.buildLicenseResponse({
         audience: "master-admin",
         isEnterpriseEditionLoaded: true,
-        snapshot: createLicenseSnapshot({ features: [EnterpriseFeature.SSO] }),
+        snapshot: createLicenseSnapshot({ features: [EnterpriseFeature.SCIM] }),
         config: makeStoredConfig(),
         seatUsage: ENFORCED_SEAT_USAGE,
       });
 
-      expect(body["features"]).toEqual(["sso"]);
+      expect(body["features"]).toEqual(["scim"]);
     });
   });
 
@@ -1038,5 +1070,137 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
       seatsRemaining: 0,
       canAddMoreUsers: false,
     });
+  });
+});
+
+/*
+ * A self-hosted installation bought on a cloud marketplace is licensed by the
+ * marketplace, not by a key: everybody is told which marketplace (so no
+ * screen offers to renew a key nobody has), and master admins are shown how
+ * the hourly billing stands - never the bookkeeping behind it.
+ */
+describe("GlobalConfigAPI.buildLicenseResponse - a marketplace subscription", () => {
+  const STORED_BILLING: Record<string, unknown> = {
+    version: 1,
+    marketplace: "AWS",
+    observedHour: { start: "2026-10-17T10:00:00.000Z", maxUsers: 12 },
+    pendingReports: [
+      {
+        hourStart: "2026-10-17T09:00:00.000Z",
+        quantity: 12,
+        idempotencyKey: "ou-secret-bookkeeping-494769",
+        attempts: 1,
+        firstAttemptAt: "2026-10-17T10:00:10.000Z",
+        lastError: "ThrottlingException",
+      },
+    ],
+    carriedUserHours: 0,
+    lastAcceptedReport: {
+      hourStart: "2026-10-17T08:00:00.000Z",
+      quantity: 11,
+      reportId: "record-77",
+      acceptedAt: "2026-10-17T09:00:12.000Z",
+    },
+    verifiedAt: "2026-10-17T09:00:12.000Z",
+    refusedAt: null,
+    refusal: null,
+    lastProblem: "ThrottlingException: Rate exceeded",
+    lastProblemAt: "2026-10-17T10:00:10.000Z",
+    unbilledUserHours: 0,
+  };
+
+  const build: (
+    audience: "public" | "master-admin",
+    billing: unknown,
+    marketplace?: CloudMarketplace,
+  ) => JSONObject = (
+    audience: "public" | "master-admin",
+    billing: unknown,
+    marketplace?: CloudMarketplace,
+  ): JSONObject => {
+    return GlobalConfigAPI.buildLicenseResponse({
+      audience,
+      isEnterpriseEditionLoaded: true,
+      snapshot: createLicenseSnapshot({
+        companyName: undefined,
+        userLimit: null,
+        ...(marketplace ? { marketplace } : {}),
+      }),
+      config: makeStoredConfig({
+        enterpriseLicenseKey: undefined,
+        enterpriseLicenseToken: undefined,
+        enterpriseMarketplaceBilling: billing,
+      }),
+      seatUsage: null,
+    });
+  };
+
+  it("tells everybody which marketplace licenses the installation", () => {
+    const body: JSONObject = build(
+      "public",
+      STORED_BILLING,
+      CloudMarketplace.AWS,
+    );
+
+    expect(body["marketplace"]).toBe("AWS");
+    expect(body["licenseValid"]).toBe(true);
+    // Nobody but a master admin learns how billing stands.
+    expect(body["marketplaceBilling"]).toBeUndefined();
+  });
+
+  it("says no marketplace for a license key", () => {
+    expect(build("public", null)["marketplace"]).toBeNull();
+    expect(build("master-admin", null)["marketplace"]).toBeNull();
+  });
+
+  it("shows master admins the billing summary, without idempotency keys or per-report errors", () => {
+    const body: JSONObject = build(
+      "master-admin",
+      STORED_BILLING,
+      CloudMarketplace.AWS,
+    );
+
+    expect(body["marketplaceBilling"]).toEqual({
+      marketplace: "AWS",
+      verifiedAt: "2026-10-17T09:00:12.000Z",
+      refusedAt: null,
+      refusal: null,
+      lastAcceptedReport: {
+        hourStart: "2026-10-17T08:00:00.000Z",
+        quantity: 11,
+        reportId: "record-77",
+        acceptedAt: "2026-10-17T09:00:12.000Z",
+      },
+      pendingReportCount: 1,
+      pendingUserHours: 12,
+      lastProblem: "ThrottlingException: Rate exceeded",
+      lastProblemAt: "2026-10-17T10:00:10.000Z",
+    });
+    expect(JSON.stringify(body)).not.toContain("ou-secret-bookkeeping");
+  });
+
+  it("shows no billing for an installation that is not billed through a marketplace, or a record it cannot read", () => {
+    expect(build("master-admin", null)["marketplaceBilling"]).toBeNull();
+    expect(
+      build("master-admin", { version: 99, marketplace: "AWS" })[
+        "marketplaceBilling"
+      ],
+    ).toBeNull();
+    expect(build("master-admin", "junk")["marketplaceBilling"]).toBeNull();
+  });
+
+  it("never reads the billing record on the Community Edition", () => {
+    const body: JSONObject = GlobalConfigAPI.buildLicenseResponse({
+      audience: "master-admin",
+      isEnterpriseEditionLoaded: false,
+      snapshot: null,
+      config: makeStoredConfig({
+        enterpriseMarketplaceBilling: STORED_BILLING,
+      }),
+      seatUsage: null,
+    });
+
+    expect(body["marketplace"]).toBeNull();
+    expect(body["marketplaceBilling"]).toBeNull();
   });
 });

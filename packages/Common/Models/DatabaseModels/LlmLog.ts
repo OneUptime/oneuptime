@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -49,6 +50,24 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all the LLM API calls for AI features in this project.",
 })
+/*
+ * Today's AI Logs of one project. The project's daily AI limits sum them on
+ * every AI call (LlmLogService.getProjectUsageSince), the incident and alert
+ * daily token limits on every autonomous one (getTotalTokensUsedSince), and
+ * the AI Logs page lists them newest first; with "projectId" alone each of
+ * those read the project's whole AI Log history.
+ *
+ * Built online by migration 1798300000000-AddLlmLogProjectCreatedAtIndex,
+ * which carries the bounds and the runbook a generated migration cannot, and
+ * may leave a build that cannot finish to the operator. `synchronize: false`
+ * keeps the schema builder from dropping it or generating a second copy (see
+ * UnsynchronizedIndex).
+ */
+@Index(
+  "IDX_LLM_LOG_PROJECT_CREATED_AT",
+  ["projectId", "createdAt"],
+  UNSYNCHRONIZED_INDEX,
+)
 export default class LlmLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

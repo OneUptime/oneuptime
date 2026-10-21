@@ -1,3 +1,5 @@
+import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
@@ -21,8 +23,17 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ComplianceNotificationChannel from "../../Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @TableEditionAccessControl({
   requiresEnterprise: true,
@@ -60,7 +71,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/team-compliance-setting"))
-@Index(["teamId", "ruleType"], { unique: true })
+/*
+ * No unique (teamId, ruleType) index: one team can hold several rules of the
+ * same type - "Call for Critical incidents" and "Push for Critical incidents"
+ * are both HasIncidentOnCallRules. TeamComplianceSettingService rejects exact
+ * duplicates (same type, channels and severities) instead.
+ */
 @Entity({
   name: "TeamComplianceSetting",
 })
@@ -414,4 +430,174 @@ export default class TeamComplianceSetting extends BaseModel {
     nullable: true,
   })
   public options?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  /*
+   * Deprecated in favour of notificationChannels, and kept for everything
+   * that only knows this column: API clients written before a rule could
+   * require several channels, and a replica of an older build still running
+   * during an upgrade (or after a downgrade). TeamComplianceSettingService
+   * keeps it equal to the first of notificationChannels on every write, so
+   * such a build checks one of the rule's channels rather than "any
+   * channel"; a payload that sends only this column sets the list to that
+   * one channel; and a row whose list it disagrees with was last written by
+   * an older build, which is how the rule is then read
+   * (TeamComplianceSettingService.getStoredChannels).
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Notification Channel",
+    description:
+      "Deprecated: use notificationChannels. The first of the rule's notification channels, or empty when it accepts any channel. Sending this field without notificationChannels sets the rule to that one channel (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams or Webhook).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public notificationChannel?: ComplianceNotificationChannel = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Notification Channels",
+    description:
+      "On-call rules only: the channels members must be notified on, as a list - each member needs a rule on every one of them (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams or Webhook). Leave empty to accept any channel.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public notificationChannels?: Array<ComplianceNotificationChannel> =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IncidentSeverity,
+    title: "Incident Severities",
+    description:
+      "Incident and incident episode on-call rules only: the severities members must have a rule for. Leave empty to require every incident severity.",
+  })
+  @ManyToMany(
+    () => {
+      return IncidentSeverity;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "TeamComplianceSettingIncidentSeverity",
+    inverseJoinColumn: {
+      name: "incidentSeverityId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "teamComplianceSettingId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentSeverities?: Array<IncidentSeverity> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: AlertSeverity,
+    title: "Alert Severities",
+    description:
+      "Alert and alert episode on-call rules only: the severities members must have a rule for. Leave empty to require every alert severity.",
+  })
+  @ManyToMany(
+    () => {
+      return AlertSeverity;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "TeamComplianceSettingAlertSeverity",
+    inverseJoinColumn: {
+      name: "alertSeverityId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "teamComplianceSettingId",
+      referencedColumnName: "_id",
+    },
+  })
+  public alertSeverities?: Array<AlertSeverity> = undefined;
 }

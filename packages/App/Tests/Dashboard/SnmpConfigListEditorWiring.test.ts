@@ -483,9 +483,11 @@ describe("the editor caps the list at the shared ceiling", () => {
     expect(EDITOR).toContain(
       "disabled={configs.length >= MAX_SNMP_CONFIGS_PER_SCAN}",
     );
+    // A translated sentence, with the ceiling filled in from the constant.
     expect(EDITOR).toContain(
-      "`A scan can try at most ${MAX_SNMP_CONFIGS_PER_SCAN} SNMP configs.",
+      '"A scan can try at most {{max}} sets of credentials.',
     );
+    expect(EDITOR).toContain("{ max: MAX_SNMP_CONFIGS_PER_SCAN }");
   });
 
   /*
@@ -548,15 +550,17 @@ describe("the editor refuses to leave the scan with no credentials", () => {
   });
 });
 
-describe("the Add SNMP Config button", () => {
+describe("the Add more credentials button", () => {
   /*
-   * The literal string from the issue, and the one thing an operator looks for
-   * on the step. Pinned as text because it is also what the e2e and any manual
-   * reproduction of #3458 reach for.
+   * Issue #3458 called it "Add SNMP Config"; the step now says what the list
+   * is - "Credentials to try" - and the button says what it adds. The test id
+   * is what the e2e and any manual reproduction of #3458 reach for, so it
+   * keeps its old name.
    */
-  test('is titled "Add SNMP Config" and carries a stable test id', () => {
-    expect(EDITOR).toContain('<Button title="Add SNMP Config"');
+  test('is titled "Add more credentials" and carries a stable test id', () => {
+    expect(EDITOR).toContain('<Button title="Add more credentials"');
     expect(EDITOR).toContain('dataTestId="add-snmp-config"');
+    expect(EDITOR).not.toContain("Add SNMP Config");
   });
 
   test("appends a card rather than replacing the list", () => {

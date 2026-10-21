@@ -34,16 +34,32 @@ import WorkspaceReactionNote, {
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
 } from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import SavedChatMessage from "../../../../Types/Workspace/SavedChatMessage";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import URL from "../../../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import {
+  PrivateRecordLookup,
+  stubPrivateRecords,
+} from "../../TestingUtils/PrivateRecords";
 
 const projectId: ObjectID = ObjectID.generate();
 const otherProjectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 const CHANNEL_ID: string = "C0INCIDENT";
+
+// The member's own props, as the chat's authorization builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: userId,
+  tenantId: projectId,
+};
 
 type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
@@ -564,7 +580,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
         await WorkspaceReactionNote.saveNote({
           resource: resource,
           noteType: noteType,
-          userId: userId,
+          props: memberProps,
           note: "Restarted the database",
           sourceMessageKey: "C1:1.2",
         });
@@ -574,10 +590,11 @@ describe("WorkspaceReactionNote.saveNote", () => {
         [idKey]: resource.resourceId,
         postedFromSlackMessageId: "C1:1.2",
       });
+      // Saved with the member's own props: the note is theirs.
       expect(addSpy).toHaveBeenCalledWith({
         [idKey]: resource.resourceId,
         projectId: projectId,
-        userId: userId,
+        props: memberProps,
         note: "Restarted the database",
         postedFromSlackMessageId: "C1:1.2",
       });
@@ -598,7 +615,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
             projectId: projectId,
           },
           noteType: noteType,
-          userId: userId,
+          props: memberProps,
           note: "Restarted the database",
           sourceMessageKey: "C1:1.2",
         });
@@ -622,7 +639,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
           projectId: projectId,
         },
         noteType: WorkspaceNoteType.Public,
-        userId: userId,
+        props: memberProps,
         note: "x",
         sourceMessageKey: "C1:1.2",
       }),
@@ -778,62 +795,558 @@ describe("WorkspaceReactionNote.getResourceDisplay", () => {
 });
 
 describe("WorkspaceReactionNote.getConfirmationMessage", () => {
-  const slack: {
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  } = {
-    formatLink: (url: string, text: string): string => {
-      return `<${url}|${text}>`;
-    },
-    formatBold: (text: string): string => {
-      return `*${text}*`;
-    },
-  };
-
-  const teams: {
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  } = {
-    formatLink: (url: string, text: string): string => {
-      return `[${text}](${url})`;
-    },
-    formatBold: (text: string): string => {
-      return `**${text}**`;
-    },
-  };
-
-  test("Slack private note keeps the wording Slack users know", () => {
-    expect(
-      WorkspaceReactionNote.getConfirmationMessage({
-        noteType: WorkspaceNoteType.Private,
-        resourceLabel: "Incident #7",
-        resourceLink: "https://x/7",
-        ...slack,
-      }),
-    ).toBe("✅ Message saved as *private note* to <https://x/7|Incident #7>.");
-  });
-
-  test("Slack public note mentions the status page", () => {
-    expect(
-      WorkspaceReactionNote.getConfirmationMessage({
-        noteType: WorkspaceNoteType.Public,
-        resourceLabel: "Incident #7",
-        resourceLink: "https://x/7",
-        ...slack,
-      }),
-    ).toBe(
-      "✅ Message saved as *public note* to <https://x/7|Incident #7>. This note will be visible on the status page.",
-    );
-  });
-
-  test("Teams uses markdown links and bold", () => {
+  test("a private note's confirmation links the record by its label", () => {
     expect(
       WorkspaceReactionNote.getConfirmationMessage({
         noteType: WorkspaceNoteType.Private,
         resourceLabel: "Alert #3",
         resourceLink: "https://x/3",
-        ...teams,
+      }).toString(),
+    ).toBe("✅ Saved as a **private note** on [Alert #3](https://x/3).");
+  });
+
+  test("a public note's confirmation mentions the status page", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+      }).toString(),
+    ).toBe(
+      "✅ Saved as a **public note** on [Incident #7](https://x/7). It is shown on the status page.",
+    );
+  });
+
+  test("Slack posts the same confirmation as mrkdwn: bold, and the label in the link", () => {
+    const text: string = SlackUtil.slackify(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+      }).toString(),
+    ).trim();
+
+    expect(text).toContain("*private note*");
+    expect(text).toContain("<https://x/7|Incident #7>");
+  });
+
+  test("a label with Markdown in it is the link's text, never a link or styling of its own", () => {
+    const markdown: string = WorkspaceReactionNote.getConfirmationMessage({
+      noteType: WorkspaceNoteType.Private,
+      resourceLabel: "Incident **x** [docs](https://example.com) <!channel>",
+      resourceLink: "https://x/7",
+    }).toString();
+
+    expect(markdown).toContain("\\*\\*x\\*\\*");
+    expect(markdown).toContain("\\[docs\\]\\(https://example.com\\)");
+    expect(markdown).not.toContain("<!channel>");
+    expect(markdown.endsWith("](https://x/7).")).toBe(true);
+  });
+});
+
+describe("WorkspaceReactionNote.saveNote: whose message, posted when", () => {
+  const SAVED: SavedChatMessage = {
+    workspaceType: WorkspaceType.Slack,
+    authorName: "Aidil Rahman",
+    postedAt: "2026-10-08T10:17:00.000Z",
+  };
+
+  test.each(noteServiceCases)(
+    "$resourceType $noteType note keeps where it came from; a private one is filed when it was posted",
+    async ({ resourceType, noteType, service, idKey }: NoteServiceCase) => {
+      jest.spyOn(service, "hasNoteFromSlackMessage").mockResolvedValue(false);
+      const addSpy: AnySpy = jest
+        .spyOn(service, "addNote")
+        .mockResolvedValue(undefined) as AnySpy;
+      const resourceId: ObjectID = ObjectID.generate();
+
+      await WorkspaceReactionNote.saveNote({
+        resource: {
+          resourceType: resourceType,
+          resourceId: resourceId,
+          projectId: projectId,
+        },
+        noteType: noteType,
+        props: memberProps,
+        note: "Restarted the database",
+        sourceMessageKey: "C1:1.2",
+        savedFromChatMessage: SAVED,
+      });
+
+      const expected: Record<string, unknown> = {
+        [idKey]: resourceId,
+        projectId: projectId,
+        props: memberProps,
+        note: "Restarted the database",
+        postedFromSlackMessageId: "C1:1.2",
+        savedFromChatMessage: SAVED,
+      };
+
+      // A public note is published now: the status page's readers see it then.
+      if (noteType === WorkspaceNoteType.Private) {
+        expected["postedAt"] = new Date("2026-10-08T10:17:00.000Z");
+      }
+
+      expect(addSpy).toHaveBeenCalledTimes(1);
+      expect(addSpy.mock.calls[0]![0]).toEqual(expected);
+    },
+  );
+
+  test("two saves of one message at once: the second is a duplicate, and nothing is asked twice", async () => {
+    const claims: Set<string> = new Set<string>();
+    const claimSpy: AnySpy = jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockImplementation((async (namespace: string, key: string) => {
+        if (claims.has(`${namespace}:${key}`)) {
+          return false;
+        }
+        claims.add(`${namespace}:${key}`);
+        return true;
+      }) as never) as AnySpy;
+    const releaseSpy: AnySpy = jest
+      .spyOn(GlobalCache, "deleteKey")
+      .mockResolvedValue(undefined as never) as AnySpy;
+
+    let finishFirst: () => void = (): void => {};
+    const hasSpy: AnySpy = jest
+      .spyOn(IncidentInternalNoteService, "hasNoteFromSlackMessage")
+      .mockResolvedValue(false) as AnySpy;
+    const addSpy: AnySpy = jest
+      .spyOn(IncidentInternalNoteService, "addNote")
+      .mockImplementation((() => {
+        return new Promise<void>((resolve: () => void) => {
+          finishFirst = resolve;
+        });
+      }) as never) as AnySpy;
+
+    const resource: WorkspaceNoteResource = {
+      resourceType: WorkspaceNoteResourceType.Incident,
+      resourceId: ObjectID.generate(),
+      projectId: projectId,
+    };
+    const save: () => Promise<WorkspaceNoteSaveResult> =
+      (): Promise<WorkspaceNoteSaveResult> => {
+        return WorkspaceReactionNote.saveNote({
+          resource: resource,
+          noteType: WorkspaceNoteType.Private,
+          props: memberProps,
+          note: "Restarted the database",
+          sourceMessageKey: "C1:1.2",
+        });
+      };
+
+    // A pin and a 📌 on the same message, handled at the same moment.
+    const first: Promise<WorkspaceNoteSaveResult> = save();
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+    const second: WorkspaceNoteSaveResult = await save();
+
+    expect(second).toBe(WorkspaceNoteSaveResult.Duplicate);
+    expect(hasSpy).toHaveBeenCalledTimes(1);
+
+    finishFirst();
+    await expect(first).resolves.toBe(WorkspaceNoteSaveResult.Saved);
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(claimSpy.mock.calls[0]![0]).toBe("workspace-reaction-note-save");
+    expect(claimSpy.mock.calls[0]![1]).toBe(
+      `${resource.resourceId.toString()}:private:C1:1.2`,
+    );
+    // Once saved, the note itself says so: the claim is given back.
+    expect(releaseSpy).toHaveBeenCalledWith(
+      "workspace-reaction-note-save",
+      `${resource.resourceId.toString()}:private:C1:1.2`,
+    );
+  });
+
+  test("without the cache, the saved notes alone decide", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockRejectedValue(new Error("Redis client is not connected"));
+    const releaseSpy: AnySpy = jest.spyOn(GlobalCache, "deleteKey") as AnySpy;
+    jest
+      .spyOn(IncidentInternalNoteService, "hasNoteFromSlackMessage")
+      .mockResolvedValue(false);
+    const addSpy: AnySpy = jest
+      .spyOn(IncidentInternalNoteService, "addNote")
+      .mockResolvedValue(undefined as never) as AnySpy;
+
+    await expect(
+      WorkspaceReactionNote.saveNote({
+        resource: {
+          resourceType: WorkspaceNoteResourceType.Incident,
+          resourceId: ObjectID.generate(),
+          projectId: projectId,
+        },
+        noteType: WorkspaceNoteType.Private,
+        props: memberProps,
+        note: "x",
+        sourceMessageKey: "C1:1.2",
       }),
-    ).toBe("✅ Message saved as **private note** to [Alert #3](https://x/3).");
+    ).resolves.toBe(WorkspaceNoteSaveResult.Saved);
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failed save gives the claim back, so the next try can save it", async () => {
+    jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(true);
+    const releaseSpy: AnySpy = jest
+      .spyOn(GlobalCache, "deleteKey")
+      .mockResolvedValue(undefined as never) as AnySpy;
+    jest
+      .spyOn(IncidentInternalNoteService, "hasNoteFromSlackMessage")
+      .mockResolvedValue(false);
+    jest
+      .spyOn(IncidentInternalNoteService, "addNote")
+      .mockRejectedValue(new Error("database is down"));
+
+    await expect(
+      WorkspaceReactionNote.saveNote({
+        resource: {
+          resourceType: WorkspaceNoteResourceType.Incident,
+          resourceId: ObjectID.generate(),
+          projectId: projectId,
+        },
+        noteType: WorkspaceNoteType.Private,
+        props: memberProps,
+        note: "x",
+        sourceMessageKey: "C1:1.2",
+      }),
+    ).rejects.toThrow("database is down");
+
+    expect(releaseSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("WorkspaceReactionNote.getNotePostedAt", () => {
+  const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
+
+  test("a private note is filed when its message was posted, however long ago", () => {
+    expect(
+      WorkspaceReactionNote.getNotePostedAt({
+        noteType: WorkspaceNoteType.Private,
+        savedFromChatMessage: {
+          workspaceType: WorkspaceType.Slack,
+          postedAt: "2026-09-01T08:00:00.000Z",
+        },
+        now: NOW,
+      }),
+    ).toEqual(new Date("2026-09-01T08:00:00.000Z"));
+  });
+
+  test("never later than now, should the chat's clock be ahead", () => {
+    expect(
+      WorkspaceReactionNote.getNotePostedAt({
+        noteType: WorkspaceNoteType.Private,
+        savedFromChatMessage: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          postedAt: "2026-10-14T12:05:00.000Z",
+        },
+        now: NOW,
+      }),
+    ).toEqual(NOW);
+  });
+
+  test("a public note, or a message with no time, is the note service's own time", () => {
+    expect(
+      WorkspaceReactionNote.getNotePostedAt({
+        noteType: WorkspaceNoteType.Public,
+        savedFromChatMessage: {
+          workspaceType: WorkspaceType.Slack,
+          postedAt: "2026-09-01T08:00:00.000Z",
+        },
+        now: NOW,
+      }),
+    ).toBeUndefined();
+
+    for (const saved of [
+      undefined,
+      { workspaceType: WorkspaceType.Slack },
+      { workspaceType: WorkspaceType.Slack, postedAt: "not a time" },
+    ]) {
+      expect(
+        WorkspaceReactionNote.getNotePostedAt({
+          noteType: WorkspaceNoteType.Private,
+          savedFromChatMessage: saved as SavedChatMessage | undefined,
+          now: NOW,
+        }),
+      ).toBeUndefined();
+    }
+  });
+});
+
+describe("WorkspaceReactionNote: what a pin is told", () => {
+  /*
+   * The answer is not next to the message - Slack shows it at the foot of
+   * the channel, Teams at the end of the thread - so it names the message
+   * by what the person did, never "This message" (which would read as the
+   * answer itself).
+   */
+  test("nothing to save: no text, or only files for a public note", () => {
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Private,
+        hasAttachments: false,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The message you pinned has no text to save as a note.");
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Public,
+        hasAttachments: false,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The message you reacted to has no text to save as a note.");
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Public,
+        hasAttachments: true,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe(
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
+  });
+
+  test("in Microsoft Teams, where only a reaction saves a message, it is the message they reacted to", () => {
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Private,
+        hasAttachments: false,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("The message you reacted to has no text to save as a note.");
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Public,
+        hasAttachments: true,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe(
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
+  });
+
+  test("only a public note says it leaves files and images out", () => {
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Private,
+        hasAttachments: true,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The message you pinned has no text to save as a note.");
+  });
+
+  test("the confirmation as a notification's plain text", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationText({
+        noteType: WorkspaceNoteType.Private,
+        resourceLabel: "Incident #7",
+      }),
+    ).toBe("Saved as a private note on Incident #7");
+    expect(
+      WorkspaceReactionNote.getConfirmationText({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+      }),
+    ).toBe("Saved as a public note on Incident #7");
+  });
+
+  test("each record kind is the event a Connect button finishes, and back", () => {
+    for (const resourceType of Object.values(WorkspaceNoteResourceType)) {
+      expect(
+        WorkspaceReactionNote.getResourceType(
+          WorkspaceReactionNote.getEventType(resourceType),
+        ),
+      ).toBe(resourceType);
+    }
+
+    expect(
+      WorkspaceReactionNote.getEventType(
+        WorkspaceNoteResourceType.AlertEpisode,
+      ),
+    ).toBe(WorkspaceEventType.AlertEpisode);
+  });
+});
+
+/*
+ * A PRIVATE INCIDENT OR EPISODE TAKES NO PUBLIC NOTES.
+ *
+ * A 📣 on a message in a private incident's channel asks for a public note
+ * the incident cannot take (Types/StatusPage/PrivateRecordPublicNotes): it
+ * would reach no status page and no subscriber, and the server refuses one.
+ * The message is saved as a private note instead - nothing the person wrote
+ * is lost, and only the people who can see the incident read it - and the
+ * one confirmation in its thread says so.
+ */
+describe("WorkspaceReactionNote.getNoteTypeSavedAs", () => {
+  function resource(
+    resourceType: WorkspaceNoteResourceType,
+  ): WorkspaceNoteResource {
+    return {
+      resourceType: resourceType,
+      resourceId: ObjectID.generate(),
+      projectId: projectId,
+    };
+  }
+
+  test("a 📣 on a private incident saves a private note", async () => {
+    const incident: WorkspaceNoteResource = resource(
+      WorkspaceNoteResourceType.Incident,
+    );
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      incident.resourceId,
+    ]);
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: incident,
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Private);
+
+    // Asked about this incident, in its project.
+    expect(lookups).toEqual([
+      {
+        kind: PrivateRecordKind.Incident,
+        recordId: incident.resourceId.toString(),
+        projectId: projectId.toString(),
+      },
+    ]);
+  });
+
+  test("a 📣 on an incident that is not private saves a public note", async () => {
+    stubPrivateRecords();
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource(WorkspaceNoteResourceType.Incident),
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Public);
+  });
+
+  test("a private episode's public note is saved private too", async () => {
+    const episode: WorkspaceNoteResource = resource(
+      WorkspaceNoteResourceType.IncidentEpisode,
+    );
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      episode.resourceId,
+    ]);
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: episode,
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Private);
+    expect(lookups[0]!.kind).toBe(PrivateRecordKind.IncidentEpisode);
+  });
+
+  test("a pin is a private note, and nothing is asked", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords();
+
+    for (const resourceType of WorkspaceReactionNote.getAllResourceTypes()) {
+      await expect(
+        WorkspaceReactionNote.getNoteTypeSavedAs({
+          resource: resource(resourceType),
+          noteType: WorkspaceNoteType.Private,
+        }),
+      ).resolves.toBe(WorkspaceNoteType.Private);
+    }
+
+    expect(lookups).toEqual([]);
+  });
+
+  test("a scheduled maintenance event has no Private switch: a 📣 there is a public note, and nothing is asked", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords();
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource(WorkspaceNoteResourceType.ScheduledMaintenance),
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Public);
+    expect(lookups).toEqual([]);
+  });
+
+  test("the records that can be private are incidents and incident episodes", () => {
+    expect(
+      WorkspaceReactionNote.getAllResourceTypes().filter(
+        (resourceType: WorkspaceNoteResourceType): boolean => {
+          return (
+            WorkspaceReactionNote.getPrivateRecordKind(resourceType) !== null
+          );
+        },
+      ),
+    ).toEqual([
+      WorkspaceNoteResourceType.Incident,
+      WorkspaceNoteResourceType.IncidentEpisode,
+    ]);
+  });
+});
+
+describe("WorkspaceReactionNote.getConfirmationMessage, on a private incident", () => {
+  test("a 📣 saved as a private note says why, after the link", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).toBe(
+      "✅ Saved as a **private note** on [Incident INC-42](https://x/42). The incident is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("names an episode as an incident episode", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.IncidentEpisode,
+        resourceLabel: "Incident Episode #3",
+        resourceLink: "https://x/3",
+      }).toString(),
+    ).toContain(
+      "The incident episode is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("a pin's confirmation is as it always was", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Private,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).toBe(
+      "✅ Saved as a **private note** on [Incident INC-42](https://x/42).",
+    );
+  });
+
+  test("Slack posts it as mrkdwn: the reason is plain text after the link", () => {
+    const text: string = SlackUtil.slackify(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).trim();
+
+    expect(text).toContain("*private note*");
+    expect(text).toContain("<https://x/42|Incident INC-42>");
+    expect(text).toContain(
+      "The incident is private, so public notes cannot be added to it.",
+    );
+    expect(text).not.toContain("status page");
   });
 });

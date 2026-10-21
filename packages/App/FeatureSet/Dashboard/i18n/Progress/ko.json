@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "keys": 32062,
+    "untranslated": 16109
+  },
+  "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "AI / LLM",
+    "Gemini for Google Workspace",
+    "Grafana OnCall API URL",
+    "PR #{{number}}",
+    "Runner",
+    "Splunk On-Call API ID",
+    "VMware vCenter",
+    "kubectl set image deployment/web * -n web",
+    "syslog",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
+    "{{itemName}} ID"
+  ]
+}

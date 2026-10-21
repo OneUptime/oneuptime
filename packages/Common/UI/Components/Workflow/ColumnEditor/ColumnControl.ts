@@ -11,6 +11,11 @@
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { ModelSchemaColumn } from "../ModelSchema";
 import { ModelColumnControl } from "./ColumnRow";
+import { ColumnUse, canUseColumnFor, isSystemColumn } from "./ColumnUse";
+import {
+  translateText,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 
 /*
  * Spelled with the enum, never with string literals. The wire carries the
@@ -139,34 +144,31 @@ export type ColumnTypeLabelFunction = (
   column: ModelSchemaColumn | undefined,
 ) => string;
 
-/**
- * The one-word type shown under a field's name, so the builder can see what
- * kind of value is expected without opening the model's documentation.
- */
-export const columnTypeLabel: ColumnTypeLabelFunction = (
+// The type in English: the translation key columnTypeLabel looks up.
+const englishColumnTypeLabel: ColumnTypeLabelFunction = (
   column: ModelSchemaColumn | undefined,
 ): string => {
   if (!column) {
-    return "Unknown";
+    return translationKey("Unknown");
   }
 
   if (column.isRelation) {
-    return "Relation";
+    return translationKey("Relation");
   }
 
   switch (controlForColumn(column)) {
     case ModelColumnControl.Number:
-      return "Number";
+      return translationKey("Number");
     case ModelColumnControl.Boolean:
-      return "True or false";
+      return translationKey("True or false");
     case ModelColumnControl.Date:
-      return "Date and time";
+      return translationKey("Date and time");
     case ModelColumnControl.ObjectId:
-      return "ID";
+      return translationKey("ID");
     case ModelColumnControl.Color:
-      return "Color";
+      return translationKey("Color");
     case ModelColumnControl.LongText:
-      return "Long text";
+      return translationKey("Long text");
     case ModelColumnControl.Unsupported:
       /*
        * The raw column type is more use than the word "unsupported" here: it is
@@ -174,8 +176,21 @@ export const columnTypeLabel: ColumnTypeLabelFunction = (
        */
       return column.type;
     default:
-      return "Text";
+      return translationKey("Text");
   }
+};
+
+/**
+ * The one-word type shown under a field's name, so the builder can see what
+ * kind of value is expected without opening the model's documentation. In
+ * the reader's language; a raw column type is a name and stays as it is.
+ */
+export const columnTypeLabel: ColumnTypeLabelFunction = (
+  column: ModelSchemaColumn | undefined,
+): string => {
+  const label: string = englishColumnTypeLabel(column);
+
+  return translateText(label) ?? label;
 };
 
 export type LiteralFitsControlFunction = (
@@ -226,17 +241,22 @@ export const literalFitsControl: LiteralFitsControlFunction = (
   }
 };
 
-export type IsOfferableColumnFunction = (column: ModelSchemaColumn) => boolean;
+export type IsOfferableColumnFunction = (
+  column: ModelSchemaColumn,
+  use: ColumnUse,
+) => boolean;
 
 /**
- * Should this column appear in the "add a field" picker?
+ * Should this column appear in the "add a field" picker for this use?
  *
  * Note this only gates what is *offered*. A column already stored on the
- * argument always gets its row, tenant column and all, because hiding a value
- * that is really there is how an editor loses someone's work.
+ * argument always gets its row, tenant column and system column alike,
+ * because hiding a value that is really there is how an editor loses
+ * someone's work.
  */
 export const isOfferableColumn: IsOfferableColumnFunction = (
   column: ModelSchemaColumn,
+  use: ColumnUse,
 ): boolean => {
   if (column.isRelation) {
     return false;
@@ -251,5 +271,58 @@ export const isOfferableColumn: IsOfferableColumnFunction = (
     return false;
   }
 
+  // System columns on a write, create-only columns on an update, and so on.
+  if (!canUseColumnFor(column, use)) {
+    return false;
+  }
+
   return controlForColumn(column) !== ModelColumnControl.Unsupported;
+};
+
+export type JsonOnlyColumnsFunction = (
+  columns: Array<ModelSchemaColumn>,
+  use: ColumnUse,
+) => Array<ModelSchemaColumn>;
+
+/**
+ * Fields that belong in this list but cannot be a row: lists of related
+ * records, JSON blobs, monitor steps.
+ *
+ * The record form names them under itself so the builder is not left
+ * wondering where a column went. Left out are the fields that are not missing
+ * at all: the ones OneUptime fills in, the project, and a relation whose
+ * "... ID" column is offered instead - Current Incident State is set through
+ * Current Incident State ID, so naming it as "JSON only" was wrong, and so was
+ * naming Created by User, which nobody sets.
+ */
+export const jsonOnlyColumns: JsonOnlyColumnsFunction = (
+  columns: Array<ModelSchemaColumn>,
+  use: ColumnUse,
+): Array<ModelSchemaColumn> => {
+  return columns.filter((column: ModelSchemaColumn) => {
+    if (isOfferableColumn(column, use)) {
+      return false;
+    }
+
+    if (column.isTenantColumn || isSystemColumn(column)) {
+      return false;
+    }
+
+    if (!canUseColumnFor(column, use)) {
+      return false;
+    }
+
+    if (!column.isRelation) {
+      return true;
+    }
+
+    const scalarSiblingId: string = `${column.id}Id`;
+    const scalarSibling: ModelSchemaColumn | undefined = columns.find(
+      (candidate: ModelSchemaColumn) => {
+        return candidate.id === scalarSiblingId;
+      },
+    );
+
+    return !(scalarSibling && isOfferableColumn(scalarSibling, use));
+  });
 };

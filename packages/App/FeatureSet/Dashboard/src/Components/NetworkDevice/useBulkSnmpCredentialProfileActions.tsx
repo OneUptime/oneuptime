@@ -30,6 +30,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The bulk half of SNMP credential profiles.
@@ -63,13 +65,15 @@ type SetSnmpCredentialProfileFormData = {
   snmpCredentialProfileId: string;
 };
 
-export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Set SNMP Credential Profile";
+export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string = translationKey(
+  "Set SNMP Credential Profile",
+);
 
 export const CLEAR_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Clear SNMP Credential Profile";
+  translationKey("Clear SNMP Credential Profile");
 
 function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActionsResult {
+  const translator: Translator = useTranslator();
   const [profiles, setProfiles] = useState<Array<NetworkSnmpCredentialProfile>>(
     [],
   );
@@ -296,18 +300,23 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
     icon: IconProp.LinkSlash,
     isVisible: isProbePolledSelection,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Clear the SNMP Credential Profile on ${items.length} ${
-        items.length === 1 ? "device" : "devices"
-      }?`;
+      return translator.translatePlural(
+        {
+          one: "Clear the SNMP Credential Profile on {{count}} device?",
+          other: "Clear the SNMP Credential Profile on {{count}} devices?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
-      return `${
-        items.length === 1 ? "This device" : "These devices"
-      } will fall back to ${
-        items.length === 1 ? "its" : "their"
-      } own credentials, then to the profile on ${
-        items.length === 1 ? "its" : "their"
-      } site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.`;
+      return translator.translatePlural(
+        {
+          one: "This device will fall back to its own credentials, then to the profile on its site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+          other:
+            "These devices will fall back to their own credentials, then to the profile on their site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+        },
+        items.length,
+      );
     },
     onClick: async (
       actionProps: BulkActionOnClickProps<NetworkDevice>,
@@ -363,12 +372,14 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
             onClose={closeSetModal}
             closeButtonText="Close"
           >
-            <p className="text-sm text-gray-500">No device has been changed.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No device has been changed.")}
+            </p>
           </Modal>
         ) : hasNoProfiles ? (
           <Modal
             title="No SNMP Credential Profiles Yet"
-            description="An SNMP Credential Profile is one named credential set — a community string, or a v3 user with its keys — shared by every device and site that picks it. Create one first, then come back and attach these devices to it."
+            description="An SNMP Credential Profile is a saved set of credentials. Create one first, then attach these devices to it."
             onClose={closeSetModal}
             closeButtonText="Close"
           >
@@ -376,13 +387,14 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
               to={profilesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Create an SNMP Credential Profile
+              {translator.translateText("Create an SNMP Credential Profile") ||
+                ""}
             </AppLink>
           </Modal>
         ) : (
           <BasicFormModal<SetSnmpCredentialProfileFormData>
             title={SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE}
-            description="Every selected device is walked with this profile's credentials on its next poll. A device that carries its own SNMP credentials keeps using them — its own credentials win over the profile — and a monitor-backed device is not polled at all, so the profile has no effect on it."
+            description="From their next poll these devices use the profile, unless they have their own SNMP credentials. Monitor-backed devices are not polled."
             isLoading={isLoadingProfiles}
             onClose={closeSetModal}
             submitButtonText="Set Profile"

@@ -1,5 +1,9 @@
 import API from "../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -35,6 +39,12 @@ import React, {
  * or deleted — is still shown, flagged. The mapping has quietly stopped
  * resolving at that point, and the settings page is the only place anyone
  * would find out.
+ *
+ * A NEW mapped field turns this around (offerEveryType): the field does not
+ * have a type yet, it takes the type - and a dropdown's options - of the
+ * field it copies. So every field of the source is offered, each with its
+ * type under its name, and the one picked says which type the new field
+ * will be.
  */
 
 export interface ComponentProps {
@@ -45,11 +55,34 @@ export interface ComponentProps {
   sourceTitle: string;
   /** The type this field holds; only same-typed sources can be mapped. */
   targetFieldType?: CustomFieldType | undefined;
+  /*
+   * For a field that is being created as a copy: offer every field of the
+   * source, whatever its type, because the new field takes the type of the
+   * one picked. targetFieldType is then ignored.
+   */
+  offerEveryType?: boolean | undefined;
+  /*
+   * A type's name as the settings pages name it ("Dropdown (single
+   * select)"), in English - it is translated here. Shown under each field
+   * when every type is offered, and for the picked one.
+   */
+  describeFieldType?:
+    | ((type: CustomFieldType | undefined) => string | undefined)
+    | undefined;
+  // The picker's placeholder, translated here.
+  placeholder?: string | undefined;
+  /*
+   * What to say when every type is offered and the source has no custom
+   * fields at all, translated here.
+   */
+  noSourceFieldsMessage?: string | undefined;
   initialValue?: string | undefined;
   onChange?: ((value: string) => void) | undefined;
   onBlur?: (() => void) | undefined;
   error?: string | undefined;
   tabIndex?: number | undefined;
+  // The form field's label, which names the picker.
+  ariaLabelledby?: string | undefined;
 }
 
 interface SourceField {
@@ -60,6 +93,8 @@ interface SourceField {
 const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [sourceFields, setSourceFields] = useState<Array<SourceField>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -137,6 +172,11 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
         return false;
       }
 
+      // A new field takes the type of the one it copies: any will do.
+      if (props.offerEveryType) {
+        return true;
+      }
+
       /*
        * With no type chosen yet there is nothing to be compatible with, so
        * offer nothing rather than a list that will be rejected on save.
@@ -148,7 +188,18 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
       return field.customFieldType === props.targetFieldType;
     })
     .map((field: SourceField): DropdownOption => {
-      return { label: field.name, value: field.name };
+      const option: DropdownOption = { label: field.name, value: field.name };
+
+      const typeLabel: string | undefined = props.offerEveryType
+        ? props.describeFieldType?.(field.customFieldType)
+        : undefined;
+
+      // The Dropdown translates an option's description itself.
+      if (typeLabel) {
+        option.description = typeLabel;
+      }
+
+      return option;
     });
 
   const isSelectedValueOffered: boolean = options.some(
@@ -159,7 +210,13 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
 
   if (selectedValue && !isSelectedValueOffered) {
     options.unshift({
-      label: `${selectedValue} (no longer available on ${props.sourceTitle})`,
+      label: translator.translateTemplate(
+        "{{value}} (no longer available on {{source}})",
+        {
+          value: String(selectedValue),
+          source: translatableTerm(props.sourceTitle),
+        },
+      ),
       value: selectedValue,
     });
   }
@@ -172,7 +229,21 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={loadError} />;
   }
 
-  if (!props.targetFieldType) {
+  if (props.offerEveryType && options.length === 0) {
+    return (
+      <ErrorMessage
+        message={
+          props.noSourceFieldsMessage ||
+          translator.translateTemplate(
+            "No {{source}} custom field exists in this project yet. Create one first.",
+            { source: translatableTerm(props.sourceTitle) },
+          )
+        }
+      />
+    );
+  }
+
+  if (!props.offerEveryType && !props.targetFieldType) {
     return (
       <ErrorMessage message="Choose a field type above before picking the field to map from." />
     );
@@ -181,35 +252,76 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
   if (options.length === 0) {
     return (
       <ErrorMessage
-        message={`No ${props.sourceTitle} custom field of this type exists in this project. Create one first, or choose a different field type.`}
+        message={translator.translateTemplate(
+          "No {{source}} custom field of this type exists in this project. Create one first, or choose a different field type.",
+          { source: translatableTerm(props.sourceTitle) },
+        )}
       />
     );
   }
 
+  /*
+   * The type the new field will have: the picked field's. Said under the
+   * picker, because the menu's line under each name is gone once one is
+   * picked.
+   */
+  const selectedField: SourceField | undefined = props.offerEveryType
+    ? sourceFields.find((field: SourceField) => {
+        return field.name === selectedValue;
+      })
+    : undefined;
+
+  const selectedTypeLabel: string | undefined = selectedField
+    ? props.describeFieldType?.(selectedField.customFieldType)
+    : undefined;
+
+  const placeholder: string =
+    props.placeholder || `Select a ${props.sourceTitle} custom field`;
+
   return (
-    <Dropdown
-      options={options}
-      value={options.find((option: DropdownOption) => {
-        return option.value === selectedValue;
-      })}
-      tabIndex={props.tabIndex}
-      error={props.error}
-      placeholder={`Select a ${props.sourceTitle} custom field`}
-      onBlur={() => {
-        if (props.onBlur) {
-          props.onBlur();
-        }
-      }}
-      onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-        const nextValue: string = value ? value.toString() : "";
+    <div>
+      <Dropdown
+        options={options}
+        value={options.find((option: DropdownOption) => {
+          return option.value === selectedValue;
+        })}
+        tabIndex={props.tabIndex}
+        error={props.error}
+        placeholder={placeholder}
+        ariaLabelledby={props.ariaLabelledby}
+        onBlur={() => {
+          if (props.onBlur) {
+            props.onBlur();
+          }
+        }}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          const nextValue: string = value ? value.toString() : "";
 
-        setSelectedValue(nextValue);
+          setSelectedValue(nextValue);
 
-        if (props.onChange) {
-          props.onChange(nextValue);
-        }
-      }}
-    />
+          if (props.onChange) {
+            props.onChange(nextValue);
+          }
+        }}
+      />
+      {selectedTypeLabel && (
+        <p
+          className="mt-2 text-sm text-gray-500"
+          data-testid="map-from-selected-field-type"
+        >
+          <TranslatedSentence
+            template="Field Type: {{type}}"
+            slots={{
+              type: (
+                <span className="font-medium text-gray-700">
+                  {translateString(selectedTypeLabel) ?? selectedTypeLabel}
+                </span>
+              ),
+            }}
+          />
+        </p>
+      )}
+    </div>
   );
 };
 

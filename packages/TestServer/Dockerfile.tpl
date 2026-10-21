@@ -112,7 +112,8 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 # above). Without this, ts-node/register redoes it on every container start.
 # See App/Dockerfile.tpl for the full rationale.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm, so node
+# is the container's only Node.js process. See App/Dockerfile.tpl for why.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts" ]
 {{ end }}
 

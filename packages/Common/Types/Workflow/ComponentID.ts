@@ -1,10 +1,15 @@
 enum ComponentID {
   Webhook = "webhook",
+  IncomingEmail = "incoming-email",
+  // Huntress incident reports, as signed webhooks (Components/Huntress).
+  HuntressIncidentReport = "huntress-incident-report",
   Log = "log",
   SlackSendMessageToChannel = "slack-send-message-to-channel",
   MicrosoftTeamsSendMessageToChannel = "microsoft-teams-send-message-to-channel",
   DiscordSendMessageToChannel = "discord-send-message-to-channel",
   TelegramSendMessageToChat = "telegram-send-message-to-chat",
+  IRCSendMessageToChannel = "irc-send-message-to-channel",
+  MattermostSendMessageToChannel = "mattermost-send-message-to-channel",
   Schedule = "schedule",
   JavaScriptCode = "javascript",
   Manual = "manual",
@@ -18,9 +23,15 @@ enum ComponentID {
   ApiPatch = "api-patch",
   SendEmail = "send-email",
   IfElse = "if-else",
+  Switch = "switch",
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
   AIGenerateText = "ai-generate-text",
+  // The Page steps (Components/OnCall).
+  PageUsers = "page-users",
+  PageTeam = "page-team",
+  PageOnCall = "page-on-call",
+  PageOnCallPolicy = "page-on-call-policy",
 }
 
 export default ComponentID;

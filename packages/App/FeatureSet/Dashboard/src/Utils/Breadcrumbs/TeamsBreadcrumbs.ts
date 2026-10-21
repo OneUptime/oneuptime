@@ -11,6 +11,17 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "Teams",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_ROLES, [
+      "Project",
+      "Teams",
+      "Roles",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_ROLE_VIEW, [
+      "Project",
+      "Teams",
+      "Roles",
+      "View Role",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW, [
       "Project",
       "Teams",
@@ -27,12 +38,6 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "Teams",
       "View Team",
       "Permissions",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_BLOCK_PERMISSIONS, [
-      "Project",
-      "Teams",
-      "View Team",
-      "Block Permissions",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_COMPLIANCE, [
       "Project",

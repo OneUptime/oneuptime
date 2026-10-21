@@ -1,6 +1,7 @@
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
 import ChannelVerification from "../../../Server/Utils/ChannelVerification";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
 import {
   NextFunction,
@@ -9,11 +10,12 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
-import { beforeAll, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import UserIncomingCallNumber from "../../../Models/DatabaseModels/UserIncomingCallNumber";
+import { VerificationCodeState } from "../../../Types/UserNotification/VerificationCodeStatus";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -56,6 +58,9 @@ describe("UserIncomingCallNumberAPI", () => {
   let mockResponse: OneUptimeResponse;
   let nextFunction: NextFunction;
 
+  // Whether the number's owner is a member of its project (ProjectMembership).
+  let isMember: jest.SpyInstance;
+
   beforeAll(() => {
     // Registers the routes on the mock router exactly once.
     new UserIncomingCallNumberAPI();
@@ -86,6 +91,15 @@ describe("UserIncomingCallNumberAPI", () => {
     UserIncomingCallNumberService.resendVerificationCode = jest
       .fn()
       .mockResolvedValue(undefined);
+
+    // The number's owner is a member of its project, as in the dashboard.
+    isMember = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true as never);
+  });
+
+  afterEach(() => {
+    isMember.mockRestore();
   });
 
   type CallRouteFunction = (uri: string) => Promise<void>;
@@ -168,6 +182,48 @@ describe("UserIncomingCallNumberAPI", () => {
         UserIncomingCallNumberService.findOneById = jest
           .fn()
           .mockResolvedValue(itemOwnedBy(CALLER_USER_ID));
+
+        await callRoute(RESEND_ROUTE);
+
+        expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          new BadDataException("Invalid user ID"),
+        );
+        expect(
+          UserIncomingCallNumberService.resendVerificationCode,
+        ).not.toHaveBeenCalled();
+      });
+
+      it("should not read the item for a request whose session names no person", async () => {
+        mockRequest.body = { itemId: ITEM_ID };
+        authenticateAs(undefined);
+        UserIncomingCallNumberService.findOneById = jest
+          .fn()
+          .mockResolvedValue(itemOwnedBy(undefined));
+
+        await callRoute(RESEND_ROUTE);
+
+        expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          new BadDataException("Invalid user ID"),
+        );
+        // An ownerless row and a nameless session are never compared.
+        expect(
+          UserIncomingCallNumberService.findOneById,
+        ).not.toHaveBeenCalled();
+        expect(
+          UserIncomingCallNumberService.resendVerificationCode,
+        ).not.toHaveBeenCalled();
+      });
+
+      it("should reject an item that has no owner", async () => {
+        mockRequest.body = { itemId: ITEM_ID };
+        authenticateAs(CALLER_USER_ID);
+        UserIncomingCallNumberService.findOneById = jest
+          .fn()
+          .mockResolvedValue(itemOwnedBy(undefined));
 
         await callRoute(RESEND_ROUTE);
 
@@ -283,15 +339,30 @@ describe("UserIncomingCallNumberAPI", () => {
       UserIncomingCallNumberService.findOneById = jest
         .fn()
         .mockResolvedValue(itemOwnedBy(CALLER_USER_ID));
+      UserIncomingCallNumberService.getVerificationStatus = jest
+        .fn()
+        .mockResolvedValue({
+          isVerified: false,
+          codeState: VerificationCodeState.Active,
+          codeSentAt: null,
+          codeExpiresAt: null,
+          resendAvailableInSeconds: 60,
+          cannotSendReason: null,
+        }) as never;
 
       await callRoute(RESEND_ROUTE);
 
       expect(
         UserIncomingCallNumberService.resendVerificationCode,
       ).toHaveBeenCalledWith(ITEM_ID);
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+      // Answered with where the new code stands, for the verify dialog.
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
+        expect.objectContaining({
+          codeState: "active",
+          resendAvailableInSeconds: 60,
+        }),
       );
     });
 
@@ -417,6 +488,35 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(
         UserIncomingCallNumberService.updateOneById,
       ).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The person's own number, in a project they are not a member of (any
+     * more): the right code verifies nothing, and the answer is the one a
+     * number that does not exist gets.
+     */
+    it("should answer an owner who is not a member of the number's project as if it did not exist", async () => {
+      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+      authenticateAs(CALLER_USER_ID);
+      UserIncomingCallNumberService.findOneById = jest
+        .fn()
+        .mockResolvedValue(liveItemOwnedBy(CALLER_USER_ID));
+      isMember.mockResolvedValue(false as never);
+
+      await callRoute(VERIFY_ROUTE);
+
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        new BadDataException("Item not found"),
+      );
+      expect(
+        UserIncomingCallNumberService.updateOneById,
+      ).not.toHaveBeenCalled();
+      expect(
+        UserIncomingCallNumberService.atomicIncrementColumnValueByOneAndGetValue,
+      ).not.toHaveBeenCalled();
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });
 
     it("should reject an incorrect verification code", async () => {

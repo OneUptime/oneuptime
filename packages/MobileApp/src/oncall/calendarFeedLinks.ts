@@ -22,7 +22,11 @@ const ABSOLUTE_URL_PATTERN: RegExp =
 
 const TRAILING_SLASHES_PATTERN: RegExp = /\/+$/;
 
-const HTTPS_SCHEME_PATTERN: RegExp = /^https:\/\//i;
+/* http://, https://, webcal:// or webcals://, in any letter case. */
+const FEED_SCHEME_PATTERN: RegExp = /^(?:https?|webcals?):\/\//i;
+
+const GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX: string =
+  "https://calendar.google.com/calendar/r?cid=";
 
 /*
  * The route prefix every feed URL contains. It is the seam between "how this
@@ -63,7 +67,7 @@ export interface FeedLinks {
   /* The https link built for THIS device's server address. */
   https: string;
 
-  /* The same link on the webcal(s) scheme, for Apple Calendar and Outlook. */
+  /* The same link on the webcal:// scheme, for Apple Calendar and Outlook. */
   webcal: string;
 
   /* Google Calendar's "add by URL" deep link; browser only. */
@@ -79,17 +83,25 @@ export interface FeedLinks {
   serverHost: string | null;
 }
 
+/*
+ * The webcal:// form of a feed link: what iOS hands to the Calendar app's
+ * "Subscribe" sheet. Always webcal://, never webcals:// - iOS does not open
+ * webcals:// at all ("the address is invalid"), and Calendar fetches a
+ * webcal:// address over https when the server serves https. The same rule
+ * as the server and the dashboard (Common CalendarSubscriptionLinks).
+ */
 export function toWebcalUrl(httpsUrl: string): string {
-  const scheme: string = HTTPS_SCHEME_PATTERN.test(httpsUrl)
-    ? "webcals"
-    : "webcal";
-
-  return httpsUrl.replace(/^https?:\/\//i, `${scheme}://`);
+  return httpsUrl.replace(FEED_SCHEME_PATTERN, "webcal://");
 }
 
+/*
+ * Google Calendar's add-by-URL link. Its cid takes the webcal:// address,
+ * percent-encoded whole: given the https:// address Google answers "Unable
+ * to add calendar. Check the URL."
+ */
 export function toGoogleAddUrl(httpsUrl: string): string {
-  return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
-    httpsUrl,
+  return `${GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX}${encodeURIComponent(
+    toWebcalUrl(httpsUrl),
   )}`;
 }
 

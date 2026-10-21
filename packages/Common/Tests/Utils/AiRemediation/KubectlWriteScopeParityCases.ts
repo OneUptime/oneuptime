@@ -51,7 +51,7 @@ export const PARITY_CLUSTER_IDENTIFIER: string = "prod-us";
 
 /*
  * The Runner a credential row describes: one created under Project
- * Settings → Runners, which the Kubernetes credential is assigned to.
+ * Runbooks → Runners, which the Kubernetes credential is assigned to.
  */
 export const PARITY_CREDENTIAL_RUNNER_NAME: string = "platform-ops-runner";
 

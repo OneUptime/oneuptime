@@ -1,38 +1,56 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import StatusPageService from "./StatusPageService";
 import Dictionary from "../../Types/Dictionary";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
 import Recurring from "../../Types/Events/Recurring";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The monitor status to switch to and every list a template carries are
+   * checked by this service's own hooks below, with
+   * ProjectScopedReferenceValidator and its own words.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   public validateEventTemplate(template: Model): void {
@@ -124,6 +142,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: ScheduledMaintenanceTemplateOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceTemplateOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceTemplateId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     this.validateEventTemplate(createBy.data);
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -144,6 +175,13 @@ export class Service extends DatabaseService<Model> {
         dateAndTime: createBy.data.firstEventScheduledAt!,
         recurringInterval: createBy.data.recurringInterval!,
       });
+    } else {
+      /*
+       * A template that does not recur has no next event (see
+       * onBeforeUpdate): a time sent with one, through the API or a
+       * workflow, is not kept.
+       */
+      delete createBy.data.scheduleNextEventAt;
     }
 
     return {
@@ -156,26 +194,32 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const newTemplate: QueryDeepPartialEntity<Model> = updateBy.data;
 
-    const existingTemplates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingTemplates: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         isRecurringEvent: true,
         firstEventScheduledAt: true,
         recurringInterval: true,
         firstEventEndsAt: true,
         firstEventStartsAt: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+        scheduleNextEventAt: true,
+      });
+
+    // Whether any template the update writes still recurs once it is written.
+    let anyTemplateRecurs: boolean = false;
+
+    // Whether any of them holds a next time now.
+    let anyTemplateHoldsANextTime: boolean = false;
 
     for (const template of existingTemplates) {
+      if (template.scheduleNextEventAt) {
+        anyTemplateHoldsANextTime = true;
+      }
+
       let isRecurring: boolean = Boolean(template.isRecurringEvent);
 
       if (Object.keys(newTemplate).includes("isRecurringEvent")) {
@@ -208,6 +252,8 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (isRecurring) {
+        anyTemplateRecurs = true;
+
         // make sure all are not null.
 
         if (!firstEventScheduledAt) {
@@ -276,6 +322,30 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * A template that does not recur has no next event. Turned off, a
+     * template used to keep the time its next event was due, and the
+     * templates list went on saying "Next event will be scheduled at ..."
+     * although the job (ScheduleRecurringEvents) creates events from
+     * recurring templates only. So an update that leaves none of the
+     * templates it writes recurring clears that time - from the Dashboard,
+     * the API, Terraform or a workflow alike - when there is one to clear:
+     * one a template holds, or one the update itself writes. An edit of a
+     * template that holds none writes nothing more than it was sent. The
+     * schedule itself stays (the first event's times and the interval):
+     * turned back on, the template is given its next time again above, the
+     * schedule's next time after now. Rows already stored with the switch
+     * off and a time were cleared by the
+     * ClearNextEventOfTemplatesThatDoNotRecur migration.
+     */
+    const writesANextTime: boolean = Object.keys(newTemplate).includes(
+      "scheduleNextEventAt",
+    );
+
+    if (!anyTemplateRecurs && (anyTemplateHoldsANextTime || writesANextTime)) {
+      newTemplate.scheduleNextEventAt = null;
+    }
+
     updateBy.data = newTemplate;
 
     await this.validateProjectScopedReferences(updateBy);
@@ -323,19 +393,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each template the query actually matches.
+     * The project of every template the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * template's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -386,44 +457,21 @@ export class Service extends DatabaseService<Model> {
     ];
   }
 
+  /*
+   * By both of the relation's names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked, and the two must agree.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
-    return [
-      {
-        modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
-        service: MonitorStatusService,
-      },
-    ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+    return getWrittenRelationReferences({
+      payload: data,
+      idColumn: "changeMonitorStatusToId",
+      relation: "changeMonitorStatusTo",
+      modelName: "Monitor Status",
+      service: MonitorStatusService,
     });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const template of templates) {
-      if (template.projectId) {
-        projectIds[template.projectId.toString()] = template.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -448,6 +496,7 @@ export class Service extends DatabaseService<Model> {
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         onCreate.createBy.props,
+        true,
       );
     }
 
@@ -461,6 +510,12 @@ export class Service extends DatabaseService<Model> {
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the template are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -472,6 +527,7 @@ export class Service extends DatabaseService<Model> {
       userIds: userIds,
       teamIds: teamIds,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 }

@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | On-Call Policies and Alerts. </title>
-    <meta name="description"
-        content="On-call scheduling with rotations, escalations, and multi-channel alerts (SMS, phone, Slack, Teams). Free tier includes unlimited schedules. Open source PagerDuty alternative.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -49,11 +49,11 @@
           <!-- Subtle feature list -->
           <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
             <span>Multi-channel alerts</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>Smart escalations</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>Rotation schedules</span>
-            <span class="hidden sm:inline text-gray-300">|</span>
+            <span class="max-sm:hidden sm:inline text-gray-300">|</span>
             <span>Alert logs</span>
           </div>
         </div>
@@ -88,7 +88,7 @@
 
       <div class="mx-auto max-w-5xl">
         <!-- Connecting line for desktop -->
-        <div class="hidden lg:block relative">
+        <div class="max-lg:hidden lg:block relative">
           <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-emerald-200"></div>
         </div>
 
@@ -983,7 +983,7 @@
               <!-- Original on-call alert message -->
               <div class="group relative">
                 <div class="flex items-start gap-3">
-                  <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
+                  <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" width="40" height="40" loading="lazy" decoding="async" />
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>

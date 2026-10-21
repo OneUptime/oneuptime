@@ -39,6 +39,9 @@ import CephResourceUtils, {
 } from "../Utils/CephResourceUtils";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pool detail page. The route param (subModelId) is the CephResource
@@ -65,6 +68,7 @@ const MIN_CONFIDENT_FIT_SPAN_MS: number = 2 * 60 * 60 * 1000;
 const CephClusterPoolDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const poolId: string = Navigation.getLastParamAsString();
 
@@ -297,7 +301,10 @@ const CephClusterPoolDetail: FunctionComponent<
        * ceph_pool_stored is Ceph's STORED figure: what clients wrote, before
        * replication copies (the replicated size is ceph_pool_stored_raw).
        */
-      description: `Bytes clients stored in ${poolDisplayName}, before replication copies.`,
+      description: translator.translateTemplate(
+        "Bytes clients stored in {{poolName}}, before replication copies.",
+        { poolName: poolDisplayName },
+      ),
       legend: "Stored",
       legendUnit: "bytes",
       metricName: "ceph_pool_stored",
@@ -305,7 +312,10 @@ const CephClusterPoolDetail: FunctionComponent<
     buildPoolQuery({
       variable: "pool_max_avail",
       title: "Max Available",
-      description: `Bytes still writable into ${poolDisplayName} given current cluster capacity and replication.`,
+      description: translator.translateTemplate(
+        "Bytes still writable into {{poolName}} given current cluster capacity and replication.",
+        { poolName: poolDisplayName },
+      ),
       legend: "Max Avail",
       legendUnit: "bytes",
       metricName: "ceph_pool_max_avail",
@@ -313,7 +323,10 @@ const CephClusterPoolDetail: FunctionComponent<
     buildPoolQuery({
       variable: "pool_objects",
       title: "Objects",
-      description: `Number of RADOS objects in ${poolDisplayName}.`,
+      description: translator.translateTemplate(
+        "Number of RADOS objects in {{poolName}}.",
+        { poolName: poolDisplayName },
+      ),
       legend: "Objects",
       legendUnit: "",
       metricName: "ceph_pool_objects",
@@ -417,7 +430,10 @@ const CephClusterPoolDetail: FunctionComponent<
           labels={{}}
           annotations={{}}
           isLoading={isLoadingResource}
-          emptyMessage={`Pool ${poolId} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.`}
+          emptyMessage={translator.translateTemplate(
+            "Pool {{poolId}} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.",
+            { poolId: poolId },
+          )}
         />
       ),
     },
@@ -425,20 +441,32 @@ const CephClusterPoolDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Pool Metrics: ${poolDisplayName}`}
+          title={translator.translateTemplate("Pool Metrics: {{poolName}}", {
+            poolName: poolDisplayName,
+          })}
           description="Stored capacity growth, object count, IOPS, and throughput for this pool."
         >
           <ResourceMetricsTab
             queryConfigs={queryConfigs}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              /*
+               * The tab's card hands these charts its zoom. Their headings
+               * name the drag, revealed while the pointer is over that
+               * chart (its named group), as the metric panels above name
+               * it in theirs.
+               */
               return (
                 <div className="mt-4 space-y-6">
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      Client IOPS
+                      {translator.translateText("Client IOPS")}
                       <InfoTooltip
                         label="Client IOPS"
                         text={CEPH_METRIC_DESCRIPTIONS.poolClientIops}
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <CephRateChart
@@ -455,12 +483,16 @@ const CephClusterPoolDetail: FunctionComponent<
                       emptyMessage="No I/O reported for this pool in the selected time range."
                     />
                   </div>
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      Client Throughput
+                      {translator.translateText("Client Throughput")}
                       <InfoTooltip
                         label="Client Throughput"
                         text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput}
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <CephRateChart

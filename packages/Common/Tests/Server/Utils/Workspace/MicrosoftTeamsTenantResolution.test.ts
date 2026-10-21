@@ -77,6 +77,9 @@ import MicrosoftTeamsUtil, {
   MicrosoftTeamsTenantResolution,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsAuthAction from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
+import MicrosoftTeamsCommands, {
+  MicrosoftTeamsListCommand,
+} from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -103,7 +106,8 @@ const TURN_CONTEXT_SERVICE_URL: string =
 const AMBIGUOUS_FRAGMENT: string = "more than one OneUptime project";
 const NOT_FOUND_FRAGMENT: string = "couldn't find your project configuration";
 const NO_TENANT_FRAGMENT: string = "couldn't identify your organization";
-const HELP_FRAGMENT: string = "Available Commands";
+// The help card's first words (WorkspaceCommands.getHelpAnswer).
+const HELP_FRAGMENT: string = "Here's what I can do.";
 
 interface CapturedFindByCall {
   query: JSONObject;
@@ -193,8 +197,27 @@ function stubDownstreamReader(
     .mockResolvedValue(resolvedValue as never);
 }
 
-function firstArgProjectId(spy: jest.SpyInstance): ObjectID {
-  return spy.mock.calls[0]?.[0] as ObjectID;
+/*
+ * Teams' own lists are read by MicrosoftTeamsCommands.handleListCommand, as
+ * the member who typed them (WorkspaceOpenRecords). Stubbed to answer the
+ * way it would, the project id it is handed is what is captured.
+ */
+function stubListCommand(reply: string): jest.SpyInstance {
+  return jest
+    .spyOn(MicrosoftTeamsCommands, "handleListCommand")
+    .mockImplementation(async (data: any): Promise<void> => {
+      await data.turnContext.sendActivity(reply);
+    });
+}
+
+function listCommandArgs(spy: jest.SpyInstance): {
+  projectId: ObjectID;
+  listCommand: MicrosoftTeamsListCommand;
+} {
+  return spy.mock.calls[0]?.[0] as {
+    projectId: ObjectID;
+    listCommand: MicrosoftTeamsListCommand;
+  };
 }
 
 function messageActivity(data?: {
@@ -857,10 +880,12 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
  * This is the disclosure vector itself.
  *
  * handleBotMessageActivity serves incidents, alerts, scheduled maintenance and
- * AI assistant answers with NO per-user authorization at all - whoever is in
- * the tenant gets whatever project the handler picked. So the project id it
- * hands the downstream readers IS the entire access-control decision, and it
- * must be exactly the projectId of the row resolveProjectByTenantId returned.
+ * AI assistant answers for the project the handler picked. The lists and the
+ * assistant read as the member the sender's account is connected to in THAT
+ * project (MicrosoftTeamsCommands.handleListCommand, WorkspaceOpenRecords),
+ * so the project id the handler hands them decides whose records anybody
+ * sees, and it must be exactly the projectId of the row
+ * resolveProjectByTenantId returned.
  *
  * Resolving the right tenant and then reading a different project's data would
  * satisfy every other test in this file, which is why each reader is asserted
@@ -876,8 +901,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
       projectId: ObjectID.generate(),
     });
     mockFindBy([projectAuth]);
-    const readerSpy: jest.SpyInstance = stubDownstreamReader(
-      "getActiveIncidentsMessage",
+    const readerSpy: jest.SpyInstance = stubListCommand(
       "incidents-of-the-resolved-project",
     );
     const context: FakeTurnContext = buildTurnContext();
@@ -888,8 +912,11 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     });
 
     expect(readerSpy).toHaveBeenCalledTimes(1);
-    expect(firstArgProjectId(readerSpy).toString()).toBe(
+    expect(listCommandArgs(readerSpy).projectId.toString()).toBe(
       projectAuth.projectId?.toString(),
+    );
+    expect(listCommandArgs(readerSpy).listCommand).toBe(
+      MicrosoftTeamsListCommand.ActiveIncidents,
     );
     // ...and the answer that came back is what the user was actually served.
     expect(joinedSentText(context.sendActivity)).toContain(
@@ -902,8 +929,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
       projectId: ObjectID.generate(),
     });
     mockFindBy([projectAuth]);
-    const readerSpy: jest.SpyInstance = stubDownstreamReader(
-      "getActiveAlertsMessage",
+    const readerSpy: jest.SpyInstance = stubListCommand(
       "alerts-of-the-resolved-project",
     );
     const context: FakeTurnContext = buildTurnContext();
@@ -914,8 +940,11 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     });
 
     expect(readerSpy).toHaveBeenCalledTimes(1);
-    expect(firstArgProjectId(readerSpy).toString()).toBe(
+    expect(listCommandArgs(readerSpy).projectId.toString()).toBe(
       projectAuth.projectId?.toString(),
+    );
+    expect(listCommandArgs(readerSpy).listCommand).toBe(
+      MicrosoftTeamsListCommand.ActiveAlerts,
     );
     expect(joinedSentText(context.sendActivity)).toContain(
       "alerts-of-the-resolved-project",
@@ -927,8 +956,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
       projectId: ObjectID.generate(),
     });
     mockFindBy([projectAuth]);
-    const readerSpy: jest.SpyInstance = stubDownstreamReader(
-      "getScheduledMaintenanceMessage",
+    const readerSpy: jest.SpyInstance = stubListCommand(
       "maintenance-of-the-resolved-project",
     );
     const context: FakeTurnContext = buildTurnContext();
@@ -939,8 +967,11 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     });
 
     expect(readerSpy).toHaveBeenCalledTimes(1);
-    expect(firstArgProjectId(readerSpy).toString()).toBe(
+    expect(listCommandArgs(readerSpy).projectId.toString()).toBe(
       projectAuth.projectId?.toString(),
+    );
+    expect(listCommandArgs(readerSpy).listCommand).toBe(
+      MicrosoftTeamsListCommand.ScheduledMaintenance,
     );
     expect(joinedSentText(context.sendActivity)).toContain(
       "maintenance-of-the-resolved-project",
@@ -974,18 +1005,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
 
   test("an AMBIGUOUS tenant reaches NONE of the readers", async () => {
     mockFindBy([buildProjectAuthRow(), buildProjectAuthRow()]);
-    const incidentsSpy: jest.SpyInstance = stubDownstreamReader(
-      "getActiveIncidentsMessage",
-      "incidents",
-    );
-    const alertsSpy: jest.SpyInstance = stubDownstreamReader(
-      "getActiveAlertsMessage",
-      "alerts",
-    );
-    const maintenanceSpy: jest.SpyInstance = stubDownstreamReader(
-      "getScheduledMaintenanceMessage",
-      "maintenance",
-    );
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
     const answerSpy: jest.SpyInstance = stubDownstreamReader(
       "answerObservabilityQuestion",
     );
@@ -1011,9 +1031,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     }
 
     // Refusing has to stop the read, not just change the reply.
-    expect(incidentsSpy).not.toHaveBeenCalled();
-    expect(alertsSpy).not.toHaveBeenCalled();
-    expect(maintenanceSpy).not.toHaveBeenCalled();
+    expect(listSpy).not.toHaveBeenCalled();
     expect(answerSpy).not.toHaveBeenCalled();
   });
 });

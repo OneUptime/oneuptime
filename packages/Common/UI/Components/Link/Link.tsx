@@ -3,6 +3,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   children: ReactNode;
@@ -17,11 +18,19 @@ export interface ComponentProps {
   onMouseLeave?: (() => void) | undefined;
   id?: string | undefined;
   title?: string | undefined;
+  dataTestId?: string | undefined;
+  /*
+   * The link is to the page (or the section) the user is on, as the nav
+   * bar's lit item is: announced as "current page" (aria-current).
+   */
+  isCurrentPage?: boolean | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const title: string | undefined = translateString(props.title);
   let children: ReactNode;
 
   if (
@@ -43,12 +52,13 @@ const Link: FunctionComponent<ComponentProps> = (
     return (
       <span
         id={props.id}
+        data-testid={props.dataTestId}
         className={`cursor-default ${props.className || ""}`}
         onMouseOver={props.onMouseOver}
         onMouseOut={props.onMouseOut}
         onMouseLeave={props.onMouseLeave}
         style={props.style}
-        title={props.title}
+        title={title}
       >
         {children}
       </span>
@@ -84,13 +94,15 @@ const Link: FunctionComponent<ComponentProps> = (
   return (
     <a
       id={props.id}
+      data-testid={props.dataTestId}
       className={`${cursorClassName} ${props.className || ""}`}
       onMouseOver={props.onMouseOver}
       onMouseOut={props.onMouseOut}
       onMouseLeave={props.onMouseLeave}
       style={props.style}
-      title={props.title}
-      aria-label={props.title}
+      title={title}
+      aria-label={title}
+      aria-current={props.isCurrentPage ? "page" : undefined}
       onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
         /*
          * For onClick-only links (no href) we render role="button"; activate them

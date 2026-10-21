@@ -1,4 +1,7 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -24,31 +27,45 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import VMwareDocumentationCard from "../../Components/VMware/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-
-/*
- * While the project has no vCenters yet, re-count on this cadence so the
- * page flips from the install guide to the table the moment the first
- * agent collection lands — no hard refresh.
- */
-const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import VMwareCollectionMethod from "Common/Types/VMware/VMwareCollectionMethod";
+import { JSONObject } from "Common/Types/JSON";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import ProbeUtil from "../../Utils/Probe";
+import {
+  VMWARE_CONNECT_FORM_STEPS,
+  getVMwareConnectFormFields,
+} from "../../Components/VMware/VMwareConnectionFormFields";
+import { isProbeCollected } from "../../Components/VMware/VMwareProbeCollectionView";
 
 const VMwareVCenters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<VMwareVCenter>(
+    {
+      modelType: VMwareVCenter,
+    },
+  );
+  // The probes a vCenter can be connected through (the Connect form's picker).
+  const [probes, setProbes] = useState<Array<Probe>>([]);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<VMwareVCenter>({ modelType: VMwareVCenter });
@@ -88,6 +105,7 @@ const VMwareVCenters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -100,73 +118,45 @@ const VMwareVCenters: FunctionComponent<
     extraFacets: vmwareExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: VMwareVCenter,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
+    ProbeUtil.getAllProbes()
+      .then((allProbes: Array<Probe>) => {
+        setProbes(allProbes);
+      })
+      .catch(() => {
+        // The picker then offers none, and says how to add one.
+      });
   }, []);
 
-  /*
-   * Live first-data poll: the one-shot count above paints the empty
-   * state; this effect keeps quietly re-counting every 10s while the
-   * count is zero and flips the page to the table on the first nonzero
-   * result. The interval is cleared on unmount and is not re-armed once
-   * a vCenter exists (the effect re-runs with a nonzero count and
-   * bails). Background failures keep the empty state rather than
-   * replacing the install guide with an error.
-   */
-  useEffect(() => {
-    if (clusterCount !== 0) {
-      return undefined;
-    }
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: VMwareVCenter,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setClusterCount(count);
-          }
-        })
-        .catch(() => {
-          // Transient background-poll failure — keep polling.
-        });
-    }, FIRST_DATA_POLL_INTERVAL_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [clusterCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
     <Fragment>
       <ModelTable<VMwareVCenter>
         modelType={VMwareVCenter}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="vmware-vcenters-table"
         userPreferencesKey="vmware-vcenters-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+          isAddedByHand: true,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -174,14 +164,27 @@ const VMwareVCenters: FunctionComponent<
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: VMwareVCenter): Promise<VMwareVCenter> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
+        createVerb="Connect"
+        /*
+         * A vCenter connected here is collected by a probe: OneUptime logs
+         * in with the account entered, no agent to run. One the VMware agent
+         * sends appears on its own when the agent first reports.
+         */
+        onBeforeCreate={async (
+          item: VMwareVCenter,
+          miscDataProps: JSONObject,
+        ): Promise<VMwareVCenter> => {
+          void miscDataProps;
+          item.collectionMethod = VMwareCollectionMethod.Probe;
+          return item;
+        }}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -197,47 +200,21 @@ const VMwareVCenters: FunctionComponent<
         cardProps={{
           title: "vCenters",
           description:
-            "vCenter Servers (and standalone ESXi hosts) being monitored in this project. Install the OneUptime VMware Agent to connect one.",
+            "vCenter Servers and ESXi hosts in this project. Connect one with a read-only account and a probe, or install the VMware Agent.",
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-vcenter",
-            description:
-              "This should match the vmware.vcenter.name resource attribute reported by the VMware Agent (the VMWARE_VCENTER_NAME it was installed with).",
+        formSteps={VMWARE_CONNECT_FORM_STEPS}
+        formFields={getVMwareConnectFormFields({
+          probes: probes,
+          isBillingEnabled: BILLING_ENABLED,
+          translator: translator,
+        })}
+        selectMoreFields={{
+          collectionMethod: true,
+          collectionProbe: {
+            name: true,
           },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production vCenter Server in the US East datacenter",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        }}
         columns={[
           {
             field: {
@@ -283,9 +260,53 @@ const VMwareVCenters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
+              );
+            },
+          },
+          /*
+           * Collected By and Agent Version start hidden. The list answers
+           * "which vCenters are there, and are they up?" with the columns
+           * every infrastructure list shows: Name, Status, Last Seen, Labels
+           * and Owners. How one vCenter is collected, and the version of the
+           * agent that sends it, are details of that vCenter, on its own
+           * pages: the Overview shows the Agent Version (with its upgrade
+           * sign) under vCenter Details, and Settings the Data Collection
+           * card. The table's Customize Columns turns either back on.
+           *
+           * Neither is hideOnMobile: that flag drops a column at render
+           * while the picker knows nothing of it, so on a phone a viewer
+           * who switched one on would get no column (as the monitor list's
+           * Template column explains, in Components/Monitor/MonitorTable).
+           */
+          {
+            field: {
+              collectionMethod: true,
+            },
+            title: "Collected By",
+            type: FieldType.Element,
+            isHiddenByDefault: true,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              if (!isProbeCollected(item)) {
+                return (
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("VMware Agent")}
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.collectionProbe?.name
+                    ? translator.translateTemplate("Probe: {{name}}", {
+                        name: item.collectionProbe.name,
+                      })
+                    : translator.translateText("Probe")}
+                </span>
               );
             },
           },
@@ -302,8 +323,27 @@ const VMwareVCenters: FunctionComponent<
               agentVersion: true,
             },
             title: "Agent Version",
-            type: FieldType.Text,
-            hideOnMobile: true,
+            type: FieldType.Element,
+            // Hidden until asked for: see Collected By above.
+            isHiddenByDefault: true,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              /*
+               * No version: a vCenter a probe collects, or an agent from
+               * before its files reported one. The quiet dash every empty
+               * cell has, which a phone's card leaves out rather than
+               * naming a field with nothing under it.
+               */
+              if (!item.agentVersion) {
+                return <TableEmptyValue screenReaderText="Not reported" />;
+              }
+
+              return (
+                <AgentVersion
+                  kind={AgentKind.VMwareAgent}
+                  version={item.agentVersion}
+                />
+              );
+            },
           },
           {
             field: {
@@ -356,10 +396,10 @@ const VMwareVCenters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <VMwareDocumentationCard
           title="Getting Started with VMware Monitoring"
-          description="No vCenters connected yet. Install the agent using the guide below and your vCenter will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

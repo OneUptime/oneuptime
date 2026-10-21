@@ -23,10 +23,11 @@ export { default as SloRoutes } from "./SloRoutes";
 // Platform
 export { default as WorkflowRoutes } from "./WorkflowRoutes";
 export { default as RunbookRoutes } from "./RunbookRoutes";
+export { default as FormsRoutes } from "./FormsRoutes";
 export { default as StatusPagesRoutes } from "./StatusPagesRoutes";
 export { default as DashboardRoutes } from "./DashboardRoutes";
 export { default as ServiceRoutes } from "./ServiceRoutes";
-export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
+export { default as CodeRoutes } from "./CodeRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
 export { default as NetworkDeviceRoutes } from "./NetworkDeviceRoutes";
@@ -37,12 +38,13 @@ export { default as VMwareRoutes } from "./VMwareRoutes";
 export { default as IoTRoutes } from "./IoTRoutes";
 export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";
 export { default as CephRoutes } from "./CephRoutes";
+export { default as StorageArrayRoutes } from "./StorageArrayRoutes";
 export { default as HostRoutes } from "./HostRoutes";
 export { default as ServerlessRoutes } from "./ServerlessRoutes";
 export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
 export { default as DatabaseRoutes } from "./DatabaseRoutes";
+export { default as MessageQueueRoutes } from "./MessageQueueRoutes";
 export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
-export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 export { default as AIInsightsRoutes } from "./AIInsightsRoutes";
 
 // Settings

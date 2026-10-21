@@ -2,6 +2,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -13,9 +14,13 @@ import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
+import PublicMessageRateLimit, {
+  PublicMessageSendPermit,
+  TeamMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
 import TeamPermissionService from "./TeamPermissionService";
@@ -28,6 +33,7 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import Route from "../../Types/API/Route";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
@@ -38,6 +44,8 @@ import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
@@ -61,7 +69,11 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import ProjectLeaveResourceCleanup, {
   ProjectLeaveResourceCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
+import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
+import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import { EntityManager } from "typeorm";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -79,7 +91,47 @@ export interface OnCallLeaveCleanupResult {
   rotatedProjectFeedIds: Array<string>;
 }
 
-export class TeamMemberService extends DatabaseService<TeamMember> {
+// The two names of a membership's team and person, ID column first.
+const TEAM_KEYS: Array<string> = ["teamId", "team"];
+const USER_KEYS: Array<string> = ["userId", "user"];
+
+/*
+ * THE LIMITS ON HOW MANY PEOPLE A PROJECT MAY HAVE: the seats of a plan
+ * bought from a reseller (Project.seatLimit; none when it is empty or 0),
+ * and the Free plan's one person. Both are the project's, whoever adds the
+ * person (readPeopleLimits), and both count people, not memberships - the
+ * distinct users with any membership in the project, a pending invitation
+ * included (getUniqueTeamMemberCountInProject) - so someone already in the
+ * project joins another of its teams whatever the count.
+ *
+ * Asked twice: early, in onBeforeCreate, before an account is made for
+ * an invitee or anyone is mailed, and again with the INSERT, in its own
+ * transaction under the limit's lock in the project (getCreateLimit), so
+ * people added at the same moment cannot all pass - on every path that adds
+ * someone: an invitation, a first sign-in through the project's SSO, SCIM,
+ * an import. The lock's name, and what it counts.
+ */
+export const SEAT_LIMIT_NAME: string = "seats";
+
+export const PEOPLE_IN_PROJECT_STATEMENT: string =
+  'SELECT COUNT(DISTINCT "userId")::int AS "count" FROM "TeamMember" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+// A person's memberships in the project: any one means they are counted.
+export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "TeamMember" WHERE "projectId" = $1 AND "userId" = $2 AND "deletedAt" IS NULL';
+
+// How many people the Free plan allows: the project's owner.
+export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
+
+// The limits on people a membership create is held to.
+export interface ProjectPeopleLimits {
+  // The plan's seats, when it has a number of them.
+  seatLimit: number | null;
+  // Whether the Free plan's one person holds it.
+  isFreePlan: boolean;
+}
+
+export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
    * Caches the user's accepted team memberships per project. Auth middleware
    * calls this on every authenticated request to evaluate the `Owned`
@@ -92,6 +144,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * The user is the person being invited, who is not a member of the
+   * project until this row exists - an invitation by email names someone
+   * who may not even have an account yet - so the membership the generic
+   * check asks for cannot apply to them. The team must be the project's own,
+   * for every caller, workflows included.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["user"];
   }
 
   /*
@@ -122,10 +185,33 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
+    await super.onBeforeCreate(createBy);
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The team and the person, each under either of its names: the two must
+     * agree (RelationIdUtil.readConsistent), and each is then written under
+     * its ID column alone (stamp), so every check below reads the team and
+     * the person the membership is stored with.
+     */
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
-    const teamId: ObjectID | null =
-      createBy.data.teamId || createBy.data.team?.id || null;
+    const teamId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEAM_KEYS,
+      "Team",
+    );
+    const namedUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      USER_KEYS,
+      "User",
+    );
+
+    if (namedUserId) {
+      RelationIdUtil.stamp(createData, USER_KEYS, namedUserId);
+    }
 
     if (!projectId) {
       throw new BadDataException("Project Id is required to invite a member");
@@ -136,7 +222,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.teamId = teamId;
+    RelationIdUtil.stamp(createData, TEAM_KEYS, teamId);
 
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       if (
@@ -184,44 +270,87 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
     }
 
-    // check if this project can have more members.
+    /*
+     * An invitation by email is for whoever has that address. They are only
+     * looked up here, so that the member limits below can tell whether they
+     * are in the project already. Someone with no account yet gets one
+     * further down, once the invitation has been allowed, so a refused
+     * invitation never leaves a user behind.
+     *
+     * `password` comes back too, because whether this person has finished
+     * registering decides both which link the invitation carries and whether
+     * that link needs a registration token. UserService.findByEmail selects
+     * only the id, so it cannot answer that.
+     */
+    const invitedEmail: Email | null =
+      createBy.miscDataProps && createBy.miscDataProps["email"]
+        ? new Email(createBy.miscDataProps["email"] as string)
+        : null;
+
+    const userWithInvitedEmail: User | null = invitedEmail
+      ? await UserService.findOneBy({
+          query: {
+            email: invitedEmail,
+          },
+          select: {
+            _id: true,
+            password: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
+
+    /*
+     * Check if this project can have more people: early, so a project at
+     * its limit is refused before an account is made for the invitee or
+     * anyone is mailed. The INSERT asks again, under the limit's lock
+     * (getCreateLimit).
+     */
     if (IsBillingEnabled && createBy.data.projectId) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: createBy.data.projectId!,
-        select: {
-          seatLimit: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const peopleLimits: ProjectPeopleLimits | null =
+        await this.readPeopleLimits({
+          projectId: projectId,
+          props: createBy.props,
+        });
+
+      const invitedUserId: ObjectID | null | undefined = invitedEmail
+        ? userWithInvitedEmail?.id
+        : createBy.data.userId;
 
       /*
-       * Billing can lag after a provider outage. Admission limits must use
-       * persisted memberships, including pending invitations.
+       * Both limits count people, not memberships, and a pending invitation
+       * counts as much as an accepted one (see
+       * getUniqueTeamMemberCountInProject). Someone who already has either in
+       * this project is in that count already: adding them to another team
+       * leaves it where it was, so neither limit applies to them.
        */
-      const numberOfMembers: number =
-        project &&
-        (project.seatLimit || createBy.props.currentPlan === PlanType.Free)
-          ? await this.getUniqueTeamMemberCountInProject(projectId)
-          : 0;
+      const isInvitedUserAlreadyCounted: boolean = Boolean(
+        peopleLimits &&
+          invitedUserId &&
+          (await this.hasMembershipInProject({
+            projectId: projectId,
+            userId: invitedUserId,
+          })),
+      );
 
-      if (
-        project &&
-        project.seatLimit &&
-        numberOfMembers >= project.seatLimit
-      ) {
-        throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
-      }
+      if (peopleLimits && !isInvitedUserAlreadyCounted) {
+        /*
+         * Billing can lag after a provider outage. Admission limits must use
+         * persisted memberships, including pending invitations.
+         */
+        const numberOfMembers: number =
+          await this.getUniqueTeamMemberCountInProject(projectId);
 
-      if (
-        createBy.props.currentPlan === PlanType.Free &&
-        project &&
-        numberOfMembers >= 1
-      ) {
-        throw new BadDataException(
-          Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
-        );
+        const refusal: string | null = this.getPeopleLimitRefusal({
+          limits: peopleLimits,
+          people: numberOfMembers,
+        });
+
+        if (refusal) {
+          throw new BadDataException(refusal);
+        }
       }
     }
 
@@ -233,7 +362,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      * Everyone else invites, and the invited person accepts for themselves. A
      * project admin who could accept on someone's behalf would be able to pull
      * an account into their project - and into whatever the team's permissions
-     * grant - without that person ever agreeing to it.
+     * grant - without that person ever agreeing to it. The one exception is a
+     * person who has already accepted joining this project, further down.
      */
     const canCreateAcceptedInvitation: boolean = Boolean(
       createBy.props.isRoot || createBy.props.isMasterAdmin,
@@ -243,74 +373,170 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       createBy.data.hasAcceptedInvitation = false;
     }
 
-    const isInvitationAcceptedOnCreate: boolean = Boolean(
-      createBy.data.hasAcceptedInvitation,
-    );
-
     /*
-     * The acceptance timestamp is stamped here rather than taken from the
-     * request, so it can never disagree with hasAcceptedInvitation - a row that
-     * says "Member" with no accepted-at date, or an accepted-at date on a row
-     * that is still only invited.
+     * An invitation by email to someone who is not in the project yet is a
+     * message to an address the team names, from this installation's mail
+     * server. Each address is counted (PublicMessageRateLimit.assertTeamMaySend),
+     * so one address is sent a bounded number of invitations an hour,
+     * whichever project sends them: past its limit the invitation is
+     * refused with 429. The team is never counted, so inviting
+     * many colleagues at once goes on. Asked before an account is made for
+     * the invitee, so a refused invitation leaves nothing behind, and given
+     * back when the invitation fails before its email is sent. Someone who
+     * has joined the project already, added to another of its teams, is told
+     * so rather than invited, and is not counted.
      */
-    if (isInvitationAcceptedOnCreate) {
-      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-    } else {
-      delete createBy.data.invitationAcceptedAt;
-    }
+    const invitationPermit: PublicMessageSendPermit | null =
+      invitedEmail &&
+      !createBy.data.hasAcceptedInvitation &&
+      !(
+        userWithInvitedEmail?.id &&
+        (await this.isUserMemberOfProject({
+          projectId: projectId,
+          userId: userWithInvitedEmail.id,
+        }))
+      )
+        ? await PublicMessageRateLimit.assertTeamMaySend({
+            kind: TeamMessageKind.Invitation,
+            contacts: [PublicMessageRateLimit.forEmail(invitedEmail)],
+          })
+        : null;
 
-    if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
-      const email: Email = new Email(createBy.miscDataProps["email"] as string);
+    try {
+      /*
+       * Set when the member is invited by email: the account the address belongs
+       * to, and whether this invite just created it. The invitation email is sent
+       * once everything below has decided what this membership is.
+       */
+      let invitedUser: User | null = null;
+      let isNewUser: boolean = false;
+
+      if (invitedEmail) {
+        /*
+         * Optional name supplied on the invite form. Used only to set the name on
+         * a brand-new user, or to backfill an existing user who has no name yet —
+         * we never overwrite a name the user has already set.
+         */
+        const nameValue: string | undefined = createBy.miscDataProps?.["name"]
+          ? (createBy.miscDataProps["name"] as string).trim()
+          : undefined;
+
+        let user: User | null = userWithInvitedEmail;
+
+        if (!user) {
+          isNewUser = true;
+
+          user = await UserService.createByEmail({
+            email: invitedEmail,
+            name: nameValue ? new Name(nameValue) : undefined,
+            // Record who invited this brand-new user, so it can be surfaced later.
+            createdByUserId: createBy.props.userId,
+            props: {
+              isRoot: true,
+            },
+          });
+        } else if (nameValue) {
+          /*
+           * User already exists. Backfill their name only if they don't have one
+           * yet; if they already have a name, leave it untouched.
+           */
+          const existingUser: User | null = await UserService.findOneById({
+            id: user.id!,
+            select: {
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (existingUser && !existingUser.name?.toString()) {
+            await UserService.updateOneById({
+              id: user.id!,
+              data: {
+                name: new Name(nameValue),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+        }
+
+        RelationIdUtil.stamp(createData, USER_KEYS, user.id!);
+
+        invitedUser = user;
+      }
 
       /*
-       * Optional name supplied on the invite form. Used only to set the name on
-       * a brand-new user, or to backfill an existing user who has no name yet —
-       * we never overwrite a name the user has already set.
+       * Check if this user is already invited. Before the invitation email
+       * below, so a repeated invite fails without mailing anybody or minting a
+       * registration token for a membership that is never created.
        */
-      const nameValue: string | undefined = createBy.miscDataProps["name"]
-        ? (createBy.miscDataProps["name"] as string).trim()
-        : undefined;
-
-      /*
-       * `password` comes back too, because whether this person has finished
-       * registering decides both which link the invitation carries and whether
-       * that link needs a registration token. UserService.findByEmail selects
-       * only the id, so it cannot answer that.
-       */
-      let user: User | null = await UserService.findOneBy({
+      const member: TeamMember | null = await this.findOneBy({
         query: {
-          email: email,
-        },
-        select: {
-          _id: true,
-          password: true,
+          userId: createBy.data.userId!,
+          teamId: teamId,
         },
         props: {
           isRoot: true,
         },
+        select: {
+          _id: true,
+        },
       });
 
-      let isNewUser: boolean = false;
+      if (member) {
+        throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
+      }
 
-      if (!user) {
-        isNewUser = true;
+      /*
+       * Acceptance is per project, not per team. Someone who has accepted an
+       * invitation to any team of this project has already agreed to be in it,
+       * so adding them to another of its teams is a change to their teams - the
+       * project admins' call, like changing what a team they are already on may
+       * do - and not a new invitation for them to accept. Without this they were
+       * asked to accept the same project again for every team they were added
+       * to. The permission and SCIM checks above have already run, so this
+       * grants nothing the inviter could not grant to an existing teammate.
+       *
+       * A pending invitee is not a member yet (see isUserMemberOfProject), so a
+       * second team they are invited to stays an invitation, and accepting
+       * either one accepts both (acceptPendingInvitationsInProject).
+       */
+      if (
+        !createBy.data.hasAcceptedInvitation &&
+        createBy.data.userId &&
+        (await this.isUserMemberOfProject({
+          projectId: projectId,
+          userId: createBy.data.userId,
+        }))
+      ) {
+        createBy.data.hasAcceptedInvitation = true;
+      }
 
-        user = await UserService.createByEmail({
-          email,
-          name: nameValue ? new Name(nameValue) : undefined,
-          // Record who invited this brand-new user, so it can be surfaced later.
-          createdByUserId: createBy.props.userId,
-          props: {
-            isRoot: true,
-          },
-        });
-      } else if (nameValue) {
-        /*
-         * User already exists. Backfill their name only if they don't have one
-         * yet; if they already have a name, leave it untouched.
-         */
-        const existingUser: User | null = await UserService.findOneById({
-          id: user.id!,
+      const isInvitationAcceptedOnCreate: boolean = Boolean(
+        createBy.data.hasAcceptedInvitation,
+      );
+
+      /*
+       * The acceptance timestamp is stamped here rather than taken from the
+       * request, so it can never disagree with hasAcceptedInvitation - a row that
+       * says "Member" with no accepted-at date, or an accepted-at date on a row
+       * that is still only invited.
+       */
+      if (isInvitationAcceptedOnCreate) {
+        createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+      } else {
+        delete createBy.data.invitationAcceptedAt;
+      }
+
+      if (invitedUser && invitedEmail) {
+        const user: User = invitedUser;
+        const email: Email = invitedEmail;
+
+        const project: Project | null = await ProjectService.findOneById({
+          id: createBy.data.projectId!,
           select: {
             name: true,
           },
@@ -319,135 +545,265 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           },
         });
 
-        if (existingUser && !existingUser.name?.toString()) {
-          await UserService.updateOneById({
-            id: user.id!,
-            data: {
-              name: new Name(nameValue),
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
+        if (project) {
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-      createBy.data.userId = user.id!;
+          /*
+           * "Still has to register", not "we just created the row". Someone
+           * invited to a second project before they ever signed up already has a
+           * user row and still has no password, and used to be sent the sign-in
+           * link — which they could not use, having no password to sign in with.
+           */
+          const needsRegistration: boolean = isNewUser || !user.password;
 
-      const project: Project | null = await ProjectService.findOneById({
-        id: createBy.data.projectId!,
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (project) {
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        /*
-         * "Still has to register", not "we just created the row". Someone
-         * invited to a second project before they ever signed up already has a
-         * user row and still has no password, and used to be sent the sign-in
-         * link — which they could not use, having no password to sign in with.
-         */
-        const needsRegistration: boolean = isNewUser || !user.password;
-
-        /*
-         * The token is what lets the recipient claim this account, so it exists
-         * only on the link inside this email and only for someone who has not
-         * registered yet. An already-registered invitee gets the plain link;
-         * they sign in instead, and minting a claim token for an account that
-         * cannot be claimed would just be a spare key lying around.
-         */
-        const registerLink: string = needsRegistration
-          ? (
-              await UserRegistrationToken.generateRegistrationLink({
-                userId: user.id!,
-                email: email,
-              })
-            ).toString()
-          : URL.fromString(
-              new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()),
-              ).toString(),
-            )
-              .addRoute("/register")
-              .addQueryParam("email", email.toString(), true)
-              .toString();
-
-        MailService.sendMail(
-          {
-            toEmail: email,
-            templateType: EmailTemplateType.InviteMember,
-            vars: {
-              signInLink: URL.fromString(
+          /*
+           * The token is what lets the recipient claim this account, so it exists
+           * only on the link inside this email and only for someone who has not
+           * registered yet. An already-registered invitee gets the plain link;
+           * they sign in instead, and minting a claim token for an account that
+           * cannot be claimed would just be a spare key lying around.
+           */
+          const registerLink: string = needsRegistration
+            ? (
+                await UserRegistrationToken.generateRegistrationLink({
+                  userId: user.id!,
+                  email: email,
+                })
+              ).toString()
+            : URL.fromString(
                 new URL(
                   httpProtocol,
                   host,
                   new Route(AccountsRoute.toString()),
                 ).toString(),
-              ).toString(),
-              registerLink: registerLink,
-              isNewUser: needsRegistration.toString(),
-              /*
-               * An auto-accepted member has nothing left to accept, so the
-               * template drops the "sign in to accept your invitation" framing
-               * and tells them they are already in.
-               */
-              isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
-              projectName: project.name!,
-              homeUrl: new URL(httpProtocol, host).toString(),
+              )
+                .addRoute("/register")
+                .addQueryParam("email", email.toString(), true)
+                .toString();
+
+          MailService.sendMail(
+            {
+              toEmail: email,
+              templateType: EmailTemplateType.InviteMember,
+              vars: {
+                signInLink: URL.fromString(
+                  new URL(
+                    httpProtocol,
+                    host,
+                    new Route(AccountsRoute.toString()),
+                  ).toString(),
+                ).toString(),
+                registerLink: registerLink,
+                isNewUser: needsRegistration.toString(),
+                /*
+                 * An auto-accepted member - accepted by a master admin, or
+                 * already in the project through another team - has nothing
+                 * left to accept, so the template drops the "sign in to accept
+                 * your invitation" framing and tells them they are already in.
+                 */
+                isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
+                projectName: project.name!,
+                homeUrl: new URL(httpProtocol, host).toString(),
+              },
+              subject: isInvitationAcceptedOnCreate
+                ? "You have been added to " + project.name
+                : "You have been invited to " + project.name,
+              isSubjectLiteral: true,
             },
-            subject: isInvitationAcceptedOnCreate
-              ? "You have been added to " + project.name
-              : "You have been invited to " + project.name,
-            isSubjectLiteral: true,
-          },
-          {
-            projectId: createBy.data.projectId!,
-            userId: user.id!,
-          },
-        ).catch((err: Error) => {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            userId: user?.id?.toString(),
-          } as LogAttributes);
-        });
+            {
+              projectId: createBy.data.projectId!,
+              userId: user.id!,
+            },
+          ).catch((err: Error) => {
+            logger.error(err, {
+              projectId: createBy.data.projectId?.toString(),
+              userId: user.id?.toString(),
+            } as LogAttributes);
+          });
+        }
       }
+    } catch (err) {
+      // Nothing was sent: the address gets its count back.
+      await invitationPermit?.giveBack();
+      throw err;
     }
 
-    //check if this user is already invited.
+    return { createBy, carryForward: null };
+  }
 
-    const member: TeamMember | null = await this.findOneBy({
-      query: {
-        userId: createBy.data.userId!,
-        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
+  /*
+   * The limits on people a membership create in `projectId` is held to
+   * (ProjectPeopleLimits), or null when it is held to none: without
+   * billing, or when the project has no seat limit and is not on the Free
+   * plan. Both are read from the project's row, whoever adds the person: a
+   * teammate's invitation, an import, and OneUptime adding someone who signs
+   * in through the project's SSO for the first time - who carries no plan,
+   * and joins like anyone invited. A server admin is held to no plan
+   * (CallerPlan), so not to the Free plan's one person; a plan's seats hold
+   * them too.
+   */
+  public async readPeopleLimits(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ProjectPeopleLimits | null> {
+    if (!IsBillingEnabled) {
+      return null;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        seatLimit: true,
+        paymentProviderPlanId: true,
       },
       props: {
         isRoot: true,
       },
-      select: {
-        _id: true,
-      },
     });
 
-    if (member) {
-      throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
+    if (!project) {
+      return null;
     }
 
-    return { createBy, carryForward: null };
+    const limits: ProjectPeopleLimits = {
+      seatLimit: project.seatLimit || null,
+      isFreePlan: this.isHeldToFreePlanPerson({
+        project: project,
+        props: data.props,
+      }),
+    };
+
+    if (!limits.seatLimit && !limits.isFreePlan) {
+      return null;
+    }
+
+    return limits;
+  }
+
+  /*
+   * Whether the Free plan's one person holds a membership create in
+   * `project`: the project is on the Free plan - as its row names its plan,
+   * or as the plan CommonAPI read for the request says (read from the same
+   * row, kept for a minute) - and the create is not a server admin's, whom
+   * no plan holds (CallerPlan).
+   */
+  private isHeldToFreePlanPerson(data: {
+    project: Project;
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    if (data.props.isMasterAdmin) {
+      return false;
+    }
+
+    if (data.props.currentPlan === PlanType.Free) {
+      return true;
+    }
+
+    const planId: string | undefined = data.project.paymentProviderPlanId;
+
+    if (!planId) {
+      return false;
+    }
+
+    return (
+      SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===
+      PlanType.Free
+    );
+  }
+
+  /*
+   * The refusal of one more person in a project that has `people`, or null
+   * when the limits leave room for them. The plan's seats are asked first.
+   */
+  public getPeopleLimitRefusal(data: {
+    limits: ProjectPeopleLimits;
+    people: number;
+  }): string | null {
+    if (data.limits.seatLimit && data.people >= data.limits.seatLimit) {
+      return Errors.TeamMemberService.LIMIT_REACHED;
+    }
+
+    if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {
+      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;
+    }
+
+    return null;
+  }
+
+  /*
+   * The limits on people, decided again with the INSERT: the person is
+   * looked for and the project's people counted in the INSERT's own
+   * transaction, under the limit's lock in the project, so memberships
+   * created at the same moment - each of which passed the early count in
+   * onBeforeCreate - cannot all add someone new. Every create is asked, one
+   * that skips its hooks too: a first sign-in through the project's SSO
+   * adds people that way, and takes a seat like anyone invited. Null when
+   * the create is held to no limit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<TeamMember>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (!projectId) {
+      return null;
+    }
+
+    const limits: ProjectPeopleLimits | null = await this.readPeopleLimits({
+      projectId: projectId,
+      props: createBy.props,
+    });
+
+    if (!limits) {
+      return null;
+    }
+
+    const userId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      USER_KEYS,
+      "User",
+    );
+
+    return {
+      limitName: SEAT_LIMIT_NAME,
+      projectId: projectId,
+      check: async (manager: EntityManager): Promise<void> => {
+        // Someone already in the project is counted already.
+        if (
+          userId &&
+          (await ProjectCountLimit.count({
+            manager: manager,
+            statement: MEMBERSHIPS_OF_PERSON_STATEMENT,
+            parameters: [projectId.toString(), userId.toString()],
+          })) > 0
+        ) {
+          return;
+        }
+
+        const refusal: string | null = this.getPeopleLimitRefusal({
+          limits: limits,
+          people: await ProjectCountLimit.count({
+            manager: manager,
+            statement: PEOPLE_IN_PROJECT_STATEMENT,
+            parameters: [projectId.toString()],
+          }),
+        });
+
+        if (refusal) {
+          throw new BadDataException(refusal);
+        }
+      },
+    };
   }
 
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<TeamMember>,
   ): Promise<OnUpdate<TeamMember>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * CurrentUser may set this column so an invitee can accept a pending
      * invitation. The inverse transition is not a safe way to leave: merely
@@ -468,6 +824,23 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * Drops this server's cached list of the person's teams in the project
+   * (getTeamIdsForUser), or in every project when none is named, so the
+   * next read asks the database. Called when their membership changes,
+   * here or on another server (RealtimeAccessChanges).
+   */
+  public forgetTeamIdsForUser(userId: ObjectID, projectId?: ObjectID): void {
+    if (!projectId) {
+      this.teamIdsForUserCache.deleteByPrefix(`${userId.toString()}:`);
+      return;
+    }
+
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+  }
+
   @CaptureSpan()
   public async refreshTokens(
     userId: ObjectID,
@@ -477,12 +850,16 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      * Invalidate the in-process cache of this user's team memberships in
      * this project — membership just changed.
      */
-    this.teamIdsForUserCache.delete(
-      `${userId.toString()}:${projectId.toString()}`,
-    );
+    this.forgetTeamIdsForUser(userId, projectId);
 
-    /// Refresh tokens.
-    await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+    /*
+     * Refresh tokens. Only the project's refresh, made last, tells the
+     * person's open live updates (on every server) to read them again: the
+     * membership changed in this project alone.
+     */
+    await AccessTokenService.refreshUserGlobalAccessPermission(userId, {
+      forgetLiveUpdateReaders: false,
+    });
 
     await AccessTokenService.refreshUserTenantAccessPermission(
       userId,
@@ -549,13 +926,157 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
   }
 
+  /**
+   * Accept every invitation still pending for this user in this project.
+   *
+   * Acceptance is per project, not per team: a person who accepts one
+   * invitation into a project has agreed to be in it, and must not be asked
+   * again for each of the other teams of that project they were invited to.
+   * Both hooks call this whenever a membership becomes accepted - the invitee
+   * accepting one, a master admin creating one accepted, SSO or SCIM adding
+   * one - so a member of a project never has invitations left there.
+   *
+   * Written with ignoreHooks: every caller refreshes this user's permissions
+   * in this project and adds their notification defaults right after, which
+   * is all onUpdateSuccess would do for these rows. Call it before that
+   * refresh, so the permissions include these teams. Best effort: the
+   * membership that triggered it is already committed, and an invitation left
+   * pending can still be accepted by hand. Returns how many were accepted.
+   */
+  @CaptureSpan()
+  public async acceptPendingInvitationsInProject(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<number> {
+    try {
+      return await this.updateBy({
+        query: {
+          userId: data.userId,
+          projectId: data.projectId,
+          hasAcceptedInvitation: false,
+        },
+        data: {
+          hasAcceptedInvitation: true,
+          invitationAcceptedAt: OneUptimeDate.getCurrentDate(),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+
+      return 0;
+    }
+  }
+
+  /**
+   * Accept the invitations left pending for people who had already joined
+   * that project through another team - what adding them to those teams
+   * does now (see onBeforeCreate). Somebody who is only invited is left
+   * alone: they still have to accept. Run once by the data migration that
+   * came with acceptance becoming per project.
+   *
+   * The (person, project) pairs are walked in key order, a batch at a time,
+   * and each is handled as an acceptance is: its invitations accepted, then
+   * the person's cached permissions in the project refreshed. Best effort per
+   * pair - a failure is logged and the walk goes on. Idempotent, since an
+   * accepted invitation is no longer pending, and safe to run twice at once
+   * as the data migration runner requires. Returns how many invitations it
+   * accepted.
+   */
+  @CaptureSpan()
+  public async acceptPendingInvitationsOfProjectMembers(options?: {
+    batchSize?: number | undefined;
+  }): Promise<number> {
+    const batchSize: number = Math.max(
+      1,
+      Math.floor(options?.batchSize || 500),
+    );
+
+    let acceptedCount: number = 0;
+    let lastPair: { userId: string; projectId: string } | null = null;
+
+    for (;;) {
+      const pairs: Array<{ userId: string; projectId: string }> =
+        await this.getRepository().manager.query(
+          `SELECT DISTINCT pending."userId", pending."projectId"
+             FROM "TeamMember" pending
+            WHERE pending."hasAcceptedInvitation" = false
+              AND pending."deletedAt" IS NULL
+              AND ($2::uuid IS NULL OR (pending."userId", pending."projectId") > ($2::uuid, $3::uuid))
+              AND EXISTS (
+                    SELECT 1
+                      FROM "TeamMember" accepted
+                     WHERE accepted."userId" = pending."userId"
+                       AND accepted."projectId" = pending."projectId"
+                       AND accepted."hasAcceptedInvitation" = true
+                       AND accepted."deletedAt" IS NULL
+                  )
+            ORDER BY pending."userId" ASC, pending."projectId" ASC
+            LIMIT $1`,
+          [batchSize, lastPair?.userId || null, lastPair?.projectId || null],
+        );
+
+      for (const pair of pairs) {
+        const userId: ObjectID = new ObjectID(pair.userId);
+        const projectId: ObjectID = new ObjectID(pair.projectId);
+
+        acceptedCount += await this.acceptPendingInvitationsInProject({
+          userId: userId,
+          projectId: projectId,
+        });
+
+        try {
+          await this.refreshTokens(userId, projectId);
+        } catch (err) {
+          logger.error(
+            err as Error,
+            {
+              projectId: projectId.toString(),
+              userId: userId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+
+      if (pairs.length < batchSize) {
+        break;
+      }
+
+      lastPair = pairs[pairs.length - 1]!;
+    }
+
+    return acceptedCount;
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<TeamMember>,
     createdItem: TeamMember,
   ): Promise<TeamMember> {
+    /*
+     * An accepted membership puts the person in the project, so whatever else
+     * they were invited to there is accepted with it.
+     */
+    if (createdItem.hasAcceptedInvitation) {
+      await this.acceptPendingInvitationsInProject({
+        userId: createdItem.userId!,
+        projectId: onCreate.createBy.data.projectId!,
+      });
+    }
+
     await this.refreshTokens(
-      onCreate.createBy.data.userId!,
+      createdItem.userId!,
       onCreate.createBy.data.projectId!,
     );
 
@@ -570,7 +1091,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      */
     if (createdItem.hasAcceptedInvitation) {
       await this.addDefaultNotificationSettingsAndRules({
-        userId: onCreate.createBy.data.userId!,
+        userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
     }
@@ -614,7 +1135,32 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       },
     });
 
+    /*
+     * The (user, project) pairs whose remaining invitations have been
+     * accepted already. Accepting every invitation of a project at once
+     * updates several rows of the same pair, and one pass covers them all.
+     */
+    const acceptedProjectKeys: Set<string> = new Set<string>();
+
     for (const item of items) {
+      /*
+       * Accepting one invitation into a project accepts the person's other
+       * invitations there too: they have just agreed to be in the project.
+       */
+      const projectKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
+
+      if (
+        updateBy.data.hasAcceptedInvitation &&
+        !acceptedProjectKeys.has(projectKey)
+      ) {
+        acceptedProjectKeys.add(projectKey);
+
+        await this.acceptPendingInvitationsInProject({
+          userId: item.userId!,
+          projectId: item.projectId!,
+        });
+      }
+
       await this.refreshTokens(item.userId!, item.projectId!);
 
       if (updateBy.data.hasAcceptedInvitation) {
@@ -633,9 +1179,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<TeamMember>,
   ): Promise<OnDelete<TeamMember>> {
-    const members: Array<TeamMember> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The memberships the delete removes, and the delete held to them.
+    const members: Array<TeamMember> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
         userId: true,
         projectId: true,
         teamId: true,
@@ -645,72 +1193,110 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           shouldHaveAtLeastOneMember: true,
         } as Select<TeamMember>,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
-    // Check if SCIM is enabled for the project
-    if (
-      // check if not root.
-      !deleteBy.props.isRoot &&
-      members.length > 0 &&
-      members[0]?.projectId &&
-      (await this.isSCIMPushGroupsEnabled(members[0].projectId))
-    ) {
-      throw new BadDataException(
-        "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
-      );
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const member of members) {
+      if (member.projectId) {
+        projectIds.set(member.projectId.toString(), member.projectId);
+      }
     }
 
-    // check if there's one member in the team.
-    for (const member of members) {
-      OnCallDutyPolicyTimeLogService.endTimeForUser({
-        projectId: member.projectId!,
-        userId: member.userId!,
-        /*
-         * scope to the team being left so the user's still-active logs from
-         * other teams, direct escalation assignments, and schedule rosters stay
-         * open (audit F17).
-         */
-        teamId: member.teamId!,
-        endsAt: OneUptimeDate.getCurrentDate(),
-      }).catch((err: Error) => {
-        logger.error(err, {
-          projectId: member.projectId?.toString(),
-          userId: member.userId?.toString(),
-        } as LogAttributes);
-      });
+    // Whether SCIM Push Groups manages a project's teams, asked once each.
+    const pushGroupsManaged: Map<string, boolean> = new Map<string, boolean>();
+    const isPushGroupsManaged: (
+      projectId: ObjectID,
+    ) => Promise<boolean> = async (projectId: ObjectID): Promise<boolean> => {
+      const key: string = projectId.toString().toLowerCase();
+      let managed: boolean | undefined = pushGroupsManaged.get(key);
 
-      if (member.team?.shouldHaveAtLeastOneMember) {
-        if (!member.hasAcceptedInvitation) {
-          continue;
-        }
+      if (managed === undefined) {
+        managed = await this.isSCIMPushGroupsEnabled(projectId);
+        pushGroupsManaged.set(key, managed);
+      }
 
-        const membersInTeam: PositiveNumber = await this.countBy({
-          query: {
-            teamId: member.teamId!,
-            hasAcceptedInvitation: true,
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          props: {
-            isRoot: true,
-          },
-        });
+      return managed;
+    };
 
-        // Skip the one-member guard when SCIM manages membership for the project.
-        const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
-          member.projectId!,
-        );
-
-        if (!isPushGroupsManaged && membersInTeam.toNumber() <= 1) {
+    /*
+     * While SCIM Push Groups manages a project's teams, their members are
+     * managed from the identity provider: asked of every project the delete
+     * removes members of.
+     */
+    if (!deleteBy.props.isRoot) {
+      for (const projectId of projectIds.values()) {
+        if (await isPushGroupsManaged(projectId)) {
           throw new BadDataException(
-            Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
+            "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
           );
         }
+      }
+    }
+
+    /*
+     * A team that should have at least one member keeps one: its accepted
+     * members, less those this delete removes, must not come to none - one
+     * delete of several members is held to the same rule as several deletes
+     * of one. The members' on-call time logs are closed once they are
+     * actually removed (onDeleteSuccess), so a removal refused here leaves
+     * them on call.
+     */
+    const acceptedRemovedByTeam: Map<
+      string,
+      { teamId: ObjectID; projectId: ObjectID; removed: number }
+    > = new Map();
+
+    for (const member of members) {
+      if (
+        !member.team?.shouldHaveAtLeastOneMember ||
+        !member.hasAcceptedInvitation ||
+        !member.teamId ||
+        !member.projectId
+      ) {
+        continue;
+      }
+
+      const key: string = member.teamId.toString();
+      const removedOfTeam: {
+        teamId: ObjectID;
+        projectId: ObjectID;
+        removed: number;
+      } = acceptedRemovedByTeam.get(key) || {
+        teamId: member.teamId,
+        projectId: member.projectId,
+        removed: 0,
+      };
+
+      removedOfTeam.removed += 1;
+      acceptedRemovedByTeam.set(key, removedOfTeam);
+    }
+
+    for (const removedOfTeam of acceptedRemovedByTeam.values()) {
+      const membersInTeam: PositiveNumber = await this.countBy({
+        query: {
+          teamId: removedOfTeam.teamId,
+          hasAcceptedInvitation: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // Skip the one-member guard when SCIM manages membership for the project.
+      const managedBySCIM: boolean = await isPushGroupsManaged(
+        removedOfTeam.projectId,
+      );
+
+      if (
+        !managedBySCIM &&
+        membersInTeam.toNumber() - removedOfTeam.removed < 1
+      ) {
+        throw new BadDataException(
+          Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
+        );
       }
     }
 
@@ -723,7 +1309,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<TeamMember>,
+    itemIdsBeforeDelete?: Array<ObjectID>,
   ): Promise<OnDelete<TeamMember>> {
+    this.endOnCallTimeLogsOfRemovedMembers(
+      onDelete.carryForward as Array<TeamMember>,
+      itemIdsBeforeDelete,
+    );
+
     /*
      * remove-user-from-project deletes every membership of one user in one
      * deleteBy, so the same (user, project) can appear several times here;
@@ -802,15 +1394,24 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
 
       /*
-       * Before the notification settings go: the "removed from on-call
-       * policy" notices the cleanup triggers should still reach the person,
-       * exactly as they would for a manual removal. Then their roles on open
-       * incidents and their owner rows (see
-       * cleanupResourceAssignmentsIfUserLeftProject).
+       * Their on-call assignments, then their roles on open incidents and
+       * their owner rows (see cleanupResourceAssignmentsIfUserLeftProject).
+       * The "removed from on-call policy" notices those deletes trigger do
+       * not reach somebody who has left: they are no longer a member, and
+       * nothing of the project is sent to non-members (ProjectMembership).
        */
       const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
       if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
         leaveCleanupDone.add(cleanupKey);
+        /*
+         * First: what lets them, or a client acting for them, into the
+         * project on their own - the MCP clients they connected and their
+         * consent to its single sign-on.
+         */
+        await this.removeProjectAccessIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
         await this.cleanupOnCallAssignmentsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
@@ -828,6 +1429,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           projectId: item.projectId,
           userId: item.userId,
         });
+        /*
+         * Last: their own notification methods, rules and settings for the
+         * project, so joining again starts from the defaults.
+         */
+        await this.removePersonalNotificationSettingsIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
       }
 
       await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
@@ -841,6 +1450,53 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     return onDelete;
+  }
+
+  /*
+   * A removed member's open on-call time logs for the team they left end
+   * now. Only for the memberships the delete removed (DatabaseService hands
+   * their ids to onDeleteSuccess); called without them, every member read
+   * before the delete counts. Fire and forget, as before: a failure is
+   * logged.
+   */
+  private endOnCallTimeLogsOfRemovedMembers(
+    members: Array<TeamMember>,
+    removedIds: Array<ObjectID> | undefined,
+  ): void {
+    const removed: Set<string> | null = removedIds
+      ? new Set(
+          removedIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        )
+      : null;
+
+    for (const member of members || []) {
+      if (removed && (!member.id || !removed.has(member.id.toString()))) {
+        continue;
+      }
+
+      if (!member.projectId || !member.userId) {
+        continue;
+      }
+
+      OnCallDutyPolicyTimeLogService.endTimeForUser({
+        projectId: member.projectId,
+        userId: member.userId,
+        /*
+         * scope to the team being left so the user's still-active logs from
+         * other teams, direct escalation assignments, and schedule rosters stay
+         * open (audit F17).
+         */
+        teamId: member.teamId!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   /**
@@ -997,6 +1653,96 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         } as LogAttributes,
       );
       return 0;
+    }
+  }
+
+  /**
+   * A user who has left the project keeps no way into it: once they hold no
+   * accepted membership in ANY team of the project, the MCP clients they
+   * connected to it are disconnected and their consent to its single
+   * sign-on goes (see ProjectLeaveAccessCleanup). Joining again starts from
+   * nothing: a client has to be connected again, and on the hosted service
+   * the project's SSO asks the account's owner to confirm again. A revoked
+   * invitation runs it too.
+   *
+   * Best-effort: never throws into the delete path. Returns what was
+   * removed, or null when the user is still a member (or the check failed).
+   */
+  @CaptureSpan()
+  public async removeProjectAccessIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveRemovalResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveAccessCleanup.removeProjectAccess({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * A user who has left the project keeps nothing of it that could notify
+   * them: once they hold no accepted membership in ANY team of the project,
+   * their own notification methods (email, SMS, call, WhatsApp, Telegram,
+   * push, webhook, Slack, Microsoft Teams), notification rules, notification
+   * settings, email rollup preference and pending rollup mail, routed call
+   * number and shift reminders for the project are removed (see
+   * ProjectLeaveNotificationCleanup). Joining again starts from the
+   * defaults. A revoked invitation runs it too - a pending invitee has no
+   * business holding any of these either.
+   *
+   * Best-effort: never throws into the delete path. Returns null when the
+   * user is still a member (or the check failed).
+   */
+  @CaptureSpan()
+  public async removePersonalNotificationSettingsIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveRemovalResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
+        {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+      );
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
     }
   }
 
@@ -1395,6 +2141,30 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       });
 
     return [...new Set(memberIds)].length; //get unique member ids.
+  }
+
+  /*
+   * Whether the user has any membership in the project, a pending invitation
+   * included - which is what getUniqueTeamMemberCountInProject counts them
+   * by. isUserMemberOfProject answers the narrower question of whether they
+   * have accepted one.
+   */
+  @CaptureSpan()
+  private async hasMembershipInProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return count.toNumber() > 0;
   }
 
   /**

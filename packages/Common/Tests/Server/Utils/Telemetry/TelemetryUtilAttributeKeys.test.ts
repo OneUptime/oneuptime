@@ -16,8 +16,9 @@ jest.mock("../../../../Server/Services/DatabaseService", () => {
    * `class {}` therefore passes locally and dies in CI the moment this test's
    * import graph reaches one of those services, with a suite-level
    * "hardDeleteItemsOlderThanInDays is not a function" and no failing test to
-   * point at. Anything genuinely used by the code under test belongs in the
-   * test's own mocks, not here.
+   * point at. The state timeline services also call `keepRowsOnDeleteByQuery`
+   * from their constructors, always. Anything genuinely used by the code under
+   * test belongs in the test's own mocks, not here.
    */
   return {
     __esModule: true,
@@ -29,6 +30,10 @@ jest.mock("../../../../Server/Services/DatabaseService", () => {
       public setDoNotAllowDelete(): void {
         // no-op: delete-permission config, same.
       }
+
+      public keepRowsOnDeleteByQuery(): void {
+        // no-op: the rows a delete by query keeps, config too.
+      }
     },
   };
 });
@@ -38,6 +43,7 @@ import TelemetryUtil, {
 } from "../../../../Server/Utils/Telemetry/Telemetry";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -235,12 +241,7 @@ describe("TelemetryUtil.mergeAttributeKeysWithSortedBase", () => {
      * key alphabets, each checked element-for-element against the
      * reference derivation the old per-datapoint code used.
      */
-    let seed: number = 42;
-    const nextRandom: () => number = (): number => {
-      // Park-Miller minimal standard PRNG — deterministic across runs.
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
+    const nextRandom: SeededRandom = seededRandom(42);
 
     const alphabet: Array<string> = [
       "a",

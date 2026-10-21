@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkEndpoint";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -65,7 +65,7 @@ function truncateShortText(value: string | undefined): string | undefined {
     : value;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

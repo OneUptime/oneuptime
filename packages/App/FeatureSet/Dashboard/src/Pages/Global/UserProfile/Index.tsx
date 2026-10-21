@@ -7,13 +7,17 @@ import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <CardModelDetail
       cardProps={{
         title: "Basic Info",
-        description: "Here are some of your details.",
+        description:
+          "Your name and email as your team sees them, and the time zone OneUptime shows times in.",
       }}
       name="User Profile > Basic Info"
       onSaveSuccess={(user: User) => {
@@ -85,7 +89,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FieldType.Element,
             getElement: (user: User) => {
               if (!user.timezone) {
-                return <p>No timezone selected</p>;
+                return (
+                  <p>{translator.translateText("No timezone selected")}</p>
+                );
               }
 
               return <TimezoneElement timezone={user.timezone} />;

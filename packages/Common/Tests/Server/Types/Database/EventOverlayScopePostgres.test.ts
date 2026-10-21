@@ -14,6 +14,9 @@ import JSONFunctions from "../../../../Types/JSONFunctions";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../../Types/ObjectID";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import { TelemetryQuery } from "../../../../Types/Telemetry/TelemetryQuery";
+import TelemetryType from "../../../../Types/Telemetry/TelemetryType";
 import { DataSource, EntityMetadata, FindOptionsWhere } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
@@ -204,7 +207,7 @@ describePostgres("resource event overlays against Postgres", (): void => {
       await database.query(`CREATE TABLE "${schema}"."${model.name}" (
         "_id" uuid PRIMARY KEY, "projectId" uuid NOT NULL,
         "title" text, "createdAt" timestamptz, "deletedAt" timestamptz,
-        "monitorId" uuid, "seriesLabels" jsonb
+        "monitorId" uuid, "seriesLabels" jsonb, "telemetryQuery" jsonb
       )`);
       for (const definition of RELATIONS) {
         if (model === Alert && definition.relation === "monitors") {
@@ -621,6 +624,196 @@ describePostgres("resource event overlays against Postgres", (): void => {
             ),
           ),
         ).toEqual(["selected VM"]);
+      });
+    },
+  );
+
+  /*
+   * Issue #4472: a chart filtered to no resource overlays the incidents and
+   * alerts raised on the metric it plots, read from the telemetryQuery the
+   * monitor stored, through the API's own serialization and real jsonb
+   * containment.
+   */
+  describe.each([
+    ["Incident", Incident],
+    ["Alert", Alert],
+  ] as const)(
+    "%s on a chart filtered to no resource",
+    (_name: string, model: typeof Incident | typeof Alert): void => {
+      const CHARTED: string = "container_cpu_cfs_periods_total";
+
+      function unscoped(...metricNames: Array<string>): EventOverlayScope {
+        return getEventOverlayScope(
+          metricNames.map((metricName: string): MetricQueryConfigData => {
+            return {
+              metricQueryData: {
+                filterData: {
+                  metricName,
+                  attributes: {},
+                  aggegationType: MetricsAggregationType.Avg,
+                },
+              },
+            };
+          }),
+        );
+      }
+
+      /*
+       * What MonitorResource stores for a metric-evaluating monitor: every
+       * query of its step (filters, grouping and all) and its formulas.
+       */
+      function raisedOn(...metricNames: Array<string>): TelemetryQuery {
+        return {
+          telemetryType: TelemetryType.Metric,
+          telemetryQuery: null,
+          metricViewData: {
+            startAndEndDate: new InBetween<Date>(start, end),
+            queryConfigs: metricNames.map(
+              (metricName: string, index: number): MetricQueryConfigData => {
+                return {
+                  metricAliasData: {
+                    metricVariable: String.fromCharCode(97 + index),
+                    title: metricName,
+                    description: "",
+                    legend: "",
+                    legendUnit: "%",
+                  },
+                  metricQueryData: {
+                    filterData: {
+                      metricName,
+                      attributes: {
+                        "resource.k8s.cluster.name": "prod",
+                        "resource.k8s.namespace.name": new Includes([
+                          "checkout",
+                          "payments",
+                        ]),
+                      },
+                      aggegationType: MetricsAggregationType.Max,
+                    },
+                    groupByAttributeKeys: ["resource.k8s.pod.name"],
+                  },
+                };
+              },
+            ),
+            formulaConfigs:
+              metricNames.length > 1
+                ? [
+                    {
+                      metricAliasData: {
+                        metricVariable: "f",
+                        title: "Ratio",
+                        description: "",
+                        legend: "",
+                        legendUnit: "",
+                      },
+                      metricFormulaData: { metricFormula: "a / b" },
+                    },
+                  ]
+                : [],
+          },
+        };
+      }
+
+      async function seedEvent(
+        title: string,
+        telemetryQuery: TelemetryQuery | null,
+        options: { projectId?: string; time?: Date; deleted?: boolean } = {},
+      ): Promise<void> {
+        // JSON.stringify is what TypeORM writes to a jsonb column.
+        await database.query(
+          `INSERT INTO "${schema}"."${model.name}" ("_id", "projectId", "title", "createdAt", "deletedAt", "telemetryQuery") VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            ObjectID.generate().toString(),
+            options.projectId || projectId,
+            title,
+            options.time || new Date("2026-09-01T10:10:00Z"),
+            options.deleted ? start : null,
+            telemetryQuery ? JSON.stringify(telemetryQuery) : null,
+          ],
+        );
+      }
+
+      test("finds what was raised on the charted metric, before the limit, and nothing else", async (): Promise<void> => {
+        await seedEvent("raised on the metric", raisedOn(CHARTED));
+        await seedEvent(
+          "raised on the metric beside another",
+          raisedOn("container_cpu_cfs_throttled_periods_total", CHARTED),
+        );
+        await seedEvent(
+          "another metric",
+          raisedOn("container_memory_working_set_bytes"),
+        );
+        await seedEvent(
+          "a shorter name",
+          raisedOn("container_cpu_cfs_periods"),
+        );
+        await seedEvent("a longer name", raisedOn(`${CHARTED}_seconds`));
+        await seedEvent("a log monitor", {
+          telemetryType: TelemetryType.Log,
+          telemetryQuery: { body: CHARTED },
+          metricViewData: null,
+        } as TelemetryQuery);
+        await seedEvent("a status page monitor", null);
+        await seedEvent("another project", raisedOn(CHARTED), {
+          projectId: foreignProjectId,
+        });
+        await seedEvent("deleted", raisedOn(CHARTED), { deleted: true });
+        await seedEvent("before", raisedOn(CHARTED), {
+          time: new Date(start.getTime() - 1),
+        });
+        await seedEvent("after", raisedOn(CHARTED), {
+          time: new Date(end.getTime() + 1),
+        });
+        for (let index: number = 0; index < 60; index++) {
+          await seedEvent(`newer status page outage ${index}`, null, {
+            time: new Date("2026-09-01T10:30:00Z"),
+          });
+        }
+
+        expect(await findTitles(model, unscoped(CHARTED))).toEqual([
+          "raised on the metric",
+          "raised on the metric beside another",
+        ]);
+      });
+
+      test("a chart of two unscoped metrics finds what was raised on either", async (): Promise<void> => {
+        await seedEvent("cpu", raisedOn(CHARTED));
+        await seedEvent(
+          "memory",
+          raisedOn("container_memory_working_set_bytes"),
+        );
+        await seedEvent("network", raisedOn("container_network_receive_bytes"));
+        await seedEvent("status page", null);
+
+        expect(
+          await findTitles(
+            model,
+            unscoped(CHARTED, "container_memory_working_set_bytes"),
+          ),
+        ).toEqual(["cpu", "memory"]);
+      });
+
+      test("matches a metric name with JSON, LIKE and SQL metacharacters as plain text", async (): Promise<void> => {
+        const name: string = `it's "odd" % _ \\ metric'); DROP TABLE x; --`;
+        await seedEvent("exact", raisedOn(name));
+        await seedEvent("prefix", raisedOn("it's"));
+        await seedEvent("wildcard lookalike", raisedOn('it\'s "odd" anything'));
+
+        expect(await findTitles(model, unscoped(name))).toEqual(["exact"]);
+      });
+
+      test("a chart filtered to a resource still reads that resource's events, whatever fired them", async (): Promise<void> => {
+        await seed(model, "hosts", "the host's outage", selectedId);
+        await seedEvent("raised on the metric elsewhere", raisedOn("latency"));
+
+        expect(
+          await findTitles(
+            model,
+            getEventOverlayScope(
+              configs({ "resource.host.name": selectedName }),
+            ),
+          ),
+        ).toEqual(["the host's outage"]);
       });
     },
   );

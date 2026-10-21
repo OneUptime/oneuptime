@@ -6,6 +6,7 @@ import SnmpSecurityLevel from "./SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "./SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "./SnmpMonitor/SnmpPrivProtocol";
 import { parseMonitorStepRetries } from "./MonitorStepRetries";
+import { SnmpTableWalkRequest } from "./SnmpMonitor/SnmpTable";
 
 export default interface MonitorStepSnmpMonitor {
   snmpVersion: SnmpVersion;
@@ -26,6 +27,13 @@ export default interface MonitorStepSnmpMonitor {
    * and reports per-interface status, bandwidth, and error metrics.
    */
   monitorInterfaces?: boolean | undefined;
+  /*
+   * SNMP tables to walk on every check - the device's effective tables
+   * (OID Collection Template plus device-specific), reduced to the column
+   * OIDs and row limit the probe needs. Only ever built by the server for
+   * Network Devices; absent everywhere else.
+   */
+  tables?: Array<SnmpTableWalkRequest> | undefined;
 }
 
 export class MonitorStepSnmpMonitorUtil {
@@ -60,7 +68,44 @@ export class MonitorStepSnmpMonitorUtil {
       // 0 retries is a real answer and must survive the round-trip.
       retries: parseMonitorStepRetries(json["retries"], 3),
       monitorInterfaces: Boolean(json["monitorInterfaces"]),
+      tables: MonitorStepSnmpMonitorUtil.parseTables(json["tables"]),
     };
+  }
+
+  /*
+   * Lenient on purpose: this parses what the server handed out, so a
+   * malformed entry is skipped rather than failing the whole check.
+   */
+  private static parseTables(
+    value: unknown,
+  ): Array<SnmpTableWalkRequest> | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const tables: Array<SnmpTableWalkRequest> = [];
+
+    for (const entry of value as Array<JSONObject>) {
+      const key: unknown = entry?.["key"];
+      const columnOids: unknown = entry?.["columnOids"];
+      const maxRows: unknown = entry?.["maxRows"];
+
+      if (typeof key !== "string" || !key || !Array.isArray(columnOids)) {
+        continue;
+      }
+
+      tables.push({
+        key: key,
+        columnOids: (columnOids as Array<unknown>).filter(
+          (oid: unknown): oid is string => {
+            return typeof oid === "string" && oid.length > 0;
+          },
+        ),
+        maxRows: typeof maxRows === "number" && maxRows > 0 ? maxRows : 100,
+      });
+    }
+
+    return tables.length > 0 ? tables : undefined;
   }
 
   private static parseSnmpV3Auth(json: JSONObject): SnmpV3Auth {
@@ -112,6 +157,17 @@ export class MonitorStepSnmpMonitorUtil {
       timeout: monitor.timeout,
       retries: monitor.retries,
       monitorInterfaces: monitor.monitorInterfaces,
+      ...(monitor.tables && monitor.tables.length > 0
+        ? {
+            tables: monitor.tables.map((table: SnmpTableWalkRequest) => {
+              return {
+                key: table.key,
+                columnOids: table.columnOids,
+                maxRows: table.maxRows,
+              };
+            }),
+          }
+        : {}),
     };
   }
 }

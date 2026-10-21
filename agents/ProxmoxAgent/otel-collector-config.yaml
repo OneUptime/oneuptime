@@ -103,6 +103,12 @@ processors:
       - key: proxmox.cluster.name
         value: "${env:PROXMOX_CLUSTER_NAME}"
         action: upsert
+      # Shown as the agent version on the cluster's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
       # name, "oneuptime-proxmox") and service.instance.id on every batch
       # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime

@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -12,30 +13,31 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CephDocumentationCard from "../../Components/Ceph/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/CephMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -120,9 +122,10 @@ const renderCapacityBar: (
 const CephClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CephCluster>({
+    modelType: CephCluster,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CephCluster>({ modelType: CephCluster });
@@ -162,6 +165,7 @@ const CephClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -174,74 +178,34 @@ const CephClusters: FunctionComponent<
     extraFacets: cephExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: CephCluster,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  /*
-   * Live first-data flip (WI-18): while the project has zero clusters the
-   * user is staring at the install guide after pasting the agent command —
-   * re-count every 10s so the page flips to the table on first data
-   * without a hard refresh. The effect re-runs when clusterCount changes,
-   * so the interval is cleared as soon as the count goes nonzero (and on
-   * unmount). Poll failures are swallowed — the next tick retries.
-   */
-  useEffect(() => {
-    if (clusterCount !== 0) {
-      return;
-    }
-
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: CephCluster,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setClusterCount(count);
-          }
-        })
-        .catch(() => {
-          // Best-effort poll — keep showing the install guide.
-        });
-    }, 10 * 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [clusterCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
     <Fragment>
       <ModelTable<CephCluster>
         modelType={CephCluster}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="ceph-clusters-table"
         userPreferencesKey="ceph-clusters-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -249,12 +213,11 @@ const CephClusters: FunctionComponent<
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: CephCluster): Promise<CephCluster> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
@@ -285,7 +248,7 @@ const CephClusters: FunctionComponent<
             required: true,
             placeholder: "production-ceph-cluster",
             description:
-              "This is the join key — it must match the ceph.cluster.name resource attribute reported by the Ceph Agent (the CEPH_CLUSTER_NAME environment variable).",
+              "Must match the ceph.cluster.name the Ceph Agent reports (its CEPH_CLUSTER_NAME).",
           },
           {
             field: {
@@ -296,22 +259,7 @@ const CephClusters: FunctionComponent<
             required: false,
             placeholder: "Production Ceph cluster running in US East",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<CephCluster>(),
         ]}
         columns={[
           {
@@ -369,7 +317,9 @@ const CephClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -397,7 +347,10 @@ const CephClusters: FunctionComponent<
                     allUp ? "text-gray-900" : "text-amber-700"
                   }`}
                 >
-                  {up} up / {inCount} in / {total} total
+                  {translator.translateTemplate(
+                    "{{up}} up / {{in}} in / {{total}} total",
+                    { up: up, in: inCount, total: total },
+                  )}
                 </span>
               );
             },
@@ -505,10 +458,10 @@ const CephClusters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <CephDocumentationCard
           title="Getting Started with Ceph Monitoring"
-          description="No Ceph clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

@@ -40,10 +40,7 @@ describe("ConfigManager", () => {
   describe("load", () => {
     it("should return default config when no config file exists", () => {
       const config: CLIConfig = ConfigManager.load();
-      expect(config.currentContext).toBe("");
-      expect(config.contexts).toEqual({});
-      expect(config.defaults.output).toBe("table");
-      expect(config.defaults.limit).toBe(10);
+      expect(config).toEqual({ currentContext: "", contexts: {} });
     });
 
     it("should load existing config from file", () => {
@@ -52,7 +49,6 @@ describe("ConfigManager", () => {
         contexts: {
           test: { name: "test", apiUrl: "https://test.com", apiKey: "key123" },
         },
-        defaults: { output: "json", limit: 20 },
       };
       if (!fs.existsSync(CONFIG_DIR)) {
         fs.mkdirSync(CONFIG_DIR, { recursive: true });
@@ -64,6 +60,35 @@ describe("ConfigManager", () => {
       const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("test");
       expect(config.contexts["test"]?.apiKey).toBe("key123");
+    });
+
+    it("should load a config that still has the defaults block older versions wrote", () => {
+      if (!fs.existsSync(CONFIG_DIR)) {
+        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+      }
+      fs.writeFileSync(
+        CONFIG_FILE,
+        JSON.stringify({
+          currentContext: "legacy",
+          contexts: {
+            legacy: {
+              name: "legacy",
+              apiUrl: "https://legacy.com",
+              apiKey: "legacy-key",
+            },
+          },
+          defaults: { output: "table", limit: 10 },
+        }),
+        { mode: 0o600 },
+      );
+
+      const creds: ResolvedCredentials = ConfigManager.getResolvedCredentials(
+        {},
+      );
+      expect(creds).toEqual({
+        apiKey: "legacy-key",
+        apiUrl: "https://legacy.com",
+      });
     });
 
     it("should return default config when file contains invalid JSON", () => {
@@ -92,7 +117,6 @@ describe("ConfigManager", () => {
       const config: CLIConfig = {
         currentContext: "",
         contexts: {},
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       expect(fs.existsSync(CONFIG_FILE)).toBe(true);
@@ -105,7 +129,6 @@ describe("ConfigManager", () => {
         contexts: {
           x: { name: "x", apiUrl: "https://x.com", apiKey: "k" },
         },
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       const content: string = fs.readFileSync(CONFIG_FILE, "utf-8");
@@ -124,7 +147,6 @@ describe("ConfigManager", () => {
       const config: CLIConfig = {
         currentContext: "ghost",
         contexts: {},
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       expect(ConfigManager.getCurrentContext()).toBeNull();
@@ -365,6 +387,70 @@ describe("ConfigManager", () => {
       expect(creds.apiUrl).toBe("https://named.com");
     });
 
+    it("should use an env API key with the --context URL", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      ConfigManager.addContext({
+        name: "current",
+        apiUrl: "https://current.com",
+        apiKey: "current-key",
+      });
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({ context: "named" }),
+      ).toEqual({
+        apiKey: "env-key",
+        apiUrl: "https://named.com",
+      });
+    });
+
+    it("should use an env URL with the --context API key", () => {
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({ context: "named" }),
+      ).toEqual({
+        apiKey: "named-key",
+        apiUrl: "https://env.com",
+      });
+    });
+
+    it("should prefer a CLI API key over env and --context", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({
+          apiKey: "cli-key",
+          context: "named",
+        }),
+      ).toEqual({
+        apiKey: "cli-key",
+        apiUrl: "https://named.com",
+      });
+    });
+
+    it("should throw for a missing --context even with a partial env var", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+
+      expect(() => {
+        return ConfigManager.getResolvedCredentials({ context: "nope" });
+      }).toThrow('Context "nope" does not exist');
+    });
+
     it("should throw when --context flag references non-existent context", () => {
       expect(() => {
         return ConfigManager.getResolvedCredentials({ context: "nope" });
@@ -405,7 +491,7 @@ describe("ConfigManager", () => {
       expect(creds.apiUrl).toBe("https://partial.com");
     });
 
-    it("should combine partial env var with context", () => {
+    it("should use an env API key with the current context URL", () => {
       process.env["ONEUPTIME_API_KEY"] = "env-key";
       ConfigManager.addContext({
         name: "ctx",
@@ -416,13 +502,22 @@ describe("ConfigManager", () => {
       const creds: ResolvedCredentials = ConfigManager.getResolvedCredentials(
         {},
       );
-      /*
-       * env vars take priority: both are set so goes through priority 2
-       * Actually, only ONEUPTIME_API_KEY is set, not ONEUPTIME_URL
-       * So it falls through to priority 4 (current context)
-       */
-      expect(creds.apiKey).toBe("ctx-key");
+      expect(creds.apiKey).toBe("env-key");
       expect(creds.apiUrl).toBe("https://ctx.com");
+    });
+
+    it("should combine a URL env var with the current context", () => {
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+      ConfigManager.addContext({
+        name: "ctx",
+        apiUrl: "https://ctx.com",
+        apiKey: "ctx-key",
+      });
+
+      expect(ConfigManager.getResolvedCredentials({})).toEqual({
+        apiKey: "ctx-key",
+        apiUrl: "https://env.com",
+      });
     });
 
     it("should throw when no credentials available at all", () => {
@@ -441,6 +536,30 @@ describe("ConfigManager", () => {
       });
       expect(creds.apiKey).toBe("cli-key");
       expect(creds.apiUrl).toBe("https://cli.com");
+    });
+
+    it("should apply a single CLI API key over env credentials", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+
+      expect(
+        ConfigManager.getResolvedCredentials({ apiKey: "cli-key" }),
+      ).toEqual({
+        apiKey: "cli-key",
+        apiUrl: "https://env.com",
+      });
+    });
+
+    it("should apply a single CLI URL over env credentials", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+
+      expect(
+        ConfigManager.getResolvedCredentials({ url: "https://cli.com" }),
+      ).toEqual({
+        apiKey: "env-key",
+        apiUrl: "https://cli.com",
+      });
     });
   });
 });

@@ -32,6 +32,7 @@ RunCron(
   },
 );
 
+// Marks a certificate provisioned once the domain serves it; never orders.
 RunCron(
   "StatusPageCerts:CheckSslProvisioningStatus",
   {
@@ -45,6 +46,11 @@ RunCron(
   },
 );
 
+/*
+ * Orders the first certificate of every verified domain still without one,
+ * StatusPageDomainService.ORDER_MAX_PER_RUN at most: the fallback for a
+ * domain whose order at Check now, or in the verification run, failed.
+ */
 RunCron(
   "StatusPageCerts:OrderSSL",
   {
@@ -83,25 +89,38 @@ RunCron(
   },
 );
 
+/*
+ * Verifies the domains whose CNAME record is not verified yet, and orders
+ * the free certificate of each one verified in this run straight away
+ * (StatusPageDomainService.ORDER_MAX_PER_RUN at most), so a domain is on its
+ * own certificate within about 15 minutes of its record going live whether
+ * or not anyone clicked Check now. An order can take a while, hence a
+ * timeout of its own.
+ */
 RunCron(
   "StatusPageCerts:VerifyCnameWhoseCnameisNotVerified",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
     runOnStartup: false,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
   async () => {
     await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
   },
 );
 
+/*
+ * Re-orders the certificate of a domain that is marked ordered but whose
+ * certificate is gone, StatusPageDomainService.ORDER_MAX_PER_RUN at most.
+ */
 RunCron(
   "StatusPageCerts:CheckOrderStatus",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
     runOnStartup: false,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
   async () => {
-    // checks if the certificate exists for the domains that have ordered certificates, otherwise orders again,
     await StatusPageDomainService.checkOrderStatus();
   },
 );

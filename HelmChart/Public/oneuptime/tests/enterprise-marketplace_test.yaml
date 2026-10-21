@@ -1,0 +1,422 @@
+# Billing a self-hosted Enterprise installation through the cloud marketplace
+# it was bought on (enterpriseMarketplace), by the user-hour.
+#
+# Every App-image process enforces the license, and a marketplace-bought
+# installation's license is the marketplace's - so app, worker and telemetry
+# writer are all told WHICH marketplace (ENTERPRISE_MARKETPLACE). Only the app
+# and the worker run the usage job, so only they get what reporting needs:
+# Microsoft's extension identity, plan and resource from global.azure, and
+# Google's reporting secret. A wrong secret name can then stop only those
+# two pods, never nginx, the probes or the runner.
+suite: enterprise marketplace billing
+release:
+  name: oneuptime
+  namespace: oneuptime
+set:
+  worker:
+    enabled: true
+  telemetryWriter:
+    enabled: true
+tests:
+  - it: names no marketplace by default (app)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: names no marketplace by default (worker)
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: names no marketplace by default (telemetry-writer)
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: tells the app and the worker they bill AWS Marketplace, with the Region fallback (app)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: aws
+      enterpriseMarketplace.aws.region: eu-west-1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: aws
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AWS_REGION
+            value: eu-west-1
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+
+  - it: tells the app and the worker they bill AWS Marketplace, with the Region fallback (worker)
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: aws
+      enterpriseMarketplace.aws.region: eu-west-1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: aws
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AWS_REGION
+            value: eu-west-1
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+
+  - it: leaves the Region to EKS when no fallback is set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: aws
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AWS_REGION
+          any: true
+
+  - it: tells the telemetry writer only which marketplace licenses the installation
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.serviceName: oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: google-cloud
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_SERVICE_NAME
+          any: true
+
+  - it: passes the extension identity, plan and resource Azure fills in to the app and the worker (app)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: azure
+      global.azure.identity.clientId: 6f1d1e8c-1111-4a2b-9c3d-123456789abc
+      global.azure.marketplace.planId: enterprise
+      global.azure.extension.resourceId: /subscriptions/0000/resourceGroups/rg/providers/Microsoft.ContainerService/managedClusters/aks/providers/Microsoft.KubernetesConfiguration/extensions/oneuptime
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: azure
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_CLIENT_ID
+            value: 6f1d1e8c-1111-4a2b-9c3d-123456789abc
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_PLAN_ID
+            value: enterprise
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+            value: /subscriptions/0000/resourceGroups/rg/providers/Microsoft.ContainerService/managedClusters/aks/providers/Microsoft.KubernetesConfiguration/extensions/oneuptime
+
+  - it: passes the extension identity, plan and resource Azure fills in to the app and the worker (worker)
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: azure
+      global.azure.identity.clientId: 6f1d1e8c-1111-4a2b-9c3d-123456789abc
+      global.azure.marketplace.planId: enterprise
+      global.azure.extension.resourceId: /subscriptions/0000/resourceGroups/rg/providers/Microsoft.ContainerService/managedClusters/aks/providers/Microsoft.KubernetesConfiguration/extensions/oneuptime
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: azure
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_CLIENT_ID
+            value: 6f1d1e8c-1111-4a2b-9c3d-123456789abc
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_PLAN_ID
+            value: enterprise
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+            value: /subscriptions/0000/resourceGroups/rg/providers/Microsoft.ContainerService/managedClusters/aks/providers/Microsoft.KubernetesConfiguration/extensions/oneuptime
+
+  - it: passes Azure's placeholders through as they are, for the server to recognise
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: azure
+      global.azure.identity.clientId: DONOTMODIFY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_CLIENT_ID
+            value: DONOTMODIFY
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_AZURE_PLAN_ID
+            value: ""
+
+  - it: reads Google's reporting secret by its documented keys, for the app and the worker (app)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.serviceName: oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_SERVICE_NAME
+            value: oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: consumer-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: entitlement-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: reporting-key
+
+  - it: reads Google's reporting secret by its documented keys, for the app and the worker (worker)
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.serviceName: oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_SERVICE_NAME
+            value: oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: consumer-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: entitlement-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-reporting-secret
+                key: reporting-key
+
+  - it: references no secret when Google's reporting secret is not named
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+            value: google-cloud
+
+  - it: never gives the reporting secret to nginx, the probes or the runner (nginx)
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: never gives the reporting secret to nginx, the probes or the runner (probe)
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: never gives the reporting secret to nginx, the probes or the runner (runner)
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      enterpriseMarketplace.provider: google-cloud
+      enterpriseMarketplace.googleCloud.reportingSecret: oneuptime-reporting-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENTERPRISE_MARKETPLACE
+          any: true
+
+  - it: refuses a provider the chart does not know
+    templates:
+      - templates/app.yaml
+    set:
+      enterpriseMarketplace.provider: oracle
+    asserts:
+      - failedTemplate: {}

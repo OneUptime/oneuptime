@@ -5,11 +5,19 @@ import {
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import SafeHtml from "Common/Types/SafeHtml";
 import SmsStatus from "Common/Types/SmsStatus";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Text from "Common/Types/Text";
+import {
+  fitTextToLength,
+  MAX_SMS_LENGTH,
+  TRUNCATED_TEXT_NOTE_PLAIN,
+} from "Common/Utils/MessageFit";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
   Host,
@@ -21,10 +29,28 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import {
+  getNoTwilioAccountMessage,
+  TwilioMessageKind,
+} from "Common/Utils/Project/TwilioAccount";
+import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
@@ -49,13 +75,45 @@ export default class SmsService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Throw when the SMS is deliberately not sent - the project was not
+       * found, has SMS notifications turned off, or has too little balance -
+       * instead of returning as if it went out. The SMS log and the owners'
+       * email are written either way. Status page subscriber sends that count
+       * what they delivered pass it, so such an SMS counts as failed, not
+       * sent; everyone else keeps the quiet return.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
     const startNs: bigint = process.hrtime.bigint();
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.sendSmsInternal(to, message, options);
+      const notSentReason: string | null = await this.sendSmsInternal(
+        to,
+        // The installation's own name, when it goes by one.
+        ProductBrandingText.brandText(message),
+        options,
+      );
+
+      /*
+       * Deliberately not sent: the person's on-call timeline says so, and
+       * why, instead of "Sending" for ever.
+       */
+      if (notSentReason !== null) {
+        await UserOnCallLogTimelineService.markNotSent({
+          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+          reason: notSentReason,
+        });
+      }
+
+      if (notSentReason !== null && options.failIfNotSent) {
+        // The tenant's settings or balance, not a defect: a user error.
+        throw new BadDataException(
+          `SMS not sent: ${notSentReason}`,
+        ).asUserError();
+      }
     } catch (err) {
       outcome = "failure";
       throw err;
@@ -93,8 +151,16 @@ export default class SmsService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      failIfNotSent?: boolean | undefined;
     },
-  ): Promise<void> {
+  ): Promise<string | null> {
+    /*
+     * Returns why the SMS was deliberately not sent (the project was not
+     * found, has SMS turned off, or has too little balance), after logging
+     * it; null when it was handed to Twilio. A failure to send throws. The
+     * on-call timeline row of an SMS not sent is updated by sendSms, from
+     * the reason this returns.
+     */
     let smsError: Error | null = null;
     const smsLog: SmsLog = new SmsLog();
     /*
@@ -104,34 +170,63 @@ export default class SmsService {
     let smsLogId: ObjectID | null = null;
 
     try {
-      // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
-      const smsSegments: number = Math.ceil(message.length / 160);
-
       message = Text.trimLines(message);
 
-      let smsCost: number = 0;
+      /*
+       * Twilio refuses an SMS body of more than 1,600 characters (error
+       * 21617), and the message is lost: a longer one - a template that
+       * placed a description - is cut to fit, and ends with a note, in
+       * characters every SMS encoding has, that the rest is in OneUptime.
+       */
+      message = fitTextToLength(
+        message,
+        MAX_SMS_LENGTH,
+        TRUNCATED_TEXT_NOTE_PLAIN,
+      );
+
+      // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
+      const smsSegments: number = Math.ceil(message.length / 160);
 
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
-      if (shouldChargeForSMS) {
-        smsCost = SMSDefaultCostInCents / 100;
-
-        if (isHighRiskPhoneNumber(to)) {
-          smsCost = SMSHighRiskCostInCents / 100;
-        }
-      }
-
-      if (smsSegments > 1) {
-        smsCost = smsCost * smsSegments;
-      }
+      // What it costs, in whole cents: every segment is charged.
+      const smsCostInUSDCents: number = shouldChargeForSMS
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: isHighRiskPhoneNumber(to)
+              ? SMSHighRiskCostInCents
+              : SMSDefaultCostInCents,
+            parts: smsSegments,
+          })
+        : 0;
 
       smsLog.toNumber = to;
+
+      /*
+       * The copy of the message that is kept: the SMS log, and the owners'
+       * email when it cannot be sent. Status page subscriber messages carry
+       * the subscriber's unsubscribe link, whose token lets its holder cancel
+       * the subscription without signing in - and the SMS log is readable by
+       * project members who may not touch subscribers (Viewer, Read SMS Log).
+       * So the token is kept out of every copy; only Twilio gets the message
+       * as written.
+       */
+      const loggedMessage: string =
+        StatusPageSubscriberUnsubscribe.redactCredentials(message);
 
       smsLog.smsText =
         options && options.isSensitive
           ? "This message is sensitive and is not logged"
-          : message;
+          : loggedMessage;
+
+      /*
+       * The same copy as it goes into the owners' email - a sensitive one
+       * (a verification code) stays out of it, as it stays out of the log -
+       * whose message is placed as HTML: the text is plain - incident
+       * titles, resource names, custom field values - so any markup in it is
+       * shown, not rendered.
+       */
+      const loggedMessageHtml: string = SafeHtml.escape(smsLog.smsText);
       smsLog.smsCostInUSDCents = 0;
 
       if (options.projectId) {
@@ -200,8 +295,13 @@ export default class SmsService {
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty). Failing to send
          * is the correct behaviour, not a defect, so do not open an Issue.
+         * The log, and anyone waiting on this SMS, are told what is missing
+         * and who can add it (Utils/Project/TwilioAccount) - not "Twilio
+         * Config not found".
          */
-        throw new BadDataException("Twilio Config not found").asUserError();
+        throw new BadDataException(
+          getNoTwilioAccountMessage(TwilioMessageKind.SMS),
+        ).asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -209,11 +309,15 @@ export default class SmsService {
         twilioConfig.authToken,
       );
 
-      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+      /*
+       * One of the numbers the config sends SMS from: its SMS numbers when
+       * it has them, never a number it keeps for calls only
+       * (TwilioPhoneNumbers).
+       */
+      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
+        config: twilioConfig,
+        kind: TwilioMessageKind.SMS,
         to: to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        secondaryPhoneNumbersToPickFrom:
-          twilioConfig.secondaryPhoneNumbers || [],
       });
 
       smsLog.fromNumber = fromNumber;
@@ -247,12 +351,14 @@ export default class SmsService {
               isRoot: true,
             },
           });
-          return;
+          return smsLog.statusMessage!;
         }
 
         if (!project.enableSmsNotifications) {
           smsLog.status = SmsStatus.Error;
-          smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
+          smsLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.SMS,
+          );
           // The project turned SMS off. Refusing to send is the setting working.
           logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
           await SmsLogService.create({
@@ -274,10 +380,15 @@ export default class SmsService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "SMS notifications not enabled for " + (project.name || ""),
-              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
+              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.SMS,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
-          return;
+          return smsLog.statusMessage!;
         }
 
         if (shouldChargeForSMS) {
@@ -294,9 +405,30 @@ export default class SmsService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+          /*
+           * Nothing left, or less than this SMS costs. The log (which the
+           * project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          if (!balanceInUSDCents || balanceInUSDCents < smsCostInUSDCents) {
+            const shortfall: {
+              channel: ProjectNotificationChannel;
+              balanceInUSDCents: number;
+              costInUSDCents: number;
+            } = {
+              channel: ProjectNotificationChannel.SMS,
+              balanceInUSDCents: balanceInUSDCents,
+              costInUSDCents: smsCostInUSDCents,
+            };
+
             smsLog.status = SmsStatus.LowBalance;
-            smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
+            smsLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             // Tenant billing state, not a defect — the owners get emailed below.
             logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
             await SmsLogService.create({
@@ -306,59 +438,26 @@ export default class SmsService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`,
+                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
-            return;
-          }
-
-          if (project.smsOrCallCurrentBalanceInUSDCents < smsCost * 100) {
-            smsLog.status = SmsStatus.LowBalance;
-            smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
-              project.smsOrCallCurrentBalanceInUSDCents / 100
-            } USD. Required balance is ${smsCost} USD to send this SMS.`;
-            // Tenant billing state, not a defect — the owners get emailed below.
-            logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
-            await SmsLogService.create({
-              data: smsLog,
-              props: {
-                isRoot: true,
-              },
-            });
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
-              await ProjectService.sendEmailToProjectOwners(
-                project.id!,
-                "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                  project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${smsCost} USD to send this SMS. Please enable auto recharge or recharge manually.`,
-              );
-            }
-            return;
+            return smsLog.statusMessage!;
           }
         }
       }
@@ -416,22 +515,13 @@ export default class SmsService {
       logger.debug(smsLog.statusMessage);
 
       if (shouldChargeForSMS && project) {
-        smsLog.smsCostInUSDCents = smsCost * 100;
+        smsLog.smsCostInUSDCents = smsCostInUSDCents;
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
-          project.smsOrCallCurrentBalanceInUSDCents! - smsCost * 100,
-        );
-
-        await ProjectService.updateOneById({
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
+        // Paid in one statement, from whatever the balance is now.
+        await MessagingBalance.payForSentMessage({
+          projectId: project.id!,
+          channel: ProjectNotificationChannel.SMS,
+          costInUSDCents: smsCostInUSDCents,
         });
       }
     } catch (e: any) {
@@ -451,7 +541,8 @@ export default class SmsService {
       logger.error("SMS message failed to send.");
       logger.error(smsLog.statusMessage);
 
-      smsError = e;
+      // Twilio's refusal keeps its words on the way out (TwilioSendError).
+      smsError = TwilioSendError.toSendError(e, TwilioSendKind.SMS) as Error;
     }
 
     if (options.projectId) {
@@ -506,6 +597,8 @@ export default class SmsService {
     if (smsError) {
       throw smsError;
     }
+
+    return null;
   }
 
   /**

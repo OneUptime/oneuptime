@@ -13,8 +13,9 @@ import React, {
 } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -39,10 +40,15 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { includeLegacyIncomingCallPolicyPhoneNumber } from "../../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IncomingCallAnswerCallsOffBanner from "../../../Components/IncomingCallPolicy/IncomingCallAnswerCallsOffBanner";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
@@ -61,6 +67,14 @@ const IncomingCallPolicyView: FunctionComponent<
   const [isLoadingTwilioConfigs, setIsLoadingTwilioConfigs] =
     useState<boolean>(false);
   const [escalationRulesCount, setEscalationRulesCount] = useState<number>(0);
+  /*
+   * Whether the policy answers calls (its Answer Calls switch, isEnabled).
+   * Off, the page opens with a banner that turns calls back on in place;
+   * a policy whose switch could not be read is not called off.
+   */
+  const [isAnsweringCalls, setIsAnsweringCalls] = useState<boolean>(true);
+  // Toggled to read the details card again: its Status follows the switch.
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
   // Fetch policy data and escalation rules count
   useAsyncEffect(async () => {
@@ -75,6 +89,7 @@ const IncomingCallPolicyView: FunctionComponent<
             modelType: IncomingCallPolicy,
             id: modelId,
             select: {
+              isEnabled: true,
               projectCallSMSConfigId: true,
               projectCallSMSConfig: {
                 name: true,
@@ -118,6 +133,7 @@ const IncomingCallPolicyView: FunctionComponent<
         ]);
 
       setPolicy(fetchedPolicy);
+      setIsAnsweringCalls(fetchedPolicy?.isEnabled !== false);
       setEscalationRulesCount(rulesCount);
       setPhoneNumbers(
         fetchedPolicy
@@ -175,38 +191,68 @@ const IncomingCallPolicyView: FunctionComponent<
   const isSetupComplete: boolean =
     hasTwilioConfig && hasPhoneNumbers && hasEscalationRules;
 
-  return (
-    <Fragment>
-      {/* Policy Details Card */}
-      <CardModelDetail<IncomingCallPolicy>
-        name="Incoming Call Policy > Details"
-        cardProps={{
-          title: "Incoming Call Policy Details",
-          description: "Here are more details for this incoming call policy.",
-        }}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
+  const detailsCard: ReactElement = (
+    <CardModelDetail<IncomingCallPolicy>
+      name="Incoming Call Policy > Details"
+      cardProps={{
+        title: "Incoming Call Policy Details",
+      }}
+      refresher={detailsRefresher}
+      isEditable={true}
+      formFields={[
+        {
+          field: {
+            name: true,
           },
-          {
-            title: "Labels",
-            id: "labels",
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "e.g., Production Support Hotline",
+          hideColumnDescription: true,
+          validation: {
+            minLength: 2,
           },
-        ]}
-        isEditable={true}
-        formFields={[
+        },
+        {
+          field: {
+            description: true,
+          },
+          title: "Description",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "Description",
+          hideColumnDescription: true,
+        },
+        getLabelsFormField<IncomingCallPolicy>(),
+      ]}
+      modelDetailProps={{
+        modelType: IncomingCallPolicy,
+        id: "model-detail-incoming-call-policy",
+        fields: [
+          {
+            field: {
+              _id: true,
+            },
+            title: "Incoming Call Policy ID",
+            // The card's ID line, not a field of raw text.
+            fieldType: FieldType.ObjectID,
+          },
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Policy Name",
-            validation: {
-              minLength: 2,
+          },
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Status",
+            getElement: (item: IncomingCallPolicy): ReactElement => {
+              if (item.isEnabled) {
+                return <Pill text="Enabled" color={Green} />;
+              }
+              return <Pill text="Disabled" color={Red} />;
             },
           },
           {
@@ -214,126 +260,77 @@ const IncomingCallPolicyView: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
           },
           {
             field: {
-              labels: true,
+              labels: {
+                name: true,
+                color: true,
+              },
             },
             title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
+            getElement: (item: IncomingCallPolicy): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
             },
-            required: false,
-            placeholder: "Labels",
           },
-        ]}
-        modelDetailProps={{
-          modelType: IncomingCallPolicy,
-          id: "model-detail-incoming-call-policy",
-          fields: [
-            {
-              field: {
-                _id: true,
-              },
-              title: "Incoming Call Policy ID",
-            },
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Status",
-              getElement: (item: IncomingCallPolicy): ReactElement => {
-                if (item.isEnabled) {
-                  return <Pill text="Enabled" color={Green} />;
-                }
-                return <Pill text="Disabled" color={Red} />;
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              getElement: (item: IncomingCallPolicy): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+        ],
+        modelId: modelId,
+      }}
+    />
+  );
 
-      {/* Show either Setup Steps Card OR Completed Configuration Card */}
-      {!isSetupComplete ? (
-        /* Setup Steps Card - shown when setup is incomplete */
-        <div className="mt-5">
-          <Card
-            title="Setup"
-            description="Complete these steps to configure your incoming call policy"
-          >
-            <div className="p-6 space-y-6">
-              {/* Step 1: Twilio Configuration */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-700 font-semibold text-sm">
-                    1
-                  </div>
-                  {hasTwilioConfig ? (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.CheckCircle}
-                          className="h-6 w-6 text-green-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {policy?.projectCallSMSConfig?.name}
-                        </p>
-                        <p className="text-sm text-green-600">
-                          Twilio configuration selected
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.ExclaimationCircle}
-                          className="h-6 w-6 text-yellow-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Select Twilio Configuration
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Choose which Twilio account to use or{" "}
+  /*
+   * While a step is left, the Setup card comes first: it is the one thing to
+   * do on a new policy, and it used to sit under the details of a policy
+   * that has none yet. Once every step is done, the details lead and the
+   * card shows what is set up.
+   */
+  const setupCard: ReactElement = !isSetupComplete ? (
+    <Card
+      title="Setup"
+      description="Three steps, in order, before this policy can take calls."
+    >
+      <div className="space-y-6 pt-2">
+        {/* Step 1: Twilio Configuration */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-gray-200 text-gray-700 font-semibold text-sm">
+              1
+            </div>
+            {hasTwilioConfig ? (
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 bg-green-100 rounded-full flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.CheckCircle}
+                    className="h-6 w-6 text-green-600"
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {policy?.projectCallSMSConfig?.name}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    {translator.translateText("Twilio configuration selected")}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-6 w-6 text-yellow-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {translator.translateText("Select Twilio Configuration")}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    <TranslatedSentence
+                      template="Choose which Twilio account to use or {{createLink}}"
+                      slots={{
+                        createLink: (
                           <Link
                             to={
                               RouteMap[
@@ -342,236 +339,285 @@ const IncomingCallPolicyView: FunctionComponent<
                             }
                             className="text-blue-600 hover:underline"
                           >
-                            create one in Project Settings
+                            {translator.translateText(
+                              "create one in Project Settings",
+                            )}
                           </Link>
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {hasPhoneNumbers ? (
-                  <p className="text-xs text-gray-400 text-right">
-                    Remove all phone numbers to change
-                  </p>
-                ) : (
-                  <Button
-                    title={hasTwilioConfig ? "Change" : "Select"}
-                    buttonStyle={
-                      hasTwilioConfig
-                        ? ButtonStyleType.SECONDARY_LINK
-                        : ButtonStyleType.PRIMARY
-                    }
-                    onClick={() => {
-                      setShowTwilioConfigModal(true);
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-
-              {/* Step 2: Phone Number */}
-              <div className="flex items-start space-x-4">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm flex-shrink-0 ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
-                >
-                  2
-                </div>
-                {!hasTwilioConfig && !hasPhoneNumbers ? (
-                  <div className="flex items-center space-x-3 text-gray-400 pt-1">
-                    <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                    <p>Complete Step 1 to add phone numbers</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 min-w-0">
-                    <PhoneNumberPurchase
-                      projectId={projectId}
-                      incomingCallPolicyId={modelId}
-                      projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                      phoneNumbers={phoneNumbers}
-                      onPhoneNumbersChanged={handlePhoneNumberChange}
-                      hideCard={true}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-
-              {/* Step 3: Escalation Rules */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumbers ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
-                  >
-                    3
-                  </div>
-                  {!hasPhoneNumbers ? (
-                    <div className="flex items-center space-x-3 text-gray-400">
-                      <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                      <p>Complete Step 2 to add escalation rules</p>
-                    </div>
-                  ) : hasEscalationRules ? (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.CheckCircle}
-                          className="h-6 w-6 text-green-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Escalation Rules
-                        </p>
-                        <p className="text-sm text-green-600">
-                          {escalationRulesCount} rule
-                          {escalationRulesCount !== 1 ? "s" : ""} configured
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.ExclaimationCircle}
-                          className="h-6 w-6 text-yellow-600"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Escalation Rules
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Add on-call schedules, teams, or users to handle
-                          incoming calls
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {hasPhoneNumbers && (
-                  <Button
-                    title="Manage Rules"
-                    buttonStyle={
-                      hasEscalationRules
-                        ? ButtonStyleType.SECONDARY_LINK
-                        : ButtonStyleType.PRIMARY
-                    }
-                    icon={IconProp.ArrowCircleRight}
-                    onClick={() => {
-                      Navigation.navigate(
-                        RouteUtil.populateRouteParams(
-                          RouteMap[
-                            PageMap
-                              .ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
-                          ] as Route,
-                          { modelId: modelId },
                         ),
-                      );
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </Card>
-        </div>
-      ) : (
-        /* Completed Configuration Card - shown when setup is complete */
-        <div className="mt-5">
-          <Card
-            title="Phone Numbers & Twilio Configuration"
-            description="Your incoming call policy is configured and ready to receive calls"
-          >
-            <div className="p-6 space-y-6">
-              {/* Twilio Configuration Row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Icon
-                      icon={IconProp.Settings}
-                      className="h-5 w-5 text-blue-600"
+                      }}
                     />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Twilio Configuration
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      {policy?.projectCallSMSConfig?.name}
-                    </p>
-                  </div>
+                  </p>
                 </div>
-                <p className="text-xs text-gray-400">
-                  Remove all phone numbers to change
+              </div>
+            )}
+          </div>
+          {hasPhoneNumbers ? (
+            <p className="ml-auto text-xs text-gray-500 text-right">
+              {translator.translateText("Remove all phone numbers to change")}
+            </p>
+          ) : (
+            <div className="ml-auto shrink-0">
+              <Button
+                title={hasTwilioConfig ? "Change" : "Select"}
+                buttonStyle={
+                  hasTwilioConfig
+                    ? ButtonStyleType.NORMAL
+                    : ButtonStyleType.PRIMARY
+                }
+                onClick={() => {
+                  setShowTwilioConfigModal(true);
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* Step 2: Phone Number */}
+        <div className="flex items-start gap-4">
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm flex-shrink-0 ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+          >
+            2
+          </div>
+          {!hasTwilioConfig && !hasPhoneNumbers ? (
+            <div className="flex min-w-0 items-center gap-3 text-gray-400 pt-1">
+              <Icon icon={IconProp.Lock} className="h-5 w-5 shrink-0" />
+              <p>
+                {translator.translateText(
+                  "Complete Step 1 to add phone numbers",
+                )}
+              </p>
+            </div>
+          ) : (
+            <div className="flex-1 min-w-0">
+              <PhoneNumberPurchase
+                projectId={projectId}
+                incomingCallPolicyId={modelId}
+                projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+                phoneNumbers={phoneNumbers}
+                onPhoneNumbersChanged={handlePhoneNumberChange}
+                hideCard={true}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* Step 3: Escalation Rules */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <div
+              className={`flex items-center justify-center w-8 h-8 shrink-0 rounded-full font-semibold text-sm ${!hasPhoneNumbers ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+            >
+              3
+            </div>
+            {!hasPhoneNumbers ? (
+              <div className="flex min-w-0 items-center gap-3 text-gray-400">
+                <Icon icon={IconProp.Lock} className="h-5 w-5 shrink-0" />
+                <p>
+                  {translator.translateText(
+                    "Complete Step 2 to add escalation rules",
+                  )}
                 </p>
               </div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-
-              {/* Phone Numbers Row */}
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            ) : hasEscalationRules ? (
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 bg-green-100 rounded-full flex items-center justify-center">
                   <Icon
-                    icon={IconProp.Call}
-                    className="h-5 w-5 text-green-600"
+                    icon={IconProp.CheckCircle}
+                    className="h-6 w-6 text-green-600"
                   />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <PhoneNumberPurchase
-                    projectId={projectId}
-                    incomingCallPolicyId={modelId}
-                    projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                    phoneNumbers={phoneNumbers}
-                    onPhoneNumbersChanged={handlePhoneNumberChange}
-                    hideCard={true}
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {translator.translateText("Escalation Rules")}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} rule configured",
+                        other: "{{count}} rules configured",
+                      },
+                      escalationRulesCount,
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-6 w-6 text-yellow-600"
                   />
                 </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-
-              {/* Escalation Rules Row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Icon
-                      icon={IconProp.BarsArrowDown}
-                      className="h-5 w-5 text-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Escalation Rules</p>
-                    <p className="font-medium text-gray-900">
-                      {escalationRulesCount} rule
-                      {escalationRulesCount !== 1 ? "s" : ""} configured
-                    </p>
-                  </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {translator.translateText("Escalation Rules")}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {translator.translateText(
+                      "Add the on-call schedules or people to call when someone dials this number.",
+                    )}
+                  </p>
                 </div>
-                <Button
-                  title="Manage Rules"
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                  icon={IconProp.ArrowCircleRight}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[
-                          PageMap
-                            .ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
-                        ] as Route,
-                        { modelId: modelId },
-                      ),
-                    );
-                  }}
-                />
               </div>
+            )}
+          </div>
+          {hasPhoneNumbers && (
+            <div className="ml-auto shrink-0">
+              <Button
+                title="Manage Rules"
+                buttonStyle={
+                  hasEscalationRules
+                    ? ButtonStyleType.NORMAL
+                    : ButtonStyleType.PRIMARY
+                }
+                icon={IconProp.ArrowCircleRight}
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[
+                        PageMap
+                          .ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                      ] as Route,
+                      { modelId: modelId },
+                    ),
+                  );
+                }}
+              />
             </div>
-          </Card>
+          )}
         </div>
+      </div>
+    </Card>
+  ) : (
+    <Card
+      title="Phone Numbers & Twilio Configuration"
+      description="Calls to these numbers ring the people its escalation rules name."
+    >
+      {/*
+       * Each row wraps on a phone - its note or button under it, at the
+       * right - and drops its icon there, which only decorates: the rows
+       * used to squeeze their words into a column a word or two wide.
+       */}
+      <div className="space-y-6 pt-2">
+        {/* Twilio Configuration Row */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-10 h-10 shrink-0 bg-blue-100 rounded-full flex items-center justify-center max-sm:hidden">
+              <Icon
+                icon={IconProp.Settings}
+                className="h-5 w-5 text-blue-600"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">
+                {translator.translateText("Twilio Configuration")}
+              </p>
+              <p className="font-medium text-gray-900">
+                {policy?.projectCallSMSConfig?.name}
+              </p>
+            </div>
+          </div>
+          <p className="ml-auto text-xs text-gray-500">
+            {translator.translateText("Remove all phone numbers to change")}
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* Phone Numbers Row */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 max-sm:hidden">
+            <Icon icon={IconProp.Call} className="h-5 w-5 text-green-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <PhoneNumberPurchase
+              projectId={projectId}
+              incomingCallPolicyId={modelId}
+              projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+              phoneNumbers={phoneNumbers}
+              onPhoneNumbersChanged={handlePhoneNumberChange}
+              hideCard={true}
+            />
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* Escalation Rules Row */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-10 h-10 shrink-0 bg-purple-100 rounded-full flex items-center justify-center max-sm:hidden">
+              <Icon
+                icon={IconProp.BarsArrowDown}
+                className="h-5 w-5 text-purple-600"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">
+                {translator.translateText("Escalation Rules")}
+              </p>
+              <p className="font-medium text-gray-900">
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} rule configured",
+                    other: "{{count}} rules configured",
+                  },
+                  escalationRulesCount,
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="ml-auto shrink-0">
+            <Button
+              title="Manage Rules"
+              buttonStyle={ButtonStyleType.NORMAL}
+              icon={IconProp.ArrowCircleRight}
+              onClick={() => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[
+                      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                    ] as Route,
+                    { modelId: modelId },
+                  ),
+                );
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+
+  return (
+    <Fragment>
+      {!isAnsweringCalls ? (
+        <IncomingCallAnswerCallsOffBanner
+          policyId={modelId}
+          onStartedAnswering={() => {
+            setIsAnsweringCalls(true);
+            setDetailsRefresher((currentValue: boolean): boolean => {
+              return !currentValue;
+            });
+          }}
+        />
+      ) : (
+        <></>
       )}
+
+      {isSetupComplete ? detailsCard : setupCard}
+
+      <div className="mt-5">{isSetupComplete ? setupCard : detailsCard}</div>
 
       {/* Twilio Configuration Modal - No Configs Warning */}
       {showTwilioConfigModal &&
@@ -593,7 +639,7 @@ const IncomingCallPolicyView: FunctionComponent<
           >
             <Alert
               type={AlertType.WARNING}
-              title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token."
+              title="Add a Twilio configuration first, under Project Settings > Notifications > Notification Settings."
             />
           </Modal>
         )}
@@ -617,7 +663,7 @@ const IncomingCallPolicyView: FunctionComponent<
         twilioConfigCount > 0 && (
           <ModelFormModal<IncomingCallPolicy>
             title="Select Twilio Configuration"
-            description="Choose which Twilio account to use for this incoming call policy"
+            description="The Twilio account this policy's numbers and calls run on."
             modelType={IncomingCallPolicy}
             modelIdToEdit={modelId}
             name="Select Twilio Config"

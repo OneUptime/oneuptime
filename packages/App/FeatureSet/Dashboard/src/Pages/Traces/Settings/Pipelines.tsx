@@ -1,6 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -36,7 +42,41 @@ Trace pipelines let you transform and enrich spans **at ingest time** — before
 | \`AND\` / \`OR\` | combine conditions |
 
 **Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
+
+### Example: mark successful HTTP spans as Ok
+
+Most instrumentation leaves successful spans **Unset**, the OpenTelemetry default, and sets **Error** only on failure. So Unset already means "no error". If you want successful requests to show as **Ok**:
+
+1. Create a pipeline with the filter condition **Status = Unset** (\`statusCode = '0'\`), so spans already marked Error are never changed.
+2. Add a **Status Remapper** processor with the source key \`http.response.status_code\` (older SDKs use \`http.status_code\`) and one mapping per code, for example \`200\` → Ok, \`201\` → Ok, \`204\` → Ok and \`304\` → Ok. Each mapping matches one exact value.
+
+Pipelines apply to spans ingested after you save them (a change can take up to a minute to reach ingest); spans already stored keep their status.
 `;
+
+/*
+ * A new pipeline is a name. It does nothing until it has a filter and
+ * processors, and those are set up on its own page - so the create form asks
+ * only for the name (the description folded under Advanced), and creating
+ * one opens its page. Enabled is not asked: the column defaults to on, and a
+ * pipeline with no processors changes nothing; it is switched off on its
+ * page.
+ */
+const ADVANCED: FormFieldCollapsibleSection<TracePipeline> =
+  getAdvancedFormSection<TracePipeline>();
+
+type GetPipelineRouteFunction = (item: TracePipeline) => Route;
+
+// The new pipeline's page, as the table's View opens it.
+const getPipelineRoute: GetPipelineRouteFunction = (
+  item: TracePipeline,
+): Route => {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.TRACES_SETTINGS_PIPELINE_VIEW] as Route,
+    {
+      modelId: item._id as string,
+    },
+  );
+};
 
 const TracePipelines: FunctionComponent<
   PageComponentProps
@@ -53,7 +93,7 @@ const TracePipelines: FunctionComponent<
       saveFilterProps={{
         tableId: "trace-pipelines-table",
       }}
-      isDeleteable={false}
+      isDeleteable={true}
       isEditable={false}
       isCreateable={true}
       isViewable={true}
@@ -74,13 +114,6 @@ const TracePipelines: FunctionComponent<
       }}
       noItemsMessage={"No trace pipelines found."}
       viewPageRoute={Navigation.getCurrentRoute()}
-      createInitialValues={{
-        isEnabled: true,
-      }}
-      onBeforeCreate={async (item: TracePipeline) => {
-        item.sortOrder = 1;
-        return item;
-      }}
       formFields={[
         {
           field: {
@@ -102,16 +135,23 @@ const TracePipelines: FunctionComponent<
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this pipeline does.",
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          collapsibleSection: ADVANCED,
         },
       ]}
+      /*
+       * Its filter and processors are what make a pipeline do anything,
+       * and they are on its page: land there.
+       */
+      onCreateSuccess={(
+        item: TracePipeline,
+        modalType?: ModalType,
+      ): Promise<TracePipeline> => {
+        if (modalType === ModalType.Create && item._id) {
+          Navigation.navigate(getPipelineRoute(item));
+        }
+
+        return Promise.resolve(item);
+      }}
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}

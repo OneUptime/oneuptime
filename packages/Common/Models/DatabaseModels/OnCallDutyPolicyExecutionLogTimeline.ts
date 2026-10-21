@@ -189,15 +189,14 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "OnCallDutyPolicy ID",
     description:
-      "ID of your OneUptime on-call duty policy in which this object belongs",
+      "ID of your OneUptime on-call duty policy in which this object belongs. Empty for a step of a direct page, which has no on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -583,15 +582,14 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of your On-Call Policy Escalation Rule where this timeline event belongs.",
+      "ID of your On-Call Policy Escalation Rule where this timeline event belongs. Empty for a step of a direct page, which has no escalation rules.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
@@ -809,6 +807,45 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyScheduleId?: ObjectID = undefined;
+
+  /*
+   * Why the step's schedule is on it: true when the rule paged the next
+   * person in the schedule's rotation - after whoever is on call - and false
+   * when it paged whoever is on call. A step with the flag and nobody paged
+   * says nobody was next in the rotation. Written by the escalation runner
+   * only; the statusMessage is rewritten as the page goes out, so the reason
+   * cannot live there.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Paged as Next in Rotation",
+    description:
+      "True when this step paged the person because they are next in the schedule's rotation - after whoever is on call - rather than on call themselves. Paired with the step's schedule. A step with this set and nobody paged means nobody was next in the rotation.",
+    defaultValue: false,
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public isNextInRotation?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1046,7 +1083,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Overridden by User",
-    description: "Relation to User who overrode this alert",
+    description:
+      "The user this alert would have paged, when a user override sent it to the Alert Sent To User instead because they were away. Empty when no override applied.",
   })
   @ManyToOne(
     () => {
@@ -1070,7 +1108,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Overridden by User ID",
-    description: "User ID who overrode this alert",
+    description:
+      "ID of the user this alert would have paged, when a user override sent it to the user in Alert Sent To User ID instead because they were away. Empty when no override applied.",
   })
   @Column({
     type: ColumnType.ObjectID,

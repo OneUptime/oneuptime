@@ -6,10 +6,13 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const NetworkSiteLinks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkSiteLink>
@@ -25,7 +28,7 @@ const NetworkSiteLinks: FunctionComponent<
         cardProps={{
           title: "Site Links",
           description:
-            "WAN links between sites, drawn as edges on the network map. Bind a monitor to a link and the edge takes the monitor's status color.",
+            "WAN links between sites, drawn on the network map. A monitor bound to a link colors it.",
         }}
         noItemsMessage="No site links yet. Add one to draw a WAN connection between two sites on the network map."
         filters={[
@@ -65,21 +68,17 @@ const NetworkSiteLinks: FunctionComponent<
             type: FieldType.Text,
           },
         ]}
+        formSteps={[
+          { title: "Sites", id: "sites" },
+          { title: "Details", id: "details" },
+        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "MPLS to Springfield",
-          },
           {
             field: {
               fromSite: true,
             },
             title: "From Site",
+            stepId: "sites",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -94,6 +93,7 @@ const NetworkSiteLinks: FunctionComponent<
               toSite: true,
             },
             title: "To Site",
+            stepId: "sites",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -105,9 +105,20 @@ const NetworkSiteLinks: FunctionComponent<
           },
           {
             field: {
+              name: true,
+            },
+            title: "Name",
+            stepId: "details",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "MPLS to Springfield",
+          },
+          {
+            field: {
               monitor: true,
             },
             title: "Monitor",
+            stepId: "details",
             description:
               "Optional. The monitor watching this link — its status colors the edge on the map.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -171,7 +182,11 @@ const NetworkSiteLinks: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkSiteLink): ReactElement => {
               if (!item.monitor?.name) {
-                return <span className="text-sm text-gray-400">None</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("None")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">

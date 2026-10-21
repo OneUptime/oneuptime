@@ -28,6 +28,9 @@ import SloAuditLogs from "../Pages/Slo/View/AuditLogs";
 import SloOwners from "../Pages/Slo/View/Owners";
 import SloSettings from "../Pages/Slo/View/Settings";
 import SloDelete from "../Pages/Slo/View/Delete";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const SloRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -104,6 +107,13 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServiceLevelObjective,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.SLOS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -263,6 +273,12 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServiceLevelObjective,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

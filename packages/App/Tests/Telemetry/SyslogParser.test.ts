@@ -403,6 +403,52 @@ describe("RFC 3164 - what most hardware still sends", () => {
     ).toBeUndefined();
   });
 
+  /*
+   * Firewalls send their events as key=value pairs with no tag. Splitting
+   * the line at its first colon read the colon inside a timestamp value as
+   * the end of a tag, and the message lost its first pairs.
+   */
+  test("a Sophos key=value line keeps every pair, with no tag invented", () => {
+    const line: string =
+      'device_name="SFW" timestamp="2024-05-02T11:03:12+0200" log_component="IPSec" con_name="HQ-Branch1" status="Terminated"';
+    const parsed: ParsedSyslogMessage = parse(
+      `<30>May  2 11:03:12 hq-firewall ${line}`,
+    );
+
+    expect(parsed.hostname).toBe("hq-firewall");
+    expect(parsed.appName).toBeUndefined();
+    expect(parsed.message).toBe(line);
+  });
+
+  test("a Fortinet key=value line keeps every pair", () => {
+    const line: string =
+      'date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" subtype="vpn"';
+    const parsed: ParsedSyslogMessage = parse(
+      `<189>Jan  1 10:00:00 FG100 ${line}`,
+    );
+
+    expect(parsed.appName).toBeUndefined();
+    expect(parsed.message).toBe(line);
+  });
+
+  test("a tag with unusual characters still ends at its colon", () => {
+    const parsed: ParsedSyslogMessage = parse(
+      "<166>Oct 11 22:14:15 asa01 %ASA-6-302013: Built outbound TCP connection",
+    );
+
+    expect(parsed.appName).toBe("%ASA-6-302013");
+    expect(parsed.message).toBe("Built outbound TCP connection");
+  });
+
+  test("a tag glued to its message still splits", () => {
+    const parsed: ParsedSyslogMessage = parse(
+      "<34>Oct 11 22:14:15 host app:started",
+    );
+
+    expect(parsed.appName).toBe("app");
+    expect(parsed.message).toBe("started");
+  });
+
   test("a colon inside the message does not become a second tag", () => {
     const parsed: ParsedSyslogMessage = parse(
       "<34>Oct 11 22:14:15 host app: connect failed: timeout",

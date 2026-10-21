@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -13,6 +14,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
+import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import {
   DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
   fetchDatabaseEngineMetricsArrived,
@@ -27,6 +29,7 @@ import {
   MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The App-side half of the recommendation registry.
@@ -106,6 +109,28 @@ export interface RecommendationResourceDefinition {
 }
 
 /*
+ * A RUM application's monthly budget as the catalog reads it: a finite number
+ * above 0, or null for none. The column is numeric, but JSON off the wire is
+ * not type checked, so a numeric string counts too ("10" is a budget of 10);
+ * blank, 0, a negative, NaN and anything that is not a number are no budget.
+ */
+function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
+  let budgetInGB: number | null = null;
+
+  if (typeof value === "number") {
+    budgetInGB = value;
+  } else if (typeof value === "string" && value.trim().length > 0) {
+    budgetInGB = Number(value);
+  }
+
+  if (budgetInGB === null || !Number.isFinite(budgetInGB) || budgetInGB <= 0) {
+    return null;
+  }
+
+  return budgetInGB;
+}
+
+/*
  * Which column each resource type scopes its monitors by, and why they differ:
  *
  *   Kubernetes  clusterIdentifier  agent-reported, stable across renames
@@ -117,6 +142,8 @@ export interface RecommendationResourceDefinition {
  *   VMware      name               VMwareVCenter.name IS the agent-stamped
  *                                  `vmware.vcenter.name` attribute
  *   Ceph        name               model has no identifier column
+ *   StorageArray name              StorageArray.name IS the agent-stamped
+ *                                  `storage.array.name` attribute
  *   IoTDevice   name               IoTFleet has no identifier column
  *   RUM         _id                Metric/Span/Exception.primaryEntityId is
  *                                  the RumApplication row id
@@ -126,7 +153,7 @@ export interface RecommendationResourceDefinition {
  *                                  every template query filters on is the
  *                                  DatabaseServer row id
  *
- * The five `name` rows mean renaming one of those resources orphans its
+ * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
  * pre-existing behaviour inherited from the per-page wiring, faithfully
  * preserved here rather than quietly changed: switching them to a different
@@ -181,23 +208,169 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * A storage array's recommendations depend on its platform: FlashArray
+   * and FlashBlade export different metric families (purefa_* and
+   * purefb_*), and a template over the other platform's series would never
+   * fire (getStorageArrayAlertTemplatesForSystem). Ingest writes
+   * `storageSystem` from the array's first batch; until then — or for a
+   * platform OneUptime has no templates for — nothing is offered, as for a
+   * database with no engine recorded.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    modelType: StorageArray,
+    identifierFieldName: "name",
+    displayNameFieldName: "name",
+    contextFieldNames: ["storageSystem"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const storageSystem: unknown = (
+        model as unknown as Record<string, unknown>
+      )["storageSystem"];
+
+      return {
+        storageSystem:
+          typeof storageSystem === "string" && storageSystem.trim()
+            ? storageSystem.trim()
+            : null,
+      };
+    },
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      if (!context.storageSystem) {
+        return translateTemplate(
+          "This storage array has not reported its platform yet, and every recommended storage array monitor reads one platform's own metrics, so none are offered until its agent sends data.",
+        );
+      }
+
+      if (!StorageSystemUtil.isKnownSystem(context.storageSystem)) {
+        return translateTemplate(
+          "OneUptime has no recommended monitors for this storage array's platform ({{platform}}): each one reads a supported platform's own metrics.",
+          { platform: context.storageSystem },
+        );
+      }
+
+      return translateTemplate(
+        "This storage array is a {{platform}}, so the recommendations below are the ones its metrics support.",
+        { platform: StorageSystemUtil.getDisplayName(context.storageSystem) },
+      );
+    },
+  },
   {
     resourceType: MonitorRecommendationResourceType.IoTDevice,
     modelType: IoTFleet,
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * A RUM application is offered the same recommendations as every other
+   * one, except its session replay storage budget alerts: the budget sweep
+   * only writes the series they watch for an application that has session
+   * replay on and has recorded at least one replay, and the monthly series
+   * only while it has a monthly budget (see `getRumAlertTemplates`). These
+   * three columns are that, and each is readable by exactly the roles that
+   * can read `name` — a context column a viewer cannot read would fail
+   * `ModelAPI.getItem` for them, and the page would show an error instead
+   * of any recommendation.
+   *
+   * The project's own switch (`Project.isSessionReplayAllowed`), which the
+   * sweep also requires, is not read: context columns are this row's own. A
+   * project that turns replay off simply stops the series, which resolves
+   * any open budget alert.
+   */
   {
     resourceType: MonitorRecommendationResourceType.RumApplication,
     modelType: RumApplication,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
+    contextFieldNames: [
+      "isSessionReplayEnabled",
+      "sessionReplayLastChunkReceivedAt",
+      "sessionReplayMonthlyBudgetInGB",
+    ],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      const isSessionReplayEnabled: unknown = record["isSessionReplayEnabled"];
+      const lastChunkReceivedAt: unknown =
+        record["sessionReplayLastChunkReceivedAt"];
+
+      return {
+        // Anything but a boolean is "not known", which withholds.
+        sessionReplayEnabled:
+          typeof isSessionReplayEnabled === "boolean"
+            ? isSessionReplayEnabled
+            : null,
+        /*
+         * The API hands a Date column back as a Date or as its JSON string,
+         * depending on the path; either means a replay was accepted.
+         * Anything else — null, undefined, an empty string — means never.
+         */
+        sessionReplayHasRecorded:
+          lastChunkReceivedAt instanceof Date ||
+          (typeof lastChunkReceivedAt === "string" &&
+            lastChunkReceivedAt.trim().length > 0),
+        sessionReplayMonthlyBudgetInGB: readSessionReplayMonthlyBudgetInGB(
+          record["sessionReplayMonthlyBudgetInGB"],
+        ),
+      };
+    },
+    /*
+     * Only the states where the application uses session replay and still
+     * misses some of the budget alerts get a note. An application that never
+     * used replay hears nothing about it, and one offered everything needs no
+     * explanation.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const isEnabled: boolean = context.sessionReplayEnabled === true;
+      const hasRecorded: boolean = context.sessionReplayHasRecorded === true;
+      const hasBudget: boolean =
+        readSessionReplayMonthlyBudgetInGB(
+          context.sessionReplayMonthlyBudgetInGB,
+        ) !== null;
+
+      if (isEnabled && hasRecorded && !hasBudget) {
+        return translateTemplate(
+          "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.",
+        );
+      }
+
+      if (context.sessionReplayEnabled === false && hasRecorded) {
+        return translateTemplate(
+          "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.",
+        );
+      }
+
+      /*
+       * Switching replay on is not enough on its own here: the series only
+       * exists once the application has recorded.
+       */
+      if (context.sessionReplayEnabled === false && hasBudget) {
+        return translateTemplate(
+          "Session replay is off for this application, so its storage budget alerts are not offered. Turn it on under Replay Policy and they appear here once it records its first replay.",
+        );
+      }
+
+      if (isEnabled && !hasRecorded && hasBudget) {
+        return translateTemplate(
+          "The session replay budget alerts appear here once this application records its first replay.",
+        );
+      }
+
+      return undefined;
+    },
   },
   /*
-   * The only row with a context reader. A service's recommendations depend on
-   * the runtime it is written in, and these three columns are the only
-   * evidence of that OneUptime has — in descending order of trust, which is
-   * the order `detectServiceLanguage` consults them in.
+   * A service's recommendations depend on the runtime it is written in, and
+   * these three columns are the only evidence of that OneUptime has — in
+   * descending order of trust, which is the order `detectServiceLanguage`
+   * consults them in.
    *
    * `serviceLanguage` is deliberately NOT among them despite the name: it is
    * marked deprecated on the model, carries no `@ColumnAccessControl`
@@ -215,12 +388,15 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       context: MonitorRecommendationContext,
     ): string | undefined => {
       if (!context.serviceLanguage) {
-        return "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.";
+        return translateTemplate(
+          "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.",
+        );
       }
 
-      return `Detected as ${
-        SERVICE_LANGUAGE_DISPLAY_NAMES[context.serviceLanguage]
-      }, so the runtime-specific recommendations below are the ones that apply to it.`;
+      return translateTemplate(
+        "Detected as {{runtime}}, so the runtime-specific recommendations below are the ones that apply to it.",
+        { runtime: SERVICE_LANGUAGE_DISPLAY_NAMES[context.serviceLanguage] },
+      );
     },
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       const record: Record<string, unknown> = model as unknown as Record<
@@ -338,7 +514,9 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       context: MonitorRecommendationContext,
     ): string | undefined => {
       if (!context.databaseEngine) {
-        return "This database has no engine recorded, and every recommended database monitor reads one engine's own metrics, so none apply to it.";
+        return translateTemplate(
+          "This database has no engine recorded, and every recommended database monitor reads one engine's own metrics, so none apply to it.",
+        );
       }
 
       const engineName: string = getDatabaseSystemDisplayName(
@@ -350,17 +528,31 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       ).length;
 
       if (templateCount === 0) {
-        return `OneUptime does not ship recommended monitors for ${engineName} yet. You can still alert on this database: create a Metrics monitor that filters on oneuptime.database.server.id (shown on the Documentation tab), and its alerts and incidents will appear on this database.`;
+        return translateTemplate(
+          "OneUptime does not ship recommended monitors for {{engine}} yet. You can still alert on this database: create a Metrics monitor that filters on oneuptime.database.server.id (shown on the Documentation tab), and its alerts and incidents will appear on this database.",
+          { engine: engineName },
+        );
       }
 
       if (context.databaseEngineMetricsReported === false) {
         const receivers: string = getDatabaseRecommendationReceivers(
           context.databaseEngine,
         ).join(" / ");
-        return `None of the metrics the ${templateCount} recommended ${engineName} monitors read has arrived from this database in the last ${DATABASE_ENGINE_METRICS_LOOKBACK_DAYS} days. They come from the collector's ${receivers} receiver, which the Database Agent runs; other telemetry linked to this database (its logs, another receiver, an exporter) does not count. Connect the Database Agent or that receiver (see the Documentation tab), and the ${engineName} recommendations appear here.`;
+        return translateTemplate(
+          "None of the metrics the {{count}} recommended {{engine}} monitors read has arrived from this database in the last {{days}} days. They come from the collector's {{receivers}} receiver, which the Database Agent runs; other telemetry linked to this database (its logs, another receiver, an exporter) does not count. Connect the Database Agent or that receiver (see the Documentation tab), and the {{engine}} recommendations appear here.",
+          {
+            count: templateCount,
+            engine: engineName,
+            days: DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
+            receivers: receivers,
+          },
+        );
       }
 
-      return `Recommended for ${engineName}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.`;
+      return translateTemplate(
+        "Recommended for {{engine}}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.",
+        { engine: engineName },
+      );
     },
   },
 ];

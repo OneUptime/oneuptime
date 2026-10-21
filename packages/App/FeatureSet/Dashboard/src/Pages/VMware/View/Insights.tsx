@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -27,6 +26,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -517,8 +517,18 @@ const VMwareVCenterInsights: FunctionComponent<
 
   const vcenterName: string = vcenter.name;
 
+  /*
+   * Issue #4105: the seven cards share one range, so they share one zoom.
+   * A drag on a chart in any card retimes all of them, and a double-click
+   * on a chart in any card (or Reset zoom in any card's header) puts the
+   * range from before the zoom back — a card-by-card zoom could only be
+   * undone from the card that made it.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.ServerStack, "Hosts")}
         description="CPU, memory and disk latency across every ESXi host managed by this vCenter."
@@ -581,7 +591,7 @@ const VMwareVCenterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

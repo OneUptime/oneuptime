@@ -24,7 +24,8 @@ import path from "path";
  * fails the test on anything else.
  */
 
-const PORT: string = "4232";
+const PORT: string =
+  process.env["SECURITY_EVENTS_EMPTY_STATES_FIXTURE_PORT"] || "4232";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 // The fixture's ?latest=old event is dated before this.
 const NOW: Date = new Date("2026-09-22T12:00:00.000Z");
@@ -230,6 +231,7 @@ interface UnhandledRequest {
 interface FixtureState {
   role: string;
   latest: string;
+  siem: string;
   listRequests: Array<RecordedModelRequest>;
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedModelRequest>;
@@ -254,6 +256,8 @@ interface OpenOptions {
   role?: "owner" | "viewer" | undefined;
   theme?: "light" | "dark" | undefined;
   latest?: "none" | "pending" | "old" | undefined;
+  // Three SIEMs in the Send to your SIEM table.
+  siem?: "none" | "rows" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -417,6 +421,9 @@ async function open(
   }
   if (options.latest && options.latest !== "none") {
     params.set("latest", options.latest);
+  }
+  if (options.siem && options.siem !== "none") {
+    params.set("siem", options.siem);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -800,7 +807,7 @@ function connectionsCard(page: Page): Locator {
   return page.getByTestId("card").filter({
     has: page.getByRole("heading", {
       level: 2,
-      name: "Security Event Connections",
+      name: "Your security tools",
       exact: true,
     }),
   });
@@ -1233,7 +1240,7 @@ async function eventsHitAt(locator: Locator): Promise<string> {
  * These tests hold where it sits, what it says and what it no longer has.
  */
 test.describe("connections empty state", () => {
-  test("sits inside the table card, above its Refresh? and pagination", async ({
+  test("sits inside the table card, with no Refresh? link or footer under it", async ({
     page,
   }: {
     page: Page;
@@ -1242,12 +1249,25 @@ test.describe("connections empty state", () => {
     const tableCard: Locator = connectionsCard(page);
     await expect(tableCard).toHaveCount(1);
 
-    // Rendered by the table as its no-items message, in the body cell.
-    await expect(tableCard.locator(`td #${CONNECTIONS_ID}`)).toHaveCount(1);
-    const refresh: Locator = tableCard.getByTestId("refresh-button");
-    await expect(refresh).toHaveText("Refresh?");
-    const summary: Locator = tableCard.getByTestId("pagination-summary");
-    await expect(summary).toHaveText("No security event connections");
+    /*
+     * Rendered by the table as its no-items message, in the block it draws
+     * under the table (not in a row, which would centre it across columns
+     * scrolled out of view).
+     */
+    await expect(
+      tableCard
+        .getByTestId("security-event-connections-table-no-items")
+        .locator(`#${CONNECTIONS_ID}`),
+    ).toHaveCount(1);
+    await expect(tableCard.locator(`td #${CONNECTIONS_ID}`)).toHaveCount(0);
+    /*
+     * Every table's empty state lost its "Refresh?" link (a reload of an
+     * empty list shows the same nothing) and, on an empty first page, the
+     * footer that said "No security event connections" a second time.
+     */
+    await expect(tableCard.getByTestId("refresh-button")).toHaveCount(0);
+    await expect(tableCard.getByText("Refresh?")).toHaveCount(0);
+    await expect(tableCard.getByTestId("pagination-summary")).toHaveCount(0);
 
     await expectAbove(
       tableCard.getByTestId("card-details-heading"),
@@ -1259,12 +1279,6 @@ test.describe("connections empty state", () => {
       connectionsEmptyState(page),
       "card's Add connection above the empty state",
     );
-    await expectAbove(
-      connectionsEmptyState(page),
-      refresh,
-      "empty state above Refresh?",
-    );
-    await expectAbove(refresh, summary, "Refresh? above the pagination");
     await expectInside(
       connectionsEmptyState(page),
       tableCard,
@@ -1310,7 +1324,6 @@ test.describe("connections empty state", () => {
       ["heading", root.getByRole("heading", { level: 3 })],
       ["description", page.getByTestId(`${CONNECTIONS_ID}-description`)],
       ["Add connection", heroAddConnection(page)],
-      ["Refresh?", connectionsCard(page).getByTestId("refresh-button")],
       ["table card", connectionsCard(page)],
     ];
     for (const [label, locator] of centred) {
@@ -1491,6 +1504,222 @@ test.describe("connections empty state", () => {
  * never nested, so a screen reader and the keyboard get two plain controls
  * with names of their own.
  */
+/*
+ * The page around the security tools: Your logs above them - one switch
+ * that makes the logs the project already sends a source - and Send to
+ * your SIEM below, for a team that already has one.
+ */
+test.describe("connections: your logs and your SIEM", () => {
+  function logsSwitch(page: Page): Locator {
+    return page.getByRole("switch", {
+      name: "Find security events in your logs",
+    });
+  }
+
+  function siemCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Send to your SIEM",
+        exact: true,
+      }),
+    });
+  }
+
+  test("reads top to bottom: your logs, your security tools, your SIEM", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    const headings: Array<string> = await page
+      .getByTestId("card")
+      .getByRole("heading", { level: 2 })
+      .allInnerTexts();
+    expect(headings).toEqual([
+      "Your logs",
+      "Your security tools",
+      "Send to your SIEM",
+    ]);
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(
+      page.getByTestId("security-log-format-ssh-sign-in"),
+    ).toContainText("SSH sign-ins");
+    // The card says who it is for; its empty state, what is true now.
+    await expect(
+      page.getByTestId("security-event-destinations-empty"),
+    ).toContainText("Nothing is sent to a SIEM yet");
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "connections-cards-desktop");
+  });
+
+  test("the switch turns your logs on in one press, and says when the first check runs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    await logsSwitch(page).click();
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByTestId("security-logs-source-saving")).toHaveText(
+      "Saved",
+    );
+    await expect(page.getByTestId("security-logs-source-status")).toHaveText(
+      "The first check runs within a minute. No security event found yet.",
+    );
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates;
+    expect(
+      creates.map((write: RecordedWrite): string => {
+        return write.modelName;
+      }),
+    ).toEqual(["SecurityLogSource"]);
+  });
+
+  test("a viewer reads the switch but cannot flip it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { role: "viewer" });
+
+    await expect(logsSwitch(page)).toHaveAttribute("aria-disabled", "true");
+    await logsSwitch(page).click({ force: true });
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("Send to Google SecOps opens the form on the SIEM's own settings, then what to send", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    await siemCard(page)
+      .getByRole("button", { name: "Send to Google SecOps" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Send to Google SecOps",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("[aria-current='step']")).toHaveText(
+      "Connection",
+    );
+    await expect(
+      dialog.getByText("Instance resource name").first(),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("security-event-destination-send-test"),
+    ).toBeDisabled();
+    await screenshot(page, "connections-siem-form-desktop", {
+      fullPage: false,
+    });
+
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("each SIEM's row says what it is sent under its name and how sending goes, and the table fits its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 1440]) {
+      await openConnections(page, { siem: "rows", width });
+      const card: Locator = siemCard(page);
+      const rows: Locator = card.locator("tbody tr");
+      await expect(rows).toHaveCount(3);
+
+      /*
+       * Two columns between the row's checkbox and its actions: what it is
+       * sent reads under its name, not beside it.
+       */
+      const headers: Array<string> = (
+        await card.locator("thead th").allInnerTexts()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      expect(headers).toEqual([
+        "Select all items",
+        "Name",
+        "Status",
+        "Actions",
+      ]);
+      await expect(
+        card.getByTestId("security-event-destination-detail"),
+      ).toHaveText([
+        "Google SecOps · Detections only",
+        "Google SecOps · All security events",
+        "Google SecOps · Detections only",
+      ]);
+
+      // Sending, failing, and not sent yet: when it last sent, where it has.
+      await expect(rows.nth(0)).toContainText("Sending");
+      await expect(rows.nth(1)).toContainText("Failing");
+      await expect(rows.nth(2)).toContainText("Starting");
+      await expect(
+        card.getByTestId("security-event-destination-last-sent"),
+      ).toHaveCount(2);
+      // A failing SIEM's one button shows why; the others send a test.
+      await expect(
+        rows.nth(1).getByRole("button", { name: "View Error" }),
+      ).toBeVisible();
+      await expect(
+        rows.nth(0).getByRole("button", { name: "Send a test event" }),
+      ).toBeVisible();
+
+      /*
+       * Nothing scrolls sideways under the sticky actions: a Sends column
+       * of its own ran the table past its card, and the actions covered
+       * the status.
+       */
+      const overflow: number = await card
+        .locator("table")
+        .evaluate((element: Element): number => {
+          const box: HTMLElement = element.parentElement as HTMLElement;
+          return box.scrollWidth - box.clientWidth;
+        });
+      expect(
+        overflow,
+        `${width}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      for (let index: number = 0; index < 3; index++) {
+        const status: Box = await documentBox(
+          rows.nth(index).locator("td").nth(2).locator(":scope > *").first(),
+        );
+        const actions: Box = await documentBox(
+          rows.nth(index).getByTestId("row-actions"),
+        );
+        expect(
+          status.x + status.width,
+          `${width}: row ${index + 1}'s status runs under its actions`,
+        ).toBeLessThanOrEqual(actions.x + 1);
+      }
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await siemCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-siem-rows-desktop", {
+      clip: siemCard(page),
+    });
+  });
+
+  test("dark theme and a phone", async ({ page }: { page: Page }) => {
+    await openConnections(page, { theme: "dark" });
+    await expect(logsSwitch(page)).toBeVisible();
+    await screenshot(page, "connections-cards-dark");
+
+    await openConnections(page, { width: 390 });
+    await expect(logsSwitch(page)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "connections-cards-phone");
+  });
+});
+
 test.describe("connections empty state accessibility", () => {
   test("sections, lists, headings and tile controls have names", async ({
     page,
@@ -1565,8 +1794,6 @@ test.describe("connections empty state accessibility", () => {
     for (const item of PROVIDERS) {
       expected.push(`tile:${item.value}`, `link:${docsUrl(item)}`);
     }
-    // After the last guide the table's own Refresh? comes next.
-    expected.push("button:Refresh?");
 
     const visited: Array<string> = [];
     for (let stop: number = 0; stop < expected.length; stop++) {
@@ -1663,6 +1890,11 @@ test.describe("connections empty state actions", () => {
 
     for (const [index, item] of PROVIDERS.entries()) {
       const spot: TileSpot = TILE_SPOTS[index % TILE_SPOTS.length] as TileSpot;
+      /*
+       * Your logs sits above the table now, so a tile can start below the
+       * fold; a hit test only sees what is on screen.
+       */
+      await tile(page, item).scrollIntoViewIfNeeded();
       const point: Point = await tileSpot(page, item, spot);
       // The overlay really is what sits under that spot.
       expect(await hitAt(page, item, point), `${item.title} ${spot}`).toBe(
@@ -1797,6 +2029,7 @@ test.describe("connections empty state actions", () => {
     for (const item of PROVIDERS) {
       // The link is raised above the tile's overlay.
       const link: Locator = guideLink(page, item);
+      await tile(page, item).scrollIntoViewIfNeeded();
       const linkBox: Box = await viewportBox(link);
       const tileBox: Box = await viewportBox(tile(page, item));
       expect(
@@ -1896,10 +2129,14 @@ test.describe("connections empty state actions", () => {
  */
 
 /*
- * The tile grid uses viewport columns (1, then 2 from sm, 4 from lg) and the
- * tile stands upright from lg so a long name gets the tile's full width.
- * Measured in the browser: the unit tests cannot see a wrapped name or a
- * row of unequal tiles.
+ * The page sits beside the Security Events side menu from md up, so the
+ * card is narrower than the viewport by a different amount at each size.
+ * The tile grid takes its columns from the card's own width - at most four,
+ * each at least a quarter of the row and as wide as a tile needs (17rem for
+ * the row a tile is below lg, 11.5rem for the upright card it is from lg) -
+ * and the tile stands upright from lg so a long name gets the tile's full
+ * width. Measured in the browser: the unit tests cannot see a wrapped name
+ * or a row of unequal tiles.
  */
 test.describe("connections empty state layout", () => {
   test("1440: four tiles a row, one size, every name on one line", async ({
@@ -1971,11 +2208,12 @@ test.describe("connections empty state layout", () => {
     screenshot?: string;
     fullPage?: boolean;
   }> = [
-    { width: 1024, height: 900, columns: 4 },
+    { width: 1280, height: 900, columns: 4 },
+    { width: 1024, height: 900, columns: 2 },
     {
       width: 768,
       height: 1024,
-      columns: 2,
+      columns: 1,
       screenshot: "connections-tablet",
     },
     {
@@ -2051,26 +2289,26 @@ test.describe("connections empty state layout", () => {
   }
 
   /*
-   * At 1024 the four columns are 202px wide, narrower than "Splunk
-   * Enterprise Security" in the tile's semibold: it wraps, onto two lines.
-   * The grid keeps every tile in its row the same height regardless (checked
-   * above).
+   * At 1280, beside the side menu, the four columns are about 186px wide,
+   * the name's about 154px: narrower than "Splunk Enterprise Security" in
+   * the tile's semibold, so it wraps, onto two lines. The grid keeps every
+   * tile in its row the same height regardless (checked above).
    *
    * Which OTHER names wrap is a property of the platform's text rendering,
-   * not of the layout: "Microsoft Defender XDR" fits its 168px column with
-   * about 4px to spare in Chromium on macOS, and FreeType's metrics on Linux
-   * spend them, so it wraps there - for real users too. So this pins the
-   * layout instead: every name wraps exactly when it is wider than its column
-   * as measured in this browser, and never before. A layout change that
+   * not of the layout: "Microsoft Defender XDR" is within a few pixels of
+   * its column, and Chromium on macOS and FreeType's metrics on Linux
+   * measure it differently - for real users too. So this pins the layout
+   * instead: every name wraps exactly when it is wider than its column as
+   * measured in this browser, and never before. A layout change that
    * narrowed the column, or made names wrap early, still fails here; a
    * rendering difference of a few pixels does not.
    */
-  test("1024: a name wraps only when it is wider than its column, and Splunk Enterprise Security does", async ({
+  test("1280: a name wraps only when it is wider than its column, and Splunk Enterprise Security does", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openConnections(page, { width: 1024, height: 900 });
+    await openConnections(page, { width: 1280, height: 900 });
     const layouts: Array<TileLayout> = await tileLayouts(page);
     const fits: Array<NameFit> = await nameFits(page);
 
@@ -2604,7 +2842,7 @@ test.describe("security events empty state", () => {
     expect(await borderColor(wayInCard(page, "send"))).toBe(GRAY_200_RGB);
   });
 
-  test("Read the setup guide opens the Documentation tab, and back returns", async ({
+  test("Read the setup guide opens the Setup Guide page, and back returns", async ({
     page,
   }: {
     page: Page;
@@ -2661,7 +2899,7 @@ test.describe("security events empty state", () => {
     await expect(
       page.getByRole("heading", {
         level: 2,
-        name: "Security Event Connections",
+        name: "Your security tools",
         exact: true,
       }),
     ).toBeVisible();

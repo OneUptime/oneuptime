@@ -10,13 +10,15 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import { getReminderRuleFormSteps } from "../../../Utils/Form/EventRuleForm";
+import { getMaintenanceReminderRuleActionFields } from "../../../Components/Reminders/MaintenanceReminderRuleFields";
+import { MAINTENANCE_REMINDER_TIMING_FIELD_TITLE } from "../../../Components/Reminders/MaintenanceReminderTiming";
+import MaintenanceReminderTimingText from "../../../Components/Reminders/MaintenanceReminderTimingText";
 
 const documentationMarkdown: string = `
 ### How Scheduled Maintenance Reminder Rules Work
 
-Reminder rules periodically re-notify scheduled maintenance event owners while an event has not yet finished. When an event is created, the first matching rule (by order) is applied, and reminders are sent to the event's owners at the configured interval until the event reaches the stop state.
+A reminder rule reminds a maintenance event's owners, as often as it says. A new event gets the first rule that matches it, from the top of the list down, and its reminders go out when the rule's **Remind Owners** says: before the event starts, while it is in progress, or both.
 
 \`\`\`mermaid
 flowchart TD
@@ -24,7 +26,7 @@ flowchart TD
     B -->|Rule Matches| C[Schedule Reminder]
     B -->|No Match| D[No Reminders]
     C --> E[Wait for Interval]
-    E --> F{Event Reached Stop State?}
+    E --> F{Time to Stop?}
     F -->|No| G[Notify Event Owners]
     G --> E
     F -->|Yes| H[Stop Reminders]
@@ -38,22 +40,17 @@ flowchart TD
 |----------|-------------|
 | **Labels** | Only events with these labels. Leave empty to match all events. |
 
-Rules are evaluated in order - the first matching rule wins.
+Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
-### Stop State
+### Remind Owners
 
-| State | Description |
-|-------|-------------|
-| **Ongoing** | Stop reminders once the event starts (enters an ongoing state) |
-| **Completed** | Keep reminding until the event is completed (default) |
-
----
-
-### Reminder Timing
-
-By default, reminders only begin once the event starts (enters an ongoing state). Enable **Remind While Event is Scheduled** on a rule to also send reminders while the event is still upcoming (before it starts).
+| Answer | When reminders are sent |
+|--------|-------------------------|
+| **While it is in progress** | From when the event starts until it ends. A new rule starts here. |
+| **Before it starts** | From when the event is scheduled until it starts. |
+| **Before it starts and while it is in progress** | From when the event is scheduled until it ends. |
 `;
 
 const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
@@ -79,15 +76,21 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
         }}
         helpContent={{
           title: "How Scheduled Maintenance Reminder Rules Work",
-          description:
-            "Understanding reminder intervals, match criteria, and stop states",
+          description: "How often an event's owners are reminded, and when.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * The first rule that matches wins, so where a rule sits matters:
+         * drag it up or down. A new rule goes to the end.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
+          // With remindWhileScheduled, the answer the Remind Owners column says.
+          stopRemindersOnState: true,
         }}
         filters={[
           {
@@ -115,31 +118,26 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
           },
           {
             field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
-          },
-          {
-            field: {
               reminderIntervalInMinutes: true,
             },
             title: "Reminder Interval (min)",
             type: FieldType.Number,
           },
-          {
-            field: {
-              stopRemindersOnState: true,
-            },
-            title: "Stop Reminders When",
-            type: FieldType.Text,
-          },
+          /*
+           * When the rule reminds, as the form asks it: one answer read off
+           * the rule's two columns (MaintenanceReminderTiming).
+           */
           {
             field: {
               remindWhileScheduled: true,
             },
-            title: "Remind While Scheduled",
-            type: FieldType.Boolean,
+            title: MAINTENANCE_REMINDER_TIMING_FIELD_TITLE,
+            type: FieldType.Element,
+            getElement: (
+              item: ScheduledMaintenanceReminderRule,
+            ): ReactElement => {
+              return <MaintenanceReminderTimingText rule={item} />;
+            },
           },
           {
             field: {
@@ -173,51 +171,8 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={
-          [
-            {
-              id: "rule-info",
-              title: "Rule Info",
-            },
-            {
-              id: "match-criteria",
-              title: "Match Criteria",
-            },
-            {
-              id: "reminder-settings",
-              title: "Reminder Settings",
-            },
-            {
-              id: "status",
-              title: "Status",
-            },
-          ] as Array<FormStep<ScheduledMaintenanceReminderRule>>
-        }
+        formSteps={getReminderRuleFormSteps<ScheduledMaintenanceReminderRule>()}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Maintenance Event Reminders",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Remind owners of maintenance events every 30 minutes until completed",
-          },
           {
             field: {
               labels: true,
@@ -235,61 +190,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
             description:
               "Only apply this rule to scheduled maintenance events with these labels. Leave empty to match events with any labels.",
           },
-          {
-            field: {
-              reminderIntervalInMinutes: true,
-            },
-            title: "Reminder Interval (minutes)",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "30",
-            description:
-              "How often to remind event owners while the event has not yet finished.",
-          },
-          {
-            field: {
-              stopRemindersOnState: true,
-            },
-            title: "Stop Reminders When",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                value: ScheduledMaintenanceReminderStopState.Ongoing,
-                label: "Stop when event starts (Ongoing)",
-              },
-              {
-                value: ScheduledMaintenanceReminderStopState.Completed,
-                label: "Remind until event is Completed",
-              },
-            ],
-            required: false,
-            placeholder: "Completed",
-            description:
-              "Stop sending reminders once the event reaches this state. Defaults to Completed.",
-          },
-          {
-            field: {
-              remindWhileScheduled: true,
-            },
-            title: "Remind While Event is Scheduled",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Send reminders while the event is still scheduled (before it starts). When off, reminders only begin once the event has started.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "status",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this reminder rule.",
-          },
+          ...getMaintenanceReminderRuleActionFields(),
         ]}
         showRefreshButton={true}
       />

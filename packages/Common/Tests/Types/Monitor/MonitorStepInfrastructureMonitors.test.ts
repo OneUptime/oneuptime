@@ -35,7 +35,12 @@ import MonitorStepVMwareMonitor, {
   VMwareResourceKind,
   VMwareResourceScope,
 } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+  StorageArrayResourceScope,
+} from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 
 /*
  * The infrastructure MonitorStep utils share one shape: getDefault() returns
@@ -44,9 +49,11 @@ import RollingTime from "../../../Types/RollingTime/RollingTime";
  * locks in that contract for each of them so a future refactor cannot quietly
  * change a default or drop a field on the wire.
  *
- * VMware is the one deliberate exception to the 1-minute window: its agent
- * collects every 2 minutes (VCENTER_COLLECTION_INTERVAL), so it defaults to
- * Past5Minutes — see the VMware block below.
+ * VMware and Storage Array are the deliberate exceptions to the 1-minute
+ * window: VMware's agent collects every 2 minutes
+ * (VCENTER_COLLECTION_INTERVAL) and the Storage Array Agent reads volumes,
+ * hosts and pods every 2 minutes, so both default to Past5Minutes — see
+ * their blocks below.
  */
 
 describe("Infrastructure MonitorStep utils", () => {
@@ -194,6 +201,40 @@ describe("Infrastructure MonitorStep utils", () => {
       ).toEqual(monitor);
       // Scope enum sanity.
       expect(CephResourceScope.Osd).toBe("OSD");
+    });
+  });
+
+  describe("MonitorStepStorageArrayMonitorUtil", () => {
+    test("getDefault has no array, platform or object filters, on a 5-minute window", () => {
+      const def: MonitorStepStorageArrayMonitor =
+        MonitorStepStorageArrayMonitorUtil.getDefault();
+
+      expect(def.arrayIdentifier).toBe("");
+      expect(def.storageSystem).toBeUndefined();
+      expect(def.resourceFilters).toEqual({});
+      expect(def.metricViewConfig).toEqual({
+        queryConfigs: [],
+        formulaConfigs: [],
+      });
+      // Volumes, hosts and pods are read every 2 minutes.
+      expect(def.rollingTime).toBe(RollingTime.Past5Minutes);
+    });
+
+    test("round-trips a FlashBlade file-system-scoped monitor with its platform", () => {
+      const monitor: MonitorStepStorageArrayMonitor = {
+        arrayIdentifier: "pure-fb-01",
+        storageSystem: StorageSystem.PureStorageFlashBlade,
+        resourceFilters: { fileSystemName: "home", componentName: "CH1.FB3" },
+        metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+        rollingTime: RollingTime.Past5Minutes,
+      };
+      expect(
+        MonitorStepStorageArrayMonitorUtil.fromJSON(
+          MonitorStepStorageArrayMonitorUtil.toJSON(monitor),
+        ),
+      ).toEqual(monitor);
+      // Scope enum sanity: the display value is spelled out.
+      expect(StorageArrayResourceScope.FileSystem).toBe("File System");
     });
   });
 

@@ -224,6 +224,38 @@ afterEach(() => {
 });
 
 describe("label rule import review", () => {
+  /*
+   * The file, then the preview: Validate and preview only walks on, so it is
+   * plain, and Import - on the preview, the last step - is the one primary
+   * button (Forms/Utils/SteppedFormFooter).
+   */
+  test("Validate and preview is a plain way on; Import, on the preview, is the one primary button", async () => {
+    renderModal();
+    enterJSON();
+
+    const validate: HTMLElement = screen.getByRole("button", {
+      name: "Validate and preview",
+    });
+
+    expect(validate).toBeEnabled();
+    expect(validate.className).not.toContain("bg-indigo-600");
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(validate);
+    await screen.findByRole("heading", { name: "Preview import" });
+
+    const importButton: HTMLElement = screen.getByRole("button", {
+      name: /^Import \d/,
+    });
+
+    expect(importButton.className).toContain("bg-indigo-600");
+    expect(
+      screen.queryByRole("button", { name: "Validate and preview" }),
+    ).not.toBeInTheDocument();
+  });
+
   test("requires JSON and a successful preview before offering creation", () => {
     renderModal();
 

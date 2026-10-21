@@ -97,9 +97,13 @@ describe("the old Entities product is gone, not merely hidden", () => {
   test("no ENTITIES_* PageMap key survives", () => {
     /*
      * A leftover key is a route nothing mounts: reachable by URL, renders
-     * nothing.
+     * nothing. The old product's keys were ENTITIES, ENTITIES_ROOT,
+     * ENTITIES_VIEW and ENTITIES_VIEW_ROOT. Security Events' own Entities
+     * page (SECURITY_EVENTS_ENTITIES) is mounted, and is not one of them.
      */
-    expect(readSource("Utils", "PageMap.ts")).not.toContain("ENTITIES");
+    expect(readSource("Utils", "PageMap.ts")).not.toMatch(
+      /^\s*ENTITIES\w*\s*=/m,
+    );
   });
 
   test("RouteMap no longer serves anything under /entities", () => {
@@ -405,9 +409,16 @@ describe("the navbar link exists and is not commented out", () => {
     expect(navBar).toContain("RouteMap[PageMap.INVENTORY] as Route");
   });
 
-  test("the item list and detail pages keep the entry highlighted", () => {
-    expect(navBar).toContain("RouteMap[PageMap.INVENTORY_ITEMS] as Route");
-    expect(navBar).toContain("RouteMap[PageMap.INVENTORY_VIEW] as Route");
+  test("every page of Inventory keeps the entry highlighted", () => {
+    /*
+     * The whole /inventory area lights the entry - the item list and an
+     * item, and Archived, Documentation and Settings too - not only the
+     * pages it once listed one by one. NavBarNamesTheCurrentProduct (Common
+     * tests) walks every one of those pages.
+     */
+    expect(dense(navBarRaw)).toContain(
+      "activeRoute:RouteMap[PageMap.INVENTORY_ROOT],",
+    );
   });
 
   test("no commented-out Entities entry is left behind", () => {

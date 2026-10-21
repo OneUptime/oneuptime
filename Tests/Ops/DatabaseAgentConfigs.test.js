@@ -98,6 +98,23 @@ function composeEnvironment() {
   );
 }
 
+/*
+ * The variables the OneUptime AI agent service reads from the same .env
+ * (`NAME=${NAME...}`), leaving out the ones the compose file fixes itself
+ * (its resource type).
+ */
+function aiAgentEnvironmentFromDotenv() {
+  const compose = yaml.load(read(`${AGENT_DIR}/docker-compose.yml`));
+  return compose.services["oneuptime-database-ai-agent"].environment
+    .filter((entry) => {
+      const [name, value] = entry.split(/=(.*)/s);
+      return value.startsWith(`\${${name}`);
+    })
+    .map((entry) => {
+      return entry.split("=")[0];
+    });
+}
+
 /* The body of a shell function `name() { ... }` in a script. */
 function shellFunction(script, name) {
   const match = script.match(
@@ -402,7 +419,10 @@ describe("the Database Agent install", () => {
     const compose = yaml.load(read(`${AGENT_DIR}/docker-compose.yml`));
     const service = compose.services["oneuptime-database-agent"];
 
-    expect(Object.keys(compose.services)).toEqual(["oneuptime-database-agent"]);
+    expect(Object.keys(compose.services)).toEqual([
+      "oneuptime-database-agent",
+      "oneuptime-database-ai-agent",
+    ]);
     expect(service.image).toBe(
       `otel/opentelemetry-collector-contrib:${composePin()}`,
     );
@@ -411,6 +431,60 @@ describe("the Database Agent install", () => {
     expect(service.volumes).toContain(
       "./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro",
     );
+  });
+
+  test("the OneUptime AI agent runs beside it: unprivileged, read-only, the same .env and database", () => {
+    const compose = yaml.load(read(`${AGENT_DIR}/docker-compose.yml`));
+    const service = compose.services["oneuptime-database-ai-agent"];
+    const environment = Object.fromEntries(
+      service.environment.map((entry) => {
+        return entry.split(/=(.*)/s).slice(0, 2);
+      }),
+    );
+
+    expect(service.image).toBe("oneuptime/resource-ai-agent:release");
+    // One agent per database, like the collector: no fixed container name.
+    expect(service.container_name).toBeUndefined();
+    expect(service.user).toBe("1000:1000");
+    expect(service.read_only).toBe(true);
+    expect(service.tmpfs).toEqual(["/tmp"]);
+    expect(service.cap_drop).toEqual(["ALL"]);
+    expect(service.extra_hosts).toEqual(
+      compose.services["oneuptime-database-agent"].extra_hosts,
+    );
+    expect(service.volumes).toBeUndefined();
+    expect(environment.ONEUPTIME_AI_AGENT_RESOURCE_TYPE).toBe("database");
+    // Read-only unless the .env says otherwise.
+    expect(environment.ONEUPTIME_AI_ALLOW_WRITES).toBe(
+      "${ONEUPTIME_AI_ALLOW_WRITES:-false}",
+    );
+
+    // Every connection and identity variable the collector reads, the same way.
+    const collector = Object.fromEntries(
+      compose.services["oneuptime-database-agent"].environment.map((entry) => {
+        return entry.split(/=(.*)/s).slice(0, 2);
+      }),
+    );
+    for (const name of [
+      "ONEUPTIME_URL",
+      "ONEUPTIME_TELEMETRY_INGESTION_KEY",
+      "DATABASE_SYSTEM",
+      "DATABASE_ENDPOINT",
+      "DATABASE_ENDPOINT_HOST",
+      "DATABASE_ENDPOINT_PORT",
+      "DATABASE_SERVER_ADDRESS",
+      "DATABASE_SERVER_PORT",
+      "DATABASE_SERVER_ID",
+      "DATABASE_USERNAME",
+      "DATABASE_PASSWORD",
+      "DATABASE_TLS_INSECURE",
+      "DATABASE_TLS_INSECURE_SKIP_VERIFY",
+    ]) {
+      expect({ name, value: environment[name] }).toEqual({
+        name,
+        value: collector[name],
+      });
+    }
   });
 
   test("the optional id defaults to blank rather than to an unset variable", () => {
@@ -438,7 +512,9 @@ describe("the Database Agent install", () => {
         return match[1];
       })
       .sort();
-    const passed = [...composeEnvironment()].sort();
+    const passed = [
+      ...new Set([...composeEnvironment(), ...aiAgentEnvironmentFromDotenv()]),
+    ].sort();
 
     expect(reused).toEqual(passed);
     expect(written).toEqual(passed);

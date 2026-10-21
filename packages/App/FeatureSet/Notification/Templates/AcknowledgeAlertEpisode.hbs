@@ -10,9 +10,9 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Alert Episode Title:" plainText=alertEpisodeTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=alertEpisodeSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=alertEpisodeSeverity color=alertEpisodeSeverityColor textColor=alertEpisodeSeverityTextColor }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
 {{> DetailBoxField title="Description: " blockText=alertEpisodeDescription  }}
 {{> DetailBoxEnd this }}
@@ -54,6 +54,12 @@
 {{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText="Acknowledge Alert Episode"}}
 
 {{> LinkBlock linkUrl=acknowledgeAlertEpisodeLink linkLabel="You can also copy and paste this link:"}}
+
+{{#if passOnLink}}
+{{> InfoBlock info="Can't take it? Pass it on, and you won't be paged about it again."}}
+
+{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}
+{{/if}}
 
 {{> InfoBlock info="You will be notified when the status of this alert episode changes."}}
 

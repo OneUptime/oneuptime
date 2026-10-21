@@ -31,8 +31,9 @@ import {
  *                 compact JWS an installation verifies offline against the
  *                 public keys its build trusts.
  *   legacy HS256  what every release before signed licenses received: a JWT
- *                 signed with this server's own ENCRYPTION_SECRET that the
- *                 installation cannot verify and only checks is present.
+ *                 signed with this server's own token signing key
+ *                 (TokenSigningKey) that the installation cannot verify and
+ *                 only checks is present.
  *
  * EdDSA is used ONLY when ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY holds an
  * Ed25519 private key whose key id (RFC 7638 thumbprint) is in THIS build's
@@ -51,7 +52,15 @@ import {
 export const ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV: string =
   "ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY";
 
-// Every enterprise feature. Per-feature licenses can narrow this later.
+/*
+ * Every enterprise feature. Per-feature licenses can narrow this later, but
+ * the list is read by every release a customer runs, not only this one:
+ * releases up to 14.0.10 gate single sign-on on the "sso" claim (or "*"),
+ * while later releases include single sign-on in the Community Edition and
+ * ignore that claim (RETIRED_ENTERPRISE_FEATURE_VALUES). A narrowed list must
+ * therefore keep "sso" for as long as such releases are supported, or their
+ * installs lose single sign-on on their next license refresh.
+ */
 export const LICENSE_SERVER_TOKEN_FEATURES: ReadonlyArray<string> = [
   ENTERPRISE_FEATURE_WILDCARD,
 ];
@@ -90,6 +99,12 @@ export interface LicenseTokenSubject {
   userLimit: number | null;
   isEvaluation: boolean;
   expiresAt: Date | null | undefined;
+  /*
+   * EnterpriseLicense.canBeWhiteLabelled. Signed into the token as the
+   * canBeWhiteLabelled claim only when true (see buildClaims); the legacy
+   * HS256 token never carries it, because an installation cannot verify one.
+   */
+  canBeWhiteLabelled?: boolean | undefined;
 }
 
 export interface ParsedLicenseSigningKey {
@@ -363,6 +378,11 @@ export default class LicenseSigner {
   /*
    * The claims of a signed license (design §7). exp is the license's own
    * expiry; instanceId binds the token to one installation.
+   *
+   * canBeWhiteLabelled is added only for a license with the switch on. A
+   * license without it gets exactly the claims it got before the switch
+   * existed - no `false` - so its token tells the customer nothing about an
+   * option they do not have.
    */
   public static buildClaims(data: {
     subject: LicenseTokenSubject;
@@ -370,7 +390,7 @@ export default class LicenseSigner {
     now: Date;
     instanceId?: string | undefined;
   }): LicenseTokenClaims {
-    return {
+    const claims: LicenseTokenClaims = {
       iss: LICENSE_TOKEN_ISSUER,
       aud: LICENSE_TOKEN_AUDIENCE,
       sub: data.subject.licenseId,
@@ -383,6 +403,12 @@ export default class LicenseSigner {
       iat: toSeconds(data.now),
       exp: toSeconds(data.expiresAt),
     };
+
+    if (data.subject.canBeWhiteLabelled === true) {
+      claims.canBeWhiteLabelled = true;
+    }
+
+    return claims;
   }
 
   /*

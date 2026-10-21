@@ -1,7 +1,7 @@
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
-} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+} from "../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 
 /*
  * Policy gate for AI-composed remediation commands.
@@ -42,6 +42,11 @@ interface DenyRule {
 /*
  * Matched against a normalized copy of the command (quotes stripped,
  * whitespace collapsed, lowercased) so trivial quoting does not evade them.
+ *
+ * Several of these read on to the end of the command from more than one
+ * place, so their time grows faster than the command's length. They only
+ * ever read a command of at most MAX_COMMAND_LENGTH_CHARS: getDenyReason
+ * refuses a longer one before any of them reads it.
  */
 const DENY_RULES: Array<DenyRule> = [
   {
@@ -250,8 +255,20 @@ export default class CommandPolicy {
     };
   }
 
-  // Null when clean, otherwise the human-readable reason it is denied.
+  /*
+   * Null when clean, otherwise the human-readable reason it is denied.
+   *
+   * A command longer than MAX_COMMAND_LENGTH_CHARS is denied before it is
+   * read: no command that long may run (evaluateCommand refuses it too),
+   * and the rules below are only quick on text of that length at most. A
+   * model's tool call, a stored plan step and a job a Runner claims all
+   * reach this check directly, so the bound is kept here.
+   */
   public static getDenyReason(command: string): string | null {
+    if ((command || "").length > MAX_COMMAND_LENGTH_CHARS) {
+      return `a command longer than ${MAX_COMMAND_LENGTH_CHARS} characters`;
+    }
+
     const normalized: string = CommandPolicy.normalizeForInspection(command);
     for (const rule of DENY_RULES) {
       /*

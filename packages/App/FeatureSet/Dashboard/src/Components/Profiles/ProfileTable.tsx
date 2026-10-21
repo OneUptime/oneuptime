@@ -57,6 +57,15 @@ import {
 } from "../../Utils/LockedEntityKeyChips";
 import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 import LockedFilterChip from "Common/UI/Components/TelemetryViewer/components/LockedFilterChip";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
+import { getTelemetryFirstStepsSetupAction } from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  TELEMETRY_FIRST_STEPS_COPY,
+  TelemetryFirstStepsCopy,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -94,6 +103,7 @@ export interface ComponentProps {
 const ProfileTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID | undefined = props.modelId;
 
   const [attributes, setAttributes] = React.useState<Array<string>>([]);
@@ -449,6 +459,44 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       })
     : null;
 
+  /*
+   * The All profiles page's empty list (an embed passes its own sentence).
+   * Under a deep-link chip - a trace, a service, a profile type - nothing
+   * matches, with the way to clear the chips. With none, it is the
+   * Profiler's first steps, as its Overview shows them: the list said "No
+   * profiles found." over a paragraph naming Grafana Alloy, eBPF and a
+   * Pyroscope SDK, the setup guide's job.
+   */
+  const isNarrowedByChip: boolean = Boolean(
+    traceIdFilter || serviceIdFilter || profileTypeFilter,
+  );
+
+  const firstSteps: TelemetryFirstStepsCopy =
+    TELEMETRY_FIRST_STEPS_COPY[TelemetryFirstStepsSignal.Profiles];
+
+  const allProfilesEmptyState: EmptyStateOptions = isNarrowedByChip
+    ? {
+        isFiltered: true,
+        onClearFilters: (): void => {
+          setTraceIdFilter(null);
+          setServiceIdFilter(null);
+          setProfileTypeFilter(null);
+          Navigation.setQueryString({
+            traceId: null,
+            serviceId: null,
+            profileType: null,
+          });
+        },
+      }
+    : {
+        title: firstSteps.title,
+        description: firstSteps.description,
+        icon: firstSteps.icon,
+        actions: [
+          getTelemetryFirstStepsSetupAction(TelemetryFirstStepsSignal.Profiles),
+        ],
+      };
+
   const showFilterRow: boolean = hasProfileTableFilterRow({
     lockedChips: lockedEntityKeyChips,
     traceIdFilter,
@@ -465,7 +513,10 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       {pageError && (
         <div className="mb-4">
           <ErrorMessage
-            message={`We couldn't load telemetry services. ${pageError}`}
+            message={translator.translateTemplate(
+              "We couldn't load telemetry services. {{error}}",
+              { error: pageError },
+            )}
             onRefreshClick={() => {
               void loadServices();
             }}
@@ -476,7 +527,10 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       {areAdvancedFiltersVisible && attributesError && (
         <div className="mb-4">
           <ErrorMessage
-            message={`We couldn't load profile attributes. ${attributesError}`}
+            message={translator.translateTemplate(
+              "We couldn't load profile attributes. {{error}}",
+              { error: attributesError },
+            )}
             onRefreshClick={() => {
               setAttributesLoaded(false);
               void loadAttributes();
@@ -505,7 +559,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
 
           {traceIdFilter && (
             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
-              Filtered by trace
+              {translator.translateText("Filtered by trace")}
               <span className="font-mono" title={traceIdFilter}>
                 {traceIdFilter.length > 12
                   ? `${traceIdFilter.substring(0, 8)}…`
@@ -514,7 +568,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="text-indigo-400 hover:text-indigo-700"
-                title="Remove trace filter"
+                title={translator.translateText("Remove trace filter")}
                 onClick={() => {
                   setTraceIdFilter(null);
                   Navigation.setQueryString({ traceId: null });
@@ -527,7 +581,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
 
           {serviceIdFilter && serviceFilterChip && (
             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
-              {serviceFilterChip.key}
+              {translator.translateText(serviceFilterChip.key)}
               <span
                 className={serviceFilterChip.isResolved ? "" : "font-mono"}
                 title={serviceIdFilter}
@@ -537,7 +591,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="text-indigo-400 hover:text-indigo-700"
-                title="Remove service filter"
+                title={translator.translateText("Remove service filter")}
                 onClick={() => {
                   setServiceIdFilter(null);
                   Navigation.setQueryString({ serviceId: null });
@@ -550,14 +604,14 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
 
           {profileTypeFilter && (
             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
-              Type
+              {translator.translateText("Type")}
               <span>
                 {ProfileUtil.getProfileTypeDisplayName(profileTypeFilter)}
               </span>
               <button
                 type="button"
                 className="text-indigo-400 hover:text-indigo-700"
-                title="Remove type filter"
+                title={translator.translateText("Remove type filter")}
                 onClick={() => {
                   setProfileTypeFilter(null);
                   Navigation.setQueryString({ profileType: null });
@@ -604,31 +658,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             primaryEntityType: true,
           }}
           showViewIdButton={true}
-          noItemsMessage={
-            props.noItemsMessage ? (
-              props.noItemsMessage
-            ) : (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 max-w-md mx-auto">
-                  No profiles found. Send continuous profiles with Grafana Alloy
-                  (zero-code eBPF profiling for anything on a host) or a
-                  Pyroscope SDK in your application — recordings show up here
-                  shortly after they arrive.
-                </p>
-                <div className="mt-3">
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
-                    )}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    <Icon icon={IconProp.Book} className="h-4 w-4" />
-                    Set up profiling
-                  </Link>
-                </div>
-              </div>
-            )
-          }
+          noItemsMessage={props.noItemsMessage}
+          emptyState={props.noItemsMessage ? undefined : allProfilesEmptyState}
           showRefreshButton={true}
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
@@ -733,7 +764,9 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                         <span className="text-sm text-gray-900">
                           {host.name || host.hostIdentifier}
                         </span>
-                        <span className="text-xs text-gray-400">Host</span>
+                        <span className="text-xs text-gray-400">
+                          {translator.translateText("Host")}
+                        </span>
                       </div>
                     );
                   }
@@ -832,7 +865,10 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                       {durationLabel}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {sampleCount.toLocaleString()} samples
+                      {translator.translatePlural(
+                        { one: "{{count}} sample", other: "{{count}} samples" },
+                        sampleCount,
+                      )}
                     </span>
                   </div>
                 );
@@ -871,7 +907,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                   <Link
                     to={traceRoute}
                     className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                    title={`Open trace ${traceId}`}
+                    title={translator.translateTemplate(
+                      "Open trace {{traceId}}",
+                      {
+                        traceId: traceId,
+                      },
+                    )}
                   >
                     <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
                     <span className="font-mono">{shortId}</span>

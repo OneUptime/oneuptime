@@ -621,7 +621,11 @@ export interface SessionReplayExceptionSessionDto {
 
 export interface SessionReplayForExceptionResponseDto {
   sessions: Array<SessionReplayExceptionSessionDto>;
-  /* The accessible-application scan has a ceiling; true when it was hit. */
+  /*
+   * Always false: the caller's scope names the applications it reaches
+   * without listing the project's applications, so the answer is never
+   * cut short. Kept for the clients that read it.
+   */
   isApplicationScopeTruncated: boolean;
 }
 
@@ -664,7 +668,11 @@ export interface SessionReplayResolveResponseDto {
    * recording this caller can open.
    */
   sessions: Array<SessionReplayResolvedSessionDto>;
-  /* The accessible-application scan has a ceiling; true when it was hit. */
+  /*
+   * Always false: the caller's scope names the applications it reaches
+   * without listing the project's applications, so the answer is never
+   * cut short. Kept for the clients that read it.
+   */
   isApplicationScopeTruncated: boolean;
 }
 

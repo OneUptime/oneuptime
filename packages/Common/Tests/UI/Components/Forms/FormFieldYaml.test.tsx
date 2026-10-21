@@ -1,61 +1,7 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
-
-/*
- * Monaco stand-in. Needed because FormField reaches CodeEditor through
- * YamlEditor, and CodeEditor calls configureMonacoLoader() at module scope.
- */
-jest.mock("@monaco-editor/react", () => {
-  return {
-    __esModule: true,
-    loader: { config: jest.fn() },
-    default: (editorProps: {
-      value?: string | undefined;
-      defaultLanguage?: string | undefined;
-      onChange?: ((value: string | undefined) => void) | undefined;
-      onMount?: ((editor: unknown, monaco: unknown) => void) | undefined;
-    }) => {
-      const hostRef: React.MutableRefObject<HTMLDivElement | null> =
-        React.useRef<HTMLDivElement | null>(null);
-
-      React.useEffect(() => {
-        if (!editorProps.onMount) {
-          return;
-        }
-
-        editorProps.onMount(
-          {
-            getDomNode: () => {
-              return hostRef.current;
-            },
-            getModel: () => {
-              return {
-                updateOptions: () => {
-                  return undefined;
-                },
-              };
-            },
-          },
-          {},
-        );
-        // eslint-disable-next-line
-      }, []);
-
-      return (
-        <div ref={hostRef}>
-          <textarea
-            data-testid="monaco"
-            data-language={editorProps.defaultLanguage}
-            value={editorProps.value || ""}
-            readOnly={true}
-          />
-        </div>
-      );
-    },
-  };
-});
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
@@ -123,16 +69,15 @@ describe("FormField — a YAML field renders a YAML editor", () => {
     renderField();
 
     expect(screen.getByTestId("yaml-editor")).toBeInTheDocument();
-    expect(screen.getByTestId("monaco")).toBeInTheDocument();
+    expect(screen.getByTestId("code-editor-input")).toBeInTheDocument();
   });
 
-  test("Monaco is given the yaml grammar, not html or markdown", () => {
+  test("the editor is a YAML code editor, not html or markdown", () => {
     renderField();
 
-    expect(screen.getByTestId("monaco")).toHaveAttribute(
-      "data-language",
-      "yaml",
-    );
+    expect(
+      screen.getByTestId("yaml-editor").querySelector("[data-code-type]"),
+    ).toHaveAttribute("data-code-type", "yaml");
   });
 
   /*
@@ -150,17 +95,17 @@ describe("FormField — a YAML field renders a YAML editor", () => {
   test("the current value is shown in the editor", () => {
     renderField();
 
-    expect((screen.getByTestId("monaco") as HTMLTextAreaElement).value).toBe(
-      VALID_SIGMA_RULE,
-    );
+    expect(
+      (screen.getByTestId("code-editor-input") as HTMLTextAreaElement).value,
+    ).toBe(VALID_SIGMA_RULE);
   });
 
   test("an empty field renders an empty editor rather than crashing", () => {
     renderField(undefined, {} as FormValues<TestEntity>);
 
-    expect((screen.getByTestId("monaco") as HTMLTextAreaElement).value).toBe(
-      "",
-    );
+    expect(
+      (screen.getByTestId("code-editor-input") as HTMLTextAreaElement).value,
+    ).toBe("");
   });
 
   test("the field's label is still rendered above it", () => {
@@ -170,17 +115,17 @@ describe("FormField — a YAML field renders a YAML editor", () => {
   });
 
   /*
-   * Monaco renders nothing carrying the generated field id, so the label
-   * cannot use htmlFor without dangling (WCAG 1.3.1). It names the editor
-   * through aria-labelledby instead — and that has to land on Monaco's own
-   * focusable textarea, because the wrapper around it is a bare <div> and
-   * ARIA does not name a role=generic element.
+   * The editor's textarea does not carry the generated field id, so the
+   * label cannot use htmlFor without dangling (WCAG 1.3.1). It names the
+   * editor through aria-labelledby instead - on the textarea itself, the
+   * element that takes focus, because ARIA does not name a role=generic div.
    */
-  test("the field's label names Monaco's textarea", () => {
+  test("the field's label names the editor's textarea", () => {
     renderField();
 
     const labelId: string =
-      screen.getByTestId("monaco").getAttribute("aria-labelledby") || "";
+      screen.getByTestId("code-editor-input").getAttribute("aria-labelledby") ||
+      "";
 
     expect(labelId).not.toBe("");
     expect(document.getElementById(labelId)?.textContent).toContain(
@@ -192,7 +137,9 @@ describe("FormField — a YAML field renders a YAML editor", () => {
     renderField();
 
     const describedBy: string =
-      screen.getByTestId("monaco").getAttribute("aria-describedby") || "";
+      screen
+        .getByTestId("code-editor-input")
+        .getAttribute("aria-describedby") || "";
 
     expect(describedBy.split(" ").length).toBeGreaterThanOrEqual(2);
 

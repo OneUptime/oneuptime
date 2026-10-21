@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -95,6 +98,12 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ServerlessFunction,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

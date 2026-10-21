@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -30,6 +31,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: PlanType.Growth,
 })
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "sortOrder", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -68,6 +70,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "IncidentCustomField",
 })
+@Index(["projectId", "variableKey"], { unique: true })
 export default class IncidentCustomField extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -277,7 +280,7 @@ export default class IncidentCustomField extends BaseModel {
     type: TableColumnType.VeryLongText,
     title: "Dropdown Options",
     description:
-      "Options and optional colors for dropdown fields. Plain one-per-line values remain supported.",
+      'Options and optional colors for dropdown fields, in the order they are listed. Plain one-per-line values remain supported. Records store an option as its text: changing an option here keeps the values records already hold. To rename an option and move those values with it, send the renames with the update, in miscDataProps: {"renamedDropdownOptions": [{"from": "Old text", "to": "New text"}]}. "to" must be one of the options.',
     example: "Option 1\nOption 2\nOption 3",
   })
   @Column({
@@ -359,6 +362,209 @@ export default class IncidentCustomField extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public mapFromCustomFieldName?: string = undefined;
+
+  /*
+   * The four columns below are incident-only on purpose: the other eight
+   * custom field definition tables do not have them, and the shared settings
+   * page and Custom Fields card offer them only for a definition model that
+   * has the column (DatabaseBaseModel.hasColumn).
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentCustomField,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Required on Create",
+    description:
+      "When on, an incident declared from the dashboard cannot be created until this field is filled in (a Boolean field must be ticked). It applies only to fields shown on create. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can leave it empty, and it stays optional when an incident is edited later.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isRequiredOnCreate?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Order",
+    description:
+      "Where this field appears among the incident's custom fields, lowest number first. A new field is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+    example: 1,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public sortOrder?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentCustomField,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show on Create",
+    description:
+      "When on, this field is asked for in a Details step when an incident is declared from the dashboard, and incident templates can fill it in.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public showOnCreate?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentCustomField,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Include in Subscriber Notifications",
+    description:
+      "When on, this field and its value appear in the messages status page subscribers get about an incident: the default email, Slack and Microsoft Teams messages, and webhooks (under customFields, by the field's template variable key). The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so turn this on only for fields that are safe to share with them.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public includeInSubscriberNotifications?: boolean = undefined;
+
+  /*
+   * The key templates reach this field by,
+   * {{incident.customFields.<variableKey>}} (templates saved with the older
+   * {{customFields.<variableKey>}} are filled too).
+   * Made from the name when the field is created
+   * (IncidentCustomFieldService.onBeforeCreate, with
+   * generateCustomFieldVariableKey) and never changed afterwards, so renaming
+   * a field does not break the templates that use it.
+   *
+   * Computed with an empty create and update access control: whatever a
+   * client sends for it is replaced on create and dropped on update. Unique
+   * per project, which the index below holds even against two fields created
+   * at the same moment. Nullable only so the column could be added to a table
+   * that already had rows; the migration that added it gave every one a key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentCustomField,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Template Variable Key",
+    description:
+      "The key this field is reached by in templates, as {{incident.customFields.<key>}}. Made from the field's name when it is created - lowercase letters, digits and underscores, with _2, _3 and so on added when another field already has it - and never changed afterwards, so renaming the field does not break templates that use it.",
+    example: "expected_resolution",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public variableKey?: string = undefined;
 
   @ColumnAccessControl({
     create: [

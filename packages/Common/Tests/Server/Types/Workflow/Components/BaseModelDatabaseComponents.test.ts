@@ -1,4 +1,4 @@
-import {
+import ComponentCode, {
   RunOptions,
   RunReturnType,
 } from "../../../../../Server/Types/Workflow/ComponentCode";
@@ -11,11 +11,16 @@ import FindOneBaseModel from "../../../../../Server/Types/Workflow/Components/Ba
 import UpdateManyBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import ProjectService from "../../../../../Server/Services/ProjectService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import Permission, { UserPermission } from "../../../../../Types/Permission";
+import UserType from "../../../../../Types/UserType";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/3132 - "Update One Monitor"
@@ -86,8 +91,178 @@ function loggedLines(log: jest.Mock): string {
     .join("\n");
 }
 
+beforeEach(() => {
+  // The project's plan, which a step's props carry on a server with billing.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+/*
+ * Every step acts as a Project Admin of the project the workflow runs in
+ * (WorkflowPrincipal), never as OneUptime itself, and names the workflow.
+ * The tables, columns and plans a Project Admin may not touch are refused to
+ * it by the checks every other caller meets.
+ */
+describe("who a step acts as", () => {
+  type StepCase = [
+    string,
+    string,
+    unknown,
+    (service: DatabaseService<Monitor>) => ComponentCode,
+    JSONObject,
+  ];
+
+  const created: Monitor = new Monitor();
+  created._id = MONITOR_ID;
+
+  const STEPS: Array<StepCase> = [
+    [
+      "Create One",
+      "create",
+      created,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateOneBaseModel<Monitor>(service);
+      },
+      { json: { name: "new monitor" } },
+    ],
+    [
+      "Create Many",
+      "create",
+      created,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateManyBaseModel<Monitor>(service);
+      },
+      { "json-array": [{ name: "new monitor" }] },
+    ],
+    [
+      "Update One",
+      "updateOneBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Update Many",
+      "updateBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Delete One",
+      "deleteOneBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Delete Many",
+      "deleteBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Find One",
+      "findOneBy",
+      null,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+    [
+      "Find Many",
+      "findBy",
+      [],
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+  ];
+
+  test.each(STEPS)(
+    "%s acts as a Project Admin of the workflow's project, never as root",
+    async (
+      _name: string,
+      method: string,
+      returned: unknown,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      const call: jest.Mock = jest
+        .spyOn(service, method as never)
+        .mockResolvedValue(returned as never) as unknown as jest.Mock;
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+
+      const props: DatabaseCommonInteractionProps = firstCallArgument(call)[
+        "props"
+      ] as unknown as DatabaseCommonInteractionProps;
+
+      expect(props.isRoot).toBeUndefined();
+      expect(props.isMasterAdmin).toBeUndefined();
+      expect(props.userId).toBeUndefined();
+      expect(props.userType).toBe(UserType.Workflow);
+      expect(props.tenantId).toBe(fixture.projectId);
+      expect(props.workflowId).toBe(fixture.options.workflowId);
+      expect(Object.keys(props.userTenantAccessPermission || {})).toEqual([
+        fixture.projectId.toString(),
+      ]);
+
+      const held: Array<Permission> = (
+        props.userTenantAccessPermission?.[fixture.projectId.toString()]
+          ?.permissions || []
+      ).map((row: UserPermission): Permission => {
+        return row.permission;
+      });
+
+      expect(held).toContain(Permission.ProjectAdmin);
+      expect(held).not.toContain(Permission.ProjectOwner);
+    },
+  );
+
+  test("each step gets props of its own: one step's cannot reach the next", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    const call: jest.Mock = jest
+      .spyOn(service, "updateOneBy")
+      .mockResolvedValue(1 as never) as unknown as jest.Mock;
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: UpdateOneBaseModel<Monitor> =
+      new UpdateOneBaseModel<Monitor>(service);
+    const args: JSONObject = {
+      query: { _id: MONITOR_ID },
+      data: { isEnabled: true },
+    };
+
+    await component.run(args, fixture.options);
+    await component.run(args, fixture.options);
+
+    expect(call.mock.calls[0]![0].props).not.toBe(call.mock.calls[1]![0].props);
+  });
 });
 
 describe("Update One - the component reported in issue 3132", () => {
@@ -267,9 +442,10 @@ describe("Update One - the component reported in issue 3132", () => {
   test("cannot move the record into another project via the project relation", async () => {
     /*
      * Monitor.project is @JoinColumn({name: "projectId"}), the same physical
-     * column the tenant stamp writes, and TypeORM reads the relation property
-     * first. A Data payload naming another project therefore used to beat the
-     * stamp and re-home the row.
+     * column as projectId, and TypeORM reads the relation property first. A
+     * Data payload naming another project used to re-home the row. The step
+     * now writes no project at all: the record stays where it is, and the
+     * query keeps to the workflow's project.
      */
     const service: DatabaseService<Monitor> = makeMonitorService();
     jest.spyOn(service, "updateOneBy").mockResolvedValue(1 as never);
@@ -289,13 +465,13 @@ describe("Update One - the component reported in issue 3132", () => {
       fixture.options,
     );
 
-    const data: JSONObject = firstCallArgument(service.updateOneBy)[
-      "data"
-    ] as JSONObject;
+    const call: JSONObject = firstCallArgument(service.updateOneBy);
+    const data: JSONObject = call["data"] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
     expect(data["isEnabled"]).toBe(true);
+    expect((call["query"] as JSONObject)["projectId"]).toBe(fixture.projectId);
   });
 
   test("cannot move the record via the project relation written as an object", async () => {
@@ -319,7 +495,7 @@ describe("Update One - the component reported in issue 3132", () => {
     ] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
   });
 
   test("routes a missing query to the error port without crashing", async () => {
@@ -414,7 +590,7 @@ describe("Update Many", () => {
     ] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
   });
 
   test("reports how many records it updated", async () => {
@@ -929,4 +1105,183 @@ describe("Create uses the shared error logging", () => {
     expect(loggedLines(fixture.log)).toContain("database exploded");
     expect(fixture.onError).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * A database step that fails says why where the run window opens: the
+ * Steps view shows a step's reason for taking its Error output under it
+ * (RunReturnType.executePortReason). Before, a failed database step said why
+ * only in the Full Log, and its card showed nothing but Failed.
+ */
+describe("why a database step took its Error output", () => {
+  type StepCase = [
+    string,
+    string,
+    (service: DatabaseService<Monitor>) => ComponentCode,
+    JSONObject,
+  ];
+
+  const STEPS: Array<StepCase> = [
+    [
+      "Create One",
+      "create",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateOneBaseModel<Monitor>(service);
+      },
+      { json: { name: "new monitor" } },
+    ],
+    [
+      "Create Many",
+      "create",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateManyBaseModel<Monitor>(service);
+      },
+      { "json-array": [{ name: "new monitor" }] },
+    ],
+    [
+      "Update One",
+      "updateOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Update Many",
+      "updateBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Delete One",
+      "deleteOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Delete Many",
+      "deleteBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Find One",
+      "findOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+    [
+      "Find Many",
+      "findBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+  ];
+
+  test.each(STEPS)(
+    "%s gives the error it logged as its reason",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      jest
+        .spyOn(service, method as never)
+        .mockRejectedValue(
+          new Error(
+            `Invalid ID for "currentMonitorStatusId" in the data: "${MONITOR_STATUS_ID}x".`,
+          ) as never,
+        );
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("error");
+      expect(result.executePortReason).toBe(
+        `Invalid ID for "currentMonitorStatusId" in the data: "${MONITOR_STATUS_ID}x".`,
+      );
+      expect(loggedLines(fixture.log)).toContain(
+        result.executePortReason as string,
+      );
+      expect(fixture.onError).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(STEPS)(
+    "%s gives the tip it logged too",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      jest
+        .spyOn(service, method as never)
+        .mockRejectedValue(
+          new Error(
+            'Property "currentStatus" was not found in "Monitor". Make sure your query is correct.',
+          ) as never,
+        );
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("error");
+      expect(result.executePortReason).toMatch(
+        /^Property "currentStatus" was not found in "Monitor"\. Make sure your query is correct\. Tip: "currentStatus" is not a column on Monitor\./,
+      );
+    },
+  );
+
+  // A step that worked has nothing to explain.
+  test.each(STEPS)(
+    "%s that worked gives no reason",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      const created: Monitor = new Monitor();
+      created._id = MONITOR_ID;
+      const returned: unknown =
+        method === "create"
+          ? created
+          : method === "findOneBy"
+            ? null
+            : method === "findBy"
+              ? []
+              : 1;
+      jest.spyOn(service, method as never).mockResolvedValue(returned as never);
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+      expect(result.executePortReason).toBeUndefined();
+    },
+  );
 });

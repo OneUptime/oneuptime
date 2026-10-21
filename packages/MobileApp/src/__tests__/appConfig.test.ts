@@ -17,6 +17,12 @@ import path from "node:path";
  * These tests pin both halves - that it is OFF by default, and that it is
  * actually applied when switched on - because either half silently wrong
  * produces a confusing failure a long way from here.
+ *
+ * Apple has since granted the entitlement to the team that publishes the
+ * official OneUptime On-Call app, so eas.json's production profile switches it
+ * on for store builds. That is pinned too: a store build without it signs,
+ * uploads and passes review just fine, and iOS then quietly declines every
+ * critical page it is sent.
  */
 
 /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports */
@@ -41,7 +47,7 @@ interface SplashDefinition {
 
 const staticApp: {
   userInterfaceStyle: string;
-  ios: { bundleIdentifier: string; icon: string };
+  ios: { bundleIdentifier: string; icon?: string };
   android: {
     package: string;
     adaptiveIcon: { foregroundImage: string; backgroundColor: string };
@@ -199,6 +205,33 @@ describe("The entitlement is applied when explicitly switched on", () => {
   });
 });
 
+describe("Store builds carry the critical alerts entitlement", () => {
+  const easBuildProfiles: Record<string, { env?: Record<string, string> }> =
+    require("../../eas.json").build;
+
+  test("the production EAS profile switches it on", () => {
+    /*
+     * The exact string matters: the switch accepts "true" and nothing else, so
+     * a JSON boolean or "1" here would build a store binary without it.
+     */
+    expect(
+      easBuildProfiles["production"]?.env?.[
+        "EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT"
+      ],
+    ).toBe("true");
+  });
+
+  test("the production profile's environment really declares the entitlement", () => {
+    const result: Record<string, unknown> =
+      appConfig.withCriticalAlertsEntitlement(
+        baseConfig(),
+        easBuildProfiles["production"]?.env,
+      );
+
+    expect(iosEntitlements(result)?.[ENTITLEMENT]).toBe(true);
+  });
+});
+
 describe("The native launch screen matches the app", () => {
   test("the app follows the device appearance so dark mode reaches native controls", () => {
     /*
@@ -249,14 +282,48 @@ describe("The native launch screen matches the app", () => {
       "d9f87edc-1c3e-466f-b032-1ced7621aa8a",
     );
     expect(staticApp.icon).toBe("./assets/icon.png");
-    expect(staticApp.ios.icon).toBe("./assets/icon.png");
+    /*
+     * iOS takes the shared icon above: Expo uses `icon` wherever `ios.icon`
+     * is not set. SDK 57's config schema reads `ios.icon` as an Icon Composer
+     * `.icon` folder, so a PNG there fails expo-doctor's schema check.
+     */
+    expect(staticApp.ios.icon).toBeUndefined();
     expect(staticApp.android.adaptiveIcon).toEqual({
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#000000",
     });
     expect(staticApp.plugins).toContainEqual([
       "expo-notifications",
-      { color: "#58A6FF" },
+      expect.objectContaining({ color: "#58A6FF" }),
+    ]);
+  });
+
+  test("bundles every alarm sound a critical page can name, and nothing else", () => {
+    /*
+     * iOS plays a custom sound only from the app bundle and Android only from
+     * res/raw; the expo-notifications plugin's `sounds` list is what copies
+     * the files into both. A sound missing here plays the default sound on
+     * iOS and, on an Android channel created with it, nothing at all.
+     */
+    const plugin: string | [string, Record<string, unknown>] | undefined =
+      staticApp.plugins.find(
+        (item: string | [string, Record<string, unknown>]): boolean => {
+          return Array.isArray(item) && item[0] === "expo-notifications";
+        },
+      );
+
+    expect(Array.isArray(plugin)).toBe(true);
+
+    const sounds: Array<string> = (
+      plugin as [string, { sounds?: Array<string> }]
+    )[1].sounds as Array<string>;
+
+    expect(sounds).toEqual([
+      "./assets/sounds/oneuptime_klaxon.wav",
+      "./assets/sounds/oneuptime_siren.wav",
+      "./assets/sounds/oneuptime_digital.wav",
+      "./assets/sounds/oneuptime_smoke_alarm.wav",
+      "./assets/sounds/oneuptime_rising.wav",
     ]);
   });
 });

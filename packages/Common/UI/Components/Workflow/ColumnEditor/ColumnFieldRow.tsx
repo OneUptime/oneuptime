@@ -18,9 +18,13 @@ import {
   ModelColumnRow,
   changeColumnRow,
 } from "./ColumnRow";
+import { isColumnDescriptionInformative } from "./ColumnPickerOptions";
 import { rowIssue } from "./ColumnRowSerialization";
+import { isSystemColumn } from "./ColumnUse";
 import ColumnValueInput from "./ColumnValueInput";
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   row: ModelColumnRow;
@@ -29,7 +33,6 @@ export interface ComponentProps {
   /** Every column id, offered as autocomplete when a key has to be retyped. */
   knownColumnIds: Array<string>;
   isRequired: boolean;
-  suggestions?: Array<string> | undefined;
   /** Focused on mount, so a field added from the picker is ready to type into. */
   autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
@@ -39,11 +42,15 @@ export interface ComponentProps {
 const ColumnFieldRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const labelId: string = useId();
   const control: ModelColumnControl = controlForColumn(props.column);
   const issue: string | null = rowIssue(props.row, props.column);
   const isUnknownColumn: boolean = !props.column;
   const typeLabel: string = columnTypeLabel(props.column);
+  // The model's own name for the field, in the reader's language.
+  const columnTitle: string =
+    translator.translateText(props.column?.title) || "";
 
   /*
    * An empty required field is worth pointing at, but only quietly: the step
@@ -81,7 +88,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               }}
             />
             <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
-              Not a column on this model
+              {translator.translateText("Not a column on this model")}
             </span>
           </div>
         ) : (
@@ -90,7 +97,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               id={labelId}
               className="block truncate text-sm font-medium text-gray-900"
             >
-              {props.column?.title}
+              {columnTitle}
               {props.isRequired && (
                 <span className="ml-0.5 text-red-500" aria-hidden="true">
                   *
@@ -109,8 +116,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               <span className="truncate rounded bg-gray-100 px-1.5 py-0.5 font-mono">
                 {props.row.columnId}
               </span>
-              {typeLabel.toLowerCase() !==
-                (props.column?.title || "").toLowerCase() && (
+              {typeLabel.toLowerCase() !== columnTitle.toLowerCase() && (
                 <span className="truncate text-gray-400">{typeLabel}</span>
               )}
             </span>
@@ -118,11 +124,12 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               Wrapped rather than truncated. This sentence is the model's own
               explanation of the field and is often the only thing that settles
               what to type; cutting it off mid-word and hiding the rest behind a
-              hover is not a real answer inside a modal.
+              hover is not a real answer inside a modal. Left out only where it
+              is the field's name again ("Incident Severity ID").
             */}
-            {props.column?.description && (
+            {props.column && isColumnDescriptionInformative(props.column) && (
               <span className="mt-1 block text-xs leading-snug text-gray-500">
-                {props.column.description}
+                {translator.translateText(props.column.description)}
               </span>
             )}
           </>
@@ -136,7 +143,6 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           text={props.row.text}
           values={props.row.values}
           placeholder={props.column?.example || props.column?.placeholder}
-          suggestions={props.suggestions}
           ariaLabelledby={isUnknownColumn ? undefined : labelId}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
@@ -147,18 +153,43 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
 
         {props.row.valueMode === ColumnValueMode.Raw && (
           <p className="mt-1 text-[11px] text-amber-600">
-            Kept exactly as it was saved. Editing it rewrites it in this
-            column&apos;s own type.
+            {translator.translateText(
+              "Kept exactly as it was saved. Editing it rewrites it in this column's own type.",
+            )}
           </p>
         )}
 
-        {issue && <p className="mt-1 text-[11px] text-red-500">{issue}</p>}
+        {issue && (
+          <p className="mt-1 text-[11px] text-red-500">
+            {translator.translateText(issue)}
+          </p>
+        )}
 
         {props.column?.isTenantColumn && (
           <p className="mt-1 text-[11px] text-gray-500">
-            The workflow sets this itself and ignores what you type here.
+            {translator.translateText(
+              "The workflow sets this itself and ignores what you type here.",
+            )}
           </p>
         )}
+
+        {/*
+          The picker no longer offers these, but a workflow saved before it
+          stopped can still hold one. The row stays - dropping a stored value
+          is how an editor loses work - and says why it is not in the list.
+        */}
+        {props.column &&
+          !props.column.isTenantColumn &&
+          isSystemColumn(props.column) && (
+            <p
+              className="mt-1 text-[11px] text-gray-500"
+              data-testid={`model-column-system-note-${props.row.columnId}`}
+            >
+              {translator.translateText(
+                "OneUptime fills this in itself, so you can remove it.",
+              )}
+            </p>
+          )}
       </div>
 
       <div className="flex items-center pt-1">

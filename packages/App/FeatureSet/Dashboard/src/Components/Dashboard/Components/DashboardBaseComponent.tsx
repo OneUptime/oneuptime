@@ -54,15 +54,27 @@ import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeLis
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
+import DashboardStorageArrayVolumeListComponent from "./DashboardStorageArrayVolumeListComponent";
+import DashboardStorageArrayHardwareListComponent from "./DashboardStorageArrayHardwareListComponent";
 import DashboardNetworkMapComponent from "./DashboardNetworkMapComponent";
 import DashboardHtmlComponent from "./DashboardHtmlComponent";
+import DashboardWidgetFallback, {
+  COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX,
+  DashboardWidgetProblem,
+} from "./DashboardWidgetFallback";
+import ContainedErrorBoundary, {
+  ContainedErrorFallbackProps,
+} from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
-import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  isDashboardComponentType,
+} from "Common/Types/Dashboard/DashboardComponentType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import {
   GridDndMode,
   ResizeDirection,
@@ -112,6 +124,25 @@ export interface DashboardBaseComponentProps {
    * library's onTimeRangeReset for why an idle handler is not free.
    */
   isDashboardTimeRangeZoomed?: boolean | undefined;
+  /*
+   * The dashboard the widget is on. A viewer's sort of a list or table
+   * widget is remembered per widget on this dashboard (issue #5082).
+   */
+  dashboardId?: string | undefined;
+  /*
+   * Handed in only by the widget settings' live preview: a click on a
+   * column header sets the widget's own sort (`arguments.sort`, null for
+   * its built-in order) instead of the viewer's pick.
+   */
+  onWidgetSortChange?: ((sort: string | null) => void) | undefined;
+  /*
+   * Also only the live preview's: a widget whose sortable columns are its
+   * own - a metric table's, a Data Source table's, a trace table's - says
+   * what they are, so the Sort setting can offer them.
+   */
+  onWidgetSortColumnsChange?:
+    | ((sortColumns: DashboardWidgetSortColumns) => void)
+    | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -125,6 +156,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
     event: React.PointerEvent,
     direction: ResizeDirection,
   ) => void;
+  /*
+   * Opens this widget's settings in edit mode. Offered by a widget that
+   * cannot be drawn (DashboardWidgetFallback), and handed in only to
+   * someone who may edit the dashboard.
+   */
+  onEditWidgetClick?: (() => void) | undefined;
 }
 
 /**
@@ -200,6 +237,10 @@ const WIDGET_BY_TYPE: Partial<
     DashboardDockerSwarmServiceListComponent,
   [DashboardComponentType.CephOsdList]: DashboardCephOsdListComponent,
   [DashboardComponentType.CephPoolList]: DashboardCephPoolListComponent,
+  [DashboardComponentType.StorageArrayVolumeList]:
+    DashboardStorageArrayVolumeListComponent,
+  [DashboardComponentType.StorageArrayHardwareList]:
+    DashboardStorageArrayHardwareListComponent,
   [DashboardComponentType.NetworkMap]: DashboardNetworkMapComponent,
   [DashboardComponentType.Html]: DashboardHtmlComponent,
 };
@@ -252,12 +293,21 @@ const RESIZE_HANDLES: Array<ResizeHandleSpec> = [
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const component: DashboardBaseComponent =
-    props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
-      return c.componentId.toString() === props.componentId.toString();
-    }) as DashboardBaseComponent;
+  const component: DashboardBaseComponent | undefined = (
+    props.dashboardViewConfig.components || []
+  ).find((c: DashboardBaseComponent) => {
+    return c.componentId.toString() === props.componentId.toString();
+  });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
+
+  /*
+   * Gone from the config under it: the settings preview of a widget that
+   * was just deleted, for the render before its dialog closes.
+   */
+  if (!component) {
+    return <></>;
+  }
 
   // Boolean() so a JS caller passing undefined reads as inactive, not active.
   const isActive: boolean = Boolean(props.dndActiveMode);
@@ -456,8 +506,72 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
   // ── content ───────────────────────────────────────────────────────────
 
-  const Widget: ComponentType<any> | undefined =
-    WIDGET_BY_TYPE[component.componentType];
+  /*
+   * isDashboardComponentType first: a stored type is any string, and a
+   * lookup of "constructor" would find Object's.
+   */
+  const Widget: ComponentType<any> | undefined = isDashboardComponentType(
+    component.componentType,
+  )
+    ? WIDGET_BY_TYPE[component.componentType]
+    : undefined;
+
+  const storedComponentType: string =
+    typeof component.componentType === "string" ? component.componentType : "";
+
+  const isCompactFallback: boolean =
+    props.dashboardComponentHeightInPx < COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX;
+
+  /*
+   * Each widget is drawn inside its own boundary, so one that throws shows
+   * DashboardWidgetFallback in its own place and the rest of the board
+   * stays (issue #4571). The boundary starts over when the widget's config
+   * changes (an edit), and on a refresh or a new time range, so a failure
+   * that came from one answer clears with the next.
+   */
+  const getWidgetContent: GetReactElementFunction = (): ReactElement => {
+    if (!Widget) {
+      return (
+        <DashboardWidgetFallback
+          problem={DashboardWidgetProblem.UnknownType}
+          componentType={storedComponentType}
+          isEditMode={props.isEditMode}
+          isCompact={isCompactFallback}
+          onEditWidgetClick={props.onEditWidgetClick}
+        />
+      );
+    }
+
+    return (
+      <ContainedErrorBoundary
+        resetKeys={[
+          component,
+          props.refreshTick,
+          props.dashboardStartAndEndDate,
+        ]}
+        renderFallback={(fallback: ContainedErrorFallbackProps) => {
+          return (
+            <DashboardWidgetFallback
+              problem={DashboardWidgetProblem.Crashed}
+              componentType={storedComponentType}
+              isEditMode={props.isEditMode}
+              isCompact={isCompactFallback}
+              error={fallback.error}
+              onRetry={fallback.retry}
+              onEditWidgetClick={props.onEditWidgetClick}
+            />
+          );
+        }}
+      >
+        <Widget
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component}
+        />
+      </ContainedErrorBoundary>
+    );
+  };
 
   return (
     <div
@@ -495,16 +609,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           padding: props.isEditMode ? "28px 12px 12px 12px" : "12px",
         }}
       >
-        {Widget ? (
-          <Widget
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component}
-          />
-        ) : (
-          <></>
-        )}
+        {getWidgetContent()}
       </div>
 
       {getResizeHandles()}

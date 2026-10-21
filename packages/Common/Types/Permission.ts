@@ -17,6 +17,7 @@ export enum PermissionGroup {
   Telemetry = "Telemetry",
   Workflow = "Workflow",
   Runbook = "Runbook",
+  Form = "Form",
   AutoRemediation = "Auto Remediation",
   Team = "Team",
   Billing = "Billing",
@@ -154,6 +155,20 @@ enum Permission {
   EditProjectApiKey = "EditProjectApiKey",
   EditProjectApiKeyPermissions = "EditProjectApiKeyPermissions",
 
+  /*
+   * MCP clients that sign in with OAuth (Settings -> MCP Server).
+   *
+   * AuthorizeMcpClient is unlike the others in this file: every member of a
+   * project may connect an MCP client by signing in, so nobody has to be
+   * granted it. It exists to be BLOCKED - a block row for it on a team stops
+   * that team's members from authorizing clients for the project, and stops
+   * the tokens they already issued. The other two let somebody other than the
+   * member see, and revoke, what members have connected.
+   */
+  AuthorizeMcpClient = "AuthorizeMcpClient",
+  ReadMcpClientAuthorization = "ReadMcpClientAuthorization",
+  DeleteMcpClientAuthorization = "DeleteMcpClientAuthorization",
+
   CreateTelemetryIngestionKey = "CreateTelemetryIngestionKey",
   DeleteTelemetryIngestionKey = "DeleteTelemetryIngestionKey",
   ReadTelemetryIngestionKey = "ReadTelemetryIngestionKey",
@@ -203,6 +218,36 @@ enum Permission {
   EditProjectThreatIntelFeed = "EditProjectThreatIntelFeed",
   ReadProjectThreatIntelFeed = "ReadProjectThreatIntelFeed",
 
+  // Security Cases (the SOC's queue: detections grouped into cases)
+  CreateSecurityCase = "CreateSecurityCase",
+  DeleteSecurityCase = "DeleteSecurityCase",
+  EditSecurityCase = "EditSecurityCase",
+  ReadSecurityCase = "ReadSecurityCase",
+
+  // Security Case Notes (analyst notes on a case)
+  CreateSecurityCaseNote = "CreateSecurityCaseNote",
+  DeleteSecurityCaseNote = "DeleteSecurityCaseNote",
+  EditSecurityCaseNote = "EditSecurityCaseNote",
+  ReadSecurityCaseNote = "ReadSecurityCaseNote",
+
+  // Security Case Feed (what happened on a case, written by OneUptime)
+  ReadSecurityCaseFeed = "ReadSecurityCaseFeed",
+
+  // Security Detections (the signals a case is made of)
+  DeleteSecurityDetection = "DeleteSecurityDetection",
+  ReadSecurityDetection = "ReadSecurityDetection",
+
+  // Security Playbooks (automated response to cases)
+  CreateSecurityPlaybook = "CreateSecurityPlaybook",
+  DeleteSecurityPlaybook = "DeleteSecurityPlaybook",
+  EditSecurityPlaybook = "EditSecurityPlaybook",
+  ReadSecurityPlaybook = "ReadSecurityPlaybook",
+
+  // Security Playbook Runs (starting a playbook on a case, approving its steps)
+  CreateSecurityPlaybookRun = "CreateSecurityPlaybookRun",
+  EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
+  ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
+
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
   DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
@@ -226,6 +271,12 @@ enum Permission {
   DeleteProjectLogScrubRule = "DeleteProjectLogScrubRule",
   EditProjectLogScrubRule = "EditProjectLogScrubRule",
   ReadProjectLogScrubRule = "ReadProjectLogScrubRule",
+
+  // Log Recording Rules (derived metrics from logs)
+  CreateProjectLogRecordingRule = "CreateProjectLogRecordingRule",
+  DeleteProjectLogRecordingRule = "DeleteProjectLogRecordingRule",
+  EditProjectLogRecordingRule = "EditProjectLogRecordingRule",
+  ReadProjectLogRecordingRule = "ReadProjectLogRecordingRule",
 
   // Metric Pipeline Rules
   CreateProjectMetricPipelineRule = "CreateProjectMetricPipelineRule",
@@ -702,6 +753,11 @@ enum Permission {
   DeleteCephClusterOwnerRule = "DeleteCephClusterOwnerRule",
   EditCephClusterOwnerRule = "EditCephClusterOwnerRule",
   ReadCephClusterOwnerRule = "ReadCephClusterOwnerRule",
+  // Storage Array Owner Rule Permissions
+  CreateStorageArrayOwnerRule = "CreateStorageArrayOwnerRule",
+  DeleteStorageArrayOwnerRule = "DeleteStorageArrayOwnerRule",
+  EditStorageArrayOwnerRule = "EditStorageArrayOwnerRule",
+  ReadStorageArrayOwnerRule = "ReadStorageArrayOwnerRule",
 
   // vCenter (VMware) Owner Rule Permissions
   CreateVMwareVCenterOwnerRule = "CreateVMwareVCenterOwnerRule",
@@ -720,6 +776,11 @@ enum Permission {
   DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
   EditCephClusterLabelRule = "EditCephClusterLabelRule",
   ReadCephClusterLabelRule = "ReadCephClusterLabelRule",
+  // Storage Array Label Rule Permissions
+  CreateStorageArrayLabelRule = "CreateStorageArrayLabelRule",
+  DeleteStorageArrayLabelRule = "DeleteStorageArrayLabelRule",
+  EditStorageArrayLabelRule = "EditStorageArrayLabelRule",
+  ReadStorageArrayLabelRule = "ReadStorageArrayLabelRule",
 
   // vCenter (VMware) Label Rule Permissions
   CreateVMwareVCenterLabelRule = "CreateVMwareVCenterLabelRule",
@@ -957,6 +1018,13 @@ enum Permission {
   EditRunnerOwnerUser = "EditRunnerOwnerUser",
   ReadRunnerOwnerUser = "ReadRunnerOwnerUser",
 
+  /*
+   * The Runbook Variable permissions (Models/DatabaseModels/RunbookVariable).
+   * They keep the names they had when they were the runbook secret
+   * permissions - teams and custom roles store them by name - so everyone
+   * who managed runbook secrets manages runbook variables, which secrets
+   * became.
+   */
   CreateRunbookSecret = "CreateRunbookSecret",
   EditRunbookSecret = "EditRunbookSecret",
   DeleteRunbookSecret = "DeleteRunbookSecret",
@@ -1098,6 +1166,9 @@ enum Permission {
   CreateCephClusterFeed = "CreateCephClusterFeed",
   EditCephClusterFeed = "EditCephClusterFeed",
   ReadCephClusterFeed = "ReadCephClusterFeed",
+  CreateStorageArrayFeed = "CreateStorageArrayFeed",
+  EditStorageArrayFeed = "EditStorageArrayFeed",
+  ReadStorageArrayFeed = "ReadStorageArrayFeed",
 
   CreateVMwareVCenterFeed = "CreateVMwareVCenterFeed",
   EditVMwareVCenterFeed = "EditVMwareVCenterFeed",
@@ -1173,6 +1244,14 @@ enum Permission {
   EditAlertInternalNote = "EditAlertInternalNote",
   DeleteAlertInternalNote = "DeleteAlertInternalNote",
   ReadAlertInternalNote = "ReadAlertInternalNote",
+
+  CreateIncidentVideoCall = "CreateIncidentVideoCall",
+  DeleteIncidentVideoCall = "DeleteIncidentVideoCall",
+  ReadIncidentVideoCall = "ReadIncidentVideoCall",
+
+  CreateAlertVideoCall = "CreateAlertVideoCall",
+  DeleteAlertVideoCall = "DeleteAlertVideoCall",
+  ReadAlertVideoCall = "ReadAlertVideoCall",
 
   CreateIncidentPublicNote = "CreateIncidentPublicNote",
   EditIncidentPublicNote = "EditIncidentPublicNote",
@@ -1420,6 +1499,16 @@ enum Permission {
   EditNetworkDeviceDiagnostic = "EditNetworkDeviceDiagnostic",
   ReadNetworkDeviceDiagnostic = "ReadNetworkDeviceDiagnostic",
 
+  /*
+   * Packet captures run on the project's probes (PacketCapture). Starting
+   * one and downloading its file are separate permissions on purpose: the
+   * file holds the traffic itself.
+   */
+  CreatePacketCapture = "CreatePacketCapture",
+  DeletePacketCapture = "DeletePacketCapture",
+  ReadPacketCapture = "ReadPacketCapture",
+  DownloadPacketCapture = "DownloadPacketCapture",
+
   CreateNetworkSite = "CreateNetworkSite",
   DeleteNetworkSite = "DeleteNetworkSite",
   EditNetworkSite = "EditNetworkSite",
@@ -1543,6 +1632,10 @@ enum Permission {
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
   ReadCephCluster = "ReadCephCluster",
+  CreateStorageArray = "CreateStorageArray",
+  DeleteStorageArray = "DeleteStorageArray",
+  EditStorageArray = "EditStorageArray",
+  ReadStorageArray = "ReadStorageArray",
 
   CreateVMwareVCenter = "CreateVMwareVCenter",
   DeleteVMwareVCenter = "DeleteVMwareVCenter",
@@ -1586,6 +1679,10 @@ enum Permission {
   DeleteCephClusterOwnerTeam = "DeleteCephClusterOwnerTeam",
   EditCephClusterOwnerTeam = "EditCephClusterOwnerTeam",
   ReadCephClusterOwnerTeam = "ReadCephClusterOwnerTeam",
+  CreateStorageArrayOwnerTeam = "CreateStorageArrayOwnerTeam",
+  DeleteStorageArrayOwnerTeam = "DeleteStorageArrayOwnerTeam",
+  EditStorageArrayOwnerTeam = "EditStorageArrayOwnerTeam",
+  ReadStorageArrayOwnerTeam = "ReadStorageArrayOwnerTeam",
 
   CreateVMwareVCenterOwnerTeam = "CreateVMwareVCenterOwnerTeam",
   DeleteVMwareVCenterOwnerTeam = "DeleteVMwareVCenterOwnerTeam",
@@ -1601,6 +1698,10 @@ enum Permission {
   DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
   EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
   ReadCephClusterOwnerUser = "ReadCephClusterOwnerUser",
+  CreateStorageArrayOwnerUser = "CreateStorageArrayOwnerUser",
+  DeleteStorageArrayOwnerUser = "DeleteStorageArrayOwnerUser",
+  EditStorageArrayOwnerUser = "EditStorageArrayOwnerUser",
+  ReadStorageArrayOwnerUser = "ReadStorageArrayOwnerUser",
 
   CreateVMwareVCenterOwnerUser = "CreateVMwareVCenterOwnerUser",
   DeleteVMwareVCenterOwnerUser = "DeleteVMwareVCenterOwnerUser",
@@ -1626,6 +1727,12 @@ enum Permission {
   DeleteHostOwnerUser = "DeleteHostOwnerUser",
   EditHostOwnerUser = "EditHostOwnerUser",
   ReadHostOwnerUser = "ReadHostOwnerUser",
+
+  // Collector Configs: the config OneUptime sends to the hosts it manages.
+  CreateHostCollectorConfig = "CreateHostCollectorConfig",
+  DeleteHostCollectorConfig = "DeleteHostCollectorConfig",
+  EditHostCollectorConfig = "EditHostCollectorConfig",
+  ReadHostCollectorConfig = "ReadHostCollectorConfig",
 
   CreateServerlessFunction = "CreateServerlessFunction",
   DeleteServerlessFunction = "DeleteServerlessFunction",
@@ -1766,6 +1873,11 @@ enum Permission {
   EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
   ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
 
+  CreateVideoCallConnection = "CreateVideoCallConnection",
+  DeleteVideoCallConnection = "DeleteVideoCallConnection",
+  EditVideoCallConnection = "EditVideoCallConnection",
+  ReadVideoCallConnection = "ReadVideoCallConnection",
+
   CreateWorkspaceNotificationSummary = "CreateWorkspaceNotificationSummary",
   DeleteWorkspaceNotificationSummary = "DeleteWorkspaceNotificationSummary",
   EditWorkspaceNotificationSummary = "EditWorkspaceNotificationSummary",
@@ -1887,6 +1999,22 @@ enum Permission {
   DeleteIncidentAlert = "DeleteIncidentAlert",
   EditIncidentAlert = "EditIncidentAlert",
   ReadIncidentAlert = "ReadIncidentAlert",
+
+  /*
+   * Form (the Forms product: forms anyone with the link can fill in, whose
+   * submissions create incidents or scheduled maintenance events)
+   * Permissions. They replaced the incident form permissions, and the
+   * migration that moved incident forms into Forms gave every team and API
+   * key holding one of those the matching one of these.
+   */
+  CreateForm = "CreateForm",
+  DeleteForm = "DeleteForm",
+  EditForm = "EditForm",
+  ReadForm = "ReadForm",
+
+  // Form Submission Permissions
+  DeleteFormSubmission = "DeleteFormSubmission",
+  ReadFormSubmission = "ReadFormSubmission",
 
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
@@ -2067,6 +2195,36 @@ enum Permission {
   EditServiceLevelObjectiveLabelRule = "EditServiceLevelObjectiveLabelRule",
   ReadServiceLevelObjectiveLabelRule = "ReadServiceLevelObjectiveLabelRule",
 
+  // Queue (MessageQueue) Permissions
+  CreateMessageQueue = "CreateMessageQueue",
+  DeleteMessageQueue = "DeleteMessageQueue",
+  EditMessageQueue = "EditMessageQueue",
+  ReadMessageQueue = "ReadMessageQueue",
+
+  // Queue Owner Team Permissions
+  CreateMessageQueueOwnerTeam = "CreateMessageQueueOwnerTeam",
+  DeleteMessageQueueOwnerTeam = "DeleteMessageQueueOwnerTeam",
+  EditMessageQueueOwnerTeam = "EditMessageQueueOwnerTeam",
+  ReadMessageQueueOwnerTeam = "ReadMessageQueueOwnerTeam",
+
+  // Queue Owner User Permissions
+  CreateMessageQueueOwnerUser = "CreateMessageQueueOwnerUser",
+  DeleteMessageQueueOwnerUser = "DeleteMessageQueueOwnerUser",
+  EditMessageQueueOwnerUser = "EditMessageQueueOwnerUser",
+  ReadMessageQueueOwnerUser = "ReadMessageQueueOwnerUser",
+
+  // Queue Label Rule Permissions
+  CreateMessageQueueLabelRule = "CreateMessageQueueLabelRule",
+  DeleteMessageQueueLabelRule = "DeleteMessageQueueLabelRule",
+  EditMessageQueueLabelRule = "EditMessageQueueLabelRule",
+  ReadMessageQueueLabelRule = "ReadMessageQueueLabelRule",
+
+  // Queue Owner Rule Permissions
+  CreateMessageQueueOwnerRule = "CreateMessageQueueOwnerRule",
+  DeleteMessageQueueOwnerRule = "DeleteMessageQueueOwnerRule",
+  EditMessageQueueOwnerRule = "EditMessageQueueOwnerRule",
+  ReadMessageQueueOwnerRule = "ReadMessageQueueOwnerRule",
+
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
    * These short-circuit table-level checks for that resource class. Scope on
@@ -2169,7 +2327,9 @@ export class PermissionHelper {
    * resources via OwnedScopePermission — but they also don't contribute
    * a label filter, so they are excluded here. AccessControlPermission's
    * early return treats "any unrestricted row" as a broader grant; Owned
-   * rows must not trigger that path.
+   * rows must not trigger that path. The one exception is a role that
+   * cannot be scoped at all (isScopeApplicable): its Owned row reaches the
+   * whole project, as every other check reads it.
    *
    * We intentionally do NOT consult `isAccessControlPermission` here.
    * The UI allows attaching labels to role permissions like
@@ -2185,8 +2345,15 @@ export class PermissionHelper {
         if (i.scope === PermissionScope.All) {
           return true;
         }
+        /*
+         * A role that cannot be scoped (Project Owner, Project Admin, the
+         * Settings and Billing roles) reaches the whole project whatever
+         * scope a stray row of it carries - as OwnedScopePermission and
+         * HeldPermissionsUtil.isProjectWideRow read it - so its Owned row
+         * is a grant without a label restriction too.
+         */
         if (i.scope === PermissionScope.Owned) {
-          return false;
+          return !this.isScopeApplicable(i.permission);
         }
         // scope === Labels OR scope === undefined (legacy default)
         return i.labelIds.length === 0;
@@ -2274,7 +2441,7 @@ export class PermissionHelper {
         permission: Permission.ProjectOwner,
         title: "Project Owner",
         description:
-          "Owner of this project. Manages billing, inviting other admins to this project, and can delete this project.",
+          "Owner of this project. Does everything Project Admin does, and also manages billing and payment methods, sets up SCIM, and can delete the project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2284,7 +2451,7 @@ export class PermissionHelper {
         permission: Permission.ProjectMember,
         title: "Project Member",
         description:
-          "Member of this project. Can view most resources unless restricted.",
+          "Member of this project. Creates, changes and deletes monitors, incidents, alerts, status pages, on-call policies, scheduled maintenance, services and infrastructure, and runs runbooks. Project settings take Project Admin: team members and permissions, API keys, labels, SSO, rules, custom fields, states, secrets, dashboards, SLOs, and changing workflows and runbooks. Does not see API keys, the audit log, invoices, secrets, session replays or security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2294,7 +2461,7 @@ export class PermissionHelper {
         permission: Permission.ProjectAdmin,
         title: "Project Admin",
         description:
-          "Admin of this project. Manages team members in this project, however cannot manage billing or delete this project.",
+          "Admin of this project. Creates, changes and deletes everything in it, including team members and their permissions, API keys, labels, SSO, rules and custom fields, and reads the audit log. Cannot manage billing, set up SCIM or delete the project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2304,7 +2471,7 @@ export class PermissionHelper {
         permission: Permission.IncidentAdmin,
         title: "Incident Admin",
         description:
-          "Full control over incidents and incident configuration. Can create, edit, and delete incidents, notes, state timelines, templates, severities, and states.",
+          "Does everything Incident Member does, and also creates, changes and deletes incident severities and states. Incident rules, custom fields, measurements and SLAs take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2314,7 +2481,7 @@ export class PermissionHelper {
         permission: Permission.IncidentMember,
         title: "Incident Member",
         description:
-          "Can create, edit, and delete incidents, incident notes, and incident state timelines. Cannot modify incident severities or states.",
+          "Creates, changes and deletes incidents and incident episodes, with their notes, state timelines, owners, roles and linked alerts, and incident, note and postmortem templates. Cannot change incident severities or states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2333,7 +2500,7 @@ export class PermissionHelper {
         permission: Permission.AlertAdmin,
         title: "Alert Admin",
         description:
-          "Full control over alerts and alert configuration. Can create, edit, and delete alerts, notes, state timelines, severities, and states.",
+          "Does everything Alert Member does, and also creates, changes and deletes alert severities and states. Alert rules, custom fields and measurements take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2343,7 +2510,7 @@ export class PermissionHelper {
         permission: Permission.AlertMember,
         title: "Alert Member",
         description:
-          "Can create, edit, and delete alerts, alert notes, and alert state timelines. Cannot modify alert severities or states.",
+          "Creates, changes and deletes alerts and alert episodes, with their notes, state timelines and owners, links alerts to incidents, and manages alert note templates. Cannot change alert severities or states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2362,7 +2529,7 @@ export class PermissionHelper {
         permission: Permission.MonitorAdmin,
         title: "Monitor Admin",
         description:
-          "Full control over monitors and monitor configuration. Can create, edit, and delete monitors, monitor groups, probes, secrets, and statuses.",
+          "Does everything Monitor Member does, and also creates, changes and deletes monitor statuses. Monitor secrets, rules and custom fields take Project Admin. Probes are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2372,7 +2539,7 @@ export class PermissionHelper {
         permission: Permission.MonitorMember,
         title: "Monitor Member",
         description:
-          "Can create, edit, and delete monitors, monitor groups, and monitor secrets. Cannot modify monitor statuses.",
+          "Creates, changes and deletes monitors, monitor groups and monitor templates, with their owners, tests and status timelines. Cannot change monitor statuses or manage monitor secrets.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2391,7 +2558,7 @@ export class PermissionHelper {
         permission: Permission.StatusPageAdmin,
         title: "Status Page Admin",
         description:
-          "Full control over status pages, announcements, subscribers, resources, domains, groups, and SSO configurations.",
+          "Creates, changes and deletes status pages and what they show: announcements, subscribers, resources, groups, links, domains, private users and templates. Status page SSO, SCIM, rules and custom fields take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2401,7 +2568,7 @@ export class PermissionHelper {
         permission: Permission.StatusPageMember,
         title: "Status Page Member",
         description:
-          "Can create, edit, and delete status pages, announcements, and subscribers.",
+          "Same as Status Page Admin: creates, changes and deletes status pages and what they show, including announcements, subscribers, resources, groups, links, domains, private users and templates.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2421,7 +2588,7 @@ export class PermissionHelper {
         permission: Permission.OnCallAdmin,
         title: "On-Call Admin",
         description:
-          "Full control over on-call duty policies, schedules, escalation rules, and user overrides.",
+          "Creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2431,7 +2598,7 @@ export class PermissionHelper {
         permission: Permission.OnCallMember,
         title: "On-Call Member",
         description:
-          "Can create, edit, and delete on-call duty policies, schedules, and user overrides.",
+          "Same as On-Call Admin: creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2450,7 +2617,7 @@ export class PermissionHelper {
         permission: Permission.ScheduledMaintenanceAdmin,
         title: "Scheduled Maintenance Admin",
         description:
-          "Full control over scheduled maintenances, notes, state timelines, templates, and maintenance states.",
+          "Does everything Scheduled Maintenance Member does, and also creates, changes and deletes maintenance states. Scheduled maintenance rules, custom fields and measurements take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2460,7 +2627,7 @@ export class PermissionHelper {
         permission: Permission.ScheduledMaintenanceMember,
         title: "Scheduled Maintenance Member",
         description:
-          "Can create, edit, and delete scheduled maintenances, notes, and state timelines. Cannot modify maintenance states.",
+          "Creates, changes and deletes scheduled maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2480,7 +2647,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryAdmin,
         title: "Telemetry Admin",
         description:
-          "Full control over telemetry services, logs, traces, metrics, profiles, exceptions, ingestion keys, and log pipelines.",
+          "Does everything Telemetry Member does, and also reads and deletes session replays, deletes change events and edits inventory items. Telemetry pipelines, ingestion keys, source maps, services and RUM applications are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2490,7 +2657,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryMember,
         title: "Telemetry Member",
         description:
-          "Can create, edit, and delete telemetry services and view all telemetry data.",
+          "Reads logs, traces, metrics, profiles and exceptions, sends and deletes them, manages saved views, and creates and changes metric types. Does not see session replays. Cannot resolve or archive exceptions, or manage telemetry pipelines, ingestion keys, source maps or services.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2500,7 +2667,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryViewer,
         title: "Telemetry Viewer",
         description:
-          "Read-only access to telemetry services and telemetry data.",
+          "Reads logs, traces, metrics, profiles, exceptions and saved views, and changes nothing. Does not see session replays.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2510,7 +2677,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Security data is not readable through any other role.",
+          "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2520,7 +2687,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure security event connections.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2530,7 +2697,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, detection rules, threat intelligence feeds, and indicators.",
+          "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2540,7 +2707,7 @@ export class PermissionHelper {
         permission: Permission.SettingsAdmin,
         title: "Settings Admin",
         description:
-          "Full control over project settings: API keys, teams, team permissions, labels, SSO, SMTP, call/SMS config, domains, probes, and service catalog.",
+          "Does everything Settings Member does, and also connects video call providers and reads the audit log. API keys, teams and their permissions, labels, SSO, SMTP, call and SMS settings and domains take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2550,7 +2717,7 @@ export class PermissionHelper {
         permission: Permission.SettingsMember,
         title: "Settings Member",
         description:
-          "Can manage labels and service catalog. Cannot manage API keys, teams, SSO, or sensitive integrations.",
+          "Creates, changes and deletes the project's services, probes, hosts, clusters and other infrastructure, AI agents, LLM providers, incoming call policies, dashboard domains and Slack and Microsoft Teams notification rules, and connects code repositories. Cannot manage API keys, teams, labels, SSO or video call connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2559,7 +2726,8 @@ export class PermissionHelper {
       {
         permission: Permission.SettingsViewer,
         title: "Settings Viewer",
-        description: "Read-only access to project settings.",
+        description:
+          "Reads the project's settings, including teams and their permissions, labels, SSO, domains, probes, services and infrastructure, and changes nothing. Does not see API keys or the audit log.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2568,8 +2736,16 @@ export class PermissionHelper {
       {
         permission: Permission.BillingAdmin,
         title: "Billing Admin",
+        /*
+         * What the role grants, and no more (Utils/Project/ProjectBilling):
+         * Billing Member's reads and contact details, and the four
+         * notification channel switches (Project's enableSmsNotifications and
+         * the three beside it). The plan, payment methods, balances and
+         * paying invoices are checked against Project Owner and Manage
+         * Billing.
+         */
         description:
-          "Full control over project billing, invoices, and payment methods.",
+          "Does what Billing Member does, and turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2578,8 +2754,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingMember,
         title: "Billing Member",
+        // Billing Viewer's reads, invoice downloads and the contact details.
         description:
-          "Can view and manage payment methods. Cannot change the project plan.",
+          "Reads the project's billing as Billing Viewer does, downloads invoices, and changes the billing contact details: the billing address, the finance email and whether invoices are emailed to it. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2588,7 +2765,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingViewer,
         title: "Billing Viewer",
-        description: "Read-only access to billing information and invoices.",
+        // Every billing page and record, read only (Utils/Project/ProjectBilling).
+        description:
+          "Reads the project's billing: the plan and subscription, invoices, usage, balances, AI credits, payment methods and billing contact details. Changes nothing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2598,7 +2777,7 @@ export class PermissionHelper {
         permission: Permission.Viewer,
         title: "Viewer",
         description:
-          "Read-only access across all project resources. Cannot create, edit, or delete any resources.",
+          "Reads the project's resources and changes nothing. Does not see API keys, the audit log, invoices, secrets, session replays, security data, or AI conversations, insights and remediation suggestions.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2608,7 +2787,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowAdmin,
         title: "Workflow Admin",
         description:
-          "Full control over workflows, workflow logs, and workflow variables.",
+          "Builds workflows: creates, edits, runs and deletes them, manages workflow variables, and reads every run.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2618,7 +2797,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowMember,
         title: "Workflow Member",
         description:
-          "Can create, edit, and delete workflows and workflow variables.",
+          "Opens workflows and their runs, and runs workflows by hand. Cannot create, change or delete them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2637,7 +2816,7 @@ export class PermissionHelper {
         permission: Permission.RunbookAdmin,
         title: "Runbook Admin",
         description:
-          "Full control over runbooks. Can create, edit, delete, and execute runbooks.",
+          "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Reads runbook variables to use them in steps. Runbook credentials, variables, label rules and owner rules take Project Admin to change.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2647,7 +2826,7 @@ export class PermissionHelper {
         permission: Permission.RunbookMember,
         title: "Runbook Member",
         description:
-          "Can create, edit, delete, and execute runbooks in this project.",
+          "Opens runbooks and their runs, and runs runbooks by hand: starts a run, completes or skips its steps, and cancels it. Cannot create, change or delete runbooks or Runners.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2656,7 +2835,8 @@ export class PermissionHelper {
       {
         permission: Permission.RunbookViewer,
         title: "Runbook Viewer",
-        description: "Read-only access to runbooks.",
+        description:
+          "Read-only access to runbooks and their runs. Cannot run them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3297,6 +3477,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateVideoCallConnection,
+        title: "Create Video Call Connection",
+        description:
+          "This permission can connect Zoom, Google Meet, Microsoft Teams or a meeting link to this project for incident and alert video calls.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteVideoCallConnection,
+        title: "Delete Video Call Connection",
+        description:
+          "This permission can delete video call connections of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditVideoCallConnection,
+        title: "Edit Video Call Connection",
+        description:
+          "This permission can edit video call connections of this project, including their credentials.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadVideoCallConnection,
+        title: "Read Video Call Connection",
+        description:
+          "This permission can read the video call connections of this project. Their credentials are never readable.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      {
         permission: Permission.CreateWorkspaceNotificationSummary,
         title: "Create Workspace Notification Summary",
         description:
@@ -3589,6 +3810,36 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Feed",
         description:
           "This permission can read the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayFeed,
+        title: "Create Storage Array Feed",
+        description:
+          "This permission can create the activity feed of a storage array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayFeed,
+        title: "Edit Storage Array Feed",
+        description:
+          "This permission can edit the activity feed of a storage array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayFeed,
+        title: "Read Storage Array Feed",
+        description:
+          "This permission can read the activity feed of a storage array in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5064,8 +5315,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateRunbookSecret,
-        title: "Create Runbook Secret",
-        description: "This permission can create runbook secret.",
+        title: "Create Runbook Variable",
+        description:
+          "This permission can create runbook variables, secret ones included.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5073,8 +5325,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteRunbookSecret,
-        title: "Delete Runbook Secret",
-        description: "This permission can delete runbook secret.",
+        title: "Delete Runbook Variable",
+        description: "This permission can delete runbook variables.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5082,8 +5334,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditRunbookSecret,
-        title: "Edit Runbook Secret",
-        description: "This permission can edit runbook secret.",
+        title: "Edit Runbook Variable",
+        description:
+          "This permission can edit runbook variables and replace a secret's value.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5091,8 +5344,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadRunbookSecret,
-        title: "Read Runbook Secret",
-        description: "This permission can read runbook secret.",
+        title: "Read Runbook Variable",
+        description:
+          "This permission can read runbook variables. A secret's value is never returned by the API.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5789,6 +6043,68 @@ export class PermissionHelper {
         title: "Read Alert Internal Note",
         description:
           "This permission can read Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      {
+        permission: Permission.CreateIncidentVideoCall,
+        title: "Create Incident Video Call",
+        description:
+          "This permission can start a video call for an incident, or add a meeting link to one, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentVideoCall,
+        title: "Delete Incident Video Call",
+        description:
+          "This permission can remove a video call from an incident of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentVideoCall,
+        title: "Read Incident Video Call",
+        description:
+          "This permission can read the video calls of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      {
+        permission: Permission.CreateAlertVideoCall,
+        title: "Create Alert Video Call",
+        description:
+          "This permission can start a video call for an alert, or add a meeting link to one, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertVideoCall,
+        title: "Delete Alert Video Call",
+        description:
+          "This permission can remove a video call from an alert of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertVideoCall,
+        title: "Read Alert Video Call",
+        description:
+          "This permission can read the video calls of alerts of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7740,6 +8056,197 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Security Case Permissions
+      {
+        permission: Permission.CreateSecurityCase,
+        title: "Create Security Case",
+        description:
+          "This permission can create Security Cases in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCase,
+        title: "Delete Security Case",
+        description:
+          "This permission can delete Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCase,
+        title: "Edit Security Case",
+        description:
+          "This permission can edit Security Cases of this project: assign them, change their status and priority, and close them.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCase,
+        title: "Read Security Case",
+        description: "This permission can read Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Note Permissions
+      {
+        permission: Permission.CreateSecurityCaseNote,
+        title: "Create Security Case Note",
+        description:
+          "This permission can add notes to Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseNote,
+        title: "Delete Security Case Note",
+        description:
+          "This permission can delete notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseNote,
+        title: "Edit Security Case Note",
+        description:
+          "This permission can edit notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseNote,
+        title: "Read Security Case Note",
+        description:
+          "This permission can read notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Feed Permissions
+      {
+        permission: Permission.ReadSecurityCaseFeed,
+        title: "Read Security Case Feed",
+        description:
+          "This permission can read the feed of Security Cases of this project: what happened on each case and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Detection Permissions
+      {
+        permission: Permission.DeleteSecurityDetection,
+        title: "Delete Security Detection",
+        description:
+          "This permission can delete Security Detections of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityDetection,
+        title: "Read Security Detection",
+        description:
+          "This permission can read Security Detections of this project: the signals each case is made of.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Playbook Permissions
+      {
+        permission: Permission.CreateSecurityPlaybook,
+        title: "Create Security Playbook",
+        description:
+          "This permission can create Security Playbooks in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityPlaybook,
+        title: "Delete Security Playbook",
+        description:
+          "This permission can delete Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityPlaybook,
+        title: "Edit Security Playbook",
+        description:
+          "This permission can edit Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityPlaybook,
+        title: "Read Security Playbook",
+        description:
+          "This permission can read Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Playbook Run Permissions
+      {
+        permission: Permission.CreateSecurityPlaybookRun,
+        title: "Run Security Playbook",
+        description:
+          "This permission can run Security Playbooks on Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityPlaybookRun,
+        title: "Approve Security Playbook Steps",
+        description:
+          "This permission can approve, reject and cancel the steps of Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityPlaybookRun,
+        title: "Read Security Playbook Run",
+        description:
+          "This permission can read Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Log Pipeline Permissions
       {
         permission: Permission.CreateProjectLogPipeline,
@@ -7900,6 +8407,48 @@ export class PermissionHelper {
         title: "Read Log Scrub Rule",
         description:
           "This permission can read Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Recording Rule Permissions (derived metrics from logs)
+      {
+        permission: Permission.CreateProjectLogRecordingRule,
+        title: "Create Log Recording Rule",
+        description:
+          "This permission can create Log Recording Rules (derived metrics from logs) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogRecordingRule,
+        title: "Delete Log Recording Rule",
+        description:
+          "This permission can delete Log Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogRecordingRule,
+        title: "Edit Log Recording Rule",
+        description:
+          "This permission can edit Log Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogRecordingRule,
+        title: "Read Log Recording Rule",
+        description:
+          "This permission can read Log Recording Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8710,6 +9259,46 @@ export class PermissionHelper {
         group: PermissionGroup.Monitor,
       },
       {
+        permission: Permission.CreatePacketCapture,
+        title: "Start Packet Capture",
+        description:
+          "This permission can start and stop packet captures on this project's probes. A capture records the network traffic itself, so give it only to people who need it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeletePacketCapture,
+        title: "Delete Packet Capture",
+        description:
+          "This permission can delete packet captures of this project, and their files.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadPacketCapture,
+        title: "Read Packet Capture",
+        description:
+          "This permission can see the packet captures of this project: when they ran, on which probe and with which filter. It cannot download their files.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DownloadPacketCapture,
+        title: "Download Packet Capture",
+        description:
+          "This permission can download the pcap files of this project's packet captures. The files hold the captured network traffic, which can include passwords and personal data.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
         permission: Permission.CreateNetworkSite,
         title: "Create Network Site",
         description: "This permission can create Network Site in this project.",
@@ -9452,6 +10041,44 @@ export class PermissionHelper {
         permission: Permission.ReadCephCluster,
         title: "Read Ceph Cluster",
         description: "This permission can read Ceph Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArray,
+        title: "Create Storage Array",
+        description:
+          "This permission can create Storage Array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArray,
+        title: "Delete Storage Array",
+        description:
+          "This permission can delete Storage Array of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArray,
+        title: "Edit Storage Array",
+        description: "This permission can edit Storage Array of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArray,
+        title: "Read Storage Array",
+        description: "This permission can read Storage Array of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -10589,6 +11216,46 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      {
+        permission: Permission.CreateStorageArrayOwnerTeam,
+        title: "Create Storage Array Team Owner",
+        description:
+          "This permission can create Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerTeam,
+        title: "Delete Storage Array Team Owner",
+        description:
+          "This permission can delete Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerTeam,
+        title: "Edit Storage Array Team Owner",
+        description:
+          "This permission can edit Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerTeam,
+        title: "Read Storage Array Team Owner",
+        description:
+          "This permission can read Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
 
       {
         permission: Permission.CreateVMwareVCenterOwnerTeam,
@@ -10707,6 +11374,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster User Owner",
         description:
           "This permission can read Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayOwnerUser,
+        title: "Create Storage Array User Owner",
+        description:
+          "This permission can create Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerUser,
+        title: "Delete Storage Array User Owner",
+        description:
+          "This permission can delete Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerUser,
+        title: "Edit Storage Array User Owner",
+        description:
+          "This permission can edit Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerUser,
+        title: "Read Storage Array User Owner",
+        description:
+          "This permission can read Storage Array User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -11152,6 +11859,47 @@ export class PermissionHelper {
         title: "Read Host User Owner",
         description:
           "This permission can read Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostCollectorConfig,
+        title: "Create Collector Config",
+        description:
+          "This permission can create Collector Configs, which OneUptime sends to the hosts it manages.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostCollectorConfig,
+        title: "Delete Collector Config",
+        description:
+          "This permission can delete Collector Configs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostCollectorConfig,
+        title: "Edit Collector Config",
+        description:
+          "This permission can edit Collector Configs, and with them what the hosts they apply to collect.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostCollectorConfig,
+        title: "Read Collector Config",
+        description:
+          "This permission can read Collector Configs and their versions in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13390,7 +14138,10 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
-      // Ceph Cluster Owner Rule Permissions
+      /*
+       * Ceph Cluster Owner Rule Permissions
+       * Storage Array Owner Rule Permissions
+       */
       {
         permission: Permission.CreateCephClusterOwnerRule,
         title: "Create Ceph Cluster Owner Rule",
@@ -13426,6 +14177,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Owner Rule",
         description:
           "This permission can read Ceph Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayOwnerRule,
+        title: "Create Storage Array Owner Rule",
+        description:
+          "This permission can create Storage Array Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerRule,
+        title: "Delete Storage Array Owner Rule",
+        description:
+          "This permission can delete Storage Array Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerRule,
+        title: "Edit Storage Array Owner Rule",
+        description:
+          "This permission can edit Storage Array Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerRule,
+        title: "Read Storage Array Owner Rule",
+        description:
+          "This permission can read Storage Array Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13516,7 +14307,10 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
-      // Ceph Cluster Label Rule Permissions
+      /*
+       * Ceph Cluster Label Rule Permissions
+       * Storage Array Label Rule Permissions
+       */
       {
         permission: Permission.CreateCephClusterLabelRule,
         title: "Create Ceph Cluster Label Rule",
@@ -13552,6 +14346,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Label Rule",
         description:
           "This permission can read Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayLabelRule,
+        title: "Create Storage Array Label Rule",
+        description:
+          "This permission can create Storage Array Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayLabelRule,
+        title: "Delete Storage Array Label Rule",
+        description:
+          "This permission can delete Storage Array Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayLabelRule,
+        title: "Edit Storage Array Label Rule",
+        description:
+          "This permission can edit Storage Array Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayLabelRule,
+        title: "Read Storage Array Label Rule",
+        description:
+          "This permission can read Storage Array Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13636,6 +14470,212 @@ export class PermissionHelper {
         title: "Read Database Label Rule",
         description:
           "This permission can read Database Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue (MessageQueue) Permissions
+      {
+        permission: Permission.CreateMessageQueue,
+        title: "Create Queue",
+        description: "This permission can create queues in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueue,
+        title: "Delete Queue",
+        description: "This permission can delete queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueue,
+        title: "Edit Queue",
+        description: "This permission can edit queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueue,
+        title: "Read Queue",
+        description: "This permission can read queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Team Owner Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerTeam,
+        title: "Create Queue Team Owner",
+        description:
+          "This permission can create Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerTeam,
+        title: "Delete Queue Team Owner",
+        description:
+          "This permission can delete Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerTeam,
+        title: "Edit Queue Team Owner",
+        description:
+          "This permission can edit Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerTeam,
+        title: "Read Queue Team Owner",
+        description:
+          "This permission can read Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue User Owner Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerUser,
+        title: "Create Queue User Owner",
+        description:
+          "This permission can create Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerUser,
+        title: "Delete Queue User Owner",
+        description:
+          "This permission can delete Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerUser,
+        title: "Edit Queue User Owner",
+        description:
+          "This permission can edit Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerUser,
+        title: "Read Queue User Owner",
+        description:
+          "This permission can read Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Label Rule Permissions
+      {
+        permission: Permission.CreateMessageQueueLabelRule,
+        title: "Create Queue Label Rule",
+        description:
+          "This permission can create Queue Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueLabelRule,
+        title: "Delete Queue Label Rule",
+        description:
+          "This permission can delete Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueLabelRule,
+        title: "Edit Queue Label Rule",
+        description:
+          "This permission can edit Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueLabelRule,
+        title: "Read Queue Label Rule",
+        description:
+          "This permission can read Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Owner Rule Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerRule,
+        title: "Create Queue Owner Rule",
+        description:
+          "This permission can create Queue Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerRule,
+        title: "Delete Queue Owner Rule",
+        description:
+          "This permission can delete Queue Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerRule,
+        title: "Edit Queue Owner Rule",
+        description:
+          "This permission can edit Queue Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerRule,
+        title: "Read Queue Owner Rule",
+        description:
+          "This permission can read Queue Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -15330,6 +16370,69 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
+      // Form Permissions
+      {
+        permission: Permission.CreateForm,
+        title: "Create Form",
+        description:
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a scheduled maintenance event.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteForm,
+        title: "Delete Form",
+        description: "This permission can delete forms in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditForm,
+        title: "Edit Form",
+        description:
+          "This permission can edit forms in this project: their questions, what a submission creates, turning a form off and resetting its link.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadForm,
+        title: "Read Form",
+        description:
+          "This permission can read forms in this project, including their links.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form Submission Permissions
+      {
+        permission: Permission.DeleteFormSubmission,
+        title: "Delete Form Submission",
+        description:
+          "This permission can delete form submissions in this project, and the answers, name and email they hold.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormSubmission,
+        title: "Read Form Submission",
+        description:
+          "This permission can read the submissions made through forms in this project, including every answer and the submitter's name and email.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
       // Incident Episode State Timeline Permissions
       {
         permission: Permission.CreateIncidentEpisodeStateTimeline,
@@ -16585,6 +17688,36 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Project,
+      },
+      {
+        permission: Permission.AuthorizeMcpClient,
+        title: "Authorize MCP Client",
+        description:
+          "Every project member can connect an MCP client (an AI agent) to this project by signing in. Add this as a block permission on a team to stop its members from connecting MCP clients and to stop the clients they already connected.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadMcpClientAuthorization,
+        title: "Read MCP Client Authorization",
+        description:
+          "This permission can see which MCP clients every member has connected to this project. Members can always see their own.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteMcpClientAuthorization,
+        title: "Revoke MCP Client Authorization",
+        description:
+          "This permission can revoke an MCP client any member has connected to this project. Members can always revoke their own.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
       },
     ];
 

@@ -22,6 +22,10 @@
     "label": "Language",
     "switchLanguage": "Switch language"
   },
+  "theme": {
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  },
   "nav": {
     "overview": "Overview",
     "incidents": "Incidents",
@@ -125,7 +129,27 @@
     "noneDescription": "No scheduled events posted for this status page.",
     "scheduledAt": "Scheduled at ",
     "report": "Scheduled Event Report",
-    "notFound": "No scheduled event found for this status page."
+    "notFound": "No scheduled event found for this status page.",
+    "calendar": {
+      "subscribe": "Subscribe to calendar",
+      "subscribeTitle": "Subscribe to scheduled maintenance",
+      "subscribeDescription": "Get this page's scheduled maintenance in your calendar app. It keeps itself up to date.",
+      "eventTitle": "Add to calendar",
+      "eventDescription": "Add this maintenance event to your calendar app.",
+      "addToCalendar": "Add to calendar",
+      "addHeading": "Add to your calendar",
+      "google": "Google Calendar",
+      "googleHint": "Opens Google Calendar in a new tab",
+      "device": "Apple Calendar / Outlook",
+      "deviceHint": "Opens the calendar app on this device",
+      "deviceFileHint": "Downloads the event for the calendar app on this device",
+      "copyHeading": "Or copy the link",
+      "copyHint": "Paste it into any calendar app that can subscribe to a calendar by URL.",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "done": "Done",
+      "refreshNote": "Calendar apps check for changes on their own schedule, so an update can take a few hours to appear."
+    }
   },
   "subscribe": {
     "title": "Subscribe",
@@ -151,7 +175,9 @@
       "placeholder": "subscriber@company.com",
       "managePrompt": "Please enter your email you have subscribed with",
       "manageDescription": "We will send you a manage subscription link to this email.",
-      "managePlaceholder": "email@yourcompany.com"
+      "managePlaceholder": "email@yourcompany.com",
+      "signedInEmailDescription": "You subscribe with the email address you sign in with.",
+      "signInToSubscribe": "Sign in to this status page to subscribe to it."
     },
     "sms": {
       "title": "Subscribe by SMS",
@@ -159,7 +185,8 @@
       "yourPhoneNumber": "Your Phone Number",
       "placeholder": "+11234567890",
       "managePrompt": "Please enter your phone number you have subscribed with",
-      "manageDescription": "We will send you a manage subscription link to this phone number."
+      "manageDescription": "We will send you a manage subscription link to this phone number.",
+      "confirmationSent": "We have sent a text message to this phone number. Open the link in it to confirm your subscription."
     },
     "slack": {
       "title": "Subscribe by Slack",
@@ -210,11 +237,48 @@
       "saved": "Your changes have been saved.",
       "submit": "Update Subscription",
       "unsubscribe": "Unsubscribe",
-      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources."
+      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources.",
+      "linkNotValid": "This link to manage your subscription has expired or is not valid. To get a new one, use Manage Existing Subscription on the Subscribe page.",
+      "getNewLink": "Get a new link",
+      "loadFailed": "We could not load this link. Please try again later."
     },
     "confirm": {
       "title": "Confirm Subscription",
-      "success": "Subscription confirmed successfully"
+      "success": "Subscription confirmed successfully",
+      "linkNotValid": "This link to confirm your subscription has expired or is not valid. A link works for 24 hours after it is sent. To get a new one, subscribe again.",
+      "subscribeAgain": "Subscribe again"
+    },
+    "unsubscribe": {
+      "title": "Unsubscribe",
+      "titleWithName": "Unsubscribe from {{statusPageName}}",
+      "confirmPrompt": "Do you want to stop receiving notifications from this status page?",
+      "channelEmail": "Email address",
+      "channelSms": "Phone number",
+      "channelSlack": "Slack workspace",
+      "channelMicrosoftTeams": "Microsoft Teams workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "This subscription was added by the team that runs this status page. If it is a shared address, such as a mailing list, unsubscribing stops these notifications for everyone who receives them, and the team will be told.",
+      "confirmButton": "Unsubscribe",
+      "manageInstead": "Choose which notifications you receive instead",
+      "manageSubscription": "Manage your subscription",
+      "success": "You have been unsubscribed. You will not receive any more notifications from this status page.",
+      "alreadyUnsubscribed": "This subscription has already been cancelled. You do not receive notifications from this status page.",
+      "outOfDateLink": "This unsubscribe link is out of date. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "invalidLink": "This unsubscribe link is not valid. It may be incomplete, or the subscription may have been removed. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "failed": "We could not unsubscribe you. Please try again.",
+      "loadFailed": "We could not load this unsubscribe link. Please try again later."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Choose what you hear about.",
+      "summary": {
+        "everything": "You will get every update from this status page.",
+        "pickedResources": "You will get updates only about the resources you picked.",
+        "pickedEventTypes": "You will get updates only for the event types you picked.",
+        "pickedResourcesAndEventTypes": "You will get updates only for the resources and event types you picked.",
+        "noResources": "You have not picked any resources yet.",
+        "noEventTypes": "You have not picked any event types yet."
+      }
     }
   },
   "accounts": {
@@ -230,7 +294,8 @@
       "loginPrompt": "Please login to view {{statusPageName}}",
       "forgotPassword": "Forgot password?",
       "submit": "Login",
-      "useSSO": "Use single sign-on (SSO) instead"
+      "or": "or",
+      "logInWithSso": "Log in with SSO"
     },
     "sso": {
       "title": "Log in with SSO",
@@ -307,5 +372,14 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} should not be less than {{minValue}}.",
   "{{field}} is required.": "{{field}} is required.",
   "{{field}} should match {{matchField}}": "{{field}} should match {{matchField}}",
-  "Email is not valid.": "Email is not valid."
+  "Email is not valid.": "Email is not valid.",
+  "Next": "Next",
+  "Opens in a new tab": "Opens in a new tab",
+  "Note": "Note",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Warning",
+  "Caution": "Caution",
+  "Danger": "Danger"
 }

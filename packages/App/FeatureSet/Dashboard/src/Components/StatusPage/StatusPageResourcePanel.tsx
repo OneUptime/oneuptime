@@ -1,6 +1,7 @@
 import MonitorElement from "../Monitor/Monitor";
 import MonitorGroupElement from "../MonitorGroup/MonitorGroupElement";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
+import { insertBeforeFoldedFields } from "./StatusPageResourceFormFields";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -21,18 +22,20 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import ResourceGrid from "Common/UI/Components/StatusPage/ResourceGrid";
 import ResourceList from "Common/UI/Components/StatusPage/ResourceList";
 import API from "Common/UI/Utils/API/API";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -102,9 +105,11 @@ export interface ComponentProps {
   onMoveGroupDown: () => void;
   onShowGroupId: () => void;
 
-  /* The resource form, minus anything a grid group adds to it. */
+  /*
+   * The resource form, minus anything a grid group adds to it. One page:
+   * the monitor and its display name, then a folded Advanced section.
+   */
   baseFormFields: Array<ModelField<StatusPageResource>>;
-  formSteps: Array<FormStep<StatusPageResource>>;
 
   /*
    * How many resources this selection turned out to hold, reported on every
@@ -148,6 +153,9 @@ const MENU_TRIGGER_CLASS_NAME: string =
 const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The group chips below are in the reader's language.
+  const { translateString } = useTranslateValue();
+
   const statusPageGroupId: ObjectID | null = props.selection.statusPageGroupId
     ? new ObjectID(props.selection.statusPageGroupId)
     : null;
@@ -627,8 +635,10 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   /* ------------------------------------------------------------------ */
 
   /*
-   * A grid group's resources need a cell to live in, so its form asks for one.
-   * Everything else about the form is the same wherever it is opened from.
+   * A grid group's resources need a cell to live in, so its form asks for one,
+   * right under the display name: every resource in the group needs it, so
+   * it is never folded away under Advanced. Everything else about the form is
+   * the same wherever it is opened from.
    */
   const formFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
     ModelField<StatusPageResource>
@@ -649,47 +659,47 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       });
     };
 
-    return [
-      ...props.baseFormFields,
-      {
-        field: {
-          rowAxisValue: true,
+    return insertBeforeFoldedFields<ModelField<StatusPageResource>>(
+      props.baseFormFields,
+      [
+        {
+          field: {
+            rowAxisValue: true,
+          },
+          title: `${rowLabel} (Row)`,
+          description: "Row this resource belongs to in the grid.",
+          fieldType:
+            rowValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            rowValues.length > 0 ? toOptions(rowValues) : undefined,
+          required: true,
+          placeholder:
+            rowValues.length > 0
+              ? `Select ${rowLabel.toLowerCase()}`
+              : "Define rows on the group first",
         },
-        title: `${rowLabel} (Row)`,
-        description: "Row this resource belongs to in the grid.",
-        fieldType:
-          rowValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          rowValues.length > 0 ? toOptions(rowValues) : undefined,
-        required: true,
-        placeholder:
-          rowValues.length > 0
-            ? `Select ${rowLabel.toLowerCase()}`
-            : "Define rows on the group first",
-        stepId: "monitor-details",
-      },
-      {
-        field: {
-          columnAxisValue: true,
+        {
+          field: {
+            columnAxisValue: true,
+          },
+          title: `${columnLabel} (Column)`,
+          description: "Column this resource belongs to in the grid.",
+          fieldType:
+            columnValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            columnValues.length > 0 ? toOptions(columnValues) : undefined,
+          required: true,
+          placeholder:
+            columnValues.length > 0
+              ? `Select ${columnLabel.toLowerCase()}`
+              : "Define columns on the group first",
         },
-        title: `${columnLabel} (Column)`,
-        description: "Column this resource belongs to in the grid.",
-        fieldType:
-          columnValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          columnValues.length > 0 ? toOptions(columnValues) : undefined,
-        required: true,
-        placeholder:
-          columnValues.length > 0
-            ? `Select ${columnLabel.toLowerCase()}`
-            : "Define columns on the group first",
-        stepId: "monitor-details",
-      },
-    ];
+      ],
+    );
   }, [
     props.baseFormFields,
     isGrid,
@@ -789,9 +799,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   /*
    * The handful of group settings that change what a visitor sees. They live on
-   * the group form, three steps deep, and an operator looking at a group has no
-   * other way of knowing that this one is published collapsed or with an uptime
-   * figure beside it.
+   * the group form, folded under Layout and Advanced, and an operator looking
+   * at a group has no other way of knowing that this one is published
+   * collapsed or with an uptime figure beside it.
    */
   const getChips: GetChipsFunction = (): ReactElement => {
     if (!isGroupSelected) {
@@ -807,7 +817,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600"
           data-testid="status-page-resource-panel-grid-badge"
         >
-          Grid
+          {translateString("Grid")}
         </span>,
       );
     }
@@ -817,10 +827,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <span
           key="collapsed-by-default"
           className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
-          title="This group starts collapsed on the public status page."
+          title={translateString(
+            "This group starts collapsed on the public status page.",
+          )}
           data-testid="status-page-resource-panel-collapsed-by-default"
         >
-          Collapsed by default
+          {translateString("Collapsed by default")}
         </span>,
       );
     }
@@ -830,10 +842,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <span
           key="uptime"
           className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
-          title="Uptime percent is shown beside this group on the public status page."
+          title={translateString(
+            "Uptime percent is shown beside this group on the public status page.",
+          )}
           data-testid="status-page-resource-panel-uptime"
         >
-          Uptime %
+          {translateString("Uptime %")}
         </span>,
       );
     }
@@ -935,7 +949,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           <MoreMenuItem
             key="show-group-id"
             text="Show group ID"
-            icon={IconProp.Info}
+            icon={IconProp.Identification}
             onClick={props.onShowGroupId}
           />,
         );
@@ -1026,7 +1040,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              * halves of the screen visibly agree about where the operator is.
              */}
             <span
-              className="mt-0.5 hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:flex"
+              className="mt-0.5 max-sm:hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:flex"
               aria-hidden="true"
             >
               <Icon icon={titleIcon} className="h-5 w-5" />
@@ -1326,7 +1340,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              */}
             {props.canEdit && !isGrid && filteredResources.length > 1 ? (
               <span
-                className="hidden text-xs text-gray-400 sm:inline"
+                className="max-sm:hidden text-xs text-gray-400 sm:inline"
                 data-testid="status-page-resource-panel-reorder-hint"
               >
                 Drag a row to change the order visitors see
@@ -1387,10 +1401,14 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         ) : (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 [&_button]:md:ml-0">
             {canAddToSelection ? (
+              /*
+               * Repeats the header's primary "Add Monitor", drawn plain the
+               * way an empty table repeats its Create button.
+               */
               <Button
                 title="Add Monitor"
                 icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="status-page-resource-panel-empty-add"
                 onClick={() => {
                   openCreate(null, null);
@@ -1475,6 +1493,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           onDelete={(statusPageResource: StatusPageResource) => {
             setDeleteError("");
             setResourceToDelete(statusPageResource);
+          }}
+          onShowId={(statusPageResource: StatusPageResource) => {
+            setResourceToShowIdFor(statusPageResource);
           }}
         />
       );
@@ -1604,7 +1625,6 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           name="Status Page > Resources"
           title={`Add a monitor to ${title}`}
           description="Pick the monitor visitors will see the status of here."
-          modalWidth={ModalWidth.Medium}
           submitButtonText="Add Monitor"
           initialValues={initialValuesForCreate}
           onBeforeCreate={onBeforeCreate}
@@ -1612,7 +1632,6 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             modelType: StatusPageResource,
             id: `create-status-page-resource-${selectionKey}`,
             fields: formFields,
-            steps: props.formSteps,
             formType: FormType.Create,
           }}
           onClose={() => {
@@ -1633,13 +1652,11 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           name="Status Page > Resources"
           title="Edit resource"
           description="Update how this resource shows up on the status page."
-          modalWidth={ModalWidth.Medium}
           modelIdToEdit={resourceIdToEdit}
           formProps={{
             modelType: StatusPageResource,
             id: `edit-status-page-resource-${selectionKey}`,
             fields: formFields,
-            steps: props.formSteps,
             formType: FormType.Update,
           }}
           onClose={() => {
@@ -1680,16 +1697,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       )}
 
       {resourceToShowIdFor ? (
-        <ConfirmModal
-          title={`${StatusPageResourceExplorerUtil.getResourceName(
+        // The same Show ID dialog every table opens: the ID, a copy button.
+        <RecordIdModal
+          recordId={resourceToShowIdFor._id}
+          recordName={StatusPageResourceExplorerUtil.getResourceName(
             resourceToShowIdFor,
-          )} ID`}
-          description={`Status Page Resource ID: ${
-            resourceToShowIdFor._id?.toString() || ""
-          }`}
-          submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={() => {
+          )}
+          itemName="Status Page Resource"
+          apiReferencePagePath={getApiReferencePagePath(
+            new StatusPageResource(),
+            { isBillingEnabled: BILLING_ENABLED },
+          )}
+          onClose={() => {
             setResourceToShowIdFor(null);
           }}
         />

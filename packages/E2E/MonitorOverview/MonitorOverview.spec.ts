@@ -18,7 +18,8 @@ import path from "path";
  * and on any request the fence had to abort.
  */
 
-const PORT: string = "4223";
+// The fixture server's port: MONITOR_OVERVIEW_FIXTURE_PORT, as the config and server.js read it.
+const PORT: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 
@@ -80,6 +81,7 @@ const OPEN_ALERT_ID: string = uuid("30000000", 311);
 const NETWORK_DEVICE_ID: string = uuid("85000000", 1);
 
 const HEARTBEAT_HOST: string = "https://oneuptime.acme-commerce.example";
+const INCOMING_EMAIL_ADDRESS: string = `monitor-${secretKey("incoming-email")}@inbound.acme-commerce.example`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -122,6 +124,19 @@ interface UnhandledRequest {
   url?: string;
 }
 
+interface RecordedUpdate {
+  modelName: string;
+  id: string;
+  data: Record<string, unknown>;
+}
+
+// A create the fixture was sent: Create Monitor's, or a status event's.
+interface RecordedCreate {
+  modelName: string;
+  formType: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   now: string;
   scenario: Record<string, unknown>;
@@ -130,6 +145,8 @@ interface FixtureState {
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedAggregate>;
   apiRequests: Array<RecordedApiRequest>;
+  updates: Array<RecordedUpdate>;
+  creates: Array<RecordedCreate>;
   unhandled: Array<UnhandledRequest>;
 }
 
@@ -331,8 +348,67 @@ async function expectAbove(
   );
 }
 
+/*
+ * Where a card header keeps what the card offers (Edit, Test Monitor, the
+ * probe picker, a link): at the header's right edge, and under the title
+ * only when it does not fit beside it - never under the description, never
+ * at the left, never centred. "Why are edit buttons not on the right?"
+ */
+async function expectHeaderActionsOnTheRight(
+  cardLocator: Locator,
+  label: string,
+  options?: { onTitleLine?: boolean | undefined } | undefined,
+): Promise<void> {
+  const header: Locator = cardLocator.getByTestId("card-header").first();
+  const title: Box = await documentBox(
+    header.getByTestId("card-details-heading"),
+  );
+  const actions: Box = await documentBox(
+    header.getByTestId("card-header-actions"),
+  );
+  const headerBox: Box = await documentBox(header);
+  const isOnTitleLine: boolean =
+    actions.y < title.y + title.height && actions.y + actions.height > title.y;
+
+  expect(
+    Math.abs(headerBox.x + headerBox.width - (actions.x + actions.width)),
+    `${label} ends at the header's right edge`,
+  ).toBeLessThanOrEqual(1);
+
+  if (isOnTitleLine) {
+    expect(actions.x, `${label} sits right of the title`).toBeGreaterThan(
+      title.x + 1,
+    );
+  } else {
+    expect(
+      actions.y,
+      `${label} is under the title when it is not beside it`,
+    ).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  }
+
+  if (options?.onTitleLine !== undefined) {
+    expect(isOnTitleLine, `${label} on the title's line`).toBe(
+      options.onTitleLine,
+    );
+  }
+
+  // Never under the description: that comes after the actions, or beside them.
+  const description: Locator = header.getByTestId("card-description");
+  if ((await description.count()) > 0 && (await description.isVisible())) {
+    const descriptionBox: Box = await documentBox(description);
+    expect(actions.y, `${label} is not under the description`).toBeLessThan(
+      descriptionBox.y + 1,
+    );
+  }
+}
+
 function hero(page: Page): Locator {
   return page.getByTestId("monitor-overview-hero");
+}
+
+// The hero's top right: when the data was read, Refresh and the ⋯.
+function heroActions(page: Page): Locator {
+  return hero(page).getByRole("group", { name: "Monitor actions" });
 }
 
 function headline(page: Page): Locator {
@@ -650,7 +726,23 @@ test.describe("probe checks", () => {
       "Recent status changes",
       "Probes",
       "Details",
+      "Linked Resources",
     ]);
+    /*
+     * What the monitor watches beyond its own configuration (the cluster,
+     * hosts, databases or services behind it), on its own card under
+     * Details. This monitor links nothing yet: the card says so in place
+     * and offers Edit, rather than failing or hiding itself.
+     */
+    const linkedResources: Locator = card(sideColumn(page), "Linked Resources");
+    await expect(
+      linkedResources.getByTestId("affected-resources-empty"),
+    ).toContainText("Not linked to anything yet.");
+    await expect(
+      linkedResources
+        .getByTestId("card-header-actions")
+        .getByRole("button", { name: "Edit" }),
+    ).toBeEnabled();
     await expectResponseTimePlotHeight(page);
 
     await expect(
@@ -667,6 +759,82 @@ test.describe("probe checks", () => {
       0,
     );
     await screenshot(page, "monitor-overview-desktop");
+  });
+
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't take
+   * space up top." The Details card used to end with a Created row - a
+   * label, a clock and the date - above the ID line. When the monitor was
+   * created is on that line now, after the ID.
+   */
+  test("the Details card says when the monitor was created on its ID line, not in a row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const details: Locator = card(sideColumn(page), "Details");
+    const labels: Array<string> = (
+      await details.locator("label").allInnerTexts()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+
+    expect(labels).toEqual(["Name", "Description", "Labels", "Monitor Type"]);
+
+    const recordLine: Locator = details.getByTestId("detail-record-line");
+    const idLine: Locator = recordLine.getByTestId("detail-id-line");
+    const created: Locator = recordLine.getByTestId("detail-created-at");
+    const createdValue: Locator = created.getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+    await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+      "Created",
+    );
+    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM GMT");
+    await expect(createdValue).toHaveAttribute(
+      "datetime",
+      "2026-03-02T09:30:00.000Z",
+    );
+
+    // After the ID on its line, or under it, whole, when the column is narrow.
+    const lineBox: Box = await documentBox(recordLine);
+    const idBox: Box = await documentBox(idLine);
+    const createdBox: Box = await documentBox(created);
+    if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+      expect(
+        Math.abs(
+          createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+        ),
+        "Created sits level with the ID",
+      ).toBeLessThanOrEqual(2);
+      expect(createdBox.x, "after the ID").toBeGreaterThan(
+        idBox.x + idBox.width,
+      );
+    } else {
+      expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+        idBox.y + idBox.height - 1,
+      );
+    }
+    await expectAbove(
+      details.locator("label").last(),
+      recordLine,
+      "the line ends the card",
+    );
+
+    // The time to the second, on hover.
+    await createdValue.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Mar 02 2026, 09:30:00 AM GMT",
+    );
   });
 
   test("offline with open work", async ({ page }: { page: Page }) => {
@@ -729,13 +897,29 @@ test.describe("probe checks", () => {
       card(page, "Probes").getByTestId("monitor-probe-health"),
     ).toHaveText(["Down", "Down", "Down"]);
 
-    // The ongoing Offline row heads the recent changes.
+    /*
+     * The ongoing Offline row heads the recent changes, marked Currently
+     * Active beside its status as on the full status timeline, with a live
+     * duration (the pinned clock holds it at 12 minutes). Only that row is
+     * marked: the closed rows below it are not in effect.
+     */
+    const statusChanges: Locator = page.getByTestId(
+      "monitor-status-change-row",
+    );
+    const ongoing: Locator = statusChanges.first();
+    await expect(ongoing).toContainText("Offline");
     await expect(
-      page.getByTestId("monitor-status-change-row").first(),
-    ).toContainText("Offline");
+      ongoing.getByTestId("currently-active-indicator"),
+    ).toBeVisible();
+    await expect(ongoing.getByTestId("currently-active-indicator")).toHaveText(
+      "Currently Active",
+    );
+    await expect(ongoing).toContainText(
+      "for 12 minutes · started 12 minutes ago",
+    );
     await expect(
-      page.getByTestId("monitor-status-change-row").first(),
-    ).toContainText("ongoing, 12 minutes");
+      statusChanges.getByTestId("currently-active-indicator"),
+    ).toHaveCount(1);
     await screenshot(page, "monitor-overview-offline");
   });
 
@@ -815,11 +999,65 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-last-known")).toHaveText(
       "Last recorded status: Operational",
     );
+    // Turned back on in place, not on a trip to Settings.
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toBeEnabled();
     await expect(
       hero(page).getByRole("link", { name: "Open settings" }),
-    ).toHaveAttribute("href", `${monitorPath("api")}/settings`);
+    ).toHaveCount(0);
     // A paused monitor promises no next check.
     await expect(page.getByTestId("monitor-overview-cadence")).toHaveCount(0);
+  });
+
+  test("disabled: Turn monitoring on turns it back on, in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+
+    await expect(headline(page)).toHaveText("Monitoring is turned off");
+
+    await hero(page)
+      .getByRole("button", { name: "Turn monitoring on" })
+      .click();
+
+    // It writes the one column the Monitoring switch on Settings writes.
+    await expect
+      .poll(async (): Promise<Array<RecordedUpdate>> => {
+        return (await fixture(page)).updates;
+      })
+      .toEqual([
+        {
+          modelName: "Monitor",
+          id: monitorId("api"),
+          data: { disableActiveMonitoring: false },
+        },
+      ]);
+
+    // The page reads the monitor again: it is checked now.
+    await expect(page.getByTestId("monitor-overview-badge")).not.toHaveText(
+      "Disabled",
+    );
+    await expect(headline(page)).not.toHaveText("Monitoring is turned off");
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toHaveCount(0);
+  });
+
+  test("disabled, for a viewer: Turn monitoring on is locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled&role=viewer" });
+
+    const button: Locator = hero(page).getByRole("button", {
+      name: "Turn monitoring on",
+    });
+    await expect(button).toBeDisabled();
+    expect((await fixture(page)).updates).toEqual([]);
   });
 
   test("maintenance", async ({ page }: { page: Page }) => {
@@ -1181,6 +1419,57 @@ test.describe("other monitor families", () => {
     await expect(card(page, "Monitor Summary")).toBeVisible();
   });
 
+  test("awaiting incoming-email as owner", async ({ page }: { page: Page }) => {
+    await openReady(page, {
+      type: "incoming-email",
+      query: "state=awaiting",
+    });
+
+    await expect(headline(page)).toHaveText("Waiting for the first email");
+    const setup: Locator = card(page, "Incoming Email Address");
+    await expect(setup).toBeVisible();
+    await expect(setup.getByText(INCOMING_EMAIL_ADDRESS)).toBeVisible();
+    await expect(
+      setup.getByRole("button", { name: "Copy email address", exact: true }),
+    ).toBeVisible();
+    await expect(
+      setup.getByRole("link", { name: "How to verify the address" }),
+    ).toHaveAttribute(
+      "href",
+      "/docs/monitor/incoming-email-monitor#verifying-the-address-with-the-sender",
+    );
+
+    // Nothing has arrived, so there is nothing to chart or summarise.
+    await expect(statBar(page)).toHaveCount(0);
+    await expect(card(page, "Uptime history")).toHaveCount(0);
+    await expect(card(page, "Monitor Summary")).toHaveCount(0);
+    await expectSettled(page);
+    await screenshot(page, "monitor-overview-email-setup");
+  });
+
+  test("awaiting incoming-email as viewer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, {
+      type: "incoming-email",
+      query: "state=awaiting&role=viewer",
+    });
+
+    const setup: Locator = card(page, "Waiting for the first email");
+    await expect(setup.getByTestId("monitor-setup-hidden")).toContainText(
+      "Setup details are hidden",
+    );
+    await expect(setup).toContainText(
+      "The email address contains this monitor's secret key, so only people who can edit monitors can see it.",
+    );
+    const html: string = await page.evaluate((): string => {
+      return document.body.innerHTML;
+    });
+    expect(html).not.toContain(secretKey("incoming-email"));
+  });
+
   test("incoming-email after data", async ({ page }: { page: Page }) => {
     await openReady(page, { type: "incoming-email" });
 
@@ -1189,7 +1478,7 @@ test.describe("other monitor families", () => {
     );
     const connection: Locator = card(sideColumn(page), "Inbound email address");
     await expect(connection.getByTestId("monitor-connection-value")).toHaveText(
-      `monitor-${secretKey("incoming-email")}@inbound.acme-commerce.example`,
+      INCOMING_EMAIL_ADDRESS,
     );
     expect(await factLabels(page)).toEqual([
       "Missing-email window",
@@ -1248,6 +1537,7 @@ test.describe("other monitor families", () => {
       "Open incidents & alerts",
       "Recent status changes",
       "Details",
+      "Linked Resources",
     ]);
   });
 
@@ -1315,9 +1605,20 @@ test.describe("other monitor families", () => {
     await expect(page.getByTestId("monitor-overview-pulse")).toHaveText(
       /No automated checks/,
     );
+    // Change status is behind the ⋯ beside Refresh, not under the text.
+    await expect(
+      hero(page).getByRole("link", { name: "Change status" }),
+    ).toHaveCount(0);
+    await expect(
+      heroActions(page).getByRole("button", { name: "More actions" }),
+    ).toBeVisible();
     expect(await factLabels(page)).toEqual(["Checks", "Owners"]);
     const guide: Locator = card(sideColumn(page), "Manual monitor");
     await expect(guide).toBeVisible();
+    // The guide sends people to the ⋯ at the top, and the timeline keeps it.
+    await expect(guide).toContainText(
+      "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
+    );
     await expect(
       guide.getByRole("link", { name: "Open status timeline" }),
     ).toHaveAttribute("href", `${monitorPath("manual")}/status-timeline`);
@@ -1792,6 +2093,739 @@ test.describe("refresh and polling", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * The hero's actions: Refresh, and a manual monitor's Change status
+ *
+ * "Please move the change status button near the refresh button, and it
+ * should be hidden behind the more button (three dots). Can you please
+ * improve the refresh button as well? Make it a lot nicer and easier for
+ * people to understand."
+ * ---------------------------------------------------------------------------
+ */
+
+const MANUAL_STATUS_ID: Record<"operational" | "degraded" | "offline", string> =
+  {
+    operational: uuid("83000000", 1),
+    degraded: uuid("83000000", 2),
+    offline: uuid("83000000", 3),
+  };
+
+// An id as a create's JSON carries it: a string, or an ObjectID's JSON.
+function idOf(value: unknown): string {
+  if (value && typeof value === "object" && "value" in value) {
+    return String((value as { value: unknown }).value);
+  }
+  return String(value);
+}
+
+async function statusEventCreates(page: Page): Promise<Array<RecordedCreate>> {
+  return (await fixture(page)).creates.filter(
+    (create: RecordedCreate): boolean => {
+      return create.modelName === "MonitorStatusTimeline";
+    },
+  );
+}
+
+function moreActionsButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "More actions" });
+}
+
+async function menuItemTexts(page: Page): Promise<Array<string>> {
+  return (
+    await page.getByRole("menu").getByRole("menuitem").allInnerTexts()
+  ).map((text: string): string => {
+    return text.trim();
+  });
+}
+
+async function openManual(page: Page, query?: string): Promise<void> {
+  await openReady(page, { type: "manual", query });
+  await expectSettled(page);
+}
+
+test.describe("the hero's actions", () => {
+  test("Refresh is an icon button that says what it does, beside when the data was read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const refresh: Locator = heroActions(page).getByRole("button", {
+      name: "Refresh",
+    });
+    await expect(refresh).toBeVisible();
+    // An icon, not a word: the tooltip and its name say what it is.
+    await expect(refresh).toHaveText("");
+    await expect(
+      heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+    ).toHaveText(/^Refreshed at 12:00( PM)?$/);
+
+    await refresh.hover();
+    await expect(page.locator("[data-tippy-root]")).toContainText(
+      "Refresh now. This page also refreshes every minute.",
+    );
+
+    // A monitor that checks itself has no ⋯.
+    await expect(moreActionsButton(page)).toHaveCount(0);
+
+    // Refresh reads the page again, and runs no check.
+    const readsBefore: number = (await overviewMonitorReads(page)).length;
+    await refresh.click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await overviewMonitorReads(page)).length;
+      })
+      .toBe(readsBefore + 1);
+    await expect(refresh).toHaveAttribute("aria-disabled", "false");
+    expect(await apiRequestsTo(page, "/monitor/test")).toHaveLength(0);
+    expect(await apiRequestsTo(page, "/monitor/refresh-status/")).toHaveLength(
+      1,
+    );
+    await screenshot(page, "monitor-overview-refresh-control");
+  });
+
+  test("Refresh and the ⋯ keep to the top right, on the badges' line, at every width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    for (const width of [1440, 1280, 1024, 768, 640, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+
+      /*
+       * Measured once the page has settled at the new width: below md the
+       * side menu becomes the "Navigate to" menu, and a measure taken while
+       * that was under way once found Refresh 82px below the badges at
+       * 640px, with the screenshot a moment later showing it on their line.
+       * A layout that is wrong at a width still fails, after the timeout.
+       */
+      await expect(async () => {
+        const heroBox: Box = await documentBox(hero(page));
+        const badge: Box = await documentBox(
+          page.getByTestId("monitor-overview-badge"),
+        );
+        const refresh: Box = await documentBox(
+          heroActions(page).getByRole("button", { name: "Refresh" }),
+        );
+        const more: Box = await documentBox(moreActionsButton(page));
+        const title: Box = await documentBox(headline(page));
+
+        // At the right edge of the hero, the ⋯ last, Refresh before it.
+        expect(
+          heroBox.x + heroBox.width - (more.x + more.width),
+          `${width}px: the ⋯ at the hero's right edge`,
+        ).toBeLessThanOrEqual(26);
+        expect(
+          refresh.x + refresh.width,
+          `${width}px: Refresh before the ⋯`,
+        ).toBeLessThanOrEqual(more.x);
+        // On the badges' line, above the headline.
+        expect(
+          Math.abs(
+            refresh.y + refresh.height / 2 - (badge.y + badge.height / 2),
+          ),
+          `${width}px: Refresh on the badges' line`,
+        ).toBeLessThanOrEqual(6);
+        expect(
+          Math.abs(more.y - refresh.y),
+          `${width}px: Refresh and the ⋯ side by side`,
+        ).toBeLessThanOrEqual(1);
+        expect(
+          refresh.y + refresh.height,
+          `${width}px: the actions above the headline`,
+        ).toBeLessThanOrEqual(title.y + 4);
+      }).toPass({ timeout: 10000 });
+
+      /*
+       * When the data was read: beside them from xl up, left out below,
+       * where the hero's text needs the room (beside the side menu at
+       * 1024px) or the hero is a tablet's or a phone's.
+       */
+      if (width >= 1280) {
+        await expect(
+          heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+        ).toBeVisible();
+      } else {
+        await expect(
+          heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+        ).toBeHidden();
+      }
+
+      /*
+       * So at 1024px the actions' column holds the buttons and the pulse
+       * only, and the text keeps most of the row: with the time in that
+       * column, it had less than half, and the explanation ran to five
+       * lines beside an empty column.
+       */
+      if (width === 1024) {
+        const layout: Box = await documentBox(
+          page.getByTestId("monitor-overview-layout"),
+        );
+        const state: Box = await documentBox(
+          page.getByTestId("monitor-overview-state-cell"),
+        );
+        expect(
+          state.width / layout.width,
+          "1024px: the text's share of the hero",
+        ).toBeGreaterThanOrEqual(0.6);
+      }
+
+      await expectNoHorizontalOverflow(page);
+
+      if (width === 1280 || width === 390) {
+        await screenshot(page, `monitor-overview-hero-actions-${width}`, {
+          fullPage: false,
+        });
+      }
+    }
+  });
+
+  test("the pulse sits under the actions from lg, and after the text below it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const pulse: Locator = page.getByTestId("monitor-overview-pulse");
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const wideRefresh: Box = await documentBox(
+      heroActions(page).getByRole("button", { name: "Refresh" }),
+    );
+    const widePulse: Box = await documentBox(pulse);
+    expect(widePulse.y).toBeGreaterThanOrEqual(
+      wideRefresh.y + wideRefresh.height,
+    );
+    expect(
+      Math.abs(
+        widePulse.x + widePulse.width - (wideRefresh.x + wideRefresh.width),
+      ),
+    ).toBeLessThanOrEqual(80);
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    const target: Box = await documentBox(
+      page.getByTestId("monitor-overview-target"),
+    );
+    const narrowPulse: Box = await documentBox(pulse);
+    expect(narrowPulse.y).toBeGreaterThanOrEqual(target.y + target.height);
+    expect(Math.abs(narrowPulse.x - target.x)).toBeLessThanOrEqual(2);
+  });
+
+  test("the hero's call to action starts where its text does, a button or a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Button carries a left margin meant for a dialog's footer (md:ml-3),
+     * which set "Turn monitoring on" 12px in from the headline above it
+     * from md up, while a link such as "Check probes" lined up.
+     */
+    const scenarios: Array<{
+      query: string;
+      role: "button" | "link";
+      name: string;
+    }> = [
+      { query: "state=disabled", role: "button", name: "Turn monitoring on" },
+      // Locked, the button sits in the span its tooltip needs.
+      {
+        query: "state=disabled&role=viewer",
+        role: "button",
+        name: "Turn monitoring on",
+      },
+      { query: "state=stale", role: "link", name: "Check probes" },
+    ];
+
+    for (const scenario of scenarios) {
+      await openReady(page, { query: scenario.query });
+
+      for (const width of [1440, 1024, 768, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+
+        const action: Box = await documentBox(
+          page
+            .getByTestId("monitor-overview-call-to-action")
+            .getByRole(scenario.role, { name: scenario.name }),
+        );
+        const title: Box = await documentBox(headline(page));
+
+        expect(
+          Math.abs(action.x - title.x),
+          `${scenario.query}, ${width}px: ${scenario.name} starts where the headline does`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  test("manual: a status picked from the ⋯ is recorded, and the hero shows it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+
+    await moreActionsButton(page).click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText("CHANGE STATUS TO");
+    expect(await menuItemTexts(page)).toEqual(["Degraded", "Offline"]);
+
+    // Each status in its own colour, as the status pickers draw it.
+    const dots: Array<string> = await menu
+      .getByTestId("more-menu-item-color")
+      .locator(":scope > span")
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        });
+      });
+    expect(dots).toEqual(["rgb(245, 158, 11)", OFFLINE_RGB]);
+
+    await screenshot(page, "monitor-overview-change-status-menu", {
+      fullPage: false,
+    });
+
+    await menu.getByRole("menuitem", { name: "Offline" }).click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      "Change status to Offline?",
+    );
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
+      "The monitor shows Offline from now on, here and on every status page that lists it.",
+    );
+    await screenshot(page, "monitor-overview-change-status-dialog", {
+      fullPage: false,
+    });
+
+    await dialog.getByRole("button", { name: "Change status" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The dialog is gone, so a screen reader is told in words.
+    const announcement: Locator = heroActions(page)
+      .getByRole("status")
+      .and(page.getByTestId("monitor-overview-change-status-announcement"));
+    await expect(announcement).toHaveText("Status changed to Offline.");
+    // The focus is back on the ⋯ the change started from.
+    await expect(moreActionsButton(page)).toBeFocused();
+
+    const creates: Array<RecordedCreate> = await statusEventCreates(page);
+    expect(creates).toHaveLength(1);
+    expect(idOf(creates[0]!.data["monitorId"])).toBe(monitorId("manual"));
+    expect(idOf(creates[0]!.data["monitorStatusId"])).toBe(
+      MANUAL_STATUS_ID.offline,
+    );
+    // The server starts it at its own now.
+    expect(creates[0]!.data["startsAt"]).toBeUndefined();
+
+    // The page reads the monitor again and shows the new status.
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Offline",
+    );
+    await expect(headline(page)).toHaveText(/^Offline/);
+    await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
+      /bg-red-50/,
+    );
+
+    // The menu now offers the status the monitor left.
+    await moreActionsButton(page).click();
+    expect(await menuItemTexts(page)).toEqual(["Operational", "Degraded"]);
+    await page.keyboard.press("Escape");
+
+    await screenshot(page, "monitor-overview-change-status-done", {
+      fullPage: false,
+    });
+  });
+
+  test("manual: Escape and Cancel change nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await moreActionsButton(page).click();
+    await expect(page.getByRole("menu")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(moreActionsButton(page)).toBeFocused();
+
+    await moreActionsButton(page).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Degraded" })
+      .click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Cancel" })
+      .click();
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+
+    expect(await statusEventCreates(page)).toHaveLength(0);
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+  });
+
+  test("manual: the keyboard alone opens the menu, picks a status and backs out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await moreActionsButton(page).focus();
+    await page.keyboard.press("Enter");
+
+    const items: Locator = page.getByRole("menu").getByRole("menuitem");
+    await expect(items.nth(0)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Change status to Offline?",
+    );
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect(await statusEventCreates(page)).toHaveLength(0);
+  });
+
+  test("manual, role=viewer: the statuses are locked, and say why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "role=viewer");
+
+    await moreActionsButton(page).click();
+    const offline: Locator = page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" });
+    await expect(offline).toHaveAttribute("aria-disabled", "true");
+
+    await offline.hover();
+    await expect(page.locator("[data-tippy-root]")).toContainText(
+      "You do not have permission to create this Monitor Status Event.",
+    );
+
+    await offline.click({ force: true });
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect(await statusEventCreates(page)).toHaveLength(0);
+  });
+
+  test("manual, fail=change-status: the dialog says why and stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "fail=change-status");
+
+    await moreActionsButton(page).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" })
+      .click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Change status" })
+      .click();
+
+    await expect(page.getByTestId("modal-error")).toContainText(
+      "The status could not be changed. The API is restarting.",
+    );
+    await expect(page.getByTestId("modal")).toBeVisible();
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+  });
+
+  test("manual, 390: the menu and the dialog fit the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openManual(page);
+
+    await moreActionsButton(page).click();
+    const menu: Box = await documentBox(page.getByRole("menu"));
+    expect(menu.x).toBeGreaterThanOrEqual(0);
+    expect(menu.x + menu.width).toBeLessThanOrEqual(390);
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-overview-change-status-menu-390", {
+      fullPage: false,
+    });
+
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Degraded" })
+      .click();
+    const dialog: Box = await documentBox(
+      page.getByTestId("modal").getByTestId("modal-footer"),
+    );
+    expect(dialog.x).toBeGreaterThanOrEqual(0);
+    expect(dialog.x + dialog.width).toBeLessThanOrEqual(390);
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-overview-change-status-dialog-390", {
+      fullPage: false,
+    });
+  });
+
+  test("manual, dark theme: the buttons, the menu and the dialog are dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "theme=dark");
+
+    for (const button of [
+      heroActions(page).getByRole("button", { name: "Refresh" }),
+      moreActionsButton(page),
+    ]) {
+      expect(await backgroundColor(button)).not.toBe(WHITE_RGB);
+    }
+
+    await moreActionsButton(page).click();
+    expect(await backgroundColor(page.getByRole("menu"))).not.toBe(WHITE_RGB);
+    expect(
+      luminance(
+        await textColor(
+          page.getByRole("menu").getByRole("menuitem", { name: "Offline" }),
+        ),
+      ),
+    ).toBeGreaterThan(0.3);
+    await screenshot(page, "monitor-overview-change-status-dark", {
+      fullPage: false,
+    });
+
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" })
+      .click();
+    expect(await backgroundColor(page.getByTestId("modal"))).not.toBe(
+      WHITE_RGB,
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Monitoring Logs
+ *
+ * The one monitor sub-page the fixture renders for real. The incoming email
+ * monitor's rows are shaped the way the server writes them: an email per
+ * row, plus the worker's scheduled check, which carries a copy of the last
+ * email.
+ * ---------------------------------------------------------------------------
+ */
+
+async function openLogs(page: Page, type: MonitorTypeKey): Promise<void> {
+  await page.clock.setFixedTime(NOW);
+  await page.goto(`${monitorPath(type)}/logs?type=${type}`);
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  await expect(card(page, "Monitor Logs")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("row-actions").first()).toBeVisible({
+    timeout: 30000,
+  });
+}
+
+function logRows(page: Page): Locator {
+  return card(page, "Monitor Logs")
+    .locator("tbody tr")
+    .filter({ has: page.getByTestId("row-actions") });
+}
+
+async function columnTitles(page: Page): Promise<Array<string>> {
+  return (
+    await card(page, "Monitor Logs").getByRole("columnheader").allInnerTexts()
+  ).map((title: string): string => {
+    return title.trim();
+  });
+}
+
+// The n-th row's cell in the column headed `title`.
+async function logCell(
+  page: Page,
+  row: number,
+  title: string,
+): Promise<Locator> {
+  const column: number = (await columnTitles(page)).indexOf(title);
+  expect(column, `a "${title}" column`).toBeGreaterThanOrEqual(0);
+  return logRows(page).nth(row).locator("td").nth(column);
+}
+
+test.describe("monitoring logs", () => {
+  test("names each row's email, and calls a scheduled check one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "incoming-email");
+
+    const titles: Array<string> = await columnTitles(page);
+    expect(titles.indexOf("Email")).toBeGreaterThan(
+      titles.indexOf("Monitored At"),
+    );
+    expect(titles.indexOf("Evaluation Outcome")).toBeGreaterThan(
+      titles.indexOf("Email"),
+    );
+    expect(titles).not.toContain("Probe");
+
+    await expect(logRows(page)).toHaveCount(3);
+    // Newest first: the check, then the email it copied, then the day before.
+    await expect(await logCell(page, 0, "Email")).toHaveText("Scheduled check");
+    const lastEmail: Locator = await logCell(page, 1, "Email");
+    await expect(lastEmail).toContainText("Payroll run 2026-09-21 completed");
+    await expect(lastEmail).toContainText(
+      "notifications@payroll-provider.example",
+    );
+    await expect(await logCell(page, 2, "Email")).toContainText(
+      "Payroll run 2026-09-20 completed",
+    );
+    await screenshot(page, "monitor-logs-email");
+  });
+
+  test("View Summary shows the email a row recorded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "incoming-email");
+
+    await logRows(page).nth(2).getByText("View Summary").click();
+    const modal: Locator = page.getByRole("dialog");
+    await expect(modal.getByText("Monitoring Summary")).toBeVisible();
+    await expect(
+      modal.getByText(
+        "No summary available. Looks like no email has been received yet.",
+      ),
+    ).toHaveCount(0);
+    await expect(modal).toContainText("Payroll run 2026-09-20 completed");
+    await expect(modal).toContainText("notifications@payroll-provider.example");
+    await modal.getByText("Show More Details").click();
+    await expect(
+      modal.getByText(
+        "The payroll run for Acme Commerce completed at 09:41 UTC.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "monitor-logs-view-summary");
+    await modal.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // A scheduled check shows the email it measured, and when it ran.
+    await logRows(page).nth(0).getByText("View Summary").click();
+    await expect(page.getByRole("dialog")).toContainText(
+      "Payroll run 2026-09-21 completed",
+    );
+    await expect(page.getByRole("dialog")).toContainText(
+      "Monitor Status Check At",
+    );
+  });
+
+  /*
+   * The Email column and the criteria name beside it are both prose. They
+   * wrap rather than widen, so View Summary stays on the card on a laptop.
+   */
+  for (const width of [1280, 1440]) {
+    test(`keeps View Summary on the card at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openLogs(page, "incoming-email");
+
+      const table: Locator = card(page, "Monitor Logs");
+      /*
+       * The table's own box. It scrolls (overflow-x-auto) only while its
+       * rows are wider than the card, so it is found by its test id.
+       */
+      const scroller: Locator = table.getByTestId("table-scroll").last();
+      const overflow: number = await scroller.evaluate(
+        (element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        },
+      );
+      expect(overflow, "the logs table scrolls sideways").toBeLessThanOrEqual(
+        1,
+      );
+
+      const tableBox: Box = await documentBox(table);
+      const rows: number = await logRows(page).count();
+      for (let row: number = 0; row < rows; row++) {
+        const button: Box = await documentBox(
+          logRows(page).nth(row).getByText("View Summary"),
+        );
+        expect(
+          button.x + button.width,
+          "View Summary on the card",
+        ).toBeLessThanOrEqual(tableBox.x + tableBox.width);
+      }
+      await screenshot(page, `monitor-logs-email-${width}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("does not scroll sideways at 390px", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openLogs(page, "incoming-email");
+
+    await expect(
+      page.getByText("Payroll run 2026-09-20 completed"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-logs-email-mobile");
+  });
+
+  test("names the probe behind each check of a probe monitor", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "api");
+
+    const titles: Array<string> = await columnTitles(page);
+    expect(titles).toContain("Probe");
+    expect(titles).not.toContain("Email");
+
+    const probeNames: Array<string> = [];
+    const rows: number = await logRows(page).count();
+    for (let row: number = 0; row < rows; row++) {
+      probeNames.push(
+        ((await (await logCell(page, row, "Probe")).innerText()) || "").trim(),
+      );
+    }
+    expect(probeNames.length).toBeGreaterThan(0);
+    expect(probeNames).not.toContain("Unknown");
+    expect(new Set(probeNames)).toEqual(
+      new Set([
+        "Frankfurt (eu-central-1)",
+        "N. Virginia (us-east-1)",
+        "Singapore (ap-southeast-1)",
+      ]),
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Responsive and theme
  * ---------------------------------------------------------------------------
  */
@@ -1876,6 +2910,7 @@ test.describe("responsive", () => {
     ["incoming-request", ""],
     ["incoming-request", "state=awaiting"],
     ["incoming-email", ""],
+    ["incoming-email", "state=awaiting"],
     ["server", ""],
     ["server", "state=awaiting"],
     ["kubernetes", ""],
@@ -1893,6 +2928,87 @@ test.describe("responsive", () => {
       await openReady(page, { type, query });
       await expectSettled(page);
       await expectNoHorizontalOverflow(page);
+    });
+  }
+
+  /*
+   * What a push monitor waiting for its first signal is for: the address,
+   * URL or install command to paste somewhere else. Card hides its
+   * description below md, and the email and server setup cards used to put
+   * exactly that there, so a phone got a title over an empty card.
+   */
+  const PHONE_SETUP_SCENARIOS: Array<{
+    type: MonitorTypeKey;
+    cardTitle: string;
+    detail: (setup: Locator) => Locator;
+    text: string;
+  }> = [
+    {
+      type: "incoming-email",
+      cardTitle: "Incoming Email Address",
+      detail: (setup: Locator): Locator => {
+        return setup.getByText(INCOMING_EMAIL_ADDRESS);
+      },
+      text: INCOMING_EMAIL_ADDRESS,
+    },
+    {
+      type: "server",
+      cardTitle: "Set up your Server Monitor (Linux/Mac)",
+      detail: (setup: Locator): Locator => {
+        return setup.locator("pre code");
+      },
+      text: `--secret-key=${secretKey("server")}`,
+    },
+    {
+      type: "incoming-request",
+      cardTitle: "Send the first heartbeat",
+      detail: (setup: Locator): Locator => {
+        return setup.getByTestId("monitor-setup-heartbeat-url");
+      },
+      text: `${HEARTBEAT_HOST}/heartbeat/${secretKey("incoming-request")}`,
+    },
+  ];
+
+  for (const scenario of PHONE_SETUP_SCENARIOS) {
+    test(`${scenario.type} setup details stay on screen at 390px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openReady(page, { type: scenario.type, query: "state=awaiting" });
+      await expectSettled(page);
+
+      const setup: Locator = card(page, scenario.cardTitle);
+      const detail: Locator = scenario.detail(setup).first();
+
+      await expect(detail).toBeVisible();
+      await expect(detail).toContainText(scenario.text);
+
+      /*
+       * Inside the phone's width: a long address wraps and a long command
+       * scrolls within its own block, neither runs off the screen.
+       */
+      const box: Box = await documentBox(detail);
+      expect(box.x, "setup detail starts on screen").toBeGreaterThanOrEqual(0);
+      expect(
+        box.x + box.width,
+        "setup detail ends on screen",
+      ).toBeLessThanOrEqual(391);
+      await expectNoHorizontalOverflow(page);
+
+      if (scenario.type === "incoming-email") {
+        await expect(
+          setup.getByRole("button", {
+            name: "Copy email address",
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(
+          setup.getByRole("link", { name: "How to verify the address" }),
+        ).toBeVisible();
+        await screenshot(page, "monitor-overview-email-setup-mobile");
+      }
     });
   }
 
@@ -1923,7 +3039,8 @@ test.describe("responsive", () => {
 
     /*
      * Cards with a row of controls keep their titles whole: the controls sit
-     * under the title rather than squeezing it to a word or two.
+     * under the title - at the card's right edge - rather than squeezing it
+     * to a word or two.
      */
     for (const heading of ["Response time", "Monitor Summary"]) {
       const withControls: Locator = card(page, heading);
@@ -1978,14 +3095,71 @@ test.describe("responsive", () => {
       summary.getByTestId("card-details-heading"),
     );
     const cardBox: Box = await documentBox(summary);
-    // The picker and Test Monitor sit on their own row under it.
+    /*
+     * The picker and Test Monitor are too wide to share the title's line,
+     * so they sit on their own line under it - at the card's right edge, and
+     * above the description, which runs under them across the card.
+     */
     expect(title.width).toBeGreaterThan(cardBox.width * 0.8);
+    await expectHeaderActionsOnTheRight(summary, "the probe picker", {
+      onTitleLine: false,
+    });
     await expectAbove(
-      summary.getByTestId("card-description"),
       summary.getByRole("combobox", { name: "Showing results from:" }),
-      "picker under the description",
+      summary.getByTestId("card-description"),
+      "picker above the description",
     );
   });
+
+  /*
+   * "Why are edit buttons not on the right?" Every card on the overview -
+   * Details' Edit, the summary's picker and Test Monitor, Probes' link, the
+   * uptime figure - keeps what it offers at its header's right edge, on a
+   * desktop and on a phone.
+   */
+  for (const type of [
+    "api",
+    "incoming-request",
+    "manual",
+  ] as Array<MonitorTypeKey>) {
+    for (const width of [1440, 1280, 390]) {
+      test(`a ${type} monitor keeps every card's actions at the right edge at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, { type });
+        await expectSettled(page);
+
+        const cards: Locator = page
+          .getByTestId("card")
+          .filter({ has: page.getByTestId("card-header-actions") })
+          .filter({ has: page.getByTestId("card-details-heading") });
+        const count: number = await cards.count();
+
+        expect(count, "cards with actions").toBeGreaterThan(0);
+
+        for (let index: number = 0; index < count; index++) {
+          const each: Locator = cards.nth(index);
+          const name: string = (
+            await each.getByTestId("card-details-heading").first().innerText()
+          ).trim();
+
+          await expectHeaderActionsOnTheRight(each, `${name} at ${width}px`);
+        }
+
+        // The details card's Edit stays on its title's line, even at 1280px.
+        if (width !== 390) {
+          await expectHeaderActionsOnTheRight(
+            card(sideColumn(page), "Details"),
+            `Details' Edit at ${width}px`,
+            { onTitleLine: true },
+          );
+        }
+      });
+    }
+  }
 
   test("dark theme", async ({ page }: { page: Page }) => {
     await openReady(page, { query: "theme=dark" });

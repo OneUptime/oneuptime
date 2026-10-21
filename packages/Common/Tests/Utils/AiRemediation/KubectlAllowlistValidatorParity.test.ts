@@ -6,6 +6,7 @@ import KubectlPolicy, {
   KubectlTokenizeResult,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -598,18 +599,6 @@ function isNeverPromoted(entry: string): boolean {
     (words[0] === "rollout" &&
       (words[1] === "status" || words[1] === "history"))
   );
-}
-
-// Deterministic PRNG (mulberry32), so a failure reproduces.
-function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /*

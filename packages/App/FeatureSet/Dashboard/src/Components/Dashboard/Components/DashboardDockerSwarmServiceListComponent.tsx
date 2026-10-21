@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -28,11 +28,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Service", widthPct: "26%" },
-  { label: "Mode", widthPct: "14%" },
-  { label: "Replicas", widthPct: "13%" },
-  { label: "Status", widthPct: "16%" },
-  { label: "Image", widthPct: "31%" },
+  { label: "Service", widthPct: "26%", sortKey: "name" },
+  { label: "Mode", widthPct: "14%", sortKey: "mode" },
+  { label: "Replicas", widthPct: "13%", sortKey: "replicas" },
+  { label: "Status", widthPct: "16%", sortKey: "status" },
+  { label: "Image", widthPct: "31%", sortKey: "image" },
 ];
 
 /*
@@ -311,7 +311,8 @@ const DashboardDockerSwarmServiceListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.DockerSwarmServiceList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={undefined}

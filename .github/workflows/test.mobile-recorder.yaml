@@ -27,5 +27,9 @@ jobs:
           cache: npm
           cache-dependency-path: '**/package-lock.json'
 
+      - name: Install Mobile Recorder dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/MobileRecorder
       - name: Test Mobile Recorder
-        run: cd packages/App/FeatureSet/MobileRecorder && npm install && npm run test
+        run: cd packages/App/FeatureSet/MobileRecorder && npm run test

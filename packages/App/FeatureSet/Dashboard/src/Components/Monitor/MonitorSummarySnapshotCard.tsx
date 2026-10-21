@@ -24,6 +24,8 @@ import React, {
   useState,
 } from "react";
 import SummaryInfo from "./SummaryView/SummaryInfo";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The "Monitor Summary" card, as of the moment this incident / alert was
@@ -51,6 +53,7 @@ export interface ComponentProps {
 const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [snapshot, setSnapshot] = useState<MonitorSummarySnapshot | null>(null);
 
   const fetchSnapshot: PromiseVoidFunction = async (): Promise<void> => {
@@ -134,10 +137,17 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
 
   const description: string =
     snapshot.source === MonitorSummarySnapshotSource.Legacy
-      ? "What the monitor reported when this was created, reconstructed from the stored evaluation."
+      ? translator.translateTemplate(
+          "What the monitor reported when this was created, reconstructed from the stored evaluation.",
+        )
       : capturedAtText
-        ? `What the monitor reported at ${capturedAtText}, when this was created.`
-        : "What the monitor reported when this was created.";
+        ? translator.translateTemplate(
+            "What the monitor reported at {{time}}, when this was created.",
+            { time: capturedAtText },
+          )
+        : translator.translateTemplate(
+            "What the monitor reported when this was created.",
+          );
 
   return (
     <Fragment>
@@ -160,16 +170,17 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
 
           {snapshot.areScreenshotsOmitted && (
             <div className="text-sm text-gray-500">
-              Screenshots from this check were not stored because the capture
-              was too large. They are on the monitor page while the check is
-              still retained.
+              {translator.translateText(
+                "Screenshots from this check were not stored because the capture was too large. They are on the monitor page while the check is still retained.",
+              )}
             </div>
           )}
 
           {snapshot.isResponseBodyTruncated && (
             <div className="text-sm text-gray-500">
-              The response body shown above was truncated because the capture
-              was too large.
+              {translator.translateText(
+                "The response body shown above was truncated because the capture was too large.",
+              )}
             </div>
           )}
         </div>

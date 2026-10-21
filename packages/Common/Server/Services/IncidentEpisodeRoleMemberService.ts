@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentMemberService from "./IncidentMemberService";
@@ -12,9 +12,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -23,16 +28,26 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The project the role is saved in: the request's, else the row's own.
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId;
+      createBy.props.tenantId || createBy.data.projectId;
+
+    // The person, under either of their names (the two must agree).
+    const userId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["userId", "user"],
+      "User",
+    );
 
     // Only a member of the project can hold a role on its episodes.
     if (
       projectId &&
-      createBy.data.userId &&
+      userId &&
       !(await TeamMemberService.isUserMemberOfProject({
         projectId: projectId,
-        userId: createBy.data.userId,
+        userId: userId,
       }))
     ) {
       throw new BadDataException(
@@ -47,20 +62,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    // The members the delete removes, and the delete held to them.
+    const itemsToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         incidentEpisodeId: true,
         projectId: true,
         userId: true,
         incidentRoleId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -109,9 +120,60 @@ export class Service extends DatabaseService<Model> {
         incidentRoleId,
         projectId,
       });
+
+      // And into the episode's own channels, when their rules add roles.
+      this.inviteToEpisodeChannels({
+        incidentEpisodeId,
+        userId,
+        projectId,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
     }
 
     return createdItem;
+  }
+
+  /*
+   * Somebody given a role on an episode joins the channels its rules
+   * created that add the people given a role (NotificationRuleInvites), as
+   * the incident's commander joins an incident's.
+   */
+  @CaptureSpan()
+  private async inviteToEpisodeChannels(data: {
+    incidentEpisodeId: ObjectID;
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteRolesIsTrue(
+        {
+          projectId: data.projectId,
+          notificationFor: {
+            incidentEpisodeId: data.incidentEpisodeId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.IncidentEpisode,
+        },
+      );
+
+    if (notificationRules.length === 0) {
+      return;
+    }
+
+    await WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: data.projectId,
+        workspaceChannels:
+          await IncidentEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: data.incidentEpisodeId,
+          }),
+        userIds: [data.userId],
+        notificationFor: {
+          incidentEpisodeId: data.incidentEpisodeId,
+        },
+      },
+    );
   }
 
   @CaptureSpan()

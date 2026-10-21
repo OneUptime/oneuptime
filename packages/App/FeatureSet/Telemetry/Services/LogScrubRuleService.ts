@@ -8,10 +8,16 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import {
+  compileScrubRuleCustomRegex,
+  ScrubRegExp,
+  scrubRegExpFromBuiltIn,
+} from "Common/Types/Telemetry/ScrubRule";
 
 interface CompiledRule {
   rule: LogScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -22,8 +28,14 @@ const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
 
 // Built-in PII detection patterns
 const BUILT_IN_PATTERNS: Record<string, RegExp> = {
+  /*
+   * Each part of the address is length-bounded to the sizes RFC 5321 allows
+   * (local part 64, domain 253, final label 63), so finding addresses in a
+   * log body stays in line with the body's length however long it is - this
+   * runs over every ingested log body for a project with an email scrub rule.
+   */
   [LogScrubPatternType.Email]:
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
   [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
   [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [LogScrubPatternType.PhoneNumber]:
@@ -86,7 +98,7 @@ export class LogScrubRuleService {
     const compiledPatterns: Array<CompiledRule> = [];
 
     for (const rule of rules) {
-      const regex: RegExp | null = this.getRegexForPattern(
+      const regex: ScrubRegExp | null = this.getRegexForPattern(
         rule.patternType as string,
         rule.customRegex as string | undefined,
       );
@@ -104,16 +116,16 @@ export class LogScrubRuleService {
   private static getRegexForPattern(
     patternType: string,
     customRegex?: string,
-  ): RegExp | null {
+  ): ScrubRegExp | null {
     if (patternType === LogScrubPatternType.Custom) {
-      if (!customRegex) {
-        return null;
-      }
-      try {
-        return new RegExp(customRegex, "g");
-      } catch {
-        return null;
-      }
+      /*
+       * Null for a pattern that is empty or does not compile: the rule
+       * scrubs nothing. The API refuses to save such a rule, and the rules
+       * table flags the ones saved before it did - all three judge the
+       * pattern with Common/Types/Telemetry/ScrubRule, so they cannot
+       * disagree on what ingest does with it.
+       */
+      return compileScrubRuleCustomRegex(customRegex);
     }
 
     /*
@@ -122,13 +134,13 @@ export class LogScrubRuleService {
      * skipped entirely by scrubString.
      */
     if (patternType === LogScrubPatternType.SensitiveKeys) {
-      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
+      return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
     if (builtIn) {
-      // Return a new instance so lastIndex is independent per use
-      return new RegExp(builtIn.source, builtIn.flags);
+      // An instance of its own, so lastIndex is independent per use.
+      return scrubRegExpFromBuiltIn(builtIn);
     }
 
     return null;
@@ -225,13 +237,10 @@ export class LogScrubRuleService {
         continue;
       }
 
-      // Reset lastIndex for global regex
-      regex.lastIndex = 0;
-
       const action: string =
         (rule.scrubAction as string) || LogScrubAction.Redact;
 
-      result = result.replace(regex, (match: string) => {
+      result = regex.replace(result, (match: string): string => {
         return this.applyScrubAction(match, action, patternType);
       });
     }
@@ -246,6 +255,13 @@ export class LogScrubRuleService {
     if (compiledRules.length === 0) {
       return logRow;
     }
+
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(logRow);
 
     /*
      * Each rule's `fieldsToScrub` can be "body", "attributes", or

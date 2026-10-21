@@ -9,12 +9,16 @@ import UserNotificationEmailRollupBatchService from "../../../../Server/Services
 import UserNotificationEmailRollupItemService from "../../../../Server/Services/UserNotificationEmailRollupItemService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import logger from "../../../../Server/Utils/Logger";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import UserNotificationEmailRollupBatch, {
   RollupBatchStatus,
 } from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import URL from "../../../../Types/API/URL";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import Color from "../../../../Types/Color";
 import Dictionary from "../../../../Types/Dictionary";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
@@ -71,6 +75,8 @@ export interface FakeItemRow {
   subject: string;
   severity: string | null;
   currentState: string | null;
+  severityColor: Color | null;
+  currentStateColor: Color | null;
   viewLink: string | null;
   sentAt: Date | null;
   rollupBatchId: ObjectID | null;
@@ -109,6 +115,13 @@ export interface RollupHarness {
   notificationSettings: Array<FakeRow>;
   // Project rows: { _id, id, name }.
   projects: Array<FakeRow>;
+  /*
+   * (project, user) pairs that are NOT members of the project - somebody who
+   * left while mail was queued for them. Everybody else is a member.
+   */
+  formerMembers: Array<{ projectId: ObjectID; userId: ObjectID }>;
+  // Every batch of pairs the sweep asked membership of, in call order.
+  membershipReads: Array<Array<ProjectUserPair>>;
 
   /*
    * Every sendMail the runner attempted, including the ones that threw;
@@ -173,6 +186,8 @@ export function emptyRollupHarness(): RollupHarness {
     userEmails: [],
     notificationSettings: [],
     projects: [],
+    formerMembers: [],
+    membershipReads: [],
     sendAttempts: [],
     sent: [],
     callLog: [],
@@ -349,6 +364,8 @@ export function seedItem(
     subject?: string | undefined;
     severity?: string | null | undefined;
     currentState?: string | null | undefined;
+    severityColor?: Color | null | undefined;
+    currentStateColor?: Color | null | undefined;
     eventType?: NotificationSettingEventType | undefined;
     rollupCategory?: RollupCategory | undefined;
     viewLink?: string | null | undefined;
@@ -370,6 +387,8 @@ export function seedItem(
     subject: data.subject ?? `Incident created ${id.toString()}`,
     severity: data.severity ?? null,
     currentState: data.currentState ?? null,
+    severityColor: data.severityColor ?? null,
+    currentStateColor: data.currentStateColor ?? null,
     viewLink: data.viewLink ?? null,
     sentAt: data.sentAt ?? null,
     rollupBatchId: data.rollupBatchId ?? null,
@@ -481,6 +500,33 @@ export function pendingItems(harness: RollupHarness): Array<FakeItemRow> {
  * Call in a test or beforeEach; restore with jest.restoreAllMocks().
  */
 export function installRollupHarness(harness: RollupHarness): void {
+  // Membership: one read per sweep; everybody is a member unless listed.
+  jest.spyOn(ProjectMembership, "getMemberKeys").mockImplementation(((
+    pairs: Array<ProjectUserPair>,
+  ): Promise<Set<string>> => {
+    harness.membershipReads.push(pairs);
+
+    const formerKeys: Set<string> = new Set<string>(
+      harness.formerMembers.map(
+        (pair: { projectId: ObjectID; userId: ObjectID }): string => {
+          return ProjectMembership.getKey(pair.projectId, pair.userId);
+        },
+      ),
+    );
+
+    return Promise.resolve(
+      new Set<string>(
+        pairs
+          .map((pair: ProjectUserPair): string => {
+            return ProjectMembership.getKey(pair.projectId, pair.userId);
+          })
+          .filter((key: string): boolean => {
+            return !formerKeys.has(key);
+          }),
+      ),
+    );
+  }) as never);
+
   // Logger: silent, but captured.
   jest.spyOn(logger, "debug").mockImplementation((message: unknown): void => {
     harness.debugs.push(toKey(message));

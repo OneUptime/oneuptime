@@ -80,6 +80,13 @@ const EXPECTED_CATALOG: Array<CatalogRow> = [
     IconProp.Ceph,
   ],
   [
+    "storageArrayId",
+    ServiceType.StorageArray,
+    "Storage Array",
+    "Storage Arrays",
+    IconProp.StorageArray,
+  ],
+  [
     "serverlessFunctionId",
     ServiceType.ServerlessFunction,
     "Serverless Function",
@@ -124,8 +131,8 @@ const EXPECTED_KEYS: Array<string> = EXPECTED_CATALOG.map(
 
 describe("ResourceFacetCatalog", () => {
   describe("contents", () => {
-    test("lists exactly the thirteen non-Service resource types, in sidebar order", () => {
-      expect(RESOURCE_FACET_CATALOG).toHaveLength(13);
+    test("lists exactly the fourteen non-Service resource types, in sidebar order", () => {
+      expect(RESOURCE_FACET_CATALOG).toHaveLength(14);
       expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual(EXPECTED_KEYS);
     });
 

@@ -53,6 +53,37 @@ export interface MetricComponent {
  */
 export type MetricAnomalyState = "Learning" | "Normal" | "Anomalous";
 
+/*
+ * Why a series' data does not cover the window yet: it began part way
+ * through (a new series), it has a hole of more than one missing data
+ * point, or its newest data point is stale.
+ */
+export type MetricWindowShortfall = "StartsLate" | "Hole" | "Stale";
+
+/**
+ * An "All Values" criteria whose every data point meets the condition, but
+ * whose data does not cover the monitor's time range yet - so it cannot say
+ * the condition held for the whole range, and waits (issue #4793).
+ */
+export interface MetricWindowWait {
+  /*
+   * What the evaluation log says: "Deployment Replica Shortfall was 1 in 1
+   * reading, above the 0 threshold. Waiting for 15 minutes of data: 1 of 15
+   * minutes so far."
+   */
+  message: string;
+  // How many series of the criteria are waiting; 1 on an ungrouped monitor.
+  waitingSeriesCount: number;
+  shortfall: MetricWindowShortfall;
+  // The window the series was judged over, in milliseconds.
+  windowMs: number;
+  /*
+   * How much of it the series' newest unbroken run of data covers, in
+   * milliseconds.
+   */
+  coveredMs: number;
+}
+
 export interface MetricAnomalyBaseline {
   state: MetricAnomalyState;
   /** Baseline mean for the matching hour-of-week, rolling window. */
@@ -78,6 +109,13 @@ export interface MetricAnomalyBaseline {
 export default interface MetricCriteriaContext {
   metricName: string;
   alias: string;
+  /**
+   * The legend the user gave the query or formula the criteria targets
+   * ("Node Memory Utilization (%)"), when it is more than the bare alias.
+   * `metricName` is the formula EXPRESSION for a formula criteria, which is
+   * not something to title a list with.
+   */
+  displayName?: string | undefined;
   unit: string | null;
   aggregationType: MetricsAggregationType | null;
   isFormula: boolean;
@@ -90,6 +128,11 @@ export default interface MetricCriteriaContext {
    * one of the anomaly types. Absent for static-threshold criteria.
    */
   anomalyBaseline?: MetricAnomalyBaseline | undefined;
+  /**
+   * Set when an "All Values" criteria did not match only because the
+   * series' data does not cover the time range yet. Absent otherwise.
+   */
+  windowWait?: MetricWindowWait | undefined;
   /**
    * Fingerprint of the specific series this context represents when the
    * monitor is configured for per-series alerting. Undefined for
@@ -114,6 +157,13 @@ export default interface MetricCriteriaContext {
    * breached" without re-querying.
    */
   totalSamplesInWindow?: number | undefined;
+  /**
+   * The smallest and largest sample in the evaluation window, in the same
+   * display unit as `breachingSamples`. Lets a reader of the context name
+   * the series' worst value even when the criteria compared an aggregate
+   * (a Sum over the window can breach while no single sample does).
+   */
+  sampleValueRange?: { min: number; max: number } | undefined;
   /**
    * For formulas: metadata for each variable the formula references,
    * in the order they appear in the expression. Consumers use this to

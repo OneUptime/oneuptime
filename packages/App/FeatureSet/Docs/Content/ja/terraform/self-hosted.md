@@ -1,73 +1,125 @@
-# Self-Hosted Setup
+# セルフホスト セットアップ
 
-Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
+プロバイダーは、自分の OneUptime でも OneUptime Cloud と同じように動作します。リソースも属性も、プロジェクトの API キーも同じです。自分で設定するのは、OneUptime のアドレス、それに合うプロバイダーのバージョン、そして必要に応じて、インターネットに接続できないマシン向けのミラーと、プライベート認証局の信頼です。
 
-The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
+:::cards
+- [プロバイダーを自分の OneUptime に向ける](#プロバイダーを自分の-oneuptime-に向ける): そのアドレスと、プロジェクトの API キー。
+- [プロバイダーのバージョンを選ぶ](#プロバイダーのバージョンを選ぶ): OneUptime より新しくない、最新のプロバイダー。
+- [インターネットに接続できない場合](#インターネットに接続できない場合): プロバイダーをネットワーク内にミラーします。
+- [TLS と証明書](#tls-と証明書): プライベート認証局、プロキシ、平文の HTTP。
+:::
 
-## Point the provider at your instance
+```mermaid title="Terraform と自分の OneUptime"
+flowchart TB
+    R["Terraform Registry、<br/>OpenTofu Registry、<br/>または自分のミラー"] -->|"terraform init"| T["Terraform または OpenTofu"]
+    T --> P["OneUptime プロバイダー<br/>(自分の OneUptime<br/>より新しくない)"]
+    P -->|"HTTPS と<br/>プロジェクトの API キー"| O["自分の OneUptime:<br/>そのアドレス + /api"]
+```
 
-Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
+## プロバイダーを自分の OneUptime に向ける
 
-```hcl
+`oneuptime_url` には、ダッシュボードを開くときのアドレス、つまりパスのないスキームとホストを設定します。アドレスにスキームがなければプロバイダーが `https://` を付け、最後に `/api` を付けるので、`https://oneuptime.example.com` ではすべてのリクエストが `https://oneuptime.example.com/api` に送られます。
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_MATCHING}}"
     }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.example.com"
-  # api_key from ONEUPTIME_API_KEY, or set explicitly:
-  # api_key = var.oneuptime_api_key
+  # The API key comes from the ONEUPTIME_API_KEY environment variable.
 }
 ```
 
-Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
+アドレスは環境変数 `ONEUPTIME_URL` から渡すこともできるので、1 つの構成で複数のインストールを指せます。
 
 ```bash
 export ONEUPTIME_URL="https://oneuptime.example.com"
-export ONEUPTIME_API_KEY="your-project-api-key"
+export ONEUPTIME_API_KEY="<your-api-key>"
 ```
 
-The API key is a **project API key** created in your instance's dashboard under **プロジェクト設定 > API キー** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
+アドレスは、インストールが提供されているホストです。Docker Compose では `HOST` と `HTTP_PROTOCOL` (`config.env` 内)、Helm チャートでは `host` と `httpProtocol` (values 内) です。
 
-## Choosing a provider version
+キーは、管理するプロジェクトの API キーで、OneUptime Cloud と同じく、自分の OneUptime のダッシュボードの **プロジェクト設定 → 詳細 → API キー** で作成します。セルフホストの OneUptime のマスター API キーはどのプロジェクトにも属さないため、それを使った作成は `ProjectId required` で失敗します。
 
-Provider versions track OneUptime platform versions. The rule for self-hosted:
+> [!TIP]
+> このブロックは自分の OneUptime が書いてくれます。ダッシュボードで任意のリソースかリストを開き、そのサイドメニューで **開発者**、**Terraform** の順に開いてください。表示されるプロバイダーブロックには、自分の OneUptime のアドレスと、それに合うバージョンの範囲が入っています。
 
-> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
+## プロバイダーのバージョンを選ぶ
 
-- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
-- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= 11.0.7`-style pins routinely fail with `no matching version found`.
+自分の OneUptime より新しくない、公開済みの最新のプロバイダーを使います。プロバイダーのバージョンは OneUptime のバージョンに従います。プロバイダーを変更する OneUptime のリリースは、そのリリース自身のバージョン番号でプロバイダーを公開します。自分の OneUptime より新しいプロバイダーは、その OneUptime にまだない設定を送ることがあります。
 
-Express the rule as a bounded constraint. For example, if your installation runs platform release `11.2.x`:
+そのため、ダッシュボードと同じように、自分の OneUptime のバージョンで終わる範囲を書きます。上のブロックは `{{TERRAFORM_PROVIDER_MATCHING}}` を使っています。これは、このドキュメントの提供元の OneUptime に合う範囲で、自分の OneUptime でこのドキュメントを読んでいるなら、その範囲がそのまま使えます。そうでなければ、自分のバージョンを書き入れます。
 
-```hcl
-version = ">= 11.0, <= 11.2"
-```
+:::steps
+### 自分の OneUptime のバージョンを調べる
 
-Terraform then selects the newest published 11.x release that does not exceed 11.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `~> 11.0` is fine too.
-
-Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
-
-**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
-
-## Air-gapped installations: mirroring the provider
-
-If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
+自分の OneUptime に問い合わせます。
 
 ```bash
-mkdir -p /srv/terraform-mirror
-cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
-terraform providers mirror /srv/terraform-mirror
+curl https://oneuptime.example.com/version
 ```
 
-This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
+応答は `{"version":"{{TERRAFORM_PROVIDER_MAJOR}}.0.40","commit":"..."}` のような JSON です。マスター管理者であれば、管理者ダッシュボードのヘッダーにあるエディションラベルを開いて確認することもできます: [現在のバージョンを確認する](/docs/installation/upgrading#現在のバージョンを確認する) を参照してください。
 
-```hcl
+### 範囲に書き入れる
+
+範囲はメジャーバージョンから始まり、自分のバージョンで終わります。OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.40 の場合:
+
+```hcl title="main.tf"
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40"
+    }
+  }
+}
+```
+
+Terraform は範囲内の最新のプロバイダーを使います。プロバイダーを変更しなかった OneUptime のリリースはプロバイダーを公開しませんが、範囲は存在しないバージョンを飛ばします。
+
+### プロバイダーをダウンロードする
+
+`terraform init` を実行します。インストールしたバージョンが表示され、`.terraform.lock.hcl` に記録されます。
+:::
+
+アップグレードするときは、まず OneUptime をアップグレードします。その後で範囲の上限を新しいバージョンに上げ、`terraform init -upgrade` を実行します。
+
+## インターネットに接続できない場合
+
+Terraform を実行するマシンがレジストリに到達できないときは、プロバイダーを一度ネットワーク内にコピーし、Terraform をそのコピーに向けます。
+
+:::steps
+### プロバイダーをミラーする
+
+インターネットに接続できるマシンで、構成のあるフォルダーから、自分のマシンが動くすべてのプラットフォーム向けにプロバイダーをダウンロードします。`-platform` を付けないと、コマンドは自分のプラットフォーム向けのプロバイダーしかダウンロードしません。
+
+:::tabs
+@tab Terraform
+```bash
+terraform providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+@tab OpenTofu
+```bash
+tofu providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+:::
+
+フォルダーには、`registry.terraform.io/oneuptime/oneuptime/` のように、レジストリのアドレスの下にプロバイダーが入ります。これをネットワーク内にコピーします。
+
+### Terraform をミラーに向ける
+
+OneUptime プロバイダーはフォルダーから、それ以外はいつもどおりインストールする CLI 構成ファイルを書きます。
+
+:::tabs
+@tab Terraform
+```hcl title="mirror.tfrc"
 provider_installation {
   filesystem_mirror {
     path    = "/srv/terraform-mirror"
@@ -78,18 +130,76 @@ provider_installation {
   }
 }
 ```
+@tab OpenTofu
+```hcl title="mirror.tfrc"
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+}
+```
+:::
 
-`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
+このファイルを、Terraform と OpenTofu の両方が読む `TF_CLI_CONFIG_FILE` で指定します: `export TF_CLI_CONFIG_FILE=/etc/terraform/mirror.tfrc`。
 
-## TLS notes
+### 初期化する
 
-- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
-- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
-- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
-- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
+`terraform init` を実行すると、ミラーからプロバイダーがインストールされます。ロックファイルにこのプラットフォームのチェックサムしかないという警告が出ます。すべてのプラットフォームのチェックサムを記録するには、インターネットに接続できるマシンで `terraform providers lock` を同じ `-platform` オプション付きで実行し、`.terraform.lock.hcl` を構成と一緒にコミットします。
+:::
 
-## Related pages
+バージョンの範囲を上げるたびに、ミラーを作り直してください。
 
-- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
-- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
-- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted
+## TLS と証明書
+
+プロバイダーは、Terraform を実行するマシンのトラストストアで自分の OneUptime の証明書を検証します。検証を省略する設定はありません。証明書がプライベート認証局のものであれば、Terraform を実行するすべてのマシンと CI ランナーのトラストストアに、その認証局を追加します。
+
+:::tabs
+@tab Debian / Ubuntu
+```bash
+sudo cp my-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+@tab RHEL / Fedora
+```bash
+sudo cp my-ca.crt /etc/pki/ca-trust/source/anchors/
+sudo update-ca-trust
+```
+:::
+
+CI コンテナーのように、Linux でトラストストアを変更できない場所では、自分の認証局と公開の認証局を含むファイルを `SSL_CERT_FILE` に設定します。macOS と Windows では、認証局をシステムの証明書ストアに追加します。
+
+- **プロキシ。** プロバイダーはリクエストを `HTTPS_PROXY` のプロキシ経由で送りますが、`NO_PROXY` のホストには直接送ります。OneUptime の前に置くリバースプロキシは、すべての `/api` パスと `APIKey` ヘッダーを変更せずに通す必要があります。
+- **平文の HTTP。** `http://` のアドレスもテスト用のインストールなら動作します。API キーはリクエストごとに送られるので、それ以外では HTTPS を使ってください。
+
+## トラブルシューティング
+
+:::details メッセージ「x509: certificate signed by unknown authority」
+Terraform を実行するマシンが、自分の OneUptime の証明書を信頼していません。[TLS と証明書](#tls-と証明書) のとおりに認証局を追加してください。
+:::
+
+:::details メッセージ「invalid character '<' looking for beginning of value」
+API の代わりに Web ページが応答しました。`oneuptime_url` にパスが含まれているか、プロキシが応答しています。自分の OneUptime のアドレスだけを設定してください。
+:::
+
+:::details メッセージ「no available releases match the given constraints」
+バージョン制約に合う公開済みのプロバイダーがありません。たとえば、OneUptime が公開したことのないバージョンを 1 つだけ指定した制約です。[プロバイダーのバージョンを選ぶ](#プロバイダーのバージョンを選ぶ) のとおりに範囲を書いてください。
+:::
+
+:::details メッセージ「ProjectId required」
+キーがマスター API キーで、どのプロジェクトにも属していません。**プロジェクト設定 → 詳細 → API キー** でプロジェクトの API キーを作成してください。
+:::
+
+ほかのエラーとそれぞれの意味は [トラブルシューティング](/docs/terraform/troubleshooting) にあります。
+
+## 次のステップ
+
+:::cards
+- [クイック スタート](/docs/terraform/quick-start): API キーを作成し、最初のリソースを適用します。
+- [レジストリの使用](/docs/terraform/registry): プロバイダーの公開先と、バージョンの番号の付け方。
+- [トラブルシューティング](/docs/terraform/troubleshooting): よくあるエラーとその直し方。
+- [アップグレード](/docs/installation/upgrading): プロバイダーの範囲を上げる前に、自分の OneUptime をアップグレードします。
+:::

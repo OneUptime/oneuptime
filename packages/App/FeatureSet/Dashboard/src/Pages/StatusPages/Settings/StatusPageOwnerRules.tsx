@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,9 +16,6 @@ import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRul
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const statusPageOwnerDocumentation: string = `
 ### How Status Page Owner Rules Work
@@ -91,7 +92,11 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         {
           field: { isEnabled: true },
           title: "Status",
-          type: FieldType.Boolean,
+          /*
+           * An element, not a Boolean: a phone's card leaves out a Boolean
+           * that is off, so a disabled rule showed no status at all.
+           */
+          type: FieldType.Element,
           getElement: (item: StatusPageOwnerRule): ReactElement => {
             return item.isEnabled ? (
               <Pill color={Green} text="Enabled" />
@@ -101,45 +106,8 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<StatusPageOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign PR team to public status pages",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { statusPageLabels: true },
           title: "Status Page Labels",
@@ -158,7 +126,7 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageNamePattern: true },
-          title: "Status Page Name Pattern",
+          title: "Status Page Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,41 +137,13 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageDescriptionPattern: true },
-          title: "Status Page Description Pattern",
+          title: "Status Page Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "customer|external",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+        ...getOwnerRuleActionFields<StatusPageOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

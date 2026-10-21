@@ -30,6 +30,7 @@ import {
   HostAlertTemplate,
   buildHostMonitorConfig,
 } from "Common/Types/Monitor/HostAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { HostMetricDefinition } from "Common/Types/Monitor/HostMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 
@@ -140,6 +141,8 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: HostAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
 
@@ -178,6 +181,8 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: HostMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
@@ -197,11 +202,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Host"
-          description={"Select the host to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="Host" required={true} />
         <Dropdown
           options={hostOptions}
           value={hostOptions.find((option: DropdownOption) => {
@@ -227,38 +228,17 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: HostAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepHostMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepHostMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepHostMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepHostMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepHostMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </HostTemplatePicker>
       </div>
     );
   };
@@ -267,13 +247,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Host Metric"
-            description={
-              "Select a host metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Host Metric" required={true} />
           <HostMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: HostMetricDefinition) => {
@@ -288,7 +262,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -341,7 +315,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={"Select the time range for the host monitor."}
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -370,7 +344,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the host monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -389,13 +363,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the host metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
@@ -411,8 +379,13 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepHostMonitor,

@@ -1,7 +1,8 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -25,11 +26,11 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
-import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
@@ -38,10 +39,558 @@ import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCal
 import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyLabelRuleEngineService from "./OnCallDutyPolicyLabelRuleEngineService";
 import OnCallDutyPolicyOwnerRuleEngineService from "./OnCallDutyPolicyOwnerRuleEngineService";
+import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
+import TeamMemberService from "./TeamMemberService";
+import CreateBy from "../Types/Database/CreateBy";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import BasePermission from "../Types/Database/Permissions/BasePermission";
+import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import DatabaseService, { PendingRecord } from "./DatabaseService";
+import { resolveReferenceIds } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { JSONObject } from "../../Types/JSON";
+import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import {
+  FIRST_RESPONDER_KEYS,
+  FirstResponderIds,
+  FirstResponderKey,
+  readFirstResponderIds,
+} from "../../Types/OnCallDutyPolicy/FirstResponders";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<OnCallDutyPolicy> {
+// A join row of a new policy's first escalation rule, and its model.
+interface FirstResponderJoin {
+  modelType: { new (): BaseModel };
+  row: BaseModel;
+}
+
+export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   public constructor() {
     super(OnCallDutyPolicy);
+  }
+
+  /*
+   * WHO GETS PAGED FIRST.
+   *
+   * A policy created with first responders in its misc data (the create
+   * form's "Who gets paged first?", or an API caller) gets its first
+   * escalation rule straight away: Level 1, paging them, waiting 30 minutes
+   * for an acknowledgement before the next level - what adding that rule on
+   * the Escalation Rules page would have made. With nobody to page, nothing
+   * changes: the policy is created without rules, as it always was.
+   *
+   * The rule is added after the whole create, not in onCreateSuccess: by then
+   * the creator owns the policy (DatabaseService.create adds them as an owner
+   * after the success hook), so a teammate whose access is limited to the
+   * policies they own may add its rules - the rule is created as them, with
+   * the same checks, plan limits and notifications as adding it by hand.
+   *
+   * What can be checked before anything is saved is checked first: the
+   * picks' shape, whether the caller may add escalation rules and those
+   * responders, and whether every responder belongs to this project. A
+   * refused pick refuses the create, so nobody gets a policy that pages
+   * nobody when they asked for someone. What fails after the policy is
+   * saved is logged, and the policy is kept: it shows on its Escalation
+   * Rules page that it has no rules yet.
+   */
+  @CaptureSpan()
+  public override async create(
+    createBy: CreateBy<OnCallDutyPolicy>,
+  ): Promise<OnCallDutyPolicy> {
+    const firstResponders: FirstResponderIds | null = createBy.props.ignoreHooks
+      ? null
+      : readFirstResponderIds(createBy.miscDataProps);
+
+    if (firstResponders) {
+      await this.checkFirstRespondersCanBePaged({
+        responders: firstResponders,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        props: createBy.props,
+        policy: createBy.data,
+      });
+    }
+
+    const createdPolicy: OnCallDutyPolicy = await super.create(createBy);
+
+    if (firstResponders) {
+      await this.addFirstEscalationRule({
+        policy: createdPolicy,
+        responders: firstResponders,
+        props: createBy.props,
+      });
+    }
+
+    return createdPolicy;
+  }
+
+  /*
+   * Refuses first responders that could not be paged, before the policy is
+   * saved. `policy` is the policy as it will be saved: the rule and its
+   * responders are held to the labels, blocks with labels and Owned scope
+   * of the caller's permissions to add them by the labels it is created
+   * with. Throws; returns nothing.
+   */
+  @CaptureSpan()
+  public async checkFirstRespondersCanBePaged(data: {
+    responders: FirstResponderIds;
+    projectId: ObjectID | undefined | null;
+    props: DatabaseCommonInteractionProps;
+    policy?: OnCallDutyPolicy | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "A project is required to page someone from a new on-call policy.",
+      );
+    }
+
+    const projectId: ObjectID = new ObjectID(data.projectId.toString());
+
+    /*
+     * The caller adds the rule and its responders themselves, so they need
+     * the permissions adding them by hand needs. The same check the rule's
+     * own create runs first (OnCallDutyPolicyChildService), made now so a
+     * refusal saves nothing. It passes root and master admin callers through
+     * itself.
+     */
+    const rule: OnCallDutyPolicyEscalationRule = this.getFirstEscalationRule({
+      projectId: projectId,
+      // Not known yet; any id checks the same column permissions.
+      onCallDutyPolicyId: ObjectID.getZeroObjectID(),
+    });
+
+    CreatePermission.checkCreatePermissions(
+      OnCallDutyPolicyEscalationRule,
+      rule,
+      data.props,
+    );
+
+    for (const key of FIRST_RESPONDER_KEYS) {
+      if (data.responders[key].length === 0) {
+        continue;
+      }
+
+      const join: FirstResponderJoin = this.getFirstResponderJoin({
+        key: key,
+        projectId: projectId,
+        props: data.props,
+      });
+
+      CreatePermission.checkCreatePermissions(
+        join.modelType,
+        join.row,
+        data.props,
+      );
+    }
+
+    /*
+     * An escalation rule is read through its policy: adding one needs a
+     * permission to read on-call policies, as adding it by hand does.
+     */
+    if (!data.props.isRoot && !data.props.isMasterAdmin) {
+      BasePermission.isHeldToParentRead(
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicy,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+    }
+
+    // Every responder must be this project's own.
+    await this.checkFirstRespondersAreInProject({
+      responders: data.responders,
+      projectId: projectId,
+    });
+
+    /*
+     * And the policy as it will be saved is one the caller's permissions to
+     * add the rule and its responders reach.
+     */
+    const labelIds: Array<string> = resolveReferenceIds(
+      data.policy?.labels,
+    ).map((labelId: ObjectID | string): string => {
+      return labelId.toString();
+    });
+
+    const pending: PendingRecord = {
+      modelType: OnCallDutyPolicy,
+      // Not saved yet: the rule names it by a placeholder id.
+      id: ObjectID.generate(),
+      labelIds: labelIds,
+      ownedByCreator:
+        Boolean(data.props.userId) &&
+        OwnedScopePermission.hasOwnerTables(OnCallDutyPolicy),
+    };
+
+    await this.checkFirstRuleCreateScope({
+      policyId: pending.id,
+      projectId: projectId,
+      responders: data.responders,
+      props: data.props,
+      pending: pending,
+    });
+  }
+
+  /*
+   * Whether the caller's permissions to add an escalation rule and its
+   * responders reach the first rule of `policyId`: their labels, blocks
+   * with labels and Owned scope (DatabaseService.checkCreateScopeOf) - each
+   * on-call schedule by its own labels. `pending` is the policy while it is
+   * not saved yet. Root and master admin callers add any. Throws a
+   * CreateScopeException; returns nothing.
+   */
+  private async checkFirstRuleCreateScope(data: {
+    policyId: ObjectID;
+    projectId: ObjectID;
+    responders: FirstResponderIds;
+    props: DatabaseCommonInteractionProps;
+    pending?: PendingRecord | undefined;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    await OnCallDutyPolicyEscalationRuleService.checkCreateScopeOf({
+      row: this.getFirstEscalationRule({
+        projectId: data.projectId,
+        onCallDutyPolicyId: data.policyId,
+      }),
+      props: data.props,
+      pending: data.pending,
+    });
+
+    for (const key of FIRST_RESPONDER_KEYS) {
+      if (data.responders[key].length === 0) {
+        continue;
+      }
+
+      // Each schedule carries labels of its own; people and teams carry none.
+      const responderIds: Array<string | null> =
+        key === "onCallSchedules" ? data.responders[key] : [null];
+
+      for (const responderId of responderIds) {
+        const join: FirstResponderJoin = this.getFirstResponderJoin({
+          key: key,
+          projectId: data.projectId,
+          props: data.props,
+        });
+
+        join.row.setColumnValue("onCallDutyPolicyId", data.policyId);
+
+        if (responderId) {
+          join.row.setColumnValue(
+            "onCallDutyPolicyScheduleId",
+            new ObjectID(responderId),
+          );
+        }
+
+        await this.getFirstResponderService(key).checkCreateScopeOf({
+          row: join.row,
+          props: data.props,
+          pending: data.pending,
+        });
+      }
+    }
+  }
+
+  // The service that writes the join rows of one kind of first responder.
+  private getFirstResponderService(
+    key: FirstResponderKey,
+  ): DatabaseService<BaseModel> {
+    if (key === "onCallSchedules") {
+      return OnCallDutyPolicyEscalationRuleScheduleService as unknown as DatabaseService<BaseModel>;
+    }
+
+    if (key === "teams") {
+      return OnCallDutyPolicyEscalationRuleTeamService as unknown as DatabaseService<BaseModel>;
+    }
+
+    return OnCallDutyPolicyEscalationRuleUserService as unknown as DatabaseService<BaseModel>;
+  }
+
+  /*
+   * A join row of the first rule as the rule service writes it for one kind
+   * of responder (addUser, addTeam, addOnCallSchedules), with placeholder
+   * ids: what the permission check reads is which columns are written.
+   */
+  private getFirstResponderJoin(data: {
+    key: FirstResponderKey;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): FirstResponderJoin {
+    const placeholderId: ObjectID = ObjectID.getZeroObjectID();
+
+    let join: FirstResponderJoin;
+
+    if (data.key === "onCallSchedules") {
+      const row: OnCallDutyPolicyEscalationRuleSchedule =
+        new OnCallDutyPolicyEscalationRuleSchedule();
+      row.onCallDutyPolicyScheduleId = placeholderId;
+      join = { modelType: OnCallDutyPolicyEscalationRuleSchedule, row };
+    } else if (data.key === "teams") {
+      const row: OnCallDutyPolicyEscalationRuleTeam =
+        new OnCallDutyPolicyEscalationRuleTeam();
+      row.teamId = placeholderId;
+      join = { modelType: OnCallDutyPolicyEscalationRuleTeam, row };
+    } else {
+      const row: OnCallDutyPolicyEscalationRuleUser =
+        new OnCallDutyPolicyEscalationRuleUser();
+      row.userId = placeholderId;
+      join = { modelType: OnCallDutyPolicyEscalationRuleUser, row };
+    }
+
+    join.row.setColumnValue("projectId", data.projectId);
+    join.row.setColumnValue("onCallDutyPolicyId", placeholderId);
+    join.row.setColumnValue("onCallDutyPolicyEscalationRuleId", placeholderId);
+
+    if (data.props.userId) {
+      join.row.setColumnValue("createdByUserId", data.props.userId);
+    }
+
+    return join;
+  }
+
+  /*
+   * Teams and on-call schedules of this project, and people who are members
+   * of it (a TeamMember row of the project, the list the picker offers). An
+   * id that is not - another project's team, a stranger, a deleted schedule
+   * - refuses the create rather than page someone outside the project.
+   */
+  private async checkFirstRespondersAreInProject(data: {
+    responders: FirstResponderIds;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const { responders, projectId } = data;
+
+    if (responders.teams.length > 0) {
+      const teamsInProject: PositiveNumber = await TeamService.countBy({
+        query: {
+          _id: QueryHelper.any(responders.teams),
+          projectId: projectId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (teamsInProject.toNumber() !== responders.teams.length) {
+        throw new BadDataException(
+          "Some of the teams picked to be paged first are not in this project.",
+        );
+      }
+    }
+
+    if (responders.onCallSchedules.length > 0) {
+      const schedulesInProject: PositiveNumber =
+        await OnCallDutyPolicyScheduleService.countBy({
+          query: {
+            _id: QueryHelper.any(responders.onCallSchedules),
+            projectId: projectId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (schedulesInProject.toNumber() !== responders.onCallSchedules.length) {
+        throw new BadDataException(
+          "Some of the on-call schedules picked to be paged first are not in this project.",
+        );
+      }
+    }
+
+    if (responders.users.length > 0) {
+      const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+        query: {
+          userId: QueryHelper.any(responders.users),
+          projectId: projectId,
+        },
+        select: {
+          userId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const members: Set<string> = new Set<string>(
+        memberships
+          .map((membership: TeamMember): string => {
+            return membership.userId?.toString().toLowerCase() || "";
+          })
+          .filter(Boolean),
+      );
+
+      const strangers: Array<string> = responders.users.filter(
+        (userId: string): boolean => {
+          return !members.has(userId);
+        },
+      );
+
+      if (strangers.length > 0) {
+        throw new BadDataException(
+          "Some of the people picked to be paged first are not members of this project.",
+        );
+      }
+    }
+  }
+
+  // The first rule as it is created: what the Add Escalation Rule dialog sends.
+  private getFirstEscalationRule(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+  }): OnCallDutyPolicyEscalationRule {
+    const rule: OnCallDutyPolicyEscalationRule =
+      new OnCallDutyPolicyEscalationRule();
+
+    rule.projectId = data.projectId;
+    rule.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    rule.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
+
+    /*
+     * No name and no order: the rule service puts it first and calls it
+     * after its level, "Level 1" - as it does any rule created without them.
+     */
+    return rule;
+  }
+
+  /*
+   * Adds the first escalation rule of a policy just created, paging the
+   * first responders. Never throws: the policy is saved already.
+   *
+   * The rule is created as the caller. Whether they may add escalation
+   * rules and page those responders - the permissions, their labels and
+   * blocks with labels - was asked before the policy was saved
+   * (checkFirstRespondersCanBePaged). One refusal is then not theirs to fix:
+   * an escalation rule is read through its policy, and their read of
+   * policies may not reach the policy they made a moment ago
+   * (UnreadableReferenceException, refused before the rule is saved). For
+   * that refusal alone, while the policy has no rule yet, OneUptime creates
+   * the rule for them (root, naming them), as it writes a new monitor's
+   * first status row - once it is checked against their own permissions to
+   * add the rule and its responders on everything but that read. Any other
+   * refusal is logged.
+   */
+  @CaptureSpan()
+  public async addFirstEscalationRule(data: {
+    policy: OnCallDutyPolicy;
+    responders: FirstResponderIds;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const policyId: ObjectID | null | undefined = data.policy.id;
+    const projectId: ObjectID | undefined = data.policy.projectId;
+
+    try {
+      if (!policyId || !projectId) {
+        throw new BadDataException(
+          "The new on-call policy has no id or project.",
+        );
+      }
+
+      try {
+        await this.createFirstEscalationRule({
+          policyId: policyId,
+          projectId: projectId,
+          responders: data.responders,
+          props: data.props,
+        });
+      } catch (error) {
+        if (data.props.isRoot || !OwnerRuleAssignment.isOutOfReach(error)) {
+          throw error;
+        }
+
+        // A rule saved before the refusal is not added a second time.
+        const rules: PositiveNumber =
+          await OnCallDutyPolicyEscalationRuleService.countBy({
+            query: {
+              onCallDutyPolicyId: policyId,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (rules.toNumber() > 0) {
+          throw error;
+        }
+
+        // Everything but the creator's read of their new policy still holds.
+        await this.checkFirstRuleCreateScope({
+          policyId: policyId,
+          projectId: projectId,
+          responders: data.responders,
+          props: data.props,
+        });
+
+        logger.info(
+          "The first escalation rule of a new on-call policy is added by OneUptime for its creator: the new policy is outside what their own permissions reach.",
+          {
+            projectId: projectId.toString(),
+            onCallDutyPolicyId: policyId.toString(),
+          } as LogAttributes,
+        );
+
+        await this.createFirstEscalationRule({
+          policyId: policyId,
+          projectId: projectId,
+          responders: data.responders,
+          props: {
+            isRoot: true,
+            userId: data.props.userId,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `Error adding the first escalation rule of a new on-call policy in OnCallDutyPolicyService.addFirstEscalationRule: ${error}`,
+        {
+          projectId: projectId?.toString(),
+          onCallDutyPolicyId: policyId?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  // The first escalation rule, as addFirstEscalationRule creates it.
+  private async createFirstEscalationRule(data: {
+    policyId: ObjectID;
+    projectId: ObjectID;
+    responders: FirstResponderIds;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    /*
+     * The responders go to the rule as its own create takes them: the
+     * rule's create hook turns these lists into its join rows.
+     */
+    const miscDataProps: JSONObject = {
+      onCallSchedules: data.responders.onCallSchedules.map(
+        (id: string): ObjectID => {
+          return new ObjectID(id);
+        },
+      ),
+      teams: data.responders.teams.map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+      users: data.responders.users.map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+    };
+
+    await OnCallDutyPolicyEscalationRuleService.create({
+      data: this.getFirstEscalationRule({
+        projectId: new ObjectID(data.projectId.toString()),
+        onCallDutyPolicyId: new ObjectID(data.policyId.toString()),
+      }),
+      miscDataProps: miscDataProps,
+      props: data.props,
+    });
   }
 
   protected override async onCreateSuccess(
@@ -102,28 +651,26 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = `#### 📞 On Call Policy Created: 
+    let feedInfoInMarkdown: string = mdText`#### 📞 On Call Policy Created: 
               
 **${onCallPolicy.name || "No name provided."}**:
     
-${onCallPolicy.description || "No description provided."}
+${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided.")}
         
-`;
+`.toString();
 
     if (onCallPolicy?.labels && onCallPolicy.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of onCallPolicy.labels) {
-        feedInfoInMarkdown += `- ${label.name}\n`;
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;
     }
 
     // send message to workspaces - slack, teams,   etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const workspaceResult: WorkspaceChannelsCreated | null =
       await OnCallDutyPolicyWorkspaceMessages.createChannelsAndInviteUsersToChannels(
         {
           projectId: onCallPolicy.projectId!,
@@ -132,18 +679,12 @@ ${onCallPolicy.description || "No description provided."}
         },
       );
 
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update incident with these channels.
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * The new channels are on the policy already: the rule service stores
+     * them before it invites anybody, so whoever joins the policy while they
+     * are set up is invited too (WorkspaceNotificationRuleService
+     * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+     */
 
     const onCallDutyPolicyCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await OnCallDutyPolicyWorkspaceMessages.getOnCallDutyPolicyCreateMessageBlocks(
@@ -167,6 +708,12 @@ ${onCallPolicy.description || "No description provided."}
       },
     });
 
+    // Under "On Call Policy Created": who could not be added to the new channels.
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: createdItem.projectId,
+      membersNotAdded: workspaceResult?.membersNotAdded,
+    });
+
     return createdItem;
   }
 
@@ -174,53 +721,48 @@ ${onCallPolicy.description || "No description provided."}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicy>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
-    if (deleteBy.query._id) {
-      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
-        deleteBy.query.projectId || deleteBy.props.tenantId;
+    /*
+     * A delete that names one policy by its id - the policy's own Delete -
+     * archives the policy's workspace channels. A delete that names no
+     * single policy, such as a cleanup of several, archives none, and is
+     * left as it is.
+     */
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
 
-      if (!projectId) {
-        // fetch this onCallDutyPolicy from the database to get the projectId.
-        const onCallDutyPolicy: OnCallDutyPolicy | null =
-          await this.findOneById({
-            id: new ObjectID(deleteBy.query._id as string) as ObjectID,
-            select: {
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+    /*
+     * The policy, and the delete held to it. Its channels are found through
+     * it, so they are archived before it is gone.
+     */
+    const found: { row: OnCallDutyPolicy | null; deletesMore: boolean } =
+      await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
-        if (!onCallDutyPolicy) {
-          throw new BadDataException("OnCallDutyPolicy not found.");
-        }
+    const policy: OnCallDutyPolicy | null = found.row;
 
-        if (!onCallDutyPolicy.id) {
-          throw new BadDataException("OnCallDutyPolicy id not found.");
-        }
+    if (!policy || !policy.id || !policy.projectId) {
+      return { deleteBy, carryForward: null };
+    }
 
-        projectId = onCallDutyPolicy.projectId!;
-      }
-
-      try {
-        await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: projectId as ObjectID,
-          notificationFor: {
-            onCallDutyPolicyId: new ObjectID(
-              deleteBy.query._id as string,
-            ) as ObjectID,
-          },
-          sendMessageBeforeArchiving: {
-            _type: "WorkspacePayloadMarkdown",
-            text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
-          },
-        });
-      } catch (error) {
-        logger.error(
-          `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`,
-          { projectId: (projectId as ObjectID)?.toString() } as LogAttributes,
-        );
-      }
+    try {
+      await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: policy.projectId,
+        notificationFor: {
+          onCallDutyPolicyId: policy.id,
+        },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
+        { projectId: policy.projectId.toString() } as LogAttributes,
+      );
     }
 
     return { deleteBy, carryForward: null };
@@ -289,6 +831,22 @@ ${onCallPolicy.description || "No description provided."}
       : null;
   }
 
+  /*
+   * Runs an on-call policy for an incident, an alert or an episode: its
+   * execution log is created, and the log service pages its first
+   * escalation rule from there.
+   *
+   * With pagingStartsAt later than now, the run is held instead
+   * (OnCallDutyPolicyRunWait): it is created Waiting, pages nobody, and the
+   * worker starts it at its first escalation rule when that moment comes -
+   * or ends it there, unpaged, if its record was acknowledged or resolved
+   * or the policy archived in the meantime. An on-call rule that pages only
+   * during working hours holds the runs it starts outside them
+   * (OnCallRulePagingHold); waitingStatusMessage is what the run says until
+   * then ("Waiting for working hours: paging starts at 09:00
+   * (Europe/London)."). Left out, or not later than now, the run pages
+   * straight away, as it always has.
+   */
   @CaptureSpan()
   public async executePolicy(
     policyId: ObjectID,
@@ -298,6 +856,8 @@ ${onCallPolicy.description || "No description provided."}
       triggeredByAlertEpisodeId?: ObjectID | undefined;
       triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
+      pagingStartsAt?: Date | undefined;
+      waitingStatusMessage?: string | undefined;
     },
   ): Promise<void> {
     // execute this policy
@@ -359,7 +919,13 @@ ${onCallPolicy.description || "No description provided."}
       );
     }
 
-    // add policy log.
+    /*
+     * The policy's execution log. An archived policy pages no one: the log
+     * service's create writes its log as not executed, with the reason, and
+     * starts nothing after it - for this execution as for every other way
+     * one is asked for (OnCallDutyPolicyArchive) - so the incident's on-call
+     * tab says why nobody was paged instead of showing nothing.
+     */
     const log: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
 
@@ -368,6 +934,19 @@ ${onCallPolicy.description || "No description provided."}
     log.userNotificationEventType = options.userNotificationEventType;
     log.statusMessage = "Scheduled.";
     log.status = OnCallDutyPolicyStatus.Scheduled;
+
+    // Held until later: created waiting, as the log service checks again.
+    if (
+      options.pagingStartsAt &&
+      OneUptimeDate.isAfter(
+        options.pagingStartsAt,
+        OneUptimeDate.getCurrentDate(),
+      )
+    ) {
+      log.status = OnCallDutyPolicyStatus.Waiting;
+      log.pagingStartsAt = options.pagingStartsAt;
+      log.statusMessage = options.waitingStatusMessage || "";
+    }
 
     if (options.triggeredByIncidentId) {
       log.triggeredByIncidentId = options.triggeredByIncidentId;
@@ -470,7 +1049,11 @@ ${onCallPolicy.description || "No description provided."}
         },
       });
 
-    // do the same for schedules.
+    /*
+     * Do the same for schedules: the rules that page whoever is on call in
+     * them. A rule that pages the next person in a schedule's rotation does
+     * not page its on-call person, so it is not one they are on call for.
+     */
     const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
       await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
         query: {
@@ -495,6 +1078,7 @@ ${onCallPolicy.description || "No description provided."}
             name: true,
             _id: true,
           },
+          pageNextInRotation: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -506,7 +1090,11 @@ ${onCallPolicy.description || "No description provided."}
     return {
       escalationRulesByUser: escalationRulesByUser,
       escalationRulesByTeam: escalationRulesByTeam,
-      escalationRulesBySchedule: escalationRulesBySchedule,
+      escalationRulesBySchedule: escalationRulesBySchedule.filter(
+        (escalationRule: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+          return !escalationRule.pageNextInRotation;
+        },
+      ),
     };
   }
 }

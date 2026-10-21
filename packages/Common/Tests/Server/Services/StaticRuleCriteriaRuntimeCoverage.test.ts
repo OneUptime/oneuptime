@@ -25,7 +25,60 @@ const SPECIAL_EVALUATOR_FILES: Record<string, string> = {
     "ScheduledMaintenanceReminderRuleService.ts",
   IncidentSlaRule: "IncidentSlaRuleService.ts",
   NetworkSiteAssignmentRule: "NetworkDeviceService.ts",
+  // Which incidents and alerts OneUptime AI investigates on its own.
+  AIInvestigationRule: "../Utils/AI/SRE/InvestigationRules.ts",
+  // Which resolved incidents get an AI postmortem draft, and its templates.
+  AIPostmortemRule: "../Utils/AI/SRE/PostmortemRules.ts",
 };
+
+/*
+ * Auto Remediation Rules, Investigation Rules and Postmortem Rules read a
+ * condition the same way, so their evaluators hand the matching to one
+ * shared matcher: the evaluator names it, and the matcher holds the legacy
+ * fields - an incident's in doesIncidentMatch, an alert's in
+ * doesAlertMatch. A rule kind is held to the fields of the methods it
+ * calls: a postmortem rule, about incidents alone, to the incident's.
+ */
+const SHARED_INCIDENT_ALERT_MATCHER: string = "IncidentAlertRuleMatcher";
+const SHARED_INCIDENT_ALERT_MATCHER_FILE: string = path.join(
+  COMMON_ROOT,
+  "Server/Utils/Rules/IncidentAlertRuleMatcher.ts",
+);
+const SHARED_MATCHER_METHODS: ReadonlyArray<string> = [
+  "doesIncidentMatch",
+  "doesAlertMatch",
+];
+
+/*
+ * The legacy fields one public method of the shared matcher reads: from its
+ * declaration to the next method's.
+ */
+function extractSharedMatcherMethodFields(
+  matcherSource: string,
+  method: string,
+): Set<string> {
+  const start: number = matcherSource.indexOf(`public static async ${method}(`);
+
+  expect(start).toBeGreaterThan(-1);
+
+  const nextMethod: number = matcherSource.indexOf(
+    "public static async ",
+    start + 1,
+  );
+  const nextPrivate: number = matcherSource.indexOf(
+    "private static async ",
+    start + 1,
+  );
+  const ends: Array<number> = [nextMethod, nextPrivate].filter(
+    (index: number): boolean => {
+      return index !== -1;
+    },
+  );
+  const end: number =
+    ends.length > 0 ? Math.min(...ends) : matcherSource.length;
+
+  return extractLegacyFields(matcherSource.slice(start, end));
+}
 
 function listTypescriptReactFiles(directoryPath: string): Array<string> {
   const result: Array<string> = [];
@@ -45,10 +98,16 @@ function listTypescriptReactFiles(directoryPath: string): Array<string> {
   return result;
 }
 
+/*
+ * A field object whose own stepId is "match-criteria": the stepId found
+ * before the next field starts, so a column or filter written earlier on
+ * the page (`field: { name: true }`, with no stepId) is never read as the
+ * criterion after it.
+ */
 function extractMatchFields(source: string): Set<string> {
   const fields: Set<string> = new Set<string>();
   const matchFieldPattern: RegExp =
-    /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g;
+    /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:|field\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g;
 
   for (const match of source.matchAll(matchFieldPattern)) {
     fields.add(match[1]!);
@@ -94,6 +153,16 @@ function extractFormMatchFields(data: {
   return fields;
 }
 
+/*
+ * A form with a Match Criteria step: one its page writes out, or a shared
+ * one - the label and owner rule form (Dashboard Utils/Form/ResourceRuleForm)
+ * or the on-call, privacy, SLA, reminder and runbook rule forms
+ * (Utils/Form/EventRuleForm) - whose Match step is the same "match-criteria" step and
+ * whose page writes its criteria fields itself.
+ */
+const MATCH_CRITERIA_FORM: RegExp =
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder|Runbook)RuleFormSteps</;
+
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
@@ -103,9 +172,7 @@ function discoverStaticRuleForms(): {
     DASHBOARD_SOURCE_ROOT,
   ).filter((filePath: string): boolean => {
     return (
-      fs
-        .readFileSync(filePath, "utf8")
-        .match(/id\s*:\s*["']match-criteria["']/) !== null
+      fs.readFileSync(filePath, "utf8").match(MATCH_CRITERIA_FORM) !== null
     );
   });
   const metricPipelineFile: string = path.join(
@@ -196,9 +263,9 @@ describe("static rule criteria runtime coverage", () => {
     discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
-  test("all 66 static match-criteria forms route their 78 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(66);
-    expect(formsByModel.size).toBe(78);
+  test("all 72 static match-criteria forms route their 84 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(72);
+    expect(formsByModel.size).toBe(84);
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
       inheritedRuleModelNames,
@@ -302,6 +369,37 @@ describe("static rule criteria runtime coverage", () => {
         return;
       }
 
+      if (evaluatorSource.includes(`${SHARED_INCIDENT_ALERT_MATCHER}.`)) {
+        const matcherSource: string = fs.readFileSync(
+          SHARED_INCIDENT_ALERT_MATCHER_FILE,
+          "utf8",
+        );
+
+        expect(matcherSource).toMatch(
+          /RuleCriteriaMatcher\.matchesWithLegacy(?:Sync)?\(/,
+        );
+
+        // The fields of the matcher's methods this rule kind calls.
+        const calledMethods: Array<string> = SHARED_MATCHER_METHODS.filter(
+          (method: string): boolean => {
+            return evaluatorSource.includes(
+              `${SHARED_INCIDENT_ALERT_MATCHER}.${method}(`,
+            );
+          },
+        );
+
+        expect(calledMethods.length).toBeGreaterThan(0);
+
+        const evaluatedFields: Set<string> = new Set<string>(
+          calledMethods.flatMap((method: string): Array<string> => {
+            return [...extractSharedMatcherMethodFields(matcherSource, method)];
+          }),
+        );
+
+        expect([...evaluatedFields].sort()).toEqual([...form.fields].sort());
+        return;
+      }
+
       expect(evaluatorSource).toMatch(
         /RuleCriteriaMatcher\.matchesWithLegacy(?:Sync)?\(/,
       );
@@ -310,6 +408,50 @@ describe("static rule criteria runtime coverage", () => {
       );
     },
   );
+
+  test("the incident and alert rules that share a matcher evaluate every field it reads", () => {
+    const sharingModels: Array<string> = [...formsByModel.keys()].filter(
+      (modelName: string): boolean => {
+        return fs
+          .readFileSync(
+            path.join(SERVICES_ROOT, getEvaluatorFileName(modelName)),
+            "utf8",
+          )
+          .includes(`${SHARED_INCIDENT_ALERT_MATCHER}.`);
+      },
+    );
+
+    expect(sharingModels.sort()).toEqual([
+      "AIInvestigationRule",
+      "AIPostmortemRule",
+      "AutoRemediationRule",
+    ]);
+
+    // Both forms offer exactly what the shared matcher evaluates.
+    expect([...formsByModel.get("AIInvestigationRule")!.fields].sort()).toEqual(
+      [...formsByModel.get("AutoRemediationRule")!.fields].sort(),
+    );
+
+    // A postmortem rule, about incidents alone, offers the incident's share.
+    const matcherSource: string = fs.readFileSync(
+      SHARED_INCIDENT_ALERT_MATCHER_FILE,
+      "utf8",
+    );
+
+    expect([...formsByModel.get("AIPostmortemRule")!.fields].sort()).toEqual(
+      [
+        ...extractSharedMatcherMethodFields(matcherSource, "doesIncidentMatch"),
+      ].sort(),
+    );
+    expect(
+      fs
+        .readFileSync(
+          path.join(SERVICES_ROOT, getEvaluatorFileName("AIPostmortemRule")),
+          "utf8",
+        )
+        .includes(`${SHARED_INCIDENT_ALERT_MATCHER}.doesAlertMatch(`),
+    ).toBe(false);
+  });
 
   test("leaves the existing Metric Pipeline rule builder outside the generic criteria path", () => {
     const metricPipelineSource: string = fs.readFileSync(

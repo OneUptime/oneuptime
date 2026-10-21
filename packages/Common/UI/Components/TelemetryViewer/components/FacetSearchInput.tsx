@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement, useRef } from "react";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 
@@ -17,6 +19,7 @@ export interface FacetSearchInputProps {
 const FacetSearchInput: FunctionComponent<FacetSearchInputProps> = (
   props: FacetSearchInputProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
 
@@ -37,8 +40,12 @@ const FacetSearchInput: FunctionComponent<FacetSearchInputProps> = (
          * A placeholder disappears as soon as the user types, taking the
          * field's only description with it; the aria-label stays.
          */
-        aria-label={`Search ${props.title}`}
-        placeholder={`Search ${props.title.toLowerCase()}...`}
+        aria-label={translator.translateTemplate("Search {{name}}", {
+          name: translatableTerm(props.title),
+        })}
+        placeholder={translator.translateTemplate("Search {{name}}...", {
+          name: translatableTerm(props.title, { inSentence: true }),
+        })}
         value={props.value}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
           props.onChange(event.target.value);
@@ -61,8 +68,8 @@ const FacetSearchInput: FunctionComponent<FacetSearchInputProps> = (
       {hasText && (
         <button
           type="button"
-          aria-label="Clear search"
-          title="Clear search"
+          aria-label={translator.translateText("Clear search")}
+          title={translator.translateText("Clear search")}
           className="absolute inset-y-0 right-0 flex items-center rounded pr-1.5 pl-1 text-gray-400 transition-colors hover:text-gray-600"
           onClick={() => {
             props.onChange("");

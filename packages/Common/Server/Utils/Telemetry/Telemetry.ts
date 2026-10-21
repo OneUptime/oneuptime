@@ -7,6 +7,7 @@ import Service from "../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../Types/Dictionary";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import logger from "../Logger";
+import ContainerStatsPercentUnit from "../../../Utils/Metrics/ContainerStatsPercentUnit";
 import crypto from "crypto";
 
 export type AttributeType = string | number | boolean | null;
@@ -134,6 +135,7 @@ export default class TelemetryUtil {
 
     if (metricType) {
       await TelemetryUtil.updateExistingMetricType({
+        metricName,
         metricType,
         metricTypeInMap,
         servicesInMap,
@@ -178,6 +180,7 @@ export default class TelemetryUtil {
       );
 
       await TelemetryUtil.updateExistingMetricType({
+        metricName,
         metricType: winner,
         metricTypeInMap,
         servicesInMap,
@@ -186,11 +189,12 @@ export default class TelemetryUtil {
   }
 
   private static async updateExistingMetricType(data: {
+    metricName: string;
     metricType: MetricType;
     metricTypeInMap: MetricType;
     servicesInMap: Array<ObjectID>;
   }): Promise<void> {
-    const { metricType, metricTypeInMap, servicesInMap } = data;
+    const { metricName, metricType, metricTypeInMap, servicesInMap } = data;
 
     if (!metricType.services) {
       metricType.services = [];
@@ -226,9 +230,21 @@ export default class TelemetryUtil {
       scalarUpdate.description = metricTypeInMap.description;
     }
 
+    /*
+     * One exception: a "%" a container stats receiver set for one of its
+     * percents stays when another producer of the same name declares "1"
+     * (OneUptime's Kubernetes agent sends container.cpu.utilization as
+     * cores). Otherwise a project with both agents would flip the unit, and
+     * write it, on every other batch: ContainerStatsPercentUnit.
+     */
     if (
       metricTypeInMap.unit &&
-      (metricType.unit ?? "") !== metricTypeInMap.unit
+      (metricType.unit ?? "") !== metricTypeInMap.unit &&
+      !ContainerStatsPercentUnit.keepsStoredPercentUnit({
+        metricName: metricName,
+        storedUnit: metricType.unit,
+        incomingUnit: metricTypeInMap.unit,
+      })
     ) {
       scalarsChanged = true;
       scalarUpdate.unit = metricTypeInMap.unit;

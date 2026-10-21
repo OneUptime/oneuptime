@@ -1,18 +1,55 @@
 {
+  /*
+   * The generator's type check (`npm run compile`, run by the Terraform
+   * Provider Generation workflow) and jest's (ts-jest compiles with this
+   * file).
+   *
+   * The generator imports Common's sources: Core/ResourceGenerator.ts and
+   * GenerateProvider.ts through the "Common/*" alias, and GenerateProvider.ts
+   * imports ../OpenAPI/GenerateSpec.ts, which reaches Common's whole server
+   * (every model). A program has one set of compiler options for every file
+   * in it, so those files are checked with the options written here. Common's
+   * models are written for Common's options - experimentalDecorators,
+   * strictNullChecks - and this file used to have its own (strict: false, no
+   * decorators): about 10,700 errors in Common files that pass `npx tsc` in
+   * packages/Common.
+   *
+   * So it extends Common's tsconfig. Common's files are checked exactly as
+   * packages/Common checks them (strictness, target, lib, decorators, jsx,
+   * and the "Common/*" alias, which Common's file resolves to
+   * packages/Common), and the generator's own files - Core/, Tests/ and
+   * GenerateProvider.ts - are held to the same strict rules, as they already
+   * are wherever else they are compiled: Common's test type-check imports
+   * Core/ (packages/Common/Tests), and `npm run generate-terraform-provider`
+   * runs them through ts-node with the repository root's strict tsconfig.
+   *
+   * Only what has to differ is set here:
+   *   - module: jest and ts-node run these files as CommonJS. Common's own
+   *     "es2022" is for its build; it checks the same imports.
+   *   - noEmit: this is a check. Nothing is built from it.
+   *   - typeRoots and types: the generator's own @types - jest 30 for its
+   *     jest 30 tests - instead of Common's. Its @types/node is the version
+   *     Common's is, so Node's APIs read the same in both programs.
+   *   - include: the generator's files, and Common's global declarations
+   *     (ambient modules such as "*.png"), which Common's own compile sees
+   *     through its default include; a Common file that relies on one would
+   *     otherwise fail here only.
+   *
+   * Tests/TypeCheckConfig.test.ts pins all of this.
+   */
+  "extends": "../../packages/Common/tsconfig.json",
   "compilerOptions": {
-    "target": "es2021",
     "module": "commonjs",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
     "noEmit": true,
-    "strict": false,
-    "types": ["jest", "node"],
-    "baseUrl": ".",
-    "paths": {
-      "Common/*": ["../../packages/Common/*"]
-    }
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "jest"]
   },
-  "include": ["Core/**/*.ts", "Tests/**/*.ts", "GenerateProvider.ts"]
+  "include": [
+    "Core/**/*.ts",
+    "Tests/**/*.ts",
+    "GenerateProvider.ts",
+    "../../packages/Common/Typings/**/*.d.ts",
+    "../../packages/Common/UI/index.d.ts"
+  ],
+  "exclude": ["node_modules"]
 }

@@ -4,6 +4,7 @@ import InventoryLinkedResource from "../../../Components/Inventory/InventoryLink
 import {
   LinkedResource,
   buildLinkedResourceQuery,
+  getCreateFromRecordForLinkedResource,
 } from "../../../Components/Inventory/LinkedResource";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "Common/Types/ObjectID";
@@ -29,6 +30,7 @@ const InventoryItemScheduledMaintenance: FunctionComponent<
                   ...buildLinkedResourceQuery(resource),
                 } as Query<ScheduledMaintenance>
               }
+              createFrom={getCreateFromRecordForLinkedResource(resource)}
             />
           );
         }}

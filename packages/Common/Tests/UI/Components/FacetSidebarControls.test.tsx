@@ -59,13 +59,14 @@ describe("FacetSearchInput", () => {
     );
   }
 
-  test("is named after the facet and keeps the lower-cased placeholder", () => {
+  test("is named after the facet and keeps the placeholder in sentence case", () => {
     render(<ControlledInput />);
 
     const box: HTMLElement = screen.getByRole("textbox", {
       name: "Search Docker Host",
     });
-    expect(box).toHaveAttribute("placeholder", "Search docker host...");
+    // Mid-sentence casing: "host" lower-cased, the proper noun "Docker" kept.
+    expect(box).toHaveAttribute("placeholder", "Search Docker host...");
   });
 
   test("shows no clear button while empty", () => {

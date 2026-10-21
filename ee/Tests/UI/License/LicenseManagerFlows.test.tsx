@@ -648,10 +648,10 @@ describe("the instances on the license", () => {
  * Activation refuses only a license this installation cannot use at all
  * ("invalid"). A license with no expiry recorded beside it is not that: it is
  * stored on purpose, because a token is better than nothing and the daily sync
- * may complete it. But past the trial, such an install has single sign-on,
- * SCIM and audit logging OFF - and this dialog used to answer the master admin
- * who had just pasted their key to fix that lapse with a green "License
- * validated successfully."
+ * may complete it. But past the trial, such an install has SCIM provisioning
+ * and audit logging OFF - and this dialog used to answer the master admin who
+ * had just pasted their key to fix that lapse with a green "License validated
+ * successfully."
  *
  * The response carries the classification (status, graceReason) and its
  * message, so the dialog can say what actually happened.

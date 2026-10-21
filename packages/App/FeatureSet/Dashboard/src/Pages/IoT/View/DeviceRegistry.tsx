@@ -12,9 +12,9 @@ import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import PermissionUtil from "Common/UI/Utils/Permission";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import User from "Common/UI/Utils/User";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * Device Registry for a fleet — registered devices and their
@@ -44,14 +44,11 @@ const IoTFleetDeviceRegistry: FunctionComponent<
    */
   const canReadSecret: boolean =
     User.isMasterAdmin() ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ReadIoTDeviceCredential,
-      ],
-    );
+    PermissionGate.holdsAnyOf([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadIoTDeviceCredential,
+    ]);
 
   const secretColumn: Column<IoTDeviceCredential> = {
     field: {
@@ -95,10 +92,10 @@ const IoTFleetDeviceRegistry: FunctionComponent<
         cardProps={{
           title: "Device Registry",
           description:
-            "Registered devices get their own MQTT credential (row ID as username, secret as password), individual revocation, and offline alerts when they go silent. The Device ID must match the device.id the device reports.",
+            "Registered devices get their own MQTT credentials and offline alerts. The Device ID must match the device.id the device reports.",
         }}
         noItemsMessage={
-          "No registered devices. Devices can still report with the project-wide ingestion key — register them here for per-device credentials and silent-death offline detection."
+          "No registered devices. Devices can still report with the project's ingestion key; register them for their own credentials and offline alerts."
         }
         formFields={[
           {
@@ -127,10 +124,16 @@ const IoTFleetDeviceRegistry: FunctionComponent<
             },
             title: "Enabled",
             description:
-              "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
+              "When off, the device cannot connect with these credentials and raises no offline alerts.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
+            /*
+             * A device is registered to connect, so it starts on (the
+             * column's default): the switch that revokes it is on its edit
+             * form only.
+             */
+            doNotShowWhenCreating: true,
           },
         ]}
         filters={[]}

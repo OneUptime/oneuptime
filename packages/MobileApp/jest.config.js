@@ -75,11 +75,12 @@ module.exports = {
          * `AndroidSwitch` on Android; both carry accessibilityRole "switch",
          * but @testing-library/react-native's role matcher only recognises the
          * iOS one, so getByRole("switch") finds nothing under the Android
-         * preset. The Settings toggles themselves work on Android - only this
-         * suite's query does not. Everything else, including all SSO tests,
+         * preset. The Settings toggles themselves work on Android - only these
+         * suites' queries do not. Everything else, including all SSO tests,
          * runs on both platforms.
          */
         "<rootDir>/src/screens/SettingsScreenCriticalAlerts.test.tsx",
+        "<rootDir>/src/screens/SettingsScreenCriticalAlertsIos.integration.test.tsx",
       ],
     },
   ],

@@ -206,6 +206,13 @@ describe("KubectlExecutor answers the cross-caller write-scope table", () => {
     jest
       .spyOn(KubectlExecutor, "getOwnClusterIdentifier")
       .mockReturnValue(PARITY_CLUSTER_IDENTIFIER);
+    // A pod with its ServiceAccount mounted, for the in-cluster rows.
+    jest
+      .spyOn(KubernetesPosture, "getInClusterApiServer")
+      .mockReturnValue({ host: "10.0.0.1", port: "443" });
+    jest
+      .spyOn(KubectlExecutor, "getInClusterAccessRefusal")
+      .mockReturnValue(null);
   });
 
   afterEach(() => {

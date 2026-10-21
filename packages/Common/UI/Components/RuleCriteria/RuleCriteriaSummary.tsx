@@ -1,43 +1,45 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "../../../Types/Filter/FilterConditionUtil";
 import RuleCriteria, {
   RuleCriteriaFilter,
 } from "../../../Types/Rules/RuleCriteria";
+import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  resolveRuleCriteriaSubject,
+  RuleCriteriaSubject,
+} from "../../../Types/Rules/RuleCriteriaSubject";
 import { isValidRuleCriteria } from "../../../Utils/Rules/RuleCriteriaMatcher";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement } from "react";
 import Field from "../Forms/Types/Field";
 import {
   convertLegacyValuesToRuleCriteria,
-  getRuleCriteriaFieldName,
-  RULE_CRITERIA_OPERATOR_LABELS,
-} from "./RuleCriteriaBuilder";
+  findRuleCriteriaField,
+  getRuleCriteriaFieldTitle,
+  getRuleCriteriaOperatorLabel,
+} from "./RuleCriteriaFields";
+import { getRuleCriteriaSubjectCopy } from "./RuleCriteriaSubjectCopy";
 
 export interface RuleCriteriaSummaryData<TEntity> {
   fields: Array<Field<TEntity>>;
   item: TEntity;
+  /*
+   * The records the rule is for, when its table says (a table of rules
+   * about several kinds of record). Otherwise the rule's model says.
+   */
+  subject?: RuleCriteriaSubject | null | undefined;
 }
 
-function titleFromFieldName(fieldName: string): string {
-  return fieldName
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/^./, (character: string): string => {
-      return character.toUpperCase();
-    });
-}
-
-function getFieldTitle<TEntity>(
-  fields: Array<Field<TEntity>>,
-  fieldName: string,
-): string {
-  const field: Field<TEntity> | undefined = fields.find(
-    (candidate: Field<TEntity>): boolean => {
-      return getRuleCriteriaFieldName(candidate) === fieldName;
-    },
-  );
-
-  return field?.title || titleFromFieldName(fieldName);
-}
+/*
+ * What a rule with no conditions does, which depends on the kind of rule: a
+ * rule that needs a condition matches nothing; any other applies to all of
+ * its records, and says so as its form's choice does - "All incidents"
+ * (RuleCriteriaSubjectCopy), or "Everything" for a rule nothing names.
+ */
+export const RULE_CRITERIA_SUMMARY_MATCHES_NOTHING: string =
+  "Matches nothing (no conditions)";
+export const RULE_CRITERIA_SUMMARY_INVALID: string = "Invalid match criteria";
 
 function formatValue(filter: RuleCriteriaFilter): string {
   if (Array.isArray(filter.value)) {
@@ -72,6 +74,50 @@ function getCriteria<TEntity>(
   });
 }
 
+function getTableName<TEntity>(item: TEntity): string | null {
+  const tableName: unknown = (item as unknown as { tableName?: unknown })
+    .tableName;
+
+  return typeof tableName === "string" ? tableName : null;
+}
+
+function getEmptySummary<TEntity>(
+  data: RuleCriteriaSummaryData<TEntity>,
+): string {
+  const tableName: string | null = getTableName(data.item);
+
+  if (isRuleCriteriaConditionRequired(tableName)) {
+    return RULE_CRITERIA_SUMMARY_MATCHES_NOTHING;
+  }
+
+  return getRuleCriteriaSubjectCopy(
+    resolveRuleCriteriaSubject({
+      modelName: tableName,
+      subject: data.subject,
+    }),
+  ).all;
+}
+
+/*
+ * Whether the summary is a rule's "no conditions" sentence - a phrase of
+ * the locale files, looked up where it is shown - rather than its
+ * conditions, which are the page's own names and values.
+ */
+function isEmptySummary<TEntity>(
+  data: RuleCriteriaSummaryData<TEntity>,
+): boolean {
+  const configuredCriteria: unknown = (
+    data.item as unknown as Record<string, unknown>
+  )["criteria"];
+  const criteria: RuleCriteria | null = getCriteria(data);
+
+  if (!criteria) {
+    return configuredCriteria === undefined || configuredCriteria === null;
+  }
+
+  return criteria.filters.length === 0;
+}
+
 export function getRuleCriteriaSummaryText<TEntity>(
   data: RuleCriteriaSummaryData<TEntity>,
 ): string {
@@ -84,23 +130,39 @@ export function getRuleCriteriaSummaryText<TEntity>(
 
   if (!criteria) {
     return configuredCriteria !== undefined && configuredCriteria !== null
-      ? "Invalid match criteria"
-      : "Matches all resources";
+      ? RULE_CRITERIA_SUMMARY_INVALID
+      : getEmptySummary(data);
   }
 
   if (criteria.filters.length === 0) {
-    return "Matches all resources";
+    return getEmptySummary(data);
+  }
+
+  const filters: Array<string> = criteria.filters.map(
+    (filter: RuleCriteriaFilter): string => {
+      const field: Field<TEntity> | undefined = findRuleCriteriaField(
+        data.fields,
+        filter.field,
+      );
+
+      return `${getRuleCriteriaFieldTitle(field, filter.field)} ${getRuleCriteriaOperatorLabel(
+        field,
+        filter.operator,
+      ).toLocaleLowerCase()} ${formatValue(filter)}`;
+    },
+  );
+
+  /*
+   * "Match all" / "Match any" only once there are two conditions to
+   * combine (isFilterConditionNeeded), as the conditions builder asks it:
+   * one condition is simply the condition.
+   */
+  if (!isFilterConditionNeeded(criteria.filters)) {
+    return filters.join("; ");
   }
 
   const connector: string =
     criteria.filterCondition === FilterCondition.All ? "all" : "any";
-  const filters: Array<string> = criteria.filters.map(
-    (filter: RuleCriteriaFilter): string => {
-      return `${getFieldTitle(data.fields, filter.field)} ${RULE_CRITERIA_OPERATOR_LABELS[
-        filter.operator
-      ].toLocaleLowerCase()} ${formatValue(filter)}`;
-    },
-  );
 
   return `Match ${connector}: ${filters.join("; ")}`;
 }
@@ -110,11 +172,21 @@ const RuleCriteriaSummary: <TEntity extends BaseModel>(
 ) => ReactElement = <TEntity extends BaseModel>(
   props: RuleCriteriaSummaryData<TEntity>,
 ): ReactElement => {
-  const { fields, item } = props;
-  const summary: string = getRuleCriteriaSummaryText({ fields, item });
+  const { fields, item, subject } = props;
+  const { translateString } = useTranslateValue();
+  const data: RuleCriteriaSummaryData<TEntity> = { fields, item, subject };
+  const english: string = getRuleCriteriaSummaryText(data);
+  // "All incidents" is the form's own answer, so it reads as the form does.
+  const summary: string = isEmptySummary(data)
+    ? translateString(english) ?? english
+    : english;
 
   return (
-    <span className="text-sm text-gray-700" title={summary}>
+    <span
+      className="text-sm text-gray-700"
+      title={summary}
+      data-testid="rule-criteria-summary"
+    >
       {summary}
     </span>
   );

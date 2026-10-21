@@ -3,11 +3,12 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -20,6 +21,8 @@ import ProjectService from "./ProjectService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthorization";
+import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -34,28 +37,84 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
 import Project from "../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Yellow500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
-import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
 
 /*
- * Which of the two opt-in project switches apply to an incident's state.
- * Only the switches the incident's state has reached are true: an incident
- * that is merely acknowledged never resolves its alerts, whatever the
- * resolve switch says.
+ * The project's two linked alert switches: acknowledge linked alerts when the
+ * incident is acknowledged, resolve them when it is resolved.
+ */
+export interface LinkedAlertSwitches {
+  acknowledge: boolean;
+  resolve: boolean;
+}
+
+/*
+ * The switches as the sync reads them off a project row, or null when there
+ * is nothing to do: both switches off, or no project to read them from (one
+ * deleted while an incident was changing state moves nothing).
+ *
+ * A switch is on unless the project says false. Both are on for new projects
+ * (the columns default to true), so a value that was never written - a row
+ * read without the column - is the default, on, not off. Projects that
+ * existed before the default changed hold false until someone turns a switch
+ * on, and an explicit false is always kept.
+ */
+export function readLinkedAlertSwitches(
+  project:
+    | Pick<
+        Project,
+        | "acknowledgeLinkedAlertsWhenIncidentAcknowledged"
+        | "resolveLinkedAlertsWhenIncidentResolved"
+      >
+    | null
+    | undefined,
+): LinkedAlertSwitches | null {
+  if (!project) {
+    return null;
+  }
+
+  const switches: LinkedAlertSwitches = {
+    acknowledge:
+      project.acknowledgeLinkedAlertsWhenIncidentAcknowledged !== false,
+    resolve: project.resolveLinkedAlertsWhenIncidentResolved !== false,
+  };
+
+  if (!switches.acknowledge && !switches.resolve) {
+    return null;
+  }
+
+  return switches;
+}
+
+/*
+ * Which of the two project switches apply to an incident's state. Only the
+ * switches the incident's state has reached are true: an incident that is
+ * merely acknowledged never resolves its alerts, whatever the resolve switch
+ * says.
  */
 export interface LinkedAlertStateTargets {
   acknowledge: boolean;
@@ -72,8 +131,10 @@ export interface LinkedAlertStateTargets {
  * States are compared by `order`, never by the isAcknowledgedState /
  * isResolvedState flags: projects add custom states (say "Monitoring") between
  * Acknowledged and Resolved, and an incident sitting in one of those has
- * still been acknowledged. An incident project without an Acknowledged (or
- * Resolved) state simply never triggers that half.
+ * still been acknowledged - the one rule (Common/Utils/AcknowledgedState,
+ * Common/Utils/ResolvedState), whose acknowledged and resolved states (the
+ * first from the top flagged so) give the two orders. An incident project
+ * without an Acknowledged (or Resolved) state simply never triggers that half.
  */
 export function getLinkedAlertStateTargets(data: {
   incidentStateOrder: number;
@@ -145,6 +206,54 @@ export interface LinkAlertsToIncidentResult {
   failed: Array<{ alertId: ObjectID; message: string }>;
 }
 
+export interface AcknowledgeDeclaredAlertsResult {
+  acknowledgedAlertIds: Array<ObjectID>;
+  // Already acknowledged, resolved or in a later state: left as they were.
+  alreadyAcknowledgedAlertIds: Array<ObjectID>;
+  /*
+   * Linked alerts the project's linked-alert sync moves on its own (the
+   * incident was declared straight into a state its switches act on).
+   */
+  leftToLinkedAlertSyncAlertIds: Array<ObjectID>;
+  failed: Array<{ alertId: ObjectID; message: string }>;
+}
+
+/*
+ * What validateAcknowledgeAlertsForNewIncident settled for a declaration
+ * that asked to acknowledge its alerts: the project's Acknowledged state,
+ * and the alerts not acknowledged yet - the ones the caller was checked for,
+ * and the only ones acknowledgeAlertsDeclaredWithIncident may write.
+ */
+export interface AlertsToAcknowledgeOnDeclare {
+  acknowledgedAlertStateId: ObjectID;
+  alertIdsToAcknowledge: Array<ObjectID>;
+}
+
+/*
+ * Alerts acknowledged at once when an incident is declared from many. Each
+ * acknowledgement is a full state change (and waits on its Slack / Microsoft
+ * Teams post), so one at a time could leave the last of 50 alerts escalating
+ * for minutes. Distinct alerts never share a timeline lock.
+ */
+const DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY: number = 5;
+
+/*
+ * The "why" on an alert acknowledged because an incident was declared from
+ * it. It goes to the alert's feed, the alert's Slack / Microsoft Teams
+ * channels and its owners' notifications - places that must not name a
+ * private incident - so a private incident is not named at all.
+ */
+export function getDeclaredAlertAcknowledgementCause(data: {
+  incidentNumber: string;
+  isIncidentPrivate: boolean;
+}): string {
+  if (data.isIncidentPrivate) {
+    return "Acknowledged because a private incident was declared from this alert.";
+  }
+
+  return `Acknowledged because ${withNumber("Incident", data.incidentNumber)} was declared from this alert.`;
+}
+
 /*
  * miscDataProps key on an IncidentAlert create: the link is one of the links
  * written while an incident is being declared from alerts. The incident then
@@ -172,24 +281,38 @@ export interface LinkedAlertMention {
  * for a private alert: its number and link are kept so the entry still says
  * what happened, but its title is never written where people who cannot see
  * the alert read it (the incident's feed and Slack / Microsoft Teams posts).
+ *
+ * The title is plain text - an alert's is often filled in by a monitor from
+ * an incoming email or request - placed as text (mdText), so it reads as
+ * typed and cannot become a link, an image, raw HTML or a chat mention in
+ * the feed or in the posts.
  */
+// How a feed entry names a linked alert or incident.
+interface LinkedRecordMention {
+  subject: MarkdownText;
+  titleSuffix: MarkdownText;
+}
+
 function describeLinkedRecord(data: {
   label: string;
   link: string;
   title: string | undefined;
   isPrivate: boolean;
   privateNoun: string;
-}): { subject: string; titleSuffix: string } {
-  const subject: string = `**[${data.label}](${data.link})**`;
+}): LinkedRecordMention {
+  const subject: MarkdownText = mdText`**[${data.label}](${data.link})**`;
 
   if (data.isPrivate) {
     return {
-      subject: `${subject} (private ${data.privateNoun})`,
-      titleSuffix: "",
+      subject: mdText`${subject} (private ${data.privateNoun})`,
+      titleSuffix: FeedMarkdown.empty(),
     };
   }
 
-  return { subject: subject, titleSuffix: `: ${data.title || "No title"}` };
+  return {
+    subject: subject,
+    titleSuffix: mdText`: ${data.title || "No title"}`,
+  };
 }
 
 /*
@@ -200,29 +323,23 @@ function describeLinkedRecord(data: {
 export function getDeclaredFromAlertsMarkdown(
   alerts: Array<LinkedAlertMention>,
 ): string {
-  const lines: Array<string> = alerts.map(
-    (alert: LinkedAlertMention): string => {
-      const described: { subject: string; titleSuffix: string } =
-        describeLinkedRecord({
-          label: alert.label,
-          link: alert.link,
-          title: alert.title,
-          isPrivate: alert.isPrivate,
-          privateNoun: "alert",
-        });
+  const lines: Array<MarkdownText> = alerts.map(
+    (alert: LinkedAlertMention): MarkdownText => {
+      const described: LinkedRecordMention = describeLinkedRecord({
+        label: alert.label,
+        link: alert.link,
+        title: alert.title,
+        isPrivate: alert.isPrivate,
+        privateNoun: "alert",
+      });
 
-      return `- ${described.subject}${described.titleSuffix}`;
+      return mdText`${described.subject}${described.titleSuffix}`;
     },
   );
 
   const noun: string = alerts.length === 1 ? "alert" : "alerts";
 
-  return `🔗 Declared from ${alerts.length} ${noun}:\n\n${lines.join("\n")}`;
-}
-
-interface LinkedAlertSwitches {
-  acknowledge: boolean;
-  resolve: boolean;
+  return mdText`🔗 Declared from ${alerts.length} ${noun}:\n\n${FeedMarkdown.bulletList(lines)}`.toString();
 }
 
 /*
@@ -295,12 +412,27 @@ function withNumber(label: string, number: string): string {
 const NOT_VISIBLE_ALERTS_MESSAGE: string =
   "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * On a create, the incident and the alert are checked by this service's
+   * own hook: read as the caller, so a private one they cannot open, one of
+   * another project and one that does not exist all get the same answer,
+   * and pinned to the project for every write. A generic check first would
+   * answer the last two in other words than the first. Nobody can change a
+   * link's ends (their columns take no update), but a workflow writes as
+   * root: an update naming them gets the generic check.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["incident", "alert"];
   }
 
   /*
@@ -389,6 +521,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };
   }
@@ -404,11 +538,17 @@ export class Service extends DatabaseService<Model> {
    * This hook runs before DatabaseService checks the caller's create
    * permission, so every refusal is worded so it reveals nothing about
    * records the caller cannot see.
+   *
+   * "Linked by" is the link's creator, which DatabaseService decides as it
+   * does for every record (UserAttribution): whoever made the request, and
+   * nobody for an API key or a workflow.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -448,8 +588,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.incidentId = incidentId;
-    createBy.data.alertId = alertId;
+    RelationIdUtil.stamp(data, ["incidentId", "incident"], incidentId);
+    RelationIdUtil.stamp(data, ["alertId", "alert"], alertId);
 
     if (!createBy.props.isRoot) {
       /*
@@ -458,7 +598,7 @@ export class Service extends DatabaseService<Model> {
        * without read access at all gets the same answer as one asking for
        * a record that does not exist.
        */
-      const incident: Incident | null = await this.findVisible(() => {
+      const incident: Incident | null = await CallerVisibleRead.find(() => {
         return IncidentService.findOneById({
           id: incidentId,
           select: { _id: true, projectId: true },
@@ -475,7 +615,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      const alert: Alert | null = await this.findVisible(() => {
+      const alert: Alert | null = await CallerVisibleRead.find(() => {
         return AlertService.findOneById({
           id: alertId,
           select: { _id: true, projectId: true },
@@ -491,19 +631,6 @@ export class Service extends DatabaseService<Model> {
           "The alert to link does not exist in this project, or you do not have access to it.",
         );
       }
-
-      /*
-       * "Linked by" is whoever made the request. sanitizeCreateOrUpdate
-       * stamps it for a user; an API key has no user, and must not be able
-       * to name somebody else as the one who linked the alert.
-       */
-      if (createBy.props.userId) {
-        createBy.data.createdByUserId = createBy.props.userId;
-      } else {
-        delete createBy.data.createdByUserId;
-      }
-
-      delete createBy.data.createdByUser;
     }
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -524,37 +651,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     return { createBy, carryForward: null };
-  }
-
-  /*
-   * Runs a read made with the caller's props. A refusal from the permission
-   * layer (no read access to the table, a label the caller cannot see) is
-   * reported exactly like a record that does not exist, so the answer never
-   * reveals which it was. Anything else - a lapsed session, an unpaid
-   * project, the database being unavailable - is not about the record and is
-   * passed on as it is.
-   */
-  @CaptureSpan()
-  private async findVisible<T>(
-    read: () => Promise<T | null>,
-  ): Promise<T | null> {
-    try {
-      return await read();
-    } catch (error) {
-      if (
-        error instanceof NotAuthorizedException ||
-        error instanceof ForbiddenException ||
-        error instanceof NotFoundException ||
-        error instanceof BadDataException
-      ) {
-        logger.debug(
-          `IncidentAlertService: a record to link is not readable by the caller: ${error.message}`,
-        );
-        return null;
-      }
-
-      throw error;
-    }
   }
 
   @CaptureSpan()
@@ -594,6 +690,7 @@ export class Service extends DatabaseService<Model> {
         },
         isLinked: true,
         actorUserId: actorUserId,
+        apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
         writeIncidentEntry: !isDeclaredWithIncident,
       });
     } catch (error) {
@@ -643,26 +740,16 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
 
-    const carriedQuery: Query<Model> = { ...deleteBy.query };
-
-    if (deleteBy.props.tenantId && !carriedQuery.projectId) {
-      carriedQuery.projectId = deleteBy.props.tenantId;
-    }
-
-    const linksToDelete: Array<Model> = await this.findBy({
-      query: carriedQuery,
-      select: {
+    // The links the delete removes, and the delete held to them.
+    const linksToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         incidentId: true,
         alertId: true,
         projectId: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const carried: Array<CarriedLink> = [];
 
@@ -710,6 +797,7 @@ export class Service extends DatabaseService<Model> {
           link: link,
           isLinked: false,
           actorUserId: actorUserId,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
           writeIncidentEntry: true,
         });
       } catch (error) {
@@ -746,6 +834,8 @@ export class Service extends DatabaseService<Model> {
     link: CarriedLink;
     isLinked: boolean;
     actorUserId: ObjectID | undefined;
+    // The API key that made the change, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
     // False for a link written while its incident is declared from alerts.
     writeIncidentEntry: boolean;
   }): Promise<void> {
@@ -799,25 +889,23 @@ export class Service extends DatabaseService<Model> {
       await AlertService.getAlertLinkInDashboard(link.projectId, link.alertId)
     ).toString();
 
-    const alertMention: { subject: string; titleSuffix: string } =
-      describeLinkedRecord({
-        label: alertLabel,
-        link: alertLink,
-        title: alert?.title,
-        isPrivate: alert?.isPrivate === true,
-        privateNoun: "alert",
-      });
+    const alertMention: LinkedRecordMention = describeLinkedRecord({
+      label: alertLabel,
+      link: alertLink,
+      title: alert?.title,
+      isPrivate: alert?.isPrivate === true,
+      privateNoun: "alert",
+    });
 
-    const incidentMention: { subject: string; titleSuffix: string } =
-      describeLinkedRecord({
-        label: incidentLabel,
-        link: incidentLink,
-        title: incident?.title,
-        isPrivate: incident?.isPrivate === true,
-        privateNoun: "incident",
-      });
+    const incidentMention: LinkedRecordMention = describeLinkedRecord({
+      label: incidentLabel,
+      link: incidentLink,
+      title: incident?.title,
+      isPrivate: incident?.isPrivate === true,
+      privateNoun: "incident",
+    });
 
-    const incidentSubject: string = `**[${incidentLabel}](${incidentLink})**`;
+    const incidentSubject: MarkdownText = mdText`**[${incidentLabel}](${incidentLink})**`;
 
     if (data.writeIncidentEntry) {
       await IncidentFeedService.createIncidentFeedItem({
@@ -828,9 +916,10 @@ export class Service extends DatabaseService<Model> {
           : IncidentFeedEventType.AlertUnlinked,
         displayColor: isLinked ? Yellow500 : Gray500,
         feedInfoInMarkdown: isLinked
-          ? `🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`
-          : `Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`,
+          ? mdText`🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`.toString()
+          : mdText`Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`.toString(),
         userId: actorUserId,
+        apiKeyActor: data.apiKeyActor,
         workspaceNotification: {
           sendWorkspaceNotification: true,
           notifyUserId: actorUserId,
@@ -846,8 +935,8 @@ export class Service extends DatabaseService<Model> {
         : AlertFeedEventType.UnlinkedFromIncident,
       displayColor: isLinked ? Yellow500 : Gray500,
       feedInfoInMarkdown: isLinked
-        ? `🔗 Linked to ${incidentMention.subject}${incidentMention.titleSuffix}`
-        : `Unlinked from ${incidentMention.subject}${incidentMention.titleSuffix}`,
+        ? mdText`🔗 Linked to ${incidentMention.subject}${incidentMention.titleSuffix}`.toString()
+        : mdText`Unlinked from ${incidentMention.subject}${incidentMention.titleSuffix}`.toString(),
       userId: actorUserId,
     });
   }
@@ -867,6 +956,8 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID;
     alertIds: Array<ObjectID>;
     actorUserId: ObjectID | undefined;
+    // The API key that declared the incident, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
   }): Promise<void> {
     const markdown: string | null = await this.buildDeclaredFromAlertsMarkdown({
       projectId: data.projectId,
@@ -884,6 +975,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Yellow500,
       feedInfoInMarkdown: markdown,
       userId: data.actorUserId,
+      apiKeyActor: data.apiKeyActor,
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId: data.actorUserId,
@@ -1153,7 +1245,7 @@ export class Service extends DatabaseService<Model> {
      * (a private alert, a label they are not allowed to see) cannot be
      * pulled into their incident.
      */
-    const alerts: Array<Alert> | null = await this.findVisible(() => {
+    const alerts: Array<Alert> | null = await CallerVisibleRead.find(() => {
       return AlertService.findBy({
         query: {
           _id: QueryHelper.any(alertIds),
@@ -1258,8 +1350,550 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Reads miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] on an
+   * incident create: whether to acknowledge the alerts the incident is
+   * declared from once they are linked, and which. Null when not asked to
+   * (absent, null or false). Otherwise the project's Acknowledged alert
+   * state and the alerts that are not acknowledged yet - the only ones that
+   * will be written, and so the only ones the caller must be allowed to
+   * change: an alert that is already acknowledged or resolved is left alone,
+   * so being unable to change it must not refuse the declaration.
+   *
+   * Called from IncidentService's onBeforeCreate after the alert ids were
+   * validated - before the incident number is taken - so an impossible
+   * request is refused instead of the incident being declared while its
+   * alerts keep paging: the project has no Acknowledged alert state, or the
+   * caller may not acknowledge every alert that would be acknowledged. What
+   * acknowledging one of them takes is what it takes on the alert's own page,
+   * and nothing more: creating its state timeline row, moving it into the
+   * Acknowledged state, as the caller - Create Alert State Timeline, narrowed
+   * by labels, owners and the alert's privacy through the alert, and no
+   * permission to edit the alert (see AlertStateChangeAuthorization; the
+   * acknowledgements themselves are written as root, for exactly these
+   * alerts).
+   */
+  @CaptureSpan()
+  public async validateAcknowledgeAlertsForNewIncident(data: {
+    projectId: ObjectID | undefined;
+    acknowledgeAlerts: unknown;
+    alertIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<AlertsToAcknowledgeOnDeclare | null> {
+    if (
+      data.acknowledgeAlerts === undefined ||
+      data.acknowledgeAlerts === null ||
+      data.acknowledgeAlerts === false
+    ) {
+      return null;
+    }
+
+    if (data.acknowledgeAlerts !== true) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} must be true or false.`,
+      );
+    }
+
+    if (data.alertIds.length === 0) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+      );
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to acknowledge alerts.",
+      );
+    }
+
+    const projectId: ObjectID = data.projectId;
+
+    /*
+     * The project's acknowledged alert state - the first from the top
+     * flagged acknowledged (Common/Utils/AcknowledgedState) - and its place.
+     */
+    const acknowledgedState: AlertState | null =
+      await AlertStateService.findAcknowledgedAlertState(projectId);
+
+    if (
+      !acknowledgedState ||
+      !acknowledgedState._id ||
+      acknowledgedState.order === undefined ||
+      acknowledgedState.order === null
+    ) {
+      throw new BadDataException(
+        "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.",
+      );
+    }
+
+    const acknowledgedOrder: number = acknowledgedState.order;
+
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(data.alertIds),
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateOrderByAlertId: Map<string, number | undefined> = new Map();
+
+    for (const alert of alerts) {
+      if (alert._id) {
+        stateOrderByAlertId.set(
+          normalizeId(alert._id),
+          alert.currentAlertState?.order ?? undefined,
+        );
+      }
+    }
+
+    // Same rule as acknowledgeAlertsDeclaredWithIncident: by order.
+    const alertIdsToAcknowledge: Array<ObjectID> = data.alertIds.filter(
+      (alertId: ObjectID): boolean => {
+        const key: string = normalizeId(alertId);
+
+        if (!stateOrderByAlertId.has(key)) {
+          return false;
+        }
+
+        const order: number | undefined = stateOrderByAlertId.get(key);
+
+        return order === undefined || order < acknowledgedOrder;
+      },
+    );
+
+    if (
+      alertIdsToAcknowledge.length > 0 &&
+      !data.props.isRoot &&
+      !data.props.isMasterAdmin
+    ) {
+      try {
+        await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+          projectId: projectId,
+          alertIds: alertIdsToAcknowledge,
+          alertStateId: new ObjectID(acknowledgedState._id.toString()),
+          props: data.props,
+        });
+      } catch (error) {
+        // A lapsed session or an unpaid project keeps its own answer.
+        if (
+          error instanceof NotAuthorizedException ||
+          error instanceof BadDataException
+        ) {
+          throw new BadDataException(
+            "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.",
+          );
+        }
+
+        throw error;
+      }
+    }
+
+    return {
+      acknowledgedAlertStateId: new ObjectID(acknowledgedState._id.toString()),
+      alertIdsToAcknowledge: alertIdsToAcknowledge,
+    };
+  }
+
+  /*
+   * Acknowledges the alerts an incident was just declared from, when the
+   * declaration asked for it (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY). An
+   * alert's own on-call escalation and its per-user notifications stop once
+   * the alert is acknowledged (the workers check at their next run), so this
+   * is what makes declaring an incident stop the alerts paging.
+   *
+   * Written as root - the caller's right to change the state of every one of
+   * these alerts was checked before the incident was created - and credited
+   * to the declaring user, as if they had pressed Acknowledge on each alert
+   * themselves: the alert's owners are told, and the alert's feed says who
+   * and why. A private incident is not named in that "why", because the
+   * alert's feed entry is posted to the alert's Slack / Microsoft Teams
+   * channels and its owners' notifications.
+   *
+   * Left as they are:
+   * - alerts already acknowledged, resolved or in any later state - nothing
+   *   is ever moved backwards;
+   * - linked alerts the project's linked-alert sync is about to move anyway
+   *   (the incident was declared straight into an acknowledged or resolved
+   *   state with the project switches on): one writer per alert, so the two
+   *   never race on its timeline.
+   *
+   * IncidentService runs this after the links are written and does not wait
+   * for it. It never throws: one alert failing never stops the others.
+   */
+  @CaptureSpan()
+  public async acknowledgeAlertsDeclaredWithIncident(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertIds: Array<ObjectID>;
+    // The alerts whose link to the incident exists (the sync runs on those).
+    linkedAlertIds: Array<ObjectID>;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<AcknowledgeDeclaredAlertsResult> {
+    const result: AcknowledgeDeclaredAlertsResult = {
+      acknowledgedAlertIds: [],
+      alreadyAcknowledgedAlertIds: [],
+      leftToLinkedAlertSyncAlertIds: [],
+      failed: [],
+    };
+
+    const alertIds: Array<ObjectID> = uniqueIds(data.alertIds);
+
+    if (alertIds.length === 0) {
+      return result;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      incidentId: data.incidentId.toString(),
+    } as LogAttributes;
+
+    try {
+      // The project's acknowledged alert state (AcknowledgedState).
+      const acknowledgedState: AlertState | null =
+        await AlertStateService.findAcknowledgedAlertState(data.projectId);
+
+      if (
+        !acknowledgedState ||
+        !acknowledgedState._id ||
+        acknowledgedState.order === undefined ||
+        acknowledgedState.order === null
+      ) {
+        const message: string =
+          "This project has no Acknowledged alert state, so the alerts could not be acknowledged.";
+
+        logger.error(`IncidentAlertService: ${message}`, logAttributes);
+
+        for (const alertId of alertIds) {
+          result.failed.push({ alertId: alertId, message: message });
+        }
+
+        return result;
+      }
+
+      const acknowledgedStateId: ObjectID = new ObjectID(
+        acknowledgedState._id.toString(),
+      );
+      const acknowledgedOrder: number = acknowledgedState.order;
+
+      const incident: Incident | null = await IncidentService.findOneById({
+        id: data.incidentId,
+        select: {
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+          isPrivate: true,
+          currentIncidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rootCause: string = getDeclaredAlertAcknowledgementCause({
+        incidentNumber: formatNumber(
+          incident?.incidentNumberWithPrefix,
+          incident?.incidentNumber,
+        ),
+        isIncidentPrivate: incident?.isPrivate === true,
+      });
+
+      const alerts: Array<Alert> = await AlertService.findBy({
+        query: {
+          _id: QueryHelper.any(alertIds),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          currentAlertStateId: true,
+          currentAlertState: {
+            order: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const alertById: Map<string, Alert> = new Map();
+
+      for (const alert of alerts) {
+        if (alert._id) {
+          alertById.set(normalizeId(alert._id), alert);
+        }
+      }
+
+      const ownedBySync: Set<string> =
+        await this.getLinkedAlertsTheSyncWillMove({
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          incidentStateId: incident?.currentIncidentStateId || undefined,
+          linkedAlerts: uniqueIds(data.linkedAlertIds)
+            .map((alertId: ObjectID): Alert | undefined => {
+              return alertById.get(normalizeId(alertId));
+            })
+            .filter((alert: Alert | undefined): boolean => {
+              return Boolean(alert);
+            }) as Array<Alert>,
+        });
+
+      const alertIdsToWrite: Array<ObjectID> = [];
+
+      for (const alertId of alertIds) {
+        const key: string = normalizeId(alertId);
+        const alert: Alert | undefined = alertById.get(key);
+
+        if (!alert) {
+          result.failed.push({
+            alertId: alertId,
+            message: "The alert could not be found in this project.",
+          });
+          continue;
+        }
+
+        const stateOrder: number | undefined =
+          alert.currentAlertState?.order ?? undefined;
+
+        if (stateOrder !== undefined && stateOrder >= acknowledgedOrder) {
+          result.alreadyAcknowledgedAlertIds.push(alertId);
+          continue;
+        }
+
+        if (ownedBySync.has(key)) {
+          result.leftToLinkedAlertSyncAlertIds.push(alertId);
+          continue;
+        }
+
+        alertIdsToWrite.push(alertId);
+      }
+
+      for (
+        let index: number = 0;
+        index < alertIdsToWrite.length;
+        index += DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY
+      ) {
+        const batch: Array<ObjectID> = alertIdsToWrite.slice(
+          index,
+          index + DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY,
+        );
+
+        const outcomes: Array<string | null> = await Promise.all(
+          batch.map((alertId: ObjectID): Promise<string | null> => {
+            return this.acknowledgeDeclaredAlert({
+              projectId: data.projectId,
+              alertId: alertId,
+              acknowledgedStateId: acknowledgedStateId,
+              acknowledgedOrder: acknowledgedOrder,
+              rootCause: rootCause,
+              acknowledgedByUserId: data.acknowledgedByUserId,
+            });
+          }),
+        );
+
+        batch.forEach((alertId: ObjectID, batchIndex: number) => {
+          const failure: string | null = outcomes[batchIndex] ?? null;
+
+          if (failure === null) {
+            result.acknowledgedAlertIds.push(alertId);
+            return;
+          }
+
+          result.failed.push({ alertId: alertId, message: failure });
+
+          logger.error(
+            `IncidentAlertService could not acknowledge alert ${alertId.toString()} for the incident it was declared with: ${failure}`,
+            {
+              ...logAttributes,
+              alertId: alertId.toString(),
+            } as LogAttributes,
+          );
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `IncidentAlertService could not acknowledge the alerts an incident was declared from: ${error}`,
+        logAttributes,
+      );
+
+      const settled: Set<string> = new Set(
+        [
+          ...result.acknowledgedAlertIds,
+          ...result.alreadyAcknowledgedAlertIds,
+          ...result.leftToLinkedAlertSyncAlertIds,
+          ...result.failed.map((failure: { alertId: ObjectID }) => {
+            return failure.alertId;
+          }),
+        ].map((alertId: ObjectID): string => {
+          return normalizeId(alertId);
+        }),
+      );
+
+      for (const alertId of alertIds) {
+        if (!settled.has(normalizeId(alertId))) {
+          result.failed.push({
+            alertId: alertId,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /*
+   * The linked alerts the project's linked-alert sync (and the incident
+   * state cascade) will move by themselves, because the incident is already
+   * in a state their switches act on: the same plan, the same per-alert
+   * choice. Empty when both switches are off or the incident is before
+   * Acknowledged, which is the usual declaration.
+   */
+  @CaptureSpan()
+  private async getLinkedAlertsTheSyncWillMove(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentStateId: ObjectID | undefined;
+    linkedAlerts: Array<Alert>;
+  }): Promise<Set<string>> {
+    const willMove: Set<string> = new Set();
+
+    if (!data.incidentStateId || data.linkedAlerts.length === 0) {
+      return willMove;
+    }
+
+    const switches: LinkedAlertSwitches | null =
+      await this.getLinkedAlertSwitches(data.projectId);
+
+    if (!switches) {
+      return willMove;
+    }
+
+    const plan: LinkedAlertStatePlan | null =
+      await this.buildLinkedAlertStatePlan({
+        projectId: data.projectId,
+        incidentStateId: data.incidentStateId,
+        switches: switches,
+      });
+
+    if (!plan) {
+      return willMove;
+    }
+
+    const blockedFromResolve: Set<string> = plan.resolvedAlertState
+      ? await this.getAlertsHeldOpenByAnotherIncident({
+          plan: plan,
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          alerts: data.linkedAlerts,
+        })
+      : new Set();
+
+    for (const alert of data.linkedAlerts) {
+      const alertId: string = alert._id ? normalizeId(alert._id) : "";
+
+      const alertStateOrder: number | undefined = alert.currentAlertStateId
+        ? plan.alertStateOrderById.get(normalizeId(alert.currentAlertStateId))
+        : undefined;
+
+      if (!alertId || alertStateOrder === undefined) {
+        continue;
+      }
+
+      const target: AlertState | null = chooseLinkedAlertTargetState({
+        alertStateOrder: alertStateOrder,
+        acknowledgedAlertState: plan.acknowledgedAlertState,
+        resolvedAlertState: plan.resolvedAlertState,
+        isBlockedFromResolve: blockedFromResolve.has(alertId),
+      });
+
+      if (target) {
+        willMove.add(alertId);
+      }
+    }
+
+    return willMove;
+  }
+
+  /*
+   * Acknowledges one declared alert. Null when the alert ended up
+   * acknowledged (or past it), otherwise why not. Never throws.
+   *
+   * The outcome is read back from the alert rather than taken from the
+   * write: the write may be refused because somebody acknowledged or
+   * resolved the alert in the meantime (the outcome asked for), and a write
+   * that "succeeded" only counts if the alert's current state moved.
+   */
+  @CaptureSpan()
+  private async acknowledgeDeclaredAlert(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    acknowledgedStateId: ObjectID;
+    acknowledgedOrder: number;
+    rootCause: string;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<string | null> {
+    let failure: string = "The alert's state did not change to Acknowledged.";
+
+    try {
+      await AlertService.changeAlertState({
+        projectId: data.projectId,
+        alertId: data.alertId,
+        alertStateId: data.acknowledgedStateId,
+        notifyOwners: true,
+        rootCause: data.rootCause,
+        stateChangeLog: undefined,
+        createdByUserId: data.acknowledgedByUserId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+
+    try {
+      const alert: Alert | null = await AlertService.findOneBy({
+        query: {
+          _id: data.alertId,
+          projectId: data.projectId,
+        },
+        select: {
+          currentAlertState: {
+            order: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const order: number | undefined =
+        alert?.currentAlertState?.order ?? undefined;
+
+      if (order !== undefined && order >= data.acknowledgedOrder) {
+        return null;
+      }
+    } catch {
+      // The alert cannot be read back, so it cannot be counted as done.
+    }
+
+    return failure;
+  }
+
+  /*
    * An incident changed state: bring its linked alerts along, when the
-   * project has opted in. Called fire-and-forget from
+   * project's switches say so (both are on for new projects). Called
+   * fire-and-forget from
    * IncidentStateTimelineService.onCreateSuccess for the incident's CURRENT
    * state only. Never throws; every failure is logged, and one alert failing
    * does not stop the others.
@@ -1355,8 +1989,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * The link-time half: an alert was just linked to an incident that may
    * already be acknowledged or resolved. Same rules as the cascade, applied to
-   * the one alert. A newly declared incident is in its created state, so
-   * this is a no-op for "declare incident from alerts". Never throws.
+   * the one alert. An incident declared from alerts usually starts in its
+   * created state, which calls for nothing; one declared straight into an
+   * acknowledged or resolved state brings its alerts along here (and
+   * acknowledgeAlertsDeclaredWithIncident leaves those alerts to this).
+   * Never throws.
    */
   @CaptureSpan()
   public async syncAlertWithLinkedIncidentState(data: {
@@ -1421,7 +2058,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // Null when both project switches are off (the default).
+  // Null when both project switches are off, or the project cannot be read.
   @CaptureSpan()
   private async getLinkedAlertSwitches(
     projectId: ObjectID,
@@ -1437,17 +2074,7 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const switches: LinkedAlertSwitches = {
-      acknowledge:
-        project?.acknowledgeLinkedAlertsWhenIncidentAcknowledged === true,
-      resolve: project?.resolveLinkedAlertsWhenIncidentResolved === true,
-    };
-
-    if (!switches.acknowledge && !switches.resolve) {
-      return null;
-    }
-
-    return switches;
+    return readLinkedAlertSwitches(project);
   }
 
   // Null when the incident's state calls for nothing.
@@ -1489,13 +2116,20 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
-    const acknowledgedIncidentState: IncidentState | undefined =
-      incidentStates.find((state: IncidentState) => {
-        return state.isAcknowledgedState;
+    /*
+     * The project's acknowledged state: the first from the top flagged
+     * acknowledged (Common/Utils/AcknowledgedState).
+     */
+    const acknowledgedIncidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
-    const resolvedIncidentState: IncidentState | undefined =
-      incidentStates.find((state: IncidentState) => {
-        return state.isResolvedState;
+    // The project's resolved state: the first from the top flagged resolved.
+    const resolvedIncidentState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     const targets: LinkedAlertStateTargets = getLinkedAlertStateTargets({
@@ -1530,9 +2164,12 @@ export class Service extends DatabaseService<Model> {
     let resolvedAlertState: AlertState | undefined = undefined;
 
     if (targets.acknowledge) {
-      acknowledgedAlertState = alertStates.find((state: AlertState) => {
-        return state.isAcknowledgedState;
-      });
+      // Where Acknowledge moves an alert (AcknowledgedState).
+      acknowledgedAlertState =
+        AcknowledgedStateUtil.getAcknowledgedState({
+          list: StateListType.AlertState,
+          states: alertStates,
+        }) || undefined;
 
       if (!acknowledgedAlertState) {
         logger.error(
@@ -1543,9 +2180,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (targets.resolve) {
-      resolvedAlertState = alertStates.find((state: AlertState) => {
-        return state.isResolvedState;
-      });
+      resolvedAlertState =
+        ResolvedStateUtil.getResolvedState({
+          list: StateListType.AlertState,
+          states: alertStates,
+        }) || undefined;
 
       if (!resolvedAlertState) {
         logger.error(
@@ -1639,10 +2278,10 @@ export class Service extends DatabaseService<Model> {
       const isResolving: boolean = target === plan.resolvedAlertState;
 
       const rootCause: string = isResolving
-        ? `Resolved because linked ${incidentLabel} was resolved.`
-        : `Acknowledged because linked ${incidentLabel} was ${
+        ? mdText`Resolved because linked ${incidentLabel} was resolved.`.toString()
+        : mdText`Acknowledged because linked ${incidentLabel} was ${
             plan.incidentReachedResolved ? "resolved" : "acknowledged"
-          }.`;
+          }.`.toString();
 
       try {
         await AlertService.changeAlertState({

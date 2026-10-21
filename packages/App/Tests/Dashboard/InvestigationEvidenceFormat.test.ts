@@ -102,6 +102,28 @@ const INVESTIGATION_READ_TOOLS: Array<[string, string, IconProp, string]> = [
   ["query_traces", "Analysed traces", IconProp.Activity, "Traces"],
   ["get_trace", "Opened a trace", IconProp.Activity, "Traces"],
   ["recent_changes", "Checked recent changes", IconProp.Bolt, "Changes"],
+  /*
+   * The infrastructure an incident is linked to (issues #4784-#4786): its
+   * resources, a resource's own telemetry, a container host's containers.
+   */
+  [
+    "query_telemetry_resources",
+    "Listed infrastructure resources",
+    IconProp.Server,
+    "Infrastructure",
+  ],
+  [
+    "query_resource_telemetry",
+    "Read a resource's telemetry",
+    IconProp.ChartBar,
+    "Infrastructure",
+  ],
+  [
+    "query_containers",
+    "Checked a host's containers",
+    IconProp.SquareStack3D,
+    "Infrastructure",
+  ],
   ["list_code_repositories", "Listed code repositories", IconProp.Code, "Code"],
   [
     "find_code_for_exception",
@@ -245,6 +267,7 @@ describe("describeCitationTargetPage", () => {
     [AIChatCitationTargetType.Probes, "Probes"],
     [AIChatCitationTargetType.SecurityEvents, "Security events"],
     [AIChatCitationTargetType.OnCallPolicyView, "On-call policy"],
+    [AIChatCitationTargetType.ServiceView, "Service"],
   ])("%s opens %s", (targetType: AIChatCitationTargetType, page: string) => {
     expect(describeCitationTargetPage(targetType)).toBe(page);
   });
@@ -1082,6 +1105,103 @@ describe("formatEvidenceArguments", () => {
         label: "Include global probes",
         value: "No",
       },
+    ]);
+  });
+
+  /*
+   * What a query of the linked infrastructure asked for, as a person reads
+   * it: "DockerHost" is the Docker Host page's name, an id is shortened like
+   * every other, a ranking and a mode are words, and an attribute filter -
+   * an object, which every other argument would leave out - is listed.
+   */
+  test("a container query: the host's type by its name, its id shortened, the ranking in words", () => {
+    expect(
+      argumentsFor("query_containers", {
+        resourceType: "DockerHost",
+        resourceId: "84000000-0000-4000-8000-000000000003",
+        sortBy: "cpu",
+        limit: 10,
+      }),
+    ).toEqual([
+      { key: "resourceType", label: "Resource type", value: "Docker Host" },
+      { key: "resourceId", label: "Resource", value: "84000000…" },
+      { key: "sortBy", label: "Ranked by", value: "CPU" },
+      { key: "limit", label: "Limit", value: "10" },
+    ]);
+    expect(
+      valueOf(
+        argumentsFor("query_containers", { sortBy: "memory" }),
+        "Ranked by",
+      ),
+    ).toBe("Memory");
+    expect(
+      valueOf(
+        argumentsFor("query_containers", { sortBy: "restarts" }),
+        "Ranked by",
+      ),
+    ).toBe("Restarts");
+  });
+
+  test("a resource telemetry read: the signal and the mode in words, and its attribute filter listed", () => {
+    expect(
+      argumentsFor("query_resource_telemetry", {
+        resourceType: "Host",
+        signal: "metrics",
+        metricName: "system.cpu.utilization",
+        mode: "trend",
+        attributes: { state: "idle", "host.name": "web-1" },
+        groupBy: ["state", "cpu.mode"],
+      }),
+    ).toEqual([
+      { key: "resourceType", label: "Resource type", value: "Host" },
+      { key: "signal", label: "Telemetry", value: "Metrics" },
+      { key: "metricName", label: "Metric", value: "system.cpu.utilization" },
+      { key: "mode", label: "Mode", value: "Trend" },
+      {
+        key: "attributes",
+        label: "Attributes",
+        value: "state = idle, host.name = web-1",
+      },
+      { key: "groupBy", label: "Group by", value: "state, cpu.mode" },
+    ]);
+    expect(
+      valueOf(
+        argumentsFor("query_resource_telemetry", { mode: "summary" }),
+        "Mode",
+      ),
+    ).toBe("Summary");
+  });
+
+  test("a query_metrics filter on attributes is listed too, a long one cut short", () => {
+    const attributes: Record<string, string> = {};
+
+    for (let index: number = 1; index <= 7; index++) {
+      attributes[`key${index}`] = `value${index}`;
+    }
+
+    expect(
+      valueOf(argumentsFor("query_metrics", { attributes }), "Attributes"),
+    ).toBe(
+      "key1 = value1, key2 = value2, key3 = value3, key4 = value4, key5 = value5 and 2 more",
+    );
+    // Values that are not text or numbers, and an empty filter, are left out.
+    expect(
+      argumentsFor("query_metrics", {
+        attributes: { nested: { a: 1 }, empty: null },
+      }),
+    ).toEqual([]);
+    expect(argumentsFor("query_metrics", { attributes: {} })).toEqual([]);
+  });
+
+  test("a value it does not know is shown as written", () => {
+    expect(
+      argumentsFor("query_containers", {
+        resourceType: "Spaceship",
+        sortBy: "uptime",
+      }),
+    ).toEqual([
+      { key: "resourceType", label: "Resource type", value: "Spaceship" },
+      { key: "sortBy", label: "Ranked by", value: "uptime" },
     ]);
   });
 

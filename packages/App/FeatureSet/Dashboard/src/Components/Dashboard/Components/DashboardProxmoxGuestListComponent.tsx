@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -22,18 +22,22 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardProxmoxGuestListComponent;
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Guest", widthPct: "26%" },
-  { label: "VMID", widthPct: "10%" },
-  { label: "Type", widthPct: "10%" },
-  { label: "Status", widthPct: "17%" },
-  { label: "Node", widthPct: "17%" },
-  { label: "Cluster", widthPct: "20%" },
+  { label: "Guest", widthPct: "26%", sortKey: "name" },
+  { label: "VMID", widthPct: "10%", sortKey: "vmid" },
+  { label: "Type", widthPct: "10%", sortKey: "type" },
+  { label: "Status", widthPct: "17%", sortKey: "status" },
+  { label: "Node", widthPct: "17%", sortKey: "node" },
+  { label: "Cluster", widthPct: "20%", sortKey: "cluster" },
 ];
 
 /*
@@ -113,7 +117,7 @@ function getGuestStatus(r: ProxmoxResource): {
   const haState: string = ((r.haState as string) || "").toLowerCase();
   if (haState === "error" || haState === "fence") {
     return {
-      text: `HA ${haState}`,
+      text: translateTemplate("HA {{state}}", { state: haState }),
       dot: GUEST_COLORS.haError,
       textColor: "var(--ou-danger-text, #b91c1c)",
     };
@@ -121,27 +125,31 @@ function getGuestStatus(r: ProxmoxResource): {
   const isUp: boolean | undefined = r.isUp as boolean | undefined;
   if (isUp === true) {
     return {
-      text: "Running",
+      text: translateText("Running") as string,
       dot: GUEST_COLORS.running,
       textColor: "var(--ou-success-text, #047857)",
     };
   }
   if (isUp === false) {
     return {
-      text: "Stopped",
+      text: translateText("Stopped") as string,
       dot: GUEST_COLORS.stopped,
       textColor: "var(--ou-text-muted, #6b7280)",
     };
   }
   return {
-    text: "Unknown",
+    text: translateText("Unknown") as string,
     dot: GUEST_COLORS.unknown,
     textColor: "var(--ou-text-muted, #6b7280)",
   };
 }
 
 function getGuestDisplayName(r: ProxmoxResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (
+    (r.name as string) ||
+    (r.externalId as string) ||
+    (translateText("Unnamed") as string)
+  );
 }
 
 function renderGuestRow(r: ProxmoxResource): ReactElement {
@@ -267,7 +275,8 @@ const DashboardProxmoxGuestListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.ProxmoxGuestList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={undefined}

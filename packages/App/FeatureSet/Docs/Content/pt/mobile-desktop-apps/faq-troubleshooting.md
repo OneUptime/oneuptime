@@ -1,143 +1,162 @@
-# Perguntas Frequentes e Solução de Problemas
+# Perguntas frequentes e solução de problemas
 
-Perguntas frequentes e soluções para os aplicativos mobile e desktop do OneUptime.
+Respostas a perguntas frequentes sobre os aplicativos móvel e de desktop do OneUptime, e soluções para o que mais dá errado: o login, notificações que não chegam e um celular que precisa se registrar de novo.
 
-## Como o OneUptime distribui seus aplicativos?
+:::cards
+- [Perguntas sobre o aplicativo móvel](#perguntas-sobre-o-aplicativo-móvel): Dispositivos, projetos, auto-hospedagem e segurança.
+- [Perguntas sobre o aplicativo de desktop](#perguntas-sobre-o-aplicativo-de-desktop): O que é o aplicativo de desktop, e o que ele não consegue fazer.
+- [Quando um celular precisa se registrar de novo](#quando-um-celular-precisa-se-registrar-de-novo): Por que um celular para de receber acionamentos, e como volta.
+- [Solução de problemas](#solução-de-problemas): Problemas de login, notificações e instalação.
+:::
 
-- **Mobile (iOS e Android):** O OneUptime disponibiliza um aplicativo nativo chamado **OneUptime On-Call**. Ele é publicado na [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) e no [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Um [download de APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) assinado também está disponível para dispositivos Android sem Google Play.
-- **Desktop (Windows, macOS, Linux):** O painel web do OneUptime é um Progressive Web App (PWA). Você pode instalá-lo como um aplicativo desktop diretamente a partir de um navegador baseado em Chromium ou do Safari — sem necessidade de conta em loja.
+## Perguntas sobre o aplicativo móvel
 
-## Perguntas Frequentes sobre o Aplicativo Mobile
+:::details O aplicativo é gratuito?
+Sim. O OneUptime On-Call é gratuito na App Store, no Google Play e como APK no GitHub. Você entra com a sua conta do OneUptime.
+:::
 
-### Quais dispositivos são compatíveis?
+:::details Em quais celulares e tablets ele funciona?
+Em iPhones e iPads com iOS ou iPadOS 16.4 ou posterior, e em celulares e tablets Android com Android 7.0 ou posterior.
+:::
 
-- **iOS:** iPhone ou iPad com iOS 15.0 ou posterior.
-- **Android:** Celulares e tablets com Android 8.0 (Oreo) ou posterior.
+:::details Ele funciona com um OneUptime auto-hospedado?
+Sim. Digite o endereço `https://` do seu OneUptime quando o aplicativo abrir, ou toque em **Change Server** na tela de login. Por padrão, o seu servidor envia os acionamentos aos celulares pelo relay push do OneUptime, então não precisa de conta na Apple, no Google ou na Expo: veja [Notificações push](/docs/self-hosted/push-notifications).
+:::
 
-### O aplicativo é gratuito?
+:::details Posso usá-lo com vários projetos?
+Sim. O aplicativo registra o celular em cada projeto de que você participa, para que cada projeto possa acionar você. Ele mostra um projeto por vez: toque no nome do projeto no topo de uma tela para trocar.
+:::
 
-Sim. O aplicativo OneUptime On-Call é gratuito para instalar. Você faz login com sua conta OneUptime existente.
+:::details Posso entrar em mais de um celular?
+Sim. Cada celular ou tablet é um dispositivo push próprio, com as suas próprias regras de plantão e a sua própria configuração de alertas críticos.
+:::
 
-### Posso usar o aplicativo com uma instância auto-hospedada do OneUptime?
+:::details O que posso fazer no aplicativo?
+- **Home**: o que precisa de atenção no projeto: incidentes e alertas ativos, monitores com problemas e eventos agrupados.
+- **Monitors**: todos os monitores, filtrados por estado, com os detalhes deles.
+- **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**.
+- **On-Call**: se você está de plantão e até quando, quem mais está, os acionamentos enviados a você, e **Cover for me**, que passa os seus acionamentos a um colega por um tempo.
+- **Settings**: os seus projetos e o login único, a aparência, os alertas críticos e o som de alarme, **Biometrics Login**, o seu feed de calendário de plantão e **Log Out**.
 
-Sim. Na primeira execução, o aplicativo pede um **URL do Servidor**. Insira o URL da sua instância auto-hospedada (por exemplo, `https://oneuptime.example.com`). O aplicativo valida que o servidor está acessível antes de permitir que você faça login.
+Todo o resto está no painel.
+:::
 
-Para notificações push em instâncias auto-hospedadas, siga o guia de [Notificações Push](/docs/self-hosted/push-notifications).
+:::details Posso confirmar um acionamento pela notificação?
+Não. Toque na notificação: o aplicativo abre o incidente, o alerta ou o episódio de que ela trata, no projeto certo, e você o confirma ali. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
+:::
 
-### Como as atualizações são entregues?
+:::details O meu login está seguro no celular?
+O aplicativo fala com o seu OneUptime só por HTTPS. O seu login fica guardado no armazenamento próprio do aplicativo no celular, e **Log Out** o apaga e também encerra a sessão no servidor. Ative **Biometrics Login** para que o aplicativo peça o seu rosto, a sua digital ou o seu código sempre que abrir.
+:::
 
-- **iOS:** Através da App Store. Habilite as atualizações automáticas em **Ajustes → App Store**, ou atualize manualmente pelo seu perfil na App Store.
-- **Android (Google Play):** As atualizações automáticas estão habilitadas por padrão.
-- **Android (sideload do APK):** Baixe e instale o APK mais recente a partir do link do GitHub Releases acima.
+:::details O aplicativo funciona offline?
+Não. Sem conexão, ele mostra **No internet connection** no topo da tela, e continua assim que a conexão volta.
+:::
 
-### Por que não recebo notificações push?
+## Perguntas sobre o aplicativo de desktop
 
-O push mobile usa APNs (iOS) e FCM (Android) via Expo Push. Verifique o seguinte:
+:::details O que é o aplicativo de desktop?
+O painel do OneUptime, instalado pelo seu navegador como um aplicativo: uma janela própria, um ícone no menu Iniciar, no Dock ou no seu iniciador, e notificações. Ele faz tudo o que o painel faz, porque é o painel.
+:::
 
-1. As notificações estão habilitadas no nível do sistema operacional para o **OneUptime On-Call**.
-2. A otimização de bateria está desativada e a atividade em segundo plano é permitida (Android).
-3. Os modos Do Not Disturb ou Foco estão desativados, ou o aplicativo está na lista de exceções.
-4. Você está logado — o token de push é registrado no servidor somente após você fazer login.
-5. **Apenas para auto-hospedados:** As notificações push estão configuradas na sua instância do OneUptime. Consulte o guia de [Notificações Push](/docs/self-hosted/push-notifications).
+:::details Por que ele não está em nenhuma loja de aplicativos?
+Ele não precisa estar. O aplicativo carrega o painel do seu OneUptime sempre que abre, então é sempre a versão que o seu OneUptime roda, no Windows, no macOS e no Linux igualmente, sem nada para atualizar.
+:::
 
-### Os dados no meu celular estão seguros?
+:::details Ele pode me acordar como o celular?
+Não. Os navegadores não conseguem ignorar o Não Perturbe nem um Foco, então uma notificação de desktop só toca tão alto quanto o computador permite. Para acionamentos que precisam acordar você, use o aplicativo móvel com alertas críticos.
+:::
 
-- Todo o tráfego da API usa HTTPS.
-- Os tokens de acesso e atualização são armazenados no keystore seguro do dispositivo (Keychain no iOS, Keystore no Android).
-- Você pode exigir desbloqueio por Face ID / Touch ID / impressão digital pela tela de **Configurações** dentro do aplicativo.
+:::details Ele funciona offline?
+Não. Ele precisa de uma conexão com o seu OneUptime, como o painel numa aba do navegador.
+:::
 
-### Posso instalar o aplicativo em vários dispositivos?
+## Quando um celular precisa se registrar de novo
 
-Sim. Faça login com a mesma conta OneUptime em quantos dispositivos precisar. Cada dispositivo recebe suas próprias notificações push.
+O OneUptime envia os acionamentos de um celular pela Expo, que os entrega à Apple ou ao Google. Quando a Expo diz que o celular não pode mais ser alcançado, o OneUptime para de enviar qualquer coisa a ele, até o aplicativo registrá-lo de novo.
 
-### Como faço para desinstalar?
+```mermaid title="Como um celular para de receber acionamentos, e como volta"
+flowchart TB
+    Registered["O celular está registrado,<br/>e os acionamentos<br/>chegam a ele"]
+    Gone["A Expo o dá como<br/>perdido: um push é<br/>recusado, ou o recibo<br/>dele diz isso cerca<br/>de 15 minutos depois"]
+    Marked["O OneUptime o marca<br/>Não está recebendo<br/>notificações e para de<br/>enviar; as regras ficam"]
+    Open["Você abre o aplicativo<br/>estando conectado"]
+    Renewed["O aplicativo se registra<br/>de novo, renova o<br/>token push dele,<br/>e os acionamentos<br/>voltam a chegar"]
+    Registered --> Gone --> Marked --> Open --> Renewed
+```
 
-- **iOS:** Mantenha o ícone pressionado → **Remover App** → **Apagar App**.
-- **Android:** Mantenha o ícone pressionado → **Desinstalar**, ou **Configurações → Apps → OneUptime On-Call → Desinstalar**.
+A Expo dá um celular como perdido quando o aplicativo foi removido dele, ou quando o token push dele não é mais válido. O celular não é excluído: **Configurações do usuário → Métodos de notificação**, na aba **Push Notifications**, o mostra como **Não está recebendo notificações**, e a linha do tempo de plantão de um acionamento que não chegou a ele diz por quê. Os seus outros celulares e métodos de notificação são acionados como sempre.
 
-Sua conta e dados do OneUptime são armazenados no servidor e não são removidos ao desinstalar o aplicativo.
+O aplicativo registra o celular sempre que abre, quando você entra, e quando você volta a ele, no máximo uma vez a cada cinco minutos. O registro pede de novo o token push à Expo, o que o renova, e o celular volta a receber acionamentos com as regras que tinha.
 
-## Perguntas Frequentes sobre o Aplicativo Desktop (PWA)
+| O que aconteceu | O que fazer | O que o OneUptime faz |
+| --- | --- | --- |
+| O aplicativo ainda está instalado | Abra-o estando conectado | O celular volta a receber notificações, com as regras dele |
+| Você reinstalou o aplicativo num iPhone ou iPad | Instale-o e entre | Normalmente a mesma entrada volta, com as regras dela |
+| Você reinstalou o aplicativo no Android | Instale-o, entre e exclua a entrada antiga | Uma entrada nova com as regras padrão; a antiga continua marcada |
+| Um celular novo, configurado a partir de um backup do antigo | Abra o aplicativo no celular novo | Se a entrada do celular antigo está marcada, o novo a assume, com as regras dela; se não, o celular novo ganha uma entrada própria |
+| Um celular novo, configurado do zero | Entre e exclua a entrada antiga | Uma entrada nova com as regras padrão |
+| Você saiu do aplicativo | Entre de novo | Sair removeu o celular e as regras dele; ele volta com as regras padrão |
 
-### O que é um Progressive Web App (PWA)?
+Um navegador também pode parar de receber notificações, quando a inscrição push dele expira. O painel a renova quando pode; se o navegador continuar marcado, registre-o de novo com **Registrar Dispositivo** nesse navegador.
 
-Um Progressive Web App é uma aplicação web que pode ser instalada como um aplicativo desktop nativo. Uma vez instalado, ele é executado em sua própria janela, tem seu próprio ícone no iniciador e pode entregar notificações de desktop — sem passar pela Windows Store, Mac App Store ou qualquer outro canal de distribuição.
+## Solução de problemas
 
-### Por que o aplicativo desktop usa tecnologia PWA?
+### Login
 
-- **Atualizações instantâneas** — o aplicativo permanece sincronizado com sua instância do OneUptime no momento em que você faz o deploy.
-- **Sem necessidade de conta em loja** — instale diretamente a partir de qualquer navegador moderno.
-- **Base de código única** — o mesmo painel é executado no Windows, macOS e Linux.
+:::details “Could not connect to the server”
+O aplicativo não conseguiu chegar a `https://<your-oneuptime>/api/status`. Verifique o endereço, incluindo `https://`: o aplicativo não se conecta por HTTP simples. Se o seu OneUptime está numa rede privada, conecte o celular a ela primeiro, pela sua VPN, por exemplo. Aberto no navegador do celular, esse endereço mostra `{"status":"ok"}` quando o celular consegue chegar ao OneUptime.
+:::
 
-### Por que o botão "Instalar" não aparece?
+:::details “No SSO configuration found for the email”
+Nenhum dos projetos de que esse e-mail participa tem login único configurado, ou o e-mail não tem conta neste OneUptime. Verifique o e-mail, ou entre com a sua senha. Os provedores que o seu administrador configurou para toda a instalação aparecem antes do campo de e-mail.
+:::
 
-1. Use um navegador baseado em Chromium (Chrome, Edge, Brave, Arc) ou o Safari (macOS Sonoma+).
-2. Confirme que sua instância do OneUptime é servida via HTTPS com um certificado válido.
-3. Limpe o cache do navegador e recarregue.
-4. O aplicativo pode já estar instalado — verifique em Aplicativos / Menu Iniciar.
+:::details Uma chave de segurança é o seu único segundo fator
+O aplicativo não consegue usar uma chave de segurança. Entre com um dos seus códigos de backup, ou adicione um aplicativo autenticador à sua conta no painel: veja [Ativar a autenticação de dois fatores](/docs/introduction/your-account#ativar-a-autenticação-em-dois-fatores).
+:::
 
-### Como atualizo o aplicativo desktop?
+:::details O login com chave de acesso falha
+As chaves de acesso precisam que o endereço do seu OneUptime comece com `https://`, e de uma chave de acesso adicionada para esse OneUptime: veja [Adicionar uma chave de acesso](/docs/introduction/your-account#adicionar-uma-chave-de-acesso). Para usar outro servidor, toque em **Change Server** na tela de login.
+:::
 
-O PWA é atualizado automaticamente sempre que você o abre estando online. Para forçar uma atualização, recarregue a janela com **Ctrl+R** (Windows/Linux) ou **Cmd+R** (macOS).
+### Notificações
 
-### Como faço para desinstalar o PWA desktop?
+:::details Nenhuma notificação no celular
+- Verifique se o celular permite as notificações do OneUptime On-Call, e se o Não Perturbe ou um Foco não as está retendo.
+- Em **Configurações do usuário → Métodos de notificação**, aba **Push Notifications**, verifique se o celular aparece na lista, e envie a ele uma **Notificação de teste**.
+- Se ele está marcado como **Não está recebendo notificações**, abra o aplicativo estando conectado: veja [Quando um celular precisa se registrar de novo](#quando-um-celular-precisa-se-registrar-de-novo).
+- Verifique as suas regras de plantão em **Configurações do usuário → Regras de Plantão**: elas decidem quais acionamentos chegam a qual método.
+- Num OneUptime auto-hospedado, verifique se o servidor chega ao relay push dele: veja [Notificações push](/docs/self-hosted/push-notifications#acesso-de-rede).
+:::
 
-- **Windows:** **Configurações → Aplicativos → OneUptime → Desinstalar**, ou clique com o botão direito na entrada do Menu Iniciar.
-- **macOS:** Arraste o aplicativo de **Aplicativos** para o Lixo, ou clique com o botão direito no ícone do Dock e escolha **Remover**.
-- **Linux:** Use a opção de desinstalação do iniciador de aplicativos, ou remova o arquivo `.desktop` correspondente.
+:::details Os acionamentos chegam atrasados no Android
+Coloque o uso de bateria do aplicativo em **Sem restrições** nas configurações do Android para o OneUptime On-Call, e deixe o aplicativo fora de qualquer lista de economia de bateria: veja [Evitar que os acionamentos cheguem atrasados](/docs/mobile-desktop-apps/android-installation#evitar-que-os-acionamentos-cheguem-atrasados).
+:::
 
-## Solução de Problemas
+:::details Os alertas críticos não tocam no modo silencioso
+Abra **Settings** no aplicativo: a linha abaixo de **Critical On-Call Alerts** diz o que falta nesse celular. Depois verifique em **Configurações do usuário → Regras de Plantão** se a regra de plantão que enviou o acionamento está em **Alerta crítico**, não em **Normal**. Cada celular tem a sua própria chave.
+:::
 
-### Problemas no Aplicativo Mobile
+### Aplicativo de desktop
 
-**O aplicativo não faz login / "Erro de Rede":**
+:::details Não há ícone de instalação na barra de endereços
+Instale a partir de uma página do painel depois de entrar, por `https://`, no Edge ou no Chrome, ou no Safari no macOS Sonoma 14 ou posterior. Se o ícone não aparecer, o menu do navegador também o instala: veja [Instalação no Windows](/docs/mobile-desktop-apps/windows-installation#instalar-o-aplicativo).
+:::
 
-- Confirme que o **URL do Servidor** está correto e acessível a partir do seu celular.
-- Verifique se o seu celular está conectado à internet.
-- Para instâncias auto-hospedadas atrás de uma VPN, certifique-se de que a VPN está ativa.
+:::details Nenhuma notificação no desktop
+Registre o navegador em **Configurações do usuário → Métodos de notificação**, aba **Push Notifications**, com **Registrar Dispositivo**, permita as notificações quando for perguntado, e verifique as configurações de notificação do próprio computador. Um OneUptime auto-hospedado precisa das chaves VAPID dele para as notificações do navegador.
+:::
 
-**Notificações push atrasadas ou ausentes (Android):**
+## Obter ajuda
 
-- Desative a otimização de bateria: **Configurações → Apps → OneUptime On-Call → Bateria → Sem restrições**.
-- Desative o Economia de Dados para o aplicativo.
-- Em dispositivos Samsung, desative **Cuidado com o dispositivo → Bateria → Limites de uso em segundo plano** para o OneUptime On-Call.
+Se algo aqui não corresponde ao que você vê, [abra uma issue no GitHub](https://github.com/OneUptime/oneuptime/issues) com a versão do seu aplicativo, no fim da tela **Settings** dele, e a plataforma que você usa.
 
-**Notificações push atrasadas ou ausentes (iOS):**
+## Próximos passos
 
-- Evite encerrar o aplicativo forçadamente — o iOS pode pausar a entrega em segundo plano.
-- Desative o Modo de Pouca Energia enquanto estiver de plantão.
-- Adicione o OneUptime On-Call à lista de permissões de qualquer modo de Foco ativo.
-
-**Face ID / Touch ID / impressão digital não funcionam:**
-
-- Certifique-se de que a biometria está cadastrada nas configurações do seu sistema operacional.
-- Reabilite o desbloqueio biométrico pela tela de **Configurações** dentro do aplicativo OneUptime On-Call.
-
-### Problemas no Aplicativo Desktop (PWA)
-
-**Botão de instalar ausente:**
-
-- Use um navegador compatível (baseado em Chromium ou Safari no macOS Sonoma+).
-- Garanta que a instância do OneUptime é servida via HTTPS.
-- Aguarde a página terminar de carregar e verifique a barra de endereço pelo ícone de instalação.
-
-**Notificações desktop não aparecem:**
-
-- Permita as notificações quando o navegador solicitar.
-- Verifique as configurações de notificação do sistema operacional (Assistente de Foco no Windows, Notificações no macOS, daemon de notificações no Linux).
-- Para instâncias auto-hospedadas, garanta que a configuração de [Notificações Push](/docs/self-hosted/push-notifications) esteja completa.
-
-**O aplicativo não mostra os dados mais recentes:**
-
-- Recarregue com **Ctrl+R** / **Cmd+R**.
-- Feche e reabra a janela.
-- Verifique sua conexão de rede.
-
-## Suporte
-
-Se você ainda precisar de ajuda:
-
-- Mobile: consulte os guias de instalação do [iOS](./ios-installation.md) ou do [Android](./android-installation.md).
-- Desktop: consulte os guias de instalação do [Windows](./windows-installation.md), [macOS](./macos-installation.md) ou [Linux](./linux-installation.md).
-- Abra uma issue no [repositório do OneUptime no GitHub](https://github.com/OneUptime/oneuptime).
-- Entre em contato com o suporte através do seu painel do OneUptime.
+:::cards
+- [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index): Qual aplicativo usar, e como eles chegam ao OneUptime.
+- [Instalação no Android](/docs/mobile-desktop-apps/android-installation): Instalar e configurar o aplicativo no Android.
+- [Instalação no iOS](/docs/mobile-desktop-apps/ios-installation): Instalar e configurar o aplicativo num iPhone ou iPad.
+- [Notificações push](/docs/self-hosted/push-notifications): Como um OneUptime auto-hospedado envia os acionamentos, e os erros da Expo.
+:::

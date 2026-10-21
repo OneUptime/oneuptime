@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { ReactElement } from "react";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -56,7 +59,31 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived dashboards, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Dashboard,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

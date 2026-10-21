@@ -22,9 +22,11 @@ import {
 } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface ChatItem {
   id: string;
@@ -33,22 +35,96 @@ interface ChatItem {
   addedAt?: string | null;
 }
 
+/*
+ * The sentences that name how many group chats kept an old name, whole and
+ * count-dependent, so a locale words "the name of 1 group chat" its own way.
+ */
+const PERMISSION_DENIED_ANNOUNCEMENT: PluralTemplate = {
+  one: "Microsoft Teams did not let OneUptime read the name of {{count}} group chat.",
+  other:
+    "Microsoft Teams did not let OneUptime read the names of {{count}} group chats.",
+};
+
+const NAME_FAILED_ANNOUNCEMENT: PluralTemplate = {
+  one: "OneUptime could not read the name of {{count}} group chat just now.",
+  other:
+    "OneUptime could not read the names of {{count}} group chats just now.",
+};
+
+type ReadIdsFunction = (value: unknown) => Array<string>;
+
+const readIds: ReadIdsFunction = (value: unknown): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item: unknown): item is string => {
+    return typeof item === "string" && Boolean(item);
+  });
+};
+
 const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [chats, setChats] = useState<Array<ChatItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // A failed first load: there is no list to show.
   const [error, setError] = useState<string>("");
+  /*
+   * A failed Refresh Chats. The list that was already loaded stays up (with
+   * its Send Test buttons) under this message instead of being replaced.
+   */
+  const [refreshError, setRefreshError] = useState<string>("");
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [sendingTestCount, setSendingTestCount] = useState<number>(0);
+  /*
+   * Group chats whose name the last Refresh Chats could not read: Microsoft
+   * refused (the chat has not granted the permission), or the read failed.
+   */
+  const [namePermissionDeniedChatIds, setNamePermissionDeniedChatIds] =
+    useState<Array<string>>([]);
+  const [nameFailedChatIds, setNameFailedChatIds] = useState<Array<string>>([]);
+  /*
+   * What a screen reader hears when a refresh finishes. The list (and the
+   * notices in it) is swapped for a loader during every refresh, so a live
+   * region inside it would arrive already filled and go unannounced; this
+   * one stays mounted.
+   */
+  const [announcement, setAnnouncement] = useState<string>("");
 
-  const loadChats: PromiseVoidFunction = async (): Promise<void> => {
+  type LoadChatsFunction = (options?: {
+    refreshNames?: boolean | undefined;
+  }) => Promise<void>;
+
+  /*
+   * The first load only reads what is stored. Refresh Chats also asks
+   * Microsoft for the current name of every group chat, which is how a group
+   * chat listed by its members' names picks up its real name.
+   */
+  const loadChats: LoadChatsFunction = async (options?: {
+    refreshNames?: boolean | undefined;
+  }): Promise<void> => {
     try {
       setError("");
+      setRefreshError("");
       setIsLoading(true);
 
+      if (options?.refreshNames) {
+        setAnnouncement("");
+      }
+
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+        options?.refreshNames
+          ? await API.post<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute(
+                "/microsoft-teams/chats/refresh",
+              ),
+              data: {},
+              headers: ModelAPI.getCommonHeaders(),
+            })
+          : await API.get<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
+              headers: ModelAPI.getCommonHeaders(),
+            });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -72,8 +148,67 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
         });
 
       setChats(list);
+      setHasLoaded(true);
+
+      if (options?.refreshNames) {
+        const permissionDeniedChatIds: Array<string> = readIds(
+          data["chatNamePermissionDeniedChatIds"],
+        );
+        const failedChatIds: Array<string> = readIds(
+          data["chatNameFailedChatIds"],
+        );
+
+        setNamePermissionDeniedChatIds(permissionDeniedChatIds);
+        setNameFailedChatIds(failedChatIds);
+
+        const summary: Array<string> = [
+          translator.translateTemplate("Chat names refreshed."),
+        ];
+
+        if (permissionDeniedChatIds.length > 0) {
+          summary.push(
+            translator.translatePlural(
+              PERMISSION_DENIED_ANNOUNCEMENT,
+              permissionDeniedChatIds.length,
+            ),
+          );
+        }
+
+        if (failedChatIds.length > 0) {
+          summary.push(
+            translator.translatePlural(
+              NAME_FAILED_ANNOUNCEMENT,
+              failedChatIds.length,
+            ),
+          );
+        }
+
+        setAnnouncement(summary.join(" "));
+      }
     } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Exception));
+      const message: string = API.getFriendlyErrorMessage(err as Exception);
+
+      if (options?.refreshNames && hasLoaded) {
+        setRefreshError(
+          translator.translateTemplate(
+            "Chats could not be refreshed, so the list below may be out of date. {{error}}",
+            { error: message },
+          ),
+        );
+      } else {
+        setError(message);
+      }
+
+      if (options?.refreshNames) {
+        setNamePermissionDeniedChatIds([]);
+        setNameFailedChatIds([]);
+        setAnnouncement(
+          translator.translateTemplate(
+            "Chats could not be refreshed. {{error}}",
+            { error: message },
+          ),
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +240,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Microsoft Teams Chats"
-      description="Send notifications straight into group chats and one-on-one chats. Add the OneUptime app to any chat in Microsoft Teams and it will show up here as a destination for your notification rules. Use Send Test to confirm OneUptime can post to a chat."
+      description="Group and one-on-one chats your notification rules can post to. Add the OneUptime app to a chat in Microsoft Teams to list it here. Use Send Test to confirm OneUptime can post to a chat."
       buttons={[
         {
           title: "Refresh Chats",
@@ -118,7 +253,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
               ? "Wait for the test notification to finish sending."
               : undefined,
           onClick: () => {
-            loadChats().catch((err: Exception) => {
+            loadChats({ refreshNames: true }).catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
             });
           },
@@ -126,9 +261,19 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
       ]}
     >
       <div className="mt-2">
+        <div className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </div>
+
         {isLoading && <ComponentLoader />}
 
         {!isLoading && error && <ErrorMessage message={error} />}
+
+        {!isLoading && !error && refreshError && (
+          <div className="mb-3">
+            <ErrorMessage message={refreshError} />
+          </div>
+        )}
 
         {!isLoading && !error && chats.length === 0 && (
           <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
@@ -141,11 +286,12 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
               />
             </div>
             <h3 className="mt-4 text-sm font-semibold text-gray-900">
-              No chats connected yet
+              {translator.translateText("No chats connected yet")}
             </h3>
             <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-              Add the OneUptime app to a chat in Microsoft Teams and it will
-              appear here, ready to receive notifications.
+              {translator.translateText(
+                "Add the OneUptime app to a chat in Microsoft Teams and it will appear here, ready to receive notifications.",
+              )}
             </p>
             <div className="mx-auto mt-6 max-w-md text-left">
               <ol className="space-y-3 text-sm text-gray-600">
@@ -153,29 +299,31 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                   <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                     1
                   </span>
-                  Open Microsoft Teams and go to the group chat or one-on-one
-                  chat you want to notify.
+                  {translator.translateText(
+                    "Open Microsoft Teams and go to the group chat or one-on-one chat you want to notify.",
+                  )}
                 </li>
                 <li className="flex gap-3">
                   <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                     2
                   </span>
-                  Click the + (Add an app) button at the top of the chat, or
-                  type @OneUptime in the message box, and add the OneUptime app.
+                  {translator.translateText(
+                    "Click the + (Add an app) button at the top of the chat, or type @OneUptime in the message box, and add the OneUptime app.",
+                  )}
                 </li>
                 <li className="flex gap-3">
                   <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                     3
                   </span>
-                  Come back here and click Refresh Chats — then pick the chat in
-                  any notification rule.
+                  {translator.translateText(
+                    "Come back here and click Refresh Chats — then pick the chat in any notification rule.",
+                  )}
                 </li>
               </ol>
               <p className="mt-4 text-xs text-gray-500">
-                Already have the OneUptime app in a chat? Just @mention
-                OneUptime in that chat (or send the bot any message in a 1:1
-                chat) — the chat registers here the moment the bot hears from
-                you.
+                {translator.translateText(
+                  "Already have the OneUptime app in a chat? Just @mention OneUptime in that chat (or send the bot any message in a 1:1 chat) — the chat registers here the moment the bot hears from you.",
+                )}
               </p>
             </div>
             {/*
@@ -205,19 +353,22 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                   size={SizeProp.Regular}
                   className="h-4 w-4"
                 />
-                Open OneUptime in Microsoft Teams
+                {translator.translateText("Open OneUptime in Microsoft Teams")}
               </button>
             )}
 
             {!BILLING_ENABLED && MicrosoftTeamsAppClientId && (
               <p className="mx-auto mt-6 max-w-md text-xs text-gray-500">
-                Chats only register for the app package built for this
-                deployment (bot id{" "}
-                <span className="font-mono">{MicrosoftTeamsAppClientId}</span>).
-                If you added the OneUptime app from the Microsoft Teams store,
-                it reports to OneUptime Cloud and will never appear here —
-                remove it and upload the manifest from Project Settings &gt;
-                Workspace &gt; Microsoft Teams instead.
+                <TranslatedSentence
+                  template="Chats only register for the app package built for this deployment (bot id {{botId}}). If you added the OneUptime app from the Microsoft Teams store, it reports to OneUptime Cloud and will never appear here — remove it and upload the manifest from Project Settings > Workspace > Microsoft Teams instead."
+                  slots={{
+                    botId: (
+                      <span className="font-mono">
+                        {MicrosoftTeamsAppClientId}
+                      </span>
+                    ),
+                  }}
+                />
               </p>
             )}
           </div>
@@ -226,7 +377,9 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
         {!isLoading && !error && chats.length > 0 && (
           <div className="space-y-2">
             <div className="text-sm text-gray-600">
-              Connected chats ({chats.length})
+              {translator.translateTemplate("Connected chats ({{count}})", {
+                count: translator.formatNumber(chats.length),
+              })}
             </div>
             <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
               {chats.map((chat: ChatItem) => {
@@ -260,16 +413,34 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                      * floor the control wraps onto its own line instead.
                      */}
                     <div className="min-w-[8rem] flex-1">
-                      <div className="font-medium text-gray-900 truncate">
+                      <div
+                        className="font-medium text-gray-900 truncate"
+                        title={chat.name}
+                      >
                         {chat.name}
                       </div>
+                      {namePermissionDeniedChatIds.includes(chat.id) && (
+                        <div className="text-xs text-amber-700">
+                          {translator.translateText(
+                            "Microsoft Teams did not let OneUptime read this chat's name",
+                          )}
+                        </div>
+                      )}
+                      {nameFailedChatIds.includes(chat.id) && (
+                        <div className="text-xs italic text-gray-600">
+                          {translator.translateText(
+                            "This chat's name could not be read just now",
+                          )}
+                        </div>
+                      )}
                       {chat.addedAt && (
                         <div className="text-xs text-gray-500">
-                          Connected{" "}
-                          {OneUptimeDate.getDateAsLocalFormattedString(
-                            chat.addedAt,
-                            true,
-                          )}
+                          {translator.translateTemplate("Connected {{date}}", {
+                            date: OneUptimeDate.getDateAsLocalFormattedString(
+                              chat.addedAt,
+                              true,
+                            ),
+                          })}
                         </div>
                       )}
                     </div>
@@ -280,7 +451,11 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                           : "bg-indigo-50 text-indigo-700 ring-indigo-700/10"
                       }`}
                     >
-                      {chat.chatType === "personal" ? "1:1 chat" : "Group chat"}
+                      {translator.translateText(
+                        chat.chatType === "personal"
+                          ? "1:1 chat"
+                          : "Group chat",
+                      )}
                     </span>
                     <SendTestNotificationButton
                       route="/microsoft-teams/chats/test"
@@ -290,7 +465,9 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                        * before Teams has told us its name, so the button
                        * still needs something to say in its label and error.
                        */
-                      destinationName={chat.name || "this chat"}
+                      destinationName={
+                        chat.name || translator.translateTemplate("this chat")
+                      }
                       workspaceName="Microsoft Teams"
                       onSendingChange={onSendingTestChange}
                     />
@@ -298,10 +475,68 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 );
               })}
             </ul>
+            {namePermissionDeniedChatIds.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {translator.translatePlural(
+                  {
+                    one: "Microsoft Teams did not let OneUptime read the name of {{count}} group chat (marked above), so its name here may be out of date or built from its members.",
+                    other:
+                      "Microsoft Teams did not let OneUptime read the names of {{count}} group chats (marked above), so their names here may be out of date or built from their members.",
+                  },
+                  namePermissionDeniedChatIds.length,
+                )}{" "}
+                <TranslatedSentence
+                  template="Teams shares a chat's name once the OneUptime app in that chat asks for the {{permission}} permission, which takes an update of the app in the chat."
+                  slots={{
+                    permission: (
+                      <span className="font-mono">ChatSettings.Read.Chat</span>
+                    ),
+                  }}
+                />{" "}
+                {BILLING_ENABLED ? (
+                  translator.translatePlural(
+                    {
+                      one: "When Teams offers an update for the OneUptime app in that chat, accept it, then click Refresh Chats. If you sideloaded the app, first download its manifest again (Download App Manifest for Sideloading, on this page once your own Microsoft Teams account is connected) and upload it to Microsoft Teams as an update.",
+                      other:
+                        "When Teams offers an update for the OneUptime app in those chats, accept it, then click Refresh Chats. If you sideloaded the app, first download its manifest again (Download App Manifest for Sideloading, on this page once your own Microsoft Teams account is connected) and upload it to Microsoft Teams as an update.",
+                    },
+                    namePermissionDeniedChatIds.length,
+                  )
+                ) : (
+                  <TranslatedSentence
+                    template={{
+                      one: "Click Download App Manifest Zip on this page, upload the zip to Microsoft Teams as an update of the OneUptime app, accept the update in that chat, then click Refresh Chats. Or grant your app registration the {{permission}} application permission (with admin consent) to read every chat's name without updating the app in each chat; it can take up to an hour to take effect.",
+                      other:
+                        "Click Download App Manifest Zip on this page, upload the zip to Microsoft Teams as an update of the OneUptime app, accept the update in those chats, then click Refresh Chats. Or grant your app registration the {{permission}} application permission (with admin consent) to read every chat's name without updating the app in each chat; it can take up to an hour to take effect.",
+                    }}
+                    count={namePermissionDeniedChatIds.length}
+                    slots={{
+                      permission: (
+                        <span className="font-mono">
+                          Chat.ReadBasic.WhereInstalled
+                        </span>
+                      ),
+                    }}
+                  />
+                )}
+              </div>
+            )}
+            {nameFailedChatIds.length > 0 && (
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                {translator.translatePlural(
+                  {
+                    one: "OneUptime could not read the name of {{count}} group chat from Microsoft Teams just now, so it keeps its current name (marked above). Click Refresh Chats again later; if it keeps happening, check the OneUptime server logs for Microsoft Graph errors.",
+                    other:
+                      "OneUptime could not read the names of {{count}} group chats from Microsoft Teams just now, so they keep their current name (marked above). Click Refresh Chats again later; if it keeps happening, check the OneUptime server logs for Microsoft Graph errors.",
+                  },
+                  nameFailedChatIds.length,
+                )}
+              </div>
+            )}
             <p className="text-xs text-gray-500">
-              To connect more chats, add the OneUptime app to a chat in
-              Microsoft Teams and click Refresh Chats. Removing the app from a
-              chat disconnects it automatically.
+              {translator.translateText(
+                "To connect more chats, add the OneUptime app to a chat in Microsoft Teams and click Refresh Chats. Removing the app from a chat disconnects it automatically.",
+              )}
             </p>
           </div>
         )}

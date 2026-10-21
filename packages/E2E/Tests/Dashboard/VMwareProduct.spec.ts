@@ -7,7 +7,8 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -42,8 +43,12 @@ test.describe.skip("VMware Product Onboarding", () => {
       projectNamePrefix: "E2E VMware Project",
     });
 
-    // Nav entry: VMware is listed in the "Products" navbar menu.
+    /*
+     * Nav entry: VMware is listed in the "Products" navbar menu, under
+     * Infrastructure, which the menu opens folded.
+     */
     await page.getByRole("button", { name: "Products" }).click();
+    await openProductsMenuSection(page, "Infrastructure");
     const vmwareNavOption: Locator = page
       .getByRole("option")
       .filter({ hasText: "VMware" });
@@ -53,7 +58,7 @@ test.describe.skip("VMware Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the DocumentationCard install guide.
+    // Empty state renders the setup guide (SetupGuideCard).
     await expect(
       page.getByText("Getting Started with VMware Monitoring"),
     ).toBeVisible({ timeout: 60000 });
@@ -71,7 +76,11 @@ test.describe.skip("VMware Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // ...and the install command block interpolates URL, key, and vCenter name.
+    /*
+     * ...and the guide interpolates it. It opens on the install script,
+     * whose command carries only the URL and the key; the .env file with
+     * the vCenter name is on the Docker Compose option.
+     */
     await expect
       .poll(
         async () => {
@@ -81,11 +90,31 @@ test.describe.skip("VMware Product Onboarding", () => {
       )
       .toMatch(ingestionKeyEnvLineRegex);
 
+    await page.getByRole("radio", { name: /^Docker Compose/ }).click();
+
     const bodyText: string = await page.locator("body").innerText();
     expect(bodyText).toMatch(/ONEUPTIME_URL=http/);
     expect(bodyText).toContain("VMWARE_VCENTER_NAME=my-vcenter");
     expect(bodyText).toContain("docker compose up -d");
     expect(bodyText).not.toContain("<YOUR_API_KEY>");
+
+    /*
+     * Without Docker the same settings go in the systemd service's .env,
+     * the user and password double-quoted for systemd, and the service is
+     * started instead of a container.
+     */
+    await page.getByRole("radio", { name: /^Without Docker/ }).click();
+
+    const withoutDockerText: string = await page.locator("body").innerText();
+    expect(withoutDockerText).toMatch(ingestionKeyEnvLineRegex);
+    expect(withoutDockerText).toContain("VMWARE_VCENTER_NAME=my-vcenter");
+    expect(withoutDockerText).toContain(
+      'VCENTER_USERNAME="oneuptime@vsphere.local"',
+    );
+    expect(withoutDockerText).toContain(
+      "sudo systemctl enable oneuptime-vmware-agent",
+    );
+    expect(withoutDockerText).not.toContain("<YOUR_API_KEY>");
 
     // A second key created via "New Key" becomes the selected key.
     const secondKeyName: string =
@@ -107,18 +136,18 @@ test.describe.skip("VMware Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "VMware" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E VMware Monitor " + Faker.generateName().toString());
 
-    await selectMonitorTypeCard({ page, cardValue: "VMware" });
-
     /*
-     * The submit button keeps the "Create Monitor" test id on every form
-     * step (BasicForm uses props.submitButtonText as the test id); on the
-     * first step it reads "Next" and advances to the criteria step.
+     * Monitor Info is not the last step: its one way on is a plain Next
+     * (Create Monitor is on the last step only), which opens the criteria.
      */
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
 
     await expect(page.getByText("VMware Monitor Configuration")).toBeVisible({
       timeout: 30000,
@@ -161,9 +190,15 @@ test.describe.skip("VMware Product Onboarding", () => {
       await expect(page.getByText(templateName, { exact: true })).toBeVisible();
     }
 
-    // Selecting a template auto-configures the monitor step.
+    // Selecting a template sets the monitor step up.
     await page.getByText("Host CPU Saturation", { exact: true }).click();
-    await expect(page.getByText("Template Configuration")).toBeVisible();
+    // The list folds into the picked template, with its Time Range under it.
+    await expect(page.getByTestId("alert-template-picked")).toContainText(
+      "Host CPU Saturation",
+    );
+    await expect(
+      page.getByTestId("alert-template-configuration"),
+    ).toBeVisible();
   });
 
   /*

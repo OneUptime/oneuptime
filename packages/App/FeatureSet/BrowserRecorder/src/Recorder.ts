@@ -2,6 +2,8 @@ import { record } from "rrweb";
 import {
   SESSION_REPLAY_CHECKOUT_INTERVAL_MS,
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_PAUSE_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_INPUT_SAMPLING,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
@@ -32,13 +34,17 @@ import {
   SessionReplayCustomEventTag,
   SessionReplayCustomPayload,
   SessionReplayIdentifyPayload,
+  SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
   SessionReplaySessionRotatedPayload,
   SessionReplayTagsPayload,
   SessionReplayVisibilityPayload,
+  SessionReplayVisibilityState,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import CommonMasking from "Common/Utils/Rum/Masking";
-import {
+import SessionIdentity, {
+  SessionIdentifyDecision,
   SessionRotationDecision,
   SessionRotationReason,
 } from "Common/Utils/Rum/SessionIdentity";
@@ -110,7 +116,51 @@ const EVENT_TYPE_META: number = 4;
 
 /* rrweb IncrementalSource values referenced here. */
 const SOURCE_MUTATION: number = 0;
+const SOURCE_MOUSE_MOVE: number = 1;
+const SOURCE_MOUSE_INTERACTION: number = 2;
 const SOURCE_INPUT: number = 5;
+const SOURCE_TOUCH_MOVE: number = 6;
+const SOURCE_DRAG: number = 12;
+
+/*
+ * The rrweb sources that only a person produces: the pointer moving, a
+ * button or a finger going down and up, a finger moving, a drag (which
+ * fires no mousemove while it lasts).
+ *
+ * Every OTHER source used to count as well, and most of them a page
+ * produces on its own: a carousel scrolls itself, a framework writes an
+ * input's value, CSS-in-JS inserts rules, an animation sets style
+ * properties, a canvas redraws, a video loops. On such a page the idle
+ * clocks never ran, so neither the idle pause nor the 30-minute rollover
+ * ever came. What a person does through those channels - scrolling,
+ * typing - starts with a key, the wheel or a touch, and USER_INPUT_EVENTS
+ * hears those directly.
+ */
+const USER_INPUT_SOURCES: ReadonlySet<number> = new Set<number>([
+  SOURCE_MOUSE_MOVE,
+  SOURCE_MOUSE_INTERACTION,
+  SOURCE_TOUCH_MOVE,
+  SOURCE_DRAG,
+]);
+
+/*
+ * DOM events that mean a person is at the page, listened for on the
+ * document itself (capture phase, passive, never cancelled).
+ *
+ * rrweb records none of keydown and wheel, so a user writing in a
+ * rich-text editor - whose keystrokes reach the recording only as DOM
+ * mutations - or zooming a map with the wheel looked exactly like nobody
+ * at all. And while the recorder is paused rrweb is not running, so these
+ * are also how the recorder hears the user come back.
+ */
+const USER_INPUT_EVENTS: ReadonlyArray<string> = [
+  "keydown",
+  "mousedown",
+  "mousemove",
+  "wheel",
+  "touchstart",
+  "touchmove",
+];
 
 export const BFCACHE_CUSTOM_EVENT_TAG: string =
   SessionReplayCustomEventTag.BfcacheRestore;
@@ -239,6 +289,11 @@ export type RecorderState =
   | "not-started"
   | "recording"
   | "uploading"
+  /*
+   * Nobody has touched the page for SESSION_REPLAY_IDLE_PAUSE_MS: nothing is
+   * captured until the next input, which resumes the same session.
+   */
+  | "paused"
   | "not-sampled"
   | "stopped";
 
@@ -451,6 +506,20 @@ export default class Recorder {
   private hasSentFinalChunk: boolean = false;
   private lastSensitiveScanAtMs: number = 0;
   private droppedEvents: number = 0;
+
+  /*
+   * The user THIS PAGE said the session belongs to - through identify() or
+   * the userRef init option - or null when it has said nothing.
+   *
+   * Not the whole answer to "whose session is this": an earlier page of
+   * the session, or another tab of it, may have identified it, and that
+   * is remembered in storage (SessionId.readStoredUserRef). See
+   * getSessionUserRef, which every reader goes through. Only this page's
+   * own reference is carried into a session this tab starts itself (an
+   * idle or duration rollover, a consent re-grant): the page knows who is
+   * signed in on it, whereas a reference it merely inherited belonged to
+   * the session that just ended.
+   */
   private userRef: string | null = null;
 
   /*
@@ -515,6 +584,61 @@ export default class Recorder {
   private lastTouchedUnixMs: number = 0;
 
   /*
+   * The idle rollover ended this tab's session and nobody has come back
+   * since.
+   *
+   * The rollover used to start the next session the moment it sealed the
+   * last one - on a tab nobody was looking at. That session opened on a
+   * snapshot, sat through the whole idle window and was sealed in turn, so
+   * a tab left open all day filed a new "session" every half hour: one
+   * still frame each, listed as half an hour long (#4207). Now the tab
+   * waits. Nothing is uploaded and no id goes on the page's requests until
+   * the user does something, and THAT starts the next session
+   * (wakeFromIdle) - as does a return from the back/forward cache, an
+   * explicit captureSession(), or a sibling tab that already started one.
+   */
+  private sealedForIdle: boolean = false;
+  private wakeFromIdleScheduled: boolean = false;
+
+  /*
+   * Nobody has touched the page for SESSION_REPLAY_IDLE_PAUSE_MS, so the
+   * recorder has stopped capturing: rrweb is not running, nothing is
+   * recorded or uploaded, no session id goes on the page's requests, and
+   * the console, network, error and route recorders neither record nor
+   * spend their caps. The session itself is still open. The next input
+   * resumes it on a fresh snapshot (resumeFromIdlePause) - unless the idle
+   * window ran out meanwhile, and then the session ended and that input
+   * starts the next one (sealedForIdle, which a paused tab reaches without
+   * ever capturing again).
+   *
+   * It exists because a tab left alone used to go on recording everything
+   * its page did by itself for the whole half hour before the rollover,
+   * with a full snapshot every minute, and the session's duration ran on
+   * through all of it (#4208).
+   */
+  private pausedForIdle: boolean = false;
+  private resumeFromIdlePauseScheduled: boolean = false;
+  private idlePausedAtUnixMs: number = 0;
+
+  /*
+   * The pause put its marker in an uploading stream, so the resume owes
+   * that stream the matching idle-resumed marker. A pause the recording
+   * never contained (a recorder holding its pre-roll in memory, a sealed
+   * tab) is not answered: a resume marker pointing back at a pause no
+   * chunk holds would draw a stretch the player cannot place.
+   */
+  private idlePauseMarkerSent: boolean = false;
+
+  /*
+   * The visibility state the stream last reported. Visibility changes
+   * while paused are not recorded, so a tab hidden before the pause and
+   * shown again during it would otherwise read as hidden for the rest of
+   * the recording - the player draws a background-tab stretch from a
+   * hidden marker to the next visible one, or to the end.
+   */
+  private lastRecordedVisibility: SessionReplayVisibilityState | null = null;
+
+  /*
    * Scrubbed URL this recorder started on. Set once in start() so the
    * envelope's meta.entryUrl stays the ENTRY url even on the final chunk,
    * which is also built from meta.
@@ -562,6 +686,15 @@ export default class Recorder {
      * which is what makes the sessions of one anonymous visitor groupable.
      */
     this.visitorId = SessionId.resolveVisitorId();
+
+    /*
+     * A reference supplied at load time identifies the session this page
+     * is joining, exactly like an identify() call - so a page that loads
+     * already signed in as someone other than the user the session
+     * belongs to starts a session of its own. Before the chunker, which is
+     * bound to the session's start time.
+     */
+    this.applyLoadTimeUserRef(Date.now());
 
     this.chunker = this.createChunker();
 
@@ -628,6 +761,9 @@ export default class Recorder {
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
+      },
       onError: (
         atUnixMs: number,
         _error: RecordedError,
@@ -666,6 +802,9 @@ export default class Recorder {
       },
       onCapReached: (): void => {
         this.onSignalCapReached();
+      },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
       },
       onRequestComplete: (
         atUnixMs: number,
@@ -715,10 +854,18 @@ export default class Recorder {
        * before an OnErrorOrFrustration trigger, or for a session rotated
        * onto an unsampled id - an id with no recording behind it would be
        * an orphan on every backend span and a stable identifier sent for
-       * nothing. The visitor id is never propagated.
+       * nothing. Nor once the idle rollover sealed the session: a
+       * background poll on an abandoned tab is no part of a recording that
+       * ended at the user's last activity - nor while it is paused for
+       * idle, when nothing of the recording describes the moment such a
+       * request is made. The visitor id is never propagated.
        */
       getSessionIdForPropagation: (): string | null => {
-        return !this.stopped && this.uploading && this.consent.isUploadAllowed()
+        return !this.stopped &&
+          this.uploading &&
+          !this.sealedForIdle &&
+          !this.pausedForIdle &&
+          this.consent.isUploadAllowed()
           ? this.identity.sessionId
           : null;
       },
@@ -735,6 +882,16 @@ export default class Recorder {
       longTaskBudgetMs: this.extendedConfig.longTaskBudgetMs,
       slowRequestBudgetMs: this.extendedConfig.slowRequestBudgetMs,
       captureWebVitals: this.extendedConfig.captureWebVitals,
+      getCurrentUrl: (): string => {
+        return this.routeRecorder.getCurrentUrl();
+      },
+      /*
+       * Built exactly as a click's selector is, blocked regions included:
+       * the INP target must not describe what rrweb refuses to record.
+       */
+      describeTarget: (target: Element): string => {
+        return this.clickRecorder.describeTarget(target);
+      },
     });
 
     this.consoleRecorder = new ConsoleRecorder({
@@ -746,6 +903,9 @@ export default class Recorder {
       },
       onCapReached: (): void => {
         this.onSignalCapReached();
+      },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
       },
       onConsole: (_atUnixMs: number, _entry: RecordedConsoleEntry): void => {
         /*
@@ -766,6 +926,9 @@ export default class Recorder {
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
+      },
       onRouteChange: (atUnixMs: number, route: RecordedRoute): void => {
         this.chunker.countSignal("routeCount");
         /*
@@ -776,6 +939,8 @@ export default class Recorder {
          */
         this.chunker.addRoute(route.to);
         this.frustrationDetector.notifyActivity(atUnixMs);
+        /* A new view: INP is measured per route, not per document. */
+        this.performanceRecorder.noteRouteChange(route.from, route.to);
       },
       requestFullSnapshot: (): void => {
         this.takeFullSnapshot();
@@ -805,9 +970,13 @@ export default class Recorder {
       blockSelectors: this.config.blockSelectors,
       onClick: (atUnixMs: number, _click: SessionReplayClickPayload): void => {
         this.chunker.countSignal("clickCount");
-        this.lastUserActivityUnixMs = atUnixMs;
+        this.noteUserActivity(atUnixMs);
       },
     });
+
+    this.userInputListener = (): void => {
+      this.noteUserActivity(Date.now());
+    };
 
     this.visibilityListener = (): void => {
       const hidden: boolean = this.documentRef.visibilityState === "hidden";
@@ -824,7 +993,7 @@ export default class Recorder {
         atUnixMs: Date.now(),
       };
 
-      this.emitCustomEvent(SessionReplayCustomEventTag.Visibility, visibility);
+      this.emitVisibility(visibility);
 
       if (hidden) {
         this.onHidden();
@@ -908,6 +1077,7 @@ export default class Recorder {
   }
 
   private readonly visibilityListener: () => void;
+  private readonly userInputListener: () => void;
   private readonly pageHideListener: (event: PageTransitionEvent) => void;
   private readonly pageShowListener: (event: PageTransitionEvent) => void;
   private readonly focusInListener: (event: Event) => void;
@@ -1070,6 +1240,19 @@ export default class Recorder {
       capture: true,
       passive: true,
     });
+
+    /*
+     * Passive and capture-phase: the recorder only notes THAT the user did
+     * something, never what, and must never be the listener that delays a
+     * scroll or a keystroke on the customer's page.
+     */
+    for (const type of USER_INPUT_EVENTS) {
+      this.documentRef.addEventListener(type, this.userInputListener, {
+        capture: true,
+        passive: true,
+      });
+    }
+
     this.windowRef.addEventListener("online", this.onlineListener);
     this.windowRef.addEventListener("offline", this.offlineListener);
 
@@ -1469,8 +1652,13 @@ export default class Recorder {
        * chunk behind the seal, so the event goes nowhere. Counted, so that
        * if the page ever comes back (a bfcache restore, which records on as
        * a new tab) the next chunk discloses the loss rather than hiding it.
+       *
+       * Not after an idle seal: nothing is lost there. The session is over,
+       * and the next one opens on a snapshot of its own.
        */
-      this.droppedEvents++;
+      if (!this.sealedForIdle) {
+        this.droppedEvents++;
+      }
     } else if (this.uploading) {
       this.chunker.add(buffered);
 
@@ -1658,16 +1846,24 @@ export default class Recorder {
     }
 
     /*
-     * Every incremental source EXCEPT mutation is the end user doing
-     * something: moving the mouse, clicking, scrolling, typing, touching,
-     * using a media control. Mutation is excluded deliberately - a page with
-     * a carousel or a polling widget mutates forever with nobody at the
-     * keyboard, and counting that as activity is what would re-create the
-     * "idle rollover never fires" bug in a subtler form.
+     * Only the sources a person produces (USER_INPUT_SOURCES). Mutation is
+     * the clearest case of the rest - a page with a carousel or a polling
+     * widget mutates forever with nobody at the keyboard - but a scroll,
+     * an input value, a style change or a canvas frame can all come from
+     * the page alone too, and counting them kept the idle clocks from ever
+     * running. Keys, the wheel and touches reach noteUserActivity through
+     * USER_INPUT_EVENTS instead.
      */
-    if (event.data["source"] !== SOURCE_MUTATION) {
-      this.lastUserActivityUnixMs =
-        typeof event.timestamp === "number" ? event.timestamp : Date.now();
+    const source: unknown = event.data["source"];
+
+    if (typeof source === "number" && USER_INPUT_SOURCES.has(source)) {
+      this.noteUserActivity(
+        typeof event.timestamp === "number" ? event.timestamp : Date.now(),
+      );
+      return;
+    }
+
+    if (source !== SOURCE_MUTATION) {
       return;
     }
 
@@ -1679,6 +1875,290 @@ export default class Recorder {
     this.frustrationDetector.notifyActivity(
       typeof event.timestamp === "number" ? event.timestamp : Date.now(),
     );
+  }
+
+  /*
+   * The end user did something: the idle rollover's clock, and on a tab the
+   * rollover sealed, the cue to start the next session.
+   *
+   * It can also be the first thing after a session that has ALREADY gone
+   * idle without the flush tick noticing yet - the user back within one
+   * tick of the window closing, or a laptop woken from sleep whose mouse
+   * moved before its timers caught up. That activity is the next session's.
+   * The expired one is sealed here, at the activity before, so neither this
+   * event nor the absence before it lands in the session that ended.
+   */
+  private noteUserActivity(atUnixMs: number): void {
+    const previousUnixMs: number = this.lastUserActivityUnixMs;
+
+    /*
+     * Never backwards. The click recorder dates a click when it sees it,
+     * and rrweb then reports the same click - and batches mouse moves - with
+     * timestamps that can be a little earlier.
+     */
+    if (atUnixMs > previousUnixMs) {
+      this.lastUserActivityUnixMs = atUnixMs;
+
+      if (
+        !this.sealedForIdle &&
+        this.started &&
+        !this.stopped &&
+        previousUnixMs > 0 &&
+        atUnixMs - previousUnixMs >= SESSION_REPLAY_IDLE_ROLLOVER_MS &&
+        SessionId.isActivityAfterIdleExpiry(atUnixMs)
+      ) {
+        this.sealForIdle(previousUnixMs);
+      }
+    }
+
+    if (this.sealedForIdle) {
+      this.scheduleWakeFromIdle();
+    } else if (this.pausedForIdle) {
+      this.scheduleResumeFromIdlePause();
+    }
+  }
+
+  /*
+   * Deferred a tick, like the wake from an idle seal: resuming takes a full
+   * snapshot, and the input that asked for it is still being dispatched -
+   * the page's own handlers run first, so the snapshot shows what that
+   * input did. Coalesced: the mouse coming back is dozens of events.
+   */
+  private scheduleResumeFromIdlePause(): void {
+    if (this.resumeFromIdlePauseScheduled) {
+      return;
+    }
+
+    this.resumeFromIdlePauseScheduled = true;
+
+    setTimeout((): void => {
+      this.resumeFromIdlePauseScheduled = false;
+      this.resumeFromIdlePause();
+    }, 0);
+  }
+
+  /*
+   * Stop capturing: nobody has touched the page for the pause window.
+   *
+   * In this order. The page's web vitals as a hidden tab would report them,
+   * then the idle-paused marker - both while rrweb can still put them in
+   * the stream - then the open chunk goes out through the ordinary path
+   * (the page is alive), and only then does rrweb stop. So the last thing
+   * the recording holds before the stretch nobody recorded says so, and
+   * the session ends there if the user never comes back: every seal dates
+   * itself no later than the footage (getRecordingEndUnixMs).
+   *
+   * A recorder holding its pre-roll in memory has nothing to mark and
+   * nothing to send; its buffer is dropped instead, because a trigger once
+   * the user is back must not upload minutes-old footage in front of a
+   * snapshot taken after an unrecorded gap.
+   */
+  private maybePauseForIdle(nowUnixMs: number): void {
+    if (this.pausedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    if (
+      this.lastUserActivityUnixMs <= 0 ||
+      nowUnixMs - this.lastUserActivityUnixMs < SESSION_REPLAY_IDLE_PAUSE_MS
+    ) {
+      return;
+    }
+
+    const idleSinceUnixMs: number = this.lastUserActivityUnixMs;
+    const canMark: boolean =
+      this.uploading && !this.hasSentFinalChunk && !this.sealedForIdle;
+
+    if (canMark) {
+      this.performanceRecorder.finaliseVitalsNow();
+
+      const paused: SessionReplayIdlePausedPayload = {
+        idleSinceUnixMs: idleSinceUnixMs,
+        pausedAtUnixMs: nowUnixMs,
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.IdlePaused, paused);
+      this.chunker.close(false);
+    }
+
+    this.pausedForIdle = true;
+    this.idlePausedAtUnixMs = nowUnixMs;
+    this.idlePauseMarkerSent = canMark;
+    this.buffer.clear();
+    this.pendingCustomEvents = [];
+    this.stopObservingPage();
+
+    debugLog(
+      "recording-paused-idle",
+      "Nobody has touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch.",
+      {
+        sessionId: this.identity.sessionId,
+        idleForMs: Math.max(0, nowUnixMs - idleSinceUnixMs),
+      },
+    );
+  }
+
+  /*
+   * The user is back inside the idle window: the same session, the same
+   * tab, the next chunk index, opening on a fresh snapshot - rrweb starting
+   * takes one - with the idle-resumed marker straight behind it, so the
+   * player can tell the stretch it skips from footage in which nothing
+   * happened.
+   *
+   * Not on a tab sealed for idle: there the session ended, and the wake
+   * (wakeFromIdle) starts the next one, through switchSession, which
+   * resumes capture itself.
+   */
+  private resumeFromIdlePause(): void {
+    if (!this.pausedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    if (this.sealedForIdle) {
+      return;
+    }
+
+    const nowUnixMs: number = Date.now();
+    const pausedAtUnixMs: number = this.idlePausedAtUnixMs;
+    const owesResumeMarker: boolean = this.idlePauseMarkerSent;
+
+    this.resumeObservingPage();
+
+    if (owesResumeMarker && this.uploading && !this.hasSentFinalChunk) {
+      const resumed: SessionReplayIdleResumedPayload = {
+        pausedAtUnixMs: pausedAtUnixMs,
+        resumedAtUnixMs: Math.max(pausedAtUnixMs, nowUnixMs),
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.IdleResumed, resumed);
+
+      /*
+       * Input only reaches a visible page, so a stream that last said
+       * "hidden" is told otherwise here rather than at the next tab switch.
+       */
+      if (this.lastRecordedVisibility === "hidden" && !this.isHidden) {
+        this.emitVisibility({ state: "visible", atUnixMs: nowUnixMs });
+      }
+    }
+
+    debugLog("recording-resumed", "The user is back; recording resumed.", {
+      sessionId: this.identity.sessionId,
+      pausedForMs: Math.max(0, nowUnixMs - pausedAtUnixMs),
+    });
+  }
+
+  /*
+   * rrweb off and on. Stopping it is the point of the pause - an
+   * unattended tab whose page mutates on its own otherwise pays for every
+   * mutation and for a full serialisation every minute, for nothing - and
+   * starting it again takes the full snapshot the next footage opens on.
+   */
+  private stopObservingPage(): void {
+    if (!this.stopRrweb) {
+      return;
+    }
+
+    try {
+      this.stopRrweb();
+    } catch {
+      /* rrweb's teardown must not throw into the host page. */
+    }
+
+    this.stopRrweb = null;
+  }
+
+  /*
+   * Returns true when it started rrweb - and so already took the snapshot
+   * a caller opening a new recording would otherwise ask for.
+   */
+  private resumeObservingPage(): boolean {
+    if (!this.pausedForIdle) {
+      return false;
+    }
+
+    this.pausedForIdle = false;
+    this.idlePauseMarkerSent = false;
+
+    if (this.stopRrweb) {
+      return false;
+    }
+
+    this.startRrweb();
+
+    return this.stopRrweb !== null;
+  }
+
+  /*
+   * Every visibility marker goes through here, so the resume knows what the
+   * stream last said.
+   */
+  private emitVisibility(visibility: SessionReplayVisibilityPayload): void {
+    if (this.pausedForIdle || this.stopped) {
+      return;
+    }
+
+    this.lastRecordedVisibility = visibility.state;
+    this.emitCustomEvent(SessionReplayCustomEventTag.Visibility, visibility);
+  }
+
+  /*
+   * Deferred a tick rather than run here: activity is reported from inside
+   * rrweb's emit callback, and starting a session takes a full snapshot,
+   * which must not re-enter rrweb from within its own emit. The event that
+   * woke the tab is not lost to anything that matters - it happened before
+   * the new session's first snapshot, so that snapshot shows its result.
+   */
+  private scheduleWakeFromIdle(): void {
+    if (this.wakeFromIdleScheduled) {
+      return;
+    }
+
+    this.wakeFromIdleScheduled = true;
+
+    setTimeout((): void => {
+      this.wakeFromIdleScheduled = false;
+      this.wakeFromIdle();
+    }, 0);
+  }
+
+  /*
+   * Start the next session on a tab the idle rollover sealed.
+   *
+   * Through maybeRotateSession, told the user is back: storage holds either
+   * the session this tab sealed, which is idle and rotates, or one a sibling
+   * tab already started, which is adopted - so one browser does not mint two
+   * sessions for one return. Should storage instead hold this tab's own id
+   * as a LIVE session (a sibling still running an older recorder touched it
+   * after the seal), this tab's part of it is sealed and stays sealed, so it
+   * records on as a new tab, as a page restored from the back/forward cache
+   * does.
+   */
+  private wakeFromIdle(): void {
+    if (!this.sealedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    const now: number = Date.now();
+
+    this.maybeRotateSession(now, true);
+
+    if (!this.sealedForIdle || this.consent.isRevoked()) {
+      return;
+    }
+
+    if (SessionId.readStoredSessionId() !== this.identity.sessionId) {
+      return;
+    }
+
+    const tabId: string = SessionId.rotateTabId();
+
+    SessionId.resetChunkIndex(tabId);
+
+    this.identity = { ...this.identity, tabId: tabId };
+    this.customEventsInChunk = 0;
+    this.customEventsDroppedInChunk = 0;
+
+    this.recordOnInSameSession(now);
   }
 
   private onFrustrationSignal(signal: FrustrationSignal): void {
@@ -1706,6 +2186,17 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Nobody is at the page. A background poll's 5xx or a long task on an
+     * unattended tab says nothing about what the user went through, and
+     * labelling the session with it - or starting an upload of footage
+     * that ended minutes before it - would. A person asking (Manual) still
+     * counts; captureSession() resumes capture before it gets here.
+     */
+    if (this.pausedForIdle && reason !== SessionReplayTriggerReason.Manual) {
+      return;
+    }
+
     if (this.triggerReason === null) {
       this.triggerReason = reason;
 
@@ -1721,6 +2212,16 @@ export default class Recorder {
 
   private startUploadingIfAllowed(): void {
     if (this.uploading || this.triggerReason === null) {
+      return;
+    }
+
+    /*
+     * The only id this tab holds is the session that ended. A trigger on an
+     * abandoned tab - an error a background poll threw - starts nothing;
+     * the next session begins uploading when the user comes back, and
+     * switchSession forgets the trigger along with the rest of the old one.
+     */
+    if (this.sealedForIdle) {
       return;
     }
 
@@ -1803,11 +2304,23 @@ export default class Recorder {
        * Rotation already sealed the outgoing session with a final chunk and
        * opened a new one. Closing again here would emit an empty chunk into
        * a session that is one event old.
+       *
+       * Or it sealed the session as idle, and the tab waits for the user -
+       * which it must do without observing the page: a tab whose timers
+       * were frozen (a laptop asleep) reaches the idle seal without having
+       * paused first.
        */
+      this.maybePauseForIdle(now);
       return;
     }
 
-    if (!this.uploading) {
+    /*
+     * Closes the open chunk itself when it pauses, so what follows has
+     * nothing left to flush.
+     */
+    this.maybePauseForIdle(now);
+
+    if (!this.uploading || this.pausedForIdle) {
       return;
     }
 
@@ -1848,6 +2361,22 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Activity the stored session had already gone idle before belongs to
+     * the NEXT session. Written through, it revived the expired one - the
+     * rotation that runs straight after this in the same tick then read
+     * fresh activity and kept the session going, with the whole absence
+     * (a lunch break, a night with the laptop shut) as a dead zone in the
+     * middle of it. Left unwritten, that rotation sees the expiry and starts
+     * the new session, which writes its own activity.
+     */
+    if (
+      this.sealedForIdle ||
+      SessionId.isActivityAfterIdleExpiry(this.lastUserActivityUnixMs)
+    ) {
+      return;
+    }
+
     SessionId.touch(this.lastUserActivityUnixMs);
     this.lastTouchedUnixMs = this.lastUserActivityUnixMs;
   }
@@ -1858,9 +2387,16 @@ export default class Recorder {
    * Both decisions live in Common/Utils/Rum/SessionIdentity, but until now
    * they were only ever consulted at construction and on a bfcache restore,
    * so neither could fire in a tab that simply stayed open. Returns true when
-   * the session was rotated.
+   * the session was rotated - or sealed as idle, which leaves this tab just
+   * as finished with the session it held.
+   *
+   * isUserBack: the caller knows the user is here (wakeFromIdle). An idle
+   * session then rotates at once instead of being sealed to wait for them.
    */
-  private maybeRotateSession(nowUnixMs: number): boolean {
+  private maybeRotateSession(
+    nowUnixMs: number,
+    isUserBack: boolean = false,
+  ): boolean {
     if (this.stopped || !this.started) {
       return false;
     }
@@ -1909,6 +2445,18 @@ export default class Recorder {
       storedSessionId !== null &&
       storedSessionId !== this.identity.sessionId
     ) {
+      /*
+       * A sibling moved the session on while nobody is at THIS tab. Its
+       * part of the old session ends - where its footage ended - and it
+       * waits, as an idle-sealed tab does: adopting now would start
+       * recording the new session on a page nobody is looking at. The
+       * user's return here adopts it (wakeFromIdle).
+       */
+      if (this.pausedForIdle && !isUserBack) {
+        this.sealForIdle(this.getRecordingEndUnixMs(nowUnixMs));
+        return true;
+      }
+
       this.sealCurrentSession();
 
       const adopted: SessionIdentityState | null = SessionId.syncWithStorage(
@@ -1929,9 +2477,56 @@ export default class Recorder {
       return false;
     }
 
+    /*
+     * Idle, and nobody has come back: the session ENDED, at its last
+     * activity. It is sealed there and this tab waits for the user rather
+     * than starting a session nobody is in (see sealedForIdle). A user who
+     * is already back - activity this tab saw after the session expired,
+     * such as the first mouse move after a laptop wakes - starts the next
+     * one now.
+     */
+    if (
+      decision.reason === SessionRotationReason.Idle &&
+      !isUserBack &&
+      !SessionId.isActivityAfterIdleExpiry(this.lastUserActivityUnixMs)
+    ) {
+      this.sealForIdle(this.lastUserActivityUnixMs);
+      return true;
+    }
+
+    /*
+     * Any other rollover - the duration cap, a store that lost the
+     * session - on a tab paused for idle: the same as above. The session
+     * ends at its footage and the next one waits for someone to be in it.
+     */
+    if (this.pausedForIdle && !isUserBack) {
+      this.sealForIdle(this.getRecordingEndUnixMs(nowUnixMs));
+      return true;
+    }
+
     this.rotateSession(nowUnixMs, decision.reason);
 
     return true;
+  }
+
+  /*
+   * End this tab's session as idle: sealed at the moment the user left, and
+   * the tab left waiting for them (see sealedForIdle).
+   */
+  private sealForIdle(endedAtUnixMs: number): void {
+    if (!this.sealedForIdle) {
+      debugLog(
+        "session-ended-idle",
+        "Nothing happened for the idle window, so the session ended at the last activity. The next one starts when the user comes back.",
+        {
+          sessionId: this.identity.sessionId,
+          idleForMs: Math.max(0, Date.now() - endedAtUnixMs),
+        },
+      );
+    }
+
+    this.sealedForIdle = true;
+    this.sealCurrentSession(endedAtUnixMs);
   }
 
   /*
@@ -2028,7 +2623,7 @@ export default class Recorder {
    * ORDINARY send, not the keepalive one: the page is alive, and the
    * keepalive path can only carry 56 KB.
    */
-  private sealCurrentSession(): void {
+  private sealCurrentSession(endedAtUnixMs?: number): void {
     if (!this.uploading || this.hasSentFinalChunk) {
       return;
     }
@@ -2039,10 +2634,44 @@ export default class Recorder {
      * still cannot seal twice.
      */
     try {
-      this.chunker.close(true);
+      this.chunker.close(
+        true,
+        endedAtUnixMs === undefined
+          ? this.getRecordingEndUnixMs(Date.now())
+          : endedAtUnixMs,
+      );
     } finally {
       this.hasSentFinalChunk = true;
     }
+  }
+
+  /*
+   * When this tab's part of the session really ended, for a seal: now -
+   * unless the user has been gone for the whole idle window, and then the
+   * moment they left. A seal that late is the recorder noticing the
+   * absence, not anything the user did, and the seal's time is the
+   * session's end: dated now, every abandoned session was listed as half an
+   * hour longer than anything the player could show (#4207). Between the
+   * two (someone reading without touching anything) the page was in front
+   * of them, so the seal stays at now.
+   *
+   * And while paused for idle, at the last activity too, whenever the seal
+   * comes - the tab closed, stop() called, the window running out: nothing
+   * was recorded after the pause, so nothing after it may be counted. The
+   * chunker never dates a seal before the chunk ahead of it, so in practice
+   * that is the idle-paused marker, where the footage ends.
+   */
+  private getRecordingEndUnixMs(nowUnixMs: number): number {
+    if (
+      this.lastUserActivityUnixMs > 0 &&
+      (this.pausedForIdle ||
+        nowUnixMs - this.lastUserActivityUnixMs >=
+          SESSION_REPLAY_IDLE_ROLLOVER_MS)
+    ) {
+      return Math.min(this.lastUserActivityUnixMs, nowUnixMs);
+    }
+
+    return nowUnixMs;
   }
 
   /*
@@ -2071,11 +2700,15 @@ export default class Recorder {
     this.uploading = false;
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
+    this.sealedForIdle = false;
+    /* A new stream: nothing in it has said hidden yet. */
+    this.lastRecordedVisibility = null;
     this.droppedEvents = 0;
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
 
     this.identity = next;
+    this.adoptSessionUser();
     this.chunker = this.createChunker();
     this.detectFidelityNotices();
 
@@ -2130,8 +2763,14 @@ export default class Recorder {
      * drains it, and it is only a seek anchor if the snapshot leads. The
      * old order (marker, trigger, snapshot) shipped a one-event chunk 0 with
      * no DOM in it for every rotated session.
+     *
+     * A tab paused for idle starts observing the page again here - this
+     * runs because the user is back - and rrweb starting takes that
+     * snapshot itself.
      */
-    this.takeFullSnapshot();
+    if (!this.resumeObservingPage()) {
+      this.takeFullSnapshot();
+    }
 
     const rotated: SessionReplaySessionRotatedPayload = {
       previousSessionId: previousSessionId,
@@ -2253,13 +2892,19 @@ export default class Recorder {
     let split: SplitCloseResult = { emptiedSealEvents: 0, emptiedSealBytes: 0 };
 
     try {
+      /*
+       * Now, unless the recorder is paused for idle: then the seal is dated
+       * at the footage, not at the moment the page finally went away.
+       */
+      const endedAtUnixMs: number = this.getRecordingEndUnixMs(Date.now());
+
       if (this.transport.isOffline()) {
         /*
          * Offline mode: nothing is posted, the transport stores it, so there
          * is no keepalive request to fit and no reason to drop the oldest
          * events. The open chunk is closed whole.
          */
-        this.chunker.close(isFinal);
+        this.chunker.close(isFinal, endedAtUnixMs);
       } else {
         /*
          * Per PIECE and in TOTAL: the browser counts the keepalive quota
@@ -2276,6 +2921,7 @@ export default class Recorder {
           KEEPALIVE_PAYLOAD_BUDGET_BYTES,
           KEEPALIVE_PAYLOAD_BUDGET_BYTES,
           KEEPALIVE_FRAME_OVERHEAD_BYTES,
+          endedAtUnixMs,
         );
       }
     } finally {
@@ -2339,6 +2985,37 @@ export default class Recorder {
     if (chunks.length > 0) {
       this.transport.sendTerminal(chunks);
     }
+  }
+
+  /*
+   * The same session, a new tab - the tab id and its counter already
+   * changed by the caller. switchSession does all of this for a rotated
+   * session; here the chunker is kept (its session start, and the fidelity
+   * notices that still describe this page) and only its sequence starts
+   * over with the index.
+   */
+  private recordOnInSameSession(nowUnixMs: number): void {
+    this.hasSentFinalChunk = false;
+    this.sealedForIdle = false;
+    this.lastRecordedVisibility = null;
+    this.chunker.beginNewTab();
+
+    /*
+     * Where THIS tab began, like any page load: chunk 0 carries it as
+     * meta.entryUrl, and routes[] starts with it.
+     */
+    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+    this.chunker.addRoute(this.entryUrl);
+
+    /* Returning is activity; written through on the next tick. */
+    this.lastUserActivityUnixMs = nowUnixMs;
+
+    /* Paused for idle until now: rrweb starting takes the snapshot. */
+    if (!this.resumeObservingPage()) {
+      this.takeFullSnapshot();
+    }
+
+    this.notifySessionChange();
   }
 
   /*
@@ -2413,32 +3090,15 @@ export default class Recorder {
      * recording - and this used to STOP the recorder for the rest of the
      * page's life, so a user coming Back after lunch got no recording at
      * all. Now it rotates (or adopts a sibling tab's session) exactly as the
-     * flush timer would, onto the new tab id.
+     * flush timer would, onto the new tab id. Coming back IS the user
+     * returning, so an idle session rotates here rather than being sealed
+     * to wait for them.
      */
-    const rotated: boolean = this.maybeRotateSession(now);
+    const rotated: boolean = this.maybeRotateSession(now, true);
 
     if (!rotated) {
-      /*
-       * 4. The same session, a new tab. switchSession did all of this for a
-       * rotated one; here the chunker is kept (its session start, and the
-       * fidelity notices that still describe this page) and only its
-       * sequence starts over with the index.
-       */
-      this.hasSentFinalChunk = false;
-      this.chunker.beginNewTab();
-
-      /*
-       * Where THIS tab began, like any page load: chunk 0 carries it as
-       * meta.entryUrl, and routes[] starts with it.
-       */
-      this.entryUrl = this.scrubUrl(this.windowRef.location.href);
-      this.chunker.addRoute(this.entryUrl);
-
-      /* Returning is activity; written through on the next tick. */
-      this.lastUserActivityUnixMs = now;
-
-      this.takeFullSnapshot();
-      this.notifySessionChange();
+      /* 4. */
+      this.recordOnInSameSession(now);
     }
 
     this.chunker.addFidelityNotice(SessionReplayFidelityNotice.BfcacheRestore);
@@ -2731,15 +3391,31 @@ export default class Recorder {
      * Only sent when the application has user-identity capture switched on.
      * Otherwise the server never receives the raw reference at all, so there
      * is nothing to leak from the wider session-metadata ACL.
+     *
+     * The SESSION's user, not just this page's: a page that never called
+     * identify() - the login page a sign-in redirect lands on, a link
+     * opened in a new tab - still names the person an earlier page of the
+     * same session identified (#4206).
      */
-    if (this.config.captureUserIdentity && this.userRef) {
-      meta.identifiedUserRef = this.userRef;
+    const sessionUserRef: string | null = this.config.captureUserIdentity
+      ? this.getSessionUserRef()
+      : null;
+
+    if (sessionUserRef) {
+      meta.identifiedUserRef = sessionUserRef;
 
       /*
        * Traits describe the identified person, so they follow the same
        * switch as the reference itself and never leave the page without it.
+       * Only this page's own, which describe the user this page named; a
+       * page that inherited the user sends none, and the server keeps the
+       * traits the identifying page sent.
        */
-      if (this.traits && Object.keys(this.traits).length > 0) {
+      if (
+        this.userRef !== null &&
+        this.traits &&
+        Object.keys(this.traits).length > 0
+      ) {
         meta.identifiedUserTraits = { ...this.traits };
       }
     }
@@ -2766,6 +3442,16 @@ export default class Recorder {
 
   private emitCustomEvent(tag: string, payload: unknown): void {
     if (this.stopped) {
+      return;
+    }
+
+    /*
+     * Dropped, not queued: nothing is recorded while paused for idle, and
+     * a marker held until the resume would be stamped then - a request or
+     * a tab switch from twenty minutes earlier, drawn after the user came
+     * back.
+     */
+    if (this.pausedForIdle) {
       return;
     }
 
@@ -2965,9 +3651,15 @@ export default class Recorder {
   }
 
   /*
-   * A cross-origin stylesheet throws on cssRules, so rrweb keeps the <link
-   * href> and the player's CSP refuses to load it. Detected here so the
-   * viewer gets a banner rather than an unstyled replay they assume is real.
+   * A cross-origin stylesheet served without CORS throws on cssRules, so
+   * rrweb cannot inline it and keeps only its <link href>. The player
+   * loads it from that address (REPLAY_DOCUMENT_CSP in the Dashboard's
+   * ReplayStage.tsx lets it through), which works only while the address
+   * still answers the viewer's browser - it may need the end user's
+   * sign-in, refuse other origins, or be gone by then. The notice is raised
+   * anyway, because the sheet itself is not in the recording: a viewer
+   * looking at an unstyled region learns why from a capture note instead of
+   * taking it for what the user saw.
    */
   private static hasInaccessibleStylesheet(documentRef: Document): boolean {
     const sheets: StyleSheetList = documentRef.styleSheets;
@@ -3091,9 +3783,17 @@ export default class Recorder {
        * would build.
        */
       this.identity = SessionId.resolveSession(Date.now(), this.identity.tabId);
+      this.adoptSessionUser();
       this.chunker = this.createChunker();
       this.detectFidelityNotices();
     }
+
+    /*
+     * Under RequireExplicit an identify() made before the banner was
+     * answered was kept in memory only (rememberSessionUser); this is the
+     * moment the other pages of the session may learn whose it is.
+     */
+    this.rememberSessionUser();
 
     this.startUploadingIfAllowed();
 
@@ -3139,6 +3839,16 @@ export default class Recorder {
     this.uploading = false;
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
+
+    /* No session is left to have ended idle; a grant starts a fresh one. */
+    this.sealedForIdle = false;
+
+    /*
+     * Nor one that owes the matching resume marker: the stream that held
+     * the pause marker was just withdrawn. Still paused, if it was - the
+     * next input resumes capture into the ring buffer, as ever.
+     */
+    this.idlePauseMarkerSent = false;
   }
 
   /*
@@ -3153,16 +3863,54 @@ export default class Recorder {
     userRef: string,
     traits?: Record<string, string | number | boolean>,
   ): void {
-    if (typeof userRef !== "string" || !userRef) {
+    if (typeof userRef !== "string" || !userRef.trim()) {
       return;
     }
 
-    this.userRef = userRef;
+    /*
+     * Traits describe one person. Calling identify() again for the same
+     * person without traits keeps the ones already given; naming someone
+     * else without traits must not leave the previous person's attached
+     * to them.
+     */
+    const isSamePersonAsPage: boolean =
+      this.userRef !== null &&
+      SessionIdentity.isSameUserRef(this.userRef, userRef);
 
-    if (traits !== undefined) {
-      this.traits = this.maskStringMap(
-        sanitizeSessionReplayStringMap(traits, TRAIT_LIMITS),
-      );
+    const nextTraits: Record<string, string> | null =
+      traits !== undefined
+        ? this.maskStringMap(
+            sanitizeSessionReplayStringMap(traits, TRAIT_LIMITS),
+          )
+        : isSamePersonAsPage
+          ? this.traits
+          : null;
+
+    /*
+     * Whose the session is decides what this call does (#4206). An
+     * anonymous session becomes this user's, from its start - the pages
+     * before the sign-in are part of the same visit. A session that
+     * already belongs to someone else - one person signed out and another
+     * signed in, in this tab or in another tab of the same session - ends,
+     * and this user's activity starts a session of its own: a recording
+     * is one person's. Only with identity capture on, because with it off
+     * the reference never leaves the page and the server could not tell
+     * the two people apart anyway.
+     */
+    const decision: SessionIdentifyDecision = this.config.captureUserIdentity
+      ? SessionIdentity.decideIdentify(this.getSessionUserRef(), userRef)
+      : SessionIdentifyDecision.Attach;
+
+    if (
+      decision === SessionIdentifyDecision.SwitchUser &&
+      !this.stopped &&
+      !this.consent.isRevoked()
+    ) {
+      this.startSessionForNewUser(userRef, nextTraits);
+    } else {
+      this.userRef = userRef;
+      this.traits = nextTraits;
+      this.rememberSessionUser();
     }
 
     this.metaDirty = true;
@@ -3172,6 +3920,170 @@ export default class Recorder {
     };
 
     this.emitCustomEvent(SessionReplayCustomEventTag.Identify, marker);
+  }
+
+  /*
+   * Who the current session belongs to: the user this page named, or else
+   * the one an earlier page or another tab of the same session stored for
+   * it, or null. Read from storage every time rather than cached, so a
+   * sibling tab's identification is seen on this tab's very next chunk.
+   * Nothing is read with identity capture off (nothing is ever stored
+   * then) or while consent is withdrawn (the record was cleared with the
+   * session).
+   */
+  private getSessionUserRef(): string | null {
+    if (this.userRef !== null) {
+      return this.userRef;
+    }
+
+    if (!this.config.captureUserIdentity || this.consent.isRevoked()) {
+      return null;
+    }
+
+    return SessionId.readStoredUserRef(this.identity.sessionId);
+  }
+
+  /*
+   * Remember for every page and tab of this session that it is this
+   * page's user's. Not with identity capture off, not after stop(), and
+   * only while uploading is allowed: never while consent is withdrawn
+   * (nothing is written to the visitor's storage then), and under
+   * RequireExplicit not before the grant - the reference is a person's,
+   * unlike the random ids, and the page has not been told it may record
+   * them yet. grantConsent() writes it then.
+   */
+  private rememberSessionUser(): void {
+    if (
+      this.userRef === null ||
+      !this.config.captureUserIdentity ||
+      !this.consent.isUploadAllowed() ||
+      this.stopped
+    ) {
+      return;
+    }
+
+    SessionId.writeStoredUserRef(this.identity.sessionId, this.userRef);
+  }
+
+  /*
+   * This tab just moved onto a session (switchSession, a pre-start grant).
+   * If that session already belongs to someone - another tab identified
+   * it, or signed a different user in and started it - that is whose it
+   * is: the other tab's word is the newer one, and this page's own
+   * reference (and the traits describing that person) stop applying here.
+   * If nobody has identified it, this page's own user is carried into it.
+   */
+  private adoptSessionUser(): void {
+    if (!this.config.captureUserIdentity) {
+      return;
+    }
+
+    const storedUserRef: string | null = SessionId.readStoredUserRef(
+      this.identity.sessionId,
+    );
+
+    if (storedUserRef === null) {
+      this.rememberSessionUser();
+      return;
+    }
+
+    if (
+      this.userRef !== null &&
+      !SessionIdentity.isSameUserRef(this.userRef, storedUserRef)
+    ) {
+      this.userRef = null;
+      this.traits = null;
+    }
+  }
+
+  /*
+   * The userRef init option is an identify() made at load time, before
+   * anything has been recorded: if the session this page resolved belongs
+   * to someone else, the page joins a new session instead (nothing to
+   * seal - this tab has not recorded a thing under the old one).
+   */
+  private applyLoadTimeUserRef(nowUnixMs: number): void {
+    if (this.userRef === null || !this.config.captureUserIdentity) {
+      return;
+    }
+
+    if (
+      SessionIdentity.decideIdentify(
+        SessionId.readStoredUserRef(this.identity.sessionId),
+        this.userRef,
+      ) === SessionIdentifyDecision.SwitchUser
+    ) {
+      this.identity = SessionId.startNewSession({
+        nowUnixMs: nowUnixMs,
+        tabId: this.identity.tabId,
+        previousSessionId: this.identity.sessionId,
+        rotationReason: SessionRotationReason.IdentityChange,
+      });
+    }
+
+    this.rememberSessionUser();
+  }
+
+  /*
+   * A different user signed in: the session that belonged to the previous
+   * one ends here, under their name, and a new one starts for this user.
+   *
+   * The outgoing session is sealed BEFORE the reference changes, because
+   * meta rides the final chunk and the header keeps the person it names:
+   * sealed after, the previous user's recording would end filed under the
+   * new user. Whatever is still in the ring buffer (a session that had not
+   * started uploading) is the previous person's footage and is dropped by
+   * switchSession rather than carried over.
+   *
+   * Every other tab of the session adopts the new id on its next tick or
+   * storage event, and with it the new user (adoptSessionUser).
+   */
+  private startSessionForNewUser(
+    userRef: string,
+    traits: Record<string, string> | null,
+  ): void {
+    const now: number = Date.now();
+    const previousSessionId: string = this.identity.sessionId;
+
+    if (this.started) {
+      this.sealCurrentSession();
+    }
+
+    this.userRef = userRef;
+    this.traits = traits;
+
+    const next: SessionIdentityState = SessionId.startNewSession({
+      nowUnixMs: now,
+      tabId: this.identity.tabId,
+      previousSessionId: previousSessionId,
+      rotationReason: SessionRotationReason.IdentityChange,
+    });
+
+    if (this.started) {
+      this.switchSession(now, next, SessionRotationReason.IdentityChange);
+      return;
+    }
+
+    /*
+     * Not started yet - a queued identify() applied before start(). Nothing
+     * has been recorded or sealed, so the recorder simply begins on the
+     * new session, with a chunker bound to its start, as grantConsent()'s
+     * pre-start branch does.
+     */
+    this.identity = next;
+    this.rememberSessionUser();
+    this.chunker = this.createChunker();
+    this.detectFidelityNotices();
+
+    debugLog(
+      "session-rotated",
+      "The session rolled over; a new recording starts here.",
+      {
+        previousSessionId: previousSessionId,
+        sessionId: this.identity.sessionId,
+        rotationReason: SessionRotationReason.IdentityChange,
+      },
+    );
   }
 
   public hasTraits(): boolean {
@@ -3189,6 +4101,15 @@ export default class Recorder {
     properties?: Record<string, string | number | boolean>,
   ): void {
     if (this.stopped || typeof name !== "string" || !name.trim()) {
+      return;
+    }
+
+    /*
+     * Nothing is recorded while paused for idle, and that includes a
+     * business event the page raises in the background: counted here it
+     * would be a number on the session with no row behind it.
+     */
+    if (this.pausedForIdle) {
       return;
     }
 
@@ -3228,6 +4149,23 @@ export default class Recorder {
    * moment it was asked for.
    */
   public captureSession(reason?: string): void {
+    /*
+     * An explicit ask for a recording, on a tab whose session ended idle,
+     * starts the next session first - so the marker below lands in it
+     * rather than behind the seal of the one that ended.
+     */
+    if (this.sealedForIdle) {
+      this.wakeFromIdle();
+    } else if (this.pausedForIdle) {
+      /*
+       * Likewise on a tab paused for idle: the page asked for this moment
+       * to be recorded, so capture resumes - on a snapshot of what is on
+       * screen now - and the marker lands in it. Not user activity, so the
+       * next tick pauses again unless someone is actually there.
+       */
+      this.resumeFromIdlePause();
+    }
+
     if (typeof reason === "string" && reason.trim()) {
       this.track("captureSession", {
         reason: reason
@@ -3354,7 +4292,15 @@ export default class Recorder {
       return "not-started";
     }
 
+    if (this.pausedForIdle) {
+      return "paused";
+    }
+
     return this.uploading ? "uploading" : "recording";
+  }
+
+  public isPausedForIdle(): boolean {
+    return this.pausedForIdle;
   }
 
   /*
@@ -3414,7 +4360,7 @@ export default class Recorder {
     if (seal && this.uploading && !this.hasSentFinalChunk) {
       try {
         this.clickRecorder.stop(this.documentRef);
-        this.chunker.close(true);
+        this.chunker.close(true, this.getRecordingEndUnixMs(Date.now()));
       } catch {
         /* Sealing is best effort; the teardown below must still run. */
       } finally {
@@ -3476,6 +4422,11 @@ export default class Recorder {
       this.pageShowListener as EventListener,
     );
     this.documentRef.removeEventListener("focusin", this.focusInListener, true);
+
+    for (const type of USER_INPUT_EVENTS) {
+      this.documentRef.removeEventListener(type, this.userInputListener, true);
+    }
+
     this.windowRef.removeEventListener("online", this.onlineListener);
     this.windowRef.removeEventListener("offline", this.offlineListener);
 

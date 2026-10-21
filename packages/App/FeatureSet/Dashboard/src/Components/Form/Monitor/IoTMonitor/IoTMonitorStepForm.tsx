@@ -32,6 +32,7 @@ import {
   IoTAlertTemplate,
   buildIoTMonitorConfig,
 } from "Common/Types/Monitor/IotAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { IoTMetricDefinition } from "Common/Types/Monitor/IotMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 
@@ -153,6 +154,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: IoTAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const fleetIdentifier: string = monitorStepIoTMonitor.fleetIdentifier;
 
@@ -191,6 +194,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: IoTMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const fleetIdentifier: string = monitorStepIoTMonitor.fleetIdentifier;
@@ -222,11 +227,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderFleetDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="IoT Fleet"
-          description={"Select the IoT fleet to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="IoT Fleet" required={true} />
         <Dropdown
           options={fleetOptions}
           value={fleetOptions.find((option: DropdownOption) => {
@@ -245,9 +246,12 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Filter precedence in the worker (MonitorTelemetryMonitor): deviceId
-   * (raw `device.id` label) wins over everything; scope and deviceType map
-   * to their `iot.scope` / `iot.device.type` attributes independently.
+   * The worker (MonitorTelemetryMonitor.monitorIoT) turns every filter that
+   * is set into its own equality on the datapoints, next to the fleet:
+   * Device ID on the raw `device.id` label, Device Type and Resource Scope on
+   * the `iot.device.type` / `iot.scope` attributes. So a datapoint must match
+   * every filter set. Nothing takes precedence: unlike the Proxmox form's
+   * guest ID, a Device ID does not set the other filters aside.
    */
   const renderResourceFilters: () => ReactElement = (): ReactElement => {
     return (
@@ -284,7 +288,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Device ID"
             description={
-              "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set."
+              "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match."
             }
             required={false}
           />
@@ -337,38 +341,17 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: IoTAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepIoTMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepIoTMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepIoTMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepIoTMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepIoTMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </IoTTemplatePicker>
       </div>
     );
   };
@@ -377,13 +360,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="IoT Metric"
-            description={
-              "Select an IoT metric to monitor. Metrics are organized by category."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="IoT Metric" required={true} />
           <IoTMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: IoTMetricDefinition) => {
@@ -400,7 +377,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -453,7 +430,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={"Select the time range for the IoT monitor."}
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -484,7 +461,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the IoT monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -503,13 +480,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the IoT metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
@@ -524,8 +495,13 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepIoTMonitor,

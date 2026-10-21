@@ -13,7 +13,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -21,13 +20,20 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import NotificationMethodUtil, {
   ColumnValueReader,
   NotificationMethodDisplayItem,
 } from "Common/UI/Utils/NotificationMethodUtil";
+import {
+  translatableTerm,
+  translateNamedAction,
+  translatePlural,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ReadinessCoverageCellWire,
   ReadinessSummaryWire,
@@ -44,6 +50,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -554,7 +561,10 @@ const joinWithAnd: (items: Array<string>) => string = (
     return items[0]!;
   }
 
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+  return translateTemplate("{{items}} and {{last}}", {
+    items: items.slice(0, -1).join(", "),
+    last: items[items.length - 1]!,
+  });
 };
 
 /*
@@ -574,7 +584,9 @@ export const describeOnCallExposure: (exposure: OnCallExposure) => string = (
   }
 
   if (!exposure.isOnCallResponder) {
-    return "You are not currently a responder on any on-call policy in this project.";
+    return translateTemplate(
+      "You are not currently a responder on any on-call policy in this project.",
+    );
   }
 
   const doors: string = joinWithAnd(
@@ -584,10 +596,13 @@ export const describeOnCallExposure: (exposure: OnCallExposure) => string = (
   );
 
   if (!doors) {
-    return "You are an on-call responder in this project.";
+    return translateTemplate("You are an on-call responder in this project.");
   }
 
-  return `You are an on-call responder in this project, reached through ${doors}.`;
+  return translateTemplate(
+    "You are an on-call responder in this project, reached through {{sources}}.",
+    { sources: doors },
+  );
 };
 
 const describeCells: (cells: Array<CoverageCell>) => string = (
@@ -637,23 +652,41 @@ export const describeMethodDeletion: (params: {
 
   if (params.impact.ruleCount === 0) {
     sentences.push(
-      `No notification rules use ${params.methodLabel}, so deleting it does not change how you are paged.`,
+      translateTemplate(
+        "No notification rules use {{methodLabel}}, so deleting it does not change how you are paged.",
+        { methodLabel: params.methodLabel },
+      ),
     );
 
     return sentences.join(" ");
   }
 
   const orphaned: string = describeOrphanedCells(params.impact);
-  const ruleWords: string = `${params.impact.ruleCount} notification ${
-    params.impact.ruleCount === 1 ? "rule" : "rules"
-  }`;
 
   if (orphaned) {
     sentences.push(
-      `Deleting ${params.methodLabel} removes ${ruleWords} and leaves ${orphaned} with no rule.`,
+      translatePlural(
+        {
+          one: "Deleting {{methodLabel}} removes {{count}} notification rule and leaves {{cells}} with no rule.",
+          other:
+            "Deleting {{methodLabel}} removes {{count}} notification rules and leaves {{cells}} with no rule.",
+        },
+        params.impact.ruleCount,
+        { methodLabel: params.methodLabel, cells: orphaned },
+      ),
     );
   } else {
-    sentences.push(`Deleting ${params.methodLabel} removes ${ruleWords}.`);
+    sentences.push(
+      translatePlural(
+        {
+          one: "Deleting {{methodLabel}} removes {{count}} notification rule.",
+          other:
+            "Deleting {{methodLabel}} removes {{count}} notification rules.",
+        },
+        params.impact.ruleCount,
+        { methodLabel: params.methodLabel },
+      ),
+    );
   }
 
   return sentences.join(" ");
@@ -697,9 +730,15 @@ export const describeRuleDeletion: (params: {
 
   if (orphaned) {
     sentences.push(
-      `This is the last rule covering ${orphaned}. Deleting it leaves ${
-        params.impact.orphanedCells.length === 1 ? "that" : "those"
-      } with no rule.`,
+      translatePlural(
+        {
+          one: "This is the last rule covering {{cells}}. Deleting it leaves that with no rule.",
+          other:
+            "This is the last rule covering {{cells}}. Deleting it leaves those with no rule.",
+        },
+        params.impact.orphanedCells.length,
+        { cells: orphaned },
+      ),
     );
 
     return sentences.join(" ");
@@ -709,9 +748,15 @@ export const describeRuleDeletion: (params: {
 
   if (muted) {
     sentences.push(
-      params.impact.mutedCells.length === 1
-        ? `This is the last rule that delivers for ${muted}. The only rule left for it is an opt-out, so nothing will be sent for it once this is gone.`
-        : `This is the last rule that delivers for ${muted}. The only rules left for them are opt-outs, so nothing will be sent for them once this is gone.`,
+      translatePlural(
+        {
+          one: "This is the last rule that delivers for {{cells}}. The only rule left for it is an opt-out, so nothing will be sent for it once this is gone.",
+          other:
+            "This is the last rule that delivers for {{cells}}. The only rules left for them are opt-outs, so nothing will be sent for them once this is gone.",
+        },
+        params.impact.mutedCells.length,
+        { cells: muted },
+      ),
     );
 
     return sentences.join(" ");
@@ -719,14 +764,18 @@ export const describeRuleDeletion: (params: {
 
   if (params.impact.ruleCount === 0) {
     sentences.push(
-      "We could not match this rule to your notification rules, so we cannot tell what deleting it leaves uncovered.",
+      translateTemplate(
+        "We could not match this rule to your notification rules, so we cannot tell what deleting it leaves uncovered.",
+      ),
     );
 
     return sentences.join(" ");
   }
 
   sentences.push(
-    "Other rules still cover this severity and rule type, so deleting this one does not leave a gap.",
+    translateTemplate(
+      "Other rules still cover this severity and rule type, so deleting this one does not leave a gap.",
+    ),
   );
 
   return sentences.join(" ");
@@ -922,6 +971,7 @@ export interface DeletionImpactModalProps {
 export const DeletionImpactModal: FunctionComponent<
   DeletionImpactModalProps
 > = (props: DeletionImpactModalProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const state: NotificationRuleLoadState = useNotificationRuleImpactData({
     userId: props.userId,
     projectId: props.projectId,
@@ -940,7 +990,7 @@ export const DeletionImpactModal: FunctionComponent<
 
   const getDescription: () => string = (): string => {
     if (state.isLoading) {
-      return "Checking what this deletes...";
+      return translator.translateTemplate("Checking what this deletes...");
     }
 
     if (state.error) {
@@ -949,7 +999,10 @@ export const DeletionImpactModal: FunctionComponent<
        * we do not know what it costs, and saying nothing would let the generic
        * "are you sure" imply we had checked.
        */
-      return `We could not check what this deletes: ${state.error} Deleting a notification method also deletes every notification rule that uses it.`;
+      return translator.translateTemplate(
+        "We could not check what this deletes: {{error}} Deleting a notification method also deletes every notification rule that uses it.",
+        { error: state.error },
+      );
     }
 
     if (props.target.type === "method") {
@@ -988,7 +1041,7 @@ export const DeletionImpactModal: FunctionComponent<
           />
           <div>
             <p className="text-sm font-semibold text-amber-800">
-              Left with no notification rule
+              {translator.translateText("Left with no notification rule")}
             </p>
             <ul className="mt-1 space-y-0.5">
               {impact.orphanedCells.map((cell: CoverageCell): ReactElement => {
@@ -1132,14 +1185,14 @@ const canDeleteModel: CanDeleteFunction = <
     return true;
   }
 
-  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
-
-  return new modelType().hasDeletePermissions(permissions);
+  // The model's delete gate, read the way the server reads it.
+  return PermissionGate.check(new modelType(), ModelAction.Delete).isAllowed;
 };
 
 export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
   params: NotificationMethodDeleteGuardParams<TBaseModel>,
 ): NotificationMethodDeleteGuard<TBaseModel> {
+  const translator: Translator = useTranslator();
   const [itemToDelete, setItemToDelete] = useState<TBaseModel | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
@@ -1158,7 +1211,14 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
 
     if (!methodId) {
       setDeleteError(
-        `This ${params.singularName.toLowerCase()} could not be identified, so it was not deleted. Please refresh and try again.`,
+        translator.translateTemplate(
+          "This {{itemName}} could not be identified, so it was not deleted. Please refresh and try again.",
+          {
+            itemName: translatableTerm(params.singularName, {
+              inSentence: true,
+            }),
+          },
+        ),
       );
       return;
     }
@@ -1216,12 +1276,19 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
         methodLabel: getNotificationMethodLabel({
           relationName: params.relationName,
           item: itemToDelete,
-          fallbackLabel: `this ${params.singularName.toLowerCase()}`,
+          fallbackLabel: translator.translateTemplate("this {{itemName}}", {
+            itemName: translatableTerm(params.singularName, {
+              inSentence: true,
+            }),
+          }),
         }),
       }}
       userId={UserUtil.getUserId()}
       projectId={ProjectUtil.getCurrentProjectId()}
-      title={`Delete ${params.singularName}`}
+      title={translateNamedAction(translator, {
+        template: "Delete {{itemName}}",
+        itemName: params.singularName,
+      })}
       submitButtonText="Delete"
       isDeleting={isDeleting}
       error={deleteError}

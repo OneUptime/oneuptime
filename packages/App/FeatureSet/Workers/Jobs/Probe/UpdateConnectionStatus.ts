@@ -1,4 +1,3 @@
-import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
 import ProbeConnectionDowntimeGrace from "../../Utils/ProbeConnectionDowntimeGrace";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -6,6 +5,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ProbeService from "Common/Server/Services/ProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
+import ReceivingCoverage from "Common/Server/Utils/Telemetry/ReceivingCoverage";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -41,9 +41,16 @@ RunCron(
       service: "workers",
     });
 
-    const staleCutoff: Date = OneUptimeDate.getSomeMinutesAgo(
-      STALE_CUTOFF_IN_MINUTES,
-    );
+    /*
+     * Three minutes of silence while OneUptime was receiving (issue #2825).
+     * The grace below covers the ticks themselves stopping; this also covers
+     * OneUptime's ingress being down while the workers kept ticking (the app
+     * pods of a split deployment), and its ingest queue running behind. With
+     * no such time it is exactly three minutes ago.
+     */
+    const staleCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: STALE_CUTOFF_IN_MINUTES,
+    });
 
     /*
      * Fetch ONLY the probes whose stored status disagrees with what their

@@ -1,9 +1,45 @@
-import { TerraformProviderConfig, OpenAPISpec } from "./Types";
+import {
+  TerraformProviderConfig,
+  OpenAPISpec,
+  TerraformAttribute,
+  TerraformDataSource,
+  TerraformResource,
+} from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
+import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
 import path from "path";
 import fs from "fs";
+
+/*
+ * The schema of the built provider, as provider_schema_dump_test.go writes it:
+ * what Terraform itself sees - nested attributes, computed-only overrides,
+ * allowed values - so the reference pages cannot drift from the provider.
+ */
+export interface SchemaDumpAttribute {
+  type: string;
+  description?: string | undefined;
+  required?: boolean | undefined;
+  optional?: boolean | undefined;
+  computed?: boolean | undefined;
+  sensitive?: boolean | undefined;
+  deprecation?: string | undefined;
+  allowed_values?: Array<string> | undefined;
+  default?: string | undefined;
+  nested?: Record<string, SchemaDumpAttribute> | undefined;
+}
+
+export interface SchemaDumpBlock {
+  description?: string | undefined;
+  deprecation?: string | undefined;
+  attributes: Record<string, SchemaDumpAttribute>;
+}
+
+export interface ProviderSchemaDump {
+  resources: Record<string, SchemaDumpBlock>;
+  data_sources: Record<string, SchemaDumpBlock>;
+}
 
 /*
  * Hand-written HCL modules shipped alongside the generated provider. They are
@@ -23,15 +59,45 @@ const MODULES_SOURCE_DIR: string = path.join(
   "modules",
 );
 
+// The on-call layer page's guide to its JSON attributes, and what links to it.
+const ON_CALL_SCHEDULE_LAYER_GUIDE: {
+  resource: string;
+  title: string;
+  anchor: string;
+  attributes: Array<string>;
+} = {
+  resource: "on_call_schedule_layer",
+  title: "Rotation and restriction times",
+  anchor: "rotation-and-restriction-times",
+  attributes: ["rotation", "restriction_times"],
+};
+
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
+  private schemaDump: ProviderSchemaDump | undefined;
+  private resources: Array<TerraformResource>;
+  private dataSources: Array<TerraformDataSource>;
 
-  public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
+  public constructor(
+    config: TerraformProviderConfig,
+    spec: OpenAPISpec,
+    schemaDump?: ProviderSchemaDump,
+  ) {
     this.config = config;
     this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
+    this.schemaDump = schemaDump;
+
+    const parser: OpenAPIParser = new OpenAPIParser();
+    parser.setSpec(spec);
+    this.resources = parser.getResources();
+    this.dataSources = parser.getDataSources();
+  }
+
+  private get majorVersion(): string {
+    return this.config.providerVersion.split(".")[0] || "1";
   }
 
   /*
@@ -126,14 +192,16 @@ ${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize
 terraform {
   required_providers {
     ${this.config.providerName} = {
-      source = "oneuptime/${this.config.providerName}"
-      version = "${this.config.providerVersion}"
+      source  = "oneuptime/${this.config.providerName}"
+      version = "~> ${this.majorVersion}.0"
     }
   }
 }
 
 provider "${this.config.providerName}" {
-  oneuptime_url = "oneuptime.com"  # Optional, defaults to oneuptime.com (internally becomes oneuptime.com/api)
+  # Both can come from the environment instead:
+  # ${StringUtils.toConstantCase(this.config.providerName)}_URL and ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY.
+  oneuptime_url = "https://oneuptime.com" # or your self-hosted instance
   api_key       = var.${this.config.providerName}_api_key
 }
 \`\`\`
@@ -155,8 +223,22 @@ ${DocumentationGenerator.START_HERE.map(
   },
 ).join("\n")}
 
-Every resource has a matching data source of the same name for looking up existing items by \`id\` or \`name\`.
+Every resource has a matching data source of the same name, for referring to something that already exists instead of creating it. Look it up by \`id\`, or by any of its other arguments - each one you set must match, and exactly one item may match them all:
 
+\`\`\`terraform
+data "${this.config.providerName}_monitor_status" "offline" {
+  name = "Offline"
+}
+
+data "${this.config.providerName}_incident_severity" "critical" {
+  name = "Critical Incident"
+}
+\`\`\`
+
+## IDs inside resources
+
+Server-side ids that a resource carries inside it - the ids of a monitor's steps, criteria and incident templates - are the server's to manage. Never write them: the provider sends none, the server gives them, and it keeps them across every apply, so incidents keep pointing at the criteria that raised them.
+${this.generateRenamedSection()}
 ## OpenTofu
 
 This provider is published to the OpenTofu Registry as well, and its end-to-end suite runs against both engines on every change. Configuration is identical — see the [OpenTofu guide](./guides/opentofu).
@@ -221,18 +303,18 @@ tofu apply
 
 \`source = "oneuptime/${this.config.providerName}"\` carries no hostname, so each engine resolves it against its own default registry — \`registry.opentofu.org\` under OpenTofu, \`registry.terraform.io\` under Terraform. The provider is published to both, so one address covers both engines.
 
-Writing \`source = "registry.terraform.io/oneuptime/${this.config.providerName}"\` pins the configuration to the Terraform Registry and breaks it under OpenTofu in registry-restricted environments.
+A hostname in the address makes every engine use that registry: with \`source = "registry.terraform.io/oneuptime/${this.config.providerName}"\`, OpenTofu downloads from the Terraform Registry too, and Terraform refuses the OpenTofu Registry's copy (\`authentication signature from unknown issuer\`).
 
 ## Differences worth knowing
 
 | Topic | Behaviour |
 |-------|-----------|
 | The \`terraform\` block | Stays \`terraform\`. It is a language keyword, not a reference to the Terraform CLI. |
-| \`.tf\` vs \`.tofu\` files | \`.tf\` works under both. OpenTofu also reads \`.tofu\` files and ignores any \`.tf\` file with a \`.tofu\` sibling. |
+| \`.tf\` vs \`.tofu\` files | \`.tf\` works under both. OpenTofu 1.8 and later also read \`.tofu\` files, and skip a \`.tf\` file that has a \`.tofu\` file of the same name. |
 | \`required_version\` | OpenTofu's version series starts at 1.6.0, so a \`>= 1.5.0\` constraint written for Terraform is always satisfied. |
-| Lock files | Both write \`.terraform.lock.hcl\`, but it records the registry it resolved against — one engine's lock file does not satisfy the other. |
-| State files | Identical format and filenames; state moves between engines without conversion. |
-| Variables | OpenTofu reads \`TF_VAR_*\` as well as \`TOFU_VAR_*\`. |
+| Lock files | Both write \`.terraform.lock.hcl\`, each under its own registry's address: \`init\` rewrites the provider's entry when you switch engines, so commit the change. |
+| State files | OpenTofu reads a state Terraform wrote, as it is. |
+| Variables | \`TF_VAR_name\` sets a variable under OpenTofu too. |
 
 ## Reusable modules
 
@@ -283,15 +365,60 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
     this.fileGenerator.copyDirectory(MODULES_SOURCE_DIR, "modules");
   }
 
-  private async generateResourceDocs(): Promise<void> {
-    // Create parser and get resources
-    const parser: OpenAPIParser = new OpenAPIParser();
-    parser.setSpec(this.spec);
-    const resources: any[] = parser.getResources();
+  /*
+   * The provider index lists the resources whose name changed, with the
+   * moved block that carries their state over.
+   */
+  private generateRenamedSection(): string {
+    const renamed: Array<TerraformResource> = this.resources
+      .filter((resource: TerraformResource) => {
+        return Boolean(resource.legacyName);
+      })
+      .sort((a: TerraformResource, b: TerraformResource) => {
+        return a.name.localeCompare(b.name);
+      });
 
+    if (renamed.length === 0) {
+      return "";
+    }
+
+    const provider: string = this.config.providerName;
+
+    // The moved example uses the plainest of them: iot_fleet, not its rules.
+    const example: TerraformResource = [...renamed].sort(
+      (a: TerraformResource, b: TerraformResource) => {
+        return a.name.length - b.name.length || a.name.localeCompare(b.name);
+      },
+    )[0]!;
+
+    return `
+## Renamed resources
+
+These resources were renamed so that names like IoT and vCenter read as one word. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
+
+| Old name | New name |
+|----------|----------|
+${renamed
+  .map((resource: TerraformResource) => {
+    return `| \`${provider}_${resource.legacyName}\` | [\`${provider}_${resource.name}\`](./resources/${resource.name}) |`;
+  })
+  .join("\n")}
+
+To switch, rename the resource in your configuration and add a \`moved\` block, and Terraform keeps the existing resource instead of replacing it:
+
+\`\`\`terraform
+moved {
+  from = ${provider}_${example.legacyName}.example
+  to   = ${provider}_${example.name}.example
+}
+\`\`\`
+`;
+  }
+
+  private async generateResourceDocs(): Promise<void> {
     this.fileGenerator.ensureDirectory("docs/resources");
 
-    for (const resource of resources) {
+    for (const resource of this.resources) {
       const resourceDoc: string = this.generateResourceDoc(resource);
       await this.fileGenerator.writeFileInDir(
         "docs/resources",
@@ -302,14 +429,9 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
   }
 
   private async generateDataSourceDocs(): Promise<void> {
-    // Create parser and get data sources
-    const parser: OpenAPIParser = new OpenAPIParser();
-    parser.setSpec(this.spec);
-    const dataSources: any[] = parser.getDataSources();
-
     this.fileGenerator.ensureDirectory("docs/data-sources");
 
-    for (const dataSource of dataSources) {
+    for (const dataSource of this.dataSources) {
       const dataSourceDoc: string = this.generateDataSourceDoc(dataSource);
       await this.fileGenerator.writeFileInDir(
         "docs/data-sources",
@@ -319,156 +441,692 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
     }
   }
 
-  private generateResourceDoc(resource: any): string {
-    const resourceName: string = StringUtils.capitalize(
-      resource.name.replace(/_/g, " "),
+  /*
+   * The schema block a page documents: the built provider's, when generation
+   * ran far enough to dump it, else the same thing derived from the spec the
+   * way the resource generator derives it.
+   */
+  private getResourceBlock(resource: TerraformResource): SchemaDumpBlock {
+    const dumped: SchemaDumpBlock | undefined =
+      this.schemaDump?.resources[
+        `${this.config.providerName}_${resource.name}`
+      ];
+
+    if (dumped) {
+      return dumped;
+    }
+
+    const attributes: Record<string, SchemaDumpAttribute> = {};
+
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
+        name,
+        attr,
+        resource,
+      );
+      attributes[StringUtils.toTerraformAttributeName(name)] = {
+        ...this.describeSpecAttribute(attr),
+        required: flags.required,
+        optional: flags.optional,
+        computed: flags.computed,
+      };
+    }
+
+    return { description: resource.description, attributes };
+  }
+
+  private getDataSourceBlock(dataSource: TerraformDataSource): SchemaDumpBlock {
+    const dumped: SchemaDumpBlock | undefined =
+      this.schemaDump?.data_sources[
+        `${this.config.providerName}_${dataSource.name}`
+      ];
+
+    if (dumped) {
+      return dumped;
+    }
+
+    const attributes: Record<string, SchemaDumpAttribute> = {};
+
+    for (const [name, attr] of Object.entries(dataSource.schema)) {
+      attributes[StringUtils.toTerraformAttributeName(name)] = {
+        ...this.describeSpecAttribute(attr),
+        required: Boolean(attr.required),
+        optional: Boolean(attr.optional),
+        computed: Boolean(attr.computed),
+      };
+    }
+
+    return { description: dataSource.description, attributes };
+  }
+
+  private describeSpecAttribute(attr: TerraformAttribute): SchemaDumpAttribute {
+    let type: string = "String";
+
+    if (attr.isMonitorSteps) {
+      type = "Attributes List";
+    } else if (attr.type === "number") {
+      type = "Number";
+    } else if (attr.type === "bool") {
+      type = "Boolean";
+    } else if (attr.type === "list") {
+      type = "List of String";
+    } else if (attr.type === "set") {
+      type = "Set of String";
+    } else if (attr.type === "map") {
+      type = "Map of String";
+    }
+
+    return {
+      type,
+      description: attr.description,
+      sensitive: attr.sensitive,
+      ...(attr.enumValues?.length ? { allowed_values: attr.enumValues } : {}),
+    };
+  }
+
+  /*
+   * The Schema section, laid out the way tfplugindocs lays it out - the
+   * format registry readers know: Required / Optional / Read-Only, then a
+   * "Nested Schema" section for every nested attribute, linked from its line.
+   */
+  public renderSchema(attributes: Record<string, SchemaDumpAttribute>): string {
+    const sections: Array<string> = [];
+    const nestedSections: Array<string> = [];
+
+    for (const [title, list] of this.groupAttributes(attributes)) {
+      sections.push(
+        `### ${title}\n\n${list
+          .map(([name, attr]: [string, SchemaDumpAttribute]) => {
+            return this.renderAttributeLine(name, attr, [name], nestedSections);
+          })
+          .join("\n")}`,
+      );
+    }
+
+    return [...sections, ...nestedSections].join("\n\n");
+  }
+
+  private groupAttributes(
+    attributes: Record<string, SchemaDumpAttribute>,
+  ): Array<[string, Array<[string, SchemaDumpAttribute]>]> {
+    const sorted: Array<[string, SchemaDumpAttribute]> = Object.entries(
+      attributes,
+    ).sort(
+      (a: [string, SchemaDumpAttribute], b: [string, SchemaDumpAttribute]) => {
+        return a[0].localeCompare(b[0]);
+      },
     );
 
-    // Generate example based on required fields
-    const exampleFields: string = this.generateExampleFields(resource);
+    const groups: Array<[string, Array<[string, SchemaDumpAttribute]>]> = [
+      [
+        "Required",
+        sorted.filter(([, attr]: [string, SchemaDumpAttribute]) => {
+          return Boolean(attr.required);
+        }),
+      ],
+      [
+        "Optional",
+        sorted.filter(([, attr]: [string, SchemaDumpAttribute]) => {
+          return !attr.required && Boolean(attr.optional);
+        }),
+      ],
+      [
+        "Read-Only",
+        sorted.filter(([, attr]: [string, SchemaDumpAttribute]) => {
+          return !attr.required && !attr.optional;
+        }),
+      ],
+    ];
 
-    /*
-     * Schema documentation, split Required / Optional / Read-Only like
-     * tfplugindocs renders it.
-     */
-    const requiredItems: string[] = [];
-    const optionalItems: string[] = [];
-    const readOnlyItems: string[] = [];
-    for (const [name, attr] of Object.entries(resource.schema)) {
-      const attrInfo: any = attr as any;
-      const sensitive: string = attrInfo.sensitive ? ", Sensitive" : "";
-      const enumNote: string =
-        Array.isArray(attrInfo.enumValues) && attrInfo.enumValues.length > 0
-          ? ` Allowed values: ${attrInfo.enumValues
-              .map((value: string) => {
-                return `\`${value}\``;
-              })
-              .join(", ")}.`
-          : "";
-      const typeLabel: string = attrInfo.isMonitorSteps
-        ? "Block List"
-        : StringUtils.capitalize(attrInfo.type);
-      const line: string = `- \`${name}\` (${typeLabel}${sensitive}) ${attrInfo.description || `${resourceName} ${name}`}.${enumNote}`;
-      if (attrInfo.required) {
-        requiredItems.push(line);
-      } else if (attrInfo.computed && !attrInfo.optional) {
-        readOnlyItems.push(line);
-      } else {
-        optionalItems.push(line);
-      }
+    return groups.filter(
+      ([, list]: [string, Array<[string, SchemaDumpAttribute]>]) => {
+        return list.length > 0;
+      },
+    );
+  }
+
+  private renderAttributeLine(
+    name: string,
+    attr: SchemaDumpAttribute,
+    attributePath: Array<string>,
+    nestedSections: Array<string>,
+  ): string {
+    const tags: Array<string> = [attr.type];
+
+    if (attr.sensitive) {
+      tags.push("Sensitive");
     }
-    const schemaSections: string[] = [];
-    if (requiredItems.length > 0) {
-      schemaSections.push(`### Required\n\n${requiredItems.join("\n")}`);
-    }
-    if (optionalItems.length > 0) {
-      schemaSections.push(`### Optional\n\n${optionalItems.join("\n")}`);
-    }
-    if (readOnlyItems.length > 0) {
-      schemaSections.push(`### Read-Only\n\n${readOnlyItems.join("\n")}`);
+    if (attr.deprecation) {
+      tags.push("Deprecated");
     }
 
-    const resourceDescription: string =
-      resource.description || `${resourceName} resource.`;
+    const parts: Array<string> = [];
+    const description: string = (attr.description || "").trim();
+
+    if (description) {
+      parts.push(description);
+    }
+    if (attr.deprecation) {
+      parts.push(`**Deprecated:** ${attr.deprecation.trim()}`);
+    }
+    if (attr.allowed_values?.length) {
+      parts.push(
+        `Allowed values: ${attr.allowed_values
+          .map((value: string) => {
+            return `\`${value}\``;
+          })
+          .join(", ")}.`,
+      );
+    }
+
+    const defaultText: string = this.formatDefault(attr.default);
+    if (defaultText) {
+      parts.push(defaultText);
+    }
+
+    if (attr.nested && Object.keys(attr.nested).length > 0) {
+      const anchor: string = `nestedatt--${attributePath.join("--")}`;
+      parts.push(`(see [below for nested schema](#${anchor}))`);
+      // The section of this attribute first, then the ones nested in it.
+      nestedSections.push(
+        ...this.renderNestedSections(attr.nested, attributePath),
+      );
+    }
+
+    return `- \`${name}\` (${tags.join(", ")})${parts.length ? ` ${parts.join(" ")}` : ""}`;
+  }
+
+  private renderNestedSections(
+    attributes: Record<string, SchemaDumpAttribute>,
+    attributePath: Array<string>,
+  ): Array<string> {
+    const anchor: string = `nestedatt--${attributePath.join("--")}`;
+    const groups: Array<string> = [];
+    const deeper: Array<string> = [];
+
+    for (const [title, list] of this.groupAttributes(attributes)) {
+      groups.push(
+        `${title}:\n\n${list
+          .map(([name, attr]: [string, SchemaDumpAttribute]) => {
+            return this.renderAttributeLine(
+              name,
+              attr,
+              [...attributePath, name],
+              deeper,
+            );
+          })
+          .join("\n")}`,
+      );
+    }
+
+    return [
+      `<a id="${anchor}"></a>\n### Nested Schema for \`${attributePath.join(".")}\`\n\n${groups.join("\n\n")}`,
+      ...deeper,
+    ];
+  }
+
+  // The framework says "value defaults to `x`"; a reader wants "Defaults to `x`."
+  private formatDefault(value: string | undefined): string {
+    const text: string = (value || "").trim();
+
+    if (!text) {
+      return "";
+    }
+
+    const match: RegExpMatchArray | null = text.match(
+      /^value defaults to\s+(.+)$/i,
+    );
+    const shown: string = match ? match[1]!.trim() : text;
+
+    return `Defaults to ${shown.replace(/\.$/, "")}.`;
+  }
+
+  private generateResourceDoc(resource: TerraformResource): string {
+    const provider: string = this.config.providerName;
+    const block: SchemaDumpBlock = this.getResourceBlock(resource);
+    const resourceDescription: string = (
+      resource.description ||
+      `${StringUtils.capitalize(resource.name.replace(/_/g, " "))} resource.`
+    ).trim();
+
+    const renamedNote: string = resource.legacyName
+      ? `
+~> **Renamed:** this resource was called \`${provider}_${resource.legacyName}\` before. The old name still works, but is deprecated. To switch, rename the resource in your configuration and add a \`moved\` block, so Terraform keeps the existing ${resource.name.replace(/_/g, " ")}:
+
+\`\`\`terraform
+moved {
+  from = ${provider}_${resource.legacyName}.example
+  to   = ${provider}_${resource.name}.example
+}
+\`\`\`
+`
+      : "";
+
+    const importSection: string = resource.operations?.read
+      ? `## Import
+
+Import an existing ${resource.name.replace(/_/g, " ")} by its id, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
+
+\`\`\`terraform
+import {
+  to = ${provider}_${resource.name}.example
+  id = "<id>"
+}
+\`\`\`
+
+or on the command line:
+
+\`\`\`shell
+terraform import ${provider}_${resource.name}.example <id>
+\`\`\`
+`
+      : `## Import
+
+This resource does not support import: the OneUptime API exposes no read endpoint for it.
+`;
 
     return `---
-page_title: "${this.config.providerName}_${resource.name} Resource - ${this.config.providerName}"
+page_title: "${provider}_${resource.name} Resource - ${provider}"
 subcategory: "${this.getSubcategory(resource.name)}"
 description: |-
   ${resourceDescription}
 ---
 
-# ${this.config.providerName}_${resource.name} (Resource)
+# ${provider}_${resource.name} (Resource)
 
 ${resourceDescription}
-
+${renamedNote}
 ## Example Usage
 
 \`\`\`terraform
-resource "${this.config.providerName}_${resource.name}" "example" {
-${exampleFields}
-}
+${this.generateResourceExample(resource, block)}
 \`\`\`
-
+${this.getResourceGuide(resource)}
 ## Schema
 
-${schemaSections.join("\n\n")}
+${this.renderSchema(this.withGuideLinks(resource, block.attributes))}
 
-${
-  resource.operations?.read
-    ? `## Import
+${importSection}`;
+  }
 
-Import is supported using the following syntax:
+  /*
+   * The prose a page carries between its example and its schema, for
+   * attributes whose JSON shape the API's schema does not describe. Empty for
+   * every other page, which keeps its layout byte for byte.
+   */
+  private getResourceGuide(resource: TerraformResource): string {
+    if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return `\n${this.getOnCallScheduleLayerGuide()}\n`;
+    }
 
-\`\`\`shell
-terraform import ${this.config.providerName}_${resource.name}.example <id>
+    return "";
+  }
+
+  // The schema lines of the attributes a page's guide covers point at it.
+  private withGuideLinks(
+    resource: TerraformResource,
+    attributes: Record<string, SchemaDumpAttribute>,
+  ): Record<string, SchemaDumpAttribute> {
+    if (resource.name !== ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return attributes;
+    }
+
+    const linked: Record<string, SchemaDumpAttribute> = { ...attributes };
+
+    for (const name of ON_CALL_SCHEDULE_LAYER_GUIDE.attributes) {
+      const attr: SchemaDumpAttribute | undefined = linked[name];
+      if (attr) {
+        linked[name] = {
+          ...attr,
+          description: `${(attr.description || "").trim()} See [${ON_CALL_SCHEDULE_LAYER_GUIDE.title}](#${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}).`,
+        };
+      }
+    }
+
+    return linked;
+  }
+
+  /*
+   * What a layer's rotation and restriction times look like. Both are JSON,
+   * and the API's schema says nothing of their shape, so readers worked them
+   * out by trial and error - and one key is spelled restictionType
+   * (OneUptime/terraform-provider-oneuptime#11). The fragments here are not
+   * validated, so each repeats a shape the page's example applies.
+   */
+  private getOnCallScheduleLayerGuide(): string {
+    return `<a id="${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}"></a>
+## ${ON_CALL_SCHEDULE_LAYER_GUIDE.title}
+
+\`rotation\` and \`restriction_times\` take JSON: write them with \`jsonencode()\`, in the shapes below. The provider checks every \`_type\` and timestamp in them at plan time.
+
+Both are optional. Left out, a layer hands off every week and is on call around the clock (OneUptime 14.0.73 and later; earlier versions refuse a layer without them).
+
+### Rotation
+
+How long each turn lasts. The first hand-off is at \`hand_off_time\`, and the duty moves on to the next person every rotation after that.
+
+\`\`\`terraform
+rotation = jsonencode({
+  _type = "Recurring"
+  value = {
+    intervalType  = "Week" # Hour, Day, Week, Month or Year
+    intervalCount = { _type = "PositiveNumber", value = 1 }
+  }
+})
 \`\`\`
-`
-    : `## Import
 
-This resource does not support import: the OneUptime API exposes no read endpoint for it.
-`
-}`;
-  }
+\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks.
 
-  private generateExampleFields(resource: any): string {
-    const fields: string[] = [];
+### Restriction times
 
-    // Add required fields first
-    for (const [name, attr] of Object.entries(resource.schema)) {
-      const attrInfo: any = attr as any;
-      if (attrInfo.required && name !== "id") {
-        const exampleValue: string = this.getExampleValue(name, attrInfo);
-        fields.push(`  ${name} = ${exampleValue}`);
+When the layer is on call. \`restictionType\` is the key's real name, without the second "r": the server ignores a key spelled any other way.
+
+- \`None\`: around the clock.
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = { restictionType = "None" }
+  })
+  \`\`\`
+
+- \`Daily\`: the same hours every day. Only the time of day of \`startTime\` and \`endTime\` counts, and a window that ends before it starts runs past midnight.
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Daily"
+      dayRestrictionTimes = {
+        startTime = { _type = "DateTime", value = "2026-01-05T09:00:00Z" }
+        endTime   = { _type = "DateTime", value = "2026-01-05T17:00:00Z" }
       }
     }
+  })
+  \`\`\`
 
-    /*
-     * Add some common optional fields for better examples. Typed monitor
-     * steps are the marquee attribute — always show the nested syntax.
-     */
-    for (const [name, attr] of Object.entries(resource.schema)) {
-      const attrInfo: any = attr as any;
-      const isCommonField: boolean = ["name", "description"].includes(name);
-      if (
-        !attrInfo.required &&
-        !(attrInfo.computed && !attrInfo.optional) &&
-        (isCommonField || attrInfo.isMonitorSteps)
-      ) {
-        const exampleValue: string = this.getExampleValue(name, attrInfo);
-        fields.push(`  ${name} = ${exampleValue}`);
-      }
+- \`Weekly\`: windows in the week. A window runs from its \`startTime\` to its \`endTime\`, and both the weekday and the time of day count: date each one on the weekday you mean, and name those weekdays in \`startDay\` and \`endDay\`. A window is continuous, so Monday 09:00 to Friday 17:00 includes the nights in between. For working hours, give each day a window of its own, as the example above does. A window that ends earlier in the week than it starts runs over the weekend:
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Weekly"
+      weeklyRestrictionTimes = [{
+        startDay  = "Friday"
+        endDay    = "Monday"
+        startTime = { _type = "DateTime", value = "2026-01-09T17:00:00Z" } # a Friday
+        endTime   = { _type = "DateTime", value = "2026-01-12T09:00:00Z" } # the Monday after
+      }]
     }
+  })
+  \`\`\`
 
-    return fields.join("\n");
+A time is \`{ _type = "DateTime", value = "<RFC 3339 timestamp>" }\`, with or without fractional seconds. It is a wall-clock time in the schedule's \`timezone\`: write it with the offset that time zone has on that date, as in \`2026-01-05T09:00:00-05:00\` for 09:00 in New York. A schedule without a \`timezone\` reads times in the server's time zone.`;
   }
 
-  private getExampleValue(fieldName: string, attrInfo: any): string {
-    // Typed nested monitor steps: show the real nested syntax.
-    if (attrInfo.isMonitorSteps) {
-      return `[
-    {
-      monitor_destination      = "https://your-service.example.com"
-      monitor_destination_type = "URL"
-      request_type             = "GET"
-      criteria = [
-        {
-          name             = "Check if online"
-          filter_condition = "All"
-          filters = [
-            {
-              check_on = "Is Online"
-            }
-          ]
+  /*
+   * A layer's rotation and restriction times, applied: weekday working hours
+   * with a weekly hand-off, above a layer that covers the rest of the week.
+   */
+  private getOnCallScheduleLayerExample(): string {
+    const provider: string = this.config.providerName;
+
+    return `# Weekdays, 09:00 to 17:00. Times are wall-clock times in the schedule's
+# timezone; these are for a schedule in UTC.
+resource "${provider}_on_call_schedule_layer" "example" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.example.id
+  name                            = "Business hours"
+  description                     = "Weekdays, 09:00 to 17:00"
+  order                           = 1 # Lower wins: this layer is on call in its hours.
+  starts_at                       = "2026-01-05T09:00:00Z"
+  hand_off_time                   = "2026-01-12T09:00:00Z"
+
+  # The next person takes over every week.
+  rotation = jsonencode({
+    _type = "Recurring"
+    value = {
+      intervalType  = "Week"
+      intervalCount = { _type = "PositiveNumber", value = 1 }
+    }
+  })
+
+  # One window a day, each dated on its weekday (2026-01-05 is a Monday).
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Weekly"
+      weeklyRestrictionTimes = [
+        for day, date in {
+          Monday    = "2026-01-05"
+          Tuesday   = "2026-01-06"
+          Wednesday = "2026-01-07"
+          Thursday  = "2026-01-08"
+          Friday    = "2026-01-09"
+          } : {
+          startDay  = day
+          endDay    = day
+          startTime = { _type = "DateTime", value = "\${date}T09:00:00Z" }
+          endTime   = { _type = "DateTime", value = "\${date}T17:00:00Z" }
         }
       ]
     }
-  ]`;
+  })
+}
+
+# Nights and weekends: on call around the clock, below the business-hours
+# layer, so it covers every hour that layer does not.
+resource "${provider}_on_call_schedule_layer" "around_the_clock" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.example.id
+  name                            = "Nights and weekends"
+  order                           = 2
+  starts_at                       = "2026-01-05T09:00:00Z"
+  hand_off_time                   = "2026-01-06T09:00:00Z"
+
+  rotation = jsonencode({
+    _type = "Recurring"
+    value = {
+      intervalType  = "Day"
+      intervalCount = { _type = "PositiveNumber", value = 1 }
+    }
+  })
+
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = { restictionType = "None" }
+  })
+}`;
+  }
+
+  /*
+   * An example that applies: every required argument, plus the name and
+   * description, with values that make sense - an allowed value for an enum,
+   * a reference to the resource an id points at, never a made-up UUID.
+   */
+  private generateResourceExample(
+    resource: TerraformResource,
+    block: SchemaDumpBlock,
+  ): string {
+    if (resource.name === "monitor" && resource.schema["monitor_steps"]) {
+      return this.getMonitorExample();
     }
 
-    // Enum-constrained fields: the first allowed value is always valid.
+    if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return this.getOnCallScheduleLayerExample();
+    }
+
+    const provider: string = this.config.providerName;
+    const fields: Array<string> = [];
+
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      const attributeName: string = StringUtils.toTerraformAttributeName(name);
+      if (name === "id" || !block.attributes[attributeName]?.required) {
+        continue;
+      }
+      fields.push(
+        `  ${attributeName} = ${this.getExampleValue(name, attr, resource)}`,
+      );
+    }
+
+    for (const name of ["name", "description"]) {
+      const attr: TerraformAttribute | undefined = resource.schema[name];
+      const dumped: SchemaDumpAttribute | undefined = block.attributes[name];
+      if (attr && dumped && !dumped.required && dumped.optional) {
+        fields.push(
+          `  ${name} = ${this.getExampleValue(name, attr, resource)}`,
+        );
+      }
+    }
+
+    const width: number = Math.max(
+      0,
+      ...fields.map((field: string) => {
+        return field.trim().split(" = ")[0]!.length;
+      }),
+    );
+
+    const aligned: Array<string> = fields.map((field: string) => {
+      const [key, ...rest] = field.trim().split(" = ");
+      const value: string = rest.join(" = ");
+      // Multi-line values are not aligned, as terraform fmt leaves them.
+      return value.includes("\n")
+        ? `  ${key} = ${value}`
+        : `  ${key!.padEnd(width)} = ${value}`;
+    });
+
+    return `resource "${provider}_${resource.name}" "example" {
+${aligned.join("\n")}
+}`;
+  }
+
+  /*
+   * The monitor is the resource most configurations start with, and its
+   * steps are the part people get wrong: a whole, working example.
+   */
+  private getMonitorExample(): string {
+    const provider: string = this.config.providerName;
+
+    return `# The project's own statuses and severities, looked up by name.
+data "${provider}_monitor_status" "operational" {
+  name = "Operational"
+}
+
+data "${provider}_monitor_status" "offline" {
+  name = "Offline"
+}
+
+data "${provider}_incident_severity" "critical" {
+  name = "Critical Incident"
+}
+
+resource "${provider}_monitor" "example" {
+  name                = "Example website"
+  description         = "Checks https://example.com every minute"
+  monitor_type        = "Website"
+  monitoring_interval = "* * * * *"
+
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    # Evaluated top to bottom; the first that matches wins.
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The website does not answer"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.${provider}_monitor_status.offline.id
+        create_incidents      = true
+
+        filters = [
+          { check_on = "Is Online", filter_type = "False" },
+        ]
+
+        incidents = [{
+          title                 = "Example website is down"
+          description           = "The website did not respond to the probe."
+          incident_severity_id  = data.${provider}_incident_severity.critical.id
+          auto_resolve_incident = true
+        }]
+      },
+      {
+        name                  = "Online"
+        description           = "The website answers"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.${provider}_monitor_status.operational.id
+
+        filters = [
+          { check_on = "Is Online", filter_type = "True" },
+        ]
+      },
+    ]
+  }]
+}`;
+  }
+
+  /*
+   * How an example refers to the id of another type: its resource's example,
+   * or - for a type with only a data source - that data source's example.
+   * Every page's example is named "example", so the references resolve.
+   */
+  private getRelationReference(name: string): string {
+    const provider: string = this.config.providerName;
+    const isResource: boolean = this.resources.some(
+      (candidate: TerraformResource) => {
+        return candidate.name === name;
+      },
+    );
+
+    return isResource
+      ? `${provider}_${name}.example.id`
+      : `data.${provider}_${name}.example.id`;
+  }
+
+  private getExampleValue(
+    fieldName: string,
+    attrInfo: TerraformAttribute,
+    resource?: TerraformResource,
+  ): string {
+    const label: string = (resource?.name || "resource").replace(/_/g, " ");
+
+    // An id (or ids) of another resource: refer to it.
+    if (attrInfo.relation) {
+      const reference: string = this.getRelationReference(
+        attrInfo.relation.name,
+      );
+      return attrInfo.relation.isList ? `[${reference}]` : reference;
+    }
+
+    // Typed nested monitor steps: show the real nested syntax.
+    if (attrInfo.isMonitorSteps) {
+      return `[{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [{
+      name             = "Online"
+      filter_condition = "All"
+      filters = [
+        { check_on = "Is Online", filter_type = "True" },
+      ]
+    }]
+  }]`;
+    }
+
+    // Enum-constrained fields: an allowed value.
     if (Array.isArray(attrInfo.enumValues) && attrInfo.enumValues.length > 0) {
-      return `"${attrInfo.enumValues[0]}"`;
+      const preferred: string | undefined =
+        resource?.schema["monitor_steps"] &&
+        attrInfo.enumValues.includes("Website")
+          ? "Website"
+          : undefined;
+      return DocumentationGenerator.hclString(
+        preferred || attrInfo.enumValues[0]!,
+      );
     }
 
     // RFC3339 timestamp fields
@@ -476,17 +1134,35 @@ This resource does not support import: the OneUptime API exposes no read endpoin
       return '"2030-01-01T00:00:00Z"';
     }
 
+    if (fieldName === "name") {
+      return `"Example ${label}"`;
+    }
+
+    if (fieldName === "description") {
+      return '"Managed by Terraform"';
+    }
+
     /*
-     * Complex nested objects are JSON strings in the schema — examples must
-     * use jsonencode() or they will not apply.
+     * Complex nested objects are JSON strings in the schema. A wrapped
+     * scalar (a Color, a Name...) is written as its plain value; anything
+     * else with jsonencode().
      */
     if (attrInfo.type === "string" && attrInfo.isComplexObject) {
+      const example: any = attrInfo.example;
       if (
-        attrInfo.example !== undefined &&
-        attrInfo.example !== null &&
-        typeof attrInfo.example === "object"
+        example &&
+        typeof example === "object" &&
+        example._type &&
+        (typeof example.value === "string" || typeof example.value === "number")
       ) {
-        return `jsonencode(${JSON.stringify(attrInfo.example, null, 2)
+        return DocumentationGenerator.hclString(String(example.value));
+      }
+      if (
+        example !== undefined &&
+        example !== null &&
+        typeof example === "object"
+      ) {
+        return `jsonencode(${JSON.stringify(example, null, 2)
           .split("\n")
           .join("\n  ")})`;
       }
@@ -498,33 +1174,13 @@ This resource does not support import: the OneUptime API exposes no read endpoin
       return this.formatOpenAPIExample(attrInfo.example, attrInfo.type);
     }
 
-    /*
-     * Fallback to the existing hardcoded logic
-     * Handle specific field types and names
-     */
-    if (fieldName.includes("id") && attrInfo.type === "string") {
-      return '"123e4567-e89b-12d3-a456-426614174000"';
-    }
-
-    if (fieldName === "name") {
-      return `"example-${this.getResourceNameFromSchema(attrInfo) || "resource"}"`;
-    }
-
-    if (fieldName === "description") {
-      return `"Example ${this.getResourceNameFromSchema(attrInfo) || "resource"}"`;
-    }
-
-    if (fieldName === "color" && attrInfo.type === "map") {
-      return `{\n    _type = "Color"\n    value = "#ff0000"\n  }`;
-    }
-
-    if (attrInfo.type === "map" || attrInfo.type === "object") {
-      return `{\n    id = "123e4567-e89b-12d3-a456-426614174000"\n  }`;
+    if (fieldName.endsWith("_id") && attrInfo.type === "string") {
+      return '"<id>"';
     }
 
     switch (attrInfo.type) {
       case "string":
-        return `"example-${fieldName}"`;
+        return `"example-${fieldName.replace(/_/g, "-")}"`;
       case "number":
         return "1";
       /*
@@ -537,100 +1193,123 @@ This resource does not support import: the OneUptime API exposes no read endpoin
       case "set":
         return "[]";
       default:
-        return `"example-${fieldName}"`;
+        return `"example-${fieldName.replace(/_/g, "-")}"`;
     }
   }
 
-  private getResourceNameFromSchema(attrInfo: any): string | null {
-    // Try to extract resource name from description or context
-    if (attrInfo.description) {
-      const desc: string = attrInfo.description.toLowerCase();
-      // Look for patterns like "Example label" or "Label name"
-      const match: RegExpMatchArray | null = desc.match(
-        /example (\w+)|(\w+) name|(\w+) description/,
-      );
-      if (match) {
-        return match[1] || match[2] || match[3] || null;
-      }
-    }
-    return null;
-  }
+  private generateDataSourceDoc(dataSource: TerraformDataSource): string {
+    const provider: string = this.config.providerName;
+    const block: SchemaDumpBlock = this.getDataSourceBlock(dataSource);
+    const label: string = dataSource.name.replace(/_/g, " ");
+    const description: string = (
+      dataSource.description || `${StringUtils.capitalize(label)} data source.`
+    ).trim();
 
-  private generateDataSourceDoc(dataSource: any): string {
-    const dataSourceName: string = StringUtils.capitalize(
-      dataSource.name.replace(/_/g, " "),
-    );
+    const filters: Array<string> = Object.entries(dataSource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.isLookupFilter);
+      })
+      .map(([name]: [string, TerraformAttribute]) => {
+        return name;
+      });
 
-    // Generate schema documentation
-    const schemaItems: string[] = [];
-    for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const attrInfo: any = attr as any;
-      const required: string = attrInfo.required
-        ? "Required"
-        : attrInfo.computed
-          ? "Computed"
-          : "Optional";
-      const sensitive: string = attrInfo.sensitive ? ", Sensitive" : "";
-      schemaItems.push(
-        `- \`${name}\` (${StringUtils.capitalize(attrInfo.type)}${sensitive}) ${attrInfo.description || `${dataSourceName} ${name}`}. ${required}.`,
-      );
-    }
+    const byArgument: string | undefined = filters.includes("name")
+      ? "name"
+      : filters.find((name: string) => {
+          return dataSource.schema[name]?.type === "string";
+        }) || filters[0];
 
-    const dataSourceDescription: string =
-      dataSource.description || `${dataSourceName} data source.`;
+    const lookupExample: string = byArgument
+      ? `data "${provider}_${dataSource.name}" "example" {
+  ${StringUtils.toTerraformAttributeName(byArgument)} = ${this.getLookupExampleValue(byArgument, dataSource)}
+}
+
+# Or by id:
+data "${provider}_${dataSource.name}" "by_id" {
+  id = "<id>"
+}`
+      : `data "${provider}_${dataSource.name}" "example" {
+  id = "<id>"
+}`;
+
+    const renamedNote: string = dataSource.legacyName
+      ? `
+~> **Renamed:** this data source was called \`${provider}_${dataSource.legacyName}\` before. The old name still works, but is deprecated.
+`
+      : "";
 
     return `---
-page_title: "${this.config.providerName}_${dataSource.name} Data Source - ${this.config.providerName}"
+page_title: "${provider}_${dataSource.name} Data Source - ${provider}"
 subcategory: "${this.getSubcategory(dataSource.name)}"
 description: |-
-  ${dataSourceDescription}
+  ${description}
 ---
 
-# ${this.config.providerName}_${dataSource.name} (Data Source)
+# ${provider}_${dataSource.name} (Data Source)
 
-${dataSourceDescription} Look up by \`id\` or by \`name\` (must match exactly one item).
+${description}
 
+Look one up by \`id\`, or by any of its other arguments: every argument you set must match, and exactly one ${label} may match them all - none, or more than one, is an error rather than an empty or arbitrary result.
+${renamedNote}
 ## Example Usage
 
-Look up by \`name\` (must match exactly one item) or by \`id\`:
-
 \`\`\`terraform
-data "${this.config.providerName}_${dataSource.name}" "by_name" {
-  name = "example-${dataSource.name}"
-}
-
-data "${this.config.providerName}_${dataSource.name}" "by_id" {
-  id = "123e4567-e89b-12d3-a456-426614174000"
-}
+${lookupExample}
 \`\`\`
 
 ## Schema
 
-${schemaItems.join("\n")}
+${this.renderSchema(block.attributes)}
 `;
+  }
+
+  private getLookupExampleValue(
+    name: string,
+    dataSource: TerraformDataSource,
+  ): string {
+    const attr: TerraformAttribute | undefined = dataSource.schema[name];
+    const label: string = dataSource.name.replace(/_/g, " ");
+
+    if (name === "name") {
+      return `"Example ${label}"`;
+    }
+    if (attr?.enumValues?.length) {
+      return DocumentationGenerator.hclString(attr.enumValues[0]!);
+    }
+    if (attr?.relation) {
+      return this.getRelationReference(attr.relation.name);
+    }
+    if (attr?.type === "number") {
+      return "1";
+    }
+    if (attr?.type === "bool") {
+      return "true";
+    }
+    return `"example-${name.replace(/_/g, "-")}"`;
   }
 
   private async generateExamples(): Promise<void> {
     this.fileGenerator.ensureDirectory("examples");
 
-    // Generate provider example
+    const provider: string = this.config.providerName;
+
     const providerExample: string = `terraform {
   required_providers {
-    ${this.config.providerName} = {
-      source = "oneuptime/${this.config.providerName}"
-      version = "${this.config.providerVersion}"
+    ${provider} = {
+      source  = "oneuptime/${provider}"
+      version = "~> ${this.majorVersion}.0"
     }
   }
 }
 
-provider "${this.config.providerName}" {
-  oneuptime_url = "oneuptime.com" # Optional, defaults to oneuptime.com (provider appends /api automatically)
-  api_key       = var.${this.config.providerName}_api_key
+provider "${provider}" {
+  oneuptime_url = "https://oneuptime.com" # Optional: defaults to oneuptime.com; or ${StringUtils.toConstantCase(provider)}_URL
+  api_key       = var.${provider}_api_key  # or ${StringUtils.toConstantCase(provider)}_API_KEY
 }
 
 # Configure variables
-variable "${this.config.providerName}_api_key" {
-  description = "API key for ${this.config.providerName}"
+variable "${provider}_api_key" {
+  description = "Project API key for ${provider}"
   type        = string
   sensitive   = true
 }
@@ -642,59 +1321,53 @@ variable "${this.config.providerName}_api_key" {
       providerExample,
     );
 
-    // Generate resources example
-    const parser: OpenAPIParser = new OpenAPIParser();
-    parser.setSpec(this.spec);
-    const resources: any[] = parser.getResources();
+    const monitor: TerraformResource | undefined = this.resources.find(
+      (resource: TerraformResource) => {
+        return resource.name === "monitor";
+      },
+    );
+    const exampleResource: TerraformResource | undefined =
+      monitor || this.resources[0];
 
-    if (resources.length > 0) {
-      const firstResource: any = resources[0];
-      if (firstResource) {
-        const resourceExample: string = `# Example usage of ${this.config.providerName}_${firstResource.name} resource
-resource "${this.config.providerName}_${firstResource.name}" "example" {
-  name        = "example-${firstResource.name}"
-  description = "Example ${firstResource.name} created by Terraform"
-}
+    if (exampleResource) {
+      const resourceExample: string = `# Example usage of ${provider}_${exampleResource.name}
+${this.generateResourceExample(exampleResource, this.getResourceBlock(exampleResource))}
 
-# Output the resource ID
-output "${firstResource.name}_id" {
-  description = "ID of the created ${firstResource.name}"
-  value       = ${this.config.providerName}_${firstResource.name}.example.id
+output "${exampleResource.name}_id" {
+  description = "ID of the created ${exampleResource.name.replace(/_/g, " ")}"
+  value       = ${provider}_${exampleResource.name}.example.id
 }
 `;
 
-        await this.fileGenerator.writeFileInDir(
-          "examples",
-          "resources.tf",
-          resourceExample,
-        );
-      }
+      await this.fileGenerator.writeFileInDir(
+        "examples",
+        "resources.tf",
+        resourceExample,
+      );
     }
 
-    // Generate data sources example
-    const dataSources: any[] = parser.getDataSources();
+    const monitorStatus: TerraformDataSource | undefined =
+      this.dataSources.find((dataSource: TerraformDataSource) => {
+        return dataSource.name === "monitor_status";
+      }) || this.dataSources[0];
 
-    if (dataSources.length > 0) {
-      const firstDataSource: any = dataSources[0];
-      if (firstDataSource) {
-        const dataSourceExample: string = `# Example usage of ${this.config.providerName}_${firstDataSource.name} data source
-data "${this.config.providerName}_${firstDataSource.name}" "example" {
-  name = "example-${firstDataSource.name}"
+    if (monitorStatus) {
+      const dataSourceExample: string = `# Look up an existing ${monitorStatus.name.replace(/_/g, " ")} by name.
+data "${provider}_${monitorStatus.name}" "example" {
+  name = "${monitorStatus.name === "monitor_status" ? "Offline" : `Example ${monitorStatus.name.replace(/_/g, " ")}`}"
 }
 
-# Output the data source result
-output "${firstDataSource.name}_result" {
-  description = "Result of the ${firstDataSource.name} data source"
-  value       = data.${this.config.providerName}_${firstDataSource.name}.example
+output "${monitorStatus.name}_id" {
+  description = "ID of the ${monitorStatus.name.replace(/_/g, " ")}"
+  value       = data.${provider}_${monitorStatus.name}.example.id
 }
 `;
 
-        await this.fileGenerator.writeFileInDir(
-          "examples",
-          "data-sources.tf",
-          dataSourceExample,
-        );
-      }
+      await this.fileGenerator.writeFileInDir(
+        "examples",
+        "data-sources.tf",
+        dataSourceExample,
+      );
     }
   }
 
@@ -727,8 +1400,8 @@ go build
 terraform {
   required_providers {
     ${this.config.providerName} = {
-      source = "oneuptime/${this.config.providerName}"
-      version = "${this.config.providerVersion}"
+      source  = "oneuptime/${this.config.providerName}"
+      version = "~> ${this.majorVersion}.0"
     }
   }
 }
@@ -822,6 +1495,14 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
     await this.fileGenerator.writeFile("README.md", readmeContent);
   }
 
+  /*
+   * A string as an HCL literal: JSON's escapes are HCL's, and HCL would read
+   * ${ and %{ as a template, so those are doubled.
+   */
+  public static hclString(value: string): string {
+    return JSON.stringify(value).replace(/\$\{/g, "$${").replace(/%\{/g, "%%{");
+  }
+
   private formatOpenAPIExample(example: any, _fieldType?: string): string {
     if (example === null || example === undefined) {
       return '""';
@@ -829,7 +1510,7 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 
     // Handle different types of examples
     if (typeof example === "string") {
-      return `"${example}"`;
+      return DocumentationGenerator.hclString(example);
     }
 
     if (typeof example === "number") {
@@ -852,20 +1533,9 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
     }
 
     if (typeof example === "object") {
-      // Handle special OneUptime object types
+      // A OneUptime wrapper ({_type, value}) is written as its value.
       if (example._type && example.value !== undefined) {
-        switch (example._type) {
-          case "DateTime":
-            return `"${example.value}"`;
-          case "Name":
-          case "Email":
-          case "Phone":
-            return `"${example.value}"`;
-          case "Color":
-            return `"${example.value}"`;
-          default:
-            return `"${example.value}"`;
-        }
+        return DocumentationGenerator.hclString(String(example.value));
       }
 
       // Handle generic objects as maps
@@ -880,6 +1550,6 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
     }
 
     // Fallback to string representation
-    return `"${String(example)}"`;
+    return DocumentationGenerator.hclString(String(example));
   }
 }

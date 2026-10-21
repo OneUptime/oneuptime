@@ -12,7 +12,7 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
-      {{- if .Values.ebpf.enabled }}
+      {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
       # Accept OTLP traffic from the eBPF DaemonSet (and any other in-cluster
       # OTLP senders). The eBPF DaemonSet ships its captured HTTP/gRPC/SQL
       # spans here so the collector's k8sattributes processor can enrich them
@@ -244,10 +244,23 @@ data:
             - job_name: kube-state-metrics
               scrape_interval: {{ .Values.kubeStateMetrics.scrapeInterval }}
               {{- if eq .Values.kubeStateMetrics.mode "external" }}
+              {{- /* The endpoint is a URL, and a target is only its host:port.
+                     Whatever else the URL says goes where a scrape job keeps it:
+                     https in `scheme` (the receiver's default is plain HTTP,
+                     which a TLS port turns away), and a path other than /metrics
+                     in `metrics_path`. Neither is written for an ordinary
+                     http://host:port/metrics endpoint. */}}
+              {{- $ksmEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" .Values.kubeStateMetrics.endpoint "setting" "kubeStateMetrics.endpoint") | fromJson }}
+              {{- if eq $ksmEndpoint.scheme "https" }}
+              scheme: https
+              {{- end }}
+              {{- if $ksmEndpoint.path }}
+              metrics_path: {{ $ksmEndpoint.path | quote }}
+              {{- end }}
               # External KSM — operator-provided endpoint.
               static_configs:
                 - targets:
-                    - {{ .Values.kubeStateMetrics.endpoint | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | quote }}
+                    - {{ $ksmEndpoint.target | quote }}
               {{- else }}
               # Bundled KSM — Service deployed by templates/kube-state-metrics.yaml.
               static_configs:
@@ -260,6 +273,17 @@ data:
                   action: keep
             {{- end }}
             {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
+            {{- /* Resolution order: the explicit metrics endpoint, else
+                   <engine URL>/metrics, the engine being the external one or the
+                   bundled OpenCost. The engine URL is a base URL, so a path of
+                   its own (a reverse proxy's /model prefix, say) goes in front
+                   of /metrics rather than standing in for it. One that already
+                   ends in /metrics is not given a second. */}}
+            {{- $costMetricsUrl := .Values.cost.metrics.endpoint | default "" | toString | trim }}
+            {{- $costEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" ($costMetricsUrl | default (include "kubernetes-agent.costEngineUrl" .)) "setting" (ternary "cost.metrics.endpoint" "cost.engine.url" (ne $costMetricsUrl ""))) | fromJson }}
+            {{- if and $costEndpoint.path (not $costMetricsUrl) }}
+            {{- $_ := set $costEndpoint "path" (printf "%s/metrics" ($costEndpoint.path | trimSuffix "/metrics")) }}
+            {{- end }}
             # Cost metrics from the in-cluster cost engine (OpenCost /
             # Kubecost cost-model): node hourly costs, per-container
             # resource allocation, PV and load-balancer costs. Powers
@@ -268,13 +292,21 @@ data:
             # the cost agent's Allocation API poller instead.
             - job_name: cost-engine
               scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              {{- /* Same split as the external KSM job above: the URL's scheme
+                     and path are carried here, its host:port is the target. */}}
+              {{- if eq $costEndpoint.scheme "https" }}
+              scheme: https
+              {{- end }}
+              {{- if $costEndpoint.path }}
+              metrics_path: {{ $costEndpoint.path | quote }}
+              {{- end }}
               static_configs:
                 - targets:
                     # Prometheus targets must be bare host:port — strip
                     # any scheme/path (metrics_path defaults to /metrics).
                     # Resolution order: explicit metrics endpoint, else
                     # the engine URL (external or bundled OpenCost).
-                    - {{ (default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
+                    - {{ $costEndpoint.target | quote }}
               metric_relabel_configs:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
@@ -342,6 +374,39 @@ data:
           - sources:
               - from: connection
 
+      # Pod-level telemetry stays pod-level. Since collector 0.118.0,
+      # k8sattributes gives telemetry that names no container (here
+      # k8s_cluster's k8s.pod.phase and OBI's network metrics) the container
+      # of a pod that has only one, as k8s.container.name; 0.96.0 did not.
+      # OneUptime's Kubernetes monitors read that attribute as the container
+      # an alert is about ("Container x in pod y"), and it would split a
+      # pod's rows. So the first marks what names neither a container nor a
+      # container.id before k8sattributes runs, and the second takes back
+      # the container name k8sattributes gave it, and the mark. A
+      # container.id resolved to its name is kept: 0.96.0 did that too.
+      transform/pod-level-mark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - set(attributes["oneuptime.k8s.pod_level"], true) where attributes["k8s.container.name"] == nil and attributes["container.id"] == nil
+        trace_statements:
+          - context: resource
+            statements:
+              - set(attributes["oneuptime.k8s.pod_level"], true) where attributes["k8s.container.name"] == nil and attributes["container.id"] == nil
+      transform/pod-level-unmark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.container.name") where attributes["oneuptime.k8s.pod_level"] == true
+              - delete_key(attributes, "oneuptime.k8s.pod_level")
+        trace_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.container.name") where attributes["oneuptime.k8s.pod_level"] == true
+              - delete_key(attributes, "oneuptime.k8s.pod_level")
+
       # Stamp telemetry that doesn't already carry these attributes (e.g.
       # k8s_cluster receiver metrics, k8sobjects logs) with the cluster
       # name and a default service.name. Uses `insert` so OBI-emitted
@@ -392,9 +457,73 @@ data:
              the API tailer's MIN_SEVERITY.
              The traces pipeline only exists when ebpf.enabled, so span rules
              are only emitted when there is a pipeline to run them in. */}}
-      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (.Values.ebpf.enabled | default false) }}
-      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
+      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (eq (include "kubernetes-agent.ebpfEnabled" .) "true") }}
+      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
+      {{- end }}
+
+      {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
+      # Drop eBPF database spans that belong to no trace. Each would
+      # otherwise reach OneUptime as a one-span "trace" named after the bare
+      # command (`set`, `evalsha`), and on a busy cluster they are most of
+      # what OBI sends.
+      #   - kind == SERVER, linked or not: the span OBI records inside the
+      #     database server for every command it receives
+      #     (ebpf.dropDatabaseServerSpans). It duplicates the client span the
+      #     caller already recorded: unlinked (caller on another node) it is
+      #     a one-span trace, linked (same node) it doubles every database
+      #     call in the request trace, and it would point at a missing parent
+      #     whenever the switch below drops the call it hangs from.
+      #   - any other kind: an application's own database call made outside
+      #     any request — queue workers polling Redis, pool pings, cron jobs
+      #     (ebpf.dropUnlinkedDatabaseCalls). These also feed OneUptime's
+      #     database discovery; see that value for the trade-off.
+      # An application's database calls inside a request trace are kept;
+      # spans applications push from their own SDKs are not OBI's and are
+      # kept. OBI computes its database metrics before export, so those still
+      # count every command.
+      filter/ebpf-unlinked-db:
+        error_mode: ignore
+        traces:
+          span:
+            {{- range (include "kubernetes-agent.ebpfUnlinkedDatabaseSpanConditions" . | fromJsonArray) }}
+            - '{{ . | replace "'" "''" }}'
+            {{- end }}
+      {{- end }}
+
+      {{- if eq (include "kubernetes-agent.dropUnlinkedClientCalls" .) "true" }}
+      # Drop OBI's other client calls that belong to no trace — HTTP, gRPC
+      # and the like made by work no request triggered: a worker's HTTP
+      # queries to ClickHouse, a controller renewing its lease, a probe's
+      # checks (ebpf.dropUnlinkedClientCalls, off by default). Database calls
+      # are filter/ebpf-unlinked-db's; messaging, GenAI and MCP calls are
+      # kept, as are SERVER, PRODUCER, CONSUMER and INTERNAL spans and spans
+      # applications push from their own SDKs. A processor of its own rather
+      # than a third condition in filter/ebpf-unlinked-db: the two never match
+      # the same span, and the collector reports what each one drops under
+      # its own name. The cost — a call that is the root of a trace, because
+      # the request it reached hangs under it (on the same node, or on any
+      # node with ebpf.contextPropagation), goes too, leaving that trace
+      # without its root — is in values.yaml.
+      filter/ebpf-unlinked-client:
+        error_mode: ignore
+        traces:
+          span:
+            - '{{ include "kubernetes-agent.ebpfUnlinkedClientSpanCondition" . | replace "'" "''" }}'
+      {{- end }}
+
+      {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
+      # Drop the HTTP server datapoints OBI v0.14 records for its own Node.js
+      # agent injection: GET /json/list (and /json/version) and the WebSocket
+      # upgrade (/*, 101) on the app's inspector port 9229, which would
+      # otherwise show up as routes of every Node.js app in its request
+      # metrics (ebpf.dropNodeInspectorMetrics). Its traces are dropped by
+      # OneUptime on ingest. Only OBI's datapoints are considered.
+      filter/ebpf-node-inspector:
+        error_mode: ignore
+        metrics:
+          datapoint:
+            - '{{ include "kubernetes-agent.ebpfNodeInspectorMetricCondition" . | replace "'" "''" }}'
       {{- end }}
 
       {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
@@ -449,7 +578,7 @@ data:
         metrics:
           receivers:
             - k8s_cluster
-            {{- if .Values.ebpf.enabled }}
+            {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
             # OBI emits application/network/stats metrics on the same OTLP
             # receiver that handles its traces — pull them into the same
             # metrics pipeline so they ride the existing batch/retry/auth
@@ -461,11 +590,17 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            - transform/pod-level-mark
             - k8sattributes
+            - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
+            # Before batch, so a dropped datapoint never takes a batch slot.
+            - filter/ebpf-node-inspector
+            {{- end }}
             - batch
           exporters:
             - otlphttp
@@ -483,7 +618,7 @@ data:
             - batch
           exporters:
             - otlphttp
-        {{- if .Values.ebpf.enabled }}
+        {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
         # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
         # with k8s attributes, stamp cluster name, and forward to OneUptime.
         #
@@ -505,9 +640,21 @@ data:
             - otlp
           processors:
             - memory_limiter
+            - transform/pod-level-mark
             - k8sattributes
+            - transform/pod-level-unmark
             - resource
-            {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
+            {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
+            # Before the user's filters and the sampler, so neither spends
+            # work on spans that are about to be dropped anyway.
+            - filter/ebpf-unlinked-db
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.dropUnlinkedClientCalls" .) "true" }}
+            # Before the user's filters and the sampler too. It never matches
+            # a span filter/ebpf-unlinked-db does, so their order is free.
+            - filter/ebpf-unlinked-client
+            {{- end }}
+            {{- if and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
             # k8sattributes resolves the sending pod to a namespace, so this
             # must stay after it — before it, every span looks namespace-less.
             - filter/telemetry

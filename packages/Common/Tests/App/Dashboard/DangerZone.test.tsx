@@ -9,7 +9,9 @@ import {
 import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import API from "../../../UI/Utils/API/API";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Project from "../../../Models/DatabaseModels/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -103,15 +105,17 @@ interface PageCalls {
   projectDeleted: number;
 }
 
-type RenderPageFunction = () => PageCalls;
+type RenderPageFunction = (currentProject?: Project | null) => PageCalls;
 
-const renderPage: RenderPageFunction = (): PageCalls => {
+const renderPage: RenderPageFunction = (
+  currentProject: Project | null = null,
+): PageCalls => {
   const calls: PageCalls = { projectDeleted: 0 };
 
   render(
     <DangerZone
       pageRoute={new Route("/settings/danger-zone")}
-      currentProject={null}
+      currentProject={currentProject}
       hasPaymentMethod={true}
       onProjectDeleted={() => {
         calls.projectDeleted = calls.projectDeleted + 1;
@@ -183,6 +187,13 @@ describe("Settings > Danger Zone", () => {
       Permission.ProjectOwner,
     ]);
 
+    /*
+     * The card reads the project's name when the page does not hand it one.
+     * Unless a test says otherwise there is none to read, and the dialog asks
+     * the way it always has.
+     */
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(null as never);
+
     getJestSpyOn(API, "post").mockImplementation((data: any) => {
       postCalls.push({
         url: data.url.toString(),
@@ -212,10 +223,15 @@ describe("Settings > Danger Zone", () => {
     expect(postCalls[0]?.headers?.["tenantid"]).toBe(PROJECT_ID.toString());
   });
 
-  it("warns that the deletion cannot be undone", () => {
+  it("warns that the deletion cannot be undone, once: on the Delete Project card", () => {
     renderPage();
 
-    expect(screen.getByText(/no way to recover/i)).toBeInTheDocument();
+    expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+      "This action cannot be undone.",
+    );
+    // No red banner above the card saying the same thing again.
+    expect(screen.queryByText(/DANGER ZONE/)).toBeNull();
+    expect(screen.queryByText(/no way to recover/i)).toBeNull();
   });
 
   it("does not ask anything until the customer confirms they want to delete", () => {
@@ -306,6 +322,250 @@ describe("Settings > Danger Zone", () => {
 
     expect(calls.projectDeleted).toBe(0);
     expect(ProjectUtil.clearCurrentProject).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Deleting the project removes everything in it for every member, and its
+   * dialog looked exactly like the one that deletes a label. It names the
+   * project and keeps Delete locked until that name has been typed.
+   */
+  describe("naming the project", () => {
+    type MakeProjectFunction = (id: ObjectID, name: string) => Project;
+
+    const makeProject: MakeProjectFunction = (
+      id: ObjectID,
+      name: string,
+    ): Project => {
+      const project: Project = new Project();
+      project.id = id;
+      project.name = name;
+      return project;
+    };
+
+    type TypeNameFunction = (value: string) => void;
+
+    const typeName: TypeNameFunction = (value: string): void => {
+      fireEvent.change(
+        screen.getByTestId("delete-confirmation-type-to-confirm-input"),
+        { target: { value: value } },
+      );
+    };
+
+    it("names the project it is about to delete", () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "Permanently delete Acme Production. This action cannot be undone.",
+      );
+
+      openConfirmation();
+
+      expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+        "Are you sure you want to delete Acme Production? This action cannot be undone.",
+      );
+      // The page had the name; the card did not read it again.
+      expect(ModelAPI.getItem).not.toHaveBeenCalled();
+    });
+
+    it("keeps Delete locked until the project's name is typed", async () => {
+      const calls: PageCalls = renderPage(
+        makeProject(PROJECT_ID, "Acme Production"),
+      );
+
+      openConfirmation();
+
+      expect(
+        screen.getByTestId("delete-confirmation-type-to-confirm"),
+      ).toHaveTextContent("Type Acme Production to confirm.");
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+      await confirm();
+      expect(postCalls).toHaveLength(0);
+
+      typeName("Acme");
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+      typeName("Acme Production");
+      await confirm();
+
+      await waitFor(() => {
+        expect(calls.projectDeleted).toBe(1);
+      });
+      expect(postCalls).toHaveLength(1);
+    });
+
+    it("asks for the name below the question about why", () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      openConfirmation();
+
+      const reason: HTMLElement = screen.getByTestId("project-deletion-reason");
+      const typed: HTMLElement = screen.getByTestId(
+        "delete-confirmation-type-to-confirm-input",
+      );
+
+      expect(
+        reason.compareDocumentPosition(typed) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("still sends the reason once the name is typed", async () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      openConfirmation();
+      typeReason("Moving to another tool");
+      typeName("Acme Production");
+      await confirm();
+
+      await waitFor(() => {
+        expect(postCalls).toHaveLength(1);
+      });
+      expect(postCalls[0]?.data).toEqual({
+        data: { deletionReason: "Moving to another tool" },
+      });
+    });
+
+    /*
+     * The page's project and the one being deleted are the same in practice,
+     * but the name typed must be the name of what is deleted - so a project
+     * prop for some other project is not trusted, and the name is read.
+     */
+    it("reads the name of the project being deleted when the page has another", async () => {
+      getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(
+        makeProject(PROJECT_ID, "Acme Production") as never,
+      );
+
+      renderPage(
+        makeProject(
+          new ObjectID("99999999-9999-4999-8999-999999999999"),
+          "Some other project",
+        ),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("model-delete-card-message"),
+        ).toHaveTextContent("Permanently delete Acme Production.");
+      });
+
+      expect(
+        (ModelAPI.getItem as unknown as jest.Mock).mock.calls[0]![0],
+      ).toMatchObject({ modelType: Project, id: PROJECT_ID });
+      expect(screen.queryByText(/Some other project/)).toBeNull();
+    });
+  });
+
+  /*
+   * Deleting a project a cloud marketplace bills ends OneUptime's billing of
+   * it, after a last charge for what it used - but not the purchase on the
+   * marketplace, which only the buyer can cancel, there. Nothing else tells
+   * them so before the project is gone.
+   */
+  describe("a project a cloud marketplace bills", () => {
+    type CurrentProjectFunction = (billingMarketplace: unknown) => void;
+
+    const currentProjectBilledBy: CurrentProjectFunction = (
+      billingMarketplace: unknown,
+    ): void => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      project.name = "Acme Production";
+      (
+        project as unknown as { billingMarketplace: unknown }
+      ).billingMarketplace = billingMarketplace;
+
+      getJestSpyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+    };
+
+    it("tells the customer their purchase stays active on the marketplace until they cancel it there", () => {
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Microsoft Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on Microsoft Marketplace stays active until you cancel it there.",
+      );
+    });
+
+    it("tells a Vercel customer the resource is deleted on Vercel with the project", () => {
+      currentProjectBilledBy("Vercel");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Vercel Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
+      );
+      expect(notice).not.toHaveTextContent("stays active until you cancel it");
+    });
+
+    it("names the marketplace that bills the project", () => {
+      currentProjectBilledBy("AWS");
+
+      renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Your OneUptime purchase on AWS Marketplace");
+    });
+
+    it("tells it before the customer is asked to confirm, and still deletes the project", async () => {
+      currentProjectBilledBy("GoogleCloud");
+      const calls: PageCalls = renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Google Cloud Marketplace");
+
+      openConfirmation();
+      await confirm();
+
+      await waitFor(() => {
+        expect(calls.projectDeleted).toBe(1);
+      });
+    });
+
+    it("says nothing about a marketplace for a project billed by card", () => {
+      currentProjectBilledBy(undefined);
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "This action cannot be undone.",
+      );
+    });
+
+    it("says nothing for a marketplace it does not know", () => {
+      currentProjectBilledBy("SomeOtherMarketplace");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+    });
+
+    it("says nothing on a self-hosted install, which no marketplace sells", () => {
+      config.billingEnabled = false;
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+    });
   });
 
   /*

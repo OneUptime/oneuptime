@@ -58,9 +58,15 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
   public constructor() {
     super(Probe, ProbeService);
 
+    /*
+     * The shared global probes a monitor can run on, as the probe pickers
+     * list them: read as OneUptime, the fields above only, for anyone signed
+     * in. The probe table itself is read by a project's own members only.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/global-probes`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const body: JSONObject = (req.body as JSONObject) || {};

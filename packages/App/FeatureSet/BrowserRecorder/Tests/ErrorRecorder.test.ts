@@ -255,6 +255,88 @@ describe("ErrorRecorder", (): void => {
  * nothing to exclude it, it was trigger-worthy: one broken image or one
  * ad-blocked tag uploaded the session under the Error reason.
  */
+/*
+ * #4208: while the recorder is paused because nobody is at the page, an
+ * error a background job throws is not recorded, not reported to the
+ * recorder (so it neither triggers nor counts), spends none of the cap, and
+ * is not remembered either - the same error thrown again once the user is
+ * back is a first occurrence in the footage, not a repeat of one nobody
+ * recorded.
+ */
+describe("ErrorRecorder while suspended", (): void => {
+  let errors: Array<RecordedError> = [];
+  let customEvents: Array<{ tag: string; payload: unknown }> = [];
+  let suspended: boolean = false;
+  let recorder: ErrorRecorder;
+
+  beforeEach((): void => {
+    errors = [];
+    customEvents = [];
+    suspended = false;
+
+    recorder = new ErrorRecorder({
+      emitCustomEvent: (tag: string, payload: unknown): void => {
+        customEvents.push({ tag: tag, payload: payload });
+      },
+      maskMessage: (message: string): string => {
+        return message;
+      },
+      scrubUrl: (url: string): string => {
+        return UrlScrubber.scrub(url, []);
+      },
+      onError: (_atUnixMs: number, error: RecordedError): void => {
+        errors.push(error);
+      },
+      isSuspended: (): boolean => {
+        return suspended;
+      },
+    });
+
+    recorder.start(window);
+  });
+
+  afterEach((): void => {
+    recorder.stop(window);
+  });
+
+  const throwError: (message: string) => void = (message: string): void => {
+    window.dispatchEvent(
+      new ErrorEvent("error", {
+        message: message,
+        filename: "https://shop.example.com/app.js",
+        lineno: 1,
+        colno: 1,
+      }),
+    );
+  };
+
+  it("records, reports and counts nothing", (): void => {
+    suspended = true;
+
+    for (let index: number = 0; index < MAX_ERRORS_RECORDED + 10; index++) {
+      throwError(`poll failed ${index}`);
+    }
+
+    expect(errors).toHaveLength(0);
+    expect(customEvents).toHaveLength(0);
+    expect(recorder.getRecordedCount()).toBe(0);
+  });
+
+  it("records the same error as a first occurrence once it is not", (): void => {
+    suspended = true;
+    throwError("poll failed");
+
+    suspended = false;
+    throwError("poll failed");
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toBe("poll failed");
+    expect((customEvents[0]?.payload as RecordedErrorPayload).message).toBe(
+      "poll failed",
+    );
+  });
+});
+
 describe("ErrorRecorder resource failures", (): void => {
   interface ObservedError {
     error: RecordedError;

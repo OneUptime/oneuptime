@@ -145,7 +145,9 @@ describe("shared header and panel contracts", () => {
   test("reuses one stable, focusable target for the progress action", () => {
     expect(INVESTIGATION_PANEL).toContain("id={AI_INVESTIGATION_PANEL_ID}");
     expect(INVESTIGATION_PANEL).toContain("tabIndex={-1}");
-    expect(INVESTIGATION_PANEL).toContain('aria-label="AI Investigation"');
+    expect(INVESTIGATION_PANEL).toContain(
+      'aria-label={translator.translateText("AI Investigation")}',
+    );
   });
 
   test("keeps polling and status ownership in InvestigationPanel", () => {

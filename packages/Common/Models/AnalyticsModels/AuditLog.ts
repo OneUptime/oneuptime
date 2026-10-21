@@ -160,7 +160,8 @@ export default class AuditLog extends AnalyticsBaseModel {
     const actionColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "action",
       title: "Action",
-      description: "The action performed: Create, Update, or Delete.",
+      description:
+        "The action performed: Create, Update, Delete, or Download (a packet capture file was downloaded).",
       required: true,
       type: TableColumnType.Text,
       accessControl: {
@@ -285,6 +286,98 @@ export default class AuditLog extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Set when the change was made by an MCP client a member connected by
+     * signing in with OAuth. The actor columns above still name the member -
+     * the client acts as them, with their permissions - and these two say
+     * that it was the client, and which one, rather than the member at the
+     * dashboard. The grant id is the row to revoke if the change was not
+     * wanted (Settings -> MCP Server).
+     */
+    const mcpOAuthGrantIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "mcpOAuthGrantId",
+        title: "MCP Client Authorization ID",
+        description:
+          "ID of the MCP client authorization this action was performed through, if it was performed by a connected MCP client.",
+        required: false,
+        type: TableColumnType.ObjectID,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.SettingsAdmin,
+            Permission.ReadAuditLog,
+          ],
+          create: [],
+          update: [],
+        },
+      });
+
+    const mcpClientNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "mcpClientName",
+      title: "MCP Client Name",
+      description:
+        "Name of the connected MCP client that performed this action on the user's behalf, at the time of the action.",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
+          Permission.ReadAuditLog,
+        ],
+        create: [],
+        update: [],
+      },
+    });
+
+    /*
+     * Set when the change was made by a step of one of the project's
+     * workflows (UserType.Workflow). A workflow is no person, so no user is
+     * named: these two name the workflow instead - which one, and what it was
+     * called at the time. Nullable: rows written before these columns existed
+     * read NULL, which is true of them (AddAuditLogWorkflowColumns).
+     */
+    const workflowIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "workflowId",
+      title: "Workflow ID",
+      description:
+        "ID of the workflow whose step performed this action, if a workflow performed it.",
+      required: false,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
+          Permission.ReadAuditLog,
+        ],
+        create: [],
+        update: [],
+      },
+    });
+
+    const workflowNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "workflowName",
+      title: "Workflow Name",
+      description:
+        "Name of the workflow whose step performed this action, at the time of the action.",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
+          Permission.ReadAuditLog,
+        ],
+        create: [],
+        update: [],
+      },
+    });
+
     const changesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "changes",
       title: "Changes",
@@ -356,6 +449,10 @@ export default class AuditLog extends AnalyticsBaseModel {
         userTypeColumn,
         apiKeyIdColumn,
         apiKeyNameColumn,
+        mcpOAuthGrantIdColumn,
+        mcpClientNameColumn,
+        workflowIdColumn,
+        workflowNameColumn,
         changesColumn,
         retentionDateColumn,
       ],
@@ -468,6 +565,34 @@ export default class AuditLog extends AnalyticsBaseModel {
   }
   public set apiKeyName(v: string | undefined) {
     this.setColumnValue("apiKeyName", v);
+  }
+
+  public get mcpOAuthGrantId(): ObjectID | undefined {
+    return this.getColumnValue("mcpOAuthGrantId") as ObjectID | undefined;
+  }
+  public set mcpOAuthGrantId(v: ObjectID | undefined) {
+    this.setColumnValue("mcpOAuthGrantId", v);
+  }
+
+  public get mcpClientName(): string | undefined {
+    return this.getColumnValue("mcpClientName") as string | undefined;
+  }
+  public set mcpClientName(v: string | undefined) {
+    this.setColumnValue("mcpClientName", v);
+  }
+
+  public get workflowId(): ObjectID | undefined {
+    return this.getColumnValue("workflowId") as ObjectID | undefined;
+  }
+  public set workflowId(v: ObjectID | undefined) {
+    this.setColumnValue("workflowId", v);
+  }
+
+  public get workflowName(): string | undefined {
+    return this.getColumnValue("workflowName") as string | undefined;
+  }
+  public set workflowName(v: string | undefined) {
+    this.setColumnValue("workflowName", v);
   }
 
   public get changes(): JSONArray | undefined {

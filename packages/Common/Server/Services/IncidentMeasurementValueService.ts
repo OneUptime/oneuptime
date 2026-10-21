@@ -5,7 +5,12 @@ import IncidentMeasurementService from "./IncidentMeasurementService";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentStateService from "./IncidentStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
 import IncidentMeasurementAnchorType from "../../Types/Incident/IncidentMeasurementAnchorType";
 import IncidentStateRole from "../../Types/Incident/IncidentStateRole";
 import MeasurementEvaluator, {
@@ -75,6 +80,7 @@ export class Service extends DatabaseService<Model> {
         declaredAt: true,
         impactStartedAt: true,
         postmortemPostedAt: true,
+        firstPagedAt: true,
         labels: { _id: true, name: true, color: true },
         customFields: true,
         monitors: { _id: true, name: true },
@@ -118,9 +124,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.incidentId,
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      incidentId: data.incidentId,
+      projectId: incident.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: IncidentMeasurement) => {
@@ -144,12 +151,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    incidentId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<IncidentStateTimeline> =
       await IncidentStateTimelineService.findBy({
-        query: { incidentId: incidentId },
+        query: { incidentId: data.incidentId },
         select: {
           _id: true,
           incidentStateId: true,
@@ -159,8 +167,6 @@ export class Service extends DatabaseService<Model> {
             name: true,
             order: true,
             isCreatedState: true,
-            isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -168,6 +174,57 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    const states: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: data.projectId,
+        props: { isRoot: true },
+      });
+
+    const timelineRows: Array<{
+      id: string;
+      stateId: ObjectID | undefined;
+      startsAt: Date | undefined;
+    }> = timelines.map((timeline: IncidentStateTimeline) => {
+      return {
+        id: timeline._id?.toString() || "",
+        stateId: timeline.incidentStateId,
+        startsAt: timeline.startsAt,
+      };
+    });
+
+    /*
+     * "The incident is resolved" is each move into a state that counts as
+     * resolved (Common/Utils/ResolvedState) - the project's resolved state,
+     * or one placed after it - from one that does not. Moving on from one
+     * resolved state to another is not a second resolve.
+     */
+    const resolutionRowIds: Set<string> = new Set(
+      ResolvedStateUtil.getResolutionRows({
+        list: StateListType.IncidentState,
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
+
+    /*
+     * "The incident is acknowledged" the same way: each move into a state
+     * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+     * project's acknowledged state, one placed after it ("Investigating"),
+     * or a resolved one - from one that does not. Moving on from Acknowledged
+     * to a state after it is not a second acknowledgement.
+     */
+    const acknowledgementRowIds: Set<string> = new Set(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: StateListType.IncidentState,
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
 
     return timelines
       .filter((timeline: IncidentStateTimeline) => {
@@ -180,11 +237,11 @@ export class Service extends DatabaseService<Model> {
           roles.push(IncidentStateRole.Created);
         }
 
-        if (timeline.incidentState?.isAcknowledgedState) {
+        if (acknowledgementRowIds.has(timeline._id?.toString() || "")) {
           roles.push(IncidentStateRole.Acknowledged);
         }
 
-        if (timeline.incidentState?.isResolvedState) {
+        if (resolutionRowIds.has(timeline._id?.toString() || "")) {
           roles.push(IncidentStateRole.Resolved);
         }
 
@@ -291,6 +348,22 @@ export class Service extends DatabaseService<Model> {
           label: "Postmortem Posted At",
           timestamp: incident.postmortemPostedAt,
           // Postmortems are posted after resolution; resolution is not the end.
+          canResolveAfterTerminalState: true,
+        };
+
+      case IncidentMeasurementAnchorType.FirstPagedAt:
+        return {
+          kind: MeasurementAnchorKind.Timestamp,
+          label: "First Paged At",
+          timestamp: incident.firstPagedAt,
+          /*
+           * Written by OneUptime when an on-call policy or a direct page
+           * first notifies somebody about the incident (FirstPagedAt), which
+           * can be long after it was declared - a page held until working
+           * hours goes out in the morning. Blank, it is still to come rather
+           * than never coming: an incident nobody was paged about has no
+           * value, and stays Pending as a state it never reached does.
+           */
           canResolveAfterTerminalState: true,
         };
 

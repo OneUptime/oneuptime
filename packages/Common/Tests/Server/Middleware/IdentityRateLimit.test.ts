@@ -24,7 +24,10 @@ import {
  *    a tripped limit a permanent lockout;
  *  - the buckets are separate, so failing the password step cannot spend the
  *    recovery step's budget;
- *  - a missing counter fails CLOSED, unlike the verification-code limiter.
+ *  - a missing counter fails CLOSED, unlike the verification-code limiter;
+ *  - POST /resend-verification-email, which sends mail rather than checking a
+ *    credential, has a budget, a key namespace and refusal wording of its own
+ *    -- while every sign-in bucket keeps its wording byte for byte.
  *
  * Each has its own describe block below.
  */
@@ -65,10 +68,14 @@ import Redis from "../../../Server/Infrastructure/Redis";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
 import IdentityRateLimit, {
+  IDENTITY_COUNTER_UNAVAILABLE_MESSAGE,
+  IDENTITY_RATE_LIMITED_MESSAGE,
   IdentityRateLimitBucket,
   IdentityRateLimitDecision,
   IdentityRateLimitOutcome,
   IdentityRateLimitScope,
+  VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE,
+  VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
 } from "../../../Server/Middleware/IdentityRateLimit";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
@@ -576,6 +583,47 @@ describe("IdentityRateLimit", () => {
         ),
       ).toEqual(
         IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+    });
+
+    /*
+     * Twenty a quarter hour, on BOTH counters. The resend request carries no
+     * email address, so the account counter is keyed on the client address
+     * alone and is the same budget as the address counter.
+     */
+    it("ships the documented verification-email-resend budget", () => {
+      expect(
+        IdentityRateLimit.getBucketConfig(
+          IdentityRateLimitBucket.VerificationEmailResend,
+        ),
+      ).toEqual({
+        windowSeconds: 15 * 60,
+        perAccountLimit: 20,
+        perIpLimit: 20,
+      });
+    });
+
+    /*
+     * getBucketConfig ends in `return LOGIN_BUCKET`, so a bucket with no
+     * branch of its own is silently handed the password budget. For this one
+     * the numbers differ, so the fallthrough would show -- but pin the
+     * identity too, so nobody "fixes" the numbers by pointing it at login.
+     */
+    it("hands the resend bucket its own budget, not the login one it would fall through to", () => {
+      const resendConfig: ReturnType<typeof IdentityRateLimit.getBucketConfig> =
+        IdentityRateLimit.getBucketConfig(
+          IdentityRateLimitBucket.VerificationEmailResend,
+        );
+      const loginConfig: ReturnType<typeof IdentityRateLimit.getBucketConfig> =
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login);
+
+      expect(resendConfig).not.toBe(loginConfig);
+      expect(resendConfig).not.toEqual(loginConfig);
+    });
+
+    it("names the resend bucket with a stable key segment", () => {
+      expect(IdentityRateLimitBucket.VerificationEmailResend).toBe(
+        "verification-email-resend",
       );
     });
   });
@@ -1212,5 +1260,507 @@ describe("IdentityRateLimit", () => {
       expect(accountKeys).toHaveLength(1);
       expect(client.counters.get(accountKeys[0] as string)).toBe(2);
     });
+
+    /*
+     * The refusals a resend request actually receives, through the real
+     * middleware: its own wording on the 429 and the 503, and the sign-in
+     * routes' wording untouched beside it.
+     */
+    const resendRequest: () => ExpressRequest = (): ExpressRequest => {
+      return buildRequest({
+        body: { data: { resendToken: "v1.payload.signature" } },
+        headers: { "x-forwarded-for": "203.0.113.7" },
+      });
+    };
+
+    it("answers a spent resend budget with 429 and the resend wording", async () => {
+      let headers: Record<string, string> = {};
+      let nextCalled: boolean = true;
+
+      for (let i: number = 0; i < 21; i++) {
+        const result: {
+          nextCalled: boolean;
+          headers: Record<string, string>;
+        } = await runMiddleware({
+          bucket: IdentityRateLimitBucket.VerificationEmailResend,
+          request: resendRequest(),
+        });
+
+        headers = result.headers;
+        nextCalled = result.nextCalled;
+      }
+
+      expect(nextCalled).toBe(false);
+      expect(sendErrorResponseMock).toHaveBeenCalledTimes(1);
+
+      const error: Exception = sendErrorResponseMock.mock
+        .calls[0]?.[2] as Exception;
+
+      expect(error.code).toBe(ExceptionCode.TooManyRequestsException);
+      expect(error.message).toBe(
+        "Too many requests for a new verification email. Please try again later.",
+      );
+      expect(Number(headers["Retry-After"])).toBeGreaterThan(0);
+    });
+
+    it("fails closed on the resend route with 503 and the resend wording", async () => {
+      isConnectedMock.mockReturnValue(false);
+
+      const result: { nextCalled: boolean } = await runMiddleware({
+        bucket: IdentityRateLimitBucket.VerificationEmailResend,
+        request: resendRequest(),
+      });
+
+      expect(result.nextCalled).toBe(false);
+
+      const error: Exception = sendErrorResponseMock.mock
+        .calls[0]?.[2] as Exception;
+
+      expect(error.code).toBe(ExceptionCode.ServiceUnavailableException);
+      expect(error.message).toBe(
+        "Unable to send a verification email right now. Please try again shortly.",
+      );
+    });
+
+    it("still answers a spent sign-in budget with the sign-in wording", async () => {
+      for (let i: number = 0; i < PER_ACCOUNT_LIMIT + 1; i++) {
+        await runMiddleware({});
+      }
+
+      const error: Exception = sendErrorResponseMock.mock
+        .calls[0]?.[2] as Exception;
+
+      expect(error.code).toBe(ExceptionCode.TooManyRequestsException);
+      expect(error.message).toBe(
+        "Too many sign-in attempts. Please try again later.",
+      );
+    });
+
+    it("still fails closed on the sign-in routes with the sign-in wording", async () => {
+      isConnectedMock.mockReturnValue(false);
+
+      await runMiddleware({ bucket: IdentityRateLimitBucket.TwoFactor });
+
+      const error: Exception = sendErrorResponseMock.mock
+        .calls[0]?.[2] as Exception;
+
+      expect(error.code).toBe(ExceptionCode.ServiceUnavailableException);
+      expect(error.message).toBe(
+        "Unable to sign you in right now. Please try again shortly.",
+      );
+    });
+
+    it("says the same thing on the resend route whichever counter fired", async () => {
+      // The address counter, reached by inventing an email field per request.
+      for (let i: number = 0; i < 21; i++) {
+        await runMiddleware({
+          bucket: IdentityRateLimitBucket.VerificationEmailResend,
+          request: buildRequest({
+            body: { data: { email: `invented-${i}@example.com` } },
+            headers: { "x-forwarded-for": "203.0.113.7" },
+          }),
+        });
+      }
+
+      const ipMessage: string = (
+        sendErrorResponseMock.mock.calls[0]?.[2] as Exception
+      ).message;
+
+      sendErrorResponseMock.mockClear();
+      client.reset();
+
+      // The account counter, which for this route is the address too.
+      for (let i: number = 0; i < 21; i++) {
+        await runMiddleware({
+          bucket: IdentityRateLimitBucket.VerificationEmailResend,
+          request: resendRequest(),
+        });
+      }
+
+      const accountMessage: string = (
+        sendErrorResponseMock.mock.calls[0]?.[2] as Exception
+      ).message;
+
+      expect(ipMessage).toBe(VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE);
+      expect(accountMessage).toBe(ipMessage);
+    });
   });
+
+  describe("the verification email resend bucket", () => {
+    const RESEND_LIMIT: number = 20;
+    const RESEND_WINDOW_SECONDS: number = 15 * 60;
+
+    const consumeResend: (
+      accountKey?: string,
+    ) => Promise<IdentityRateLimitDecision> = (
+      accountKey?: string,
+    ): Promise<IdentityRateLimitDecision> => {
+      return consume({
+        // The route's body carries no address: resolveAccountKey says "none".
+        accountKey: accountKey || "none",
+        bucket: IdentityRateLimitBucket.VerificationEmailResend,
+      });
+    };
+
+    it("allows twenty requests from one address and refuses the twenty-first", async () => {
+      for (let i: number = 0; i < RESEND_LIMIT; i++) {
+        expect((await consumeResend()).outcome).toBe(
+          IdentityRateLimitOutcome.Allowed,
+        );
+      }
+
+      const refused: IdentityRateLimitDecision = await consumeResend();
+
+      expect(refused.outcome).toBe(IdentityRateLimitOutcome.RateLimited);
+      expect(refused.retryAfterSeconds).toBeGreaterThan(0);
+    });
+
+    /*
+     * The resend body has no address, but nothing stops a caller adding one.
+     * Rotating it buys a fresh account counter each time -- and still runs
+     * into the same twenty on the address counter.
+     */
+    it("holds a caller who invents an email field per request to the same twenty", async () => {
+      for (let i: number = 0; i < RESEND_LIMIT; i++) {
+        expect((await consumeResend(`invented-${i}@example.com`)).outcome).toBe(
+          IdentityRateLimitOutcome.Allowed,
+        );
+      }
+
+      const refused: IdentityRateLimitDecision = await consumeResend(
+        "one-more@example.com",
+      );
+
+      expect(refused.outcome).toBe(IdentityRateLimitOutcome.RateLimited);
+      expect(refused.scope).toBe(IdentityRateLimitScope.Ip);
+    });
+
+    it("keeps its counters under a key namespace of its own", async () => {
+      await consumeResend();
+
+      const resendKeys: Array<string> = client.keysMatching(
+        ":verification-email-resend:",
+      );
+
+      expect(resendKeys).toHaveLength(2);
+
+      for (const key of resendKeys) {
+        expect(key.startsWith("identity:rl:verification-email-resend:")).toBe(
+          true,
+        );
+      }
+
+      expect(client.keysMatching(":login:")).toHaveLength(0);
+      expect(client.keysMatching(":passkey:")).toHaveLength(0);
+    });
+
+    it("expires its counters after two of its own windows", async () => {
+      await consumeResend();
+
+      for (const key of client.keysMatching(":verification-email-resend:")) {
+        expect(client.expiresForKey(key)).toEqual([
+          { key, ttlSeconds: RESEND_WINDOW_SECONDS * TTL_MULTIPLIER },
+        ]);
+      }
+    });
+
+    /*
+     * Somebody on the verify-your-email page is about to sign in. Pressing
+     * "resend" must not spend the attempts they are about to need, and a burst
+     * of sign-in noise from their office must not refuse the resend.
+     */
+    it("does not spend the sign-in budget", async () => {
+      for (let i: number = 0; i < RESEND_LIMIT + 1; i++) {
+        await consume({
+          bucket: IdentityRateLimitBucket.VerificationEmailResend,
+        });
+      }
+
+      expect(
+        (await consume({ bucket: IdentityRateLimitBucket.Login })).outcome,
+      ).toBe(IdentityRateLimitOutcome.Allowed);
+    });
+
+    it("is not spent by sign-in attempts", async () => {
+      for (let i: number = 0; i < PER_IP_LIMIT + 1; i++) {
+        await consume({
+          accountKey: `rotating-${i}@example.com`,
+          bucket: IdentityRateLimitBucket.Login,
+        });
+      }
+
+      expect((await consumeResend()).outcome).toBe(
+        IdentityRateLimitOutcome.Allowed,
+      );
+    });
+
+    it("lets the caller back in once the window rolls", async () => {
+      for (let i: number = 0; i < RESEND_LIMIT + 1; i++) {
+        await consumeResend();
+      }
+
+      currentTime = currentTime + RESEND_WINDOW_SECONDS * 1000;
+
+      expect((await consumeResend()).outcome).toBe(
+        IdentityRateLimitOutcome.Allowed,
+      );
+    });
+  });
+
+  describe("getRefusalMessages", () => {
+    const SIGN_IN_BUCKETS: Array<IdentityRateLimitBucket> = Object.values(
+      IdentityRateLimitBucket,
+    ).filter((bucket: IdentityRateLimitBucket) => {
+      return bucket !== IdentityRateLimitBucket.VerificationEmailResend;
+    });
+
+    /*
+     * Byte for byte what these routes answered before the resend route had
+     * wording of its own. Clients and translations key on these strings.
+     */
+    it("keeps the exact sign-in wording in the exported constants", () => {
+      expect(IDENTITY_RATE_LIMITED_MESSAGE).toBe(
+        "Too many sign-in attempts. Please try again later.",
+      );
+      expect(IDENTITY_COUNTER_UNAVAILABLE_MESSAGE).toBe(
+        "Unable to sign you in right now. Please try again shortly.",
+      );
+    });
+
+    it("words the resend refusals about verification email, not sign-in", () => {
+      expect(VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE).toBe(
+        "Too many requests for a new verification email. Please try again later.",
+      );
+      expect(VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE).toBe(
+        "Unable to send a verification email right now. Please try again shortly.",
+      );
+    });
+
+    it("knows every sign-in bucket there is", () => {
+      /*
+       * A floor, so the it.each below cannot pass by iterating nothing. Adding
+       * a bucket grows this list and puts it under the assertions below.
+       */
+      expect(SIGN_IN_BUCKETS).toEqual(
+        expect.arrayContaining([
+          IdentityRateLimitBucket.Login,
+          IdentityRateLimitBucket.TwoFactor,
+          IdentityRateLimitBucket.BackupCode,
+          IdentityRateLimitBucket.WebAuthnChallenge,
+          IdentityRateLimitBucket.StatusPageLogin,
+          IdentityRateLimitBucket.Passkey,
+        ]),
+      );
+      expect(SIGN_IN_BUCKETS).toHaveLength(
+        Object.values(IdentityRateLimitBucket).length - 1,
+      );
+    });
+
+    it.each(SIGN_IN_BUCKETS)(
+      "answers the %s bucket with the unchanged sign-in wording",
+      (bucket: IdentityRateLimitBucket) => {
+        expect(IdentityRateLimit.getRefusalMessages(bucket)).toEqual({
+          rateLimited: "Too many sign-in attempts. Please try again later.",
+          unavailable:
+            "Unable to sign you in right now. Please try again shortly.",
+        });
+      },
+    );
+
+    it("answers the resend bucket with its own pair", () => {
+      expect(
+        IdentityRateLimit.getRefusalMessages(
+          IdentityRateLimitBucket.VerificationEmailResend,
+        ),
+      ).toEqual({
+        rateLimited:
+          "Too many requests for a new verification email. Please try again later.",
+        unavailable:
+          "Unable to send a verification email right now. Please try again shortly.",
+      });
+    });
+
+    it("answers an unknown bucket with the sign-in wording", () => {
+      expect(
+        IdentityRateLimit.getRefusalMessages(
+          "not-a-bucket" as IdentityRateLimitBucket,
+        ),
+      ).toEqual({
+        rateLimited: IDENTITY_RATE_LIMITED_MESSAGE,
+        unavailable: IDENTITY_COUNTER_UNAVAILABLE_MESSAGE,
+      });
+    });
+
+    it("never tells somebody pressing resend that they made sign-in attempts", () => {
+      const messages: { rateLimited: string; unavailable: string } =
+        IdentityRateLimit.getRefusalMessages(
+          IdentityRateLimitBucket.VerificationEmailResend,
+        );
+
+      expect(messages.rateLimited).not.toMatch(/sign/i);
+      expect(messages.unavailable).not.toMatch(/sign/i);
+    });
+  });
+});
+
+/*
+ * The budgets are read from the environment once, at module load, so these
+ * reload the module rather than calling into the already-configured one.
+ */
+describe("the verification email resend bucket's configuration", () => {
+  type BucketConfigShape = {
+    windowSeconds: number;
+    perAccountLimit: number;
+    perIpLimit: number;
+  };
+
+  type ReloadedConfigs = {
+    resend: BucketConfigShape;
+    login: BucketConfigShape;
+    passkey: BucketConfigShape;
+  };
+
+  interface IdentityRateLimitModule {
+    default: {
+      getBucketConfig: (bucket: IdentityRateLimitBucket) => BucketConfigShape;
+    };
+  }
+
+  const ENV_KEYS: Array<string> = [
+    "IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    "IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_PASSKEY_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_PASSKEY_RATE_LIMIT_PER_IP_PER_WINDOW",
+  ];
+
+  const configsUnderEnv: (env: Record<string, string>) => ReloadedConfigs = (
+    env: Record<string, string>,
+  ): ReloadedConfigs => {
+    const previous: Record<string, string | undefined> = {};
+
+    for (const key of ENV_KEYS) {
+      previous[key] = process.env[key];
+
+      const configured: string | undefined = env[key];
+
+      if (configured === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = configured;
+      }
+    }
+
+    let configs: ReloadedConfigs | null = null;
+
+    try {
+      jest.isolateModules((): void => {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const freshModule: IdentityRateLimitModule = require("../../../Server/Middleware/IdentityRateLimit");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        configs = {
+          resend: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.VerificationEmailResend,
+          ),
+          login: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.Login,
+          ),
+          passkey: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.Passkey,
+          ),
+        };
+      });
+    } finally {
+      for (const key of ENV_KEYS) {
+        const restored: string | undefined = previous[key];
+
+        if (restored === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = restored;
+        }
+      }
+    }
+
+    if (!configs) {
+      throw new Error("The reloaded module produced no bucket configuration");
+    }
+
+    return configs;
+  };
+
+  it("falls back to the documented defaults when nothing is configured", () => {
+    expect(configsUnderEnv({}).resend).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 20,
+      perIpLimit: 20,
+    });
+  });
+
+  it("reads its window and its limit from its own settings", () => {
+    const configs: ReloadedConfigs = configsUnderEnv({
+      IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_WINDOW_SECONDS: "321",
+      IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_PER_IP_PER_WINDOW: "7",
+    });
+
+    // One limit, applied to both counters, because both key on the address.
+    expect(configs.resend).toEqual({
+      windowSeconds: 321,
+      perAccountLimit: 7,
+      perIpLimit: 7,
+    });
+
+    // ...and nobody else's budget moves with it.
+    expect(configs.login).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 10,
+      perIpLimit: 150,
+    });
+    expect(configs.passkey).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 300,
+      perIpLimit: 300,
+    });
+  });
+
+  it("does not move with the login or passkey settings", () => {
+    const configs: ReloadedConfigs = configsUnderEnv({
+      IDENTITY_LOGIN_RATE_LIMIT_WINDOW_SECONDS: "111",
+      IDENTITY_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW: "11",
+      IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW: "1111",
+      IDENTITY_PASSKEY_RATE_LIMIT_WINDOW_SECONDS: "222",
+      IDENTITY_PASSKEY_RATE_LIMIT_PER_IP_PER_WINDOW: "2222",
+    });
+
+    expect(configs.login).toEqual({
+      windowSeconds: 111,
+      perAccountLimit: 11,
+      perIpLimit: 1111,
+    });
+    expect(configs.resend).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 20,
+      perIpLimit: 20,
+    });
+  });
+
+  it.each(["0", "-5", "not-a-number", ""])(
+    "ignores an unusable setting (%p) and keeps the default",
+    (value: string) => {
+      expect(
+        configsUnderEnv({
+          IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_WINDOW_SECONDS: value,
+          IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_PER_IP_PER_WINDOW:
+            value,
+        }).resend,
+      ).toEqual({
+        windowSeconds: 900,
+        perAccountLimit: 20,
+        perIpLimit: 20,
+      });
+    },
+  );
 });

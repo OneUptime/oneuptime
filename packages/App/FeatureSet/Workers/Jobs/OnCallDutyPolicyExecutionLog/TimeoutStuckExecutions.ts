@@ -6,6 +6,11 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import {
+  ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE,
+  ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
+  isOnCallDirectPage,
+} from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
@@ -35,7 +40,7 @@ RunCron(
      * healthy escalations and silently dropped every remaining rule/repeat,
      * meaning later responders were never paged for an unacknowledged incident.
      */
-    const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
+    const startedExecutions: Array<OnCallDutyPolicyExecutionLog> =
       await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
           status: OnCallDutyPolicyStatus.Started,
@@ -44,11 +49,28 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          // Whether it is a policy's run or a direct page, for what it is told.
+          onCallDutyPolicyId: true,
+          pagingStartsAt: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+    /*
+     * A run that waited to page (OnCallDutyPolicyRunWait) - held until
+     * working hours, for hours or days - was created long before it starts:
+     * it is started from Waiting, and its pagingStartsAt is the moment it
+     * was. It is stuck only five minutes after that, not at once. A Waiting
+     * run itself is not read here at all: it is not stuck, it waits.
+     */
+    const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
+      startedExecutions.filter(
+        (executionLog: OnCallDutyPolicyExecutionLog): boolean => {
+          return isStartedLongerThan(executionLog, fiveMinsAgo);
+        },
+      );
 
     /*
      * A log is created in "Scheduled" and advanced to "Started" inside the
@@ -70,6 +92,7 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          onCallDutyPolicyId: true,
         },
         props: {
           isRoot: true,
@@ -81,7 +104,9 @@ RunCron(
         id: executionLog.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
-          statusMessage: "Policy Execution timed out.",
+          statusMessage: isOnCallDirectPage(executionLog)
+            ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
+            : "Policy Execution timed out.",
         },
         props: {
           isRoot: true,
@@ -94,8 +119,9 @@ RunCron(
         id: executionLog.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
-          statusMessage:
-            "Policy Execution never started (stuck in Scheduled) and was timed out.",
+          statusMessage: isOnCallDirectPage(executionLog)
+            ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
+            : "Policy Execution never started (stuck in Scheduled) and was timed out.",
         },
         props: {
           isRoot: true,
@@ -104,3 +130,26 @@ RunCron(
     }
   },
 );
+
+/*
+ * Whether a run in Started began starting before `before`: when it was
+ * created, or - for a run that waited to page - when its paging started.
+ */
+function isStartedLongerThan(
+  executionLog: OnCallDutyPolicyExecutionLog,
+  before: Date,
+): boolean {
+  if (!executionLog.pagingStartsAt) {
+    return true;
+  }
+
+  const pagingStartedAt: Date = OneUptimeDate.fromString(
+    executionLog.pagingStartsAt,
+  );
+
+  if (isNaN(pagingStartedAt.getTime())) {
+    return true;
+  }
+
+  return OneUptimeDate.isBefore(pagingStartedAt, before);
+}

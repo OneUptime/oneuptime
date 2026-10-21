@@ -1,11 +1,17 @@
 import PageComponentProps from "../PageComponentProps";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
 import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
@@ -53,6 +59,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -65,6 +72,14 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: runbookExtraFacets,
   });
 
+  /*
+   * The create form asks for a name and what the runbook is for, and folds
+   * the rest under Advanced: the Enabled switch (on by default, and on the
+   * runbook's Settings page) and the labels. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<Runbook> =
+    getAdvancedFormSection<Runbook>();
+
   return (
     <Fragment>
       <ModelTable<Runbook>
@@ -72,6 +87,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -81,9 +97,30 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         saveFilterProps={{
           tableId: "runbooks-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
+        /*
+         * A new runbook has no steps, and steps are what it runs: land on
+         * its Steps page, which asks for the first one, as a new workflow
+         * lands on its Builder. It used to stay on this list, and the
+         * runbook's Overview offered Run Now over nothing to run.
+         */
+        onCreateSuccess={(
+          item: Runbook,
+          modalType?: ModalType,
+        ): Promise<Runbook> => {
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route,
+                { modelId: item._id as string },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         bulkActions={{
           buttons: [...ownerBulkActions],
         }}
@@ -95,7 +132,6 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
         }}
-        noItemsMessage={"No runbooks created yet."}
         formFields={[
           {
             field: { name: true },
@@ -117,21 +153,11 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: { isEnabled: true },
             title: "Enabled",
             fieldType: FormFieldSchemaType.Toggle,
+            collapsibleSection: advancedSection,
           },
-          {
-            field: { labels: true },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Runbook>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

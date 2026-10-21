@@ -26,8 +26,15 @@ receivers:
     # CPU throttling). These are OFF by default in the contrib
     # docker_stats receiver and must be explicitly turned on.
     metrics:
+      # The receiver's own CPU percent is OFF: it reads ONE stats sample (its
+      # Docker client asks for a one-shot sample, which carries no previous
+      # reading), so it divides all the CPU the container used since it
+      # started by all the CPU the host used since it booted -- a flat line
+      # near zero that never follows the load. container.cpu.utilization is
+      # built from container.cpu.usage.total instead: see
+      # transform/cpu-utilization-source below.
       container.cpu.utilization:
-        enabled: true
+        enabled: false
       container.cpu.throttling_data.throttled_periods:
         enabled: true
       container.cpu.throttling_data.throttled_time:
@@ -226,6 +233,60 @@ receivers:
         to: 'attributes["oneuptime.docker.kind"]'
 
 processors:
+  # Container CPU as OneUptime shows it: the CPU the container used over each
+  # collection interval, as a percent of ONE core -- 100% is one core busy for
+  # the whole interval, so a container on two cores reads 200%. That is the
+  # `docker stats` figure, averaged over the 30 seconds between two scrapes
+  # rather than read for one second, so it moves with the load and always
+  # agrees with the per-second rate of container.cpu.usage.total.
+  #
+  # The receiver's own container.cpu.utilization is off (see the receiver),
+  # so these four build it from the container's CPU time counter:
+  #   1. transform/cpu-utilization-source copies container.cpu.usage.total
+  #      (which goes on to OneUptime unchanged) as container.cpu.utilization;
+  #   2. cumulative_to_delta/cpu-utilization turns the copy into the CPU time
+  #      used since the previous scrape. A container's first scrape after the
+  #      agent starts, and the scrape after its counter restarts (the
+  #      container restarted), have nothing to compare with and send no CPU
+  #      percent; state of a container gone for 10 minutes is dropped;
+  #   3. delta_to_rate/cpu-utilization divides that by the seconds between
+  #      the two scrapes: nanoseconds of CPU per second;
+  #   4. transform/percent-units scales it to percent of one core (10^9 ns of
+  #      CPU per second is one core, 100%) under the unit "%".
+  # transform/percent-units also gives container.memory.percent the unit "%":
+  # the receiver sends it as a percent (0-100) of the container's memory
+  # limit, or of the host's memory without one, but labels it "1", the unit
+  # of a 0-1 fraction, which reads as 100 times too much - and a description
+  # that says what it is a percent of.
+  # Tests/Ops/ContainerAgentCpuUtilization.test.js holds the three container
+  # agents to these processors, and Tests/Ops/container-agent-cpu-
+  # utilization-behaviour.sh runs them in the collector this image is built
+  # FROM, against a container burning a known share of a core.
+  transform/cpu-utilization-source:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - copy_metric(name="container.cpu.utilization") where metric.name == "container.cpu.usage.total"
+  cumulative_to_delta/cpu-utilization:
+    include:
+      metrics:
+        - container.cpu.utilization
+      match_type: strict
+    initial_value: drop
+    max_staleness: 10m
+  delta_to_rate/cpu-utilization:
+    metrics:
+      - container.cpu.utilization
+  transform/percent-units:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - scale_metric(0.0000001, "%") where metric.name == "container.cpu.utilization"
+          - set(metric.description, "CPU used over each collection interval, where 100% is one full CPU core.") where metric.name == "container.cpu.utilization"
+          - set(metric.unit, "%") where metric.name == "container.memory.percent"
+          - set(metric.description, "Memory in use as a percent of the container's limit, or of host memory if it has none.") where metric.name == "container.memory.percent"
   resource:
     attributes:
       - key: container.runtime
@@ -268,7 +329,17 @@ service:
   pipelines:
     metrics:
       receivers: [docker_stats]
-      processors: [memory_limiter, resourcedetection, resource, batch]
+      processors:
+        [
+          memory_limiter,
+          transform/cpu-utilization-source,
+          cumulative_to_delta/cpu-utilization,
+          delta_to_rate/cpu-utilization,
+          transform/percent-units,
+          resourcedetection,
+          resource,
+          batch,
+        ]
       exporters: [otlphttp]
     logs:
       receivers: [filelog]

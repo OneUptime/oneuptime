@@ -21,9 +21,13 @@ import {
 import {
   WorkflowIssueGroup,
   getWorkflowLintSeverityLabel,
+  WORKFLOW_LINT_ERROR_COUNT,
+  WORKFLOW_LINT_WARNING_COUNT,
   groupWorkflowLintIssues,
 } from "./GraphLintSummary";
 import React, { FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   lintResult: WorkflowLintResult;
@@ -70,14 +74,15 @@ const renderSeverityIcon: RenderSeverityIconFunction = (
 
 type RenderCountPillFunction = (params: {
   count: number;
-  singular: string;
+  // The count in words, in the reader's language: "3 errors".
+  label: string;
   className: string;
   testId: string;
 }) => ReactElement | null;
 
 const renderCountPill: RenderCountPillFunction = (params: {
   count: number;
-  singular: string;
+  label: string;
   className: string;
   testId: string;
 }): ReactElement | null => {
@@ -90,8 +95,7 @@ const renderCountPill: RenderCountPillFunction = (params: {
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium leading-4 whitespace-nowrap ${params.className}`}
       data-testid={params.testId}
     >
-      {params.count} {params.singular}
-      {params.count === 1 ? "" : "s"}
+      {params.label}
     </span>
   );
 };
@@ -99,6 +103,7 @@ const renderCountPill: RenderCountPillFunction = (params: {
 const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const groups: Array<WorkflowIssueGroup> = groupWorkflowLintIssues({
     issues: props.lintResult.issues,
     stepTitlesByNodeId: props.stepTitlesByNodeId,
@@ -123,10 +128,12 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
               className="h-6 w-6 text-emerald-500"
             />
             <p className="text-sm font-medium text-gray-900">
-              Nothing to fix here
+              {translator.translateText("Nothing to fix here")}
             </p>
             <p className="text-sm text-gray-500">
-              The checks found nothing wrong with this workflow.
+              {translator.translateText(
+                "The checks found nothing wrong with this workflow.",
+              )}
             </p>
           </div>
         ) : (
@@ -141,21 +148,32 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
             >
               {renderCountPill({
                 count: props.lintResult.errorCount,
-                singular: "error",
+                label: translator.translatePlural(
+                  WORKFLOW_LINT_ERROR_COUNT,
+                  props.lintResult.errorCount,
+                ),
                 className:
                   "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
                 testId: "workflow-issues-error-count",
               })}
               {renderCountPill({
                 count: props.lintResult.warningCount,
-                singular: "warning",
+                label: translator.translatePlural(
+                  WORKFLOW_LINT_WARNING_COUNT,
+                  props.lintResult.warningCount,
+                ),
                 className:
                   "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200",
                 testId: "workflow-issues-warning-count",
               })}
               <span className="text-xs text-gray-500">
-                across{" "}
-                {groups.length === 1 ? "1 place" : `${groups.length} places`}
+                {translator.translatePlural(
+                  {
+                    one: "across {{count}} place",
+                    other: "across {{count}} places",
+                  },
+                  groups.length,
+                )}
               </span>
             </div>
 
@@ -173,7 +191,7 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
                   <header className="flex items-start justify-between gap-3 border-b border-gray-200 bg-gray-50 px-3 py-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-gray-900">
-                        {group.title}
+                        {translator.translateText(group.title)}
                       </p>
                       {group.componentId &&
                         group.componentId !== group.title && (
@@ -185,14 +203,20 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
                     <div className="flex shrink-0 items-center gap-2">
                       {renderCountPill({
                         count: group.errorCount,
-                        singular: "error",
+                        label: translator.translatePlural(
+                          WORKFLOW_LINT_ERROR_COUNT,
+                          group.errorCount,
+                        ),
                         className:
                           "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
                         testId: "workflow-issue-group-error-count",
                       })}
                       {renderCountPill({
                         count: group.warningCount,
-                        singular: "warning",
+                        label: translator.translatePlural(
+                          WORKFLOW_LINT_WARNING_COUNT,
+                          group.warningCount,
+                        ),
                         className:
                           "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200",
                         testId: "workflow-issue-group-warning-count",
@@ -203,11 +227,16 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
                           onClick={() => {
                             props.onGoToStep?.(group.nodeId as string);
                           }}
-                          aria-label={`Open settings for ${group.title}`}
+                          aria-label={translator.translateTemplate(
+                            "Open settings for {{step}}",
+                            {
+                              step: translatableTerm(group.title),
+                            },
+                          )}
                           data-testid="workflow-issue-go-to-step"
                           className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
                         >
-                          Open step
+                          {translator.translateText("Open step")}
                           <Icon
                             icon={IconProp.ChevronRight}
                             size={SizeProp.ExtraSmall}
@@ -233,7 +262,10 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
                             {renderSeverityIcon(issue.severity)}
                             <p className="text-sm leading-5 text-gray-700">
                               <span className="sr-only">
-                                {getWorkflowLintSeverityLabel(issue.severity)}:{" "}
+                                {translator.translateText(
+                                  getWorkflowLintSeverityLabel(issue.severity),
+                                )}
+                                :{" "}
                               </span>
                               {issue.message}
                             </p>

@@ -47,6 +47,15 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/unlink-monitor/",
   "/incident/generate-postmortem-from-ai/",
   "/incident-episode/generate-postmortem-from-ai/",
+  "/incident/subscriber-audience",
+  "/status-page/listing-monitors",
+  // How many records hold each value of a custom field (#4564).
+  "/option-usage",
+  // Several alerts or incidents added to an episode in one request.
+  "/alert-episode-member/add-alerts",
+  "/incident-episode-member/add-incidents",
+  // An incident call's transcript and what OneUptime AI read in it (#4875).
+  "/incident-video-call/",
 ];
 
 /*
@@ -84,16 +93,60 @@ const GUARDED_PAGES: Array<GuardedPage> = [
     page: ["Pages", "Incidents", "EpisodeView", "Postmortem.tsx"],
     routePrefix: "/incident-episode/generate-postmortem-from-ai/",
   },
+  /*
+   * The "Will notify" audience summary and the picker's warnings all ask
+   * through this one hook.
+   */
+  {
+    page: ["Components", "Incident", "useSubscriberAudience.ts"],
+    routePrefix: "/incident/subscriber-audience",
+  },
+  /*
+   * The status pages that show a maintenance event's or an announcement's
+   * monitors, suggested under its status page picker, are all asked for
+   * through this one hook.
+   */
+  {
+    page: ["Components", "StatusPage", "useStatusPagesListingMonitors.ts"],
+    routePrefix: "/status-page/listing-monitors",
+  },
+  /*
+   * The option editor of every custom field settings page asks how many
+   * records hold each value through this one helper.
+   */
+  {
+    page: ["Components", "CustomFields", "CustomFieldOptionUsage.ts"],
+    routePrefix: "/option-usage",
+  },
+  /*
+   * An episode's Add Alerts / Add Incidents and the lists' Add to Existing
+   * Episode all add through this one helper.
+   */
+  {
+    page: ["Components", "EpisodeMembers", "EpisodeMembersApi.ts"],
+    routePrefix: "-episode-member/add-",
+  },
+  /*
+   * The Video Call card and the AI Investigation card reach an incident
+   * call's transcript routes - add, get from the provider, remove, read
+   * again, decide on the suggested root cause - through this one module.
+   */
+  {
+    page: ["Components", "VideoCall", "CallTranscriptApi.ts"],
+    routePrefix: "/incident-video-call/",
+  },
 ];
 
 /*
- * "Draft with AI" on the note pages of alerts, incidents and scheduled
- * maintenance events reaches its route through one shared helper,
- * Components/EventNotes/GenerateNoteWithAI.ts: each page hands getNoteGenerator
- * its route as `apiPath`, and the helper makes the one raw call, to
- * `<apiPath>/<eventId>`. The routes are written without the trailing slash the
- * helper adds, so the raw-call sweep above never sees them in a page; they are
- * checked through the helper instead, in the describe after it.
+ * "Draft with AI" on the notes of alerts, incidents and scheduled maintenance
+ * events - on their Notes pages and in their feeds' "Add ... Note" dialogs -
+ * reaches its route through one shared helper,
+ * Components/EventNotes/GenerateNoteWithAI.ts: each event's note kinds
+ * (Components/EventNotes/NoteKinds) hand getNoteGenerator its route as
+ * `apiPath`, and the helper makes the one raw call, to `<apiPath>/<eventId>`.
+ * The routes are written without the trailing slash the helper adds, so the
+ * raw-call sweep above never sees them in a kind; they are checked through
+ * the helper instead, in the describe after it.
  */
 const NOTE_GENERATOR_FILE: Array<string> = [
   "Components",
@@ -108,11 +161,9 @@ const NOTE_GENERATION_ROUTES: Array<string> = [
 ];
 
 const NOTE_GENERATOR_PAGES: Array<Array<string>> = [
-  ["Pages", "Alerts", "View", "InternalNote.tsx"],
-  ["Pages", "Incidents", "View", "InternalNote.tsx"],
-  ["Pages", "Incidents", "View", "PublicNote.tsx"],
-  ["Pages", "ScheduledMaintenanceEvents", "View", "InternalNote.tsx"],
-  ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
+  ["Components", "EventNotes", "NoteKinds", "AlertNoteKinds.ts"],
+  ["Components", "EventNotes", "NoteKinds", "IncidentNoteKinds.tsx"],
+  ["Components", "EventNotes", "NoteKinds", "ScheduledMaintenanceNoteKinds.ts"],
 ];
 
 interface RawApiCall {
@@ -480,7 +531,7 @@ describe("project-scoped routes reached through the shared note generator", () =
     );
   });
 
-  test("only the note pages name a note generation route, and only as the generator's apiPath", () => {
+  test("only the note kinds name a note generation route, and only as the generator's apiPath", () => {
     const pagesNamingRoutes: Array<string> = [];
 
     for (const file of listSourceFiles(DASHBOARD_SRC)) {
@@ -515,7 +566,7 @@ describe("project-scoped routes reached through the shared note generator", () =
     );
   });
 
-  test("every note generation route still has a page drafting through it", () => {
+  test("every note generation route still has a note kind drafting through it", () => {
     const pageText: string = NOTE_GENERATOR_PAGES.map(
       (page: Array<string>): string => {
         return squash(
@@ -598,19 +649,17 @@ describe("the pages that call project-scoped custom routes", () => {
  * than left as a comment.
  */
 describe("user-scoped notification endpoints carry projectId in the body", () => {
+  /*
+   * Requests about the signed-in user's browser rather than one project, so
+   * they carry no projectId: a browser's renewed push subscription moves every
+   * device the user registered with the old one - one per project they are a
+   * member of - and the route takes the user from the session
+   * (UserPushAPI's subscription-change). DashboardRequestsNameTheirProject
+   * excuses the same route, and only it.
+   */
+  const USER_LEVEL_ROUTES: Array<string> = ["/user-push/subscription-change"];
+
   const USER_SCOPED: Array<{ page: Array<string>; route: string }> = [
-    {
-      page: ["Components", "NotificationMethods", "SMS.tsx"],
-      route: "/user-sms/",
-    },
-    {
-      page: ["Components", "NotificationMethods", "Email.tsx"],
-      route: "/user-email/",
-    },
-    {
-      page: ["Components", "NotificationMethods", "Call.tsx"],
-      route: "/user-call/",
-    },
     {
       page: ["Components", "NotificationMethods", "Push.tsx"],
       route: "/user-push/",
@@ -620,16 +669,17 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       route: "/user-telegram/",
     },
     {
-      page: ["Components", "NotificationMethods", "WhatsApp.tsx"],
-      route: "/user-whatsapp/",
-    },
-    {
       page: ["Components", "NotificationMethods", "Webhook.tsx"],
       route: "/user-webhook/",
     },
+    /*
+     * The email, SMS, call, WhatsApp and incoming call number lists verify
+     * through one dialog, which posts to the channel's route (verify,
+     * resend, verification-status) - see the test below.
+     */
     {
-      page: ["Components", "NotificationMethods", "IncomingCallNumber.tsx"],
-      route: "/user-incoming-call-number/",
+      page: ["Components", "NotificationMethods", "VerificationCodeModal.tsx"],
+      route: "definition.apiRoute",
     },
   ];
 
@@ -639,7 +689,12 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       const file: string = path.join(DASHBOARD_SRC, ...page);
       const matching: Array<RawApiCall> = readRawApiCalls(file).filter(
         (call: RawApiCall) => {
-          return call.body.includes(route);
+          return (
+            call.body.includes(route) &&
+            !USER_LEVEL_ROUTES.some((userLevelRoute: string): boolean => {
+              return call.body.includes(userLevelRoute);
+            })
+          );
         },
       );
 
@@ -650,6 +705,81 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
           "projectId: ProjectUtil.getCurrentProjectId()!",
         );
       }
+    },
+  );
+
+  /*
+   * The user-level routes are left out above because they are still asked
+   * for: a route that went away, or started naming a project, would leave a
+   * stale exception behind.
+   */
+  test.each(USER_LEVEL_ROUTES)(
+    "Push.tsx still requests %s, and names no project in it",
+    (userLevelRoute: string) => {
+      const calls: Array<RawApiCall> = readRawApiCalls(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "NotificationMethods",
+          "Push.tsx",
+        ),
+      ).filter((call: RawApiCall): boolean => {
+        return call.body.includes(userLevelRoute);
+      });
+
+      expect(calls.length).toBeGreaterThan(0);
+
+      for (const call of calls) {
+        expect(call.body).not.toContain("projectId");
+      }
+    },
+  );
+
+  test.each([
+    ["Email.tsx", "Email", "/user-email"],
+    ["SMS.tsx", "SMS", "/user-sms"],
+    ["Call.tsx", "Call", "/user-call"],
+    ["WhatsApp.tsx", "WhatsApp", "/user-whatsapp"],
+    [
+      "IncomingCallNumber.tsx",
+      "IncomingCallNumber",
+      "/user-incoming-call-number",
+    ],
+  ])(
+    "%s verifies through the dialog, on its own channel's route",
+    (file: string, channel: string, route: string) => {
+      const listSource: string = squash(
+        fs.readFileSync(
+          path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
+          "utf8",
+        ),
+      );
+
+      // No raw call of its own left to carry projectId, or to forget it.
+      expect(
+        readRawApiCalls(
+          path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
+        ),
+      ).toEqual([]);
+      expect(listSource).toContain(
+        `<VerificationCodeModal channel={VerificationCodeChannel.${channel}}`,
+      );
+
+      const channels: string = squash(
+        fs.readFileSync(
+          path.join(
+            DASHBOARD_SRC,
+            "Components",
+            "NotificationMethods",
+            "VerificationCodeChannels.ts",
+          ),
+          "utf8",
+        ),
+      );
+
+      expect(channels).toContain(
+        `channel: VerificationCodeChannel.${channel}, apiRoute: "${route}",`,
+      );
     },
   );
 });

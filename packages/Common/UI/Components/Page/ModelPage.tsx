@@ -1,6 +1,10 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
+import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
+import { nameRecordInTrail } from "./RecordNameInTrail";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Link from "../../../Types/Link";
@@ -42,6 +46,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 interface LoadedModelHeader {
   modelId: string;
   title: string | undefined;
+  // The record's own name, for the crumb that stands for it.
+  recordName?: string | undefined;
   labels: Array<Label>;
   error: string;
 }
@@ -51,6 +57,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Keyed on the id's string, not the ObjectID: layouts build a new ObjectID
    * from the route params on every render.
@@ -60,6 +67,25 @@ const ModelPage: <TBaseModel extends BaseModel>(
   const [loadedHeader, setLoadedHeader] = useState<LoadedModelHeader | null>(
     null,
   );
+
+  /*
+   * Bumped when a tab below saves this record's name or labels
+   * (ModelHeaderEvents) - a refresh like a refreshToken bump, for the
+   * layouts that do not pass one.
+   */
+  const [headerChangeCount, setHeaderChangeCount] = useState<number>(0);
+
+  useEffect(() => {
+    return subscribeToModelHeaderChanged({
+      modelType: props.modelType,
+      modelId: props.modelId,
+      onChanged: (): void => {
+        setHeaderChangeCount((count: number): number => {
+          return count + 1;
+        });
+      },
+    });
+  }, [modelIdString]);
 
   /*
    * Mirrors loadedHeader, so a read that finishes can see what is on screen
@@ -148,13 +174,16 @@ const ModelPage: <TBaseModel extends BaseModel>(
       });
 
       if (!item) {
-        const singularName: string = (
-          modelInstance.singularName || "item"
-        ).toLowerCase();
-
         header = {
           ...header,
-          error: `Cannot load ${singularName}. It could be because you don't have enough permissions to read this ${singularName}.`,
+          error: translator.translateTemplate(
+            "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.",
+            {
+              itemName: translatableTerm(modelInstance.singularName || "item", {
+                inSentence: true,
+              }),
+            },
+          ),
         };
       } else {
         let loadedLabels: Array<Label> = [];
@@ -168,12 +197,13 @@ const ModelPage: <TBaseModel extends BaseModel>(
             columnValue || ((item as any)[labelsColumn] as Array<Label>) || [];
         }
 
+        const recordName: unknown = (item as any)[props.modelNameField];
+
         header = {
           ...header,
           labels: loadedLabels,
-          title: `${props.title || ""} - ${
-            (item as any)[props.modelNameField] as string
-          }`,
+          title: `${props.title || ""} - ${recordName as string}`,
+          recordName: typeof recordName === "string" ? recordName : undefined,
         };
       }
     } catch (err) {
@@ -218,7 +248,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
     return () => {
       latestRequestRef.current++;
     };
-  }, [modelIdString, props.refreshToken]);
+  }, [modelIdString, props.refreshToken, headerChangeCount]);
 
   /*
    * Decided at render time, not in an effect: the very first render for a
@@ -233,9 +263,24 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
   const labels: Array<Label> = isCurrentModelLoaded ? loadedHeader!.labels : [];
 
+  /*
+   * "Project > Monitors > Website: acme.com", not "> View Monitor": the crumb
+   * that stands for this record, and the browser tab, name it once it is
+   * read (RecordNameInTrail).
+   */
+  const breadcrumbLinks: Array<Link> | undefined = nameRecordInTrail({
+    links: props.breadcrumbLinks,
+    recordId: modelIdString,
+    recordName:
+      isCurrentModelLoaded && !loadedHeader!.error
+        ? loadedHeader!.recordName
+        : undefined,
+  });
+
   return (
     <Page
       {...props}
+      breadcrumbLinks={breadcrumbLinks}
       labels={labels.length > 0 ? labels : undefined}
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}

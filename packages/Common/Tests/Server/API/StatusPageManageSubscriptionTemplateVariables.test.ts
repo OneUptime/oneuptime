@@ -1,3 +1,4 @@
+import File from "../../../Models/DatabaseModels/File";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -20,6 +21,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import Response from "../../../Server/Utils/Response";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
@@ -34,6 +36,7 @@ import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/St
 import SubscriberNotificationTemplateVariables from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../App/FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import { mockRouter } from "./Helpers";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeAll,
@@ -95,9 +98,19 @@ const INTERNAL_NAME: string = "acme-prod-internal-page";
 
 const STATUS_PAGE_URL: string = "https://status.acme-example.com";
 
-// Where the subscriber manages (or cancels) their subscription.
-const MANAGE_URL: string =
-  "https://status.acme-example.com/update-subscription/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28";
+/*
+ * The subscription's token, and the link that works without signing in -
+ * which the manage page on a private status page does not.
+ */
+const UNSUBSCRIBE_TOKEN: string = "5d".repeat(32);
+const UNSUBSCRIBE_URL: string = `https://status.acme-example.com/unsubscribe/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
+
+/*
+ * Where the subscriber manages (or cancels) their subscription. The manage
+ * page asks for the subscription's token as the unsubscribe page does, so
+ * the link carries the same credential: the subscriber id alone opens nothing.
+ */
+const MANAGE_URL: string = `https://status.acme-example.com/update-subscription/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
 
 const SUBSCRIBER_EMAIL: string = "manage.subscriber@acme-example.com";
 const SUBSCRIBER_PHONE: string = "+15550100123";
@@ -398,15 +411,45 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
   type CompileCallsFunction = () => Array<CompileCall>;
 
+  /*
+   * Every compile, in the order it was made: the email body through
+   * compileEmailBodyTemplate (it is HTML, so its values are escaped), and
+   * the subject, SMS, Slack and Teams through compileTemplate.
+   */
   const compileCalls: CompileCallsFunction = (): Array<CompileCall> => {
-    return mockOf(
+    const recorded: Array<{ order: number; call: CompileCall }> = [];
+
+    for (const compile of [
       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-    ).mock.calls.map((call: Array<unknown>): CompileCall => {
-      return {
-        template: call[0] as string,
-        variables: call[1] as Record<string, string>,
-      };
-    });
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    ]) {
+      const calls: jest.MockContext<unknown, Array<unknown>> = mockOf(
+        compile,
+      ).mock;
+
+      calls.calls.forEach((call: Array<unknown>, index: number): void => {
+        recorded.push({
+          order: calls.invocationCallOrder[index]!,
+          call: {
+            template: call[0] as string,
+            variables: call[1] as Record<string, string>,
+          },
+        });
+      });
+    }
+
+    return recorded
+      .sort(
+        (
+          a: { order: number; call: CompileCall },
+          b: { order: number; call: CompileCall },
+        ): number => {
+          return a.order - b.order;
+        },
+      )
+      .map((entry: { order: number; call: CompileCall }): CompileCall => {
+        return entry.call;
+      });
   };
 
   type SentMailFunction = () => Array<JSONObject>;
@@ -486,13 +529,21 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
     const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
     subscriber.id = new ObjectID(SUBSCRIBER_ID);
+    subscriber.unsubscribeToken = UNSUBSCRIBE_TOKEN;
 
     if (query["subscriberEmail"]?.toString() === SUBSCRIBER_EMAIL) {
       subscriber.subscriberEmail = new Email(SUBSCRIBER_EMAIL);
       return Promise.resolve([subscriber]);
     }
 
-    if (query["subscriberPhone"]?.toString() === SUBSCRIBER_PHONE) {
+    // A phone is looked up by its line (SubscriberContactSql.onPhoneLine).
+    if (
+      query["subscriberPhone"] !== undefined &&
+      rowMatchesWhere(
+        { subscriberPhone: SUBSCRIBER_PHONE },
+        { subscriberPhone: query["subscriberPhone"] },
+      )
+    ) {
       subscriber.subscriberPhone = new Phone(SUBSCRIBER_PHONE);
       return Promise.resolve([subscriber]);
     }
@@ -538,6 +589,15 @@ describe("StatusPageAPI manage-subscription templates", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
+
     pageToSend = statusPageFixture({ withCustomSmtpAndSms: true });
     templatesByMethod = {};
 
@@ -569,8 +629,9 @@ describe("StatusPageAPI manage-subscription templates", () => {
         return Promise.resolve([pageToSend]);
       });
 
-    // The real link builder, watched.
+    // The real link builders, watched.
     jest.spyOn(StatusPageSubscriberService, "getUnsubscribeLink");
+    jest.spyOn(StatusPageSubscriberService, "getManageSubscriptionLink");
 
     jest
       .spyOn(
@@ -583,6 +644,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
     jest.spyOn(
       StatusPageSubscriberNotificationTemplateServiceClass,
       "compileTemplate",
+    );
+    jest.spyOn(
+      StatusPageSubscriberNotificationTemplateServiceClass,
+      "compileEmailBodyTemplate",
     );
 
     jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined as never);
@@ -776,38 +841,150 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
   describe("variable values", () => {
     it.each(CHANNELS)(
-      "$name: unsubscribeUrl is the subscriber's manage link",
+      "$name: manageSubscriptionUrl is the manage page and unsubscribeUrl the token link",
       async (channel: ChannelCase) => {
         useCustomTemplatesOnEveryChannel();
 
         await callManageSubscription(channel.requestData);
 
-        // Built by the real helper from the page URL and this subscriber.
+        /*
+         * Built by the real helpers from the page URL and the subscriber row
+         * the lookup read - token included, as for the unsubscribe link.
+         */
+        const manageCalls: Array<Array<unknown>> = mockOf(
+          StatusPageSubscriberService.getManageSubscriptionLink,
+        ).mock.calls as Array<Array<unknown>>;
+        expect(manageCalls).toHaveLength(1);
+        expect((manageCalls[0]![0] as URL).toString()).toBe(
+          URL.fromString(STATUS_PAGE_URL).toString(),
+        );
+        expect(
+          (manageCalls[0]![1] as StatusPageSubscriber).id!.toString(),
+        ).toBe(SUBSCRIBER_ID);
+        expect(
+          (manageCalls[0]![1] as StatusPageSubscriber).unsubscribeToken,
+        ).toBe(UNSUBSCRIBE_TOKEN);
+
+        /*
+         * The unsubscribe link is built from the subscriber row the lookup
+         * read - token included - so it works without signing in.
+         */
         const linkCalls: Array<Array<unknown>> = mockOf(
           StatusPageSubscriberService.getUnsubscribeLink,
         ).mock.calls as Array<Array<unknown>>;
         expect(linkCalls).toHaveLength(1);
-        expect((linkCalls[0]![0] as URL).toString()).toBe(
-          URL.fromString(STATUS_PAGE_URL).toString(),
-        );
-        expect((linkCalls[0]![1] as ObjectID).toString()).toBe(SUBSCRIBER_ID);
+        expect(
+          (linkCalls[0]![1] as StatusPageSubscriber).unsubscribeToken,
+        ).toBe(UNSUBSCRIBE_TOKEN);
 
-        expect(MANAGE_URL).not.toBe(STATUS_PAGE_URL);
         expect(MANAGE_URL).toContain(SUBSCRIBER_ID);
+        expect(MANAGE_URL).toContain(UNSUBSCRIBE_TOKEN);
+        expect(UNSUBSCRIBE_URL).toContain(UNSUBSCRIBE_TOKEN);
 
+        /*
+         * Every channel, an SMS from this public page included, gets the
+         * same two links: there is no shorter SMS-only link keyed by the
+         * subscriber id any more.
+         */
         const calls: Array<CompileCall> = compileCalls();
         expect(calls).toHaveLength(channel.compileCallsPerRequest);
         for (const call of calls) {
-          expect(call.variables["unsubscribeUrl"]).toBe(MANAGE_URL);
+          expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
           expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
           expect(call.variables["statusPageUrl"]).toBe(STATUS_PAGE_URL);
         }
 
-        expect(renderedMessage(channel)).toContain(
-          `unsubscribeUrl=[${MANAGE_URL}]`,
-        );
+        const message: string = renderedMessage(channel);
+        expect(message).toContain(`unsubscribeUrl=[${UNSUBSCRIBE_URL}]`);
+        expect(message).toContain(`manageSubscriptionUrl=[${MANAGE_URL}]`);
+        expect(message).not.toContain(`/update-subscription/${SUBSCRIBER_ID}]`);
       },
     );
+
+    it("sms from a private status page gets the same links as from a public one", async () => {
+      const smsChannel: ChannelCase = CHANNELS.find(
+        (channel: ChannelCase): boolean => {
+          return channel.method === StatusPageSubscriberNotificationMethod.SMS;
+        },
+      )!;
+
+      useCustomTemplatesOnEveryChannel();
+      pageToSend.isPublicStatusPage = false;
+
+      await callManageSubscription(smsChannel.requestData);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(smsChannel.compileCallsPerRequest);
+      for (const call of calls) {
+        expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+        expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
+      }
+      expect(renderedMessage(smsChannel)).toContain(
+        `unsubscribeUrl=[${UNSUBSCRIBE_URL}]`,
+      );
+    });
+
+    it("reads each subscriber's unsubscribe token with the lookup", async () => {
+      await callManageSubscription(CHANNELS[0]!.requestData);
+
+      const select: JSONObject = (
+        mockOf(StatusPageSubscriberService.findBy).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+
+      expect(select["unsubscribeToken"]).toBe(true);
+    });
+
+    /*
+     * Every other sender tops up a missing token before building the link
+     * (ensureUnsubscribeTokens); a subscriber the backfill has not reached
+     * yet would otherwise be sent a link to the "out of date" page.
+     */
+    it("a subscriber read without its token is given one before the link is built", async () => {
+      const toppedUpToken: string = "9c".repeat(32);
+
+      jest
+        .spyOn(StatusPageSubscriberService, "findBy")
+        .mockImplementation((async (findBy: { query: JSONObject }) => {
+          const found: Array<StatusPageSubscriber> =
+            await findSubscribersFake(findBy);
+
+          for (const subscriber of found) {
+            subscriber.unsubscribeToken = undefined as unknown as string;
+          }
+
+          return found;
+        }) as never);
+
+      const ensure: jest.SpyInstance = jest
+        .spyOn(StatusPageSubscriberService, "ensureUnsubscribeTokens")
+        .mockImplementation((async (
+          subscribers: Array<StatusPageSubscriber>,
+        ): Promise<void> => {
+          for (const subscriber of subscribers) {
+            subscriber.unsubscribeToken = toppedUpToken;
+          }
+        }) as never);
+
+      useCustomTemplatesOnEveryChannel();
+
+      await callManageSubscription(CHANNELS[0]!.requestData);
+
+      expect(ensure).toHaveBeenCalledTimes(1);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls.length).toBeGreaterThan(0);
+      for (const call of calls) {
+        expect(call.variables["unsubscribeUrl"]).toBe(
+          `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID}-${toppedUpToken}`,
+        );
+        // The manage link gets the same topped-up token: never an id-only link.
+        expect(call.variables["manageSubscriptionUrl"]).toBe(
+          `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID}-${toppedUpToken}`,
+        );
+      }
+    });
 
     it.each(CHANNELS)(
       "$name: statusPageName is the page's public title, not its internal name",
@@ -830,6 +1007,42 @@ describe("StatusPageAPI manage-subscription templates", () => {
           expect(sentMail()[0]!["subject"]).toBe(
             `Manage ${PAGE_TITLE} at ${MANAGE_URL}`,
           );
+        }
+      },
+    );
+
+    /*
+     * The email body is HTML, so the page's title - which a project member
+     * typed - is escaped into it and cannot add markup. SMS, Slack and Teams
+     * show text as written, and the subject is plain text, so they get it
+     * unchanged.
+     */
+    it.each(CHANNELS)(
+      "$name: a page title holding markup is escaped only in the email body",
+      async (channel: ChannelCase) => {
+        const hostileTitle: string =
+          '<a href="https://evil.example/login">Acme</a> & "Co"';
+        useCustomTemplatesOnEveryChannel();
+        pageToSend = statusPageFixture({
+          withCustomSmtpAndSms: true,
+          pageTitle: hostileTitle,
+        });
+
+        await callManageSubscription(channel.requestData);
+
+        const message: string = renderedMessage(channel);
+
+        if (channel.method === StatusPageSubscriberNotificationMethod.Email) {
+          expect(message).toContain(
+            "statusPageName=[&lt;a href=&quot;https://evil.example/login&quot;&gt;Acme&lt;/a&gt; &amp; &quot;Co&quot;]",
+          );
+          expect(message).not.toContain("<a href");
+          expect(sentMail()[0]!["subject"]).toBe(
+            `Manage ${hostileTitle} at ${MANAGE_URL}`,
+          );
+        } else {
+          expect(message).toContain(`statusPageName=[${hostileTitle}]`);
+          expect(message).not.toMatch(/&(?:amp|lt|gt|quot|#39);/);
         }
       },
     );
@@ -901,7 +1114,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const expectedValues: Record<string, string> = {
           statusPageName: PAGE_TITLE,
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: MANAGE_URL,
+          unsubscribeUrl: UNSUBSCRIBE_URL,
           manageSubscriptionUrl: MANAGE_URL,
         };
 
@@ -985,6 +1198,53 @@ describe("StatusPageAPI manage-subscription templates", () => {
         "Manage your Subscription for Acme Cloud Status",
       );
       expect(mail["subject"]).toBe(expectedSubject);
+    });
+
+    it("email shows the page's logo only when the page's logo route serves it", async () => {
+      // A page without its own SMTP server sends the styled default.
+      const withLogo: (projectId: ObjectID | null) => StatusPage = (
+        projectId: ObjectID | null,
+      ): StatusPage => {
+        const page: StatusPage = statusPageFixture({
+          withCustomSmtpAndSms: false,
+        });
+        const logo: File = new File();
+        logo._id = "5e000000-0000-4000-8000-000000000005";
+
+        if (projectId) {
+          logo.projectId = projectId;
+        }
+
+        page.logoFileId = new ObjectID(logo._id);
+        page.logoFile = logo;
+        return page;
+      };
+
+      for (const [projectId, served] of [
+        [PROJECT_ID, true],
+        [new ObjectID("5e000000-0000-4000-8000-000000000006"), false],
+        [null, false],
+      ] as Array<[ObjectID | null, boolean]>) {
+        mockOf(MailService.sendMail).mockClear();
+        pageToSend = withLogo(projectId);
+
+        const request: ExpressRequest = await callManageSubscription({
+          subscriberEmail: SUBSCRIBER_EMAIL,
+        });
+        expectSucceeded(request);
+
+        const logoUrl: unknown = (sentMail()[0]!["vars"] as JSONObject)[
+          "logoUrl"
+        ];
+
+        if (served) {
+          expect(logoUrl).toMatch(
+            new RegExp(`/status-page-api/logo/${pageToSend._id}$`),
+          );
+        } else {
+          expect(logoUrl).toBe("");
+        }
+      }
     });
 
     it("sms without a custom template sends the dashboard's default text", async () => {

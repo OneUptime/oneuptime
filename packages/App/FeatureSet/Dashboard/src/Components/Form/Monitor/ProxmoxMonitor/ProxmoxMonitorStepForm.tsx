@@ -32,6 +32,7 @@ import {
   ProxmoxAlertTemplate,
   buildProxmoxMonitorConfig,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { ProxmoxMetricDefinition } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 
@@ -156,6 +157,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: ProxmoxAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const clusterIdentifier: string =
       monitorStepProxmoxMonitor.clusterIdentifier;
@@ -195,6 +198,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: ProxmoxMetricDefinition,
   ) => void = (metric: ProxmoxMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string =
@@ -227,11 +232,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Proxmox Cluster"
-          description={"Select the Proxmox cluster to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="Proxmox Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {
@@ -292,7 +293,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="PVE ID"
             description={
-              "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource."
+              "A node name (`pve1`), a VMID (`100`) or `<node>/<storage>` (`pve1/local`). Pair it with a scope to target one resource."
             }
             required={false}
           />
@@ -368,38 +369,17 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: ProxmoxAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepProxmoxMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepProxmoxMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepProxmoxMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepProxmoxMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepProxmoxMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </ProxmoxTemplatePicker>
       </div>
     );
   };
@@ -408,13 +388,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Proxmox Metric"
-            description={
-              "Select a Proxmox metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Proxmox Metric" required={true} />
           <ProxmoxMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: ProxmoxMetricDefinition) => {
@@ -431,7 +405,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -485,7 +459,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={"Select the time range for the Proxmox monitor."}
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -516,7 +490,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the Proxmox monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -535,13 +509,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Proxmox metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
@@ -557,8 +525,13 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepProxmoxMonitor,

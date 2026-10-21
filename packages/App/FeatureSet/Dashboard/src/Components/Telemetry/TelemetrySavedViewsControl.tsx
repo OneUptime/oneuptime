@@ -10,7 +10,10 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import SavedViewsDropdown from "Common/UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { SavedViewOption } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import { leaveSavedViewDefaultOutUnlessTicked } from "Common/Utils/Telemetry/SavedViewDefault";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
@@ -472,7 +475,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
             if (additionalSaveFieldsRef.current) {
               Object.assign(item, additionalSaveFieldsRef.current);
             }
-            return item;
+            // Unticked, the service decides: a project's first view is its default.
+            return leaveSavedViewDefaultOutUnlessTicked(item);
           }}
           onSuccess={async (item: T) => {
             setShowCreateModal(false);
@@ -516,10 +520,14 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
 
       {viewToDelete && (
         <ConfirmModal
-          title={`Delete ${viewToDelete.name || "saved view"}`}
-          description={`Are you sure you want to delete ${
-            viewToDelete.name || "this saved view"
-          }?`}
+          title="Delete Saved View"
+          description={
+            <DeleteConfirmationMessage
+              kind="question"
+              name={getRecordDisplayName(viewToDelete)}
+              typeLabel="saved view"
+            />
+          }
           isLoading={isLoading}
           submitButtonText="Delete"
           submitButtonType={ButtonStyleType.DANGER}

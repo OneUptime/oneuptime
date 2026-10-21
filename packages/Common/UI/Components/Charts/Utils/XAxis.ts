@@ -496,6 +496,81 @@ export default class XAxisUtil {
     return intervals.slice(0, intervals.length - 1);
   }
 
+  /**
+   * The start of the bucket a point at `value` is grouped into on an axis
+   * of this precision: exactly the instant getFormatter rounds `value` to
+   * before labelling it.
+   *
+   * The axis walks its slots from the window start, which is rarely on the
+   * grid - a rolling "past week" starts at now minus seven days, 10:23 say -
+   * while points join rows by their formatted label, which IS on the grid.
+   * So the row labelled "10:00" on an hourly axis draws the 10:00 bucket but
+   * its slot starts at 10:23. Anything that turns a row back into time (a
+   * drag-to-zoom, a bucket click) needs the bucket's start, not the slot's;
+   * otherwise a zoom lands up to one bucket late and can cut out the very
+   * spike it was aimed at.
+   *
+   * Sub-day tiers round with the same browser-local Date setters as the
+   * formatter, and EVERY_DAY groups by the calendar day in the configured
+   * timezone, as its label does. The coarser tiers mix the two in ways that
+   * do not reduce to one floor; they keep the slot start.
+   */
+  public static getBucketStart(value: Date, precision: XAxisPrecision): Date {
+    const rounded: Date = this.cloneDate(value);
+
+    switch (precision) {
+      case XAxisPrecision.EVERY_SECOND:
+        rounded.setMilliseconds(0);
+        return rounded;
+      case XAxisPrecision.EVERY_FIVE_SECONDS:
+        rounded.setSeconds(Math.floor(rounded.getSeconds() / 5) * 5, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_TEN_SECONDS:
+        rounded.setSeconds(Math.floor(rounded.getSeconds() / 10) * 10, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_THIRTY_SECONDS:
+        rounded.setSeconds(Math.floor(rounded.getSeconds() / 30) * 30, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_MINUTE:
+        rounded.setSeconds(0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_FIVE_MINUTES:
+        rounded.setMinutes(Math.floor(rounded.getMinutes() / 5) * 5, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_TEN_MINUTES:
+        rounded.setMinutes(Math.floor(rounded.getMinutes() / 10) * 10, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
+        rounded.setMinutes(Math.floor(rounded.getMinutes() / 15) * 15, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_THIRTY_MINUTES:
+        rounded.setMinutes(Math.floor(rounded.getMinutes() / 30) * 30, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_HOUR:
+        rounded.setMinutes(0, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_TWO_HOURS:
+        rounded.setHours(Math.floor(rounded.getHours() / 2) * 2, 0, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_THREE_HOURS:
+        rounded.setHours(Math.floor(rounded.getHours() / 3) * 3, 0, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_SIX_HOURS:
+        rounded.setHours(Math.floor(rounded.getHours() / 6) * 6, 0, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_TWELVE_HOURS:
+        rounded.setHours(Math.floor(rounded.getHours() / 12) * 12, 0, 0, 0);
+        return rounded;
+      case XAxisPrecision.EVERY_DAY:
+        return OneUptimeDate.getStartOfDay(
+          value,
+          OneUptimeDate.getCurrentTimezone(),
+        );
+      default:
+        return rounded;
+    }
+  }
+
   public static getFormatter(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;

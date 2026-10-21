@@ -1,6 +1,7 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import AccessControlUtil from "./AccessControlPermission";
+import BasePermission from "./BasePermission";
 import PermissionUtil from "./PermissionsUtil";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
@@ -14,15 +15,12 @@ export default class DeletePermission {
     TBaseModel extends BaseModel,
   >(data: {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    // check block permission first
-    await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
-      { ...data, type: DatabaseRequestType.Delete },
-    );
-
-    await AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>({
+    // The team's blocks, then the grants limited to labels, on one read.
+    await AccessControlUtil.checkRecordByModel<TBaseModel>({
       ...data,
       type: DatabaseRequestType.Delete,
     });
@@ -61,8 +59,15 @@ export default class DeletePermission {
         DatabaseRequestType.Delete,
       );
 
-      // add access control ids to query
-      query = await AccessControlUtil.addAccessControlIdsToQuery(
+      /*
+       * The records a delete reaches, by the rule a read and an update
+       * follow: label grants, owned records, the record a model is read
+       * through, and the label rule with the team's blocks
+       * (BasePermission.addRecordScopeToQuery). A delete is made in one
+       * project at a time - the tenant scope refuses one that names no
+       * project or asks across projects - so this is one project's query.
+       */
+      query = await BasePermission.addRecordScopeToQuery(
         modelType,
         query,
         null,

@@ -20,7 +20,19 @@ import { loadStripe } from "@stripe/stripe-js/pure";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "Common/Types/Billing/SubscriptionPlan";
+import { getYearlySaving } from "Common/Types/Billing/SubscriptionPlanPricing";
+import { getYearlySavingText } from "Common/UI/Components/Billing/PlanPicker/PlanPickerCopy";
+import {
+  getStopSentences,
+  getStoppedByMove,
+  PlanCutoffCounts,
+} from "../../Components/Billing/PlanCutoff";
+import PlanCutoffNote from "../../Components/Billing/PlanCutoffNote";
+import usePlanCutoffCounts from "../../Components/Billing/UsePlanCutoffCounts";
+import ChangePlanBillingNote from "../../Components/Billing/ChangePlanBillingNote";
 import { Green } from "Common/Types/BrandColors";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -30,6 +42,7 @@ import Text from "Common/Types/Text";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
+import MarketplaceUsageCard from "../../Components/Billing/MarketplaceUsageCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -52,6 +65,7 @@ import {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import Analytics, { PurchaseData } from "Common/Utils/Analytics";
 import {
   RevenueEventName,
   RevenueFunnelStage,
@@ -60,7 +74,15 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  getAddPaymentMethodGate,
+  getBillingActionLockedReason,
+  getSetDefaultPaymentMethodGate,
+} from "../../Components/Billing/BillingActionGates";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "Common/Types/Marketplace/CloudMarketplace";
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
 import React, {
   Fragment,
@@ -73,12 +95,15 @@ import useAsyncEffect from "use-async-effect";
 import Countries from "Common/UI/Utils/Countries";
 import ObjectID from "Common/Types/ObjectID";
 import { Theme, useTheme } from "Common/UI/Utils/Theme";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const theme: Theme = useTheme();
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
     useState<boolean>(true);
@@ -99,6 +124,14 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   const [resellerPlan, setResellerPlan] = useState<ResellerPlan | null>(null);
 
+  /*
+   * The cloud marketplace that bills this project, when one does (AWS,
+   * Microsoft or Google Cloud Marketplace). Its plan is still chosen here,
+   * without a card; everything about payment happens on the marketplace.
+   */
+  const [billingMarketplace, setBillingMarketplace] =
+    useState<CloudMarketplace | null>(null);
+
   const [balance, setBalance] = useState<number>(0);
 
   const [paymentMethodsCount, setPaymentMethodsCount] = useState<number | null>(
@@ -112,6 +145,31 @@ const Settings: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
+  /*
+   * When the project's trial ends (or ended). The plan picker speaks only of
+   * a trial the project is still on: a plan change keeps that one and never
+   * starts another (Components/Billing/ChangePlanBilling).
+   */
+  const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
+
+  // The plan the project is on, or null while it loads or is not one of ours.
+  const currentPlanType: PlanType | null = currentPlanId
+    ? (SubscriptionPlan.getSubscriptionPlanById(
+        currentPlanId,
+        getAllEnvVars(),
+      )?.getName() as PlanType | undefined) ?? null
+    : null;
+
+  /*
+   * How many API keys and SCIM connections the project has: they stop
+   * working below the plans that sell them, so the plan picker names how
+   * many a lower plan stops, and the page how many the project's plan has
+   * stopped (Components/Billing/PlanCutoff).
+   */
+  const planCutoffCounts: PlanCutoffCounts | null = usePlanCutoffCounts({
+    enabled: BILLING_ENABLED && Boolean(currentPlanType),
+  });
 
   const formRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
@@ -246,9 +304,10 @@ const Settings: FunctionComponent<ComponentProps> = (
   const getSavedButNotDefaultMessage: GetNotDefaultMessageFunction = (
     err: unknown,
   ): string => {
-    return `Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: ${BaseAPI.getFriendlyMessage(
-      err,
-    )}`;
+    return translator.translateTemplate(
+      'Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: {{reason}}',
+      { reason: BaseAPI.getFriendlyMessage(err) },
+    );
   };
 
   type CompleteRedirectedSetupFunction = (
@@ -286,7 +345,9 @@ const Settings: FunctionComponent<ComponentProps> = (
       });
 
       if (redirectStatus === "failed") {
-        setPaymentMethodError(SETUP_NOT_COMPLETED_ERROR_MESSAGE);
+        setPaymentMethodError(
+          translator.translateTemplate(SETUP_NOT_COMPLETED_ERROR_MESSAGE),
+        );
         return;
       }
 
@@ -301,7 +362,9 @@ const Settings: FunctionComponent<ComponentProps> = (
         if (result.error) {
           throw new Error(
             result.error.message ||
-              "The payment provider could not load your payment method.",
+              translator.translateTemplate(
+                "The payment provider could not load your payment method.",
+              ),
           );
         }
 
@@ -354,6 +417,8 @@ const Settings: FunctionComponent<ComponentProps> = (
         id: ProjectUtil.getCurrentProjectId()!,
         select: {
           paymentProviderPlanId: true,
+          trialEndsAt: true,
+          billingMarketplace: true,
           reseller: {
             name: true,
             description: true,
@@ -374,6 +439,17 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       if (project?.paymentProviderPlanId) {
         setCurrentPlanId(project.paymentProviderPlanId);
+      }
+
+      setTrialEndsAt(project?.trialEndsAt || null);
+
+      if (
+        project?.billingMarketplace &&
+        CloudMarketplaceUtil.isCloudMarketplace(project.billingMarketplace)
+      ) {
+        setBillingMarketplace(project.billingMarketplace);
+        // A marketplace bills month to month; a yearly price is a private offer there.
+        setIsSubscriptionPlanYearly(false);
       }
 
       if (project?.reseller) {
@@ -501,6 +577,9 @@ const Settings: FunctionComponent<ComponentProps> = (
           newPlanOrder !== null &&
           newPlanOrder > oldPlanOrder
         ) {
+          const isPaidConversion: boolean =
+            oldMonthlyAmountInUSD === 0 && newPlanIsPaid;
+
           // GA4/Google Ads friendly conversion event.
           UiAnalytics.captureRevenueEvent(
             RevenueEventName.SubscriptionUpgraded,
@@ -513,9 +592,24 @@ const Settings: FunctionComponent<ComponentProps> = (
                     currency: "USD",
                   }
                 : {}),
-              is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
+              is_paid_conversion: isPaidConversion,
             },
           );
+
+          const purchase: PurchaseData | null = Analytics.purchaseForPlanChange(
+            {
+              projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
+              planName: newPlan?.getName() || "",
+              isPaidConversion: isPaidConversion,
+              monthlyAmountInUSD: newMonthlyAmountInUSD,
+              seats: seats,
+              changedAt: new Date(),
+            },
+          );
+
+          if (purchase) {
+            UiAnalytics.capturePurchase(purchase);
+          }
         } else if (
           oldPlanOrder !== null &&
           newPlanOrder !== null &&
@@ -562,20 +656,52 @@ const Settings: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Adding a payment method, and choosing which one is charged, stay with a
+   * project owner and Manage Billing: the billing roles read this page and
+   * see those locked, saying why (Components/Billing/BillingActionGates).
+   * Read on every render: the permission snapshot rides on a response
+   * header and may land after the first paint.
+   */
+  const addPaymentMethodLockedReason: string | undefined =
+    getBillingActionLockedReason(getAddPaymentMethodGate());
+  const setDefaultLockedReason: string | undefined =
+    getBillingActionLockedReason(getSetDefaultPaymentMethodGate());
+
   const getFooter: GetReactElementFunction = (): ReactElement => {
     if (!BILLING_ENABLED) {
       return <></>;
     }
 
+    /*
+     * What yearly billing saves, worked out from the plans' prices - the
+     * switch used to promise "(Save 20%)" whatever they were (Growth saves
+     * 9% on OneUptime Cloud, Scale 15%). Nothing is said when no plan is
+     * cheaper yearly.
+     */
+    const yearlySavingText: string | null = getYearlySavingText({
+      saving: getYearlySaving(
+        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()),
+      ),
+      translator,
+    });
+
     return (
-      <Toggle
-        title="Yearly Plan"
-        value={isSubscriptionPlanYearly}
-        description="(Save 20%)"
-        onChange={(value: boolean) => {
-          setIsSubscriptionPlanYearly(value);
-        }}
-      />
+      <>
+        {billingMarketplace ? (
+          <></>
+        ) : (
+          <Toggle
+            title="Yearly Plan"
+            value={isSubscriptionPlanYearly}
+            description={yearlySavingText || undefined}
+            onChange={(value: boolean) => {
+              setIsSubscriptionPlanYearly(value);
+            }}
+          />
+        )}
+        <ChangePlanBillingNote trialEndsAt={trialEndsAt} />
+      </>
     );
   };
 
@@ -587,6 +713,54 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       {!isLoading && !error ? (
         <div>
+          <PlanCutoffNote counts={planCutoffCounts} plan={currentPlanType} />
+
+          {billingMarketplace && (
+            <Card
+              title={translator.translateTemplate(
+                "Billed through {{marketplace}}",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+              description={translator.translateTemplate(
+                "This project's plan and usage are billed on your {{marketplace}} bill, at the prices on oneuptime.com/pricing. You can change the plan here; the purchase itself is managed on {{marketplace}}.",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+              buttons={[
+                {
+                  title: translator.translateTemplate(
+                    "Manage on {{marketplace}}",
+                    {
+                      marketplace:
+                        CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                    },
+                  ),
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  onClick: () => {
+                    Navigation.navigate(
+                      URL.fromString(
+                        CloudMarketplaceUtil.getManageSubscriptionUrl(
+                          billingMarketplace,
+                        ),
+                      ),
+                      { openInNewTab: true },
+                    );
+                  },
+                  icon: IconProp.ExternalLink,
+                },
+              ]}
+            />
+          )}
+
+          {billingMarketplace && (
+            <MarketplaceUsageCard marketplace={billingMarketplace} />
+          )}
+
           {!reseller && (
             <CardModelDetail<Project>
               name="Plan Details"
@@ -595,10 +769,12 @@ const Settings: FunctionComponent<ComponentProps> = (
                 description:
                   "Your subscription plan controls included features. Pay as you go usage is billed separately.",
               }}
-              isEditable={paymentMethodsCount !== null}
+              isEditable={
+                paymentMethodsCount !== null || Boolean(billingMarketplace)
+              }
               editButtonText={"Change Plan"}
               onBeforeEdit={() => {
-                if (paymentMethodsCount === 0) {
+                if (!billingMarketplace && paymentMethodsCount === 0) {
                   setShowNoPaymentMethodModal(true);
                   return false;
                 }
@@ -622,30 +798,56 @@ const Settings: FunctionComponent<ComponentProps> = (
                   radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
                     getAllEnvVars(),
                   ).map((plan: SubscriptionPlan): RadioButton => {
+                    /*
+                     * No trial is offered here. A plan's trial period is
+                     * what a new project on it gets (ProjectPicker); a plan
+                     * change only keeps a trial the project is already on,
+                     * and the note under the plans says which applies
+                     * (ChangePlanBillingNote).
+                     */
                     let description: string = plan.isCustomPricing()
-                      ? `Our sales team will contact you soon.`
-                      : `Billed ${
-                          isSubscriptionPlanYearly ? "yearly" : "monthly"
-                        }. ${
-                          plan.getTrialPeriod() > 0
-                            ? `Free ${plan.getTrialPeriod()} days trial.`
-                            : ""
-                        }`;
+                      ? translator.translateTemplate(
+                          "Our sales team will contact you soon.",
+                        )
+                      : isSubscriptionPlanYearly
+                        ? translator.translateTemplate("Billed yearly.")
+                        : translator.translateTemplate("Billed monthly.");
 
                     if (
                       isSubscriptionPlanYearly &&
                       plan.getYearlySubscriptionAmountInUSD() === 0
                     ) {
-                      description =
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                      description = translator.translateTemplate(
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                      );
                     }
 
                     if (
                       !isSubscriptionPlanYearly &&
                       plan.getMonthlySubscriptionAmountInUSD() === 0
                     ) {
-                      description =
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                      description = translator.translateTemplate(
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                      );
+                    }
+
+                    // What moving to this plan stops, named before it is picked.
+                    if (planCutoffCounts) {
+                      description = [
+                        description,
+                        ...getStopSentences({
+                          translator,
+                          stopped: getStoppedByMove({
+                            counts: planCutoffCounts,
+                            fromPlan: currentPlanType,
+                            toPlan: plan.getName() as PlanType,
+                          }),
+                        }),
+                      ]
+                        .filter((sentence: string) => {
+                          return Boolean(sentence);
+                        })
+                        .join(" ");
                     }
 
                     return {
@@ -655,20 +857,27 @@ const Settings: FunctionComponent<ComponentProps> = (
                       title: plan.getName(),
                       description: description,
                       sideTitle: plan.isCustomPricing()
-                        ? "Custom Price"
+                        ? translator.translateTerm("Custom Price")
                         : isSubscriptionPlanYearly
-                          ? "$" +
-                            plan.getYearlySubscriptionAmountInUSD().toString() +
-                            "/mo billed yearly"
+                          ? translator.translateTemplate(
+                              "${{amount}}/mo billed yearly",
+                              {
+                                amount: plan.getYearlySubscriptionAmountInUSD(),
+                              },
+                            )
                           : "$" +
                             plan.getMonthlySubscriptionAmountInUSD().toString(),
                       sideDescription: plan.isCustomPricing()
                         ? ""
                         : isSubscriptionPlanYearly
-                          ? `~ $${
-                              plan.getYearlySubscriptionAmountInUSD() * 12
-                            } per user / year`
-                          : `/month per user`,
+                          ? translator.translateTemplate(
+                              "~ ${{amount}} per user / year",
+                              {
+                                amount:
+                                  plan.getYearlySubscriptionAmountInUSD() * 12,
+                              },
+                            )
+                          : translator.translateTemplate("/month per user"),
                     };
                   }),
                   title: "Please select a plan.",
@@ -693,7 +902,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                         );
 
                       if (!plan) {
-                        return <p>No plan selected for this project</p>;
+                        return (
+                          <p>
+                            {translator.translateText(
+                              "No plan selected for this project",
+                            )}
+                          </p>
+                        );
                       }
 
                       const isYearlyPlan: boolean =
@@ -703,29 +918,40 @@ const Settings: FunctionComponent<ComponentProps> = (
                         );
 
                       let description: string = plan.isCustomPricing()
-                        ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                        : `$${
-                            isYearlyPlan
-                              ? plan.getYearlySubscriptionAmountInUSD()
-                              : plan.getMonthlySubscriptionAmountInUSD()
-                          } / month per user. Billed ${
-                            isYearlyPlan ? "yearly" : "monthly"
-                          }.`;
+                        ? translator.translateTemplate(
+                            "Custom Pricing based on your needs. Our sales team will contact you shortly.",
+                          )
+                        : isYearlyPlan
+                          ? translator.translateTemplate(
+                              "${{amount}} / month per user. Billed yearly.",
+                              {
+                                amount: plan.getYearlySubscriptionAmountInUSD(),
+                              },
+                            )
+                          : translator.translateTemplate(
+                              "${{amount}} / month per user. Billed monthly.",
+                              {
+                                amount:
+                                  plan.getMonthlySubscriptionAmountInUSD(),
+                              },
+                            );
 
                       if (
                         isYearlyPlan &&
                         plan.getYearlySubscriptionAmountInUSD() === 0
                       ) {
-                        description =
-                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                        description = translator.translateTemplate(
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                        );
                       }
 
                       if (
                         !isYearlyPlan &&
                         plan.getMonthlySubscriptionAmountInUSD() === 0
                       ) {
-                        description =
-                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                        description = translator.translateTemplate(
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                        );
                       }
 
                       return (
@@ -747,8 +973,15 @@ const Settings: FunctionComponent<ComponentProps> = (
                       return (
                         <div>
                           <div className="bold">
-                            {item["paymentProviderSubscriptionSeats"]} users in
-                            this project.
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} user in this project.",
+                                other: "{{count}} users in this project.",
+                              },
+                              Number(
+                                item["paymentProviderSubscriptionSeats"] || 0,
+                              ),
+                            )}
                           </div>
                         </div>
                       );
@@ -762,8 +995,17 @@ const Settings: FunctionComponent<ComponentProps> = (
 
           {reseller && (
             <Card
-              title={`You have purchased this plan from ${reseller.name}`}
-              description={`If you would like to change the plan, please contact ${reseller.name} at ${reseller.description}`}
+              title={translator.translateTemplate(
+                "You have purchased this plan from {{reseller}}",
+                { reseller: reseller.name || "" },
+              )}
+              description={translator.translateTemplate(
+                "If you would like to change the plan, please contact {{reseller}} at {{contact}}",
+                {
+                  reseller: reseller.name || "",
+                  contact: reseller.description || "",
+                },
+              )}
               buttons={
                 reseller.changePlanLink
                   ? [
@@ -780,12 +1022,17 @@ const Settings: FunctionComponent<ComponentProps> = (
             >
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-500">
-                  The plan you purchased from {reseller.name} is{" "}
-                  {resellerPlan?.name}
+                  {translator.translateTemplate(
+                    "The plan you purchased from {{reseller}} is {{plan}}",
+                    {
+                      reseller: reseller.name || "",
+                      plan: resellerPlan?.name || "",
+                    },
+                  )}
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-500 mt-10">
-                    With the following features:
+                    {translator.translateText("With the following features:")}
                   </span>
 
                   <ul className="space-y-1 mt-2">
@@ -796,7 +1043,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                           icon={IconProp.CheckCircle}
                           className="h-5 w-5 mr-1"
                         />{" "}
-                        {resellerPlan?.monitorLimit} Monitors
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} Monitor",
+                            other: "{{count}} Monitors",
+                          },
+                          Number(resellerPlan?.monitorLimit || 0),
+                        )}
                       </span>
                     </li>
                     <li className="text-sm font-medium text-gray-500">
@@ -806,7 +1059,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                           icon={IconProp.CheckCircle}
                           className="h-5 w-5 mr-1"
                         />{" "}
-                        {resellerPlan?.teamMemberLimit} Team Members
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} Team Member",
+                            other: "{{count}} Team Members",
+                          },
+                          Number(resellerPlan?.teamMemberLimit || 0),
+                        )}
                       </span>
                     </li>
 
@@ -839,151 +1098,168 @@ const Settings: FunctionComponent<ComponentProps> = (
             </Card>
           )}
 
-          <ModelTable<BillingPaymentMethod>
-            modelType={BillingPaymentMethod}
-            id="payment-methods-table"
-            userPreferencesKey="billing-payment-methods-table"
-            saveFilterProps={{
-              tableId: "settings-payment-methods-table",
-            }}
-            isDeleteable={true}
-            isEditable={false}
-            isCreateable={false}
-            isViewable={false}
-            refreshToggle={paymentMethodsRefresh.toString()}
-            onItemDeleted={countSyncedPaymentMethods}
-            // Table filters can hide saved methods; plan controls need the unfiltered count.
-            onFetchSuccess={countSyncedPaymentMethods}
-            name="Settings > Billing > Add Payment Method"
-            selectMoreFields={{
-              isDefault: true,
-              paymentProviderPaymentMethodId: true,
-            }}
-            actionButtons={[
-              {
-                title: "Set as Default",
-                buttonStyleType: ButtonStyleType.NORMAL,
-                icon: IconProp.Check,
-                isVisible: (item: BillingPaymentMethod): boolean => {
-                  return (
-                    !item.isDefault &&
-                    Boolean(item.paymentProviderPaymentMethodId)
-                  );
-                },
-                onClick: makeRowTheDefaultPaymentMethod,
-              },
-              {
-                /*
-                 * The card that already is the default needs this too, and it
-                 * is the row where it is easiest to leave out.
-                 *
-                 * isDefault says only that the card is the customer's default
-                 * at Stripe. A subscription carrying its own pinned card is
-                 * charged ahead of that default, and that is the incident
-                 * state: the right card is the customer default, every
-                 * renewal still goes to the card it replaced. This route
-                 * clears those pins, and it is idempotent - writing the same
-                 * default again changes nothing. Without a button here the
-                 * only way to reach the repair would be to make some other
-                 * card the default, or to delete one.
-                 */
-                title: "Re-sync Autopay",
-                buttonStyleType: ButtonStyleType.NORMAL,
-                icon: IconProp.Refresh,
-                isVisible: (item: BillingPaymentMethod): boolean => {
-                  return (
-                    Boolean(item.isDefault) &&
-                    Boolean(item.paymentProviderPaymentMethodId)
-                  );
-                },
-                onClick: makeRowTheDefaultPaymentMethod,
-              },
-            ]}
-            cardProps={{
-              buttons: [
+          {!billingMarketplace && (
+            <ModelTable<BillingPaymentMethod>
+              modelType={BillingPaymentMethod}
+              id="payment-methods-table"
+              userPreferencesKey="billing-payment-methods-table"
+              saveFilterProps={{
+                tableId: "settings-payment-methods-table",
+              }}
+              isDeleteable={true}
+              isEditable={false}
+              isCreateable={false}
+              isViewable={false}
+              refreshToggle={paymentMethodsRefresh.toString()}
+              onItemDeleted={countSyncedPaymentMethods}
+              // Table filters can hide saved methods; plan controls need the unfiltered count.
+              onFetchSuccess={countSyncedPaymentMethods}
+              name="Settings > Billing > Add Payment Method"
+              selectMoreFields={{
+                isDefault: true,
+                paymentProviderPaymentMethodId: true,
+              }}
+              actionButtons={[
                 {
-                  title: "Add Payment Method",
-                  icon: IconProp.Add,
-                  onClick: async () => {
-                    setShowPaymentMethodModal(true);
-                    await fetchSetupIntent();
+                  title: "Set as Default",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  icon: IconProp.Check,
+                  disabled: Boolean(setDefaultLockedReason),
+                  tooltip: setDefaultLockedReason,
+                  isVisible: (item: BillingPaymentMethod): boolean => {
+                    return (
+                      !item.isDefault &&
+                      Boolean(item.paymentProviderPaymentMethodId)
+                    );
                   },
-                  buttonStyle: ButtonStyleType.NORMAL,
+                  onClick: makeRowTheDefaultPaymentMethod,
                 },
-              ],
-              title: "Payment Methods",
-              description:
-                "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
-            }}
-            noItemsMessage={"No payment methods found."}
-            query={{
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            }}
-            showRefreshButton={true}
-            filters={[
-              {
-                field: {
-                  paymentMethodType: true,
+                {
+                  /*
+                   * The card that already is the default needs this too, and it
+                   * is the row where it is easiest to leave out.
+                   *
+                   * isDefault says only that the card is the customer's default
+                   * at Stripe. A subscription carrying its own pinned card is
+                   * charged ahead of that default, and that is the incident
+                   * state: the right card is the customer default, every
+                   * renewal still goes to the card it replaced. This route
+                   * clears those pins, and it is idempotent - writing the same
+                   * default again changes nothing. Without a button here the
+                   * only way to reach the repair would be to make some other
+                   * card the default, or to delete one.
+                   */
+                  title: "Re-sync Autopay",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  icon: IconProp.Refresh,
+                  disabled: Boolean(setDefaultLockedReason),
+                  tooltip: setDefaultLockedReason,
+                  isVisible: (item: BillingPaymentMethod): boolean => {
+                    return (
+                      Boolean(item.isDefault) &&
+                      Boolean(item.paymentProviderPaymentMethodId)
+                    );
+                  },
+                  onClick: makeRowTheDefaultPaymentMethod,
                 },
-                title: "Payment Method Type",
-                type: FieldType.Text,
-              },
-              {
-                field: {
-                  last4Digits: true,
+              ]}
+              cardProps={{
+                buttons: [
+                  addPaymentMethodLockedReason
+                    ? {
+                        title: "Add Payment Method",
+                        icon: IconProp.Add,
+                        buttonStyle: ButtonStyleType.NORMAL,
+                        disabled: true,
+                        tooltip: addPaymentMethodLockedReason,
+                        onClick: () => {
+                          // Locked. The tooltip says who may add one.
+                        },
+                      }
+                    : {
+                        title: "Add Payment Method",
+                        icon: IconProp.Add,
+                        onClick: async () => {
+                          setShowPaymentMethodModal(true);
+                          await fetchSetupIntent();
+                        },
+                        buttonStyle: ButtonStyleType.NORMAL,
+                      },
+                ],
+                title: "Payment Methods",
+                description:
+                  "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
+              }}
+              noItemsMessage={"No payment methods found."}
+              query={{
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              }}
+              showRefreshButton={true}
+              filters={[
+                {
+                  field: {
+                    paymentMethodType: true,
+                  },
+                  title: "Payment Method Type",
+                  type: FieldType.Text,
                 },
-                title: "Number",
-                type: FieldType.Text,
-              },
-            ]}
-            columns={[
-              {
-                field: {
-                  paymentMethodType: true,
+                {
+                  field: {
+                    last4Digits: true,
+                  },
+                  title: "Number",
+                  type: FieldType.Text,
                 },
-                title: "Payment Method Type",
-                type: FieldType.Text,
+              ]}
+              columns={[
+                {
+                  field: {
+                    paymentMethodType: true,
+                  },
+                  title: "Payment Method Type",
+                  type: FieldType.Text,
 
-                getElement: (item: BillingPaymentMethod) => {
-                  return (
-                    <span>{`${Text.uppercaseFirstLetter(
-                      item.paymentMethodType as string,
-                    )}`}</span>
-                  );
+                  getElement: (item: BillingPaymentMethod) => {
+                    return (
+                      <span>{`${Text.uppercaseFirstLetter(
+                        item.paymentMethodType as string,
+                      )}`}</span>
+                    );
+                  },
                 },
-              },
-              {
-                field: {
-                  last4Digits: true,
-                },
-                title: "Number",
-                type: FieldType.Text,
+                {
+                  field: {
+                    last4Digits: true,
+                  },
+                  title: "Number",
+                  type: FieldType.Text,
 
-                getElement: (item: BillingPaymentMethod) => {
-                  return (
-                    <span className="inline-flex items-center gap-2">
-                      <span>{`*****${item["last4Digits"]}`}</span>
-                      {item.isDefault ? (
-                        <Pill
-                          text="Default"
-                          color={Green}
-                          /*
-                           * Deliberately not a promise that autopay charges
-                           * this card: a subscription can still carry a card
-                           * of its own, which the payment provider charges
-                           * first. "Re-sync Autopay" on this row clears that.
-                           */
-                          tooltip="New invoices are charged to this payment method. If a renewal still charges an older card, use Re-sync Autopay."
-                        />
-                      ) : (
-                        <></>
-                      )}
-                    </span>
-                  );
+                  getElement: (item: BillingPaymentMethod) => {
+                    return (
+                      <span className="inline-flex items-center gap-2">
+                        <span>{`*****${item["last4Digits"]}`}</span>
+                        {item.isDefault ? (
+                          <Pill
+                            text="Default"
+                            color={Green}
+                            /*
+                             * Deliberately not a promise that autopay charges
+                             * this card: a subscription can still carry a card
+                             * of its own, which the payment provider charges
+                             * first. "Re-sync Autopay" on this row clears that.
+                             */
+                            tooltip="New invoices are charged to this payment method. If a renewal still charges an older card, use Re-sync Autopay."
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                    );
+                  },
                 },
-              },
-            ]}
-          />
+              ]}
+            />
+          )}
 
           {showNoPaymentMethodModal ? (
             <ConfirmModal
@@ -1099,7 +1375,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 <></>
               )}
               {!modalError && !setupIntent && !stripe ? (
-                <p>Loading...</p>
+                <p>{translator.translateText("Loading...")}</p>
               ) : (
                 <></>
               )}
@@ -1117,12 +1393,17 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
             isEditable={true}
             editButtonText={"Update"}
+            formSteps={[
+              { title: "Billing Address", id: "billing-address" },
+              { title: "Invoices", id: "invoices" },
+            ]}
             formFields={[
               {
                 field: {
                   businessDetails: true,
                 },
                 title: "Business Details / Billing Address",
+                stepId: "billing-address",
                 description:
                   "This information will appear on invoices. Include company legal name, address, and tax / VAT ID if applicable.",
                 required: false,
@@ -1136,6 +1417,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   businessDetailsCountry: true,
                 },
                 title: "Country",
+                stepId: "billing-address",
                 description: "Required by Stripe. Select your billing country.",
                 required: false,
                 placeholder: "Select Country",
@@ -1147,6 +1429,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   financeAccountingEmail: true,
                 },
                 title: "Finance / Accounting Email",
+                stepId: "invoices",
                 description:
                   "Invoices, receipts and billing notifications will be sent here (optional). Separate multiple emails with a comma.",
                 required: false,
@@ -1168,7 +1451,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                     return null;
                   }
                   if (!Email.isValidList(raw)) {
-                    return "Enter one or more valid emails separated by a comma.";
+                    return translator.translateTemplate(
+                      "Enter one or more valid emails separated by a comma.",
+                    );
                   }
                   return null;
                 },
@@ -1178,6 +1463,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   sendInvoicesByEmail: true,
                 },
                 title: "Send Invoices by Email",
+                stepId: "invoices",
                 description:
                   "When enabled, invoices will be automatically sent to the finance/accounting email when they are generated.",
                 required: false,
@@ -1225,14 +1511,30 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
           />
 
-          {balance < 0 && (
+          {balance < 0 && !billingMarketplace && (
             <Card
               title="Customer Balance"
-              description={`Your current customer balance is $${balance * -1}. This balance will be applied to your next invoice.`}
+              description={translator.translateTemplate(
+                "Your current customer balance is ${{balance}}. This balance will be applied to your next invoice.",
+                { balance: balance * -1 },
+              )}
             />
           )}
 
-          {!reseller && (
+          {billingMarketplace && (
+            <Card
+              title={`Cancel Plan`}
+              description={translator.translateTemplate(
+                "To cancel, cancel your OneUptime purchase on {{marketplace}}. The project stops being billed when the purchase ends.",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+            />
+          )}
+
+          {!reseller && !billingMarketplace && (
             <Card
               title={`Cancel Plan`}
               description={`If you would like to cancel the plan, you need to delete the project.`}
@@ -1256,7 +1558,13 @@ const Settings: FunctionComponent<ComponentProps> = (
           {reseller && (
             <Card
               title={`Cancel Plan`}
-              description={`If you would like to cancel the plan or delete the project, please contact ${reseller.name} at ${reseller.description}`}
+              description={translator.translateTemplate(
+                "If you would like to cancel the plan or delete the project, please contact {{reseller}} at {{contact}}",
+                {
+                  reseller: reseller.name || "",
+                  contact: reseller.description || "",
+                },
+              )}
             />
           )}
         </div>

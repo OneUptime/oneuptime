@@ -1,5 +1,6 @@
 import NetworkSiteService from "../../Services/NetworkSiteService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -74,12 +75,17 @@ export default class NetworkSiteMaintenanceSuppression {
   private static generation: number = 0;
 
   /*
-   * Ids of every site currently inside an ongoing maintenance window,
+   * Ids of every site currently inside a maintenance window in progress,
    * expanded downward: attaching a Region yields the Region and every Market
-   * and Unit beneath it.
+   * and Unit beneath it. An event is in progress in its project's ongoing
+   * state and in a state of the project's own placed between Ongoing and
+   * Ended, such as "Verifying" (Common/Utils/ScheduledMaintenanceStart) -
+   * the window does not reopen the rollups above its sites because the
+   * event moved on to such a state.
    *
    * Returns an empty set - without touching the hierarchy at all - when the
-   * project has no ongoing event, which is the overwhelmingly common case.
+   * project has no event in progress, which is the overwhelmingly common
+   * case.
    */
   @CaptureSpan()
   public static async getSiteIdsUnderOngoingMaintenance(
@@ -260,13 +266,21 @@ export default class NetworkSiteMaintenanceSuppression {
   private static async resolveSiteIdsUnderOngoingMaintenance(
     projectId: ObjectID,
   ): Promise<Set<string>> {
+    const inProgressStateIds: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+        projectId,
+      );
+
+    if (inProgressStateIds.length === 0) {
+      return new Set<string>();
+    }
+
     const ongoingEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
         query: {
           projectId: projectId,
-          currentScheduledMaintenanceState: {
-            isOngoingState: true,
-          },
+          currentScheduledMaintenanceStateId:
+            QueryHelper.any(inProgressStateIds),
         },
         select: {
           _id: true,

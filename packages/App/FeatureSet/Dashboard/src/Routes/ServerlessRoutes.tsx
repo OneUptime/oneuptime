@@ -21,6 +21,9 @@ import ServerlessOwnerRules from "../Pages/Serverless/Settings/OwnerRules";
 import ServerlessArchived from "../Pages/Serverless/Archived";
 import ServerlessFunctionLabelRule from "Common/Models/DatabaseModels/ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/ServerlessFunctionOwnerRule";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ServerlessRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -102,6 +105,13 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServerlessFunction,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.SERVERLESS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -217,6 +227,12 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ServerlessFunction,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

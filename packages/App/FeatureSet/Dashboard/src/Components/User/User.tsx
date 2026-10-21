@@ -7,6 +7,9 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
 import ObjectID from "Common/Types/ObjectID";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { useIsTableCell } from "Common/UI/Components/Table/TableCellContext";
 
 export interface ComponentProps {
   user?: User | JSONObject | undefined | null;
@@ -17,7 +20,50 @@ export interface ComponentProps {
   prefixClassName?: string | undefined;
   emailClassName?: string | undefined;
   hideEmail?: boolean | undefined;
+  /*
+   * The person is no longer a member of the project (ProjectUserElement
+   * finds out): their avatar fades and "No longer a member" takes the email's
+   * line, so whoever looks after this setup knows to replace them. Nothing
+   * of the project reaches them any more.
+   */
+  isNotProjectMember?: boolean | undefined;
+  /*
+   * The person was invited to the project and has not accepted yet: nothing
+   * reaches them until they do, so "Invitation not accepted yet" takes the
+   * email's line the same way.
+   */
+  hasPendingProjectInvitation?: boolean | undefined;
 }
+
+/*
+ * The id of the user a UserElement is drawn for, whichever shape it arrived
+ * in (model, serialized model, plain object).
+ */
+export const getUserElementUserId: (
+  user: User | JSONObject | undefined | null,
+) => ObjectID | null = (
+  user: User | JSONObject | undefined | null,
+): ObjectID | null => {
+  if (user instanceof User) {
+    return user.id || null;
+  }
+
+  for (const key of ["_id", "id"]) {
+    const value: JSONValue | undefined = user?.[key];
+
+    if (!value) {
+      continue;
+    }
+
+    try {
+      return new ObjectID(value.toString());
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
 
 /*
  * A user can arrive here as a model instance (Name / Email objects), as the
@@ -26,6 +72,24 @@ export interface ComponentProps {
  * on the serialized shape yields "[object Object]", so unwrap it first.
  */
 type ReadableValueFunction = (value: JSONValue | undefined) => string;
+
+/*
+ * The avatar never gives up its width. When this element is put somewhere
+ * narrower than its text - a table column with a width cap - the row has to
+ * shrink, and the text is what should (it truncates). Without this the avatar
+ * shrinks with it: an image may not be wider than its box, so a 32px circle
+ * becomes an 18px-wide sliver beside a name that is cut short anyway.
+ */
+const AVATAR_WRAPPER_CLASS_NAME: string = "shrink-0";
+
+/*
+ * In a table's cell the name keeps to its line and ends in an ellipsis: a
+ * table caps a value's width (Common/UI/Components/Table/TableLayout), and
+ * a long name in a capped cell was cut off mid-letter, with no sign that
+ * there was more. The whole name shows under the pointer (the table's
+ * FullValueTitle). Elsewhere a name keeps its lines as it always has.
+ */
+export const TABLE_CELL_USER_NAME_CLASS_NAME: string = "truncate";
 
 const readableValue: ReadableValueFunction = (
   value: JSONValue | undefined,
@@ -48,6 +112,8 @@ const readableValue: ReadableValueFunction = (
 const UserElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const isTableCell: boolean = useIsTableCell();
   let user: JSONObject | null | undefined = null;
 
   if (props.user instanceof User) {
@@ -88,7 +154,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
   if (JSONFunctions.isEmptyObject(user)) {
     return (
       <div className="flex">
-        <div>
+        <div className={AVATAR_WRAPPER_CLASS_NAME}>
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={BlankProfilePic}
@@ -126,13 +192,22 @@ const UserElement: FunctionComponent<ComponentProps> = (
      * The name line already falls back to the email when there is no name, so
      * showing the email underneath as well would print it twice.
      */
+    // Nothing of the project reaches them: the avatar fades, and the line says why.
+    const isNotNotified: boolean = Boolean(
+      props.isNotProjectMember || props.hasPendingProjectInvitation,
+    );
+
     const showEmail: boolean = Boolean(
-      !props.hideEmail && name && email && name !== email,
+      !isNotNotified && !props.hideEmail && name && email && name !== email,
     );
 
     return (
       <div className="flex">
-        <div>
+        <div
+          className={`${AVATAR_WRAPPER_CLASS_NAME}${
+            isNotNotified ? " opacity-50 grayscale" : ""
+          }`}
+        >
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={profileImageUrl}
@@ -140,7 +215,12 @@ const UserElement: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div className="mt-1 mr-1 ml-3 min-w-0">
-          <div>
+          <div
+            data-testid="user-name-line"
+            className={
+              isTableCell ? TABLE_CELL_USER_NAME_CLASS_NAME : undefined
+            }
+          >
             <span
               className={props.prefixClassName ? props.prefixClassName : ""}
             >
@@ -160,6 +240,22 @@ const UserElement: FunctionComponent<ComponentProps> = (
               }
             >
               {email}
+            </div>
+          )}
+          {props.isNotProjectMember && (
+            <div
+              data-testid="user-not-project-member"
+              className="truncate text-xs font-medium text-amber-700"
+            >
+              {translator.translateText("No longer a member")}
+            </div>
+          )}
+          {!props.isNotProjectMember && props.hasPendingProjectInvitation && (
+            <div
+              data-testid="user-project-invitation-pending"
+              className="truncate text-xs font-medium text-amber-700"
+            >
+              {translator.translateText("Invitation not accepted yet")}
             </div>
           )}
         </div>

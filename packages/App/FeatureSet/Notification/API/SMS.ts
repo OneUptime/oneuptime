@@ -1,6 +1,13 @@
 import SmsService from "../Services/SmsService";
 import crypto from "crypto";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
+import TwilioPhoneNumbers, {
+  TEST_SEND_FROM_PHONE_NUMBER_FIELD,
+} from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
+import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -25,7 +32,9 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TestSendAccess, {
+  TestSendCaller,
+} from "Common/Server/API/TestSendAccess";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
@@ -63,7 +72,10 @@ router.post(
         isSensitive: (body["isSensitive"] as boolean) || false,
         userOnCallLogTimelineId:
           (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-        customTwilioConfig: body["customTwilioConfig"] as any,
+        // Read back with its numbers as lists (TwilioConfigJSON).
+        customTwilioConfig: TwilioConfigJSON.fromJSON(
+          body["customTwilioConfig"],
+        ),
         incidentId: (body["incidentId"] as ObjectID) || undefined,
         alertId: (body["alertId"] as ObjectID) || undefined,
         scheduledMaintenanceId:
@@ -80,6 +92,8 @@ router.post(
           undefined,
         onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
         teamId: (body["teamId"] as ObjectID) || undefined,
+        // Only a real yes: an SMS not sent then answers with an error.
+        failIfNotSent: body["failIfNotSent"] === true,
       });
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -273,37 +287,33 @@ router.post(
       );
 
       /*
-       * The lookup below runs as root so it can read the Twilio credentials,
-       * which means the id in the body is otherwise honoured whoever it
-       * belongs to: any authenticated user could name another project's
-       * config id and have the server send an SMS on that project's Twilio
-       * account, to a number they chose and at that project's expense (and
-       * learn which config ids exist in other projects while they were at
-       * it). Establish which project the caller is authorized for first, then
-       * confirm the config they named is actually in it.
-       *
-       * The member check has to come BEFORE the read, not after it: a request
-       * that is refused only once the row is in hand has already told the
-       * caller whether that row exists.
+       * "Send Test SMS" sends through the project's own Twilio account, so
+       * it asks what every test send asks (TestSendAccess), before anything
+       * is read: a signed-in member, on a credential that may make changes,
+       * on the plan custom Twilio configs are sold on, who could add one -
+       * team blocks counted - and a config they may read, in their own
+       * project. One of another project and one that does not exist are
+       * answered alike.
        */
-      const props: DatabaseCommonInteractionProps =
-        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const caller: TestSendCaller = await TestSendAccess.assertMaySendTest({
+        req: req,
+        modelType: ProjectCallSMSConfig,
+        record: {
+          service: ProjectCallSMSConfigService,
+          id: callSMSConfigId,
+        },
+      });
 
-      const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
-
+      // Read as OneUptime only now, for the credentials the send needs.
       const config: ProjectCallSMSConfig | null =
         await ProjectCallSMSConfigService.findOneById({
           id: callSMSConfigId,
           props: {
             isRoot: true,
           },
+          // Its SMS numbers too: the test goes out from the one an SMS would.
           select: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
+            ...PROJECT_TWILIO_CONFIG_SELECT,
             projectId: true,
           },
         });
@@ -320,7 +330,7 @@ router.post(
 
       CommonAPI.assertResourceBelongsToProject({
         resourceProjectId: config.projectId,
-        projectId: projectId,
+        projectId: caller.projectId,
       });
 
       const toPhone: Phone = new Phone(body["toPhone"] as string);
@@ -362,10 +372,22 @@ router.post(
       const twilioConfig: TwilioConfig | undefined =
         ProjectCallSMSConfigService.toTwilioConfig(config);
 
+      let fromPhoneNumber: Phone | null = null;
+
       try {
         if (!twilioConfig) {
           throw new BadDataException("twilioConfig is undefined");
         }
+
+        /*
+         * The number it goes out from - the one a real SMS to this phone
+         * would go out from (TwilioPhoneNumbers) - which the dialog names.
+         */
+        fromPhoneNumber = TwilioPhoneNumbers.pickSenderNumber({
+          config: twilioConfig,
+          kind: TwilioMessageKind.SMS,
+          to: toPhone,
+        });
 
         await SmsService.sendSms(
           toPhone,
@@ -373,16 +395,36 @@ router.post(
           {
             projectId: config.projectId,
             customTwilioConfig: twilioConfig,
+            /*
+             * A test the project's settings keep from going out - SMS
+             * turned off in the project - says why, rather than "sent".
+             */
+            failIfNotSent: true,
           },
         );
       } catch (err) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+        /*
+         * Twilio refusing the SMS says what is wrong with the config - a
+         * number that cannot send SMS, a country not enabled - in words the
+         * person testing it can act on (TwilioSendError), so they are passed
+         * on. Anything else is not theirs to fix.
+         */
+        if (TwilioSendError.isActionableRefusal(err)) {
+          throw err;
+        }
+
         throw new BadDataException(
-          "Failed to send test SMS. Please check the twilio logs for more details.",
+          "Failed to send test SMS. Please check the Twilio logs for more details.",
         );
       }
 
-      return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendJsonObjectResponse(req, res, {
+        [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: fromPhoneNumber
+          ? fromPhoneNumber.toString()
+          : null,
+      });
     } catch (err) {
       return next(err);
     }

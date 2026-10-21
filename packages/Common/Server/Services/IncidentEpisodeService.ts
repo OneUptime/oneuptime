@@ -5,7 +5,7 @@ import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentStateService from "./IncidentStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -14,11 +14,15 @@ import Model from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { clearPlaceholders } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -28,9 +32,14 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";
 import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
+  getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import IncidentEpisodeMemberService, {
+  IncidentsForNewEpisode,
+} from "./IncidentEpisodeMemberService";
+import { INCIDENT_IDS_TO_ADD_KEY } from "../../Types/Episode/EpisodeMembersAdd";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -39,11 +48,21 @@ import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisod
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import Dictionary from "../../Types/Dictionary";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -53,15 +72,72 @@ import ProjectService from "./ProjectService";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEngineService";
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import Incident from "../../Models/DatabaseModels/Incident";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
 
-export class Service extends DatabaseService<Model> {
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. A write may name a reference under either, and the two must
+ * agree (RelationIdUtil.readConsistent), so what the service acts on is what
+ * is stored.
+ */
+const INCIDENT_STATE_KEYS: Array<string> = [
+  "currentIncidentStateId",
+  "currentIncidentState",
+];
+const GROUPING_RULE_KEYS: Array<string> = [
+  "incidentGroupingRuleId",
+  "incidentGroupingRule",
+];
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess: how far along the episode
+ * starts (StartingStage), and the incidents it is being created with,
+ * checked and each once - empty unless it is created with incidents.
+ */
+type IncidentEpisodeCreateCarryForward = StartingStageCarryForward & {
+  incidentIdsToAdd: Array<ObjectID>;
+};
+
+/*
+ * Why an episode's first timeline row sends status page subscribers
+ * nothing: the episode's created notification is the one message about it.
+ */
+export const EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE: string =
+  "The episode's first state is part of its created notification, so it is not sent to subscribers on its own.";
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity is checked by this service's own hooks below. Everything
+   * else an episode names - its state, its assignee, its on-call policies and
+   * labels, the grouping rule that opened it - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incidentSeverity"];
   }
 
   @CaptureSpan()
@@ -90,41 +166,185 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentEpisodeSelfPrivacyFilter(
       updateBy.query,
       updateBy.props,
     );
 
     /*
+     * Visible on Status Page and Private as they are stored, and a private
+     * episode hidden from status pages (StatusPageVisibility): making an
+     * episode private switches Visible on Status Page off with it, whoever
+     * writes it - a privacy rule, the API, Terraform, a workflow.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * Sending the episode's created notification again while it is being
+     * sent would let a second run send it alongside, or be overwritten when
+     * the send settles (SubscriberNotificationResendAccess). No user role may
+     * write its status (update: []), so this only ever stops a master admin;
+     * it is here so the rule holds for every notification the same way.
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatusOnEpisodeCreated"],
+    });
+
+    /*
      * An episode carries the same project-scoped state and severity an
      * incident does, on FKs that are equally ON DELETE NO ACTION, so an id
      * from another project here leaves that project undeletable in exactly
-     * the same way. onBeforeCreate overwrites currentIncidentStateId with
-     * this project's created state, which leaves the severity as the only
-     * create-reachable column — but an update can write either.
+     * the same way. onBeforeCreate checks both on a create, and an update
+     * can write either. Each by both of its names: every name that holds an
+     * id is checked, and two that disagree are refused - against the project
+     * of every episode the update changes, the request's or, for an update
+     * with none on it, each episode's own (where an id the episodes already
+     * hold is left alone).
      */
-    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
-      projectId: updateBy.props.tenantId,
+    await ProjectScopedReferenceValidator.validateUpdateReferences({
+      service: this,
+      updateBy: updateBy,
       subject: "incident episode",
-      references: [
+      relations: [
         {
+          idColumn: "currentIncidentStateId",
+          relation: "currentIncidentState",
           modelName: "Incident State",
-          id:
-            resolveReferenceId(updateBy.data.currentIncidentStateId) ||
-            resolveReferenceId(updateBy.data.currentIncidentState),
           service: IncidentStateService,
         },
         {
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(updateBy.data.incidentSeverityId) ||
-            resolveReferenceId(updateBy.data.incidentSeverity),
           service: IncidentSeverityService,
         },
       ],
     });
 
+    /*
+     * An update that writes the episode's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of incident states. Refused before
+     * anything is written, with the timeline's own sentence.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.IncidentEpisode,
+      updateBy: updateBy,
+      stateKeys: INCIDENT_STATE_KEYS,
+      stateModelName: "Incident State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<IncidentState>> => {
+        return IncidentStateService.getAllIncidentStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A state an update wrote is a change of the episode's state, recorded on
+   * its state timeline like any other - as an alert episode's, an
+   * incident's and an alert's are - so the episode's feed, its owners and
+   * its incidents hear of it, and its header and its timeline agree.
+   * onBeforeUpdate held the move to the state move rule; writing the state
+   * an episode is in already records nothing (changeEpisodeState). The
+   * episode's own state follow-ons - OneUptime's writes that carry the
+   * timeline over, with no project on them - record nothing either.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const updatedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        INCIDENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
+      for (const itemId of updatedItemIds) {
+        await this.changeEpisodeState({
+          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+          episodeId: itemId,
+          incidentStateId: updatedIncidentStateId,
+          notifyOwners: true,
+          rootCause: "State was changed when the episode was updated.",
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    /*
+     * The episode on-call rules match the severity, the labels, the title
+     * and the description. An episode whose runs wait for working hours,
+     * written one of those, may now match a rule that pages right away:
+     * those runs start paging now - an episode whose severity rises at
+     * night with a new member pages at once (WaitingRunsOnRecordChange).
+     * Starting a page must not fail the update.
+     */
+    if (
+      WaitingRunsOnRecordChange.isRuleInputWritten({
+        written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        severityKeys: ["incidentSeverityId", "incidentSeverity"],
+      })
+    ) {
+      for (const itemId of updatedItemIds) {
+        try {
+          await WaitingRunsOnRecordChange.startForIncidentEpisode(itemId);
+        } catch (waitingRunsError) {
+          logger.error(
+            `Starting waiting on-call runs failed in IncidentEpisodeService.onUpdateSuccess: ${waitingRunsError}`,
+            {
+              projectId: onUpdate.updateBy.props.tenantId?.toString(),
+              episodeId: itemId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * A private episode is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private as
+   * it is - the episode's Status Pages switch, the API, Terraform, a
+   * workflow - shows only the episodes that are not private.
+   *
+   * Each episode is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): the switch is stored on only
+   * while the episode is not private as it is then, so no privacy write
+   * landing at the same moment leaves both on. What the write stored is
+   * what the workflow trigger, the realtime event and the audit log are
+   * told. No earlier read, and no other episode, decides it.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
+      data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
@@ -142,6 +362,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException(
         "ProjectId required to create incident episode.",
@@ -151,42 +373,140 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    // Get the created state for episodes
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
+    /*
+     * Created with the incidents it is for (EpisodeMembersAdd): the
+     * incidents lists' Add to New Episode, or the API. The ids are checked
+     * here, before the episode number is taken and before anything is
+     * written, so an incident the caller cannot see - or a caller who may
+     * not add incidents to episodes - refuses the whole create instead of
+     * leaving an episode without some of the incidents it was created for.
+     * They are added in onCreateSuccess, once the episode exists. An episode
+     * created with incidents and no severity takes the most severe of
+     * theirs.
+     */
+    const incidentIdsToAdd: unknown =
+      createBy.miscDataProps?.[INCIDENT_IDS_TO_ADD_KEY];
+
+    const incidentsToAdd: IncidentsForNewEpisode | null =
+      incidentIdsToAdd !== undefined && incidentIdsToAdd !== null
+        ? await IncidentEpisodeMemberService.validateIncidentsForNewEpisode({
+            projectId: projectId,
+            incidentIds: incidentIdsToAdd,
+            props: createBy.props,
+            labels: createBy.data.labels,
+          })
+        : null;
+
+    if (
+      incidentsToAdd?.mostSevereIncidentSeverityId &&
+      !RelationIdUtil.readConsistent(
+        createData,
+        ["incidentSeverityId", "incidentSeverity"],
+        "Incident Severity",
+      )
+    ) {
+      RelationIdUtil.stamp(
+        createData,
+        ["incidentSeverityId", "incidentSeverity"],
+        incidentsToAdd.mostSevereIncidentSeverityId,
       );
     }
 
-    createBy.data.currentIncidentStateId = incidentState.id;
+    /*
+     * The state the episode starts in, when the write picks one: the Create
+     * Incident Episode form's Initial State sends the relation, the API,
+     * Terraform and workflows the ID column. Either name, and the two must
+     * agree. With none picked, the episode starts in the project's created
+     * state, where every episode a grouping rule opens starts.
+     */
+    const pickedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createData,
+        INCIDENT_STATE_KEYS,
+        "Incident State",
+      );
 
+    /*
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. The read holds only the project's
+     * own states, so it also checks the state picked. With none picked the
+     * episode starts in the created state - open, as every episode a
+     * grouping rule opens - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedIncidentStateId
+      ? await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
+
+    /*
+     * The state picked, unless the read above found it, and the severity: a
+     * state or a severity of another project is refused, with the same
+     * words as one that does not exist, before a number is used.
+     */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident episode",
       references: [
-        {
+        ...(pickedStart
+          ? []
+          : getWrittenRelationReferences({
+              payload: createBy.data,
+              idColumn: "currentIncidentStateId",
+              relation: "currentIncidentState",
+              modelName: "Incident State",
+              service: IncidentStateService,
+            })),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(createBy.data.incidentSeverityId) ||
-            resolveReferenceId(createBy.data.incidentSeverity),
           service: IncidentSeverityService,
-        },
+        }),
       ],
     });
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the episode's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      INCIDENT_STATE_KEYS,
+      pickedIncidentStateId ||
+        (await IncidentStateService.getCreatedIncidentStateId(projectId)),
+    );
+
+    /*
+     * resolvedAt follows the state the episode starts in, by the one rule
+     * (Common/Utils/ResolvedState) its first timeline row reads too
+     * (IncidentEpisodeStateTimelineService): set for a state that counts as
+     * resolved - the project's resolved state, or one placed after it. One
+     * recorded as already resolved is resolved from the moment it exists:
+     * grouping, auto-resolve and the Active episode lists read resolvedAt,
+     * which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels; that row
+     * keeps it. Any other episode has none yet, whatever the write sent: the
+     * first timeline row would clear it anyway.
+     */
+    if (pickedStart?.stage === StartingStage.Resolved) {
+      createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
+    }
 
     // Auto-generate episode number
     const episodeCounterResult: {
@@ -195,9 +515,10 @@ export class Service extends DatabaseService<Model> {
     } = await ProjectService.incrementAndGetIncidentEpisodeCounter(projectId);
 
     createBy.data.episodeNumber = episodeCounterResult.counter;
-    createBy.data.episodeNumberWithPrefix = episodeCounterResult.prefix
-      ? `${episodeCounterResult.prefix}${episodeCounterResult.counter}`
-      : `#${episodeCounterResult.counter}`;
+    createBy.data.episodeNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      episodeCounterResult.prefix,
+      episodeCounterResult.counter,
+    );
 
     // Set initial lastIncidentAddedAt
     if (!createBy.data.lastIncidentAddedAt) {
@@ -209,11 +530,21 @@ export class Service extends DatabaseService<Model> {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     }
 
-    // Copy showEpisodeOnStatusPage from grouping rule if available
-    if (createBy.data.incidentGroupingRuleId) {
+    /*
+     * Copy showEpisodeOnStatusPage from the grouping rule that opened it, named
+     * under either of its names (the two must agree).
+     */
+    const incidentGroupingRuleId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        GROUPING_RULE_KEYS,
+        "Incident Grouping Rule",
+      );
+
+    if (incidentGroupingRuleId) {
       const groupingRule: IncidentGroupingRule | null =
         await IncidentGroupingRuleService.findOneById({
-          id: createBy.data.incidentGroupingRuleId,
+          id: incidentGroupingRuleId,
           select: {
             showEpisodeOnStatusPage: true,
           },
@@ -228,12 +559,106 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { createBy, carryForward: null };
+    /*
+     * A private episode is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, whatever the request or the grouping rule says for it,
+     * and nobody is told it was created - as an incident created private.
+     * Last, after everything above that sets the switch.
+     */
+    StatusPageVisibility.normalizeWrite(createData);
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated =
+        false;
+    }
+
+    const carryForward: IncidentEpisodeCreateCarryForward = {
+      startingStage: startingStage,
+      incidentIdsToAdd: incidentsToAdd?.incidentIds || [],
+    };
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  // The validated incident ids an episode is being created with, if any.
+  private getIncidentIdsCreatedWith(
+    onCreate: OnCreate<Model>,
+  ): Array<ObjectID> {
+    const carryForward: IncidentEpisodeCreateCarryForward | null =
+      (onCreate.carryForward as IncidentEpisodeCreateCarryForward | null) ||
+      null;
+
+    return carryForward?.incidentIdsToAdd || [];
+  }
+
+  /*
+   * Who created the episode, as the one who added the incidents it was
+   * created with: the person making the request, as DatabaseService stamped
+   * them - nobody for an API key or a workflow. OneUptime's own writes name
+   * the creator themselves.
+   */
+  private getCreatingUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
+  /*
+   * The episode was created with incidents (see onBeforeCreate): add them
+   * now that it exists - after its privacy rules have run, since each
+   * incident's own feed entry leaves out a private episode's title. Awaited,
+   * unlike the chain in onCreateSuccess, so the episode the person lands on
+   * already lists its incidents. Written as OneUptime's writes, because the
+   * caller's right to add them was checked before the episode was created;
+   * the API key that created it, when no person did, is named on each
+   * incident's entry. Never rejects: an incident that cannot be added is
+   * logged. Hands back the ids added.
+   */
+  @CaptureSpan()
+  private async addIncidentsCreatedWith(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+    privacyRulesApplied: Promise<void>,
+  ): Promise<Array<ObjectID>> {
+    const incidentIds: Array<ObjectID> =
+      this.getIncidentIdsCreatedWith(onCreate);
+
+    if (incidentIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return [];
+    }
+
+    await privacyRulesApplied;
+
+    try {
+      return await IncidentEpisodeMemberService.addIncidentsToNewEpisode({
+        projectId: createdItem.projectId,
+        incidentEpisodeId: createdItem.id,
+        incidentIds: incidentIds,
+        addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+        apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+      });
+    } catch (error) {
+      logger.error(
+        `Adding the incidents an episode was created with failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentEpisodeId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+
+      return [];
+    }
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
@@ -248,14 +673,44 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentIncidentStateId is required");
     }
 
-    // Create initial state timeline entry
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * How far along the episode starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, no channel is opened for it either. Its rules, its
+     * feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+
+    /*
+     * Who could not be added to the episode's new Slack channels: set by the
+     * workspace step, told in those channels right after the episode's
+     * created message (ChannelMembersNotAddedNotice).
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
+    /*
+     * The holds of the policies the episode's on-call rules added that may
+     * not page yet - a rule that pages only during working hours, matched
+     * outside them (OnCallRulePagingHold): set by the on-call rules step,
+     * read by the on-call step after it.
+     */
+    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so the incidents the episode is created with are added once
+     * the rules have settled its privacy: each incident's own feed entry
+     * leaves out a private episode's title.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await IncidentEpisodePrivacyRuleEngineService.applyRulesToEpisode(
             createdItem,
@@ -269,11 +724,28 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // The incidents it was created with, if any (never rejects).
+    const incidentsAdded: Promise<Array<ObjectID>> =
+      this.addIncidentsCreatedWith(onCreate, createdItem, privacyRulesApplied);
+
+    // Create initial state timeline entry
+    privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
-            await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
+            membersNotAddedToNewChannels =
+              await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
           logger.error(
@@ -293,6 +765,8 @@ export class Service extends DatabaseService<Model> {
             incidentStateId: createdItem.currentIncidentStateId!,
             notifyOwners: false,
             rootCause: undefined,
+            // Told with the episode's created notification, if at all.
+            isFirstState: true,
             props: {
               isRoot: true,
             },
@@ -318,6 +792,30 @@ export class Service extends DatabaseService<Model> {
               incidentEpisodeId: createdItem.id?.toString(),
             } as LogAttributes,
           );
+        }
+      })
+      .then(async () => {
+        // Under the episode's created message: who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Created with incidents: name them once, here - after "Episode
+         * Created" and after the episode's Slack / Microsoft Teams channels
+         * exist - rather than once per incident as each is added.
+         */
+        const addedIncidentIds: Array<ObjectID> = await incidentsAdded;
+
+        if (addedIncidentIds.length > 0) {
+          await IncidentEpisodeMemberService.createIncidentsAddedFeedItem({
+            projectId: createdItem.projectId!,
+            incidentEpisodeId: createdItem.id!,
+            incidentIds: addedIncidentIds,
+            addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+          });
         }
       })
       .then(async () => {
@@ -358,9 +856,10 @@ export class Service extends DatabaseService<Model> {
          * onCallDutyPolicies before the fan-out below picks them up.
          */
         try {
-          await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-            createdItem,
-          );
+          onCallRulePagingHolds =
+            (await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+              createdItem,
+            )) || onCallRulePagingHolds;
         } catch (error) {
           logger.error(
             `Apply incident episode on-call rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
@@ -374,7 +873,11 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+          await this.executeEpisodeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+            onCallRulePagingHolds,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
@@ -395,13 +898,24 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
+    /*
+     * The episode's incidents are in it before the create answers, so the
+     * episode the person opens next already lists them.
+     */
+    await incidentsAdded;
+
     return createdItem;
   }
 
+  /*
+   * Creates the episode's own channels and adds its people to them. Hands
+   * back who could not be added, for the channels to be told after the
+   * episode's created message.
+   */
   @CaptureSpan()
   private async handleEpisodeWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -409,9 +923,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await IncidentEpisodeWorkspaceMessages.createChannelsAndInviteUsersToChannels(
           {
             projectId: createdItem.projectId,
@@ -426,18 +938,13 @@ export class Service extends DatabaseService<Model> {
           },
         );
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the episode while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -453,18 +960,69 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
+    /*
+     * The title is plain text, often copied from the episode's first
+     * incident - whose title anyone holding an incident form's link may
+     * have typed - placed into Markdown the dashboard renders without its
+     * safe mode and posts to Slack and Teams. Escaped as MarkdownEscape
+     * says a title must be, so it cannot become an image, raw HTML or a
+     * link that hides where it goes. The description stays Markdown.
+     */
+    let feedInfoInMarkdown: string =
+      mdText`#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
 **${episode.title || "No title provided."}**
 
-`;
+`.toString();
 
     if (episode.description) {
-      feedInfoInMarkdown += `${episode.description}\n\n`;
+      feedInfoInMarkdown += mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`;
     }
 
     if (episode.isManuallyCreated) {
       feedInfoInMarkdown += `This episode was manually created.\n\n`;
+    }
+
+    /*
+     * The episode's state and severity, as an incident's created entry
+     * names them: its first state is not posted to Slack and Microsoft
+     * Teams on its own (WorkspaceStateChangePosting), so this is where a
+     * channel reads it. Names are plain text. A read that fails leaves
+     * them out: the created entry still goes out.
+     */
+    let episodeWithState: Model | null = null;
+
+    try {
+      episodeWithState = await this.findOneById({
+        id: episode.id,
+        select: {
+          currentIncidentState: {
+            name: true,
+          },
+          incidentSeverity: {
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Reading the state of a new incident episode for its created entry failed: ${error}`,
+        {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    if (episodeWithState?.currentIncidentState?.name) {
+      feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentIncidentState.name} \n\n`;
+    }
+
+    if (episodeWithState?.incidentSeverity?.name) {
+      feedInfoInMarkdown += mdText`⚠️ **Severity**: ${episodeWithState.incidentSeverity.name} \n\n`;
     }
 
     const episodeCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
@@ -489,9 +1047,22 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Runs the episode's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   *
+   * A policy one of its on-call rules holds until working hours
+   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * they begin (OnCallDutyPolicyRunWait), and the feed says so beside it.
+   * Every other policy pages now.
+   */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
+    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
   ): Promise<void> {
     if (!createdItem.id || !createdItem.projectId) {
       return;
@@ -519,18 +1090,36 @@ export class Service extends DatabaseService<Model> {
         return;
       }
 
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { incidentEpisodeId: createdItem.id },
+          projectId: createdItem.projectId,
+          stage: startingStage,
+          policies: episodeWithPolicies.onCallDutyPolicies,
+        });
+        return;
+      }
+
       // Execute all on-call policies in parallel
       const policyPromises: Promise<void>[] =
         episodeWithPolicies.onCallDutyPolicies.map(
           (policy: OnCallDutyPolicy) => {
-            return OnCallDutyPolicyService.executePolicy(
-              new ObjectID(policy._id as string),
-              {
-                triggeredByIncidentEpisodeId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.IncidentEpisodeCreated,
-              },
+            const policyId: ObjectID = new ObjectID(policy._id as string);
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              policyId.toString(),
             );
+
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByIncidentEpisodeId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.IncidentEpisodeCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           },
         );
 
@@ -547,20 +1136,32 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      // Create feed entry for on-call policy execution
-      const policyNames: string[] = episodeWithPolicies.onCallDutyPolicies
-        .map((policy: OnCallDutyPolicy) => {
-          return policy.name || "Unnamed Policy";
-        })
-        .filter((name: string) => {
-          return Boolean(name);
-        });
+      /*
+       * Create feed entry for on-call policy execution. A policy held until
+       * working hours says so after its name: it is not paging yet.
+       */
+      const policyLines: Array<{ name: string; waitingMessage?: string }> =
+        episodeWithPolicies.onCallDutyPolicies.map(
+          (policy: OnCallDutyPolicy) => {
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              new ObjectID(policy._id as string).toString(),
+            );
+
+            return {
+              name: policy.name || "Unnamed Policy",
+              ...(hold ? { waitingMessage: hold.waitingStatusMessage } : {}),
+            };
+          },
+        );
 
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
-      feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+      feedInfoInMarkdown += mdText`The following on-call ${policyLines.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
-      for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${policyName}\n`;
+      // Each policy name is plain text.
+      for (const policyLine of policyLines) {
+        feedInfoInMarkdown += policyLine.waitingMessage
+          ? mdText`- ${policyLine.name}: not paging yet. ${policyLine.waitingMessage}\n`
+          : mdText`- ${policyLine.name}\n`;
       }
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -588,6 +1189,22 @@ export class Service extends DatabaseService<Model> {
     rootCause: string | undefined;
     props: DatabaseCommonInteractionProps;
     cascadeToIncidents?: boolean;
+    /*
+     * The episode's first state, written when it is created. It is part of
+     * the episode's created notification - which tells subscribers about the
+     * episode, or skips it - and is never sent to them on its own, whichever
+     * state the episode starts in: the row is written as Skipped, saying
+     * why, instead of being queued. Left out, the row is queued for
+     * subscribers like any state change.
+     */
+    isFirstState?: boolean | undefined;
+    /*
+     * OneUptime's reopen of a recently resolved episode for its grouping
+     * rule's reopen window (reopenEpisode): the one move back up the list of
+     * states the state move rule allows, written through the timeline's own
+     * reopen (IncidentEpisodeStateTimelineService.createReopen).
+     */
+    isGroupingRuleReopen?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -597,6 +1214,8 @@ export class Service extends DatabaseService<Model> {
       rootCause,
       props,
       cascadeToIncidents,
+      isFirstState,
+      isGroupingRuleReopen,
     } = data;
 
     // Get last episode state timeline
@@ -635,14 +1254,29 @@ export class Service extends DatabaseService<Model> {
     stateTimeline.projectId = projectId;
     stateTimeline.isOwnerNotified = !notifyOwners;
 
+    if (isFirstState) {
+      stateTimeline.shouldStatusPageSubscribersBeNotified = false;
+      stateTimeline.subscriberNotificationStatus =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      stateTimeline.subscriberNotificationStatusMessage =
+        EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE;
+    }
+
     if (rootCause) {
       stateTimeline.rootCause = rootCause;
     }
 
-    await IncidentEpisodeStateTimelineService.create({
-      data: stateTimeline,
-      props: props || {},
-    });
+    if (isGroupingRuleReopen) {
+      await IncidentEpisodeStateTimelineService.createReopen({
+        data: stateTimeline,
+        props: props || {},
+      });
+    } else {
+      await IncidentEpisodeStateTimelineService.create({
+        data: stateTimeline,
+        props: props || {},
+      });
+    }
 
     /*
      * Note: resolvedAt is updated by IncidentEpisodeStateTimelineService.onCreateSuccess()
@@ -660,6 +1294,17 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Moves the episode's incidents into the state the episode moved into,
+   * each by the rule its own state timeline holds it to
+   * (Common/Utils/StateMove): an incident in that state already, or past it
+   * in the project's list of incident states - one resolved on its own, or
+   * a resolved incident of an episode its grouping rule reopened - is left
+   * where it is, rather than sent a move its timeline would refuse. An
+   * episode never reopens its incidents. Each move that is made is a row of
+   * the incident's timeline, written with `props`; one that still fails is
+   * logged, and the others go on.
+   */
   @CaptureSpan()
   public async cascadeStateToMemberIncidents(data: {
     projectId: ObjectID;
@@ -690,11 +1335,71 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    // Update state for each member incident
-    for (const member of members) {
-      if (!member.incidentId) {
+    const memberIncidentIds: Array<ObjectID> = members
+      .map((member: IncidentEpisodeMember): ObjectID | undefined => {
+        return member.incidentId;
+      })
+      .filter((incidentId: ObjectID | undefined): incidentId is ObjectID => {
+        return Boolean(incidentId);
+      });
+
+    if (memberIncidentIds.length === 0) {
+      return;
+    }
+
+    // Where each incident is now, and the project's list it walks down.
+    const [memberIncidents, incidentStates] = await Promise.all([
+      IncidentService.findBy({
+        query: {
+          _id: QueryHelper.any(memberIncidentIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          currentIncidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+      IncidentStateService.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    // Update state for each member incident its own rule lets move there.
+    for (const memberIncident of memberIncidents as Array<Incident>) {
+      if (!memberIncident.id) {
         continue;
       }
+
+      if (
+        !StateMoveUtil.isMoveAllowed({
+          list: StateMoveUtil.getList(StateMoveRecord.Incident),
+          states: incidentStates,
+          fromStateId: memberIncident.currentIncidentStateId,
+          toStateId: incidentStateId,
+        })
+      ) {
+        logger.debug(
+          `Incident ${memberIncident.id.toString()} of episode ${episodeId.toString()} is in that state or past it already, so the episode leaves it where it is.`,
+          {
+            projectId: projectId.toString(),
+            incidentEpisodeId: episodeId.toString(),
+            incidentId: memberIncident.id.toString(),
+          } as LogAttributes,
+        );
+        continue;
+      }
+
+      const member: { incidentId: ObjectID } = {
+        incidentId: memberIncident.id,
+      };
 
       try {
         await IncidentService.changeIncidentState({
@@ -721,6 +1426,14 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Acknowledges the episode - and, unless told not to, the incidents in it -
+   * as the user: moves it into its project's acknowledged state, the first
+   * from the top flagged acknowledged. One that is acknowledged already, or
+   * further along, is refused with a sentence that says which
+   * (Common/Utils/AcknowledgedState) rather than moved back up its list, or
+   * logged as acknowledged a second time.
+   */
   @CaptureSpan()
   public async acknowledgeEpisode(
     episodeId: ObjectID,
@@ -731,6 +1444,7 @@ export class Service extends DatabaseService<Model> {
       id: episodeId,
       select: {
         projectId: true,
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -741,18 +1455,29 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: episode.projectId,
         props: {
           isRoot: true,
         },
+      });
+
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: episode.currentIncidentStateId,
+      subject: "Episode",
+    });
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
+
+    const incidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     if (!incidentState || !incidentState.id) {
@@ -797,21 +1522,16 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    // The project's resolved state: the first from the top flagged resolved.
+    const incidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: episode.projectId,
         props: {
           isRoot: true,
         },
       });
 
-    if (!incidentState || !incidentState.id) {
+    if (!incidentState.id) {
       throw new BadDataException(
         "Resolved incident state not found for this project.",
       );
@@ -882,6 +1602,7 @@ export class Service extends DatabaseService<Model> {
         userId: reopenedByUserId,
       },
       cascadeToIncidents: cascadeToIncidents,
+      isGroupingRuleReopen: true,
     });
 
     // Clear resolved timestamp and allIncidentsResolvedAt when episode is reopened
@@ -982,7 +1703,8 @@ export class Service extends DatabaseService<Model> {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SeverityChanged,
         displayColor: newSeverity.color || Yellow500,
-        feedInfoInMarkdown: `Episode severity changed to **${newSeverity.name || "Unknown"}**`,
+        feedInfoInMarkdown:
+          mdText`Episode severity changed to **${newSeverity.name || "Unknown"}**`.toString(),
       });
     }
   }
@@ -1022,12 +1744,16 @@ export class Service extends DatabaseService<Model> {
       incidentCount: incidentCount,
     };
 
-    // Update title with dynamic variables if template exists
+    /*
+     * Update title with dynamic variables if template exists - named as the
+     * grouping engine names an episode whose title template comes out empty
+     */
     if (episode?.titleTemplate) {
-      updateData.title = this.renderTemplateWithDynamicValues(
-        episode.titleTemplate,
-        incidentCount,
-      );
+      updateData.title =
+        this.renderTemplateWithDynamicValues(
+          episode.titleTemplate,
+          incidentCount,
+        ) || "Untitled Episode";
     }
 
     // Update description with dynamic variables if template exists
@@ -1055,6 +1781,16 @@ export class Service extends DatabaseService<Model> {
 
     // Replace dynamic variables
     result = result.replace(/\{\{incidentCount\}\}/g, incidentCount.toString());
+
+    /*
+     * Clear anything else left in braces, as the grouping engine does when it
+     * first writes the title and description. The engine now stores only
+     * the count as a placeholder, but an episode opened before then can
+     * still hold "{{monitorName}}" and the like for a value its first
+     * incident did not have - which came back into its title each time
+     * another incident joined.
+     */
+    result = clearPlaceholders(result);
 
     return result;
   }
@@ -1206,50 +1942,34 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
-  @CaptureSpan()
-  public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
-    const episode: Model | null = await this.findOneById({
-      id: episodeId,
-      select: {
-        projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!episode || !episode.projectId) {
-      throw new BadDataException("Episode not found.");
-    }
-
-    const resolvedState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentIncidentState?.order || 0;
-    const resolvedOrder: number = resolvedState.order || 0;
-
-    return currentOrder >= resolvedOrder;
-  }
-
+  /*
+   * Whether the episode is acknowledged or further along - resolved
+   * included: what stops its on-call escalation and takes Acknowledge away
+   * (Common/Utils/AcknowledgedState).
+   */
   @CaptureSpan()
   public async isEpisodeAcknowledged(data: {
     episodeId: ObjectID;
   }): Promise<boolean> {
+    const episode: Model = await this.getEpisodeWithState(data.episodeId);
+
+    if (!episode.currentIncidentStateId) {
+      return false;
+    }
+
+    return await IncidentStateService.isAcknowledgedIncidentState({
+      projectId: episode.projectId!,
+      incidentStateId: episode.currentIncidentStateId,
+    });
+  }
+
+  // The episode's project and current state, as OneUptime.
+  private async getEpisodeWithState(episodeId: ObjectID): Promise<Model> {
     const episode: Model | null = await this.findOneById({
-      id: data.episodeId,
+      id: episodeId,
       select: {
         projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -1260,18 +1980,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const acknowledgedState: IncidentState =
-      await IncidentStateService.getAcknowledgedIncidentState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentIncidentState?.order || 0;
-    const acknowledgedOrder: number = acknowledgedState.order || 0;
-
-    return currentOrder >= acknowledgedOrder;
+    return episode;
   }
 
   @CaptureSpan()

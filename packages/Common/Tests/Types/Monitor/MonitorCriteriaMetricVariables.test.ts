@@ -11,6 +11,7 @@ import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplate
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllStorageArrayAlertTemplates } from "../../../Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep, {
@@ -43,6 +44,7 @@ interface UniversalTemplateArgs {
   clusterIdentifier: string;
   vcenterIdentifier: string;
   fleetIdentifier: string;
+  arrayIdentifier: string;
   onlineMonitorStatusId: ObjectID;
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
@@ -68,6 +70,7 @@ function buildArgs(): UniversalTemplateArgs {
     clusterIdentifier: "cluster-identifier-1",
     vcenterIdentifier: "vcenter-identifier-1",
     fleetIdentifier: "fleet-identifier-1",
+    arrayIdentifier: "array-identifier-1",
     onlineMonitorStatusId: ObjectID.generate(),
     offlineMonitorStatusId: ObjectID.generate(),
     defaultIncidentSeverityId: ObjectID.generate(),
@@ -122,6 +125,12 @@ const RESOURCES: Array<ResourceDescriptor> = [
     name: "Ceph",
     subConfigKey: "cephMonitor",
     templates: getAllCephAlertTemplates() as unknown as Array<AnyAlertTemplate>,
+  },
+  {
+    name: "StorageArray",
+    subConfigKey: "storageArrayMonitor",
+    templates:
+      getAllStorageArrayAlertTemplates() as unknown as Array<AnyAlertTemplate>,
   },
   {
     name: "IoT",

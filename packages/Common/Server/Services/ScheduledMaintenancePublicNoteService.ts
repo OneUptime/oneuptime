@@ -1,7 +1,8 @@
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -18,9 +19,19 @@ import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/Publ
 import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
-import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageNote, {
+  SavedChatMessageNoteKind,
+} from "../Utils/Notes/SavedChatMessageNote";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -29,6 +40,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The state the event moved to, when this is the note a state change
+     * posts with it - what its subscriber messages name ("Status:
+     * Ongoing"). Only that note carries one (StateChangePublicNote): any
+     * other create, whatever it sent, has none.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      [
+        "postedWithScheduledMaintenanceStateId",
+        "postedWithScheduledMaintenanceState",
+      ],
+      StateChangePublicNote.getStatePostedWith(createBy.data),
+    );
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -122,17 +150,46 @@ export class Service extends DatabaseService<Model> {
    * An edit tells subscribers nothing unless the editor asked for it on this
    * edit (see SubscriberUpdateNotification). When they did, queue the update
    * notification; the ScheduledMaintenancePublicNote worker job sends it.
+   *
+   * Sending the note's 'posted' notification again - its status written back
+   * to Pending, as the dashboard's Retry does - needs the permission to post
+   * a note that notifies subscribers, and a note whose notification can go
+   * out again (see SubscriberNotificationResendAccess). So does telling
+   * subscribers about an edit, which is also refused while that update
+   * notification is being sent.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+    });
+
     if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
       updateBy.data.subscriberNotificationStatusOnNoteUpdated =
         StatusPageSubscriberNotificationStatus.Pending;
       updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
         SubscriberUpdateNotification.queuedMessage;
     }
+
+    /*
+     * Telling subscribers about the edit - asked for above, or written as
+     * Pending directly (the dashboard's Retry of a failed update) - needs
+     * the permission to post a note that notifies subscribers too, and is
+     * refused while the update notification is being sent.
+     */
+    await SubscriberNotificationResendAccess.assertPublicNoteUpdateNotificationAllowed(
+      {
+        modelType: Model,
+        service: this,
+        updateBy: updateBy,
+      },
+    );
 
     return {
       updateBy: updateBy,
@@ -148,17 +205,6 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    /*
-     * A public note is always rendered on the status page, so any inline
-     * image the markdown editor uploaded as private must flip to public
-     * for anonymous status page viewers to be able to render it.
-     */
-    await syncIsPublicForMarkdownImages(
-      createdItem.note,
-      true,
-      `scheduled maintenance public note ${createdItem.id?.toString()}`,
-    );
-
     const scheduledMaintenanceId: ObjectID =
       createdItem.scheduledMaintenanceId!;
     const projectId: ObjectID = createdItem.projectId!;
@@ -169,10 +215,28 @@ export class Service extends DatabaseService<Model> {
       scheduledMaintenanceId: scheduledMaintenanceId,
     });
 
-    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+    const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
       createdItem.id!,
       "/scheduled-maintenance-public-note/attachment",
     );
+
+    const scheduledMaintenanceNumberDisplay: string =
+      scheduledMaintenanceNumberResult.numberWithPrefix ||
+      "#" + scheduledMaintenanceNumberResult.number;
+    const scheduledMaintenanceLink: string = (
+      await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+        projectId!,
+        scheduledMaintenanceId!,
+      )
+    ).toString();
+
+    /*
+     * A message saved as a public note: its entry names who wrote it and
+     * who saved it, and is not posted back into the channel the message is
+     * in. Like any public note it is filed when it was published.
+     */
+    const saved: SavedChatMessage | null =
+      SavedChatMessageNote.read(createdItem);
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
@@ -181,13 +245,33 @@ export class Service extends DatabaseService<Model> {
         ScheduledMaintenanceFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) on status page:
-    
-${(createdItem.note || "") + attachmentsMarkdown}
-              `,
+      ...(saved ? { savedFromChatMessage: saved } : {}),
+      feedInfoInMarkdown: saved
+        ? SavedChatMessageNote.getFeedMarkdown({
+            saved: saved,
+            noteKind: SavedChatMessageNoteKind.Public,
+            record: mdText`[Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink})`,
+            savedByName: await SavedChatMessageNote.getSavedByName({
+              saved: saved,
+              userId: userId,
+            }),
+            note: SavedChatMessageNote.getNoteMarkdown({
+              note: createdItem.note,
+              attachments: attachmentsMarkdown,
+            }),
+          }).toString()
+        : mdText`📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink}) on status page:
+
+${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+              `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId || undefined,
+        // A saved message's entry names its people itself.
+        notifyUserId: saved ? undefined : userId || undefined,
+        exceptChannel: SavedChatMessageNote.getSourceChannel({
+          saved: saved,
+          messageKey: createdItem.postedFromSlackMessageId,
+        }),
       },
     });
 
@@ -231,30 +315,27 @@ ${(createdItem.note || "") + attachmentsMarkdown}
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
 
-        await syncIsPublicForMarkdownImages(
-          updatedItem.note,
-          true,
-          `scheduled maintenance public note ${updatedItem.id?.toString()}`,
-        );
-
-        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/scheduled-maintenance-public-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/scheduled-maintenance-public-note/attachment",
+          );
 
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {
             scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
             projectId: updatedItem.projectId!,
+            // An edit to a public note is a public note event, not a private one.
             scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.PrivateNote,
+              ScheduledMaintenanceFeedEventType.PublicNote,
             displayColor: Blue500,
             userId: userId || undefined,
 
-            feedInfoInMarkdown: `📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown:
+              mdText`📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
-${(updatedItem.note || "") + attachmentsMarkdown}
-                  `,
+${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
+                  `.toString(),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -266,17 +347,28 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     return onUpdate;
   }
 
+  /*
+   * A note posted from Slack or Microsoft Teams - a button's form, or a
+   * message saved with a note emoji - made with the props of the member who
+   * posted it (WorkspaceActionAuthorization.getProjectMemberProps), as the
+   * dashboard makes the note they post there: it needs their permission to
+   * create the note and their read of the scheduled maintenance event, it is held to the
+   * project's plan, and it is theirs - DatabaseService stamps them as its
+   * creator.
+   *
+   * A message saved as a note keeps who wrote it, in which chat and when
+   * (savedFromChatMessage, SavedChatMessageNote). It is published now, as any public note is.
+   */
   @CaptureSpan()
   public async addNote(data: {
-    userId: ObjectID;
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
     note: string;
-    attachmentFileIds?: Array<ObjectID>;
-    postedFromSlackMessageId?: string;
+    postedFromSlackMessageId?: string | undefined;
+    savedFromChatMessage?: SavedChatMessage | undefined;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const publicNote: Model = new Model();
-    publicNote.createdByUserId = data.userId;
     publicNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
@@ -286,22 +378,25 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
-      publicNote.attachments = data.attachmentFileIds.map(
-        (fileId: ObjectID) => {
-          const file: File = new File();
-          file.id = fileId;
-          return file;
-        },
-      );
-    }
-
-    return this.create({
-      data: publicNote,
-      props: {
-        isRoot: true,
+    return await SavedChatMessageNote.create({
+      createBy: {
+        data: publicNote,
+        props: data.props,
+      },
+      savedFromChatMessage: data.savedFromChatMessage,
+      create: (createBy: CreateBy<Model>): Promise<Model> => {
+        return this.create(createBy);
       },
     });
+  }
+
+  // Where a message saved as a note came from: no caller may write it.
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+    SavedChatMessageNote.writeHandedOver(onCreate.createBy);
   }
 
   @CaptureSpan()
@@ -328,14 +423,15 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
   private async getAttachmentsMarkdown(
     modelId: ObjectID,
     attachmentApiPath: string,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     if (!modelId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const noteWithAttachments: Model | null = await this.findOneById({
       id: modelId,
       select: {
+        projectId: true,
         attachments: {
           _id: true,
         },
@@ -346,7 +442,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     });
 
     if (!noteWithAttachments || !noteWithAttachments.attachments) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
@@ -366,11 +462,12 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       });
 
     if (!attachmentIds.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
       modelId,
+      projectId: noteWithAttachments.projectId,
       attachmentIds,
       attachmentApiPath,
     });

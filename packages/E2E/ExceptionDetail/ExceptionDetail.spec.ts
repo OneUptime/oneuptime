@@ -25,6 +25,9 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/exception-detail-ui",
 );
 
+// An explorer's total, "24 spans" (TelemetryResultTotal).
+const RESULT_TOTAL_TEST_ID: string = "telemetry-result-total";
+
 interface RecordedApiRequest {
   method: string;
   url: string;
@@ -38,6 +41,13 @@ interface RecordedListRequest {
   limit: number;
 }
 
+interface RecordedCountRequest {
+  modelName: string;
+  query: Record<string, unknown>;
+  // Whether it asked for the exact total (CountBy.exact).
+  exact: boolean;
+}
+
 interface RecordedUpdate {
   modelName: string;
   id: string;
@@ -47,6 +57,7 @@ interface RecordedUpdate {
 interface FixtureState {
   apiRequests: Array<RecordedApiRequest>;
   analyticsListRequests: Array<RecordedListRequest>;
+  analyticsCountRequests: Array<RecordedCountRequest>;
   getItemRequests: Array<{
     modelName: string;
     select: Record<string, unknown>;
@@ -119,6 +130,28 @@ async function screenshot(page: Page, name: string): Promise<void> {
 
 function sideMenu(page: Page): Locator {
   return page.locator("aside[role='navigation'][aria-label='Main navigation']");
+}
+
+/*
+ * A side-menu section's toggle, by its heading's text. Rarely used sections
+ * (here Manage, which holds Settings) start folded down to their titles:
+ * their rows are hidden until the section is opened, or until one of its
+ * pages is the one open.
+ */
+function sideMenuSectionToggle(page: Page, section: string): Locator {
+  return sideMenu(page).locator(
+    `xpath=.//h6[normalize-space(.)='${section}']/ancestor::button[1]`,
+  );
+}
+
+async function openSideMenuSection(page: Page, section: string): Promise<void> {
+  const toggle: Locator = sideMenuSectionToggle(page, section);
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
 function card(page: Page, heading: string): Locator {
@@ -279,9 +312,10 @@ test.describe("header", () => {
       "isArchived=false",
     ]);
     expect(updates[0]!.id).toBe(EXCEPTION_ID);
-    expect(updates[0]!.data["markedAsResolvedAt"]).toBeTruthy();
-    expect(updates[0]!.data["markedAsResolvedByUserId"]).toBeTruthy();
-    expect(updates[2]!.data["markedAsResolvedAt"]).toBeNull();
+    // Who turned it, and when, is the server's to record: only the switch is sent.
+    for (const update of updates) {
+      expect(Object.keys(update.data)).toHaveLength(1);
+    }
   });
 
   test("a refused update is explained inline and can be dismissed", async ({
@@ -344,7 +378,18 @@ test.describe("navigation", () => {
   }) => {
     await open(page, "");
 
+    // Manage, which holds Settings, starts folded away on the Overview.
+    await expect(sideMenuSectionToggle(page, "Manage")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(
+      sideMenu(page).locator(`a[href='${BASE}/settings']`),
+    ).toBeHidden();
+
     for (const detailPage of DETAIL_PAGES) {
+      await openSideMenuSection(page, detailPage.section);
+
       const link: Locator = sideMenu(page).getByRole("link", {
         name: detailPage.title,
         exact: true,
@@ -672,6 +717,22 @@ test.describe("occurrences", () => {
       primaryEntityId: SERVICE_ID,
     });
 
+    /*
+     * The list's total is counted exactly, with the list's own query, so it
+     * counts this exception's spans and no others (issue #4202).
+     */
+    await expect(page.getByTestId(RESULT_TOTAL_TEST_ID)).toHaveText("24 spans");
+    const spanCount: RecordedCountRequest | undefined = (
+      await fixture(page)
+    ).analyticsCountRequests.find((request: RecordedCountRequest) => {
+      return Boolean(request.query["exceptionScope"]);
+    });
+    expect(spanCount?.exact).toBe(true);
+    expect(spanCount?.query["exceptionScope"]).toEqual({
+      fingerprint: FINGERPRINT,
+      primaryEntityId: SERVICE_ID,
+    });
+
     await screenshot(page, "occurrences-spans");
   });
 
@@ -799,6 +860,8 @@ test.describe("logs", () => {
       );
     });
     expect(traceLogRead).toBeTruthy();
+    // The total counts the trace's logs, with the list's own query.
+    await expect(page.getByTestId(RESULT_TOTAL_TEST_ID)).toHaveText("4 logs");
 
     await screenshot(page, "logs");
 
@@ -820,6 +883,8 @@ test.describe("logs", () => {
       );
     });
     expect(serviceLogRead).toBeTruthy();
+    // And then everything the service logged around it.
+    await expect(page.getByTestId(RESULT_TOTAL_TEST_ID)).toHaveText("5 logs");
   });
 
   test("an occurrence without a trace goes straight to the service's logs", async ({
@@ -962,6 +1027,33 @@ test.describe("AI assistance", () => {
       page.getByText("No AI agent is online for this project."),
     ).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance`));
+  });
+
+  test("with AI switched off: no AI Assistance in the menu, and its page says so, with Turn AI on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "", "enableAi=off");
+
+    // Nothing on it could start: the menu does not offer it.
+    await expect(
+      sideMenu(page).getByRole("link", { name: "AI Assistance", exact: true }),
+    ).toHaveCount(0);
+    await expect(sideMenuSectionToggle(page, "Resolve")).toHaveCount(0);
+
+    // A link that still leads there says why, with the one step to take.
+    await open(page, "/ai-assistance", "enableAi=off");
+    const notice: Locator = page.getByTestId("exception-ai-off");
+    await expect(notice).toContainText("AI is turned off for this project.");
+    await expect(
+      notice.getByRole("link", { name: "Turn AI on" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/settings/ai-features`);
+    await expect(
+      page.getByTestId("exception-ai-task-FixException"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("exception-ai-task-start")).toHaveCount(0);
+    await screenshot(page, "ai-assistance-ai-off");
   });
 
   test("a resolved exception pauses AI tasks", async ({

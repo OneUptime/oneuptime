@@ -12,6 +12,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class CreateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -91,6 +92,23 @@ export default class CreateManyBaseModel<
         );
       }
 
+      /*
+       * Every record is read before the first is created, so an ID still
+       * written as a {{...}} reference stops the step before it has created
+       * part of the list. See the helper.
+       */
+      for (const [index, item] of (
+        args["json-array"] as Array<JSONObject>
+      ).entries()) {
+        assertIdsAreResolved({
+          json: (item as JSONObject) || {},
+          model: this.modelService.getModel(),
+          metadata: this.getMetadata(),
+          argumentId: "json-array",
+          itemNumber: index + 1,
+        });
+      }
+
       const array: Array<TBaseModel> = [];
 
       /*
@@ -130,10 +148,12 @@ export default class CreateManyBaseModel<
               json,
               this.modelService.modelType,
             ) as TBaseModel,
-            props: {
-              isRoot: true,
-              tenantId: options.projectId,
-            },
+            /*
+             * A Project Admin of the project, never root (see getStepProps),
+             * built afresh for each record - its permission rows too - so
+             * nothing one create hands down reaches the next.
+             */
+            props: await this.getStepProps(options),
           })) as TBaseModel,
         );
       }
@@ -145,15 +165,18 @@ export default class CreateManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

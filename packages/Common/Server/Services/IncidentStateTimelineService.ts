@@ -4,78 +4,137 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
+import IncidentInternalNoteService from "./IncidentInternalNoteService";
 import IncidentService from "./IncidentService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentStateService from "./IncidentStateService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import IncidentMemberService from "./IncidentMemberService";
 import IncidentRoleService from "./IncidentRoleService";
 import TeamMemberService from "./TeamMemberService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  ONLY_STATE_DELETE_MESSAGES,
+  StateTimelineRecord,
+} from "../../Utils/StateTimeline/StateTimelineRowDelete";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import StateChangeNote from "../Utils/StateChangeNote";
+import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
+import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import IncidentAlertService from "./IncidentAlertService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
+import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
-export class Service extends DatabaseService<IncidentStateTimeline> {
+export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("startsAt", 3 * 365); // 3 years
     }
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge,
+     * the purge above - never takes an incident's current state, so a
+     * status page never shows it without one. One entry deleted by its id
+     * is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("IncidentStateTimeline"),
+    );
   }
 
+  /*
+   * The project's resolved state, which resolving an incident moves it
+   * into: the first from the top flagged resolved.
+   */
   @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isResolvedState: true,
-        },
+    let resolvedState: IncidentState | null = null;
+
+    try {
+      resolvedState = await IncidentStateService.getResolvedIncidentState({
+        projectId: projectId,
         props: {
           isRoot: true,
         },
-        select: {
-          _id: true,
-        },
       });
+    } catch {
+      resolvedState = null;
+    }
 
-    if (!resolvedState) {
+    if (!resolvedState || !resolvedState.id) {
       throw new BadDataException("No resolved state found for the project");
     }
 
-    return resolvedState.id!;
+    return resolvedState.id;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The private note that can come with the change (`privateNote`): what a
+     * private incident's state change dialog offers in place of the public
+     * one - a private incident takes no public notes - and what the Change
+     * State bulk action sends for the private incidents it moves. Built and
+     * checked now, as its sender, before the incident is even locked, and
+     * posted once the change is saved: the rule every state timeline holds
+     * its private note to (StateChangeNote).
+     */
+    const privateNotesToPost: Array<IncidentInternalNote> =
+      StateChangeNote.preparePrivateNotes({
+        noteModelType: IncidentInternalNote,
+        stateChange: createBy.data,
+        eventColumn: "incidentId",
+        miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+        props: createBy.props,
+      });
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -83,53 +142,106 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         throw new BadDataException("incidentId is null");
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.incidentId.toString(),
-          namespace: "IncidentStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The incident's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "IncidentStateTimeline.create",
+        eventId: createBy.data.incidentId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           incidentId: createBy.data.incidentId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      if (
-        (createBy.data.createdByUserId ||
-          createBy.data.createdByUser ||
-          createBy.props.userId) &&
-        !createBy.data.rootCause
-      ) {
-        let userId: ObjectID | undefined = createBy.data.createdByUserId;
-
-        if (createBy.props.userId) {
-          userId = createBy.props.userId;
-        }
-
-        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-          userId = createBy.data.createdByUser.id;
-        }
-
-        if (userId) {
-          createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
-            {
-              userId: userId!,
-              projectId: createBy.data.projectId || createBy.props.tenantId!,
-            },
-          )}`;
-        }
-      }
-
-      const incidentStateId: ObjectID | undefined | null =
-        createBy.data.incidentStateId || createBy.data.incidentState?.id;
+      // Under either of its names; the two must agree.
+      const incidentStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["incidentStateId", "incidentState"],
+        "Incident State",
+      );
 
       if (!incidentStateId) {
         throw new BadDataException("incidentStateId is null");
+      }
+
+      // The public note that comes with the change, if any (a blank one is none).
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      /*
+       * The note is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the incident feed and in Slack. With Notify on it is the one message
+       * subscribers get about the change, which is recorded as sent by it.
+       * So whether they may post it is asked now, before anything is read or
+       * written, with the check the note's own create runs: a change whose
+       * note they may not post is refused whole, rather than saved with
+       * nobody told (StateChangePublicNote).
+       *
+       * It notifies exactly when the change was asked to: a change that does
+       * not say keeps its column defaults and notifies itself, and its note
+       * stays quiet - one message, not two.
+       */
+      let publicNoteToPost: IncidentPublicNote | undefined = undefined;
+
+      if (publicNote) {
+        publicNoteToPost = new IncidentPublicNote();
+        publicNoteToPost.incidentId = createBy.data.incidentId;
+        publicNoteToPost.note = publicNote;
+        publicNoteToPost.postedAt = createBy.data.startsAt;
+        publicNoteToPost.createdAt = createBy.data.startsAt;
+
+        const noteProjectId: ObjectID | undefined =
+          createBy.data.projectId || createBy.props.tenantId;
+
+        if (noteProjectId) {
+          publicNoteToPost.projectId = noteProjectId;
+        }
+
+        publicNoteToPost.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+        // Its messages name the state the incident moves to.
+        StateChangePublicNote.markPostedWith(publicNoteToPost, incidentStateId);
+
+        StateChangePublicNote.assertCallerMayPost({
+          noteModelType: IncidentPublicNote,
+          note: publicNoteToPost,
+          props: createBy.props,
+        });
+
+        /*
+         * A private incident takes no public notes
+         * (PrivateRecordPublicNoteRule): the change that comes with one is
+         * refused whole, with what to send instead, before anything of it
+         * is written - never saved with a note that is then refused.
+         */
+        await PrivateRecordPublicNoteRule.assertStateChangeMayPostPublicNote({
+          kind: PrivateRecordKind.Incident,
+          recordId: createBy.data.incidentId,
+          projectId: noteProjectId,
+        });
+      }
+
+      // Who made the change, under either name of it: see CreatedByUser.
+      const changedByUserId: ObjectID | null = CreatedByUser.getId(
+        createBy.data,
+        createBy.props,
+      );
+
+      if (changedByUserId && !createBy.data.rootCause) {
+        createBy.data.rootCause =
+          mdText`Incident state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       /*
@@ -170,7 +282,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
               _id: true,
               order: true,
               name: true,
-              isResolvedState: true,
             },
             startsAt: true,
             endsAt: true,
@@ -211,28 +322,24 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       }
 
       /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
+       * Where the incident may move, by the one rule every state timeline
+       * asks (Common/Utils/StateMove): not into the state it is in, not
+       * back up the project's list of states, and not into the state of the
+       * row after a back-dated one.
        */
-
-      if (
-        stateBeforeThis &&
-        stateBeforeThis.incidentStateId &&
-        incidentStateId
-      ) {
-        if (
-          stateBeforeThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.incidentState?.order) {
-        const newIncidentState: IncidentState | null =
-          await IncidentStateService.findOneBy({
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.Incident,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.incidentStateId,
+              name: stateBeforeThis.incidentState?.name,
+              order: stateBeforeThis.incidentState?.order,
+            }
+          : null,
+        newStateId: incidentStateId,
+        nextStateId: stateAfterThis?.incidentStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await IncidentStateService.findOneBy({
             query: {
               _id: incidentStateId,
             },
@@ -244,41 +351,12 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
               isRoot: true,
             },
           });
-
-        if (newIncidentState && newIncidentState.order) {
-          // check if the new incident state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.incidentState &&
-            stateBeforeThis.incidentState.order &&
-            newIncidentState.order <= stateBeforeThis.incidentState.order
-          ) {
-            throw new BadDataException(
-              `Incident cannot transition to ${newIncidentState.name} state from ${stateBeforeThis.incidentState.name} state because ${newIncidentState.name} is before ${stateBeforeThis.incidentState.name} in the order of incident states.`,
-            );
-          }
-        }
-      }
+        },
+      });
 
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
-        if (
-          stateAfterThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as next state.",
-          );
-        }
       }
 
       logger.debug("State After this", {
@@ -290,32 +368,17 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         incidentId: createBy.data.incidentId?.toString(),
       } as LogAttributes);
 
-      const publicNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["publicNote"] as string | undefined;
-
-      if (publicNote) {
-        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (createBy.data.shouldStatusPageSubscribersBeNotified) {
-          createBy.data.subscriberNotificationStatus =
-            StatusPageSubscriberNotificationStatus.Success;
-        }
-      }
-
-      // Set notification status based on shouldStatusPageSubscribersBeNotified
-      if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this incident state change.";
-      } else if (
-        createBy.data.shouldStatusPageSubscribersBeNotified === true &&
-        !publicNote
-      ) {
-        // Only set to Pending if there's no public note (public note handling sets it to Success)
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
+      /*
+       * The change's own notification, decided once: when it notifies
+       * subscribers and a note comes with it, the note is the one message
+       * they get (StateChangeSubscriberNotification).
+       */
+      StateChangeSubscriberNotification.applyToStateChange({
+        stateChange: createBy.data,
+        hasPublicNote: Boolean(publicNote),
+        skippedMessage:
+          "Notifications skipped as subscribers are not to be notified for this incident state change.",
+      });
 
       return {
         createBy,
@@ -323,21 +386,20 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
           publicNote: publicNote,
+          publicNoteToPost: publicNoteToPost,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
     } catch (err) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            incidentId: createBy.data.incidentId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
 
       throw err;
     }
@@ -348,8 +410,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     onCreate: OnCreate<IncidentStateTimeline>,
     createdItem: IncidentStateTimeline,
   ): Promise<IncidentStateTimeline> {
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.incidentId) {
       throw new BadDataException("incidentId is null");
     }
@@ -445,6 +505,11 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       } as LogAttributes);
     }
 
+    /*
+     * The incident's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the incident's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await IncidentService.updateOneBy({
         query: {
@@ -453,7 +518,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         data: {
           currentIncidentStateId: createdItem.incidentStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
@@ -467,29 +532,21 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         },
         select: {
           _id: true,
-          isResolvedState: true,
-          isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
           name: true,
         },
       });
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          incidentId: createdItem.incidentId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
     /*
      * Carry the incident's new state over to its linked alerts, when the
-     * project has opted in (acknowledge and/or resolve them with the
-     * incident). Only for the incident's current state - a back-dated row has
+     * project's linked alert switches say so (acknowledge and/or resolve them
+     * with the incident; both are on for new projects). Only for the incident's current state - a back-dated row has
      * an endsAt - and after the mutex is released, since it writes alert
      * timelines. Fire-and-forget: it never fails or delays the state change.
      */
@@ -509,19 +566,63 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       });
     }
 
+    /*
+     * Whether the incident is resolved in this state, and was in the state
+     * before it, by the one rule (Common/Utils/ResolvedState): the project's
+     * resolved state, or a state placed after it, flagged or not.
+     */
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: createdItem.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const isResolved: boolean = ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: createdItem.incidentStateId,
+    });
+
+    const previousStateWasResolved: boolean = ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId:
+        onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+    });
+
+    /*
+     * Whether the incident is acknowledged in this state - the project's
+     * acknowledged state, a state placed after it, or a resolved one - by
+     * the one rule (Common/Utils/AcknowledgedState): what marks the feed
+     * line and the SLA as responded.
+     */
+    const isAcknowledged: boolean = AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: createdItem.incidentStateId,
+    });
+
+    /*
+     * This change resolves the incident: it moves the incident's current
+     * state - not a row dated before it - from a state that is not resolved,
+     * or from none, into one that is. Moving on from one resolved state to
+     * another ("Resolved" to "Closed") is no new resolve.
+     */
+    const resolvesIncident: boolean =
+      !createdItem.endsAt && isResolved && !previousStateWasResolved;
+
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
+     */
     const stateName: string = incidentState?.name || "";
-    let stateEmoji: string = "➡️";
-
-    // if resolved state then change emoji to ✅.
-
-    if (incidentState?.isResolvedState) {
-      stateEmoji = "✅";
-    } else if (incidentState?.isAcknowledgedState) {
-      // eyes emoji for acknowledged state.
-      stateEmoji = "👀";
-    } else if (incidentState?.isCreatedState) {
-      stateEmoji = "🔴";
-    }
+    const stateEmoji: string = StateChangeFeedEmoji.get({
+      isResolved: isResolved,
+      isAcknowledged: isAcknowledged,
+      isCreatedState: Boolean(incidentState?.isCreatedState),
+    });
 
     const incidentNumberResult: {
       number: number | null;
@@ -542,15 +643,30 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:**
-${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **${stateName}**`.toString(),
+      /*
+       * The cause, when one was given. Without one the entry has no details:
+       * a "Cause:" with nothing after it opened an empty box in the feed.
+       */
+      moreInformationInMarkdown: createdItem.rootCause
+        ? mdText`**Cause:**
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
+        : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+        /*
+         * Not posted to Slack and Microsoft Teams for the record's first
+         * state: the message that announced the record names it already
+         * (WorkspaceStateChangePosting). The feed keeps the entry.
+         */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace(
+          {
+            stateBeforeThis:
+              onCreate.carryForward.statusTimelineBeforeThisStatus,
+            stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+          },
+        ),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
@@ -577,9 +693,7 @@ ${createdItem.rootCause}`,
       });
     }
 
-    const isResolvedState: boolean = incidentState?.isResolvedState || false;
-
-    if (isResolvedState) {
+    if (resolvesIncident) {
       const incident: Incident | null = await IncidentService.findOneBy({
         query: {
           _id: createdItem.incidentId.toString(),
@@ -590,18 +704,33 @@ ${createdItem.rootCause}`,
           monitors: {
             _id: true,
           },
+          holdsMonitors: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-      if (incident) {
+      /*
+       * Resolving gives back the monitors the incident holds
+       * (Incident.holdsMonitors): their monitoring resumes and their status
+       * returns to operational, and from then on it holds nothing. An
+       * incident that holds nothing - declared already resolved, or resolved
+       * once already and reopened since - gives nothing back, so a status a
+       * monitor holds for another reason stays. One from before this was
+       * recorded gives its monitors back, as it always did.
+       */
+      if (incident && incident.holdsMonitors !== false) {
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,
           incident.monitors || [],
           createdItem.startsAt || undefined,
         );
+
+        await IncidentService.recordHoldsMonitors({
+          incidentId: createdItem.incidentId,
+          holdsMonitors: false,
+        });
       }
 
       /*
@@ -642,23 +771,32 @@ ${createdItem.rootCause}`,
       });
     }
 
-    if (onCreate.carryForward.publicNote) {
-      const publicNote: string = onCreate.carryForward.publicNote;
-
-      const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
-      incidentPublicNote.incidentId = createdItem.incidentId;
-      incidentPublicNote.note = publicNote;
+    /*
+     * The note that came with the change, which onBeforeCreate built and
+     * made sure may be posted: posted now, after the change, on the incident
+     * and at the time the change was saved with, as the person who changed
+     * the state.
+     */
+    if (onCreate.carryForward.publicNoteToPost) {
+      const incidentPublicNote: IncidentPublicNote =
+        onCreate.carryForward.publicNoteToPost;
       incidentPublicNote.postedAt = createdItem.startsAt!;
       incidentPublicNote.createdAt = createdItem.startsAt!;
       incidentPublicNote.projectId = createdItem.projectId!;
-      incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createdItem.shouldStatusPageSubscribersBeNotified);
 
       await IncidentPublicNoteService.create({
         data: incidentPublicNote,
         props: onCreate.createBy.props,
       });
     }
+
+    // And the private note, the same way (StateChangeNote).
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: IncidentInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     IncidentService.refreshIncidentMetrics({
       incidentId: createdItem.incidentId,
@@ -692,12 +830,10 @@ ${createdItem.rootCause}`,
     this.trackSlaStateChange({
       incidentId: createdItem.incidentId,
       projectId: createdItem.projectId!,
-      isAcknowledgedState: incidentState?.isAcknowledgedState || false,
-      isResolvedState: incidentState?.isResolvedState || false,
+      isAcknowledged: isAcknowledged,
+      isResolved: isResolved,
       stateChangedAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
-      previousStateWasResolved:
-        onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentState
-          ?.isResolvedState || false,
+      previousStateWasResolved: previousStateWasResolved,
     }).catch((error: Error) => {
       logger.error(`Error while tracking SLA state change:`, {
         projectId: createdItem.projectId?.toString(),
@@ -722,12 +858,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Incident ${incidentNumberDisplay}](${(
+          text: mdText`**[Incident ${incidentNumberDisplay}](${(
             await IncidentService.getIncidentLinkInDashboard(
               createdItem.projectId!,
               createdItem.incidentId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {
@@ -744,10 +880,44 @@ ${createdItem.rootCause}`,
     return createdItem;
   }
 
+  /*
+   * A change refused or failed once onBeforeCreate took the incident's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the incident
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<IncidentStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      incidentId: onCreate?.createBy.data.incidentId?.toString(),
+    } as LogAttributes);
+
+    return error;
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<OnUpdate<IncidentStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
+    /*
+     * Retry - a user's Pending - over a state change notification that is
+     * being sent would let a second run send it alongside, or be overwritten
+     * when the send settles (SubscriberNotificationResendAccess).
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: IncidentStateTimeline,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatus"],
+    });
+
     const incidentIds: Array<ObjectID> =
       await this.getIncidentIdsForTimelineQuery(updateBy);
 
@@ -796,18 +966,10 @@ ${createdItem.rootCause}`,
   private async getIncidentIdsForTimelineQuery(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<Array<ObjectID>> {
-    const timelines: Array<IncidentStateTimeline> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const timelines: Array<IncidentStateTimeline> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         incidentId: true,
-      },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
     return this.getIncidentIdsFromTimelines(timelines);
   }
@@ -1034,14 +1196,19 @@ ${createdItem.rootCause}`,
   private async trackSlaStateChange(data: {
     incidentId: ObjectID;
     projectId: ObjectID;
-    isAcknowledgedState: boolean;
-    isResolvedState: boolean;
+    // The new state counts as acknowledged (Common/Utils/AcknowledgedState).
+    isAcknowledged: boolean;
+    isResolved: boolean;
     stateChangedAt: Date;
     previousStateWasResolved: boolean;
   }): Promise<void> {
     try {
-      // Check if incident is being reopened (previous state was resolved, current state is not resolved)
-      if (data.previousStateWasResolved && !data.isResolvedState) {
+      /*
+       * Reopened: from a resolved state into one that is not (the one rule,
+       * Common/Utils/ResolvedState). A state placed after Resolved is no
+       * reopen.
+       */
+      if (data.previousStateWasResolved && !data.isResolved) {
         // Incident is being reopened - create a new SLA record
         const incident: Incident | null = await IncidentService.findOneById({
           id: data.incidentId,
@@ -1073,16 +1240,24 @@ ${createdItem.rootCause}`,
         return;
       }
 
-      // Track acknowledged state
-      if (data.isAcknowledgedState) {
+      /*
+       * Responded: the incident is acknowledged in its new state - the
+       * acknowledged state, a state placed after it ("Investigating") or a
+       * resolved one. Only an SLA not marked responded yet takes the time,
+       * so moving on through such states keeps the first.
+       */
+      if (data.isAcknowledged) {
         await IncidentSlaService.markResponded({
           incidentId: data.incidentId,
           respondedAt: data.stateChangedAt,
         });
       }
 
-      // Track resolved state
-      if (data.isResolvedState) {
+      /*
+       * Track the resolve: the move into a resolved state. Moving on from
+       * one resolved state to another closes nothing more.
+       */
+      if (data.isResolved && !data.previousStateWasResolved) {
         await IncidentSlaService.markResolved({
           incidentId: data.incidentId,
           resolvedAt: data.stateChangedAt,
@@ -1101,19 +1276,36 @@ ${createdItem.rootCause}`,
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<IncidentStateTimeline>,
   ): Promise<OnDelete<IncidentStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves. A delete of several entries - a
+     * workflow's delete of many, say - has no one gap to close: it is left
+     * as it is, and moves no neighbour.
+     */
+    const toBeDeleted: {
+      row: IncidentStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      incidentId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      return { deleteBy, carryForward: null };
+    }
+
+    if (toBeDeleted.row) {
       const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            incidentId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const incidentId: ObjectID | undefined =
         incidentStateTimelineToBeDeleted?.incidentId;
@@ -1134,7 +1326,7 @@ ${createdItem.rootCause}`,
 
         if (incidentStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Incident should have at least one state in its timeline.",
+            ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Incident],
           );
         }
 
@@ -1148,7 +1340,9 @@ ${createdItem.rootCause}`,
         const stateBeforeThis: IncidentStateTimeline | null =
           await this.findOneBy({
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                incidentStateTimelineToBeDeleted.id!.toString(),
+              ),
               incidentId: incidentId,
               startsAt: QueryHelper.lessThanEqualTo(
                 incidentStateTimelineToBeDeleted.startsAt!,
@@ -1225,16 +1419,11 @@ ${createdItem.rootCause}`,
             },
           });
 
-          // Update the next state to start at the start of this state.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: incidentStateTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * The state after it keeps its start: it is when that state really
+           * began. Moving it back to this one's start as well made the two
+           * cover this state's time twice (StateTimelineRowDelete).
+           */
           logger.debug("This state is in the middle.", {
             incidentId: incidentId?.toString(),
           } as LogAttributes);

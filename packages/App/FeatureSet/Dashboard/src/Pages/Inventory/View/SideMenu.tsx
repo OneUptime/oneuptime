@@ -7,6 +7,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -184,6 +187,12 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: InventoryItem,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
+  });
 
   return <SideMenu sections={sections} />;
 };

@@ -11,6 +11,7 @@ import logger from "../Logger";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -358,6 +359,12 @@ export interface SessionReplayResolveRequest {
    * same, and collapsing them would resolve every session in the project.
    */
   accessibleRumApplicationIds: Array<ObjectID> | null;
+  /*
+   * Applications whose sessions are never resolved, whatever
+   * accessibleRumApplicationIds says: the ones a block with labels takes
+   * away from the caller.
+   */
+  excludedRumApplicationIds?: Array<ObjectID> | undefined;
 }
 
 /*
@@ -1563,6 +1570,18 @@ export default class SessionReplayReadService {
       );
     }
 
+    const excludedRumApplicationIds: Array<ObjectID> =
+      request.excludedRumApplicationIds || [];
+
+    if (excludedRumApplicationIds.length > 0) {
+      statement.append(
+        SQL` AND rumApplicationId NOT IN (${{
+          type: TableColumnType.ObjectID,
+          value: new IncludesNone(excludedRumApplicationIds),
+        }})`,
+      );
+    }
+
     /* At most one row per requested id survives QUALIFY. */
     statement.append(
       SQL` LIMIT ${{
@@ -1579,6 +1598,11 @@ export default class SessionReplayReadService {
     }>();
 
     const requestedIds: Set<string> = new Set<string>(sessionIds);
+    const excludedIds: Set<string> = new Set<string>(
+      excludedRumApplicationIds.map((applicationId: ObjectID): string => {
+        return applicationId.toString().toLowerCase();
+      }),
+    );
     const accessibleIds: Set<string> | null =
       request.accessibleRumApplicationIds
         ? new Set<string>(
@@ -1614,7 +1638,8 @@ export default class SessionReplayReadService {
         readNumber(row, "matchedApplicationCount") !== 1 ||
         !ObjectID.isValidUUID(applicationId) ||
         (accessibleIds !== null &&
-          !accessibleIds.has(applicationId.toLowerCase()))
+          !accessibleIds.has(applicationId.toLowerCase())) ||
+        excludedIds.has(applicationId.toLowerCase())
       ) {
         refusedIds.add(sessionId);
         continue;
@@ -3193,6 +3218,11 @@ export default class SessionReplayReadService {
      * project.
      */
     accessibleRumApplicationIds: Array<ObjectID> | null;
+    /*
+     * Applications whose sessions are never returned, whatever
+     * accessibleRumApplicationIds says (a block with labels).
+     */
+    excludedRumApplicationIds?: Array<ObjectID> | undefined;
     startTime?: Date | undefined;
     endTime?: Date | undefined;
     /* Pin to the one session the caller already knows threw. */
@@ -3337,6 +3367,21 @@ export default class SessionReplayReadService {
       );
     }
 
+    const excludedRumApplicationIds: Array<ObjectID> =
+      data.excludedRumApplicationIds || [];
+
+    if (
+      !isScopedNonRumOrUnknownException &&
+      excludedRumApplicationIds.length > 0
+    ) {
+      statement.append(
+        SQL` AND rumApplicationId NOT IN (${{
+          type: TableColumnType.ObjectID,
+          value: new IncludesNone(excludedRumApplicationIds),
+        }})`,
+      );
+    }
+
     if (!isScopedNonRumOrUnknownException) {
       statement.append(
         SQL` AND startTime >= ${{
@@ -3426,6 +3471,15 @@ export default class SessionReplayReadService {
           }})`,
         );
       }
+
+      if (excludedRumApplicationIds.length > 0) {
+        statement.append(
+          SQL` AND rumApplicationId NOT IN (${{
+            type: TableColumnType.ObjectID,
+            value: new IncludesNone(excludedRumApplicationIds),
+          }})`,
+        );
+      }
     } else {
       statement.append(" HAVING (");
       statement.append(
@@ -3461,16 +3515,24 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
+    const excludedIds: Set<string> = new Set<string>(
+      excludedRumApplicationIds.map((applicationId: ObjectID): string => {
+        return applicationId.toString().toLowerCase();
+      }),
+    );
+
     const responseRows: Array<JSONObject> = (response.data || []).filter(
       (row: JSONObject): boolean => {
         /*
          * QUALIFY is authoritative. Its count was computed over every app
          * before ORDER/LIMIT, so retaining only count=1 is also a fail-closed
          * guard if a changed driver ever returns a row that should not survive.
+         * The exclusion is repeated the same way.
          */
         return (
-          !isScopedNonRumOrUnknownException ||
-          readNumber(row, "matchedApplicationCount") === 1
+          (!isScopedNonRumOrUnknownException ||
+            readNumber(row, "matchedApplicationCount") === 1) &&
+          !excludedIds.has(readString(row, "applicationId").toLowerCase())
         );
       },
     );

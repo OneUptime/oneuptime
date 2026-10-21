@@ -32,6 +32,7 @@ import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import SecurityEventDedupe from "../SecurityEventDedupe";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
+import { isRequestTimeoutMessage } from "./RequestTimeoutMessage";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
   ConnectorFetchBudget,
@@ -45,6 +46,7 @@ import {
   readConnectorFetchSummary,
   toConnectorTestResult,
 } from "./Types";
+import SecurityConnectionCases from "../../SecurityCase/SecurityConnectionCases";
 
 /*
  * The generic pull loop behind every Security Event Connection.
@@ -106,14 +108,6 @@ export const MAX_CHUNK_MINUTES: number = 24 * 60;
  */
 export const MIN_CHUNK_MINUTES: number = 1;
 
-/*
- * Transport deadlines as connectors and the shared HTTP client word them:
- * "timed out after N seconds" (Sentinel, AWS Security Hub), axios's
- * "timeout of Nms exceeded" (surfaced inside "... did not complete: ...")
- * and a socket-level ETIMEDOUT.
- */
-const TIMEOUT_ERROR_PATTERN: RegExp =
-  /timed out|timeout of \d+ms exceeded|ETIMEDOUT/i;
 /*
  * Only for a catalog entry without a usable cursorOverlapInMinutes, so a
  * malformed definition still re-reads the boundary instead of skipping it.
@@ -757,7 +751,13 @@ export default class SecurityEventConnectionPoller {
         if (options.type === "poll" || options.type === "backfill") {
           phase = "Import records";
           phaseStartedMs = Date.now();
-          await this.ingest(connection, definition, fetched.events, result);
+          await this.ingest(connection, definition, fetched.events, result, {
+            /*
+             * A backfill imports a range somebody picked from the past: its
+             * alerts are history, so they become events, never cases.
+             */
+            opensCases: options.type === "poll",
+          });
           result.checks.push({
             key: "import",
             name: phase,
@@ -957,7 +957,7 @@ export default class SecurityEventConnectionPoller {
        */
       if (
         chunkMinutes > MIN_CHUNK_MINUTES &&
-        TIMEOUT_ERROR_PATTERN.test(result.error || "")
+        isRequestTimeoutMessage(result.error)
       ) {
         const nextChunkMinutes: number = Math.max(
           MIN_CHUNK_MINUTES,
@@ -1063,6 +1063,7 @@ export default class SecurityEventConnectionPoller {
     definition: SecurityEventConnectorDefinition,
     normalized: Array<NormalizedSecurityEvent>,
     result: SecurityEventConnectionRunResult,
+    options?: { opensCases?: boolean | undefined } | undefined,
   ): Promise<void> {
     if (!normalized.length) {
       return;
@@ -1156,6 +1157,14 @@ export default class SecurityEventConnectionPoller {
     });
 
     result.ingestedCount = rows.length;
+
+    if (options?.opensCases) {
+      await SecurityConnectionCases.recordImportedAlerts({
+        connection,
+        definition,
+        events: fresh,
+      });
+    }
 
     const times: Array<string> = rows
       .map((row: JSONObject): string => {

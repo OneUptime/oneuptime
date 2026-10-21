@@ -1,4 +1,9 @@
 import DatabaseService from "./DatabaseService";
+import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/UserSession";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -301,6 +306,49 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    });
+  }
+
+  /*
+   * A session that is revoked - signed out, a password changed, the person
+   * blocked, a refresh token past its time - ends the live updates opened
+   * with it at once, on every server (RealtimeAccessChanges). Every
+   * revocation is an update through this service (revokeSessionById,
+   * revokeAllSessionsByUserId), so this is where they all pass.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.isRevoked === true) {
+      Service.endLiveUpdatesOfSessions(updatedItemIds);
+    }
+
+    return onUpdate;
+  }
+
+  // A session that is deleted ends its live updates the same way.
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    Service.endLiveUpdatesOfSessions(itemIdsBeforeDelete);
+
+    return onDelete;
+  }
+
+  private static endLiveUpdatesOfSessions(sessionIds: Array<ObjectID>): void {
+    if (sessionIds.length === 0) {
+      return;
+    }
+
+    RealtimeAccessChanges.announce({
+      kind: RealtimeAccessChangeKind.SessionsEnded,
+      sessionIds: sessionIds.map((sessionId: ObjectID): string => {
+        return sessionId.toString();
+      }),
     });
   }
 

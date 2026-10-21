@@ -1,4 +1,6 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  FOLLOW_UP_REPORT_LEAD_PREFIX,
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
@@ -14,7 +16,7 @@ import {
  *
  * These helpers turn a structured report into a short feed entry (a lead,
  * the Summary and the root cause, without citation markers) and move the
- * whole report behind the feed item's "More Information" button. Reports the
+ * whole report behind the feed item's "Show the full report" toggle. Reports the
  * parser cannot structure are left exactly as they were posted.
  *
  * Everything returned is still model-authored markdown: the feeds keep
@@ -24,7 +26,20 @@ import {
 export const AI_ROOT_CAUSE_FEED_LEAD: string =
   "OneUptime AI posted a root cause analysis";
 
+/*
+ * A follow-up check's entry starts with this in place of the lead above,
+ * followed by the reason its report gives: "OneUptime AI checked again after
+ * alert #12 opened on Host web-1, 2 minutes after this incident was
+ * declared: High CPU on web-1."
+ */
+export const AI_FOLLOW_UP_FEED_LEAD: string = "OneUptime AI checked again";
+
 export const DEFAULT_AI_ROOT_CAUSE_LABEL: string = "Most likely root cause";
+
+// The words of the toggle that unfolds the whole report under the entry.
+export const AI_REPORT_DETAILS_LABEL: string = translationKey(
+  "Show the full report",
+);
 
 export interface AIRootCauseFeedContent {
   text: string;
@@ -43,7 +58,13 @@ export interface FeedItemMarkdown {
   moreTextInMarkdown: string;
 }
 
-const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})(.*)$/;
+/*
+ * The fence's run is taken whole (nothing of its kind may follow it), as the
+ * pattern took it first anyway: on a line the rest of which cannot be read
+ * to its end - it holds a line separator other than "\n" - every shorter run
+ * was tried in turn, each reading the rest of the line again.
+ */
+const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const FENCE_CLOSE_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})[ \t]*$/;
 
 /*
@@ -367,6 +388,24 @@ function getRootCauseLabel(report: ParsedInvestigationReport): string {
   return label.endsWith(":") ? label.slice(0, -1).trimEnd() : label;
 }
 
+/*
+ * The entry's first sentence: what OneUptime AI did. A follow-up check's
+ * report leads with why it was written ("**Checked again** after alert #12
+ * ..."), and its entry says so, so it is told apart from the first analysis
+ * a few entries below it. Every other report gets the plain lead.
+ */
+function getFeedLead(report: ParsedInvestigationReport): string {
+  const followUpLead: string = (report.followUpLead || "").trim();
+
+  if (followUpLead.startsWith(FOLLOW_UP_REPORT_LEAD_PREFIX)) {
+    return `**${AI_FOLLOW_UP_FEED_LEAD}**${followUpLead.slice(
+      FOLLOW_UP_REPORT_LEAD_PREFIX.length,
+    )}`;
+  }
+
+  return `**${AI_ROOT_CAUSE_FEED_LEAD}**`;
+}
+
 function labelParagraph(label: string, body: string): string {
   const firstLine: string = body.split("\n")[0] || "";
 
@@ -383,8 +422,8 @@ function labelParagraph(label: string, body: string): string {
 /*
  * The compact feed entry for an AI root-cause report. A structured report
  * becomes a bold lead, its Summary and its labelled root cause, with citation
- * markers removed, and the full original report as More Information.
- * Anything else comes back unchanged as the text, with no More Information.
+ * markers removed, and the full original report as the entry's details.
+ * Anything else comes back unchanged as the text, with no details.
  */
 export function buildAIRootCauseFeedContent(
   markdown: string,
@@ -407,7 +446,7 @@ export function buildAIRootCauseFeedContent(
     return { text: markdown };
   }
 
-  const paragraphs: Array<string> = [`**${AI_ROOT_CAUSE_FEED_LEAD}**`];
+  const paragraphs: Array<string> = [getFeedLead(report)];
 
   if (summary) {
     paragraphs.push(summary);
@@ -425,7 +464,7 @@ export function buildAIRootCauseFeedContent(
 
 /*
  * What an incident or alert feed item shows. Only AI investigation items are
- * compacted. An item that already carries its own More Information keeps it
+ * compacted. An item that already carries its own details keeps them
  * and keeps its full text too, so the report is never hidden behind a button
  * that opens something else.
  */

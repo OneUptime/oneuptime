@@ -18,11 +18,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DatabaseDocumentationCard from "../../../Components/DatabaseServer/DocumentationCard";
-import { DatabaseDocumentationTarget } from "../Utils/DocumentationMarkdown";
+import {
+  DatabaseDocumentationTarget,
+  getDatabaseDocumentationHeading,
+} from "../Utils/DocumentationMarkdown";
 import {
   DATABASE_NOT_FOUND_MESSAGE,
   DatabaseRuntimePlatform,
-  getDatabaseEngineLabel,
   getDatabaseRuntimePlatform,
   isDatabaseServerFound,
 } from "../Utils/DatabaseServerPresentation";
@@ -31,7 +33,9 @@ import {
  * The Database Agent guide prefilled for THIS database: its engine, the
  * address applications use, and its id as DATABASE_SERVER_ID (so the
  * agent's data joins this row whatever address it reports). A Kubernetes
- * database also gets the Deployment manifest for its namespace.
+ * database is offered the Deployment for its namespace first. An engine
+ * the agent has no config for gets the own-collector guide, and the
+ * heading says so.
  */
 const DatabaseServerDocumentation: FunctionComponent<
   PageComponentProps
@@ -126,11 +130,14 @@ const DatabaseServerDocumentation: FunctionComponent<
     return <ErrorMessage message="Database not found." />;
   }
 
+  const heading: { title: string; description: string } =
+    getDatabaseDocumentationHeading(target);
+
   return (
     <Fragment>
       <DatabaseDocumentationCard
-        title={`Connect ${getDatabaseEngineLabel(target.dbSystem)} engine metrics`}
-        description="Install the OneUptime Database Agent next to this database to add its engine metrics. Every value below is prefilled for this database, including its id."
+        title={heading.title}
+        description={heading.description}
         database={target}
       />
     </Fragment>

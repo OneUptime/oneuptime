@@ -1,4 +1,6 @@
 import Input from "../../Input/Input";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -8,9 +10,13 @@ export interface ComponentProps {
 const ProjectPickerFilterBox: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="px-2 pb-2 mb-1 border-b border-gray-100">
-      <label className="sr-only">Search Projects</label>
+      <label className="sr-only">
+        {translator.translateText("Search Projects")}
+      </label>
       <div className="relative">
         <Input
           onChange={(value: string) => {

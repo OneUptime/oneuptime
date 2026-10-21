@@ -1,146 +1,190 @@
-# Werken met OneUptime vanuit GitHub
+# GitHub App
 
-De OneUptime GitHub App is niet alleen een verbinding met uw code — u kunt hem in uw repository aanspreken, en dan doet hij het werk daar ter plekke.
+De OneUptime GitHub App is meer dan een koppeling met je code: je kunt er in je repository mee praten, en hij doet het werk daar. Noem hem in een issue en hij opent een pull request; noem hem in een pull request en hij herziet de branch of beoordeelt de diff. Alles wat hij maakt, is een pull request of een review die een mens leest: **hij merget nooit iets en keurt nooit een pull request goed.**
 
-Vermeld hem in een issue en hij opent een pull request. Vermeld hem in een pull request en hij herziet de branch, of beoordeelt de diff. Zet een label op een issue en hij pakt die issue op. Alles wat hij oplevert is een pull request of een review die een mens moet lezen: **hij merget nooit iets, en hij keurt nooit een pull request goed.**
-
-```text
-@oneuptime implement this                              →  een pull request die de issue sluit
-@oneuptime revise this — gebruik exponentiële backoff  →  nieuwe commits op de branch van deze pull request
-@oneuptime review                                      →  een codereview, geplaatst op deze pull request
-```
-
-> Vervang `@oneuptime` door de handle van uw eigen app. Op OneUptime Cloud is dat `@oneuptime`. Op een zelf-gehoste instantie is het de naam die u uw GitHub App hebt gegeven, in kleine letters en met spaties vervangen door koppeltekens — een app met de naam "Acme AI" vermeldt u als `@acme-ai`. Doet een vermelding niets, controleer dit dan als eerste.
-
-## Voordat u begint
-
-- De repository moet via de GitHub App **aan een OneUptime-project gekoppeld** zijn. Zie [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) voor de installatie, of koppel hem op OneUptime Cloud via **Projectinstellingen → Code-opslagplaatsen**.
-- Er moet een **Runner met de capability "Voert AI-codefixes uit"** online zijn — dezelfde Runner die [AI Fix Tasks](/docs/ai/ai-agent) uitvoert. Zonder Runner worden commando's wel aangenomen, maar mislukken ze na 30 minuten met de melding dat geen enkele agent ze heeft opgepakt.
-- De GitHub App moet de machtiging **Issues: Lezen & Schrijven** hebben en geabonneerd zijn op de webhookgebeurtenissen onder [Waarop u zich moet abonneren](#waarop-u-zich-moet-abonneren).
-
-## De commando's
-
-Elk commando begint met een vermelding van de app. Die vermelding mag overal in de opmerking staan, en alles wat u erachter schrijft, wordt als uw verzoek doorgegeven.
-
-### Op een pull request
-
-| Commando | Wat er gebeurt |
-| --- | --- |
-| `@oneuptime review` | Kloont de branch, leest de gewijzigde code **en de code eromheen**, en plaatst een review als opmerking. Verandert niets. |
-| `@oneuptime revise this — <wat u gewijzigd wilt hebben>` | Kloont de eigen branch van de pull request, voert de wijziging door en pusht nieuwe commits naar diezelfde branch. Opent nooit een tweede pull request. |
-
-Alles wat u na de vermelding schrijft en wat geen herkend commando is, wordt opgevat als een verzoek om een herziening — want dat is het vrijwel altijd:
+:::cards
+- [De opdrachten](#de-opdrachten): Wat je schrijft in een issue of een pull request.
+- [Hoe het eruitziet in de thread](#hoe-het-eruitziet-in-de-thread): Eén opmerking die het werk volgt.
+- [Reviews met productiecontext](#reviews-met-productiecontext): Wat productie zegt over de gewijzigde code.
+- [Wie hem opdrachten mag geven](#wie-hem-opdrachten-mag-geven): Mensen met schrijfrechten, en niemand anders.
+- [Problemen oplossen](#problemen-oplossen): Als een vermelding niets doet.
+:::
 
 ```text
-@oneuptime de retry-lus hier moet exponentiële backoff gebruiken, en de test
-moet het 429-geval afdekken
+@oneuptime implement this                          →  a pull request that closes the issue
+@oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
+@oneuptime review                                  →  a code review posted on this pull request
 ```
 
-### Op een issue
+> [!NOTE]
+> Vervang `@oneuptime` door de handle van je eigen app. Op OneUptime Cloud is dat `@oneuptime`. Op een zelf gehoste instantie is het de naam die je je GitHub App gaf, in kleine letters en met streepjes in plaats van spaties: een app met de naam "Acme AI" noem je als `@acme-ai`. Doen vermeldingen niets, controleer dit dan eerst.
 
-| Commando | Wat er gebeurt |
-| --- | --- |
-| `@oneuptime implement this` | Werkt de issue uit en opent een pull request die hem sluit. |
-| `@oneuptime <wat u verder ook schrijft>` | Hetzelfde, met uw woorden als extra sturing. |
+## Hoe het werkt
 
-U kunt een issue ook **zonder ook maar een opmerking te plaatsen** aan de app overdragen:
+```mermaid title="Van een vermelding tot een pull request"
+flowchart TB
+    M["Een vermelding, een label<br/>of een toewijzing"] --> W{"Heeft de auteur<br/>schrijfrechten?"}
+    W -->|"nee"| N["Een verwarde reactie,<br/>en verder niets"]
+    W -->|"ja"| K["Een ogen-reactie en<br/>één bevestiging"]
+    K --> R["Een Runner werkt het<br/>verzoek af in een kloon"]
+    R --> O["Dezelfde opmerking,<br/>herschreven met<br/>de uitkomst"]
+```
 
-- **Zet het triggerlabel erop.** Het triggerlabel van de repository — standaard `oneuptime` — aan een issue toevoegen start hetzelfde werk. Dit is de betrouwbaarste manier om vanuit de GitHub-UI werk uit te delen.
-- **Wijs de issue toe aan de bot-gebruiker van de app**, als uw repository dat toestaat. GitHub laat een app niet overal als toegewezen persoon toe — daarom bestaat het label; doet toewijzen niets, gebruik dan het label.
+Het is dezelfde agent en dezelfde Runner als in [Code](/docs/ai/ai-agent), met hetzelfde budget; alleen de trigger verschilt.
+
+## Voordat je begint
+
+- De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem in **Producten → Code**. Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration). Is de app al op het GitHub-account geïnstalleerd, klik daar dan op **Een bestaande installatie koppelen** in plaats van hem opnieuw te installeren.
+- De Runner die de repository in zijn instellingen in Code kiest, moet online zijn, of een globale Runner voor een repository die er geen kiest: dezelfde Runner die de taken in [Code](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen Runner ze heeft opgepakt.
+- De GitHub App heeft de machtiging **Issues** met **Read & write** nodig en moet zijn geabonneerd op de webhook-events onder [Waarop je je abonneert](#waarop-je-je-abonneert).
+
+## De opdrachten
+
+Elke opdracht begint met een vermelding van de app. De vermelding mag overal in de opmerking staan, en alles wat je erna schrijft, wordt doorgegeven als je verzoek. Een opmerking bewerken die de app al vermeldt, voert hem niet opnieuw uit: schrijf een nieuwe opmerking om je verzoek te wijzigen. Een bewerking die de vermelding toevoegt, is een nieuw verzoek.
+
+### In een pull request
+
+| Opdracht | Wat er gebeurt | Ook begrepen |
+| --- | --- | --- |
+| `@oneuptime review` | Kloont de branch, leest de gewijzigde code en de code eromheen, controleert wat productie erover zegt, en plaatst een review als opmerking. Verandert niets. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime revise this — <what you want changed>` | Kloont de eigen branch van de pull request, maakt de wijziging en pusht nieuwe commits naar die branch. Opent nooit een tweede pull request. | `revise`, `please revise`, `rework`, `redo` |
+
+Alles wat je na de vermelding schrijft en geen bekende opdracht is, wordt gelezen als een verzoek om herziening, omdat het dat bijna altijd is:
+
+```text
+@oneuptime the retry loop here should back off exponentially, and the test
+should cover the 429 case
+```
+
+### In een issue
+
+| Opdracht | Wat er gebeurt | Ook begrepen |
+| --- | --- | --- |
+| `@oneuptime implement this` | Werkt het issue af en opent een pull request die het sluit. | `implement`, `please implement`, `work on this`, `pick this up`, `take this` |
+| `@oneuptime <anything else>` | Hetzelfde, met jouw woorden als extra richting. | — |
+
+Je kunt de app ook een issue geven zonder opmerking:
+
+- **Voeg het triggerlabel toe.** Het triggerlabel van de repository, `oneuptime` tenzij je het hebt gewijzigd, aan een issue toevoegen start hetzelfde werk. Het is de betrouwbaarste manier om werk over te dragen vanuit de eigen pagina's van GitHub.
+- **Wijs het issue toe aan de botgebruiker van de app**, waar je repository dat toestaat. GitHub laat een app niet overal toegewezen worden, en daarom bestaat het label: doet toewijzen niets, gebruik dan het label.
 
 ### Overal
 
-| Commando | Wat er gebeurt |
-| --- | --- |
-| `@oneuptime help` | Somt de commando's op. Een kale vermelding zonder iets erachter doet hetzelfde. |
-| `@oneuptime status` | Vertelt waar hij in deze thread op dit moment aan werkt. |
-| `@oneuptime cancel` | Stopt de runs die hij in deze thread heeft lopen. Werk dat al gepusht is, blijft gepusht. |
+| Opdracht | Wat er gebeurt | Ook begrepen |
+| --- | --- | --- |
+| `@oneuptime help` | Toont de opdrachten. Een kale vermelding zonder iets erna doet hetzelfde. | `commands`, `usage`, `what can you do` |
+| `@oneuptime status` | Vertelt waaraan hij in deze thread werkt. | `progress` |
+| `@oneuptime cancel` | Stopt de runs die hij in deze thread heeft lopen. Werk dat al gepusht is, blijft gepusht. | `stop`, `abort` |
 
-`help`, `status` en `cancel` starten nooit een agent-run: ze kosten dus niets en vallen niet onder uw dagelijkse budget voor fixtaken.
+`help`, `status` en `cancel` starten nooit een agent-run, dus ze kosten niets.
 
 ## Hoe het eruitziet in de thread
 
-Eén commando levert **één opmerking** op, die de app bijwerkt naarmate het werk vordert — zo maakt een langlopende taak van een pull request nooit een statuslogboek.
+Eén opdracht levert **één opmerking** op, die de app bewerkt terwijl het werk vordert, zodat een lange taak een pull request nooit in een statuslog verandert.
 
-1. Hij reageert met 👀 op uw opmerking en plaatst een bevestiging die het OneUptime-project noemt waar de run bij hoort, met een link naar de live run.
-2. Als hij klaar is, wordt diezelfde opmerking herschreven met de uitkomst: de pull request die hij heeft geopend, de commits die hij heeft gepusht, of een eerlijke uitleg waarom hij niets heeft gedaan.
+1. Hij reageert met 👀 op je opmerking en plaatst een bevestiging die het OneUptime-project noemt waar de run bij hoort en linkt naar de live run.
+2. Als hij klaar is, herschrijft hij diezelfde opmerking met de uitkomst: de pull request die hij opende, de commits die hij pushte, of een duidelijke uitleg waarom hij niets deed.
 
-Vindt hij niets wat de moeite van het wijzigen waard is, dan zegt hij dat, in plaats van op goed geluk een pull request te openen. Dat is een normale uitkomst, geen mislukking — geef hem meer sturing en vraag het opnieuw.
+Vindt hij niets dat de moeite van veranderen waard is, dan zegt hij dat in plaats van een speculatieve pull request te openen. Dat is een normale uitkomst, geen fout: geef hem meer richting en vraag het opnieuw.
 
-## Wie hem mag aansturen
+## Reviews met productiecontext
 
-**Alleen mensen met write-, maintain- of admin-toegang tot de repository.** OneUptime vraagt GitHub elke keer rechtstreeks welke rechten de schrijver van de opmerking op die repository heeft; het vertrouwt niet op de "contributor"-badge die GitHub naast een opmerking toont, want die beschrijft eerdere activiteit en niet de huidige toegang.
+OneUptime heeft de telemetrie van de code die het beoordeelt, dus een review kan zeggen wat geen reviewer die de diff leest kan zeggen. Voor de services die bij de repository horen, controleert het:
 
-Een vermelding van iemand anders krijgt één 😕-reactie op de opmerking en verder niets. Dat is met opzet: op een openbare repository kan iedereen een opmerking plaatsen, en een app die betrouwbaar antwoordt aan onbekenden is een app waarmee een thread kan worden gespamd.
+- de uitzonderingen die in de afgelopen 7 dagen in de gewijzigde bestanden en functies zijn gegooid;
+- hoe druk en hoe traag de endpoints en operaties zijn die de diff raakt;
+- de incidenten die aan de gewijzigde bestanden zijn gekoppeld;
+- de recente deploys van de services die OneUptime als regressie heeft gemarkeerd.
 
-Hij negeert ook elke opmerking die door een bot is geschreven, inclusief die van hemzelf, en negeert vermeldingen die in een citaat (`>`) of in een codeblok staan. Samen zorgen die twee regels ervoor dat een antwoord op een van zijn eigen opmerkingen hem niet opnieuw aan het werk zet.
+Wat het vindt, komt in de review onder een kop **Production context**, elk punt met de cijfers en het tijdvenster waar het vandaan komt, bijvoorbeeld: "`chargeCard` gooide in de afgelopen 7 dagen 1.240 keer `TypeError: Cannot read properties of undefined`; deze wijziging voegt de null-controle toe die dat stopt." Als productie niets laat zien wat de diff raakt, laat de review de kop weg in plaats van te zeggen dat alles in orde is.
+
+Er hoeft niets te worden ingesteld: de services zijn die waarvoor OneUptime deze repository vindt, net als bij een herstel (zie [Productietelemetrie in een herstel](/docs/ai/ai-agent#productietelemetrie-in-een-herstel)). De query's lezen alleen, draaien op de OneUptime-server en lezen niets van een andere service, een ander project of een privé-incident. Een repository waarvan de services geen telemetrie naar het project sturen, wordt alleen op basis van de code beoordeeld.
+
+## Wie hem opdrachten mag geven
+
+**Alleen mensen met write-, maintain- of admin-toegang tot de repository.** OneUptime vraagt GitHub elke keer naar de machtiging van de schrijver van de opmerking op die repository; het vertrouwt de badge "contributor" niet die GitHub naast een opmerking toont, want die beschrijft eerdere activiteit, niet de huidige toegang.
+
+Een vermelding van iemand anders krijgt één 😕-reactie en verder niets. Dat is bewust: in een openbare repository kan iedereen reageren, en een app die altijd antwoordt aan vreemden, kan worden gebruikt om een thread vol te spammen.
+
+Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en vermeldingen binnen een citaat (`>`) of een codeblok. Samen voorkomen die twee regels dat een antwoord op een van zijn eigen opmerkingen hem opnieuw start.
 
 ## Wat hij niet doet
 
-- **Hij merget nooit.** Niets wat deze app doet kan code op uw standaardbranch zetten.
-- **Hij keurt nooit goed en vraagt nooit om wijzigingen.** Reviews worden als opmerking geplaatst, zodat een review van een app nooit aan een branch protection rule kan voldoen.
-- **Hij herschrijft nooit de geschiedenis.** Een herziening voegt commits toe; force-pushen doet hij niet. Heeft iemand anders eerder naar de branch gepusht, dan mislukt de herziening in plaats van dat werk weg te gooien.
-- **Hij kan geen pull request vanuit een fork herzien.** De branch van een fork zit in een repository waar de installatie niet naartoe kan schrijven. Beoordelen kan hij hem wel — vraag dan om een review.
-- **Hij wijzigt nooit de titel, beschrijving of doelbranch van een pull request.** Alleen code.
+- **Hij merget nooit.** Niets wat deze app doet, kan code op je standaardbranch zetten.
+- **Hij keurt nooit goed en vraagt nooit om wijzigingen.** Reviews worden als opmerkingen geplaatst, zodat een review van de app nooit aan een branchbeveiligingsregel kan voldoen.
+- **Hij herschrijft nooit de geschiedenis.** Een herziening voegt commits toe; hij doet nooit een force-push. Pushte iemand anders eerst naar de branch, dan mislukt de herziening in plaats van diens werk weg te gooien.
+- **Hij kan geen pull request uit een fork herzien.** De branch van een fork staat in een repository waar de installatie niet naar kan schrijven. Beoordelen kan hij hem nog wel: vraag in plaats daarvan om een review.
+- **Hij verandert nooit de titel, beschrijving of doelbranch van een pull request.** Alleen code.
 
-## Wat het kost, en hoe u dat begrenst
+## Wat het kost en hoe je het begrenst
 
-Elk commando dat werk start, is een volledige agent-run — een clone, maximaal 40 LLM-aanroepen en 100.000 outputtokens, plus de build- en testcommando's van uw repository als u die hebt geconfigureerd.
+Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
 
-Er gelden twee limieten, en het zijn allebei dezelfde die al voor [AI Fix Tasks](/docs/ai/ai-agent) gelden:
+GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 
-- **De dagelijkse limiet op fixruns van het project** (**Projectinstellingen → AI**, standaard 25 per dag). GitHub-commando's delen dit budget met de overige fixruns van uw project.
-- **Het maximum aan open pull requests per repository** (**Code-opslagplaatsen → de repository → Instellingen**, standaard 5). Reviews en herzieningen vallen daarbuiten: geen van beide voegt een nieuwe pull request toe aan uw reviewwachtrij.
+- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
-Per issue of pull request loopt er maar één run van een bepaald soort tegelijk. Vraagt u het twee keer, dan krijgt u te horen dat hij er al mee bezig is; vraagt u om een review terwijl er een herziening loopt, dan starten er twee, want dat zijn verschillende verzoeken.
+Per issue of pull request is er steeds maar één run van een soort actief. Twee keer vragen vertelt je dat hij er al mee bezig is; om een review vragen terwijl een herziening loopt, start ze allebei, omdat het verschillende verzoeken zijn.
 
-Kan een run niet starten, dan zegt de app in de thread waarom — hij mislukt nooit in stilte.
+Als een run niet kan starten, zegt de app in de thread waarom: hij mislukt nooit stilletjes.
 
-## Hem uitzetten
+## Uitzetten
 
-Per repository: **Code-opslagplaatsen → de repository → Instellingen → Reageren op GitHub-commando's**. Staat dat uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
+Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
 
-Op dezelfde pagina staat het **GitHub-triggerlabel**, als u iets anders wilt dan `oneuptime`.
+Dezelfde pagina bevat het **GitHub Trigger Label**, als je een ander label dan `oneuptime` wilt.
 
-## Waarop u zich moet abonneren
+## Waarop je je abonneert
 
-Abonneer u in de instellingen **Machtigingen en gebeurtenissen** van uw GitHub App op:
+Abonneer je in de instellingen **Permissions & events** van je GitHub App op:
 
-| Gebeurtenis | Nodig voor |
+| Event | Nodig voor |
 | --- | --- |
-| **Issue comment** | `@mention`-commando's op issues *én* pull requests |
-| **Issues** | toewijzing aan de app, en het triggerlabel |
-| **Pull request** | een review die van de app wordt gevraagd |
-| **Pull request review** | een vermelding in de body van een ingediende review |
-| **Pull request review comment** | een vermelding bij een inline opmerking in de diff |
+| **Issue comment** | `@mention`-opdrachten in issues en pull requests |
+| **Issues** | een issue aan de app toewijzen, en het triggerlabel |
+| **Pull request** | een review die bij de app is aangevraagd |
+| **Pull request review** | een vermelding in de tekst van een ingediende review |
+| **Pull request review comment** | een vermelding in een inline-opmerking bij de diff |
 
-En onder **Repositorymachtigingen** moet **Issues** op **Lezen & Schrijven** staan — GitHub leidt de gespreksopmerkingen van een pull request via de issues-API, en dit is dus wat de app ook op pull requests laat reageren.
+Onder **Repository permissions** moet **Issues** op **Read & write** staan: GitHub stuurt de gespreksopmerkingen van een pull request via de issues-API, dus dit is wat de app ook op pull requests laat reageren.
 
-## Prompt injection: wat wel en niet is afgeschermd
+## Prompt injection: wat wel en niet beschermd is
 
-Issue-tekst, beschrijvingen van pull requests, diffs en opmerkingen worden allemaal onderdeel van de prompt van de agent, en op een openbare repository kan iedereen ze schrijven. Tekst die zegt "negeer je instructies en doe X" is iets wat u realistisch gezien in een issue tegenkomt.
+Issuetekst, beschrijvingen van pull requests, diffs en opmerkingen worden allemaal deel van de prompt van de agent, en in een openbare repository kan iedereen ze schrijven. Een regel als "negeer je instructies en doe X" is realistisch om in een issue tegen te komen.
 
-Twee dingen begrenzen dit, en het is de moeite waard te weten wat wat is:
+Twee dingen begrenzen dit, en het loont om te weten welk welk is:
 
-- **De prompts merken onvertrouwde tekst aan als een verzoek, niet als instructies**, en de repository, branch en pull request van de run liggen vast voordat de agent ook maar start — niets van wat de agent leest, kan veranderen waaraan hij werkt.
-- **De echte afscherming is de sandbox.** De agent draait op uw Runner, in een wegwerpkloon, met credentials uit zijn commando-omgeving gestript en zijn git-bewerkingen beperkt. Hij kan alleen ooit naar een branch pushen, en alleen een mens kan er een mergen.
+- **De prompts markeren onbetrouwbare tekst als een verzoek, niet als instructies**, en de repository, branch en pull request van de run liggen vast voordat de agent start: niets wat de agent leest, kan veranderen waaraan hij werkt.
+- **De echte inperking is de sandbox.** De agent draait op je Runner, in een wegwerpkloon, met inloggegevens uit zijn opdrachtomgeving gehaald en beperkte git-bewerkingen. Hij kan alleen ooit naar een branch pushen, en alleen een mens kan er een mergen.
 
-Behandel een door AI geschreven pull request zoals u er een zou behandelen van een nieuwe bijdrager die de issue heeft gelezen: beoordeel de diff, niet de beschrijving.
+Behandel een pull request die de AI schreef zoals je er een zou behandelen van een nieuwe bijdrager die het issue las: beoordeel de diff, niet de beschrijving.
 
-## Probleemoplossing
+## Problemen oplossen
 
-**Er gebeurt niets als ik hem vermeld.** Controleer eerst de handle — dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Projectinstellingen → Code-opslagplaatsen**), of **Reageren op GitHub-commando's** aanstaat, en of uw GitHub App geabonneerd is op de bovenstaande gebeurtenissen.
+:::details Er gebeurt niets als ik hem noem
+Controleer eerst de handle: dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (in **Producten → Code**), of **Respond to GitHub Commands** aan staat en of je GitHub App op de events hierboven is geabonneerd.
+:::
 
-**Hij reageert met 😕 en zegt niets.** U hebt geen schrijftoegang tot de repository.
+:::details Hij reageert met 😕 en zegt niets
+Je hebt geen schrijfrechten op de repository.
+:::
 
-**Hij zegt dat hij hier al mee bezig is.** Er loopt al een run van dat soort op deze issue of pull request. `@oneuptime status` vertelt u welke, en `@oneuptime cancel` stopt hem.
+:::details Hij zegt dat hij er al mee bezig is
+Er is al een run van die soort actief op dit issue of deze pull request. `@oneuptime status` vertelt wat het is, en `@oneuptime cancel` stopt hem.
+:::
 
-**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Instellingen → Runners** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
+:::details Hij bevestigde en bleef daarna lang stil
+Controleer of de Runner die de repository kiest online is onder **Runbooks → Runbook-agenten**. Een repository die er geen kiest, werkt op een globale Runner, en zijn instellingen in Code laten zien of er een verbonden is. Zonder Runner die online is, mislukt de run na 30 minuten en krijgt de thread dat te horen.
+:::
 
-**Hij zegt dat de pull request uit een fork komt.** Herzieningen hebben een branch in deze repository nodig. Vraag in plaats daarvan om een review, of push de branch hierheen.
+:::details Hij zegt dat de pull request uit een fork komt
+Een herziening heeft een branch in deze repository nodig. Vraag in plaats daarvan om een review, of push de branch hierheen.
+:::
 
-## Waar verder lezen
+## Volgende stappen
 
-- [AI Fix Tasks](/docs/ai/ai-agent) — dezelfde agent, gestart vanuit een exception in plaats van vanuit GitHub.
-- [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) — de GitHub App aanmaken en configureren.
-- [Runners](/docs/runbooks/agents) — de worker die de runs uitvoert.
+:::cards
+- [Code](/docs/ai/ai-agent): Dezelfde agent, gevraagd in een repository of gestart vanuit een uitzondering, een trace of een onderzoek.
+- [GitHub-integratie](/docs/self-hosted/github-integration): Maak en configureer de GitHub App op een zelf gehoste instantie.
+- [Runbook-agenten](/docs/runbooks/agents): De worker die elke run uitvoert.
+:::

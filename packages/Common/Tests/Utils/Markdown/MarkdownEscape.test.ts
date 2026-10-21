@@ -1,6 +1,12 @@
+import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import escapeMarkdownInlineDefault, {
+  WORD_JOINER,
   escapeMarkdownInline,
+  escapeMarkdownValue,
+  neutralizeChatControlSequences,
+  neutralizeChatLinkSequences,
 } from "../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeChatControlSequences as neutralizeChatControlSequencesFromUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -357,5 +363,287 @@ describe("escapeMarkdownInline - idempotence (deliberately NOT idempotent)", () 
 describe("MarkdownEscape module shape", () => {
   test("the default export is the named export", () => {
     expect(escapeMarkdownInlineDefault).toBe(escapeMarkdownInline);
+  });
+});
+
+/*
+ * escapeMarkdownValue is for a value put into Markdown that a person reads
+ * and edits before posting it (a note template's {{placeholders}}). It
+ * escapes only what can turn a value into a link, an image or HTML, so the
+ * rest reads as typed even in the composer's visual mode, which shows a
+ * backslash escape as written.
+ */
+describe("escapeMarkdownValue", () => {
+  test("empty input becomes an empty string", () => {
+    expect(escapeMarkdownValue(null)).toBe("");
+    expect(escapeMarkdownValue(undefined)).toBe("");
+    expect(escapeMarkdownValue("")).toBe("");
+  });
+
+  test("everyday punctuation is left as typed", () => {
+    const untouched: string =
+      "Site 03 - payments (EU) #42 + 50% off! **really** _now_ `code` a|b ~x~ C:/ok";
+
+    expect(escapeMarkdownValue(untouched)).toBe(untouched);
+  });
+
+  test.each(["[", "]", "<", "\\"])(
+    "prefixes %s with a backslash",
+    (character: string) => {
+      expect(escapeMarkdownValue(character)).toBe(`\\${character}`);
+    },
+  );
+
+  test("a value cannot become a link", () => {
+    expect(
+      escapeMarkdownValue("[Reset your password](https://evil.example)"),
+    ).toBe("\\[Reset your password\\](https://evil.example)");
+  });
+
+  test("a value cannot become an image", () => {
+    expect(escapeMarkdownValue("![](https://tracker.example/p.png)")).toBe(
+      "!\\[\\](https://tracker.example/p.png)",
+    );
+  });
+
+  test("a value cannot become HTML or an autolink", () => {
+    expect(escapeMarkdownValue("<img src=x onerror=alert(1)>")).toBe(
+      "\\<img src=x onerror=alert(1)>",
+    );
+    expect(escapeMarkdownValue("<https://evil.example>")).toBe(
+      "\\<https://evil.example>",
+    );
+  });
+
+  test("a backslash in the value cannot undo the escape after it", () => {
+    /*
+     * Left alone, the value's backslash would pair with the one added before
+     * the bracket: a literal backslash, then a live bracket.
+     */
+    expect(escapeMarkdownValue("\\[x](https://evil.example)")).toBe(
+      "\\\\\\[x\\](https://evil.example)",
+    );
+  });
+
+  test("line breaks become spaces by default", () => {
+    expect(escapeMarkdownValue("one\ntwo\r\nthree\rfour")).toBe(
+      "one two three four",
+    );
+  });
+
+  test("line breaks are kept when asked, normalized to \\n", () => {
+    expect(
+      escapeMarkdownValue("one\r\ntwo\n[three]", { keepLineBreaks: true }),
+    ).toBe("one\ntwo\n\\[three\\]");
+  });
+
+  test("rendering the escapes gives back exactly what was typed", () => {
+    for (const name of HOSTILE_NAMES) {
+      expect(renderEscapes(escapeMarkdownValue(name))).toBe(
+        name.replace(/\r\n|\r|\n/g, " "),
+      );
+    }
+  });
+
+  test("no bracket, angle bracket or backslash is left unescaped", () => {
+    for (const name of HOSTILE_NAMES) {
+      expect(escapeMarkdownValue(name).replace(/\\[\\[\]<]/g, "")).not.toMatch(
+        /[\\[\]<]/,
+      );
+    }
+  });
+});
+
+/*
+ * Both escapers also break chat control sequences. A feed item's Markdown is
+ * posted to Slack, and slackify keeps "<!channel>" and "<@U123>" as they are -
+ * that is how a Slack mention is written - after the Markdown parser has
+ * already consumed the backslash escapes. So a title holding one would page
+ * a channel. With an invisible word joiner after the "<", Slack shows the
+ * characters, and the text still reads as typed.
+ */
+const CHAT_CONTROL_SEQUENCES: Array<string> = [
+  "<!channel>",
+  "<!here>",
+  "<!everyone>",
+  "<!subteam^S0123ABC>",
+  "<!subteam^S0123ABC|@sre>",
+  "<!date^1392734382^{date_short}|Feb 18, 2014>",
+  "<@U0123ABC>",
+  "<@W0123ABC|jane>",
+  "<#C0123ABC>",
+  "<#C0123ABC|general>",
+];
+
+// Characters an HTML or PowerShell paste holds that no chat tool acts on.
+const NOT_CHAT_CONTROL_SEQUENCES: Array<string> = [
+  "<!DOCTYPE html>",
+  "<!-- upstream 502 -->",
+  "<![CDATA[a < b]]>",
+  "<# PowerShell block comment #>",
+  "<https://status.example.com>",
+  "a < b",
+];
+
+type EscapeFunction = (value: string) => string;
+
+const ESCAPERS: Array<[string, EscapeFunction]> = [
+  [
+    "escapeMarkdownValue",
+    (value: string): string => {
+      return escapeMarkdownValue(value);
+    },
+  ],
+  [
+    "escapeMarkdownInline",
+    (value: string): string => {
+      return escapeMarkdownInline(value);
+    },
+  ],
+];
+
+function withoutWordJoiners(text: string): string {
+  return text.split(WORD_JOINER).join("");
+}
+
+function slackTextOf(markdown: string): string {
+  return JSON.stringify(
+    SlackUtil.getMarkdownBlocks({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: markdown,
+      },
+    }),
+  );
+}
+
+const SLACK_CONTROL_SEQUENCE_PATTERN: RegExp = /<(?:![a-z]|@[A-Z0-9]|#C)/;
+
+// Every ASCII punctuation character: what a CommonMark backslash escapes.
+const ASCII_PUNCTUATION: RegExp = /[!-/:-@[-`{-~]/g;
+
+describe("both escapers break chat control sequences", () => {
+  test("the word joiner is U+2060, and both modules share one neutralizer", () => {
+    expect(WORD_JOINER).toBe("⁠");
+    expect(neutralizeChatControlSequencesFromUntrustedMarkdown).toBe(
+      neutralizeChatControlSequences,
+    );
+  });
+
+  describe.each(ESCAPERS)("%s", (_name: string, escape: EscapeFunction) => {
+    test.each(CHAT_CONTROL_SEQUENCES)(
+      "breaks %j with a word joiner, and it renders back as typed",
+      (sequence: string) => {
+        const typed: string = `Checkout is down ${sequence} now`;
+        const escaped: string = escape(typed);
+
+        expect(escaped).toContain(`<${WORD_JOINER}`);
+        expect(renderEscapes(withoutWordJoiners(escaped))).toBe(typed);
+      },
+    );
+
+    test.each(NOT_CHAT_CONTROL_SEQUENCES)(
+      "adds no word joiner to %j",
+      (text: string) => {
+        const escaped: string = escape(text);
+
+        expect(escaped).not.toContain(WORD_JOINER);
+        expect(renderEscapes(escaped)).toBe(text);
+      },
+    );
+
+    test("breaks every sequence in the value, not just the first", () => {
+      const escaped: string = escape("<!here> and <@U1> and <#C1>");
+
+      expect(escaped.split(`<${WORD_JOINER}`)).toHaveLength(4);
+    });
+
+    test("a second pass does not add a second word joiner", () => {
+      const twice: string = escape(escape("<!channel>"));
+
+      expect(twice.split(WORD_JOINER)).toHaveLength(2);
+    });
+
+    test("Slack reads no mention in the escaped value once slackify has converted it", () => {
+      const value: string = CHAT_CONTROL_SEQUENCES.join(" ");
+
+      // The value as typed really does carry live sequences.
+      expect(slackTextOf(value)).toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+
+      /*
+       * A backslash escape alone does not stop them, not even one before
+       * every punctuation character, backslashes included: slackify reads
+       * the Markdown first, which consumes the backslashes.
+       */
+      const backslashEscaped: string = value.replace(ASCII_PUNCTUATION, "\\$&");
+
+      expect(backslashEscaped).toContain("\\<\\!channel\\>");
+      expect(slackTextOf(backslashEscaped)).toMatch(
+        SLACK_CONTROL_SEQUENCE_PATTERN,
+      );
+
+      const slack: string = slackTextOf(`**Title:** ${escape(value)}`);
+
+      expect(slack).not.toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+      expect(slack).toContain("&lt;");
+    });
+  });
+
+  test("escapeMarkdownValue still leaves everyday punctuation as typed", () => {
+    expect(escapeMarkdownValue("Site 03 - payments (EU) #42 @jane !now")).toBe(
+      "Site 03 - payments (EU) #42 @jane !now",
+    );
+  });
+});
+
+// Slack's link syntax: "<" and an address of any scheme, then "|" and words.
+const SLACK_LINK_PATTERN: RegExp = /<[A-Za-z][A-Za-z0-9+.-]*:[^>|]*\|/;
+
+/*
+ * Slack reads "<address|words>" as a link labelled with the words - for an
+ * address of any scheme it links, not only a web one - and its Markdown
+ * conversion passes code through as it is. In code, where nothing else is
+ * escaped, only a "<" that starts such an address is broken.
+ */
+describe("neutralizeChatLinkSequences", () => {
+  test.each([
+    "<https://evil.example/login|Open the runbook>",
+    "<http://evil.example/login|Open the runbook>",
+    "<mailto:billing@evil.example|Write to billing>",
+  ])(
+    "breaks the address in %j, and it reads as written",
+    (sequence: string) => {
+      const typed: string = `See ${sequence} now`;
+      const neutralized: string = neutralizeChatLinkSequences(typed);
+
+      // In code, as typed, Slack really does get the link.
+      expect(slackTextOf(`\`${typed}\``)).toMatch(SLACK_LINK_PATTERN);
+
+      expect(neutralized).toContain(`<${WORD_JOINER}`);
+      expect(withoutWordJoiners(neutralized)).toBe(typed);
+      expect(slackTextOf(`\`${neutralized}\``)).not.toMatch(SLACK_LINK_PATTERN);
+      expect(slackTextOf(`\`\`\`\n${neutralized}\n\`\`\``)).not.toMatch(
+        SLACK_LINK_PATTERN,
+      );
+    },
+  );
+
+  test.each([
+    "kubectl apply -f - <<EOF",
+    "sort <ids.txt | uniq",
+    "if (a < b) { return; }",
+    "const seen: Map<string, number> = new Map();",
+  ])("leaves %j as it is: no address starts there", (code: string) => {
+    expect(neutralizeChatLinkSequences(code)).toBe(code);
+  });
+
+  test("is idempotent, and gives nothing for nothing", () => {
+    const once: string = neutralizeChatLinkSequences(
+      "<https://evil.example|a> <mailto:x@evil.example|b>",
+    );
+
+    expect(neutralizeChatLinkSequences(once)).toBe(once);
+    expect(neutralizeChatLinkSequences(undefined)).toBe("");
+    expect(neutralizeChatLinkSequences(null)).toBe("");
   });
 });

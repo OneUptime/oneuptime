@@ -12,6 +12,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubGenericReferenceCheck();
+});
 
 /*
  * The /probe-ingest/probe/discovery-scan/list route hands the requesting
@@ -159,6 +172,8 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
           "findBy",
         )
         .mockImplementation(findBy as never);
+      stubProjectDirectory({});
+      stubGenericReferenceCheck();
     });
 
     afterEach(() => {

@@ -24,7 +24,8 @@ export const UNKNOWN_SERVICE_NAME: string = "Unknown Service";
  * OpenTelemetry service, or the synthetic "Unknown Service" for the
  * unattributed bucket) — or a plain `label` for infrastructure resource
  * types (Host / DockerHost / KubernetesCluster / ProxmoxCluster /
- * CephCluster / VMwareVCenter / DatabaseServer) that have no Service row.
+ * CephCluster / StorageArray / VMwareVCenter / DatabaseServer) that have no
+ * Service row.
  */
 export interface ResolvedTelemetryResource {
   service?: Service;
@@ -67,9 +68,10 @@ export default class TelemetryServiceUtil {
    * old server-side `service` ORM relation on TelemetryException: a real
    * Service resolves from the loaded list, the unattributed bucket resolves
    * to the synthetic "Unknown Service", and Host / DockerHost /
-   * KubernetesCluster / ProxmoxCluster / CephCluster / VMwareVCenter /
-   * DatabaseServer resolve to a type label (no Service row exists for them). Mirrors how the ClickHouse
-   * analytics rows are resolved.
+   * KubernetesCluster / ProxmoxCluster / CephCluster / StorageArray /
+   * VMwareVCenter / DatabaseServer resolve to a type label (no Service row
+   * exists for them). Mirrors how the ClickHouse analytics rows are
+   * resolved.
    */
   public static resolveTelemetryResource(data: {
     primaryEntityId: ObjectID | string | null | undefined;
@@ -106,6 +108,7 @@ export default class TelemetryServiceUtil {
       [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
       [ServiceType.ProxmoxCluster]: "Proxmox Cluster",
       [ServiceType.CephCluster]: "Ceph Cluster",
+      [ServiceType.StorageArray]: "Storage Array",
       [ServiceType.VMwareVCenter]: "vCenter",
       [ServiceType.DatabaseServer]: "Database telemetry",
     };

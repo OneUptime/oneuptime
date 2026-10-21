@@ -4,10 +4,13 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -22,8 +25,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -48,10 +54,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Notification Logs",
           description:
-            "Here are all the notification logs. This will help you to debug any notification issues that you may face.",
+            "Each time you were paged in this project, by an on-call policy or directly. Open one to see every notification sent and whether it was delivered.",
         }}
         selectMoreFields={{
           statusMessage: true,
+          // Read with every row: a row with none is a direct page.
+          onCallDutyPolicyId: true,
         }}
         noItemsMessage={"No notifications sent out so far."}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -61,6 +69,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         actionButtons={[
           {
             title: "View Status Message",
+            icon: IconProp.Error,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: UserOnCallLog,
@@ -151,7 +160,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   />
                 );
               }
-              return <p>No on-call policy.</p>;
+
+              // Paged with no on-call policy behind the page: a workflow's Page step.
+              if (isOnCallDirectPage(item)) {
+                return <DirectPageLabel />;
+              }
+
+              return <p>{translator.translateText("No on-call policy.")}</p>;
             },
           },
           {
@@ -175,7 +190,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   />
                 );
               }
-              return <p>No escalation rule.</p>;
+              // A direct page has no rules to name.
+              if (isOnCallDirectPage(item)) {
+                return <p>-</p>;
+              }
+
+              return <p>{translator.translateText("No escalation rule.")}</p>;
             },
           },
           {
@@ -228,6 +248,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Pill
                     color={Yellow}
                     text={UserNotificationExecutionStatus.Executing}
+                  />
+                );
+              } else if (
+                // You could not take it, and passed it on.
+                item["status"] === UserNotificationExecutionStatus.PassedOn
+              ) {
+                return (
+                  <Pill
+                    color={Yellow}
+                    text={UserNotificationExecutionStatus.PassedOn}
                   />
                 );
               }

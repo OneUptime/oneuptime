@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The OneUptime Health screens that ship in the enterprise Admin Dashboard
@@ -84,10 +85,7 @@ describe("the Health plugin object", () => {
     (entry: { key: string; module: string }) => {
       expect(pluginsSource).toMatch(
         new RegExp(
-          `${entry.key}: React\\.lazy\\(\\(\\) => \\{\\s*return import\\("${entry.module.replace(
-            /[.*+?^${}()|[\]\\/]/g,
-            "\\$&",
-          )}"\\);`,
+          `${entry.key}: React\\.lazy\\(\\(\\) => \\{\\s*return import\\("${escapeRegExp(entry.module)}"\\);`,
         ),
       );
       expect(

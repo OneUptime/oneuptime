@@ -56,6 +56,14 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
   protected abstract readonly noActionMessage: string;
 
   /*
+   * Whether the code agent may query the repository's production telemetry
+   * while it works (CodeAgentTask.productionTelemetry). FixPerformance and
+   * FixFromIncident do; the server offers the tools to the fixes of an
+   * exception, a slow trace and an incident only.
+   */
+  protected readonly usesProductionTelemetry: boolean = false;
+
+  /*
    * Failure message when the server resolved no repository AND sent no
    * resolutionError guidance of its own.
    */
@@ -239,8 +247,16 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       `Getting access token for ${repo.organizationName}/${repo.repositoryName}...`,
     );
 
+    /*
+     * The run's id goes with the token request, so the server links the
+     * run to the repository it found (the task then shows on that
+     * repository's page in Code) - the open pull request cap still applies.
+     */
     const tokenData: RepositoryToken =
-      await context.backendAPI.getRepositoryToken(repo.id);
+      await context.backendAPI.getRepositoryToken(
+        repo.id,
+        context.taskId.toString(),
+      );
 
     // Clone the repository
     await this.log(
@@ -313,6 +329,10 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
 
     if (repo.servicePathInRepository) {
       codeAgentTask.servicePath = repo.servicePathInRepository;
+    }
+
+    if (this.usesProductionTelemetry) {
+      codeAgentTask.productionTelemetry = true;
     }
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
@@ -417,7 +437,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
     await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
 
     // Record the PR in the backend
-    await context.backendAPI.recordPullRequest({
+    await this.recordOpenedPullRequest(context, {
       taskId: context.taskId.toString(),
       codeRepositoryId: repo.id,
       pullRequestUrl: prResult.htmlUrl,

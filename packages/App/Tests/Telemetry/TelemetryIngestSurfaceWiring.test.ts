@@ -68,6 +68,11 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "Fluent",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/HostCollectorOpAmp.ts`,
+    routePath: "/opamp/v1",
+    surfaceMember: "HostCollectorManagement",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/KubernetesCostIngest.ts`,
     routePath: "/kubernetes-cost/ingest",
     surfaceMember: "KubernetesCost",
@@ -126,6 +131,11 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     file: `${TELEMETRY_API_DIRECTORY}/Syslog.ts`,
     routePath: "/syslog/v1/logs",
     surfaceMember: "Syslog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/VercelLogDrain.ts`,
+    routePath: "/vercel/v1/logs",
+    surfaceMember: "VercelLogDrain",
   },
 ];
 

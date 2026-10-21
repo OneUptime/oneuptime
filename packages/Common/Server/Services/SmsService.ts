@@ -7,11 +7,14 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "../../Types/CallAndSMS/TwilioConfigJSON";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import SMS from "../../Types/SMS/SMS";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class SmsService extends BaseService {
   public constructor() {
@@ -41,23 +44,38 @@ export class SmsService extends BaseService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Answer with an error, not success, when the Notification service
+       * deliberately does not send the SMS: the project has SMS notifications
+       * turned off, or too little SMS balance. The status page subscriber
+       * sends that count what they delivered pass it
+       * (SubscriberNotificationDeliveryRecord), so such an SMS counts as
+       * failed rather than sent.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "SMS",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       to: sms.to.toString(),
       message: sms.message,
       projectId: options.projectId?.toString(),
       isSensitive: options.isSensitive,
       userOnCallLogTimelineId: options.userOnCallLogTimelineId?.toString(),
+      // Its numbers as arrays, which the Notification service reads back.
       customTwilioConfig: options.customTwilioConfig
-        ? {
-            accountSid: options.customTwilioConfig.accountSid!,
-            authToken: options.customTwilioConfig.authToken!,
-            primaryPhoneNumber:
-              options.customTwilioConfig.primaryPhoneNumber.toString(),
-            secondaryPhoneNumbers:
-              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
-          }
+        ? TwilioConfigJSON.toJSON(options.customTwilioConfig)
         : undefined,
       incidentId: options.incidentId?.toString(),
       alertId: options.alertId?.toString(),
@@ -74,6 +92,7 @@ export class SmsService extends BaseService {
         options.onCallDutyPolicyExecutionLogTimelineId?.toString(),
       onCallScheduleId: options.onCallScheduleId?.toString(),
       teamId: options.teamId?.toString(),
+      ...(options.failIfNotSent ? { failIfNotSent: true } : {}),
     };
 
     return await API.post<EmptyResponseData>({
@@ -85,6 +104,9 @@ export class SmsService extends BaseService {
       data: body,
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        sameServerRedirectsOnly: true,
       },
     });
   }

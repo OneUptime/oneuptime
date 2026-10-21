@@ -25,6 +25,7 @@ import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -57,6 +58,7 @@ const KubernetesClusterEvents: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -347,11 +349,22 @@ const KubernetesClusterEvents: FunctionComponent<
     return data;
   }, [events, filterData, sortBy, sortOrder]);
 
+  /*
+   * A refresh can shrink the data set (events age out of the 24-hour
+   * window), so clamp instead of trusting currentPage — otherwise the
+   * user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
   // Paginate
   const paginatedData: Array<KubernetesEventRow> = useMemo(() => {
-    const start: number = (currentPage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, currentPage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -437,11 +450,15 @@ const KubernetesClusterEvents: FunctionComponent<
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -450,7 +467,6 @@ const KubernetesClusterEvents: FunctionComponent<
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         setShowFilterModal(true);
       },
@@ -462,7 +478,8 @@ const KubernetesClusterEvents: FunctionComponent<
     <Card
       title="Kubernetes Events"
       description="Events from the last 24 hours in this cluster."
-      buttons={cardButtons}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<KubernetesEventRow>
         id="kubernetes-events-table"
@@ -472,11 +489,14 @@ const KubernetesClusterEvents: FunctionComponent<
         pluralLabel="Kubernetes Events"
         isLoading={false}
         error=""
-        currentPageNumber={currentPage}
+        currentPageNumber={effectivePage}
         totalItemsCount={processedData.length}
-        itemsOnPage={paginatedData.length}
-        onNavigateToPage={(page: number) => {
+        itemsOnPage={pageSize}
+        onNavigateToPage={(page: number, itemsOnPage: number) => {
           setCurrentPage(page);
+          if (itemsOnPage > 0) {
+            setPageSize(itemsOnPage);
+          }
         }}
         sortBy={sortBy as keyof KubernetesEventRow | null}
         sortOrder={sortOrder}

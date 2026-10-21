@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -12,7 +15,18 @@ const DashboardView: FunctionComponent<
   return (
     <Fragment>
       {/* Dashboard View  */}
-      <DashboardViewer dashboardId={modelId} />
+      <DashboardViewer
+        dashboardId={modelId}
+        // ⋯ -> Share: who can view the dashboard, and its public link.
+        onShareClick={() => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS] as Route,
+              { modelId },
+            ),
+          );
+        }}
+      />
     </Fragment>
   );
 };

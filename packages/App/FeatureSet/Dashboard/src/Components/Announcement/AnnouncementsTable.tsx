@@ -23,7 +23,6 @@ import React, {
 } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -31,18 +30,55 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getAnnouncementCreateQueryParams } from "./AnnouncementForm";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<StatusPageAnnouncement> | undefined;
-  initialValues?: FormValues<StatusPageAnnouncement> | undefined;
+  /*
+   * The status page whose Announcements tab this is. Create (and Create
+   * from Template) open the create page with that page already picked, and
+   * the create page comes back here afterwards.
+   */
+  statusPageId?: ObjectID | undefined;
   title?: string;
   description?: string;
   disableCreate?: boolean | undefined;
 }
 
+/*
+ * The create page's address: the dedicated create page, with the status
+ * page this table belongs to and the template picked, when there are any.
+ */
+const getAnnouncementCreateRoute: (data: {
+  statusPageId?: ObjectID | undefined;
+  announcementTemplateId?: ObjectID | undefined;
+}) => Route = (data: {
+  statusPageId?: ObjectID | undefined;
+  announcementTemplateId?: ObjectID | undefined;
+}): Route => {
+  const route: Route = new Route(
+    (RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route).toString(),
+  );
+
+  const query: Record<string, string> = getAnnouncementCreateQueryParams({
+    statusPageId: data.statusPageId,
+    announcementTemplateId: data.announcementTemplateId,
+  });
+
+  return RouteUtil.populateRouteParams(
+    Object.keys(query).length > 0 ? route.addQueryParams(query) : route,
+  );
+};
+
 const AnnouncementTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  // A status page's own Announcements tab, rather than the product's list.
+  const isOnOneStatusPage: boolean = Boolean(props.statusPageId);
   const [announcementTemplates, setAnnouncementTemplates] = useState<
     Array<StatusPageAnnouncementTemplate>
   >([]);
@@ -106,9 +142,9 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           title: "Create Announcement",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
-              ),
+              getAnnouncementCreateRoute({
+                statusPageId: props.statusPageId,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -127,25 +163,36 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         modelType={StatusPageAnnouncement}
         userPreferencesKey="status-page-announcements-table"
         id="table-status-page-note"
-        isDeleteable={false}
+        isDeleteable={true}
         isCreateable={false}
         showViewIdButton={true}
         isEditable={false}
         name="Status Page > Announcements"
         isViewable={true}
-        createInitialValues={props.initialValues}
+        /*
+         * "Announcement", not the model's "Status Page Announcement": every
+         * row's button read "View Status Page Announcement", wide enough to
+         * push the End column under the actions on a 1280px screen.
+         */
+        singularName="Announcement"
+        pluralName="Announcements"
         query={{
           ...(props.query || {}),
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        /*
+         * "Announcements", as the menus name the page, and "Starts" and
+         * "Ends" for when a notice shows, as on a maintenance event: "Show
+         * Announcement At" and "End Announcement At" were cut off beside the
+         * row's actions at 1280px.
+         */
         cardProps={{
-          title: props.title || "Status Page Announcements",
+          title: props.title || "Announcements",
           buttons: cardbuttons,
           description:
             props.description ||
-            "Create and manage announcements that will be shown on status pages.",
+            "Notices on your status pages, such as planned work or news.",
         }}
-        noItemsMessage={"No announcements found."}
         createEditModalWidth={ModalWidth.Large}
         showRefreshButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -163,14 +210,14 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.Date,
           },
           {
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.Date,
           },
           {
@@ -180,26 +227,34 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             title: "Subscribers Notified",
             type: FieldType.Boolean,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Shown on Status Pages",
-            type: FieldType.EntityArray,
+          /*
+           * On a status page's own tab every row is on that page: which
+           * pages show it is a question for the product's list only.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                      _id: true,
+                      projectId: true,
+                    },
+                  },
+                  title: "Shown on Status Pages",
+                  type: FieldType.EntityArray,
 
-            filterEntityType: StatusPage,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
+                  filterEntityType: StatusPage,
+                  filterQuery: {
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                  },
+                  filterDropdownField: {
+                    label: "name",
+                    value: "_id",
+                  },
+                },
+              ]),
         ]}
         columns={[
           {
@@ -213,7 +268,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.DateTime,
             hideOnMobile: true,
           },
@@ -221,43 +276,62 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.DateTime,
-            noValueMessage: "-",
+            // Shown until removed: the table's quiet dash, like every cell.
             hideOnMobile: true,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-              },
-            },
-            hideOnMobile: true,
-            title: "Shown on Status Pages",
-            type: FieldType.Element,
-            getElement: (item: StatusPageAnnouncement) => {
-              if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                return <p>No status pages selected for this announcement.</p>;
-              }
-              return (
-                <div>
-                  <StatusPagesElement statusPages={item.statusPages} />
-                </div>
-              );
-            },
-          },
+          /*
+           * The status pages that show each row - on the product's list.
+           * On a page's own tab the column only repeated that page's name,
+           * beside a title it squeezed to its first words.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                    },
+                  },
+                  hideOnMobile: true,
+                  title: "Shown on Status Pages",
+                  type: FieldType.Element,
+                  getElement: (item: StatusPageAnnouncement) => {
+                    if (!item.statusPages || !Array.isArray(item.statusPages)) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No status pages selected for this announcement.",
+                          )}
+                        </p>
+                      );
+                    }
+                    return (
+                      <div>
+                        <StatusPagesElement statusPages={item.statusPages} />
+                      </div>
+                    );
+                  },
+                },
+              ]),
         ]}
       />
 
       {announcementTemplates.length === 0 &&
         showAnnouncementTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Announcement Templates`}
-            description={`No announcement templates have been created yet. You can create these in Project Settings > Announcement Templates.`}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              return setShowAnnouncementTemplateModal(false);
+          <NoTemplatesYetModal
+            title="No Announcement Templates"
+            description="This project has no announcement templates yet. Create them in Status Pages → Settings → Announcement Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+            )}
+            onClose={() => {
+              setShowAnnouncementTemplateModal(false);
             }}
           />
         )}
@@ -287,15 +361,12 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
               "announcementTemplateId"
             ] as ObjectID;
 
-            // Navigate to announcement create page with the template id
+            // The create page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route).toString(),
-                ).addQueryParams({
-                  announcementTemplateId: announcementTemplateId.toString(),
-                }),
-              ),
+              getAnnouncementCreateRoute({
+                statusPageId: props.statusPageId,
+                announcementTemplateId: announcementTemplateId,
+              }),
             );
           }}
           formProps={{

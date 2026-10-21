@@ -1,3 +1,7 @@
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 /*
  * Shared helpers for the Windows Services pages (list + detail view).
  *
@@ -80,7 +84,10 @@ export const statusMeta: (code: number | null) => ServiceStatusMeta = (
       };
     default:
       return {
-        label: code === null ? "Unknown" : `Status ${code}`,
+        label:
+          code === null
+            ? "Unknown"
+            : translateTemplate("Status {{code}}", { code: code }),
         dot: "bg-gray-300",
         pill: "bg-gray-50 text-gray-500 ring-gray-500/20",
         hex: "#d1d5db",
@@ -94,15 +101,15 @@ export const startupModeLabel: (mode: string | null) => string = (
 ): string => {
   switch (mode) {
     case "auto_start":
-      return "Automatic";
+      return translationKey("Automatic");
     case "demand_start":
-      return "Manual";
+      return translationKey("Manual");
     case "disabled":
-      return "Disabled";
+      return translationKey("Disabled");
     case "boot_start":
-      return "Boot";
+      return translationKey("Boot");
     case "system_start":
-      return "System";
+      return translationKey("System");
     default:
       return mode || "—";
   }

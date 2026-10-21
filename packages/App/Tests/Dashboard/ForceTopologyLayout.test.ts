@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom, shuffled } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -323,9 +324,9 @@ const ALL_FIXTURES: ReadonlyArray<NamedGraph> = [
 /* ------------------------------------------------------------------ */
 
 /*
- * Seeded xorshift Fisher-Yates. Permuting the input is how this file
- * proves the layout is a function of the graph, so the permutation itself
- * has to be reproducible — Math.random would make a failure unrepeatable.
+ * Seeded Fisher-Yates. Permuting the input is how this file proves the
+ * layout is a function of the graph, so the permutation itself has to be
+ * reproducible — Math.random would make a failure unrepeatable.
  */
 type ShuffleFunction = <T>(items: ReadonlyArray<T>, seed: number) => Array<T>;
 
@@ -333,20 +334,7 @@ const shuffle: ShuffleFunction = <T>(
   items: ReadonlyArray<T>,
   seed: number,
 ): Array<T> => {
-  const result: Array<T> = [...items];
-  let state: number = seed >>> 0 === 0 ? 0x9e3779b9 : seed >>> 0;
-  for (let i: number = result.length - 1; i > 0; i--) {
-    state ^= state << 13;
-    state >>>= 0;
-    state ^= state >> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    const j: number = state % (i + 1);
-    const held: T = result[i]!;
-    result[i] = result[j]!;
-    result[j] = held;
-  }
-  return result;
+  return shuffled(items, seededRandom(seed));
 };
 
 /* Flip every edge's direction — links are undirected by contract. */

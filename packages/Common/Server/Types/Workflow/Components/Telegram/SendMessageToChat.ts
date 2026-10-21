@@ -11,6 +11,7 @@ import ComponentMetadata, {
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import TelegramComponents from "../../../../../Types/Workflow/Components/Telegram";
 import API from "../../../../../Utils/API";
+import { fitTelegramMessage } from "../../../../../Utils/TelegramMessageFit";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -82,7 +83,14 @@ export default class SendMessageToChat extends ComponentCode {
     // A token pasted or stored with a trailing newline is still the token.
     const botToken: string = (args["bot-token"]?.toString() || "").trim();
     const chatId: string = args["chat-id"]?.toString() as string;
-    const text: string = args["text"]?.toString() as string;
+    /*
+     * Telegram refuses a message of more than 4,096 characters, and the
+     * step fails: a longer one - a workflow can place any value in it - is
+     * cut to fit, with a note that the rest is in OneUptime.
+     */
+    const text: string = fitTelegramMessage(
+      args["text"]?.toString() as string,
+    ).text;
 
     /*
      * The token becomes a path segment of the request URL, so anything other

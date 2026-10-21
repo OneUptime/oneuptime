@@ -5,6 +5,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -14,7 +15,13 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import {
+  DEFAULT_INCOMING_CALL_RING_SECONDS,
+  MAX_INCOMING_CALL_RING_SECONDS,
+  MIN_INCOMING_CALL_RING_SECONDS,
+} from "../../Types/IncomingCall/IncomingCallRingTime";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -22,6 +29,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["incomingCallPolicyId"] })
 @EnableWorkflow({
   create: true,
   delete: true,
@@ -64,6 +72,11 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.EditProjectIncomingCallPolicyEscalationRule,
   ],
 })
+/*
+ * Who a call to the policy's number rings: part of the policy, held to its
+ * owners as the policy is.
+ */
+@OwnedThrough("incomingCallPolicyId", IncomingCallPolicy)
 @CrudApiEndpoint(new Route("/incoming-call-policy-escalation-rule"))
 @Entity({
   name: "IncomingCallPolicyEscalationRule",
@@ -346,10 +359,12 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   @Index()
   @TableColumn({
+    required: false,
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Execution order (1, 2, 3...)",
+    description:
+      "Where this rule sits in the escalation, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -357,6 +372,11 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   public order?: number = undefined;
 
+  /*
+   * How long the phone rings before the call moves on to the next rule: the
+   * timeout of Twilio's <Dial>. A new rule rings for 20 seconds; rules made
+   * when the default was 30 keep the 30 they hold (IncomingCallRingTime).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -390,13 +410,13 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Number,
     title: "Escalate After (Seconds)",
-    description: "Seconds before escalating to next rule",
-    defaultValue: 30,
+    description: `How long, in seconds, the phone rings before the call moves on to the next rule. ${DEFAULT_INCOMING_CALL_RING_SECONDS} when left out; a time below ${MIN_INCOMING_CALL_RING_SECONDS} or above ${MAX_INCOMING_CALL_RING_SECONDS} rings for ${MIN_INCOMING_CALL_RING_SECONDS} or ${MAX_INCOMING_CALL_RING_SECONDS}, the limits Twilio takes.`,
+    defaultValue: DEFAULT_INCOMING_CALL_RING_SECONDS,
   })
   @Column({
     nullable: false,
     type: ColumnType.Number,
-    default: 30,
+    default: DEFAULT_INCOMING_CALL_RING_SECONDS,
   })
   public escalateAfterSeconds?: number = undefined;
 

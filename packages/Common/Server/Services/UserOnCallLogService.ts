@@ -13,6 +13,7 @@ import UserNotificationRuleService, {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import { getRepeatClaimKey } from "../../Types/NotificationRule/NotificationRepeat";
 import ObjectID from "../../Types/ObjectID";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -36,6 +37,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 
 /*
  * The status message the zero-rule dead-end wrote before the fallback existed,
@@ -46,6 +48,25 @@ import logger from "../Utils/Logger";
  */
 export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
   "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+
+/*
+ * Why an on-call notification log stopped part way: the person left the
+ * project (UserOnCallLog:ExecutePendingExecutions asks before every tick), so
+ * the rules still due for them - "call me after 10 minutes" - are not run.
+ */
+export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
+  "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
+
+/*
+ * Why an on-call notification log sent nothing at all: the person it pages
+ * is not a member of the project (they left, or never accepted their
+ * invitation). The rules that choose what a page goes through are read only
+ * while the person is a member, so this is what is left when somebody who is
+ * not one reaches this far - when the escalation could not read membership
+ * and paged as before.
+ */
+export const NOT_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
+  "Not sent because this user is not a member of the project.";
 
 /*
  * FindWhereProperty is constrained to object types, so the parameter is `any`
@@ -103,9 +124,10 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Atomically claim the right to execute ONE notification rule for this
-   * on-call log. Rules are claimed under their own id; see
-   * claimNotificationExecution below for what the claim actually guarantees and
-   * why it is keyed by a string.
+   * on-call log. Rules are claimed under their own id, and each repeat of a
+   * rule that repeats until acknowledged (NotificationRepeat) under a key of
+   * its own; see claimNotificationExecution below for what the claim actually
+   * guarantees and why it is keyed by a string.
    *
    * Returns true when THIS call claimed the rule (caller should send), false when
    * it was already executed/claimed (caller should skip) or the log is missing.
@@ -114,10 +136,17 @@ export class Service extends DatabaseService<Model> {
   public async claimNotificationRuleExecution(data: {
     userOnCallLogId: ObjectID;
     userNotificationRuleId: ObjectID;
+    // Absent (or 0) for the rule's first push.
+    repeatNumber?: number | undefined;
   }): Promise<boolean> {
+    const ruleId: string = data.userNotificationRuleId.toString();
+
     return await this.claimNotificationExecution({
       userOnCallLogId: data.userOnCallLogId,
-      claimKey: data.userNotificationRuleId.toString(),
+      claimKey:
+        data.repeatNumber && data.repeatNumber > 0
+          ? getRepeatClaimKey(ruleId, data.repeatNumber)
+          : ruleId,
     });
   }
 
@@ -237,6 +266,9 @@ export class Service extends DatabaseService<Model> {
         query: onUpdate.updateBy.query,
         select: {
           onCallDutyPolicyExecutionLogTimelineId: true,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: true,
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -263,11 +295,66 @@ export class Service extends DatabaseService<Model> {
         case UserNotificationExecutionStatus.Started:
           status = OnCallDutyExecutionLogTimelineStatus.Started;
           break;
+        // The person passed the page on (OnCallPagePassOn).
+        case UserNotificationExecutionStatus.PassedOn:
+          status = OnCallDutyExecutionLogTimelineStatus.PassedOn;
+          break;
         default:
           throw new BadDataException("Invalid status");
       }
 
       for (const item of items) {
+        const stepStatus: OnCallDutyExecutionLogTimelineStatus | undefined =
+          item.onCallDutyPolicyExecutionLogTimeline?.status;
+
+        /*
+         * A step whose person passed the page on stays that way: the run
+         * reads who passed its page on from these steps
+         * (OnCallEscalationAdvance), so moving one back to "Executing" or
+         * "Notification Sent" would let the run page that person again - and
+         * the worker that sends a person's notifications may still be
+         * finishing their log just as they pass it on. Only acknowledging
+         * changes it (UserOnCallLogTimelineService).
+         */
+        if (stepStatus === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
+          continue;
+        }
+
+        /*
+         * A log that completes says "Notification Sent" on its timeline step
+         * - unless the step already says what became of the page: skipped
+         * (an opt-out, somebody who left), failed, or acknowledged. Moving
+         * those back to "Notification Sent" claimed a page went out that
+         * never did.
+         */
+        if (
+          status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
+          stepStatus &&
+          [
+            OnCallDutyExecutionLogTimelineStatus.Skipped,
+            OnCallDutyExecutionLogTimelineStatus.Error,
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          ].includes(stepStatus)
+        ) {
+          continue;
+        }
+
+        /*
+         * A page is passed on only from a step that reached its person: one
+         * that was acknowledged, skipped or failed keeps what it says.
+         */
+        if (
+          status === OnCallDutyExecutionLogTimelineStatus.PassedOn &&
+          stepStatus &&
+          [
+            OnCallDutyExecutionLogTimelineStatus.Skipped,
+            OnCallDutyExecutionLogTimelineStatus.Error,
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          ].includes(stepStatus)
+        ) {
+          continue;
+        }
+
         await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
           id: item.onCallDutyPolicyExecutionLogTimelineId!,
           data: {
@@ -334,7 +421,7 @@ export class Service extends DatabaseService<Model> {
       // Check if there are any rules .
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           incidentSeverityId: incident?.incidentSeverityId as ObjectID,
@@ -372,7 +459,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           alertSeverityId: alert?.alertSeverityId as ObjectID,
@@ -404,7 +491,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           alertSeverityId: alertEpisode?.alertSeverityId as ObjectID,
@@ -437,7 +524,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           incidentSeverityId: incidentEpisode?.incidentSeverityId as ObjectID,
@@ -491,6 +578,22 @@ export class Service extends DatabaseService<Model> {
       "this severity";
 
     if (ruleCount.toNumber() === 0) {
+      /*
+       * The counts above find no rules for somebody who is not a member of
+       * the project. That is not "no rule configured": nothing is sent, and
+       * no fallback reaches for their methods.
+       */
+      if (await this.isNotAProjectMember(createdItem)) {
+        await this.writeNoRuleOutcome({
+          createdItem: createdItem,
+          status: UserNotificationExecutionStatus.Completed,
+          timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+          statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+        });
+
+        return createdItem;
+      }
+
       await this.handleNoMatchingNotificationRule({
         createdItem: createdItem,
         notificationRuleType: notificationRuleType,
@@ -506,7 +609,7 @@ export class Service extends DatabaseService<Model> {
     const immediateNotificationRule: Array<UserNotificationRule> =
       await UserNotificationRuleService.findBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           notifyAfterMinutes: 0,
           ruleType: notificationRuleType,
@@ -742,6 +845,26 @@ export class Service extends DatabaseService<Model> {
       logger.error(err);
     }
 
+    /*
+     * The fallback found that the person is not a member of the project (they
+     * left between the rule count and the fallback): nothing was sent, and
+     * nothing about them needs fixing, so the log says so and no owner is
+     * told a page went undelivered.
+     */
+    if (
+      fallbackResult &&
+      fallbackResult.outcome === FallbackNotificationOutcome.NotAProjectMember
+    ) {
+      await this.writeNoRuleOutcome({
+        createdItem: createdItem,
+        status: UserNotificationExecutionStatus.Completed,
+        timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+      });
+
+      return;
+    }
+
     if (fallbackResult && fallbackResult.notified) {
       const notifiedMessage: string = `No notification rule configured for ${
         data.severityName
@@ -865,6 +988,45 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The user column of a read that chooses what a page goes through: the
+   * person the log pages, and only while they are a member of its project
+   * (ProjectMembership). The escalation already checked membership, but it
+   * pages as before when it cannot read it; this check rides on the read
+   * that would deliver, costs no query of its own, and cannot fail open.
+   */
+  private userIdWhileMember(createdItem: Model): FindWhereProperty<any> {
+    return ProjectMembership.userIdWhileMember({
+      userId: createdItem.userId!,
+      projectId: createdItem.projectId!,
+    });
+  }
+
+  /*
+   * Whether the person a log pages is known not to be a member of its
+   * project. A failed read is "not known": the no-rule path runs, and its
+   * fallback asks again before it reaches any method
+   * (UserNotificationRuleService.chooseFallbackChannels).
+   */
+  private async isNotAProjectMember(createdItem: Model): Promise<boolean> {
+    if (!createdItem.projectId || !createdItem.userId) {
+      return false;
+    }
+
+    try {
+      return !(await ProjectMembership.isMember({
+        projectId: createdItem.projectId,
+        userId: createdItem.userId,
+      }));
+    } catch (err) {
+      logger.error(
+        `Could not read project membership for UserOnCallLog ${createdItem.id?.toString()}; taking the no-rule path, whose fallback checks it again.`,
+      );
+      logger.error(err);
+      return false;
+    }
+  }
+
+  /*
    * Both writes the no-rule path makes, in the order the pre-fallback code made
    * them: the log first, then the on-call timeline. The log update's own
    * onUpdateSuccess hook already maps the execution status onto the timeline, so
@@ -878,6 +1040,14 @@ export class Service extends DatabaseService<Model> {
     timelineStatus: OnCallDutyExecutionLogTimelineStatus;
     statusMessage: string;
   }): Promise<void> {
+    /*
+     * Without the log's own hook: it would carry the log's status over to
+     * the on-call timeline (onUpdateSuccess) - Completed as "Notification
+     * Sent" - and the timeline write below says what this outcome really is.
+     * Through the hook, every responder skipped here showed first as
+     * "Notification Sent" and then as "Skipped", in the record's feed and in
+     * Slack and Microsoft Teams alike.
+     */
     await this.updateOneById({
       id: data.createdItem.id!,
       data: {
@@ -886,6 +1056,7 @@ export class Service extends DatabaseService<Model> {
       },
       props: {
         isRoot: true,
+        ignoreHooks: true,
       },
     });
 

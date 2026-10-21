@@ -1,0 +1,86 @@
+# Diagrams fixture
+
+An offline harness for mermaid diagrams, drawn the three ways OneUptime draws
+them, in a real browser:
+
+| Page         | What it draws                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/dashboard` | The production `MarkdownViewer` (`Common/UI/Components/Markdown.tsx`), bundled with the frontends' esbuild config, so with mermaid built from its source (`Common/UI/esbuild-mermaid.js`). |
+| `/docs`      | The docs' real `<head>` (`App/FeatureSet/Docs/Views/Partials/Head.ejs`, rendered with ejs) above diagrams written the way the docs' Markdown renderer writes them.                         |
+| `/blog`      | A post body with no h2 heading under the blog's real scripts and stylesheet, taken out of `Home/Views/Blog/Post.ejs`: the highlight.js loader, the page script and the diagrams module.    |
+
+`?diagrams=` picks the diagrams: a flowchart with a `$$...$$` label and a
+sequence diagram by default, `none` for none, and `broken` for one that does
+not parse (on the docs and the blog, ahead of the other two); the docs and the
+blog also take `interactive` (a click that calls a page function, a
+`javascript:` link and HTML labels), and the Dashboard page `plain` (no KaTeX
+needed), `mixed` (the broken one, then the other two) and `?theme=dark`. The
+docs page takes `?lang=fa` (Persian, right to left), two more sets of diagrams,
+`persian` (a flowchart, a sequence diagram and a state diagram written as the
+Persian docs write them, captioned) and `rules` (an English diagram whose lines
+end in a colon), and `&content=en`, which serves its article as the English
+copy of an untranslated page; the blog post takes `?html=broken`, a diagram
+that does not parse written as HTML rather than as a fenced block.
+
+The docs page also takes `?diagrams=sizes` (a diagram narrower than the
+column, one a little wider and one far wider) and `?source=<lang>`: every
+diagram of every docs page in that language, each marked with its page and
+place (`data-source="monitor/api-monitor#1"`). Both give each diagram the box
+the docs' article gives it at 1280px, 590px inside its padding.
+`DocsDiagramSizes.spec.ts` checks there how big a diagram is drawn: never
+larger than mermaid laid it out, centred when it is narrower than the column,
+drawn smaller to fit a column it is a little wider than (down to 3/4 of its
+size, its 16px labels no smaller than a callout label's 12px), and in a box that
+scrolls past that - and that every English and German docs diagram fits the
+column at 3/4 of its size at most (in Chromium only: mermaid lays out the
+same in Firefox, and drawing every diagram twice would double its time).
+
+`Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the
+App and Home images do, and serves what it writes at `/oneuptime-assets/mermaid/`,
+the vendored files under the rest of `/oneuptime-assets/`, and the docs' static
+files under `/docs/static/`, on `127.0.0.1:4271` (`DIAGRAMS_FIXTURE_PORT`). No
+Docker, no database, no API.
+
+## Running it
+
+```bash
+cd packages/E2E
+npm run test-diagrams-ui
+```
+
+It runs in Chromium and Firefox. jsdom lays nothing out and mermaid measures
+every label with the browser's layout, so this is where a drawn diagram is
+checked: each surface draws every diagram and sets a `$$...$$` label with
+KaTeX's MathML (the Dashboard keeps only KaTeX's MathML and no HTML), KaTeX is
+fetched once, as its own chunk, only for a page that needs it, and holds the
+version npm installed for Common, none of mermaid's prebuilt bundles is ever
+requested, and the dark themes apply and redraw. It is also where the docs'
+diagram text is seen read in the right order: on a Persian page every line of
+a label, a sequence diagram's text and the caption are laid out right to
+left, a line that opens with a Latin word too, while an English diagram, and
+the English copy of an untranslated page on a Persian URL, keep each line in
+the direction of its first letter.
+
+A diagram that cannot be drawn fails softly: the others are drawn, and mermaid
+leaves nothing anywhere else on the page (it used to leave its "Syntax error"
+graphic at the end of the body). The Dashboard says so in the diagram's
+place; the docs show its source, as written, under a short note in the page's
+language; the blog puts the diagram's code block back - its label and copy
+button included - under the same note. Both do that for every diagram when
+the mermaid build cannot be loaded, with one console error and no unhandled
+rejection. The blog draws in mermaid's strict mode (no click callback runs, no
+`javascript:` link survives, HTML labels stay), and its page script runs past
+the missing table of contents of a post with no h2 heading.
+
+What the build may contain is pinned in
+`packages/Common/Tests/UI/MermaidFromSource.test.ts`, what the server answers
+in `packages/Common/Tests/Server/Utils/VendorAssets*.test.ts`, the Dashboard's
+sanitizer in `packages/Common/Tests/UI/Components/DiagramSanitizer.test.ts`,
+the docs' diagram script in `packages/Common/Tests/App/Docs/DocsDiagramScript.test.ts`,
+and the blog page script and diagram module in
+`packages/Home/Tests/BlogPostPage.test.ts` - those two in jsdom, against a
+stand-in for mermaid.
+
+CI's Dashboard Offline UI job lists the suites it runs in
+`.github/workflows/test.app.yaml`; `test-diagrams-ui` also runs in Firefox, so it
+belongs in a group that installs Chromium and Firefox (group 2).

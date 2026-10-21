@@ -12,10 +12,13 @@ import Text from "../../../../../Types/Text";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
-import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
+import BaseModelComponents, {
+  SELECT_FIELDS_NAME,
+} from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class FindManyBaseModel<
   TBaseModel extends BaseModel,
@@ -94,9 +97,19 @@ export default class FindManyBaseModel<
         );
       }
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
+
       if (!args["select"]) {
         throw options.onError(
-          new BadDataException("Select Fields is undefined."),
+          new BadDataException(
+            `${SELECT_FIELDS_NAME} is empty. Choose the fields the next steps need.`,
+          ),
         );
       }
 
@@ -106,7 +119,9 @@ export default class FindManyBaseModel<
 
       if (typeof args["select"] !== "object") {
         throw options.onError(
-          new BadDataException("Select Fields is should be of type object."),
+          new BadDataException(
+            `${SELECT_FIELDS_NAME} could not be read. Choose the fields again.`,
+          ),
         );
       }
 
@@ -165,11 +180,16 @@ export default class FindManyBaseModel<
         select: select,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       });
+
+      /*
+       * The records' files come back only when they are the project's to
+       * see: the read is the project's (a Project Admin of it), so
+       * DatabaseService holds it to the files that project may see
+       * (RelatedFileAccess), as it does every read made for someone.
+       */
 
       return {
         returnValues: {
@@ -178,15 +198,18 @@ export default class FindManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

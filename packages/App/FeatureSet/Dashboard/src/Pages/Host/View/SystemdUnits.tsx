@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -30,6 +31,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Table from "Common/UI/Components/Table/Table";
+import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
+import { getFilteredEmptyStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -45,7 +48,6 @@ import FilterChipDropdown, {
 } from "../../../Components/ResourceOwners/FilterChipDropdown";
 import {
   HOST_NAME_ATTR,
-  MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_UNIT_STATE_METRIC_NAME,
   SystemdMetricDatapoint,
   SystemdStateMeta,
@@ -56,6 +58,8 @@ import {
   encodeUnitNameForUrl,
   hasSingleSampleTimestamp,
 } from "../Utils/SystemdUnits";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Like processes and Windows services, unit state is a point-in-time sample
@@ -81,6 +85,7 @@ const PAGE_SIZE: number = 25;
 const HostSystemdUnits: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [host, setHost] = useState<Host | null>(null);
@@ -101,6 +106,7 @@ const HostSystemdUnits: FunctionComponent<
   const [stateFilter, setStateFilter] = useState<Array<string>>([]);
   const [unitTypeFilter, setUnitTypeFilter] = useState<Array<string>>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<keyof SystemdUnitRow | null>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
@@ -241,12 +247,15 @@ const HostSystemdUnits: FunctionComponent<
       .map(([label, info]: [string, { count: number; hex: string }]) => {
         return {
           value: label,
-          label: label,
-          sublabel: `${info.count} unit${info.count === 1 ? "" : "s"}`,
+          label: translator.translateTerm(label),
+          sublabel: translator.translatePlural(
+            { one: "{{count}} unit", other: "{{count}} units" },
+            info.count,
+          ),
           color: info.hex,
         };
       });
-  }, [rows]);
+  }, [rows, translator.language]);
 
   const unitTypeOptions: Array<FilterChipDropdownOption> = useMemo(() => {
     const counts: Map<string, number> = new Map();
@@ -260,11 +269,14 @@ const HostSystemdUnits: FunctionComponent<
       .map(([label, count]: [string, number]) => {
         return {
           value: label,
-          label: label,
-          sublabel: `${count} unit${count === 1 ? "" : "s"}`,
+          label: translator.translateTerm(label),
+          sublabel: translator.translatePlural(
+            { one: "{{count}} unit", other: "{{count}} units" },
+            count,
+          ),
         };
       });
-  }, [rows]);
+  }, [rows, translator.language]);
 
   // Search + facet filters + sort, all client-side over the snapshot.
   const processedData: Array<SystemdUnitRow> = useMemo(() => {
@@ -324,14 +336,14 @@ const HostSystemdUnits: FunctionComponent<
    */
   const totalPages: number = Math.max(
     1,
-    Math.ceil(processedData.length / PAGE_SIZE),
+    Math.ceil(processedData.length / pageSize),
   );
   const effectivePage: number = Math.min(currentPage, totalPages);
 
   const paginatedData: Array<SystemdUnitRow> = useMemo(() => {
-    const start: number = (effectivePage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, effectivePage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   const hasActiveFilters: boolean =
     searchText.trim() !== "" ||
@@ -371,7 +383,9 @@ const HostSystemdUnits: FunctionComponent<
         hideOnMobile: true,
         getElement: (row: SystemdUnitRow): ReactElement => {
           return (
-            <span className="text-sm text-gray-600">{row.unitTypeLabel}</span>
+            <span className="text-sm text-gray-600">
+              {translator.translateText(row.unitTypeLabel)}
+            </span>
           );
         },
       },
@@ -387,7 +401,7 @@ const HostSystemdUnits: FunctionComponent<
               className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${meta.pill}`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-              {meta.label}
+              {translator.translateText(meta.label)}
             </span>
           );
         },
@@ -404,6 +418,7 @@ const HostSystemdUnits: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<SystemdUnitRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: SystemdUnitRow): boolean => {
         return unitViewRouteFor(row) !== null;
@@ -426,11 +441,15 @@ const HostSystemdUnits: FunctionComponent<
     },
   ];
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -488,13 +507,13 @@ const HostSystemdUnits: FunctionComponent<
             setSearchText(e.target.value);
             setCurrentPage(1);
           }}
-          placeholder="Search units..."
+          placeholder={translator.translateText("Search units...")}
           className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
         />
       </div>
       <span
         aria-hidden="true"
-        className="hidden h-5 w-px bg-gray-200 sm:inline-block"
+        className="max-sm:hidden h-5 w-px bg-gray-200 sm:inline-block"
       />
       <FilterChipDropdown
         label="State"
@@ -526,13 +545,23 @@ const HostSystemdUnits: FunctionComponent<
           onClick={clearFilters}
           className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
         >
-          Clear filters
+          {translator.translateText("Clear filters")}
         </button>
       )}
       <span className="ml-auto text-xs text-gray-500">
         {hasActiveFilters
-          ? `${processedData.length} of ${rows.length} units`
-          : `${rows.length} unit${rows.length === 1 ? "" : "s"}`}
+          ? translator.translatePlural(
+              {
+                one: "{{shown}} of {{count}} unit",
+                other: "{{shown}} of {{count}} units",
+              },
+              rows.length,
+              { shown: translator.formatNumber(processedData.length) },
+            )
+          : translator.translatePlural(
+              { one: "{{count}} unit", other: "{{count}} units" },
+              rows.length,
+            )}
       </span>
     </div>
   );
@@ -556,11 +585,28 @@ const HostSystemdUnits: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Unit state comes from the "systemd" receiver (alpha, Linux-only), which needs otelcol-contrib ${MIN_OTELCOL_CONTRIB_VERSION} or newer. Make sure this host runs a native collector with systemd added to the metrics pipeline, alongside resourcedetection — without it the samples never attach to a host. See the Documentation tab for setup steps.`
+      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Add the systemd receiver to your collector: see the Documentation tab.`
       : "No units match the current filters.";
 
+  /*
+   * Rows came back and the chips hide every one of them: a filtered empty
+   * state, with the bar's own Clear filters as its way back.
+   */
+  const filteredEmptyState: TableEmptyStateProps | undefined =
+    rows.length > 0
+      ? getFilteredEmptyStateProps({
+          title: noItemsMessage,
+          onClear: clearFilters,
+        })
+      : undefined;
+
   return (
-    <Card title="Systemd Units" description={description} buttons={cardButtons}>
+    <Card
+      title="Systemd Units"
+      description={description}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
+    >
       <div>
         {(rows.length > 0 || hasActiveFilters) && filterBar}
         <Table<SystemdUnitRow>
@@ -574,9 +620,12 @@ const HostSystemdUnits: FunctionComponent<
           error=""
           currentPageNumber={effectivePage}
           totalItemsCount={processedData.length}
-          itemsOnPage={PAGE_SIZE}
-          onNavigateToPage={(page: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(page: number, itemsOnPage: number) => {
             setCurrentPage(page);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortOrder={sortOrder}
           sortBy={sortBy}
@@ -589,6 +638,7 @@ const HostSystemdUnits: FunctionComponent<
             setCurrentPage(1);
           }}
           noItemsMessage={noItemsMessage}
+          emptyStateProps={filteredEmptyState}
         />
       </div>
     </Card>

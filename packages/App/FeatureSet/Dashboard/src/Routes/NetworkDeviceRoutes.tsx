@@ -8,6 +8,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import NetworkOverview from "../Pages/NetworkDevice/Overview";
+import NetworkTraffic from "../Pages/NetworkDevice/Traffic";
+import NetworkEvents from "../Pages/NetworkDevice/Events";
 import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
@@ -17,8 +19,11 @@ import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
 import NetworkDeviceInterfaces from "../Pages/NetworkDevice/View/Interfaces";
+import NetworkDeviceTables from "../Pages/NetworkDevice/View/Tables";
+import NetworkDeviceWiFi from "../Pages/NetworkDevice/View/WiFi";
 import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
 import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
+import NetworkDeviceEvents from "../Pages/NetworkDevice/View/Events";
 import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
 import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
@@ -34,6 +39,9 @@ import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
+import NetworkDeviceModel from "Common/Models/DatabaseModels/NetworkDevice";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -56,6 +64,24 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkOverview
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_OVERVIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_TRAFFIC] || ""}
+          element={
+            <NetworkTraffic
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_TRAFFIC] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_EVENTS] || ""}
+          element={
+            <NetworkEvents
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_EVENTS] as Route}
             />
           }
         />
@@ -280,6 +306,13 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkDeviceModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.NETWORK_DEVICE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -311,6 +344,26 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_TABLES)}
+          element={
+            <NetworkDeviceTables
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TABLES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_WIFI)}
+          element={
+            <NetworkDeviceWiFi
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_WIFI] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.NETWORK_DEVICE_VIEW_METRICS,
           )}
@@ -330,6 +383,16 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceTraffic
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_EVENTS)}
+          element={
+            <NetworkDeviceEvents
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_EVENTS] as Route}
             />
           }
         />
@@ -391,6 +454,12 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkDeviceModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

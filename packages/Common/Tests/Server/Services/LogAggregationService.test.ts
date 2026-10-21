@@ -7,7 +7,7 @@ import LogDatabaseService from "../../../Server/Services/LogService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
@@ -36,7 +36,7 @@ describe("LogAggregationService", () => {
     });
 
     expect(statement.query).toBe(
-      "SELECT toString({p0:Identifier}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p5:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736, max_block_size = 8192, preferred_block_size_bytes = 1048576, max_threads = 4",
+      "SELECT toString({p0:Identifier}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p5:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'throw', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736, max_block_size = 8192, preferred_block_size_bytes = 1048576, max_threads = 4",
     );
 
     expect(statement.query_params).toStrictEqual({
@@ -61,7 +61,7 @@ describe("LogAggregationService", () => {
      * throws ILLEGAL_TYPE_OF_ARGUMENT (Code 43) against Map columns.
      */
     expect(statement.query).toBe(
-      "SELECT attributes[{p0:String}] AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND mapContains(attributes, {p5:String}) AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736, max_block_size = 8192, preferred_block_size_bytes = 1048576, max_threads = 4",
+      "SELECT attributes[{p0:String}] AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND mapContains(attributes, {p5:String}) AND retentionDate >= now() GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'throw', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736, max_block_size = 8192, preferred_block_size_bytes = 1048576, max_threads = 4",
     );
 
     expect(statement.query_params).toStrictEqual({
@@ -464,5 +464,105 @@ describe("LogAggregationService histogram window edges", () => {
 
     expect(query).not.toMatch(/[^(]\btime\s*(<|>|<=|>=)\s/);
     expect(query).toContain("optimize_use_projections = 1");
+  });
+});
+
+/*
+ * Log's TTL is rounded up to the midnight after retentionDate, so a row past
+ * its retention stays on disk for up to a day, and every read has to leave it
+ * out itself. The histogram does wherever that is free: a filter the
+ * proj_severity_histogram projection does not store (it keeps projectId,
+ * severityText and the minute) already sends the query to the base table.
+ * With nothing but severities to filter on, it keeps the projection - a
+ * retentionDate predicate there would force a scan of the base table.
+ */
+describe("LogAggregationService histogram retention filter", () => {
+  const projectId: ObjectID = ObjectID.generate();
+
+  const buildHistogramStatement: (
+    overrides?: Partial<HistogramRequest>,
+  ) => Statement = (overrides: Partial<HistogramRequest> = {}): Statement => {
+    return (LogAggregationService as any).buildHistogramStatement({
+      projectId,
+      startTime: new Date("2026-09-01T00:00:00.000Z"),
+      endTime: new Date("2026-10-01T00:00:00.000Z"),
+      bucketSizeInMinutes: 1440,
+      ...overrides,
+    });
+  };
+
+  // The inner, per-minute query: where every filter of the window goes.
+  const innerQuery: (statement: Statement) => string = (
+    statement: Statement,
+  ): string => {
+    const query: string = statement.query.replace(/\s+/g, " ");
+
+    return query.slice(
+      query.indexOf("FROM ("),
+      query.indexOf(" GROUP BY minute, severityText )"),
+    );
+  };
+
+  test("keeps the project-wide histogram on the projection", () => {
+    expect(buildHistogramStatement().query).not.toContain("retentionDate");
+    expect(
+      buildHistogramStatement({ severityTexts: ["Error", "Fatal"] }).query,
+    ).not.toContain("retentionDate");
+    expect(buildHistogramStatement().query).toContain(
+      "optimize_use_projections = 1",
+    );
+  });
+
+  test.each([
+    { label: "a service", filter: { serviceIds: [ObjectID.generate()] } },
+    { label: "entity keys", filter: { entityKeys: ["k8s:cluster:prod"] } },
+    {
+      label: "a resource",
+      filter: {
+        resourceScopes: [
+          { entityIds: [ObjectID.generate().toString()], entityKeys: [] },
+        ],
+      },
+    },
+    { label: "the body", filter: { bodySearchText: "timeout" } },
+    { label: "a trace", filter: { traceIds: ["4bf92f3577b34da6"] } },
+    { label: "a span", filter: { spanIds: ["00f067aa0ba902b7"] } },
+    { label: "a session", filter: { sessionIds: ["session-1"] } },
+    { label: "an attribute", filter: { attributes: { "http.method": "GET" } } },
+    {
+      label: "an attribute's values",
+      filter: { attributes: { "http.method": ["GET", "POST"] } },
+    },
+    {
+      label: "an attribute operator",
+      filter: { attributes: { "http.route": { _type: ObjectType.IsNull } } },
+    },
+  ])(
+    "leaves out rows past their retention when it filters on $label, which reads the base table anyway",
+    ({ filter }: { label: string; filter: Partial<HistogramRequest> }) => {
+      const statement: Statement = buildHistogramStatement({
+        ...filter,
+        severityTexts: ["Error"],
+      });
+
+      expect(innerQuery(statement)).toContain("AND retentionDate >= now()");
+      expect(statement.query.match(/retentionDate/g)).toHaveLength(1);
+    },
+  );
+
+  test("a filter that renders nothing keeps the projection", () => {
+    for (const filter of [
+      { attributes: { "http.method": [] } },
+      { attributes: {} },
+      { serviceIds: [] },
+      { resourceScopes: [] },
+      { resourceScopes: [{ entityIds: [], entityKeys: [] }] },
+      { bodySearchText: "   " },
+      { severityTexts: ["Debug"], traceIds: [], spanIds: [], sessionIds: [] },
+    ] as Array<Partial<HistogramRequest>>) {
+      expect(buildHistogramStatement(filter).query).not.toContain(
+        "retentionDate",
+      );
+    }
   });
 });

@@ -7,51 +7,43 @@ import {
   test,
 } from "@jest/globals";
 import IdentityArea from "../../../Server/Identity/Index";
+import { SCIM_UNAVAILABLE_MESSAGE } from "../../../Server/Identity/Middleware/LicensedFeatureGate";
 import {
-  MESSAGE_VIEW,
-  MOBILE_SSO_UNAVAILABLE_ERROR,
-  SCIM_UNAVAILABLE_MESSAGE,
-  SSO_UNAVAILABLE_MESSAGE,
-} from "../../../Server/Identity/Middleware/LicensedFeatureGate";
-import IdentityFeatureSet from "App/FeatureSet/Identity/Index";
+  expectEverySsoProbeAnswered,
+  IdentityServer,
+  startIdentityServer,
+  stubRenderedViews,
+  stubSsoDatabaseReads,
+} from "App/Tests/FeatureSet/Identity/SsoRouteProbes";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
-import GlobalSSOService from "Common/Server/Services/GlobalSsoService";
+import { EnterpriseLicenseSnapshot } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
-import UserService from "Common/Server/Services/UserService";
-import Express, {
-  ExpressApplication,
-  ExpressRequest,
-  ExpressResponse,
-  ExpressRouter,
-  NextFunction,
-} from "Common/Server/Utils/Express";
+import { ExpressRouter } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import Response from "Common/Server/Utils/Response";
-import Exception from "Common/Types/Exception/Exception";
-import { JSONObject } from "Common/Types/JSON";
 import FakeEnterpriseModule, {
   createLicenseSnapshotWithStatus,
   installFakeEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
-import { createServer, Server } from "http";
-import { AddressInfo } from "net";
 
 /*
- * The real enterprise identity routers, mounted ONCE by the real core Identity
- * feature set, answering over HTTP while the license lapses and is renewed:
+ * The real enterprise identity routers (SCIM), mounted ONCE by the real core
+ * Identity feature set next to core's own single sign-on routers, answering
+ * over HTTP while the license lapses and is renewed:
  *
- *   - lapsed: SCIM answers 403 with a SCIM error body, SSO discovery 402, the
- *     browser SSO flows the message page (402), a mobile login the app's
- *     failure deep link - and nothing reaches a handler or the database;
- *   - renewed (or unknown): the same mounted routes reach their handlers
+ *   - lapsed: SCIM answers 403 with a SCIM error body, and nothing reaches a
+ *     handler or the database; single sign-on keeps answering exactly as with
+ *     a valid license - it is core and never asks the license;
+ *   - renewed (or unknown): the same mounted SCIM routes reach their handlers
  *     again, with no restart and no re-mount.
  *
  * The enterprise module is the fake from Common's test kit carrying the real
- * identity routers, so the license can be changed per test. The three core
- * identity routers are replaced by empty ones, and every request is one the
- * handlers turn away before touching the database, which is spied on.
+ * identity routers, so the license can be changed per test. The
+ * authentication, reseller and status page authentication routers are
+ * replaced by empty ones. Every request is one the handlers turn away before
+ * touching the database: the SCIM lookups are spied to fail if reached, and
+ * the SSO provider lookups find nothing (App's SsoRouteProbes).
  */
 jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
@@ -103,14 +95,12 @@ jest.mock("App/FeatureSet/Identity/API/StatusPageAuthentication", () => {
 
 const ID: string = "11111111-1111-4111-8111-111111111111";
 
-let server: Server;
-let baseUrl: string;
+let server: IdentityServer;
 let fake: FakeEnterpriseModule;
-let databaseReads: Array<jest.SpyInstance> = [];
+let scimDatabaseReads: Array<jest.SpyInstance> = [];
 
 interface HttpAnswer {
   status: number;
-  location: string | null;
   body: string;
 }
 
@@ -118,20 +108,19 @@ const request: (method: string, path: string) => Promise<HttpAnswer> = async (
   method: string,
   path: string,
 ): Promise<HttpAnswer> => {
-  const response: globalThis.Response = await fetch(`${baseUrl}${path}`, {
-    method,
-    redirect: "manual",
-  });
+  const response: globalThis.Response = await fetch(
+    `${server.baseUrl}${path}`,
+    {
+      method,
+      redirect: "manual",
+    },
+  );
 
-  return {
-    status: response.status,
-    location: response.headers.get("location"),
-    body: await response.text(),
-  };
+  return { status: response.status, body: await response.text() };
 };
 
-const expectNoDatabaseRead: () => void = (): void => {
-  for (const spy of databaseReads) {
+const expectNoScimDatabaseRead: () => void = (): void => {
+  for (const spy of scimDatabaseReads) {
     expect(spy).not.toHaveBeenCalled();
   }
 };
@@ -150,19 +139,8 @@ beforeAll(async () => {
     return undefined;
   });
 
-  // The Identity message page is an EJS view in the App image; answer with its arguments instead.
-  jest
-    .spyOn(Response, "render")
-    .mockImplementation(
-      (
-        _req: ExpressRequest,
-        res: ExpressResponse,
-        view: string,
-        vars: JSONObject,
-      ): void => {
-        res.send(JSON.stringify({ view, ...vars }));
-      },
-    );
+  stubSsoDatabaseReads();
+  stubRenderedViews();
 
   setTestBillingEnabled(false);
 
@@ -171,37 +149,17 @@ beforeAll(async () => {
     identityRouters: IdentityArea.getIdentityRouters!() as Array<ExpressRouter>,
   });
 
-  Express.setupExpress();
-  await IdentityFeatureSet.init();
-
-  const app: ExpressApplication = Express.getExpressApp();
-
-  // What core's server adds after every router: errors become JSON answers.
-  app.use(
-    (
-      err: Exception,
-      req: ExpressRequest,
-      res: ExpressResponse,
-      _next: NextFunction,
-    ): void => {
-      Response.sendErrorResponse(req, res, err);
-    },
-  );
-
-  server = createServer(app);
-  await new Promise<void>((resolve: () => void) => {
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  server = await startIdentityServer();
 });
 
 beforeEach(() => {
-  databaseReads = [
+  for (const spy of scimDatabaseReads) {
+    spy.mockRestore();
+  }
+
+  scimDatabaseReads = [
     jest.spyOn(ProjectSCIMService, "findOneBy"),
     jest.spyOn(StatusPageSCIMService, "findOneBy"),
-    jest.spyOn(UserService, "findOneBy"),
-    jest.spyOn(GlobalSSOService, "findBy"),
-    jest.spyOn(GlobalSSOService, "findOneBy"),
   ].map((spy: jest.SpyInstance): jest.SpyInstance => {
     return spy.mockImplementation(() => {
       throw new Error("the database must not be reached");
@@ -210,17 +168,13 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-  await new Promise<void>((resolve: () => void) => {
-    server.close(() => {
-      resolve();
-    });
-  });
+  await server.close();
   EnterpriseEdition.resetForTests();
   setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 
-describe("a lapsed license: the mounted routes refuse over HTTP", () => {
+describe("a lapsed license: SCIM refuses over HTTP, single sign-on keeps answering", () => {
   beforeEach(() => {
     fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
   });
@@ -242,66 +196,40 @@ describe("a lapsed license: the mounted routes refuse over HTTP", () => {
         status: "403",
         detail: SCIM_UNAVAILABLE_MESSAGE,
       });
-      expectNoDatabaseRead();
+      expectNoScimDatabaseRead();
     },
   );
 
   test.each([
-    "/service-provider-login?email=someone@example.com",
-    "/api/identity/service-provider-login-oidc?email=someone@example.com",
-    "/global-sso/service-provider-login",
-    "/api/identity/global-oidc/service-provider-login",
-  ])("SSO discovery %s: 402 with the message", async (path: string) => {
-    const answer: HttpAnswer = await request("GET", path);
-
-    expect(answer.status).toBe(402);
-    expect(JSON.parse(answer.body)).toEqual({
-      message: SSO_UNAVAILABLE_MESSAGE,
-    });
-    expectNoDatabaseRead();
-  });
-
-  test.each([
-    ["GET", `/sso/${ID}/${ID}`],
-    ["POST", `/idp-login/${ID}/${ID}`],
-    ["GET", `/api/identity/global-sso/${ID}`],
-    ["GET", `/global-oidc-callback/${ID}`],
-    ["GET", `/status-page-sso/${ID}/${ID}`],
-    ["POST", `/status-page-idp-login/${ID}/${ID}`],
-    ["GET", `/status-page-oidc-callback/${ID}/${ID}`],
+    ["license expired past grace", createLicenseSnapshotWithStatus("expired")],
+    ["no license after the trial", createLicenseSnapshotWithStatus("missing")],
+    ["invalid license", createLicenseSnapshotWithStatus("invalid")],
+    [
+      "valid license without SCIM or audit logs",
+      createLicenseSnapshotWithStatus("valid", { features: [] }),
+    ],
   ])(
-    "browser flow %s %s: the message page",
-    async (method: string, path: string) => {
-      const answer: HttpAnswer = await request(method, path);
+    "%s: every SSO route answers with its own handler, at both prefixes",
+    async (_label: string, snapshot: EnterpriseLicenseSnapshot) => {
+      fake.setSnapshot(snapshot);
 
-      expect(answer.status).toBe(402);
-      expect(JSON.parse(answer.body)).toEqual(
-        expect.objectContaining({
-          view: MESSAGE_VIEW,
-          message: SSO_UNAVAILABLE_MESSAGE,
-        }),
-      );
-      expectNoDatabaseRead();
+      await expectEverySsoProbeAnswered(server.baseUrl);
     },
   );
 
-  test("a mobile login ends on the app's failure deep link", async () => {
-    const answer: HttpAnswer = await request(
-      "GET",
-      `/global-sso/${ID}?mobile=true`,
-    );
+  test("the SSO answers do not ask the license", async () => {
+    const reads: Array<jest.SpyInstance> = [
+      jest.spyOn(EnterpriseEdition, "isFeatureActive"),
+      jest.spyOn(fake.licensing, "getCachedSnapshot"),
+      jest.spyOn(fake.licensing, "getSnapshot"),
+    ];
 
-    expect(answer.status).toBe(302);
-    expect(answer.location).not.toBeNull();
-    expect(answer.location!.startsWith("oneuptime://sso-callback?")).toBe(true);
+    await expectEverySsoProbeAnswered(server.baseUrl);
 
-    const params: URLSearchParams = new URLSearchParams(
-      answer.location!.slice(answer.location!.indexOf("?") + 1),
-    );
-
-    expect(params.get("error")).toBe(MOBILE_SSO_UNAVAILABLE_ERROR);
-    expect(params.get("errorDescription")).toBe(SSO_UNAVAILABLE_MESSAGE);
-    expectNoDatabaseRead();
+    for (const spy of reads) {
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    }
   });
 
   test("an unknown path is still a 404 (the gates add no catch-all)", async () => {
@@ -318,7 +246,6 @@ describe("renewed, or unknown: the same mounted routes reach their handlers agai
     ["renewed into grace", "grace"],
     ["not read yet (unknown)", null],
   ])("%s", async (_label: string, status: string | null) => {
-    fake.setSnapshot(null);
     fake.setSnapshot(
       status === null
         ? null
@@ -335,16 +262,10 @@ describe("renewed, or unknown: the same mounted routes reach their handlers agai
     expect(scim.body).toContain(
       "Bearer token is required for SCIM authentication",
     );
+    expectNoScimDatabaseRead();
 
-    const discovery: HttpAnswer = await request(
-      "GET",
-      "/service-provider-login",
-    );
-
-    // Reached the discovery handler, which wants an email.
-    expect(discovery.status).toBe(400);
-    expect(discovery.body).toContain("Email is required");
-    expectNoDatabaseRead();
+    // Single sign-on answers exactly as it did while the license was lapsed.
+    await expectEverySsoProbeAnswered(server.baseUrl);
   });
 
   test("lapse and renewal alternate on the same server without a restart", async () => {
@@ -362,7 +283,7 @@ describe("renewed, or unknown: the same mounted routes reach their handlers agai
     );
   });
 
-  test("billing on (the Cloud) ignores the license: the routes are served", async () => {
+  test("billing on (the Cloud) ignores the license: SCIM and SSO are served", async () => {
     fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
     setTestBillingEnabled(true);
 
@@ -375,6 +296,8 @@ describe("renewed, or unknown: the same mounted routes reach their handlers agai
       expect(scim.body).toContain(
         "Bearer token is required for SCIM authentication",
       );
+
+      await expectEverySsoProbeAnswered(server.baseUrl);
     } finally {
       setTestBillingEnabled(false);
     }

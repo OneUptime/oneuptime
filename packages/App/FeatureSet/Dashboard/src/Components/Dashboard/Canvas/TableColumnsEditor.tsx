@@ -17,6 +17,8 @@ import Dropdown, {
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   columns: Array<TableColumn>;
@@ -27,6 +29,7 @@ export interface ComponentProps {
 const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const columns: Array<TableColumn> = props.columns || [];
 
   const metricNameOptions: Array<DropdownOption> =
@@ -111,7 +114,9 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
     <div className="mt-2 space-y-3">
       {columns.length === 0 && (
         <div className="text-xs text-gray-400 italic px-3 py-4 border border-dashed border-gray-200 rounded-lg text-center">
-          No metrics or formulas yet. Add one below to get started.
+          {translator.translateText(
+            "No metrics or formulas yet. Add one below to get started.",
+          )}
         </div>
       )}
 
@@ -145,11 +150,13 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   {column.variable}
                 </span>
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  {isMetric ? "Metric" : "Formula"}
+                  {translator.translateText(isMetric ? "Metric" : "Formula")}
                 </span>
                 {!showAsColumn && (
                   <span className="text-xs text-gray-400 italic">
-                    (hidden — used by formulas only)
+                    {translator.translateText(
+                      "(hidden — used by formulas only)",
+                    )}
                   </span>
                 )}
               </div>
@@ -173,14 +180,14 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 }}
                 className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-              Show as column in the table
+              {translator.translateText("Show as column in the table")}
             </label>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {showAsColumn && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Column header
+                    {translator.translateText("Column header")}
                   </label>
                   <Input
                     type={InputType.TEXT}
@@ -196,7 +203,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {isMetric && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Metric
+                    {translator.translateText("Metric")}
                   </label>
                   <Dropdown
                     options={metricNameOptions}
@@ -216,7 +223,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {isMetric && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Aggregation
+                    {translator.translateText("Aggregation")}
                   </label>
                   <Dropdown
                     options={aggregationOptions}
@@ -238,7 +245,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {isFormula && (
                 <div className="md:col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Formula
+                    {translator.translateText("Formula")}
                   </label>
                   <Input
                     type={InputType.TEXT}
@@ -250,8 +257,13 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   />
                   <p className="mt-1 text-xs text-gray-400">
                     {referenceVariables
-                      ? `Available variables: ${referenceVariables}`
-                      : "Add a metric first so its variable can be referenced here."}
+                      ? translator.translateTemplate(
+                          "Available variables: {{variables}}",
+                          { variables: referenceVariables },
+                        )
+                      : translator.translateText(
+                          "Add a metric first so its variable can be referenced here.",
+                        )}
                   </p>
                 </div>
               )}
@@ -259,7 +271,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {showAsColumn && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Decimals
+                    {translator.translateText("Decimals")}
                   </label>
                   <Input
                     type={InputType.NUMBER}
@@ -282,7 +294,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {showAsColumn && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Unit
+                    {translator.translateText("Unit")}
                   </label>
                   <Input
                     type={InputType.TEXT}
@@ -296,7 +308,9 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   />
                   {isMetric && (
                     <p className="mt-1 text-xs text-gray-400">
-                      Leave blank to inherit the metric&apos;s native unit.
+                      {translator.translateText(
+                        "Leave blank to inherit the metric's native unit.",
+                      )}
                     </p>
                   )}
                 </div>

@@ -192,9 +192,14 @@ describe("PingMonitor.ping — why an IPv6 check failed", () => {
     );
 
     expect(response?.isOnline).toBe(false);
-    expect(response?.failureCause).toContain("no route");
-    expect(response?.failureCause).toContain("Network is unreachable");
-    expect(response?.failureCause).toContain("no IPv6 route");
+    expect(response?.failureCause).toContain(
+      "This probe cannot send IPv6 traffic (ping6: connect: Network is unreachable)",
+    );
+    expect(response?.failureCause).toContain(
+      `${CUSTOMER_ADDRESS} was never contacted`,
+    );
+    expect(response?.failureCause).not.toContain("Unable to reach host");
+    expect(response?.failureCause).not.toContain("No ICMP echo reply");
   });
 
   test("the same failure on IPv4 does not claim an IPv6 problem", async () => {
@@ -273,6 +278,248 @@ describe("PingMonitor.ping — why an IPv6 check failed", () => {
     );
 
     expect(response?.failureCause).toContain("not usable on this probe");
+  });
+});
+
+describe("PingMonitor.ping — a probe that cannot send IPv6 at all", () => {
+  /*
+   * THE CUSTOMER'S REPORT. Their IPv6 Ping monitor on 2001:518:2800:9::2
+   * went red with "Unable to reach host 2001:518:2800:9::2. No ICMP echo
+   * reply from 2001:518:2800:9::2 (5 sent)" — while the host answered 5/5
+   * echoes from anywhere with IPv6. The probe had IPv6 switched off on its
+   * loopback, and this, exactly, is what ping6 printed there (reproduced in
+   * node:26-bookworm-slim with iputils-ping 20221126, `lo.disable_ipv6=1`).
+   * The library resolves alive=false with it in `output`; it never rejects.
+   */
+  const CUSTOMER_PING6_OUTPUT: string =
+    "ping6: connect: Cannot assign requested address\n";
+
+  test("the customer's exact output is reported as the probe's problem, not the host's", async () => {
+    probeSpy.mockResolvedValue(
+      makeAliveResult({
+        alive: false,
+        host: "connect:",
+        numeric_host: undefined,
+        output: CUSTOMER_PING6_OUTPUT,
+        time: "unknown",
+        times: [],
+        min: "unknown",
+        max: "unknown",
+        avg: "unknown",
+        stddev: "unknown",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.isOnline).toBe(false);
+    expect(response?.isTimeout).toBe(false);
+    expect(response?.failureCause).toContain(
+      `This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so ${CUSTOMER_ADDRESS} was never contacted.`,
+    );
+    expect(response?.failureCause).toContain(
+      `this says nothing about whether ${CUSTOMER_ADDRESS} is up`,
+    );
+    expect(response?.failureCause).not.toContain("No ICMP echo reply");
+    expect(response?.failureCause).not.toContain("Unable to reach host");
+  });
+
+  test("every retry attempt carries the same probe-side cause, and the retries are unchanged", async () => {
+    probeSpy.mockResolvedValue(makeDeadResult(CUSTOMER_PING6_OUTPUT));
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 3, timeout: new PositiveNumber(5000) },
+    );
+
+    // Attempt 1/4 .. 4/4, as in the customer's Retry Attempts card.
+    expect(probeSpy).toHaveBeenCalledTimes(4);
+    expect(response?.isOnline).toBe(false);
+    expect(response?.totalAttempts).toBe(4);
+
+    for (const attempt of response?.probeAttempts || []) {
+      expect(attempt.isOnline).toBe(false);
+      expect(attempt.failureCause).toContain(
+        "This probe cannot send IPv6 traffic",
+      );
+      expect(attempt.failureCause).not.toContain("Unable to reach host");
+      expect(attempt.failureCause).not.toContain("No ICMP echo reply");
+    }
+  });
+
+  test.each([
+    // A Docker bridge without --ipv6.
+    "ping6: connect: Network is unreachable\n",
+    // macOS/BSD's spelling of EADDRNOTAVAIL.
+    "ping6: connect: Can't assign requested address\n",
+  ])("%j is the same probe-side cause", async (output: string) => {
+    probeSpy.mockResolvedValue(makeDeadResult(output));
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.isOnline).toBe(false);
+    expect(response?.failureCause).toContain(
+      `This probe cannot send IPv6 traffic (${output.trim()})`,
+    );
+    expect(response?.failureCause).not.toContain("Unable to reach host");
+  });
+
+  test("IPv6 disabled in the kernel is no IPv6, not 'ICMP unusable', despite its 'socket:' prefix", async () => {
+    /*
+     * The infra markers include "socket:", which would otherwise claim ICMP
+     * is broken on a probe whose IPv4 pings are working fine.
+     */
+    probeSpy.mockResolvedValue(
+      makeDeadResult(
+        "ping6: socket: Address family not supported by protocol\n",
+      ),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.failureCause).toContain(
+      "This probe cannot send IPv6 traffic (ping6: socket: Address family not supported by protocol)",
+    );
+    expect(response?.failureCause).not.toContain("not usable on this probe");
+  });
+
+  test("a next hop that answers 'Address unreachable' is still the host's outage", async () => {
+    /*
+     * The real network failure, reproduced beside the probe-side ones: a
+     * route to a dead next hop. The kernel DID send, and a neighbour lookup
+     * gave up on the far side, so this keeps the ordinary no-reply verdict.
+     */
+    probeSpy.mockResolvedValue(
+      makeDeadResult(
+        [
+          "PING 2001:518:2800:9::2(2001:518:2800:9::2) 56 data bytes",
+          "From fe80::1%eth0 icmp_seq=1 Destination unreachable: Address unreachable",
+          "",
+          "--- 2001:518:2800:9::2 ping statistics ---",
+          "5 packets transmitted, 0 received, +5 errors, 100% packet loss, time 4080ms",
+        ].join("\n"),
+      ),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.failureCause).toContain(
+      `Unable to reach host ${CUSTOMER_ADDRESS}. No ICMP echo reply from ${CUSTOMER_ADDRESS} (5 sent)`,
+    );
+    expect(response?.failureCause).not.toContain("IPv6 traffic");
+  });
+
+  test("a silent host keeps the 'Unable to reach host' lead", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult(
+        "5 packets transmitted, 0 packets received, 100.0% packet loss",
+      ),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString(CUSTOMER_ADDRESS) as IPv6,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.failureCause).toContain(
+      `Unable to reach host ${CUSTOMER_ADDRESS}. No ICMP echo reply from ${CUSTOMER_ADDRESS} (5 sent)`,
+    );
+  });
+
+  test("an IPv4 probe-side failure drops the lead too, and says nothing about IPv6", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult("ping: connect: Cannot assign requested address\n"),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString("192.0.2.1") as never,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.isOnline).toBe(false);
+    expect(response?.failureCause).toContain(
+      "This probe could not send traffic to 192.0.2.1 (ping: connect: Cannot assign requested address), so 192.0.2.1 was never contacted.",
+    );
+    expect(response?.failureCause).not.toContain("Unable to reach host");
+    expect(response?.failureCause).not.toContain("IPv6");
+  });
+
+  test("an IPv4 'Network is unreachable' is certain, so it drops the lead as well", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult("ping: connect: Network is unreachable\n"),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString("192.0.2.1") as never,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.failureCause).toContain(
+      "This probe has no route to 192.0.2.1: ping: connect: Network is unreachable.",
+    );
+    expect(response?.failureCause).not.toContain("Unable to reach host");
+    expect(response?.failureCause).not.toContain("IPv6");
+  });
+
+  /*
+   * "No route to host" is only LIKELY the probe's: macOS prints it for a
+   * failed neighbour lookup, i.e. an on-link host that is down. Reproduced
+   * on macOS against an unused address on the local /24, which printed this
+   * after its first ARP miss. Dropping the lead here blamed only the probe,
+   * with no hedge, for a device that was simply off.
+   */
+  test("an uncertain IPv4 'No route to host' keeps the lead and leaves room for the host being down", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult(
+        "ping: sendto: No route to host\nping: sendto: Host is down\nPING 192.0.2.1 (192.0.2.1): 56 data bytes\nRequest timeout for icmp_seq 0\n\n--- 192.0.2.1 ping statistics ---\n5 packets transmitted, 0 packets received, 100.0% packet loss\n",
+      ),
+    );
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString("192.0.2.1") as never,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.isOnline).toBe(false);
+    expect(response?.failureCause).toContain(
+      "Unable to reach host 192.0.2.1. This probe may have no route to 192.0.2.1 (ping: sendto: No route to host); 192.0.2.1 itself may also be down.",
+    );
+    expect(response?.failureCause).not.toContain("IPv6");
+  });
+
+  test.each([
+    // macOS: the request line, then the neighbour lookup giving up.
+    "PING 192.168.1.250 (192.168.1.250): 56 data bytes\nping: sendto: No route to host\nRequest timeout for icmp_seq 0\n",
+    // Linux: the kernel's own neighbour lookup failing, beside the ICMP error.
+    "From 192.168.1.10 icmp_seq=1 Destination Host Unreachable\nping: sendmsg: No route to host\n",
+  ])("%j keeps the 'Unable to reach host' lead", async (output: string) => {
+    probeSpy.mockResolvedValue(makeDeadResult(output));
+
+    const response: PingResponse | null = await PingMonitor.ping(
+      IP.fromString("192.168.1.250") as never,
+      { retry: 0, timeout: new PositiveNumber(5000) },
+    );
+
+    expect(response?.failureCause).toContain(
+      "Unable to reach host 192.168.1.250. This probe may have no route to 192.168.1.250 (ping: ",
+    );
+    expect(response?.failureCause).toContain(
+      "192.168.1.250 itself may also be down.",
+    );
+    expect(response?.failureCause).not.toContain("IPv6");
   });
 });
 

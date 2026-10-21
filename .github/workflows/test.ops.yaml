@@ -22,6 +22,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Before the real-Docker tests below pull their images: through
+      # mirror.gcr.io, not anonymously from Docker Hub
+      # (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -32,33 +36,12 @@ jobs:
       # EnterpriseEditionBuild.test.js checks its Dockerfile renderer against
       # gomplate, which is what really renders every Dockerfile.tpl
       # (Scripts/Install/configure.sh). With CI set that test fails, rather
-      # than skips, when gomplate is missing, so install the release binary at
-      # the version configure.sh pins (read from there, so the two cannot
-      # drift) and check it runs.
-      - name: Install gomplate
-        run: |
-          set -euo pipefail
-          GOMPLATE_VERSION="$(sed -n 's/^GOMPLATE_VERSION="\([0-9.]*\)"$/\1/p' Scripts/Install/configure.sh)"
-          test -n "$GOMPLATE_VERSION"
-          mkdir -p "$RUNNER_TEMP/gomplate-bin"
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
-            -o "$RUNNER_TEMP/gomplate-bin/gomplate" \
-            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64"
-          # The binary runs in CI with the repository checked out, so verify
-          # it against a digest pinned here, not one fetched from the same
-          # release. Bumping GOMPLATE_VERSION in configure.sh fails this step
-          # until the matching digest is pinned too.
-          GOMPLATE_PINNED_VERSION="3.11.8"
-          GOMPLATE_LINUX_AMD64_SHA256="edd7e578094a08e97552d002e84cce576b4df61bb6e29724c2026dc9c9afbc38"
-          if [ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]; then
-            echo "configure.sh pins gomplate $GOMPLATE_VERSION but this step pins the sha256 of $GOMPLATE_PINNED_VERSION: update GOMPLATE_PINNED_VERSION and GOMPLATE_LINUX_AMD64_SHA256 together (checksums-v<version>_sha256.txt in the gomplate release)." >&2
-            exit 1
-          fi
-          echo "${GOMPLATE_LINUX_AMD64_SHA256}  $RUNNER_TEMP/gomplate-bin/gomplate" | sha256sum -c -
-          chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"
-          echo "$RUNNER_TEMP/gomplate-bin" >> "$GITHUB_PATH"
-          export PATH="$RUNNER_TEMP/gomplate-bin:$PATH"
-          gomplate --version | grep -F "$GOMPLATE_VERSION"
+      # than skips, when gomplate is missing, so put the gomplate configure.sh
+      # pins on PATH. The action takes it from the Actions cache, checked
+      # against its pinned sha256, and checks it runs; GitHub's release CDN,
+      # which answers 500/504 in bursts, is only asked on a cache miss, and
+      # then with backoff (Scripts/GHA/fetch_pinned_artifact.sh).
+      - uses: ./.github/actions/setup-gomplate
       # Static/structural tests over the ClickHouse config.d drop-ins, the
       # docker-compose mounts and the backup/restore scripts. No services are
       # started: beyond the package's own deps this needs only gomplate
@@ -76,11 +59,42 @@ jobs:
       # against a vulnerable npm from the registry, and inside
       # node:26-alpine3.24 through the real .dockerignore, the way every Node
       # image runs it. It needs the npm registry and docker.
-      - run: cd Tests/Ops && npm install
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+      # Both real-Docker tests above build FROM
+      # public.ecr.aws/docker/library/node:26-alpine3.24, and public.ecr.aws
+      # serves anonymous pullers from a shared data quota that a busy CI window
+      # exhausts -- that is run 36370235468, where both of them failed on a
+      # `docker build` that never got past its base image. The Dockerfiles are
+      # written inside the tests, so there is no file to read the FROM out of;
+      # name it here instead. Seeding the local image store is enough because
+      # these are plain `docker build`s: BuildKit resolves FROM from there
+      # without asking any registry.
+      - name: Warm the base image the real-Docker tests build FROM
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/node:26-alpine3.24
+      # RUN_COMPOSE_DATABASE_RUNTIME_TESTS starts PostgreSQL from
+      # docker-compose.yml for real (ComposeDatabaseRuntime.test.js): it
+      # answers on 127.0.0.1 and on no other address of the runner, the way
+      # backup.sh and restore.sh connect reaches it, npm start's first step sees
+      # whether its database exists, and the Docker Compose guide's commands
+      # work as written. It pulls postgres:15, and fails rather than skips
+      # when docker is not usable. The same flag starts docker-compose.yml's
+      # ClickHouse and Valkey (ComposeDatastorePasswordRuntime.test.js) to
+      # check they take the new passwords npm start gives an existing install.
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
+          RUN_COMPOSE_DATABASE_RUNTIME_TESTS: "1"
+      # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
+      # needs a cluster and only runs when the chart changes; its assertions
+      # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py
+      # synthetic captures, one fault each, and check that exactly the check
+      # guarding against it fails, so a check that stopped checking anything
+      # fails here on every PR rather than passing there forever.
+      - run: python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not
@@ -89,12 +103,153 @@ jobs:
       # catches all three — and it is the only check that runs the same
       # collector binary the agent images are built FROM.
       #
-      # Runs the pinned collector image over the four agent configs and over
-      # both collector ConfigMaps rendered out of the kubernetes-agent chart.
+      # Runs the pinned collector image over the Docker, Podman, Docker Swarm,
+      # VMware, Proxmox and Ceph agent configs, the Storage Array agent's three
+      # configs (also with their syslog receivers uncommented), every Database
+      # agent config,
+      # and both collector ConfigMaps rendered out of the kubernetes-agent chart
+      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on,
+      # and both again on collector 0.96.0, which an upgrade with
+      # --reuse-values keeps).
       - run: bash Tests/Ops/validate-collector-configs.sh
+      # `validate` proves the agent's OTTL parses; this proves what it DOES.
+      # It runs the Kubernetes agent's eBPF span filters exactly as the chart
+      # renders them, in the collector image the chart ships, and checks which
+      # spans survive: unlinked eBPF database spans dropped (and, with the
+      # opt-in ebpf.dropUnlinkedClientCalls, other unlinked client calls),
+      # request traces, messaging and SDK spans kept. A wrong condition here is
+      # not a crash, it is a customer's traces quietly missing (or the one-span
+      # flood back).
+      - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
+      # The same for the agent's metrics: filter/ebpf-node-inspector as the
+      # chart renders it, in the same collector image, fed datapoints shaped
+      # like OBI's. The http.server.* datapoints of OBI's own Node.js
+      # inspector requests are dropped; an app's own routes, other ports,
+      # other methods and SDK metrics are kept.
+      - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
+      # And for kubelet CPU: the node collector's filter/cpu-utilization and
+      # transform/cpu-utilization as the chart renders them, fed what the
+      # kubeletstats receiver sends, on the collector the chart pins and on
+      # 0.96.0 (which an upgrade with --reuse-values keeps). Both must send
+      # k8s.node.cpu.utilization, k8s.pod.cpu.utilization and
+      # container.cpu.utilization once each, the names OneUptime reads, and
+      # the node and pod *.cpu.usage beside them.
+      - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
+      # And for container CPU: the Docker, Podman and Docker Swarm agents
+      # build container.cpu.utilization from container.cpu.usage.total
+      # (copy, cumulative_to_delta, delta_to_rate, scale to percent of one
+      # core) because the docker_stats receiver's own figure is computed from
+      # one one-shot sample and never follows the load. Fed six scrapes of two
+      # containers, the processors must send 25 / 150 / 0 / nothing after a
+      # restart / 10 % and 1 % throughout; then each agent's whole metrics
+      # pipeline runs against this runner's Docker daemon and a container held
+      # to half a core must read about 50 %. container.memory.percent must come
+      # out in "%", its value unchanged, described as a percent of the memory
+      # limit. The load container is busybox from public.ecr.aws, warmed here.
+      - name: Warm the image the container CPU behaviour test loads a core with
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
+      - run: bash Tests/Ops/container-agent-cpu-utilization-behaviour.sh
+      # The VMware agent without Docker, end to end: the install, upgrade and
+      # uninstall commands of the docs page, run as written by a sudo user in
+      # a systemd container (root umask 077) against a vCenter simulator and a
+      # stand-in OneUptime. It downloads the collector release the agent pins
+      # and runs it under the shipped unit, so a release URL that moved, a
+      # unit directive systemd refuses, a sandbox the collector cannot run in
+      # or a .env quoting rule that mangles a password fails here, not on a
+      # customer's machine. VMwareAgentWithoutDocker.test.js (in the jest run
+      # above) checks the same commands against stubs.
+      #
+      # Twice: on Ubuntu 24.04 (systemd 255), and on Rocky Linux 8 (systemd
+      # 239, as RHEL 8 ships it), the oldest systemd the docs support. 239
+      # still reads a backslash inside single quotes as an escape, which is
+      # why the docs double-quote the vSphere user and password, and its
+      # systemd-analyze verify flags a unit directive only newer systemd knows.
+      - name: Warm the base images the VMware install without Docker runs on
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/ubuntu:24.04 --image public.ecr.aws/docker/library/rockylinux:8
+      # The vCenter simulator those runs talk to (govmomi's vcsim) is a GitHub
+      # release asset, and GitHub's release CDN answers 500/504 in bursts: one
+      # failed this job on master on 2026-10-12 (run 38249658794). So the
+      # archive the script pins comes from the Actions cache, keyed on that
+      # pin, and the CDN is only asked on a miss -- through
+      # Scripts/GHA/fetch_pinned_artifact.sh, which backs off exponentially and
+      # goes round again after 30s and 90s. The cache is filled by a step of
+      # its own, before the runs, because actions/cache's post step only saves
+      # when the whole job passes.
+      - name: Resolve the pinned vcsim
+        id: vcsim
+        env:
+          VCSIM_CACHE_DIR: ${{ runner.temp }}/vcsim
+        run: bash Tests/Ops/vmware-agent-native-install.sh --print-vcsim-pin >>"$GITHUB_OUTPUT"
+      - name: Restore vcsim from the Actions cache
+        id: vcsim-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ steps.vcsim.outputs.dir }}
+          key: vcsim-${{ steps.vcsim.outputs.version }}-${{ steps.vcsim.outputs.platform }}-${{ steps.vcsim.outputs.sha256 }}
+      # Runs on a hit too: a restored archive is only used once it matches the
+      # pin, and one that does not is downloaded again.
+      - name: Verify vcsim, or download it on a cache miss
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+        run: bash Tests/Ops/vmware-agent-native-install.sh --fetch-vcsim
+      # Two runs missing at once both try to save; the loser only logs a warning.
+      - name: Save vcsim to the Actions cache
+        if: steps.vcsim-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ steps.vcsim.outputs.dir }}
+          key: ${{ steps.vcsim-cache.outputs.cache-primary-key }}
+      - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/ubuntu:24.04
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+      - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/rockylinux:8
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+      # The infrastructure agent's apt and yum repository, end to end:
+      # Scripts/PackageManagers/PublishPackageRepository.sh publishes two
+      # releases of a stand-in package (built by nfpm, as GoReleaser builds
+      # the agent's) to a local stand-in for OneUptime/packages, and the
+      # Server / VM Monitor page's apt and dnf commands install from the site
+      # it pushed, as written, on Ubuntu 24.04 and Rocky Linux 8 (the images
+      # warmed above) under a root umask of 077: signatures checked, by-hash
+      # indexes, downgrade and upgrade, another key refused. release.yml
+      # publishes the real repository only after a release, so this is where
+      # a broken publish shows up first. The site is served by busybox httpd.
+      - name: Warm the image the package repository e2e serves its site from
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
+      - run: bash Tests/Ops/package-repository-e2e.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
       # the development render, without building anything; the jest suite
       # above pins what the stages contain.
       - run: bash Tests/Ops/lint-app-dockerfile.sh
+      # The same for the image Anthropic's OSS Scanner builds from master
+      # (.oss-scanner/Dockerfile): BuildKit's checks, without building it.
+      # The image is about 10 GB, more than a standard runner has to spare,
+      # and the scanner emails security@oneuptime.com when its build fails;
+      # OssScannerImage.test.js (in the jest run above) pins what it builds.
+      # buildx_check.sh runs the check with an empty context (--check reads
+      # only the Dockerfile) and, when public.ecr.aws refuses the base images
+      # with its anonymous-quota 429, checks again with them from Docker Hub.
+      - name: Check the OSS Scanner Dockerfile
+        run: bash Scripts/GHA/buildx_check.sh .oss-scanner/Dockerfile
+      # What agent-trace-filter-behaviour.sh does for the agent's collector,
+      # this does for its eBPF DaemonSet. helm-unittest pins OBI's config file
+      # and env as text, but only OBI can say whether it takes them: it
+      # refuses to start on a metrics feature it does not know (the
+      # `application_host` that would crash-loop every node on v0.14),
+      # silently ignores a YAML key it does not know, and warns on every start
+      # about a feature it deprecated (`application_span`, which the chart
+      # replaced with `application_span_otel`). This loads each rendered
+      # variant in the OBI image the chart pins, unprivileged (no
+      # capabilities, no network, never --privileged or --pid=host), and
+      # checks the effective configuration OBI prints before it gives up for
+      # lack of privileges.
+      #
+      # It pulls the image the chart renders, so a tag nobody can pull fails
+      # it: a chart pinning such an image puts every node in ImagePullBackOff.
+      # It also pulls OBI v0.13.0, what a --reuse-values upgrade from chart
+      # 14.0.12 keeps, and loads the render for that tag in it.
+      # Last in the job, so a red run here never skips the steps above.
+      - run: bash Tests/Ops/agent-obi-config-load.sh

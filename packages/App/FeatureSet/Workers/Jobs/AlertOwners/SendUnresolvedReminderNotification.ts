@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,11 +12,14 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -28,6 +32,7 @@ import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "AlertOwner:SendUnresolvedReminderNotification",
@@ -57,16 +62,20 @@ RunCron(
         alertSeverityId: true,
         alertSeverity: {
           name: true,
+          color: true,
         },
         labels: {
           _id: true,
         },
         currentAlertState: {
           name: true,
+          color: true,
         },
-        monitor: {
-          name: true,
-        },
+        /*
+         * The series a grouped monitor raised this alert for, named in the
+         * monitor's place under Resources Affected, as the created email does.
+         */
+        seriesLabels: true,
         alertNumber: true,
         alertNumberWithPrefix: true,
         enableReminders: true,
@@ -202,6 +211,17 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     await AlertService.getAlertLinkInDashboard(projectId, alertId)
   ).toString();
 
+  // Every resource the alert's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForAlert({
+      service: AlertService,
+      projectId: projectId,
+      alertId: alertId,
+    }),
+    seriesSummary: SeriesLabelDisplay.buildInlineSummary(alert.seriesLabels),
+    fallback: "None",
+  });
+
   let moreAlertFeedInformationInMarkdown: string = "";
 
   for (const user of owners) {
@@ -210,6 +230,10 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       alertNumber: alertNumberStr,
       projectName: alert.project!.name!,
       currentState: currentStateName,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alert.currentAlertState?.color,
+      ),
       openDuration: openDuration,
       createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
         date: openedAt,
@@ -219,8 +243,12 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
         alert.description! || "",
         MarkdownContentType.Email,
       ),
-      resourcesAffected: alert.monitor?.name || "None",
+      resourcesAffected: resourcesAffected,
       alertSeverity: alert.alertSeverity?.name || "",
+      ...EmailColorUtil.getTemplateVariables(
+        "alertSeverity",
+        alert.alertSeverity?.color,
+      ),
       alertViewLink: alertViewLink,
     };
 
@@ -241,7 +269,9 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     };
 
     const sms: SMSMessage = {
-      message: `This is a message from OneUptime. Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      message: buildNotificationSms(
+        `Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+      ),
     };
 
     const callMessage: CallRequestMessage = {
@@ -289,7 +319,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       eventType,
     });
 
-    moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+    moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
       {
         userId: user.id!,
         projectId: projectId,
@@ -305,7 +335,8 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     projectId: projectId,
     alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
     displayColor: Blue500,
-    feedInfoInMarkdown: `🔔 **Reminder sent to owners of [Alert ${alertNumberDisplayValue}](${alertViewLink})**: This alert is still **${currentStateName}** and has been open for **${openDuration}**.`,
+    feedInfoInMarkdown:
+      mdText`🔔 **Reminder sent to owners of [Alert ${alertNumberDisplayValue}](${alertViewLink})**: This alert is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
     workspaceNotification: {
       sendWorkspaceNotification: true,

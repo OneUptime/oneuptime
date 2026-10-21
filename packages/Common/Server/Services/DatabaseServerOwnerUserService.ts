@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DatabaseServerOwnerUser";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
@@ -12,8 +12,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -22,7 +23,8 @@ export class Service extends DatabaseService<Model> {
    * A caller adding an owner: the create permission first (so the lookup
    * below is no way to probe for databases), then the database must be in
    * the caller's project - by its FK column and its relation object alike.
-   * Root writes (owner rules) choose their own database.
+   * Root writes (owner rules) choose their own database, which the generic
+   * reference check below still holds to the project.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -40,6 +42,12 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Then the team or user, and the database once more for a root write: every
+     * reference must be the project's (see ProjectReferencesService).
+     */
+    await super.onBeforeCreate(createBy);
+
     return { createBy: createBy, carryForward: null };
   }
 
@@ -49,21 +57,17 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here.
+     * to be built from what was read here: the rows the delete removes, and
+     * the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         databaseServerId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -113,10 +117,11 @@ export class Service extends DatabaseService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-          projectId,
-          databaseServerId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+            projectId,
+            databaseServerId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -153,15 +158,14 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId,
         databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-          projectId,
-          databaseServerId,
-        )}.`,
+          })}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+            projectId,
+            databaseServerId,
+          )}.`.toString(),
         userId: createdByUserId || undefined,
       });
     }

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -12,7 +13,6 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
@@ -25,6 +25,7 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import Team from "../../Models/DatabaseModels/Team";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -121,7 +122,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -193,7 +196,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.TeamAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -208,12 +212,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    // The rows the delete removes, and the delete held to them.
+    const itemsToFetchBeforeDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         projectId: true,
         teamId: true,
         team: {
@@ -229,10 +230,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           name: true,
           _id: true,
         },
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+      });
 
     const deleteByUserId: ObjectID | undefined =
       deleteBy.deletedByUser?.id || deleteBy.props.userId;
@@ -258,7 +256,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           onCallDutyPolicyFeedEventType:
             OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
           displayColor: Red500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -323,7 +322,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

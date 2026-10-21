@@ -1,41 +1,50 @@
-# Complete Guide
+# Komplett guide
 
-This guide covers everything beyond the first apply: authentication patterns, how to structure a OneUptime Terraform project, resource dependencies, data sources, state management, and upgrades.
+Den här guiden tar upp det som kommer efter din första apply: hur providern hittar sin API-nyckel, hur du lägger upp en konfiguration för ett eller flera projekt, hur resurser hänvisar till varandra, hur du läser poster som du inte hanterar, hur du håller din state säker och hur du uppgraderar. Ny med providern? Börja med [Snabbstart](/docs/terraform/quick-start).
 
-If you have never used the provider, start with the [Quick Start](/docs/terraform/quick-start).
+:::cards
+- [Konfigurera providern](#konfigurera-providern): API-nyckeln och adressen, och var providern läser dem.
+- [Lägg upp en konfiguration](#lägg-upp-en-konfiguration): Filer, projekt och många resurser från ett block.
+- [Läs det som redan finns](#läs-det-som-redan-finns): Datakällor, och hur en uppslagning hittar sin träff.
+- [Håll din state säker](#håll-din-state-säker): En fjärrbackend, och vad du aldrig ska committa.
+:::
 
-## Provider configuration
+## Konfigurera providern
 
-The provider block accepts two attributes:
+Providern tar två inställningar. Var och en kommer från provider-blocket, eller annars från en miljövariabel:
 
-| Attribute | Required | Environment variable | Default |
-|-----------|----------|----------------------|---------|
-| `api_key` | No (falls back to env var) | `ONEUPTIME_API_KEY` | — |
-| `oneuptime_url` | No | `ONEUPTIME_URL` | `https://oneuptime.com` |
+| Inställning | Miljövariabel | När ingen av dem är angiven |
+| --- | --- | --- |
+| `api_key` | `ONEUPTIME_API_KEY` | Providern stannar innan något planeras: `Missing API Key` |
+| `oneuptime_url` | `ONEUPTIME_URL` | `https://oneuptime.com`, vilket är OneUptime Cloud |
 
-If no API key is available from either the provider block or the environment, the provider fails at configure time with an explicit error — before any plan or apply work happens.
+```mermaid title="Var providern hittar nyckel och adress"
+flowchart TB
+    B["1. Provider-blocket:<br/>api_key och<br/>oneuptime_url"] --> E["2. Miljövariabler:<br/>ONEUPTIME_API_KEY<br/>och ONEUPTIME_URL"]
+    E --> N["3. Ingen av dem:<br/>utan nyckel stoppas<br/>körningen, och utan adress<br/>gäller OneUptime Cloud"]
+```
 
-The key must be a **project API key** (Projektinställningar > API-nycklar), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
+`oneuptime_url` är adressen till ditt OneUptime, utan `/api`: providern lägger till `https://` när adressen saknar schema, och `/api` i slutet. `api_key` är känslig, så Terraform skriver aldrig ut den.
 
-### Option 1: Environment variables (recommended)
+Nyckeln måste vara en API-nyckel till det projekt som du hanterar, med behörighet att skapa, läsa, ändra och ta bort varje slags post som din konfiguration har: se [Skapa en API-nyckel till projektet](/docs/terraform/quick-start#skapa-en-api-nyckel-till-projektet). Master-API-nyckeln i ett självhostat OneUptime hör inte till något projekt, så en skapning som görs med den misslyckas med `ProjectId required`.
 
-Keep credentials out of your configuration entirely:
+### Ge providern dess nyckel
 
+:::tabs
+@tab Miljövariabel
 ```bash
-export ONEUPTIME_API_KEY="your-project-api-key"
-# Only needed for self-hosted instances:
+export ONEUPTIME_API_KEY="<your-api-key>"
+# Only on a self-hosted OneUptime:
 export ONEUPTIME_URL="https://oneuptime.example.com"
 ```
 
-```hcl
+```hcl title="main.tf"
 provider "oneuptime" {}
 ```
-
-### Option 2: Variables with a tfvars file
-
-```hcl
+@tab Terraform-variabel
+```hcl title="variables.tf"
 variable "oneuptime_api_key" {
-  description = "OneUptime project API key"
+  description = "API key of the OneUptime project"
   type        = string
   sensitive   = true
 }
@@ -45,173 +54,287 @@ provider "oneuptime" {
 }
 ```
 
-Put the value in `terraform.tfvars` (and add that file to `.gitignore`):
+```hcl title="terraform.tfvars"
+oneuptime_api_key = "<your-api-key>"
+```
+:::
+
+En miljövariabel håller nyckeln utanför alla filer. En variabelfil är praktisk på din egen dator: lägg till `terraform.tfvars` i `.gitignore`. I en pipeline anger du `TF_VAR_oneuptime_api_key` i stället för att skriva filen.
+
+### Kör den i CI/CD
+
+Ge jobbet nyckeln som en hemlighet, i miljövariabeln `ONEUPTIME_API_KEY`:
+
+:::tabs
+@tab GitHub Actions
+```yaml title=".github/workflows/oneuptime.yml"
+name: OneUptime
+on:
+  push:
+    branches: [main]
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform apply -input=false tfplan
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+apply:
+  image:
+    name: hashicorp/terraform:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - terraform init -input=false
+    - terraform plan -input=false -out=tfplan
+    - terraform apply -input=false tfplan
+```
+:::
+
+I GitHub lägger du till hemligheten under **Settings → Secrets and variables → Actions**; i GitLab lägger du till en maskerad CI/CD-variabel med samma namn. Håll din state i en [fjärrbackend](#håll-din-state-säker), så att varje körning börjar från den state som den förra lämnade.
+
+## Lägg upp en konfiguration
+
+Ett upplägg som fungerar bra:
+
+```text
+oneuptime/
+├── main.tf          # the terraform and provider blocks
+├── variables.tf     # input variables
+├── outputs.tf       # the IDs other configurations need
+├── shared.tf        # labels, teams and monitor statuses
+├── monitors.tf      # monitors and monitor groups
+├── status-pages.tf  # status pages and their domains
+└── on-call.tf       # on-call policies and escalation rules
+```
+
+- **En konfiguration för varje projekt.** En API-nyckel hör till ett projekt, så en konfiguration hanterar naturligt ett.
+- **Delade poster en gång.** Definiera etiketter, team och monitorstatusar i en fil, och hänvisa till dem med deras adress överallt annars.
+
+### Hantera flera projekt
+
+För att hantera mer än ett projekt från en konfiguration ger du providern ett alias för varje projekt, vart och ett med det projektets nyckel. En resurs anger med `provider` vilket alias den använder:
 
 ```hcl
-oneuptime_api_key = "your-project-api-key"
+provider "oneuptime" {
+  alias   = "production"
+  api_key = var.production_api_key
+}
+
+provider "oneuptime" {
+  alias   = "staging"
+  api_key = var.staging_api_key
+}
+
+resource "oneuptime_label" "staging_critical" {
+  provider = oneuptime.staging
+
+  name  = "critical"
+  color = "#FF5733"
+}
 ```
 
-### Option 3: CI/CD secrets
+Deklarera `production_api_key` och `staging_api_key` som variabler som är markerade `sensitive`, som ovan.
 
-In CI, inject the key as a masked environment variable. GitHub Actions example:
+### Många resurser från ett block
 
-```yaml
-env:
-  ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
-steps:
-  - uses: hashicorp/setup-terraform@v3
-  - run: terraform init
-  - run: terraform plan -input=false
-  - run: terraform apply -auto-approve -input=false
+`for_each` skapar en resurs för varje post i en map. De här monitorerna delar sina kriterier och skiljer sig bara i namn och adress:
+
+```hcl
+variable "websites" {
+  type = map(string)
+  default = {
+    homepage = "https://example.com"
+    docs     = "https://docs.example.com"
+  }
+}
+
+resource "oneuptime_monitor" "website" {
+  for_each = var.websites
+
+  name                = "Website: ${each.key}"
+  monitor_type        = "Website"
+  monitoring_interval = "*/5 * * * *"
+
+  monitor_steps = [{
+    monitor_destination      = each.value
+    monitor_destination_type = "URL"
+
+    criteria = [
+      {
+        name                  = "Offline"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      }
+    ]
+  }]
+}
 ```
 
-The same pattern works in GitLab CI (masked variables), CircleCI (contexts), and Terraform Cloud (environment variables on the workspace).
+Lägg till en webbplats i mappen, så skapar nästa apply dess monitor. Ta bort en, så tar den bort den.
 
-## Project structure
+## Hänvisa till andra resurser
 
-A layout that works well for OneUptime configurations:
+En resurs som nämner en annan resurs attribut är beroende av den, och Terraform ordnar arbetet efter de hänvisningarna. Här skapas etiketten först och tas bort sist, eftersom monitorn och statussidan nämner den:
 
+```mermaid title="Terraform skapar först det som en resurs hänvisar till"
+flowchart TB
+    L["oneuptime_label<br/>payments"] --> M["oneuptime_monitor<br/>checkout_api"]
+    L --> SP["oneuptime_status_page<br/>payments"]
+    M --> R["oneuptime_status_page_resource<br/>checkout_api"]
+    SP --> R
 ```
-oneuptime/
-├── main.tf          # terraform {} and provider {} blocks
-├── variables.tf     # input variables
-├── outputs.tf       # exported IDs
-├── labels.tf        # labels, teams — shared building blocks
-├── monitors.tf      # monitors and monitor statuses
-├── status-pages.tf  # status pages and domains
-├── on-call.tf       # on-call policies and escalation rules
-└── environments/
-    ├── production.tfvars
-    └── staging.tfvars
-```
-
-Two conventions that pay off:
-
-- **One Terraform root per OneUptime project.** API keys are project-scoped, so a root module maps naturally to one project. For multiple projects, use separate root modules (or provider aliases with one key each).
-- **Define shared building blocks (labels, teams, monitor statuses) once** in their own file and reference them by resource address everywhere else.
-
-## Resource dependencies
-
-Terraform infers dependencies from references. A typical graph — labels and teams feeding monitors, which feed a status page:
 
 ```hcl
 resource "oneuptime_label" "payments" {
   name        = "payments"
   description = "Payment infrastructure"
-  color       = "#2ecc71"
-}
-
-resource "oneuptime_team" "payments_oncall" {
-  name        = "Payments On-Call"
-  description = "Owns payment service availability"
+  color       = "#2ECC71"
 }
 
 resource "oneuptime_monitor" "checkout_api" {
   name         = "Checkout API"
   description  = "Availability of the checkout API"
-  monitor_type = "API"
+  monitor_type = "Manual"
   labels       = [oneuptime_label.payments.id]
 }
 
 resource "oneuptime_status_page" "payments" {
-  name                     = "Payments Status"
-  description              = "Customer-facing payments status"
-  page_title               = "Payments Status"
-  page_description         = "Live status of payment processing"
-  is_public_status_page    = true
-  enable_email_subscribers = true
-  enable_sms_subscribers   = false
-  labels                   = [oneuptime_label.payments.id]
+  name                  = "Payments Status"
+  page_title            = "Payments Status"
+  is_public_status_page = true
+  labels                = [oneuptime_label.payments.id]
+}
+
+resource "oneuptime_status_page_resource" "checkout_api" {
+  status_page_id = oneuptime_status_page.payments.id
+  monitor_id     = oneuptime_monitor.checkout_api.id
+  display_name   = "Checkout API"
 }
 ```
 
-Because `oneuptime_monitor.checkout_api` references `oneuptime_label.payments.id`, Terraform creates the label first and destroys it last. Explicit `depends_on` is rarely needed — only add it when there is a real ordering requirement without an attribute reference.
+Du behöver sällan `depends_on`: lägg bara till den för en ordning som Terraform inte kan se utifrån attributen. Listor med ID:n som `labels` är mängder, så att ändra ordningen ändrar ingenting.
 
-Attributes like `labels` are **unordered sets of ID strings**: changing the order of entries produces no diff.
+## Läs det som redan finns
 
-## Data sources
-
-Every resource has a matching data source with the same name. Use data sources to reference resources that are *not* managed by this configuration — created in the dashboard, or owned by another Terraform root.
-
-Look up by `name`:
+Varje resurs har en datakälla med samma namn. En datakälla läser en post som den här konfigurationen inte hanterar, skapad i instrumentpanelen eller av en annan konfiguration, så att du kan hänvisa till den utan att ta över den.
 
 ```hcl
 data "oneuptime_label" "critical" {
   name = "critical"
 }
 
-resource "oneuptime_monitor" "db" {
+data "oneuptime_monitor_status" "offline" {
+  is_offline_state = true
+}
+
+data "oneuptime_status_page" "main" {
+  id = "5f8a1b2c-3d4e-4f6a-8b9c-0d1e2f3a4b5c"
+}
+
+resource "oneuptime_monitor" "database" {
   name         = "Database Health"
-  description  = "Managed here, but reuses a dashboard-created label"
   monitor_type = "Manual"
   labels       = [data.oneuptime_label.critical.id]
 }
 ```
 
-Or look up by `id`:
+Så hittar en uppslagning sin träff:
 
-```hcl
-data "oneuptime_status_page" "main" {
-  id = "5f8a1b2c3d4e5f6a7b8c9d0e"
-}
-```
+| Du anger | Den hittar | Fel |
+| --- | --- | --- |
+| `id` | Posten med det ID:t | `Not Found` när ingen post har det |
+| Andra enkla argument, ett eller flera | Den enda post som stämmer med alla | `Not Found` när ingen stämmer, `Ambiguous Match` när fler än en stämmer |
+| `id` och ett annat argument, eller ingenting | Ingenting | `Invalid Lookup` |
 
-Lookup rules:
+Enkla argument är text, tal och sant eller falskt: ett namn, en prioritet, en flagga som `is_offline_state`. Listor, JSON-värden, tidsstämplar och hemligheter går inte att slå upp efter. För att ta över en post i stället för att bara läsa den [importerar du den](/docs/terraform/importing-resources).
 
-- Provide `id` **or** `name`.
-- If nothing matches, the data source returns an error (fix the name, or create the resource).
-- If more than one resource matches a `name`, the data source also errors — names used for lookups must be unique. Look up by `id` instead.
+## Håll din state säker
 
-> **Note:** If you want to *manage* an existing resource rather than just reference it, import it instead — see [Importing Resources](/docs/terraform/importing-resources).
-
-## State management
-
-Terraform state for OneUptime configurations contains resource IDs and attribute values — including anything sensitive you set. Treat it accordingly:
-
-- **Use a remote backend** for anything beyond a personal experiment, so state is shared, locked, and not sitting in a laptop directory. Any [standard backend](https://developer.hashicorp.com/terraform/language/backend) works — S3 + DynamoDB, Terraform Cloud, azurerm, GCS:
+Terraforms state innehåller ID:n och attribut för allt som den hanterar, hemligheter inräknade. Håll den i en fjärrbackend som låser den, så att ett team delar en state och två körningar aldrig skriver den samtidigt. Vilken standardbackend som helst fungerar, till exempel en S3-bucket:
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "my-terraform-state"
-    key            = "oneuptime/production.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
+    bucket       = "my-terraform-state"
+    key          = "oneuptime/production.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 ```
 
-- **Never edit state by hand.** Use `terraform state mv` / `terraform state rm` if you need surgery.
-- **Never commit `terraform.tfstate` or `*.tfvars` with secrets** to version control.
+`use_lockfile` kräver Terraform 1.10 eller OpenTofu 1.10, eller senare. Före dem låser S3-backenden med en DynamoDB-tabell (`dynamodb_table`).
 
-## Timestamps and drift
+- **Redigera aldrig din state för hand.** Använd `terraform state mv` och `terraform state rm`.
+- **Committa aldrig `terraform.tfstate`, eller en `.tfvars`-fil med en hemlighet i.**
 
-Date/time attributes (for example `starts_at` / `ends_at` on `oneuptime_scheduled_maintenance_event`, or computed `created_at` fields) are RFC3339 strings. The provider compares timestamps semantically: `2026-08-01T02:00:00Z` and the server-normalized form of the same instant are treated as equal, so timestamp normalization does not produce spurious diffs.
+## Drift, och vad som inte orsakar den
 
-When you generate timestamps with functions like `timestamp()` or `timeadd()`, the *generated value* changes on every run — that is a Terraform behavior, not a provider one. Either use static values or ignore changes after creation:
+`terraform plan` jämför OneUptime med din konfiguration och visar det som skiljer sig. Vissa skillnader visas aldrig:
+
+- **Tider jämförs som tidpunkter.** `2030-06-01T02:00:00Z` och serverns sätt att skriva samma tidpunkt är lika.
+- **Standardvärden som servern lägger till** i en monitors steg, eller i ett JSON-värde, är ingen skillnad mot det som du skrev.
+- **Det som servern håller uppdaterat**, till exempel en monitors nuvarande status, är inte heller någon skillnad.
+
+Ett värde som du beräknar vid varje körning är det däremot: `timestamp()` ger en ny tid vid varje körning, så en plan visar den alltid. Skriv fasta tider i stället:
 
 ```hcl
-resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
+resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   title       = "Database upgrade"
   description = "Planned PostgreSQL upgrade"
-  starts_at   = "2026-08-01T02:00:00Z"
-  ends_at     = "2026-08-01T04:00:00Z"
+  starts_at   = "2030-06-01T02:00:00Z"
+  ends_at     = "2030-06-01T04:00:00Z"
 }
 ```
 
-## Upgrading the provider
+## Uppgradera providern
 
-1. Read the release notes on the [registry page](https://registry.terraform.io/providers/oneuptime/oneuptime) or [GitHub releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases).
-2. Raise the version constraint (for example `~> 11.0` already allows all 11.x releases; moving to a new major requires editing the constraint).
-3. Run `terraform init -upgrade` to fetch the new version.
-4. Run `terraform plan` and confirm the plan is empty (or contains only changes you expect) before applying.
+:::steps
+### Läs versionsinformationen
 
-Self-hosted installations must keep the provider version at or below the platform version — upgrade OneUptime first, then the provider. See [Self-Hosted Setup](/docs/terraform/self-hosted).
+[Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) och [providerns versioner på GitHub](https://github.com/OneUptime/terraform-provider-oneuptime/releases) visar vad som har ändrats.
 
-## Further reading
+### Höj versionsbegränsningen
 
-- [Examples](/docs/terraform/examples) — real configurations for each resource type
-- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` JSON schema in depth
-- [Importing Resources](/docs/terraform/importing-resources) — adopting existing resources
-- [Troubleshooting](/docs/terraform/troubleshooting) — common errors and fixes
+`{{TERRAFORM_PROVIDER_VERSION}}` tar redan varje {{TERRAFORM_PROVIDER_MAJOR}}.x-version. En ny huvudversion kräver en ny begränsning.
+
+### Hämta den nya versionen
+
+```bash
+terraform init -upgrade
+```
+
+### Planera innan du tillämpar
+
+Kör `terraform plan`, och tillämpa bara när den är tom eller visar de ändringar som du väntar dig.
+:::
+
+På ett självhostat OneUptime uppgraderar du först OneUptime och sedan providern: providern får inte vara nyare än ditt OneUptime. Se [Självhostad konfiguration](/docs/terraform/self-hosted).
+
+## Nästa steg
+
+:::cards
+- [Monitorsteg](/docs/terraform/monitor-steps): Bestäm vad en monitor kontrollerar och vad varje resultat betyder.
+- [Exempel](/docs/terraform/examples): Färdiga konfigurationer för de vanliga resurserna.
+- [Importera resurser](/docs/terraform/importing-resources): För in det du har skapat i instrumentpanelen under Terraform.
+- [Felsökning](/docs/terraform/troubleshooting): Vanliga fel och hur du åtgärdar dem.
+:::

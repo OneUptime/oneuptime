@@ -22,6 +22,12 @@ import {
   getCloudResourceAttributeFilters,
   isCloudResourceScoped,
 } from "../Utils/CloudResourceTelemetryScope";
+import {
+  getCloudMonitoredResourceAttributeDisplayKeys,
+  getCloudMonitoredResourceAttributeFilters,
+  isCloudMonitoredResourceScoped,
+} from "../Utils/CloudMonitoredResourceScope";
+import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const CloudResourceMetrics: FunctionComponent<
   PageComponentProps
@@ -47,11 +53,13 @@ const CloudResourceMetrics: FunctionComponent<
           cloudPlatform: true,
           cloudAccountId: true,
           cloudRegion: true,
+          cloudResourceKind: true,
+          telemetryAttributes: true,
         },
       });
 
       if (!item?.resourceIdentifier) {
-        setError("Cloud environment not found.");
+        setError("Cloud resource not found.");
         setIsLoading(false);
         return;
       }
@@ -69,25 +77,34 @@ const CloudResourceMetrics: FunctionComponent<
     });
   }, []);
 
+  const isResource: boolean = isCloudResourceKindResource(
+    cloudResource?.cloudResourceKind,
+  );
+
   /*
    * The viewer keys its query memo on the identity of these objects, so
-   * they are built once per environment rather than once per render.
+   * they are built once per row rather than once per render. An
+   * environment is scoped by its cloud.* resource attributes; a resource
+   * discovered from cloud monitoring by the exact metric attributes ingest
+   * recorded for it (CloudMonitoredResourceScope).
    */
   const attributeFilters: Record<string, string> = useMemo(() => {
-    return getCloudResourceAttributeFilters(cloudResource);
+    return isResource
+      ? getCloudMonitoredResourceAttributeFilters(cloudResource)
+      : getCloudResourceAttributeFilters(cloudResource);
   }, [
+    isResource,
     cloudResource?.cloudPlatform,
     cloudResource?.cloudAccountId,
     cloudResource?.cloudRegion,
+    cloudResource?.telemetryAttributes,
   ]);
 
   const attributeFilterDisplayKeys: Record<string, string> = useMemo(() => {
-    return getCloudResourceAttributeDisplayKeys(cloudResource);
-  }, [
-    cloudResource?.cloudPlatform,
-    cloudResource?.cloudAccountId,
-    cloudResource?.cloudRegion,
-  ]);
+    return isResource
+      ? getCloudMonitoredResourceAttributeDisplayKeys(attributeFilters)
+      : getCloudResourceAttributeDisplayKeys(cloudResource);
+  }, [isResource, attributeFilters]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -98,14 +115,24 @@ const CloudResourceMetrics: FunctionComponent<
   }
 
   if (!cloudResource?.resourceIdentifier) {
-    return <ErrorMessage message="Cloud environment not found." />;
+    return <ErrorMessage message="Cloud resource not found." />;
   }
 
-  /*
-   * No platform means no attribute filter, and the viewer would fall back
-   * to every metric in the project. Show what is actually true instead.
-   */
-  if (!isCloudResourceScoped(cloudResource)) {
+  if (isResource) {
+    /*
+     * A resource without recorded attributes has no filter either, and the
+     * same fallback to every metric in the project must not happen.
+     */
+    if (!isCloudMonitoredResourceScoped(cloudResource)) {
+      return (
+        <ErrorMessage message="This cloud resource has no metric attributes recorded yet. They are recorded with the next metrics its provider reports about it." />
+      );
+    }
+  } else if (!isCloudResourceScoped(cloudResource)) {
+    /*
+     * No platform means no attribute filter, and the viewer would fall back
+     * to every metric in the project. Show what is actually true instead.
+     */
     return (
       <CloudResourceConnectBanner
         modelId={modelId}

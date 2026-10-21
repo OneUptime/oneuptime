@@ -13,6 +13,8 @@ import LogSeverity, {
   LogSeverityNumber,
   normalizeLogSeverity,
 } from "Common/Types/Log/LogSeverity";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface SeverityMapping {
   matchValue: string;
@@ -50,6 +52,7 @@ const severityOptions: Array<DropdownOption> = [
 const SeverityMappingRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { mapping } = props;
 
   return (
@@ -66,7 +69,9 @@ const SeverityMappingRow: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="col-span-1 flex justify-center">
-        <span className="text-gray-400 text-sm font-medium">maps to</span>
+        <span className="text-gray-400 text-sm font-medium">
+          {translator.translateText("maps to")}
+        </span>
       </div>
 
       <div className="col-span-5">

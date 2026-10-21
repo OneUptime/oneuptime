@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/PodmanHostOwnerTeam";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostFeed";
@@ -10,8 +10,9 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import PodmanHostService from "./PodmanHostService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -22,21 +23,17 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here.
+     * to be built from what was read here: the rows the delete removes, and
+     * the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         podmanHostId: true,
         projectId: true,
         teamId: true,
       },
-    });
+    );
 
     return {
       carryForward: {
@@ -84,10 +81,11 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId,
         podmanHostFeedEventType: PodmanHostFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
-          projectId,
-          podmanHostId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
+            projectId,
+            podmanHostId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -123,10 +121,11 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           podmanHostFeedEventType: PodmanHostFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
-            projectId,
-            podmanHostId,
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
+              projectId,
+              podmanHostId,
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         });
       }

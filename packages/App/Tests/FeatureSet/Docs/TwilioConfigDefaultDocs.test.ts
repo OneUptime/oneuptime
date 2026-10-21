@@ -1,0 +1,308 @@
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import TwilioConfigDefaultCopy from "../../../FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import { drawnCreateButton, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * A project's first Twilio config becomes its default, in the two docs pages
+ * that walk someone through adding one, in every docs language.
+ *
+ * - self-hosted/twilio-integration.md told people to switch "Set as Project
+ *   Default" on, and that a config created without it is not used for the
+ *   project's SMS and calls. Now the switch starts on for the project's
+ *   first config, a later one starts off, the row menu makes any config the
+ *   default, and an API create that leaves isProjectDefault out is treated
+ *   the same way (ProjectCallSMSConfigService).
+ * - on-call/incoming-call-policy.md sends people to create a config for an
+ *   incoming call policy, which is very often the project's first: it says
+ *   that config also takes the project's SMS and calls, and how not to. It
+ *   also named a button the page never had ("Create Custom Call/SMS
+ *   Config"); the card's button is "Create Twilio Config".
+ *
+ * That button is the table's: "Create" and the name the table gives its
+ * rows. The table used to set the whole phrase as its verb, and drew it
+ * before the model's own name - "Create Twilio Config Call and SMS Config";
+ * it now names its rows "Twilio Config", as the card does.
+ *
+ * Markdown is not compiled, so these read the pages, the Dashboard's locale
+ * files and the table's source. Each page, Persian included, names the
+ * card, the switch and the button in the words its language's Dashboard
+ * shows them, the button as the table draws it (drawnCreateButton).
+ */
+
+const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
+
+const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
+
+const DASHBOARD_LOCALES_DIR: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Locales",
+);
+
+const TABLE_FILE: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Components/CallSMS/CallSMSConfigTable.tsx",
+);
+
+const SWITCH: string = TwilioConfigDefaultCopy.setDefaultTitle;
+const CREATE_BUTTON: string = "Create Twilio Config";
+const CARD_TITLE: string = "Twilio Config";
+
+const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
+
+// The button the incoming call page used to name, in its languages.
+const OLD_BUTTONS: Array<string> = [
+  "Create Custom Call/SMS Config",
+  "Benutzerdefinierte Anruf-/SMS-Konfiguration erstellen",
+  "Opret brugerdefineret opkalds-/SMS-konfiguration",
+  "Crear configuración personalizada de llamadas/SMS",
+  "Créer une configuration d'appel/SMS personnalisée",
+  "Crea Config Chiamata/SMS Personalizzata",
+  "カスタム通話/SMS設定の作成",
+  "커스텀 Call/SMS 구성 생성",
+  "Aangepaste bel/SMS-configuratie aanmaken",
+  "Создать пользовательскую конфигурацию Call/SMS",
+  "Skapa anpassad Samtal/SMS-konfiguration",
+  "创建自定义通话/短信配置",
+];
+
+function readPage(lang: string, page: string): string {
+  return fs.readFileSync(path.join(CONTENT_DIR, lang, page), "utf8");
+}
+
+// A label as the language's Dashboard draws it, Persian included.
+function dashboardWords(lang: string): (english: string) => string {
+  return (english: string): string => {
+    return drawnDashboardLabel(lang, english);
+  };
+}
+
+// The value of a key in the language's Dashboard locale, if it has one.
+function localeValue(lang: string, key: string): unknown {
+  const locale: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_LOCALES_DIR, `${lang}.json`), "utf8"),
+  ) as Record<string, unknown>;
+
+  return locale[key];
+}
+
+// A section whose heading is "2. ..." (Persian pages number it "۲.").
+const SAVING_HEADING: RegExp = /^[^\n]*(2|۲)\./;
+
+const NUMBERED_STEP: RegExp = /^\d\. /;
+
+// The numbered steps of the "## 2." section of the Twilio guide.
+function savingSteps(lang: string): Array<string> {
+  const page: string = readPage(lang, "self-hosted/twilio-integration.md");
+  const sections: Array<string> = page.split(/^## /m);
+  const saving: Array<string> = sections.filter((section: string): boolean => {
+    return SAVING_HEADING.test(section);
+  });
+
+  expect(saving).toHaveLength(1);
+
+  // Its heading ("2. Save the credentials ...") is not one of its steps.
+  return saving[0]!
+    .split("\n")
+    .slice(1)
+    .filter((line: string): boolean => {
+      return NUMBERED_STEP.test(line);
+    });
+}
+
+/*
+ * The step of the incoming call page's setup that adds the Twilio account:
+ * from the step's heading to the next one. Its text names the card and the
+ * button, then lists the form's fields.
+ */
+function configStep(lang: string): Array<string> {
+  const lines: Array<string> = readPage(
+    lang,
+    "on-call/incoming-call-policy.md",
+  ).split("\n");
+
+  const sid: number = lines.findIndex((line: string): boolean => {
+    return line.includes("`AC`");
+  });
+
+  expect(sid).toBeGreaterThan(5);
+
+  let start: number = sid;
+
+  while (start > 0 && !lines[start]!.startsWith("### ")) {
+    start--;
+  }
+
+  let end: number = sid;
+
+  while (end < lines.length - 1 && !lines[end + 1]!.startsWith("### ")) {
+    end++;
+  }
+
+  return lines.slice(start, end + 1).filter((line: string): boolean => {
+    return line.trim().length > 0;
+  });
+}
+
+describe("the docs on a project's first Twilio config", () => {
+  it("are checked in all seventeen docs languages", () => {
+    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toContain("en");
+    expect(LANGUAGES).toContain("fa");
+  });
+
+  it("quote the table's own words", () => {
+    const table: string = fs.readFileSync(TABLE_FILE, "utf8");
+
+    expect(SWITCH).toBe("Set as Project Default");
+    expect(table).toContain(`title: "${CARD_TITLE}"`);
+    expect(table).toContain("title: TwilioConfigDefaultCopy.setDefaultTitle");
+  });
+
+  it("the table's button is Create and the name it gives its rows, the card's title", () => {
+    const table: string = fs.readFileSync(TABLE_FILE, "utf8");
+
+    expect(table).toContain(`singularName="${CARD_TITLE}"`);
+    expect(table).toContain(`pluralName="${CARD_TITLE}s"`);
+    /*
+     * A verb is drawn before the row's name: "Create Twilio Config" as the
+     * verb drew "Create Twilio Config Call and SMS Config".
+     */
+    expect(table).not.toContain("createVerb=");
+    expect(CREATE_BUTTON).toBe(`Create ${CARD_TITLE}`);
+    expect(drawnCreateButton("en", CREATE_BUTTON)).toBe(CREATE_BUTTON);
+  });
+
+  it("the table's plural name is translated in every language, as its singular one is", () => {
+    for (const lang of LANGUAGES) {
+      const singular: unknown = localeValue(lang, CARD_TITLE);
+      const plural: unknown = localeValue(lang, `${CARD_TITLE}s`);
+
+      expect({
+        lang,
+        singular: typeof singular,
+        plural: typeof plural,
+      }).toEqual({ lang, singular: "string", plural: "string" });
+
+      if (lang !== "en") {
+        expect({ lang, translated: plural !== `${CARD_TITLE}s` }).toEqual({
+          lang,
+          translated: true,
+        });
+      }
+    }
+  });
+
+  it.each(LANGUAGES)(
+    "%s: the button is drawn as the Dashboard draws it, with the card's own word for a config",
+    (lang: string) => {
+      const button: string = drawnCreateButton(lang, CREATE_BUTTON);
+      const card: string = dashboardWords(lang)(CARD_TITLE);
+
+      // Never the English phrase where the language words the card.
+      if (card !== CARD_TITLE) {
+        expect(button).not.toBe(CREATE_BUTTON);
+      }
+
+      const wholePhrase: unknown = localeValue(lang, CREATE_BUTTON);
+
+      if (typeof wholePhrase === "string" && wholePhrase !== CREATE_BUTTON) {
+        expect(button).toBe(wholePhrase);
+      } else {
+        expect(button).toContain(card);
+      }
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: the Twilio guide says the first config starts as the default, a later one does not, and how to move it",
+    (lang: string) => {
+      const words: (english: string) => string = dashboardWords(lang);
+      const steps: Array<string> = savingSteps(lang);
+
+      const step: string | undefined = steps.find((line: string): boolean => {
+        return line.startsWith("4. ");
+      });
+
+      expect(step).toBeDefined();
+
+      // Named twice: the form's switch, and the row menu's action.
+      expect(step!.split(`**${words(SWITCH)}**`).length - 1).toBe(2);
+      // And what an API create gets.
+      expect(step).toContain("`isProjectDefault`");
+
+      // Still five steps, the fifth still saying only one is the default.
+      expect(
+        steps.map((line: string): string => {
+          return line.slice(0, 2);
+        }),
+      ).toEqual(["1.", "2.", "3.", "4.", "5."]);
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: the Twilio guide's second step names the card, and its button as the table draws it",
+    (lang: string) => {
+      const words: (english: string) => string = dashboardWords(lang);
+      const step: string | undefined = savingSteps(lang).find(
+        (line: string): boolean => {
+          return line.startsWith("2. ");
+        },
+      );
+
+      expect(step).toBeDefined();
+      expect(step).toContain(`**${words(CARD_TITLE)}**`);
+      expect(step).toContain(`**${drawnCreateButton(lang, CREATE_BUTTON)}**`);
+    },
+  );
+
+  it("English no longer says a new config is not used until the switch is set", () => {
+    const steps: string = savingSteps("en").join("\n");
+
+    expect(steps).not.toContain("does not select it for those notifications");
+    expect(steps).not.toContain("Enable **Set as Project Default** to use");
+    expect(steps).toContain(
+      "**Set as Project Default** starts on for the project's first configuration",
+    );
+    expect(steps).toContain("A later configuration starts with the switch off");
+  });
+
+  it.each(LANGUAGES)(
+    "%s: the incoming call page names the real button, and says the config takes the project's SMS and calls",
+    (lang: string) => {
+      const words: (english: string) => string = dashboardWords(lang);
+      const step: Array<string> = configStep(lang);
+
+      // The step's heading, then where to go: the card and its button.
+      expect(step[0]!.startsWith("### ")).toBe(true);
+      expect(step[1]).toContain(
+        `**${drawnCreateButton(lang, CREATE_BUTTON)}**`,
+      );
+      expect(step[1]).toContain(`**${words(CARD_TITLE)}**`);
+
+      const fields: Array<string> = step.filter((line: string): boolean => {
+        return line.startsWith("- **");
+      });
+      const switchLine: Array<string> = fields.filter((line: string) => {
+        return line.startsWith(`- **${words(SWITCH)}**`);
+      });
+
+      expect(switchLine).toHaveLength(1);
+      expect(switchLine[0]).toContain("Twilio");
+
+      // The switch is the form's last field, and the step's last line.
+      expect(fields[fields.length - 1]).toBe(switchLine[0]);
+      expect(step[step.length - 1]).toBe(switchLine[0]);
+
+      for (const old of OLD_BUTTONS) {
+        expect({ lang, old, named: step.join("\n").includes(old) }).toEqual({
+          lang,
+          old,
+          named: false,
+        });
+      }
+    },
+  );
+});

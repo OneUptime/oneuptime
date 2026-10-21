@@ -1,14 +1,15 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
-import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackAlertMessages from "../Slack/Messages/Alert";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class AlertWorkspaceMessages {
   @CaptureSpan()
@@ -18,9 +19,7 @@ export default class AlertWorkspaceMessages {
     alertNumber: number;
     alertNumberWithPrefix?: string;
     isPrivate?: boolean;
-  }): Promise<{
-    channelsCreated: NotificationRuleWorkspaceChannel[];
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       // we will notify the workspace about the alert creation with the bot tokken which is in WorkspaceProjectAuth Table.
       return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
@@ -30,8 +29,11 @@ export default class AlertWorkspaceMessages {
             alertId: data.alertId,
           },
           notificationRuleEventType: NotificationRuleEventType.Alert,
-          channelNameSiffix:
-            data.alertNumberWithPrefix || data.alertNumber.toString(),
+          channelNameParts: WorkspaceChannelName.forNumberedRecord({
+            eventType: NotificationRuleEventType.Alert,
+            number: data.alertNumber,
+            numberWithPrefix: data.alertNumberWithPrefix,
+          }),
           ...(data.isPrivate ? { isPrivate: true } : {}),
         },
       );

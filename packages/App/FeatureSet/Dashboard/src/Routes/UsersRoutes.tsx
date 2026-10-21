@@ -10,18 +10,18 @@ import UsersViewNotificationRules from "../Pages/Users/View/NotificationRules";
 import UsersViewOnCallLayout from "../Pages/Users/View/OnCall/Layout";
 import UsersViewOnCallReadiness from "../Pages/Users/View/OnCall/Readiness";
 import UsersViewNotificationMethods from "../Pages/Users/View/OnCall/NotificationMethods";
-import UsersViewOnCallRules, {
-  ALERT_EPISODE_RULES_PROPS,
-  ALERT_RULES_PROPS,
-  INCIDENT_EPISODE_RULES_PROPS,
-  INCIDENT_RULES_PROPS,
-} from "../Pages/Users/View/OnCall/Rules";
+import UsersViewOnCallRules from "../Pages/Users/View/OnCall/Rules";
 import UsersViewCustomFields from "../Pages/Users/View/CustomFields";
 import UsersViewDelete from "../Pages/Users/View/Delete";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, UsersRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import OnCallRuleKind, {
+  MOVED_ON_CALL_RULES_PATHS,
+  getOnCallRuleKindQuery,
+} from "Common/Types/NotificationRule/OnCallRuleKind";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
@@ -62,7 +62,7 @@ const UsersRoutes: FunctionComponent<ComponentProps> = (
          * This one no longer renders the section — it redirects to the
          * readiness overview. The single page it used to render carried the
          * readiness summary, the notification methods, the coverage grid and
-         * four rule types at once, and is now six pages under the layout
+         * four rule types at once, and is now three pages under the layout
          * below. The route survives because it is the URL people bookmarked.
          */}
         <PageRoute
@@ -80,8 +80,35 @@ const UsersRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/*
+         * The four pages a member's on-call rules used to be, one per kind of
+         * rule, forwarding to the tab of On-Call Rules each one became. Here,
+         * outside the On-Call layout below, so the forward does not wait for
+         * the section's reads.
+         */}
+        {Object.keys(MOVED_ON_CALL_RULES_PATHS).map(
+          (movedPath: string): ReactElement => {
+            const kind: OnCallRuleKind = MOVED_ON_CALL_RULES_PATHS[
+              movedPath
+            ] as OnCallRuleKind;
+
+            return (
+              <PageRoute
+                key={movedPath}
+                path={movedPath}
+                element={
+                  <MovedPageRedirect
+                    pageMap={PageMap.USER_VIEW_ON_CALL_RULES}
+                    searchParams={getOnCallRuleKindQuery(kind)}
+                  />
+                }
+              />
+            );
+          },
+        )}
+
+        {/*
          * The On-Call section: a PATHLESS layout route, so it adds no segment
-         * of its own and the six pages below keep the flat `:id/<page>` URLs
+         * of its own and the three pages below keep the flat `:id/<page>` URLs
          * the rest of this file uses. What it buys is one load of the target
          * user's identity and readiness for the whole section, one permission
          * decision, and one "you are editing on behalf of" banner — see
@@ -115,36 +142,18 @@ const UsersRoutes: FunctionComponent<ComponentProps> = (
             }
           />
           {/*
-           * The four rule pages render ONE component with different props
-           * rather than four near-identical files. The severity model and the
-           * severity foreign key column travel together in those props for a
-           * reason spelled out in Rules.tsx: they do not line up the way the
-           * rule type names suggest, and getting the pairing wrong renders a
-           * table that silently lists every severity's rules at once.
+           * One page with a tab per kind of rule, the same component a member's
+           * own User Settings page draws (Components/NotificationRule/
+           * OnCallRulesTabs.tsx).
            */}
           <PageRoute
-            path={RouteUtil.getLastPathForKey(
-              PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES,
-            )}
-            element={<UsersViewOnCallRules {...INCIDENT_RULES_PROPS} />}
-          />
-          <PageRoute
-            path={RouteUtil.getLastPathForKey(
-              PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-            )}
-            element={<UsersViewOnCallRules {...INCIDENT_EPISODE_RULES_PROPS} />}
-          />
-          <PageRoute
-            path={RouteUtil.getLastPathForKey(
-              PageMap.USER_VIEW_ALERT_ON_CALL_RULES,
-            )}
-            element={<UsersViewOnCallRules {...ALERT_RULES_PROPS} />}
-          />
-          <PageRoute
-            path={RouteUtil.getLastPathForKey(
-              PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-            )}
-            element={<UsersViewOnCallRules {...ALERT_EPISODE_RULES_PROPS} />}
+            path={RouteUtil.getLastPathForKey(PageMap.USER_VIEW_ON_CALL_RULES)}
+            element={
+              <UsersViewOnCallRules
+                {...props}
+                pageRoute={RouteMap[PageMap.USER_VIEW_ON_CALL_RULES] as Route}
+              />
+            }
           />
         </PageRoute>
         <PageRoute

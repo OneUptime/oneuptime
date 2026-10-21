@@ -200,7 +200,6 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/Domains",
   "Settings/Billing",
   "Settings/SSO",
-  "Settings/OIDC",
   "Settings/SCIM",
   "Settings/NotificationLogs",
   "Settings/NotificationSettings",
@@ -213,11 +212,8 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/AuditLogsSettings",
   "Settings/LlmProviders",
   "Settings/LlmProviderView",
-  "Settings/Runners",
-  "Settings/RunnerView",
-  "Settings/RunnerCredentials",
+  "Settings/AIFeatures",
   "Settings/AICredits",
-  "Settings/AIGuardrails",
   "Settings/AILogs",
   "Settings/McpServer",
 ];
@@ -262,6 +258,7 @@ const secondaryPages: Array<PageCase> = [
   { page: PageMap.PROJECT_SSO, module: "Onboarding/SSO" },
   { page: PageMap.AI_COPILOT, module: "AICopilot/AICopilot" },
   { page: PageMap.AI_COPILOT_CONVERSATION, module: "AICopilot/AICopilot" },
+  { page: PageMap.HOME_ACTIVE_INCIDENTS, module: "Home/ActiveIncidents" },
   {
     page: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
     module: "Home/NotOperationalMonitors",

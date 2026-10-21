@@ -1,7 +1,9 @@
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Host from "Common/Models/DatabaseModels/Host";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
@@ -15,6 +17,7 @@ import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the AlertOwner:SendCreatedResourceEmail cron's
@@ -215,6 +218,8 @@ function makeAlert(data: {
   seriesFingerprint?: string | undefined;
   createdCriteriaId?: string | undefined;
   severityColor?: Color | undefined;
+  hosts?: Array<Host> | undefined;
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
 }): Alert {
   const alert: Alert = new Alert(ALERT_ID);
   alert.projectId = PROJECT_ID;
@@ -265,13 +270,43 @@ function makeAlert(data: {
 
   alert.alertSeverity = severity;
 
-  const monitor: Monitor = new Monitor();
+  /*
+   * With its id and project: the job reads the alert's affected resources
+   * back through AlertService.findAllBy (mocked below to return these rows),
+   * and a resource of no known project is not named.
+   */
+  const monitor: Monitor = new Monitor(MONITOR_ID);
   monitor.name = "API Monitor";
+  monitor.projectId = PROJECT_ID;
   alert.monitor = monitor;
+
+  if (data.hosts !== undefined) {
+    alert.hosts = data.hosts;
+  }
+
+  if (data.serviceLevelObjectives !== undefined) {
+    alert.serviceLevelObjectives = data.serviceLevelObjectives;
+  }
 
   alert.alertNumber = 7;
 
   return alert;
+}
+
+function makeHost(id: string, name: string): Host {
+  const host: Host = new Host(new ObjectID(id));
+  host.name = name;
+  host.projectId = PROJECT_ID;
+  return host;
+}
+
+function makeSlo(id: string, name: string): ServiceLevelObjective {
+  const slo: ServiceLevelObjective = new ServiceLevelObjective(
+    new ObjectID(id),
+  );
+  slo.name = name;
+  slo.projectId = PROJECT_ID;
+  return slo;
 }
 
 function makeOwner(id: string, timezone?: Timezone | undefined): User {
@@ -405,6 +440,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       monitorName: "",
       severityBadgeText: "Warning",
       severityColor: DEFAULT_SEVERITY_COLOR,
+      // The slate fallback already reads on white, so it is its own shade.
+      severityTextColor: DEFAULT_SEVERITY_COLOR,
       preheader: "A bad deploy saturated the queue \u00b7 API Monitor",
       isOwner: "true",
     };
@@ -423,10 +460,10 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
     expect(emailEnvelope.subject).toBe("[New Alert #7] - High latency");
 
     /*
-     * The dashboard link is NOT part of this fix: one call for the feed text
-     * plus one per owner, exactly as before.
+     * The dashboard link: one per owner. The feed entry no longer links to
+     * the alert whose feed it is in.
      */
-    expect(alertService.getAlertLinkInDashboard).toHaveBeenCalledTimes(4);
+    expect(alertService.getAlertLinkInDashboard).toHaveBeenCalledTimes(3);
 
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
   });
@@ -483,6 +520,85 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       await runWorkerTick();
 
       expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("the rest of the alert's Affected Resources card follows the monitor", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          hosts: [makeHost("host-1", "web-01")],
+          serviceLevelObjectives: [makeSlo("slo-1", "Checkout availability")],
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe(
+        "API Monitor, web-01, Checkout availability",
+      );
+      // The monitor is already named, so no separate Monitor row.
+      expect(sentVars()[0]!["monitorName"]).toBe("");
+    });
+
+    test("a grouped alert names the pod, then the rest, and keeps the Monitor row", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          seriesLabels: {
+            "resource.k8s.pod.name": "checkout-7d9f-2xk",
+            "resource.k8s.namespace.name": "shop",
+          },
+          hosts: [makeHost("host-1", "web-01")],
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe(
+        "Pod: checkout-7d9f-2xk | Namespace: shop, web-01",
+      );
+      expect(sentVars()[0]!["monitorName"]).toBe("API Monitor");
+    });
+
+    test("another project's host, linked before the write guard, is not named", async () => {
+      const foreignHost: Host = makeHost("host-9", "db-of-another-project");
+      foreignHost.projectId = new ObjectID("project-9");
+
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({ hosts: [foreignHost] }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("the resources are read as root, inside the alert's project", async () => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      // The first read is the job's own query; the rest are the relation reads.
+      const relationReads: Array<{
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      }> = alertService.findAllBy.mock.calls
+        .slice(1)
+        .map((args: Array<unknown>) => {
+          return args[0] as {
+            query: Record<string, unknown>;
+            props: Record<string, unknown>;
+          };
+        });
+
+      expect(relationReads.length).toBeGreaterThan(0);
+
+      for (const read of relationReads) {
+        expect(read.props).toEqual({ isRoot: true });
+        expect(read.query["projectId"]).toBe(PROJECT_ID);
+      }
     });
 
     test("the worker selects seriesLabels, or the column comes back undefined", async () => {
@@ -580,8 +696,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
         }
       ).moreInformationInMarkdown,
     ).toBe(
-      "**Notified**: Owner user-2 (user-2@acme.test)\n" +
-        "**Notified**: Owner user-3 (user-3@acme.test)\n",
+      "- Owner user-2 (user-2@acme.test)\n" +
+        "- Owner user-3 (user-3@acme.test)\n",
     );
   });
 
@@ -880,7 +996,86 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       await runWorkerTick();
 
       expect(sentVars()[0]!["severityColor"]).toBe(DEFAULT_SEVERITY_COLOR);
+      expect(sentVars()[0]!["severityTextColor"]).toBe(DEFAULT_SEVERITY_COLOR);
       expect(sentVars()[0]!["severityColor"]).not.toBe("");
+    });
+
+    /*
+     * The badge's name sits on white in the severity's colour, so a pale
+     * severity gets the nearest shade of it that reads, while the dot and
+     * the outline keep the colour itself.
+     */
+    test("the badge's name takes a readable shade of a pale severity colour", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({ severityColor: new Color("#FACC15") }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["severityColor"]).toBe("#facc15");
+      expect(sentVars()[0]!["severityTextColor"]).toBe(
+        EmailColorUtil.getColorPair("#facc15")!.textColor,
+      );
+      expect(sentVars()[0]!["severityTextColor"]).not.toBe("#facc15");
+    });
+
+    /*
+     * Severity colours are project data and the API takes any string for
+     * them. What lands in the badge's style attribute is either a colour
+     * EmailColorUtil wrote or the slate fallback - never the raw value.
+     */
+    test.each([
+      "#fff; background-image: url(https://evil.example/t.gif)",
+      '#fff" onmouseover="alert(1)',
+      "tomato",
+    ])(
+      "the unusable severity colour %p falls back to slate",
+      async (stored: string) => {
+        alertService.findAllBy.mockResolvedValue([
+          makeAlert({ severityColor: new Color(stored) }),
+        ] as never);
+        alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+        await runWorkerTick();
+
+        expect(sentVars()[0]!["severityColor"]).toBe(DEFAULT_SEVERITY_COLOR);
+        expect(sentVars()[0]!["severityTextColor"]).toBe(
+          DEFAULT_SEVERITY_COLOR,
+        );
+        expect(sentVars()[0]).not.toHaveProperty("alertSeverityColor");
+        expect(JSON.stringify(sentVars()[0])).not.toContain(stored);
+      },
+    );
+
+    test("the Severity and Current State rows get their own colour pairs", async () => {
+      const alert: Alert = makeAlert({ severityColor: new Color("#dc2626") });
+      const state: AlertState = new AlertState();
+      state.name = "Identified";
+      state.color = new Color("#f97316");
+      alert.currentAlertState = state;
+      alertService.findAllBy.mockResolvedValue([alert] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]).toMatchObject({
+        alertSeverityColor: "#dc2626",
+        alertSeverityTextColor:
+          EmailColorUtil.getColorPair("#dc2626")!.textColor,
+        currentStateColor: "#f97316",
+        currentStateTextColor:
+          EmailColorUtil.getColorPair("#f97316")!.textColor,
+      });
+
+      const select: Record<string, unknown> = (
+        alertService.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["currentAlertState"]).toEqual({ name: true, color: true });
+      expect(select["alertSeverity"]).toEqual({ name: true, color: true });
     });
 
     /*
@@ -907,6 +1102,31 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       // Plain text: no client renders markup in the preview line.
       expect(preheader).not.toContain("**");
       expect(preheader).not.toContain("<");
+    });
+
+    /*
+     * A root cause can quote what a monitored service answered. Its typed
+     * markup comes out of the preview line completely - where taking a tag
+     * out joins the text either side into another one, that one goes too -
+     * and a "<" typed as text stays.
+     */
+    test("the preheader takes a root cause's typed markup out completely", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          rootCause:
+            "Response <scr<script>ipt>alert(1)</script> while p99 < 200 ms",
+          seriesLabels: {
+            "resource.k8s.pod.name": "kubernetes-agent-logs-7t88f",
+          },
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["preheader"]).toBe(
+        "Response alert(1) while p99 < 200 ms \u00b7 Pod: kubernetes-agent-logs-7t88f",
+      );
     });
 
     test("the preheader announces a flap and is capped at 160 characters", async () => {

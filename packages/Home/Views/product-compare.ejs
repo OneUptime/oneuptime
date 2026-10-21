@@ -4,29 +4,23 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title><%= productConfig.productName %> Alternative - OneUptime | Open Source | 2026 Comparison</title>
-    <meta name="description"
-        content="Compare <%= productConfig.productName %> vs OneUptime. Free open-source alternative with flexible monitoring, status pages & on-call. Pay only for what you use. See pricing, features & migration guide.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
     
     <!-- FAQ Schema for rich snippets -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        <% for(var faqIdx=0; faqIdx < productConfig.faq.length; faqIdx++) { %>
-        {
-          "@type": "Question",
-          "name": "<%= productConfig.faq[faqIdx].question.replace(/"/g, '\\"') %>",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "<%= productConfig.faq[faqIdx].answer.replace(/"/g, '\\"') %>"
-          }
-        }<%= faqIdx < productConfig.faq.length - 1 ? ',' : '' %>
-        <% } %>
-      ]
-    }
-    </script>
+    <%- include('./Partials/json-ld', {
+        schema: {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: productConfig.faq.map(function (faq) {
+                return {
+                    '@type': 'Question',
+                    name: faq.question,
+                    acceptedAnswer: { '@type': 'Answer', text: faq.answer }
+                };
+            })
+        }
+    }) -%>
     <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -48,6 +42,7 @@
       .glow-amber:hover { box-shadow: 0 0 0 1px rgb(245 158 11 / 0.2), 0 4px 16px -4px rgb(245 158 11 / 0.15), 0 0 24px -8px rgb(245 158 11 / 0.1); }
       .glow-purple:hover { box-shadow: 0 0 0 1px rgb(168 85 247 / 0.2), 0 4px 16px -4px rgb(168 85 247 / 0.15), 0 0 24px -8px rgb(168 85 247 / 0.1); }
     </style>
+    <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -77,7 +72,7 @@
 
           <!-- Headline -->
           <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
-            The Open-Source <br class="hidden sm:block" /><%= productConfig.productName %> Alternative
+            The Open-Source <br class="max-sm:hidden sm:block" /><%= productConfig.productName %> Alternative
           </h1>
 
           <!-- Subheadline -->
@@ -312,7 +307,7 @@
       </div>
 
       <!-- Desktop Table -->
-      <div class="hidden lg:block">
+      <div class="max-lg:hidden lg:block">
         <div class="rounded-2xl bg-white ring-1 ring-gray-200 overflow-hidden">
           <table class="w-full">
             <thead>
@@ -471,11 +466,11 @@
           <div class="max-w-xl">
             <div class="flex items-center gap-3 mb-3">
               <div class="h-9 w-9 rounded-lg bg-white overflow-hidden flex-shrink-0">
-                <img src="/img/OneUptimePNG/2.png" alt="OneUptime" class="h-full w-full object-contain">
+                <img src="/img/OneUptimePNG/2.png" alt="OneUptime" class="h-full w-full object-contain" width="36" height="36" loading="lazy" decoding="async">
               </div>
               <h3 class="text-xl font-semibold">OneUptime pricing</h3>
             </div>
-            <p class="text-gray-300 leading-relaxed">One platform, one bill. Start free, self-host for nothing, or scale on predictable pricing &mdash; no per-host, per-seat, or per-check surprises.</p>
+            <p class="text-gray-300 leading-relaxed">One platform, one bill. Start free, self-host for nothing, or scale on published per-user plans with on-call, status pages, and incidents included &mdash; no per-host or per-check surprises.</p>
           </div>
           <div class="grid grid-cols-2 gap-4 lg:gap-6 flex-shrink-0">
             <div class="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4">

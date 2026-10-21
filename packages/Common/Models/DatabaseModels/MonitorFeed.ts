@@ -519,7 +519,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateMonitorFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -529,7 +529,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorAdmin,
       Permission.MonitorMember,
       Permission.MonitorViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadMonitorFeed,
     ],
     update: [],
   })
@@ -563,7 +563,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateMonitorFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -573,7 +573,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorAdmin,
       Permission.MonitorMember,
       Permission.MonitorViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadMonitorFeed,
     ],
     update: [],
   })
@@ -598,7 +598,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateMonitorFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -608,7 +608,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorAdmin,
       Permission.MonitorMember,
       Permission.MonitorViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadMonitorFeed,
     ],
     update: [],
   })

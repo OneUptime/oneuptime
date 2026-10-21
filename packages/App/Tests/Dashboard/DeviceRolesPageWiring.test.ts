@@ -231,13 +231,25 @@ describe("the roles page is the place people add and remove roles", () => {
     for (const field of [
       "name: true",
       "description: true",
-      "order: true",
       "topologyShape: true",
       "isCoreLayer: true",
       "isSnmpWalkable: true",
     ]) {
       expect(formFields).toContain(field);
     }
+  });
+
+  /*
+   * Where a role appears in the role picker and the map legend is set by
+   * dragging the rows, not by typing an Order number: a new role goes to
+   * the end and the list is shown in its own order.
+   */
+  test("roles are put in order by dragging, with no Order to type in", () => {
+    expect(page).toContain("enableDragAndDrop={true}");
+    expect(page).toContain('dragDropIndexField="order"');
+    expect(page).toContain('sortBy="order"');
+    expect(formFields).not.toContain("order: true");
+    expect(columns).not.toContain("order: true");
   });
 
   /*

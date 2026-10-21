@@ -1,7 +1,11 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import { getCurrentProjectBillingMarketplace } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "Common/Types/Marketplace/CloudMarketplace";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -11,6 +15,8 @@ import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -32,6 +38,18 @@ const Settings: FunctionComponent<ComponentProps> = (
    * follow up with on a self-hosted install, and nowhere it would be recorded.
    */
   const [deletionReason, setDeletionReason] = useState<string>("");
+
+  const translator: Translator = useTranslator();
+
+  /*
+   * A project a cloud marketplace bills: deleting it ends OneUptime's
+   * billing of it, after a last charge for what it used, but not the
+   * purchase on the marketplace - only the buyer can cancel that, there.
+   * On Vercel it does end it: the resource is deleted with its project.
+   */
+  const billingMarketplace: CloudMarketplace | null = BILLING_ENABLED
+    ? getCurrentProjectBillingMarketplace()
+    : null;
 
   type DeleteProjectFunction = () => Promise<void>;
 
@@ -66,16 +84,58 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      <Alert
-        type={AlertType.DANGER}
-        strongTitle="DANGER ZONE"
-        title="Deleting your project will delete it permanently and there is no way to recover. "
-      />
+      {/*
+       * No red DANGER ZONE banner over the card: the Delete Project card
+       * says the same ("Permanently delete <project>. This action cannot be
+       * undone."), and its dialog asks for the project's name.
+       */}
+      {billingMarketplace && (
+        <Alert
+          type={AlertType.WARNING}
+          dataTestId="project-delete-marketplace-notice"
+          strongTitle={translator.translateTemplate(
+            "Billed through {{marketplace}}",
+            {
+              marketplace:
+                CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+            },
+          )}
+          title={
+            /*
+             * A Vercel resource is its project: deleting the project deletes
+             * the resource on Vercel too, and with it the connected Vercel
+             * projects' environment variables.
+             */
+            billingMarketplace === CloudMarketplace.Vercel
+              ? translator.translateText(
+                  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
+                ) || ""
+              : translator.translateTemplate(
+                  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.",
+                  {
+                    marketplace:
+                      CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                  },
+                )
+          }
+        />
+      )}
 
       <ModelDelete
         modelType={Project}
         modelId={projectId}
         onDelete={deleteProject}
+        /*
+         * Deleting the project removes every monitor, incident, status page
+         * and byte of telemetry in it, for every member, and nothing brings it
+         * back - yet its dialog looked like the one that deletes a label. So
+         * Delete stays locked until the project's name has been typed.
+         */
+        requireTypedName={true}
+        {...(props.currentProject?.name &&
+        props.currentProject.id?.toString() === projectId.toString()
+          ? { itemName: props.currentProject.name }
+          : {})}
         confirmationContent={
           BILLING_ENABLED ? (
             <div>

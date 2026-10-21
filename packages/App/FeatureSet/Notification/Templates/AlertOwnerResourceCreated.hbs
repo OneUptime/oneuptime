@@ -18,7 +18,7 @@
   pass it and render an empty badge.
 --}}
 {{#if severityBadgeText}}
-{{> SeverityBadge badgeText=severityBadgeText badgeColor=severityColor }}
+{{> SeverityBadge badgeText=severityBadgeText badgeColor=severityColor badgeTextColor=severityTextColor }}
 {{/if}}
 
 {{#if flapWarning}}
@@ -37,8 +37,8 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Affected Resource: " plainText=resourcesAffected }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause }}
-{{> DetailBoxField title="Severity: " plainText=alertSeverity }}
-{{> DetailBoxField title="Current State: " plainText=currentState }}
+{{> DetailBoxField title="Severity: " plainText=alertSeverity color=alertSeverityColor textColor=alertSeverityTextColor }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Declared At: " text=declaredAt }}
 {{#if monitorName}}
 {{> DetailBoxField title="Monitor: " plainText=monitorName }}

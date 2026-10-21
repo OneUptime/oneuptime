@@ -1,7 +1,12 @@
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { JSONObject } from "../../../../Types/JSON";
+import { marked, Token, Tokens } from "marked";
 import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
 
 /*
  * SeriesLabelDisplay decides what an on-call engineer reads at the top of
@@ -474,6 +479,77 @@ describe("SeriesLabelDisplay", () => {
       expect(SeriesLabelDisplay.buildMarkdownBlock({})).toBe("");
       expect(SeriesLabelDisplay.buildMarkdownBlock(undefined)).toBe("");
     });
+
+    /*
+     * A label's name and value are whatever the telemetry carried: an
+     * agent, a scrape or the user's own captureMetric() call chose them. In
+     * the description's Markdown - shown on the dashboard, in email, in
+     * Slack and Teams - each reads as sent and acts on nothing.
+     */
+    test("a label's name and value are text: no link, image, HTML or Slack mention", () => {
+      const value: string =
+        "x` <!channel> [Verify](https://evil.example/v) ![](https://tracker.example/p.png) `y";
+      const block: string = SeriesLabelDisplay.buildMarkdownBlock({
+        "[Open](https://evil.example/n) <img src=x>": value,
+        "resource.k8s.pod.name":
+          '<a href="https://evil.example">web</a>\n# heading',
+      });
+
+      const tokens: Array<Token> = [];
+      marked.walkTokens(marked.lexer(block), (token: Token): void => {
+        tokens.push(token);
+      });
+
+      const hidingLinks: Array<string> = tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "link" &&
+            (token as Tokens.Link).text !== (token as Tokens.Link).href
+          );
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        });
+
+      expect(hidingLinks).toEqual([]);
+      expect(
+        tokens.filter((token: Token): boolean => {
+          return (
+            token.type === "image" ||
+            token.type === "heading" ||
+            (token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw))
+          );
+        }),
+      ).toEqual([]);
+      expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
+        /<[!@#][A-Za-z0-9]/,
+      );
+
+      /*
+       * Each value is one code span that reads exactly as it was sent (marked
+       * hands a code span's text over escaped for HTML; a line break reads
+       * as a space).
+       */
+      expect(
+        tokens
+          .filter((token: Token): boolean => {
+            return token.type === "codespan";
+          })
+          .map((token: Token): string => {
+            return (token as Tokens.Codespan).text
+              .split("\u2060")
+              .join("")
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&amp;/g, "&");
+          })
+          .sort(),
+      ).toEqual(
+        [value, '<a href="https://evil.example">web</a> # heading'].sort(),
+      );
+    });
   });
 
   describe("database series", () => {
@@ -626,6 +702,63 @@ describe("SeriesLabelDisplay", () => {
       expect(
         SeriesLabelDisplay.findLabelValue(undefined, ["k8s.pod.name"]),
       ).toBe("");
+    });
+  });
+
+  describe("storage array series", () => {
+    /*
+     * Pure Storage keeps object identity in datapoint labels, and the
+     * shipped storage array templates group by them — `summary` (open
+     * alerts), `component_name` (hardware, drives), `host`, `local_pod`
+     * (replica links) and `name` (FlashBlade hardware and file systems).
+     * Unregistered, those alerts read "Component Name: CT0.FAN0".
+     */
+    test.each([
+      ["name"],
+      ["host"],
+      ["component_name"],
+      ["local_pod"],
+      ["summary"],
+      ["storage.array.name"],
+      ["resource.storage.array.name"],
+      ["storage.system"],
+    ])("%s is a registered group-by key", (key: string) => {
+      expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+    });
+
+    test("the friendly names read as a person would say them", () => {
+      expect(SeriesLabelDisplay.getFriendlyLabelName("component_name")).toBe(
+        "Component",
+      );
+      expect(SeriesLabelDisplay.getFriendlyLabelName("local_pod")).toBe("Pod");
+      expect(SeriesLabelDisplay.getFriendlyLabelName("summary")).toBe(
+        "Alert Summary",
+      );
+      expect(
+        SeriesLabelDisplay.getFriendlyLabelName("resource.storage.array.name"),
+      ).toBe("Storage Array");
+    });
+
+    test("the object that breached comes first, the array that scopes it after", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "resource.storage.array.name": "pure-prod-01",
+          component_name: "CT0.FAN0",
+        }),
+      ).toBe("Component: CT0.FAN0 | Storage Array: pure-prod-01");
+
+      expect(SeriesLabelDisplay.getLabelPriority("name")).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("storage.array.name"),
+      );
+      expect(SeriesLabelDisplay.getLabelPriority("host")).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("resource.storage.array.name"),
+      );
+    });
+
+    test("a grouped alert template's title names the alert", () => {
+      expect(
+        SeriesLabelDisplay.buildTitleSuffix({ summary: "Controller failed" }),
+      ).toBe(" - Alert Summary: Controller failed");
     });
   });
 });

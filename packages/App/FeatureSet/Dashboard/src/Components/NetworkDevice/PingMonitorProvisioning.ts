@@ -13,6 +13,7 @@ import {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "Create a Ping monitor for this device and bind it" — the one client-side
@@ -83,7 +84,10 @@ export interface ProvisionedPingMonitor {
  * an operator to go and look at the wrong thing while they wait.
  */
 export function pingMonitorProvisionedMessage(monitorName: string): string {
-  return `Ping monitor "${monitorName}" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.`;
+  return translateTemplate(
+    "Ping monitor \"{{name}}\" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.",
+    { name: monitorName },
+  );
 }
 
 /**
@@ -153,7 +157,9 @@ export async function provisionPingMonitorForDevice(
 
   if (!projectId) {
     throw new BadDataException(
-      "No project is selected, so a Ping monitor cannot be created.",
+      translateTemplate(
+        "No project is selected, so a Ping monitor cannot be created.",
+      ),
     );
   }
 
@@ -185,7 +191,9 @@ export async function provisionPingMonitorForDevice(
 
   if (!createdMonitorId) {
     throw new BadDataException(
-      "The Ping monitor was created but the server did not return its id, so it could not be bound to this device. Bind it under the device's Settings.",
+      translateTemplate(
+        "The Ping monitor was created but the server did not return its id, so it could not be bound to this device. Bind it under the device's Settings.",
+      ),
     );
   }
 
@@ -198,9 +206,10 @@ export async function provisionPingMonitorForDevice(
     await deleteMonitorQuietly(createdMonitorId);
 
     throw new BadDataException(
-      `The Ping monitor was created but could not be bound to this device, so it was removed again: ${API.getFriendlyMessage(
-        err,
-      )}`,
+      translateTemplate(
+        "The Ping monitor was created but could not be bound to this device, so it was removed again: {{error}}",
+        { error: API.getFriendlyMessage(err) },
+      ),
     );
   }
 

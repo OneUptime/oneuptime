@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Host from "../../Models/DatabaseModels/Host";
 import HostLabelRule from "../../Models/DatabaseModels/HostLabelRule";
@@ -19,6 +20,10 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class HostLabelRuleEngineServiceClass
   implements RuleRunEngine<Host, HostLabelRule>
@@ -104,6 +109,7 @@ class HostLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     host: Host;
     rules: Array<HostLabelRule>;
@@ -168,11 +174,23 @@ class HostLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: host.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of host label rules",
+      logAttributes: {
+        projectId: host.projectId.toString(),
+        hostId: host.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -211,15 +229,15 @@ class HostLabelRuleEngineServiceClass
       projectId: host.projectId,
       hostFeedEventType: HostFeedEventType.LabelRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await HostService.getHostMarkdownLink(
-        host.projectId,
-        host.id,
-      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`🏷️ ${newLabelIds.length} label(s) were attached to ${await HostService.getHostMarkdownLink(
+          host.projectId,
+          host.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Label",
+        ruleNames: matchedRuleNames,
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(newLabelIds.length);
@@ -280,8 +298,7 @@ class HostLabelRuleEngineServiceClass
     rule: HostLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in host label rule ${rule.id}: ${pattern}`);
       return false;

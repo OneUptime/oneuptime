@@ -1,10 +1,5 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsAction,
-  MicrosoftTeamsRequest,
-} from "./Auth";
 import { MicrosoftTeamsIncidentActionType } from "./ActionTypes";
+import MicrosoftTeamsIncidentMoreActions from "./IncidentMoreActions";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
@@ -15,32 +10,59 @@ import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import IncidentStateService from "../../../../Services/IncidentStateService";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
-import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
-import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
-import MonitorService from "../../../../Services/MonitorService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
-import MonitorStatusService from "../../../../Services/MonitorStatusService";
-import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
-import LabelService from "../../../../Services/LabelService";
 import Label from "../../../../../Models/DatabaseModels/Label";
-import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
-import BadDataException from "../../../../../Types/Exception/BadDataException";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import MicrosoftTeamsActionAuthorization from "./Authorization";
 import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventRecord,
+  WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import ColumnLength from "../../../../../Types/Database/ColumnLength";
+import { truncateToLength } from "../../../Database/TruncateColumnValue";
+import MicrosoftTeamsCardChoices, {
+  MicrosoftTeamsCardChoiceList,
+} from "../MicrosoftTeamsCardChoices";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import WorkspaceNoteForm, {
+  WORKSPACE_NOTE_FORM_TEXT,
+  WorkspaceNoteFormType,
+  WorkspaceSubmittedNote,
+} from "../../WorkspaceNoteForm";
+import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
+
+// Incident.title is a LongText column.
+const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
+
+// The lists the "Create New Incident" card offers.
+export interface MicrosoftTeamsNewIncidentFormChoices {
+  severities: MicrosoftTeamsCardChoiceList;
+  monitors: MicrosoftTeamsCardChoiceList;
+  monitorStatuses: MicrosoftTeamsCardChoiceList;
+  labels: MicrosoftTeamsCardChoiceList;
+  onCallDutyPolicies: MicrosoftTeamsCardChoiceList;
+}
 
 export default class MicrosoftTeamsIncidentActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No incident states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isIncidentAction(data: { actionType: string }): boolean {
     // Check if the action is related to incidents
@@ -65,236 +87,10 @@ export default class MicrosoftTeamsIncidentActions {
       data.actionType ===
         MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState ||
       data.actionType === MicrosoftTeamsIncidentActionType.NewIncident ||
-      data.actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident ||
+      // The incident card's menu (…): Change Severity, Assign Role, ...
+      MicrosoftTeamsIncidentMoreActions.isAction(data.actionType)
     );
-  }
-
-  @CaptureSpan()
-  public static async handleIncidentAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { teamsRequest, action } = data;
-
-    logger.debug("Handling Microsoft Teams incident action:", {
-      projectId: teamsRequest.projectId.toString(),
-      actionType: action.actionType,
-    });
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsIncidentActionType.AckIncident:
-          await this.acknowledgeIncident({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsIncidentActionType.ResolveIncident:
-          await this.resolveIncident({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsIncidentActionType.ViewIncident:
-          // This is handled by opening the URL directly
-          break;
-
-        case MicrosoftTeamsIncidentActionType.NewIncident:
-          return await this.showNewIncidentCard(data);
-
-        case MicrosoftTeamsIncidentActionType.SubmitNewIncident:
-          /*
-           * This is handled by handleBotIncidentAction through bot framework
-           * Don't process it here to avoid duplicate messages
-           */
-          break;
-
-        default:
-          logger.debug("Unhandled incident action: " + action.actionType, {
-            projectId: teamsRequest.projectId.toString(),
-            actionType: action.actionType,
-          });
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams incident action:", {
-        projectId: teamsRequest.projectId.toString(),
-        actionType: action.actionType,
-      });
-      logger.error(error);
-    }
-
-    // Send empty response to Teams
-    Response.sendTextResponse(data.req, data.res, "");
-  }
-
-  @CaptureSpan()
-  private static async acknowledgeIncident(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const incidentId: string = data.action.actionValue || "";
-
-    if (!incidentId) {
-      logger.error("No incident ID provided for acknowledge action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Acknowledging incident: " + incidentId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      incidentId: incidentId,
-    });
-
-    try {
-      // Get the incident
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: incidentId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-            isAcknowledgedState: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!incident) {
-        logger.error("Incident not found: " + incidentId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Check if already acknowledged
-      if (incident.currentIncidentState?.isAcknowledgedState) {
-        logger.debug("Incident is already acknowledged", {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Acknowledge the incident
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentService.acknowledgeIncident(
-        new ObjectID(incidentId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident acknowledged successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-    } catch (error) {
-      logger.error("Error acknowledging incident:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
-  private static async resolveIncident(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const incidentId: string = data.action.actionValue || "";
-
-    if (!incidentId) {
-      logger.error("No incident ID provided for resolve action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Resolving incident: " + incidentId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      incidentId: incidentId,
-    });
-
-    try {
-      // Get the incident
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: incidentId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-            isResolvedState: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!incident) {
-        logger.error("Incident not found: " + incidentId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Check if already resolved
-      if (incident.currentIncidentState?.isResolvedState) {
-        logger.debug("Incident is already resolved", {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Resolve the incident
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentService.resolveIncident(
-        new ObjectID(incidentId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident resolved successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-    } catch (error) {
-      logger.error("Error resolving incident:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-      logger.error(error);
-    }
   }
 
   @CaptureSpan()
@@ -312,10 +108,20 @@ export default class MicrosoftTeamsIncidentActions {
       actionValue,
       value,
       projectId,
-      oneUptimeUserId,
       databaseProps,
       turnContext,
     } = data;
+
+    if (MicrosoftTeamsIncidentMoreActions.isAction(actionType)) {
+      return await MicrosoftTeamsIncidentMoreActions.handle({
+        actionType: actionType,
+        actionValue: actionValue,
+        value: value,
+        projectId: projectId,
+        databaseProps: databaseProps,
+        turnContext: turnContext,
+      });
+    }
 
     if (actionType === MicrosoftTeamsIncidentActionType.AckIncident) {
       if (!actionValue) {
@@ -327,20 +133,34 @@ export default class MicrosoftTeamsIncidentActions {
 
       const incidentId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
+      const incident: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentStateTimeline,
+          action: "acknowledge this incident",
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+        });
+
+      // Somebody got there first: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isAcknowledged) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: incident,
+          press: WorkspaceLatePress.Acknowledge,
+        });
+        return;
+      }
+
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions). A refusal is theirs to read:
+       * handleBotInvokeActivity tells them.
+       */
+      await WorkspaceMemberActions.acknowledge({
+        event: incident,
         props: databaseProps,
-        modelType: IncidentStateTimeline,
-        action: "acknowledge this incident",
-        resources: [{ service: IncidentService, id: incidentId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
-        incidentId: incidentId,
-        projectId: projectId,
-        props: databaseProps,
-      });
-
-      await IncidentService.acknowledgeIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident acknowledged.");
       return;
     }
@@ -355,20 +175,30 @@ export default class MicrosoftTeamsIncidentActions {
 
       const incidentId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
+      const incident: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentStateTimeline,
+          action: "resolve this incident",
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+        });
+
+      // Resolved already: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: incident,
+          press: WorkspaceLatePress.Resolve,
+        });
+        return;
+      }
+
+      // Resolved by the member, as the dashboard resolves it for them.
+      await WorkspaceMemberActions.resolve({
+        event: incident,
         props: databaseProps,
-        modelType: IncidentStateTimeline,
-        action: "resolve this incident",
-        resources: [{ service: IncidentService, id: incidentId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
-        incidentId: incidentId,
-        projectId: projectId,
-        props: databaseProps,
-      });
-
-      await IncidentService.resolveIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident resolved.");
       return;
     }
@@ -399,9 +229,8 @@ export default class MicrosoftTeamsIncidentActions {
           createdAt: true,
           declaredAt: true,
         },
-        props: {
-          isRoot: true,
-        },
+        // Read as the member: an incident they may not read is not shown.
+        props: databaseProps,
       });
 
       if (!incident) {
@@ -411,7 +240,9 @@ export default class MicrosoftTeamsIncidentActions {
 
       const declaredAt: Date | undefined =
         incident.declaredAt || incident.createdAt || undefined;
-      const message: string = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
+      // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
+      const message: string =
+        mdText`**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(incident.description || "No description")}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
@@ -425,8 +256,20 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = this.buildAddIncidentNoteCard(actionValue);
+      /*
+       * A private incident takes no public notes, so its card asks for no
+       * kind and says why (WorkspaceNoteForm).
+       */
+      const card: JSONObject = this.buildAddIncidentNoteCard({
+        incidentId: actionValue,
+        isPrivateRecord: ObjectID.isValidUUID(actionValue)
+          ? await WorkspaceNoteForm.isPrivateRecord({
+              kind: PrivateRecordKind.Incident,
+              recordId: new ObjectID(actionValue),
+              projectId: projectId,
+            })
+          : false,
+      });
       await turnContext.sendActivity({
         attachments: [
           {
@@ -454,46 +297,90 @@ export default class MicrosoftTeamsIncidentActions {
         // Submit the note
         const incidentId: ObjectID = new ObjectID(actionValue);
 
-        if (noteType !== "public" && noteType !== "private") {
+        if (
+          noteType !== WorkspaceNoteFormType.Public &&
+          noteType !== WorkspaceNoteFormType.Private
+        ) {
           await turnContext.sendActivity(
             "Unable to add note: invalid note type.",
           );
           return;
         }
 
+        /*
+         * What it writes: a private incident takes no public notes, so a
+         * public one asked for on an incident made private since the card
+         * was sent is written as a private note - and the answer says so.
+         */
+        const submitted: WorkspaceSubmittedNote | null =
+          await WorkspaceNoteForm.getSubmittedNote({
+            submittedNoteType: noteType,
+            kind: PrivateRecordKind.Incident,
+            recordId: incidentId,
+            projectId: projectId,
+          });
+
+        if (!submitted) {
+          await turnContext.sendActivity(
+            "Unable to add note: invalid note type.",
+          );
+          return;
+        }
+
+        const isPublic: boolean =
+          submitted.noteType === WorkspaceNoteType.Public;
+
         await WorkspaceActionAuthorization.assertCanCreate({
           props: databaseProps,
-          modelType:
-            noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
-          action:
-            noteType === "public"
-              ? "add a public note to this incident"
-              : "add a private note to this incident",
+          modelType: isPublic ? IncidentPublicNote : IncidentInternalNote,
+          action: isPublic
+            ? "add a public note to this incident"
+            : "add a private note to this incident",
           resources: [{ service: IncidentService, id: incidentId }],
         });
 
-        if (noteType === "public") {
+        // Posted by the member, as the dashboard posts it for them.
+        if (isPublic) {
           await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
             projectId: projectId,
-            userId: oneUptimeUserId,
+            props: databaseProps,
           });
-        } else if (noteType === "private") {
+        } else {
           await IncidentInternalNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
             projectId: projectId,
-            userId: oneUptimeUserId,
+            props: databaseProps,
           });
         }
 
-        await turnContext.sendActivity("✅ Note added successfully.");
-
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        if (submitted.isPublicAskedOnPrivateRecord) {
+          // Not the note they chose: what it became, and why.
+          await MicrosoftTeamsActionAnswer.reply({
+            turnContext: turnContext,
+            answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
+              kind: PrivateRecordKind.Incident,
+              recordId: incidentId,
+              props: databaseProps,
+            }),
+          });
+        } else {
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
+            "✅ Note added successfully.",
+          );
         }
+
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -512,14 +399,28 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the policies the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident",
+        resources: [
+          { service: IncidentService, id: new ObjectID(actionValue) },
+        ],
+      });
+
       // Send the input card
       const card: JSONObject | null = await this.buildExecuteOnCallPolicyCard(
         actionValue,
         projectId,
+        databaseProps,
       );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
         );
         return;
       }
@@ -553,29 +454,38 @@ export default class MicrosoftTeamsIncidentActions {
         const incidentId: ObjectID = new ObjectID(actionValue);
         const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await WorkspaceActionAuthorization.assertCanCreate({
+        const incident: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: OnCallDutyPolicyExecutionLog,
+            action: "execute an on-call policy for this incident",
+            event: { type: WorkspaceEventType.Incident, id: incidentId },
+            resources: [{ service: OnCallDutyPolicyService, id: policyId }],
+          });
+
+        /*
+         * Executed by the member, as the dashboard's Execute On-Call Policy
+         * executes it for them: an execution log triggered by the incident.
+         */
+        await WorkspaceMemberActions.executeOnCallPolicy({
+          event: incident,
+          onCallDutyPolicyId: policyId,
           props: databaseProps,
-          modelType: OnCallDutyPolicyExecutionLog,
-          action: "execute an on-call policy for this incident",
-          resources: [
-            { service: IncidentService, id: incidentId },
-            { service: OnCallDutyPolicyService, id: policyId },
-          ],
         });
 
-        await OnCallDutyPolicyService.executePolicy(policyId, {
-          triggeredByIncidentId: incidentId,
-          userNotificationEventType: UserNotificationEventType.IncidentCreated,
-        });
-
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ On-call policy executed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -595,11 +505,46 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = await this.buildChangeIncidentStateCard(
+      /*
+       * Asked as the submit asks it, before the card is shown, of the
+       * record as the submit reads it, with the state it is in. The card
+       * then offers the states the member may read that it may
+       * move into next (Common/Utils/StateMove), so it never offers a move
+       * its timeline would refuse.
+       */
+      const incident: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentStateTimeline,
+          action: "change the state of this incident",
+          event: {
+            type: WorkspaceEventType.Incident,
+            id: new ObjectID(actionValue),
+          },
+        });
+
+      const stateOptions: WorkspaceEventStateOptions =
+        await WorkspaceMemberActions.findStateOptions({
+          event: incident,
+          props: databaseProps,
+        });
+
+      if (stateOptions.options.length === 0) {
+        await turnContext.sendActivity(
+          stateOptions.hasNoLaterState
+            ? WorkspaceMemberActions.getNoLaterStateMessage(
+                WorkspaceEventType.Incident,
+              )
+            : MicrosoftTeamsIncidentActions.NO_STATES_MESSAGE,
+        );
+        return;
+      }
+
+      const card: JSONObject = this.buildChangeIncidentStateCard(
         actionValue,
-        projectId,
+        stateOptions.options,
       );
+
       await turnContext.sendActivity({
         attachments: [
           {
@@ -628,29 +573,37 @@ export default class MicrosoftTeamsIncidentActions {
         // Update the state
         const incidentId: ObjectID = new ObjectID(actionValue);
 
-        await WorkspaceActionAuthorization.assertCanCreate({
+        const incident: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: IncidentStateTimeline,
+            action: "change the state of this incident",
+            event: { type: WorkspaceEventType.Incident, id: incidentId },
+          });
+
+        /*
+         * The state change the dashboard makes: a row in the incident's
+         * state timeline, created by the member (WorkspaceMemberActions).
+         */
+        await WorkspaceMemberActions.changeState({
+          event: incident,
+          stateId: new ObjectID(incidentStateId.toString()),
           props: databaseProps,
-          modelType: IncidentStateTimeline,
-          action: "change the state of this incident",
-          resources: [{ service: IncidentService, id: incidentId }],
         });
 
-        await IncidentService.updateOneById({
-          id: incidentId,
-          data: {
-            currentIncidentStateId: new ObjectID(incidentStateId.toString()),
-          },
-          props: databaseProps,
-        });
-
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ Incident state changed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -662,9 +615,10 @@ export default class MicrosoftTeamsIncidentActions {
 
     if (actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident) {
       // Handle new incident submission
-      const title: string = (value["incidentTitle"] as string) || "";
-      const description: string =
-        (value["incidentDescription"] as string) || "";
+      const title: string = ((value["incidentTitle"] as string) || "").trim();
+      const description: string = (
+        (value["incidentDescription"] as string) || ""
+      ).trim();
       const severityId: string = (value["incidentSeverity"] as string) || "";
       const monitorIds: string = (value["incidentMonitors"] as string) || "";
       const monitorStatusId: string = (value["monitorStatus"] as string) || "";
@@ -679,10 +633,25 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
+      /*
+       * Declared by the member who submits the card, as they would declare
+       * it in OneUptime: someone who may not declare incidents is told so
+       * (handleBotInvokeActivity answers the refusal) before anything is
+       * read or created. The create below checks it again, with every
+       * record the card names.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: Incident,
+        action: "declare an incident",
+      });
+
+      let createdIncident: Incident;
+
       try {
-        const createdIncident: Incident = await this.createIncidentInProject({
+        createdIncident = await this.createIncidentInProject({
           projectId,
-          oneUptimeUserId,
+          props: databaseProps,
           title,
           description,
           severityId,
@@ -691,54 +660,117 @@ export default class MicrosoftTeamsIncidentActions {
           labelIds,
           onCallPolicyIds,
         });
-
-        // Hide the form card by deleting it first
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
-
-        // Get the incident link
-        const incidentLink: URL =
-          await IncidentService.getIncidentLinkInDashboard(
-            projectId,
-            createdIncident.id!,
-          );
-
-        // Send confirmation message as a new message in the thread
-        await turnContext.sendActivity(
-          `✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}`,
-        );
-
-        return;
       } catch (error) {
-        logger.error("Error creating incident from Microsoft Teams:", {
-          projectId: projectId.toString(),
-        });
-        logger.error(error);
-        await turnContext.sendActivity(
-          "❌ Failed to create incident. Please try again.",
+        MicrosoftTeamsReplies.logFailure(
+          "Could not create an incident from Microsoft Teams",
+          error,
+          {
+            projectId: projectId.toString(),
+          },
+        );
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          await this.getIncidentCreateFailedMessage({
+            error: error,
+            projectId: projectId,
+          }),
         );
         return;
       }
+
+      /*
+       * The incident exists from here on, so nothing below may report the
+       * create as failed: a user told it failed submits again, which creates
+       * a second incident and pages its on-call policies a second time. The
+       * confirmation goes first; removing the submitted form is a courtesy.
+       */
+      await MicrosoftTeamsReplies.sendBestEffort(
+        turnContext,
+        await this.getIncidentCreatedMessage({
+          projectId: projectId,
+          incidentId: createdIncident.id || undefined,
+        }),
+      );
+      await MicrosoftTeamsReplies.deleteBestEffort(
+        turnContext,
+        turnContext.activity.replyToId,
+      );
+      return;
     }
 
-    // Default fallback for unimplemented actions
+    /*
+     * Default fallback for unimplemented actions
+     * The action's name is placed as text: it comes from the card.
+     */
     await turnContext.sendActivity(
-      "Sorry, but the action " +
-        actionType +
-        " you requested is not implemented yet.",
+      mdText`Sorry, but the action ${actionType} you requested is not implemented yet.`.toString(),
     );
   }
 
   /*
-   * Every id below comes from the submitted card, not from the form we sent,
-   * and the writes run as root. So they are checked against the linked project
-   * before anything is created, and the monitor status write is scoped to that
-   * project as well.
+   * Why a submitted incident was not created, for the user: the reason when
+   * OneUptime wrote one for them (a reference to another project's monitor,
+   * say), otherwise a generic line; the details go to the log.
+   */
+  private static async getIncidentCreateFailedMessage(data: {
+    error: unknown;
+    projectId: ObjectID;
+  }): Promise<string> {
+    const reason: string | null =
+      MicrosoftTeamsReplies.getUserFacingErrorMessage(data.error);
+
+    // The reason can name a monitor, a label or a person: it is text.
+    if (reason) {
+      return mdText`❌ Could not create the incident: ${reason}`.toString();
+    }
+
+    const createInOneUptimeUrl: string | null =
+      await MicrosoftTeamsReplies.getDashboardLink({
+        projectId: data.projectId,
+        route: "/incidents/create",
+      });
+
+    return mdText`❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime${
+      createInOneUptimeUrl ? mdText`: ${createInOneUptimeUrl}` : "."
+    }`.toString();
+  }
+
+  // The confirmation, with a link to the incident when one can be built.
+  private static async getIncidentCreatedMessage(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+  }): Promise<string> {
+    if (data.incidentId) {
+      try {
+        const incidentLink: URL =
+          await IncidentService.getIncidentLinkInDashboard(
+            data.projectId,
+            data.incidentId,
+          );
+
+        return mdText`✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}`.toString();
+      } catch (error) {
+        logger.debug("Could not build the link to a new incident");
+        logger.debug(error);
+      }
+    }
+
+    return "✅ Incident created successfully!";
+  }
+
+  /*
+   * Every id below comes from the submitted card, not from the form we sent.
+   * The incident is declared by the member the Teams account is connected
+   * to, with their own props, as they would declare it in OneUptime: they
+   * must be allowed to declare incidents, and every record the card names -
+   * the monitors, on-call policies, labels, severity and monitor status -
+   * must be one they may name. IncidentService checks those on the create
+   * itself, and a record they may not read is answered like one that is not
+   * in the project (ProjectScopedReferenceException).
    */
   private static async createIncidentInProject(data: {
     projectId: ObjectID;
-    oneUptimeUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     title: string;
     description: string;
     severityId: string;
@@ -764,21 +796,11 @@ export default class MicrosoftTeamsIncidentActions {
         ? new ObjectID(data.monitorStatusId)
         : undefined;
 
-    await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject({
-      projectId: projectId,
-      subject: "incident",
-      monitorIds: monitorIdArray,
-      labelIds: labelIdArray,
-      onCallDutyPolicyIds: policyIdArray,
-      monitorStatusId: monitorStatusId,
-    });
-
-    // Create the incident
+    // Create the incident, credited to the member who declares it.
     const incident: Incident = new Incident();
     incident.title = data.title;
     incident.description = data.description;
     incident.projectId = projectId;
-    incident.createdByUserId = data.oneUptimeUserId;
     incident.incidentSeverityId = new ObjectID(data.severityId);
     incident.rootCause = `Incident created via Microsoft Teams`;
 
@@ -806,12 +828,21 @@ export default class MicrosoftTeamsIncidentActions {
       });
     }
 
+    /*
+     * IncidentService moves the incident's monitors to this status, as it does
+     * for an incident declared in the dashboard or from Slack: with a status
+     * timeline entry and owner notifications, and back again once the
+     * incident is resolved. Teams used to write currentMonitorStatusId on the
+     * monitors directly, which did none of that.
+     */
+    if (monitorStatusId) {
+      incident.changeMonitorStatusToId = monitorStatusId;
+    }
+
     // Save the incident
     const createdIncident: Incident = await IncidentService.create({
       data: incident,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     logger.debug(
@@ -822,28 +853,61 @@ export default class MicrosoftTeamsIncidentActions {
       },
     );
 
-    // Update monitor status if specified
-    if (monitorStatusId) {
-      for (const monitorId of monitorIdArray) {
-        await MonitorService.updateOneBy({
-          query: {
-            _id: monitorId.toString(),
-            projectId: projectId,
-          },
-          data: {
-            currentMonitorStatusId: monitorStatusId,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    }
-
     return createdIncident;
   }
 
-  private static buildAddIncidentNoteCard(incidentId: string): JSONObject {
+  /*
+   * The Add Note card: the note's kind and the note. A private incident
+   * takes no public notes (WorkspaceNoteForm): its card is "Add Private
+   * Note", says why in one line, asks for no kind, and sends a private note.
+   */
+  public static buildAddIncidentNoteCard(data: {
+    incidentId: string;
+    isPrivateRecord: boolean;
+  }): JSONObject {
+    const noteInput: JSONObject = {
+      type: "Input.Text",
+      id: "note",
+      label: WORKSPACE_NOTE_FORM_TEXT.noteLabel,
+      isMultiline: true,
+      placeholder: WORKSPACE_NOTE_FORM_TEXT.noteDescription,
+    };
+
+    if (data.isPrivateRecord) {
+      return {
+        type: "AdaptiveCard",
+        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+        version: "1.5",
+        body: [
+          {
+            type: "TextBlock",
+            text: WORKSPACE_NOTE_FORM_TEXT.privateTitle,
+            size: "Large",
+            weight: "Bolder",
+          },
+          {
+            type: "TextBlock",
+            text: WorkspaceNoteForm.getPrivateRecordLine(
+              PrivateRecordKind.Incident,
+            ),
+            wrap: true,
+          },
+          noteInput,
+        ],
+        actions: [
+          {
+            type: "Action.Submit",
+            title: WORKSPACE_NOTE_FORM_TEXT.submit,
+            data: {
+              action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+              actionValue: data.incidentId,
+              noteType: WorkspaceNoteFormType.Private,
+            },
+          },
+        ],
+      };
+    }
+
     return {
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -858,35 +922,29 @@ export default class MicrosoftTeamsIncidentActions {
         {
           type: "Input.ChoiceSet",
           id: "noteType",
-          label: "Note Type",
+          label: WORKSPACE_NOTE_FORM_TEXT.noteTypeLabel,
           style: "compact",
-          value: "public",
+          value: WorkspaceNoteFormType.Public,
           choices: [
             {
-              title: "Public Note (Will be posted on Status Page)",
-              value: "public",
+              title: WORKSPACE_NOTE_FORM_TEXT.publicOption,
+              value: WorkspaceNoteFormType.Public,
             },
             {
-              title: "Private Note (Only visible to team members)",
-              value: "private",
+              title: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+              value: WorkspaceNoteFormType.Private,
             },
           ],
         },
-        {
-          type: "Input.Text",
-          id: "note",
-          label: "Note",
-          isMultiline: true,
-          placeholder: "Please type in plain text or markdown.",
-        },
+        noteInput,
       ],
       actions: [
         {
           type: "Action.Submit",
-          title: "Submit",
+          title: WORKSPACE_NOTE_FORM_TEXT.submit,
           data: {
             action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
-            actionValue: incidentId,
+            actionValue: data.incidentId,
           },
         },
       ],
@@ -896,21 +954,23 @@ export default class MicrosoftTeamsIncidentActions {
   private static async buildExecuteOnCallPolicyCard(
     incidentId: string,
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<JSONObject | null> {
+    // The policies the member may read, with their own permissions.
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,
           _id: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: 50,
-        skip: 0,
       });
 
     const choices: Array<{ title: string; value: string }> = onCallPolicies
@@ -961,28 +1021,23 @@ export default class MicrosoftTeamsIncidentActions {
     };
   }
 
-  private static async buildChangeIncidentStateCard(
+  /*
+   * The card offering the states the incident may move into next, as the
+   * member may read them (WorkspaceMemberActions.findStateOptions), in the
+   * project's order.
+   */
+  private static buildChangeIncidentStateCard(
     incidentId: string,
-    projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const incidentStates: Array<IncidentState> =
-      await IncidentStateService.getAllIncidentStates({
-        projectId: projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const choices: Array<{ title: string; value: string }> = incidentStates
-      .map((state: IncidentState) => {
+    incidentStates: Array<WorkspaceEventStateOption>,
+  ): JSONObject {
+    const choices: Array<{ title: string; value: string }> = incidentStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
+          title: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",
@@ -1016,268 +1071,82 @@ export default class MicrosoftTeamsIncidentActions {
     };
   }
 
-  @CaptureSpan()
-  public static async showNewIncidentCard(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { teamsRequest, req, res } = data;
-
-    logger.debug("Showing new incident card for Microsoft Teams", {
-      projectId: teamsRequest.projectId?.toString(),
-    });
-
-    // Send empty response first
-    Response.sendTextResponse(req, res, "");
-
-    if (!teamsRequest.projectId) {
-      logger.error("Project ID not found in Teams request");
-      return;
-    }
-
-    // Build the adaptive card with form fields
-    const card: JSONObject = await this.buildNewIncidentCard(
-      teamsRequest.projectId,
-    );
-
-    /*
-     * Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
-     * For now, we'll just log it. The actual sending will be done through the bot framework
-     */
-    logger.debug("New incident card built:", {
-      projectId: teamsRequest.projectId.toString(),
-    });
-    logger.debug(JSON.stringify(card, null, 2));
-  }
-
-  @CaptureSpan()
-  public static async submitNewIncident(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { teamsRequest, req, res } = data;
-    const { userId, projectId } = teamsRequest;
-
-    logger.debug("Submitting new incident from Microsoft Teams", {
-      projectId: projectId?.toString(),
-    });
-
-    if (!projectId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid Project ID"),
-      );
-    }
-
-    if (!userId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid User ID"),
-      );
-    }
-
-    // Send early response
-    Response.sendTextResponse(req, res, "");
-
-    // Extract form data from the payload
-    const payload: JSONObject = teamsRequest.payload || {};
-    const value: JSONObject = (payload["value"] as JSONObject) || {};
-
-    const title: string = (value["incidentTitle"] as string) || "";
-    const description: string = (value["incidentDescription"] as string) || "";
-    const severityId: string = (value["incidentSeverity"] as string) || "";
-    const monitorIds: string = (value["incidentMonitors"] as string) || "";
-    const monitorStatusId: string = (value["monitorStatus"] as string) || "";
-    const labelIds: string = (value["labels"] as string) || "";
-    const onCallPolicyIds: string =
-      (value["onCallDutyPolicies"] as string) || "";
-
-    if (!title || !description || !severityId) {
-      logger.error("Missing required fields for incident creation", {
-        projectId: projectId.toString(),
-      });
-      return;
-    }
-
-    try {
-      // Get OneUptime user ID
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: userId,
-          projectId: projectId,
-        });
-
-      await this.createIncidentInProject({
-        projectId,
-        oneUptimeUserId,
-        title,
-        description,
-        severityId,
-        monitorIds,
-        monitorStatusId,
-        labelIds,
-        onCallPolicyIds,
-      });
-
-      logger.debug("New incident created from Microsoft Teams successfully", {
-        projectId: projectId.toString(),
-      });
-    } catch (error) {
-      logger.error("Error creating incident from Microsoft Teams:", {
-        projectId: projectId.toString(),
-      });
-      logger.error(error);
-    }
-  }
-
-  public static async buildNewIncidentCard(
+  /*
+   * Every list the "Create New Incident" card offers, read in one project as
+   * the member the card is for (`props`): only what they may read.
+   */
+  public static async getNewIncidentFormChoices(
     projectId: ObjectID,
-  ): Promise<JSONObject> {
-    // Fetch severities
-    const severities: Array<IncidentSeverity> =
-      await IncidentSeverityService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    props: DatabaseCommonInteractionProps,
+  ): Promise<MicrosoftTeamsNewIncidentFormChoices> {
+    const [severities, monitors, monitorStatuses, labels, onCallDutyPolicies]: [
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+    ] = await Promise.all([
+      MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getMonitorChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getLabelChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId, props),
+    ]);
 
-    const severityChoices: Array<{ title: string; value: string }> =
-      severities.map((severity: IncidentSeverity) => {
-        return {
-          title: severity.name || "",
-          value: severity._id?.toString() || "",
-        };
-      });
+    return {
+      severities: severities,
+      monitors: monitors,
+      monitorStatuses: monitorStatuses,
+      labels: labels,
+      onCallDutyPolicies: onCallDutyPolicies,
+    };
+  }
 
-    // Fetch monitors
-    const monitors: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
-
-    const monitorChoices: Array<{ title: string; value: string }> = monitors
-      .map((monitor: Monitor) => {
-        return {
-          title: monitor.name || "",
-          value: monitor._id?.toString() || "",
-        };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
-
-    // Fetch monitor statuses
-    const monitorStatuses: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-    const monitorStatusChoices: Array<{ title: string; value: string }> =
-      monitorStatuses
-        .map((status: MonitorStatus) => {
-          return {
-            title: status.name || "",
-            value: status._id?.toString() || "",
-          };
-        })
-        .filter((choice: { title: string; value: string }) => {
-          return choice.title && choice.value;
+  /*
+   * The "Create New Incident" card with its monitor, label and on-call policy
+   * lists shortened until it fits the budget (issue #4111: listing all of
+   * them made Teams refuse the card). Severities are required, so they are
+   * never shortened to fit (they are read up to 50).
+   */
+  public static buildNewIncidentCardForBudget(data: {
+    choices: MicrosoftTeamsNewIncidentFormChoices;
+    budgetInBytes: number;
+    initialTitle?: string | undefined;
+    createInOneUptimeUrl?: string | null | undefined;
+  }): JSONObject {
+    return MicrosoftTeamsCardChoices.fitCardToBudget<
+      keyof MicrosoftTeamsNewIncidentFormChoices
+    >({
+      lists: data.choices,
+      trimmableKeys: ["monitors", "labels", "onCallDutyPolicies"],
+      budgetInBytes: data.budgetInBytes,
+      buildCard: (
+        shown: Record<
+          keyof MicrosoftTeamsNewIncidentFormChoices,
+          MicrosoftTeamsCardChoiceList
+        >,
+      ): JSONObject => {
+        return this.buildNewIncidentCardBody({
+          shown: shown,
+          initialTitle: data.initialTitle,
+          createInOneUptimeUrl: data.createInOneUptimeUrl,
         });
-
-    // Fetch labels
-    const labels: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: projectId,
       },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+    }).card;
+  }
 
-    const labelChoices: Array<{ title: string; value: string }> = labels
-      .map((label: Label) => {
-        return {
-          title: label.name || "",
-          value: label._id?.toString() || "",
-        };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+  private static buildNewIncidentCardBody(data: {
+    shown: MicrosoftTeamsNewIncidentFormChoices;
+    initialTitle?: string | undefined;
+    createInOneUptimeUrl?: string | null | undefined;
+  }): JSONObject {
+    const { shown } = data;
+    const initialTitle: string = (data.initialTitle || "").trim();
+    let isAnythingLeftOff: boolean = false;
 
-    // Fetch on-call policies
-    const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
+    const addLaterHint: string =
+      "You can add them to the incident in OneUptime after it is created.";
 
-    const onCallPolicyChoices: Array<{ title: string; value: string }> =
-      onCallPolicies
-        .map((policy: OnCallDutyPolicy) => {
-          return {
-            title: policy.name || "",
-            value: policy._id?.toString() || "",
-          };
-        })
-        .filter((choice: { title: string; value: string }) => {
-          return choice.title && choice.value;
-        });
-
-    // Build the card
     const bodyElements: Array<JSONObject> = [
       {
         type: "TextBlock",
@@ -1291,6 +1160,15 @@ export default class MicrosoftTeamsIncidentActions {
         label: "Incident Title",
         placeholder: "Enter incident title",
         isRequired: true,
+        maxLength: MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH,
+        ...(initialTitle
+          ? {
+              value: truncateToLength(
+                initialTitle,
+                MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH,
+              ),
+            }
+          : {}),
       },
       {
         type: "Input.Text",
@@ -1302,63 +1180,110 @@ export default class MicrosoftTeamsIncidentActions {
       },
     ];
 
+    const addNotShownNote: (
+      list: MicrosoftTeamsCardChoiceList,
+      pluralNoun: string,
+    ) => void = (
+      list: MicrosoftTeamsCardChoiceList,
+      pluralNoun: string,
+    ): void => {
+      const note: JSONObject | null =
+        MicrosoftTeamsCardChoices.buildNotShownNoteElement({
+          list: list,
+          pluralNoun: pluralNoun,
+          addLaterHint: addLaterHint,
+        });
+
+      if (note) {
+        isAnythingLeftOff = true;
+        bodyElements.push(note);
+      }
+    };
+
     // Add severity dropdown if we have severities
-    if (severityChoices.length > 0) {
+    if (shown.severities.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "incidentSeverity",
         label: "Incident Severity",
         style: "compact",
         isRequired: true,
-        choices: severityChoices,
+        choices: shown.severities.choices,
       });
     }
 
     // Add monitor multi-select if we have monitors
-    if (monitorChoices.length > 0) {
+    if (shown.monitors.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "incidentMonitors",
         label: "Affected Monitors (Optional)",
         style: "compact",
         isMultiSelect: true,
-        choices: monitorChoices,
+        choices: shown.monitors.choices,
       });
     }
 
+    addNotShownNote(shown.monitors, "monitors");
+
     // Add monitor status dropdown if we have statuses and monitors
-    if (monitorStatusChoices.length > 0 && monitorChoices.length > 0) {
+    if (
+      shown.monitorStatuses.choices.length > 0 &&
+      shown.monitors.choices.length > 0
+    ) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "monitorStatus",
         label: "Change Monitor Status To (Optional)",
         style: "compact",
-        choices: monitorStatusChoices,
+        choices: shown.monitorStatuses.choices,
       });
     }
 
     // Add on-call policy multi-select if we have policies
-    if (onCallPolicyChoices.length > 0) {
+    if (shown.onCallDutyPolicies.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "onCallDutyPolicies",
         label: "Execute On-Call Policies (Optional)",
         style: "compact",
         isMultiSelect: true,
-        choices: onCallPolicyChoices,
+        choices: shown.onCallDutyPolicies.choices,
       });
     }
 
+    addNotShownNote(shown.onCallDutyPolicies, "on-call policies");
+
     // Add labels multi-select if we have labels
-    if (labelChoices.length > 0) {
+    if (shown.labels.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "labels",
         label: "Labels (Optional)",
         style: "compact",
         isMultiSelect: true,
-        choices: labelChoices,
+        choices: shown.labels.choices,
       });
+    }
+
+    addNotShownNote(shown.labels, "labels");
+
+    const actions: Array<JSONObject> = [
+      {
+        type: "Action.Submit",
+        title: "Create Incident",
+        data: {
+          action: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
+        },
+      },
+    ];
+
+    if (isAnythingLeftOff && data.createInOneUptimeUrl) {
+      actions.push(
+        MicrosoftTeamsCardChoices.buildCreateInOneUptimeAction(
+          data.createInOneUptimeUrl,
+        ),
+      );
     }
 
     return {
@@ -1366,15 +1291,7 @@ export default class MicrosoftTeamsIncidentActions {
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
       version: "1.5",
       body: bodyElements,
-      actions: [
-        {
-          type: "Action.Submit",
-          title: "Create Incident",
-          data: {
-            action: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
-          },
-        },
-      ],
+      actions: actions,
     };
   }
 }

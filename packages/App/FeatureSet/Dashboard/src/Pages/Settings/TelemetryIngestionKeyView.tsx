@@ -17,6 +17,8 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -26,6 +28,7 @@ export enum PermissionType {
 const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refresher, setRefresher] = React.useState<boolean>(false);
 
@@ -37,53 +40,82 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Telemetry Ingestion Key Details",
           description:
-            "Here are more details for this Telemetry Ingestion Key.",
+            "Your apps and collectors send this key with their telemetry, so it lands in this project.",
         }}
         refresher={refresher}
         isEditable={true}
+        formSteps={[
+          { title: "Details", id: "details" },
+          { title: "Access & Limits", id: "access-and-limits" },
+          { title: "Browser Settings", id: "browser-settings" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Telemetry Ingestion Key Name",
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
               description: true,
             },
             title: "Description",
+            stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Telemetry Ingestion Key Description",
+            hideColumnDescription: true,
           },
           {
             field: {
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "access-and-limits",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Turn this off to stop accepting telemetry written with this key straight away, without deleting it. This is the fastest response to a key you think is being abused, and it is reversible - if the key leaked rather than just misbehaved, rotate it below as well.",
+              "Accept telemetry sent with this key. Turning it off stops a misused key at once, without deleting it.",
           },
           {
             field: {
               expiresAt: true,
             },
             title: "Expires At",
+            stepId: "access-and-limits",
             fieldType: FormFieldSchemaType.Date,
             required: false,
             description:
-              "After this date the key stops being accepted. Leave it empty for a key that never expires. An expiry bounds how long a copy of a published browser key stays useful to whoever took it.",
+              "After this date the key stops working. Leave empty for a key that never expires.",
             validation: {
               dateShouldBeInTheFuture: true,
+            },
+          },
+          {
+            field: {
+              requestsPerMinuteLimit: true,
+            },
+            title: "Requests Per Minute Limit",
+            stepId: "access-and-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
+            description: translator.translateTemplate(
+              "Requests per minute this key accepts, shared by every client using it. Leave empty for {{limit}} on a browser key, unlimited on a server key.",
+              { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
+            ),
+            validation: {
+              minValue: 1,
             },
           },
           {
@@ -99,6 +131,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               allowedOrigins: true,
             },
             title: "Allowed Origins",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.JSON,
             required: false,
             /*
@@ -127,31 +160,19 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             placeholder:
               '["https://app.example.com", "app://com.example.mobile"]',
             description:
-              'JSON array of web origins and exact native app identities this key may be used from. Required on a Browser key. Web origins include the scheme and port and may use one leading "*." host wildcard. React Native replay uses "app://" plus the Android package or iOS bundle id; app entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.',
+              "A JSON array of web origins and app:// identities this key may be used from; app entries cannot use wildcards. Required on a Browser key.",
           },
           {
             field: {
               pinnedServiceName: true,
             },
             title: "Pinned Service Name",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "storefront-web",
             description:
-              "Forces service.name to this value on everything the key writes, replacing whatever the sender set. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
-          },
-          {
-            field: {
-              requestsPerMinuteLimit: true,
-            },
-            title: "Requests Per Minute Limit",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
-            description: `Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key (${DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} per minute) and to leave a server key unlimited.`,
-            validation: {
-              minValue: 1,
-            },
+              "Forces service.name to this value on everything the key writes, so a copied key cannot pose as your other services.",
           },
         ]}
         modelDetailProps={{
@@ -188,9 +209,9 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                     <div>
                       <Pill color={Yellow} text="Browser" />
                       <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                        Safe to publish in a page. Accepted only from the
-                        allowed origins below, and only for trace, log, metric
-                        and session replay ingest.
+                        {translator.translateText(
+                          "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.",
+                        )}
                       </p>
                     </div>
                   );
@@ -200,9 +221,9 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                   <div>
                     <Pill color={Blue} text="Server" />
                     <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                      A secret. Full ingest access with no origin check — keep
-                      it on your servers and collectors, and never ship it to a
-                      browser.
+                      {translator.translateText(
+                        "A secret. Full ingest access with no origin check — keep it on your servers and collectors, and never ship it to a browser.",
+                      )}
                     </p>
                   </div>
                 );
@@ -254,12 +275,15 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                 if (origins.length === 0) {
                   return item.keyType === TelemetryIngestionKeyType.Browser ? (
                     <span className="text-sm text-red-600">
-                      No origins listed — this browser key is refused on every
-                      request until at least one origin is added.
+                      {translator.translateText(
+                        "No origins listed — this browser key is refused on every request until at least one origin is added.",
+                      )}
                     </span>
                   ) : (
                     <span className="text-sm text-gray-500">
-                      Not used — a server key is never origin checked.
+                      {translator.translateText(
+                        "Not used — a server key is never origin checked.",
+                      )}
                     </span>
                   );
                 }
@@ -305,18 +329,28 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                 if (item.requestsPerMinuteLimit) {
                   return (
                     <span className="text-sm text-gray-900 tabular-nums">
-                      {item.requestsPerMinuteLimit} requests per minute
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} request per minute",
+                          other: "{{count}} requests per minute",
+                        },
+                        item.requestsPerMinuteLimit,
+                      )}
                     </span>
                   );
                 }
 
                 return item.keyType === TelemetryIngestionKeyType.Browser ? (
                   <span className="text-sm text-gray-700">
-                    {DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} requests per
-                    minute (default for a browser key)
+                    {translator.translateTemplate(
+                      "{{limit}} requests per minute (default for a browser key)",
+                      { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
+                    )}
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-700">No limit</span>
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("No limit")}
+                  </span>
                 );
               },
             },

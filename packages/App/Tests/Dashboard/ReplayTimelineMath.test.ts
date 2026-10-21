@@ -188,6 +188,82 @@ describe("buildTrackBands", () => {
     ]);
   });
 
+  test("draws a paused band as its own kind, labelled by its length and clipped like the rest", () => {
+    const idleBands: Array<ReplayIdleBand> = [
+      { startMs: 10000, endMs: 30000, kind: "idle", fidelity: "exact" },
+      { startMs: 30000, endMs: 90000, kind: "paused", fidelity: "exact" },
+      { startMs: 590000, endMs: 700000, kind: "paused", fidelity: "exact" },
+    ];
+
+    const bands: Array<ReplayTrackBand> = buildTrackBands({
+      chunks: [],
+      loadedChunkIndexes: [],
+      idleBands: idleBands,
+      durationMs: DURATION_MS,
+    });
+
+    expect(bands).toEqual([
+      {
+        kind: "idle",
+        startMs: 10000,
+        endMs: 30000,
+        label: "20s idle",
+        fidelity: "exact",
+      },
+      {
+        kind: "paused",
+        startMs: 30000,
+        endMs: 90000,
+        label: "1m paused",
+        fidelity: "exact",
+      },
+      {
+        kind: "paused",
+        startMs: 590000,
+        endMs: DURATION_MS,
+        label: "10s paused",
+        fidelity: "exact",
+      },
+    ]);
+  });
+
+  test("leaves the hole a pause makes between two consecutive chunks to the paused band", () => {
+    /*
+     * The chunk before a pause ends at the pause and the next one starts
+     * at the resume, with consecutive indexes: no manifest gap, and no
+     * loaded band across the hole either - only the paused band.
+     */
+    const bands: Array<ReplayTrackBand> = buildTrackBands({
+      chunks: [
+        chunk({ chunkIndex: 0 }),
+        chunk({ chunkIndex: 1 }),
+        chunk({
+          chunkIndex: 2,
+          chunkStartOffsetMs: 90000,
+          chunkEndOffsetMs: 105000,
+        }),
+      ],
+      gaps: [],
+      loadedChunkIndexes: [0, 1, 2],
+      idleBands: [
+        { startMs: 30000, endMs: 90000, kind: "paused", fidelity: "exact" },
+      ],
+      durationMs: 105000,
+    });
+
+    expect(bands).toEqual([
+      { kind: "loaded", startMs: 0, endMs: 30000, label: "30s loaded" },
+      { kind: "loaded", startMs: 90000, endMs: 105000, label: "15s loaded" },
+      {
+        kind: "paused",
+        startMs: 30000,
+        endMs: 90000,
+        label: "1m paused",
+        fidelity: "exact",
+      },
+    ]);
+  });
+
   test("a chunk ending past the duration is cut, not drawn past 100%", () => {
     const bands: Array<ReplayTrackBand> = buildTrackBands({
       chunks: [chunk({ chunkIndex: 0, chunkEndOffsetMs: 99000 })],

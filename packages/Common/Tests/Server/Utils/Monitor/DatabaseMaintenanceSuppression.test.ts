@@ -27,6 +27,7 @@ import DatabaseServerEndpointService from "../../../../Server/Services/DatabaseS
 import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import HostService from "../../../../Server/Services/HostService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
   MonitorMaintenanceSuppressionResult,
@@ -92,6 +93,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+    storageArrays: { ids: new Set<string>(), names: new Set<string>() },
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
@@ -260,6 +262,34 @@ describe("MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds (pure)",
     ).toEqual([ORDERS_DB]);
   });
 
+  test("a storage array the monitor also names must be under maintenance too", () => {
+    const STORAGE_ARRAY: string = "a0000000-0000-4000-8000-000000000001";
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.databaseServers.ids.add(ORDERS_DB);
+
+    expect(
+      MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds({
+        resolved: resolved({
+          databaseServerIds: [ORDERS_DB],
+          storageArrayIds: [STORAGE_ARRAY],
+        }),
+        maintained: maintained,
+      }),
+    ).toEqual([]);
+
+    maintained.storageArrays.ids.add(STORAGE_ARRAY);
+
+    expect(
+      MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds({
+        resolved: resolved({
+          databaseServerIds: [ORDERS_DB],
+          storageArrayIds: [STORAGE_ARRAY],
+        }),
+        maintained: maintained,
+      }),
+    ).toEqual([ORDERS_DB]);
+  });
+
   test("a monitor naming no database is left to the existing rules", () => {
     // Whole-monitor suppression is scoped to monitors that name a database.
     const maintained: MaintainedResourceKeys = emptyMaintained();
@@ -288,6 +318,19 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression", () => {
     events = [];
     databaseRows = [];
     endpointRows = [];
+
+    /*
+     * The events are asked for by the project's states they are in progress
+     * in; `events` stands for the events in them.
+     */
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getInProgressScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([
+        new ObjectID("44444444-4444-4444-8444-444444444441"),
+      ]);
 
     maintenanceSpy = jest
       .spyOn(ScheduledMaintenanceService, "findBy")

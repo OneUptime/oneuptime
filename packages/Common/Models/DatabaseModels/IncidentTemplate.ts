@@ -10,6 +10,7 @@ import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import Service from "./Service";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -900,6 +901,129 @@ export default class IncidentTemplate extends BaseModel {
   })
   public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // on-call duty policies affected by this incident template.
 
+  /*
+   * The status pages an incident declared from this template is limited to
+   * (see Incident.statusPages). A 'Region East outage' template can carry the
+   * East site pages, so declaring from it scopes the incident in one step.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPage,
+    title: "Status Pages",
+    description:
+      "Limit incidents declared from this template to these status pages. Leave empty to reach every status page that lists the incident's monitors.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPage;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateStatusPage",
+    inverseJoinColumn: {
+      name: "statusPageId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public statusPages?: Array<StatusPage> = undefined;
+
+  /*
+   * Whether this template limits the incidents declared from it to status
+   * pages - kept apart from statusPages for the same reason as
+   * Incident.isScopedToStatusPages. Deleting a status page cascades its row
+   * in IncidentTemplateStatusPage away, and a template whose every page was
+   * deleted would otherwise look unscoped, so its incidents would reach
+   * every status page that lists their monitors - exactly the audience the
+   * template was set up to avoid. With the flag, IncidentService declares
+   * such an incident scoped to nothing (hidden from every status page), and
+   * the dashboard warns about the template.
+   *
+   * IncidentTemplateService derives it from writes to statusPages and ignores
+   * any value a client sends; it is never recomputed when join rows
+   * disappear. Computed, so a client cannot set it on create; its update
+   * access control matches statusPages because the service writes it into
+   * the caller's own update.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Scoped To Status Pages",
+    description:
+      "Whether incidents declared from this template are limited to the status pages in Status Pages. Derived from Status Pages; any value sent for it is ignored.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isScopedToStatusPages?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1066,12 +1190,24 @@ export default class IncidentTemplate extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
     ],
-    update: [],
+    /*
+     * The same list as changeMonitorStatusToId: the two name one column. The
+     * template's Affected Resources card writes this name, and an empty list
+     * here dropped the field from its Edit for everyone but master admins.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.",
@@ -1152,7 +1288,18 @@ export default class IncidentTemplate extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
     ],
-    update: [],
+    /*
+     * The same list as initialIncidentStateId, for the same reason as
+     * changeMonitorStatusTo: the template's details card writes this name.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "initialIncidentStateId",
@@ -1252,7 +1399,8 @@ export default class IncidentTemplate extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    description:
+      "The custom field values incidents declared from this template start with, keyed by each incident custom field's name. They are merged one field at a time under the values the request or the Declare Incident form supplies.",
     example: {
       priority: "high",
       category: "infrastructure",
@@ -1264,4 +1412,63 @@ export default class IncidentTemplate extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  /*
+   * Which custom fields the Declare Incident form asks for when an incident
+   * is declared from this template, and which of them it requires (issue
+   * #4114; see Types/CustomField/CustomFieldCreateSettings). Keyed by each
+   * field's template variable key rather than its name, so renaming a field
+   * keeps its setting.
+   *
+   * The same access as customFields: whoever may fill in a template's values
+   * may decide which of them are asked. IncidentTemplateService refuses a
+   * value that is not a valid settings object, and stores a valid one exactly
+   * as sent.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Custom Field Settings",
+    description:
+      "How the Declare Incident form treats each incident custom field when an incident is declared from this template, keyed by the field's template variable key (variableKey). Each value is Required (asked, must be filled in), Optional (asked, may be left empty), Hidden (not asked; the field keeps this template's value) or Default. A field that is not listed, or is Default, follows its own Show on Create and Required on Create settings. Only the dashboard's Declare Incident form applies these settings: incidents created through the API are not checked against them.",
+    example: {
+      impact: "Required",
+      affected_location: "Optional",
+      additional_information: "Hidden",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public customFieldSettings?: JSONObject = undefined;
 }

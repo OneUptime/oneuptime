@@ -22,6 +22,13 @@ import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import { getJestSpyOn } from "../../../Spy";
 import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../../TestingUtils/Services/ProjectStatesHelper";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -63,6 +70,12 @@ let incidentFindSpy: Spy;
 let incidentCreateSpy: Spy;
 
 beforeEach(() => {
+  /*
+   * The project's states: "unresolved" is every state above its resolved
+   * state (Common/Utils/ResolvedState), so a state placed after Resolved is
+   * no open record to dedupe against.
+   */
+  mockProjectStates();
   alertFindSpy = getJestSpyOn(AlertService, "findBy").mockResolvedValue(
     [] as never,
   );
@@ -101,7 +114,10 @@ describe("openDedupedAlerts", () => {
       "fp-1",
       "fp-2",
     ]);
-    expect(query["currentAlertState"]).toEqual({ isResolvedState: false });
+    expect(idsOfAnyFilter(query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(query["currentAlertState"]).toBeUndefined();
   });
 
   test("creates only for fingerprints without an open alert, carrying the match fields", async () => {
@@ -165,7 +181,10 @@ describe("openDedupedIncidents", () => {
     const query: JSONObject = (incidentFindSpy.mock.calls[0]![0] as JSONObject)[
       "query"
     ] as JSONObject;
-    expect(query["currentIncidentState"]).toEqual({ isResolvedState: false });
+    expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
+    expect(query["currentIncidentState"]).toBeUndefined();
 
     const incident: Incident = (
       incidentCreateSpy.mock.calls[0]![0] as JSONObject

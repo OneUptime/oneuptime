@@ -44,6 +44,9 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      {{- with (include "oneuptime.serviceAccountName" $) }}
+      serviceAccountName: {{ . | quote }}
+      {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
@@ -62,9 +65,10 @@ spec:
       hostAliases:
         {{- toYaml $.Values.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Values.worker.affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "worker" "Constraints" $.Values.worker.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
@@ -118,10 +122,19 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "worker")) | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.worker.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
+            {{- if (($.Values.enterpriseMarketplace).provider) }}
+            {{- include "oneuptime.env.enterpriseMarketplace" (dict "Values" $.Values "Reporter" true) | nindent 12 }}
+            {{- end }}
             - name: PORT
               value: {{ $.Values.worker.ports.http | quote }}
             # This pod IS the worker role — it must consume the queues.
             - name: DISABLE_QUEUE_WORKERS
+              value: "false"
+            # No ingress routes to this pod, so it never records that
+            # OneUptime is receiving data: if every app pod is down while the
+            # workers keep running, that time is still a receiving gap, and
+            # no host or monitor is marked down for it.
+            - name: RECEIVES_INGRESS_TRAFFIC
               value: "false"
             - name: SMS_HIGH_RISK_COST_IN_CENTS
               value: {{ $.Values.billing.smsHighRiskValueInCents | quote }}
@@ -139,6 +152,9 @@ spec:
               value: {{ $.Values.worker.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.worker.telemetryConcurrency | default 100 | squote }}
+            # AI investigations one worker pod runs at once.
+            - name: AI_INVESTIGATION_CONCURRENCY
+              value: {{ $.Values.worker.aiInvestigationConcurrency | default 10 | squote }}
             # Fan-in telemetry writer knobs (defaults match the code —
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.

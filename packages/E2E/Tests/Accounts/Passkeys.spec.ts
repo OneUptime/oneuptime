@@ -4,6 +4,7 @@ import {
   IS_BILLING_ENABLED,
 } from "../../Config";
 import { registerAndCreateProject } from "../Dashboard/Helpers/ProductOnboarding";
+import { clickRowMenuAction } from "../Helpers/RowActions";
 import {
   APIRequestContext,
   APIResponse,
@@ -86,6 +87,15 @@ test.describe("Passkey account lifecycle", () => {
   };
 
   const signOut: () => Promise<void> = async (): Promise<void> => {
+    /*
+     * Leave the app before the session ends. An app page still open gets a
+     * 401 on its next request, signs itself out and navigates to the login
+     * page on its own, racing the navigation below: whichever starts second
+     * aborts the other (net::ERR_ABORTED). /status is a plain response on
+     * the same origin, so no app code runs there, and the app's storage for
+     * this origin can still be cleared from it.
+     */
+    await page.goto(`${origin}/status`);
     const response: APIResponse = await context.request.post(
       `${origin}/identity/logout`,
     );
@@ -124,6 +134,92 @@ test.describe("Passkey account lifecycle", () => {
       }),
     ).toMatchObject({ httpOnly: true });
   };
+
+  type Box = { x: number; y: number; width: number; height: number };
+
+  const boxOf: (locator: Locator) => Promise<Box> = async (
+    locator: Locator,
+  ): Promise<Box> => {
+    const bounds: Box | null = await locator.boundingBox();
+    expect(bounds).not.toBeNull();
+    return bounds as Box;
+  };
+
+  // Single sign-on, the first of the other ways in.
+  const ssoOption: () => Locator = (): Locator => {
+    return page.getByRole("link", { name: "Sign in with SSO", exact: true });
+  };
+
+  type Look = { background: string; border: string };
+
+  const lookOf: (locator: Locator) => Promise<Look> = async (
+    locator: Locator,
+  ): Promise<Look> => {
+    return locator.evaluate((element: HTMLElement): Look => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderTopWidth,
+      };
+    });
+  };
+
+  /*
+   * The sign-in page leads with the password form, and Login is its one
+   * filled button. Under it, an "or" divider and the other ways in as normal
+   * buttons, "Sign in with SSO" then "Sign in with a passkey": as wide and
+   * as tall as Login, lined up with it, white and outlined where it is
+   * filled. They used to be centred text links. The tinted passkey panel and
+   * its divider over the form are long gone, and "New to passkeys?" waits
+   * for an attempt that did not sign in.
+   */
+  const expectFormFirstThenOtherWaysIn: () => Promise<void> =
+    async (): Promise<void> => {
+      const passkeyOption: Locator = page.getByTestId("passkey-login");
+      const email: Box = await boxOf(page.getByTestId("email"));
+      const signIn: Box = await boxOf(page.getByTestId("Login"));
+      const divider: Box = await boxOf(
+        page.getByTestId("sign-in-options-divider"),
+      );
+      const sso: Box = await boxOf(ssoOption());
+      const passkey: Box = await boxOf(passkeyOption);
+
+      expect(email.y).toBeLessThan(signIn.y);
+      expect(signIn.y + signIn.height).toBeLessThanOrEqual(divider.y);
+      expect(divider.y + divider.height).toBeLessThanOrEqual(sso.y);
+      expect(sso.y + sso.height).toBeLessThanOrEqual(passkey.y);
+      for (const option of [sso, passkey]) {
+        expect(Math.abs(option.x - signIn.x)).toBeLessThanOrEqual(1);
+        expect(Math.abs(option.width - signIn.width)).toBeLessThanOrEqual(1);
+        expect(Math.abs(option.height - signIn.height)).toBeLessThanOrEqual(1);
+      }
+      await expect(page.getByTestId("sign-in-options-divider")).toHaveText(
+        "or",
+      );
+
+      const outlined: Look = {
+        background: "rgb(255, 255, 255)",
+        border: "1px",
+      };
+      expect(await lookOf(passkeyOption)).toEqual(outlined);
+      expect(await lookOf(ssoOption())).toEqual(outlined);
+      expect((await lookOf(page.getByTestId("Login"))).background).not.toBe(
+        outlined.background,
+      );
+
+      await expect(
+        page.getByText("Use single sign-on (SSO) instead", { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Use a saved passkey", { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("or sign in with a password", { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("New to passkeys?", { exact: true }),
+      ).toHaveCount(0);
+    };
 
   const signInWithPasskey: () => Promise<void> = async (): Promise<void> => {
     await expect(page.locator('input[type="email"]')).toHaveValue("");
@@ -371,9 +467,12 @@ test.describe("Passkey account lifecycle", () => {
 
   test("signs in with a passkey without entering an email or password", async () => {
     await signOut();
+    await expectFormFirstThenOtherWaysIn();
     await saveScreenshot("passkey-login-desktop", test.info());
     await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("Login")).toBeInViewport();
     await expect(page.getByTestId("passkey-login")).toBeInViewport();
+    await expectFormFirstThenOtherWaysIn();
     expect(
       await page.evaluate(() => {
         return document.documentElement.scrollWidth <= window.innerWidth;
@@ -473,15 +572,31 @@ test.describe("Passkey account lifecycle", () => {
       };
     });
     await page.getByTestId("passkey-login").click();
+    /*
+     * One sentence: "Try passkey again" right above it, and the password
+     * form above that, are the next steps.
+     */
     await expect(
-      page.getByText(
-        "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
-      ),
+      page.getByText("Passkey sign-in was canceled or timed out.", {
+        exact: true,
+      }),
     ).toBeVisible();
     await expectSignedOut();
     await expect(
       page.getByText("Email is required.", { exact: true }),
     ).toHaveCount(0);
+
+    /*
+     * "New to passkeys?" is help for exactly this moment: an attempt that did
+     * not sign in, often because there is no passkey yet. It names the
+     * Dashboard's real menu.
+     */
+    const help: Locator = page.getByText("New to passkeys?", { exact: true });
+    await expect(help).toBeVisible();
+    await help.click();
+    await expect(
+      page.getByText(/then open User Profile → Security → Passkeys\./),
+    ).toBeVisible();
 
     /*
      * The in-page Cancel action must abort a real pending browser ceremony,
@@ -496,13 +611,48 @@ test.describe("Passkey account lifecycle", () => {
       await expect(
         page.getByRole("button", { name: "Check your device", exact: true }),
       ).toBeVisible();
+      /*
+       * While the attempt runs, the password form is paused, and looks it:
+       * disabled, faded as a whole and out of the pointer's reach, its
+       * links included. The passkey option and its Cancel, outside the
+       * form, are not.
+       */
+      const passwordForm: Locator = page
+        .locator("fieldset")
+        .filter({ has: page.getByTestId("email") });
+      await expect(page.getByTestId("email")).toBeDisabled();
+      await expect(page.getByTestId("Login")).toBeDisabled();
+      await expect(passwordForm).toHaveCSS("opacity", "0.5");
+      await expect(passwordForm).toHaveCSS("pointer-events", "none");
+      // The "or" divider and single sign-on pause with the form.
+      await expect(ssoOption()).toHaveCSS("pointer-events", "none");
+      await expect(
+        passwordForm.getByTestId("sign-in-options-divider"),
+      ).toHaveCount(1);
+      await expect(page.getByTestId("passkey-option")).toHaveCSS(
+        "opacity",
+        "1",
+      );
+      // The passkey button keeps its look while its attempt runs.
+      expect(await lookOf(page.getByTestId("passkey-login"))).toEqual({
+        background: "rgb(255, 255, 255)",
+        border: "1px",
+      });
+      await expect(page.getByTestId("cancel-passkey-login")).toHaveCSS(
+        "pointer-events",
+        "auto",
+      );
       await page.getByTestId("cancel-passkey-login").click();
       await expect(
-        page.getByText(
-          "Passkey sign-in canceled. You can try again or use your password.",
-          { exact: true },
-        ),
+        page.getByText("Passkey sign-in canceled.", { exact: true }),
       ).toBeVisible();
+      await expect(page.getByTestId("email")).toBeEnabled();
+      await expect(passwordForm).toHaveCSS("opacity", "1");
+      await expect(passwordForm).toHaveCSS("pointer-events", "auto");
+      await expect(
+        page.getByText("New to passkeys?", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByTestId("passkey-login")).toBeFocused();
       await expect(page.locator('input[type="password"]')).toBeEnabled();
       await expect(
         page.getByText("Email is required.", { exact: true }),
@@ -514,6 +664,67 @@ test.describe("Passkey account lifecycle", () => {
         enabled: true,
       });
     }
+    await signInWithPasskey();
+  });
+
+  /*
+   * A browser without WebAuthn (an in-app web view, an old browser) keeps the
+   * quiet option and says why it cannot work there when it is clicked,
+   * instead of a sentence about passkeys on every visit. It asks the server
+   * for nothing, and the password form stays usable.
+   */
+  test("a browser without passkeys keeps the option and explains it when clicked, without a request", async () => {
+    await signOut();
+    const other: Page = await context.newPage();
+    const passkeyRequests: Array<string> = [];
+
+    try {
+      await other.addInitScript(() => {
+        Object.defineProperty(window, "PublicKeyCredential", {
+          configurable: true,
+          value: undefined,
+        });
+      });
+      other.on("request", (request: Request) => {
+        const pathname: string = new URL(request.url()).pathname;
+        if (pathname.startsWith("/identity/passkey-login")) {
+          passkeyRequests.push(pathname);
+        }
+      });
+      await other.goto(loginUrl);
+
+      const option: Locator = other.getByRole("button", {
+        name: "Sign in with a passkey",
+        exact: true,
+      });
+      await expect(option).toBeEnabled();
+      await expect(
+        other.getByText(/Passkeys aren’t available in this browser/),
+      ).toHaveCount(0);
+
+      await option.click();
+
+      await expect(
+        other.getByText(
+          "Passkeys aren’t available in this browser. You can still sign in with your password or SSO.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      /*
+       * Having said it cannot work here, the option is unavailable to a
+       * screen reader and drawn grey, and keeps the focus it was given.
+       */
+      await expect(option).toHaveAttribute("aria-disabled", "true");
+      await expect(option).toBeFocused();
+      await expect(
+        other.getByText("New to passkeys?", { exact: true }),
+      ).toHaveCount(0);
+      await expect(other.locator('input[type="password"]')).toBeEnabled();
+      expect(passkeyRequests).toEqual([]);
+    } finally {
+      await other.close();
+    }
+
     await signInWithPasskey();
   });
 
@@ -768,10 +979,7 @@ test.describe("Passkey account lifecycle", () => {
           })
           .click();
         await expect(
-          page.getByText(
-            "Passkey sign-in canceled. You can try again or use your password.",
-            { exact: true },
-          ),
+          page.getByText("Passkey sign-in canceled.", { exact: true }),
         ).toBeVisible();
         await expect(page.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
         await page.waitForFunction(() => {
@@ -844,11 +1052,11 @@ test.describe("Passkey account lifecycle", () => {
 
   test("revokes a registered passkey while preserving password sign-in", async () => {
     await page.goto(profileUrl);
-    await page
-      .getByRole("row")
-      .filter({ hasText: passkeyName })
-      .getByRole("button", { name: "Delete", exact: true })
-      .click();
+    // Rename is the row's one button; Delete is in its ⋯ menu.
+    await clickRowMenuAction({
+      row: page.getByRole("row").filter({ hasText: passkeyName }),
+      name: "Delete",
+    });
     await page.getByTestId("modal-footer-submit-button").click();
     await expect(
       page.getByRole("row").filter({ hasText: passkeyName }),

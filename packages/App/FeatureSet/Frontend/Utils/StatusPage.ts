@@ -1,5 +1,6 @@
 import { StatusPageApiInternalUrl } from "Common/Server/EnvironmentConfig";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -8,10 +9,20 @@ import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
+import XML from "Common/Types/XML";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
-  isSearchEngineIndexingEnabled,
+  isSearchEngineIndexingAllowed,
+  isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
+import StatusPageTheme, {
+  parseStatusPageTheme,
+  STATUS_PAGE_THEME_COLUMN,
+} from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface StatusPageData {
   id: string;
@@ -19,18 +30,32 @@ export interface StatusPageData {
   description: string;
   faviconUrl: string;
   /*
-   * False only when the owner turned indexing off. See
-   * Common/Types/StatusPage/SearchEngineIndexing.ts for why anything else -
-   * including an unreachable /seo API - reads as indexable.
+   * False on a preview URL, and on a custom domain whose owner turned
+   * indexing off. See Common/Types/StatusPage/SearchEngineIndexing.ts for
+   * why anything else - including an unreachable /seo API - reads as
+   * indexable on a custom domain.
    */
   isSearchEngineIndexingEnabled: boolean;
+  /*
+   * Light, Dark or System, as the /seo API reads the page's column; Light
+   * when it did not say (Types/StatusPage/StatusPageTheme). The page's HTML
+   * is sent in it, so a dark page is dark before its first paint.
+   */
+  theme: StatusPageTheme;
 }
 
+/*
+ * The page a request names: its data; PUBLIC_PAGE_NOT_FOUND when the status
+ * page API says there is no such page - none was made, it is archived, or a
+ * master admin blocked its project, which it answers alike - and the caller
+ * answers 404 (PublicPageNotFound); or null when the URL names no page or the
+ * page could not be looked up.
+ */
 export const getStatusPageData: (
   req: ExpressRequest,
-) => Promise<StatusPageData | null> = async (
+) => Promise<StatusPageData | PublicPageNotFound | null> = async (
   req: ExpressRequest,
-): Promise<StatusPageData | null> => {
+): Promise<StatusPageData | PublicPageNotFound | null> => {
   try {
     logger.debug("Getting status page data", { service: "frontend" });
 
@@ -40,7 +65,7 @@ export const getStatusPageData: (
     const path: string = req.path;
     logger.debug(`Request path: ${path}`, { service: "frontend" });
 
-    if (path && path.includes("/status-page/")) {
+    if (path && isStatusPagePreviewPath(path)) {
       statusPageIdOrDomain =
         path.split("/status-page/")[1]?.split("/")[0] || "";
       isPreview = true;
@@ -73,10 +98,9 @@ export const getStatusPageData: (
 
     /*
      * The /seo API resolves an id or a custom domain, so preview URLs
-     * (/status-page/:statusPageId) go through it too. They have to: the
-     * preview URL is the only URL a status page has until someone attaches a
-     * custom domain, so skipping the lookup here would leave the indexing
-     * opt-out working on custom domains and doing nothing for everyone else.
+     * (/status-page/:statusPageId) go through it too, for the page's title
+     * and description. A preview URL is never indexed whatever the owner's
+     * setting says, so the lookup does not decide that for it.
      */
     logger.debug(
       `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
@@ -90,6 +114,17 @@ export const getStatusPageData: (
       });
 
     let seoData: JSONObject | null = null;
+
+    /*
+     * Not found is an answer, not a failed lookup: the page is served as not
+     * found, on a preview URL too, where the id alone could render it.
+     */
+    if (response instanceof HTTPErrorResponse && response.statusCode === 404) {
+      logger.debug("The status page API knows no such page", {
+        service: "frontend",
+      });
+      return PUBLIC_PAGE_NOT_FOUND;
+    }
 
     if (response instanceof HTTPErrorResponse) {
       logger.debug(`Received error response from API: ${response}`, {
@@ -129,9 +164,11 @@ export const getStatusPageData: (
       title,
       description,
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
-      isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled(
-        seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
-      ),
+      isSearchEngineIndexingEnabled: isSearchEngineIndexingAllowed({
+        path,
+        indexingFlag: seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
+      }),
+      theme: parseStatusPageTheme(seoData?.[STATUS_PAGE_THEME_COLUMN]),
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "frontend" });
@@ -155,7 +192,14 @@ export const handleRSS: (
   res: ExpressResponse,
 ): Promise<void> => {
   try {
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");
@@ -270,22 +314,27 @@ export const handleRSS: (
 
     const feedUrl: string = `${req.protocol}://${req.get("host")}${req.path}`;
 
+    /*
+     * Every value goes through XML.escape. One "&" in a page title, or a
+     * "]]>" ending a CDATA section early, and feed readers reject the whole
+     * feed. The links carry the request's host and path.
+     */
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>${title} Updates</title>
-<description>${description}</description>
-<link>${baseUrl}</link>
-<atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
+<title>${XML.escape(title)} Updates</title>
+<description>${XML.escape(description)}</description>
+<link>${XML.escape(baseUrl)}</link>
+<atom:link href="${XML.escape(feedUrl)}" rel="self" type="application/rss+xml" />
 `;
 
     items.forEach((item: RSSItem) => {
       rssXml += `
 <item>
-<title><![CDATA[${item.title}]]></title>
-<description><![CDATA[${item.description}]]></description>
-<link>${item.link}</link>
-<guid>${item.link}</guid>
+<title>${XML.escape(item.title)}</title>
+<description>${XML.escape(item.description)}</description>
+<link>${XML.escape(item.link)}</link>
+<guid>${XML.escape(item.link)}</guid>
 <pubDate>${item.pubDate}</pubDate>
 </item>`;
     });
@@ -309,9 +358,10 @@ export const handleRSS: (
  * overview JSON API).
  *
  * Access control mirrors the RSS feed (/rss): the status page is resolved
- * with getStatusPageData, which returns null (-> 404) when the page cannot
- * be resolved. Everything this document exposes (page title, feed and API
- * URLs) is already exposed by /rss.
+ * with getStatusPageData, and a page that does not exist - or is archived,
+ * or of a blocked project - or cannot be resolved gets a 404. Everything
+ * this document exposes (page title, feed and API URLs) is already exposed
+ * by /rss.
  */
 export const handleLlmsTxt: (
   req: ExpressRequest,
@@ -325,7 +375,14 @@ export const handleLlmsTxt: (
      * Resolve the status page from the host or the
      * /status-page/:statusPageId path, same as the RSS feed.
      */
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");
@@ -357,7 +414,7 @@ export const handleLlmsTxt: (
 
     const llmsTxt: string = `# ${title} Status
 
-> This is a service status page powered by OneUptime. It shows real-time status, incidents, announcements, and scheduled maintenance events.
+> This is a service status page powered by ${ProductBrandingText.getProductName()}. It shows real-time status, incidents, announcements, and scheduled maintenance events.
 
 - [RSS Feed](${rssFeedUrl}): RSS feed of incidents, announcements, and scheduled maintenance events.
 - [Status Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of the current status, resources, active incidents, announcements, and scheduled maintenance events (HTTP GET).

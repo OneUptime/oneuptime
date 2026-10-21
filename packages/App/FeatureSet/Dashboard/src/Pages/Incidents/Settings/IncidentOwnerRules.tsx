@@ -1,6 +1,11 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingOwnerRuleActionFields,
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,9 +22,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 
 const incidentOwnerDocumentation: string = `
 ### How Incident Owner Rules Work
@@ -51,11 +53,12 @@ Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (def
 const incidentEpisodeOwnerDocumentation: string = `
 ### How Incident Episode Owner Rules Work
 
-Match an incident episode on creation and add owner users / teams automatically. Empty criteria are skipped.
+Match an incident episode on creation and add owner users / teams automatically.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+- **Incident Severities**, **Episode Labels** — any of the selected values
+- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
 `;
 
 interface RulesTableProps {
@@ -130,45 +133,8 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<IncidentOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign DB team to database incidents",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -194,6 +160,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -226,7 +195,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentTitlePattern: true },
-          title: "Incident Title Pattern",
+          title: "Incident Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -237,7 +206,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentDescriptionPattern: true },
-          title: "Incident Description Pattern",
+          title: "Incident Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -245,7 +214,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -253,98 +222,13 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
-        {
-          field: { inheritOwnersFromMonitors: true },
-          title: "Inherit Owners From Monitors",
-          stepId: "owners",
-          sectionTitle: "Inherit Owners",
-          sectionDescription:
-            "Optionally assign owners from related entities to the incident.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's monitors as an owner of the incident.",
-        },
-        {
-          field: { inheritOwnersFromHosts: true },
-          title: "Inherit Owners From Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's affected hosts as an owner of the incident.",
-        },
-        {
-          field: { inheritOwnersFromKubernetesClusters: true },
-          title: "Inherit Owners From Kubernetes Clusters",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's affected Kubernetes clusters as an owner of the incident.",
-        },
-        {
-          field: { inheritOwnersFromDockerHosts: true },
-          title: "Inherit Owners From Docker Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's affected Docker hosts as an owner of the incident.",
-        },
-        {
-          field: { inheritOwnersFromPodmanHosts: true },
-          title: "Inherit Owners From Podman Hosts",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's affected Podman hosts as an owner of the incident.",
-        },
-        {
-          field: { inheritOwnersFromServices: true },
-          title: "Inherit Owners From Services",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Assign every owner of the incident's affected services as an owner of the incident.",
-        },
+        ...getInheritingOwnerRuleActionFields<IncidentOwnerRule>("incident"),
       ]}
       showRefreshButton={true}
     />
@@ -418,42 +302,8 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<IncidentEpisodeOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Notify owners when they are added by this rule.",
-        },
         {
           field: { incidentSeverities: true },
           title: "Incident Severities",
@@ -466,6 +316,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -485,7 +338,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -496,41 +349,13 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
-          stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+        ...getOwnerRuleActionFields<IncidentEpisodeOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

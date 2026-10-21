@@ -1,0 +1,13 @@
+# The same pre-14.0.2 release upgraded with
+#   --reuse-values --set aiAgent.remediation.enabled=true
+# .Values.aiAgent is then exactly {remediation: {enabled: true}}: no enabled,
+# image, imagePullSecrets or resources, so every one of them must fall back
+# in the template. The nulls remove this chart's defaults (see
+# pre-ai-no-ai-values.yaml).
+aiAgent:
+  enabled: null
+  image: null
+  imagePullSecrets: null
+  resources: null
+  remediation:
+    enabled: true

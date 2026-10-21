@@ -3,6 +3,7 @@ import AIRunEventService from "../Services/AIRunEventService";
 import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
+import CodeFixPullRequestRecord from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -17,10 +18,16 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
-import AIRunType from "../../Types/AI/AIRunType";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
-import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
+import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import PositiveNumber from "../../Types/PositiveNumber";
+import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
+import CodeTaskOutcomeReader, {
+  CodeTaskOutcomeRead,
+} from "../Utils/AI/CodeTask/CodeTaskOutcomeReader";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
@@ -50,30 +57,39 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
-          if (!aiAgent || !aiAgent.id) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+          if (!aiAgent) {
+            return;
           }
 
           /*
            * Scope the claim to the agent's project when it has one. A
            * project-scoped Runner (what customers install) must never
            * claim another tenant's code-fix run; the in-cluster Runner has
-           * no projectId and keeps serving every project.
+           * no projectId and keeps serving every project. Within that, each
+           * repository's Runner setting decides who takes its runs: a
+           * project's Runner only those of the repositories that pick it, a
+           * global Runner only those of repositories that pick none.
            */
           const run: AIRun | null =
             await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
               projectId: aiAgent.projectId,
+              worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+              /*
+               * The recipes this Runner has handlers for. A Runner built
+               * before it said is handed only the recipes every Runner has.
+               */
+              supportedTaskTypes: CodeFixTaskTypeHelper.readSupportedTaskTypes(
+                (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
+              ),
             });
 
           if (!run) {
@@ -120,38 +136,39 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task-count`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
-          /* Count queued code-fix runs */
           /*
-           * Same tenancy scoping as the claim: a project-scoped Runner
-           * autoscales on its OWN queue depth, never on other tenants'.
+           * The queued code-fix runs this agent may take, by the same rule
+           * as the claim: a project-scoped Runner autoscales on its OWN
+           * queue depth - the runs of the repositories that pick it - never
+           * on other tenants' or another Runner's. Every recipe is counted
+           * unless the request names the ones it has handlers for, as the
+           * count always did.
            */
-          const count: PositiveNumber = await AIRunService.countBy({
-            query: {
-              runType: AIRunType.CodeFix,
-              status: AIRunStatus.Queued,
-              ...(aiAgent.projectId ? { projectId: aiAgent.projectId } : {}),
-            },
-            props: {
-              isRoot: true,
-            },
+          const claimableTaskTypes: Array<CodeFixTaskType> =
+            CodeFixTaskTypeHelper.readSupportedTaskTypes(
+              (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
+            ) || Object.values(CodeFixTaskType);
+
+          const count: number = await AIRunService.countClaimableCodeFixRuns({
+            worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+            projectId: aiAgent.projectId,
+            claimableTaskTypes,
           });
 
           return Response.sendJsonObjectResponse(req, res, {
-            count: count,
+            count: new PositiveNumber(count),
             message: "Pending task count fetched successfully",
           });
         } catch (err) {
@@ -165,7 +182,9 @@ export default class AIAgentTaskAPI {
      * `taskId` is an AIRun id. InProgress is a heartbeat touch (the run is
      * already Running from the claim); Completed/Error are CAS transitions
      * Running -> Completed/Error that also write the terminal
-     * RunCompleted/RunFailed event to the run's glass-box trail.
+     * RunCompleted/RunFailed event to the run's glass-box trail. A Completed
+     * report may carry the pull request URLs the run opened, and the pull
+     * requests it opened but could not record.
      */
     this.router.post(
       `${API_BASE_PATH}/update-task-status`,
@@ -173,16 +192,16 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           /* Validate required fields */
@@ -207,6 +226,45 @@ export default class AIAgentTaskAPI {
           const statusMessage: string | undefined = data["statusMessage"] as
             | string
             | undefined;
+
+          /*
+           * The pull requests a Completed run opened. Recording one can fail
+           * after GitHub has opened it, and the thread a GitHub run came from
+           * should still get its link, so Runners send them with the status.
+           * Older Runners send none, and the run is stored as it always was.
+           */
+          const pullRequestUrls: unknown =
+            status === AIAgentTaskStatus.Completed
+              ? data["pullRequestUrls"]
+              : undefined;
+
+          const hasPullRequestUrls: boolean =
+            Array.isArray(pullRequestUrls) && pullRequestUrls.length > 0;
+
+          /*
+           * The pull requests a Completed run opened but could not record on
+           * /ai-agent-data/record-pull-request, each with everything that
+           * route reads. Without a row the open-PR cap never counts the pull
+           * request and the PR state sync never tracks it, so they are
+           * recorded here. Older Runners send none.
+           */
+          const unrecordedPullRequests: unknown =
+            status === AIAgentTaskStatus.Completed
+              ? data["unrecordedPullRequests"]
+              : undefined;
+
+          /*
+           * What a code task's turn ended with: the AI's reply, the files it
+           * changed and their diff, and whether it asked the person a
+           * question (see Types/AI/CodeTask). Read, checked and capped by
+           * CodeTaskOutcomeReader; Runners that predate it send none, and
+           * the turn is kept as before.
+           */
+          const outcomeRead: CodeTaskOutcomeRead | null =
+            status === AIAgentTaskStatus.Completed ||
+            status === AIAgentTaskStatus.NoFixFound
+              ? CodeTaskOutcomeReader.read(data["outcome"])
+              : null;
 
           /* Validate status value */
           const validStatuses: Array<AIAgentTaskStatus> = [
@@ -233,6 +291,7 @@ export default class AIAgentTaskAPI {
               _id: true,
               projectId: true,
               status: true,
+              ...(hasPullRequestUrls ? { taskContext: true } : {}),
             },
             props: {
               isRoot: true,
@@ -302,6 +361,40 @@ export default class AIAgentTaskAPI {
                 toStatus === AIRunStatus.NoFixFound);
 
             /*
+             * The reported pull requests go on the run's GitHub context, in
+             * the same UPDATE that makes the run Completed. The outcome
+             * sweeper answers the thread as soon as the run is terminal, so a
+             * later write could land after the reply had already said no pull
+             * request was recorded. A run that did not come from GitHub has no
+             * thread to link them in, and its context is left alone.
+             */
+            const taskContext: CodeFixTaskContext | null = hasPullRequestUrls
+              ? GitHubRunReply.withOpenedPullRequestUrls({
+                  taskContext: existingRun.taskContext,
+                  pullRequestUrls: pullRequestUrls,
+                })
+              : null;
+
+            /*
+             * Recorded before the run is terminal, so whatever reads its pull
+             * requests the moment it is (the GitHub reply) finds them. And
+             * recorded whoever wins the transition below: the pull requests
+             * are open on GitHub however the run ends.
+             */
+            if (
+              Array.isArray(unrecordedPullRequests) &&
+              unrecordedPullRequests.length > 0 &&
+              existingRun.projectId
+            ) {
+              await CodeFixPullRequestRecord.recordReportedPullRequests({
+                aiRunId: runId,
+                projectId: existingRun.projectId,
+                aiAgent: aiAgent,
+                pullRequests: unrecordedPullRequests,
+              });
+            }
+
+            /*
              * CAS Running -> Completed/NoFixFound/Error. Losing the race (0
              * rows) means another actor already finalized the run — e.g. the
              * sweeper marked it Error after a heartbeat gap — and that outcome
@@ -317,6 +410,19 @@ export default class AIAgentTaskAPI {
                   lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
                   ...(shouldStoreMessage
                     ? { errorMessage: statusMessage }
+                    : {}),
+                  ...(taskContext ? { taskContext: taskContext } : {}),
+                  ...(outcomeRead
+                    ? {
+                        taskOutcome: outcomeRead.outcome,
+                        // Only a turn that finished can wait for an answer.
+                        needsUserInput:
+                          outcomeRead.needsInput &&
+                          toStatus === AIRunStatus.Completed,
+                        ...(outcomeRead.changes
+                          ? { codeChanges: outcomeRead.changes }
+                          : {}),
+                      }
                     : {}),
                 },
               });

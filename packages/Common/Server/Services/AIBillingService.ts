@@ -2,28 +2,157 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnSubscriptionUpdate,
 } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
+import MarketplaceChargeService from "./MarketplaceChargeService";
 import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Email from "../../Types/Email";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import {
   BillingFailureNoticeKind,
   shouldSendBillingFailureNotice,
 } from "../Utils/Billing/BillingFailureNoticeThrottle";
-import URL from "../../Types/API/URL";
+import BalanceRechargeGuard, {
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS,
+  AutoRechargeSettings,
+  getAutoRechargeSettings,
+} from "../Utils/Billing/BalanceRechargeGuard";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import { CloudMarketplaceUtil } from "../../Types/Marketplace/CloudMarketplace";
 import Exception from "../../Types/Exception/Exception";
+
+/*
+ * Every recharge of a project's AI credits - by hand, or by Auto Recharge
+ * before or after an AI call - takes this lock first, one project at a
+ * time, and reads the balance again once it holds it. So AI calls that find
+ * the credits low at the same moment charge the card once: the first
+ * recharges, and the others, waiting their turn, find the credits it added
+ * and charge nothing.
+ */
+export const AI_RECHARGE_LOCK_NAMESPACE: string = "AIBillingService.recharge";
+
+/*
+ * After an automatic recharge fails - no payment method, a declined card -
+ * Auto Recharge waits this long before it charges the card again: the hour
+ * both balances wait (Utils/Billing/BalanceRechargeGuard). Without it, every
+ * AI call made while the credits are used up would try the card once more
+ * (each try a voided invoice at the payment provider). A recharge by hand,
+ * or saving Auto Recharge again, tries at once and, when it works, ends the
+ * wait.
+ */
+export const AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS: number =
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS;
+
+const AI_AUTO_RECHARGE_FAILED_NAMESPACE: string = "ai-auto-recharge-failed";
+
+// The recharge lock and the wait after a failed charge, in the shared cache.
+const aiRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
+  balanceName: "AI credits",
+  lockNamespace: AI_RECHARGE_LOCK_NAMESPACE,
+  failureNamespace: AI_AUTO_RECHARGE_FAILED_NAMESPACE,
+});
+
+// What Auto Recharge is set to, from the project row or a change to it.
+export type AiAutoRechargeSettings = AutoRechargeSettings;
+
+// A change to Auto Recharge that is not written yet (ProjectService).
+export interface AiAutoRechargeChange {
+  enableAutoRechargeAiBalance: boolean;
+  autoAiRechargeByBalanceInUSD?: number | undefined;
+  autoRechargeAiWhenCurrentBalanceFallsInUSD?: number | undefined;
+  /*
+   * Somebody saving Auto Recharge: try the card now, whatever failed
+   * before - it is a deliberate try, and its answer is shown to them.
+   */
+  ignoreRecentFailure?: boolean | undefined;
+}
 
 export class AIBillingService extends BaseService {
   public constructor() {
     super();
   }
 
+  /*
+   * Auto Recharge can only refill the credits when it is on and has an
+   * amount to add and a balance to add it at. The dashboard asks for both,
+   * and they default to 20 and 10 USD, so "on" almost always means "set up";
+   * one set to nothing through the API recharges nothing, so it counts as
+   * off everywhere - here, in the recharge itself, and in what the readiness
+   * checks say.
+   */
+  public getAutoRechargeSettings(
+    project: Pick<
+      Project,
+      | "enableAutoRechargeAiBalance"
+      | "autoAiRechargeByBalanceInUSD"
+      | "autoRechargeAiWhenCurrentBalanceFallsInUSD"
+    >,
+    change?: AiAutoRechargeChange | undefined,
+  ): AiAutoRechargeSettings {
+    return getAutoRechargeSettings({
+      isEnabled: change
+        ? change.enableAutoRechargeAiBalance === true
+        : project.enableAutoRechargeAiBalance === true,
+      rechargeByInUSD: {
+        changed: change?.autoAiRechargeByBalanceInUSD,
+        stored: project.autoAiRechargeByBalanceInUSD,
+      },
+      whenBalanceFallsToInUSD: {
+        changed: change?.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+        stored: project.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+      },
+    });
+  }
+
+  /*
+   * What Auto Recharge would do for this project now, if its AI credits are
+   * used up: nothing (Off), recharge them before the next billed call
+   * (Ready), or nothing for now because its last charge failed (Failed).
+   * AIService.getAiBalanceBlocker asks it, so the readiness checks say what
+   * the next AI call will do.
+   *
+   * A failure that cannot be read (the shared cache is down) reads as none:
+   * the call itself still decides, and without the cache it charges nothing.
+   */
+  @CaptureSpan()
+  public async getAutoRechargeState(data: {
+    projectId: ObjectID;
+    project: Pick<
+      Project,
+      | "enableAutoRechargeAiBalance"
+      | "autoAiRechargeByBalanceInUSD"
+      | "autoRechargeAiWhenCurrentBalanceFallsInUSD"
+    >;
+  }): Promise<AutoRechargeState> {
+    if (!this.getAutoRechargeSettings(data.project).isSetUp) {
+      return AutoRechargeState.Off;
+    }
+
+    if (await aiRechargeGuard.hasRecentFailure(data.projectId)) {
+      return AutoRechargeState.Failed;
+    }
+
+    return AutoRechargeState.Ready;
+  }
+
+  /*
+   * A recharge somebody asked for: the Recharge button on AI Credits
+   * (POST /ai/recharge, which checks who may first).
+   *
+   * It takes the same lock as Auto Recharge, so an automatic recharge
+   * waiting behind it finds the credits this one adds and does not charge
+   * the card again. If the lock cannot be taken (the shared cache is down),
+   * the recharge goes ahead anyway: the person who asked for it is told
+   * whether it worked, and the credit is added in one statement whatever
+   * else is writing the balance.
+   */
   @CaptureSpan()
   public async rechargeBalance(
     projectId: ObjectID,
@@ -33,8 +162,7 @@ export class AIBillingService extends BaseService {
        * See NotificationService.rechargeBalance for the full reasoning. In
        * short: true for the manual "Recharge" button, where this email is the
        * only confirmation a person gets that their card was charged, and false
-       * for the automatic top-up, which fires from the balance check that runs
-       * on every AI call.
+       * where nobody pressed anything.
        */
       sendOwnerConfirmationEmail?: boolean | undefined;
     },
@@ -43,22 +171,174 @@ export class AIBillingService extends BaseService {
       throw new BadDataException("Billing is not enabled");
     }
 
-    const sendOwnerConfirmationEmail: boolean =
-      options?.sendOwnerConfirmationEmail !== false;
+    const lock: SemaphoreMutex | null =
+      await aiRechargeGuard.takeLock(projectId);
 
-    const project: Project | null = await ProjectService.findOneById({
+    try {
+      return await this.chargeAndCredit({
+        projectId,
+        amountInUSD,
+        isAutomatic: false,
+        sendOwnerConfirmationEmail:
+          options?.sendOwnerConfirmationEmail !== false,
+      });
+    } finally {
+      await aiRechargeGuard.releaseLock(lock, projectId);
+    }
+  }
+
+  /*
+   * Auto Recharge: if the AI credits are below the balance Auto Recharge is
+   * set to recharge at, add its amount. Answers the balance afterwards.
+   *
+   * Asked before a billed AI call that finds the credits used up (so the
+   * call runs on the credits this adds), after every billed call, and when
+   * somebody turns Auto Recharge on (`change`, not written yet: then the
+   * card is tried at once, as for SMS and calls).
+   *
+   * Once per low balance, however many callers ask at once: the check is
+   * made again holding the recharge lock, so callers that waited find the
+   * credits the first one added. Never without the lock - two servers could
+   * each charge the card - so when it cannot be taken, nothing is charged
+   * and the balance is answered as it is. After a failed charge it waits
+   * AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS before trying the card again.
+   *
+   * A charge that fails throws, after telling the owners (once a day).
+   */
+  @CaptureSpan()
+  public async rechargeIfBalanceIsLow(
+    projectId: ObjectID,
+    change?: AiAutoRechargeChange | undefined,
+  ): Promise<number> {
+    if (!projectId || !IsBillingEnabled) {
+      return 0;
+    }
+
+    // A first look without the lock: most calls end here, with no charge.
+    const firstLook: Project | null = await this.readAutoRechargeRow(projectId);
+
+    if (!firstLook) {
+      return 0;
+    }
+
+    if (!this.needsRecharge(firstLook, change)) {
+      return firstLook.aiCurrentBalanceInUSDCents || 0;
+    }
+
+    if (
+      !change?.ignoreRecentFailure &&
+      (await aiRechargeGuard.hasRecentFailure(projectId))
+    ) {
+      return firstLook.aiCurrentBalanceInUSDCents || 0;
+    }
+
+    const lock: SemaphoreMutex | null =
+      await aiRechargeGuard.takeLock(projectId);
+
+    if (!lock) {
+      logger.error(
+        `AI credits: Auto Recharge of project ${projectId.toString()} did not run: the recharge lock could not be taken, and without it two servers could each charge the card.`,
+      );
+      return firstLook.aiCurrentBalanceInUSDCents || 0;
+    }
+
+    try {
+      /*
+       * Again, holding the lock: a recharge that finished while this one
+       * waited has added its credits, and a failure meanwhile starts the
+       * wait.
+       */
+      const project: Project | null = await this.readAutoRechargeRow(projectId);
+
+      if (!project) {
+        return 0;
+      }
+
+      if (!this.needsRecharge(project, change)) {
+        return project.aiCurrentBalanceInUSDCents || 0;
+      }
+
+      if (
+        !change?.ignoreRecentFailure &&
+        (await aiRechargeGuard.hasRecentFailure(projectId))
+      ) {
+        return project.aiCurrentBalanceInUSDCents || 0;
+      }
+
+      return await this.chargeAndCredit({
+        projectId,
+        amountInUSD: this.getAutoRechargeSettings(project, change)
+          .rechargeByInUSD,
+        isAutomatic: true,
+        /*
+         * Nobody pressed anything: a success email here would be one message
+         * to every owner per recharge, on a busy project many a day.
+         */
+        sendOwnerConfirmationEmail: false,
+      });
+    } finally {
+      await aiRechargeGuard.releaseLock(lock, projectId);
+    }
+  }
+
+  // Set up, and below the balance it recharges at.
+  private needsRecharge(
+    project: Project,
+    change?: AiAutoRechargeChange | undefined,
+  ): boolean {
+    const settings: AiAutoRechargeSettings = this.getAutoRechargeSettings(
+      project,
+      change,
+    );
+
+    return (
+      settings.isSetUp &&
+      (project.aiCurrentBalanceInUSDCents || 0) / 100 <
+        settings.whenBalanceFallsToInUSD
+    );
+  }
+
+  private async readAutoRechargeRow(
+    projectId: ObjectID,
+  ): Promise<Project | null> {
+    return await ProjectService.findOneById({
       id: projectId,
       select: {
         aiCurrentBalanceInUSDCents: true,
         enableAutoRechargeAiBalance: true,
-        enableAi: true,
         autoAiRechargeByBalanceInUSD: true,
         autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Charge the project's card and add the credits. The caller holds the
+   * recharge lock (or, for a recharge by hand, tried to).
+   */
+  private async chargeAndCredit(data: {
+    projectId: ObjectID;
+    amountInUSD: number;
+    isAutomatic: boolean;
+    sendOwnerConfirmationEmail: boolean;
+  }): Promise<number> {
+    const { amountInUSD } = data;
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
         paymentProviderCustomerId: true,
+        // A cloud marketplace that bills the project instead of a card.
+        billingMarketplace: true,
         name: true,
-        failedAiBalanceChargeNotificationSentToOwners: true,
         sendInvoicesByEmail: true,
         financeAccountingEmail: true,
+        // Who created the project, for the operator's Slack message.
+        createdOwnerName: true,
+        createdOwnerEmail: true,
       },
       props: {
         isRoot: true,
@@ -70,123 +350,128 @@ export class AIBillingService extends BaseService {
     }
 
     /*
-     * The no-payment-method branch below throws, and that throw lands in this
-     * method's own catch. Without this the FIRST no-payment-method failure
-     * sends two "ACTION REQUIRED" emails about the same fact, one from each
-     * place.
+     * The no-payment-method and marketplace branches below throw, and that
+     * throw lands in this method's own catch. Without this the FIRST such
+     * failure sends two "ACTION REQUIRED" emails about the same fact, one
+     * from each place.
      */
     let ownersAlreadyToldAboutThisFailure: boolean = false;
 
     try {
-      if (
-        !(await BillingService.hasPaymentMethods(
-          project.paymentProviderCustomerId!,
-        ))
-      ) {
+      if (project.billingMarketplace) {
         /*
-         * The same 24h window as the catch below. The project boolean this
-         * branch used to latch on is cleared only by a SUCCESSFUL recharge, so
-         * a project that never manages one was told once and then never again.
+         * A cloud marketplace pays for this project, and there is no card:
+         * the top-up is billed there with the next hourly usage report
+         * (MarketplaceChargeService) - while the purchase is active there.
          */
-        ownersAlreadyToldAboutThisFailure = true;
-
-        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
-          projectId: project.id!,
-          kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
-        });
-
-        if (shouldTellOwners) {
-          await ProjectService.updateOneById({
-            data: {
-              failedAiBalanceChargeNotificationSentToOwners: true,
-            },
-            id: project.id!,
-            props: {
-              isRoot: true,
-            },
+        try {
+          await MarketplaceChargeService.recordBalanceRecharge({
+            projectId: project.id!,
+            balanceType: ProjectBalanceType.AI,
+            amountInUSD: amountInUSD,
+            isAutomatic: data.isAutomatic,
           });
-          await ProjectService.sendEmailToProjectOwners(
-            project.id!,
-            "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
-              (project.name || ""),
-            `We have tried to recharge your AI balance for project - ${
-              project.name || ""
-            } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
+        } catch (err) {
+          // The owners are told what to put right: the purchase, not a card.
+          ownersAlreadyToldAboutThisFailure = true;
+
+          const shouldTellOwners: boolean =
+            await shouldSendBillingFailureNotice({
+              projectId: project.id!,
+              kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
+            });
+
+          if (shouldTellOwners) {
+            await ProjectService.updateOneById({
+              data: {
+                failedAiBalanceChargeNotificationSentToOwners: true,
+              },
+              id: project.id!,
+              props: {
+                isRoot: true,
+              },
+            });
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
+                (project.name || ""),
+              `We have tried to recharge your AI balance for project - ${
+                project.name || ""
+              } and failed. ${
+                err instanceof BadDataException
+                  ? err.message
+                  : "Please try again later."
+              }`,
+            );
+          }
+
+          throw err;
+        }
+      } else {
+        if (
+          !(await BillingService.hasPaymentMethods(
+            project.paymentProviderCustomerId!,
+          ))
+        ) {
+          /*
+           * The same 24h window as the catch below. The project boolean this
+           * branch used to latch on is cleared only by a SUCCESSFUL recharge, so
+           * a project that never manages one was told once and then never again.
+           */
+          ownersAlreadyToldAboutThisFailure = true;
+
+          const shouldTellOwners: boolean =
+            await shouldSendBillingFailureNotice({
+              projectId: project.id!,
+              kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
+            });
+
+          if (shouldTellOwners) {
+            await ProjectService.updateOneById({
+              data: {
+                failedAiBalanceChargeNotificationSentToOwners: true,
+              },
+              id: project.id!,
+              props: {
+                isRoot: true,
+              },
+            });
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
+                (project.name || ""),
+              `We have tried to recharge your AI balance for project - ${
+                project.name || ""
+              } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
+            );
+          }
+          throw new BadDataException(
+            "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
           );
         }
-        throw new BadDataException(
-          "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
+
+        await BillingService.generateInvoiceAndChargeCustomer(
+          project.paymentProviderCustomerId!,
+          "AI Balance Recharge",
+          amountInUSD,
+          {
+            sendInvoiceByEmail: project.sendInvoicesByEmail || false,
+            recipientEmails: project.financeAccountingEmail
+              ? Email.parseList(project.financeAccountingEmail)
+              : undefined,
+            projectId: project.id || undefined,
+          },
         );
       }
-
-      // recharge balance
-      const updatedAmount: number = Math.floor(
-        (project.aiCurrentBalanceInUSDCents || 0) + amountInUSD * 100,
-      );
-
-      // If the recharge is successful, then update the project balance.
-      await BillingService.generateInvoiceAndChargeCustomer(
-        project.paymentProviderCustomerId!,
-        "AI Balance Recharge",
-        amountInUSD,
-        {
-          sendInvoiceByEmail: project.sendInvoicesByEmail || false,
-          recipientEmails: project.financeAccountingEmail
-            ? Email.parseList(project.financeAccountingEmail)
-            : undefined,
-          projectId: project.id || undefined,
-        },
-      );
-
-      await ProjectService.updateOneById({
-        data: {
-          aiCurrentBalanceInUSDCents: updatedAmount,
-          failedAiBalanceChargeNotificationSentToOwners: false, // reset this flag
-          lowAiBalanceNotificationSentToOwners: false, // reset this flag
-          notEnabledAiNotificationSentToOwners: false,
-        },
-        id: project.id!,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      /*
-       * The confirmation is suppressed for AUTO-recharge only. It used to fire
-       * unconditionally, and AI auto-recharge runs from the balance check on
-       * every AI call, so a busy project mailed every owner once per recharge.
-       * Somebody who deliberately clicked "Recharge" still gets told, because
-       * Project.sendInvoicesByEmail defaults to false and nothing else
-       * reliably confirms the charge.
-       */
-      if (sendOwnerConfirmationEmail) {
-        await ProjectService.sendEmailToProjectOwners(
-          project.id!,
-          "AI Balance Recharge Successful for project - " +
-            (project.name || ""),
-          `We have successfully recharged your AI balance for project - ${
-            project.name || ""
-          } by ${amountInUSD} USD. Your current balance is ${
-            updatedAmount / 100
-          } USD.`,
-        );
-      }
-
-      // Send Slack notification for balance refill
-      this.sendBalanceRefillSlackNotification({
-        project: project,
-        amountInUSD: amountInUSD,
-        currentBalanceInUSD: updatedAmount / 100,
-      }).catch((error: Exception) => {
-        logger.error(
-          "Error sending slack message for AI balance refill: " + error,
-        );
-      });
-
-      project.aiCurrentBalanceInUSDCents = updatedAmount;
-
-      return updatedAmount;
     } catch (err) {
+      /*
+       * Auto Recharge waits before it tries the card again, so the AI calls
+       * made while the credits are used up do not each try it once more.
+       */
+      if (data.isAutomatic) {
+        await aiRechargeGuard.rememberFailure(project.id!);
+      }
+
       /*
        * This block used to write failedAiBalanceChargeNotificationSentToOwners
        * and then send WITHOUT ever reading it, so a project with a declined
@@ -226,105 +511,122 @@ export class AIBillingService extends BaseService {
       logger.error(err);
       throw err;
     }
-  }
 
-  @CaptureSpan()
-  public async rechargeIfBalanceIsLow(
-    projectId: ObjectID,
-    options?: {
-      autoAiRechargeByBalanceInUSD: number;
-      autoRechargeAiWhenCurrentBalanceFallsInUSD: number;
-      enableAutoRechargeAiBalance: boolean;
-    },
-  ): Promise<number> {
-    let project: Project | null = null;
-    if (projectId && IsBillingEnabled) {
-      // check payment methods.
-
-      project = await ProjectService.findOneById({
-        id: projectId,
-        select: {
-          aiCurrentBalanceInUSDCents: true,
-          enableAutoRechargeAiBalance: true,
-          autoAiRechargeByBalanceInUSD: true,
-          autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+    /*
+     * The card is charged: add the credits in one statement, to whatever the
+     * balance is now. It used to write back the balance read before the
+     * charge plus the amount, which lost the cost of every AI call billed
+     * while the payment provider answered - and a second recharge running at
+     * the same moment overwrote the first one's credits, so a card charged
+     * twice was credited once. The owners' notice flags are cleared with it:
+     * the next time the credits run low, they are told again.
+     */
+    try {
+      await ProjectService.atomicAddToColumnsByIdWithoutHooks({
+        id: project.id!,
+        add: {
+          aiCurrentBalanceInUSDCents: Math.round(amountInUSD * 100),
         },
-        props: {
-          isRoot: true,
+        set: {
+          failedAiBalanceChargeNotificationSentToOwners: false,
+          lowAiBalanceNotificationSentToOwners: false,
+          notEnabledAiNotificationSentToOwners: false,
         },
       });
-
-      const autoRechargeAiWhenCurrentBalanceFallsInUSD: number =
-        options?.autoRechargeAiWhenCurrentBalanceFallsInUSD ||
-        project?.autoRechargeAiWhenCurrentBalanceFallsInUSD ||
-        0;
-      const autoAiRechargeByBalanceInUSD: number =
-        options?.autoAiRechargeByBalanceInUSD ||
-        project?.autoAiRechargeByBalanceInUSD ||
-        0;
-
-      const enableAutoRechargeAiBalance: boolean = options
-        ? options.enableAutoRechargeAiBalance
-        : project?.enableAutoRechargeAiBalance || false;
-
-      if (!project) {
-        return 0;
-      }
-
-      if (
-        enableAutoRechargeAiBalance &&
-        autoAiRechargeByBalanceInUSD &&
-        autoRechargeAiWhenCurrentBalanceFallsInUSD
-      ) {
-        if (
-          (project.aiCurrentBalanceInUSDCents || 0) / 100 <
-          autoRechargeAiWhenCurrentBalanceFallsInUSD
-        ) {
-          const updatedAmount: number = await this.rechargeBalance(
-            projectId,
-            autoAiRechargeByBalanceInUSD,
-            {
-              /*
-               * This runs from the balance check on every AI call, so a
-               * success email here is one message to every owner per recharge.
-               */
-              sendOwnerConfirmationEmail: false,
-            },
-          );
-          project.aiCurrentBalanceInUSDCents = updatedAmount;
-        }
-      }
+    } catch (err) {
+      logger.error(
+        `AI credits: project ${project.id!.toString()} was charged ${amountInUSD} USD for AI credits, and the credits could not be added: ${err}`,
+      );
+      throw err;
     }
+
+    // The card works: Auto Recharge need not wait any more.
+    await aiRechargeGuard.forgetFailure(project.id!);
+
+    const updatedAmount: number = await this.readBalanceInUSDCents(project.id!);
+
+    /*
+     * The confirmation is suppressed for AUTO-recharge only. It used to fire
+     * unconditionally, and AI auto-recharge runs from the balance check on
+     * every AI call, so a busy project mailed every owner once per recharge.
+     * Somebody who deliberately clicked "Recharge" still gets told, because
+     * Project.sendInvoicesByEmail defaults to false and nothing else
+     * reliably confirms the charge.
+     */
+    if (data.sendOwnerConfirmationEmail) {
+      await ProjectService.sendEmailToProjectOwners(
+        project.id!,
+        "AI Balance Recharge Successful for project - " + (project.name || ""),
+        `We have successfully recharged your AI balance for project - ${
+          project.name || ""
+        } by ${amountInUSD} USD. Your current balance is ${
+          updatedAmount / 100
+        } USD.${
+          project.billingMarketplace
+            ? ` It is billed through ${CloudMarketplaceUtil.getDisplayName(project.billingMarketplace)}.`
+            : ""
+        }`,
+      );
+    }
+
+    // Tell the operator's Slack channel, in the background.
+    this.sendBalanceRefillSlackNotification({
+      project: project,
+      amountInUSD: amountInUSD,
+      currentBalanceInUSD: updatedAmount / 100,
+      isAutomatic: data.isAutomatic,
+    }).catch((error: Exception) => {
+      logger.error(
+        "Error sending slack message for AI balance refill: " + error,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    });
+
+    return updatedAmount;
+  }
+
+  private async readBalanceInUSDCents(projectId: ObjectID): Promise<number> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        aiCurrentBalanceInUSDCents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     return project?.aiCurrentBalanceInUSDCents || 0;
   }
 
+  /*
+   * The operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION
+   * _UPDATE) hears of every refill of AI credits, in the words the SMS and
+   * call balance uses (OperatorSlackNotice).
+   */
   @CaptureSpan()
   private async sendBalanceRefillSlackNotification(data: {
     project: Project;
     amountInUSD: number;
     currentBalanceInUSD: number;
+    isAutomatic: boolean;
   }): Promise<void> {
-    const { project, amountInUSD, currentBalanceInUSD } = data;
-
-    if (NotificationSlackWebhookOnSubscriptionUpdate) {
-      const slackMessage: string = `*AI Balance Refilled:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-*Refill Amount:* $${amountInUSD} USD
-*Current Balance:* $${currentBalanceInUSD} USD
-
-${project.createdOwnerName && project.createdOwnerEmail ? `*Project Created By:* ${project.createdOwnerName.toString()} (${project.createdOwnerEmail.toString()})` : ""}`;
-
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Exception) => {
-        logger.error(
-          "Error sending slack message for AI balance refill: " + error,
-        );
-      });
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
     }
+
+    await OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getBalanceRefilledText({
+        balance: ProjectBalanceType.AI,
+        project: data.project,
+        amountInUSD: data.amountInUSD,
+        currentBalanceInUSD: data.currentBalanceInUSD,
+        isAutomatic: data.isAutomatic,
+      }),
+      about: "AI balance refill",
+      projectId: data.project.id,
+    });
   }
 }
 

@@ -19,6 +19,8 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -64,6 +66,7 @@ interface MetaItem {
 const InsightListItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const insight: AIInsight = props.insight;
 
   const viewRoute: Route = RouteUtil.populateRouteParams(
@@ -100,8 +103,10 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
     : "";
 
   const occurrenceCount: number = insight.occurrenceCount || 0;
-  const detectionsLabel: string =
-    occurrenceCount === 1 ? "1 detection" : `${occurrenceCount} detections`;
+  const detectionsLabel: string = translator.translatePlural(
+    { one: "{{count}} detection", other: "{{count}} detections" },
+    occurrenceCount,
+  );
 
   const lastSeenLabel: string = insight.lastSeenAt
     ? OneUptimeDate.fromNow(insight.lastSeenAt)
@@ -119,7 +124,11 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
 
   if (insight.insightType) {
     metaItems.push({
-      element: <span>{getInsightTypeLabel(insight.insightType)}</span>,
+      element: (
+        <span>
+          {translator.translateText(getInsightTypeLabel(insight.insightType))}
+        </span>
+      ),
     });
   }
 
@@ -227,10 +236,10 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
          * its own unit for assistive technology, which the narrow layout gets
          * from the meta line above.
          */}
-        <div className="hidden w-32 flex-shrink-0 xl:block">
+        <div className="max-xl:hidden w-32 flex-shrink-0 xl:block">
           {getStatusElement(insight.status)}
         </div>
-        <div className="hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
+        <div className="max-xl:hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
           {occurrenceCount > 0 ? (
             <React.Fragment>
               {occurrenceCount}
@@ -239,20 +248,32 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
           ) : (
             <React.Fragment>
               <span aria-hidden="true">&mdash;</span>
-              <span className="sr-only">No detections recorded</span>
+              <span className="sr-only">
+                {translator.translateText("No detections recorded")}
+              </span>
             </React.Fragment>
           )}
         </div>
         <div
-          className="hidden w-36 flex-shrink-0 truncate text-right text-xs text-gray-500 xl:block"
+          className="max-xl:hidden w-36 flex-shrink-0 truncate text-right text-xs text-gray-500 xl:block"
           title={lastSeenTitle}
         >
-          <span className="sr-only">Last seen </span>
-          {lastSeenLabel}
+          {lastSeenLabel ? (
+            <>
+              <span className="sr-only">
+                {translator.translateTemplate("Last seen {{time}}", {
+                  time: lastSeenLabel,
+                })}
+              </span>
+              <span aria-hidden="true">{lastSeenLabel}</span>
+            </>
+          ) : (
+            <></>
+          )}
         </div>
         {/* Fades out under the investigate affordance that replaces it. */}
         <span
-          className={`hidden flex-shrink-0 text-gray-300 transition group-hover:text-indigo-500 xl:block ${
+          className={`max-xl:hidden flex-shrink-0 text-gray-300 transition group-hover:text-indigo-500 xl:block ${
             investigationLink
               ? "group-hover:opacity-0 group-focus-within:opacity-0"
               : ""
@@ -273,7 +294,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         <Link
           to={investigationLink.route}
           title={investigationTitle}
-          className="pointer-events-none absolute right-2.5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 opacity-0 transition-opacity hover:text-indigo-600 focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group-hover:pointer-events-auto group-hover:opacity-100 xl:flex"
+          className="pointer-events-none absolute right-2.5 top-1/2 z-10 max-xl:hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 opacity-0 transition-opacity hover:text-indigo-600 focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group-hover:pointer-events-auto group-hover:opacity-100 xl:flex"
         >
           <Icon icon={investigationLink.icon} className="h-5 w-5" />
         </Link>

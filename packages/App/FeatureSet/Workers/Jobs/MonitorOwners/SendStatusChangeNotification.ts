@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -18,6 +19,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -201,9 +203,15 @@ RunCron(
           monitorName: monitor.name!,
           projectName: monitorStatusTimeline.project!.name!,
           currentStatus: monitorStatus!.name!,
-          currentStatusColor: monitorStatus!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentStatus",
+            monitorStatus!.color,
+          ),
           previousStatus: previousStatus?.name || "",
-          previousStatusColor: previousStatus?.color?.toString() || "#94a3b8",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousStatus",
+            previousStatus?.color,
+          ),
           previousStatusDurationText: previousStatusDurationText,
           monitorDescription: monitorDescriptionHtml,
           statusChangedAt:
@@ -232,10 +240,12 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. ${
-            monitor.name || "Monitor"
-          } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `${
+              monitor.name || "Monitor"
+            } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

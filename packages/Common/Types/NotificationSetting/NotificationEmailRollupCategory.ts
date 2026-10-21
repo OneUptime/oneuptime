@@ -32,6 +32,7 @@ export enum RollupCategory {
   Probes = "probes",
   AIAgents = "ai-agents",
   Slos = "slos",
+  IncomingCalls = "incoming-calls",
   OnCall = "on-call",
   Other = "other",
 }
@@ -52,6 +53,7 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.Probes]: "Probes",
   [RollupCategory.AIAgents]: "AI Agents",
   [RollupCategory.Slos]: "SLOs",
+  [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.OnCall]: "On Call",
   [RollupCategory.Other]: "Other",
 };
@@ -62,10 +64,10 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
  * the same thing and a reader only has to learn one taxonomy.
  *
  * This is deliberately an exhaustive Record rather than a lookup with a
- * default: because the key type is the enum itself, adding a 48th member to
+ * default: because the key type is the enum itself, adding a 49th member to
  * NotificationSettingEventType is a COMPILE ERROR here until somebody decides
  * which bucket it belongs in. That is the same idiom the Dashboard's
- * EVENT_LIBRARY uses, and it is the whole reason to spell out 47 lines instead
+ * EVENT_LIBRARY uses, and it is the whole reason to spell out 48 lines instead
  * of matching on a name prefix - a prefix match would quietly file a new
  * resource type under the wrong heading, or under none, and nobody would
  * notice until a customer read the email.
@@ -175,6 +177,14 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Slos,
 
   /*
+   * Incoming Call Policies. A category of its own so a burst of on-call
+   * configuration notices (one admin click can fan out a hundred) is never
+   * what pushes a missed customer call over the rollup threshold.
+   */
+  [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]:
+    RollupCategory.IncomingCalls,
+
+  /*
    * On Call Notifications, including the two shift reminders. Five of these
    * seven are never rolled up at all (see NotificationEmailRollupPolicy); they
    * are classified anyway so the Record stays exhaustive, and so that the one
@@ -223,6 +233,7 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.IncidentEpisodes,
   RollupCategory.Alerts,
   RollupCategory.AlertEpisodes,
+  RollupCategory.IncomingCalls,
   RollupCategory.Slos,
   RollupCategory.Monitors,
   RollupCategory.ScheduledMaintenance,

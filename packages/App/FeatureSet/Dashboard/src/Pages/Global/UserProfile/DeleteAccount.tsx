@@ -11,15 +11,27 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+
+// The Delete Account confirmation, naming the account by its email.
+export const DELETE_ACCOUNT_TEMPLATE: string =
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.";
+
+// The same, when the email is not known.
+export const DELETE_UNNAMED_ACCOUNT_SENTENCE: string =
+  "Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed.";
 
 const DeleteAccount: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [projects, setProjects] = useState<Array<Project>>([]);
@@ -106,6 +118,8 @@ const DeleteAccount: FunctionComponent<
 
   const canDeleteAccount: boolean = projects.length === 0;
 
+  const accountEmail: string = UserUtil.getEmail()?.toString().trim() || "";
+
   return (
     <div>
       <Alert
@@ -126,21 +140,24 @@ const DeleteAccount: FunctionComponent<
         >
           <div className="mt-4">
             <p className="text-sm text-gray-600 mb-4">
-              You are currently a member of the following projects. Please leave
-              or be removed from these projects before deleting your account:
+              {translator.translateText(
+                "You are currently a member of the following projects. Please leave or be removed from these projects before deleting your account:",
+              )}
             </p>
             <ul className="list-disc list-inside space-y-2">
               {projects.map((project: Project, index: number) => {
                 return (
                   <li key={index} className="text-sm text-gray-700">
-                    {project.name || "Unnamed Project"}
+                    {project.name ||
+                      translator.translateText("Unnamed Project")}
                   </li>
                 );
               })}
             </ul>
             <p className="text-sm text-gray-600 mt-4">
-              To leave a project, go to the project settings and remove yourself
-              from all teams, or ask a project admin to remove you.
+              {translator.translateText(
+                "To leave a project, go to the project settings and remove yourself from all teams, or ask a project admin to remove you.",
+              )}
             </p>
           </div>
         </Card>
@@ -166,7 +183,23 @@ const DeleteAccount: FunctionComponent<
 
       {showDeleteModal && (
         <ConfirmModal
-          description="Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed."
+          /*
+           * Named by the email it signs in with: someone with a work and a
+           * personal account is sure, here, which one they are signed in as.
+           */
+          description={
+            accountEmail ? (
+              <span data-testid="delete-account-description">
+                <NamedSentence
+                  template={DELETE_ACCOUNT_TEMPLATE}
+                  slot="email"
+                  name={accountEmail}
+                />
+              </span>
+            ) : (
+              DELETE_UNNAMED_ACCOUNT_SENTENCE
+            )
+          }
           title="Delete Account"
           onSubmit={async () => {
             setShowDeleteModal(false);

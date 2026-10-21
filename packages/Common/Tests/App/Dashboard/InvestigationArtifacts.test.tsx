@@ -94,6 +94,7 @@ import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Project from "../../../Models/DatabaseModels/Project";
 
 const WINDOW: InBetween<Date> = new InBetween<Date>(
   new Date("2026-08-20T10:00:00.000Z"),
@@ -262,6 +263,42 @@ describe("explain with AI", () => {
     expect(prompt).toContain("connection refused to 10.0.0.5");
     expect(prompt).toContain("Deploy: v2.31.0");
     expect(prompt).toContain("What is the most likely root cause");
+  });
+});
+
+describe("explain with AI, only where AI can run", () => {
+  test("a project with AI switched off is not offered Explain with AI; Save to incident stays", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: false }) as Project,
+      );
+
+    renderDrawer();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("connection refused to 10.0.0.5"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Explain with AI")).toBeNull();
+    expect(screen.queryByTestId("investigation-explain-with-ai")).toBeNull();
+    expect(screen.getByText("Save to incident")).toBeInTheDocument();
+  });
+
+  test("a project with AI on is offered it", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: true }) as Project,
+      );
+
+    renderDrawer();
+
+    expect(
+      await screen.findByTestId("investigation-explain-with-ai"),
+    ).toHaveTextContent("Explain with AI");
   });
 });
 

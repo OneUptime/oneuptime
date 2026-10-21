@@ -846,7 +846,7 @@ describe("bundling for real", () => {
         shell: renderShell(),
         pluginKeys: Object.keys(plugins).sort(),
         buildMarker: plugins.buildMarker || null,
-        areaResult: plugins.SettingsSSO ? plugins.SettingsSSO() : null,
+        areaResult: plugins.SettingsSCIM ? plugins.SettingsSCIM() : null,
         sharedCount: sharedToken.count,
         commonLabel: commonLabel,
       };
@@ -875,14 +875,14 @@ describe("bundling for real", () => {
           ? `
           import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
           const eager: any = getDashboardPlugins();
-          export default { SettingsSSO: (): string => String(eager) };
+          export default { SettingsSCIM: (): string => String(eager) };
           `
           : `
           import { renderShell } from "@oneuptime/dashboard/Components/Shell";
           import { sharedToken } from "@oneuptime/dashboard/Utils/Shared";
           import { commonLabel } from "Common/Label";
           export default {
-            SettingsSSO: (): string => {
+            SettingsSCIM: (): string => {
               return commonLabel + ":" + typeof renderShell + ":" + sharedToken.count;
             },
           };
@@ -1019,7 +1019,7 @@ describe("bundling for real", () => {
     expect([result.evaluated.ok, result.evaluated.error]).toEqual([true, ""]);
     expect(result.evaluated.value).toEqual({
       shell: DASHBOARD_SENTINEL,
-      pluginKeys: ["SettingsSSO", "buildMarker"],
+      pluginKeys: ["SettingsSCIM", "buildMarker"],
       buildMarker: DASHBOARD_SENTINEL,
       // ee reached core through "@oneuptime/dashboard/..." and "Common/...".
       areaResult: "common-label:function:1",

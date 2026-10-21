@@ -9,10 +9,8 @@ import {
   LlmCostAttributeKeys,
   LlmEndUserAttributeKeys,
   LlmFinishReasonAttributeKeys,
-  LlmInputTokenAttributeKeys,
   LlmMaxTokensAttributeKeys,
   LlmOperationAttributeKeys,
-  LlmOutputTokenAttributeKeys,
   LlmPromptEventNames,
   LlmPromptIndexedMessageConventions,
   LlmPromptJsonAttributeKeys,
@@ -23,10 +21,12 @@ import {
   LlmTemperatureAttributeKeys,
   LlmToolNameAttributeKeys,
   LlmTopPAttributeKeys,
-  LlmTotalTokenAttributeKeys,
   LlmUserEmailAttributeKeys,
   LlmUserIdAttributeKeys,
 } from "Common/Types/Telemetry/LlmConventions";
+import LlmTokenUsageUtil, {
+  LlmTokenUsage,
+} from "Common/Types/Telemetry/LlmTokenUsage";
 
 /*
  * Frontend helper for rendering LLM / GenAI / agent spans in a first-class
@@ -104,9 +104,10 @@ export default class LlmSpanDisplayUtil {
       operation: this.firstString(flat, LlmOperationAttributeKeys),
       requestModel: this.firstString(flat, LlmRequestModelAttributeKeys),
       responseModel: this.firstString(flat, LlmResponseModelAttributeKeys),
-      inputTokens: this.firstNumber(flat, LlmInputTokenAttributeKeys),
-      outputTokens: this.firstNumber(flat, LlmOutputTokenAttributeKeys),
-      totalTokens: this.firstNumber(flat, LlmTotalTokenAttributeKeys),
+      // Read below, once the span's model and provider are known.
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
       cost: 0,
       hasCost: false,
       agentName: this.firstString(flat, LlmAgentNameAttributeKeys),
@@ -128,6 +129,24 @@ export default class LlmSpanDisplayUtil {
       display.requestModel = display.responseModel;
     }
 
+    /*
+     * The token counts the ingest extractor stores, read the same way
+     * (LlmTokenUsage): cached tokens counted in the input, and Claude Code's
+     * traces beta read from its own keys on a span that names its model.
+     */
+    const usage: LlmTokenUsage = LlmTokenUsageUtil.read({
+      numberOf: (key: string): number | null => {
+        return this.numberOrNull(flat[key]);
+      },
+      namesModelOrProvider: Boolean(
+        display.system || display.requestModel || display.responseModel,
+      ),
+    });
+
+    display.inputTokens = usage.inputTokens;
+    display.outputTokens = usage.outputTokens;
+    display.totalTokens = usage.totalTokens;
+
     for (const key of LlmCostAttributeKeys) {
       if (flat[key] !== undefined && flat[key] !== "") {
         const parsed: number = Number(flat[key]);
@@ -137,13 +156,6 @@ export default class LlmSpanDisplayUtil {
           break;
         }
       }
-    }
-
-    if (
-      display.totalTokens === 0 &&
-      (display.inputTokens > 0 || display.outputTokens > 0)
-    ) {
-      display.totalTokens = display.inputTokens + display.outputTokens;
     }
 
     display.promptMessages = this.extractPromptMessages(flat, data.events);
@@ -463,23 +475,14 @@ export default class LlmSpanDisplayUtil {
     return "";
   }
 
-  private static firstNumber(
-    flat: FlatAttributes,
-    keys: Array<string>,
-  ): number {
-    for (const key of keys) {
-      const value: string | undefined = flat[key];
-      if (
-        value !== undefined &&
-        value !== null &&
-        String(value).trim() !== ""
-      ) {
-        const parsed: number = Number(value);
-        if (isFinite(parsed)) {
-          return parsed;
-        }
-      }
+  // A flattened attribute's number, or null when it holds none.
+  private static numberOrNull(value: string | undefined): number | null {
+    if (value === undefined || value === null || String(value).trim() === "") {
+      return null;
     }
-    return 0;
+
+    const parsed: number = Number(value);
+
+    return isFinite(parsed) ? parsed : null;
   }
 }

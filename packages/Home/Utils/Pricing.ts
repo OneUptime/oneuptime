@@ -477,7 +477,7 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
-        name: "Data Rentention",
+        name: "Data Retention",
         plans: {
           free: "15 days",
           growth: "Custom",
@@ -554,7 +554,7 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
-        name: "Data Rentention",
+        name: "Data Retention",
         plans: {
           free: "15 days",
           growth: "Custom",
@@ -631,7 +631,7 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
-        name: "Data Rentention",
+        name: "Data Retention",
         plans: {
           free: "15 days",
           growth: "Custom",
@@ -672,9 +672,10 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        // LlmProvider and AIConversation need the Growth plan to be created.
         name: "Bring Your Own LLM",
         plans: {
-          free: true,
+          free: false,
           growth: true,
           scale: true,
           enterprise: true,
@@ -767,12 +768,13 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        // Monthly uptime targets from /legal/sla (Views/sla.ejs).
         name: "Service SLA",
         plans: {
-          free: "99.00%",
-          growth: "99.90%",
-          scale: "99.95%",
-          enterprise: "99.99%",
+          free: "No SLA (best effort)",
+          growth: "99.9%",
+          scale: "99.9%",
+          enterprise: "99.95%",
         },
       },
     ],

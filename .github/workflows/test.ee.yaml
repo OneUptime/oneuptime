@@ -39,15 +39,20 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # Before test-setup.sh pulls postgres and valkey: through mirror.gcr.io,
+      # not anonymously from Docker Hub (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - name: Set up test services and config.env
         working-directory: packages/Common
         run: bash test-setup.sh
       - name: Install Common
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install App
-        working-directory: packages/App
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
       # App's two Enterprise boundary guards, with ee/ in the checkout. Their
       # ee-direction checks (what ee/ imports, the ee UI plugins' module-load
       # reads, the ee UI tsconfigs) skip when ee/ is absent, and the App Test
@@ -56,9 +61,85 @@ jobs:
       - name: Run App's Enterprise boundary guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
+      # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
+      # well as the core frontends: every More (⋯) menu item has an icon, a
+      # details card shows the record's own ID on its ID line, every Show ID
+      # dialog is the shared one that never hands React an object, no list
+      # asks for the bulk Delete while keeping Delete off its rows, and every
+      # field, switch, card, dialog and empty-state description is short. The
+      # App Test job deletes ee/ first, so only this run holds the Enterprise
+      # screens to them. They only read files.
+      - name: Run App's UI source guards with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
+      # App's guards that every menu path a text writes ("User Settings >
+      # Notification Settings", "Project Settings > Billing and Invoices >
+      # Billing", "On-Call Duty > Advanced > User Overrides") is one a reader
+      # can follow read ee/Server, ee/Dashboard and ee/AdminDashboard too. The
+      # App Test job deletes ee/ first, so only this run holds the Enterprise
+      # texts to them. They only read files.
+      - name: Run App's menu path guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/Dashboard/SettingsMenuPathsInProductText.test.ts Tests/Dashboard/ProjectSettingsMenuPathsInProductText.test.ts Tests/Dashboard/OnCallDutyMenuPathsInProductText.test.ts --forceExit
+      # App's docs facts that hold a page to code in ee/ as well as in core:
+      # the identity pages to the SCIM server and its pages, the SLO pages to
+      # the audit log settings, the upgrading notes to the enterprise Health
+      # dashboards, the licence period claims to ee/README.md, the span
+      # metrics page to what ee/ holds, the RUM and Session Replay pages to
+      # the Enterprise retention override cards, the telemetry Data
+      # Retention page to the retention-by-type form, and the Audit Logs page
+      # to the audit log settings form, list, recorder and licence notice.
+      # Each checks its ee/ half only where ee/ is checked out, and the App
+      # Test job deletes ee/ first, so this is where that half runs. They only
+      # read files.
+      - name: Run App's docs facts that read ee/ with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts --forceExit
+      # App's guard that only the Builder's Run Workflow and Run just this step
+      # hand the workflow queue a person - which is what lets a run start while
+      # the workflow is off, as a test run - walks ee/ too, for any other code
+      # that asks for a run. The App Test job deletes ee/ first, so only this
+      # run reads ee/. It only reads files.
+      - name: Run App's workflow test-run guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/FeatureSet/Workflow/WorkflowTestRunStartersGuard.test.ts --forceExit
+      # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
+      # too - the foreign `.hidden` guard, the create-form defaults guard,
+      # which lists the ee compliance rule form's Enabled switch, and the
+      # card-in-card guard - but the Common Test job deletes ee/ first, so
+      # only this run sees the Enterprise UI. They only read files (and load
+      # Common's models).
+      - name: Run Common's UI source guards with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts --forceExit
+      # Common's guard that every removal of a project membership goes through
+      # TeamMemberService with its hooks, so the leaver's own notification
+      # settings go with it, also walks ee/Server: SCIM deprovisioning removes
+      # memberships. The Common Test job deletes ee/ first, so only this run
+      # holds SCIM to it.
+      - name: Run Common's membership-removal guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Services/TeamMemberNotificationSettingsCleanup.test.ts --forceExit
+      # Common's guard that a relation filtered by ids is written to its key
+      # beside the key's own condition, never over it, also walks ee/Server
+      # for code that would copy a relation's filter over its key. The Common
+      # Test job deletes ee/ first, so only this run reads ee/Server.
+      - name: Run Common's relation filter guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Types/Database/RelationFilterKeepsKeyGuard.test.ts --forceExit
+      # Common's guard that a request carrying one of OneUptime's keys keeps
+      # its redirects on the server it was sent to also walks ee/ for
+      # requests whose body or headers name a key. The Common Test job
+      # deletes ee/ first, so only this run reads ee/. It only reads files.
+      - name: Run Common's key-carrying requests guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Utils/KeyCarryingRequestsGuard.test.ts --forceExit
       - name: Install ee
-        working-directory: ee
-        run: npm ci --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: ee
+          command: ci
+          args: --ignore-scripts
       - name: Run the ee tests
         working-directory: ee
         run: npm test

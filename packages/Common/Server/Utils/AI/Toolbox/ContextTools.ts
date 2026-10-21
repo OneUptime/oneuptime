@@ -8,6 +8,7 @@ import TelemetryType from "../../../../Types/Telemetry/TelemetryType";
 import MetricTypeService from "../../../Services/MetricTypeService";
 import ServiceService from "../../../Services/ServiceService";
 import TelemetryAttributeService from "../../../Services/TelemetryAttributeService";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
@@ -30,7 +31,7 @@ const CONTEXT_READ_PERMISSIONS: Array<Permission> = [
 export const LookupContextTool: ObservabilityTool = {
   name: "lookup_context",
   description:
-    "Discover what exists in this project so other tools can be called with exact identifiers: telemetry services (name → ID), metric names, and attribute keys for logs/traces/metrics. ALWAYS resolve a service name to its ID here before filtering other tools by service.",
+    "Discover what exists in this project so other tools can be called with exact identifiers: telemetry services (name → ID), metric names, and attribute keys for logs/traces/metrics — for one metric too, to know what query_metrics can filter or group it by. ALWAYS resolve a service name to its ID here before filtering other tools by service.",
   inputSchema: {
     type: "object",
     properties: {
@@ -48,6 +49,11 @@ export const LookupContextTool: ObservabilityTool = {
         enum: ["Log", "Trace", "Metric", "Exception"],
         description:
           "For attributeKeys lookups: which signal's attribute keys to list.",
+      },
+      metricName: {
+        type: "string",
+        description:
+          "For attributeKeys lookups of telemetryType Metric: only the keys of this metric (e.g. state and cpu for system.cpu.utilization).",
       },
     },
     required: ["type"],
@@ -155,10 +161,30 @@ export const LookupContextTool: ObservabilityTool = {
         );
       }
 
+      /*
+       * One metric's keys, when one is named: what query_metrics can filter
+       * and group that metric by.
+       */
+      const metricName: string | undefined =
+        telemetryTypeString === TelemetryType.Metric
+          ? ToolArgs.getString(args, "metricName")
+          : undefined;
+
+      /*
+       * Keys only from the rows the user may read of that signal - the same
+       * scope the attribute pickers on the /telemetry routes apply.
+       */
       const attributes: Array<string> =
         await TelemetryAttributeService.fetchAttributes({
           projectId: ctx.projectId,
           telemetryType: telemetryTypeString as TelemetryType,
+          ...(metricName ? { metricName } : {}),
+          serviceFilter: await TelemetryReadAccess.getServiceFilter({
+            modelType: TelemetryReadAccess.getModelForTelemetryType(
+              telemetryTypeString as TelemetryType,
+            ),
+            props: ctx.props,
+          }),
         });
 
       const filtered: Array<string> = nameSearch
@@ -175,7 +201,7 @@ export const LookupContextTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `${telemetryTypeString} attribute keys (${filtered.length} found)`,
+        citationLabel: `${metricName ? `${metricName} ` : ""}${telemetryTypeString} attribute keys (${filtered.length} found)`,
         citationTarget: undefined,
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,

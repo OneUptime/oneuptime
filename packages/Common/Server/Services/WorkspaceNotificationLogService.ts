@@ -1,11 +1,12 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ColumnLength from "../../Types/Database/ColumnLength";
 
 export interface WorkspaceLogData {
   projectId: ObjectID;
@@ -21,6 +22,7 @@ export interface WorkspaceLogData {
   // Relations to resources (optional)
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
   incidentEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
@@ -33,12 +35,22 @@ export interface WorkspaceLogData {
   statusPageAnnouncementId?: ObjectID | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3);
     }
+  }
+
+  /*
+   * Delivery logs are written by OneUptime as it sends each message, naming the
+   * records it sends about, and some are written before the message goes out -
+   * refusing one would stop the message. A log row written by a workflow is
+   * checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   public async createWorkspaceLog(
@@ -76,6 +88,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (data.alertId) {
       log.alertId = data.alertId;
+    }
+    if (data.monitorId) {
+      log.monitorId = data.monitorId;
     }
     if (data.alertEpisodeId) {
       log.alertEpisodeId = data.alertEpisodeId;
@@ -124,6 +139,9 @@ export class Service extends DatabaseService<Model> {
       // Optional resource associations
       incidentId?: ObjectID;
       alertId?: ObjectID;
+      monitorId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+      incidentEpisodeId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
       onCallDutyPolicyId?: ObjectID;
       statusPageId?: ObjectID;
@@ -149,6 +167,15 @@ export class Service extends DatabaseService<Model> {
     if (data.alertId) {
       logData.alertId = data.alertId;
     }
+    if (data.monitorId) {
+      logData.monitorId = data.monitorId;
+    }
+    if (data.alertEpisodeId) {
+      logData.alertEpisodeId = data.alertEpisodeId;
+    }
+    if (data.incidentEpisodeId) {
+      logData.incidentEpisodeId = data.incidentEpisodeId;
+    }
     if (data.scheduledMaintenanceId) {
       logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
     }
@@ -165,6 +192,51 @@ export class Service extends DatabaseService<Model> {
     return await this.createWorkspaceLog(logData, props);
   }
 
+  /*
+   * A channel the workspace did not create: the name it was asked for and
+   * what it answered. Both are cut to their columns - a name too long for
+   * the workspace is one reason it refuses a channel - since an over-long
+   * value fails the whole insert; the message keeps the name whole.
+   */
+  public async logCreateChannelError(
+    data: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      channelName: string;
+      error: string;
+      // Optional resource associations
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
+      alertEpisodeId?: ObjectID | undefined;
+      incidentEpisodeId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      onCallDutyPolicyId?: ObjectID | undefined;
+    },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Model> {
+    // Each resource association is set only when it exists (createWorkspaceLog).
+    return await this.createWorkspaceLog(
+      {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        channelName: data.channelName.substring(0, ColumnLength.ShortText),
+        actionType: WorkspaceNotificationActionType.CreateChannel,
+        status: WorkspaceNotificationStatus.Error,
+        statusMessage: data.error.substring(0, ColumnLength.LongText),
+        message: `Channel "${data.channelName}" was not created`,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        monitorId: data.monitorId,
+        alertEpisodeId: data.alertEpisodeId,
+        incidentEpisodeId: data.incidentEpisodeId,
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+      },
+      props,
+    );
+  }
+
   public async logInviteUser(
     data: {
       projectId: ObjectID;
@@ -175,6 +247,9 @@ export class Service extends DatabaseService<Model> {
       // Optional resource associations
       incidentId?: ObjectID;
       alertId?: ObjectID;
+      monitorId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+      incidentEpisodeId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
       onCallDutyPolicyId?: ObjectID;
       statusPageId?: ObjectID;
@@ -200,6 +275,15 @@ export class Service extends DatabaseService<Model> {
     }
     if (data.alertId) {
       logData.alertId = data.alertId;
+    }
+    if (data.monitorId) {
+      logData.monitorId = data.monitorId;
+    }
+    if (data.alertEpisodeId) {
+      logData.alertEpisodeId = data.alertEpisodeId;
+    }
+    if (data.incidentEpisodeId) {
+      logData.incidentEpisodeId = data.incidentEpisodeId;
     }
     if (data.scheduledMaintenanceId) {
       logData.scheduledMaintenanceId = data.scheduledMaintenanceId;

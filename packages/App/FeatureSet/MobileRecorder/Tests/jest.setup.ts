@@ -61,6 +61,14 @@ jest.mock("react-native", () => {
         return { width: 390, height: 844 };
       }),
     },
+    Keyboard: {
+      addListener: jest.fn((_eventName: string, _listener: () => void) => {
+        return { remove: jest.fn() };
+      }),
+      isVisible: jest.fn(() => {
+        return false;
+      }),
+    },
     NativeModules: {},
     Platform: { OS: "ios", Version: "18.0" },
     View,

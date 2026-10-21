@@ -138,6 +138,42 @@ describe("OnCallPageCard status", () => {
     expect(screen.getByText("Failed to notify")).toBeTruthy();
   });
 
+  test("a page the responder passed on says so - not 'Not acknowledged'", async (): Promise<void> => {
+    /*
+     * They could not take it and passed it on: the policy paged its next
+     * escalation rule, and nothing is waiting on them any more.
+     */
+    await render(
+      <OnCallPageCard
+        page={page({ status: "Passed On" })}
+        onPress={(): void => {
+          return undefined;
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Passed on")).toBeTruthy();
+    expect(screen.queryByText("Not acknowledged")).toBeNull();
+    // A screen reader hears it too.
+    expect(
+      screen.getByRole("button", { name: "Replica lag. Passed on." }),
+    ).toBeTruthy();
+  });
+
+  test("a page passed on and then acknowledged after all is acknowledged", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          status: "Passed On",
+          acknowledgedAt: new Date().toISOString(),
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Acknowledged")).toBeTruthy();
+    expect(screen.queryByText("Passed on")).toBeNull();
+  });
+
   test("an acknowledged response remains acknowledged even when a delivery attempt failed", async (): Promise<void> => {
     await render(
       <OnCallPageCard
@@ -162,6 +198,29 @@ describe("OnCallPageCard status", () => {
     await render(<OnCallPageCard page={page({ policyName: undefined })} />);
 
     expect(screen.getByText("On-call policy unavailable")).toBeTruthy();
+  });
+
+  test("a direct page says what it is: it has no policy, and none is missing", async (): Promise<void> => {
+    /*
+     * A workflow paged this person directly. "On-call policy unavailable"
+     * would read as something lost, at the moment somebody is deciding
+     * whether the page in their hand is real.
+     */
+    await render(
+      <OnCallPageCard
+        page={page({ policyName: undefined, isDirectPage: true })}
+      />,
+    );
+
+    expect(screen.getByText("Direct page")).toBeTruthy();
+    expect(screen.queryByText("On-call policy unavailable")).toBeNull();
+  });
+
+  test("a page that names its policy shows the policy, whatever else it says", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page({ isDirectPage: true })} />);
+
+    expect(screen.getByText("Database")).toBeTruthy();
+    expect(screen.queryByText("Direct page")).toBeNull();
   });
 });
 

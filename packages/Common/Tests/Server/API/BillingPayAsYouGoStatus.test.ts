@@ -13,11 +13,12 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import { mockRouter } from "./Helpers";
+import { permissionRow, tenantPermissionsFor } from "./PermissionRows";
 
 jest.mock("../../../Server/Services/BillingService", () => {
   return {
@@ -69,17 +70,17 @@ describe("GET /billing/pay-as-you-go-status", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     new BillingAPI();
-    req = { tenantId: projectId } as OneUptimeRequest;
+    req = {
+      tenantId: projectId,
+      userTenantAccessPermission: tenantPermissionsFor(projectId, [
+        Permission.ProjectMember,
+      ]),
+    } as OneUptimeRequest;
     res = {} as OneUptimeResponse;
     next = jest.fn();
     jest
       .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
       .mockResolvedValue(false);
-    jest
-      .spyOn(BillingAPI.prototype, "getPermissionsForTenant")
-      .mockResolvedValue([
-        { permission: Permission.ProjectMember } as UserPermission,
-      ]);
   });
 
   afterEach(() => {
@@ -178,9 +179,10 @@ describe("GET /billing/pay-as-you-go-status", () => {
   });
 
   it("requires project membership", async () => {
-    jest
-      .spyOn(BillingAPI.prototype, "getPermissionsForTenant")
-      .mockResolvedValue([]);
+    // Rows for another project only: not a member of this one.
+    req.userTenantAccessPermission = tenantPermissionsFor(ObjectID.generate(), [
+      Permission.ProjectOwner,
+    ]);
     await requestStatus();
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -188,6 +190,24 @@ describe("GET /billing/pay-as-you-go-status", () => {
       }),
     );
     expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The answer is the project's, not the member's: every member may see it,
+   * so it asks membership and nothing more - a member whose teams block
+   * every billing permission still gets it.
+   */
+  it("answers a member whose teams block every billing permission", async () => {
+    req.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+      Permission.ProjectMember,
+      permissionRow(Permission.ManageProjectBilling, { isBlock: true }),
+      permissionRow(Permission.ProjectOwner, { isBlock: true }),
+    ]);
+    await requestStatus();
+    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
+      projectId,
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("propagates provider failures instead of incorrectly granting access", async () => {

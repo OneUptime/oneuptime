@@ -8,6 +8,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { JSONObject } from "../../Types/JSON";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -23,8 +24,9 @@ export default class AIAgentTaskPullRequestAPI extends BaseAPI<
 
     /*
      * Outcome counts for the project's AI-authored fix PRs (merged /
-     * closed-unmerged / open + acceptance rate + CI-verified-green rate)
-     * — the G11 baseline surface.
+     * closed-unmerged / open + acceptance rate + CI-verified-green rate +
+     * what production showed, in all and for each kind of fix) — the G11
+     * baseline surface.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/outcome-stats`,
@@ -45,6 +47,9 @@ export default class AIAgentTaskPullRequestAPI extends BaseAPI<
             acceptanceRatePercent: stats.acceptanceRatePercent,
             verifiedGreen: stats.verifiedGreen,
             verifiedGreenRatePercent: stats.verifiedGreenRatePercent,
+            verifiedInProduction: stats.verifiedInProduction,
+            regressedInProduction: stats.regressedInProduction,
+            productionByCheck: stats.productionByCheck as unknown as JSONObject,
           });
         } catch (err) {
           next(err);

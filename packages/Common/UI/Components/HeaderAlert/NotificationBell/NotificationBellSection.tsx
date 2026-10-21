@@ -1,5 +1,7 @@
 import React, { ReactElement, ReactNode } from "react";
 import { HeaderAlertType } from "../HeaderAlert";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   title: string;
@@ -10,6 +12,7 @@ export interface ComponentProps {
 const NotificationBellSection: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let textColor: string = "text-indigo-600";
 
   switch (props.alertType) {
@@ -30,7 +33,7 @@ const NotificationBellSection: (props: ComponentProps) => ReactElement = (
   return (
     <div className="py-2">
       <div className={`px-3 py-1 text-xs font-semibold uppercase ${textColor}`}>
-        {props.title}
+        {translator.translateText(props.title)}
       </div>
       <div className="space-y-2 px-3 py-1">{props.children}</div>
     </div>

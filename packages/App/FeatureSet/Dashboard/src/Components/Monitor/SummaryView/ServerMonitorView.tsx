@@ -10,6 +10,8 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 import MemoryUtil from "Common/Utils/Memory";
 import NumberUtil from "Common/Utils/Number";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   serverMonitorResponse: ServerMonitorResponse;
@@ -18,6 +20,7 @@ export interface ComponentProps {
 const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   const fields: Array<Field<ServerMonitorResponse>> = [];
@@ -113,11 +116,15 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
       (diskMetric: BasicDiskMetrics, index: number) => {
         return (
           <div className="mt-3">
-            <div className="mb-1">Disk {diskMetric.diskPath}</div>
+            <div className="mb-1">
+              {translator.translateTemplate("Disk {{path}}", {
+                path: diskMetric.diskPath,
+              })}
+            </div>
             <div key={index} className="flex space-x-3">
               <InfoCard
                 className="w-1/3 shadow-none border-2 border-gray-100 "
-                title={`Total Size (GB)`}
+                title="Total Size (GB)"
                 value={
                   diskMetric.total.toString()
                     ? MemoryUtil.convertToGb(diskMetric.total).toString()
@@ -126,7 +133,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               />
               <InfoCard
                 className="w-1/3 shadow-none border-2 border-gray-100 "
-                title={`% Used`}
+                title="% Used"
                 value={
                   diskMetric.percentUsed.toString()
                     ? NumberUtil.convertToTwoDecimalPlaces(
@@ -137,7 +144,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               />
               <InfoCard
                 className="w-1/3 shadow-none border-2 border-gray-100 "
-                title={`% Free`}
+                title="% Free"
                 value={
                   diskMetric.percentFree.toString()
                     ? NumberUtil.convertToTwoDecimalPlaces(

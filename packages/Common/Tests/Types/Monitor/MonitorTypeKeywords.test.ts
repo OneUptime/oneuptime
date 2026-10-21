@@ -259,6 +259,21 @@ describe("MonitorType keywords", () => {
       ["cloudflare", MonitorType.ExternalStatusPage],
       ["cname", MonitorType.DNS],
       ["dnskey", MonitorType.DNSSEC],
+      /*
+       * A time server is searched for by what it does and what runs it,
+       * none of which is in "NTP" - and "udp" still means the Port monitor.
+       */
+      ["ntp", MonitorType.NTP],
+      ["time server", MonitorType.NTP],
+      ["clock", MonitorType.NTP],
+      ["clock offset", MonitorType.NTP],
+      ["time sync", MonitorType.NTP],
+      ["stratum", MonitorType.NTP],
+      ["sntp", MonitorType.NTP],
+      ["chrony", MonitorType.NTP],
+      ["ntpd", MonitorType.NTP],
+      ["w32time", MonitorType.NTP],
+      ["udp 123", MonitorType.NTP],
       ["snmp", MonitorType.NetworkDevice],
       ["router", MonitorType.NetworkDevice],
       ["prometheus", MonitorType.Metrics],
@@ -271,6 +286,10 @@ describe("MonitorType keywords", () => {
       ["esxi", MonitorType.VMware],
       ["vcenter", MonitorType.VMware],
       ["osd", MonitorType.Ceph],
+      ["flasharray", MonitorType.StorageArray],
+      ["flashblade", MonitorType.StorageArray],
+      ["pure storage", MonitorType.StorageArray],
+      ["everpure", MonitorType.StorageArray],
       ["sensor", MonitorType.IoTDevice],
       ["imap", MonitorType.IncomingEmail],
     ])(
@@ -304,6 +323,7 @@ describe("MonitorType keywords", () => {
       expect(results).toContain(MonitorType.Kubernetes);
       expect(results).toContain(MonitorType.Docker);
       expect(results).toContain(MonitorType.Ceph);
+      expect(results).toContain(MonitorType.StorageArray);
       expect(results).not.toContain(MonitorType.Website);
     });
 

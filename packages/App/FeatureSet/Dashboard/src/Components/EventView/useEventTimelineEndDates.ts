@@ -9,7 +9,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useEffect, useMemo, useState } from "react";
 import {
   EventTimelineDate,
-  getLatestTimelineDateByEventId,
+  getResolvedAtByEventId,
 } from "../../Utils/EventDuration";
 
 type TimelineModel = DatabaseBaseModel & {
@@ -21,7 +21,14 @@ export interface UseEventTimelineEndDatesProps<
 > {
   eventIds: Array<string>;
   eventIdField: keyof TTimeline;
+  // The timeline row's state, e.g. "incidentStateId".
+  stateIdField: keyof TTimeline;
   timelineModelType: { new (): TTimeline };
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  resolvedStateIds: Array<string>;
 }
 
 export interface UseEventTimelineEndDatesResult {
@@ -30,8 +37,10 @@ export interface UseEventTimelineEndDatesResult {
 }
 
 /**
- * Fetch the final state-change date for the resolved events on the current
- * table page. Keeping this batched avoids an N+1 request for every table row.
+ * Fetch when each resolved event on the current table page was resolved this
+ * time: the start of its run of resolved states, so moving on from
+ * "Resolved" to "Closed" does not move it. Keeping this batched avoids an
+ * N+1 request for every table row.
  */
 export default function useEventTimelineEndDates<
   TTimeline extends TimelineModel,
@@ -41,6 +50,10 @@ export default function useEventTimelineEndDates<
   const eventIdsKey: string = useMemo(() => {
     return Array.from(new Set(props.eventIds)).sort().join(",");
   }, [props.eventIds]);
+
+  const resolvedStateIdsKey: string = useMemo(() => {
+    return Array.from(new Set(props.resolvedStateIds)).sort().join(",");
+  }, [props.resolvedStateIds]);
 
   const [endDateByEventId, setEndDateByEventId] = useState<
     Record<string, Date>
@@ -67,6 +80,7 @@ export default function useEventTimelineEndDates<
         } as unknown as Query<TTimeline>;
         const select: Select<TTimeline> = {
           [props.eventIdField]: true,
+          [props.stateIdField]: true,
           startsAt: true,
         } as Select<TTimeline>;
 
@@ -92,14 +106,22 @@ export default function useEventTimelineEndDates<
             continue;
           }
 
+          const stateId: unknown = timeline[props.stateIdField];
+
           timelineDates.push({
             eventId: eventId.toString(),
+            ...(stateId ? { stateId: stateId.toString() } : {}),
             ...(timeline.startsAt ? { startsAt: timeline.startsAt } : {}),
           });
         }
 
         if (!isCancelled) {
-          setEndDateByEventId(getLatestTimelineDateByEventId(timelineDates));
+          setEndDateByEventId(
+            getResolvedAtByEventId(
+              timelineDates,
+              resolvedStateIdsKey ? resolvedStateIdsKey.split(",") : [],
+            ),
+          );
         }
       } catch {
         if (!isCancelled) {
@@ -123,7 +145,13 @@ export default function useEventTimelineEndDates<
     return () => {
       isCancelled = true;
     };
-  }, [eventIdsKey, props.eventIdField, props.timelineModelType]);
+  }, [
+    eventIdsKey,
+    resolvedStateIdsKey,
+    props.eventIdField,
+    props.stateIdField,
+    props.timelineModelType,
+  ]);
 
   return {
     endDateByEventId,

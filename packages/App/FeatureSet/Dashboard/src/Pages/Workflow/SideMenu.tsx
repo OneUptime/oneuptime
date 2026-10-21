@@ -5,7 +5,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { ReactElement } from "react";
+import { getDeveloperSideMenuSectionProps } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -30,9 +33,25 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Variable,
         },
+      ],
+    },
+    /*
+     * Runs get a Logs section of their own, open and second in the menu: the
+     * run history is where people go to check that a workflow worked, so it
+     * should not read as one more thing to build. The page keeps its old
+     * /workflows/logs URL, which the section's name now matches.
+     *
+     * Open on purpose. Logs sections start collapsed in other menus, where
+     * they hold records looked at now and then (notification logs, say);
+     * workflow runs are what workflows are checked by.
+     */
+    {
+      title: "Logs",
+      defaultCollapsed: false,
+      items: [
         {
           link: {
-            title: "Runs & Logs",
+            title: "Runs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.WORKFLOWS_LOGS] as Route,
             ),
@@ -65,6 +84,29 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The way back to archived workflows, which the list leaves out. Few visits
+     * need it, so it waits in Advanced: folded away until opened, and open by
+     * itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.WORKFLOWS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
+    getDeveloperSideMenuSectionProps({
+      modelType: Workflow,
+      scope: DeveloperDocsScope.List,
+    }),
   ];
 
   return <SideMenu sections={sections} />;

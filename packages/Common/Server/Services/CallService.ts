@@ -8,10 +8,13 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import CallRequest from "../../Types/Call/CallRequest";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "../../Types/CallAndSMS/TwilioConfigJSON";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class CallService extends BaseService {
   public constructor() {
@@ -43,20 +46,26 @@ export class CallService extends BaseService {
       onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Call",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       callRequest: callRequest,
       projectId: options.projectId?.toString(),
       isSensitive: options.isSensitive,
       userOnCallLogTimelineId: options.userOnCallLogTimelineId?.toString(),
+      // Its numbers as arrays, which the Notification service reads back.
       customTwilioConfig: options.customTwilioConfig
-        ? {
-            accountSid: options.customTwilioConfig.accountSid!,
-            authToken: options.customTwilioConfig.authToken!,
-            primaryPhoneNumber:
-              options.customTwilioConfig.primaryPhoneNumber.toString(),
-            secondaryPhoneNumbers:
-              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
-          }
+        ? TwilioConfigJSON.toJSON(options.customTwilioConfig)
         : undefined,
       incidentId: options.incidentId?.toString(),
       alertId: options.alertId?.toString(),
@@ -84,6 +93,9 @@ export class CallService extends BaseService {
       data: body,
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+      },
+      options: {
+        sameServerRedirectsOnly: true,
       },
     });
   }

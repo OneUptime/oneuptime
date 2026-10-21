@@ -127,14 +127,34 @@ describe("SloHealth notices after the settings move", () => {
   });
 
   describe("where each notice sends the user", () => {
-    it("sends a disabled SLO to Settings, where evaluation is switched", () => {
+    /*
+     * Evaluation is one switch now, and the banner carries a button that
+     * turns it back on where the notice is - not a trip to Settings to find
+     * the switch.
+     */
+    it("turns a disabled SLO's evaluation on where the notice is", () => {
       const notice: SloNotice | null = getSloNotice({
         ...MEASURING,
         isEnabled: false,
       });
 
-      expect(notice?.body).toContain("Settings");
-      expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
+      expect(notice?.action).toEqual({
+        label: "Turn evaluation on",
+        target: SloNoticeActionTarget.TurnEvaluationOn,
+      });
+      expect(notice?.body).toContain("Turn evaluation back on");
+      expect(notice?.body).not.toContain("Settings");
+    });
+
+    it("keeps an archived SLO's way back on Settings, even when it is also disabled", () => {
+      /*
+       * Turning evaluation on would leave an archived SLO measuring
+       * nothing, so its notice offers no in-place switch.
+       */
+      expect(
+        getSloNotice({ ...MEASURING, isArchived: true, isEnabled: false })
+          ?.action?.target,
+      ).toBe(SloNoticeActionTarget.Settings);
     });
 
     it("sends an SLO without monitors to the Monitors page", () => {
@@ -267,14 +287,16 @@ describe("SloHealth notices after the settings move", () => {
   });
 
   /*
-   * The banner maps these values to Dashboard pages; renaming one here
-   * without the banner would silently drop the link.
+   * The banner maps these values to Dashboard pages, and the last to the
+   * button that turns evaluation on in place; renaming one here without
+   * the banner would silently drop the link or the button.
    */
-  it("keeps the action targets the banner knows how to link", () => {
+  it("keeps the action targets the banner knows how to draw", () => {
     expect(Object.values(SloNoticeActionTarget)).toEqual([
       "settings",
       "monitors",
       "monitor-rules",
+      "turn-evaluation-on",
     ]);
   });
 });

@@ -9,6 +9,10 @@ import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import {
+  hasApprovalAfterStep,
+  isApprovalNeededBeforeRunning,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import {
   runBashStep,
   runHttpStep,
   runJavaScriptStep,
@@ -39,6 +43,9 @@ export default class RunRunbook {
           alertId: true,
           scheduledMaintenanceId: true,
           triggeredByUserId: true,
+          triggerType: true,
+          triggerDetails: true,
+          inputs: true,
         },
         props: { isRoot: true },
       });
@@ -117,17 +124,33 @@ export default class RunRunbook {
       }
 
       /*
-       * Somebody else may have finished this execution while the previous step
-       * was in flight: a user cancelling it, or the stuck-execution sweep
-       * failing it after this Worker went quiet for too long. Neither can
-       * interrupt a step that is already running, but both mean nobody wants
-       * the rest of the runbook — and the array held here is now stale, so
-       * carrying on would write Cancelled steps back as Pending and keep
-       * dispatching scripts for a run the operator was told had stopped.
-       * Checked at the step boundary, which is the only place it is safe to
-       * stop.
+       * Somebody else may have finished this execution since it was read: a
+       * user cancelling it, or the stuck-execution sweep failing it after this
+       * Worker went quiet for too long. Both mean nobody wants the rest of the
+       * runbook — and the array held here is now stale, so carrying on would
+       * write Cancelled steps back as Pending and keep dispatching scripts for
+       * a run the operator was told had stopped. Neither can interrupt a step
+       * that is already running, so this is asked at the step boundaries:
+       * before a step starts, here, and again when it returns (below).
        */
       if (await this.hasReachedTerminalState(execution._id!)) {
+        return;
+      }
+
+      /*
+       * A step that asks for approval before it runs: the run stops here,
+       * before anything of the step starts, until someone approves it (the
+       * step routes record the approval and queue the run again, and this
+       * loop then runs it) or skips it (it never runs). The decision is the
+       * server's alone: no Runner is handed the step's job before then.
+       */
+      if (isApprovalNeededBeforeRunning(stepExec)) {
+        stepExec.status = RunbookStepExecutionStatus.WaitingForUser;
+        await this.persistStepExecutions(
+          execution._id!,
+          stepExecutions,
+          RunbookExecutionStatus.WaitingForManualStep,
+        );
         return;
       }
 
@@ -155,12 +178,16 @@ export default class RunRunbook {
         result = await this.runAutomatedStep(stepExec.step, {
           projectId: execution.projectId!,
           runbookExecutionId: new ObjectID(execution._id!),
+          runbookId: execution.runbookId,
           runbookName: execution.runbookNameSnapshot,
           incidentId: execution.incidentId,
           alertId: execution.alertId,
           scheduledMaintenanceId: execution.scheduledMaintenanceId,
           triggeredByUserId: execution.triggeredByUserId,
           previousStepExecutions: stepExecutions.slice(0, i),
+          trigger: execution.triggerType,
+          triggerDetails: execution.triggerDetails,
+          inputs: execution.inputs,
         });
       } catch (err) {
         result = {
@@ -170,14 +197,32 @@ export default class RunRunbook {
         };
       }
 
+      /*
+       * The run can end while this step is in flight: cancelled from the
+       * execution page, or failed by the stuck-execution sweep. The row says
+       * so already - the run Cancelled or Failed, this step and the ones
+       * after it Cancelled - and every write below would undo that: it puts
+       * back the status Running and the step array held here, the later
+       * steps Pending again, and the loop would go on to run them. A
+       * cancelled Runner job comes back as a failed step too, which would
+       * turn the cancelled run into a Failed one. So the step's result is
+       * not recorded on a run that has ended, and nothing more runs.
+       */
+      if (await this.hasReachedTerminalState(execution._id!)) {
+        return;
+      }
+
       stepExec.completedAt = new Date().toISOString();
       stepExec.output = result.output;
       if (result.success) {
-        if (stepExec.step.requireApproval) {
+        if (hasApprovalAfterStep(stepExec.step)) {
           /*
-           * Step ran successfully but is gated on user approval before the
-           * next step runs. Reuse the WaitingForUser flow so the existing
-           * completeManualStep API resumes execution on approval.
+           * A run started before approvals moved to the step they guard:
+           * its copy of the steps still asks for an approval after this
+           * one, so it stops here as it always did, and the step routes'
+           * approval lets it go on. Runs started since read that approval
+           * as one before the next step (RunbookStepApproval), and their
+           * steps never carry the old flag.
            */
           stepExec.status = RunbookStepExecutionStatus.WaitingForUser;
           await this.persistStepExecutions(

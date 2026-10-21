@@ -15,6 +15,7 @@ import Express, {
 import Response from "../Utils/Response";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -24,13 +25,13 @@ import {
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
+import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
-import { UserPermission } from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 export default class BaseAPI<
@@ -175,29 +176,6 @@ export default class BaseAPI<
 
     this.router = router;
     this.service = service;
-  }
-
-  @CaptureSpan()
-  public async getPermissionsForTenant(
-    req: ExpressRequest,
-  ): Promise<Array<UserPermission>> {
-    const permissions: Array<UserPermission> = [];
-
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-    if (
-      props &&
-      props.userTenantAccessPermission &&
-      props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-    ) {
-      return (
-        props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-          ?.permissions || []
-      );
-    }
-
-    return permissions;
   }
 
   public getTenantId(req: ExpressRequest): ObjectID | null {
@@ -410,6 +388,19 @@ export default class BaseAPI<
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
 
+    /*
+     * A record that does not exist, is in another project or is one the
+     * caller may not read is answered as missing (404) - the same answer
+     * for each, and the same as a change or a delete of it gets
+     * (getUnwrittenByIdError). It used to answer 200 with an empty body,
+     * which a client could not tell from a record with nothing in it.
+     */
+    if (!item) {
+      throw new NotFoundException(
+        `${new this.entityType().singularName || "Record"} not found.`,
+      );
+    }
+
     return Response.sendEntityResponse(req, res, item, this.entityType);
   }
 
@@ -423,10 +414,26 @@ export default class BaseAPI<
     ObjectID.validateUUID(idParam);
     const objectId: ObjectID = new ObjectID(idParam);
 
-    await this.service.deleteOneById({
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const numberOfDocsDeleted: number = await this.service.deleteOneById({
       id: objectId,
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      props: props,
     });
+
+    /*
+     * A delete that removed nothing says so, as an update does: a record
+     * the caller may not read is answered as missing (404), one they may
+     * read but not delete is refused. See getUnwrittenByIdError.
+     */
+    if (numberOfDocsDeleted === 0) {
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Delete,
+      });
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }
@@ -474,12 +481,21 @@ export default class BaseAPI<
      * `<input type="date">` posts "2027-01-01", and a hook that reads the
      * column back gets a string where it expects a Date. See
      * Types/Database/DateColumnValue.
+     *
+     * And a switch sent as text - "true", "yes", 1 - is the boolean the
+     * database stores for it, as on a create. DatabaseService turns them
+     * for every write and refuses a value the database would refuse; this
+     * keeps the PUT and the POST alike before the service sees either. See
+     * Types/Database/BooleanColumnValue.
      */
     const entityModel: TBaseModel = new this.entityType();
 
-    const item: PartialEntity<TBaseModel> = coerceDateColumnsInJSON(
-      coerceNumericColumnsInJSON(
-        JSONFunctions.deserialize(dataInBody as JSONObject),
+    const item: PartialEntity<TBaseModel> = coerceBooleanColumnsInJSON(
+      coerceDateColumnsInJSON(
+        coerceNumericColumnsInJSON(
+          JSONFunctions.deserialize(dataInBody as JSONObject),
+          entityModel,
+        ),
         entityModel,
       ),
       entityModel,
@@ -515,26 +531,32 @@ export default class BaseAPI<
         ? JSONFunctions.deserialize(miscDataInBody as JSONObject)
         : {};
 
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
     const numberOfDocsAffected: number = await this.service.updateOneById({
       id: new ObjectID(objectIdString),
       data: item,
       miscDataProps: miscDataProps,
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      props: props,
     });
 
     /*
      * The permission layer narrows the update query after we build it (tenant
-     * scope, access-control labels, owned scope), so it is possible to match
-     * no rows at all. Reporting 200 for that told the client the edit was
-     * saved when nothing was written - the change then "disappeared" on the
-     * next page load with no error anywhere.
+     * scope, access-control labels, owned scope, and what the caller may
+     * read), so it is possible to match no rows at all. Reporting 200 for
+     * that told the client the edit was saved when nothing was written - the
+     * change then "disappeared" on the next page load with no error
+     * anywhere. A record the caller may not read is answered as missing
+     * (404), one they may read but not change is refused. See
+     * getUnwrittenByIdError.
      */
     if (numberOfDocsAffected === 0) {
-      throw new NotAuthorizedException(
-        `Unable to update this ${(
-          new this.entityType().singularName || "item"
-        ).toLowerCase()}. It either does not exist, has been deleted, or you do not have permission to update it.`,
-      );
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Update,
+      });
     }
 
     return Response.sendEmptySuccessResponse(req, res);

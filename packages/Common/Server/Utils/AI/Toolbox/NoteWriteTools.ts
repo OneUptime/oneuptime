@@ -20,6 +20,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Private (internal) note tools — the team-only counterpart of
  * post_incident_status_update. Internal notes live in the dashboard's private
@@ -134,7 +135,12 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     const internalNote: IncidentInternalNote = new IncidentInternalNote();
     internalNote.incidentId = incidentId;
     internalNote.projectId = ctx.projectId;
-    internalNote.note = note;
+    /*
+     * The model wrote this from what it read, telemetry included: it stays
+     * Markdown, but nothing in it acts on its own where the note is shown -
+     * the feed, Slack and Teams (FeedMarkdown.aiWritten).
+     */
+    internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;
 
     const createdNote: IncidentInternalNote =
@@ -249,7 +255,12 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     const internalNote: AlertInternalNote = new AlertInternalNote();
     internalNote.alertId = alertId;
     internalNote.projectId = ctx.projectId;
-    internalNote.note = note;
+    /*
+     * The model wrote this from what it read, telemetry included: it stays
+     * Markdown, but nothing in it acts on its own where the note is shown -
+     * the feed, Slack and Teams (FeedMarkdown.aiWritten).
+     */
+    internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;
 
     const createdNote: AlertInternalNote =

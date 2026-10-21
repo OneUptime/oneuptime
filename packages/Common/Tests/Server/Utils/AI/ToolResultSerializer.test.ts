@@ -1,4 +1,6 @@
 import ToolResultSerializer, {
+  MAX_FIELD_LENGTH,
+  MAX_PAYLOAD_BYTES,
   SerializedResult,
 } from "../../../../Server/Utils/AI/Toolbox/Serializer";
 import { JSONObject } from "../../../../Types/JSON";
@@ -120,21 +122,38 @@ describe("ToolResultSerializer.serializeRows", () => {
 
   test("truncates long field values", () => {
     const result: SerializedResult = ToolResultSerializer.serializeRows([
-      { body: "x".repeat(2000) },
+      { body: "x".repeat(MAX_FIELD_LENGTH * 2) },
     ]);
     expect(result.isTruncated).toBe(true);
     expect(result.text).toContain("[truncated]");
-    expect(result.text.length).toBeLessThan(700);
+    expect(result.text.length).toBeLessThan(MAX_FIELD_LENGTH + 200);
+  });
+
+  test("keeps a whole stack trace in one field", () => {
+    const stack: string = Array.from(
+      { length: 30 },
+      (_: unknown, i: number) => {
+        return `    at handler${i} (/app/src/service/handler${i}.ts:${i + 10}:5)`;
+      },
+    ).join("\n");
+
+    const result: SerializedResult = ToolResultSerializer.serializeRows([
+      { stackTrace: `Error: connection refused\n${stack}` },
+    ]);
+
+    expect(stack.length).toBeGreaterThan(500);
+    expect(result.isTruncated).toBe(false);
+    expect(result.text).toContain("handler29.ts:39:5");
   });
 
   test("caps total payload size", () => {
     const rows: Array<JSONObject> = [];
     for (let i: number = 0; i < 50; i++) {
-      rows.push({ body: "y".repeat(490) });
+      rows.push({ body: "y".repeat(MAX_FIELD_LENGTH - 10) });
     }
     const result: SerializedResult = ToolResultSerializer.serializeRows(rows);
     expect(Buffer.byteLength(result.text, "utf8")).toBeLessThanOrEqual(
-      17 * 1024,
+      MAX_PAYLOAD_BYTES + 1024,
     );
     expect(result.isTruncated).toBe(true);
   });

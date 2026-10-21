@@ -14,6 +14,7 @@ enum EmailTemplateType {
   TwoFactorBackupCodeUsed = "TwoFactorBackupCodeUsed.hbs",
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
+  TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",
@@ -96,6 +97,8 @@ enum EmailTemplateType {
   UserOnCallShiftReminder = "UserOnCallShiftReminder.hbs",
   UserOnCallShiftReassigned = "UserOnCallShiftReassigned.hbs",
 
+  IncomingCallPolicyOwnerMissedCall = "IncomingCallPolicyOwnerMissedCall.hbs",
+
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
 
@@ -107,6 +110,9 @@ enum EmailTemplateType {
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
 
   NotificationRollup = "NotificationRollup.hbs",
+
+  // The marketing site's Resellers page form (Home/Utils/ResellerInquiry.ts).
+  ResellerInquiry = "ResellerInquiry.hbs",
 }
 
 export default EmailTemplateType;

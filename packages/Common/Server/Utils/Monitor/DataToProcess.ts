@@ -4,10 +4,12 @@ import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMo
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import ProfileMonitorResponse from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 
 type DataToProcess =
   | ProbeMonitorResponse
@@ -16,9 +18,11 @@ type DataToProcess =
   | ServerMonitorResponse
   | LogMonitorResponse
   | SecurityEventsMonitorResponse
+  | LlmMonitorResponse
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
-  | ProfileMonitorResponse;
+  | ProfileMonitorResponse
+  | ProbeStatusMonitorResponse;
 
 export default DataToProcess;

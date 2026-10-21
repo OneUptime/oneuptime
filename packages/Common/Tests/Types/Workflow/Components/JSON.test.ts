@@ -138,11 +138,15 @@ describe("Workflow JSON components", () => {
     expect(component.returnValues[0]!.type).toBe(ComponentInputType.Text);
   });
 
-  test("Text to JSON takes Text 'text' and returns JSON 'json'", () => {
+  test("Text to JSON takes LongText 'text' and returns JSON 'json'", () => {
     const component: ComponentMetadata = findComponent(ComponentID.TextToJson);
     expect(component.title).toBe("Text to JSON");
     expect(argumentIds(component)).toEqual(["text"]);
-    expect(component.arguments[0]!.type).toBe(ComponentInputType.Text);
+    /*
+     * A JSON document written as text: a multi-line box. Never JSON, which
+     * RunWorkflow would parse before the step could.
+     */
+    expect(component.arguments[0]!.type).toBe(ComponentInputType.LongText);
     expect(returnValueIds(component)).toEqual(["json"]);
     expect(component.returnValues[0]!.type).toBe(ComponentInputType.JSON);
   });

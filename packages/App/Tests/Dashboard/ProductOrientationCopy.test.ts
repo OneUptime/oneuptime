@@ -114,6 +114,7 @@ const NAV_DESCRIPTION_KEYS: Array<string> = [
   "navbar.items.workflowsDescription",
   "navbar.items.projectSettingsDescription",
   "navbar.items.databasesDescription",
+  "navbar.items.queuesDescription",
 ];
 
 // Single words that are legitimately spelled the same in some languages.
